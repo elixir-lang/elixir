@@ -120,8 +120,7 @@ module_form_fun(nil) -> '__FILE__';
 module_form_fun(_)   -> '__MODULE__'.
 
 module_form(Fun, Exprs, Line, File, Module, Vars) when
-    is_binary(File), is_list(Exprs), is_integer(Line), is_atom(Module) ->
-
+    is_binary(File), is_integer(Line), is_list(Exprs), is_atom(Module) ->
   Cons = lists:foldr(fun({ _, _, Var, _ }, Acc) ->
     { cons, Line, { var, Line, Var }, Acc }
   end, { nil, Line }, Vars),

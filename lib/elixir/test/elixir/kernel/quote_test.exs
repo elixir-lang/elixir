@@ -21,21 +21,21 @@ defmodule Kernel.QuoteTest do
 
   test :keep_line do
     ## DO NOT MOVE THIS LINE
-    assert quote(line: :keep, do: bar(1,2,3)) == { :bar, 24, [1,2,3] }
+    assert quote(line: :keep, do: bar(1,2,3)) == { :bar, [line: 24], [1,2,3] }
   end
 
   test :fixed_line do
-    assert quote(line: 3, do: bar(1,2,3)) == { :bar, 3, [1,2,3] }
+    assert quote(line: 3, do: bar(1,2,3)) == { :bar, [line: 3], [1,2,3] }
   end
 
   test :keep_location do
     ## DO NOT MOVE THIS LINE
     assert quote(location: :keep, do: bar(1,2,3)) == {
       :__scope__,
-      33,
+      [line: 33],
       [
         [file: __FILE__],
-        [do: { :bar, 33, [1,2,3] }]
+        [do: { :bar, [line: 33], [1,2,3] }]
       ]
     }
   end
@@ -43,7 +43,7 @@ defmodule Kernel.QuoteTest do
   test :quote_line_var do
     ## DO NOT MOVE THIS LINE
     line = __ENV__.line
-    assert quote(line: line, do: bar(1,2,3)) == { :bar, 45, [1,2,3] }
+    assert quote(line: line, do: bar(1,2,3)) == { :bar, [line: 45], [1,2,3] }
   end
 
   test :unquote_call do

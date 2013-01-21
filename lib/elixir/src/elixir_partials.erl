@@ -6,28 +6,28 @@
 handle(Original, S) ->
   handle(Original, S, default).
 
-handle({ _, Line, Args } = Original, S, Opt) when is_list(Args), S#elixir_scope.context /= assign ->
+handle({ _, Meta, Args } = Original, S, Opt) when is_list(Args), S#elixir_scope.context /= assign ->
   case convert(Args, S, Opt) of
     { Call, Def, SC } when Def /= [] ->
-      Final = validate(Line, Def, SC),
+      Final = validate(Meta, Def, SC),
       Block = setelement(3, Original, Call),
-      elixir_translator:translate_fn(Line, [{ Final, Block }], SC);
+      elixir_translator:translate_fn(Meta, [{ Final, Block }], SC);
     _ -> error
   end;
 
 handle(_Original, _S, _Opt) ->
   error.
 
-validate(Line, Def, S) ->
-  validate(Line, lists:sort(Def), 1, S).
+validate(Meta, Def, S) ->
+  validate(Meta, lists:sort(Def), 1, S).
 
-validate(Line, [{ Pos, Item }|T], Pos, S) ->
-  [Item|validate(Line, T, Pos + 1, S)];
+validate(Meta, [{ Pos, Item }|T], Pos, S) ->
+  [Item|validate(Meta, T, Pos + 1, S)];
 
-validate(Line, [{ Pos, _ }|_], Expected, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.file, "partial variable &~w cannot be defined without &~w", [Pos, Expected]);
+validate(Meta, [{ Pos, _ }|_], Expected, S) ->
+  elixir_errors:syntax_error(Meta, S#elixir_scope.file, "partial variable &~w cannot be defined without &~w", [Pos, Expected]);
 
-validate(_Line, [], _Pos, _S) ->
+validate(_Meta, [], _Pos, _S) ->
   [].
 
 %% This function receives arguments and then checks
@@ -37,14 +37,14 @@ validate(_Line, [], _Pos, _S) ->
 %% function definition and the third one is the new scope.
 convert(List, S, Opt) -> convert(List, S, Opt, [], []).
 
-convert([{'|', Line, [_, _] = Args}|T], S, allow_tail, CallAcc, DefAcc) ->
+convert([{'|', Meta, [_, _] = Args}|T], S, allow_tail, CallAcc, DefAcc) ->
   { NewArgs, NewDef, NewS } = convert(Args, S, allow_tail, [], DefAcc),
-  convert(T, NewS, allow_tail, [{ '|', Line, NewArgs}|CallAcc], NewDef);
+  convert(T, NewS, allow_tail, [{ '|', Meta, NewArgs}|CallAcc], NewDef);
 
-convert([{'&', Line, [Pos]}|T], S, Opt, CallAcc, DefAcc) ->
+convert([{'&', Meta, [Pos]}|T], S, Opt, CallAcc, DefAcc) ->
   case lists:keyfind(Pos, 1, DefAcc) of
     false ->
-      { Var, SC } = elixir_scope:build_ex_var(Line, S),
+      { Var, SC } = elixir_scope:build_ex_var(?line(Meta), S),
       convert(T, SC, Opt, [Var|CallAcc], [{Pos,Var}|DefAcc]);
     {Pos,Var} ->
       convert(T, S, Opt, [Var|CallAcc], DefAcc)

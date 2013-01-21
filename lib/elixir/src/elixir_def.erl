@@ -14,7 +14,7 @@
 
 %% Table management functions. Called internally.
 
-table(Module) -> ?ELIXIR_ATOM_CONCAT([f, Module]).
+table(Module) -> ?atom_concat([f, Module]).
 
 build_table(Module) ->
   FunctionTable = table(Module),
@@ -44,7 +44,8 @@ reset_last(Module) ->
 %%
 %% If we just analyzed the compiled structure (i.e. the function availables
 %% before evaluating the function body), we would see both definitions.
-wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
+wrap_definition(Kind, Meta, Name, Args, Guards, Expr, S) ->
+  Line  = ?line(Meta),
   MetaS = elixir_scope:serialize(S),
 
   Invoke = [
@@ -58,7 +59,7 @@ wrap_definition(Kind, Line, Name, Args, Guards, Expr, S) ->
     MetaS
   ],
 
-  ?ELIXIR_WRAP_CALL(Line, ?MODULE, store_definition, Invoke).
+  ?wrap_call(Line, ?MODULE, store_definition, Invoke).
 
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
@@ -99,7 +100,7 @@ store_definition(Kind, Line, Module, Name, Args, Guards, Body, RawS) ->
 
 def_body(_Line, nil)            -> nil;
 def_body(_Line, [{ do, Expr }]) -> Expr;
-def_body(Line, Else)            -> { 'try', Line, [Else] }.
+def_body(Line, Else)            -> { 'try', [{line,Line}], [Else] }.
 
 %% @on_definition
 
@@ -137,7 +138,7 @@ compile_super(_Module, _S) -> ok.
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Kind, Line, Name, RawArgs, RawGuards, RawExpr, S) ->
+translate_definition(Kind, Line, Name, RawArgs, RawGuards, RawExpr, S) when is_integer(Line) ->
   Args    = elixir_quote:linify(Line, RawArgs),
   Guards  = elixir_quote:linify(Line, RawGuards),
   Expr    = elixir_quote:linify(Line, RawExpr),
@@ -148,7 +149,7 @@ translate_definition(Kind, Line, Name, RawArgs, RawGuards, RawExpr, S) ->
   %% not affect the arity of the stored function, but the clause
   %% already contains it.
   ExtendedArgs = case IsMacro of
-    true  -> [{ '_@CALLER', Line, nil }|Args];
+    true  -> [{ '_@CALLER', [{line,Line}], nil }|Args];
     false -> Args
   end,
 
@@ -170,7 +171,7 @@ translate_definition(Kind, Line, Name, RawArgs, RawGuards, RawExpr, S) ->
     true  ->
       FBody = { 'match', Line,
         { 'var', Line, '__CALLER__' },
-        ?ELIXIR_WRAP_CALL(Line, elixir_scope, to_ex_env, [{ var, Line, '_@CALLER' }])
+        ?wrap_call(Line, elixir_scope, to_ex_env, [{ var, Line, '_@CALLER' }])
       },
       setelement(5, NClause, [FBody|element(5, NClause)]);
     false -> NClause
@@ -200,7 +201,7 @@ unwrap_stored_definition([Fun|T], File, Exports, Private, Def, Defmacro, Defmacr
 
 unwrap_stored_definition([Fun|T], File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defmacro ->
   { Name, Arity } = Tuple = element(1, Fun),
-  Macro = { ?ELIXIR_MACRO(Name), Arity + 1 },
+  Macro = { ?elixir_macro(Name), Arity + 1 },
 
   unwrap_stored_definition(
     T, File, [Macro|Exports], Private, Def, [Tuple|Defmacro], Defmacrop,

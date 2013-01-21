@@ -13,7 +13,8 @@
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
-translate_var(Line, Name, Kind, S) ->
+translate_var(Meta, Name, Kind, S) ->
+  Line = ?line(Meta),
   Vars = S#elixir_scope.vars,
 
   case Name of
@@ -47,7 +48,7 @@ translate_var(Line, Name, Kind, S) ->
         _ ->
           case orddict:find({ Name, Kind }, Vars) of
             { ok, VarName } -> { { var, Line, VarName }, S };
-            error -> elixir_translator:translate_each({ Name, Line, [] }, S)
+            error -> elixir_translator:translate_each({ Name, Meta, [] }, S)
           end
       end
   end.
@@ -64,19 +65,19 @@ build_var_counter(Key, #elixir_scope{counter=Counter} = S) ->
   New = orddict:update_counter(Key, 1, Counter),
   { orddict:fetch(Key, New), S#elixir_scope{counter=New} }.
 
-build_erl_var(Line, Key, Name, S) ->
+build_erl_var(Line, Key, Name, S) when is_integer(Line) ->
   { Counter, NS } = build_var_counter(Key, S),
-  Var = { var, Line, ?ELIXIR_ATOM_CONCAT([Name, "@", Counter]) },
+  Var = { var, Line, ?atom_concat([Name, "@", Counter]) },
   { Var, NS }.
 
-build_ex_var(Line, Key, Name, S) ->
+build_ex_var(Line, Key, Name, S) when is_integer(Line) ->
   Context = case S#elixir_scope.module of
     nil -> 'Elixir';
     Mod -> Mod
   end,
 
   { Counter, NS } = build_var_counter(Key, S),
-  Var = { ?ELIXIR_ATOM_CONCAT([Name, "@", Counter]), Line, Context },
+  Var = { ?atom_concat([Name, "@", Counter]), [{line,Line}], Context },
   { Var, NS }.
 
 % Handle Macro.Env conversion
@@ -84,12 +85,12 @@ build_ex_var(Line, Key, Name, S) ->
 to_erl_env(Scope) ->
   elixir_tree_helpers:abstract_syntax(to_ex_env(Scope)).
 
-to_ex_env({ Line, Tuple }) when element(1, Tuple) == 'Elixir.Macro.Env' ->
+to_ex_env({ Line, Tuple }) when element(1, Tuple) == 'Elixir.Macro.Env', is_integer(Line) ->
   setelement(4, Tuple, Line);
 
 to_ex_env({ Line, #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
-    requires=Requires,macros=Macros,functions=Functions} }) ->
+    requires=Requires,macros=Macros,functions=Functions} }) when is_integer(Line) ->
   { 'Elixir.Macro.Env', Module, File, Line, Function, Aliases, Context, Requires, Functions, Macros }.
 
 filename(#elixir_scope{file=File}) -> File;
@@ -103,12 +104,12 @@ serialize(S) ->
       S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases, S#elixir_scope.scheduled }
   ).
 
-serialize_with_vars(Line, S) ->
+serialize_with_vars(Line, S) when is_integer(Line) ->
   { Vars, _ } = orddict:fold(fun({ Key, Kind }, Value, { Acc, Counter }) ->
     { { cons, Line, { tuple, Line, [
       { atom, Line, Key },
       { atom, Line, Kind },
-      { atom, Line, ?ELIXIR_ATOM_CONCAT(["_@", Counter]) },
+      { atom, Line, ?atom_concat(["_@", Counter]) },
       { var,  Line, Value }
     ] }, Acc }, Counter + 1 }
   end, { { nil, Line }, 0 }, S#elixir_scope.vars),

@@ -1,11 +1,12 @@
--define(ELIXIR_WRAP_CALL(Line, Module, Function, Args),
+-define(wrap_call(Line, Module, Function, Args),
   { call, Line,
     { remote, Line, { atom, Line, Module }, { atom, Line, Function } },
     Args
   }).
 
--define(ELIXIR_ATOM_CONCAT(Atoms), list_to_atom(lists:concat(Atoms))).
--define(ELIXIR_MACRO(Macro), list_to_atom(lists:concat(['MACRO-',Macro]))).
+-define(atom_concat(Atoms), list_to_atom(lists:concat(Atoms))).
+-define(elixir_macro(Macro), list_to_atom(lists:concat(['MACRO-',Macro]))).
+-define(line(Opts), elixir_tree_helpers:get_line(Opts)).
 
 -record(elixir_scope, {
   context=nil,                                   %% can be assign, guards or nil
@@ -37,7 +38,7 @@
   unquote=true
 }).
 
-%% used in tokinization and interpolation
+%% Used in tokenization and interpolation
 
 -define(is_digit(S), S >= $0 andalso S =< $9).
 -define(is_hex(S), ?is_digit(S) orelse (S >= $A andalso S =< $F) orelse (S >= $a andalso S =< $f)).

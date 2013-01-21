@@ -386,7 +386,7 @@ tokenize([H|_] = String, Line, Scope, Tokens) when ?is_upcase(H) ->
     [$:|T] when hd(T) /= $: ->
       tokenize(T, Line, Scope, [{ kw_identifier, Line, Atom }|Tokens]);
     _ ->
-      tokenize(Rest, Line, Scope, [{ '__aliases__', Line, [Atom] }|Tokens])
+      tokenize(Rest, Line, Scope, [{ aliases, Line, [Atom] }|Tokens])
   end;
 
 % Identifier

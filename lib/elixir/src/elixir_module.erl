@@ -31,7 +31,7 @@ data_table(Module) ->
   Module.
 
 docs_table(Module) ->
-  ?ELIXIR_ATOM_CONCAT([o, Module]).
+  ?atom_concat([o, Module]).
 
 %% TRANSFORMATION FUNCTIONS
 
@@ -39,12 +39,13 @@ docs_table(Module) ->
 %% The abstract form for extra arguments may be given and they
 %% will be passed to the invoked function.
 
-translate(Line, Ref, Block, S) ->
+translate(Meta, Ref, Block, S) ->
+  Line            = ?line(Meta),
   MetaBlock       = elixir_tree_helpers:abstract_syntax(Block),
   { MetaS, Vars } = elixir_scope:serialize_with_vars(Line, S),
 
   Args = [{integer, Line, Line}, Ref, MetaBlock, Vars, MetaS],
-  ?ELIXIR_WRAP_CALL(Line, ?MODULE, compile, Args).
+  ?wrap_call(Line, ?MODULE, compile, Args).
 
 %% The compilation hook.
 
@@ -220,7 +221,7 @@ translate_spec({ Spec, Rest }, Defmacro, Defmacrop) ->
       case ordsets:is_element(Spec, Defmacro) of
         true ->
           { Name, Arity } = Spec,
-          { { ?ELIXIR_MACRO(Name), Arity + 1 }, spec_for_macro(Rest) };
+          { { ?elixir_macro(Name), Arity + 1 }, spec_for_macro(Rest) };
         false ->
           { Spec, Rest }
       end
@@ -324,9 +325,10 @@ eval_callbacks(Line, Module, Name, Args, RawS) ->
   Binding   = binding_for_eval(Module, []),
   Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
   Requires  = S#elixir_scope.requires,
+  Meta      = [{line,Line}],
 
   lists:foreach(fun({M,F}) ->
-    Expr  = { { '.', Line, [M,F] }, Line, Args },
+    Expr  = { { '.', Meta, [M,F] }, Meta, Args },
     Scope = case ordsets:is_element(M, Requires) of
       true  -> S;
       false -> S#elixir_scope{requires=ordsets:add_element(M, Requires)}

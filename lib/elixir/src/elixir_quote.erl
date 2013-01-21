@@ -3,87 +3,94 @@
 -include("elixir.hrl").
 
 %% Apply the line from site call on quoted contents.
+linify(Line, Exprs) when is_integer(Line) ->
+  do_linify(Line, Exprs).
 
-linify(Line, { Left, 0, Right }) ->
-  { linify(Line, Left), Line, linify(Line, Right) };
+do_linify(Line, { Left, Meta, Right }) ->
+  NewMeta = case ?line(Meta) of
+    0 -> lists:keystore(line, 1, Meta, { line, Line });
+    _ -> Meta
+  end,
+  { do_linify(Line, Left), NewMeta, do_linify(Line, Right) };
 
-linify(Line, Tuple) when is_tuple(Tuple) ->
-  list_to_tuple(linify(Line, tuple_to_list(Tuple)));
+do_linify(Line, { Left, Right }) ->
+  { do_linify(Line, Left), do_linify(Line, Right) };
 
-linify(Line, List) when is_list(List) ->
-  [linify(Line, X) || X <- List];
+do_linify(Line, List) when is_list(List) ->
+  [do_linify(Line, X) || X <- List];
 
-linify(_, Else) -> Else.
+do_linify(_, Else) -> Else.
 
 %% Join quoted checks for quote arguments at runtime
 %% in order to properly insert them into the tree
-join_quoted(Line, Left, { '__aliases__', _, Args }, nil, _File) ->
-  { '__aliases__', Line, [Left|Args] };
+join_quoted(Meta, Left, { '__aliases__', _, Args }, nil, _File) ->
+  { '__aliases__', Meta, [Left|Args] };
 
-join_quoted(Line, Left, Right, nil, _File) when is_atom(Right) ->
+join_quoted(Meta, Left, Right, nil, _File) when is_atom(Right) ->
   case atom_to_list(Right) of
     "Elixir-" ++ _ ->
-      { '__aliases__', Line, [Left, Right] };
+      { '__aliases__', Meta, [Left, Right] };
     _ ->
-      { { '.', Line, [Left, Right] }, Line, [] }
+      { { '.', Meta, [Left, Right] }, Meta, [] }
   end;
 
-join_quoted(Line, Left, Right, Args, _File) when is_atom(Right) ->
-  { { '.', Line, [Left, Right] }, Line, Args };
+join_quoted(Meta, Left, Right, Args, _File) when is_atom(Right) ->
+  { { '.', Meta, [Left, Right] }, Meta, Args };
 
-join_quoted(Line, _Left, _Right, _Args, File) ->
-  elixir_errors:syntax_error(Line, File, "expected unquote after dot to return an atom or an alias").
+join_quoted(Meta, _Left, _Right, _Args, File) ->
+  elixir_errors:syntax_error(Meta, File, "expected unquote after dot to return an atom or an alias").
 
 %% Translation
 
-quote({ 'unquote_splicing', Line, _ } = Expr, #elixir_quote{unquote=true} = Q, S) ->
-  do_quote({ '__block__', Line, [Expr] }, Q, S);
+quote({ 'unquote_splicing', Meta, _ } = Expr, #elixir_quote{unquote=true} = Q, S) ->
+  do_quote({ '__block__', Meta, [Expr] }, Q, S);
 
 quote(Else, Q, S) ->
   do_quote(Else, Q, S).
 
-do_quote({ unquote, _Line, [Expr] }, #elixir_quote{unquote=true}, S) ->
+do_quote({ unquote, _Meta, [Expr] }, #elixir_quote{unquote=true}, S) ->
   elixir_translator:translate_each(Expr, S);
 
-do_quote({ 'alias!', _Line, [Expr] }, Q, S) ->
+do_quote({ 'alias!', _Meta, [Expr] }, Q, S) ->
   do_quote(Expr, Q#elixir_quote{expand_aliases=false}, S);
 
-do_quote({ '__aliases__', Line, [H|_] = Aliases }, #elixir_quote{expand_aliases=true} = Q, S) when is_atom(H) and H /= 'Elixir' ->
+do_quote({ '__aliases__', Meta, [H|_] = Aliases }, #elixir_quote{expand_aliases=true} = Q, S) when is_atom(H) and H /= 'Elixir' ->
+  Line = ?line(Meta),
   { TAliases, SA } = do_quote(['Elixir'|Aliases], Q, S),
 
   { { tuple, Line, [
     { atom, Line, '__aliases__' },
-    line(Line, Q),
+    meta(Meta, Q),
     TAliases
   ] }, SA };
 
-do_quote({ { { '.', Line, [Left, unquote] }, _, [Expr] }, _, Args }, #elixir_quote{unquote=true} = Q, S) ->
-  All = [Left, { unquote, Line, [Expr] }, Args, S#elixir_scope.file],
+do_quote({ { { '.', Meta, [Left, unquote] }, _, [Expr] }, _, Args }, #elixir_quote{unquote=true} = Q, S) ->
+  All  = [Left, { unquote, Meta, [Expr] }, Args, S#elixir_scope.file],
   { TAll, TS } = lists:mapfoldl(fun(X, Acc) -> do_quote(X, Q, Acc) end, S, All),
-  { ?ELIXIR_WRAP_CALL(Line, elixir_quote, join_quoted, [line(Line, Q)|TAll]), TS };
+  { ?wrap_call(?line(Meta), elixir_quote, join_quoted, [meta(Meta, Q)|TAll]), TS };
 
-do_quote({ { '.', Line, [Left, unquote] }, _, [Expr] }, #elixir_quote{unquote=true} = Q, S) ->
-  All = [Left, { unquote, Line, [Expr] }, nil, S#elixir_scope.file],
+do_quote({ { '.', Meta, [Left, unquote] }, _, [Expr] }, #elixir_quote{unquote=true} = Q, S) ->
+  All = [Left, { unquote, Meta, [Expr] }, nil, S#elixir_scope.file],
   { TAll, TS } = lists:mapfoldl(fun(X, Acc) -> do_quote(X, Q, Acc) end, S, All),
-  { ?ELIXIR_WRAP_CALL(Line, elixir_quote, join_quoted, [line(Line, Q)|TAll]), TS };
+  { ?wrap_call(?line(Meta), elixir_quote, join_quoted, [meta(Meta, Q)|TAll]), TS };
 
-do_quote({ Left, Line, nil }, Q, S) when is_atom(Left) ->
+do_quote({ Left, Meta, nil }, Q, S) when is_atom(Left) ->
+  Line  = ?line(Meta),
   Tuple = { tuple, Line, [
     { atom, Line, Left },
-    line(Line, Q),
+    meta(Meta, Q),
     { atom, Line, Q#elixir_quote.var_context }
   ] },
   { Tuple, S };
 
-do_quote({ Left, Line, Right }, Q, S) ->
-  { TLeft, LS } = do_quote(Left, Q, S),
-  { TRight, RS } = do_quote(Right, Q, LS),
+% do_quote({ Name, Line, Args } = Tuple, #elixir_quote{expand_imports=true} = Q, S) when is_atom(Name), is_list(Args) ->
+%   case elixir_dispatch:find_import(Line, Name, length(Args), S) of
+%     false -> do_quote_tuple(Tuple, Q, S);
+%     Receiver -> do_quote_tuple({ { '.', Line, [Receiver, Name] }, Line, Args }, Q, S)
+%   end;
 
-  %% We need to remove line numbers from quoted exprs
-  %% otherwise the line number quotes in the macro will
-  %% get mixed with the unquoted contents
-  Tuple = { tuple, Line, [TLeft, line(Line, Q), TRight] },
-  { Tuple, RS };
+do_quote({ _, _, _ } = Tuple, Q, S) ->
+  do_quote_tuple(Tuple, Q, S);
 
 % Handle two item tuples but still allow them to be spliced.
 do_quote({ Left, Right }, Q, S) when
@@ -91,25 +98,35 @@ do_quote({ Left, Right }, Q, S) when
   not is_tuple(Right) orelse (element(1, Right) /= unquote_splicing) ->
   { TLeft, LS } = do_quote(Left, Q, S),
   { TRight, RS } = do_quote(Right, Q, LS),
-  { { tuple, int_line(Q), [TLeft, TRight] }, RS };
+  { { tuple, line(Q), [TLeft, TRight] }, RS };
 
 do_quote({ Left, Right }, Q, S) ->
-  do_quote({ '{}', int_line(Q), [Left, Right] }, Q, S);
+  do_quote({ '{}', [{line,line(Q)}], [Left, Right] }, Q, S);
 
 do_quote(List, Q, S) when is_list(List) ->
   splice(List, Q, [], [], S);
 
 do_quote(Number, Q, S) when is_integer(Number) ->
-  { { integer, int_line(Q), Number }, S };
+  { { integer, line(Q), Number }, S };
 
 do_quote(Number, Q, S) when is_float(Number) ->
-  { { float, int_line(Q), Number }, S };
+  { { float, line(Q), Number }, S };
 
 do_quote(Atom, Q, S) when is_atom(Atom) ->
-  { { atom, int_line(Q), Atom }, S };
+  { { atom, line(Q), Atom }, S };
 
 do_quote(Bitstring, _Q, S) when is_bitstring(Bitstring) ->
   { elixir_tree_helpers:abstract_syntax(Bitstring), S }.
+
+do_quote_tuple({ Left, Meta, Right }, Q, S) ->
+  { TLeft, LS } = do_quote(Left, Q, S),
+  { TRight, RS } = do_quote(Right, Q, LS),
+
+  %% We need to remove line numbers from quoted exprs
+  %% otherwise the line number quotes in the macro will
+  %% get mixed with the unquoted contents
+  Tuple = { tuple, ?line(Meta), [TLeft, meta(Meta, Q), TRight] },
+  { Tuple, RS }.
 
 % Loop through the list finding each unquote_splicing entry.
 
@@ -118,10 +135,10 @@ splice([{ unquote_splicing, _, [Args] }|T], #elixir_quote{unquote=true} = Q, Buf
   { TArgs, TS } = elixir_translator:translate_each(Args, NewS),
   splice(T, Q, [], [TArgs|NewAcc], TS);
 
-splice([{ '|', Line, [{ unquote_splicing, _, [_] } = Left, Right] }], #elixir_quote{unquote=true} = Q, Buffer, Acc, S) ->
+splice([{ '|', Meta, [{ unquote_splicing, _, [_] } = Left, Right] }], #elixir_quote{unquote=true} = Q, Buffer, Acc, S) ->
   { TLeft, SL }  = splice([Left], Q, Buffer, Acc, S),
   { TRight, SR } = do_quote(Right, Q, SL),
-  { { op, Line, '++', TLeft, TRight }, SR };
+  { { op, ?line(Meta), '++', TLeft, TRight }, SR };
 
 splice([H|T], Q, Buffer, Acc, S) ->
   splice(T, Q, [H|Buffer], Acc, S);
@@ -130,12 +147,12 @@ splice([], Q, Buffer, Acc, S) ->
   { NewAcc, NewS } = from_buffer_to_acc(Buffer, Q, Acc, S),
   case NewAcc of
     [] ->
-      { { nil, int_line(Q) }, NewS };
+      { { nil, line(Q) }, NewS };
     [List] ->
       { List, NewS };
     _ ->
-      List = elixir_tree_helpers:build_simple_reverse_list(int_line(Q), NewAcc),
-      { ?ELIXIR_WRAP_CALL(int_line(Q), lists, append, [List]), NewS }
+      List = elixir_tree_helpers:build_simple_reverse_list(line(Q), NewAcc),
+      { ?wrap_call(line(Q), lists, append, [List]), NewS }
   end.
 
 from_buffer_to_acc([], _Q, Acc, S) ->
@@ -143,14 +160,19 @@ from_buffer_to_acc([], _Q, Acc, S) ->
 
 from_buffer_to_acc(Buffer, Q, Acc, S) ->
   { New, NewS } = elixir_tree_helpers:build_reverse_list(
-    fun(X, AccS) -> do_quote(X, Q, AccS) end, Buffer, int_line(Q), S),
+    fun(X, AccS) -> do_quote(X, Q, AccS) end, Buffer, line(Q), S),
   { [New|Acc], NewS }.
 
-line(Line, #elixir_quote{line=keep})  -> { integer, Line, Line };
-line(_Line, #elixir_quote{line=Line}) -> Line.
+meta(Meta, #elixir_quote{line=keep}) ->
+  elixir_tree_helpers:abstract_syntax(Meta);
+meta(Meta, #elixir_quote{line=nil}) ->
+  elixir_tree_helpers:abstract_syntax(lists:keydelete(line, 1, Meta));
+meta(Meta, #elixir_quote{line=Line} = Q) ->
+  { cons,
+    line(Q),
+    { tuple, line(Q), [{ atom, line(Q), line }, Line] },
+    elixir_tree_helpers:abstract_syntax(lists:keydelete(line, 1, Meta))
+  }.
 
-int_line(Q) ->
-  case line(0, Q) of
-    { integer, _, Line } -> Line;
-    _ -> 0
-  end.
+line(#elixir_quote{line={ integer, _, Line }}) -> Line;
+line(_) -> 0.

@@ -25,6 +25,9 @@
   * [String] `String.rstrip` and `String.lstrip` now verify if argument is a binary
   * [Typespec] Support `...` inside typespec's lists
 
+* backwards incompatible changes
+  * [Kernel] The AST now allows metadata to be attached to each node. This means the second item in the AST is no longer an integer (representing the line), but a keywords list. Code that relies on the line information from AST or that manually generate AST nodes need to be properly updated
+
 * deprecations
   * [Dict] Deprecate `Binary.Dict` and `OrdDict` in favor of `HashDict` and `List.Dict`
   * [File] Deprecate path related functions in favor of the module `Path`

@@ -26,34 +26,34 @@ to_dot(L)  -> L.
 
 %% Raised during macros translation.
 
--spec syntax_error(non_neg_integer(), file:filename(), binary() | string()) -> no_return().
--spec syntax_error(non_neg_integer(), file:filename(), binary() | string(), list()) -> no_return().
+-spec syntax_error(non_neg_integer() | list(), file:filename(), binary() | string()) -> no_return().
+-spec syntax_error(non_neg_integer() | list(), file:filename(), binary() | string(), list()) -> no_return().
 
-syntax_error(Line, File, Message) when is_list(Message) ->
-  syntax_error(Line, File, iolist_to_binary(Message));
+syntax_error(Meta, File, Message) when is_list(Message) ->
+  syntax_error(Meta, File, iolist_to_binary(Message));
 
-syntax_error(Line, File, Message) when is_binary(Message) ->
-  raise(Line, File, 'Elixir.SyntaxError', Message).
+syntax_error(Meta, File, Message) when is_binary(Message) ->
+  raise(Meta, File, 'Elixir.SyntaxError', Message).
 
-syntax_error(Line, File, Format, Args)  ->
+syntax_error(Meta, File, Format, Args)  ->
   Message = io_lib:format(Format, Args),
-  raise(Line, File, 'Elixir.SyntaxError', iolist_to_binary(Message)).
+  raise(Meta, File, 'Elixir.SyntaxError', iolist_to_binary(Message)).
 
 %% Raised on tokenizing/parsing
 
--spec parse_error(non_neg_integer(), file:filename(), iolist() | atom(), [] | iolist()) -> no_return().
+-spec parse_error(non_neg_integer() | list(), file:filename(), iolist() | atom(), [] | iolist()) -> no_return().
 
-parse_error(Line, File, Error, []) ->
+parse_error(Meta, File, Error, []) ->
   Message = case Error of
     "syntax error before: " -> <<"syntax error: expression is incomplete">>;
     _ -> iolist_to_binary(Error)
   end,
-  raise(Line, File, 'Elixir.TokenMissingError', Message);
+  raise(Meta, File, 'Elixir.TokenMissingError', Message);
 
-parse_error(Line, File, "syntax error before: ", "'end'") ->
-  raise(Line, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
+parse_error(Meta, File, "syntax error before: ", "'end'") ->
+  raise(Meta, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
 
-parse_error(Line, File, Error, Token) ->
+parse_error(Meta, File, Error, Token) ->
   BinError = if
     is_atom(Error) -> atom_to_binary(Error, utf8);
     true -> iolist_to_binary(Error)
@@ -65,15 +65,15 @@ parse_error(Line, File, Error, Token) ->
   end,
 
   Message = <<BinError / binary, BinToken / binary >>,
-  raise(Line, File, 'Elixir.SyntaxError', Message).
+  raise(Meta, File, 'Elixir.SyntaxError', Message).
 
 %% Raised during compilation
 
 -spec form_error(non_neg_integer(), file:filename(), module(), any()) -> no_return().
 
-form_error(Line, File, Module, Desc) ->
+form_error(Meta, File, Module, Desc) ->
   Message = iolist_to_binary(format_error(Module, Desc)),
-  raise(Line, File, 'Elixir.CompileError', Message).
+  raise(Meta, File, 'Elixir.CompileError', Message).
 
 %% Shows a deprecation message
 
@@ -132,33 +132,36 @@ handle_file_error(File, {Line,Module,Desc}) ->
 
 %% Assertions
 
-assert_no_function_scope(_Line, _Kind, #elixir_scope{function=nil}) -> [];
-assert_no_function_scope(Line, Kind, S) ->
-  syntax_error(Line, S#elixir_scope.file, "cannot invoke ~s inside a function", [Kind]).
+assert_no_function_scope(_Meta, _Kind, #elixir_scope{function=nil}) -> [];
+assert_no_function_scope(Meta, Kind, S) ->
+  syntax_error(Meta, S#elixir_scope.file, "cannot invoke ~s inside a function", [Kind]).
 
-assert_no_assign_or_guard_scope(Line, Kind, S) ->
-  assert_no_assign_scope(Line, Kind, S),
-  assert_no_guard_scope(Line, Kind, S).
+assert_no_assign_or_guard_scope(Meta, Kind, S) ->
+  assert_no_assign_scope(Meta, Kind, S),
+  assert_no_guard_scope(Meta, Kind, S).
 
-assert_no_assign_scope(Line, Kind, #elixir_scope{context=assign} = S) ->
-  syntax_error(Line, S#elixir_scope.file, "cannot invoke ~s inside assign", [Kind]);
-assert_no_assign_scope(_Line, _Kind, _S) -> [].
+assert_no_assign_scope(Meta, Kind, #elixir_scope{context=assign} = S) ->
+  syntax_error(Meta, S#elixir_scope.file, "cannot invoke ~s inside assign", [Kind]);
+assert_no_assign_scope(_Meta, _Kind, _S) -> [].
 
-assert_no_guard_scope(Line, Kind, #elixir_scope{context=guard} = S) ->
-  syntax_error(Line, S#elixir_scope.file, "cannot invoke ~s inside guard", [Kind]);
-assert_no_guard_scope(_Line, _Kind, _S) -> [].
+assert_no_guard_scope(Meta, Kind, #elixir_scope{context=guard} = S) ->
+  syntax_error(Meta, S#elixir_scope.file, "cannot invoke ~s inside guard", [Kind]);
+assert_no_guard_scope(_Meta, _Kind, _S) -> [].
 
-assert_module_scope(Line, Kind, #elixir_scope{module=nil,file=File}) ->
-  syntax_error(Line, File, "cannot invoke ~s outside module", [Kind]);
-assert_module_scope(_Line, _Kind, #elixir_scope{module=Module}) -> Module.
+assert_module_scope(Meta, Kind, #elixir_scope{module=nil,file=File}) ->
+  syntax_error(Meta, File, "cannot invoke ~s outside module", [Kind]);
+assert_module_scope(_Meta, _Kind, #elixir_scope{module=Module}) -> Module.
 
-assert_function_scope(Line, Kind, #elixir_scope{function=nil,file=File}) ->
-  syntax_error(Line, File, "cannot invoke ~s outside function", [Kind]);
-assert_function_scope(_Line, _Kind, #elixir_scope{function=Function}) -> Function.
+assert_function_scope(Meta, Kind, #elixir_scope{function=nil,file=File}) ->
+  syntax_error(Meta, File, "cannot invoke ~s outside function", [Kind]);
+assert_function_scope(_Meta, _Kind, #elixir_scope{function=Function}) -> Function.
 
 %% Helpers
 
-raise(Line, File, Kind, Message) ->
+raise(Meta, File, Kind, Message) when is_list(Meta) ->
+  raise(?line(Meta), File, Kind, Message);
+
+raise(Line, File, Kind, Message) when is_integer(Line) ->
   Stacktrace = erlang:get_stacktrace(),
   Exception = Kind:new([{description, Message}, {file, iolist_to_binary(File)}, {line, Line}]),
   erlang:raise(error, Exception, Stacktrace).

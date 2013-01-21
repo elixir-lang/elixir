@@ -215,7 +215,7 @@ defmodule Protocol do
   end
 
   defp generate_type(conversions, false) do
-    or_function     = fn({ _, _, x }, acc) -> { :|, 0, [acc, x] } end
+    or_function     = fn({ _, _, x }, acc) -> { :|, [], [acc, x] } end
     { _, _, first } = hd(conversions)
     :lists.foldl(or_function, first, tl(conversions))
   end
@@ -307,7 +307,7 @@ defmodule Protocol.DSL do
     # interpolation to generate the arguments because of compile
     # dependencies, so we use the <<>> instead.
     args = lc i inlist :lists.seq(1, arity) do
-      { binary_to_atom(<<?x, i + 64>>), 0, __MODULE__ }
+      { binary_to_atom(<<?x, i + 64>>), [], __MODULE__ }
     end
 
     { conversions, fallback, returns_nil } = conversions_for(module)
@@ -323,7 +323,7 @@ defmodule Protocol.DSL do
 
     body =
       quote do
-        case __raw_impl__(xA), do: unquote({ :->, 0, clauses })
+        case __raw_impl__(xA), do: unquote({ :->, [], clauses })
       end
 
     { args, body }

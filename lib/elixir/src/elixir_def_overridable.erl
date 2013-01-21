@@ -20,15 +20,16 @@ is_defined(Module, Tuple) ->
     _ -> false
   end.
 
-ensure_defined(Line, Module, Tuple, S) ->
+ensure_defined(Meta, Module, Tuple, S) ->
   case is_defined(Module, Tuple) of
     true -> [];
-    _    -> elixir_errors:form_error(Line, S#elixir_scope.file, ?MODULE, { no_super, Module, Tuple })
+    _    -> elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, { no_super, Module, Tuple })
   end.
 
 %% Retrieve args defined for the given arity.
 
-retrieve_args(Line, Arity, S) ->
+retrieve_args(Meta, Arity, S) ->
+  Line = ?line(Meta),
   {
     [ { var, Line, super_arg(X) } || X <- lists:seq(1, Arity) ],
     S#elixir_scope{name_args=true}
@@ -36,7 +37,7 @@ retrieve_args(Line, Arity, S) ->
 
 %% Assign pseudo variables to the given vars.
 
-assign_args(Line, Args, S) ->
+assign_args(Line, Args, S) when is_integer(Line) ->
   { FArgs, _ } = lists:mapfoldl(fun(X, Acc) -> assign_args(Line, X, Acc, S) end, 1, Args),
   FArgs.
 
@@ -45,7 +46,7 @@ assign_args(Line, X, Acc, _) ->
   { Match, Acc + 1 }.
 
 super_arg(Counter) ->
-  ?ELIXIR_ATOM_CONCAT(['_@S', Counter]).
+  ?atom_concat(['_@S', Counter]).
 
 %% Gets the name based on the function and stored overridables
 
@@ -54,7 +55,7 @@ name(Module, Function) ->
 
 name(_Module, { Name, _ } = Function, Overridable) ->
   { Count, _, _ } = orddict:fetch(Function, Overridable),
-  ?ELIXIR_ATOM_CONCAT([Name, " (overridable ", Count, ")"]).
+  ?atom_concat([Name, " (overridable ", Count, ")"]).
 
 %% Store
 

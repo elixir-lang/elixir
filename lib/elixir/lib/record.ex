@@ -196,7 +196,7 @@ defmodule Record do
     in_match = caller.in_match?
 
     has_underscore_value = Keyword.has_key?(keyword, :_)
-    underscore_value     = Keyword.get(keyword, :_, { :_, 0, nil })
+    underscore_value     = Keyword.get(keyword, :_, { :_, [], nil })
     keyword              = Keyword.delete keyword, :_
 
     iterator = fn({field, default}, each_keyword) ->
@@ -216,7 +216,7 @@ defmodule Record do
     { match, remaining } = :lists.mapfoldl(iterator, keyword, fields)
 
     case remaining do
-      [] -> { :{}, caller.line, [atom|match] }
+      [] -> { :{}, [line: caller.line], [atom|match] }
       _  ->
         keys = lc { key, _ } inlist remaining, do: key
         raise "record #{inspect atom} does not have the keys: #{inspect keys}"
@@ -499,7 +499,7 @@ defmodule Record do
         end
       end
 
-    contents = { :{}, 0, [(quote do: __MODULE__)|fields] }
+    contents = { :{}, [], [(quote do: __MODULE__)|fields] }
 
     quote do
       @doc false

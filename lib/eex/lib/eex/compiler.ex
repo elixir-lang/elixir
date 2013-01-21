@@ -90,7 +90,7 @@ defmodule EEx.Compiler do
 
   defp maybe_block([]),    do: nil
   defp maybe_block([h]),   do: h
-  defp maybe_block(other), do: { :__block__, 0, other }
+  defp maybe_block(other), do: { :__block__, [], other }
 
   # Changes placeholder to real expression
 

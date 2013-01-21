@@ -169,12 +169,13 @@ wrap_interpol(_Line, Form) when is_binary(Form) ->
   Form;
 
 wrap_interpol(Line, Form) ->
-  { '::', Line, [{ { '.', Line, ['Elixir.Binary.Chars', to_binary] }, Line, [Form]}, { binary, Line, nil }]}.
+  Meta = [{line,Line}],
+  { '::', Meta, [{ { '.', Meta, ['Elixir.Binary.Chars', to_binary] }, Meta, [Form]}, { binary, Meta, nil }]}.
 
 forms(String, StartLine, File) ->
   case elixir_translator:forms(String, StartLine, File, []) of
     { ok, [] } -> nil;
     { ok, [Forms] } when not is_list(Forms) -> Forms;
-    { ok, Forms } -> { '__block__', StartLine, Forms };
+    { ok, Forms } -> { '__block__', [{line,StartLine}], Forms };
     { error, Tuple } -> throw({ interpolation_error, Tuple })
   end.

@@ -62,14 +62,14 @@ defmodule Macro do
       #=> :foo
 
       Macro.escape({ :a, :b, :c })
-      #=> { :{}, 0, [:a, :b, :c] }
+      #=> { :{}, [], [:a, :b, :c] }
   """
   def escape({ left, right }) do
     { escape(left), escape(right) }
   end
 
   def escape(tuple) when is_tuple(tuple) do
-    { :{}, 0, escape(tuple_to_list(tuple)) }
+    { :{}, [], escape(tuple_to_list(tuple)) }
   end
 
   def escape(list) when is_list(list) do
@@ -266,12 +266,12 @@ defmodule Macro do
 
   # Two-item tuples
   def to_binary({ left, right }) do
-    to_binary({ :{}, 0, [left, right] })
+    to_binary({ :{}, [], [left, right] })
   end
 
   # Lists
   def to_binary(list) when is_list(list) do
-    to_binary({ :[], 0, list })
+    to_binary({ :[], [], list })
   end
 
   # All other structures
@@ -408,7 +408,7 @@ defmodule Macro do
   The compilation will fail because `My.Module` when quoted
   is not an atom, but a syntax tree as follow:
 
-      {:__aliases__, 0, [:My, :Module] }
+      {:__aliases__, [], [:My, :Module] }
 
   That said, we need to expand the aliases node above to an
   atom, so we can retrieve its length. Expanding the node is

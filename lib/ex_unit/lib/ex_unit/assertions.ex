@@ -61,14 +61,14 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro refute(expected) do
-    contents = translate_assertion({ :!, 0, [expected] }, fn ->
+    contents = translate_assertion({ :!, [], [expected] }, fn ->
       quote do
         value = unquote(expected)
         assert !value, "Expected #{inspect value} to be false"
       end
     end)
 
-    { :!, 0, [contents] }
+    { :!, [], [contents] }
   end
 
   ## START HELPERS

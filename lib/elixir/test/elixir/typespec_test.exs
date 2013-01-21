@@ -297,7 +297,7 @@ defmodule Typespec.TypeTest do
   test "type_to_ast" do
     quoted = [
       (quote do: @type with_ann() :: (t :: atom())),
-      (quote do: @type empty_tuple_type() :: {}),    
+      (quote do: @type empty_tuple_type() :: {}),
       (quote do: @type imm_type_1() :: 1),
       (quote do: @type imm_type_2() :: :atom),
       (quote do: @type simple_type() :: integer()),
@@ -327,7 +327,7 @@ defmodule Typespec.TypeTest do
   end
 
   test "type_to_ast for records" do
-    record_type = { { :record, :my_record }, 
+    record_type = { { :record, :my_record },
                     [
                       { :typed_record_field,
                         { :record_field, 0, { :atom, 0, :field1 }},
@@ -338,13 +338,25 @@ defmodule Typespec.TypeTest do
                     ],
                     []}
     assert Kernel.Typespec.type_to_ast(record_type) ==
-      quote(hygiene: false, do: my_record() :: {:my_record, field1 :: atom(), field2 :: integer() })
+      { :::,[], [
+        { :my_record,[],[] },
+        { :{},[], [:my_record,
+          { :::, [line: 0], [
+            {:field1,0,nil},
+            {:atom,[line: 0],[]}
+          ] },
+          { :::, [line: 0], [
+            {:field2,0,nil},
+            {:integer,[line: 0],[]}
+          ] }
+        ] }
+      ] }
   end
 
-  test "type_to_ast for paren_type" do 
+  test "type_to_ast for paren_type" do
     type = {:my_type, {:paren_type, 0, [{:type, 0, :integer, []}]}, []}
     assert Kernel.Typespec.type_to_ast(type) ==
-      quote(hygiene: false, do: my_type() :: integer())
+      { :::, [], [{:my_type,[],[]}, {:integer,[line: 0],[]}] }
   end
 
   test "spec_to_ast" do

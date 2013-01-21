@@ -2584,7 +2584,7 @@ defmodule Kernel do
 
   """
   defmacro left <> right do
-    concats = extract_concatenations({ :<>, 0, [left, right] })
+    concats = extract_concatenations({ :<>, [], [left, right] })
     quote do: << unquote_splicing(concats) >>
   end
 
@@ -2601,7 +2601,7 @@ defmodule Kernel do
 
   """
   defmacro first .. last do
-    { :{}, 0, [Elixir.Range, first, last] }
+    { :{}, [], [Elixir.Range, first, last] }
   end
 
   @doc """
@@ -2759,7 +2759,7 @@ defmodule Kernel do
   end
 
   defp pipeline_op(left, atom) when is_atom(atom) do
-    { { :., 0, [left, atom] }, 0, [] }
+    { { :., [], [left, atom] }, [], [] }
   end
 
   defp pipeline_op(_, other) do
@@ -3180,7 +3180,7 @@ defmodule Kernel do
   end
 
   defp wrap_concatenation(other) do
-    { :::, 0, [other, { :binary, 0, nil }] }
+    { :::, [], [other, { :binary, [], nil }] }
   end
 
   # Builds cond clauses by nesting them recursively.

@@ -5,10 +5,16 @@
 -module(elixir_tree_helpers).
 -compile({parse_transform, elixir_transform}).
 -export([abstract_syntax/1, split_last/1, cons_to_list/1,
-  convert_to_boolean/5, returns_boolean/1,
+  convert_to_boolean/5, returns_boolean/1, get_line/1,
   build_list/4, build_list/5, build_simple_list/2,
   build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2]).
 -include("elixir.hrl").
+
+get_line(Opts) ->
+  case lists:keyfind(line, 1, Opts) of
+    { line, Line } when is_integer(Line) -> Line;
+    false -> 0
+  end.
 
 split_last([])         -> { [], [] };
 split_last(List)       -> split_last(List, []).
@@ -37,14 +43,14 @@ cons_to_list({ cons, _, Left, Right }) ->
 build_list(Fun, Exprs, Line, S) ->
   build_list(Fun, Exprs, Line, S, {nil, Line}).
 
-build_list(Fun, Exprs, Line, S, Tail) ->
+build_list(Fun, Exprs, Line, S, Tail) when is_integer(Line) ->
   build_list_each(Fun, lists:reverse(Exprs), Line, S, Tail).
 
 % Same as build_list, but the list given is in reverse other.
 build_reverse_list(Fun, Exprs, Line, S) ->
   build_list_each(Fun, Exprs, Line, S, {nil,Line}).
 
-build_reverse_list(Fun, Exprs, Line, S, Tail) ->
+build_reverse_list(Fun, Exprs, Line, S, Tail) when is_integer(Line) ->
   build_list_each(Fun, Exprs, Line, S, Tail).
 
 % Builds a simple list, without translatation, just by generating the cons-cell.
@@ -97,7 +103,7 @@ returns_boolean({ 'case', _, _, Clauses }) ->
 
 returns_boolean(_) -> false.
 
-convert_to_boolean(Line, Expr, Bool, InGuard, S) ->
+convert_to_boolean(Line, Expr, Bool, InGuard, S) when is_integer(Line) ->
   case { returns_boolean(Expr), Bool } of
     { true, true }  -> { Expr, S };
     { true, false } -> { { op, Line, 'not', Expr }, S };

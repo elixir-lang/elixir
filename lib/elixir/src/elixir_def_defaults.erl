@@ -38,7 +38,7 @@ extract_defaults([{'//', _, [_Expr, Default]}|T], Line, Counter, NewArgs, NewInv
   extract_defaults(T, Line, Counter, NewArgs, [Default|NewInvoke]);
 
 extract_defaults([_|T], Line, Counter, NewArgs, NewInvoke) ->
-  H = { ?ELIXIR_ATOM_CONCAT(["_@D", Counter]), Line, nil },
+  H = { ?atom_concat(["_@D", Counter]), Line, nil },
   extract_defaults(T, Line, Counter + 1, [H|NewArgs], [H|NewInvoke]);
 
 extract_defaults([], _Line, _Counter, NewArgs, NewInvoke) ->
@@ -49,10 +49,10 @@ extract_defaults([], _Line, _Counter, NewArgs, NewInvoke) ->
 build_match([], _Line, Acc) -> Acc;
 
 build_match([_|T], Line, Acc) ->
-  Var = { ?ELIXIR_ATOM_CONCAT(["_@D", length(T)]), Line, nil },
+  Var = { ?atom_concat(["_@D", length(T)]), Line, nil },
   build_match(T, Line, [Var|Acc]).
 
 % Given the invoked function name based on the kind
 
-name_for_kind(Kind, Name) when Kind == defmacro; Kind == defmacrop -> ?ELIXIR_MACRO(Name);
+name_for_kind(Kind, Name) when Kind == defmacro; Kind == defmacrop -> ?elixir_macro(Name);
 name_for_kind(_Kind, Name) -> Name.

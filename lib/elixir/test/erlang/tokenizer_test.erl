@@ -93,12 +93,12 @@ newline_test() ->
    {number,2,2}]  = tokenize("1\n++2").
 
 aliases_test() ->
-  [{'__aliases__',1,['Foo']}] = tokenize("Foo"),
-  [{'__aliases__',1,['Foo']},
+  [{'aliases',1,['Foo']}] = tokenize("Foo"),
+  [{'aliases',1,['Foo']},
    {'.',1},
-   {'__aliases__',1,['Bar']},
+   {'aliases',1,['Bar']},
    {'.',1},
-   {'__aliases__',1,['Baz']}] = tokenize("Foo.Bar.Baz").
+   {'aliases',1,['Baz']}] = tokenize("Foo.Bar.Baz").
 
 string_test() ->
   [{bin_string,1,[<<"foo">>]}] = tokenize("\"foo\""),

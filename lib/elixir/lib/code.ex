@@ -182,7 +182,7 @@ defmodule Code do
 
   defp unpack_ast(_line, []),                              do: nil
   defp unpack_ast(_line, [forms]) when not is_list(forms), do: forms
-  defp unpack_ast(line, forms),                            do: { :__block__, line, forms }
+  defp unpack_ast(line, forms),                            do: { :__block__, [line: line], forms }
 
   @doc """
   Loads the given `file`. Accepts `relative_to` as an argument

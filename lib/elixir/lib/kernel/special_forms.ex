@@ -326,7 +326,7 @@ defmodule Kernel.SpecialForms do
   ## Examples
 
       quote do: sum(1, 2, 3)
-      #=> { :sum, 0, [1, 2, 3] }
+      #=> { :sum, [], [1, 2, 3] }
 
   ## Explanation
 
@@ -486,8 +486,8 @@ defmodule Kernel.SpecialForms do
 
   One of Elixir goals is to provide proper stacktrace whenever there is an
   exception. In order to work properly with macros, the default behavior
-  in quote is to set the line to 0. When a macro is invoked and the quoted
-  expressions is expanded, 0 is replaced by the line of the call site.
+  in quote is to not set a line. When a macro is invoked and the quoted
+  expressions is expanded, the call site line is inserted.
 
   This is a good behavior for the majority of the cases, except if the macro
   is defining new functions. Consider this example:
@@ -549,13 +549,13 @@ defmodule Kernel.SpecialForms do
 
   Which would then return:
 
-      { :sum, 0, [1, { :value, 0, quoted }, 3] }
+      { :sum, [], [1, { :value, [], quoted }, 3] }
 
   Which is not the expected result. For this, we use unquote:
 
       value = 13
       quote do: sum(1, unquote(value), 3)
-      #=> { :sum, 0, [1, 13, 3] }
+      #=> { :sum, [], [1, 13, 3] }
 
   """
   defmacro unquote(expr)
@@ -568,7 +568,7 @@ defmodule Kernel.SpecialForms do
 
       values = [2,3,4]
       quote do: sum(1, unquote_splicing(values), 5)
-      #=> { :sum, 0, [1, 2, 3, 4, 5] }
+      #=> { :sum, [], [1, 2, 3, 4, 5] }
 
   """
   defmacro unquote_splicing(expr)
@@ -634,7 +634,7 @@ defmodule Kernel.SpecialForms do
   and should not be invoked directly:
 
       quote do: (1; 2; 3)
-      #=> { :__block__, 0, [1,2,3] }
+      #=> { :__block__, [], [1,2,3] }
 
   """
   defmacro __block__(args)
@@ -657,13 +657,13 @@ defmodule Kernel.SpecialForms do
   It is usually compiled to an atom:
 
       quote do: Foo.Bar
-      { :__aliases__, 0, [:Foo,:Bar] }
+      { :__aliases__, [], [:Foo,:Bar] }
 
   Elixir represents `Foo.Bar` as `__aliases__` so calls can be
   unambiguously identified by the operator `:.`. For example:
 
       quote do: Foo.bar
-      {{:.,0,[{:__aliases__,0,[:Foo]},:bar]},0,[]}
+      {{:.,[],[{:__aliases__,[],[:Foo]},:bar]},[],[]}
 
   Whenever an expression iterator sees a `:.` as the tuple key,
   it can be sure that it represents a call and the second argument
@@ -680,7 +680,7 @@ defmodule Kernel.SpecialForms do
   4) When the head element of aliases is not an atom, it is expanded at runtime:
 
         quote do: some_var.Foo
-        {:__aliases__,0,[{:some_var,0,:quoted},:Bar]}
+        {:__aliases__,[],[{:some_var,[],:quoted},:Bar]}
 
      Since `some_var` is not available at compilation time, the compiler
      expands such expression to:

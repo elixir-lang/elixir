@@ -6,7 +6,7 @@
   build_table/1, delete_table/1, record/4]).
 -include("elixir.hrl").
 
-table(Module) -> ?ELIXIR_ATOM_CONCAT([i, Module]).
+table(Module) -> ?atom_concat([i, Module]).
 
 build_table(Module) ->
   ets:new(table(Module), [set, named_table, public]).
@@ -34,14 +34,14 @@ recorded_locals(Module) ->
 %% Update the scope to consider the imports for aliases
 %% based on the given options and selector.
 
-import(Line, Ref, Opts, Selector, S) ->
+import(Meta, Ref, Opts, Selector, S) ->
   IncludeAll = (Selector == all) or (Selector == default),
 
   SF = case IncludeAll or (Selector == functions) of
     false -> S;
     true  ->
       FunctionsFun = fun(K) -> remove_underscored(K andalso Selector, get_functions(Ref)) end,
-      Functions = calculate(Line, Ref, Opts,
+      Functions = calculate(Meta, Ref, Opts,
         S#elixir_scope.functions, FunctionsFun, S),
       S#elixir_scope{functions=Functions}
   end,
@@ -52,10 +52,10 @@ import(Line, Ref, Opts, Selector, S) ->
       MacrosFun = fun(K) ->
         case IncludeAll of
           true  -> remove_underscored(K andalso Selector, get_optional_macros(Ref));
-          false -> get_macros(Line, Ref, SF)
+          false -> get_macros(Meta, Ref, SF)
         end
       end,
-      Macros = calculate(Line, Ref, Opts,
+      Macros = calculate(Meta, Ref, Opts,
         SF#elixir_scope.macros, MacrosFun, SF),
       SF#elixir_scope{macros=Macros}
   end,
@@ -66,17 +66,17 @@ import(Line, Ref, Opts, Selector, S) ->
 
 %% Calculates the imports based on only and except
 
-calculate(Line, Key, Opts, Old, AvailableFun, S) ->
+calculate(Meta, Key, Opts, Old, AvailableFun, S) ->
   File = S#elixir_scope.file,
   All = keydelete(Key, Old),
 
   New = case keyfind(only, Opts) of
     { only, RawOnly } ->
-      Only = expand_fun_arity(Line, only, RawOnly, S),
+      Only = expand_fun_arity(Meta, only, RawOnly, S),
       case Only -- get_exports(Key) of
         [{Name,Arity}|_] ->
           Tuple = { invalid_import, { Key, Name, Arity } },
-          elixir_errors:form_error(Line, File, ?MODULE, Tuple);
+          elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
         _ ->
           intersection(Only, AvailableFun(false))
       end;
@@ -85,7 +85,7 @@ calculate(Line, Key, Opts, Old, AvailableFun, S) ->
         false -> AvailableFun(true);
         { except, [] } -> AvailableFun(true);
         { except, RawExcept } ->
-          Except = expand_fun_arity(Line, except, RawExcept, S),
+          Except = expand_fun_arity(Meta, except, RawExcept, S),
           case keyfind(Key, Old) of
             false -> AvailableFun(true) -- Except;
             {Key,ToRemove} -> ToRemove -- Except
@@ -100,33 +100,33 @@ calculate(Line, Key, Opts, Old, AvailableFun, S) ->
   case Final of
     [] -> All;
     _  ->
-      ensure_no_conflicts(Line, File, Final, keydelete(Key, S#elixir_scope.macros)),
-      ensure_no_conflicts(Line, File, Final, keydelete(Key, S#elixir_scope.functions)),
-      ensure_no_in_erlang_macro_conflict(Line, File, Key, Final, internal_conflict),
+      ensure_no_conflicts(Meta, File, Final, keydelete(Key, S#elixir_scope.macros)),
+      ensure_no_conflicts(Meta, File, Final, keydelete(Key, S#elixir_scope.functions)),
+      ensure_no_in_erlang_macro_conflict(Meta, File, Key, Final, internal_conflict),
       [{ Key, Final }|All]
   end.
 
 %% Ensure we are expanding macros and stuff
 
-expand_fun_arity(Line, Kind, Value, S) ->
+expand_fun_arity(Meta, Kind, Value, S) ->
   { TValue, _S } = elixir_translator:translate_each(Value, S),
-  cons_to_keywords(Line, Kind, TValue, S).
+  cons_to_keywords(Meta, Kind, TValue, S).
 
-cons_to_keywords(Line, Kind, { cons, _, Left, { nil, _ } }, S) ->
-  [tuple_to_fun_arity(Line, Kind, Left, S)];
+cons_to_keywords(Meta, Kind, { cons, _, Left, { nil, _ } }, S) ->
+  [tuple_to_fun_arity(Meta, Kind, Left, S)];
 
-cons_to_keywords(Line, Kind, { cons, _, Left, Right }, S) ->
-  [tuple_to_fun_arity(Line, Kind, Left, S)|cons_to_keywords(Line, Kind, Right, S)];
+cons_to_keywords(Meta, Kind, { cons, _, Left, Right }, S) ->
+  [tuple_to_fun_arity(Meta, Kind, Left, S)|cons_to_keywords(Meta, Kind, Right, S)];
 
-cons_to_keywords(Line, Kind, _, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.file,
+cons_to_keywords(Meta, Kind, _, S) ->
+  elixir_errors:syntax_error(Meta, S#elixir_scope.file,
     "invalid value for :~s, expected a list with functions and arities", [Kind]).
 
-tuple_to_fun_arity(_Line, _Kind, { tuple, _, [{ atom, _, Atom }, { integer, _, Integer }] }, _S) ->
+tuple_to_fun_arity(_Meta, _Kind, { tuple, _, [{ atom, _, Atom }, { integer, _, Integer }] }, _S) ->
   { Atom, Integer };
 
-tuple_to_fun_arity(Line, Kind, _, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.file,
+tuple_to_fun_arity(Meta, Kind, _, S) ->
+  elixir_errors:syntax_error(Meta, S#elixir_scope.file,
     "invalid value for :~s, expected a list with functions and arities", [Kind]).
 
 %% Retrieve functions and macros from modules
@@ -145,13 +145,13 @@ get_functions(Module) ->
     error:undef -> Module:module_info(exports)
   end.
 
-get_macros(Line, Module, S) ->
+get_macros(Meta, Module, S) ->
   try
     Module:'__info__'(macros)
   catch
     error:undef ->
       Tuple = { no_macros, Module },
-      elixir_errors:form_error(Line, S#elixir_scope.file, ?MODULE, Tuple)
+      elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, Tuple)
   end.
 
 get_optional_macros(Module)  ->
@@ -171,13 +171,13 @@ get_optional_macros(Module)  ->
 %% Elixir "implemented in Erlang" macro. Checking if a local
 %% conflicts with an import is automatically done by Erlang.
 
-ensure_no_local_conflict(Line, File, Module, AllDefined) ->
-  ensure_no_in_erlang_macro_conflict(Line, File, Module, AllDefined, local_conflict).
+ensure_no_local_conflict(Meta, File, Module, AllDefined) ->
+  ensure_no_in_erlang_macro_conflict(Meta, File, Module, AllDefined, local_conflict).
 
 %% Find conlicts in the given list of functions with
 %% the recorded set of imports.
 
-ensure_no_import_conflict(Line, File, Module, AllDefined) ->
+ensure_no_import_conflict(Meta, File, Module, AllDefined) ->
   Table = table(Module),
   Matches = [X || X <- AllDefined, ets:member(Table, X)],
 
@@ -185,7 +185,7 @@ ensure_no_import_conflict(Line, File, Module, AllDefined) ->
     [{Name,Arity}|_] ->
       Key = ets:lookup_element(Table, {Name, Arity }, 2),
       Tuple = { import_conflict, { Key, Name, Arity } },
-      elixir_errors:form_error(Line, File, ?MODULE, Tuple);
+      elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
     [] ->
       ok
   end.
@@ -193,7 +193,7 @@ ensure_no_import_conflict(Line, File, Module, AllDefined) ->
 %% Ensure the given functions don't clash with any
 %% of Elixir non overridable macros.
 
-ensure_no_in_erlang_macro_conflict(Line, File, Key, [{Name,Arity}|T], Reason) ->
+ensure_no_in_erlang_macro_conflict(Meta, File, Key, [{Name,Arity}|T], Reason) ->
   Values = lists:filter(fun({X,Y}) ->
     (Name == X) andalso ((Y == '*') orelse (Y == Arity))
   end, non_overridable_macros()),
@@ -201,27 +201,27 @@ ensure_no_in_erlang_macro_conflict(Line, File, Key, [{Name,Arity}|T], Reason) ->
   case Values /= [] of
     true  ->
       Tuple = { Reason, { Key, Name, Arity } },
-      elixir_errors:form_error(Line, File, ?MODULE, Tuple);
-    false -> ensure_no_in_erlang_macro_conflict(Line, File, Key, T, Reason)
+      elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
+    false -> ensure_no_in_erlang_macro_conflict(Meta, File, Key, T, Reason)
   end;
 
-ensure_no_in_erlang_macro_conflict(_Line, _File, _Key, [], _) -> ok.
+ensure_no_in_erlang_macro_conflict(_Meta, _File, _Key, [], _) -> ok.
 
 %% Find conlicts in the given list of functions with the set of imports.
 %% Used internally to ensure a newly imported fun or macro does not
 %% conflict with an already imported set.
 
-ensure_no_conflicts(Line, File, Functions, [{Key,Value}|T]) ->
+ensure_no_conflicts(Meta, File, Functions, [{Key,Value}|T]) ->
   Filtered = lists:filter(fun(X) -> lists:member(X, Functions) end, Value),
   case Filtered of
     [{Name,Arity}|_] ->
       Tuple = { already_imported, { Key, Name, Arity } },
-      elixir_errors:form_error(Line, File, ?MODULE, Tuple);
+      elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
     [] ->
-      ensure_no_conflicts(Line, File, Functions, T)
+      ensure_no_conflicts(Meta, File, Functions, T)
   end;
 
-ensure_no_conflicts(_Line, _File, _Functions, _S) -> ok.
+ensure_no_conflicts(_Meta, _File, _Functions, _S) -> ok.
 
 %% ERROR HANDLING
 

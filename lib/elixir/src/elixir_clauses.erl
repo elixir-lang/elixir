@@ -9,17 +9,17 @@
 
 %% Get pairs from a clause.
 
-get_pairs(Line, Key, Clauses, S) ->
-  get_pairs(Line, Key, Clauses, S, false).
+get_pairs(Meta, Key, Clauses, S) ->
+  get_pairs(Meta, Key, Clauses, S, false).
 
-get_pairs(Line, Key, Clauses, S, AllowNil) ->
+get_pairs(Meta, Key, Clauses, S, AllowNil) ->
   case lists:keyfind(Key, 1, Clauses) of
     { Key, { '->', _, Pairs } } ->
       [{ Key, Left, Right } || { Left, Right } <- Pairs];
     { Key, nil } when AllowNil ->
       [];
     { Key, _ } ->
-      elixir_errors:syntax_error(Line, S#elixir_scope.file, "expected pairs with -> for key ~s", [Key]);
+      elixir_errors:syntax_error(Meta, S#elixir_scope.file, "expected pairs with -> for key ~s", [Key]);
     _ ->
       []
   end.
@@ -39,7 +39,7 @@ assigns_block(Line, Fun, BareArgs, Exprs, S) ->
   { Args, Guards } = extract_guards(BareArgs),
   assigns_block(Line, Fun, Args, Exprs, Guards, S).
 
-assigns_block(Line, Fun, Args, Exprs, Guards, S) ->
+assigns_block(Line, Fun, Args, Exprs, Guards, S) when is_integer(Line) ->
   { TArgs, SA }  = assigns(Fun, Args, S#elixir_scope{extra_guards=[]}),
   { TExprs, SE } = elixir_translator:translate(Exprs, SA#elixir_scope{extra_guards=nil}),
 
@@ -88,23 +88,23 @@ extract_last_guards(Args) ->
 
 % Function for translating macros with match style like case and receive.
 
-match(Line, Clauses, #elixir_scope{clause_vars=C1} = S) ->
-  { TC, TS } = do_match(Line, Clauses, S#elixir_scope{clause_vars=orddict:new()}),
+match(Meta, Clauses, #elixir_scope{clause_vars=C1} = S) ->
+  { TC, TS } = do_match(Meta, Clauses, S#elixir_scope{clause_vars=orddict:new()}),
   C2 = TS#elixir_scope.clause_vars,
   { TC, TS#elixir_scope{clause_vars=elixir_scope:merge_clause_vars(C1, C2)} }.
 
-do_match(_Line, [], S) ->
+do_match(_Meta, [], S) ->
   { [], S };
 
-do_match(Line, [DecoupledClause], S) ->
-  { TDecoupledClause, TS } = each_clause(Line, DecoupledClause, S),
+do_match(Meta, [DecoupledClause], S) ->
+  { TDecoupledClause, TS } = each_clause(Meta, DecoupledClause, S),
   { [TDecoupledClause], TS };
 
-do_match(Line, DecoupledClauses, S) ->
+do_match(Meta, DecoupledClauses, S) ->
   % Transform tree just passing the variables counter forward
   % and storing variables defined inside each clause.
   Transformer = fun(X, {Acc, CV}) ->
-    { TX, TAcc } = each_clause(Line, X, Acc),
+    { TX, TAcc } = each_clause(Meta, X, Acc),
     { TX, { umergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
   end,
 
@@ -127,18 +127,19 @@ do_match(Line, DecoupledClauses, S) ->
       { FinalVars, FS } = lists:mapfoldl(fun(X, Acc) -> normalize_vars(X, SharedVars, Acc) end, TS, AllVars),
 
       % Defines a tuple that will be used as left side of the match operator
+      Line = ?line(Meta),
       LeftVars = [{var, Line, NewValue} || { _, _, NewValue, _ } <- FinalVars],
 
       % Expand all clauses by adding a match operation at the end
       % that assigns variables missing in one clause to the others.
-      expand_clauses(Line, TClauses, CV, LeftVars, FinalVars, [], FS)
+      expand_clauses(Meta, TClauses, CV, LeftVars, FinalVars, [], FS)
   end.
 
-expand_clauses(Line, [Clause|T], [ClauseVars|V], LeftVars, FinalVars, Acc, S) ->
+expand_clauses(Meta, [Clause|T], [ClauseVars|V], LeftVars, FinalVars, Acc, S) ->
   RightVars = [normalize_clause_var(Var, Kind, OldValue, ClauseVars) ||
                  { Var, Kind, _, OldValue } <- FinalVars],
 
-  AssignExpr = generate_match(Line, LeftVars, RightVars),
+  AssignExpr = generate_match(Meta, LeftVars, RightVars),
   ClauseExprs = element(5, Clause),
   [Final|RawClauseExprs] = lists:reverse(ClauseExprs),
 
@@ -151,6 +152,7 @@ expand_clauses(Line, [Clause|T], [ClauseVars|V], LeftVars, FinalVars, Acc, S) ->
         { match, _, { var, _, UserVarName } = UserVar, _ } when UserVarName /= '_' ->
           { [UserVar,AssignExpr,Final|RawClauseExprs], S };
         _ ->
+          Line = ?line(Meta),
           { StorageVar, SS } = elixir_scope:build_erl_var(Line, S),
           StorageExpr = { match, Line, StorageVar, Final },
           { [StorageVar,AssignExpr,StorageExpr|RawClauseExprs], SS }
@@ -160,29 +162,29 @@ expand_clauses(Line, [Clause|T], [ClauseVars|V], LeftVars, FinalVars, Acc, S) ->
   end,
 
   FinalClause = setelement(5, Clause, lists:reverse(FinalClauseExprs)),
-  expand_clauses(Line, T, V, LeftVars, FinalVars, [FinalClause|Acc], FS);
+  expand_clauses(Meta, T, V, LeftVars, FinalVars, [FinalClause|Acc], FS);
 
-expand_clauses(_Line, [], [], _LeftVars, _FinalVars, Acc, S) ->
+expand_clauses(_Meta, [], [], _LeftVars, _FinalVars, Acc, S) ->
   { lists:reverse(Acc), S }.
 
 % Handle each key/value clause pair and translate them accordingly.
 
-each_clause(Line, { do, [Condition], Expr }, S) ->
-  assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], S);
+each_clause(Meta, { do, [Condition], Expr }, S) ->
+  assigns_block(?line(Meta), fun elixir_translator:translate_each/2, Condition, [Expr], S);
 
-each_clause(Line, { else, [Condition], Expr }, S) ->
-  assigns_block(Line, fun elixir_translator:translate_each/2, Condition, [Expr], S);
+each_clause(Meta, { else, [Condition], Expr }, S) ->
+  assigns_block(?line(Meta), fun elixir_translator:translate_each/2, Condition, [Expr], S);
 
-each_clause(Line, { 'after', [Condition], Expr }, S) ->
+each_clause(Meta, { 'after', [Condition], Expr }, S) ->
   { TCondition, SC } = elixir_translator:translate_each(Condition, S),
   { TBody, SB } = elixir_translator:translate([Expr], SC),
-  { { clause, Line, [TCondition], [], TBody }, SB };
+  { { clause, ?line(Meta), [TCondition], [], TBody }, SB };
 
-each_clause(Line, { Key, [_|_], _ }, S) when Key == do; Key == 'after' ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.file, "too many arguments given for ~s", [Key]);
+each_clause(Meta, { Key, [_|_], _ }, S) when Key == do; Key == 'after' ->
+  elixir_errors:syntax_error(Meta, S#elixir_scope.file, "too many arguments given for ~s", [Key]);
 
-each_clause(Line, { Key, _, _ }, S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid key ~s", [Key]).
+each_clause(Meta, { Key, _, _ }, S) ->
+  elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid key ~s", [Key]).
 
 % Check if the given expression is a match tuple.
 % This is a small optimization to allow us to change
@@ -246,10 +248,11 @@ normalize_clause_var(Var, Kind, OldValue, ClauseVars) ->
 
 %% generate_match
 
-generate_match(Line, [Left], [Right]) ->
-  { match, Line, Left, Right };
+generate_match(Meta, [Left], [Right]) ->
+  { match, ?line(Meta), Left, Right };
 
-generate_match(Line, LeftVars, RightVars) ->
+generate_match(Meta, LeftVars, RightVars) ->
+  Line = ?line(Meta),
   { match, Line, { tuple, Line, LeftVars }, { tuple, Line, RightVars } }.
 
 %% Listify

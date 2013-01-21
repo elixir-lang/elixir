@@ -62,6 +62,7 @@ defmodule CodeTest do
 
   test :string_to_ast do
     assert { :ok, quote line: 1, do: 1 + 2 } = Code.string_to_ast("1 + 2")
+    assert { :ok, quote line: 1, do: (1 + 2; 3 + 4) } = Code.string_to_ast("1 + 2; 3 + 4")
     assert { :error, _ } = Code.string_to_ast("a.1")
   end
 

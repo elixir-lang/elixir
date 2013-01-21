@@ -107,7 +107,7 @@ eval_quoted(Tree, Binding, Opts) ->
   end,
   eval_quoted(Tree, Binding, Line, scope_for_eval(Opts)).
 
-eval_quoted(Tree, Binding, Line, #elixir_scope{} = S) ->
+eval_quoted(Tree, Binding, Line, #elixir_scope{} = S) when is_integer(Line) ->
   eval_forms(elixir_quote:linify(Line, Tree), Binding, S).
 
 %% Handle forms evaluation internally, it is an

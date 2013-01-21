@@ -189,7 +189,7 @@ defmodule EEx do
 
   @doc false
   def function_from_quoted(module, kind, name, args, source, info) do
-    args  = Enum.map args, fn arg -> { arg, 0, nil } end
+    args  = Enum.map args, fn arg -> { arg, [], nil } end
     quote = quote do
       unquote(kind).(unquote(name).(unquote_splicing(args)), do: unquote(source))
     end
