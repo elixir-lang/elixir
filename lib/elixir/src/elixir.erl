@@ -3,7 +3,7 @@
 -export([main/1, start_cli/0,
   scope_for_eval/1, eval/2, eval/3, eval/4,
   eval_quoted/2, eval_quoted/3, eval_quoted/4,
-  eval_forms/3]).
+  eval_forms/3, translate_forms/3]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
