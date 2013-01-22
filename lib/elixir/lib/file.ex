@@ -135,7 +135,7 @@ defmodule File do
 
   @doc false
   def dirname(path) do
-    IO.puts "Path.dirname is deprecated, please use Path.dirname instead"
+    IO.puts "File.dirname is deprecated, please use Path.dirname instead"
     Exception.print_stacktrace
     FN.dirname(path)
   end
