@@ -152,3 +152,32 @@ defmodule Kernel.QuoteTest.AliasHygieneTest do
     assert Code.eval_quoted(quote expand_aliases: false, do: Foo.Bar)  == { Foo.Bar, [] }
   end
 end
+
+defmodule Kernel.QuoteTest.ImportsHygieneTest do
+  use ExUnit.Case, async: true
+
+  defmacrop get_bin_size do
+    quote do
+      size("hello")
+    end
+  end
+
+  test :expand_imports do
+    import Kernel, except: [size: 1]
+    assert get_bin_size == 5
+  end
+
+  defmacrop get_dict_size do
+    import Kernel, except: [size: 1]
+
+    quote do
+      size([a: 1, b: 2])
+    end
+  end
+
+  test :lazy_expand_imports do
+    import Kernel, except: [size: 1]
+    import Dict, only: [size: 1]
+    assert get_dict_size == 2
+  end
+end

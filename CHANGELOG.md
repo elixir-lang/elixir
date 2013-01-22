@@ -12,6 +12,7 @@
   * [Kernel] More optimizations were added to Record handling
   * [Kernel] `?\x` and `?\` are now supported ways to retrieve a codepoint
   * [Kernel] Octal numbers can now be defined as `0777`
+  * [Kernel] Improve macros hygiene regarding variables, aliases and imports
   * [Mix] Mix now starts the current application before run, iex, test and friends
   * [Mix] Mix now provides basic support for compiling `.erl` files
   * [Mix] `mix escriptize` only generates escript if necessary and accept `--force` and `--no-compile` as options

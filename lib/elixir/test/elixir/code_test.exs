@@ -61,8 +61,8 @@ defmodule CodeTest do
   end
 
   test :string_to_ast do
-    assert { :ok, quote line: 1, do: 1 + 2 } = Code.string_to_ast("1 + 2")
-    assert { :ok, quote line: 1, do: (1 + 2; 3 + 4) } = Code.string_to_ast("1 + 2; 3 + 4")
+    assert Code.string_to_ast("1 + 2") == { :ok, quote hygiene: false, line: 1, do: 1 + 2 }
+    assert Code.string_to_ast("1 + 2; 3 + 4") == { :ok, quote hygiene: false, line: 1, do: (1 + 2; 3 + 4) }
     assert { :error, _ } = Code.string_to_ast("a.1")
   end
 
@@ -72,7 +72,7 @@ defmodule CodeTest do
   end
 
   test :string_to_ast! do
-    assert Code.string_to_ast!("1 + 2") == quote line: 1, do: 1 + 2
+    assert Code.string_to_ast!("1 + 2") == quote hygiene: false, line: 1, do: 1 + 2
 
     assert_raise SyntaxError, fn ->
       Code.string_to_ast!("a.1")

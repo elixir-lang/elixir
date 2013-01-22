@@ -9,26 +9,27 @@
 -define(line(Opts), elixir_tree_helpers:get_line(Opts)).
 
 -record(elixir_scope, {
-  context=nil,                                   %% can be assign, guards or nil
-  noname=false,                                  %% when true, don't add new names (used by try)
-  check_clauses=true,                            %% when true, check def clauses ordering
-  super=false,                                   %% when true, it means super was invoked
-  caller=false,                                  %% when true, it means caller was invoked
-  name_args=false,                               %% when true, it means arguments should be named
-  module=nil,                                    %% the current module
-  function=nil,                                  %% the current function
-  vars=[],                                       %% a dict of defined variables and their alias
-  temp_vars=[],                                  %% a dict of all variables defined in a particular assign
-  clause_vars=nil,                               %% a dict of all variables defined in a particular clause
-  extra_guards=nil,                              %% extra guards from args expansion
-  counter=[],                                    %% a counter for the variables defined
-  local=nil,                                     %% the scope to evaluate local functions against
-  scheduled=[],                                  %% scheduled modules to be loaded
-  file,                                          %% the current scope filename
-  aliases,                                       %% an orddict with aliases by new -> old names
-  requires,                                      %% a set with modules required
-  macros,                                        %% a list with macros imported by module
-  functions}).                                   %% a list with functions imported by module
+  context=nil,             %% can be assign, guards or nil
+  noname=false,            %% when true, don't add new names (used by try)
+  check_requires=true,     %% when true, check requires
+  check_clauses=true,      %% when true, check def clauses ordering
+  super=false,             %% when true, it means super was invoked
+  caller=false,            %% when true, it means caller was invoked
+  name_args=false,         %% when true, it means arguments should be named
+  module=nil,              %% the current module
+  function=nil,            %% the current function
+  vars=[],                 %% a dict of defined variables and their alias
+  temp_vars=[],            %% a dict of all variables defined in a particular assign
+  clause_vars=nil,         %% a dict of all variables defined in a particular clause
+  extra_guards=nil,        %% extra guards from args expansion
+  counter=[],              %% a counter for the variables defined
+  local=nil,               %% the scope to evaluate local functions against
+  scheduled=[],            %% scheduled modules to be loaded
+  file,                    %% the current scope filename
+  aliases,                 %% an orddict with aliases by new -> old names
+  requires,                %% a set with modules required
+  macros,                  %% a list with macros imported by module
+  functions}).             %% a list with functions imported by module
 
 -record(elixir_quote, {
   line=0,

@@ -83,11 +83,17 @@ do_quote({ Left, Meta, nil }, Q, S) when is_atom(Left) ->
   ] },
   { Tuple, S };
 
-% do_quote({ Name, Line, Args } = Tuple, #elixir_quote{expand_imports=true} = Q, S) when is_atom(Name), is_list(Args) ->
-%   case elixir_dispatch:find_import(Line, Name, length(Args), S) of
-%     false -> do_quote_tuple(Tuple, Q, S);
-%     Receiver -> do_quote_tuple({ { '.', Line, [Receiver, Name] }, Line, Args }, Q, S)
-%   end;
+do_quote({ Name, Meta, ArgsOrAtom } = Tuple, #elixir_quote{expand_imports=true} = Q, S) when is_atom(Name) ->
+  Arity = case is_atom(ArgsOrAtom) of
+    true  -> 0;
+    false -> length(ArgsOrAtom)
+  end,
+
+  case (lists:keyfind(import, 1, Meta) == false) andalso
+      elixir_dispatch:find_import(Meta, Name, Arity, S) of
+    false    -> do_quote_tuple(Tuple, Q, S);
+    Receiver -> do_quote_tuple({ Name, [{import,Receiver}|Meta], ArgsOrAtom }, Q, S)
+  end;
 
 do_quote({ _, _, _ } = Tuple, Q, S) ->
   do_quote_tuple(Tuple, Q, S);

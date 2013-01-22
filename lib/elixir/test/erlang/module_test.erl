@@ -34,7 +34,7 @@ dynamic_function_test() ->
 
 quote_unquote_test() ->
   F = fun() ->
-    eval("defmodule Foo.Bar.Baz do\ndefmacro sum(a, b), do: quote(do: unquote(a) + unquote(b))\nend"),
+    eval("defmodule Foo.Bar.Baz do\ndefmacro sum(a, b), do: quote(hygiene: false, do: unquote(a) + unquote(b))\nend"),
     {'+',[],[1,2]} = 'Elixir.Foo.Bar.Baz':'MACRO-sum'(nil, 1, 2)
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo.Bar.Baz']).
@@ -44,7 +44,7 @@ quote_unquote_splicing_test() ->
 
 operator_macro_test() ->
   F = fun() ->
-    eval("defmodule Foo.Bar.Baz do\ndefmacro :+.(a, b), do: quote(do: unquote(a) - unquote(b))\nend"),
+    eval("defmodule Foo.Bar.Baz do\ndefmacro :+.(a, b), do: quote(hygiene: false, do: unquote(a) - unquote(b))\nend"),
     {'-',[],[1,2]} = 'Elixir.Foo.Bar.Baz':'MACRO-+'(nil, 1, 2)
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo.Bar.Baz']).

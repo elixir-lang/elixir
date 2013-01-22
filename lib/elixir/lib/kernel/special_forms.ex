@@ -356,6 +356,7 @@ defmodule Kernel.SpecialForms do
   * `:location` - When set to `:keep`, keeps the current line and file on quotes.
                   Read the Stacktrace information section below for more information;
   * `:expand_aliases` - When false, do not expand aliases;
+  * `:expand_imports` - When false, do not expand imports;
   * `:var_context` - The context for quoted variables. Defaults to the current module;
 
   ## Macro literals
@@ -481,6 +482,55 @@ defmodule Kernel.SpecialForms do
 
       require NoHygiene
       NoHygiene.interference #=> UndefinedFunctionError
+
+  ## Hygiene in imports
+
+  Similar to aliases, imports in Elixir hygienic. Consider the
+  following code:
+
+      defmodule Hygiene do
+        defmacrop get_size do
+          quote do
+            size("hello")
+          end
+        end
+
+        def return_size do
+          import Kernel, except: [size: 1]
+          get_size
+        end
+      end
+
+      Hygiene.return_size #=> 5
+
+  Notice how `return_size` returns 5 even though the `size/1`
+  function is not imported.
+
+  Elixir is smart enough to delay the resolution to the latest
+  moment possible. So, if you call `size("hello")` inside quote,
+  but no `size/1` function is available, it is then expanded on
+  the caller:
+
+      defmodule Lazy do
+        defmacrop get_size do
+          import Kernel, except: [size: 1]
+
+          quote do
+            size([a: 1, b: 2])
+          end
+        end
+
+        def return_size do
+          import Kernel, except: [size: 1]
+          import Dict, only: [size: 1]
+          get_size
+        end
+      end
+
+      Lazy.return_size #=> 2
+
+  As in aliases, imports expansion can be explicitly disabled
+  via the `expand_imports` option.
 
   ## Stacktrace information
 
