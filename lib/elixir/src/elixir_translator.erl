@@ -329,12 +329,13 @@ translate_each({ 'var!', Meta, [Arg] }, S) ->
   translate_each({ 'var!', Meta, [Arg, nil] }, S);
 
 translate_each({ 'var!', Meta, [{Name, _, Atom}, Kind] }, S) when is_atom(Name), is_atom(Atom) ->
-  Expanded = expand_var_context(Meta, Kind, "invalid second argument for var!", S),
-  elixir_scope:translate_var(Meta, Name, Expanded, S);
+  translate_each({ 'var!', Meta, [Name, Kind] }, S);
 
 translate_each({ 'var!', Meta, [Name, Kind] }, S) when is_atom(Name) ->
   Expanded = expand_var_context(Meta, Kind, "invalid second argument for var!", S),
-  elixir_scope:translate_var(Meta, Name, Expanded, S);
+  elixir_scope:translate_var(Meta, Name, Expanded, S, fun() ->
+    syntax_error(Meta, S#elixir_scope.file, "expected var!(~ts) to expand to an existing variable or be a part of a match", [Name])
+  end);
 
 translate_each({ 'var!', Meta, [_, _] }, S) ->
   syntax_error(Meta, S#elixir_scope.file, "invalid first argument for var!, expected a var or an atom");
@@ -400,7 +401,9 @@ translate_each({ '^', Meta, [ { Name, _, Kind } ] }, S) when is_atom(Kind) ->
     "cannot access variable ^~s outside of assignment", [Name]);
 
 translate_each({ Name, Meta, Kind }, S) when is_atom(Name), is_atom(Kind) ->
-  elixir_scope:translate_var(Meta, Name, Kind, S);
+  elixir_scope:translate_var(Meta, Name, Kind, S, fun() ->
+    translate_each({ Name, Meta, [] }, S)
+  end);
 
 %% Local calls
 

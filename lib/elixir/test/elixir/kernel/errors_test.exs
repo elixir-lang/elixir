@@ -184,6 +184,11 @@ defmodule Kernel.ErrorsTest do
     assert "nofile:1: unit in bitstring expects an integer as argument" == format_rescue '<<1 :: unit(x)>>'
   end
 
+  test :invalid_var! do
+    assert "nofile:1: expected var!(y) to expand to an existing variable or be a part of a match",
+      format_rescue 'var!(x)'
+  end
+
   test :invalid_alias do
     assert "nofile:1: invalid args for alias, cannot create nested alias Sample.Lists" ==
       format_rescue 'alias :lists, as: Sample.Lists'

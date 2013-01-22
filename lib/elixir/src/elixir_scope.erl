@@ -1,7 +1,7 @@
 %% Convenience functions used to manipulate scope
 %% and its variables.
 -module(elixir_scope).
--export([translate_var/4,
+-export([translate_var/5,
   build_erl_var/2, build_ex_var/2,
   build_erl_var/3, build_ex_var/3,
   build_erl_var/4, build_ex_var/4,
@@ -13,7 +13,7 @@
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
-translate_var(Meta, Name, Kind, S) ->
+translate_var(Meta, Name, Kind, S, Callback) ->
   Line = ?line(Meta),
   Vars = S#elixir_scope.vars,
 
@@ -48,7 +48,7 @@ translate_var(Meta, Name, Kind, S) ->
         _ ->
           case orddict:find({ Name, Kind }, Vars) of
             { ok, VarName } -> { { var, Line, VarName }, S };
-            error -> elixir_translator:translate_each({ Name, Meta, [] }, S)
+            error -> Callback()
           end
       end
   end.
