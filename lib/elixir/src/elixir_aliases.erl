@@ -1,5 +1,5 @@
 -module(elixir_aliases).
--export([first/1, last/1, concat/1, safe_concat/1, lookup/2,
+-export([nesting/2, last/1, concat/1, safe_concat/1, lookup/2,
   format_error/1, ensure_loaded/3, expand/2]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
@@ -39,17 +39,6 @@ ensure_loaded(Line, Ref, S) ->
       elixir_errors:form_error(Line, S#elixir_scope.file, ?MODULE, { Kind, Ref })
   end.
 
-%% Receives an atom and returns the first alias.
-
-first(Atom) ->
-  First = first(atom_to_list(Atom), []),
-  list_to_atom("Elixir-" ++ First).
-
-first("Elixir-" ++ Rest, []) -> first(Rest, []);
-first([$-|_], Acc) -> lists:reverse(Acc);
-first([H|T], Acc) -> first(T, [H|Acc]);
-first([], Acc) -> lists:reverse(Acc).
-
 %% Receives an atom and returns the last alias.
 
 last(Atom) ->
@@ -59,6 +48,25 @@ last(Atom) ->
 last([$-|_], Acc) -> Acc;
 last([H|T], Acc) -> last(T, [H|Acc]);
 last([], Acc) -> Acc.
+
+%% Returns the nesting between two aliases.
+
+nesting(nil, _Full) -> false;
+
+nesting(Prefix, Full) ->
+  PrefixList = list_nesting(Prefix),
+  FullList   = list_nesting(Full),
+
+  (PrefixList /= []) andalso
+    (PrefixList /= FullList) andalso
+    lists:prefix(PrefixList, FullList) andalso
+    binary_to_atom(<<"Elixir-", (hd(FullList -- PrefixList))/binary>>, utf8).
+
+list_nesting(Atom) ->
+  case binary:split(atom_to_binary(Atom, utf8), <<$->>, [global]) of
+    [<<"Elixir">>|T] -> T;
+    _ -> []
+  end.
 
 %% Receives a list of atoms representing modules
 %% and concatenate them.

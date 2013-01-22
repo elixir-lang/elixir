@@ -114,6 +114,14 @@ defmodule ModuleTest do
     assert OverridableWithBeforeCompile.constant == 1
   end
 
+  test :alias_with_raw_atom do
+    defmodule :"Elixir-ModuleTest-RawModule" do
+      def hello, do: :world
+    end
+
+    assert RawModule.hello == :world
+  end
+
   defmacro __before_compile__(_) do
     quote do
       def constant, do: 1

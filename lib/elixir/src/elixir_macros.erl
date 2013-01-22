@@ -196,19 +196,16 @@ translate({defmodule, Meta, [Ref, KV]}, S) ->
 
   { FRef, FS } = case TRef of
     { atom, _, Module } ->
-      NewModule = module_ref(Ref, Module, S#elixir_scope.module),
+      FullModule = module_ref(Ref, Module, S#elixir_scope.module),
 
-      RS = case Module == NewModule of
-        true  -> S;
-        false ->
-          element(2, translate_each({
-            alias, Meta, [NewModule, [{as, elixir_aliases:first(Module)}]]
-          }, S))
+      RS = case elixir_aliases:nesting(S#elixir_scope.module, FullModule) of
+        false -> S;
+        Alias -> element(2, translate_each({ alias, Meta, [FullModule, [{ as, Alias }]] }, S))
       end,
 
       {
-        { atom, Meta, NewModule },
-        RS#elixir_scope{scheduled=[NewModule|S#elixir_scope.scheduled]}
+        { atom, Meta, FullModule },
+        RS#elixir_scope{scheduled=[FullModule|S#elixir_scope.scheduled]}
       };
     _ ->
       { TRef, S }
