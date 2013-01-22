@@ -524,17 +524,13 @@ translate_local(Meta, Name, Args, S) ->
   { { call, Line, Remote, TArgs }, NS }.
 
 expand_var_context(_Meta, Atom, _Msg, _S) when is_atom(Atom) -> Atom;
-
-expand_var_context(Meta, { '__aliases__', _, _ } = Alias, Msg, S) ->
+expand_var_context(Meta, Alias, Msg, S) ->
   case translate_each(Alias, S) of
     { { atom, _, Atom }, _ } ->
       Atom;
     _ ->
-      syntax_error(Meta, S#elixir_scope.file, "~ts, expected a compile time available alias", [Msg])
-  end;
-
-expand_var_context(Meta, _, Msg, S) ->
-  syntax_error(Meta, S#elixir_scope.file, "~ts, expected an atom or an alias", [Msg]).
+      syntax_error(Meta, S#elixir_scope.file, "~ts, expected a compile time available alias or an atom", [Msg])
+  end.
 
 %% Translate args
 

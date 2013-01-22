@@ -106,7 +106,7 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
   end
 
   defmacrop read_cross_module do
-    quote do: a
+    quote do: var!(a, __MODULE__)
   end
 
   test :no_interference do
