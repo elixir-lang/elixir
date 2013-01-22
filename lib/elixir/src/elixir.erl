@@ -113,14 +113,19 @@ eval_quoted(Tree, Binding, Line, #elixir_scope{} = S) when is_integer(Line) ->
 %% Handle forms evaluation internally, it is an
 %% internal API not meant for external usage.
 
-eval_forms(Tree, Binding, RawScope) ->
-  Scope = RawScope#elixir_scope{
+translate_forms(Tree, Binding, Opts) when is_list(Opts) ->
+  translate_forms(Tree, Binding, scope_for_eval(Opts));
+
+translate_forms(Tree, Binding, #elixir_scope{} = Scope) ->
+  elixir_translator:translate(Tree, Scope#elixir_scope{
     vars=binding_dict(Binding),
     temp_vars=[],
     clause_vars=nil,
     counter=[]
-  },
-  { ParseTree, NewScope } = elixir_translator:translate(Tree, Scope),
+  }).
+
+eval_forms(Tree, Binding, Scope) ->
+  { ParseTree, NewScope } = translate_forms(Tree, Binding, Scope),
   case ParseTree of
     [] -> { nil, Binding, NewScope };
     _  ->
