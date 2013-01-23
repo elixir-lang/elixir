@@ -53,7 +53,6 @@ defmodule Mix.Tasks.Compile.Elixir do
 
          [watch_exts: [:ex, :eex]]
 
-
   """
   def run(args) do
     { opts, _ } = OptionParser.parse(args, aliases: [q: :quick],
@@ -70,11 +69,8 @@ defmodule Mix.Tasks.Compile.Elixir do
     stale      = Mix.Utils.extract_stale(to_watch, [compile_path])
 
     if opts[:force] or stale != [] do
-      Mix.Utils.preserving_mtime(compile_path, fn ->
-        File.mkdir_p! compile_path
-        compile_files opts[:quick], project, compile_path, to_compile, stale
-      end)
-
+      File.mkdir_p! compile_path
+      compile_files opts[:quick], project, compile_path, to_compile, stale
       :ok
     else
       :noop

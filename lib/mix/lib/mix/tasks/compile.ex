@@ -62,18 +62,22 @@ defmodule Mix.Tasks.Compile do
 
   def run(args) do
     Mix.Task.run "loadpaths", args
+    compile_path = Mix.project[:compile_path]
 
-    changed = Enum.reduce get_compilers, false, fn(compiler, acc) ->
-      res = Mix.Task.run "compile.#{compiler}", args
-      acc or res != :noop
-    end
+    changed =
+      Mix.Utils.preserving_mtime(compile_path, fn ->
+        Enum.reduce get_compilers, false, fn(compiler, acc) ->
+          res = Mix.Task.run "compile.#{compiler}", args
+          acc or res != :noop
+        end
+      end)
 
     # If any of the tasks above returns something different
     # than :noop, it means they produced something, so we
     # touch the common target `compile_path`. Notice that
     # we choose :noop since it is also the value returned
     # by a task that we already invoked.
-    if changed, do: File.touch Mix.project[:compile_path]
+    if changed, do: File.touch compile_path
   end
 
   defp get_compilers do

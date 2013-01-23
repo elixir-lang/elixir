@@ -14,8 +14,8 @@ defmodule Mix.Tasks.Run do
   * `--require`, `-r` - Requires a file before running the command
   * `--parallel-require`, `-pr` - Requires a file in parallel
   * `--no-halt` - Does not halt the system after running the command
-  * `--no-compile` - do not compile even if files require compilation;
-  * `--no-start` - do not start applications after compilation;
+  * `--no-compile` - Do not compile even if files require compilation;
+  * `--no-start` - Do not start applications after compilation;
 
   ## Examples
 
