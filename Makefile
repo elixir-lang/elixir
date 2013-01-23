@@ -3,10 +3,9 @@ ELIXIRC := bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 VERSION := 0.8.0.dev
-RELEASE_FLAG := .release
 INSTALL_PATH := /usr/local
 
-.PHONY: 1
+.PHONY: install compile erlang elixir dialyze test clean docs release_docs release_zip release_erl
 .NOTPARALLEL: compile
 
 #==> Templates
@@ -82,7 +81,6 @@ install: compile
 
 clean:
 	@ cd lib/elixir && $(REBAR) clean
-	rm -rf $(RELEASE_FLAG)
 	rm -rf ebin
 	rm -rf lib/*/ebin
 	rm -rf lib/*/test/tmp
@@ -95,17 +93,14 @@ clean:
 
 #==> Release tasks
 
-$(RELEASE_FLAG): compile
-	touch $(RELEASE_FLAG)
-
-docs: $(RELEASE_FLAG)
+docs:
 	mkdir -p ebin
 	rm -rf docs
 	cp -R -f lib/*/ebin/*.beam ./ebin
 	bin/elixir ../exdoc/bin/exdoc
 	rm -rf ebin
 
-release_zip: $(RELEASE_FLAG)
+release_zip:
 	rm -rf v$(VERSION).zip
 	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md rel
 
@@ -114,7 +109,7 @@ release_docs: docs
 	rm -rf ../elixir-lang.github.com/docs/master
 	mv output ../elixir-lang.github.com/docs/master
 
-release_erl: $(RELEASE_FLAG)
+release_erl:
 	@ rm -rf rel/elixir
 	@ cd rel && ../rebar generate
 
@@ -139,7 +134,7 @@ test_kernel: compile
 	@ echo "==> Adding Erlang/OTP basic applications to a new base PLT"
 	@ dialyzer --output_plt .dialyzer.base_plt --build_plt --apps erts kernel stdlib compiler syntax_tools inets crypto ssl
 
-dialyze: $(RELEASE_FLAG) .dialyzer.base_plt
+dialyze: .dialyzer.base_plt
 	@ rm -f .dialyzer_plt
 	@ cp .dialyzer.base_plt .dialyzer_plt
 	@ echo "==> Adding Elixir to PLT..."
