@@ -18,7 +18,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def suite_finished(id) do
-    :gen_server.call(id, :suite_finished)
+    :gen_server.call(id, :suite_finished, System.services_timeout)
   end
 
   def case_started(_id, _test_case) do

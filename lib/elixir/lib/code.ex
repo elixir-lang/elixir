@@ -379,7 +379,7 @@ defmodule Code do
   end
 
   defp server_call(args) do
-    :gen_server.call(:elixir_code_server, args)
+    :gen_server.call(:elixir_code_server, args, System.services_timeout)
   end
 
   defp server_cast(args) do
