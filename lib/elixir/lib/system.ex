@@ -296,6 +296,14 @@ defmodule System do
     do_halt(to_char_list(status), options)
   end
 
+  # services_timeout/0 is an internal function only to be used by Elixir.
+
+  @doc false
+  @spec services_timeout() :: non_neg_integer | :infinity
+  def services_timeout() do
+    :elixir_compiler.get_timeout
+  end
+
   # Support R15B
   if List.member?(:erlang.module_info(:exports), { :halt, 2 }) do
     defp do_halt(status, options),  do: :erlang.halt(status, options)
