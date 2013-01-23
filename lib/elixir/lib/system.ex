@@ -50,7 +50,7 @@ defmodule System do
   """
   @spec argv() :: [String.t]
   def argv do
-    :gen_server.call(:elixir_code_server, :argv)
+    :gen_server.call(:elixir_code_server, :argv, System.services_timeout)
   end
 
   @doc """
@@ -315,7 +315,7 @@ defmodule System do
   ## Helpers
 
   defp server_call(args) do
-    :gen_server.call(:elixir_code_server, args)
+    :gen_server.call(:elixir_code_server, args, System.services_timeout)
   end
 
   defp filter_stacktrace([{ Kernel, :raise, _, _ }|t]), do: t
