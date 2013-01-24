@@ -21,6 +21,7 @@ defmodule IEx.Helpers do
   * `v/0` - prints all commands and values
   * `v/1` - retrieves nth value from console
   * `flush/0` — flush all messages sent to the shell
+  * `q/0` - exit the Elixir shell via the Erlang function init:stop/0
 
   Help for functions in this module can be consulted
   directly from the command line, as an example, try:
@@ -460,6 +461,13 @@ defmodule IEx.Helpers do
     after
       0 -> :ok
     end  
+  end
+
+  @doc """
+  Exits the Elixir shell using Erlangs init:stop() function
+  """
+  def q do
+    :init.stop
   end
 
   defp iex_reloaded do
