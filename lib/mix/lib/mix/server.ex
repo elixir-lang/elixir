@@ -12,7 +12,7 @@ defmodule Mix.Server do
   end
 
   def call(arg) do
-    :gen_server.call(__MODULE__, arg, System.services_timeout)
+    :gen_server.call(__MODULE__, arg)
   end
 
   def cast(arg) do

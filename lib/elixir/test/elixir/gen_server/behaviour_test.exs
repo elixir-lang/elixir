@@ -31,8 +31,8 @@ defmodule GenServer.BehaviourTest do
 
   test :using do
     assert { :ok, pid } = :gen_server.start_link(Sample, [:hello], [])
-    assert :gen_server.call(pid, :pop, System.services_timeout) == :hello
+    assert :gen_server.call(pid, :pop) == :hello
     assert :gen_server.cast(pid, { :push, :world }) == :ok
-    assert :gen_server.call(pid, :pop, System.services_timeout) == :world
+    assert :gen_server.call(pid, :pop) == :world
   end
 end

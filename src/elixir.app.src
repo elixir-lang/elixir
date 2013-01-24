@@ -6,6 +6,5 @@
   ]},
  {registered,[elixir_code_server]},
  {applications, [kernel,stdlib]},
- {mod, {elixir,[]}},
- {env, [{system_services_timeout, 60000}]}
+ {mod, {elixir,[]}}
 ]}.

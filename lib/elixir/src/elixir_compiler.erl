@@ -1,5 +1,5 @@
 -module(elixir_compiler).
--export([get_opts/0, get_opt/1, get_opt/2, string/2, file/1, file_to_path/2, get_timeout/0]).
+-export([get_opts/0, get_opt/1, get_opt/2, string/2, file/1, file_to_path/2]).
 -export([core/0, module/3, eval_forms/4]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
@@ -16,14 +16,8 @@ get_opt(Key, Dict) ->
     { Key, Value } -> Value
   end.
 
-get_timeout() ->
-  case application:get_env(elixir, system_services_timeout) of
-    {ok, Val} -> Val;
-    undefined -> 60000
-  end.
-
 get_opts() ->
-  gen_server:call(elixir_code_server, compiler_options, get_timeout()).
+  gen_server:call(elixir_code_server, compiler_options).
 
 %% Compiles the given string.
 
@@ -113,7 +107,7 @@ module(Forms, File, Options, Bootstrap, Callback) when
 
 core() ->
   application:start(elixir),
-  gen_server:call(elixir_code_server, { compiler_options, [{docs,false},{internal,true}] }, get_timeout()),
+  gen_server:call(elixir_code_server, { compiler_options, [{docs,false},{internal,true}] }),
   [core_file(File) || File <- core_main()].
 
 %% HELPERS
@@ -145,7 +139,7 @@ module_form(Fun, Exprs, Line, File, Module, Vars) when
 %% Generate module names from code server.
 
 retrieve_module_name() ->
-  gen_server:call(elixir_code_server, retrieve_module_name, get_timeout()).
+  gen_server:call(elixir_code_server, retrieve_module_name).
 
 return_module_name(I) ->
   gen_server:cast(elixir_code_server, { return_module_name, I }).

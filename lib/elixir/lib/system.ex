@@ -50,7 +50,7 @@ defmodule System do
   """
   @spec argv() :: [String.t]
   def argv do
-    :gen_server.call(:elixir_code_server, :argv, System.services_timeout)
+    :gen_server.call(:elixir_code_server, :argv)
   end
 
   @doc """
@@ -296,14 +296,6 @@ defmodule System do
     do_halt(to_char_list(status), options)
   end
 
-  # services_timeout/0 is an internal function only to be used by Elixir.
-
-  @doc false
-  @spec services_timeout() :: non_neg_integer | :infinity
-  def services_timeout() do
-    :elixir_compiler.get_timeout
-  end
-
   # Support R15B
   if List.member?(:erlang.module_info(:exports), { :halt, 2 }) do
     defp do_halt(status, options),  do: :erlang.halt(status, options)
@@ -315,7 +307,7 @@ defmodule System do
   ## Helpers
 
   defp server_call(args) do
-    :gen_server.call(:elixir_code_server, args, System.services_timeout)
+    :gen_server.call(:elixir_code_server, args)
   end
 
   defp filter_stacktrace([{ Kernel, :raise, _, _ }|t]), do: t

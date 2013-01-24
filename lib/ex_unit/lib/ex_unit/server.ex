@@ -30,15 +30,15 @@ defmodule ExUnit.Server do
   ## After run API
 
   def options do
-    :gen_server.call(__MODULE__, :options, System.services_timeout)
+    :gen_server.call(__MODULE__, :options)
   end
 
   def cases do
-    :gen_server.call(__MODULE__, :cases, System.services_timeout)
+    :gen_server.call(__MODULE__, :cases)
   end
 
   def run_after_spawn do
-    funs = :gen_server.call(__MODULE__, :after_spawn, System.services_timeout)
+    funs = :gen_server.call(__MODULE__, :after_spawn)
     lc fun inlist funs, do: fun.()
   end
 
