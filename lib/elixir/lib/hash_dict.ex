@@ -17,7 +17,7 @@ defmodule HashDict do
   # per bucket. We use bit shifting to make rehashing faster on
   # expansion.
   #
-  # However, compared to dict, it provides many enhancements:
+  # Compared to dict, it provides many enhancements:
   #
   # 1. HashDict buckets are ordered sets, this gives us faster access
   #    and modification times
@@ -25,9 +25,9 @@ defmodule HashDict do
   # 2. It uses phash2 to calculate the hash (instead of phash)
   #
   # 3. The dictionary first starts with a single bucket, instead of
-  #    a set of buckets with 16 buckets. This allow us to skip hashing
-  #    altogher for small dictionaries, providing faster operations
-  #    and reducing memory consumption
+  #    a set of 8 buckets. This allow us to skip hashing altogher
+  #    for small dictionaries, providing faster operations and
+  #    reducing memory consumption
   #
   # 4. Once we reach 8 elements, the dictionary is promoted to a
   #    set of buckets
