@@ -28,8 +28,11 @@ defmodule Mix.Tasks.Compile.Erlang do
     if files == [] do
       :noop
     else
-      File.mkdir_p! compile_path
-      compile_files project, files, compile_path
+      Mix.Utils.preserving_mtime(compile_path, fn ->
+        File.mkdir_p! compile_path
+        compile_files project, files, compile_path
+      end)
+
       :ok
     end
   end

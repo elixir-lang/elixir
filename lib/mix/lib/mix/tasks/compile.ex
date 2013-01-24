@@ -65,12 +65,10 @@ defmodule Mix.Tasks.Compile do
     compile_path = Mix.project[:compile_path]
 
     changed =
-      Mix.Utils.preserving_mtime(compile_path, fn ->
-        Enum.reduce get_compilers, false, fn(compiler, acc) ->
-          res = Mix.Task.run "compile.#{compiler}", args
-          acc or res != :noop
-        end
-      end)
+      Enum.reduce get_compilers, false, fn(compiler, acc) ->
+        res = Mix.Task.run "compile.#{compiler}", args
+        acc or res != :noop
+      end
 
     # If any of the tasks above returns something different
     # than :noop, it means they produced something, so we

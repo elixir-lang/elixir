@@ -69,8 +69,11 @@ defmodule Mix.Tasks.Compile.Elixir do
     stale      = Mix.Utils.extract_stale(to_watch, [compile_path])
 
     if opts[:force] or stale != [] do
-      File.mkdir_p! compile_path
-      compile_files opts[:quick], project, compile_path, to_compile, stale
+      Mix.Utils.preserving_mtime(compile_path, fn ->
+        File.mkdir_p! compile_path
+        compile_files opts[:quick], project, compile_path, to_compile, stale
+      end)
+
       :ok
     else
       :noop
