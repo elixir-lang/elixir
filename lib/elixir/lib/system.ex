@@ -14,6 +14,11 @@ defmodule System do
   with the VM or the host system.
   """
 
+  # Read and strip the version from the `VERSION` file.
+  defmacrop get_version do
+    Regex.replace %r/^\s+|\s+$/, File.read!("VERSION"), ""
+  end
+
   # Tries to run `git describe --always --tags`. In case of success
   # returns the most recent tag, otherwise returns an empty string.
   defmacrop get_describe do
@@ -35,7 +40,7 @@ defmodule System do
   Returns Elixir's version as binary.
   """
   @spec version() :: String.t
-  def version, do: "0.8.0.dev"
+  def version, do: get_version
 
   @doc """
   Returns a keywords list with version, git tag info and date.
