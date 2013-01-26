@@ -171,6 +171,9 @@ extract_bit_values(Meta, [{ Value, CallMeta, [_] = Args }|T] = All, Size, Types,
       extract_bit_values(Meta, T, NewSize, NewTypes, S)
   end;
 
+extract_bit_values(Meta, [Size|T], default, Types, S) when is_integer(Size) andalso Size >= 0 ->
+  extract_bit_values(Meta, T, {integer, Meta, Size}, Types, S);
+
 extract_bit_values(Meta, [{ '|', _, [Left, Right] }], Size, Types, S) ->
   Expanded = 'Elixir.Macro':expand(Right, elixir_scope:to_ex_env({ ?line(Meta), S })),
   extract_bit_values(Meta, [Left|join_expansion(Expanded,[])], Size, Types, S);
