@@ -154,6 +154,12 @@ defmodule Kernel.SpecialForms do
   have their size specified explicitly). Bitstrings do not have
   a default size.
 
+  Size can also be specified using a syntax shortcut. Instead of
+  writing `size(8)`, one can write just `8` and it will be interpreted
+  as `size(8)`
+
+      << 1 :: 3 >> == << 1 :: size(3) >> #=> true
+
   The default unit for integers, floats, and bitstrings is 1. For
   binaries, it is 8.
 
