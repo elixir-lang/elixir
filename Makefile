@@ -2,7 +2,7 @@ REBAR := $(shell echo `pwd`/rebar)
 ELIXIRC := bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
-VERSION := 0.8.0.dev
+VERSION := $(strip $(shell cat VERSION))
 INSTALL_PATH := /usr/local
 
 .PHONY: install compile erlang elixir dialyze test clean docs release_docs release_zip release_erl
