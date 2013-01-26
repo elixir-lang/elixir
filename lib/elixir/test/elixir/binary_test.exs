@@ -107,6 +107,11 @@ bar
        sec_data :: binary >>
   end
 
+  test :bitsyntax_size_shorcut do
+    assert << 1 :: 3 >> == << 1 :: size(3) >>
+    assert << 1 :: [unit(8), 3] >> == << 1 :: [unit(8), size(3)] >>
+  end
+
   defmacrop signed_16 do
     quote do
       [big, signed, integer, unit(16)]

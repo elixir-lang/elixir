@@ -1,6 +1,7 @@
 * enhancements
   * [Binary] Support `<< "string" :: utf8 >>` as in Erlang
   * [Binary] Support `\a` escape character in binaries
+  * [Binary] Support syntax shortcut for specifying size in bit syntax
   * [CLI] Support `--app` option to start an application and its dependencies
   * [Dict] Support `put_new` in `Dict` and `Keyword`
   * [Dict] Add `List.Dict` and a faster `HashDict` implementation
