@@ -89,6 +89,95 @@ defmodule Path do
   end
 
   @doc """
+  Returns the path type.
+
+  ## Unix examples
+
+      Path.type("/usr/local/bin")   #=> :absolute
+      Path.type("usr/local/bin")    #=> :relative
+      Path.type("../usr/local/bin") #=> :relative
+
+  ## Windows examples
+
+      Path.type("D:/usr/local/bin") #=> :absolute
+      Path.type("usr/local/bin")    #=> :relative
+      Path.type("D:bar.ex")         #=> :volumerelative
+      Path.type("/bar/foo.ex")      #=> :volumerelative
+
+  """
+  def type(name) when is_list(name) or is_binary(name) do
+    case :os.type() do
+      { :unix, _ }  -> unix_pathtype(name)
+      { :win32, _ } -> win32_pathtype(name)
+    end |> elem(0)
+  end
+
+  @doc """
+  Forces the path to be a relative path.
+
+  ## Unix examples
+
+      Path.relative("/usr/local/bin")   #=> "usr/local/bin"
+      Path.relative("usr/local/bin")    #=> "usr/local/bin"
+      Path.relative("../usr/local/bin") #=> "../usr/local/bin"
+
+  ## Windows examples
+
+      Path.relative("D:/usr/local/bin") #=> "usr/local/bin"
+      Path.relative("usr/local/bin")    #=> "usr/local/bin"
+      Path.relative("D:bar.ex")         #=> "bar.ex"
+      Path.relative("/bar/foo.ex")      #=> "bar/foo.ex"
+
+  """
+  def relative(name) do
+    case :os.type() do
+      { :unix, _ }  -> unix_pathtype(name)
+      { :win32, _ } -> win32_pathtype(name)
+    end |> elem(1)
+  end
+
+  defp unix_pathtype(<<?/, relative :: binary>>), do:
+    { :absolute, relative }
+  defp unix_pathtype([?/|relative]), do:
+    { :absolute, relative }
+  defp unix_pathtype([list|rest]) when is_list(list), do:
+    unix_pathtype(list ++ rest)
+  defp unix_pathtype([atom|rest]) when is_atom(atom), do:
+    unix_pathtype(atom_to_list(atom) ++ rest)
+  defp unix_pathtype(relative), do:
+    { :relative, relative }
+
+  @slash [?/, ?\\]
+
+  defp win32_pathtype([list|rest]) when is_list(list), do:
+    win32_pathtype(list++rest)
+  defp win32_pathtype([atom|rest]) when is_atom(atom), do:
+    win32_pathtype(atom_to_list(atom)++rest)
+  defp win32_pathtype([char, list|rest]) when is_list(list), do:
+    win32_pathtype([char|list++rest])
+  defp win32_pathtype(<<c1, c2, relative :: binary>>) when c1 in @slash and c2 in @slash, do:
+    { :absolute, relative }
+  defp win32_pathtype(<<c, relative :: binary>>) when c in @slash, do:
+    { :volumerelative, relative }
+  defp win32_pathtype(<<_letter, ?:, c, relative :: binary>>) when c in @slash, do:
+    { :absolute, relative }
+  defp win32_pathtype(<<_letter, ?:, relative :: binary>>), do:
+    { :volumerelative, relative }
+
+  defp win32_pathtype([c1, c2 | relative]) when c1 in @slash and c2 in @slash, do:
+    { :absolute, relative }
+  defp win32_pathtype([c | relative]) when c in @slash, do:
+    { :volumerelative, relative }
+  defp win32_pathtype([c1, c2, list|rest]) when is_list(list), do:
+    win32_pathtype([c1, c2|list++rest])
+  defp win32_pathtype([_letter, ?:, c | relative]) when c in @slash, do:
+    { :absolute, relative }
+  defp win32_pathtype([_letter, ?: | relative]), do:
+    { :volumerelative, relative }
+  defp win32_pathtype(relative), do:
+    { :relative, relative }
+
+  @doc """
   Returns the given `path` relative to the given `from` path.
 
   This function does not query the filesystem, so it assumes

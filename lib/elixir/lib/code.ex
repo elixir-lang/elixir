@@ -267,7 +267,7 @@ defmodule Code do
   For compiling many files at once, check `Kernel.ParallelCompiler`.
   """
   def compile_string(string, file // "nofile") when is_binary(file) do
-    :elixir_compiler.string :unicode.characters_to_list(string), to_binary(file)
+    :elixir_compiler.string :unicode.characters_to_list(string), file
   end
 
   @doc """
@@ -363,8 +363,6 @@ defmodule Code do
   # Finds the file given the relative_to path.
   # If the file is found, returns its path in binary, fails otherwise.
   defp find_file(file, relative_to) do
-    file = to_binary(file)
-
     file = if relative_to do
       Path.expand(file, relative_to)
     else

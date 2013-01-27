@@ -28,7 +28,7 @@ defmodule URI do
 
   Use decoder/1 if you want to customize or iterate each value manually.
   """
-  def decode_query(q, dict // HashDict.new) do
+  def decode_query(q, dict // HashDict.new) when is_binary(q) do
     Enum.reduce query_decoder(q), dict, fn({ k, v }, acc) -> Dict.put(acc, k, v) end
   end
 
@@ -36,8 +36,8 @@ defmodule URI do
   Returns an iterator function over the query string that decodes
   the query string in steps.
   """
-  def query_decoder(q) do
-    fn -> { do_decoder(&1), to_binary(q) } end
+  def query_decoder(q) when is_binary(q) do
+    fn -> { do_decoder(&1), q } end
   end
 
   defp do_decoder("") do
@@ -123,10 +123,10 @@ defmodule URI do
   for that particular scheme. Take a look at URI.HTTPS for an
   example of one of these extension modules.
   """
-  def parse(s) do
+  def parse(s) when is_binary(s) do
     # From http://tools.ietf.org/html/rfc3986#appendix-B
     regex = %r/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
-    parts = nillify(Regex.run(regex, to_binary(s)))
+    parts = nillify(Regex.run(regex, s))
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
     { userinfo, host, port } = split_authority(authority)
@@ -144,12 +144,12 @@ defmodule URI do
     if scheme do
       module =
         try do
-          Module.safe_concat(URI, :string.to_upper(binary_to_list(scheme)))
+          Module.safe_concat(URI, String.upcase(scheme))
         rescue
           ArgumentError -> nil
         end
 
-      if module && match?({:module,^module}, Code.ensure_loaded(module)) do
+      if module && Code.ensure_loaded?(module) do
         module.parse(default_port(info, module))
       else
         info
@@ -168,7 +168,7 @@ defmodule URI do
     s = s || ""
     components = Regex.run %r/(^(.*)@)?([^:]*)(:(\d*))?/, s
     destructure [_, _, userinfo, host, _, port], nillify(components)
-    port = if port, do: list_to_integer(binary_to_list(port))
+    port = if port, do: binary_to_integer(port)
     { userinfo, host, port }
   end
 
