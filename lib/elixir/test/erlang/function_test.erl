@@ -11,8 +11,12 @@ function_arg_do_end_test() ->
   {nil, _} = eval("if date do end").
 
 function_stab_end_test() ->
-  {_, [{a, Fun}]} = eval("a = fn -> 1 + 2 end"),
-  3 = Fun().
+  {_, [{a, Fun1}]} = eval("a = fn -> end"),
+  nil = Fun1(),
+  {_, [{a, Fun2}]} = eval("a = fn() -> end"),
+  nil = Fun2(),
+  {_, [{a, Fun3}]} = eval("a = fn -> 1 + 2 end"),
+  3 = Fun3().
 
 function_stab_many_test() ->
   {_, [{a, Fun}]} = eval("a = fn\n{ :foo, x } -> x\n{ :bar, x } -> x\nend"),

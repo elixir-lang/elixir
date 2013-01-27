@@ -3,7 +3,7 @@ Nonterminals
   expr paren_expr block_expr fn_expr bracket_expr call_expr bracket_at_expr max_expr
   base_expr matched_expr matched_op_expr unmatched_expr op_expr
   add_op mult_op unary_op two_op pipeline_op bin_concat_op
-  match_op send_op default_op when_op pipe_op in_op inc_op stab_op range_op
+  match_op send_op default_op when_op pipe_op in_op inc_op range_op
   andand_op oror_op and_op or_op comp_expr_op colon_colon_op three_op at_op
   open_paren close_paren empty_paren
   open_bracket close_bracket
@@ -11,7 +11,7 @@ Nonterminals
   open_bit close_bit
   base_comma_expr comma_expr optional_comma_expr matched_comma_expr
   call_args call_args_parens call_args_parens_not_one call_args_no_parens parens_call
-  stab_expr stab_expr_list
+  stab stab_op stab_expr stab_maybe_expr
   kw_eol kw_expr kw_comma kw_base
   matched_kw_expr matched_kw_comma matched_kw_base
   dot_op dot_ref dot_identifier dot_op_identifier dot_do_identifier
@@ -38,7 +38,7 @@ Terminals
 Rootsymbol grammar.
 
 Left       5 do.
-Right     10 '->'.
+Right     10 stab_op.
 Left      20 ','.  % Solve nested call_args conflicts
 Right     30 colon_colon_op.
 Right     40 when_op.
@@ -146,8 +146,7 @@ block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_ide
 block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
 block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
 
-fn_expr -> fn_eol stab_expr_list end_eol : build_fn('$1', build_stab(lists:reverse('$2'))).
-fn_expr -> fn_eol '->' grammar 'end' : build_fn('$1', { '->', [{line,?line('$2')}], [{ [], build_block('$3') }] }).
+fn_expr -> fn_eol stab end_eol : build_fn('$1', build_stab(lists:reverse('$2'))).
 fn_expr -> call_expr : '$1'.
 
 call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
@@ -163,7 +162,7 @@ max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 max_expr -> parens_call call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3').
 max_expr -> dot_ref : '$1'.
 max_expr -> base_expr : '$1'.
-max_expr -> open_paren stab_expr_list close_paren : build_stab(lists:reverse('$2')).
+max_expr -> open_paren stab close_paren : build_stab(lists:reverse('$2')).
 
 bracket_expr -> dot_bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
 bracket_expr -> max_expr bracket_access : build_access('$1', '$2').
@@ -191,9 +190,9 @@ base_expr -> sigil : build_sigil('$1').
 %% Blocks
 
 do_block -> do_eol 'end' : [[{do,nil}]].
-do_block -> do_eol stab_expr_list end_eol : [[{ do, build_stab(lists:reverse('$2')) }]].
+do_block -> do_eol stab end_eol : [[{ do, build_stab(lists:reverse('$2')) }]].
 do_block -> do_eol block_list 'end' : [[{ do, nil }|'$2']].
-do_block -> do_eol stab_expr_list eol block_list 'end' : [[{ do, build_stab(lists:reverse('$2')) }|'$4']].
+do_block -> do_eol stab eol block_list 'end' : [[{ do, build_stab(lists:reverse('$2')) }|'$4']].
 
 fn_eol -> 'fn' : '$1'.
 fn_eol -> 'fn' eol : '$1'.
@@ -207,14 +206,18 @@ end_eol -> eol 'end' : '$2'.
 block_eol -> block_identifier : '$1'.
 block_eol -> block_identifier eol : '$1'.
 
-stab_expr_list -> stab_expr : ['$1'].
-stab_expr_list -> stab_expr_list eol stab_expr : ['$3'|'$1'].
+stab -> stab_expr : ['$1'].
+stab -> stab eol stab_expr : ['$3'|'$1'].
 
 stab_expr -> expr : '$1'.
-stab_expr -> call_args_no_parens stab_op expr : build_op('$2', '$1', '$3').
-stab_expr -> call_args_parens_not_one stab_op expr : build_op('$2', '$1', '$3').
+stab_expr -> stab_op stab_maybe_expr : build_op('$1', [], '$2').
+stab_expr -> call_args_no_parens stab_op stab_maybe_expr : build_op('$2', '$1', '$3').
+stab_expr -> call_args_parens_not_one stab_op stab_maybe_expr : build_op('$2', '$1', '$3').
 
-block_item -> block_eol stab_expr_list eol : { ?exprs('$1'), build_stab(lists:reverse('$2')) }.
+stab_maybe_expr -> 'expr' : '$1'.
+stab_maybe_expr -> '$empty' : nil.
+
+block_item -> block_eol stab eol : { ?exprs('$1'), build_stab(lists:reverse('$2')) }.
 block_item -> block_eol : { ?exprs('$1'), nil }.
 
 block_list -> block_item : ['$1'].

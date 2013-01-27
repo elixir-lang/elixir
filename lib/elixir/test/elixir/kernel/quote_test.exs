@@ -71,6 +71,17 @@ defmodule Kernel.QuoteTest do
     contents = [1, 2, 3]
     assert quote(do: [unquote_splicing(contents)|[1,2,3]]) == [1,2,3,1,2,3]
   end
+
+  test :stab do
+    assert { :->, _, [{[],_}] } = (quote do -> end)
+    assert { :->, _, [{[],_}] } = (quote do: (->))
+
+    assert { :->, _, [{[1],_}] } = (quote do 1 -> end)
+    assert { :->, _, [{[1],_}] } = (quote do: (1 ->))
+
+    assert { :->, _, [{[],1}] } = (quote do -> 1 end)
+    assert { :->, _, [{[],1}] } = (quote do: (-> 1))
+  end
 end
 
 defmodule Kernel.QuoteTest.VarHygiene do
