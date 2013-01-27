@@ -12,19 +12,19 @@ defmodule Kernel.CLI do
     argv = lc arg inlist argv, do: list_to_binary(arg)
 
     { config, argv } = process_argv(argv, Kernel.CLI.Config.new)
-    :gen_server.call(:elixir_code_server, { :argv, argv })
+    :elixir_code_server.cast({ :argv, argv })
 
     run fn ->
       Enum.map Enum.reverse(config.commands), process_command(&1, config)
-      :gen_server.cast(:elixir_code_server, :finished)
+      :elixir_code_server.cast(:finished)
     end, config.halt
   end
 
   @doc """
-  Wait until the CLI finishes procesing options.
+  Wait until the CLI finishes processing options.
   """
   def wait_until_finished do
-    case :gen_server.call(:elixir_code_server, { :wait_until_finished, self }) do
+    case :elixir_code_server.call({ :wait_until_finished, self }) do
       :wait ->
         receive do
           { :elixir_code_server, :finished } -> :ok
@@ -74,7 +74,7 @@ defmodule Kernel.CLI do
   ## Private
 
   defp at_exit(status) do
-    hooks = :gen_server.call(:elixir_code_server, :flush_at_exit)
+    hooks = :elixir_code_server.call(:flush_at_exit)
 
     lc hook inlist hooks do
       try do

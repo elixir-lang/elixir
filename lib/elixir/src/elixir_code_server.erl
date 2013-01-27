@@ -1,4 +1,5 @@
 -module(elixir_code_server).
+-export([call/1, cast/1]).
 -export([start_link/0, init/1, handle_call/3, handle_cast/2,
   handle_info/2, terminate/2, code_change/3]).
 -behavior(gen_server).
@@ -12,8 +13,19 @@
   waiting=[]
 }).
 
+call(Args) ->
+  gen_server:call(?MODULE, Args, get_timeout()).
+
+cast(Args) ->
+  gen_server:cast(?MODULE, Args).
+
+get_timeout() ->
+  30000.
+
+%% Callbacks
+
 start_link() ->
-  { ok, _ } = gen_server:start_link({local, elixir_code_server}, ?MODULE, [], []).
+  { ok, _ } = gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init(_args) ->
   { ok, #elixir_code_server{} }.
@@ -37,16 +49,6 @@ handle_call({ acquire, Path }, From, Config) ->
       Queued = orddict:store(Path, { make_ref(), [] }, Current),
       { reply, proceed, Config#elixir_code_server{loaded=Queued} }
   end;
-
-handle_call({ at_exit, AtExit }, _From, Config) ->
-  { reply, ok, Config#elixir_code_server{at_exit=[AtExit|Config#elixir_code_server.at_exit]} };
-
-handle_call({ argv, Argv }, _From, Config) ->
-  { reply, ok, Config#elixir_code_server{argv=Argv} };
-
-handle_call({ compiler_options, Options }, _From, Config) ->
-  Final = orddict:merge(fun(_,_,V) -> V end, Config#elixir_code_server.compiler_options, Options),
-  { reply, ok, Config#elixir_code_server{compiler_options=Final} };
 
 handle_call(loaded, _From, Config) ->
   { reply, [F || { F, true } <- Config#elixir_code_server.loaded], Config };
@@ -74,6 +76,16 @@ handle_call(retrieve_module_name, _From, Config) ->
 
 handle_call(_Request, _From, Config) ->
   { reply, undef, Config }.
+
+handle_cast({ at_exit, AtExit }, Config) ->
+  { noreply, Config#elixir_code_server{at_exit=[AtExit|Config#elixir_code_server.at_exit]} };
+
+handle_cast({ argv, Argv }, Config) ->
+  { noreply, Config#elixir_code_server{argv=Argv} };
+
+handle_cast({ compiler_options, Options }, Config) ->
+  Final = orddict:merge(fun(_,_,V) -> V end, Config#elixir_code_server.compiler_options, Options),
+  { noreply, Config#elixir_code_server{compiler_options=Final} };
 
 handle_cast(finished, Config) ->
   Waiting = Config#elixir_code_server.waiting,

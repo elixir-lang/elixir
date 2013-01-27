@@ -12,7 +12,7 @@ defmodule Mix.Server do
   end
 
   def call(arg) do
-    :gen_server.call(__MODULE__, arg)
+    :gen_server.call(__MODULE__, arg, 30_000)
   end
 
   def cast(arg) do

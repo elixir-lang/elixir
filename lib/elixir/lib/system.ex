@@ -55,7 +55,7 @@ defmodule System do
   """
   @spec argv() :: [String.t]
   def argv do
-    :gen_server.call(:elixir_code_server, :argv)
+    :elixir_code_server.call :argv
   end
 
   @doc """
@@ -155,7 +155,7 @@ defmodule System do
   as argument.
   """
   def at_exit(fun) when is_function(fun, 1) do
-    server_call { :at_exit, fun }
+    :elixir_code_server.cast { :at_exit, fun }
   end
 
   @doc """
@@ -310,10 +310,6 @@ defmodule System do
   end
 
   ## Helpers
-
-  defp server_call(args) do
-    :gen_server.call(:elixir_code_server, args)
-  end
 
   defp filter_stacktrace([{ Kernel, :raise, _, _ }|t]), do: t
   defp filter_stacktrace(t), do: t

@@ -1,6 +1,7 @@
 defmodule ExUnit.Server do
   @moduledoc false
 
+  @timeout 30_000
   use GenServer.Behaviour
 
   defrecord Config, options: [], async_cases: [], sync_cases: [], after_spawn: []
@@ -30,15 +31,15 @@ defmodule ExUnit.Server do
   ## After run API
 
   def options do
-    :gen_server.call(__MODULE__, :options)
+    :gen_server.call(__MODULE__, :options, @timeout)
   end
 
   def cases do
-    :gen_server.call(__MODULE__, :cases)
+    :gen_server.call(__MODULE__, :cases, @timeout)
   end
 
   def run_after_spawn do
-    funs = :gen_server.call(__MODULE__, :after_spawn)
+    funs = :gen_server.call(__MODULE__, :after_spawn, @timeout)
     lc fun inlist funs, do: fun.()
   end
 

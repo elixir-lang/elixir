@@ -20,7 +20,7 @@ defmodule Code do
   Returns all the loaded files.
   """
   def loaded_files do
-    server_call :loaded
+    :elixir_code_server.call :loaded
   end
 
   @doc """
@@ -30,7 +30,7 @@ defmodule Code do
   allowing it to be required again.
   """
   def unload_files(files) do
-    server_cast { :unload_files, files }
+    :elixir_code_server.cast { :unload_files, files }
   end
 
   @doc """
@@ -198,9 +198,9 @@ defmodule Code do
   """
   def load_file(file, relative_to // nil) when is_binary(file) do
     file = find_file(file, relative_to)
-    server_call { :acquire, file }
+    :elixir_code_server.call { :acquire, file }
     loaded = :elixir_compiler.file file
-    server_cast { :loaded, file }
+    :elixir_code_server.cast { :loaded, file }
     loaded
   end
 
@@ -220,14 +220,14 @@ defmodule Code do
   def require_file(file, relative_to // nil) when is_binary(file) do
     file = find_file(file, relative_to)
 
-    case server_call({ :acquire, file }) do
+    case :elixir_code_server.call({ :acquire, file }) do
       :loaded  ->
         nil
       { :queued, ref }  ->
         receive do { :elixir_code_server, ^ref, :loaded } -> nil end
       :proceed ->
         loaded = :elixir_compiler.file file
-        server_cast { :loaded, file }
+        :elixir_code_server.cast { :loaded, file }
         loaded
     end
   end
@@ -237,7 +237,7 @@ defmodule Code do
   Check compiler_options/1 for more information.
   """
   def compiler_options do
-    server_call :compiler_options
+    :elixir_code_server.call :compiler_options
   end
 
   @doc """
@@ -256,7 +256,7 @@ defmodule Code do
 
   """
   def compiler_options(opts) do
-    server_call { :compiler_options, opts }
+    :elixir_code_server.cast { :compiler_options, opts }
   end
 
   @doc """
@@ -376,13 +376,5 @@ defmodule Code do
     else
       raise LoadError, file: file
     end
-  end
-
-  defp server_call(args) do
-    :gen_server.call(:elixir_code_server, args)
-  end
-
-  defp server_cast(args) do
-    :gen_server.cast(:elixir_code_server, args)
   end
 end

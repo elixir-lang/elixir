@@ -17,7 +17,7 @@ get_opt(Key, Dict) ->
   end.
 
 get_opts() ->
-  gen_server:call(elixir_code_server, compiler_options).
+  elixir_code_server:call(compiler_options).
 
 %% Compiles the given string.
 
@@ -107,7 +107,7 @@ module(Forms, File, Options, Bootstrap, Callback) when
 
 core() ->
   application:start(elixir),
-  gen_server:call(elixir_code_server, { compiler_options, [{docs,false},{internal,true}] }),
+  elixir_code_server:cast({ compiler_options, [{docs,false},{internal,true}] }),
   [core_file(File) || File <- core_main()].
 
 %% HELPERS
@@ -139,10 +139,10 @@ module_form(Fun, Exprs, Line, File, Module, Vars) when
 %% Generate module names from code server.
 
 retrieve_module_name() ->
-  gen_server:call(elixir_code_server, retrieve_module_name).
+  elixir_code_server:call(retrieve_module_name).
 
 return_module_name(I) ->
-  gen_server:cast(elixir_code_server, { return_module_name, I }).
+  elixir_code_server:cast({ return_module_name, I }).
 
 %% Receives a module Binary and outputs it in the given path.
 

@@ -5,6 +5,7 @@ defmodule ExUnit.CLIFormatter do
   """
 
   @behaviour ExUnit.Formatter
+  @timeout 30_000
   use GenServer.Behaviour
 
   import Exception, only: [format_entry: 1]
@@ -18,7 +19,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def suite_finished(id) do
-    :gen_server.call(id, :suite_finished)
+    :gen_server.call(id, :suite_finished, @timeout)
   end
 
   def case_started(_id, _test_case) do
