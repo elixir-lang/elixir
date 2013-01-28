@@ -8,7 +8,7 @@ defmodule Mix.Generator do
   If the file already exists, asks for user confirmation.
   """
   def create_file(path, contents) do
-    Mix.shell.info IO.ANSI.escape "#[green]* creating #{path}"
+    Mix.shell.info "#[green]* creating#[reset] #{path}"
 
     if overwriting?(path) do
       File.write! path, contents
@@ -19,7 +19,7 @@ defmodule Mix.Generator do
   Creates a directory if one does not exist yet.
   """
   def create_directory(path) do
-    Mix.shell.info IO.ANSI.escape "#[green]* creating #{path}"
+    Mix.shell.info "#[green]* creating#[reset] #{path}"
     File.mkdir_p! path
   end
 

@@ -108,13 +108,6 @@ defmodule Mix.Project do
     end
   end
 
-  @doc false
-  def sources do
-    IO.puts IO.ANSI.escape "#[yellow, bright]Mix.Project.sources is deprecated, please use Mix.Project.config_files instead"
-    Exception.print_stacktrace
-    config_files
-  end
-
   @doc """
   Returns a list of project config files (mix.exs and mix.lock).
   """

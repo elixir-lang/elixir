@@ -34,21 +34,22 @@ defmodule Mix.Tasks.Help do
     sorted = Enum.sort(docs)
 
     Enum.each sorted, fn({ task, doc }) ->
-      shell.info format(IO.ANSI.escape("mix ~-#{max}s #[faint, black]# ~s"), [task, doc])
+      shell.info format("mix ~-#{max}s # ~s", [task, doc])
     end
   end
 
   def run([task]) do
     module = Mix.Task.get(task)
-    IO.puts IO.ANSI.escape "#[faint, black]# mix help #{task}\n"
+    shell  = Mix.shell
+    shell.info "#[bright]# mix help #{task}\n"
 
     if doc = Mix.Task.moduledoc(module) do
       IO.write doc
     else
-      IO.puts IO.ANSI.escape "#[faint, black]There is no documentation for this task"
+      shell.info "There is no documentation for this task"
     end
 
-    IO.puts IO.ANSI.escape "#[faint, black]Location: #{where_is_file(module)}"
+    shell.info "Location: #{where_is_file(module)}"
   end
 
   defp where_is_file(module) do
