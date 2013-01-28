@@ -23,6 +23,8 @@ defmodule IO do
 
   """
 
+  import :erlang, only: [group_leader: 0]
+
   @doc """
   Reads `count` bytes from the IO device. It returns:
 
@@ -34,7 +36,7 @@ defmodule IO do
     for instance {:error, :estale} if reading from an
     NFS file system.
   """
-  def read(device // :stdio, count) do
+  def read(device // group_leader(), count) do
     :io.get_chars(map_dev(device), "", count)
   end
 
@@ -44,7 +46,7 @@ defmodule IO do
 
   Check `read/2` for more information.
   """
-  def binread(device // :stdio, count) do
+  def binread(device // group_leader(), count) do
     case :file.read(map_dev(device), count) do
       { :ok, data } -> data
       other -> other
@@ -65,7 +67,7 @@ defmodule IO do
   This function does the same as `gets/2`,
   except the prompt is not required as argument.
   """
-  def readline(device // :stdio) do
+  def readline(device // group_leader()) do
     :io.get_line(map_dev(device), "")
   end
 
@@ -75,7 +77,7 @@ defmodule IO do
 
   Check `readline/1` for more information.
   """
-  def binreadline(device // :stdio) do
+  def binreadline(device // group_leader()) do
     case :file.read_line(map_dev(device)) do
       { :ok, data } -> data
       other -> other
@@ -99,7 +101,7 @@ defmodule IO do
       #=> "error"
 
   """
-  def write(device // :stdio, item) do
+  def write(device // group_leader(), item) do
     :io.put_chars map_dev(device), to_iodata(item)
   end
 
@@ -109,7 +111,7 @@ defmodule IO do
 
   Check `write/2` for more information.
   """
-  def binwrite(device // :stdio, item) do
+  def binwrite(device // group_leader(), item) do
     :file.write map_dev(device), to_iodata(item)
   end
 
@@ -118,7 +120,7 @@ defmodule IO do
   but adds a new line at the end. The argument is expected
   to be a chardata.
   """
-  def puts(device // :stdio, item) do
+  def puts(device // group_leader(), item) do
     erl_dev = map_dev(device)
     :io.put_chars erl_dev, [to_iodata(item), ?\n]
   end
@@ -127,7 +129,7 @@ defmodule IO do
   Inspects and writes the given argument to the device
   followed by a new line. Returns the item given.
   """
-  def inspect(device // :stdio, item, opts // []) do
+  def inspect(device // group_leader(), item, opts // []) do
     puts device, Binary.Inspect.inspect(item, opts)
     item
   end
@@ -143,7 +145,7 @@ defmodule IO do
     for instance {:error, :estale} if reading from an
     NFS file system.
   """
-  def getb(device // :stdio, prompt, count // 1) do
+  def getb(device // group_leader(), prompt, count // 1) do
     :io.get_chars(map_dev(device), to_iodata(prompt), count)
   end
 
@@ -159,7 +161,7 @@ defmodule IO do
     for instance {:error, :estale} if reading from an
     NFS file system.
   """
-  def gets(device // :stdio, prompt) do
+  def gets(device // group_leader(), prompt) do
     :io.get_line(map_dev(device), to_iodata(prompt))
   end
 
