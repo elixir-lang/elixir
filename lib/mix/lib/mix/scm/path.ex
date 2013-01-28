@@ -15,7 +15,7 @@ defmodule Mix.SCM.Path do
       raw = opts[:path] ->
         Keyword.put opts, :dest, Path.expand(raw)
       raw = opts[:raw] ->
-        IO.puts "The option :raw is deprecated in favor of :path in mix deps"
+        IO.puts IO.ANSI.escape "#[yellow, bright] The option :raw is deprecated in favor of :path in mix deps"
         Keyword.put opts, :dest, Path.expand(raw)
       true ->
         nil
