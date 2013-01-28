@@ -107,8 +107,8 @@ defmodule Path do
   """
   def type(name) when is_list(name) or is_binary(name) do
     case :os.type() do
-      { :unix, _ }  -> unix_pathtype(name)
       { :win32, _ } -> win32_pathtype(name)
+      _             -> unix_pathtype(name)
     end |> elem(0)
   end
 
@@ -131,8 +131,8 @@ defmodule Path do
   """
   def relative(name) do
     case :os.type() do
-      { :unix, _ }  -> unix_pathtype(name)
       { :win32, _ } -> win32_pathtype(name)
+      _             -> unix_pathtype(name)
     end |> elem(1)
   end
 
@@ -194,11 +194,12 @@ defmodule Path do
 
   """
   def relative_to(path, from) when is_list(path) and is_binary(from) do
-    relative_to(FN.split(list_to_binary(path)), FN.split(from), list_to_binary(path))
+    path = filename_string_to_binary(path)
+    relative_to(FN.split(path), FN.split(from), path)
   end
 
   def relative_to(path, from) when is_binary(path) and is_list(from) do
-    relative_to(FN.split(path), FN.split(list_to_binary(from)), path)
+    relative_to(FN.split(path), FN.split(filename_string_to_binary(from)), path)
   end
 
   def relative_to(path, from) do
@@ -329,9 +330,12 @@ defmodule Path do
       #=> "/foo/bar"
 
   """
-  def join(paths) do
-    FN.join(paths)
-  end
+  def join([name1, name2|rest]), do:
+    join([join(name1, name2)|rest])
+  def join([name]) when is_list(name), do:
+    binary_to_filename_string(do_join(filename_string_to_binary(name), <<>>, [], major_os_type()))
+  def join([name]) when is_binary(name), do:
+    do_join(name, <<>>, [], major_os_type())
 
   @doc """
   Joins two paths.
@@ -342,9 +346,58 @@ defmodule Path do
       #=> "foo/bar"
 
   """
-  def join(left, right) do
-    FN.join(left, right)
+  def join(left, right) when is_binary(left) and is_binary(right), do:
+    do_join(left, Path.relative(right), [], major_os_type())
+
+  def join(left, right) when is_binary(left) and is_list(right), do:
+    join(left, filename_string_to_binary(right))
+
+  def join(left, right) when is_list(left) and is_binary(right), do:
+    join(filename_string_to_binary(left), right)
+
+  def join(left, right) when is_list(left) and is_list(right), do:
+    binary_to_filename_string join(filename_string_to_binary(left), filename_string_to_binary(right))
+
+  def join(left, right) when is_atom(left), do:
+    join(atom_to_binary(left), right)
+
+  def join(left, right) when is_atom(right), do:
+    join(left, atom_to_binary(right))
+
+  defp major_os_type do
+    case :os.type do
+      { maj, _ } -> maj
+      maj -> maj
+    end
   end
+
+  defp do_join(<<uc_letter, ?:, rest :: binary>>, relativename, [], :win32) when uc_letter in ?A..?Z, do:
+    do_join(rest, relativename, [?:, uc_letter+?a-?A], :win32)
+  defp do_join(<<?\\,rest :: binary>>, relativename, result, :win32), do:
+    do_join(<<?/,rest :: binary>>, relativename, result, :win32)
+  defp do_join(<<?/,rest :: binary>>, relativename, [?., ?/|result], os_type), do:
+    do_join(rest, relativename, [?/|result], os_type)
+  defp do_join(<<?/,rest :: binary>>, relativename, [?/|result], os_type), do:
+    do_join(rest, relativename, [?/|result], os_type)
+  defp do_join(<<>>, <<>>, result, os_type), do:
+    list_to_binary(maybe_remove_dirsep(result, os_type))
+  defp do_join(<<>>, relativename, [?:|rest], :win32), do:
+    do_join(relativename, <<>>, [?:|rest], :win32)
+  defp do_join(<<>>, relativename, [?/|result], os_type), do:
+    do_join(relativename, <<>>, [?/|result], os_type)
+  defp do_join(<<>>, relativename, result, os_type), do:
+    do_join(relativename, <<>>, [?/|result], os_type)
+  defp do_join(<<char,rest :: binary>>, relativename, result, os_type) when is_integer(char), do:
+    do_join(rest, relativename, [char|result], os_type)
+
+  defp maybe_remove_dirsep([?/, ?:, letter], :win32), do:
+    [letter, ?:, ?/]
+  defp maybe_remove_dirsep([?/], _), do:
+    [?/]
+  defp maybe_remove_dirsep([?/|name], _), do:
+    :lists.reverse(name)
+  defp maybe_remove_dirsep(name, _), do:
+    :lists.reverse(name)
 
   @doc """
   Returns a list with the path splitted by the path separator.
@@ -410,6 +463,24 @@ defmodule Path do
 
   defp get_cwd(path) when is_list(path), do: System.cwd! |> binary_to_list
   defp get_cwd(_), do: System.cwd!
+
+  defp binary_to_filename_string(binary) do
+    case :unicode.characters_to_list(binary) do
+      { :error, _, _ } ->
+        :erlang.error(:badarg)
+      list when is_list(list) ->
+        list
+    end
+  end
+
+  defp filename_string_to_binary(list) do
+    case :unicode.characters_to_binary(:filename.flatten(list), :unicode, :file.native_name_encoding()) do
+      { :error, _, _ } ->
+        :erlang.error(:badarg)
+      bin when is_binary(bin) ->
+        bin
+    end
+  end
 
   # Normalize the given path by expanding "..", "." and "~".
 

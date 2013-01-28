@@ -218,6 +218,10 @@ defmodule PathTest do
   test :join_two_with_binary do
     assert Path.join("/foo", "bar") == "/foo/bar"
     assert Path.join("~", "foo") == "~/foo"
+
+    assert Path.join("", "bar") == "/bar"
+    assert Path.join("/foo", "/bar") == "/foo/bar"
+    assert Path.join("/foo", "./bar") == "/foo/bar"
   end
 
   test :join_two_with_list do
