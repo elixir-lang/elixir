@@ -1,3 +1,6 @@
+* enhancements
+  * [Kernel] Better support for Unicode lists
+
 # v0.8.0 (2013-01-28)
 
 * enhancements

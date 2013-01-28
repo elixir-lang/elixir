@@ -497,7 +497,7 @@ defmodule Enum do
   def join(collection, joiner // "")
 
   def join(collection, joiner) when is_list(joiner) do
-    binary_to_list join(collection, list_to_binary(joiner))
+    :unicode.characters_to_list join(collection, :unicode.characters_to_binary(joiner))
   end
 
   def join(collection, joiner) when is_list(collection) and is_binary(joiner) do

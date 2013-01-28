@@ -253,7 +253,7 @@ defmodule File do
     case mkdir(path) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "make directory", path: to_binary(path)
+        raise File.Error, reason: reason, action: "make directory", path: :unicode.characters_to_binary(path)
     end
   end
 
@@ -278,7 +278,7 @@ defmodule File do
     case mkdir_p(path) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "make directory (with -p)", path: to_binary(path)
+        raise File.Error, reason: reason, action: "make directory (with -p)", path: :unicode.characters_to_binary(path)
     end
   end
 
@@ -311,7 +311,7 @@ defmodule File do
       { :ok, binary } ->
         binary
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "read file", path: to_binary(path)
+        raise File.Error, reason: reason, action: "read file", path: :unicode.characters_to_binary(path)
     end
   end
 
@@ -346,7 +346,7 @@ defmodule File do
     case stat(path, opts) do
       {:ok, info}      -> info
       {:error, reason} ->
-        raise File.Error, reason: reason, action: "read file stats", path: to_binary(path)
+        raise File.Error, reason: reason, action: "read file stats", path: :unicode.characters_to_binary(path)
     end
   end
 
@@ -366,7 +366,7 @@ defmodule File do
     case write_stat(path, stat, opts) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "write file stats", path: to_binary(path)
+        raise File.Error, reason: reason, action: "write file stats", path: :unicode.characters_to_binary(path)
     end
   end
 
@@ -389,7 +389,7 @@ defmodule File do
     case touch(path, time) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "touch", path: to_binary(path)
+        raise File.Error, reason: reason, action: "touch", path: :unicode.characters_to_binary(path)
     end
   end
 
@@ -421,7 +421,7 @@ defmodule File do
       { :ok, bytes_count } -> bytes_count
       { :error, reason } ->
         raise File.CopyError, reason: reason, action: "copy",
-          source: to_binary(source), destination: to_binary(destination)
+          source: :unicode.characters_to_binary(source), destination: :unicode.characters_to_binary(destination)
     end
   end
 
@@ -472,7 +472,7 @@ defmodule File do
       :ok -> :ok
       { :error, reason } ->
         raise File.CopyError, reason: reason, action: "copy recursively",
-          source: to_binary(source), destination: to_binary(destination)
+          source: :unicode.characters_to_binary(source), destination: :unicode.characters_to_binary(destination)
     end
   end
 
@@ -546,7 +546,7 @@ defmodule File do
       { :ok, files } -> files
       { :error, reason } ->
         raise File.CopyError, reason: reason, action: "copy recursively",
-          source: to_binary(source), destination: to_binary(destination)
+          source: :unicode.characters_to_binary(source), destination: :unicode.characters_to_binary(destination)
     end
   end
 
@@ -651,7 +651,7 @@ defmodule File do
     case F.write_file(path, content, modes) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "write to file", path: to_binary(path)
+        raise File.Error, reason: reason, action: "write to file", path: :unicode.characters_to_binary(path)
     end
   end
 
@@ -688,7 +688,7 @@ defmodule File do
     case rm(path) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "remove file", path: to_binary(path)
+        raise File.Error, reason: reason, action: "remove file", path: :unicode.characters_to_binary(path)
     end
   end
 
@@ -716,7 +716,7 @@ defmodule File do
     case rmdir(path) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "remove directory", path: to_binary(path)
+        raise File.Error, reason: reason, action: "remove directory", path: :unicode.characters_to_binary(path)
     end
   end
 
@@ -789,7 +789,7 @@ defmodule File do
     case rm_rf(path) do
       { :ok, files } -> files
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "remove files and directories recursively from", path: to_binary(path)
+        raise File.Error, reason: reason, action: "remove files and directories recursively from", path: :unicode.characters_to_binary(path)
     end
   end
 
@@ -898,7 +898,7 @@ defmodule File do
     case open(path, modes) do
       { :ok, device }    -> device
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "open", path: to_binary(path)
+        raise File.Error, reason: reason, action: "open", path: :unicode.characters_to_binary(path)
     end
   end
 
@@ -910,7 +910,7 @@ defmodule File do
     case open(path, modes, function) do
       { :ok, device }    -> device
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "open", path: to_binary(path)
+        raise File.Error, reason: reason, action: "open", path: :unicode.characters_to_binary(path)
     end
   end
 
@@ -953,7 +953,7 @@ defmodule File do
     case F.set_cwd(path) do
       :ok -> :ok
       { :error, reason } ->
-          raise File.Error, reason: reason, action: "set current working directory to", path: to_binary(path)
+          raise File.Error, reason: reason, action: "set current working directory to", path: :unicode.characters_to_binary(path)
     end
   end
 

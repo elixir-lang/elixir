@@ -127,19 +127,6 @@ end
 defmodule Regex.ListTest do
   use ExUnit.Case, async: true
 
-  test :compile do
-    assert is_record(Regex.compile!('foo'), Regex)
-    assert is_regex(Regex.compile!('foo'))
-  end
-
-  test :source do
-    assert Regex.source(Regex.compile!('foo')) == "foo"
-  end
-
-  test :opts do
-    assert Regex.opts(Regex.compile!('foo', 'u')) == "u"
-  end
-
   test :match? do
     assert Regex.match?(%r(foo), 'foo')
     refute Regex.match?(%r(foo), 'FOO')

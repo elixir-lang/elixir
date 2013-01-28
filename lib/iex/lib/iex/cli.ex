@@ -29,20 +29,15 @@ defmodule IEx.CLI do
   end
 
   defp tty do
-    remote =
-      if remsh = get_remsh(:init.get_plain_arguments) do
-        unless is_alive do
-          raise ArgumentError, message: "In order to use --remsh, you need to name the current node"
-        end
-        if is_atom(remsh), do: remsh, else: binary_to_atom(remsh)
-      end
-
     function = fn ->
       IEx.start([], fn -> Kernel.CLI.wait_until_finished end)
     end
 
     args =
-      if remote do
+      if remote = get_remsh(:init.get_plain_arguments) do
+        unless is_alive do
+          raise ArgumentError, message: "In order to use --remsh, you need to name the current node"
+        end
         { remote, :erlang, :apply, [function, []] }
       else
         { :erlang, :apply, [function, []] }
@@ -51,7 +46,7 @@ defmodule IEx.CLI do
     :user_drv.start([:"tty_sl -c -e", args])
   end
 
-  defp get_remsh(['--remsh',h|_]), do: list_to_binary(h)
+  defp get_remsh(['--remsh',h|_]), do: list_to_atom(h)
   defp get_remsh([_|t]), do: get_remsh(t)
   defp get_remsh([]), do: nil
 end

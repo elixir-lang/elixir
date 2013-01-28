@@ -261,8 +261,8 @@ defimpl Binary.Inspect, for: List do
 
   def inspect(thing, opts) do
     cond do
-      printable?(thing) ->
-        escape(list_to_binary(thing), ?')
+      :io_lib.printable_unicode_list(thing) ->
+        escape(:unicode.characters_to_binary(thing), ?')
       Keyword.keyword?(thing) ->
         "[" <> join_keywords(thing, opts) <> "]"
       true ->
@@ -282,19 +282,6 @@ defimpl Binary.Inspect, for: List do
       other -> other
     end
   end
-
-  ## printable?
-
-  defp printable?([c|cs]) when is_integer(c) and c in 32..126 do
-    printable?(cs)
-  end
-
-  defp printable?([c|cs]) when c in [?\n, ?\r, ?\t, ?\v, ?\b, ?\f, ?\e, ?\a] do
-    printable?(cs)
-  end
-
-  defp printable?([]), do: true
-  defp printable?(_),  do: false
 end
 
 defimpl Binary.Inspect, for: Tuple do

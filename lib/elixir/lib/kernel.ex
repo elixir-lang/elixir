@@ -3120,12 +3120,12 @@ defmodule Kernel do
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
   defmacro __c__({ :<<>>, _line, [string] }, []) when is_binary(string) do
-    binary_to_list(Macro.unescape_binary(string))
+    :unicode.characters_to_list(Macro.unescape_binary(string))
   end
 
   defmacro __c__({ :<<>>, line, pieces }, []) do
     binary = { :<<>>, line, Macro.unescape_tokens(pieces) }
-    quote do: binary_to_list(unquote(binary))
+    quote do: :unicode.characters_to_list(unquote(binary))
   end
 
   @doc """

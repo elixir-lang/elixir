@@ -173,7 +173,7 @@ defmodule Binary.Inspect.ListTest do
   end
 
   test :codepoints do
-    assert inspect('é') == "[195,169]"
+    assert inspect('é') == "'é'"
   end
 
   test :empty do

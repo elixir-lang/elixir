@@ -54,8 +54,7 @@ defmodule Regex do
   It returns `{ :ok, regex }` in case of success,
   `{ :error, reason }` otherwise.
   """
-  def compile(source, options // "") do
-    source  = to_binary(source)
+  def compile(source, options // "") when is_binary(source) do
     options = to_binary(options)
     opts    = translate_options(options)
     re_opts = opts -- [:groups]

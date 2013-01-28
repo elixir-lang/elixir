@@ -456,12 +456,12 @@ defmodule Path do
   end
 
   def wildcard(glob) when is_list(glob) do
-    Enum.map wildcard(list_to_binary(glob)), binary_to_list(&1)
+    :elixir_glob.wildcard glob
   end
 
   ## Helpers
 
-  defp get_cwd(path) when is_list(path), do: System.cwd! |> binary_to_list
+  defp get_cwd(path) when is_list(path), do: System.cwd! |> binary_to_filename_string
   defp get_cwd(_), do: System.cwd!
 
   defp binary_to_filename_string(binary) do
@@ -491,7 +491,7 @@ defmodule Path do
   end
 
   defp do_normalize(['~'|t]) do
-    do_normalize t, [System.user_home! |> binary_to_list]
+    do_normalize t, [System.user_home! |> binary_to_filename_string]
   end
 
   defp do_normalize(t) do

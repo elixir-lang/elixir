@@ -18,7 +18,7 @@ bar '''
   end
 
   test :utf8 do
-    assert length(' ゆんゆん') == 13
+    assert length(' ゆんゆん') == 5
   end
 
   test :octals do
@@ -37,10 +37,9 @@ bar '''
     assert '\xfF' == 'ÿ'
     assert '\x{A}' == '\n'
     assert '\x{e9}' == 'é'
-    assert '\x{10F}' == [196,143]
-    assert '\x{10FF}' == [225,131,191]
-    assert '\x{10FFF}' == [240,144,191,191]
-    assert '\x{10FFFF}' == [244,143,191,191]
+    assert '\x{10F}' == [271]
+    assert '\x{10FF}' == [4351]
+    assert '\x{10FFF}' == [69631]
+    assert '\x{10FFFF}' == [1114111]
   end
-
 end

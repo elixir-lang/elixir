@@ -553,10 +553,10 @@ build_sigil({ sigil, Line, Sigil, Parts, Modifiers }) ->
 build_bin_string({ bin_string, _Line, [H] }) when is_binary(H) -> H;
 build_bin_string({ bin_string, Line, Args }) -> { '<<>>', [{line,Line}], Args }.
 
-build_list_string({ list_string, _Line, [H] }) when is_binary(H) -> binary_to_list(H);
+build_list_string({ list_string, _Line, [H] }) when is_binary(H) -> unicode:characters_to_list(H);
 build_list_string({ list_string, Line, Args }) ->
   Meta = [{line,Line}],
-  { { '.', Meta, [erlang, binary_to_list] }, Meta, [{ '<<>>', Meta, Args}] }.
+  { { '.', Meta, [unicode, characters_to_list] }, Meta, [{ '<<>>', Meta, Args}] }.
 
 build_atom({ atom, _Line, Atom }) when is_atom(Atom) -> Atom;
 build_atom({ atom, Line, Args }) ->
