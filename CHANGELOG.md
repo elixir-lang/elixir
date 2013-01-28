@@ -1,5 +1,9 @@
 * enhancements
+  * [IO] Add IO.ANSI to make it easy to write ANSI escape codes
   * [Kernel] Better support for Unicode lists
+
+* bug fix
+  * [IO] IO module should default to the group leader
 
 # v0.8.0 (2013-01-28)
 
