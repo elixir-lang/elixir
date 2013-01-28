@@ -2766,12 +2766,6 @@ defmodule Kernel do
     raise ArgumentError, message: "Unsupported expression in pipeline |> operator: #{inspect other}"
   end
 
-  defmacro left /> right do
-    IO.puts "The /> pipeline operator is deprecated, please use the |> operator instead"
-    Exception.print_stacktrace __ENV__.stacktrace
-    pipeline_op(left, right)
-  end
-
   @doc """
   Raises an error.
 

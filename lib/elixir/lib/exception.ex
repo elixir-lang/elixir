@@ -96,11 +96,6 @@ defmodule Exception do
   """
   def format_stacktrace(trace // nil)
 
-  def format_stacktrace(trace) when is_tuple(trace) do
-    IO.puts "Exception.format_stacktrace is deprecated, please use format_entry instead"
-    print_stacktrace
-  end
-
   def format_stacktrace(trace) do
     trace = trace || try do
       throw(:stacktrace)
