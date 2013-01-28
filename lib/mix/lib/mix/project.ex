@@ -110,7 +110,7 @@ defmodule Mix.Project do
 
   @doc false
   def sources do
-    IO.puts "Mix.Project.sources is deprecated, please use Mix.Project.config_files instead"
+    IO.puts IO.ANSI.escape "#[yellow, bright]Mix.Project.sources is deprecated, please use Mix.Project.config_files instead"
     Exception.print_stacktrace
     config_files
   end
