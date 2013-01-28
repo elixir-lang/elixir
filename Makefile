@@ -102,7 +102,7 @@ docs:
 
 release_zip:
 	rm -rf v$(VERSION).zip
-	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md rel
+	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md rel VERSION
 
 release_docs: docs
 	cd ../elixir-lang.github.com && git checkout master

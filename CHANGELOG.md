@@ -1,3 +1,5 @@
+# v0.8.0 (2013-01-28)
+
 * enhancements
   * [Binary] Support `<< "string" :: utf8 >>` as in Erlang
   * [Binary] Support `\a` escape character in binaries
