@@ -25,7 +25,7 @@ defmodule Mix.Shell.IO do
   Writes an error message to the shell followed by new line.
   """
   def error(message) do
-    IO.puts :stderr, IO.ANSI.escape "#[red,bright]#{message}"
+    IO.puts :stderr, IO.ANSI.escape "%{red,bright}#{message}"
   end
 
   @doc """

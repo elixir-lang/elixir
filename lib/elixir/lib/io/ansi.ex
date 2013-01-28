@@ -137,10 +137,10 @@ defmodule IO.ANSI do
   @doc %B"""
   Escapes a string coverting named ANSI sequences into actual ANSI codes.
 
-  The format for referring sequences is `#[red]` and `#[red,bright]` (for
+  The format for referring sequences is `%{red}` and `%{red,bright}` (for
   multiple sequences)
 
-  It will also force a #[reset] to get appended to every string. If you don't
+  It will also force a %{reset} to get appended to every string. If you don't
   want this behaviour, use `escape_fragment/1` and `escape_fragment/2`.
 
   An optional boolean parameter can be passed to enable or disable
@@ -150,18 +150,18 @@ defmodule IO.ANSI do
 
   ## Example
 
-    IO.puts IO.ANSI.escape "Hello #[red,bright,green]yes" #=>
+    IO.puts IO.ANSI.escape "Hello %{red,bright,green}yes" #=>
     "Hello \e[31m\e[1m\e[32myes\e[0m"
   """
   @spec escape(String.t, emit :: boolean) :: String.t
   def escape(string, emit // terminal?) do
-    do_escape(string <> "#[reset]", false, emit,[])
+    do_escape(string <> "%{reset}", false, emit,[])
   end
 
   @doc %B"""
   Escapes a string coverting named ANSI sequences into actual ANSI codes.
 
-  The format for referring sequences is `#[red]` and `#[red,bright]` (for
+  The format for referring sequences is `%{red}` and `%{red,bright}` (for
   multiple sequences)
 
   An optional boolean parameter can be passed to enable or disable
@@ -171,7 +171,7 @@ defmodule IO.ANSI do
 
   ## Example
 
-    IO.puts IO.ANSI.escape "Hello #[red,bright,green]yes#[reset]" #=>
+    IO.puts IO.ANSI.escape "Hello %{red,bright,green}yes%{reset}" #=>
     "Hello \e[31m\e[1m\e[32myes\e[0m"
 
   """
@@ -180,7 +180,7 @@ defmodule IO.ANSI do
     do_escape(string, false, emit, [])
   end
 
-  defp do_escape(<< ?#, ?[, rest :: binary >>, false, emit, acc) do
+  defp do_escape(<< ?%, ?{, rest :: binary >>, false, emit, acc) do
     do_escape_sequence(rest, emit, acc)
   end
   defp do_escape(<< ?,, rest :: binary >>, true, emit, acc) do
@@ -189,7 +189,7 @@ defmodule IO.ANSI do
   defp do_escape(<< ?\s, rest :: binary >>, true, emit, acc) do
     do_escape(rest, true, emit, acc)
   end
-  defp do_escape(<< ?], rest :: binary >>, true, emit, acc) do
+  defp do_escape(<< ?}, rest :: binary >>, true, emit, acc) do
     do_escape(rest, false, emit, acc)
   end
   defp do_escape(<< x :: [binary, size(1)], rest :: binary>>, false, emit, acc) do

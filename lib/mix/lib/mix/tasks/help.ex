@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Help do
   def run([task]) do
     module = Mix.Task.get(task)
     shell  = Mix.shell
-    shell.info "#[bright]# mix help #{task}\n"
+    shell.info "%{bright}# mix help #{task}\n"
 
     if doc = Mix.Task.moduledoc(module) do
       IO.write doc

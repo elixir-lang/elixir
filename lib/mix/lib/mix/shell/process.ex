@@ -50,14 +50,14 @@ defmodule Mix.Shell.Process do
   Simply forwards the message to the current process.
   """
   def info(message) do
-    self <- { :mix_shell, :info, [message] }
+    self <- { :mix_shell, :info, [IO.ANSI.escape(message, false)] }
   end
 
   @doc """
   Simply forwards the message to the current process.
   """
   def error(message) do
-    self <- { :mix_shell, :error, [message] }
+    self <- { :mix_shell, :error, [IO.ANSI.escape(message, false)] }
   end
 
   @doc """
@@ -70,7 +70,7 @@ defmodule Mix.Shell.Process do
   process input given. Value must be true or false.
   """
   def yes?(message) do
-    self <- { :mix_shell, :yes?, [message] }
+    self <- { :mix_shell, :yes?, [IO.ANSI.escape(message, false)] }
 
     receive do
       { :mix_shell_input, :yes?, response } -> response
