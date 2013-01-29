@@ -15,12 +15,6 @@ defmodule Kernel.PartialApplicationTest do
     assert fun.(13, 6) == 7
   end
 
-  test :partial_with_atom_call_and_one_item do
-    fun = :minus.(10, &1)
-    assert fun.(5) == 5
-    assert fun.(3) == 7
-  end
-
   test :partial_with_funcall_and_one_item do
     fun = minus(&1, &2)
     fun = fun.(10, &1)

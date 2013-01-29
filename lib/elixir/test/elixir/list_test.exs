@@ -3,13 +3,9 @@ Code.require_file "../test_helper.exs", __FILE__
 defmodule ListTest do
   use ExUnit.Case, async: true
 
-  test :brackets_function do
-    assert :[].(1,2,3) == [1,2,3]
-  end
-
   test :optional_comma do
-    assert :[].(1,) == [ 1, ]
-    assert :[].(1,2,3,) == [1,2,3,]
+    assert [1] == [ 1, ]
+    assert [1,2,3] == [1,2,3,]
   end
 
   test :partial_application do

@@ -468,10 +468,11 @@ translate_each({ { '.', _, [Left, Right] }, Meta, Args } = Original, S) when is_
 
 %% Anonymous function calls
 
-translate_each({ { '.', _, [Expr] }, Meta, Args } = Original, S) ->
+translate_each({ { '.', Line, [Expr] }, Meta, Args } = Original, S) ->
   { TExpr, SE } = translate_each(Expr, S),
   case TExpr of
     { atom, _, Atom } ->
+      elixir_errors:deprecation(?line(Line), S#elixir_scope.file, "the :~s.() syntax is deprecated, please use ~s() instead", [Atom, Atom]),
       translate_each({ Atom, Meta, Args }, S);
     _ ->
       case elixir_partials:handle(Original, S) of

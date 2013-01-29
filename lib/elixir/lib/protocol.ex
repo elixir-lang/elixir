@@ -287,7 +287,7 @@ defmodule Protocol do
   # Generate all others protocols.
   defp each_impl_for({ kind, fun, _ }, _, _) do
     quote do
-      defp __raw_impl__(arg) when unquote(fun).(arg) do
+      defp __raw_impl__(arg) when unquote(fun)(arg) do
         __MODULE__.unquote(kind)
       end
     end
@@ -404,7 +404,7 @@ defmodule Protocol.DSL do
 
       # Generate a fake definition with the user
       # signature that will be used by docs
-      Kernel.def unquote(name).(unquote_splicing(args))
+      Kernel.def unquote(name)(unquote_splicing(args))
 
       { args, body } = Protocol.DSL.args_and_body(__MODULE__, name, arity)
       Kernel.def unquote(name), args, [], do: body

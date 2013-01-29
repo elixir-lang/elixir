@@ -1260,7 +1260,7 @@ defmodule Kernel do
       defmacro defkv(keywords) do
         Enum.map keywords, fn {k,v} ->
           quote do
-            def unquote(k).() do
+            def unquote(k)() do
               unquote(v)
             end
           end
@@ -1271,9 +1271,6 @@ defmodule Kernel do
 
       defkv one: 1, two: 2
 
-  Notice in the example above, we define the function as `def unquote(k).()`
-  because each entry `k` is a an atom and invoking `def unquote(k)()`
-  would be invalid Elixir syntax.
   """
   defmacro def(name, do: contents)
 
@@ -3051,7 +3048,7 @@ defmodule Kernel do
       fun = Keyword.get(opts, :as, name)
 
       quote do
-        def unquote(name).(unquote_splicing(args)) do
+        def unquote(name)(unquote_splicing(args)) do
           apply unquote(target), unquote(fun), [unquote_splicing(actual_args)]
         end
       end

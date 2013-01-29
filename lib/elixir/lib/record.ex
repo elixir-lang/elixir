@@ -131,23 +131,23 @@ defmodule Record do
     end
 
     contents = quote do
-      defmacrop unquote(name).() do
+      defmacrop unquote(name)() do
         Record.access(__MODULE__, unquote(escaped), [], __CALLER__)
       end
 
-      defmacrop unquote(name).(record) when is_tuple(record) do
+      defmacrop unquote(name)(record) when is_tuple(record) do
         Record.to_keywords(__MODULE__, unquote(escaped), record)
       end
 
-      defmacrop unquote(name).(args) do
+      defmacrop unquote(name)(args) do
         Record.access(__MODULE__, unquote(escaped), args, __CALLER__)
       end
 
-      defmacrop unquote(name).(record, key) when is_atom(key) do
+      defmacrop unquote(name)(record, key) when is_atom(key) do
         Record.get(__MODULE__, unquote(escaped), record, key)
       end
 
-      defmacrop unquote(name).(record, args) do
+      defmacrop unquote(name)(record, args) do
         Record.dispatch(__MODULE__, unquote(escaped), record, args, __CALLER__)
       end
     end
@@ -465,17 +465,17 @@ defmodule Record do
 
     contents = quote do
       @doc false
-      def unquote(key).(record) do
+      def unquote(key)(record) do
         :erlang.element(unquote(i + 1), record)
       end
 
       @doc false
-      def unquote(key).(value, record) do
+      def unquote(key)(value, record) do
         :erlang.setelement(unquote(i + 1), record, value)
       end
 
       @doc false
-      def unquote(update).(function, record) do
+      def unquote(update)(function, record) do
         :erlang.setelement(unquote(i + 1), record,
           function.(:erlang.element(unquote(i + 1), record)))
       end

@@ -164,7 +164,7 @@ defmodule ExUnit.Assertions do
     quote do
       left  = unquote(expected)
       right = unquote(actual)
-      assert unquote(operator).(left, right), left, right, reason: unquote(text)
+      assert unquote(operator)(left, right), left, right, reason: unquote(text)
     end
   end
 
