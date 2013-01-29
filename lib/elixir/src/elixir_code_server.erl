@@ -30,13 +30,6 @@ start_link() ->
 init(_args) ->
   { ok, #elixir_code_server{} }.
 
-handle_call({ wait_until_finished, Pid }, _, Config) ->
-  Waiting = Config#elixir_code_server.waiting,
-  case is_list(Waiting) of
-    true  -> { reply, wait, Config#elixir_code_server{waiting=[Pid|Waiting]} };
-    false -> { reply, ok, Config }
-  end;
-
 handle_call({ acquire, Path }, From, Config) ->
   Current = Config#elixir_code_server.loaded,
   case orddict:find(Path, Current) of
@@ -86,11 +79,6 @@ handle_cast({ argv, Argv }, Config) ->
 handle_cast({ compiler_options, Options }, Config) ->
   Final = orddict:merge(fun(_,_,V) -> V end, Config#elixir_code_server.compiler_options, Options),
   { noreply, Config#elixir_code_server{compiler_options=Final} };
-
-handle_cast(finished, Config) ->
-  Waiting = Config#elixir_code_server.waiting,
-  [Pid ! { elixir_code_server, finished } || Pid <- lists:reverse(Waiting)],
-  { noreply, Config#elixir_code_server{waiting=done} };
 
 handle_cast({ loaded, Path }, Config) ->
   Current = Config#elixir_code_server.loaded,

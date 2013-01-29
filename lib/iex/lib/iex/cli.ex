@@ -11,7 +11,7 @@ defmodule IEx.CLI do
     else
       :user.start
       IO.puts "Warning: could not run smart terminal, falling back to dumb one"
-      IEx.start
+      IEx.start([], fn -> :elixir.start_cli end)
     end
   end
 
@@ -30,7 +30,7 @@ defmodule IEx.CLI do
 
   defp tty do
     function = fn ->
-      IEx.start([], fn -> Kernel.CLI.wait_until_finished end)
+      IEx.start([], fn -> :elixir.start_cli end)
     end
 
     args =

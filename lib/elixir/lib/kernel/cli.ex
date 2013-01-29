@@ -16,21 +16,7 @@ defmodule Kernel.CLI do
 
     run fn ->
       Enum.map Enum.reverse(config.commands), process_command(&1, config)
-      :elixir_code_server.cast(:finished)
     end, config.halt
-  end
-
-  @doc """
-  Wait until the CLI finishes processing options.
-  """
-  def wait_until_finished do
-    case :elixir_code_server.call({ :wait_until_finished, self }) do
-      :wait ->
-        receive do
-          { :elixir_code_server, :finished } -> :ok
-        end
-      :ok -> :ok
-    end
   end
 
   @doc """
