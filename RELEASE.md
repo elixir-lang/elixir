@@ -24,3 +24,4 @@ This document simply outlines the release process:
 
 * VERSION
 * CHANGELOG
+* src/elixir.app.src

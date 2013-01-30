@@ -46,7 +46,7 @@ erlang:
 # file, then mix and then compile eex fully
 elixir: kernel unicode lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex iex
 
-kernel: $(KERNEL)
+kernel: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
 	@ if [ ! -f $(KERNEL) ]; then                       \
 		echo "==> bootstrap (compile)";                 \

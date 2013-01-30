@@ -1,6 +1,6 @@
 {application, elixir,
 [{description, "elixir"},
- {vsn, {cmd, "echo `cat ../../VERSION`"}},
+ {vsn, "0.8.0"},
  {modules, [
 	elixir
   ]},
