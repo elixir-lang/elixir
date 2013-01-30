@@ -54,15 +54,15 @@ do_quote({ unquote, _Meta, [Expr] }, #elixir_quote{unquote=true}, S) ->
 do_quote({ 'alias!', _Meta, [Expr] }, Q, S) ->
   do_quote(Expr, Q#elixir_quote{expand_aliases=false}, S);
 
-do_quote({ '__aliases__', Meta, [H|_] = Aliases }, #elixir_quote{expand_aliases=true} = Q, S) when is_atom(H) and H /= 'Elixir' ->
-  Line = ?line(Meta),
-  { TAliases, SA } = do_quote(['Elixir'|Aliases], Q, S),
-
-  { { tuple, Line, [
-    { atom, Line, '__aliases__' },
-    meta(Meta, Q),
-    TAliases
-  ] }, SA };
+% do_quote({ '__aliases__', Meta, [H|_] = Aliases }, #elixir_quote{expand_aliases=true} = Q, S) when is_atom(H) and H /= 'Elixir' ->
+%   Line = ?line(Meta),
+%   { TAliases, SA } = do_quote(['Elixir'|Aliases], Q, S),
+% 
+%   { { tuple, Line, [
+%     { atom, Line, '__aliases__' },
+%     meta(Meta, Q),
+%     TAliases
+%   ] }, SA };
 
 do_quote({ { { '.', Meta, [Left, unquote] }, _, [Expr] }, _, Args }, #elixir_quote{unquote=true} = Q, S) ->
   All  = [Left, { unquote, Meta, [Expr] }, Args, S#elixir_scope.file],

@@ -196,11 +196,11 @@ translate({defmodule, Meta, [Ref, KV]}, S) ->
 
   { FRef, FS } = case TRef of
     { atom, _, Module } ->
-      FullModule = module_ref(Ref, Module, S#elixir_scope.module),
+      FullModule = module_ref(Ref, Module, S),
 
-      RS = case elixir_aliases:nesting(S#elixir_scope.module, FullModule) of
-        false -> S;
-        Alias -> element(2, translate_each({ alias, Meta, [FullModule, [{ as, Alias }]] }, S))
+      RS = case elixir_aliases:nesting_alias(S#elixir_scope.module, FullModule) of
+        false   -> S;
+        Nesting -> element(2, translate_each({ alias, Meta, [Nesting] }, S))
       end,
 
       {
@@ -327,14 +327,23 @@ rewrite_case_clauses([{do,[{in,_,[{'_',_,_},[false,nil]]}],False},{do,[{'_',_,_}
 rewrite_case_clauses(Clauses) ->
   Clauses.
 
-module_ref(Raw, Module, Nesting) when is_atom(Raw); Nesting == nil ->
+module_ref(Raw, Module, #elixir_scope{module=Nesting}) when is_atom(Raw); Nesting == nil ->
   Module;
 
-module_ref({ '__aliases__', _, ['Elixir'|_] }, Module, _Nesting) ->
+module_ref({ '__aliases__', _, ['Elixir'|_] }, Module, _S) ->
   Module;
 
-module_ref(_Raw, Module, Nesting) ->
-  elixir_aliases:concat([Nesting, Module]).
+% In case the module is an alias and it was already
+% expanded we should not expand it twice
+module_ref({ '__aliases__', _, [H|_] }, Module, #elixir_scope{aliases=Aliases} = S) ->
+  Full = list_to_atom("Elixir-" ++ atom_to_list(H)),
+  case elixir_aliases:lookup(Full, Aliases) of
+    Full -> elixir_aliases:concat([S#elixir_scope.module, Module]);
+    _    -> Module
+  end;
+
+module_ref(_Raw, Module, S) ->
+  elixir_aliases:concat([S#elixir_scope.module, Module]).
 
 is_reserved_data(moduledoc) -> true;
 is_reserved_data(doc)       -> true;

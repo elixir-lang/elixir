@@ -27,3 +27,55 @@ defmodule Kernel.AliasTest do
     assert Nested.flatten([[13]]) == [13]
   end
 end
+
+defmodule Kernel.AliasNestingGenerator do
+  defmacro create do
+    quote do
+      defmodule Parent do
+        def a, do: :a
+      end
+
+      defmodule Parent.Child do
+        def b, do: Parent.a
+      end
+    end
+  end
+end
+
+defmodule Kernel.AliasNestingTest do
+  use ExUnit.Case, async: true
+
+  require Kernel.AliasNestingGenerator
+  Kernel.AliasNestingGenerator.create
+
+  test :aliases_nesting do
+    assert Parent.a == :a
+    assert Parent.Child.b == :a
+  end
+end
+
+defmodule Kernel.FullAliasNestingGenerator do
+  defmacro create do
+    quote do
+      defmodule Parent do
+        def a, do: :a
+      end
+
+      defmodule Parent.Child do
+        def b, do: Parent.a
+      end
+    end
+  end
+end
+
+defmodule Kernel.FullAliasNestingTest do
+  use ExUnit.Case, async: true
+
+  require Kernel.FullAliasNestingGenerator
+  Kernel.FullAliasNestingGenerator.create
+
+  test :aliases_nesting do
+    assert Parent.a == :a
+    assert Parent.Child.b == :a
+  end
+end

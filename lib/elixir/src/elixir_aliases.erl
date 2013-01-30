@@ -1,5 +1,5 @@
 -module(elixir_aliases).
--export([nesting/2, last/1, concat/1, safe_concat/1, lookup/2,
+-export([nesting_alias/2, last/1, concat/1, safe_concat/1, lookup/2,
   format_error/1, ensure_loaded/3, expand/2]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
@@ -8,18 +8,18 @@
 %% Otherwise returns the list of aliases args.
 
 expand({ '__aliases__', _Line, [H] }, Aliases) when H /= 'Elixir' ->
-  expand_alias(H, Aliases);
+  expand_one(H, Aliases);
 
 expand({ '__aliases__', _Line, [H|T] }, Aliases) when is_atom(H) ->
   concat(case H of
     'Elixir' -> [H|T];
-    _        -> [expand_alias(H, Aliases)|T]
+    _        -> [expand_one(H, Aliases)|T]
   end);
 
 expand({ '__aliases__', _Line, List }, _Aliases) ->
   List.
 
-expand_alias(H, Aliases) ->
+expand_one(H, Aliases) ->
   lookup(list_to_atom("Elixir-" ++ atom_to_list(H)), Aliases).
 
 %% Ensure a module is loaded before its usage.
@@ -49,18 +49,29 @@ last([$-|_], Acc) -> Acc;
 last([H|T], Acc) -> last(T, [H|Acc]);
 last([], Acc) -> Acc.
 
-%% Returns the nesting between two aliases.
+%% Gets two modules names and return an alias
+%% which can be passed down to the alias directive
+%% and it will create a proper shortcut representing
+%% the given nesting.
+%%
+%% Examples:
+%%
+%%   nesting_alias('Elixir.Foo.Bar', 'Elixir.Foo.Bar.Baz')
+%%   { '__aliases__', [], ['Elixir', 'Foo', 'Bar', 'Baz'] }
+%%
+nesting_alias(nil, _Full) -> false;
 
-nesting(nil, _Full) -> false;
-
-nesting(Prefix, Full) ->
+nesting_alias(Prefix, Full) ->
   PrefixList = list_nesting(Prefix),
   FullList   = list_nesting(Full),
+  (PrefixList /= []) andalso do_nesting(PrefixList, FullList, []).
 
-  (PrefixList /= []) andalso
-    (PrefixList /= FullList) andalso
-    lists:prefix(PrefixList, FullList) andalso
-    binary_to_atom(<<"Elixir-", (hd(FullList -- PrefixList))/binary>>, utf8).
+do_nesting([X|PreTail], [X|Tail], Acc) ->
+  do_nesting(PreTail, Tail, [X|Acc]);
+do_nesting([], [H|_], Acc) ->
+  { '__aliases__', [], ['Elixir'|[binary_to_atom(X, utf8) || X <- lists:reverse([H|Acc])]] };
+do_nesting(_, _, _Acc) ->
+  false.
 
 list_nesting(Atom) ->
   case binary:split(atom_to_binary(Atom, utf8), <<$->>, [global]) of
