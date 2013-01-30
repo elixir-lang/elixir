@@ -261,7 +261,7 @@ defimpl Binary.Inspect, for: List do
 
   def inspect(thing, opts) do
     cond do
-      :io_lib.printable_unicode_list(thing) ->
+      :io_lib.printable_list(thing) ->
         escape(:unicode.characters_to_binary(thing), ?')
       Keyword.keyword?(thing) ->
         "[" <> join_keywords(thing, opts) <> "]"

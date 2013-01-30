@@ -405,14 +405,14 @@ defmodule Typespec.TypeTest do
       @typep b :: any
       @spec t(b) :: b
       def t(b), do: b
-      @opaque c :: any
+      @opaque c :: atom
     end
 
     :code.delete(T)
     :code.purge(T)
 
     assert [
-      {:opaque, {:c,{:type,_,:any,[]},[]}},
+      {:opaque, {:c,{:type,_,:atom,[]},[]}},
       {:type, {:a,{:type,_,:any,[]},[]}},
       {:typep, {:b,{:type,_,:any,[]},[]}},
     ] = Kernel.Typespec.beam_types(binary)
