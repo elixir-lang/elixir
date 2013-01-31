@@ -33,7 +33,7 @@ defmodule Mix.Deps.Lock do
         %b("#{app}": #{inspect rev, raw: true})
       end
 
-      File.write! lockfile, "[ " <> lines <> " ]"
+      File.write! lockfile, "[ " <> lines <> " ]\n"
     end
   end
 
