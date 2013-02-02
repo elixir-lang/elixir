@@ -155,7 +155,12 @@ defmodule IO.ANSI do
   """
   @spec escape(String.t, emit :: boolean) :: String.t
   def escape(string, emit // terminal?) do
-    do_escape(string <> "%{reset}", false, emit,[])
+    {rendered, emitted} = do_escape(string, false, emit, false, [])
+    if emitted and emit do
+      rendered <> reset
+    else
+      rendered
+    end
   end
 
   @doc %B"""
@@ -177,26 +182,27 @@ defmodule IO.ANSI do
   """
   @spec escape_fragment(String.t, emit :: boolean) :: String.t
   def escape_fragment(string, emit // terminal?) do
-    do_escape(string, false, emit, [])
+    {rendered, _emitted} = do_escape(string, false, emit, false, [])
+    rendered
   end
 
-  defp do_escape(<< ?%, ?{, rest :: binary >>, false, emit, acc) do
+  defp do_escape(<< ?%, ?{, rest :: binary >>, false, emit, _emitted, acc) do
     do_escape_sequence(rest, emit, acc)
   end
-  defp do_escape(<< ?,, rest :: binary >>, true, emit, acc) do
+  defp do_escape(<< ?,, rest :: binary >>, true, emit, _emitted, acc) do
     do_escape_sequence(rest, emit, acc)
   end
-  defp do_escape(<< ?\s, rest :: binary >>, true, emit, acc) do
-    do_escape(rest, true, emit, acc)
+  defp do_escape(<< ?\s, rest :: binary >>, true, emit, emitted, acc) do
+    do_escape(rest, true, emit, emitted, acc)
   end
-  defp do_escape(<< ?}, rest :: binary >>, true, emit, acc) do
-    do_escape(rest, false, emit, acc)
+  defp do_escape(<< ?}, rest :: binary >>, true, emit, emitted, acc) do
+    do_escape(rest, false, emit, emitted, acc)
   end
-  defp do_escape(<< x :: [binary, size(1)], rest :: binary>>, false, emit, acc) do
-    do_escape(rest, false, emit, [x|acc])
+  defp do_escape(<< x :: [binary, size(1)], rest :: binary>>, false, emit, emitted, acc) do
+    do_escape(rest, false, emit, emitted, [x|acc])
   end
-  defp do_escape("", false, _emit, acc) do
-    list_to_binary(Enum.reverse(acc))
+  defp do_escape("", false, _emit, emitted, acc) do
+    {list_to_binary(Enum.reverse(acc)), emitted}
   end
 
   defp do_escape_sequence(rest, emit, acc) do
@@ -204,6 +210,6 @@ defmodule IO.ANSI do
     if emit do
       acc = [code|acc]
     end
-    do_escape(rest, true, emit, acc)
+    do_escape(rest, true, emit, true, acc)
   end
 end

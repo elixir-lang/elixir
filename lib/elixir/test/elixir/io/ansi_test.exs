@@ -26,7 +26,11 @@ defmodule IO.ANSITest do
   end
 
   test :fragment do
-    assert IO.ANSI.escape("") == "#{IO.ANSI.reset}"
+    assert IO.ANSI.escape("%{red}") == "#{IO.ANSI.red}#{IO.ANSI.reset}"
     assert IO.ANSI.escape_fragment("") == ""
+  end
+
+  test :noop do
+    assert IO.ANSI.escape("") == ""
   end
 end
