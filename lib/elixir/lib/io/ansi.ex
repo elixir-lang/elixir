@@ -37,7 +37,14 @@ defmodule IO.ANSI do
   """
   @spec terminal? :: boolean
   def terminal?(device // :erlang.group_leader) do
-    match?({:ok, _}, :io.columns(device))
+    if :erlang.system_info(:otp_release) < 'R16' and
+       Process.whereis(:user) != device do
+      # Shell prior to R16 doesn't support ANSI escape
+      # sequences
+      false
+    else
+      match?({:ok, _}, :io.columns(device))
+    end
   end
 
   @doc "Resets all attributes"
