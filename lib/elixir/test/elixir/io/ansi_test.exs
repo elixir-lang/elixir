@@ -33,4 +33,13 @@ defmodule IO.ANSITest do
   test :noop do
     assert IO.ANSI.escape("") == ""
   end
+
+  test :invalid do
+    assert_raise ArgumentError, "invalid ANSI sequence specification: brigh", fn ->
+      IO.ANSI.escape("%{brigh}, yes")
+    end
+    assert_raise ArgumentError, "invalid ANSI sequence specification: brigh", fn ->
+      IO.ANSI.escape("%{brigh,red}, yes")
+    end
+  end
 end

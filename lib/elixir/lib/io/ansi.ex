@@ -141,6 +141,11 @@ defmodule IO.ANSI do
     escape_sequence(rest)
   end
 
+  defp escape_sequence(other) do
+    [spec|_] = String.split(other, %r/(,|\})/)
+    raise ArgumentError, message: "invalid ANSI sequence specification: #{spec}"
+  end
+
   @doc %B"""
   Escapes a string coverting named ANSI sequences into actual ANSI codes.
 
