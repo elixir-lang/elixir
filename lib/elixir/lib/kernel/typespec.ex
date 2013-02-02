@@ -350,8 +350,15 @@ defmodule Kernel.Typespec do
     do_deftype(kind, type, definition, caller)
   end
 
-  def deftype(kind, type, caller) do
+  def deftype(kind, {name, _meta, args} = type, caller) when 
+                                                        is_atom(name) and
+                                                        not is_list(args) do
     do_deftype(kind, type, { :term, [line: caller.line], nil }, caller)
+  end
+
+  def deftype(_kind, other, _caller) do
+    type_spec = Macro.to_binary(other)
+    raise ArgumentError, message: "invalid type specification #{type_spec}"
   end
 
   defp do_deftype(kind, { name, _, args }, definition, caller) do
@@ -388,6 +395,11 @@ defmodule Kernel.Typespec do
     code = { { name, Kernel.length(args) }, spec }
     Module.compile_typespec(caller.module, type, code)
     code
+  end
+
+  def defspec(_type, other, _caller) do
+    spec = Macro.to_binary(other)
+    raise ArgumentError, message: "invalid function type specification #{spec}"
   end
 
   defp guard_to_constraints({ :is_subtype, meta, [{ name, _, _ }, type] }, caller) do

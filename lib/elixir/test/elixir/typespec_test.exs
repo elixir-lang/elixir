@@ -17,6 +17,32 @@ defmodule Typespec.TypeTest do
     end
   end
 
+  test "invalid type specification" do
+    assert_raise ArgumentError, "invalid type specification mytype = 1", fn ->
+      test_module do
+        @type mytype = 1
+      end
+    end
+    assert_raise ArgumentError, "invalid type specification mytype = 1", fn ->
+      test_module do
+        @typep mytype = 1
+      end
+    end
+    assert_raise ArgumentError, "invalid type specification mytype = 1", fn ->
+      test_module do
+        @opaque mytype = 1
+      end
+    end
+  end
+
+  test "invalid function specification" do
+    assert_raise ArgumentError, "invalid function type specification myfun = 1", fn ->
+      test_module do
+        @spec myfun = 1
+      end
+    end
+  end
+
   test "@type with no body (defaults to 'term')" do
     spec = test_module do
       @type mytype
