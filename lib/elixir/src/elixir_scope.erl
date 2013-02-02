@@ -3,8 +3,6 @@
 -module(elixir_scope).
 -export([translate_var/5,
   build_erl_var/2, build_ex_var/2,
-  build_erl_var/3, build_ex_var/3,
-  build_erl_var/4, build_ex_var/4,
   serialize/1, deserialize/1,
   serialize_with_vars/2, deserialize_with_vars/2,
   to_erl_env/1, to_ex_env/1, filename/1,
@@ -30,8 +28,8 @@ translate_var(Meta, Name, Kind, S, Callback) ->
             { Else, _ } ->
               { NewVar, NS } = if
                 Kind /= nil -> build_erl_var(Line, S);
-                Else -> build_erl_var(Line, Name, S);
-                S#elixir_scope.noname -> build_erl_var(Line, Name, S);
+                Else -> build_erl_var(Line, Name, Name, S);
+                S#elixir_scope.noname -> build_erl_var(Line, Name, Name, S);
                 true -> { { var, Line, Name }, S }
               end,
               RealName = element(3, NewVar),
@@ -57,9 +55,6 @@ translate_var(Meta, Name, Kind, S, Callback) ->
 
 build_ex_var(Line, S)  -> build_ex_var(Line, '', "_", S).
 build_erl_var(Line, S) -> build_erl_var(Line, '', "_", S).
-
-build_ex_var(Line, Key, S)  -> build_ex_var(Line, Key, Key, S).
-build_erl_var(Line, Key, S) -> build_erl_var(Line, Key, Key, S).
 
 build_var_counter(Key, #elixir_scope{counter=Counter} = S) ->
   New = orddict:update_counter(Key, 1, Counter),

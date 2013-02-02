@@ -109,6 +109,9 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
       io:format(file_format(Line, File, Message))
   end;
 
+handle_file_warning(_, _File, {Line,erl_lint,{unused_var,_Var}}) when Line =< 0 ->
+  [];
+
 handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
   Message = format_error(erl_lint, { unused_var, format_var(Var) }),
   io:format(file_format(Line, File, Message));

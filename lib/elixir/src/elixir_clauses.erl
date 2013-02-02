@@ -108,63 +108,58 @@ do_match(Meta, DecoupledClauses, S) ->
     { TX, { umergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
   end,
 
-  { TClauses, { TS, RawCV } } = lists:mapfoldl(Transformer, {S, []}, DecoupledClauses),
+  { TClauses, { TS, ReverseCV } } = lists:mapfoldl(Transformer, {S, []}, DecoupledClauses),
 
   % Now get all the variables defined inside each clause
-  CV = lists:reverse(RawCV),
+  CV = lists:reverse(ReverseCV),
+  AllVars = lists:foldl(fun(KV, Acc) ->
+    orddict:merge(fun(_, _, V) -> V end, KV, Acc)
+  end, orddict:new(), CV),
 
-  AllVars    = lists:umerge([orddict:fetch_keys(X) || X <- CV]),
-  SharedVars = ordsets:intersection(CV),
+  % Create a new scope that contains a list of all variables
+  % defined inside all the clauses. It returns this new scope and
+  % a list of tuples where the first element is the variable name,
+  % the second one is the new pointer to the variable and the third
+  % is the old pointer.
+  { FinalVars, FS } = lists:mapfoldl(fun({ Key, Ref }, Acc) ->
+    normalize_vars(Key, Ref, Acc)
+  end, TS, AllVars),
 
-  case AllVars of
-    [] -> { TClauses, TS };
-    _  ->
-      % Create a new scope that contains a list of all variables
-      % defined inside all the clauses. It returns this new scope and
-      % a list of tuples where the first element is the variable name,
-      % the second one is the new pointer to the variable and the third
-      % is the old pointer.
-      { FinalVars, FS } = lists:mapfoldl(fun(X, Acc) -> normalize_vars(X, SharedVars, Acc) end, TS, AllVars),
+  % Expand all clauses by adding a match operation at the end
+  % that assigns variables missing in one clause to the others.
+  expand_clauses(?line(Meta), TClauses, CV, FinalVars, [], FS).
 
-      % Defines a tuple that will be used as left side of the match operator
-      Line = ?line(Meta),
-      LeftVars = [{var, Line, NewValue} || { _, _, NewValue, _ } <- FinalVars],
+expand_clauses(Line, [Clause|T], [ClauseVars|V], FinalVars, Acc, S) ->
+  case generate_match_vars(FinalVars, ClauseVars, [], []) of
+    { [], [] } ->
+      expand_clauses(Line, T, V, FinalVars, [Clause|Acc], S);
+    { Left, Right } ->
+      MatchExpr   = generate_match(Line, Left, Right),
+      ClauseExprs = element(5, Clause),
+      [Final|RawClauseExprs] = lists:reverse(ClauseExprs),
 
-      % Expand all clauses by adding a match operation at the end
-      % that assigns variables missing in one clause to the others.
-      expand_clauses(Meta, TClauses, CV, LeftVars, FinalVars, [], FS)
-  end.
+      % If the last sentence has a match clause, we need to assign its value
+      % in the variable list. If not, we insert the variable list before the
+      % final clause in order to keep it tail call optimized.
+      { FinalClauseExprs, FS } = case has_match_tuple(Final) of
+        true ->
+          case Final of
+            { match, _, { var, _, UserVarName } = UserVar, _ } when UserVarName /= '_' ->
+              { [UserVar,MatchExpr,Final|RawClauseExprs], S };
+            _ ->
+              { StorageVar, SS } = elixir_scope:build_erl_var(Line, S),
+              StorageExpr = { match, Line, StorageVar, Final },
+              { [StorageVar,MatchExpr,StorageExpr|RawClauseExprs], SS }
+          end;
+        false ->
+          { [Final,MatchExpr|RawClauseExprs], S }
+      end,
 
-expand_clauses(Meta, [Clause|T], [ClauseVars|V], LeftVars, FinalVars, Acc, S) ->
-  RightVars = [normalize_clause_var(Var, Kind, OldValue, ClauseVars) ||
-                 { Var, Kind, _, OldValue } <- FinalVars],
+      FinalClause = setelement(5, Clause, lists:reverse(FinalClauseExprs)),
+      expand_clauses(Line, T, V, FinalVars, [FinalClause|Acc], FS)
+  end;
 
-  AssignExpr = generate_match(Meta, LeftVars, RightVars),
-  ClauseExprs = element(5, Clause),
-  [Final|RawClauseExprs] = lists:reverse(ClauseExprs),
-
-  % If the last sentence has a match clause, we need to assign its value
-  % in the variable list. If not, we insert the variable list before the
-  % final clause in order to keep it tail call optimized.
-  { FinalClauseExprs, FS } = case has_match_tuple(Final) of
-    true ->
-      case Final of
-        { match, _, { var, _, UserVarName } = UserVar, _ } when UserVarName /= '_' ->
-          { [UserVar,AssignExpr,Final|RawClauseExprs], S };
-        _ ->
-          Line = ?line(Meta),
-          { StorageVar, SS } = elixir_scope:build_erl_var(Line, S),
-          StorageExpr = { match, Line, StorageVar, Final },
-          { [StorageVar,AssignExpr,StorageExpr|RawClauseExprs], SS }
-      end;
-    false ->
-      { [Final,AssignExpr|RawClauseExprs], S }
-  end,
-
-  FinalClause = setelement(5, Clause, lists:reverse(FinalClauseExprs)),
-  expand_clauses(Meta, T, V, LeftVars, FinalVars, [FinalClause|Acc], FS);
-
-expand_clauses(_Meta, [], [], _LeftVars, _FinalVars, Acc, S) ->
+expand_clauses(_Line, [], [], _FinalVars, Acc, S) ->
   { lists:reverse(Acc), S }.
 
 % Handle each key/value clause pair and translate them accordingly.
@@ -210,24 +205,14 @@ has_match_tuple(H) when is_list(H) ->
 
 has_match_tuple(_) -> false.
 
-% Normalize the given var checking its existence in the scope var dictionary.
+% Normalize the given var in between clauses
+% by picking one value as reference and retriving
+% its previous value.
 
-normalize_vars({ Var, Kind } = Key, Shared, #elixir_scope{vars=Vars,clause_vars=ClauseVars} = S) ->
-  { NewValue, S1 } =
-    case orddict:find(Key, Shared) of
-      { ok, SharedValue } ->
-        { SharedValue, S };
-      error ->
-        { { _, _, ErlValue }, ErlS } = case (Kind /= nil) or (S#elixir_scope.noname) of
-          true  -> elixir_scope:build_erl_var(0, S);
-          false -> elixir_scope:build_erl_var(0, Var, "_@" ++ atom_to_list(Var), S)
-        end,
-        { ErlValue, ErlS }
-    end,
-
-  S2 = S1#elixir_scope{
-    vars=orddict:store(Key, NewValue, Vars),
-    clause_vars=orddict:store(Key, NewValue, ClauseVars)
+normalize_vars(Key, Value, #elixir_scope{vars=Vars,clause_vars=ClauseVars} = S) ->
+  FS = S#elixir_scope{
+    vars=orddict:store(Key, Value, Vars),
+    clause_vars=orddict:store(Key, Value, ClauseVars)
   },
 
   Expr = case orddict:find(Key, Vars) of
@@ -235,27 +220,29 @@ normalize_vars({ Var, Kind } = Key, Shared, #elixir_scope{vars=Vars,clause_vars=
     error -> { atom, 0, nil }
   end,
 
-  { { Var, Kind, NewValue, Expr }, S2 }.
+  { { Key, Value, Expr }, FS }.
 
-% Normalize a var by checking if it was defined in the clause.
-% If so, use it, otherwise use from main scope.
+% Generate match vars by checking if they were updated
+% or not and assigning the previous value.
 
-normalize_clause_var(Var, Kind, OldValue, ClauseVars) ->
-  case orddict:find({ Var, Kind }, ClauseVars) of
-    { ok, ClauseValue } -> { var, 0, ClauseValue };
-    error -> OldValue
-  end.
+generate_match_vars([{ Key, NewValue, OldValue }|T], ClauseVars, Left, Right) ->
+  case orddict:find(Key, ClauseVars) of
+    { ok, NewValue } ->
+      generate_match_vars(T, ClauseVars, Left, Right);
+    { ok, ClauseValue } ->
+      generate_match_vars(T, ClauseVars, [{ var, 0, NewValue }|Left], [{ var, 0, ClauseValue }|Right]);
+    error ->
+      generate_match_vars(T, ClauseVars, [{ var, 0, NewValue }|Left], [OldValue|Right])
+  end;
 
-%% generate_match
+generate_match_vars([], _ClauseVars, Left, Right) ->
+  { Left, Right }.
 
-generate_match(Meta, [Left], [Right]) ->
-  { match, ?line(Meta), Left, Right };
+generate_match(Line, [Left], [Right]) ->
+  { match, Line, Left, Right };
 
-generate_match(Meta, LeftVars, RightVars) ->
-  Line = ?line(Meta),
+generate_match(Line, LeftVars, RightVars) ->
   { match, Line, { tuple, Line, LeftVars }, { tuple, Line, RightVars } }.
-
-%% Listify
 
 listify(Expr) when not is_list(Expr) -> [Expr];
 listify(Expr) -> Expr.
