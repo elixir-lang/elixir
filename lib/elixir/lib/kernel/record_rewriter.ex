@@ -55,7 +55,7 @@ defmodule Kernel.RecordRewriter do
   defp record_field_info(function) do
     case atom_to_list(function) do
       'update' -> nil
-      'update_' ++ field -> nil
+      'update_' ++ _field -> nil
       _ -> { :accessor, function }
     end
   end
@@ -185,7 +185,7 @@ defmodule Kernel.RecordRewriter do
 
     res =
       case args do
-        [{ :atom, _, atom }|t] -> atom
+        [{ :atom, _, atom }|_] -> atom
         _ -> nil
       end
 

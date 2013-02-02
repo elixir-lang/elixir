@@ -184,7 +184,7 @@ defmodule HashDict do
       { _, 0 } ->
         dict
       { root, -1 } ->
-        res = if depth > 0 and trie(dict, :contract_on) == size do
+        if depth > 0 and trie(dict, :contract_on) == size do
           root = node_contract(root, depth, depth - 1)
           trie(dict,
             root: root,

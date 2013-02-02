@@ -69,7 +69,7 @@ vars_receive_test() ->
 
 case_test() ->
   {true, _} = eval("case 1 do\n2 -> false\n1 -> true\nend"),
-  {true, [{x,1}]} = eval("case 1 do\n{x,y} -> false\nx -> true\nend"),
+  {true, [{x,1},{y,nil}]} = eval("case 1 do\n{x,y} -> false\nx -> true\nend"),
   {true, _} = eval("case {1,2} do;{3,4} -> false\n_ -> true\nend").
 
 case_with_do_ambiguity_test() ->

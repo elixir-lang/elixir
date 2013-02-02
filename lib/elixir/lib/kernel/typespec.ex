@@ -325,7 +325,7 @@ defmodule Kernel.Typespec do
 
   defp abstract_code(module) do
     case :beam_lib.chunks(abstract_code_beam(module), [:abstract_code]) do
-      {:ok, { _, [{ :abstract_code, { raw_abstract_v1, abstract_code } }] } } ->
+      {:ok, { _, [{ :abstract_code, { _raw_abstract_v1, abstract_code } }] } } ->
         { :ok, abstract_code }
       _ ->
         []

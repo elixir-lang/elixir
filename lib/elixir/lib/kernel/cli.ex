@@ -90,7 +90,7 @@ defmodule Kernel.CLI do
 
   defp shared_option?(list, config, callback) do
     case process_shared(list, config) do
-      { [h|t], _ } when h == hd(list) ->
+      { [h|_], _ } when h == hd(list) ->
         invalid_option h
       { new_list, new_config } ->
         callback.(new_list, new_config)

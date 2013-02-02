@@ -347,7 +347,7 @@ defmodule KernelTest do
     test :invalid_match do
       a = 3
       assert_raise CaseClauseError, fn ->
-        destructure [^a,b,c], a_list
+        destructure [^a,_b,_c], a_list
       end
     end
 

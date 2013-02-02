@@ -210,7 +210,7 @@ defmodule Module do
       [] ->
         ETS.insert(table, { tuple, line, kind, signature, doc })
         :ok
-      [{ tuple, line, old_kind, old_sign, old_doc }] when old_doc == nil or doc == nil or old_doc == doc ->
+      [{ tuple, line, _old_kind, old_sign, old_doc }] when old_doc == nil or doc == nil or old_doc == doc ->
         ETS.insert(table, {
           tuple,
           line,

@@ -45,10 +45,10 @@ defmodule ExUnit.Runner do
   # cases counter and attempt to spawn new ones.
   defp wait_until_available(config) do
     receive do
-      { pid, :test_finished, { test_case, test, final } } ->
+      { _pid, :test_finished, { test_case, test, final } } ->
         config.formatter.test_finished(config.formatter_id, test_case, test, final)
         wait_until_available config
-      { pid, :case_finished, test_case } ->
+      { _pid, :case_finished, test_case } ->
         config.formatter.case_finished(config.formatter_id, test_case)
         loop config.update_taken_cases(&1-1)
     end

@@ -301,7 +301,7 @@ defmodule Regex do
     lc result inlist results do
       case result do
         [t] -> t
-        [h|t] -> t
+        [_|t] -> t
       end
     end
   end

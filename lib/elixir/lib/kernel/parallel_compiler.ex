@@ -91,7 +91,7 @@ defmodule Kernel.ParallelCompiler do
         # list because someone invoked try/rescue UndefinedFunctionError
         new_waiting = List.keydelete(waiting, child, 0)
         spawn_compilers(files, output, callback, new_waiting, new_queued, schedulers, result)
-      { :module_available, child, module, binary } ->
+      { :module_available, _child, module, binary } ->
         new_waiting = release_waiting_processes(module, waiting)
         new_result  = [{module, binary}|result]
         wait_for_messages(files, output, callback, new_waiting, queued, schedulers, new_result)

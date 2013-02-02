@@ -112,7 +112,7 @@ defmodule EEx.Tokenizer do
         else
           :middle_expr
         end
-      error ->
+      _error ->
         :middle_expr
     end
   end
