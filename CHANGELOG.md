@@ -1,9 +1,15 @@
 * enhancements
-  * [IO] Add IO.ANSI to make it easy to write ANSI escape codes
+  * [IO] Add `IO.ANSI` to make it easy to write ANSI escape codes
   * [Kernel] Better support for Unicode lists
+  * [Kernel] Reduce variables footprint in `case`/`receive` clauses
+  * [Macro] `Macro.expand` also considers macros from the current `__ENV__` module
+  * [Typespec] Better error reporting for invalid typespecs
 
 * bug fix
-  * [IO] IO module should default to the group leader
+  * [Mix] Allow Mix projects to be generated with just one letter
+
+* deprecations
+  * [Kernel] Old `:local.(args)` syntax is deprecated
 
 # v0.8.0 (2013-01-28)
 
