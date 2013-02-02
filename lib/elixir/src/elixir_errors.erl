@@ -161,6 +161,9 @@ assert_function_scope(_Meta, _Kind, #elixir_scope{function=Function}) -> Functio
 raise(Meta, File, Kind, Message) when is_list(Meta) ->
   raise(?line(Meta), File, Kind, Message);
 
+raise(none, File, Kind, Message) ->
+  raise(0, File, Kind, Message);
+
 raise(Line, File, Kind, Message) when is_integer(Line) ->
   Stacktrace = erlang:get_stacktrace(),
   Exception = Kind:new([{description, Message}, {file, iolist_to_binary(File)}, {line, Line}]),
