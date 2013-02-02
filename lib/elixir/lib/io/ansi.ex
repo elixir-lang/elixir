@@ -36,6 +36,7 @@ defmodule IO.ANSI do
   be printed as intended
   """
   @spec terminal? :: boolean
+  @spec terminal?(:io.device) :: boolean
   def terminal?(device // :erlang.group_leader) do
     if :erlang.system_info(:otp_release) < 'R16' and
        Process.whereis(:user) != device do
