@@ -33,7 +33,12 @@ defmodule IO.ANSI do
   Checks whether the default I/O device is a terminal or a file.
 
   Used to identify whether printing ANSI escape sequences will likely
-  be printed as intended
+  be printed as intended.
+
+  Please note that invoked while in shell (iex) in Erlang/OTP
+  prior to R16, terminal?/0 will always return false because
+  Erlang shell did not support ANSI escape sequences up until
+  R16.
   """
   @spec terminal? :: boolean
   @spec terminal?(:io.device) :: boolean
