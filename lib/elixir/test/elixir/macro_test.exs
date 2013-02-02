@@ -82,6 +82,14 @@ defmodule MacroTest do
     assert Macro.expand(quote(do: :foo), __ENV__) == :foo
   end
 
+  defmacro local_macro do
+    :local_macro
+  end
+
+  test :expand_local_macro do
+    assert Macro.expand(quote(do: local_macro), __ENV__) == :local_macro
+  end
+
   test :expand_with_imported_macro do
     assert Macro.expand(quote(do: 1 || false), __ENV__) == (quote var_context: Kernel do
       case 1 do
