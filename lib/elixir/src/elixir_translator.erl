@@ -244,13 +244,25 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
         syntax_error(Meta, S#elixir_scope.file, "invalid args for quote")
     end,
 
-  Context = case lists:keyfind(var_context, 1, T) of
-    { var_context, VarContext } ->
-      expand_var_context(Meta, VarContext,
-        "invalid argument given for var_context in quote", S);
+  Hygiene = case lists:keyfind(hygiene, 1, T) of
+    { hygiene, true } ->
+      elixir_errors:deprecation(Meta, S#elixir_scope.file, "hygiene: true is deprecated, please set it to [] instead", []),
+      [];
+    { hygiene, List } when is_list(List) ->
+      List;
+    { hygiene, false } ->
+      elixir_errors:deprecation(Meta, S#elixir_scope.file, "hygiene: false is deprecated, please set it to [vars: false] instead", []),
+      [{vars,false}, {imports,false}, {aliases,false}];
     false ->
-      case lists:keyfind(hygiene, 1, T) of
-        { hygiene, false } -> nil;
+      []
+  end,
+
+  Vars = case lists:keyfind(var_context, 1, T) of
+    { var_context, VarContext } ->
+      expand_var_context(Meta, VarContext, "invalid argument given for var_context in quote", S);
+    false ->
+      case lists:keyfind(vars, 1, Hygiene) of
+        { vars, false } -> nil;
         _ ->
           case S#elixir_scope.module of
             nil -> 'Elixir';
@@ -259,20 +271,18 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
       end
   end,
 
-  GetExpansion = fun(Key) ->
+  GetExpansion = fun(Key, New) ->
     case lists:keyfind(Key, 1, T) of
       { Key, Bool } when is_boolean(Bool) ->
+        elixir_errors:deprecation(Meta, S#elixir_scope.file, "the ~s option for quote is deprecated, please use hygiene: [~s: ~s] instead", [Key, New, Bool]),
         Bool;
       false ->
-        case lists:keyfind(hygiene, 1, T) of
-          { hygiene, Bool } when is_boolean(Bool) -> Bool;
-          false -> true
-        end
+        not(lists:keyfind(New, 1, Hygiene) == { New, false })
     end
   end,
 
-  Aliases = GetExpansion(expand_aliases),
-  Imports = GetExpansion(expand_imports),
+  Aliases = GetExpansion(aliases_hygiene, aliases),
+  Imports = GetExpansion(imports_hygiene, imports),
 
   { DefaultLine, DefaultFile } = case lists:keyfind(location, 1, T) of
     { location, keep }  -> { keep, keep };
@@ -314,8 +324,8 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
     _ -> true
   end,
 
-  Q = #elixir_quote{var_context=Context, line=TLine, unquote=Unquote,
-        expand_aliases=Aliases, expand_imports=Imports},
+  Q = #elixir_quote{vars_hygiene=Vars, line=TLine, unquote=Unquote,
+        aliases_hygiene=Aliases, imports_hygiene=Imports},
 
   elixir_quote:quote(TExprs, Q, SL);
 
@@ -468,11 +478,11 @@ translate_each({ { '.', _, [Left, Right] }, Meta, Args } = Original, S) when is_
 
 %% Anonymous function calls
 
-translate_each({ { '.', Line, [Expr] }, Meta, Args } = Original, S) ->
+translate_each({ { '.', _, [Expr] }, Meta, Args } = Original, S) ->
   { TExpr, SE } = translate_each(Expr, S),
   case TExpr of
     { atom, _, Atom } ->
-      elixir_errors:deprecation(?line(Line), S#elixir_scope.file, "the :~s.() syntax is deprecated, please use ~s() instead", [Atom, Atom]),
+      elixir_errors:deprecation(Meta, S#elixir_scope.file, "the :~s.() syntax is deprecated, please use ~s() instead", [Atom, Atom]),
       translate_each({ Atom, Meta, Args }, S);
     _ ->
       case elixir_partials:handle(Original, S) of

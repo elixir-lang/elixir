@@ -90,7 +90,7 @@ defmodule Kernel.QuoteTest.VarHygiene do
   end
 
   defmacro no_hygiene do
-    quote [hygiene: false] do
+    quote [hygiene: [vars: false]] do
       a = 1
     end
   end

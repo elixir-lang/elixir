@@ -7,7 +7,7 @@ defmodule Typespec.TypeTest do
   # definition and not on the hassles of handling test
   # module
   defmacrop test_module([{:do, block}]) do
-    quote expand_aliases: false do
+    quote do
       { :module, T, _binary, result } = defmodule T do
         unquote(block)
       end

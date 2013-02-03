@@ -355,15 +355,12 @@ defmodule Kernel.SpecialForms do
 
   ## Options
 
-  * `:hygiene` - When false, disables hygiene for variables, aliases and imports;
   * `:unquote` - When false, disables unquoting. Useful when you have a quote
                  inside another quote and want to control which quote is
                  able to unquote;
   * `:location` - When set to `:keep`, keeps the current line and file on quotes.
                   Read the Stacktrace information section below for more information;
-  * `:expand_aliases` - When false, do not expand aliases;
-  * `:expand_imports` - When false, do not expand imports;
-  * `:var_context` - The context for quoted variables. Defaults to the current module;
+  * `:hygiene` - Allows a developer to disable hygiene selectively;
 
   ## Macro literals
 
@@ -379,17 +376,15 @@ defmodule Kernel.SpecialForms do
 
   ## Hygiene
 
-  Elixir macros are hygienic. This means aliases and imports
-  defined inside the quoted often refer to the context that
-  defined the macro.
+  Elixir macros are hygienic via means of deferred resolution.
 
-  Furthermore, variables inside quote are also hygienic. That
-  said, a variable defined in a macro cannot affect the scope
-  where the macro is included.
+  This means aliases and imports defined inside the quoted refer
+  to the context that defined the macro and not the context
+  where the macro is expanded.
 
-  The option `hygiene` can turn off all the hygiene mechanisms
-  defined below. However, they can also be changed in a one by
-  one basis.
+  Furthermore, variables inside quote are also hygienic: a
+  variable defined in a macro cannot affect the variables where
+  the macro is expanded.
 
   ### Hygiene in variables
 
@@ -451,10 +446,9 @@ defmodule Kernel.SpecialForms do
       # Access the variable a from Hygiene1
       quote do: var!(a, Hygiene1) = 2
 
-  Another option is to set the `var_context` option, affecting
-  all variables in the block:
+  Hygiene for variables can be disabled overall as:
 
-      quote var_context: Hygiene1, do: a = 2
+      quote hygiene: [vars: false], do: x
 
   ### Hygiene in aliases
 
@@ -476,9 +470,9 @@ defmodule Kernel.SpecialForms do
   in the context the macro is expanded, the code above works
   because `D` was expanded when the quote was generated.
 
-  There are two ways to disable this behaviour. By giving
-  the `expand_aliases` equals to false to quote or by using
-  the `alias!` macro inside the quote:
+  There are two ways to disable this behaviour. By disabling
+  hygiene for aliases or by using the `alias!` macro inside
+  the quote:
 
       defmodule NoHygiene do
         defmacro interference do
@@ -536,7 +530,7 @@ defmodule Kernel.SpecialForms do
       Lazy.return_size #=> 2
 
   As in aliases, imports expansion can be explicitly disabled
-  via the `expand_imports` option.
+  via the `hygiene: [imports: false]` option.
 
   ## Stacktrace information
 

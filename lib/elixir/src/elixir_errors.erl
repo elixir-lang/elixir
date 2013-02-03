@@ -77,10 +77,10 @@ form_error(Meta, File, Module, Desc) ->
 
 %% Shows a deprecation message
 
-deprecation(Line, File, Message) -> deprecation(Line, File, Message, []).
+deprecation(Meta, File, Message) -> deprecation(Meta, File, Message, []).
 
-deprecation(Line, File, Message, Args) ->
-  io:format(file_format(Line, File, io_lib:format(Message, Args))).
+deprecation(Meta, File, Message, Args) ->
+  io:format(file_format(?line(Meta), File, io_lib:format(Message, Args))).
 
 %% Handle warnings and errors (called during module compilation)
 

@@ -9,6 +9,7 @@
   * [Mix] Allow Mix projects to be generated with just one letter
 
 * deprecations
+  * [Kernel] Tidy up and clean `quote` API
   * [Kernel] Old `:local.(args)` syntax is deprecated
 
 # v0.8.0 (2013-01-28)
