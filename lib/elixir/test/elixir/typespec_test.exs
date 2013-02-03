@@ -335,6 +335,7 @@ defmodule Typespec.TypeTest do
       (quote do: @type tuple_type() :: {integer()}),
       (quote do: @type ftype() :: (() -> any()) | (() -> integer()) | ((integer() -> integer()))),
       (quote do: @type cl() :: char_list()),
+      (quote do: @type ab() :: as_boolean(term())),
       (quote do: @type vaf() :: (... -> any())),
       (quote do: @type rng() :: 1 .. 10),
     ]

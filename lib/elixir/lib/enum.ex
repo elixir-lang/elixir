@@ -93,7 +93,7 @@ defmodule Enum do
 
   """
   @spec all?(t) :: boolean
-  @spec all?(t, (element -> boolean)) :: boolean
+  @spec all?(t, (element -> as_boolean(term))) :: boolean
 
   def all?(collection, fun // fn(x) -> x end)
 
@@ -130,7 +130,7 @@ defmodule Enum do
 
   """
   @spec any?(t) :: boolean
-  @spec any?(t, (element -> boolean)) :: boolean
+  @spec any?(t, (element -> as_boolean(term))) :: boolean
 
   def any?(collection, fun // fn(x) -> x end)
 
@@ -191,7 +191,7 @@ defmodule Enum do
   @doc """
   Counts for how many items the function returns true.
   """
-  @spec count(t, (element -> boolean)) :: non_neg_integer
+  @spec count(t, (element -> as_boolean(term))) :: non_neg_integer
   def count(collection, fun) when is_list(collection) do
     do_count(collection, fun)
   end
@@ -244,7 +244,7 @@ defmodule Enum do
       Enum.drop_while [1,2,3,4,5], fn(x) -> x < 3 end
       #=> [3,4,5]
   """
-  @spec drop_while(t, (element -> boolean)) :: list
+  @spec drop_while(t, (element -> as_boolean(term))) :: list
   def drop_while(collection, fun) when is_list(collection) do
     do_drop_while(collection, fun)
   end
@@ -323,7 +323,7 @@ defmodule Enum do
       #=> [2]
 
   """
-  @spec filter(t, (element -> boolean)) :: list
+  @spec filter(t, (element -> as_boolean(term))) :: list
   def filter(collection, fun) when is_list(collection) do
     lc item inlist collection, fun.(item), do: item
   end
@@ -346,7 +346,7 @@ defmodule Enum do
       #=> [4]
 
   """
-  @spec filter_map(t, (element -> boolean), (element -> element)) :: list
+  @spec filter_map(t, (element -> as_boolean(term)), (element -> element)) :: list
   def filter_map(collection, filter, mapper) when is_list(collection) do
     lc item inlist collection, filter.(item), do: mapper.(item)
   end
@@ -779,7 +779,7 @@ defmodule Enum do
       Enum.split_while [1,2,3,4], fn x -> x == 2 end
       #=> { [1], [2, 3, 4] }
   """
-  @spec split_while(t, (element -> boolean)) :: {list, list}
+  @spec split_while(t, (element -> as_boolean(term))) :: {list, list}
   def split_while(collection, fun) when is_list(collection) do
     do_split_while(collection, fun, [])
   end
@@ -838,7 +838,7 @@ defmodule Enum do
       #=> [1, 2]
 
   """
-  @spec take_while(t, (element -> boolean)) :: list
+  @spec take_while(t, (element -> as_boolean(term))) :: list
   def take_while(collection, fun) when is_list(collection) do
     do_take_while(collection, fun)
   end

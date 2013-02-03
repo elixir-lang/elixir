@@ -8,8 +8,9 @@
 -compile({parse_transform, elixir_transform}).
 
 %% Top level types
--export_type([char_list/0]).
+-export_type([char_list/0, as_boolean/1]).
 -type char_list() :: string().
+-type as_boolean(T) :: T.
 
 % OTP APPLICATION API
 
