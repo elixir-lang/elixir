@@ -712,7 +712,13 @@ defmodule File do
   @doc """
   Opens the given `path` according to the given list of modes.
 
-  By default, the file is opened in read mode, as a binary with utf8 encoding.
+  In order to write and read files, one must use the functions
+  in the IO module. By default, a file is opened on binary mode
+  which requires the functions `IO.binread`, `IO.binwrite` and
+  `IO.binreadline` to interact with the file. A developer may pass
+  `:utf8` as an option when opening the file and then all other
+  functions from IO are available, since they work directly with
+  Unicode data.
 
   The allowed modes:
 
