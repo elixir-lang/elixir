@@ -196,11 +196,13 @@ translate({defmodule, Meta, [Ref, KV]}, S) ->
 
   { FRef, FS } = case TRef of
     { atom, _, Module } ->
-      FullModule = module_ref(Ref, Module, S),
+      FullModule = expand_module(Ref, Module, S),
 
       RS = case elixir_aliases:nesting_alias(S#elixir_scope.module, FullModule) of
-        false   -> S;
-        Nesting -> element(2, translate_each({ alias, Meta, [Nesting] }, S))
+        { New, Old } ->
+          S#elixir_scope{aliases=orddict:store(New, Old, S#elixir_scope.aliases)};
+        false ->
+          S
       end,
 
       {
@@ -327,10 +329,10 @@ rewrite_case_clauses([{do,[{in,_,[{'_',_,_},[false,nil]]}],False},{do,[{'_',_,_}
 rewrite_case_clauses(Clauses) ->
   Clauses.
 
-module_ref(Raw, Module, #elixir_scope{module=Nesting}) when is_atom(Raw); Nesting == nil ->
+expand_module(Raw, Module, #elixir_scope{module=Nesting}) when is_atom(Raw); Nesting == nil ->
   Module;
 
-module_ref({ '__aliases__', _, _ } = Alias, Module, S) ->
+expand_module({ '__aliases__', _, _ } = Alias, Module, S) ->
   case elixir_aliases:expand(Alias, S#elixir_scope.aliases) of
     Atom when is_atom(Atom) ->
       Module;
@@ -338,7 +340,7 @@ module_ref({ '__aliases__', _, _ } = Alias, Module, S) ->
       elixir_aliases:concat([S#elixir_scope.module, Module])
   end;
 
-module_ref(_Raw, Module, S) ->
+expand_module(_Raw, Module, S) ->
   elixir_aliases:concat([S#elixir_scope.module, Module]).
 
 is_reserved_data(moduledoc) -> true;

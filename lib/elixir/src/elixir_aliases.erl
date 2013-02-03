@@ -4,30 +4,38 @@
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
-%% Expand an alias. It returns an atom (mearning that there
+%% Expand an alias. It returns an atom (meaning that there
 %% was an expansion) or a list of atoms.
 
-expand({ '__aliases__', _Meta, [H] }, Aliases) when H /= 'Elixir' ->
-  case expand_one(H, Aliases) of
+expand({ '__aliases__', Meta, _ } = Alias, Aliases) ->
+  case lists:keyfind(alias, 1, Meta) of
+    { alias, Atom } when is_atom(Atom) ->
+      Atom;
+    false ->
+      do_expand(Alias, Aliases)
+  end.
+
+do_expand({ '__aliases__', _Meta, [H] }, Aliases) when H /= 'Elixir' ->
+  case do_expand_one(H, Aliases) of
     false -> [H];
     Atom  -> Atom
   end;
 
-expand({ '__aliases__', _Meta, [H|T] }, Aliases) when is_atom(H) ->
+do_expand({ '__aliases__', _Meta, [H|T] }, Aliases) when is_atom(H) ->
   case H of
     'Elixir' ->
       concat(T);
     _ ->
-      case expand_one(H, Aliases) of
+      case do_expand_one(H, Aliases) of
         false -> [H|T];
         Atom  -> concat([Atom|T])
       end
   end;
 
-expand({ '__aliases__', _Meta, List }, _Aliases) ->
+do_expand({ '__aliases__', _Meta, List }, _Aliases) ->
   List.
 
-expand_one(H, Aliases) ->
+do_expand_one(H, Aliases) ->
   Lookup = list_to_atom("Elixir-" ++ atom_to_list(H)),
   case lookup(Lookup, Aliases) of
     Lookup -> false;
@@ -69,7 +77,7 @@ last([], Acc) -> Acc.
 %% Examples:
 %%
 %%     nesting_alias('Elixir.Foo.Bar', 'Elixir.Foo.Bar.Baz.Bat')
-%%     { '__aliases__', [], ['Elixir', 'Foo', 'Bar', 'Baz'] }
+%%     { 'Elixir.Baz', 'Elixir.Foo.Bar.Baz' }
 %%
 %% When passed to alias, the example above will generate an
 %% alias like:
@@ -86,7 +94,7 @@ nesting_alias(Prefix, Full) ->
 do_nesting([X|PreTail], [X|Tail], Acc) ->
   do_nesting(PreTail, Tail, [X|Acc]);
 do_nesting([], [H|_], Acc) ->
-  { '__aliases__', [], ['Elixir'|[list_to_atom(X) || X <- lists:reverse([H|Acc])]] };
+  { list_to_atom("Elixir-" ++ H), concat(lists:reverse([H|Acc])) };
 do_nesting(_, _, _Acc) ->
   false.
 

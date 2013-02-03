@@ -157,10 +157,16 @@ end
 defmodule Kernel.QuoteTest.AliasHygieneTest do
   use ExUnit.Case, async: true
 
+  alias Dict, as: SuperDict
+
   test :expand_aliases do
-    assert Code.eval_quoted(quote do: Foo.Bar)  == { Elixir.Foo.Bar, [] }
-    assert Code.eval_quoted(quote do: alias!(Foo.Bar))  == { Foo.Bar, [] }
-    assert Code.eval_quoted(quote expand_aliases: false, do: Foo.Bar)  == { Foo.Bar, [] }
+    assert quote(do: Foo.Bar) == { :__aliases__, [], [:Foo, :Bar] }
+    assert quote(do: Dict.Bar) == { :__aliases__, [], [:Dict, :Bar] }
+    assert quote(do: SuperDict.Bar) == { :__aliases__, [alias: Dict.Bar], [:SuperDict, :Bar] }
+    assert quote(do: alias!(SuperDict.Bar)) == { :__aliases__, [], [:SuperDict, :Bar] }
+
+    assert Code.eval_quoted(quote do: SuperDict.Bar) == { Elixir.Dict.Bar, [] }
+    assert Code.eval_quoted(quote do: alias!(SuperDict.Bar)) == { Elixir.SuperDict.Bar, [] }
   end
 end
 
