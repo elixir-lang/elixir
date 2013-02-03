@@ -1,26 +1,38 @@
 -module(elixir_aliases).
--export([nesting_alias/2, last/1, concat/1, safe_concat/1, lookup/2,
+-export([nesting_alias/2, last/1, concat/1, safe_concat/1,
   format_error/1, ensure_loaded/3, expand/2]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
-%% Expand an alias returning an atom if possible.
-%% Otherwise returns the list of aliases args.
+%% Expand an alias. It returns an atom (mearning that there
+%% was an expansion) or a list of atoms.
 
-expand({ '__aliases__', _Line, [H] }, Aliases) when H /= 'Elixir' ->
-  expand_one(H, Aliases);
+expand({ '__aliases__', _Meta, [H] }, Aliases) when H /= 'Elixir' ->
+  case expand_one(H, Aliases) of
+    false -> [H];
+    Atom  -> Atom
+  end;
 
-expand({ '__aliases__', _Line, [H|T] }, Aliases) when is_atom(H) ->
-  concat(case H of
-    'Elixir' -> [H|T];
-    _        -> [expand_one(H, Aliases)|T]
-  end);
+expand({ '__aliases__', _Meta, [H|T] }, Aliases) when is_atom(H) ->
+  case H of
+    'Elixir' ->
+      concat(T);
+    _ ->
+      case expand_one(H, Aliases) of
+        false -> [H|T];
+        Atom  -> concat([Atom|T])
+      end
+  end;
 
-expand({ '__aliases__', _Line, List }, _Aliases) ->
+expand({ '__aliases__', _Meta, List }, _Aliases) ->
   List.
 
 expand_one(H, Aliases) ->
-  lookup(list_to_atom("Elixir-" ++ atom_to_list(H)), Aliases).
+  Lookup = list_to_atom("Elixir-" ++ atom_to_list(H)),
+  case lookup(Lookup, Aliases) of
+    Lookup -> false;
+    Else   -> Else
+  end.
 
 %% Ensure a module is loaded before its usage.
 
@@ -39,7 +51,7 @@ ensure_loaded(Line, Ref, S) ->
       elixir_errors:form_error(Line, S#elixir_scope.file, ?MODULE, { Kind, Ref })
   end.
 
-%% Receives an atom and returns the last alias.
+%% Receives an atom and returns the last bit as an alias.
 
 last(Atom) ->
   Last = last(lists:reverse(atom_to_list(Atom)), []),
@@ -56,8 +68,13 @@ last([], Acc) -> Acc.
 %%
 %% Examples:
 %%
-%%   nesting_alias('Elixir.Foo.Bar', 'Elixir.Foo.Bar.Baz')
-%%   { '__aliases__', [], ['Elixir', 'Foo', 'Bar', 'Baz'] }
+%%     nesting_alias('Elixir.Foo.Bar', 'Elixir.Foo.Bar.Baz.Bat')
+%%     { '__aliases__', [], ['Elixir', 'Foo', 'Bar', 'Baz'] }
+%%
+%% When passed to alias, the example above will generate an
+%% alias like:
+%%
+%%     'Elixir.Baz' => 'Elixir.Foo.Bar.Baz'
 %%
 nesting_alias(nil, _Full) -> false;
 
@@ -69,18 +86,18 @@ nesting_alias(Prefix, Full) ->
 do_nesting([X|PreTail], [X|Tail], Acc) ->
   do_nesting(PreTail, Tail, [X|Acc]);
 do_nesting([], [H|_], Acc) ->
-  { '__aliases__', [], ['Elixir'|[binary_to_atom(X, utf8) || X <- lists:reverse([H|Acc])]] };
+  { '__aliases__', [], ['Elixir'|[list_to_atom(X) || X <- lists:reverse([H|Acc])]] };
 do_nesting(_, _, _Acc) ->
   false.
 
 list_nesting(Atom) ->
-  case binary:split(atom_to_binary(Atom, utf8), <<$->>, [global]) of
-    [<<"Elixir">>|T] -> T;
+  case string:tokens(atom_to_list(Atom), "-") of
+    ["Elixir"|T] -> T;
     _ -> []
   end.
 
-%% Receives a list of atoms representing modules
-%% and concatenate them.
+%% Receives a list of atoms, binaries or lists
+%% representing modules and concatenates them.
 
 concat(Args) -> list_to_atom(raw_concat(Args)).
 safe_concat(Args) -> list_to_existing_atom(raw_concat(Args)).
@@ -104,7 +121,7 @@ dot_to_dash(List) ->
     _  -> X
    end || X <- List].
 
-%% Lookup an alias in the current scope
+%% Lookup an alias in the current scope.
 
 lookup(Else, Dict) ->
   case orddict:find(Else, Dict) of

@@ -330,16 +330,12 @@ rewrite_case_clauses(Clauses) ->
 module_ref(Raw, Module, #elixir_scope{module=Nesting}) when is_atom(Raw); Nesting == nil ->
   Module;
 
-module_ref({ '__aliases__', _, ['Elixir'|_] }, Module, _S) ->
-  Module;
-
-% In case the module is an alias and it was already
-% expanded we should not expand it twice
-module_ref({ '__aliases__', _, [H|_] }, Module, #elixir_scope{aliases=Aliases} = S) ->
-  Full = list_to_atom("Elixir-" ++ atom_to_list(H)),
-  case elixir_aliases:lookup(Full, Aliases) of
-    Full -> elixir_aliases:concat([S#elixir_scope.module, Module]);
-    _    -> Module
+module_ref({ '__aliases__', _, _ } = Alias, Module, S) ->
+  case elixir_aliases:expand(Alias, S#elixir_scope.aliases) of
+    Atom when is_atom(Atom) ->
+      Module;
+    Aliases when is_list(Aliases) ->
+      elixir_aliases:concat([S#elixir_scope.module, Module])
   end;
 
 module_ref(_Raw, Module, S) ->

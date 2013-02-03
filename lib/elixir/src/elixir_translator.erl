@@ -214,7 +214,7 @@ translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
 
 translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
   case elixir_aliases:expand(Alias, S#elixir_scope.aliases) of
-    Atom when is_atom(Atom) -> { { atom, ?line(Meta), Atom}, S };
+    Atom when is_atom(Atom) -> { { atom, ?line(Meta), Atom }, S };
     Aliases ->
       { TAliases, SA } = translate_args(Aliases, S),
 
