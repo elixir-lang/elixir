@@ -75,15 +75,37 @@ defmodule Mix.Utils do
     end
   end
 
-  defp source_mtime({ _, { { _, _, _ }, { _, _, _ } } = source }) do
+  def source_mtime({ _, { { _, _, _ }, { _, _, _ } } = source }) do
     source
   end
 
-  defp source_mtime(source) do
+  def source_mtime(source) do
     File.stat!(source).mtime
   end
 
-  defp last_modified(path) do
+  def check_files(dir1, ext1, dir2, ext2, func // fn _, _ -> true end) do
+    files = extract_files([dir1], List.wrap(ext1))
+    List.foldl(files, [],
+      fn(file, acc) ->
+        compiled_file = Path.rootname(file) |> Path.basename
+        compiled_file = Path.join([dir2, compiled_file <> "." <> to_binary(ext2)])
+        if File.regular?(compiled_file) != true do
+          [{file, compiled_file} | acc]
+        else
+          if func.(file, compiled_file) do
+            [{file, compiled_file} | acc]
+          else
+            acc
+          end
+        end
+      end)
+  end
+
+  def check_mtime(filemtime, files) do
+    Enum.any?(files, fn(file) -> last_modified(file) >= filemtime end)
+  end
+
+  def last_modified(path) do
     case File.stat(path) do
       { :ok, File.Stat[mtime: mtime] } -> mtime
       { :error, _ } -> { { 1970, 1, 1 }, { 0, 0, 0 } }
