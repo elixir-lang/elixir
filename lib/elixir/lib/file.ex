@@ -62,7 +62,7 @@ defmodule File do
 
   In order to write and read files, one must use the
   functions in the IO module. By default, a file is
-  opened on binary mode which requires the functions
+  opened in binary mode which requires the functions
   `IO.binread`, `IO.binwrite` and `IO.binreadline` to
   interact with the file. A developer may pass `:utf8`
   as an option when opening the file and then all other
@@ -713,7 +713,7 @@ defmodule File do
   Opens the given `path` according to the given list of modes.
 
   In order to write and read files, one must use the functions
-  in the IO module. By default, a file is opened on binary mode
+  in the IO module. By default, a file is opened in binary mode
   which requires the functions `IO.binread`, `IO.binwrite` and
   `IO.binreadline` to interact with the file. A developer may pass
   `:utf8` as an option when opening the file and then all other
