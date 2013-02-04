@@ -80,6 +80,15 @@ defmodule Node do
   end
 
   @doc """
+  Establishes a connection to Node. Returns true if successful, false if not, and ignored if the local node is not alive.
+  See http://erlang.org/doc/man/net_kernel.html#connect_node-1 for more info.
+  """
+  @spec connect(t) :: boolean | :ignored
+  def connect(node) do
+    :net_kernel.connect_node(node)
+  end
+
+  @doc """
   Returns the pid of a new process started by the application of `fun`
   on `node`. If `node` does not exist, a useless pid is returned.
 
