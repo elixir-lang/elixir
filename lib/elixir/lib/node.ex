@@ -74,7 +74,7 @@ defmodule Node do
 
   See http://www.erlang.org/doc/man/erlang.html#disconnect_node-1 for more info.
   """
-  @spec disconnect(t) :: boolean | :ginored
+  @spec disconnect(t) :: boolean | :ignored
   def disconnect(node) do
     :erlang.disconnect_node(node)
   end
