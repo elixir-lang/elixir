@@ -96,7 +96,8 @@ filename(Other) -> element(3, Other).
 serialize(S) ->
   elixir_tree_helpers:abstract_syntax(
     { S#elixir_scope.file, S#elixir_scope.functions, S#elixir_scope.check_clauses,
-      S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases, S#elixir_scope.scheduled }
+      S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases,
+      S#elixir_scope.macro_aliases, S#elixir_scope.scheduled }
   ).
 
 serialize_with_vars(Line, S) when is_integer(Line) ->
@@ -114,7 +115,7 @@ serialize_with_vars(Line, S) when is_integer(Line) ->
 
 deserialize(Tuple) -> deserialize_with_vars(Tuple, []).
 
-deserialize_with_vars({ File, Functions, CheckClauses, Requires, Macros, Aliases, Scheduled }, Vars) ->
+deserialize_with_vars({ File, Functions, CheckClauses, Requires, Macros, Aliases, MacroAliases, Scheduled }, Vars) ->
   #elixir_scope{
     file=File,
     functions=Functions,
@@ -122,6 +123,7 @@ deserialize_with_vars({ File, Functions, CheckClauses, Requires, Macros, Aliases
     requires=Requires,
     macros=Macros,
     aliases=Aliases,
+    macro_aliases=MacroAliases,
     scheduled=Scheduled,
     vars=orddict:from_list(Vars),
     counter=[{'',length(Vars)}]

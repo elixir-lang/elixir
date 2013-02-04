@@ -452,7 +452,7 @@ defmodule Kernel.SpecialForms do
 
   ### Hygiene in aliases
 
-  Aliases inside quote are expanded by default.
+  Aliases inside quote are hygienic by default.
   Consider the following example:
 
       defmodule Hygiene do
@@ -464,24 +464,43 @@ defmodule Kernel.SpecialForms do
       end
 
       require Hygiene
-      Hygiene.no_interference #=> HashDict[]
+      Hygiene.no_interference #=> #HashDict<[]>
 
   Notice that, even though the alias `D` is not available
   in the context the macro is expanded, the code above works
-  because `D` was expanded when the quote was generated.
+  because `D` still expands to `HashDict`.
 
-  There are two ways to disable this behaviour. By disabling
-  hygiene for aliases or by using the `alias!` macro inside
-  the quote:
+  In some particular cases you may want to access an alias
+  or a module defined in the caller. In such scenarios, you
+  can access it by disabling hygiene with `hygiene: [aliases: false]`
+  or by using the `alias!` macro inside the quote:
 
-      defmodule NoHygiene do
+      defmodule Hygiene do
+        # This will expand to Elixir.Nested.hello
+        defmacro no_interference do
+          quote do: Nested.hello
+        end
+
+        # This will expand to Nested.hello for
+        # whatever is Nested in the caller
         defmacro interference do
-          quote do: alias!(D).new
+          quote do: alias!(Nested).hello
         end
       end
 
-      require NoHygiene
-      NoHygiene.interference #=> UndefinedFunctionError
+      defmodule Parent do
+        defmodule Nested do
+          def hello, do: "world"
+        end
+
+        require Hygiene
+        Hygiene.no_interference
+        #=> ** (UndefinedFunctionError) ...
+
+        Hygiene.interference
+        #=> "world"
+      end
+
 
   ## Hygiene in imports
 
@@ -564,7 +583,7 @@ defmodule Kernel.SpecialForms do
   particular, the macro `__FILE__` and exceptions happening inside
   the quote will always point to `GenServer.Behaviour` file.
   """
-  defmacro quote(opts, do: contents)
+  defmacro quote(opts, block)
 
   @doc """
   When used inside quoting, marks that the variable should

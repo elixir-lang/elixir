@@ -443,7 +443,7 @@ defmodule Macro do
   def expand(aliases, env)
 
   def expand({ :__aliases__, _, _ } = original, env) do
-    case :elixir_aliases.expand(original, env.aliases) do
+    case :elixir_aliases.expand(original, env.aliases, []) do
       atom when is_atom(atom) -> atom
       aliases ->
         aliases = lc alias inlist aliases, do: expand(alias, env)

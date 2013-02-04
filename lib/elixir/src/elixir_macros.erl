@@ -200,7 +200,9 @@ translate({defmodule, Meta, [Ref, KV]}, S) ->
 
       RS = case elixir_aliases:nesting_alias(S#elixir_scope.module, FullModule) of
         { New, Old } ->
-          S#elixir_scope{aliases=orddict:store(New, Old, S#elixir_scope.aliases)};
+          S#elixir_scope{
+            aliases=orddict:store(New, Old, S#elixir_scope.aliases),
+            macro_aliases=orddict:store(New, Old, S#elixir_scope.macro_aliases)};
         false ->
           S
       end,
@@ -333,7 +335,7 @@ expand_module(Raw, Module, #elixir_scope{module=Nesting}) when is_atom(Raw); Nes
   Module;
 
 expand_module({ '__aliases__', _, _ } = Alias, Module, S) ->
-  case elixir_aliases:expand(Alias, S#elixir_scope.aliases) of
+  case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases) of
     Atom when is_atom(Atom) ->
       Module;
     Aliases when is_list(Aliases) ->

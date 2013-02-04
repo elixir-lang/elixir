@@ -107,7 +107,8 @@ translate_each({ alias, Meta, [Ref, KV] }, S) ->
         { as, false } ->
           { Old, SR };
         { as, Other } ->
-          { TOther, SA } = translate_each(Other, SR#elixir_scope{aliases=[]}),
+          { TOther, SA } = translate_each(no_alias_expansion(Other),
+            SR#elixir_scope{aliases=[],macro_aliases=[]}),
           case TOther of
             { atom, _, Atom } -> { Atom, SA };
             _ -> syntax_error(Meta, S#elixir_scope.file,
@@ -127,7 +128,8 @@ translate_each({ alias, Meta, [Ref, KV] }, S) ->
           end,
 
           { { nil, ?line(Meta) }, SF#elixir_scope{
-            aliases=orddict:store(New, Old, S#elixir_scope.aliases)
+            aliases=orddict:store(New, Old, S#elixir_scope.aliases),
+            macro_aliases=orddict:store(New, Old, S#elixir_scope.macro_aliases)
           } }
       end;
     _ ->
@@ -213,7 +215,7 @@ translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
 %% Aliases
 
 translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
-  case elixir_aliases:expand(Alias, S#elixir_scope.aliases) of
+  case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases) of
     Atom when is_atom(Atom) -> { { atom, ?line(Meta), Atom }, S };
     Aliases ->
       { TAliases, SA } = translate_args(Aliases, S),
@@ -554,6 +556,12 @@ expand_var_context(Meta, Alias, Msg, S) ->
     _ ->
       syntax_error(Meta, S#elixir_scope.file, "~ts, expected a compile time available alias or an atom", [Msg])
   end.
+
+no_alias_expansion({ '__aliases__', Meta, [H|T] }) when (H /= 'Elixir') and is_atom(H) ->
+  { '__aliases__', Meta, ['Elixir',H|T] };
+
+no_alias_expansion(Other) ->
+  Other.
 
 %% Translate args
 

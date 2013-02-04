@@ -25,8 +25,9 @@
   counter=[],              %% a counter for the variables defined
   local=nil,               %% the scope to evaluate local functions against
   scheduled=[],            %% scheduled modules to be loaded
-  file,                    %% the current scope filename
+  macro_aliases=[],        %% keep aliases defined inside a macro
   aliases,                 %% an orddict with aliases by new -> old names
+  file,                    %% the current scope filename
   requires,                %% a set with modules required
   macros,                  %% a list with macros imported by module
   functions}).             %% a list with functions imported by module

@@ -54,10 +54,10 @@ do_quote({ unquote, _Meta, [Expr] }, #elixir_quote{unquote=true}, S) ->
 do_quote({ 'alias!', _Meta, [Expr] }, Q, S) ->
   do_quote(Expr, Q#elixir_quote{aliases_hygiene=false}, S);
 
-do_quote({ '__aliases__', RawMeta, [H|T] } = Alias, #elixir_quote{aliases_hygiene=true} = Q, S) when is_atom(H) and (H /= 'Elixir') ->
-  Meta = case elixir_aliases:expand(Alias, S#elixir_scope.aliases) of
-    Atom when is_atom(Atom) -> [{alias,Atom}|RawMeta];
-    Aliases when is_list(Aliases) -> RawMeta
+do_quote({ '__aliases__', Meta, [H|T] } = Alias, #elixir_quote{aliases_hygiene=true} = Q, S) when is_atom(H) and (H /= 'Elixir') ->
+  Annotation = case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases) of
+    Atom when is_atom(Atom) -> Atom;
+    Aliases when is_list(Aliases) -> false
   end,
 
   Line = ?line(Meta),
@@ -65,7 +65,7 @@ do_quote({ '__aliases__', RawMeta, [H|T] } = Alias, #elixir_quote{aliases_hygien
 
   { { tuple, Line, [
     { atom, Line, '__aliases__' },
-    meta(Meta, Q),
+    meta([{alias,Annotation}|Meta], Q),
     TAliases
   ] }, SA };
 

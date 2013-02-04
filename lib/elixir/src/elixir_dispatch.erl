@@ -182,9 +182,13 @@ expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, Requires, SEnv) ->
 translate_expansion(Meta, Tree, S) ->
   { TR, TS } = elixir_translator:translate_each(
     elixir_quote:linify(?line(Meta), Tree),
-    S#elixir_scope{check_clauses=false}
+    S#elixir_scope{
+      check_clauses=false,
+      macro_aliases=[] }
   ),
-  { TR, TS#elixir_scope{check_clauses=S#elixir_scope.check_clauses} }.
+  { TR, TS#elixir_scope{
+    check_clauses=S#elixir_scope.check_clauses,
+    macro_aliases=S#elixir_scope.macro_aliases } }.
 
 %% Helpers
 

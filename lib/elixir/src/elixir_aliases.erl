@@ -1,41 +1,46 @@
 -module(elixir_aliases).
 -export([nesting_alias/2, last/1, concat/1, safe_concat/1,
-  format_error/1, ensure_loaded/3, expand/2]).
+  format_error/1, ensure_loaded/3, expand/3]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
 %% Expand an alias. It returns an atom (meaning that there
 %% was an expansion) or a list of atoms.
 
-expand({ '__aliases__', Meta, _ } = Alias, Aliases) ->
+expand({ '__aliases__', Meta, _ } = Alias, Aliases, MacroAliases) ->
   case lists:keyfind(alias, 1, Meta) of
+    { alias, false } ->
+      expand(Alias, MacroAliases);
     { alias, Atom } when is_atom(Atom) ->
-      Atom;
+      case expand(Alias, MacroAliases) of
+        OtherAtom when is_atom(OtherAtom) -> OtherAtom;
+        OtherAliases when is_list(OtherAliases) -> Atom
+      end;
     false ->
-      do_expand(Alias, Aliases)
+      expand(Alias, Aliases)
   end.
 
-do_expand({ '__aliases__', _Meta, [H] }, Aliases) when H /= 'Elixir' ->
-  case do_expand_one(H, Aliases) of
+expand({ '__aliases__', _Meta, [H] }, Aliases) when H /= 'Elixir' ->
+  case expand_one(H, Aliases) of
     false -> [H];
     Atom  -> Atom
   end;
 
-do_expand({ '__aliases__', _Meta, [H|T] }, Aliases) when is_atom(H) ->
+expand({ '__aliases__', _Meta, [H|T] }, Aliases) when is_atom(H) ->
   case H of
     'Elixir' ->
       concat(T);
     _ ->
-      case do_expand_one(H, Aliases) of
+      case expand_one(H, Aliases) of
         false -> [H|T];
         Atom  -> concat([Atom|T])
       end
   end;
 
-do_expand({ '__aliases__', _Meta, List }, _Aliases) ->
+expand({ '__aliases__', _Meta, List }, _Aliases) ->
   List.
 
-do_expand_one(H, Aliases) ->
+expand_one(H, Aliases) ->
   Lookup = list_to_atom("Elixir-" ++ atom_to_list(H)),
   case lookup(Lookup, Aliases) of
     Lookup -> false;
