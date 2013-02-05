@@ -560,7 +560,6 @@ defmodule Kernel.Typespec do
 
   # Handle funs
 
-  defp typespec
   defp typespec({:->, meta, [{[{:fun, _, arguments}], return}]}, vars, caller) when is_list(arguments) do
     typespec({:->, meta, [{arguments, return}]}, vars, caller)
   end
