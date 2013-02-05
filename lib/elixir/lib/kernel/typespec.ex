@@ -559,6 +559,8 @@ defmodule Kernel.Typespec do
   end
 
   # Handle funs
+
+  defp typespec
   defp typespec({:->, meta, [{[{:fun, _, arguments}], return}]}, vars, caller) when is_list(arguments) do
     typespec({:->, meta, [{arguments, return}]}, vars, caller)
   end
@@ -606,6 +608,12 @@ defmodule Kernel.Typespec do
   defp typespec({:{}, meta, t}, vars, caller) when is_list(t) do
     args = lc e inlist t, do: typespec(e, vars, caller)
     { :type, line(meta), :tuple, args }
+  end
+
+  # Handle blocks
+
+  defp typespec({:__block__, _meta, [arg]}, vars, caller) do
+    typespec(arg, vars, caller)
   end
 
   # Handle variables or local calls

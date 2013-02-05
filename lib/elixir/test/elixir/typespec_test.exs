@@ -318,6 +318,19 @@ defmodule Typespec.TypeTest do
     ] = Enum.sort(specs)
   end
 
+  test "block handling" do
+    spec =
+    test_module do
+      spec = @spec foo((() -> [ integer ])) :: integer
+      def foo(_), do: 1
+      spec
+    end
+    assert {{:foo,1},
+            {:type,_,:fun,[{:type,_,:product,[
+                     {:type,_,:fun,[{:type,_,:product,[]},{:type,_,:list,[{:type,_,:integer,[]}]}]}]},
+                     {:type,_,:integer,[]}]}} = spec
+  end
+
   # Conversion to AST
 
   test "type_to_ast" do
