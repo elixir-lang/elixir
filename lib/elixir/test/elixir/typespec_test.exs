@@ -319,8 +319,7 @@ defmodule Typespec.TypeTest do
   end
 
   test "block handling" do
-    spec =
-    test_module do
+    spec = test_module do
       spec = @spec foo((() -> [ integer ])) :: integer
       def foo(_), do: 1
       spec
