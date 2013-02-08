@@ -74,9 +74,18 @@ defmodule Node do
 
   See http://www.erlang.org/doc/man/erlang.html#disconnect_node-1 for more info.
   """
-  @spec disconnect(t) :: boolean | :ginored
+  @spec disconnect(t) :: boolean | :ignored
   def disconnect(node) do
     :erlang.disconnect_node(node)
+  end
+
+  @doc """
+  Establishes a connection to Node. Returns true if successful, false if not, and ignored if the local node is not alive.
+  See http://erlang.org/doc/man/net_kernel.html#connect_node-1 for more info.
+  """
+  @spec connect(t) :: boolean | :ignored
+  def connect(node) do
+    :net_kernel.connect_node(node)
   end
 
   @doc """
