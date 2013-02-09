@@ -80,7 +80,10 @@ defmodule Node do
   end
 
   @doc """
-  Establishes a connection to Node. Returns true if successful, false if not, and ignored if the local node is not alive.
+  Establishes a connection to Node. Returns true if successful,
+  false if not, and the atom `:ignored` if the local node is not
+  alive.
+
   See http://erlang.org/doc/man/net_kernel.html#connect_node-1 for more info.
   """
   @spec connect(t) :: boolean | :ignored

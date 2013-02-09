@@ -19,11 +19,10 @@ defmodule Process do
     :erlang.is_process_alive(pid)
   end
 
-  @doc """
-  Returns the current process.
-  """
-  @spec self :: pid
+  @doc false
   def self do
+    IO.puts "Process.self is deprecated, please use Kernel.self instead"
+    Exception.print_stacktrace
     :erlang.self()
   end
 

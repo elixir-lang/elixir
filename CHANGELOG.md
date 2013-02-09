@@ -11,6 +11,7 @@
 * deprecations
   * [Kernel] Tidy up and clean `quote` API
   * [Kernel] Old `:local.(args)` syntax is deprecated
+  * [Process] `Process.self` is deprecated in favor `Kernel.self`
 
 # v0.8.0 (2013-01-28)
 
