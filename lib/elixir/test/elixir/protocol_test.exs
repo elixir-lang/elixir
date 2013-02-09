@@ -116,7 +116,7 @@ defmodule ProtocolTest do
     assert_protocol_for(ProtocolTest.WithAll, Tuple, {Bar,2,3})
     assert_protocol_for(ProtocolTest.WithAll, BitString, "foo")
     assert_protocol_for(ProtocolTest.WithAll, BitString, <<1>>)
-    assert_protocol_for(ProtocolTest.WithAll, PID, Process.self)
+    assert_protocol_for(ProtocolTest.WithAll, PID, Kernel.self)
     assert_protocol_for(ProtocolTest.WithAll, Port, hd(:erlang.ports))
     assert_protocol_for(ProtocolTest.WithAll, Reference, make_ref)
   end
