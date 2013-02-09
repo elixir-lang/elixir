@@ -69,7 +69,7 @@ defmodule Kernel do
 
   ## Examples
 
-      process = Process.self
+      process = Kernel.self
       process <- { :ok, "Sending myself a message" }
 
   """
@@ -1023,8 +1023,8 @@ defmodule Kernel do
 
   ## Examples
 
-      current = Process.self
-      child   = spawn(fn -> current <- { Process.self, 1 + 2 } end)
+      current = Kernel.self
+      child   = spawn(fn -> current <- { Kernel.self, 1 + 2 } end)
 
       receive
         { ^child, 3 } -> IO.puts "Received 3 back"
@@ -1061,8 +1061,8 @@ defmodule Kernel do
 
   ## Examples
 
-      current = Process.self
-      child   = spawn_link(fn -> current <- { Process.self, 1 + 2 } end)
+      current = Kernel.self
+      child   = spawn_link(fn -> current <- { Kernel.self, 1 + 2 } end)
 
       receive
         { ^child, 3 } ->
