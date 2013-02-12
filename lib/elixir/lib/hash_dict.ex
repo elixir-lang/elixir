@@ -55,12 +55,6 @@ defmodule HashDict do
     root: @node_template
 
 
-  @typep ordered :: {HashDict, size :: non_neg_integer, [{key :: term, value :: term}]}
-  @typep trie :: {HashDict, size :: non_neg_integer, depth :: non_neg_integer,
-                            expand_on :: non_neg_integer, contract_on :: non_neg_integer,
-                            root :: tuple}
-  @opaque t :: ordered | trie
-
   import Bitwise
 
   # Let's inline common instructions
@@ -69,7 +63,7 @@ defmodule HashDict do
   @doc """
   Creates a new empty dict.
   """
-  @spec new :: t
+  @spec new :: Dict.t
   def new do
     ordered()
   end
@@ -83,7 +77,7 @@ defmodule HashDict do
       #=> HashDict[a: 1, b: 2]
 
   """
-  @spec new([{term :: term, value :: term}]) :: t
+  @spec new(list({key :: term, value :: term})) :: Dict.t
   def new(pairs) do
     Enum.reduce pairs, ordered(), fn { k, v }, dict ->
       put(dict, k, v)
@@ -100,7 +94,7 @@ defmodule HashDict do
       #=> HashDict[{ "a", "a" }, { "b", "b" }]
 
   """
-  @spec new(list, (term -> {key :: term, key :: term})) :: t
+  @spec new(list, (term -> {key :: term, value ::term})) :: Dict.t
   def new(list, transform) when is_function(transform) do
     Enum.reduce list, new(), fn i, dict ->
       { k, v } = transform.(i)
@@ -111,7 +105,6 @@ defmodule HashDict do
   @doc """
   Puts the given key and value in the dict.
   """
-  @spec put(t, key :: term, value :: term) :: t
   def put(dict, key, value) do
     { dict, _ } = dict_put(dict, key, { :put, value })
     dict
@@ -121,7 +114,6 @@ defmodule HashDict do
   Puts the given value under key in the dictionary
   only if one does not exist yet.
   """
-  @spec put_new(t, key :: term, value :: term) :: t
   def put_new(dict, key, value) do
     update(dict, key, value, fn(v) -> v end)
   end
@@ -131,7 +123,6 @@ defmodule HashDict do
   to the given function. Raises if the key does
   not exist in the dictionary.
   """
-  @spec update(t, key :: term, (term -> term)) :: t
   def update(dict, key, fun) when is_function(fun, 1) do
     case dict_put(dict, key, { :update, nil, fun }) do
       { dict, 0 } ->
@@ -146,7 +137,6 @@ defmodule HashDict do
   to the given function. Adds initial value if
   the key does not exist in the dicionary.
   """
-  @spec update(t, key :: term, initial :: term, (term -> term)) :: t
   def update(dict, key, initial, fun) when is_function(fun, 1) do
     { dict, _ } = dict_put(dict, key, { :update, initial, fun })
     dict
@@ -155,8 +145,6 @@ defmodule HashDict do
   @doc """
   Gets the value under key from the dict.
   """
-  @spec get(t, key :: term) :: term
-  @spec get(t, key :: term, default :: term) :: term
   def get(dict, key, default // nil) do
     case dict_get(dict, key) do
       { ^key, value } -> value
@@ -168,7 +156,6 @@ defmodule HashDict do
   Gets the value under key from the dict,
   raises KeyError if such key does not exist.
   """
-  @spec get!(t, key :: term) :: term | no_return
   def get!(dict, key) when is_tuple(dict) do
     case dict_get(dict, key) do
       { ^key, value } -> value
@@ -179,7 +166,6 @@ defmodule HashDict do
   @doc """
   Checks if the dict has the given key.
   """
-  @spec has_key?(t, key :: term) :: boolean
   def has_key?(dict, key) do
     match? { ^key, _ }, dict_get(dict, key)
   end
@@ -187,7 +173,6 @@ defmodule HashDict do
   @doc """
   Deletes a value from the dict.
   """
-  @spec delete(t, key :: term) :: t
   def delete(ordered(bucket: bucket, size: size) = dict, key) do
     case bucket_delete(bucket, key) do
       { _, 0 } ->
@@ -220,7 +205,6 @@ defmodule HashDict do
   @doc """
   Returns the dict size.
   """
-  @spec size(t) :: non_neg_integer
   def size(dict) do
     elem(dict, 1)
   end
@@ -228,7 +212,6 @@ defmodule HashDict do
   @doc """
   Returns an empty dict.
   """
-  @spec empty(t) :: t
   def empty(_) do
     ordered()
   end
@@ -236,7 +219,6 @@ defmodule HashDict do
   @doc """
   Converts the dict to a list.
   """
-  @spec to_list(t) :: list({key :: term, value :: term})
   def to_list(ordered(bucket: bucket)) do
     bucket
   end
@@ -248,7 +230,6 @@ defmodule HashDict do
   @doc """
   Get all keys in the dict.
   """
-  @spec keys(t) :: list(key :: term)
   def keys(dict) do
     dict_fold(dict, [], fn { k, _ }, acc -> [k|acc] end)
   end
@@ -256,7 +237,6 @@ defmodule HashDict do
   @doc """
   Get all values in the dict.
   """
-  @spec values(t) :: list(values :: term)
   def values(dict) do
     dict_fold(dict, [], fn { _, v }, acc -> [v|acc] end)
   end
@@ -264,8 +244,6 @@ defmodule HashDict do
   @doc """
   Merges two dictionaries.
   """
-  @spec merge(t, t | Dict.t) :: t
-  @spec merge(t, t | Dict.t, ((key :: term, value1 :: term, value2 :: term) -> value :: term)) :: t
   def merge(dict, enum, callback // fn(_k, _v1, v2) -> v2 end)
 
   def merge(dict1, dict2, callback) when is_record(dict1, HashDict) and is_record(dict2, HashDict) and elem(dict1, 1) < elem(dict2, 1) do
