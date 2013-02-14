@@ -131,7 +131,7 @@ defmodule Mix.Project do
     [ compile_path: "ebin",
       elixirc_exts: [:ex],
       default_env: [test: :test],
-      default_task: "compile",
+      default_task: "run",
       deps_path: "deps",
       erlc_paths: ["src"],
       lockfile: "mix.lock",

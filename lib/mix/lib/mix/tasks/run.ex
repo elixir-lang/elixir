@@ -39,8 +39,7 @@ defmodule Mix.Tasks.Run do
     end
 
     Mix.Task.run Mix.project[:prepare_task], args
-    Code.eval Enum.join(head, " ")
-
+    if head != [], do: Code.eval Enum.join(head, " ")
     if opts[:no_halt], do: :timer.sleep(:infinity)
   end
 
