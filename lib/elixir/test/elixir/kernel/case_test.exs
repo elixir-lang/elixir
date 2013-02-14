@@ -18,6 +18,18 @@ defmodule Kernel.CaseTest do
     assert vars_case(-1, -1) == { 0, 1 }
   end
 
+  test :nested_vars_match do
+    x = { :error, { :ok, :done } }
+    assert (case x do
+      { :ok, right } ->
+        right
+      { _left, right } ->
+        case right do
+          { :ok, right }  -> right
+        end
+    end) == :done
+  end
+
   test :match_with_in do
     assert(case 3 do
       x in [1,2,3] ->
