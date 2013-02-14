@@ -113,7 +113,7 @@ do_match(Meta, DecoupledClauses, S) ->
   % Now get all the variables defined inside each clause
   CV = lists:reverse(ReverseCV),
   AllVars = lists:foldl(fun(KV, Acc) ->
-    orddict:merge(fun(_, _, V) -> V end, KV, Acc)
+    elixir_scope:merge_clause_vars(Acc, KV)
   end, orddict:new(), CV),
 
   % Create a new scope that contains a list of all variables
