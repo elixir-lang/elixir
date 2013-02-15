@@ -105,7 +105,7 @@ defmodule Kernel do
   defmacro left -- right
 
   @doc """
-  Boolean or. Arguments needs to necessarily be booleans.
+  Boolean or. Arguments must be booleans.
   Allowed in guard clauses.
 
   ## Examples
@@ -117,7 +117,7 @@ defmodule Kernel do
   defmacro left or right
 
   @doc """
-  Boolean and. Arguments needs to necessarily be booleans.
+  Boolean and. Arguments must be booleans.
   Allowed in guard clauses.
 
   ## Examples
@@ -129,7 +129,7 @@ defmodule Kernel do
   defmacro left and right
 
   @doc """
-  Boolean xor. Arguments needs to necessarily be booleans.
+  Boolean xor. Arguments must be booleans.
   Allowed in guard clauses.
 
   ## Examples
@@ -141,7 +141,7 @@ defmodule Kernel do
   defmacro left xor right
 
   @doc """
-  Boolean not. Argument needs to necessarily be a boolean.
+  Boolean not. Argument must be a boolean.
   Allowed in guard clauses.
 
   ## Examples
@@ -153,7 +153,7 @@ defmodule Kernel do
   defmacro not arg
 
   @doc """
-  It receives any argument and returns true if it is false
+  Receives any argument and returns true if it is false
   or nil. Returns false otherwise. Not allowed in guard
   clauses.
 
@@ -168,8 +168,8 @@ defmodule Kernel do
   defmacro !arg
 
   @doc """
-  Return true if left is less than right.
-  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+  Returns true if left is less than right.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
 
@@ -180,8 +180,8 @@ defmodule Kernel do
   defmacro left < right
 
   @doc """
-  Return true if left is more than right.
-  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+  Returns true if left is more than right.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
 
@@ -192,8 +192,8 @@ defmodule Kernel do
   defmacro left > right
 
   @doc """
-  Return true if left is less than or equal to right.
-  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+  Returns true if left is less than or equal to right.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
 
@@ -204,8 +204,8 @@ defmodule Kernel do
   defmacro left <= right
 
   @doc """
-  Return true if left is more than or equal to right.
-  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+  Returns true if left is more than or equal to right.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
 
@@ -221,7 +221,7 @@ defmodule Kernel do
   This operator considers 1 and 1.0 to be equal. For strict
   comparison, use `===` instead.
 
-  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
 
@@ -240,7 +240,7 @@ defmodule Kernel do
   This operator considers 1 and 1.0 to be equal. For strict
   comparison, use `!==` instead.
 
-  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
 
@@ -254,7 +254,7 @@ defmodule Kernel do
 
   @doc """
   Returns true if the two items are strictly equal.
-  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
 
@@ -269,7 +269,7 @@ defmodule Kernel do
 
   @doc """
   Returns true if the two items are strictly not equal.
-  As Erlang, Elixir can compare any term. Allowed in guard clauses.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
 
@@ -411,7 +411,7 @@ defmodule Kernel do
   end
 
   @doc """
-  As binary_to_list/1, but returns a list of integers corresponding to the bytes
+  Like binary_to_list/1, but returns a list of integers corresponding to the bytes
   from position `start` to position `stop` in `binary`. Positions in the binary
   are numbered starting from 1.
   """
@@ -1092,7 +1092,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns a binary data which is the result of encoding the given term
+  Returns a binary which is the result of encoding the given term
   according to the Erlang external term format.
 
   This can be used for a variety of purposes, for example, writing a term
@@ -1517,7 +1517,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Check if the given structure is an exception.
+  Checks if the given structure is an exception.
 
   ## Examples
 
@@ -1542,7 +1542,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Check if the given structure is a record. It is basically
+  Checks if the given structure is a record. It is basically
   a convenient macro that checks the structure is a tuple and
   the first element matches the given kind.
 
@@ -1569,7 +1569,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Check if the given argument is a record.
+  Checks if the given argument is a record.
   """
   defmacro is_record(thing) do
     case __CALLER__.in_guard? do
@@ -1586,7 +1586,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Check if the given argument is a regex.
+  Checks if the given argument is a regex.
   """
   defmacro is_regex(thing) do
     quote do
@@ -1595,7 +1595,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Check if the given argument is a range.
+  Checks if the given argument is a range.
   """
   defmacro is_range(thing) do
     quote do
@@ -1674,7 +1674,7 @@ defmodule Kernel do
       end
 
   If the protocol is invoked with a data type that is not an Atom,
-  nor Tuple, nor List, nor BitString, Elixir will now dispatch to
+  a Tuple, a List, or a BitString, Elixir will now dispatch to
   Any. That said, the default behavior could be implemented as:
 
       defimpl Blank, for: Any do
@@ -1701,8 +1701,8 @@ defmodule Kernel do
   In the example above, we have implemented `blank?` for
   `RedBlack.Tree` that simply delegates to `RedBlack.empty?` passing
   the tree as argument. This implementation doesn't need to be defined
-  inside the `RedBlack` tree or inside the record, but anywhere in
-  the code.
+  inside the `RedBlack` tree or inside the record; it can be defined 
+  anywhere in the code.
 
   Finally, since records are simply tuples, one can add a default
   protocol implementation to any record by defining a default
@@ -1752,8 +1752,8 @@ defmodule Kernel do
 
   ## Examples
 
-  For example, in other to write tests using the ExUnit framework,
-  a developers should use the `ExUnit.Case` module:
+  For example, in order to write tests using the ExUnit framework,
+  a developer should use the `ExUnit.Case` module:
 
       defmodule AssertionTest do
         use ExUnit.Case, async: true
@@ -1811,9 +1811,9 @@ defmodule Kernel do
       inspect(:foo)
       #=> ":foo"
 
-  Notice the inspect protocol does not necessarily return a valid Elixir
-  terms representation. In such cases, the inspected result must start
-  with `#`. For example, inspecting a function will return:
+  Note that the inspect protocol does not necessarily return a valid
+  representation of an Elixir term. In such cases, the inspected result must
+  start with `#`. For example, inspecting a function will return:
 
       inspect &1 + &2
       #=> #Function<...>
@@ -2386,11 +2386,10 @@ defmodule Kernel do
   end
 
   @doc """
-  Allows you to destructure two lists, assigning each
-  term in the right to the left. Differently from pattern
-  matching via `=`, if the sizes of the left and right
-  lists don't match,, structuring simply stops instead
-  of raising an error.
+  Allows you to destructure two lists, assigning each term in the right to the
+  matching term in the left. Unlike pattern matching via `=`, if the sizes of
+  the left and right lists don't match, destructuring simply stops instead of
+  raising an error.
 
   ## Examples
 
@@ -2400,7 +2399,7 @@ defmodule Kernel do
       z #=> 3
 
   Notice in the example above, even though the right
-  size has more entries than the left, structuring works
+  size has more entries than the left, destructuring works
   fine. If the right size is smaller, the remaining items
   are simply assigned to nil:
 
