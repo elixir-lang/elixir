@@ -127,7 +127,7 @@ defmodule HashDict do
     case dict_put(dict, key, { :update, nil, fun }) do
       { dict, 0 } ->
         dict
-      { dict, 1 } ->
+      { _dict, 1 } ->
         raise KeyError, key: key
     end
   end
