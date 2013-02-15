@@ -75,7 +75,7 @@ defmodule Kernel.Typespec do
   Elixir discourages the use of type `string()` as it might be confused
   with binaries which are referred to as "strings" in Elixir (as opposed to
   character lists). In order to use the type that is called `string()` in Erlang,
-  one has to use the `char_list()` type which is a synonym to `string()`. If yu
+  one has to use the `char_list()` type which is a synonym for `string()`. If you
   use `string()`, you'll get a warning from the compiler.
 
   If you want to refer to the "string" type (the one operated by functions in the
