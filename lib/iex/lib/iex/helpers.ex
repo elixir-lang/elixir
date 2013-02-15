@@ -190,7 +190,7 @@ defmodule IEx.Helpers do
       if doc do
         IO.write "\n" <> print_signature(doc)
       else
-        IO.puts "No docs for #{inspect module}#.{function}/#{arity} have been found"
+        IO.puts "No docs for #{inspect module}.#{function}/#{arity} have been found"
       end
     else
       IO.puts "#{inspect module} was not compiled with docs"
