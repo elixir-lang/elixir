@@ -877,7 +877,7 @@ defmodule Kernel do
   It should not be used in application programs.
 
   ## Examples
-      list_to_pid('<0.41>') #=> <0.4.1>
+      list_to_pid('<0.4.1>') #=> #PID<0.4.1>
   """
   @spec list_to_pid(char_list) :: pid
   def list_to_pid(char_list) do
@@ -905,7 +905,7 @@ defmodule Kernel do
   ## Examples
 
       make_ref()
-      #=> #Ref<0.0.0.135>
+      #=> #Reference<0.0.0.135>
 
   """
   @spec make_ref() :: reference
@@ -955,7 +955,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the node where the given argmuent is located.
+  Returns the node where the given argument is located.
   The argument can be a pid, a reference, or a port.
   If the local node is not alive, nonode@nohost is returned.
 
@@ -1008,7 +1008,7 @@ defmodule Kernel do
 
   @doc """
   Returns the size of the given argument, which must be a tuple
-  or a binary. If possible, please use tuple_size or binary_size.
+  or a binary. If possible, please use `tuple_size` or `binary_size`.
   """
   @spec size(tuple|binary) :: non_neg_integer
   def size(arg) do
@@ -1026,7 +1026,7 @@ defmodule Kernel do
       current = Kernel.self
       child   = spawn(fn -> current <- { Kernel.self, 1 + 2 } end)
 
-      receive
+      receive do
         { ^child, 3 } -> IO.puts "Received 3 back"
       end
 
@@ -1064,9 +1064,8 @@ defmodule Kernel do
       current = Kernel.self
       child   = spawn_link(fn -> current <- { Kernel.self, 1 + 2 } end)
 
-      receive
-        { ^child, 3 } ->
-          IO.puts "Received 3 back"
+      receive do
+        { ^child, 3 } -> IO.puts "Received 3 back"
       end
 
   """
@@ -1108,8 +1107,8 @@ defmodule Kernel do
   @doc """
   The same as `term_to_binary/1` but also supports two options:
 
-  * compressed: the level of compression to be used from 0 to 9;
-  * minor_version: used to control the details of encoding. Can be 0 or 1,
+  * `compressed`: the level of compression to be used from 0 to 9;
+  * `minor_version`: used to control the details of encoding. Can be 0 or 1,
     please read http://www.erlang.org/doc/man/erlang.html#term_to_binary-2
     for more details
 
@@ -1136,7 +1135,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns an integer by the truncating the given number.
+  Returns an integer by truncating the given number.
   Allowed in guard clauses.
 
   ## Examples
@@ -2003,7 +2002,7 @@ defmodule Kernel do
         x * 2
       end
 
-  Not only the example is shorter, it solves ambiguity issues. Since
+  Not only is the example shorter, it solves ambiguity issues. Since
   `do/end` always matches the furthest call, if we used the `function`
   macro as below:
 
@@ -2034,7 +2033,7 @@ defmodule Kernel do
   The `function` macro can also be used to retrieve local or remote
   functions:
 
-      f = function(:is_atom, 2)
+      f = function(:is_atom, 1)
       f.(:foo) #=> true
 
       f = function(List, :flatten, 1)
