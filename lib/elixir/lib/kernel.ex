@@ -466,7 +466,7 @@ defmodule Kernel do
 
   ## Examples
 
-      bit_size(<<433|16,3|3>>) #=> 19
+      bit_size(<<433::16,3::3>>) #=> 19
       bit_size(<<1,2,3>>) #=> 24
 
   """
@@ -494,7 +494,7 @@ defmodule Kernel do
 
   ## Examples
 
-      byte_size(<<433|16,3|3>>) #=> 3
+      byte_size(<<433::16,3::3>>) #=> 3
       byte_size(<<1,2,3>>) #=> 3
 
   """
@@ -810,10 +810,10 @@ defmodule Kernel do
 
       bin1 = <<1,2,3>>
       bin2 = <<4,5>>
-      bin3 = <<6,7|4>>
+      bin3 = <<6,7::4>>
 
       list_to_bitstring([bin1,1,[2,3,bin2],4|bin3])
-      #=> <<1,2,3,1,2,3,4,5,4,6,7|4>>
+      #=> <<1,2,3,1,2,3,4,5,4,6,7::size(4)>>
 
   """
   @spec list_to_bitstring(maybe_improper_list(char | binary | iolist | bitstring, binary | bitstring | [])) :: bitstring
