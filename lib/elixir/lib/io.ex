@@ -127,9 +127,21 @@ defmodule IO do
 
   @doc """
   Inspects and writes the given argument to the device
-  followed by a new line. Returns the item given.
+  followed by a new line. A set of options can be given.
+
+  ## Examples
+
+      IO.inspect Process.list
+
   """
-  def inspect(device // group_leader(), item, opts // []) do
+  def inspect(item, opts // []) do
+    inspect group_leader(), item, opts
+  end
+
+  @doc """
+  Inspects the item with options using the given device.
+  """
+  def inspect(device, item, opts) do
     puts device, Binary.Inspect.inspect(item, opts)
     item
   end
