@@ -67,15 +67,6 @@ defmodule Mix.CLI do
     run_task "help", []
   end
 
-  defp help_argument?(s) do
-    if s do
-      String.downcase(s) in ["--help", "-h", "-help"]
-    else
-      false
-    end
-  end
-
-  defp help?(args) do
-    help_argument?(Enum.first(args))
-  end
+  defp help?([first_arg|_]) when first_arg in ["--help", "-h", "-help"], do: true
+  defp help?(_), do: false
 end
