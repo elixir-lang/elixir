@@ -172,6 +172,9 @@ raise(Line, File, Kind, Message) when is_integer(Line) ->
   Exception = Kind:new([{description, Message}, {file, iolist_to_binary(File)}, {line, Line}]),
   erlang:raise(error, Exception, Stacktrace).
 
+file_format(0, File, Message) ->
+  io_lib:format("~ts: ~ts~n", [File, Message]);
+
 file_format(Line, File, Message) ->
   io_lib:format("~ts:~w: ~ts~n", [File, Line, Message]).
 

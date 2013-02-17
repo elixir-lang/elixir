@@ -2,6 +2,7 @@
   * [IO] Add `IO.ANSI` to make it easy to write ANSI escape codes
   * [Kernel] Better support for Unicode lists
   * [Kernel] Reduce variables footprint in `case`/`receive` clauses
+  * [Kernel] Disable native compilation when on_load attributes is present to work around an Erlang bug
   * [Macro] `Macro.expand` also considers macros from the current `__ENV__` module
   * [Mix] Improve support for compilation of `.erl` files
   * [Mix] Add support for compilation of `.yrl` and `.xrl` files

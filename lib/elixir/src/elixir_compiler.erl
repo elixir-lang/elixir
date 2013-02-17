@@ -1,6 +1,6 @@
 -module(elixir_compiler).
 -export([get_opts/0, get_opt/1, get_opt/2, string/2, file/1, file_to_path/2]).
--export([core/0, module/3, eval_forms/4]).
+-export([core/0, module/3, eval_forms/4, format_error/1]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
@@ -89,11 +89,17 @@ module(Forms, S, Callback) ->
   end,
   module(Forms, S#elixir_scope.file, Options, false, Callback).
 
-module(Forms, File, Options, Bootstrap, Callback) when
-    is_binary(File), is_list(Forms), is_list(Options), is_boolean(Bootstrap), is_function(Callback) ->
+module(Forms, File, RawOptions, Bootstrap, Callback) when
+    is_binary(File), is_list(Forms), is_list(RawOptions), is_boolean(Bootstrap), is_function(Callback) ->
+  { Options, SkipNative } = compile_opts(Forms, RawOptions),
   Listname = binary_to_list(File),
-  case compile:forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
-    {ok, ModuleName, Binary, Warnings} ->
+
+  case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
+    {ok, ModuleName, Binary, RawWarnings} ->
+      Warnings = case SkipNative of
+        true  -> [{?MODULE,[{0,?MODULE,{skip_native,ModuleName}}]}|RawWarnings];
+        false -> RawWarnings
+      end,
       format_warnings(Bootstrap, File, Warnings),
       code:load_binary(ModuleName, Listname, Binary),
       Callback(ModuleName, Binary);
@@ -111,6 +117,38 @@ core() ->
   [core_file(File) || File <- core_main()].
 
 %% HELPERS
+
+compile_opts(Forms, Options) ->
+  EnvOptions = env_default_opts(),
+  SkipNative = lists:member(native, EnvOptions) and contains_on_load(Forms),
+  case SkipNative or lists:member([{native,false}], Options) of
+    true  -> { Options ++ lists:delete(native, EnvOptions), SkipNative };
+    false -> { Options ++ EnvOptions, SkipNative }
+  end.
+
+env_default_opts() ->
+  Key = "ERL_COMPILER_OPTIONS",
+  case os:getenv(Key) of
+    false -> [];
+    Str when is_list(Str) ->
+      case erl_scan:string(Str) of
+        {ok,Tokens,_} ->
+          case erl_parse:parse_term(Tokens ++ [{dot, 1}]) of
+            {ok,List} when is_list(List) -> List;
+            {ok,Term} -> [Term];
+            {error,_Reason} ->
+              io:format("Ignoring bad term in ~s\n", [Key]),
+              []
+          end;
+        {error, {_,_,_Reason}, _} ->
+          io:format("Ignoring bad term in ~s\n", [Key]),
+          []
+      end
+  end.
+
+contains_on_load([{ attribute, _, on_load, _ }|_]) -> true;
+contains_on_load([_|T]) -> contains_on_load(T);
+contains_on_load([]) -> false.
 
 no_auto_import() ->
   Bifs = [{ Name, Arity } || { Name, Arity } <- erlang:module_info(exports), erl_internal:bif(Name, Arity)],
@@ -196,8 +234,12 @@ core_main() ->
 
 %% ERROR HANDLING
 
+format_error({ skip_native, Module }) ->
+  io_lib:format("skipping native compilation for ~s because it contains on_load attribute",
+    [elixir_errors:inspect(Module)]).
+
 format_errors(_File, []) ->
-  exit({nocompile, "compilation failed but no error was raised"});
+  exit({ nocompile, "compilation failed but no error was raised" });
 
 format_errors(File, Errors) ->
   lists:foreach(fun ({_, Each}) ->
