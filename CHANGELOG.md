@@ -11,6 +11,9 @@
 * bug fix
   * [Mix] Allow Mix projects to be generated with just one letter
 
+* backwards incompatible changes
+  * [Kernel] `before_compile` and `after_compile` callbacks now receive the environment as first argument instead of the module
+
 * deprecations
   * [Kernel] Tidy up and clean `quote` API
   * [Kernel] Old `:local.(args)` syntax is deprecated

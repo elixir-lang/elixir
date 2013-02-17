@@ -155,7 +155,7 @@ expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, Module, Function, 
 %% Expansion helpers
 
 expand_macro_fun(Meta, Fun, Receiver, Name, Args, Module, Requires, SEnv) ->
-  case (Receiver == Module) or is_element(Receiver, Requires) of
+  case (Receiver == Module) or is_element(Receiver, Requires) or skip_requires(SEnv) of
     true  -> ok;
     false ->
       Tuple = { unrequired_module, { Receiver, Name, length(Args), Requires } },
@@ -191,6 +191,9 @@ translate_expansion(Meta, Tree, S) ->
     macro_aliases=S#elixir_scope.macro_aliases } }.
 
 %% Helpers
+
+skip_requires(#elixir_scope{check_requires=false}) -> true;
+skip_requires(_) -> false.
 
 find_dispatch(Tuple, [{ Name, Values }|T]) ->
   case is_element(Tuple, Values) of

@@ -40,8 +40,8 @@ defmodule Mix.Project do
 
   # Invoked after each Mix.Project is compiled.
   @doc false
-  def __after_compile__(module, _binary) do
-    push module
+  def __after_compile__(env, _binary) do
+    push env.module
   end
 
   # Push a project into the project stack. Only

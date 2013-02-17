@@ -1,5 +1,6 @@
 -module(elixir_module).
--export([translate/4, compile/5, data_table/1, eval_quoted/4, format_error/1]).
+-export([translate/4, compile/5, data_table/1, eval_quoted/4,
+         format_error/1, eval_callbacks/5]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
@@ -133,7 +134,8 @@ eval_form(Line, Module, Block, Vars, RawS) ->
   S = scope_for_eval(Module, RawS),
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Vars, S),
   elixir_def_overridable:store_pending(Module),
-  eval_callbacks(Line, Module, before_compile, [Module], NewS),
+  Env = elixir_scope:to_ex_env({ Line, S }),
+  eval_callbacks(Line, Module, before_compile, [Env], NewS),
   elixir_def_overridable:store_pending(Module),
   Value.
 
@@ -238,7 +240,8 @@ spec_for_macro(Else) -> Else.
 load_form(Line, Forms, S) ->
   elixir_compiler:module(Forms, S, fun(Module, Binary) ->
     EvalS = scope_for_eval(Module, S),
-    eval_callbacks(Line, Module, after_compile, [Module, Binary], EvalS),
+    Env = elixir_scope:to_ex_env({ Line, EvalS }),
+    eval_callbacks(Line, Module, after_compile, [Env, Binary], EvalS),
 
     case get(elixir_compiled) of
       Current when is_list(Current) ->
@@ -321,20 +324,16 @@ else_clause() ->
 % HELPERS
 
 eval_callbacks(Line, Module, Name, Args, RawS) ->
-  S         = RawS#elixir_scope{check_clauses=false},
+  S         = RawS#elixir_scope{check_clauses=false,check_requires=false},
   Binding   = binding_for_eval(Module, []),
   Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
-  Requires  = S#elixir_scope.requires,
   Meta      = [{line,Line}],
 
   lists:foreach(fun({M,F}) ->
-    Expr  = { { '.', Meta, [M,F] }, Meta, Args },
-    Scope = case ordsets:is_element(M, Requires) of
-      true  -> S;
-      false -> S#elixir_scope{requires=ordsets:add_element(M, Requires)}
-    end,
-
-    { Tree, _ } = elixir_translator:translate_each(Expr, Scope),
+    { Tree, _ } = elixir_dispatch:dispatch_require(Meta, M, F, Args, S, fun() ->
+      apply(M, F, Args),
+      { { nil, 0 }, S }
+    end),
 
     try
       erl_eval:exprs([Tree], Binding)

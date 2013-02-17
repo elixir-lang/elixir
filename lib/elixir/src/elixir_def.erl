@@ -110,8 +110,8 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO)
       ok;
     _ ->
       Env = elixir_scope:to_ex_env({ Line, S }),
-      Callbacks = 'Elixir.Module':get_attribute(Module, on_definition),
-      [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || { Mod, Fun } <- Callbacks]
+      elixir_module:eval_callbacks(Line, Module, on_definition,
+        [Env, Kind, Name, Args, Guards, Expr], S)
   end.
 
 %% Retrieve @file or fallback to default
