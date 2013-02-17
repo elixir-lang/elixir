@@ -23,11 +23,19 @@ defmodule OptionParser do
 
   ## Switches
 
-  Extra information about switches can be given as argument too. This is useful
-  in order to say a switch must behave as a boolean, list, etc. The following
-  types are supported:
+  Extra information about switches can be given as argument too.
+  This is useful in order to say a switch must behave as a boolean
+  or if duplicated switches should be kept, overriden or accumulated.
 
-  * `:boolean` - They never consume the next value unless it is true/false;
+  The following types are supported:
+
+  * `:boolean` - Mark the given switch as boolean. Boolean switches
+                 never consumes the following value unless it is
+                 true or false;
+
+  The following extra options are supported:
+
+  * `:keep` - Keep duplicated items in the list instead of overriding;
 
   Examples:
 
@@ -80,16 +88,18 @@ defmodule OptionParser do
 
   defp parse(["-" <> option|t], aliases, switches, dict, args, all) do
     { option, value } = normalize_option(option, aliases)
+    kind = switches[option]
 
     if value == nil do
       { value, t } =
-        case switch_type(switches, option) do
-          :boolean -> boolean_from_tail(t)
-          _        -> value_from_tail(t)
+        if is_switch_a? :boolean, kind do
+          boolean_from_tail(t)
+        else
+          value_from_tail(t)
         end
     end
 
-    dict = store_option dict, option, value
+    dict = store_option dict, option, value, kind
     parse(t, aliases, switches, dict, args, all)
   end
 
@@ -112,16 +122,22 @@ defmodule OptionParser do
   defp value_from_tail([h|t]),            do: { h, t }
   defp value_from_tail([]),               do: { true, [] }
 
-  defp store_option(dict, option, value) when value in ["false", "true"] do
-    store_option(dict, option, binary_to_atom(value))
+  defp store_option(dict, option, value, switches) when value in ["true", "false"] do
+    store_option dict, option, binary_to_atom(value), switches
   end
 
-  defp store_option(dict, option, value) do
-    [{ option, value }|dict]
+  defp store_option(dict, option, value, kind) do
+    if is_switch_a? :keep, kind do
+      [{ option, value }|dict]
+    else
+      [{ option, value }|Keyword.delete(dict, option)]
+    end
   end
 
   defp reverse_dict(dict, switches) do
-    switches = lc { k, :boolean } inlist switches, not Keyword.has_key?(dict, k), do: { k, false }
+    switches = lc { k, v } inlist switches,
+                  is_switch_a?(:boolean, v),
+                  not Keyword.has_key?(dict, k), do: { k, false }
     Enum.reverse switches ++ dict
   end
 
@@ -150,7 +166,7 @@ defmodule OptionParser do
   defp is_no?("no-" <> _), do: true
   defp is_no?(_),          do: false
 
-  defp switch_type(switches, option) do
-    switches[option] || :default
-  end
+  defp is_switch_a?(kind, list) when is_list(list), do: List.member?(list, kind)
+  defp is_switch_a?(kind, kind), do: true
+  defp is_switch_a?(_, _),       do: false
 end

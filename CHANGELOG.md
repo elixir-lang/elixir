@@ -5,6 +5,7 @@
   * [Macro] `Macro.expand` also considers macros from the current `__ENV__` module
   * [Mix] Improve support for compilation of `.erl` files
   * [Mix] Add support for compilation of `.yrl` and `.xrl` files
+  * [OptionParser] Switches are now overridden by default but can be kept in order if chosen
   * [Typespec] Better error reporting for invalid typespecs
 
 * bug fix

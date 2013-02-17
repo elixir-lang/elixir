@@ -25,7 +25,8 @@ defmodule Mix.Tasks.Run do
   """
   def run(args) do
     { opts, head } = OptionParser.parse_head(args,
-      aliases: [r: :require, pr: :parallel_require])
+      aliases: [r: :require, pr: :parallel_require],
+      switches: [parallel_require: :keep, require: :keep])
 
     Enum.each opts, fn({ key, value }) ->
       case key do

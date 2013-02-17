@@ -71,11 +71,18 @@ defmodule OptionParserTest do
   end
 
   test "parses more than one key/value options" do
-    assert OptionParser.parse(["--source", "from_docs/", "--docs", "false"]) == { [source: "from_docs/", docs: false], [] }
+    assert OptionParser.parse(["--source", "from_docs/", "--docs", "false"]) ==
+      { [source: "from_docs/", docs: false], [] }
   end
 
-  test "accumulates options accumulators" do
-    assert OptionParser.parse(["--require", "foo", "--require", "bar", "baz"]) == { [require: "foo", require: "bar"], ["baz"] }
+  test "overrides options by default" do
+    assert OptionParser.parse(["--require", "foo", "--require", "bar", "baz"]) ==
+      { [require: "bar"], ["baz"] }
+  end
+
+  test "keeps options on keep" do
+    assert OptionParser.parse(["--require", "foo", "--require", "bar", "baz"], switches: [require: :keep]) ==
+      { [require: "foo", require: "bar"], ["baz"] }
   end
 
   test "parses mixed options" do
