@@ -30,35 +30,20 @@ defmodule Mix.Tasks.Compile.Yecc do
         [erlc_paths: ["src", "other"]]
 
   * `:yecc_options` - compilation options that applies
-     to Yecc's compiler.
-     This options are setted:
-
-     {:scannerfile, file}
-     {:report, true}
-
-     There are many other available options here:
-     http://www.erlang.org/doc/man/yecc.html#file-1
+     to Yecc's compiler. There are many other available
+     options here: http://www.erlang.org/doc/man/yecc.html#file-1
 
   """
-
   def run(args) do
     { opts, _ } = OptionParser.parse(args, switches: [force: :boolean])
 
     project = Mix.project
     source_paths = project[:erlc_paths]
 
-    checkfun = if opts[:force] do
-        fn(_, _) -> true end
-      else
-        fn(f1, f2) ->
-          mtime = Utils.last_modified(f2)
-          Utils.check_mtime(mtime, [f1])
-        end
-      end
-
     files = lc source_path inlist source_paths do
-              Utils.check_files(source_path, :yrl, source_path, :erl, checkfun)
+              Erlang.extract_stale_pairs(source_path, :yrl, source_path, :erl, opts[:force])
             end |> List.flatten
+
     if files == [] do
       :noop
     else
@@ -67,12 +52,11 @@ defmodule Mix.Tasks.Compile.Yecc do
     end
   end
 
-  def compile_files(files, options) do
-    lc {input, output} inlist files do
-      Erlang.interpret_result(input, Yecc.file(Erlang.to_erl_file(input),
-                                               [{:parserfile, Erlang.to_erl_file(output)},
-                                                {:report, true} | options]))
+  defp compile_files(files, options) do
+    lc { input, output } inlist files do
+      options = options ++ [parserfile: Erlang.to_erl_file(output), report: true]
+      Erlang.interpret_result(input,
+        Yecc.file(Erlang.to_erl_file(input), options))
     end
   end
-
 end

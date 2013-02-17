@@ -1,9 +1,7 @@
 defmodule Mix.Tasks.Compile.Leex do
-
-  alias :compile, as: Compiler
   alias :leex, as: Leex
-  alias Mix.Utils
   alias Mix.Tasks.Compile.Erlang
+
   use Mix.Task
 
   @hidden true
@@ -30,35 +28,20 @@ defmodule Mix.Tasks.Compile.Leex do
         [erlc_paths: ["src", "other"]]
 
   * `:leex_options` - compilation options that applies
-     to Leex's compiler.
-     This options are setted:
-
-     :scannerfile
-     {:report, true}
-
-     There are many other available options here:
-     http://www.erlang.org/doc/man/leex.html#file-2
+     to Leex's compiler. There are many available options
+     here: http://www.erlang.org/doc/man/leex.html#file-2
 
   """
-
   def run(args) do
     { opts, _ } = OptionParser.parse(args, switches: [force: :boolean])
 
-    project = Mix.project
+    project      = Mix.project
     source_paths = project[:erlc_paths]
 
-    checkfun = if opts[:force] do
-        fn(_, _) -> true end
-      else
-        fn(f1, f2) ->
-          mtime = Utils.last_modified(f2)
-          Utils.check_mtime(mtime, [f1])
-        end
-      end
-
     files = lc source_path inlist source_paths do
-              Utils.check_files(source_path, :xrl, source_path, :erl, checkfun)
+              Erlang.extract_stale_pairs(source_path, :xrl, source_path, :erl, opts[:force])
             end |> List.flatten
+
     if files == [] do
       :noop
     else
@@ -67,13 +50,12 @@ defmodule Mix.Tasks.Compile.Leex do
     end
   end
 
-  def compile_files(files, options) do
+  defp compile_files(files, options) do
     lc {input, output} inlist files do
-      Erlang.interpret_result(input, Leex.file(Erlang.to_erl_file(input),
-                                               [{:scannerfile, Erlang.to_erl_file(output)},
-                                                {:report, true} | options]))
+      options = options ++ [scannerfile: Erlang.to_erl_file(output), report: true]
+      Erlang.interpret_result(input,
+        Leex.file(Erlang.to_erl_file(input), options))
     end
   end
-
 end
 

@@ -57,7 +57,8 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Returns true if any of the sources are stale compared to the given target.
+  Returns true if any of the sources are stale
+  compared to the given target.
   """
   def stale?(sources, targets) do
     extract_stale(sources, targets) != []
@@ -75,37 +76,15 @@ defmodule Mix.Utils do
     end
   end
 
-  def source_mtime({ _, { { _, _, _ }, { _, _, _ } } = source }) do
+  defp source_mtime({ _, { { _, _, _ }, { _, _, _ } } = source }) do
     source
   end
 
-  def source_mtime(source) do
+  defp source_mtime(source) do
     File.stat!(source).mtime
   end
 
-  def check_files(dir1, ext1, dir2, ext2, func // fn _, _ -> true end) do
-    files = extract_files([dir1], List.wrap(ext1))
-    List.foldl(files, [],
-      fn(file, acc) ->
-        compiled_file = Path.rootname(file) |> Path.basename
-        compiled_file = Path.join([dir2, compiled_file <> "." <> to_binary(ext2)])
-        if File.regular?(compiled_file) != true do
-          [{file, compiled_file} | acc]
-        else
-          if func.(file, compiled_file) do
-            [{file, compiled_file} | acc]
-          else
-            acc
-          end
-        end
-      end)
-  end
-
-  def check_mtime(filemtime, files) do
-    Enum.any?(files, fn(file) -> last_modified(file) >= filemtime end)
-  end
-
-  def last_modified(path) do
+  defp last_modified(path) do
     case File.stat(path) do
       { :ok, File.Stat[mtime: mtime] } -> mtime
       { :error, _ } -> { { 1970, 1, 1 }, { 0, 0, 0 } }
@@ -113,8 +92,8 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Executes a function but preserves the given path
-  mtime properties.
+  Executes a function but preserves the given path mtime
+  properties.
   """
   def preserving_mtime(path, fun) do
     previous = last_modified(path)
@@ -127,16 +106,13 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Extract files from a list of paths or from a wildcard.
+  Extract files from a list of paths.
 
-  If the list of paths contains a directory, the directory
-  is expanded according to the given pattern.
-
-  It ignores files which start with "."
+  In case any of the paths is a directory, the directory is looped
+  recursively searching for the given extensions or the given pattern.
+  When looking up directories, files starting with "." are ignored.
   """
-  def extract_files(paths, _pattern) when is_binary(paths) do
-    Path.wildcard(paths) |> exclude_files
-  end
+  def extract_files(paths, exts_or_pattern)
 
   def extract_files(paths, exts) when is_list(exts) do
     extract_files(paths, "*.{#{Enum.join(exts, ",")}}")
@@ -275,7 +251,7 @@ defmodule Mix.Utils do
   """
   def relative_to_cwd(path) do
     case File.cwd do
-      { :ok, base } -> String.replace(path, base <> "/", "")
+      { :ok, base } -> Path.relative_to(path, base)
       _ -> path
     end
   end

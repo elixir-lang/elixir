@@ -129,17 +129,17 @@ defmodule Mix.Project do
 
   defp default_config do
     [ compile_path: "ebin",
-      elixirc_exts: [:ex],
       default_env: [test: :test],
       default_task: "run",
       deps_path: "deps",
-      erlc_paths: ["src"],
-      erlc_include_path: "include",
-      erlc_options: [:debug_info],
+      elixirc_exts: [:ex],
+      elixirc_paths: ["lib"],
+      elixirc_watch_exts: [:ex, :eex, :exs],
       lockfile: "mix.lock",
       prepare_task: "app.start",
-      elixirc_paths: ["lib"],
-      elixirc_watch_exts: [:ex, :eex, :exs] ]
+      erlc_paths: ["src"],
+      erlc_include_path: "include",
+      erlc_options: [:debug_info] ]
   end
 
   defp get_project_config(nil), do: []
