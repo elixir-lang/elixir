@@ -3,6 +3,8 @@
   * [Kernel] Better support for Unicode lists
   * [Kernel] Reduce variables footprint in `case`/`receive` clauses
   * [Macro] `Macro.expand` also considers macros from the current `__ENV__` module
+  * [Mix] Improve support for compilation of `.erl` files
+  * [Mix] Add support for compilation of `.yrl` and `.xrl` files
   * [Typespec] Better error reporting for invalid typespecs
 
 * bug fix
