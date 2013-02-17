@@ -1,9 +1,11 @@
 @echo off
-if "%*" == "" (
-	goto documentation
+set argc=0
+for %%x in (%*) do set /A argc+=1
+if %argc% == 0 (
+  goto documentation
 ) else (
-	goto run 
-) 
+  goto run
+)
 :documentation
 echo Usage: %~nx0 [options] [.exs file] [data]
 echo.
