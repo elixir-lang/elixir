@@ -5,18 +5,11 @@ defmodule Mix.CLI do
   Runs Mix according to the command line arguments.
   """
   def run(args // System.argv) do
-    Mix.Local.append_tasks
-
-    args = load_mixfile(args)
-    { task, args } = get_task(args)
-
-    if Mix.Project.get do
-      Mix.Task.run "loadpaths", ["--no-check"]
-      Mix.Task.reenable "loadpaths"
-      Mix.Task.reenable "deps.loadpaths"
+    if help?(args) do
+      display_banner()
+    else
+      proceed(args)
     end
-
-    run_task task, args
   end
 
   defp load_mixfile(args) do
@@ -53,5 +46,36 @@ defmodule Mix.CLI do
           raise exception, [], stacktrace
         end
     end
+  end
+
+  defp proceed(args) do
+    Mix.Local.append_tasks
+
+    args = load_mixfile(args)
+    { task, args } = get_task(args)
+
+    if Mix.Project.get do
+      Mix.Task.run "loadpaths", ["--no-check"]
+      Mix.Task.reenable "loadpaths"
+      Mix.Task.reenable "deps.loadpaths"
+    end
+
+    run_task task, args
+  end
+
+  defp display_banner() do
+    run_task "help", []
+  end
+
+  defp help_argument?(s) do
+    if s do
+      String.downcase(s) in ["--help", "-h", "-help"]
+    else
+      false
+    end
+  end
+
+  defp help?(args) do
+    help_argument?(Enum.first(args))
   end
 end
