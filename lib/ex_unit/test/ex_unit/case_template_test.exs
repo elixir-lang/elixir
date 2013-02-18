@@ -14,22 +14,22 @@ defmodule ExUnit.SampleCase do
   end
 
   setup_all do
-    [context: :setup_all]
+    { :ok, [context: :setup_all] }
   end
 
   setup context do
     assert context[:context] == :setup_all
-    [context: :setup]
+    { :ok, [context: :setup] }
   end
 
   teardown context do
     assert context[:context] == :setup
-    []
+    :ok
   end
 
   teardown_all context do
     assert context[:context] == :setup_all
-    []
+    :ok
   end
 end
 

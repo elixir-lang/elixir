@@ -13,13 +13,13 @@ defmodule FileTest do
     setup do
       src = fixture_path("cp_r")
       :file.make_symlink 'certainly/invalid', Path.join([src, "c"])
-      []
+      :ok
     end
 
     teardown do
       src = fixture_path("cp_r")
       File.rm Path.join([src, "c"])
-      []
+      :ok
     end
 
     test :cp_with_src_file_and_dest_file do
@@ -682,13 +682,13 @@ defmodule FileTest do
     setup do
       src = fixture_path("cp_r")
       :file.make_symlink 'certainly/invalid', Path.join([src, "c"])
-      []
+      :ok
     end
 
     teardown do
       src = fixture_path("cp_r")
       File.rm Path.join([src, "c"])
-      []
+      :ok
     end
 
     test :rm_file do

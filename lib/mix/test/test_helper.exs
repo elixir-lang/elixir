@@ -59,7 +59,7 @@ defmodule MixTest.Case do
         Mix.Deps.Converger.clear_cache
         System.put_env("MIX_HOME", tmp_path(".mix"))
         del_tmp_paths
-        []
+        :ok
       end
     end
   end

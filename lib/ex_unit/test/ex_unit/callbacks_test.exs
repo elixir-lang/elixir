@@ -4,17 +4,17 @@ defmodule ExUnit.CallbacksTest do
   use ExUnit.Case
 
   setup_all do
-    [context: :setup_all]
+    { :ok, [context: :setup_all] }
   end
 
   setup do
-    [initial_setup: true]
+    { :ok, [initial_setup: true] }
   end
 
   setup context do
     assert context[:initial_setup]
     assert context[:context] == :setup_all
-    [context: :setup]
+    { :ok, [context: :setup] }
   end
 
   setup context do
@@ -23,23 +23,23 @@ defmodule ExUnit.CallbacksTest do
     else
       Process.put(:ex_unit_callback, context[:test])
     end
-    []
+    :ok
   end
 
   teardown context do
     assert context[:context] == :setup
-    []
+    :ok
   end
 
   teardown context do
     assert Process.get(:ex_unit_callback) == context[:test]
     Process.delete(:ex_unit_callback)
-    []
+    :ok
   end
 
   teardown_all context do
     assert context[:context] == :setup_all
-    []
+    :ok
   end
 
   test "callbacks can run custom code" do

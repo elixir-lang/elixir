@@ -14,8 +14,8 @@ defmodule ExUnit.Callbacks do
         setup do
           IO.puts "This is a setup callback"
 
-          # Return no extra meta data
-          [hello: "world"]
+          # Returns extra metadata
+          { :ok, [hello: "world"] }
         end
 
         setup context do
@@ -24,6 +24,9 @@ defmodule ExUnit.Callbacks do
 
           # The metadata returned by the previous setup as well
           assert context[:hello] == "world"
+
+          # No metadata
+          :ok
         end
 
         test "always pass" do
@@ -115,6 +118,13 @@ defmodule ExUnit.Callbacks do
 
   ## Helpers
 
+  def __merge__(_mod, other, :ok), do: other
+  def __merge__(_mod, other, { :ok, data }), do: Keyword.merge(other, data)
+  def __merge__(mod, _, failure) do
+    raise "expected ExUnit callback in #{inspect mod} to return :ok " <>
+          " or { :ok, data }, got #{inspect failure} instead"
+  end
+
   defp compile_callbacks(env, kind) do
     callbacks = Module.get_attribute(env.module, kind) |> Enum.reverse
 
@@ -122,7 +132,7 @@ defmodule ExUnit.Callbacks do
       Enum.reduce callbacks, quote(do: context), fn(callback, acc) ->
         quote do
           context = unquote(acc)
-          Keyword.merge(context, unquote(callback)(context))
+          unquote(__MODULE__).__merge__(__MODULE__, context, unquote(callback)(context))
         end
       end
 
