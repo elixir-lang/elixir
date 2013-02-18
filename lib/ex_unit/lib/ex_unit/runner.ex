@@ -72,9 +72,9 @@ defmodule ExUnit.Runner do
 
     try do
       tests = tests_for(test_case)
-      context = run_setup_all(test_case)
+      context = test_case.__exunit__(:setup_all, [])
       Enum.each tests, run_test(config, pid, test_case, context, &1)
-      run_teardown_all(test_case, context)
+      test_case.__exunit__(:teardown_all, context)
     after
       pid <- { self, :case_finished, test_case }
     end
@@ -84,10 +84,10 @@ defmodule ExUnit.Runner do
     config.formatter.test_started(config.formatter_id, test_case, test)
 
     final = try do
-      context = run_setup(test_case, setup_context, test)
+      context = test_case.__exunit__(:setup, Keyword.put(setup_context, :test, test))
 
       partial = try do
-        apply test_case, test, []
+        apply test_case, test, [context]
         nil
       rescue
         error1 ->
@@ -97,7 +97,7 @@ defmodule ExUnit.Runner do
           { kind1, error1, filtered_stacktrace }
       end
 
-      run_teardown(test_case, context, test)
+      test_case.__exunit__(:teardown, context)
       partial
     rescue
       error2 ->
@@ -108,52 +108,6 @@ defmodule ExUnit.Runner do
     end
 
     pid <- { self, :test_finished, { test_case, test, final } }
-  end
-
-  defp run_setup_all(test_case) do
-    cond do
-      function_exported?(test_case, :setup_all, 0) ->
-        test_case.setup_all
-      true ->
-        []
-    end
-  end
-
-  defp run_setup(test_case, context, test) do
-    cond do
-      function_exported?(test_case, :setup, 2) ->
-        test_case.setup(context, test)
-      function_exported?(test_case, :setup, 1) ->
-        test_case.setup(context)
-      function_exported?(test_case, :setup, 0) ->
-        test_case.setup
-      true ->
-        context
-    end
-  end
-
-  defp run_teardown(test_case, context, test) do
-    cond do
-      function_exported?(test_case, :teardown, 2) ->
-        test_case.teardown(context, test)
-      function_exported?(test_case, :teardown, 1) ->
-        test_case.teardown(context)
-      function_exported?(test_case, :teardown, 0) ->
-        test_case.teardown
-      true ->
-        context
-    end
-  end
-
-  defp run_teardown_all(test_case, context) do
-    cond do
-      function_exported?(test_case, :teardown_all, 1) ->
-        test_case.teardown_all(context)
-      function_exported?(test_case, :teardown_all, 0) ->
-        test_case.teardown_all
-      true ->
-        context
-    end
   end
 
   ## Helpers
@@ -176,7 +130,14 @@ defmodule ExUnit.Runner do
 
   defp tests_for(mod) do
     exports = mod.__info__(:functions)
-    lc { function, 0 } inlist exports, is_test?(atom_to_list(function)), do: function
+
+    lc { function, 0 } inlist exports, is_test?(atom_to_list(function)) do
+      IO.puts "Test function #{inspect mod}.#{function} with arity 0 is no longer supported. Use the test macro instead."
+    end
+
+    lc { function, 1 } inlist exports, is_test?(atom_to_list(function)) do
+      function
+    end
   end
 
   defp is_test?('test_' ++ _), do: true

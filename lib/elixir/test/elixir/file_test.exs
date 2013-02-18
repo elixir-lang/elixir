@@ -10,14 +10,16 @@ defmodule FileTest do
 
     # cp_r/c is managed in setup/teardown because if it is stored in
     # the repository, reltool can't build a release
-    def setup do
+    setup do
       src = fixture_path("cp_r")
       :file.make_symlink 'certainly/invalid', Path.join([src, "c"])
+      []
     end
 
-    def teardown do
+    teardown do
       src = fixture_path("cp_r")
       File.rm Path.join([src, "c"])
+      []
     end
 
     test :cp_with_src_file_and_dest_file do
@@ -677,14 +679,16 @@ defmodule FileTest do
 
     # cp_r/c is managed in setup/teardown because if it is stored in
     # the repository, reltool can't build a release
-    def setup do
+    setup do
       src = fixture_path("cp_r")
       :file.make_symlink 'certainly/invalid', Path.join([src, "c"])
+      []
     end
 
-    def teardown do
+    teardown do
       src = fixture_path("cp_r")
       File.rm Path.join([src, "c"])
+      []
     end
 
     test :rm_file do

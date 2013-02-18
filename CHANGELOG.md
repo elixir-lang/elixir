@@ -1,4 +1,5 @@
 * enhancements
+  * [ExUnit] Tests can now receive metadata set on setup/teardown callbacks
   * [IO] Add `IO.ANSI` to make it easy to write ANSI escape codes
   * [Kernel] Better support for Unicode lists
   * [Kernel] Reduce variables footprint in `case`/`receive` clauses
@@ -16,6 +17,7 @@
   * [Kernel] `before_compile` and `after_compile` callbacks now receive the environment as first argument instead of the module
 
 * deprecations
+  * [ExUnit] Explicitly defined test/setup/teardown functions are deprecated
   * [Kernel] Tidy up and clean `quote` API
   * [Kernel] Old `:local.(args)` syntax is deprecated
   * [Process] `Process.self` is deprecated in favor `Kernel.self`

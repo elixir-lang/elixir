@@ -13,11 +13,13 @@ defmodule ExUnit do
 
       # 2) Next we create a new TestCase and use ExUnit.Case
       defmodule AssertionTest do
-        # 3) Notice we pass async: true, this runs the test case in parallel
+        # 3) Notice we pass async: true, this runs the test case
+        #    concurrently with other test cases
         use ExUnit.Case, async: true
 
-        # 4) A test is a method which name finishes with _test
-        def test_always_pass do
+        # 4) A test is a function whose name starts with
+        #    test and receives a context
+        def test_always_pass(_) do
           assert true
         end
 
