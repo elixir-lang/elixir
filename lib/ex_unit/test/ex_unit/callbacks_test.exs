@@ -1,14 +1,20 @@
 Code.require_file "../../test_helper.exs", __FILE__
 
 defmodule ExUnit.CallbacksTest do
-  use ExUnit.Case, sync: false
+  use ExUnit.Case
 
   setup_all do
-    [my_context: :setup_all]
+    [context: :setup_all]
   end
 
   setup do
-    [first_setup: true]
+    [initial_setup: true]
+  end
+
+  setup context do
+    assert context[:initial_setup]
+    assert context[:context] == :setup_all
+    [context: :setup]
   end
 
   setup context do
@@ -17,32 +23,30 @@ defmodule ExUnit.CallbacksTest do
     else
       Process.put(:ex_unit_callback, context[:test])
     end
-
-    assert context[:first_setup]
-    assert context[:my_context] == :setup_all
-
-    [my_context: :setup]
+    []
   end
 
   teardown context do
-    assert context[:my_context] == :setup
+    assert context[:context] == :setup
+    []
+  end
+
+  teardown context do
     assert Process.get(:ex_unit_callback) == context[:test]
     Process.delete(:ex_unit_callback)
     []
   end
 
   teardown_all context do
-    assert context[:my_context] == :setup_all
+    assert context[:context] == :setup_all
     []
   end
 
-  test :callback, context do
-    assert context[:my_context] == :setup
-    assert Process.get(:ex_unit_callback) == :test_callback
+  test "callbacks can run custom code" do
+    assert Process.get(:ex_unit_callback) == :"test callbacks can run custom code"
   end
 
-  # Ensure we run at least two tests, so setup is run twice
-  test :ok do
-    assert :ok == :ok
+  test "receives context from callback", context do
+    assert context[:context] == :setup
   end
 end

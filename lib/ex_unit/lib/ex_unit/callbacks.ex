@@ -34,7 +34,9 @@ defmodule ExUnit.Callbacks do
   """
 
   @doc false
-  defmacro __using__(_) do
+  defmacro __using__(opts) do
+    parent = opts[:parent]
+
     quote do
       @exunit_setup []
       @exunit_teardown []
@@ -45,23 +47,27 @@ defmodule ExUnit.Callbacks do
       @after_compile unquote(__MODULE__)
       import unquote(__MODULE__)
 
+      def __exunit__(:parent) do
+        unquote(parent)
+      end
+
       def __exunit__(:setup, context) do
-        context = __exunit_setup__(context)
+        context = __exunit_setup__ unquote(parent).__exunit__(:setup, context)
         ExUnit.Callbacks.__setup__(__MODULE__, context)
       end
 
       def __exunit__(:teardown, context) do
-        context = __exunit_teardown__(context)
+        context = unquote(parent).__exunit__(:teardown, __exunit_teardown__ context)
         ExUnit.Callbacks.__teardown__(__MODULE__, context)
       end
 
       def __exunit__(:setup_all, context) do
-        context = __exunit_setup_all__(context)
+        context = __exunit_setup_all__ unquote(parent).__exunit__(:setup_all, context)
         ExUnit.Callbacks.__setup_all__(__MODULE__, context)
       end
 
       def __exunit__(:teardown_all, context) do
-        context = __exunit_teardown_all__(context)
+        context = unquote(parent).__exunit__(:teardown_all, __exunit_teardown_all__ context)
         ExUnit.Callbacks.__teardown_all__(__MODULE__, context)
       end
     end

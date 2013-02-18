@@ -35,9 +35,13 @@ defmodule ExUnit do
 
       bin/elixir assertion_test.exs
 
-  ## Assertions
+  ## Case, callbacks and assertions
 
-  Check ExUnit.Assertions for assertions documentation.
+  Check `ExUnit.Case` and `ExUnit.Callbacks` for more information about
+  defining test cases.
+
+  The `ExUnit.Assertions` module contains a set of macros to easily
+  generate assertions with appropriate error messages.
 
   ## User config
 
