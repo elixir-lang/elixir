@@ -1,3 +1,5 @@
+# v0.8.1 (2013-02-17)
+
 * enhancements
   * [ExUnit] Tests can now receive metadata set on setup/teardown callbacks
   * [ExUnit] Add support to ExUnit.CaseTemplate to share callbacks in between test cases
