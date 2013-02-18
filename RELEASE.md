@@ -16,7 +16,7 @@ This document simply outlines the release process:
 
 7) Release new zip with `make release_zip`, push new zip to Elixir's elixir-lang.org/packages.html
 
-8) Push package to expm with `expm publich package.exs`
+8) Push package to expm with `expm publish package.exs`
 
 9) After release, bump versions and add `.dev` back
 
