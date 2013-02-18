@@ -1,5 +1,6 @@
 * enhancements
   * [ExUnit] Tests can now receive metadata set on setup/teardown callbacks
+  * [ExUnit] Add support to ExUnit.CaseTemplate to share callbacks in between test cases
   * [IO] Add `IO.ANSI` to make it easy to write ANSI escape codes
   * [Kernel] Better support for Unicode lists
   * [Kernel] Reduce variables footprint in `case`/`receive` clauses

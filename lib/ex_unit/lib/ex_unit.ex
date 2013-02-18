@@ -129,11 +129,10 @@ defmodule ExUnit do
     ExUnit.Server.merge_options(options)
   end
 
-  @doc """
-  Registers a callback to be invoked every time a
-  new ExUnit process is spawned.
-  """
+  @doc false
   def after_spawn(callback) do
+    IO.puts "ExUnit.after_spawn is deprecated, please use setup_all instead"
+    Exception.print_stacktrace
     ExUnit.Server.add_after_spawn(callback)
   end
 
