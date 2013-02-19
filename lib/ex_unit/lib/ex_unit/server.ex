@@ -4,7 +4,7 @@ defmodule ExUnit.Server do
   @timeout 30_000
   use GenServer.Behaviour
 
-  defrecord Config, options: [], async_cases: [], sync_cases: [], after_spawn: []
+  defrecord Config, options: [], async_cases: [], sync_cases: []
 
   def start_link(options) do
     :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, options, [])
@@ -18,10 +18,6 @@ defmodule ExUnit.Server do
 
   def add_sync_case(name) do
     :gen_server.cast(__MODULE__, { :add_sync_case, name })
-  end
-
-  def add_after_spawn(fun) when is_function(fun) do
-    :gen_server.cast(__MODULE__, { :add_after_spawn, fun })
   end
 
   def merge_options(options) do
@@ -38,11 +34,6 @@ defmodule ExUnit.Server do
     :gen_server.call(__MODULE__, :cases, @timeout)
   end
 
-  def run_after_spawn do
-    funs = :gen_server.call(__MODULE__, :after_spawn, @timeout)
-    lc fun inlist funs, do: fun.()
-  end
-
   ## Callbacks
 
   def init(options) do
@@ -51,10 +42,6 @@ defmodule ExUnit.Server do
 
   def handle_call(:options, _from, config) do
     { :reply, config.options, config }
-  end
-
-  def handle_call(:after_spawn, _from, config) do
-    { :reply, Enum.reverse(config.after_spawn), config }
   end
 
   def handle_call(:cases, _from, config) do
@@ -73,10 +60,6 @@ defmodule ExUnit.Server do
 
   def handle_cast({:add_sync_case, name}, config) do
     { :noreply, config.update_sync_cases [name|&1] }
-  end
-
-  def handle_cast({:add_after_spawn, fun}, config) do
-    { :noreply, config.update_after_spawn [fun|&1] }
   end
 
   def handle_cast({:merge_options, options}, config) do

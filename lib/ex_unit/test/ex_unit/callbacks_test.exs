@@ -21,7 +21,7 @@ defmodule ExUnit.CallbacksTest do
     if Process.get(:ex_unit_callback) do
       raise "ex_unit_callback was not cleaned"
     else
-      Process.put(:ex_unit_callback, context[:test])
+      Process.put(:ex_unit_callback, context[:test].name)
     end
     :ok
   end
@@ -32,7 +32,7 @@ defmodule ExUnit.CallbacksTest do
   end
 
   teardown context do
-    assert Process.get(:ex_unit_callback) == context[:test]
+    assert Process.get(:ex_unit_callback) == context[:test].name
     Process.delete(:ex_unit_callback)
     :ok
   end

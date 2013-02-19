@@ -7,7 +7,7 @@ defmodule ExUnit.NilFormatter do
     :ok
   end
 
-  def suite_finished(:ok) do
+  def suite_finished(:ok, _ms) do
     1
   end
 
@@ -19,25 +19,17 @@ defmodule ExUnit.NilFormatter do
     :ok
   end
 
-  def test_started(:ok, _test_case, _test) do
+  def test_started(:ok, _test) do
     :ok
   end
 
-  def test_finished(:ok, _test_case, _test, _result) do
+  def test_finished(:ok, _test) do
     :ok
   end
 end
 
 defmodule ExUnitTest do
   use ExUnit.Case, async: false
-
-  test "it can read user config" do
-    File.write("ex_unit.test.config","[extra_option: true]")
-    assert ExUnit.user_options("nosuchfile.config") == []
-    assert ExUnit.user_options("ex_unit.test.config") == [extra_option: true]
-  after
-    File.rm("ex_unit.test.config")
-  end
 
   test "it supports many runs" do
     ExUnit.configure(formatter: ExUnit.NilFormatter)

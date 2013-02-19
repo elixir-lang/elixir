@@ -1,4 +1,12 @@
 defmodule ExUnit do
+  defrecord Test, [:name, :case, :failure] do
+    @moduledoc """
+    A record that keeps information about the test.
+    It is received by formatters and also accessible
+    in the metadata under the key `:test`.
+    """
+  end
+
   @moduledoc """
   Basic unit test structure for Elixir.
 
@@ -43,30 +51,13 @@ defmodule ExUnit do
   The `ExUnit.Assertions` module contains a set of macros to easily
   generate assertions with appropriate error messages.
 
-  ## User config
-
-  When started, ExUnit automatically reads a user configuration
-  from the following locations, in this order:
-
-  * $EXUNIT_CONFIG environment variable
-  * $HOME/.ex_unit.exs
-
-  If none found, no user config will be read.
-
-  User config is an elixir file which should return a keyword list
-  with ex_unit options. Please note that explicit options passed
-  to start/1 or configure/1 will take precedence over user options.
-
-      # User config example (~/.ex_unit.exs)
-      [formatter: ExUnit.Formatter.ANSI]
-
   """
 
   use Application.Behaviour
 
   @doc false
   def start(_type, []) do
-    ExUnit.Sup.start_link(user_options)
+    ExUnit.Sup.start_link([])
   end
 
   @doc """
@@ -95,28 +86,6 @@ defmodule ExUnit do
   end
 
   @doc """
-  Returns the configured user options.
-  """
-  def user_options(user_config // nil) do
-    user_config = user_config ||
-      System.get_env("EXUNIT_CONFIG") ||
-      Path.join(System.get_env("HOME"), ".ex_unit.exs")
-
-    case File.read(user_config) do
-      { :ok, contents } ->
-        { config, _ } = Code.eval(contents, [], file: user_config)
-        if Keyword.keyword?(config) do
-          config
-        else
-          IO.puts "#{user_config} evaluates to an invalid value, should be a keyword list, got #{inspect config} instead"
-          []
-        end
-      _ ->
-        []
-    end
-  end
-
-  @doc """
   Configures ExUnit.
 
   ## Options
@@ -132,13 +101,6 @@ defmodule ExUnit do
   """
   def configure(options) do
     ExUnit.Server.merge_options(options)
-  end
-
-  @doc false
-  def after_spawn(callback) do
-    IO.puts "ExUnit.after_spawn is deprecated, please use setup_all instead"
-    Exception.print_stacktrace
-    ExUnit.Server.add_after_spawn(callback)
   end
 
   @doc """

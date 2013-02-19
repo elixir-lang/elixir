@@ -8,8 +8,13 @@ defmodule ExUnit.Runner do
     config = Config[max_cases: :erlang.system_info(:schedulers_online)]
     config = config.update(opts)
 
-    loop config.async_cases(async).sync_cases(sync).
-           formatter_id(config.formatter.suite_started(opts))
+    { ms, config } =
+      :timer.tc fn ->
+        loop config.async_cases(async).sync_cases(sync).
+               formatter_id(config.formatter.suite_started(opts))
+      end
+
+    config.formatter.suite_finished(config.formatter_id, ms)
   end
 
   defp loop(Config[] = config) do
@@ -36,7 +41,7 @@ defmodule ExUnit.Runner do
 
       # No more cases, we are done!
       true ->
-        config.formatter.suite_finished(config.formatter_id)
+        config
     end
   end
 
@@ -45,8 +50,8 @@ defmodule ExUnit.Runner do
   # cases counter and attempt to spawn new ones.
   defp wait_until_available(config) do
     receive do
-      { _pid, :test_finished, { test_case, test, final } } ->
-        config.formatter.test_finished(config.formatter_id, test_case, test, final)
+      { _pid, :test_finished, test } ->
+        config.formatter.test_finished(config.formatter_id, test)
         wait_until_available config
       { _pid, :case_finished, test_case } ->
         config.formatter.case_finished(config.formatter_id, test_case)
@@ -62,7 +67,6 @@ defmodule ExUnit.Runner do
   defp spawn_case(config, test_case) do
     pid = self()
     spawn_link fn ->
-      ExUnit.Server.run_after_spawn
       run_tests(config, pid, test_case)
     end
   end
@@ -72,42 +76,43 @@ defmodule ExUnit.Runner do
 
     try do
       tests = tests_for(test_case)
-      context = test_case.__exunit__(:setup_all, [])
-      Enum.each tests, run_test(config, pid, test_case, context, &1)
+      context = test_case.__exunit__(:setup_all, [case: test_case])
+      Enum.each tests, run_test(config, pid, test_case, &1, context)
       test_case.__exunit__(:teardown_all, context)
     after
       pid <- { self, :case_finished, test_case }
     end
   end
 
-  defp run_test(config, pid, test_case, setup_context, test) do
-    config.formatter.test_started(config.formatter_id, test_case, test)
+  defp run_test(config, pid, test_case, test_name, context) do
+    test = ExUnit.Test[name: test_name, case: test_case]
+    config.formatter.test_started(config.formatter_id, test)
 
-    final = try do
-      context = test_case.__exunit__(:setup, Keyword.put(setup_context, :test, test))
+    test = try do
+      context = test_case.__exunit__(:setup, Keyword.put(context, :test, test))
 
-      partial = try do
-        apply test_case, test, [context]
-        nil
+      test = try do
+        apply test_case, test_name, [context]
+        test
       rescue
         error1 ->
-          { :error, error1, filtered_stacktrace }
+          test.failure { :error, error1, filtered_stacktrace }
       catch
         kind1, error1 ->
-          { kind1, error1, filtered_stacktrace }
+          test.failure { kind1, error1, filtered_stacktrace }
       end
 
-      test_case.__exunit__(:teardown, context)
-      partial
+      test_case.__exunit__(:teardown, Keyword.put(context, :test, test))
+      test
     rescue
       error2 ->
-        { :error, error2, filtered_stacktrace }
+        test.failure { :error, error2, filtered_stacktrace }
     catch
       kind2, error2 ->
-        { kind2, error2, filtered_stacktrace }
+        test.failure { kind2, error2, filtered_stacktrace }
     end
 
-    pid <- { self, :test_finished, { test_case, test, final } }
+    pid <- { self, :test_finished, test }
   end
 
   ## Helpers

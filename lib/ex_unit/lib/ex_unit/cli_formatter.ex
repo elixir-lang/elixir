@@ -18,8 +18,8 @@ defmodule ExUnit.CLIFormatter do
     pid
   end
 
-  def suite_finished(id) do
-    :gen_server.call(id, :suite_finished, @timeout)
+  def suite_finished(id, ms) do
+    :gen_server.call(id, { :suite_finished, ms }, @timeout)
   end
 
   def case_started(_id, _test_case) do
@@ -30,12 +30,12 @@ defmodule ExUnit.CLIFormatter do
     :ok
   end
 
-  def test_started(_id, _test_case, _test) do
+  def test_started(_id, _test) do
     :ok
   end
 
-  def test_finished(id, test_case, test, result) do
-    :gen_server.cast(id, { :test_finished, test_case, test, result })
+  def test_finished(id, test) do
+    :gen_server.cast(id, { :test_finished, test })
   end
 
   ## Callbacks
@@ -44,8 +44,8 @@ defmodule ExUnit.CLIFormatter do
     { :ok, Config.new }
   end
 
-  def handle_call(:suite_finished, _from, config) do
-    print_suite(config.counter, config.failures)
+  def handle_call({ :suite_finished, ms }, _from, config) do
+    print_suite(config.counter, config.failures, ms)
     { :stop, :normal, length(config.failures), config }
   end
 
@@ -53,33 +53,35 @@ defmodule ExUnit.CLIFormatter do
     super
   end
 
-  def handle_cast({ :test_finished, _test_case, _test, nil }, config) do
+  def handle_cast({ :test_finished, ExUnit.Test[failure: nil] }, config) do
     IO.write success(".")
     { :noreply, config.update_counter(&1 + 1) }
   end
 
-  def handle_cast({ :test_finished, test_case, test, failure }, config) do
+  def handle_cast({ :test_finished, test }, config) do
     IO.write failure("F")
     { :noreply, config.update_counter(&1 + 1).
-        update_failures([{test_case, test, failure}|&1]) }
+        update_failures([test|&1]) }
   end
 
   def handle_cast(_, _) do
     super
   end
 
-  defp print_suite(counter, []) do
+  defp print_suite(counter, [], ms) do
     IO.write "\n\n"
+    IO.puts "Finished in #{format_ms ms} seconds"
     IO.puts success("#{counter} tests, 0 failures")
   end
 
-  defp print_suite(counter, failures) do
+  defp print_suite(counter, failures, ms) do
     IO.write "\n\nFailures:\n\n"
     Enum.reduce Enum.reverse(failures), 1, print_failure(&1, &2, File.cwd!)
+    IO.puts "Finished in #{format_ms ms} seconds"
     IO.puts failure("#{counter} tests, #{length(failures)} failures")
   end
 
-  defp print_failure({test_case, test, { kind, reason, stacktrace }}, acc, cwd) do
+  defp print_failure(ExUnit.Test[case: test_case, name: test, failure: { kind, reason, stacktrace }], acc, cwd) do
     IO.puts "  #{acc}) #{test} (#{inspect test_case})"
     print_kind_reason(kind, reason)
     print_stacktrace(stacktrace, test_case, test, cwd)
@@ -120,6 +122,15 @@ defmodule ExUnit.CLIFormatter do
       String.duplicate(" ", remaining) <>  binary
     else
       binary
+    end
+  end
+
+  defp format_ms(ms) do
+    if ms < 100000 do
+      "0.0#{div(ms, 10000)}"
+    else
+      ms = div ms, 100000
+      "#{div(ms, 10)}.#{rem(ms, 10)}"
     end
   end
 
