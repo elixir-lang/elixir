@@ -44,7 +44,7 @@ defmodule ExUnit.CLIFormatterTest do
     """
 
     out_put = exec_test("failure_test.exs")
-    assert out_put =~ %r/at\ #{Path.expand("failure_test.exs")}:6/
+    assert out_put =~ %r/at failure_test.exs:6/
   after
     File.rm("failure_test.exs")
   end
