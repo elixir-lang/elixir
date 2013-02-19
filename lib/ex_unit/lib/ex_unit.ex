@@ -105,7 +105,12 @@ defmodule ExUnit do
     case File.read(user_config) do
       { :ok, contents } ->
         { config, _ } = Code.eval(contents, [], file: user_config)
-        config
+        if Keyword.keyword?(config) do
+          config
+        else
+          IO.puts "#{user_config} evaluates to an invalid value, should be a keyword list, got #{inspect config} instead"
+          []
+        end
       _ ->
         []
     end
