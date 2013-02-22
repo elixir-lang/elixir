@@ -44,7 +44,7 @@ erlang:
 # Since Mix depends on EEx and EEx depends on
 # Mix, we first compile EEx without the .app
 # file, then mix and then compile eex fully
-elixir: kernel unicode lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex iex
+elixir: kernel unicode lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex iex graphviz
 
 kernel: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
@@ -67,6 +67,7 @@ $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
 $(eval $(call APP_TEMPLATE,eex,EEx))
 $(eval $(call APP_TEMPLATE,mix,Mix))
 $(eval $(call APP_TEMPLATE,iex,IEx))
+$(eval $(call APP_TEMPLATE,graphviz,GraphViz))
 
 install: compile
 	@ echo "==> elixir (install)"
@@ -124,7 +125,7 @@ test_erlang: compile
 	@ $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt;
 	@ echo
 
-test_elixir: test_kernel test_mix test_ex_unit test_eex test_iex
+test_elixir: test_kernel test_mix test_ex_unit test_eex test_iex test_graphviz
 
 test_kernel: compile
 	@ echo "==> kernel (exunit)"
@@ -138,6 +139,6 @@ dialyze: .dialyzer.base_plt
 	@ rm -f .dialyzer_plt
 	@ cp .dialyzer.base_plt .dialyzer_plt
 	@ echo "==> Adding Elixir to PLT..."
-	@ dialyzer --plt .dialyzer_plt --add_to_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/mix/ebin lib/iex/ebin lib/eex/ebin
+	@ dialyzer --plt .dialyzer_plt --add_to_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/mix/ebin lib/iex/ebin lib/eex/ebin lib/graphviz/ebin
 	@ echo "==> Dialyzing Elixir..."
-	@ dialyzer --plt .dialyzer_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/mix/ebin lib/iex/ebin lib/eex/ebin
+	@ dialyzer --plt .dialyzer_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/mix/ebin lib/iex/ebin lib/eex/ebin lib/graphviz/ebin
