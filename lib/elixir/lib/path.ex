@@ -70,7 +70,7 @@ defmodule Path do
 
   """
   def expand(path) do
-    normalize FN.absname(path, get_cwd(path))
+    normalize FN.absname(expand_home(path), get_cwd(path))
   end
 
   @doc """
@@ -85,7 +85,7 @@ defmodule Path do
 
   """
   def expand(path, relative_to) do
-    normalize FN.absname(FN.absname(path, relative_to), get_cwd(path))
+    normalize FN.absname(FN.absname(expand_home(path), relative_to), get_cwd(path))
   end
 
   @doc """
@@ -484,33 +484,31 @@ defmodule Path do
 
   # Normalize the given path by expanding "..", "." and "~".
 
-  defp normalize(path), do: do_normalize(FN.split(path))
-
-  defp do_normalize(["~"|t]) do
-    do_normalize t, [System.user_home!]
+  defp expand_home(<<?~, rest :: binary>>) do
+    System.user_home! <> rest
   end
 
-  defp do_normalize(['~'|t]) do
-    do_normalize t, [System.user_home! |> binary_to_filename_string]
+  defp expand_home('~' ++ rest) do
+    (System.user_home! |> binary_to_filename_string) ++ rest
   end
 
-  defp do_normalize(t) do
-    do_normalize t, []
+  defp expand_home(other), do: other
+
+  defp normalize(path), do: normalize(FN.split(path), [])
+
+  defp normalize([top|t], [_|acc]) when top in ["..", '..'] do
+    normalize t, acc
   end
 
-  defp do_normalize([top|t], [_|acc]) when top in ["..", '..'] do
-    do_normalize t, acc
+  defp normalize([top|t], acc) when top in [".", '.'] do
+    normalize t, acc
   end
 
-  defp do_normalize([top|t], acc) when top in [".", '.'] do
-    do_normalize t, acc
+  defp normalize([h|t], acc) do
+    normalize t, [h|acc]
   end
 
-  defp do_normalize([h|t], acc) do
-    do_normalize t, [h|acc]
-  end
-
-  defp do_normalize([], acc) do
+  defp normalize([], acc) do
     join Enum.reverse(acc)
   end
 end

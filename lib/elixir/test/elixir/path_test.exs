@@ -98,10 +98,10 @@ defmodule PathTest do
   end
 
   test :expand_path_with_user_home do
-    assert is_binary Path.expand("~")
+    assert System.user_home! == Path.expand("~")
     assert is_binary Path.expand("~/foo")
 
-    assert is_list Path.expand('~')
+    assert (System.user_home! |> :unicode.characters_to_list) == Path.expand('~')
     assert is_list Path.expand('~/foo')
   end
 
