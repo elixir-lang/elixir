@@ -54,47 +54,26 @@ defmodule Binary.Inspect.Utils do
 
   ## escape
 
-  # It is considerably faster to loop the binary
-  # and convert it to a list as we go compared
-  # to looping the binary and creating a binary
-  # as we go.
   def escape(other, char) do
-    list_to_binary [char|do_escape(other, char)]
+    b = bc <<h>> inbits other do
+      << (case h do
+            ^char ->  << ?\\, char >>
+            ?# -> << ?\\, ?# >>
+            ?\a -> << ?\\, ?a >>
+            ?\b -> << ?\\, ?b >>
+            ?\d -> << ?\\, ?d >>
+            ?\e -> << ?\\, ?e >>
+            ?\f -> << ?\\, ?f >>
+            ?\n -> << ?\\, ?n >>
+            ?\r -> << ?\\, ?r >>
+            ?\\ -> << ?\\, ?\\ >>
+            ?\t -> << ?\\, ?t >>
+            ?\v -> << ?\\, ?v >>
+            _ -> << h >>
+          end) :: binary >>
+    end
+    << char, b :: binary, char >>
   end
-
-  defp do_escape(<<char, t :: binary>>, char) do
-    [?\\, char | do_escape(t, char)]
-  end
-
-  defp do_escape(<<h, t :: binary>>, char) when
-    h == ?#  or h == ?\a or
-    h == ?\b or h == ?\d or
-    h == ?\e or h == ?\f or
-    h == ?\n or h == ?\r or
-    h == ?\\ or h == ?\t or
-    h == ?\v do
-    [?\\, escape_map(h) | do_escape(t, char)]
-  end
-
-  defp do_escape(<<h, t :: binary>>, char) do
-    [h | do_escape(t,char)]
-  end
-
-  defp do_escape(<<>>, char) do
-    [char]
-  end
-
-  defp escape_map(?#),  do: ?#
-  defp escape_map(?\a), do: ?a
-  defp escape_map(?\b), do: ?b
-  defp escape_map(?\d), do: ?d
-  defp escape_map(?\e), do: ?e
-  defp escape_map(?\f), do: ?f
-  defp escape_map(?\n), do: ?n
-  defp escape_map(?\r), do: ?r
-  defp escape_map(?\\), do: ?\\
-  defp escape_map(?\t), do: ?t
-  defp escape_map(?\v), do: ?v
 end
 
 defimpl Binary.Inspect, for: Atom do
