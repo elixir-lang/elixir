@@ -660,10 +660,13 @@ translate_comprehension_do(Meta, bc, _Expr, S) ->
 translate_comprehension_do(_Meta, _Kind, Expr, S) ->
   translate_each(Expr, S).
 
-translate_comprehension_clause(_Meta, {inbits, Meta, [Left, Right]}, S) ->
+translate_comprehension_clause(_Meta, {inbits, Meta, [{ '<<>>', _, _} = Left, Right]}, S) ->
   { TRight, SR } = translate_each(Right, S),
   { TLeft, SL  } = elixir_clauses:assigns(fun elixir_translator:translate_each/2, Left, SR),
   { { b_generate, ?line(Meta), TLeft, TRight }, SL };
+
+translate_comprehension_clause(_Meta, {inbits, Meta, [_Left, _Right]}, S) ->
+  syntax_error(Meta, S#elixir_scope.file, "a bit comprehension expects a bit string << >> to be used in inbits generators");
 
 translate_comprehension_clause(_Meta, {inlist, Meta, [Left, Right]}, S) ->
   { TRight, SR } = translate_each(Right, S),

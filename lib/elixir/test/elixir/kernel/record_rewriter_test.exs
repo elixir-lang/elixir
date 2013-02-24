@@ -134,11 +134,6 @@ defmodule Kernel.RecordRewriterTest do
     assert optimize_clause(clause) == { clause, [], nil }
   end
 
-  test "inside bit comprehension" do
-    clause = clause(fn -> bc x = Macro.Env[] inbits sample, do: <<x>> end)
-    assert optimize_clause(clause) == { clause, [], nil }
-  end
-
   test "inside function retrieval" do
     clause = clause(fn -> function(x = Macro.Env[], y, z) end)
     assert optimize_clause(clause) == { clause, [x: Macro.Env], nil }

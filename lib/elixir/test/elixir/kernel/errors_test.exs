@@ -234,9 +234,14 @@ defmodule Kernel.ErrorsTest do
       format_rescue 'try do\n1\nrescue\nUndefinedFunctionError[arity: 1] -> false\nend'
   end
 
-  test :invalid_bc do
+  test :invalid_bc_return do
     assert "nofile:1: a bit comprehension expects a bit string << >> to be returned" ==
-      format_rescue 'bc x in [1,2,3], do: x'
+      format_rescue 'bc x inlist [1,2,3], do: x'
+  end
+
+  test :invalid_bc_inbits_gen do
+    assert "nofile:1: a bit comprehension expects a bit string << >> to be used in inbits generators" ==
+      format_rescue 'bc x inbits "123", do: <<x>>'
   end
 
   test :unbound_cond do
