@@ -55,28 +55,50 @@ defmodule Binary.Inspect.Utils do
   ## escape
 
   def escape(other, char) do
-    b = bc <<h, t :: binary>> inbits other do
-      << (case h do
-            ^char ->  << ?\\, char >>
-            ?# ->
-              case t do
-                << ?{, _ :: binary >> -> << ?\\, ?# >>
-                _ -> << ?# >>
-              end
-            ?\a -> << ?\\, ?a >>
-            ?\b -> << ?\\, ?b >>
-            ?\d -> << ?\\, ?d >>
-            ?\e -> << ?\\, ?e >>
-            ?\f -> << ?\\, ?f >>
-            ?\n -> << ?\\, ?n >>
-            ?\r -> << ?\\, ?r >>
-            ?\\ -> << ?\\, ?\\ >>
-            ?\t -> << ?\\, ?t >>
-            ?\v -> << ?\\, ?v >>
-            _ -> << h >>
-          end) :: binary >>
-    end
+    b = do_escape(other, char, <<>>)
     << char, b :: binary, char >>
+  end
+
+  @compile {:inline, do_escape: 3}
+  defp do_escape(<<>>, _char, binary), do: binary
+  defp do_escape(<< char, t :: binary >>, char, binary) do
+    do_escape(t, char, << binary :: binary, ?\\, char >>)
+  end
+  defp do_escape(<<?#, ?{, t :: binary>>, char, binary) do
+    do_escape(t, char, << binary :: binary, ?\\, ?#, ?{ >>)
+  end
+  defp do_escape(<<?\a, t :: binary>>, char, binary) do
+    do_escape(t, char, << binary :: binary, ?\\, ?a >>)
+  end
+  defp do_escape(<<?\b, t :: binary>>, char, binary) do
+    do_escape(t, char, << binary :: binary, ?\\, ?b >>)
+  end
+  defp do_escape(<<?\d, t :: binary>>, char, binary) do
+    do_escape(t, char, << binary :: binary, ?\\, ?d >>)
+  end
+  defp do_escape(<<?\e, t :: binary>>, char, binary) do
+    do_escape(t, char, << binary :: binary, ?\\, ?e >>)
+  end
+  defp do_escape(<<?\f, t :: binary>>, char, binary) do
+    do_escape(t, char, << binary :: binary, ?\\, ?f >>)
+  end
+  defp do_escape(<<?\n, t :: binary>>, char, binary) do
+    do_escape(t, char, << binary :: binary, ?\\, ?n >>)
+  end
+  defp do_escape(<<?\r, t :: binary>>, char, binary) do
+    do_escape(t, char, << binary :: binary, ?\\, ?r >>)
+  end
+  defp do_escape(<<?\\, t :: binary>>, char, binary) do
+    do_escape(t, char, << binary :: binary, ?\\, ?\\ >>)
+  end
+  defp do_escape(<<?\t, t :: binary>>, char, binary) do
+    do_escape(t, char, << binary :: binary, ?\\, ?t >>)
+  end
+  defp do_escape(<<?\v, t :: binary>>, char, binary) do
+    do_escape(t, char, << binary :: binary, ?\\, ?v >>)
+  end
+  defp do_escape(<<h, t :: binary>>, char, binary) do
+    do_escape(t, char, << binary :: binary, h >>)
   end
 end
 
