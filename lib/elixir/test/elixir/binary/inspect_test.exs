@@ -62,6 +62,8 @@ defmodule Binary.Inspect.BitStringTest do
     assert inspect("f\no") == "\"f\\no\""
     assert inspect("f\\o") == "\"f\\\\o\""
     assert inspect("f\ao") == "\"f\\ao\""
+    assert inspect(%B{#{#a}) == "\"\\\#{#a\""
+    assert inspect(%B{ #{#a}) == "\" \\\#{#a\""
   end
 
   test :utf8 do

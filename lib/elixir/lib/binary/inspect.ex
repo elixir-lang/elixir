@@ -55,10 +55,14 @@ defmodule Binary.Inspect.Utils do
   ## escape
 
   def escape(other, char) do
-    b = bc <<h>> inbits other do
+    b = bc <<h, t :: binary>> inbits other do
       << (case h do
             ^char ->  << ?\\, char >>
-            ?# -> << ?\\, ?# >>
+            ?# ->
+              case t do
+                << ?{, _ :: binary >> -> << ?\\, ?# >>
+                _ -> << ?# >>
+              end
             ?\a -> << ?\\, ?a >>
             ?\b -> << ?\\, ?b >>
             ?\d -> << ?\\, ?d >>
