@@ -48,7 +48,7 @@ defmodule Kernel.RecordRewriter do
     end
   end
 
-  defp record_fields(module, record) do
+  defp record_fields(_module, record) do
     if Code.ensure_loaded?(record) && function_exported?(record, :__record__, 1) do
       try do
         fields      = lc { k, _ } inlist record.__record__(:fields), do: k
