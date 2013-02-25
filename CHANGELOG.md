@@ -1,9 +1,13 @@
 * enhancements
   * [ExUnit] Use ANSI escape codes in CLI output
   * [ExUnit] Include suite run time on CLI results
+  * [Kernel] Better error reporting fot bitstring generators
 
 * bug fix
-  * [Path] Fix a bug on `Path.expand` when expanding `~`
+  * [Binary] inspect no longer escapes standalone hash `#`
+  * [Kernel] Record optimizations were not being triggered in functions inside the record module
+  * [Path] Fix a bug on `Path.expand` when expanding paths starting with `~`
+
 
 # v0.8.1 (2013-02-17)
 
