@@ -1,7 +1,7 @@
 * enhancements
   * [ExUnit] Use ANSI escape codes in CLI output
   * [ExUnit] Include suite run time on CLI results
-  * [Kernel] Better error reporting fot bitstring generators
+  * [Kernel] Better error reporting for invalid bitstring generators
 
 * bug fix
   * [Binary] inspect no longer escapes standalone hash `#`
