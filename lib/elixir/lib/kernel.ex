@@ -2948,9 +2948,9 @@ defmodule Kernel do
 
             # We are using the access protocol in the same
             # module that defines it. It works, but we need
-            # to read the field values from @__record__.
+            # to read the field values from @record_fields.
             case atom do
-              ^module -> Module.get_attribute(module, :__record__)
+              ^module -> Module.get_attribute(module, :record_fields)
               _ -> atom.__record__(:fields)
             end
           rescue

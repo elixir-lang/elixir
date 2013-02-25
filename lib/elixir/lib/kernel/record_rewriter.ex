@@ -5,42 +5,50 @@
 defmodule Kernel.RecordRewriter do
   @moduledoc false
 
-  def optimize_clause(clause) do
-    optimize_clause(clause, :orddict.new)
+  def optimize_clause(module, clause) do
+    optimize_clause(clause, module, :orddict.new)
   end
 
   ## Clause
 
-  defp optimize_clause({ :clause, line, args, guards, body }, dict) do
-    { args, dict } = optimize_args(args, dict)
-    { body, dict, res } = optimize_body(body, dict, [])
+  defp optimize_clause({ :clause, line, args, guards, body }, module, dict) do
+    { args, dict } = optimize_args(args, module, dict)
+    { body, dict, res } = optimize_body(body, module, dict, [])
     { { :clause, line, args, guards, body }, dict, res }
   end
 
-  defp optimize_args(args, dict) do
+  defp optimize_args(args, module, dict) do
     Enum.map_reduce args, dict, fn(arg, acc) ->
-      { new_arg, new_acc, _res } = optimize_expr(arg, acc)
+      { new_arg, new_acc, _res } = optimize_expr(arg, module, acc)
       { new_arg, new_acc }
     end
   end
 
-  defp optimize_body([], dict, _acc) do
+  defp optimize_body([], _module, dict, _acc) do
     { [], dict, nil }
   end
 
-  defp optimize_body([h], dict, acc) do
-    { new_expr, new_dict, new_res } = optimize_expr(h, dict)
+  defp optimize_body([h], module, dict, acc) do
+    { new_expr, new_dict, new_res } = optimize_expr(h, module, dict)
     { Enum.reverse([new_expr|acc]), new_dict, new_res }
   end
 
-  defp optimize_body([h|t], dict, acc) do
-    { new_expr, new_dict, _ } = optimize_expr(h, dict)
-    optimize_body(t, new_dict, [new_expr|acc])
+  defp optimize_body([h|t], module, dict, acc) do
+    { new_expr, new_dict, _ } = optimize_expr(h, module, dict)
+    optimize_body(t, module, new_dict, [new_expr|acc])
   end
 
   ## Record helpers
 
-  defp record_fields(record) do
+  defp record_fields(record, record) do
+    fields      = Module.get_attribute(record, :record_fields)
+    optimizable = Module.get_attribute(record, :record_optimizable)
+    unless nil?(fields) or nil?(optimizable) do
+      { (lc { k, _ } inlist fields, do: k), optimizable }
+    end
+  end
+
+  defp record_fields(module, record) do
     if Code.ensure_loaded?(record) && function_exported?(record, :__record__, 1) do
       try do
         fields      = lc { k, _ } inlist record.__record__(:fields), do: k
@@ -60,8 +68,8 @@ defmodule Kernel.RecordRewriter do
     end
   end
 
-  defp optimize_call(line, { record, _ } = res, left, { :atom, _, function }, args) do
-    case record_fields(record) do
+  defp optimize_call(line, module, { record, _ } = res, left, { :atom, _, function }, args) do
+    case record_fields(module, record) do
       { fields, optimizable } ->
         opt_call =
           if List.member?(optimizable, { function, length(args) + 1 }) do
@@ -81,7 +89,7 @@ defmodule Kernel.RecordRewriter do
     end
   end
 
-  defp optimize_call(_line, _res, _left, _right, _args) do
+  defp optimize_call(_line, _module, _res, _left, _right, _args) do
     nil
   end
 
@@ -111,12 +119,12 @@ defmodule Kernel.RecordRewriter do
 
   ## Expr
 
-  defp optimize_expr({ :call, call_line, { :remote, line, left, right }, args }, dict) do
-    { left, dict, res } = optimize_expr(left, dict)
-    { right, dict, _ } = optimize_expr(right, dict)
-    { args, dict } = optimize_args(args, dict)
+  defp optimize_expr({ :call, call_line, { :remote, line, left, right }, args }, module, dict) do
+    { left, dict, res } = optimize_expr(left, module, dict)
+    { right, dict, _ } = optimize_expr(right, module, dict)
+    { args, dict } = optimize_args(args, module, dict)
 
-    case optimize_call(call_line, res, left, right, args) do
+    case optimize_call(call_line, module, res, left, right, args) do
       { call, call_res } ->
         { call, dict, call_res }
       nil ->
@@ -124,15 +132,15 @@ defmodule Kernel.RecordRewriter do
     end
   end
 
-  defp optimize_expr({ :call, line, expr, args }, dict) do
-    { expr, dict, _ } = optimize_expr(expr, dict)
-    { args, dict } = optimize_args(args, dict)
+  defp optimize_expr({ :call, line, expr, args }, module, dict) do
+    { expr, dict, _ } = optimize_expr(expr, module, dict)
+    { args, dict } = optimize_args(args, module, dict)
     { { :call, line, expr, args }, dict, nil }
   end
 
-  defp optimize_expr({ :match, line, left, right }, dict) do
-    { left,  dict, left_res }  = optimize_expr(left, dict)
-    { right, dict, right_res } = optimize_expr(right, dict)
+  defp optimize_expr({ :match, line, left, right }, module, dict) do
+    { left,  dict, left_res }  = optimize_expr(left, module, dict)
+    { right, dict, right_res } = optimize_expr(right, module, dict)
 
     match = { :match, line, left, right }
 
@@ -147,40 +155,40 @@ defmodule Kernel.RecordRewriter do
     { match, dict, right_res || left_res }
   end
 
-  defp optimize_expr({ :op, line, op, left, right }, dict) do
-    { left, dict, _ }  = optimize_expr(left, dict)
-    { right, dict, _ } = optimize_expr(right, dict)
+  defp optimize_expr({ :op, line, op, left, right }, module, dict) do
+    { left, dict, _ }  = optimize_expr(left, module, dict)
+    { right, dict, _ } = optimize_expr(right, module, dict)
     { { :op, line, op, left, right }, dict, nil }
   end
 
-  defp optimize_expr({ :op, line, op, expr }, dict) do
-    { expr, dict, _ } = optimize_expr(expr, dict)
+  defp optimize_expr({ :op, line, op, expr }, module, dict) do
+    { expr, dict, _ } = optimize_expr(expr, module, dict)
     { { :op, line, op, expr }, dict, nil }
   end
 
-  defp optimize_expr({ :bin, line, elements }, dict) do
-    { elements, dict } = optimize_args(elements, dict)
+  defp optimize_expr({ :bin, line, elements }, module, dict) do
+    { elements, dict } = optimize_args(elements, module, dict)
     { { :bin, line, elements }, dict, nil }
   end
 
-  defp optimize_expr({ :bin_element, line, expr, type1, type2 }, dict) do
-    { expr, dict, _ } = optimize_expr(expr, dict)
+  defp optimize_expr({ :bin_element, line, expr, type1, type2 }, module, dict) do
+    { expr, dict, _ } = optimize_expr(expr, module, dict)
     { { :bin_element, line, expr, type1, type2 }, dict, nil }
   end
 
-  defp optimize_expr({ :cons, line, left, right }, dict) do
-    { left, dict, _ }  = optimize_expr(left, dict)
-    { right, dict, _ } = optimize_expr(right, dict)
+  defp optimize_expr({ :cons, line, left, right }, module, dict) do
+    { left, dict, _ }  = optimize_expr(left, module, dict)
+    { right, dict, _ } = optimize_expr(right, module, dict)
     { { :cons, line, left, right }, dict, nil }
   end
 
-  defp optimize_expr({ :block, line, args }, dict) do
-    { args, dict, res } = optimize_body(args, dict, [])
+  defp optimize_expr({ :block, line, args }, module, dict) do
+    { args, dict, res } = optimize_body(args, module, dict, [])
     { { :block, line, args }, dict, res }
   end
 
-  defp optimize_expr({ :tuple, line, args }, dict) do
-    { args, dict, args_res } = optimize_tuple_args(args, dict)
+  defp optimize_expr({ :tuple, line, args }, module, dict) do
+    { args, dict, args_res } = optimize_tuple_args(args, module, dict)
     args_res = if Enum.any?(args_res), do: args_res, else: nil
 
     res =
@@ -192,36 +200,36 @@ defmodule Kernel.RecordRewriter do
     { { :tuple, line, args }, dict, { res, args_res } }
   end
 
-  defp optimize_expr({ :var, _, name } = var, dict) do
+  defp optimize_expr({ :var, _, name } = var, _module, dict) do
     case :orddict.find(name, dict) do
       { :ok, res } -> { var, dict, res }
       :error       -> { var, dict, nil }
     end
   end
 
-  defp optimize_expr({ :case, line, expr, clauses }, dict) do
-    { expr, dict, _ } = optimize_expr(expr, dict)
-    tuples  = lc clause inlist clauses, do: optimize_clause(clause, dict)
+  defp optimize_expr({ :case, line, expr, clauses }, module, dict) do
+    { expr, dict, _ } = optimize_expr(expr, module, dict)
+    tuples  = lc clause inlist clauses, do: optimize_clause(clause, module, dict)
     clauses = lc { clause, _, _ } inlist tuples, do: clause
     dict    = join_dict(tuples)
     res     = join_result(tuples)
     { { :case, line, expr, clauses }, dict, res }
   end
 
-  defp optimize_expr({ :receive, line, clauses }, dict) do
-    tuples  = lc clause inlist clauses, do: optimize_clause(clause, dict)
+  defp optimize_expr({ :receive, line, clauses }, module, dict) do
+    tuples  = lc clause inlist clauses, do: optimize_clause(clause, module, dict)
     clauses = lc { clause, _, _ } inlist tuples, do: clause
     dict    = join_dict(tuples)
     res     = join_result(tuples)
     { { :receive, line, clauses }, dict, res }
   end
 
-  defp optimize_expr({ :receive, line, clauses, after_key, after_value }, dict) do
-    tuples  = lc clause inlist clauses, do: optimize_clause(clause, dict)
+  defp optimize_expr({ :receive, line, clauses, after_key, after_value }, module, dict) do
+    tuples  = lc clause inlist clauses, do: optimize_clause(clause, module, dict)
     clauses = lc { clause, _, _ } inlist tuples, do: clause
 
-    { after_key, dict, _ } = optimize_expr(after_key, dict)
-    { after_value, dict, res } = optimize_body(after_value, dict, [])
+    { after_key, dict, _ } = optimize_expr(after_key, module, dict)
+    { after_value, dict, res } = optimize_body(after_value, module, dict, [])
 
     dict = join_dict(tuples, dict)
     res  = join_result(tuples, res)
@@ -229,58 +237,58 @@ defmodule Kernel.RecordRewriter do
     { { :receive, line, clauses, after_key, after_value }, dict, res }
   end
 
-  defp optimize_expr({ :try, line, body, elses, catches, try_after }, dict) do
-    tuples  = lc clause inlist catches, do: optimize_clause(clause, dict)
+  defp optimize_expr({ :try, line, body, elses, catches, try_after }, module, dict) do
+    tuples  = lc clause inlist catches, do: optimize_clause(clause, module, dict)
     catches = lc { clause, _, _ } inlist tuples, do: clause
 
-    tuples  = lc clause inlist elses, do: optimize_clause(clause, dict)
+    tuples  = lc clause inlist elses, do: optimize_clause(clause, module, dict)
     elses   = lc { clause, _, _ } inlist tuples, do: clause
 
-    { body, _, res } = optimize_body(body, dict, [])
+    { body, _, res } = optimize_body(body, module, dict, [])
     res = join_result(tuples, res)
 
-    { try_after, _, _ } = optimize_body(try_after, dict, [])
+    { try_after, _, _ } = optimize_body(try_after, module, dict, [])
     { { :try, line, body, elses, catches, try_after }, dict, res }
   end
 
-  defp optimize_expr({ :fun, line, { :function, module, name, arity } }, dict) do
-    { module, dict, _ } = optimize_expr(module, dict)
-    { name, dict, _ }   = optimize_expr(name, dict)
-    { arity, dict, _ }  = optimize_expr(arity, dict)
-    { { :fun, line, { :function, module, name, arity } }, dict, nil }
+  defp optimize_expr({ :fun, line, { :function, receiver, name, arity } }, module, dict) do
+    { receiver, dict, _ } = optimize_expr(receiver, module, dict)
+    { name, dict, _ }     = optimize_expr(name, module, dict)
+    { arity, dict, _ }    = optimize_expr(arity, module, dict)
+    { { :fun, line, { :function, receiver, name, arity } }, dict, nil }
   end
 
-  defp optimize_expr({ :fun, line, { :clauses, clauses } }, dict) do
+  defp optimize_expr({ :fun, line, { :clauses, clauses } }, module, dict) do
     clauses = lc clause inlist clauses do
-      { clause, _, _ } = optimize_clause(clause, dict)
+      { clause, _, _ } = optimize_clause(clause, module, dict)
       clause
     end
 
     { { :fun, line, { :clauses, clauses } }, dict, nil }
   end
 
-  defp optimize_expr({ comprehension, line, expr, args }, dict) when comprehension in [:lc, :bc] do
-    { args, new_dict } = optimize_args(args, dict)
-    { expr, _, _ } = optimize_expr(expr, new_dict)
+  defp optimize_expr({ comprehension, line, expr, args }, module, dict) when comprehension in [:lc, :bc] do
+    { args, new_dict } = optimize_args(args, module, dict)
+    { expr, _, _ } = optimize_expr(expr, module, new_dict)
     { { comprehension, line, expr, args }, dict, nil }
   end
 
-  defp optimize_expr({ generate, line, left, right }, dict) when generate in [:generate, :b_generate] do
-    { left, dict, _ }  = optimize_expr(left, dict)
-    { right, dict, _ } = optimize_expr(right, dict)
+  defp optimize_expr({ generate, line, left, right }, module, dict) when generate in [:generate, :b_generate] do
+    { left, dict, _ }  = optimize_expr(left, module, dict)
+    { right, dict, _ } = optimize_expr(right, module, dict)
     { { generate, line, left, right }, dict, nil }
   end
 
-  defp optimize_expr(other, dict) when elem(other, 0) in [:string, :atom, :integer, :float, :nil, :fun] do
+  defp optimize_expr(other, _module, dict) when elem(other, 0) in [:string, :atom, :integer, :float, :nil, :fun] do
     { other, dict, nil }
   end
 
   ## Helpers
 
-  defp optimize_tuple_args(args, dict) do
+  defp optimize_tuple_args(args, module, dict) do
     { final_args, { final_dict, final_acc } } =
       Enum.map_reduce args, { dict, [] }, fn(arg, { acc_dict, acc_res }) ->
-        { new_arg, new_acc, res } = optimize_expr(arg, acc_dict)
+        { new_arg, new_acc, res } = optimize_expr(arg, module, acc_dict)
         { new_arg, { new_acc, [res|acc_res] } }
       end
 

@@ -143,7 +143,7 @@ eval_form(Line, Module, Block, Vars, RawS) ->
 functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, RawFunctions, C) ->
   Functions = case elixir_compiler:get_opt(internal, C) of
     true  -> RawFunctions;
-    false -> record_rewrite_functions(RawFunctions)
+    false -> record_rewrite_functions(Module, RawFunctions)
   end,
 
   { FinalExport, FinalFunctions } =
@@ -156,11 +156,11 @@ functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, Ra
     {attribute, Line, export, lists:sort(FinalExport)} | FinalFunctions
   ] }.
 
-record_rewrite_functions(Functions) ->
+record_rewrite_functions(Module, Functions) ->
   lists:map(fun
     ({ function, Line, Name, Arity, Clauses }) ->
       Rewriten = [begin
-        { C, _, _ } = 'Elixir.Kernel.RecordRewriter':optimize_clause(Clause),
+        { C, _, _ } = 'Elixir.Kernel.RecordRewriter':optimize_clause(Module, Clause),
         C
       end || Clause <- Clauses],
       { function, Line, Name, Arity, Rewriten };

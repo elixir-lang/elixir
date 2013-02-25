@@ -80,7 +80,7 @@ defmodule Record do
       switch_recorder()
     ]
 
-    contents = [quote(do: @__record__ unquote(escaped))|contents]
+    contents = [quote(do: @record_fields unquote(escaped))|contents]
 
     # Special case for bootstraping purposes
     if env == Macro.Env do
