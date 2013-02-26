@@ -188,7 +188,11 @@ translate_expansion(Meta, Tree, S) ->
   ),
   { TR, TS#elixir_scope{
     check_clauses=S#elixir_scope.check_clauses,
-    macro_aliases=S#elixir_scope.macro_aliases } }.
+    macro_aliases=merge_aliases(S#elixir_scope.macro_aliases, TS#elixir_scope.macro_aliases)
+  } }.
+
+merge_aliases(A1, A2) ->
+  orddict:merge(fun(_K,_V1,V2) -> V2 end, A1, A2).
 
 %% Helpers
 

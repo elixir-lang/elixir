@@ -40,6 +40,16 @@ defmodule Kernel.AliasNestingGenerator do
       end
     end
   end
+
+  defmacro record do
+    quote do
+      defexception Parent, message: nil
+
+      defmodule Parent.Child do
+        def b, do: Parent.new(message: "ok")
+      end
+    end
+  end
 end
 
 defmodule Kernel.AliasNestingTest do
@@ -54,28 +64,14 @@ defmodule Kernel.AliasNestingTest do
   end
 end
 
-defmodule Kernel.FullAliasNestingGenerator do
-  defmacro create do
-    quote do
-      defmodule Parent do
-        def a, do: :a
-      end
-
-      defmodule Parent.Child do
-        def b, do: Parent.a
-      end
-    end
-  end
-end
-
-defmodule Kernel.FullAliasNestingTest do
+defmodule Kernel.AliasMacroNestingTest do
   use ExUnit.Case, async: true
 
-  require Kernel.FullAliasNestingGenerator
-  Kernel.FullAliasNestingGenerator.create
+  require Kernel.AliasNestingGenerator
+  Kernel.AliasNestingGenerator.record
 
   test :aliases_nesting do
-    assert Parent.a == :a
-    assert Parent.Child.b == :a
+    assert is_record(Parent.new, Parent)
+    assert Parent.Child.b.message == "ok"
   end
 end

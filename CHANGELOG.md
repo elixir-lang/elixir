@@ -6,8 +6,8 @@
 * bug fix
   * [Binary] inspect no longer escapes standalone hash `#`
   * [Kernel] Record optimizations were not being triggered in functions inside the record module
+  * [Kernel] Aliases defined inside macros should be carried over
   * [Path] Fix a bug on `Path.expand` when expanding paths starting with `~`
-
 
 # v0.8.1 (2013-02-17)
 
