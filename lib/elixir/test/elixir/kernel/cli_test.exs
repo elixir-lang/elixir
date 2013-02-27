@@ -96,11 +96,11 @@ defmodule Kernel.CLI.ParallelCompilerTest do
     assert File.regular?(tmp_path "Elixir-Bar.beam")
   end
 
-  test :deadlock_failure do
+  test :possible_deadlock do
     output = elixirc('#{fixture_path("parallel_deadlock")} -o #{tmp_path}')
-    foo = '== Compilation error on file #{fixture_path "parallel_deadlock/foo.ex"} (undefined module Bar) =='
-    bar = '== Compilation error on file #{fixture_path "parallel_deadlock/bar.ex"} (undefined module Foo) =='
-    assert :string.str(output, foo) > 0 or :string.str(output, bar) > 0,
-      "Expected #{inspect output} to contain #{inspect foo} or #{inspect bar}"
+    foo = '* #{fixture_path "parallel_deadlock/foo.ex"} is missing module Bar'
+    bar = '* #{fixture_path "parallel_deadlock/bar.ex"} is missing module Foo'
+    assert :string.str(output, foo) > 0, "expected foo.ex to miss module Bar"
+    assert :string.str(output, bar) > 0, "expected bar.ex to miss module Foo"
   end
 end

@@ -99,14 +99,32 @@ defmodule Kernel.ParallelCompiler do
         new_waiting = OrdDict.store(child, on, waiting)
         spawn_compilers(files, output, callback, new_waiting, queued, schedulers, result)
       { :failure, child, kind, reason, stacktrace } ->
-        extra = if match?({^child, module}, List.keyfind(waiting, child, 0)) do
-          " (undefined module #{inspect module})"
+        if many_missing?(child, files, waiting, queued) do
+          IO.puts "== Compilation failed =="
+          IO.puts "Compilation failed on the following files:\n"
+
+          Enum.each Enum.reverse(queued), fn { pid, file } ->
+            case List.keyfind(waiting, pid, 0) do
+              { _, mod } -> IO.puts "* #{file} is missing module #{inspect mod}"
+              _ -> :ok
+            end
+          end
+
+          IO.puts "\nThe first failure is shown below..."
         end
 
-      {^child, file} = List.keyfind(queued, child, 0)
-      IO.puts "== Compilation error on file #{file}#{extra} =="
-      :erlang.raise(kind, reason, stacktrace)
+        {^child, file} = List.keyfind(queued, child, 0)
+        IO.puts "== Compilation error on file #{file} =="
+        :erlang.raise(kind, reason, stacktrace)
     end
+  end
+
+  defp many_missing?(child, files, waiting, queued) do
+    waiting_length = length(waiting)
+
+    match?({ ^child, _ }, List.keyfind(waiting, child, 0)) and
+      waiting_length > 1 and files == [] and
+      waiting_length == length(queued)
   end
 
   # Release waiting processes that are waiting for the given module
