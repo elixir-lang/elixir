@@ -74,7 +74,7 @@ defmodule IEx.Helpers do
   end
 
   defp print_history(config) do
-    IO.puts "#{config.counter}: #{config.cache}#=> #{inspect config.result}\n"
+    IO.puts IO.ANSI.escape("%{yellow}#{config.counter}: #{config.cache}#=> #{inspect config.result}\n")
   end
 
   @doc """
@@ -151,15 +151,15 @@ defmodule IEx.Helpers do
       { :module, _ } ->
         case module.__info__(:moduledoc) do
           { _, binary } when is_binary(binary) ->
-            IO.puts "# #{inspect module}\n"
-            IO.write binary
+            IO.puts IO.ANSI.escape("%{yellow}# #{inspect module}\n")
+            IO.write IO.ANSI.escape("%{yellow}#{binary}")
           { _, _ } ->
-            IO.puts "No docs for #{inspect module} have been found"
+            IO.puts IO.ANSI.escape("%{yellow}No docs for #{inspect module} have been found")
           _ ->
-            IO.puts "#{inspect module} was not compiled with docs"
+            IO.puts IO.ANSI.escape("%{yellow}#{inspect module} was not compiled with docs")
         end
       { :error, reason } ->
-        IO.puts "Could not load module #{inspect module}: #{reason}"
+        IO.puts IO.ANSI.escape("%{yellow}Could not load module #{inspect module}: #{reason}")
     end
   end
 
@@ -173,7 +173,7 @@ defmodule IEx.Helpers do
   end
 
   def h(_, _) do
-    IO.puts "Invalid h helper argument"
+    IO.puts IO.ANSI.escape("%{yellow}Invalid h helper argument")
     h()
   end
 
@@ -190,10 +190,10 @@ defmodule IEx.Helpers do
       if doc do
         IO.write "\n" <> print_signature(doc)
       else
-        IO.puts "No docs for #{inspect module}.#{function}/#{arity} have been found"
+        IO.puts IO.ANSI.escape("%{yellow}No docs for #{inspect module}.#{function}/#{arity} have been found")
       end
     else
-      IO.puts "#{inspect module} was not compiled with docs"
+      IO.puts IO.ANSI.escape("%{yellow}#{inspect module} was not compiled with docs")
     end
   end
 
@@ -220,8 +220,8 @@ defmodule IEx.Helpers do
 
   defp print_signature({ { name, _arity }, _line, kind, args, docs }) do
     args = Enum.map_join(args, ", ", signature_arg(&1))
-    IO.puts "* #{kind} #{name}(#{args})"
-    docs || ""
+    IO.puts IO.ANSI.escape("%{yellow}* #{kind} #{name}(#{args})")
+    IO.ANSI.escape("%{yellow}#{docs}") || ""
   end
 
   defp signature_arg({ ://, _, [left, right] }) do
@@ -270,7 +270,7 @@ defmodule IEx.Helpers do
     end
 
     if types == [] do
-       IO.puts "No types for #{inspect module}.#{type} have been found"
+       IO.puts  IO.ANSI.escape("%{yellow}No types for #{inspect module}.#{type} have been found")
     end
 
     :ok
@@ -280,7 +280,7 @@ defmodule IEx.Helpers do
     types = lc type inlist Kernel.Typespec.beam_types(module), do: print_type(type)
 
     if types == [] do
-      IO.puts "No types for #{inspect module} have been found"
+      IO.puts  IO.ANSI.escape("%{yellow}No types for #{inspect module} have been found")
     end
 
     :ok
@@ -293,7 +293,7 @@ defmodule IEx.Helpers do
 
     case types do
      [] ->
-       IO.puts "No types for #{inspect module}.#{type}/#{arity} have been found"
+       IO.puts  IO.ANSI.escape("%{yellow}No types for #{inspect module}.#{type}/#{arity} have been found")
      [type] ->
        print_type(type)
     end
@@ -352,7 +352,7 @@ defmodule IEx.Helpers do
     end
 
     if specs == [] do
-      IO.puts "No specs for #{inspect module}.#{function} have been found"
+      IO.puts  IO.ANSI.escape("%{yellow}No specs for #{inspect module}.#{function} have been found")
     end
 
     :ok
@@ -362,7 +362,7 @@ defmodule IEx.Helpers do
     specs = lc spec inlist beam_specs(module), do: print_spec(spec)
 
     if specs == [] do
-      IO.puts "No specs for #{inspect module} have been found"
+      IO.puts  IO.ANSI.escape("%{yellow}No specs for #{inspect module} have been found")
     end
 
     :ok
@@ -377,7 +377,7 @@ defmodule IEx.Helpers do
     end
 
     if specs == [] do
-      IO.puts "No specs for #{inspect module}.#{function} have been found"
+      IO.puts  IO.ANSI.escape("%{yellow}No specs for #{inspect module}.#{function} have been found")
     end
 
     :ok
@@ -391,14 +391,14 @@ defmodule IEx.Helpers do
 
   defp print_type({ kind, type }) do
     ast = Kernel.Typespec.type_to_ast(type)
-    IO.puts "@#{kind} #{Macro.to_binary(ast)}"
+    IO.puts IO.ANSI.escape("%{yellow}@#{kind} #{Macro.to_binary(ast)}")
     true
   end
 
   defp print_spec({kind, { { name, _arity }, specs }}) do
     Enum.each specs, fn(spec) ->
       binary = Macro.to_binary Kernel.Typespec.spec_to_ast(name, spec)
-      IO.puts "@#{kind} #{binary}"
+      IO.puts IO.ANSI.escape("%{yellow}@#{kind} #{binary}")
     end
     true
   end
