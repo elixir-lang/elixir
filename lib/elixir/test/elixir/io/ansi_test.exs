@@ -8,7 +8,6 @@ defmodule IO.ANSITest do
            "Hello, #{IO.ANSI.red}world!#{IO.ANSI.reset}"
     assert IO.ANSI.escape("Hello, %{ red }world!", true) ==
            "Hello, #{IO.ANSI.red}world!#{IO.ANSI.reset}"
-
   end
 
   test :escape_multiple do
@@ -26,8 +25,8 @@ defmodule IO.ANSITest do
   end
 
   test :fragment do
-    assert IO.ANSI.escape("%{red}") == "#{IO.ANSI.red}#{IO.ANSI.reset}"
-    assert IO.ANSI.escape_fragment("") == ""
+    assert IO.ANSI.escape("%{red}", true) == "#{IO.ANSI.red}#{IO.ANSI.reset}"
+    assert IO.ANSI.escape_fragment("", true) == ""
   end
 
   test :noop do
