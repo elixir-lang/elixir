@@ -34,8 +34,8 @@ defmodule Record do
         values = unquote(values)
         opts   = unquote(opts)
         Record.deffunctions(values, __ENV__)
-        unquote(block)
         Record.deftypes(values, @record_type, __ENV__)
+        unquote(block)
       end
     end
   end
@@ -532,9 +532,7 @@ defmodule Record do
     types = lc { _, _, spec } inlist values, do: spec
 
     quote do
-      unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
-        @type t :: { __MODULE__, unquote_splicing(types) }
-      end
+      @type t :: { __MODULE__, unquote_splicing(types) }
 
       @spec new :: t
       @spec new(Keyword.t | tuple) :: t
