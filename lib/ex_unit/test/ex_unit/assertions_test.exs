@@ -75,6 +75,15 @@ defmodule ExUnit.AssertionsTest do
     { 2, 1 } = (assert { 2, 1 } = Value.tuple)
   end
 
+  test :assert_match_when_badmatch do
+    try do
+      assert { 3, _ } = Value.tuple
+    rescue
+      error in [ExUnit.ExpectationError] ->
+       %b[Expected "{3, _}" to be a match for {2,1}] = error.message
+    end
+  end
+
   test :assert_receive do
     parent = self
     spawn fn -> parent <- :hello end
