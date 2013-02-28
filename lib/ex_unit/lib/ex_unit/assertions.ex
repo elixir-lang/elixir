@@ -77,8 +77,15 @@ defmodule ExUnit.Assertions do
     quote do: (var!(op) == :! or var!(op) == :not)
   end
 
-  defp translate_assertion({ :=, _, [_, _] } = expr, _else) do
-    expr
+  defp translate_assertion({ :=, _, [expected, actual] }, _else) do
+    quote do
+      try do
+        unquote(expected) = x = unquote(actual)
+      rescue
+        _ in [MatchError] ->
+          assert(false, unquote(Macro.to_binary expected), unquote(actual), reason: "a match for")
+      end
+    end
   end
 
   defp translate_assertion({ :==, _, [left, right] }, _else) do
