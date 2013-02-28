@@ -34,8 +34,9 @@ defmodule Record do
         values = unquote(values)
         opts   = unquote(opts)
         Record.deffunctions(values, __ENV__)
-        unquote(block)
+        value = unquote(block)
         Record.deftypes(values, @record_type, __ENV__)
+        value
       end
     end
   end
