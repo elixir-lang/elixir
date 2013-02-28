@@ -166,6 +166,13 @@ defmodule RecordTest do
     refute { :update_b, 2 } inlist RecordTest.DynamicName.__record__(:optimizable)
   end
 
+  test :result do
+    {_, _, _, "Hello"} = defrecord Foo, bar: nil do
+      record_type bar: atom
+      "Hello"
+    end
+  end
+
   defp file_info do
     { :ok, file_info } = :file.read_file_info(__FILE__)
     file_info

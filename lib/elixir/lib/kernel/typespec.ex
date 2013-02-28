@@ -173,9 +173,15 @@ defmodule Kernel.Typespec do
         :opaque -> { :opaque, true }
       end
 
-    Module.compile_typespec module, kind, type
+    Module.compile_typespec module, kind, type,
+                            fn({ name_1, _, vars_1 }) ->
+                              { name_1, length(vars_1) } != { name, length(vars) }
+                            end
     if export, do:
-      Module.compile_typespec module, :export_type, [{ name, length(vars) }]
+      Module.compile_typespec module, :export_type, [{ name, length(vars) }],
+                              fn([ export ]) ->
+                                export != { name, length(vars) }
+                              end
     type
   end
 
@@ -384,16 +390,21 @@ defmodule Kernel.Typespec do
     constraints = guard_to_constraints(constraints_guard, caller)
     spec = { :type, line(meta), :fun, fn_args(meta, args, return, Keyword.keys(constraints), caller) }
     spec = { :type, line(meta), :bounded_fun, [spec, Keyword.values(constraints)] }
-    code = { { name, Kernel.length(args) }, spec }
-    Module.compile_typespec(caller.module, type, code)
+    export = { name, Kernel.length(args) }
+    code = { export, spec }
+    Module.compile_typespec(caller.module, type, code,
+                            fn({ export_1, _ }) -> export_1 != export end)
+
     code
   end
 
   def defspec(type, {:::, _, [{ name, meta, args }, return]}, caller) do
     if is_atom(args), do: args = []
     spec = { :type, line(meta), :fun, fn_args(meta, args, return, [], caller) }
-    code = { { name, Kernel.length(args) }, spec }
-    Module.compile_typespec(caller.module, type, code)
+    export = { name, Kernel.length(args) }
+    code = { export, spec }
+    Module.compile_typespec(caller.module, type, code,
+                            fn({ export_1, _ }) -> export_1 != export end)
     code
   end
 
