@@ -139,29 +139,51 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  test :assert_match_when_matches do
-    true = assert "foo" =~ %r(o)
+  test :assert_match_when_match do
+    { :ok, true } = assert { :ok, _ } = { :ok, true }
   end
 
   test :assert_match_when_no_match do
     try do
-      "This should never be tested" = assert "foo" =~ %r(a)
+      "This should never be tested" = assert { :ok, _ } = "bar"
     rescue
       error in [ExUnit.ExpectationError] ->
-        "Expected \"foo\" to be a match (=~) with %r\"a\"" = error.message
+        "Expected \"bar\" to match pattern (=) {:ok, _}" = error.message
     end
   end
 
-  test :refute_match_when_is_matches do
+  test :refute_match_when_match do
+    try do
+      "This should never be tested" = refute _ = "bar"
+    rescue
+      error in [ExUnit.ExpectationError] ->
+        "Expected \"bar\" to not match pattern (=) _" = error.message
+    end
+  end
+
+  test :assert_regex_match_when_matches do
+    true = assert "foo" =~ %r(o)
+  end
+
+  test :assert_regex_match_when_no_match do
+    try do
+      "This should never be tested" = assert "foo" =~ %r(a)
+    rescue
+      error in [ExUnit.ExpectationError] ->
+        "Expected \"foo\" to match (=~) %r\"a\"" = error.message
+    end
+  end
+
+  test :refute_regex_match_when_is_matches do
     false = refute "foo" =~ %r(a)
   end
 
-  test :refute_match_when_no_match do
+  test :refute_regex_match_when_no_match do
     try do
       "This should never be tested" = refute "foo" =~ %r(o)
     rescue
       error in [ExUnit.ExpectationError] ->
-        "Expected \"foo\" to not be a match (=~) with %r\"o\"" = error.message
+        "Expected \"foo\" to not match (=~) %r\"o\"" = error.message
     end
   end
 

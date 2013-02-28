@@ -91,12 +91,12 @@ defmodule ExUnit.CLIFormatter do
 
   defp print_kind_reason(:error, record) when is_record(record, ExUnit.ExpectationError) do
     left  = String.downcase record.prelude
-    right = "to " <> if(record.negation, do: "not ", else: "") <> "be #{record.reason}"
+    right = "to " <> if(record.negation, do: "not ", else: "") <> record.reason
     max   = max(size(left), size(right))
 
     IO.puts error_info "** (ExUnit.ExpectationError)"
-    IO.puts error_info "  #{pad(left, max)}: #{inspect record.expected}"
-    IO.puts error_info "  #{pad(right, max)}: #{inspect record.actual}"
+    IO.puts error_info "  #{pad(left, max)}: #{record.expected}"
+    IO.puts error_info "  #{pad(right, max)}: #{record.actual}"
   end
 
   defp print_kind_reason(:error, exception) do

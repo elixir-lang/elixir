@@ -80,7 +80,8 @@ defmodule Mix.Tasks.Compile.AppTest do
       lc error inlist [:modules, :maxT, :registered, :included_applications,
                    :applications, :env, :mod, :start_phases] do
         Process.put(:error, error)
-        assert e = Mix.Error[] = catch_error(Mix.Tasks.Compile.App.run([]))
+        e = catch_error(Mix.Tasks.Compile.App.run([]))
+        assert Mix.Error[] = e
         assert e.message =~ %r/:#{error}/
         assert e.message =~ %r/#{inspect InvalidProject.application[error]}/
       end
