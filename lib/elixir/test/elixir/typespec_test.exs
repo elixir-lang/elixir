@@ -311,10 +311,9 @@ defmodule Typespec.TypeTest do
     ] = Enum.sort(callbacks)
 
     assert [
-      { {:myfun,1}, {:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]} },
       { {:myfun,1}, {:type,_,:fun,[{:type,_,:product,[
                       {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]},
-                      {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]} }
+                      {:remote_type, _, [{:atom, _, :elixir},{:atom, _, :char_list}, []]}]} } 
     ] = Enum.sort(specs)
   end
 
@@ -329,6 +328,71 @@ defmodule Typespec.TypeTest do
                      {:type,_,:fun,[{:type,_,:product,[]},{:type,_,:list,[{:type,_,:integer,[]}]}]}]},
                      {:type,_,:integer,[]}]}} = spec
   end
+
+  test "overriding @type" do
+    { :module, T, binary, _ } = defmodule T do
+      @type mytype :: integer
+      @type mytype :: term
+    end
+
+    :code.delete(T)
+    :code.purge(T)
+
+    assert [
+      {:type, {:mytype,{:type,_,:term,[]},[]}},
+    ] = Kernel.Typespec.beam_types(binary)
+  end
+
+  test "overriding @typep" do
+    { :module, T, binary, _ } = defmodule T do
+      @type  a :: mytype
+      @typep mytype :: integer
+      @typep mytype :: term
+    end
+
+    :code.delete(T)
+    :code.purge(T)
+
+    assert [
+      {:type, {:a,{:type,_,:mytype,[]},[]}},
+      {:typep, {:mytype,{:type,_,:term,[]},[]}},
+    ] = Kernel.Typespec.beam_types(binary)
+  end
+
+  test "overriding @opaque" do
+    { :module, T, binary, _ } = defmodule T do
+      @opaque mytype :: integer
+      @opaque mytype :: binary
+    end
+
+    :code.delete(T)
+    :code.purge(T)
+
+    assert [
+      {:opaque, {:mytype,{:type,_,:binary,[]},[]}},
+    ] = Kernel.Typespec.beam_types(binary)
+  end
+
+  test "overriding @spec" do
+    { :module, T, binary, _ } = defmodule T do
+      @spec a(term) :: term
+      @spec a(integer) :: integer
+      @spec a(term, term) :: term
+      @spec a(integer, integer) :: integer
+
+      def a(x), do: x
+      def a(x, x), do: x
+    end
+
+    :code.delete(T)
+    :code.purge(T)
+
+    assert [
+     {{:a,1}, [{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}]},
+     {{:a,2}, [{:type,_,:fun,[{:type,_,:product,[{:type,_,:integer,[]},{:type,_,:integer,[]}]},{:type,_,:integer,[]}]}]}
+    ] = Kernel.Typespec.beam_specs(binary)
+  end
+
 
   # Conversion to AST
 
@@ -402,12 +466,13 @@ defmodule Typespec.TypeTest do
     specs = [
       (quote do: @spec a() :: integer()),
       (quote do: @spec a(atom()) :: integer()),
-      (quote do: @spec a(b) when is_subtype(b, integer()) :: integer()),
+      (quote do: @spec a(b, b) when is_subtype(b, integer()) :: integer()),
     ]
 
     compiled = test_module do
       def a, do: 1
       def a(a), do: a
+      def a(a, a), do: a
       Module.eval_quoted __MODULE__, quote do: unquote_splicing(specs)
       Enum.reverse @spec
     end
