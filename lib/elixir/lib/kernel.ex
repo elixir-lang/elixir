@@ -2342,7 +2342,7 @@ defmodule Kernel do
   ## Examples
 
       cond do
-        1 + 1 == 2 ->
+        1 + 1 == 1 ->
           "This will never match"
         2 * 2 != 4 ->
           "Nor this"
