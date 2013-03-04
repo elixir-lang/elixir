@@ -450,7 +450,7 @@ handle_strings(T, Line, H, #scope{file=File} = Scope, Tokens) ->
           Atom = unsafe_to_atom(unescape_chars(Bin), Scope),
           tokenize(Rest, NewLine, Scope, [{ kw_identifier, Line, Atom }|Tokens]);
         _ ->
-          { error, { Line, "invalid interpolation in key", [$"|T] } }
+          { error, { Line, "invalid interpolation in key ", [$"|T] } }
       end;
     { NewLine, Parts, Rest } ->
       Token = { string_type(H),Line,unescape_tokens(Parts) },

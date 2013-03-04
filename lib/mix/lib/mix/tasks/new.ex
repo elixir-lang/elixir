@@ -146,7 +146,7 @@ defmodule Mix.Tasks.New do
 
       # See http://elixir-lang.org/docs/stable/Supervisor.Behaviour.html
       # for other strategies and supported options
-      supervise children, strategy: :one_for_one
+      supervise(children, strategy: :one_for_one)
     end
   end
   """
@@ -158,7 +158,7 @@ defmodule Mix.Tasks.New do
     use ExUnit.Case
 
     test "the truth" do
-      assert true
+      assert(true)
     end
   end
   """
