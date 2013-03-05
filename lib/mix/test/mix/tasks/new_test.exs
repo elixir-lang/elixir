@@ -68,7 +68,7 @@ defmodule Mix.Tasks.NewTest do
 
       assert_file "hello_world/lib/hello_world/supervisor.ex", fn(file) ->
         assert file =~ %r/defmodule HelloWorld.Supervisor do/
-        assert file =~ %r/supervise children, strategy: :one_for_one/
+        assert file =~ %r/supervise\(children, strategy: :one_for_one\)/
       end
 
       assert_file "hello_world/test/test_helper.exs", %r/HelloWorld.start/
