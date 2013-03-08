@@ -795,7 +795,7 @@ defmodule File do
 
   ## Examples
 
-      File.open!("file.txt", [:read, :write], fn(file) ->
+      File.open("file.txt", [:read, :write], fn(file) ->
         IO.readline(file)
       end)
 
@@ -928,7 +928,8 @@ defmodule File do
   quotes per single quotes and write each line to a target file
   is shown below:
 
-      source = File.iterator("README.md")
+      { :ok, device } = File.open("README.md")
+      source = File.iterator(device)
       File.open "NEWREADME.md", [:write], fn(target) ->
         Enum.each source, fn(line) ->
           IO.write target, Regex.replace(%r/"/, line, "'")
