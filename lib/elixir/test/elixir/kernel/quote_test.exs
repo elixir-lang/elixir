@@ -66,7 +66,7 @@ defmodule Kernel.QuoteTest do
     assert { :quote, _, [[do: { :unquote, _, _ }]] } = quote(do: quote(do: unquote(x)))
   end
 
-  defmacrop nested_quote do
+  defmacrop nested_quote_in_macro do
     x = 1
     quote do
       x = unquote(x)
@@ -77,7 +77,19 @@ defmodule Kernel.QuoteTest do
   end
 
   test :nested_quote_in_macro do
-    assert nested_quote == 1
+    assert nested_quote_in_macro == 1
+  end
+
+  Enum.each [foo: 1, bar: 2, baz: 3], fn { k, v } ->
+    def unquote(k)(arg) do
+      unquote(v) + arg
+    end
+  end
+
+  test :dynamic_definition_with_unquote do
+    assert foo(1) == 2
+    assert bar(2) == 4
+    assert baz(3) == 6
   end
 
   test :splice_on_root do

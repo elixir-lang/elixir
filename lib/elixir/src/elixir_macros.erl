@@ -223,22 +223,9 @@ translate({Kind, Meta, [Call]}, S) when ?FUNS(Kind) ->
 translate({Kind, Meta, [Call, Expr]}, S) when ?FUNS(Kind) ->
   assert_module_scope(Meta, Kind, S),
   assert_no_function_scope(Meta, Kind, S),
-
-  { TCall, Guards } = elixir_clauses:extract_guards(Call),
-  { Name, Args }    = case elixir_clauses:extract_args(TCall) of
-    error -> syntax_error(Meta, S#elixir_scope.file,
-               "invalid syntax in ~s ~s", [Kind, 'Elixir.Macro':to_binary(TCall)]);
-    Tuple -> Tuple
-  end,
-
-  assert_no_aliases_name(Meta, Name, Args, S),
-
-  TName   = elixir_tree_helpers:abstract_syntax(Name),
-  TArgs   = elixir_tree_helpers:abstract_syntax(Args),
-  TGuards = elixir_tree_helpers:abstract_syntax(Guards),
-  TExpr   = elixir_tree_helpers:abstract_syntax(Expr),
-
-  { elixir_def:wrap_definition(Kind, Meta, TName, TArgs, TGuards, TExpr, S), S };
+  { TCall, SC } = elixir_quote:user_quote(Call, S),
+  { TExpr, SE } = elixir_quote:user_quote(Expr, SC),
+  { elixir_def:wrap_definition(Kind, Meta, TCall, TExpr, SE), SE };
 
 translate({Kind, Meta, [Name, Args, Guards, Expr]}, S) when ?FUNS(Kind) ->
   assert_module_scope(Meta, Kind, S),
@@ -358,10 +345,3 @@ spec_to_macro(callback) -> defcallback.
 % Pack a list of expressions from a block.
 pack({ 'block', _, Exprs }) -> Exprs;
 pack(Expr)                  -> [Expr].
-
-assert_no_aliases_name(Meta, '__aliases__', [Atom], #elixir_scope{file=File}) when is_atom(Atom) ->
-  Message = "function names should start with lowercase characters or underscore, invalid name ~s",
-  syntax_error(Meta, File, Message, [atom_to_binary(Atom, utf8)]);
-
-assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
-  ok.
