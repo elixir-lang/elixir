@@ -1,5 +1,5 @@
 -module(elixir_quote).
--export([quote/3, linify/2, join_quoted/5]).
+-export([quote/3, linify/2, unquote/5, user_quote/2]).
 -include("elixir.hrl").
 
 %% Apply the line from site call on quoted contents.
@@ -21,12 +21,12 @@ do_linify(Line, List) when is_list(List) ->
 
 do_linify(_, Else) -> Else.
 
-%% Join quoted checks for quote arguments at runtime
-%% in order to properly insert them into the tree
-join_quoted(Meta, Left, { '__aliases__', _, Args }, nil, _File) ->
+%% Some expressions cannot be unquoted at compilation time.
+%% This function is responisble for doing runtime unquoting.
+unquote(Meta, Left, { '__aliases__', _, Args }, nil, _File) ->
   { '__aliases__', Meta, [Left|Args] };
 
-join_quoted(Meta, Left, Right, nil, _File) when is_atom(Right) ->
+unquote(Meta, Left, Right, nil, _File) when is_atom(Right) ->
   case atom_to_list(Right) of
     "Elixir-" ++ _ ->
       { '__aliases__', Meta, [Left, Right] };
@@ -34,19 +34,33 @@ join_quoted(Meta, Left, Right, nil, _File) when is_atom(Right) ->
       { { '.', Meta, [Left, Right] }, Meta, [] }
   end;
 
-join_quoted(Meta, Left, Right, Args, _File) when is_atom(Right) ->
+unquote(Meta, Left, Right, Args, _File) when is_atom(Right) ->
   { { '.', Meta, [Left, Right] }, Meta, Args };
 
-join_quoted(Meta, _Left, _Right, _Args, File) ->
+unquote(Meta, _Left, _Right, _Args, File) ->
   elixir_errors:syntax_error(Meta, File, "expected unquote after dot to return an atom or an alias").
 
-%% Translation
+%% Similar to quote, but the given code is meant to come directly from the user.
+%% Basically, lines are kept and hygiene mechanisms are disabled.
+user_quote(Expr, S) ->
+  quote(Expr, #elixir_quote{
+    line=keep,
+    vars_hygiene=nil,
+    aliases_hygiene=false,
+    imports_hygiene=false,
+    unquote=true
+  }, S).
+
+%% Quotes an expression into Erlang's AST
 
 quote({ 'unquote_splicing', Meta, _ } = Expr, #elixir_quote{unquote=true} = Q, S) ->
   do_quote({ '__block__', Meta, [Expr] }, Q, S);
 
 quote(Else, Q, S) ->
   do_quote(Else, Q, S).
+
+do_quote({ quote, _, Args } = Tuple, #elixir_quote{unquote=true} = Q, S) when length(Args) == 1; length(Args) == 2 ->
+  do_quote_tuple(Tuple, Q#elixir_quote{unquote=false}, S);
 
 do_quote({ unquote, _Meta, [Expr] }, #elixir_quote{unquote=true}, S) ->
   elixir_translator:translate_each(Expr, S);
@@ -72,12 +86,12 @@ do_quote({ '__aliases__', Meta, [H|T] } = Alias, #elixir_quote{aliases_hygiene=t
 do_quote({ { { '.', Meta, [Left, unquote] }, _, [Expr] }, _, Args }, #elixir_quote{unquote=true} = Q, S) ->
   All  = [Left, { unquote, Meta, [Expr] }, Args, S#elixir_scope.file],
   { TAll, TS } = lists:mapfoldl(fun(X, Acc) -> do_quote(X, Q, Acc) end, S, All),
-  { ?wrap_call(?line(Meta), elixir_quote, join_quoted, [meta(Meta, Q)|TAll]), TS };
+  { ?wrap_call(?line(Meta), elixir_quote, unquote, [meta(Meta, Q)|TAll]), TS };
 
 do_quote({ { '.', Meta, [Left, unquote] }, _, [Expr] }, #elixir_quote{unquote=true} = Q, S) ->
   All = [Left, { unquote, Meta, [Expr] }, nil, S#elixir_scope.file],
   { TAll, TS } = lists:mapfoldl(fun(X, Acc) -> do_quote(X, Q, Acc) end, S, All),
-  { ?wrap_call(?line(Meta), elixir_quote, join_quoted, [meta(Meta, Q)|TAll]), TS };
+  { ?wrap_call(?line(Meta), elixir_quote, unquote, [meta(Meta, Q)|TAll]), TS };
 
 do_quote({ Left, Meta, nil }, Q, S) when is_atom(Left) ->
   Line  = ?line(Meta),

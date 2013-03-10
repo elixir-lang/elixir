@@ -62,6 +62,24 @@ defmodule Kernel.QuoteTest do
     end
   end
 
+  test :nested_quote do
+    assert { :quote, _, [[do: { :unquote, _, _ }]] } = quote(do: quote(do: unquote(x)))
+  end
+
+  defmacrop nested_quote do
+    x = 1
+    quote do
+      x = unquote(x)
+      quote do
+        unquote(x)
+      end
+    end
+  end
+
+  test :nested_quote_in_macro do
+    assert nested_quote == 1
+  end
+
   test :splice_on_root do
     contents = [1, 2, 3]
     assert quote(do: unquote_splicing(contents)) == quote do: (1; 2; 3)
