@@ -186,12 +186,19 @@ defmodule KernelTest do
     defdelegate my_flatten(list), to: List, as: :flatten
     defdelegate [map(callback, list)], to: :lists, append_first: true
 
+    dynamic = :dynamic_flatten
+    defdelegate unquote(dynamic)(list), to: List, as: :flatten
+
     test :defdelegate_with_function do
       assert my_flatten([[1]]) == [1]
     end
 
     test :defdelegate_with_appended_handle do
       assert map([1], fn(x) -> x + 1 end) == [2]
+    end
+
+    test :dynamic_defdelegate do
+      assert dynamic_flatten([[1]]) == [1]
     end
   end
 

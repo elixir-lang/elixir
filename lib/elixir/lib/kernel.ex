@@ -1701,7 +1701,7 @@ defmodule Kernel do
   In the example above, we have implemented `blank?` for
   `RedBlack.Tree` that simply delegates to `RedBlack.empty?` passing
   the tree as argument. This implementation doesn't need to be defined
-  inside the `RedBlack` tree or inside the record; it can be defined 
+  inside the `RedBlack` tree or inside the record; it can be defined
   anywhere in the code.
 
   Finally, since records are simply tuples, one can add a default
@@ -3017,38 +3017,32 @@ defmodule Kernel do
       #=> [3,2,1]
 
   """
-  defmacro defdelegate(funs, opts) when is_list(funs) do
-    do_delegate(funs, opts)
-  end
+  defmacro defdelegate(funs, opts) do
+    quote do
+      funs = unquote(Macro.escape(funs, escape_unquote: false))
+      opts = unquote(opts)
 
-  defmacro defdelegate(other, opts) do
-    do_delegate([other], opts)
-  end
+      target = Keyword.get(opts, :to) ||
+        raise(ArgumentError, message: "Expected to: to be given as argument")
 
-  defp do_delegate(funs, opts) do
-    target = Keyword.get(opts, :to) ||
-      raise(ArgumentError, message: "Expected to: to be given as argument")
+      append_first = Keyword.get(opts, :append_first, false)
 
-    append_first = Keyword.get(opts, :append_first, false)
-
-    lc fun inlist funs do
-      case Macro.extract_args(fun) do
-        { name, args } -> :ok
-        :error -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_binary(fun)}"
-      end
-
-      actual_args =
-        case append_first and args != [] do
-          true  -> tl(args) ++ [hd(args)]
-          false -> args
+      lc fun inlist List.wrap(funs) do
+        case Macro.extract_args(fun) do
+          { name, args } -> :ok
+          :error -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_binary(fun)}"
         end
 
-      fun = Keyword.get(opts, :as, name)
+        actual_args =
+          case append_first and args != [] do
+            true  -> tl(args) ++ [hd(args)]
+            false -> args
+          end
 
-      quote do
-        def unquote(name)(unquote_splicing(args)) do
-          apply unquote(target), unquote(fun), [unquote_splicing(actual_args)]
-        end
+        fun  = Keyword.get(opts, :as, name)
+        body = quote do: unquote(target).unquote(fun)(unquote_splicing(actual_args))
+
+        def name, args, [], do: body
       end
     end
   end

@@ -65,7 +65,7 @@ defmodule Macro do
       #=> { :{}, [], [:a, :b, :c] }
   """
   def escape(expr, opts // []) do
-    do_escape(expr, Keyword.get(opts, :unquote, false))
+    do_escape(expr, not Keyword.get(opts, :escape_unquote, true))
   end
 
   defp do_escape({ { { :., meta, [left, :unquote] }, _, [expr] }, _, args }, true) do
@@ -82,7 +82,7 @@ defmodule Macro do
     end
   end
 
-  defp do_escape({ :unquote, meta, [expr] }, true) do
+  defp do_escape({ :unquote, _meta, [expr] }, true) do
     expr
   end
 
@@ -115,7 +115,7 @@ defmodule Macro do
     do_splice(list, [], [])
   end
 
-  defp do_splice([{ :unquote_splicing, meta, [expr] }|t], buffer, acc) do
+  defp do_splice([{ :unquote_splicing, _meta, [expr] }|t], buffer, acc) do
     do_splice(t, [], do_splice_join(do_splice_join(expr, buffer), acc))
   end
 
