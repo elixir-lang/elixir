@@ -54,6 +54,13 @@ defmodule MacroTest do
     assert eval_escaped(contents) == quote(do: Kernel.is_atom(:ok))
   end
 
+  test :escape_with_nested_unquote do
+    contents = quote do
+      quote do: unquote(x)
+    end
+    assert eval_escaped(contents) == quote do: (quote do: unquote(x))
+  end
+
   test :escape_with_alias_or_no_args_remote_unquote do
     contents = quote unquote: false, do: Kernel.unquote(:self)
     assert eval_escaped(contents) == quote(do: Kernel.self())

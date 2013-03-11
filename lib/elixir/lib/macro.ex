@@ -97,6 +97,10 @@ defmodule Macro do
     { do_escape(left, unquote), do_escape(right, unquote) }
   end
 
+  defp do_escape({ :quote, meta, args }, true) when length(args) in 1..2 do
+    { :{}, [], do_escape([:quote, meta, args], false) }
+  end
+
   defp do_escape(tuple, unquote) when is_tuple(tuple) do
     { :{}, [], do_escape(tuple_to_list(tuple), unquote) }
   end
