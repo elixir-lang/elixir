@@ -54,7 +54,6 @@ defmodule HashDict do
     contract_on: @contract_load,
     root: @node_template
 
-
   import Bitwise
 
   # Let's inline common instructions

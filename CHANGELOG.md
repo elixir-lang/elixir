@@ -1,6 +1,7 @@
 * enhancements
   * [ExUnit] Use ANSI escape codes in CLI output
   * [ExUnit] Include suite run time on CLI results
+  * [Macro] `Macro.escape` now supports `escape_unquote` as an option
   * [Kernel] Better error reporting for invalid bitstring generators
   * [Kernel] Improve meta-programming by allowing `unquote` on `def/2`, `defp/2`, `defmacro/2` and `defmacrop/2`
 

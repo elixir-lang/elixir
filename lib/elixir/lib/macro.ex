@@ -56,6 +56,10 @@ defmodule Macro do
   into a syntax tree. Structures that are valid syntax nodes
   (like atoms, integers, binaries) are represented by themselves.
 
+  ## Options
+
+  * `escape_unquote` - when false, does not escape unquoted calls
+
   ## Examples
 
       Macro.escape(:foo)
@@ -63,6 +67,7 @@ defmodule Macro do
 
       Macro.escape({ :a, :b, :c })
       #=> { :{}, [], [:a, :b, :c] }
+
   """
   def escape(expr, opts // []) do
     do_escape(expr, not Keyword.get(opts, :escape_unquote, true))

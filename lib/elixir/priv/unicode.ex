@@ -58,9 +58,9 @@ defmodule String.Unicode do
   # Downcase
 
   lc { codepoint, _upper, lower, _title } inlist codes, lower && lower != codepoint do
-    args = quote do: [unquote(codepoint) <> t]
-    code = quote do: unquote(lower) <> downcase(t)
-    def :downcase, args, [], do: code
+    def downcase(unquote(codepoint) <> t) do
+      unquote(lower) <> downcase(t)
+    end
   end
 
   def downcase(<< h, t :: binary >>) do
@@ -74,9 +74,9 @@ defmodule String.Unicode do
   # Upcase
 
   lc { codepoint, upper, _lower, _title } inlist codes, upper && upper != codepoint do
-    args = quote do: [unquote(codepoint) <> t]
-    code = quote do: unquote(upper) <> upcase(t)
-    def :upcase, args, [], do: code
+    def upcase(unquote(codepoint) <> t) do
+      unquote(upper) <> upcase(t)
+    end
   end
 
   def upcase(<< h, t :: binary >>) do
@@ -90,9 +90,9 @@ defmodule String.Unicode do
   # Titlecase once
 
   lc { codepoint, _upper, _lower, title } inlist codes, title && title != codepoint do
-    args = quote do: [unquote(codepoint) <> t]
-    code = quote do: { unquote(title), t }
-    def :titlecase_once, args, [], do: code
+    def titlecase_once(unquote(codepoint) <> t) do
+      { unquote(title), t }
+    end
   end
 
   def titlecase_once(<< h, t :: binary >>) do
@@ -122,9 +122,9 @@ defmodule String.Unicode do
   end
 
   lc char inlist whitespace do
-    args  = quote do: [unquote(char) <> rest, buffer]
-    exprs = quote do: do_rstrip(rest, unquote(char) <> buffer)
-    defp :do_rstrip, args, [], do: exprs
+    defp do_rstrip(unquote(char) <> rest, buffer) do
+      do_rstrip(rest, unquote(char) <> buffer)
+    end
   end
 
   defp do_rstrip(<< char, string :: binary >>, buffer) do
@@ -136,9 +136,9 @@ defmodule String.Unicode do
   # Graphemes
 
   lc codepoints inlist seqs do
-    seq_args  = quote do: [<< unquote_splicing(codepoints), t :: binary >>]
-    seq_code  = quote do: {<< unquote_splicing(codepoints) >>, t}
-    def :next_grapheme, seq_args, [], do: seq_code
+    def next_grapheme(<< unquote_splicing(codepoints), t :: binary >>) do
+      { << unquote_splicing(codepoints) >>, t }
+    end
   end
 
   def next_grapheme(<<>>) do

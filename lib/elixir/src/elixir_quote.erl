@@ -173,11 +173,9 @@ splice([], Q, Buffer, Acc, S) ->
   case NewAcc of
     [] ->
       { { nil, line(Q) }, NewS };
-    [List] ->
-      { List, NewS };
-    _ ->
-      List = elixir_tree_helpers:build_simple_reverse_list(line(Q), NewAcc),
-      { ?wrap_call(line(Q), lists, append, [List]), NewS }
+    [H|T] ->
+      Line = line(Q),
+      { lists:foldl(fun(L, R) -> { op, Line, '++', L, R } end, H, T), NewS }
   end.
 
 from_buffer_to_acc([], _Q, Acc, S) ->
