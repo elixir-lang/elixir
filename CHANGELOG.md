@@ -11,18 +11,17 @@
   * [Path] Fix a bug on `Path.expand` when expanding paths starting with `~`
 
 * backwards incompatible changes
-  * [Kernel] `unquote` only applies to the closes quote. If your code contains a quote, that contains another quote that calls unquote, it will no longer work. Use `Macro.escape` instead and pass your quoted contents up in steps, for example:
+  * [Kernel] `unquote` only applies to the closest quote. If your code contains a quote that contains another quote that calls unquote, it will no longer work. Use `Macro.escape` instead and pass your quoted contents up in steps, for example:
 
-        quote do
-          quote do: unquote(x)
-        end
+            quote do
+              quote do: unquote(x)
+            end
 
-    should become:
+      should become:
 
-        quote do
-          x = unquote(Macro.escape(x))
-          quote do: unquote(x)
-        end
+            quote do
+              unquote(Macro.escape(x))
+            end
 
 # v0.8.1 (2013-02-17)
 
