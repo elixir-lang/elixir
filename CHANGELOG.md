@@ -2,12 +2,27 @@
   * [ExUnit] Use ANSI escape codes in CLI output
   * [ExUnit] Include suite run time on CLI results
   * [Kernel] Better error reporting for invalid bitstring generators
+  * [Kernel] Improve meta-programming by allowing `unquote` on `def/2`, `defp/2`, `defmacro/2` and `defmacrop/2`
 
 * bug fix
   * [Binary] inspect no longer escapes standalone hash `#`
   * [Kernel] Record optimizations were not being triggered in functions inside the record module
   * [Kernel] Aliases defined inside macros should be carried over
   * [Path] Fix a bug on `Path.expand` when expanding paths starting with `~`
+
+* backwards incompatible changes
+  * [Kernel] `unquote` only applies to the closes quote. If your code contains a quote, that contains another quote that calls unquote, it will no longer work. Use `Macro.escape` instead and pass your quoted contents up in steps, for example:
+
+        quote do
+          quote do: unquote(x)
+        end
+
+    should become:
+
+        quote do
+          x = unquote(Macro.escape(x))
+          quote do: unquote(x)
+        end
 
 # v0.8.1 (2013-02-17)
 

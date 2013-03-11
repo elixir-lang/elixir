@@ -52,4 +52,3 @@
 -define(is_word(S), ?is_digit(S) orelse ?is_upcase(S) orelse ?is_downcase(S)).
 -define(is_quote(S), S == $" orelse S == $').
 -define(is_space(S), S == $\s; S == $\r; S == $\t; S == $\n).
-
