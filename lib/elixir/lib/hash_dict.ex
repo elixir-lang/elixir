@@ -33,26 +33,27 @@ defmodule HashDict do
   #    set of buckets
 
   # The ordered record contains a single bucket
-  @ordered_threshold 8
+  ordered_threshold = 8
 
   defrecordp :ordered,
     size: 0,
     bucket: []
 
   # The bucketed record contains a series of buckets.
-  @expand_load 5
-  @contract_load 2
-  @node_bitmap 0b111
-  @node_shift 3
-  @node_size 8
-  @node_template :erlang.make_tuple(@node_size, [])
+  expand_load = 5
+  contract_load = 2
+  node_bitmap = 0b111
+  node_shift = 3
+  node_size = 8
+  node_template = :erlang.make_tuple(node_size, [])
+  node_escaped = Macro.escape(node_template)
 
   defrecordp :trie,
     size: 0,
     depth: 0,
-    expand_on: @node_size * @expand_load,
-    contract_on: @contract_load,
-    root: @node_template
+    expand_on: node_size * expand_load,
+    contract_on: contract_load,
+    root: node_template
 
   import Bitwise
 
@@ -193,8 +194,8 @@ defmodule HashDict do
             root: root,
             size: size - 1,
             depth: depth - 1,
-            contract_on: div(size, @node_size),
-            expand_on: div(trie(dict, :expand_on), @node_size))
+            contract_on: div(size, unquote(node_size)),
+            expand_on: div(trie(dict, :expand_on), unquote(node_size)))
         else
           trie(dict, size: size - 1, root: root)
         end
@@ -278,12 +279,12 @@ defmodule HashDict do
   end
 
   defp dict_fold(trie(root: root, depth: depth), acc, fun) do
-    node_fold(root, depth, acc, fun, @node_size)
+    node_fold(root, depth, acc, fun, unquote(node_size))
   end
 
-  defp dict_put(ordered(size: @ordered_threshold, bucket: bucket), key, value) do
+  defp dict_put(ordered(size: unquote(ordered_threshold), bucket: bucket), key, value) do
     root = node_relocate(bucket, 0)
-    dict_put(trie(size: @ordered_threshold, root: root), key, value)
+    dict_put(trie(size: unquote(ordered_threshold), root: root), key, value)
   end
 
   defp dict_put(ordered(size: size, bucket: bucket) = dict, key, value) do
@@ -294,7 +295,7 @@ defmodule HashDict do
   defp dict_put(trie(root: root, depth: depth, size: size, expand_on: size, contract_on: contract_on) = dict, key, value) do
     root = node_expand(root, depth, depth + 1)
     dict = trie(dict, root: root, depth: depth + 1,
-      expand_on: size * @node_size, contract_on: contract_on * @node_size)
+      expand_on: size * unquote(node_size), contract_on: contract_on * unquote(node_size))
     dict_put(dict, key, value)
   end
 
@@ -371,15 +372,15 @@ defmodule HashDict do
   end
 
   defp bucket_index(hash) do
-    hash &&& @node_bitmap
+    hash &&& unquote(node_bitmap)
   end
 
   defp bucket_nth_index(hash, n) do
-    (hash >>> (@node_shift * n)) &&& @node_bitmap
+    (hash >>> (unquote(node_shift) * n)) &&& unquote(node_bitmap)
   end
 
   defp bucket_next(hash) do
-    hash >>> @node_shift
+    hash >>> unquote(node_shift)
   end
 
   ## Node helpers
@@ -430,7 +431,7 @@ defmodule HashDict do
   end
 
   defp node_fold(node, depth, acc, fun, count) when count >= 1 do
-    acc = node_fold(:erlang.element(count, node), depth - 1, acc, fun, @node_size)
+    acc = node_fold(:erlang.element(count, node), depth - 1, acc, fun, unquote(node_size))
     node_fold(node, depth, acc, fun, count - 1)
   end
 
@@ -460,18 +461,20 @@ defmodule HashDict do
   end
 
   defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8 }, 1, n) do
-    @node_template |> each_contract(b1, n) |> each_contract(b2, n) |> each_contract(b3, n)
-                   |> each_contract(b4, n) |> each_contract(b5, n) |> each_contract(b6, n)
-                   |> each_contract(b7, n) |> each_contract(b8, n)
+    unquote(node_escaped)
+      |> each_contract(b1, n) |> each_contract(b2, n) |> each_contract(b3, n)
+      |> each_contract(b4, n) |> each_contract(b5, n) |> each_contract(b6, n)
+      |> each_contract(b7, n) |> each_contract(b8, n)
   end
 
   defp each_contract(acc, { b1, b2, b3, b4, b5, b6, b7, b8 }, n) do
-    acc |> node_relocate(b1, n) |> node_relocate(b2, n) |> node_relocate(b3, n)
-        |> node_relocate(b4, n) |> node_relocate(b5, n) |> node_relocate(b6, n)
-        |> node_relocate(b7, n) |> node_relocate(b8, n)
+    acc
+      |> node_relocate(b1, n) |> node_relocate(b2, n) |> node_relocate(b3, n)
+      |> node_relocate(b4, n) |> node_relocate(b5, n) |> node_relocate(b6, n)
+      |> node_relocate(b7, n) |> node_relocate(b8, n)
   end
 
-  defp node_relocate(node // @node_template, bucket, n) do
+  defp node_relocate(node // unquote(node_escaped), bucket, n) do
     :lists.foldl fn { key, value }, acc ->
       pos = key |> bucket_hash() |> bucket_nth_index(n)
       setelem(acc, pos, bucket_put!(elem(acc, pos), key, value))
