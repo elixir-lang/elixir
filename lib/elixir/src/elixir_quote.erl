@@ -53,7 +53,7 @@ user_quote(Expr, S) ->
 
 %% Quotes an expression into Erlang's AST
 
-quote({ 'unquote_splicing', Meta, _ } = Expr, #elixir_quote{unquote=true} = Q, S) ->
+quote({ 'unquote_splicing', Meta, [_] } = Expr, #elixir_quote{unquote=true} = Q, S) ->
   do_quote({ '__block__', Meta, [Expr] }, Q, S);
 
 quote(Else, Q, S) ->

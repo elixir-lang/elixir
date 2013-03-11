@@ -232,7 +232,7 @@ translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
 
 %% Quoting
 
-translate_each({ Unquote, Meta, _Args }, S) when Unquote == unquote; Unquote == unquote_splicing ->
+translate_each({ Unquote, Meta, [_|_] }, S) when Unquote == unquote; Unquote == unquote_splicing ->
   syntax_error(Meta, S#elixir_scope.file, "~p called outside quote", [Unquote]);
 
 translate_each({ quote, Meta, [Left, Right] }, S) ->
