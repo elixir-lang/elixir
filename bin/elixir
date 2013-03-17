@@ -1,8 +1,8 @@
 #!/bin/sh
-if [ $# -eq 0 ]; then
+if [ $# -eq 0 ] || [ $1 = "--help" ] || [ $1 = "-h" ]; then
   echo "Usage: `basename $0` [options] [.exs file] [data]
 
-  -v                Prints version and exit
+  -v                Prints version
   -e \"command\"      Evaluates the given command (*)
   -r \"file\"         Requires the given files/patterns (*)
   -S \"script\"       Finds and executes the given script (*)
@@ -13,7 +13,6 @@ if [ $# -eq 0 ]; then
   --erl \"switches\"  Switches to be passed down to erlang (*)
   --name \"name\"     Makes and assigns a name to the distributed node
   --sname \"name\"    Makes and assigns a short name to the distributed node
-  --remsh \"name\"    Connects to a node using a remote shell (with iex)
   --detached        Starts the Erlang VM detached from console
   --no-halt         Does not halt the Erlang VM after execution
 

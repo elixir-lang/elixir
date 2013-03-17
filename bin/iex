@@ -1,4 +1,26 @@
 #!/bin/sh
+if [ $# -gt 0 ] && ([ $1 = "--help" ] || [ $1 = "-h" ]); then
+  echo "Usage: `basename $0` [options] [.exs file] [data]
+
+  -v                Prints version
+  -e \"command\"      Evaluates the given command (*)
+  -r \"file\"         Requires the given files/patterns (*)
+  -S \"script\"       Finds and executes the given script (*)
+  -pr \"file\"        Requires the given files/patterns in parallel (*)
+  -pa \"path\"        Prepends the given path to Erlang code path (*)
+  -pz \"path\"        Appends the given path to Erlang code path (*)
+  --app \"app\"       Start the given app and its dependencies (*)
+  --erl \"switches\"  Switches to be passed down to erlang (*)
+  --name \"name\"     Makes and assigns a name to the distributed node
+  --sname \"name\"    Makes and assigns a short name to the distributed node
+  --remsh \"name\"    Connects to a node using a remote shell
+
+** Options marked with (*) can be given more than once
+** Options given after the .exs file or -- are passed down to the executed code
+** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS or --erl" >&2
+  exit 1
+fi
+
 readlink_f () {
   cd "$(dirname "$1")" > /dev/null
   local filename="$(basename "$1")"
