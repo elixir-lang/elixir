@@ -19,8 +19,8 @@ extract(Line, _File, _Interpol, [], _Buffer, [], _Output, Last) ->
 extract(Line, File, _Interpol, [Last|Remaining], Buffer, [], Output, Last) ->
   finish_extraction(Line, File, Buffer, Output, Remaining);
 
-extract(Line, _File, _Interpol, [Last], _Buffer, Search, _Output, Last) ->
-  { error, { Line, io_lib:format("unexpected end of string: ~ts", [[hd(Search)]]), [Last] } };
+extract(Line, _File, _Interpol, End, _Buffer, Search, _Output, Last) when End == [Last]; End == [] ->
+  { error, { Line, io_lib:format("missing terminator: ~ts", [[Last]]), [] } };
 
 extract(Line, File, Interpol, [$\n|Rest], Buffer, Search, Output, Last) ->
   extract(Line+1, File, Interpol, Rest, [$\n|Buffer], Search, Output, Last);

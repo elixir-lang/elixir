@@ -98,7 +98,8 @@ bin_string_with_escaped_interpolation_test() ->
   {<<"f#{'o}o">>, _} = eval("\"f\\#{'o}o\"").
 
 invalid_string_interpolation_test() ->
-  ?assertError({'Elixir.SyntaxError', _, _, _, _}, eval("\"f#{{}o\"")).
+  ?assertError({'Elixir.TokenMissingError', _, _, _, _}, eval("\"f#{some\"")),
+  ?assertError({'Elixir.TokenMissingError', _, _, _, _}, eval("\"f#{1+")).
 
 unterminated_string_interpolation_test() ->
   ?assertError({'Elixir.TokenMissingError', _, _, _, _}, eval("\"foo")).
