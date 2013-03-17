@@ -1,6 +1,7 @@
 * enhancements
   * [ExUnit] Use ANSI escape codes in CLI output
   * [ExUnit] Include suite run time on CLI results
+  * [IEx] Support `pwd` and `cd` helpers
   * [Macro] `Macro.escape` now supports `escape_unquote` as an option
   * [Kernel] Better error reporting for invalid bitstring generators
   * [Kernel] Improve meta-programming by allowing `unquote` on `def/2`, `defp/2`, `defmacro/2` and `defmacrop/2`
@@ -12,7 +13,7 @@
   * [Path] Fix a bug on `Path.expand` when expanding paths starting with `~`
 
 * backwards incompatible changes
-  * [Kernel] `unquote` only applies to the closest quote. If your code contains a quote that contains another quote that calls unquote, it will no longer work. Use `Macro.escape` instead and pass your quoted contents up in steps, for example:
+  * [Kernel] `unquote` now only applies to the closest quote. If your code contains a quote that contains another quote that calls unquote, it will no longer work. Use `Macro.escape` instead and pass your quoted contents up in steps, for example:
 
             quote do
               quote do: unquote(x)

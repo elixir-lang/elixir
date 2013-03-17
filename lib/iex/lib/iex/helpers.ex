@@ -12,15 +12,17 @@ defmodule IEx.Helpers do
   There are many other helpers available:
 
   * `c/2` - compiles a file in the given path
+  * `cd/1` - changes the current directory
+  * `flush/0` — flush all messages sent to the shell
   * `h/0`, `h/1` - prints help/documentation
-  * `t/1` — prints type information
-  * `s/1` — prints spec information
-  * `m/0` - prints loaded modules
-  * `r/0`, `r/1` - recompiles and reloads the given module's source file
   * `l/1` - loads given module beam code by purging the current version
+  * `m/0` - prints loaded modules
+  * `pwd/0` - prints the current working directory
+  * `r/0`, `r/1` - recompiles and reloads the given module's source file
+  * `s/1` — prints spec information
+  * `t/1` — prints type information
   * `v/0` - prints all commands and values
   * `v/1` - retrieves nth value from console
-  * `flush/0` — flush all messages sent to the shell
 
   Help for functions in this module can be consulted
   directly from the command line, as an example, try:
@@ -43,7 +45,7 @@ defmodule IEx.Helpers do
   ## Examples
 
       c ["foo.ex"], "ebin"
-      #=> Foo
+      #=> [Foo]
 
   """
   def c(files, path // ".") do
@@ -154,12 +156,12 @@ defmodule IEx.Helpers do
             IO.puts IO.ANSI.escape("%{yellow}# #{inspect module}\n")
             IO.write IO.ANSI.escape("%{yellow}#{binary}")
           { _, _ } ->
-            IO.puts IO.ANSI.escape("%{yellow}No docs for #{inspect module} have been found")
+            IO.puts IO.ANSI.escape("%{red}No docs for #{inspect module} have been found")
           _ ->
-            IO.puts IO.ANSI.escape("%{yellow}#{inspect module} was not compiled with docs")
+            IO.puts IO.ANSI.escape("%{red}#{inspect module} was not compiled with docs")
         end
       { :error, reason } ->
-        IO.puts IO.ANSI.escape("%{yellow}Could not load module #{inspect module}: #{reason}")
+        IO.puts IO.ANSI.escape("%{red}Could not load module #{inspect module}: #{reason}")
     end
   end
 
@@ -173,7 +175,7 @@ defmodule IEx.Helpers do
   end
 
   def h(_, _) do
-    IO.puts IO.ANSI.escape("%{yellow}Invalid h helper argument")
+    IO.puts IO.ANSI.escape("%{red}Invalid h helper argument")
     h()
   end
 
@@ -190,10 +192,10 @@ defmodule IEx.Helpers do
       if doc do
         IO.write "\n" <> print_signature(doc)
       else
-        IO.puts IO.ANSI.escape("%{yellow}No docs for #{inspect module}.#{function}/#{arity} have been found")
+        IO.puts IO.ANSI.escape("%{red}No docs for #{inspect module}.#{function}/#{arity} have been found")
       end
     else
-      IO.puts IO.ANSI.escape("%{yellow}#{inspect module} was not compiled with docs")
+      IO.puts IO.ANSI.escape("%{red}#{inspect module} was not compiled with docs")
     end
   end
 
@@ -270,7 +272,7 @@ defmodule IEx.Helpers do
     end
 
     if types == [] do
-       IO.puts  IO.ANSI.escape("%{yellow}No types for #{inspect module}.#{type} have been found")
+       IO.puts  IO.ANSI.escape("%{red}No types for #{inspect module}.#{type} have been found")
     end
 
     :ok
@@ -280,7 +282,7 @@ defmodule IEx.Helpers do
     types = lc type inlist Kernel.Typespec.beam_types(module), do: print_type(type)
 
     if types == [] do
-      IO.puts  IO.ANSI.escape("%{yellow}No types for #{inspect module} have been found")
+      IO.puts  IO.ANSI.escape("%{red}No types for #{inspect module} have been found")
     end
 
     :ok
@@ -293,7 +295,7 @@ defmodule IEx.Helpers do
 
     case types do
      [] ->
-       IO.puts  IO.ANSI.escape("%{yellow}No types for #{inspect module}.#{type}/#{arity} have been found")
+       IO.puts  IO.ANSI.escape("%{red}No types for #{inspect module}.#{type}/#{arity} have been found")
      [type] ->
        print_type(type)
     end
@@ -352,7 +354,7 @@ defmodule IEx.Helpers do
     end
 
     if specs == [] do
-      IO.puts  IO.ANSI.escape("%{yellow}No specs for #{inspect module}.#{function} have been found")
+      IO.puts  IO.ANSI.escape("%{red}No specs for #{inspect module}.#{function} have been found")
     end
 
     :ok
@@ -362,7 +364,7 @@ defmodule IEx.Helpers do
     specs = lc spec inlist beam_specs(module), do: print_spec(spec)
 
     if specs == [] do
-      IO.puts  IO.ANSI.escape("%{yellow}No specs for #{inspect module} have been found")
+      IO.puts  IO.ANSI.escape("%{red}No specs for #{inspect module} have been found")
     end
 
     :ok
@@ -377,7 +379,7 @@ defmodule IEx.Helpers do
     end
 
     if specs == [] do
-      IO.puts  IO.ANSI.escape("%{yellow}No specs for #{inspect module}.#{function} have been found")
+      IO.puts  IO.ANSI.escape("%{red}No specs for #{inspect module}.#{function} have been found")
     end
 
     :ok
@@ -483,6 +485,24 @@ defmodule IEx.Helpers do
     case source do
       { :source, source } -> list_to_binary(source)
       _ -> nil
+    end
+  end
+
+  @doc """
+  Prints the current working directory.
+  """
+  def pwd do
+    IO.puts IO.ANSI.escape("%{yellow}#{System.cwd!}")
+  end
+
+  @doc """
+  Changes the shell directory to the given path.
+  """
+  def cd(directory) do
+    case File.cd(directory) do
+      :ok -> pwd
+      { :error, :enoent } ->
+        IO.puts IO.ANSI.escape("%{red}No directory #{directory}")
     end
   end
 end
