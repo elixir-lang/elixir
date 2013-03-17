@@ -18,6 +18,7 @@ defmodule Mix.Tasks.Test do
 
   ## Command line options
 
+  * `--cover` - the directory to include coverage results;
   * `--force` - forces compilation regardless of module times;
   * `--quick`, `-q` - only compile files that changed;
   * `--no-compile` - do not compile even if files require compilation;
@@ -34,10 +35,13 @@ defmodule Mix.Tasks.Test do
   * `:test_helper` - a file that sets up whatever is necessary
     for testing. Defaults to `test/test_helper.exs`.
 
+  * `:test_coverage` - the directory to include test coverage results.
+    Defaults to nil.
+
   """
   def run(args) do
-    { _, files } = OptionParser.parse(args, aliases: [q: :quick],
-                     switches: [quick: :boolean, force: :boolean])
+    { opts, files } = OptionParser.parse(args, aliases: [q: :quick],
+                        switches: [quick: :boolean, force: :boolean])
 
     unless System.get_env("MIX_ENV") do
       Mix.env(:test)
@@ -46,6 +50,9 @@ defmodule Mix.Tasks.Test do
 
     Mix.Task.run Mix.project[:prepare_task], args
     project = Mix.project
+
+    cover = Keyword.get(project, :test_coverage, opts[:cover])
+    if cover, do: enable_cover(project, cover)
 
     test_helper = Keyword.get(project, :test_helper, "test/test_helper.exs")
     test_helper?(test_helper) && Code.require_file(test_helper)
@@ -62,6 +69,22 @@ defmodule Mix.Tasks.Test do
       true
     else
       raise Mix.Error, message: "Cannot run tests because test helper file #{inspect file} does not exist"
+    end
+  end
+
+  defp enable_cover(project, cover) do
+    IO.write "Cover compiling modules ... "
+    :cover.start
+    :cover.compile_beam_directory(project[:compile_path] |> to_char_list)
+    IO.puts "ok"
+
+    System.at_exit fn(_) ->
+      IO.write "Generating cover results ... "
+      File.mkdir_p!(cover)
+      Enum.each :cover.modules, fn(mod) ->
+        :cover.analyse_to_file(mod, '#{cover}/#{mod}.html', [:html])
+      end
+      IO.puts "ok"
     end
   end
 end
