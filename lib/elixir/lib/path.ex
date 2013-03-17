@@ -14,6 +14,9 @@ defmodule Path do
 
   alias :filename, as: FN
 
+  @type t :: char_list | atom | binary
+  @type r :: char_list | binary
+
   @doc """
   Converts the given filename and returns an absolute name.
   Differently from `Path.expand/1`, no attempt is made to
