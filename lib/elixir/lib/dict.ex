@@ -1,5 +1,5 @@
 defmodule Dict do
-  @moduledoc """
+  @moduledoc %B"""
   This module specifies the Dict API expected to be
   implemented by different dictionaries. It also provides
   functions that redirect to the underlying Dict, allowing
