@@ -13,13 +13,27 @@ defmodule Dict do
 
   For simplicity's sake, in the examples below everytime
   `new` is used, it implies one of the module-specific
-  calls like the two above. Likewise, when the result of
-  a function invocation is shown in the form `[a: 1, b: 2]`,
-  it implies that the returned value is actually of the
-  same dict type as the input one.
+  calls like above. Likewise, when the result of a function
+  invocation is shown in the form `[a: 1, b: 2]`, it implies
+  that the returned value is actually of the same dict type
+  as the input one.
 
-  Keep in mind that all dicts are also required to
-  implement both `Access` and `Enum.Iterator` protocols.
+  ## Protocols
+
+  Besides implementing the functions in this module, all
+  dictionaries are also required to implement the `Access`
+  protocol:
+
+      dict = HashDict.new
+      dict = Dict.put dict, :hello, :world
+      dict[:hello] #=> :world
+
+  And also the `Enum.Iterator` protocol, allowing one to write:
+
+      Enum.each dict, fn { k, v } ->
+        IO.puts "#{k}: #{v}"
+      end
+
   """
 
   use Behaviour
