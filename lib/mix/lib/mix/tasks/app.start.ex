@@ -43,7 +43,7 @@ defmodule Mix.Tasks.App.Start do
       case Application.Behaviour.start(app) do
         :ok -> :ok
         { :error, reason } ->
-          Mix.shell.error "Could not start application #{app}: #{inspect reason}"
+          raise Mix.Error, message: "Could not start application #{app}: #{inspect reason}"
       end
     end
   end

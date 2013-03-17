@@ -13,8 +13,9 @@ defmodule Mix.Tasks.App.StartTest do
     Mix.Project.push CustomApp
 
     in_fixture "no_mixfile", fn ->
-      Mix.Tasks.App.Start.run ["--no-compile"]
-      assert_received { :mix_shell, :error,["Could not start application app_start_sample: " <> _]}
+      assert_raise Mix.Error, fn ->
+        Mix.Tasks.App.Start.run ["--no-compile"]
+      end
 
       Mix.Tasks.App.Start.run ["--no-start"]
       assert File.regular?("ebin/Elixir-A.beam")
