@@ -54,11 +54,6 @@ defmodule IEx.AutocompleteTest do
     assert expand('System.ve') == {:yes, 'rsion', []}
   end
 
-  test :elixir_function_nodoc do
-    {:yes, '', list} = expand('Keyword.get')
-    assert 'get/2' inlist list
-  end
-
   test :elixir_function_completion_with_arity do
     assert expand('String.printable?')  == {:yes, '', ['printable?/1']}
     assert expand('String.printable?/') == {:yes, '', ['printable?/1']}
