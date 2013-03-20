@@ -105,8 +105,8 @@ defmodule Mix.Tasks.Test do
         merged_files |> Dict.to_list |> Enum.each write_merged_html(cover, &1)
       end
       { :ok, html_names } = :file.list_dir(cover)
-      coverage = Enum.reduce html_names, HashDict.new, analyze_cover_html(cover, do_lines, &1, &2)
       IO.puts ""
+      coverage = Enum.reduce html_names, HashDict.new, analyze_cover_html(cover, do_lines, &1, &2)
       write_index(cover, coverage, do_lines, to_merge)
     end
     IO.puts "Finished in #{format_ms(ms)} seconds"
@@ -190,7 +190,6 @@ defmodule Mix.Tasks.Test do
   end
 
   defp analyze_cover_html(cover, do_lines, html_name, coverage) do
-    IO.write "."
     { :ok, file } = File.open("#{cover}/#{html_name}")
     { file_name, covered_lines, unexpected_lines, skipped_lines, uncovered_lines, _line_number, nesting_level, open_line } =
       File.iterator(file) |> Enum.reduce { html_name, 0, 0, 0, 0, 0, 0, 0 }, analyze_cover_line(do_lines, &1, &2)
