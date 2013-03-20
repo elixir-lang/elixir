@@ -6,6 +6,8 @@
   * [Kernel] Improve meta-programming by allowing `unquote` on `def/2`, `defp/2`, `defmacro/2` and `defmacrop/2`
   * [Macro] `Macro.escape` now supports `escape_unquote` as an option
   * [Mix] Support `--cover` on mix test and `test_coverage` on Mixfiles
+  * [Mix] Support `--merge` on mix test --cover to generate only one HTML file per source file
+  * [Mix] Support `--lines` on mix test --cover to track un/covered lines
 
 * bug fix
   * [Binary] inspect no longer escapes standalone hash `#`
