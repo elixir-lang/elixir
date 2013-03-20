@@ -43,9 +43,11 @@ defmodule Mix.CLITest do
       assert output =~ %r"1 tests, 0 failures"
 
       unless :erlang.system_info(:otp_release) < 'R16' do
-        output = mix "test test/hidden.ex --cover cover"
+        output = mix "test test/hidden.ex --cover cover --merge --lines"
         assert output =~ %r"1 tests, 1 failures"
-        assert output =~ %r"Generating cover results ... ok"
+        assert output =~ %r"Cover compiling modules ..."
+        assert output =~ %r"Collect test coverage "
+        assert output =~ %r"Generating cover results "
         assert File.regular?("cover/Elixir-A.html")
       end
     end
@@ -95,6 +97,19 @@ defmodule Mix.CLITest do
       assert output =~ %r(\* creating lib/new_with_tests/supervisor.ex)
 
       output = mix "test"
+      assert File.regular?("ebin/Elixir-NewWithTests.beam")
+      assert output =~ %r"1 tests, 0 failures"
+    end
+  end
+
+  test "new --sup with tests smoke test merged coverage" do
+    in_tmp "new_with_tests", fn ->
+      output = mix "new . --sup"
+      assert output =~ %r(\* creating lib/new_with_tests.ex)
+      assert output =~ %r(\* creating lib/new_with_tests/supervisor.ex)
+
+      output = mix "test --cover cover --merge --lines"
+      assert File.regular?("cover/lib-new_with_tests.ex.html")
       assert File.regular?("ebin/Elixir-NewWithTests.beam")
       assert output =~ %r"1 tests, 0 failures"
     end

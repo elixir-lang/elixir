@@ -184,7 +184,7 @@ defmodule Mix.Tasks.Test do
   end
 
   defp write_merged_html(cover, { file_name, lines }) do
-    { :ok, file } = File.open("#{cover}/#{file_name}", [ :write ])
+    { :ok, file } = File.open("#{cover}/#{file_name}.html", [ :write ])
     lines |> Enum.each IO.write(file, &1)
     File.close(file)
   end
@@ -335,7 +335,7 @@ defmodule Mix.Tasks.Test do
                         lines = covered_lines + unexpected_lines + skipped_lines + uncovered_lines
                         IO.puts file, "<tr>"
                         if to_merge do
-                          IO.puts file, "<td class='src'><a href='#{String.replace(source_name, "/", "-")}'>#{source_name}</a></td>"
+                          IO.puts file, "<td class='src'><a href='#{String.replace(source_name, "/", "-")}.html'>#{source_name}</a></td>"
                         else
                           IO.puts file, "<td class='src'>#{source_name}</td>"
                         end
