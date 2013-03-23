@@ -929,7 +929,7 @@ defmodule File do
   """
   def listdir!(dir) do
     case F.list_dir(dir) do
-      { :ok, file_list } -> { :ok, Enum.map file_list, :unicode.characters_to_binary(&1) }
+      { :ok, file_list } -> Enum.map file_list, :unicode.characters_to_binary(&1)
       { :error, reason } ->
         raise File.Error, reason: reason, action: "list directory", path: :unicode.characters_to_binary(dir)
     end
