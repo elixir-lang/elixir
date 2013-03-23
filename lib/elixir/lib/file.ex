@@ -897,6 +897,30 @@ defmodule File do
     end
   end
 
+
+@doc """
+  Returns list of files in the current working directory. In rare circumstances, this function can
+  fail on Unix. It may happen if read permission does not exist for the parent
+  directories of the current directory. For this reason, returns `{ :ok, [files] }`
+  in case of success, `{ :error, reason }` otherwise.
+  """
+  def listdir() do
+    listdir(".")
+  end
+
+@doc """
+  Returns list of files in the given directory. In rare circumstances, this function can
+  fail on Unix. It may happen if read permission does not exist for the parent
+  directories of the current directory. For this reason, returns `{ :ok, [files] }`
+  in case of success, `{ :error, reason }` otherwise.
+  """
+  def listdir(path) do
+    case F.list_dir(path) do
+      { :ok, file_list } -> { :ok, Enum.map file_list, :unicode.characters_to_binary(&1) }
+      { :error, _ } = error -> error
+    end
+  end
+
   @doc """
   Closes the file referenced by `io_device`. It mostly returns `:ok`, except
   for some severe errors such as out of memory.
