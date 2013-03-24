@@ -904,8 +904,8 @@ defmodule File do
   directories of the current directory. For this reason, returns `{ :ok, [files] }`
   in case of success, `{ :error, reason }` otherwise.
   """
-  def listdir() do
-    listdir(".")
+  def ls() do
+    ls(".")
   end
 
 @doc """
@@ -914,7 +914,7 @@ defmodule File do
   directories of the current directory. For this reason, returns `{ :ok, [files] }`
   in case of success, `{ :error, reason }` otherwise.
   """
-  def listdir(path) do
+  def ls(path) do
     case F.list_dir(path) do
       { :ok, file_list } -> { :ok, Enum.map file_list, :unicode.characters_to_binary(&1) }
       { :error, _ } = error -> error
@@ -927,7 +927,7 @@ defmodule File do
  
   Raises File.Error in case of an error.
   """
-  def listdir!(dir) do
+  def ls!(dir) do
     case F.list_dir(dir) do
       { :ok, file_list } -> Enum.map file_list, :unicode.characters_to_binary(&1)
       { :error, reason } ->
