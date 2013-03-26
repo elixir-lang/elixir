@@ -1558,12 +1558,14 @@ defmodule Kernel do
     case __CALLER__.in_guard? do
       true ->
         quote do
-          is_tuple(unquote(thing)) and :erlang.element(1, unquote(thing)) == unquote(kind)
+          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 0
+            and :erlang.element(1, unquote(thing)) == unquote(kind)
         end
       false ->
         quote do
           result = unquote(thing)
-          is_tuple(result) and :erlang.element(1, result) == unquote(kind)
+          is_tuple(result) and tuple_size(unquote(thing)) > 0
+            and :erlang.element(1, result) == unquote(kind)
         end
     end
   end
@@ -1575,12 +1577,14 @@ defmodule Kernel do
     case __CALLER__.in_guard? do
       true ->
         quote do
-          is_tuple(unquote(thing)) and is_atom(:erlang.element(1, unquote(thing)))
+          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 0
+            and is_atom(:erlang.element(1, unquote(thing)))
         end
       false ->
         quote do
           result = unquote(thing)
-          is_tuple(result) and is_atom(:erlang.element(1, result))
+          is_tuple(result) and tuple_size(unquote(thing)) > 0
+            and is_atom(:erlang.element(1, result))
         end
     end
   end

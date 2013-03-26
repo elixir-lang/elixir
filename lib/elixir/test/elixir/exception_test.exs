@@ -5,7 +5,9 @@ defmodule Kernel.ExceptionTest do
 
   test :is_exception do
     assert is_exception(RuntimeError.new)
-    refute is_exception({ :foo, :bar })
+    refute is_exception(empty_tuple)
+    refute is_exception(a_tuple)
+    refute is_exception(a_list)
   end
 
   test :format_entry_with_no_file_or_line do
@@ -74,4 +76,8 @@ defmodule Kernel.ExceptionTest do
   test :erlang_error_message do
     assert ErlangError.new(original: :sample).message == "erlang error: :sample"
   end
+
+  defp empty_tuple, do: {}
+  defp a_tuple, do: { :foo, :bar, :baz }
+  defp a_list,  do: [ :foo, :bar, :baz ]
 end
