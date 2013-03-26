@@ -57,60 +57,54 @@ defmodule String.Unicode do
 
   # Downcase
 
+  def downcase(""), do: ""
+
   lc { codepoint, _upper, lower, _title } inlist codes, lower && lower != codepoint do
-    def downcase(unquote(codepoint) <> t) do
-      unquote(lower) <> downcase(t)
+    def downcase(unquote(codepoint) <> rest) do
+      unquote(lower) <> downcase(rest)
     end
   end
 
-  def downcase(<< h, t :: binary >>) do
-    << h >> <> downcase(t)
-  end
-
-  def downcase(<< >>) do
-    << >>
+  def downcase(<< char, rest :: binary >>) do
+    << char >> <> downcase(rest)
   end
 
   # Upcase
 
+  def upcase(""), do: ""
+
   lc { codepoint, upper, _lower, _title } inlist codes, upper && upper != codepoint do
-    def upcase(unquote(codepoint) <> t) do
-      unquote(upper) <> upcase(t)
+    def upcase(unquote(codepoint) <> rest) do
+      unquote(upper) <> upcase(rest)
     end
   end
 
-  def upcase(<< h, t :: binary >>) do
-    << h >> <> upcase(t)
-  end
-
-  def upcase(<< >>) do
-    << >>
+  def upcase(<< char, rest :: binary >>) do
+    << char >> <> upcase(rest)
   end
 
   # Titlecase once
 
+  def titlecase_once(""), do: { "", "" }
+
   lc { codepoint, _upper, _lower, title } inlist codes, title && title != codepoint do
-    def titlecase_once(unquote(codepoint) <> t) do
-      { unquote(title), t }
+    def titlecase_once(unquote(codepoint) <> rest) do
+      { unquote(title), rest }
     end
   end
 
-  def titlecase_once(<< h, t :: binary >>) do
-    { <<h>>, t }
-  end
-
-  def titlecase_once(<< >>) do
-    { <<>>, <<>> }
+  def titlecase_once(<< char, rest :: binary >>) do
+    { << char >>, rest }
   end
 
   # Strip
 
   def lstrip(""), do: ""
 
-  lc char inlist whitespace do
-    args  = quote do: [unquote(char) <> rest]
-    exprs = quote do: lstrip(rest)
-    def :lstrip, args, [], do: exprs
+  lc codepoint inlist whitespace do
+    def lstrip(unquote(codepoint) <> rest) do
+      lstrip(rest)
+    end
   end
 
   def lstrip(other) when is_binary(other), do: other
@@ -121,17 +115,47 @@ defmodule String.Unicode do
     do_rstrip(string, "")
   end
 
-  lc char inlist whitespace do
-    defp do_rstrip(unquote(char) <> rest, buffer) do
-      do_rstrip(rest, unquote(char) <> buffer)
+  lc codepoint inlist whitespace do
+    defp do_rstrip(unquote(codepoint) <> rest, buffer) do
+      do_rstrip(rest, unquote(codepoint) <> buffer)
     end
   end
 
-  defp do_rstrip(<< char, string :: binary >>, buffer) do
-    << buffer :: binary, char, do_rstrip(string, "") :: binary >>
+  defp do_rstrip(<< char, rest :: binary >>, buffer) do
+    << buffer :: binary, char, do_rstrip(rest, "") :: binary >>
   end
 
   defp do_rstrip(<<>>, _), do: <<>>
+
+  # Split
+
+  def split(""), do: ""
+
+  def split(string) when is_binary(string) do
+    :lists.reverse do_split(string, "", [])
+  end
+
+  lc codepoint inlist whitespace do
+    defp do_split(unquote(codepoint) <> rest, buffer, acc) do
+      if buffer != "" do
+        do_split(rest, "", [buffer | acc])
+      else
+        do_split(rest, buffer, acc)
+      end
+    end
+  end
+
+  defp do_split(<< char, rest :: binary >>, buffer, acc) do
+    do_split(rest, << buffer :: binary, char >>, acc)
+  end
+
+  defp do_split(<<>>, buffer, acc) do
+    if buffer != "" do
+      [buffer | acc]
+    else
+      acc
+    end
+  end
 
   # Graphemes
 

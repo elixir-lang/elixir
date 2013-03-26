@@ -119,29 +119,35 @@ defmodule String do
   The string is split into as many parts as possible by
   default, unless the `global` option is set to false.
   If a pattern is not specified, the string is split on
-  whitespace occurrences.
+  Unicode whitespace occurrences with leading and trailing
+  whitespace ignored.
 
   It returns a list with the original string if the pattern
   can't be matched.
 
   ## Examples
 
-      String.split("a,b,c", ",")  #=> ["a", "b", "c"]
-      String.split("a,b,c", ",", global: false)  #=> ["a", "b,c"]
+      String.split("foo bar") #=> ["foo", "bar"]
+      String.split("foo" <> <<194,133>> <> "bar") #=> ["foo", "bar"]
+      String.split(" foo bar ") #=> ["foo", "bar"]
 
-      String.split("foo bar")     #=> ["foo", "bar"]
+      String.split("a,b,c", ",") #=> ["a", "b", "c"]
+      String.split("a,b,c", ",", global: false) #=> ["a", "b,c"]
+
       String.split("1,2 3,4", [" ", ","]) #=> ["1", "2", "3", "4"]
 
       String.split("a,b,c", %r{,}) #=> ["a", "b", "c"]
-      String.split("a,b,c", %r{,}, global: false)  #=> ["a", "b,c"]
-      String.split("a,b", %r{\.})   #=> ["a,b"]
+      String.split("a,b,c", %r{,}, global: false) #=> ["a", "b,c"]
+      String.split("a,b", %r{\.}) #=> ["a,b"]
 
   """
   @spec split(t) :: [t]
   @spec split(t, t | [t] | Regex.t) :: [t]
   @spec split(t, t | [t] | Regex.t, Keyword.t) :: [t]
 
-  def split(binary, pattern // " ", options // [])
+  defdelegate split(binary), to: String.Unicode
+
+  def split(binary, pattern, options // [])
 
   def split(binary, pattern, options) when is_regex(pattern) do
     Regex.split(pattern, binary, global: options[:global])
@@ -201,8 +207,8 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where trailing whitespace characters
-  and new line have been removed.
+  Returns a string where trailing Unicode whitespace
+  has been removed.
 
   ## Examples
 
@@ -248,8 +254,8 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where leading whitespace characters
-  have been removed.
+  Returns a string where leading Unicode whitespace
+  has been removed.
 
   ## Examples
 
@@ -278,8 +284,8 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where leading/trailing whitespace
-  and new line characters have been removed.
+  Returns a string where leading/trailing Unicode whitespace
+  has been removed.
 
   ## Examples
 
