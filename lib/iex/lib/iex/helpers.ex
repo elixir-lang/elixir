@@ -109,6 +109,12 @@ defmodule IEx.Helpers do
     end
   end
 
+  defmacro h({ { :., _, [mod, :*] }, _, [] }) do
+    quote do
+      h(unquote(mod), "*")
+    end
+  end
+
   defmacro h({ { :., _, [mod, fun] }, _, [] }) do
     quote do
       h(unquote(mod), unquote(fun))
