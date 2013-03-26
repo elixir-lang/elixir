@@ -165,6 +165,24 @@ defmodule IEx.Helpers do
     end
   end
 
+  def h(module, "*") when is_atom(module) do
+    case Code.ensure_loaded(module) do
+      { :module, _ } ->
+        IO.puts IO.ANSI.escape("%{yellow}Functions in #{module}\n")
+        Enum.each(module.__info__(:docs),
+          fn({{f,arity}, _line, _type, _args, _doc}, counter) ->
+            IO.write("  #{f}/#{arity}")
+            if ((rem counter, 4) == 3) do
+              IO.puts ""
+            end
+          end)
+        IO.puts ""
+      { :error, reason } ->
+        IO.puts IO.ANSI.escape("%{red}Could not load module #{inspect module}: #{reason}")
+    end
+    :ok
+  end
+
   def h(module, function) when is_atom(module) and is_atom(function) do
     lc {{f, arity}, _line, _type, _args, doc } inlist module.__info__(:docs),
        f == function and doc != false do
