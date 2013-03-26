@@ -109,6 +109,12 @@ defmodule IEx.Helpers do
     end
   end
 
+  defmacro h({ { :., _, [mod, :*] }, _, [] }) do
+    quote do
+      h(unquote(mod), "*")
+    end
+  end
+
   defmacro h({ { :., _, [mod, fun] }, _, [] }) do
     quote do
       h(unquote(mod), unquote(fun))
@@ -163,6 +169,24 @@ defmodule IEx.Helpers do
       { :error, reason } ->
         IO.puts IO.ANSI.escape("%{red}Could not load module #{inspect module}: #{reason}")
     end
+  end
+
+  def h(module, "*") when is_atom(module) do
+    case Code.ensure_loaded(module) do
+      { :module, _ } ->
+        IO.puts IO.ANSI.escape("%{yellow}Functions in #{module}\n")
+        Enum.each(module.__info__(:docs),
+          fn({{f,arity}, _line, _type, _args, _doc}, counter) ->
+            IO.write("  #{f}/#{arity}")
+            if ((rem counter, 4) == 3) do
+              IO.puts ""
+            end
+          end)
+        IO.puts ""
+      { :error, reason } ->
+        IO.puts IO.ANSI.escape("%{red}Could not load module #{inspect module}: #{reason}")
+    end
+    :ok
   end
 
   def h(module, function) when is_atom(module) and is_atom(function) do
