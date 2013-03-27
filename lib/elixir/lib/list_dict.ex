@@ -88,6 +88,14 @@ defmodule ListDict do
   end
 
   @doc """
+  Returns the value under the given key
+  from the dict as well as the dict without that key.
+  """
+  def pop(dict, key, default // nil) do
+    { get(dict, key, default), delete(dict, key) }
+  end
+
+  @doc """
   Puts the given key-value pair in the dict.
   """
   def put(dict, key, val) do

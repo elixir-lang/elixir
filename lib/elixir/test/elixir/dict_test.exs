@@ -10,7 +10,7 @@ defmodule DictTest.Common do
       defmacrop dicts_equal(actual, expected) do
         quote do
           cmp = fn { k1, _ }, { k2, _ } -> k1 < k2 end
-          Enum.sort(expected, cmp) == Enum.sort(actual, cmp)
+          Enum.sort(unquote(expected), cmp) == Enum.sort(unquote(actual), cmp)
         end
       end
 
@@ -136,6 +136,28 @@ defmodule DictTest.Common do
 
         dict = Dict.update dict, "non-existent", "...", fn val -> -val end
         assert "..." == Dict.get dict, "non-existent"
+      end
+
+      test :pop do
+        {v, actual} = Dict.pop(new_dict, "first_key")
+        assert 1 == v
+        assert dicts_equal actual, Dict.delete(new_dict, "first_key")
+
+        {v, actual} = Dict.pop(new_dict, "second_key")
+        assert 2 == v
+        assert dicts_equal actual, Dict.delete(new_dict, "second_key")
+
+        {v, actual} = Dict.pop(new_dict, "other_key")
+        assert nil == v
+        assert dicts_equal actual, new_dict
+
+        {v, actual} = Dict.pop(empty_dict, "first_key", "default")
+        assert "default" == v
+        assert dicts_equal actual, empty_dict
+
+        {v, actual} = Dict.pop(new_dict, "other_key", "default")
+        assert "default" == v
+        assert dicts_equal actual, new_dict
       end
 
       test :empty do

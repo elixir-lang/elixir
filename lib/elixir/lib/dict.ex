@@ -53,6 +53,8 @@ defmodule Dict do
   defcallback keys(t) :: list(key)
   defcallback merge(t, t) :: t
   defcallback merge(t, t, (key, value, value -> value)) :: t
+  defcallback pop(t, key) :: {value, t}
+  defcallback pop(t, key, value) :: {value, t}
   defcallback put(t, key, value) :: t
   defcallback put_new(t, key, value) :: t
   defcallback size(t) :: non_neg_integer()
@@ -291,6 +293,33 @@ defmodule Dict do
   @spec merge(t, t, (key, value, value -> value)) :: t
   def merge(dict, enum, fun) do
     target(dict).merge(dict, enum, fun)
+  end
+
+  @doc """
+  Returns the value associated with `key` in `dict` as
+  well as the `dict` without `key`.
+
+  ## Examples
+
+      iex> dict = HashDict.new [a: 1]
+      ...> {v, d} = Dict.pop dict, :a
+      ...> {v, Enum.sort(d)}
+      {1,[]}
+
+      iex> dict = HashDict.new [a: 1]
+      ...> {v, d} = Dict.pop dict, :b
+      ...> {v, Enum.sort(d)}
+      {nil,[a: 1]}
+
+      iex> dict = HashDict.new [a: 1]
+      ...> {v, d} = Dict.pop dict, :b, 3
+      ...> {v, Enum.sort(d)}
+      {3,[a: 1]}
+
+  """
+  @spec pop(t, key, value) :: {value, t}
+  def pop(dict, key, default // nil) do
+    target(dict).pop(dict, key, default)
   end
 
   @doc """

@@ -181,6 +181,13 @@ defmodule HashDict do
   end
 
   @doc """
+  Returns the value under key from the dict as well as the dict without key.
+  """
+  def pop(dict, key, default // nil) do
+    { get(dict, key, default), delete(dict, key) }
+  end
+
+  @doc """
   Deletes a value from the dict.
   """
   def delete(ordered(bucket: bucket, size: size) = dict, key) do
