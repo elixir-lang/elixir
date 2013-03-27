@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Compile do
     sorted = Enum.sort(docs)
 
     Enum.each sorted, fn({ task, doc }) ->
-      shell.info format('mix ~-#{max}s # ~s', [task, doc])
+      shell.info format('mix ~-#{max}s # ~ts', [task, doc])
     end
 
     shell.info "\nEnabled compilers: #{Enum.join get_compilers, ", "}"

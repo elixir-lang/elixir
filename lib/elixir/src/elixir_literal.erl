@@ -9,7 +9,7 @@ translate({ '<<>>', Meta, Args } = Original, S) when is_list(Args) ->
   case elixir_partials:handle(Original, S, allow_tail) of
     error ->
       case S#elixir_scope.context of
-        assign ->
+        match ->
           build_bitstr(fun elixir_translator:translate_each/2, Args, Meta, S);
         _ ->
           { TArgs, { SC, SV } } = build_bitstr(fun elixir_translator:translate_arg/2, Args, Meta, { S, S }),
@@ -47,7 +47,7 @@ translate({ '[]', _Meta, Args } = Original, S) when is_list(Args) ->
       end,
 
       { FExprs, FS } = case S#elixir_scope.context of
-        assign ->
+        match ->
           elixir_tree_helpers:build_reverse_list(fun elixir_translator:translate_each/2, Exprs, 0, ListS, Tail);
         _ ->
           { TArgs, { SC, SV } } =
@@ -219,7 +219,7 @@ extract_bit_type_or_size(_Value, _Args, _Other, _Types) ->
 handle_unknown_specifier(Meta, [H|T], Size, Types, S) ->
   case 'Elixir.Macro':expand(H, elixir_scope:to_ex_env({ ?line(Meta), S })) of
     H ->
-      elixir_errors:syntax_error(Meta, S#elixir_scope.file, "unknown bitstring specifier ~s", ['Elixir.Macro':to_binary(H)]);
+      elixir_errors:syntax_error(Meta, S#elixir_scope.file, "unknown bitstring specifier ~ts", ['Elixir.Macro':to_binary(H)]);
     E ->
       extract_bit_values(Meta, join_expansion(E,T), Size, Types, S)
   end.

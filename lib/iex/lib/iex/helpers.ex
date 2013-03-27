@@ -60,7 +60,7 @@ defmodule IEx.Helpers do
     all    = Enum.map :code.all_loaded, fn { mod, file } -> { inspect(mod), file } end
     sorted = Enum.sort all
     size   = Enum.reduce sorted, 0, fn({ mod, _ }, acc) -> max(byte_size(mod), acc) end
-    format = "~-#{size}s ~s~n"
+    format = "~-#{size}s ~ts~n"
 
     Enum.each sorted, fn({ mod, file }) ->
       :io.format(format, [mod, file])

@@ -75,7 +75,7 @@ store_definition(Kind, Line, Module, Call, Body, RawS) ->
   { Name, Args } = case elixir_clauses:extract_args(NameAndArgs) of
     error ->
       Format = [Kind, 'Elixir.Macro':to_binary(NameAndArgs)],
-      elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid syntax in ~s ~s", Format);
+      elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid syntax in ~ts ~ts", Format);
     Tuple ->
       Tuple
   end,
@@ -85,7 +85,7 @@ store_definition(Kind, Line, Module, Call, Body, RawS) ->
 
 store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Body, RawS) ->
   S = elixir_scope:deserialize(RawS),
-  elixir_errors:syntax_error(Line, S#elixir_scope.file, "cannot define function outside module, invalid scope for ~s", [Kind]);
+  elixir_errors:syntax_error(Line, S#elixir_scope.file, "cannot define function outside module, invalid scope for ~ts", [Kind]);
 
 store_definition(Kind, Line, Module, Name, Args, Guards, Body, RawS) ->
   do_store_definition(Kind, Line, Module, Name, Args, Guards, Body, elixir_scope:deserialize(RawS)).
@@ -312,7 +312,7 @@ check_valid_defaults(Line, File, Name, Arity, _) ->
   elixir_errors:handle_file_warning(File, { Line, ?MODULE, { clauses_with_docs, { Name, Arity } } }).
 
 assert_no_aliases_name(Line, '__aliases__', [Atom], #elixir_scope{file=File}) when is_atom(Atom) ->
-  Message = "function names should start with lowercase characters or underscore, invalid name ~s",
+  Message = "function names should start with lowercase characters or underscore, invalid name ~ts",
   elixir_errors:syntax_error(Line, File, Message, [atom_to_binary(Atom, utf8)]);
 
 assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
@@ -321,10 +321,10 @@ assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
 %% Format errors
 
 format_error({clauses_with_docs,{Name,Arity}}) ->
-  io_lib:format("function ~s/~B has default values and multiple clauses, use a separate clause for declaring defaults", [Name, Arity]);
+  io_lib:format("function ~ts/~B has default values and multiple clauses, use a separate clause for declaring defaults", [Name, Arity]);
 
 format_error({changed_clause,{{Name,Arity},{ElseName,ElseArity}}}) ->
-  io_lib:format("function ~s/~B does not match previous clause ~s/~B", [Name, Arity, ElseName, ElseArity]);
+  io_lib:format("function ~ts/~B does not match previous clause ~ts/~B", [Name, Arity, ElseName, ElseArity]);
 
 format_error({changed_kind,{Name,Arity,Previous,Current}}) ->
-  io_lib:format("~s ~s/~B already defined as ~s", [Current, Name, Arity, Previous]).
+  io_lib:format("~ts ~ts/~B already defined as ~ts", [Current, Name, Arity, Previous]).

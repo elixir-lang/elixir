@@ -2969,7 +2969,8 @@ defmodule Kernel do
         Record.access(atom, fields, args, caller)
       false ->
         case caller.in_match? do
-          true  -> raise "invalid usage of access protocol in signature"
+          true  -> raise << "the access protocol cannot be used inside match clauses ",
+                     "(for example, on the left hand side of a match or in function signatures)" >>
           false -> quote do: Access.access(unquote(element), unquote(args))
         end
     end

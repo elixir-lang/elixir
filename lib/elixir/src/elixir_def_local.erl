@@ -75,4 +75,4 @@ check_unused_local_macros(File, Recorded, Defmacrop) ->
       Check, not lists:member(Fun, Recorded)].
 
 format_error({unused_macro,{Name, Arity}}) ->
-  io_lib:format("macro ~s/~B is unused", [Name, Arity]).
+  io_lib:format("macro ~ts/~B is unused", [Name, Arity]).

@@ -6,7 +6,7 @@
 handle(Original, S) ->
   handle(Original, S, default).
 
-handle({ _, Meta, Args } = Original, S, Opt) when is_list(Args), S#elixir_scope.context /= assign ->
+handle({ _, Meta, Args } = Original, S, Opt) when is_list(Args), S#elixir_scope.context /= match ->
   case convert(Args, S, Opt) of
     { Call, Def, SC } when Def /= [] ->
       Final = validate(Meta, Def, SC),

@@ -5,7 +5,7 @@
 -import(elixir_translator, [translate_each/2, translate_args/2, translate_apply/7]).
 -import(elixir_scope, [umergec/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4,
-  assert_no_function_scope/3, assert_module_scope/3, assert_no_assign_or_guard_scope/3]).
+  assert_no_function_scope/3, assert_module_scope/3, assert_no_match_or_guard_scope/3]).
 -include("elixir.hrl").
 
 -define(FUNS(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
@@ -23,7 +23,7 @@ translate({ '-', _Meta, [Expr] }, S) when is_number(Expr) ->
 
 translate({ Op, Meta, Exprs }, S) when is_list(Exprs),
     Op == '<-' orelse Op == '--' ->
-  assert_no_assign_or_guard_scope(Meta, Op, S),
+  assert_no_match_or_guard_scope(Meta, Op, S),
   translate_each({ '__op__', Meta, [Op|Exprs] }, S);
 
 translate({ Op, Meta, Exprs }, S) when is_list(Exprs),
@@ -53,7 +53,7 @@ translate({ in, Meta, [Left, Right] }, #elixir_scope{extra_guards=Extra} = S) ->
 %% Functions
 
 translate({ function, Meta, [[{do,{ '->',_,Pairs}}]] }, S) ->
-  assert_no_assign_or_guard_scope(Meta, 'function', S),
+  assert_no_match_or_guard_scope(Meta, 'function', S),
   elixir_translator:translate_fn(Meta, Pairs, S);
 
 translate({ function, Meta, [{ '/', _, [{{ '.', _ ,[M, F] }, _ , [] }, A]}] }, S) ->
@@ -63,11 +63,11 @@ translate({ function, Meta, [{ '/', _, [{F, _, Q}, A]}] }, S) when is_atom(Q) ->
   translate({ function, Meta, [F, A] }, S);
 
 translate({ function, Meta, [_] }, S) ->
-  assert_no_assign_or_guard_scope(Meta, 'function', S),
+  assert_no_match_or_guard_scope(Meta, 'function', S),
   syntax_error(Meta, S#elixir_scope.file, "invalid args for function");
 
 translate({ function, Meta, [_, _] = Args }, S) ->
-  assert_no_assign_or_guard_scope(Meta, 'function', S),
+  assert_no_match_or_guard_scope(Meta, 'function', S),
 
   case translate_args(Args, S) of
     { [{atom,_,Name}, {integer,_,Arity}], SA } ->
@@ -80,7 +80,7 @@ translate({ function, Meta, [_, _] = Args }, S) ->
   end;
 
 translate({ function, Meta, [_,_,_] = Args }, S) when is_list(Args) ->
-  assert_no_assign_or_guard_scope(Meta, 'function', S),
+  assert_no_match_or_guard_scope(Meta, 'function', S),
   { [A,B,C], SA } = translate_args(Args, S),
   { { 'fun', ?line(Meta), { function, A, B, C } }, SA };
 
@@ -112,7 +112,7 @@ translate({'@', Meta, [{ Name, _, Args }]}, S) ->
               }, S);
             _  ->
               syntax_error(Meta, S#elixir_scope.file,
-                "cannot dynamically set attribute @~s inside a function", [Name])
+                "cannot dynamically set attribute @~ts inside a function", [Name])
           end;
         _ when is_atom(Args) or (Args == []) ->
           case S#elixir_scope.function of
@@ -127,14 +127,14 @@ translate({'@', Meta, [{ Name, _, Args }]}, S) ->
               { elixir_tree_helpers:abstract_syntax(Contents), S }
           end;
         _ ->
-          syntax_error(Meta, S#elixir_scope.file, "expected 0 or 1 argument for @~s, got: ~p", [Name, length(Args)])
+          syntax_error(Meta, S#elixir_scope.file, "expected 0 or 1 argument for @~ts, got: ~p", [Name, length(Args)])
       end
   end;
 
 %% Case
 
 translate({'case', Meta, [Expr, KV]}, S) ->
-  assert_no_assign_or_guard_scope(Meta, 'case', S),
+  assert_no_match_or_guard_scope(Meta, 'case', S),
   Clauses = elixir_clauses:get_pairs(Meta, do, KV, S),
   { TExpr, NS } = translate_each(Expr, S),
 
@@ -150,7 +150,7 @@ translate({'case', Meta, [Expr, KV]}, S) ->
 
 translate({'try', Meta, [Clauses]}, RawS) ->
   S = RawS#elixir_scope{noname=true},
-  assert_no_assign_or_guard_scope(Meta, 'try', S),
+  assert_no_match_or_guard_scope(Meta, 'try', S),
 
   Do = proplists:get_value('do', Clauses, nil),
   { TDo, SB } = elixir_translator:translate_each(Do, S),
@@ -169,7 +169,7 @@ translate({'try', Meta, [Clauses]}, RawS) ->
 %% Receive
 
 translate({'receive', Meta, [KV] }, S) ->
-  assert_no_assign_or_guard_scope(Meta, 'receive', S),
+  assert_no_match_or_guard_scope(Meta, 'receive', S),
   Do = elixir_clauses:get_pairs(Meta, do, KV, S, true),
 
   case lists:keyfind('after', 1, KV) of

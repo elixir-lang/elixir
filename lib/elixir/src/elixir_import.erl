@@ -120,14 +120,14 @@ cons_to_keywords(Meta, Kind, { cons, _, Left, Right }, S) ->
 
 cons_to_keywords(Meta, Kind, _, S) ->
   elixir_errors:syntax_error(Meta, S#elixir_scope.file,
-    "invalid value for :~s, expected a list with functions and arities", [Kind]).
+    "invalid value for :~ts, expected a list with functions and arities", [Kind]).
 
 tuple_to_fun_arity(_Meta, _Kind, { tuple, _, [{ atom, _, Atom }, { integer, _, Integer }] }, _S) ->
   { Atom, Integer };
 
 tuple_to_fun_arity(Meta, Kind, _, S) ->
   elixir_errors:syntax_error(Meta, S#elixir_scope.file,
-    "invalid value for :~s, expected a list with functions and arities", [Kind]).
+    "invalid value for :~ts, expected a list with functions and arities", [Kind]).
 
 %% Retrieve functions and macros from modules
 
@@ -226,25 +226,25 @@ ensure_no_conflicts(_Meta, _File, _Functions, _S) -> ok.
 %% ERROR HANDLING
 
 format_error({already_imported,{Receiver, Name, Arity}}) ->
-  io_lib:format("function ~s/~B already imported from ~s", [Name, Arity, elixir_errors:inspect(Receiver)]);
+  io_lib:format("function ~ts/~B already imported from ~ts", [Name, Arity, elixir_errors:inspect(Receiver)]);
 
 format_error({invalid_import,{Receiver, Name, Arity}}) ->
-  io_lib:format("cannot import ~s.~s/~B because it doesn't exist",
+  io_lib:format("cannot import ~ts.~ts/~B because it doesn't exist",
     [elixir_errors:inspect(Receiver), Name, Arity]);
 
 format_error({import_conflict,{Receiver, Name, Arity}}) ->
-  io_lib:format("imported ~s.~s/~B conflicts with local function",
+  io_lib:format("imported ~ts.~ts/~B conflicts with local function",
     [elixir_errors:inspect(Receiver), Name, Arity]);
 
 format_error({local_conflict,{_, Name, Arity}}) ->
-  io_lib:format("cannot define local ~s/~B because it conflicts with Elixir special forms", [Name, Arity]);
+  io_lib:format("cannot define local ~ts/~B because it conflicts with Elixir special forms", [Name, Arity]);
 
 format_error({internal_conflict,{Receiver, Name, Arity}}) ->
-  io_lib:format("cannot import ~s.~s/~B because it conflicts with Elixir special forms",
+  io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
     [elixir_errors:inspect(Receiver), Name, Arity]);
 
 format_error({ no_macros, Module }) ->
-  io_lib:format("could not load macros from module ~s", [elixir_errors:inspect(Module)]).
+  io_lib:format("could not load macros from module ~ts", [elixir_errors:inspect(Module)]).
 
 %% LIST HELPERS
 

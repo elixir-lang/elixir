@@ -57,7 +57,7 @@ each_clause(Meta, {rescue,_,_}, S) ->
   elixir_errors:syntax_error(Meta, S#elixir_scope.file, "too many arguments given for rescue");
 
 each_clause(Meta, {Key,_,_}, S) ->
-  elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid key ~s in try", [Key]).
+  elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid key ~ts in try", [Key]).
 
 %% Helpers
 
@@ -96,7 +96,7 @@ normalize_rescue(_, { '=', Meta, [{ Name, _, Atom } = Var, { '__aliases__', _, _
   false;
 
 normalize_rescue(Meta, Condition, S) ->
-  case elixir_translator:translate_each(Condition, S#elixir_scope{context=assign}) of
+  case elixir_translator:translate_each(Condition, S#elixir_scope{context=match}) of
     { { atom, _, Atom }, _ } ->
       normalize_rescue(Meta, { in, Meta, [{ '_', Meta, nil }, [Atom]] }, S);
     _ ->
@@ -265,7 +265,7 @@ validate_rescue_access(_, _, _) -> [].
 format_error({ rescue_no_match, Var, Alias }) ->
   VarBinary   = 'Elixir.Macro':to_binary(Var),
   AliasBinary = 'Elixir.Macro':to_binary(Alias),
-  Message = "rescue clause (~s = ~s) can never match, maybe you meant to write: ~s in [~s] ?",
+  Message = "rescue clause (~ts = ~ts) can never match, maybe you meant to write: ~ts in [~ts] ?",
   io_lib:format(Message, [AliasBinary, VarBinary, VarBinary, AliasBinary]).
 
 is_var({ Name, _, Atom }) when is_atom(Name), is_atom(Atom) -> true;

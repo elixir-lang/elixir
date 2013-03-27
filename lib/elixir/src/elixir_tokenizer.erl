@@ -107,7 +107,7 @@ tokenize([], _Line, #scope{terminators=[]}, Tokens) ->
 
 tokenize([], EndLine, #scope{terminators=[{ Start, StartLine }|_]}, _Tokens) ->
   End     = terminator(Start),
-  Message = io_lib:format("missing terminator: ~s (for \"~s\" starting at line ~B)", [End, Start, StartLine]),
+  Message = io_lib:format("missing terminator: ~ts (for \"~ts\" starting at line ~B)", [End, Start, StartLine]),
   { error, { EndLine, Message, [] } };
 
 % Base integers
@@ -148,7 +148,7 @@ tokenize([$%,S,H|T], Line, #scope{file=File} = Scope, Tokens) when not(?is_word(
       tokenize(Final, NewLine, Scope, [{ sigil, Line, S, Parts, Modifiers }|Tokens]);
     Error ->
       Sigil = [$%,S,H],
-      interpolation_error(Error, " (for sigil ~s starting at line ~B)", [Sigil, Line])
+      interpolation_error(Error, " (for sigil ~ts starting at line ~B)", [Sigil, Line])
   end;
 
 % Char tokens
@@ -532,7 +532,7 @@ extract_heredoc(Line0, Rest0, Marker) ->
 
 heredoc_error(ErrorLine, StartLine, Marker) ->
   Terminator = [Marker, Marker, Marker],
-  Message    = io_lib:format("missing terminator: ~s (for heredoc starting at line ~B)", [Terminator, StartLine]),
+  Message    = io_lib:format("missing terminator: ~ts (for heredoc starting at line ~B)", [Terminator, StartLine]),
   { error, { ErrorLine, Message, [] } }.
 
 %% Remove spaces from heredoc based on the position of the final quotes.
@@ -723,7 +723,7 @@ tokenize_call_identifier(Kind, Line, Atom, Rest) ->
 
 verify_kw_and_space(_Line, _Atom, [H|_], #scope{}) when ?is_space(H) -> ok;
 verify_kw_and_space(Line, Atom, _, #scope{file=File}) ->
-  io:format("~ts:~w: keyword argument ~s: must be followed by space~n", [File, Line, Atom]).
+  io:format("~ts:~w: keyword argument ~ts: must be followed by space~n", [File, Line, Atom]).
 
 next_is_block([Space|Tokens]) when Space == $\t; Space == $\s ->
   next_is_block(Tokens);
@@ -744,7 +744,7 @@ add_token_with_nl(Left, T) -> [Left|T].
 % Error handling
 
 interpolation_error({ error, { Line, Message, Token } }, Extension, Args) ->
-  { error, { Line, io_lib:format("~s" ++ Extension, [Message|Args]), Token } }.
+  { error, { Line, io_lib:format("~ts" ++ Extension, [Message|Args]), Token } }.
 
 % Terminators
 
@@ -788,7 +788,7 @@ check_terminator({ E, _ }, [{ S, _ }|Terminators]) when
 check_terminator({ E, Line }, [{ Start, StartLine }|_]) when
     E == 'end'; E == ')'; E == ']'; E == '}'; E == '>>' ->
   End     = terminator(Start),
-  Message = io_lib:format("missing terminator: ~s (for \"~s\" starting at line ~B)", [End, Start, StartLine]),
+  Message = io_lib:format("missing terminator: ~ts (for \"~ts\" starting at line ~B)", [End, Start, StartLine]),
   { error, { Line, Message, [] } };
 
 check_terminator({ E, Line }, []) when

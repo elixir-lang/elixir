@@ -137,11 +137,11 @@ env_default_opts() ->
             {ok,List} when is_list(List) -> List;
             {ok,Term} -> [Term];
             {error,_Reason} ->
-              io:format("Ignoring bad term in ~s\n", [Key]),
+              io:format("Ignoring bad term in ~ts\n", [Key]),
               []
           end;
         {error, {_,_,_Reason}, _} ->
-          io:format("Ignoring bad term in ~s\n", [Key]),
+          io:format("Ignoring bad term in ~ts\n", [Key]),
           []
       end
   end.
@@ -195,7 +195,7 @@ core_file(File) ->
   try
     Lists = file(list_to_binary(File)),
     [binary_to_path(X, "lib/elixir/ebin") || X <- Lists],
-    io:format("Compiled ~s~n", [File])
+    io:format("Compiled ~ts~n", [File])
   catch
     Kind:Reason ->
       io:format("~p: ~p~nstacktrace: ~p~n", [Kind, Reason, erlang:get_stacktrace()]),
@@ -235,7 +235,7 @@ core_main() ->
 %% ERROR HANDLING
 
 format_error({ skip_native, Module }) ->
-  io_lib:format("skipping native compilation for ~s because it contains on_load attribute",
+  io_lib:format("skipping native compilation for ~ts because it contains on_load attribute",
     [elixir_errors:inspect(Module)]).
 
 format_errors(_File, []) ->

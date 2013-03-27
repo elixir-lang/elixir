@@ -223,7 +223,7 @@ munge_stacktrace(_, [], _) ->
 
 format_error({ unrequired_module,{Receiver, Name, Arity, Required }}) ->
   String = string:join([elixir_errors:inspect(R) || R <- Required], ", "),
-  io_lib:format("tried to invoke macro ~s.~s/~B but module was not required. Required: ~s",
+  io_lib:format("tried to invoke macro ~ts.~ts/~B but module was not required. Required: ~ts",
     [elixir_errors:inspect(Receiver), Name, Arity, String]).
 
 %% INTROSPECTION

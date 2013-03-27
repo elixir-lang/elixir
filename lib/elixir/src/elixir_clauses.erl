@@ -19,15 +19,15 @@ get_pairs(Meta, Key, Clauses, S, AllowNil) ->
     { Key, nil } when AllowNil ->
       [];
     { Key, _ } ->
-      elixir_errors:syntax_error(Meta, S#elixir_scope.file, "expected pairs with -> for key ~s", [Key]);
+      elixir_errors:syntax_error(Meta, S#elixir_scope.file, "expected pairs with -> for key ~ts", [Key]);
     _ ->
       []
   end.
 
 % Function for translating assigns.
 
-assigns(Fun, Args, #elixir_scope{context=Context} = S) when Context /= assign ->
-  { Result, NewS } = assigns(Fun, Args, S#elixir_scope{context=assign, temp_vars=orddict:new()}),
+assigns(Fun, Args, #elixir_scope{context=Context} = S) when Context /= match ->
+  { Result, NewS } = assigns(Fun, Args, S#elixir_scope{context=match, temp_vars=orddict:new()}),
   { Result, NewS#elixir_scope{context=Context} };
 
 assigns(Fun, Args, S) -> Fun(Args, S).
@@ -176,10 +176,10 @@ each_clause(Meta, { 'after', [Condition], Expr }, S) ->
   { { clause, ?line(Meta), [TCondition], [], TBody }, SB };
 
 each_clause(Meta, { Key, [_|_], _ }, S) when Key == do; Key == 'after' ->
-  elixir_errors:syntax_error(Meta, S#elixir_scope.file, "too many arguments given for ~s", [Key]);
+  elixir_errors:syntax_error(Meta, S#elixir_scope.file, "too many arguments given for ~ts", [Key]);
 
 each_clause(Meta, { Key, _, _ }, S) ->
-  elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid key ~s", [Key]).
+  elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid key ~ts", [Key]).
 
 % Check if the given expression is a match tuple.
 % This is a small optimization to allow us to change
