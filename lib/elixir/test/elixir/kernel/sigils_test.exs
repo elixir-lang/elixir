@@ -48,4 +48,14 @@ defmodule Kernel.SigilsTest do
     assert %C(f#{o}o) == 'f\#{o}o'
     assert %C(f\no) == 'f\\no'
   end
+
+  test :__a__ do
+    assert %a(foo) == :foo
+    assert %a(f#{:o}o) == :foo
+  end
+
+  test :__A__ do
+    assert %A(foo) == :foo
+    assert %A(f#{o}o) == :"f\#{o}o"
+  end
 end

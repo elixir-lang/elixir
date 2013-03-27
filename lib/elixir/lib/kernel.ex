@@ -3112,6 +3112,53 @@ defmodule Kernel do
   end
 
   @doc """
+  Handles the sigil %A. It simply returns an atom without unescaping
+  characters and without interpolations.
+
+  ## Examples
+
+      %A(foo)      #=> :foo
+      %A(f\#{o}o)  #=> :"f\\\#{o}o"
+
+  """
+  defmacro __A__({ :<<>>, _line, [string] }, []) when is_binary(string) do
+    binary_to_atom(string)
+  end
+
+  @doc """
+  Handles the sigil %a. It returns an atom, unescaping characters
+  and replacing interpolations.
+
+  ## Examples
+
+      %a(foo)       #=> :foo
+      %a(f\#{:o}o)  #=> :foo
+
+  """
+  defmacro __a__({ :<<>>, _line, [string] }, []) when is_binary(string) do
+    binary_to_atom(string)
+  end
+
+  defmacro __a__({ :<<>>, line, pieces }, []) do
+    binary = { :<<>>, line, Macro.unescape_tokens(pieces) }
+    quote do: binary_to_atom(unquote(binary))
+  end
+
+  @doc """
+  Handles the sigil %R. It returns a Regex pattern without escaping
+  nor interpreting interpolations.
+
+  ## Examples
+
+      Regex.match? %R(f\#{1,3}o), "f\#o"  #=> true
+
+  """
+  defmacro __R__({ :<<>>, _line, [string] }, options) when is_binary(string) do
+    regex = Regex.compile!(string, options)
+    Macro.escape(regex)
+  end
+
+  @doc """
   Handles the sigil %r. It returns a Regex pattern.
 
   ## Examples
@@ -3128,20 +3175,6 @@ defmodule Kernel do
   defmacro __r__({ :<<>>, line, pieces }, options) do
     binary = { :<<>>, line, Macro.unescape_tokens(pieces, Regex.unescape_map(&1)) }
     quote do: Regex.compile!(unquote(binary), unquote(options))
-  end
-
-  @doc """
-  Handles the sigil %R. It returns a Regex pattern without escaping
-  nor interpreting interpolations.
-
-  ## Examples
-
-      Regex.match? %R(f\#{1,3}o), "f\#o"  #=> true
-
-  """
-  defmacro __R__({ :<<>>, _line, [string] }, options) when is_binary(string) do
-    regex = Regex.compile!(string, options)
-    Macro.escape(regex)
   end
 
   ## Private functions
