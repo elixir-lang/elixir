@@ -49,6 +49,9 @@ defmodule Dict do
   defcallback get(t, key) :: value
   defcallback get(t, key, value) :: value
   defcallback get!(t, key) :: value | no_return
+  defcallback pop(t, t) :: {t, t}
+  defcallback pop_value(t, key) :: {value, t}
+  defcallback pop_value(t, key, value) :: {value, t}
   defcallback has_key?(t, key) :: boolean
   defcallback keys(t) :: list(key)
   defcallback merge(t, t) :: t
@@ -178,6 +181,62 @@ defmodule Dict do
   @spec get!(t, key) :: value | no_return
   def get!(dict, key) do
     target(dict).get!(dict, key)
+  end
+
+  @doc """
+  Returns new `dict` with values taken out from given `dict` as well
+  as a `dict` without keys which were taken out.
+  Keys to take out are specified as another `dict`
+  which contains `key`-`default_value` pairs.
+
+  ## Examples
+
+      iex> dict = HashDict.new [a: 1]
+      ...> {h, t} = Dict.pop dict, a: nil
+      ...> {Enum.sort(h.to_list), Enum.sort(t.to_list)}
+      {[a: 1],[]}
+
+      iex> dict = HashDict.new [a: 1]
+      ...> {h, t} = Dict.pop dict, b: nil
+      ...> {Enum.sort(h.to_list), Enum.sort(t.to_list)}
+      {[b: nil],[a: 1]}
+
+      iex> dict = HashDict.new [a: 1]
+      ...> {h, t} = Dict.pop dict, b: 3
+      ...> {Enum.sort(h.to_list), Enum.sort(t.to_list)}
+      {[b: 3],[a: 1]}
+
+  """
+  @spec pop(t, t) :: {t, t}
+  def pop(dict, defaults) do
+    target(dict).pop(dict, defaults)
+  end
+
+
+  @doc """
+  Returns the value associated with `key` in `dict` as well as the `dict` without `key`.
+
+  ## Examples
+
+      iex> dict = HashDict.new [a: 1]
+      ...> {v, d} = Dict.pop_value dict, :a
+      ...> {v, Enum.sort(d.to_list)}
+      {1,[]}
+
+      iex> dict = HashDict.new [a: 1]
+      ...> {v, d} = Dict.pop_value dict, :b
+      ...> {v, Enum.sort(d.to_list)}
+      {nil,[a: 1]}
+
+      iex> dict = HashDict.new [a: 1]
+      ...> {v, d} = Dict.pop_value dict, :b, 3
+      ...> {v, Enum.sort(d.to_list)}
+      {3,[a: 1]}
+
+  """
+  @spec pop_value(t, key, value) :: {value, t}
+  def pop_value(dict, key, default // nil) do
+    target(dict).pop_value(dict, key, default)
   end
 
   @doc """

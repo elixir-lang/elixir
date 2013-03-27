@@ -163,6 +163,41 @@ defmodule HashDict do
   end
 
   @doc """
+  Returns the values taken out from dict as well
+  as a dict without keys which were taken out.
+  Keys to take out are specified as another dict
+  which contains key default_value pairs.
+  """
+  def pop(dict1, dict2) when is_record(dict1, HashDict) and is_record(dict2, HashDict) and elem(dict1, 1) < elem(dict2, 1) do
+    dict_fold dict1, {dict2, new}, fn { key, value }, {acc, dict}  ->
+      case dict_get(acc, key) do
+        { ^key, _default } -> {put(acc, key, value), delete(dict, key)}
+        false -> {acc, dict}
+      end
+    end
+  end
+
+  def pop(dict1, dict2) when is_record(dict1, HashDict) and is_record(dict2, HashDict) do
+    dict_fold dict2, {new, dict1}, fn { key, default }, {acc, dict} ->
+        {put(acc, key, get(dict, key, default)), delete(dict, key)}
+    end
+  end
+
+  def pop(dict, defaults) do
+    Enum.reduce defaults, {new, dict},
+       fn({ key, default }, {acc, dict}) ->
+         {put(acc, key, get(dict, key, default)), delete(dict, key)}
+       end
+  end
+
+  @doc """
+  Returns the value under key from the dict as well as the dict without key.
+  """
+  def pop_value(dict, key, default // nil) do
+    {get(dict, key, default), delete(dict, key)}
+  end
+
+  @doc """
   Checks if the dict has the given key.
   """
   def has_key?(dict, key) do
