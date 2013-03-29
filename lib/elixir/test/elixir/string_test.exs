@@ -127,6 +127,18 @@ defmodule StringTest do
     assert String.duplicate("&ã$", 2) == "&ã$&ã$"
   end
 
+  test :to_integer do
+    assert String.to_integer("100") == 100
+    assert String.to_integer("32423") == 32423
+    assert String.to_integer("10000000000000") == 10000000000000
+  end
+
+  test :to_float do
+    assert String.to_float("1.0") == 1.0
+    assert String.to_float("1.0000") == 1.0
+    assert String.to_float("33.33333") == 33.33333
+  end
+
   test :codepoints do
     assert String.codepoints("elixir") == ["e","l","i","x","i","r"]
     assert String.codepoints("elixír") == ["e","l","i","x","í","r"] # slovak

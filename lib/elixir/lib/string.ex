@@ -358,6 +358,28 @@ defmodule String do
   end
 
   @doc """
+  Convert a string to an integer.
+
+  ## Examples
+
+      String.to_integer("111") #=> 111
+  """
+  def to_integer(string) do
+    binary_to_integer(string)
+  end
+
+  @doc """
+  Convert a string to a float.
+
+  ## Examples
+
+      String.to_float("1.03") #=> 1.03
+  """
+  def to_float(string) do
+    binary_to_float(string)
+  end
+
+  @doc """
   Returns all codepoints in the string.
 
   ## Examples
