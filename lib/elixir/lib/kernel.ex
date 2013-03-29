@@ -2440,8 +2440,12 @@ defmodule Kernel do
 
   """
   defmacro binary_to_integer(some_binary) do
-    quote do
-      list_to_integer(binary_to_list(unquote(some_binary)))
+    case :proplists.get_value(:binary_to_integer,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      2 ->
+        quote do: :erlang.binary_to_integer(unquote(some_binary))
+      :undefined ->
+        quote do: list_to_integer(binary_to_list(unquote(some_binary)))
     end
   end
 
@@ -2455,8 +2459,12 @@ defmodule Kernel do
 
   """
   defmacro binary_to_integer(some_binary, base) do
-    quote do
-      list_to_integer(binary_to_list(unquote(some_binary)), unquote(base))
+    case :proplists.get_value(:binary_to_integer,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      2 ->
+        quote do: :erlang.binary_to_integer(unquote(some_binary), unquote(base))
+      :undefined ->
+        quote do: list_to_integer(binary_to_list(unquote(some_binary)), unquote(base))
     end
   end
 
@@ -2469,8 +2477,12 @@ defmodule Kernel do
 
   """
   defmacro binary_to_float(some_binary) do
-    quote do
-      list_to_float(binary_to_list(unquote(some_binary)))
+    case :proplists.get_value(:binary_to_float,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      1 ->
+        quote do: :erlang.binary_to_float(unquote(some_binary))
+      :undefined ->
+        quote do: list_to_float(binary_to_list(unquote(some_binary)))
     end
   end
 
@@ -2484,8 +2496,12 @@ defmodule Kernel do
 
   """
   defmacro integer_to_binary(some_integer) do
-    quote do
-      list_to_binary(integer_to_list(unquote(some_integer)))
+    case :proplists.get_value(:integer_to_binary,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      2 ->
+        quote do: :erlang.integer_to_binary(unquote(some_integer))
+      :undefined ->
+        quote do: list_to_binary(integer_to_list(unquote(some_integer)))
     end
   end
 
@@ -2499,8 +2515,12 @@ defmodule Kernel do
 
   """
   defmacro integer_to_binary(some_integer, base) do
-    quote do
-      list_to_binary(integer_to_list(unquote(some_integer), unquote(base)))
+    case :proplists.get_value(:integer_to_binary,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      2 ->
+        quote do: :erlang.integer_to_binary(unquote(some_integer), unquote(base))
+      :undefined ->
+        quote do: list_to_binary(integer_to_list(unquote(some_integer), unquote(base)))
     end
   end
 
@@ -2514,8 +2534,47 @@ defmodule Kernel do
 
   """
   defmacro float_to_binary(some_float) do
-    quote do
-      list_to_binary(float_to_list(unquote(some_float)))
+    case :proplists.get_value(:float_to_binary,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      2 ->
+        quote do: :erlang.float_to_binary(unquote(some_float))
+      :undefined ->
+        quote do: list_to_binary(float_to_list(unquote(some_float)))
+    end
+  end
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `some_float`.
+
+  ## Options
+
+  * `:decimals` — number of decimal points to show
+  * `:scientific` — number of decimal points to show, in scientific format
+  * `:compact` — If true, use the most compact representation. Ignored with the `scientific` option
+
+  ## Examples
+
+      float_to_binary 7.1, [decimals: 2, compact: true] #=> "7.1"
+
+  """
+  defmacro float_to_binary(some_float, options) do
+    options = :lists.reverse(:lists.foldl(fn({:compact, false}, acc) -> acc -- [:compact]
+                                            ({:compact, true}, acc) -> [:compact|acc]
+                                            (x, acc) -> [x|acc]
+                                          end, [], options))
+    case :proplists.get_value(:float_to_binary,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      2 ->
+        quote do: :erlang.float_to_binary(unquote(some_float), unquote(options))
+      :undefined ->
+        case :proplists.get_value(:float_to_list,
+                                  :proplists.get_value(:exports, :erlang.module_info, [])) do
+          2 ->
+            quote do: list_to_binary(float_to_list(unquote(some_float), unquote(options)))
+          1 ->
+            throw(:badarg)
+        end
     end
   end
 
