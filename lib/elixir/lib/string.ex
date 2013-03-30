@@ -1,12 +1,34 @@
 defmodule String do
   @moduledoc %B"""
-  A string in Elixir is a UTF-8 encoded binary.
+  A String in Elixir is a UTF-8 encoded binary.
+
+  ## String and binary operations
 
   The functions in this module act according to the
-  Unicode Standard, version 6.2.0. A codepoint is a
-  Unicode Character, which may be represented by one
-  or more bytes. For example, the character "é" is
-  represented with two bytes:
+  Unicode Standard, version 6.2.0. For example,
+  `titlecase`, `downcase`, `strip` are provided by this
+  module.
+
+  Besides this module, Elixir provides more low-level
+  operations that works directly with binaries. Some
+  of those can be found in the `Kernel` module, as:
+
+  * `binary_part/2` and `binary_part/3` - retrieves part of the binary
+  * `bit_size/1` and `byte_size/1` - size related functions
+  * `is_bitstring/1` and `is_binary/1` - type checking function
+  * Plus a bunch of conversion functions, like `binary_to_atom/2`,
+    `binary_to_integer/2`, `binary_to_term/1` and their opposite
+    like `integer_to_binary/2`
+
+  Finally, [the `:binary` module](http://erlang.org/doc/man/binary.html)
+  provides a couple other functions that works on the byte level.
+
+  ## Codepoints and graphemes
+
+  As per the Unicode Standard, a codepoint is an Unicode
+  Character, which may be represented by one or more bytes.
+  For example, the character "é" is represented with two
+  bytes:
 
       string = "é"
       #=> "é"
@@ -40,7 +62,7 @@ defmodule String do
   ## Integer codepoints
 
   Although codepoints could be represented as integers, this
-  module represents all codepoints as binaries. For example:
+  module represents all codepoints as strings. For example:
 
       String.codepoints "josé" #=> ["j", "o", "s", "é"]
 
@@ -72,8 +94,10 @@ defmodule String do
   characters. For example, `String.length` is going to return
   a correct result even if an invalid codepoint is fed into it.
 
-  In the future, bang version of such functions may be
-  provided which will rather raise on such invalid data.
+  In other words, this module expects invalid data to be detected
+  when retrieving data from the external source. For example, a
+  driver that reads strings from a database will be the one
+  responsible to check the validity of the encoding.
   """
 
   @type t :: binary
