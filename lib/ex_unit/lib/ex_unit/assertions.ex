@@ -230,7 +230,7 @@ defmodule ExUnit.Assertions do
 
   You can also match against specific patterns:
 
-      assert_received { :hello, _ }
+      assert_receive { :hello, _ }
 
   """
   defmacro assert_receive(expected, timeout // 100, message // nil) do

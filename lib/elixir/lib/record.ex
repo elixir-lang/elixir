@@ -31,11 +31,14 @@ defmodule Record do
         @moduledoc false
         import Record.DSL
 
+        @record_fields []
+        @record_types  []
+
         values = unquote(values)
         opts   = unquote(opts)
         Record.deffunctions(values, __ENV__)
         value = unquote(block)
-        Record.deftypes(values, @record_type, __ENV__)
+        Record.deftypes(values, @record_types, __ENV__)
         value
       end
     end
@@ -608,7 +611,7 @@ defmodule Record.DSL do
     escaped = lc { k, v } inlist opts, do: { k, Macro.escape(v) }
 
     quote do
-      @record_type Keyword.merge(@record_type || [], unquote(escaped))
+      @record_types Keyword.merge(@record_types || [], unquote(escaped))
     end
   end
 end
