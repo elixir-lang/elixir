@@ -2028,19 +2028,57 @@ defmodule Kernel do
         x -> x * 2
       end)
 
-  ## Function retrieval
+  """
+  defmacro function(args)
 
-  The `function` macro can also be used to retrieve local or remote
-  functions:
+  @doc """
+  Retrieves a local or an imported function.
+
+  ## Examples
 
       f = function(:is_atom, 1)
       f.(:foo) #=> true
 
-      f = function(List, :flatten, 1)
-      f.([1,[2],3]) #=> [1,2,3]
+  Notice that local functions cannot be retrieved dynamically,
+  the following, for example, wouldn't work:
+
+      some_fun = :is_atom
+      function(some_fun, 1)
+
+  In such cases, one should use `function/3`:
+
+      some_fun = :is_atom
+      function(SomeModule, some_fun, 1)
+
+  ## Shortcut syntax
+
+  One can use a shortcut syntax to retrieve such functions,
+  that resembles Erlang's `fun`:
+
+      f = function(is_atom/1)
+      f.(:foo)
 
   """
-  defmacro function(args)
+  defmacro function(function, arity)
+
+  @doc """
+  Retrieves a function from a module.
+
+  ## Examples
+
+      f = function(Kernel, :is_atom, 1)
+      f.(:foo) #=> true
+
+  ## Shortcut syntax
+
+  One can use a shortcut syntax to retrieve such functions,
+  that resembles Erlang's `fun`:
+
+      f = function(Kernel.is_atom/1)
+      f.(:foo) #=> true
+
+  """
+  defmacro function(module, function, arity)
 
   @doc """
   Matches the given condition against the match clauses.

@@ -76,7 +76,7 @@ translate({ function, Meta, [_, _] = Args }, S) ->
         Else  -> Else
       end;
     _ ->
-      syntax_error(Meta, S#elixir_scope.file, "cannot dynamically retrieve local function. use function(module, fun, arity) instead")
+      syntax_error(Meta, S#elixir_scope.file, "cannot dynamically retrieve local function, use function/3 instead")
   end;
 
 translate({ function, Meta, [_,_,_] = Args }, S) when is_list(Args) ->
