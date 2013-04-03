@@ -1405,6 +1405,29 @@ defmodule Kernel do
 
   Which provides faster get and set times for record operations.
 
+  ## Compile-time introspection
+
+  At the compile time, one can access following information about the record
+  from within the record module:
+
+  * `@record_fields` — a keyword list of record fields with defaults
+  * `@record_types` — a keyword list of record fields with types
+
+       defrecord Foo, bar: nil do
+         record_type bar: nil | integer
+         IO.inspect @record_fields
+         IO.inspect @record_types
+       end
+
+  prints out
+
+       [bar: nil]
+       [bar: {:|,[line: ...],[nil,{:integer,[line: ...],nil}]}]
+
+  where the last line is a quoted representation of
+
+       [bar: nil | integer]
+    
   ## Documentation
 
   By default records are not documented and have `@moduledoc` set to false.
