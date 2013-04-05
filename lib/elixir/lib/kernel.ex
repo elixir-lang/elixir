@@ -1450,7 +1450,7 @@ defmodule Kernel do
   When defining a type, all the fields not mentioned in the type are
   assumed to have type `term`.
   """
-  defmacro defrecord(name, fields, opts // [], do_block // []) do
+  defmacro defrecord(name, fields // [], opts // [], do_block // []) do
     Record.defrecord(name, fields, Keyword.merge(opts, do_block))
   end
 

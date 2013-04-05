@@ -4,7 +4,7 @@ defrecord RecordTest.FileInfo,
   Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
 
 defrecord RecordTest.SomeRecord, a: 0, b: 1
-defrecord RecordTest.WithNoField, []
+defrecord RecordTest.WithNoField
 
 name = RecordTest.DynamicName
 defrecord name, a: 0, b: 1 do
