@@ -262,7 +262,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints all types for the given module or prints out a specified type's 
+  Prints all types for the given module or prints out a specified type's
   specification
 
   ## Examples
@@ -292,7 +292,7 @@ defmodule IEx.Helpers do
 
   @doc false
   def t(module, type) when is_atom(type) do
-    types = lc {_, {t, _, _args}} = typespec inlist Kernel.Typespec.beam_types(module), 
+    types = lc {_, {t, _, _args}} = typespec inlist Kernel.Typespec.beam_types(module),
                t == type do
       print_type(typespec)
       typespec
@@ -317,7 +317,7 @@ defmodule IEx.Helpers do
 
   @doc false
   def t(module, type, arity) do
-    types = lc {_, {t, _, args}} = typespec inlist Kernel.Typespec.beam_types(module), 
+    types = lc {_, {t, _, args}} = typespec inlist Kernel.Typespec.beam_types(module),
                length(args) == arity and t == type, do: typespec
 
     case types do
@@ -363,7 +363,7 @@ defmodule IEx.Helpers do
   defmacro s({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
     quote do
       s(Kernel, unquote(fun), unquote(arity))
-    end    
+    end
   end
 
   defmacro s(module) do
@@ -488,7 +488,7 @@ defmodule IEx.Helpers do
         flush
     after
       0 -> :ok
-    end  
+    end
   end
 
   defp iex_reloaded do
