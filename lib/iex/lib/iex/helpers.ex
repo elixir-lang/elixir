@@ -123,8 +123,17 @@ defmodule IEx.Helpers do
 
   defmacro h({ name, _, args }) when args == [] or is_atom(args) do
     quote do
-      h(unquote(__MODULE__), unquote(name))
-      h(Kernel, unquote(name))
+      candidates = [unquote(__MODULE__), Kernel, Kernel.SpecialForms]
+
+      # If we got at least one :ok, final result will be :ok
+      Enum.reduce candidates, :not_found, fn(mod, flag) ->
+        ret = h(mod, unquote(name))
+        if flag == :ok do
+          :ok
+        else
+          ret
+        end
+      end
     end
   end
 
@@ -134,17 +143,31 @@ defmodule IEx.Helpers do
     end
   end
 
+  defmacrop mfa_exported?(module, function, arity) do
+    quote do
+      function_exported?(unquote(module), unquote(function), unquote(arity)) or
+         macro_exported?(unquote(module), unquote(function), unquote(arity))
+    end
+  end
+
+  defp h_kernel(function, arity) do
+    if mfa_exported?(Kernel, function, arity) do
+      h(Kernel, function, arity)
+    else
+      h(Kernel.SpecialForms, function, arity)
+    end
+  end
+
   @doc false
   def h(:h, 1) do
     h(__MODULE__, :h, 1)
   end
 
   def h(function, arity) when is_atom(function) and is_integer(arity) do
-    if function_exported?(__MODULE__, function, arity) or
-       macro_exported?(__MODULE__, function, arity) do
+    if mfa_exported?(__MODULE__, function, arity) do
       h(__MODULE__, function, arity)
     else
-      h(Kernel, function, arity)
+      h_kernel(function, arity)
     end
   end
 
@@ -166,12 +189,16 @@ defmodule IEx.Helpers do
   end
 
   def h(module, function) when is_atom(module) and is_atom(function) do
-    lc {{f, arity}, _line, _type, _args, doc } inlist module.__info__(:docs),
+    result = lc {{f, arity}, _line, _type, _args, doc } inlist module.__info__(:docs),
        f == function and doc != false do
       h(module, function, arity)
       IO.puts ""
     end
-    :ok
+    if length(result) > 0 do
+      :ok
+    else
+      :not_found
+    end
   end
 
   def h(_, _) do
