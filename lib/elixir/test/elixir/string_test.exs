@@ -17,8 +17,14 @@ defmodule StringTest do
 
   test :split do
     assert String.split("foo bar") == ["foo", "bar"]
-    assert String.split("a,b,c", ",") == ["a", "b", "c"]
+    assert String.split(" foo bar") == ["foo", "bar"]
+    assert String.split("foo bar ") == ["foo", "bar"]
+    assert String.split(" foo bar ") == ["foo", "bar"]
+    assert String.split("foo\t\n\v\f\r\sbar\n") == ["foo", "bar"]
+    assert String.split("foo" <> <<31>> <> "bar") == ["foo", "bar"]
+    assert String.split("foo" <> <<194,133>> <> "bar") == ["foo", "bar"]
 
+    assert String.split("a,b,c", ",") == ["a", "b", "c"]
     assert String.split("a,b", ".") == ["a,b"]
     assert String.split("1,2 3,4", [" ", ","]) == ["1", "2", "3", "4"]
 
