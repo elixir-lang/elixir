@@ -644,7 +644,7 @@ defmodule Kernel.SpecialForms do
   organize bit string streams:
 
       iex> pixels = <<213,45,132,64,76,32,76,0,0,234,32,15>>
-      iex> lc <<r:8,g:8,b:8>> inbits pixels, do: {r,g,b}
+      iex> lc <<r::8,g::8,b::8>> inbits pixels, do: {r,g,b}
       [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
 
   """
