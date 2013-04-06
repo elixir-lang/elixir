@@ -88,7 +88,7 @@ defmodule ExUnit.Case do
       end
 
       def message, [unquote(Macro.escape var)], [], do:
-        unquote(Macro.escape contents, escape_unquote: false)
+        unquote(Macro.escape_quoted contents)
     end
   end
 end

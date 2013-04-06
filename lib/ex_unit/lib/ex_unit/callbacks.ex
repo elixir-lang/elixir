@@ -126,7 +126,7 @@ defmodule ExUnit.Callbacks do
   end
 
   defp escape(contents) do
-    Macro.escape(contents, escape_unquoted: false)
+    Macro.escape_quoted(contents)
   end
 
   defp compile_callbacks(env, kind) do

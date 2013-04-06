@@ -1,14 +1,16 @@
 * enhancements
   * [ExUnit] Use ANSI escape codes in CLI output
   * [ExUnit] Include suite run time on CLI results
+  * [File] Add `File.ls` and `File.ls!`
   * [IEx] Support `pwd` and `cd` helpers
   * [Kernel] Better error reporting for invalid bitstring generators
   * [Kernel] Improve meta-programming by allowing `unquote` on `def/2`, `defp/2`, `defmacro/2` and `defmacrop/2`
-  * [Macro] `Macro.escape` now supports `escape_unquote` as an option
+  * [Macro] Add `Macro.escape_quoted` to escape quoted expressions
   * [Mix] Support `--cover` on mix test and `test_coverage` on Mixfiles
 
 * bug fix
   * [Binary] inspect no longer escapes standalone hash `#`
+  * [IEx] The h helper can now retrieve docs for special forms
   * [Kernel] Record optimizations were not being triggered in functions inside the record module
   * [Kernel] Aliases defined inside macros should be carried over
   * [Path] Fix a bug on `Path.expand` when expanding paths starting with `~`

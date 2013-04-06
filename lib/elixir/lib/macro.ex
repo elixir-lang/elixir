@@ -52,13 +52,14 @@ defmodule Macro do
   end
 
   @doc """
-  Recursively escapes the given value so it can be inserted
-  into a syntax tree. Structures that are valid syntax nodes
-  (like atoms, integers, binaries) are represented by themselves.
+  Recursively escapes a value so it can be inserted
+  into a syntax tree. This must be used when you have
+  a value that does not represent an AST and you want
+  to introduce it inside a quoted expression.
 
-  ## Options
-
-  * `escape_unquote` - when false, does not escape unquoted calls
+  If you have a AST and you want to introduce it inside
+  a quoted expression in a escaped form, use Macro.escape_quoted
+  instead.
 
   ## Examples
 
@@ -69,8 +70,8 @@ defmodule Macro do
       #=> { :{}, [], [:a, :b, :c] }
 
   """
-  def escape(expr, opts // []) do
-    do_escape(expr, not Keyword.get(opts, :escape_unquote, true))
+  def escape(expr) do
+    do_escape(expr, false)
   end
 
   defp do_escape({ { { :., meta, [left, :unquote] }, _, [expr] }, _, args }, true) do
@@ -137,6 +138,21 @@ defmodule Macro do
   defp do_splice_join([], right),   do: right
   defp do_splice_join(left, []),    do: left
   defp do_splice_join(left, right), do: { :++, [], [left, right] }
+
+  @doc """
+  Recursively escapes a AST so it can be inserted into
+  another tree unmodified. If the given AST has any
+  call to unquote, they are properly evaluated.
+
+  ## Examples
+
+      Macro.escape_quoted({ :+, [], [1,2] })
+      #=> {:"{}",[],[:+,[],[1,2]]}
+
+  """
+  def escape_quoted(expr) do
+    do_escape(expr, true)
+  end
 
   @doc %B"""
   Unescape the given chars. This is the unescaping behavior
