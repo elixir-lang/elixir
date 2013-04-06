@@ -397,6 +397,33 @@ defmodule FileTest do
     end
   end
 
+  test :ls do
+    {code, value} = File.ls(fixture_path)
+    assert code == :ok
+    refute code == :error
+    assert is_list value
+    assert 0 < Enum.count(value) 
+    assert List.member?(value, "code_sample.exs")
+    assert List.member?(value, "file.txt")
+    {code2, reason} = File.ls(fixture_path("non-existent-subdirectory"))
+    refute code2 == :ok
+    assert code2 == :error
+    assert reason != nil
+  end
+
+  test :ls2 do
+    value = File.ls!(fixture_path)
+    assert is_list value
+    assert 0 < Enum.count(value) 
+    assert List.member?(value, "code_sample.exs")
+    assert List.member?(value, "file.txt")
+    assert_raise File.Error, fn ->
+        File.ls!(fixture_path("non-existent-subdirectory"))
+    end
+  end
+
+
+
   defmodule OpenReadWrite do
     use ExUnit.Case
 
