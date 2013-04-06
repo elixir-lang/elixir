@@ -897,44 +897,30 @@ defmodule File do
     end
   end
 
+  @doc """
+  Returns list of files in the given directory.
 
-@doc """
-  Returns list of files in the current working directory. In rare circumstances, this function can
-  fail on Unix. It may happen if read permission does not exist for the parent
-  directories of the current directory. For this reason, returns `{ :ok, [files] }`
-  in case of success, `{ :error, reason }` otherwise.
+  It returns `{ :ok, [files] }` in case of success,
+  `{ :error, reason }` otherwise.
   """
-  def ls() do
-    ls(".")
-  end
-
-@doc """
-  Returns list of files in the given directory. In rare circumstances, this function can
-  fail on Unix. It may happen if read permission does not exist for the parent
-  directories of the current directory. For this reason, returns `{ :ok, [files] }`
-  in case of success, `{ :error, reason }` otherwise.
-  """
-  def ls(path) do
+  def ls(path // ".") do
     case F.list_dir(path) do
       { :ok, file_list } -> { :ok, Enum.map file_list, :unicode.characters_to_binary(&1) }
       { :error, _ } = error -> error
     end
   end
 
-
   @doc """
-  Get list of files in directories in `dir`.
- 
-  Raises File.Error in case of an error.
+  The same as `ls/1` but raises `File.Error`
+  in case of an error.
   """
-  def ls!(dir) do
-    case F.list_dir(dir) do
-      { :ok, file_list } -> Enum.map file_list, :unicode.characters_to_binary(&1)
+  def ls!(dir // ".") do
+    case ls(dir) do
+      { :ok, value } -> value
       { :error, reason } ->
         raise File.Error, reason: reason, action: "list directory", path: :unicode.characters_to_binary(dir)
     end
   end
-  
 
   @doc """
   Closes the file referenced by `io_device`. It mostly returns `:ok`, except
