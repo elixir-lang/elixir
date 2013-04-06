@@ -178,6 +178,7 @@ defmodule ModuleTest do
   end
 
   test :to_binary do
+    assert Module.to_binary(Elixir) == "Elixir"
     assert Module.to_binary(Hello.World) == "Hello.World"
   end
 

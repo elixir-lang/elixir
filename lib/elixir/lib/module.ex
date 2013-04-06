@@ -527,6 +527,8 @@ defmodule Module do
   @doc """
   Convert a module name to binary without the Elixir prefix.
   """
+  def to_binary(Elixir), do: "Elixir"
+
   def to_binary(module) do
     "Elixir-" <> rest = Binary.Chars.to_binary(module)
     bc <<r>> inbits rest, do: <<to_dot(r)>>
