@@ -83,7 +83,7 @@ defmodule IEx.Helpers do
   Shows the documentation for IEx.Helpers.
   """
   def h() do
-    h(IEx.Helpers, [])
+    __help__(IEx.Helpers)
   end
 
   @doc """
@@ -105,73 +105,37 @@ defmodule IEx.Helpers do
   """
   defmacro h({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
-      h(unquote(mod), unquote(fun), unquote(arity))
+      IEx.Helpers.__help__(unquote(mod), unquote(fun), unquote(arity))
     end
   end
 
   defmacro h({ { :., _, [mod, fun] }, _, [] }) do
     quote do
-      h(unquote(mod), unquote(fun))
+      IEx.Helpers.__help__(unquote(mod), unquote(fun))
     end
   end
 
   defmacro h({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
     quote do
-      h(unquote(fun), unquote(arity))
+      IEx.Helpers.__help__(unquote(fun), unquote(arity))
     end
   end
 
   defmacro h({ name, _, args }) when args == [] or is_atom(args) do
     quote do
-      candidates = [unquote(__MODULE__), Kernel, Kernel.SpecialForms]
-
-      # If we got at least one :ok, final result will be :ok
-      Enum.reduce candidates, :not_found, fn(mod, flag) ->
-        ret = h(mod, unquote(name))
-        if flag == :ok do
-          :ok
-        else
-          ret
-        end
-      end
+      IEx.Helpers.__help__([unquote(__MODULE__), Kernel, Kernel.SpecialForms], unquote(name))
     end
   end
 
   defmacro h(other) do
     quote do
-      h(unquote(other), [])
+      IEx.Helpers.__help__(unquote(other))
     end
   end
 
-  defmacrop mfa_exported?(module, function, arity) do
-    quote do
-      function_exported?(unquote(module), unquote(function), unquote(arity)) or
-         macro_exported?(unquote(module), unquote(function), unquote(arity))
-    end
-  end
-
-  defp h_kernel(function, arity) do
-    if mfa_exported?(Kernel, function, arity) do
-      h(Kernel, function, arity)
-    else
-      h(Kernel.SpecialForms, function, arity)
-    end
-  end
-
+  # Handles documentation for modules
   @doc false
-  def h(:h, 1) do
-    h(__MODULE__, :h, 1)
-  end
-
-  def h(function, arity) when is_atom(function) and is_integer(arity) do
-    if mfa_exported?(__MODULE__, function, arity) do
-      h(__MODULE__, function, arity)
-    else
-      h_kernel(function, arity)
-    end
-  end
-
-  def h(module, []) when is_atom(module) do
+  def __help__(module) when is_atom(module) do
     case Code.ensure_loaded(module) do
       { :module, _ } ->
         case module.__info__(:moduledoc) do
@@ -188,46 +152,118 @@ defmodule IEx.Helpers do
     end
   end
 
-  def h(module, function) when is_atom(module) and is_atom(function) do
-    result = lc {{f, arity}, _line, _type, _args, doc } inlist module.__info__(:docs),
-       f == function and doc != false do
-      h(module, function, arity)
-      IO.puts ""
-    end
-    if result != [] do
-      :ok
-    else
-      :not_found
-    end
+  def __help__(_) do
+    IO.puts IO.ANSI.escape("%{red}Invalid arguments for h helper")
   end
 
-  def h(_, _) do
-    IO.puts IO.ANSI.escape("%{red}Invalid h helper argument")
-    h()
-  end
-
+  # Help for function+arity or module+function
   @doc false
-  def h(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
-    if docs = module.__info__(:docs) do
+  def __help__(modules, function) when is_list(modules) and is_atom(function) do
+    result =
+      Enum.reduce modules, :not_found, fn
+        module, :not_found -> help_mod_fun(module, function)
+        _module, acc -> acc
+      end
+
+    unless result == :ok, do:
+      IO.puts IO.ANSI.escape("%{red}No docs for #{function} have been found")
+
+    :ok
+  end
+
+  def __help__(module, function) when is_atom(module) and is_atom(function) do
+    case help_mod_fun(module, function) do
+      :ok ->
+        :ok
+      :no_docs ->
+        IO.puts IO.ANSI.escape("%{red}#{inspect module} was not compiled with docs")
+      :not_found ->
+        IO.puts IO.ANSI.escape("%{red}No docs for #{inspect module}.#{function} have been found")
+    end
+
+    :ok
+  end
+
+  def __help__(function, arity) when is_atom(function) and is_integer(arity) do
+    __help__([__MODULE__, Kernel, Kernel.SpecialForms], function, arity)
+  end
+
+  def __help__(_, _) do
+    IO.puts IO.ANSI.escape("%{red}Invalid arguments for h helper")
+  end
+
+  defp help_mod_fun(mod, fun) when is_atom(mod) and is_atom(fun) do
+    if docs = mod.__info__(:docs) do
+      result = lc { {f, arity}, _line, _type, _args, doc } inlist docs, fun == f, doc != false do
+        __help__(mod, fun, arity)
+        IO.puts ""
+      end
+
+      if result != [], do: :ok, else: :not_found
+    else
+      :no_docs
+    end
+  end
+
+  # Help for module+function+arity
+  @doc false
+  def __help__(modules, function, arity) when is_list(modules) and is_atom(function) and is_integer(arity) do
+    result =
+      Enum.reduce modules, :not_found, fn
+        module, :not_found -> help_mod_fun_arity(module, function, arity)
+        _module, acc -> acc
+      end
+
+    unless result == :ok, do:
+      IO.puts IO.ANSI.escape("%{red}No docs for #{function}/#{arity} have been found")
+
+    :ok
+  end
+
+  def __help__(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
+    case help_mod_fun_arity(module, function, arity) do
+      :ok ->
+        :ok
+      :no_docs ->
+        IO.puts IO.ANSI.escape("%{red}#{inspect module} was not compiled with docs")
+      :not_found ->
+        IO.puts IO.ANSI.escape("%{red}No docs for #{inspect module}.#{function}/#{arity} have been found")
+    end
+
+    :ok
+  end
+
+  def __help__(_, _, _) do
+    IO.puts IO.ANSI.escape("%{red}Invalid arguments for h helper")
+  end
+
+  defp help_mod_fun_arity(mod, fun, arity) when is_atom(mod) and is_atom(fun) and is_integer(arity) do
+    if docs = mod.__info__(:docs) do
       doc =
         cond do
-          d = find_doc(docs, function, arity)         -> d
-          d = find_default_doc(docs, function, arity) -> d
-          true                                        -> nil
+          d = find_doc(docs, fun, arity)         -> d
+          d = find_default_doc(docs, fun, arity) -> d
+          true                                   -> nil
         end
 
       if doc do
-        IO.write "\n" <> print_signature(doc)
+        print_doc(doc)
+        :ok
       else
-        IO.puts IO.ANSI.escape("%{red}No docs for #{inspect module}.#{function}/#{arity} have been found")
+        :not_found
       end
     else
-      IO.puts IO.ANSI.escape("%{red}#{inspect module} was not compiled with docs")
+      :no_docs
     end
   end
 
   defp find_doc(docs, function, arity) do
-    List.keyfind(docs, { function, arity }, 0)
+    if doc = List.keyfind(docs, { function, arity }, 0) do
+      case elem(doc, 4) do
+        false -> nil
+        _ -> doc
+      end
+    end
   end
 
   defp find_default_doc(docs, function, min) do
@@ -242,22 +278,17 @@ defmodule IEx.Helpers do
     end
   end
 
-  # Get the full signature from a function.
-  defp print_signature({ _info, _line, _kind, _args, false }) do
-    false
+  defp print_doc({ { fun, _ }, _line, kind, args, doc }) do
+    args = Enum.map_join(args, ", ", print_doc_arg(&1))
+    IO.puts IO.ANSI.escape("%{yellow}* #{kind} #{fun}(#{args})\n")
+    IO.write IO.ANSI.escape("%{yellow}#{doc}")
   end
 
-  defp print_signature({ { name, _arity }, _line, kind, args, docs }) do
-    args = Enum.map_join(args, ", ", signature_arg(&1))
-    IO.puts IO.ANSI.escape("%{yellow}* #{kind} #{name}(#{args})")
-    IO.ANSI.escape("%{yellow}#{docs}") || ""
+  defp print_doc_arg({ ://, _, [left, right] }) do
+    print_doc_arg(left) <> " // " <> Macro.to_binary(right)
   end
 
-  defp signature_arg({ ://, _, [left, right] }) do
-    signature_arg(left) <> " // " <> Macro.to_binary(right)
-  end
-
-  defp signature_arg({ var, _, _ }) do
+  defp print_doc_arg({ var, _, _ }) do
     atom_to_binary(var)
   end
 
