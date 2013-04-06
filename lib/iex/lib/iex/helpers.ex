@@ -305,24 +305,35 @@ defmodule IEx.Helpers do
   """
   defmacro t({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
-      t(unquote(mod), unquote(fun), unquote(arity))
+      IEx.Helpers.__type__(unquote(mod), unquote(fun), unquote(arity))
     end
   end
 
   defmacro t({ { :., _, [mod, fun] }, _, [] }) do
     quote do
-      t(unquote(mod), unquote(fun))
+      IEx.Helpers.__type__(unquote(mod), unquote(fun))
     end
   end
 
   defmacro t(module) do
     quote do
-      t(unquote(module), [])
+      IEx.Helpers.__type__(unquote(module))
     end
   end
 
   @doc false
-  def t(module, type) when is_atom(type) do
+  def __type__(module) do
+    types = lc type inlist Kernel.Typespec.beam_types(module), do: print_type(type)
+
+    if types == [] do
+      IO.puts  IO.ANSI.escape("%{red}No types for #{inspect module} have been found")
+    end
+
+    :ok
+  end
+
+  @doc false
+  def __type__(module, type) when is_atom(type) do
     types = lc {_, {t, _, _args}} = typespec inlist Kernel.Typespec.beam_types(module),
                t == type do
       print_type(typespec)
@@ -336,18 +347,8 @@ defmodule IEx.Helpers do
     :ok
   end
 
-  def t(module, []) do
-    types = lc type inlist Kernel.Typespec.beam_types(module), do: print_type(type)
-
-    if types == [] do
-      IO.puts  IO.ANSI.escape("%{red}No types for #{inspect module} have been found")
-    end
-
-    :ok
-  end
-
   @doc false
-  def t(module, type, arity) do
+  def __type__(module, type, arity) do
     types = lc {_, {t, _, args}} = typespec inlist Kernel.Typespec.beam_types(module),
                length(args) == arity and t == type, do: typespec
 
@@ -375,36 +376,47 @@ defmodule IEx.Helpers do
   """
   defmacro s({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
-      s(unquote(mod), unquote(fun), unquote(arity))
+      IEx.Helpers.__spec__(unquote(mod), unquote(fun), unquote(arity))
     end
   end
 
   defmacro s({ { :., _, [mod, fun] }, _, [] }) do
     quote do
-      s(unquote(mod), unquote(fun))
+      IEx.Helpers.__spec__(unquote(mod), unquote(fun))
     end
   end
 
   defmacro s({ fun, _, args }) when args == [] or is_atom(args) do
     quote do
-      s(Kernel, unquote(fun))
+      IEx.Helpers.__spec__(Kernel, unquote(fun))
     end
   end
 
   defmacro s({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
     quote do
-      s(Kernel, unquote(fun), unquote(arity))
+      IEx.Helpers.__spec__(Kernel, unquote(fun), unquote(arity))
     end
   end
 
   defmacro s(module) do
     quote do
-      s(unquote(module), [])
+      IEx.Helpers.__spec__(unquote(module))
     end
   end
 
   @doc false
-  def s(module, function) when is_atom(function) do
+  def __spec__(module) do
+    specs = lc spec inlist beam_specs(module), do: print_spec(spec)
+
+    if specs == [] do
+      IO.puts  IO.ANSI.escape("%{red}No specs for #{inspect module} have been found")
+    end
+
+    :ok
+  end
+
+  @doc false
+  def __spec__(module, function) when is_atom(function) do
     specs = lc {_kind, {{f, _arity}, _spec}} = spec inlist beam_specs(module),
                f == function do
       print_spec(spec)
@@ -418,18 +430,8 @@ defmodule IEx.Helpers do
     :ok
   end
 
-  def s(module, []) do
-    specs = lc spec inlist beam_specs(module), do: print_spec(spec)
-
-    if specs == [] do
-      IO.puts  IO.ANSI.escape("%{red}No specs for #{inspect module} have been found")
-    end
-
-    :ok
-  end
-
   @doc false
-  def s(module, function, arity) do
+  def __spec__(module, function, arity) do
     specs = lc {_kind, {{f, a}, _spec}} = spec inlist beam_specs(module),
                f == function and a == arity do
       print_spec(spec)
