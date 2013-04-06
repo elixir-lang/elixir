@@ -194,7 +194,7 @@ defmodule IEx.Helpers do
       h(module, function, arity)
       IO.puts ""
     end
-    if length(result) > 0 do
+    if result != [] do
       :ok
     else
       :not_found
