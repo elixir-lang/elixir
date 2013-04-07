@@ -40,6 +40,7 @@ defmodule ExUnit.Case do
 
       import ExUnit.Assertions
       import ExUnit.Case
+      import ExUnit.DocTest, only: [doctest: 1, doctest: 2]
     end
   end
 
