@@ -211,6 +211,14 @@ tokenize("..." ++ Rest, Line, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, [Token|Tokens]);
 
 % ## Containers
+
+tokenize([$.,T|Tail], Line, Scope, Tokens) when ?is_space(T) ->
+  case [T|Tail] of
+    [$\r,$\n|Rest] -> tokenize([$.|Rest], Line + 1, Scope, Tokens);
+    [$\n|Rest]     -> tokenize([$.|Rest], Line + 1, Scope, Tokens);
+    [_|Rest]       -> tokenize([$.|Rest], Line, Scope, Tokens)
+  end;
+
 tokenize(".<<>>" ++ Rest, Line, Scope, Tokens) ->
   handle_call_identifier(Rest, Line, '<<>>', Scope, Tokens);
 
@@ -232,13 +240,8 @@ tokenize([$.,T|Rest], Line, Scope, Tokens) when ?comp1(T); ?op1(T); T == $& ->
 % Dot call
 
 % ## Exception for .( as it needs to be treated specially in the parser
-tokenize([$.,T1,T2|T], Line, Scope, Tokens) when T1 == $( ; (T1 == $\s andalso T2 == $() ->
-  Rest = case T1 of
-         $( -> [T1,T2|T];
-         % Ignores the space
-         $\s -> [T2|T]
-         end,
-  tokenize(Rest, Line, Scope, add_token_with_nl({ dot_call_op, Line, '.' }, Tokens));
+tokenize([$.,$(|Rest], Line, Scope, Tokens) ->
+  tokenize([$(|Rest], Line, Scope, add_token_with_nl({ dot_call_op, Line, '.' }, Tokens));
 
 tokenize([$.,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
