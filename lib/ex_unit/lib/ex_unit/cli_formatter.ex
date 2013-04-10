@@ -98,6 +98,7 @@ defmodule ExUnit.CLIFormatter do
     IO.puts error_info "** (ExUnit.ExpectationError)"
     IO.puts error_info "  #{pad(left, max)}: #{maybe_multiline(record.expected, max)}"
     IO.puts error_info "  #{pad(right, max)}: #{maybe_multiline(record.actual, max)}"
+
     unless nil?(record.instead) do
       IO.puts error_info "  #{pad(instead_prelude, max)}: #{maybe_multiline(inspect(record.instead), max)}"
     end
