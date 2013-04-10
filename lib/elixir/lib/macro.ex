@@ -563,7 +563,7 @@ defmodule Macro do
         end
 
         expand = :elixir_dispatch.expand_import(line, { atom, length(args) }, args,
-          env.module, env.function, env.requires, extra ++ env.macros, env.functions, env)
+          env.module, env.function, env.requires, env.functions, extra ++ env.macros, env)
         case expand do
           { :ok, _, expanded } -> expanded
           { :error, _ }     -> original
