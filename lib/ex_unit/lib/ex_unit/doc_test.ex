@@ -1,34 +1,62 @@
 defmodule ExUnit.DocTest do
   @moduledoc """
-  ExUnit.DocTest implements functionality similar to Python's doctest (http://docs.python.org/2/library/doctest.html)
+  ExUnit.DocTest implements functionality similar to [Python's
+  doctest](http://docs.python.org/2/library/doctest.html).
 
-  In a nutshell, it allows to use examples in module/function/macro definitions as tests. In order
-  to do that, one needs to invoke `doctest/1` macro from their test case.
+  In a nutshell, it allows us to generate tests from the code
+  examples existing in module/function/macro's documentation.
+  In order to do that, one needs to invoke `doctest/1` macro
+  from their test case and write their examples according
+  to some guidelines.
 
-  The syntax for examples is as follows. Every new test starts on a new line, with
-  an "iex>" prefix. Multiline expressions can be employed if the following lines
-  start with either "...>" (recommended) or "iex>" prefix.
+  The syntax for examples is as follows. Every new test starts
+  on a new line, with an "iex>" prefix. Multiline expressions
+  can be employed if the following lines start with either
+  "...>" (recommended) or "iex>" prefix.
 
-  The expected result should start at the next line after "iex>" or "...>" line(s) and
-  is terminated either by a newline, new "iex>" prefix or end of the string literal.
+  The expected result should start at the next line after "iex>"
+  or "...>" line(s) and is terminated either by a newline, new
+  "iex>" prefix or end of the string literal.
 
-  Example:
+  ## Examples
 
-      iex> [1+1,
-      ...>  2]
-      [2,
-      2]
+  Currently, the only way to run doctests is to include them into
+  an ExUnit case with a `doctest` macro:
 
-  Similarly to the interactive use of iex you can use numbers in your "prompts":
+      defmodule MyModule.Test do
+        use ExUnit.Case, async: true
+        doctest MyModule
+      end
 
-      iex(1)> [1+2, 
+  The `doctest` macro is going to loop all functions and macros
+  defined in `MyModule`, parsing their documentation in search for
+  code examples.
+
+  A very basic example is:
+
+      iex> 1+1
+      2
+
+  Multiline is also supported:
+
+      iex> Enum.map [1,2,3], fn(x) ->
+      ...>   x * 2
+      ...> end
+      [2,4,6]
+
+  Similarly to iex you can use numbers in your "prompts":
+
+      iex(1)> [1+2,
       ...(1)>  3]
       [3,3]
 
   This is useful in two use cases:
 
-  * Being able to refer to specific numbered scenarios in the documentation piece
+  * Being able to refer to specific numbered scenarios
   * Copy-pasting examples from an actual iex sessions
+
+  We also allow you to select or skip some functions when calling
+  `doctest`. See its documentation documentation for more info.
 
   ## Exceptions
 
@@ -37,28 +65,22 @@ defmodule ExUnit.DocTest do
       iex(1)> binary_to_atom((fn() -> 1 end).())
       ** (ArgumentError) argument error
 
-  What DocTest will be looking for is a line starting with "** (" and it will parse
-  it accordingly to extract the exception name and the message. At this moment,
-  the exception parser would make the parser treat the next line as a start of a completely
-  new expression (if it is prefixed with iex>) or a no-op line with documentation. Thus,
-  multiline messages are not supported.
+  What DocTest will be looking for is a line starting with "** (" and it
+  will parse it accordingly to extract the exception name and the message.
+  At this moment, the exception parser would make the parser treat the next
+  line as a start of a completely new expression (if it is prefixed with iex>)
+  or a no-op line with documentation. Thus, multiline messages are not
+  supported.
 
-  ## Standard output
+  ## When not to use doctest
 
-  Please note that DocTest will not try to capture the output, it will only check if the
-  expression given evaluates to the expected result.
+  In general, doctests are not recommended when your code examples contain
+  side effects. For example, if a doctest prints to standard output, doctest
+  will not try to capture the output.
 
-  ## Usage
-
-  Currently, the only way to run doctests is to include them into an ExUnit case
-  with a `doctest` macro, for example:
-
-      defmodule MyModule.Test do
-        use ExUnit.Case
-        doctest MyModule
-      end
-
-  See `doctest` macro documentation for more details on how to use it
+  Similarly, doctest does not run in any kind of side box. So any module
+  defined in a code example is going to linger throughout the whole test suite
+  run.
   """
 
   defexception CompileError, error: nil, expression: nil do
@@ -67,7 +89,7 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  defrecord Test, location: nil, line: nil, expr: nil, expected: nil
+  defrecord Test, fun_arity: nil, line: nil, expr: nil, expected: nil
 
   @doc """
   This macro is used to generate ExUnit test cases for doctests.
@@ -76,169 +98,177 @@ defmodule ExUnit.DocTest do
 
   * `doctest(Module)` — will generate tests for all doctests found
      in the module `Module`
-  * doctest(Module.function) — will generate tests for all doctests found
-     in all arities of function `Module.function`
-  * doctest(Module.function/arity) — will generate tests for all doctests found
-     in the documentation of function `Module.function/arity`
 
   Options can also be supplied:
 
-  * `:except` — generate tests for all functions except those listed (list of `{function, arity}` tuples)
-  * `:only` — generate tests only forfunctions listed (list of `{function, arity}` tuples)
+  * `:except` — generate tests for all functions except those listed
+                (list of `{function, arity}` tuples)
 
-  This macro is auto-imported into every ExUnit.Case
+  * `:only` — generate tests only forfunctions listed
+              (list of `{function, arity}` tuples)
+
+  ## Examples
+
+      doctest MyModule, except: [trick_fun: 1]
+
+  This macro is auto-imported into every `ExUnit.Case`.
   """
-  defmacro doctest(testspec, options // []) do
-    tests = tests(testspec, __CALLER__)
-
-    tests = Enum.filter(tests, fn(test) ->
-      {_, f, a} = test.location
-      fa = {f,a}
-      Enum.all?(options[:except] || [], fn(fa1) -> fa1 != fa end) and
-      Enum.all?(options[:only] || [], fn(fa1) -> fa1 == fa end)
-    end)
-
-    bodies =
-    lc test inlist tests do
-       {m, _, _} = test.location
-       expr_ast = 
-       try do
-         Code.string_to_ast!(test.expr, line: test.line)
-       rescue e ->
-         raise CompileError, error: e, expression: test.expr
-       end
-
-       expected_ast = 
-       try do
-         Code.string_to_ast!(test.expected, line: test.line)
-       rescue e ->
-         raise CompileError, error: e, expression: test.expected
-       end
-       quote do
-         import unquote(m)
-         v = unquote(expected_ast)
-         case unquote(expr_ast) do
-           ^v -> :ok
-           instead ->
-             raise ExUnit.ExpectationError,
-               prelude: "Expected doctest",
-               expected: unquote(test.expr),
-               actual: inspect(v),
-               reason: "evaluate to",
-               instead: instead
-         end
-       end
-    end
-    tests = Enum.zip(:lists.seq(1, length(tests)), tests)
-    lc {{n, test}, body} inlist Enum.zip(tests, bodies) do
-      quote do
-        test unquote("#{type(test)} (#{n}) at #{mfa(test)}"), do: unquote(body)
+  defmacro doctest(mod, opts // []) do
+    quote do
+      lc { name, test } inlist unquote(__MODULE__).__doctests__(unquote(mod), unquote(opts)) do
+        def name, quote(do: [_]), [], do: test
       end
     end
   end
 
-  defp tests(module, _) when is_atom(module), do: extract(module)
-  defp tests({:__aliases__, _, _} = module, env) do
-    {m, _} = Code.eval_quoted(module, [], env)
-    tests(m, env)
-  end
-  defp tests({:., _, [m, f]}, env) do
-    {m, _} = Code.eval_quoted(m, [], env)
-    extract(m, f)
-  end
-
-  defp tests({:/, _, [{:., _, [m, f]}, a]}, env) do
-    {m, _} = Code.eval_quoted(m, [], env)
-    extract(m, f, a)
-  end
-
-  defp mfa(Test[location: {m,nil,nil}, line: line]) do
-    "#{inspect m} (#{m.module_info[:compile][:source]}:#{line})"
-  end
-  defp mfa(Test[location: {m,f,a}, line: line]) do
-    "#{inspect m}.#{f}/#{a} (#{m.module_info[:compile][:source]}:#{line})"
-  end
-
-  defp type(Test[location: {_, nil, nil}]), do: "moduledoc"
-  defp type(_), do: "doc"
-
-
   @doc false
-  def extract(module) do
-    Enum.map(extract_from_doc(module.__info__(:moduledoc)), fn(test) ->
-      test.location({module, nil, nil})
-    end) ++
-    lc {{f, a}, _, _, _, _} inlist module.__info__(:docs) do
-       extract(module, f, a)
+  def __doctests__(module, opts) do
+    only   = opts[:only] || []
+    except = opts[:except] || []
+
+    tests = Enum.filter(extract(module), fn(test) ->
+      fa = test.fun_arity
+      Enum.all?(except, &1 != fa) and Enum.all?(only, &1 == fa)
+    end)
+
+    Enum.map_reduce(tests, 1, fn(test, acc) ->
+      { compile_test(test, module, acc), acc + 1 }
+    end) |> elem(0)
+  end
+
+  ## Compilation of extracted tests
+
+  defp compile_test(test, module, n) do
+    { test_name(test, module, n), test_content(test, module) }
+  end
+
+  defp test_name(Test[fun_arity: nil], m, n) do
+    :"test moduledoc at #{inspect m} (#{n})"
+  end
+
+  defp test_name(Test[fun_arity: { f, a }], m, n) do
+    :"test doc at #{inspect m}.#{f}/#{a} (#{n})"
+  end
+
+  defp test_content(test, module) do
+    line = test.line
+    file = module.__info__(:compile)[:source]
+
+    expr_ast     = string_to_ast(line, file, test.expr)
+    expected_ast = string_to_ast(line, file, test.expected)
+
+    quote do
+      import unquote(module)
+      v = unquote(expected_ast)
+      case unquote(expr_ast) do
+        ^v -> :ok
+        instead ->
+          location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
+          stack    = [{ unquote(module), :__MODULE__, 0, location }]
+          raise ExUnit.ExpectationError,
+            [ prelude: "Expected doctest",
+              expected: unquote(test.expr),
+              actual: inspect(v),
+              reason: "evaluate to",
+              instead: instead ],
+            stack
+      end
+    end
+  end
+
+  defp string_to_ast(line, file, expr) do
+    try do
+      Code.string_to_ast!(expr, line: line, file: file)
+    rescue e ->
+      raise CompileError, error: e, expression: expr
+    end
+  end
+
+  ## Extraction of the tests
+
+  defp extract(module) do
+    moduledocs = extract_from_moduledoc(module.__info__(:moduledoc))
+
+    docs = lc doc inlist module.__info__(:docs) do
+      extract_from_doc(doc)
     end |> List.concat
+
+    moduledocs ++ docs
   end
 
-  def extract(module, function) do
-    lc {{f, a}, _, _, _, _} inlist module.__info__(:docs), f == function do
-       extract(module, function, a)
-    end |> List.concat
+  defp extract_from_moduledoc({_, negative}) when negative in [false, nil], do: []
+
+  defp extract_from_moduledoc({line, doc}) do
+    extract_tests(line, doc)
   end
 
-  def extract(module, function, arity) do
-    doc = List.keyfind(module.__info__(:docs), {function, arity}, 0)
-    Enum.map(extract_from_doc(doc), fn(test) -> test.location({module, function, arity}) end)
-  end
-
-  defp extract_from_doc(nil), do: []
-  defp extract_from_doc({_, negative}) when negative in [false, nil], do: []
-  defp extract_from_doc({line, doc}) do
-    lines = String.split(doc, %r/\n/) |> Enum.map(function(String.strip/1))
-    extract_from_doc(lines, line, "", "",[])
-  end
   defp extract_from_doc({_, _, _, _, negative}) when negative in [false, nil], do: []
-  defp extract_from_doc({_, line, _, _, doc}) do
-    lines = String.split(doc, %r/\n/) |> Enum.map(function(String.strip/1))
-    extract_from_doc(lines, line, "", "",[])
+
+  defp extract_from_doc({ fa, line, _, _, doc}) do
+    lc test inlist extract_tests(line, doc) do
+      test.fun_arity(fa)
+    end
   end
 
-  defp extract_from_doc([], _line, "", "", acc), do: Enum.reverse(acc)
-  defp extract_from_doc([], line, expr_acc, expected_acc, acc) do
-    Enum.reverse([Test.new(expr: expr_acc, line: line, expected: expected_acc)|acc])
+  defp extract_tests(line, doc) do
+    lines = String.split(doc, %r/\n/) |> Enum.map(function(String.strip/1))
+    extract_tests(lines, line, "", "", [])
   end
-  defp extract_from_doc([<< "iex>", _ :: binary>>|_] = list, line, expr_acc, expected_acc, acc) when expr_acc != "" and expected_acc != "" do
-    extract_from_doc(list, line, "", "", [Test.new(expr: expr_acc, line: line, expected: expected_acc)|acc])
+
+  defp extract_tests([], _line, "", "", acc), do: Enum.reverse(acc)
+
+  defp extract_tests([], line, expr_acc, expected_acc, acc) do
+    Enum.reverse([Test[expr: expr_acc, line: line, expected: expected_acc]|acc])
   end
-  defp extract_from_doc([<< "iex>", string :: binary>>|lines], line, expr_acc, expected_acc, acc) when expr_acc == "" do
-    extract_from_doc(lines, line, string, expected_acc, acc)
+
+  defp extract_tests([<< "iex>", _ :: binary>>|_] = list, line, expr_acc, expected_acc, acc) when expr_acc != "" and expected_acc != "" do
+    extract_tests(list, line, "", "", [Test[expr: expr_acc, line: line, expected: expected_acc]|acc])
   end
-  defp extract_from_doc([<< "iex>", string :: binary>>|lines], line, expr_acc, expected_acc, acc) do
-    extract_from_doc(lines, line, expr_acc <> "\n" <> string, expected_acc, acc)
+
+  defp extract_tests([<< "iex>", string :: binary>>|lines], line, expr_acc, expected_acc, acc) when expr_acc == "" do
+    extract_tests(lines, line, string, expected_acc, acc)
   end
-  defp extract_from_doc([<< "...>", string :: binary>>|lines], line, expr_acc, expected_acc, acc) when expr_acc != "" do
-    extract_from_doc(lines, line, expr_acc <> "\n" <> string, expected_acc, acc)
+
+  defp extract_tests([<< "iex>", string :: binary>>|lines], line, expr_acc, expected_acc, acc) do
+    extract_tests(lines, line, expr_acc <> "\n" <> string, expected_acc, acc)
   end
-  defp extract_from_doc([<< "iex(", _ :: 8, string :: binary>>|lines], line, expr_acc, expected_acc, acc) do
-    extract_from_doc(["iex" <> skip_iex_number(string)|lines], line, expr_acc, expected_acc, acc)
+
+  defp extract_tests([<< "...>", string :: binary>>|lines], line, expr_acc, expected_acc, acc) when expr_acc != "" do
+    extract_tests(lines, line, expr_acc <> "\n" <> string, expected_acc, acc)
   end
-  defp extract_from_doc([<< "...(", _ :: 8, string :: binary>>|lines], line, expr_acc, expected_acc, acc) do
-    extract_from_doc(["..." <> skip_iex_number(string)|lines], line, expr_acc, expected_acc, acc)
+
+  defp extract_tests([<< "iex(", _ :: 8, string :: binary>>|lines], line, expr_acc, expected_acc, acc) do
+    extract_tests(["iex" <> skip_iex_number(string)|lines], line, expr_acc, expected_acc, acc)
   end
-  defp extract_from_doc([_|lines], line, "", "", acc) do
-    extract_from_doc(lines, line, "", "", acc)
+
+  defp extract_tests([<< "...(", _ :: 8, string :: binary>>|lines], line, expr_acc, expected_acc, acc) do
+    extract_tests(["..." <> skip_iex_number(string)|lines], line, expr_acc, expected_acc, acc)
   end
-  defp extract_from_doc([""|lines], line, expr_acc, expected_acc, acc) do
-    extract_from_doc(lines, line,  "", "", [Test.new(expr: expr_acc, line: line, expected: expected_acc)|acc])
+
+  defp extract_tests([_|lines], line, "", "", acc) do
+    extract_tests(lines, line, "", "", acc)
   end
-  defp extract_from_doc([<< "** (", string :: binary >>|lines], line, expr_acc, "", acc) do
+
+  defp extract_tests([""|lines], line, expr_acc, expected_acc, acc) do
+    extract_tests(lines, line,  "", "", [Test[expr: expr_acc, line: line, expected: expected_acc]|acc])
+  end
+
+  defp extract_tests([<< "** (", string :: binary >>|lines], line, expr_acc, "", acc) do
     opts = Regex.captures %r/(?<exception>.+)\) (?<message>.*)/g, string
-    expected = "#{inspect Module.concat([opts[:exception]])}[message: #{inspect String.strip(opts[:message])}]"
+    expected = "#{opts[:exception]}[message: #{inspect String.strip(opts[:message])}]"
     expr_acc = "try do ; #{expr_acc} ; rescue _e -> _e ; end"
-    extract_from_doc(lines, line,  "", "", [Test.new(expr: expr_acc, line: line, expected: expected)|acc])
+    extract_tests(lines, line,  "", "", [Test[expr: expr_acc, line: line, expected: expected]|acc])
   end
-  defp extract_from_doc([expected|lines], line, expr_acc, expected_acc, acc) do
-    extract_from_doc(lines, line, expr_acc, expected_acc <> "\n" <> expected, acc)
+
+  defp extract_tests([expected|lines], line, expr_acc, expected_acc, acc) do
+    extract_tests(lines, line, expr_acc, expected_acc <> "\n" <> expected, acc)
   end
 
   defp skip_iex_number(<< ")", ">", string :: binary >>) do
     ">" <> string
   end
+
   defp skip_iex_number(<< _ :: 8, string :: binary >>) do
     skip_iex_number(string)
   end
-
 end
