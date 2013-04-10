@@ -321,7 +321,7 @@ rewrite_case_clauses(Clauses) ->
 expand_module(Raw, Module, #elixir_scope{module=Nesting}) when is_atom(Raw); Nesting == nil ->
   Module;
 
-expand_module({ '__aliases__', _, _ } = Alias, Module, S) ->
+expand_module({ '__aliases__', _, List } = Alias, Module, S) when List /= ['Elixir'] ->
   case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases) of
     Atom when is_atom(Atom) ->
       Module;

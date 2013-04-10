@@ -26,6 +26,14 @@ defmodule Kernel.AliasTest do
     alias List, as: Nested
     assert Nested.flatten([[13]]) == [13]
   end
+
+  defmodule Elixir do
+    def sample, do: 1
+  end
+
+  test :nested_elixir_alias do
+    assert Kernel.AliasTest.Elixir.sample == 1
+  end
 end
 
 defmodule Kernel.AliasNestingGenerator do
