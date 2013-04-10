@@ -61,6 +61,12 @@ defmodule ExUnit.DocTest do
   See `doctest` macro documentation for more details on how to use it
   """
 
+  defexception CompileError, error: nil, expression: nil do
+    def message(__MODULE__[error: error, expression: expr]) do
+      "#{inspect elem(error, 0)}: #{error.message} while parsing expression `#{expr}`"
+    end
+  end
+
   defrecord Test, location: nil, line: nil, expr: nil, expected: nil
 
   @doc """
@@ -95,8 +101,19 @@ defmodule ExUnit.DocTest do
     bodies =
     lc test inlist tests do
        {m, _, _} = test.location
-       expr_ast = Code.string_to_ast!(test.expr)
-       expected_ast = Code.string_to_ast!(test.expected)
+       expr_ast = 
+       try do
+         Code.string_to_ast!(test.expr)
+       rescue e ->
+         raise CompileError, error: e, expression: test.expr
+       end
+
+       expected_ast = 
+       try do
+         Code.string_to_ast!(test.expected)
+       rescue e ->
+         raise CompileError, error: e, expression: test.expected
+       end
        quote do
          import unquote(m)
          v = unquote(expected_ast)
