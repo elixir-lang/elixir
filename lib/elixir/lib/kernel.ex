@@ -292,6 +292,28 @@ defmodule Kernel do
   defmacro left !== right
 
   @doc """
+  Invokes the given `fun` with the array of arguments `args`.
+
+  ## Examples
+
+      iex> apply fn x -> x * 2 end, [2]
+      4
+
+  """
+  defmacro apply(fun, args)
+
+  @doc """
+  Invokes the given `fun` from `module` with the array of arguments `args`.
+
+  ## Examples
+
+      iex> apply Enum, :reverse, [[1,2,3]]
+      [3,2,1]
+
+  """
+  defmacro apply(module, fun, args)
+
+  @doc """
   Returns an integer or float which is the arithmetical absolute value of `number`.
 
   Allowed in guard tests.
@@ -306,34 +328,6 @@ defmodule Kernel do
   @spec abs(number) :: number
   def abs(number) do
     :erlang.abs(number)
-  end
-
-  @doc """
-  Invokes the given `fun` with the array of arguments `args`.
-
-  ## Examples
-
-      iex> apply fn x -> x * 2 end, [2]
-      4
-
-  """
-  @spec apply((... -> any), list) :: term
-  def apply(fun, args) do
-    :erlang.apply(fun, args)
-  end
-
-  @doc """
-  Invokes the given `fun` from `module` with the array of arguments `args`.
-
-  ## Examples
-
-      iex> apply Enum, :reverse, [[1,2,3]]
-      [3,2,1]
-
-  """
-  @spec apply(atom, atom, list) :: term
-  def apply(module, fun, args) do
-    :erlang.apply(module, fun, args)
   end
 
   @doc """
@@ -1018,7 +1012,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> round(5.5) 
+      iex> round(5.5)
       6
 
   """
@@ -1458,7 +1452,7 @@ defmodule Kernel do
   where the last line is a quoted representation of
 
        [bar: nil | integer]
-    
+
   ## Documentation
 
   By default records are not documented and have `@moduledoc` set to false.
