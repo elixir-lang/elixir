@@ -103,14 +103,14 @@ defmodule ExUnit.DocTest do
        {m, _, _} = test.location
        expr_ast = 
        try do
-         Code.string_to_ast!(test.expr)
+         Code.string_to_ast!(test.expr, line: test.line)
        rescue e ->
          raise CompileError, error: e, expression: test.expr
        end
 
        expected_ast = 
        try do
-         Code.string_to_ast!(test.expected)
+         Code.string_to_ast!(test.expected, line: test.line)
        rescue e ->
          raise CompileError, error: e, expression: test.expected
        end
