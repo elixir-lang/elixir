@@ -108,9 +108,9 @@ defmodule Kernel.ErrorsTest do
       format_rescue 'defmodule Foo do def Bar do :baz end\nend\n'
   end
 
-  test :erlang_function_conflict do
-    assert "nofile:1: function exit/1 already imported from Kernel" ==
-      format_rescue 'defmodule Foo do import Kernel.ErrorsTest.UnproperMacro, only: [exit: 1]\nend'
+  test :function_import_conflict do
+    assert "nofile:2: function exit/1 imported from both erlang and Kernel; call is ambiguous" ==
+      format_rescue 'defmodule Foo do import :erlang\n def foo, do: exit(:test)\nend'
   end
 
   test :import_invalid_macro do
