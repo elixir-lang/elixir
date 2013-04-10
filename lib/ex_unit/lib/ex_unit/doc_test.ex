@@ -43,6 +43,11 @@ defmodule ExUnit.DocTest do
   new expression (if it is prefixed with iex>) or a no-op line with documentation. Thus,
   multiline messages are not supported.
 
+  ## Standard output
+
+  Please note that DocTest will not try to capture the output, it will only check if the
+  expression given evaluates to the expected result.
+
   ## Usage
 
   Currently, the only way to run doctests is to include them into an ExUnit case
