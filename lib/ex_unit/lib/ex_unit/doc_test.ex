@@ -107,6 +107,15 @@ defmodule ExUnit.DocTest do
   * `:only` — generate tests only forfunctions listed
               (list of `{function, arity}` tuples)
 
+  * `:import` — if false, do not auto-import the current module into the
+                evaluted example. If true, one can test a function
+                defined in the module without referring to the module
+                name. However, this is not feasible when there is a clash
+                with a number module like Kernel. In these cases, `import`
+                should be set to `false` and a full `M.f` construct should
+                be used. False by default.
+
+
   ## Examples
 
       doctest MyModule, except: [trick_fun: 1]
@@ -125,6 +134,7 @@ defmodule ExUnit.DocTest do
   def __doctests__(module, opts) do
     only   = opts[:only] || []
     except = opts[:except] || []
+    do_import = Keyword.get(opts, :import, false)
 
     tests = Enum.filter(extract(module), fn(test) ->
       fa = test.fun_arity
@@ -132,14 +142,14 @@ defmodule ExUnit.DocTest do
     end)
 
     Enum.map_reduce(tests, 1, fn(test, acc) ->
-      { compile_test(test, module, acc), acc + 1 }
+      { compile_test(test, module, do_import, acc), acc + 1 }
     end) |> elem(0)
   end
 
   ## Compilation of extracted tests
 
-  defp compile_test(test, module, n) do
-    { test_name(test, module, n), test_content(test, module) }
+  defp compile_test(test, module, do_import, n) do
+    { test_name(test, module, n), test_content(test, module, do_import) }
   end
 
   defp test_name(Test[fun_arity: nil], m, n) do
@@ -150,16 +160,16 @@ defmodule ExUnit.DocTest do
     :"test doc at #{inspect m}.#{f}/#{a} (#{n})"
   end
 
-  defp test_content(Test[expected: { :ok, expected }] = test, module) do
+  defp test_content(Test[expected: { :ok, expected }] = test, module, do_import) do
     line = test.line
     file = module.__info__(:compile)[:source]
 
     expr_ast     = string_to_ast(line, file, test.expr)
     expected_ast = string_to_ast(line, file, expected)
 
+    quoted =
     quote do
       try do
-        import unquote(module)
         v = unquote(expected_ast)
         case unquote(expr_ast) do
           ^v -> :ok
@@ -186,21 +196,34 @@ defmodule ExUnit.DocTest do
           stack
       end
     end
+    if do_import do
+      quoted = quote do
+        import unquote(module)
+        unquote(quoted)
+      end
+    end
+    quoted
   end
 
-  defp test_content(Test[expected: { :error, exception, message }] = test, module) do
+  defp test_content(Test[expected: { :error, exception, message }] = test, module, do_import) do
     line = test.line
     file = module.__info__(:compile)[:source]
 
     expr_ast = string_to_ast(line, file, test.expr)
 
+    quoted =
     quote do
-      import unquote(module)
-
       assert_raise unquote(exception), unquote(message), fn ->
         unquote(expr_ast)
       end
     end
+    if do_import do
+      quoted = quote do
+        import unquote(module)
+        unquote(quoted)
+      end
+    end
+    quoted
   end
 
   defp string_to_ast(line, file, expr) do
