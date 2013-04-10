@@ -2668,8 +2668,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> float_to_binary 7.1, [decimals: 2, compact: true]
-      "7.1"
+      float_to_binary 7.1, [decimals: 2, compact: true] #=> "7.1"
 
   """
   defmacro float_to_binary(some_float, options) do
