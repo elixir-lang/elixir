@@ -215,7 +215,7 @@ translate({defmodule, Meta, [Ref, KV]}, S) ->
       { TRef, S }
   end,
 
-  { elixir_module:translate(Meta, FRef, Block, S#elixir_scope{check_clauses=true}), FS };
+  { elixir_module:translate(Meta, FRef, Block, FS#elixir_scope{check_clauses=true}), FS };
 
 translate({Kind, Meta, [Call]}, S) when ?FUNS(Kind) ->
   translate({Kind, Meta, [Call, nil]}, S);

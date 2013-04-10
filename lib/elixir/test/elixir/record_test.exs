@@ -33,6 +33,12 @@ end
 defmodule RecordTest.Macros do
   defrecordp :_user, name: "José", age: 25
 
+  defrecord Nested do
+    def nested_record_alias?(Nested[]) do
+      true
+    end
+  end
+
   def new() do
     _user()
   end
