@@ -158,20 +158,32 @@ defmodule ExUnit.DocTest do
     expected_ast = string_to_ast(line, file, expected)
 
     quote do
-      import unquote(module)
-      v = unquote(expected_ast)
-      case unquote(expr_ast) do
-        ^v -> :ok
-        instead ->
-          location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
-          stack    = [{ unquote(module), :__MODULE__, 0, location }]
-          raise ExUnit.ExpectationError,
-            [ prelude: "Expected doctest",
-              expected: unquote(test.expr),
-              actual: inspect(v),
-              reason: "evaluate to",
-              instead: instead ],
-            stack
+      try do
+        import unquote(module)
+        v = unquote(expected_ast)
+        case unquote(expr_ast) do
+          ^v -> :ok
+          instead ->
+            location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
+            stack    = [{ unquote(module), :__MODULE__, 0, location }]
+            raise ExUnit.ExpectationError,
+              [ prelude: "Expected doctest",
+                expected: unquote(test.expr),
+                actual: inspect(v),
+                reason: "evaluate to",
+                instead: instead ],
+              stack
+        end
+      rescue e ->
+        location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
+        stack    = [{ unquote(module), :__MODULE__, 0, location }]
+        raise ExUnit.ExpectationError,
+          [ prelude: "Expected doctest",
+            expected: unquote(test.expr),
+            actual: "without an exception",
+            reason: "complete",
+            instead: e ],
+          stack
       end
     end
   end
