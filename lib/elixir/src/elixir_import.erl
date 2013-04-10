@@ -100,8 +100,6 @@ calculate(Meta, Key, Opts, Old, AvailableFun, S) ->
   case Final of
     [] -> All;
     _  ->
-      ensure_no_conflicts(Meta, File, Final, keydelete(Key, S#elixir_scope.macros)),
-      ensure_no_conflicts(Meta, File, Final, keydelete(Key, S#elixir_scope.functions)),
       ensure_no_in_erlang_macro_conflict(Meta, File, Key, Final, internal_conflict),
       [{ Key, Final }|All]
   end.
@@ -206,22 +204,6 @@ ensure_no_in_erlang_macro_conflict(Meta, File, Key, [{Name,Arity}|T], Reason) ->
   end;
 
 ensure_no_in_erlang_macro_conflict(_Meta, _File, _Key, [], _) -> ok.
-
-%% Find conlicts in the given list of functions with the set of imports.
-%% Used internally to ensure a newly imported fun or macro does not
-%% conflict with an already imported set.
-
-ensure_no_conflicts(Meta, File, Functions, [{Key,Value}|T]) ->
-  Filtered = lists:filter(fun(X) -> lists:member(X, Functions) end, Value),
-  case Filtered of
-    [{Name,Arity}|_] ->
-      Tuple = { already_imported, { Key, Name, Arity } },
-      elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
-    [] ->
-      ensure_no_conflicts(Meta, File, Functions, T)
-  end;
-
-ensure_no_conflicts(_Meta, _File, _Functions, _S) -> ok.
 
 %% ERROR HANDLING
 

@@ -110,3 +110,15 @@ defmodule Kernel.ImportMacrosTest do
     assert bnot(0) == -1
   end
 end
+
+defmodule Kernel.AmbiguousImportTest do
+  use ExUnit.Case, async: true
+
+  test :import_ambiguous do
+    # Simply make sure that we can indeed import functions with
+    # the same name and arity from different modules without the
+    # import itself causing any errors.
+    import List
+    import String
+  end
+end
