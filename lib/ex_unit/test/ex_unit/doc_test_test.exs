@@ -38,7 +38,7 @@ defmodule ExUnit.DocTestTest.SomewhatGoodModule1 do
   @doc """
   iex> test_fun
   1
-  iex> test_fun + 2
+  iex> test_fun + 1
   2
   """
   def test_fun, do: 1

@@ -1,6 +1,6 @@
 defexception ExUnit.AssertionError,  message: "assertion failed"
 
-defexception ExUnit.ExpectationError, expected: nil, actual: nil, reason: "", negation: false, prelude: "Expected", instead: nil, instead_prelude: "Instead got" do
+defexception ExUnit.ExpectationError, expected: nil, actual: nil, reason: "", negation: false, prelude: "Expected", instead: nil, instead_prelude: "instead got" do
   def message(exception) do
     "#{exception.prelude} #{exception.expected} to " <>
       if(exception.negation, do: "not ", else: "") <>
