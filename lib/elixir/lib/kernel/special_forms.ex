@@ -302,6 +302,13 @@ defmodule Kernel.SpecialForms do
   All imported modules are also required by default. `import`
   also accepts `as:` as an option so it automatically sets up
   an alias. Please check `alias` for more information.
+
+  ## Ambiguous function/macro names
+
+  If two modules `A` and `B` are imported and they both contain
+  a `foo` function with an arity of `1`, an error is only emitted
+  if an ambiguous call to `foo/1` is actually made; that is, the
+  errors are emitted lazily, not eagerly.
   """
   defmacro import(module, opts)
 
