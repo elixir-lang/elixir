@@ -150,12 +150,12 @@ defmodule ExUnit.DocTest do
     :"test doc at #{inspect m}.#{f}/#{a} (#{n})"
   end
 
-  defp test_content(test, module) do
+  defp test_content(Test[expected: { :ok, expected }] = test, module) do
     line = test.line
     file = module.__info__(:compile)[:source]
 
     expr_ast     = string_to_ast(line, file, test.expr)
-    expected_ast = string_to_ast(line, file, test.expected)
+    expected_ast = string_to_ast(line, file, expected)
 
     quote do
       import unquote(module)
@@ -172,6 +172,21 @@ defmodule ExUnit.DocTest do
               reason: "evaluate to",
               instead: instead ],
             stack
+      end
+    end
+  end
+
+  defp test_content(Test[expected: { :error, exception, message }] = test, module) do
+    line = test.line
+    file = module.__info__(:compile)[:source]
+
+    expr_ast = string_to_ast(line, file, test.expr)
+
+    quote do
+      import unquote(module)
+
+      assert_raise unquote(exception), unquote(message), fn ->
+        unquote(expr_ast)
       end
     end
   end
@@ -218,11 +233,13 @@ defmodule ExUnit.DocTest do
   defp extract_tests([], _line, "", "", acc), do: Enum.reverse(acc)
 
   defp extract_tests([], line, expr_acc, expected_acc, acc) do
-    Enum.reverse([Test[expr: expr_acc, line: line, expected: expected_acc]|acc])
+    test = Test[expr: expr_acc, line: line, expected: { :ok, expected_acc }]
+    Enum.reverse([test|acc])
   end
 
   defp extract_tests([<< "iex>", _ :: binary>>|_] = list, line, expr_acc, expected_acc, acc) when expr_acc != "" and expected_acc != "" do
-    extract_tests(list, line, "", "", [Test[expr: expr_acc, line: line, expected: expected_acc]|acc])
+    test = Test[expr: expr_acc, line: line, expected: { :ok, expected_acc }]
+    extract_tests(list, line, "", "", [test|acc])
   end
 
   defp extract_tests([<< "iex>", string :: binary>>|lines], line, expr_acc, expected_acc, acc) when expr_acc == "" do
@@ -250,18 +267,25 @@ defmodule ExUnit.DocTest do
   end
 
   defp extract_tests([""|lines], line, expr_acc, expected_acc, acc) do
-    extract_tests(lines, line,  "", "", [Test[expr: expr_acc, line: line, expected: expected_acc]|acc])
+    test = Test[expr: expr_acc, line: line, expected: { :ok, expected_acc }]
+    extract_tests(lines, line,  "", "", [test|acc])
   end
 
   defp extract_tests([<< "** (", string :: binary >>|lines], line, expr_acc, "", acc) do
-    opts = Regex.captures %r/(?<exception>.+)\) (?<message>.*)/g, string
-    expected = "#{opts[:exception]}[message: #{inspect String.strip(opts[:message])}]"
-    expr_acc = "try do ; #{expr_acc} ; rescue _e -> _e ; end"
-    extract_tests(lines, line,  "", "", [Test[expr: expr_acc, line: line, expected: expected]|acc])
+    test = Test[expr: expr_acc, line: line, expected: extract_error(string, "")]
+    extract_tests(lines, line,  "", "", [test|acc])
   end
 
   defp extract_tests([expected|lines], line, expr_acc, expected_acc, acc) do
     extract_tests(lines, line, expr_acc, expected_acc <> "\n" <> expected, acc)
+  end
+
+  defp extract_error(<< ")", t :: binary >>, acc) do
+    { :error, Module.concat([acc]), String.strip(t) }
+  end
+
+  defp extract_error(<< h, t :: binary >>, acc) do
+    extract_error(t, << acc :: binary, h >>)
   end
 
   defp skip_iex_number(<< ")", ">", string :: binary >>) do
