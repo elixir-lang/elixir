@@ -61,8 +61,6 @@ defmodule KernelTest do
     assert __ENV__.function == { :test_function_from___ENV__, 1 }
   end
 
-  doctest Kernel
-
   defp x(value) when value in [1,2,3], do: true
   defp x(_),                           do: false
 
