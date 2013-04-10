@@ -30,6 +30,19 @@ defmodule ExUnit.DocTest do
   * Being able to refer to specific numbered scenarios in the documentation piece
   * Copy-pasting examples from an actual iex sessions
 
+  ## Exceptions
+
+  You can also showcase expressions raising an exception, for example:
+
+      iex(1)> binary_to_atom((fn() -> 1 end).())
+      ** (ArgumentError) argument error
+
+  What DocTest will be looking for is a line starting with "** (" and it will parse
+  it accordingly to extract the exception name and the message. At this moment,
+  the exception parser would make the parser treat the next line as a start of a completely
+  new expression (if it is prefixed with iex>) or a no-op line with documentation. Thus,
+  multiline messages are not supported.
+
   ## Usage
 
   Currently, the only way to run doctests is to include them into an ExUnit case
@@ -83,7 +96,7 @@ defmodule ExUnit.DocTest do
          import unquote(m)
          v = unquote(expected_ast)
          case unquote(expr_ast) do
-           unquote(expected_ast) -> :ok
+           ^v -> :ok
            instead ->
              raise ExUnit.ExpectationError,
                prelude: "Expected doctest",
@@ -188,6 +201,12 @@ defmodule ExUnit.DocTest do
   end
   defp extract_from_doc([""|lines], line, expr_acc, expected_acc, acc) do
     extract_from_doc(lines, line,  "", "", [Test.new(expr: expr_acc, line: line, expected: expected_acc)|acc])
+  end
+  defp extract_from_doc([<< "** (", string :: binary >>|lines], line, expr_acc, "", acc) do
+    opts = Regex.captures %r/(?<exception>.+)\) (?<message>.*)/g, string
+    expected = "#{inspect Module.concat([opts[:exception]])}[message: #{inspect String.strip(opts[:message])}]"
+    expr_acc = "try do ; #{expr_acc} ; rescue _e -> _e ; end"
+    extract_from_doc(lines, line,  "", "", [Test.new(expr: expr_acc, line: line, expected: expected)|acc])
   end
   defp extract_from_doc([expected|lines], line, expr_acc, expected_acc, acc) do
     extract_from_doc(lines, line, expr_acc, expected_acc <> "\n" <> expected, acc)

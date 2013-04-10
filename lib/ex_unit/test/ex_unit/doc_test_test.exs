@@ -9,6 +9,12 @@ defmodule ExUnit.DocTestTest.GoodModule do
   """
   def test_fun, do: 1
 
+  @doc """
+  iex> 1 + (fn() -> :a end).()
+  ** (ArithmeticError) bad argument in arithmetic expression
+  """
+  def exception_test, do: 1
+
 end
 
 defmodule ExUnit.DocTestTest.SomewhatGoodModule do
