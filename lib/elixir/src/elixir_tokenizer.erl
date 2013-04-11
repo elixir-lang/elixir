@@ -107,7 +107,7 @@ tokenize([], _Line, #scope{terminators=[]}, Tokens) ->
 
 tokenize([], EndLine, #scope{terminators=[{ Start, StartLine }|_]}, _Tokens) ->
   End     = terminator(Start),
-  Message = io_lib:format("missing terminator: ~s (for \"~s\" starting at line ~B)", [End, Start, StartLine]),
+  Message = io_lib:format("missing terminator: ~ts (for \"~ts\" starting at line ~B)", [End, Start, StartLine]),
   { error, { EndLine, Message, [] } };
 
 % Base integers
@@ -148,7 +148,7 @@ tokenize([$%,S,H|T], Line, #scope{file=File} = Scope, Tokens) when not(?is_word(
       tokenize(Final, NewLine, Scope, [{ sigil, Line, S, Parts, Modifiers }|Tokens]);
     Error ->
       Sigil = [$%,S,H],
-      interpolation_error(Error, " (for sigil ~s starting at line ~B)", [Sigil, Line])
+      interpolation_error(Error, " (for sigil ~ts starting at line ~B)", [Sigil, Line])
   end;
 
 % Char tokens
@@ -394,13 +394,15 @@ tokenize([H|_] = String, Line, Scope, Tokens) when ?is_upcase(H) ->
 tokenize([H|_] = String, Line, Scope, Tokens) when ?is_downcase(H); H == $_ ->
   { Rest, { Kind, _, Identifier } } = tokenize_any_identifier(String, Line, [], Scope),
   case handle_keyword(Line, Kind, Identifier, Tokens) of
-    false ->
+    nomatch ->
       tokenize(Rest, Line, Scope, [{ Kind, Line, Identifier }|Tokens]);
-    [Check|T] ->
+    { ok, [Check|T] } ->
       case handle_terminator(Check, Scope) of
         { error, _ } = Error -> Error;
         New -> tokenize(Rest, Line, New, [Check|T])
-      end
+      end;
+    { error, Token } ->
+      { error, { Line, "syntax error before: ", Token } }
   end;
 
 % Ambiguous unary/binary operators tokens
@@ -532,7 +534,7 @@ extract_heredoc(Line0, Rest0, Marker) ->
 
 heredoc_error(ErrorLine, StartLine, Marker) ->
   Terminator = [Marker, Marker, Marker],
-  Message    = io_lib:format("missing terminator: ~s (for heredoc starting at line ~B)", [Terminator, StartLine]),
+  Message    = io_lib:format("missing terminator: ~ts (for heredoc starting at line ~B)", [Terminator, StartLine]),
   { error, { ErrorLine, Message, [] } }.
 
 %% Remove spaces from heredoc based on the position of the final quotes.
@@ -723,7 +725,7 @@ tokenize_call_identifier(Kind, Line, Atom, Rest) ->
 
 verify_kw_and_space(_Line, _Atom, [H|_], #scope{}) when ?is_space(H) -> ok;
 verify_kw_and_space(Line, Atom, _, #scope{file=File}) ->
-  io:format("~ts:~w: keyword argument ~s: must be followed by space~n", [File, Line, Atom]).
+  io:format("~ts:~w: keyword argument ~ts: must be followed by space~n", [File, Line, Atom]).
 
 next_is_block([Space|Tokens]) when Space == $\t; Space == $\s ->
   next_is_block(Tokens);
@@ -744,7 +746,7 @@ add_token_with_nl(Left, T) -> [Left|T].
 % Error handling
 
 interpolation_error({ error, { Line, Message, Token } }, Extension, Args) ->
-  { error, { Line, io_lib:format("~s" ++ Extension, [Message|Args]), Token } }.
+  { error, { Line, io_lib:format("~ts" ++ Extension, [Message|Args]), Token } }.
 
 % Terminators
 
@@ -788,7 +790,7 @@ check_terminator({ E, _ }, [{ S, _ }|Terminators]) when
 check_terminator({ E, Line }, [{ Start, StartLine }|_]) when
     E == 'end'; E == ')'; E == ']'; E == '}'; E == '>>' ->
   End     = terminator(Start),
-  Message = io_lib:format("missing terminator: ~s (for \"~s\" starting at line ~B)", [End, Start, StartLine]),
+  Message = io_lib:format("missing terminator: ~ts (for \"~ts\" starting at line ~B)", [End, Start, StartLine]),
   { error, { Line, Message, [] } };
 
 check_terminator({ E, Line }, []) when
@@ -807,28 +809,39 @@ terminator('<<') -> '>>'.
 
 % Keywords check
 handle_keyword(Line, Identifier, Atom, [{ '.', _ }|_] = Tokens) ->
-  [{ Identifier, Line, Atom }|Tokens];
+  { ok, [{ Identifier, Line, Atom }|Tokens] };
 
 handle_keyword(Line, Identifier, Atom, Tokens) when
     Identifier ==  identifier; Identifier == do_identifier;
     Identifier ==  bracket_identifier; Identifier == paren_identifier ->
   case keyword(Atom) of
-    true  -> [{ Atom, Line }|Tokens];
-    op    -> add_token_with_nl({ Atom, Line }, Tokens);
-    block -> [{ block_identifier, Line, Atom }|Tokens];
-    false -> false
+    true  -> { ok, [{ Atom, Line }|Tokens] };
+    op    -> { ok, add_token_with_nl({ Atom, Line }, Tokens) };
+    block -> { ok, [{ block_identifier, Line, Atom }|Tokens] };
+    do    ->
+      case do_keyword_valid(Tokens) of
+        true  -> { ok, [{ Atom, Line }|Tokens] };
+        false -> { error, "do" }
+      end;
+    false -> nomatch
   end;
 
-handle_keyword(_, _, _, _) -> false.
+handle_keyword(_, _, _, _) -> nomatch.
+
+do_keyword_valid([{ Atom, _ }|_]) ->
+  is_boolean(keyword(Atom));
+do_keyword_valid(_) -> true.
 
 % Keywords
 keyword('fn')    -> true;
-keyword('do')    -> true;
 keyword('end')   -> true;
 keyword('true')  -> true;
 keyword('false') -> true;
 keyword('nil')   -> true;
 keyword('not')   -> true;
+
+% Special handling for do
+keyword('do')    -> do;
 
 % Bin operator keywords
 keyword('and')    -> op;

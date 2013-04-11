@@ -397,6 +397,24 @@ defmodule FileTest do
     end
   end
 
+  test :ls do
+    { :ok, value } = File.ls(fixture_path)
+    assert List.member?(value, "code_sample.exs")
+    assert List.member?(value, "file.txt")
+
+    { :error, :enoent } = File.ls(fixture_path("non-existent-subdirectory"))
+  end
+
+  test :ls! do
+    value = File.ls!(fixture_path)
+    assert List.member?(value, "code_sample.exs")
+    assert List.member?(value, "file.txt")
+
+    assert_raise File.Error, fn ->
+      File.ls!(fixture_path("non-existent-subdirectory"))
+    end
+  end
+
   defmodule OpenReadWrite do
     use ExUnit.Case
 

@@ -1,12 +1,34 @@
 defmodule String do
   @moduledoc %B"""
-  A string in Elixir is a UTF-8 encoded binary.
+  A String in Elixir is a UTF-8 encoded binary.
+
+  ## String and binary operations
 
   The functions in this module act according to the
-  Unicode Standard, version 6.2.0. A codepoint is a
-  Unicode Character, which may be represented by one
-  or more bytes. For example, the character "é" is
-  represented with two bytes:
+  Unicode Standard, version 6.2.0. For example,
+  `titlecase`, `downcase`, `strip` are provided by this
+  module.
+
+  Besides this module, Elixir provides more low-level
+  operations that works directly with binaries. Some
+  of those can be found in the `Kernel` module, as:
+
+  * `binary_part/2` and `binary_part/3` - retrieves part of the binary
+  * `bit_size/1` and `byte_size/1` - size related functions
+  * `is_bitstring/1` and `is_binary/1` - type checking function
+  * Plus a bunch of conversion functions, like `binary_to_atom/2`,
+    `binary_to_integer/2`, `binary_to_term/1` and their opposite
+    like `integer_to_binary/2`
+
+  Finally, [the `:binary` module](http://erlang.org/doc/man/binary.html)
+  provides a couple other functions that works on the byte level.
+
+  ## Codepoints and graphemes
+
+  As per the Unicode Standard, a codepoint is an Unicode
+  Character, which may be represented by one or more bytes.
+  For example, the character "é" is represented with two
+  bytes:
 
       string = "é"
       #=> "é"
@@ -40,7 +62,7 @@ defmodule String do
   ## Integer codepoints
 
   Although codepoints could be represented as integers, this
-  module represents all codepoints as binaries. For example:
+  module represents all codepoints as strings. For example:
 
       String.codepoints "josé" #=> ["j", "o", "s", "é"]
 
@@ -72,8 +94,10 @@ defmodule String do
   characters. For example, `String.length` is going to return
   a correct result even if an invalid codepoint is fed into it.
 
-  In the future, bang version of such functions may be
-  provided which will rather raise on such invalid data.
+  In other words, this module expects invalid data to be detected
+  when retrieving data from the external source. For example, a
+  driver that reads strings from a database will be the one
+  responsible to check the validity of the encoding.
   """
 
   @type t :: binary
@@ -119,29 +143,35 @@ defmodule String do
   The string is split into as many parts as possible by
   default, unless the `global` option is set to false.
   If a pattern is not specified, the string is split on
-  whitespace occurrences.
+  Unicode whitespace occurrences with leading and trailing
+  whitespace ignored.
 
   It returns a list with the original string if the pattern
   can't be matched.
 
   ## Examples
 
-      String.split("a,b,c", ",")  #=> ["a", "b", "c"]
-      String.split("a,b,c", ",", global: false)  #=> ["a", "b,c"]
+      String.split("foo bar") #=> ["foo", "bar"]
+      String.split("foo" <> <<194,133>> <> "bar") #=> ["foo", "bar"]
+      String.split(" foo bar ") #=> ["foo", "bar"]
 
-      String.split("foo bar")     #=> ["foo", "bar"]
+      String.split("a,b,c", ",") #=> ["a", "b", "c"]
+      String.split("a,b,c", ",", global: false) #=> ["a", "b,c"]
+
       String.split("1,2 3,4", [" ", ","]) #=> ["1", "2", "3", "4"]
 
       String.split("a,b,c", %r{,}) #=> ["a", "b", "c"]
-      String.split("a,b,c", %r{,}, global: false)  #=> ["a", "b,c"]
-      String.split("a,b", %r{\.})   #=> ["a,b"]
+      String.split("a,b,c", %r{,}, global: false) #=> ["a", "b,c"]
+      String.split("a,b", %r{\.}) #=> ["a,b"]
 
   """
   @spec split(t) :: [t]
   @spec split(t, t | [t] | Regex.t) :: [t]
   @spec split(t, t | [t] | Regex.t, Keyword.t) :: [t]
 
-  def split(binary, pattern // " ", options // [])
+  defdelegate split(binary), to: String.Unicode
+
+  def split(binary, pattern, options // [])
 
   def split(binary, pattern, options) when is_regex(pattern) do
     Regex.split(pattern, binary, global: options[:global])
@@ -201,8 +231,8 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where trailing whitespace characters
-  and new line have been removed.
+  Returns a string where trailing Unicode whitespace
+  has been removed.
 
   ## Examples
 
@@ -248,8 +278,8 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where leading whitespace characters
-  have been removed.
+  Returns a string where leading Unicode whitespace
+  has been removed.
 
   ## Examples
 
@@ -278,8 +308,8 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where leading/trailing whitespace
-  and new line characters have been removed.
+  Returns a string where leading/trailing Unicode whitespace
+  has been removed.
 
   ## Examples
 

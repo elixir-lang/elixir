@@ -92,11 +92,16 @@ defmodule ExUnit.CLIFormatter do
   defp print_kind_reason(:error, record) when is_record(record, ExUnit.ExpectationError) do
     left  = String.downcase record.prelude
     right = "to " <> if(record.negation, do: "not ", else: "") <> record.reason
+    instead_prelude = record.instead_prelude
     max   = max(size(left), size(right))
 
     IO.puts error_info "** (ExUnit.ExpectationError)"
-    IO.puts error_info "  #{pad(left, max)}: #{record.expected}"
-    IO.puts error_info "  #{pad(right, max)}: #{record.actual}"
+    IO.puts error_info "  #{pad(left, max)}: #{maybe_multiline(record.expected, max)}"
+    IO.puts error_info "  #{pad(right, max)}: #{maybe_multiline(record.actual, max)}"
+
+    unless nil?(record.instead) do
+      IO.puts error_info "  #{pad(instead_prelude, max)}: #{maybe_multiline(inspect(record.instead), max)}"
+    end
   end
 
   defp print_kind_reason(:error, exception) do
@@ -132,6 +137,23 @@ defmodule ExUnit.CLIFormatter do
       ms = div ms, 100000
       "#{div(ms, 10)}.#{rem(ms, 10)}"
     end
+  end
+
+  defp maybe_multiline(str, max) do
+    unless multiline?(str) do
+      String.strip(str)
+    else
+      "\n" <>
+      Enum.join((lc line inlist String.split(str, %r/\n/), do: String.duplicate(" ", max) <> line ), "\n")
+    end
+  end
+
+  defp multiline?(<<>>), do: false
+  defp multiline?(<<?\n, _ :: binary>>) do
+    true
+  end
+  defp multiline?(<<_, rest :: binary>>) do
+    multiline?(rest)
   end
 
   # Print styles

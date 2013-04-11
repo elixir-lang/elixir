@@ -38,14 +38,14 @@ defmodule MacroTest do
 
   test :escape_with_unquote do
     contents = quote unquote: false, do: unquote(1)
-    assert Macro.escape(contents, escape_unquote: false) == 1
+    assert Macro.escape_quoted(contents) == 1
 
     contents = quote unquote: false, do: unquote(x)
-    assert Macro.escape(contents, escape_unquote: false) == { :x, [], MacroTest }
+    assert Macro.escape_quoted(contents) == { :x, [], MacroTest }
   end
 
   defp eval_escaped(contents) do
-    { eval, [] } = Code.eval_quoted(Macro.escape(contents, escape_unquote: false))
+    { eval, [] } = Code.eval_quoted(Macro.escape_quoted(contents))
     eval
   end
 
@@ -71,7 +71,7 @@ defmodule MacroTest do
 
   test :escape_with_splicing do
     contents = quote unquote: false, do: [1,2,3,4,5]
-    assert Macro.escape(contents, escape_unquote: false) == [1,2,3,4,5]
+    assert Macro.escape_quoted(contents) == [1,2,3,4,5]
 
     contents = quote unquote: false, do: [1,2,unquote_splicing([3,4,5])]
     assert eval_escaped(contents) == [1,2,3,4,5]

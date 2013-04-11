@@ -25,7 +25,7 @@ defmodule Macro.Env do
   @type file :: binary
   @type line :: non_neg_integer
   @type aliases :: [{ module, module }]
-  @type context :: :assign | :guard | nil
+  @type context :: :match | :guard | nil
   @type requires :: [module]
   @type functions :: [{ module, [name_arity] }]
   @type macros :: [{ module, [name_arity] }]
@@ -58,7 +58,7 @@ defmodule Macro.Env do
   Returns wether the compilation environment is currently
   inside a match clause.
   """
-  def in_match?(record), do: context(record) == :assign
+  def in_match?(record), do: context(record) == :match
 
   @doc """
   Returns the environment stacktrace.

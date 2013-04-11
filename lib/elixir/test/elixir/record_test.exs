@@ -33,6 +33,12 @@ end
 defmodule RecordTest.Macros do
   defrecordp :_user, name: "José", age: 25
 
+  defrecord Nested do
+    def nested_record_alias?(Nested[]) do
+      true
+    end
+  end
+
   def new() do
     _user()
   end
@@ -103,6 +109,11 @@ defmodule RecordTest do
 
   test :is_record do
     assert is_record(RecordTest.FileInfo.new, RecordTest.FileInfo)
+    assert is_record(RecordTest.WithNoField.new)
+    refute is_record(empty_tuple)
+    refute is_record(a_list)
+    refute is_record(empty_tuple, RecordTest.FileInfo)
+    refute is_record(a_tuple, RecordTest.FileInfo)
     refute is_record(a_list, RecordTest.FileInfo)
     refute is_record(RecordTest.FileInfo.new, List)
   end
@@ -177,7 +188,7 @@ defmodule RecordTest do
     file_info
   end
 
-  defp a_list do
-    [:a, :b, :c]
-  end
+  defp empty_tuple, do: {}
+  defp a_tuple, do: { :foo, :bar, :baz }
+  defp a_list,  do: [ :foo, :bar, :baz ]
 end

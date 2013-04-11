@@ -24,7 +24,8 @@ defmodule Kernel do
 
   ## Examples
 
-      1 + 2 #=> 3
+      iex> 1 + 2
+      3
 
   """
   defmacro left + right
@@ -34,7 +35,8 @@ defmodule Kernel do
 
   ## Examples
 
-      1 - 2 #=> -1
+      iex> 1 - 2
+      -1
 
   """
   defmacro left - right
@@ -44,7 +46,8 @@ defmodule Kernel do
 
   ## Examples
 
-      1 * 2 #=> 2
+      iex> 1 * 2
+      2
 
   """
   defmacro left * right
@@ -56,8 +59,10 @@ defmodule Kernel do
 
   ## Examples
 
-      1 / 2 #=> 0.5
-      2 / 1 #=> 2.0
+      iex> 1 / 2
+      0.5
+      iex> 2 / 1
+      2.0
 
   """
   defmacro left / right
@@ -80,11 +85,11 @@ defmodule Kernel do
 
   ## Examples
 
-      [1] ++ [2,3]
-      #=> [1,2,3]
+      iex> [1] ++ [2,3]
+      [1,2,3]
 
-      'foo' ++ 'bar'
-      #=> 'foobar'
+      iex> 'foo' ++ 'bar'
+      'foobar'
 
   """
   defmacro left ++ right
@@ -95,11 +100,11 @@ defmodule Kernel do
 
   ## Examples
 
-      [1,2,3] -- [1,2]
-      #=> [3]
+      iex> [1,2,3] -- [1,2]
+      [3]
 
-      [1,2,3,2,1] -- [1,2,2]
-      #=> [3,1]
+      iex> [1,2,3,2,1] -- [1,2,2]
+      [3,1]
 
   """
   defmacro left -- right
@@ -110,8 +115,8 @@ defmodule Kernel do
 
   ## Examples
 
-      true or false
-      #=> true
+      iex> true or false
+      true
 
   """
   defmacro left or right
@@ -122,8 +127,8 @@ defmodule Kernel do
 
   ## Examples
 
-      true and false
-      #=> false
+      iex> true and false
+      false
 
   """
   defmacro left and right
@@ -134,8 +139,8 @@ defmodule Kernel do
 
   ## Examples
 
-      true xor false
-      #=> true
+      iex> true xor false
+      true
 
   """
   defmacro left xor right
@@ -146,8 +151,8 @@ defmodule Kernel do
 
   ## Examples
 
-      not false
-      #=> true
+      iex> not false
+      true
 
   """
   defmacro not arg
@@ -159,10 +164,14 @@ defmodule Kernel do
 
   ## Examples
 
-      !1        #=> false
-      ![1,2,3]  #=> false
-      !false    #=> true
-      !nil      #=> true
+      iex> !1
+      false
+      iex> ![1,2,3]
+      false
+      iex> !false
+      true
+      iex> !nil
+      true
 
   """
   defmacro !arg
@@ -173,8 +182,8 @@ defmodule Kernel do
 
   ## Examples
 
-      1 < 2
-      #=> true
+      iex> 1 < 2
+      true
 
   """
   defmacro left < right
@@ -185,8 +194,8 @@ defmodule Kernel do
 
   ## Examples
 
-      1 > 2
-      #=> false
+      iex> 1 > 2
+      false
 
   """
   defmacro left > right
@@ -197,8 +206,8 @@ defmodule Kernel do
 
   ## Examples
 
-      1 <= 2
-      #=> true
+      iex> 1 <= 2
+      true
 
   """
   defmacro left <= right
@@ -209,8 +218,8 @@ defmodule Kernel do
 
   ## Examples
 
-      1 >= 2
-      #=> false
+      iex> 1 >= 2
+      false
 
   """
   defmacro left >= right
@@ -225,11 +234,11 @@ defmodule Kernel do
 
   ## Examples
 
-      1 == 2
-      #=> false
+      iex> 1 == 2
+      false
 
-      1 == 1.0
-      #=> true
+      iex> 1 == 1.0
+      true
 
   """
   defmacro left == right
@@ -244,10 +253,10 @@ defmodule Kernel do
 
   ## Examples
 
-      1 != 2
-      #=> true
-      1 != 1.0
-      #=> false
+      iex> 1 != 2
+      true
+      iex> 1 != 1.0
+      false
 
   """
   defmacro left != right
@@ -258,11 +267,11 @@ defmodule Kernel do
 
   ## Examples
 
-      1 === 2
-      #=> false
+      iex> 1 === 2
+      false
 
-      1 === 1.0
-      #=> false
+      iex> 1 === 1.0
+      false
 
   """
   defmacro left === right
@@ -273,14 +282,36 @@ defmodule Kernel do
 
   ## Examples
 
-      1 !== 2
-      #=> true
+      iex> 1 !== 2
+      true
 
-      1 !== 1.0
-      #=> true
+      iex> 1 !== 1.0
+      true
 
   """
   defmacro left !== right
+
+  @doc """
+  Invokes the given `fun` with the array of arguments `args`.
+
+  ## Examples
+
+      iex> apply fn x -> x * 2 end, [2]
+      4
+
+  """
+  defmacro apply(fun, args)
+
+  @doc """
+  Invokes the given `fun` from `module` with the array of arguments `args`.
+
+  ## Examples
+
+      iex> apply Enum, :reverse, [[1,2,3]]
+      [3,2,1]
+
+  """
+  defmacro apply(module, fun, args)
 
   @doc """
   Returns an integer or float which is the arithmetical absolute value of `number`.
@@ -289,40 +320,14 @@ defmodule Kernel do
 
   ## Examples
 
-      abs(-3.33) #=> 3.33
-      abs(-3)    #=> 3
+      iex> abs(-3.33)
+      3.33
+      iex> abs(-3)
+      3
   """
   @spec abs(number) :: number
   def abs(number) do
     :erlang.abs(number)
-  end
-
-  @doc """
-  Invokes the given `fun` with the array of arguments `args`.
-
-  ## Examples
-
-      apply fn x -> x * 2 end, [2]
-      #=> 4
-
-  """
-  @spec apply((... -> any), list) :: term
-  def apply(fun, args) do
-    :erlang.apply(fun, args)
-  end
-
-  @doc """
-  Invokes the given `fun` from `module` with the array of arguments `args`.
-
-  ## Examples
-
-      apply Enum, :reverse, [[1,2,3]]
-      #=> [3,2,1]
-
-  """
-  @spec apply(atom, atom, list) :: term
-  def apply(module, fun, args) do
-    :erlang.apply(module, fun, args)
   end
 
   @doc """
@@ -334,7 +339,8 @@ defmodule Kernel do
 
   ## Examples
 
-      atom_to_binary(:elixir, :utf8) #=> "elixir"
+      iex> atom_to_binary(:elixir, :utf8)
+      "elixir"
 
   """
   @spec atom_to_binary(atom, :utf8 | :unicode | :latin1) :: binary
@@ -347,7 +353,8 @@ defmodule Kernel do
 
   ## Examples
 
-      atom_to_list(:elixir) #=> 'elixir'
+      iex> atom_to_list(:elixir)
+      'elixir'
 
   """
   @spec atom_to_list(atom) :: list
@@ -366,11 +373,13 @@ defmodule Kernel do
 
   ## Examples
 
-      binary_part "foo", 1, 2 #=> "oo"
+      iex> binary_part "foo", 1, 2
+      "oo"
 
   A negative length can be used to extract bytes at the end of a binary:
 
-      binary_part "foo", 3, -1 #=> 1
+      iex> binary_part "foo", 3, -1
+      "o"
 
   """
   @spec binary_part(binary, pos_integer, integer) :: binary
@@ -386,7 +395,8 @@ defmodule Kernel do
 
   ## Examples
 
-      binary_to_atom("elixir", :utf8) #=> :elixir
+      iex> binary_to_atom("elixir", :utf8)
+      :elixir
 
   """
   @spec binary_to_atom(binary, :utf8 | :unicode | :latin1) :: atom
@@ -427,7 +437,8 @@ defmodule Kernel do
 
   ## Examples
 
-      binary_to_term(term_to_binary("foo")) #=> "foo"
+      iex> binary_to_term(term_to_binary("foo"))
+      "foo"
 
   """
   @spec binary_to_term(binary) :: term
@@ -451,7 +462,8 @@ defmodule Kernel do
 
   ## Examples
 
-      binary_to_term(term_to_binary("foo"), [:safe])
+      iex> binary_to_term(term_to_binary("foo"), [:safe])
+      "foo"
 
   """
   @spec binary_to_term(binary, [] | [:safe]) :: term
@@ -466,8 +478,10 @@ defmodule Kernel do
 
   ## Examples
 
-      bit_size(<<433::16,3::3>>) #=> 19
-      bit_size(<<1,2,3>>) #=> 24
+      iex> bit_size(<<433::16,3::3>>)
+      19
+      iex> bit_size(<<1,2,3>>)
+      24
 
   """
   @spec bit_size(bitstring) :: non_neg_integer
@@ -494,8 +508,10 @@ defmodule Kernel do
 
   ## Examples
 
-      byte_size(<<433::16,3::3>>) #=> 3
-      byte_size(<<1,2,3>>) #=> 3
+      iex> byte_size(<<433::16,3::3>>)
+      3
+      iex> byte_size(<<1,2,3>>)
+      3
 
   """
   @spec byte_size(bitstring) :: non_neg_integer
@@ -532,8 +548,8 @@ defmodule Kernel do
 
   ## Examples
 
-      float_to_list(7.0)
-      #=> '7.00000000000000000000e+00'
+      iex> float_to_list(7.0)
+      '7.00000000000000000000e+00'
 
   """
   @spec float_to_list(number) :: char_list
@@ -554,8 +570,8 @@ defmodule Kernel do
 
   ## Examples
 
-      integer_to_list(7)
-      #=> '7'
+      iex> integer_to_list(7)
+      '7'
 
   """
   @spec integer_to_list(integer) :: char_list
@@ -569,8 +585,8 @@ defmodule Kernel do
 
   ## Examples
 
-      integer_to_list(1023, 16).
-      #=> "3FF"
+      iex> integer_to_list(1023, 16)
+      '3FF'
 
   """
   @spec integer_to_list(integer, pos_integer) :: char_list
@@ -583,8 +599,8 @@ defmodule Kernel do
 
   ## Examples
 
-      iolist_size([1,2|<<3,4>>])
-      #=> 4
+      iex> iolist_size([1,2|<<3,4>>])
+      4
 
   """
   @spec iolist_size(iolist) :: non_neg_integer
@@ -597,12 +613,11 @@ defmodule Kernel do
 
   ## Examples
 
-      bin1 = <<1,2,3>>
-      bin2 = <<4,5>>
-      bin3 = <<6>>
-
-      iolist_to_binary([bin1,1,[2,3,bin2],4|bin3])
-      #=> <<1,2,3,1,2,3,4,5,4,6>>
+      iex> bin1 = <<1,2,3>>
+      ...> bin2 = <<4,5>>
+      ...> bin3 = <<6>>
+      ...> iolist_to_binary([bin1,1,[2,3,bin2],4|bin3])
+      <<1,2,3,1,2,3,4,5,4,6>>
 
   """
   @spec iolist_to_binary(iolist) :: binary
@@ -771,7 +786,8 @@ defmodule Kernel do
 
   ## Examples
 
-      length([1,2,3,4,5,6,7,8,9]) #=> 9
+      iex> length([1,2,3,4,5,6,7,8,9])
+      9
   """
   @spec length(list) :: non_neg_integer
   def length(list) do
@@ -783,7 +799,8 @@ defmodule Kernel do
 
   ## Examples
 
-      list_to_atom('elixir') #=> :elixir
+      iex> list_to_atom('elixir')
+      :elixir
   """
   @spec list_to_atom(char_list) :: atom
   def list_to_atom(char_list) do
@@ -795,7 +812,8 @@ defmodule Kernel do
 
   ## Examples
 
-      list_to_binary('Elixir') #=> "Elixir"
+      iex> list_to_binary('Elixir')
+      "Elixir"
   """
   @spec list_to_binary(iolist) :: binary
   def list_to_binary(char_list) do
@@ -808,12 +826,11 @@ defmodule Kernel do
 
   ## Examples
 
-      bin1 = <<1,2,3>>
-      bin2 = <<4,5>>
-      bin3 = <<6,7::4>>
-
-      list_to_bitstring([bin1,1,[2,3,bin2],4|bin3])
-      #=> <<1,2,3,1,2,3,4,5,4,6,7::size(4)>>
+      iex> bin1 = <<1,2,3>>
+      ...> bin2 = <<4,5>>
+      ...> bin3 = <<6,7::4>>
+      ...> list_to_bitstring([bin1,1,[2,3,bin2],4|bin3])
+      <<1,2,3,1,2,3,4,5,4,6,7::size(4)>>
 
   """
   @spec list_to_bitstring(maybe_improper_list(char | binary | iolist | bitstring, binary | bitstring | [])) :: bitstring
@@ -835,7 +852,8 @@ defmodule Kernel do
 
   ## Examples
 
-      list_to_float('2.2017764e+0') #=> 2.2017764
+      iex> list_to_float('2.2017764e+0')
+      2.2017764
   """
   @spec list_to_float(char_list) :: float
   def list_to_float(char_list) do
@@ -847,7 +865,8 @@ defmodule Kernel do
 
   ## Examples
 
-      list_to_integer('123') #=> 123
+      iex> list_to_integer('123')
+      123
   """
   @spec list_to_integer(char_list) :: integer
   def list_to_integer(char_list) do
@@ -859,7 +878,8 @@ defmodule Kernel do
 
   ## Examples
 
-      list_to_integer('3FF', 16) #=> 1023
+      iex> list_to_integer('3FF', 16)
+      1023
   """
   @spec list_to_integer(char_list, non_neg_integer) :: integer
   def list_to_integer(char_list, base) do
@@ -877,6 +897,7 @@ defmodule Kernel do
   It should not be used in application programs.
 
   ## Examples
+
       list_to_pid('<0.4.1>') #=> #PID<0.4.1>
   """
   @spec list_to_pid(char_list) :: pid
@@ -889,7 +910,8 @@ defmodule Kernel do
 
   ## Examples
 
-      list_to_tuple([:share, [:elixir, 163]]). #=> {:share, [:elixir, 163]}
+      iex> list_to_tuple([:share, [:elixir, 163]])
+      {:share, [:elixir, 163]}
   """
   @spec list_to_tuple(list) :: tuple
   def list_to_tuple(list) do
@@ -904,8 +926,7 @@ defmodule Kernel do
 
   ## Examples
 
-      make_ref()
-      #=> #Reference<0.0.0.135>
+      make_ref() #=> #Reference<0.0.0.135>
 
   """
   @spec make_ref() :: reference
@@ -920,7 +941,8 @@ defmodule Kernel do
 
   ## Examples
 
-      max(1, 2) #=> 2
+      iex> max(1, 2)
+      2
 
   """
   @spec max(term, term) :: term
@@ -935,7 +957,8 @@ defmodule Kernel do
 
   ## Examples
 
-      min(1, 2) #=> 1
+      iex> min(1, 2)
+      1
 
   """
   @spec min(term, term) :: term
@@ -989,7 +1012,8 @@ defmodule Kernel do
 
   ## Examples
 
-      round(5.5) #=> 6
+      iex> round(5.5)
+      6
 
   """
   @spec round(number) :: integer
@@ -1140,7 +1164,8 @@ defmodule Kernel do
 
   ## Examples
 
-      trunc(5.5) #=> 5
+      iex> trunc(5.5)
+      5
 
   """
   @spec trunc(number) :: integer
@@ -1405,6 +1430,29 @@ defmodule Kernel do
 
   Which provides faster get and set times for record operations.
 
+  ## Compile-time introspection
+
+  At the compile time, one can access following information about the record
+  from within the record module:
+
+  * `@record_fields` — a keyword list of record fields with defaults
+  * `@record_types` — a keyword list of record fields with types
+
+       defrecord Foo, bar: nil do
+         record_type bar: nil | integer
+         IO.inspect @record_fields
+         IO.inspect @record_types
+       end
+
+  prints out
+
+       [bar: nil]
+       [bar: {:|,[line: ...],[nil,{:integer,[line: ...],nil}]}]
+
+  where the last line is a quoted representation of
+
+       [bar: nil | integer]
+
   ## Documentation
 
   By default records are not documented and have `@moduledoc` set to false.
@@ -1521,8 +1569,10 @@ defmodule Kernel do
 
   ## Examples
 
-      is_exception(Error.new) #=> true
-      is_exception(1)         #=> false
+      iex> is_exception((fn -> ArithmeticError.new end).())
+      true
+      iex> is_exception((fn -> 1 end).())
+      false
 
   """
   defmacro is_exception(thing) do
@@ -1558,12 +1608,14 @@ defmodule Kernel do
     case __CALLER__.in_guard? do
       true ->
         quote do
-          is_tuple(unquote(thing)) and :erlang.element(1, unquote(thing)) == unquote(kind)
+          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 0
+            and :erlang.element(1, unquote(thing)) == unquote(kind)
         end
       false ->
         quote do
           result = unquote(thing)
-          is_tuple(result) and :erlang.element(1, result) == unquote(kind)
+          is_tuple(result) and tuple_size(unquote(thing)) > 0
+            and :erlang.element(1, result) == unquote(kind)
         end
     end
   end
@@ -1575,12 +1627,14 @@ defmodule Kernel do
     case __CALLER__.in_guard? do
       true ->
         quote do
-          is_tuple(unquote(thing)) and is_atom(:erlang.element(1, unquote(thing)))
+          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 0
+            and is_atom(:erlang.element(1, unquote(thing)))
         end
       false ->
         quote do
           result = unquote(thing)
-          is_tuple(result) and is_atom(:erlang.element(1, result))
+          is_tuple(result) and tuple_size(unquote(thing)) > 0
+            and is_atom(:erlang.element(1, result))
         end
     end
   end
@@ -1808,8 +1862,8 @@ defmodule Kernel do
 
   ## Examples
 
-      inspect(:foo)
-      #=> ":foo"
+      iex> inspect(:foo)
+      ":foo"
 
   Note that the inspect protocol does not necessarily return a valid
   representation of an Elixir term. In such cases, the inspected result must
@@ -1829,8 +1883,8 @@ defmodule Kernel do
 
   ## Examples
 
-      to_binary(:foo)
-      #=> "foo"
+      iex> to_binary(:foo)
+      "foo"
 
   """
   defmacro to_binary(arg) do
@@ -1842,8 +1896,8 @@ defmodule Kernel do
 
   ## Examples
 
-      to_char_list(:foo)
-      #=> 'foo'
+      iex> to_char_list(:foo)
+      'foo'
 
   """
   defmacro to_char_list(arg) do
@@ -1858,8 +1912,9 @@ defmodule Kernel do
 
   ## Example
 
-      tuple = { :foo, :bar, 3 }
-      elem(tuple, 1) #=> :bar
+      iex> tuple = { :foo, :bar, 3 }
+      ...> elem(tuple, 1)
+      :bar
 
   """
   defmacro elem(tuple, index) when is_integer(index) do
@@ -1878,8 +1933,9 @@ defmodule Kernel do
 
   ## Example
 
-      tuple = { :foo, :bar, 3 }
-      setelem(tuple, 0, :baz) #=> { :baz, :bar, 3 }
+      iex> tuple = { :foo, :bar, 3 }
+      ...> setelem(tuple, 0, :baz)
+      { :baz, :bar, 3 }
 
   """
   defmacro setelem(tuple, index, value) when is_integer(index) do
@@ -1897,7 +1953,8 @@ defmodule Kernel do
 
   ## Examples
 
-      div 5, 2 #=> 2
+      iex> div 5, 2
+      2
 
   """
   defmacro div(left, right) do
@@ -1911,7 +1968,8 @@ defmodule Kernel do
 
   ## Examples
 
-      rem 5, 2 #=> 1
+      iex> rem 5, 2
+      1
 
   """
   defmacro rem(left, right) do
@@ -1924,8 +1982,10 @@ defmodule Kernel do
 
   ## Examples
 
-      nil? 1    #=> false
-      nil? nil  #=> true
+      iex> nil? 1
+      false
+      iex> nil? nil
+      true
 
   """
   defmacro nil?(x) do
@@ -1938,9 +1998,12 @@ defmodule Kernel do
 
   ## Examples
 
-      match?(1, 1) #=> true
-      match?(1, 2) #=> false
-      match?({1,_}, {1,2}) #=> true
+      iex> match?(1, 1)
+      true
+      iex> match?(1, 2)
+      false
+      iex> match?({1,_}, {1,2})
+      true
 
   Match can also be used to filter or find a value in an enumerable:
 
@@ -1974,11 +2037,11 @@ defmodule Kernel do
 
   ## Examples
 
-      sum = function do
-        (x, y) -> x + y
-      end
-
-      sum.(1, 2) #=> 3
+      iex> sum = function do
+      ...>   (x, y) -> x + y
+      ...> end
+      ...> sum.(1, 2)
+      3
 
   Notice that a function needs to be invoked using the dot between
   the function and the arguments.
@@ -1986,12 +2049,12 @@ defmodule Kernel do
   Multiple clauses can be specified as in `case`, `receive` and
   similar macros:
 
-      sum = function do
-        x, y when y > 0 -> x + y
-        x, y -> x - y
-      end
-
-      sum.(1, 2) #=> 3
+      iex> sum = function do
+      ...>   x, y when y > 0 -> x + y
+      ...>   x, y -> x - y
+      ...> end
+      ...> sum.(1, 2)
+      3
 
   ## Shortcut syntax
 
@@ -2028,19 +2091,60 @@ defmodule Kernel do
         x -> x * 2
       end)
 
-  ## Function retrieval
-
-  The `function` macro can also be used to retrieve local or remote
-  functions:
-
-      f = function(:is_atom, 1)
-      f.(:foo) #=> true
-
-      f = function(List, :flatten, 1)
-      f.([1,[2],3]) #=> [1,2,3]
-
   """
   defmacro function(args)
+
+  @doc """
+  Retrieves a local or an imported function.
+
+  ## Examples
+
+      iex> f = function(:is_atom, 1)
+      ...> f.(:foo)
+      true
+
+  Notice that local functions cannot be retrieved dynamically,
+  the following, for example, wouldn't work:
+
+      some_fun = :is_atom
+      function(some_fun, 1)
+
+  In such cases, one should use `function/3`:
+
+      some_fun = :is_atom
+      function(SomeModule, some_fun, 1)
+
+  ## Shortcut syntax
+
+  One can use a shortcut syntax to retrieve such functions,
+  that resembles Erlang's `fun`:
+
+      f = function(is_atom/1)
+      f.(:foo)
+
+  """
+  defmacro function(function, arity)
+
+  @doc """
+  Retrieves a function from a module.
+
+  ## Examples
+
+      iex> f = function(Kernel, :is_atom, 1)
+      ...> f.(:foo)
+      true
+
+  ## Shortcut syntax
+
+  One can use a shortcut syntax to retrieve such functions,
+  that resembles Erlang's `fun`:
+
+      iex> f = function(Kernel.is_atom/1)
+      ...> f.(:foo)
+      true
+
+  """
+  defmacro function(module, function, arity)
 
   @doc """
   Matches the given condition against the match clauses.
@@ -2349,7 +2453,6 @@ defmodule Kernel do
         true ->
           "This will"
       end
-
   """
   defmacro cond([do: { :->, _, pairs }]) do
     [{ [condition], clause }|t] = :lists.reverse pairs
@@ -2393,20 +2496,18 @@ defmodule Kernel do
 
   ## Examples
 
-      destructure [x,y,z], [1,2,3,4,5]
-      x #=> 1
-      y #=> 2
-      z #=> 3
+      iex> destructure [x,y,z], [1,2,3,4,5]
+      ...> {x, y, z}
+      {1, 2, 3}
 
   Notice in the example above, even though the right
   size has more entries than the left, destructuring works
   fine. If the right size is smaller, the remaining items
   are simply assigned to nil:
 
-      destructure [x,y,z], [1]
-      x #=> 1
-      y #=> nil
-      z #=> nil
+      iex> destructure [x,y,z], [1]
+      ...> {x, y, z}
+      {1, nil, nil}
 
   The left side supports any expression you would use
   on the left side of a match:
@@ -2436,12 +2537,17 @@ defmodule Kernel do
 
   ## Examples
 
-      binary_to_integer "123" #=> 123
+      iex> binary_to_integer "123"
+      123
 
   """
   defmacro binary_to_integer(some_binary) do
-    quote do
-      list_to_integer(binary_to_list(unquote(some_binary)))
+    case :proplists.get_value(:binary_to_integer,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      2 ->
+        quote do: :erlang.binary_to_integer(unquote(some_binary))
+      :undefined ->
+        quote do: list_to_integer(binary_to_list(unquote(some_binary)))
     end
   end
 
@@ -2451,12 +2557,17 @@ defmodule Kernel do
 
   ## Examples
 
-      binary_to_integer("3FF", 16) #=> 1023
+      iex> binary_to_integer("3FF", 16)
+      1023
 
   """
   defmacro binary_to_integer(some_binary, base) do
-    quote do
-      list_to_integer(binary_to_list(unquote(some_binary)), unquote(base))
+    case :proplists.get_value(:binary_to_integer,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      2 ->
+        quote do: :erlang.binary_to_integer(unquote(some_binary), unquote(base))
+      :undefined ->
+        quote do: list_to_integer(binary_to_list(unquote(some_binary)), unquote(base))
     end
   end
 
@@ -2465,12 +2576,17 @@ defmodule Kernel do
 
   ## Examples
 
-      binary_to_float "2.2017764e+0" #=> 2.2017764
+      iex> binary_to_float "2.2017764e+0"
+      2.2017764
 
   """
   defmacro binary_to_float(some_binary) do
-    quote do
-      list_to_float(binary_to_list(unquote(some_binary)))
+    case :proplists.get_value(:binary_to_float,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      1 ->
+        quote do: :erlang.binary_to_float(unquote(some_binary))
+      :undefined ->
+        quote do: list_to_float(binary_to_list(unquote(some_binary)))
     end
   end
 
@@ -2480,12 +2596,17 @@ defmodule Kernel do
 
   ## Examples
 
-      integer_to_binary 123 #=> "123"
+      iex> integer_to_binary 123
+      "123"
 
   """
   defmacro integer_to_binary(some_integer) do
-    quote do
-      list_to_binary(integer_to_list(unquote(some_integer)))
+    case :proplists.get_value(:integer_to_binary,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      2 ->
+        quote do: :erlang.integer_to_binary(unquote(some_integer))
+      :undefined ->
+        quote do: list_to_binary(integer_to_list(unquote(some_integer)))
     end
   end
 
@@ -2495,12 +2616,17 @@ defmodule Kernel do
 
   ## Examples
 
-      integer_to_binary 77 #=> "77"
+      iex> integer_to_binary 77
+      "77"
 
   """
   defmacro integer_to_binary(some_integer, base) do
-    quote do
-      list_to_binary(integer_to_list(unquote(some_integer), unquote(base)))
+    case :proplists.get_value(:integer_to_binary,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      2 ->
+        quote do: :erlang.integer_to_binary(unquote(some_integer), unquote(base))
+      :undefined ->
+        quote do: list_to_binary(integer_to_list(unquote(some_integer), unquote(base)))
     end
   end
 
@@ -2510,12 +2636,52 @@ defmodule Kernel do
 
   ## Examples
 
-      float_to_binary 7.0 #=> "7.00000000000000000000e+00"
+      iex> float_to_binary 7.0
+      "7.00000000000000000000e+00"
 
   """
   defmacro float_to_binary(some_float) do
-    quote do
-      list_to_binary(float_to_list(unquote(some_float)))
+    case :proplists.get_value(:float_to_binary,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      2 ->
+        quote do: :erlang.float_to_binary(unquote(some_float))
+      :undefined ->
+        quote do: list_to_binary(float_to_list(unquote(some_float)))
+    end
+  end
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `some_float`.
+
+  ## Options
+
+  * `:decimals` — number of decimal points to show
+  * `:scientific` — number of decimal points to show, in scientific format
+  * `:compact` — If true, use the most compact representation. Ignored with the `scientific` option
+
+  ## Examples
+
+      float_to_binary 7.1, [decimals: 2, compact: true] #=> "7.1"
+
+  """
+  defmacro float_to_binary(some_float, options) do
+    options = :lists.reverse(:lists.foldl(fn({:compact, false}, acc) -> acc -- [:compact]
+                                            ({:compact, true}, acc) -> [:compact|acc]
+                                            (x, acc) -> [x|acc]
+                                          end, [], options))
+    case :proplists.get_value(:float_to_binary,
+                              :proplists.get_value(:exports, :erlang.module_info, [])) do
+      2 ->
+        quote do: :erlang.float_to_binary(unquote(some_float), unquote(options))
+      :undefined ->
+        case :proplists.get_value(:float_to_list,
+                                  :proplists.get_value(:exports, :erlang.module_info, [])) do
+          2 ->
+            quote do: list_to_binary(float_to_list(unquote(some_float), unquote(options)))
+          1 ->
+            throw(:badarg)
+        end
     end
   end
 
@@ -2525,7 +2691,8 @@ defmodule Kernel do
 
   ## Examples
 
-      binary_to_atom "my_atom" #=> :my_atom
+      iex> binary_to_atom "my_atom"
+      :my_atom
 
   """
   defmacro binary_to_atom(some_binary) do
@@ -2539,8 +2706,12 @@ defmodule Kernel do
 
   ## Examples
 
-      :my_atom                          #=> :my_atom
-      binary_to_existing_atom "my_atom" #=> :my_atom
+      iex> :my_atom
+      ...> binary_to_existing_atom "my_atom"
+      :my_atom
+
+      iex> binary_to_existing_atom "this_atom_will_never_exist"
+      ** (ArgumentError) argument error
 
   """
   defmacro binary_to_existing_atom(some_binary) do
@@ -2555,7 +2726,8 @@ defmodule Kernel do
 
   ## Examples
 
-      atom_to_binary :my_atom #=> "my_atom"
+      iex> atom_to_binary :my_atom
+      "my_atom"
 
   """
   defmacro atom_to_binary(some_atom) do
@@ -2569,13 +2741,15 @@ defmodule Kernel do
 
   ## Examples
 
-      "foo" <> "bar" #=> "foobar"
+      iex> "foo" <> "bar"
+      "foobar"
 
   The `<>` operator can also be used in guard clauses as
   long as the first part is a literal binary:
 
-      "foo" <> x = "foobar"
-      x #=> "bar"
+      iex> "foo" <> x = "foobar"
+      ...> x
+      "bar"
 
   """
   defmacro left <> right do
@@ -2589,10 +2763,14 @@ defmodule Kernel do
 
   ## Examples
 
-      0 in 1..3 #=> false
-      1 in 1..3 #=> true
-      2 in 1..3 #=> true
-      3 in 1..3 #=> true
+      iex> 0 in 1..3
+      false
+      iex> 1 in 1..3
+      true
+      iex> 2 in 1..3
+      true
+      iex> 3 in 1..3
+      true
 
   """
   defmacro first .. last do
@@ -2606,10 +2784,14 @@ defmodule Kernel do
 
   ## Examples
 
-      true && true         #=> true
-      nil && true          #=> nil
-      true && 1            #=> 1
-      false && error(:bad) #=> false
+      iex> true && true
+      true
+      iex> nil && true
+      nil
+      iex> true && 1
+      1
+      iex> false && throw(:bad)
+      false
 
   Notice that, differently from Erlang `and` operator,
   this operator accepts any expression as arguments,
@@ -2633,10 +2815,14 @@ defmodule Kernel do
 
   ## Examples
 
-      false || false       #=> false
-      nil || true          #=> true
-      false || 1           #=> 1
-      true || error(:bad)  #=> true
+      iex> false || false
+      false
+      iex> nil || true
+      true
+      iex> false || 1
+      1
+      iex> true || throw(:bad)
+      true
 
   Notice that, differently from Erlang `or` operator,
   this operator accepts any expression as arguments,
@@ -2660,8 +2846,9 @@ defmodule Kernel do
 
   ## Examples
 
-      x = 1
-      x in [1,2,3] #=> true
+      iex> x = 1
+      ...> x in [1,2,3]
+      true
 
   This macro simply translates the expression above to:
 
@@ -2696,8 +2883,10 @@ defmodule Kernel do
 
   ## Examples
 
-      "abcd" =~ %r/c(d)/  #=> 2
-      "abcd" =~ %r/e/     #=> nil
+      iex> "abcd" =~ %r/c(d)/
+      2
+      iex> "abcd" =~ %r/e/
+      nil
 
   """
   defmacro left =~ right do
@@ -2714,8 +2903,8 @@ defmodule Kernel do
 
   ## Examples
 
-      [1,[2],3] |> List.flatten |> Enum.map(&1 * 2)
-      #=> [2,4,6]
+      iex> [1,[2],3] |> List.flatten |> Enum.map(&1 * 2)
+      [2,4,6]
 
   The expression above is simply translated to:
 
@@ -2776,7 +2965,7 @@ defmodule Kernel do
       try do
         1 + :foo
       rescue
-        x in [BadargError] ->
+        x in [ArithmeticError] ->
           IO.puts "that was expected"
           raise x
       end
@@ -2804,7 +2993,8 @@ defmodule Kernel do
 
   ## Examples
 
-      raise ArgumentError, message: "Sample"
+      iex> raise ArgumentError, message: "Sample"
+      ** (ArgumentError) Sample
 
   """
   @spec raise(tuple | atom, list) :: no_return
@@ -2929,12 +3119,6 @@ defmodule Kernel do
 
   In this case, `"Hello"` will be printed twice (one per each field).
 
-  ## Examples
-
-      a = { :a, :b, :c }
-      a[1] #=> :a
-      access a, 1 #=> :a
-
   """
   defmacro access(element, args) do
     caller = __CALLER__
@@ -2969,7 +3153,8 @@ defmodule Kernel do
         Record.access(atom, fields, args, caller)
       false ->
         case caller.in_match? do
-          true  -> raise "invalid usage of access protocol in signature"
+          true  -> raise << "the access protocol cannot be used inside match clauses ",
+                     "(for example, on the left hand side of a match or in function signatures)" >>
           false -> quote do: Access.access(unquote(element), unquote(args))
         end
     end
@@ -3019,7 +3204,7 @@ defmodule Kernel do
   """
   defmacro defdelegate(funs, opts) do
     quote do
-      funs = unquote(Macro.escape(funs, escape_unquote: false))
+      funs = unquote(Macro.escape_quoted(funs))
       opts = unquote(opts)
 
       target = Keyword.get(opts, :to) ||
@@ -3053,8 +3238,10 @@ defmodule Kernel do
 
   ## Examples
 
-      %B(foo)      #=> "foo"
-      %B(f\#{o}o)  #=> "f\\\#{o}o"
+      iex> %B(foo)
+      "foo"
+      iex> %B(f\#{o}o)
+      "f\\\#{o}o"
 
   """
   defmacro __B__(string, []) do
@@ -3067,8 +3254,10 @@ defmodule Kernel do
 
   ## Examples
 
-      %b(foo)       #=> "foo"
-      %b(f\#{:o}o)  #=> "foo"
+      iex> %b(foo)
+      "foo"
+      iex> %b(f\#{:o}o)
+      "foo"
 
   """
   defmacro __b__({ :<<>>, line, pieces }, []) do
@@ -3081,8 +3270,10 @@ defmodule Kernel do
 
   ## Examples
 
-      %C(foo)      #=> 'foo'
-      %C(f\#{o}o)  #=> 'f\\\#{o}o'
+      iex> %C(foo)
+      'foo'
+      iex> %C(f\#{o}o)
+      'f\\\#{o}o'
 
   """
   defmacro __C__({ :<<>>, _line, [string] }, []) when is_binary(string) do
@@ -3095,8 +3286,10 @@ defmodule Kernel do
 
   ## Examples
 
-      %c(foo)       #=> 'foo'
-      %c(f\#{:o}o)  #=> 'foo'
+      iex> %c(foo)
+      'foo'
+      iex> %c(f\#{:o}o)
+      'foo'
 
   """
 
@@ -3116,7 +3309,8 @@ defmodule Kernel do
 
   ## Examples
 
-      Regex.match? %r(foo), "foo"  #=> true
+      iex> Regex.match? %r(foo), "foo"
+      true
 
   """
   defmacro __r__({ :<<>>, _line, [string] }, options) when is_binary(string) do
@@ -3136,7 +3330,8 @@ defmodule Kernel do
 
   ## Examples
 
-      Regex.match? %R(f\#{1,3}o), "f\#o"  #=> true
+      iex> Regex.match? %R(f\#{1,3}o), "f\#o"
+      true
 
   """
   defmacro __R__({ :<<>>, _line, [string] }, options) when is_binary(string) do

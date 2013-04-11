@@ -347,14 +347,14 @@ eval_callbacks(Line, Module, Name, Args, RawS) ->
 % ERROR HANDLING
 
 format_error({ internal_function_overridden, { Name, Arity } }) ->
-  io_lib:format("function ~s/~B is internal and should not be overridden", [Name, Arity]);
+  io_lib:format("function ~ts/~B is internal and should not be overridden", [Name, Arity]);
 
 format_error({ invalid_module, Module}) ->
   io_lib:format("invalid module name: ~p", [Module]);
 
 format_error({ module_defined, Module }) ->
-  io_lib:format("redefining module ~s", [elixir_errors:inspect(Module)]);
+  io_lib:format("redefining module ~ts", [elixir_errors:inspect(Module)]);
 
 format_error({ module_in_definition, Module }) ->
-  io_lib:format("cannot define module ~s because it is currently being defined",
+  io_lib:format("cannot define module ~ts because it is currently being defined",
     [elixir_errors:inspect(Module)]).

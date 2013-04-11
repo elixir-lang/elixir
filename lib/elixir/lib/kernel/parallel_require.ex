@@ -12,7 +12,7 @@ defmodule Kernel.ParallelRequire do
   can be optionally given as argument.
   """
   def files(files, callback // default_callback) do
-    schedulers = :erlang.system_info(:schedulers_online)
+    schedulers = max(:erlang.system_info(:schedulers_online), 2)
     spawn_requires(files, [], callback, schedulers, [])
   end
 

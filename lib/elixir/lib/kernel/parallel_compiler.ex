@@ -32,7 +32,7 @@ defmodule Kernel.ParallelCompiler do
 
   defp spawn_compilers(files, path, callback) do
     Code.ensure_loaded(Kernel.ErrorHandler)
-    schedulers = :erlang.system_info(:schedulers_online)
+    schedulers = max(:erlang.system_info(:schedulers_online), 2)
     spawn_compilers(files, path, callback, [], [], schedulers, [])
   end
 

@@ -55,12 +55,12 @@ defmodule Kernel.ErrorsTest do
     assert "nofile:1: unbound variable ^x" == format_rescue('^x = 1')
   end
 
-  test :unbound_not_assignment do
-    assert "nofile:1: cannot access variable ^x outside of assignment" == format_rescue('^x')
+  test :unbound_not_match do
+    assert "nofile:1: cannot use ^x outside of match clauses" == format_rescue('^x')
   end
 
   test :unbound_expr do
-    assert "nofile:1: cannot use ^ with expression at ^x, ^ must be used only with variables" == format_rescue('^x(1)')
+    assert "nofile:1: the unary operator ^ can only be used with variables, invalid expression ^x(1)" == format_rescue('^x(1)')
   end
 
   test :name_for_defmodule do
@@ -108,9 +108,9 @@ defmodule Kernel.ErrorsTest do
       format_rescue 'defmodule Foo do def Bar do :baz end\nend\n'
   end
 
-  test :erlang_function_conflict do
-    assert "nofile:1: function exit/1 already imported from Kernel" ==
-      format_rescue 'defmodule Foo do import Kernel.ErrorsTest.UnproperMacro, only: [exit: 1]\nend'
+  test :function_import_conflict do
+    assert "nofile:2: function exit/1 imported from both erlang and Kernel, call is ambiguous" ==
+      format_rescue 'defmodule Foo do import :erlang\n def foo, do: exit(:test)\nend'
   end
 
   test :import_invalid_macro do
@@ -200,7 +200,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_access_protocol_not_alias do
-    assert "invalid usage of access protocol in signature" ==
+    assert "the access protocol cannot be used inside match clauses (for example, on the left hand side of a match or in function signatures)" ==
       format_rescue 'defmodule Foo do\ndef sample(config[integer: 0]), do: true\nend'
   end
 
@@ -224,7 +224,7 @@ defmodule Kernel.ErrorsTest do
       format_rescue 'defmodule Foo do\ndef sample(Kernel.ErrorsTest.Config[foo: :bar]), do: true\nend'
   end
 
-  test :invalid_access_protocol_invalid_keywords_outside_assignment do
+  test :invalid_access_protocol_invalid_keywords_outside_match do
     assert "record Kernel.ErrorsTest.Config does not have the keys: [:foo]" ==
       format_rescue 'Kernel.ErrorsTest.Config[foo: :bar]'
   end

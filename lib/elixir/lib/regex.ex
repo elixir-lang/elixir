@@ -127,7 +127,7 @@ defmodule Regex do
 
     captures =
       case Keyword.get(options, :capture, :all) do
-        :groups -> groups || raise "regex was not compiled with g"
+        :groups -> groups || raise ArgumentError, message: "regex was not compiled with g"
         others  -> others
       end
 
@@ -139,6 +139,7 @@ defmodule Regex do
 
   @doc """
   Returns the given captures as a list of tuples.
+  Requires the regex to be compiled with the groups option.
 
   ## Examples
 
@@ -150,7 +151,7 @@ defmodule Regex do
       captures = if groups do
         Enum.sort(groups)
       else
-        raise "Regex was not compiled with g"
+        raise ArgumentError, message: "regex was not compiled with g"
       end
       options  = Keyword.put(options, :capture, captures)
     end
@@ -159,7 +160,7 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the underlying re_pattern in the regular expression.
+  Returns the underlying `re_pattern` in the regular expression.
   """
   def re_pattern(regex(re_pattern: compiled)) do
     compiled

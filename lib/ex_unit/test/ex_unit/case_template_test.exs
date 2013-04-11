@@ -36,6 +36,12 @@ end
 defmodule ExUnit.CaseTemplateTest do
   use ExUnit.SampleCase, async: true
 
+  two = 2
+
+  test "unquoting the value #{two}" do
+    assert 2 == unquote(two)
+  end
+
   test "receives context from parent case", context do
     assert context[:context] == :setup
   end

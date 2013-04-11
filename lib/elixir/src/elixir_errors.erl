@@ -4,8 +4,8 @@
 -export([syntax_error/3, syntax_error/4, inspect/1,
   form_error/4, parse_error/4, assert_module_scope/3,
   assert_no_function_scope/3, assert_function_scope/3,
-  assert_no_assign_scope/3, assert_no_guard_scope/3,
-  assert_no_assign_or_guard_scope/3,
+  assert_no_match_scope/3, assert_no_guard_scope/3,
+  assert_no_match_or_guard_scope/3,
   handle_file_warning/2, handle_file_warning/3, handle_file_error/2,
   deprecation/3, deprecation/4, file_format/3]).
 -include("elixir.hrl").
@@ -97,7 +97,7 @@ handle_file_warning(_, _File, { _Line, v3_kernel, bad_call }) -> [];
 %% Rewrite
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity},Module}}) ->
   Kind    = protocol_or_behaviour(Module),
-  Raw     = "undefined ~s function ~s/~B (for ~s ~s)",
+  Raw     = "undefined ~ts function ~ts/~B (for ~ts ~ts)",
   Message = io_lib:format(Raw, [Kind, Fun, Arity, Kind, inspect(Module)]),
   io:format(file_format(Line, File, Message));
 
@@ -105,7 +105,7 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
   case elixir_compiler:get_opt(internal) of
     true  -> [];
     false ->
-      Message = io_lib:format("behaviour ~s undefined", [inspect(Module)]),
+      Message = io_lib:format("behaviour ~ts undefined", [inspect(Module)]),
       io:format(file_format(Line, File, Message))
   end;
 
@@ -137,26 +137,26 @@ handle_file_error(File, {Line,Module,Desc}) ->
 
 assert_no_function_scope(_Meta, _Kind, #elixir_scope{function=nil}) -> [];
 assert_no_function_scope(Meta, Kind, S) ->
-  syntax_error(Meta, S#elixir_scope.file, "cannot invoke ~s inside a function", [Kind]).
+  syntax_error(Meta, S#elixir_scope.file, "cannot invoke ~ts inside a function", [Kind]).
 
-assert_no_assign_or_guard_scope(Meta, Kind, S) ->
-  assert_no_assign_scope(Meta, Kind, S),
+assert_no_match_or_guard_scope(Meta, Kind, S) ->
+  assert_no_match_scope(Meta, Kind, S),
   assert_no_guard_scope(Meta, Kind, S).
 
-assert_no_assign_scope(Meta, Kind, #elixir_scope{context=assign} = S) ->
-  syntax_error(Meta, S#elixir_scope.file, "cannot invoke ~s inside assign", [Kind]);
-assert_no_assign_scope(_Meta, _Kind, _S) -> [].
+assert_no_match_scope(Meta, Kind, #elixir_scope{context=match} = S) ->
+  syntax_error(Meta, S#elixir_scope.file, "cannot invoke ~ts inside match clause", [Kind]);
+assert_no_match_scope(_Meta, _Kind, _S) -> [].
 
 assert_no_guard_scope(Meta, Kind, #elixir_scope{context=guard} = S) ->
-  syntax_error(Meta, S#elixir_scope.file, "cannot invoke ~s inside guard", [Kind]);
+  syntax_error(Meta, S#elixir_scope.file, "cannot invoke ~ts inside guard", [Kind]);
 assert_no_guard_scope(_Meta, _Kind, _S) -> [].
 
 assert_module_scope(Meta, Kind, #elixir_scope{module=nil,file=File}) ->
-  syntax_error(Meta, File, "cannot invoke ~s outside module", [Kind]);
+  syntax_error(Meta, File, "cannot invoke ~ts outside module", [Kind]);
 assert_module_scope(_Meta, _Kind, #elixir_scope{module=Module}) -> Module.
 
 assert_function_scope(Meta, Kind, #elixir_scope{function=nil,file=File}) ->
-  syntax_error(Meta, File, "cannot invoke ~s outside function", [Kind]);
+  syntax_error(Meta, File, "cannot invoke ~ts outside function", [Kind]);
 assert_function_scope(_Meta, _Kind, #elixir_scope{function=Function}) -> Function.
 
 %% Helpers

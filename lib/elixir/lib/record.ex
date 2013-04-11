@@ -31,11 +31,14 @@ defmodule Record do
         @moduledoc false
         import Record.DSL
 
+        @record_fields []
+        @record_types  []
+
         values = unquote(values)
         opts   = unquote(opts)
         Record.deffunctions(values, __ENV__)
         value = unquote(block)
-        Record.deftypes(values, @record_type, __ENV__)
+        Record.deftypes(values, @record_types, __ENV__)
         value
       end
     end
@@ -530,19 +533,30 @@ defmodule Record do
   ## Types/specs generation
 
   defp core_specs(values) do
-    types = lc { _, _, spec } inlist values, do: spec
+    types   = lc { _, _, spec } inlist values, do: spec
+    options = if values == [], do: [], else: [options_specs(values)]
 
     quote do
       unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
         @type t :: { __MODULE__, unquote_splicing(types) }
       end
 
+      unless Kernel.Typespec.defines_type?(__MODULE__, :options, 0) do
+        @type options :: unquote(options)
+      end
+
       @spec new :: t
-      @spec new(Keyword.t | tuple) :: t
-      @spec to_keywords(t) :: Keyword.t
-      @spec update(Keyword.t, t) :: t
+      @spec new(options | tuple) :: t
+      @spec to_keywords(t) :: options
+      @spec update(options, t) :: t
       @spec __index__(atom) :: non_neg_integer | nil
     end
+  end
+
+  defp options_specs([{ k, _, v }|t]) do
+    :lists.foldl fn { k, _, v }, acc ->
+      { :|, [], { k, v }, acc }
+    end, { k, v }, t
   end
 
   defp accessor_specs([{ :__exception__, _, _ }|t], 1, acc) do
@@ -608,7 +622,7 @@ defmodule Record.DSL do
     escaped = lc { k, v } inlist opts, do: { k, Macro.escape(v) }
 
     quote do
-      @record_type Keyword.merge(@record_type || [], unquote(escaped))
+      @record_types Keyword.merge(@record_types || [], unquote(escaped))
     end
   end
 end

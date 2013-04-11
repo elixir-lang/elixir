@@ -40,6 +40,7 @@ defmodule ExUnit.Case do
 
       import ExUnit.Assertions
       import ExUnit.Case
+      import ExUnit.DocTest, only: [doctest: 1, doctest: 2]
     end
   end
 
@@ -88,7 +89,7 @@ defmodule ExUnit.Case do
       end
 
       def message, [unquote(Macro.escape var)], [], do:
-        unquote(Macro.escape contents)
+        unquote(Macro.escape_quoted contents)
     end
   end
 end

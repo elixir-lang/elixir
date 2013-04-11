@@ -145,8 +145,8 @@ lookup(Else, Dict) ->
 %% Errors
 
 format_error({unloaded_module, Module}) ->
-  io_lib:format("module ~s is not loaded and could not be found", [elixir_errors:inspect(Module)]);
+  io_lib:format("module ~ts is not loaded and could not be found", [elixir_errors:inspect(Module)]);
 
 format_error({scheduled_module, Module}) ->
-  io_lib:format("module ~s is not loaded but was defined. This happens because you are trying to use a module in the same context it is defined. Try defining the module outside the context that requires it.",
+  io_lib:format("module ~ts is not loaded but was defined. This happens because you are trying to use a module in the same context it is defined. Try defining the module outside the context that requires it.",
     [elixir_errors:inspect(Module)]).

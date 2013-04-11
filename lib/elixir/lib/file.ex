@@ -898,6 +898,31 @@ defmodule File do
   end
 
   @doc """
+  Returns list of files in the given directory.
+
+  It returns `{ :ok, [files] }` in case of success,
+  `{ :error, reason }` otherwise.
+  """
+  def ls(path // ".") do
+    case F.list_dir(path) do
+      { :ok, file_list } -> { :ok, Enum.map file_list, :unicode.characters_to_binary(&1) }
+      { :error, _ } = error -> error
+    end
+  end
+
+  @doc """
+  The same as `ls/1` but raises `File.Error`
+  in case of an error.
+  """
+  def ls!(dir // ".") do
+    case ls(dir) do
+      { :ok, value } -> value
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "list directory", path: :unicode.characters_to_binary(dir)
+    end
+  end
+
+  @doc """
   Closes the file referenced by `io_device`. It mostly returns `:ok`, except
   for some severe errors such as out of memory.
 

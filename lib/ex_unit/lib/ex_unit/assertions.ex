@@ -1,10 +1,11 @@
 defexception ExUnit.AssertionError,  message: "assertion failed"
 
-defexception ExUnit.ExpectationError, expected: nil, actual: nil, reason: "", negation: false, prelude: "Expected" do
+defexception ExUnit.ExpectationError, expected: nil, actual: nil, reason: "", negation: false, prelude: "Expected", instead: nil, instead_prelude: "instead got" do
   def message(exception) do
     "#{exception.prelude} #{exception.expected} to " <>
       if(exception.negation, do: "not ", else: "") <>
-      "#{exception.reason} #{exception.actual}"
+      "#{exception.reason} #{exception.actual}" <>
+      if(exception.instead, do: ". #{exception.instead_prelude} #{exception.instead}", else: "")
   end
 end
 
@@ -230,7 +231,7 @@ defmodule ExUnit.Assertions do
 
   You can also match against specific patterns:
 
-      assert_received { :hello, _ }
+      assert_receive { :hello, _ }
 
   """
   defmacro assert_receive(expected, timeout // 100, message // nil) do

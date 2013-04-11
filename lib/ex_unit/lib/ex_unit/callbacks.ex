@@ -87,7 +87,7 @@ defmodule ExUnit.Callbacks do
   defmacro setup(var // quote(do: _), block) do
     quote do
       name = :"__exunit_setup_#{length(@exunit_setup)}"
-      defp name, [unquote(Macro.escape var)], [], unquote(Macro.escape block)
+      defp name, [unquote(escape var)], [], unquote(escape block)
       @exunit_setup [name|@exunit_setup]
     end
   end
@@ -95,7 +95,7 @@ defmodule ExUnit.Callbacks do
   defmacro teardown(var // quote(do: _), block) do
     quote do
       name = :"__exunit_teardown_#{length(@exunit_teardown)}"
-      defp name, [unquote(Macro.escape var)], [], unquote(Macro.escape block)
+      defp name, [unquote(escape var)], [], unquote(escape block)
       @exunit_teardown [name|@exunit_teardown]
     end
   end
@@ -103,7 +103,7 @@ defmodule ExUnit.Callbacks do
   defmacro setup_all(var // quote(do: _), block) do
     quote do
       name = :"__exunit_setup_all_#{length(@exunit_setup_all)}"
-      defp name, [unquote(Macro.escape var)], [], unquote(Macro.escape block)
+      defp name, [unquote(escape var)], [], unquote(escape block)
       @exunit_setup_all [name|@exunit_setup_all]
     end
   end
@@ -111,7 +111,7 @@ defmodule ExUnit.Callbacks do
   defmacro teardown_all(var // quote(do: _), block) do
     quote do
       name = :"__exunit_teardown_all_#{length(@exunit_teardown_all)}"
-      defp name, [unquote(Macro.escape var)], [], unquote(Macro.escape block)
+      defp name, [unquote(escape var)], [], unquote(escape block)
       @exunit_teardown_all [name|@exunit_teardown_all]
     end
   end
@@ -123,6 +123,10 @@ defmodule ExUnit.Callbacks do
   def __merge__(mod, _, failure) do
     raise "expected ExUnit callback in #{inspect mod} to return :ok " <>
           " or { :ok, data }, got #{inspect failure} instead"
+  end
+
+  defp escape(contents) do
+    Macro.escape_quoted(contents)
   end
 
   defp compile_callbacks(env, kind) do

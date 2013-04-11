@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Local do
     sorted = Enum.sort(docs)
 
     Enum.each sorted, fn({ task, doc }) ->
-      shell.info format('mix ~-#{max}s # ~s', [task, doc])
+      shell.info format('mix ~-#{max}s # ~ts', [task, doc])
     end
   end
 

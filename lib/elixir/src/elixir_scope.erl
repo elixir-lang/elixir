@@ -20,7 +20,7 @@ translate_var(Meta, Name, Kind, S, Callback) ->
       { { var, Line, Name }, S };
     _ ->
       case S#elixir_scope.context of
-        assign ->
+        match ->
           TempVars = S#elixir_scope.temp_vars,
           case { orddict:is_key({ Name, Kind }, Vars), orddict:find(Name, TempVars) } of
             { true, { ok, Kind } } ->

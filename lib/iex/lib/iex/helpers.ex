@@ -60,7 +60,7 @@ defmodule IEx.Helpers do
     all    = Enum.map :code.all_loaded, fn { mod, file } -> { inspect(mod), file } end
     sorted = Enum.sort all
     size   = Enum.reduce sorted, 0, fn({ mod, _ }, acc) -> max(byte_size(mod), acc) end
-    format = "~-#{size}s ~s~n"
+    format = "~-#{size}s ~ts~n"
 
     Enum.each sorted, fn({ mod, file }) ->
       :io.format(format, [mod, file])
@@ -83,7 +83,7 @@ defmodule IEx.Helpers do
   Shows the documentation for IEx.Helpers.
   """
   def h() do
-    h(IEx.Helpers, [])
+    IEx.Introspection.h(IEx.Helpers)
   end
 
   @doc """
@@ -105,137 +105,36 @@ defmodule IEx.Helpers do
   """
   defmacro h({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
-      h(unquote(mod), unquote(fun), unquote(arity))
+      IEx.Introspection.h(unquote(mod), unquote(fun), unquote(arity))
     end
   end
 
   defmacro h({ { :., _, [mod, fun] }, _, [] }) do
     quote do
-      h(unquote(mod), unquote(fun))
+      IEx.Introspection.h(unquote(mod), unquote(fun))
     end
   end
 
   defmacro h({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
     quote do
-      h(unquote(fun), unquote(arity))
+      IEx.Introspection.h(unquote(fun), unquote(arity))
     end
   end
 
   defmacro h({ name, _, args }) when args == [] or is_atom(args) do
     quote do
-      h(unquote(__MODULE__), unquote(name))
-      h(Kernel, unquote(name))
+      IEx.Introspection.h([unquote(__MODULE__), Kernel, Kernel.SpecialForms], unquote(name))
     end
   end
 
   defmacro h(other) do
     quote do
-      h(unquote(other), [])
+      IEx.Introspection.h(unquote(other))
     end
-  end
-
-  @doc false
-  def h(:h, 1) do
-    h(__MODULE__, :h, 1)
-  end
-
-  def h(function, arity) when is_atom(function) and is_integer(arity) do
-    if function_exported?(__MODULE__, function, arity) or
-       macro_exported?(__MODULE__, function, arity) do
-      h(__MODULE__, function, arity)
-    else
-      h(Kernel, function, arity)
-    end
-  end
-
-  def h(module, []) when is_atom(module) do
-    case Code.ensure_loaded(module) do
-      { :module, _ } ->
-        case module.__info__(:moduledoc) do
-          { _, binary } when is_binary(binary) ->
-            IO.puts IO.ANSI.escape("%{yellow}# #{inspect module}\n")
-            IO.write IO.ANSI.escape("%{yellow}#{binary}")
-          { _, _ } ->
-            IO.puts IO.ANSI.escape("%{red}No docs for #{inspect module} have been found")
-          _ ->
-            IO.puts IO.ANSI.escape("%{red}#{inspect module} was not compiled with docs")
-        end
-      { :error, reason } ->
-        IO.puts IO.ANSI.escape("%{red}Could not load module #{inspect module}: #{reason}")
-    end
-  end
-
-  def h(module, function) when is_atom(module) and is_atom(function) do
-    lc {{f, arity}, _line, _type, _args, doc } inlist module.__info__(:docs),
-       f == function and doc != false do
-      h(module, function, arity)
-      IO.puts ""
-    end
-    :ok
-  end
-
-  def h(_, _) do
-    IO.puts IO.ANSI.escape("%{red}Invalid h helper argument")
-    h()
-  end
-
-  @doc false
-  def h(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
-    if docs = module.__info__(:docs) do
-      doc =
-        cond do
-          d = find_doc(docs, function, arity)         -> d
-          d = find_default_doc(docs, function, arity) -> d
-          true                                        -> nil
-        end
-
-      if doc do
-        IO.write "\n" <> print_signature(doc)
-      else
-        IO.puts IO.ANSI.escape("%{red}No docs for #{inspect module}.#{function}/#{arity} have been found")
-      end
-    else
-      IO.puts IO.ANSI.escape("%{red}#{inspect module} was not compiled with docs")
-    end
-  end
-
-  defp find_doc(docs, function, arity) do
-    List.keyfind(docs, { function, arity }, 0)
-  end
-
-  defp find_default_doc(docs, function, min) do
-    Enum.find docs, fn(doc) ->
-      case elem(doc, 0) do
-        { ^function, max } when max > min ->
-          defaults = Enum.count elem(doc, 3), match?({ ://, _, _ }, &1)
-          min + defaults >= max
-        _ ->
-          false
-      end
-    end
-  end
-
-  # Get the full signature from a function.
-  defp print_signature({ _info, _line, _kind, _args, false }) do
-    false
-  end
-
-  defp print_signature({ { name, _arity }, _line, kind, args, docs }) do
-    args = Enum.map_join(args, ", ", signature_arg(&1))
-    IO.puts IO.ANSI.escape("%{yellow}* #{kind} #{name}(#{args})")
-    IO.ANSI.escape("%{yellow}#{docs}") || ""
-  end
-
-  defp signature_arg({ ://, _, [left, right] }) do
-    signature_arg(left) <> " // " <> Macro.to_binary(right)
-  end
-
-  defp signature_arg({ var, _, _ }) do
-    atom_to_binary(var)
   end
 
   @doc """
-  Prints all types for the given module or prints out a specified type's 
+  Prints all types for the given module or prints out a specified type's
   specification
 
   ## Examples
@@ -247,60 +146,20 @@ defmodule IEx.Helpers do
   """
   defmacro t({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
-      t(unquote(mod), unquote(fun), unquote(arity))
+      IEx.Introspection.t(unquote(mod), unquote(fun), unquote(arity))
     end
   end
 
   defmacro t({ { :., _, [mod, fun] }, _, [] }) do
     quote do
-      t(unquote(mod), unquote(fun))
+      IEx.Introspection.t(unquote(mod), unquote(fun))
     end
   end
 
   defmacro t(module) do
     quote do
-      t(unquote(module), [])
+      IEx.Introspection.t(unquote(module))
     end
-  end
-
-  @doc false
-  def t(module, type) when is_atom(type) do
-    types = lc {_, {t, _, _args}} = typespec inlist Kernel.Typespec.beam_types(module), 
-               t == type do
-      print_type(typespec)
-      typespec
-    end
-
-    if types == [] do
-       IO.puts  IO.ANSI.escape("%{red}No types for #{inspect module}.#{type} have been found")
-    end
-
-    :ok
-  end
-
-  def t(module, []) do
-    types = lc type inlist Kernel.Typespec.beam_types(module), do: print_type(type)
-
-    if types == [] do
-      IO.puts  IO.ANSI.escape("%{red}No types for #{inspect module} have been found")
-    end
-
-    :ok
-  end
-
-  @doc false
-  def t(module, type, arity) do
-    types = lc {_, {t, _, args}} = typespec inlist Kernel.Typespec.beam_types(module), 
-               length(args) == arity and t == type, do: typespec
-
-    case types do
-     [] ->
-       IO.puts  IO.ANSI.escape("%{red}No types for #{inspect module}.#{type}/#{arity} have been found")
-     [type] ->
-       print_type(type)
-    end
-
-    :ok
   end
 
   @doc """
@@ -317,92 +176,32 @@ defmodule IEx.Helpers do
   """
   defmacro s({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
-      s(unquote(mod), unquote(fun), unquote(arity))
+      IEx.Introspection.s(unquote(mod), unquote(fun), unquote(arity))
     end
   end
 
   defmacro s({ { :., _, [mod, fun] }, _, [] }) do
     quote do
-      s(unquote(mod), unquote(fun))
+      IEx.Introspection.s(unquote(mod), unquote(fun))
     end
   end
 
   defmacro s({ fun, _, args }) when args == [] or is_atom(args) do
     quote do
-      s(Kernel, unquote(fun))
+      IEx.Introspection.s(Kernel, unquote(fun))
     end
   end
 
   defmacro s({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
     quote do
-      s(Kernel, unquote(fun), unquote(arity))
-    end    
+      IEx.Introspection.s(Kernel, unquote(fun), unquote(arity))
+    end
   end
 
   defmacro s(module) do
     quote do
-      s(unquote(module), [])
+      IEx.Introspection.s(unquote(module))
     end
-  end
-
-  @doc false
-  def s(module, function) when is_atom(function) do
-    specs = lc {_kind, {{f, _arity}, _spec}} = spec inlist beam_specs(module),
-               f == function do
-      print_spec(spec)
-      spec
-    end
-
-    if specs == [] do
-      IO.puts  IO.ANSI.escape("%{red}No specs for #{inspect module}.#{function} have been found")
-    end
-
-    :ok
-  end
-
-  def s(module, []) do
-    specs = lc spec inlist beam_specs(module), do: print_spec(spec)
-
-    if specs == [] do
-      IO.puts  IO.ANSI.escape("%{red}No specs for #{inspect module} have been found")
-    end
-
-    :ok
-  end
-
-  @doc false
-  def s(module, function, arity) do
-    specs = lc {_kind, {{f, a}, _spec}} = spec inlist beam_specs(module),
-               f == function and a == arity do
-      print_spec(spec)
-      spec
-    end
-
-    if specs == [] do
-      IO.puts  IO.ANSI.escape("%{red}No specs for #{inspect module}.#{function} have been found")
-    end
-
-    :ok
-  end
-
-  defp beam_specs(module) do
-    specs = Enum.map(Kernel.Typespec.beam_specs(module), {:spec, &1})
-    callbacks = Enum.map(Kernel.Typespec.beam_callbacks(module), {:callback, &1})
-    List.concat(specs, callbacks)
-  end
-
-  defp print_type({ kind, type }) do
-    ast = Kernel.Typespec.type_to_ast(type)
-    IO.puts IO.ANSI.escape("%{yellow}@#{kind} #{Macro.to_binary(ast)}")
-    true
-  end
-
-  defp print_spec({kind, { { name, _arity }, specs }}) do
-    Enum.each specs, fn(spec) ->
-      binary = Macro.to_binary Kernel.Typespec.spec_to_ast(name, spec)
-      IO.puts IO.ANSI.escape("%{yellow}@#{kind} #{binary}")
-    end
-    true
   end
 
   @doc """
@@ -461,7 +260,7 @@ defmodule IEx.Helpers do
         flush
     after
       0 -> :ok
-    end  
+    end
   end
 
   defp iex_reloaded do

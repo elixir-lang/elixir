@@ -19,7 +19,7 @@ extract(Line, _File, _Interpol, [], _Buffer, [], _Output, Last) ->
 extract(Line, File, _Interpol, [Last|Remaining], Buffer, [], Output, Last) ->
   finish_extraction(Line, File, Buffer, Output, Remaining);
 
-extract(Line, _File, _Interpol, End, _Buffer, Search, _Output, Last) when End == [Last]; End == [] ->
+extract(Line, _File, _Interpol, End, _Buffer, _Search, _Output, Last) when End == [Last]; End == [] ->
   { error, { Line, io_lib:format("missing terminator: ~ts", [[Last]]), [] } };
 
 extract(Line, File, Interpol, [$\n|Rest], Buffer, Search, Output, Last) ->
