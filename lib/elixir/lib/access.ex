@@ -25,11 +25,13 @@ defimpl Access, for: List do
 
   ## Examples
 
-      keywords = [a: 1, b: 2]
-      keywords[:a] #=> 1
+      iex> keywords = [a: 1, b: 2]
+      ...> keywords[:a]
+      1
 
-      star_ratings = [{1.0, "★"}, {1.5, "★☆"}, {2.0, "★★"}]
-      star_ratings[1.5] #=> "★☆"
+      iex> star_ratings = [{1.0, "★"}, {1.5, "★☆"}, {2.0, "★★"}]
+      ...> star_ratings[1.5]
+      "★☆"
 
   """
   def access([], _key), do: nil

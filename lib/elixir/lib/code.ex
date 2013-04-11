@@ -84,15 +84,15 @@ defmodule Code do
 
   ## Examples
 
-      Code.eval "a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line
-      #=> { 3, [ {:a, 1}, {:b, 2} ] }
+      iex> Code.eval "a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line
+      { 3, [ {:a, 1}, {:b, 2} ] }
 
   For convenience, you can my pass `__ENV__` as argument and
   all imports, requires and aliases will be automatically carried
   over:
 
-      Code.eval "a + b", [a: 1, b: 2], __ENV__
-      #=> { 3, [ {:a, 1}, {:b, 2} ] }
+      iex> Code.eval "a + b", [a: 1, b: 2], __ENV__
+      { 3, [ {:a, 1}, {:b, 2} ] }
 
   """
   def eval(string, binding // [], opts // [])
@@ -115,16 +115,16 @@ defmodule Code do
 
   ## Examples
 
-      contents = quote hygiene: false, do: a + b
-
-      Code.eval_quoted contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line
-      #=> { 3, [ {:a, 1}, {:b, 2} ] }
+      iex> contents = quote hygiene: [vars: false], do: a + b
+      ...> Code.eval_quoted contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line
+      { 3, [ {:a, 1}, {:b, 2} ] }
 
   For convenience, you can my pass `__ENV__` as argument and
   all options will be automatically extracted from the environment:
 
-      Code.eval_quoted contents, [a: 1, b: 2], __ENV__
-      #=> { 3, [ {:a, 1}, {:b, 2} ] }
+      iex> contents = quote hygiene: [vars: false], do: a + b
+      ...> Code.eval_quoted contents, [a: 1, b: 2], __ENV__
+      { 3, [ {:a, 1}, {:b, 2} ] }
 
   """
   def eval_quoted(quoted, binding // [], opts // [])

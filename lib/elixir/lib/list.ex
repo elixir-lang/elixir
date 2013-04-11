@@ -15,8 +15,8 @@ defmodule List do
 
   ## Examples
 
-      List.concat [[1,[2],3], [4], [5,6]]
-      #=> [1,[2],3,4,5,6]
+      iex> List.concat [[1,[2],3], [4], [5,6]]
+      [1,[2],3,4,5,6]
 
   """
   def concat(list) when is_list(list) do
@@ -32,8 +32,8 @@ defmodule List do
 
   ## Examples
 
-      List.concat [1,2,3], [4,5,6]
-      #=> [1,2,3,4,5,6]
+      iex> List.concat [1,2,3], [4,5,6]
+      [1,2,3,4,5,6]
 
   """
   def concat(list, elements) when is_list(list) and is_list(elements) do
@@ -47,8 +47,8 @@ defmodule List do
 
   ## Examples
 
-      List.delete([1,2,3], 1)
-      #=> [2,3]
+      iex> List.delete([1,2,3], 1)
+      [2,3]
 
   """
   def delete(list, item) do
@@ -60,11 +60,11 @@ defmodule List do
 
   ## Examples
 
-      List.duplicate "hello", 3
-      #=> ["hello","hello","hello"]
+      iex> List.duplicate "hello", 3
+      ["hello","hello","hello"]
 
-      List.duplicate [1,2], 2
-      #=> [[1,2],[1,2]]
+      iex> List.duplicate [1,2], 2
+      [[1,2],[1,2]]
   """
   def duplicate(elem, n) do
     :lists.duplicate(n, elem)
@@ -77,11 +77,11 @@ defmodule List do
 
   ## Examples
 
-      List.flatten [1,[[2],3]]
-      #=> [1,2,3]
+      iex> List.flatten [1,[[2],3]]
+      [1,2,3]
 
-      List.flatten [1,[[2],3]], [4,5]
-      #=> [1,2,3,4,5]
+      iex> List.flatten [1,[[2],3]], [4,5]
+      [1,2,3,4,5]
 
   """
   def flatten(list) do
@@ -98,11 +98,11 @@ defmodule List do
 
   ## Examples
 
-      List.foldl [5,5], 10, fn x, acc -> x + acc end
-      #=> 20
+      iex> List.foldl [5,5], 10, fn x, acc -> x + acc end
+      20
 
-      List.foldl [1,2,3,4], 0, fn x, acc -> x - acc end
-      #=> 2
+      iex> List.foldl [1,2,3,4], 0, fn x, acc -> x - acc end
+      2
 
   """
   def foldl(list, acc, function) when is_list(list) and is_function(function) do
@@ -115,8 +115,8 @@ defmodule List do
 
   ## Examples
 
-      List.foldr [1,2,3,4], 0, fn x, acc -> x - acc end
-      #=> -2
+      iex> List.foldr [1,2,3,4], 0, fn x, acc -> x - acc end
+      -2
 
   """
   def foldr(list, acc, function) when is_list(list) and is_function(function) do
@@ -128,12 +128,12 @@ defmodule List do
 
   ## Examples
 
-      List.last []
-      #=> nil
-      List.last [1]
-      #=> 1
-      List.last [1, 2, 3]
-      #=> 3
+      iex> List.last []
+      nil
+      iex> List.last [1]
+      1
+      iex> List.last [1, 2, 3]
+      3
 
   """
   def last([]), do: nil
@@ -149,11 +149,11 @@ defmodule List do
 
   ## Examples
 
-      List.member? [1,2,3], 1
-      #=> true
+      iex> List.member? [1,2,3], 1
+      true
 
-      List.member? [1,2,3], 0
-      #=> false
+      iex> List.member? [1,2,3], 0
+      false
 
   """
   def member?(list, term) do
@@ -167,14 +167,14 @@ defmodule List do
 
   ## Examples
 
-      List.keyfind([a: 1, b: 2], :a, 0)
-      #=> { :a, 1 }
+      iex> List.keyfind([a: 1, b: 2], :a, 0)
+      { :a, 1 }
 
-      List.keyfind([a: 1, b: 2], 2, 1)
-      #=> { :b, 2 }
+      iex> List.keyfind([a: 1, b: 2], 2, 1)
+      { :b, 2 }
 
-      List.keyfind([a: 1, b: 2], :c, 0)
-      #=> nil
+      iex> List.keyfind([a: 1, b: 2], :c, 0)
+      nil
 
   """
   def keyfind(list, key, position, default // nil) do
@@ -188,14 +188,14 @@ defmodule List do
 
   ## Examples
 
-      List.keymember?([a: 1, b: 2], :a, 0)
-      #=> true
+      iex> List.keymember?([a: 1, b: 2], :a, 0)
+      true
 
-      List.keymember?([a: 1, b: 2], 2, 1)
-      #=> true
+      iex> List.keymember?([a: 1, b: 2], 2, 1)
+      true
 
-      List.keymember?([a: 1, b: 2], :c, 0)
-      #=> false
+      iex> List.keymember?([a: 1, b: 2], :c, 0)
+      false
 
   """
   def keymember?(list, key, position) do
@@ -208,8 +208,8 @@ defmodule List do
 
   ## Examples
 
-      List.keyreplace([a: 1, b: 2], :a, 0, { :a, 3 })
-      #=> [a: 3, b: 2]
+      iex> List.keyreplace([a: 1, b: 2], :a, 0, { :a, 3 })
+      [a: 3, b: 2]
 
   """
   def keyreplace(list, key, position, new_tuple) do
@@ -223,8 +223,8 @@ defmodule List do
 
   ## Examples
 
-      List.keystore([a: 1, b: 2], :a, 0, { :a, 3 })
-      #=> [a: 3, b: 2]
+      iex> List.keystore([a: 1, b: 2], :a, 0, { :a, 3 })
+      [a: 3, b: 2]
 
   """
   def keystore(list, key, position, new_tuple) do
@@ -238,14 +238,14 @@ defmodule List do
 
   ## Examples
 
-      List.keydelete([a: 1, b: 2], :a, 0)
-      #=> [{ :b, 2 }]
+      iex> List.keydelete([a: 1, b: 2], :a, 0)
+      [{ :b, 2 }]
 
-      List.keydelete([a: 1, b: 2], 2, 1)
-      #=> [{ :a, 1 }]
+      iex> List.keydelete([a: 1, b: 2], 2, 1)
+      [{ :a, 1 }]
 
-      List.keydelete([a: 1, b: 2], :c, 0)
-      #=> [{ :a, 1 }, { :b, 2 }]
+      iex> List.keydelete([a: 1, b: 2], :c, 0)
+      [{ :a, 1 }, { :b, 2 }]
 
   """
   def keydelete(list, key, position) do
@@ -259,7 +259,8 @@ defmodule List do
 
   ## Examples
 
-      List.wrap [1,2,3] #=> [1,2,3]
+      iex> List.wrap [1,2,3]
+      [1,2,3]
 
   """
   def wrap(list) when is_list(list) do
@@ -279,11 +280,11 @@ defmodule List do
 
   ## Examples
 
-      List.zip [[1, 2], [3, 4], [5, 6]]
-      #=> [{1, 3, 5}, {2, 4, 6}]
+      iex> List.zip [[1, 2], [3, 4], [5, 6]]
+      [{1, 3, 5}, {2, 4, 6}]
 
-      List.zip [[1, 2], [3], [5, 6]]
-      #=> [{1, 3, 5}]
+      iex> List.zip [[1, 2], [3], [5, 6]]
+      [{1, 3, 5}]
 
   """
   def zip([]), do: []
@@ -297,11 +298,11 @@ defmodule List do
 
   ## Examples
 
-      List.unzip [{1, 2}, {3, 4}]
-      #=> [[1, 3], [2, 4]]
+      iex> List.unzip [{1, 2}, {3, 4}]
+      [[1, 3], [2, 4]]
 
-      List.unzip [{1, :a, "apple"}, {2, :b, "banana"}, {3, :c}]
-      #=> [[1, 2, 3], [:a, :b, :c]]
+      iex> List.unzip [{1, :a, "apple"}, {2, :b, "banana"}, {3, :c}]
+      [[1, 2, 3], [:a, :b, :c]]
 
   """
   def unzip(list) when is_list(list) do

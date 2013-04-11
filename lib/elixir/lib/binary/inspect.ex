@@ -116,9 +116,12 @@ defimpl Binary.Inspect, for: Atom do
 
   ## Examples
 
-      inspect(:foo)    #=> ":foo"
-      inspect(nil)     #=> "nil"
-      inspect(Foo.Bar) #=> "Foo.Bar"
+      iex> inspect(:foo)
+      ":foo"
+      iex> inspect(nil)
+      "nil"
+      iex> inspect(Foo.Bar)
+      "Foo.Bar"
 
   """
 
@@ -191,8 +194,10 @@ defimpl Binary.Inspect, for: BitString do
 
   ## Examples
 
-      inspect("bar")   #=> "bar"
-      inspect("f\"oo") #=> "f\"oo"
+      iex> inspect("bar")
+      "\"bar\""
+      iex> inspect("f\"oo")
+      "\"f\\\"oo\""
 
   """
 
@@ -256,9 +261,12 @@ defimpl Binary.Inspect, for: List do
 
   ## Examples
 
-      inspect('bar')       #=> 'bar'
-      inspect([0|'bar'])   #=> "[0,98,97,114]"
-      inspect([:foo,:bar]) #=> "[:foo, :bar]"
+      iex> inspect('bar')
+      "'bar'"
+      iex> inspect([0|'bar'])
+      "[0,98,97,114]"
+      iex> inspect([:foo,:bar])
+      "[:foo,:bar]"
 
   """
 
@@ -298,8 +306,10 @@ defimpl Binary.Inspect, for: Tuple do
 
   ## Examples
 
-      inspect({1,2,3})            #=> "{1,2,3}"
-      inspect(ArgumentError.new)  #=> ArgumentError[message: "argument error"]
+      iex> inspect({1,2,3})
+      "{1,2,3}"
+      iex> inspect(ArgumentError.new)
+      "ArgumentError[message: \\\"argument error\\\"]"
 
   """
 
@@ -377,7 +387,8 @@ defimpl Binary.Inspect, for: Number do
 
   ## Examples
 
-      inspect(1) #=> "1"
+      iex> inspect(1)
+      "1"
 
   """
 
@@ -396,7 +407,8 @@ defimpl Binary.Inspect, for: Regex do
 
   ## Examples
 
-      inspect(%r/foo/m) #=> "%r\"foo\"m"
+      iex> inspect(%r/foo/m)
+      "%r\"foo\"m"
 
   """
 
