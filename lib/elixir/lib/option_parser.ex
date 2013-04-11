@@ -5,21 +5,21 @@ defmodule OptionParser do
 
   ## Examples
 
-      OptionParser.parse(["--debug"])
-      #=> { [debug: true], [] }
+      iex> OptionParser.parse(["--debug"])
+      { [debug: true], [] }
 
-      OptionParser.parse(["--source", "lib"])
-      #=> { [source: "lib"], [] }
+      iex> OptionParser.parse(["--source", "lib"])
+      { [source: "lib"], [] }
 
-      OptionParser.parse(["--source", "lib", "test/enum_test.exs", "--verbose"])
-      #=> { [source: "lib", verbose: true], ["test/enum_test.exs"] }
+      iex> OptionParser.parse(["--source", "lib", "test/enum_test.exs", "--verbose"])
+      { [source: "lib", verbose: true], ["test/enum_test.exs"] }
 
   ## Aliases
 
   A set of aliases can be given as second argument:
 
-      OptionParser.parse(["-d"], aliases: [d: :debug])
-      #=> { [debug: true], [] }
+      iex> OptionParser.parse(["-d"], aliases: [d: :debug])
+      { [debug: true], [] }
 
   ## Switches
 
@@ -39,19 +39,19 @@ defmodule OptionParser do
 
   Examples:
 
-      OptionParser.parse(["--unlock path/to/file"], switches: [unlock: :boolean])
-      #=> { [unlock: true], ["path/to/file"] }
+      iex> OptionParser.parse(["--unlock", "path/to/file"], switches: [unlock: :boolean])
+      { [unlock: true], ["path/to/file"] }
 
-      OptionParser.parse(["--unlock false path/to/file"], switches: [unlock: :boolean])
-      #=> { [unlock: false], ["path/to/file"] }
+      iex> OptionParser.parse(["--unlock", "false", "path/to/file"], switches: [unlock: :boolean])
+      { [unlock: false], ["path/to/file"] }
 
   ## Negation switches
 
   Any switches starting with `--no-` are always considered to be
   booleans and never parse the next value:
 
-      OptionParser.parse(["--no-op path/to/file"])
-      #=> { [no_op: true], ["path/to/file"] }
+      iex> OptionParser.parse(["--no-op", "path/to/file"])
+      { [no_op: true], ["path/to/file"] }
 
   """
   def parse(argv, opts // []) when is_list(argv) and is_list(opts) do
@@ -66,8 +66,8 @@ defmodule OptionParser do
 
   ## Example
 
-      OptionParser.parse_head(["--source", "lib", "test/enum_test.exs", "--verbose"])
-      #=> { [source: "lib"], ["test/enum_test.exs", "--verbose"] }
+      iex> OptionParser.parse_head(["--source", "lib", "test/enum_test.exs", "--verbose"])
+      { [source: "lib"], ["test/enum_test.exs", "--verbose"] }
 
   """
   def parse_head(argv, opts // []) when is_list(argv) and is_list(opts) do

@@ -52,11 +52,11 @@ defmodule Path do
 
   ## Examples
 
-      Path.absname("foo", "bar")
-      #=> "bar/foo"
+      iex> Path.absname("foo", "bar")
+      "bar/foo"
 
-      Path.absname("../x", "bar")
-      #=> "bar/../x"
+      iex> Path.absname("../x", "bar")
+      "bar/../x"
 
   """
   def absname(path, relative_to) do
@@ -69,7 +69,8 @@ defmodule Path do
 
   ## Examples
 
-      Path.expand("/foo/bar/../bar") == "/foo/bar"
+      iex> Path.expand("/foo/bar/../bar")
+      "/foo/bar"
 
   """
   def expand(path) do
@@ -83,8 +84,10 @@ defmodule Path do
 
   ## Examples
 
-      Path.expand("foo/bar/../bar", "/baz") == "/baz/foo/bar"
-      Path.expand("/foo/bar/../bar", "/baz") == "/foo/bar"
+      iex> Path.expand("foo/bar/../bar", "/baz")
+      "/baz/foo/bar"
+      iex> Path.expand("/foo/bar/../bar", "/baz")
+      "/foo/bar"
 
   """
   def expand(path, relative_to) do
@@ -191,9 +194,12 @@ defmodule Path do
 
   ## Examples
 
-      Path.relative_to("/usr/local/foo", "/usr/local") #=> "foo"
-      Path.relative_to("/usr/local/foo", "/") #=> "foo"
-      Path.relative_to("/usr/local/foo", "/etc") #=> "/usr/local/foo"
+      iex> Path.relative_to("/usr/local/foo", "/usr/local")
+      "foo"
+      iex> Path.relative_to("/usr/local/foo", "/")
+      "usr/local/foo"
+      iex> Path.relative_to("/usr/local/foo", "/etc")
+      "/usr/local/foo"
 
   """
   def relative_to(path, from) when is_list(path) and is_binary(from) do
@@ -227,14 +233,14 @@ defmodule Path do
 
   ## Examples
 
-      Path.basename("foo")
-      #=> "foo"
+      iex> Path.basename("foo")
+      "foo"
 
-      Path.basename("foo/bar")
-      #=> "bar"
+      iex> Path.basename("foo/bar")
+      "bar"
 
-      Path.basename("/")
-      #=> ""
+      iex> Path.basename("/")
+      ""
 
   """
   def basename(path) do
@@ -248,12 +254,12 @@ defmodule Path do
 
   ## Examples
 
-      Path.basename("~/foo/bar.ex", ".ex")
-      #=> "bar"
-      Path.basename("~/foo/bar.exs", ".ex")
-      #=> "bar.exs"
-      Path.basename("~/foo/bar.old.ex", ".ex")
-      #=> "bar.old"
+      iex> Path.basename("~/foo/bar.ex", ".ex")
+      "bar"
+      iex> Path.basename("~/foo/bar.exs", ".ex")
+      "bar.exs"
+      iex> Path.basename("~/foo/bar.old.ex", ".ex")
+      "bar.old"
 
   """
   def basename(path, extension) do
@@ -278,10 +284,10 @@ defmodule Path do
 
   ## Examples
 
-      Path.extname("foo.erl")
-      #=> ".erl"
-      Path.extname("~/foo/bar")
-      #=> ""
+      iex> Path.extname("foo.erl")
+      ".erl"
+      iex> Path.extname("~/foo/bar")
+      ""
 
   """
   def extname(path) do
@@ -293,10 +299,10 @@ defmodule Path do
 
   ## Examples
 
-      Path.rootname("/foo/bar")
-      #=> "/foo/bar"
-      Path.rootname("/foo/bar.ex")
-      #=> "/foo/bar"
+      iex> Path.rootname("/foo/bar")
+      "/foo/bar"
+      iex> Path.rootname("/foo/bar.ex")
+      "/foo/bar"
 
   """
   def rootname(path) do
@@ -309,10 +315,10 @@ defmodule Path do
 
   ## Examples
 
-      Path.rootname("/foo/bar.erl", ".erl")
-      #=> "/foo/bar"
-      Path.rootname("/foo/bar.erl", ".ex")
-      #=> "/foo/bar.erl"
+      iex> Path.rootname("/foo/bar.erl", ".erl")
+      "/foo/bar"
+      iex> Path.rootname("/foo/bar.erl", ".ex")
+      "/foo/bar.erl"
 
   """
   def rootname(path, extension) do
@@ -325,12 +331,12 @@ defmodule Path do
 
   ## Examples
 
-      Path.join(["~", "foo"])
-      #=> "~/foo"
-      Path.join(["foo"])
-      #=> "foo"
-      Path.join(["/", "foo", "bar"])
-      #=> "/foo/bar"
+      iex> Path.join(["~", "foo"])
+      "~/foo"
+      iex> Path.join(["foo"])
+      "foo"
+      iex> Path.join(["/", "foo", "bar"])
+      "/foo/bar"
 
   """
   def join([name1, name2|rest]), do:
@@ -345,8 +351,8 @@ defmodule Path do
 
   ## Examples
 
-      Path.join("foo", "bar")
-      #=> "foo/bar"
+      iex> Path.join("foo", "bar")
+      "foo/bar"
 
   """
   def join(left, right) when is_binary(left) and is_binary(right), do:
@@ -408,12 +414,12 @@ defmodule Path do
 
   ## Examples
 
-       Path.split("")
-       #=> ["/"]
-       Path.split("foo")
-       #=> ["foo"]
-       Path.split("/foo/bar")
-       #=> ["/", "foo", "bar"]
+       iex> Path.split("")
+       ["/"]
+       iex> Path.split("foo")
+       ["foo"]
+       iex> Path.split("/foo/bar")
+       ["/", "foo", "bar"]
 
   """
   def split(path) do

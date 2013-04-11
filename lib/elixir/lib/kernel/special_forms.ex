@@ -46,7 +46,7 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      :<<>>.(1,2,3)
+      iex> << 1, 2, 3 >>
       << 1, 2, 3 >>
 
   ## Bitstring types
@@ -55,16 +55,16 @@ defmodule Kernel.SpecialForms do
   specific types. Most of the time, Elixir will figure out
   the part's type and won't require any work from you:
 
-      <<102, "oo">>
-      #=> "foo"
+      iex> <<102, "oo">>
+      "foo"
 
   Above we have two parts: the first is an integer and the
   second is a binary. If we use any other Elixir expression,
   Elixir can no longer guess the type:
 
-      rest = "oo"
-      <<102, rest>>
-      #=> ** (ArgumentError) argument error
+      iex> rest = "oo"
+      ...> <<102, rest>>
+      ** (ArgumentError) argument error
 
   When a variable or expression is given as a binary part,
   Elixir defaults the type of that part to an unsigned
@@ -94,8 +94,8 @@ defmodule Kernel.SpecialForms do
   signedness only matters for matching. If unspecified, it
   defaults to unsigned. Example:
 
-      <<-100 :: signed, rest :: binary>> = <<-100, "foo">>
-      #=> <<156,102,111,111>>
+      iex> <<-100 :: signed, _rest :: binary>> = <<-100, "foo">>
+      <<156,102,111,111>>
 
   This match would have failed if we did not specify that the
   value -100 is signed. If we're matching into a variable instead
@@ -103,9 +103,9 @@ defmodule Kernel.SpecialForms do
   will simply be interpreted as having the given (or implied)
   signedness, e.g.:
 
-      <<val, rest :: binary>> = <<-100, "foo">>
-      val
-      #=> 156
+      iex> <<val, _rest :: binary>> = <<-100, "foo">>
+      ...> val
+      156
 
   Here, `val` is interpreted as unsigned.
 
@@ -130,13 +130,13 @@ defmodule Kernel.SpecialForms do
   unit is multiplied by the size to give the effective size of
   the part:
 
-      <<102, rest :: [size(2), unit(8)]>> = "foo"
+      iex> <<102, _rest :: [size(2), unit(8)]>> = "foo"
       "foo"
 
-      <<102, rest :: size(16)>> = "foo"
+      iex> <<102, _rest :: size(16)>> = "foo"
       "foo"
 
-      <<102, rest :: size(32)>> = "foo"
+      iex> <<102, _rest :: size(32)>> = "foo"
       ** (MatchError) no match of right hand side value: "foo"
 
   In the example above, the first two expressions matches
@@ -158,7 +158,8 @@ defmodule Kernel.SpecialForms do
   writing `size(8)`, one can write just `8` and it will be interpreted
   as `size(8)`
 
-      << 1 :: 3 >> == << 1 :: size(3) >> #=> true
+      iex> << 1 :: 3 >> == << 1 :: size(3) >>
+      true
 
   The default unit for integers, floats, and bitstrings is 1. For
   binaries, it is 8.
@@ -245,8 +246,9 @@ defmodule Kernel.SpecialForms do
   import those functions and reference them as local functions,
   for example:
 
-      import List
-      flatten([1,[2],3]) #=> [1,2,3]
+      iex> import List
+      ...> flatten([1,[2],3])
+      [1,2,3]
 
   ## Selector
 
@@ -338,8 +340,8 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      quote do: sum(1, 2, 3)
-      #=> { :sum, [], [1, 2, 3] }
+      iex> quote do: sum(1, 2, 3)
+      { :sum, [], [1, 2, 3] }
 
   ## Explanation
 
@@ -617,35 +619,35 @@ defmodule Kernel.SpecialForms do
   @doc """
   List comprehensions allow you to quickly build a list from another list:
 
-      lc n inlist [1,2,3,4], do: n * 2
-      #=> [2,4,6,8]
+      iex> lc n inlist [1,2,3,4], do: n * 2
+      [2,4,6,8]
 
   A comprehension accepts many generators and also filters. Generators
   are defined using both `inlist` and `inbits` operators, allowing you
   to loop lists and bitstrings:
 
       # A list generator:
-      lc n inlist [1,2,3,4], do: n * 2
-      #=> [2,4,6,8]
+      iex> lc n inlist [1,2,3,4], do: n * 2
+      [2,4,6,8]
 
       # A bit string generator:
-      lc <<n>> inbits <<1,2,3,4>>, do: n * 2
-      #=> [2,4,6,8]
+      iex> lc <<n>> inbits <<1,2,3,4>>, do: n * 2
+      [2,4,6,8]
 
       # A generator from a variable:
-      list = [1,2,3,4]
-      lc n inlist list, do: n * 2
-      #=> [2,4,6,8]
+      iex> list = [1,2,3,4]
+      ...> lc n inlist list, do: n * 2
+      [2,4,6,8]
 
       # A comprehension with two generators
-      lc x inlist [1,2], y inlist [2,3], do: x*y
-      #=> [2,3,4,6]
+      iex> lc x inlist [1,2], y inlist [2,3], do: x*y
+      [2,3,4,6]
 
   Filters can also be given:
 
       # A comprehension with a generator and a filter
-      lc n inlist [1,2,3,4,5,6], rem(n, 2) == 0, do: n
-      #=> [2,4,6]
+      iex> lc n inlist [1,2,3,4,5,6], rem(n, 2) == 0, do: n
+      [2,4,6]
 
   Bit string generators are quite useful when you need to
   organize bit string streams:
@@ -663,7 +665,7 @@ defmodule Kernel.SpecialForms do
   be a bitstring. For example, here is how to remove all
   spaces from a string:
 
-      bc <<c>> inbits " hello world ", c != ? , do: <<c>>
+      iex> bc <<c>> inbits " hello world ", c != ? , do: <<c>>
       "helloworld"
 
   """
@@ -674,8 +676,8 @@ defmodule Kernel.SpecialForms do
   of expressions in Elixir. This special form is private
   and should not be invoked directly:
 
-      quote do: (1; 2; 3)
-      #=> { :__block__, [], [1,2,3] }
+      iex> quote do: (1; 2; 3)
+      { :__block__, [], [1,2,3] }
 
   """
   defmacro __block__(args)
@@ -697,13 +699,13 @@ defmodule Kernel.SpecialForms do
   This is the special form used to hold aliases information.
   It is usually compiled to an atom:
 
-      quote do: Foo.Bar
+      quote do: Foo.Bar #=>
       { :__aliases__, [], [:Foo,:Bar] }
 
   Elixir represents `Foo.Bar` as `__aliases__` so calls can be
   unambiguously identified by the operator `:.`. For example:
 
-      quote do: Foo.bar
+      quote do: Foo.bar #=>
       {{:.,[],[{:__aliases__,[],[:Foo]},:bar]},[],[]}
 
   Whenever an expression iterator sees a `:.` as the tuple key,

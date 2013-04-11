@@ -30,10 +30,9 @@ defmodule String do
   For example, the character "é" is represented with two
   bytes:
 
-      string = "é"
-      #=> "é"
-      size(string)
-      #=> 2
+      iex> string = "é"
+      ...> byte_size(string)
+      2
 
   Furthermore, this module also presents the concept of
   graphemes, which are multiple characters that may be
@@ -41,10 +40,9 @@ defmodule String do
   the same "é" character written above could be represented
   by the letter "e" followed by the accent ́:
 
-      string = "\x{0065}\x{0301}"
-      #=> "é"
-      size(string)
-      #=> 3
+      iex> string = "\x{0065}\x{0301}"
+      ...> byte_size(string)
+      3
 
   Although the example above is made of two characters, it is
   perceived by users as one.
@@ -64,24 +62,28 @@ defmodule String do
   Although codepoints could be represented as integers, this
   module represents all codepoints as strings. For example:
 
-      String.codepoints "josé" #=> ["j", "o", "s", "é"]
+      iex> String.codepoints "josé"
+      ["j", "o", "s", "é"]
 
   There are a couple of ways to retrieve a character integer
   codepoint. One may use the `?` special macro:
 
-      ?j #=> 106
-      ?é #=> 233
+      iex> ?j
+      106
+      iex> ?é
+      233
 
   Or also via pattern matching:
 
-      << eacute :: utf8 >> = "é"
-      eacute #=> 233
+      iex> << eacute :: utf8 >> = "é"
+      ...> eacute
+      233
 
   As we have seen above, codepoints can be inserted into
   a string by their hexadecimal code:
 
-      string = "jos\x{0065}\x{0301}"
-      #=> "josé"
+      "jos\x{0065}\x{0301}" #=>
+      "josé"
 
   ## Self-synchronization
 
@@ -110,7 +112,8 @@ defmodule String do
 
   ## Examples
 
-      String.printable?("abc") #=> true
+      iex> String.printable?("abc")
+      true
 
   """
   @spec printable?(t) :: boolean
@@ -151,18 +154,27 @@ defmodule String do
 
   ## Examples
 
-      String.split("foo bar") #=> ["foo", "bar"]
-      String.split("foo" <> <<194,133>> <> "bar") #=> ["foo", "bar"]
-      String.split(" foo bar ") #=> ["foo", "bar"]
+      iex> String.split("foo bar")
+      ["foo", "bar"]
+      iex> String.split("foo" <> <<194,133>> <> "bar")
+      ["foo", "bar"]
+      iex> String.split(" foo bar ")
+      ["foo", "bar"]
 
-      String.split("a,b,c", ",") #=> ["a", "b", "c"]
-      String.split("a,b,c", ",", global: false) #=> ["a", "b,c"]
+      iex> String.split("a,b,c", ",")
+      ["a", "b", "c"]
+      iex> String.split("a,b,c", ",", global: false)
+      ["a", "b,c"]
 
-      String.split("1,2 3,4", [" ", ","]) #=> ["1", "2", "3", "4"]
+      iex> String.split("1,2 3,4", [" ", ","])
+      ["1", "2", "3", "4"]
 
-      String.split("a,b,c", %r{,}) #=> ["a", "b", "c"]
-      String.split("a,b,c", %r{,}, global: false) #=> ["a", "b,c"]
-      String.split("a,b", %r{\.}) #=> ["a,b"]
+      iex> String.split("a,b,c", %r{,})
+      ["a", "b", "c"]
+      iex> String.split("a,b,c", %r{,}, global: false)
+      ["a", "b,c"]
+      iex> String.split("a,b", %r{\\.})
+      ["a,b"]
 
   """
   @spec split(t) :: [t]
@@ -187,9 +199,12 @@ defmodule String do
 
   ## Examples
 
-      String.upcase("abcd") #=> "ABCD"
-      String.upcase("ab 123 xpto") #=> "AB 123 XPTO"
-      String.upcase("josé") #=> "JOSÉ"
+      iex> String.upcase("abcd")
+      "ABCD"
+      iex> String.upcase("ab 123 xpto")
+      "AB 123 XPTO"
+      iex> String.upcase("josé")
+      "JOSÉ"
 
   """
   @spec upcase(t) :: t
@@ -200,9 +215,12 @@ defmodule String do
 
   ## Examples
 
-      String.downcase("ABCD") #=> "abcd"
-      String.downcase("AB 123 XPTO") #=> "ab 123 xpto"
-      String.downcase("JOSÉ") #=> "josé"
+      iex> String.downcase("ABCD")
+      "abcd"
+      iex> String.downcase("AB 123 XPTO")
+      "ab 123 xpto"
+      iex> String.downcase("JOSÉ")
+      "josé"
 
   """
   @spec downcase(t) :: t
@@ -219,9 +237,12 @@ defmodule String do
 
   ## Examples
 
-      String.capitalize("abcd") #=> "Abcd"
-      String.capitalize("ﬁn")   #=> "Fin"
-      String.capitalize("josé") #=> "José"
+      iex> String.capitalize("abcd")
+      "Abcd"
+      iex> String.capitalize("ﬁn")
+      "Fin"
+      iex> String.capitalize("josé")
+      "José"
 
   """
   @spec capitalize(t) :: t
@@ -236,7 +257,8 @@ defmodule String do
 
   ## Examples
 
-      String.rstrip("   abc  ")      #=> "   abc"
+      iex> String.rstrip("   abc  ")
+      "   abc"
 
   """
   @spec rstrip(t) :: t
@@ -247,7 +269,8 @@ defmodule String do
 
   ## Examples
 
-      String.rstrip("   abc _", ?_)  #=> "   abc "
+      iex> String.rstrip("   abc _", ?_)
+      "   abc "
 
   """
   @spec rstrip(t, char) :: t
@@ -283,7 +306,8 @@ defmodule String do
 
   ## Examples
 
-      String.lstrip("   abc  ")       #=> "abc  "
+      iex> String.lstrip("   abc  ")
+      "abc  "
 
   """
   defdelegate lstrip(binary), to: String.Unicode
@@ -293,7 +317,8 @@ defmodule String do
 
   ## Examples
 
-      String.lstrip("_  abc  _", ?_)  #=> "  abc  _"
+      iex> String.lstrip("_  abc  _", ?_)
+      "  abc  _"
 
   """
 
@@ -313,7 +338,8 @@ defmodule String do
 
   ## Examples
 
-      String.strip("   abc  ")       #=> "abc"
+      iex> String.strip("   abc  ")
+      "abc"
 
   """
   @spec strip(t) :: t
@@ -328,7 +354,8 @@ defmodule String do
 
   ## Examples
 
-      String.strip("a  abc  a", ?a)  #=> "  abc  "
+      iex> String.strip("a  abc  a", ?a)
+      "  abc  "
 
   """
   @spec strip(t, char) :: t
@@ -348,11 +375,16 @@ defmodule String do
 
   ## Examples
 
-      String.replace("a,b,c", ",", "-") #=> "a-b-c"
-      String.replace("a,b,c", ",", "-", global: false) #=> "a-b,c"
-      String.replace("a,b,c", "b", "[]", insert_replaced: 1) #=> "a,[b],c"
-      String.replace("a,b,c", ",", "[]", insert_replaced: 2) #=> "a[],b[],c"
-      String.replace("a,b,c", ",", "[]", insert_replaced: [1,1]) #=> "a[,,]b[,,]c"
+      iex> String.replace("a,b,c", ",", "-")
+      "a-b-c"
+      iex> String.replace("a,b,c", ",", "-", global: false)
+      "a-b,c"
+      iex> String.replace("a,b,c", "b", "[]", insert_replaced: 1)
+      "a,[b],c"
+      iex> String.replace("a,b,c", ",", "[]", insert_replaced: 2)
+      "a[],b[],c"
+      iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1,1])
+      "a[,,]b[,,]c"
 
   """
   @spec replace(t, t, t) :: t
@@ -378,8 +410,10 @@ defmodule String do
 
   ## Examples
 
-      String.duplicate("abc", 1) #=> "abc"
-      String.duplicate("abc", 2) #=> "abcabc"
+      iex> String.duplicate("abc", 1)
+      "abc"
+      iex> String.duplicate("abc", 2)
+      "abcabc"
 
   """
   @spec duplicate(t, pos_integer) :: t
@@ -392,9 +426,12 @@ defmodule String do
 
   ## Examples
 
-      String.codepoints("josé")         #=> ["j", "o", "s", "é"]
-      String.codepoints("оптими зации") #=> ["о","п","т","и","м","и"," ","з","а","ц","и","и"]
-      String.codepoints("ἅἪῼ")          #=> ["ἅ","Ἢ","ῼ"]
+      iex> String.codepoints("josé")
+      ["j", "o", "s", "é"]
+      iex> String.codepoints("оптими зации")
+      ["о","п","т","и","м","и"," ","з","а","ц","и","и"]
+      iex> String.codepoints("ἅἪῼ")
+      ["ἅ","Ἢ","ῼ"]
 
   """
   @spec codepoints(t) :: [codepoint]
@@ -414,7 +451,8 @@ defmodule String do
 
   ## Examples
 
-      String.next_codepoint("josé") #=> { "j", "osé" }
+      iex> String.next_codepoint("josé")
+      { "j", "osé" }
 
   """
   @spec next_codepoint(t) :: {codepoint, t} | :no_codepoint
@@ -428,10 +466,14 @@ defmodule String do
 
   ## Examples
 
-      String.valid_codepoint?("a") #=> true
-      String.valid_codepoint?("ø") #=> true
-      String.valid_codepoint?("\xffff") #=> false
-      String.valid_codepoint?("asdf") #=> false
+      iex> String.valid_codepoint?("a")
+      true
+      iex> String.valid_codepoint?("ø")
+      true
+      iex> String.valid_codepoint?("\xffff")
+      false
+      iex> String.valid_codepoint?("asdf")
+      false
 
   """
   @spec valid_codepoint?(codepoint) :: boolean
@@ -443,7 +485,8 @@ defmodule String do
 
   ## Examples
 
-      String.graphemes("Ā̀stute") # => ["Ā̀","s","t","u","t","e"]
+      iex> String.graphemes("Ā̀stute")
+      ["Ā̀","s","t","u","t","e"]
 
   """
   @spec graphemes(t) :: [grapheme]
@@ -458,7 +501,8 @@ defmodule String do
 
   ## Examples
 
-      String.next_grapheme("josé") #=> { "j", "osé" }
+      iex> String.next_grapheme("josé")
+      { "j", "osé" }
 
   """
   @spec next_grapheme(t) :: grapheme | :no_grapheme
@@ -469,8 +513,10 @@ defmodule String do
 
   ## Examples
 
-      String.first("elixir")  #=> "e"
-      String.first("եոգլի") #=> "ե"
+      iex> String.first("elixir")
+      "e"
+      iex> String.first("եոգլի")
+      "ե"
 
   """
   @spec first(t) :: grapheme | nil
@@ -486,8 +532,10 @@ defmodule String do
 
   ## Examples
 
-      String.last("elixir")  #=> "r"
-      String.last("եոգլի") #=> "ի"
+      iex> String.last("elixir")
+      "r"
+      iex> String.last("եոգլի")
+      "ի"
 
   """
   @spec last(t) :: grapheme | nil
@@ -506,8 +554,10 @@ defmodule String do
 
   ## Examples
 
-      String.length("elixir")  #=> 6
-      String.length("եոգլի") #=> 5
+      iex> String.length("elixir")
+      6
+      iex> String.length("եոգլի")
+      5
 
   """
   @spec length(t) :: non_neg_integer
@@ -527,11 +577,16 @@ defmodule String do
 
   ## Examples
 
-      String.at("elixir", 0) #=> "e"
-      String.at("elixir", 1) #=> "l"
-      String.at("elixir", 10) #=> nil
-      String.at("elixir", -1) #=> "r"
-      String.at("elixir", -10) #=> nil
+      iex> String.at("elixir", 0)
+      "e"
+      iex> String.at("elixir", 1)
+      "l"
+      iex> String.at("elixir", 10)
+      nil
+      iex> String.at("elixir", -1)
+      "r"
+      iex> String.at("elixir", -10)
+      nil
 
   """
   @spec at(t, integer) :: grapheme | nil
@@ -565,11 +620,16 @@ defmodule String do
 
   ## Examples
 
-      String.slice("elixir", 1, 3) #=> "lix"
-      String.slice("elixir", 1, 10) #=> "lixir"
-      String.slice("elixir", 10, 3) #=> nil
-      String.slice("elixir", -4, 4) #=> "ixi"
-      String.slice("elixir", -10, 3) #=> nil
+      iex> String.slice("elixir", 1, 3)
+      "lix"
+      iex> String.slice("elixir", 1, 10)
+      "lixir"
+      iex> String.slice("elixir", 10, 3)
+      nil
+      iex> String.slice("elixir", -4, 4)
+      "ixir"
+      iex> String.slice("elixir", -10, 3)
+      nil
 
   """
   @spec slice(t, integer, integer) :: grapheme | nil

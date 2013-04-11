@@ -116,9 +116,12 @@ defmodule Module do
 
   ## Examples
 
-      Module.concat [Foo, Bar]    #=> Foo.Bar
-      Module.concat [Foo, "Bar"]  #=> Foo.Bar
-      Module.concat [Foo, 'Bar']  #=> Foo.Bar
+      iex> Module.concat [Foo, Bar]
+      Foo.Bar
+      iex> Module.concat [Foo, "Bar"]
+      Foo.Bar
+      iex> Module.concat [Foo, 'Bar']
+      Foo.Bar
 
   """
   def concat(list) when is_list(list) do
@@ -131,9 +134,12 @@ defmodule Module do
 
   ## Examples
 
-      Module.concat Foo, Bar    #=> Foo.Bar
-      Module.concat Foo, "Bar"  #=> Foo.Bar
-      Module.concat Foo, 'Bar'  #=> Foo.Bar
+      iex> Module.concat Foo, Bar
+      Foo.Bar
+      iex> Module.concat Foo, "Bar"
+      Foo.Bar
+      iex> Module.concat Foo, 'Bar'
+      Foo.Bar
 
   """
   def concat(left, right) do
@@ -148,11 +154,11 @@ defmodule Module do
 
   ## Examples
 
-      Module.safe_concat [Unknown, Module]
-      #=> ArgumentError
+      iex> Module.safe_concat [Unknown, Module]
+      ** (ArgumentError) argument error
 
-      Module.safe_concat [List, Chars]
-      #=> List.Chars
+      iex> Module.safe_concat [List, Chars]
+      List.Chars
 
   """
   def safe_concat(list) when is_list(list) do
@@ -167,11 +173,11 @@ defmodule Module do
 
   ## Examples
 
-      Module.safe_concat Unknown, Module
-      #=> ArgumentError
+      iex> Module.safe_concat Unknown, Module
+      ** (ArgumentError) argument error
 
-      Module.safe_concat List, Chars
-      #=> List.Chars
+      iex> Module.safe_concat List, Chars
+      List.Chars
 
   """
   def safe_concat(left, right) do

@@ -59,8 +59,8 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.new [{:b,1},{:a,2}]
-      #=> [a: 2, b: 1]
+      iex> Keyword.new [{:b,1},{:a,2}]
+      [a: 2, b: 1]
 
   """
   @spec new(Enum.t) :: t
@@ -77,8 +77,8 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.new [:a, :b], fn x -> {x,x} end
-      #=> [a: :a, b: :b]
+      iex> Enum.sort Keyword.new [:a, :b], fn x -> {x,x} end
+      [a: :a, b: :b]
 
   """
   @spec new(Enum.t, ({key, value} -> {key, value})) :: t
@@ -100,9 +100,12 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.get [a: 1], :a      #=> 1
-      Keyword.get [a: 1], :b      #=> nil
-      Keyword.get [a: 1], :b, 3   #=> 3
+      iex> Keyword.get [a: 1], :a
+      1
+      iex> Keyword.get [a: 1], :b
+      nil
+      iex> Keyword.get [a: 1], :b, 3
+      3
 
   """
   @spec get(t, key) :: value
@@ -120,8 +123,10 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.get! [a: 1], :a      #=> 1
-      Keyword.get! [a: 1], :b      #=> raises KeyError[key: :b]
+      iex> Keyword.get! [a: 1], :a
+      1
+      iex> Keyword.get! [a: 1], :b
+      ** (KeyError) key not found: :b
 
   """
   @spec get!(t, key) :: value | no_return
@@ -137,8 +142,8 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.get_values [a: 1, a: 2], :a
-      #=> [1,2]
+      iex> Keyword.get_values [a: 1, a: 2], :a
+      [1,2]
 
   """
   @spec get_values(t, key) :: [value]
@@ -152,7 +157,8 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.keys [a: 1, b: 2] #=> [:a,:b]
+      iex> Keyword.keys [a: 1, b: 2]
+      [:a,:b]
 
   """
   @spec keys(t) :: [key]
@@ -165,7 +171,8 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.values [a: 1, b: 2] #=> [1,2]
+      iex> Keyword.values [a: 1, b: 2]
+      [1,2]
 
   """
   @spec values(t) :: [value]
@@ -181,8 +188,10 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.delete [a: 1, b: 2], :a   #=> [b: 2]
-      Keyword.delete [b: 2], :a         #=> [b: 2]
+      iex> Keyword.delete [a: 1, b: 2], :a
+      [b: 2]
+      iex> Keyword.delete [b: 2], :a
+      [b: 2]
 
   """
   @spec delete(t, key) :: t
@@ -198,8 +207,8 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.put [a: 1, b: 2], :a, 3
-      #=> [a: 3, b: 2]
+      iex> Keyword.put [a: 1, b: 2], :a, 3
+      [a: 3, b: 2]
 
   """
   @spec put(t, key, value) :: t
@@ -213,8 +222,8 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.put_new [a: 1, b: 2], :a, 3
-      #=> [a: 1, b: 2]
+      iex> Keyword.put_new [a: 1, b: 2], :a, 3
+      [a: 1, b: 2]
 
   """
   @spec put_new(t, key, value) :: t
@@ -231,8 +240,8 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.equal? [a: 1, b: 2], [b: 2, a: 1]
-      #=> true
+      iex> Keyword.equal? [a: 1, b: 2], [b: 2, a: 1]
+      true
 
   """
   @spec equal?(t, t) :: boolean
@@ -246,8 +255,8 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.merge [a: 1, b: 2], [a: 3, d: 4]
-      #=> [a:3, b:2, d: 4]
+      iex> Enum.sort Keyword.merge [a: 1, b: 2], [a: 3, d: 4]
+      [a: 3, b: 2, d: 4]
 
   """
   @spec merge(t, t) :: t
@@ -261,10 +270,10 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn _k, v1, v2 ->
-        v1 + v2
-      end
-      #=> [a:4, b:2, d: 4]
+      iex> Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn _k, v1, v2 ->
+      ...>  v1 + v2
+      iex> end
+      [a: 4, b: 2, d: 4]
 
   """
   @spec merge(t, t, (key, value, value -> value)) :: t
@@ -285,10 +294,10 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.has_key?([a: 1], :a)
-      #=> true
-      Keyword.has_key?([a: 1], :b)
-      #=> false
+      iex> Keyword.has_key?([a: 1], :a)
+      true
+      iex> Keyword.has_key?([a: 1], :b)
+      false
 
   """
   @spec has_key?(t, key) :: boolean
@@ -302,10 +311,10 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.update([a: 1], :a, &1 * 2)
-      #=> [a: 2]
-      Keyword.update([a: 1], :b, &1 * 2)
-      #=> KeyError
+      iex> Keyword.update([a: 1], :a, &1 * 2)
+      [a: 2]
+      iex> Keyword.update([a: 1], :b, &1 * 2)
+      ** (KeyError) key not found: :b
 
   """
   @spec update(t, key, (value -> value)) :: t | no_return
@@ -327,10 +336,10 @@ defmodule Keyword do
 
   ## Examples
 
-      Keyword.update([a: 1], :a, 13, &1 * 2)
-      #=> [a: 2]
-      Keyword.update([a: 1], :b, 11, &1 * 2)
-      #=> [a: 1, b: 11]
+      iex> Keyword.update([a: 1], :a, 13, &1 * 2)
+      [a: 2]
+      iex> Keyword.update([a: 1], :b, 11, &1 * 2)
+      [a: 1, b: 11]
 
   """
   @spec update(t, key, value, (value -> value)) :: t  
