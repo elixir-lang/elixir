@@ -74,7 +74,7 @@ defmodule HashDict do
   ## Examples
 
       HashDict.new [{:b,1},{:a,2}]
-      #=> HashDict[a: 1, b: 2]
+      #=> #HashDict<[a: 2, b: 1]>
 
   """
   @spec new(list({key :: term, value :: term})) :: Dict.t
@@ -91,7 +91,7 @@ defmodule HashDict do
   ## Examples
 
       HashDict.new ["a", "b"], fn x -> {x, x} end
-      #=> HashDict[{ "a", "a" }, { "b", "b" }]
+      #=> #HashDict<[{"a","a"},{"b","b"}]>
 
   """
   @spec new(list, (term -> {key :: term, value ::term})) :: Dict.t

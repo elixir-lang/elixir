@@ -51,8 +51,10 @@ defimpl Binary.Chars, for: List do
 
   ## Examples
 
-      to_binary 'foo' #=> "foo"
-      to_binary ["foo", 'bar'] #=> "foobar"
+      iex> to_binary 'foo'
+      "foo"
+      iex> to_binary ["foo", 'bar']
+      "foobar"
 
   """
   def to_binary(thing) do

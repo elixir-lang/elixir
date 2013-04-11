@@ -168,7 +168,7 @@ defmodule IO.ANSI do
 
   ## Example
 
-    IO.ANSI.escape "Hello %{red,bright,green}yes" #=>
+    iex> IO.ANSI.escape "Hello %{red,bright,green}yes"
     "Hello \e[31m\e[1m\e[32myes\e[0m"
   """
   @spec escape(String.t, emit :: boolean) :: String.t
@@ -194,7 +194,7 @@ defmodule IO.ANSI do
 
   ## Example
 
-    IO.ANSI.escape "Hello %{red,bright,green}yes%{reset}" #=>
+    iex> IO.ANSI.escape "Hello %{red,bright,green}yes"
     "Hello \e[31m\e[1m\e[32myes\e[0m"
 
   """
