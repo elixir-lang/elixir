@@ -184,16 +184,21 @@ defmodule ExUnit.DocTest do
                 instead: instead ],
               stack
         end
-      rescue e ->
-        location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
-        stack    = [{ unquote(module), :__MODULE__, 0, location }]
-        raise ExUnit.ExpectationError,
-          [ prelude: "Expected doctest",
-            expected: unquote(test.expr),
-            actual: "without an exception",
-            reason: "complete",
-            instead: e ],
-          stack
+      rescue
+        e in [ExUnit.ExpectationError] ->
+          location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
+          stack    = [{ unquote(module), :__MODULE__, 0, location }]
+          raise e, [], stack
+        e ->
+          location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
+          stack    = [{ unquote(module), :__MODULE__, 0, location }]
+          raise ExUnit.ExpectationError,
+            [ prelude: "Expected doctest",
+              expected: unquote(test.expr),
+              actual: "without an exception",
+              reason: "complete",
+              instead: e ],
+            stack
       end
     end
     if do_import do
