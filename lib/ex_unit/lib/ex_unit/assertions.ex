@@ -1,11 +1,18 @@
 defexception ExUnit.AssertionError,  message: "assertion failed"
 
-defexception ExUnit.ExpectationError, expected: nil, actual: nil, reason: "", negation: false, prelude: "Expected", instead: nil, instead_prelude: "instead got" do
+defexception ExUnit.ExpectationError, expected: nil, actual: nil, reason: "", negation: false, prelude: "Expected", description: nil do
   def message(exception) do
-    "#{exception.prelude} #{exception.expected} to " <>
-      if(exception.negation, do: "not ", else: "") <>
-      "#{exception.reason} #{exception.actual}" <>
-      if(exception.instead, do: ". #{exception.instead_prelude} #{exception.instead}", else: "")
+    if desc = exception.description do
+      "#{exception.prelude} #{desc} #{exception.full_reason} " <>
+        "#{exception.expected}. Insted got #{exception.actual}"
+    else
+      "#{exception.prelude} #{exception.expected} " <>
+        "#{exception.full_reason} #{exception.actual}"
+    end
+  end
+
+  def full_reason(exception) do
+    "to" <> if(exception.negation, do: " not ", else: " ") <> exception.reason
   end
 end
 
