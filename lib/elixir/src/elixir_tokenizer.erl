@@ -402,13 +402,15 @@ tokenize([H|_] = String, Line, Scope, Tokens) when ?is_upcase(H) ->
 tokenize([H|_] = String, Line, Scope, Tokens) when ?is_downcase(H); H == $_ ->
   { Rest, { Kind, _, Identifier } } = tokenize_any_identifier(String, Line, [], Scope),
   case handle_keyword(Line, Kind, Identifier, Tokens) of
-    false ->
+    nomatch ->
       tokenize(Rest, Line, Scope, [{ Kind, Line, Identifier }|Tokens]);
-    [Check|T] ->
+    { ok, [Check|T] } ->
       case handle_terminator(Check, Scope) of
         { error, _ } = Error -> Error;
         New -> tokenize(Rest, Line, New, [Check|T])
-      end
+      end;
+    { error, Token } ->
+      { error, { Line, "syntax error before: ", Token } }
   end;
 
 % Ambiguous unary/binary operators tokens
@@ -815,28 +817,39 @@ terminator('<<') -> '>>'.
 
 % Keywords check
 handle_keyword(Line, Identifier, Atom, [{ '.', _ }|_] = Tokens) ->
-  [{ Identifier, Line, Atom }|Tokens];
+  { ok, [{ Identifier, Line, Atom }|Tokens] };
 
 handle_keyword(Line, Identifier, Atom, Tokens) when
     Identifier ==  identifier; Identifier == do_identifier;
     Identifier ==  bracket_identifier; Identifier == paren_identifier ->
   case keyword(Atom) of
-    true  -> [{ Atom, Line }|Tokens];
-    op    -> add_token_with_nl({ Atom, Line }, Tokens);
-    block -> [{ block_identifier, Line, Atom }|Tokens];
-    false -> false
+    true  -> { ok, [{ Atom, Line }|Tokens] };
+    op    -> { ok, add_token_with_nl({ Atom, Line }, Tokens) };
+    block -> { ok, [{ block_identifier, Line, Atom }|Tokens] };
+    do    ->
+      case do_keyword_valid(Tokens) of
+        true  -> { ok, [{ Atom, Line }|Tokens] };
+        false -> { error, "do" }
+      end;
+    false -> nomatch
   end;
 
-handle_keyword(_, _, _, _) -> false.
+handle_keyword(_, _, _, _) -> nomatch.
+
+do_keyword_valid([{ Atom, _ }|_]) ->
+  is_boolean(keyword(Atom));
+do_keyword_valid(_) -> true.
 
 % Keywords
 keyword('fn')    -> true;
-keyword('do')    -> true;
 keyword('end')   -> true;
 keyword('true')  -> true;
 keyword('false') -> true;
 keyword('nil')   -> true;
 keyword('not')   -> true;
+
+% Special handling for do
+keyword('do')    -> do;
 
 % Bin operator keywords
 keyword('and')    -> op;
