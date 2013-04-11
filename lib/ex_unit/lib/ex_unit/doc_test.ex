@@ -83,12 +83,6 @@ defmodule ExUnit.DocTest do
   run.
   """
 
-  defexception CompileError, error: nil, expression: nil do
-    def message(__MODULE__[error: error, expression: expr]) do
-      "#{inspect elem(error, 0)}: #{error.message} while parsing expression `#{expr}`"
-    end
-  end
-
   defrecord Test, fun_arity: nil, line: nil, expr: nil, expected: nil
 
   @doc """
@@ -166,8 +160,8 @@ defmodule ExUnit.DocTest do
     location = [line: line, file: Path.relative_to(file, System.cwd!)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
 
-    expr_ast     = string_to_ast(line, file, test.expr)
-    expected_ast = string_to_ast(line, file, expected)
+    expr_ast     = string_to_ast(module, line, file, test.expr)
+    expected_ast = string_to_ast(module, line, file, expected)
 
     quoted =
     quote do
@@ -212,7 +206,7 @@ defmodule ExUnit.DocTest do
     location = [line: line, file: Path.relative_to(file, System.cwd!)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
 
-    expr_ast = string_to_ast(line, file, test.expr)
+    expr_ast = string_to_ast(module, line, file, test.expr)
 
     quoted =
     quote do
@@ -256,11 +250,21 @@ defmodule ExUnit.DocTest do
     quoted
   end
 
-  defp string_to_ast(line, file, expr) do
+  defp string_to_ast(module, line, file, expr) do
+    location = [line: line, file: Path.relative_to(file, System.cwd!)]
+    stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
     try do
       Code.string_to_ast!(expr, line: line, file: file)
     rescue e ->
-      raise CompileError, error: e, expression: expr
+      quote do
+        raise ExUnit.ExpectationError,
+            [ prelude: "Expected doctest's expression",
+              expected: unquote(expr),
+              actual: "successfully",
+              reason: "compile",
+              instead: unquote(Macro.escape e) ],
+            unquote(stack)
+      end
     end
   end
 
