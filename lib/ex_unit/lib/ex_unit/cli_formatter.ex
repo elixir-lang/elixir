@@ -89,18 +89,20 @@ defmodule ExUnit.CLIFormatter do
     acc + 1
   end
 
-  defp print_kind_reason(:error, record) when is_record(record, ExUnit.ExpectationError) do
-    left  = String.downcase record.prelude
-    right = "to " <> if(record.negation, do: "not ", else: "") <> record.reason
-    instead_prelude = record.instead_prelude
-    max   = max(size(left), size(right))
+  defp print_kind_reason(:error, ExUnit.ExpectationError[] = record) do
+    prelude  = String.downcase record.prelude
+    reason   = record.full_reason
+    max      = max(size(prelude), size(reason))
 
     IO.puts error_info "** (ExUnit.ExpectationError)"
-    IO.puts error_info "  #{pad(left, max)}: #{maybe_multiline(record.expected, max)}"
-    IO.puts error_info "  #{pad(right, max)}: #{maybe_multiline(record.actual, max)}"
 
-    unless nil?(record.instead) do
-      IO.puts error_info "  #{pad(instead_prelude, max)}: #{maybe_multiline(inspect(record.instead), max)}"
+    if desc = record.description do
+      IO.puts error_info "  #{pad(prelude, max)}: #{maybe_multiline(desc, max)}"
+      IO.puts error_info "  #{pad(reason, max)}: #{maybe_multiline(record.expected, max)}"
+      IO.puts error_info "  #{pad("instead got", max)}: #{maybe_multiline(record.actual, max)}"
+    else
+      IO.puts error_info "  #{pad(prelude, max)}: #{maybe_multiline(record.expected, max)}"
+      IO.puts error_info "  #{pad(reason, max)}: #{maybe_multiline(record.actual, max)}"
     end
   end
 

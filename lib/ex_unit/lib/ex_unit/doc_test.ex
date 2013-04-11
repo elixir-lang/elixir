@@ -167,25 +167,25 @@ defmodule ExUnit.DocTest do
         v = unquote(expected_ast)
         case unquote(expr_ast) do
           ^v -> :ok
-          instead ->
+          actual ->
             raise ExUnit.ExpectationError,
               [ prelude: "Expected doctest",
-                expected: unquote(test.expr),
-                actual: inspect(v),
+                description: unquote(test.expr),
+                expected: inspect(v),
                 reason: "evaluate to",
-                instead: instead ],
+                actual: inspect(actual) ],
               unquote(stack)
         end
       rescue
         e in [ExUnit.ExpectationError] ->
           raise e, [], unquote(stack)
-        e ->
+        actual ->
           raise ExUnit.ExpectationError,
             [ prelude: "Expected doctest",
-              expected: unquote(test.expr),
-              actual: "without an exception",
+              description: unquote(test.expr),
+              expected: "without an exception",
               reason: "complete",
-              instead: e ],
+              actual: inspect(actual) ],
             unquote(stack)
       end
     end
@@ -206,10 +206,10 @@ defmodule ExUnit.DocTest do
         v = unquote(expr_ast)
         raise ExUnit.ExpectationError,
           [ prelude: "Expected doctest",
-            expected: unquote(test.expr),
-            actual: "by raising #{inspect unquote(exception)} exception",
-            reason: "terminate",
-            instead: v ],
+            description: unquote(test.expr),
+            expected: "#{inspect unquote(exception)}[]",
+            reason: "raise",
+            actual: inspect(v) ],
           unquote(stack)
       rescue
         e in [ExUnit.ExpectationError] -> raise(e)
@@ -217,19 +217,19 @@ defmodule ExUnit.DocTest do
           unless error.message == unquote(message) do
             raise ExUnit.ExpectationError,
               [ prelude: "Expected doctest",
-                expected: unquote(test.expr),
-                actual: "by raising #{inspect unquote(exception)} exception with a #{inspect unquote(message)} message",
-                reason: "terminate",
-                instead: error ],
+                description: unquote(test.expr),
+                expected: "#{inspect unquote(exception)} with message #{inspect unquote(message)}",
+                reason: "raise",
+                actual: inspect(error) ],
               unquote(stack)
           end
         error ->
           raise ExUnit.ExpectationError,
             [ prelude: "Expected doctest",
-              expected: unquote(test.expr),
-              actual: "by raising #{inspect unquote(exception)}",
-              reason: "terminate",
-              instead: error ],
+              description: unquote(test.expr),
+              expected: "#{inspect unquote(exception)}",
+              reason: "raise",
+              actual: inspect(error) ],
             unquote(stack)
       end
     end
@@ -248,12 +248,12 @@ defmodule ExUnit.DocTest do
     rescue e ->
       quote do
         raise ExUnit.ExpectationError,
-            [ prelude: "Expected doctest's expression",
-              expected: unquote(expr),
-              actual: "successfully",
-              reason: "compile",
-              instead: unquote(Macro.escape e) ],
-            unquote(stack)
+          [ prelude: "Expected doctest",
+            description: unquote(expr),
+            expected: "successfully",
+            reason: "compile",
+            actual: unquote("** #{inspect e.__record__(:name)} #{e.message}") ],
+          unquote(stack)
       end
     end
   end
