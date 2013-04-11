@@ -160,9 +160,11 @@ defmodule ExUnit.DocTest do
     :"test doc at #{inspect m}.#{f}/#{a} (#{n})"
   end
 
-  defp test_content(Test[expected: { :ok, expected }] = test, module, do_import) do
+  defp test_content(Test[expected: { :test, expected }] = test, module, do_import) do
     line = test.line
     file = module.__info__(:compile)[:source]
+    location = [line: line, file: Path.relative_to(file, System.cwd!)]
+    stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
 
     expr_ast     = string_to_ast(line, file, test.expr)
     expected_ast = string_to_ast(line, file, expected)
@@ -174,31 +176,25 @@ defmodule ExUnit.DocTest do
         case unquote(expr_ast) do
           ^v -> :ok
           instead ->
-            location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
-            stack    = [{ unquote(module), :__MODULE__, 0, location }]
             raise ExUnit.ExpectationError,
               [ prelude: "Expected doctest",
                 expected: unquote(test.expr),
                 actual: inspect(v),
                 reason: "evaluate to",
                 instead: instead ],
-              stack
+              unquote(stack)
         end
       rescue
         e in [ExUnit.ExpectationError] ->
-          location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
-          stack    = [{ unquote(module), :__MODULE__, 0, location }]
-          raise e, [], stack
+          raise e, [], unquote(stack)
         e ->
-          location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
-          stack    = [{ unquote(module), :__MODULE__, 0, location }]
           raise ExUnit.ExpectationError,
             [ prelude: "Expected doctest",
               expected: unquote(test.expr),
               actual: "without an exception",
               reason: "complete",
               instead: e ],
-            stack
+            unquote(stack)
       end
     end
     if do_import do
@@ -213,6 +209,8 @@ defmodule ExUnit.DocTest do
   defp test_content(Test[expected: { :error, exception, message }] = test, module, do_import) do
     line = test.line
     file = module.__info__(:compile)[:source]
+    location = [line: line, file: Path.relative_to(file, System.cwd!)]
+    stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
 
     expr_ast = string_to_ast(line, file, test.expr)
 
@@ -220,39 +218,33 @@ defmodule ExUnit.DocTest do
     quote do
       try do
         v = unquote(expr_ast)
-        location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
-        stack    = [{ unquote(module), :__MODULE__, 0, location }]
         raise ExUnit.ExpectationError,
           [ prelude: "Expected doctest",
             expected: unquote(test.expr),
             actual: "by raising #{inspect unquote(exception)} exception",
             reason: "terminate",
             instead: v ],
-          stack
+          unquote(stack)
       rescue
         e in [ExUnit.ExpectationError] -> raise(e)
         error in [unquote(exception)] ->
           unless error.message == unquote(message) do
-            location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
-            stack    = [{ unquote(module), :__MODULE__, 0, location }]
             raise ExUnit.ExpectationError,
               [ prelude: "Expected doctest",
                 expected: unquote(test.expr),
                 actual: "by raising #{inspect unquote(exception)} exception with a #{inspect unquote(message)} message",
                 reason: "terminate",
                 instead: error ],
-              stack
+              unquote(stack)
           end
         error ->
-          location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
-          stack    = [{ unquote(module), :__MODULE__, 0, location }]
           raise ExUnit.ExpectationError,
             [ prelude: "Expected doctest",
               expected: unquote(test.expr),
               actual: "by raising #{inspect unquote(exception)}",
               reason: "terminate",
               instead: error ],
-            stack
+            unquote(stack)
       end
     end
     if do_import do
@@ -306,12 +298,12 @@ defmodule ExUnit.DocTest do
   defp extract_tests([], _line, "", "", acc), do: Enum.reverse(acc)
 
   defp extract_tests([], line, expr_acc, expected_acc, acc) do
-    test = Test[expr: expr_acc, line: line, expected: { :ok, expected_acc }]
+    test = Test[expr: expr_acc, line: line, expected: { :test, expected_acc }]
     Enum.reverse([test|acc])
   end
 
   defp extract_tests([<< "iex>", _ :: binary>>|_] = list, line, expr_acc, expected_acc, acc) when expr_acc != "" and expected_acc != "" do
-    test = Test[expr: expr_acc, line: line, expected: { :ok, expected_acc }]
+    test = Test[expr: expr_acc, line: line, expected: { :test, expected_acc }]
     extract_tests(list, line, "", "", [test|acc])
   end
 
@@ -340,7 +332,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp extract_tests([""|lines], line, expr_acc, expected_acc, acc) do
-    test = Test[expr: expr_acc, line: line, expected: { :ok, expected_acc }]
+    test = Test[expr: expr_acc, line: line, expected: { :test, expected_acc }]
     extract_tests(lines, line,  "", "", [test|acc])
   end
 
