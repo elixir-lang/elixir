@@ -3,6 +3,16 @@ Code.require_file "../test_helper.exs", __FILE__
 defrecord RecordTest.FileInfo,
   Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
 
+defmodule RecordTest.FileInfo.Helper do
+  Record.import RecordTest.FileInfo, as: :file_info
+
+  def new do
+    file_info
+  end
+
+  def size(file_info(size: size)), do: size
+end
+
 defrecord RecordTest.SomeRecord, a: 0, b: 1
 defrecord RecordTest.WithNoField, []
 
@@ -181,6 +191,11 @@ defmodule RecordTest do
     assert { :module, _, _, "result"} = (defrecord WithResult, foo: :bar do
       "result"
     end)
+  end
+
+  test :import do
+    assert RecordTest.FileInfo.Helper.new == RecordTest.FileInfo.new
+    assert RecordTest.FileInfo.Helper.size(RecordTest.FileInfo.new(size: 100)) == 100
   end
 
   defp file_info do

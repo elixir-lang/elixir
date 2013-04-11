@@ -45,6 +45,28 @@ defmodule Record do
   end
 
   @doc """
+  Import public record definition as a set of private macros (as defined by defrecordp/2)
+
+  ## Usage
+
+     Record.import Record.Module, as: macro_name
+
+  ## Example
+
+     defmodule Test do
+       Record.import File.Stat, as: :file_stat
+
+       def size(file_stat(size: size)), do: size
+     end
+
+  """
+  defmacro import(module, as: name) do
+    quote do
+      Record.defmacros(unquote(name), unquote(module).__record__(:fields), __ENV__, unquote(module))
+    end
+  end
+
+  @doc """
   Main entry point for private records definition. It defines
   a set of macros with the given `name` and the fields specified
   in `values`. This is invoked directly by `Kernel.defrecordp`,
@@ -128,31 +150,32 @@ defmodule Record do
       end
 
   """
-  def defmacros(name, values, env) do
+  def defmacros(name, values, env, tag // nil) do
     escaped = lc value inlist values do
       { key, value } = convert_value(value)
       { key, Macro.escape(value) }
     end
 
     contents = quote do
+
       defmacrop unquote(name)() do
-        Record.access(__MODULE__, unquote(escaped), [], __CALLER__)
+        Record.access(unquote(tag) || __MODULE__, unquote(escaped), [], __CALLER__)
       end
 
       defmacrop unquote(name)(record) when is_tuple(record) do
-        Record.to_keywords(__MODULE__, unquote(escaped), record)
+        Record.to_keywords(unquote(tag) || __MODULE__, unquote(escaped), record)
       end
 
       defmacrop unquote(name)(args) do
-        Record.access(__MODULE__, unquote(escaped), args, __CALLER__)
+        Record.access(unquote(tag) || __MODULE__, unquote(escaped), args, __CALLER__)
       end
 
       defmacrop unquote(name)(record, key) when is_atom(key) do
-        Record.get(__MODULE__, unquote(escaped), record, key)
+        Record.get(unquote(tag) || __MODULE__, unquote(escaped), record, key)
       end
 
       defmacrop unquote(name)(record, args) do
-        Record.dispatch(__MODULE__, unquote(escaped), record, args, __CALLER__)
+        Record.dispatch(unquote(tag) || __MODULE__, unquote(escaped), record, args, __CALLER__)
       end
     end
 
