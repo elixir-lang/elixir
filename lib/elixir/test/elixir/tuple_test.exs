@@ -8,7 +8,15 @@ defmodule TupleTest do
   end
 
   test :setelem do
-    assert setelem({ :a, :b, :c }, 1, :d) == { :a, :d, :c }
+    assert set_elem({ :a, :b, :c }, 1, :d) == { :a, :d, :c }
+  end
+
+  test :insert_elem do
+    assert insert_elem({ :bar, :baz }, 0, :foo) == { :foo, :bar, :baz }
+  end
+
+  test :delete_elem do
+    assert delete_elem({ :foo, :bar, :baz }, 0) == { :bar, :baz }
   end
 
   test :optional_comma do
