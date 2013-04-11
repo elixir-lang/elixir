@@ -771,26 +771,25 @@ defmodule Enum do
   end
 
   @doc """
-  Splits `collection` at the first element, for which `fun` returns true.
-  Expects an ordered collection.
+  Splits `collection` in two while `fun` returns true.
 
   ## Examples
 
-      Enum.split_with [1,2,3,4], fn x -> x == 2 end
-      #=> { [1,3,4], [2] }
+      Enum.split_while [1,2,3,4], fn(x) -> x < 3 end
+      #=> { [1, 2], [3, 4] }
 
   """
-  @spec split_with(t, (element -> as_boolean(term))) :: {list, list}
-  def split_with(collection, fun) when is_list(collection) do
-    do_split_with(collection, fun, [])
+  @spec split_while(t, (element -> as_boolean(term))) :: {list, list}
+  def split_while(collection, fun) when is_list(collection) do
+    do_split_while(collection, fun, [])
   end
 
-  def split_with(collection, fun) do
+  def split_while(collection, fun) do
     case I.iterator(collection) do
       { iterator, pointer } ->
-        do_split_with(pointer, iterator, fun, [])
+        do_split_while(pointer, iterator, fun, [])
       list when is_list(list) ->
-        do_split_with(list, fun, [])
+        do_split_while(list, fun, [])
     end
   end
 
@@ -1461,29 +1460,29 @@ defmodule Enum do
     { :lists.reverse(acc), [] }
   end
 
-  ## split_with
+  ## split_while
 
-  defp do_split_with([h|t], fun, acc) do
+  defp do_split_while([h|t], fun, acc) do
     if fun.(h) do
-      do_split_with(t, fun, [h|acc])
+      do_split_while(t, fun, [h|acc])
     else
       { :lists.reverse(acc), [h|t] }
     end
   end
 
-  defp do_split_with([], _, acc) do
+  defp do_split_while([], _, acc) do
     { :lists.reverse(acc), [] }
   end
 
-  defp do_split_with({ h, next } = extra, iterator, fun, acc) do
+  defp do_split_while({ h, next } = extra, iterator, fun, acc) do
     if fun.(h) do
-      do_split_with(iterator.(next), iterator, fun, [h|acc])
+      do_split_while(iterator.(next), iterator, fun, [h|acc])
     else
       { :lists.reverse(acc), to_list(extra, iterator) }
     end
   end
 
-  defp do_split_with(:stop, _, _, acc) do
+  defp do_split_while(:stop, _, _, acc) do
     { :lists.reverse(acc), [] }
   end
 
