@@ -17,7 +17,7 @@ defmodule Kernel.ErrorHandler do
     case Code.ensure_loaded(module) do
       { :module, _ } -> []
       { :error, _ } ->
-        parent = Process.get(:elixir_compiler_pid)
+        parent = :erlang.get(:elixir_compiler_pid)
         parent <- { :waiting, self(), module }
         receive do
           { :release, ^parent } -> :ok
