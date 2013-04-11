@@ -101,14 +101,11 @@ defmodule ExUnit.DocTest do
   * `:only` — generate tests only forfunctions listed
               (list of `{function, arity}` tuples)
 
-  * `:import` — if false, do not auto-import the current module into the
-                evaluted example. If true, one can test a function
-                defined in the module without referring to the module
-                name. However, this is not feasible when there is a clash
-                with a number module like Kernel. In these cases, `import`
-                should be set to `false` and a full `M.f` construct should
-                be used. False by default.
-
+  * `:import` — when true, one can test a function defined in the module
+                without referring to the module name. However, this is not
+                feasible when there is a clash with a number module like
+                Kernel. In these cases, `import` should be set to `false`
+                and a full `M.f` construct should be used.
 
   ## Examples
 
@@ -163,8 +160,9 @@ defmodule ExUnit.DocTest do
     expr_ast     = string_to_ast(module, line, file, test.expr)
     expected_ast = string_to_ast(module, line, file, expected)
 
-    quoted =
     quote do
+      unquote_splicing(test_import(module, do_import))
+
       try do
         v = unquote(expected_ast)
         case unquote(expr_ast) do
@@ -191,13 +189,6 @@ defmodule ExUnit.DocTest do
             unquote(stack)
       end
     end
-    if do_import do
-      quoted = quote do
-        import unquote(module)
-        unquote(quoted)
-      end
-    end
-    quoted
   end
 
   defp test_content(Test[expected: { :error, exception, message }] = test, module, do_import) do
@@ -208,8 +199,9 @@ defmodule ExUnit.DocTest do
 
     expr_ast = string_to_ast(module, line, file, test.expr)
 
-    quoted =
     quote do
+      unquote_splicing(test_import(module, do_import))
+
       try do
         v = unquote(expr_ast)
         raise ExUnit.ExpectationError,
@@ -241,13 +233,11 @@ defmodule ExUnit.DocTest do
             unquote(stack)
       end
     end
-    if do_import do
-      quoted = quote do
-        import unquote(module)
-        unquote(quoted)
-      end
-    end
-    quoted
+  end
+
+  defp test_import(_mod, false), do: []
+  defp test_import(mod, _) do
+    [quote do: import(unquote(mod))]
   end
 
   defp string_to_ast(module, line, file, expr) do
