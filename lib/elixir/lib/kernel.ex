@@ -1926,24 +1926,112 @@ defmodule Kernel do
   end
 
   @doc """
-  Define setelem to set Tuple element according to Elixir conventions
+  Define set_elem to set Tuple element according to Elixir conventions
   (i.e. it expects the tuple as first argument, zero-index based).
-
-  It is implemented as a macro so it can be used in guards.
 
   ## Example
 
       iex> tuple = { :foo, :bar, 3 }
-      ...> setelem(tuple, 0, :baz)
+      ...> set_elem(tuple, 0, :baz)
       { :baz, :bar, 3 }
 
   """
-  defmacro setelem(tuple, index, value) when is_integer(index) do
+  defmacro set_elem(tuple, index, value) when is_integer(index) do
     quote do: :erlang.setelement(unquote(index + 1), unquote(tuple), unquote(value))
   end
 
-  defmacro setelem(tuple, index, value) do
+  defmacro set_elem(tuple, index, value) do
     quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
+  end
+
+  @doc false
+  defmacro setelem(tuple, index, value) do
+    IO.puts "setelem is deprecated, please use set_elem instead\n#{Exception.format_stacktrace(__CALLER__.stacktrace)}"
+    quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
+  end
+
+  @doc """
+  Define insert_elem to insert element into a tuple according to
+  Elixir conventions (i.e. it expects the tuple as first argument,
+  zero-index based).
+
+  Please note that in versions of Erlang prior to R16B there is no BIF
+  for this operation and it is emulated by converting the tuple to a list
+  and back and is, therefore, inefficient.
+
+  ## Example
+
+      iex> tuple = { :bar, :baz }
+      ...> insert_elem(tuple, 0, :foo)
+      { :foo, :bar, :baz }
+  """
+  defmacro insert_elem(tuple, index, value) when is_integer(index) do
+    case :proplists.get_value(:insert_element,
+                              :proplists.get_value(:exports, :erlang.module_info,[])) do
+      3 ->
+        quote do: :erlang.insert_element(unquote(index + 1), unquote(tuple), unquote(value))
+      :undefined ->
+        do_insert_elem(tuple, index, value)
+    end
+  end
+  defmacro insert_elem(tuple, index, value) do
+    case :proplists.get_value(:insert_element,
+                              :proplists.get_value(:exports, :erlang.module_info,[])) do
+      3 ->
+        quote do: :erlang.insert_element(unquote(index) + 1, unquote(tuple), unquote(value))
+      :undefined ->
+        do_insert_elem(tuple, index, value)
+    end
+  end
+
+  defp do_insert_elem(tuple, index, value) do
+    quote do
+      {h, t} = :lists.split(unquote(index),
+                            tuple_to_list(unquote(tuple)))
+      list_to_tuple(h ++ [unquote(value)|t])
+    end
+  end
+
+  @doc """
+  Define delete_elem to delete element from a tuple according to
+  Elixir conventions (i.e. it expects the tuple as first argument,
+  zero-index based).
+
+  Please note that in versions of Erlang prior to R16B there is no BIF
+  for this operation and it is emulated by converting the tuple to a list
+  and back and is, therefore, inefficient.
+
+  ## Example
+
+      iex> tuple = { :foo, :bar, :baz }
+      ...> delete_elem(tuple, 0)
+      { :bar, :baz }
+  """
+  defmacro delete_elem(tuple, index) when is_integer(index) do
+    case :proplists.get_value(:delete_element,
+                              :proplists.get_value(:exports, :erlang.module_info,[])) do
+      2 ->
+        quote do: :erlang.delete_element(unquote(index + 1), unquote(tuple))
+      :undefined ->
+        do_delete_elem(tuple, index)
+    end
+  end
+  defmacro delete_elem(tuple, index) do
+    case :proplists.get_value(:delete_element,
+                              :proplists.get_value(:exports, :erlang.module_info,[])) do
+      2 ->
+        quote do: :erlang.delete_element(unquote(index) + 1, unquote(tuple))
+      :undefined ->
+        do_delete_elem(tuple, index)
+    end
+  end
+
+  defp do_delete_elem(tuple, index) do
+    quote do
+      {h, [_|t]} = :lists.split(unquote(index),
+                                tuple_to_list(unquote(tuple)))
+      list_to_tuple(h ++ t)
+    end
   end
 
   @doc """

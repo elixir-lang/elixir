@@ -399,13 +399,13 @@ defmodule HashDict do
   defp node_put(node, 0, hash, key, value) do
     pos = bucket_index(hash)
     { new, count } = bucket_put(elem(node, pos), key, value)
-    { setelem(node, pos, new), count }
+    { set_elem(node, pos, new), count }
   end
 
   defp node_put(node, depth, hash, key, value) do
     pos = bucket_index(hash)
     { new, count } = node_put(elem(node, pos), depth - 1, bucket_next(hash), key, value)
-    { setelem(node, pos, new), count }
+    { set_elem(node, pos, new), count }
   end
 
   # Deletes a key from the bucket
@@ -413,7 +413,7 @@ defmodule HashDict do
     pos = bucket_index(hash)
     case bucket_delete(elem(node, pos), key) do
       { _, 0 }    -> { node, 0 }
-      { new, -1 } -> { setelem(node, pos, new), -1 }
+      { new, -1 } -> { set_elem(node, pos, new), -1 }
     end
   end
 
@@ -421,7 +421,7 @@ defmodule HashDict do
     pos = bucket_index(hash)
     case node_delete(elem(node, pos), depth - 1, bucket_next(hash), key) do
       { _, 0 }    -> { node, 0 }
-      { new, -1 } -> { setelem(node, pos, new), -1 }
+      { new, -1 } -> { set_elem(node, pos, new), -1 }
     end
   end
 
@@ -477,7 +477,7 @@ defmodule HashDict do
   defp node_relocate(node // unquote(node_escaped), bucket, n) do
     :lists.foldl fn { key, value }, acc ->
       pos = key |> bucket_hash() |> bucket_nth_index(n)
-      setelem(acc, pos, bucket_put!(elem(acc, pos), key, value))
+      set_elem(acc, pos, bucket_put!(elem(acc, pos), key, value))
     end, node, bucket
   end
 end

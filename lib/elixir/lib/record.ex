@@ -445,19 +445,19 @@ defmodule Record do
   #     end
   #
   #     def :atime.(value, record) do
-  #       setelem(record, 1, value)
+  #       set_elem(record, 1, value)
   #     end
   #
   #     def :mtime.(record) do
-  #       setelem(record, 2, value)
+  #       set_elem(record, 2, value)
   #     end
   #
   #     def :atime.(callback, record) do
-  #       setelem(record, 1, callback.(elem(record, 1)))
+  #       set_elem(record, 1, callback.(elem(record, 1)))
   #     end
   #
   #     def :mtime.(callback, record) do
-  #       setelem(record, 2, callback.(elem(record, 2)))
+  #       set_elem(record, 2, callback.(elem(record, 2)))
   #     end
   #
   defp accessors([{ :__exception__, _ }|t], 1) do
