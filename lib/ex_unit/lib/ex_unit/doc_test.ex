@@ -213,8 +213,41 @@ defmodule ExUnit.DocTest do
 
     quoted =
     quote do
-      assert_raise unquote(exception), unquote(message), fn ->
-        unquote(expr_ast)
+      try do
+        v = unquote(expr_ast)
+        location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
+        stack    = [{ unquote(module), :__MODULE__, 0, location }]
+        raise ExUnit.ExpectationError,
+          [ prelude: "Expected doctest",
+            expected: unquote(test.expr),
+            actual: "by raising #{inspect unquote(exception)} exception",
+            reason: "terminate",
+            instead: v ],
+          stack
+      rescue
+        e in [ExUnit.ExpectationError] -> raise(e)
+        error in [unquote(exception)] ->
+          unless error.message == unquote(message) do
+            location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
+            stack    = [{ unquote(module), :__MODULE__, 0, location }]
+            raise ExUnit.ExpectationError,
+              [ prelude: "Expected doctest",
+                expected: unquote(test.expr),
+                actual: "by raising #{inspect unquote(exception)} exception with a #{inspect unquote(message)} message",
+                reason: "terminate",
+                instead: error ],
+              stack
+          end
+        error ->
+          location = [line: unquote(line), file: Path.relative_to(unquote(file), System.cwd!)]
+          stack    = [{ unquote(module), :__MODULE__, 0, location }]
+          raise ExUnit.ExpectationError,
+            [ prelude: "Expected doctest",
+              expected: unquote(test.expr),
+              actual: "by raising #{inspect unquote(exception)}",
+              reason: "terminate",
+              instead: error ],
+            stack
       end
     end
     if do_import do
