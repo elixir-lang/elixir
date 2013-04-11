@@ -188,13 +188,13 @@ defmodule EnumTest.List do
     assert Enum.split([1,2,3], -10) == { [], [1,2,3] }
   end
 
-  test :split_while do
-    assert Enum.split_while([1,2,3], fn(_) -> false end) == { [], [1,2,3] }
-    assert Enum.split_while([1,2,3], fn(_) -> true end) == { [1,2,3], [] }
-    assert Enum.split_while([1,2,3], fn(x) -> x > 2 end) == { [], [1,2,3] }
-    assert Enum.split_while([1,2,3], fn(x) -> x > 3 end) == { [], [1,2,3] }
-    assert Enum.split_while([1,2,3], fn(x) -> x < 3 end) == { [1,2], [3] }
-    assert Enum.split_while([], fn(_) -> true end) == { [], [] }
+  test :split_with do
+    assert Enum.split_with([1,2,3], fn(_) -> false end) == { [], [1,2,3] }
+    assert Enum.split_with([1,2,3], fn(_) -> true end) == { [1,2,3], [] }
+    assert Enum.split_with([1,2,3], fn(x) -> x > 2 end) == { [], [1,2,3] }
+    assert Enum.split_with([1,2,3], fn(x) -> x > 3 end) == { [], [1,2,3] }
+    assert Enum.split_with([1,2,3], fn(x) -> x < 3 end) == { [1,2], [3] }
+    assert Enum.split_with([], fn(_) -> true end) == { [], [] }
   end
 
   test :take do
@@ -499,16 +499,16 @@ defmodule EnumTest.Range do
     assert Enum.split(range, 3) == { [1,0], [] }
   end
 
-  test :split_while do
+  test :split_with do
     range = Range.new(first: 1, last: 3)
-    assert Enum.split_while(range, fn(_) -> false end) == { [], [1,2,3] }
-    assert Enum.split_while(range, fn(_) -> true end) == { [1,2,3], [] }
-    assert Enum.split_while(range, fn(x) -> x > 2 end) == { [], [1,2,3] }
-    assert Enum.split_while(range, fn(x) -> x > 3 end) == { [], [1,2,3] }
-    assert Enum.split_while(range, fn(x) -> x < 3 end) == { [1,2], [3] }
+    assert Enum.split_with(range, fn(_) -> false end) == { [], [1,2,3] }
+    assert Enum.split_with(range, fn(_) -> true end) == { [1,2,3], [] }
+    assert Enum.split_with(range, fn(x) -> x > 2 end) == { [], [1,2,3] }
+    assert Enum.split_with(range, fn(x) -> x > 3 end) == { [], [1,2,3] }
+    assert Enum.split_with(range, fn(x) -> x < 3 end) == { [1,2], [3] }
 
     range = Range.new(first: 1, last: 0)
-    assert Enum.split_while(range, fn(_) -> true end) == { [1, 0], [] }
+    assert Enum.split_with(range, fn(_) -> true end) == { [1, 0], [] }
   end
 
   test :take do
