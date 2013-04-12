@@ -3523,20 +3523,16 @@ defmodule Kernel do
   defp build_cond_clauses([], acc), do: acc
 
   defp split_words(string, modifiers) do
-    quote do
-      mod = case unquote(modifiers) do
-        [] -> ?b
-        [mod] when mod in [?b, ?a, ?c] -> mod
-        _else -> raise ArgumentError, message: "modifier must be one of: b, a, c"
-      end
+    mod = case modifiers do
+      [] -> ?b
+      [mod] when mod in [?b, ?a, ?c] -> mod
+      _else -> raise ArgumentError, message: "modifier must be one of: b, a, c"
+    end
 
-      parts = String.split(unquote(string))
-
-      case mod do
-        ?b -> parts
-        ?a -> lc p inlist parts, do: binary_to_atom(p)
-        ?c -> lc p inlist parts, do: binary_to_list(p)
-      end
+    case mod do
+      ?b -> quote do: String.split(unquote(string))
+      ?a -> quote do: lc p inlist String.split(unquote(string)), do: binary_to_atom(p)
+      ?c -> quote do: lc p inlist String.split(unquote(string)), do: :unicode.characters_to_list(p)
     end
   end
 end
