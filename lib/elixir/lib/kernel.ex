@@ -1482,7 +1482,7 @@ defmodule Kernel do
 
       Record.import Config, as: :config
 
-  See `Record.import/2` documentation for more information
+  See `Record.import/2` and `defrecordp/2` documentation for more information
   """
   defmacro defrecord(name, fields, opts // [], do_block // []) do
     Record.defrecord(name, fields, Keyword.merge(opts, do_block))
