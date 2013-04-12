@@ -6,15 +6,19 @@ defmodule Bitwise do
   The easiest way to use is to simply import them into
   your module:
 
-      use Bitwise
+      iex> use Bitwise
+      ...> bnot 1
+      -2
 
-      bnot 1   #=> -2
-      1 &&& 1  #=> 1
+      iex> use Bitwise
+      ...> 1 &&& 1
+      1
 
   You can select to include only or skip operators by passing options:
 
-      use Bitwise, only_operators: true
-      1 &&& 1 #=> 1
+      iex> use Bitwise, only_operators: true
+      ...> 1 &&& 1
+      1
 
   """
 

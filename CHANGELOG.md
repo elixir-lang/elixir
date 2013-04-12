@@ -1,21 +1,29 @@
 * enhancements
   * [ExUnit] Use ANSI escape codes in CLI output
   * [ExUnit] Include suite run time on CLI results
+  * [ExUnit] Add support to doctests, allowing test cases to be generated from code samples
   * [File] Add `File.ls` and `File.ls!`
   * [IEx] Support `pwd` and `cd` helpers
   * [Kernel] Better error reporting for invalid bitstring generators
   * [Kernel] Improve meta-programming by allowing `unquote` on `def/2`, `defp/2`, `defmacro/2` and `defmacrop/2`
+  * [Kernel] Add support to R16B new functions: `insert_elem/3` and `delete_elem/2`
+  * [Kernel] Import conflicts are now lazily handled. If two modules import the same functions, it will fail only if the function is invoked
   * [Macro] Add `Macro.escape_quoted` to escape quoted expressions
   * [Mix] Support `--cover` on mix test and `test_coverage` on Mixfiles
   * [Mix] Support `--merge` on mix test --cover to generate only one HTML file per source file
   * [Mix] Support `--lines` on mix test --cover to track un/covered lines
+  * [Record] Each record now provides `Record.options` with the options supported by its `new` and `update` functions
 
 * bug fix
   * [Binary] inspect no longer escapes standalone hash `#`
   * [IEx] The h helper can now retrieve docs for special forms
   * [Kernel] Record optimizations were not being triggered in functions inside the record module
   * [Kernel] Aliases defined inside macros should be carried over
+  * [Kernel] Fix a bug where nested records could not use the Match[] syntax
   * [Path] Fix a bug on `Path.expand` when expanding paths starting with `~`
+
+* deprecations
+  * [Kernel] `setelem/3` is deprecated in favor of `set_elem/3`
 
 * backwards incompatible changes
   * [Kernel] `unquote` now only applies to the closest quote. If your code contains a quote that contains another quote that calls unquote, it will no longer work. Use `Macro.escape` instead and pass your quoted contents up in steps, for example:

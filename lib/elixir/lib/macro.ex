@@ -63,11 +63,11 @@ defmodule Macro do
 
   ## Examples
 
-      Macro.escape(:foo)
-      #=> :foo
+      iex> Macro.escape(:foo)
+      :foo
 
-      Macro.escape({ :a, :b, :c })
-      #=> { :{}, [], [:a, :b, :c] }
+      iex> Macro.escape({ :a, :b, :c })
+      { :{}, [], [:a, :b, :c] }
 
   """
   def escape(expr) do
@@ -146,8 +146,8 @@ defmodule Macro do
 
   ## Examples
 
-      Macro.escape_quoted({ :+, [], [1,2] })
-      #=> {:"{}",[],[:+,[],[1,2]]}
+      iex> Macro.escape_quoted({ :+, [], [1,2] })
+      {:"{}",[],[:+,[],[1,2]]}
 
   """
   def escape_quoted(expr) do
@@ -169,8 +169,8 @@ defmodule Macro do
 
   ## Examples
 
-      Macro.unescape_binary "example\\n"
-      #=> "example\n"
+      iex> Macro.unescape_binary "example\\n"
+      "example\n"
 
   In the example above, we pass a string with `\n` escaped
   and we return a version with it unescaped.
@@ -251,8 +251,8 @@ defmodule Macro do
 
   ## Examples
 
-      Macro.to_binary(quote do: foo.bar(1, 2, 3))
-      #=> "foo.bar(1, 2, 3)"
+      iex> Macro.to_binary(quote do: foo.bar(1, 2, 3))
+      "foo.bar(1, 2, 3)"
 
   """
   def to_binary(tree)
@@ -442,9 +442,12 @@ defmodule Macro do
   In case the expression cannot be expanded, it returns the expression itself.
 
   Notice that `Macro.expand` is not recursive and it does not
-  expand child expressions. For example, `!some_macro` will expand as:
+  expand child expressions. In this example
 
-      iex> IO.puts Macro.to_binary Macro.expand(quote(do: !some_macro), __ENV__)
+    Macro.expand(quote(do: !some_macro), __ENV__)
+
+  `!some_macro` will expand to something like:
+
       case some_macro do
         false -> true
         nil   -> true
