@@ -1474,6 +1474,15 @@ defmodule Kernel do
 
   When defining a type, all the fields not mentioned in the type are
   assumed to have type `term`.
+
+  ## Importing records
+
+  It is also possible to import a public record (a record, defined using
+  `defrecord`) as a set of private macros (as if it was defined using `defrecordp`):
+
+      Record.import Config, as: :config
+
+  See `Record.import/2` documentation for more information
   """
   defmacro defrecord(name, fields, opts // [], do_block // []) do
     Record.defrecord(name, fields, Keyword.merge(opts, do_block))
