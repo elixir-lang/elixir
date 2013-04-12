@@ -18,7 +18,7 @@ default_functions() ->
 default_macros() ->
   [ { ?BUILTIN, ordsets:union(in_elixir_macros(), in_erlang_macros()) } ].
 default_requires() ->
-  [ ?BUILTIN, 'Elixir.Kernel.Typespec' ].
+  [ ?BUILTIN, 'Elixir.Kernel.Typespec', 'Elixir.Record' ].
 
 find_import(Meta, Name, Arity, S) ->
   Tuple = { Name, Arity },
