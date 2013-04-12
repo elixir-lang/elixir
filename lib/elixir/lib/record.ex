@@ -578,7 +578,7 @@ defmodule Record do
 
   defp options_specs([{ k, _, v }|t]) do
     :lists.foldl fn { k, _, v }, acc ->
-      { :|, [], { k, v }, acc }
+      { :|, [], [{ k, v }, acc] }
     end, { k, v }, t
   end
 
