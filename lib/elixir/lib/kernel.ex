@@ -1474,6 +1474,15 @@ defmodule Kernel do
 
   When defining a type, all the fields not mentioned in the type are
   assumed to have type `term`.
+
+  ## Importing records
+
+  It is also possible to import a public record (a record, defined using
+  `defrecord`) as a set of private macros (as if it was defined using `defrecordp`):
+
+      Record.import Config, as: :config
+
+  See `Record.import/2` and `defrecordp/2` documentation for more information
   """
   defmacro defrecord(name, fields, opts // [], do_block // []) do
     Record.defrecord(name, fields, Keyword.merge(opts, do_block))
@@ -3427,6 +3436,55 @@ defmodule Kernel do
     Macro.escape(regex)
   end
 
+  @doc """
+  Handles the sigil %w. It returns a list of "words" split by whitespace.
+
+  ## Modifiers
+
+  - `b`: binaries (default)
+  - `a`: atoms
+  - `c`: char lists
+
+  ## Examples
+
+      iex> %w(foo \#{:bar} baz)
+      ["foo", "bar", "baz"]
+      iex> %w(--source test/enum_test.exs)
+      ["--source", "test/enum_test.exs"]
+      iex> %w(foo bar baz)a
+      [:foo, :bar, :baz]
+
+  """
+
+  defmacro __w__({ :<<>>, _line, [string] }, modifiers) when is_binary(string) do
+    split_words(Macro.unescape_binary(string), modifiers)
+  end
+
+  defmacro __w__({ :<<>>, line, pieces }, modifiers) do
+    binary = { :<<>>, line, Macro.unescape_tokens(pieces) }
+    split_words(binary, modifiers)
+  end
+
+  @doc """
+  Handles the sigil %W. It returns a list of "words" split by whitespace
+  without escaping nor interpreting interpolations.
+
+  ## Modifiers
+
+  - `b`: binaries (default)
+  - `a`: atoms
+  - `c`: char lists
+
+  ## Examples
+
+      iex> %W(foo \#{bar} baz)
+      ["foo", "\\\#{bar}", "baz"]
+
+  """
+  defmacro __W__({ :<<>>, _line, [string] }, modifiers) when is_binary(string) do
+    split_words(string, modifiers)
+  end
+
   ## Private functions
 
   # Extracts concatenations in order to optimize many
@@ -3472,4 +3530,18 @@ defmodule Kernel do
   end
 
   defp build_cond_clauses([], acc), do: acc
+
+  defp split_words(string, modifiers) do
+    mod = case modifiers do
+      [] -> ?b
+      [mod] when mod in [?b, ?a, ?c] -> mod
+      _else -> raise ArgumentError, message: "modifier must be one of: b, a, c"
+    end
+
+    case mod do
+      ?b -> quote do: String.split(unquote(string))
+      ?a -> quote do: lc p inlist String.split(unquote(string)), do: binary_to_atom(p)
+      ?c -> quote do: lc p inlist String.split(unquote(string)), do: :unicode.characters_to_list(p)
+    end
+  end
 end
