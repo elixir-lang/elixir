@@ -3427,6 +3427,55 @@ defmodule Kernel do
     Macro.escape(regex)
   end
 
+  @doc """
+  Handles the sigil %w. It returns a list of "words" split by whitespace.
+
+  ## Modifiers
+
+  - `b`: binaries (default)
+  - `a`: atoms
+  - `c`: char lists
+
+  ## Examples
+
+      iex> %w(foo \#{:bar} baz)
+      ["foo", "bar", "baz"]
+      iex> %w(--source test/enum_test.exs)
+      ["--source", "test/enum_test.exs"]
+      iex> %w(foo bar baz)a
+      [:foo, :bar, :baz]
+
+  """
+
+  defmacro __w__({ :<<>>, _line, [string] }, modifiers) when is_binary(string) do
+    split_words(Macro.unescape_binary(string), modifiers)
+  end
+
+  defmacro __w__({ :<<>>, line, pieces }, modifiers) do
+    binary = { :<<>>, line, Macro.unescape_tokens(pieces) }
+    split_words(binary, modifiers)
+  end
+
+  @doc """
+  Handles the sigil %W. It returns a list of "words" split by whitespace
+  without escaping nor interpreting interpolations.
+
+  ## Modifiers
+
+  - `b`: binaries (default)
+  - `a`: atoms
+  - `c`: char lists
+
+  ## Examples
+
+      iex> %W(foo \#{bar} baz)
+      ["foo", "\\\#{bar}", "baz"]
+
+  """
+  defmacro __W__({ :<<>>, _line, [string] }, modifiers) when is_binary(string) do
+    split_words(string, modifiers)
+  end
+
   ## Private functions
 
   # Extracts concatenations in order to optimize many
@@ -3472,4 +3521,22 @@ defmodule Kernel do
   end
 
   defp build_cond_clauses([], acc), do: acc
+
+  defp split_words(string, modifiers) do
+    quote do
+      mod = case unquote(modifiers) do
+        [] -> ?b
+        [mod] when mod in [?b, ?a, ?c] -> mod
+        _else -> raise ArgumentError, message: "modifier must be one of: b, a, c"
+      end
+
+      parts = String.split(unquote(string))
+
+      case mod do
+        ?b -> parts
+        ?a -> lc p inlist parts, do: binary_to_atom(p)
+        ?c -> lc p inlist parts, do: binary_to_list(p)
+      end
+    end
+  end
 end
