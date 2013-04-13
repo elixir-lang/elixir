@@ -141,22 +141,11 @@ defmodule KernelTest do
   defmodule Function do
     use ExUnit.Case, async: true
 
-    test :retrieve_remote_function do
-      assert is_function(function(:erlang, :atom_to_list, 1))
-      assert :erlang.fun_info(function(:erlang, :atom_to_list, 1), :arity) == {:arity, 1}
-      assert function(:erlang, :atom_to_list, 1).(:a) == 'a'
-    end
-
     test :remote_syntax_function do
+      assert function(:erlang, :atom_to_list, 1).(:a) == 'a'
       assert function(:erlang.atom_to_list/1) ==
              function(:erlang, :atom_to_list, 1)
       assert function(Enum.map/2) == function(Enum, :map, 2)
-    end
-
-    test :retrieve_local_function do
-      assert is_function(function(:atl, 1))
-      assert :erlang.fun_info(function(:atl, 1), :arity) == {:arity, 1}
-      assert function(:atl, 1).(:a) == 'a'
     end
 
     test :local_syntax_function do
@@ -164,9 +153,7 @@ defmodule KernelTest do
     end
 
     test :retrieve_imported_function do
-      assert is_function(function(:atom_to_list, 1))
-      assert :erlang.fun_info(function(:atom_to_list, 1), :arity) == {:arity, 1}
-      assert function(:atom_to_list, 1).(:a) == 'a'
+      assert function(atom_to_list/1).(:a) == 'a'
     end
 
     test :retrieve_dynamic_function do
@@ -174,8 +161,6 @@ defmodule KernelTest do
       b = :atom_to_list
       c = 1
 
-      assert is_function(function(a, b, c))
-      assert :erlang.fun_info(function(a, b, c), :arity) == {:arity, 1}
       assert function(a, b, c).(:a) == 'a'
     end
 

@@ -21,6 +21,7 @@
 
 * deprecations
   * [Kernel] `setelem/3` is deprecated in favor of `set_elem/3`
+  * [Kernel] `function(:is_atom, 1)` is deprecated in favor of `function(is_atom/1)`
 
 * backwards incompatible changes
   * [Kernel] `unquote` now only applies to the closest quote. If your code contains a quote that contains another quote that calls unquote, it will no longer work. Use `Macro.escape` instead and pass your quoted contents up in steps, for example:
