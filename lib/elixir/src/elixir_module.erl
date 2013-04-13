@@ -324,10 +324,10 @@ else_clause() ->
 % HELPERS
 
 eval_callbacks(Line, Module, Name, Args, RawS) ->
-  S         = RawS#elixir_scope{check_clauses=false,check_requires=false},
+  S         = RawS#elixir_scope{check_clauses=false},
   Binding   = binding_for_eval(Module, []),
   Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
-  Meta      = [{line,Line}],
+  Meta      = [{line,Line},{require,false}],
 
   lists:foreach(fun({M,F}) ->
     { Tree, _ } = elixir_dispatch:dispatch_require(Meta, M, F, Args, S, fun() ->

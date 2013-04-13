@@ -155,7 +155,7 @@ expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, Module, S) ->
 
 expand_macro_fun(Meta, Fun, Receiver, Name, Args, Module, S) ->
   Requires = S#elixir_scope.requires,
-  case (Receiver == Module) or is_element(Receiver, Requires) or not(S#elixir_scope.check_requires) of
+  case (Receiver == Module) or is_element(Receiver, Requires) or skip_require(Meta) of
     true  -> ok;
     false ->
       Tuple = { unrequired_module, { Receiver, Name, length(Args), Requires } },
@@ -196,12 +196,8 @@ merge_aliases(A1, A2) ->
 
 %% Helpers
 
-% case lists:keyfind(import, 1, Meta) of
-%   { import, Receiver } ->
-%     { TRes, TS } = translate_each({ { '.', Meta, [Receiver, Atom] }, Meta, Args },
-%       S#elixir_scope{check_requires=false}),
-%     { TRes, TS#elixir_scope{check_requires=S#elixir_scope.check_requires} };
-%   false ->
+skip_require(Meta) ->
+  lists:keyfind(require, 1, Meta) == { require, false }.
 
 find_dispatch(Meta, Tuple, S) ->
   find_dispatch(Meta, Tuple, [], S).
