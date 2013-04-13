@@ -502,13 +502,15 @@ defmodule Macro do
       end
 
   """
-  def expand(aliases, env)
+  def expand(aliases, env) do
+    expand(aliases, env, nil)
+  end
 
-  def expand({ :__aliases__, _, _ } = original, env) do
+  defp expand({ :__aliases__, _, _ } = original, env, cache) do
     case :elixir_aliases.expand(original, env.aliases, []) do
       atom when is_atom(atom) -> atom
       aliases ->
-        aliases = lc alias inlist aliases, do: expand(alias, env)
+        aliases = lc alias inlist aliases, do: expand(alias, env, cache)
 
         case :lists.all(is_atom(&1), aliases) do
           true  -> :elixir_aliases.concat(aliases)
@@ -518,7 +520,7 @@ defmodule Macro do
   end
 
   # Expand @ calls
-  def expand({ :@, _, [{ name, _, args }] } = original, env) when is_atom(args) or args == [] do
+  defp expand({ :@, _, [{ name, _, args }] } = original, env, _cache) when is_atom(args) or args == [] do
     case (module = env.module) && Module.open?(module) do
       true  -> Module.get_attribute(module, name)
       false -> original
@@ -526,12 +528,12 @@ defmodule Macro do
   end
 
   # Expand pseudo-variables
-  def expand({ :__MODULE__, _, atom }, env) when is_atom(atom), do: env.module
-  def expand({ :__FILE__, _, atom }, env)   when is_atom(atom), do: env.file
-  def expand({ :__ENV__, _, atom }, env)    when is_atom(atom), do: env
+  defp expand({ :__MODULE__, _, atom }, env, _cache) when is_atom(atom), do: env.module
+  defp expand({ :__FILE__, _, atom }, env, _cache)   when is_atom(atom), do: env.file
+  defp expand({ :__ENV__, _, atom }, env, _cache)    when is_atom(atom), do: env
 
   # Expand possible macro import invocation
-  def expand({ atom, line, args } = original, env) when is_atom(atom) do
+  defp expand({ atom, line, args } = original, env, cache) when is_atom(atom) do
     args = case is_atom(args) do
       true  -> []
       false -> args
@@ -549,7 +551,7 @@ defmodule Macro do
         end
 
         expand = :elixir_dispatch.expand_import(line, { atom, length(args) }, args,
-          env.module, env.function, env.requires, env.functions, extra ++ env.macros, env)
+          env.module, extra, to_erl_env(env, cache))
         case expand do
           { :ok, _, expanded } -> expanded
           { :error, _ }     -> original
@@ -558,14 +560,14 @@ defmodule Macro do
   end
 
   # Expand possible macro require invocation
-  def expand({ { :., _, [left, right] }, line, args } = original, env) when is_atom(right) do
+  defp expand({ { :., _, [left, right] }, line, args } = original, env, cache) when is_atom(right) do
     receiver = expand(left, env)
 
     case is_atom(receiver) and not is_partial?(args) do
       false -> original
       true  ->
         expand = :elixir_dispatch.expand_require(line, receiver, { right, length(args) },
-          args, env.module, env.function, env.requires, env)
+          args, env.module, to_erl_env(env, cache))
         case expand do
           { :ok, expanded } -> expanded
           { :error, _ }     -> original
@@ -574,7 +576,10 @@ defmodule Macro do
   end
 
   # Anything else is just returned
-  def expand(other, _env), do: other
+  defp expand(other, _env, _cache), do: other
+
+  defp to_erl_env(env, nil),    do: :elixir_scope.to_erl_env(env)
+  defp to_erl_env(_env, cache), do: cache
 
   ## Helpers
 
