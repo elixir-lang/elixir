@@ -427,26 +427,21 @@ translate_each({ Atom, Meta, Args } = Original, S) when is_atom(Atom) ->
     false ->
       case elixir_partials:handle(Original, S) of
         error ->
-          case lists:keyfind(import, 1, Meta) of
-            { import, Receiver } ->
-              translate_each({ { '.', [{require,false}|Meta], [Receiver, Atom] }, Meta, Args }, S);
-            false ->
-              Callback = fun() ->
-                case S#elixir_scope.context of
-                  match ->
-                    Arity = length(Args),
-                    File  = S#elixir_scope.file,
-                    case Arity of
-                      0 -> syntax_error(Meta, File, "unknown variable ~ts or cannot invoke local ~ts/~B inside guard", [Atom, Atom, Arity]);
-                      _ -> syntax_error(Meta, File, "cannot invoke local ~ts/~B inside guard", [Atom, Arity])
-                    end;
-                  _ ->
-                    translate_local(Meta, Atom, Args, S)
-                end
-              end,
+          Callback = fun() ->
+            case S#elixir_scope.context of
+              match ->
+                Arity = length(Args),
+                File  = S#elixir_scope.file,
+                case Arity of
+                  0 -> syntax_error(Meta, File, "unknown variable ~ts or cannot invoke local ~ts/~B inside guard", [Atom, Atom, Arity]);
+                  _ -> syntax_error(Meta, File, "cannot invoke local ~ts/~B inside guard", [Atom, Arity])
+                end;
+              _ ->
+                translate_local(Meta, Atom, Args, S)
+            end
+          end,
 
-              elixir_dispatch:dispatch_import(Meta, Atom, Args, S, Callback)
-          end;
+          elixir_dispatch:dispatch_import(Meta, Atom, Args, S, Callback);
         Else  -> Else
       end;
     Else -> Else

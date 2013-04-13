@@ -65,6 +65,18 @@ do_quote({ quote, _, Args } = Tuple, #elixir_quote{unquote=true} = Q, S) when le
 do_quote({ unquote, _Meta, [Expr] }, #elixir_quote{unquote=true}, S) ->
   elixir_translator:translate_each(Expr, S);
 
+do_quote({ function, Meta1, [{ '/', Meta2, [{F, Meta3, C}, A]}] } = Function,
+    #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(F), is_integer(A), is_atom(C) ->
+
+  case (lists:keyfind(import, 1, Meta3) == false) andalso
+      elixir_dispatch:find_import(Meta3, F, A, S) of
+    false    ->
+      do_quote_tuple(Function, Q, S);
+    Receiver ->
+      New = { function, Meta1, [{ '/', Meta2, [{F, [{import,Receiver}|Meta3], C}, A]}] },
+      do_quote_tuple(New, Q, S)
+  end;
+
 do_quote({ 'alias!', _Meta, [Expr] }, Q, S) ->
   do_quote(Expr, Q#elixir_quote{aliases_hygiene=false}, S);
 
