@@ -2089,9 +2089,10 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns an anonymous function based on the given arguments.
+  Construct an anonymous function based on the given expression
+  or retrieve an existing one.
 
-  ## Examples
+  ## Function composition
 
       iex> sum = function do
       ...>   (x, y) -> x + y
@@ -2111,6 +2112,26 @@ defmodule Kernel do
       ...> end
       ...> sum.(1, 2)
       3
+
+  All clauses must expect the same number of arguments.
+
+  ## Function retrieval
+
+  The `function` macro can also be used to retrieve local, imported
+  and remote functions.
+
+      # Retrieve local/import
+      iex> f = function(is_atom/1)
+      iex> f.(:foo)
+      true
+
+      # Retrieve remote
+      iex> f = function(Kernel.is_atom/1)
+      iex> f.(:foo)
+      true
+
+  In case a function needs to be dynamically retrieved based on its
+  module, name or arity, use `function/3` instead.
 
   ## Shortcut syntax
 
@@ -2151,51 +2172,11 @@ defmodule Kernel do
   defmacro function(args)
 
   @doc """
-  Retrieves a local or an imported function.
-
-  ## Examples
-
-      iex> f = function(:is_atom, 1)
-      ...> f.(:foo)
-      true
-
-  Notice that local functions cannot be retrieved dynamically,
-  the following, for example, wouldn't work:
-
-      some_fun = :is_atom
-      function(some_fun, 1)
-
-  In such cases, one should use `function/3`:
-
-      some_fun = :is_atom
-      function(SomeModule, some_fun, 1)
-
-  ## Shortcut syntax
-
-  One can use a shortcut syntax to retrieve such functions,
-  that resembles Erlang's `fun`:
-
-      f = function(is_atom/1)
-      f.(:foo)
-
-  """
-  defmacro function(function, arity)
-
-  @doc """
-  Retrieves a function from a module.
+  Retrieves a function with given name and arity from a module.
 
   ## Examples
 
       iex> f = function(Kernel, :is_atom, 1)
-      ...> f.(:foo)
-      true
-
-  ## Shortcut syntax
-
-  One can use a shortcut syntax to retrieve such functions,
-  that resembles Erlang's `fun`:
-
-      iex> f = function(Kernel.is_atom/1)
       ...> f.(:foo)
       true
 
