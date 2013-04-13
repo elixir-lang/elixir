@@ -569,8 +569,8 @@ defmodule Macro do
         expand = :elixir_dispatch.expand_require(line, receiver, { right, length(args) },
           args, env.module, to_erl_env(env, cache))
         case expand do
-          { :ok, expanded } -> expanded
-          { :error, _ }     -> original
+          { :ok, _receiver, expanded } -> expanded
+          { :error, _ }                -> original
         end
     end
   end
