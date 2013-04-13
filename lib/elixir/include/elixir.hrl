@@ -29,8 +29,11 @@
   aliases,                 %% an orddict with aliases by new -> old names
   file,                    %% the current scope filename
   requires,                %% a set with modules required
-  macros,                  %% a list with macros imported by module
-  functions}).             %% a list with functions imported by module
+  macro_macros,            %% a list with macros imported from module inside a macro
+  macros,                  %% a list with macros imported from module
+  macro_functions,         %% a list with functions imported from module inside a macro
+  functions                %% a list with functions imported from module
+}).
 
 -record(elixir_quote, {
   line=0,
