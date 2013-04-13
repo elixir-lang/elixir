@@ -88,6 +88,28 @@ function_calls_with_multiple_args_with_line_breaks_test() ->
 function_calls_with_parenthesis_test() ->
   {3, [{a,_},{b,1}]} = eval("a = (fn x -> x + 2 end).(b = 1)").
 
+function_call_with_a_single_space_test() ->
+  {3, _} = eval("a = fn a, b -> a + b end; a. (1,2)"),
+  {3, _} = eval("a = fn a, b -> a + b end; a .(1,2)").
+
+function_call_with_spaces_test() ->
+  {3, _} = eval("a = fn a, b -> a + b end; a . (1,2)").
+
+function_call_without_assigning_with_spaces_test() ->
+  {3, _} = eval("(fn a, b -> a + b end) . (1,2)").
+
+function_call_with_assignment_and_spaces_test() ->
+  {3, [{a,_},{c,3}]} = eval("a = fn x -> x + 2 end; c = a . (1)").
+
+function_call_with_multiple_spaces_test() ->
+  {3, _} = eval("a = fn a, b -> a + b end; a .         (1,2)").
+
+function_call_with_multiline_test() ->
+  {3, _} = eval("a = fn a, b -> a + b end; a .   \n      (1,2)").
+
+function_call_with_tabs_test() ->
+  {3, _} = eval("a = fn a, b -> a + b end; a .\n\t(1,2)").
+
 %% Partial application
 
 require_partial_application_test() ->
