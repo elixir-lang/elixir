@@ -37,7 +37,7 @@ main(Args) ->
   application:start(?MODULE),
   'Elixir.Kernel.CLI':main(Args).
 
-% Boot and process given options. Invoked by Elixir's script.
+%% Boot and process given options. Invoked by Elixir's script.
 
 start_cli() ->
   application:start(?MODULE),

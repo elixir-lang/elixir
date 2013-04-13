@@ -1254,47 +1254,6 @@ defmodule Kernel do
   In the example above, we defined a function `sum` that receives
   two arguments and sum them.
 
-  ## Dynamic generation with atoms
-
-  Elixir follows the same rule as Erlang when it comes to
-  function invocations. Calling a function is the same thing
-  as "invoking at atom". That said, we could invoke a function
-  named sum in these two equivalent ways:
-
-      sum(1, 2)
-      :sum.(1, 2)
-
-  We can also use the atom format to define functions:
-
-      defmodule Foo do
-        def :sum.(a, b) do
-          a + b
-        end
-      end
-
-  In general, a developer never needs to use the format above
-  except when he wants to dynamically define functions with macros.
-  In such scenarios, the name needs to be given dynamically via
-  the unquoting mechanism.
-
-  Imagine a macro that receives keywords and defines a function
-  for each entry in the keyword, using the key as function name
-  and the value as the value returned by the function:
-
-      defmacro defkv(keywords) do
-        Enum.map keywords, fn {k,v} ->
-          quote do
-            def unquote(k)() do
-              unquote(v)
-            end
-          end
-        end
-      end
-
-  This macro could be invoked as:
-
-      defkv one: 1, two: 2
-
   """
   defmacro def(name, do: contents)
 

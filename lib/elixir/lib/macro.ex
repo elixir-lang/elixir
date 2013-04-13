@@ -42,7 +42,6 @@ defmodule Macro do
 
       extract_args(quote do: foo)        == { :foo, [] }
       extract_args(quote do: foo())      == { :foo, [] }
-      extract_args(quote do: :foo.())    == { :foo, [] }
       extract_args(quote do: foo(1,2,3)) == { :foo, [1,2,3] }
       extract_args(quote do: 1.(1,2,3))  == :error
 
@@ -53,13 +52,7 @@ defmodule Macro do
 
   @doc """
   Recursively escapes a value so it can be inserted
-  into a syntax tree. This must be used when you have
-  a value that does not represent an AST and you want
-  to introduce it inside a quoted expression.
-
-  If you have a AST and you want to introduce it inside
-  a quoted expression in a escaped form, use Macro.escape_quoted
-  instead.
+  into a syntax tree.
 
   ## Examples
 
@@ -139,17 +132,7 @@ defmodule Macro do
   defp do_splice_join(left, []),    do: left
   defp do_splice_join(left, right), do: { :++, [], [left, right] }
 
-  @doc """
-  Recursively escapes a AST so it can be inserted into
-  another tree unmodified. If the given AST has any
-  call to unquote, they are properly evaluated.
-
-  ## Examples
-
-      iex> Macro.escape_quoted({ :+, [], [1,2] })
-      {:"{}",[],[:+,[],[1,2]]}
-
-  """
+  @doc false
   def escape_quoted(expr) do
     do_escape(expr, true)
   end
