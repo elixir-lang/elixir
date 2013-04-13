@@ -234,6 +234,9 @@ andand_test() ->
   end,
   test_helper:run_and_remove(F, ['Elixir.Bar']).
 
+andand_with_literal_test() ->
+  {[nil, nil, nil], _} = eval("[nil && 2, nil && 3, nil && 4]").
+
 oror_test() ->
   F = fun() ->
     eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),

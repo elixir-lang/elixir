@@ -589,7 +589,7 @@ no_alias_expansion(Other) ->
 
 translate_arg(Arg, { Acc, S }) ->
   { TArg, TAcc } = translate_each(Arg, Acc),
-  { TArg, { umergec(S, TAcc), umergev(S, TAcc) } }.
+  { TArg, { umergec(Acc, TAcc), umergev(S, TAcc) } }.
 
 translate_args(Args, #elixir_scope{context=match} = S) ->
   translate(Args, S);
