@@ -211,6 +211,14 @@ tokenize("..." ++ Rest, Line, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, [Token|Tokens]);
 
 % ## Containers
+
+tokenize([$.,T|Tail], Line, Scope, Tokens) when ?is_space(T) ->
+  case [T|Tail] of
+    [$\r,$\n|Rest] -> tokenize([$.|Rest], Line + 1, Scope, Tokens);
+    [$\n|Rest]     -> tokenize([$.|Rest], Line + 1, Scope, Tokens);
+    [_|Rest]       -> tokenize([$.|Rest], Line, Scope, Tokens)
+  end;
+
 tokenize(".<<>>" ++ Rest, Line, Scope, Tokens) ->
   handle_call_identifier(Rest, Line, '<<>>', Scope, Tokens);
 
