@@ -5,9 +5,9 @@
   build_erl_var/2, build_ex_var/2,
   serialize/1, deserialize/1,
   serialize_with_vars/2, deserialize_with_vars/2,
-  to_erl_env/1, to_ex_env/1, filename/1,
+  to_erl_env/1, to_ex_env/1,
   umergev/2, umergec/2, merge_clause_vars/2
-  ]).
+]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
@@ -77,19 +77,15 @@ build_ex_var(Line, Key, Name, S) when is_integer(Line) ->
 
 % Handle Macro.Env conversion
 
-to_erl_env(Scope) ->
-  elixir_tree_helpers:abstract_syntax(to_ex_env(Scope)).
-
-to_ex_env({ Line, Tuple }) when element(1, Tuple) == 'Elixir.Macro.Env', is_integer(Line) ->
-  setelement(4, Tuple, Line);
+to_erl_env({ 'Elixir.Macro.Env', Module, File, _Line, Function, Aliases, Context, Requires, Functions, Macros }) ->
+  #elixir_scope{module=Module,file=File,
+    function=Function,aliases=Aliases,context=Context,
+    requires=Requires,macros=Macros,functions=Functions}.
 
 to_ex_env({ Line, #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros,functions=Functions} }) when is_integer(Line) ->
   { 'Elixir.Macro.Env', Module, File, Line, Function, Aliases, Context, Requires, Functions, Macros }.
-
-filename(#elixir_scope{file=File}) -> File;
-filename(Other) -> element(3, Other).
 
 % Provides a tuple with only the scope information we want to serialize.
 

@@ -207,7 +207,8 @@ translate_each({ '__FILE__', _Meta, Atom }, S) when is_atom(Atom) ->
   translate_each(S#elixir_scope.file, S);
 
 translate_each({ '__ENV__', Meta, Atom }, S) when is_atom(Atom) ->
-  { elixir_scope:to_erl_env({ ?line(Meta), S }), S };
+  Env = elixir_scope:to_ex_env({ ?line(Meta), S }),
+  { elixir_tree_helpers:abstract_syntax(Env), S };
 
 translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
   { { var, ?line(Meta), '__CALLER__' }, S#elixir_scope{caller=true} };
@@ -438,8 +439,8 @@ translate_each({ Atom, Meta, Args } = Original, S) when is_atom(Atom) ->
                     Arity = length(Args),
                     File  = S#elixir_scope.file,
                     case Arity of
-                      0 -> syntax_error(Meta, File, "unknown variable ~s or cannot invoke local ~s/~B inside guard", [Atom, Atom, Arity]);
-                      _ -> syntax_error(Meta, File, "cannot invoke local ~s/~B inside guard", [Atom, Arity])
+                      0 -> syntax_error(Meta, File, "unknown variable ~ts or cannot invoke local ~ts/~B inside guard", [Atom, Atom, Arity]);
+                      _ -> syntax_error(Meta, File, "cannot invoke local ~ts/~B inside guard", [Atom, Arity])
                     end;
                   _ ->
                     translate_local(Meta, Atom, Args, S)
