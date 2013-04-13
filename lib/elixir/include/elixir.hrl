@@ -11,7 +11,6 @@
 -record(elixir_scope, {
   context=nil,             %% can be assign, guards or nil
   noname=false,            %% when true, don't add new names (used by try)
-  check_requires=true,     %% when true, check requires
   check_clauses=true,      %% when true, check def clauses ordering
   super=false,             %% when true, it means super was invoked
   caller=false,            %% when true, it means caller was invoked
