@@ -429,9 +429,7 @@ translate_each({ Atom, Meta, Args } = Original, S) when is_atom(Atom) ->
         error ->
           case lists:keyfind(import, 1, Meta) of
             { import, Receiver } ->
-              { TRes, TS } = translate_each({ { '.', Meta, [Receiver, Atom] }, Meta, Args },
-                S#elixir_scope{check_requires=false}),
-              { TRes, TS#elixir_scope{check_requires=S#elixir_scope.check_requires} };
+              translate_each({ { '.', [{require,false}|Meta], [Receiver, Atom] }, Meta, Args }, S);
             false ->
               Callback = fun() ->
                 case S#elixir_scope.context of
