@@ -56,10 +56,10 @@ translate({ function, Meta, [[{do,{ '->',_,Pairs}}]] }, S) ->
   assert_no_match_or_guard_scope(Meta, 'function', S),
   elixir_translator:translate_fn(Meta, Pairs, S);
 
-translate({ function, Meta, [{ '/', _, [{{ '.', _ ,[M, F] }, _ , [] }, A]}] }, S) when is_atom(F), is_integer(A) ->
+translate({ function, _, [{ '/', _, [{{ '.', Meta, [M, F] }, _ , []}, A]}] }, S) when is_atom(F), is_integer(A) ->
   translate({ function, Meta, [M, F, A] }, S);
 
-translate({ function, Meta, [{ '/', _, [{F, _, C}, A]}] }, S) when is_atom(F), is_integer(A), is_atom(C) ->
+translate({ function, _, [{ '/', _, [{F, Meta, C}, A]}] }, S) when is_atom(F), is_integer(A), is_atom(C) ->
   assert_no_match_or_guard_scope(Meta, 'function', S),
 
   case elixir_dispatch:import_function(Meta, F, A, S) of
