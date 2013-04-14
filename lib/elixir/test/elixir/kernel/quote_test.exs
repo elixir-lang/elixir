@@ -275,4 +275,23 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
     import Dict, only: [size: 1]
     assert get_dict_size == 2
   end
+
+  defmacrop with_size do
+    quote do
+      import Kernel, except: [size: 1]
+      import Dict, only: [size: 1]
+      size([a: 1, b: 2])
+    end
+  end
+
+  defmacrop with_nested_size do
+    quote do
+      with_size
+    end
+  end
+
+  test :explicitly_overriden_imports do
+    assert with_size == 2
+    assert with_nested_size == 2
+  end
 end

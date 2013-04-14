@@ -41,9 +41,9 @@ import(Meta, Ref, Opts, Selector, S) ->
     false -> S;
     true  ->
       FunctionsFun = fun(K) -> remove_underscored(K andalso Selector, get_functions(Ref)) end,
-      Functions = calculate(Meta, Ref, Opts,
-        S#elixir_scope.functions, FunctionsFun, S),
-      S#elixir_scope{functions=Functions}
+      { Functions, TempF } = calculate(Meta, Ref, Opts,
+        S#elixir_scope.functions, S#elixir_scope.macro_functions, FunctionsFun, S),
+      S#elixir_scope{functions=Functions, macro_functions=TempF}
   end,
 
   SM = case IncludeAll or (Selector == macros) of
@@ -55,9 +55,9 @@ import(Meta, Ref, Opts, Selector, S) ->
           false -> get_macros(Meta, Ref, SF)
         end
       end,
-      Macros = calculate(Meta, Ref, Opts,
-        SF#elixir_scope.macros, MacrosFun, SF),
-      SF#elixir_scope{macros=Macros}
+      { Macros, TempM } = calculate(Meta, Ref, Opts,
+        SF#elixir_scope.macros, SF#elixir_scope.macro_macros, MacrosFun, SF),
+      SF#elixir_scope{macros=Macros, macro_macros=TempM}
   end,
 
   SM.
@@ -66,9 +66,8 @@ import(Meta, Ref, Opts, Selector, S) ->
 
 %% Calculates the imports based on only and except
 
-calculate(Meta, Key, Opts, Old, AvailableFun, S) ->
+calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
   File = S#elixir_scope.file,
-  All = keydelete(Key, Old),
 
   New = case keyfind(only, Opts) of
     { only, RawOnly } ->
@@ -88,20 +87,20 @@ calculate(Meta, Key, Opts, Old, AvailableFun, S) ->
           Except = expand_fun_arity(Meta, except, RawExcept, S),
           case keyfind(Key, Old) of
             false -> AvailableFun(true) -- Except;
-            {Key,ToRemove} -> ToRemove -- Except
+            {Key,OldImports} -> OldImports -- Except
           end
       end
   end,
 
   %% Normalize the data before storing it
-  Set     = ordsets:from_list(New),
-  Final   = remove_internals(Set),
+  Set   = ordsets:from_list(New),
+  Final = remove_internals(Set),
 
   case Final of
-    [] -> All;
+    [] -> { keydelete(Key, Old), keydelete(Key, Temp) };
     _  ->
       ensure_no_in_erlang_macro_conflict(Meta, File, Key, Final, internal_conflict),
-      [{ Key, Final }|All]
+      { [{ Key, Final }|keydelete(Key, Old)], [{ Key, Final }|keydelete(Key, Temp)] }
   end.
 
 %% Ensure we are expanding macros and stuff
