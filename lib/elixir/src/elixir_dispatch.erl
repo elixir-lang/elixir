@@ -191,15 +191,23 @@ translate_expansion(Meta, Tree, S) ->
     elixir_quote:linify(?line(Meta), Tree),
     S#elixir_scope{
       check_clauses=false,
-      macro_aliases=[] }
+      macro_functions=[],
+      macro_macros=[],
+      macro_aliases=[]
+    }
   ),
   { TR, TS#elixir_scope{
     check_clauses=S#elixir_scope.check_clauses,
+    macro_functions=merge_imports(S#elixir_scope.macro_functions, TS#elixir_scope.macro_functions),
+    macro_macros=merge_imports(S#elixir_scope.macro_macros, TS#elixir_scope.macro_macros),
     macro_aliases=merge_aliases(S#elixir_scope.macro_aliases, TS#elixir_scope.macro_aliases)
   } }.
 
 merge_aliases(A1, A2) ->
   orddict:merge(fun(_K,_V1,V2) -> V2 end, A1, A2).
+
+merge_imports(A1, A2) ->
+  A2 ++ lists:foldl(fun({ Key, _ }, Acc) -> lists:keydelete(Key, 1, Acc) end, A1, A2).
 
 %% Helpers
 
@@ -210,7 +218,7 @@ find_dispatch(Meta, Tuple, S) ->
   find_dispatch(Meta, Tuple, [], S).
 
 find_dispatch(Meta, Tuple, Extra, S) ->
-  case lists:keyfind(import, 1, Meta) of
+  case is_import(Meta, Tuple, S) of
     { import, _ } = Import ->
       Import;
     false ->
@@ -234,6 +242,19 @@ find_dispatch(Meta, Tuple, Extra, S) ->
 
 find_dispatch(Tuple, List) ->
   [Receiver || { Receiver, Set } <- List, is_element(Tuple, Set)].
+
+is_import(Meta, Tuple, S) ->
+  case lists:keyfind(import, 1, Meta) of
+    { import, _ } = Import ->
+      not_an_import(Tuple, S#elixir_scope.macro_functions)
+        andalso not_an_import(Tuple, S#elixir_scope.macro_macros)
+        andalso Import;
+    false ->
+      false
+  end.
+
+not_an_import(Tuple, Pairs) ->
+  not lists:any(fun({ _, List }) -> lists:member(Tuple, List) end, Pairs).
 
 munge_stacktrace(Info, [{ _, _, [S|_], _ }|_], S) ->
   [Info];
