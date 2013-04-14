@@ -59,11 +59,17 @@ translate({ function, Meta, [[{do,{ '->',_,Pairs}}]] }, S) ->
 translate({ function, _, [{ '/', _, [{{ '.', Meta, [M, F] }, _ , []}, A]}] }, S) when is_atom(F), is_integer(A) ->
   translate({ function, Meta, [M, F, A] }, S);
 
-translate({ function, _, [{ '/', _, [{F, Meta, C}, A]}] }, S) when is_atom(F), is_integer(A), is_atom(C) ->
+translate({ function, MetaFA, [{ '/', _, [{F, Meta, C}, A]}] }, S) when is_atom(F), is_integer(A), is_atom(C) ->
   assert_no_match_or_guard_scope(Meta, 'function', S),
 
-  case elixir_dispatch:import_function(Meta, F, A, S) of
-    false -> syntax_error(Meta, S#elixir_scope.file, "cannot convert a macro to a function");
+  WrappedMeta =
+    case (lists:keyfind(import, 1, Meta) == false) andalso lists:keyfind(import_fa, 1, MetaFA) of
+      { import_fa, Receiver } -> [{ import, Receiver }|Meta];
+      false -> Meta
+    end,
+
+  case elixir_dispatch:import_function(WrappedMeta, F, A, S) of
+    false -> syntax_error(WrappedMeta, S#elixir_scope.file, "cannot convert a macro to a function");
     Else  -> Else
   end;
 

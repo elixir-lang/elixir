@@ -25,9 +25,8 @@ find_import(Meta, Name, Arity, S) ->
 
   case find_dispatch(Meta, Tuple, S) of
     { function, Receiver } -> Receiver;
-    { import, Receiver } -> Receiver;
     { macro, Receiver } -> Receiver;
-    nomatch -> false
+    _ -> false
   end.
 
 %% Function retrieval

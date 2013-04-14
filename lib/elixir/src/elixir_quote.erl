@@ -65,17 +65,13 @@ do_quote({ quote, _, Args } = Tuple, #elixir_quote{unquote=true} = Q, S) when le
 do_quote({ unquote, _Meta, [Expr] }, #elixir_quote{unquote=true}, S) ->
   elixir_translator:translate_each(Expr, S);
 
-do_quote({ function, Meta1, [{ '/', Meta2, [{F, Meta3, C}, A]}] } = Function,
+do_quote({ function, Meta, [{ '/', _, [{F, _, C}, A]}] = Args },
     #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(F), is_integer(A), is_atom(C) ->
+  do_quote_fa(function, Meta, Args, F, A, Q, S);
 
-  case (lists:keyfind(import, 1, Meta3) == false) andalso
-      elixir_dispatch:find_import(Meta3, F, A, S) of
-    false    ->
-      do_quote_tuple(Function, Q, S);
-    Receiver ->
-      New = { function, Meta1, [{ '/', Meta2, [{F, [{import,Receiver}|Meta3], C}, A]}] },
-      do_quote_tuple(New, Q, S)
-  end;
+do_quote({ { '.', _, [_, function] } = Target, Meta, [{ '/', _, [{F, _, C}, A]}] = Args },
+    #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(F), is_integer(A), is_atom(C) ->
+  do_quote_fa(Target, Meta, Args, F, A, Q, S);
 
 do_quote({ 'alias!', _Meta, [Expr] }, Q, S) ->
   do_quote(Expr, Q#elixir_quote{aliases_hygiene=false}, S);
@@ -164,6 +160,16 @@ do_quote_tuple({ Left, Meta, Right }, Q, S) ->
   %% get mixed with the unquoted contents
   Tuple = { tuple, ?line(Meta), [TLeft, meta(Meta, Q), TRight] },
   { Tuple, RS }.
+
+do_quote_fa(Target, Meta, Args, F, A, Q, S) ->
+  NewMeta =
+    case (lists:keyfind(import_fa, 1, Meta) == false) andalso
+        elixir_dispatch:find_import(Meta, F, A, S) of
+      false    -> Meta;
+      Receiver -> [{ import_fa, Receiver }|Meta]
+    end,
+
+  do_quote_tuple({ Target, NewMeta, Args }, Q, S).
 
 % Loop through the list finding each unquote_splicing entry.
 
