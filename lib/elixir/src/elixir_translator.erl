@@ -35,6 +35,9 @@ translate(Forms, S) ->
 %% Those macros are "low-level". They are the basic mechanism
 %% that makes the language work and cannot be partially applied
 %% nor overwritten.
+%%
+%% =, ^, import, require and alias could be made non-special
+%% forms without causing any side effects.
 
 %% Assignment operator
 
