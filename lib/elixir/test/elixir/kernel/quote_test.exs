@@ -248,11 +248,18 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
     end
   end
 
+  defmacrop get_bin_size_with_kernel_function do
+    quote do
+      Kernel.function(size/1).("hello")
+    end
+  end
+
   test :expand_imports do
     import Kernel, except: [size: 1]
     assert get_bin_size == 5
     assert get_bin_size_with_partial == 5
     assert get_bin_size_with_function == 5
+    assert get_bin_size_with_kernel_function == 5
   end
 
   defmacrop get_dict_size do
