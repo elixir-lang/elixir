@@ -1,53 +1,55 @@
 defprotocol Enum.Iterator do
   @moduledoc """
   This is the protocol used by the `Enum` module.
-  Usually, when you invoke a function in the module `Enum`,
-  the first argument passed to `Enum` is a collection which
-  is forwarded to this protocol in order to retrieve information
-  on how to iterate the collection. That said, when:
+
+  Usually, when you invoke a function in the module `Enum`, the first argument
+  passed to it is a collection which is forwarded to this protocol in order to
+  retrieve information on how to iterate the collection.
+
+  For example, in the expression
 
       Enum.map [1,2,3], &1 * 2
 
-  Is invoked, it invokes `Enum.Iterator.iterator([1,2,3])`
-  which returns all the information required by Enum.
-  Read each function documentation below for more information.
+  `Enum.map` invokes `Enum.Iterator.iterator([1,2,3])` to retrieve the iterator
+  function that will drive the iteration process.
   """
 
   @only [List, Record, Function]
 
   @doc """
-  Iteration in Elixir happens with the help of a iterator
-  function. Every time this function is called, it must
-  return a tuple with two elements. The first element
-  is the next item and the second can be any Elixir term
-  which the function is going to receive as argument the
-  next time it is invoked.
+  This function must return a tuple of the form `{ iter, step }` where
+  `iter` is a function that yields successive values from the collection
+  each time it is invoked and `step` is the first step of iteration.
 
-  When there are no more items to be iterated, the function
-  must return the atom `:stop`.
+  Iteration in Elixir happens with the help of an _iterator function_ (named
+  `iter` in the paragraph above). When it is invoked, it must return a tuple
+  with two elements. The first element is the next successive value from the
+  collection and the second element can be any Elixir term which `iter` is
+  going to receive as its argument the next time it is invoked.
 
-  In order to retrieve this iterator function, Elixir invokes
-  `Enum.Iterator.iterator(collection)` which should return a
-  tuple with two elements: the first element is the iterator
-  function and the second is the first step of iteration.
+  When there are no more items left to yield, `iter` must return the atom
+  `:stop`.
 
-  As an example, here is the implementation of iterator for lists:
+  As an example, here is the implementation of `iterator` for lists:
 
       def iterator(list),   do: { iterate(&1), iterate(list) }
       defp iterate([h|t]),  do: { h, t }
       defp iterate([]),     do: :stop
 
+  Here, `iterate` is the _iterator function_ and `{ h, t }` is a step of
+  iteration.
+
   ## Iterating lists
 
-  If a data structure needs to be converted to a list in order
-  to be iterated, the iterator function can simply return the
-  list and the Enum module will be able to take over the list
-  and retrieve the proper iterator function.
+  As a special case, if a data structure needs to be converted to a list in
+  order to be iterated, `iterator` can simply return the list and the `Enum`
+  module will be able to take over the list and produce a proper iterator
+  function for it.
   """
   def iterator(collection)
 
   @doc """
-  The function used to retrieve the collection size.
+  The function used to retrieve the collection's size.
   """
   def count(collection)
 end
