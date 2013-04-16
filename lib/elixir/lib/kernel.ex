@@ -1254,47 +1254,6 @@ defmodule Kernel do
   In the example above, we defined a function `sum` that receives
   two arguments and sum them.
 
-  ## Dynamic generation with atoms
-
-  Elixir follows the same rule as Erlang when it comes to
-  function invocations. Calling a function is the same thing
-  as "invoking at atom". That said, we could invoke a function
-  named sum in these two equivalent ways:
-
-      sum(1, 2)
-      :sum.(1, 2)
-
-  We can also use the atom format to define functions:
-
-      defmodule Foo do
-        def :sum.(a, b) do
-          a + b
-        end
-      end
-
-  In general, a developer never needs to use the format above
-  except when he wants to dynamically define functions with macros.
-  In such scenarios, the name needs to be given dynamically via
-  the unquoting mechanism.
-
-  Imagine a macro that receives keywords and defines a function
-  for each entry in the keyword, using the key as function name
-  and the value as the value returned by the function:
-
-      defmacro defkv(keywords) do
-        Enum.map keywords, fn {k,v} ->
-          quote do
-            def unquote(k)() do
-              unquote(v)
-            end
-          end
-        end
-      end
-
-  This macro could be invoked as:
-
-      defkv one: 1, two: 2
-
   """
   defmacro def(name, do: contents)
 
@@ -2130,9 +2089,10 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns an anonymous function based on the given arguments.
+  Construct an anonymous function based on the given expression
+  or retrieve an existing one.
 
-  ## Examples
+  ## Function composition
 
       iex> sum = function do
       ...>   (x, y) -> x + y
@@ -2152,6 +2112,26 @@ defmodule Kernel do
       ...> end
       ...> sum.(1, 2)
       3
+
+  All clauses must expect the same number of arguments.
+
+  ## Function retrieval
+
+  The `function` macro can also be used to retrieve local, imported
+  and remote functions.
+
+      # Retrieve local/import
+      iex> f = function(is_atom/1)
+      iex> f.(:foo)
+      true
+
+      # Retrieve remote
+      iex> f = function(Kernel.is_atom/1)
+      iex> f.(:foo)
+      true
+
+  In case a function needs to be dynamically retrieved based on its
+  module, name or arity, use `function/3` instead.
 
   ## Shortcut syntax
 
@@ -2192,51 +2172,11 @@ defmodule Kernel do
   defmacro function(args)
 
   @doc """
-  Retrieves a local or an imported function.
-
-  ## Examples
-
-      iex> f = function(:is_atom, 1)
-      ...> f.(:foo)
-      true
-
-  Notice that local functions cannot be retrieved dynamically,
-  the following, for example, wouldn't work:
-
-      some_fun = :is_atom
-      function(some_fun, 1)
-
-  In such cases, one should use `function/3`:
-
-      some_fun = :is_atom
-      function(SomeModule, some_fun, 1)
-
-  ## Shortcut syntax
-
-  One can use a shortcut syntax to retrieve such functions,
-  that resembles Erlang's `fun`:
-
-      f = function(is_atom/1)
-      f.(:foo)
-
-  """
-  defmacro function(function, arity)
-
-  @doc """
-  Retrieves a function from a module.
+  Retrieves a function with given name and arity from a module.
 
   ## Examples
 
       iex> f = function(Kernel, :is_atom, 1)
-      ...> f.(:foo)
-      true
-
-  ## Shortcut syntax
-
-  One can use a shortcut syntax to retrieve such functions,
-  that resembles Erlang's `fun`:
-
-      iex> f = function(Kernel.is_atom/1)
       ...> f.(:foo)
       true
 

@@ -236,9 +236,30 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
     end
   end
 
+  defmacrop get_bin_size_with_partial do
+    quote do
+      size(&1).("hello")
+    end
+  end
+
+  defmacrop get_bin_size_with_function do
+    quote do
+      function(size/1).("hello")
+    end
+  end
+
+  defmacrop get_bin_size_with_kernel_function do
+    quote do
+      Kernel.function(size/1).("hello")
+    end
+  end
+
   test :expand_imports do
     import Kernel, except: [size: 1]
     assert get_bin_size == 5
+    assert get_bin_size_with_partial == 5
+    assert get_bin_size_with_function == 5
+    assert get_bin_size_with_kernel_function == 5
   end
 
   defmacrop get_dict_size do
@@ -253,5 +274,24 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
     import Kernel, except: [size: 1]
     import Dict, only: [size: 1]
     assert get_dict_size == 2
+  end
+
+  defmacrop with_size do
+    quote do
+      import Kernel, except: [size: 1]
+      import Dict, only: [size: 1]
+      size([a: 1, b: 2])
+    end
+  end
+
+  defmacrop with_nested_size do
+    quote do
+      with_size
+    end
+  end
+
+  test :explicitly_overriden_imports do
+    assert with_size == 2
+    assert with_nested_size == 2
   end
 end

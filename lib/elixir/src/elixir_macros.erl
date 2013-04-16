@@ -56,11 +56,22 @@ translate({ function, Meta, [[{do,{ '->',_,Pairs}}]] }, S) ->
   assert_no_match_or_guard_scope(Meta, 'function', S),
   elixir_translator:translate_fn(Meta, Pairs, S);
 
-translate({ function, Meta, [{ '/', _, [{{ '.', _ ,[M, F] }, _ , [] }, A]}] }, S) ->
+translate({ function, _, [{ '/', _, [{{ '.', Meta, [M, F] }, _ , []}, A]}] }, S) when is_atom(F), is_integer(A) ->
   translate({ function, Meta, [M, F, A] }, S);
 
-translate({ function, Meta, [{ '/', _, [{F, _, Q}, A]}] }, S) when is_atom(Q) ->
-  translate({ function, Meta, [F, A] }, S);
+translate({ function, MetaFA, [{ '/', _, [{F, Meta, C}, A]}] }, S) when is_atom(F), is_integer(A), is_atom(C) ->
+  assert_no_match_or_guard_scope(Meta, 'function', S),
+
+  WrappedMeta =
+    case (lists:keyfind(import, 1, Meta) == false) andalso lists:keyfind(import_fa, 1, MetaFA) of
+      { import_fa, Receiver } -> [{ import, Receiver }|Meta];
+      false -> Meta
+    end,
+
+  case elixir_dispatch:import_function(WrappedMeta, F, A, S) of
+    false -> syntax_error(WrappedMeta, S#elixir_scope.file, "cannot convert a macro to a function");
+    Else  -> Else
+  end;
 
 translate({ function, Meta, [_] }, S) ->
   assert_no_match_or_guard_scope(Meta, 'function', S),
@@ -71,6 +82,7 @@ translate({ function, Meta, [_, _] = Args }, S) ->
 
   case translate_args(Args, S) of
     { [{atom,_,Name}, {integer,_,Arity}], SA } ->
+      elixir_errors:deprecation(Meta, S#elixir_scope.file, "function(:~ts, ~B) is deprecated, please use function(~ts/~B)", [Name, Arity, Name, Arity]),
       case elixir_dispatch:import_function(Meta, Name, Arity, SA) of
         false -> syntax_error(Meta, S#elixir_scope.file, "cannot convert a macro to a function");
         Else  -> Else

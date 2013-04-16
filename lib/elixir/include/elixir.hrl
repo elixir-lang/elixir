@@ -11,7 +11,6 @@
 -record(elixir_scope, {
   context=nil,             %% can be assign, guards or nil
   noname=false,            %% when true, don't add new names (used by try)
-  check_requires=true,     %% when true, check requires
   check_clauses=true,      %% when true, check def clauses ordering
   super=false,             %% when true, it means super was invoked
   caller=false,            %% when true, it means caller was invoked
@@ -29,8 +28,11 @@
   aliases,                 %% an orddict with aliases by new -> old names
   file,                    %% the current scope filename
   requires,                %% a set with modules required
-  macros,                  %% a list with macros imported by module
-  functions}).             %% a list with functions imported by module
+  macro_macros=[],         %% a list with macros imported from module inside a macro
+  macros,                  %% a list with macros imported from module
+  macro_functions=[],      %% a list with functions imported from module inside a macro
+  functions                %% a list with functions imported from module
+}).
 
 -record(elixir_quote, {
   line=0,
