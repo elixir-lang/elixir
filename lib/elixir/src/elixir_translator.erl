@@ -544,13 +544,7 @@ translate_local(Meta, Name, Args, #elixir_scope{local=nil} = S) ->
   { { call, Line, { atom, Line, Name }, TArgs }, NS };
 
 translate_local(Meta, Name, Args, S) ->
-  Line = ?line(Meta),
-  { TArgs, NS } = translate_args(Args, S),
-  Remote = { remote, Line,
-    { atom, Line, S#elixir_scope.local },
-    { atom, Line, Name }
-  },
-  { { call, Line, Remote, TArgs }, NS }.
+  translate_each({ { '.', Meta, [S#elixir_scope.local, Name] }, Meta, Args }, S).
 
 expand_var_context(_Meta, Atom, _Msg, _S) when is_atom(Atom) -> Atom;
 expand_var_context(Meta, Alias, Msg, S) ->
