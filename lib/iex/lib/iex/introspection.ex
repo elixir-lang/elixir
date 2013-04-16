@@ -10,7 +10,7 @@ defmodule IEx.Introspection do
         case module.__info__(:moduledoc) do
           { _, binary } when is_binary(binary) ->
             IO.puts IO.ANSI.escape("%{yellow}# #{inspect module}\n")
-            IO.write IO.ANSI.escape("%{yellow}#{binary}")
+            IO.write IO.ANSI.escape_fragment("%{yellow}") <> binary <> IO.ANSI.escape_fragment("%{reset}")
           { _, _ } ->
             IO.puts IO.ANSI.escape("%{red}No docs for #{inspect module} have been found")
           _ ->
@@ -148,7 +148,7 @@ defmodule IEx.Introspection do
   defp print_doc({ { fun, _ }, _line, kind, args, doc }) do
     args = Enum.map_join(args, ", ", print_doc_arg(&1))
     IO.puts IO.ANSI.escape("%{yellow}* #{kind} #{fun}(#{args})\n")
-    IO.write IO.ANSI.escape("%{yellow}#{doc}")
+    IO.write IO.ANSI.escape_fragment("%{yellow}") <> doc <> IO.ANSI.escape_fragment("%{reset}")
   end
 
   defp print_doc_arg({ ://, _, [left, right] }) do
