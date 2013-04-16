@@ -140,8 +140,8 @@ defmodule Code do
   end
 
   @doc """
-  Converts the given string to AST. It returns { :ok, ast }
-  if it succeeds, { :error, { line, error, token } } otherwise.
+  Converts the given string to AST. It returns `{ :ok, ast }`
+  if it succeeds, `{ :error, { line, error, token } }` otherwise.
 
   ## Options
 
@@ -268,6 +268,15 @@ defmodule Code do
   """
   def compile_string(string, file // "nofile") when is_binary(file) do
     :elixir_compiler.string :unicode.characters_to_list(string), file
+  end
+
+  @doc """
+  Compiles the quoted expression and returns a list of tuples where
+  the first element is the module name and the second one is its
+  binary.
+  """
+  def compile_quoted(quoted, file // "nofile") when is_binary(file) do
+    :elixir_compiler.quoted [quoted], file
   end
 
   @doc """

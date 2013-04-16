@@ -22,11 +22,14 @@ get_opts() ->
 %% Compiles the given string.
 
 string(Contents, File) when is_list(Contents), is_binary(File) ->
+  Forms = elixir_translator:'forms!'(Contents, 1, File, []),
+  quoted(Forms, File).
+
+quoted(Forms, File) when is_binary(File) ->
   Previous = get(elixir_compiled),
 
   try
     put(elixir_compiled, []),
-    Forms = elixir_translator:'forms!'(Contents, 1, File, []),
     eval_forms(Forms, 1, [], elixir:scope_for_eval([{file,File}])),
     lists:reverse(get(elixir_compiled))
   after

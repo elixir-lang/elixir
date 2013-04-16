@@ -164,8 +164,8 @@ defmodule Macro do
 
   @doc %B"""
   Unescape the given chars according to the map given.
-  Check `unescape/1` if you want to use the same map as
-  Elixir single- and double-quoted strings.
+  Check `unescape_binary/1` if you want to use the same map
+  as Elixir single- and double-quoted strings.
 
   ## Map
 
@@ -211,11 +211,13 @@ defmodule Macro do
 
   @doc """
   Unescape the given tokens according to the default map.
-  Check `unescape/1` and `unescape/2` for more information
-  about unescaping. Only tokens that are binaries are
-  unescaped, all others are ignored. This function is useful
-  when implementing your own sigils. Check the implementation
-  of `Kernel.__b__` for examples.
+  Check `unescape_binary/1` and `unescape_binary/2` for more
+  information about unescaping.
+
+  Only tokens that are binaries are unescaped, all others are
+  ignored. This function is useful when implementing your own
+  sigils. Check the implementation of `Kernel.__b__`
+  for examples.
   """
   def unescape_tokens(tokens) do
     :elixir_interpolation.unescape_tokens(tokens)
@@ -223,7 +225,7 @@ defmodule Macro do
 
   @doc """
   Unescape the given tokens according to the given map.
-  Check `unescape_tokens/1` and `unescaped/2` for more information.
+  Check `unescape_tokens/1` and `unescape_binary/2` for more information.
   """
   def unescape_tokens(tokens, map) do
     :elixir_interpolation.unescape_tokens(tokens, map)
@@ -597,16 +599,16 @@ defmodule Macro do
     do_safe_term(terms) || :ok
   end
 
-  def do_safe_term({ local, _, terms }) when local in [:{}, :[], :__aliases__] do
+  defp do_safe_term({ local, _, terms }) when local in [:{}, :[], :__aliases__] do
     do_safe_term(terms)
   end
 
-  def do_safe_term({ unary, _, [term] }) when unary in [:+, :-] do
+  defp do_safe_term({ unary, _, [term] }) when unary in [:+, :-] do
     do_safe_term(term)
   end
 
-  def do_safe_term({ left, right }), do: do_safe_term(left) || do_safe_term(right)
-  def do_safe_term(terms) when is_list(terms),  do: Enum.find_value(terms, do_safe_term(&1))
-  def do_safe_term(terms) when is_tuple(terms), do: { :unsafe, terms }
-  def do_safe_term(_), do: nil
+  defp do_safe_term({ left, right }), do: do_safe_term(left) || do_safe_term(right)
+  defp do_safe_term(terms) when is_list(terms),  do: Enum.find_value(terms, do_safe_term(&1))
+  defp do_safe_term(terms) when is_tuple(terms), do: { :unsafe, terms }
+  defp do_safe_term(_), do: nil
 end
