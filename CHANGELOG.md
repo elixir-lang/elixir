@@ -1,3 +1,5 @@
+# v0.8.2 (2013-04-20)
+
 * enhancements
   * [ExUnit] Use ANSI escape codes in CLI output
   * [ExUnit] Include suite run time on CLI results
