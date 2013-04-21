@@ -1,14 +1,17 @@
 % Holds the logic responsible for functions definition (def(p) and defmacro(p)).
 -module(elixir_def).
 -export([table/1,
+  clauses_table/1,
   build_table/1,
   delete_table/1,
   reset_last/1,
+  lookup_definition/2,
+  delete_definition/2,
   wrap_definition/5,
   wrap_definition/7,
   store_definition/6,
   store_definition/8,
-  store_each/7,
+  store_each/8,
   unwrap_stored_definitions/2,
   format_error/1]).
 -include("elixir.hrl").
@@ -17,19 +20,37 @@
 %% Table management functions. Called internally.
 
 table(Module) -> ?atom_concat([f, Module]).
+clauses_table(Module) -> ?atom_concat([c, Module]).
 
 build_table(Module) ->
-  FunctionTable = table(Module),
-  ets:new(FunctionTable, [set, named_table, public]),
+  FunctionsTable = table(Module),
+  ClausesTable = clauses_table(Module),
+  ets:new(FunctionsTable, [set, named_table, public]),
+  ets:new(ClausesTable, [bag, named_table, public]),
   reset_last(Module),
-  FunctionTable.
+  { FunctionsTable, ClausesTable }.
 
 delete_table(Module) ->
-  ets:delete(table(Module)).
+  ets:delete(table(Module)),
+  ets:delete(clauses_table(Module)).
 
 %% Reset the last item. Useful when evaling code.
 reset_last(Module) ->
   ets:insert(table(Module), { last, [] }).
+
+%% Looks up a definition from the database.
+lookup_definition(Module, Tuple) ->
+  case ets:lookup(table(Module), Tuple) of
+    [Result] ->
+      CTable = clauses_table(Module),
+      { Result, [Clause || { _, Clause } <- ets:lookup(CTable, Tuple)] };
+    _ ->
+      false
+  end.
+
+delete_definition(Module, Tuple) ->
+  ets:delete(table(Module), Tuple),
+  ets:delete(clauses_table(Module), Tuple).
 
 %% Wraps the function into a call to store_definition once the function
 %% definition is read. The function is compiled into a meta tree to ensure
@@ -103,6 +124,7 @@ do_store_definition(Kind, Line, Module, Name, Args, Guards, Body, DS) ->
 
   File  = TS#elixir_scope.file,
   Table = table(Module),
+  CTable = clauses_table(Module),
 
   %% Store function
   if
@@ -111,10 +133,10 @@ do_store_definition(Kind, Line, Module, Name, Args, Guards, Body, DS) ->
       compile_super(Module, TS),
       CheckClauses = S#elixir_scope.check_clauses,
       store_each(CheckClauses, Kind, File, Location,
-        Table, length(Defaults), Function)
+        Table, CTable, length(Defaults), Function)
   end,
 
-  [store_each(false, Kind, File, Location, Table, 0,
+  [store_each(false, Kind, File, Location, Table, CTable, 0,
     default_function_for(Kind, Name, Default)) || Default <- Defaults],
 
   { Name, Arity }.
@@ -210,58 +232,63 @@ is_macro(_)         -> false.
 % and the body of all functions.
 unwrap_stored_definitions(File, Module) ->
   Table = table(Module),
+  CTable = clauses_table(Module),
   ets:delete(Table, last),
-  unwrap_stored_definition(ets:tab2list(Table), File, [], [], [], [], [], {[],[]}).
+  unwrap_stored_definition(ets:tab2list(Table), CTable, File, [], [], [], [], [], {[],[]}).
 
-unwrap_stored_definition([Fun|T], File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == def ->
+unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == def ->
   Tuple = element(1, Fun),
   unwrap_stored_definition(
-    T, File, [Tuple|Exports], Private, [Tuple|Def], Defmacro, Defmacrop,
-    function_for_stored_definition(Fun, File, Functions)
+    T, CTable, File, [Tuple|Exports], Private, [Tuple|Def], Defmacro, Defmacrop,
+    function_for_stored_definition(Fun, CTable, Tuple, File, Functions)
   );
 
-unwrap_stored_definition([Fun|T], File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defmacro ->
+unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defmacro ->
   { Name, Arity } = Tuple = element(1, Fun),
   Macro = { ?elixir_macro(Name), Arity + 1 },
 
   unwrap_stored_definition(
-    T, File, [Macro|Exports], Private, Def, [Tuple|Defmacro], Defmacrop,
-    function_for_stored_definition(setelement(1, Fun, Macro), File, Functions)
+    T, CTable, File, [Macro|Exports], Private, Def, [Tuple|Defmacro], Defmacrop,
+    function_for_stored_definition(setelement(1, Fun, Macro), CTable, Tuple, File, Functions)
   );
 
-unwrap_stored_definition([Fun|T], File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defp ->
-  unwrap_stored_definition(
-    T, File, Exports, [element(1, Fun)|Private], Def, Defmacro, Defmacrop,
-    function_for_stored_definition(Fun, File, Functions)
-  );
-
-unwrap_stored_definition([Fun|T], File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defmacrop ->
+unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defp ->
   Tuple = element(1, Fun),
   unwrap_stored_definition(
-    T, File, Exports, [Tuple|Private], Def, Defmacro,
+    T, CTable, File, Exports, [Tuple|Private], Def, Defmacro, Defmacrop,
+    function_for_stored_definition(Fun, CTable, Tuple, File, Functions)
+  );
+
+unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defmacrop ->
+  Tuple = element(1, Fun),
+  unwrap_stored_definition(
+    T, CTable, File, Exports, [Tuple|Private], Def, Defmacro,
     [{ Tuple, element(3, Fun), element(5, Fun) }|Defmacrop], Functions
   );
 
-unwrap_stored_definition([], _File, Exports, Private, Def, Defmacro, Defmacrop, {Functions,Tail}) ->
+unwrap_stored_definition([], _CTable, _File, Exports, Private, Def, Defmacro, Defmacrop, {Functions,Tail}) ->
   { Exports, Private, ordsets:from_list(Def), ordsets:from_list(Defmacro),
     ordsets:from_list(Defmacrop), lists:reverse(Tail ++ Functions) }.
 
 %% Helpers
 
-function_for_stored_definition({{Name, Arity}, _, Line, _, _, { File, _ }, _, Clauses}, File, {Functions,Tail}) ->
+function_for_stored_definition({{Name,Arity}, _, Line, _, _, {File, _}, _}, CTable, Tuple, File, {Functions,Tail}) ->
   {
-    [{ function, Line, Name, Arity, lists:reverse(Clauses) }|Functions],
+    [{ function, Line, Name, Arity, default_clauses_for(CTable, Tuple) }|Functions],
     Tail
   };
 
-function_for_stored_definition({{Name, Arity}, _, Line, _, _, Location, _, Clauses}, _File, {Functions,Tail}) ->
+function_for_stored_definition({{Name,Arity}, _, Line, _, _, Location, _}, CTable, Tuple, _File, {Functions,Tail}) ->
   {
     Functions,
     [
-      { function, Line, Name, Arity, lists:reverse(Clauses) },
+      { function, Line, Name, Arity, default_clauses_for(CTable, Tuple) },
       { attribute, Line, file, Location } | Tail
     ]
   }.
+
+default_clauses_for(CTable, Tuple) ->
+  [Clause || { _, Clause } <- ets:lookup(CTable, Tuple)].
 
 default_function_for(Kind, Name, { clause, Line, Args, _Guards, _Exprs } = Clause)
     when Kind == defmacro; Kind == defmacrop ->
@@ -274,22 +301,22 @@ default_function_for(_, Name, { clause, Line, Args, _Guards, _Exprs } = Clause) 
 %% This function also checks and emit warnings in case
 %% the kind, of the visibility of the function changes.
 
-store_each(Check, Kind, File, Location, Table, Defaults, {function, Line, Name, Arity, Clauses}) ->
-  case ets:lookup(Table, {Name, Arity}) of
-    [{{Name, Arity}, StoredKind, _, _, StoredCheck, StoredLocation, StoredDefaults, StoredClauses}] ->
+store_each(Check, Kind, File, Location, Table, CTable, Defaults, {function, Line, Name, Arity, Clauses}) ->
+  Tuple = { Name, Arity },
+  case ets:lookup(Table, Tuple) of
+    [{ Tuple, StoredKind, _, _, StoredCheck, StoredLocation, StoredDefaults }] ->
       FinalLocation = StoredLocation,
       FinalDefaults = Defaults + StoredDefaults,
-      FinalClauses  = Clauses ++ StoredClauses,
       check_valid_kind(Line, File, Name, Arity, Kind, StoredKind),
       check_valid_defaults(Line, File, Name, Arity, FinalDefaults),
       (Check and StoredCheck) andalso check_valid_clause(Line, File, Name, Arity, Table);
     [] ->
       FinalLocation = Location,
       FinalDefaults = Defaults,
-      FinalClauses  = Clauses,
       Check andalso ets:insert(Table, { last, { Name, Arity } })
   end,
-  ets:insert(Table, {{Name, Arity}, Kind, Line, File, Check, FinalLocation, FinalDefaults, FinalClauses}).
+  ets:insert(CTable, [{ Tuple, Clause } || Clause <- Clauses ]),
+  ets:insert(Table, { Tuple, Kind, Line, File, Check, FinalLocation, FinalDefaults }).
 
 %% Validations
 

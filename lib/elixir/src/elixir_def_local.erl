@@ -12,8 +12,8 @@
 macro_for(_Tuple, _All, nil) -> false;
 
 macro_for(Tuple, All, Module) ->
-  try ets:lookup(elixir_def:table(Module), Tuple) of
-    [{Tuple, Kind, Line, _, _, _, _, Clauses}] when Kind == defmacro; All, Kind == defmacrop ->
+  try elixir_def:lookup_definition(Module, Tuple) of
+    { { Tuple, Kind, Line, _, _, _, _ }, Clauses } when Kind == defmacro; All, Kind == defmacrop ->
       get_function(Line, Module, Clauses);
     _ ->
       false
@@ -24,8 +24,8 @@ macro_for(Tuple, All, Module) ->
 %% Used on runtime by rewritten clauses, raises an error if function is not found
 function_for(Module, Name, Arity) ->
   Tuple = { Name, Arity },
-  case ets:lookup(elixir_def:table(Module), Tuple) of
-    [{Tuple, _, Line, _, _, _, _, Clauses}] ->
+  case elixir_def:lookup_definition(Module, Tuple) of
+    { { Tuple, _, Line, _, _, _, _ }, Clauses } ->
       get_function(Line, Module, Clauses);
     _ ->
       [_|T] = erlang:get_stacktrace(),
@@ -36,11 +36,10 @@ function_for(Module, Name, Arity) ->
 
 get_function(Line, Module, Clauses) ->
   RewrittenClauses = [rewrite_clause(Clause, Module) || Clause <- Clauses],
-  Fun = { 'fun', Line, {clauses, lists:reverse(RewrittenClauses)} },
+  Fun = { 'fun', Line, {clauses, RewrittenClauses } },
   { value, Result, _Binding } = erl_eval:exprs([Fun], []),
   Result.
 
-%% TODO: Consider caching functions in a table for performance.
 rewrite_clause({ call, Line, { atom, Line, RawName }, Args }, Module) ->
   Remote = { remote, Line,
     { atom, Line, ?MODULE },
