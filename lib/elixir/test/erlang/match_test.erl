@@ -21,7 +21,6 @@ assignment_test() ->
 not_single_assignment_test() ->
   {2, [{a, 2}]} = eval("a = 1\na = 2\na"),
   {1, [{a, 1}]} = eval("{a,a} = {1,1}\na"),
-  {1, [{a, 1}]} = eval("{a,a} = :{}.(1, 1)\na"),
   {2, [{a, 2}]} = eval("a = 1\n{^a,a} = {1,2}\na"),
   ?assertError({badmatch, _}, eval("{a,a} = {1,2}")),
   ?assertError({badmatch, _}, eval("{1 = a,a} = {1,2}")),

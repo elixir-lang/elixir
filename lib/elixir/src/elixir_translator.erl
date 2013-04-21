@@ -251,14 +251,8 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
     end,
 
   Hygiene = case lists:keyfind(hygiene, 1, T) of
-    { hygiene, true } ->
-      elixir_errors:deprecation(Meta, S#elixir_scope.file, "hygiene: true is deprecated, please set it to [] instead", []),
-      [];
     { hygiene, List } when is_list(List) ->
       List;
-    { hygiene, false } ->
-      elixir_errors:deprecation(Meta, S#elixir_scope.file, "hygiene: false is deprecated, please set it to [vars: false] instead", []),
-      [{vars,false}, {imports,false}, {aliases,false}];
     false ->
       []
   end,
@@ -277,18 +271,8 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
       end
   end,
 
-  GetExpansion = fun(Key, New) ->
-    case lists:keyfind(Key, 1, T) of
-      { Key, Bool } when is_boolean(Bool) ->
-        elixir_errors:deprecation(Meta, S#elixir_scope.file, "the ~s option for quote is deprecated, please use hygiene: [~s: ~s] instead", [Key, New, Bool]),
-        Bool;
-      false ->
-        not(lists:keyfind(New, 1, Hygiene) == { New, false })
-    end
-  end,
-
-  Aliases = GetExpansion(aliases_hygiene, aliases),
-  Imports = GetExpansion(imports_hygiene, imports),
+  Aliases = lists:keyfind(aliases, 1, Hygiene) /= { aliases, false },
+  Imports = lists:keyfind(imports, 1, Hygiene) /= { imports, false },
 
   { DefaultLine, DefaultFile } = case lists:keyfind(location, 1, T) of
     { location, keep }  -> { keep, keep };
@@ -482,14 +466,7 @@ translate_each({ { '.', _, [Expr] }, Meta, Args } = Original, S) ->
   { TExpr, SE } = translate_each(Expr, S),
   case TExpr of
     { atom, _, Atom } ->
-      case atom_to_list(Atom) of
-        [H|_] when (H >= $a andalso H =< $z); H == $_ ->
-          elixir_errors:deprecation(Meta, S#elixir_scope.file, "the :~s.() syntax is deprecated, please use ~s() instead", [Atom, Atom]);
-        _ ->
-          elixir_errors:deprecation(Meta, S#elixir_scope.file, "the :~s.() syntax is deprecated", [Atom])
-      end,
-
-      translate_each({ Atom, Meta, Args }, S);
+      syntax_error(Meta, S#elixir_scope.file, "invalid function call :~ts.()", [Atom]);
     _ ->
       case elixir_partials:handle(Original, S) of
         error ->

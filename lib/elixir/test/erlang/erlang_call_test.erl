@@ -15,9 +15,6 @@ erlang_atoms_test() ->
 erlang_tuple_test() ->
   {[erlang,1,2], []} = eval("{ :erlang, 1, 2 }.tuple_to_list").
 
-erlang_local_test() ->
-  {1, []} = eval(":abs.(-1)").
-
 erlang_call_test() ->
   {1, []}   = eval(":erlang.abs(-1)"),
   {_, []}   = eval(":dict.new"),
