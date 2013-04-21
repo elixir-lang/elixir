@@ -25,9 +25,7 @@ abstract_syntax(Tree) when is_tuple(Tree) ->
   { tuple, 0, [abstract_syntax(X) || X <- tuple_to_list(Tree)] };
 
 abstract_syntax(Tree) when is_list(Tree) ->
-  lists:foldr(fun(X, Acc) ->
-    { cons, 0, abstract_syntax(X), Acc }
-  end, { nil, 0 }, Tree);
+  abstract_cons(lists:reverse(Tree), { nil, 0 });
 
 abstract_syntax(Tree) when is_atom(Tree) ->
   { atom, 0, Tree };
@@ -40,6 +38,11 @@ abstract_syntax(Tree) when is_float(Tree) ->
 
 abstract_syntax(Tree) when is_binary(Tree) ->
   { bin, 0, [{ bin_element, 0, { string, 0, binary_to_list(Tree) }, default, default }] }.
+
+abstract_cons([H|T], Acc) ->
+  abstract_cons(T, { cons, 0, abstract_syntax(H), Acc });
+
+abstract_cons([], Acc) -> Acc.
 
 cons_to_list({ cons, _, Left, { nil, _ } }) ->
   [Left];
