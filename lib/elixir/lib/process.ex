@@ -19,13 +19,6 @@ defmodule Process do
     :erlang.is_process_alive(pid)
   end
 
-  @doc false
-  def self do
-    IO.puts "Process.self is deprecated, please use Kernel.self instead"
-    Exception.print_stacktrace
-    :erlang.self()
-  end
-
   @doc """
   Returns all key-values in the dictionary.
   """

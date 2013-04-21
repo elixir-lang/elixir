@@ -47,7 +47,6 @@ defmodule ExUnit.Callbacks do
       @exunit_teardown_all []
 
       @before_compile unquote(__MODULE__)
-      @after_compile unquote(__MODULE__)
       import unquote(__MODULE__)
 
       def __exunit__(:parent) do
@@ -55,23 +54,19 @@ defmodule ExUnit.Callbacks do
       end
 
       def __exunit__(:setup, context) do
-        context = __exunit_setup__ unquote(parent).__exunit__(:setup, context)
-        ExUnit.Callbacks.__setup__(__MODULE__, context)
+        __exunit_setup__ unquote(parent).__exunit__(:setup, context)
       end
 
       def __exunit__(:teardown, context) do
-        context = unquote(parent).__exunit__(:teardown, __exunit_teardown__ context)
-        ExUnit.Callbacks.__teardown__(__MODULE__, context)
+        unquote(parent).__exunit__(:teardown, __exunit_teardown__ context)
       end
 
       def __exunit__(:setup_all, context) do
-        context = __exunit_setup_all__ unquote(parent).__exunit__(:setup_all, context)
-        ExUnit.Callbacks.__setup_all__(__MODULE__, context)
+        __exunit_setup_all__ unquote(parent).__exunit__(:setup_all, context)
       end
 
       def __exunit__(:teardown_all, context) do
-        context = unquote(parent).__exunit__(:teardown_all, __exunit_teardown_all__ context)
-        ExUnit.Callbacks.__teardown_all__(__MODULE__, context)
+        unquote(parent).__exunit__(:teardown_all, __exunit_teardown_all__ context)
       end
     end
   end
@@ -142,69 +137,6 @@ defmodule ExUnit.Callbacks do
 
     quote do
       defp unquote(:"__#{kind}__")(context), do: unquote(acc)
-    end
-  end
-
-  ## Deprecated handling
-
-  @doc false
-  def __after_compile__(env, _binary) do
-    test_case = env.module
-
-    Enum.each [:setup, :teardown, :setup_all, :teardown_all], fn(kind) ->
-      if Enum.any? 0..2, function_exported?(test_case, kind, &1) do
-        IO.puts "[Warning] #{kind} callback in #{inspect test_case} is deprecated. Please use the #{kind} macro instead."
-      end
-    end
-  end
-
-  @doc false
-  def __setup__(test_case, context) do
-    cond do
-      function_exported?(test_case, :setup, 2) ->
-        test_case.setup(context, context[:test])
-      function_exported?(test_case, :setup, 1) ->
-        test_case.setup(context)
-      function_exported?(test_case, :setup, 0) ->
-        test_case.setup
-      true ->
-        context
-    end
-  end
-
-  @doc false
-  def __teardown__(test_case, context) do
-    cond do
-      function_exported?(test_case, :teardown, 2) ->
-        test_case.teardown(context, context[:test])
-      function_exported?(test_case, :teardown, 1) ->
-        test_case.teardown(context)
-      function_exported?(test_case, :teardown, 0) ->
-        test_case.teardown
-      true ->
-        context
-    end
-  end
-
-  @doc false
-  def __teardown_all__(test_case, context) do
-    cond do
-      function_exported?(test_case, :teardown_all, 1) ->
-        test_case.teardown_all(context)
-      function_exported?(test_case, :teardown_all, 0) ->
-        test_case.teardown_all
-      true ->
-        context
-    end
-  end
-
-  @doc false
-  def __setup_all__(test_case, context) do
-    cond do
-      function_exported?(test_case, :setup_all, 0) ->
-        test_case.setup_all
-      true ->
-        context
     end
   end
 end
