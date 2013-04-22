@@ -112,13 +112,11 @@ defmodule IO.ANSI do
   colors = Enum.zip(0..(length(colors)-1), colors)
 
   lc { code, color } inlist colors do
-    Module.eval_quoted __ENV__, (quote do
-      @doc "Sets foreground color to #{unquote(color)}"
-      defsequence unquote(color), unquote(code + 30)
+    @doc "Sets foreground color to #{color}"
+    defsequence color, code + 30
 
-      @doc "Sets background color to #{unquote(color)}"
-      defsequence unquote(:"#{color}_background"), unquote(code + 40)
-    end)
+    @doc "Sets background color to #{color}"
+    defsequence :"#{color}_background", code + 40
   end
 
   @doc "Default text color"
