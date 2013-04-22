@@ -332,15 +332,20 @@ eval_callbacks(Line, Module, Name, Args, RawS) ->
   lists:foreach(fun({M,F}) ->
     { Tree, _ } = elixir_dispatch:dispatch_require(Meta, M, F, Args, S, fun() ->
       apply(M, F, Args),
-      { { nil, 0 }, S }
+      { { atom, 0, nil }, S }
     end),
 
-    try
-      erl_eval:exprs([Tree], Binding)
-    catch
-      Kind:Reason ->
-        Info = { M, F, Args, [{ file, binary_to_list(S#elixir_scope.file) }, { line, Line }] },
-        erlang:raise(Kind, Reason, [Info|erlang:get_stacktrace()])
+    case Tree of
+      { atom, _, Atom } ->
+        Atom;
+      _ ->
+        try
+          erl_eval:exprs([Tree], Binding)
+        catch
+          Kind:Reason ->
+            Info = { M, F, Args, [{ file, binary_to_list(S#elixir_scope.file) }, { line, Line }] },
+            erlang:raise(Kind, Reason, [Info|erlang:get_stacktrace()])
+        end
     end
   end, Callbacks).
 
