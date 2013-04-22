@@ -2,16 +2,18 @@ defmodule IO.ANSI.Sequence do
   @moduledoc false
 
   defmacro defsequence(name, code) do
-    binary_name = atom_to_binary(name)
-
     quote do
-      def unquote(name)() do
-        "\e[#{unquote(code)}m"
-      end
+      name = unquote(name)
+      code = unquote(code)
 
-      defp escape_sequence(<< unquote(binary_name), rest :: binary >>) do
-        { "\e[#{unquote(code)}m", rest }
-      end
+      def name, [], [], do:
+        quote do: "\e[#{unquote(code)}m"
+
+      args =
+        quote do: [<< unquote(atom_to_binary(name)), rest :: binary >> ]
+
+      defp :escape_sequence, args, [], do:
+        quote do: { "\e[#{unquote(code)}m", rest }
     end
   end
 end
@@ -90,10 +92,8 @@ defmodule IO.ANSI do
   defsequence :primary_font, 10
 
   lc font_n inlist [1,2,3,4,5,6,7,8,9] do
-    Module.eval_quoted __ENV__, (quote do
-      @doc "Sets alternative font #{unquote(font_n)}"
-      defsequence(unquote(:"font_#{font_n}"), unquote(font_n + 10))
-    end)
+    @doc "Sets alternative font #{font_n}"
+    defsequence :"font_#{font_n}", font_n + 10
   end
 
   @doc "Normal color or intensity"
@@ -112,13 +112,11 @@ defmodule IO.ANSI do
   colors = Enum.zip(0..(length(colors)-1), colors)
 
   lc { code, color } inlist colors do
-    Module.eval_quoted __ENV__, (quote do
-      @doc "Sets foreground color to #{unquote(color)}"
-      defsequence unquote(color), unquote(code + 30)
+    @doc "Sets foreground color to #{color}"
+    defsequence color, code + 30
 
-      @doc "Sets background color to #{unquote(color)}"
-      defsequence unquote(:"#{color}_background"), unquote(code + 40)
-    end)
+    @doc "Sets background color to #{color}"
+    defsequence :"#{color}_background", code + 40
   end
 
   @doc "Default text color"

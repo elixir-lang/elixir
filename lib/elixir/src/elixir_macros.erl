@@ -77,20 +77,6 @@ translate({ function, Meta, [_] }, S) ->
   assert_no_match_or_guard_scope(Meta, 'function', S),
   syntax_error(Meta, S#elixir_scope.file, "invalid args for function");
 
-translate({ function, Meta, [_, _] = Args }, S) ->
-  assert_no_match_or_guard_scope(Meta, 'function', S),
-
-  case translate_args(Args, S) of
-    { [{atom,_,Name}, {integer,_,Arity}], SA } ->
-      elixir_errors:deprecation(Meta, S#elixir_scope.file, "function(:~ts, ~B) is deprecated, please use function(~ts/~B)", [Name, Arity, Name, Arity]),
-      case elixir_dispatch:import_function(Meta, Name, Arity, SA) of
-        false -> syntax_error(Meta, S#elixir_scope.file, "cannot convert a macro to a function");
-        Else  -> Else
-      end;
-    _ ->
-      syntax_error(Meta, S#elixir_scope.file, "cannot dynamically retrieve local function, use function/3 instead")
-  end;
-
 translate({ function, Meta, [_,_,_] = Args }, S) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, 'function', S),
   { [A,B,C], SA } = translate_args(Args, S),
@@ -227,7 +213,8 @@ translate({defmodule, Meta, [Ref, KV]}, S) ->
       { TRef, S }
   end,
 
-  { elixir_module:translate(Meta, FRef, Block, FS#elixir_scope{check_clauses=true}), FS };
+  MS = FS#elixir_scope{check_clauses=true,local=nil},
+  { elixir_module:translate(Meta, FRef, Block, MS), FS };
 
 translate({Kind, Meta, [Call]}, S) when ?FUNS(Kind) ->
   translate({Kind, Meta, [Call, nil]}, S);

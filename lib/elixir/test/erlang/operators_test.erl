@@ -67,12 +67,6 @@ float_with_parens_and_unary_test() ->
   {25.0,[]}  = eval("(2 + 3.0) * 5"),
   {0.25,[]}  = eval("4 / (11.0 + 5)").
 
-op_call_test() ->
-  {3, []} = eval(":+.(1, 2)"),
-  {-1, []} = eval(":+.(1, -(2))"),
-  {-1, []} = eval(":+.(:=.(1, 1), -2 = -2)"),
-  {3, [{a,1},{b,2}]} = eval(":+.(a = 1, b = 2)").
-
 operators_precedence_test() ->
   {true, _} = eval("a = -1; a +1 == 0"),
   {true, _} = eval("a = -1; a -1 + 2 == 0"),

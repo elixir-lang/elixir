@@ -21,8 +21,28 @@ split_last(List)       -> split_last(List, []).
 split_last([H], Acc)   -> { lists:reverse(Acc), H };
 split_last([H|T], Acc) -> split_last(T, [H|Acc]).
 
-abstract_syntax(Tree) ->
-  erl_syntax:revert(erl_syntax:abstract(Tree)).
+abstract_syntax(Tree) when is_tuple(Tree) ->
+  { tuple, 0, [abstract_syntax(X) || X <- tuple_to_list(Tree)] };
+
+abstract_syntax(Tree) when is_list(Tree) ->
+  abstract_cons(lists:reverse(Tree), { nil, 0 });
+
+abstract_syntax(Tree) when is_atom(Tree) ->
+  { atom, 0, Tree };
+
+abstract_syntax(Tree) when is_integer(Tree) ->
+  { integer, 0, Tree };
+
+abstract_syntax(Tree) when is_float(Tree) ->
+  { float, 0, Tree };
+
+abstract_syntax(Tree) when is_binary(Tree) ->
+  { bin, 0, [{ bin_element, 0, { string, 0, binary_to_list(Tree) }, default, default }] }.
+
+abstract_cons([H|T], Acc) ->
+  abstract_cons(T, { cons, 0, abstract_syntax(H), Acc });
+
+abstract_cons([], Acc) -> Acc.
 
 cons_to_list({ cons, _, Left, { nil, _ } }) ->
   [Left];
