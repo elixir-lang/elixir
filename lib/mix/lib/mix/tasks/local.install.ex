@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Local.Install do
   end
 
   defp do_install(path) do
-    beam = open_path(path)
+    beam = Mix.OpenPath.read_path(path)
     { :module, module } = get_module(path, beam)
 
     validate_module_name!(path, module)
@@ -39,14 +39,6 @@ defmodule Mix.Tasks.Local.Install do
       tasks = Mix.Local.tasks_path
       File.mkdir_p! tasks
       create_file Path.join(tasks, "#{module}.beam"), beam
-    end
-  end
-
-  defp open_path(path) do
-    cond do
-      is_url?(path)  -> open_url(path)
-      is_file?(path) -> open_file(path)
-      :else          -> raise Mix.Error, message: "expected PATH in `mix local.install PATH` to be a url or a local file path"
     end
   end
 
@@ -68,32 +60,4 @@ defmodule Mix.Tasks.Local.Install do
     end
   end
 
-  defp open_file(path) do
-    File.read!(path)
-  end
-
-  defp open_url(path) do
-    if URI.parse(path).scheme == "https" do
-      :ssl.start
-    end
-
-    :inets.start
-
-    case :httpc.request(binary_to_list(path)) do
-      { :ok, { { _, status, _ }, _, body } } when status in 200..299 ->
-        iolist_to_binary(body)
-      { :ok, { { _, status, _ }, _, _ } } ->
-        raise Mix.Error, message: "could not access url #{path}, got status: #{status}"
-      { :error, reason } ->
-        raise Mix.Error, message: "could not access url #{path}, error: #{inspect reason}"
-    end
-  end
-
-  defp is_file?(path) do
-    File.regular?(path)
-  end
-
-  defp is_url?(path) do
-    URI.parse(path).scheme in ["http", "https"]
-  end
 end

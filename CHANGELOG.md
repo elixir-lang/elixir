@@ -1,3 +1,14 @@
+# master
+
+* enhancements
+  * [Mix] Add local.rebar to download a local copy of rebar, and change deps.compile to use it if needed
+
+* bug fix
+
+* deprecations
+
+* backwards incompatible changes
+
 # v0.8.2 (2013-04-20)
 
 * enhancements
