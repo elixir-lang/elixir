@@ -46,9 +46,9 @@ defmodule Kernel.Typespec do
 
       <<_ :: _ * 8>>
 
-  ### Functions
+  ### Anonymous functions
 
-  Any function:
+  Any anonymous function:
 
       (fun(...) -> any)
       or
@@ -56,13 +56,13 @@ defmodule Kernel.Typespec do
       or
       (... -> any)
 
-  Function with arity of zero:
+  Anonymous function with arity of zero:
 
       (fun() -> type)
       or
       (() -> type)
 
-  Function with some arity:
+  Anonymous function with some arity:
 
       (fun(type, type) -> type)
       or
