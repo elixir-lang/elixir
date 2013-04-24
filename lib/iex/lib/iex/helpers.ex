@@ -312,7 +312,7 @@ defmodule IEx.Helpers do
   If `path` points to a file, prints its full path.
   """
   def ls(path // ".") do
-    case File.ls(path) do
+    case File.ls(expand_home(path)) do
       { :ok, items } ->
         sorted_items = Enum.sort(items)
         ls_print(sorted_items)
@@ -324,6 +324,12 @@ defmodule IEx.Helpers do
         IO.puts IO.ANSI.escape("%{yellow}#{Path.absname(path)}")
     end
   end
+
+  defp expand_home(<<?~, rest :: binary>>) do
+    System.user_home! <> rest
+  end
+
+  defp expand_home(other), do: other
 
   defp ls_print([]) do
     :ok
