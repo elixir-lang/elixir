@@ -84,14 +84,14 @@ defmodule Code do
 
   ## Examples
 
-      iex> Code.eval "a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line
+      iex> Code.eval("a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
       { 3, [ {:a, 1}, {:b, 2} ] }
 
   For convenience, you can my pass `__ENV__` as argument and
   all imports, requires and aliases will be automatically carried
   over:
 
-      iex> Code.eval "a + b", [a: 1, b: 2], __ENV__
+      iex> Code.eval("a + b", [a: 1, b: 2], __ENV__)
       { 3, [ {:a, 1}, {:b, 2} ] }
 
   """
@@ -115,15 +115,15 @@ defmodule Code do
 
   ## Examples
 
-      iex> contents = quote hygiene: [vars: false], do: a + b
-      ...> Code.eval_quoted contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line
+      iex> contents = quote(hygiene: [vars: false], do: a + b)
+      ...> Code.eval_quoted(contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
       { 3, [ {:a, 1}, {:b, 2} ] }
 
   For convenience, you can my pass `__ENV__` as argument and
   all options will be automatically extracted from the environment:
 
-      iex> contents = quote hygiene: [vars: false], do: a + b
-      ...> Code.eval_quoted contents, [a: 1, b: 2], __ENV__
+      iex> contents = quote(hygiene: [vars: false], do: a + b)
+      ...> Code.eval_quoted(contents, [a: 1, b: 2], __ENV__)
       { 3, [ {:a, 1}, {:b, 2} ] }
 
   """

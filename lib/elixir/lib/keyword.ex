@@ -59,7 +59,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.new [{:b,1},{:a,2}]
+      iex> Keyword.new([{:b,1},{:a,2}])
       [a: 2, b: 1]
 
   """
@@ -77,7 +77,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Enum.sort Keyword.new [:a, :b], fn x -> {x,x} end
+      iex> Keyword.new([:a, :b], fn (x) -> {x,x} end) |> Enum.sort
       [a: :a, b: :b]
 
   """
@@ -100,11 +100,11 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.get [a: 1], :a
+      iex> Keyword.get([a: 1], :a)
       1
-      iex> Keyword.get [a: 1], :b
+      iex> Keyword.get([a: 1], :b)
       nil
-      iex> Keyword.get [a: 1], :b, 3
+      iex> Keyword.get([a: 1], :b, 3)
       3
 
   """
@@ -123,9 +123,9 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.get! [a: 1], :a
+      iex> Keyword.get!([a: 1], :a)
       1
-      iex> Keyword.get! [a: 1], :b
+      iex> Keyword.get!([a: 1], :b)
       ** (KeyError) key not found: :b
 
   """
@@ -142,7 +142,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.get_values [a: 1, a: 2], :a
+      iex> Keyword.get_values([a: 1, a: 2], :a)
       [1,2]
 
   """
@@ -157,7 +157,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.keys [a: 1, b: 2]
+      iex> Keyword.keys([a: 1, b: 2])
       [:a,:b]
 
   """
@@ -171,7 +171,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.values [a: 1, b: 2]
+      iex> Keyword.values([a: 1, b: 2])
       [1,2]
 
   """
@@ -188,9 +188,9 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.delete [a: 1, b: 2], :a
+      iex> Keyword.delete([a: 1, b: 2], :a)
       [b: 2]
-      iex> Keyword.delete [b: 2], :a
+      iex> Keyword.delete([b: 2], :a)
       [b: 2]
 
   """
@@ -207,7 +207,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.put [a: 1, b: 2], :a, 3
+      iex> Keyword.put([a: 1, b: 2], :a, 3)
       [a: 3, b: 2]
 
   """
@@ -222,7 +222,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.put_new [a: 1, b: 2], :a, 3
+      iex> Keyword.put_new([a: 1, b: 2], :a, 3)
       [a: 1, b: 2]
 
   """
@@ -240,7 +240,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.equal? [a: 1, b: 2], [b: 2, a: 1]
+      iex> Keyword.equal?([a: 1, b: 2], [b: 2, a: 1])
       true
 
   """
@@ -255,7 +255,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Enum.sort Keyword.merge [a: 1, b: 2], [a: 3, d: 4]
+      iex> Keyword.merge([a: 1, b: 2], [a: 3, d: 4]) |> Enum.sort
       [a: 3, b: 2, d: 4]
 
   """
@@ -270,9 +270,9 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.merge [a: 1, b: 2], [a: 3, d: 4], fn _k, v1, v2 ->
+      iex> Keyword.merge([a: 1, b: 2], [a: 3, d: 4], fn (_k, v1, v2) ->
       ...>  v1 + v2
-      iex> end
+      iex> end)
       [a: 4, b: 2, d: 4]
 
   """

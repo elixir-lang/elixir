@@ -15,7 +15,7 @@ defmodule List do
 
   ## Examples
 
-      iex> List.concat [[1,[2],3], [4], [5,6]]
+      iex> List.concat([[1,[2],3], [4], [5,6]])
       [1,[2],3,4,5,6]
 
   """
@@ -32,7 +32,7 @@ defmodule List do
 
   ## Examples
 
-      iex> List.concat [1,2,3], [4,5,6]
+      iex> List.concat([1,2,3], [4,5,6])
       [1,2,3,4,5,6]
 
   """
@@ -60,10 +60,10 @@ defmodule List do
 
   ## Examples
 
-      iex> List.duplicate "hello", 3
+      iex> List.duplicate("hello", 3)
       ["hello","hello","hello"]
 
-      iex> List.duplicate [1,2], 2
+      iex> List.duplicate([1,2], 2)
       [[1,2],[1,2]]
   """
   def duplicate(elem, n) do
@@ -77,10 +77,10 @@ defmodule List do
 
   ## Examples
 
-      iex> List.flatten [1,[[2],3]]
+      iex> List.flatten([1,[[2],3]])
       [1,2,3]
 
-      iex> List.flatten [1,[[2],3]], [4,5]
+      iex> List.flatten([1,[[2],3]], [4,5])
       [1,2,3,4,5]
 
   """
@@ -98,10 +98,10 @@ defmodule List do
 
   ## Examples
 
-      iex> List.foldl [5,5], 10, fn x, acc -> x + acc end
+      iex> List.foldl([5,5], 10, fn (x, acc) -> x + acc end)
       20
 
-      iex> List.foldl [1,2,3,4], 0, fn x, acc -> x - acc end
+      iex> List.foldl([1,2,3,4], 0, fn (x, acc) -> x - acc end)
       2
 
   """
@@ -115,7 +115,7 @@ defmodule List do
 
   ## Examples
 
-      iex> List.foldr [1,2,3,4], 0, fn x, acc -> x - acc end
+      iex> List.foldr([1,2,3,4], 0, fn (x, acc) -> x - acc end)
       -2
 
   """
@@ -128,11 +128,11 @@ defmodule List do
 
   ## Examples
 
-      iex> List.last []
+      iex> List.last([])
       nil
-      iex> List.last [1]
+      iex> List.last([1])
       1
-      iex> List.last [1, 2, 3]
+      iex> List.last([1, 2, 3])
       3
 
   """
@@ -149,10 +149,10 @@ defmodule List do
 
   ## Examples
 
-      iex> List.member? [1,2,3], 1
+      iex> List.member?([1,2,3], 1)
       true
 
-      iex> List.member? [1,2,3], 0
+      iex> List.member?([1,2,3], 0)
       false
 
   """
@@ -259,7 +259,7 @@ defmodule List do
 
   ## Examples
 
-      iex> List.wrap [1,2,3]
+      iex> List.wrap([1,2,3])
       [1,2,3]
 
   """
@@ -280,10 +280,10 @@ defmodule List do
 
   ## Examples
 
-      iex> List.zip [[1, 2], [3, 4], [5, 6]]
+      iex> List.zip([[1, 2], [3, 4], [5, 6]])
       [{1, 3, 5}, {2, 4, 6}]
 
-      iex> List.zip [[1, 2], [3], [5, 6]]
+      iex> List.zip([[1, 2], [3], [5, 6]])
       [{1, 3, 5}]
 
   """
@@ -298,10 +298,10 @@ defmodule List do
 
   ## Examples
 
-      iex> List.unzip [{1, 2}, {3, 4}]
+      iex> List.unzip([{1, 2}, {3, 4}])
       [[1, 3], [2, 4]]
 
-      iex> List.unzip [{1, :a, "apple"}, {2, :b, "banana"}, {3, :c}]
+      iex> List.unzip([{1, :a, "apple"}, {2, :b, "banana"}, {3, :c}])
       [[1, 2, 3], [:a, :b, :c]]
 
   """

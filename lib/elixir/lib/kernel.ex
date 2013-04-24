@@ -296,7 +296,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> apply fn x -> x * 2 end, [2]
+      iex> apply(fn x -> x * 2 end, [2])
       4
 
   """
@@ -307,7 +307,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> apply Enum, :reverse, [[1,2,3]]
+      iex> apply(Enum, :reverse, [[1,2,3]])
       [3,2,1]
 
   """
@@ -373,12 +373,12 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> binary_part "foo", 1, 2
+      iex> binary_part("foo", 1, 2)
       "oo"
 
   A negative length can be used to extract bytes at the end of a binary:
 
-      iex> binary_part "foo", 3, -1
+      iex> binary_part("foo", 3, -1)
       "o"
 
   """
@@ -2009,7 +2009,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> div 5, 2
+      iex> div(5, 2)
       2
 
   """
@@ -2024,7 +2024,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> rem 5, 2
+      iex> rem(5, 2)
       1
 
   """
@@ -2038,9 +2038,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> nil? 1
+      iex> nil?(1)
       false
-      iex> nil? nil
+      iex> nil?(nil)
       true
 
   """
@@ -2533,7 +2533,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> destructure [x,y,z], [1,2,3,4,5]
+      iex> destructure([x,y,z], [1,2,3,4,5])
       ...> {x, y, z}
       {1, 2, 3}
 
@@ -2542,7 +2542,7 @@ defmodule Kernel do
   fine. If the right size is smaller, the remaining items
   are simply assigned to nil:
 
-      iex> destructure [x,y,z], [1]
+      iex> destructure([x,y,z], [1])
       ...> {x, y, z}
       {1, nil, nil}
 
@@ -2550,7 +2550,7 @@ defmodule Kernel do
   on the left side of a match:
 
       x = 1
-      destructure [^x,y,z], [1,2,3]
+      destructure([^x,y,z], [1,2,3])
 
   The example above will only work if x matches
   the first value from the right side. Otherwise,
@@ -2574,7 +2574,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> binary_to_integer "123"
+      iex> binary_to_integer("123")
       123
 
   """
@@ -2613,7 +2613,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> binary_to_float "2.2017764e+0"
+      iex> binary_to_float("2.2017764e+0")
       2.2017764
 
   """
@@ -2633,7 +2633,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> integer_to_binary 123
+      iex> integer_to_binary(123)
       "123"
 
   """
@@ -2653,7 +2653,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> integer_to_binary 77
+      iex> integer_to_binary(77)
       "77"
 
   """
@@ -2673,7 +2673,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> float_to_binary 7.0
+      iex> float_to_binary(7.0)
       "7.00000000000000000000e+00"
 
   """
@@ -2728,7 +2728,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> binary_to_atom "my_atom"
+      iex> binary_to_atom("my_atom")
       :my_atom
 
   """
@@ -2744,10 +2744,10 @@ defmodule Kernel do
   ## Examples
 
       iex> :my_atom
-      ...> binary_to_existing_atom "my_atom"
+      ...> binary_to_existing_atom("my_atom")
       :my_atom
 
-      iex> binary_to_existing_atom "this_atom_will_never_exist"
+      iex> binary_to_existing_atom("this_atom_will_never_exist")
       ** (ArgumentError) argument error
 
   """
@@ -2763,7 +2763,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> atom_to_binary :my_atom
+      iex> atom_to_binary(:my_atom)
       "my_atom"
 
   """
@@ -3030,7 +3030,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> raise ArgumentError, message: "Sample"
+      iex> raise(ArgumentError, message: "Sample")
       ** (ArgumentError) Sample
 
   """
@@ -3346,7 +3346,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> Regex.match? %r(foo), "foo"
+      iex> Regex.match?(%r(foo), "foo")
       true
 
   """
@@ -3367,7 +3367,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> Regex.match? %R(f\#{1,3}o), "f\#o"
+      iex> Regex.match?(%R(f\#{1,3}o), "f\#o")
       true
 
   """
