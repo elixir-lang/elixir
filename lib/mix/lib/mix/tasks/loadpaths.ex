@@ -7,9 +7,6 @@ defmodule Mix.Tasks.Loadpaths do
   @moduledoc """
   Load the application and its dependencies paths.
 
-  This task is not shown in `mix help` but it is part
-  of mix public API and can be depended on.
-
   ## Configuration
 
   * `:load_paths` extra load paths to be added.

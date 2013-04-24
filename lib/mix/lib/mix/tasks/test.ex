@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Test do
       Mix.Project.refresh
     end
 
-    Mix.Task.run Mix.project[:prepare_task], args
+    Mix.Task.run "app.start", args
     project = Mix.project
 
     cover = Keyword.get(project, :test_coverage, opts[:cover])
