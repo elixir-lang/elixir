@@ -12,6 +12,8 @@ defmodule IEx.Helpers do
   There are many other helpers available:
 
   * `c/2` - compiles a file in the given path
+  * `ls/0` - list the contents of the current directory
+  * `ls/1` - list the contents of the specified directory
   * `cd/1` - changes the current directory
   * `flush/0` — flush all messages sent to the shell
   * `h/0`, `h/1` - prints help/documentation
@@ -298,10 +300,73 @@ defmodule IEx.Helpers do
   Changes the shell directory to the given path.
   """
   def cd(directory) do
-    case File.cd(directory) do
+    case File.cd(expand_home(directory)) do
       :ok -> pwd
       { :error, :enoent } ->
         IO.puts IO.ANSI.escape("%{red}No directory #{directory}")
+    end
+  end
+
+  @doc """
+  Produces a simple list of a directory's contents.
+  If `path` points to a file, prints its full path.
+  """
+  def ls(path // ".") do
+    case File.ls(expand_home(path)) do
+      { :ok, items } ->
+        sorted_items = Enum.sort(items)
+        ls_print(sorted_items)
+
+      { :error, :enoent } ->
+        IO.puts IO.ANSI.escape("%{red}No such file or directory #{path}")
+
+      { :error, :enotdir } ->
+        IO.puts IO.ANSI.escape("%{yellow}#{Path.absname(path)}")
+    end
+  end
+
+  defp expand_home(<<?~, rest :: binary>>) do
+    System.user_home! <> rest
+  end
+
+  defp expand_home(other), do: other
+
+  defp ls_print([]) do
+    :ok
+  end
+
+  defp ls_print(list) do
+    # print items in multiple columns (2 columns in the worst case)
+    lengths = Enum.map(list, String.length(&1))
+    maxlen = maxlength(lengths)
+    width = min(maxlen, 30) + 5
+    ls_print(list, width)
+  end
+
+  defp ls_print(list, width) do
+    Enum.reduce(list, 0, fn(item, len) ->
+      if len >= 80 do
+        IO.puts ""
+        len = 0
+      end
+      :io.format('~-*ts', [width, format_item(item)])
+      len+width
+    end)
+    IO.puts ""
+  end
+
+  defp maxlength(list) do
+    Enum.reduce(list, 0, max(&1, &2))
+  end
+
+  defp format_item(path) do
+    case File.stat(path) do
+      { :ok, File.Stat[type: :device] } ->
+        IO.ANSI.escape("%{green}#{path}")
+      { :ok, File.Stat[type: :directory] } ->
+        IO.ANSI.escape("%{blue}#{path}")
+      _ ->
+        path
     end
   end
 end
