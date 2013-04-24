@@ -152,7 +152,7 @@ defmodule Macro do
 
   ## Examples
 
-      iex> Macro.unescape_binary "example\\n"
+      iex> Macro.unescape_binary("example\\n")
       "example\n"
 
   In the example above, we pass a string with `\n` escaped
