@@ -25,15 +25,15 @@ defmodule Dict do
   protocol:
 
       iex> dict = HashDict.new
-      ...> dict = Dict.put dict, :hello, :world
+      ...> dict = Dict.put(dict, :hello, :world)
       ...> dict[:hello]
       :world
 
   And also the `Enum.Iterator` protocol, allowing one to write:
 
-      Enum.each dict, fn { k, v } ->
+      Enum.each(dict, fn ({ k, v }) ->
         IO.puts "#{k}: #{v}"
-      end
+      end)
 
   """
 
@@ -78,8 +78,8 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = HashDict.new [a: 1, b: 2]
-      ...> Enum.sort Dict.keys d
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> Enum.sort(Dict.keys(d))
       [:a,:b]
 
   """
@@ -93,8 +93,8 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = HashDict.new [a: 1, b: 2]
-      ...> Enum.sort Dict.values d
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> Enum.sort(Dict.values(d))
       [1,2]
 
   """
@@ -108,8 +108,8 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = HashDict.new [a: 1, b: 2]
-      ...> Dict.size d
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> Dict.size(d)
       2
 
   """
@@ -123,11 +123,11 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = HashDict.new [a: 1]
+      iex> d = HashDict.new([a: 1])
       ...> Dict.has_key?(d, :a)
       true
 
-      iex> d = HashDict.new [a: 1]
+      iex> d = HashDict.new([a: 1])
       ...> Dict.has_key?(d, :b)
       false
 
@@ -143,16 +143,16 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = HashDict.new [a: 1]
-      ...> Dict.get d, :a
+      iex> d = HashDict.new([a: 1])
+      ...> Dict.get(d, :a)
       1
 
-      iex> d = HashDict.new [a: 1]
-      ...> Dict.get d, :b
+      iex> d = HashDict.new([a: 1])
+      ...> Dict.get(d, :b)
       nil
 
-      iex> d = HashDict.new [a: 1]
-      ...> Dict.get d, :b, 3
+      iex> d = HashDict.new([a: 1])
+      ...> Dict.get(d, :b, 3)
       3
   """
   @spec get(t, key, value) :: value
@@ -166,11 +166,11 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = HashDict.new [a: 1]
-      ...> Dict.get d, :a
+      iex> d = HashDict.new([a: 1])
+      ...> Dict.get(d, :a)
       1
-      iex> d = HashDict.new [a: 1]
-      ...> Dict.get! d, :b
+      iex> d = HashDict.new([a: 1])
+      ...> Dict.get!(d, :b)
       ** (KeyError) key not found: :b
 
   """
@@ -185,9 +185,9 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = HashDict.new [a: 1, b: 2]
-      ...> d = Dict.put d, :a, 3
-      ...> Dict.get d, :a
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> d = Dict.put(d, :a, 3)
+      ...> Dict.get(d, :a)
       3
 
   """
@@ -201,9 +201,9 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = HashDict.new [a: 1, b: 2]
-      ...> d = Dict.put_new d, :a, 3
-      ...> Dict.get d, :a
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> d = Dict.put_new(d, :a, 3)
+      ...> Dict.get(d, :a)
       1
 
   """
@@ -218,12 +218,12 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = HashDict.new [a: 1, b: 2]
-      ...> d = Dict.delete d, :a
-      ...> Dict.get d, :a
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> d = Dict.delete(d, :a)
+      ...> Dict.get(d, :a)
       nil
 
-      iex> d = HashDict.new [b: 2]
+      iex> d = HashDict.new([b: 2])
       ...> Dict.delete(d, :a) == d
       true
 
@@ -239,9 +239,9 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d1 = HashDict.new [a: 1, b: 2]
-      ...> d2 = HashDict.new [a: 3, d: 4]
-      ...> d = Dict.merge d1, d2
+      iex> d1 = HashDict.new([a: 1, b: 2])
+      ...> d2 = HashDict.new([a: 3, d: 4])
+      ...> d = Dict.merge(d1, d2)
       ...> [a: Dict.get(d, :a), b: Dict.get(d, :b), d: Dict.get(d, :d)]
       [a: 3, b: 2, d: 4]
 
@@ -258,11 +258,11 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d1 = HashDict.new [a: 1, b: 2]
-      ...> d2 = HashDict.new [a: 3, d: 4]
-      ...> d = Dict.merge d1, d2, fn _k, v1, v2 ->
+      iex> d1 = HashDict.new([a: 1, b: 2])
+      ...> d2 = HashDict.new([a: 3, d: 4])
+      ...> d = Dict.merge(d1, d2, fn(_k, v1, v2) ->
       ...>   v1 + v2
-      ...> end
+      ...> end)
       ...> [a: Dict.get(d, :a), b: Dict.get(d, :b), d: Dict.get(d, :d)]
       [a: 4, b: 2, d: 4]
 
@@ -278,9 +278,9 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = HashDict.new [a: 1, b: 2]
-      ...> d = Dict.update d, :a, fn val -> -val end
-      ...> Dict.get d, :a
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> d = Dict.update(d, :a, fn(val) -> -val end)
+      ...> Dict.get(d, :a)
       -1
 
   """
@@ -296,9 +296,9 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = HashDict.new [a: 1, b: 2]
-      ...> d = Dict.update d, :c, 3, fn val -> -val end
-      ...> Dict.get d, :c
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> d = Dict.update(d, :c, 3, fn(val) -> -val end)
+      ...> Dict.get(d, :c)
       3
 
   """

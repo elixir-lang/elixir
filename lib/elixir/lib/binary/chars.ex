@@ -51,9 +51,9 @@ defimpl Binary.Chars, for: List do
 
   ## Examples
 
-      iex> to_binary 'foo'
+      iex> to_binary('foo')
       "foo"
-      iex> to_binary ["foo", 'bar']
+      iex> to_binary(["foo", 'bar'])
       "foobar"
 
   """

@@ -62,7 +62,7 @@ defmodule String do
   Although codepoints could be represented as integers, this
   module represents all codepoints as strings. For example:
 
-      iex> String.codepoints "josé"
+      iex> String.codepoints("josé")
       ["j", "o", "s", "é"]
 
   There are a couple of ways to retrieve a character integer
