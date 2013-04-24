@@ -97,7 +97,7 @@ docs: compile
 	mkdir -p ebin
 	rm -rf docs
 	cp -R -f lib/*/ebin/*.beam ./ebin
-	bin/elixir ../exdoc/bin/exdoc "Elixir" "$(VERSION)" -m Kernel -u "https://github.com/elixir-lang/elixir/blob/master/%{path}#L%{line}"
+	bin/elixir ../exdoc/bin/exdoc "Elixir" "$(VERSION)" -m Kernel -u "https://github.com/elixir-lang/elixir"
 	rm -rf ebin
 
 release_zip: compile

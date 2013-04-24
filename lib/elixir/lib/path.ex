@@ -449,7 +449,7 @@ defmodule Path do
   ## Examples
 
   Imagine you have a directory called `projects` with three Elixir projects
-  inside of it: `elixir`, `exdoc` and `dynamo`. You can find all `.beam` files
+  inside of it: `elixir`, `ex_doc` and `dynamo`. You can find all `.beam` files
   inside their ebin directories all projects as follows:
 
       Path.wildcard("projects/*/ebin/**/*.beam")
