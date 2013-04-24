@@ -443,7 +443,6 @@ in_erlang_macros() ->
     {defp,2},
     {defp,4},
     {function,1},
-    {function,2},
     {function,3},
     {in,2},
     {'not',1},
