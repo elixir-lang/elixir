@@ -12,6 +12,8 @@ defmodule IEx.Helpers do
   There are many other helpers available:
 
   * `c/2` - compiles a file in the given path
+  * `ls/0` - list the contents of the current directory
+  * `ls/1` - list the contents of the specified directory
   * `cd/1` - changes the current directory
   * `flush/0` — flush all messages sent to the shell
   * `h/0`, `h/1` - prints help/documentation
@@ -302,6 +304,22 @@ defmodule IEx.Helpers do
       :ok -> pwd
       { :error, :enoent } ->
         IO.puts IO.ANSI.escape("%{red}No directory #{directory}")
+    end
+  end
+
+  @doc """
+  Produces a simple list of a directory's contents.
+  If path is a file, prints its full path.
+  """
+  def ls(path // ".") do
+    case File.ls(path) do
+      { :ok, items } ->
+          org_items = Enum.join(Enum.sort(items), "  ")
+          IO.puts IO.ANSI.escape("%{yellow}#{org_items}")
+      { :error, :enoent } ->
+        IO.puts IO.ANSI.escape("%{red}No such file or directory #{path}")
+      { :error, :enotdir } ->
+        IO.puts IO.ANSI.escape("%{yellow}#{Path.absname(path)}")
     end
   end
 end
