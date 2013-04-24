@@ -300,7 +300,7 @@ defmodule IEx.Helpers do
   Changes the shell directory to the given path.
   """
   def cd(directory) do
-    case File.cd(directory) do
+    case File.cd(expand_home(directory)) do
       :ok -> pwd
       { :error, :enoent } ->
         IO.puts IO.ANSI.escape("%{red}No directory #{directory}")
