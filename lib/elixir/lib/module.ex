@@ -116,11 +116,11 @@ defmodule Module do
 
   ## Examples
 
-      iex> Module.concat [Foo, Bar]
+      iex> Module.concat([Foo, Bar])
       Foo.Bar
-      iex> Module.concat [Foo, "Bar"]
+      iex> Module.concat([Foo, "Bar"])
       Foo.Bar
-      iex> Module.concat [Foo, 'Bar']
+      iex> Module.concat([Foo, 'Bar'])
       Foo.Bar
 
   """
@@ -134,11 +134,11 @@ defmodule Module do
 
   ## Examples
 
-      iex> Module.concat Foo, Bar
+      iex> Module.concat(Foo, Bar)
       Foo.Bar
-      iex> Module.concat Foo, "Bar"
+      iex> Module.concat(Foo, "Bar")
       Foo.Bar
-      iex> Module.concat Foo, 'Bar'
+      iex> Module.concat(Foo, 'Bar')
       Foo.Bar
 
   """
@@ -154,10 +154,10 @@ defmodule Module do
 
   ## Examples
 
-      iex> Module.safe_concat [Unknown, Module]
+      iex> Module.safe_concat([Unknown, Module])
       ** (ArgumentError) argument error
 
-      iex> Module.safe_concat [List, Chars]
+      iex> Module.safe_concat([List, Chars])
       List.Chars
 
   """
@@ -173,10 +173,10 @@ defmodule Module do
 
   ## Examples
 
-      iex> Module.safe_concat Unknown, Module
+      iex> Module.safe_concat(Unknown, Module)
       ** (ArgumentError) argument error
 
-      iex> Module.safe_concat List, Chars
+      iex> Module.safe_concat(List, Chars)
       List.Chars
 
   """

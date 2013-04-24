@@ -8,7 +8,7 @@ defprotocol Enum.Iterator do
 
   For example, in the expression
 
-      Enum.map [1,2,3], &1 * 2
+      Enum.map([1,2,3], &1 * 2)
 
   `Enum.map` invokes `Enum.Iterator.iterator([1,2,3])` to retrieve the iterator
   function that will drive the iteration process.
@@ -63,7 +63,7 @@ defmodule Enum do
   flavours. If a given collection implements the mentioned protocol (like
   list, for instance), you can do:
 
-      Enum.map [1,2,3], fn(x) -> x * 2 end
+      Enum.map([1,2,3], fn(x) -> x * 2 end)
 
   Depending on the type of the collection, the user-provided function will
   accept a certain type of argument. For dicts, the argument is always a
@@ -81,18 +81,18 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.all? [2,4,6], fn(x) -> rem(x, 2) == 0 end
+      iex> Enum.all?([2,4,6], fn(x) -> rem(x, 2) == 0 end)
       true
 
-      iex> Enum.all? [2,3,4], fn(x) -> rem(x, 2) == 0 end
+      iex> Enum.all?([2,3,4], fn(x) -> rem(x, 2) == 0 end)
       false
 
   If no function is given, it defaults to checking if
   all items in the collection evaluate to true.
 
-      iex> Enum.all? [1,2,3]
+      iex> Enum.all?([1,2,3])
       true
-      iex> Enum.all? [1,nil,3]
+      iex> Enum.all?([1,nil,3])
       false
 
   """
@@ -120,18 +120,18 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.any? [2,4,6], fn(x) -> rem(x, 2) == 1 end
+      iex> Enum.any?([2,4,6], fn(x) -> rem(x, 2) == 1 end)
       false
 
-      iex> Enum.any? [2,3,4], fn(x) -> rem(x, 2) == 1 end
+      iex> Enum.any?([2,3,4], fn(x) -> rem(x, 2) == 1 end)
       true
 
   If no function is given, it defaults to checking if
   at least one item in the collection evaluates to true.
 
-      iex> Enum.any? [false,false,false]
+      iex> Enum.any?([false,false,false])
       false
-      iex> Enum.any? [false,true,false]
+      iex> Enum.any?([false,true,false])
       true
 
   """
@@ -162,11 +162,11 @@ defmodule Enum do
 
     ## Examples
 
-        iex> Enum.at! [2,4,6], 0
+        iex> Enum.at!([2,4,6], 0)
         2
-        iex> Enum.at! [2,4,6], 2
+        iex> Enum.at!([2,4,6], 2)
         6
-        iex> Enum.at! [2,4,6], 4
+        iex> Enum.at!([2,4,6], 4)
         ** (Enum.OutOfBoundsError) out of bounds error
 
   """
@@ -189,7 +189,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.count [1,2,3]
+      iex> Enum.count([1,2,3])
       3
 
   """
@@ -221,11 +221,11 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.drop [1,2,3], 2
+      iex> Enum.drop([1,2,3], 2)
       [3]
-      iex> Enum.drop [1,2,3], 10
+      iex> Enum.drop([1,2,3], 10)
       []
-      iex> Enum.drop [1,2,3], 0
+      iex> Enum.drop([1,2,3], 0)
       [1,2,3]
 
   """
@@ -254,7 +254,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.drop_while [1,2,3,4,5], fn(x) -> x < 3 end
+      iex> Enum.drop_while([1,2,3,4,5], fn(x) -> x < 3 end)
       [3,4,5]
   """
   @spec drop_while(t, (element -> as_boolean(term))) :: list
@@ -278,7 +278,7 @@ defmodule Enum do
 
   ## Examples
 
-      Enum.each ['some', 'example'], fn(x) -> IO.puts x end
+      Enum.each(['some', 'example'], fn(x) -> IO.puts x end)
 
   """
   @spec each(t, (element -> any) | (element, index -> any)) :: :ok
@@ -310,9 +310,9 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.empty? []
+      iex> Enum.empty?([])
       true
-      iex> Enum.empty? [1,2,3]
+      iex> Enum.empty?([1,2,3])
       false
 
   """
@@ -334,7 +334,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.filter [1, 2, 3], fn(x) -> rem(x, 2) == 0 end
+      iex> Enum.filter([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
       [2]
 
   """
@@ -357,7 +357,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.filter_map [1, 2, 3], fn(x) -> rem(x, 2) == 0 end, &1 * 2
+      iex> Enum.filter_map([1, 2, 3], fn(x) -> rem(x, 2) == 0 end, &1 * 2)
       [4]
 
   """
@@ -381,13 +381,13 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.find [2,4,6], fn(x) -> rem(x, 2) == 1 end
+      iex> Enum.find([2,4,6], fn(x) -> rem(x, 2) == 1 end)
       nil
 
-      iex> Enum.find [2,4,6], 0, fn(x) -> rem(x, 2) == 1 end
+      iex> Enum.find([2,4,6], 0, fn(x) -> rem(x, 2) == 1 end)
       0
 
-      iex> Enum.find [2,3,4], fn(x) -> rem(x, 2) == 1 end
+      iex> Enum.find([2,3,4], fn(x) -> rem(x, 2) == 1 end)
       3
 
   """
@@ -415,10 +415,10 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.find_value [2,4,6], fn(x) -> rem(x, 2) == 1 end
+      iex> Enum.find_value([2,4,6], fn(x) -> rem(x, 2) == 1 end)
       nil
 
-      iex> Enum.find_value [2,3,4], fn(x) -> rem(x, 2) == 1 end
+      iex> Enum.find_value([2,3,4], fn(x) -> rem(x, 2) == 1 end)
       true
 
   """
@@ -448,10 +448,10 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.find_index [2,4,6], fn(x) -> rem(x, 2) == 1 end
+      iex> Enum.find_index([2,4,6], fn(x) -> rem(x, 2) == 1 end)
       nil
 
-      iex> Enum.find_index [2,3,4], fn(x) -> rem(x, 2) == 1 end
+      iex> Enum.find_index([2,3,4], fn(x) -> rem(x, 2) == 1 end)
       1
 
   """
@@ -474,9 +474,9 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.first []
+      iex> Enum.first([])
       nil
-      iex> Enum.first [1,2,3]
+      iex> Enum.first([1,2,3])
       1
 
   """
@@ -543,10 +543,10 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.map [1, 2, 3], fn(x) -> x * 2 end
+      iex> Enum.map([1, 2, 3], fn(x) -> x * 2 end)
       [2, 4, 6]
 
-      iex> Enum.map [a: 1, b: 2], fn({k, v}) -> { k, -v } end
+      iex> Enum.map([a: 1, b: 2], fn({k, v}) -> { k, -v } end)
       [a: -1, b: -2]
 
   """
@@ -622,7 +622,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.map_reduce [1, 2, 3], 0, fn(x, acc) -> { x * 2, x + acc } end
+      iex> Enum.map_reduce([1, 2, 3], 0, fn(x, acc) -> { x * 2, x + acc } end)
       { [2, 4, 6], 6 }
 
   """
@@ -647,7 +647,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.partition [1, 2, 3], fn(x) -> rem(x, 2) == 0 end
+      iex> Enum.partition([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
       { [2], [1,3] }
 
   """
@@ -672,7 +672,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.reduce [1, 2, 3], 0, fn(x, acc) -> x + acc end
+      iex> Enum.reduce([1, 2, 3], 0, fn(x, acc) -> x + acc end)
       6
 
   """
@@ -695,7 +695,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.reverse [1, 2, 3]
+      iex> Enum.reverse([1, 2, 3])
       [3, 2, 1]
 
   """
@@ -716,7 +716,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.sort [3,2,1]
+      iex> Enum.sort([3,2,1])
       [1,2,3]
 
   """
@@ -739,7 +739,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.sort [1,2,3], &1 > &2
+      iex> Enum.sort([1,2,3], &1 > &2)
       [3,2,1]
 
   """
@@ -769,15 +769,15 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.split [1,2,3], 2
+      iex> Enum.split([1,2,3], 2)
       { [1,2], [3] }
-      iex> Enum.split [1,2,3], 10
+      iex> Enum.split([1,2,3], 10)
       { [1,2,3], [] }
-      iex> Enum.split [1,2,3], 0
+      iex> Enum.split([1,2,3], 0)
       { [], [1,2,3] }
-      iex> Enum.split [1,2,3], -1
+      iex> Enum.split([1,2,3], -1)
       { [1,2], [3] }
-      iex> Enum.split [1,2,3], -5
+      iex> Enum.split([1,2,3], -5)
       { [], [1,2,3] }
 
   """
@@ -805,7 +805,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.split_while [1,2,3,4], fn(x) -> x < 3 end
+      iex> Enum.split_while([1,2,3,4], fn(x) -> x < 3 end)
       { [1, 2], [3, 4] }
   """
   @spec split_while(t, (element -> as_boolean(term))) :: {list, list}
@@ -828,11 +828,11 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.take [1,2,3], 2
+      iex> Enum.take([1,2,3], 2)
       [1,2]
-      iex> Enum.take [1,2,3], 10
+      iex> Enum.take([1,2,3], 10)
       [1,2,3]
-      iex> Enum.take [1,2,3], 0
+      iex> Enum.take([1,2,3], 0)
       []
 
   """
@@ -866,7 +866,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.take_while [1,2,3], fn(x) -> x < 3 end
+      iex> Enum.take_while([1,2,3], fn(x) -> x < 3 end)
       [1, 2]
 
   """
@@ -889,7 +889,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.uniq [1,2,3,2,1]
+      iex> Enum.uniq([1,2,3,2,1])
       [1, 2, 3]
 
   """
