@@ -349,7 +349,7 @@ defmodule IEx.Helpers do
         IO.puts ""
         len = 0
       end
-      :io.format('~-*ts', [width, format_item(item)])
+      IO.write format_item(item, iolist_to_binary(:io_lib.format('~-*ts', [width, item])))
       len+width
     end)
     IO.puts ""
@@ -359,14 +359,14 @@ defmodule IEx.Helpers do
     Enum.reduce(list, 0, max(&1, &2))
   end
 
-  defp format_item(path) do
+  defp format_item(path, representation) do
     case File.stat(path) do
       { :ok, File.Stat[type: :device] } ->
-        IO.ANSI.escape("%{green}#{path}")
+        IO.ANSI.escape("%{green}#{representation}")
       { :ok, File.Stat[type: :directory] } ->
-        IO.ANSI.escape("%{blue}#{path}")
+        IO.ANSI.escape("%{blue}#{representation}")
       _ ->
-        path
+        representation
     end
   end
 end
