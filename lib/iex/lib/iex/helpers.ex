@@ -309,17 +309,64 @@ defmodule IEx.Helpers do
 
   @doc """
   Produces a simple list of a directory's contents.
-  If path is a file, prints its full path.
+  If `path` points to a file, prints its full path.
   """
   def ls(path // ".") do
     case File.ls(path) do
       { :ok, items } ->
-          org_items = Enum.join(Enum.sort(items), "  ")
-          IO.puts IO.ANSI.escape("%{yellow}#{org_items}")
+        sorted_items = Enum.sort(items)
+        ls_print(sorted_items)
+
       { :error, :enoent } ->
         IO.puts IO.ANSI.escape("%{red}No such file or directory #{path}")
+
       { :error, :enotdir } ->
         IO.puts IO.ANSI.escape("%{yellow}#{Path.absname(path)}")
+    end
+  end
+
+  defp ls_print([]) do
+    :ok
+  end
+
+  defp ls_print(list) do
+    # print items in multiple columns (2 columns in the worst case)
+    lengths = Enum.map(list, String.length(&1))
+    maxlen = maxlength(lengths)
+    width = min(maxlen, 30) + 5
+    ls_print(list, width)
+  end
+
+  defp ls_print(list, width) do
+    Enum.reduce(list, 0, fn(item, len) ->
+      if len >= 80 do
+        IO.puts ""
+        len = 0
+      end
+      :io.format('~-*ts', [width, format_item(item)])
+      len+width
+    end)
+    IO.puts ""
+  end
+
+  defp maxlength(list) do
+    Enum.reduce(list, 0, max(&1, &2))
+  end
+
+  defp format_item(path) do
+    case File.stat(path) do
+      { :ok, stat } ->
+        case stat.type do
+          :device ->
+            IO.ANSI.escape("%{green}#{path}")
+          :directory ->
+            IO.ANSI.escape("%{blue}#{path}")
+          _ ->
+            path
+        end
+
+      _ -> path
+        path
     end
   end
 end
