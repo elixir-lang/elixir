@@ -136,7 +136,6 @@ defmodule Mix.Project do
       elixirc_paths: ["lib"],
       elixirc_watch_exts: [:ex, :eex, :exs],
       lockfile: "mix.lock",
-      prepare_task: "app.start",
       erlc_paths: ["src"],
       erlc_include_path: "include",
       erlc_options: [:debug_info] ]
