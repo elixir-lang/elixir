@@ -361,17 +361,13 @@ defmodule IEx.Helpers do
 
   defp format_item(path) do
     case File.stat(path) do
-      { :ok, stat } ->
-        case stat.type do
-          :device ->
-            IO.ANSI.escape("%{green}#{path}")
-          :directory ->
-            IO.ANSI.escape("%{blue}#{path}")
-          _ ->
-            path
-        end
-
-      _ -> path
+      { :ok, File.Stat[type: :device] } ->
+        IO.puts "device"
+        IO.ANSI.escape("%{green}#{path}")
+      { :ok, File.Stat[type: :directory] } ->
+        IO.puts "dir"
+        IO.ANSI.escape("%{blue}#{path}")
+      _ ->
         path
     end
   end
