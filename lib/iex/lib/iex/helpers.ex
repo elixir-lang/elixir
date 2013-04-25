@@ -312,10 +312,11 @@ defmodule IEx.Helpers do
   If `path` points to a file, prints its full path.
   """
   def ls(path // ".") do
-    case File.ls(expand_home(path)) do
+    path = expand_home(path)
+    case File.ls(path) do
       { :ok, items } ->
         sorted_items = Enum.sort(items)
-        ls_print(sorted_items)
+        ls_print(path, sorted_items)
 
       { :error, :enoent } ->
         IO.puts IO.ANSI.escape("%{red}No such file or directory #{path}")
@@ -331,25 +332,26 @@ defmodule IEx.Helpers do
 
   defp expand_home(other), do: other
 
-  defp ls_print([]) do
+  defp ls_print(_, []) do
     :ok
   end
 
-  defp ls_print(list) do
+  defp ls_print(path, list) do
     # print items in multiple columns (2 columns in the worst case)
     lengths = Enum.map(list, String.length(&1))
     maxlen = maxlength(lengths)
     width = min(maxlen, 30) + 5
-    ls_print(list, width)
+    ls_print(path, list, width)
   end
 
-  defp ls_print(list, width) do
+  defp ls_print(path, list, width) do
     Enum.reduce(list, 0, fn(item, len) ->
       if len >= 80 do
         IO.puts ""
         len = 0
       end
-      IO.write format_item(item, iolist_to_binary(:io_lib.format('~-*ts', [width, item])))
+      IO.write format_item(Path.join(path, item),
+                           iolist_to_binary(:io_lib.format('~-*ts', [width, item])))
       len+width
     end)
     IO.puts ""
