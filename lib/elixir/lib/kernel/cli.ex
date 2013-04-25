@@ -127,9 +127,15 @@ defmodule Kernel.CLI do
   end
 
   defp process_shared(["-r",h|t], config) do
-    process_shared t, Enum.reduce(Path.wildcard(h), config, fn path, config ->
-      config.update_commands [{:require,path}|&1]
-    end)
+    files = Path.wildcard(h)
+    if files == [] do
+      IO.puts(:stderr, "-r : No files matched pattern #{h}")
+      System.halt(1)
+    else
+      process_shared t, Enum.reduce(files, config, fn path, config ->
+        config.update_commands [{:require,path}|&1]
+      end)
+    end
   end
 
   defp process_shared(["-pr",h|t], config) do
@@ -237,7 +243,13 @@ defmodule Kernel.CLI do
     files = Path.wildcard(pattern)
     files = Enum.uniq(files)
     files = Enum.filter files, File.regular?(&1)
-    Kernel.ParallelRequire.files(files)
+
+    if files == [] do
+      IO.puts(:stderr, "-pr : No files matched pattern #{pattern}")
+      System.halt(1)
+    else
+      Kernel.ParallelRequire.files(files)
+    end
   end
 
   defp process_command({:compile, patterns}, config) do
