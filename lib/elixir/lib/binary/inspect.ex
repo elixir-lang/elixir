@@ -328,11 +328,12 @@ defimpl Binary.Inspect, for: Tuple do
 
     if is_atom(name) and match?("Elixir-" <> _, atom_to_binary(name)) do
       unless name in [BitString, List, Tuple, Atom, Number, Any] do
+        target = Module.concat(Binary.Inspect, name)
         try do
-          target = Module.concat(Binary.Inspect, name)
           target.inspect(tuple, opts)
-        rescue
-          UndefinedFunctionError ->
+        catch
+          :error, :undef, [[{ ^target, :inspect, args, _ } | _] | _]
+              when length(args) == 2  ->
             record_inspect(tuple, opts)
         end
       end
