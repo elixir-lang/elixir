@@ -376,6 +376,18 @@ defmodule Enum do
       { { _, _ }, { _, :stop } } ->
         false
 
+      { { _, :stop }, [] } ->
+        true
+
+      { [], { _, :stop } } ->
+        true
+
+      { { _, :stop }, _ } ->
+        false
+
+      { _, { _, :stop } } ->
+        false
+
       { { a_iterator, a_pointer }, { b_iterator, b_pointer } } ->
         do_equal?(a_pointer, a_iterator, b_pointer, b_iterator)
 
@@ -387,6 +399,93 @@ defmodule Enum do
 
       { a, b } ->
         a == b
+    end
+  end
+
+  @doc """
+  Returns true if the first collection is equal to the second, every element in
+  both collections is iterated through and compared with the passed function,
+  as soon as an element differs, it returns false.
+
+  Please note that the first parameter passed to the compare function isn't
+  ensured to be an element from the first collection.
+
+  ## Examples
+
+      iex> Enum.equal?([], [], &1 === &2)
+      true
+      iex> Enum.equal?([1 .. 3], [[1, 2, 3]], Enum.equal?(&1, &2))
+      true
+      iex> Enum.equal?(1 .. 3, [1.0, 2.0, 3.0], &1 === &2)
+      false
+      iex> Enum.equal?(1 .. 3, [], &1 === &2)
+      false
+
+  """
+  @spec equal?(t, t, ((term, term) -> boolean)) :: boolean
+  def equal?([], [], _) do
+    true
+  end
+
+  def equal?(a, b, _) when is_list(a) and is_list(b) and a == [] or b == [] do
+    false
+  end
+
+  def equal?(a, b, fun) when is_list(a) and is_list(b) do
+    do_equal_with?(fun, a, b)
+  end
+
+  def equal?(a, b, fun) when is_list(a) do
+    equal?(b, a, fun)
+  end
+
+  def equal?(a, b, fun) when is_list(b) do
+    case I.iterator(a) do
+      { _, :stop } ->
+        b == []
+
+      { iterator, pointer } ->
+        do_equal_with?(fun, pointer, iterator, b)
+
+      list ->
+        do_equal_with?(fun, list, b)
+    end
+  end
+
+  def equal?(a, b, fun) do
+    case { I.iterator(a), I.iterator(b) } do
+      { { _, :stop }, { _, :stop } } ->
+        true
+
+      { { _, :stop }, { _, _ } } ->
+        false
+
+      { { _, _ }, { _, :stop } } ->
+        false
+
+      { { _, :stop }, [] } ->
+        true
+
+      { [], { _, :stop } } ->
+        true
+
+      { { _, :stop }, _ } ->
+        false
+
+      { _, { _, :stop } } ->
+        false
+
+      { { a_iterator, a_pointer }, { b_iterator, b_pointer } } ->
+        do_equal_with?(fun, a_pointer, a_iterator, b_pointer, b_iterator)
+
+      { { iterator, pointer }, b } ->
+        do_equal_with?(fun, pointer, iterator, b)
+
+      { a, { iterator, pointer } } ->
+        do_equal_with?(fun, pointer, iterator, a)
+
+      { a, b } ->
+        do_equal_with?(fun, a, b)
     end
   end
 
@@ -1184,14 +1283,28 @@ defmodule Enum do
 
   ## equal?
 
-  defp do_equal?({ a, _ }, _, [b | _]) when a != b do
+  # iterator : iterator
+  defp do_equal?(:stop, _, :stop, _) do
+    true
+  end
+
+  defp do_equal?(:stop, _, _, _) do
     false
   end
 
-  defp do_equal?({ _, a_next }, iterator, [_ | b_next]) do
-    do_equal?(iterator.(a_next), iterator, b_next)
+  defp do_equal?(_, _, :stop, _) do
+    false
   end
 
+  defp do_equal?({ a, _ }, _, { b, _ }, _) when a != b do
+    false
+  end
+
+  defp do_equal?({ _, a_next }, a_iterator, { _, b_next }, b_iterator) do
+    do_equal?(a_iterator.(a_next), a_iterator, b_iterator.(b_next), b_iterator)
+  end
+
+  # iterator : list
   defp do_equal?({ _, _ }, _, []) do
     false
   end
@@ -1204,24 +1317,75 @@ defmodule Enum do
     false
   end
 
-  defp do_equal?({ a, _a_next }, _a_iterator, { b, _b_next }, _b_iterator) when a != b do
+  defp do_equal?({ a, _ }, _, [b | _]) when a != b do
     false
   end
 
-  defp do_equal?({ _a, a_next }, a_iterator, { _b, b_next }, b_iterator) do
-    do_equal?(a_iterator.(a_next), a_iterator, b_iterator.(b_next), b_iterator)
+  defp do_equal?({ _, a_next }, iterator, [_ | b_next]) do
+    do_equal?(iterator.(a_next), iterator, b_next)
   end
 
-  defp do_equal?(:stop, _a_iterator, :stop, _b_iterator) do
+  # iterator : iterator
+  defp do_equal_with?(_, :stop, _, :stop, _) do
     true
   end
 
-  defp do_equal?(:stop, _a_iterator, _b_pointer, _b_iterator) do
+  defp do_equal_with?(_, :stop, _, _, _) do
     false
   end
 
-  defp do_equal?(_a_pointer, _a_iterator, :stop, _b_iterator) do
+  defp do_equal_with?(_, _, _, :stop, _) do
     false
+  end
+
+  defp do_equal_with?(fun, { a, a_next }, a_iterator, { b, b_next }, b_iterator) do
+    if fun.(a, b) do
+      do_equal_with?(fun, a_iterator.(a_next), a_iterator, b_iterator.(b_next), b_iterator)
+    else
+      false
+    end
+  end
+
+  # iterator : list
+  defp do_equal_with?(_, :stop, _, []) do
+    true
+  end
+
+  defp do_equal_with?(_, :stop, _, _) do
+    false
+  end
+
+  defp do_equal_with?(_, { _, _ }, _, []) do
+    false
+  end
+
+  defp do_equal_with?(fun, { a, a_next }, iterator, [b | b_next]) do
+    if fun.(a, b) do
+      do_equal_with?(fun, iterator.(a_next), iterator, b_next)
+    else
+      false
+    end
+  end
+
+  # list : list
+  defp do_equal_with?(_, [], []) do
+    true
+  end
+
+  defp do_equal_with?(_, [], _) do
+    false
+  end
+
+  defp do_equal_with?(_, _, []) do
+    false
+  end
+
+  defp do_equal_with?(fun, [a | a_next], [b | b_next]) do
+    if fun.(a, b) do
+      do_equal_with?(fun, a_next, b_next)
+    else
+      false
+    end
   end
 
   ## find
