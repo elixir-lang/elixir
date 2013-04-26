@@ -88,6 +88,18 @@ defmodule EnumTest.List do
     assert Enum.equal?(1 .. 3, 1 .. 3)
     refute Enum.equal?(1 .. 3, 1 .. 10)
     refute Enum.equal?(1 .. 3, [])
+    assert Enum.equal?([1, 2, 3], 1 .. 3)
+    assert Enum.equal?(1 .. 3, 1 .. 3)
+    refute Enum.equal?(1 .. 3, 1 .. 10)
+    refute Enum.equal?(1 .. 3, [])
+    refute Enum.equal?([], 1 .. 3)
+
+    refute Enum.equal?(1 .. 3, [1.0, 2.0, 3.0], &1 === &2)
+    refute Enum.equal?(1 .. 3, [], &1 === &2)
+    refute Enum.equal?([], 1 .. 3, &1 === &2)
+    refute Enum.equal?(1 .. 3, 1 .. 5, &1 == &2)
+    assert Enum.equal?(1 .. 3, [1, 2, 3], &1 === &2)
+    assert Enum.equal?([1, 2, 3], [1, 2, 3], &1 === &2)
   end
 
   test :each do
