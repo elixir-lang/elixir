@@ -885,6 +885,33 @@ defmodule Enum do
   end
 
   @doc """
+  Convert `collection` to a list.
+
+  ## Examples
+
+      iex> Enum.to_list(1 .. 3)
+      [1, 2, 3]
+
+  """
+  @spec to_list(t) :: [term]
+  def to_list(collection) when is_list collection do
+    collection
+  end
+
+  def to_list(collection) do
+    case I.iterator(collection) do
+      { _iterator, :stop } ->
+        []
+
+      { iterator, pointer } ->
+        do_to_list(pointer, iterator)
+
+      list ->
+        list
+    end
+  end
+
+  @doc """
   Iterates the enumerable removing all duplicated items.
 
   ## Examples
@@ -931,14 +958,6 @@ defmodule Enum do
 
   defp iterator(collection) when is_list(collection), do: collection
   defp iterator(collection), do: I.iterator(collection)
-
-  defp to_list({ h, next }, iterator) do
-    [h|to_list(iterator.(next), iterator)]
-  end
-
-  defp to_list(:stop, _) do
-    []
-  end
 
   defp iterate_and_count(collection, count) do
     { list, total_items } = do_iterate_and_count(collection)
@@ -1068,7 +1087,7 @@ defmodule Enum do
   end
 
   defp do_drop(extra, iterator, 0) do
-    to_list(extra, iterator)
+    do_to_list(extra, iterator)
   end
 
   defp do_drop(:stop, _, _) do
@@ -1093,7 +1112,7 @@ defmodule Enum do
     if fun.(h) do
       do_drop_while(iterator.(next), iterator, fun)
     else
-      to_list(extra, iterator)
+      do_to_list(extra, iterator)
     end
   end
 
@@ -1485,7 +1504,7 @@ defmodule Enum do
   end
 
   defp do_split(extra, iterator, 0, acc) do
-    { :lists.reverse(acc), to_list(extra, iterator) }
+    { :lists.reverse(acc), do_to_list(extra, iterator) }
   end
 
   defp do_split(:stop, _, _, acc) do
@@ -1510,7 +1529,7 @@ defmodule Enum do
     if fun.(h) do
       do_split_while(iterator.(next), iterator, fun, [h|acc])
     else
-      { :lists.reverse(acc), to_list(extra, iterator) }
+      { :lists.reverse(acc), do_to_list(extra, iterator) }
     end
   end
 
@@ -1571,6 +1590,16 @@ defmodule Enum do
   end
 
   defp do_take_while(:stop, _, _) do
+    []
+  end
+
+  ## to_list
+
+  defp do_to_list({ h, next }, iterator) do
+    [h | do_to_list(iterator.(next), iterator)]
+  end
+
+  defp do_to_list(:stop, _) do
     []
   end
 
