@@ -240,6 +240,11 @@ defmodule EnumTest.List do
     assert Enum.take_while([], fn(_) -> true end) == []
   end
 
+  test :to_list do
+    assert Enum.to_list([]) == []
+    assert Enum.to_list(1 .. 3) == [1, 2, 3]
+  end
+
   test :uniq do
     assert Enum.uniq([1,2,3,2,1]) == [1,2,3]
   end
