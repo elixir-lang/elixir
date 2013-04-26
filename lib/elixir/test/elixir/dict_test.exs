@@ -145,6 +145,15 @@ defmodule DictTest.Common do
       defp new_dict(list, transform) do
         unquote(module).new list, transform
       end
+
+      test :equal? do
+        dict1 = HashDict.new(a: 2, b: 3, f: 5, c: 123)
+        dict2 = List.Dict.new(a: 2, b: 3, f: 5, c: 123)
+        assert Dict.equal?(dict1, dict2)
+
+        dict2 = Dict.put(dict2, :a, 3)
+        refute Dict.equal?(dict1, dict2)
+      end
     end
   end
 end
