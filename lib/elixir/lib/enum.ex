@@ -329,6 +329,68 @@ defmodule Enum do
   end
 
   @doc """
+  Returns true if the first collection is equal to the second, every element in
+  both collections is iterated through, as soon as an element differs, it
+  returns false.
+
+  ## Examples
+
+      iex> Enum.equal?([], [])
+      true
+      iex> Enum.equal?(1 .. 3, [1, 2, 3])
+      true
+      iex> Enum.equal?(1 .. 3, [])
+      false
+
+  """
+  @spec equal?(t, t) :: boolean
+  def equal?(a, b) when is_list(a) and is_list(b) do
+    a == b
+  end
+
+  def equal?(a, b) when is_list(a) do
+    equal?(b, a)
+  end
+
+  def equal?(a, b) when is_list(b) do
+    case I.iterator(a) do
+      { _, :stop } ->
+        b == []
+
+      { iterator, pointer } ->
+        do_equal?(pointer, iterator, b)
+
+      list ->
+        list == b
+    end
+  end
+
+  def equal?(a, b) do
+    case { I.iterator(a), I.iterator(b) } do
+      { { _, :stop }, { _, :stop } } ->
+        true
+
+      { { _, :stop }, { _, _ } } ->
+        false
+
+      { { _, _ }, { _, :stop } } ->
+        false
+
+      { { a_iterator, a_pointer }, { b_iterator, b_pointer } } ->
+        do_equal?(a_pointer, a_iterator, b_pointer, b_iterator)
+
+      { { iterator, pointer }, b } ->
+        do_equal?(pointer, iterator, b)
+
+      { a, { iterator, pointer } } ->
+        do_equal?(pointer, iterator, a)
+
+      { a, b } ->
+        a == b
+    end
+  end
+
+  @doc """
   Filters the collection, i.e. returns only those elements
   for which `fun` returns true.
 
@@ -1118,6 +1180,48 @@ defmodule Enum do
 
   defp do_drop_while(:stop, _, _) do
     []
+  end
+
+  ## equal?
+
+  defp do_equal?({ a, _ }, _, [b | _]) when a != b do
+    false
+  end
+
+  defp do_equal?({ _, a_next }, iterator, [_ | b_next]) do
+    do_equal?(iterator.(a_next), iterator, b_next)
+  end
+
+  defp do_equal?({ _, _ }, _, []) do
+    false
+  end
+
+  defp do_equal?(:stop, _, []) do
+    true
+  end
+
+  defp do_equal?(:stop, _, _) do
+    false
+  end
+
+  defp do_equal?({ a, _a_next }, _a_iterator, { b, _b_next }, _b_iterator) when a != b do
+    false
+  end
+
+  defp do_equal?({ _a, a_next }, a_iterator, { _b, b_next }, b_iterator) do
+    do_equal?(a_iterator.(a_next), a_iterator, b_iterator.(b_next), b_iterator)
+  end
+
+  defp do_equal?(:stop, _a_iterator, :stop, _b_iterator) do
+    true
+  end
+
+  defp do_equal?(:stop, _a_iterator, _b_pointer, _b_iterator) do
+    false
+  end
+
+  defp do_equal?(_a_pointer, _a_iterator, :stop, _b_iterator) do
+    false
   end
 
   ## find

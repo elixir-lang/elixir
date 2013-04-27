@@ -80,6 +80,16 @@ defmodule EnumTest.List do
     refute Enum.empty?([1,2,3])
   end
 
+  test :equal? do
+    assert Enum.equal?([], [])
+    refute Enum.equal?([], [1])
+
+    assert Enum.equal?(1 .. 3, [1, 2, 3])
+    assert Enum.equal?(1 .. 3, 1 .. 3)
+    refute Enum.equal?(1 .. 3, 1 .. 10)
+    refute Enum.equal?(1 .. 3, [])
+  end
+
   test :each do
     try do
       assert Enum.each([], fn(x) -> x end) == :ok
