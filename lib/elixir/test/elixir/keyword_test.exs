@@ -166,6 +166,12 @@ defmodule Keyword.DuplicatedTest do
     assert Keyword.delete(create_empty_keywords, :other_key) == []
   end
 
+  test :delete_first do
+    assert Keyword.delete_first(create_keywords, :first_key) == [first_key: 2, second_key: 2]
+    assert Keyword.delete_first(create_keywords, :other_key) == [first_key: 1, first_key: 2, second_key: 2]
+    assert Keyword.delete_first(create_empty_keywords, :other_key) == []
+  end
+
   test :put do
     assert Keyword.put(create_empty_keywords, :first_key, 1) == [first_key: 1]
     assert Keyword.put(create_keywords, :first_key, 1) == [first_key: 1, second_key: 2]
