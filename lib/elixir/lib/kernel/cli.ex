@@ -3,8 +3,8 @@ defmodule Kernel.CLI do
   Module responsible for controlling Elixir's CLI
   """
 
-  defrecord Config, commands: [], output: ".",
-                    compile: [], halt: true, compiler_options: []
+  defrecord Config, commands: [], output: ".", compile: [],
+                    halt: true, compiler_options: [], errors: []
 
   # This is the API invoked by Elixir boot process.
   @doc false
@@ -15,7 +15,13 @@ defmodule Kernel.CLI do
     :elixir_code_server.cast({ :argv, argv })
 
     run fn ->
-      Enum.map Enum.reverse(config.commands), process_command(&1, config)
+      command_results = Enum.map(Enum.reverse(config.commands), process_command(&1, config))
+      command_errors  = Enum.filter_map(command_results, &1 != :ok, fn {:error, msg} -> msg end)
+      errors          = Enum.reverse(config.errors) ++ command_errors
+      if errors != [] do
+        Enum.each(errors, fn msg -> IO.puts(:stderr, msg) end)
+        System.halt(1)
+      end
     end, config.halt
   end
 
@@ -83,15 +89,11 @@ defmodule Kernel.CLI do
     unless hooks == [], do: at_exit(status)
   end
 
-  defp invalid_option(option) do
-    IO.puts(:stderr, "Unknown option #{option}")
-    System.halt(1)
-  end
-
   defp shared_option?(list, config, callback) do
     case process_shared(list, config) do
-      { [h|_], _ } when h == hd(list) ->
-        invalid_option h
+      { [h|hs], _ } when h == hd(list) ->
+        new_config = config.update_errors ["Unknown option #{h}" | &1]
+        callback.(hs, new_config)
       { new_list, new_config } ->
         callback.(new_list, new_config)
     end
@@ -129,8 +131,7 @@ defmodule Kernel.CLI do
   defp process_shared(["-r",h|t], config) do
     files = Path.wildcard(h)
     if files == [] do
-      IO.puts(:stderr, "-r : No files matched pattern #{h}")
-      System.halt(1)
+      process_shared t, config.update_errors ["-r : No files matched pattern #{h}" | &1]
     else
       process_shared t, Enum.reduce(files, config, fn path, config ->
         config.update_commands [{:require,path}|&1]
@@ -165,8 +166,7 @@ defmodule Kernel.CLI do
     if exec do
       { config.update_commands([{:require,exec}|&1]), t }
     else
-      IO.puts(:stderr, "Could not find executable #{h}")
-      System.halt(1)
+      { config.update_errors(["-S : Could not find executable #{h}" | &1]), t }
     end
   end
 
@@ -223,20 +223,25 @@ defmodule Kernel.CLI do
 
   defp process_command({:eval, expr}, _config) when is_binary(expr) do
     Code.eval(expr, [])
+    :ok
   end
 
   defp process_command({:app, app}, _config) when is_binary(app) do
     case Application.Behaviour.start(binary_to_atom(app)) do
       { :error, reason } ->
-        IO.puts(:stderr, "Could not start application #{app}: #{inspect reason}")
-        System.halt(1)
+        { :error, "--app : Could not start application #{app}: #{inspect reason}" }
       :ok ->
         :ok
     end
   end
 
   defp process_command({:require, file}, _config) when is_binary(file) do
-    Code.require_file(file)
+    if File.regular?(file) do
+      Code.require_file(file)
+      :ok
+    else
+      { :error, "-r : No file named #{file}" }
+    end
   end
 
   defp process_command({:parallel_require, pattern}, _config) when is_binary(pattern) do
@@ -244,11 +249,11 @@ defmodule Kernel.CLI do
     files = Enum.uniq(files)
     files = Enum.filter files, File.regular?(&1)
 
-    if files == [] do
-      IO.puts(:stderr, "-pr : No files matched pattern #{pattern}")
-      System.halt(1)
-    else
+    if files != [] do
       Kernel.ParallelRequire.files(files)
+      :ok
+    else
+      { :error, "-pr : No files matched pattern #{pattern}" }
     end
   end
 
@@ -259,8 +264,13 @@ defmodule Kernel.CLI do
     files = Enum.uniq(List.concat(files))
     files = Enum.filter files, File.regular?(&1)
 
-    Code.compiler_options(config.compiler_options)
-    Kernel.ParallelCompiler.files_to_path(files, config.output,
-      fn file -> IO.puts "Compiled #{file}" end)
+    if files != [] do
+      Code.compiler_options(config.compiler_options)
+      Kernel.ParallelCompiler.files_to_path(files, config.output,
+        fn file -> IO.puts "Compiled #{file}" end)
+      :ok
+    else
+      { :error, "--compile : No files matched patterns #{patterns}" }
+    end
   end
 end
