@@ -88,31 +88,44 @@ defmodule ExUnit.Runner do
     test = ExUnit.Test[name: test_name, case: test_case]
     config.formatter.test_started(config.formatter_id, test)
 
-    test = try do
-      context = test_case.__exunit__(:setup, Keyword.put(context, :test, test))
-
+    # Run test in a new process so that we can trap exits for a single test
+    Process.flag(:trap_exit, true)
+    self_pid = self
+    test_pid = spawn_link fn ->
       test = try do
-        apply test_case, test_name, [context]
+        context = test_case.__exunit__(:setup, Keyword.put(context, :test, test))
+
+        test = try do
+          apply test_case, test_name, [context]
+          test
+        rescue
+          error1 ->
+            test.failure { :error, error1, filtered_stacktrace }
+        catch
+          kind1, error1 ->
+            test.failure { kind1, error1, filtered_stacktrace }
+        end
+
+        test_case.__exunit__(:teardown, Keyword.put(context, :test, test))
         test
       rescue
-        error1 ->
-          test.failure { :error, error1, filtered_stacktrace }
+        error2 ->
+          test.failure { :error, error2, filtered_stacktrace }
       catch
-        kind1, error1 ->
-          test.failure { kind1, error1, filtered_stacktrace }
+        kind2, error2 ->
+          test.failure { kind2, error2, filtered_stacktrace }
       end
 
-      test_case.__exunit__(:teardown, Keyword.put(context, :test, test))
-      test
-    rescue
-      error2 ->
-        test.failure { :error, error2, filtered_stacktrace }
-    catch
-      kind2, error2 ->
-        test.failure { kind2, error2, filtered_stacktrace }
+      self_pid <- { self, :test_finished, test }
     end
 
-    pid <- { self, :test_finished, test }
+    receive do
+      { ^test_pid, :test_finished, test } ->
+        pid <- { test_pid, :test_finished, test }
+      { :EXIT, ^test_pid, { error, stacktrace } } ->
+        test = test.failure { :EXIT, error, filter_stacktrace(stacktrace) }
+        pid <- { test_pid, :test_finished, test }
+    end
   end
 
   ## Helpers
