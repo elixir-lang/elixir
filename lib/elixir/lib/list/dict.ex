@@ -149,6 +149,13 @@ defmodule List.Dict do
   def empty(_dict), do: []
 
   @doc """
+  Check if the List.Dict is equal to another List.Dict.
+  """
+  def equal?(dict, other) do
+    :lists.keysort(1, dict) == :lists.keysort(1, other)
+  end
+
+  @doc """
   Converts the dict to a list.
   """
   def to_list(dict), do: dict

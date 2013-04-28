@@ -215,6 +215,26 @@ defmodule HashDict do
     ordered()
   end
 
+  def equal?(ordered(bucket: a, size: size), ordered(bucket: b, size: ^size)) do
+    a == b
+  end
+
+  def equal?(trie(size: size) = a, trie(size: ^size) = b) do
+    a == b
+  end
+
+  def equal?(ordered() = a, trie() = b) do
+    equal?(b, a)
+  end
+
+  def equal?(trie(size: size) = a, ordered(bucket: b, size: ^size)) do
+    :lists.keysort(1, to_list(a)) == :lists.keysort(1, b)
+  end
+
+  def equal?(_, _) do
+    false
+  end
+
   @doc """
   Converts the dict to a list.
   """
