@@ -200,6 +200,23 @@ defmodule Keyword do
   end
 
   @doc """
+  Deletes the first entry in the keyword list for a specific key.
+  If the key does not exist, returns the keyword list unchanged.
+
+  ## Examples
+
+      iex> Keyword.delete_first([a: 1, b: 2, a: 3], :a)
+      [b: 2, a: 3]
+      iex> Keyword.delete_first([b: 2], :a)
+      [b: 2]
+
+  """
+  @spec delete_first(t, key) :: t
+  def delete_first(keywords, key) when is_atom(key) do
+    :lists.keydelete(key, 1, keywords)
+  end
+
+  @doc """
   Puts the given `value` under `key`.
 
   If a previous value is already stored, all entries are
