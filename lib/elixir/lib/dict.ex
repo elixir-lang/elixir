@@ -45,6 +45,7 @@ defmodule Dict do
 
   defcallback delete(t, key) :: t
   defcallback empty(t) :: t
+  defcallback equal?(t, t) :: boolean
   defcallback get(t, key) :: value
   defcallback get(t, key, value) :: value
   defcallback get!(t, key) :: value | no_return
@@ -313,6 +314,32 @@ defmodule Dict do
   @spec empty(t) :: t
   def empty(dict) do
     target(dict).empty(dict)
+  end
+
+  @doc """
+  Check if two dicts are equal, if the dicts are of different types they're
+  first converted to lists.
+
+  ## Examples
+
+      iex> a = HashDict.new(a: 2, b: 3, f: 5, c: 123)
+      ...> b = List.Dict.new(a: 2, b: 3, f: 5, c: 123)
+      ...> Dict.equal?(a, b)
+      true
+
+      iex> a = HashDict.new(a: 2, b: 3, f: 5, c: 123)
+      ...> b = []
+      ...> Dict.equal?(a, b)
+      false
+
+  """
+  @spec equal?(t, t) :: boolean
+  def equal?(a, b) do
+    if target(a) == target(b) do
+      target(a).equal?(a, b)
+    else
+      List.Dict.equal?(target(a).to_list(a), target(b).to_list(b))
+    end
   end
 
   @doc """
