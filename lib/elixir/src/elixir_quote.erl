@@ -200,8 +200,13 @@ from_buffer_to_acc([], _Q, Acc, S) ->
   { Acc, S };
 
 from_buffer_to_acc(Buffer, Q, Acc, S) ->
-  { New, NewS } = elixir_tree_helpers:build_reverse_list(
-    fun(X, AccS) -> do_quote(X, Q, AccS) end, Buffer, line(Q), S),
+  Line = line(Q),
+
+  { New, NewS } = lists:foldl(fun(X, { AccX, AccS }) ->
+    { FX, FS } = do_quote(X, Q, AccS),
+    { { cons, Line, FX, AccX }, FS }
+  end, { { nil, Line }, S }, Buffer),
+
   { [New|Acc], NewS }.
 
 meta(Meta, #elixir_quote{line=keep}) ->

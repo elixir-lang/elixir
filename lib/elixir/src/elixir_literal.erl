@@ -1,7 +1,7 @@
 -module(elixir_literal).
 -export([translate/2]).
 -import(elixir_translator, [translate_each/2, translate_args/2]).
--import(elixir_scope, [umergev/2, umergec/2]).
+-import(elixir_scope, [umergec/2]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
@@ -29,33 +29,23 @@ translate({ '{}', Meta, Args } = Original, S) when is_list(Args) ->
 translate({ '[]', _Meta, [] }, S) ->
   { { nil, 0 }, S };
 
-translate({ '[]', _Meta, Args } = Original, S) when is_list(Args) ->
+translate({ '[]', Meta, Args } = Original, S) when is_list(Args) ->
   case elixir_partials:handle(Original, S, allow_tail) of
     error ->
       [RTail|RArgs] = lists:reverse(Args),
 
       case RTail of
         {'|',_,[Left,Right]} ->
-          Exprs = [Left|RArgs],
-          { Tail, ST } = translate_each(Right, S),
-          ListS = umergec(S, ST);
+          RExprs = [Left|RArgs],
+          TailFun = fun(ST) -> translate_each(Right, ST) end;
         _ ->
-          Exprs = [RTail|RArgs],
-          Tail = { nil, 0 },
-          ST = S,
-          ListS = S
+          RExprs = [RTail|RArgs],
+          TailFun = fun(ST) -> { { nil, ?line(Meta) }, ST } end
       end,
 
-      { FExprs, FS } = case S#elixir_scope.context of
-        match ->
-          elixir_tree_helpers:build_reverse_list(fun elixir_translator:translate_each/2, Exprs, 0, ListS, Tail);
-        _ ->
-          { TArgs, { SC, SV } } =
-            elixir_tree_helpers:build_reverse_list(fun elixir_translator:translate_arg/2, Exprs, 0, { ListS, ListS }, Tail),
-          { TArgs, umergec(SV, SC) }
-      end,
-
-      { FExprs, umergev(ST, FS) };
+      { Exprs, SE } = translate_args(lists:reverse(RExprs), S),
+      { Tail, ST }  = TailFun(SE),
+      { elixir_tree_helpers:list_to_cons(?line(Meta), Exprs, Tail), ST };
     Else -> Else
   end;
 

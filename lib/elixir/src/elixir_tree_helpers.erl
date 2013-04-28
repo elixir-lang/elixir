@@ -5,9 +5,8 @@
 -module(elixir_tree_helpers).
 -compile({parse_transform, elixir_transform}).
 -export([abstract_syntax/1, split_last/1, cons_to_list/1,
-  convert_to_boolean/5, returns_boolean/1, get_line/1,
-  build_list/4, build_list/5, build_simple_list/2,
-  build_reverse_list/4, build_reverse_list/5, build_simple_reverse_list/2]).
+  list_to_cons/2, list_to_cons/3,
+  convert_to_boolean/5, returns_boolean/1, get_line/1]).
 -include("elixir.hrl").
 
 get_line(Opts) ->
@@ -50,44 +49,13 @@ cons_to_list({ cons, _, Left, { nil, _ } }) ->
 cons_to_list({ cons, _, Left, Right }) ->
   [Left|cons_to_list(Right)].
 
-% Build a list translating each expression and accumulating
-% vars in one pass. It uses tail-recursive form.
-%
-% It receives a function to translate each expression given
-% in Exprs, a Line used to build the List and the variables
-% scope V is passed down item by item.
-%
-% The function needs to return a tuple where the first element
-% is an erlang abstract form and the second is the new variables
-% list.
-build_list(Fun, Exprs, Line, S) ->
-  build_list(Fun, Exprs, Line, S, {nil, Line}).
+list_to_cons(Line, List) ->
+  list_to_cons(Line, List, { nil, Line }).
 
-build_list(Fun, Exprs, Line, S, Tail) when is_integer(Line) ->
-  build_list_each(Fun, lists:reverse(Exprs), Line, S, Tail).
-
-% Same as build_list, but the list given is in reverse other.
-build_reverse_list(Fun, Exprs, Line, S) ->
-  build_list_each(Fun, Exprs, Line, S, {nil,Line}).
-
-build_reverse_list(Fun, Exprs, Line, S, Tail) when is_integer(Line) ->
-  build_list_each(Fun, Exprs, Line, S, Tail).
-
-% Builds a simple list, without translatation, just by generating the cons-cell.
-build_simple_list(Line, Args) ->
-  { List, [] } = build_list(fun(X,Y) -> {X,Y} end, Args, Line, []),
-  List.
-
-build_simple_reverse_list(Line, Args) ->
-  { List, [] } = build_reverse_list(fun(X,Y) -> {X,Y} end, Args, Line, []),
-  List.
-
-build_list_each(_Fun, [], _Line, S, Acc) ->
-  { Acc, S };
-
-build_list_each(Fun, [H|T], Line, S, Acc) ->
-  { Expr, NS } = Fun(H, S),
-  build_list_each(Fun, T, Line, NS, { cons, Line, Expr, Acc }).
+list_to_cons(Line, List, Tail) ->
+  lists:foldr(fun(X, Acc) ->
+    { cons, Line, X, Acc }
+  end, Tail, List).
 
 %% Others
 
