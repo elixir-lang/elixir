@@ -122,7 +122,7 @@ translate_each({ alias, Meta, [Ref, KV] }, S) ->
       %% Avoid creating aliases if first == last
       %% unecessarily polluting the aliases dict
       case New == Old of
-        true  -> { { nil, ?line(Meta) }, SF };
+        true  -> { { atom, ?line(Meta), nil }, SF };
         false ->
           case string:tokens(atom_to_list(New), "-") of
             [_,_] -> [];
@@ -130,7 +130,7 @@ translate_each({ alias, Meta, [Ref, KV] }, S) ->
                    "invalid args for alias, cannot create nested alias ~s", [elixir_errors:inspect(New)])
           end,
 
-          { { nil, ?line(Meta) }, SF#elixir_scope{
+          { { atom, ?line(Meta), nil }, SF#elixir_scope{
             aliases=orddict:store(New, Old, S#elixir_scope.aliases),
             macro_aliases=orddict:store(New, Old, S#elixir_scope.macro_aliases)
           } }
