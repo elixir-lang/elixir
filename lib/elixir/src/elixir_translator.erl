@@ -229,7 +229,7 @@ translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
           Atoms = [Atom || { atom, _, Atom } <- TAliases],
           { { atom, ?line(Meta), elixir_aliases:concat(Atoms) }, SA };
         false ->
-          Args = [elixir_tree_helpers:build_simple_list(?line(Meta), TAliases)],
+          Args = [elixir_tree_helpers:list_to_cons(?line(Meta), TAliases)],
           { ?wrap_call(?line(Meta), elixir_aliases, concat, Args), SA }
       end
   end;
