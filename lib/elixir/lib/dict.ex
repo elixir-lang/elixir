@@ -335,12 +335,15 @@ defmodule Dict do
   """
   @spec equal?(t, t) :: boolean
   def equal?(a, b) do
-    cond do
-      target(a) == target(b) ->
-        target(a).equal?(a, b)
+    a_target = target(a)
+    b_target = target(b)
 
-      target(a).size(a) == target(b).size(b) ->
-        List.Dict.equal?(target(a).to_list(a), target(b).to_list(b))
+    cond do
+      a_target == b_target ->
+        a_target.equal?(a, b)
+
+      a_target.size(a) == b_target.size(b) ->
+        List.Dict.equal?(a_target.to_list(a), b_target.to_list(b))
 
       true ->
         false
