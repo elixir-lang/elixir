@@ -89,9 +89,8 @@ defmodule ExUnit.Runner do
     config.formatter.test_started(config.formatter_id, test)
 
     # Run test in a new process so that we can trap exits for a single test
-    Process.flag(:trap_exit, true)
     self_pid = self
-    test_pid = spawn_link fn ->
+    { test_pid, test_ref } = Process.spawn_monitor fn ->
       test = try do
         context = test_case.__exunit__(:setup, Keyword.put(context, :test, test))
 
@@ -122,7 +121,7 @@ defmodule ExUnit.Runner do
     receive do
       { ^test_pid, :test_finished, test } ->
         pid <- { test_pid, :test_finished, test }
-      { :EXIT, ^test_pid, { error, stacktrace } } ->
+      { :DOWN, ^test_ref, :process, ^test_pid, { error, stacktrace } } ->
         test = test.failure { :EXIT, error, filter_stacktrace(stacktrace) }
         pid <- { test_pid, :test_finished, test }
     end
