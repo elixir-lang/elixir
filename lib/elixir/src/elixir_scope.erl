@@ -138,26 +138,30 @@ umergev(S1, S2) ->
   C1 = S1#elixir_scope.clause_vars,
   C2 = S2#elixir_scope.clause_vars,
   S2#elixir_scope{
-    vars=orddict:merge(fun var_merger/3, V1, V2),
+    vars=merge_vars(V1, V2),
     clause_vars=merge_clause_vars(C1, C2)
   }.
 
-% Receives two scopes and return a new scope based on the first
-% with the counter values from the second one.
+% Receives two scopes and return the later scope
+% keeping the variables from the first (counters,
+% imports and everything else are passed forward).
 
 umergec(S1, S2) ->
-  S1#elixir_scope{
-    counter=S2#elixir_scope.counter,
-    extra_guards=S2#elixir_scope.extra_guards,
-    super=S1#elixir_scope.super orelse S2#elixir_scope.super,
-    caller=S1#elixir_scope.caller orelse S2#elixir_scope.caller,
-    name_args=S1#elixir_scope.name_args orelse S2#elixir_scope.name_args
+  S2#elixir_scope{
+    vars=S1#elixir_scope.vars,
+    temp_vars=S1#elixir_scope.temp_vars,
+    clause_vars=S1#elixir_scope.clause_vars
   }.
 
 % Merge variables trying to find the most recently created.
 
+merge_vars(V, V) -> V;
+merge_vars(V1, V2) ->
+  orddict:merge(fun var_merger/3, V1, V2).
+
 merge_clause_vars(nil, _C2) -> nil;
 merge_clause_vars(_C1, nil) -> nil;
+merge_clause_vars(C, C)     -> C;
 merge_clause_vars(C1, C2)   ->
   orddict:merge(fun var_merger/3, C1, C2).
 
