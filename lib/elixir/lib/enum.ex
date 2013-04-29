@@ -1581,7 +1581,7 @@ defmodule Enum do
     true
   end
 
-  def do_member?({ h, next }, iterator, term) do
+  def do_member?({ _, next }, iterator, term) do
     do_member?(iterator.(next), iterator, term)
   end
 
