@@ -760,6 +760,28 @@ defmodule Enum do
   end
 
   @doc """
+  Checks if the given `term` is included in the `collection`.
+
+  ## Examples
+
+      iex> Enum.member?(1 .. 3, 1)
+      true
+      iex> Enum.member?([1, 2, 3, 4], 10)
+      false
+
+  """
+  @spec member?(t, term) :: boolean
+  def member?(collection, term) do
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_member?(pointer, iterator, term)
+
+      list when is_list(list) ->
+        List.member?(list, term)
+    end
+  end
+
+  @doc """
   Partitions `collection` into two where the first one contains elements
   for which `fun` returns a truthy value, and the second one -- for which `fun`
   returns false or nil.
@@ -1547,6 +1569,20 @@ defmodule Enum do
 
   defp do_map_reduce(:stop, _, list_acc, acc, _f) do
     { :lists.reverse(list_acc), acc }
+  end
+
+  ## member?
+
+  def do_member?(:stop, _, _) do
+    false
+  end
+
+  def do_member?({ h, _ }, _, term) when h == term do
+    true
+  end
+
+  def do_member?({ h, next }, iterator, term) do
+    do_member?(iterator.(next), iterator, term)
   end
 
   ## partition
