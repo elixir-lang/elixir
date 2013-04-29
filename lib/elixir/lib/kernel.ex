@@ -1525,11 +1525,10 @@ defmodule Kernel do
     fields = [{ :__exception__, :__exception__ }|fields]
     record = Record.defrecord(name, fields, opts)
 
-    check  = quote do
-      Exception.check! Module.concat(__MODULE__, unquote(name))
+    quote do
+      unquote(record)
+      Exception.check! unquote(name)
     end
-
-    [record, check]
   end
 
   @doc """
