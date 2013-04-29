@@ -111,7 +111,7 @@ defmodule Kernel.ImportMacrosTest do
   end
 end
 
-defmodule Kernel.AmbiguousImportTest do
+defmodule Kernel.MultipleImportTest do
   use ExUnit.Case, async: true
 
   test :import_ambiguous do
@@ -120,5 +120,11 @@ defmodule Kernel.AmbiguousImportTest do
     # import itself causing any errors.
     import List
     import String
+  end
+
+  test :import_many do
+    [import(List), import(String)]
+    assert capitalize("foo")  == "Foo"
+    assert flatten([1,[2],3]) == [1,2,3]
   end
 end
