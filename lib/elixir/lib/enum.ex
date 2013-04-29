@@ -367,27 +367,6 @@ defmodule Enum do
 
   def equal?(a, b) do
     case { I.iterator(a), I.iterator(b) } do
-      { { _, :stop }, { _, :stop } } ->
-        true
-
-      { { _, :stop }, { _, _ } } ->
-        false
-
-      { { _, _ }, { _, :stop } } ->
-        false
-
-      { { _, :stop }, [] } ->
-        true
-
-      { [], { _, :stop } } ->
-        true
-
-      { { _, :stop }, _ } ->
-        false
-
-      { _, { _, :stop } } ->
-        false
-
       { { a_iterator, a_pointer }, { b_iterator, b_pointer } } ->
         do_equal?(a_pointer, a_iterator, b_pointer, b_iterator)
 
@@ -454,27 +433,6 @@ defmodule Enum do
 
   def equal?(a, b, fun) do
     case { I.iterator(a), I.iterator(b) } do
-      { { _, :stop }, { _, :stop } } ->
-        true
-
-      { { _, :stop }, { _, _ } } ->
-        false
-
-      { { _, _ }, { _, :stop } } ->
-        false
-
-      { { _, :stop }, [] } ->
-        true
-
-      { [], { _, :stop } } ->
-        true
-
-      { { _, :stop }, _ } ->
-        false
-
-      { _, { _, :stop } } ->
-        false
-
       { { a_iterator, a_pointer }, { b_iterator, b_pointer } } ->
         do_equal_with?(fun, a_pointer, a_iterator, b_pointer, b_iterator)
 
