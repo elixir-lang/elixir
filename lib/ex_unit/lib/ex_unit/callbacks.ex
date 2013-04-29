@@ -79,6 +79,9 @@ defmodule ExUnit.Callbacks do
       compile_callbacks(env, :exunit_teardown_all) ]
   end
 
+  @doc """
+  Called before the start of each test.
+  """
   defmacro setup(var // quote(do: _), block) do
     quote do
       name = :"__exunit_setup_#{length(@exunit_setup)}"
@@ -87,6 +90,10 @@ defmodule ExUnit.Callbacks do
     end
   end
 
+  @doc """
+  Called after the finish of each test. Note that, if the test crasches with an exit
+  message `teardown` will not be run.
+  """
   defmacro teardown(var // quote(do: _), block) do
     quote do
       name = :"__exunit_teardown_#{length(@exunit_teardown)}"
@@ -95,6 +102,9 @@ defmodule ExUnit.Callbacks do
     end
   end
 
+  @doc """
+  Called before the start of a case.
+  """
   defmacro setup_all(var // quote(do: _), block) do
     quote do
       name = :"__exunit_setup_all_#{length(@exunit_setup_all)}"
@@ -103,6 +113,9 @@ defmodule ExUnit.Callbacks do
     end
   end
 
+  @doc """
+  Called after the finish of each case.
+  """
   defmacro teardown_all(var // quote(do: _), block) do
     quote do
       name = :"__exunit_teardown_all_#{length(@exunit_teardown_all)}"
