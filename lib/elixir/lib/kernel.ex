@@ -1317,6 +1317,45 @@ defmodule Kernel do
   """
   defmacro defp(name, args, guards, do: contents)
 
+  @doc """
+  Defines a macro with the given name and contents.
+
+  ## Examples
+
+      defmodule MyLogic do
+        defmacro unless(expr, opts) do
+          quote do
+            if !unquote(expr), unquote(opts)
+          end
+        end
+      end
+
+      require MyLogic
+      MyLogic.unless false do
+        IO.puts "It works"
+      end
+
+  """
+  defmacro defmacro(name, do: contents)
+
+  @doc """
+  The same as `def/4` but generates a macro.
+  """
+  defmacro defmacro(name, args, guards, do: contents)
+
+  @doc """
+  Defines a macro that is private. Private macros
+  can only be accessible from the same module it is defined.
+
+  Check `defmacro/2` for more information
+  """
+  defmacro defmacrop(name, do: contents)
+
+  @doc """
+  The same as `def/4` but generates a private macro.
+  """
+  defmacro defmacrop(name, args, guards, do: contents)
+
   @doc %B"""
   Defines a record.
 
