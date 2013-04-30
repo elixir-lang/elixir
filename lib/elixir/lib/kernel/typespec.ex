@@ -350,9 +350,8 @@ defmodule Kernel.Typespec do
     do_deftype(kind, type, definition, caller)
   end
 
-  def deftype(kind, {name, _meta, args} = type, caller) when 
-                                                        is_atom(name) and
-                                                        not is_list(args) do
+  def deftype(kind, {name, _meta, args} = type, caller)
+      when is_atom(name) and not is_list(args) do
     do_deftype(kind, type, { :term, [line: caller.line], nil }, caller)
   end
 
