@@ -137,11 +137,14 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp find_rebar(app) do
     cond do
-      System.find_executable("rebar") -> 
-        "rebar"
+      File.regular?("./rebar") ->
+        "./rebar"
 
       File.regular?(Mix.Tasks.Local.Rebar.local_rebar_path) ->
         Mix.Tasks.Local.Rebar.local_rebar_path
+
+      System.find_executable("rebar") ->
+        "rebar"
 
       true ->
         shell = Mix.shell
