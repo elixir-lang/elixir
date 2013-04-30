@@ -116,7 +116,7 @@ defmodule Mix.Tasks.Deps.Compile do
       end
     else
       raise Mix.Error, message: "could not find executable #{command} to compile " <>
-          "dependency #{app}, please ensure #{command} is available"
+        "dependency #{app}, please ensure #{command} is available"
     end
   end
 
@@ -147,8 +147,9 @@ defmodule Mix.Tasks.Deps.Compile do
         shell = Mix.shell
         shell.info "Could not find rebar, which is needed to build #{app}"
         shell.info "I can install a local copy which is just used by mix"
-        if !shell.yes?("Shall I install this local copy") do
-          raise Mix.error, message: "Build terminated—rebar not available"
+        unless shell.yes?("Shall I install this local copy?") do
+          raise Mix.Error, message: "could not find rebar to compile " <>
+            "dependency #{app}, please ensure rebar is available"
         end
         Mix.Task.run "local.rebar", []
         Mix.Tasks.Local.Rebar.local_rebar_path

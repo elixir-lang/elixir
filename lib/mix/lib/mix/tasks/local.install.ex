@@ -4,6 +4,7 @@ defmodule Mix.Tasks.Local.Install do
   import Mix.Generator, only: [create_file: 2]
 
   @shortdoc "Install a task locally"
+
   @moduledoc """
   Install a task locally.
 
@@ -29,7 +30,7 @@ defmodule Mix.Tasks.Local.Install do
   end
 
   defp do_install(path) do
-    beam = Mix.OpenPath.read_path(path)
+    beam = Mix.Utils.read_path(path)
     { :module, module } = get_module(path, beam)
 
     validate_module_name!(path, module)
