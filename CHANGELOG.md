@@ -8,6 +8,7 @@
 
 * bug fix
   * [ExUnit] Handle exit messages from in ExUnit
+  * [Kernel] Ensure we don't splice keyword args unecessarily
 
 * deprecations
 
