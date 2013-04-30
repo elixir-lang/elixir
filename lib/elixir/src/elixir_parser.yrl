@@ -11,7 +11,7 @@ Nonterminals
   open_bit close_bit
   base_comma_expr comma_expr optional_comma_expr matched_comma_expr
   call_args call_args_parens call_args_parens_not_one call_args_no_parens parens_call
-  stab stab_op stab_expr stab_maybe_expr
+  stab stab_eol stab_op stab_expr stab_maybe_expr
   kw_eol kw_expr kw_comma kw_base
   matched_kw_expr matched_kw_comma matched_kw_base
   dot_op dot_ref dot_identifier dot_op_identifier dot_do_identifier
@@ -192,7 +192,7 @@ base_expr -> sigil : build_sigil('$1').
 do_block -> do_eol 'end' : [[{do,nil}]].
 do_block -> do_eol stab end_eol : [[{ do, build_stab(lists:reverse('$2')) }]].
 do_block -> do_eol block_list 'end' : [[{ do, nil }|'$2']].
-do_block -> do_eol stab eol block_list 'end' : [[{ do, build_stab(lists:reverse('$2')) }|'$4']].
+do_block -> do_eol stab_eol block_list 'end' : [[{ do, build_stab(lists:reverse('$2')) }|'$3']].
 
 fn_eol -> 'fn' : '$1'.
 fn_eol -> 'fn' eol : '$1'.
@@ -209,6 +209,9 @@ block_eol -> block_identifier eol : '$1'.
 stab -> stab_expr : ['$1'].
 stab -> stab eol stab_expr : ['$3'|'$1'].
 
+stab_eol -> stab : '$1'.
+stab_eol -> stab eol : '$1'.
+
 stab_expr -> expr : '$1'.
 stab_expr -> stab_op stab_maybe_expr : build_op('$1', [], '$2').
 stab_expr -> call_args_no_parens stab_op stab_maybe_expr : build_op('$2', '$1', '$3').
@@ -217,7 +220,7 @@ stab_expr -> call_args_parens_not_one stab_op stab_maybe_expr : build_op('$2', '
 stab_maybe_expr -> 'expr' : '$1'.
 stab_maybe_expr -> '$empty' : nil.
 
-block_item -> block_eol stab eol : { ?exprs('$1'), build_stab(lists:reverse('$2')) }.
+block_item -> block_eol stab_eol : { ?exprs('$1'), build_stab(lists:reverse('$2')) }.
 block_item -> block_eol : { ?exprs('$1'), nil }.
 
 block_list -> block_item : ['$1'].
