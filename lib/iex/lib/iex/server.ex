@@ -27,19 +27,29 @@ defmodule IEx.Server do
         TokenMissingError ->
           config.cache(code)
         exception ->
-          trace = System.stacktrace
-          io_error "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-          io_error Exception.format_stacktrace(trace)
+          print_stacktrace System.stacktrace, fn ->
+            "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+          end
           config.cache('')
       catch
         kind, error ->
-          trace = System.stacktrace
-          io_error "** (#{kind}) #{inspect(error)}"
-          io_error Exception.format_stacktrace(trace)
+          print_stacktrace System.stacktrace, fn ->
+            "** (#{kind}) #{inspect(error)}"
+          end
           config.cache('')
       end
 
     do_loop(new_config)
+  end
+
+  defp print_stacktrace(trace, callback) do
+    try do
+      io_error callback.()
+      io_error Exception.format_stacktrace(trace)
+    catch
+      _, _ ->
+        io_error "** (IEx.Error) error when printing exception message and stacktrace"
+    end
   end
 
   defp update_history(config) do
