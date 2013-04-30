@@ -126,15 +126,15 @@ do_quote({ _, _, _ } = Tuple, Q, S) ->
   do_quote_tuple(Tuple, Q, S);
 
 % Handle two item tuples but still allow them to be spliced.
-do_quote({ Left, Right }, Q, S) when
-  not is_tuple(Left)  orelse (element(1, Left) /= unquote_splicing),
-  not is_tuple(Right) orelse (element(1, Right) /= unquote_splicing) ->
+do_quote({ Left, Right }, #elixir_quote{unquote=true} = Q, S) when
+    is_tuple(Left)  andalso (element(1, Left) == unquote_splicing);
+    is_tuple(Right) andalso (element(1, Right) == unquote_splicing) ->
+  do_quote({ '{}', [{line,line(Q)}], [Left, Right] }, Q, S);
+
+do_quote({ Left, Right }, Q, S) ->
   { TLeft, LS } = do_quote(Left, Q, S),
   { TRight, RS } = do_quote(Right, Q, LS),
   { { tuple, line(Q), [TLeft, TRight] }, RS };
-
-do_quote({ Left, Right }, Q, S) ->
-  do_quote({ '{}', [{line,line(Q)}], [Left, Right] }, Q, S);
 
 do_quote(List, Q, S) when is_list(List) ->
   splice(List, Q, [], [], S);

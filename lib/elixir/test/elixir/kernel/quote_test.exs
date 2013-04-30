@@ -112,6 +112,14 @@ defmodule Kernel.QuoteTest do
     assert { :->, _, [{[],1}] } = (quote do -> 1 end)
     assert { :->, _, [{[],1}] } = (quote do: (-> 1))
   end
+
+  test :nested_quote_with_splicing do
+    assert { :quote, _, [[do: { :unquote_splicing, _, _ }]] } = (quote do
+      quote do
+        unquote_splicing(qs)
+      end
+    end)
+  end
 end
 
 defmodule Kernel.QuoteTest.VarHygiene do
