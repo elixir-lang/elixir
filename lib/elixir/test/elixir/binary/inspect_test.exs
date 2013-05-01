@@ -131,6 +131,12 @@ defmodule Binary.Inspect.TupleTest do
     assert inspect(RuntimeError.new) == "RuntimeError[message: \"runtime error\"]"
   end
 
+  defrecord :something, [:a, :b]
+
+  test :non_module_record do
+    assert inspect(:something.new) == ":something[a: nil, b: nil]"
+  end
+
   test :empty do
     assert inspect({}) == "{}"
   end
