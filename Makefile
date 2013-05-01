@@ -44,7 +44,7 @@ erlang:
 # Since Mix depends on EEx and EEx depends on
 # Mix, we first compile EEx without the .app
 # file, then mix and then compile eex fully
-elixir: kernel unicode lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex iex
+elixir: kernel lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex iex
 
 kernel: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
@@ -54,6 +54,7 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
 	fi
 	@ echo "==> kernel (compile)";
 	@ $(ELIXIRC) "lib/elixir/lib/**/*.ex" -o lib/elixir/ebin;
+	@ $(MAKE) unicode
 	@ rm -rf lib/elixir/ebin/elixir.app
 	@ cd lib/elixir && $(REBAR) compile
 
