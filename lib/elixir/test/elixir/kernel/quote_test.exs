@@ -94,7 +94,7 @@ defmodule Kernel.QuoteTest do
 
   test :splice_on_root do
     contents = [1, 2, 3]
-    assert quote(do: unquote_splicing(contents)) == quote do: (1; 2; 3)
+    assert quote(do: (unquote_splicing(contents))) == quote do: (1; 2; 3)
   end
 
   test :splice_on_pipe do
@@ -111,14 +111,6 @@ defmodule Kernel.QuoteTest do
 
     assert { :->, _, [{[],1}] } = (quote do -> 1 end)
     assert { :->, _, [{[],1}] } = (quote do: (-> 1))
-  end
-
-  test :nested_quote_with_splicing do
-    assert { :quote, _, [[do: { :unquote_splicing, _, _ }]] } = (quote do
-      quote do
-        unquote_splicing(qs)
-      end
-    end)
   end
 end
 
