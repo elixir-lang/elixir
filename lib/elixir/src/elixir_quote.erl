@@ -54,6 +54,7 @@ user_quote(Expr, S) ->
 %% Quotes an expression into Erlang's AST
 
 quote({ 'unquote_splicing', Meta, [_] } = Expr, #elixir_quote{unquote=true} = Q, S) ->
+  elixir_errors:deprecation(Meta, S#elixir_scope.file, "unquote_splicing in the quote body is deprecated, please use (unquote_splicing()) instead", []),
   do_quote({ '__block__', Meta, [Expr] }, Q, S);
 
 quote(Else, Q, S) ->
