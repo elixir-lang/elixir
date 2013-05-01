@@ -162,7 +162,7 @@ defmodule List do
 
   @doc """
   Receives a list of tuples and returns the first tuple
-  where the item at position `posistion` matches with the
+  where the item at position `position` matches with the
   given `item`.
 
   ## Examples
