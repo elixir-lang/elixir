@@ -142,7 +142,7 @@ defmodule IO do
   Inspects the item with options using the given device.
   """
   def inspect(device, item, opts) do
-    puts device, Binary.Inspect.inspect(item, opts)
+    puts device, Kernel.inspect(item, opts)
     item
   end
 
