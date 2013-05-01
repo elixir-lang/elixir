@@ -57,6 +57,6 @@ defimpl Binary.Inspect, for: Range do
   import Kernel, except: [inspect: 2]
 
   def inspect(Range[first: first, last: last], opts) do
-    Binary.Inspect.inspect(first, opts) <> ".." <> Binary.Inspect.inspect(last, opts)
+    Kernel.inspect(first, opts) <> ".." <> Kernel.inspect(last, opts)
   end
 end

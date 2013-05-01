@@ -336,7 +336,7 @@ defmodule Macro do
   end
 
   # All other structures
-  def to_binary(other), do: Binary.Inspect.inspect(other, raw: true)
+  def to_binary(other), do: inspect(other, raw: true)
 
   # Block keywords
   defmacrop kw_keywords, do: [:do, :catch, :rescue, :after, :else]
@@ -346,7 +346,7 @@ defmodule Macro do
   end
   defp is_kw_blocks?(_), do: false
 
-  defp module_to_binary(atom) when is_atom(atom), do: Binary.Inspect.inspect(atom, raw: true)
+  defp module_to_binary(atom) when is_atom(atom), do: inspect(atom, raw: true)
   defp module_to_binary(other), do: call_to_binary(other)
 
   defp call_to_binary(atom) when is_atom(atom),  do: atom_to_binary(atom, :utf8)
