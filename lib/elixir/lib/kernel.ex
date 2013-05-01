@@ -1880,7 +1880,14 @@ defmodule Kernel do
 
   """
   defmacro inspect(arg, opts // []) do
-    quote do: Binary.Inspect.inspect(unquote(arg), unquote(opts))
+    quote do
+      arg = unquote(arg)
+      opts = unquote(opts)
+      case is_tuple(arg) && Keyword.get(opts, :raw, false) do
+        true  -> Binary.Inspect.Tuple.inspect(arg, opts)
+        false -> Binary.Inspect.inspect(arg, opts)
+      end
+    end
   end
 
   @doc """
