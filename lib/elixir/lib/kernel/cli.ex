@@ -44,7 +44,7 @@ defmodule Kernel.CLI do
       exception ->
         at_exit(1)
         trace = System.stacktrace
-        IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+        IO.puts "** (#{inspect exception.__record__(:name)}) #{exception.message}"
         IO.puts Exception.format_stacktrace(trace)
         System.halt(1)
     catch
