@@ -285,6 +285,20 @@ defmodule EnumTest.List do
     assert Enum.zip([1], []) == [{ 1, nil }]
     assert Enum.zip([], []) == []
   end
+
+  test :max do
+    assert Enum.max([1]) == 1
+    assert Enum.max([1,2,3]) == 3
+    assert Enum.max([1,[],:a,{}]) == []
+    assert_raise Enum.EmptyError, fn ->
+      assert Enum.max([])
+    end
+
+    assert Enum.max(["a", "aa", "aaa"], fn(x) -> String.length(x) end) == "aaa"
+    assert_raise Enum.EmptyError, fn ->
+      Enum.max([], fn(x) -> String.length(x) end)
+    end
+  end
 end
 
 defmodule EnumTest.Range do
@@ -580,6 +594,15 @@ defmodule EnumTest.Range do
     assert Enum.zip(1..2, 1..2) == [{1, 1}, {2, 2}]
     assert Enum.zip(1..4, 1..2) == [{1, 1}, {2, 2}, {3, nil}, {4, nil}]
     assert Enum.zip(1..2, 1..4) == [{1, 1}, {2, 2}]
+  end
+
+  test :max do
+    assert Enum.max(1..1) == 1
+    assert Enum.max(1..3) == 3
+    assert Enum.max(3..1) == 3
+
+    assert Enum.max(1..1, fn(x) -> :math.pow(-2, x) end) == 1
+    assert Enum.max(1..3, fn(x) -> :math.pow(-2, x) end) == 2
   end
 end
 
