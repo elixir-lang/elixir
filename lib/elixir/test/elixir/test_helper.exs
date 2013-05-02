@@ -19,7 +19,7 @@ defmodule PathHelpers do
   end
 
   def elixir(args) do
-    :os.cmd '#{elixir_executable} #{args}'
+    :os.cmd binary_to_list("#{elixir_executable} #{:unicode.characters_to_binary(args)}")
   end
 
   def elixirc(args) do
