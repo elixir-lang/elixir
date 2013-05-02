@@ -57,6 +57,8 @@ end
 defmodule Enum do
   alias Enum.Iterator, as: I
 
+  import Kernel, except: [max: 2, min: 2]
+
   @moduledoc """
   Provides a set of algorithms that enumerate over collections according to the
   `Enum.Iterator` protocol. Most of the functions in this module have two
@@ -1095,6 +1097,107 @@ defmodule Enum do
     end
   end
 
+  @doc """
+  Returns the maximum value.
+  Returns nil in case the collection is empty.
+
+  ## Examples
+
+      iex> Enum.max([1,2,3])
+      3
+
+  """
+  @spec max(t) :: element | no_return
+  def max([]), do: nil
+
+  def max(collection) when is_list(collection) do
+    :lists.max(collection)
+  end
+
+  def max(collection) do
+    case I.iterator(collection) do
+      { iterator, pointer }  ->
+      do_max_first(pointer, iterator, fn(x) -> x end)
+      list when is_list(list) ->
+        max(list)
+    end
+  end
+
+
+  @doc """
+  Returns the maximum value.
+  Returns nil in case the collection is empty.
+
+  ## Examples
+
+      iex> Enum.max(["a", "aa", "aaa"], fn(x) -> String.length(x) end)
+      "aaa"
+
+  """
+  @spec max(t, (element -> any)) :: element | no_return
+  def max(collection, fun) when is_list(collection) do
+    do_max_first(collection, fun)
+  end
+
+  def max(collection, fun) do
+    case I.iterator(collection) do
+      { iterator, pointer }  ->
+        do_max_first(pointer, iterator, fun)
+      list when is_list(list) ->
+        max(list, fun)
+    end
+  end
+
+  @doc """
+  Returns the minimum value.
+  Returns nil in case the collection is empty.
+
+  ## Examples
+
+      iex> Enum.min([1,2,3])
+      1
+
+  """
+  @spec min(t) :: element | no_return
+  def min([]), do: nil
+
+  def min(collection) when is_list(collection) do
+    :lists.min(collection)
+  end
+
+  def min(collection) do
+    case I.iterator(collection) do
+      { iterator, pointer }  ->
+      do_min_first(pointer, iterator, fn(x) -> x end)
+      list when is_list(list) ->
+        min(list)
+    end
+  end
+
+  @doc """
+  Returns the minimum value.
+  Returns nil in case the collection is empty.
+
+  ## Examples
+
+      iex> Enum.min(["a", "aa", "aaa"], fn(x) -> String.length(x) end)
+      "a"
+
+  """
+  @spec min(t, (element -> any)) :: element | no_return
+  def min(collection, fun) when is_list(collection) do
+    do_min_first(collection, fun)
+  end
+
+  def min(collection, fun) do
+    case I.iterator(collection) do
+      { iterator, pointer }  ->
+        do_min_first(pointer, iterator, fun)
+      list when is_list(list) ->
+        min(list, fun)
+    end
+  end
+
   ## Helpers
 
   defp iterator(collection) when is_list(collection), do: collection
@@ -1102,7 +1205,7 @@ defmodule Enum do
 
   defp iterate_and_count(collection, count) do
     { list, total_items } = do_iterate_and_count(collection)
-    { list, max(0, total_items - abs(count)) }
+    { list, Kernel.max(0, total_items - abs(count)) }
   end
 
   defp do_iterate_and_count(collection) when is_list(collection) do
@@ -1918,6 +2021,86 @@ defmodule Enum do
 
   defp do_zip_next({ _iterator, :stop } = i) do
     { nil, i }
+  end
+
+  ## max
+
+  defp do_max_first([], _), do: nil
+
+  defp do_max_first([h|t], fun) do
+    do_max(t, fun, h, fun.(h))
+  end
+
+  defp do_max_first(:stop, _, _), do: nil
+
+  defp do_max_first({ h, next }, iterator, fun) do
+    do_max(iterator.(next), iterator, fun, h, fun.(h))
+  end
+
+  defp do_max([], _, acc, _) do
+    acc
+  end
+
+  defp do_max([h|t], fun, acc, applied_acc) do
+    applied = fun.(h)
+    if applied > applied_acc do
+      do_max(t, fun, h, applied)
+    else
+      do_max(t, fun, acc, applied_acc)
+    end
+  end
+
+  defp do_max(:stop, _, _, acc, _) do
+    acc
+  end
+
+  defp do_max({ h, next }, iterator, fun, acc, applied_acc) do
+    applied = fun.(h)
+    if applied > applied_acc do
+      do_max(iterator.(next), iterator, fun, h, applied)
+    else
+      do_max(iterator.(next), iterator, fun, acc, applied_acc)
+    end
+  end
+
+  ## min
+
+  defp do_min_first([], _), do: nil
+
+  defp do_min_first([h|t], fun) do
+    do_min(t, fun, h, fun.(h))
+  end
+
+  defp do_min_first(:stop, _, _), do: nil
+
+  defp do_min_first({ h, next }, iterator, fun) do
+    do_min(iterator.(next), iterator, fun, h, fun.(h))
+  end
+
+  defp do_min([], _, acc, _) do
+    acc
+  end
+
+  defp do_min([h|t], fun, acc, applied_acc) do
+    applied = fun.(h)
+    if applied < applied_acc do
+      do_min(t, fun, h, applied)
+    else
+      do_min(t, fun, acc, applied_acc)
+    end
+  end
+
+  defp do_min(:stop, _, _, acc, _) do
+    acc
+  end
+
+  defp do_min({ h, next }, iterator, fun, acc, applied_acc) do
+    applied = fun.(h)
+    if applied < applied_acc do
+      do_min(iterator.(next), iterator, fun, h, applied)
+    else
+      do_min(iterator.(next), iterator, fun, acc, applied_acc)
+    end
   end
 end
 
