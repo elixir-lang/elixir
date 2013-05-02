@@ -57,7 +57,7 @@ end
 defmodule Enum do
   alias Enum.Iterator, as: I
 
-  import Kernel, except: [max: 2]
+  import Kernel, except: [max: 2, min: 2]
 
   @moduledoc """
   Provides a set of algorithms that enumerate over collections according to the
@@ -1147,6 +1147,55 @@ defmodule Enum do
     end
   end
 
+  @doc """
+  Returns the manimum value.
+  Raises empty error in case the collection is empty.
+
+  ## Examples
+
+      iex> Enum.min([1,2,3])
+      1
+
+  """
+  @spec min(t) :: element | no_return
+  def min(collection) when is_list(collection) do
+    if collection == [], do: raise Enum.EmptyError
+    :lists.min(collection)
+  end
+
+  def min(collection) do
+    case I.iterator(collection) do
+      { iterator, pointer }  ->
+      do_min_first(pointer, iterator, fn(x) -> x end)
+      list when is_list(list) ->
+        min(list)
+    end
+  end
+
+  @doc """
+  Returns the manimum value.
+  Raises empty error in case the collection is empty.
+
+  ## Examples
+
+      iex> Enum.min(["a", "aa", "aaa"], fn(x) -> String.length(x) end)
+      "a"
+
+  """
+  @spec min(t, (element -> any)) :: element | no_return
+  def min(collection, fun) when is_list(collection) do
+    do_min_first(collection, fun)
+  end
+
+  def min(collection, fun) do
+    case I.iterator(collection) do
+      { iterator, pointer }  ->
+        do_min_first(pointer, iterator, fun)
+      list when is_list(list) ->
+        min(list, fun)
+    end
+  end
+
   ## Helpers
 
   defp iterator(collection) when is_list(collection), do: collection
@@ -2013,6 +2062,50 @@ defmodule Enum do
       do_max(iterator.(next), iterator, fun, h, applied)
     else
       do_max(iterator.(next), iterator, fun, acc, applied_acc)
+    end
+  end
+
+  ## min
+
+  defp do_min_first([], _) do
+    raise Enum.EmptyError
+  end
+
+  defp do_min_first([h|t], fun) do
+    do_min(t, fun, h, fun.(h))
+  end
+
+  defp do_min_first(:stop, _, _) do
+    raise Enum.EmptyError
+  end
+
+  defp do_min_first({ h, next }, iterator, fun) do
+    do_min(iterator.(next), iterator, fun, h, fun.(h))
+  end
+
+  defp do_min([], _, acc, _) do
+    acc
+  end
+
+  defp do_min([h|t], fun, acc, applied_acc) do
+    applied = fun.(h)
+    if applied < applied_acc do
+      do_min(t, fun, h, applied)
+    else
+      do_min(t, fun, acc, applied_acc)
+    end
+  end
+
+  defp do_min(:stop, _, _, acc, _) do
+    acc
+  end
+
+  defp do_min({ h, next }, iterator, fun, acc, applied_acc) do
+    applied = fun.(h)
+    if applied < applied_acc do
+      do_min(iterator.(next), iterator, fun, h, applied)
+    else
+      do_min(iterator.(next), iterator, fun, acc, applied_acc)
     end
   end
 end
