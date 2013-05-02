@@ -282,3 +282,5 @@ defexception KeyError, key: nil do
 end
 
 defexception Enum.OutOfBoundsError, message: "out of bounds error"
+
+defexception Enum.EmptyError, message: "empty error"
