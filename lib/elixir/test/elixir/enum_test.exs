@@ -290,28 +290,20 @@ defmodule EnumTest.List do
     assert Enum.max([1]) == 1
     assert Enum.max([1,2,3]) == 3
     assert Enum.max([1,[],:a,{}]) == []
-    assert_raise Enum.EmptyError, fn ->
-      assert Enum.max([])
-    end
+    assert Enum.max([]) == nil
 
     assert Enum.max(["a", "aa", "aaa"], fn(x) -> String.length(x) end) == "aaa"
-    assert_raise Enum.EmptyError, fn ->
-      Enum.max([], fn(x) -> String.length(x) end)
-    end
+    Enum.max([], fn(x) -> String.length(x) end) == nil
   end
 
   test :min do
     assert Enum.min([1]) == 1
     assert Enum.min([1,2,3]) == 1
     assert Enum.min([[],:a,{}]) == :a
-    assert_raise Enum.EmptyError, fn ->
-      assert Enum.min([])
-    end
+    assert Enum.min([]) == nil
 
     assert Enum.min(["a", "aa", "aaa"], fn(x) -> String.length(x) end) == "a"
-    assert_raise Enum.EmptyError, fn ->
-      Enum.min([], fn(x) -> String.length(x) end)
-    end
+    Enum.min([], fn(x) -> String.length(x) end) == nil
   end
 end
 

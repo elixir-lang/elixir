@@ -1099,7 +1099,7 @@ defmodule Enum do
 
   @doc """
   Returns the maximum value.
-  Raises empty error in case the collection is empty.
+  Returns nil in case the collection is empty.
 
   ## Examples
 
@@ -1108,8 +1108,9 @@ defmodule Enum do
 
   """
   @spec max(t) :: element | no_return
+  def max([]), do: nil
+
   def max(collection) when is_list(collection) do
-    if collection == [], do: raise Enum.EmptyError
     :lists.max(collection)
   end
 
@@ -1125,7 +1126,7 @@ defmodule Enum do
 
   @doc """
   Returns the maximum value.
-  Raises empty error in case the collection is empty.
+  Returns nil in case the collection is empty.
 
   ## Examples
 
@@ -1149,7 +1150,7 @@ defmodule Enum do
 
   @doc """
   Returns the manimum value.
-  Raises empty error in case the collection is empty.
+  Returns nil in case the collection is empty.
 
   ## Examples
 
@@ -1158,8 +1159,9 @@ defmodule Enum do
 
   """
   @spec min(t) :: element | no_return
+  def min([]), do: nil
+
   def min(collection) when is_list(collection) do
-    if collection == [], do: raise Enum.EmptyError
     :lists.min(collection)
   end
 
@@ -1174,7 +1176,7 @@ defmodule Enum do
 
   @doc """
   Returns the manimum value.
-  Raises empty error in case the collection is empty.
+  Returns nil in case the collection is empty.
 
   ## Examples
 
@@ -2023,17 +2025,13 @@ defmodule Enum do
 
   ## max
 
-  defp do_max_first([], _) do
-    raise Enum.EmptyError
-  end
+  defp do_max_first([], _), do: nil
 
   defp do_max_first([h|t], fun) do
     do_max(t, fun, h, fun.(h))
   end
 
-  defp do_max_first(:stop, _, _) do
-    raise Enum.EmptyError
-  end
+  defp do_max_first(:stop, _, _), do: nil
 
   defp do_max_first({ h, next }, iterator, fun) do
     do_max(iterator.(next), iterator, fun, h, fun.(h))
@@ -2067,17 +2065,13 @@ defmodule Enum do
 
   ## min
 
-  defp do_min_first([], _) do
-    raise Enum.EmptyError
-  end
+  defp do_min_first([], _), do: nil
 
   defp do_min_first([h|t], fun) do
     do_min(t, fun, h, fun.(h))
   end
 
-  defp do_min_first(:stop, _, _) do
-    raise Enum.EmptyError
-  end
+  defp do_min_first(:stop, _, _), do: nil
 
   defp do_min_first({ h, next }, iterator, fun) do
     do_min(iterator.(next), iterator, fun, h, fun.(h))
