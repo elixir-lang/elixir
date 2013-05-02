@@ -63,6 +63,10 @@ defmodule Kernel.CLI.SyntaxErrorTest do
     assert :string.str(message, elixir('-e "[1,2"')) == 0
     message = '** (SyntaxError) nofile:1: syntax error before: \'end\''
     assert :string.str(message, elixir('-e "case 1 end"')) == 0
+    message = '** (SyntaxError) nofile:1: invalid token: あ'
+    assert :string.str(message, elixir('-e "あ"')) == 0
+    message = '** (SyntaxError) nofile:1: invalid token: æ'
+    assert :string.str(message, elixir('-e "æ"')) == 0
   end
 end
 
