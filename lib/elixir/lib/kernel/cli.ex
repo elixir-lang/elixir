@@ -9,7 +9,7 @@ defmodule Kernel.CLI do
   # This is the API invoked by Elixir boot process.
   @doc false
   def main(argv) do
-    argv = lc arg inlist argv, do: list_to_binary(arg)
+    argv = lc arg inlist argv, do: :unicode.characters_to_binary(arg)
 
     { config, argv } = process_argv(argv, Kernel.CLI.Config.new)
     :elixir_code_server.cast({ :argv, argv })
