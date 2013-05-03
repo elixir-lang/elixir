@@ -2940,6 +2940,9 @@ defmodule Kernel do
 
       x == 1 or x == 2 or x == 3
 
+  with the exception that the expression on the left of `in`
+  is evaluated only once.
+
   ## Clauses
 
   Whenever used inside a function or a case clause, you can
