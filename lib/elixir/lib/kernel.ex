@@ -2242,8 +2242,8 @@ defmodule Kernel do
         value -> value
       end
 
-  In the example above, we compare `thing` with each given
-  match clause and execute the first one that matches. If no
+  In the example above, we compare `thing` with each given match clause and
+  evaluate the expression corresponding to the first clause that matches. If no
   clause matches, an error is raised.
 
   Since Elixir variables can be assigned more than once, variables
@@ -2280,7 +2280,7 @@ defmodule Kernel do
   defmacro case(condition, blocks)
 
   @doc """
-  Execute the given expressions and catch any error, exit
+  Evaluate the given expressions and catch any error, exit
   or throw that may have happened.
 
   ## Examples
@@ -2525,8 +2525,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Execute the first clause where the condition returns true,
-  raises an error otherwise.
+  Evaluates the expression corresponding to the first clause that
+  evaluates to true. Raises an error if all conditions evaluate to
+  to falsy values (nil or false).
 
   ## Examples
 
@@ -2561,9 +2562,17 @@ defmodule Kernel do
   end
 
   @doc """
-  Provides an unless macro that executes the expression
-  unless a value evaluates to true. Check `if` for examples
-  and documentation.
+  Evaluates and returns the expression unless clause evaluates to true.
+  Returns nil otherwise.
+  See also `if`.
+
+  ## Examples
+
+      iex> unless(1, "Hello")
+      nil
+      iex> unless(false, "Hello")
+      "Hello"
+
   """
   defmacro unless(clause, options) do
     do_clause   = Keyword.get(options, :do, nil)
