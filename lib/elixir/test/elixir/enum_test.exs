@@ -3,6 +3,30 @@ Code.require_file "../test_helper.exs", __FILE__
 defmodule EnumTest.List do
   use ExUnit.Case, async: true
 
+  test :empty? do
+    assert Enum.empty?([])
+    refute Enum.empty?([1,2,3])
+    refute Enum.empty?(1..3)
+  end
+
+  test :member? do
+    assert Enum.member?([1, 2, 3], 2)
+    refute Enum.member?([], 0)
+    refute Enum.member?([1, 2, 3], 0)
+    assert Enum.member?(1..3, 2)
+    refute Enum.member?(1..3, 0)
+  end
+
+  test :count do
+    assert Enum.count([1,2,3]) == 3
+    assert Enum.count([]) == 0
+  end
+
+  test :count_fun do
+    assert Enum.count([1,2,3], fn(x) -> rem(x, 2) == 0 end) == 1
+    assert Enum.count([], fn(x) -> rem(x, 2) == 0 end) == 0
+  end
+
   test :all? do
     assert Enum.all?([2,4,6], fn(x) -> rem(x, 2) == 0 end)
     refute Enum.all?([2,3,4], fn(x) -> rem(x, 2) == 0 end)
@@ -29,16 +53,6 @@ defmodule EnumTest.List do
     assert_raise Enum.OutOfBoundsError, fn ->
       Enum.at!([2,4,6], 4)
     end
-  end
-
-  test :count do
-    assert Enum.count([1,2,3]) == 3
-    assert Enum.count([]) == 0
-  end
-
-  test :count_fun do
-    assert Enum.count([1,2,3], fn(x) -> rem(x, 2) == 0 end) == 1
-    assert Enum.count([], fn(x) -> rem(x, 2) == 0 end) == 0
   end
 
   test :drop do
@@ -73,11 +87,6 @@ defmodule EnumTest.List do
   test :find_index do
     assert Enum.find_index([2,4,6], fn(x) -> rem(x, 2) == 1 end) == nil
     assert Enum.find_index([2,3,4], fn(x) -> rem(x, 2) == 1 end) == 1
-  end
-
-  test :empty? do
-    assert Enum.empty?([])
-    refute Enum.empty?([1,2,3])
   end
 
   test :equal? do
@@ -180,12 +189,6 @@ defmodule EnumTest.List do
   test :map_reduce do
     assert Enum.map_reduce([], 1, fn(x, acc) -> { x * 2, x + acc } end) == { [], 1 }
     assert Enum.map_reduce([1,2,3], 1, fn(x, acc) -> { x * 2, x + acc } end) == { [2,4,6], 7 }
-  end
-
-  test :member? do
-    refute Enum.member?([], 0)
-    assert Enum.member?([1, 2, 3], 2)
-    assert Enum.member?(1 .. 3, 1)
   end
 
   test :partition do

@@ -121,7 +121,12 @@ defmodule HashDictTest do
   end
 
   test :enum do
-    assert Enum.count(filled_dict(8)) == 8
+    dict = filled_dict(10)
+    assert Enum.empty?(HashDict.new)
+    refute Enum.empty?(dict)
+    assert Enum.member?(dict, 5)
+    refute Enum.member?(dict, :foo)
+    assert Enum.count(dict) == 10
     assert Enum.map(filled_dict(3), fn({ k, v }) -> k + v end) == [2,4,6]
   end
 
