@@ -855,7 +855,7 @@ defmodule Enum do
   end
 
   @doc """
-  Sorts the collection using the merge sort algorithm.
+  Returns a sorted list of collection elements. Uses the merge sort algorithm.
 
   ## Examples
 
@@ -878,7 +878,7 @@ defmodule Enum do
   end
 
   @doc """
-  Sorts the collection using the merge sort algorithm.
+  Returns a sorted list of collection elements. Uses the merge sort algorithm.
 
   ## Examples
 
