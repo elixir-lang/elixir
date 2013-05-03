@@ -2562,7 +2562,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Evaluates and returns the expression unless clause evaluates to true.
+  Evaluates and returns the do-block passed in as a second argument
+  unless clause evaluates to true.
   Returns nil otherwise.
   See also `if`.
 
