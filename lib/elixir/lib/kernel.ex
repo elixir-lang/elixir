@@ -2940,6 +2940,8 @@ defmodule Kernel do
 
       x == 1 or x == 2 or x == 3
 
+  Note that the expression on the left of `in` may be evaluated multiple times.
+
   ## Clauses
 
   Whenever used inside a function or a case clause, you can
