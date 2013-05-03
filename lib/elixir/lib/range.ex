@@ -26,6 +26,14 @@ defimpl Enum.Iterator, for: Range do
     { iterator, iterator.(first) }
   end
 
+  def empty?(Range[first: first] = range) do
+    Range.Iterator.count(first, range) < 1
+  end
+
+  def member?(Range[first: first, last: last], value) do
+    value in first..last
+  end
+
   def count(Range[first: first] = range) do
     Range.Iterator.count(first, range)
   end
