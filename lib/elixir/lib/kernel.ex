@@ -2568,9 +2568,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> unless(1, "Hello")
+      iex> unless(1, do: "Hello")
       nil
-      iex> unless(false, "Hello")
+      iex> unless(false, do: "Hello")
       "Hello"
 
   """
