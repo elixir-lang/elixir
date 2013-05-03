@@ -2937,8 +2937,7 @@ defmodule Kernel do
 
   @doc """
   Returns true if the element on the left is equal (==) to
-  any of the items in the right. For now, it only accepts
-  a list as the right argument.
+  any of the items in the right.
 
   ## Examples
 
