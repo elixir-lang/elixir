@@ -2360,7 +2360,7 @@ defmodule Kernel do
 
   ## Variable visibility
 
-  Since an expression inside `try` may not have been evaluted
+  Since an expression inside `try` may not have been evaluated
   due to an exception, any variable created inside `try` cannot
   be accessed externaly. For instance:
 
@@ -2484,7 +2484,7 @@ defmodule Kernel do
 
       if(foo, do: bar)
 
-  In the example above, bar will be returned if foo evalutes to
+  In the example above, bar will be returned if foo evaluates to
   true (i.e. it is not false nor nil). Otherwise, nil will be returned.
 
   An else option can be given to specify the opposite:
@@ -2561,8 +2561,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Provides a unless macro that executes the expression
-  unless a value evalutes to true. Check `if` for examples
+  Provides an unless macro that executes the expression
+  unless a value evaluates to true. Check `if` for examples
   and documentation.
   """
   defmacro unless(clause, options) do
