@@ -2863,9 +2863,10 @@ defmodule Kernel do
   end
 
   @doc """
-  Provides a short-circuit operator that executes the second
-  expression only if the first one evalutes to true (i.e. it is
-  not nil nor false). Returns the first expression otherwise.
+  Provides a short-circuit operator that evaluates and returns
+  the second expression only if the first one evaluates to true
+  (i.e. it is not nil nor false). Returns the first expression
+  otherwise.
 
   ## Examples
 
@@ -2894,9 +2895,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Provides a short-circuit operator that executes the second
-  expression only if the first one does not evalute to true (i.e. it
-  is not nil nor false). Returns the first expression otherwise.
+  Provides a short-circuit operator that evaluates and returns the second
+  expression only if the first one does not evaluate to true (i.e. it
+  is either nil or false). Returns the first expression otherwise.
 
   ## Examples
 
