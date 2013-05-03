@@ -134,13 +134,16 @@ defmodule Kernel do
   defmacro left and right
 
   @doc """
-  Boolean xor. Arguments must be booleans.
+  Boolean exclusive-or. Arguments must be booleans. Returns true if and only if
+  both arguments are different.
   Allowed in guard clauses.
 
   ## Examples
 
       iex> true xor false
       true
+      iex> true xor true
+      false
 
   """
   defmacro left xor right
@@ -2239,8 +2242,8 @@ defmodule Kernel do
         value -> value
       end
 
-  In the example above, we compare `thing` with each given
-  match clause and execute the first one that matches. If no
+  In the example above, we compare `thing` with each given match clause and
+  evaluate the expression corresponding to the first clause that matches. If no
   clause matches, an error is raised.
 
   Since Elixir variables can be assigned more than once, variables
@@ -2277,7 +2280,7 @@ defmodule Kernel do
   defmacro case(condition, blocks)
 
   @doc """
-  Execute the given expressions and catch any error, exit
+  Evaluate the given expressions and catch any error, exit
   or throw that may have happened.
 
   ## Examples
@@ -2357,7 +2360,7 @@ defmodule Kernel do
 
   ## Variable visibility
 
-  Since an expression inside `try` may not have been evaluted
+  Since an expression inside `try` may not have been evaluated
   due to an exception, any variable created inside `try` cannot
   be accessed externaly. For instance:
 
@@ -2481,7 +2484,7 @@ defmodule Kernel do
 
       if(foo, do: bar)
 
-  In the example above, bar will be returned if foo evalutes to
+  In the example above, bar will be returned if foo evaluates to
   true (i.e. it is not false nor nil). Otherwise, nil will be returned.
 
   An else option can be given to specify the opposite:
@@ -2522,8 +2525,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Execute the first clause where the condition returns true,
-  raises an error otherwise.
+  Evaluates the expression corresponding to the first clause that
+  evaluates to true. Raises an error if all conditions evaluate to
+  to falsy values (nil or false).
 
   ## Examples
 
@@ -2558,9 +2562,18 @@ defmodule Kernel do
   end
 
   @doc """
-  Provides a unless macro that executes the expression
-  unless a value evalutes to true. Check `if` for examples
-  and documentation.
+  Evaluates and returns the do-block passed in as a second argument
+  unless clause evaluates to true.
+  Returns nil otherwise.
+  See also `if`.
+
+  ## Examples
+
+      iex> unless(1, do: "Hello")
+      nil
+      iex> unless(false, do: "Hello")
+      "Hello"
+
   """
   defmacro unless(clause, options) do
     do_clause   = Keyword.get(options, :do, nil)
@@ -2860,9 +2873,10 @@ defmodule Kernel do
   end
 
   @doc """
-  Provides a short-circuit operator that executes the second
-  expression only if the first one evalutes to true (i.e. it is
-  not nil nor false). Returns the first expression otherwise.
+  Provides a short-circuit operator that evaluates and returns
+  the second expression only if the first one evaluates to true
+  (i.e. it is not nil nor false). Returns the first expression
+  otherwise.
 
   ## Examples
 
@@ -2891,9 +2905,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Provides a short-circuit operator that executes the second
-  expression only if the first one does not evalute to true (i.e. it
-  is not nil nor false). Returns the first expression otherwise.
+  Provides a short-circuit operator that evaluates and returns the second
+  expression only if the first one does not evaluate to true (i.e. it
+  is either nil or false). Returns the first expression otherwise.
 
   ## Examples
 
@@ -2935,6 +2949,9 @@ defmodule Kernel do
   This macro simply translates the expression above to:
 
       x == 1 or x == 2 or x == 3
+
+  with the exception that the expression on the left of `in`
+  is evaluated only once.
 
   ## Clauses
 
