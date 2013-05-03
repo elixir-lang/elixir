@@ -333,9 +333,9 @@ defmodule Kernel.Typespec do
   end
 
   defp abstract_code_beam(module) when is_atom(module) do
-    case :code.which(module) do
-      :non_existing -> module
-      file -> file
+    case :code.get_object_code(module) do
+      { ^module, beam, _filename } -> beam
+      :error -> module
     end
   end
 
