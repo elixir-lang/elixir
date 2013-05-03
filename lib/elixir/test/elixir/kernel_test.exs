@@ -18,6 +18,15 @@ defmodule KernelTest do
     assert x(1)
     refute x(4)
     refute x([])
+
+    assert 2 in [1,2,3]
+    assert 2 in 1..3
+    refute 4 in [1,2,3]
+    refute 4 in 1..3
+
+    list = [1,2,3]
+    assert 2 in list
+    refute 4 in list
   end
 
   test :paren do

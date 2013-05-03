@@ -267,18 +267,20 @@ translate_in(Meta, Left, Right, S) ->
     false -> { TLeft, SR }
   end,
 
-  Expr = case TRight of
+  { InGuard, TExpr } = case TRight of
     { cons, _, _, _ } ->
       [H|T] = elixir_tree_helpers:cons_to_list(TRight),
-      lists:foldr(fun(X, Acc) ->
+      Expr = lists:foldr(fun(X, Acc) ->
         { op, Line, 'orelse', { op, Line, '==', Var, X }, Acc }
-      end, { op, Line, '==', Var, H }, T);
+      end, { op, Line, '==', Var, H }, T),
+      { Cache, Expr };
     { string, _, [H|T] } ->
-      lists:foldl(fun(X, Acc) ->
+      Expr = lists:foldl(fun(X, Acc) ->
         { op, Line, 'orelse', { op, Line, '==', Var, { integer, Line, X } }, Acc }
-      end, { op, Line, '==', Var, { integer, Line, H } }, T);
+      end, { op, Line, '==', Var, { integer, Line, H } }, T),
+      { Cache, Expr };
     { tuple, _, [{ atom, _, 'Elixir.Range' }, Start, End] } ->
-      case { Start, End } of
+      Expr = case { Start, End } of
         { { K1, _, StartInt }, { K2, _, EndInt } } when ?IN_TYPES(K1), ?IN_TYPES(K2), StartInt =< EndInt ->
           increasing_compare(Line, Var, Start, End);
         { { K1, _, _ }, { K2, _, _ } } when ?IN_TYPES(K1), ?IN_TYPES(K2) ->
@@ -291,14 +293,20 @@ translate_in(Meta, Left, Right, S) ->
             { op, Line, 'andalso',
               { op, Line, '<', End, Start},
               decreasing_compare(Line, Var, Start, End) } }
-      end;
+      end,
+      { Cache, Expr };
     _ ->
-      syntax_error(Meta, S#elixir_scope.file, "invalid args for operator in, it expects an explicit array or an explicit range on the right side")
+      case Cache of
+        true ->
+          { false, ?wrap_call(Line, 'Elixir-Enum', 'member?', [TRight, TLeft]) };
+        false ->
+          syntax_error(Meta, S#elixir_scope.file, "invalid args for operator in, it expects an explicit array or an explicit range on the right side when used in guard expressions")
+      end
   end,
 
-  case Cache of
-    true  -> { Var, { block, Line, [ { match, Line, Var, TLeft }, Expr ] }, SV };
-    false -> { Var, Expr, SV }
+  case InGuard of
+    true  -> { Var, { block, Line, [ { match, Line, Var, TLeft }, TExpr ] }, SV };
+    false -> { Var, TExpr, SV }
   end.
 
 increasing_compare(Line, Var, Start, End) ->
