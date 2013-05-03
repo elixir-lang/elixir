@@ -49,6 +49,16 @@ defprotocol Enum.Iterator do
   def iterator(collection)
 
   @doc """
+  The function used to check if the collection is empty.
+  """
+  def empty?(collection)
+
+  @doc """
+  The function used to check if a value exists within the collection.
+  """
+  def member?(collection, value)
+
+  @doc """
   The function used to retrieve the collection's size.
   """
   def count(collection)
@@ -75,6 +85,69 @@ defmodule Enum do
   @type t :: Enum.Iterator.t
   @type element :: any
   @type index :: non_neg_integer
+
+  @doc """
+  Returns true if the `collection` is empty, otherwise false.
+
+  ## Examples
+
+      iex> Enum.empty?([])
+      true
+      iex> Enum.empty?([1,2,3])
+      false
+
+  """
+  @spec empty?(t) :: boolean
+  def empty?(collection) do
+    I.empty?(collection)
+  end
+
+  @doc """
+  Checks if the `value` exists within the `collection`.
+
+  ## Examples
+
+      iex> Enum.member?(1..10, 5)
+      true
+      iex> Enum.member?([:a, :b, :c], :d)
+      false
+
+  """
+  @spec member?(t, element) :: boolean
+  def member?(collection, value) do
+    I.member?(collection, value)
+  end
+
+  @doc """
+  Returns the collection size.
+
+  ## Examples
+
+      iex> Enum.count([1,2,3])
+      3
+
+  """
+  @spec count(t) :: non_neg_integer
+  def count(collection) do
+    I.count(collection)
+  end
+
+  @doc """
+  Counts for how many items the function returns true.
+  """
+  @spec count(t, (element -> as_boolean(term))) :: non_neg_integer
+  def count(collection, fun) when is_list(collection) do
+    do_count(collection, fun)
+  end
+
+  def count(collection, fun) do
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_count(pointer, iterator, fun)
+      list when is_list(list) ->
+        do_count(list, fun)
+    end
+  end
 
   @doc """
   Invokes the given `fun` for each item in the `collection` and returns true if
@@ -187,37 +260,6 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the collection size.
-
-  ## Examples
-
-      iex> Enum.count([1,2,3])
-      3
-
-  """
-  @spec count(t) :: non_neg_integer
-  def count(collection) do
-    I.count(collection)
-  end
-
-  @doc """
-  Counts for how many items the function returns true.
-  """
-  @spec count(t, (element -> as_boolean(term))) :: non_neg_integer
-  def count(collection, fun) when is_list(collection) do
-    do_count(collection, fun)
-  end
-
-  def count(collection, fun) do
-    case I.iterator(collection) do
-      { iterator, pointer } ->
-        do_count(pointer, iterator, fun)
-      list when is_list(list) ->
-        do_count(list, fun)
-    end
-  end
-
-  @doc """
   Drops the first `count` items from the collection.
   Expects an ordered collection.
 
@@ -304,29 +346,6 @@ defmodule Enum do
         :ok
       list when is_list(list) ->
         each(list, fun)
-    end
-  end
-
-  @doc """
-  Returns true if the collection is empty, otherwise false.
-
-  ## Examples
-
-      iex> Enum.empty?([])
-      true
-      iex> Enum.empty?([1,2,3])
-      false
-
-  """
-  @spec empty?(t) :: boolean
-  def empty?(collection) when is_list(collection) do
-    collection == []
-  end
-
-  def empty?(collection) do
-    case I.iterator(collection) do
-      { _iterator, pointer }  -> pointer == :stop
-      list when is_list(list) -> list == []
     end
   end
 
@@ -758,28 +777,6 @@ defmodule Enum do
         do_map_reduce(pointer, iterator, [], acc, fun)
       list when is_list(list) ->
         map_reduce(list, acc, fun)
-    end
-  end
-
-  @doc """
-  Checks if the given `term` is included in the `collection`.
-
-  ## Examples
-
-      iex> Enum.member?(1 .. 3, 1)
-      true
-      iex> Enum.member?([1, 2, 3, 4], 10)
-      false
-
-  """
-  @spec member?(t, term) :: boolean
-  def member?(collection, term) do
-    case I.iterator(collection) do
-      { iterator, pointer } ->
-        do_member?(pointer, iterator, term)
-
-      list when is_list(list) ->
-        List.member?(list, term)
     end
   end
 
@@ -1672,20 +1669,6 @@ defmodule Enum do
     { :lists.reverse(list_acc), acc }
   end
 
-  ## member?
-
-  def do_member?(:stop, _, _) do
-    false
-  end
-
-  def do_member?({ h, _ }, _, term) when h == term do
-    true
-  end
-
-  def do_member?({ _, next }, iterator, term) do
-    do_member?(iterator.(next), iterator, term)
-  end
-
   ## partition
 
   defp do_partition([h|t], fun, acc1, acc2) do
@@ -2111,8 +2094,15 @@ defmodule Enum do
 end
 
 defimpl Enum.Iterator, for: List do
-  def iterator(list),               do: list
-  def count(list),                  do: length(list)
+  def iterator(list), do: list
+
+  def empty?([]), do: true
+  def empty?(_),  do: false
+
+  def member?([], _),       do: false
+  def member?(list, value), do: :lists.member(value, list)
+
+  def count(list), do: length(list)
 end
 
 defimpl Enum.Iterator, for: Function do
@@ -2121,13 +2111,35 @@ defimpl Enum.Iterator, for: Function do
     { iterator, iterator.(first) }
   end
 
-  def count(function) do
-    { function, first } = function.()
-    do_count(function.(first), function, 0)
+  def empty?(function) do
+    { _iterator, first } = function.()
+    first == :stop
   end
 
-  defp do_count({ _, next }, function, acc) do
-    do_count(function.(next), function, acc + 1)
+  def member?(function, value) do
+    { iterator, first } = function.()
+    do_member?(iterator.(first), iterator, value)
+  end
+
+  defp do_member?({ value, _ }, _, value) do
+    true
+  end
+
+  defp do_member?({ _, next }, iterator, value) do
+    do_member?(iterator, iterator.(next), value)
+  end
+
+  defp do_member?(:stop, _, _) do
+    false
+  end
+
+  def count(function) do
+    { iterator, first } = function.()
+    do_count(iterator.(first), iterator, 0)
+  end
+
+  defp do_count({ _, next }, iterator, acc) do
+    do_count(iterator.(next), iterator, acc + 1)
   end
 
   defp do_count(:stop, _, acc) do

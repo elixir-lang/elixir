@@ -500,8 +500,10 @@ defmodule HashDict do
 end
 
 defimpl Enum.Iterator, for: HashDict do
-  def iterator(dict), do: HashDict.to_list(dict)
-  def count(dict),    do: HashDict.size(dict)
+  def iterator(dict),       do: HashDict.to_list(dict)
+  def empty?(dict),         do: HashDict.size(dict) < 1
+  def member?(dict, value), do: HashDict.has_key?(dict, value)
+  def count(dict),          do: HashDict.size(dict)
 end
 
 defimpl Access, for: HashDict do
