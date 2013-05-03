@@ -1620,7 +1620,7 @@ defmodule Kernel do
       false ->
         quote do
           result = unquote(thing)
-          is_tuple(result) and tuple_size(unquote(thing)) > 0
+          is_tuple(result) and tuple_size(result) > 0
             and :erlang.element(1, result) == unquote(kind)
         end
     end
@@ -1639,7 +1639,7 @@ defmodule Kernel do
       false ->
         quote do
           result = unquote(thing)
-          is_tuple(result) and tuple_size(unquote(thing)) > 0
+          is_tuple(result) and tuple_size(result) > 0
             and is_atom(:erlang.element(1, result))
         end
     end
