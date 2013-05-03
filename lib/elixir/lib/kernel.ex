@@ -134,13 +134,16 @@ defmodule Kernel do
   defmacro left and right
 
   @doc """
-  Boolean xor. Arguments must be booleans.
+  Boolean exclusive-or. Arguments must be booleans. Returns true if and only if
+  both arguments are different.
   Allowed in guard clauses.
 
   ## Examples
 
       iex> true xor false
       true
+      iex> true xor true
+      false
 
   """
   defmacro left xor right
