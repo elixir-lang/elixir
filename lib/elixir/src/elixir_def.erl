@@ -312,9 +312,9 @@ store_each(Check, Kind, File, Location, Table, CTable, Defaults, {function, Line
       (Check and StoredCheck) andalso check_valid_clause(Line, File, Name, Arity, Table);
     [] ->
       FinalLocation = Location,
-      FinalDefaults = Defaults,
-      Check andalso ets:insert(Table, { last, { Name, Arity } })
+      FinalDefaults = Defaults
   end,
+  Check andalso ets:insert(Table, { last, { Name, Arity } }),
   ets:insert(CTable, [{ Tuple, Clause } || Clause <- Clauses ]),
   ets:insert(Table, { Tuple, Kind, Line, File, Check, FinalLocation, FinalDefaults }).
 
@@ -329,9 +329,9 @@ check_valid_clause(Line, File, Name, Arity, Table) ->
   case ets:lookup_element(Table, last, 2) of
     {Name,Arity} -> [];
     [] -> [];
-    {ElseName, ElseArity} ->
+    _ ->
       elixir_errors:handle_file_warning(File, { Line, ?MODULE,
-        { changed_clause, { { Name, Arity }, { ElseName, ElseArity } } } })
+        { override_function, { Name, Arity } } })
   end.
 
 check_valid_defaults(_Line, _File, _Name, _Arity, 0) -> [];
@@ -350,8 +350,8 @@ assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
 format_error({clauses_with_docs,{Name,Arity}}) ->
   io_lib:format("function ~ts/~B has default values and multiple clauses, use a separate clause for declaring defaults", [Name, Arity]);
 
-format_error({changed_clause,{{Name,Arity},{ElseName,ElseArity}}}) ->
-  io_lib:format("function ~ts/~B does not match previous clause ~ts/~B", [Name, Arity, ElseName, ElseArity]);
+format_error({override_function,{Name,Arity}}) ->
+  io_lib:format("trying to override previously defined function ~ts/~B", [Name, Arity]);
 
 format_error({changed_kind,{Name,Arity,Previous,Current}}) ->
   io_lib:format("~ts ~ts/~B already defined as ~ts", [Current, Name, Arity, Previous]).

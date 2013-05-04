@@ -222,18 +222,22 @@ translate({Kind, Meta, [Call]}, S) when ?FUNS(Kind) ->
 translate({Kind, Meta, [Call, Expr]}, S) when ?FUNS(Kind) ->
   assert_module_scope(Meta, Kind, S),
   assert_no_function_scope(Meta, Kind, S),
-  { TCall, _, SC } = elixir_quote:erl_escape(Call, true, S),
-  { TExpr, _, SE } = elixir_quote:erl_escape(Expr, true, SC),
-  { elixir_def:wrap_definition(Kind, Meta, TCall, TExpr, SE), SE };
+  { TCall, QC, SC } = elixir_quote:erl_escape(Call, true, S),
+  { TExpr, QE, SE } = elixir_quote:erl_escape(Expr, true, SC),
+  CheckClauses = S#elixir_scope.check_clauses andalso
+                   (not QC#elixir_quote.unquoted) andalso (not QE#elixir_quote.unquoted),
+  SW = SE#elixir_scope{check_clauses=CheckClauses},
+  { elixir_def:wrap_definition(Kind, Meta, TCall, TExpr, SW), SE };
 
 translate({Kind, Meta, [Name, Args, Guards, Expr]}, S) when ?FUNS(Kind) ->
   assert_module_scope(Meta, Kind, S),
   assert_no_function_scope(Meta, Kind, S),
-  { TName, NS }   = translate_each(Name, S),
-  { TArgs, AS }   = translate_each(Args, NS),
-  { TGuards, GS } = translate_each(Guards, AS),
-  { TExpr, ES }   = translate_each(Expr, GS),
-  { elixir_def:wrap_definition(Kind, Meta, TName, TArgs, TGuards, TExpr, ES), ES };
+  { TName, SN }   = translate_each(Name, S),
+  { TArgs, SA }   = translate_each(Args, SN),
+  { TGuards, SG } = translate_each(Guards, SA),
+  { TExpr, SE }   = translate_each(Expr, SG),
+  SW = SE#elixir_scope{check_clauses=false},
+  { elixir_def:wrap_definition(Kind, Meta, TName, TArgs, TGuards, TExpr, SW), SE };
 
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
 
