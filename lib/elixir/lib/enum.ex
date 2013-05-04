@@ -1062,18 +1062,21 @@ defmodule Enum do
       iex> Enum.uniq([1,2,3,2,1])
       [1, 2, 3]
 
+      iex> Enum.uniq([{1,:x}, {2,:y}, {1,:z}], fn {x,_} -> x end)
+      [{1,:x}, {2,:y}]
+
   """
   @spec uniq(t) :: list
-  def uniq(collection) when is_list(collection) do
-    do_uniq(collection, [])
+  def uniq(collection, fun // fn x -> x end) when is_list(collection) do
+    do_uniq(collection, [], fun)
   end
 
-  def uniq(collection) do
+  def uniq(collection, fun // fn x -> x end) do
     case I.iterator(collection) do
       { iterator, pointer } ->
-        do_uniq(pointer, iterator, [])
+        do_uniq(pointer, iterator, [], fun)
       list when is_list(list) ->
-        do_uniq(list, [])
+        do_uniq(list, [], fun)
     end
   end
 
@@ -1968,25 +1971,27 @@ defmodule Enum do
 
   ## uniq
 
-  defp do_uniq([h|t], acc) do
-    case :lists.member(h, acc) do
-      true  -> do_uniq(t, acc)
-      false -> [h|do_uniq(t, [h|acc])]
+  defp do_uniq([h|t], acc, fun) do
+    fun_h = fun.(h)
+    case :lists.member(fun_h, acc) do
+      true  -> do_uniq(t, acc, fun)
+      false -> [h|do_uniq(t, [fun_h|acc], fun)]
     end
   end
 
-  defp do_uniq([], _acc) do
+  defp do_uniq([], _acc, _fun) do
     []
   end
 
-  defp do_uniq({ h, next }, iterator, acc) do
-    case :lists.member(h, acc) do
-      true  -> do_uniq(iterator.(next), iterator, acc)
-      false -> [h|do_uniq(iterator.(next), iterator, [h|acc])]
+  defp do_uniq({ h, next }, iterator, acc, fun) do
+    fun_h = fun.(h)
+    case :lists.member(fun_h, acc) do
+      true  -> do_uniq(iterator.(next), iterator, acc, fun)
+      false -> [h|do_uniq(iterator.(next), iterator, [fun_h|acc], fun)]
     end
   end
 
-  defp do_uniq(:stop, _, _acc) do
+  defp do_uniq(:stop, _, _acc, _fun) do
     []
   end
 
