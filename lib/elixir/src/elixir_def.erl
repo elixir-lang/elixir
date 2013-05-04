@@ -309,7 +309,7 @@ store_each(Check, Kind, File, Location, Table, CTable, Defaults, {function, Line
       FinalDefaults = Defaults + StoredDefaults,
       check_valid_kind(Line, File, Name, Arity, Kind, StoredKind),
       check_valid_defaults(Line, File, Name, Arity, FinalDefaults),
-      (Check and StoredCheck) andalso check_valid_clause(Line, File, Name, Arity, Table);
+      (Check and StoredCheck);
     [] ->
       FinalLocation = Location,
       FinalDefaults = Defaults,
@@ -324,15 +324,6 @@ check_valid_kind(_Line, _File, _Name, _Arity, Kind, Kind) -> [];
 check_valid_kind(Line, File, Name, Arity, Kind, StoredKind) ->
   elixir_errors:form_error(Line, File, ?MODULE,
     { changed_kind, { Name, Arity, StoredKind, Kind } }).
-
-check_valid_clause(Line, File, Name, Arity, Table) ->
-  case ets:lookup_element(Table, last, 2) of
-    {Name,Arity} -> [];
-    [] -> [];
-    {ElseName, ElseArity} ->
-      elixir_errors:handle_file_warning(File, { Line, ?MODULE,
-        { changed_clause, { { Name, Arity }, { ElseName, ElseArity } } } })
-  end.
 
 check_valid_defaults(_Line, _File, _Name, _Arity, 0) -> [];
 check_valid_defaults(Line, File, Name, Arity, _) ->
@@ -349,9 +340,6 @@ assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
 
 format_error({clauses_with_docs,{Name,Arity}}) ->
   io_lib:format("function ~ts/~B has default values and multiple clauses, use a separate clause for declaring defaults", [Name, Arity]);
-
-format_error({changed_clause,{{Name,Arity},{ElseName,ElseArity}}}) ->
-  io_lib:format("function ~ts/~B does not match previous clause ~ts/~B", [Name, Arity, ElseName, ElseArity]);
 
 format_error({changed_kind,{Name,Arity,Previous,Current}}) ->
   io_lib:format("~ts ~ts/~B already defined as ~ts", [Current, Name, Arity, Previous]).
