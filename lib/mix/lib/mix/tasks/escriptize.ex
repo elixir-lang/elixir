@@ -56,9 +56,8 @@ defmodule Mix.Tasks.Escriptize do
   defp escriptize(project, force) do
     script_name  = project[:escript_name] || project[:app]
     filename     = project[:escript_path] || atom_to_binary(script_name)
-    compile_path = project[:compile_path] || "ebin"
     embed        = Keyword.get(project, :escript_embed_elixir, true)
-    beams        = Mix.Project.config_files ++ Path.wildcard('#{compile_path}/*.beam')
+    beams        = all_beams()
 
     cond do
       beams == [] ->
@@ -66,7 +65,7 @@ defmodule Mix.Tasks.Escriptize do
         :noop
       force or Mix.Utils.stale?(beams, [filename]) ->
         files = gen_main(script_name, project[:escript_main_module])
-        files = files ++ get_files(compile_path)
+        files = files ++ all_files()
 
         if embed do
           extra_apps = project[:escript_embed_extra_apps] || []
@@ -75,9 +74,9 @@ defmodule Mix.Tasks.Escriptize do
           end
         end
 
-        files = Enum.reduce Mix.Deps.all || [], files, fn(dep, acc) ->
-          dep_files(dep.app) ++ acc
-        end
+        # We might get duplicate files in umbrella projects from applications
+        # sharing the same dependencies
+        files = Enum.uniq(files, fn {name, _} -> name end)
 
         case :zip.create 'mem', files, [:memory] do
           { :ok, { 'mem', zip } } ->
@@ -97,6 +96,42 @@ defmodule Mix.Tasks.Escriptize do
         Mix.shell.info "Generated escript #{filename}"
       true ->
         :noop
+    end
+  end
+
+  defp all_beams() do
+    if Mix.Project.umbrella? do
+      beams = Mix.Project.recursive fn (_, _) ->
+        get_beams()
+      end
+      List.concat(beams)
+    else
+      get_beams()
+    end
+  end
+
+  defp get_beams() do
+    compile_path = Mix.project[:compile_path] || "ebin"
+    configs      = Mix.Project.config_files
+    beams        = Path.wildcard('#{compile_path}/*.beam')
+    beams        = Enum.map(beams, Path.absname(&1))
+    configs ++ beams
+  end
+
+  defp all_files() do
+    if Mix.Project.umbrella? do
+      files = Mix.Project.recursive(fn (_, _) -> get_compiled_files() end)
+      List.concat(files)
+    else
+      get_compiled_files()
+    end
+  end
+
+  defp get_compiled_files() do
+    compile_path = Mix.project[:compile_path] || "ebin"
+    files = get_files(compile_path)
+    Enum.reduce Mix.Deps.all || [], files, fn(dep, acc) ->
+      dep_files(dep.app) ++ acc
     end
   end
 

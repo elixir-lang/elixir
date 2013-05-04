@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Run do
   @moduledoc """
   Run the given expression in the application context.
 
-  Before running the code, it invokes the prepare task
+  Before running the code, it invokes the app.start task
   which defaults to compile and load your project.
 
   ## Command line options

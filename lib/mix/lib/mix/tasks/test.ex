@@ -2,6 +2,7 @@ defmodule Mix.Tasks.Test do
   use Mix.Task
 
   @shortdoc "Run a project's tests"
+  @recursive true
 
   @moduledoc """
   Run the tests for a project.

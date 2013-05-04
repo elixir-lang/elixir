@@ -11,6 +11,7 @@ defmodule Mix.Shell.IO do
   to stdout as it comes.
   """
   def cmd(command) do
+    put_app
     Mix.Shell.cmd(command, IO.write(&1))
   end
 
@@ -18,6 +19,7 @@ defmodule Mix.Shell.IO do
   Writes a message to the shell followed by new line.
   """
   def info(message) do
+    put_app
     IO.puts IO.ANSI.escape(message)
   end
 
@@ -25,6 +27,7 @@ defmodule Mix.Shell.IO do
   Writes an error message to the shell followed by new line.
   """
   def error(message) do
+    put_app
     IO.puts :stderr, IO.ANSI.escape "%{red,bright}#{message}"
   end
 
@@ -34,6 +37,13 @@ defmodule Mix.Shell.IO do
   regex `%r/^Y(es)?$/i`.
   """
   def yes?(message) do
+    put_app
     IO.gets(message <> IO.ANSI.escape(" [Yn] ")) =~ %r/^(Y(es)?)?$/i
+  end
+
+  def put_app do
+    if Mix.Shell.output_app? do
+      IO.puts "==> #{Mix.project[:app]}"
+    end
   end
 end

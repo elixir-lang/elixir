@@ -124,7 +124,7 @@ defmodule Mix.Deps.Converger do
 
       try do
         Mix.env(env)
-        project = load_project(app, config)
+        project = Mix.Project.load_project(app, config)
 
         try do
           { project, Enum.reverse Mix.Deps.Project.all }
@@ -134,31 +134,6 @@ defmodule Mix.Deps.Converger do
       after
         Mix.env(old_env)
       end
-    end
-  end
-
-  defp load_project(app, config) do
-    if cached = Mix.Server.call({ :mixfile_cache, app }) do
-      Mix.Project.post_config(config)
-      Mix.Project.push(cached)
-      cached
-    else
-      old_proj = Mix.Project.get
-
-      if File.regular?("mix.exs") do
-        Mix.Project.post_config(config)
-        Code.load_file "mix.exs"
-      end
-
-      new_proj = Mix.Project.get
-
-      if old_proj == new_proj do
-        new_proj = nil
-        Mix.Project.push new_proj
-      end
-
-      Mix.Server.cast({ :mixfile_cache, app, new_proj })
-      new_proj
     end
   end
 end

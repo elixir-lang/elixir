@@ -5,6 +5,7 @@ defmodule Mix.Tasks.App.Start do
 
   @hidden true
   @shortdoc "Start registered apps"
+  @recursive true
 
   @moduledoc """
   Starts all registered apps. If no apps key exists,

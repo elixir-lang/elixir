@@ -5,6 +5,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   @hidden true
   @shortdoc "Load all dependencies paths"
+  @recursive true
 
   @moduledoc """
   Loads all dependencies. This is invoked directly

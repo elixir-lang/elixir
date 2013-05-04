@@ -41,6 +41,7 @@ defmodule Mix.Shell.Process do
   the current process.
   """
   def cmd(command) do
+    put_app
     Mix.Shell.cmd(command, fn(data) ->
       self <- { :mix_shell, :run, [data] }
     end)
@@ -50,6 +51,7 @@ defmodule Mix.Shell.Process do
   Simply forwards the message to the current process.
   """
   def info(message) do
+    put_app
     self <- { :mix_shell, :info, [IO.ANSI.escape(message, false)] }
   end
 
@@ -57,6 +59,7 @@ defmodule Mix.Shell.Process do
   Simply forwards the message to the current process.
   """
   def error(message) do
+    put_app
     self <- { :mix_shell, :error, [IO.ANSI.escape(message, false)] }
   end
 
@@ -70,12 +73,19 @@ defmodule Mix.Shell.Process do
   process input given. Value must be true or false.
   """
   def yes?(message) do
+    put_app
     self <- { :mix_shell, :yes?, [IO.ANSI.escape(message, false)] }
 
     receive do
       { :mix_shell_input, :yes?, response } -> response
     after
       0 -> raise Mix.Error, message: "No shell process input given for yes?/1"
+    end
+  end
+
+  def put_app do
+    if Mix.Shell.output_app? do
+      self <- { :mix_shell, :info, "==> #{Mix.project[:app]}" }
     end
   end
 end

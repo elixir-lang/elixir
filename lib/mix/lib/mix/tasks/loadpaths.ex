@@ -3,6 +3,7 @@ defmodule Mix.Tasks.Loadpaths do
 
   @hidden true
   @shortdoc "Load the application and its dependencies paths"
+  @recursive true
 
   @moduledoc """
   Load the application and its dependencies paths.

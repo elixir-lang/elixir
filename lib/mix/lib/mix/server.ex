@@ -5,7 +5,8 @@ defmodule Mix.Server do
   use GenServer.Behaviour
 
   defrecord Config, tasks: Ordset.new, projects: [], mixfile: [],
-    shell: Mix.Shell.IO, scm: Ordset.new, env: nil, post_config: []
+    shell: Mix.Shell.IO, scm: Ordset.new, env: nil, post_config: [],
+    io_done: false
 
   def start_link(env) do
     :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, env, [])
@@ -56,7 +57,7 @@ defmodule Mix.Server do
   def handle_call(:pop_project, _from, config) do
     case config.projects do
       [{ project, _ }|tail] ->
-        { :reply, project, config.projects(tail) }
+        { :reply, project, config.projects(tail).io_done(false) }
       _ ->
         { :reply, nil, config }
     end
@@ -64,6 +65,10 @@ defmodule Mix.Server do
 
   def handle_call({ :mixfile_cache, app }, _from, config) do
     { :reply, config.mixfile[app], config }
+  end
+
+  def handle_call(:io_done, _from, config) do
+    { :reply, config.io_done, config.io_done(true) }
   end
 
   def handle_call(request, from, config) do
@@ -92,7 +97,10 @@ defmodule Mix.Server do
 
   def handle_cast({ :push_project, name, project }, config) do
     project = Keyword.merge(project, config.post_config)
-    { :noreply, config.post_config([]).update_projects [{ name, project }|&1] }
+    config = config.post_config([])
+                   .update_projects([{ name, project }|&1])
+                   .io_done(false)
+    { :noreply, config }
   end
 
   def handle_cast({ :post_config, value }, config) do

@@ -14,7 +14,7 @@ defmodule Mix.Task do
 
   @doc false
   defmacro __using__(_opts) do
-    Enum.each [:shortdoc, :hidden],
+    Enum.each [:shortdoc, :hidden, :recursive],
       Module.register_attribute __CALLER__.module, &1, accumulate: false
 
     quote do
@@ -80,6 +80,16 @@ defmodule Mix.Task do
   end
 
   @doc """
+  Checks if the task is defined for umbrella projects.
+  """
+  def recursive?(module) when is_atom(module) do
+    case List.keyfind module.__info__(:attributes), :recursive, 0 do
+      { :recursive, [bool] } -> bool
+      _ -> false
+    end
+  end
+
+  @doc """
   Returns the task name for the given module.
   """
   def task_name(module) do
@@ -126,7 +136,12 @@ defmodule Mix.Task do
     else
       module = get(task)
       Mix.Server.cast({ :add_task, task })
-      module.run(args)
+
+      if Mix.Project.umbrella? && recursive?(module) do
+        Mix.Project.recursive(fn (_, _) -> module.run(args) end)
+      else
+        module.run(args)
+      end
     end
   end
 

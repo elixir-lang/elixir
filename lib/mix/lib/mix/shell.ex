@@ -27,6 +27,15 @@ defmodule Mix.Shell do
   defcallback cmd(command :: binary) :: integer
 
   @doc """
+  Returns if we should output application name to shell.
+  """
+  def output_app? do
+    !Mix.Project.umbrella? &&
+    Mix.Project.in_umbrella? &&
+    !Mix.Server.call(:io_done)
+  end
+
+  @doc """
   An implementation of the command callback that
   is shared accross different shells.
   """
