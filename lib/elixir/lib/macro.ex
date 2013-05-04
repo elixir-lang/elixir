@@ -64,77 +64,12 @@ defmodule Macro do
 
   """
   def escape(expr) do
-    do_escape(expr, false)
+    :elixir_quote.escape(expr, false) |> elem(0)
   end
-
-  defp do_escape({ { { :., meta, [left, :unquote] }, _, [expr] }, _, args }, true) do
-    all = [do_escape(meta, true), do_escape(left, true), expr, do_escape(args, true)]
-    quote do
-      apply :elixir_quote, :unquote, [unquote_splicing(all), __FILE__]
-    end
-  end
-
-  defp do_escape({ { :., meta, [left, :unquote] }, _, [expr] }, true) do
-    all = [do_escape(meta, true), do_escape(left, true), expr, nil]
-    quote do
-      apply :elixir_quote, :unquote, [unquote_splicing(all), __FILE__]
-    end
-  end
-
-  defp do_escape({ :unquote, _meta, [expr] }, true) do
-    expr
-  end
-
-  defp do_escape({ left, right }, unquote) when
-      (not is_tuple(left) or elem(left, 1) != :unquote_splicing) and
-      (not is_tuple(right) or elem(right, 1) != :unquote_splicing) do
-    { do_escape(left, unquote), do_escape(right, unquote) }
-  end
-
-  defp do_escape({ :quote, meta, args }, true) when length(args) in 1..2 do
-    { :{}, [], do_escape([:quote, meta, args], false) }
-  end
-
-  defp do_escape(tuple, unquote) when is_tuple(tuple) do
-    { :{}, [], do_escape(tuple_to_list(tuple), unquote) }
-  end
-
-  defp do_escape(list, true) when is_list(list) do
-    do_splice(Enum.reverse(list))
-  end
-
-  defp do_escape(list, false) when is_list(list) do
-    lc item inlist list, do: do_escape(item, false)
-  end
-
-  defp do_escape(other, _unquote), do: other
-
-  defp do_splice([{ :|, meta, [{ :unquote_splicing, _, [left] }, right] }|t]) do
-    spliced = { :++, meta, [do_splice(t, [], []), left] }
-    { :++, meta, [spliced, right] }
-  end
-
-  defp do_splice(list) do
-    do_splice(list, [], [])
-  end
-
-  defp do_splice([{ :unquote_splicing, _meta, [expr] }|t], buffer, acc) do
-    do_splice(t, [], do_splice_join(do_splice_join(expr, buffer), acc))
-  end
-
-  defp do_splice([h|t], buffer, acc) do
-    do_splice t, [do_escape(h, true)|buffer], acc
-  end
-
-  defp do_splice([], buffer, acc), do: do_splice_join(buffer, acc)
-
-  defp do_splice_join([], right),   do: right
-  defp do_splice_join(left, []),    do: left
-  defp do_splice_join(left, right), do: { :++, [], [left, right] }
 
   @doc false
   def escape_quoted(expr) do
-    do_escape(expr, true)
+    :elixir_quote.escape(expr, true) |> elem(0)
   end
 
   @doc %B"""

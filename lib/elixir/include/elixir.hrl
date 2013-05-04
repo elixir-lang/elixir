@@ -39,7 +39,8 @@
   vars_hygiene=nil,
   aliases_hygiene=true,
   imports_hygiene=true,
-  unquote=true
+  unquote=true,
+  unquoted=false
 }).
 
 %% Used in tokenization and interpolation

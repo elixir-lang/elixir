@@ -222,8 +222,8 @@ translate({Kind, Meta, [Call]}, S) when ?FUNS(Kind) ->
 translate({Kind, Meta, [Call, Expr]}, S) when ?FUNS(Kind) ->
   assert_module_scope(Meta, Kind, S),
   assert_no_function_scope(Meta, Kind, S),
-  { TCall, SC } = elixir_quote:user_quote(Call, S),
-  { TExpr, SE } = elixir_quote:user_quote(Expr, SC),
+  { TCall, _, SC } = elixir_quote:erl_escape(Call, true, S),
+  { TExpr, _, SE } = elixir_quote:erl_escape(Expr, true, SC),
   { elixir_def:wrap_definition(Kind, Meta, TCall, TExpr, SE), SE };
 
 translate({Kind, Meta, [Name, Args, Guards, Expr]}, S) when ?FUNS(Kind) ->

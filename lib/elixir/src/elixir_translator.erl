@@ -246,8 +246,7 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
   Exprs =
     case lists:keyfind(do, 1, T) of
       { do, E } -> E;
-      false ->
-        syntax_error(Meta, S#elixir_scope.file, "invalid args for quote")
+      false -> syntax_error(Meta, S#elixir_scope.file, "invalid args for quote")
     end,
 
   Hygiene = case lists:keyfind(hygiene, 1, T) of
@@ -275,19 +274,13 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
   Imports = lists:keyfind(imports, 1, Hygiene) /= { imports, false },
 
   { DefaultLine, DefaultFile } = case lists:keyfind(location, 1, T) of
-    { location, keep }  -> { keep, keep };
+    { location, keep } -> { keep, keep };
     false -> { nil, nil }
   end,
 
   Line = case lists:keyfind(line, 1, T) of
     { line, LineValue } -> LineValue;
     false -> DefaultLine
-  end,
-
-  { TLine, SL } = case Line of
-    keep -> { keep, S };
-    nil  -> { nil, S };
-    _    -> translate_each(Line, S)
   end,
 
   File = case lists:keyfind(file, 1, T) of
@@ -300,7 +293,7 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
     _    -> File
   end,
 
-  TExprs = if
+  WExprs = if
     is_binary(TFile) ->
       { '__scope__', Meta, [[{file,TFile}],[{do,Exprs}]] };
     File == nil ->
@@ -314,10 +307,11 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
     _ -> true
   end,
 
-  Q = #elixir_quote{vars_hygiene=Vars, line=TLine, unquote=Unquote,
+  Q = #elixir_quote{vars_hygiene=Vars, line=Line, unquote=Unquote,
         aliases_hygiene=Aliases, imports_hygiene=Imports},
 
-  elixir_quote:quote(TExprs, Q, SL);
+  { TExprs, _TQ, TS } = elixir_quote:erl_quote(WExprs, Q, S),
+  { TExprs, TS };
 
 translate_each({ quote, Meta, [_] }, S) ->
   syntax_error(Meta, S#elixir_scope.file, "invalid args for quote");
