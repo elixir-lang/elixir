@@ -1,8 +1,9 @@
 * enhancements
   * [CLI] Flags -p and -pr fails if pattern match no files
-  * [Enum] Add `Enum.to_list/1`, `Enum.equal?/2`, `Enum.equal?/3`, `Enum.member?/2`, `Enum.max/1`, `Enum.max/2`, `Enum.min/1` and `Enum.min/2`
+  * [Enum] Add `Enum.to_list/1`, `Enum.equal?/2`, `Enum.equal?/3`, `Enum.member?/2`, `Enum.uniq/2`, `Enum.max/1`, `Enum.max/2`, `Enum.min/1` and `Enum.min/2`
   * [IEx] Support `ls` with colored output
   * [Kernel] Many optimizations for code compilation
+  * [Kernel] `in` can be used with right side expression outside guards
   * [Keyword] Add `Keyword.delete_first/2`
   * [Mix] Add `local.rebar` to download a local copy of rebar, and change `deps.compile` to use it if needed
 
