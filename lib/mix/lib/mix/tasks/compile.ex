@@ -2,6 +2,7 @@ defmodule Mix.Tasks.Compile do
   use Mix.Task
 
   @shortdoc "Compile source files"
+  @recursive true
 
   @moduledoc """
   A meta task that compile source files. It simply runs the

@@ -5,7 +5,8 @@ defmodule Mix.Server do
   use GenServer.Behaviour
 
   defrecord Config, tasks: Ordset.new, projects: [], mixfile: [],
-    shell: Mix.Shell.IO, scm: Ordset.new, env: nil, post_config: []
+    shell: Mix.Shell.IO, scm: Ordset.new, env: nil, post_config: [],
+    io_done: false
 
   def start_link(env) do
     :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, env, [])
@@ -49,14 +50,14 @@ defmodule Mix.Server do
     { :reply, config.tasks, config.tasks(Ordset.new) }
   end
 
-  def handle_call({ :has_task?, task }, _from, config) do
-    { :reply, Ordset.is_element(task, config.tasks), config }
+  def handle_call({ :has_task?, task, app }, _from, config) do
+    { :reply, Ordset.is_element({task, app}, config.tasks), config }
   end
 
   def handle_call(:pop_project, _from, config) do
     case config.projects do
       [{ project, _ }|tail] ->
-        { :reply, project, config.projects(tail) }
+        { :reply, project, config.projects(tail).io_done(false) }
       _ ->
         { :reply, nil, config }
     end
@@ -64,6 +65,23 @@ defmodule Mix.Server do
 
   def handle_call({ :mixfile_cache, app }, _from, config) do
     { :reply, config.mixfile[app], config }
+  end
+
+  def handle_call(:io_done, _from, config) do
+    { :reply, config.io_done, config.io_done(true) }
+  end
+
+  def handle_call(:output_app?, _from, config) do
+    # Check that we haven't already outputted app and that we are part of an
+    # umbrella project
+    umbrella = case config.projects do
+      [{ h, conf }|_] when h != nil -> conf[:apps_path] != nil
+      _ -> false
+    end
+    in_umbrella = Enum.any?(config.projects, fn { _, conf } -> conf[:apps_path] != nil end)
+    output = !config.io_done && !umbrella && in_umbrella
+
+    { :reply, output, config.io_done(true) }
   end
 
   def handle_call(request, from, config) do
@@ -82,17 +100,24 @@ defmodule Mix.Server do
     { :noreply, config.tasks(tasks) }
   end
 
-  def handle_cast({ :add_task, name }, config) do
-    { :noreply, config.update_tasks :ordsets.add_element(name, &1) }
+  def handle_cast({ :add_task, task, app }, config) do
+    { :noreply, config.update_tasks Ordset.add_element({task, app}, &1) }
   end
 
-  def handle_cast({ :delete_task, name }, config) do
-    { :noreply, config.update_tasks :ordsets.del_element(name, &1) }
+  def handle_cast({ :delete_task, task, app }, config) do
+    { :noreply, config.update_tasks Ordset.del_element({task, app}, &1) }
+  end
+
+  def handle_cast({ :delete_task, task }, config) do
+    { :noreply, config.update_tasks Ordset.filter(fn {t, _} -> t != task end, &1) }
   end
 
   def handle_cast({ :push_project, name, project }, config) do
     project = Keyword.merge(project, config.post_config)
-    { :noreply, config.post_config([]).update_projects [{ name, project }|&1] }
+    config = config.post_config([])
+                   .update_projects([{ name, project }|&1])
+                   .io_done(false)
+    { :noreply, config }
   end
 
   def handle_cast({ :post_config, value }, config) do
@@ -100,7 +125,7 @@ defmodule Mix.Server do
   end
 
   def handle_cast({ :add_scm, mod }, config) do
-    { :noreply, config.update_scm :ordsets.add_element(mod, &1) }
+    { :noreply, config.update_scm Ordset.add_element(mod, &1) }
   end
 
   def handle_cast({ :mixfile_cache, app, new }, config) do

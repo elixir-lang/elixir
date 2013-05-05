@@ -6,6 +6,7 @@ defmodule Mix.Tasks.Compile.Leex do
 
   @hidden true
   @shortdoc "Compile Leex source files"
+  @recursive true
 
   @moduledoc """
   A task to compile Leex source files.

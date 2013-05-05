@@ -127,6 +127,68 @@ defmodule Mix.Project do
     opts
   end
 
+  @doc """
+  Returns if project is an umbrella project.
+  """
+  def umbrella? do
+    config[:apps_path] != nil
+  end
+
+  @doc """
+  Loads mix.exs in the current directory or loads the project from the
+  mixfile cache and pushes the project to the project stack. Optionally
+  takes a post_config.
+  """
+  def load_project(app, post_config // []) do
+    if cached = Mix.Server.call({ :mixfile_cache, app }) do
+      Mix.Project.post_config(post_config)
+      Mix.Project.push(cached)
+      cached
+    else
+      old_proj = Mix.Project.get
+
+      if File.regular?("mix.exs") do
+        Mix.Project.post_config(post_config)
+        Code.load_file "mix.exs"
+      end
+
+      new_proj = Mix.Project.get
+
+      if old_proj == new_proj do
+        new_proj = nil
+        Mix.Project.push new_proj
+      end
+
+      Mix.Server.cast({ :mixfile_cache, app, new_proj })
+      new_proj
+    end
+  end
+
+  @doc """
+  Run fun for every application in the umbrella project. Changes current
+  project and working directory.
+  """
+  def recursive(fun) do
+    old_tasks = Mix.Task.clear
+
+    paths = Path.wildcard(Path.join(Mix.project[:apps_path], "*"))
+    results = Enum.map paths, fn app_path ->
+      File.cd! app_path, fn ->
+        dir = Path.basename(app_path)
+        app = dir |> String.downcase |> binary_to_atom
+
+        Mix.Project.load_project(app)
+        result = fun.(app, app_path)
+        Mix.Project.pop
+        Mix.Task.clear
+        result
+      end
+    end
+
+    Mix.Task.set_tasks(old_tasks)
+    results
+  end
+
   defp default_config do
     [ compile_path: "ebin",
       default_env: [test: :test],
