@@ -1064,11 +1064,13 @@ defmodule Enum do
 
   """
   @spec uniq(t) :: list
-  def uniq(collection, fun // fn x -> x end) when is_list(collection) do
+  def uniq(collection, fun // fn x -> x end)
+
+  def uniq(collection, fun) when is_list(collection) do
     do_uniq(collection, [], fun)
   end
 
-  def uniq(collection, fun // fn x -> x end) do
+  def uniq(collection, fun) do
     case I.iterator(collection) do
       { iterator, pointer } ->
         do_uniq(pointer, iterator, [], fun)
