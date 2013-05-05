@@ -8,6 +8,7 @@ defmodule Mix.Tasks.Compile.Yecc do
 
   @hidden true
   @shortdoc "Compile Yecc source files"
+  @recursive true
 
   @moduledoc """
   A task to compile Yecc source files.

@@ -5,6 +5,7 @@ defmodule Mix.Tasks.Deps.Check do
 
   @hidden true
   @shortdoc "Check if all dependencies are ok"
+  @recursive true
 
   @moduledoc """
   Checks if all dependencies are valid and if not, abort.

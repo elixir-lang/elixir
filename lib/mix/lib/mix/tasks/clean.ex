@@ -3,6 +3,7 @@ defmodule Mix.Tasks.Clean do
   alias Mix.Tasks.Compile.Erlang
 
   @shortdoc "Clean generated application files"
+  @recursive true
 
   @moduledoc """
   Clean generated application files.

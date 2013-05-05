@@ -3,6 +3,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   @hidden true
   @shortdoc "Compile Elixir source files"
+  @recursive true
 
   @moduledoc """
   A task to compile Elixir source files.

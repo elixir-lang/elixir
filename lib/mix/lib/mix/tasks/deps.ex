@@ -4,6 +4,7 @@ defmodule Mix.Tasks.Deps do
   import Mix.Deps, only: [all: 0, format_dep: 1, format_status: 1, check_lock: 2]
 
   @shortdoc "List dependencies and their status"
+  @recursive true
 
   @moduledoc """
   List all dependencies and their status.

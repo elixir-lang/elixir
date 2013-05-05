@@ -8,6 +8,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   @hidden true
   @shortdoc "Compile Erlang source files"
+  @recursive true
 
   @moduledoc """
   A task to compile Erlang source files.
