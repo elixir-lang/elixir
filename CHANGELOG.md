@@ -16,6 +16,7 @@
   * [Kernel] `List.member?/2` is deprecated in favor of `Enum.member?/2`
 
 * backwards incompatible changes
+  * [Mix] `mix escriptize` now receives arguments as binaries
 
 # v0.8.2 (2013-04-20)
 

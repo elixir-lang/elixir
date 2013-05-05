@@ -139,6 +139,7 @@ defmodule Mix.Tasks.Escriptize do
         def main(args) do
           case :application.start(:elixir) do
             :ok ->
+              args = Enum.map(args, :unicode.characters_to_binary(&1))
               Kernel.CLI.run fn -> @module.main(args) end, true
             _   ->
               IO.puts :stderr, IO.ANSI.escape("%{red, bright} Elixir is not in the code path, aborting.")
