@@ -135,14 +135,6 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns if project is part of an umbrella project.
-  """
-  def in_umbrella? do
-    projects = Mix.Server.call(:projects)
-    Enum.any? projects, fn { _, config } -> config[:apps_path] != nil end
-  end
-
-  @doc """
   Loads mix.exs in the current directory or loads the project from the
   mixfile cache and pushes the project to the project stack. Optionally
   takes a post_config.

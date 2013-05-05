@@ -30,9 +30,7 @@ defmodule Mix.Shell do
   Returns if we should output application name to shell.
   """
   def output_app? do
-    !Mix.Project.umbrella? &&
-    Mix.Project.in_umbrella? &&
-    !Mix.Server.call(:io_done)
+    Mix.Server.call(:output_app?)
   end
 
   @doc """
