@@ -274,7 +274,7 @@ defimpl Binary.Inspect, for: List do
     cond do
       :io_lib.printable_list(thing) ->
         escape(:unicode.characters_to_binary(thing), ?')
-      Keyword.keyword?(thing) ->
+      keyword?(thing) ->
         "[" <> join_keywords(thing, opts) <> "]"
       true ->
         container_join(thing, "[", "]", opts)
@@ -293,6 +293,16 @@ defimpl Binary.Inspect, for: List do
       other -> other
     end
   end
+
+  defp keyword?([{ key, _value } | rest]) when is_atom(key) do
+    case atom_to_list(key) do
+      'Elixir-' ++ _ -> false
+      _ -> keyword?(rest)
+    end
+  end
+
+  defp keyword?([]),     do: true
+  defp keyword?(_other), do: false
 end
 
 defimpl Binary.Inspect, for: Tuple do

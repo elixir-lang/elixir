@@ -36,10 +36,7 @@ defmodule Keyword do
   """
   @spec keyword?(term) :: boolean
   def keyword?([{ key, _value } | rest]) when is_atom(key) do
-    case atom_to_list(key) do
-      'Elixir-' ++ _ -> false
-      _ -> keyword?(rest)
-    end
+    keyword?(rest)
   end
 
   def keyword?([]),     do: true

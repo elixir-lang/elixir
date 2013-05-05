@@ -31,6 +31,7 @@ defmodule KeywordTest do
   test :keyword? do
     assert Keyword.keyword?([])
     assert Keyword.keyword?([a: 1])
+    assert Keyword.keyword?([{Foo,1}])
     refute Keyword.keyword?([{}])
     refute Keyword.keyword?(<<>>)
   end
