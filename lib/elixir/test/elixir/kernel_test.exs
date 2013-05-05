@@ -37,11 +37,11 @@ defmodule KernelTest do
   end
 
   test :__info__ do
-    assert { :in, 2 } inlist Kernel.__info__(:macros)
+    assert { :in, 2 } in Kernel.__info__(:macros)
   end
 
   test :__info__not_included do
-    assert not ({ :__info__, 1 } inlist Kernel.__info__(:functions))
+    assert not ({ :__info__, 1 } in Kernel.__info__(:functions))
   end
 
   test :macro_exported? do
@@ -54,7 +54,7 @@ defmodule KernelTest do
   end
 
   test :debug_info do
-    assert :debug_info inlist Kernel.__info__(:compile)[:options]
+    assert :debug_info in Kernel.__info__(:compile)[:options]
   end
 
   test :apply do

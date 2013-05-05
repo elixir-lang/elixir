@@ -1,6 +1,7 @@
 defexception ExUnit.AssertionError,  message: "assertion failed"
 
-defexception ExUnit.ExpectationError, expected: nil, actual: nil, reason: "", negation: false, prelude: "Expected", description: nil do
+defexception ExUnit.ExpectationError, expected: nil, actual: nil, reason: "",
+    negation: false, prelude: "Expected", description: nil do
   def message(exception) do
     if desc = exception.description do
       "#{exception.prelude} #{desc} #{exception.full_reason} " <>
@@ -132,11 +133,21 @@ defmodule ExUnit.Assertions do
     assert_operator :=~, left, right, "match (=~)"
   end
 
-  defp translate_assertion({ :inlist, _, [left, right] }, _else) do
+  defp translate_assertion({ :in, _, [left, right] }, _else) do
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert List.member?(right, left), left, right, reason: "be in"
+      assert Enum.member?(right, left), left, right, reason: "be in"
+    end
+  end
+
+  defp translate_assertion({ :inlist, _, [left, right] }, _else) do
+    quote do
+      IO.puts "assert(left inlist right) is deprecated, please use assert(left in right) instead"
+      Exception.print_stacktrace
+      left  = unquote(left)
+      right = unquote(right)
+      assert :lists.member(left, right), left, right, reason: "be in"
     end
   end
 
@@ -166,11 +177,21 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion({ negation, _, [{ :inlist, _, [left, right] }] }, _else) when negation in [:!, :not] do
+  defp translate_assertion({ negation, _, [{ :in, _, [left, right] }] }, _else) when negation in [:!, :not] do
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert !List.member?(right, left), left, right, reason: "be in", negation: true
+      assert !Enum.member?(right, left), left, right, reason: "be in", negation: true
+    end
+  end
+
+  defp translate_assertion({ negation, _, [{ :inlist, _, [left, right] }] }, _else) when negation in [:!, :not] do
+    quote do
+      IO.puts "refute(left inlist right) is deprecated, please use refute(left in right) instead"
+      Exception.print_stacktrace
+      left  = unquote(left)
+      right = unquote(right)
+      assert !(:lists.member(left, right)), left, right, reason: "be in", negation: true
     end
   end
 

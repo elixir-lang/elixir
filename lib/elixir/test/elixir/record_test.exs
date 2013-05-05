@@ -181,10 +181,10 @@ defmodule RecordTest do
   end
 
   test :optimizable do
-    assert { :b, 1 } inlist RecordTest.SomeRecord.__record__(:optimizable)
-    assert { :b, 2 } inlist RecordTest.SomeRecord.__record__(:optimizable)
-    assert { :update_b, 2 } inlist RecordTest.SomeRecord.__record__(:optimizable)
-    refute { :update_b, 2 } inlist RecordTest.DynamicName.__record__(:optimizable)
+    assert { :b, 1 } in RecordTest.SomeRecord.__record__(:optimizable)
+    assert { :b, 2 } in RecordTest.SomeRecord.__record__(:optimizable)
+    assert { :update_b, 2 } in RecordTest.SomeRecord.__record__(:optimizable)
+    refute { :update_b, 2 } in RecordTest.DynamicName.__record__(:optimizable)
   end
 
   test :result do

@@ -187,9 +187,9 @@ defmodule FileTest do
 
         { :ok, files } = File.cp_r(src, dest)
         assert length(files) == 8
-        assert tmp_path("tmp/cp_r/a") inlist files
-        assert tmp_path("tmp/cp_r/c") inlist files
-        assert tmp_path("tmp/cp_r/a/1.txt") inlist files
+        assert tmp_path("tmp/cp_r/a") in files
+        assert tmp_path("tmp/cp_r/c") in files
+        assert tmp_path("tmp/cp_r/a/1.txt") in files
 
         assert { :ok, 'certainly/invalid' } = :file.read_link(tmp_path("tmp/cp_r/c"))
 
@@ -777,8 +777,8 @@ defmodule FileTest do
 
       { :ok, files } = File.rm_rf(fixture)
       assert length(files) == 8
-      assert fixture inlist files
-      assert tmp_path("tmp/a/1.txt") inlist files
+      assert fixture in files
+      assert tmp_path("tmp/a/1.txt") in files
 
       refute File.exists?(tmp_path("tmp/a/1.txt"))
       refute File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -811,8 +811,8 @@ defmodule FileTest do
 
       { :ok, files } = File.rm_rf(fixture)
       assert length(files) == 8
-      assert fixture inlist files
-      assert (tmp_path("tmp/a/1.txt") |> to_char_list) inlist files
+      assert fixture in files
+      assert (tmp_path("tmp/a/1.txt") |> to_char_list) in files
 
       refute File.exists?(tmp_path("tmp/a/1.txt"))
       refute File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -847,8 +847,8 @@ defmodule FileTest do
 
       files = File.rm_rf!(fixture)
       assert length(files) == 8
-      assert fixture inlist files
-      assert tmp_path("tmp/a/1.txt") inlist files
+      assert fixture in files
+      assert tmp_path("tmp/a/1.txt") in files
 
       refute File.exists?(tmp_path("tmp/a/1.txt"))
       refute File.exists?(tmp_path("tmp/a/a/2.txt"))

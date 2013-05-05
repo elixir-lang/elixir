@@ -67,8 +67,8 @@ defmodule IEx.AutocompleteTest do
   test :elixir_root_completion do
     {:yes, '', list} = expand('')
     assert is_list(list)
-    assert 'h/1' inlist list
-    assert 'Elixir' inlist list
+    assert 'h/1' in list
+    assert 'Elixir' in list
   end
 
   test :elixir_kernel_completion do
@@ -77,13 +77,13 @@ defmodule IEx.AutocompleteTest do
 
   test :elixir_proxy do
     {:yes, '', list} = expand('E')
-    assert 'Elixir' inlist list
+    assert 'Elixir' in list
   end
 
   test :elixir_erlang_module_root_completion do
     {:yes, '', list} = expand(':')
     assert is_list(list)
-    assert 'lists' inlist list
+    assert 'lists' in list
   end
 
   test :completion_inside_expression do

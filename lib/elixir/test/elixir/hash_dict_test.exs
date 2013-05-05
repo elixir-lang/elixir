@@ -81,43 +81,43 @@ defmodule HashDictTest do
   test :to_list do
     list = filled_dict(8) |> HashDict.to_list
     assert length(list) == 8
-    assert { 1, 1 } inlist list
+    assert { 1, 1 } in list
 
     list = filled_dict(20) |> HashDict.to_list
     assert length(list) == 20
-    assert { 1, 1 } inlist list
+    assert { 1, 1 } in list
 
     list = filled_dict(120) |> HashDict.to_list
     assert length(list) == 120
-    assert { 1, 1 } inlist list
+    assert { 1, 1 } in list
   end
 
   test :keys do
     list = filled_dict(8) |> HashDict.keys
     assert length(list) == 8
-    assert 1 inlist list
+    assert 1 in list
 
     list = filled_dict(20) |> HashDict.keys
     assert length(list) == 20
-    assert 1 inlist list
+    assert 1 in list
 
     list = filled_dict(120) |> HashDict.keys
     assert length(list) == 120
-    assert 1 inlist list
+    assert 1 in list
   end
 
   test :values do
     list = filled_dict(8) |> HashDict.values
     assert length(list) == 8
-    assert 1 inlist list
+    assert 1 in list
 
     list = filled_dict(20) |> HashDict.values
     assert length(list) == 20
-    assert 1 inlist list
+    assert 1 in list
 
     list = filled_dict(120) |> HashDict.values
     assert length(list) == 120
-    assert 1 inlist list
+    assert 1 in list
   end
 
   test :enum do
