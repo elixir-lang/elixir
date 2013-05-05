@@ -5,17 +5,18 @@ defmodule Mix.UmbrellaTest do
 
   test "compile umbrella" do
     in_fixture "umbrella", fn ->
-      output = mix "compile"
-      lines = String.split(output, "\n")
-      lines = Enum.filter(lines, &1 != "")
+      Mix.Project.load_project(:umbrella)
+      Mix.Task.run "compile"
 
-      assert lines == [
-        "==> bar",
-        "Compiled lib/bar.ex",
-        "Generated bar.app",
-        "==> foo",
-        "Compiled lib/foo.ex",
-        "Generated foo.app" ]
+      assert_received { :mix_shell, :info, ["==> bar"] }
+      assert_received { :mix_shell, :info, ["Compiled lib/bar.ex"] }
+      assert_received { :mix_shell, :info, ["Generated bar.app"] }
+      assert_received { :mix_shell, :info, ["==> foo"] }
+      assert_received { :mix_shell, :info, ["Compiled lib/foo.ex"] }
+      assert_received { :mix_shell, :info, ["Generated foo.app"] }
     end
+  after
+    Mix.Project.pop
+    purge [Umbrella.Mixfile]
   end
 end

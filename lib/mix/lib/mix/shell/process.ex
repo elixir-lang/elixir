@@ -85,7 +85,7 @@ defmodule Mix.Shell.Process do
 
   def put_app do
     if Mix.Shell.output_app? do
-      self <- { :mix_shell, :info, "==> #{Mix.project[:app]}" }
+      self <- { :mix_shell, :info, ["==> #{Mix.project[:app]}"] }
     end
   end
 end
