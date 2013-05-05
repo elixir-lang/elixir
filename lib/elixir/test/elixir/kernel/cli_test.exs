@@ -18,7 +18,7 @@ defmodule Kernel.CLI.OptionParsingTest do
 
   test :path do
     root = fixture_path("../../..") |> to_char_list
-    list = elixir('-e "IO.inspect :code.get_path" -pa "#{root}/*" -pz "#{root}/lib/*"')
+    list = elixir('-pa "#{root}/*" -pz "#{root}/lib/*" -e "IO.inspect :code.get_path"')
     { path, _ } = Code.eval list, []
 
     # pa

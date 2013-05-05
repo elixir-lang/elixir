@@ -13,6 +13,8 @@ if [ $# -eq 0 ] || [ $1 = "--help" ] || [ $1 = "-h" ]; then
   --erl \"switches\"  Switches to be passed down to erlang (*)
   --name \"name\"     Makes and assigns a name to the distributed node
   --sname \"name\"    Makes and assigns a short name to the distributed node
+  --cookie \"cookie\" Sets a cookie for this distributed node
+  --hidden          Makes a hidden node
   --detached        Starts the Erlang VM detached from console
   --no-halt         Does not halt the Erlang VM after execution
 
@@ -41,10 +43,10 @@ while [ $I -le $# ]; do
   case "$PEEK" in
     -v|--compile|--no-halt)
         ;;
-    -e|-r|-pr|-pa|-pz|--remsh|-S)
+    -e|-r|-pr|-pa|-pz|--remsh|--cookie|-S)
         S=2
         ;;
-    --detached)
+    --detached|--hidden)
         ERL="$ERL `echo $PEEK | cut -c 2-`"
         ;;
     --sname|--name)

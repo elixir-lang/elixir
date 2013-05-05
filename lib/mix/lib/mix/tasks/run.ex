@@ -11,8 +11,8 @@ defmodule Mix.Tasks.Run do
 
   ## Command line options
 
-  * `--require`, `-r` - Requires a file before running the command
-  * `--parallel-require`, `-pr` - Requires a file in parallel
+  * `--require`, `-r` - Requires pattern before running the command
+  * `--parallel-require`, `-pr` - Requires pattern in parallel
   * `--no-halt` - Does not halt the system after running the command
   * `--no-compile` - Do not compile even if files require compilation;
   * `--no-start` - Do not start applications after compilation;
@@ -21,6 +21,10 @@ defmodule Mix.Tasks.Run do
 
       mix run Hello.world
       mix run "Some.function with_args"
+
+  Command line options given to the `elixir` executable can be passed as:
+
+      elixir --sname hello -S mix run "My.code"
 
   """
   def run(args) do

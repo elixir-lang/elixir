@@ -164,4 +164,23 @@ defmodule Node do
   def spawn_link(node, module, fun, args) do
     :erlang.spawn_link(node, module, fun, args)
   end
+
+  @doc """
+  Sets the magic cookie of `node` to the atom `cookie`. The default node
+  is `Node.self`, the local node. If node is the local node, the function also
+  sets the cookie of all other unknown nodes to `cookie`.
+
+  This function will raise `FunctionClauseError` if the given node is not alive.
+  """
+  def set_cookie(node // Node.self, cookie) when is_atom(cookie) do
+    :erlang.set_cookie(node, cookie)
+  end
+
+  @doc """
+  Returns the magic cookie of the local node, if the node is alive;
+  otherwise `:nocookie`.
+  """
+  def get_cookie() do
+    :erlang.get_cookie()
+  end
 end
