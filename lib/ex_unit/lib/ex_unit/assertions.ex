@@ -143,7 +143,7 @@ defmodule ExUnit.Assertions do
 
   defp translate_assertion({ :inlist, _, [left, right] }, _else) do
     quote do
-      IO.puts "assert(left inlist right) is deprecated, please use assert(left in right) instead"
+      IO.puts "[WARNING] assert(left inlist right) is deprecated, please use assert(left in right) instead"
       Exception.print_stacktrace
       left  = unquote(left)
       right = unquote(right)
@@ -187,7 +187,7 @@ defmodule ExUnit.Assertions do
 
   defp translate_assertion({ negation, _, [{ :inlist, _, [left, right] }] }, _else) when negation in [:!, :not] do
     quote do
-      IO.puts "refute(left inlist right) is deprecated, please use refute(left in right) instead"
+      IO.puts "[WARNING] refute(left inlist right) is deprecated, please use refute(left in right) instead"
       Exception.print_stacktrace
       left  = unquote(left)
       right = unquote(right)

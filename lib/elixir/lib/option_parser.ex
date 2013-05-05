@@ -166,7 +166,7 @@ defmodule OptionParser do
   defp is_no?("no-" <> _), do: true
   defp is_no?(_),          do: false
 
-  defp is_switch_a?(kind, list) when is_list(list), do: List.member?(list, kind)
+  defp is_switch_a?(kind, list) when is_list(list), do: kind in list
   defp is_switch_a?(kind, kind), do: true
   defp is_switch_a?(_, _),       do: false
 end

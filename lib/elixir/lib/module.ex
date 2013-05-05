@@ -412,7 +412,7 @@ defmodule Module do
     acc   = ETS.lookup_element(table, :__acc_attributes, 2)
 
     new =
-      if List.member?(acc, key) do
+      if :lists.member(key, acc) do
         case ETS.lookup(table, key) do
           [{^key,old}] -> [value|old]
           [] -> [value]
@@ -449,7 +449,7 @@ defmodule Module do
       [{^key,old}] -> old
       [] ->
         acc = ETS.lookup_element(table, :__acc_attributes, 2)
-        if List.member?(acc, key), do: [], else: nil
+        if :lists.member(key, acc), do: [], else: nil
     end
   end
 

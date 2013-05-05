@@ -13,6 +13,7 @@
 
 * deprecations
   * [ExUnit] `assert left inlist right` is deprecated in favor of `assert left in right`
+  * [Kernel] `List.member?/2` is deprecated in favor of `Enum.member?/2`
 
 * backwards incompatible changes
 

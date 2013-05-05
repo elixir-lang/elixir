@@ -142,21 +142,9 @@ defmodule List do
     :lists.last(list)
   end
 
-  @doc """
-  Checks if the given `term` is included in the list.
-  This function simply delegates to `lists:member`
-  which is implemented in C for performance.
-
-  ## Examples
-
-      iex> List.member?([1,2,3], 1)
-      true
-
-      iex> List.member?([1,2,3], 0)
-      false
-
-  """
+  @doc false
   def member?(list, term) do
+    IO.write "[WARNING] List.member? is deprecated, please use Enum.member? instead\n#{Exception.format_stacktrace}"
     :lists.member(term, list)
   end
 

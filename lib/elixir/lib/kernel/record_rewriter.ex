@@ -72,7 +72,7 @@ defmodule Kernel.RecordRewriter do
     case record_fields(module, record) do
       { fields, optimizable } ->
         opt_call =
-          if List.member?(optimizable, { function, length(args) + 1 }) do
+          if :lists.member({ function, length(args) + 1 }, optimizable) do
             case record_field_info(function) do
               { kind, field } ->
                 if index = Enum.find_index(fields, field == &1) do

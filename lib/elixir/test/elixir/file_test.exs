@@ -399,16 +399,16 @@ defmodule FileTest do
 
   test :ls do
     { :ok, value } = File.ls(fixture_path)
-    assert List.member?(value, "code_sample.exs")
-    assert List.member?(value, "file.txt")
+    assert "code_sample.exs" in value
+    assert "file.txt" in value
 
     { :error, :enoent } = File.ls(fixture_path("non-existent-subdirectory"))
   end
 
   test :ls! do
     value = File.ls!(fixture_path)
-    assert List.member?(value, "code_sample.exs")
-    assert List.member?(value, "file.txt")
+    assert "code_sample.exs" in value
+    assert "file.txt" in value
 
     assert_raise File.Error, fn ->
       File.ls!(fixture_path("non-existent-subdirectory"))

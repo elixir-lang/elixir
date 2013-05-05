@@ -84,7 +84,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     opts = project[:elixirc_options] || []
     opts = Keyword.put(opts, :ignore_module_conflict, true)
     Code.compiler_options(opts)
-    to_compile = lc f inlist to_compile, List.member?(stale, f), do: f
+    to_compile = lc f inlist to_compile, f in stale, do: f
     compile_files to_compile, compile_path
   end
 

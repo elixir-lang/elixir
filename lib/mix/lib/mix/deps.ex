@@ -50,7 +50,7 @@ defmodule Mix.Deps do
     end
 
     # We need to keep the order of all, which properly orders deps
-    deps = Enum.filter all, fn(dep) -> List.member?(apps, dep.app) end
+    deps = Enum.filter all, fn(dep) -> dep.app in apps end
 
     # Now we validate the given atoms
     index = Mix.Dep.__index__(:app)

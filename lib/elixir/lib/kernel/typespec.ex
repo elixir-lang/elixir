@@ -279,7 +279,7 @@ defmodule Kernel.Typespec do
         lc { :attribute, _, kind, { name, _, args } = type } inlist abstract_code, kind in [:opaque, :type] do
           cond do
             kind == :opaque -> { :opaque, type }
-            List.member?(exported_types, { name, length(args) }) -> { :type, type }
+            :lists.member({ name, length(args) }, exported_types) -> { :type, type }
             true -> { :typep, type }
           end
         end
@@ -616,7 +616,7 @@ defmodule Kernel.Typespec do
 
   # Handle variables or local calls
   defp typespec({name, meta, atom}, vars, caller) when is_atom(atom) do
-    if List.member?(vars, name) do
+    if :lists.member(name, vars) do
       { :var, line(meta), name }
     else
       typespec({name, meta, []}, vars, caller)

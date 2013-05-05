@@ -302,7 +302,7 @@ defmodule System do
   end
 
   # Support R15B
-  if List.member?(:erlang.module_info(:exports), { :halt, 2 }) do
+  if { :halt, 2 } in :erlang.module_info(:exports) do
     defp do_halt(status, options),  do: :erlang.halt(status, options)
   else
     IO.puts "Using limited halt support. Upgrade to R15B01 or later is recommended."
