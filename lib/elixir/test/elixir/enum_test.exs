@@ -278,6 +278,7 @@ defmodule EnumTest.List do
 
   test :uniq do
     assert Enum.uniq([1,2,3,2,1]) == [1,2,3]
+    assert Enum.uniq([1,2,3,2,1], fn x -> x end) == [1,2,3]
   end
 
   test :zip do
@@ -597,6 +598,7 @@ defmodule EnumTest.Range do
 
   test :uniq do
     assert Enum.uniq(1..3) == [1,2,3]
+    assert Enum.uniq(1..3, fn x -> x end) == [1,2,3]
   end
 
   test :zip do
