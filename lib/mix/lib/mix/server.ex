@@ -50,8 +50,8 @@ defmodule Mix.Server do
     { :reply, config.tasks, config.tasks(Ordset.new) }
   end
 
-  def handle_call({ :has_task?, task }, _from, config) do
-    { :reply, Ordset.is_element(task, config.tasks), config }
+  def handle_call({ :has_task?, task, app }, _from, config) do
+    { :reply, Ordset.is_element({task, app}, config.tasks), config }
   end
 
   def handle_call(:pop_project, _from, config) do
@@ -87,12 +87,17 @@ defmodule Mix.Server do
     { :noreply, config.tasks(tasks) }
   end
 
-  def handle_cast({ :add_task, name }, config) do
-    { :noreply, config.update_tasks :ordsets.add_element(name, &1) }
+  def handle_cast({ :add_task, task, app }, config) do
+    { :noreply, config.update_tasks Ordset.add_element({task, app}, &1) }
   end
 
-  def handle_cast({ :delete_task, name }, config) do
-    { :noreply, config.update_tasks :ordsets.del_element(name, &1) }
+  def handle_cast({ :delete_task, task, app }, config) do
+    { :noreply, config.update_tasks Ordset.del_element({task, app}, &1) }
+  end
+
+  def handle_cast({ :delete_task, task }, config) do
+    Ordset.filter(fn {t, _} -> t != task end, config.tasks)
+    { :noreply, config.update_tasks Ordset.filter(fn {t, _} -> t != task end, &1) }
   end
 
   def handle_cast({ :push_project, name, project }, config) do
@@ -108,7 +113,7 @@ defmodule Mix.Server do
   end
 
   def handle_cast({ :add_scm, mod }, config) do
-    { :noreply, config.update_scm :ordsets.add_element(mod, &1) }
+    { :noreply, config.update_scm Ordset.add_element(mod, &1) }
   end
 
   def handle_cast({ :mixfile_cache, app, new }, config) do

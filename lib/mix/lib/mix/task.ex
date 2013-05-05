@@ -130,12 +130,13 @@ defmodule Mix.Task do
   """
   def run(task, args // []) do
     task = to_binary(task)
+    app = Mix.project[:app]
 
-    if Mix.Server.call({ :has_task?, task }) do
+    if Mix.Server.call({ :has_task?, task, app }) do
       :noop
     else
       module = get(task)
-      Mix.Server.cast({ :add_task, task })
+      Mix.Server.cast({ :add_task, task, app })
 
       if Mix.Project.umbrella? && recursive?(module) do
         Mix.Project.recursive(fn (_, _) -> module.run(args) end)
@@ -154,10 +155,15 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Reenables a given task so it can be executed again down the stack.
+  Reenables a given task so it can be executed again down the stack. If
+  an umbrella project reenables a task it is reenabled for all sub projects.
   """
   def reenable(task) do
-    Mix.Server.cast({ :delete_task, to_binary(task) })
+    if Mix.Project.umbrella? do
+      Mix.Server.cast({ :delete_task, to_binary(task) })
+    else
+      Mix.Server.cast({ :delete_task, to_binary(task), Mix.project[:app] })
+    end
   end
 
   # Used internally by Mix to swap tasks in and out when
