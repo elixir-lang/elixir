@@ -384,12 +384,19 @@ defimpl Binary.Inspect, for: Number do
 
   """
 
+  @digits 20
+  @limit  :math.pow(10, @digits)
+
   def inspect(thing, _) when is_integer(thing) do
-    list_to_binary integer_to_list(thing)
+    :erlang.integer_to_binary(thing)
+  end
+
+  def inspect(thing, _) when thing > @limit do
+    :erlang.float_to_binary(thing, [{ :scientific, @digits }])
   end
 
   def inspect(thing, _) do
-    list_to_binary :io_lib.format("~p", [thing])
+    :erlang.float_to_binary(thing, [:compact, { :decimals, @digits }])
   end
 end
 

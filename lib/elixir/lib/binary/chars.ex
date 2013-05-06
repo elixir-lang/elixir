@@ -66,11 +66,19 @@ defimpl Binary.Chars, for: Number do
   @doc """
   Simply converts the number (integer or a float) to a binary.
   """
+
+  @digits 20
+  @limit  :math.pow(10, @digits)
+
   def to_binary(thing) when is_integer(thing) do
-    list_to_binary integer_to_list(thing)
+    :erlang.integer_to_binary(thing)
+  end
+
+  def to_binary(thing) when thing > @limit do
+    :erlang.float_to_binary(thing, [{ :scientific, @digits }])
   end
 
   def to_binary(thing) do
-    list_to_binary float_to_list(thing)
+    :erlang.float_to_binary(thing, [:compact, { :decimals, @digits }])
   end
 end

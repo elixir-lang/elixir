@@ -2753,7 +2753,7 @@ defmodule Kernel do
 
   * `:decimals` — number of decimal points to show
   * `:scientific` — number of decimal points to show, in scientific format
-  * `:compact` — If true, use the most compact representation. Ignored with the `scientific` option
+  * `:compact` — If true, use the most compact representation (ignored with the `scientific` option)
 
   ## Examples
 

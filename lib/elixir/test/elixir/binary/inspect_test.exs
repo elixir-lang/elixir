@@ -88,9 +88,8 @@ defmodule Binary.Inspect.NumberTest do
 
   test :float do
     assert inspect(1.0) == "1.0"
-    assert inspect(1.0e10) == "1.0e10"
-    assert inspect(1.0e+10) == "1.0e10"
-    assert inspect(1.0e-10) == "1.0e-10"
+    assert inspect(1.0e10) == "10000000000.0"
+    assert inspect(1.0e-10) == "0.0000000001"
   end
 end
 

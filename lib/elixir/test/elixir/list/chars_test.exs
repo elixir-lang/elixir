@@ -24,7 +24,7 @@ defmodule List.Chars.NumberTest do
   end
 
   test :float do
-    assert to_char_list(1.0) == '1.00000000000000000000e+00'
+    assert to_char_list(1.0) == '1.0'
   end
 end
 
