@@ -25,28 +25,6 @@ defmodule Mix.Tasks.NewTest do
     end
   end
 
-  test "new with camelize" do
-    in_tmp "new with camelize", fn ->
-      Mix.Tasks.New.run ["HelloWorld"]
-
-      assert_file "HelloWorld/mix.exs", fn(file) ->
-        assert file =~ %r/app: :hello_world/
-        assert file =~ %r/version: "0.0.1"/
-      end
-
-      assert_file "HelloWorld/README.md", %r/# HelloWorld/
-      assert_file "HelloWorld/.gitignore"
-
-      assert_file "HelloWorld/lib/hello_world.ex", %r/defmodule HelloWorld do/
-
-      assert_file "HelloWorld/test/test_helper.exs", %r/HelloWorld.start/
-      assert_file "HelloWorld/test/hello_world_test.exs", %r/defmodule HelloWorldTest do/
-
-      assert_received { :mix_shell, :info, ["* creating mix.exs"] }
-      assert_received { :mix_shell, :info, ["* creating lib/hello_world.ex"] }
-    end
-  end
-
   test "new with --sup" do
     in_tmp "new with underscore", fn ->
       Mix.Tasks.New.run ["hello_world", "--sup"]
@@ -79,28 +57,6 @@ defmodule Mix.Tasks.NewTest do
     end
   end
 
-  test "new with custom name" do
-    in_tmp "new with camelize", fn ->
-      Mix.Tasks.New.run ["sample", "--module", "HelloWorld", "--app", "helloworld"]
-
-      assert_file "sample/mix.exs", fn(file) ->
-        assert file =~ %r/app: :helloworld/
-        assert file =~ %r/version: "0.0.1"/
-      end
-
-      assert_file "sample/README.md", %r/# HelloWorld/
-      assert_file "sample/.gitignore"
-
-      assert_file "sample/lib/helloworld.ex", %r/defmodule HelloWorld do/
-
-      assert_file "sample/test/test_helper.exs", %r/HelloWorld.start/
-      assert_file "sample/test/helloworld_test.exs", %r/defmodule HelloWorldTest do/
-
-      assert_received { :mix_shell, :info, ["* creating mix.exs"] }
-      assert_received { :mix_shell, :info, ["* creating lib/helloworld.ex"] }
-    end
-  end
-
   test "new with dot" do
     in_tmp "new_with_dot", fn ->
       Mix.Tasks.New.run ["."]
@@ -110,7 +66,7 @@ defmodule Mix.Tasks.NewTest do
 
   test "new with invalid args" do
     in_tmp "new with invalid args", fn ->
-      assert_raise Mix.Error, "project path must start with a letter and have only letters, numbers and underscore", fn ->
+      assert_raise Mix.Error, "project path must start with a letter and have only lowercase letters, numbers and underscore", fn ->
         Mix.Tasks.New.run ["007invalid"]
       end
 

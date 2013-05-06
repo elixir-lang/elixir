@@ -27,20 +27,21 @@ defmodule Mix.Tasks.App.Start do
     end
 
     unless opts[:no_start] do
-      start_apps(project)
+      start_app(project)
     end
   end
 
-  defp start_apps(project) do
-    apps =
-      cond do
-        # Eventually we can support custom start apps
-        # apps = project[:start_apps] -> apps
-        app = project[:app]   -> [app]
-        true                  -> []
+  defp start_app(project) do
+    if app = project[:app] do
+      ebin   = (project[:compile_path] || "ebin")
+      parent = ebin |> Path.expand |> Path.dirname |> Path.basename
+
+      if parent != atom_to_binary(app) do
+        Mix.shell.error "Mix requires the compile path #{inspect ebin} to be inside " <>
+                        "a directory with the same name as the application name " <>
+                        "#{inspect app}, got #{inspect Path.expand(ebin)}"
       end
 
-    lc app inlist apps do
       case Application.Behaviour.start(app) do
         :ok -> :ok
         { :error, reason } ->

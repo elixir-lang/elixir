@@ -10,7 +10,7 @@ defmodule Mix.Tasks.New do
   Creates a new Elixir project.
   It expects the path of the project as argument.
 
-      mix new PATH [--sup] [--app APP] [--module MODULE]
+      mix new PATH [--sup] [--module MODULE]
 
   A project at the given PATH  will be created. The
   application name and module name will be retrieved
@@ -27,7 +27,7 @@ defmodule Mix.Tasks.New do
 
   Is equivalent to:
 
-      mix new hello_world --app hello_world --module HelloWorld
+      mix new hello_world --module HelloWorld
 
   To generate an app with supervisor and application behaviours:
 
@@ -41,10 +41,10 @@ defmodule Mix.Tasks.New do
       [] ->
         raise Mix.Error, message: "expected PATH to be given, please use `mix new PATH`"
       [path|_] ->
-        name = opts[:app] || Path.basename(Path.expand(path))
+        name = Path.basename(Path.expand(path))
         check_project_name!(name)
         File.mkdir_p!(path)
-        File.cd!(path, fn -> do_generate(underscore(name), opts) end)
+        File.cd!(path, fn -> do_generate(name, opts) end)
     end
   end
 
@@ -73,8 +73,8 @@ defmodule Mix.Tasks.New do
   end
 
   defp check_project_name!(name) do
-    unless name =~ %r/^[a-z][\w_]*$/i do
-      raise Mix.Error, message: "project path must start with a letter and have only letters, numbers and underscore"
+    unless name =~ %r/^[a-z][\w_]*$/ do
+      raise Mix.Error, message: "project path must start with a letter and have only lowercase letters, numbers and underscore"
     end
   end
 

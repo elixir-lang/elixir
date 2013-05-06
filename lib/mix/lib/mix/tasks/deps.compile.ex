@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
       config = [
         deps_path: root_path,
-        root_lockfile:  Path.expand(Mix.project[:lockfile])
+        root_lockfile: Path.expand(Mix.project[:lockfile])
       ]
 
       File.cd! deps_path, fn ->
