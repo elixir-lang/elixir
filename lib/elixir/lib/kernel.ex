@@ -2747,7 +2747,7 @@ defmodule Kernel do
 
   @doc """
   Returns a binary which corresponds to the text representation
-  of `some_float`.
+  of `float`.
 
   ## Options
 
@@ -2760,24 +2760,27 @@ defmodule Kernel do
       float_to_binary 7.1, [decimals: 2, compact: true] #=> "7.1"
 
   """
-  defmacro float_to_binary(some_float, options) do
-    options = :lists.reverse(:lists.foldl(fn({:compact, false}, acc) -> acc -- [:compact]
-                                            ({:compact, true}, acc) -> [:compact|acc]
-                                            (x, acc) -> [x|acc]
-                                          end, [], options))
-    case :proplists.get_value(:float_to_binary,
-                              :proplists.get_value(:exports, :erlang.module_info, [])) do
-      2 ->
-        quote do: :erlang.float_to_binary(unquote(some_float), unquote(options))
-      :undefined ->
-        case :proplists.get_value(:float_to_list,
-                                  :proplists.get_value(:exports, :erlang.module_info, [])) do
-          2 ->
-            quote do: list_to_binary(float_to_list(unquote(some_float), unquote(options)))
-          1 ->
-            throw(:badarg)
-        end
-    end
+  def float_to_binary(float, options) do
+    :erlang.float_to_binary(float, expand_compact(options))
+  end
+
+  @doc """
+  Returns a list which corresponds to the text representation
+  of `float`.
+
+  ## Options
+
+  * `:decimals` — number of decimal points to show
+  * `:scientific` — number of decimal points to show, in scientific format
+  * `:compact` — If true, use the most compact representation (ignored with the `scientific` option)
+
+  ## Examples
+
+      float_to_binary 7.1, [decimals: 2, compact: true] #=> '7.1'
+
+  """
+  def float_to_list(float, options) do
+    :erlang.float_to_list(float, expand_compact(options))
   end
 
   @doc """
@@ -3531,6 +3534,11 @@ defmodule Kernel do
   end
 
   defp build_cond_clauses([], acc), do: acc
+
+  defp expand_compact([{ :compact, false }|t]), do: expand_compact(t)
+  defp expand_compact([{ :compact, true }|t]),  do: [:compact|expand_compact(t)]
+  defp expand_compact([h|t]),                   do: [h|expand_compact(t)]
+  defp expand_compact([]),                      do: []
 
   defp split_words(string, modifiers) do
     mod = case modifiers do

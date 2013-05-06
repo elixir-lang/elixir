@@ -74,11 +74,20 @@ defimpl Binary.Chars, for: Number do
     integer_to_binary(thing)
   end
 
-  def to_binary(thing) when thing > @limit do
-    float_to_binary(thing, scientific: @digits)
-  end
+  to_binary = :proplists.get_value(:float_to_binary,
+                :proplists.get_value(:exports, :erlang.module_info, []))
 
-  def to_binary(thing) do
-    float_to_binary(thing, compact: true, decimals: @digits)
+  if to_binary == 2 do
+    def to_binary(thing) when thing > @limit do
+      float_to_binary(thing, scientific: @digits)
+    end
+
+    def to_binary(thing) do
+      float_to_binary(thing, compact: true, decimals: @digits)
+    end
+  else
+    def to_binary(thing) do
+      float_to_binary(thing)
+    end
   end
 end

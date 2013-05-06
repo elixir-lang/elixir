@@ -34,11 +34,20 @@ defimpl List.Chars, for: Number do
     integer_to_list(thing)
   end
 
-  def to_char_list(thing) when thing > @limit do
-    float_to_list(thing, scientific: @digits)
-  end
+  to_list = :proplists.get_value(:float_to_list,
+              :proplists.get_value(:exports, :erlang.module_info, []))
 
-  def to_char_list(thing) do
-    float_to_list(thing, compact: true, decimals: @digits)
+  if to_list == 2 do
+    def to_char_list(thing) when thing > @limit do
+      float_to_list(thing, scientific: @digits)
+    end
+
+    def to_char_list(thing) do
+      float_to_list(thing, compact: true, decimals: @digits)
+    end
+  else
+    def to_char_list(thing) do
+      float_to_list(thing)
+    end
   end
 end
