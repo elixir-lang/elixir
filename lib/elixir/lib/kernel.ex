@@ -2776,7 +2776,7 @@ defmodule Kernel do
 
   ## Examples
 
-      float_to_binary 7.1, [decimals: 2, compact: true] #=> '7.1'
+      float_to_list 7.1, [decimals: 2, compact: true] #=> '7.1'
 
   """
   def float_to_list(float, options) do
