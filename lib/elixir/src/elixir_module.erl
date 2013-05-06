@@ -149,7 +149,12 @@ functions_form(Line, File, Module, Export, Private, Def, Defmacro, RawFunctions,
   { FinalExport, FinalFunctions } =
     add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C),
 
-  Recorded = elixir_import:recorded_locals(Module),
+  Recorded =
+    case ets:lookup(data_table(Module), 'on_load') of
+      [] -> elixir_import:recorded_locals(Module);
+      [{on_load,OnLoad}] -> elixir_import:recorded_locals(Module) ++ OnLoad
+    end,
+
   elixir_def_local:check_unused_local_macros(File, Recorded, Private),
   PrivateTuple = [Tuple || { Tuple, _, _, _ } <- Private],
   { FinalExport ++ PrivateTuple, [
