@@ -14,7 +14,7 @@ build_table(Module) ->
 delete_table(Module) ->
   ets:delete(table(Module)).
 
-record(_Kind, _Tuple, _Receiver, nil) ->
+record(import, _Tuple, _Receiver, nil) ->
   false;
 
 record(import, Tuple, Receiver, Module) ->

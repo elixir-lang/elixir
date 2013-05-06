@@ -4,7 +4,6 @@
 -export([
   assigns/3, assigns_block/5, assigns_block/6, extract_last_guards/1,
   get_pairs/4, get_pairs/5, match/3, extract_args/1, extract_guards/1]).
--import(elixir_scope, [umergec/2]).
 -include("elixir.hrl").
 
 %% Get pairs from a clause.
@@ -105,7 +104,7 @@ do_match(Meta, DecoupledClauses, S) ->
   % and storing variables defined inside each clause.
   Transformer = fun(X, {Acc, CV}) ->
     { TX, TAcc } = each_clause(Meta, X, Acc),
-    { TX, { umergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
+    { TX, { merge_clauses_scope(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
   end,
 
   { TClauses, { TS, ReverseCV } } = lists:mapfoldl(Transformer, {S, []}, DecoupledClauses),
@@ -246,3 +245,14 @@ generate_match(Line, LeftVars, RightVars) ->
 
 listify(Expr) when not is_list(Expr) -> [Expr];
 listify(Expr) -> Expr.
+
+%% We don't use umergec because imports, aliases and
+%% what not are not passed from one clause to the other.
+merge_clauses_scope(S1, S2) ->
+  S1#elixir_scope{
+    counter=S2#elixir_scope.counter,
+    extra_guards=S2#elixir_scope.extra_guards,
+    super=S1#elixir_scope.super orelse S2#elixir_scope.super,
+    caller=S1#elixir_scope.caller orelse S2#elixir_scope.caller,
+    name_args=S1#elixir_scope.name_args orelse S2#elixir_scope.name_args
+  }.

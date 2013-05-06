@@ -27,6 +27,16 @@ defmodule Kernel.AliasTest do
     assert Nested.flatten([[13]]) == [13]
   end
 
+  test :lexical do
+    if true do
+      alias OMG, as: List
+    else
+      alias ABC, as: List
+    end
+
+    assert List.flatten([1,[2],3]) == [1,2,3]
+  end
+
   defmodule Elixir do
     def sample, do: 1
   end
