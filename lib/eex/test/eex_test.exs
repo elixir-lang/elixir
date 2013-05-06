@@ -270,6 +270,15 @@ foo
     assert_eval expected, string
   end
 
+  test "unicode" do
+    template = """
+      • <%= "•" %> •
+      <%= "Jößé Vâlìm" %> Jößé Vâlìm
+    """
+    result = EEx.eval_string(template)
+    assert result == "  • • •\n  Jößé Vâlìm Jößé Vâlìm\n"
+  end
+
   test "evaluates the source from a given file" do
     filename = Path.join(__DIR__, "fixtures/eex_template.eex")
     result = EEx.eval_file(filename)
