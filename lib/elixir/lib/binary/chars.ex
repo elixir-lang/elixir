@@ -71,14 +71,14 @@ defimpl Binary.Chars, for: Number do
   @limit  :math.pow(10, @digits)
 
   def to_binary(thing) when is_integer(thing) do
-    :erlang.integer_to_binary(thing)
+    integer_to_binary(thing)
   end
 
   def to_binary(thing) when thing > @limit do
-    :erlang.float_to_binary(thing, [{ :scientific, @digits }])
+    float_to_binary(thing, scientific: @digits)
   end
 
   def to_binary(thing) do
-    :erlang.float_to_binary(thing, [:compact, { :decimals, @digits }])
+    float_to_binary(thing, compact: true, decimals: @digits)
   end
 end

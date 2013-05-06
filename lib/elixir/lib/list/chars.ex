@@ -31,14 +31,14 @@ defimpl List.Chars, for: Number do
   @limit  :math.pow(10, @digits)
 
   def to_char_list(thing) when is_integer(thing) do
-    :erlang.integer_to_list(thing)
+    integer_to_list(thing)
   end
 
   def to_char_list(thing) when thing > @limit do
-    :erlang.float_to_list(thing, [{ :scientific, @digits }])
+    float_to_list(thing, scientific: @digits)
   end
 
   def to_char_list(thing) do
-    :erlang.float_to_list(thing, [:compact, { :decimals, @digits }])
+    float_to_list(thing, compact: true, decimals: @digits)
   end
 end

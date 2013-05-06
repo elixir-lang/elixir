@@ -388,15 +388,15 @@ defimpl Binary.Inspect, for: Number do
   @limit  :math.pow(10, @digits)
 
   def inspect(thing, _) when is_integer(thing) do
-    :erlang.integer_to_binary(thing)
+    integer_to_binary(thing)
   end
 
   def inspect(thing, _) when thing > @limit do
-    :erlang.float_to_binary(thing, [{ :scientific, @digits }])
+    float_to_binary(thing, scientific: @digits)
   end
 
   def inspect(thing, _) do
-    :erlang.float_to_binary(thing, [:compact, { :decimals, @digits }])
+    float_to_binary(thing, compact: true, decimals: @digits)
   end
 end
 
