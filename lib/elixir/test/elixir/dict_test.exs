@@ -10,7 +10,7 @@ defmodule DictTest.Common do
       defmacrop dicts_equal(actual, expected) do
         quote do
           cmp = fn { k1, _ }, { k2, _ } -> k1 < k2 end
-          Enum.sort(expected, cmp) == Enum.sort(actual, cmp)
+          Enum.sort(unquote(expected), cmp) == Enum.sort(unquote(actual), cmp)
         end
       end
 
@@ -49,6 +49,81 @@ defmodule DictTest.Common do
         assert_raise KeyError, fn ->
           Dict.get!(new_dict, "other_key")
         end
+      end
+
+      test :pop do
+        dict = new_dict
+
+        {actual, actual_rest} = Dict.pop(empty_dict, dict)
+        assert dicts_equal actual, dict
+        assert dicts_equal actual_rest, empty_dict
+
+        {actual, actual_rest} = Dict.pop(dict, empty_dict)
+        assert dicts_equal actual, empty_dict
+        assert dicts_equal actual_rest, dict
+
+        {actual, actual_rest} = Dict.pop(dict, dict)
+        assert dicts_equal actual, dict
+        assert dicts_equal actual_rest, empty_dict
+
+        {actual, actual_rest} = Dict.pop(empty_dict, empty_dict)
+        assert dicts_equal actual, empty_dict
+        assert dicts_equal actual_rest, empty_dict
+
+        dict1 = new_dict Enum.zip ["a", "b", "c"], [1, 2, 3]
+        dict2 = new_dict Enum.zip ["a", "c", "d"], [3, :a, 0]
+        {actual, actual_rest} = Dict.pop(dict1, dict2)
+        expected = new_dict Enum.zip ["a", "c", "d"], [1, 3, 0]
+        assert dicts_equal actual, expected
+        assert dicts_equal actual_rest, new_dict Enum.zip ["b"], [2]
+      end
+
+      test :pop_with_enum do
+        dict1 = new_dict Enum.zip ["a", "b", "c"], [1, 2, 3]
+        dict2 = Enum.zip ["a", "c", "d"], [3, :a, 0]
+
+        {actual, actual_rest} = Dict.pop(dict1, [{"a", nil}])
+        assert dicts_equal actual, Dict.put(empty_dict, "a", 1)
+        assert dicts_equal actual_rest, Dict.delete(dict1, "a")
+
+        {actual, actual_rest} = Dict.pop(dict1, [{"b", nil}])
+        assert dicts_equal actual, Dict.put(empty_dict, "b", 2)
+        assert dicts_equal actual_rest, Dict.delete(dict1, "b")
+
+        {actual, actual_rest} = Dict.pop(dict1, [{"d", nil}])
+        assert dicts_equal actual, Dict.put(empty_dict, "d", nil)
+        assert dicts_equal actual_rest, dict1
+
+        {actual, actual_rest} = Dict.pop(empty_dict, dict2)
+        assert dicts_equal actual, dict2
+        assert dicts_equal actual_rest, empty_dict
+
+        {actual, actual_rest} = Dict.pop(dict1, dict2)
+        expected = new_dict Enum.zip ["a", "c", "d"], [1, 3, 0]
+        assert dicts_equal actual, expected
+        assert dicts_equal actual_rest, new_dict Enum.zip ["b"], [2]
+      end
+
+      test :pop_value do
+        {v, actual} = Dict.pop_value(new_dict, "first_key")
+        assert 1 == v
+        assert dicts_equal actual, Dict.delete(new_dict, "first_key")
+
+        {v, actual} = Dict.pop_value(new_dict, "second_key")
+        assert 2 == v
+        assert dicts_equal actual, Dict.delete(new_dict, "second_key")
+
+        {v, actual} = Dict.pop_value(new_dict, "other_key")
+        assert nil == v
+        assert dicts_equal actual, new_dict
+
+        {v, actual} = Dict.pop_value(empty_dict, "first_key", "default")
+        assert "default" == v
+        assert dicts_equal actual, empty_dict
+
+        {v, actual} = Dict.pop_value(new_dict, "other_key", "default")
+        assert "default" == v
+        assert dicts_equal actual, new_dict
       end
 
       test :put do

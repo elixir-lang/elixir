@@ -77,6 +77,27 @@ defmodule List.Dict do
   end
 
   @doc """
+  Returns the values taken out from dict as well
+  as a dict without keys which were taken out.
+  Keys to take out are specified as another dict
+  which contains key default_value pairs.
+  """
+  def pop(dict, defaults) do
+    Enum.reduce defaults, {new, dict},
+       fn({ key, default }, {acc, dict}) ->
+         {put(acc, key, get(dict, key, default)), delete(dict, key)}
+       end
+  end
+
+  @doc """
+  Returns the value under the given key
+  from the dict as well as the dict without that key.
+  """
+  def pop_value(dict, key, default // nil) do
+    {get(dict, key, default), delete(dict, key)}
+  end
+
+  @doc """
   Puts the given key-value pair in the dict.
   """
   def put(dict, key, val) do
