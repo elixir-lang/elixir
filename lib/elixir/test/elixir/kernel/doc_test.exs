@@ -1,10 +1,10 @@
-Code.require_file "../../test_helper.exs", __FILE__
+Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Kernel.DocTest do
   use ExUnit.Case
 
   test :compiled_docs do
-    path = Path.expand("../../fixtures/compiled_with_docs.ex", __FILE__)
+    path = Path.join(__DIR__, "../fixtures/compiled_with_docs.ex")
 
     try do
       Code.load_file path
@@ -23,7 +23,7 @@ defmodule Kernel.DocTest do
   end
 
   test :compiled_without_docs do
-    path = Path.expand("../../fixtures/compiled_with_docs.ex", __FILE__)
+    path = Path.join(__DIR__, "../fixtures/compiled_with_docs.ex")
 
     try do
       Code.compiler_options(docs: false)

@@ -209,6 +209,9 @@ translate_each({ '__MODULE__', Meta, Atom }, S) when is_atom(Atom) ->
 translate_each({ '__FILE__', _Meta, Atom }, S) when is_atom(Atom) ->
   translate_each(S#elixir_scope.file, S);
 
+translate_each({ '__DIR__', _Meta, Atom }, S) when is_atom(Atom) ->
+  translate_each(filename:dirname(S#elixir_scope.file), S);
+
 translate_each({ '__ENV__', Meta, Atom }, S) when is_atom(Atom) ->
   Env = elixir_scope:to_ex_env({ ?line(Meta), S }),
   { elixir_tree_helpers:abstract_syntax(Env), S };

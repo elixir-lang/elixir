@@ -336,6 +336,11 @@ defmodule Kernel.SpecialForms do
   defmacro __FILE__
 
   @doc """
+  Returns the current directory as a binary.
+  """
+  defmacro __DIR__
+
+  @doc """
   Allows you to get the representation of any expression.
 
   ## Examples

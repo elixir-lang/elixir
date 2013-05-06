@@ -467,6 +467,7 @@ defmodule Macro do
   # Expand pseudo-variables
   defp expand({ :__MODULE__, _, atom }, env, _cache) when is_atom(atom), do: env.module
   defp expand({ :__FILE__, _, atom }, env, _cache)   when is_atom(atom), do: env.file
+  defp expand({ :__DIR__, _, atom }, env, _cache)    when is_atom(atom), do: :filename.dirname(env.file)
   defp expand({ :__ENV__, _, atom }, env, _cache)    when is_atom(atom), do: env
 
   # Expand possible macro import invocation

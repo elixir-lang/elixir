@@ -152,7 +152,7 @@ defmodule Mix.Tasks.New do
   """
 
   embed_template :test_lib, """
-  Code.require_file "../test_helper.exs", __FILE__
+  Code.require_file "test_helper.exs", __DIR__
 
   defmodule <%= @mod %>Test do
     use ExUnit.Case

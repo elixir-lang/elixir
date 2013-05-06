@@ -1,4 +1,4 @@
-Code.require_file "../../test_helper.exs", __FILE__
+Code.require_file "../test_helper.exs", __DIR__
 
 defrecord BadRange, first: 0, last: 0 do
   defoverridable [first: 1]

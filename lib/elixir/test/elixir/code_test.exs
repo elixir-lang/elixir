@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __FILE__
+Code.require_file "test_helper.exs", __DIR__
 
 defmodule CodeTest do
   use ExUnit.Case, async: true
@@ -48,7 +48,7 @@ defmodule CodeTest do
   end
 
   test :path_manipulation do
-    path = Path.expand("../binary", __FILE__)
+    path = Path.join(__DIR__, "binary")
     Code.prepend_path path
     assert binary_to_list(path) in :code.get_path
 

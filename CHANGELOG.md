@@ -6,6 +6,7 @@
   * [Kernel] Many optimizations for code compilation
   * [Kernel] `in` can be used with right side expression outside guards
   * [Kernel] Add `Node.get_cookie` and `Node.set_cookie/2`
+  * [Kernel] Add `__DIR__`
   * [Keyword] Add `Keyword.delete_first/2`
   * [Mix] Add `local.rebar` to download a local copy of rebar, and change `deps.compile` to use it if needed
 

@@ -16,7 +16,7 @@ defmodule String.Unicode do
       end
   end
 
-  data_path = Path.expand("../UnicodeData.txt", __FILE__)
+  data_path = Path.join(__DIR__, "UnicodeData.txt")
 
   { codes, whitespace } = Enum.reduce File.iterator!(data_path), { [], [] }, fn(line, { cacc, wacc }) ->
     [ codepoint, _name, _category,
@@ -37,7 +37,7 @@ defmodule String.Unicode do
     end
   end
 
-  special_path = Path.expand("../SpecialCasing.txt", __FILE__)
+  special_path = Path.join(__DIR__, "SpecialCasing.txt")
 
   codes = Enum.reduce File.iterator!(special_path), codes, fn(line, acc) ->
     [ codepoint, lower, title, upper, _comment ] = :binary.split(line, "; ", [:global])
@@ -45,7 +45,7 @@ defmodule String.Unicode do
     :lists.keystore(key, 1, acc, { key, to_binary.(upper), to_binary.(lower), to_binary.(title) })
   end
 
-  seqs_path = Path.expand("../NamedSequences.txt", __FILE__)
+  seqs_path = Path.join(__DIR__, "NamedSequences.txt")
 
   seqs = Enum.map File.iterator!(seqs_path), fn(line) ->
     [ _name, codepoints ] = :binary.split(line, ";", [:global])
