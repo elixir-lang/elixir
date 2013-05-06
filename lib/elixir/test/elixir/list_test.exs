@@ -113,4 +113,13 @@ defmodule ListTest do
     assert List.keydelete([a: 1, b: 2], 2, 1) == [{ :a, 1 }]
     assert List.keydelete([a: 1, b: 2], :c, 0) == [{ :a, 1 }, { :b, 2 }]
   end
+
+  test :insert_at do
+    assert List.insert_at([1, 2, 3], 0, 0) == [0, 1, 2, 3]
+    assert List.insert_at([1, 2, 3], 3, 0) == [1, 2, 3, 0]
+    assert List.insert_at([1, 2, 3], 2, 0) == [1, 2, 0, 3]
+    assert List.insert_at([1, 2, 3], 10, 0) == [1, 2, 3, 0]
+    assert List.insert_at([1, 2, 3], -1, 0) == [1, 2, 0, 3]
+    assert List.insert_at([1, 2, 3], -10, 0) == [0, 1, 2, 3]
+  end
 end
