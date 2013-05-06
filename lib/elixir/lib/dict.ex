@@ -181,6 +181,26 @@ defmodule Dict do
   end
 
   @doc """
+  Returns the `{ :ok, value }` associated with `key` in `dict`.
+  If `dict` does not contain `key`, returns `:error`.
+
+  ## Examples
+
+      iex> d = HashDict.new([a: 1])
+      ...> Dict.fetch(d, :a)
+      { :ok, 1 }
+
+      iex> d = HashDict.new([a: 1])
+      ...> Dict.fetch(d, :b)
+      :error
+
+  """
+  @spec fetch(t, key) :: value
+  def fetch(dict, key) do
+    target(dict).fetch(dict, key)
+  end
+
+  @doc """
   Stores the given `value` under `key` in `dict`.
   If `dict` already has `key`, the stored value is replaced by the new one.
 

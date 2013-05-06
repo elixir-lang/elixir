@@ -32,6 +32,12 @@ defmodule HashDictTest do
     assert HashDict.empty filled_dict(120) == HashDict.new
   end
 
+  test :fetch do
+    dict = filled_dict(8)
+    assert HashDict.fetch(dict, 4)  == { :ok, 4 }
+    assert HashDict.fetch(dict, 16) == :error
+  end
+
   test :has_key? do
     dict = filled_dict(8)
     assert HashDict.has_key? dict, 4
@@ -124,8 +130,8 @@ defmodule HashDictTest do
     dict = filled_dict(10)
     assert Enum.empty?(HashDict.new)
     refute Enum.empty?(dict)
-    assert Enum.member?(dict, 5)
-    refute Enum.member?(dict, :foo)
+    assert Enum.member?(dict, { 5, 5 })
+    refute Enum.member?(dict, { 5, 8 })
     assert Enum.count(dict) == 10
     assert Enum.map(filled_dict(3), fn({ k, v }) -> k + v end) == [2,4,6]
   end

@@ -77,6 +77,17 @@ defmodule List.Dict do
   end
 
   @doc """
+  Returns the value under key from the given
+  dict in a tagged tuple, otherwise `:error`.
+  """
+  def fetch(dict, key) do
+    case :lists.keyfind(key, 1, dict) do
+      { ^key, value } -> { :ok, value }
+      false -> :error
+    end
+  end
+
+  @doc """
   Puts the given key-value pair in the dict.
   """
   def put(dict, key, val) do

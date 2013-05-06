@@ -163,6 +163,17 @@ defmodule HashDict do
   end
 
   @doc """
+  Fetches the value under key from the dict
+  and return it in a tagged tuple.
+  """
+  def fetch(dict, key) do
+    case dict_get(dict, key) do
+      { ^key, value } -> { :ok, value }
+      false -> :error
+    end
+  end
+
+  @doc """
   Checks if the dict has the given key.
   """
   def has_key?(dict, key) do
@@ -500,10 +511,11 @@ defmodule HashDict do
 end
 
 defimpl Enum.Iterator, for: HashDict do
-  def iterator(dict),       do: HashDict.to_list(dict)
-  def empty?(dict),         do: HashDict.size(dict) < 1
-  def member?(dict, value), do: HashDict.has_key?(dict, value)
-  def count(dict),          do: HashDict.size(dict)
+  def iterator(dict),          do: HashDict.to_list(dict)
+  def empty?(dict),            do: HashDict.size(dict) == 0
+  def member?(dict, { k, v }), do: match?({ :ok, ^v }, HashDict.fetch(dict, k))
+  def member?(dict, _),        do: false
+  def count(dict),             do: HashDict.size(dict)
 end
 
 defimpl Access, for: HashDict do

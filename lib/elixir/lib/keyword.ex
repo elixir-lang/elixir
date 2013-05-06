@@ -2,7 +2,7 @@ defmodule Keyword do
   @moduledoc """
   A keyword is a list of tuples where the first element
   of the tuple is an atom and the second element can be
-  any value. 
+  any value.
 
   A keyword may have duplicated keys, so it is not strictly
   a dictionary. However most of the functions in this module
@@ -132,7 +132,28 @@ defmodule Keyword do
       { ^key, value } -> value
       false -> raise(KeyError, key: key)
     end
-  end  
+  end
+
+  @doc """
+  Fetchs the value for specific key and return it in a tuple.
+  If the key does not exist, returns `:error`.
+
+  ## Examples
+
+      iex> Keyword.fetch([a: 1], :a)
+      { :ok, 1 }
+
+      iex> Keyword.fetch([a: 1], :b)
+      :error
+
+  """
+  @spec fetch(t, key) :: value
+  def fetch(keywords, key) when is_atom(key) do
+    case :lists.keyfind(key, 1, keywords) do
+      { ^key, value } -> { :ok, value }
+      false -> :error
+    end
+  end
 
   @doc """
   Gets all values for a specific key.
@@ -356,7 +377,7 @@ defmodule Keyword do
       [a: 1, b: 11]
 
   """
-  @spec update(t, key, value, (value -> value)) :: t  
+  @spec update(t, key, value, (value -> value)) :: t
   def update([{key, value}|keywords], key, _initial, fun) do
     [{key, fun.(value)}|delete(keywords, key)]
   end

@@ -43,6 +43,12 @@ defmodule DictTest.Common do
         assert "default" == Dict.get(empty_dict, "first_key", "default")
       end
 
+      test :fetch do
+        assert { :ok, 1 } == Dict.fetch(new_dict, "first_key")
+        assert { :ok, 2 } == Dict.fetch(new_dict, "second_key")
+        assert :error     == Dict.fetch(new_dict, "other_key")
+      end
+
       test :get! do
         assert 1 == Dict.get!(new_dict, "first_key")
         assert 2 == Dict.get!(new_dict, "second_key")
