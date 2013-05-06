@@ -35,13 +35,15 @@ import_function(Meta, Name, Arity, S) ->
   Tuple = { Name, Arity },
   case find_dispatch(Meta, Tuple, S) of
     { function, Receiver } ->
-      elixir_import:record(import, Tuple, Receiver, S#elixir_scope.module),
+      elixir_import:record(Tuple, Receiver, S#elixir_scope.module),
       remote_function(Meta, Receiver, Name, Arity, S);
     { macro, _Receiver } ->
       false;
     { import, Receiver } ->
       require_function(Meta, Receiver, Name, Arity, S);
     nomatch ->
+      Module = S#elixir_scope.module,
+      elixir_import:record({ Name, Arity }, Module, Module),
       { { 'fun', ?line(Meta), { function, Name, Arity } }, S }
   end.
 
@@ -62,7 +64,7 @@ dispatch_import(Meta, Name, Args, S, Callback) ->
 
   case find_dispatch(Meta, Tuple, S) of
     { function, Receiver } ->
-      elixir_import:record(import, Tuple, Receiver, Module),
+      elixir_import:record(Tuple, Receiver, Module),
       Endpoint = case (Receiver == ?BUILTIN) andalso is_element(Tuple, in_erlang_functions()) of
         true  -> erlang;
         false -> Receiver
@@ -75,7 +77,7 @@ dispatch_import(Meta, Name, Args, S, Callback) ->
         { error, noexpansion } ->
           Callback();
         { error, internal } ->
-          elixir_import:record(import, Tuple, ?BUILTIN, Module),
+          elixir_import:record(Tuple, ?BUILTIN, Module),
           elixir_macros:translate({ Name, Meta, Args }, S);
         { ok, _Receiver, Tree } ->
           translate_expansion(Meta, Tree, S)
@@ -114,11 +116,11 @@ do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
       case is_element(Tuple, in_erlang_macros()) of
         true  -> { error, internal };
         false ->
-          elixir_import:record(import, Tuple, ?BUILTIN, Module),
+          elixir_import:record(Tuple, ?BUILTIN, Module),
           { ok, ?BUILTIN, expand_macro_named(Meta, ?BUILTIN, Name, Arity, Args, Module, S) }
       end;
     { macro, Receiver } ->
-      elixir_import:record(import, Tuple, Receiver, Module),
+      elixir_import:record(Tuple, Receiver, Module),
       { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) };
     { import, Receiver } ->
       expand_require(Meta, Receiver, Tuple, Args, Module, S);
@@ -128,7 +130,6 @@ do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
       case Fun of
         false -> { error, noexpansion };
         _ ->
-          elixir_import:record(import, Tuple, Module, Module),
           { ok, Module, expand_macro_fun(Meta, Fun, Module, Name, Args, Module, S) }
       end
   end.
@@ -154,7 +155,6 @@ expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, Module, S) ->
         false -> { error, noexpansion }
       end;
     _ ->
-      elixir_import:record(import, Tuple, Receiver, Module),
       { ok, Receiver, expand_macro_fun(Meta, Fun, Receiver, Name, Args, Module, S) }
   end.
 

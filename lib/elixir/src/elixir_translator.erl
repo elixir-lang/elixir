@@ -509,7 +509,8 @@ translate_fn(Meta, Clauses, S) ->
       syntax_error(Meta, S#elixir_scope.file, "cannot mix clauses with different arities in function definition")
   end.
 
-translate_local(Meta, Name, Args, #elixir_scope{local=nil} = S) ->
+translate_local(Meta, Name, Args, #elixir_scope{local=nil,module=Module} = S) ->
+  elixir_import:record({ Name, length(Args) }, Module, Module),
   Line = ?line(Meta),
   { TArgs, NS } = translate_args(Args, S),
   { { call, Line, { atom, Line, Name }, TArgs }, NS };

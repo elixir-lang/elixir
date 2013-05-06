@@ -60,10 +60,10 @@ compile(Line, Module, Block, Vars, #elixir_scope{} = S) when is_atom(Module) ->
 
   try
     Result = eval_form(Line, Module, Block, Vars, S),
-    { Export, Private, Def, Defmacro, Defmacrop, Functions } = elixir_def:unwrap_stored_definitions(FileList, Module),
+    { Export, Private, Def, Defmacro, Functions } = elixir_def:unwrap_stored_definitions(FileList, Module),
 
-    { All, Forms0 } = functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, Functions, C),
-    Forms1          = specs_form(Line, Module, Defmacro, Defmacrop, Forms0, C),
+    { All, Forms0 } = functions_form(Line, File, Module, Export, Private, Def, Defmacro, Functions, C),
+    Forms1          = specs_form(Line, Module, Private, Defmacro, Forms0, C),
     Forms2          = attributes_form(Line, File, Module, Forms1),
 
     elixir_import:ensure_no_local_conflict(Line, File, Module, All),
@@ -140,7 +140,7 @@ eval_form(Line, Module, Block, Vars, RawS) ->
   Value.
 
 %% Return the form with exports and function declarations.
-functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, RawFunctions, C) ->
+functions_form(Line, File, Module, Export, Private, Def, Defmacro, RawFunctions, C) ->
   Functions = case elixir_compiler:get_opt(internal, C) of
     true  -> RawFunctions;
     false -> record_rewrite_functions(Module, RawFunctions)
@@ -150,9 +150,9 @@ functions_form(Line, File, Module, Export, Private, Def, Defmacro, Defmacrop, Ra
     add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C),
 
   Recorded = elixir_import:recorded_locals(Module),
-  elixir_def_local:check_unused_local_macros(File, Recorded, Defmacrop),
-
-  { FinalExport ++ Private, [
+  elixir_def_local:check_unused_local_macros(File, Recorded, Private),
+  PrivateTuple = [Tuple || { Tuple, _, _, _ } <- Private],
+  { FinalExport ++ PrivateTuple, [
     {attribute, Line, export, lists:sort(FinalExport)} | FinalFunctions
   ] }.
 
@@ -191,8 +191,8 @@ attributes_form(Line, _File, Module, Current) ->
 
 %% Specs
 
-specs_form(Line, Module, Defmacro, DefmacropWithLine, Forms, C) ->
-  Defmacrop = [Tuple || { Tuple, _, _ } <- DefmacropWithLine],
+specs_form(Line, Module, Private, Defmacro, Forms, C) ->
+  Defmacrop = [Tuple || { Tuple, defmacrop, _, _ } <- Private],
   case elixir_compiler:get_opt(internal, C) of
     true -> Forms;
     _    ->

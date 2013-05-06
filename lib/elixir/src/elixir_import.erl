@@ -1,9 +1,10 @@
-%% Module responsible for handling imports and conflicts.
+%% Module responsible for handling imports and conflicts
+%% in between local functions and imports.
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
 -export([import/5, recorded_locals/1, format_error/1,
   ensure_no_import_conflict/4, ensure_no_local_conflict/4,
-  build_table/1, delete_table/1, record/4]).
+  build_table/1, delete_table/1, record/3]).
 -include("elixir.hrl").
 
 table(Module) -> ?atom_concat([i, Module]).
@@ -14,10 +15,10 @@ build_table(Module) ->
 delete_table(Module) ->
   ets:delete(table(Module)).
 
-record(import, _Tuple, _Receiver, nil) ->
+record(_Tuple, _Receiver, nil) ->
   false;
 
-record(import, Tuple, Receiver, Module) ->
+record(Tuple, Receiver, Module) ->
   try
     ets:insert(table(Module), { Tuple, Receiver })
   catch

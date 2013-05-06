@@ -94,6 +94,9 @@ handle_file_warning(_, _File, { _Line, sys_core_fold, useless_building }) -> [];
 %% This is an Erlang bug, it considers { tuple, _ }.call to always fail
 handle_file_warning(_, _File, { _Line, v3_kernel, bad_call }) -> [];
 
+%% We handle unused local warnings ourselves
+handle_file_warning(_, _File, { _Line, erl_lint, { unused_function, _ } }) -> [];
+
 %% Rewrite
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity},Module}}) ->
   Kind    = protocol_or_behaviour(Module),

@@ -14,6 +14,7 @@ macro_for(_Tuple, _All, nil) -> false;
 macro_for(Tuple, All, Module) ->
   try elixir_def:lookup_definition(Module, Tuple) of
     { { Tuple, Kind, Line, _, _, _, _ }, Clauses } when Kind == defmacro; All, Kind == defmacrop ->
+      elixir_import:record(Tuple, Module, Module),
       get_function(Line, Module, Clauses);
     _ ->
       false
@@ -26,6 +27,7 @@ function_for(Module, Name, Arity) ->
   Tuple = { Name, Arity },
   case elixir_def:lookup_definition(Module, Tuple) of
     { { Tuple, _, Line, _, _, _, _ }, Clauses } ->
+      elixir_import:record(Tuple, Module, Module),
       get_function(Line, Module, Clauses);
     _ ->
       [_|T] = erlang:get_stacktrace(),
@@ -68,10 +70,13 @@ rewrite_clause(Else, _) -> Else.
 
 %% Error handling
 
-check_unused_local_macros(File, Recorded, Defmacrop) ->
+check_unused_local_macros(File, Recorded, Private) ->
   [elixir_errors:handle_file_warning(File,
-    { Line, ?MODULE, { unused_macro, Fun } }) || { Fun, Line, Check } <- Defmacrop,
+    { Line, ?MODULE, { unused_def, Kind, Fun } }) || { Fun, Kind, Line, Check } <- Private,
       Check, not lists:member(Fun, Recorded)].
 
-format_error({unused_macro,{Name, Arity}}) ->
+format_error({unused_def,defp,{Name, Arity}}) ->
+  io_lib:format("function ~ts/~B is unused", [Name, Arity]);
+
+format_error({unused_def,defmacrop,{Name, Arity}}) ->
   io_lib:format("macro ~ts/~B is unused", [Name, Arity]).

@@ -234,41 +234,44 @@ unwrap_stored_definitions(File, Module) ->
   Table = table(Module),
   CTable = clauses_table(Module),
   ets:delete(Table, last),
-  unwrap_stored_definition(ets:tab2list(Table), CTable, File, [], [], [], [], [], {[],[]}).
+  unwrap_stored_definition(ets:tab2list(Table), CTable, File, [], [], [], [], {[],[]}).
 
-unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == def ->
+unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro, Functions) when element(2, Fun) == def ->
   Tuple = element(1, Fun),
   unwrap_stored_definition(
-    T, CTable, File, [Tuple|Exports], Private, [Tuple|Def], Defmacro, Defmacrop,
+    T, CTable, File, [Tuple|Exports], Private, [Tuple|Def], Defmacro,
     function_for_stored_definition(Fun, CTable, Tuple, File, Functions)
   );
 
-unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defmacro ->
+unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro, Functions) when element(2, Fun) == defmacro ->
   { Name, Arity } = Tuple = element(1, Fun),
   Macro = { ?elixir_macro(Name), Arity + 1 },
 
   unwrap_stored_definition(
-    T, CTable, File, [Macro|Exports], Private, Def, [Tuple|Defmacro], Defmacrop,
+    T, CTable, File, [Macro|Exports], Private, Def, [Tuple|Defmacro],
     function_for_stored_definition(setelement(1, Fun, Macro), CTable, Tuple, File, Functions)
   );
 
-unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defp ->
+unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro, Functions) when element(2, Fun) == defp ->
   Tuple = element(1, Fun),
+  Info  = { Tuple, defp, element(3, Fun), element(5, Fun) },
+
   unwrap_stored_definition(
-    T, CTable, File, Exports, [Tuple|Private], Def, Defmacro, Defmacrop,
+    T, CTable, File, Exports, [Info|Private], Def, Defmacro,
     function_for_stored_definition(Fun, CTable, Tuple, File, Functions)
   );
 
-unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro, Defmacrop, Functions) when element(2, Fun) == defmacrop ->
+unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro, Functions) when element(2, Fun) == defmacrop ->
   Tuple = element(1, Fun),
+  Info  = { Tuple, defmacrop, element(3, Fun), element(5, Fun) },
+
   unwrap_stored_definition(
-    T, CTable, File, Exports, [Tuple|Private], Def, Defmacro,
-    [{ Tuple, element(3, Fun), element(5, Fun) }|Defmacrop], Functions
+    T, CTable, File, Exports, [Info|Private], Def, Defmacro, Functions
   );
 
-unwrap_stored_definition([], _CTable, _File, Exports, Private, Def, Defmacro, Defmacrop, {Functions,Tail}) ->
-  { Exports, Private, ordsets:from_list(Def), ordsets:from_list(Defmacro),
-    ordsets:from_list(Defmacrop), lists:reverse(Tail ++ Functions) }.
+unwrap_stored_definition([], _CTable, _File, Exports, Private, Def, Defmacro, {Functions,Tail}) ->
+  { Exports, Private, ordsets:from_list(Def),
+    ordsets:from_list(Defmacro), lists:reverse(Tail ++ Functions) }.
 
 %% Helpers
 

@@ -12,6 +12,7 @@
 * bug fix
   * [ExUnit] Handle exit messages from in ExUnit
   * [Kernel] Ensure we don't splice keyword args unecessarily
+  * [Kernel] Private functions used by private macros no longer emit an unused warning 
 
 * deprecations
   * [ExUnit] `assert left inlist right` is deprecated in favor of `assert left in right`
