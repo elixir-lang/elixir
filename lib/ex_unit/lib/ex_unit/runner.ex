@@ -71,31 +71,71 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp run_tests(config, pid, test_case) do
+  defp run_tests(config, pid, case_name) do
+    test_case = ExUnit.TestCase[name: case_name]
     config.formatter.case_started(config.formatter_id, test_case)
 
-    try do
-      tests = tests_for(test_case)
-      context = test_case.__exunit__(:setup_all, [case: test_case])
-      Enum.each tests, run_test(config, pid, test_case, &1, context)
-      test_case.__exunit__(:teardown_all, context)
-    after
-      pid <- { self, :case_finished, test_case }
+    self_pid = self
+    { case_pid, case_ref } = Process.spawn_monitor fn ->
+      { test_case, context } = try do
+        context = case_name.__exunit__(:setup_all, [case: test_case])
+        { test_case, context }
+      rescue
+        error ->
+          { test_case.failure({ :error, error, filtered_stacktrace }), nil }
+      catch
+        kind, error ->
+          { test_case.failure({ kind, error, filtered_stacktrace }), nil }
+      end
+
+      tests = tests_for(case_name)
+      if test_case.failure do
+        Enum.each tests, fn test_name ->
+          test = ExUnit.Test[name: test_name, case: test_case, invalid: true]
+          pid <- { self, :test_finished, test }
+        end
+        self_pid <- { self, :case_finished, test_case }
+
+      else
+        Enum.each tests, run_test(config, pid, test_case, &1, context)
+
+        test_case = try do
+          case_name.__exunit__(:teardown_all, context)
+          test_case
+        rescue
+          error ->
+            test_case.failure { :error, error, filtered_stacktrace }
+        catch
+          kind, error ->
+            test_case.failure { kind, error, filtered_stacktrace }
+        end
+
+        self_pid <- { self, :case_finished, test_case }
+      end
+    end
+
+    receive do
+      { ^case_pid, :case_finished, test_case } ->
+        pid <- { case_pid, :case_finished, test_case }
+      { :DOWN, ^case_ref, :process, ^case_pid, { error, stacktrace } } ->
+        test_case = test_case.failure { :EXIT, error, filter_stacktrace(stacktrace) }
+        pid <- { case_pid, :case_finished, test_case }
     end
   end
 
   defp run_test(config, pid, test_case, test_name, context) do
     test = ExUnit.Test[name: test_name, case: test_case]
+    ExUnit.TestCase[name: case_name] = test_case
     config.formatter.test_started(config.formatter_id, test)
 
     # Run test in a new process so that we can trap exits for a single test
     self_pid = self
     { test_pid, test_ref } = Process.spawn_monitor fn ->
       test = try do
-        context = test_case.__exunit__(:setup, Keyword.put(context, :test, test))
+        context = case_name.__exunit__(:setup, Keyword.put(context, :test, test))
 
         test = try do
-          apply test_case, test_name, [context]
+          apply case_name, test_name, [context]
           test
         rescue
           error1 ->
@@ -105,7 +145,7 @@ defmodule ExUnit.Runner do
             test.failure { kind1, error1, filtered_stacktrace }
         end
 
-        test_case.__exunit__(:teardown, Keyword.put(context, :test, test))
+        case_name.__exunit__(:teardown, Keyword.put(context, :test, test))
         test
       rescue
         error2 ->
