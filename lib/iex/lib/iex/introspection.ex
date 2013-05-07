@@ -148,7 +148,7 @@ defmodule IEx.Introspection do
   defp print_doc({ { fun, _ }, _line, kind, args, doc }) do
     args = Enum.map_join(args, ", ", print_doc_arg(&1))
     IO.puts IO.ANSI.escape("%{yellow}* #{kind} #{fun}(#{args})\n")
-    if doc, do: IO.write IO.ANSI.escape("%{yellow} #{doc}")
+    if doc, do: IO.write IO.ANSI.escape_fragment("%{yellow}") <> doc <> IO.ANSI.escape_fragment("%{reset}")
   end
 
   defp print_doc_arg({ ://, _, [left, right] }) do
