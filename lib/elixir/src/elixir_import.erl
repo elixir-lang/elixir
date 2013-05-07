@@ -26,15 +26,20 @@ record(Tuple, Receiver, Module) ->
     error:badarg -> false
   end.
 
-record_warn(_Meta, _Ref, _Opts, nil) -> false;
+record_warn(_Meta, _Ref, _Opts, #elixir_scope{module=nil}) -> false;
 
-record_warn(Meta, Ref, Opts, Module) ->
-  Table = table(Module),
+record_warn(Meta, Ref, Opts, S) ->
+  Table = table(S#elixir_scope.module),
   ets:delete(Table, Ref),
-  case keyfind(warn, Opts) of
-    { warn, false } -> false;
-    false -> ets:insert(Table, { Ref, ?line(Meta) })
-  end.
+
+  Warn =
+    case keyfind(warn, Opts) of
+      { warn, false } -> false;
+      { warn, true } -> true;
+      false -> S#elixir_scope.check_clauses
+    end,
+
+  Warn andalso ets:insert(Table, { Ref, ?line(Meta) }).
 
 recorded_locals(Module) ->
   Table  = table(Module),
@@ -72,7 +77,7 @@ import(Meta, Ref, Opts, Selector, S) ->
       SF#elixir_scope{macros=Macros, macro_macros=TempM}
   end,
 
-  record_warn(Meta, Ref, Opts, S#elixir_scope.module),
+  record_warn(Meta, Ref, Opts, S),
   SM.
 
 %% IMPORT FUNCTION RELATED HELPERS

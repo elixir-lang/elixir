@@ -47,7 +47,7 @@ defmodule ExUnit.Callbacks do
       @exunit_teardown_all []
 
       @before_compile unquote(__MODULE__)
-      import unquote(__MODULE__), warn: false
+      import unquote(__MODULE__)
 
       def __exunit__(:parent) do
         unquote(parent)

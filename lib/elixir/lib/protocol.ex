@@ -30,7 +30,7 @@ defmodule Protocol do
         ]
 
         # Import the new dsl that holds the new def
-        import :macros, Protocol.DSL, warn: false
+        import :macros, Protocol.DSL
 
         # Set up a clear slate to store defined functions
         @functions []
