@@ -38,9 +38,9 @@ defmodule ExUnit.Case do
 
       use ExUnit.Callbacks, parent: unquote(parent)
 
-      import ExUnit.Assertions
-      import ExUnit.Case
-      import ExUnit.DocTest, only: [doctest: 1, doctest: 2]
+      import ExUnit.Assertions, warn: false
+      import ExUnit.Case, warn: false
+      import ExUnit.DocTest, only: [doctest: 1, doctest: 2], warn: false
     end
   end
 

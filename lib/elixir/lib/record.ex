@@ -29,7 +29,7 @@ defmodule Record do
     quote do
       defmodule unquote(name) do
         @moduledoc false
-        import Record.DSL
+        import Record.DSL, warn: false
 
         @record_fields []
         @record_types  []

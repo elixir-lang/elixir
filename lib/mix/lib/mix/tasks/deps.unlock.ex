@@ -9,8 +9,6 @@ defmodule Mix.Tasks.Deps.Unlock do
   are given, unlock all.
   """
 
-  import Mix.Deps, only: [all: 0, by_name!: 1]
-
   def run([]) do
     Mix.Deps.Lock.write([])
   end
