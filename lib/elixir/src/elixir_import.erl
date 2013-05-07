@@ -10,7 +10,7 @@
 table(Module) -> ?atom_concat([i, Module]).
 
 build_table(Module) ->
-  ets:new(table(Module), [set, named_table, public]).
+  ets:new(table(Module), [bag, named_table, public]).
 
 delete_table(Module) ->
   ets:delete(table(Module)).
@@ -100,7 +100,7 @@ calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
   case Final of
     [] -> { keydelete(Key, Old), keydelete(Key, Temp) };
     _  ->
-      ensure_no_in_erlang_macro_conflict(Meta, File, Key, Final, internal_conflict),
+      ensure_no_special_form_conflict(Meta, File, Key, Final, internal_conflict),
       { [{ Key, Final }|keydelete(Key, Old)], [{ Key, Final }|keydelete(Key, Temp)] }
   end.
 
@@ -170,7 +170,7 @@ get_optional_macros(Module)  ->
 %% conflicts with an import is automatically done by Erlang.
 
 ensure_no_local_conflict(Meta, File, Module, AllDefined) ->
-  ensure_no_in_erlang_macro_conflict(Meta, File, Module, AllDefined, local_conflict).
+  ensure_no_special_form_conflict(Meta, File, Module, AllDefined, local_conflict).
 
 %% Find conlicts in the given list of functions with
 %% the recorded set of imports.
@@ -181,8 +181,8 @@ ensure_no_import_conflict(Meta, File, Module, AllDefined) ->
 
   case Matches of
     [{Name,Arity}|_] ->
-      Key = ets:lookup_element(Table, {Name, Arity }, 2),
-      Tuple = { import_conflict, { Key, Name, Arity } },
+      Key = ets:lookup_element(Table, { Name, Arity }, 2),
+      Tuple = { import_conflict, { hd(Key), Name, Arity } },
       elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
     [] ->
       ok
@@ -191,19 +191,19 @@ ensure_no_import_conflict(Meta, File, Module, AllDefined) ->
 %% Ensure the given functions don't clash with any
 %% of Elixir non overridable macros.
 
-ensure_no_in_erlang_macro_conflict(Meta, File, Key, [{Name,Arity}|T], Reason) ->
+ensure_no_special_form_conflict(Meta, File, Key, [{Name,Arity}|T], Reason) ->
   Values = lists:filter(fun({X,Y}) ->
     (Name == X) andalso ((Y == '*') orelse (Y == Arity))
-  end, non_overridable_macros()),
+  end, special_form()),
 
   case Values /= [] of
     true  ->
       Tuple = { Reason, { Key, Name, Arity } },
       elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
-    false -> ensure_no_in_erlang_macro_conflict(Meta, File, Key, T, Reason)
+    false -> ensure_no_special_form_conflict(Meta, File, Key, T, Reason)
   end;
 
-ensure_no_in_erlang_macro_conflict(_Meta, _File, _Key, [], _) -> ok.
+ensure_no_special_form_conflict(_Meta, _File, _Key, [], _) -> ok.
 
 %% ERROR HANDLING
 
@@ -267,7 +267,7 @@ remove_internals(Set) ->
 
 %% Macros implemented in Erlang that are not overridable.
 
-non_overridable_macros() ->
+special_form() ->
   [
     {'^',1},
     {'=',2},
