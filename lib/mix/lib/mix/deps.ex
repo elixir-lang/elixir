@@ -40,6 +40,13 @@ defmodule Mix.Deps do
   end
 
   @doc """
+  Returns all direct child dependencies.
+  """
+  def children do
+    Mix.Deps.Project.all
+  end
+
+  @doc """
   Receives a list of deps names and returns deps records.
   Raises an error if the dependency does not exist.
   """
@@ -132,6 +139,13 @@ defmodule Mix.Deps do
   def available?(Mix.Dep[status: { :diverged, _ }]),    do: false
   def available?(Mix.Dep[status: { :unavailable, _ }]), do: false
   def available?(_), do: true
+
+  @doc """
+  Check if a dependency is part of an umbrella project as a top level project.
+  """
+  def in_umbrella?(Mix.Dep[opts: opts], apps_path) do
+    apps_path == Path.expand(Path.join(opts[:dest], ".."))
+  end
 
   @doc """
   Check if a dependency is out of date or not, considering its

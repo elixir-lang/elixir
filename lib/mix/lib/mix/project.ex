@@ -135,6 +135,13 @@ defmodule Mix.Project do
   end
 
   @doc """
+  Returns the path to the apps directory.
+  """
+  def apps_path do
+    Path.expand(config[:apps_path])
+  end
+
+  @doc """
   Loads mix.exs in the current directory or loads the project from the
   mixfile cache and pushes the project to the project stack. Optionally
   takes a post_config.
@@ -169,24 +176,66 @@ defmodule Mix.Project do
   project and working directory.
   """
   def recursive(fun) do
-    old_tasks = Mix.Task.clear
-
     paths = Path.wildcard(Path.join(Mix.project[:apps_path], "*"))
-    results = Enum.map paths, fn app_path ->
-      File.cd! app_path, fn ->
-        dir = Path.basename(app_path)
-        app = dir |> String.downcase |> binary_to_atom
+    projects = Enum.map paths, fn path ->
+      dir = Path.basename(path)
+      app = dir |> String.downcase |> binary_to_atom
+      { app, path }
+    end
 
-        Mix.Project.load_project(app)
-        result = fun.(app, app_path)
-        Mix.Project.pop
-        Mix.Task.clear
-        result
-      end
+    projects = topsort_projects(projects)
+    old_tasks = Mix.Task.clear
+    results = Enum.map projects, fn { app, app_path } ->
+      for_project(app, app_path, fun)
     end
 
     Mix.Task.set_tasks(old_tasks)
     results
+  end
+
+  # Run function with project on the stack
+  defp for_project(app, app_path, fun) do
+    umbrella_path = apps_path
+
+    File.cd! app_path, fn ->
+      Mix.Project.load_project(app)
+      result = fun.(umbrella_path)
+      Mix.Project.pop
+      Mix.Task.clear
+      result
+    end
+  end
+
+  # Sort projects in dependency order
+  defp topsort_projects(projects) do
+    graph = :digraph.new
+
+    Enum.each projects, fn { app, app_path } ->
+      :digraph.add_vertex(graph, app, app_path)
+    end
+
+    Enum.each projects, fn { app, app_path } ->
+      for_project app, app_path, fn apps_path ->
+        Enum.each Mix.Deps.children, fn dep ->
+          if Mix.Deps.available?(dep) and Mix.Deps.in_umbrella?(dep, apps_path) do
+            :digraph.add_edge(graph, dep.app, app)
+          end
+        end
+      end
+    end
+
+    unless :digraph_utils.is_acyclic(graph) do
+      Mix.shell.error "Could not dependency sort umbrella projects. " <>
+        "There are cycles in the dependency graph."
+      exit(1)
+    end
+
+    vertices = :digraph_utils.topsort(graph)
+    projects = Enum.map vertices, fn app ->
+      :digraph.vertex(graph, app)
+    end
+    :digraph.delete(graph)
+    projects
   end
 
   defp default_config do
