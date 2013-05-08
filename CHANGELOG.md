@@ -20,6 +20,7 @@
   * [Kernel] `List.member?/2` is deprecated in favor of `Enum.member?/2`
 
 * backwards incompatible changes
+  * [Kernel] `IO.gets` and `IO.getb` now return binaries when reading from stdio
   * [Mix] `mix escriptize` now receives arguments as binaries
 
 # v0.8.2 (2013-04-20)

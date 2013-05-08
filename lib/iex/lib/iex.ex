@@ -114,7 +114,7 @@ defmodule IEx do
       expand_fun = IEx.Autocomplete.expand &1
     end
 
-    :io.setopts gl, [expand_fun: expand_fun]
+    :io.setopts gl, [expand_fun: expand_fun, binary: true]
   end
 
   defp ensure_module_exists(node, mod) do

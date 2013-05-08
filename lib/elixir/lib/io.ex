@@ -157,7 +157,20 @@ defmodule IO do
     for instance {:error, :estale} if reading from an
     NFS file system.
   """
-  def getb(device // group_leader(), prompt, count // 1) do
+  def getb(prompt, count // 1)
+
+  def getb(prompt, count) when is_integer(count) do
+    getb(group_leader, prompt, count)
+  end
+
+  def getb(device, prompt) do
+    getb(device, prompt, 1)
+  end
+
+  @doc """
+  Gets `count` bytes from the chosen IO device.
+  """
+  def getb(device, prompt, count) do
     :io.get_chars(map_dev(device), to_iodata(prompt), count)
   end
 
