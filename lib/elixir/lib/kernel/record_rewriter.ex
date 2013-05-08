@@ -363,6 +363,8 @@ defmodule Kernel.RecordRewriter do
           { :ok, _ } -> :orddict.store(key, nil, acc)
           :error -> :orddict.erase(key, acc)
         end
+      { key, nil }, acc ->
+        :orddict.store(key, nil, acc)
     end
 
     join_dict(t, other)
