@@ -505,11 +505,12 @@ defmodule String do
       { "j", "osé" }
 
   """
-  @spec next_grapheme(t) :: grapheme | :no_grapheme
+  @spec next_grapheme(t) :: { grapheme, t } | :no_grapheme
   defdelegate next_grapheme(string), to: String.Unicode
 
   @doc """
-  Returns the first grapheme from an utf8 string.
+  Returns the first grapheme from an utf8 string,
+  nil if the string is empty.
 
   ## Examples
 
@@ -528,7 +529,8 @@ defmodule String do
   end
 
   @doc """
-  Returns the last grapheme from an utf8 string.
+  Returns the last grapheme from an utf8 string,
+  nil if the string is empty.
 
   ## Examples
 
