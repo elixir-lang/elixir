@@ -5,7 +5,7 @@
   * [IEx] Support `ls` with colored output
   * [Kernel] Many optimizations for code compilation
   * [Kernel] `in` can be used with right side expression outside guards
-  * [Kernel] Add `Node.get_cookie` and `Node.set_cookie/2`
+  * [Kernel] Add `Node.get_cookie/0` and `Node.set_cookie/2`
   * [Kernel] Add `__DIR__`
   * [Keyword] Add `Keyword.delete_first/2`
   * [Mix] Add `local.rebar` to download a local copy of rebar, and change `deps.compile` to use it if needed
@@ -20,7 +20,7 @@
   * [Kernel] `List.member?/2` is deprecated in favor of `Enum.member?/2`
 
 * backwards incompatible changes
-  * [Kernel] `IO.gets` and `IO.getb` now return binaries when reading from stdio
+  * [Kernel] `IO.gets`, `IO.getb` and friends now return binaries when reading from stdio
   * [Mix] `mix escriptize` now receives arguments as binaries
 
 # v0.8.2 (2013-04-20)
