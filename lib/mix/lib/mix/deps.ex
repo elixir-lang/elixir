@@ -168,4 +168,54 @@ defmodule Mix.Deps do
 
     "#{app} #{version}#{inspect scm.format(opts)}"
   end
+
+  @doc """
+  Returns all compile paths for the dependency.
+  """
+  def compile_paths(Mix.Dep[app: app, opts: opts] = dep) do
+    if mix?(dep) do
+      Mix.Project.for_project app, opts[:dest], fn _ ->
+        Mix.Project.compile_paths
+      end
+    else
+      [ Path.join(opts[:dest], "ebin") ]
+    end
+  end
+
+  @doc """
+  Returns all load paths for the dependency.
+  """
+  def load_paths(Mix.Dep[app: app, opts: opts] = dep) do
+    if mix?(dep) do
+      paths = Mix.Project.for_project app, opts[:dest], fn _ ->
+        Mix.Project.load_paths
+      end
+      Enum.uniq paths
+    else
+      [ Path.join(opts[:dest], "ebin") ]
+    end
+  end
+
+  @doc """
+  Returns if dependency is a mix project.
+  """
+  def mix?(dep) do
+    File.regular? Path.join(dep.opts[:dest], "mix.exs")
+  end
+
+  @doc """
+  Returns if dependency is a rebar project.
+  """
+  def rebar?(dep) do
+    Enum.any? ["rebar.config", "rebar.config.script"], fn file ->
+      File.regular? Path.join(dep.opts[:dest], file)
+    end
+  end
+
+  @doc """
+  Returns if dependency is a make project.
+  """
+  def make?(dep) do
+    File.regular? Path.join(dep.opts[:dest], "Makefile")
+  end
 end

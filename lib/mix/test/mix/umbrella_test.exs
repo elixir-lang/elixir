@@ -4,7 +4,7 @@ defmodule Mix.UmbrellaTest do
   use MixTest.Case
 
   test "compile umbrella" do
-    in_fixture "umbrella", fn ->
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.load_project(:umbrella)
       Mix.Task.run "compile"
 
@@ -17,6 +17,19 @@ defmodule Mix.UmbrellaTest do
     end
   after
     Mix.Project.pop
-    purge [Umbrella.Mixfile]
+    purge [Umbrella.Mixfile, Foo, Foo.Mix, Bar, Bar.Mix]
+  end
+
+  test "umbrella as dependency" do
+    in_fixture "umbrella_dep", fn ->
+      Mix.Project.load_project(:umbrella_dep)
+      Mix.Tasks.Deps.Compile.run []
+      Mix.Tasks.Deps.Loadpaths.run []
+
+      assert "hello world" == Bar.bar
+    end
+  after
+    Mix.Project.pop
+    purge [UmbrellaDep.Mixfile, Umbrella.Mixfile, Foo, Foo.Mix, Bar, Bar.Mix]
   end
 end

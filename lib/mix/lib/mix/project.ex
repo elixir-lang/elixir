@@ -193,8 +193,10 @@ defmodule Mix.Project do
     results
   end
 
-  # Run function with project on the stack
-  defp for_project(app, app_path, fun) do
+  @doc """
+  Run fun with project app on top of the stack.
+  """
+  def for_project(app, app_path, fun) do
     umbrella_path = apps_path
 
     File.cd! app_path, fn ->
@@ -204,6 +206,29 @@ defmodule Mix.Project do
       Mix.Task.clear
       result
     end
+  end
+
+  @doc """
+  Returns the paths this project compiles to.
+  """
+  def compile_paths do
+    if umbrella? do
+      List.flatten recursive(fn _ -> compile_paths end)
+    else
+      [ Path.expand config[:compile_path] ]
+    end
+  end
+
+  @doc """
+  Returns all load paths for this project.
+  """
+  def load_paths do
+    paths = if umbrella? do
+      List.flatten recursive(fn _ -> load_paths end)
+    else
+      Enum.map config[:load_paths], Path.expand(&1)
+    end
+    paths ++ compile_paths
   end
 
   # Sort projects in dependency order
@@ -246,6 +271,7 @@ defmodule Mix.Project do
       elixirc_exts: [:ex],
       elixirc_paths: ["lib"],
       elixirc_watch_exts: [:ex, :eex, :exs],
+      load_paths: [],
       lockfile: "mix.lock",
       erlc_paths: ["src"],
       erlc_include_path: "include",
