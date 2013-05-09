@@ -116,7 +116,8 @@ defmodule Regex do
 
   @doc """
   Runs the regular expression against the given string.
-  It returns a list with all matches or nil if no match ocurred.
+  It returns a list with all matches, nil if no match ocurred, or []
+  if it matched, /g was specified, but nothing was captured.
 
   ## Examples
 
@@ -139,6 +140,7 @@ defmodule Regex do
 
     case :re.run(string, compiled, [{ :capture, captures, return }]) do
       :nomatch -> nil
+      :match   -> []
       { :match, results } -> results
     end
   end
