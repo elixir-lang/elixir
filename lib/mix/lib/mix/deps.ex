@@ -174,7 +174,7 @@ defmodule Mix.Deps do
   """
   def compile_paths(Mix.Dep[app: app, opts: opts] = dep) do
     if mix?(dep) do
-      Mix.Project.for_project app, opts[:dest], fn _ ->
+      Mix.Project.in_project app, opts[:dest], fn _ ->
         Mix.Project.compile_paths
       end
     else
@@ -187,7 +187,7 @@ defmodule Mix.Deps do
   """
   def load_paths(Mix.Dep[app: app, opts: opts] = dep) do
     if mix?(dep) do
-      paths = Mix.Project.for_project app, opts[:dest], fn _ ->
+      paths = Mix.Project.in_project app, opts[:dest], fn _ ->
         Mix.Project.load_paths
       end
       Enum.uniq paths
@@ -200,7 +200,7 @@ defmodule Mix.Deps do
   Returns if dependency is a mix project.
   """
   def mix?(dep) do
-    File.regular? Path.join(dep.opts[:dest], "mix.exs")
+    dep.project != nil
   end
 
   @doc """

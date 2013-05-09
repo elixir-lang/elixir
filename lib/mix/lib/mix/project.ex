@@ -184,26 +184,27 @@ defmodule Mix.Project do
     end
 
     projects = topsort_projects(projects)
-    old_tasks = Mix.Task.clear
     results = Enum.map projects, fn { app, app_path } ->
-      for_project(app, app_path, fun)
+      in_project(app, app_path, fun)
     end
 
-    Mix.Task.set_tasks(old_tasks)
     results
   end
 
   @doc """
-  Run fun with project app on top of the stack.
+  Run fun in the context of project app and working directory app_path.
+  Optionally takes a post_config.
   """
-  def for_project(app, app_path, fun) do
+  def in_project(app, app_path, post_config // [], fun) do
     umbrella_path = apps_path
 
     File.cd! app_path, fn ->
-      Mix.Project.load_project(app)
-      result = fun.(umbrella_path)
-      Mix.Project.pop
-      Mix.Task.clear
+      load_project(app, post_config)
+      result = try do
+        fun.(umbrella_path)
+      after
+        Mix.Project.pop
+      end
       result
     end
   end
@@ -240,7 +241,7 @@ defmodule Mix.Project do
     end
 
     Enum.each projects, fn { app, app_path } ->
-      for_project app, app_path, fn apps_path ->
+      in_project app, app_path, fn apps_path ->
         Enum.each Mix.Deps.children, fn dep ->
           if Mix.Deps.available?(dep) and Mix.Deps.in_umbrella?(dep, apps_path) do
             :digraph.add_edge(graph, dep.app, app)
