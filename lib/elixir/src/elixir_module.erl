@@ -66,6 +66,7 @@ compile(Line, Module, Block, Vars, #elixir_scope{} = S) when is_atom(Module) ->
     Forms1          = specs_form(Line, Module, Private, Defmacro, Forms0, C),
     Forms2          = attributes_form(Line, File, Module, Forms1),
 
+    elixir_import:ensure_all_imports_used(Line, File, Module),
     elixir_import:ensure_no_local_conflict(Line, File, Module, All),
     elixir_import:ensure_no_import_conflict(Line, File, Module, All),
 

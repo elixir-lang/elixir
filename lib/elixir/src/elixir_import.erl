@@ -4,6 +4,7 @@
 -module(elixir_import).
 -export([import/5, recorded_locals/1, format_error/1,
   ensure_no_import_conflict/4, ensure_no_local_conflict/4,
+  ensure_all_imports_used/3,
   build_table/1, delete_table/1, record/3]).
 -include("elixir.hrl").
 
@@ -24,6 +25,21 @@ record(Tuple, Receiver, Module) ->
   catch
     error:badarg -> false
   end.
+
+record_warn(_Meta, _Ref, _Opts, #elixir_scope{module=nil}) -> false;
+
+record_warn(Meta, Ref, Opts, S) ->
+  Table = table(S#elixir_scope.module),
+  ets:delete(Table, Ref),
+
+  Warn =
+    case keyfind(warn, Opts) of
+      { warn, false } -> false;
+      { warn, true } -> true;
+      false -> S#elixir_scope.check_clauses
+    end,
+
+  Warn andalso ets:insert(Table, { Ref, ?line(Meta) }).
 
 recorded_locals(Module) ->
   Table  = table(Module),
@@ -61,6 +77,7 @@ import(Meta, Ref, Opts, Selector, S) ->
       SF#elixir_scope{macros=Macros, macro_macros=TempM}
   end,
 
+  record_warn(Meta, Ref, Opts, S),
   SM.
 
 %% IMPORT FUNCTION RELATED HELPERS
@@ -188,6 +205,16 @@ ensure_no_import_conflict(Meta, File, Module, AllDefined) ->
       ok
   end.
 
+ensure_all_imports_used(_Line, File, Module) ->
+  Table = table(Module),
+  [begin
+    elixir_errors:handle_file_warning(File, { L, ?MODULE, { unused_import, M } })
+   end || [M, L] <- ets:select(Table, module_line_spec()),
+          ets:match(Table, { '$1', M }) == []].
+
+module_line_spec() ->
+  [{ { '$1', '$2' }, [{ is_integer, '$2' }], ['$$'] }].
+
 %% Ensure the given functions don't clash with any
 %% of Elixir non overridable macros.
 
@@ -224,6 +251,9 @@ format_error({local_conflict,{_, Name, Arity}}) ->
 format_error({internal_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
     [elixir_errors:inspect(Receiver), Name, Arity]);
+
+format_error({ unused_import, Module }) ->
+  io_lib:format("unused import ~ts", [elixir_errors:inspect(Module)]);
 
 format_error({ no_macros, Module }) ->
   io_lib:format("could not load macros from module ~ts", [elixir_errors:inspect(Module)]).

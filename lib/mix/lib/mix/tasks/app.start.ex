@@ -1,8 +1,6 @@
 defmodule Mix.Tasks.App.Start do
   use Mix.Task
 
-  import Mix.Deps, only: [all: 0, ok?: 1]
-
   @hidden true
   @shortdoc "Start registered apps"
   @recursive true
