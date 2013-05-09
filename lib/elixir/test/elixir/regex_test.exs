@@ -64,6 +64,7 @@ defmodule Regex.BinaryTest do
     assert Regex.captures(%r/c(?<foo>d)/g, 'no_match') == nil
     assert Regex.captures(%r/c(?<foo>d|e)/g, 'abcd abce') == [foo: 'd']
     assert Regex.captures(%r/c(?<foo>d)/g, 'abcd', return: :binary) == [foo: "d"]
+    assert Regex.captures(%r/c(.)/g, 'cat') == []
   end
 
   test :__R__ do
