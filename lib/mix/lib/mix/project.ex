@@ -184,26 +184,52 @@ defmodule Mix.Project do
     end
 
     projects = topsort_projects(projects)
-    old_tasks = Mix.Task.clear
     results = Enum.map projects, fn { app, app_path } ->
-      for_project(app, app_path, fun)
+      in_project(app, app_path, fun)
     end
 
-    Mix.Task.set_tasks(old_tasks)
     results
   end
 
-  # Run function with project on the stack
-  defp for_project(app, app_path, fun) do
+  @doc """
+  Run fun in the context of project app and working directory app_path.
+  Optionally takes a post_config.
+  """
+  def in_project(app, app_path, post_config // [], fun) do
     umbrella_path = apps_path
 
     File.cd! app_path, fn ->
-      Mix.Project.load_project(app)
-      result = fun.(umbrella_path)
-      Mix.Project.pop
-      Mix.Task.clear
+      load_project(app, post_config)
+      result = try do
+        fun.(umbrella_path)
+      after
+        Mix.Project.pop
+      end
       result
     end
+  end
+
+  @doc """
+  Returns the paths this project compiles to.
+  """
+  def compile_paths do
+    if umbrella? do
+      List.flatten recursive(fn _ -> compile_paths end)
+    else
+      [ Path.expand config[:compile_path] ]
+    end
+  end
+
+  @doc """
+  Returns all load paths for this project.
+  """
+  def load_paths do
+    paths = if umbrella? do
+      List.flatten recursive(fn _ -> load_paths end)
+    else
+      Enum.map config[:load_paths], Path.expand(&1)
+    end
+    paths ++ compile_paths
   end
 
   # Sort projects in dependency order
@@ -215,7 +241,7 @@ defmodule Mix.Project do
     end
 
     Enum.each projects, fn { app, app_path } ->
-      for_project app, app_path, fn apps_path ->
+      in_project app, app_path, fn apps_path ->
         Enum.each Mix.Deps.children, fn dep ->
           if Mix.Deps.available?(dep) and Mix.Deps.in_umbrella?(dep, apps_path) do
             :digraph.add_edge(graph, dep.app, app)
@@ -246,6 +272,7 @@ defmodule Mix.Project do
       elixirc_exts: [:ex],
       elixirc_paths: ["lib"],
       elixirc_watch_exts: [:ex, :eex, :exs],
+      load_paths: [],
       lockfile: "mix.lock",
       erlc_paths: ["src"],
       erlc_include_path: "include",
