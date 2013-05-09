@@ -74,13 +74,7 @@ defmodule Mix.Server do
   def handle_call(:output_app?, _from, config) do
     # Check that we haven't already outputted app and that we are part of an
     # umbrella project
-    umbrella = case config.projects do
-      [{ h, conf }|_] when h != nil -> conf[:apps_path] != nil
-      _ -> false
-    end
-    in_umbrella = Enum.any?(config.projects, fn { _, conf } -> conf[:apps_path] != nil end)
-    output = !config.io_done && !umbrella && in_umbrella
-
+    output = not config.io_done and not umbrella?(config) and in_umbrella?(config)
     { :reply, output, config.io_done(true) }
   end
 
@@ -138,5 +132,18 @@ defmodule Mix.Server do
 
   def handle_cast(request, config) do
     super(request, config)
+  end
+
+  # Returns if project is part of an umbrella project
+  defp in_umbrella?(config) do
+    Enum.any? config.projects, fn { _, conf } -> conf[:apps_path] != nil end
+  end
+
+  # Returns if project is an umbrella project
+  defp umbrella?(config) do
+    case config.projects do
+      [ { h, conf } | _ ] when h != nil -> conf[:apps_path] != nil
+      _ -> false
+    end
   end
 end
