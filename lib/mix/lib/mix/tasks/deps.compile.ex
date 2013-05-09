@@ -139,7 +139,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp find_rebar(app) do
     cond do
       File.regular?("./rebar") ->
-        "./rebar"
+        Path.join(File.cwd!, "rebar")
 
       File.regular?(Mix.Tasks.Local.Rebar.local_rebar_path) ->
         Mix.Tasks.Local.Rebar.local_rebar_path
