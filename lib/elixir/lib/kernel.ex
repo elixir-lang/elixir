@@ -2232,7 +2232,7 @@ defmodule Kernel do
   defmacro function(module, function, arity)
 
   @doc """
-  Matches the given condition against the match clauses.
+  Matches the given expression against the match clauses.
 
   ## Examples
 
@@ -2242,9 +2242,9 @@ defmodule Kernel do
         value -> value
       end
 
-  In the example above, we compare `thing` with each given match clause and
-  evaluate the expression corresponding to the first clause that matches. If no
-  clause matches, an error is raised.
+  In the example above, we compare `thing` with each given match
+  clause and evaluate the expression corresponding to the first clause
+  that matches. If no clause matches, an error is raised.
 
   Since Elixir variables can be assigned more than once, variables
   in a match clause will always be assigned instead of matching with
@@ -2265,17 +2265,6 @@ defmodule Kernel do
       end
 
   The example above will actually fail because 10 does not match 1.
-
-  Finally, `case` accepts an `else:` branch as a fallback if none
-  of the clauses match:
-
-      case thing do
-        { :selector, i, value } when is_integer(i) ->
-          value
-        _ ->
-          thing
-      end
-
   """
   defmacro case(condition, blocks)
 
