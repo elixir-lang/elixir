@@ -37,6 +37,8 @@
   * [Kernel] Add support to R16B new functions: `insert_elem/3` and `delete_elem/2`
   * [Kernel] Import conflicts are now lazily handled. If two modules import the same functions, it will fail only if the function is invoked
   * [Mix] Support `--cover` on mix test and `test_coverage` on Mixfiles
+  * [Mix] Support `--merge` on mix test --cover to generate only one HTML file per source file
+  * [Mix] Support `--lines` on mix test --cover to track un/covered lines
   * [Record] Each record now provides `Record.options` with the options supported by its `new` and `update` functions
 
 * bug fix
