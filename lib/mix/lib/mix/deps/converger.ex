@@ -117,23 +117,17 @@ defmodule Mix.Deps.Converger do
 
   # The dependency contains a Mixfile, so let's
   # load it and retrieve its nested dependencies.
-  defp nested_deps(Mix.Dep[app: app, opts: opts], config) do
-    File.cd! opts[:dest], fn ->
-      env     = opts[:env] || :prod
-      old_env = Mix.env
+  defp nested_deps(Mix.Dep[app: app, opts: opts], post_config) do
+    env     = opts[:env] || :prod
+    old_env = Mix.env
 
-      try do
-        Mix.env(env)
-        project = Mix.Project.load_project(app, config)
-
-        try do
-          { project, Enum.reverse Mix.Deps.Project.all }
-        after
-          Mix.Project.pop
-        end
-      after
-        Mix.env(old_env)
-      end
+    try do
+      Mix.env(env)
+      Mix.Project.in_project(app, opts[:dest], post_config, fn config ->
+        { config, Enum.reverse Mix.Deps.Project.all }
+      end)
+    after
+      Mix.env(old_env)
     end
   end
 end
