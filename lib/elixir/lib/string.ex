@@ -705,7 +705,7 @@ defmodule String do
   ## Examples
 
       iex> String.to_float("34")
-      {34,""}
+      {34.0,""}
       iex> String.to_float("34.25")
       {34.25,""}
 	    iex> String.to_float("56.5xyz")
@@ -717,9 +717,15 @@ defmodule String do
   @spec to_float(t) :: {integer, t} | :error
 
   def to_float(string) do
-    {result, remainder} = :string.to_float(binary_to_list(string))
+    charlist = binary_to_list(string)
+    {result, remainder} = :string.to_float(charlist)
     case result do
-      :error -> to_integer(string)
+      :error -> 
+        {int_result, int_remainder} = :string.to_integer(charlist)
+        case int_result do
+          :error -> :error
+          _ -> {float(int_result), list_to_binary(int_remainder)}
+        end
       _ -> {result, list_to_binary(remainder)}
     end
   end
