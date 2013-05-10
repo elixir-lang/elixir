@@ -305,6 +305,19 @@ defmodule Kernel.SpecialForms do
   also accepts `as:` as an option so it automatically sets up
   an alias. Please check `alias` for more information.
 
+  ## Warnings
+
+  If you import a module and you don't use any of the imported
+  functions or macros from this module, Elixir is going to issue
+  a warning implying the import is not being used.
+
+  In case the import is generated automatically by a macro,
+  Elixir won't emit any warnings though, since the import
+  was not explicitly defined.
+
+  Both warning behaviors could be changed by explicitily
+  setting the `:warn` option to true or false.
+
   ## Ambiguous function/macro names
 
   If two modules `A` and `B` are imported and they both contain
