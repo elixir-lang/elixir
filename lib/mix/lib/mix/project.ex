@@ -142,26 +142,33 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Run fun for every application in the umbrella project. Changes current
-  project and working directory.
+  Runs `fun` in the current project.
+
+  The goal of this function is to transparently abstract umbrella projects.
+  So if you want to gather data from a project, like beam files, you can
+  use this function to transparently go through the project, regardless
+  if it is an umbrella project or not.
   """
-  def recursive(fun) do
-    apps_path = config[:apps_path]
-    paths = Path.wildcard(Path.join(apps_path, "*"))
+  def recur(fun) do
+    if apps_path = config[:apps_path] do
+      paths = Path.wildcard(Path.join(apps_path, "*"))
 
-    projects = Enum.map paths, fn path ->
-      dir = Path.basename(path)
-      app = dir |> String.downcase |> binary_to_atom
-      { app, path }
+      projects = Enum.map paths, fn path ->
+        dir = Path.basename(path)
+        app = dir |> String.downcase |> binary_to_atom
+        { app, path }
+      end
+
+      projects = topsort_projects(projects, Path.expand(apps_path))
+
+      results = Enum.map projects, fn { app, app_path } ->
+        in_project(app, app_path, fun)
+      end
+
+      results
+    else
+      [fun.(get)]
     end
-
-    projects = topsort_projects(projects, Path.expand(apps_path))
-
-    results = Enum.map projects, fn { app, app_path } ->
-      in_project(app, app_path, fun)
-    end
-
-    results
   end
 
   @doc """
@@ -185,22 +192,17 @@ defmodule Mix.Project do
   Returns the paths this project compiles to.
   """
   def compile_paths do
-    if umbrella? do
-      List.flatten recursive(fn _ -> compile_paths end)
-    else
-      [ Path.expand config[:compile_path] ]
-    end
+    recur(fn _ -> Path.expand config[:compile_path] end)
   end
 
   @doc """
   Returns all load paths for this project.
   """
   def load_paths do
-    paths = if umbrella? do
-      List.flatten recursive(fn _ -> load_paths end)
-    else
-      Enum.map config[:load_paths], Path.expand(&1)
-    end
+    paths =
+      recur(fn _ ->
+        Enum.map(config[:load_paths], Path.expand(&1))
+      end) |> List.concat
     paths ++ compile_paths
   end
 

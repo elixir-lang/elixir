@@ -100,14 +100,7 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp all_beams() do
-    if Mix.Project.umbrella? do
-      beams = Mix.Project.recursive fn _ ->
-        get_beams()
-      end
-      List.concat(beams)
-    else
-      get_beams()
-    end
+    Mix.Project.recur(fn _ -> get_beams() end) |> List.concat
   end
 
   defp get_beams() do
@@ -119,12 +112,7 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp all_files() do
-    if Mix.Project.umbrella? do
-      files = Mix.Project.recursive(fn _ -> get_compiled_files() end)
-      List.concat(files)
-    else
-      get_compiled_files()
-    end
+    Mix.Project.recur(fn _ -> get_compiled_files() end) |> List.concat
   end
 
   defp get_compiled_files() do

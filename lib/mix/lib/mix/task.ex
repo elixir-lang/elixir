@@ -138,8 +138,8 @@ defmodule Mix.Task do
       module = get(task)
       Mix.Server.cast({ :add_task, task, app })
 
-      if Mix.Project.umbrella? && recursive?(module) do
-        Mix.Project.recursive(fn _ -> module.run(args) end)
+      if recursive?(module) do
+        Mix.Project.recur(fn _ -> module.run(args) end)
       else
         module.run(args)
       end

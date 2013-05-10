@@ -123,8 +123,8 @@ defmodule Mix.Deps.Converger do
 
     try do
       Mix.env(env)
-      Mix.Project.in_project(app, opts[:dest], post_config, fn config ->
-        { config, Enum.reverse Mix.Deps.Project.all }
+      Mix.Project.in_project(app, opts[:dest], post_config, fn project ->
+        { project, Enum.reverse Mix.Deps.Project.all }
       end)
     after
       Mix.env(old_env)
