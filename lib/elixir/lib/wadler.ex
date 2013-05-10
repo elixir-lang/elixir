@@ -88,7 +88,7 @@ defmodule Wadler do
 
   """
   @spec nest(non_neg_integer, docentity) :: NEST.t
-  def nest(i, x), do: NEST[indent: i, rest: x]
+  def nest(i, x) when is_integer(i), do: NEST[indent: i, rest: x]
 
   @doc """
   Document entity representation of a text.
@@ -104,7 +104,7 @@ defmodule Wadler do
 
   """
   @spec text(binary) :: TEXT.t
-  def text(s), do: TEXT[string: s]
+  def text(s) when is_binary(s), do: TEXT[string: s]
   
   @doc """
   Document entity representation of a line break. It's
@@ -188,6 +188,20 @@ defmodule Wadler do
   """
   @spec glue(binary) :: GLUE.t
   def glue(x) when is_binary(x), do: GLUE[string: x]
+
+  @doc"""
+  Inserts single space glue between two docentities.
+  """
+  @spec glue(docentity, docentity) :: CONCAT.t
+  def glue(x, y), do: concat(x, concat(glue, y))
+
+  @doc"""
+  Inserts glue, passed as second argument between
+  docentity, passed as the first argument and
+  docentity, passed as the third argument.
+  """
+  @spec glue(docentity, binary, docentity) :: CONCAT.t
+  def glue(x, g, y) when is_binary(g), do: concat(x, concat(glue(g), y))
 
   @doc """
   Returns a union of a document entitiy in
@@ -418,6 +432,13 @@ defmodule Wadler do
   """
   @spec pretty(non_neg_integer, docentity) :: binary
   def pretty(width, document), do: layout best(width, 0, document)
+
+  @doc"""
+  Exported for the purpose of tests. You shouldn't
+  use this function.
+  """
+  @spec factor(non_neg_integer, docentity) :: docfactor
+  def factor(width, document), do: best width, 0, document
   
   ## Private functions
 
