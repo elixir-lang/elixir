@@ -40,6 +40,13 @@ defmodule Mix.Deps do
   end
 
   @doc """
+  Returns all direct child dependencies.
+  """
+  def children do
+    Mix.Deps.Project.all
+  end
+
+  @doc """
   Receives a list of deps names and returns deps records.
   Raises an error if the dependency does not exist.
   """
@@ -134,6 +141,13 @@ defmodule Mix.Deps do
   def available?(_), do: true
 
   @doc """
+  Check if a dependency is part of an umbrella project as a top level project.
+  """
+  def in_umbrella?(Mix.Dep[opts: opts], apps_path) do
+    apps_path == Path.expand(Path.join(opts[:dest], ".."))
+  end
+
+  @doc """
   Check if a dependency is out of date or not, considering its
   lock status. Therefore, be sure to call `check_lock` before
   invoking this function.
@@ -153,5 +167,55 @@ defmodule Mix.Deps do
       end
 
     "#{app} #{version}#{inspect scm.format(opts)}"
+  end
+
+  @doc """
+  Returns all compile paths for the dependency.
+  """
+  def compile_paths(Mix.Dep[app: app, opts: opts] = dep) do
+    if mix?(dep) do
+      Mix.Project.in_project app, opts[:dest], fn _ ->
+        Mix.Project.compile_paths
+      end
+    else
+      [ Path.join(opts[:dest], "ebin") ]
+    end
+  end
+
+  @doc """
+  Returns all load paths for the dependency.
+  """
+  def load_paths(Mix.Dep[app: app, opts: opts] = dep) do
+    if mix?(dep) do
+      paths = Mix.Project.in_project app, opts[:dest], fn _ ->
+        Mix.Project.load_paths
+      end
+      Enum.uniq paths
+    else
+      [ Path.join(opts[:dest], "ebin") ]
+    end
+  end
+
+  @doc """
+  Returns if dependency is a mix project.
+  """
+  def mix?(dep) do
+    dep.project != nil
+  end
+
+  @doc """
+  Returns if dependency is a rebar project.
+  """
+  def rebar?(dep) do
+    Enum.any? ["rebar.config", "rebar.config.script"], fn file ->
+      File.regular? Path.join(dep.opts[:dest], file)
+    end
+  end
+
+  @doc """
+  Returns if dependency is a make project.
+  """
+  def make?(dep) do
+    File.regular? Path.join(dep.opts[:dest], "Makefile")
   end
 end

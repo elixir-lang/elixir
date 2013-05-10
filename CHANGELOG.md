@@ -5,7 +5,7 @@
   * [IEx] Support `ls` with colored output
   * [Kernel] Many optimizations for code compilation
   * [Kernel] `in` can be used with right side expression outside guards
-  * [Kernel] Add `Node.get_cookie` and `Node.set_cookie/2`
+  * [Kernel] Add `Node.get_cookie/0` and `Node.set_cookie/2`
   * [Kernel] Add `__DIR__`
   * [Keyword] Add `Keyword.delete_first/2`
   * [Mix] Add `local.rebar` to download a local copy of rebar, and change `deps.compile` to use it if needed
@@ -14,12 +14,14 @@
   * [ExUnit] Handle exit messages from in ExUnit
   * [Kernel] Ensure we don't splice keyword args unecessarily
   * [Kernel] Private functions used by private macros no longer emit an unused warning 
+  * [Regex]  Fix badmatch with Regex.captures(%r/(.)/g, "cat")
 
 * deprecations
   * [ExUnit] `assert left inlist right` is deprecated in favor of `assert left in right`
   * [Kernel] `List.member?/2` is deprecated in favor of `Enum.member?/2`
 
 * backwards incompatible changes
+  * [Kernel] `IO.gets`, `IO.getb` and friends now return binaries when reading from stdio
   * [Mix] `mix escriptize` now receives arguments as binaries
 
 # v0.8.2 (2013-04-20)

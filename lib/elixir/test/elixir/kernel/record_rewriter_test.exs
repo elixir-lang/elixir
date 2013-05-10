@@ -159,6 +159,9 @@ defmodule Kernel.RecordRewriterTest do
 
     clause = clause(fn -> case something do 1 -> x = Macro.Env[]; 2 -> x = Range[] end end)
     assert optimize_clause(clause) == { clause, [x: nil], nil }
+
+    clause = clause(fn -> case something do x = Macro.Env[] -> x; x = Range[] -> x; _ -> :ok end end)
+    assert optimize_clause(clause) == { clause, [x: nil], nil }
   end
 
   test "inside case with nested tuple" do

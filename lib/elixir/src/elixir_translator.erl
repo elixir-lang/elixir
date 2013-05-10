@@ -35,13 +35,10 @@ translate(Forms, S) ->
 %% Those macros are "low-level". They are the basic mechanism
 %% that makes the language work and cannot be partially applied
 %% nor overwritten.
-%%
-%% =, ^, import, require and alias could be made non-special
-%% forms without causing any side effects.
 
 %% Assignment operator
 
-translate_each({'=', Meta, [Left, Right]}, S) ->
+translate_each({ '=', Meta, [Left, Right] }, S) ->
   assert_no_guard_scope(Meta, '=', S),
   { TRight, SR } = translate_each(Right, S),
   { TLeft, SL } = elixir_clauses:assigns(fun translate_each/2, Left, SR),
@@ -190,7 +187,7 @@ translate_each({ import, Meta, [Left, Right, Opts] }, S) ->
     _ -> syntax_error(Meta, S#elixir_scope.file, "invalid name for import, expected an atom or alias")
   end,
 
-  validate_opts(Meta, import, [as, only, except], Opts, S),
+  validate_opts(Meta, import, [as, only, except, warn], Opts, S),
 
   As = case lists:keyfind(as, 1, Opts) of
     false -> false;

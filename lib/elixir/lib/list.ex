@@ -297,7 +297,46 @@ defmodule List do
     :lists.map tuple_to_list(&1), zip(list)
   end
 
+  @doc """
+  Returns a list with an inserted value at specified index. Note that the index
+  is capped at the list length and that negative indicies wraps around at the
+  end of the list.
+
+  ## Examples
+
+      iex> List.insert_at([1, 2, 3, 4], 2, 0)
+      [1, 2, 0, 3, 4]
+
+      iex> List.insert_at([1, 2, 3], 10, 0)
+      [1, 2, 3, 0]
+
+      iex> List.insert_at([1, 2, 3], -1, 0)
+      [1, 2, 0, 3]
+
+  """
+  def insert_at(list, index, value) do
+    if index < 0 do
+      do_insert_at(list, length(list) + index, value)
+    else
+      do_insert_at(list, index, value)
+    end
+  end
+
   ## Helpers
+
+  # insert_at
+
+  defp do_insert_at([], _index, value) do
+    [ value ]
+  end
+
+  defp do_insert_at(list, index, value) when index <= 0 do
+    [ value | list ]
+  end
+
+  defp do_insert_at([h|t], index, value) do
+    [ h | do_insert_at(t, index - 1, value) ]
+  end
 
   # zip
 

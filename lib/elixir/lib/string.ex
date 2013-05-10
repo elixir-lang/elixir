@@ -139,18 +139,8 @@ defmodule String do
   def printable?(_),    do: false
 
   @doc """
-  Divides a string into sub string based on a pattern,
-  returning a list of these sub string. The pattern can
-  be a string, a list of strings or a regular expression.
-
-  The string is split into as many parts as possible by
-  default, unless the `global` option is set to false.
-  If a pattern is not specified, the string is split on
-  Unicode whitespace occurrences with leading and trailing
-  whitespace ignored.
-
-  It returns a list with the original string if the pattern
-  can't be matched.
+  Splits a string on sub strings at each Unicode whitespace
+  occurrence with leading and trailing whitespace ignored.
 
   ## Examples
 
@@ -160,6 +150,20 @@ defmodule String do
       ["foo", "bar"]
       iex> String.split(" foo bar ")
       ["foo", "bar"]
+
+  """
+  @spec split(t) :: [t]
+  defdelegate split(binary), to: String.Unicode
+
+  @doc """
+  Divides a string into sub strings based on a pattern,
+  returning a list of these sub string. The pattern can
+  be a string, a list of strings or a regular expression.
+
+  The string is split into as many parts as possible by
+  default, unless the `global` option is set to false.
+
+  ## Examples
 
       iex> String.split("a,b,c", ",")
       ["a", "b", "c"]
@@ -177,12 +181,8 @@ defmodule String do
       ["a,b"]
 
   """
-  @spec split(t) :: [t]
   @spec split(t, t | [t] | Regex.t) :: [t]
   @spec split(t, t | [t] | Regex.t, Keyword.t) :: [t]
-
-  defdelegate split(binary), to: String.Unicode
-
   def split(binary, pattern, options // [])
 
   def split(binary, pattern, options) when is_regex(pattern) do
@@ -505,11 +505,12 @@ defmodule String do
       { "j", "osé" }
 
   """
-  @spec next_grapheme(t) :: grapheme | :no_grapheme
+  @spec next_grapheme(t) :: { grapheme, t } | :no_grapheme
   defdelegate next_grapheme(string), to: String.Unicode
 
   @doc """
-  Returns the first grapheme from an utf8 string.
+  Returns the first grapheme from an utf8 string,
+  nil if the string is empty.
 
   ## Examples
 
@@ -528,7 +529,8 @@ defmodule String do
   end
 
   @doc """
-  Returns the last grapheme from an utf8 string.
+  Returns the last grapheme from an utf8 string,
+  nil if the string is empty.
 
   ## Examples
 

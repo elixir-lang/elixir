@@ -4,13 +4,14 @@
 -module(elixir_import).
 -export([import/5, recorded_locals/1, format_error/1,
   ensure_no_import_conflict/4, ensure_no_local_conflict/4,
+  ensure_all_imports_used/3,
   build_table/1, delete_table/1, record/3]).
 -include("elixir.hrl").
 
 table(Module) -> ?atom_concat([i, Module]).
 
 build_table(Module) ->
-  ets:new(table(Module), [set, named_table, public]).
+  ets:new(table(Module), [bag, named_table, public]).
 
 delete_table(Module) ->
   ets:delete(table(Module)).
@@ -24,6 +25,21 @@ record(Tuple, Receiver, Module) ->
   catch
     error:badarg -> false
   end.
+
+record_warn(_Meta, _Ref, _Opts, #elixir_scope{module=nil}) -> false;
+
+record_warn(Meta, Ref, Opts, S) ->
+  Table = table(S#elixir_scope.module),
+  ets:delete(Table, Ref),
+
+  Warn =
+    case keyfind(warn, Opts) of
+      { warn, false } -> false;
+      { warn, true } -> true;
+      false -> S#elixir_scope.check_clauses
+    end,
+
+  Warn andalso ets:insert(Table, { Ref, ?line(Meta) }).
 
 recorded_locals(Module) ->
   Table  = table(Module),
@@ -61,6 +77,7 @@ import(Meta, Ref, Opts, Selector, S) ->
       SF#elixir_scope{macros=Macros, macro_macros=TempM}
   end,
 
+  record_warn(Meta, Ref, Opts, S),
   SM.
 
 %% IMPORT FUNCTION RELATED HELPERS
@@ -100,7 +117,7 @@ calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
   case Final of
     [] -> { keydelete(Key, Old), keydelete(Key, Temp) };
     _  ->
-      ensure_no_in_erlang_macro_conflict(Meta, File, Key, Final, internal_conflict),
+      ensure_no_special_form_conflict(Meta, File, Key, Final, internal_conflict),
       { [{ Key, Final }|keydelete(Key, Old)], [{ Key, Final }|keydelete(Key, Temp)] }
   end.
 
@@ -170,7 +187,7 @@ get_optional_macros(Module)  ->
 %% conflicts with an import is automatically done by Erlang.
 
 ensure_no_local_conflict(Meta, File, Module, AllDefined) ->
-  ensure_no_in_erlang_macro_conflict(Meta, File, Module, AllDefined, local_conflict).
+  ensure_no_special_form_conflict(Meta, File, Module, AllDefined, local_conflict).
 
 %% Find conlicts in the given list of functions with
 %% the recorded set of imports.
@@ -181,29 +198,39 @@ ensure_no_import_conflict(Meta, File, Module, AllDefined) ->
 
   case Matches of
     [{Name,Arity}|_] ->
-      Key = ets:lookup_element(Table, {Name, Arity }, 2),
-      Tuple = { import_conflict, { Key, Name, Arity } },
+      Key = ets:lookup_element(Table, { Name, Arity }, 2),
+      Tuple = { import_conflict, { hd(Key), Name, Arity } },
       elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
     [] ->
       ok
   end.
 
+ensure_all_imports_used(_Line, File, Module) ->
+  Table = table(Module),
+  [begin
+    elixir_errors:handle_file_warning(File, { L, ?MODULE, { unused_import, M } })
+   end || [M, L] <- ets:select(Table, module_line_spec()),
+          ets:match(Table, { '$1', M }) == []].
+
+module_line_spec() ->
+  [{ { '$1', '$2' }, [{ is_integer, '$2' }], ['$$'] }].
+
 %% Ensure the given functions don't clash with any
 %% of Elixir non overridable macros.
 
-ensure_no_in_erlang_macro_conflict(Meta, File, Key, [{Name,Arity}|T], Reason) ->
+ensure_no_special_form_conflict(Meta, File, Key, [{Name,Arity}|T], Reason) ->
   Values = lists:filter(fun({X,Y}) ->
     (Name == X) andalso ((Y == '*') orelse (Y == Arity))
-  end, non_overridable_macros()),
+  end, special_form()),
 
   case Values /= [] of
     true  ->
       Tuple = { Reason, { Key, Name, Arity } },
       elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
-    false -> ensure_no_in_erlang_macro_conflict(Meta, File, Key, T, Reason)
+    false -> ensure_no_special_form_conflict(Meta, File, Key, T, Reason)
   end;
 
-ensure_no_in_erlang_macro_conflict(_Meta, _File, _Key, [], _) -> ok.
+ensure_no_special_form_conflict(_Meta, _File, _Key, [], _) -> ok.
 
 %% ERROR HANDLING
 
@@ -224,6 +251,9 @@ format_error({local_conflict,{_, Name, Arity}}) ->
 format_error({internal_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
     [elixir_errors:inspect(Receiver), Name, Arity]);
+
+format_error({ unused_import, Module }) ->
+  io_lib:format("unused import ~ts", [elixir_errors:inspect(Module)]);
 
 format_error({ no_macros, Module }) ->
   io_lib:format("could not load macros from module ~ts", [elixir_errors:inspect(Module)]).
@@ -267,7 +297,7 @@ remove_internals(Set) ->
 
 %% Macros implemented in Erlang that are not overridable.
 
-non_overridable_macros() ->
+special_form() ->
   [
     {'^',1},
     {'=',2},
