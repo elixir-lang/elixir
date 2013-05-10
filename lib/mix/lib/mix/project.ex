@@ -176,15 +176,21 @@ defmodule Mix.Project do
   the current working directory and loading the given project
   into the project stack.
   """
-  def in_project(app, app_path, post_config // [], fun) do
+  def in_project(app, app_path, post_config // [], fun)
+
+  def in_project(app, ".", post_config, fun) do
+    cached = load_project(app, post_config)
+    result = try do
+      fun.(cached)
+    after
+      Mix.Project.pop
+    end
+    result
+  end
+
+  def in_project(app, app_path, post_config, fun) do
     File.cd! app_path, fn ->
-      cached = load_project(app, post_config)
-      result = try do
-        fun.(cached)
-      after
-        Mix.Project.pop
-      end
-      result
+      in_project(app, ".", post_config, fun)
     end
   end
 
@@ -210,22 +216,22 @@ defmodule Mix.Project do
   # mixfile cache and pushes the project to the project stack.
   defp load_project(app, post_config) do
     if cached = Mix.Server.call({ :mixfile_cache, app }) do
-      Mix.Project.post_config(post_config)
-      Mix.Project.push(cached)
+      post_config(post_config)
+      push(cached)
       cached
     else
-      old_proj = Mix.Project.get
+      old_proj = get
 
       if File.regular?("mix.exs") do
-        Mix.Project.post_config(post_config)
+        post_config(post_config)
         Code.load_file "mix.exs"
       end
 
-      new_proj = Mix.Project.get
+      new_proj = get
 
       if old_proj == new_proj do
         new_proj = nil
-        Mix.Project.push new_proj
+        push new_proj
       end
 
       Mix.Server.cast({ :mixfile_cache, app, new_proj })

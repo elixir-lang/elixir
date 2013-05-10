@@ -83,16 +83,16 @@ defmodule Mix.Tasks.Deps.Compile do
     :ok
   end
 
-  defp do_mix(Mix.Dep[app: app, opts: opts, project: project], config) do
+  defp do_mix(Mix.Dep[app: app, opts: opts], config) do
     env       = opts[:env] || :prod
     old_env   = Mix.env
     old_tasks = Mix.Task.clear
 
     try do
       Mix.env(env)
-      Mix.Project.post_config(config)
-      Mix.Project.push project
-      Mix.Task.run "compile", ["--no-deps"]
+      Mix.Project.in_project(app, ".", config, fn _ ->
+        Mix.Task.run "compile", ["--no-deps"]
+      end)
     catch
       kind, reason ->
         Mix.shell.error "could not compile dependency #{app}, mix compile failed. " <>
@@ -100,7 +100,6 @@ defmodule Mix.Tasks.Deps.Compile do
         :erlang.raise(kind, reason, System.stacktrace)
     after
       Mix.env(old_env)
-      Mix.Project.pop
       Mix.Task.set_tasks(old_tasks)
     end
   end
