@@ -36,9 +36,9 @@ defmodule Wadler do
 
   # Records that represent finalized entities in a document
   # Those are generalized by `docfactor` type.
-  @type docfactor :: Text.t | Line.t | Nil
-  defrecord Text, string: "", rest: nil
-  defrecord Line, indent: 0,  rest: nil
+  @type docfactor :: TextF.t | LineF.t | Nil
+  defrecord TextF, string: "", rest: nil
+  defrecord LineF, indent: 0,  rest: nil
 
   # Functional interface to `docentity` records
   @doc """
@@ -377,8 +377,8 @@ defmodule Wadler do
     
   """
   @spec folddoc( ((docentity, [docentity]) -> docentity), [docentity]) :: docentity
-  def folddoc(_, []), do: null
-  def folddoc(_, [doc]), do: doc
+  def folddoc(_, []),     do: null
+  def folddoc(_, [doc]),  do: doc
   def folddoc(f, [d|ds]), do: f.(d, folddoc(f, ds))
 
   @doc """
@@ -397,8 +397,8 @@ defmodule Wadler do
   Collapse a list of documents into a reasonably formatted document.
   """
   @spec fill([docentity]) :: docentity
-  def fill([]), do: NIL
-  def fill([doc]), do: doc
+  def fill([]),          do: NIL
+  def fill([doc]),       do: doc
   def fill([x|[y|docs]]) do
     UNION[left:  space(flatten(x), fill( [flatten(y)|docs] )),
           right: line(x, fill( [y|docs] ))]
@@ -465,9 +465,9 @@ defmodule Wadler do
   defp shrink(x),                          do: flatten(x)
 
   # Laying out finalized document
-  defp layout(Nil), do: ""
-  defp layout(Text[string: s, rest: x]), do: s <> layout(x)
-  defp layout(Line[indent: i, rest: x]), do: "\n" <> copy(" ", i) <> layout(x)
+  defp layout(Nil),                        do: ""
+  defp layout(TextF[string: s, rest: x]),  do: s <> layout(x)
+  defp layout(LineF[indent: i, rest: x]),  do: "\n" <> copy(" ", i) <> layout(x)
 
   defp copy(_, 0), do: ""
   defp copy(binary, i), do: String.duplicate binary, i
@@ -490,14 +490,14 @@ defmodule Wadler do
   end
   # Factor out TEXT or GLUE and move caret accordingly
   defp dobest(w, k, [{_,TEXT[string: s]}|z]) do 
-    Text[string: s, rest: dobest w, k+String.length(s), z]
+    TextF[string: s, rest: dobest w, k+String.length(s), z]
   end
   defp dobest(w, k, [{_,GLUE[string: s]}|z]) do
-    Text[string: s, rest: dobest w, k+String.length(s), z]
+    TextF[string: s, rest: dobest w, k+String.length(s), z]
   end
   # Factor out LINE and make the indentation be initial caret position on the new line
   defp dobest(w, _, [{i,LINE}|z]) do
-    Line[indent: i, rest: dobest w, i, z]
+    LineF[indent: i, rest: dobest w, i, z]
   end
   # Choose better alternative from UNION
   defp dobest(w, k, [{i,UNION[left: x, right: y]}|z]) do
@@ -506,10 +506,10 @@ defmodule Wadler do
 
   defp better(w, k, x, y), do: if fits?(w-k, x), do: x, else: y
 
-  defp fits?(delta, _) when delta<0,  do: false
-  defp fits?(_____, Nil),             do: true
-  defp fits?(_____, Line[]),          do: true 
-  defp fits?(delta, Text[string: s,
-                           rest: x]), do: fits? delta - String.length(s), x
+  defp fits?(delta, _) when delta<0,   do: false
+  defp fits?(_____, Nil),              do: true
+  defp fits?(_____, LineF[]),          do: true 
+  defp fits?(delta, TextF[string: s,
+                           rest: x]),  do: fits? delta - String.length(s), x
 
 end

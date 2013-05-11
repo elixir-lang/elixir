@@ -35,7 +35,7 @@ defmodule WadlerTest do
     # Consistence with definitions
     assert line == LINE
     # Consistence of corresponding docfactor
-    assert factor(80, line) == W.Line[indent: 0, rest: Nil]
+    assert factor(80, line) == W.LineF[indent: 0, rest: Nil]
     # Consistent formatting
     assert pretty(80, line) == "\n"
   end
@@ -57,7 +57,7 @@ defmodule WadlerTest do
     assert_raise FunctionClauseError, fn -> glue(text("a"), 42, text("b")) end
 
     # Consistence of corresponding docfactor
-    assert factor(80, glue("_")) == W.Text[string: "_", rest: Nil]
+    assert factor(80, glue("_")) == W.TextF[string: "_", rest: Nil]
 
     # Consistent formatting
     assert pretty(80, glue("_")) == "_"
@@ -73,7 +73,7 @@ defmodule WadlerTest do
     assert_raise FunctionClauseError, fn -> text(42) end
 
     # Consistence of corresponding docfactor
-    assert factor(80, text("_")) == W.Text[string: "_", rest: Nil]
+    assert factor(80, text("_")) == W.TextF[string: "_", rest: Nil]
 
     # Consistent formatting
     assert pretty(80, text("_")) == "_"
@@ -100,11 +100,11 @@ defmodule WadlerTest do
     alb1 = fn -> nest(1, line(text("a"), text("b"))) end
     # Consistence of corresponding docfactor
     ## Trivial case
-    assert factor(80, a1.())   == W.Text[string: "a", rest: Nil]
+    assert factor(80, a1.())   == W.TextF[string: "a", rest: Nil]
     ## Correctly indenting line
-    assert factor(80, alb1.()) == W.Text[string: "a", rest:
-                                  W.Line[indent:  1 , rest:
-                                  W.Text[string: "b", rest: Nil]]]
+    assert factor(80, alb1.()) == W.TextF[string: "a", rest:
+                                  W.LineF[indent:  1 , rest:
+                                  W.TextF[string: "b", rest: Nil]]]
 
     # Consistent formatting
     ## Trivial case
@@ -122,13 +122,13 @@ defmodule WadlerTest do
     assert group(null) == W.UNION[left: null, right: null]
 
     # Consistence of corresponding docfactor
-    assert factor(1, group(line(text("a"), text("b")))) == W.Text[string: "a", rest:
-                                                           W.Line[indent:  0 , rest:
-                                                           W.Text[string: "b", rest: Nil]]]
+    assert factor(1, group(line(text("a"), text("b")))) == W.TextF[string: "a", rest:
+                                                           W.LineF[indent:  0 , rest:
+                                                           W.TextF[string: "b", rest: Nil]]]
 
-    assert factor(9, group(line(text("a"), text("b")))) == W.Text[string: "a", rest:
-                                                           W.Text[string: " ", rest:
-                                                           W.Text[string: "b", rest: Nil]]]
+    assert factor(9, group(line(text("a"), text("b")))) == W.TextF[string: "a", rest:
+                                                           W.TextF[string: " ", rest:
+                                                           W.TextF[string: "b", rest: Nil]]]
 
     # Consistent formatting
     assert pretty(6,  helloabcd) == "hello\na\nb\nc d"
