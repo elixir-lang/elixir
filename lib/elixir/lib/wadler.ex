@@ -408,7 +408,7 @@ defmodule Wadler do
   Takes three arguments: left bracket, document
   and right bracket.
   Puts the document between the brackets and nests
-  it.
+  it using `group`.
   """
   @spec bracket(binary, docentity, binary) :: docentity
   def bracket(bracketl, doc, bracketr) do
@@ -421,8 +421,8 @@ defmodule Wadler do
              )
       )
     )
-  end
-
+  end  
+  
   @doc"""
   The pretty printing functoion.
   Takes maximum width and document to print as
