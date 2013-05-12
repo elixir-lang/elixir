@@ -69,7 +69,7 @@ translate({ function, MetaFA, [{ '/', _, [{F, Meta, C}, A]}] }, S) when is_atom(
     end,
 
   case elixir_dispatch:import_function(WrappedMeta, F, A, S) of
-    false -> syntax_error(WrappedMeta, S#elixir_scope.file, "cannot convert a macro to a function");
+    false -> syntax_error(WrappedMeta, S#elixir_scope.file, "expected ~ts/~B to be a function, but it is a macro", [F, A]);
     Else  -> Else
   end;
 
