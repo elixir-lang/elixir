@@ -11,12 +11,13 @@ defmodule Mix.Tasks.Deps.Get do
   ## Command line options
 
   * `--no-compile` skip compilation of dependencies
+  * `--quiet` only output error messages or if an action was performed
   """
 
   import Mix.Deps, only: [all: 2, by_name!: 1, format_dep: 1, check_lock: 2, out_of_date?: 1]
 
   def run(args) do
-    { opts, rest } = OptionParser.parse(args, switches: [no_compile: :boolean])
+    { opts, rest } = OptionParser.parse(args, switches: [no_compile: :boolean, quiet: :boolean])
 
     if rest != [] do
       { _, acc } = Enum.map_reduce by_name!(rest), init, deps_getter(&1, &2)
@@ -24,20 +25,20 @@ defmodule Mix.Tasks.Deps.Get do
       acc = all(init, deps_getter(&1, &2))
     end
 
-    finalize_get acc, opts[:no_compile]
+    finalize_get(acc, opts)
   end
 
   defp init do
     { [], Mix.Deps.Lock.read }
   end
 
-  defp finalize_get({ apps, lock }, no_compile) do
+  defp finalize_get({ apps, lock }, opts) do
     if apps == [] do
-      Mix.shell.info "All dependencies up to date"
+      unless opts[:quiet], do: Mix.shell.info "All dependencies up to date"
     else
       Mix.Deps.Lock.write(lock)
 
-      unless no_compile, do: Mix.Task.run "deps.compile", apps
+      unless opts[:no_compile], do: Mix.Task.run "deps.compile", apps
     end
   end
 
