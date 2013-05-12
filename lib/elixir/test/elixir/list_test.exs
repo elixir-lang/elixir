@@ -3,6 +3,10 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule ListTest do
   use ExUnit.Case, async: true
 
+  test :cons_cell_precedence do
+    assert [1|:lists.flatten([2,3])] == [1,2,3]
+  end
+
   test :optional_comma do
     assert [1] == [ 1, ]
     assert [1,2,3] == [1,2,3,]
