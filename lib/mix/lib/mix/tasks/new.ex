@@ -83,7 +83,7 @@ defmodule Mix.Tasks.New do
 
   defp do_generate_umbrella(app, _opts) do
     mod = camelize(app)
-    assigns = [app: app, mod: mod]
+    assigns = [mod: mod]
 
     create_file "README.md", readme_template(assigns)
     create_file "mix.exs",   mixfile_umbrella_template(assigns)
@@ -137,8 +137,7 @@ defmodule Mix.Tasks.New do
     use Mix.Project
 
     def project do
-      [ app: :<%= @app %>,
-        apps_path: "apps" ]
+      [ apps_path: "apps" ]
     end
   end
   """
