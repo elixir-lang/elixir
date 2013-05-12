@@ -45,7 +45,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.read!("mix.lock") =~ %r("git_repo": {:git,#{inspect fixture_path("git_repo")},"[a-f0-9]+",\[\]})
 
       purge [GitRepo]
-      File.touch!("deps/git_repo/ebin", { { 2010, 4, 17 }, { 14, 0, 0 } })
+      File.touch!("deps/git_repo/ebin/.compile.elixir", { { 2010, 4, 17 }, { 14, 0, 0 } })
       Mix.Task.clear
 
       Mix.Tasks.Deps.Update.run []

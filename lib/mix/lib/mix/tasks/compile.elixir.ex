@@ -4,6 +4,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   @hidden true
   @shortdoc "Compile Elixir source files"
   @recursive true
+  @manifest ".compile.elixir"
 
   @moduledoc """
   A task to compile Elixir source files.
@@ -44,7 +45,7 @@ defmodule Mix.Tasks.Compile.Elixir do
      `:docs` and `:debug_info`. By default, uses the same
      behaviour as Elixir
 
-   * `:compile_exts` - extensions to compile whenever there
+   * `:elixirc_exts` - extensions to compile whenever there
      is a change:
 
          [compile_exts: [:ex]]
@@ -52,7 +53,7 @@ defmodule Mix.Tasks.Compile.Elixir do
    * `:watch_exts` - extensions to watch in order to trigger
       a compilation:
 
-         [watch_exts: [:ex, :eex]]
+         [elixirc_watch_exts: [:ex, :eex]]
 
   """
   def run(args) do
@@ -67,14 +68,11 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     to_compile = Mix.Utils.extract_files(elixirc_paths, compile_exts)
     to_watch   = Mix.Project.config_files ++ Mix.Utils.extract_files(elixirc_paths, watch_exts)
-    stale      = Mix.Utils.extract_stale(to_watch, [compile_path])
+    stale      = Mix.Utils.extract_stale(to_watch, [Path.join(compile_path, @manifest)])
 
     if opts[:force] or stale != [] do
-      Mix.Utils.preserving_mtime(compile_path, fn ->
-        File.mkdir_p! compile_path
-        compile_files opts[:quick], project, compile_path, to_compile, stale
-      end)
-
+      File.mkdir_p! compile_path
+      compile_files opts[:quick], project, compile_path, to_compile, stale
       :ok
     else
       :noop
@@ -86,14 +84,21 @@ defmodule Mix.Tasks.Compile.Elixir do
     opts = Keyword.put(opts, :ignore_module_conflict, true)
     Code.compiler_options(opts)
     to_compile = lc f inlist to_compile, f in stale, do: f
-    compile_files to_compile, compile_path
+    compile_files(to_compile, compile_path)
   end
 
   defp compile_files(false, project, compile_path, to_compile, _stale) do
     Code.delete_path compile_path
     opts = project[:elixirc_options] || []
     Code.compiler_options(opts)
-    compile_files to_compile, compile_path
+
+    { _current, to_remove } =
+      Mix.Utils.manifest Path.join(compile_path, @manifest), fn ->
+        compiled = compile_files to_compile, compile_path
+        lc { mod, _ } inlist compiled, do: atom_to_binary(mod)
+      end
+
+    lc f inlist to_remove, do: File.rm(Path.join(compile_path, f) <> ".beam")
     Code.prepend_path compile_path
   end
 

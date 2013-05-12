@@ -26,12 +26,29 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert File.regular?("ebin/Elixir-A.beam")
 
       # Now we have a noop
-      File.touch!("ebin")
       assert Mix.Tasks.Compile.Elixir.run([]) == :noop
 
       # --force
       purge [A, B, C]
       assert Mix.Tasks.Compile.Elixir.run(["--force"]) == :ok
+    end
+  after
+    purge [A, B, C]
+  end
+
+  test "removes old artifact files" do
+    in_fixture "no_mixfile", fn ->
+      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      assert File.regular?("ebin/Elixir-A.beam")
+
+      # Now we have a noop
+      File.rm!("lib/a.ex")
+      assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+
+      # --force
+      purge [A, B, C]
+      assert Mix.Tasks.Compile.Elixir.run(["--force"]) == :ok
+      refute File.regular?("ebin/Elixir-A.beam")
     end
   after
     purge [A, B, C]

@@ -2,7 +2,6 @@ defmodule Mix.Tasks.Compile.Erlang do
   alias :epp, as: Epp
   alias :digraph, as: Graph
   alias :digraph_utils, as: GraphUtils
-  alias Mix.Utils
 
   use Mix.Task
 
@@ -83,11 +82,8 @@ defmodule Mix.Tasks.Compile.Erlang do
     if files == [] do
       :noop
     else
-      Utils.preserving_mtime(compile_path, fn ->
-        File.mkdir_p! compile_path
-        compile_files files, compile_path, erlc_options
-      end)
-
+      File.mkdir_p! compile_path
+      compile_files files, compile_path, erlc_options
       :ok
     end
   end
@@ -155,7 +151,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   defp requires_compilation?(compile_path, erl) do
     beam = Path.join(compile_path, "#{erl.module}#{:code.objfile_extension}")
-    Utils.stale?([erl.file|erl.includes], [beam])
+    Mix.Utils.stale?([erl.file|erl.includes], [beam])
   end
 
   defp compile_files(files, compile_path, erlc_options) do
