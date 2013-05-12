@@ -8,7 +8,7 @@ defmodule IEx.Mixfile do
   def application do
     [env: [
       after_spawn: [],
-      inspect_opts: [limit: 50],
+      inspect_opts: [limit: 50, pretty: true],
       started: true
     ]]
   end
