@@ -7,10 +7,10 @@
   reset_last/1,
   lookup_definition/2,
   delete_definition/2,
-  wrap_definition/5,
-  wrap_definition/7,
-  store_definition/6,
-  store_definition/8,
+  wrap_definition/6,
+  wrap_definition/8,
+  store_definition/7,
+  store_definition/9,
   store_each/8,
   unwrap_stored_definitions/2,
   format_error/1]).
@@ -68,21 +68,22 @@ delete_definition(Module, Tuple) ->
 %% If we just analyzed the compiled structure (i.e. the function availables
 %% before evaluating the function body), we would see both definitions.
 
-wrap_definition(Kind, Meta, Call, Expr, S) ->
-  do_wrap_definition(Kind, Meta, [
+wrap_definition(Kind, Meta, Call, Expr, CheckClauses, S) ->
+  do_wrap_definition(Kind, Meta, CheckClauses, [
     Call, Expr, elixir_scope:serialize(S)
   ]).
 
-wrap_definition(Kind, Meta, Name, Args, Guards, Expr, S) ->
-  do_wrap_definition(Kind, Meta, [
+wrap_definition(Kind, Meta, Name, Args, Guards, Expr, CheckClauses, S) ->
+  do_wrap_definition(Kind, Meta, CheckClauses, [
     Name, Args, Guards, Expr, elixir_scope:serialize(S)
   ]).
 
-do_wrap_definition(Kind, Meta, Extra) ->
+do_wrap_definition(Kind, Meta, CheckClauses, Extra) ->
   Line   = ?line(Meta),
   Invoke =
     [{atom, Line, Kind},
      {integer, Line, Line},
+     {atom, Line, CheckClauses},
      {var, Line, '_@MODULE'}] ++ Extra,
 
   ?wrap_call(Line, ?MODULE, store_definition, Invoke).
@@ -90,7 +91,7 @@ do_wrap_definition(Kind, Meta, Extra) ->
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
-store_definition(Kind, Line, Module, Call, Body, RawS) ->
+store_definition(Kind, Line, CheckClauses, Module, Call, Body, RawS) ->
   S = elixir_scope:deserialize(RawS),
   { NameAndArgs, Guards } = elixir_clauses:extract_guards(Call),
 
@@ -103,16 +104,12 @@ store_definition(Kind, Line, Module, Call, Body, RawS) ->
   end,
 
   assert_no_aliases_name(Line, Name, Args, S),
-  store_definition(Kind, Line, Module, Name, Args, Guards, Body, RawS).
+  store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, S).
 
-store_definition(Kind, Line, nil, _Name, _Args, _Guards, _Body, RawS) ->
-  S = elixir_scope:deserialize(RawS),
+store_definition(Kind, Line, _CheckClauses, nil, _Name, _Args, _Guards, _Body, #elixir_scope{} = S) ->
   elixir_errors:syntax_error(Line, S#elixir_scope.file, "cannot define function outside module, invalid scope for ~ts", [Kind]);
 
-store_definition(Kind, Line, Module, Name, Args, Guards, Body, RawS) ->
-  do_store_definition(Kind, Line, Module, Name, Args, Guards, Body, elixir_scope:deserialize(RawS)).
-
-do_store_definition(Kind, Line, Module, Name, Args, Guards, Body, DS) ->
+store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, #elixir_scope{} = DS) ->
   Arity = length(Args),
   S     = DS#elixir_scope{function={Name,Arity}, module=Module},
 
@@ -127,14 +124,16 @@ do_store_definition(Kind, Line, Module, Name, Args, Guards, Body, DS) ->
   CTable = clauses_table(Module),
 
   compile_super(Module, TS),
-  CheckClauses = S#elixir_scope.check_clauses,
   store_each(CheckClauses, Kind, File, Location,
     Table, CTable, length(Defaults), Function),
 
   [store_each(false, Kind, File, Location, Table, CTable, 0,
     default_function_for(Kind, Name, Default)) || Default <- Defaults],
 
-  { Name, Arity }.
+  { Name, Arity };
+
+store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, RawS) ->
+  store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, elixir_scope:deserialize(RawS)).
 
 %% @on_definition
 

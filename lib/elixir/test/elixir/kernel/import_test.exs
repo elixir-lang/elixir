@@ -37,6 +37,7 @@ defmodule Kernel.DoubleImportTest do
   test :import_double_except do
     import :lists, except: [flatten: 1]
     import :lists, except: [each: 2]
+    assert append([1], [2,3]) == [1,2,3]
     assert flatten([1,[2],3]) == [1,[2],3]
   end
 

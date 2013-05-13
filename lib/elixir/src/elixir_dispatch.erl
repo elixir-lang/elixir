@@ -190,14 +190,12 @@ translate_expansion(Meta, Tree, S) ->
   { TR, TS } = elixir_translator:translate_each(
     elixir_quote:linify(?line(Meta), Tree),
     S#elixir_scope{
-      check_clauses=false,
       macro_functions=[],
       macro_macros=[],
       macro_aliases=[]
     }
   ),
   { TR, TS#elixir_scope{
-    check_clauses=S#elixir_scope.check_clauses,
     macro_functions=merge_imports(S#elixir_scope.macro_functions, TS#elixir_scope.macro_functions),
     macro_macros=merge_imports(S#elixir_scope.macro_macros, TS#elixir_scope.macro_macros),
     macro_aliases=merge_aliases(S#elixir_scope.macro_aliases, TS#elixir_scope.macro_aliases)

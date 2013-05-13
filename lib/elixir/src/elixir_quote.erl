@@ -49,7 +49,8 @@ escape(Expr, Unquote) ->
     vars_hygiene=nil,
     aliases_hygiene=false,
     imports_hygiene=false,
-    unquote=Unquote
+    unquote=Unquote,
+    mark=false
   }, nil).
 
 erl_escape(Expr, Unquote, S) ->
@@ -165,11 +166,18 @@ do_quote_tuple({ Left, Meta, Right }, Q, S) ->
   { TRight, RQ } = do_quote(Right, LQ, S),
   { { '{}', [], [TLeft, meta(Meta, Q), TRight] }, RQ }.
 
-meta(Meta, #elixir_quote{line=keep}) ->
+meta(Meta, Q) -> mark_meta(line_meta(Meta, Q), Q).
+
+mark_meta(Meta, #elixir_quote{mark=true}) ->
+  lists:keystore(quoted, 1, Meta, { quoted, true });
+mark_meta(Meta, #elixir_quote{mark=false}) ->
+  Meta.
+
+line_meta(Meta, #elixir_quote{line=keep}) ->
   Meta;
-meta(Meta, #elixir_quote{line=nil}) ->
+line_meta(Meta, #elixir_quote{line=nil}) ->
   lists:keydelete(line, 1, Meta);
-meta(Meta, #elixir_quote{line=Line}) ->
+line_meta(Meta, #elixir_quote{line=Line}) ->
   lists:keystore(line, 1, Meta, { line, Line }).
 
 %% Quote splicing

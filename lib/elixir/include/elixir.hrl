@@ -11,7 +11,6 @@
 -record(elixir_scope, {
   context=nil,             %% can be assign, guards or nil
   noname=false,            %% when true, don't add new names (used by try)
-  check_clauses=true,      %% when true, check def clauses ordering
   super=false,             %% when true, it means super was invoked
   caller=false,            %% when true, it means caller was invoked
   name_args=false,         %% when true, it means arguments should be named
@@ -40,7 +39,8 @@
   aliases_hygiene=true,
   imports_hygiene=true,
   unquote=true,
-  unquoted=false
+  unquoted=false,
+  mark=true
 }).
 
 %% Used in tokenization and interpolation

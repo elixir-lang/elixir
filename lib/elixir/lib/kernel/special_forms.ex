@@ -359,7 +359,7 @@ defmodule Kernel.SpecialForms do
   ## Examples
 
       iex> quote do: sum(1, 2, 3)
-      { :sum, [], [1, 2, 3] }
+      { :sum, [quoted: true], [1, 2, 3] }
 
   ## Explanation
 
@@ -367,15 +367,16 @@ defmodule Kernel.SpecialForms do
   The building block of Elixir homoiconicity is a tuple with three
   elements, for example:
 
-      { :sum, 1, [1, 2, 3] }
+      { :sum, , [1, 2, 3] }
 
   The tuple above represents a function call to sum passing 1, 2 and
   3 as arguments. The tuple elements are:
 
   * The first element of the tuple is always an atom or
     another tuple in the same representation;
-  * The second element of the tuple is always an integer
-    representing the line number;
+  * The second element of the tuple represents metadata.
+    For example, quoted expressions contain [quoted: true]
+    to represent the element was generated from a quote.
   * The third element of the tuple are the arguments for the
     function call. The third argument may be an atom, which is
     usually a variable (or a local call);
@@ -695,7 +696,7 @@ defmodule Kernel.SpecialForms do
   and should not be invoked directly:
 
       iex> quote do: (1; 2; 3)
-      { :__block__, [], [1,2,3] }
+      { :__block__, [quoted: true], [1,2,3] }
 
   """
   defmacro __block__(args)
@@ -707,7 +708,7 @@ defmodule Kernel.SpecialForms do
   it belonged to another file.
 
       quote location: :keep, do: 1
-      #=> { :__scope__, 1,[[file: "iex"],[do: 1]] }
+      #=> { :__scope__, [line: 1], [[file: "iex"],[do: 1]] }
 
   Check `quote/1` for more information.
   """
@@ -718,13 +719,13 @@ defmodule Kernel.SpecialForms do
   It is usually compiled to an atom:
 
       quote do: Foo.Bar #=>
-      { :__aliases__, [], [:Foo,:Bar] }
+      { :__aliases__, [quoted: true], [:Foo,:Bar] }
 
   Elixir represents `Foo.Bar` as `__aliases__` so calls can be
   unambiguously identified by the operator `:.`. For example:
 
       quote do: Foo.bar #=>
-      {{:.,[],[{:__aliases__,[],[:Foo]},:bar]},[],[]}
+      {{:.,[quoted: true],[{:__aliases__,[quoted: true],[:Foo]},:bar]},[],[]}
 
   Whenever an expression iterator sees a `:.` as the tuple key,
   it can be sure that it represents a call and the second argument
@@ -741,7 +742,7 @@ defmodule Kernel.SpecialForms do
   4) When the head element of aliases is not an atom, it is expanded at runtime:
 
         quote do: some_var.Foo
-        {:__aliases__,[],[{:some_var,[],:quoted},:Bar]}
+        {:__aliases__,[quoted: true],[{:some_var,[quoted: true],:quoted},:Bar]}
 
      Since `some_var` is not available at compilation time, the compiler
      expands such expression to:

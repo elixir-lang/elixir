@@ -91,7 +91,7 @@ to_ex_env({ Line, #elixir_scope{module=Module,file=File,
 
 serialize(S) ->
   elixir_tree_helpers:abstract_syntax(
-    { S#elixir_scope.file, S#elixir_scope.functions, S#elixir_scope.check_clauses,
+    { S#elixir_scope.file, S#elixir_scope.functions,
       S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases,
       S#elixir_scope.macro_functions, S#elixir_scope.macro_macros, S#elixir_scope.macro_aliases,
       S#elixir_scope.scheduled }
@@ -112,12 +112,11 @@ serialize_with_vars(Line, S) when is_integer(Line) ->
 
 deserialize(Tuple) -> deserialize_with_vars(Tuple, []).
 
-deserialize_with_vars({ File, Functions, CheckClauses, Requires, Macros,
+deserialize_with_vars({ File, Functions, Requires, Macros,
                         Aliases, MacroFunctions, MacroMacros, MacroAliases, Scheduled }, Vars) ->
   #elixir_scope{
     file=File,
     functions=Functions,
-    check_clauses=CheckClauses,
     requires=Requires,
     macros=Macros,
     aliases=Aliases,

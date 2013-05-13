@@ -377,8 +377,8 @@ defmodule Typespec.TypeTest do
                     ],
                     []}
     assert Kernel.Typespec.type_to_ast(record_type) ==
-      { :::,[], [
-        { :my_record,[],[] },
+      { :::,[quoted: true], [
+        { :my_record,[quoted: true],[] },
         { :{},[], [:my_record,
           { :::, [line: 0], [
             {:field1,0,nil},
@@ -395,7 +395,7 @@ defmodule Typespec.TypeTest do
   test "type_to_ast for paren_type" do
     type = {:my_type, {:paren_type, 0, [{:type, 0, :integer, []}]}, []}
     assert Kernel.Typespec.type_to_ast(type) ==
-      { :::, [], [{:my_type,[],[]}, {:integer,[line: 0],[]}] }
+      { :::, [quoted: true], [{:my_type,[quoted: true],[]}, {:integer,[line: 0],[]}] }
   end
 
   test "spec_to_ast" do

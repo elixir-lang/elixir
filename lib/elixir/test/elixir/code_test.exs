@@ -61,8 +61,7 @@ defmodule CodeTest do
   end
 
   test :string_to_ast do
-    assert Code.string_to_ast("1 + 2") == { :ok, quote hygiene: [imports: false], line: 1, do: 1 + 2 }
-    assert Code.string_to_ast("1 + 2; 3 + 4") == { :ok, quote hygiene: [imports: false], line: 1, do: (1 + 2; 3 + 4) }
+    assert Code.string_to_ast("1 + 2") == { :ok, { :+, [line: 1], [1, 2] } }
     assert { :error, _ } = Code.string_to_ast("a.1")
   end
 
@@ -72,7 +71,7 @@ defmodule CodeTest do
   end
 
   test :string_to_ast! do
-    assert Code.string_to_ast!("1 + 2") == quote hygiene: [imports: false], line: 1, do: 1 + 2
+    assert Code.string_to_ast!("1 + 2") == { :+, [line: 1], [1, 2] }
 
     assert_raise SyntaxError, fn ->
       Code.string_to_ast!("a.1")

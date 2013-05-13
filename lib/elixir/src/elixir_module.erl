@@ -15,7 +15,7 @@ eval_quoted(Module, Quoted, RawBinding, Opts) ->
     false -> Line = 1
   end,
 
-  { Value, FinalBinding, _Scope } = elixir:eval_quoted([Quoted], Binding, Line, Scope#elixir_scope{check_clauses=false}),
+  { Value, FinalBinding, _Scope } = elixir:eval_quoted([Quoted], Binding, Line, Scope),
   { Value, FinalBinding }.
 
 scope_for_eval(Module, #elixir_scope{} = S) ->
@@ -330,8 +330,7 @@ else_clause() ->
 
 % HELPERS
 
-eval_callbacks(Line, Module, Name, Args, RawS) ->
-  S         = RawS#elixir_scope{check_clauses=false},
+eval_callbacks(Line, Module, Name, Args, S) ->
   Binding   = binding_for_eval(Module, []),
   Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
   Meta      = [{line,Line},{require,false}],
