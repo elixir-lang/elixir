@@ -59,6 +59,19 @@ defmodule URITest do
                  URI.parse("https://foo.com")
   end
 
+  test :parse_ws do
+    assert URI.Info[scheme: "ws", host: "foo.com", path: "/path/to/something",
+                    query: "foo=bar&bar=foo", fragment: "fragment", port: 80,
+                    authority: "foo.com", userinfo: nil] ==
+                URI.parse("ws://foo.com/path/to/something?foo=bar&bar=foo#fragment")
+  end
+
+  test :parse_wss do
+    assert URI.Info[scheme: "wss", host: "foo.com", authority: "foo.com",
+                    query: nil, fragment: nil, port: 443, path: nil, userinfo: nil] ==
+                 URI.parse("wss://foo.com")
+  end
+
   test :parse_file do
     assert URI.Info[scheme: "file", host: nil, path: "/foo/bar/baz", userinfo: nil,
                     query: nil, fragment: nil, port: nil, authority: nil] ==
