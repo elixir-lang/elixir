@@ -60,6 +60,10 @@ defmodule Mix.Tasks.Escriptize do
     beams        = all_beams()
 
     cond do
+      !script_name ->
+        Mix.shell.error "Could not generate escript, no name given, set :escript_name " <>
+                        "or :app in the project settings"
+        :noop
       beams == [] ->
         Mix.shell.error "Could not generate escript #{filename}, no beam files available"
         :noop

@@ -86,7 +86,6 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_mix(Mix.Dep[app: app, opts: opts], config) do
     env       = opts[:env] || :prod
     old_env   = Mix.env
-    old_tasks = Mix.Task.clear
 
     try do
       Mix.env(env)
@@ -100,7 +99,6 @@ defmodule Mix.Tasks.Deps.Compile do
         :erlang.raise(kind, reason, System.stacktrace)
     after
       Mix.env(old_env)
-      Mix.Task.set_tasks(old_tasks)
     end
   end
 
