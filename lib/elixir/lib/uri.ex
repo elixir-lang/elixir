@@ -131,8 +131,16 @@ defmodule URI do
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
     { userinfo, host, port } = split_authority(authority)
 
+    if authority do
+      authority = ""
+
+      if userinfo, do: authority = authority <> userinfo <> "@"
+      if host, do: authority = authority <> host
+      if port, do: authority = authority <> ":" <> integer_to_binary(port)
+    end
+
     info = URI.Info[
-      scheme: scheme, path: path, query: query,
+      scheme: scheme && String.downcase(scheme), path: path, query: query,
       fragment: fragment, authority: authority,
       userinfo: userinfo, host: host, port: port
     ]
@@ -169,7 +177,7 @@ defmodule URI do
     components = Regex.run %r/(^(.*)@)?([^:]*)(:(\d*))?/, s
     destructure [_, _, userinfo, host, _, port], nillify(components)
     port = if port, do: binary_to_integer(port)
-    { userinfo, host, port }
+    { userinfo, host && String.downcase(host), port }
   end
 
   # Regex.run returns empty strings sometimes. We want
