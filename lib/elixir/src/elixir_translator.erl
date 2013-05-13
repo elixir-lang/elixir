@@ -101,20 +101,7 @@ translate_each({ alias, Meta, [Ref, KV] }, S) ->
 
   case TRef of
     { atom, _, Old } ->
-      { New, SF } = case lists:keyfind(as, 1, KV) of
-        Opt when Opt == { as, true }; Opt == false ->
-          { elixir_aliases:last(Old), SR };
-        { as, false } ->
-          { Old, SR };
-        { as, Other } ->
-          { TOther, SA } = translate_each(no_alias_expansion(Other),
-            SR#elixir_scope{aliases=[],macro_aliases=[]}),
-          case TOther of
-            { atom, _, Atom } -> { Atom, SA };
-            _ -> syntax_error(Meta, S#elixir_scope.file,
-                   "invalid args for alias, expected an atom or alias as argument")
-          end
-      end,
+      { New, SF } = expand_alias_as(Meta, Old, KV, SR),
 
       %% Avoid creating aliases if first == last
       %% unecessarily polluting the aliases dict
@@ -127,10 +114,18 @@ translate_each({ alias, Meta, [Ref, KV] }, S) ->
                    "invalid args for alias, cannot create nested alias ~s", [elixir_errors:inspect(New)])
           end,
 
-          { { atom, ?line(Meta), nil }, SF#elixir_scope{
-            aliases=orddict:store(New, Old, S#elixir_scope.aliases),
-            macro_aliases=orddict:store(New, Old, S#elixir_scope.macro_aliases)
-          } }
+          SA = SF#elixir_scope{
+            aliases=orddict:store(New, Old, S#elixir_scope.aliases)
+          },
+
+          SM = case lists:keyfind(quoted, 1, Meta) of
+            { quoted, true } -> SA#elixir_scope{
+                macro_aliases=orddict:store(New, Old, S#elixir_scope.macro_aliases)
+              };
+            _ -> SA
+          end,
+
+          { { atom, ?line(Meta), nil }, SM }
       end;
     _ ->
       syntax_error(Meta, S#elixir_scope.file, "invalid args for alias, expected an atom or alias as argument")
@@ -525,6 +520,22 @@ expand_var_context(Meta, Alias, Msg, S) ->
       Atom;
     _ ->
       syntax_error(Meta, S#elixir_scope.file, "~ts, expected a compile time available alias or an atom", [Msg])
+  end.
+
+expand_alias_as(Meta, Old, KV, S) ->
+  case lists:keyfind(as, 1, KV) of
+    Opt when Opt == { as, true }; Opt == false ->
+      { elixir_aliases:last(Old), S };
+    { as, false } ->
+      { Old, S };
+    { as, Other } ->
+      { TOther, ST } = translate_each(no_alias_expansion(Other),
+        S#elixir_scope{aliases=[],macro_aliases=[]}),
+      case TOther of
+        { atom, _, Atom } -> { Atom, ST };
+        _ -> syntax_error(Meta, S#elixir_scope.file,
+               "invalid args for alias, expected an atom or alias as argument")
+      end
   end.
 
 no_alias_expansion({ '__aliases__', Meta, [H|T] }) when (H /= 'Elixir') and is_atom(H) ->

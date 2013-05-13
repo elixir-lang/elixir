@@ -187,25 +187,10 @@ expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) ->
   expand_macro_fun(Meta, Fun, Receiver, Name, Args, Module, S).
 
 translate_expansion(Meta, Tree, S) ->
-  { TR, TS } = elixir_translator:translate_each(
+  elixir_translator:translate_each(
     elixir_quote:linify(?line(Meta), Tree),
-    S#elixir_scope{
-      macro_functions=[],
-      macro_macros=[],
-      macro_aliases=[]
-    }
-  ),
-  { TR, TS#elixir_scope{
-    macro_functions=merge_imports(S#elixir_scope.macro_functions, TS#elixir_scope.macro_functions),
-    macro_macros=merge_imports(S#elixir_scope.macro_macros, TS#elixir_scope.macro_macros),
-    macro_aliases=merge_aliases(S#elixir_scope.macro_aliases, TS#elixir_scope.macro_aliases)
-  } }.
-
-merge_aliases(A1, A2) ->
-  orddict:merge(fun(_K,_V1,V2) -> V2 end, A1, A2).
-
-merge_imports(A1, A2) ->
-  A2 ++ lists:foldl(fun({ Key, _ }, Acc) -> lists:keydelete(Key, 1, Acc) end, A1, A2).
+    S
+  ).
 
 %% Helpers
 

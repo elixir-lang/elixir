@@ -1569,9 +1569,9 @@ defmodule Kernel do
 
     quote do
       unquote(record)
-      name = unquote(name)
-      unless :erlang.function_exported(name, :message, 1) do
-        raise "expected exception #{inspect name} to implement message/1"
+
+      unless :erlang.function_exported(unquote(name), :message, 1) do
+        raise "expected exception #{inspect unquote(name)} to implement message/1"
       end
     end
   end

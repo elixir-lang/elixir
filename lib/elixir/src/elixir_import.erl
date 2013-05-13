@@ -115,10 +115,17 @@ calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
   Final = remove_internals(Set),
 
   case Final of
-    [] -> { keydelete(Key, Old), keydelete(Key, Temp) };
+    [] -> { keydelete(Key, Old), if_quoted(Meta, Temp, fun() -> keydelete(Key, Temp) end) };
     _  ->
       ensure_no_special_form_conflict(Meta, File, Key, Final, internal_conflict),
-      { [{ Key, Final }|keydelete(Key, Old)], [{ Key, Final }|keydelete(Key, Temp)] }
+      { [{ Key, Final }|keydelete(Key, Old)],
+        if_quoted(Meta, Temp, fun() -> [{ Key, Final }|keydelete(Key, Temp)] end) }
+  end.
+
+if_quoted(Meta, Temp, Callback) ->
+  case lists:keyfind(quoted, 1, Meta) of
+    { quoted, true } -> Callback();
+    _ -> Temp
   end.
 
 %% Ensure we are expanding macros and stuff

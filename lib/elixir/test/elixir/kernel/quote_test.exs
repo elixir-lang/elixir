@@ -184,9 +184,7 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
   end
 end
 
-defmodule Kernel.QuoteTest.AliasHygieneTest do
-  use ExUnit.Case, async: true
-
+defmodule Kernel.QuoteTest.AliasHygiene do
   alias Dict, as: SuperDict
 
   defmacro dict do
@@ -196,6 +194,12 @@ defmodule Kernel.QuoteTest.AliasHygieneTest do
   defmacro super_dict do
     quote do: SuperDict.Bar
   end
+end
+
+defmodule Kernel.QuoteTest.AliasHygieneTest do
+  use ExUnit.Case, async: true
+
+  alias Dict, as: SuperDict
 
   test :annotate_aliases do
     assert quote(do: Foo.Bar) == { :__aliases__, [alias: false, quoted: true], [:Foo, :Bar] }
@@ -207,23 +211,23 @@ defmodule Kernel.QuoteTest.AliasHygieneTest do
   test :expand_aliases do
     assert Code.eval_quoted(quote do: SuperDict.Bar) == { Elixir.Dict.Bar, [] }
     assert Code.eval_quoted(quote do: alias!(SuperDict.Bar)) == { Elixir.SuperDict.Bar, [] }
+  end
 
-    assert Code.eval_quoted(quote do
-      alias HashDict, as: SuperDict
-      SuperDict.Bar
-    end) == { Elixir.HashDict.Bar, [] }
+  test :expand_aliases_without_macro do
+    alias HashDict, as: SuperDict
+    assert SuperDict.Bar == Elixir.HashDict.Bar
+  end
 
-    assert Code.eval_quoted(quote do
-      alias HashDict, as: Dict
-      require Kernel.QuoteTest.AliasHygieneTest
-      Kernel.QuoteTest.AliasHygieneTest.dict
-    end) == { Elixir.Dict.Bar, [] }
+  test :expand_aliases_with_macro_does_not_expand_source_alias do
+    alias HashDict, as: Dict
+    require Kernel.QuoteTest.AliasHygiene
+    assert Kernel.QuoteTest.AliasHygiene.dict == Elixir.Dict.Bar
+  end
 
-    assert Code.eval_quoted(quote do
-      alias HashDict, as: SuperDict
-      require Kernel.QuoteTest.AliasHygieneTest
-      Kernel.QuoteTest.AliasHygieneTest.super_dict
-    end) == { Elixir.Dict.Bar, [] }
+  test :expand_aliases_with_macro_has_higher_preference do
+    alias HashDict, as: SuperDict
+    require Kernel.QuoteTest.AliasHygiene
+    assert Kernel.QuoteTest.AliasHygiene.super_dict == Elixir.Dict.Bar
   end
 end
 
@@ -274,6 +278,16 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
     import Kernel, except: [size: 1]
     import Dict, only: [size: 1]
     assert get_dict_size == 2
+  end
+
+  test :lazy_expand_imports_no_conflicts do
+    import Kernel, except: [size: 1]
+    import Dict, only: [size: 1]
+
+    assert get_bin_size == 5
+    assert get_bin_size_with_partial == 5
+    assert get_bin_size_with_function == 5
+    assert get_bin_size_with_kernel_function == 5
   end
 
   defmacrop with_size do
