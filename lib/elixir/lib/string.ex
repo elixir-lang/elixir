@@ -459,6 +459,34 @@ defmodule String do
   defdelegate next_codepoint(string), to: String.Unicode
 
   @doc %B"""
+  Checks whether `str` is a valid UTF-8 string.
+
+  ## Examples
+
+      iex> String.valid?("a")
+      true
+      iex> String.valid?("ø")
+      true
+      iex> String.valid?(<<0xffff :: 16>>)
+      false
+      iex> String.valid?("asd" <> <<0xffff :: 16>>)
+      false
+
+  """
+  @spec valid?(t) :: boolean
+  def valid?(<<_ :: utf8, t :: binary>>) do
+    valid?(t)
+  end
+
+  def valid?(<<>>) do
+    true
+  end
+
+  def valid?(_) do
+    false
+  end
+
+  @doc %B"""
   Checks whether `str` is a valid codepoint.
 
   Note that the empty string is considered invalid, as are
