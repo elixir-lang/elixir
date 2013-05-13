@@ -46,7 +46,7 @@ unquote(File, Meta, _Left, _Right, _Args) ->
 escape(Expr, Unquote) ->
   quote(Expr, #elixir_quote{
     line=keep,
-    vars_hygiene=nil,
+    vars_hygiene=false,
     aliases_hygiene=false,
     imports_hygiene=false,
     unquote=Unquote,
@@ -107,8 +107,8 @@ do_quote({ { { '.', Meta, [Left, unquote] }, _, [Expr] }, _, Args }, #elixir_quo
 do_quote({ { '.', Meta, [Left, unquote] }, _, [Expr] }, #elixir_quote{unquote=true} = Q, S) ->
   do_quote_call(Left, Meta, Expr, nil, Q, S);
 
-do_quote({ Left, Meta, nil }, Q, S) when is_atom(Left) ->
-  do_quote_tuple({ Left, Meta, Q#elixir_quote.vars_hygiene }, Q, S);
+do_quote({ Left, Meta, nil }, #elixir_quote{vars_hygiene=true} = Q, S) when is_atom(Left) ->
+  do_quote_tuple({ Left, Meta, Q#elixir_quote.context }, Q, S);
 
 do_quote({ Name, Meta, ArgsOrAtom } = Tuple, #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(Name) ->
   Arity = case is_atom(ArgsOrAtom) of

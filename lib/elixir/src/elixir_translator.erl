@@ -251,13 +251,15 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
       []
   end,
 
-  Vars = case lists:keyfind(var_context, 1, T) of
+  Context = case lists:keyfind(var_context, 1, T) of
     { var_context, VarContext } ->
-      expand_var_context(Meta, VarContext, "invalid argument given for var_context in quote", S);
+      elixir_errors:deprecation(Meta, S#elixir_scope.file, "var_context in quote is deprecated, please use context instead"),
+      expand_quote_context(Meta, VarContext, "invalid argument given for var_context in quote", S);
     false ->
-      case lists:keyfind(vars, 1, Hygiene) of
-        { vars, false } -> nil;
-        _ ->
+      case lists:keyfind(context, 1, T) of
+        { context, ListContext } ->
+          expand_quote_context(Meta, ListContext, "invalid argument given for context in quote", S);
+        false ->
           case S#elixir_scope.module of
             nil -> 'Elixir';
             Mod -> Mod
@@ -265,6 +267,7 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
       end
   end,
 
+  Vars    = lists:keyfind(vars, 1, Hygiene) /= { vars, false },
   Aliases = lists:keyfind(aliases, 1, Hygiene) /= { aliases, false },
   Imports = lists:keyfind(imports, 1, Hygiene) /= { imports, false },
 
@@ -303,7 +306,7 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
   end,
 
   Q = #elixir_quote{vars_hygiene=Vars, line=Line, unquote=Unquote,
-        aliases_hygiene=Aliases, imports_hygiene=Imports},
+        aliases_hygiene=Aliases, imports_hygiene=Imports, context=Context},
 
   { TExprs, _TQ, TS } = elixir_quote:erl_quote(WExprs, Q, S),
   { TExprs, TS };
@@ -321,7 +324,7 @@ translate_each({ 'var!', Meta, [{Name, _, Atom}, Kind] }, S) when is_atom(Name),
   translate_each({ 'var!', Meta, [Name, Kind] }, S);
 
 translate_each({ 'var!', Meta, [Name, Kind] }, S) when is_atom(Name) ->
-  Expanded = expand_var_context(Meta, Kind, "invalid second argument for var!", S),
+  Expanded = expand_quote_context(Meta, Kind, "invalid second argument for var!", S),
   elixir_scope:translate_var(Meta, Name, Expanded, S, fun() ->
     syntax_error(Meta, S#elixir_scope.file, "expected var!(~ts) to expand to an existing variable or be a part of a match", [Name])
   end);
@@ -513,8 +516,8 @@ translate_local(Meta, Name, Args, #elixir_scope{local=nil,module=Module} = S) ->
 translate_local(Meta, Name, Args, S) ->
   translate_each({ { '.', Meta, [S#elixir_scope.local, Name] }, Meta, Args }, S).
 
-expand_var_context(_Meta, Atom, _Msg, _S) when is_atom(Atom) -> Atom;
-expand_var_context(Meta, Alias, Msg, S) ->
+expand_quote_context(_Meta, Atom, _Msg, _S) when is_atom(Atom) -> Atom;
+expand_quote_context(Meta, Alias, Msg, S) ->
   case translate_each(Alias, S) of
     { { atom, _, Atom }, _ } ->
       Atom;
