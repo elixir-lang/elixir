@@ -233,7 +233,7 @@ defmodule StringTest do
     assert String.valid_codepoint?("ø")
     assert String.valid_codepoint?("あ")
 
-    refute String.valid_codepoint?("\xffff")
+    refute String.valid_codepoint?(<<0xffff :: 16>>)
     refute String.valid_codepoint?("ab")
   end
 

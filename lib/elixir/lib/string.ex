@@ -470,7 +470,7 @@ defmodule String do
       true
       iex> String.valid_codepoint?("ø")
       true
-      iex> String.valid_codepoint?("\xffff")
+      iex> String.valid_codepoint?(<<0xffff :: 16>>)
       false
       iex> String.valid_codepoint?("asdf")
       false
