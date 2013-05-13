@@ -33,7 +33,7 @@ dynamic_function_test() ->
   test_helper:run_and_remove(F, ['Elixir.Foo.Bar.Baz']).
 
 quote_unquote_splicing_test() ->
-  { { '{}', [{quoted,true}], [1,2,3,4,5] }, _ } = eval("x = [2,3,4]\nquote do: { 1, unquote_splicing(x), 5}").
+  { { '{}', [], [1,2,3,4,5] }, _ } = eval("x = [2,3,4]\nquote do: { 1, unquote_splicing(x), 5}").
 
 def_shortcut_test() ->
   F = fun() ->

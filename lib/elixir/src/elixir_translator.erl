@@ -101,32 +101,15 @@ translate_each({ alias, Meta, [Ref, KV] }, S) ->
 
   case TRef of
     { atom, _, Old } ->
-      { New, SF } = expand_alias_as(Meta, Old, KV, SR),
+      { New, _ } = expand_alias_as(Meta, Old, KV, SR),
 
-      %% Avoid creating aliases if first == last
-      %% unecessarily polluting the aliases dict
-      case New == Old of
-        true  -> { { atom, ?line(Meta), nil }, SF };
-        false ->
-          case string:tokens(atom_to_list(New), "-") of
-            [_,_] -> [];
-            _ -> syntax_error(Meta, S#elixir_scope.file,
+      case (New == Old) orelse (length(string:tokens(atom_to_list(New), "-")) == 2) of
+        true  -> ok;
+        false -> syntax_error(Meta, S#elixir_scope.file,
                    "invalid args for alias, cannot create nested alias ~s", [elixir_errors:inspect(New)])
-          end,
+      end,
 
-          SA = SF#elixir_scope{
-            aliases=orddict:store(New, Old, S#elixir_scope.aliases)
-          },
-
-          SM = case lists:keyfind(quoted, 1, Meta) of
-            { quoted, true } -> SA#elixir_scope{
-                macro_aliases=orddict:store(New, Old, S#elixir_scope.macro_aliases)
-              };
-            _ -> SA
-          end,
-
-          { { atom, ?line(Meta), nil }, SM }
-      end;
+      { { atom, ?line(Meta), nil }, elixir_aliases:store(Meta, New, Old, SR) };
     _ ->
       syntax_error(Meta, S#elixir_scope.file, "invalid args for alias, expected an atom or alias as argument")
   end;

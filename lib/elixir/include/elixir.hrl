@@ -44,6 +44,9 @@
   mark=true
 }).
 
+%% Introspection
+-define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
+
 %% Used in tokenization and interpolation
 
 %% Numbers

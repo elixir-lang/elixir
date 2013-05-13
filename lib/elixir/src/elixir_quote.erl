@@ -81,13 +81,17 @@ do_quote({ quote, _, Args } = Tuple, #elixir_quote{unquote=true} = Q, S) when le
 do_quote({ unquote, _Meta, [Expr] }, #elixir_quote{unquote=true} = Q, _) ->
   { Expr, Q#elixir_quote{unquoted=true} };
 
-do_quote({ function, Meta, [{ '/', _, [{F, _, C}, A]}] = Args },
-    #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(F), is_integer(A), is_atom(C) ->
-  do_quote_fa(function, Meta, Args, F, A, Q, S);
+%% Context mark
 
-do_quote({ { '.', _, [_, function] } = Target, Meta, [{ '/', _, [{F, _, C}, A]}] = Args },
-    #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(F), is_integer(A), is_atom(C) ->
-  do_quote_fa(Target, Meta, Args, F, A, Q, S);
+do_quote({ Def, Meta, Args }, #elixir_quote{mark=true} = Q, S) when ?defs(Def); Def == defmodule; Def == alias; Def == import ->
+  NewMeta = lists:keystore(context, 1, Meta, { context, Q#elixir_quote.context }),
+  do_quote_tuple({ Def, NewMeta, Args }, Q, S);
+
+do_quote({ { '.', _, [_, Def] } = Target, Meta, Args }, #elixir_quote{mark=true} = Q, S) when ?defs(Def); Def == defmodule; Def == alias; Def == import ->
+  NewMeta = lists:keystore(context, 1, Meta, { context, Q#elixir_quote.context }),
+  do_quote_tuple({ Target, NewMeta, Args }, Q, S);
+
+%% Aliases
 
 do_quote({ 'alias!', _Meta, [Expr] }, #elixir_quote{aliases_hygiene=true} = Q, S) ->
   { TExpr, TQ } = do_quote(Expr, Q#elixir_quote{aliases_hygiene=false}, S),
@@ -98,8 +102,15 @@ do_quote({ '__aliases__', Meta, [H|T] } = Alias, #elixir_quote{aliases_hygiene=t
     Atom when is_atom(Atom) -> Atom;
     Aliases when is_list(Aliases) -> false
   end,
-  NewMeta = lists:keystore(alias, 1, Meta, { alias, Annotation }),
-  do_quote_tuple({ '__aliases__', NewMeta, [H|T] }, Q, S);
+  AliasMeta = lists:keystore(alias, 1, Meta, { alias, Annotation }),
+  do_quote_tuple({ '__aliases__', AliasMeta, [H|T] }, Q, S);
+
+%% Vars
+
+do_quote({ Left, Meta, nil }, #elixir_quote{vars_hygiene=true} = Q, S) when is_atom(Left) ->
+  do_quote_tuple({ Left, Meta, Q#elixir_quote.context }, Q, S);
+
+%% Unquote
 
 do_quote({ { { '.', Meta, [Left, unquote] }, _, [Expr] }, _, Args }, #elixir_quote{unquote=true} = Q, S) ->
   do_quote_call(Left, Meta, Expr, Args, Q, S);
@@ -107,12 +118,15 @@ do_quote({ { { '.', Meta, [Left, unquote] }, _, [Expr] }, _, Args }, #elixir_quo
 do_quote({ { '.', Meta, [Left, unquote] }, _, [Expr] }, #elixir_quote{unquote=true} = Q, S) ->
   do_quote_call(Left, Meta, Expr, nil, Q, S);
 
-do_quote({ Left, Meta, nil }, #elixir_quote{vars_hygiene=true} = Q, S) when is_atom(Left) ->
-  do_quote_tuple({ Left, Meta, Q#elixir_quote.context }, Q, S);
+%% Imports
 
-do_quote({ import, Meta, Args }, #elixir_quote{imports_hygiene=true} = Q, S) ->
-  ImportMeta = lists:keystore(import, 1, Meta, { context, Q#elixir_quote.context }),
-  do_quote_tuple({ import, ImportMeta, Args }, Q, S);
+do_quote({ function, Meta, [{ '/', _, [{F, _, C}, A]}] = Args },
+    #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(F), is_integer(A), is_atom(C) ->
+  do_quote_fa(function, Meta, Args, F, A, Q, S);
+
+do_quote({ { '.', _, [_, function] } = Target, Meta, [{ '/', _, [{F, _, C}, A]}] = Args },
+    #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(F), is_integer(A), is_atom(C) ->
+  do_quote_fa(Target, Meta, Args, F, A, Q, S);
 
 do_quote({ Name, Meta, ArgsOrAtom } = Tuple, #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(Name) ->
   Arity = case is_atom(ArgsOrAtom) of
@@ -132,6 +146,8 @@ do_quote({ Name, Meta, ArgsOrAtom } = Tuple, #elixir_quote{imports_hygiene=true}
 
 do_quote({ _, _, _ } = Tuple, Q, S) ->
   do_quote_tuple(Tuple, Q, S);
+
+%% Literals
 
 do_quote({ Left, Right }, #elixir_quote{unquote=true} = Q, S) when
     is_tuple(Left)  andalso (element(1, Left) == unquote_splicing);
@@ -174,18 +190,11 @@ do_quote_tuple({ Left, Meta, Right }, Q, S) ->
   { TRight, RQ } = do_quote(Right, LQ, S),
   { { '{}', [], [TLeft, meta(Meta, Q), TRight] }, RQ }.
 
-meta(Meta, Q) -> mark_meta(line_meta(Meta, Q), Q).
-
-mark_meta(Meta, #elixir_quote{mark=true}) ->
-  lists:keystore(quoted, 1, Meta, { quoted, true });
-mark_meta(Meta, #elixir_quote{mark=false}) ->
-  Meta.
-
-line_meta(Meta, #elixir_quote{line=keep}) ->
+meta(Meta, #elixir_quote{line=keep}) ->
   Meta;
-line_meta(Meta, #elixir_quote{line=nil}) ->
+meta(Meta, #elixir_quote{line=nil}) ->
   lists:keydelete(line, 1, Meta);
-line_meta(Meta, #elixir_quote{line=Line}) ->
+meta(Meta, #elixir_quote{line=Line}) ->
   lists:keystore(line, 1, Meta, { line, Line }).
 
 %% Quote splicing

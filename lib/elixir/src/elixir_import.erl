@@ -36,7 +36,7 @@ record_warn(Meta, Ref, Opts, S) ->
     case keyfind(warn, Opts) of
       { warn, false } -> false;
       { warn, true } -> true;
-      false -> lists:keyfind(quoted, 1, Meta) /= { quoted, true }
+      false -> not lists:keymember(context, 1, Meta)
     end,
 
   Warn andalso ets:insert(Table, { Ref, ?line(Meta) }).

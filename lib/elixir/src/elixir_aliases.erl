@@ -1,8 +1,24 @@
 -module(elixir_aliases).
 -export([nesting_alias/2, last/1, concat/1, safe_concat/1,
-  format_error/1, ensure_loaded/3, expand/3]).
+  format_error/1, ensure_loaded/3, expand/3, store/4]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
+
+%% Store an alias in the given scope
+store(_Meta, New, New, S) -> S;
+store(Meta, New, Old, S) ->
+  SA = S#elixir_scope{
+    aliases=orddict:store(New, Old, S#elixir_scope.aliases)
+  },
+
+  case lists:keymember(context, 1, Meta) of
+    true ->
+      SA#elixir_scope{
+        macro_aliases=orddict:store(New, Old, S#elixir_scope.macro_aliases)
+      };
+    false ->
+      SA
+  end.
 
 %% Expand an alias. It returns an atom (meaning that there
 %% was an expansion) or a list of atoms.

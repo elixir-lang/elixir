@@ -6,11 +6,9 @@
 -import(elixir_scope, [umergec/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4,
   assert_no_function_scope/3, assert_module_scope/3, assert_no_match_or_guard_scope/3]).
+
 -include("elixir.hrl").
-
--define(FUNS(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
--define(IN_TYPES(Kind), Kind == atom orelse Kind == integer orelse Kind == float).
-
+-define(opt_in_types(Kind), Kind == atom orelse Kind == integer orelse Kind == float).
 -compile({parse_transform, elixir_transform}).
 
 %% Operators
@@ -201,12 +199,8 @@ translate({defmodule, Meta, [Ref, KV]}, S) ->
       FullModule = expand_module(Ref, Module, S),
 
       RS = case elixir_aliases:nesting_alias(S#elixir_scope.module, FullModule) of
-        { New, Old } ->
-          S#elixir_scope{
-            aliases=orddict:store(New, Old, S#elixir_scope.aliases),
-            macro_aliases=orddict:store(New, Old, S#elixir_scope.macro_aliases)};
-        false ->
-          S
+        { New, Old } -> elixir_aliases:store(Meta, New, Old, S);
+        false -> S
       end,
 
       {
@@ -220,19 +214,19 @@ translate({defmodule, Meta, [Ref, KV]}, S) ->
   MS = FS#elixir_scope{local=nil},
   { elixir_module:translate(Meta, FRef, Block, MS), FS };
 
-translate({Kind, Meta, [Call]}, S) when ?FUNS(Kind) ->
+translate({Kind, Meta, [Call]}, S) when ?defs(Kind) ->
   translate({Kind, Meta, [Call, nil]}, S);
 
-translate({Kind, Meta, [Call, Expr]}, S) when ?FUNS(Kind) ->
+translate({Kind, Meta, [Call, Expr]}, S) when ?defs(Kind) ->
   assert_module_scope(Meta, Kind, S),
   assert_no_function_scope(Meta, Kind, S),
   { TCall, QC, SC } = elixir_quote:erl_escape(Call, true, S),
   { TExpr, QE, SE } = elixir_quote:erl_escape(Expr, true, SC),
-  CheckClauses = (lists:keyfind(quoted, 1, Meta) /= { quoted, true }) andalso
+  CheckClauses = (not lists:keymember(context, 1, Meta)) andalso
                    (not QC#elixir_quote.unquoted) andalso (not QE#elixir_quote.unquoted),
   { elixir_def:wrap_definition(Kind, Meta, TCall, TExpr, CheckClauses, SE), SE };
 
-translate({Kind, Meta, [Name, Args, Guards, Expr]}, S) when ?FUNS(Kind) ->
+translate({Kind, Meta, [Name, Args, Guards, Expr]}, S) when ?defs(Kind) ->
   assert_module_scope(Meta, Kind, S),
   assert_no_function_scope(Meta, Kind, S),
   { TName, SN }   = translate_each(Name, S),
@@ -287,9 +281,9 @@ translate_in(Meta, Left, Right, S) ->
       { Cache, Expr };
     { tuple, _, [{ atom, _, 'Elixir.Range' }, Start, End] } ->
       Expr = case { Start, End } of
-        { { K1, _, StartInt }, { K2, _, EndInt } } when ?IN_TYPES(K1), ?IN_TYPES(K2), StartInt =< EndInt ->
+        { { K1, _, StartInt }, { K2, _, EndInt } } when ?opt_in_types(K1), ?opt_in_types(K2), StartInt =< EndInt ->
           increasing_compare(Line, Var, Start, End);
-        { { K1, _, _ }, { K2, _, _ } } when ?IN_TYPES(K1), ?IN_TYPES(K2) ->
+        { { K1, _, _ }, { K2, _, _ } } when ?opt_in_types(K1), ?opt_in_types(K2) ->
           decreasing_compare(Line, Var, Start, End);
         _ ->
           { op, Line, 'orelse',

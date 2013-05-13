@@ -41,7 +41,7 @@ defmodule MacroTest do
     assert Macro.escape_quoted(contents) == 1
 
     contents = quote unquote: false, do: unquote(x)
-    assert Macro.escape_quoted(contents) == { :x, [quoted: true], MacroTest }
+    assert Macro.escape_quoted(contents) == { :x, [], MacroTest }
   end
 
   defp eval_escaped(contents) do
