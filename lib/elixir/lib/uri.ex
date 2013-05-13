@@ -187,7 +187,7 @@ defmodule URI do
   # Reference parsers so the parse/1 doesn't fail
   # on safe_concat.
   defp preload_parsers do
-    parsers = [URI.FTP, URI.HTTP, URI.HTTPS, URI.LDAP, URI.SFTP, URI.TFTP]
+    parsers = [URI.FTP, URI.HTTP, URI.HTTPS, URI.WS, URI.WSS, URI.LDAP, URI.SFTP, URI.TFTP]
     Enum.each parsers, Code.ensure_loaded(&1)
     :ok
   end
