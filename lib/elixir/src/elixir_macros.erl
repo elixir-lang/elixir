@@ -63,8 +63,12 @@ translate({ function, MetaFA, [{ '/', _, [{F, Meta, C}, A]}] }, S) when is_atom(
   assert_no_match_or_guard_scope(Meta, 'function', S),
 
   WrappedMeta =
-    case (lists:keyfind(import, 1, Meta) == false) andalso lists:keyfind(import_fa, 1, MetaFA) of
-      { import_fa, Receiver } -> [{ import, Receiver }|Meta];
+    case lists:keyfind(import_fa, 1, MetaFA) of
+      { import_fa, { Receiver, Context } } ->
+        lists:keystore(context, 1,
+          lists:keystore(import, 1, Meta, { import, Receiver }),
+          { context, Context }
+        );
       false -> Meta
     end,
 

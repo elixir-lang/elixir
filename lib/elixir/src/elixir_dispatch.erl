@@ -229,15 +229,25 @@ find_dispatch(Tuple, List) ->
 is_import(Meta, Tuple, S) ->
   case lists:keyfind(import, 1, Meta) of
     { import, _ } = Import ->
-      not_an_import(Tuple, S#elixir_scope.macro_functions)
-        andalso not_an_import(Tuple, S#elixir_scope.macro_macros)
-        andalso Import;
+      case lists:keyfind(context, 1, Meta) of
+        { context, Context } ->
+          not_an_import(Tuple, Context, S#elixir_scope.macro_functions)
+            andalso not_an_import(Tuple, Context, S#elixir_scope.macro_macros)
+            andalso Import;
+        false ->
+          false
+      end;
     false ->
       false
   end.
 
-not_an_import(Tuple, Pairs) ->
-  not lists:any(fun({ _, List }) -> lists:member(Tuple, List) end, Pairs).
+not_an_import(Tuple, Context, Dict) ->
+  case orddict:find(Context, Dict) of
+    { ok, Pairs } ->
+      not lists:any(fun({ _, List }) -> lists:member(Tuple, List) end, Pairs);
+    error ->
+      true
+  end.
 
 munge_stacktrace(Info, [{ _, _, [S|_], _ }|_], S) ->
   [Info];

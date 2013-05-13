@@ -115,17 +115,23 @@ calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
   Final = remove_internals(Set),
 
   case Final of
-    [] -> { keydelete(Key, Old), if_quoted(Meta, Temp, fun() -> keydelete(Key, Temp) end) };
+    [] -> { keydelete(Key, Old), if_quoted(Meta, Temp, fun(Value) -> keydelete(Key, Value) end) };
     _  ->
       ensure_no_special_form_conflict(Meta, File, Key, Final, internal_conflict),
       { [{ Key, Final }|keydelete(Key, Old)],
-        if_quoted(Meta, Temp, fun() -> [{ Key, Final }|keydelete(Key, Temp)] end) }
+        if_quoted(Meta, Temp, fun(Value) -> [{ Key, Final }|keydelete(Key, Value)] end) }
   end.
 
 if_quoted(Meta, Temp, Callback) ->
-  case lists:keyfind(quoted, 1, Meta) of
-    { quoted, true } -> Callback();
-    _ -> Temp
+  case lists:keyfind(context, 1, Meta) of
+    { context, Context } ->
+      Current = case orddict:find(Context, Temp) of
+        { ok, Value } -> Value;
+        error -> []
+      end,
+      orddict:store(Context, Callback(Current), Temp);
+    _ ->
+      Temp
   end.
 
 %% Ensure we are expanding macros and stuff

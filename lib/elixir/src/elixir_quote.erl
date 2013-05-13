@@ -110,6 +110,10 @@ do_quote({ { '.', Meta, [Left, unquote] }, _, [Expr] }, #elixir_quote{unquote=tr
 do_quote({ Left, Meta, nil }, #elixir_quote{vars_hygiene=true} = Q, S) when is_atom(Left) ->
   do_quote_tuple({ Left, Meta, Q#elixir_quote.context }, Q, S);
 
+do_quote({ import, Meta, Args }, #elixir_quote{imports_hygiene=true} = Q, S) ->
+  ImportMeta = lists:keystore(import, 1, Meta, { context, Q#elixir_quote.context }),
+  do_quote_tuple({ import, ImportMeta, Args }, Q, S);
+
 do_quote({ Name, Meta, ArgsOrAtom } = Tuple, #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(Name) ->
   Arity = case is_atom(ArgsOrAtom) of
     true  -> 0;
@@ -119,7 +123,11 @@ do_quote({ Name, Meta, ArgsOrAtom } = Tuple, #elixir_quote{imports_hygiene=true}
   case (lists:keyfind(import, 1, Meta) == false) andalso
       elixir_dispatch:find_import(Meta, Name, Arity, S) of
     false    -> do_quote_tuple(Tuple, Q, S);
-    Receiver -> do_quote_tuple({ Name, [{import,Receiver}|Meta], ArgsOrAtom }, Q, S)
+    Receiver ->
+      ImportMeta = lists:keystore(import, 1,
+        lists:keystore(context, 1, Meta, { context, Q#elixir_quote.context }),
+        { import, Receiver }),
+      do_quote_tuple({ Name, ImportMeta, ArgsOrAtom }, Q, S)
   end;
 
 do_quote({ _, _, _ } = Tuple, Q, S) ->
@@ -157,7 +165,7 @@ do_quote_fa(Target, Meta, Args, F, A, Q, S) ->
     case (lists:keyfind(import_fa, 1, Meta) == false) andalso
          elixir_dispatch:find_import(Meta, F, A, S) of
       false    -> Meta;
-      Receiver -> [{ import_fa, Receiver }|Meta]
+      Receiver -> lists:keystore(import_fa, 1, Meta, { import_fa, { Receiver, Q#elixir_quote.context } })
     end,
   do_quote_tuple({ Target, NewMeta, Args }, Q, S).
 
