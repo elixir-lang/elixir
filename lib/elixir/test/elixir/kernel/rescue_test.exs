@@ -146,7 +146,7 @@ defmodule Kernel.RescueTest do
       x in [FunctionClauseError] -> x.message
     end
 
-    assert result == "no function clause matching: Kernel.RescueTest.zero(1)"
+    assert result == "no function clause matching in Kernel.RescueTest.zero/1"
   end
 
   test :badarg_error do

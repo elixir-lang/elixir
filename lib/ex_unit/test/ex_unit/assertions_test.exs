@@ -219,7 +219,7 @@ defmodule ExUnit.AssertionsTest do
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected exception SyntaxError, got FunctionClauseError (no function clause matching: :lists.flatten(1))" = error.message
+      "Expected exception SyntaxError, got FunctionClauseError (no function clause matching in :lists.flatten/1)" = error.message
   end
 
   test :assert_operator_greater_pass do

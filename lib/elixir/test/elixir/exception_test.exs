@@ -62,15 +62,11 @@ defmodule Kernel.ExceptionTest do
   test :undefined_function_message do
     assert UndefinedFunctionError.new.message == "undefined function"
     assert UndefinedFunctionError.new(module: Foo, function: :bar, arity: 1).message == "undefined function: Foo.bar/1"
-    assert UndefinedFunctionError.new(module: Foo, function: :bar, arity: []).message == "undefined function: Foo.bar/0"
-    assert UndefinedFunctionError.new(module: :foo,  function: :bar, arity: []).message == "undefined function: :foo.bar/0"
   end
 
   test :function_clause_message do
     assert FunctionClauseError.new.message == "no function clause matches"
-    assert FunctionClauseError.new(module: Foo, function: :bar, arity: 1).message == "no function clause matching: Foo.bar/1"
-    assert FunctionClauseError.new(module: Foo, function: :bar, arity: []).message == "no function clause matching: Foo.bar()"
-    assert FunctionClauseError.new(module: :foo,  function: :bar, arity: []).message == "no function clause matching: :foo.bar()"
+    assert FunctionClauseError.new(module: Foo, function: :bar, arity: 1).message == "no function clause matching in Foo.bar/1"
   end
 
   test :erlang_error_message do
