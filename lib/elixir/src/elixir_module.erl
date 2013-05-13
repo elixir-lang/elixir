@@ -141,6 +141,7 @@ eval_form(Line, Module, Block, Vars, RawS) ->
   Value.
 
 %% Return the form with exports and function declarations.
+
 functions_form(Line, File, Module, Export, Private, Def, Defmacro, RawFunctions, C) ->
   Functions = case elixir_compiler:get_opt(internal, C) of
     true  -> RawFunctions;
@@ -156,8 +157,8 @@ functions_form(Line, File, Module, Export, Private, Def, Defmacro, RawFunctions,
       [{on_load,OnLoad}] -> elixir_import:recorded_locals(Module) ++ OnLoad
     end,
 
-  elixir_def_local:check_unused_local_macros(File, Recorded, Private),
-  PrivateTuple = [Tuple || { Tuple, _, _, _ } <- Private],
+  elixir_def_local:check_unused_local(File, Recorded, Private),
+  PrivateTuple = [Tuple || { Tuple, _, _, _, _ } <- Private],
   { FinalExport ++ PrivateTuple, [
     {attribute, Line, export, lists:sort(FinalExport)} | FinalFunctions
   ] }.
@@ -198,7 +199,7 @@ attributes_form(Line, _File, Module, Current) ->
 %% Specs
 
 specs_form(Line, Module, Private, Defmacro, Forms, C) ->
-  Defmacrop = [Tuple || { Tuple, defmacrop, _, _ } <- Private],
+  Defmacrop = [Tuple || { Tuple, defmacrop, _, _, _ } <- Private],
   case elixir_compiler:get_opt(internal, C) of
     true -> Forms;
     _    ->
