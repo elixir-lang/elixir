@@ -172,6 +172,11 @@ defmodule Kernel.RecordRewriterTest do
     assert optimize_clause(clause) == { clause, [x: Range], { Range, [nil, { :foo, nil }, nil] } }
   end
 
+  test "empty receive" do
+    clause = clause(fn -> receive do end end)
+    assert optimize_clause(clause) == { clause, [], [] }
+  end
+
   test "inside receive" do
     clause = clause(fn -> receive do x = Macro.Env[] -> x; Macro.Env[] = x -> x end end)
     assert optimize_clause(clause) == { clause, [x: Macro.Env], { Macro.Env, nil } }
