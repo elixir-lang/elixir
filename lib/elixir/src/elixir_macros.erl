@@ -325,10 +325,16 @@ rewrite_case_clauses([{do,[{in,_,[{'_',_,_},[false,nil]]}],False},{do,[{'_',_,_}
 rewrite_case_clauses(Clauses) ->
   Clauses.
 
+%% defmodule :foo
 expand_module(Raw, Module, #elixir_scope{module=Nesting}) when is_atom(Raw); Nesting == nil ->
   Module;
 
-expand_module({ '__aliases__', _, List } = Alias, Module, S) when List /= ['Elixir'] ->
+%% defmodule Hello
+expand_module({ '__aliases__', _, [H] }, _Module, S) ->
+  elixir_aliases:concat([S#elixir_scope.module, H]);
+
+%% defmodule Hello.World
+expand_module({ '__aliases__', _, _ } = Alias, Module, S) ->
   case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases) of
     Atom when is_atom(Atom) ->
       Module;
@@ -336,6 +342,7 @@ expand_module({ '__aliases__', _, List } = Alias, Module, S) when List /= ['Elix
       elixir_aliases:concat([S#elixir_scope.module, Module])
   end;
 
+%% defmodule Elixir.Hello.World
 expand_module(_Raw, Module, S) ->
   elixir_aliases:concat([S#elixir_scope.module, Module]).
 

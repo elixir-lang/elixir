@@ -3,6 +3,11 @@ Code.require_file "test_helper.exs", __DIR__
 defrecord RecordTest.FileInfo,
   Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
 
+defrecord RecordTest.SomeRecord, a: 0, b: 1
+defrecord RecordTest.WithNoField, []
+
+## Record import
+
 defmodule RecordTest.FileInfo.Helper do
   Record.import RecordTest.FileInfo, as: :file_info
 
@@ -13,8 +18,7 @@ defmodule RecordTest.FileInfo.Helper do
   def size(file_info(size: size)), do: size
 end
 
-defrecord RecordTest.SomeRecord, a: 0, b: 1
-defrecord RecordTest.WithNoField, []
+## Dynamic names and overridable
 
 name = RecordTest.DynamicName
 defrecord name, a: 0, b: 1 do
