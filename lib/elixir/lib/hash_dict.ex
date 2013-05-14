@@ -524,8 +524,16 @@ end
 
 defimpl Binary.Inspect, for: HashDict do
   import Kernel, except: [inspect: 2]
+  import Wadler
+  import Binary.Inspect.Utils
 
   def inspect(dict, opts) do
-    "#HashDict<" <> Kernel.inspect(HashDict.to_list(dict), opts) <> ">"
+    return(
+      concat( text("#HashDict<"), 
+              concat( Kernel.inspect(HashDict.to_list(dict), Keyword.put(opts, :as_doc, true)),
+                      text(">")
+              )
+      ), opts
+    )
   end
 end
