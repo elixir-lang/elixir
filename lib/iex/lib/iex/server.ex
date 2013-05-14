@@ -74,7 +74,7 @@ defmodule IEx.Server do
   end
 
   defp io_put(result) do
-    IO.puts :stdio, IO.ANSI.escape("%{yellow}#{inspect(result, IEx.inspect_opts)}")
+    IO.puts :stdio, "=> " <> IO.ANSI.escape("%{yellow}#{inspect(result, IEx.inspect_opts)}")
   end
 
   defp io_error(result) do
