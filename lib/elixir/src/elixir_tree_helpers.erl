@@ -69,8 +69,8 @@ erl_to_elixir({ nil, _ }) -> [];
 
 erl_to_elixir({ cons, _, Left, Right }) -> [erl_to_elixir(Left)|erl_to_elixir(Right)];
 
-%% Is there an easier way to tell the conversion failed?
-erl_to_elixir(_) -> self().
+erl_to_elixir(Other) ->
+  { '__scope__', [], [[{erl,true}],[{do,Other}]] }.
 
 %% Others
 

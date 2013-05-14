@@ -61,6 +61,9 @@ translate_each({ '__block__', Meta, Args }, S) when is_list(Args) ->
   { TArgs, NS } = translate(Args, S),
   { { block, ?line(Meta), TArgs }, NS };
 
+translate_each({ '__scope__', _Meta, [[{erl,true}],[{do,Expr}]] }, S) ->
+  { Expr, S };
+
 translate_each({ '__scope__', _Meta, [[{file,File}],[{do,Expr}]] }, S) ->
   Old = S#elixir_scope.file,
   { TExpr, TS } = translate_each(Expr, S#elixir_scope{file=File}),
@@ -198,31 +201,44 @@ translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
 translate_each({ Unquote, Meta, [_|_] }, S) when Unquote == unquote; Unquote == unquote_splicing ->
   syntax_error(Meta, S#elixir_scope.file, "~p called outside quote", [Unquote]);
 
-translate_each({ quote, Meta, [Left, Right] }, S) ->
-  translate_each({ quote, Meta, [orddict:from_list(Left ++ Right)] }, S);
+translate_each({ quote, Meta, [Opts] }, S) when is_list(Opts) ->
+  case lists:keyfind(do, 1, Opts) of
+    { do, Do } ->
+      translate_each({ quote, Meta, [lists:keydelete(do, 1, Opts), [{do,Do}]] }, S);
+    false ->
+      syntax_error(Meta, S#elixir_scope.file, "invalid args for quote, do is missing")
+  end;
 
-translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
+translate_each({ quote, Meta, [_] }, S) ->
+  syntax_error(Meta, S#elixir_scope.file, "invalid args for quote");
+
+translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
   Exprs =
-    case lists:keyfind(do, 1, T) of
+    case lists:keyfind(do, 1, Do) of
       { do, E } -> E;
       false -> syntax_error(Meta, S#elixir_scope.file, "invalid args for quote")
     end,
 
-  Hygiene = case lists:keyfind(hygiene, 1, T) of
+  ValidOpts   = [hygiene, context, var_context, location, line, file, unquote],
+  { TKV, ST } = translate_opts(Meta, quote, ValidOpts, KV, S),
+
+  Hygiene = case lists:keyfind(hygiene, 1, TKV) of
     { hygiene, List } when is_list(List) ->
       List;
     false ->
       []
   end,
 
-  Context = case lists:keyfind(var_context, 1, T) of
+  Context = case lists:keyfind(var_context, 1, TKV) of
     { var_context, VarContext } ->
       elixir_errors:deprecation(Meta, S#elixir_scope.file, "var_context in quote is deprecated, please use context instead"),
-      expand_quote_context(Meta, VarContext, "invalid argument given for var_context in quote", S);
+      VarContext;
     false ->
-      case lists:keyfind(context, 1, T) of
-        { context, ListContext } ->
-          expand_quote_context(Meta, ListContext, "invalid argument given for context in quote", S);
+      case lists:keyfind(context, 1, TKV) of
+        { context, Atom } when is_atom(Atom) ->
+          Atom;
+        { context, _ } ->
+          syntax_error(Meta, S#elixir_scope.file, "invalid :context for quote, expected an atom or an alias");
         false ->
           case S#elixir_scope.module of
             nil -> 'Elixir';
@@ -235,17 +251,17 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
   Aliases = lists:keyfind(aliases, 1, Hygiene) /= { aliases, false },
   Imports = lists:keyfind(imports, 1, Hygiene) /= { imports, false },
 
-  { DefaultLine, DefaultFile } = case lists:keyfind(location, 1, T) of
+  { DefaultLine, DefaultFile } = case lists:keyfind(location, 1, TKV) of
     { location, keep } -> { keep, keep };
     false -> { nil, nil }
   end,
 
-  Line = case lists:keyfind(line, 1, T) of
+  Line = case lists:keyfind(line, 1, TKV) of
     { line, LineValue } -> LineValue;
     false -> DefaultLine
   end,
 
-  File = case lists:keyfind(file, 1, T) of
+  File = case lists:keyfind(file, 1, TKV) of
     { file, FileValue } -> FileValue;
     false -> DefaultFile
   end,
@@ -264,7 +280,7 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
       syntax_error(Meta, S#elixir_scope.file, "invalid args for quote, expected :file to be a binary")
   end,
 
-  Unquote = case lists:keyfind(unquote, 1, T) of
+  Unquote = case lists:keyfind(unquote, 1, TKV) of
     { unquote, false } -> false;
     _ -> true
   end,
@@ -272,10 +288,10 @@ translate_each({ quote, Meta, [T] }, S) when is_list(T) ->
   Q = #elixir_quote{vars_hygiene=Vars, line=Line, unquote=Unquote,
         aliases_hygiene=Aliases, imports_hygiene=Imports, context=Context},
 
-  { TExprs, _TQ, TS } = elixir_quote:erl_quote(WExprs, Q, S),
+  { TExprs, _TQ, TS } = elixir_quote:erl_quote(WExprs, Q, ST),
   { TExprs, TS };
 
-translate_each({ quote, Meta, [_] }, S) ->
+translate_each({ quote, Meta, [_, _] }, S) ->
   syntax_error(Meta, S#elixir_scope.file, "invalid args for quote");
 
 translate_each({ 'alias!', _Meta, [Arg] }, S) ->

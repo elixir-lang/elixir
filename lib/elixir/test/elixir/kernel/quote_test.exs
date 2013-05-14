@@ -112,6 +112,14 @@ defmodule Kernel.QuoteTest do
     assert { :->, _, [{[],1}] } = (quote do -> 1 end)
     assert { :->, _, [{[],1}] } = (quote do: (-> 1))
   end
+
+  defmacrop dynamic_opts do
+    [line: 3]
+  end
+
+  test :quote_with_dynamic_opts do
+    assert quote(dynamic_opts, do: bar(1,2,3)) == { :bar, [line: 3], [1,2,3] }
+  end
 end
 
 defmodule Kernel.QuoteTest.VarHygiene do
