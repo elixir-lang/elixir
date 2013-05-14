@@ -1,9 +1,17 @@
 defmodule ExUnit do
-  defrecord Test, [:name, :case, :failure] do
+  defrecord Test, [:name, :case, :failure, :invalid] do
     @moduledoc """
     A record that keeps information about the test.
     It is received by formatters and also accessible
     in the metadata under the key `:test`.
+    """
+  end
+
+  defrecord TestCase, [:name, :failure] do
+    @moduledoc """
+    A record that keeps information about the test case.
+    It is received by formatters and also accessible
+    in the metadata under the key `:case`.
     """
   end
 

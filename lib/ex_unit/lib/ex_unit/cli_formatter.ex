@@ -9,7 +9,7 @@ defmodule ExUnit.CLIFormatter do
   use GenServer.Behaviour
 
   import Exception, only: [format_entry: 2]
-  defrecord Config, counter: 0, failures: []
+  defrecord Config, counter: 0, test_failures: [], case_failures: []
 
   ## Behaviour
 
@@ -26,8 +26,8 @@ defmodule ExUnit.CLIFormatter do
     :ok
   end
 
-  def case_finished(_id, _test_case) do
-    :ok
+  def case_finished(id, test_case) do
+    :gen_server.cast(id, { :case_finished, test_case })
   end
 
   def test_started(_id, _test) do
@@ -45,12 +45,18 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_call({ :suite_finished, ms }, _from, config) do
-    print_suite(config.counter, config.failures, ms)
-    { :stop, :normal, length(config.failures), config }
+    print_suite(config.counter, config.test_failures, config.case_failures, ms)
+    { :stop, :normal, length(config.test_failures), config }
   end
 
   def handle_call(_, _, _) do
     super
+  end
+
+  def handle_cast({ :test_finished, test = ExUnit.Test[failure: nil, invalid: true] }, config) do
+    IO.write invalid("?")
+    { :noreply, config.update_counter(&1 + 1).
+        update_test_failures([test|&1]) }
   end
 
   def handle_cast({ :test_finished, ExUnit.Test[failure: nil] }, config) do
@@ -61,30 +67,61 @@ defmodule ExUnit.CLIFormatter do
   def handle_cast({ :test_finished, test }, config) do
     IO.write failure("F")
     { :noreply, config.update_counter(&1 + 1).
-        update_failures([test|&1]) }
+        update_test_failures([test|&1]) }
+  end
+
+  def handle_cast({ :case_finished, test_case }, config) do
+    if test_case.failure do
+      { :noreply, config.update_case_failures([test_case|&1]) }
+    else
+      { :noreply, config }
+    end
   end
 
   def handle_cast(_, _) do
     super
   end
 
-  defp print_suite(counter, [], ms) do
+  defp print_suite(counter, [], [], ms) do
     IO.write "\n\n"
     IO.puts "Finished in #{format_ms ms} seconds"
     IO.puts success("#{counter} tests, 0 failures")
   end
 
-  defp print_suite(counter, failures, ms) do
+  defp print_suite(counter, test_failures, case_failures, ms) do
     IO.write "\n\nFailures:\n\n"
-    Enum.reduce Enum.reverse(failures), 1, print_failure(&1, &2, File.cwd!)
+    num_fails = Enum.reduce Enum.reverse(test_failures), 1, print_test_failure(&1, &2, File.cwd!)
+    Enum.reduce Enum.reverse(case_failures), num_fails, print_case_failure(&1, &2, File.cwd!)
+    num_invalids = Enum.count test_failures, fn test -> test.invalid end
+
     IO.puts "Finished in #{format_ms ms} seconds"
-    IO.puts failure("#{counter} tests, #{length(failures)} failures")
+
+    num_fails = num_fails - 1
+    message = "#{counter} tests, #{num_fails} failures"
+    if num_invalids > 0, do: message = message <>  ", #{num_invalids} invalid"
+    cond do
+      num_fails > 0    -> IO.puts failure(message)
+      num_invalids > 0 -> IO.puts invalid(message)
+      true             -> IO.puts success(message)
+    end
   end
 
-  defp print_failure(ExUnit.Test[case: test_case, name: test, failure: { kind, reason, stacktrace }], acc, cwd) do
-    IO.puts "  #{acc}) #{test} (#{inspect test_case})"
+  defp print_test_failure(ExUnit.Test[failure: nil], acc, _cwd) do
+    acc
+  end
+
+  defp print_test_failure(ExUnit.Test[case: test_case, name: test, failure: { kind, reason, stacktrace }], acc, cwd) do
+    IO.puts "  #{acc}) #{test} (#{inspect test_case.name})"
     print_kind_reason(kind, reason)
-    print_stacktrace(stacktrace, test_case, test, cwd)
+    print_stacktrace(stacktrace, test_case.name, test, cwd)
+    IO.write "\n"
+    acc + 1
+  end
+
+  defp print_case_failure(ExUnit.TestCase[name: case_name, failure: { kind, reason, stacktrace }], acc, cwd) do
+    IO.puts "  #{acc}) #{inspect case_name}"
+    print_kind_reason(kind, reason)
+    print_stacktrace(stacktrace, case_name, nil, cwd)
     IO.write "\n"
     acc + 1
   end
@@ -162,6 +199,10 @@ defmodule ExUnit.CLIFormatter do
 
   defp success(msg) do
     IO.ANSI.escape("%{green}" <>  msg)
+  end
+
+  defp invalid(msg) do
+    IO.ANSI.escape("%{yellow}" <>  msg)
   end
 
   defp failure(msg) do
