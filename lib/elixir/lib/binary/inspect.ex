@@ -18,21 +18,8 @@ end
 defmodule Binary.Inspect.Utils do
   @moduledoc false
 
-  ## groups aware of depth
-  def inc_depth(opts),          do: Keyword.put(opts, :depth, (opts[:depth] || 0) + 1)
-
-  def group_maybe(x, opts),     do: group_maybe_do(x, 3, fn(x) -> group(x)  end, opts)
-  def group_maybe(x, t, opts),  do: group_maybe_do(x, t, fn(x) -> group(x)  end, opts)
-  def group1_maybe(x, opts),    do: group_maybe_do(x, 3, fn(x) -> group1(x) end, opts)
-  def group1_maybe(x, t, opts), do: group_maybe_do(x, t, fn(x) -> group1(x) end, opts)
-
-  defp group_maybe_do(x, t, f, opts) do
-    if (opts[:depth] || 1) > t do
-      x
-    else
-      f.(x)
-    end
-  end
+  ## work with opts
+  def inc_depth(opts), do: Keyword.put(opts, :depth, (opts[:depth] || 0) + 1)
 
   ## replaces last expression in implementations
   def return(doc, opts) do
@@ -61,7 +48,7 @@ defmodule Binary.Inspect.Utils do
             glue( nest((opts[:nest] || 0)+2, do_container_join(list, opts, opts[:limit] || :infinity)),
                   text(last))
       ),
-    5, opts)
+    opts[:depth], 5)
   end
 
   defp do_container_join(_, _opts, 0) do
@@ -318,11 +305,13 @@ defimpl Binary.Inspect, for: List do
         return(
         group1_maybe(
           concat( text("["),
-          concat( glue, 
-                  nest(2,
-          concat(   join_keywords(thing, Keyword.put(opts, :as_doc, true)),
-          concat(   glue, text("]") ))))),
-          opts
+                  concat( glue, 
+                          nest(2, concat( join_keywords(thing, Keyword.put(opts, :as_doc, true)),
+                                          concat( glue, text("]") ))
+                          )
+                  )
+          ),
+          opts[:depth]
         ),
         opts)
       true ->
@@ -421,7 +410,7 @@ defimpl Binary.Inspect, for: Tuple do
                     )
             )
       ),
-      opts
+      opts[:depth]
     )
   end
 

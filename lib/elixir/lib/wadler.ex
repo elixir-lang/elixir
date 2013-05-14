@@ -361,6 +361,18 @@ defmodule Wadler do
   def sn(x, y), do: concat(x, concat(UNION[left: text(" "), right: line], y))
 
   @doc """
+  Groups if depth is beyond threshold.
+  ``group_maybe`` returns one of the two docentities:
+  1. The docentity that is passed as 1st argument
+  2. Union of that docentity flattened with docentity
+  Returns (2) if depth is beyond a threshold.
+  """
+  @spec group_maybe(docentity, non_neg_integer, non_neg_integer) :: docentity
+  def group_maybe( x, d, t // 3), do: group_maybe_do(x, t, fn(x) -> group(x)  end, d)
+  def group1_maybe(x, d, t // 3), do: group_maybe_do(x, t, fn(x) -> group1(x) end, d)
+
+
+  @doc """
   Fold a list of document entities into a document entity
   using a function that is passed as the first argument.
 
@@ -444,6 +456,9 @@ defmodule Wadler do
   def factor(width, document), do: best width, 0, document
   
   ## Private functions
+  defp group_maybe_do(x, t, f, d) do
+    if d  > t, do: x, else: f.(x)
+  end
 
   # Flatten variant representation.
   # Non-terminals
