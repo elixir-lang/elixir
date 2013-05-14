@@ -7,18 +7,26 @@
   * [Kernel] `in` can be used with right side expression outside guards
   * [Kernel] Add `Node.get_cookie/0` and `Node.set_cookie/2`
   * [Kernel] Add `__DIR__`
+  * [Kernel] Expand macros and attributes on quote, import, alias and require
+  * [Kernel] Improve warnings related to default arguments
   * [Keyword] Add `Keyword.delete_first/2`
   * [Mix] Add `local.rebar` to download a local copy of rebar, and change `deps.compile` to use it if needed
+  * [Mix] Support umbrella applications
+  * [String] Add `String.valid?` and `String.valid_character?`
 
 * bug fix
   * [ExUnit] Handle exit messages from in ExUnit
   * [Kernel] Ensure we don't splice keyword args unecessarily
   * [Kernel] Private functions used by private macros no longer emit an unused warning 
+  * [Kernel] Ensure Elixir won't trip on empty receive blocks
+  * [Mix] Generate manifest files after compilation to avoid depending on directory timestamps and to remove unused .beam files
   * [Regex]  Fix badmatch with Regex.captures(%r/(.)/g, "cat")
+  * [URI] Downcase host and scheme and URIs
 
 * deprecations
   * [ExUnit] `assert left inlist right` is deprecated in favor of `assert left in right`
   * [Kernel] `List.member?/2` is deprecated in favor of `Enum.member?/2`
+  * [Kernel] `var_context` in quote was deprecated in favor of `context`
 
 * backwards incompatible changes
   * [Kernel] `IO.gets`, `IO.getb` and friends now return binaries when reading from stdio
