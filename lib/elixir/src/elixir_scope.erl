@@ -90,7 +90,7 @@ to_ex_env({ Line, #elixir_scope{module=Module,file=File,
 % Provides a tuple with only the scope information we want to serialize.
 
 serialize(S) ->
-  elixir_tree_helpers:abstract_syntax(
+  elixir_tree_helpers:elixir_to_erl(
     { S#elixir_scope.file, S#elixir_scope.functions,
       S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases,
       S#elixir_scope.macro_functions, S#elixir_scope.macro_macros, S#elixir_scope.macro_aliases,

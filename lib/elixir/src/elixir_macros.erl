@@ -124,7 +124,7 @@ translate({'@', Meta, [{ Name, _, Args }]}, S) ->
               }, S);
             _ ->
               Contents = 'Elixir.Module':get_attribute(S#elixir_scope.module, Name),
-              { elixir_tree_helpers:abstract_syntax(Contents), S }
+              { elixir_tree_helpers:elixir_to_erl(Contents), S }
           end;
         _ ->
           syntax_error(Meta, S#elixir_scope.file, "expected 0 or 1 argument for @~ts, got: ~p", [Name, length(Args)])

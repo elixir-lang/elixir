@@ -65,7 +65,7 @@ translate(Atom, S) when is_atom(Atom) ->
   { { atom, 0, Atom }, S };
 
 translate(Bitstring, S) when is_bitstring(Bitstring) ->
-  { elixir_tree_helpers:abstract_syntax(Bitstring), S }.
+  { elixir_tree_helpers:elixir_to_erl(Bitstring), S }.
 
 %% Helpers
 
@@ -112,7 +112,7 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) when is_bitstring(H) ->
   case is_default_or_utf(Types) of
     true ->
       Line = ?line(Meta),
-      { bin, _, Elements } = elixir_tree_helpers:abstract_syntax(H),
+      { bin, _, Elements } = elixir_tree_helpers:elixir_to_erl(H),
       NewAcc = lists:foldl(fun({ bin_element, _, Expr, _, _ }, FinalAcc) ->
         [{ bin_element, Line, Expr, Size, Types }|FinalAcc]
       end, Acc, Elements),

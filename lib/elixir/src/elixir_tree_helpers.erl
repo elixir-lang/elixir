@@ -4,8 +4,8 @@
 
 -module(elixir_tree_helpers).
 -compile({parse_transform, elixir_transform}).
--export([abstract_syntax/1, split_last/1, cons_to_list/1,
-  list_to_cons/2, list_to_cons/3,
+-export([elixir_to_erl/1, erl_to_elixir/1, split_last/1,
+  cons_to_list/1, list_to_cons/2, list_to_cons/3,
   convert_to_boolean/5, returns_boolean/1, get_line/1]).
 -include("elixir.hrl").
 
@@ -20,34 +20,8 @@ split_last(List)       -> split_last(List, []).
 split_last([H], Acc)   -> { lists:reverse(Acc), H };
 split_last([H|T], Acc) -> split_last(T, [H|Acc]).
 
-abstract_syntax(Tree) when is_tuple(Tree) ->
-  { tuple, 0, [abstract_syntax(X) || X <- tuple_to_list(Tree)] };
-
-abstract_syntax(Tree) when is_list(Tree) ->
-  abstract_cons(lists:reverse(Tree), { nil, 0 });
-
-abstract_syntax(Tree) when is_atom(Tree) ->
-  { atom, 0, Tree };
-
-abstract_syntax(Tree) when is_integer(Tree) ->
-  { integer, 0, Tree };
-
-abstract_syntax(Tree) when is_float(Tree) ->
-  { float, 0, Tree };
-
-abstract_syntax(Tree) when is_binary(Tree) ->
-  { bin, 0, [{ bin_element, 0, { string, 0, binary_to_list(Tree) }, default, default }] }.
-
-abstract_cons([H|T], Acc) ->
-  abstract_cons(T, { cons, 0, abstract_syntax(H), Acc });
-
-abstract_cons([], Acc) -> Acc.
-
-cons_to_list({ cons, _, Left, { nil, _ } }) ->
-  [Left];
-
-cons_to_list({ cons, _, Left, Right }) ->
-  [Left|cons_to_list(Right)].
+cons_to_list({ nil, _ }) -> [];
+cons_to_list({ cons, _, Left, Right }) -> [Left|cons_to_list(Right)].
 
 list_to_cons(Line, List) ->
   list_to_cons(Line, List, { nil, Line }).
@@ -56,6 +30,47 @@ list_to_cons(Line, List, Tail) ->
   lists:foldr(fun(X, Acc) ->
     { cons, Line, X, Acc }
   end, Tail, List).
+
+%% erl <-> elixir
+
+elixir_to_erl(Tree) when is_tuple(Tree) ->
+  { tuple, 0, [elixir_to_erl(X) || X <- tuple_to_list(Tree)] };
+
+elixir_to_erl(Tree) when is_list(Tree) ->
+  elixir_to_erl_cons(lists:reverse(Tree), { nil, 0 });
+
+elixir_to_erl(Tree) when is_atom(Tree) ->
+  { atom, 0, Tree };
+
+elixir_to_erl(Tree) when is_integer(Tree) ->
+  { integer, 0, Tree };
+
+elixir_to_erl(Tree) when is_float(Tree) ->
+  { float, 0, Tree };
+
+elixir_to_erl(Tree) when is_binary(Tree) ->
+  { bin, 0, [{ bin_element, 0, { string, 0, binary_to_list(Tree) }, default, default }] }.
+
+elixir_to_erl_cons([H|T], Acc) ->
+  elixir_to_erl_cons(T, { cons, 0, elixir_to_erl(H), Acc });
+
+elixir_to_erl_cons([], Acc) -> Acc.
+
+erl_to_elixir({ tuple, _, Args }) ->
+  list_to_tuple([erl_to_elixir(X) || X <- Args]);
+
+erl_to_elixir({ Kind, _, Value }) when Kind == atom; Kind == integer; Kind == float ->
+  Value;
+
+erl_to_elixir({ bin, _, [{ bin_element, 0, { string, 0, String }, default, default }] }) ->
+  list_to_binary(String);
+
+erl_to_elixir({ nil, _ }) -> [];
+
+erl_to_elixir({ cons, _, Left, Right }) -> [erl_to_elixir(Left)|erl_to_elixir(Right)];
+
+%% Is there an easier way to tell the conversion failed?
+erl_to_elixir(_) -> self().
 
 %% Others
 

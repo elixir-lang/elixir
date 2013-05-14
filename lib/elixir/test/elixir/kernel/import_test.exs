@@ -29,6 +29,15 @@ defmodule Kernel.ImportOnlyTest do
     import :lists, except: [each: 2]
     assert flatten([1,[2],3]) == [1,2,3]
   end
+
+  defmacrop dynamic_opts do
+    [except: [each: 2]]
+  end
+
+  test :import_with_dynamic_opts do
+    import :lists, dynamic_opts
+    assert flatten([1,[2],3]) == [1,2,3]
+  end
 end
 
 defmodule Kernel.DoubleImportTest do

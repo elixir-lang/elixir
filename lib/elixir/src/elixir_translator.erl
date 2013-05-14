@@ -95,21 +95,12 @@ translate_each({ alias, Meta, [Ref] }, S) ->
 
 translate_each({ alias, Meta, [Ref, KV] }, S) ->
   assert_no_match_or_guard_scope(Meta, alias, S),
-  validate_opts(Meta, alias, [as], KV, S),
-
   { TRef, SR } = translate_each(Ref, S),
+  { TKV, ST }  = translate_opts(Meta, alias, [as], no_alias_opts(KV), SR),
 
   case TRef of
     { atom, _, Old } ->
-      { New, _ } = expand_alias_as(Meta, Old, KV, SR),
-
-      case (New == Old) orelse (length(string:tokens(atom_to_list(New), "-")) == 2) of
-        true  -> ok;
-        false -> syntax_error(Meta, S#elixir_scope.file,
-                   "invalid args for alias, cannot create nested alias ~s", [elixir_errors:inspect(New)])
-      end,
-
-      { { atom, ?line(Meta), nil }, elixir_aliases:store(Meta, New, Old, SR) };
+      translate_alias(Meta, true, Old, TKV, ST);
     _ ->
       syntax_error(Meta, S#elixir_scope.file, "invalid args for alias, expected an atom or alias as argument")
   end;
@@ -118,25 +109,15 @@ translate_each({ require, Meta, [Ref] }, S) ->
   translate_each({ require, Meta, [Ref, []] }, S);
 
 translate_each({ require, Meta, [Ref, KV] }, S) ->
-  assert_no_match_or_guard_scope(Meta, 'require', S),
-  validate_opts(Meta, require, [as], KV, S),
+  assert_no_match_or_guard_scope(Meta, require, S),
 
   { TRef, SR } = translate_each(Ref, S),
-
-  As = case lists:keyfind(as, 1, KV) of
-    false -> false;
-    { as, Value } -> Value
-  end,
+  { TKV, ST }  = translate_opts(Meta, require, [as], no_alias_opts(KV), SR),
 
   case TRef of
     { atom, _, Old } ->
-      elixir_aliases:ensure_loaded(Meta, Old, SR),
-
-      SF = SR#elixir_scope{
-        requires=ordsets:add_element(Old, S#elixir_scope.requires)
-      },
-
-      translate_each({ alias, Meta, [Ref, [{ as, As }]] }, SF);
+      elixir_aliases:ensure_loaded(Meta, Old, ST),
+      translate_require(Meta, Old, TKV, ST);
     _ ->
       syntax_error(Meta, S#elixir_scope.file, "invalid args for require, expected an atom or alias as argument")
   end;
@@ -147,34 +128,34 @@ translate_each({ import, Meta, [Left] }, S) ->
 translate_each({ import, Meta, [Left,Opts] }, S) when is_list(Opts) ->
   translate_each({ import, Meta, [default, Left, Opts]}, S);
 
-translate_each({ import, Meta, [Selector, Left] }, S) ->
-  translate_each({ import, Meta, [Selector, Left, []]}, S);
+translate_each({ import, Meta, [Left,Right] }, S) ->
+  %% Second argument is ambiguous, translate it and take a peek
+  case translate_each(Right, S) of
+    { { atom, _, _ }, _ } ->
+      translate_each({ import, Meta, [Left, Right, []]}, S);
+    _ ->
+      translate_each({ import, Meta, [default, Left, Right]}, S)
+  end;
 
-translate_each({ import, Meta, [Left, Right, Opts] }, S) ->
-  assert_no_match_or_guard_scope(Meta, 'import', S),
+translate_each({ import, Meta, [Left, Right, KV] }, S) ->
+  assert_no_match_or_guard_scope(Meta, import, S),
   { TSelector, SL } = translate_each(Left, S),
   { TRef, SR } = translate_each(Right, SL),
+  { TKV, ST }  = translate_opts(Meta, import, [as, only, except, warn], no_alias_opts(KV), SR),
 
   Selector = case TSelector of
     { atom, _,  SelectorAtom } -> SelectorAtom;
     _ -> syntax_error(Meta, S#elixir_scope.file, "invalid selector for import, expected an atom")
   end,
 
-  Ref = case TRef of
-    { atom, _, RefAtom } -> RefAtom;
-    _ -> syntax_error(Meta, S#elixir_scope.file, "invalid name for import, expected an atom or alias")
-  end,
-
-  validate_opts(Meta, import, [as, only, except, warn], Opts, S),
-
-  As = case lists:keyfind(as, 1, Opts) of
-    false -> false;
-    { as, Value } -> Value
-  end,
-
-  elixir_aliases:ensure_loaded(Meta, Ref, SR),
-  SF = elixir_import:import(Meta, Ref, Opts, Selector, SR),
-  translate_each({ require, Meta, [Ref, [{ as, As }]] }, SF);
+  case TRef of
+    { atom, _, Old } ->
+      elixir_aliases:ensure_loaded(Meta, Old, ST),
+      SF = elixir_import:import(Meta, Old, TKV, Selector, ST),
+      translate_require(Meta, Old, TKV, SF);
+    _ ->
+      syntax_error(Meta, S#elixir_scope.file, "invalid name for import, expected an atom or alias")
+  end;
 
 %% Pseudo variables
 
@@ -189,7 +170,7 @@ translate_each({ '__DIR__', _Meta, Atom }, S) when is_atom(Atom) ->
 
 translate_each({ '__ENV__', Meta, Atom }, S) when is_atom(Atom) ->
   Env = elixir_scope:to_ex_env({ ?line(Meta), S }),
-  { elixir_tree_helpers:abstract_syntax(Env), S };
+  { elixir_tree_helpers:elixir_to_erl(Env), S };
 
 translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
   { { var, ?line(Meta), '__CALLER__' }, S#elixir_scope{caller=true} };
@@ -464,6 +445,14 @@ translate_each(Literal, S) ->
 
 %% Helpers
 
+%% Opts
+
+translate_opts(Meta, Kind, Allowed, Opts, S) ->
+  { TOpts, TS } = translate_each(Opts, S),
+  FOpts = elixir_tree_helpers:erl_to_elixir(TOpts),
+  validate_opts(Meta, Kind, Allowed, FOpts, TS),
+  { FOpts, TS }.
+
 validate_opts(Meta, Kind, Allowed, Opts, S) when is_list(Opts) ->
   [begin
     syntax_error(Meta, S#elixir_scope.file, "unsupported option ~s given to ~s", [Key, Kind])
@@ -471,6 +460,69 @@ validate_opts(Meta, Kind, Allowed, Opts, S) when is_list(Opts) ->
 
 validate_opts(Meta, Kind, _Allowed, _Opts, S) ->
   syntax_error(Meta, S#elixir_scope.file, "invalid options for ~s, expected a keyword list", [Kind]).
+
+%% Quote
+
+expand_quote_context(_Meta, Atom, _Msg, _S) when is_atom(Atom) -> Atom;
+expand_quote_context(Meta, Alias, Msg, S) ->
+  case translate_each(Alias, S) of
+    { { atom, _, Atom }, _ } ->
+      Atom;
+    _ ->
+      syntax_error(Meta, S#elixir_scope.file, "~ts, expected a compile time available alias or an atom", [Msg])
+  end.
+
+%% Require
+
+translate_require(Meta, Old, TKV, S) ->
+  SF = S#elixir_scope{
+    requires=ordsets:add_element(Old, S#elixir_scope.requires)
+  },
+  translate_alias(Meta, false, Old, TKV, SF).
+
+%% Aliases
+
+translate_alias(Meta, IncludeByDefault, Old, TKV, S) ->
+  New = case lists:keyfind(as, 1, TKV) of
+    { as, true } ->
+      elixir_aliases:last(Old);
+    { as, false } ->
+      Old;
+    { as, Atom } when is_atom(Atom) ->
+      Atom;
+    false ->
+      if
+        IncludeByDefault -> elixir_aliases:last(Old);
+        true -> Old
+      end;
+    _ ->
+      syntax_error(Meta, S#elixir_scope.file,
+        "invalid args for alias, expected an atom or alias in option :as")
+  end,
+
+  case (New == Old) orelse (length(string:tokens(atom_to_list(New), "-")) == 2) of
+    true  -> ok;
+    false -> syntax_error(Meta, S#elixir_scope.file,
+               "invalid args for alias, cannot create nested alias ~s", [elixir_errors:inspect(New)])
+  end,
+
+  { { atom, ?line(Meta), nil }, elixir_aliases:store(Meta, New, Old, S) }.
+
+no_alias_opts(KV) when is_list(KV) ->
+  case lists:keyfind(as, 1, KV) of
+    { as, As } -> lists:keystore(as, 1, KV, { as, no_alias_expansion(As) });
+    false -> KV
+  end;
+
+no_alias_opts(KV) -> KV.
+
+no_alias_expansion({ '__aliases__', Meta, [H|T] }) when (H /= 'Elixir') and is_atom(H) ->
+  { '__aliases__', Meta, ['Elixir',H|T] };
+
+no_alias_expansion(Other) ->
+  Other.
+
+%% Function
 
 translate_fn(Meta, Clauses, S) ->
   Line = ?line(Meta),
@@ -490,6 +542,8 @@ translate_fn(Meta, Clauses, S) ->
       syntax_error(Meta, S#elixir_scope.file, "cannot mix clauses with different arities in function definition")
   end.
 
+%% Locals
+
 translate_local(Meta, Name, Args, #elixir_scope{local=nil,module=Module} = S) ->
   elixir_import:record({ Name, length(Args) }, Module, Module),
   Line = ?line(Meta),
@@ -498,37 +552,6 @@ translate_local(Meta, Name, Args, #elixir_scope{local=nil,module=Module} = S) ->
 
 translate_local(Meta, Name, Args, S) ->
   translate_each({ { '.', Meta, [S#elixir_scope.local, Name] }, Meta, Args }, S).
-
-expand_quote_context(_Meta, Atom, _Msg, _S) when is_atom(Atom) -> Atom;
-expand_quote_context(Meta, Alias, Msg, S) ->
-  case translate_each(Alias, S) of
-    { { atom, _, Atom }, _ } ->
-      Atom;
-    _ ->
-      syntax_error(Meta, S#elixir_scope.file, "~ts, expected a compile time available alias or an atom", [Msg])
-  end.
-
-expand_alias_as(Meta, Old, KV, S) ->
-  case lists:keyfind(as, 1, KV) of
-    Opt when Opt == { as, true }; Opt == false ->
-      { elixir_aliases:last(Old), S };
-    { as, false } ->
-      { Old, S };
-    { as, Other } ->
-      { TOther, ST } = translate_each(no_alias_expansion(Other),
-        S#elixir_scope{aliases=[],macro_aliases=[]}),
-      case TOther of
-        { atom, _, Atom } -> { Atom, ST };
-        _ -> syntax_error(Meta, S#elixir_scope.file,
-               "invalid args for alias, expected an atom or alias as argument")
-      end
-  end.
-
-no_alias_expansion({ '__aliases__', Meta, [H|T] }) when (H /= 'Elixir') and is_atom(H) ->
-  { '__aliases__', Meta, ['Elixir',H|T] };
-
-no_alias_expansion(Other) ->
-  Other.
 
 %% Translate args
 
