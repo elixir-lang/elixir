@@ -53,7 +53,7 @@ defmodule ExUnit.CLIFormatter do
     super
   end
 
-  def handle_cast({ :test_finished, test = ExUnit.Test[failure: nil, invalid: true] }, config) do
+  def handle_cast({ :test_finished, test = ExUnit.Test[invalid: true] }, config) do
     IO.write invalid("?")
     { :noreply, config.update_counter(&1 + 1).
         update_test_failures([test|&1]) }
@@ -119,7 +119,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp print_case_failure(ExUnit.TestCase[name: case_name, failure: { kind, reason, stacktrace }], acc, cwd) do
-    IO.puts "  #{acc}) #{inspect case_name}"
+    IO.puts "  #{acc}) #{inspect case_name}: failure on setup_all/teardown_all callback, tests invalidated."
     print_kind_reason(kind, reason)
     print_stacktrace(stacktrace, case_name, nil, cwd)
     IO.write "\n"

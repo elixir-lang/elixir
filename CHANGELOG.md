@@ -16,6 +16,7 @@
 
 * bug fix
   * [ExUnit] Handle exit messages from in ExUnit
+  * [ExUnit] Failures on ExUnit's setup_all now invalidates all tests
   * [Kernel] Ensure we don't splice keyword args unecessarily
   * [Kernel] Private functions used by private macros no longer emit an unused warning 
   * [Kernel] Ensure Elixir won't trip on empty receive blocks

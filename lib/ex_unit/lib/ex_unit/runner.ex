@@ -89,13 +89,14 @@ defmodule ExUnit.Runner do
       end
 
       tests = tests_for(case_name)
+
       if test_case.failure do
         Enum.each tests, fn test_name ->
           test = ExUnit.Test[name: test_name, case: test_case, invalid: true]
           pid <- { self, :test_finished, test }
         end
-        self_pid <- { self, :case_finished, test_case }
 
+        self_pid <- { self, :case_finished, test_case }
       else
         Enum.each tests, run_test(config, pid, test_case, &1, context)
 
