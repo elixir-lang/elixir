@@ -1,6 +1,9 @@
 defmodule Wadler do
   @moduledoc """
   Pretty printing library inspired by Philip Wadler.
+  PDF of Dr. Wadler's paper "A prettier printer" can
+  be obtained from the following page:
+  http://homepages.inf.ed.ac.uk/wadler/topics/language-design.html
 
   Custom pretty printers can be implemented using
   functions, exported from this module.

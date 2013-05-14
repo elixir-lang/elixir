@@ -36,15 +36,17 @@ defmodule Binary.Inspect.Utils do
 
   ## replaces last expression in implementations
   def return(doc, opts) do
-    opts = Keyword.put_new(opts, :width, min(80, maxwidth()))
     if opts[:as_doc] do
       doc
     else
+      opts = Keyword.put_new(opts, :width, min(80, maxwidth()))
       if opts[:pretty], do: pretty(opts[:width], doc), else: pretty(opts[:width], group(doc).left)
     end
   end
 
-  defp maxwidth, do: :erlang.element 2, :io.columns
+  # Maxwidth for device
+  defp maxwidth(), do: maxwidth :erlang.group_leader()
+  defp maxwidth(device), do: :erlang.element 2, :io.columns(device)
 
   ## container_join
 
