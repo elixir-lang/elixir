@@ -459,7 +459,7 @@ defmodule String do
   defdelegate next_codepoint(string), to: String.Unicode
 
   @doc %B"""
-  Checks whether `str` is a valid UTF-8 string.
+  Checks whether `str` contains only valid characters.
 
   ## Examples
 
@@ -474,17 +474,44 @@ defmodule String do
 
   """
   @spec valid?(t) :: boolean
-  def valid?(<<_ :: utf8, t :: binary>>) do
-    valid?(t)
+
+  noncharacters = Enum.to_list(?\x{FDD0}..?\x{FDEF}) ++
+    [ ?\x{0FFFE}, ?\x{0FFFF}, ?\x{1FFFE}, ?\x{1FFFF}, ?\x{2FFFE}, ?\x{2FFFF},
+      ?\x{3FFFE}, ?\x{3FFFF}, ?\x{4FFFE}, ?\x{4FFFF}, ?\x{5FFFE}, ?\x{5FFFF},
+      ?\x{6FFFE}, ?\x{6FFFF}, ?\x{7FFFE}, ?\x{7FFFF}, ?\x{8FFFE}, ?\x{8FFFF},
+      ?\x{9FFFE}, ?\x{9FFFF}, ?\x{10FFFE}, ?\x{10FFFF} ]
+
+  lc noncharacter inlist noncharacters do
+    def valid?(<< unquote(noncharacter) :: utf8, _ :: binary >>), do: false
   end
 
-  def valid?(<<>>) do
-    true
-  end
+  def valid?(<<_ :: utf8, t :: binary>>), do: valid?(t)
+  def valid?(<<>>), do: true
+  def valid?(_), do: false
 
-  def valid?(_) do
-    false
-  end
+  @doc %B"""
+  Checks whether `str` is a valid character.
+
+  All characters are codepoints, but some codepoints
+  are not valid characters. They may be reserved, private,
+  or other.
+
+  More info at: http://en.wikipedia.org/wiki/Mapping_of_Unicode_characters#Noncharacters
+
+  ## Examples
+
+      iex> String.valid_character?("a")
+      true
+      iex> String.valid_character?("ø")
+      true
+      iex> String.valid_character?("\x{ffff}")
+      false
+
+  """
+  @spec valid_character?(t) :: boolean
+
+  def valid_character?(<<_ :: utf8>> = codepoint), do: valid?(codepoint)
+  def valid_character?(_), do: false
 
   @doc %B"""
   Checks whether `str` is a valid codepoint.

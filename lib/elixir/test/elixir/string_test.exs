@@ -169,7 +169,7 @@ defmodule StringTest do
     assert String.first("ελιξήριο") == "ε"
     assert String.first("סם חיים") == "ס"
     assert String.first("がガちゃ") == "が"
-    assert String.first("Ā̀stute") == "Ā̀"        
+    assert String.first("Ā̀stute") == "Ā̀"
     assert String.first("") == nil
   end
 
@@ -193,7 +193,7 @@ defmodule StringTest do
     assert String.length("ειξήριολ") == 8
     assert String.length("סם ייםח") == 7
     assert String.length("がガちゃ") == 4
-    assert String.length("Ā̀stute") == 6    
+    assert String.length("Ā̀stute") == 6
     assert String.length("") == 0
   end
 
@@ -235,6 +235,15 @@ defmodule StringTest do
 
     refute String.valid?(<<0xffff :: 16>>)
     refute String.valid?("asd" <> <<0xffff :: 16>>)
+  end
+
+  test :valid_character? do
+    assert String.valid_character?("a")
+    assert String.valid_character?("ø")
+    assert String.valid_character?("あ")
+
+    refute String.valid_character?("\x{ffff}")
+    refute String.valid_character?("ab")
   end
 
   test :valid_codepoint? do
