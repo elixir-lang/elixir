@@ -98,14 +98,6 @@ bar
     assert <<0,0,0,106,0,0,0,111,0,0,0,115,0,0,0,101>> == << 'jose' :: utf32 >>
   end
 
-  @binary   "new "
-  @charlist 'old '
-
-  test :bitsyntax_with_expansion do
-    assert <<@binary, "world">> == "new world"
-    assert <<@charlist, "world">> == "old world"
-  end
-
   test :bitsyntax_translation do
     refb = "sample"
     sec_data = "another"
