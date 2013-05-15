@@ -50,12 +50,20 @@ defmodule Mix.Deps do
   @doc """
   Returns all dependencies depending on given dependencies.
   """
-  def depending(deps, all_deps // all) do
+  def depending(deps, all_deps // all)
+
+  def depending([], _all_deps) do
+    []
+  end
+
+  def depending(deps, all_deps) do
     dep_names = Enum.map(deps, fn dep -> dep.app end)
+
     parents = Enum.filter all_deps, fn dep ->
       Enum.any?(dep.deps, fn child_dep -> child_dep.app in dep_names end)
     end
-    parents ++ (if parents != [], do: depending(parents, all_deps), else: [])
+
+    parents ++ depending(parents, all_deps)
   end
 
   @doc """
