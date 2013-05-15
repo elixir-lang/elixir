@@ -96,37 +96,28 @@ build_bitstr_each(Fun, [{'::',_,[H,V]}|T], Meta, S, Acc) ->
 build_bitstr_each(Fun, [H|T], Meta, S, Acc) ->
   build_bitstr_each(Fun, T, Meta, S, Acc, H, default, default).
 
-build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) when is_list(H) ->
-  case is_default_or_utf(Types) of
-    true ->
-      { NewAcc, NewS } = lists:foldl(fun(L, { LA, LS }) ->
-        { FL, FS } = Fun(L, LS),
-        { [{ bin_element, ?line(Meta), FL, Size, Types }|LA], FS }
-      end, { Acc, S }, H),
-      build_bitstr_each(Fun, T, Meta, NewS, NewAcc);
-    false ->
-      build_bitstr_default(Fun, T, Meta, S, Acc, H, Size, Types)
-  end;
-
-build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) when is_bitstring(H) ->
-  case is_default_or_utf(Types) of
-    true ->
-      Line = ?line(Meta),
-      { bin, _, Elements } = elixir_tree_helpers:elixir_to_erl(H),
-      NewAcc = lists:foldl(fun({ bin_element, _, Expr, _, _ }, FinalAcc) ->
-        [{ bin_element, Line, Expr, Size, Types }|FinalAcc]
-      end, Acc, Elements),
-      build_bitstr_each(Fun, T, Meta, S, NewAcc);
-    false ->
-      build_bitstr_default(Fun, T, Meta, S, Acc, H, Size, Types)
-  end;
-
 build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
-  build_bitstr_default(Fun, T, Meta, S, Acc, H, Size, Types).
-
-build_bitstr_default(Fun, T, Meta, S, Acc, H, Size, Types) ->
   { Expr, NS } = Fun(H, S),
-  build_bitstr_each(Fun, T, Meta, NS, [{ bin_element, ?line(Meta), Expr, Size, Types }|Acc]).
+  case (is_default_or_utf(Types) andalso Expr) of
+    { bin, _, BinElements } ->
+      build_bitstr_each(Fun, T, Meta, NS, rehash_bin_elements(BinElements, Size, Types, []) ++ Acc);
+    { cons, _, _, _ } = Cons ->
+      build_bitstr_each(Fun, T, Meta, NS, rehash_cons(Cons, Size, Types, []) ++ Acc);
+    { nil, _ } ->
+      build_bitstr_each(Fun, T, Meta, NS, Acc);
+    _ ->
+      build_bitstr_each(Fun, T, Meta, NS, [{ bin_element, ?line(Meta), Expr, Size, Types }|Acc])
+  end.
+
+rehash_cons({ nil, _ }, _Size, _Types, Acc) -> Acc;
+rehash_cons({ cons, Line, Left, Right }, Size, Types, Acc) ->
+  rehash_cons(Right, Size, Types, [{ bin_element, Line, Left, Size, Types }|Acc]).
+
+rehash_bin_elements([{ bin_element, Line, Expr, _S, _T }|T], Size, Types, Acc) ->
+  rehash_bin_elements(T, Size, Types, [{ bin_element, Line, Expr, Size, Types }|Acc]);
+
+rehash_bin_elements([], _Size, _Types, Acc) ->
+  Acc.
 
 is_default_or_utf(default) -> true;
 is_default_or_utf([UTF|_]) when UTF == utf8; UTF == utf16; UTF == utf32 -> true;
