@@ -226,6 +226,7 @@ defimpl Binary.Inspect, for: BitString do
   """
 
   def inspect(thing, opts) when is_binary(thing) do
+    opts = Keyword.put_new opts, :limit, 40
     if String.printable?(thing) do
       return text(escape(thing, ?")), opts
     else
