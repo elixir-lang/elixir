@@ -2,6 +2,7 @@
   * [CLI] Flags `-p` and `-pr` fails if pattern match no files
   * [CLI] Support `--hidden` and `--cookie` flags for distributed Erlang
   * [Enum] Add `Enum.to_list/1`, `Enum.equal?/2`, `Enum.equal?/3`, `Enum.member?/2`, `Enum.uniq/2`, `Enum.max/1`, `Enum.max/2`, `Enum.min/1` and `Enum.min/2`
+  * [ExUnit] Add `ExUnit.CaptureIO` for IO capturing during tests
   * [IEx] Support `ls` with colored output
   * [Kernel] Many optimizations for code compilation
   * [Kernel] `in` can be used with right side expression outside guards
@@ -31,6 +32,7 @@
 
 * backwards incompatible changes
   * [Kernel] `IO.gets`, `IO.getb` and friends now return binaries when reading from stdio
+  * [Kernel] `List.Dict` was moved to `ListDict`
   * [Mix] `mix escriptize` now receives arguments as binaries
 
 # v0.8.2 (2013-04-20)
@@ -108,7 +110,7 @@
   * [Binary] Support syntax shortcut for specifying size in bit syntax
   * [CLI] Support `--app` option to start an application and its dependencies
   * [Dict] Support `put_new` in `Dict` and `Keyword`
-  * [Dict] Add `List.Dict` and a faster `HashDict` implementation
+  * [Dict] Add `ListDict` and a faster `HashDict` implementation
   * [ExUnit] ExUnit now supports multiple runs in the same process
   * [ExUnit] Failures in ExUnit now shows a tailored stacktrace
   * [ExUnit] Introduce `ExUnit.ExpectationError` to provide better error messages
@@ -135,7 +137,7 @@
   * [Kernel] The AST now allows metadata to be attached to each node. This means the second item in the AST is no longer an integer (representing the line), but a keywords list. Code that relies on the line information from AST or that manually generate AST nodes need to be properly updated
 
 * deprecations
-  * [Dict] Deprecate `Binary.Dict` and `OrdDict` in favor of `HashDict` and `List.Dict`
+  * [Dict] Deprecate `Binary.Dict` and `OrdDict` in favor of `HashDict` and `ListDict`
   * [File] Deprecate path related functions in favor of the module `Path`
   * [Kernel] The `/>` operator has been deprecated in favor of `|>`
   * [Mix] `Mix.Project.sources` is deprecated in favor of `Mix.Project.config_files`
