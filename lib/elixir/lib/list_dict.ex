@@ -1,4 +1,4 @@
-defmodule List.Dict do
+defmodule ListDict do
   @moduledoc """
   A Dict implementation that works on lists of two-items tuples.
 
@@ -7,19 +7,19 @@ defmodule List.Dict do
   """
 
   @doc """
-  Returns a new `List.Dict`, i.e. an empty list.
+  Returns a new `ListDict`, i.e. an empty list.
   """
   def new, do: []
 
   @doc """
-  Creates a new `List.Dict` from the given pairs.
+  Creates a new `ListDict` from the given pairs.
   """
   def new(pairs) do
     Enum.map pairs, fn({ k, v }) -> { k, v } end
   end
 
   @doc """
-  Creates a new `List.Dict` from the given pairs
+  Creates a new `ListDict` from the given pairs
   via the given transformation function.
   """
   def new(list, transform) when is_function(transform) do
@@ -155,12 +155,12 @@ defmodule List.Dict do
   end
 
   @doc """
-  Returns an empty `List.Dict`.
+  Returns an empty `ListDict`.
   """
   def empty(_dict), do: []
 
   @doc """
-  Check if the List.Dict is equal to another List.Dict.
+  Check if the ListDict is equal to another ListDict.
   """
   def equal?(dict, other) do
     :lists.keysort(1, dict) == :lists.keysort(1, other)

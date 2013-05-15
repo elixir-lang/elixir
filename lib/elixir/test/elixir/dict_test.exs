@@ -154,7 +154,7 @@ defmodule DictTest.Common do
 
       test :equal? do
         dict1 = HashDict.new(a: 2, b: 3, f: 5, c: 123)
-        dict2 = List.Dict.new(a: 2, b: 3, f: 5, c: 123)
+        dict2 = ListDict.new(a: 2, b: 3, f: 5, c: 123)
         assert Dict.equal?(dict1, dict2)
 
         dict2 = Dict.put(dict2, :a, 3)
@@ -169,5 +169,5 @@ defmodule Dict.HashDictTest do
 end
 
 defmodule Dict.ListTest do
-  use DictTest.Common, List.Dict
+  use DictTest.Common, ListDict
 end

@@ -67,7 +67,7 @@ defmodule Dict do
         is_tuple(unquote(dict)) ->
           elem(unquote(dict), 0)
         is_list(unquote(dict)) ->
-          List.Dict
+          ListDict
       end
     end
   end
@@ -343,7 +343,7 @@ defmodule Dict do
   ## Examples
 
       iex> a = HashDict.new(a: 2, b: 3, f: 5, c: 123)
-      ...> b = List.Dict.new(a: 2, b: 3, f: 5, c: 123)
+      ...> b = ListDict.new(a: 2, b: 3, f: 5, c: 123)
       ...> Dict.equal?(a, b)
       true
 
@@ -363,7 +363,7 @@ defmodule Dict do
         a_target.equal?(a, b)
 
       a_target.size(a) == b_target.size(b) ->
-        List.Dict.equal?(a_target.to_list(a), b_target.to_list(b))
+        ListDict.equal?(a_target.to_list(a), b_target.to_list(b))
 
       true ->
         false
