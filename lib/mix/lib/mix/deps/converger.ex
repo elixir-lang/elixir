@@ -23,7 +23,8 @@ defmodule Mix.Deps.Converger do
     main   = Enum.reverse Mix.Deps.Project.all
     config = [ deps_path: Path.expand(Mix.project[:deps_path]),
                root_lockfile: Path.expand(Mix.project[:lockfile]) ]
-    all(main, [], [], main, config, callback, rest)
+    { deps, rest } = all(main, [], [], main, config, callback, rest)
+    { nest_deps(deps, config), rest }
   end
 
   # We traverse the tree of dependencies in a breadth-
@@ -115,19 +116,35 @@ defmodule Mix.Deps.Converger do
     File.regular?(Path.join dep.opts[:dest], "mix.exs")
   end
 
+  # Sets the `deps` field to the child dependencies of all
+  # given dependencies and does so recursively.
+  defp nest_deps(deps, config) do
+    Enum.map deps, fn dep ->
+      nest_deps(dep, deps, config)
+    end
+  end
+
+  defp nest_deps(dep, deps, config) do
+    if available?(dep) and mixfile?(dep) do
+      nested_apps = nested_names(dep, config)
+      sub_deps = Enum.filter(deps, fn dep -> dep.app in nested_apps end)
+      dep.deps Enum.map(sub_deps, nest_deps(&1, deps, config))
+    else
+      dep
+    end
+  end
+
+  defp nested_names(dep, post_config) do
+    Mix.Deps.in_dependency dep, post_config, fn _ ->
+      Mix.Deps.Project.all_names
+    end
+  end
+
   # The dependency contains a Mixfile, so let's
   # load it and retrieve its nested dependencies.
-  defp nested_deps(Mix.Dep[app: app, opts: opts], post_config) do
-    env     = opts[:env] || :prod
-    old_env = Mix.env
-
-    try do
-      Mix.env(env)
-      Mix.Project.in_project(app, opts[:dest], post_config, fn project ->
-        { project, Enum.reverse Mix.Deps.Project.all }
-      end)
-    after
-      Mix.env(old_env)
+  defp nested_deps(dep, post_config) do
+    Mix.Deps.in_dependency dep, post_config, fn project ->
+      { project, Enum.reverse Mix.Deps.Project.all }
     end
   end
 end

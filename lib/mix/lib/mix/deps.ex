@@ -1,4 +1,5 @@
-defrecord Mix.Dep, [scm: nil, app: nil, requirement: nil, status: nil, opts: nil, project: nil] do
+defrecord Mix.Dep, [ scm: nil, app: nil, requirement: nil, status: nil, opts: nil,
+                     project: nil, deps: [] ] do
   @moduledoc """
   This is a record that keeps information about your project
   dependencies. It keeps:
@@ -47,17 +48,28 @@ defmodule Mix.Deps do
   end
 
   @doc """
+  Returns all dependencies depending on given dependencies.
+  """
+  def depending(deps, all_deps // all) do
+    dep_names = Enum.map(deps, fn dep -> dep.app end)
+    parents = Enum.filter all_deps, fn dep ->
+      Enum.any?(dep.deps, fn child_dep -> child_dep.app in dep_names end)
+    end
+    parents ++ (if parents != [], do: depending(parents, all_deps), else: [])
+  end
+
+  @doc """
   Receives a list of deps names and returns deps records.
   Raises an error if the dependency does not exist.
   """
-  def by_name!(given) do
+  def by_name!(given, all_deps // all) do
     # Ensure all apps are atoms
     apps = Enum.map given, fn(app) ->
       if is_binary(app), do: binary_to_atom(app), else: app
     end
 
     # We need to keep the order of all, which properly orders deps
-    deps = Enum.filter all, fn(dep) -> dep.app in apps end
+    deps = Enum.filter all_deps, fn(dep) -> dep.app in apps end
 
     # Now we validate the given atoms
     index = Mix.Dep.__index__(:app)
@@ -68,6 +80,23 @@ defmodule Mix.Deps do
     end
 
     deps
+  end
+
+  @doc """
+  Runs the given `fun` inside the given dependency project by
+  changing the current working directory and loading the given
+  project into the project stack.
+  """
+  def in_dependency(Mix.Dep[app: app, opts: opts], post_config // [], fun) do
+    env     = opts[:env] || :prod
+    old_env = Mix.env
+
+    try do
+      Mix.env(env)
+      Mix.Project.in_project(app, opts[:dest], post_config, fun)
+    after
+      Mix.env(old_env)
+    end
   end
 
   @doc """

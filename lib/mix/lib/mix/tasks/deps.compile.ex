@@ -24,15 +24,17 @@ defmodule Mix.Tasks.Deps.Compile do
 
   """
 
-  import Mix.Deps, only: [ all: 0, available?: 1, by_name!: 1, compile_paths: 1,
-                           format_dep: 1, make?: 1, mix?: 1, rebar?: 1 ]
+  import Mix.Deps, only: [ all: 0, available?: 1, by_name!: 2, compile_paths: 1,
+                           depending: 2, format_dep: 1, make?: 1, mix?: 1, rebar?: 1 ]
 
   def run(args) do
     case OptionParser.parse(args) do
       { _, [] } ->
         do_compile Enum.filter(all, available?(&1))
       { _, tail } ->
-        do_compile by_name!(tail)
+        all_deps = all
+        deps = by_name!(tail, all_deps)
+        do_compile(deps ++ depending(deps, all_deps))
     end
   end
 
