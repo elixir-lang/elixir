@@ -152,6 +152,7 @@ defmodule Mix.Project do
   def recur(fun) do
     if apps_path = config[:apps_path] do
       paths = Path.wildcard(Path.join(apps_path, "*"))
+      paths = Enum.filter(paths, File.dir?(&1))
 
       projects = Enum.map paths, fn path ->
         dir = Path.basename(path)
