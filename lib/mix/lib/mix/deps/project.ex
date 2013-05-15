@@ -20,6 +20,14 @@ defmodule Mix.Deps.Project do
   end
 
   @doc """
+  Returns all application names of current project's dependencies.
+  """
+  def all_names do
+    deps = Mix.project[:deps] || []
+    Enum.map(deps, elem(&1, 0))
+  end
+
+  @doc """
   Receives a dependency and update its status.
   """
   def update(Mix.Dep[scm: scm, app: app, requirement: req, opts: opts]) do
