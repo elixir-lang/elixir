@@ -20,9 +20,16 @@ defmodule ExUnit.CaptureIO do
   """
 
   @doc """
-  Captures IO. Returns nil in case of no output.
-  Otherwise returns the binary which is captured outputs.
-  The input is mocked to return :eof.
+  Captures IO. Returns nil in case of no output,
+  otherwise returns the binary which is captured outputs.
+
+  By default, capture_io replaces the group_leader for
+  the current process. However, the capturing of `:stdio`
+  and `:stderr` is also possible globally by passing
+  those devices (or any other registered device) explicitly
+  as argument.
+
+  The input is mocked to return `:eof`.
 
   ## Examples
 
@@ -30,9 +37,19 @@ defmodule ExUnit.CaptureIO do
       true
       iex> capture_io(fn -> :ok end) == nil
       true
+      iex> capture_io(:stderr, fn -> IO.write(:stderr, "josé") end) == "josé"
+      true
 
   """
-  def capture_io(fun) do
+  def capture_io(device // :group_leader, fun) when is_atom(device) do
+    do_capture_io(map_dev(device), fun)
+  end
+
+  defp map_dev(:stdio),  do: :standard_io
+  defp map_dev(:stderr), do: :standard_error
+  defp map_dev(other),   do: other
+
+  defp do_capture_io(:group_leader, fun) do
     original_gl = :erlang.group_leader
     capture_gl = new_group_leader(self)
     :erlang.group_leader(capture_gl, self)
@@ -46,6 +63,28 @@ defmodule ExUnit.CaptureIO do
 
     receive do
       { ^capture_gl, buf } -> buf
+    end
+  end
+
+  defp do_capture_io(device, fun) do
+    unless original_io = Process.whereis(device) do
+      raise "could not find IO device registered at #{inspect device}"
+    end
+
+    Process.unregister(device)
+    capture_io = new_group_leader(self)
+    Process.register(capture_io, device)
+
+    try do
+      fun.()
+    after
+      Process.unregister(device)
+      Process.register(original_io, device)
+      capture_io <- :stop
+    end
+
+    receive do
+      { ^capture_io, buf } -> buf
     end
   end
 
