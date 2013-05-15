@@ -33,6 +33,11 @@ defrecord name, a: 0, b: 1 do
   end
 end
 
+defmodule RecordTest.DynamicOpts do
+  @a [foo: 1..30]
+  defrecord State, (lc {name, _interval} inlist @a, do: {name, nil})
+end
+
 ## With types
 
 defrecord RecordTest.WithTypeOverriden, a: 0, b: 1 do

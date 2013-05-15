@@ -27,6 +27,8 @@ defmodule Record do
     opts  = Keyword.delete(opts, :do)
 
     quote do
+      values = unquote(values)
+
       defmodule unquote(name) do
         @moduledoc false
         import Record.DSL
@@ -34,8 +36,6 @@ defmodule Record do
         @record_fields []
         @record_types  []
 
-        values = unquote(values)
-        opts   = unquote(opts)
         Record.deffunctions(values, __ENV__)
         value = unquote(block)
         Record.deftypes(values, @record_types, __ENV__)

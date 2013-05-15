@@ -1485,8 +1485,14 @@ defmodule Kernel do
 
   See `Record.import/2` and `defrecordp/2` documentation for more information
   """
-  defmacro defrecord(name, fields, opts // [], do_block // []) do
-    Record.defrecord(name, fields, Keyword.merge(opts, do_block))
+
+  defmacro defrecord(name, fields, do_block // [])
+
+  defmacro defrecord(name, fields, do_block) do
+    case is_list(fields) and Keyword.get(fields, :do, false) do
+      false -> Record.defrecord(name, fields, do_block)
+      other -> Record.defrecord(name, Keyword.delete(fields, :do), do: other)
+    end
   end
 
   @doc """
