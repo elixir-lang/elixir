@@ -22,19 +22,7 @@ If you have the correct version and tests still fail, feel free to [open an issu
 
 # Contributing
 
-If you want to contribute, Elixir code is divided in applications inside the `lib` folder:
-
-* `elixir` - Contains Elixir's kernel and stdlib;
-
-* `eex` - Template engine that allows you to embed Elixir;
-
-* `ex_unit` - Simple test framework that ships with Elixir;
-
-* `iex` — IEx, Elixir's interactive shell
-
-* `mix` — Elixir's build tool
-
-We usually keep a list of features and bugs [in the issue tracker][2].
+We appreciate any contribution to Elixir, so check out our [CONTRIBUTING.md](CONTRIBUTING.md) guide for more information. We usually keep a list of features and bugs [in the issue tracker][2].
 
 # Important links
 

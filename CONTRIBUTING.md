@@ -8,7 +8,6 @@ the developers managing and developing this open source project. In return,
 they should reciprocate that respect in addressing your issue or assessing
 patches and features.
 
-
 ## Using the issue tracker
 
 The issue tracker is the preferred channel for [bug reports](#bugs-reports),
@@ -19,6 +18,10 @@ personal support requests. Instead, use
 [Stack Overflow](http://stackoverflow.com/questions/ask?tags=elixir), or
 [#elixir-lang](irc://chat.freenode.net/elixir-lang) on Freenode).
 
+We do our best to keep the issues tracker tidy and organized, making it useful
+for everyone. For example, we classify open issues per application and perceived
+difficulty of the issue, making it easier for developers to
+[contribute to Elixir](#contributing).
 
 ## Bug reports
 
@@ -60,7 +63,6 @@ Example:
 > causing the bug, and potential solutions (and your opinions on their
 > merits).
 
-
 ## Feature requests
 
 Feature requests are welcome. But take a moment to find out whether your idea
@@ -68,6 +70,29 @@ fits with the scope and aims of the project. It's up to *you* to make a strong
 case to convince the project's developers of the merits of this feature. Please
 provide as much detail and context as possible.
 
+## Contributing
+
+We incentivate everyone to contribute to Elixir and help us tackle
+existing issues! To do so, there are a few things you need to know
+about the code. First, Elixir code is divided in applications inside
+the `lib` folder:
+
+* `elixir` - Contains Elixir's kernel and stdlib
+
+* `eex` - Template engine that allows you to embed Elixir
+
+* `ex_unit` - Simple test framework that ships with Elixir
+
+* `iex` — IEx, Elixir's interactive shell
+
+* `mix` — Elixir's build tool
+
+You can run all tests in the root directory with `make test` and you can
+also run tests for a specific framework `make test_#{NAME}`, for example,
+`make test_ex_unit`.
+
+With tests running and passing, you are ready to contribute to Elixir and
+send your pull requests.
 
 ## Pull requests
 
@@ -75,27 +100,26 @@ Good pull requests - patches, improvements, new features - are a fantastic
 help. They should remain focused in scope and avoid containing unrelated
 commits.
 
-**Please ask first** before embarking on any significant pull request (e.g.
-implementing features, refactoring code, porting to a different language),
+If you have any significant pull request in mind (e.g. implementing features,
+refactoring code, porting to a different language), **please ask first**
 otherwise you risk spending a lot of time working on something that the
 project's developers might not want to merge into the project.
 
-Please adhere to the coding conventions used throughout a project (indentation,
-accurate comments, etc.) and any other requirements (such as test coverage).
-
-Adhering to the following this process is the best way to get your work
-included in the project:
+Please adhere to the coding conventions in the project (indentation,
+accurate comments, etc.) and don't forget to add your own tests and
+documentation. When working with git, we recommend the following process
+in order to craft an excellent pull request:
 
 1. [Fork](http://help.github.com/fork-a-repo/) the project, clone your fork,
    and configure the remotes:
 
    ```bash
    # Clone your fork of the repo into the current directory
-   git clone https://github.com/<your-username>/<repo-name>
+   git clone https://github.com/<your-username>/elixir
    # Navigate to the newly cloned directory
-   cd <repo-name>
+   cd elixir
    # Assign the original repo to a remote called "upstream"
-   git remote add upstream https://github.com/<upstream-owner>/<repo-name>
+   git remote add upstream https://github.com/elixir-lang/elixir
    ```
 
 2. If you cloned a while ago, get the latest changes from upstream:
@@ -105,16 +129,15 @@ included in the project:
    git pull upstream <dev-branch>
    ```
 
-3. Create a new topic branch (off the main project development branch) to
-   contain your feature, change, or fix:
+3. Create a new topic branch (off master) to contain your feature, change, or fix:
 
    ```bash
    git checkout -b <topic-branch-name>
    ```
 
-4. Commit your changes in logical chunks. Please adhere to these [git commit
-   message guidelines](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
-   or your code is unlikely be merged into the main project. Use Git's
+4. Commit your changes in logical chunks. Keep your commit messages organized,
+   with a short description in the first line and more detailed information on
+   the following lines. Feel free to use Git's
    [interactive rebase](https://help.github.com/articles/interactive-rebase)
    feature to tidy up your commits before making them public.
 
