@@ -1,5 +1,5 @@
 defmodule ExUnit.CaptureIO do
-  @moduledoc """
+  @moduledoc %B"""
   This module provides functionality to capture IO to test it.
   The way to use this module is to import them into your module.
 
@@ -35,12 +35,18 @@ defmodule ExUnit.CaptureIO do
   def capture_io(fun) do
     original_gl = :erlang.group_leader
     capture_gl = new_group_leader(self)
-
     :erlang.group_leader(capture_gl, self)
-    fun.()
-    :erlang.group_leader(original_gl, self)
 
-    group_leader_sync(capture_gl)
+    try do
+      fun.()
+    after
+      :erlang.group_leader(original_gl, self)
+      capture_gl <- :stop
+    end
+
+    receive do
+      { ^capture_gl, buf } -> buf
+    end
   end
 
   defp new_group_leader(runner) do
@@ -67,14 +73,6 @@ defmodule ExUnit.CaptureIO do
     after wait ->
       :erlang.process_flag(:priority, :normal)
       runner <- { self, buffer_to_result(buf) }
-    end
-  end
-
-  defp group_leader_sync(gl) do
-    gl <- :stop
-
-    receive do
-      { ^gl, buf } -> buf
     end
   end
 

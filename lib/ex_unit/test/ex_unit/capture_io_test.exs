@@ -41,12 +41,6 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test :capture_io_with_put_chars_to_stderr do
-    assert capture_io(fn ->
-      :io.put_chars(:standard_error, "a")
-    end) == nil
-  end
-
   test :capture_io_with_get_chars do
     assert capture_io(fn ->
       :io.get_chars(">", 3)
@@ -140,6 +134,8 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   test :capture_io_with_inside_assert do
+    group_leader = :erlang.group_leader
+
     try do
       capture_io(fn ->
         assert false
@@ -148,6 +144,9 @@ defmodule ExUnit.CaptureIOTest do
       error in [ExUnit.AssertionError] ->
         "Expected false to be true" = error.message
     end
+
+    # Ensure no leakage on failures
+    assert group_leader == :erlang.group_leader
   end
 
   defp send_and_receive_io(req) do
