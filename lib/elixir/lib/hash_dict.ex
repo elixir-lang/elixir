@@ -184,39 +184,18 @@ defmodule HashDict do
   Returns the value under key from the dict as well as the dict without key.
   """
   def pop(dict, key, default // nil) do
-    { get(dict, key, default), delete(dict, key) }
+    case dict_delete(dict, key) do
+      { dict, _, 0 } -> { default, dict }
+      { dict, value, _ } -> { value, dict }
+    end
   end
 
   @doc """
   Deletes a value from the dict.
   """
-  def delete(ordered(bucket: bucket, size: size) = dict, key) do
-    case bucket_delete(bucket, key) do
-      { _, 0 } ->
-        dict
-      { new_bucket, -1 } ->
-        ordered(dict, size: size - 1, bucket: new_bucket)
-    end
-  end
-
-  def delete(trie(root: root, size: size, depth: depth) = dict, key) do
-    pos = bucket_hash(key)
-    case node_delete(root, depth, pos, key) do
-      { _, 0 } ->
-        dict
-      { root, -1 } ->
-        if depth > 0 and trie(dict, :contract_on) == size do
-          root = node_contract(root, depth, depth - 1)
-          trie(dict,
-            root: root,
-            size: size - 1,
-            depth: depth - 1,
-            contract_on: div(size, @node_size),
-            expand_on: div(trie(dict, :expand_on), @node_size))
-        else
-          trie(dict, size: size - 1, root: root)
-        end
-    end
+  def delete(dict, key) do
+    { dict, _, _ } = dict_delete(dict, key)
+    dict
   end
 
   @doc """
@@ -342,6 +321,35 @@ defmodule HashDict do
     { trie(dict, size: size + count, root: root), count }
   end
 
+  defp dict_delete(ordered(bucket: bucket, size: size) = dict, key) do
+    case bucket_delete(bucket, key) do
+      { _, value, 0 } ->
+        { dict, value, 0 }
+      { new_bucket, value, -1 } ->
+        { ordered(dict, size: size - 1, bucket: new_bucket), value, -1 }
+    end
+  end
+
+  defp dict_delete(trie(root: root, size: size, depth: depth) = dict, key) do
+    pos = bucket_hash(key)
+    case node_delete(root, depth, pos, key) do
+      { _, value, 0 } ->
+        { dict, value, 0 }
+      { root, value, -1 } ->
+        { if depth > 0 and trie(dict, :contract_on) == size do
+          root = node_contract(root, depth, depth - 1)
+          trie(dict,
+            root: root,
+            size: size - 1,
+            depth: depth - 1,
+            contract_on: div(size, @node_size),
+            expand_on: div(trie(dict, :expand_on), @node_size))
+        else
+          trie(dict, size: size - 1, root: root)
+        end, value, -1 }
+    end
+  end
+
   ## Bucket helpers
 
   # Puts a value in the bucket
@@ -383,20 +391,20 @@ defmodule HashDict do
 
   # Deletes a key from the bucket
   defp bucket_delete([{k,_}|_] = bucket, key) when key < k do
-    { bucket, 0 }
+    { bucket, nil, 0 }
   end
 
   defp bucket_delete([{k,_}=e|bucket], key) when key > k do
-    { rest, count } = bucket_delete(bucket, key)
-    { [e|rest], count }
+    { rest, value, count } = bucket_delete(bucket, key)
+    { [e|rest], value, count }
   end
 
-  defp bucket_delete([{_,_}|bucket], _key) do
-    { bucket, -1 }
+  defp bucket_delete([{_,value}|bucket], _key) do
+    { bucket, value, -1 }
   end
 
   defp bucket_delete([], _key) do
-    { [], 0 }
+    { [], nil, 0 }
   end
 
   # Folds the bucket
@@ -449,16 +457,16 @@ defmodule HashDict do
   defp node_delete(node, 0, hash, key) do
     pos = bucket_index(hash)
     case bucket_delete(elem(node, pos), key) do
-      { _, 0 }    -> { node, 0 }
-      { new, -1 } -> { set_elem(node, pos, new), -1 }
+      { _, value, 0 } -> { node, value, 0 }
+      { new, value, -1 } -> { set_elem(node, pos, new), value, -1 }
     end
   end
 
   defp node_delete(node, depth, hash, key) do
     pos = bucket_index(hash)
     case node_delete(elem(node, pos), depth - 1, bucket_next(hash), key) do
-      { _, 0 }    -> { node, 0 }
-      { new, -1 } -> { set_elem(node, pos, new), -1 }
+      { _, value, 0 } -> { node, value, 0 }
+      { new, value, -1 } -> { set_elem(node, pos, new), value, -1 }
     end
   end
 
