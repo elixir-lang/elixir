@@ -100,6 +100,9 @@ Good pull requests - patches, improvements, new features - are a fantastic
 help. They should remain focused in scope and avoid containing unrelated
 commits.
 
+**IMPORTANT**: By submitting a patch, you agree to allow the project owner to
+license your work under the same license as that used by the project.
+
 If you have any significant pull request in mind (e.g. implementing features,
 refactoring code, porting to a different language), **please ask first**
 otherwise you risk spending a lot of time working on something that the
@@ -156,5 +159,10 @@ in order to craft an excellent pull request:
 7. [Open a Pull Request](https://help.github.com/articles/using-pull-requests/)
     with a clear title and description.
 
-**IMPORTANT**: By submitting a patch, you agree to allow the project owner to
-license your work under the same license as that used by the project.
+We have saved some excellent pull requests we have received in the past in case
+you are looking for some examples:
+
+* https://github.com/elixir-lang/elixir/pull/992
+* https://github.com/elixir-lang/elixir/pull/1041
+* https://github.com/elixir-lang/elixir/pull/1058
+* https://github.com/elixir-lang/elixir/pull/1059
