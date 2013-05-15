@@ -652,6 +652,46 @@ defmodule Kernel.SpecialForms do
   defmacro alias!(alias)
 
   @doc """
+  Unquotes the given expression from inside a macro.
+
+  ## Examples
+
+  Imagine the situation you have a variable `name` and
+  you want to inject it inside some quote. The first attempt
+  would be:
+
+      value = 13
+      quote do: sum(1, value, 3)
+
+  Which would then return:
+
+      { :sum, [], [1, { :value, [], quoted }, 3] }
+
+  Which is not the expected result. For this, we use unquote:
+
+      value = 13
+      quote do: sum(1, unquote(value), 3)
+      #=> { :sum, [], [1, 13, 3] }
+
+  """
+  name = :unquote
+  defmacro unquote(name)(expr)
+
+  @doc """
+  Unquotes the given list expanding its arguments. Similar
+  to unquote.
+
+  ## Examples
+
+      values = [2,3,4]
+      quote do: sum(1, unquote_splicing(values), 5)
+      #=> { :sum, [], [1, 2, 3, 4, 5] }
+
+  """
+  name = :unquote_splicing
+  defmacro unquote(name)(expr)
+
+  @doc """
   List comprehensions allow you to quickly build a list from another list:
 
       iex> lc n inlist [1,2,3,4], do: n * 2
