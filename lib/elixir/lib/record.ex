@@ -24,7 +24,6 @@ defmodule Record do
   """
   def defrecord(name, values, opts) do
     block = Keyword.get(opts, :do, nil)
-    opts  = Keyword.delete(opts, :do)
 
     quote do
       values = unquote(values)
