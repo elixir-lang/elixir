@@ -725,4 +725,64 @@ defmodule String do
       _ -> acc
     end
   end
+
+  @doc """
+  Converts a string to an integer. If successful, returns a
+  tuple of form {integer, remainder of string}. If unsuccessful,
+  returns :error.
+
+  ## Examples
+
+      iex> String.to_integer("34")
+      {34,""}
+      iex> String.to_integer("34.5")
+      {34,".5"}
+      iex> String.to_integer("three")
+      :error
+
+  """
+  @spec to_integer(t) :: {integer, t} | :error
+  
+  def to_integer(string) do
+    {result, remainder} = :string.to_integer(binary_to_list(string))
+    case result do
+      :error -> :error
+      _ -> {result, list_to_binary(remainder)}
+    end
+  end
+
+  @doc """
+  Converts a string to a float. If successful, returns a
+  tuple of form {float, remainder of string}. If unsuccessful,
+  returns :error. If given an integer value, will return
+  same as to_integer/1.
+
+  ## Examples
+
+      iex> String.to_float("34")
+      {34.0,""}
+      iex> String.to_float("34.25")
+      {34.25,""}
+	    iex> String.to_float("56.5xyz")
+	    {56.5,"xyz"}
+      iex> String.to_float("pi")
+      :error
+
+  """
+  @spec to_float(t) :: {integer, t} | :error
+
+  def to_float(string) do
+    charlist = binary_to_list(string)
+    {result, remainder} = :string.to_float(charlist)
+    case result do
+      :error -> 
+        {int_result, int_remainder} = :string.to_integer(charlist)
+        case int_result do
+          :error -> :error
+          _ -> {float(int_result), list_to_binary(int_remainder)}
+        end
+      _ -> {result, list_to_binary(remainder)}
+    end
+  end
+
 end
