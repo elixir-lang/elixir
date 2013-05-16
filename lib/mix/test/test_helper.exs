@@ -7,7 +7,6 @@ System.put_env("EXUNIT_CONFIG", "none")
 target = Path.expand("../fixtures/git_repo", __FILE__)
 
 unless File.dir?(target) do
-  IO.puts "Creating git repo for tests"
   File.mkdir_p!(Path.join(target, "lib"))
 
   File.write!(Path.join(target, "mix.exs"), """)
