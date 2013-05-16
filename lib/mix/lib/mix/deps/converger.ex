@@ -4,8 +4,6 @@
 defmodule Mix.Deps.Converger do
   @moduledoc false
 
-  import Mix.Deps, only: [available?: 1]
-
   @doc """
   Clear up the mixfile cache.
   """
@@ -20,11 +18,10 @@ defmodule Mix.Deps.Converger do
   an updated depedency in case some processing is done.
   """
   def all(rest, callback) do
-    main   = Enum.reverse Mix.Deps.Project.all
     config = [ deps_path: Path.expand(Mix.project[:deps_path]),
                root_lockfile: Path.expand(Mix.project[:lockfile]) ]
-    { deps, rest } = all(main, [], [], main, config, callback, rest)
-    { nest_deps(deps, config), rest }
+    { main, rest } = Mix.Deps.Retriever.all(rest, config,callback)
+    { all(Enum.reverse(main), [], [], main), rest }
   end
 
   # We traverse the tree of dependencies in a breadth-
@@ -66,27 +63,25 @@ defmodule Mix.Deps.Converger do
   # Now, since `d` was specified in a parent project, no
   # exception is going to be raised since d is considered
   # to be the authorative source.
-  defp all([dep|t], acc, upper_breadths, current_breadths, config, callback, rest) do
+  defp all([dep|t], acc, upper_breadths, current_breadths) do
     cond do
       contains_dep?(upper_breadths, dep) ->
-        all(t, acc, upper_breadths, current_breadths, config, callback, rest)
+        all(t, acc, upper_breadths, current_breadths)
       match?({ diverged_acc, true }, diverged_dep?(acc, dep)) ->
-        all(t, diverged_acc, upper_breadths, current_breadths, config, callback, rest)
+        all(t, diverged_acc, upper_breadths, current_breadths)
       true ->
-        { dep, rest } = callback.(dep, rest)
-
-        if available?(dep) and mixfile?(dep) do
-          { project, deps } = nested_deps(dep, config)
-          { acc, rest } = all(t, [dep.project(project)|acc], upper_breadths, current_breadths, config, callback, rest)
-          all(deps, acc, current_breadths, deps ++ current_breadths, config, callback, rest)
+        deps = dep.deps
+        if deps != [] do
+          acc = all(t, [dep|acc], upper_breadths, current_breadths)
+          all(deps, acc, current_breadths, deps ++ current_breadths)
         else
-          all(t, [dep|acc], upper_breadths, current_breadths, config, callback, rest)
+          all(t, [dep|acc], upper_breadths, current_breadths)
         end
     end
   end
 
-  defp all([], acc, _upper, _current, _config, _callback, rest) do
-    { acc, rest }
+  defp all([], acc, _upper, _current) do
+    acc
   end
 
   # Does the list contain the given dependency?
@@ -109,42 +104,6 @@ defmodule Mix.Deps.Converger do
       else
         { other.status({ :diverged, dep }), true }
       end
-    end
-  end
-
-  defp mixfile?(dep) do
-    File.regular?(Path.join dep.opts[:dest], "mix.exs")
-  end
-
-  # Sets the `deps` field to the child dependencies of all
-  # given dependencies and does so recursively.
-  defp nest_deps(deps, config) do
-    Enum.map deps, fn dep ->
-      nest_deps(dep, deps, config)
-    end
-  end
-
-  defp nest_deps(dep, deps, config) do
-    if available?(dep) and mixfile?(dep) do
-      nested_apps = nested_names(dep, config)
-      sub_deps = Enum.filter(deps, fn dep -> dep.app in nested_apps end)
-      dep.deps Enum.map(sub_deps, nest_deps(&1, deps, config))
-    else
-      dep
-    end
-  end
-
-  defp nested_names(dep, post_config) do
-    Mix.Deps.in_dependency dep, post_config, fn _ ->
-      Mix.Deps.Project.all_names
-    end
-  end
-
-  # The dependency contains a Mixfile, so let's
-  # load it and retrieve its nested dependencies.
-  defp nested_deps(dep, post_config) do
-    Mix.Deps.in_dependency dep, post_config, fn project ->
-      { project, Enum.reverse Mix.Deps.Project.all }
     end
   end
 end
