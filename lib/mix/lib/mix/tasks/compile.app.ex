@@ -35,8 +35,8 @@ defmodule Mix.Tasks.Compile.App do
     project = Mix.Project.get!
     config  = Mix.project
 
-    app     = Keyword.get!(config, :app)
-    version = Keyword.get!(config, :version)
+    app     = Keyword.fetch!(config, :app)
+    version = Keyword.fetch!(config, :version)
 
     validate_app(app)
     validate_version(version)
