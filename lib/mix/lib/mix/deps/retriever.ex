@@ -1,7 +1,7 @@
-# This module is responsible for interacting
-# with dependencies of a given project. This
+# This module is responsible for retrieving
+# dependencies of a given project. This
 # module and its functions are private to Mix.
-defmodule Mix.Deps.Project do
+defmodule Mix.Deps.Retriever do
   @moduledoc false
 
   @doc """
@@ -13,18 +13,56 @@ defmodule Mix.Deps.Project do
   This function raises an exception in case the developer
   provides a dependency in the wrong format.
   """
-  def all do
-    deps = Mix.project[:deps] || []
-    scms = Mix.SCM.available
-    Enum.map deps, with_scm_and_status(&1, scms)
+  def all(post_config // []) do
+    { deps, _ } = all(nil, post_config, fn(dep, acc) -> { dep, acc } end)
+    deps
   end
 
   @doc """
-  Returns all application names of current project's dependencies.
+  Like `all/0` but takes a callback that is invoked for
+  each dependency and must return an updated depedency
+  in case some processing is done.
   """
-  def all_names do
+  def all(rest, post_config // [], callback) do
+    Enum.map_reduce children, rest, fn (dep, rest) ->
+      { dep, rest } = callback.(dep, rest)
+
+      if Mix.Deps.available?(dep) and Mix.Deps.mix?(dep) do
+        { dep, rest } = Mix.Deps.in_dependency dep, post_config, fn _ ->
+          { deps, rest } = all(rest, callback)
+          { dep.deps(deps), rest }
+        end
+      end
+
+      { dep, rest }
+    end
+  end
+
+  @doc """
+  Gets all direct children for the current Mix.Project
+  as a `Mix.Dep` record. Unlike with `all` the `deps`
+  field is not populated.
+  """
+  def children() do
     deps = Mix.project[:deps] || []
-    Enum.map(deps, elem(&1, 0))
+    scms = Mix.SCM.available
+
+    Enum.map deps, fn dep ->
+      dep = with_scm_and_status(dep, scms)
+
+      # Set properties if dependency is a mix project
+      if Mix.Deps.available?(dep) and mixfile?(dep) do
+        dep = Mix.Deps.in_dependency dep, fn project ->
+          if match?({ :noappfile, _ }, dep.status) and Mix.Project.umbrella? do
+            dep = dep.update_opts(Keyword.put(&1, :app, false))
+                     .status({ :ok, nil })
+          end
+          dep.project(project)
+        end
+      end
+
+      dep
+    end
   end
 
   @doc """
@@ -106,4 +144,8 @@ defmodule Mix.Deps.Project do
   defp vsn_match?(nil, _actual), do: true
   defp vsn_match?(expected, actual) when is_binary(expected), do: actual == expected
   defp vsn_match?(expected, actual) when is_regex(expected),  do: actual =~ expected
+
+  defp mixfile?(dep) do
+    File.regular?(Path.join dep.opts[:dest], "mix.exs")
+  end
 end
