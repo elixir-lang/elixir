@@ -43,9 +43,7 @@ defmodule Mix.Deps do
   @doc """
   Returns all direct child dependencies.
   """
-  def children do
-    Mix.Deps.Project.all
-  end
+  defdelegate children(), to: Mix.Deps.Retriever
 
   @doc """
   Returns all dependencies depending on given dependencies.
@@ -162,7 +160,7 @@ defmodule Mix.Deps do
   @doc """
   Updates the dependency inside the given project.
   """
-  defdelegate update(dep), to: Mix.Deps.Project
+  defdelegate update(dep), to: Mix.Deps.Retriever
 
   @doc """
   Check if a dependency is ok.
@@ -234,14 +232,14 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Returns if dependency is a mix project.
+  Returns true if dependency is a mix project.
   """
   def mix?(dep) do
     dep.project != nil
   end
 
   @doc """
-  Returns if dependency is a rebar project.
+  Returns true if dependency is a rebar project.
   """
   def rebar?(dep) do
     Enum.any? ["rebar.config", "rebar.config.script"], fn file ->
@@ -250,7 +248,7 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Returns if dependency is a make project.
+  Returns true if dependency is a make project.
   """
   def make?(dep) do
     File.regular? Path.join(dep.opts[:dest], "Makefile")
