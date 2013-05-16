@@ -1,3 +1,7 @@
+# IEx needs to treat TokenMissingError error in a special way, so this one is
+# used only to distinguish from TokenMissingError in the rescue clause
+defexception IExTokenMissingError, [message: nil]
+
 defmodule IEx.Server do
   @moduledoc false
 
@@ -13,10 +17,31 @@ defmodule IEx.Server do
     cache   = config.cache
     code    = cache ++ io_get(config)
 
+    file = nil # this needs to be config.scope.file
+
     new_config =
       try do
+        # Instead of doing just `eval`, we first parse the expression to see if
+        # it's well formed. If parsing succeeds, we evaluate the AST as usual.
+        #
+        # If parsing fails, this might be a TokenMissingError which we treat in
+        # a special way (to allow for continuation of an expression on the next
+        # line in IEx). In case of any other error, we let :elixir_translator
+        # to re-raise it.
         { result, new_binding, scope } =
-          :elixir.eval(code, config.binding, counter, config.scope)
+          case :elixir_translator.forms(code, counter, file, []) do
+            { :ok, forms } ->
+              :elixir.eval_forms(forms, config.binding, config.scope)
+
+            { :error, { line, error, token } } ->
+              if token == [] do
+                # Let the rescue clause catch this error to wait for more input
+                raise IExTokenMissingError[]
+              else
+                # Encountered malformed expression
+                :elixir_translator.parse_error(line, file, error, token)
+              end
+          end
 
         io_put result
 
@@ -24,7 +49,7 @@ defmodule IEx.Server do
         update_history(config.cache(code).scope(nil))
         config.update_counter(&1+1).cache('').binding(new_binding).scope(scope)
       rescue
-        TokenMissingError ->
+        IExTokenMissingError ->
           config.cache(code)
         exception ->
           print_stacktrace System.stacktrace, fn ->
