@@ -213,12 +213,12 @@ defmodule IEx.Helpers do
   """
   def v(n) when n < 0 do
     history = Process.get(:iex_history)
-    Enum.at!(history, abs(n) - 1).result
+    Enum.fetch!(history, abs(n) - 1).result
   end
 
   def v(n) when n > 0 do
     history = Process.get(:iex_history) |> Enum.reverse
-    Enum.at!(history, n - 1).result
+    Enum.fetch!(history, n - 1).result
   end
 
   @doc """

@@ -114,20 +114,9 @@ defmodule Keyword do
     end
   end
 
-  @doc """
-  Gets the value for specific key. If key does not exist,
-  an error is raised.
-
-  ## Examples
-
-      iex> Keyword.get!([a: 1], :a)
-      1
-      iex> Keyword.get!([a: 1], :b)
-      ** (KeyError) key not found: :b
-
-  """
-  @spec get!(t, key) :: value | no_return
+  @doc false
   def get!(keywords, key) when is_atom(key) do
+    IO.write "[WARNING] Keyword.get! is deprecated, please use Keyword.fetch! instead\n#{Exception.format_stacktrace}"
     case :lists.keyfind(key, 1, keywords) do
       { ^key, value } -> value
       false -> raise(KeyError, key: key)
@@ -152,6 +141,26 @@ defmodule Keyword do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, value } -> { :ok, value }
       false -> :error
+    end
+  end
+
+  @doc """
+  Fetches the value for specific key. If key does not exist,
+  an error is raised.
+
+  ## Examples
+
+      iex> Keyword.fetch!([a: 1], :a)
+      1
+      iex> Keyword.fetch!([a: 1], :b)
+      ** (KeyError) key not found: :b
+
+  """
+  @spec fetch!(t, key) :: value | no_return
+  def fetch!(keywords, key) when is_atom(key) do
+    case :lists.keyfind(key, 1, keywords) do
+      { ^key, value } -> value
+      false -> raise(KeyError, key: key)
     end
   end
 

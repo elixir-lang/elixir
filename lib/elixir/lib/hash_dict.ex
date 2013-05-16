@@ -151,11 +151,9 @@ defmodule HashDict do
     end
   end
 
-  @doc """
-  Gets the value under key from the dict,
-  raises KeyError if such key does not exist.
-  """
+  @doc false
   def get!(dict, key) when is_tuple(dict) do
+    IO.write "[WARNING] Dict.get! and HashDict.get! are deprecated, please use Dict.fetch! and HashDict.fetch! instead\n#{Exception.format_stacktrace}"
     case dict_get(dict, key) do
       { ^key, value } -> value
       false -> raise(KeyError, key: key)
@@ -172,6 +170,14 @@ defmodule HashDict do
       false -> :error
     end
   end
+
+  def fetch!(dict, key) when is_tuple(dict) do
+    case dict_get(dict, key) do
+      { ^key, value } -> value
+      false -> raise(KeyError, key: key)
+    end
+  end
+
 
   @doc """
   Checks if the dict has the given key.

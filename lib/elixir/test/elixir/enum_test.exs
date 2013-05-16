@@ -54,11 +54,11 @@ defmodule EnumTest.List do
     assert Enum.at([2,4,6], 4, :none) == :none
   end
 
-  test :at! do
-    assert Enum.at!([2,4,6], 0) == 2
-    assert Enum.at!([2,4,6], 2) == 6
+  test :fetch! do
+    assert Enum.fetch!([2,4,6], 0) == 2
+    assert Enum.fetch!([2,4,6], 2) == 6
     assert_raise Enum.OutOfBoundsError, fn ->
-      Enum.at!([2,4,6], 4)
+      Enum.fetch!([2,4,6], 4)
     end
   end
 
@@ -358,18 +358,18 @@ defmodule EnumTest.Range do
     assert Enum.any?(range)
   end
 
-  test :at! do
-    assert Enum.at!(2..6, 0) == 2
-    assert Enum.at!(2..6, 4) == 6
-    assert Enum.at!(-2..-6, 0) == -2
-    assert Enum.at!(-2..-6, 4) == -6
+  test :fetch! do
+    assert Enum.fetch!(2..6, 0) == 2
+    assert Enum.fetch!(2..6, 4) == 6
+    assert Enum.fetch!(-2..-6, 0) == -2
+    assert Enum.fetch!(-2..-6, 4) == -6
 
     assert_raise Enum.OutOfBoundsError, fn ->
-      assert Enum.at!(2..6, 8)
+      assert Enum.fetch!(2..6, 8)
     end
 
     assert_raise Enum.OutOfBoundsError, fn ->
-      assert Enum.at!(-2..-6, 8)
+      assert Enum.fetch!(-2..-6, 8)
     end
   end
 

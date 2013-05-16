@@ -18,11 +18,11 @@ defmodule HashDictTest do
     smoke_test(1200..1)
   end
 
-  test :get! do
+  test :fetch! do
     dict = filled_dict(8)
-    assert HashDict.get!(dict, 1) == 1
+    assert HashDict.fetch!(dict, 1) == 1
     assert_raise KeyError, fn ->
-      HashDict.get!(dict, 11)
+      HashDict.fetch!(dict, 11)
     end
   end
 

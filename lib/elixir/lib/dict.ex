@@ -163,21 +163,7 @@ defmodule Dict do
     target(dict).get(dict, key, default)
   end
 
-  @doc """
-  Returns the value associated with `key` in `dict`. If `dict` does not
-  contain `key`, it raises `KeyError`.
-
-  ## Examples
-
-      iex> d = HashDict.new([a: 1])
-      ...> Dict.get(d, :a)
-      1
-      iex> d = HashDict.new([a: 1])
-      ...> Dict.get!(d, :b)
-      ** (KeyError) key not found: :b
-
-  """
-  @spec get!(t, key) :: value | no_return
+  @doc false
   def get!(dict, key) do
     target(dict).get!(dict, key)
   end
@@ -200,6 +186,25 @@ defmodule Dict do
   @spec fetch(t, key) :: value
   def fetch(dict, key) do
     target(dict).fetch(dict, key)
+  end
+
+  @doc """
+  Returns the value associated with `key` in `dict`. If `dict` does not
+  contain `key`, it raises `KeyError`.
+
+  ## Examples
+
+      iex> d = HashDict.new([a: 1])
+      ...> Dict.fetch!(d, :a)
+      1
+      iex> d = HashDict.new([a: 1])
+      ...> Dict.fetch!(d, :b)
+      ** (KeyError) key not found: :b
+
+  """
+  @spec fetch!(t, key) :: value | no_return
+  def fetch!(dict, key) do
+    target(dict).fetch!(dict, key)
   end
 
   @doc """

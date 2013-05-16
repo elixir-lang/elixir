@@ -258,31 +258,6 @@ defmodule Enum do
   end
 
   @doc """
-  Finds the element at the given index (zero-based).
-  Raises out of bounds error in case the given position
-  is outside the range of the collection.
-
-  Expects an ordered collection.
-
-    ## Examples
-
-        iex> Enum.at!([2,4,6], 0)
-        2
-        iex> Enum.at!([2,4,6], 2)
-        6
-        iex> Enum.at!([2,4,6], 4)
-        ** (Enum.OutOfBoundsError) out of bounds error
-
-  """
-  @spec at!(t, index) :: element | no_return
-  def at!(collection, n) when n >= 0 do
-    case fetch(collection, n) do
-      { :ok, h } -> h
-      :error     -> raise Enum.OutOfBoundsError
-    end
-  end
-
-  @doc """
   Drops the first `count` items from the collection.
   Expects an ordered collection.
 
@@ -519,6 +494,35 @@ defmodule Enum do
       list when is_list(list) ->
         do_fetch(list, n)
     end
+  end
+
+  @doc """
+  Finds the element at the given index (zero-based).
+  Raises out of bounds error in case the given position
+  is outside the range of the collection.
+
+  ## Examples
+
+      iex> Enum.fetch!([2,4,6], 0)
+      2
+      iex> Enum.fetch!([2,4,6], 2)
+      6
+      iex> Enum.fetch!([2,4,6], 4)
+      ** (Enum.OutOfBoundsError) out of bounds error
+
+  """
+  @spec fetch!(t, index) :: element | no_return
+  def fetch!(collection, n) when n >= 0 do
+    case fetch(collection, n) do
+      { :ok, h } -> h
+      :error     -> raise Enum.OutOfBoundsError
+    end
+  end
+
+  @doc false
+  def at!(collection, n) when n >= 0 do
+    IO.write "[WARNING] Enum.at! is deprecated, please use Enum.fetch! instead\n#{Exception.format_stacktrace}"
+    fetch!(collection, n)
   end
 
   @doc """

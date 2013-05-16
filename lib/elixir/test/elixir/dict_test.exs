@@ -49,11 +49,11 @@ defmodule DictTest.Common do
         assert :error     == Dict.fetch(new_dict, "other_key")
       end
 
-      test :get! do
-        assert 1 == Dict.get!(new_dict, "first_key")
-        assert 2 == Dict.get!(new_dict, "second_key")
+      test :fetch! do
+        assert 1 == Dict.fetch!(new_dict, "first_key")
+        assert 2 == Dict.fetch!(new_dict, "second_key")
         assert_raise KeyError, fn ->
-          Dict.get!(new_dict, "other_key")
+          Dict.fetch!(new_dict, "other_key")
         end
       end
 
