@@ -4,6 +4,9 @@
   * [Enum] Add `Enum.to_list/1`, `Enum.equal?/2`, `Enum.equal?/3`, `Enum.member?/2`, `Enum.uniq/2`, `Enum.max/1`, `Enum.max/2`, `Enum.min/1` and `Enum.min/2`
   * [ExUnit] Add `ExUnit.CaptureIO` for IO capturing during tests
   * [IEx] Support `ls` with colored output
+  * [Kernel] Add `Enum.at`, `Enum.fetch` and `Enum.fetch!`
+  * [Kernel] Add `String.to_integer` and `String.to_float`
+  * [Kernel] Add `Dict.pop` and `Dict.fetch!`
   * [Kernel] Many optimizations for code compilation
   * [Kernel] `in` can be used with right side expression outside guards
   * [Kernel] Add `Node.get_cookie/0` and `Node.set_cookie/2`
@@ -21,6 +24,7 @@
   * [Kernel] Ensure we don't splice keyword args unecessarily
   * [Kernel] Private functions used by private macros no longer emit an unused warning 
   * [Kernel] Ensure Elixir won't trip on empty receive blocks
+  * [Kernel] `String.slice` now returns an empty string when out of range by 1
   * [Mix] Generate manifest files after compilation to avoid depending on directory timestamps and to remove unused .beam files
   * [Regex]  Fix badmatch with Regex.captures(%r/(.)/g, "cat")
   * [URI] Downcase host and scheme and URIs
@@ -29,6 +33,7 @@
   * [ExUnit] `assert left inlist right` is deprecated in favor of `assert left in right`
   * [Kernel] `List.member?/2` is deprecated in favor of `Enum.member?/2`
   * [Kernel] `var_context` in quote was deprecated in favor of `context`
+  * [Kernel] `Enum.at!` and `Dict.get!` is deprecated in favor of `Enum.fetch!` and `Dict.fetch!`
 
 * backwards incompatible changes
   * [Kernel] `IO.gets`, `IO.getb` and friends now return binaries when reading from stdio
