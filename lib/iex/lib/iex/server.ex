@@ -12,8 +12,7 @@ defmodule IEx.Server do
     counter = config.counter
     cache   = config.cache
     code    = cache ++ io_get(config)
-
-    file = nil # this needs to be config.scope.file
+    file    = "iex"
 
     new_config =
       try do
@@ -24,7 +23,7 @@ defmodule IEx.Server do
         # a special way (to allow for continuation of an expression on the next
         # line in IEx). In case of any other error, we let :elixir_translator
         # to re-raise it.
-        case :elixir_translator.forms(code, counter, "iex", []) do
+        case :elixir_translator.forms(code, counter, file, []) do
           { :ok, forms } ->
             { result, new_binding, scope } =
               :elixir.eval_forms(forms, config.binding, config.scope)
