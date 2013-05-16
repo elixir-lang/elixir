@@ -49,7 +49,7 @@ defmodule ExUnit.CaptureIO do
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other),   do: other
 
-  defp do_capture_io(:group_leader, fun) do
+  defp do_capture_io(device, fun) when device in [:group_leader, :standard_io] do
     original_gl = :erlang.group_leader
     capture_gl = new_group_leader(self)
     :erlang.group_leader(capture_gl, self)
