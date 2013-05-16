@@ -88,7 +88,7 @@ check_unused_local({ _, Arity } = Fun, Kind, Line, File, Defaults, Recorded) whe
     [] ->
       elixir_errors:handle_file_warning(File, { Line, ?MODULE, { unused_def, Kind, Fun } });
     _ ->
-      UnusedArgs = length(lists:seq(Min, Max - 1) -- Invoked),
+      UnusedArgs = lists:min(Invoked) - Min,
       if
         UnusedArgs == 0 ->
           ok;
