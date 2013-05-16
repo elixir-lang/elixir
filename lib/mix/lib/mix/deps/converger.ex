@@ -76,8 +76,8 @@ defmodule Mix.Deps.Converger do
         { dep, rest } = callback.(dep, rest)
 
         if available?(dep) and mixfile?(dep) do
-          { project, deps } = nested_deps(dep, config)
-          { acc, rest } = all(t, [dep.project(project)|acc], upper_breadths, current_breadths, config, callback, rest)
+          { dep, deps } = nested_deps(dep, config)
+          { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, config, callback, rest)
           all(deps, acc, current_breadths, deps ++ current_breadths, config, callback, rest)
         else
           all(t, [dep|acc], upper_breadths, current_breadths, config, callback, rest)
@@ -144,7 +144,14 @@ defmodule Mix.Deps.Converger do
   # load it and retrieve its nested dependencies.
   defp nested_deps(dep, post_config) do
     Mix.Deps.in_dependency dep, post_config, fn project ->
-      { project, Enum.reverse Mix.Deps.Project.all }
+      # Here we have the oppurtunity to check if the dependency is an
+      # umbrella project. If so, set the necessary properties.
+      is_umbrella = Mix.Project.umbrella?
+      if is_umbrella do
+        dep = dep.update_opts(Keyword.put(&1, :app, false))
+                 .status({ :ok, nil })
+      end
+      { dep.project(project), Enum.reverse Mix.Deps.Project.all }
     end
   end
 end
