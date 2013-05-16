@@ -1,7 +1,3 @@
-# IEx needs to treat TokenMissingError error in a special way, so this one is
-# used only to distinguish from TokenMissingError in the rescue clause
-defexception IExTokenMissingError, [message: nil]
-
 defmodule IEx.Server do
   @moduledoc false
 
@@ -28,29 +24,28 @@ defmodule IEx.Server do
         # a special way (to allow for continuation of an expression on the next
         # line in IEx). In case of any other error, we let :elixir_translator
         # to re-raise it.
-        { result, new_binding, scope } =
-          case :elixir_translator.forms(code, counter, file, []) do
-            { :ok, forms } ->
+        case :elixir_translator.forms(code, counter, "iex", []) do
+          { :ok, forms } ->
+            { result, new_binding, scope } =
               :elixir.eval_forms(forms, config.binding, config.scope)
 
-            { :error, { line, error, token } } ->
-              if token == [] do
-                # Let the rescue clause catch this error to wait for more input
-                raise IExTokenMissingError[]
-              else
-                # Encountered malformed expression
-                :elixir_translator.parse_error(line, file, error, token)
-              end
-          end
+            io_put result
 
-        io_put result
+            config = config.result(result)
+            update_history(config.cache(code).scope(nil))
+            config.update_counter(&1+1).cache('').binding(new_binding).scope(scope)
 
-        config = config.result(result)
-        update_history(config.cache(code).scope(nil))
-        config.update_counter(&1+1).cache('').binding(new_binding).scope(scope)
+          { :error, { line, error, token } } ->
+            if token == [] do
+              # Update config.cache so that IEx continues to add new input to
+              # the unfinished expression in `code`
+              config.cache(code)
+            else
+              # Encountered malformed expression
+              :elixir_translator.parse_error(line, file, error, token)
+            end
+        end
       rescue
-        IExTokenMissingError ->
-          config.cache(code)
         exception ->
           print_stacktrace System.stacktrace, fn ->
             "** (#{inspect exception.__record__(:name)}) #{exception.message}"
