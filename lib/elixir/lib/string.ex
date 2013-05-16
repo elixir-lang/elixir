@@ -687,6 +687,12 @@ defmodule String do
       "ixir"
       iex> String.slice("elixir", -10, 3)
       nil
+      iex> String.slice("a", 0, 1500)
+      "a"
+      iex> String.slice("a", 1, 1500)
+      ""
+      iex> String.slice("a", 2, 1500)
+      nil
 
   """
   @spec slice(t, integer, integer) :: grapheme | nil
@@ -717,6 +723,10 @@ defmodule String do
 
   defp do_slice({char, _}, start_pos, last_pos, current_pos, acc) when current_pos >= start_pos and current_pos == last_pos do
     acc <> char
+  end
+
+  defp do_slice(:no_grapheme, start_pos, _, current_pos, acc) when start_pos == current_pos do
+    acc
   end
 
   defp do_slice(:no_grapheme, _, _, _, acc) do
