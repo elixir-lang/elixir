@@ -258,20 +258,18 @@ defmodule StringTest do
   end
 
   test :to_integer do
-    assert String.to_integer("12") == {12,""}
-    assert String.to_integer("-12") == {-12,""}
-    assert String.to_integer("123456789") == {123456789,""}
-    assert String.to_integer("12.5") == {12,".5"}
-    assert String.to_integer("7.5e-3") == {7,".5e-3"}
-    assert String.to_integer("12x") == {12,"x"}
-    assert String.to_integer("three") == :error
+    assert String.to_integer("12") === {12,""}
+    assert String.to_integer("-12") === {-12,""}
+    assert String.to_integer("123456789") === {123456789,""}
+    assert String.to_integer("12.5") === {12,".5"}
+    assert String.to_integer("7.5e-3") === {7,".5e-3"}
+    assert String.to_integer("12x") === {12,"x"}
+    assert String.to_integer("three") === :error
   end
 
   test :to_float do
     assert String.to_float("12") === {12.0,""}
     assert String.to_float("-12") === {-12.0,""}
-    {value, _remdr} = String.to_float("12");
-    refute value === 12
     assert String.to_float("123456789") === {123456789.0,""}
     assert String.to_float("12.5") === {12.5,""}
     assert String.to_float("-12.5") === {-12.5,""}
