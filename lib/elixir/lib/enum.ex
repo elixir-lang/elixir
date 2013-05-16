@@ -85,6 +85,7 @@ defmodule Enum do
   @type t :: Enum.Iterator.t
   @type element :: any
   @type index :: non_neg_integer
+  @type default :: any
 
   @doc """
   Returns true if the `collection` is empty, otherwise false.
@@ -237,6 +238,34 @@ defmodule Enum do
 
     ## Examples
 
+        iex> Enum.at([2,4,6], 0)
+        2
+        iex> Enum.at([2,4,6], 2)
+        6
+        iex> Enum.at([2,4,6], 4)
+        nil
+        iex> Enum.at([2,4,6], 4, :none)
+        :none
+
+  """
+  @spec at(t, index) :: element | nil
+  @spec at(t, index, default) :: element | default
+  def at(collection, n, default // nil) when n >= 0 do
+    case fetch(collection, n) do
+      { :ok, h } -> h
+      :error     -> default
+    end
+  end
+
+  @doc """
+  Finds the element at the given index (zero-based).
+  Raises out of bounds error in case the given position
+  is outside the range of the collection.
+
+  Expects an ordered collection.
+
+    ## Examples
+
         iex> Enum.at!([2,4,6], 0)
         2
         iex> Enum.at!([2,4,6], 2)
@@ -246,16 +275,10 @@ defmodule Enum do
 
   """
   @spec at!(t, index) :: element | no_return
-  def at!(collection, n) when is_list(collection) and n >= 0 do
-    do_at!(collection, n)
-  end
-
   def at!(collection, n) when n >= 0 do
-    case I.iterator(collection) do
-      { iterator, pointer } ->
-        do_at!(pointer, iterator, n)
-      list when is_list(list) ->
-        do_at!(list, n)
+    case fetch(collection, n) do
+      { :ok, h } -> h
+      :error     -> raise Enum.OutOfBoundsError
     end
   end
 
@@ -469,6 +492,36 @@ defmodule Enum do
   end
 
   @doc """
+  Finds the element at the given index (zero-based).
+  Returns `{ :ok, element }` if found, otherwise `:error`.
+
+  Expects an ordered collection.
+
+    ## Examples
+
+        iex> Enum.fetch([2,4,6], 0)
+        { :ok, 2 }
+        iex> Enum.fetch([2,4,6], 2)
+        { :ok, 6 }
+        iex> Enum.fetch([2,4,6], 4)
+        :error
+
+  """
+  @spec fetch(t, index) :: { :ok, element } | :error
+  def fetch(collection, n) when is_list(collection) and n >= 0 do
+    do_fetch(collection, n)
+  end
+
+  def fetch(collection, n) when n >= 0 do
+    case I.iterator(collection) do
+      { iterator, pointer } ->
+        do_fetch(pointer, iterator, n)
+      list when is_list(list) ->
+        do_fetch(list, n)
+    end
+  end
+
+  @doc """
   Filters the collection, i.e. returns only those elements
   for which `fun` returns true.
 
@@ -531,8 +584,8 @@ defmodule Enum do
       3
 
   """
-  @spec find(t, (element -> any)) :: element | :nil
-  @spec find(t, any, (element -> any)) :: element | :nil
+  @spec find(t, (element -> any)) :: element | nil
+  @spec find(t, default, (element -> any)) :: element | default
 
   def find(collection, ifnone // nil, fun)
 
@@ -1277,15 +1330,15 @@ defmodule Enum do
     false
   end
 
-  ## at!
+  ## fetch
 
-  defp do_at!([h|_], 0), do: h
-  defp do_at!([_|t], n), do: do_at!(t, n - 1)
-  defp do_at!([], _),    do: raise Enum.OutOfBoundsError
+  defp do_fetch([h|_], 0), do: { :ok, h }
+  defp do_fetch([_|t], n), do: do_fetch(t, n - 1)
+  defp do_fetch([], _),    do: :error
 
-  defp do_at!({ h, _next }, _iterator, 0), do: h
-  defp do_at!({ _, next }, iterator, n),   do: do_at!(iterator.(next), iterator, n - 1)
-  defp do_at!(:stop, _iterator, _),        do: raise Enum.OutOfBoundsError
+  defp do_fetch({ h, _next }, _iterator, 0), do: { :ok, h }
+  defp do_fetch({ _, next }, iterator, n),   do: do_fetch(iterator.(next), iterator, n - 1)
+  defp do_fetch(:stop, _iterator, _),        do: :error
 
   ## count
 

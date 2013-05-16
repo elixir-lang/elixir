@@ -47,6 +47,13 @@ defmodule EnumTest.List do
     refute Enum.any?([])
   end
 
+  test :at do
+    assert Enum.at([2,4,6], 0) == 2
+    assert Enum.at([2,4,6], 2) == 6
+    assert Enum.at([2,4,6], 4) == nil
+    assert Enum.at([2,4,6], 4, :none) == :none
+  end
+
   test :at! do
     assert Enum.at!([2,4,6], 0) == 2
     assert Enum.at!([2,4,6], 2) == 6
@@ -126,6 +133,12 @@ defmodule EnumTest.List do
       Process.delete(:enum_test_each)
       Process.delete(:enum_test_indexed_each)
     end
+  end
+
+  test :fetch do
+    assert Enum.fetch([2,4,6], 0) == { :ok, 2 }
+    assert Enum.fetch([2,4,6], 2) == { :ok, 6 }
+    assert Enum.fetch([2,4,6], 4) == :error
   end
 
   test :first do
