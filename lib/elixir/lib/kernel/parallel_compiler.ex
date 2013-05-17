@@ -68,7 +68,10 @@ defmodule Kernel.ParallelCompiler do
   end
 
   # No more files, nothing waiting, queue is empty, we are done
-  defp spawn_compilers([], _output, _callback, [], [], _schedulers, result), do: result
+  defp spawn_compilers([], _output, _callback, [], [], _schedulers, result) do
+    cleanup_compilers()
+    result
+  end
 
   # Queued x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
   defp spawn_compilers([], output, callback, waiting, queued, schedulers, result) when length(waiting) == length(queued) do
@@ -136,6 +139,23 @@ defmodule Kernel.ParallelCompiler do
       else
         true
       end
+    end
+  end
+
+  # Receive :EXIT messages from all child processes to clear the message queue
+  defp cleanup_compilers() do
+    receive do
+      { :EXIT, _, :normal } ->
+        cleanup_compilers()
+
+      { :EXIT, pid, reason } ->
+        raise "Child compiler process #{inspect pid} terminated with reason #{inspect reason}"
+
+      msg ->
+        raise "Unexpected message #{inspect msg}"
+
+      after 1 ->
+        nil
     end
   end
 end
