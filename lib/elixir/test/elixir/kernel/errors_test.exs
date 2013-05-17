@@ -229,8 +229,8 @@ defmodule Kernel.ErrorsTest do
       format_rescue 'Kernel.ErrorsTest.Config[foo: :bar]'
   end
 
-  test :invalid_access_protocol_on_rescue do
-    assert "nofile:1: cannot (yet) pattern match against erlang exceptions" ==
+  test :invalid_rescue_clause do
+    assert "nofile:1: invalid rescue clause. The clause should match on an alias, a variable or be in the `var in [alias]` format" ==
       format_rescue 'try do\n1\nrescue\nUndefinedFunctionError[arity: 1] -> false\nend'
   end
 

@@ -49,7 +49,6 @@ each_clause(Meta, { rescue, [Condition|T], Expr }, S) ->
           end
       end;
     _ ->
-      validate_rescue_access(Meta, Condition, S),
       each_clause(Meta, { 'catch', [error, Condition|T], Expr }, S)
   end;
 
@@ -65,8 +64,12 @@ each_clause(Meta, {Key,_,_}, S) ->
 normalize_rescue(Meta, List, S) when is_list(List) ->
   normalize_rescue(Meta, { in, Meta, [{ '_', Meta, nil }, List] }, S);
 
+%% rescue _
+normalize_rescue(_, { '_', _, Atom }, _S) when is_atom(Atom) ->
+  false;
+
 %% rescue var -> var in _
-normalize_rescue(_, { Name, Meta, Atom } = Rescue, S) when is_atom(Name), is_atom(Atom), Name /= '_' ->
+normalize_rescue(_, { Name, Meta, Atom } = Rescue, S) when is_atom(Name), is_atom(Atom) ->
   normalize_rescue(Meta, { in, Meta, [Rescue, { '_', Meta, nil }] }, S);
 
 %% rescue var in [Exprs]
@@ -85,22 +88,13 @@ normalize_rescue(_, { in, Meta, [Left, Right] }, S) ->
       end
   end;
 
-normalize_rescue(_, { '=', Meta, [{ '__aliases__', _, _ } = Alias, { Name, _, Atom } = Var] }, S)
-    when is_atom(Name) and is_atom(Atom) ->
-  elixir_errors:handle_file_warning(S#elixir_scope.file, { Meta, ?MODULE, { rescue_no_match, Var, Alias } }),
-  false;
-
-normalize_rescue(_, { '=', Meta, [{ Name, _, Atom } = Var, { '__aliases__', _, _ } = Alias] }, S)
-    when is_atom(Name) and is_atom(Atom) ->
-  elixir_errors:handle_file_warning(S#elixir_scope.file, { Meta, ?MODULE, { rescue_no_match, Var, Alias } }),
-  false;
-
 normalize_rescue(Meta, Condition, S) ->
   case elixir_translator:translate_each(Condition, S#elixir_scope{context=match}) of
     { { atom, _, Atom }, _ } ->
       normalize_rescue(Meta, { in, Meta, [{ '_', Meta, nil }, [Atom]] }, S);
     _ ->
-      false
+      elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid rescue clause. The clause should match on an alias, "
+        "a variable or be in the `var in [alias]` format")
   end.
 
 %% Convert rescue clauses into guards.
@@ -241,24 +235,6 @@ erlang_rescue_guard_for(Meta, Var, 'Elixir.ErlangError') ->
     { { '.', Meta, [ erlang, element ] }, Meta, [2, Var] }, '__exception__'
   ] },
   { 'or', Meta, [IsNotTuple, IsException] }.
-
-%% Validate rescue access
-
-validate_rescue_access(Meta, { '=', _, [Left, Right] }, S) ->
-  validate_rescue_access(Meta, Left, S),
-  validate_rescue_access(Meta, Right, S);
-
-validate_rescue_access(Meta, { { '.', _, ['Elixir.Kernel', 'access'] }, _, [Element, _] }, S) ->
-  case elixir_translator:translate_each(Element, S) of
-    { { atom, _, Atom }, _ } ->
-      case lists:member(Atom, erlang_rescues()) of
-        false -> [];
-        true -> elixir_errors:syntax_error(Meta, S#elixir_scope.file, "cannot (yet) pattern match against erlang exceptions")
-      end;
-    _ -> []
-  end;
-
-validate_rescue_access(_, _, _) -> [].
 
 %% Helpers
 
