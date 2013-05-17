@@ -41,6 +41,12 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
+  test :capture_io_with_put_chars_to_stdio do
+    assert capture_io(:stdio, fn ->
+      :io.put_chars(:standard_io, "a")
+    end) == "a"
+  end
+
   test :capture_io_with_put_chars_to_stderr do
     assert capture_io(:stderr, fn ->
       :io.put_chars(:standard_error, "a")
