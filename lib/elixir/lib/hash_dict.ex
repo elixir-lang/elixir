@@ -197,6 +197,31 @@ defmodule HashDict do
   end
 
   @doc """
+  Returns an equivalent dict, except with the given keys removed.
+  """
+  def drop(dict, []), do: dict
+
+  def drop(dict, [key|keys]) do
+    drop(delete(dict, key), keys)
+  end
+
+  @doc """
+  Returns an equivalent dict, except with only the given keys.
+  """
+  def take(dict, keys) do
+    keys_to_drop = Enum.filter(Dict.keys(dict), (fn(k) -> not Enum.member? keys, k end))
+    drop(dict, keys_to_drop)
+  end
+
+  @doc """
+  Returns a tuple with two dicts where the first dict is `Dict.take`
+  of the given dict and keys, and the second is `Dict.drop`.
+  """
+  def split(dict, keys) do
+    { take(dict, keys), drop(dict, keys) }
+  end
+
+  @doc """
   Deletes a value from the dict.
   """
   def delete(dict, key) do

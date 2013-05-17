@@ -44,6 +44,7 @@ defmodule Dict do
   @type t :: tuple | list
 
   defcallback delete(t, key) :: t
+  defcallback drop(t, [key]) :: t
   defcallback empty(t) :: t
   defcallback equal?(t, t) :: boolean
   defcallback get(t, key) :: value
@@ -58,6 +59,8 @@ defmodule Dict do
   defcallback put(t, key, value) :: t
   defcallback put_new(t, key, value) :: t
   defcallback size(t) :: non_neg_integer()
+  defcallback split(t, [key]) :: {t,t}
+  defcallback take(t, [key]) :: t
   defcallback to_list(t) :: list()
   defcallback update(t, key, (value -> value)) :: t | no_return
   defcallback update(t, key, value, (value -> value)) :: t
@@ -325,6 +328,67 @@ defmodule Dict do
   @spec pop(t, key, value) :: {value, t}
   def pop(dict, key, default // nil) do
     target(dict).pop(dict, key, default)
+  end
+
+  @doc """
+  Returns an equivalent dict, except with the given keys removed.
+
+  ## Examples
+
+      iex> Dict.drop([a: 1, b: 2], [:a])
+      [b: 2]
+
+      iex> Dict.drop([a: 1, b: 2], []) |> Enum.sort
+      [a: 1, b: 2]
+
+      iex> Dict.drop([a: 1, b: 2], [:a, :b])
+      []
+
+      iex> Dict.drop([a: 1, b: 2], [:c]) |> Enum.sort
+      [a: 1, b: 2]
+  """
+  @spec drop(t, [key]) :: t
+  def drop(dict, keys) do
+    target(dict).drop(dict, keys)
+  end
+
+  @doc """
+  Returns an equivalent dict, except with only the given keys.
+
+  ## Examples
+
+      iex> Dict.take([a: 1, b: 2], [:a])
+      [a: 1]
+
+      iex> Dict.take([a: 1, b: 2], [])
+      []
+
+      iex> Dict.take([a: 1, b: 2], [:a, :b]) |> Enum.sort
+      [a: 1, b: 2]
+
+      iex> Dict.take([a: 1, b: 2], [:c])
+      []
+
+  """
+  @spec take(t, [key]) :: t
+  def take(dict, keys) do
+    target(dict).take(dict, keys)
+  end
+
+  @doc """
+  Returns a tuple with two dicts where the first dict is `Dict.take`
+  of the given dict and keys, and the second is `Dict.drop`.
+
+      iex> Dict.split([a: 1, b: 2], [:a])
+      { [a: 1], [b: 2] }
+
+      iex> {take, drop} = Dict.split([a: 1, b: 2], [:c])
+      ...> { take, Enum.sort(drop) }
+      { [], [a: 1, b: 2] }
+  """
+  @spec split(t, [key]) :: {t,t}
+  def split(dict, keys) do
+    target(dict).split(dict, keys)
   end
 
   @doc """
