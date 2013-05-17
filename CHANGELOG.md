@@ -6,7 +6,7 @@
   * [IEx] Support `ls` with colored output
   * [Kernel] Add `Enum.at`, `Enum.fetch` and `Enum.fetch!`
   * [Kernel] Add `String.to_integer` and `String.to_float`
-  * [Kernel] Add `Dict.pop` and `Dict.fetch!`
+  * [Kernel] Add `Dict.take`, `Dict.drop`, `Dict.split`, `Dict.pop` and `Dict.fetch!`
   * [Kernel] Many optimizations for code compilation
   * [Kernel] `in` can be used with right side expression outside guards
   * [Kernel] Add `Node.get_cookie/0` and `Node.set_cookie/2`

@@ -292,32 +292,35 @@ defmodule HashDict do
   and another containing entries with key not in keys.
   Returns a 2-tuple of the new dicts.
   """
-  def split(dict, keys) when keys == [] do
-    { new(), dict }
+  def split(dict, keys) do
+    split(keys, new, dict)
   end
 
-  def split(dict, keys) do
-    acc = { new(), new() }
-    dict_fold dict, acc, fn({ k, v }, { take, drop }) ->
-      if Enum.member?(keys, k) do
-        { put(take, k, v), drop }
-      else
-        { take, put(drop, k, v) }
-      end
+  defp split([], including, excluding) do
+    { including, excluding }
+  end
+
+  defp split([key|keys], including, excluding) do
+    case dict_delete(excluding, key) do
+      { excluding, _, 0 } -> split(keys, including, excluding)
+      { excluding, value, _ } -> split(keys, put(including, key, value), excluding)
     end
   end
 
   @doc """
   Returns a new dict with only the entries
-  which key is in keys
+  which key is in keys.
   """
-  def take(_, keys) when keys == [] do
-    new()
+  def take(dict, keys) do
+    take(dict, keys, new)
   end
 
-  def take(dict, keys) do
-    { members, _ } = split(dict, keys)
-    members
+  defp take(_dict, [], acc), do: acc
+  defp take(dict, [key|keys], acc) do
+    case fetch(dict, key) do
+      { :ok, value } -> take(dict, keys, put(acc, key, value))
+      :error -> take(dict, keys, acc)
+    end
   end
 
   @doc """

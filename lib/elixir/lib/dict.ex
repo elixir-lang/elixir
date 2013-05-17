@@ -367,14 +367,13 @@ defmodule Dict do
   end
 
   @doc """
-  
-  Returns a tuple of two dicts, where the first dict contains only 
-  entries from `dict` with keys in `keys`, and the second dict 
+  Returns a tuple of two dicts, where the first dict contains only
+  entries from `dict` with keys in `keys`, and the second dict
   contains only entries from `dict` with keys not in `keys`
- 
+
   Any non-member keys are ignored.
 
-  ## Examples 
+  ## Examples
 
       iex> d = HashDict.new([a: 1, b: 2])
       ...> { d1, d2 } = Dict.split(d, [:a, :c])
@@ -398,11 +397,10 @@ defmodule Dict do
   end
 
   @doc """
-  
   Returns a new dict where the the given `keys` a removed from `dict`.
   Any non-member keys are ignored.
 
-  ## Examples 
+  ## Examples
 
       iex> d = HashDict.new([a: 1, b: 2])
       ...> d = Dict.drop(d, [:a, :c, :d])
@@ -421,11 +419,10 @@ defmodule Dict do
   end
 
   @doc """
-  
   Returns a new dict where only the keys in `keys` from `dict` are
   included. Any non-member keys are ignored.
 
-  ## Examples 
+  ## Examples
 
       iex> d = HashDict.new([a: 1, b: 2])
       ...> d = Dict.take(d, [:a, :c, :d])
@@ -441,7 +438,7 @@ defmodule Dict do
   @spec take(t, keys) :: t
   def take(dict, keys) do
     target(dict).take(dict, keys)
-  end  
+  end
 
   @doc """
   Returns an empty dict of the same type as `dict`.

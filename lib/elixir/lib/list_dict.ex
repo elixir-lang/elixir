@@ -146,14 +146,10 @@ defmodule ListDict do
   and another containing entries with key not in keys.
   Returns a 2-tuple of the new dicts.
   """
-  def split(dict, keys) when keys == [] do
-    { new(), dict }
-  end
-
   def split(dict, keys) do
     acc = { new(), new() }
     Enum.reduce dict, acc, fn({ k, v }, { take, drop }) ->
-      if Enum.member?(keys, k) do
+      if :lists.member(k, keys) do
         { [{k,v}|take], drop }
       else
         { take, [{k,v}|drop] }
