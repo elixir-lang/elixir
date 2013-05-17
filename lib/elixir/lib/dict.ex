@@ -377,18 +377,18 @@ defmodule Dict do
   ## Examples 
 
       iex> d = HashDict.new([a: 1, b: 2])
-      ...> {d1,d2} = Dict.split(d, [:a, :c])
-      ...> { [a: Dict.get(d1, :a)], [b: Dict.get(d2, :b)] }
+      ...> { d1, d2 } = Dict.split(d, [:a, :c])
+      ...> { Dict.to_list(d1), Dict.to_list(d2) }
       { [a: 1], [b: 2] }
 
       iex> d = HashDict.new([])
-      ...> {d1,d2} = Dict.split(d, [:a, :c])
+      ...> { d1, d2 } = Dict.split(d, [:a, :c])
       ...> { Dict.to_list(d1), Dict.to_list(d2) }
       { [], [] }
 
       iex> d = HashDict.new([a: 1, b: 2])
-      ...> {d1,d2} = Dict.split(d, [:a, :b, :c])
-      ...> { [a: Dict.get(d1, :a), b: Dict.get(d1, :b)], Dict.to_list(d2) }
+      ...> { d1, d2 } = Dict.split(d, [:a, :b, :c])
+      ...> { Dict.to_list(d1), Dict.to_list(d2) }
       { [a: 1, b: 2], [] }
 
   """
@@ -405,13 +405,13 @@ defmodule Dict do
   ## Examples 
 
       iex> d = HashDict.new([a: 1, b: 2])
-      ...> Dict.drop(d, [:a, :c, :d])
-      ...> [b: Dict.get(d, :b)]
+      ...> d = Dict.drop(d, [:a, :c, :d])
+      ...> Dict.to_list(d)
       [b: 2]
 
       iex> d = HashDict.new([a: 1, b: 2])
       ...> d = Dict.drop(d, [:c, :d])
-      ...> [a: Dict.get(d, :a), b: Dict.get(d, :b)]
+      ...> Dict.to_list(d)
       [a: 1, b: 2]
 
   """
@@ -429,7 +429,7 @@ defmodule Dict do
 
       iex> d = HashDict.new([a: 1, b: 2])
       ...> d = Dict.take(d, [:a, :c, :d])
-      ...> [a: Dict.get(d, :a)]
+      ...> Dict.to_list(d)
       [a: 1]
 
       iex> d = HashDict.new([a: 1, b: 2])
