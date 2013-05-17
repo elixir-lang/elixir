@@ -23,11 +23,10 @@ defmodule ExUnit.CaptureIO do
   Captures IO. Returns nil in case of no output,
   otherwise returns the binary which is captured outputs.
 
-  By default, capture_io replaces the group_leader for
-  the current process. However, the capturing of `:stdio`
-  and `:stderr` is also possible globally by passing
-  those devices (or any other registered device) explicitly
-  as argument.
+  By default, capture_io replaces the group_leader (`:stdio`)
+  for the current process. However, the capturing of any other
+  named device like `:stderr` is also possible globally by
+  giving the registered device name explicitly as argument.
 
   The input is mocked to return `:eof`.
 
@@ -41,7 +40,7 @@ defmodule ExUnit.CaptureIO do
       true
 
   """
-  def capture_io(device // :group_leader, fun) when is_atom(device) do
+  def capture_io(device // :stdio, fun) when is_atom(device) do
     do_capture_io(map_dev(device), fun)
   end
 
@@ -49,7 +48,7 @@ defmodule ExUnit.CaptureIO do
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other),   do: other
 
-  defp do_capture_io(:group_leader, fun) do
+  defp do_capture_io(:standard_io, fun) do
     original_gl = :erlang.group_leader
     capture_gl = new_group_leader(self)
     :erlang.group_leader(capture_gl, self)
