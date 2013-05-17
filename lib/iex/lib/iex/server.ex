@@ -10,22 +10,12 @@ defmodule IEx.Server do
 
   defp do_loop(config) do
     counter = config.counter
-    cache   = config.cache
-    code    = cache ++ io_get(config)
+    code    = config.cache ++ io_get(config)
 
     new_config =
       try do
-        { result, new_binding, scope } =
-          :elixir.eval(code, config.binding, counter, config.scope)
-
-        io_put result
-
-        config = config.result(result)
-        update_history(config.cache(code).scope(nil))
-        config.update_counter(&1+1).cache('').binding(new_binding).scope(scope)
+        eval(code, counter, config)
       rescue
-        TokenMissingError ->
-          config.cache(code)
         exception ->
           print_stacktrace System.stacktrace, fn ->
             "** (#{inspect exception.__record__(:name)}) #{exception.message}"
@@ -40,6 +30,40 @@ defmodule IEx.Server do
       end
 
     do_loop(new_config)
+  end
+
+  # Instead of doing just `:elixir.eval`, we first parse the expression to see
+  # if it's well formed. If parsing succeeds, we evaluate the AST as usual.
+  #
+  # If parsing fails, this might be a TokenMissingError which we treat in
+  # a special way (to allow for continuation of an expression on the next
+  # line in IEx). In case of any other error, we let :elixir_translator
+  # to re-raise it.
+  #
+  # Returns updated config.
+  defp eval(code, line, config) do
+    file = "iex"
+    case :elixir_translator.forms(code, line, file, []) do
+      { :ok, forms } ->
+        { result, new_binding, scope } =
+          :elixir.eval_forms(forms, config.binding, config.scope)
+
+        io_put result
+
+        config = config.result(result)
+        update_history(config.cache(code).scope(nil))
+        config.update_counter(&1+1).cache('').binding(new_binding).scope(scope)
+
+      { :error, { line, error, token } } ->
+        if token == [] do
+          # Update config.cache so that IEx continues to add new input to
+          # the unfinished expression in `code`
+          config.cache(code)
+        else
+          # Encountered malformed expression
+          :elixir_errors.parse_error(line, file, error, token)
+        end
+    end
   end
 
   defp print_stacktrace(trace, callback) do
