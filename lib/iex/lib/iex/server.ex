@@ -1,6 +1,14 @@
 defmodule IEx.Server do
   @moduledoc false
 
+  @doc """
+  Eval loop for an IEx session. Its responsibilities include:
+
+    * reading input
+    * trapping exceptions in the code being evaluated
+    * keeping input history
+
+  """
   def start(config) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
     Process.put :iex_history, []

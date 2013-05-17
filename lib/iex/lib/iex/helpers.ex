@@ -44,10 +44,15 @@ defmodule IEx.Helpers do
   to write their object code to. It returns the name
   of the compiled modules.
 
+  When compiling one file, there is no need to wrap it in a list.
+
   ## Examples
 
-      c ["foo.ex"], "ebin"
-      #=> [Foo]
+      c ["foo.ex", "bar.ex"], "ebin"
+      #=> [Foo,Bar]
+
+      c "baz.ex"
+      #=> [Baz]
 
   """
   def c(files, path // ".") do
@@ -56,7 +61,8 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Returns the name and module of all modules loaded.
+  Prints the list of all loaded modules with paths to their corresponding .beam
+  files.
   """
   def m do
     all    = Enum.map :code.all_loaded, fn { mod, file } -> { inspect(mod), file } end
@@ -70,7 +76,8 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints commands history and their result.
+  Prints the history of expressions evaluated during the session along with
+  their results.
   """
   def v do
     history = Enum.reverse(Process.get(:iex_history))
@@ -82,14 +89,14 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Shows the documentation for IEx.Helpers.
+  Prints the documentation for IEx.Helpers.
   """
   def h() do
     IEx.Introspection.h(IEx.Helpers)
   end
 
   @doc """
-  Shows the documentation for the given module
+  Prints the documentation for the given module
   or for the given function/arity pair.
 
   ## Examples
@@ -136,8 +143,10 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints all types for the given module or prints out a specified type's
-  specification
+  When given a module, prints specifications (or simply specs) for all the
+  types defined in it.
+
+  When given a particular type name, prints its spec.
 
   ## Examples
 
@@ -165,7 +174,11 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints all specs from a given module.
+  Similar to `t/1`, only for specs.
+
+  When given a module, prints the list of all specs defined in the module.
+
+  When given a particular spec name (with optional arity), prints its spec.
 
   ## Examples
 
@@ -207,9 +220,10 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Retrieves nth query's value from the history. Use negative
-  values to lookup query's value from latest to earliest.
-  For instance, v(-1) returns the latest result.
+  Retrieves nth expression's value from the history.
+
+  Use negative values to lookup expression values relative to the current one.
+  For instance, v(-1) returns the result of the last evaluated expression.
   """
   def v(n) when n < 0 do
     history = Process.get(:iex_history)
@@ -222,8 +236,8 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Reloads all modules that were already reloaded
-  at some point with `r/1`.
+  Reloads all modules that have already been reloaded with `r/1` at any point
+  in the current IEx session.
   """
   def r do
     Enum.map iex_reloaded, r(&1)
@@ -232,8 +246,8 @@ defmodule IEx.Helpers do
   @doc """
   Recompiles and reloads the specified module's source file.
 
-  Please note that all the modules defined in the specified
-  files are recompiled and reloaded.
+  Please note that all the modules defined in the same file as `module`
+  are recompiled and reloaded.
   """
   def r(module) do
     if source = source(module) do
@@ -245,7 +259,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Purges and reloads specified module
+  Purges and reloads specified module.
   """
   def l(module) do
     :code.purge(module)
@@ -253,7 +267,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Flushes all messages sent to the shell and prints them out
+  Flushes all messages sent to the shell and prints them out.
   """
   def flush do
     receive do
@@ -297,7 +311,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Changes the shell directory to the given path.
+  Changes the current working directory to the given path.
   """
   def cd(directory) do
     case File.cd(expand_home(directory)) do
