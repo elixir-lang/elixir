@@ -2,7 +2,7 @@ defmodule IEx.CLI do
   @moduledoc false
 
   @doc """
-  Starts IEx checking if tty is available or not.
+  Starts IEx checking if tty (a termnial emulator) is available or not.
   If so, invoke tty, otherwise go with the simple iex.
   """
   def start do
