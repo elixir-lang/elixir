@@ -286,6 +286,53 @@ defmodule HashDict do
     end
   end
 
+  @doc """
+  Splits a dict into two dicts, 
+  one containing entries with key in the keys list, 
+  and another containing entries with key not in keys.
+  Returns a 2-tuple of the new dicts.
+  """
+  def split(dict, keys) when keys == [] do
+    { new(), dict }
+  end
+
+  def split(dict, keys) do
+    acc = { new(), new() }
+    dict_fold dict, acc, fn({ k, v }, { take, drop }) ->
+      if Enum.member?(keys, k) do
+        { put(take, k, v), drop }
+      else 
+        { take, put(drop, k, v) }
+      end
+    end
+  end
+
+  @doc """
+  Returns a new dict with only the entries
+  which key is in keys
+  """
+  def take(_, keys) when keys == [] do
+    new()
+  end
+
+  def take(dict, keys) do
+    { members, _ } = split(dict, keys)
+    members
+  end
+
+  @doc """
+  Returns a new dict with only the entries 
+  which key is not in keys
+  """
+  def drop(dict, keys) when keys == [] do 
+    dict
+  end
+
+  def drop(dict, keys) do
+    { _, non_members } = split(dict, keys)
+    non_members
+  end
+
   ## Dict-wide functions
 
   defp dict_get(ordered(bucket: bucket), key) do

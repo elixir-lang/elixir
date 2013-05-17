@@ -41,9 +41,11 @@ defmodule Dict do
 
   @type key :: any
   @type value :: any
+  @type keys :: [ key ]
   @type t :: tuple | list
 
   defcallback delete(t, key) :: t
+  defcallback drop(t, keys) :: t
   defcallback empty(t) :: t
   defcallback equal?(t, t) :: boolean
   defcallback get(t, key) :: value
@@ -58,6 +60,8 @@ defmodule Dict do
   defcallback put(t, key, value) :: t
   defcallback put_new(t, key, value) :: t
   defcallback size(t) :: non_neg_integer()
+  defcallback split(t, keys) :: {t, t}
+  defcallback take(t, keys) :: t
   defcallback to_list(t) :: list()
   defcallback update(t, key, (value -> value)) :: t | no_return
   defcallback update(t, key, value, (value -> value)) :: t
@@ -361,6 +365,83 @@ defmodule Dict do
   def update(dict, key, initial, fun) do
     target(dict).update(dict, key, initial, fun)
   end
+
+  @doc """
+  
+  Returns a tuple of two dicts, where the first dict contains only 
+  entries from `dict` with keys in `keys`, and the second dict 
+  contains only entries from `dict` with keys not in `keys`
+ 
+  Any non-member keys are ignored.
+
+  ## Examples 
+
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> { d1, d2 } = Dict.split(d, [:a, :c])
+      ...> { Dict.to_list(d1), Dict.to_list(d2) }
+      { [a: 1], [b: 2] }
+
+      iex> d = HashDict.new([])
+      ...> { d1, d2 } = Dict.split(d, [:a, :c])
+      ...> { Dict.to_list(d1), Dict.to_list(d2) }
+      { [], [] }
+
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> { d1, d2 } = Dict.split(d, [:a, :b, :c])
+      ...> { Dict.to_list(d1), Dict.to_list(d2) }
+      { [a: 1, b: 2], [] }
+
+  """
+  @spec split(t, keys) :: {t, t}
+  def split(dict, keys) do
+    target(dict).split(dict, keys)
+  end
+
+  @doc """
+  
+  Returns a new dict where the the given `keys` a removed from `dict`.
+  Any non-member keys are ignored.
+
+  ## Examples 
+
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> d = Dict.drop(d, [:a, :c, :d])
+      ...> Dict.to_list(d)
+      [b: 2]
+
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> d = Dict.drop(d, [:c, :d])
+      ...> Dict.to_list(d)
+      [a: 1, b: 2]
+
+  """
+  @spec drop(t, keys) :: t
+  def drop(dict, keys) do
+    target(dict).drop(dict, keys)
+  end
+
+  @doc """
+  
+  Returns a new dict where only the keys in `keys` from `dict` are
+  included. Any non-member keys are ignored.
+
+  ## Examples 
+
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> d = Dict.take(d, [:a, :c, :d])
+      ...> Dict.to_list(d)
+      [a: 1]
+
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...> d = Dict.take(d, [:c, :d])
+      ...> Dict.to_list(d)
+      []
+
+  """
+  @spec take(t, keys) :: t
+  def take(dict, keys) do
+    target(dict).take(dict, keys)
+  end  
 
   @doc """
   Returns an empty dict of the same type as `dict`.

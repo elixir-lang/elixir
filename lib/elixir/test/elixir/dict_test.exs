@@ -160,6 +160,49 @@ defmodule DictTest.Common do
         assert dicts_equal actual, new_dict
       end
 
+			test :split do
+				split_keys = []
+				{take, drop} = Dict.split(new_dict, split_keys)
+				assert dicts_equal take, Dict.empty(new_dict)
+				assert dicts_equal drop, new_dict
+				
+				split_keys = ["unknown_key"]
+				{take, drop} = Dict.split(new_dict, split_keys)
+				assert dicts_equal take, Dict.empty(new_dict)
+				assert dicts_equal drop, new_dict
+
+				split_keys = ["first_key", "second_key", "unknown_key"]
+				{take, drop} = Dict.split(new_dict, split_keys)				
+				first_val = Dict.get(new_dict, "first_key")
+				second_val = Dict.get(new_dict, "second_key")
+				take_expected = Dict.empty(new_dict)
+				take_expected = Dict.put(take_expected, "first_key", first_val)
+				take_expected = Dict.put(take_expected, "second_key", second_val)			
+				drop_expected = new_dict
+				drop_expected = Dict.delete(drop_expected, "first_key")
+				drop_expected = Dict.delete(drop_expected, "second_key")
+				assert dicts_equal take, take_expected
+				assert dicts_equal drop, drop_expected
+			end
+
+			test :take do
+				result = Dict.take(new_dict, ["unknown_key"])
+				assert dicts_equal result, Dict.empty(new_dict)
+
+				result = Dict.take(new_dict, ["first_key"])
+				first_val = Dict.get(new_dict, "first_key")
+				expected = Dict.put(Dict.empty(new_dict), "first_key", first_val)
+				assert dicts_equal result, expected
+			end
+
+			test :drop do
+				result = Dict.drop(new_dict, ["unknown_key"])
+				assert dicts_equal result, new_dict
+
+				result = Dict.drop(new_dict, ["first_key"])
+				assert dicts_equal result, Dict.delete(new_dict, "first_key")
+			end
+
       test :empty do
         assert empty_dict == Dict.empty new_dict
       end
