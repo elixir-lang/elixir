@@ -123,6 +123,28 @@ defmodule ListDict do
   end
 
   @doc """
+  Returns an equivalent dict, except with the given keys removed.
+  """
+  def drop(dict, keys) do
+    lc { k, _ } = tuple inlist dict, not Enum.member?(keys, k), do: tuple
+  end
+
+  @doc """
+  Returns an equivalent dict, except with only the given keys.
+  """
+  def take(dict, keys) do
+    lc { k, _ } = tuple inlist dict, Enum.member?(keys, k), do: tuple
+  end
+
+  @doc """
+  Returns a tuple with two dicts where the first dict is `Dict.take`
+  of the given dict and keys, and the second is `Dict.drop`.
+  """
+  def split(dict, keys) do
+    { take(dict, keys), drop(dict, keys) }
+  end
+
+  @doc """
   Deletes the entry under the given key from the dict.
   """
   def delete(dict, key) do

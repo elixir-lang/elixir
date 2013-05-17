@@ -164,6 +164,72 @@ defmodule DictTest.Common do
         assert empty_dict == Dict.empty new_dict
       end
 
+      test :drop do
+        d = Dict.drop(new_dict, [])
+        assert dicts_equal d, new_dict
+
+        d = Dict.drop(new_dict, ["first_key"])
+        assert dicts_equal d, new_dict([{"second_key", 2}])
+
+        d = Dict.drop(new_dict, ["second_key"])
+        assert dicts_equal d, new_dict([{"first_key", 1}])
+
+        d = Dict.drop(new_dict, ["first_key", "second_key"])
+        assert dicts_equal d, new_dict([])
+
+        d = Dict.drop(new_dict, ["other_key"])
+        assert dicts_equal d, new_dict
+
+        d = Dict.drop(empty_dict, ["other_key"])
+        assert dicts_equal d, empty_dict
+      end
+
+      test :take do
+        d = Dict.take(new_dict, [])
+        assert dicts_equal d, empty_dict
+
+        d = Dict.take(new_dict, ["first_key"])
+        assert dicts_equal d, new_dict([{"first_key", 1}])
+
+        d = Dict.take(new_dict, ["second_key"])
+        assert dicts_equal d, new_dict([{"second_key", 2}])
+
+        d = Dict.take(new_dict, ["first_key", "second_key"])
+        assert dicts_equal d, new_dict
+
+        d = Dict.take(new_dict, ["other_key"])
+        assert dicts_equal d, empty_dict
+
+        d = Dict.take(empty_dict, ["other_key"])
+        assert dicts_equal d, empty_dict
+      end
+
+      test :split do
+        { take, drop } = Dict.split(new_dict, [])
+        assert dicts_equal take, empty_dict
+        assert dicts_equal drop, new_dict
+
+        { take, drop } = Dict.split(new_dict, ["first_key"])
+        assert dicts_equal take, new_dict([{"first_key", 1}])
+        assert dicts_equal drop, new_dict([{"second_key", 2}])
+
+        { take, drop } = Dict.split(new_dict, ["second_key"])
+        assert dicts_equal take, new_dict([{"second_key", 2}])
+        assert dicts_equal drop, new_dict([{"first_key", 1}])
+
+        { take, drop } = Dict.split(new_dict, ["first_key", "second_key"])
+        assert dicts_equal take, new_dict
+        assert dicts_equal drop, empty_dict
+
+        { take, drop } = Dict.split(new_dict, ["other_key"])
+        assert dicts_equal take, empty_dict
+        assert dicts_equal drop, new_dict
+
+        { take, drop } = Dict.split(empty_dict, [])
+        assert dicts_equal take, empty_dict
+        assert dicts_equal drop, empty_dict
+      end
+
       defp empty_dict, do: unquote(module).new
 
       defp new_dict(list // [{"first_key", 1}, {"second_key", 2}]) do
