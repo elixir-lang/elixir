@@ -148,12 +148,6 @@ defmodule Kernel.ParallelCompiler do
       { :EXIT, _, :normal } ->
         cleanup_compilers()
 
-      { :EXIT, pid, reason } ->
-        :erlang.raise(:error, RuntimeError[message: "Child compiler process #{inspect pid} terminated with reason #{inspect reason}"], System.stacktrace)
-
-      msg ->
-        :erlang.raise(:error, RuntimeError[message: "Unexpected message #{inspect msg}"], System.stacktrace)
-
       after 1 ->
         nil
     end
