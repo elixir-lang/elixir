@@ -26,7 +26,10 @@ defmodule Binary.Inspect.Utils do
     if opts[:as_doc] do
       doc
     else
-      opts = Keyword.put_new(opts, :width, min(80, maxwidth()))
+      opts = Keyword.put_new(
+        Keyword.put_new(opts, :width, min(80, maxwidth())),
+        :limit, 40
+      )
       if opts[:pretty], do: pretty(opts[:width], doc), else: pretty(opts[:width], group(doc).left)
     end
   end
@@ -48,7 +51,7 @@ defmodule Binary.Inspect.Utils do
             glue( nest((opts[:nest] || 0)+2, do_container_join(list, opts, opts[:limit] || :infinity)),
                   text(last))
       ),
-    opts[:depth], 5)
+    opts[:depth], 4)
   end
 
   defp do_container_join(_, _opts, 0) do
@@ -226,7 +229,6 @@ defimpl Binary.Inspect, for: BitString do
   """
 
   def inspect(thing, opts) when is_binary(thing) do
-    opts = Keyword.put_new opts, :limit, 40
     if String.printable?(thing) do
       return text(escape(thing, ?")), opts
     else
