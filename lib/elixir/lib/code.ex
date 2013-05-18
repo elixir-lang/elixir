@@ -205,17 +205,17 @@ defmodule Code do
   end
 
   @doc """
-  Requires the given `file`. Accepts `relative_to` as an argument
-  to tell where the file is located. If the file was already
-  required/loaded, loads it again. It returns all the modules
-  defined in the file.
+  Requires the given `file`. Accepts `relative_to` as an argument to tell where
+  the file is located. It returns all the modules defined in the file. If the
+  file was already required/loaded, doesn't do anything and returns nil.
 
-  Notice that if `require_file` is invoked by different processes
-  concurrently, the first process to invoke `require_file` acquires
-  a lock and the remaining ones will block until the file is
-  available. I.e. if `require_file` is called N times with a given
-  file, the given file will be loaded only once. Check `load_file`
-  if you want a file to be loaded concurrently.
+  Notice that if `require_file` is invoked by different processes concurrently,
+  the first process to invoke `require_file` acquires a lock and the remaining
+  ones will block until the file is available. I.e. if `require_file` is called
+  N times with a given file, it will be loaded only once. The first process to
+  call `require_file` will get the list of loaded modules, others will get nil.
+
+  Check `load_file` if you want a file to be loaded concurrently.
   """
   def require_file(file, relative_to // nil) when is_binary(file) do
     file = find_file(file, relative_to)
