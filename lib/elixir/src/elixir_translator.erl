@@ -389,10 +389,12 @@ translate_each({ Atom, Meta, Args } = Original, S) when is_atom(Atom) ->
           Callback = fun() ->
             case S#elixir_scope.context of
               match ->
+                syntax_error(Meta, S#elixir_scope.file, "cannot invoke function ~ts/~B inside match", [Atom, length(Args)]);
+              guard ->
                 Arity = length(Args),
                 File  = S#elixir_scope.file,
                 case Arity of
-                  0 -> syntax_error(Meta, File, "unknown variable ~ts or cannot invoke local ~ts/~B inside guard", [Atom, Atom, Arity]);
+                  0 -> syntax_error(Meta, File, "unknown variable ~ts or cannot invoke function ~ts/~B inside guard", [Atom, Atom, Arity]);
                   _ -> syntax_error(Meta, File, "cannot invoke local ~ts/~B inside guard", [Atom, Arity])
                 end;
               _ ->
@@ -423,9 +425,23 @@ translate_each({ { '.', _, [Left, Right] }, Meta, Args } = Original, S) when is_
 
           case TLeft of
             { atom, _, Receiver } ->
-              elixir_dispatch:dispatch_require(Meta, Receiver, Right, Args, umergev(SL, SR), Callback);
+              elixir_dispatch:dispatch_require(Meta, Receiver, Right, Args, umergev(SL, SR), fun() ->
+                case S#elixir_scope.context of
+                  Context when Receiver /= erlang, (Context == match) orelse (Context == guard) ->
+                    syntax_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts.~ts/~B inside ~ts",
+                      [elixir_errors:inspect(Receiver), Right, length(Args), Context]);
+                  _ ->
+                    Callback()
+                end
+              end);
             _ ->
-              Callback()
+              case S#elixir_scope.context of
+                Context when Context == match; Context == guard ->
+                  syntax_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts/~B inside ~ts",
+                    [Right, length(Args), Context]);
+                _ ->
+                  Callback()
+              end
           end;
         Else -> Else
       end;

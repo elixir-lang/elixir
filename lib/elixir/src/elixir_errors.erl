@@ -14,15 +14,7 @@
 %% Handle inspecting for exceptions
 
 inspect(Atom) when is_atom(Atom) ->
-  case atom_to_list(Atom) of
-    "Elixir-" ++ Rest -> [to_dot(R) || R <- Rest];
-    Else -> Else
-  end;
-
-inspect(Other) -> Other.
-
-to_dot($-) -> $.;
-to_dot(L)  -> L.
+  'Elixir.Binary.Inspect.Atom':inspect(Atom, []).
 
 %% Raised during macros translation.
 

@@ -109,7 +109,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :function_import_conflict do
-    assert "nofile:2: function exit/1 imported from both erlang and Kernel, call is ambiguous" ==
+    assert "nofile:2: function exit/1 imported from both :erlang and Kernel, call is ambiguous" ==
       format_rescue 'defmodule Foo do import :erlang\n def foo, do: exit(:test)\nend'
   end
 
@@ -134,7 +134,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :no_macros do
-    assert "nofile:2: could not load macros from module lists" ==
+    assert "nofile:2: could not load macros from module :lists" ==
       format_rescue 'defmodule Foo do\nimport :macros, :lists\nend'
   end
 
@@ -257,6 +257,26 @@ defmodule Kernel.ErrorsTest do
   test :new_line_error do
     assert "nofile:3: syntax error before: newline" ==
       format_rescue 'if true do\n  foo = [],\n  baz\nend'
+  end
+
+  test :invalid_var_or_function_on_guard do
+    assert "nofile:1: unknown variable something_that_does_not_exist or cannot invoke function something_that_does_not_exist/0 inside guard" =
+      format_rescue('case [] do; [] when something_that_does_not_exist == [] -> :ok; end')
+  end
+
+  test :invalid_function_on_match do
+    assert "nofile:1: cannot invoke function something_that_does_not_exist/0 inside match" =
+      format_rescue('case [] do; something_that_does_not_exist() -> :ok; end')
+  end
+
+  test :invalid_remote_on_match do
+    assert "nofile:1: cannot invoke remote function Hello.something_that_does_not_exist/0 inside match" =
+      format_rescue('case [] do; Hello.something_that_does_not_exist() -> :ok; end')
+  end
+
+  test :invalid_remote_on_guard do
+    assert "nofile:1: cannot invoke remote function Hello.something_that_does_not_exist/0 inside guard" =
+      format_rescue('case [] do; [] when Hello.something_that_does_not_exist == [] -> :ok; end')
   end
 
   test :macros_error_stacktrace do
