@@ -21,25 +21,25 @@ defmodule IOTest do
     assert File.close(file) == :ok
   end
 
-  test :getb do
+  test :getn do
     { :ok, file } = File.open(Path.expand('../fixtures/file.txt', __FILE__))
-    assert "F" == IO.getb(file, "")
-    assert "O" == IO.getb(file, "")
-    assert "O" == IO.getb(file, "")
-    assert "\n" == IO.getb(file, "")
-    assert :eof == IO.getb(file, "")
+    assert "F" == IO.getn(file, "")
+    assert "O" == IO.getn(file, "")
+    assert "O" == IO.getn(file, "")
+    assert "\n" == IO.getn(file, "")
+    assert :eof == IO.getn(file, "")
     assert File.close(file) == :ok
   end
 
-  test :getb_with_count do
+  test :getn_with_count do
     { :ok, file } = File.open(Path.expand('../fixtures/file.txt', __FILE__), [:charlist])
-    assert 'FOO' == IO.getb(file, "", 3)
+    assert 'FOO' == IO.getn(file, "", 3)
     assert File.close(file) == :ok
   end
 
-  test :getb_with_utf8_and_binary do
+  test :getn_with_utf8_and_binary do
     { :ok, file } = File.open(Path.expand('../fixtures/utf8.txt', __FILE__), [:utf8])
-    assert "Русский" == IO.getb(file, "", 7)
+    assert "Русский" == IO.getn(file, "", 7)
     assert File.close(file) == :ok
   end
 
