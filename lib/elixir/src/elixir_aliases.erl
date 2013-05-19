@@ -1,6 +1,6 @@
 -module(elixir_aliases).
 -export([nesting_alias/2, last/1, concat/1, safe_concat/1,
-  format_error/1, ensure_loaded/3, expand/3, store/4]).
+  format_error/1, ensure_loaded/3, ensure_loaded/4, expand/3, store/4]).
 -include("elixir.hrl").
 -compile({parse_transform, elixir_transform}).
 
@@ -65,19 +65,22 @@ expand_one(H, Aliases) ->
 
 %% Ensure a module is loaded before its usage.
 
-ensure_loaded(_Line, 'Elixir.Kernel', _S) ->
+ensure_loaded(Line, Ref, S) ->
+  ensure_loaded(Line, S#elixir_scope.file, Ref, S#elixir_scope.context_modules).
+
+ensure_loaded(_Line, _File, 'Elixir.Kernel', FileModules) ->
   ok;
 
-ensure_loaded(Line, Ref, S) ->
+ensure_loaded(Line, File, Ref, FileModules) ->
   try
     Ref:module_info(compile)
   catch
     error:undef ->
-      Kind = case lists:member(Ref, S#elixir_scope.scheduled) of
+      Kind = case lists:member(Ref, FileModules) of
         true  -> scheduled_module;
         false -> unloaded_module
       end,
-      elixir_errors:form_error(Line, S#elixir_scope.file, ?MODULE, { Kind, Ref })
+      elixir_errors:form_error(Line, File, ?MODULE, { Kind, Ref })
   end.
 
 %% Receives an atom and returns the last bit as an alias.

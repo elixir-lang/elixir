@@ -205,7 +205,7 @@ translate({defmodule, Meta, [Ref, KV]}, S) ->
 
       {
         { atom, Meta, FullModule },
-        RS#elixir_scope{scheduled=[FullModule|S#elixir_scope.scheduled]}
+        RS#elixir_scope{context_modules=[FullModule|S#elixir_scope.context_modules]}
       };
     _ ->
       { TRef, S }

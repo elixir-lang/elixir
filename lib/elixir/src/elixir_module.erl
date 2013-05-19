@@ -50,8 +50,13 @@ translate(Meta, Ref, Block, S) ->
 
 %% The compilation hook.
 
-compile(Line, Module, Block, Vars, #elixir_scope{} = S) when is_atom(Module) ->
+compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = RawS) when is_atom(Module) ->
   C = elixir_compiler:get_opts(),
+  S = case lists:member(Module, FileModules) of
+    true  -> RawS;
+    false -> RawS#elixir_scope{context_modules=[Module|FileModules]}
+  end,
+
   File = S#elixir_scope.file,
   FileList = binary_to_list(File),
 

@@ -3247,7 +3247,7 @@ defmodule Kernel do
       true ->
         fields =
           try do
-            case caller.module == atom or Module.open?(atom) do
+            case :lists.member(atom, caller.context_modules) and Module.open?(atom) do
               true  -> Module.get_attribute(atom, :record_fields)
               false -> atom.__record__(:fields)
             end
@@ -3258,7 +3258,7 @@ defmodule Kernel do
               # conflicts.
               case :code.ensure_loaded(atom) do
                 { :error, _ } ->
-                  raise "expected module #{inspect atom} to be loaded and defined"
+                  :elixir_aliases.ensure_loaded(caller.line, caller.file, atom, caller.context_modules)
                 _ ->
                   raise "cannot use module #{inspect atom} in access protocol because it does not export __record__/1"
               end

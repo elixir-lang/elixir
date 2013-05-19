@@ -205,7 +205,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_access_protocol_not_available do
-    assert "expected module Unknown to be loaded and defined" ==
+    assert "nofile:2: module Unknown is not loaded and could not be found" ==
       format_rescue 'defmodule Foo do\ndef sample(Unknown[integer: 0]), do: true\nend'
   end
 

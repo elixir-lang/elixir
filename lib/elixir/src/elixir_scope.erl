@@ -77,15 +77,18 @@ build_ex_var(Line, Key, Name, S) when is_integer(Line) ->
 
 % Handle Macro.Env conversion
 
-to_erl_env({ 'Elixir.Macro.Env', Module, File, _Line, Function, Aliases, Context, Requires, Functions, Macros }) ->
+to_erl_env({ 'Elixir.Macro.Env', Module, File, _Line, Function, Aliases, Context, Requires, Functions, Macros, FileModules }) ->
   #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
-    requires=Requires,macros=Macros,functions=Functions}.
+    requires=Requires,macros=Macros,functions=Functions,
+    context_modules=FileModules}.
 
 to_ex_env({ Line, #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
-    requires=Requires,macros=Macros,functions=Functions} }) when is_integer(Line) ->
-  { 'Elixir.Macro.Env', Module, File, Line, Function, Aliases, Context, Requires, Functions, Macros }.
+    requires=Requires,macros=Macros,functions=Functions,
+    context_modules=FileModules} }) when is_integer(Line) ->
+  { 'Elixir.Macro.Env', Module, File, Line, Function, Aliases,
+    Context, Requires, Functions, Macros, FileModules }.
 
 % Provides a tuple with only the scope information we want to serialize.
 
@@ -94,7 +97,7 @@ serialize(S) ->
     { S#elixir_scope.file, S#elixir_scope.functions,
       S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases,
       S#elixir_scope.macro_functions, S#elixir_scope.macro_macros, S#elixir_scope.macro_aliases,
-      S#elixir_scope.scheduled }
+      S#elixir_scope.context_modules }
   ).
 
 serialize_with_vars(Line, S) when is_integer(Line) ->
@@ -113,7 +116,7 @@ serialize_with_vars(Line, S) when is_integer(Line) ->
 deserialize(Tuple) -> deserialize_with_vars(Tuple, []).
 
 deserialize_with_vars({ File, Functions, Requires, Macros,
-                        Aliases, MacroFunctions, MacroMacros, MacroAliases, Scheduled }, Vars) ->
+                        Aliases, MacroFunctions, MacroMacros, MacroAliases, FileModules }, Vars) ->
   #elixir_scope{
     file=File,
     functions=Functions,
@@ -123,7 +126,7 @@ deserialize_with_vars({ File, Functions, Requires, Macros,
     macro_functions=MacroFunctions,
     macro_macros=MacroMacros,
     macro_aliases=MacroAliases,
-    scheduled=Scheduled,
+    context_modules=FileModules,
     vars=orddict:from_list(Vars),
     counter=[{'',length(Vars)}]
   }.

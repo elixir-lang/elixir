@@ -19,6 +19,7 @@ defmodule Macro.Env do
   * `requires` - the list of required modules
   * `functions` - a list of functions imported from each module
   * `macros` - a list of macros imported from each module
+  * `context_modules` - a list of modules defined in the current context
   """
 
   @type name_arity :: { atom, non_neg_integer }
@@ -29,13 +30,14 @@ defmodule Macro.Env do
   @type requires :: [module]
   @type functions :: [{ module, [name_arity] }]
   @type macros :: [{ module, [name_arity] }]
+  @type context_modules :: [module]
 
-  fields = [:module, :file, :line, :function,
-            :aliases, :context, :requires, :functions, :macros]
+  fields = [:module, :file, :line, :function, :aliases,
+            :context, :requires, :functions, :macros, :context_modules]
 
   types  = quote do: [module: module, file: file, line: line,
     function: name_arity, aliases: aliases, requires: requires,
-    functions: functions, macros: macros]
+    functions: functions, macros: macros, context_modules: context_modules]
 
   Record.deffunctions(fields, __MODULE__)
   Record.deftypes(fields, types, __MODULE__)
