@@ -38,6 +38,7 @@
 * backwards incompatible changes
   * [Kernel] `IO.gets`, `IO.getb` and friends now return binaries when reading from stdio
   * [Kernel] `List.Dict` was moved to `ListDict`
+  * [Kernel] Precedence of `|>` has changed to lower to support constructs like `1..5 |> Enum.to_list`
   * [Mix] `mix escriptize` now receives arguments as binaries
 
 # v0.8.2 (2013-04-20)
