@@ -148,7 +148,7 @@ defmodule IO do
 
   @doc """
   Gets a number of bytes from the io device. If the
-  io device is an unicode device, count implies
+  io device is a unicode device, count implies
   the number of unicode codepoints to be retrieved.
   Otherwise, the number of raw bytes. It returns:
 
@@ -172,7 +172,7 @@ defmodule IO do
 
   @doc """
   Gets a number of bytes from the io device. If the
-  io device is an unicode device, count implies
+  io device is a unicode device, count implies
   the number of unicode codepoints to be retrieved.
   Otherwise, the number of raw bytes.
   """
