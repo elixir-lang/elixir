@@ -1431,6 +1431,26 @@ defmodule Kernel do
 
   Which provides faster get and set times for record operations.
 
+  ## Runtime introspection
+
+  At runtime, developers can use `__record__` to get information
+  about the given record:
+
+      FileInfo.__record__(:name)
+      #=> FileInfo
+
+      FileInfo.__record__(:fields)
+      #=> [atime: nil, accesses: 0]
+
+  In order to quickly access the index of a field, one can use
+  the `__index__` function:
+
+      FileInfo.__index__(:atime)
+      #=> 0
+
+      FileInfo.__index__(:unknown)
+      #=> nil
+
   ## Compile-time introspection
 
   At the compile time, one can access following information about the record

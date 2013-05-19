@@ -156,7 +156,6 @@ defmodule Record do
     end
 
     contents = quote do
-
       defmacrop unquote(name)() do
         Record.access(unquote(tag) || __MODULE__, unquote(escaped), [], __CALLER__)
       end
@@ -242,7 +241,8 @@ defmodule Record do
     { match, remaining } = :lists.mapfoldl(iterator, keyword, fields)
 
     case remaining do
-      [] -> { :{}, [line: caller.line], [atom|match] }
+      [] ->
+        quote do: { unquote_splicing([atom|match]) }
       _  ->
         keys = lc { key, _ } inlist remaining, do: key
         raise "record #{inspect atom} does not have the keys: #{inspect keys}"
@@ -416,6 +416,7 @@ defmodule Record do
     quoted = lc { k, _ } inlist values do
       index = find_index(values, k, 0)
       quote do
+        @doc false
         def __index__(unquote(k)), do: unquote(index + 1)
       end
     end
@@ -458,27 +459,27 @@ defmodule Record do
   #
   # It will define four methods:
   #
-  #     def :atime.(record) do
+  #     def atime(record) do
   #       elem(record, 1)
   #     end
   #
-  #     def :mtime.(record) do
+  #     def mtime(record) do
   #       elem(record, 2)
   #     end
   #
-  #     def :atime.(value, record) do
+  #     def atime(value, record) do
   #       set_elem(record, 1, value)
   #     end
   #
-  #     def :mtime.(record) do
+  #     def mtime(record) do
   #       set_elem(record, 2, value)
   #     end
   #
-  #     def :atime.(callback, record) do
+  #     def atime(callback, record) do
   #       set_elem(record, 1, callback.(elem(record, 1)))
   #     end
   #
-  #     def :mtime.(callback, record) do
+  #     def mtime(callback, record) do
   #       set_elem(record, 2, callback.(elem(record, 2)))
   #     end
   #
@@ -525,7 +526,7 @@ defmodule Record do
         end
       end
 
-    contents = { :{}, [], [(quote do: __MODULE__)|fields] }
+    contents = quote do: { __MODULE__, unquote_splicing(fields) }
 
     quote do
       @doc false
@@ -571,6 +572,8 @@ defmodule Record do
       @spec new(options | tuple) :: t
       @spec to_keywords(t) :: options
       @spec update(options, t) :: t
+      @spec __record__(:name) :: atom
+      @spec __record__(:fields) :: [{atom,any}]
       @spec __index__(atom) :: non_neg_integer | nil
     end
   end
