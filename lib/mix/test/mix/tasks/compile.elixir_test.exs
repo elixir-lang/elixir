@@ -105,6 +105,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
       refute_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
+
+      File.touch!("ebin/.compile.elixir", future)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--quick"]) == :noop
     end
   after
     purge [A, B, C]
