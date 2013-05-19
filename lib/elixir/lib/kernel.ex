@@ -3247,7 +3247,7 @@ defmodule Kernel do
       true ->
         fields =
           try do
-            case Module.open?(atom) do
+            case caller.module == atom or Module.open?(atom) do
               true  -> Module.get_attribute(atom, :record_fields)
               false -> atom.__record__(:fields)
             end
