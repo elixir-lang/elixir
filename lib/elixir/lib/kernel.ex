@@ -3247,14 +3247,9 @@ defmodule Kernel do
       true ->
         fields =
           try do
-            module = caller.module
-
-            # We are using the access protocol in the same
-            # module that defines it. It works, but we need
-            # to read the field values from @record_fields.
-            case atom do
-              ^module -> Module.get_attribute(module, :record_fields)
-              _ -> atom.__record__(:fields)
+            case Module.open?(atom) do
+              true  -> Module.get_attribute(atom, :record_fields)
+              false -> atom.__record__(:fields)
             end
           rescue
             UndefinedFunctionError ->
