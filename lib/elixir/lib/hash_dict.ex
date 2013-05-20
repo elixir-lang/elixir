@@ -333,6 +333,14 @@ defmodule HashDict do
     drop(delete(dict, key), keys)
   end
 
+  def reduce(ordered(bucket: bucket), acc, fun) do
+    :lists.foldl(fun, acc, bucket)
+  end
+
+  def reduce(trie() = dict, acc, fun) do
+    dict_fold(dict, acc, fun)
+  end
+
   ## Dict-wide functions
 
   defp dict_get(ordered(bucket: bucket), key) do
@@ -579,6 +587,7 @@ defmodule HashDict do
 end
 
 defimpl Enum.Iterator, for: HashDict do
+  def reduce(dict, acc, fun),  do: HashDict.reduce(dict, acc, fun)
   def iterator(dict),          do: HashDict.to_list(dict)
   def member?(dict, { k, v }), do: match?({ :ok, ^v }, HashDict.fetch(dict, k))
   def member?(_dict, _),       do: false

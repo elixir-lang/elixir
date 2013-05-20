@@ -16,6 +16,8 @@ defprotocol Enum.Iterator do
 
   @only [List, Record, Function]
 
+  def reduce(collection, acc, fun)
+
   @doc """
   This function must return a tuple of the form `{ iter, step }` where
   `iter` is a function that yields successive values from the collection
@@ -1935,6 +1937,14 @@ defmodule Enum do
 end
 
 defimpl Enum.Iterator, for: List do
+  def reduce([h|t], acc, fun) do
+    reduce(t, fun.(h, acc), fun)
+  end
+
+  def reduce([], acc, _fun) do
+    acc
+  end
+
   def iterator(list), do: list
 
   def member?([], _),       do: false
@@ -1944,6 +1954,10 @@ defimpl Enum.Iterator, for: List do
 end
 
 defimpl Enum.Iterator, for: Function do
+  def reduce(function, acc, fun) do
+    function.(acc, fun)
+  end
+
   def iterator(function) do
     { iterator, first } = function.()
     { iterator, iterator.(first) }
