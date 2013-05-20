@@ -37,36 +37,7 @@ defmodule IEx.Helpers do
       h(Enum)
       h(Enum.reverse/1)
 
-
-  ## A note about expressions in IEx ##
-
-  IEx treats incomplete expressions in a special way, allowing one
-  to spill an expression over multiple lines. For example,
-
-      iex(1)> "ab
-      ...(1)> c"
-      "ab\nc"
-
-  In the example above, the shell will be expecting more input until it finds
-  the closing quote. Sometimes it is not obvious which character the shell is
-  expecting, and the user may find themselves trapped in the state of
-  incomplete expression with no ability to terminate it other than by exiting
-  the shell.
-
-  For such cases, there is a special break-trigger ("#iex:break") that when
-  encountered on a line by itself will force the shell to break out of any
-  pending expression and return to its normal state:
-
-      iex(1)> ["ab
-      ...(1)> c"
-      ...(1)> "
-      ...(1)> ]
-      ...(1)> #iex:break
-      ** (TokenMissingError) iex:1: incomplete expression
-          ...
-
-      iex(1)>
-
+  To learn more about IEx as a whole, just type `h(IEx)`.
   """
 
   @doc """
@@ -119,7 +90,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints the documentation for IEx.Helpers.
+  Prints the documentation for `IEx.Helpers`.
   """
   def h() do
     IEx.Introspection.h(IEx.Helpers)

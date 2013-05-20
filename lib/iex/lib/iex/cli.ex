@@ -2,8 +2,16 @@ defmodule IEx.CLI do
   @moduledoc false
 
   @doc """
-  Starts IEx checking if tty (a termnial emulator) is available or not.
-  If so, invoke tty, otherwise go with the simple iex.
+  In order to work properly, IEx needs to be set as the
+  proper `-user` when starting the Erlang VM and we do so
+  by pointing exactly to this function.
+
+  If possible, Elixir will start a tty (smart terminal)
+  which makes all control commands available in tty
+  available to the developer.
+
+  In case `tty` is not available (for example, Windows),
+  a dumb terminal version is started instead.
   """
   def start do
     if tty_works? do
@@ -36,9 +44,15 @@ defmodule IEx.CLI do
     args =
       if remote = get_remsh(:init.get_plain_arguments) do
         unless is_alive do
-          raise ArgumentError, message: "In order to use --remsh, you need to name the current node"
+          function = fn ->
+            IO.puts(:stderr, "In order to use --remsh, you need to name the current node using --name or --sname. Aborting...")
+            System.halt(1)
+          end
+
+          { :erlang, :apply, [function, []] }
+        else
+          { remote, :erlang, :apply, [function, []] }
         end
-        { remote, :erlang, :apply, [function, []] }
       else
         { :erlang, :apply, [function, []] }
       end
