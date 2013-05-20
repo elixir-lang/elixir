@@ -23,10 +23,11 @@
   * [ExUnit] Handle exit messages from in ExUnit
   * [ExUnit] Failures on ExUnit's setup_all now invalidates all tests
   * [Kernel] Ensure we don't splice keyword args unecessarily
-  * [Kernel] Private functions used by private macros no longer emit an unused warning 
+  * [Kernel] Private functions used by private macros no longer emit an unused warning
   * [Kernel] Ensure Elixir won't trip on empty receive blocks
   * [Kernel] `String.slice` now returns an empty string when out of range by 1
   * [Mix] Generate manifest files after compilation to avoid depending on directory timestamps and to remove unused .beam files
+  * [Path] `Path.expand/2` now correctly expands `~` in the second argument
   * [Regex] Fix badmatch with `Regex.captures(%r/(.)/g, "cat")`
   * [URI] Downcase host and scheme and URIs
 
