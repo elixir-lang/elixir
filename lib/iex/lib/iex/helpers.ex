@@ -6,7 +6,7 @@ defmodule IEx.Helpers do
   more joyful to work with.
 
   This message was triggered by invoking the helper
-  `h()`, usually referred as `h/0` (since it expects 0
+  `h()`, usually referred to as `h/0` (since it expects 0
   arguments).
 
   There are many other helpers available:
@@ -36,6 +36,36 @@ defmodule IEx.Helpers do
 
       h(Enum)
       h(Enum.reverse/1)
+
+
+  ## A note about expressions in IEx ##
+
+  IEx treats incomplete expressions in a special way, allowing one
+  to spill an expression over multiple lines. For example,
+
+      iex(1)> "ab
+      ...(1)> c"
+      "ab\nc"
+
+  In the example above, the shell will be expecting more input until it finds
+  the closing quote. Sometimes it is not obvious which character the shell is
+  expecting, and the user may find themselves trapped in the state of
+  incomplete expression with no ability to terminate it other than by exiting
+  the shell.
+
+  For such cases, there is a special break-trigger ("#!break") that when
+  encountered on a line by itself will force the shell to break out of any
+  pending expression and return to its normal state:
+
+      iex(1)> ["ab
+      ...(1)> c"
+      ...(1)> "
+      ...(1)> ]
+      ...(1)> #!break
+      ** (TokenMissingError) iex:1: incomplete expression
+          ...
+
+      iex(1)>
 
   """
 
