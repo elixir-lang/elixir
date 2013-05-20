@@ -209,9 +209,14 @@ defmodule IEx do
   #
   # Sample contents of a local .iex file:
   #
-  #     IEx.source "~/.iex"     # source another .iex file
-  #     IO.puts "hello world"   # print something before the shell starts
-  #     value = 13              # bind a variable that'll be accessible in the shell
+  #     # source another .iex file, ~/.iex in this case
+  #     Code.require_file ".iex", "~"
+  #
+  #     # print something before the shell starts
+  #     IO.puts "hello world"
+  #
+  #     # bind a variable that'll be accessible in the shell
+  #     value = 13
   #
   # Running the shell then results in
   #
@@ -244,16 +249,5 @@ defmodule IEx do
           System.halt(1)
       end
     end
-  end
-
-  @doc """
-  Convenience function for use in .iex files. Converts `path` to an absolute
-  path (also expanding ~ if present) and requires the file at resulting path.
-
-  In case of an error, prints exception info to stdout and terminates the shell.
-  """
-  def source(path) do
-    p = Path.expand(path)
-    Code.require_file(p)
   end
 end
