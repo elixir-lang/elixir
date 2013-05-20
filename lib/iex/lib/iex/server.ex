@@ -51,7 +51,7 @@ defmodule IEx.Server do
   #
   # Returns updated config.
   #
-  # The first two clauses provide support for the #!break trigger allowing to
+  # The first two clauses provide support for the break-trigger allowing to
   # break out from a pending incomplete expression. See
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   #
