@@ -237,11 +237,11 @@ defmodule IEx do
       rescue
         exception ->
           Util.print_exception(exception)
-          :erlang.halt()
+          System.halt(1)
       catch
         kind, error ->
           Util.print_error(kind, error)
-          :erlang.halt()
+          System.halt(1)
       end
     end
   end
