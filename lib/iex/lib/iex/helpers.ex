@@ -53,7 +53,7 @@ defmodule IEx.Helpers do
   incomplete expression with no ability to terminate it other than by exiting
   the shell.
 
-  For such cases, there is a special break-trigger ("#!break") that when
+  For such cases, there is a special break-trigger ("#iex:break") that when
   encountered on a line by itself will force the shell to break out of any
   pending expression and return to its normal state:
 
@@ -61,7 +61,7 @@ defmodule IEx.Helpers do
       ...(1)> c"
       ...(1)> "
       ...(1)> ]
-      ...(1)> #!break
+      ...(1)> #iex:break
       ** (TokenMissingError) iex:1: incomplete expression
           ...
 
