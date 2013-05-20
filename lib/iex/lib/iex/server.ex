@@ -18,11 +18,12 @@ defmodule IEx.Server do
 
   defp do_loop(config) do
     counter = config.counter
-    code    = config.cache ++ io_get(config)
+    code    = config.cache
+    line    = io_get(config)
 
     new_config =
       try do
-        eval(code, counter, config)
+        eval(code, line, counter, config)
       rescue
         exception ->
           print_stacktrace System.stacktrace, fn ->
@@ -49,9 +50,24 @@ defmodule IEx.Server do
   # to re-raise it.
   #
   # Returns updated config.
-  defp eval(code, line, config) do
-    file = "iex"
-    case :elixir_translator.forms(code, line, file, []) do
+  #
+  # The first two clauses provide support for the break-trigger allowing to
+  # break out from a pending incomplete expression. See
+  # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
+  #
+  @break_trigger '#iex:break\n'
+  defp eval(_, @break_trigger, _, config=IEx.Config[cache: '']) do
+    # do nothing
+    config
+  end
+
+  defp eval(_, @break_trigger, line_no, _) do
+    :elixir_errors.parse_error(line_no, "iex", 'incomplete expression', [])
+  end
+
+  defp eval(code_so_far, latest_input, line_no, config) do
+    code = code_so_far ++ latest_input
+    case :elixir_translator.forms(code, line_no, "iex", []) do
       { :ok, forms } ->
         { result, new_binding, scope } =
           :elixir.eval_forms(forms, config.binding, config.scope)
@@ -62,14 +78,14 @@ defmodule IEx.Server do
         update_history(config.cache(code).scope(nil))
         config.update_counter(&1+1).cache('').binding(new_binding).scope(scope)
 
-      { :error, { line, error, token } } ->
+      { :error, { line_no, error, token } } ->
         if token == [] do
           # Update config.cache so that IEx continues to add new input to
           # the unfinished expression in `code`
           config.cache(code)
         else
           # Encountered malformed expression
-          :elixir_errors.parse_error(line, file, error, token)
+          :elixir_errors.parse_error(line_no, "iex", error, token)
         end
     end
   end
