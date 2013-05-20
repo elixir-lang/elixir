@@ -4,6 +4,7 @@
   * [Enum] Add `Enum.to_list/1`, `Enum.equal?/2`, `Enum.equal?/3`, `Enum.member?/2`, `Enum.uniq/2`, `Enum.max/1`, `Enum.max/2`, `Enum.min/1` and `Enum.min/2`
   * [ExUnit] Add `ExUnit.CaptureIO` for IO capturing during tests
   * [IEx] Support `ls` with colored output
+  * [IEx] Add `#iex:break` to break incomplete expressions
   * [Kernel] Add `Enum.at`, `Enum.fetch` and `Enum.fetch!`
   * [Kernel] Add `String.to_integer` and `String.to_float`
   * [Kernel] Add `Dict.take`, `Dict.drop`, `Dict.split`, `Dict.pop` and `Dict.fetch!`
@@ -26,18 +27,19 @@
   * [Kernel] Ensure Elixir won't trip on empty receive blocks
   * [Kernel] `String.slice` now returns an empty string when out of range by 1
   * [Mix] Generate manifest files after compilation to avoid depending on directory timestamps and to remove unused .beam files
-  * [Regex]  Fix badmatch with Regex.captures(%r/(.)/g, "cat")
+  * [Regex] Fix badmatch with `Regex.captures(%r/(.)/g, "cat")`
   * [URI] Downcase host and scheme and URIs
 
 * deprecations
   * [ExUnit] `assert left inlist right` is deprecated in favor of `assert left in right`
-  * [Kernel] `List.member?/2` is deprecated in favor of `Enum.member?/2`
+  * [IO] `IO.getb` is deprecated in favor of `IO.getn`
+  * [List] `List.member?/2` is deprecated in favor of `Enum.member?/2`
   * [Kernel] `var_context` in quote was deprecated in favor of `context`
   * [Kernel] `Enum.at!` and `Dict.get!` is deprecated in favor of `Enum.fetch!` and `Dict.fetch!`
 
 * backwards incompatible changes
-  * [Kernel] `IO.gets`, `IO.getb` and friends now return binaries when reading from stdio
-  * [Kernel] `List.Dict` was moved to `ListDict`
+  * [Dict] `List.Dict` was moved to `ListDict`
+  * [IO] `IO.gets`, `IO.getn` and friends now return binaries when reading from stdio
   * [Kernel] Precedence of `|>` has changed to lower to support constructs like `1..5 |> Enum.to_list`
   * [Mix] `mix escriptize` now receives arguments as binaries
 
