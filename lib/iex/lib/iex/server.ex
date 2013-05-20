@@ -1,6 +1,8 @@
 defmodule IEx.Server do
   @moduledoc false
 
+  alias IEx.Util
+
   @doc """
   Eval loop for an IEx session. Its responsibilities include:
 
@@ -26,15 +28,11 @@ defmodule IEx.Server do
         eval(code, line, counter, config)
       rescue
         exception ->
-          print_stacktrace System.stacktrace, fn ->
-            "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-          end
+          Util.print_exception(exception)
           config.cache('')
       catch
         kind, error ->
-          print_stacktrace System.stacktrace, fn ->
-            "** (#{kind}) #{inspect(error)}"
-          end
+          Util.print_error(kind, error)
           config.cache('')
       end
 
@@ -90,16 +88,6 @@ defmodule IEx.Server do
     end
   end
 
-  defp print_stacktrace(trace, callback) do
-    try do
-      io_error callback.()
-      io_error Exception.format_stacktrace(trace)
-    catch
-      _, _ ->
-        io_error "** (IEx.Error) error when printing exception message and stacktrace"
-    end
-  end
-
   defp update_history(config) do
     current = Process.get :iex_history
     Process.put :iex_history, [config|current]
@@ -123,10 +111,6 @@ defmodule IEx.Server do
 
   defp io_put(result) do
     IO.puts :stdio, IO.ANSI.escape("%{yellow}#{inspect(result, IEx.inspect_opts)}")
-  end
-
-  defp io_error(result) do
-    IO.puts :stdio, result
   end
 
   defp remote_prefix do

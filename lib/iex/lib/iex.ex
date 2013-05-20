@@ -90,6 +90,8 @@ defmodule IEx do
 
   """
 
+  alias IEx.Util
+
   @doc """
   Registers a function to be invoked after IEx process is spawned.
   """
@@ -150,6 +152,7 @@ defmodule IEx do
 
       set_expand_fun()
       run_after_spawn()
+      config = load_dot_iex(config)
       IEx.Server.start(config)
     end
   end
@@ -200,5 +203,57 @@ defmodule IEx do
 
   defp run_after_spawn do
     lc fun inlist Enum.reverse(after_spawn), do: fun.()
+  end
+
+  # Locates and loads an .iex file from one of predefined locations
+  #
+  # Sample contents of a local .iex file:
+  #
+  #     IEx.source "~/.iex"     # source another .iex file
+  #     IO.puts "hello world"   # print something before the shell starts
+  #     value = 13              # bind a variable that'll be accessible in the shell
+  #
+  # Running the shell then results in
+  #
+  #     $ iex
+  #     Erlang R15B03 (erts-5.9.3.1) ...
+  #
+  #     hello world
+  #     Interactive Elixir (0.8.3.dev) - press Ctrl+C to exit (type h() ENTER for help)
+  #     iex(1)> value
+  #     13
+  #
+  defp load_dot_iex(config) do
+    path = Enum.find [".iex", "~/.iex"], File.regular?(&1)
+    if nil?(path) do
+      config
+    else
+      try do
+        code = File.read!(path)
+
+        # Evaluate the contents in the same environment IEx.Server will run in
+        { _result, binding, scope } = :elixir.eval(:unicode.characters_to_list(code), config.binding, 0, config.scope)
+        config.binding(binding).scope(scope)
+      rescue
+        exception ->
+          Util.print_exception(exception)
+          :erlang.halt()
+      catch
+        kind, error ->
+          Util.print_error(kind, error)
+          :erlang.halt()
+      end
+    end
+  end
+
+  @doc """
+  Convenience function for use in .iex files. Converts `path` to an absolute
+  path (also expanding ~ if present) and requires the file at resulting path.
+
+  In case of an error, prints exception info to stdout and terminates the shell.
+  """
+  def source(path) do
+    p = Path.expand(path)
+    Code.require_file(p)
   end
 end
