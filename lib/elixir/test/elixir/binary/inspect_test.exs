@@ -100,6 +100,7 @@ defmodule Binary.Inspect.TupleTest do
 
   test :basic do
     assert inspect({ 1, "b", 3 }) == "{1,\"b\",3}"
+    assert inspect({ 1, "b", 3 }, [pretty: true, width: 1]) == "{ 1,\n  \"b\",\n  3 }"
   end
 
   test :record_like do
@@ -121,7 +122,7 @@ defmodule Binary.Inspect.TupleTest do
   defrecord Config, a: 1, b: []
 
   test :with_record do
-    assert inspect(Config.new) == "Binary.Inspect.TupleTest.Config[a: 1, b: []]"
+    assert inspect(Config.new) == "Binary.Inspect.TupleTest.Config[ a: 1, b: [] ]"
   end
 
   test :with_tuple_matching_record_name_but_not_length do
@@ -129,13 +130,13 @@ defmodule Binary.Inspect.TupleTest do
   end
 
   test :exception do
-    assert inspect(RuntimeError.new) == "RuntimeError[message: \"runtime error\"]"
+    assert inspect(RuntimeError.new) == "RuntimeError[ message: \"runtime error\" ]"
   end
 
   defrecord :something, [:a, :b]
 
   test :non_module_record do
-    assert inspect(:something.new) == ":something[a: nil, b: nil]"
+    assert inspect(:something.new) == ":something[ a: nil, b: nil ]"
   end
 
   test :empty do
@@ -156,6 +157,7 @@ defmodule Binary.Inspect.ListTest do
 
   test :basic do
     assert inspect([ 1, "b", 3 ]) == "[1,\"b\",3]"
+    assert inspect([ 1, "b", 3 ], [pretty: true, width: 1]) == "[ 1,\n  \"b\",\n  3 ]"
   end
 
   test :printable do
@@ -167,6 +169,9 @@ defmodule Binary.Inspect.ListTest do
     assert inspect([a: 1, b: 2]) == "[a: 1, b: 2]"
     assert inspect([a: 1, a: 2, b: 2]) == "[a: 1, a: 2, b: 2]"
     assert inspect(["123": 1]) == %b(["123": 1])
+
+    assert inspect([foo: [1,2,3,:bar], bazzz: :bat], [pretty: true, width: 30]) == "[ foo: [1,2,3,:bar], \n  bazzz: :bat ]"
+    assert inspect([foo: [1,2,3,:bar], bazzz: :bat], [pretty: true, width: 1])  == "[ foo: [ 1,\n         2,\n         3,\n         :bar ], \n  bazzz: :bat ]"
   end
 
   test :non_keyword do
@@ -179,6 +184,8 @@ defmodule Binary.Inspect.ListTest do
 
   test :unproper do
     assert inspect([:foo | :bar]) == "[:foo|:bar]"
+
+    assert inspect([1,2,3,4,5|42], [pretty: true, width: 1]) == "[ 1,\n  2,\n  3,\n  4,\n  5|\n  42 ]"
   end
 
   test :codepoints do

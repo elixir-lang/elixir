@@ -134,7 +134,7 @@ defmodule IO do
       IO.inspect Process.list
 
   """
-  def inspect(item, opts // []) do
+  def inspect(item, opts // [pretty: true]) do
     inspect group_leader(), item, opts
   end
 
@@ -222,4 +222,5 @@ defmodule IO do
 
   defp to_iodata(io) when is_list(io) or is_binary(io), do: io
   defp to_iodata(other), do: to_binary(other)
+
 end
