@@ -91,7 +91,8 @@ defmodule IEx.Server do
   # Locates and loads an .iex file from one of predefined locations. Returns
   # new config.
   defp load_dot_iex(config) do
-    path = Enum.find [".iex", "~/.iex"], fn path -> File.regular?(Path.expand(path)) end
+    candidates = Enum.map [".iex", "~/.iex"], Path.expand(&1)
+    path = Enum.find candidates, fn path -> File.regular?(path) end
     if nil?(path) do
       config
     else
