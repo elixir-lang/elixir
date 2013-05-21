@@ -18,8 +18,8 @@ defmodule ExUnit.CLIFormatter do
     pid
   end
 
-  def suite_finished(id, ms) do
-    :gen_server.call(id, { :suite_finished, ms }, @timeout)
+  def suite_finished(id, run_us, load_us) do
+    :gen_server.call(id, { :suite_finished, run_us, load_us }, @timeout)
   end
 
   def case_started(_id, _test_case) do
@@ -44,8 +44,8 @@ defmodule ExUnit.CLIFormatter do
     { :ok, Config.new }
   end
 
-  def handle_call({ :suite_finished, ms }, _from, config) do
-    print_suite(config.counter, config.test_failures, config.case_failures, ms)
+  def handle_call({ :suite_finished, run_us, load_us }, _from, config) do
+    print_suite(config.counter, config.test_failures, config.case_failures, run_us, load_us)
     { :stop, :normal, length(config.test_failures), config }
   end
 
@@ -82,19 +82,19 @@ defmodule ExUnit.CLIFormatter do
     super
   end
 
-  defp print_suite(counter, [], [], ms) do
+  defp print_suite(counter, [], [], run_us, load_us) do
     IO.write "\n\n"
-    IO.puts "Finished in #{format_ms ms} seconds"
+    print_time(run_us, load_us)
     IO.puts success("#{counter} tests, 0 failures")
   end
 
-  defp print_suite(counter, test_failures, case_failures, ms) do
+  defp print_suite(counter, test_failures, case_failures, run_us, load_us) do
     IO.write "\n\nFailures:\n\n"
     num_fails = Enum.reduce Enum.reverse(test_failures), 1, print_test_failure(&1, &2, File.cwd!)
     Enum.reduce Enum.reverse(case_failures), num_fails, print_case_failure(&1, &2, File.cwd!)
     num_invalids = Enum.count test_failures, fn test -> test.invalid end
 
-    IO.puts "Finished in #{format_ms ms} seconds"
+    print_time(run_us, load_us)
 
     num_fails = num_fails - 1
     message = "#{counter} tests, #{num_fails} failures"
@@ -160,6 +160,18 @@ defmodule ExUnit.CLIFormatter do
     Enum.each stacktrace, fn(s) -> IO.puts stacktrace_info format_entry(s, cwd) end
   end
 
+  defp print_time(run_us, nil) do
+    IO.puts "Finished in #{run_us |> normalize_us |> format_us} seconds"
+  end
+
+  defp print_time(run_us, load_us) do
+    run_us  = run_us |> normalize_us
+    load_us = load_us |> normalize_us
+
+    ms = run_us + load_us
+    IO.puts "Finished in #{format_us ms} seconds (#{format_us load_us}s on load, #{format_us run_us}s on tests)"
+  end
+
   defp pad(binary, max) do
     remaining = max - size(binary)
     if remaining > 0 do
@@ -169,12 +181,16 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
-  defp format_ms(ms) do
-    if ms < 100000 do
-      "0.0#{div(ms, 10000)}"
+  defp normalize_us(us) do
+    div(us, 10000)
+  end
+
+  defp format_us(us) do
+    if us < 10 do
+      "0.0#{us}"
     else
-      ms = div ms, 100000
-      "#{div(ms, 10)}.#{rem(ms, 10)}"
+      us = div us, 10
+      "#{div(us, 10)}.#{rem(us, 10)}"
     end
   end
 

@@ -81,6 +81,7 @@ defmodule ExUnit do
     :application.start(:ex_unit)
 
     configure(options)
+    ExUnit.Server.start_load
 
     System.at_exit fn
       0 ->
@@ -118,7 +119,7 @@ defmodule ExUnit do
   Returns the number of failures.
   """
   def run do
-    { async, sync } = ExUnit.Server.cases
-    ExUnit.Runner.run async, sync, ExUnit.Server.options
+    { async, sync, options, load_us } = ExUnit.Server.start_run
+    ExUnit.Runner.run async, sync, options, load_us
   end
 end

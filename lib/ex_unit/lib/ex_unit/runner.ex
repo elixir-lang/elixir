@@ -4,17 +4,17 @@ defmodule ExUnit.Runner do
   defrecord Config, formatter: ExUnit.CLIFormatter, formatter_id: nil,
                     max_cases: 4, taken_cases: 0, async_cases: [], sync_cases: []
 
-  def run(async, sync, opts) do
+  def run(async, sync, opts, load_us) do
     config = Config[max_cases: :erlang.system_info(:schedulers_online)]
     config = config.update(opts)
 
-    { ms, config } =
+    { run_us, config } =
       :timer.tc fn ->
         loop config.async_cases(async).sync_cases(sync).
                formatter_id(config.formatter.suite_started(opts))
       end
 
-    config.formatter.suite_finished(config.formatter_id, ms)
+    config.formatter.suite_finished(config.formatter_id, run_us, load_us)
   end
 
   defp loop(Config[] = config) do
