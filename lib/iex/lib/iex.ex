@@ -86,9 +86,6 @@ defmodule IEx do
       iex(1)> value
       13
 
-  If you want to erase all variables bound in the .iex file, call the f()
-  helper at the end.
-
   ## Expressions in IEx
 
   As an interactive shell, IEx evalutes expressions. This has some
