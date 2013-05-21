@@ -1,5 +1,7 @@
 defmodule IEx.Remsh do
-  @moduledoc """
+  @moduledoc false
+
+  @doc """
   Provides one helper function that is injected into connecting
   remote nodes to properly handle autocompletion. Elixir supports:
 
