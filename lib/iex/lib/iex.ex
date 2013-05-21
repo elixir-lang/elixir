@@ -4,7 +4,7 @@ defmodule IEx do
   @moduledoc %B"""
   Welcome to IEx.
 
-  This module is the main entry point Interactive Elixir and
+  This module is the main entry point for Interactive Elixir and
   in this documentation we will talk a bit about how IEx works.
 
   Notice some of the functionality described here will be available
@@ -20,11 +20,11 @@ defmodule IEx do
 
   ## The User Switch command
 
-  Besides the break command, one can type Ctrl+G to get the to
-  the user switch command. When reached, you can type `h` to
+  Besides the break command, one can type Ctrl+G to get to the
+  user switch command menu. When reached, you can type `h` to
   get more information.
 
-  In this switch, developers are able to create new shell and
+  In this menu, developers are able to start new shells and
   alternate in between them. Let's give it a try:
 
       User switch command
@@ -36,7 +36,7 @@ defmodule IEx do
 
       hello = :world
 
-  Now, let's rollback to the first shell:
+  Now, let's roll back to the first shell:
 
       User switch command
        --> c 1
@@ -46,23 +46,57 @@ defmodule IEx do
       hello
       ** (UndefinedFunctionError) undefined function: IEx.Helpers.hello/0
 
-  The command above fails because we have changed the shells
-  and they are isolated from each other, you can access the
-  variables defined in one in the other.
+  The command above fails because we have switched the shells.
+  Since shells are isolated from each other, you can't access the
+  variables defined in one shell from the other one.
 
-  The User Switch also allow developers to connect to remote
-  shells using r. Keep in mind that you can't connect to a
+  The user switch command menu also allows developers to connect to remote
+  shells using the "r" command. Keep in mind that you can't connect to a
   remote node if you haven't given a name to the current node
   (i.e. Process.is_alive? must return true).
+
+  ## The .iex file
+
+  When starting IEx it will look for a local .iex file (located in the current
+  working directory), then a global one (located at ~/.iex) and will load the
+  first one it finds (if any). The code in the chosen .iex file will be
+  evaluated in the shell's context. So, for instance, any modules that are
+  loaded or variables that are bound in the .iex file will be available in the
+  shell after it has booted.
+
+  Sample contents of a local .iex file:
+
+      # source another .iex file, ~/.iex in this case
+      Code.require_file ".iex", "~"
+
+      # print something before the shell starts
+      IO.puts "hello world"
+
+      # bind a variable that'll be accessible in the shell
+      value = 13
+
+  Running the shell in the directory where the above .iex file is located
+  results in
+
+      $ iex
+      Erlang R15B03 (erts-5.9.3.1) [...]
+
+      hello world
+      Interactive Elixir (0.8.3.dev) - press Ctrl+C to exit (type h() ENTER for help)
+      iex(1)> value
+      13
+
+  If you want to erase all variables bound in the .iex file, call the f()
+  helper at the end.
 
   ## Expressions in IEx
 
   As an interactive shell, IEx evalutes expressions. This has some
-  interesting consequences worthy discussing.
+  interesting consequences that are worth discussing.
 
   The first one is that the code is truly evaluated and not compiled.
-  This means that, any benchmarking done in the shell is going to have
-  skewed results. So never run any profiling nor benchmark in the shell.
+  This means that any benchmarking done in the shell is going to have
+  skewed results. So never run any profiling nor benchmarks in the shell.
 
   Second of all, IEx alows you to break an expression into many lines,
   since this is common in Elixir. For example:
@@ -206,28 +240,6 @@ defmodule IEx do
   end
 
   # Locates and loads an .iex file from one of predefined locations
-  #
-  # Sample contents of a local .iex file:
-  #
-  #     # source another .iex file, ~/.iex in this case
-  #     Code.require_file ".iex", "~"
-  #
-  #     # print something before the shell starts
-  #     IO.puts "hello world"
-  #
-  #     # bind a variable that'll be accessible in the shell
-  #     value = 13
-  #
-  # Running the shell then results in
-  #
-  #     $ iex
-  #     Erlang R15B03 (erts-5.9.3.1) ...
-  #
-  #     hello world
-  #     Interactive Elixir (0.8.3.dev) - press Ctrl+C to exit (type h() ENTER for help)
-  #     iex(1)> value
-  #     13
-  #
   defp load_dot_iex(config) do
     path = Enum.find [".iex", "~/.iex"], File.regular?(&1)
     if nil?(path) do
