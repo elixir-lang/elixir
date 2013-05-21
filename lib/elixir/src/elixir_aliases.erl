@@ -68,7 +68,7 @@ expand_one(H, Aliases) ->
 ensure_loaded(Line, Ref, S) ->
   ensure_loaded(Line, S#elixir_scope.file, Ref, S#elixir_scope.context_modules).
 
-ensure_loaded(_Line, _File, 'Elixir.Kernel', FileModules) ->
+ensure_loaded(_Line, _File, 'Elixir.Kernel', _FileModules) ->
   ok;
 
 ensure_loaded(Line, File, Ref, FileModules) ->

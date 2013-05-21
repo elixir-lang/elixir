@@ -107,7 +107,7 @@ oror_test() ->
   false = eval([{'||', [{line,1}], [false, false]}]),
   true  = eval([{'||', [{line,1}], [true, {error, [{line,1}], [omg]}]}]).
 
-%% Method calls
+%% Function calls
 
 local_call_test() ->
   42.0 = eval([{float, [{line,1}], [42]}]).

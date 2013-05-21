@@ -43,6 +43,12 @@ defmodule Kernel.ErrorsTest do
     assert "nofile:1: syntax error before: '.'" == format_rescue '+.foo'
   end
 
+  test :syntax_error_on_parens_call do
+    assert "nofile:1: invalid comma inside parenthesis. If you are making a function call, " <>
+           "do not insert spaces in between the function name and the opening parentheses. " <>
+           "Syntax error before: )" == format_rescue 'foo (hello, world)'
+  end
+
   test :syntax_error_with_no_token do
     assert "nofile:1: missing terminator: ) (for \"(\" starting at line 1)" == format_rescue 'case 1 ('
   end

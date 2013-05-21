@@ -14,8 +14,10 @@
 forms(String, StartLine, File, Opts) ->
   try elixir_tokenizer:tokenize(String, StartLine, [{ file, File }|Opts]) of
     { ok, Tokens } ->
-      case elixir_parser:parse(Tokens) of
+      try elixir_parser:parse(Tokens) of
         { ok, Forms } -> { ok, Forms };
+        { error, { Line, _, [Error, Token] } } -> { error, { Line, Error, Token } }
+      catch
         { error, { Line, _, [Error, Token] } } -> { error, { Line, Error, Token } }
       end;
     { error, { _, _, _ } } = Else -> Else

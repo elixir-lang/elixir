@@ -10,7 +10,8 @@ Nonterminals
   open_curly close_curly
   open_bit close_bit
   base_comma_expr comma_expr optional_comma_expr matched_comma_expr
-  call_args call_args_parens call_args_parens_not_one call_args_no_parens parens_call
+  call_args call_args_parens parens_call
+  call_args_no_parens call_args_no_parens_strict call_args_parens_not_one
   stab stab_eol stab_op stab_expr stab_maybe_expr
   kw_eol kw_expr kw_comma kw_base
   matched_kw_expr matched_kw_comma matched_kw_base
@@ -142,16 +143,16 @@ matched_op_expr -> comp_expr_op matched_expr : { '$1', '$2' }.
 
 block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
 block_expr -> parens_call call_args_parens call_args_parens do_block : build_nested_parens('$1', '$2', '$3' ++ '$4').
-block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_punctuated_identifier call_args_no_parens_strict do_block : build_identifier('$1', '$2' ++ '$3').
 block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
-block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_identifier call_args_no_parens_strict do_block : build_identifier('$1', '$2' ++ '$3').
 
 fn_expr -> fn_eol stab end_eol : build_fn('$1', build_stab(lists:reverse('$2'))).
 fn_expr -> call_expr : '$1'.
 
-call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
-call_expr -> dot_op_identifier call_args_no_parens : build_identifier('$1', '$2').
-call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
+call_expr -> dot_punctuated_identifier call_args_no_parens_strict : build_identifier('$1', '$2').
+call_expr -> dot_op_identifier call_args_no_parens_strict : build_identifier('$1', '$2').
+call_expr -> dot_identifier call_args_no_parens_strict : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
 call_expr -> dot_do_identifier : build_identifier('$1', nil).
 call_expr -> var : build_identifier('$1', nil).
@@ -388,6 +389,11 @@ parens_call -> matched_expr dot_call_op : { '.', [{line,?line('$2')}], ['$1'] }.
 matched_comma_expr -> matched_expr : ['$1'].
 matched_comma_expr -> matched_comma_expr ',' matched_expr : ['$3'|'$1'].
 
+call_args_no_parens_strict -> call_args_no_parens : '$1'.
+call_args_no_parens_strict -> open_paren ')' : throw_no_parens_strict('$1').
+call_args_no_parens_strict -> open_paren matched_kw_base close_paren : throw_no_parens_strict('$1').
+call_args_no_parens_strict -> open_paren matched_expr ',' call_args_no_parens close_paren : throw_no_parens_strict('$1').
+
 call_args_no_parens -> matched_comma_expr : lists:reverse('$1').
 call_args_no_parens -> matched_kw_base : ['$1'].
 call_args_no_parens -> matched_comma_expr ',' matched_kw_base : lists:reverse(['$3'|'$1']).
@@ -584,3 +590,13 @@ build_stab([H|T], Marker, Temp, Acc) ->
 build_stab([], Marker, Temp, Acc) ->
   H = { Marker, build_block(lists:reverse(Temp)) },
   lists:reverse([H|Acc]).
+
+%% Errors
+
+throw(Line, Error, Token) ->
+  throw({ error, { Line, ?MODULE, [Error, Token] }}).
+
+throw_no_parens_strict(Token) ->
+  throw(?line(Token), "invalid comma inside parenthesis. If you are making a "
+    "function call, do not insert spaces in between the function name and the "
+    "opening parentheses. Syntax error before: ", ")").
