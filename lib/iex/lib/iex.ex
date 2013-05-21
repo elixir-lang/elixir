@@ -57,7 +57,7 @@ defmodule IEx do
 
   ## The .iex file
 
-  When starting IEx it will look for a local .iex file (located in the current
+  When starting IEx, it will look for a local .iex file (located in the current
   working directory), then a global one (located at ~/.iex) and will load the
   first one it finds (if any). The code in the chosen .iex file will be
   evaluated in the shell's context. So, for instance, any modules that are
