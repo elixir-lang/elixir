@@ -1,7 +1,7 @@
 * enhancements
   * [CLI] Flags `-p` and `-pr` fails if pattern match no files
   * [CLI] Support `--hidden` and `--cookie` flags for distributed Erlang
-  * [Enum] Add `Enum.to_list/1`, `Enum.equal?/2`, `Enum.equal?/3`, `Enum.member?/2`, `Enum.uniq/2`, `Enum.max/1`, `Enum.max/2`, `Enum.min/1` and `Enum.min/2`
+  * [Enum] Add `Enum.to_list/1`, `Enum.member?/2`, `Enum.uniq/2`, `Enum.max/1`, `Enum.max/2`, `Enum.min/1` and `Enum.min/2`
   * [ExUnit] Add `ExUnit.CaptureIO` for IO capturing during tests
   * [ExUnit] Consider load time on ExUnit time reports
   * [IEx] Support `ls` with colored output

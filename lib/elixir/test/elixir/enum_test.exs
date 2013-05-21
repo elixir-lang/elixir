@@ -96,28 +96,6 @@ defmodule EnumTest.List do
     assert Enum.find_index([2,3,4], fn(x) -> rem(x, 2) == 1 end) == 1
   end
 
-  test :equal? do
-    assert Enum.equal?([], [])
-    refute Enum.equal?([], [1])
-
-    assert Enum.equal?(1 .. 3, [1, 2, 3])
-    assert Enum.equal?(1 .. 3, 1 .. 3)
-    refute Enum.equal?(1 .. 3, 1 .. 10)
-    refute Enum.equal?(1 .. 3, [])
-    assert Enum.equal?([1, 2, 3], 1 .. 3)
-    assert Enum.equal?(1 .. 3, 1 .. 3)
-    refute Enum.equal?(1 .. 3, 1 .. 10)
-    refute Enum.equal?(1 .. 3, [])
-    refute Enum.equal?([], 1 .. 3)
-
-    refute Enum.equal?(1 .. 3, [1.0, 2.0, 3.0], &1 === &2)
-    refute Enum.equal?(1 .. 3, [], &1 === &2)
-    refute Enum.equal?([], 1 .. 3, &1 === &2)
-    refute Enum.equal?(1 .. 3, 1 .. 5, &1 == &2)
-    assert Enum.equal?(1 .. 3, [1, 2, 3], &1 === &2)
-    assert Enum.equal?([1, 2, 3], [1, 2, 3], &1 === &2)
-  end
-
   test :each do
     try do
       assert Enum.each([], fn(x) -> x end) == :ok
