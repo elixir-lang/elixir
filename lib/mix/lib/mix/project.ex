@@ -259,9 +259,8 @@ defmodule Mix.Project do
     end
 
     unless :digraph_utils.is_acyclic(graph) do
-      Mix.shell.error "Could not dependency sort umbrella projects. " <>
+      raise Mix.Error, message: "Could not dependency sort umbrella projects. " <>
         "There are cycles in the dependency graph."
-      exit(1)
     end
 
     vertices = :digraph_utils.topsort(graph)

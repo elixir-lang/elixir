@@ -66,9 +66,9 @@ defmodule Mix.Deps do
 
   @doc """
   Receives a list of deps names and returns deps records.
-  Raises an error if the dependency does not exist.
+  Logs a message if the dependency could not be found.
   """
-  def by_name!(given, all_deps // all) do
+  def by_name(given, all_deps // all) do
     # Ensure all apps are atoms
     apps = Enum.map given, fn(app) ->
       if is_binary(app), do: binary_to_atom(app), else: app
@@ -81,7 +81,7 @@ defmodule Mix.Deps do
     index = Mix.Dep.__index__(:app)
     Enum.each apps, fn(app) ->
       unless List.keyfind(deps, app, index) do
-        raise Mix.Error, message: "unknown dependency #{app} for env #{Mix.env}"
+        Mix.shell.info message: "unknown dependency #{app} for env #{Mix.env}"
       end
     end
 

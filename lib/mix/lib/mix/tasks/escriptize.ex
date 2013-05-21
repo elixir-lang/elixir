@@ -61,12 +61,11 @@ defmodule Mix.Tasks.Escriptize do
 
     cond do
       !script_name ->
-        Mix.shell.error "Could not generate escript, no name given, set :escript_name " <>
-                        "or :app in the project settings"
-        :noop
+        raise Mix.Error, message: "Could not generate escript, no name given, " <>
+          "set :escript_name or :app in the project settings"
       beams == [] ->
-        Mix.shell.error "Could not generate escript #{filename}, no beam files available"
-        :noop
+        raise Mix.Error, message: "Could not generate escript #{filename}, " <>
+          "no beam files available"
       force or Mix.Utils.stale?(beams, [filename]) ->
         files = gen_main(script_name, project[:escript_main_module])
         files = files ++ all_files()
@@ -98,6 +97,7 @@ defmodule Mix.Tasks.Escriptize do
 
         set_perms(filename)
         Mix.shell.info "Generated escript #{filename}"
+        :ok
       true ->
         :noop
     end
