@@ -4,15 +4,15 @@ defmodule IEx.Util do
   # Private functions used by several IEx.* modules.
 
   @doc false
-  def print_exception(exception) do
-    print_stacktrace System.stacktrace, fn ->
+  def print_exception(exception, stacktrace) do
+    print_stacktrace stacktrace, fn ->
       "** (#{inspect exception.__record__(:name)}) #{exception.message}"
     end
   end
 
   @doc false
-  def print_error(kind, reason) do
-    print_stacktrace System.stacktrace, fn ->
+  def print_error(kind, reason, stacktrace) do
+    print_stacktrace stacktrace, fn ->
       "** (#{kind}) #{inspect(reason)}"
     end
   end

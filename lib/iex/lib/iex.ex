@@ -253,11 +253,11 @@ defmodule IEx do
         config.binding(binding).scope(scope)
       rescue
         exception ->
-          Util.print_exception(exception)
+          Util.print_exception(exception, System.stacktrace)
           System.halt(1)
       catch
         kind, error ->
-          Util.print_error(kind, error)
+          Util.print_error(kind, error, System.stacktrace)
           System.halt(1)
       end
     end

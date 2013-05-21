@@ -28,11 +28,11 @@ defmodule IEx.Server do
         eval(code, line, counter, config)
       rescue
         exception ->
-          Util.print_exception(exception)
+          Util.print_exception(exception, System.stacktrace)
           config.cache('')
       catch
         kind, error ->
-          Util.print_error(kind, error)
+          Util.print_error(kind, error, System.stacktrace)
           config.cache('')
       end
 
