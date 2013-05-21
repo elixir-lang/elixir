@@ -23,6 +23,27 @@ defmodule Mix.Utils do
   end
 
   @doc """
+  Gets all extra paths defined in the environment variable
+  MIX_PATH. MIX_PATH may contain multiple paths. If on windows,
+  those paths should be separated by `;`, if on unix systems,
+  use `:`.
+  """
+  def mix_path do
+    if path = System.get_env("MIX_PATH") do
+      String.split(path, path_separator)
+    else
+      []
+    end
+  end
+
+  defp path_separator do
+    case :os.type do
+      { :win32, _ } -> ";"
+      { :unix, _ }  -> ":"
+    end
+  end
+
+  @doc """
   Gets the source location of a module as a binary.
   """
   def source(module) do

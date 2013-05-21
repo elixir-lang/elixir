@@ -50,6 +50,7 @@ defmodule Mix.CLI do
 
   defp proceed(args) do
     Mix.Local.append_tasks
+    Mix.Local.append_paths
 
     args = load_mixfile(args)
     { task, args } = get_task(args)

@@ -18,6 +18,13 @@ defmodule Mix.Local do
   end
 
   @doc """
+  Append mix paths into Erlang code path.
+  """
+  def append_paths do
+    Enum.each Mix.Utils.mix_path, Code.append_path(&1)
+  end
+
+  @doc """
   Returns all tasks modules in .mix/tasks.
   """
   def all_tasks do
