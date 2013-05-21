@@ -14,17 +14,17 @@ defmodule CodeTest do
 
   Code.eval_quoted contents, [], file: "sample.ex", line: 13
 
-  test :eval do
-    assert Code.eval("1 + 2") == { 3, [] }
-    assert { 3, _ } = Code.eval("a + b", [a: 1, b: 2], __ENV__.location)
+  test :eval_string do
+    assert Code.eval_string("1 + 2") == { 3, [] }
+    assert { 3, _ } = Code.eval_string("a + b", [a: 1, b: 2], __ENV__.location)
   end
 
   test :eval_with_scope do
-    assert Code.eval("one", [], delegate_locals_to: __MODULE__) == { 1, [] }
+    assert Code.eval_string("one", [], delegate_locals_to: __MODULE__) == { 1, [] }
   end
 
   test :eval_with_requires do
-    assert Code.eval("Kernel.if true, do: :ok", [], requires: [Z, Kernel]) == { :ok, [] }
+    assert Code.eval_string("Kernel.if true, do: :ok", [], requires: [Z, Kernel]) == { :ok, [] }
   end
 
   test :eval_quoted do

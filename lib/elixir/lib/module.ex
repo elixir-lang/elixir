@@ -31,7 +31,7 @@ defmodule Module do
   Evalutes the quotes contents in the given module context.
 
   A list of environment options can also be given as argument.
-  Check `Code.eval` for more information.
+  Check `Code.eval_string` for more information.
 
   Raises an error if the module was already compiled.
 

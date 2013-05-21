@@ -19,7 +19,7 @@ defmodule Kernel.CLI.OptionParsingTest do
   test :path do
     root = fixture_path("../../..") |> to_char_list
     list = elixir('-pa "#{root}/*" -pz "#{root}/lib/*" -e "IO.inspect :code.get_path"')
-    { path, _ } = Code.eval list, []
+    { path, _ } = Code.eval_string list, []
 
     # pa
     assert Path.expand('ebin', root) in path

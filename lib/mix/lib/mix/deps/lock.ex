@@ -15,7 +15,7 @@ defmodule Mix.Deps.Lock do
   def read() do
     case File.read(lockfile) do
       { :ok, info } ->
-        { value, _binding } = Code.eval(info)
+        { value, _binding } = Code.eval_string(info)
         value || []
       { :error, _ } ->
         []

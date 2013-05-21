@@ -32,6 +32,7 @@
   * [URI] Downcase host and scheme and URIs
 
 * deprecations
+  * [Code] `Code.eval` is deprecated in favor of `Code.eval_string`
   * [ExUnit] `assert left inlist right` is deprecated in favor of `assert left in right`
   * [IO] `IO.getb` is deprecated in favor of `IO.getn`
   * [List] `List.member?/2` is deprecated in favor of `Enum.member?/2`

@@ -57,6 +57,12 @@ defmodule Code do
     :code.del_path(Path.expand to_char_list(path))
   end
 
+  @doc false
+  def eval(string, binding // [], opts // []) do
+    IO.write "[WARNING] Code.eval is deprecated, please use Code.eval_string instead\n#{Exception.format_stacktrace}"
+    eval_string(string, binding, opts)
+  end
+
   @doc """
   Evalutes the contents given by string. The second argument is the
   binding (which should be a keyword) followed by a keyword list of
@@ -84,24 +90,24 @@ defmodule Code do
 
   ## Examples
 
-      iex> Code.eval("a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
+      iex> Code.eval_string("a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
       { 3, [ {:a, 1}, {:b, 2} ] }
 
   For convenience, you can my pass `__ENV__` as argument and
   all imports, requires and aliases will be automatically carried
   over:
 
-      iex> Code.eval("a + b", [a: 1, b: 2], __ENV__)
+      iex> Code.eval_string("a + b", [a: 1, b: 2], __ENV__)
       { 3, [ {:a, 1}, {:b, 2} ] }
 
   """
-  def eval(string, binding // [], opts // [])
+  def eval_string(string, binding // [], opts // [])
 
-  def eval(string, binding, Macro.Env[] = env) do
-    eval(string, binding, env.to_keywords)
+  def eval_string(string, binding, Macro.Env[] = env) do
+    eval_string(string, binding, env.to_keywords)
   end
 
-  def eval(string, binding, opts) do
+  def eval_string(string, binding, opts) do
     { value, binding, _scope } =
       :elixir.eval :unicode.characters_to_list(string), binding, opts
     { value, binding }
@@ -111,7 +117,7 @@ defmodule Code do
   Evalutes the quoted contents.
 
   This function accepts a list of environment options.
-  Check `Code.eval` for more information.
+  Check `Code.eval_string` for more information.
 
   ## Examples
 
@@ -153,6 +159,11 @@ defmodule Code do
   * `:existing_atoms_only` - When true, raises an error
     when non-existing atoms are found by the tokenizer.
 
+  ## Macro.to_binary/1
+
+  The opposite of converting a string to its AST is
+  `Macro.to_binary`, which converts a AST to a binary
+  representation.
   """
   def string_to_ast(string, opts // []) do
     file = Keyword.get opts, :file, "nofile"
