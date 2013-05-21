@@ -150,33 +150,39 @@ defmodule Exception do
     ErlangError[original: other]
   end
 
+  @doc false
+  def format_entry(entry, cwd // nil) do
+    IO.write "[WARNING] Exception.format_stacktrace is deprecated, please use Exception.format_stacktrace_entry instead\n#{Exception.format_stacktrace}"
+    format_stacktrace_entry(entry, cwd)
+  end
+
   @doc """
   Receives a tuple representing a stacktrace entry and formats it.
   The current working directory may be given as argument, which
   is used to prettify the stacktrace.
   """
-  def format_entry(entry, cwd // nil)
+  def format_stacktrace_entry(entry, cwd // nil)
 
   # From Macro.Env.stacktrace
-  def format_entry({ module, :__MODULE__, 0, file_line }, cwd) do
+  def format_stacktrace_entry({ module, :__MODULE__, 0, file_line }, cwd) do
     "#{format_file_line(file_line, cwd)}#{inspect module} (module)"
   end
 
   # From :elixir_compiler
-  def format_entry({ _module, :__MODULE__, 2, file_line }, cwd) do
+  def format_stacktrace_entry({ _module, :__MODULE__, 2, file_line }, cwd) do
     "#{format_file_line(file_line, cwd)}(module)"
   end
 
   # From :elixir_compiler
-  def format_entry({ _module, :__FILE__, 2, file_line }, cwd) do
+  def format_stacktrace_entry({ _module, :__FILE__, 2, file_line }, cwd) do
     "#{format_file_line(file_line, cwd)}(file)"
   end
 
-  def format_entry({module, fun, arity, file_line}, cwd) do
+  def format_stacktrace_entry({module, fun, arity, file_line}, cwd) do
     "#{format_file_line(file_line, cwd)}#{format_module_fun_arity(module, fun, arity)}"
   end
 
-  def format_entry({fun, arity, file_line}, cwd) do
+  def format_stacktrace_entry({fun, arity, file_line}, cwd) do
     "#{format_file_line(file_line, cwd)}#{format_fun_arity(fun, arity)}"
   end
 
@@ -198,7 +204,7 @@ defmodule Exception do
 
     case trace do
       [] -> "\n"
-      s  -> "    " <> Enum.map_join(s, "\n    ", format_entry(&1)) <> "\n"
+      s  -> "    " <> Enum.map_join(s, "\n    ", format_stacktrace_entry(&1)) <> "\n"
     end
   end
 

@@ -8,7 +8,7 @@ defmodule ExUnit.CLIFormatter do
   @timeout 30_000
   use GenServer.Behaviour
 
-  import Exception, only: [format_entry: 2]
+  import Exception, only: [format_stacktrace_entry: 2]
   defrecord Config, counter: 0, test_failures: [], case_failures: []
 
   ## Behaviour
@@ -157,7 +157,7 @@ defmodule ExUnit.CLIFormatter do
 
   defp print_stacktrace(stacktrace, _case, _test, cwd) do
     IO.puts location_info "stacktrace:"
-    Enum.each stacktrace, fn(s) -> IO.puts stacktrace_info format_entry(s, cwd) end
+    Enum.each stacktrace, fn(s) -> IO.puts stacktrace_info format_stacktrace_entry(s, cwd) end
   end
 
   defp print_time(run_us, nil) do

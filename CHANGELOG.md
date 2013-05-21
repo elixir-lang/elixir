@@ -35,6 +35,7 @@
 
 * deprecations
   * [Code] `Code.eval` is deprecated in favor of `Code.eval_string`
+  * [Exception] `Exception.format_entry` is deprecated in favor of `Exception.format_stacktrace_entry`
   * [ExUnit] `assert left inlist right` is deprecated in favor of `assert left in right`
   * [IO] `IO.getb` is deprecated in favor of `IO.getn`
   * [List] `List.member?/2` is deprecated in favor of `Enum.member?/2`
