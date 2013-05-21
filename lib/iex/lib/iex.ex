@@ -121,8 +121,6 @@ defmodule IEx do
 
   """
 
-  alias IEx.Util
-
   @doc """
   Registers a function to be invoked after IEx process is spawned.
   """
@@ -183,7 +181,6 @@ defmodule IEx do
 
       set_expand_fun()
       run_after_spawn()
-      config = load_dot_iex(config)
       IEx.Server.start(config)
     end
   end
@@ -234,29 +231,5 @@ defmodule IEx do
 
   defp run_after_spawn do
     lc fun inlist Enum.reverse(after_spawn), do: fun.()
-  end
-
-  # Locates and loads an .iex file from one of predefined locations
-  defp load_dot_iex(config) do
-    path = Enum.find [".iex", "~/.iex"], fn path -> File.regular?(Path.expand(path)) end
-    if nil?(path) do
-      config
-    else
-      try do
-        code = File.read!(path)
-
-        # Evaluate the contents in the same environment IEx.Server will run in
-        { _result, binding, scope } = :elixir.eval(:unicode.characters_to_list(code), config.binding, 0, config.scope)
-        config.binding(binding).scope(scope)
-      rescue
-        exception ->
-          Util.print_exception(exception, System.stacktrace)
-          System.halt(1)
-      catch
-        kind, error ->
-          Util.print_error(kind, error, System.stacktrace)
-          System.halt(1)
-      end
-    end
   end
 end
