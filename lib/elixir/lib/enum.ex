@@ -49,11 +49,6 @@ defprotocol Enum.Iterator do
   def iterator(collection)
 
   @doc """
-  The function used to check if the collection is empty.
-  """
-  def empty?(collection)
-
-  @doc """
   The function used to check if a value exists within the collection.
   """
   def member?(collection, value)
@@ -86,22 +81,6 @@ defmodule Enum do
   @type element :: any
   @type index :: non_neg_integer
   @type default :: any
-
-  @doc """
-  Returns true if the `collection` is empty, otherwise false.
-
-  ## Examples
-
-      iex> Enum.empty?([])
-      true
-      iex> Enum.empty?([1,2,3])
-      false
-
-  """
-  @spec empty?(t) :: boolean
-  def empty?(collection) do
-    I.empty?(collection)
-  end
 
   @doc """
   Checks if the `value` exists within the `collection`.
@@ -344,6 +323,29 @@ defmodule Enum do
         :ok
       list when is_list(list) ->
         each(list, fun)
+    end
+  end
+
+  @doc """
+  Returns true if the collection is empty, otherwise false.
+
+  ## Examples
+
+      iex> Enum.empty?([])
+      true
+      iex> Enum.empty?([1,2,3])
+      false
+
+  """
+  @spec empty?(t) :: boolean
+  def empty?(collection) when is_list(collection) do
+    collection == []
+  end
+
+  def empty?(collection) do
+    case I.iterator(collection) do
+      { _iterator, pointer }  -> pointer == :stop
+      list when is_list(list) -> list == []
     end
   end
 
@@ -2161,9 +2163,6 @@ end
 defimpl Enum.Iterator, for: List do
   def iterator(list), do: list
 
-  def empty?([]), do: true
-  def empty?(_),  do: false
-
   def member?([], _),       do: false
   def member?(list, value), do: :lists.member(value, list)
 
@@ -2174,11 +2173,6 @@ defimpl Enum.Iterator, for: Function do
   def iterator(function) do
     { iterator, first } = function.()
     { iterator, iterator.(first) }
-  end
-
-  def empty?(function) do
-    { _iterator, first } = function.()
-    first == :stop
   end
 
   def member?(function, value) do

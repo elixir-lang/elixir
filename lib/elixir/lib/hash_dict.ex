@@ -580,7 +580,6 @@ end
 
 defimpl Enum.Iterator, for: HashDict do
   def iterator(dict),          do: HashDict.to_list(dict)
-  def empty?(dict),            do: HashDict.size(dict) == 0
   def member?(dict, { k, v }), do: match?({ :ok, ^v }, HashDict.fetch(dict, k))
   def member?(_dict, _),       do: false
   def count(dict),             do: HashDict.size(dict)
