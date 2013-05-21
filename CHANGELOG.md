@@ -3,6 +3,7 @@
   * [CLI] Support `--hidden` and `--cookie` flags for distributed Erlang
   * [Enum] Add `Enum.to_list/1`, `Enum.equal?/2`, `Enum.equal?/3`, `Enum.member?/2`, `Enum.uniq/2`, `Enum.max/1`, `Enum.max/2`, `Enum.min/1` and `Enum.min/2`
   * [ExUnit] Add `ExUnit.CaptureIO` for IO capturing during tests
+  * [ExUnit] Consider load time on ExUnit time reports
   * [IEx] Support `ls` with colored output
   * [IEx] Add `#iex:break` to break incomplete expressions
   * [Kernel] Add `Enum.at`, `Enum.fetch` and `Enum.fetch!`
@@ -17,6 +18,7 @@
   * [Keyword] Add `Keyword.delete_first/2`
   * [Mix] Add `local.rebar` to download a local copy of rebar, and change `deps.compile` to use it if needed
   * [Mix] Support umbrella applications
+  * [Mix] Load beam files available at `MIX_PATH` on CLI usage
   * [String] Add `String.valid?` and `String.valid_character?`
 
 * bug fix
