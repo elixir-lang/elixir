@@ -36,20 +36,20 @@ defimpl Range.Iterator, for: Number do
     Enum.Iterator.Function.reduce(reducer, acc, fun)
   end
 
+  defp do_reducer_up(counter, last, acc, _fun) when counter > last do
+    acc
+  end
+
   defp do_reducer_up(counter, last, acc, fun) do
-    if counter > last do
-      acc
-    else
-      do_reducer_up(counter + 1, last, fun.(counter, acc), fun)
-    end
+    do_reducer_up(counter + 1, last, fun.(counter, acc), fun)
+  end
+
+  defp do_reducer_down(counter, last, acc, _fun) when counter < last do
+    acc
   end
 
   defp do_reducer_down(counter, last, acc, fun) do
-    if counter < last do
-      acc
-    else
-      do_reducer_down(counter - 1, last, fun.(counter, acc), fun)
-    end
+    do_reducer_down(counter - 1, last, fun.(counter, acc), fun)
   end
 
   def count(first, Range[last: last]) when is_integer(first) and is_integer(last) and last >= first do

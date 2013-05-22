@@ -86,11 +86,6 @@ defmodule Enum do
   Counts for how many items the function returns true.
   """
   @spec count(t, (element -> as_boolean(term))) :: non_neg_integer
-  def count(collection, fun) when is_list(collection) do
-    folder = fn(x, acc) -> if fun.(x), do: acc+1, else: acc end
-    :lists.foldl(folder, 0, collection)
-  end
-
   def count(collection, fun) do
     I.reduce(collection, 0, fn(entry, acc) ->
       if fun.(entry), do: acc + 1, else: acc
@@ -129,10 +124,9 @@ defmodule Enum do
   end
 
   def all?(collection, fun) do
-    I.reduce(collection, nil, fn(entry, _) ->
-      if fun.(entry), do: nil, else: throw(:enum_all?)
+    I.reduce(collection, true, fn(entry, _) ->
+      if fun.(entry), do: true, else: throw(:enum_all?)
     end)
-    true
   catch
     :enum_all? -> false
   end
@@ -168,10 +162,9 @@ defmodule Enum do
   end
 
   def any?(collection, fun) do
-    I.reduce(collection, nil, fn(entry, _) ->
-      if fun.(entry), do: throw(:enum_any?), else: nil
+    I.reduce(collection, false, fn(entry, _) ->
+      if fun.(entry), do: throw(:enum_any?), else: false
     end)
-    false
   catch
     :enum_any? -> true
   end
@@ -224,12 +217,9 @@ defmodule Enum do
   end
 
   def drop(collection, count) when count >= 0 do
-    { list, _ } = I.reduce(collection, { [], count }, fn(entry, { list, count }) ->
-      if count > 0 do
-        { [], count - 1}
-      else
-        { [entry|list], count }
-      end
+    { list, _ } = I.reduce(collection, { [], count }, fn
+      _, { _, count } when count > 0 -> { [], count - 1 }
+      entry, { list, count }         -> { [entry|list], count }
     end)
     :lists.reverse(list)
   end
@@ -254,8 +244,9 @@ defmodule Enum do
   end
 
   def drop_while(collection, fun) do
-    I.reduce(collection, [], fn(entry, acc) ->
-      if fun.(entry), do: [], else: [entry|acc]
+    I.reduce(collection, [], fn
+      entry, []  -> if fun.(entry), do: [], else: [entry]
+      entry, acc -> [entry|acc]
     end) |> :lists.reverse
   end
 
@@ -314,8 +305,7 @@ defmodule Enum do
   end
 
   def empty?(collection) do
-    I.reduce(collection, nil, fn(_, _) -> throw(:enum_empty?) end)
-    true
+    I.reduce(collection, true, fn(_, _) -> throw(:enum_empty?) end)
   catch
     :enum_empty? -> false
   end
@@ -451,10 +441,9 @@ defmodule Enum do
   end
 
   def find(collection, ifnone, fun) do
-    I.reduce(collection, nil, fn(entry, _) ->
+    I.reduce(collection, ifnone, fn(entry, _) ->
       if fun.(entry), do: throw({ :enum_find, entry })
     end)
-    ifnone
   catch
     { :enum_find, entry } -> entry
   end
@@ -482,11 +471,10 @@ defmodule Enum do
   end
 
   def find_value(collection, ifnone, fun) do
-    I.reduce(collection, nil, fn(entry, _) ->
+    I.reduce(collection, ifnone, fn(entry, _) ->
       fun_entry = fun.(entry)
       if fun_entry, do: throw({ :enum_find, fun_entry })
     end)
-    ifnone
   catch
     { :enum_find, entry } -> entry
   end
@@ -571,13 +559,9 @@ defmodule Enum do
     :unicode.characters_to_list join(collection, :unicode.characters_to_binary(joiner))
   end
 
-  def join(collection, joiner) when is_list(collection) and is_binary(joiner) do
-    do_join(collection, joiner, nil)
-  end
-
   def join(collection, joiner) when is_binary(joiner) do
-    I.reduce(collection, nil, fn
-      entry, nil -> to_binary(entry)
+    I.reduce(collection, "", fn
+      entry, ""  -> to_binary(entry)
       entry, acc -> acc <> joiner <> to_binary(entry)
     end)
   end
@@ -642,16 +626,12 @@ defmodule Enum do
   def map_join(collection, joiner // "", mapper)
 
   def map_join(collection, joiner, mapper) when is_list(joiner) do
-    binary_to_list map_join(collection, list_to_binary(joiner), mapper)
-  end
-
-  def map_join(collection, joiner, mapper) when is_list(collection) and is_binary(joiner) do
-    do_map_join(collection, mapper, joiner, nil)
+    :unicode.characters_to_list map_join(collection, :unicode.characters_to_binary(joiner), mapper)
   end
 
   def map_join(collection, joiner, mapper) when is_binary(joiner) do
-    I.reduce(collection, nil, fn
-      entry, nil -> to_binary(mapper.(entry))
+    I.reduce(collection, "", fn
+      entry, ""  -> to_binary(mapper.(entry))
       entry, acc -> acc <> joiner <> to_binary(mapper.(entry))
     end)
   end
@@ -672,10 +652,6 @@ defmodule Enum do
 
   """
   @spec map_reduce(t, any, (element, any -> any)) :: any
-  def map_reduce(collection, acc, f) when is_list(collection) do
-    :lists.mapfoldl(f, acc, collection)
-  end
-
   def map_reduce(collection, acc, fun) do
     { list, acc } = I.reduce(collection, { [], acc }, fn(entry, { list, acc }) ->
       { new_entry, acc } = fun.(entry, acc)
@@ -696,10 +672,6 @@ defmodule Enum do
 
   """
   @spec partition(t, (element -> any)) :: {list, list}
-  def partition(collection, fun) when is_list(collection) do
-    do_partition(collection, fun, [], [])
-  end
-
   def partition(collection, fun) do
     { acc1, acc2 } = I.reduce(collection, { [], [] }, fn(entry, { acc1, acc2 }) ->
       if fun.(entry) do
@@ -724,10 +696,6 @@ defmodule Enum do
 
   """
   @spec reduce(t, any, (element, any -> any)) :: any
-  def reduce(collection, acc, fun) when is_list(collection) do
-    :lists.foldl(fun, acc, collection)
-  end
-
   def reduce(collection, acc, fun) do
     I.reduce(collection, acc, fun)
   end
@@ -852,17 +820,12 @@ defmodule Enum do
   end
 
   def split_while(collection, fun) do
-    { _, list1, list2 } =
-      I.reduce(collection, { false, [], [] }, fn(entry, { split, acc1, acc2 }) ->
-        cond do
-          split ->
-            { true, acc1, [entry|acc2] }
-          fun.(entry) ->
-            { false, [entry|acc1], acc2 }
-          true ->
-            { true, acc1, [entry|acc2] }
-          end
-      end)
+    { list1, list2 } = I.reduce(collection, { [], [] }, fn
+      entry, { acc1, [] } ->
+        if fun.(entry), do: { [entry|acc1], [] }, else: { acc1, [entry] }
+      entry, { acc1, acc2 } ->
+        { acc1, [entry|acc2] }
+    end)
 
     { :lists.reverse(list1), :lists.reverse(list2) }
   end
@@ -1024,9 +987,14 @@ defmodule Enum do
 
   """
   @spec max(t) :: element | no_return
-  def max(collection) when is_list(collection) do
-    if collection == [], do: raise Enum.EmptyError
-    :lists.max(collection)
+  def max([h|t]) do
+    I.reduce(t, h, fn(entry, max) ->
+      if entry > max, do: entry, else: max
+    end)
+  end
+
+  def max([]) do
+    raise Enum.EmptyError
   end
 
   def max(collection) do
@@ -1038,7 +1006,7 @@ defmodule Enum do
     end)
 
     case result do
-      :first                                         -> raise Enum.EmptyError
+      :first           -> raise Enum.EmptyError
       { :reduce, max } -> max
     end
   end
@@ -1055,8 +1023,17 @@ defmodule Enum do
 
   """
   @spec max(t, (element -> any)) :: element | no_return
-  def max(collection, fun) when is_list(collection) do
-    do_max_first(collection, fun)
+  def max([h|t], fun) do
+    { max, _ } = I.reduce(t, { h, fun.(h) }, fn(entry, { _, fun_max } = old) ->
+      fun_entry = fun.(entry)
+      if fun_entry > fun_max, do: { entry, fun_entry }, else: old
+    end)
+
+    max
+  end
+
+  def max([], _fun) do
+    raise Enum.EmptyError
   end
 
   def max(collection, fun) do
@@ -1085,6 +1062,16 @@ defmodule Enum do
 
   """
   @spec min(t) :: element | no_return
+  def min([h|t]) do
+    I.reduce(t, h, fn(entry, min) ->
+      if entry < min, do: entry, else: min
+    end)
+  end
+
+  def min([]) do
+    raise Enum.EmptyError
+  end
+
   def min(collection) when is_list(collection) do
     if collection == [], do: raise Enum.EmptyError
     :lists.min(collection)
@@ -1115,8 +1102,17 @@ defmodule Enum do
 
   """
   @spec min(t, (element -> any)) :: element | no_return
-  def min(collection, fun) when is_list(collection) do
-    do_min_first(collection, fun)
+  def min([h|t], fun) do
+    { min, _ } = I.reduce(t, { h, fun.(h) }, fn(entry, { _, fun_min } = old) ->
+      fun_entry = fun.(entry)
+      if fun_entry < fun_min, do: { entry, fun_entry }, else: old
+    end)
+
+    min
+  end
+
+  def min([], _fun) do
+    raise Enum.EmptyError
   end
 
   def min(collection, fun) do
@@ -1250,50 +1246,6 @@ defmodule Enum do
 
   defp do_find_value([], ifnone, _) do
     ifnone
-  end
-
-  ## join
-
-  defp do_join([h|t], joiner, nil) do
-    do_join(t, joiner, to_binary(h))
-  end
-
-  defp do_join([h|t], joiner, acc) do
-    acc = acc <> joiner <> to_binary(h)
-    do_join(t, joiner, acc)
-  end
-
-  defp do_join([], _joiner, acc) do
-    acc || ""
-  end
-
-  ## map join
-
-  defp do_map_join([h|t], mapper, joiner, nil) do
-    do_map_join(t, mapper, joiner, to_binary(mapper.(h)))
-  end
-
-  defp do_map_join([h|t], mapper, joiner, acc) do
-    acc = acc <> joiner <> to_binary(mapper.(h))
-    do_map_join(t, mapper, joiner, acc)
-  end
-
-  defp do_map_join([], _mapper, _joiner, acc) do
-    acc || ""
-  end
-
-  ## partition
-
-  defp do_partition([h|t], fun, acc1, acc2) do
-    if fun.(h) do
-      do_partition(t, fun, [h|acc1], acc2)
-    else
-      do_partition(t, fun, acc1, [h|acc2])
-    end
-  end
-
-  defp do_partition([], _, acc1, acc2) do
-    { :lists.reverse(acc1), :lists.reverse(acc2) }
   end
 
   ## sort
@@ -1485,52 +1437,6 @@ defmodule Enum do
 
   defp do_zip_next([h|t]), do: { h, t }
   defp do_zip_next([]),    do: { nil, [] }
-
-  ## max
-
-  defp do_max_first([], _) do
-    raise Enum.EmptyError
-  end
-
-  defp do_max_first([h|t], fun) do
-    do_max(t, fun, h, fun.(h))
-  end
-
-  defp do_max([], _, acc, _) do
-    acc
-  end
-
-  defp do_max([h|t], fun, acc, applied_acc) do
-    applied = fun.(h)
-    if applied > applied_acc do
-      do_max(t, fun, h, applied)
-    else
-      do_max(t, fun, acc, applied_acc)
-    end
-  end
-
-  ## min
-
-  defp do_min_first([], _) do
-    raise Enum.EmptyError
-  end
-
-  defp do_min_first([h|t], fun) do
-    do_min(t, fun, h, fun.(h))
-  end
-
-  defp do_min([], _, acc, _) do
-    acc
-  end
-
-  defp do_min([h|t], fun, acc, applied_acc) do
-    applied = fun.(h)
-    if applied < applied_acc do
-      do_min(t, fun, h, applied)
-    else
-      do_min(t, fun, acc, applied_acc)
-    end
-  end
 end
 
 defimpl Enum.Iterator, for: List do

@@ -169,6 +169,14 @@ defmodule EnumTest.List do
     assert Enum.map_join([1,2,3], ' = ', &1 * 2) == '2 = 4 = 6'
   end
 
+  test :join_empty do
+    fun = fn (acc, _) -> acc end
+    assert Enum.join(fun, ".") == ""
+    assert Enum.map_join(fun, ".", &1 + 0) == ""
+    assert Enum.join(fun, '.') == ''
+    assert Enum.map_join(fun, '.', &1 + 0) == ''
+  end
+
   test :map do
     assert Enum.map([], fn x -> x * 2 end) == []
     assert Enum.map([1,2,3], fn x -> x * 2 end) == [2,4,6]
