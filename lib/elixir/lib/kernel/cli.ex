@@ -222,6 +222,12 @@ defmodule Kernel.CLI do
     { config, t }
   end
 
+  # This clause is here so that Kernel.CLI does not error out with "unknown
+  # option"
+  defp process_iex(["--dot-iex",_|t], config) do
+    process_iex t, config
+  end
+
   defp process_iex([opt,_|t], config) when opt in ["--remsh"] do
     process_iex t, config
   end

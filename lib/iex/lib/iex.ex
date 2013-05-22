@@ -1,5 +1,5 @@
 defrecord IEx.Config, binding: nil, cache: '', counter: 1, scope: nil,
-                      result: nil, load_dot_iex: true
+                      result: nil, dot_iex_path: nil
 
 defmodule IEx do
   @moduledoc %B"""
@@ -86,6 +86,9 @@ defmodule IEx do
       Interactive Elixir (0.8.3.dev) - press Ctrl+C to exit (type h() ENTER for help)
       iex(1)> value
       13
+
+  It is possible to override the default loading sequence for .iex file by
+  supplying the --dot-iex option to iex. See `iex --help`.
 
   ## Expressions in IEx
 
@@ -206,7 +209,7 @@ defmodule IEx do
     IEx.Config[
       binding: opts[:binding] || [],
       scope: scope,
-      load_dot_iex: Keyword.get(opts, :load_dot_iex, true),
+      dot_iex_path: Keyword.get(opts, :dot_iex_path),
     ]
   end
 

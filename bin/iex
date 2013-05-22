@@ -14,6 +14,8 @@ if [ $# -gt 0 ] && ([ $1 = "--help" ] || [ $1 = "-h" ]); then
   --name \"name\"     Makes and assigns a name to the distributed node
   --sname \"name\"    Makes and assigns a short name to the distributed node
   --remsh \"name\"    Connects to a node using a remote shell
+  --dot-iex \"path\"  Overrides default .iex file and uses path instead;
+                    path can be empty, then no file will be loaded
 
 ** Options marked with (*) can be given more than once
 ** Options given after the .exs file or -- are passed down to the executed code

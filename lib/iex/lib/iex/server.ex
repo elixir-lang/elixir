@@ -10,12 +10,18 @@ defmodule IEx.Server do
 
   """
   def start(config) do
-    IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
     Process.put :iex_history, []
+
     { _, _, scope } = :elixir.eval('require IEx.Helpers', [], 0, config.scope)
     config = config.scope(scope)
-    if config.load_dot_iex, do:
-      config = load_dot_iex(config)
+
+    config = case config.dot_iex_path do
+      ""   -> config                     # don't load anything
+      nil  -> load_dot_iex(config)       # load .iex from predefined locations
+      path -> load_dot_iex(config, path) # load from `path`
+    end
+
+    IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
     do_loop(config)
   end
 
@@ -91,8 +97,12 @@ defmodule IEx.Server do
 
   # Locates and loads an .iex file from one of predefined locations. Returns
   # new config.
-  defp load_dot_iex(config) do
-    candidates = Enum.map [".iex", "~/.iex"], Path.expand(&1)
+  defp load_dot_iex(config, path // nil) do
+    candidates = if path do
+      [path]
+    else
+      Enum.map [".iex", "~/.iex"], Path.expand(&1)
+    end
     path = Enum.find candidates, fn path -> File.regular?(path) end
     if nil?(path) do
       config
