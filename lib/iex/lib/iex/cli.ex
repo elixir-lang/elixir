@@ -19,7 +19,8 @@ defmodule IEx.CLI do
     else
       :user.start
       IO.puts "Warning: could not run smart terminal, falling back to dumb one"
-      IEx.start([], fn -> :elixir.start_cli end)
+      config = [dot_iex_path: find_dot_iex(:init.get_plain_arguments)]
+      IEx.start(config, fn -> :elixir.start_cli end)
     end
   end
 
@@ -37,12 +38,15 @@ defmodule IEx.CLI do
   end
 
   defp tty do
+    plain_args = :init.get_plain_arguments
+
+    config = [dot_iex_path: find_dot_iex(plain_args)]
     function = fn ->
-      IEx.start([], fn -> :elixir.start_cli end)
+      IEx.start(config, fn -> :elixir.start_cli end)
     end
 
     args =
-      if remote = get_remsh(:init.get_plain_arguments) do
+      if remote = get_remsh(plain_args) do
         unless is_alive do
           function = fn ->
             IO.puts(:stderr, "In order to use --remsh, you need to name the current node using --name or --sname. Aborting...")
@@ -59,6 +63,10 @@ defmodule IEx.CLI do
 
     :user_drv.start([:"tty_sl -c -e", args])
   end
+
+  defp find_dot_iex(['--dot-iex',h|_]), do: :unicode.characters_to_binary(h)
+  defp find_dot_iex([_|t]), do: find_dot_iex(t)
+  defp find_dot_iex([]), do: nil
 
   defp get_remsh(['--remsh',h|_]), do: list_to_atom(h)
   defp get_remsh([_|t]), do: get_remsh(t)

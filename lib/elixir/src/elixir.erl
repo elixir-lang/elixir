@@ -1,7 +1,8 @@
 -module(elixir).
 -behaviour(application).
 -export([main/1, start_cli/0,
-  scope_for_eval/1, eval/2, eval/3, eval/4,
+  scope_for_eval/1, scope_for_eval/2,
+  eval/2, eval/3, eval/4,
   eval_quoted/2, eval_quoted/3, eval_quoted/4,
   eval_forms/3, translate_forms/3]).
 -include("elixir.hrl").
@@ -46,37 +47,47 @@ start_cli() ->
 %% EVAL HOOKS
 
 scope_for_eval(Opts) ->
-  case lists:keyfind(file, 1, Opts) of
-    { file, RawFile } -> File = to_binary(RawFile);
-    false -> File = <<"nofile">>
+  scope_for_eval(#elixir_scope{
+    file = <<"nofile">>,
+    local = nil,
+    aliases = [],
+    requires = elixir_dispatch:default_requires(),
+    functions = elixir_dispatch:default_functions(),
+    macros = elixir_dispatch:default_macros()
+  }, Opts).
+
+scope_for_eval(Scope, Opts) ->
+  File = case lists:keyfind(file, 1, Opts) of
+    { file, RawFile } -> to_binary(RawFile);
+    false -> Scope#elixir_scope.file
   end,
 
-  case lists:keyfind(delegate_locals_to, 1, Opts) of
-    { delegate_locals_to, Local } -> Local;
-    false -> Local = nil
+  Local = case lists:keyfind(delegate_locals_to, 1, Opts) of
+    { delegate_locals_to, LocalOpt } -> LocalOpt;
+    false -> Scope#elixir_scope.local
   end,
 
-  case lists:keyfind(aliases, 1, Opts) of
-    { aliases, Aliases } -> Aliases;
-    false -> Aliases = []
+  Aliases = case lists:keyfind(aliases, 1, Opts) of
+    { aliases, AliasesOpt } -> AliasesOpt;
+    false -> Scope#elixir_scope.aliases
   end,
 
-  case lists:keyfind(requires, 1, Opts) of
-    { requires, List } -> Requires = ordsets:from_list(List);
-    false -> Requires = elixir_dispatch:default_requires()
+  Requires = case lists:keyfind(requires, 1, Opts) of
+    { requires, List } -> ordsets:from_list(List);
+    false -> Scope#elixir_scope.requires
   end,
 
-  case lists:keyfind(functions, 1, Opts) of
-    { functions, Functions } -> Functions;
-    false -> Functions = elixir_dispatch:default_functions()
+  Functions = case lists:keyfind(functions, 1, Opts) of
+    { functions, FunctionsOpt } -> FunctionsOpt;
+    false -> Scope#elixir_scope.functions
   end,
 
-  case lists:keyfind(macros, 1, Opts) of
-    { macros, Macros } -> Macros;
-    false -> Macros = elixir_dispatch:default_macros()
+  Macros = case lists:keyfind(macros, 1, Opts) of
+    { macros, MacrosOpt } -> MacrosOpt;
+    false -> Scope#elixir_scope.macros
   end,
 
-  #elixir_scope{
+  Scope#elixir_scope{
     file=File, local=Local,
     macros=Macros, functions=Functions,
     requires=Requires, aliases=Aliases }.

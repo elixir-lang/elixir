@@ -25,6 +25,7 @@ defmodule IEx.Helpers do
   * `t/1` — prints type information
   * `v/0` - prints all commands and values
   * `v/1` - retrieves nth value from console
+  * `import_file/1` - evaluate the given file in the shell's context
 
   Help for functions in this module can be consulted
   directly from the command line, as an example, try:
@@ -54,7 +55,6 @@ defmodule IEx.Helpers do
 
       c "baz.ex"
       #=> [Baz]
-
   """
   def c(files, path // ".") do
     tuples = Kernel.ParallelCompiler.files_to_path List.wrap(files), path
@@ -111,7 +111,6 @@ defmodule IEx.Helpers do
       h receive/1
       h Enum.all?/2
       h Enum.all?
-
   """
   defmacro h({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
@@ -154,7 +153,6 @@ defmodule IEx.Helpers do
       t(Enum)
       t(Enum.t/0)
       t(Enum.t)
-
   """
   defmacro t({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
@@ -188,7 +186,6 @@ defmodule IEx.Helpers do
       s(Enum.all?/2)
       s(list_to_atom)
       s(list_to_atom/1)
-
   """
   defmacro s({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
@@ -374,5 +371,31 @@ defmodule IEx.Helpers do
       _ ->
         representation
     end
+  end
+
+  @doc """
+  Evaluates the contents of file at `path` as if it were directly typed into
+  the shell. `path` has to be a literal binary.
+
+  Leading `~` in `path` is automatically expanded.
+
+  ## Examples
+
+      # ~/file.exs
+      value = 13
+
+      # in the shell
+      iex(1)> import_file "~/file.exs"
+      13
+      iex(2)> value
+      13
+  """
+  defmacro import_file(path) when is_binary(path) do
+    path = Path.expand(path)
+    Code.string_to_ast! File.read!(path), file: path
+  end
+
+  defmacro import_file(_) do
+    raise ArgumentError, message: "import_file/1 expects a literal binary as its argument"
   end
 end
