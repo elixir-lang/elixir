@@ -53,7 +53,7 @@ defmodule IEx.Introspection do
   end
 
   def h(function, arity) when is_atom(function) and is_integer(arity) do
-    h([__MODULE__, Kernel, Kernel.SpecialForms], function, arity)
+    h([IEx.Helpers, Kernel, Kernel.SpecialForms], function, arity)
   end
 
   def h(_, _) do
