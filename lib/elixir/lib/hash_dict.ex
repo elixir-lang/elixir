@@ -588,7 +588,6 @@ end
 
 defimpl Enum.Iterator, for: HashDict do
   def reduce(dict, acc, fun),  do: HashDict.reduce(dict, acc, fun)
-  def iterator(dict),          do: HashDict.to_list(dict)
   def member?(dict, { k, v }), do: match?({ :ok, ^v }, HashDict.fetch(dict, k))
   def member?(_dict, _),       do: false
   def count(dict),             do: HashDict.size(dict)

@@ -19,38 +19,6 @@ defprotocol Enum.Iterator do
   def reduce(collection, acc, fun)
 
   @doc """
-  This function must return a tuple of the form `{ iter, step }` where
-  `iter` is a function that yields successive values from the collection
-  each time it is invoked and `step` is the first step of iteration.
-
-  Iteration in Elixir happens with the help of an _iterator function_ (named
-  `iter` in the paragraph above). When it is invoked, it must return a tuple
-  with two elements. The first element is the next successive value from the
-  collection and the second element can be any Elixir term which `iter` is
-  going to receive as its argument the next time it is invoked.
-
-  When there are no more items left to yield, `iter` must return the atom
-  `:stop`.
-
-  As an example, here is the implementation of `iterator` for lists:
-
-      def iterator(list),   do: { iterate(&1), iterate(list) }
-      defp iterate([h|t]),  do: { h, t }
-      defp iterate([]),     do: :stop
-
-  Here, `iterate` is the _iterator function_ and `{ h, t }` is a step of
-  iteration.
-
-  ## Iterating lists
-
-  As a special case, if a data structure needs to be converted to a list in
-  order to be iterated, `iterator` can simply return the list and the `Enum`
-  module will be able to take over the list and produce a proper iterator
-  function for it.
-  """
-  def iterator(collection)
-
-  @doc """
   The function used to check if a value exists within the collection.
   """
   def member?(collection, value)
@@ -1218,10 +1186,6 @@ defmodule Enum do
   defp do_fetch([_|t], n), do: do_fetch(t, n - 1)
   defp do_fetch([], _),    do: :error
 
-  defp do_fetch({ h, _next }, _iterator, 0), do: { :ok, h }
-  defp do_fetch({ _, next }, iterator, n),   do: do_fetch(iterator.(next), iterator, n - 1)
-  defp do_fetch(:stop, _iterator, _),        do: :error
-
   ## drop
 
   defp do_drop([_|t], counter) when counter > 0 do
@@ -1303,12 +1267,6 @@ defmodule Enum do
     acc || ""
   end
 
-  ## map
-
-  defp do_map({ h, next }, iterator, fun) do
-    [fun.(h)|do_map(iterator.(next), iterator, fun)]
-  end
-
   ## map join
 
   defp do_map_join([h|t], mapper, joiner, nil) do
@@ -1336,16 +1294,6 @@ defmodule Enum do
 
   defp do_partition([], _, acc1, acc2) do
     { :lists.reverse(acc1), :lists.reverse(acc2) }
-  end
-
-  ## reverse
-
-  defp do_reverse({ h, next }, iterator, acc) do
-    do_reverse(iterator.(next), iterator, [h|acc])
-  end
-
-  defp do_reverse(:stop, _, acc) do
-    acc
   end
 
   ## sort
@@ -1594,8 +1542,6 @@ defimpl Enum.Iterator, for: List do
     acc
   end
 
-  def iterator(list), do: list
-
   def member?([], _),       do: false
   def member?(list, value), do: :lists.member(value, list)
 
@@ -1605,11 +1551,6 @@ end
 defimpl Enum.Iterator, for: Function do
   def reduce(function, acc, fun) do
     function.(acc, fun)
-  end
-
-  def iterator(function) do
-    { iterator, first } = function.()
-    { iterator, iterator.(first) }
   end
 
   def member?(function, value) do
