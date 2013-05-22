@@ -274,7 +274,9 @@ defmodule ExUnit.CaptureIO do
     do_get_until(input, mod, fun, args)
   end
 
-  defp do_get_until([], mod, fun, args, continuation // []) do
+  defp do_get_until([], mod, fun, args, continuation // [])
+
+  defp do_get_until([], mod, fun, args, continuation) do
     case apply(mod, fun, [continuation, :eof | args]) do
       { :done, result, rest_chars } ->
         set_input(rest_chars)
@@ -284,7 +286,7 @@ defmodule ExUnit.CaptureIO do
     end
   end
 
-  defp do_get_until(input, mod, fun, args, continuation // []) do
+  defp do_get_until(input, mod, fun, args, continuation) do
     { line, rest } = Enum.split_while(input, fn(char) -> char != ?\n end)
 
     case rest do
