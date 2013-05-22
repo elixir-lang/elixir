@@ -957,12 +957,6 @@ defmodule File do
       end
 
   """
-  def iterator(device)
-
-  def iterator(file) when is_binary(file) or is_list(file) do
-    open(file, []) |> iterator
-  end
-
   def iterator(device) do
     fn(fun, acc) ->
       do_iterator(device, fun, acc)
@@ -991,12 +985,6 @@ defmodule File do
   be passed into `Enum` to iterate line by line as a
   binary. Check `iterator/1` for more information.
   """
-  def biniterator(device)
-
-  def biniterator(file) when is_binary(file) or is_list(file) do
-    open(file, []) |> biniterator
-  end
-
   def biniterator(device) do
     fn(fun, acc) ->
       do_biniterator(device, fun, acc)
