@@ -14,6 +14,7 @@ macro_for(_Tuple, _All, nil) -> false;
 macro_for(Tuple, All, Module) ->
   try elixir_def:lookup_definition(Module, Tuple) of
     { { Tuple, Kind, Line, _, _, _, _ }, Clauses } when Kind == defmacro; All, Kind == defmacrop ->
+      %% This function is only called if S#elixir_scope.function /= Tuple
       elixir_import:record(Tuple, Module, Module),
       get_function(Line, Module, Clauses);
     _ ->
@@ -27,7 +28,9 @@ function_for(Module, Name, Arity) ->
   Tuple = { Name, Arity },
   case elixir_def:lookup_definition(Module, Tuple) of
     { { Tuple, _, Line, _, _, _, _ }, Clauses } ->
-      elixir_import:record(Tuple, Module, Module),
+      %% There is no need to record such calls
+      %% since they come from funtions that were
+      %% already analyzed at compilation time.
       get_function(Line, Module, Clauses);
     _ ->
       [_|T] = erlang:get_stacktrace(),

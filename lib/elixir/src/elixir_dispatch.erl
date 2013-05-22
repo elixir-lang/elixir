@@ -43,7 +43,10 @@ import_function(Meta, Name, Arity, S) ->
       require_function(Meta, Receiver, Name, Arity, S);
     nomatch ->
       Module = S#elixir_scope.module,
-      elixir_import:record({ Name, Arity }, Module, Module),
+      case S#elixir_scope.function of
+        Tuple -> ok;
+        _ -> elixir_import:record(Tuple, Module, Module)
+      end,
       { { 'fun', ?line(Meta), { function, Name, Arity } }, S }
   end.
 

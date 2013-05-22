@@ -578,8 +578,11 @@ translate_fn(Meta, Clauses, S) ->
 
 %% Locals
 
-translate_local(Meta, Name, Args, #elixir_scope{local=nil,module=Module} = S) ->
-  elixir_import:record({ Name, length(Args) }, Module, Module),
+translate_local(Meta, Name, Args, #elixir_scope{local=nil,module=Module,function=Function} = S) ->
+  case { Name, length(Args) } of
+    Function -> ok;
+    Tuple    -> elixir_import:record(Tuple, Module, Module)
+  end,
   Line = ?line(Meta),
   { TArgs, NS } = translate_args(Args, S),
   { { call, Line, { atom, Line, Name }, TArgs }, NS };
