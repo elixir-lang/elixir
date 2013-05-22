@@ -55,7 +55,6 @@ defmodule IEx.Helpers do
 
       c "baz.ex"
       #=> [Baz]
-
   """
   def c(files, path // ".") do
     tuples = Kernel.ParallelCompiler.files_to_path List.wrap(files), path
@@ -112,7 +111,6 @@ defmodule IEx.Helpers do
       h receive/1
       h Enum.all?/2
       h Enum.all?
-
   """
   defmacro h({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
@@ -155,7 +153,6 @@ defmodule IEx.Helpers do
       t(Enum)
       t(Enum.t/0)
       t(Enum.t)
-
   """
   defmacro t({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
@@ -189,7 +186,6 @@ defmodule IEx.Helpers do
       s(Enum.all?/2)
       s(list_to_atom)
       s(list_to_atom/1)
-
   """
   defmacro s({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
