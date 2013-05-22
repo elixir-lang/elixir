@@ -30,20 +30,22 @@ defmodule IEx.Server do
     code    = config.cache
     line    = io_get(config)
 
-    new_config =
-      try do
-        eval(code, line, counter, config)
-      rescue
-        exception ->
-          print_exception(exception, System.stacktrace)
-          config.cache('')
-      catch
-        kind, error ->
-          print_error(kind, error, System.stacktrace)
-          config.cache('')
-      end
+    unless line == :eof do
+      new_config =
+        try do
+          eval(code, line, counter, config)
+        rescue
+          exception ->
+            print_exception(exception, System.stacktrace)
+            config.cache('')
+        catch
+          kind, error ->
+            print_error(kind, error, System.stacktrace)
+            config.cache('')
+        end
 
-    do_loop(new_config)
+      do_loop(new_config)
+    end
   end
 
   # Instead of doing just `:elixir.eval`, we first parse the expression to see
@@ -148,6 +150,7 @@ defmodule IEx.Server do
       end
 
     case IO.gets(:stdio, prompt) do
+      :eof -> :eof
       { :error, _ } -> ''
       data -> :unicode.characters_to_list(data)
     end
