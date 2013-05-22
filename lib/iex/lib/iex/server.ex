@@ -14,7 +14,8 @@ defmodule IEx.Server do
     Process.put :iex_history, []
     { _, _, scope } = :elixir.eval('require IEx.Helpers', [], 0, config.scope)
     config = config.scope(scope)
-    config = load_dot_iex(config)
+    if config.load_dot_iex, do:
+      config = load_dot_iex(config)
     do_loop(config)
   end
 

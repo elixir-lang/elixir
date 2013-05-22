@@ -1,4 +1,5 @@
-defrecord IEx.Config, binding: nil, cache: '', counter: 1, scope: nil, result: nil
+defrecord IEx.Config, binding: nil, cache: '', counter: 1, scope: nil,
+                      result: nil, load_dot_iex: true
 
 defmodule IEx do
   @moduledoc %B"""
@@ -204,7 +205,8 @@ defmodule IEx do
 
     IEx.Config[
       binding: opts[:binding] || [],
-      scope: scope
+      scope: scope,
+      load_dot_iex: Keyword.get(opts, :load_dot_iex, true),
     ]
   end
 
