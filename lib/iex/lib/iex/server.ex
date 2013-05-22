@@ -98,13 +98,16 @@ defmodule IEx.Server do
     else
       try do
         code = File.read!(path)
+        scope = :elixir.scope_for_eval(config.scope, file: path)
 
         # Evaluate the contents in the same environment do_loop will run in
         { _result, binding, scope } =
           :elixir.eval(:unicode.characters_to_list(code),
                        config.binding,
                        0,
-                       config.scope)
+                       scope)
+
+        scope = :elixir.scope_for_eval(scope, file: "iex")
         config.binding(binding).scope(scope)
       rescue
         exception ->
