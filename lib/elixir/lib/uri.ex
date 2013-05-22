@@ -37,14 +37,16 @@ defmodule URI do
   the query string in steps.
   """
   def query_decoder(q) when is_binary(q) do
-    fn -> { do_decoder(&1), q } end
+    fn(acc, fun) ->
+      do_decoder(q, acc, fun)
+    end
   end
 
-  defp do_decoder("") do
-    :stop
+  defp do_decoder("", acc, _fun) do
+    acc
   end
 
-  defp do_decoder(q) do
+  defp do_decoder(q, acc, fun) do
     next =
       case :binary.split(q, "&") do
         [first, rest] -> rest
@@ -57,7 +59,7 @@ defmodule URI do
         [ key ]        -> { decode(key), nil }
       end
 
-    { current, next }
+    do_decoder(next, fun.(current, acc), fun)
   end
 
   defp pair({k, v}) do
