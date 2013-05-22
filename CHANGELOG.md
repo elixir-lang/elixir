@@ -1,3 +1,5 @@
+# v0.8.3 (2013-05-22)
+
 * enhancements
   * [CLI] Flags `-p` and `-pr` fails if pattern match no files
   * [CLI] Support `--hidden` and `--cookie` flags for distributed Erlang
