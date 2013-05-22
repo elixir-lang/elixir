@@ -141,7 +141,7 @@ defmodule Kernel.CLI do
     process_shared t, config.update_commands [{:cookie,h}|&1]
   end
 
-  defp process_shared([erl,_|t], config) when erl in ["--erl", "--sname", "--remsh", "--name"] do
+  defp process_shared([erl,_|t], config) when erl in ["--erl", "--sname", "--name"] do
     process_shared t, config
   end
 
@@ -155,8 +155,12 @@ defmodule Kernel.CLI do
     { config, t }
   end
 
-  defp process_argv(["--compile"|t], config) do
+  defp process_argv(["+compile"|t], config) do
     process_compiler t, config
+  end
+
+  defp process_argv(["+iex"|t], config) do
+    process_iex t, config
   end
 
   defp process_argv(["-S",h|t], config) do
@@ -210,6 +214,33 @@ defmodule Kernel.CLI do
 
   defp process_compiler([], config) do
     { config.update_commands([{:compile,config.compile}|&1]), [] }
+  end
+
+  # Process iex options
+
+  defp process_iex(["--"|t], config) do
+    { config, t }
+  end
+
+  defp process_iex([opt,_|t], config) when opt in ["--remsh"] do
+    process_iex t, config
+  end
+
+  defp process_iex(["-S",h|t], config) do
+    { config.update_commands([{:script,h}|&1]), t }
+  end
+
+  defp process_iex([h|t] = list, config) do
+    case h do
+      "-" <> _ ->
+        shared_option? list, config, process_iex(&1, &2)
+      _ ->
+        { config.update_commands([{:file,h}|&1]), t }
+    end
+  end
+
+  defp process_iex([], config) do
+    { config, [] }
   end
 
   # Process commands
