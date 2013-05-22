@@ -905,7 +905,7 @@ defmodule FileTest do
     dest = tmp_path("tmp_test.txt")
 
     try do
-      { :ok, iterator } = File.iterator(src)
+      iterator = File.iterator!(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
           IO.write target, Regex.replace(%r/"/, line, "'")
@@ -934,12 +934,6 @@ defmodule FileTest do
     end
   end
 
-  test :iterator_can_be_closed do
-    src = fixture_path("file.txt")
-    iterator = File.iterator!(src)
-    assert File.close(iterator) == :ok
-  end
-
   test :biniterator do
     src  = File.open! fixture_path("file.txt")
     dest = tmp_path("tmp_test.txt")
@@ -962,7 +956,7 @@ defmodule FileTest do
     dest = tmp_path("tmp_test.txt")
 
     try do
-      { :ok, iterator } = File.biniterator(src)
+      iterator = File.biniterator!(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
           IO.write target, Regex.replace(%r/"/, line, "'")
@@ -989,12 +983,6 @@ defmodule FileTest do
     after
       File.rm(dest)
     end
-  end
-
-  test :biniterator_can_be_closed do
-    src = fixture_path("file.txt")
-    iterator = File.biniterator!(src)
-    assert File.close(iterator) == :ok
   end
 
   test :copy do

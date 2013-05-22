@@ -930,11 +930,6 @@ defmodule File do
   `close/1` might return an old write error and not even try to close the file.
   See `open/2`.
   """
-  def close(io_device) when is_function(io_device) do
-    { iterator, _ } = io_device.()
-    iterator.(:close)
-  end
-
   def close(io_device) do
     F.close(io_device)
   end
@@ -962,50 +957,27 @@ defmodule File do
       end
 
   """
-  def iterator(device)
-
-  def iterator(file) when is_binary(file) or is_list(file) do
-    iterator(file, [])
-  end
-
   def iterator(device) do
-    fn ->
-      function = fn
-        :ok ->
-          case :io.get_line(device, '') do
-            :eof ->
-              close(device)
-              :stop
-            { :error, reason } ->
-              raise File.IteratorError, reason: reason
-            data ->
-              { data, :ok }
-          end
-        :close ->
-          close(device)
-      end
-      { function, :ok }
+    fn(fun, acc) ->
+      do_iterator(device, fun, acc)
     end
   end
 
   @doc """
   Opens the given `file` with the given `mode` and
-  returns its iterator. Fails for the same reasons
-  as `File.open`.
-  """
-  def iterator(file, mode) do
-    case open(file, mode) do
-      { :ok, device } -> { :ok, iterator(device) }
-      error -> error
-    end
-  end
-
-  @doc """
-  Same as `iterator/2` but raises if the file
-  cannot be opened.
+  returns its iterator. The returned iterator will
+  fail for the same reasons as `File.open!`. Note
+  that the file is opened when the iteration begins.
   """
   def iterator!(file, mode // []) do
-    open!(file, mode) |> iterator
+    fn(fun, acc) ->
+      device = open!(file, mode)
+      try do
+        do_iterator(device, fun, acc)
+      after
+        F.close(device)
+      end
+    end
   end
 
   @doc """
@@ -1013,50 +985,27 @@ defmodule File do
   be passed into `Enum` to iterate line by line as a
   binary. Check `iterator/1` for more information.
   """
-  def biniterator(device)
-
-  def biniterator(file) when is_binary(file) or is_list(file) do
-    biniterator(file, [])
-  end
-
   def biniterator(device) do
-    fn ->
-      function = fn
-        :ok ->
-          case :file.read_line(device) do
-            :eof ->
-              close(device)
-              :stop
-            { :error, reason } ->
-              raise File.IteratorError, reason: reason
-            { :ok, data } ->
-              { data, :ok }
-          end
-        :close ->
-          close(device)
-      end
-      { function, :ok }
+    fn(fun, acc) ->
+      do_biniterator(device, fun, acc)
     end
   end
 
   @doc """
   Opens the given `file` with the given `mode` and
-  returns its biniterator. Fails for the same reasons
-  as `File.open`.
-  """
-  def biniterator(file, mode) do
-    case open(file, mode) do
-      { :ok, device } -> { :ok, biniterator(device) }
-      error -> error
-    end
-  end
-
-  @doc """
-  Same as `biniterator/2` but raises if the file
-  cannot be opened.
+  returns its biniterator. The returned iterator will
+  fail for the same reasons as `File.open!`. Note
+  that the file is opened when the iteration begins.
   """
   def biniterator!(file, mode // []) do
-    open!(file, mode) |> biniterator
+    fn(fun, acc) ->
+      device = open!(file, mode)
+      try do
+        do_biniterator(device, fun, acc)
+      after
+        F.close(device)
+      end
+    end
   end
 
   ## Helpers
@@ -1075,4 +1024,26 @@ defmodule File do
 
   defp open_defaults([], true),  do: [:binary]
   defp open_defaults([], false), do: []
+
+  defp do_iterator(device, acc, fun) do
+    case :io.get_line(device, '') do
+      :eof ->
+        acc
+      { :error, reason } ->
+        raise File.IteratorError, reason: reason
+      data ->
+        do_iterator(device, fun.(data, acc), fun)
+    end
+  end
+
+  defp do_biniterator(device, acc, fun) do
+    case F.read_line(device) do
+      :eof ->
+        acc
+      { :error, reason } ->
+        raise File.IteratorError, reason: reason
+      { :ok, data } ->
+        do_iterator(device, fun.(data, acc), fun)
+    end
+  end
 end
