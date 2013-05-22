@@ -396,6 +396,6 @@ defmodule IEx.Helpers do
   end
 
   defmacro import_file(_) do
-    raise "import_file/1 expects a literal binary as its argument"
+    raise ArgumentError, message: "import_file/1 expects a literal binary as its argument"
   end
 end
