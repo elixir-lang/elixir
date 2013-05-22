@@ -181,7 +181,7 @@ defmodule ExUnit.CaptureIO do
     io_request({ :put_chars, mod, func, args }, buf)
   end
 
-  defp io_request({ :get_chars, _enc, _propmpt, n }, buf) when n >= 0 do
+  defp io_request({ :get_chars, _enc, _prompt, n }, buf) when n >= 0 do
     { get_chars(n), buf }
   end
 
