@@ -1,6 +1,8 @@
 # v0.9.0.dev
 
 * enhancements
+  * [IEx] Add support for .iex files that are loaded during shell's boot process
+  * [IEx] Add `import_file/1` helper
 
 * bug fix
 

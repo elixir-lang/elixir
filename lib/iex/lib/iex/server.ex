@@ -10,10 +10,19 @@ defmodule IEx.Server do
 
   """
   def start(config) do
-    IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
     Process.put :iex_history, []
+
     { _, _, scope } = :elixir.eval('require IEx.Helpers', [], 0, config.scope)
-    do_loop(config.scope(scope))
+    config = config.scope(scope)
+
+    config = case config.dot_iex_path do
+      ""   -> config                     # don't load anything
+      nil  -> load_dot_iex(config)       # load .iex from predefined locations
+      path -> load_dot_iex(config, path) # load from `path`
+    end
+
+    IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
+    do_loop(config)
   end
 
   defp do_loop(config) do
@@ -26,15 +35,11 @@ defmodule IEx.Server do
         eval(code, line, counter, config)
       rescue
         exception ->
-          print_stacktrace System.stacktrace, fn ->
-            "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-          end
+          print_exception(exception, System.stacktrace)
           config.cache('')
       catch
         kind, error ->
-          print_stacktrace System.stacktrace, fn ->
-            "** (#{kind}) #{inspect(error)}"
-          end
+          print_error(kind, error, System.stacktrace)
           config.cache('')
       end
 
@@ -90,13 +95,40 @@ defmodule IEx.Server do
     end
   end
 
-  defp print_stacktrace(trace, callback) do
-    try do
-      io_error callback.()
-      io_error Exception.format_stacktrace(trace)
-    catch
-      _, _ ->
-        io_error "** (IEx.Error) error when printing exception message and stacktrace"
+  # Locates and loads an .iex file from one of predefined locations. Returns
+  # new config.
+  defp load_dot_iex(config, path // nil) do
+    candidates = if path do
+      [path]
+    else
+      Enum.map [".iex", "~/.iex"], Path.expand(&1)
+    end
+    path = Enum.find candidates, fn path -> File.regular?(path) end
+    if nil?(path) do
+      config
+    else
+      try do
+        code = File.read!(path)
+        scope = :elixir.scope_for_eval(config.scope, file: path)
+
+        # Evaluate the contents in the same environment do_loop will run in
+        { _result, binding, scope } =
+          :elixir.eval(:unicode.characters_to_list(code),
+                       config.binding,
+                       0,
+                       scope)
+
+        scope = :elixir.scope_for_eval(scope, file: "iex")
+        config.binding(binding).scope(scope)
+      rescue
+        exception ->
+          print_exception(exception, System.stacktrace)
+          System.halt(1)
+      catch
+        kind, error ->
+          print_error(kind, error, System.stacktrace)
+          System.halt(1)
+      end
     end
   end
 
@@ -131,5 +163,27 @@ defmodule IEx.Server do
 
   defp remote_prefix do
     if node == node(:erlang.group_leader), do: "iex", else: "rem"
+  end
+
+  defp print_exception(exception, stacktrace) do
+    print_stacktrace stacktrace, fn ->
+      "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+    end
+  end
+
+  defp print_error(kind, reason, stacktrace) do
+    print_stacktrace stacktrace, fn ->
+      "** (#{kind}) #{inspect(reason)}"
+    end
+  end
+
+  defp print_stacktrace(trace, callback) do
+    try do
+      io_error callback.()
+      io_error Exception.format_stacktrace(trace)
+    catch
+      _, _ ->
+        io_error "** (IEx.Error) error when printing exception message and stacktrace"
+    end
   end
 end
