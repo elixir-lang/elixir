@@ -4,18 +4,38 @@ defprotocol Enum.Iterator do
 
   Usually, when you invoke a function in the module `Enum`, the first argument
   passed to it is a collection which is forwarded to this protocol in order to
-  retrieve information on how to iterate the collection.
+  perform operations on the collection.
 
   For example, in the expression
 
       Enum.map([1,2,3], &1 * 2)
 
-  `Enum.map` invokes `Enum.Iterator.iterator([1,2,3])` to retrieve the iterator
-  function that will drive the iteration process.
+  `Enum.map` invokes `Enum.Iterator.reduce` to perform the reducing operation
+  that builds a mapped list by calling the mapping function `&1 * 2` on every
+  element in the collection and cons'ing the element with the accumulated list.
   """
 
   @only [List, Record, Function]
 
+  @doc """
+  This function performs the reducing operation on a given collection. It
+  returns the accumulated value of applying the given function `fun` on every
+  element with the accumulated value.
+
+  As an example, here is the implementation of `reduce` for lists:
+
+      def reduce([h|t], acc, fun), do: reduce(t, fun.(h, acc), fun)
+      def reduce([], acc, _fun),   do: acc
+
+  As an additional example, here is the implementation of `Enum.map` with
+  `Enum.Iterator`:
+
+      def map(collection, fun) do
+        Enum.Iterator.reduce(collection, [], fn(entry, acc) ->
+          [fun.(entry)|acc]
+        end) |> :lists.reverse
+      end
+  """
   def reduce(collection, acc, fun)
 
   @doc """
