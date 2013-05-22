@@ -25,7 +25,7 @@ defmodule IEx.Helpers do
   * `t/1` — prints type information
   * `v/0` - prints all commands and values
   * `v/1` - retrieves nth value from console
-  * `import_file/1`, `import_file/2` - evaluate the given file in the shell's context
+  * `import_file/1` - evaluate the given file in the shell's context
 
   Help for functions in this module can be consulted
   directly from the command line, as an example, try:
@@ -375,13 +375,9 @@ defmodule IEx.Helpers do
 
   @doc """
   Evaluates the contents of file at `path` as if it were directly typed into
-  the shell. When `relative_to` is provided, `path` is treated as being
-  relative to that (unless it is already an absolute path). See `Path.expand`
-  for more details.
+  the shell. `path` has to be a literal binary.
 
-  Both `path` and `relative_to` (if present) have to be literal binaries.
-
-  Leading `~` in `path` and `relative_to` is automatically expanded.
+  Leading `~` in `path` is automatically expanded.
 
   ## Examples
 
@@ -394,22 +390,12 @@ defmodule IEx.Helpers do
       iex(2)> value
       13
   """
-  defmacro import_file(path, relative_to // nil)
-
-  defmacro import_file(path, relative_to)
-      when is_binary(path) and (nil?(relative_to) or is_binary(relative_to)) do
-    if relative_to do
-      inject_file Path.expand(path, relative_to)
-    else
-      inject_file Path.expand(path)
-    end
-  end
-
-  defmacro import_file(_, _) do
-    raise "import_file expects literal binaries as its arguments"
-  end
-
-  defp inject_file(path) do
+  defmacro import_file(path) when is_binary(path) do
+    path = Path.expand(path)
     Code.string_to_ast! File.read!(path), file: path
+  end
+
+  defmacro import_file(_) do
+    raise "import_file/1 expects a literal binary as its argument"
   end
 end
