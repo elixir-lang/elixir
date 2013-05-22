@@ -64,7 +64,7 @@ defmodule Code do
   end
 
   @doc """
-  Evalutes the contents given by string. The second argument is the
+  Evaluates the contents given by string. The second argument is the
   binding (which should be a keyword) followed by a keyword list of
   environment options. Those options can be:
 
@@ -114,7 +114,7 @@ defmodule Code do
   end
 
   @doc """
-  Evalutes the quoted contents.
+  Evaluates the quoted contents.
 
   This function accepts a list of environment options.
   Check `Code.eval_string` for more information.

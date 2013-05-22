@@ -92,7 +92,7 @@ defmodule IEx do
 
   ## Expressions in IEx
 
-  As an interactive shell, IEx evalutes expressions. This has some
+  As an interactive shell, IEx evaluates expressions. This has some
   interesting consequences that are worth discussing.
 
   The first one is that the code is truly evaluated and not compiled.

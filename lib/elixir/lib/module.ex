@@ -28,10 +28,10 @@ defmodule Module do
   end
 
   @doc """
-  Evalutes the quotes contents in the given module context.
+  Evaluates the quoted contents in the given module's context.
 
   A list of environment options can also be given as argument.
-  Check `Code.eval_string` for more information.
+  See `Code.eval_string` for more information.
 
   Raises an error if the module was already compiled.
 
