@@ -50,11 +50,9 @@ defmodule Binary.Chars.NumberTest do
     assert to_binary(100) == "100"
   end
 
-  unless :erlang.system_info(:otp_release) < 'R16' do
-    test :float do
-      assert to_binary(1.0) == "1.0"
-      assert to_binary(1.0e10) == "10000000000.0"
-    end
+  test :float do
+    assert to_binary(1.0) == "1.0"
+    assert to_binary(1.0e10) == "10000000000.0"
   end
 end
 

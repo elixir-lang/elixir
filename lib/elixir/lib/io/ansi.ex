@@ -24,9 +24,6 @@ defmodule IO.ANSI do
   (http://en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
   in the text used to control formatting, color, and other output options
   on video text terminals.
-
-  Please be aware that in Erlang/OTP versions prior to R16, you will not
-  be able to render ANSI escape sequences in iex or erlang shell
   """
 
   import IO.ANSI.Sequence
@@ -36,23 +33,11 @@ defmodule IO.ANSI do
 
   Used to identify whether printing ANSI escape sequences will likely
   be printed as intended.
-
-  Please note that invoked while in shell (iex) in Erlang/OTP
-  prior to R16, terminal?/0 will always return false because
-  Erlang shell did not support ANSI escape sequences up until
-  R16.
   """
   @spec terminal? :: boolean
   @spec terminal?(:io.device) :: boolean
   def terminal?(device // :erlang.group_leader) do
-    if :erlang.system_info(:otp_release) < 'R16' and
-       Process.whereis(:user) != device do
-      # Shell prior to R16 doesn't support ANSI escape
-      # sequences
-      false
-    else
-      match?({:ok, _}, :io.columns(device))
-    end
+    match?({:ok, _}, :io.columns(device))
   end
 
   @doc "Resets all attributes"

@@ -1,3 +1,14 @@
+# v0.9.0.dev
+
+* enhancements
+
+* bug fix
+
+* deprecations
+
+* backwards incompatible changes
+  * [Kernel] Erlang R15 is no longer supported
+
 # v0.8.3 (2013-05-22)
 
 * enhancements

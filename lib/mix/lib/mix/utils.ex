@@ -47,14 +47,7 @@ defmodule Mix.Utils do
   Gets the source location of a module as a binary.
   """
   def source(module) do
-    compile = module.__info__(:compile)
-
-    # Get the source of the compiled module. Due to a bug in Erlang
-    # R15 and before, we need to look for the source first in the
-    # options and then into the real source.
-    options = compile[:options] || []
-    source  = options[:source]  || compile[:source]
-
+    source = module.__info__(:compile)[:source]
     source && list_to_binary(source)
   end
 

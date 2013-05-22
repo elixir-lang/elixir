@@ -285,18 +285,7 @@ defmodule IEx.Helpers do
   end
 
   defp source(module) do
-    compile = module.module_info(:compile)
-
-    # Get the source of the compiled module. Due to a bug in Erlang
-    # R15 and before, we need to look for the source first in the
-    # options and then into the real source.
-    options =
-      case List.keyfind(compile, :options, 0) do
-        { :options, opts } -> opts
-        _ -> []
-      end
-
-    source = List.keyfind(options, :source, 0)  || List.keyfind(compile, :source, 0)
+    source = module.module_info(:compile)[:source]
 
     case source do
       { :source, source } -> list_to_binary(source)

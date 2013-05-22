@@ -102,20 +102,14 @@ defmodule KernelTest do
       assert float_to_binary(7.0) == "7.00000000000000000000e+00"
     end
 
-    case :proplists.get_value(:float_to_binary,
-                              :proplists.get_value(:exports, :erlang.module_info, [])) do
-      2 ->
-        # We can only test this where this functionality is available
-        test :float_to_binary_with_options do
-          assert float_to_binary(7.1, [decimals: 2]) == "7.10"
-          assert float_to_binary(7.1, [scientific: 2]) == "7.10e+00"
-          assert float_to_binary(7.1, [decimals: 2, compact: true]) == "7.1"
-          assert float_to_binary(7.1, [scientific: 2, compact: true]) == "7.10e+00"
-          assert float_to_binary(7.1, [decimals: 2, compact: false]) == "7.10"
-        end
-      _ ->
-        :ok
+    test :float_to_binary_with_options do
+      assert float_to_binary(7.1, [decimals: 2]) == "7.10"
+      assert float_to_binary(7.1, [scientific: 2]) == "7.10e+00"
+      assert float_to_binary(7.1, [decimals: 2, compact: true]) == "7.1"
+      assert float_to_binary(7.1, [scientific: 2, compact: true]) == "7.10e+00"
+      assert float_to_binary(7.1, [decimals: 2, compact: false]) == "7.10"
     end
+
     test :atom_to_binary_defaults_to_utf8 do
       expected  = atom_to_binary :some_binary, :utf8
       actual    = atom_to_binary :some_binary

@@ -42,12 +42,10 @@ defmodule Mix.CLITest do
       assert File.regular?("ebin/Elixir-A.beam")
       assert output =~ %r"1 tests, 0 failures"
 
-      unless :erlang.system_info(:otp_release) < 'R16' do
-        output = mix "test test/hidden.ex --cover cover"
-        assert output =~ %r"1 tests, 1 failures"
-        assert output =~ %r"Generating cover results ... ok"
-        assert File.regular?("cover/Elixir-A.html")
-      end
+      output = mix "test test/hidden.ex --cover cover"
+      assert output =~ %r"1 tests, 1 failures"
+      assert output =~ %r"Generating cover results ... ok"
+      assert File.regular?("cover/Elixir-A.html")
     end
   end
 
