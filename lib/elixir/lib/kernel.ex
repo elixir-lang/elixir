@@ -2612,7 +2612,9 @@ defmodule Kernel do
       123
 
   """
-  def binary_to_integer(some_binary)
+  def binary_to_integer(some_binary) do
+    :erlang.binary_to_integer(some_binary)
+  end
 
   @doc """
   Returns an integer whose text representation in base `base`
@@ -2624,7 +2626,9 @@ defmodule Kernel do
       1023
 
   """
-  def binary_to_integer(some_binary, base)
+  def binary_to_integer(some_binary, base) do
+    :erlang.binary_to_integer(some_binary, base)
+  end
 
   @doc """
   Returns a float whose text representation is `some_binary`.
@@ -2635,7 +2639,9 @@ defmodule Kernel do
       2.2017764
 
   """
-  def binary_to_float(some_binary)
+  def binary_to_float(some_binary) do
+    :erlang.binary_to_float(some_binary)
+  end
 
   @doc """
   Returns a binary which corresponds to the text representation
@@ -2647,7 +2653,9 @@ defmodule Kernel do
       "123"
 
   """
-  def integer_to_binary(some_integer)
+  def integer_to_binary(some_integer) do
+    :erlang.integer_to_binary(some_integer)
+  end
 
   @doc """
   Returns a binary which corresponds to the text representation
@@ -2659,7 +2667,9 @@ defmodule Kernel do
       "64"
 
   """
-  def integer_to_binary(some_integer, base)
+  def integer_to_binary(some_integer, base) do
+    :erlang.integer_to_binary(some_integer, base)
+  end
 
   @doc """
   Returns a binary which corresponds to the text representation
@@ -2671,7 +2681,9 @@ defmodule Kernel do
       "7.00000000000000000000e+00"
 
   """
-  def float_to_binary(some_float)
+  def float_to_binary(some_float) do
+    :erlang.float_to_binary(some_float)
+  end
 
   @doc """
   Returns a binary which corresponds to the text representation
@@ -2691,18 +2703,6 @@ defmodule Kernel do
   def float_to_binary(float, options) do
     :erlang.float_to_binary(float, expand_compact(options))
   end
-
-  @doc """
-  Returns a list which corresponds to the char list representation
-  of `some_float`.
-
-  ## Examples
-
-      iex> float_to_binary(7.0)
-      '7.00000000000000000000e+00'
-
-  """
-  def float_to_list(some_float)
 
   @doc """
   Returns a list which corresponds to the text representation
