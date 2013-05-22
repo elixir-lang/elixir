@@ -67,8 +67,8 @@ defmodule IEx do
 
   Sample contents of a local .iex file:
 
-      # source another .iex file, ~/.iex in this case
-      Code.require_file ".iex", "~"
+      # source another .iex file
+      import_file "~/.iex"
 
       # print something before the shell starts
       IO.puts "hello world"
