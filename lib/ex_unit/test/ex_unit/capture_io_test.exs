@@ -6,6 +6,30 @@ end
 
 alias ExUnit.CaptureIOTest.Value
 
+defmodule ExUnit.CaptureIOTest.GetUntil do
+  def until_new_line(_, :eof, _) do
+    { :done, :eof, [] }
+  end
+
+  def until_new_line(this_far, chars, stop_char) do
+    case Enum.split_while(chars, fn(c) -> c != stop_char end) do
+      { l, [] } ->
+        { :more, this_far ++ l }
+      { l, [stop_char|rest] } ->
+        { :done, this_far ++ l ++ [stop_char], rest }
+    end
+  end
+
+  def get_line(device // Process.group_leader) do
+    device <- { :io_request, self, device, { :get_until, :unicode, "", __MODULE__, :until_new_line, [?\n] } }
+    receive do
+      { :io_reply, _, data } -> data
+    end
+  end
+end
+
+alias ExUnit.CaptureIOTest.GetUntil
+
 defmodule ExUnit.CaptureIOTest do
   use ExUnit.Case, async: true
 
@@ -37,6 +61,10 @@ defmodule ExUnit.CaptureIOTest do
     end) == "josé"
 
     assert capture_io(fn ->
+      spawn(fn -> :io.put_chars("a") end)
+    end) == "a"
+
+    assert capture_io(fn ->
       assert :io.put_chars("a") == :ok
     end)
   end
@@ -55,6 +83,22 @@ defmodule ExUnit.CaptureIOTest do
     capture_io(fn ->
       assert :io.get_chars(">", 3) == :eof
     end)
+
+    capture_io("", fn ->
+      assert :io.get_chars(">", 3) == :eof
+    end)
+
+    capture_io("abc\ndef", fn ->
+      assert :io.get_chars(">", 3) == "abc"
+      assert :io.get_chars(">", 5) == "\ndef"
+      assert :io.get_chars(">", 7) == :eof
+    end)
+
+    capture_io("あいう", fn ->
+      assert :io.get_chars(">", 2) == "あい"
+      assert :io.get_chars(">", 1) == "う"
+      assert :io.get_chars(">", 1) == :eof
+    end)
   end
 
   test :capture_io_with_get_line do
@@ -65,15 +109,84 @@ defmodule ExUnit.CaptureIOTest do
     capture_io(fn ->
       assert :io.get_line(">") == :eof
     end)
+
+    capture_io("", fn ->
+      assert :io.get_line(">") == :eof
+    end)
+
+    capture_io("\n", fn ->
+      assert :io.get_line(">") == "\n"
+      assert :io.get_line(">") == :eof
+    end)
+
+    capture_io("a", fn ->
+      assert :io.get_line(">") == "a"
+      assert :io.get_line(">") == :eof
+    end)
+
+    capture_io("a\n", fn ->
+      assert :io.get_line(">") == "a\n"
+      assert :io.get_line(">") == :eof
+    end)
+
+    capture_io("a\nb", fn ->
+      assert :io.get_line(">") == "a\n"
+      assert :io.get_line(">") == "b"
+      assert :io.get_line(">") == :eof
+    end)
+
+    capture_io("あい\nう", fn ->
+      assert :io.get_line(">") == "あい\n"
+      assert :io.get_line(">") == "う"
+      assert :io.get_line(">") == :eof
+    end)
   end
 
   test :capture_io_with_get_until do
     assert capture_io(fn ->
-       send_and_receive_io({ :get_until, '>', :m, :f, :as })
+      assert :io.scan_erl_form('>')
     end) == nil
 
     capture_io(fn ->
-       assert send_and_receive_io({ :get_until, '>', :m, :f, :as }) == :eof
+      assert :io.scan_erl_form('>') == { :eof, 1 }
+    end)
+
+   capture_io("1", fn ->
+     assert :io.scan_erl_form('>') == { :ok, [{ :integer, 1, 1 }], 1 }
+     assert :io.scan_erl_form('>') == { :eof, 1 }
+   end)
+
+    capture_io("1\n.", fn ->
+      assert :io.scan_erl_form('>') == { :ok, [{ :integer, 1, 1 }, { :dot, 2 }], 2 }
+      assert :io.scan_erl_form('>') == { :eof, 1 }
+    end)
+
+    capture_io("1.\n.", fn ->
+      assert :io.scan_erl_form('>') == { :ok, [{ :integer, 1, 1 }, { :dot, 1 }], 2 }
+      assert :io.scan_erl_form('>') == { :ok, [dot: 1], 1}
+      assert :io.scan_erl_form('>') == { :eof, 1 }
+    end)
+
+    capture_io("\"a", fn ->
+      assert :io.scan_erl_form('>') == { :error, { 1, :erl_scan, { :string, 34, 'a' } }, 1 }
+      assert :io.scan_erl_form('>') == { :eof, 1 }
+    end)
+
+    capture_io("\"a\n\"", fn ->
+      assert :io.scan_erl_form('>') == { :ok, [{ :string, 1, 'a\n' }], 2 }
+      assert :io.scan_erl_form('>') == { :eof, 1 }
+    end)
+
+    capture_io(":erl. mof*,,l", fn ->
+      assert :io.scan_erl_form('>') == { :ok, [{ :":", 1 }, { :atom, 1, :erl }, { :dot, 1 }], 1 }
+      assert :io.scan_erl_form('>') == { :ok, [{ :atom, 1, :mof }, { :*, 1 }, { :"," , 1 }, { :",", 1 }, { :atom, 1, :l }], 1 }
+      assert :io.scan_erl_form('>') == { :eof, 1 }
+    end)
+
+    capture_io("a\nb\nc", fn ->
+      assert GetUntil.get_line == 'a\n'
+      assert GetUntil.get_line == 'b\n'
+      assert GetUntil.get_line == :eof
     end)
   end
 
