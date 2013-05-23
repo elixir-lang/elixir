@@ -123,8 +123,11 @@ defmodule IEx.Options do
 
   def set(:colors, colors) when is_list(colors) do
     { :ok, old_colors } = :application.get_env(:iex, :colors)
-    # FIXME: validate keys before setting
-    :application.set_env(:iex, :colors, Keyword.merge(old_colors, colors))
+    # Validate keys before setting
+    filtered_colors = Enum.filter colors, fn {name, _} ->
+      name in old_colors
+    end
+    :application.set_env(:iex, :colors, Keyword.merge(old_colors, filtered_colors))
     old_colors
   end
 
@@ -134,7 +137,7 @@ defmodule IEx.Options do
 
   def set(:inspect, opts) when is_list(opts) do
     old_opts = IEx.inspect_opts
-    # FIXME: validate keys before setting
+    # `opts` are validated by IEx.inspect_opts
     IEx.inspect_opts(opts)
     old_opts
   end

@@ -151,8 +151,11 @@ defmodule IEx do
   Registers options used on inspect.
   """
   def inspect_opts(opts) when is_list(opts) do
-    # FIXME: validate keys before setting
-    :application.set_env(:iex, :inspect_opts, Keyword.merge(inspect_opts, opts))
+    old_opts = inspect_opts()
+    filtered_opts = Enum.filter opts, fn {name, _} ->
+      name in old_opts
+    end
+    :application.set_env(:iex, :inspect_opts, Keyword.merge(old_opts, filtered_opts))
   end
 
   @doc """
