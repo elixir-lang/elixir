@@ -13,7 +13,7 @@ defprotocol Range.Iterator do
   def count(first, range)
 end
 
-defimpl Enum.Iterator, for: Range do
+defimpl Enumerable, for: Range do
   def reduce(Range[first: first] = range, acc, fun) do
     Range.Iterator.reduce(first, range, acc, fun)
   end
@@ -33,7 +33,7 @@ defimpl Range.Iterator, for: Number do
     else
       fn(acc, fun) -> do_reducer_down(first, last, acc, fun) end
     end
-    Enum.Iterator.Function.reduce(reducer, acc, fun)
+    Enumerable.Function.reduce(reducer, acc, fun)
   end
 
   defp do_reducer_up(counter, last, acc, _fun) when counter > last do

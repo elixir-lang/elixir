@@ -586,7 +586,7 @@ defmodule HashDict do
   end
 end
 
-defimpl Enum.Iterator, for: HashDict do
+defimpl Enumerable, for: HashDict do
   def reduce(dict, acc, fun),  do: HashDict.reduce(dict, acc, fun)
   def member?(dict, { k, v }), do: match?({ :ok, ^v }, HashDict.fetch(dict, k))
   def member?(_dict, _),       do: false

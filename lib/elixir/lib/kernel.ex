@@ -2960,7 +2960,7 @@ defmodule Kernel do
 
       String.graphemes("Hello" |> Enum.reverse)
 
-  Which will result in an error as Enum.Iterator protocol
+  Which will result in an error as Enumerable protocol
   is not defined for binaries. Adding explicit parenthesis
   is recommended:
 

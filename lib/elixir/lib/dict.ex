@@ -29,7 +29,7 @@ defmodule Dict do
       ...> dict[:hello]
       :world
 
-  And also the `Enum.Iterator` protocol, allowing one to write:
+  And also the `Enumerable` protocol, allowing one to write:
 
       Enum.each(dict, fn ({ k, v }) ->
         IO.puts "#{k}: #{v}"
