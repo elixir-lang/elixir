@@ -3,6 +3,16 @@ Code.require_file "../../test_helper.exs", __DIR__
 defmodule Mix.Tasks.DepsGitTest do
   use MixTest.Case
 
+  defmodule DepsOnGitApp do
+    def project do
+      [ app: :deps_on_git_app,
+        version: "0.1.0",
+        deps: [
+          { :deps_on_git_repo, "0.1.0", git: MixTest.Case.fixture_path("deps_on_git_repo") }
+        ] ]
+    end
+  end
+
   defmodule GitApp do
     def project do
       [ app: :git_app,
@@ -61,6 +71,29 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
+    Mix.Project.pop
+  end
+
+  test "gets many levels deep dependencies" do
+    Mix.Project.push DepsOnGitApp
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Deps.Get.run []
+
+      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+      assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
+
+
+      message = "* Getting deps_on_git_repo [git: #{inspect fixture_path("deps_on_git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+      assert_received { :mix_shell, :info, ["* Compiling deps_on_git_repo"] }
+
+      assert File.exists?("deps/deps_on_git_repo/mix.exs")
+      assert File.exists?("deps/git_repo/mix.exs")
+    end
+  after
+    purge [GitRepo, GitRepo.Mix, DepsOnGitRepo.Mix]
     Mix.Project.pop
   end
 

@@ -3,6 +3,7 @@
 * enhancements
 
 * bug fix
+  * [Mix] Fix a bug where `mix deps.get` was not retrieving nested dependencies
 
 * deprecations
 

@@ -27,10 +27,15 @@ defmodule Mix.Deps.Retriever do
     Enum.map_reduce children, rest, fn (dep, rest) ->
       { dep, rest } = callback.(dep, rest)
 
-      if Mix.Deps.available?(dep) and Mix.Deps.mix?(dep) do
-        { dep, rest } = Mix.Deps.in_dependency dep, post_config, fn _ ->
+      if Mix.Deps.available?(dep) and mixfile?(dep) do
+        { dep, rest } = Mix.Deps.in_dependency dep, post_config, fn project ->
           { deps, rest } = all(rest, callback)
-          { dep.deps(deps), rest }
+
+          # We need to call with_mix_project once again
+          # here in case the dependency was not available
+          # the first time and the callback hook just
+          # happened to fetch it.
+          { with_mix_project(dep, project).deps(deps), rest }
         end
       end
 
@@ -50,18 +55,13 @@ defmodule Mix.Deps.Retriever do
     Enum.map deps, fn dep ->
       dep = with_scm_and_status(dep, scms)
 
-      # Set properties if dependency is a mix project
       if Mix.Deps.available?(dep) and mixfile?(dep) do
-        dep = Mix.Deps.in_dependency dep, fn project ->
-          if match?({ :noappfile, _ }, dep.status) and Mix.Project.umbrella? do
-            dep = dep.update_opts(Keyword.put(&1, :app, false))
-                     .status({ :ok, nil })
-          end
-          dep.project(project)
+        Mix.Deps.in_dependency dep, fn project ->
+          with_mix_project(dep, project)
         end
+      else
+        dep
       end
-
-      dep
     end
   end
 
@@ -73,6 +73,16 @@ defmodule Mix.Deps.Retriever do
   end
 
   ## Helpers
+
+  defp with_mix_project(Mix.Dep[project: nil] = dep, project) do
+    if match?({ :noappfile, _ }, dep.status) and Mix.Project.umbrella? do
+      dep = dep.update_opts(Keyword.put(&1, :app, false))
+               .status({ :ok, nil })
+    end
+    dep.project(project)
+  end
+
+  defp with_mix_project(dep, _project), do: dep
 
   defp with_scm_and_status({ app, opts }, scms) when is_atom(app) and is_list(opts) do
     with_scm_and_status({ app, nil, opts }, scms)

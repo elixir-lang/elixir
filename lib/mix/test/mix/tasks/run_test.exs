@@ -16,13 +16,13 @@ defmodule Mix.Tasks.RunTest do
   test "run command with dependencies" do
     Mix.Project.push GetApp
 
-    in_fixture "only_mixfile", fn ->
+    in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
       Mix.Tasks.Run.run ["Mix.shell.info", "GitRepo.hello"]
       assert_received { :mix_shell, :info, ["World"] }
     end
   after
-    purge [GitRepo, GitRepo.Mix]
+    purge [GitRepo, GitRepo.Mix, A, B, C]
     Mix.Project.pop
   end
 
@@ -37,6 +37,6 @@ defmodule Mix.Tasks.RunTest do
       assert_received { :mix_shell, :info, ["World"] }
     end
   after
-    purge [GitRepo, A, B, C]
+    purge [GitRepo, GitRepo.Mix, A, B, C]
   end
 end
