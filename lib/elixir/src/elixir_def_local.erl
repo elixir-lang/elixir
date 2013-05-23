@@ -81,11 +81,11 @@ check_unused_local(Fun, Kind, Line, File, 0, Recorded) ->
   not(lists:member(Fun, Recorded)) andalso
     elixir_errors:handle_file_warning(File, { Line, ?MODULE, { unused_def, Kind, Fun } });
 
-check_unused_local({ _, Arity } = Fun, Kind, Line, File, Defaults, Recorded) when Defaults > 0 ->
+check_unused_local({ Name, Arity } = Fun, Kind, Line, File, Defaults, Recorded) when Defaults > 0 ->
   Min = Arity - Defaults,
   Max = Arity,
 
-  Invoked = [A || { _, A } <- Recorded, A >= Min, A =< Max],
+  Invoked = [A || { N, A } <- Recorded, A >= Min, A =< Max, N == Name],
 
   case Invoked of
     [] ->
