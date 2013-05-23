@@ -42,6 +42,16 @@ defmodule IEx.Options do
   ]
 
   @doc """
+  Returns all supported IEx options with their respective values as a keyword
+  list.
+  """
+  def get do
+    Enum.map list(), fn name ->
+      {name, get(name)}
+    end
+  end
+
+  @doc """
   Get current value of the option `name`. Raises ArgumentError if name is not a
   known option.
   """
@@ -58,6 +68,18 @@ defmodule IEx.Options do
 
   def get(name) do
     raise_option(name)
+  end
+
+  @doc """
+  Set all options at once by providing a keyword list with option names and
+  their corresponding values. This is generally obtained from `get/0`.
+
+  Returns a keyword list of old option values.
+  """
+  def set(opts) do
+    Enum.map opts, fn {name, val} ->
+      {name, set(name, val)}
+    end
   end
 
   @doc """
