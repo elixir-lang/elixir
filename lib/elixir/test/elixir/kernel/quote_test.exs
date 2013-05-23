@@ -102,6 +102,16 @@ defmodule Kernel.QuoteTest do
     assert quote(do: [unquote_splicing(contents)|[1,2,3]]) == [1,2,3,1,2,3]
   end
 
+  test :splice_on_stab do
+    { fun, [] } =
+      Code.eval_quoted(quote(do: fn(unquote_splicing([1,2,3])) -> :ok end), [])
+    assert fun.(1,2,3) == :ok
+
+    { fun, [] } =
+      Code.eval_quoted(quote(do: fn(1, unquote_splicing([2,3])) -> :ok end), [])
+    assert fun.(1,2,3) == :ok
+  end
+
   test :stab do
     assert { :->, _, [{[],_}] } = (quote do -> end)
     assert { :->, _, [{[],_}] } = (quote do: (->))

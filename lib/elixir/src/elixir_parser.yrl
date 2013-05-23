@@ -215,8 +215,8 @@ stab_eol -> stab eol : '$1'.
 
 stab_expr -> expr : '$1'.
 stab_expr -> stab_op stab_maybe_expr : build_op('$1', [], '$2').
-stab_expr -> call_args_no_parens stab_op stab_maybe_expr : build_op('$2', '$1', '$3').
-stab_expr -> call_args_parens_not_one stab_op stab_maybe_expr : build_op('$2', '$1', '$3').
+stab_expr -> call_args_no_parens stab_op stab_maybe_expr : build_op('$2', unwrap_splice('$1'), '$3').
+stab_expr -> call_args_parens_not_one stab_op stab_maybe_expr : build_op('$2', unwrap_splice('$1'), '$3').
 
 stab_maybe_expr -> 'expr' : '$1'.
 stab_maybe_expr -> '$empty' : nil.
@@ -590,6 +590,18 @@ build_stab([H|T], Marker, Temp, Acc) ->
 build_stab([], Marker, Temp, Acc) ->
   H = { Marker, build_block(lists:reverse(Temp)) },
   lists:reverse([H|Acc]).
+
+%% Every time the parser sees a (unquote_splicing())
+%% it assumes that a block is being spliced, wrapping
+%% the splicing in a __block__. But in the stab cause,
+%% we can have (unquote_splicing(1,2,3)) -> :ok, in such
+%% case, we don't actually want the block, since it is
+%% an arg style call. unwrap_splice unwraps the splice
+%% from such blocks.
+unwrap_splice([{ '__block__', [], [{ unquote_splicing, _, _ }] = Splice }]) ->
+  Splice;
+
+unwrap_splice(Other) -> Other.
 
 %% Errors
 
