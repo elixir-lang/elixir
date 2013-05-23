@@ -86,7 +86,7 @@ defmodule IEx.Helpers do
   end
 
   defp print_history(config) do
-    IO.puts IO.ANSI.escape("%{yellow}#{config.counter}: #{config.cache}#=> #{inspect config.result}\n")
+    IO.puts IEx.color(:info, "#{config.counter}: #{config.cache}#=> #{inspect config.result}\n")
   end
 
   @doc """
@@ -294,7 +294,7 @@ defmodule IEx.Helpers do
   Prints the current working directory.
   """
   def pwd do
-    IO.puts IO.ANSI.escape("%{yellow}#{System.cwd!}")
+    IO.puts IEx.color(:info, System.cwd!)
   end
 
   @doc """
@@ -323,7 +323,7 @@ defmodule IEx.Helpers do
         IO.puts IEx.color(:error, "No such file or directory #{path}")
 
       { :error, :enotdir } ->
-        IO.puts IO.ANSI.escape("%{yellow}#{Path.absname(path)}")
+        IO.puts IEx.color(:info, Path.absname(path))
     end
   end
 

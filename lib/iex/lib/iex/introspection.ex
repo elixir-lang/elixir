@@ -9,7 +9,7 @@ defmodule IEx.Introspection do
       { :module, _ } ->
         case module.__info__(:moduledoc) do
           { _, binary } when is_binary(binary) ->
-            IO.puts IO.ANSI.escape("%{yellow}# #{inspect module}\n")
+            IO.puts IEx.color(:info, "# #{inspect module}\n")
             IO.write IO.ANSI.escape_fragment("%{yellow}") <> binary <> IO.ANSI.escape_fragment("%{reset}")
           { _, _ } ->
             IO.puts IEx.color(:error, "No docs for #{inspect module} have been found")
@@ -147,7 +147,7 @@ defmodule IEx.Introspection do
 
   defp print_doc({ { fun, _ }, _line, kind, args, doc }) do
     args = Enum.map_join(args, ", ", print_doc_arg(&1))
-    IO.puts IO.ANSI.escape("%{yellow}* #{kind} #{fun}(#{args})\n")
+    IO.puts IEx.color(:info, "* #{kind} #{fun}(#{args})\n")
     if doc, do: IO.write IO.ANSI.escape_fragment("%{yellow}") <> doc <> IO.ANSI.escape_fragment("%{reset}")
   end
 
@@ -249,14 +249,14 @@ defmodule IEx.Introspection do
 
   defp print_type({ kind, type }) do
     ast = Kernel.Typespec.type_to_ast(type)
-    IO.puts IO.ANSI.escape("%{yellow}@#{kind} #{Macro.to_binary(ast)}")
+    IO.puts IEx.color(:info, "@#{kind} #{Macro.to_binary(ast)}")
     true
   end
 
   defp print_spec({kind, { { name, _arity }, specs }}) do
     Enum.each specs, fn(spec) ->
       binary = Macro.to_binary Kernel.Typespec.spec_to_ast(name, spec)
-      IO.puts IO.ANSI.escape("%{yellow}@#{kind} #{binary}")
+      IO.puts IEx.color(:info, "@#{kind} #{binary}")
     end
     true
   end

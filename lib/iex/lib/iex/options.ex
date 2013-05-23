@@ -16,7 +16,7 @@ defmodule IEx.Options do
                            on and off
           * eval_result -- color for an expression's resulting value
           * error       -- color for error messages
-          * info        -- ...
+          * info        -- color for various informational messages
 
         """
     ],
