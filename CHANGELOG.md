@@ -3,6 +3,7 @@
 * enhancements
 
 * bug fix
+  * [Dict] `Enum.to_list` and `Dict.to_list` now return the same results for dicts
   * [Mix] Fix a bug where `mix deps.get` was not retrieving nested dependencies
 
 * deprecations

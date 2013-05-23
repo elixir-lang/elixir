@@ -246,7 +246,7 @@ defmodule HashDict do
   end
 
   def to_list(dict) do
-    dict_fold(dict, [], [&1|&2])
+    dict_fold(dict, [], [&1|&2]) |> :lists.reverse
   end
 
   @doc """

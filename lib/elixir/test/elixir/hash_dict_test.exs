@@ -85,17 +85,23 @@ defmodule HashDictTest do
   end
 
   test :to_list do
-    list = filled_dict(8) |> HashDict.to_list
+    dict = filled_dict(8)
+    list = dict |> HashDict.to_list
     assert length(list) == 8
     assert { 1, 1 } in list
+    assert list == Enum.to_list(dict)
 
-    list = filled_dict(20) |> HashDict.to_list
+    dict = filled_dict(20)
+    list = dict |> HashDict.to_list
     assert length(list) == 20
     assert { 1, 1 } in list
+    assert list == Enum.to_list(dict)
 
-    list = filled_dict(120) |> HashDict.to_list
+    dict = filled_dict(120)
+    list = dict |> HashDict.to_list
     assert length(list) == 120
     assert { 1, 1 } in list
+    assert list == Enum.to_list(dict)
   end
 
   test :keys do
