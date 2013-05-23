@@ -136,7 +136,7 @@ defmodule IO.ANSI do
   end
 
   @doc %B"""
-  Escapes a string coverting named ANSI sequences into actual ANSI codes.
+  Escapes a string by converting named ANSI sequences into actual ANSI codes.
 
   The format for referring to sequences is `%{red}` and `%{red,bright}` (for
   multiple sequences).
