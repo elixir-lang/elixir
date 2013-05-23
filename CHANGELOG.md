@@ -1,15 +1,15 @@
-# v0.9.0.dev
+# v0.9.0 (2013-05-23)
 
 * enhancements
+  * [ExUnit] `ExUnit.CaptureIO` now accepts an input to be used during capture
   * [IEx] Add support for .iex files that are loaded during shell's boot process
   * [IEx] Add `import_file/1` helper
 
-* bug fix
-
-* deprecations
-
 * backwards incompatible changes
+  * [Enum] `Enum.Iterator` was replaced by the more composable and functional `Enumerable` protocol which supports reductions
+  * [File] `File.iterator/1` and `File.biniterator/1` have been removed in favor of the safe `File.iterator!/1` and `File.biniterator!/1` ones
   * [Kernel] Erlang R15 is no longer supported
+  * [Kernel] Elixir modules are now represented as `Elixir.ModuleName` (using `.` instead of `-` as separator)
 
 # v0.8.3 (2013-05-22)
 
