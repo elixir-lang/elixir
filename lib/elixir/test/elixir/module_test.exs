@@ -115,7 +115,7 @@ defmodule ModuleTest do
   end
 
   test :alias_with_raw_atom do
-    defmodule :"Elixir-ModuleTest-RawModule" do
+    defmodule :"Elixir.ModuleTest.RawModule" do
       def hello, do: :world
     end
 
@@ -173,7 +173,7 @@ defmodule ModuleTest do
   test :split do
     module = Very.Long.Module.Name.And.Even.Longer
     assert Module.split(module) == ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
-    assert Module.split("Elixir-Very-Long") == ["Very", "Long"]
+    assert Module.split("Elixir.Very.Long") == ["Very", "Long"]
     assert Module.concat(Module.split(module)) == module
   end
 

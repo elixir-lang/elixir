@@ -1,6 +1,5 @@
 -module(match_test).
 -include_lib("eunit/include/eunit.hrl").
--compile({parse_transform, elixir_transform}).
 
 eval(Content) -> eval(Content, []).
 

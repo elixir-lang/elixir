@@ -9,7 +9,6 @@
 
 -include("elixir.hrl").
 -define(opt_in_types(Kind), Kind == atom orelse Kind == integer orelse Kind == float).
--compile({parse_transform, elixir_transform}).
 
 %% Operators
 
@@ -298,7 +297,7 @@ translate_in(Meta, Left, Right, S) ->
     _ ->
       case Cache of
         true ->
-          { false, ?wrap_call(Line, 'Elixir-Enum', 'member?', [TRight, TLeft]) };
+          { false, ?wrap_call(Line, 'Elixir.Enum', 'member?', [TRight, TLeft]) };
         false ->
           syntax_error(Meta, S#elixir_scope.file, "invalid args for operator in, it expects an explicit array or an explicit range on the right side when used in guard expressions")
       end

@@ -13,7 +13,7 @@ defmodule Mix.CLITest do
   test "default task" do
     in_fixture "custom_mixfile", fn ->
       output = mix ""
-      assert File.regular?("ebin/Elixir-A.beam")
+      assert File.regular?("ebin/Elixir.A.beam")
       assert output =~ %r"Compiled lib/a.ex"
     end
   end
@@ -28,9 +28,9 @@ defmodule Mix.CLITest do
     in_fixture "no_mixfile", fn ->
       output = mix "compile"
 
-      assert File.regular?("ebin/Elixir-A.beam")
-      assert File.regular?("ebin/Elixir-B.beam")
-      assert File.regular?("ebin/Elixir-C.beam")
+      assert File.regular?("ebin/Elixir.A.beam")
+      assert File.regular?("ebin/Elixir.B.beam")
+      assert File.regular?("ebin/Elixir.C.beam")
 
       assert output =~ %r"Compiled lib/a\.ex"
     end
@@ -39,13 +39,13 @@ defmodule Mix.CLITest do
   test "test smoke test" do
     in_fixture "custom_mixfile", fn ->
       output = mix "test"
-      assert File.regular?("ebin/Elixir-A.beam")
+      assert File.regular?("ebin/Elixir.A.beam")
       assert output =~ %r"1 tests, 0 failures"
 
       output = mix "test test/hidden.ex --cover cover"
       assert output =~ %r"1 tests, 1 failures"
       assert output =~ %r"Generating cover results ... ok"
-      assert File.regular?("cover/Elixir-A.html")
+      assert File.regular?("cover/Elixir.A.html")
     end
   end
 
@@ -81,7 +81,7 @@ defmodule Mix.CLITest do
       assert output =~ %r(\* creating lib/new_with_tests.ex)
 
       output = mix "test"
-      assert File.regular?("ebin/Elixir-NewWithTests.beam")
+      assert File.regular?("ebin/Elixir.NewWithTests.beam")
       assert output =~ %r"1 tests, 0 failures"
     end
   end
@@ -93,7 +93,7 @@ defmodule Mix.CLITest do
       assert output =~ %r(\* creating lib/new_with_tests/supervisor.ex)
 
       output = mix "test"
-      assert File.regular?("ebin/Elixir-NewWithTests.beam")
+      assert File.regular?("ebin/Elixir.NewWithTests.beam")
       assert output =~ %r"1 tests, 0 failures"
     end
   end

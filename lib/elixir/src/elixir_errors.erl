@@ -9,7 +9,6 @@
   handle_file_warning/2, handle_file_warning/3, handle_file_error/2,
   deprecation/3, deprecation/4, file_format/3]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 %% Handle inspecting for exceptions
 

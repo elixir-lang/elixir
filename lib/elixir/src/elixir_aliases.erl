@@ -2,7 +2,6 @@
 -export([nesting_alias/2, last/1, concat/1, safe_concat/1,
   format_error/1, ensure_loaded/3, ensure_loaded/4, expand/3, store/4]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 %% Store an alias in the given scope
 store(_Meta, New, New, S) -> S;
@@ -57,7 +56,7 @@ expand({ '__aliases__', _Meta, List }, _Aliases) ->
   List.
 
 expand_one(H, Aliases) ->
-  Lookup = list_to_atom("Elixir-" ++ atom_to_list(H)),
+  Lookup = list_to_atom("Elixir." ++ atom_to_list(H)),
   case lookup(Lookup, Aliases) of
     Lookup -> false;
     Else   -> Else
@@ -87,9 +86,9 @@ ensure_loaded(Line, File, Ref, FileModules) ->
 
 last(Atom) ->
   Last = last(lists:reverse(atom_to_list(Atom)), []),
-  list_to_atom("Elixir-" ++ Last).
+  list_to_atom("Elixir." ++ Last).
 
-last([$-|_], Acc) -> Acc;
+last([$.|_], Acc) -> Acc;
 last([H|T], Acc) -> last(T, [H|Acc]);
 last([], Acc) -> Acc.
 
@@ -118,12 +117,12 @@ nesting_alias(Prefix, Full) ->
 do_nesting([X|PreTail], [X|Tail], Acc) ->
   do_nesting(PreTail, Tail, [X|Acc]);
 do_nesting([], [H|_], Acc) ->
-  { list_to_atom("Elixir-" ++ H), concat(lists:reverse([H|Acc])) };
+  { list_to_atom("Elixir." ++ H), concat(lists:reverse([H|Acc])) };
 do_nesting(_, _, _Acc) ->
   false.
 
 list_nesting(Atom) ->
-  case string:tokens(atom_to_list(Atom), "-") of
+  case string:tokens(atom_to_list(Atom), ".") of
     ["Elixir"|T] -> T;
     _ -> []
   end.
@@ -143,15 +142,9 @@ do_concat(Args) ->
 
 to_partial(Arg) when is_binary(Arg) -> to_partial(binary_to_list(Arg));
 to_partial(Arg) when is_atom(Arg)   -> to_partial(atom_to_list(Arg));
-to_partial("Elixir-" ++ Arg)        -> dot_to_dash([$-|Arg]);
-to_partial([$-|_] = Arg)            -> dot_to_dash(Arg);
-to_partial(Arg) when is_list(Arg)   -> [$-|dot_to_dash(Arg)].
-
-dot_to_dash(List) ->
-  [case X of
-    $. -> $-;
-    _  -> X
-   end || X <- List].
+to_partial("Elixir." ++ Arg)        -> [$.|Arg];
+to_partial([$.|_] = Arg)            -> Arg;
+to_partial(Arg) when is_list(Arg)   -> [$.|Arg].
 
 %% Lookup an alias in the current scope.
 

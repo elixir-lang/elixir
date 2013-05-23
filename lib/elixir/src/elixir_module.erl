@@ -2,7 +2,6 @@
 -export([translate/4, compile/5, data_table/1, eval_quoted/4,
          format_error/1, eval_callbacks/5]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 eval_quoted(Module, Quoted, RawBinding, Opts) ->
   Binding = binding_for_eval(Module, RawBinding),

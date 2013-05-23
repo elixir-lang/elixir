@@ -29,7 +29,7 @@ defmodule IEx do
   alternate in between them. Let's give it a try:
 
       User switch command
-       --> s 'Elixir-IEx'
+       --> s 'Elixir.IEx'
        --> c
 
   The command above will start a new shell and connect to it.
@@ -163,7 +163,7 @@ defmodule IEx do
   end
 
   # This is a callback invoked by Erlang shell utilities
-  # when someone press Ctrl+G and adds 's Elixir-IEx'.
+  # when someone press Ctrl+G and adds 's Elixir.IEx'.
   @doc false
   def start(config // [], callback // fn -> end) do
     spawn fn ->

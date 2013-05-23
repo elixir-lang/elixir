@@ -42,7 +42,7 @@ defmodule Mix.Tasks.CompileTest do
   test "compile a project without mixfile" do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.run []
-      assert File.regular?("ebin/Elixir-A.beam")
+      assert File.regular?("ebin/Elixir.A.beam")
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
     end
   after
@@ -54,7 +54,7 @@ defmodule Mix.Tasks.CompileTest do
 
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.run []
-      assert File.regular?("ebin/Elixir-A.beam")
+      assert File.regular?("ebin/Elixir.A.beam")
       assert File.regular?("ebin/custom_app.app")
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
       assert_received { :mix_shell, :info, ["Generated custom_app.app"] }

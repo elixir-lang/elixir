@@ -3,7 +3,6 @@
 -import(elixir_translator, [translate_each/2, translate_args/2]).
 -import(elixir_scope, [umergec/2]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 translate({ '<<>>', Meta, Args } = Original, S) when is_list(Args) ->
   case elixir_partials:handle(Original, S, allow_tail) of

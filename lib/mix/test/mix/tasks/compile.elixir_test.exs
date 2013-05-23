@@ -7,9 +7,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run []
 
-      assert File.regular?("ebin/Elixir-A.beam")
-      assert File.regular?("ebin/Elixir-B.beam")
-      assert File.regular?("ebin/Elixir-C.beam")
+      assert File.regular?("ebin/Elixir.A.beam")
+      assert File.regular?("ebin/Elixir.B.beam")
+      assert File.regular?("ebin/Elixir.C.beam")
 
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
       assert_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     in_fixture "no_mixfile", fn ->
       # Compile the first time
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
-      assert File.regular?("ebin/Elixir-A.beam")
+      assert File.regular?("ebin/Elixir.A.beam")
 
       # Now we have a noop
       assert Mix.Tasks.Compile.Elixir.run([]) == :noop
@@ -39,7 +39,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   test "removes old artifact files" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
-      assert File.regular?("ebin/Elixir-A.beam")
+      assert File.regular?("ebin/Elixir.A.beam")
 
       # Now we have a noop
       File.rm!("lib/a.ex")
@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       # --force
       purge [A, B, C]
       assert Mix.Tasks.Compile.Elixir.run(["--force"]) == :ok
-      refute File.regular?("ebin/Elixir-A.beam")
+      refute File.regular?("ebin/Elixir.A.beam")
     end
   after
     purge [A, B, C]
@@ -83,7 +83,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run([])
-      assert File.regular?("custom/Elixir-A.beam")
+      assert File.regular?("custom/Elixir.A.beam")
     end
   after
     purge [A, B, C]

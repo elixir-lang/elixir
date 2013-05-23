@@ -8,7 +8,6 @@
   expand_import/6, expand_require/6, find_import/4,
   format_error/1, in_erlang_functions/0, in_erlang_macros/0]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 -import(ordsets, [is_element/2]).
 -define(BUILTIN, 'Elixir.Kernel').

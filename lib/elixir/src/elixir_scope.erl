@@ -9,7 +9,6 @@
   umergev/2, umergec/2, merge_clause_vars/2
 ]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 translate_var(Meta, Name, Kind, S, Callback) ->
   Line = ?line(Meta),

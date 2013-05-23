@@ -41,7 +41,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
-      assert File.exists?("deps/git_repo/ebin/Elixir-GitRepo.beam")
+      assert File.exists?("deps/git_repo/ebin/Elixir.GitRepo.beam")
       assert File.read!("mix.lock") =~ %r("git_repo": {:git,#{inspect fixture_path("git_repo")},"[a-f0-9]+",\[\]})
 
       purge [GitRepo]
@@ -57,7 +57,7 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Tasks.Deps.Clean.run []
       message = "* Cleaning git_repo (0.1.0) [git: #{inspect fixture_path("git_repo")}]"
       assert_received { :mix_shell, :info, [^message] }
-      refute File.exists?("deps/git_repo/ebin/Elixir-Git-Repo.beam")
+      refute File.exists?("deps/git_repo/ebin/Elixir.Git.Repo.beam")
     end
   after
     purge [GitRepo, GitRepo.Mix]
@@ -193,7 +193,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.read!("mix.lock") =~ %r(#{last})
 
       Mix.Tasks.Deps.Clean.run []
-      refute File.exists?("deps/git_repo/ebin/Elixir-Git-Repo.beam")
+      refute File.exists?("deps/git_repo/ebin/Elixir.Git.Repo.beam")
       assert File.read!("mix.lock") =~ %r(#{last})
 
       Mix.Tasks.Deps.Clean.run ["--unlock"]

@@ -15,7 +15,6 @@
   unwrap_stored_definitions/2,
   format_error/1]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 %% Table management functions. Called internally.
 

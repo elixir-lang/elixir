@@ -11,12 +11,12 @@ INSTALL_PATH := /usr/local
 #==> Templates
 
 define APP_TEMPLATE
-$(1): lib/$(1)/ebin/Elixir-$(2).beam lib/$(1)/ebin/$(1).app
+$(1): lib/$(1)/ebin/Elixir.$(2).beam lib/$(1)/ebin/$(1).app
 
 lib/$(1)/ebin/$(1).app:
 	@ cd lib/$(1) && ../../bin/elixir -e "Mix.Server.start_link(:dev)" -r mix.exs -e "Mix.Task.run('compile.app')"
 
-lib/$(1)/ebin/Elixir-$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex)
+lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex)
 	@ echo "==> $(1) (compile)"
 	@ $$(ELIXIRC) "lib/$(1)/lib/**/*.ex" -o lib/$(1)/ebin
 
@@ -27,8 +27,8 @@ endef
 
 #==> Compilation tasks
 
-KERNEL:=lib/elixir/ebin/Elixir-Kernel.beam
-UNICODE:=lib/elixir/ebin/Elixir-String-Unicode.beam
+KERNEL:=lib/elixir/ebin/Elixir.Kernel.beam
+UNICODE:=lib/elixir/ebin/Elixir.String.Unicode.beam
 
 default: compile
 
@@ -44,7 +44,7 @@ erlang:
 # Since Mix depends on EEx and EEx depends on
 # Mix, we first compile EEx without the .app
 # file, then mix and then compile eex fully
-elixir: kernel lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex iex
+elixir: kernel lib/eex/ebin/Elixir.EEx.beam mix ex_unit eex iex
 
 kernel: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex

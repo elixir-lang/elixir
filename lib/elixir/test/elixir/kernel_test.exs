@@ -63,7 +63,7 @@ defmodule KernelTest do
   end
 
   test :__MODULE__ do
-    assert __MODULE__ == :"Elixir-KernelTest"
+    assert __MODULE__ == :"Elixir.KernelTest"
   end
 
   test :function_from___ENV__ do

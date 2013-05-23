@@ -551,7 +551,7 @@ build_fn(Op, Stab) ->
 
 build_access(Expr, Access) ->
   Meta = [{line,?line(Access)}],
-  { { '.', Meta, ['Elixir-Kernel', access] }, Meta, [ Expr, ?op(Access) ] }.
+  { { '.', Meta, ['Elixir.Kernel', access] }, Meta, [ Expr, ?op(Access) ] }.
 
 %% Interpolation aware
 

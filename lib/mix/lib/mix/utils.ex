@@ -190,9 +190,8 @@ defmodule Mix.Utils do
 
   """
   def underscore(atom) when is_atom(atom) do
-    "Elixir-" <> rest = atom_to_binary(atom)
-    rest = :binary.replace(rest, "-", ".")
-    underscore rest
+    "Elixir." <> rest = atom_to_binary(atom)
+    underscore(rest)
   end
 
   def underscore(<<h, t :: binary>>) do

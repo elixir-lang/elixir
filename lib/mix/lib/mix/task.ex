@@ -27,7 +27,7 @@ defmodule Mix.Task do
   """
   def load_all do
     Enum.each :code.get_path, fn(codepath) ->
-      files = Path.wildcard(codepath ++ '/Elixir-Mix-Tasks-*.beam')
+      files = Path.wildcard(codepath ++ '/Elixir.Mix.Tasks.*.beam')
       Enum.each files, &1 |> Path.basename |> Path.rootname('.beam') |> list_to_atom |> Code.ensure_loaded
     end
   end
@@ -39,7 +39,7 @@ defmodule Mix.Task do
   def all_modules do
     Enum.reduce :code.all_loaded, [], fn({ module, _ }, acc) ->
       case atom_to_list(module) do
-        'Elixir-Mix-Tasks-' ++ _ ->
+        'Elixir.Mix.Tasks.' ++ _ ->
           if is_task?(module), do: [module|acc], else: acc
         _ ->
           acc

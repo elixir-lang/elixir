@@ -267,7 +267,7 @@ defmodule Protocol do
           true  -> unquote(fallback)
           false ->
             case atom_to_list(first) do
-              'Elixir-' ++ _ -> __MODULE__.Record
+              'Elixir.' ++ _ -> __MODULE__.Record
               _              -> unquote(fallback)
             end
         end

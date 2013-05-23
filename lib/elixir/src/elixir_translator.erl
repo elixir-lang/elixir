@@ -9,7 +9,6 @@
   assert_function_scope/3, assert_module_scope/3, assert_no_guard_scope/3,
   assert_no_match_or_guard_scope/3]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 forms(String, StartLine, File, Opts) ->
   try elixir_tokenizer:tokenize(String, StartLine, [{ file, File }|Opts]) of
@@ -534,7 +533,7 @@ translate_alias(Meta, IncludeByDefault, Old, TKV, S) ->
         "invalid args for alias, expected an atom or alias in option :as")
   end,
 
-  case (New == Old) orelse (length(string:tokens(atom_to_list(New), "-")) == 2) of
+  case (New == Old) orelse (length(string:tokens(atom_to_list(New), ".")) == 2) of
     true  -> ok;
     false -> syntax_error(Meta, S#elixir_scope.file,
                "invalid args for alias, cannot create nested alias ~s", [elixir_errors:inspect(New)])

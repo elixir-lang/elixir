@@ -1,7 +1,6 @@
 -module(translator_test).
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
--compile({parse_transform, elixir_transform}).
 
 eval(Forms) ->
   { Result, _ } = eval(Forms, []),

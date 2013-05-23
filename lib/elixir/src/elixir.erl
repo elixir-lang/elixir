@@ -6,7 +6,6 @@
   eval_quoted/2, eval_quoted/3, eval_quoted/4,
   eval_forms/3, translate_forms/3]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 %% Top level types
 -export_type([char_list/0, as_boolean/1]).

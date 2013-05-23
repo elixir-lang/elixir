@@ -10,7 +10,7 @@ defmodule IEx.Remsh do
     * remsh from an elixir node to a plain erlang node (and get an erl shell there)
 
   In order to get an Elixir shell from the ^G menu,
-  you need to use 'Elixir-IEx' as the shell name.
+  you need to use 'Elixir.IEx' as the shell name (with quotes).
 
   Connecting an Elixir shell to a remote node without
   Elixir is **not** supported.

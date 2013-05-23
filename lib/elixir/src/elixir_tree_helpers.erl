@@ -3,7 +3,6 @@
 %% as lists, condition clauses, etc.
 
 -module(elixir_tree_helpers).
--compile({parse_transform, elixir_transform}).
 -export([elixir_to_erl/1, erl_to_elixir/1, split_last/1,
   cons_to_list/1, list_to_cons/2, list_to_cons/3,
   convert_to_boolean/5, returns_boolean/1, get_line/1]).

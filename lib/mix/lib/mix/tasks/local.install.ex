@@ -53,12 +53,11 @@ defmodule Mix.Tasks.Local.Install do
   end
 
   defp validate_module_name!(path, module) do
-    case inspect(module) do
-      "Mix.Tasks." <> _ ->
+    case atom_to_binary(module) do
+      "Elixir.Mix.Tasks." <> _ ->
         :ok
       other ->
         raise Mix.Error, message: "expected a Mix.Tasks module at #{path}, got #{other}"
     end
   end
-
 end

@@ -528,7 +528,7 @@ defmodule Module do
 
   """
   def split(module) do
-    tl(String.split(Binary.Chars.to_binary(module), "-"))
+    tl(String.split(Binary.Chars.to_binary(module), "."))
   end
 
   @doc """
@@ -537,12 +537,9 @@ defmodule Module do
   def to_binary(Elixir), do: "Elixir"
 
   def to_binary(module) do
-    "Elixir-" <> rest = Binary.Chars.to_binary(module)
-    bc <<r>> inbits rest, do: <<to_dot(r)>>
+    "Elixir." <> rest = Binary.Chars.to_binary(module)
+    rest
   end
-
-  defp to_dot(?-), do: ?.
-  defp to_dot(l),  do: l
 
   @doc false
   # Used internally to compile documentation. This function

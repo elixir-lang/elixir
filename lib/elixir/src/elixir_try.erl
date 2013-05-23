@@ -2,7 +2,6 @@
 -export([clauses/3, format_error/1]).
 -import(elixir_scope, [umergec/2]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 clauses(Meta, Clauses, S) ->
   Catch  = elixir_clauses:get_pairs(Meta, 'catch', Clauses, S),

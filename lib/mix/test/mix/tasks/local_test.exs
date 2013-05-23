@@ -9,8 +9,8 @@ defmodule Mix.Tasks.LocalTest do
 
     # Install it!
     self <- { :mix_shell_input, :yes?, true }
-    Mix.Tasks.Local.Install.run [fixture_path("beams/Elixir-Mix-Tasks-Local-Sample.beam")]
-    assert File.regular? tmp_path("userhome/.mix/tasks/Elixir-Mix-Tasks-Local-Sample.beam")
+    Mix.Tasks.Local.Install.run [fixture_path("beams/Elixir.Mix.Tasks.Local.Sample.beam")]
+    assert File.regular? tmp_path("userhome/.mix/tasks/Elixir.Mix.Tasks.Local.Sample.beam")
 
     # List it!
     Mix.Local.append_tasks
@@ -23,7 +23,7 @@ defmodule Mix.Tasks.LocalTest do
 
     # Remove it!
     Mix.Tasks.Local.Uninstall.run ["local.sample"]
-    refute File.regular? tmp_path("userhome/.mix/tasks/Elixir-Mix-Tasks-Local-Sample.beam")
+    refute File.regular? tmp_path("userhome/.mix/tasks/Elixir.Mix.Tasks.Local.Sample.beam")
   end
 
   test "manage mix paths" do
@@ -31,8 +31,8 @@ defmodule Mix.Tasks.LocalTest do
     System.put_env "MIX_PATH", tmp_path("userhome/.mix")
 
     # Install on MIX_PATH manually
-    File.cp fixture_path("beams/Elixir-Mix-Tasks-Local-Sample.beam"),
-            tmp_path("userhome/.mix/tasks/Elixir-Mix-Tasks-Local-Sample.beam")
+    File.cp fixture_path("beams/Elixir.Mix.Tasks.Local.Sample.beam"),
+            tmp_path("userhome/.mix/tasks/Elixir.Mix.Tasks.Local.Sample.beam")
 
     # Run it
     Mix.Task.run "local.sample"

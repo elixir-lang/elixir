@@ -23,7 +23,7 @@ defmodule Binary.Chars.AtomTest do
   end
 
   test :alias_atom do
-    assert to_binary(Foo.Bar) == "Elixir-Foo-Bar"
+    assert to_binary(Foo.Bar) == "Elixir.Foo.Bar"
   end
 end
 

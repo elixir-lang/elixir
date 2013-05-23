@@ -3,7 +3,6 @@
 -export([extract/5, unescape_chars/1, unescape_chars/2,
 unescape_tokens/1, unescape_tokens/2, unescape_map/1]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 %% Extract string interpolations
 

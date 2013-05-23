@@ -1,6 +1,5 @@
 -module(module_test).
 -include_lib("eunit/include/eunit.hrl").
--compile({parse_transform, elixir_transform}).
 
 eval(Content) ->
   { Value, Binding, _ } = elixir:eval(Content, []),

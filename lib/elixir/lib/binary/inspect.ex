@@ -144,7 +144,7 @@ defimpl Binary.Inspect, for: Atom do
     end
   end
 
-  # Detect if atom is an atom alias (Elixir-Foo-Bar-Baz)
+  # Detect if atom is an atom alias (Elixir.Foo.Bar.Baz)
 
   defp valid_ref_identifier?("Elixir" <> rest) do
     valid_ref_piece?(rest)
@@ -152,7 +152,7 @@ defimpl Binary.Inspect, for: Atom do
 
   defp valid_ref_identifier?(_), do: false
 
-  defp valid_ref_piece?(<<?-, h, t :: binary>>) when h in ?A..?Z do
+  defp valid_ref_piece?(<<?., h, t :: binary>>) when h in ?A..?Z do
     valid_ref_piece? valid_identifier?(t)
   end
 
@@ -296,7 +296,7 @@ defimpl Binary.Inspect, for: List do
 
   defp keyword?([{ key, _value } | rest]) when is_atom(key) do
     case atom_to_list(key) do
-      'Elixir-' ++ _ -> false
+      'Elixir.' ++ _ -> false
       _ -> keyword?(rest)
     end
   end

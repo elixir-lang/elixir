@@ -3,7 +3,6 @@
 -export([store_pending/1, is_defined/2, ensure_defined/4,
   assign_args/3, retrieve_args/3, name/2, store/3, format_error/1]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 overridable(Module) ->
   ets:lookup_element(elixir_module:data_table(Module), '__overridable', 2).

@@ -148,7 +148,7 @@ defmodule IEx.Autocomplete do
       mod = atom_to_list(m)
       case mod do
         'Elixir' ++ _ ->
-          tokens = :string.tokens(mod, '-')
+          tokens = :string.tokens(mod, '.')
           if length(tokens) === 2 do
             [Mod.new(name: List.last(tokens), type: :elixir)|acc]
           else
@@ -203,12 +203,12 @@ defmodule IEx.Autocomplete do
 
   defp elixir_submodules(mod, hint, root) do
     modname = atom_to_list(mod)
-    depth   = length(:string.tokens(modname, '-')) + 1
-    base    = modname ++ [?-|hint]
+    depth   = length(:string.tokens(modname, '.')) + 1
+    base    = modname ++ [?.|hint]
 
     Enum.reduce modules_as_lists(root), [], fn(m, acc) ->
       if :lists.prefix(base, m) do
-        tokens = :string.tokens(m, '-')
+        tokens = :string.tokens(m, '.')
         if length(tokens) == depth do
           name = List.last(tokens)
           [Mod.new(type: :elixir, name: name)|acc]
@@ -222,7 +222,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp modules_as_lists(true) do
-    ['Elixir-Elixir'] ++ modules_as_lists(false)
+    ['Elixir.Elixir'] ++ modules_as_lists(false)
   end
 
   defp modules_as_lists(false) do

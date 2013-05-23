@@ -1,6 +1,5 @@
 -module(elixir_quote).
 -export([escape/2, erl_escape/3, erl_quote/3, linify/2, unquote/5]).
--compile({parse_transform, elixir_transform}).
 -include("elixir.hrl").
 
 %% Apply the line from site call on quoted contents.
@@ -29,7 +28,7 @@ unquote(_File, Meta, Left, { '__aliases__', _, Args }, nil) ->
 
 unquote(_File, Meta, Left, Right, nil) when is_atom(Right) ->
   case atom_to_list(Right) of
-    "Elixir-" ++ _ ->
+    "Elixir." ++ _ ->
       { '__aliases__', Meta, [Left, Right] };
     _ ->
       { { '.', Meta, [Left, Right] }, Meta, [] }

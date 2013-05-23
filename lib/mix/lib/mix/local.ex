@@ -28,7 +28,7 @@ defmodule Mix.Local do
   Returns all tasks modules in .mix/tasks.
   """
   def all_tasks do
-    query   = Path.join(tasks_path, "Elixir-Mix-Tasks-*.beam")
+    query   = Path.join(tasks_path, "Elixir.Mix.Tasks.*.beam")
     files   = Path.wildcard(query)
     modules = Enum.map files, &1 |> Path.basename |> Path.rootname(".beam") |> binary_to_atom
     Enum.filter(modules, fn(mod) ->

@@ -1,7 +1,6 @@
 -module(elixir_partials).
 -export([handle/2, handle/3, is_sequential/1]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 handle(Original, S) ->
   handle(Original, S, default).
