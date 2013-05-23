@@ -246,4 +246,20 @@ defmodule IEx do
     colors = IEx.Options.get(:colors)
     IO.ANSI.escape "%{#{colors[color_name]}}#{string}", colors[:enabled]
   end
+
+  @doc """
+  Returns an escaped fragment using the specified color.
+  """
+  def color_fragment(color_name) do
+    colors = IEx.Options.get(:colors)
+    IO.ANSI.escape_fragment "%{#{colors[color_name]}}", colors[:enabled]
+  end
+
+  @doc """
+  Returns an escaped fragment that resets colors and attributes.
+  """
+  def color_reset() do
+    colors = IEx.Options.get(:colors)
+    IO.ANSI.escape_fragment "%{reset}", colors[:enabled]
+  end
 end
