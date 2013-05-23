@@ -24,7 +24,20 @@ defmodule IEx.Options do
         """
     ],
     inspect: [
-      doc: ""
+      doc: """
+        Control the behavior of the shell's inspecting algorithm. Inspect is
+        used for printing results of evaluating expressions. It is also used by IO.inspect.
+
+        The value is a keyword list that should have any of the following keys
+        specified. If any of the keys is omitted, that option is not changed.
+
+          * raw   -- when true, record tuples are not formatted by the inspect protocol,
+                     but are printed as just tuples; default: false
+
+          * limit -- limits the number of items that are printed for tuples, bitstrings,
+                     and lists; does not apply to strings
+
+        """
     ],
   ]
 
@@ -69,6 +82,7 @@ defmodule IEx.Options do
 
   def set(:inspect, opts) when is_list(opts) do
     old_opts = IEx.inspect_opts
+    # FIXME: validate keys before setting
     IEx.inspect_opts(opts)
     old_opts
   end

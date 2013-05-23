@@ -1890,18 +1890,18 @@ defmodule Kernel do
 
   ## Options
 
-  The following options are supported:
-
-  * :raw - tuples are not formatted as the inspect protocol, they are
-    always shown as tuples, defaults to false;
-
-  * :limit - the limit of items that are shown in tuples, bitstrings and
-    lists. Does not apply to strings;
+  See the docs for IEx.Options for more details.
 
   ## Examples
 
       iex> inspect(:foo)
       ":foo"
+
+      inspect(ArgumentError[])
+      #=> "ArgumentError[message: \"argument error\"]"
+
+      inspect(ArgumentError[], raw: true)
+      #=> "{ArgumentError,:__exception__,\"argument error\"}"
 
   Note that the inspect protocol does not necessarily return a valid
   representation of an Elixir term. In such cases, the inspected result must
