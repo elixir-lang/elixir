@@ -1897,6 +1897,9 @@ defmodule Kernel do
       iex> inspect(:foo)
       ":foo"
 
+      iex> inspect [1,2,3,4,5], limit: 3
+      "[1,2,3,...]"
+
       inspect(ArgumentError[])
       #=> "ArgumentError[message: \"argument error\"]"
 
