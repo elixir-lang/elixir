@@ -17,6 +17,8 @@ defmodule IEx.Options do
           * eval_result -- color for an expression's resulting value
           * error       -- color for error messages
           * info        -- color for various informational messages
+          * directory   -- color for directory entries (ls helper)
+          * device      -- color for device entries (ls helper)
 
         """
     ],
