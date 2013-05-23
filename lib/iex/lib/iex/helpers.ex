@@ -304,7 +304,7 @@ defmodule IEx.Helpers do
     case File.cd(expand_home(directory)) do
       :ok -> pwd
       { :error, :enoent } ->
-        IO.puts IO.ANSI.escape("%{red}No directory #{directory}")
+        IO.puts IEx.color(:error, "No directory #{directory}")
     end
   end
 
@@ -320,7 +320,7 @@ defmodule IEx.Helpers do
         ls_print(path, sorted_items)
 
       { :error, :enoent } ->
-        IO.puts IO.ANSI.escape("%{red}No such file or directory #{path}")
+        IO.puts IEx.color(:error, "No such file or directory #{path}")
 
       { :error, :enotdir } ->
         IO.puts IO.ANSI.escape("%{yellow}#{Path.absname(path)}")

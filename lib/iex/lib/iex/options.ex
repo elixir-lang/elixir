@@ -15,7 +15,7 @@ defmodule IEx.Options do
           * enabled     -- boolean value that allows to switch the colors
                            on and off
           * eval_result -- color for an expression's resulting value
-          * error       -- color for error messages. Default: red.
+          * error       -- color for error messages
           * info        -- ...
 
         """
