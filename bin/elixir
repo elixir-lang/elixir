@@ -41,7 +41,7 @@ while [ $I -le $# ]; do
   S=1
   eval "PEEK=\${$I}"
   case "$PEEK" in
-    -v|--compile|--no-halt)
+    -v|--compile|--no-halt|+iex|+compile)
         ;;
     -e|-r|-pr|-pa|-pz|--remsh|--cookie|-S)
         S=2
