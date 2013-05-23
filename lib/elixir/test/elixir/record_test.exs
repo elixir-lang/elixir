@@ -56,6 +56,8 @@ defmodule RecordTest.Macros do
     def nested_record_alias?(Nested[]) do
       true
     end
+
+    defrecord NestedInNested, it_compiles: true
   end
 
   def new() do

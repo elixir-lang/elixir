@@ -4,6 +4,7 @@
 
 * bug fix
   * [Dict] `Enum.to_list` and `Dict.to_list` now return the same results for dicts
+  * [Record] Fix a bug where nested records cannot be defined
   * [Mix] Fix a bug where `mix deps.get` was not retrieving nested dependencies
 
 * deprecations

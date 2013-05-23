@@ -26,7 +26,7 @@ defmodule Record do
     block = Keyword.get(opts, :do, nil)
 
     quote do
-      values = unquote(values)
+      unquoted_values = unquote(values)
 
       defmodule unquote(name) do
         @moduledoc false
@@ -34,6 +34,10 @@ defmodule Record do
 
         @record_fields []
         @record_types  []
+
+        # Reassign values to inner scope to
+        # avoid conflicts in nested records
+        values = unquoted_values
 
         Record.deffunctions(values, __ENV__)
         value = unquote(block)
