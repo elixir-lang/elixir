@@ -138,11 +138,11 @@ defmodule IO.ANSI do
   @doc %B"""
   Escapes a string coverting named ANSI sequences into actual ANSI codes.
 
-  The format for referring sequences is `%{red}` and `%{red,bright}` (for
-  multiple sequences)
+  The format for referring to sequences is `%{red}` and `%{red,bright}` (for
+  multiple sequences).
 
-  It will also force a %{reset} to get appended to every string. If you don't
-  want this behaviour, use `escape_fragment/1` and `escape_fragment/2`.
+  It will also append a %{reset} to the string. If you don't want this
+  behaviour, use `escape_fragment/1` and `escape_fragment/2`.
 
   An optional boolean parameter can be passed to enable or disable
   emitting actual ANSI codes. When false, no ANSI codes will emitted.
