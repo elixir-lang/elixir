@@ -26,11 +26,12 @@ defmodule IEx.AutocompleteTest do
   end
 
   test :elixir_simple_completion do
-    assert expand('En') == {:yes, 'um.', []}
+    assert expand('En') == {:yes, 'um', []}
+    assert expand('Enumera') == {:yes, 'ble.', []}
   end
 
   test :elixir_auto_completion_with_self do
-    assert expand('Enum') == {:yes, '.', []}
+    assert expand('Enumerable') == {:yes, '.', []}
   end
 
   test :elixir_no_completion do
@@ -87,8 +88,8 @@ defmodule IEx.AutocompleteTest do
   end
 
   test :completion_inside_expression do
-    assert expand('1+En') == {:yes, 'um.', []}
-    assert expand('Test(En') == {:yes, 'um.', []}
+    assert expand('1+En') == {:yes, 'um', []}
+    assert expand('Test(En') == {:yes, 'um', []}
     assert expand('Test :z') == {:yes, 'lib.', []}
     assert expand('[:z') == {:yes, 'lib.', []}
   end
