@@ -9,6 +9,7 @@ defmodule IEx.Mixfile do
     [env: [
       after_spawn: [],
       inspect_opts: [limit: 50],
+      colors: [enabled: true, eval_result: "yellow"],
       started: true
     ]]
   end

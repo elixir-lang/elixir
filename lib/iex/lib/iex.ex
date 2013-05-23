@@ -151,6 +151,7 @@ defmodule IEx do
   Registers options used on inspect.
   """
   def inspect_opts(opts) when is_list(opts) do
+    # FIXME: validate keys before setting
     :application.set_env(:iex, :inspect_opts, Keyword.merge(inspect_opts, opts))
   end
 
@@ -236,5 +237,17 @@ defmodule IEx do
 
   defp run_after_spawn do
     lc fun inlist Enum.reverse(after_spawn), do: fun.()
+  end
+
+  @doc """
+  Returns `string` escaped using the specified color.
+  """
+  def color(color_name, string) do
+    colors = IEx.Options.get(:colors)
+    if colors[:enabled] do
+      IO.ANSI.escape "%{#{colors[color_name]}}#{string}"
+    else
+      string
+    end
   end
 end
