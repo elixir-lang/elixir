@@ -10,6 +10,8 @@ defmodule IEx.Introspection do
         case module.__info__(:moduledoc) do
           { _, binary } when is_binary(binary) ->
             IO.puts IEx.color(:info, "# #{inspect module}\n")
+            # We use fragments here so that escape sequences in `binary` are
+            # treated literally and don't get converted to ANSI escapes.
             IO.write IEx.color_fragment(:info) <> binary <> IEx.color_reset()
           { _, _ } ->
             IO.puts IEx.color(:error, "No docs for #{inspect module} have been found")
@@ -148,6 +150,8 @@ defmodule IEx.Introspection do
   defp print_doc({ { fun, _ }, _line, kind, args, doc }) do
     args = Enum.map_join(args, ", ", print_doc_arg(&1))
     IO.puts IEx.color(:info, "* #{kind} #{fun}(#{args})\n")
+    # We use fragments here so that escape sequences in `doc` are
+    # treated literally and don't get converted to ANSI escapes.
     if doc, do: IO.write IEx.color_fragment(:info) <> doc <> IEx.color_reset()
   end
 

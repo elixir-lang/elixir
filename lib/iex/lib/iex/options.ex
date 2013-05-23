@@ -1,6 +1,6 @@
 defmodule IEx.Options do
   @moduledoc """
-  Provides an interface for changing options of the running IEx session.
+  Provides an interface for adjusting options of the running IEx session.
   """
 
   @supported_options [
@@ -12,8 +12,9 @@ defmodule IEx.Options do
         The value is a keyword list that should have any of the following keys
         specified. If any of the keys is omitted, that color is not changed.
 
-          * enabled     -- boolean value that allows to switch the colors
+          * enabled     -- boolean value that allows for switching the coloring
                            on and off
+
           * eval_result -- color for an expression's resulting value
           * error       -- color for error messages
           * info        -- color for various informational messages
@@ -43,15 +44,15 @@ defmodule IEx.Options do
   end
 
   def get(name) do
-    raise ArgumentError, message: "Unknown IEx option #{inspect name}"
+    raise_option(name)
   end
 
   @doc """
-  Sets the value of the option `name` to `value`.
+  Sets the value for the option `name` to `value`.
 
-  Returns option's previous value if in the case of success.
+  Returns option's previous value in the case of success.
 
-  Raises if name is not a known option or if the value is invalid.
+  Raises if `name` is not a known option or if the value is invalid.
   """
   def set(name, value)
 
@@ -63,7 +64,7 @@ defmodule IEx.Options do
   end
 
   def set(:colors, _) do
-    raise ArgumentError, message: "Expected colors to be a keyword list"
+    raise_value
   end
 
   def set(:inspect, opts) when is_list(opts) do
@@ -73,25 +74,26 @@ defmodule IEx.Options do
   end
 
   def set(:inspect, _) do
-    raise ArgumentError, message: "Expected opts to be a keyword list"
+    raise_value
   end
 
   def set(name, _) do
-    raise ArgumentError, message: "Unknown IEx option #{inspect name}"
+    raise_option(name)
   end
 
   @doc """
-  Returns a string with the option's description.
+  Returns a string with the option's description. Raises if `name` is not a
+  known option.
   """
   def help(name) do
     case @supported_options[name] do
       kv when is_list(kv) -> kv[:doc]
-      nil -> :bad_option
+      nil -> raise_option(name)
     end
   end
 
   @doc """
-  Same as `help/1` but instead of returning a string, prints it to the console.
+  Same as `help/1` but instead of returning a string, prints it.
   """
   def print_help(name) do
     IO.write help(name)
@@ -102,5 +104,13 @@ defmodule IEx.Options do
   """
   def list() do
     Enum.map @supported_options, fn {k, _} -> k end
+  end
+
+  defp raise_option(name) do
+    raise ArgumentError, message: "Unknown IEx option #{inspect name}"
+  end
+
+  defp raise_value do
+    raise ArgumentError, message: "Expected the value to be a keyword list"
   end
 end

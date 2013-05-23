@@ -178,7 +178,7 @@ defmodule IO.ANSI do
   ## Example
 
     iex> IO.ANSI.escape_fragment("Hello %{red,bright,green}yes")
-    "Hello \e[31m\e[1m\e[32myes\e[0m"
+    "Hello \e[31m\e[1m\e[32myes"
     iex> IO.ANSI.escape_fragment("%{reset}bye")
     "\e[0mbye"
 
