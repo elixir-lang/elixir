@@ -1,6 +1,36 @@
 defmodule IEx.Options do
   @moduledoc """
   Provides an interface for adjusting options of the running IEx session.
+
+  Changing options is usually done inside an IEx session or in your .iex file.
+  See `h(IEx)` for more info on the latter.
+
+  If the value of an option is a keyword list, only those keys that are
+  mentioned will be changed. The rest of the sub-options will keep their
+  current values.
+
+  To get the list of all supported options, use `list/0`. You can also get an
+  option's description using `print_help/1`.
+
+  ## Examples
+
+      iex(1)> ArgumentError[]
+      ArgumentError[message: "argument error"]
+
+      iex(2)> IEx.Options.set :inspect, raw: true
+      [limit: 50, raw: false]
+
+      iex(3)> ArgumentError[]
+      {ArgumentError,:__exception__,"argument error"}
+
+      iex(4)> IEx.Options.list
+      [:colors,:inspect]
+
+      iex(5)> IEx.Options.print_help :colors
+      This is an aggregate option that encapsulates all color settings used
+      by the shell.
+      ... # omitted content
+
   """
 
   @supported_options [
