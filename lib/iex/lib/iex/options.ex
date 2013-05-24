@@ -128,7 +128,8 @@ defmodule IEx.Options do
         end
 
         # Strip the first paragraph
-        String.lstrip(Regex.replace %r/\A.+?^$/ms, doc, "")
+        stripped = String.lstrip(Regex.replace %r/\A.+?^$/ms, doc, "")
+        IEx.color :info, stripped
 
       nil -> raise_option(name)
     end

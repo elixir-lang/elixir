@@ -13,7 +13,7 @@ defmodule IEx.Mixfile do
         enabled: true,
         eval_result: "yellow",
         error: "red",
-        info: "yellow",
+        info: "normal",
         directory: "blue",
         device: "green"
       ],
