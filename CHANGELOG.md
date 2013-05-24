@@ -4,6 +4,7 @@
 
 * bug fix
   * [Dict] `Enum.to_list` and `Dict.to_list` now return the same results for dicts
+  * [IEx] Enable shell customization via the `IEx.Options` module
   * [Kernel] Fix a bug where `unquote_splicing` did not work on the left side of a stab op
   * [Kernel] Unused functions with cyclic dependencies are now also warned as unused
   * [Mix] Fix a bug where `mix deps.get` was not retrieving nested dependencies
