@@ -471,12 +471,12 @@ defmodule Path do
 
   """
   def wildcard(glob) when is_binary(glob) do
-    paths = :elixir_glob.wildcard :unicode.characters_to_list(glob)
+    paths = :filelib.wildcard :unicode.characters_to_list(glob)
     Enum.map paths, :unicode.characters_to_binary(&1)
   end
 
   def wildcard(glob) when is_list(glob) do
-    :elixir_glob.wildcard glob
+    :filelib.wildcard glob
   end
 
   ## Helpers
