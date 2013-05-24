@@ -124,10 +124,7 @@ defmodule IEx.Options do
 
   def set(:colors, colors) when is_list(colors) do
     old_colors = get(:colors)
-    # Validate keys before setting
-    filtered_colors = Enum.filter colors, fn {name, _} ->
-      name in old_colors
-    end
+    filtered_colors = filtered_kw(old_colors, colors)
     :application.set_env(:iex, :colors, Keyword.merge(old_colors, filtered_colors))
     old_colors
   end
@@ -138,10 +135,7 @@ defmodule IEx.Options do
 
   def set(:inspect, opts) when is_list(opts) do
     old_opts = get(:inspect)
-    # Validate keys before setting
-    filtered_opts = Enum.filter opts, fn {name, _} ->
-      name in old_opts
-    end
+    filtered_opts = filtered_kw(old_opts, opts)
     :application.set_env(:iex, :inspect_opts, Keyword.merge(old_opts, filtered_opts))
     old_opts
   end
@@ -185,5 +179,11 @@ defmodule IEx.Options do
 
   defp raise_value do
     raise ArgumentError, message: "Expected the value to be a keyword list"
+  end
+
+  defp filtered_kw(reference_kw, user_kw) do
+    Enum.filter user_kw, fn {name, _} ->
+      Keyword.has_key? reference_kw, name
+    end
   end
 end
