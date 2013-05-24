@@ -86,7 +86,7 @@ defmodule IEx.Helpers do
   end
 
   defp print_history(config) do
-    IO.puts IO.ANSI.escape("%{yellow}#{config.counter}: #{config.cache}#=> #{inspect config.result}\n")
+    IO.puts IEx.color(:info, "#{config.counter}: #{config.cache}#=> #{inspect config.result}\n")
   end
 
   @doc """
@@ -294,7 +294,7 @@ defmodule IEx.Helpers do
   Prints the current working directory.
   """
   def pwd do
-    IO.puts IO.ANSI.escape("%{yellow}#{System.cwd!}")
+    IO.puts IEx.color(:info, System.cwd!)
   end
 
   @doc """
@@ -304,7 +304,7 @@ defmodule IEx.Helpers do
     case File.cd(expand_home(directory)) do
       :ok -> pwd
       { :error, :enoent } ->
-        IO.puts IO.ANSI.escape("%{red}No directory #{directory}")
+        IO.puts IEx.color(:error, "No directory #{directory}")
     end
   end
 
@@ -320,10 +320,10 @@ defmodule IEx.Helpers do
         ls_print(path, sorted_items)
 
       { :error, :enoent } ->
-        IO.puts IO.ANSI.escape("%{red}No such file or directory #{path}")
+        IO.puts IEx.color(:error, "No such file or directory #{path}")
 
       { :error, :enotdir } ->
-        IO.puts IO.ANSI.escape("%{yellow}#{Path.absname(path)}")
+        IO.puts IEx.color(:info, Path.absname(path))
     end
   end
 
@@ -365,9 +365,9 @@ defmodule IEx.Helpers do
   defp format_item(path, representation) do
     case File.stat(path) do
       { :ok, File.Stat[type: :device] } ->
-        IO.ANSI.escape("%{green}#{representation}")
+        IEx.color(:device, representation)
       { :ok, File.Stat[type: :directory] } ->
-        IO.ANSI.escape("%{blue}#{representation}")
+        IEx.color(:directory, representation)
       _ ->
         representation
     end

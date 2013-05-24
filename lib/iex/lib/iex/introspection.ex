@@ -9,20 +9,22 @@ defmodule IEx.Introspection do
       { :module, _ } ->
         case module.__info__(:moduledoc) do
           { _, binary } when is_binary(binary) ->
-            IO.puts IO.ANSI.escape("%{yellow}# #{inspect module}\n")
-            IO.write IO.ANSI.escape_fragment("%{yellow}") <> binary <> IO.ANSI.escape_fragment("%{reset}")
+            IO.puts IEx.color(:info, "# #{inspect module}\n")
+            # We use fragments here so that escape sequences in `binary` are
+            # treated literally and don't get converted to ANSI escapes.
+            IO.write IEx.color_fragment(:info) <> binary <> IEx.color_reset()
           { _, _ } ->
-            IO.puts IO.ANSI.escape("%{red}No docs for #{inspect module} have been found")
+            IO.puts IEx.color(:error, "No docs for #{inspect module} have been found")
           _ ->
-            IO.puts IO.ANSI.escape("%{red}#{inspect module} was not compiled with docs")
+            IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
         end
       { :error, reason } ->
-        IO.puts IO.ANSI.escape("%{red}Could not load module #{inspect module}: #{reason}")
+        IO.puts IEx.color(:error, "Could not load module #{inspect module}: #{reason}")
     end
   end
 
   def h(_) do
-    IO.puts IO.ANSI.escape("%{red}Invalid arguments for h helper")
+    IO.puts IEx.color(:error, "Invalid arguments for h helper")
   end
 
   @doc false
@@ -34,7 +36,7 @@ defmodule IEx.Introspection do
       end
 
     unless result == :ok, do:
-      IO.puts IO.ANSI.escape("%{red}No docs for #{function} have been found")
+      IO.puts IEx.color(:error, "No docs for #{function} have been found")
 
     :ok
   end
@@ -44,9 +46,9 @@ defmodule IEx.Introspection do
       :ok ->
         :ok
       :no_docs ->
-        IO.puts IO.ANSI.escape("%{red}#{inspect module} was not compiled with docs")
+        IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
       :not_found ->
-        IO.puts IO.ANSI.escape("%{red}No docs for #{inspect module}.#{function} have been found")
+        IO.puts IEx.color(:error, "No docs for #{inspect module}.#{function} have been found")
     end
 
     :ok
@@ -57,7 +59,7 @@ defmodule IEx.Introspection do
   end
 
   def h(_, _) do
-    IO.puts IO.ANSI.escape("%{red}Invalid arguments for h helper")
+    IO.puts IEx.color(:error, "Invalid arguments for h helper")
   end
 
   defp h_mod_fun(mod, fun) when is_atom(mod) and is_atom(fun) do
@@ -82,7 +84,7 @@ defmodule IEx.Introspection do
       end
 
     unless result == :ok, do:
-      IO.puts IO.ANSI.escape("%{red}No docs for #{function}/#{arity} have been found")
+      IO.puts IEx.color(:error, "No docs for #{function}/#{arity} have been found")
 
     :ok
   end
@@ -92,16 +94,16 @@ defmodule IEx.Introspection do
       :ok ->
         :ok
       :no_docs ->
-        IO.puts IO.ANSI.escape("%{red}#{inspect module} was not compiled with docs")
+        IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
       :not_found ->
-        IO.puts IO.ANSI.escape("%{red}No docs for #{inspect module}.#{function}/#{arity} have been found")
+        IO.puts IEx.color(:error, "No docs for #{inspect module}.#{function}/#{arity} have been found")
     end
 
     :ok
   end
 
   def h(_, _, _) do
-    IO.puts IO.ANSI.escape("%{red}Invalid arguments for h helper")
+    IO.puts IEx.color(:error, "Invalid arguments for h helper")
   end
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) and is_atom(fun) and is_integer(arity) do
@@ -147,8 +149,10 @@ defmodule IEx.Introspection do
 
   defp print_doc({ { fun, _ }, _line, kind, args, doc }) do
     args = Enum.map_join(args, ", ", print_doc_arg(&1))
-    IO.puts IO.ANSI.escape("%{yellow}* #{kind} #{fun}(#{args})\n")
-    if doc, do: IO.write IO.ANSI.escape_fragment("%{yellow}") <> doc <> IO.ANSI.escape_fragment("%{reset}")
+    IO.puts IEx.color(:info, "* #{kind} #{fun}(#{args})\n")
+    # We use fragments here so that escape sequences in `doc` are
+    # treated literally and don't get converted to ANSI escapes.
+    if doc, do: IO.write IEx.color_fragment(:info) <> doc <> IEx.color_reset()
   end
 
   defp print_doc_arg({ ://, _, [left, right] }) do
@@ -164,7 +168,7 @@ defmodule IEx.Introspection do
     types = lc type inlist Kernel.Typespec.beam_types(module), do: print_type(type)
 
     if types == [] do
-      IO.puts  IO.ANSI.escape("%{red}No types for #{inspect module} have been found")
+      IO.puts IEx.color(:error, "No types for #{inspect module} have been found")
     end
 
     :ok
@@ -179,7 +183,7 @@ defmodule IEx.Introspection do
     end
 
     if types == [] do
-       IO.puts  IO.ANSI.escape("%{red}No types for #{inspect module}.#{type} have been found")
+       IO.puts  IEx.color(:error, "No types for #{inspect module}.#{type} have been found")
     end
 
     :ok
@@ -192,7 +196,7 @@ defmodule IEx.Introspection do
 
     case types do
      [] ->
-       IO.puts  IO.ANSI.escape("%{red}No types for #{inspect module}.#{type}/#{arity} have been found")
+       IO.puts  IEx.color(:error, "No types for #{inspect module}.#{type}/#{arity} have been found")
      [type] ->
        print_type(type)
     end
@@ -205,7 +209,7 @@ defmodule IEx.Introspection do
     specs = lc spec inlist beam_specs(module), do: print_spec(spec)
 
     if specs == [] do
-      IO.puts  IO.ANSI.escape("%{red}No specs for #{inspect module} have been found")
+      IO.puts  IEx.color(:error, "No specs for #{inspect module} have been found")
     end
 
     :ok
@@ -220,7 +224,7 @@ defmodule IEx.Introspection do
     end
 
     if specs == [] do
-      IO.puts  IO.ANSI.escape("%{red}No specs for #{inspect module}.#{function} have been found")
+      IO.puts  IEx.color(:error, "No specs for #{inspect module}.#{function} have been found")
     end
 
     :ok
@@ -235,7 +239,7 @@ defmodule IEx.Introspection do
     end
 
     if specs == [] do
-      IO.puts  IO.ANSI.escape("%{red}No specs for #{inspect module}.#{function} have been found")
+      IO.puts  IEx.color(:error, "No specs for #{inspect module}.#{function} have been found")
     end
 
     :ok
@@ -249,14 +253,14 @@ defmodule IEx.Introspection do
 
   defp print_type({ kind, type }) do
     ast = Kernel.Typespec.type_to_ast(type)
-    IO.puts IO.ANSI.escape("%{yellow}@#{kind} #{Macro.to_binary(ast)}")
+    IO.puts IEx.color(:info, "@#{kind} #{Macro.to_binary(ast)}")
     true
   end
 
   defp print_spec({kind, { { name, _arity }, specs }}) do
     Enum.each specs, fn(spec) ->
       binary = Macro.to_binary Kernel.Typespec.spec_to_ast(name, spec)
-      IO.puts IO.ANSI.escape("%{yellow}@#{kind} #{binary}")
+      IO.puts IEx.color(:info, "@#{kind} #{binary}")
     end
     true
   end

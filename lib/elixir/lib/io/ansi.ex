@@ -136,13 +136,13 @@ defmodule IO.ANSI do
   end
 
   @doc %B"""
-  Escapes a string coverting named ANSI sequences into actual ANSI codes.
+  Escapes a string by converting named ANSI sequences into actual ANSI codes.
 
-  The format for referring sequences is `%{red}` and `%{red,bright}` (for
-  multiple sequences)
+  The format for referring to sequences is `%{red}` and `%{red,bright}` (for
+  multiple sequences).
 
-  It will also force a %{reset} to get appended to every string. If you don't
-  want this behaviour, use `escape_fragment/1` and `escape_fragment/2`.
+  It will also append a %{reset} to the string. If you don't want this
+  behaviour, use `escape_fragment/1` and `escape_fragment/2`.
 
   An optional boolean parameter can be passed to enable or disable
   emitting actual ANSI codes. When false, no ANSI codes will emitted.
@@ -165,10 +165,10 @@ defmodule IO.ANSI do
   end
 
   @doc %B"""
-  Escapes a string coverting named ANSI sequences into actual ANSI codes.
+  Escapes a string by converting named ANSI sequences into actual ANSI codes.
 
-  The format for referring sequences is `%{red}` and `%{red,bright}` (for
-  multiple sequences)
+  The format for referring to sequences is `%{red}` and `%{red,bright}` (for
+  multiple sequences).
 
   An optional boolean parameter can be passed to enable or disable
   emitting actual ANSI codes. When false, no ANSI codes will emitted.
@@ -177,8 +177,10 @@ defmodule IO.ANSI do
 
   ## Example
 
-    iex> IO.ANSI.escape("Hello %{red,bright,green}yes")
-    "Hello \e[31m\e[1m\e[32myes\e[0m"
+    iex> IO.ANSI.escape_fragment("Hello %{red,bright,green}yes")
+    "Hello \e[31m\e[1m\e[32myes"
+    iex> IO.ANSI.escape_fragment("%{reset}bye")
+    "\e[0mbye"
 
   """
   @spec escape_fragment(String.t, emit :: boolean) :: String.t
