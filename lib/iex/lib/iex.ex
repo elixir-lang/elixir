@@ -90,6 +90,30 @@ defmodule IEx do
   It is possible to override the default loading sequence for .iex file by
   supplying the --dot-iex option to iex. See `iex --help`.
 
+  ## Configuring the shell
+
+  There is a number of customization options provided by the shell. Take a look
+  at the docs for the `IEx.Options` module.
+
+  The main functions there are `IEx.Options.get/1` and `IEx.Options.set/2`. One
+  can also use `IEx.Options.list/0` to get the list of all supported options.
+  `IEx.Options.print_help/1` will print documentation for the given option.
+
+  In particular, it might be convenient to customize those options inside your
+  .iex file like this:
+
+      # .iex
+      IEx.Options.set :inspect, limit: 3
+
+      ### now run the shell ###
+
+      $ iex
+      Erlang R16B (erts-5.10.1) [...]
+
+      Interactive Elixir (0.9.1.dev) - press Ctrl+C to exit (type h() ENTER for help)
+      iex(1)> [1,2,3,4,5]
+      [1,2,3,...]
+
   ## Expressions in IEx
 
   As an interactive shell, IEx evaluates expressions. This has some
@@ -147,19 +171,16 @@ defmodule IEx do
     match?({ :ok, true }, :application.get_env(:iex, :started))
   end
 
-  @doc """
-  Registers options used on inspect.
-  """
+  @doc false
   def inspect_opts(opts) when is_list(opts) do
-    :application.set_env(:iex, :inspect_opts, Keyword.merge(inspect_opts, opts))
+    IO.write "[WARNING] IEx.inspect_opts is deprecated, please use IEx.Options.get/set instead. See `IEx.Options.print_help :inspect`.\n#{Exception.format_stacktrace}"
+    IEx.Options.set :inspect, opts
   end
 
-  @doc """
-  Returns currently registered inspect options.
-  """
+  @doc false
   def inspect_opts do
-    { :ok, opts } = :application.get_env(:iex, :inspect_opts)
-    opts
+    IO.write "[WARNING] IEx.inspect_opts is deprecated, please use IEx.Options.get/set instead. See `IEx.Options.print_help :inspect`.\n#{Exception.format_stacktrace}"
+    IEx.Options.get :inspect
   end
 
   # This is a callback invoked by Erlang shell utilities
@@ -203,7 +224,7 @@ defmodule IEx do
     )
 
     if opts[:inspect_opts] do
-      IEx.inspect_opts(opts[:inspect_opts])
+      IEx.Options.set :inspect, opts[:inspect_opts]
     end
 
     IEx.Config[
@@ -236,5 +257,29 @@ defmodule IEx do
 
   defp run_after_spawn do
     lc fun inlist Enum.reverse(after_spawn), do: fun.()
+  end
+
+  @doc """
+  Returns `string` escaped using the specified color.
+  """
+  def color(color_name, string) do
+    colors = IEx.Options.get(:colors)
+    IO.ANSI.escape "%{#{colors[color_name]}}#{string}", colors[:enabled]
+  end
+
+  @doc """
+  Returns an escaped fragment using the specified color.
+  """
+  def color_fragment(color_name) do
+    colors = IEx.Options.get(:colors)
+    IO.ANSI.escape_fragment "%{#{colors[color_name]}}", colors[:enabled]
+  end
+
+  @doc """
+  Returns an escaped fragment that resets colors and attributes.
+  """
+  def color_reset() do
+    colors = IEx.Options.get(:colors)
+    IO.ANSI.escape_fragment "%{reset}", colors[:enabled]
   end
 end
