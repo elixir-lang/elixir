@@ -34,32 +34,8 @@ defmodule IEx.Options do
   """
 
   @supported_options [
-    colors: [
-      doc: """
-        This is an aggregate option that encapsulates all color settings used
-        by the shell.
-
-          * enabled     -- boolean value that allows for switching the coloring
-                           on and off
-
-          * eval_result -- color for an expression's resulting value
-          * error       -- color for error messages
-          * info        -- color for various informational messages
-          * directory   -- color for directory entries (ls helper)
-          * device      -- color for device entries (ls helper)
-
-        """
-    ],
-    inspect: [
-      doc: """
-        Control the behavior of the shell's inspecting algorithm. Inspect is
-        used for printing results of evaluating expressions. It is also used by
-        IO.inspect.
-
-        See the doc for `Kernel.inspect/2` for the full list of options.
-
-        """
-    ],
+    colors: [],
+    inspect: [],
   ]
 
   @doc """
@@ -145,7 +121,15 @@ defmodule IEx.Options do
   """
   def help(name) do
     case @supported_options[name] do
-      kv when is_list(kv) -> kv[:doc]
+      kv when is_list(kv) ->
+        docs = __MODULE__.__info__(:docs)
+        { {_, _}, _, _, _, doc } = Enum.find docs, fn { {f, _}, _, _, _, _ } ->
+          f == name
+        end
+
+        # Strip the first paragraph
+        String.lstrip(Regex.replace %r/\A.+?^$/ms, doc, "")
+
       nil -> raise_option(name)
     end
   end
@@ -163,6 +147,40 @@ defmodule IEx.Options do
   def list() do
     Enum.map @supported_options, fn {k, _} -> k end
   end
+
+  @doc """
+  **NOTE**: This is just a stub for documentation purposes. Use
+  `IEx.Options.get` and `IEx.Options.set` to query and change the option's
+  value.
+
+  This is an aggregate option that encapsulates all color settings used
+  by the shell.
+
+    * enabled     -- boolean value that allows for switching the coloring
+                     on and off
+
+    * eval_result -- color for an expression's resulting value
+    * error       -- color for error messages
+    * info        -- color for various informational messages
+    * directory   -- color for directory entries (ls helper)
+    * device      -- color for device entries (ls helper)
+
+  """
+  def colors
+
+  @doc """
+  **NOTE**: This is just a stub for documentation purposes. Use
+  `IEx.Options.get` and `IEx.Options.set` to query and change the option's
+  value.
+
+  Control the behavior of the shell's inspecting algorithm. Inspect is
+  used for printing results of expression evaluation. It is also used by
+  IO.inspect.
+
+  See the doc for `Kernel.inspect/2` for the full list of options.
+
+  """
+  def inspect
 
   defp raise_option(name) do
     raise ArgumentError, message: "Unknown IEx option #{inspect name}"
