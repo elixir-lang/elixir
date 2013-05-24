@@ -161,7 +161,7 @@ defmodule IEx.Server do
   end
 
   defp io_error(result) do
-    IO.puts :stdio, result
+    IO.puts :stdio, IEx.color(:error, result)
   end
 
   defp remote_prefix do
