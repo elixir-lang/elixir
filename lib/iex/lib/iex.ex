@@ -223,10 +223,6 @@ defmodule IEx do
       delegate_locals_to: IEx.Helpers
     )
 
-    if opts[:inspect_opts] do
-      IEx.Options.set :inspect, opts[:inspect_opts]
-    end
-
     IEx.Config[
       binding: opts[:binding] || [],
       scope: scope,
@@ -245,7 +241,7 @@ defmodule IEx do
       expand_fun = IEx.Autocomplete.expand &1
     end
 
-    :io.setopts gl, [expand_fun: expand_fun, binary: true]
+    :io.setopts gl, [expand_fun: expand_fun, binary: true, encoding: :unicode]
   end
 
   defp ensure_module_exists(node, mod) do
