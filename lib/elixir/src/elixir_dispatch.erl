@@ -41,11 +41,7 @@ import_function(Meta, Name, Arity, S) ->
     { import, Receiver } ->
       require_function(Meta, Receiver, Name, Arity, S);
     nomatch ->
-      Module = S#elixir_scope.module,
-      case S#elixir_scope.function of
-        Tuple -> ok;
-        _ -> elixir_import:record(Tuple, Module, Module)
-      end,
+      elixir_import:record_local(Tuple, S),
       { { 'fun', ?line(Meta), { function, Name, Arity } }, S }
   end.
 
@@ -128,7 +124,7 @@ do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
       expand_require(Meta, Receiver, Tuple, Args, Module, S);
     _ ->
       Fun = (S#elixir_scope.function /= Tuple) andalso
-        elixir_def_local:macro_for(Tuple, true, Module),
+        elixir_def_local:macro_for(Tuple, true, S),
       case Fun of
         false -> { error, noexpansion };
         _ ->
@@ -148,7 +144,7 @@ expand_require(Meta, ?BUILTIN, { Name, Arity } = Tuple, Args, Module, S) ->
 
 expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, Module, S) ->
   Fun = (Module == Receiver) andalso (S#elixir_scope.function /= Tuple) andalso
-    elixir_def_local:macro_for(Tuple, false, Module),
+    elixir_def_local:macro_for(Tuple, false, S),
 
   case Fun of
     false ->

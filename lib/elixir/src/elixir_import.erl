@@ -2,12 +2,18 @@
 %% in between local functions and imports.
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
--export([import/5, recorded_locals/1, format_error/1,
+-export([import/5, record_local/2, recorded_locals/1, format_error/1,
   ensure_no_import_conflict/4, ensure_no_local_conflict/4,
   ensure_all_imports_used/3,
   build_table/1, delete_table/1, record/3]).
 -include("elixir.hrl").
 
+%% This table keeps:
+%%
+%% * Invoked imports and requires in the format { { Name, Arity }, Module }
+%% * The current warn status imports and requires in the format { Module, Line :: integer }
+%% * Invoked locals in the format { { Name, Arity }, Public :: boolean }
+%%
 table(Module) -> ?atom_concat([i, Module]).
 
 build_table(Module) ->
@@ -16,9 +22,7 @@ build_table(Module) ->
 delete_table(Module) ->
   ets:delete(table(Module)).
 
-record(_Tuple, _Receiver, nil) ->
-  false;
-
+record(_Tuple, _Receiver, nil) -> false;
 record(Tuple, Receiver, Module) ->
   try
     ets:insert(table(Module), { Tuple, Receiver })
@@ -26,8 +30,12 @@ record(Tuple, Receiver, Module) ->
     error:badarg -> false
   end.
 
-record_warn(_Meta, _Ref, _Opts, #elixir_scope{module=nil}) -> false;
+record_local(Tuple, #elixir_scope{function=Function})
+    when Function == nil; Function == Tuple -> false;
+record_local(Tuple, #elixir_scope{module=Module}) ->
+  record(Tuple, true, Module).
 
+record_warn(_Meta, _Ref, _Opts, #elixir_scope{module=nil}) -> false;
 record_warn(Meta, Ref, Opts, S) ->
   Table = table(S#elixir_scope.module),
   ets:delete(Table, Ref),
@@ -43,10 +51,15 @@ record_warn(Meta, Ref, Opts, S) ->
 
 recorded_locals(Module) ->
   Table  = table(Module),
-  Match  = { '$1', Module },
-  Result = ets:match(Table, Match),
-  ets:match_delete(Table, Match),
-  lists:append(Result).
+  Match  = module_local_spec(),
+  Result = ets:select(Table, Match),
+  ets:select_delete(Table, Match),
+  Result.
+
+module_local_spec() ->
+  [{ { '$1', '$2' }, [{ 'orelse', {'==','$2',true}, {'==','$2',false} }], ['$1'] }].
+
+%% IMPORT HELPERS
 
 %% Update the scope to consider the imports for aliases
 %% based on the given options and selector.
@@ -80,16 +93,13 @@ import(Meta, Ref, Opts, Selector, S) ->
   record_warn(Meta, Ref, Opts, S),
   SM.
 
-%% IMPORT FUNCTION RELATED HELPERS
-
 %% Calculates the imports based on only and except
 
 calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
   File = S#elixir_scope.file,
 
   New = case keyfind(only, Opts) of
-    { only, RawOnly } ->
-      Only = expand_fun_arity(Meta, only, RawOnly, S),
+    { only, Only } ->
       case Only -- get_exports(Key) of
         [{Name,Arity}|_] ->
           Tuple = { invalid_import, { Key, Name, Arity } },
@@ -101,8 +111,7 @@ calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
       case keyfind(except, Opts) of
         false -> AvailableFun(true);
         { except, [] } -> AvailableFun(true);
-        { except, RawExcept } ->
-          Except = expand_fun_arity(Meta, except, RawExcept, S),
+        { except, Except } ->
           case keyfind(Key, Old) of
             false -> AvailableFun(true) -- Except;
             {Key,OldImports} -> OldImports -- Except
@@ -133,29 +142,6 @@ if_quoted(Meta, Temp, Callback) ->
     _ ->
       Temp
   end.
-
-%% Ensure we are expanding macros and stuff
-
-expand_fun_arity(Meta, Kind, Value, S) ->
-  { TValue, _S } = elixir_translator:translate_each(Value, S),
-  cons_to_keywords(Meta, Kind, TValue, S).
-
-cons_to_keywords(Meta, Kind, { cons, _, Left, { nil, _ } }, S) ->
-  [tuple_to_fun_arity(Meta, Kind, Left, S)];
-
-cons_to_keywords(Meta, Kind, { cons, _, Left, Right }, S) ->
-  [tuple_to_fun_arity(Meta, Kind, Left, S)|cons_to_keywords(Meta, Kind, Right, S)];
-
-cons_to_keywords(Meta, Kind, _, S) ->
-  elixir_errors:syntax_error(Meta, S#elixir_scope.file,
-    "invalid value for :~ts, expected a list with functions and arities", [Kind]).
-
-tuple_to_fun_arity(_Meta, _Kind, { tuple, _, [{ atom, _, Atom }, { integer, _, Integer }] }, _S) ->
-  { Atom, Integer };
-
-tuple_to_fun_arity(Meta, Kind, _, S) ->
-  elixir_errors:syntax_error(Meta, S#elixir_scope.file,
-    "invalid value for :~ts, expected a list with functions and arities", [Kind]).
 
 %% Retrieve functions and macros from modules
 
@@ -207,26 +193,33 @@ ensure_no_local_conflict(Meta, File, Module, AllDefined) ->
 
 ensure_no_import_conflict(Meta, File, Module, AllDefined) ->
   Table = table(Module),
-  Matches = [X || X <- AllDefined, ets:member(Table, X)],
+  [ensure_no_import_conflict(Meta, File, Module, Table, X) || X  <- AllDefined],
+  ok.
+
+ensure_no_import_conflict(Meta, File, Module, Table, { Name, Arity } = Tuple) ->
+  RawMatches = ets:match(Table, { Tuple, '$1' }),
+  Matches = [X || X <- lists:append(RawMatches), not is_boolean(X), X /= Module],
 
   case Matches of
-    [{Name,Arity}|_] ->
-      Key = ets:lookup_element(Table, { Name, Arity }, 2),
-      Tuple = { import_conflict, { hd(Key), Name, Arity } },
-      elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
-    [] ->
-      ok
+    []  -> ok;
+    Key ->
+      Error = { import_conflict, { hd(Key), Name, Arity } },
+      elixir_errors:form_error(Meta, File, ?MODULE, Error)
   end.
+
+%% Ensure all imports are used by checking all
+%% enabled warnings in the table with the imported
+%% function calls.
 
 ensure_all_imports_used(_Line, File, Module) ->
   Table = table(Module),
-  [begin
-    elixir_errors:handle_file_warning(File, { L, ?MODULE, { unused_import, M } })
-   end || [M, L] <- ets:select(Table, module_line_spec()),
-          ets:match(Table, { '$1', M }) == []].
+  [ begin
+      elixir_errors:handle_file_warning(File, { L, ?MODULE, { unused_import, M } })
+    end || { M, L } <- ets:select(Table, module_line_spec()),
+           ets:match(Table, { '$1', M }) == []].
 
 module_line_spec() ->
-  [{ { '$1', '$2' }, [{ is_integer, '$2' }], ['$$'] }].
+  [{ { '$1', '$2' }, [{ is_integer, '$2' }], ['$_'] }].
 
 %% Ensure the given functions don't clash with any
 %% of Elixir non overridable macros.
@@ -287,8 +280,6 @@ intersection([H|T], All) ->
 
 intersection([], _All) -> [].
 
-%% INTROSPECTION
-
 %% Internal funs that are never imported etc.
 
 remove_underscored(default, List) -> remove_underscored(List);
@@ -308,7 +299,7 @@ remove_internals(Set) ->
   ordsets:del_element({ module_info, 1 },
     ordsets:del_element({ module_info, 0 }, Set)).
 
-%% Macros implemented in Erlang that are not overridable.
+%% Macros implemented in Erlang that are not importable.
 
 special_form() ->
   [
