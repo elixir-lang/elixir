@@ -104,7 +104,7 @@ defmodule GenServer.Behaviour do
         { :noreply, state }
       end
 
-      def terminate(reason, state) do
+      def terminate(_reason, _state) do
         :ok
       end
 

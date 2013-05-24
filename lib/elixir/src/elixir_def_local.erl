@@ -1,12 +1,45 @@
 %% Module responsible for local invocation of macros and functions.
 -module(elixir_def_local).
 -export([
-  macro_for/3,
-  function_for/3,
-  format_error/1,
-  check_unused_local/3
+  setup/1, cleanup/1,
+  record/2, record_root/2,
+  macro_for/3, function_for/3,
+  check_unused_local/3, format_error/1
 ]).
 -include("elixir.hrl").
+
+-define(attr, '__locals_tracker').
+-define(tracker, 'Elixir.Kernel.LocalsTracker').
+
+setup(Module) ->
+  case code:ensure_loaded(?tracker) of
+    { module, _ } -> ets:insert(Module, { ?attr, ?tracker:start_link() });
+    { error, _ }  -> ok
+  end.
+
+cleanup(Module) ->
+  if_tracker(Module, fun(Pid) -> ?tracker:stop(Pid) end).
+
+record(Tuple, #elixir_scope{function=Function})
+    when Function == nil; Function == Tuple -> false;
+record(Tuple, #elixir_scope{module=Module, function=Function, function_kind=Kind}) ->
+  if_tracker(Module, fun(Pid) ->
+    ?tracker:add_definition(Pid, Kind, Function),
+    ?tracker:add_dispatch(Pid, Function, Tuple),
+    true
+  end).
+
+record_root(Module, Tuple) ->
+  if_tracker(Module, fun(Pid) ->
+    ?tracker:add_dispatch(Pid, root, Tuple),
+    true
+  end).
+
+if_tracker(Module, Callback) ->
+  case ets:lookup(Module, ?attr) of
+    [{ ?attr, Pid }] -> Callback(Pid);
+    _ -> false
+  end.
 
 %% Used by elixir_dispatch, returns false if no macro is found
 macro_for(_Tuple, _All, #elixir_scope{module=nil}) -> false;
@@ -14,7 +47,7 @@ macro_for(_Tuple, _All, #elixir_scope{module=nil}) -> false;
 macro_for(Tuple, All, #elixir_scope{module=Module} = S) ->
   try elixir_def:lookup_definition(Module, Tuple) of
     { { Tuple, Kind, Line, _, _, _, _ }, Clauses } when Kind == defmacro; All, Kind == defmacrop ->
-      elixir_import:record_local(Tuple, S),
+      record(Tuple, S),
       get_function(Line, Module, Clauses);
     _ ->
       false
@@ -72,40 +105,18 @@ rewrite_clause(Else, _) -> Else.
 
 %% Error handling
 
-check_unused_local(File, Recorded, Private) ->
-  [check_unused_local(Fun, Kind, Line, File, Defaults, Recorded) ||
-    { Fun, Kind, Line, true, Defaults } <- Private].
+check_unused_local(File, Module, Private) ->
+  if_tracker(Module, fun(Pid) ->
+    Args = [ { Fun, Kind, Defaults } ||
+             { Fun, Kind, _Line, true, Defaults } <- Private],
 
-check_unused_local(Fun, Kind, Line, File, 0, Recorded) ->
-  not(lists:member(Fun, Recorded)) andalso
-    elixir_errors:handle_file_warning(File, { Line, ?MODULE, { unused_def, Kind, Fun } });
+    Unused = ?tracker:collect_unused(Pid, Args),
 
-check_unused_local({ Name, Arity } = Fun, Kind, Line, File, Defaults, Recorded) when Defaults > 0 ->
-  Min = Arity - Defaults,
-  Max = Arity,
-
-  Invoked = [A || { N, A } <- Recorded, A >= Min, A =< Max, N == Name],
-
-  case Invoked of
-    [] ->
-      elixir_errors:handle_file_warning(File, { Line, ?MODULE, { unused_def, Kind, Fun } });
-    _ ->
-      UnusedArgs = lists:min(Invoked) - Min,
-      if
-        UnusedArgs == 0 ->
-          ok;
-        UnusedArgs == Defaults ->
-          elixir_errors:handle_file_warning(File, { Line, ?MODULE, { unused_args, Fun } });
-        true ->
-          elixir_errors:handle_file_warning(File, { Line, ?MODULE, { unused_args, Fun, UnusedArgs } })
-      end
-  end;
-
-check_unused_local(_Fun, _Kind, _Line, _File, _Defaults, _Recorded) ->
-  ok.
-
-format_error({unused_def,defp,{Name, Arity}}) ->
-  io_lib:format("function ~ts/~B is unused", [Name, Arity]);
+    [ begin
+        { _, _, Line, _, _ } = lists:keyfind(element(2, Error), 1, Private),
+        elixir_errors:handle_file_warning(File, { Line, ?MODULE, Error })
+      end || Error <- Unused ]
+  end).
 
 format_error({unused_args,{Name, Arity}}) ->
   io_lib:format("default arguments in ~ts/~B are never used", [Name, Arity]);
@@ -116,5 +127,8 @@ format_error({unused_args,{Name, Arity},1}) ->
 format_error({unused_args,{Name, Arity},Count}) ->
   io_lib:format("the first ~B default arguments in ~ts/~B are never used", [Count, Name, Arity]);
 
-format_error({unused_def,defmacrop,{Name, Arity}}) ->
+format_error({unused_def,{Name, Arity},defp}) ->
+  io_lib:format("function ~ts/~B is unused", [Name, Arity]);
+
+format_error({unused_def,{Name, Arity},defmacrop}) ->
   io_lib:format("macro ~ts/~B is unused", [Name, Arity]).

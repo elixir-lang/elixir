@@ -2,7 +2,7 @@
 %% in between local functions and imports.
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
--export([import/5, record_local/2, recorded_locals/1, format_error/1,
+-export([import/5, format_error/1,
   ensure_no_import_conflict/4, ensure_no_local_conflict/4,
   ensure_all_imports_used/3,
   build_table/1, delete_table/1, record/3]).
@@ -10,9 +10,11 @@
 
 %% This table keeps:
 %%
-%% * Invoked imports and requires in the format { { Name, Arity }, Module }
-%% * The current warn status imports and requires in the format { Module, Line :: integer }
-%% * Invoked locals in the format { { Name, Arity }, Public :: boolean }
+%% * Invoked imports and requires in the format
+%%   { { Name, Arity }, Module }
+%
+%% * The current warn status imports and requires
+%%   in the format { Module, Line :: integer }
 %%
 table(Module) -> ?atom_concat([i, Module]).
 
@@ -30,11 +32,6 @@ record(Tuple, Receiver, Module) ->
     error:badarg -> false
   end.
 
-record_local(Tuple, #elixir_scope{function=Function})
-    when Function == nil; Function == Tuple -> false;
-record_local(Tuple, #elixir_scope{module=Module}) ->
-  record(Tuple, true, Module).
-
 record_warn(_Meta, _Ref, _Opts, #elixir_scope{module=nil}) -> false;
 record_warn(Meta, Ref, Opts, S) ->
   Table = table(S#elixir_scope.module),
@@ -48,16 +45,6 @@ record_warn(Meta, Ref, Opts, S) ->
     end,
 
   Warn andalso ets:insert(Table, { Ref, ?line(Meta) }).
-
-recorded_locals(Module) ->
-  Table  = table(Module),
-  Match  = module_local_spec(),
-  Result = ets:select(Table, Match),
-  ets:select_delete(Table, Match),
-  Result.
-
-module_local_spec() ->
-  [{ { '$1', '$2' }, [{ 'orelse', {'==','$2',true}, {'==','$2',false} }], ['$1'] }].
 
 %% IMPORT HELPERS
 

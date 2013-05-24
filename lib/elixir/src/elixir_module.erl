@@ -70,6 +70,14 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
     Forms1          = specs_form(Line, Module, Private, Defmacro, Forms0, C),
     Forms2          = attributes_form(Line, File, Module, Forms1),
 
+    case ets:lookup(data_table(Module), 'on_load') of
+      [] -> ok;
+      [{on_load,OnLoad}] ->
+        [elixir_def_local:record_root(Module, Tuple) || Tuple <- OnLoad]
+    end,
+
+    elixir_def_local:check_unused_local(File, Module, Private),
+
     elixir_import:ensure_all_imports_used(Line, File, Module),
     elixir_import:ensure_no_local_conflict(Line, File, Module, All),
     elixir_import:ensure_no_import_conflict(Line, File, Module, All),
@@ -82,6 +90,7 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
     Binary = load_form(Line, Final, S),
     { module, Module, Binary, Result }
   after
+    elixir_def_local:cleanup(Module),
     ets:delete(data_table(Module)),
     ets:delete(docs_table(Module)),
     elixir_def:delete_table(Module),
@@ -126,6 +135,9 @@ build(Line, File, Module) ->
   DocsTable = docs_table(Module),
   ets:new(DocsTable, [ordered_set, named_table, public]),
 
+  %% Setup other modules
+  elixir_def_local:setup(Module),
+
   %% We keep a separated table for function definitions
   %% and another one for imports. We keep them in different
   %% tables for organization and speed purpose (since the
@@ -155,13 +167,6 @@ functions_form(Line, File, Module, Export, Private, Def, Defmacro, RawFunctions,
   { FinalExport, FinalFunctions } =
     add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C),
 
-  Recorded =
-    case ets:lookup(data_table(Module), 'on_load') of
-      [] -> elixir_import:recorded_locals(Module);
-      [{on_load,OnLoad}] -> elixir_import:recorded_locals(Module) ++ OnLoad
-    end,
-
-  elixir_def_local:check_unused_local(File, Recorded, Private),
   PrivateTuple = [Tuple || { Tuple, _, _, _, _ } <- Private],
   { FinalExport ++ PrivateTuple, [
     {attribute, Line, export, lists:sort(FinalExport)} | FinalFunctions

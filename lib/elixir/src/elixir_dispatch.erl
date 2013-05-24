@@ -41,7 +41,7 @@ import_function(Meta, Name, Arity, S) ->
     { import, Receiver } ->
       require_function(Meta, Receiver, Name, Arity, S);
     nomatch ->
-      elixir_import:record_local(Tuple, S),
+      elixir_def_local:record(Tuple, S),
       { { 'fun', ?line(Meta), { function, Name, Arity } }, S }
   end.
 

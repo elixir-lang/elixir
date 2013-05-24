@@ -50,6 +50,19 @@ defmodule Kernel.WarningTest do
     purge [Sample1, Sample2, Sample3]
   end
 
+  test :unused_cyclic_functions do
+    assert capture_io(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        defp a, do: b
+        defp b, do: a
+      end
+      """
+    end) =~ %r"function a/0 is unused"
+  after
+    purge Sample
+  end
+
   test :unused_macro do
     assert capture_io(fn ->
       Code.eval_string """

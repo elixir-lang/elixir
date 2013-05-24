@@ -110,7 +110,7 @@ store_definition(Kind, Line, _CheckClauses, nil, _Name, _Args, _Guards, _Body, #
 
 store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, #elixir_scope{} = DS) ->
   Arity = length(Args),
-  S     = DS#elixir_scope{function={Name,Arity}, module=Module},
+  S = DS#elixir_scope{module=Module, function={Name,Arity}, function_kind=Kind},
 
   CO = elixir_compiler:get_opts(),
   Location = retrieve_file(Line, Module, S, CO),
