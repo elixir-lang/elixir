@@ -207,7 +207,7 @@ defmodule Kernel.CLI do
       "-" <> _ ->
         shared_option? list, config, process_compiler(&1, &2)
       _ ->
-        pattern = if File.dir?(h), do: "#{h}/**/*.ex", else: h
+        pattern = if :filelib.is_dir(h), do: "#{h}/**/*.ex", else: h
         process_compiler t, config.update_compile [pattern|&1]
     end
   end
@@ -284,7 +284,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:file, file}, _config) when is_binary(file) do
-    if File.regular?(file) do
+    if :filelib.is_regular(file) do
       Code.require_file(file)
       :ok
     else
@@ -295,7 +295,7 @@ defmodule Kernel.CLI do
   defp process_command({:require, pattern}, _config) when is_binary(pattern) do
     files = Path.wildcard(pattern)
     files = Enum.uniq(files)
-    files = Enum.filter files, File.regular?(&1)
+    files = Enum.filter files, :filelib.is_regular(&1)
 
     if files != [] do
       Enum.map files, Code.require_file(&1)
@@ -308,7 +308,7 @@ defmodule Kernel.CLI do
   defp process_command({:parallel_require, pattern}, _config) when is_binary(pattern) do
     files = Path.wildcard(pattern)
     files = Enum.uniq(files)
-    files = Enum.filter files, File.regular?(&1)
+    files = Enum.filter files, :filelib.is_regular(&1)
 
     if files != [] do
       Kernel.ParallelRequire.files(files)
@@ -319,11 +319,11 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:compile, patterns}, config) do
-    File.mkdir_p(config.output)
+    :filelib.ensure_dir(:filename.join(config.output, "."))
 
     files = Enum.map patterns, Path.wildcard(&1)
     files = Enum.uniq(List.concat(files))
-    files = Enum.filter files, File.regular?(&1)
+    files = Enum.filter files, :filelib.is_regular(&1)
 
     if files != [] do
       Code.compiler_options(config.compiler_options)
