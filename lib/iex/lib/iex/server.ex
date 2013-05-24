@@ -170,23 +170,23 @@ defmodule IEx.Server do
 
   defp print_exception(exception, stacktrace) do
     print_stacktrace stacktrace, fn ->
-      "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+      IEx.color(:error, "** (#{inspect exception.__record__(:name)}) #{exception.message}")
     end
   end
 
   defp print_error(kind, reason, stacktrace) do
     print_stacktrace stacktrace, fn ->
-      "** (#{kind}) #{inspect(reason)}"
+      IEx.color(:info, "** (#{kind}) #{inspect(reason)}")
     end
   end
 
   defp print_stacktrace(trace, callback) do
     try do
-      io_error callback.()
-      io_error Exception.format_stacktrace(trace)
+      io_error IEx.color(:info, callback.())
+      io_error IEx.color(:info, Exception.format_stacktrace(trace))
     catch
       _, _ ->
-        io_error "** (IEx.Error) error when printing exception message and stacktrace"
+        io_error IEx.color(:error, "** (IEx.Error) error when printing exception message and stacktrace")
     end
   end
 end
