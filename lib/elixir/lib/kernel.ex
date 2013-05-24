@@ -1890,7 +1890,13 @@ defmodule Kernel do
 
   ## Options
 
-  See the docs for IEx.Options for more details.
+  The following options are supported:
+
+  * raw   -- when true, record tuples are not formatted by the inspect protocol,
+             but are printed as just tuples; default: false
+
+  * limit -- limits the number of items that are printed for tuples, bitstrings,
+             and lists; does not apply to strings
 
   ## Examples
 

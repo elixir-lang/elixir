@@ -7,7 +7,7 @@ defmodule IEx.Options do
 
   If the value of an option is a keyword list, only those keys that are
   mentioned will be changed. The rest of the sub-options will keep their
-  current values.
+  current values. Any extraneous keys are filtered out, i.e. not used.
 
   To get the list of all supported options, use `list/0`. You can also get an
   option's description using `print_help/1`.
@@ -39,9 +39,6 @@ defmodule IEx.Options do
         This is an aggregate option that encapsulates all color settings used
         by the shell.
 
-        The value is a keyword list that should have any of the following keys
-        specified. If any of the keys is omitted, that color is not changed.
-
           * enabled     -- boolean value that allows for switching the coloring
                            on and off
 
@@ -56,16 +53,10 @@ defmodule IEx.Options do
     inspect: [
       doc: """
         Control the behavior of the shell's inspecting algorithm. Inspect is
-        used for printing results of evaluating expressions. It is also used by IO.inspect.
+        used for printing results of evaluating expressions. It is also used by
+        IO.inspect.
 
-        The value is a keyword list that should have any of the following keys
-        specified. If any of the keys is omitted, that option is not changed.
-
-          * raw   -- when true, record tuples are not formatted by the inspect protocol,
-                     but are printed as just tuples; default: false
-
-          * limit -- limits the number of items that are printed for tuples, bitstrings,
-                     and lists; does not apply to strings
+        See the doc for `Kernel.inspect/2` for the full list of options.
 
         """
     ],
