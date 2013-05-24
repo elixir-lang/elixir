@@ -1,6 +1,7 @@
 # v0.9.1.dev
 
 * enhancements
+  * [Kernel] Add `String.start_with?` and `String.end_with?`
 
 * bug fix
   * [Dict] `Enum.to_list` and `Dict.to_list` now return the same results for dicts
