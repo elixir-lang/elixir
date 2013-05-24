@@ -157,7 +157,7 @@ defmodule IEx.Server do
   end
 
   defp io_put(result) do
-    IO.puts :stdio, IEx.color(:eval_result, inspect(result, IEx.inspect_opts))
+    IO.puts :stdio, IEx.color(:eval_result, inspect(result, IEx.Options.get(:inspect)))
   end
 
   defp io_error(result) do

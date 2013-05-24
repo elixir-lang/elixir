@@ -147,23 +147,16 @@ defmodule IEx do
     match?({ :ok, true }, :application.get_env(:iex, :started))
   end
 
-  @doc """
-  Registers options used on inspect.
-  """
+  @doc false
   def inspect_opts(opts) when is_list(opts) do
-    old_opts = inspect_opts()
-    filtered_opts = Enum.filter opts, fn {name, _} ->
-      name in old_opts
-    end
-    :application.set_env(:iex, :inspect_opts, Keyword.merge(old_opts, filtered_opts))
+    IO.write "[WARNING] IEx.inspect_opts is deprecated, please use IEx.Options.get/set instead. See `IEx.Options.print_help :inspect`.\n#{Exception.format_stacktrace}"
+    IEx.Options.set :inspect, opts
   end
 
-  @doc """
-  Returns currently registered inspect options.
-  """
+  @doc false
   def inspect_opts do
-    { :ok, opts } = :application.get_env(:iex, :inspect_opts)
-    opts
+    IO.write "[WARNING] IEx.inspect_opts is deprecated, please use IEx.Options.get/set instead. See `IEx.Options.print_help :inspect`.\n#{Exception.format_stacktrace}"
+    IEx.Options.get :inspect
   end
 
   # This is a callback invoked by Erlang shell utilities
@@ -207,7 +200,7 @@ defmodule IEx do
     )
 
     if opts[:inspect_opts] do
-      IEx.inspect_opts(opts[:inspect_opts])
+      IEx.Options.set :inspect, opts[:inspect_opts]
     end
 
     IEx.Config[
