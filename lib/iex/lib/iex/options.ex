@@ -153,8 +153,9 @@ defmodule IEx.Options do
   `IEx.Options.get` and `IEx.Options.set` to query and change the option's
   value.
 
-  This is an aggregate option that encapsulates all color settings used
-  by the shell.
+  This is an aggregate option that encapsulates all color settings used by the
+  shell. See documentation for the `IO.ANSI` module for the list of supported
+  colors and attributes.
 
   The value is a keyword list. List of supported keys:
 
