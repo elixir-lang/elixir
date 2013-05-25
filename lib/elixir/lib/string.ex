@@ -795,4 +795,50 @@ defmodule String do
     end
   end
 
+  @doc """
+  Returns true if `string` starts with any of the prefixes given, otherwise
+  false. `prefixes` can be either a single prefix or a list of prefixes.
+
+  ## Examples
+
+      iex> String.starts_with? "elixir", "eli"
+      true
+      iex> String.starts_with? "elixir", ["erlang", "elixir"]
+      true
+      iex> String.starts_with? "elixir", ["erlang", "ruby"]
+      false
+
+  """
+  @spec starts_with?(t, t | [t]) :: boolean
+
+  def starts_with?(string, prefixes) do
+    case :binary.match(string, prefixes) do
+      :nomatch -> false
+      {0, _}   -> true
+      _        -> false
+    end
+  end
+
+  @doc """
+  Returns true if `string` ends with any of the suffixes given, otherwise
+  false. `suffixes` can be either a single suffix or a list of suffixes.
+
+  ## Examples
+
+      iex> String.ends_with? "language", "age"
+      true
+      iex> String.ends_with? "language", ["youth", "age"]
+      true
+      iex> String.ends_with? "language", ["youth", "elixir"]
+      false
+
+  """
+  @spec ends_with?(t, t | [t]) :: boolean
+
+  def ends_with?(string, suffixes) do
+    string_size = size(string)
+    matches = :binary.matches(string, suffixes)
+    Enum.any? matches, fn({pos, len})-> pos + len == string_size end
+  end
+
 end
