@@ -77,7 +77,7 @@ defmodule Mix.SCM do
   same repository. The options are guaranteed to belong to the
   same SCM.
   """
-  defcallback equals?(opts1 :: opts, opts2 :: opts) :: boolean
+  defcallback equal?(opts1 :: opts, opts2 :: opts) :: boolean
 
   @doc """
   This behavior function should clean the given dependency.

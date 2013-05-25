@@ -31,7 +31,7 @@ defmodule Mix.SCM.Git do
     end)
   end
 
-  def equals?(opts1, opts2) do
+  def equal?(opts1, opts2) do
     get_lock(opts1, false) == get_lock(opts2, false)
   end
 
