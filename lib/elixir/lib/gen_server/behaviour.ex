@@ -88,26 +88,32 @@ defmodule GenServer.Behaviour do
     quote location: :keep do
       @behavior :gen_server
 
+      @doc false
       def init(args) do
         { :ok, args }
       end
 
+      @doc false
       def handle_call(_request, _from, state) do
         { :noreply, state }
       end
 
+      @doc false
       def handle_info(_msg, state) do
         { :noreply, state }
       end
 
+      @doc false
       def handle_cast(_msg, state) do
         { :noreply, state }
       end
 
+      @doc false
       def terminate(_reason, _state) do
         :ok
       end
 
+      @doc false
       def code_change(_old, state, _extra) do
         { :ok, state }
       end

@@ -48,7 +48,6 @@ defmodule Application.Behaviour do
 
   """
 
-
   # Starts the given application and all of its dependencies that
   # have not been started yet recursively.
   #
@@ -95,6 +94,7 @@ defmodule Application.Behaviour do
     quote location: :keep do
       @behavior :application
 
+      @doc false
       def stop(_state) do
         :ok
       end

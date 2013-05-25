@@ -216,17 +216,15 @@ defmodule Module do
       [] ->
         ETS.insert(table, { tuple, line, kind, signature, doc })
         :ok
-      [{ tuple, line, _old_kind, old_sign, old_doc }] when old_doc == nil or doc == nil or old_doc == doc ->
+      [{ tuple, line, _old_kind, old_sign, old_doc }] ->
         ETS.insert(table, {
           tuple,
           line,
           kind,
           merge_signatures(old_sign, signature, 1),
-          doc || old_doc
+          if(nil?(doc), do: old_doc, else: doc)
         })
         :ok
-      _ ->
-        { :error, :existing_doc }
     end
   end
 
@@ -556,8 +554,6 @@ defmodule Module do
         :ok
       { :error, :private_doc } ->
         IO.puts "#{env.file}:#{line} function #{name}/#{arity} is private, @doc's are always discarded for private functions"
-      { :error, :existing_doc } ->
-        IO.puts "#{env.file}:#{line} @doc's for function #{name}/#{arity} have been given more than once, the first version is being kept"
     end
 
     delete_attribute(module, :doc)
