@@ -10,23 +10,55 @@ defmodule Kernel.LocalsTracker do
   @timeout  30_000
   @behavior :gen_server
 
+  # Public API
+
+  @doc """
+  Returns all locals that are reachable.
+
+  By default, all public functions are reachable.
+  A private function is only reachable if it has
+  a public function that invokes it directly.
+  """
+  def reachable(pid) do
+    :gen_server.call(to_pid(pid), :reachable, @timeout)
+  end
+
+  defp to_pid(pid) when is_pid(pid),  do: pid
+  defp to_pid(mod) when is_atom(mod), do: Module.get(mod, :__locals_tracker)
+
+  # Internal API
+
+  # Starts the tracker and returns its pid.
+  @doc false
   def start_link do
     { :ok, pid } = :gen_server.start_link(__MODULE__, [], [])
     pid
   end
 
+  # Adds a definition into the tracker. A public
+  # definition is connected with the :local node
+  # while a private one is left unreachable until
+  # a call is made to.
+  @doc false
   def add_definition(pid, kind, tuple) when kind in [:def, :defp, :defmacro, :defmacrop] do
-    :gen_server.cast(pid, { :vertex, kind, tuple })
+    :gen_server.cast(pid, { :add_definition, kind, tuple })
   end
 
-  def add_dispatch(pid, from, to) do
-    :gen_server.cast(pid, { :edge, from, to })
+  # Adds a local dispatch to the given target.
+  def add_local(pid, to) when is_tuple(to) do
+    :gen_server.cast(pid, { :add_local, :local, to })
   end
 
-  def reachable(pid) do
-    :gen_server.call(pid, :reachable, @timeout)
+  # Adds a local dispatch from-to the given target.
+  @doc false
+  def add_local(pid, from, to) when is_tuple(from) and is_tuple(to) do
+    :gen_server.cast(pid, { :add_local, from, to })
   end
 
+  # Collect all unused definitions based on the private
+  # given also accounting the expected amount of default
+  # clauses a private function have.
+  @doc false
   def collect_unused(pid, private) do
     # Add a vertex for each private given
     lc { tuple, kind, _defaults } inlist private do
@@ -64,6 +96,8 @@ defmodule Kernel.LocalsTracker do
     end
   end
 
+  # Stops the gen server
+  @doc false
   def stop(pid) do
     :gen_server.cast(pid, :stop)
   end
@@ -72,12 +106,12 @@ defmodule Kernel.LocalsTracker do
 
   def init([]) do
     d = :digraph.new
-    :digraph.add_vertex(d, :root)
+    :digraph.add_vertex(d, :local)
     { :ok, d }
   end
 
   def handle_call(:reachable, _from, d) do
-    { :reply, reduce_reachable(d, :root, []), d }
+    { :reply, reduce_reachable(d, :local, []), d }
   end
 
   def handle_call(_request, _from, d) do
@@ -88,19 +122,19 @@ defmodule Kernel.LocalsTracker do
     { :noreply, d }
   end
 
-  def handle_cast({ :edge, from, to }, d) do
+  def handle_cast({ :add_local, from, to }, d) do
     :digraph.add_vertex(d, to)
     [:"$e"|_] = :digraph.add_edge(d, from, to)
     { :noreply, d }
   end
 
-  def handle_cast({ :vertex, public, tuple }, d) when public in [:def, :defmacro] do
+  def handle_cast({ :add_definition, public, tuple }, d) when public in [:def, :defmacro] do
     :digraph.add_vertex(d, tuple)
-    :digraph.add_edge(d, :root, tuple)
+    :digraph.add_edge(d, :local, tuple)
     { :noreply, d }
   end
 
-  def handle_cast({ :vertex, private, tuple }, d) when private in [:defp, :defmacrop] do
+  def handle_cast({ :add_definition, private, tuple }, d) when private in [:defp, :defmacrop] do
     :digraph.add_vertex(d, tuple)
     { :noreply, d }
   end

@@ -25,13 +25,13 @@ record(Tuple, #elixir_scope{function=Function})
 record(Tuple, #elixir_scope{module=Module, function=Function, function_kind=Kind}) ->
   if_tracker(Module, fun(Pid) ->
     ?tracker:add_definition(Pid, Kind, Function),
-    ?tracker:add_dispatch(Pid, Function, Tuple),
+    ?tracker:add_local(Pid, Function, Tuple),
     true
   end).
 
 record_root(Module, Tuple) ->
   if_tracker(Module, fun(Pid) ->
-    ?tracker:add_dispatch(Pid, root, Tuple),
+    ?tracker:add_local(Pid, Tuple),
     true
   end).
 
