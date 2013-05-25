@@ -613,11 +613,11 @@ defmodule Module do
   end
 
   defp function_table_for(module) do
-    list_to_atom :lists.concat([:f, module])
+    :elixir_def.table(module)
   end
 
   defp docs_table_for(module) do
-    list_to_atom :lists.concat([:o, module])
+    :elixir_module.docs_table(module)
   end
 
   defp assert_not_compiled!(fun, module) do

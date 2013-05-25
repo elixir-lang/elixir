@@ -8,6 +8,8 @@
   setup/1, cleanup/1, record/3]).
 -include("elixir.hrl").
 
+-define(attr, '__imports_table').
+
 %% This table keeps:
 %%
 %% * Invoked imports and requires in the format
@@ -16,10 +18,11 @@
 %% * The current warn status imports and requires
 %%   in the format { Module, Line :: integer }
 %%
-table(Module) -> ?atom_concat([i, Module]).
+table(Module) ->
+  ets:lookup_element(Module, ?attr, 2).
 
 setup(Module) ->
-  ets:new(table(Module), [bag, named_table, public]).
+  ets:insert(Module, { ?attr, ets:new(Module, [bag, public]) }).
 
 cleanup(Module) ->
   ets:delete(table(Module)).
@@ -169,8 +172,7 @@ get_optional_macros(Module)  ->
 %% VALIDATION HELPERS
 
 %% Check if any of the locals defined conflicts with an invoked
-%% Elixir "implemented in Erlang" macro. Checking if a local
-%% conflicts with an import is automatically done by Erlang.
+%% Elixir "implemented in Erlang" macro.
 
 ensure_no_local_conflict(Meta, File, Module, AllDefined) ->
   ensure_no_special_form_conflict(Meta, File, Module, AllDefined, local_conflict).

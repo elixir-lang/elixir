@@ -1,5 +1,5 @@
 %% Module responsible for local invocation of macros and functions.
--module(elixir_def_local).
+-module(elixir_locals).
 -export([
   setup/1, cleanup/1,
   record/2, record_root/2,

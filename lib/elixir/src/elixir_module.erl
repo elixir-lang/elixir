@@ -1,7 +1,11 @@
 -module(elixir_module).
--export([translate/4, compile/5, data_table/1, eval_quoted/4,
-         format_error/1, eval_callbacks/5]).
+-export([translate/4, compile/5, data_table/1, docs_table/1,
+         eval_quoted/4, format_error/1, eval_callbacks/5]).
 -include("elixir.hrl").
+
+-define(docs_attr, '__docs_table').
+-define(acc_attr, '__acc_attributes').
+-define(persisted_attr, '__persisted_attributes').
 
 eval_quoted(Module, Quoted, RawBinding, Opts) ->
   Binding = binding_for_eval(Module, RawBinding),
@@ -31,7 +35,7 @@ data_table(Module) ->
   Module.
 
 docs_table(Module) ->
-  ?atom_concat([o, Module]).
+  ets:lookup_element(Module, ?docs_attr, 2).
 
 %% TRANSFORMATION FUNCTIONS
 
@@ -73,10 +77,10 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
     case ets:lookup(data_table(Module), 'on_load') of
       [] -> ok;
       [{on_load,OnLoad}] ->
-        [elixir_def_local:record_root(Module, Tuple) || Tuple <- OnLoad]
+        [elixir_locals:record_root(Module, Tuple) || Tuple <- OnLoad]
     end,
 
-    elixir_def_local:check_unused_local(File, Module, Private),
+    elixir_locals:check_unused_local(File, Module, Private),
 
     elixir_import:ensure_all_imports_used(Line, File, Module),
     elixir_import:ensure_no_local_conflict(Line, File, Module, All),
@@ -90,11 +94,11 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
     Binary = load_form(Line, Final, S),
     { module, Module, Binary, Result }
   after
-    elixir_def_local:cleanup(Module),
-    elixir_def:cleanup(Module),
     elixir_import:cleanup(Module),
-    ets:delete(data_table(Module)),
-    ets:delete(docs_table(Module))
+    elixir_locals:cleanup(Module),
+    elixir_def:cleanup(Module),
+    ets:delete(docs_table(Module)),
+    ets:delete(data_table(Module))
   end;
 
 compile(Line, Other, _Block, _Vars, #elixir_scope{file=File}) ->
@@ -127,17 +131,13 @@ build(Line, File, Module) ->
   end,
 
   Attributes = [behavior, behaviour, on_load, spec, type, export_type, opaque, callback, compile],
-  ets:insert(DataTable, { '__acc_attributes', [before_compile,after_compile,on_definition|Attributes] }),
-  ets:insert(DataTable, { '__persisted_attributes', [vsn|Attributes] }),
-
-  %% Keep docs in another table since we don't want to pull out
-  %% all the binaries every time a new documentation is stored.
-  DocsTable = docs_table(Module),
-  ets:new(DocsTable, [ordered_set, named_table, public]),
+  ets:insert(DataTable, { ?acc_attr, [before_compile,after_compile,on_definition|Attributes] }),
+  ets:insert(DataTable, { ?persisted_attr, [vsn|Attributes] }),
+  ets:insert(DataTable, { ?docs_attr, ets:new(DataTable, [ordered_set, public]) }),
 
   %% Setup other modules
-  elixir_def_local:setup(Module),
   elixir_def:setup(Module),
+  elixir_locals:setup(Module),
   elixir_import:setup(Module).
 
 %% Receives the module representation and evaluates it.

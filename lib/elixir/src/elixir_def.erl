@@ -16,18 +16,22 @@
   format_error/1]).
 -include("elixir.hrl").
 
+-define(attr, '__def_table').
+-define(clauses_attr, '__clauses_table').
+
 %% Table management functions. Called internally.
 
-table(Module) -> ?atom_concat([f, Module]).
-clauses_table(Module) -> ?atom_concat([c, Module]).
+table(Module) ->
+  ets:lookup_element(Module, ?attr, 2).
+
+clauses_table(Module) ->
+  ets:lookup_element(Module, ?clauses_attr, 2).
 
 setup(Module) ->
-  FunctionsTable = table(Module),
-  ClausesTable = clauses_table(Module),
-  ets:new(FunctionsTable, [set, named_table, public]),
-  ets:new(ClausesTable, [bag, named_table, public]),
+  ets:insert(Module, { ?attr, ets:new(Module, [set, public]) }),
+  ets:insert(Module, { ?clauses_attr, ets:new(Module, [bag, public]) }),
   reset_last(Module),
-  { FunctionsTable, ClausesTable }.
+  ok.
 
 cleanup(Module) ->
   ets:delete(table(Module)),
