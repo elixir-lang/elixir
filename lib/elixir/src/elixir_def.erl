@@ -2,8 +2,8 @@
 -module(elixir_def).
 -export([table/1,
   clauses_table/1,
-  build_table/1,
-  delete_table/1,
+  setup/1,
+  cleanup/1,
   reset_last/1,
   lookup_definition/2,
   delete_definition/2,
@@ -21,7 +21,7 @@
 table(Module) -> ?atom_concat([f, Module]).
 clauses_table(Module) -> ?atom_concat([c, Module]).
 
-build_table(Module) ->
+setup(Module) ->
   FunctionsTable = table(Module),
   ClausesTable = clauses_table(Module),
   ets:new(FunctionsTable, [set, named_table, public]),
@@ -29,7 +29,7 @@ build_table(Module) ->
   reset_last(Module),
   { FunctionsTable, ClausesTable }.
 
-delete_table(Module) ->
+cleanup(Module) ->
   ets:delete(table(Module)),
   ets:delete(clauses_table(Module)).
 

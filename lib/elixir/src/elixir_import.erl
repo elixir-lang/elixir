@@ -5,7 +5,7 @@
 -export([import/5, format_error/1,
   ensure_no_import_conflict/4, ensure_no_local_conflict/4,
   ensure_all_imports_used/3,
-  build_table/1, delete_table/1, record/3]).
+  setup/1, cleanup/1, record/3]).
 -include("elixir.hrl").
 
 %% This table keeps:
@@ -18,10 +18,10 @@
 %%
 table(Module) -> ?atom_concat([i, Module]).
 
-build_table(Module) ->
+setup(Module) ->
   ets:new(table(Module), [bag, named_table, public]).
 
-delete_table(Module) ->
+cleanup(Module) ->
   ets:delete(table(Module)).
 
 record(_Tuple, _Receiver, nil) -> false;

@@ -91,10 +91,10 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
     { module, Module, Binary, Result }
   after
     elixir_def_local:cleanup(Module),
+    elixir_def:cleanup(Module),
+    elixir_import:cleanup(Module),
     ets:delete(data_table(Module)),
-    ets:delete(docs_table(Module)),
-    elixir_def:delete_table(Module),
-    elixir_import:delete_table(Module)
+    ets:delete(docs_table(Module))
   end;
 
 compile(Line, Other, _Block, _Vars, #elixir_scope{file=File}) ->
@@ -137,13 +137,8 @@ build(Line, File, Module) ->
 
   %% Setup other modules
   elixir_def_local:setup(Module),
-
-  %% We keep a separated table for function definitions
-  %% and another one for imports. We keep them in different
-  %% tables for organization and speed purpose (since the
-  %% imports table is frequently written to).
-  elixir_def:build_table(Module),
-  elixir_import:build_table(Module).
+  elixir_def:setup(Module),
+  elixir_import:setup(Module).
 
 %% Receives the module representation and evaluates it.
 
