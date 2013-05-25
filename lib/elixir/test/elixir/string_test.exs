@@ -280,5 +280,26 @@ defmodule StringTest do
     assert String.to_float("pi") === :error
   end
 
-  
+  test :starts_with? do
+    assert String.starts_with? "hello", "he"
+    assert String.starts_with? "hello", "hello"
+    assert String.starts_with? "hello", ["hellö", "hell"]
+    assert String.starts_with? "エリクシア", "エリ"
+    refute String.starts_with? "hello", "lo"
+    refute String.starts_with? "hello", "hellö"
+    refute String.starts_with? "hello", ["hellö", "goodbye"]
+    refute String.starts_with? "エリクシア", "仙丹"
+  end
+
+  test :ends_with? do
+    assert String.ends_with? "hello", "lo"
+    assert String.ends_with? "hello", "hello"
+    assert String.ends_with? "hello", ["hellö", "lo"]
+    assert String.ends_with? "エリクシア", "シア"
+    refute String.ends_with? "hello", "he"
+    refute String.ends_with? "hello", "hellö"
+    refute String.ends_with? "hello", ["hel", "goodbye"]
+    refute String.ends_with? "エリクシア", "仙丹"
+  end
+
 end
