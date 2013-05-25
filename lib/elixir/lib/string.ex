@@ -836,14 +836,13 @@ defmodule String do
   @spec ends_with?(t, t | [t]) :: boolean
 
   def ends_with?(string, suffixes) when is_list(suffixes) do
-    string_len = String.length(string)
-    Enum.any? suffixes, 
-                fn suffix ->
-                     len = String.length(suffix)
-                     suffix == String.slice(string, string_len - len, len)
-                end
+    string_size = size(string)
+    Enum.any? suffixes, fn suffix ->
+      suffix_size = size(suffix)
+      (suffix_size <= string_size) and suffix == :binary.part(string, {string_size, -size(suffix)})
+    end
   end
 
-  def ends_with?(string, suffix), do: __MODULE__.ends_with?(string, [ suffix ])
+  def ends_with?(string, suffix), do: ends_with?(string, [ suffix ])
 
 end
