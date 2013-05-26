@@ -1,3 +1,4 @@
+%% Implements Elixir quote.
 -module(elixir_quote).
 -export([escape/2, erl_escape/3, erl_quote/3, linify/2, unquote/5]).
 -include("elixir.hrl").

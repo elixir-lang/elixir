@@ -49,7 +49,7 @@ record_warn(Meta, Ref, Opts, #elixir_scope{module=Module}) ->
       false -> not lists:keymember(context, 1, Meta)
     end,
 
-  elixir_locals:record_warn(Ref, Warn, ?line(Meta), Module).
+  elixir_tracker:record_warn(Ref, Warn, ?line(Meta), Module).
 
 %% Calculates the imports based on only and except
 

@@ -1,3 +1,4 @@
+%% Handle translation of Elixir literals to Erlang AST.
 -module(elixir_literal).
 -export([translate/2]).
 -import(elixir_translator, [translate_each/2, translate_args/2]).

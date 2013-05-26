@@ -1,7 +1,6 @@
 %% Convenience functions used throughout elixir source code
 %% to generate erlang abstract format for basic structures
 %% as lists, condition clauses, etc.
-
 -module(elixir_tree_helpers).
 -export([elixir_to_erl/1, erl_to_elixir/1, split_last/1,
   cons_to_list/1, list_to_cons/2, list_to_cons/3,

@@ -1,9 +1,9 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule Kernel.LocalsTrackerTest do
+defmodule Module.DispatchTrackerTest do
   use ExUnit.Case, async: true
 
-  alias Kernel.LocalsTracker, as: D
+  alias Module.DispatchTracker, as: D
 
   setup do
     { :ok, [pid: D.start_link] }

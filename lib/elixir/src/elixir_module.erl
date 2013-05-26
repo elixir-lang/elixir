@@ -77,12 +77,12 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
     case ets:lookup(data_table(Module), 'on_load') of
       [] -> ok;
       [{on_load,OnLoad}] ->
-        [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad]
+        [elixir_tracker:record_local(Tuple, Module) || Tuple <- OnLoad]
     end,
 
-    elixir_locals:warn_unused_local(File, Module, Private),
-    elixir_locals:ensure_no_import_conflict(Line, File, Module, All),
-    elixir_locals:ensure_all_imports_used(Line, File, Module),
+    elixir_tracker:warn_unused_local(File, Module, Private),
+    elixir_tracker:ensure_no_import_conflict(Line, File, Module, All),
+    elixir_tracker:ensure_all_imports_used(Line, File, Module),
 
     elixir_import:ensure_no_local_conflict(Line, File, Module, All),
 
@@ -94,7 +94,7 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
     Binary = load_form(Line, Final, S),
     { module, Module, Binary, Result }
   after
-    elixir_locals:cleanup(Module),
+    elixir_tracker:cleanup(Module),
     elixir_def:cleanup(Module),
     ets:delete(docs_table(Module)),
     ets:delete(data_table(Module))
@@ -136,7 +136,7 @@ build(Line, File, Module) ->
 
   %% Setup other modules
   elixir_def:setup(Module),
-  elixir_locals:setup(Module).
+  elixir_tracker:setup(Module).
 
 %% Receives the module representation and evaluates it.
 

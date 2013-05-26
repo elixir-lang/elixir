@@ -1,5 +1,4 @@
-%% Convenience functions used to manipulate scope
-%% and its variables.
+%% Convenience functions used to manipulate scope and its variables.
 -module(elixir_scope).
 -export([translate_var/5,
   build_erl_var/2, build_ex_var/2,

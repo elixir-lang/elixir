@@ -1,5 +1,5 @@
-%% Handle code related to rocket args, guard and -> matching
-%% for case, fn, receive and friends. try is handled in elixir_try.
+%% Handle code related to args, guard and -> matching for case,
+%% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
 -export([
   assigns/3, assigns_block/5, assigns_block/6, extract_last_guards/1,

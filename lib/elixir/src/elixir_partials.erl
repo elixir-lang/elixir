@@ -1,3 +1,4 @@
+%% Responsible handling Elixir partials with &1, &2 and so on.
 -module(elixir_partials).
 -export([handle/2, handle/3, is_sequential/1]).
 -include("elixir.hrl").

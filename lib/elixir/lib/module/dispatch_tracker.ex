@@ -42,7 +42,7 @@
 #
 # Note that since this is required for bootstrap, we can't use
 # any of the `GenServer.Behaviour` conveniences.
-defmodule Kernel.LocalsTracker do
+defmodule Module.DispatchTracker do
   @moduledoc false
 
   @timeout  30_000
@@ -81,9 +81,9 @@ defmodule Kernel.LocalsTracker do
   end
 
   defp reduce_reachable(d, vertex, vertices) do
-    neighbours = :digraph.out_neighbours(d, vertex)
-    remaining  = neighbours -- vertices
-    vertices   = neighbours ++ vertices
+    neighbours = :digraph.out_neighbours(d, vertex) |> :ordsets.from_list
+    remaining  = :ordsets.subtract(neighbours, vertices)
+    vertices   = :ordsets.union(neighbours, vertices)
     :lists.foldl(reduce_reachable(d, &1, &2), vertices, remaining)
   end
 

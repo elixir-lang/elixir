@@ -34,14 +34,14 @@ import_function(Meta, Name, Arity, S) ->
   Tuple = { Name, Arity },
   case find_dispatch(Meta, Tuple, S) of
     { function, Receiver } ->
-      elixir_locals:record_import(Tuple, Receiver, S#elixir_scope.module),
+      elixir_tracker:record_import(Tuple, Receiver, S#elixir_scope.module),
       remote_function(Meta, Receiver, Name, Arity, S);
     { macro, _Receiver } ->
       false;
     { import, Receiver } ->
       require_function(Meta, Receiver, Name, Arity, S);
     nomatch ->
-      elixir_locals:record_local(Tuple, S),
+      elixir_tracker:record_local(Tuple, S),
       { { 'fun', ?line(Meta), { function, Name, Arity } }, S }
   end.
 
@@ -62,7 +62,7 @@ dispatch_import(Meta, Name, Args, S, Callback) ->
 
   case find_dispatch(Meta, Tuple, S) of
     { function, Receiver } ->
-      elixir_locals:record_import(Tuple, Receiver, Module),
+      elixir_tracker:record_import(Tuple, Receiver, Module),
       Endpoint = case (Receiver == ?builtin) andalso is_element(Tuple, in_erlang_functions()) of
         true  -> erlang;
         false -> Receiver
@@ -75,7 +75,7 @@ dispatch_import(Meta, Name, Args, S, Callback) ->
         { error, noexpansion } ->
           Callback();
         { error, internal } ->
-          elixir_locals:record_import(Tuple, ?builtin, Module),
+          elixir_tracker:record_import(Tuple, ?builtin, Module),
           elixir_macros:translate({ Name, Meta, Args }, S);
         { ok, _Receiver, Tree } ->
           translate_expansion(Meta, Tree, S)
@@ -114,17 +114,17 @@ do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
       case is_element(Tuple, in_erlang_macros()) of
         true  -> { error, internal };
         false ->
-          elixir_locals:record_import(Tuple, ?builtin, Module),
+          elixir_tracker:record_import(Tuple, ?builtin, Module),
           { ok, ?builtin, expand_macro_named(Meta, ?builtin, Name, Arity, Args, Module, S) }
       end;
     { macro, Receiver } ->
-      elixir_locals:record_import(Tuple, Receiver, Module),
+      elixir_tracker:record_import(Tuple, Receiver, Module),
       { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) };
     { import, Receiver } ->
       expand_require(Meta, Receiver, Tuple, Args, Module, S);
     _ ->
       Fun = (S#elixir_scope.function /= Tuple) andalso
-        elixir_locals:macro_for(Tuple, true, S),
+        elixir_def_local:macro_for(Tuple, true, S),
       case Fun of
         false -> { error, noexpansion };
         _ ->
@@ -144,7 +144,7 @@ expand_require(Meta, ?builtin, { Name, Arity } = Tuple, Args, Module, S) ->
 
 expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, Module, S) ->
   Fun = (Module == Receiver) andalso (S#elixir_scope.function /= Tuple) andalso
-    elixir_locals:macro_for(Tuple, false, S),
+    elixir_def_local:macro_for(Tuple, false, S),
 
   case Fun of
     false ->
