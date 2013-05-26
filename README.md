@@ -29,8 +29,8 @@ We appreciate any contribution to Elixir, so check out our [CONTRIBUTING.md](CON
 * #elixir-lang on freenode IRC
 * [Website][1]
 * [Issue tracker][2]
-* [elixir-talk Mailing list (for questions, general discussions)][3]
-* [elixir-core Mailing list (for announcements)][4]
+* [elixir-talk Mailing list (questions)][3]
+* [elixir-core Mailing list (development)][4]
 
   [1]: http://elixir-lang.org
   [2]: https://github.com/elixir-lang/elixir/issues
