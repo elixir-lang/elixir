@@ -9,7 +9,7 @@ The issue tracker is the preferred channel for [bug reports](#bugs-reports),
 [features requests](#feature-requests) and [submitting pull
 requests](#pull-requests), but please **do not** use the issue tracker for
 personal support requests. Instead, use
-[the mailing list](http://groups.google.com/group/elixir-lang-core),
+[the mailing list](http://groups.google.com/group/elixir-lang-talk),
 [Stack Overflow](http://stackoverflow.com/questions/ask?tags=elixir), or
 [#elixir-lang](irc://chat.freenode.net/elixir-lang) on Freenode).
 
