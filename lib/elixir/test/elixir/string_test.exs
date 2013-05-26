@@ -294,6 +294,7 @@ defmodule StringTest do
   test :ends_with? do
     assert String.ends_with? "hello", "lo"
     assert String.ends_with? "hello", "hello"
+    assert String.ends_with? "hello", ["hell", "lo", "xx"]
     assert String.ends_with? "hello", ["hellö", "lo"]
     assert String.ends_with? "エリクシア", "シア"
     refute String.ends_with? "hello", "he"

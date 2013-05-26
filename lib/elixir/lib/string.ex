@@ -835,10 +835,14 @@ defmodule String do
   """
   @spec ends_with?(t, t | [t]) :: boolean
 
-  def ends_with?(string, suffixes) do
+  def ends_with?(string, suffixes) when is_list(suffixes) do
     string_size = size(string)
-    matches = :binary.matches(string, suffixes)
-    Enum.any? matches, fn({pos, len})-> pos + len == string_size end
+    Enum.any? suffixes, fn suffix ->
+      suffix_size = size(suffix)
+      (suffix_size <= string_size) and suffix == :binary.part(string, {string_size, -size(suffix)})
+    end
   end
+
+  def ends_with?(string, suffix), do: ends_with?(string, [ suffix ])
 
 end
