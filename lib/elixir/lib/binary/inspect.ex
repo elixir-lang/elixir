@@ -1,6 +1,9 @@
 import Kernel, except: [inspect: 1]
 
 defprotocol Binary.Inspect do
+
+  @except []  # Force it to be all types. This allows defimpl for Records
+
   @moduledoc """
   The `Binary.Inspect` protocol is responsible for
   converting any structure to a binary for textual
