@@ -51,8 +51,9 @@ defmodule Module.DispatchTracker do
   # Public API
 
   @doc """
-  Returns all the modules which were imported and
-  made a call to.
+  Returns all the modules which were imported.
+  All external dependencies to a module is the sum
+  of imports and remotes.
   """
   def imports(pid) do
     d = :gen_server.call(to_pid(pid), :digraph, @timeout)
@@ -61,11 +62,30 @@ defmodule Module.DispatchTracker do
 
   @doc """
   Returns all imported modules that had the given
-  { name, arity } invoked.
+  `{ name, arity }` invoked.
   """
   def imports_with_dispatch(pid, { name, arity }) do
     d = :gen_server.call(to_pid(pid), :digraph, @timeout)
     :digraph.out_neighbours(d, { :import, name, arity })
+  end
+
+  @doc """
+  Returns all the modules which were remotely dispatched
+  to. All external dependencies to a module is the sum
+  of imports and remotes.
+  """
+  def remotes(pid) do
+    d = :gen_server.call(to_pid(pid), :digraph, @timeout)
+    :digraph.out_neighbours(d, :remote)
+  end
+
+  @doc """
+  Returns all modules that had the given `{ name, arity }`
+  invoked remotely.
+  """
+  def remotes_with_dispatch(pid, { name, arity }) do
+    d = :gen_server.call(to_pid(pid), :digraph, @timeout)
+    :digraph.out_neighbours(d, { :remote, name, arity })
   end
 
   @doc """
@@ -117,6 +137,12 @@ defmodule Module.DispatchTracker do
   @doc false
   def add_local(pid, from, to) when is_tuple(from) and is_tuple(to) do
     :gen_server.cast(pid, { :add_local, from, to })
+  end
+
+  # Adds a remote dispatch to the given target.
+  @doc false
+  def add_remote(pid, module, target) when is_atom(module) and is_tuple(target) do
+    :gen_server.cast(pid, { :add_remote, module, target })
   end
 
   # Adds a import dispatch to the given target.
@@ -224,6 +250,7 @@ defmodule Module.DispatchTracker do
     d = :digraph.new([:protected])
     :digraph.add_vertex(d, :local)
     :digraph.add_vertex(d, :import)
+    :digraph.add_vertex(d, :remote)
     :digraph.add_vertex(d, :warn)
     { :ok, d }
   end
@@ -253,14 +280,13 @@ defmodule Module.DispatchTracker do
     { :noreply, d }
   end
 
+  def handle_cast({ :add_remote, module, { name, arity } }, d) do
+    record_import_or_remote(d, :remote, module, name, arity)
+    { :noreply, d }
+  end
+
   def handle_cast({ :add_import, module, { name, arity } }, d) do
-    :digraph.add_vertex(d, module)
-    replace_edge!(d, :import, module)
-
-    tuple = { :import, name, arity }
-    :digraph.add_vertex(d, tuple)
-    replace_edge!(d, tuple, module)
-
+    record_import_or_remote(d, :import, module, name, arity)
     { :noreply, d }
   end
 
@@ -308,6 +334,15 @@ defmodule Module.DispatchTracker do
 
   def code_change(_old, d, _extra) do
     { :ok, d }
+  end
+
+  defp record_import_or_remote(d, kind, module, name, arity) do
+    :digraph.add_vertex(d, module)
+    replace_edge!(d, kind, module)
+
+    tuple = { kind, name, arity }
+    :digraph.add_vertex(d, tuple)
+    replace_edge!(d, tuple, module)
   end
 
   defp replace_edge!(d, from, to) do

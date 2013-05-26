@@ -3,7 +3,7 @@
 -module(elixir_tracker).
 -export([
   setup/1, cleanup/1,
-  record_local/2, record_import/3,
+  record_local/2, record_import/3, record_remote/3,
   record_warn/4, record_definition/3,
   ensure_no_import_conflict/4, ensure_all_imports_used/3,
   warn_unused_local/3, format_error/1
@@ -49,6 +49,16 @@ record_import(Tuple, Receiver, Module) ->
   try
     Pid = ets:lookup_element(Module, ?attr, 2),
     ?tracker:add_import(Pid, Receiver, Tuple)
+  catch
+    error:badarg -> false
+  end.
+
+record_remote(_Tuple, Receiver, Module)
+  when Module == nil; Module == Receiver -> false;
+record_remote(Tuple, Receiver, Module) ->
+  try
+    Pid = ets:lookup_element(Module, ?attr, 2),
+    ?tracker:add_remote(Pid, Receiver, Tuple)
   catch
     error:badarg -> false
   end.

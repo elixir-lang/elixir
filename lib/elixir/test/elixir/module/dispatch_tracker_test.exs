@@ -139,4 +139,21 @@ defmodule Module.DispatchTrackerTest do
     D.add_import(config[:pid], Module, { :conflict, 1 })
     assert { [Module], :conflict, 1 } in D.collect_imports_conflicts(config[:pid], [conflict: 1])
   end
+
+  ## Remotes
+
+  test "can add remote", config do
+    D.add_remote(config[:pid], Module, { :concat, 1 })
+  end
+
+  test "can retrieve remotes", config do
+    D.add_remote(config[:pid], Module, { :concat, 1 })
+    assert Module in D.remotes(config[:pid])
+  end
+
+  test "find remotes from dispatch", config do
+    D.add_remote(config[:pid], Module, { :concat, 1 })
+    assert Module in D.remotes_with_dispatch(config[:pid], { :concat, 1 })
+    refute Module in D.remotes_with_dispatch(config[:pid], { :unknown, 1 })
+  end
 end

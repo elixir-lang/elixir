@@ -50,7 +50,9 @@ require_function(Meta, Receiver, Name, Arity, S) ->
 
   case is_element(Tuple, get_optional_macros(Receiver)) of
     true  -> false;
-    false -> remote_function(Meta, Receiver, Name, Arity, S)
+    false ->
+      elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module),
+      remote_function(Meta, Receiver, Name, Arity, S)
   end.
 
 %% Function dispatch
@@ -69,6 +71,7 @@ dispatch_import(Meta, Name, Args, S, Callback) ->
       end,
       elixir_translator:translate_each({ { '.', Meta, [Endpoint, Name] }, Meta, Args }, S);
     { import, Receiver } ->
+      elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module),
       elixir_translator:translate_each({ { '.', Meta, [Receiver, Name] }, [{require,false}|Meta], Args }, S);
     Result ->
       case do_expand_import(Meta, Tuple, Args, Module, S, Result) of
@@ -89,6 +92,7 @@ dispatch_require(Meta, Receiver, Name, Args, S, Callback) ->
 
   case (Receiver == ?builtin) andalso is_element(Tuple, in_erlang_functions()) of
     true ->
+      elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module),
       { TArgs, SA } = elixir_translator:translate_args(Args, S),
       { ?wrap_call(?line(Meta), erlang, Name, TArgs), SA };
     false ->
@@ -96,6 +100,7 @@ dispatch_require(Meta, Receiver, Name, Args, S, Callback) ->
         { error, noexpansion } ->
           Callback();
         { error, internal } ->
+          elixir_tracker:record_remote(Tuple, ?builtin, S#elixir_scope.module),
           elixir_macros:translate({ Name, Meta, Args }, S);
         { ok, _Receiver, Tree } ->
           translate_expansion(Meta, Tree, S)
@@ -137,8 +142,11 @@ expand_require(Meta, ?builtin, { Name, Arity } = Tuple, Args, Module, S) ->
     true  -> { error, internal };
     false ->
       case is_element(Tuple, in_elixir_macros()) of
-        true  -> { ok, ?builtin, expand_macro_named(Meta, ?builtin, Name, Arity, Args, Module, S) };
-        false -> { error, noexpansion }
+        true  ->
+          elixir_tracker:record_remote(Tuple, ?builtin, S#elixir_scope.module),
+          { ok, ?builtin, expand_macro_named(Meta, ?builtin, Name, Arity, Args, Module, S) };
+        false ->
+          { error, noexpansion }
       end
   end;
 
@@ -149,7 +157,9 @@ expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, Module, S) ->
   case Fun of
     false ->
       case is_element(Tuple, get_optional_macros(Receiver)) of
-        true  -> { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) };
+        true  ->
+          elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module),
+          { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) };
         false -> { error, noexpansion }
       end;
     _ ->
