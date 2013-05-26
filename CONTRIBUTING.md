@@ -175,4 +175,4 @@ you are looking for some examples:
 * https://github.com/elixir-lang/elixir/pull/1058
 * https://github.com/elixir-lang/elixir/pull/1059
 
-Thanks for your contributions!
+Thank you for your contributions!
