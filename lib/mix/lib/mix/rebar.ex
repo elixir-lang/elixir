@@ -32,19 +32,27 @@ defmodule Mix.Rebar do
   def deps(config) do
     if deps = config[:deps] do
       Enum.map(deps, fn({ app, req, source }) ->
-        { scm, url } = case source do
-          { scm, url } -> { scm, to_binary(url) }
-          { scm, url, _ } -> { scm, to_binary(url) }
+        scm = case source do
+          { scm, url }    -> [{ scm, to_binary(url) }]
+          { scm, url, _ } -> [{ scm, to_binary(url) }]
         end
 
-        opts = case source do
+        ref = case source do
           { _, _, "" }                  -> [branch: "HEAD"]
           { _, _, { :branch, branch } } -> [branch: to_binary(branch)]
           { _, _, { :tag, tag } }       -> [tag: to_binary(tag)]
           { _, _, ref }                 -> [ref: to_binary(ref)]
           _                             -> []
         end
-        { app, to_binary(req), [{scm, to_binary(url)}|opts] }
+
+        raw = case source do
+          { _, _, _, [:raw] }      -> [app: false]
+          { _, _, _, [raw: true] } -> [app: false]
+          _                        -> []
+        end
+
+        opts = scm ++ ref ++ raw
+        { app, to_binary(req), opts }
       end)
     else
       []
