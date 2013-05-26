@@ -210,7 +210,7 @@ defmodule IEx.Options do
 
   Number of expressions and their results to keep in the history.
 
-  The value is an integer. When it's less than 0, the history is unlimited.
+  The value is an integer. When it is negative, the history is unlimited.
 
   """
   def history_size
