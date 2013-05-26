@@ -1,5 +1,5 @@
 defrecord Mix.Dep, [ scm: nil, app: nil, requirement: nil, status: nil, opts: nil,
-                     project: nil, deps: [] ] do
+                     project: nil, deps: [], rebar: nil ] do
   @moduledoc """
   This is a record that keeps information about your project
   dependencies. It keeps:
@@ -81,7 +81,7 @@ defmodule Mix.Deps do
     index = Mix.Dep.__index__(:app)
     Enum.each apps, fn(app) ->
       unless List.keyfind(deps, app, index) do
-        Mix.shell.info message: "unknown dependency #{app} for env #{Mix.env}"
+        Mix.shell.info "unknown dependency #{app} for env #{Mix.env}"
       end
     end
 
@@ -221,13 +221,21 @@ defmodule Mix.Deps do
   Returns all load paths for the dependency.
   """
   def load_paths(Mix.Dep[app: app, opts: opts] = dep) do
-    if mix?(dep) do
-      paths = Mix.Project.in_project app, opts[:dest], fn _ ->
-        Mix.Project.load_paths
-      end
-      Enum.uniq paths
-    else
-      [ Path.join(opts[:dest], "ebin") ]
+    cond do
+      mix?(dep) ->
+        paths = Mix.Project.in_project app, opts[:dest], fn _ ->
+          Mix.Project.load_paths
+        end
+        Enum.uniq paths
+      rebar?(dep) ->
+        # Add root dir and all sub dirs with ebin/ directory
+           [ opts[:dest] | dep.rebar[:sub_dirs] ]
+        |> Enum.map(Path.wildcard(&1))
+        |> List.concat
+        |> Enum.map(fn path -> Path.join([opts[:dest], path, "ebin"]) end)
+        |> Enum.filter(File.dir?(&1))
+      true ->
+        [ Path.join(opts[:dest], "ebin") ]
     end
   end
 
@@ -242,9 +250,7 @@ defmodule Mix.Deps do
   Returns true if dependency is a rebar project.
   """
   def rebar?(dep) do
-    Enum.any? ["rebar.config", "rebar.config.script"], fn file ->
-      File.regular? Path.join(dep.opts[:dest], file)
-    end
+    dep.rebar != nil
   end
 
   @doc """
