@@ -3,51 +3,8 @@
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
 -export([import/5, format_error/1,
-  ensure_no_import_conflict/4, ensure_no_local_conflict/4,
-  ensure_all_imports_used/3,
-  setup/1, cleanup/1, record/3]).
+  ensure_no_local_conflict/4]).
 -include("elixir.hrl").
-
--define(attr, '__imports_table').
-
-%% This table keeps:
-%%
-%% * Invoked imports and requires in the format
-%%   { { Name, Arity }, Module }
-%
-%% * The current warn status imports and requires
-%%   in the format { Module, Line :: integer }
-%%
-table(Module) ->
-  ets:lookup_element(Module, ?attr, 2).
-
-setup(Module) ->
-  ets:insert(Module, { ?attr, ets:new(Module, [bag, public]) }).
-
-cleanup(Module) ->
-  ets:delete(table(Module)).
-
-record(_Tuple, _Receiver, nil) -> false;
-record(Tuple, Receiver, Module) ->
-  try
-    ets:insert(table(Module), { Tuple, Receiver })
-  catch
-    error:badarg -> false
-  end.
-
-record_warn(_Meta, _Ref, _Opts, #elixir_scope{module=nil}) -> false;
-record_warn(Meta, Ref, Opts, S) ->
-  Table = table(S#elixir_scope.module),
-  ets:delete(Table, Ref),
-
-  Warn =
-    case keyfind(warn, Opts) of
-      { warn, false } -> false;
-      { warn, true } -> true;
-      false -> not lists:keymember(context, 1, Meta)
-    end,
-
-  Warn andalso ets:insert(Table, { Ref, ?line(Meta) }).
 
 %% IMPORT HELPERS
 
@@ -82,6 +39,17 @@ import(Meta, Ref, Opts, Selector, S) ->
 
   record_warn(Meta, Ref, Opts, S),
   SM.
+
+record_warn(_Meta, _Ref, _Opts, #elixir_scope{module=nil}) -> false;
+record_warn(Meta, Ref, Opts, #elixir_scope{module=Module}) ->
+  Warn =
+    case keyfind(warn, Opts) of
+      { warn, false } -> false;
+      { warn, true } -> true;
+      false -> not lists:keymember(context, 1, Meta)
+    end,
+
+  elixir_locals:record_warn(Ref, Warn, ?line(Meta), Module).
 
 %% Calculates the imports based on only and except
 
@@ -177,39 +145,6 @@ get_optional_macros(Module)  ->
 ensure_no_local_conflict(Meta, File, Module, AllDefined) ->
   ensure_no_special_form_conflict(Meta, File, Module, AllDefined, local_conflict).
 
-%% Find conlicts in the given list of functions with
-%% the recorded set of imports.
-
-ensure_no_import_conflict(Meta, File, Module, AllDefined) ->
-  Table = table(Module),
-  [ensure_no_import_conflict(Meta, File, Module, Table, X) || X  <- AllDefined],
-  ok.
-
-ensure_no_import_conflict(Meta, File, Module, Table, { Name, Arity } = Tuple) ->
-  RawMatches = ets:match(Table, { Tuple, '$1' }),
-  Matches = [X || X <- lists:append(RawMatches), not is_boolean(X), X /= Module],
-
-  case Matches of
-    []  -> ok;
-    Key ->
-      Error = { import_conflict, { hd(Key), Name, Arity } },
-      elixir_errors:form_error(Meta, File, ?MODULE, Error)
-  end.
-
-%% Ensure all imports are used by checking all
-%% enabled warnings in the table with the imported
-%% function calls.
-
-ensure_all_imports_used(_Line, File, Module) ->
-  Table = table(Module),
-  [ begin
-      elixir_errors:handle_file_warning(File, { L, ?MODULE, { unused_import, M } })
-    end || { M, L } <- ets:select(Table, module_line_spec()),
-           ets:match(Table, { '$1', M }) == []].
-
-module_line_spec() ->
-  [{ { '$1', '$2' }, [{ is_integer, '$2' }], ['$_'] }].
-
 %% Ensure the given functions don't clash with any
 %% of Elixir non overridable macros.
 
@@ -229,15 +164,8 @@ ensure_no_special_form_conflict(_Meta, _File, _Key, [], _) -> ok.
 
 %% ERROR HANDLING
 
-format_error({already_imported,{Receiver, Name, Arity}}) ->
-  io_lib:format("function ~ts/~B already imported from ~ts", [Name, Arity, elixir_errors:inspect(Receiver)]);
-
 format_error({invalid_import,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it doesn't exist",
-    [elixir_errors:inspect(Receiver), Name, Arity]);
-
-format_error({import_conflict,{Receiver, Name, Arity}}) ->
-  io_lib:format("imported ~ts.~ts/~B conflicts with local function",
     [elixir_errors:inspect(Receiver), Name, Arity]);
 
 format_error({local_conflict,{_, Name, Arity}}) ->
@@ -246,9 +174,6 @@ format_error({local_conflict,{_, Name, Arity}}) ->
 format_error({internal_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
     [elixir_errors:inspect(Receiver), Name, Arity]);
-
-format_error({ unused_import, Module }) ->
-  io_lib:format("unused import ~ts", [elixir_errors:inspect(Module)]);
 
 format_error({ no_macros, Module }) ->
   io_lib:format("could not load macros from module ~ts", [elixir_errors:inspect(Module)]).

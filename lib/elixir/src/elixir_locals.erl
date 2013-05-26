@@ -2,14 +2,18 @@
 -module(elixir_locals).
 -export([
   setup/1, cleanup/1,
-  record/2, record_root/2,
+  record_local/2, record_import/3,
+  record_warn/4,
   macro_for/3, function_for/3,
-  check_unused_local/3, format_error/1
+  ensure_no_import_conflict/4, ensure_all_imports_used/3,
+  warn_unused_local/3, format_error/1
 ]).
 -include("elixir.hrl").
 
 -define(attr, '__locals_tracker').
 -define(tracker, 'Elixir.Kernel.LocalsTracker').
+
+%% RECORD
 
 setup(Module) ->
   case code:ensure_loaded(?tracker) of
@@ -20,34 +24,44 @@ setup(Module) ->
 cleanup(Module) ->
   if_tracker(Module, fun(Pid) -> ?tracker:stop(Pid) end).
 
-record(Tuple, #elixir_scope{function=Function})
-    when Function == nil; Function == Tuple -> false;
-record(Tuple, #elixir_scope{module=Module, function=Function, function_kind=Kind}) ->
+record_local(Tuple, Module) when is_atom(Module) ->
+  if_tracker(Module, fun(Pid) ->
+    ?tracker:add_local(Pid, Tuple),
+    true
+  end);
+record_local(Tuple, #elixir_scope{function=Function})
+  when Function == nil; Function == Tuple -> false;
+record_local(Tuple, #elixir_scope{module=Module, function=Function, function_kind=Kind}) ->
   if_tracker(Module, fun(Pid) ->
     ?tracker:add_definition(Pid, Kind, Function),
     ?tracker:add_local(Pid, Function, Tuple),
     true
   end).
 
-record_root(Module, Tuple) ->
+record_warn(Ref, Warn, Line, Module) ->
   if_tracker(Module, fun(Pid) ->
-    ?tracker:add_local(Pid, Tuple),
+    ?tracker:add_warnable(Pid, Ref, Warn, Line),
     true
   end).
 
-if_tracker(Module, Callback) ->
-  case ets:lookup(Module, ?attr) of
-    [{ ?attr, Pid }] -> Callback(Pid);
-    _ -> false
+record_import(_Tuple, Receiver, Module)
+  when Module == nil; Module == Receiver -> false;
+record_import(Tuple, Receiver, Module) ->
+  try
+    Pid = ets:lookup_element(Module, ?attr, 2),
+    ?tracker:add_import(Pid, Receiver, Tuple)
+  catch
+    error:badarg -> false
   end.
 
-%% Used by elixir_dispatch, returns false if no macro is found
+%% RETRIEVAL
+
 macro_for(_Tuple, _All, #elixir_scope{module=nil}) -> false;
 
 macro_for(Tuple, All, #elixir_scope{module=Module} = S) ->
   try elixir_def:lookup_definition(Module, Tuple) of
     { { Tuple, Kind, Line, _, _, _, _ }, Clauses } when Kind == defmacro; All, Kind == defmacrop ->
-      record(Tuple, S),
+      record_local(Tuple, S),
       get_function(Line, Module, Clauses);
     _ ->
       false
@@ -55,7 +69,6 @@ macro_for(Tuple, All, #elixir_scope{module=Module} = S) ->
     error:badarg -> false
   end.
 
-%% Used on runtime by rewritten clauses, raises an error if function is not found
 function_for(Module, Name, Arity) ->
   Tuple = { Name, Arity },
   case elixir_def:lookup_definition(Module, Tuple) of
@@ -68,8 +81,6 @@ function_for(Module, Name, Arity) ->
       [_|T] = erlang:get_stacktrace(),
       erlang:raise(error, undef, [{Module,Name,Arity,[]}|T])
   end.
-
-%% Helpers
 
 get_function(Line, Module, Clauses) ->
   RewrittenClauses = [rewrite_clause(Clause, Module) || Clause <- Clauses],
@@ -103,20 +114,65 @@ rewrite_clause(List, Module) when is_list(List) ->
 
 rewrite_clause(Else, _) -> Else.
 
-%% Error handling
+%% HELPERS
 
-check_unused_local(File, Module, Private) ->
+if_tracker(Module, Callback) ->
+  case ets:lookup(Module, ?attr) of
+    [{ ?attr, Pid }] -> Callback(Pid);
+    _ -> false
+  end.
+
+%% ERROR HANDLING
+
+%% Ensure no import conflicts with any of the local definitions.
+
+ensure_no_import_conflict(Meta, File, Module, AllDefined) ->
+  if_tracker(Module, fun(Pid) ->
+    [do_ensure_no_import_conflict(Meta, File, Pid, X) || X  <- AllDefined]
+  end),
+  ok.
+
+do_ensure_no_import_conflict(Meta, File, Pid, { Name, Arity } = Tuple) ->
+  Matches = ?tracker:imports_with_dispatch(Pid, Tuple),
+
+  case Matches of
+    []  -> ok;
+    Key ->
+      Error = { import_conflict, { hd(Key), Name, Arity } },
+      elixir_errors:form_error(Meta, File, ?MODULE, Error)
+  end.
+
+%% Ensure all imports are used.
+
+ensure_all_imports_used(_Line, File, Module) ->
+  if_tracker(Module, fun(Pid) ->
+    [ begin
+        elixir_errors:handle_file_warning(File, { L, ?MODULE, { unused_import, M } })
+      end || { M, L } <- ?tracker:collect_unused_imports(Pid)]
+  end),
+  ok.
+
+%% Warn for unused/unreachable locals and default arguments.
+
+warn_unused_local(File, Module, Private) ->
   if_tracker(Module, fun(Pid) ->
     Args = [ { Fun, Kind, Defaults } ||
              { Fun, Kind, _Line, true, Defaults } <- Private],
 
-    Unused = ?tracker:collect_unused(Pid, Args),
+    Unused = ?tracker:collect_unused_locals(Pid, Args),
 
     [ begin
         { _, _, Line, _, _ } = lists:keyfind(element(2, Error), 1, Private),
         elixir_errors:handle_file_warning(File, { Line, ?MODULE, Error })
       end || Error <- Unused ]
   end).
+
+format_error({import_conflict,{Receiver, Name, Arity}}) ->
+  io_lib:format("imported ~ts.~ts/~B conflicts with local function",
+    [elixir_errors:inspect(Receiver), Name, Arity]);
+
+format_error({ unused_import, Module }) ->
+  io_lib:format("unused import ~ts", [elixir_errors:inspect(Module)]);
 
 format_error({unused_args,{Name, Arity}}) ->
   io_lib:format("default arguments in ~ts/~B are never used", [Name, Arity]);
