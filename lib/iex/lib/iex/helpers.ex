@@ -81,7 +81,7 @@ defmodule IEx.Helpers do
   their results.
   """
   def v do
-    history = Enum.reverse(:queue.to_list(Process.get(:iex_history)))
+    history = :queue.to_list(Process.get(:iex_history))
     Enum.each(history, print_history(&1))
   end
 
