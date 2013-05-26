@@ -10,6 +10,8 @@ defprotocol Binary.Inspect do
   implement the protocol in order to provide pretty
   printing.
   """
+  @only [Record,   Tuple, Atom, List, BitString, Number,
+         Function, PID,   Port, Reference,       Any]
 
   def inspect(thing, opts)
 end
