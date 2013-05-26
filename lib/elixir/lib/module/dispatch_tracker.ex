@@ -48,15 +48,58 @@ defmodule Module.DispatchTracker do
   @timeout  30_000
   @behavior :gen_server
 
+  @type ref :: pid | module
+  @type name :: atom
+  @type name_arity :: { name, arity }
+
+  @type local :: { name, arity }
+  @type import :: { :import, name, arity }
+  @type remote :: { :remote, name, arity }
+
   # Public API
+
+  @doc """
+  Receives a dispatch or a module and returns all dispatches
+  that calls it.
+
+  In case the argument is a module, the response will be
+  made by import and remote dispatches.
+
+  In case the argument is another dispatch, the response
+  will be made by local dispatches.
+
+  This function is not recursive, so if A dispatches to
+  B which dispatches to C, A does not appear in the result,
+  only B.
+  """
+  @spec dispatches_to(ref, module) :: [import | remote]
+  @spec dispatches_to(ref, local | import | remote) :: [local]
+  def dispatches_to(ref, dispatch) do
+    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
+    :digraph.in_neighbours(d, dispatch) |> only_tuples
+  end
+
+  @doc """
+  Receives a local and returns all dispatches from that local.
+
+  This function is not recursive, so if A dispatches to
+  B which dispatches to C, C does not appear in the result,
+  only B.
+  """
+  @spec dispatches_from(ref, local) :: [local | import | remote]
+  def dispatches_from(ref, { name, arity }) do
+    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
+    :digraph.out_neighbours(d, { name, arity }) |> only_tuples
+  end
 
   @doc """
   Returns all the modules which were imported.
   All external dependencies to a module is the sum
   of imports and remotes.
   """
-  def imports(pid) do
-    d = :gen_server.call(to_pid(pid), :digraph, @timeout)
+  @spec imports(ref) :: [module]
+  def imports(ref) do
+    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
     :digraph.out_neighbours(d, :import)
   end
 
@@ -64,8 +107,9 @@ defmodule Module.DispatchTracker do
   Returns all imported modules that had the given
   `{ name, arity }` invoked.
   """
-  def imports_with_dispatch(pid, { name, arity }) do
-    d = :gen_server.call(to_pid(pid), :digraph, @timeout)
+  @spec imports_with_dispatch(ref, name_arity) :: [module]
+  def imports_with_dispatch(ref, { name, arity }) do
+    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
     :digraph.out_neighbours(d, { :import, name, arity })
   end
 
@@ -74,8 +118,9 @@ defmodule Module.DispatchTracker do
   to. All external dependencies to a module is the sum
   of imports and remotes.
   """
-  def remotes(pid) do
-    d = :gen_server.call(to_pid(pid), :digraph, @timeout)
+  @spec remotes(ref) :: [module]
+  def remotes(ref) do
+    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
     :digraph.out_neighbours(d, :remote)
   end
 
@@ -83,8 +128,9 @@ defmodule Module.DispatchTracker do
   Returns all modules that had the given `{ name, arity }`
   invoked remotely.
   """
-  def remotes_with_dispatch(pid, { name, arity }) do
-    d = :gen_server.call(to_pid(pid), :digraph, @timeout)
+  @spec remotes_with_dispatch(ref, name_arity) :: [module]
+  def remotes_with_dispatch(ref, { name, arity }) do
+    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
     :digraph.out_neighbours(d, { :remote, name, arity })
   end
 
@@ -95,8 +141,9 @@ defmodule Module.DispatchTracker do
   A private function is only reachable if it has
   a public function that it invokes directly.
   """
-  def reachable(pid) do
-    d = :gen_server.call(to_pid(pid), :digraph, @timeout)
+  @spec reachable(ref) :: [local]
+  def reachable(ref) do
+    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
     reduce_reachable(d, :local, [])
   end
 
@@ -109,6 +156,10 @@ defmodule Module.DispatchTracker do
 
   defp to_pid(pid) when is_pid(pid),  do: pid
   defp to_pid(mod) when is_atom(mod), do: Module.get_attribute(mod, :__dispatch_tracker)
+
+  defp only_tuples(list) do
+    lc x inlist list, is_tuple(x), do: x
+  end
 
   # Internal API
 
@@ -141,14 +192,14 @@ defmodule Module.DispatchTracker do
 
   # Adds a remote dispatch to the given target.
   @doc false
-  def add_remote(pid, module, target) when is_atom(module) and is_tuple(target) do
-    :gen_server.cast(pid, { :add_remote, module, target })
+  def add_remote(pid, function, module, target) when is_atom(module) and is_tuple(target) do
+    :gen_server.cast(pid, { :add_remote, function, module, target })
   end
 
   # Adds a import dispatch to the given target.
   @doc false
-  def add_import(pid, module, target) when is_atom(module) and is_tuple(target) do
-    :gen_server.cast(pid, { :add_import, module, target })
+  def add_import(pid, function, module, target) when is_atom(module) and is_tuple(target) do
+    :gen_server.cast(pid, { :add_import, function, module, target })
   end
 
   # Associates a module with a warn. This adds the given
@@ -280,13 +331,13 @@ defmodule Module.DispatchTracker do
     { :noreply, d }
   end
 
-  def handle_cast({ :add_remote, module, { name, arity } }, d) do
-    record_import_or_remote(d, :remote, module, name, arity)
+  def handle_cast({ :add_remote, function, module, { name, arity } }, d) do
+    record_import_or_remote(d, :remote, function, module, name, arity)
     { :noreply, d }
   end
 
-  def handle_cast({ :add_import, module, { name, arity } }, d) do
-    record_import_or_remote(d, :import, module, name, arity)
+  def handle_cast({ :add_import, function, module, { name, arity } }, d) do
+    record_import_or_remote(d, :import, function, module, name, arity)
     { :noreply, d }
   end
 
@@ -336,13 +387,17 @@ defmodule Module.DispatchTracker do
     { :ok, d }
   end
 
-  defp record_import_or_remote(d, kind, module, name, arity) do
+  defp record_import_or_remote(d, kind, function, module, name, arity) do
     :digraph.add_vertex(d, module)
     replace_edge!(d, kind, module)
 
     tuple = { kind, name, arity }
     :digraph.add_vertex(d, tuple)
     replace_edge!(d, tuple, module)
+
+    if function != nil do
+      replace_edge!(d, function, tuple)
+    end
   end
 
   defp replace_edge!(d, from, to) do

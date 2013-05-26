@@ -106,16 +106,16 @@ defmodule Module.DispatchTrackerTest do
   ## Imports
 
   test "can add import", config do
-    D.add_import(config[:pid], Module, { :concat, 1 })
+    D.add_import(config[:pid], nil, Module, { :concat, 1 })
   end
 
   test "can retrieve imports", config do
-    D.add_import(config[:pid], Module, { :concat, 1 })
+    D.add_import(config[:pid], nil, Module, { :concat, 1 })
     assert Module in D.imports(config[:pid])
   end
 
   test "find imports from dispatch", config do
-    D.add_import(config[:pid], Module, { :concat, 1 })
+    D.add_import(config[:pid], nil, Module, { :concat, 1 })
     assert Module in D.imports_with_dispatch(config[:pid], { :concat, 1 })
     refute Module in D.imports_with_dispatch(config[:pid], { :unknown, 1 })
   end
@@ -136,24 +136,44 @@ defmodule Module.DispatchTrackerTest do
   test "find import conflicts", config do
     refute { [Module], :conflict, 1 } in D.collect_imports_conflicts(config[:pid], [conflict: 1])
 
-    D.add_import(config[:pid], Module, { :conflict, 1 })
+    D.add_import(config[:pid], nil, Module, { :conflict, 1 })
     assert { [Module], :conflict, 1 } in D.collect_imports_conflicts(config[:pid], [conflict: 1])
   end
 
   ## Remotes
 
   test "can add remote", config do
-    D.add_remote(config[:pid], Module, { :concat, 1 })
+    D.add_remote(config[:pid], nil, Module, { :concat, 1 })
   end
 
   test "can retrieve remotes", config do
-    D.add_remote(config[:pid], Module, { :concat, 1 })
+    D.add_remote(config[:pid], nil, Module, { :concat, 1 })
     assert Module in D.remotes(config[:pid])
   end
 
   test "find remotes from dispatch", config do
-    D.add_remote(config[:pid], Module, { :concat, 1 })
+    D.add_remote(config[:pid], nil, Module, { :concat, 1 })
     assert Module in D.remotes_with_dispatch(config[:pid], { :concat, 1 })
     refute Module in D.remotes_with_dispatch(config[:pid], { :unknown, 1 })
+  end
+
+  ## All
+
+  test "can query dispatches", config do
+    D.add_definition(config[:pid], :def, { :public, 1 })
+    D.add_definition(config[:pid], :def, { :caller, 1 })
+    D.add_local(config[:pid], { :caller, 1 }, { :public, 1 })
+    D.add_remote(config[:pid], { :public, 1 }, Module, { :concat, 1 })
+    D.add_import(config[:pid], { :public, 1 }, Kernel, { :if, 2 })
+
+    assert D.dispatches_to(config[:pid], { :public, 1 }) == [{ :caller, 1 }]
+    assert D.dispatches_to(config[:pid], { :import, :if, 2 }) == [{ :public, 1 }]
+    assert D.dispatches_to(config[:pid], { :remote, :concat, 1 }) == [{ :public, 1 }]
+    assert D.dispatches_to(config[:pid], Module) == [{ :remote, :concat, 1 }]
+    assert D.dispatches_to(config[:pid], Kernel) == [{ :import, :if, 2 }]
+
+    assert { :public, 1 } in D.dispatches_from(config[:pid], { :caller, 1 })
+    assert { :remote, :concat, 1 } in D.dispatches_from(config[:pid], { :public, 1 })
+    assert { :import, :if, 2 } in D.dispatches_from(config[:pid], { :public, 1 })
   end
 end

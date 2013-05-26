@@ -3,7 +3,8 @@
 -module(elixir_tracker).
 -export([
   setup/1, cleanup/1,
-  record_local/2, record_import/3, record_remote/3,
+  record_local/2, record_local/3,
+  record_import/4, record_remote/4,
   record_warn/4, record_definition/3,
   ensure_no_import_conflict/4, ensure_all_imports_used/3,
   warn_unused_local/3, format_error/1
@@ -28,10 +29,10 @@ record_local(Tuple, Module) when is_atom(Module) ->
   if_tracker(Module, fun(Pid) ->
     ?tracker:add_local(Pid, Tuple),
     true
-  end);
-record_local(Tuple, #elixir_scope{function=Function})
+  end).
+record_local(Tuple, _Module, Function)
   when Function == nil; Function == Tuple -> false;
-record_local(Tuple, #elixir_scope{module=Module, function=Function}) ->
+record_local(Tuple, Module, Function) ->
   if_tracker(Module, fun(Pid) ->
     ?tracker:add_local(Pid, Function, Tuple),
     true
@@ -43,22 +44,22 @@ record_warn(Ref, Warn, Line, Module) ->
     true
   end).
 
-record_import(_Tuple, Receiver, Module)
+record_import(_Tuple, Receiver, Module, _Function)
   when Module == nil; Module == Receiver -> false;
-record_import(Tuple, Receiver, Module) ->
+record_import(Tuple, Receiver, Module, Function) ->
   try
     Pid = ets:lookup_element(Module, ?attr, 2),
-    ?tracker:add_import(Pid, Receiver, Tuple)
+    ?tracker:add_import(Pid, Function, Receiver, Tuple)
   catch
     error:badarg -> false
   end.
 
-record_remote(_Tuple, Receiver, Module)
+record_remote(_Tuple, Receiver, Module, _Function)
   when Module == nil; Module == Receiver -> false;
-record_remote(Tuple, Receiver, Module) ->
+record_remote(Tuple, Receiver, Module, Function) ->
   try
     Pid = ets:lookup_element(Module, ?attr, 2),
-    ?tracker:add_remote(Pid, Receiver, Tuple)
+    ?tracker:add_remote(Pid, Function, Receiver, Tuple)
   catch
     error:badarg -> false
   end.

@@ -5,10 +5,10 @@
 
 macro_for(_Tuple, _All, #elixir_scope{module=nil}) -> false;
 
-macro_for(Tuple, All, #elixir_scope{module=Module} = S) ->
+macro_for(Tuple, All, #elixir_scope{module=Module,function=Function} = S) ->
   try elixir_def:lookup_definition(Module, Tuple) of
     { { Tuple, Kind, Line, _, _, _, _ }, Clauses } when Kind == defmacro; All, Kind == defmacrop ->
-      elixir_tracker:record_local(Tuple, S),
+      elixir_tracker:record_local(Tuple, Module, Function),
       get_function(Line, Module, Clauses);
     _ ->
       false
