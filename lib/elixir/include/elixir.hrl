@@ -16,7 +16,6 @@
   name_args=false,         %% when true, it means arguments should be named
   module=nil,              %% the current module
   function=nil,            %% the current function
-  function_kind=nil,       %% the current function kind
   vars=[],                 %% a dict of defined variables and their alias
   temp_vars=[],            %% a dict of all variables defined in a particular assign
   clause_vars=nil,         %% a dict of all variables defined in a particular clause

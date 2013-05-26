@@ -158,12 +158,6 @@ defmodule Module.DispatchTracker do
   # clauses a private function have.
   @doc false
   def collect_unused_locals(pid, private) do
-    # Add a vertex for each private given
-    lc { tuple, kind, _defaults } inlist private do
-      add_definition(pid, kind, tuple)
-    end
-
-    # Process all unused
     reachable = reachable(pid)
     :lists.foldl(collect_unused_locals(&1, &2, reachable), [], private)
   end

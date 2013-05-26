@@ -12,7 +12,6 @@ defmodule Macro.Env do
   * `function` - a tuple as `{ atom, integer` }, where the first
     element is the function name and the seconds its arity. Returns
     `nil` if not inside a function
-  * `function_kind` - the kind of the function (`def`, `defp`, etc)
   * `aliases` -  a list of two item tuples, where the first
     item is the aliased name and the second the actual name
   * `context` - the context of the environment. It can be nil
@@ -32,15 +31,13 @@ defmodule Macro.Env do
   @type functions :: [{ module, [name_arity] }]
   @type macros :: [{ module, [name_arity] }]
   @type context_modules :: [module]
-  @type function_kind :: :def | :defp | :defmacro | :defmacrop
 
   fields = [:module, :file, :line, :function, :aliases, :context, :requires,
-            :functions, :macros, :context_modules, :function_kind]
+            :functions, :macros, :context_modules]
 
   types  = quote do: [module: module, file: file, line: line,
     function: name_arity, aliases: aliases, requires: requires,
-    functions: functions, macros: macros, context_modules: context_modules,
-    function_kind: function_kind]
+    functions: functions, macros: macros, context_modules: context_modules]
 
   Record.deffunctions(fields, __MODULE__)
   Record.deftypes(fields, types, __MODULE__)

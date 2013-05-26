@@ -114,7 +114,9 @@ store_definition(Kind, Line, _CheckClauses, nil, _Name, _Args, _Guards, _Body, #
 
 store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, #elixir_scope{} = DS) ->
   Arity = length(Args),
-  S = DS#elixir_scope{module=Module, function={Name,Arity}, function_kind=Kind},
+  Tuple = { Name, Arity },
+  S = DS#elixir_scope{module=Module, function=Tuple},
+  elixir_tracker:record_definition(Tuple, Kind, Module),
 
   CO = elixir_compiler:get_opts(),
   Location = retrieve_file(Line, Module, S, CO),
