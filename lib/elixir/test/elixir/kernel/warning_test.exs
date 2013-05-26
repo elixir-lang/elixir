@@ -75,7 +75,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :unsued_default_args do
+  test :unused_default_args do
     assert capture_io(fn ->
       Code.eval_string """
       defmodule Sample1 do
@@ -167,6 +167,35 @@ defmodule Kernel.WarningTest do
       end
       """
     end) =~ %r"function hello/1 has default values and multiple clauses, use a separate clause for declaring defaults"
+  after
+    purge Sample
+  end
+
+  test :unused_with_local_with_overridable do
+    assert capture_io(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        def hello, do: world
+        defp world, do: :ok
+        defoverridable [hello: 0]
+        def hello, do: :ok
+      end
+      """
+    end) =~ %r"function world/0 is unused"
+  after
+    purge Sample
+  end
+
+  test :used_with_local_with_reattached_overridable do
+    assert nil? capture_io(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        def hello, do: world
+        defp world, do: :ok
+        defoverridable [hello: 0, world: 0]
+      end
+      """
+    end)
   after
     purge Sample
   end

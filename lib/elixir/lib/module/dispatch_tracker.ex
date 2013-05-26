@@ -88,7 +88,7 @@ defmodule Module.DispatchTracker do
   end
 
   defp to_pid(pid) when is_pid(pid),  do: pid
-  defp to_pid(mod) when is_atom(mod), do: Module.get(mod, :__locals_tracker)
+  defp to_pid(mod) when is_atom(mod), do: Module.get_attribute(mod, :__dispatch_tracker)
 
   # Internal API
 
@@ -135,7 +135,7 @@ defmodule Module.DispatchTracker do
 
   # Collect all unused imports where warn has been set to true.
   def collect_unused_imports(pid) do
-    d = :gen_server.call(pid, :digraph)
+    d = :gen_server.call(pid, :digraph, @timeout)
     warnable = :digraph.out_neighbours(d, :warn)
 
     lc mod inlist warnable, not has_imports?(d, mod), line = get_warn_line(d, mod) do
@@ -153,10 +153,22 @@ defmodule Module.DispatchTracker do
     Enum.any?(:digraph.in_neighbours(d, mod), match?({ :import, _, _ }, &1))
   end
 
+  # Yanks a local node. Returns its in and out vertices in a tuple.
+  @doc false
+  def yank(pid, local) do
+    :gen_server.call(to_pid(pid), { :yank, local }, @timeout)
+  end
+
+  def reattach(pid, kind, tuple, neighbours) do
+    pid = to_pid(pid)
+    add_definition(pid, kind, tuple)
+    :gen_server.cast(pid, { :reattach, tuple, neighbours })
+  end
+
   # Collecting all conflicting imports with the given functions
   @doc false
   def collect_imports_conflicts(pid, all_defined) do
-    d = :gen_server.call(to_pid(pid), :digraph, @timeout)
+    d = :gen_server.call(pid, :digraph, @timeout)
 
     lc { name, arity } inlist all_defined,
        n = :digraph.out_neighbours(d, { :import, name, arity }),
@@ -216,6 +228,13 @@ defmodule Module.DispatchTracker do
     { :ok, d }
   end
 
+  def handle_call({ :yank, local }, _from, d) do
+    in_vertices  = :digraph.in_neighbours(d, local)
+    out_vertices = :digraph.out_neighbours(d, local)
+    :digraph.del_vertex(d, local)
+    { :reply, { in_vertices, out_vertices }, d }
+  end
+
   def handle_call(:digraph, _from, d) do
     { :reply, d, d }
   end
@@ -230,24 +249,24 @@ defmodule Module.DispatchTracker do
 
   def handle_cast({ :add_local, from, to }, d) do
     :digraph.add_vertex(d, to)
-    replace_edge(d, from, to)
+    replace_edge!(d, from, to)
     { :noreply, d }
   end
 
   def handle_cast({ :add_import, module, { name, arity } }, d) do
     :digraph.add_vertex(d, module)
-    replace_edge(d, :import, module)
+    replace_edge!(d, :import, module)
 
     tuple = { :import, name, arity }
     :digraph.add_vertex(d, tuple)
-    replace_edge(d, tuple, module)
+    replace_edge!(d, tuple, module)
 
     { :noreply, d }
   end
 
   def handle_cast({ :add_warnable, module, warn, line }, d) do
     :digraph.add_vertex(d, module)
-    replace_edge(d, :import, module)
+    replace_edge!(d, :import, module)
 
     if warn do
       :digraph.add_edge(d, :warn, module, line)
@@ -260,12 +279,18 @@ defmodule Module.DispatchTracker do
 
   def handle_cast({ :add_definition, public, tuple }, d) when public in [:def, :defmacro] do
     :digraph.add_vertex(d, tuple)
-    replace_edge(d, :local, tuple)
+    replace_edge!(d, :local, tuple)
     { :noreply, d }
   end
 
   def handle_cast({ :add_definition, private, tuple }, d) when private in [:defp, :defmacrop] do
     :digraph.add_vertex(d, tuple)
+    { :noreply, d }
+  end
+
+  def handle_cast({ :reattach, tuple, { in_neigh, out_neigh } }, d) do
+    lc from inlist in_neigh, do: replace_edge(d, from, tuple)
+    lc to inlist out_neigh,  do: replace_edge(d, tuple, to)
     { :noreply, d }
   end
 
@@ -285,9 +310,15 @@ defmodule Module.DispatchTracker do
     { :ok, d }
   end
 
-  defp replace_edge(d, from, to) do
+  defp replace_edge!(d, from, to) do
     unless :lists.member(to, :digraph.out_neighbours(d, from)) do
       [:"$e"|_] = :digraph.add_edge(d, from, to)
+    end
+  end
+
+  defp replace_edge(d, from, to) do
+    unless :lists.member(to, :digraph.out_neighbours(d, from)) do
+      :digraph.add_edge(d, from, to)
     end
   end
 end

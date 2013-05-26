@@ -15,13 +15,13 @@ overridable(Module, Value) ->
 is_defined(Module, Tuple) ->
   Overridable = overridable(Module),
   case orddict:find(Tuple, Overridable) of
-    { ok, { _, _, _ } } -> true;
+    { ok, { _, _, _, _ } } -> true;
     _ -> false
   end.
 
 ensure_defined(Meta, Module, Tuple, S) ->
   case is_defined(Module, Tuple) of
-    true -> [];
+    true -> ok;
     _    -> elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, { no_super, Module, Tuple })
   end.
 
@@ -53,7 +53,7 @@ name(Module, Function) ->
   name(Module, Function, overridable(Module)).
 
 name(_Module, { Name, _ } = Function, Overridable) ->
-  { Count, _, _ } = orddict:fetch(Function, Overridable),
+  { Count, _, _, _ } = orddict:fetch(Function, Overridable),
   ?atom_concat([Name, " (overridable ", Count, ")"]).
 
 %% Store
@@ -61,15 +61,17 @@ name(_Module, { Name, _ } = Function, Overridable) ->
 store(Module, Function, GenerateName) ->
   Overridable = overridable(Module),
   case orddict:fetch(Function, Overridable) of
-    { _Count, _Clause, true } -> ok;
-    { Count, Clause, false } ->
-      overridable(Module, orddict:store(Function, { Count, Clause, true }, Overridable)),
+    { _Count, _Clause, _Neighbours, true } -> ok;
+    { Count, Clause, Neighbours, false } ->
+      overridable(Module, orddict:store(Function, { Count, Clause, Neighbours, true }, Overridable)),
       { { { Name, Arity }, Kind, Line, File, _Check, Location, Defaults }, Clauses } = Clause,
 
       { FinalKind, FinalName } = case GenerateName of
         true  -> { defp, name(Module, Function, Overridable) };
         false -> { Kind, Name }
       end,
+
+      'Elixir.Module.DispatchTracker':reattach(Module, Kind, { Name, Arity }, Neighbours),
 
       Def = { function, Line, FinalName, Arity, Clauses },
       elixir_def:store_each(false, FinalKind, File, Location,
@@ -79,13 +81,13 @@ store(Module, Function, GenerateName) ->
 %% Store pending declarations that were not manually made concrete.
 
 store_pending(Module) ->
-  [store(Module, X, false) || { X, { _, _, false } } <- overridable(Module),
+  [store(Module, X, false) || { X, { _, _, _, false } } <- overridable(Module),
     not 'Elixir.Module':'defines?'(Module, X)].
 
 %% Error handling
 
 format_error({ no_super, Module, { Name, Arity } }) ->
-  Bins   = [ format_fa(X) || { X, { _, _, _ } } <- overridable(Module)],
+  Bins   = [format_fa(X) || { X, { _, _, _, _ } } <- overridable(Module)],
   Joined = 'Elixir.Enum':join(Bins, <<", ">>),
   io_lib:format("no super defined for ~ts/~B in module ~ts. Overridable functions available are: ~ts",
     [Name, Arity, elixir_errors:inspect(Module), Joined]).

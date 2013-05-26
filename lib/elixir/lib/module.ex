@@ -374,10 +374,12 @@ defmodule Module do
           raise "Cannot make function #{name}/#{arity} overridable because it was not defined"
         clause ->
           :elixir_def.delete_definition(module, tuple)
+          neighbours = Module.DispatchTracker.yank(module, tuple)
 
           old    = get_attribute(module, :__overridable)
-          new    = [ { tuple, { 1, clause, false } } ]
-          merged = :orddict.merge(fn(_k, { count, _, _ }, _v2) -> { count + 1, clause, false } end, old, new)
+          merged = :orddict.update(tuple, fn({ count, _, _, _ }) ->
+            { count + 1, clause, neighbours, false }
+          end, { 1, clause, neighbours, false }, old)
 
           put_attribute(module, :__overridable, merged)
       end
