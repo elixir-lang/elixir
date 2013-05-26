@@ -839,7 +839,7 @@ defmodule String do
     string_size = size(string)
     Enum.any? suffixes, fn suffix ->
       suffix_size = size(suffix)
-      (suffix_size <= string_size) and suffix == :binary.part(string, {string_size, -size(suffix)})
+      (suffix_size <= string_size) and suffix == :binary.part(string, {string_size, -suffix_size})
     end
   end
 
