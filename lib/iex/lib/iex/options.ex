@@ -177,13 +177,12 @@ defmodule IEx.Options do
   `IEx.Options.get` and `IEx.Options.set` to query and change the option's
   value.
 
-  Control the behavior of the shell's inspecting algorithm. Inspect is
-  used for printing results of expression evaluation. It is also used by
-  IO.inspect.
+  Inspect options used by the shell when printing results of expression
+  evaluation.
 
   The value is a keyword list.
 
-  See the doc for `Kernel.inspect/2` for the full list of options.
+  See `Kernel.inspect/2` for the full list of options.
 
   """
   def inspect
