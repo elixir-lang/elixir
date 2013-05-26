@@ -69,25 +69,13 @@ if_tracker(Module, Callback) ->
 
 %% ERROR HANDLING
 
-%% Ensure no import conflicts with any of the local definitions.
-
 ensure_no_import_conflict(Meta, File, Module, AllDefined) ->
   if_tracker(Module, fun(Pid) ->
-    [do_ensure_no_import_conflict(Meta, File, Pid, X) || X  <- AllDefined]
+    [ begin
+        elixir_errors:form_error(Meta, File, ?MODULE, { import_conflict, Error })
+      end || Error <- ?tracker:collect_imports_conflicts(Pid, AllDefined) ]
   end),
   ok.
-
-do_ensure_no_import_conflict(Meta, File, Pid, { Name, Arity } = Tuple) ->
-  Matches = ?tracker:imports_with_dispatch(Pid, Tuple),
-
-  case Matches of
-    []  -> ok;
-    Key ->
-      Error = { import_conflict, { hd(Key), Name, Arity } },
-      elixir_errors:form_error(Meta, File, ?MODULE, Error)
-  end.
-
-%% Ensure all imports are used.
 
 ensure_all_imports_used(_Line, File, Module) ->
   if_tracker(Module, fun(Pid) ->
@@ -96,8 +84,6 @@ ensure_all_imports_used(_Line, File, Module) ->
       end || { M, L } <- ?tracker:collect_unused_imports(Pid)]
   end),
   ok.
-
-%% Warn for unused/unreachable locals and default arguments.
 
 warn_unused_local(File, Module, Private) ->
   if_tracker(Module, fun(Pid) ->
@@ -112,9 +98,9 @@ warn_unused_local(File, Module, Private) ->
       end || Error <- Unused ]
   end).
 
-format_error({import_conflict,{Receiver, Name, Arity}}) ->
+format_error({import_conflict,{Receivers, Name, Arity}}) ->
   io_lib:format("imported ~ts.~ts/~B conflicts with local function",
-    [elixir_errors:inspect(Receiver), Name, Arity]);
+    [elixir_errors:inspect(hd(Receivers)), Name, Arity]);
 
 format_error({ unused_import, Module }) ->
   io_lib:format("unused import ~ts", [elixir_errors:inspect(Module)]);

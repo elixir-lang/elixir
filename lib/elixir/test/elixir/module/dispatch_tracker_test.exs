@@ -132,4 +132,11 @@ defmodule Module.DispatchTrackerTest do
     D.add_warnable(config[:pid], Module, false, 15)
     refute { Module, 15 } in D.collect_unused_imports(config[:pid])
   end
+
+  test "find import conflicts", config do
+    refute { [Module], :conflict, 1 } in D.collect_imports_conflicts(config[:pid], [conflict: 1])
+
+    D.add_import(config[:pid], Module, { :conflict, 1 })
+    assert { [Module], :conflict, 1 } in D.collect_imports_conflicts(config[:pid], [conflict: 1])
+  end
 end

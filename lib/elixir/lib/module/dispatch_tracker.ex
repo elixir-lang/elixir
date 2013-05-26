@@ -153,6 +153,18 @@ defmodule Module.DispatchTracker do
     Enum.any?(:digraph.in_neighbours(d, mod), match?({ :import, _, _ }, &1))
   end
 
+  # Collecting all conflicting imports with the given functions
+  @doc false
+  def collect_imports_conflicts(pid, all_defined) do
+    d = :gen_server.call(to_pid(pid), :digraph, @timeout)
+
+    lc { name, arity } inlist all_defined,
+       n = :digraph.out_neighbours(d, { :import, name, arity }),
+       n != [] do
+      { n, name, arity }
+    end
+  end
+
   # Collect all unused definitions based on the private
   # given also accounting the expected amount of default
   # clauses a private function have.
