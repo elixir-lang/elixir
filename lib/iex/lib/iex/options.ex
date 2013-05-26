@@ -64,6 +64,11 @@ defmodule IEx.Options do
     opts
   end
 
+  def get(:history_size) do
+    { :ok, size } = :application.get_env(:iex, :history_size)
+    size
+  end
+
   def get(name) do
     raise_option(name)
   end
@@ -97,7 +102,7 @@ defmodule IEx.Options do
   end
 
   def set(:colors, _) do
-    raise_value
+    raise_value("a keyword list")
   end
 
   def set(:inspect, opts) when is_list(opts) do
@@ -108,7 +113,17 @@ defmodule IEx.Options do
   end
 
   def set(:inspect, _) do
-    raise_value
+    raise_value("a keyword list")
+  end
+
+  def set(:history_size, size) when is_integer(size) do
+    old_size = get(:history_size)
+    :application.set_env(:iex, :history_size, size)
+    old_size
+  end
+
+  def set(:history_size, _) do
+    raise_value("an integer")
   end
 
   def set(name, _) do
@@ -191,8 +206,8 @@ defmodule IEx.Options do
     raise ArgumentError, message: "Unknown IEx option #{inspect name}"
   end
 
-  defp raise_value do
-    raise ArgumentError, message: "Expected the value to be a keyword list"
+  defp raise_value(type) do
+    raise ArgumentError, message: "Expected the value to be #{type}"
   end
 
   defp filtered_kw(reference_kw, user_kw) do

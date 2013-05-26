@@ -4,13 +4,14 @@ defmodule IEx.Server do
   @doc """
   Eval loop for an IEx session. Its responsibilities include:
 
+    * loading of .iex files
     * reading input
     * trapping exceptions in the code being evaluated
-    * keeping input history
+    * keeping expression history
 
   """
   def start(config) do
-    Process.put :iex_history, []
+    Process.put :iex_history, :queue.new
 
     { _, _, scope } = :elixir.eval('require IEx.Helpers', [], 0, config.scope)
     config = config.scope(scope)
@@ -135,8 +136,29 @@ defmodule IEx.Server do
   end
 
   defp update_history(config) do
-    current = Process.get :iex_history
-    Process.put :iex_history, [config|current]
+    limit = IEx.Options.get(:history_size)
+    history = Process.get(:iex_history)
+    len = :queue.len(history)
+    new_history =
+      :queue.in(config, history)
+      |> limit_history(len + 1, limit)
+    Process.put(:iex_history, new_history)
+  end
+
+  defp limit_history(_, _, 0) do
+    :queue.new
+  end
+
+  defp limit_history(queue, _, limit) when limit < 0 do
+    queue
+  end
+
+  defp limit_history(queue, len, limit) when len > limit do
+    limit_history(:queue.drop(queue), len-1, limit)
+  end
+
+  defp limit_history(queue, _, _) do
+    queue
   end
 
   defp io_get(config) do
