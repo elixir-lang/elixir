@@ -11,7 +11,7 @@ defmodule IEx.Server do
 
   """
   def start(config) do
-    Process.put :iex_history, :queue.new
+    IEx.History.init
 
     { _, _, scope } = :elixir.eval('require IEx.Helpers', [], 0, config.scope)
     config = config.scope(scope)
@@ -136,29 +136,7 @@ defmodule IEx.Server do
   end
 
   defp update_history(config) do
-    limit = IEx.Options.get(:history_size)
-    history = Process.get(:iex_history)
-    len = :queue.len(history)
-    new_history =
-      :queue.in(config, history)
-      |> limit_history(len + 1, limit)
-    Process.put(:iex_history, new_history)
-  end
-
-  defp limit_history(_, _, 0) do
-    :queue.new
-  end
-
-  defp limit_history(queue, _, limit) when limit < 0 do
-    queue
-  end
-
-  defp limit_history(queue, len, limit) when len > limit do
-    limit_history(:queue.drop(queue), len-1, limit)
-  end
-
-  defp limit_history(queue, _, _) do
-    queue
+    IEx.History.append(config)
   end
 
   defp io_get(config) do

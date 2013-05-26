@@ -77,19 +77,6 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints the history of expressions evaluated during the session along with
-  their results.
-  """
-  def v do
-    history = :queue.to_list(Process.get(:iex_history))
-    Enum.each(history, print_history(&1))
-  end
-
-  defp print_history(config) do
-    IO.puts IEx.color(:info, "#{config.counter}: #{config.cache}#=> #{inspect config.result}\n")
-  end
-
-  @doc """
   Prints the documentation for `IEx.Helpers`.
   """
   def h() do
@@ -218,49 +205,26 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Prints the history of expressions evaluated during the session along with
+  their results.
+  """
+  def v do
+    IEx.History.each(print_history_entry(&1))
+  end
+
+  defp print_history_entry(config) do
+    IO.write IEx.color(:info, "#{config.counter}: #{config.cache}#=> ")
+    IO.puts  IEx.color(:eval_result, "#{inspect config.result}\n")
+  end
+
+  @doc """
   Retrieves nth expression's value from the history.
 
   Use negative values to lookup expression values relative to the current one.
   For instance, v(-1) returns the result of the last evaluated expression.
   """
-  def v(n) when n < 0 do
-    history = Process.get(:iex_history)
-    queue_nth_r(history, abs(n) - 1, :queue.len(history)).result
-  end
-
-  def v(n) when n > 0 do
-    history = Process.get(:iex_history)
-    queue_nth(history, n - 1, :queue.len(history)).result
-  end
-
-  defp queue_nth(_, _, 0) do
-    raise_bounds
-  end
-
-  defp queue_nth(queue, 0, _) do
-    { :value, value } = :queue.peek(queue)
-    value
-  end
-
-  defp queue_nth(queue, n, len) when n > 0 do
-    queue_nth(:queue.drop(queue), n-1, len-1)
-  end
-
-  defp queue_nth_r(_, _, 0) do
-    raise_bounds
-  end
-
-  defp queue_nth_r(queue, 0, _) do
-    { :value, value } = :queue.peek_r(queue)
-    value
-  end
-
-  defp queue_nth_r(queue, n, len) when n > 0 do
-    queue_nth(:queue.drop_r(queue), n-1, len-1)
-  end
-
-  defp raise_bounds do
-    raise "Out of bounds"
+  def v(n) do
+    IEx.History.nth(n).result
   end
 
   @doc """
