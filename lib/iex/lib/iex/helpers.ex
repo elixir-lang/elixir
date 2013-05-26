@@ -209,12 +209,13 @@ defmodule IEx.Helpers do
   their results.
   """
   def v do
-    IEx.History.each(print_history_entry(&1))
+    inspect_opts = IEx.Options.get(:inspect)
+    IEx.History.each(print_history_entry(&1, inspect_opts))
   end
 
-  defp print_history_entry(config) do
+  defp print_history_entry(config, inspect_opts) do
     IO.write IEx.color(:info, "#{config.counter}: #{config.cache}#=> ")
-    IO.puts  IEx.color(:eval_result, "#{inspect config.result}\n")
+    IO.puts  IEx.color(:eval_result, "#{inspect config.result, inspect_opts}\n")
   end
 
   @doc """
@@ -262,10 +263,15 @@ defmodule IEx.Helpers do
   Flushes all messages sent to the shell and prints them out.
   """
   def flush do
+    inspect_opts = IEx.Options.get(:inspect)
+    do_flush(inspect_opts)
+  end
+
+  defp do_flush(inspect_opts) do
     receive do
       msg ->
-        IO.inspect(msg)
-        flush
+        IO.inspect(msg, inspect_opts)
+        do_flush(inspect_opts)
     after
       0 -> :ok
     end
