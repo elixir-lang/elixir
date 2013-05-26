@@ -95,8 +95,8 @@ Good pull requests - patches, improvements, new features - are a fantastic
 help. They should remain focused in scope and avoid containing unrelated
 commits.
 
-**IMPORTANT**: By submitting a patch, you agree to allow the project owner to
-license your work under the same license as that used by the project.
+**IMPORTANT**: By submitting a patch, you agree that your work will be made
+public forever and will be licensed under the license used by the project.
 
 If you have any significant pull request in mind (e.g. implementing features,
 refactoring code, porting to a different language), **please ask first**
