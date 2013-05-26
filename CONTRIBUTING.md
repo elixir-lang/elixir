@@ -128,7 +128,11 @@ in order to craft an excellent pull request:
    ```
 
 3. Create a new topic branch (off of `master`) to contain your feature, change,
-   or fix:
+   or fix.
+
+   **IMPORTANT**: Making changes in `master` is discouraged. You should always
+   keep your local `master` in sync with upstream `master` and make your
+   changes in topic branches.
 
    ```bash
    git checkout -b <topic-branch-name>
@@ -153,7 +157,7 @@ in order to craft an excellent pull request:
    rebasing on master and resolving any conflicts.
 
    **IMPORTANT**: _Never ever_ merge upstream `master` into your branches. You
-   should always `git rebase` on `master` to make your changes up to date when
+   should always `git rebase` on `master` to bring your changes up to date when
    necessary.
 
    ```bash
