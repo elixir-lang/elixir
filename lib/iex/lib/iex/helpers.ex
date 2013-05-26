@@ -225,12 +225,42 @@ defmodule IEx.Helpers do
   """
   def v(n) when n < 0 do
     history = Process.get(:iex_history)
-    Enum.fetch!(history, abs(n) - 1).result
+    queue_nth_r(history, abs(n) - 1, :queue.len(history)).result
   end
 
   def v(n) when n > 0 do
-    history = Process.get(:iex_history) |> Enum.reverse
-    Enum.fetch!(history, n - 1).result
+    history = Process.get(:iex_history)
+    queue_nth(history, n - 1, :queue.len(history)).result
+  end
+
+  defp queue_nth(_, _, 0) do
+    raise_bounds
+  end
+
+  defp queue_nth(queue, 0, _) do
+    { :value, value } = :queue.peek(queue)
+    value
+  end
+
+  defp queue_nth(queue, n, len) when n > 0 do
+    queue_nth(:queue.drop(queue), n-1, len-1)
+  end
+
+  defp queue_nth_r(_, _, 0) do
+    raise_bounds
+  end
+
+  defp queue_nth_r(queue, 0, _) do
+    { :value, value } = :queue.peek_r(queue)
+    value
+  end
+
+  defp queue_nth_r(queue, n, len) when n > 0 do
+    queue_nth(:queue.drop_r(queue), n-1, len-1)
+  end
+
+  defp raise_bounds do
+    raise "Out of bounds"
   end
 
   @doc """
