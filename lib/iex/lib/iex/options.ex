@@ -36,6 +36,7 @@ defmodule IEx.Options do
   @supported_options [
     colors: [],
     inspect: [],
+    history_size: [],
   ]
 
   @doc """
@@ -201,6 +202,18 @@ defmodule IEx.Options do
 
   """
   def inspect
+
+  @doc """
+  **NOTE**: This is just a stub for documentation purposes. Use
+  `IEx.Options.get` and `IEx.Options.set` to query and change the option's
+  value.
+
+  Number of expressions and their results to keep in the history.
+
+  The value is an integer. When it's less than 0, the history is unlimited.
+
+  """
+  def history_size
 
   defp raise_option(name) do
     raise ArgumentError, message: "Unknown IEx option #{inspect name}"
