@@ -109,8 +109,8 @@ store_definition(Kind, Line, CheckClauses, Module, Call, Body, RawS) ->
   assert_no_aliases_name(Line, Name, Args, S),
   store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, S).
 
-store_definition(Kind, Line, _CheckClauses, nil, _Name, _Args, _Guards, _Body, #elixir_scope{} = S) ->
-  elixir_errors:syntax_error(Line, S#elixir_scope.file, "cannot define function outside module, invalid scope for ~ts", [Kind]);
+store_definition(Kind, Line, _CheckClauses, nil, _Name, _Args, _Guards, _Body, #elixir_scope{file=File}) ->
+  elixir_errors:form_error(Line, File, ?MODULE, { no_module, Kind });
 
 store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, #elixir_scope{} = DS) ->
   Arity = length(Args),
@@ -196,8 +196,11 @@ translate_definition(Kind, Line, Name, RawArgs, RawGuards, RawBody, S) when is_i
   Function = { function, Line, Name, Arity, Clauses },
   { Function, Defaults, TS }.
 
-translate_clause(_Line, _Kind, _Unpacked, _Guards, nil, S) ->
+translate_clause(_Line, _Kind, _Unpacked, [], nil, S) ->
   { [], S };
+
+translate_clause(Line, Kind, _Unpacked, _Guards, nil, #elixir_scope{file=File}) ->
+  elixir_errors:syntax_error(Line, File, "missing keyword do in ~ts", [Kind]);
 
 translate_clause(Line, Kind, Unpacked, Guards, Body, S) ->
   Expr = expr_from_body(Line, Body),
@@ -311,8 +314,8 @@ store_each(Check, Kind, File, Location, Table, CTable, Defaults, {function, Line
       FinalLocation = StoredLocation,
       FinalDefaults = max(Defaults, StoredDefaults),
       check_valid_kind(Line, File, Name, Arity, Kind, StoredKind),
-      check_valid_defaults(Line, File, Name, Arity, Defaults, StoredDefaults),
-      (Check and StoredCheck) andalso check_valid_clause(Line, File, Name, Arity, Table);
+      check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, StoredDefaults),
+      (Check and StoredCheck) andalso check_valid_clause(Line, File, Name, Arity, Kind, Table);
     [] ->
       FinalLine = Line,
       FinalLocation = Location,
@@ -329,38 +332,41 @@ check_valid_kind(Line, File, Name, Arity, Kind, StoredKind) ->
   elixir_errors:form_error(Line, File, ?MODULE,
     { changed_kind, { Name, Arity, StoredKind, Kind } }).
 
-check_valid_clause(Line, File, Name, Arity, Table) ->
+check_valid_clause(Line, File, Name, Arity, Kind, Table) ->
   case ets:lookup_element(Table, last, 2) of
     {Name,Arity} -> [];
     [] -> [];
     _ ->
       elixir_errors:handle_file_warning(File, { Line, ?MODULE,
-        { override_function, { Name, Arity } } })
+        { override_function, { Kind, Name, Arity } } })
   end.
 
-check_valid_defaults(_Line, _File, _Name, _Arity, 0, _) -> [];
-check_valid_defaults(Line, File, Name, Arity, _, 0) ->
-  elixir_errors:handle_file_warning(File, { Line, ?MODULE, { out_of_order_defaults, { Name, Arity } } });
-check_valid_defaults(Line, File, Name, Arity, _, _) ->
-  elixir_errors:handle_file_warning(File, { Line, ?MODULE, { clauses_with_defaults, { Name, Arity } } }).
+check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _) -> [];
+check_valid_defaults(Line, File, Name, Arity, Kind, _, 0) ->
+  elixir_errors:handle_file_warning(File, { Line, ?MODULE, { out_of_order_defaults, { Kind, Name, Arity } } });
+check_valid_defaults(Line, File, Name, Arity, Kind, _, _) ->
+  elixir_errors:handle_file_warning(File, { Line, ?MODULE, { clauses_with_defaults, { Kind, Name, Arity } } }).
 
 assert_no_aliases_name(Line, '__aliases__', [Atom], #elixir_scope{file=File}) when is_atom(Atom) ->
   Message = "function names should start with lowercase characters or underscore, invalid name ~ts",
-  elixir_errors:syntax_error(Line, File, Message, [atom_to_binary(Atom, utf8)]);
+  elixir_errors:syntax_error(Line, File, Message, [Atom]);
 
 assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
   ok.
 
 %% Format errors
 
-format_error({clauses_with_defaults,{Name,Arity}}) ->
-  io_lib:format("function ~ts/~B has default values and multiple clauses, use a separate clause for declaring defaults", [Name, Arity]);
+format_error({no_module,{Kind,Name,Arity}}) ->
+  io_lib:format("cannot define function outside module, invalid scope for ~ts ~ts/~B", [Kind, Name, Arity]);
 
-format_error({out_of_order_defaults,{Name,Arity}}) ->
-  io_lib:format("clause with defaults should be the first clause in function ~ts/~B", [Name, Arity]);
+format_error({clauses_with_defaults,{Kind,Name,Arity}}) ->
+  io_lib:format("~ts ~ts/~B has default values and multiple clauses, use a separate clause for declaring defaults", [Kind, Name, Arity]);
 
-format_error({override_function,{Name,Arity}}) ->
-  io_lib:format("trying to override previously defined function ~ts/~B", [Name, Arity]);
+format_error({out_of_order_defaults,{Kind,Name,Arity}}) ->
+  io_lib:format("clause with defaults should be the first clause in ~ts ~ts/~B", [Kind, Name, Arity]);
+
+format_error({override_function,{Kind,Name,Arity}}) ->
+  io_lib:format("trying to override previously defined ~ts ~ts/~B", [Kind, Name, Arity]);
 
 format_error({changed_kind,{Name,Arity,Previous,Current}}) ->
   io_lib:format("~ts ~ts/~B already defined as ~ts", [Current, Name, Arity, Previous]).

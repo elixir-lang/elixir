@@ -153,7 +153,7 @@ defmodule Kernel.WarningTest do
         def hello(arg // 0), do: nil
       end
       """
-    end) =~ %r"clause with defaults should be the first clause in function hello/1"
+    end) =~ %r"clause with defaults should be the first clause in def hello/1"
   after
     purge Sample
   end
@@ -166,7 +166,7 @@ defmodule Kernel.WarningTest do
         def hello(arg // 1), do: nil
       end
       """
-    end) =~ %r"function hello/1 has default values and multiple clauses, use a separate clause for declaring defaults"
+    end) =~ %r"def hello/1 has default values and multiple clauses, use a separate clause for declaring defaults"
   after
     purge Sample
   end
