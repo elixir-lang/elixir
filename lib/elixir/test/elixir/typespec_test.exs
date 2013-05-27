@@ -214,6 +214,18 @@ defmodule Typespec.TypeTest do
              [{:atom, _, Range}, {:type, _, :integer, []}, {:type, _, :any, []}]}, []} = spec
   end
 
+  test "@type with keywords" do
+    spec = test_module do
+      @type mytype :: [first: integer, last: integer]
+    end
+    assert {:mytype,{:type,_,:list,[
+      {:type,_,:union,[
+        {:type,_,:tuple,[{:atom,_,:first},{:type,_,:integer,[]}]},
+        {:type,_,:tuple,[{:atom,_,:last},{:type,_,:integer,[]}]}
+      ]}
+    ]}, []} = spec
+  end
+
   test "@type with parameters" do
     {spec1, spec2, spec3} = test_module do
       t1 = @type mytype(x) :: x
@@ -339,7 +351,7 @@ defmodule Typespec.TypeTest do
       (quote do: @type imm_type_1() :: 1),
       (quote do: @type imm_type_2() :: :atom),
       (quote do: @type simple_type() :: integer()),
-      (quote do: @type param_type(p) :: list(p)),
+      (quote do: @type param_type(p) :: [p]),
       (quote do: @type union_type() :: integer() | binary() | boolean()),
       (quote do: @type binary_type1() :: <<_ :: _ * 8>>),
       (quote do: @type binary_type2() :: <<_ :: 3 * 8>>),
@@ -350,6 +362,7 @@ defmodule Typespec.TypeTest do
       (quote do: @type ab() :: as_boolean(term())),
       (quote do: @type vaf() :: (... -> any())),
       (quote do: @type rng() :: 1 .. 10),
+      (quote do: @type opts() :: [first: integer(), last: integer()]),
     ]
 
     types = test_module do

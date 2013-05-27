@@ -2,6 +2,7 @@
 
 * enhancements
   * [Kernel] Add `String.start_with?` and `String.end_with?`
+  * [Typespec] Allow keywords, e.g. `[foo: integer, bar: boolean | module]`, in typespecs
 
 * bug fix
   * [Dict] `Enum.to_list` and `Dict.to_list` now return the same results for dicts
