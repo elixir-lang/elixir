@@ -444,7 +444,7 @@ defmodule Macro do
   end
 
   defp expand({ :__aliases__, _, _ } = original, env, cache) do
-    case :elixir_aliases.expand(original, env.aliases, []) do
+    case :elixir_aliases.expand(original, env.aliases, env.macro_aliases) do
       atom when is_atom(atom) -> atom
       aliases ->
         aliases = lc alias inlist aliases, do: expand(alias, env, cache)
