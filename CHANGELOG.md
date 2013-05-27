@@ -1,6 +1,7 @@
 # v0.9.1.dev
 
 * enhancements
+  * [IEx] Limit the number of entries kept in history and allow it to be configured
   * [Kernel] Add `String.start_with?` and `String.end_with?`
   * [Typespec] Allow keywords, e.g. `[foo: integer, bar: boolean | module]`, in typespecs
 
