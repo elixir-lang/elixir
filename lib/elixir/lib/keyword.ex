@@ -152,6 +152,7 @@ defmodule Keyword do
 
       iex> Keyword.fetch!([a: 1], :a)
       1
+
       iex> Keyword.fetch!([a: 1], :b)
       ** (KeyError) key not found: :b
 
@@ -357,6 +358,7 @@ defmodule Keyword do
 
       iex> Keyword.update([a: 1], :a, &1 * 2)
       [a: 2]
+
       iex> Keyword.update([a: 1], :b, &1 * 2)
       ** (KeyError) key not found: :b
 

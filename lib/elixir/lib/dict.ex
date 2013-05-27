@@ -201,8 +201,7 @@ defmodule Dict do
       iex> d = HashDict.new([a: 1])
       ...> Dict.fetch!(d, :a)
       1
-      iex> d = HashDict.new([a: 1])
-      ...> Dict.fetch!(d, :b)
+      iex> Dict.fetch!(d, :b)
       ** (KeyError) key not found: :b
 
   """

@@ -372,8 +372,10 @@ defmodule Enum do
 
       iex> Enum.fetch!([2,4,6], 0)
       2
+
       iex> Enum.fetch!([2,4,6], 2)
       6
+
       iex> Enum.fetch!([2,4,6], 4)
       ** (Enum.OutOfBoundsError) out of bounds error
 
