@@ -36,6 +36,7 @@ defmodule IEx.Options do
   @supported_options [
     colors: [],
     inspect: [],
+    history_size: [],
   ]
 
   @doc """
@@ -62,6 +63,11 @@ defmodule IEx.Options do
   def get(:inspect) do
     { :ok, opts } = :application.get_env(:iex, :inspect_opts)
     opts
+  end
+
+  def get(:history_size) do
+    { :ok, size } = :application.get_env(:iex, :history_size)
+    size
   end
 
   def get(name) do
@@ -97,7 +103,7 @@ defmodule IEx.Options do
   end
 
   def set(:colors, _) do
-    raise_value
+    raise_value("a keyword list")
   end
 
   def set(:inspect, opts) when is_list(opts) do
@@ -108,7 +114,17 @@ defmodule IEx.Options do
   end
 
   def set(:inspect, _) do
-    raise_value
+    raise_value("a keyword list")
+  end
+
+  def set(:history_size, size) when is_integer(size) do
+    old_size = get(:history_size)
+    :application.set_env(:iex, :history_size, size)
+    old_size
+  end
+
+  def set(:history_size, _) do
+    raise_value("an integer")
   end
 
   def set(name, _) do
@@ -187,12 +203,24 @@ defmodule IEx.Options do
   """
   def inspect
 
+  @doc """
+  **NOTE**: This is just a stub for documentation purposes. Use
+  `IEx.Options.get` and `IEx.Options.set` to query and change the option's
+  value.
+
+  Number of expressions and their results to keep in the history.
+
+  The value is an integer. When it is negative, the history is unlimited.
+
+  """
+  def history_size
+
   defp raise_option(name) do
     raise ArgumentError, message: "Unknown IEx option #{inspect name}"
   end
 
-  defp raise_value do
-    raise ArgumentError, message: "Expected the value to be a keyword list"
+  defp raise_value(type) do
+    raise ArgumentError, message: "Expected the value to be #{type}"
   end
 
   defp filtered_kw(reference_kw, user_kw) do

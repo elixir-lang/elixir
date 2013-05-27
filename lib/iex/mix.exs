@@ -17,6 +17,7 @@ defmodule IEx.Mixfile do
         directory: "blue",
         device: "green"
       ],
+      history_size: 20,
       started: true
     ]]
   end
