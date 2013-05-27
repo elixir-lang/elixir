@@ -82,8 +82,8 @@ defmodule IEx.Server do
 
         io_put result
 
-        config = config.result(result)
-        update_history(config.cache(code).scope(nil))
+        config = config.cache(code).scope(nil).result(result)
+        update_history(config)
         config.update_counter(&1+1).cache('').binding(new_binding).scope(scope).result(nil)
 
       { :error, { line_no, error, token } } ->
