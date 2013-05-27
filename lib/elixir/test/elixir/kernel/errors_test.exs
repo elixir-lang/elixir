@@ -270,6 +270,16 @@ defmodule Kernel.ErrorsTest do
       format_rescue('case [] do; [] when something_that_does_not_exist == [] -> :ok; end')
   end
 
+  test :bodyless_function do
+    assert {{:module, M, _, {:foo,1}}, [], _} =
+      :elixir.eval(to_char_list("defmodule M do\ndef foo(n)\nend"), [])
+  end
+
+  test :bodyless_function_with_guard do
+    assert "nofile:2: missing keyword do in def" =
+      format_rescue("defmodule Foo do\ndef foo(n) when is_number(n)\nend")
+  end
+
   test :invalid_function_on_match do
     assert "nofile:1: cannot invoke function something_that_does_not_exist/0 inside match" =
       format_rescue('case [] do; something_that_does_not_exist() -> :ok; end')
