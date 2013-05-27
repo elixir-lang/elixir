@@ -84,7 +84,7 @@ defmodule IEx.Server do
 
         config = config.result(result)
         update_history(config.cache(code).scope(nil))
-        config.update_counter(&1+1).cache('').binding(new_binding).scope(scope)
+        config.update_counter(&1+1).cache('').binding(new_binding).scope(scope).result(nil)
 
       { :error, { line_no, error, token } } ->
         if token == [] do
@@ -136,7 +136,7 @@ defmodule IEx.Server do
   end
 
   defp update_history(config) do
-    IEx.History.append(config)
+    IEx.History.append(config, config.counter)
   end
 
   defp io_get(config) do
