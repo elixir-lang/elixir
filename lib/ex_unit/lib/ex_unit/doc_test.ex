@@ -52,12 +52,12 @@ defmodule ExUnit.DocTest do
       2
 
   If you want to keep any two tests separate from each other,
-  add an empty line between them:
+  add an empty line between them (assume > to stand for iex> here):
 
-      iex> a = 1
+      > a = 1
       1
 
-      iex> a + 1  # will fail with a "function a/0 undefined" error
+      > a + 1  # will fail with a "function a/0 undefined" error
       2
 
   Similarly to iex you can use numbers in your "prompts":
@@ -189,6 +189,8 @@ defmodule ExUnit.DocTest do
     { tests, whole_expr } = Enum.map_reduce exprs, "", fn {expr, expected}, acc ->
       { test_case_content(expr, expected, module, line, file, stack), acc <> expr <> "\n" }
     end
+    whole_expr = String.strip(whole_expr)
+
     { exception, message } = case Enum.find(exprs, exc_filter_fn) do
       { _, {:error, exception, message} } ->
         { exception, message }
@@ -288,7 +290,7 @@ defmodule ExUnit.DocTest do
       quote do
         raise ExUnit.ExpectationError,
           [ prelude: "Expected doctest",
-            description: unquote(expr),
+            description: unquote(String.strip(expr)),
             expected: "successfully",
             reason: "compile",
             actual: unquote("** #{inspect e.__record__(:name)} #{e.message}") ],
