@@ -148,7 +148,8 @@ defmodule Module.DispatchTracker do
   end
 
   defp reduce_reachable(d, vertex, vertices) do
-    neighbours = :digraph.out_neighbours(d, vertex) |> :ordsets.from_list
+    neighbours = :digraph.out_neighbours(d, vertex)
+    neighbours = (lc { _, _ } = t inlist neighbours, do: t) |> :ordsets.from_list
     remaining  = :ordsets.subtract(neighbours, vertices)
     vertices   = :ordsets.union(neighbours, vertices)
     :lists.foldl(reduce_reachable(d, &1, &2), vertices, remaining)

@@ -157,6 +157,12 @@ defmodule Module.DispatchTrackerTest do
     refute Module in D.remotes_with_dispatch(config[:pid], { :unknown, 1 })
   end
 
+  test "remotes are not reachable", config do
+    D.add_definition(config[:pid], :def, { :public, 1 })
+    D.add_remote(config[:pid], { :public, 1 }, Module, { :concat, 1 })
+    assert D.reachable(config[:pid]) == [{ :public, 1 }]
+  end
+
   ## All
 
   test "can query dispatches", config do
