@@ -197,6 +197,8 @@ defmodule ExUnit.DocTest do
         e in [ExUnit.ExpectationError] ->
           raise e, [], unquote(stack)
 
+        # If there was no exception among the tests, `exception` here will be
+        # nil and this clause won't match.
         error in [unquote(exception)] ->
           unless error.message == unquote(message) do
             raise ExUnit.ExpectationError,
@@ -213,6 +215,9 @@ defmodule ExUnit.DocTest do
             [ prelude: "Expected doctest",
               description: unquote(whole_expr),
               expected: "#{inspect unquote(exception)}",
+              # We're using a combined message here because all expressions
+              # (those that are expected to raise and those that aren't) are in
+              # the same try block above.
               reason: "complete or raise",
               actual: inspect(error) ],
             unquote(stack)
