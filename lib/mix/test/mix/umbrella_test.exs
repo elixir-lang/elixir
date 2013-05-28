@@ -19,6 +19,18 @@ defmodule Mix.UmbrellaTest do
     purge [Umbrella.Mixfile, Foo, Foo.Mix, Bar, Bar.Mix]
   end
 
+  test "dependency in umbrella" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run "deps"
+        assert_received { :mix_shell, :info, ["==> bar"] }
+        assert_received { :mix_shell, :info, ["* foo [path: \"../foo\"]"] }
+      end)
+    end
+  after
+    purge [Umbrella.Mixfile, Foo.Mix, Bar.Mix]
+  end
+
   test "umbrella as dependency" do
     in_fixture "umbrella_dep", fn ->
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->

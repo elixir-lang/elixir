@@ -93,7 +93,9 @@ defmodule Mix.Deps do
   changing the current working directory and loading the given
   project into the project stack.
   """
-  def in_dependency(Mix.Dep[app: app, opts: opts], post_config // [], fun) do
+  def in_dependency(dep, post_config // [], fun)
+
+  def in_dependency(Mix.Dep[app: app, opts: opts, rebar: nil], post_config, fun) do
     env     = opts[:env] || :prod
     old_env = Mix.env
 
@@ -102,6 +104,17 @@ defmodule Mix.Deps do
       Mix.Project.in_project(app, opts[:dest], post_config, fun)
     after
       Mix.env(old_env)
+    end
+  end
+
+  def in_dependency(Mix.Dep[opts: opts], post_config, fun) do
+    # Use post_config for rebar deps
+    Mix.Project.post_config(post_config)
+    Mix.Project.push(Mix.Rebar.Mixproject)
+    try do
+      File.cd!(opts[:dest], fn -> fun.(nil) end)
+    after
+      Mix.Project.pop
     end
   end
 
@@ -229,11 +242,11 @@ defmodule Mix.Deps do
         Enum.uniq paths
       rebar?(dep) ->
         # Add root dir and all sub dirs with ebin/ directory
-           [ opts[:dest] | dep.rebar[:sub_dirs] ]
-        |> Enum.map(Path.wildcard(&1))
-        |> List.concat
-        |> Enum.map(fn path -> Path.join([opts[:dest], path, "ebin"]) end)
-        |> Enum.filter(File.dir?(&1))
+        [ opts[:dest] | (dep.rebar[:sub_dirs] || []) ]
+          |> Enum.map(Path.wildcard(&1))
+          |> List.concat
+          |> Enum.map(fn path -> Path.join([opts[:dest], path, "ebin"]) end)
+          |> Enum.filter(File.dir?(&1))
       true ->
         [ Path.join(opts[:dest], "ebin") ]
     end

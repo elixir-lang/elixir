@@ -28,15 +28,15 @@ defmodule MixTest.Case do
   end
 
   def mix_executable do
-    Path.expand("../../../../bin/mix", __FILE__)
+    Path.expand("../../../bin/mix", __DIR__)
   end
 
   def elixir_executable do
-    Path.expand("../../../../bin/elixir", __FILE__)
+    Path.expand("../../../bin/elixir", __DIR__)
   end
 
   def fixture_path do
-    Path.expand("../fixtures", __FILE__)
+    Path.expand("fixtures", __DIR__)
   end
 
   def fixture_path(extension) do
@@ -44,7 +44,7 @@ defmodule MixTest.Case do
   end
 
   def tmp_path do
-    Path.expand("../../tmp", __FILE__)
+    Path.expand("../tmp", __DIR__)
   end
 
   def tmp_path(extension) do
@@ -110,7 +110,7 @@ end
 ## Generate git repo fixtures
 
 # Git repo
-target = Path.expand("../fixtures/git_repo", __FILE__)
+target = Path.expand("fixtures/git_repo", __DIR__)
 
 unless File.dir?(target) do
   File.mkdir_p!(Path.join(target, "lib"))
@@ -150,7 +150,7 @@ unless File.dir?(target) do
 end
 
 # Deps on git repo
-target = Path.expand("../fixtures/deps_on_git_repo", __FILE__)
+target = Path.expand("fixtures/deps_on_git_repo", __DIR__)
 
 unless File.dir?(target) do
   File.mkdir_p!(Path.join(target, "lib"))
@@ -177,6 +177,38 @@ unless File.dir?(target) do
   end
 end
 
+# Git rebar
+target = Path.expand("fixtures/git_rebar", __DIR__)
+
+unless File.dir?(target) do
+  File.mkdir_p!(Path.join(target, "src"))
+  File.write!(Path.join(target, "rebar.config"), "")
+
+  File.write!(Path.join([target, "src", "git_rebar.app.src"]), """)
+  {application, git_rebar,
+    [
+      {vsn, "0.1.0"}
+    ]}.
+  """
+
+  File.write!(Path.join([target, "src", "git_rebar.erl"]), """)
+  -module(git_rebar).
+
+  -export ([any_function/0]).
+
+  any_function() ->
+      ok.
+  """
+
+  File.cd! target, fn ->
+    System.cmd("git init")
+    System.cmd("git config user.email \"mix@example.com\"")
+    System.cmd("git config user.name \"Mix Repo\"")
+    System.cmd("git add .")
+    System.cmd("git commit -m \"ok\"")
+  end
+end
+
 Enum.each [:invalidapp, :invalidvsn, :noappfile, :ok], fn(dep) ->
-  File.mkdir_p! Path.expand("../fixtures/deps_status/deps/#{dep}/.git", __FILE__)
+  File.mkdir_p! Path.expand("fixtures/deps_status/deps/#{dep}/.git", __DIR__)
 end

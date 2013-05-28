@@ -14,7 +14,7 @@ defmodule Mix.Deps.Retriever do
   provides a dependency in the wrong format.
   """
   def all(post_config // []) do
-    { deps, _ } = all(nil, children, post_config, fn(dep, acc) -> { dep, acc } end)
+    { deps, _ } = all(nil, children(post_config), post_config, fn(dep, acc) -> { dep, acc } end)
     deps
   end
 
@@ -24,7 +24,7 @@ defmodule Mix.Deps.Retriever do
   in case some processing is done.
   """
   def all(rest, post_config // [], callback) do
-    all(rest, children, post_config, callback)
+    all(rest, children(post_config), post_config, callback)
   end
 
   defp all(rest, childs, post_config, callback) do
@@ -34,7 +34,7 @@ defmodule Mix.Deps.Retriever do
       cond do
         Mix.Deps.available?(dep) and mixfile?(dep) ->
           Mix.Deps.in_dependency(dep, post_config, fn project ->
-            { deps, rest } = all(rest, children, [], callback)
+            { deps, rest } = all(rest, children(post_config), post_config, callback)
 
             # We need to call with_mix_project once again
             # here in case the dependency was not available
@@ -44,10 +44,12 @@ defmodule Mix.Deps.Retriever do
           end)
 
         Mix.Deps.available?(dep) and rebarconfig?(dep) ->
-          dir = dep.opts[:dest]
-          config = Mix.Rebar.load_config(dir)
-          { deps, rest } = all(rest, rebar_children(dir), [], callback)
-          { dep.rebar(config).deps(deps), rest }
+          dep = rebar_dep(dep)
+
+          Mix.Deps.in_dependency(dep, post_config, fn _ ->
+            { deps, rest } = all(rest, rebar_children("."), post_config, callback)
+            { dep.deps(deps), rest }
+          end)
 
         true ->
           { dep, rest }
@@ -60,8 +62,8 @@ defmodule Mix.Deps.Retriever do
   as a `Mix.Dep` record. Unlike with `all` the `deps`
   field is not populated.
   """
-  def children() do
-    Mix.Project.recur(fn _ ->
+  def children(post_config // []) do
+    Mix.Project.recur(post_config, fn _ ->
       (Mix.project[:deps] || []) |> setup_deps
     end) |> List.concat
   end
@@ -87,21 +89,19 @@ defmodule Mix.Deps.Retriever do
     Enum.map deps, fn dep ->
       dep = with_scm_and_status(dep, scms)
 
-      cond do
-        Mix.Deps.available?(dep) and mixfile?(dep) ->
-          Mix.Deps.in_dependency(dep, fn project ->
-            with_mix_project(dep, project)
-          end)
-        Mix.Deps.available?(dep) and rebarconfig?(dep) ->
-          config = Mix.Rebar.load_config(dep.opts[:dest])
-          with_rebar_config(dep, config)
-        true ->
-          dep
+      if Mix.Deps.available?(dep) and mixfile?(dep) do
+        dep = Mix.Deps.in_dependency(dep, fn project ->
+          with_mix_project(dep, project)
+        end)
       end
+
+      if Mix.Deps.available?(dep) and rebarconfig?(dep) do
+        dep = rebar_dep(dep)
+      end
+
+      dep
     end
   end
-
-  defp with_rebar_config(dep, _config), do: dep
 
   defp with_mix_project(Mix.Dep[project: nil] = dep, project) do
     if match?({ :noappfile, _ }, dep.status) and Mix.Project.umbrella? do
@@ -112,6 +112,13 @@ defmodule Mix.Deps.Retriever do
   end
 
   defp with_mix_project(dep, _project), do: dep
+
+  defp rebar_dep(Mix.Dep[rebar: nil, opts: opts] = dep) do
+    config = Mix.Rebar.load_config(opts[:dest])
+    dep.rebar(config)
+  end
+
+  defp rebar_dep(dep), do: dep
 
   defp with_scm_and_status({ app, opts }, scms) when is_atom(app) and is_list(opts) do
     with_scm_and_status({ app, nil, opts }, scms)
