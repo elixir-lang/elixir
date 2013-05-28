@@ -154,12 +154,6 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_content(Test[exprs: exprs, line: line], module, do_import) do
-    #IO.puts "Testing tests:"
-    #Enum.each exprs, fn { expr, expected } ->
-      #IO.puts "test '#{expr}' with expectation #{inspect expected}"
-    #end
-    #IO.puts ""
-
     file     = module.__info__(:compile)[:source]
     location = [line: line, file: Path.relative_to(file, System.cwd!)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
