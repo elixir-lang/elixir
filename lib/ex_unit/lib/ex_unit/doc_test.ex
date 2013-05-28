@@ -166,69 +166,56 @@ defmodule ExUnit.DocTest do
     exceptions_num = Enum.count exprs, exc_filter_fn
     if exceptions_num > 1 do
       # FIXME: stacktrace pointing to the doctest?
-      raise Error, message: "Multiple exceptions in one doctest case are not supported"
+      raise Error, [message: "Multiple exceptions in one doctest case are not supported"]
+
+      # this doesn't work :( nothing is raised
+      #raise Error[message: "Multiple exceptions in one doctest case are not supported"], [], stack
     end
 
     { tests, whole_expr } = Enum.map_reduce exprs, "", fn {expr, expected}, acc ->
       { test_case_content(expr, expected, module, line, file, stack), acc <> expr <> "\n" }
     end
-    exception_expr = Enum.find(exprs, exc_filter_fn)
+    { exception, message } = case Enum.find(exprs, exc_filter_fn) do
+      { _, {:error, exception, message} } ->
+        { exception, message }
+      nil ->
+        { nil, nil }
+    end
 
-    if nil?(exception_expr) do
-      quote do
-        unquote_splicing(test_import(module, do_import))
-        try do
-          # Put all tests into one context
-          unquote_splicing(tests)
-        rescue
-          e in [ExUnit.ExpectationError] ->
-            raise e, [], unquote(stack)
-          actual ->
+    quote do
+      unquote_splicing(test_import(module, do_import))
+      unquote(gen_code_for_tests(tests, whole_expr, exception, message, stack))
+    end
+  end
+
+  defp gen_code_for_tests(tests, whole_expr, exception, message, stack) do
+    quote do
+      try do
+        # Put all tests into one context
+        unquote_splicing(tests)
+      rescue
+        e in [ExUnit.ExpectationError] ->
+          raise e, [], unquote(stack)
+
+        error in [unquote(exception)] ->
+          unless error.message == unquote(message) do
             raise ExUnit.ExpectationError,
               [ prelude: "Expected doctest",
                 description: unquote(whole_expr),
-                expected: "without an exception",
-                reason: "complete",
-                actual: inspect(actual) ],
+                expected: "#{inspect unquote(exception)} with message #{inspect unquote(message)}",
+                reason: "raise",
+                actual: inspect(error) ],
               unquote(stack)
-        end
-      end
-    else
-      { expr, {:error, exception, message} } = exception_expr
-      quote do
-        unquote_splicing(test_import(module, do_import))
-        try do
-          # Put all tests into one context
-          unquote_splicing(tests)
-        rescue
-          e in [ExUnit.ExpectationError] ->
-            case e.reason do
-              "evaluate to" ->
-                raise e, [], unquote(stack)
-              "raise" ->
-                raise(e)
-            end
+          end
 
-          error in [unquote(exception)] ->
-            unless error.message == unquote(message) do
-              raise ExUnit.ExpectationError,
-                [ prelude: "Expected doctest",
-                  description: unquote(expr),
-                  expected: "#{inspect unquote(exception)} with message #{inspect unquote(message)}",
-                  reason: "raise",
-                  actual: inspect(error) ],
-                unquote(stack)
-            end
-
-          actual ->
-            raise ExUnit.ExpectationError,
-              [ prelude: "Expected doctest",
-                description: unquote(whole_expr),
-                expected: "#{inspect unquote(exception)}",
-                reason: "complete or raise",
-                actual: inspect(actual) ],
-              unquote(stack)
-        end
+        error ->
+          raise ExUnit.ExpectationError,
+            [ prelude: "Expected doctest",
+              description: unquote(whole_expr),
+              expected: "#{inspect unquote(exception)}",
+              reason: "complete or raise",
+              actual: inspect(error) ],
+            unquote(stack)
       end
     end
   end
