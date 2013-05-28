@@ -52,12 +52,12 @@ defmodule ExUnit.DocTest do
       2
 
   If you want to keep any two tests separate from each other,
-  add an empty line between them (assume > to stand for iex> here):
+  add an empty line between them:
 
-      > a = 1
+      iex> a = 1
       1
 
-      > a + 1  # will fail with a "function a/0 undefined" error
+      iex> a + 1  # will fail with a "function a/0 undefined" error
       2
 
   Similarly to iex you can use numbers in your "prompts":

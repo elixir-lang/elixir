@@ -90,7 +90,9 @@ end
 defmodule ExUnit.DocTestTest do
   use ExUnit.Case
 
-  doctest ExUnit.DocTest
+  # This is intentional. The doctests in DocTest's docs fail for demonstration
+  # purposes.
+  #doctest ExUnit.DocTest
   doctest ExUnit.DocTestTest.GoodModule, import: true
   doctest ExUnit.DocTestTest.SomewhatGoodModule, only: [test_fun: 0], import: true
   doctest ExUnit.DocTestTest.SomewhatGoodModule1, except: [test_fun1: 0], import: true
