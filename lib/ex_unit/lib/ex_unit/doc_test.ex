@@ -167,7 +167,7 @@ defmodule ExUnit.DocTest do
     :"test doc at #{inspect m}.#{f}/#{a} (#{n})"
   end
 
-  defp test_content(Test[exprs: exprs, line: line], module, do_import) do
+  defp test_content(Test[exprs: exprs, line: line, fun_arity: fun_arity], module, do_import) do
     file     = module.__info__(:compile)[:source]
     location = [line: line, file: Path.relative_to(file, System.cwd!)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
@@ -179,11 +179,11 @@ defmodule ExUnit.DocTest do
 
     exceptions_num = Enum.count exprs, exc_filter_fn
     if exceptions_num > 1 do
-      # FIXME: stacktrace pointing to the doctest?
-      raise Error, [message: "Multiple exceptions in one doctest case are not supported"]
-
-      # this doesn't work :( nothing is raised
-      #raise Error[message: "Multiple exceptions in one doctest case are not supported"], [], stack
+      # Format the info about error location as if it were a part of the
+      # stacktrace
+      { fun, arity } = fun_arity
+      error_info = "    #{file}:#{line}: #{inspect module}.#{fun}/#{arity}"
+      raise Error, [message: "Multiple exceptions in one doctest case are not supported.\n#{error_info}"]
     end
 
     { tests, whole_expr } = Enum.map_reduce exprs, "", fn {expr, expected}, acc ->

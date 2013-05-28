@@ -41,7 +41,7 @@ defmodule ExUnit.DocTestTest.ExceptionModule do
   iex> 2 + ""
   ** (ArithmeticError) bad argument in arithmetic expression
   """
-  def two_exceptions_in_single_context
+  def two_exceptions
 end
 
 defmodule ExUnit.DocTestTest.SomewhatGoodModule do
@@ -98,7 +98,7 @@ defmodule ExUnit.DocTestTest do
   doctest ExUnit.DocTestTest.SomewhatGoodModule1, except: [test_fun1: 0], import: true
   doctest ExUnit.DocTestTest.NoImport
 
-  assert_raise ExUnit.DocTest.Error, "Multiple exceptions in one doctest case are not supported", fn ->
+  assert_raise ExUnit.DocTest.Error, fn ->
     doctest ExUnit.DocTestTest.ExceptionModule
   end
 
