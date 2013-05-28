@@ -78,12 +78,14 @@ defmodule ExUnit.DocTest do
   side effects. For example, if a doctest prints to standard output, doctest
   will not try to capture the output.
 
-  Similarly, doctest does not run in any kind of side box. So any module
+  Similarly, doctest does not run in any kind of sandbox. So any module
   defined in a code example is going to linger throughout the whole test suite
   run.
   """
 
-  defrecord Test, fun_arity: nil, line: nil, expr: nil, expected: nil
+  defexception Error, message: nil
+
+  defrecord Test, fun_arity: nil, line: nil, exprs: []
 
   @doc """
   This macro is used to generate ExUnit test cases for doctests.
@@ -151,87 +153,124 @@ defmodule ExUnit.DocTest do
     :"test doc at #{inspect m}.#{f}/#{a} (#{n})"
   end
 
-  defp test_content(Test[expected: { :test, expected }] = test, module, do_import) do
-    line = test.line
-    file = module.__info__(:compile)[:source]
+  defp test_content(Test[exprs: exprs, line: line], module, do_import) do
+    #IO.puts "Testing tests:"
+    #Enum.each exprs, fn { expr, expected } ->
+      #IO.puts "test '#{expr}' with expectation #{inspect expected}"
+    #end
+    #IO.puts ""
+
+    file     = module.__info__(:compile)[:source]
     location = [line: line, file: Path.relative_to(file, System.cwd!)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
 
-    expr_ast     = string_to_ast(module, line, file, test.expr)
-    expected_ast = string_to_ast(module, line, file, expected)
+    exc_filter_fn = (function do
+      { _, {:error, _, _} } -> true
+      _ -> false
+    end)
 
-    quote do
-      unquote_splicing(test_import(module, do_import))
+    exceptions_num = Enum.count exprs, exc_filter_fn
+    if exceptions_num > 1 do
+      # FIXME: stacktrace pointing to the doctest?
+      raise Error, message: "Multiple exceptions in one doctest case are not supported"
+    end
 
-      try do
-        v = unquote(expected_ast)
-        case unquote(expr_ast) do
-          ^v -> :ok
+    { tests, whole_expr } = Enum.map_reduce exprs, "", fn {expr, expected}, acc ->
+      { test_case_content(expr, expected, module, line, file, stack), acc <> expr <> "\n" }
+    end
+    exception_expr = Enum.find(exprs, exc_filter_fn)
+
+    if nil?(exception_expr) do
+      quote do
+        unquote_splicing(test_import(module, do_import))
+        try do
+          # Put all tests into one context
+          unquote_splicing(tests)
+        rescue
+          e in [ExUnit.ExpectationError] ->
+            raise e, [], unquote(stack)
           actual ->
             raise ExUnit.ExpectationError,
               [ prelude: "Expected doctest",
-                description: unquote(test.expr),
-                expected: inspect(v),
-                reason: "evaluate to",
+                description: unquote(whole_expr),
+                expected: "without an exception",
+                reason: "complete",
                 actual: inspect(actual) ],
               unquote(stack)
         end
-      rescue
-        e in [ExUnit.ExpectationError] ->
-          raise e, [], unquote(stack)
+      end
+    else
+      { expr, {:error, exception, message} } = exception_expr
+      quote do
+        unquote_splicing(test_import(module, do_import))
+        try do
+          # Put all tests into one context
+          unquote_splicing(tests)
+        rescue
+          e in [ExUnit.ExpectationError] ->
+            case e.reason do
+              "evaluate to" ->
+                raise e, [], unquote(stack)
+              "raise" ->
+                raise(e)
+            end
+
+          error in [unquote(exception)] ->
+            unless error.message == unquote(message) do
+              raise ExUnit.ExpectationError,
+                [ prelude: "Expected doctest",
+                  description: unquote(expr),
+                  expected: "#{inspect unquote(exception)} with message #{inspect unquote(message)}",
+                  reason: "raise",
+                  actual: inspect(error) ],
+                unquote(stack)
+            end
+
+          actual ->
+            raise ExUnit.ExpectationError,
+              [ prelude: "Expected doctest",
+                description: unquote(whole_expr),
+                expected: "#{inspect unquote(exception)}",
+                reason: "complete or raise",
+                actual: inspect(actual) ],
+              unquote(stack)
+        end
+      end
+    end
+  end
+
+  defp test_case_content(expr, { :test, expected }, module, line, file, stack) do
+    expr_ast     = string_to_ast(module, line, file, expr)
+    expected_ast = string_to_ast(module, line, file, expected)
+
+    quote do
+      v = unquote(expected_ast)
+      case unquote(expr_ast) do
+        ^v -> :ok
         actual ->
           raise ExUnit.ExpectationError,
             [ prelude: "Expected doctest",
-              description: unquote(test.expr),
-              expected: "without an exception",
-              reason: "complete",
+              description: unquote(expr),
+              expected: inspect(v),
+              reason: "evaluate to",
               actual: inspect(actual) ],
             unquote(stack)
       end
     end
   end
 
-  defp test_content(Test[expected: { :error, exception, message }] = test, module, do_import) do
-    line = test.line
-    file = module.__info__(:compile)[:source]
-    location = [line: line, file: Path.relative_to(file, System.cwd!)]
-    stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
-
-    expr_ast = string_to_ast(module, line, file, test.expr)
+  defp test_case_content(expr, { :error, exception, _ }, module, line, file, stack) do
+    expr_ast = string_to_ast(module, line, file, expr)
 
     quote do
-      unquote_splicing(test_import(module, do_import))
-
-      try do
-        v = unquote(expr_ast)
-        raise ExUnit.ExpectationError,
-          [ prelude: "Expected doctest",
-            description: unquote(test.expr),
-            expected: "#{inspect unquote(exception)}[]",
-            reason: "raise",
-            actual: inspect(v) ],
-          unquote(stack)
-      rescue
-        e in [ExUnit.ExpectationError] -> raise(e)
-        error in [unquote(exception)] ->
-          unless error.message == unquote(message) do
-            raise ExUnit.ExpectationError,
-              [ prelude: "Expected doctest",
-                description: unquote(test.expr),
-                expected: "#{inspect unquote(exception)} with message #{inspect unquote(message)}",
-                reason: "raise",
-                actual: inspect(error) ],
-              unquote(stack)
-          end
-        error ->
-          raise ExUnit.ExpectationError,
-            [ prelude: "Expected doctest",
-              description: unquote(test.expr),
-              expected: "#{inspect unquote(exception)}",
-              reason: "raise",
-              actual: inspect(error) ],
-            unquote(stack)
-      end
+      v = unquote(expr_ast)
+      raise ExUnit.ExpectationError,
+        [ prelude: "Expected doctest",
+          description: unquote(expr),
+          expected: "#{inspect unquote(exception)}[]",
+          reason: "raise",
+          actual: inspect(v) ],
+        unquote(stack)
     end
   end
 
@@ -286,57 +325,81 @@ defmodule ExUnit.DocTest do
 
   defp extract_tests(line, doc) do
     lines = String.split(doc, %r/\n/) |> Enum.map(function(String.strip/1))
-    extract_tests(lines, line, "", "", [])
+    extract_tests(lines, line, "", "", [], true)
   end
 
-  defp extract_tests([], _line, "", "", acc), do: Enum.reverse(acc)
-
-  defp extract_tests([], line, expr_acc, expected_acc, acc) do
-    test = Test[expr: expr_acc, line: line, expected: { :test, expected_acc }]
-    Enum.reverse([test|acc])
+  defp extract_tests([], _line, "", "", [], _) do
+    []
   end
 
-  defp extract_tests([<< "iex>", _ :: binary>>|_] = list, line, expr_acc, expected_acc, acc) when expr_acc != "" and expected_acc != "" do
-    test = Test[expr: expr_acc, line: line, expected: { :test, expected_acc }]
-    extract_tests(list, line, "", "", [test|acc])
+  defp extract_tests([], _line, "", "", [test=Test[exprs: exprs]|t], _) do
+    test = test.exprs(Enum.reverse(exprs))
+    Enum.reverse([test|t])
   end
 
-  defp extract_tests([<< "iex>", string :: binary>>|lines], line, expr_acc, expected_acc, acc) when expr_acc == "" do
-    extract_tests(lines, line, string, expected_acc, acc)
+  # End of input and we've still got a test pending.
+  defp extract_tests([], _, expr_acc, expected_acc, [test=Test[exprs: exprs]|t], _) do
+    test = test.exprs(Enum.reverse([{ expr_acc, {:test, expected_acc} } | exprs]))
+    Enum.reverse([test|t])
   end
 
-  defp extract_tests([<< "iex>", string :: binary>>|lines], line, expr_acc, expected_acc, acc) do
-    extract_tests(lines, line, expr_acc <> "\n" <> string, expected_acc, acc)
+  # We've encountered the next test on an adjacent line. Put them into one group.
+  defp extract_tests([<< "iex>", _ :: binary>>|_] = list, line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t], newtest) when expr_acc != "" and expected_acc != "" do
+    test = test.exprs([{ expr_acc, {:test, expected_acc} } | exprs])
+    extract_tests(list, line, "", "", [test|t], newtest)
   end
 
-  defp extract_tests([<< "...>", string :: binary>>|lines], line, expr_acc, expected_acc, acc) when expr_acc != "" do
-    extract_tests(lines, line, expr_acc <> "\n" <> string, expected_acc, acc)
+  # Store expr_acc.
+  defp extract_tests([<< "iex>", string :: binary>>|lines], line, "", expected_acc, acc, newtest) do
+    if newtest do
+      if match?([test=Test[exprs: exprs] | t], acc) do
+        acc = [test.exprs(Enum.reverse(exprs)) | t]
+      end
+      acc = [Test[line: line]|acc]
+    end
+    extract_tests(lines, line, string, expected_acc, acc, false)
   end
 
-  defp extract_tests([<< "iex(", _ :: 8, string :: binary>>|lines], line, expr_acc, expected_acc, acc) do
-    extract_tests(["iex" <> skip_iex_number(string)|lines], line, expr_acc, expected_acc, acc)
+  # Still gathering expr_acc. Synonym for the next clause.
+  defp extract_tests([<< "iex>", string :: binary>>|lines], line, expr_acc, expected_acc, acc, newtest) do
+    extract_tests(lines, line, expr_acc <> "\n" <> string, expected_acc, acc, newtest)
   end
 
-  defp extract_tests([<< "...(", _ :: 8, string :: binary>>|lines], line, expr_acc, expected_acc, acc) do
-    extract_tests(["..." <> skip_iex_number(string)|lines], line, expr_acc, expected_acc, acc)
+  # Still gathering expr_acc. Synonym for the previous clause.
+  defp extract_tests([<< "...>", string :: binary>>|lines], line, expr_acc, expected_acc, acc, newtest) when expr_acc != "" do
+    extract_tests(lines, line, expr_acc <> "\n" <> string, expected_acc, acc, newtest)
   end
 
-  defp extract_tests([_|lines], line, "", "", acc) do
-    extract_tests(lines, line, "", "", acc)
+  # Expression numbers are simply skipped.
+  defp extract_tests([<< "iex(", _ :: 8, string :: binary>>|lines], line, expr_acc, expected_acc, acc, newtest) do
+    extract_tests(["iex" <> skip_iex_number(string)|lines], line, expr_acc, expected_acc, acc, newtest)
   end
 
-  defp extract_tests([""|lines], line, expr_acc, expected_acc, acc) do
-    test = Test[expr: expr_acc, line: line, expected: { :test, expected_acc }]
-    extract_tests(lines, line,  "", "", [test|acc])
+  # Expression numbers are simply skipped redux.
+  defp extract_tests([<< "...(", _ :: 8, string :: binary>>|lines], line, expr_acc, expected_acc, acc, newtest) do
+    extract_tests(["..." <> skip_iex_number(string)|lines], line, expr_acc, expected_acc, acc, newtest)
   end
 
-  defp extract_tests([<< "** (", string :: binary >>|lines], line, expr_acc, "", acc) do
-    test = Test[expr: expr_acc, line: line, expected: extract_error(string, "")]
-    extract_tests(lines, line,  "", "", [test|acc])
+  # Skip empty or documentation line.
+  defp extract_tests([_|lines], line, "", "", acc, _) do
+    extract_tests(lines, line, "", "", acc, true)
   end
 
-  defp extract_tests([expected|lines], line, expr_acc, expected_acc, acc) do
-    extract_tests(lines, line, expr_acc, expected_acc <> "\n" <> expected, acc)
+  # Encountered an empty line, store pending test
+  defp extract_tests([""|lines], line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t], _) do
+    test = test.exprs([{ expr_acc, {:test, expected_acc} } | exprs])
+    extract_tests(lines, line,  "", "", [test|t], true)
+  end
+
+  # Exception test.
+  defp extract_tests([<< "** (", string :: binary >>|lines], line, expr_acc, "", [test=Test[exprs: exprs]|t], newtest) do
+    test = test.exprs([{ expr_acc, extract_error(string, "") } | exprs])
+    extract_tests(lines, line,  "", "", [test|t], newtest)
+  end
+
+  # Finally, parse expected_acc.
+  defp extract_tests([expected|lines], line, expr_acc, expected_acc, acc, newtest) do
+    extract_tests(lines, line, expr_acc, expected_acc <> "\n" <> expected, acc, newtest)
   end
 
   defp extract_error(<< ")", t :: binary >>, acc) do

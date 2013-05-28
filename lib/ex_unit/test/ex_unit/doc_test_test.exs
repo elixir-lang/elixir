@@ -10,10 +10,49 @@ defmodule ExUnit.DocTestTest.GoodModule do
   def test_fun, do: 1
 
   @doc """
+  iex> a = 1
+  iex> b = a + 2
+  3
+  iex> a + b
+  4
+  """
+  def single_context
+
+  @doc """
+  iex> 1 + (fn() -> "" end).()
+  ** (ArithmeticError) bad argument in arithmetic expression
+
+  iex> 2 + (fn() -> :a end).()
+  ** (ArithmeticError) bad argument in arithmetic expression
+  """
+  def two_exceptions
+
+  @doc """
   iex> 1 + (fn() -> :a end).()
   ** (ArithmeticError) bad argument in arithmetic expression
   """
   def exception_test, do: 1
+end
+
+defmodule ExUnit.DocTestTest.ExceptionModule do
+  @doc """
+  iex> 1 + ""
+  ** (ArithmeticError) bad argument in arithmetic expression
+  iex> 2 + ""
+  ** (ArithmeticError) bad argument in arithmetic expression
+  """
+  def two_exceptions_in_single_context
+end
+
+defmodule ExUnit.DocTestTest.LeakCheckModule do
+  @doc """
+  iex> a = 1
+  1
+
+  iex> a + 1
+  2
+  """
+  def no_leak
 end
 
 defmodule ExUnit.DocTestTest.SomewhatGoodModule do
@@ -67,4 +106,12 @@ defmodule ExUnit.DocTestTest do
   doctest ExUnit.DocTestTest.SomewhatGoodModule, only: [test_fun: 0], import: true
   doctest ExUnit.DocTestTest.SomewhatGoodModule1, except: [test_fun1: 0], import: true
   doctest ExUnit.DocTestTest.NoImport
+
+  assert_raise ExUnit.DocTest.Error, "Multiple exceptions in one doctest case are not supported", fn ->
+    doctest ExUnit.DocTestTest.ExceptionModule
+  end
+
+  # FIXME: is it possible to test this?
+  # ** (CompileError) .../doc_test_test.exs:55: function a/0 undefined
+  #doctest ExUnit.DocTestTest.LeakCheckModule
 end
