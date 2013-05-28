@@ -44,17 +44,6 @@ defmodule ExUnit.DocTestTest.ExceptionModule do
   def two_exceptions_in_single_context
 end
 
-defmodule ExUnit.DocTestTest.LeakCheckModule do
-  @doc """
-  iex> a = 1
-  1
-
-  iex> a + 1
-  2
-  """
-  def no_leak
-end
-
 defmodule ExUnit.DocTestTest.SomewhatGoodModule do
   @doc """
   iex> test_fun
@@ -111,7 +100,36 @@ defmodule ExUnit.DocTestTest do
     doctest ExUnit.DocTestTest.ExceptionModule
   end
 
-  # FIXME: is it possible to test this?
-  # ** (CompileError) .../doc_test_test.exs:55: function a/0 undefined
-  #doctest ExUnit.DocTestTest.LeakCheckModule
+  test :var_leak do
+    assert "nofile:9: function '_a'/0 undefined" = format_rescue("""
+      defmodule M do
+      @doc \"\"\"
+      iex> _a = 1
+      1
+
+      iex> _a + 1
+      2
+      \"\"\"
+      def no_leak
+      end
+
+      defmodule M.Test do
+        require ExUnit.DocTest
+
+        ExUnit.DocTest.doctest M
+      end
+      """
+      )
+  end
+
+  defp format_rescue(expr) do
+    result = try do
+      :elixir.eval(to_char_list(expr), [])
+      nil
+    rescue
+      error -> error.message
+    end
+
+    result || raise(ExUnit.AssertionError, message: "Expected function given to format_rescue to fail")
+  end
 end
