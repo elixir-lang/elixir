@@ -28,21 +28,37 @@ defmodule ExUnit.DocTest do
         doctest MyModule
       end
 
-  The `doctest` macro is going to loop all functions and macros
-  defined in `MyModule`, parsing their documentation in search for
-  code examples.
+  The `doctest` macro is going to loop through all functions and
+  macros defined in `MyModule`, parsing their documentation in
+  search for code examples.
 
   A very basic example is:
 
       iex> 1+1
       2
 
-  Multiline is also supported:
+  Expressions on multiple lines are also supported:
 
       iex> Enum.map [1,2,3], fn(x) ->
       ...>   x * 2
       ...> end
       [2,4,6]
+
+  Multiple results can be checked within the same test:
+
+      iex> a = 1
+      1
+      iex> a + 1
+      2
+
+  If you want to keep any two tests separate from each other,
+  add an empty line between them:
+
+      iex> a = 1
+      1
+
+      iex> a + 1  # will fail with a "function a/0 undefined" error
+      2
 
   Similarly to iex you can use numbers in your "prompts":
 
@@ -56,7 +72,7 @@ defmodule ExUnit.DocTest do
   * Copy-pasting examples from an actual iex sessions
 
   We also allow you to select or skip some functions when calling
-  `doctest`. See its documentation documentation for more info.
+  `doctest`. See its documentation for more info.
 
   ## Exceptions
 
@@ -90,18 +106,16 @@ defmodule ExUnit.DocTest do
   @doc """
   This macro is used to generate ExUnit test cases for doctests.
 
-  There are three ways this macro can be used:
-
-  * `doctest(Module)` — will generate tests for all doctests found
-     in the module `Module`
+  Calling `doctest(Module)` will generate tests for all doctests found
+  in the module `Module`
 
   Options can also be supplied:
 
   * `:except` — generate tests for all functions except those listed
                 (list of `{function, arity}` tuples)
 
-  * `:only` — generate tests only forfunctions listed
-              (list of `{function, arity}` tuples)
+  * `:only`   — generate tests only forfunctions listed
+                (list of `{function, arity}` tuples)
 
   * `:import` — when true, one can test a function defined in the module
                 without referring to the module name. However, this is not
@@ -113,7 +127,7 @@ defmodule ExUnit.DocTest do
 
       doctest MyModule, except: [trick_fun: 1]
 
-  This macro is auto-imported into every `ExUnit.Case`.
+  This macro is auto-imported with every `ExUnit.Case`.
   """
   defmacro doctest(mod, opts // []) do
     quote do
