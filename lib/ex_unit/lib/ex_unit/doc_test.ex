@@ -332,15 +332,14 @@ defmodule ExUnit.DocTest do
     []
   end
 
-  defp extract_tests([], _line, "", "", [test=Test[exprs: exprs]|t], _) do
-    test = test.exprs(Enum.reverse(exprs))
-    Enum.reverse([test|t])
+  defp extract_tests([], _line, "", "", acc, _) do
+    Enum.reverse(reverse_last_test(acc))
   end
 
   # End of input and we've still got a test pending.
   defp extract_tests([], _, expr_acc, expected_acc, [test=Test[exprs: exprs]|t], _) do
-    test = test.exprs(Enum.reverse([{ expr_acc, {:test, expected_acc} } | exprs]))
-    Enum.reverse([test|t])
+    test = test.exprs([{ expr_acc, {:test, expected_acc} } | exprs])
+    Enum.reverse(reverse_last_test([test|t]))
   end
 
   # We've encountered the next test on an adjacent line. Put them into one group.
@@ -349,14 +348,15 @@ defmodule ExUnit.DocTest do
     extract_tests(list, line, "", "", [test|t], newtest)
   end
 
+  # Store expr_acc and start a new test case.
+  defp extract_tests([<< "iex>", string :: binary>>|lines], line, "", expected_acc, acc, true) do
+    acc = reverse_last_test(acc)
+    test = Test[line: line]
+    extract_tests(lines, line, string, expected_acc, [test|acc], false)
+  end
+
   # Store expr_acc.
-  defp extract_tests([<< "iex>", string :: binary>>|lines], line, "", expected_acc, acc, newtest) do
-    if newtest do
-      if match?([test=Test[exprs: exprs] | t], acc) do
-        acc = [test.exprs(Enum.reverse(exprs)) | t]
-      end
-      acc = [Test[line: line]|acc]
-    end
+  defp extract_tests([<< "iex>", string :: binary>>|lines], line, "", expected_acc, acc, false) do
     extract_tests(lines, line, string, expected_acc, acc, false)
   end
 
@@ -416,5 +416,11 @@ defmodule ExUnit.DocTest do
 
   defp skip_iex_number(<< _ :: 8, string :: binary >>) do
     skip_iex_number(string)
+  end
+
+  defp reverse_last_test([]), do: []
+  defp reverse_last_test([test=Test[exprs: exprs] | t]) do
+    test = test.exprs(Enum.reverse(exprs))
+    [test | t]
   end
 end
