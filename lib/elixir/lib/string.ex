@@ -752,7 +752,7 @@ defmodule String do
 
   """
   @spec to_integer(t) :: {integer, t} | :error
-  
+
   def to_integer(string) do
     {result, remainder} = :string.to_integer(binary_to_list(string))
     case result do
@@ -785,7 +785,7 @@ defmodule String do
     charlist = binary_to_list(string)
     {result, remainder} = :string.to_float(charlist)
     case result do
-      :error -> 
+      :error ->
         {int_result, int_remainder} = :string.to_integer(charlist)
         case int_result do
           :error -> :error
