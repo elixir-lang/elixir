@@ -110,7 +110,7 @@ defmodule Mix.Deps do
   def in_dependency(Mix.Dep[opts: opts], post_config, fun) do
     # Use post_config for rebar deps
     Mix.Project.post_config(post_config)
-    Mix.Project.push(Mix.Rebar.Mixproject)
+    Mix.Project.push(Mix.Rebar)
     try do
       File.cd!(opts[:dest], fn -> fun.(nil) end)
     after

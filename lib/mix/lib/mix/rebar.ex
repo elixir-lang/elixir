@@ -1,6 +1,9 @@
 defmodule Mix.Rebar do
   @moduledoc false
 
+  @doc false
+  def project, do: []
+
   @doc """
   Loads the rebar.config and evaluates rebar.config.script if it exists in the
   given directory.
@@ -113,12 +116,4 @@ defmodule Mix.Rebar do
       :erl_eval.add_binding(k, v, binds)
     end)
   end
-end
-
-# Used when pushing a rebar dependency to the project stack
-defmodule Mix.Rebar.Mixproject do
-  @moduledoc false
-
-  @doc false
-  def project, do: []
 end
