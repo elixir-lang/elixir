@@ -122,7 +122,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp do_compile(app, command) when is_binary(command) do
     if Mix.shell.cmd(command) != 0 do
-      raise Mix.Error, message: "could not compile dependency #{app}, custom #{command} command failed." <>
+      raise Mix.Error, message: "could not compile dependency #{app}, custom #{command} command failed. " <>
         "In case you want to recompile this dependency, please run: mix deps.compile #{app}"
     end
   end
