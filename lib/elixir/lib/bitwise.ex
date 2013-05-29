@@ -7,11 +7,9 @@ defmodule Bitwise do
   your module:
 
       iex> use Bitwise
-      ...> bnot 1
+      iex> bnot 1
       -2
-
-      iex> use Bitwise
-      ...> 1 &&& 1
+      iex> 1 &&& 1
       1
 
   You can select to include only or skip operators by passing options:
