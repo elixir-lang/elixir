@@ -89,33 +89,34 @@ defmodule Mix.Deps.Retriever do
     Enum.map deps, fn dep ->
       dep = with_scm_and_status(dep, scms)
 
-      if Mix.Deps.available?(dep) and mixfile?(dep) do
-        dep = Mix.Deps.in_dependency(dep, fn project ->
-          with_mix_project(dep, project)
-        end)
-      end
+      cond do
+        Mix.Deps.available?(dep) and mixfile?(dep) ->
+          Mix.Deps.in_dependency(dep, fn project ->
+            with_mix_project(dep, project)
+          end)
 
-      if Mix.Deps.available?(dep) and rebarconfig?(dep) do
-        dep = rebar_dep(dep)
-      end
+        Mix.Deps.available?(dep) and rebarconfig?(dep) ->
+          rebar_dep(dep)
 
-      dep
+        true ->
+          dep
+      end
     end
   end
 
-  defp with_mix_project(Mix.Dep[project: nil] = dep, project) do
+  defp with_mix_project(Mix.Dep[manager: nil] = dep, project) do
     if match?({ :noappfile, _ }, dep.status) and Mix.Project.umbrella? do
       dep = dep.update_opts(Keyword.put(&1, :app, false))
                .status({ :ok, nil })
     end
-    dep.project(project)
+    dep.manager(:mix).source(project)
   end
 
   defp with_mix_project(dep, _project), do: dep
 
-  defp rebar_dep(Mix.Dep[rebar: nil, opts: opts] = dep) do
+  defp rebar_dep(Mix.Dep[manager: nil, opts: opts] = dep) do
     config = Mix.Rebar.load_config(opts[:dest])
-    dep.rebar(config)
+    dep.manager(:rebar).source(config)
   end
 
   defp rebar_dep(dep), do: dep
