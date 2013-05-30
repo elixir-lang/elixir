@@ -1,6 +1,6 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule IEx.Options.Test do
+defmodule IEx.OptionsTest do
   use IEx.Case
 
   test "color" do
