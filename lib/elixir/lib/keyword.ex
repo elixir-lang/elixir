@@ -342,6 +342,33 @@ defmodule Keyword do
   end
 
   @doc """
+  Returns whether a list of given keys exists in the given keywords.
+
+  ## Examples
+      iex> Keyword.has_keys?([a: 1, b: 2], [:a, :b])
+      true
+      iex> Keyword.has_keys?([a: 1, b: 2], [:a])
+      true
+      iex> Keyword.has_keys?([a: 1], [:b])
+      false
+
+  """
+  @spec has_keys?(t, [atom]) :: boolean
+  def has_keys?(keywords, keys) do
+    has_keys?(keywords, keys, true)
+  end
+
+  defp has_keys?(keywords, [k | keys], true) do
+    has_keys?(keywords, keys, Keyword.has_key?(keywords, k))
+  end
+  defp has_keys?(keywords, _, false) do
+    false
+  end
+  defp has_keys?(keywords, [], acc) do
+    acc
+  end
+
+  @doc """
   Updates the key with the given function. If the key does
   not exist, raises `KeyError`.
 

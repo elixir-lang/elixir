@@ -110,6 +110,13 @@ defmodule KeywordTest do
     assert Keyword.has_key?([a: 1], :b) == false
   end
 
+  test :keys? do
+    assert Keyword.has_keys?([a: 1, b: 2], [:a, :b]) == true
+    assert Keyword.has_keys?([a: 1, b: 2], [:a]) == true
+    assert Keyword.has_keys?([a: 1, b: 2], []) == true
+    assert Keyword.has_keys?([a: 1], [:b]) == false
+  end
+
   test :update do
     assert Keyword.update([a: 1], :a, &1 * 2) == [a: 2]
     assert_raise KeyError, fn ->
