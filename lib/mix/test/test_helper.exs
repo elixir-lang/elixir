@@ -27,6 +27,10 @@ defmodule MixTest.Case do
     System.cmd "#{elixir_executable} #{mix_executable} #{args}"
   end
 
+  def elixir_root do
+    Path.expand("../../..", __DIR__)
+  end
+
   def mix_executable do
     Path.expand("../../../bin/mix", __DIR__)
   end

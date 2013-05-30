@@ -30,31 +30,32 @@ defmodule Mix.RebarTest do
   test "parse rebar dependencies" do
     Mix.Project.push(RebarAsDep)
 
-    in_tmp "parse rebar dependencies", fn ->
-      deps = Mix.Deps.all
-      assert Enum.find(deps, match?(Mix.Dep[app: :rebar_dep], &1))
+    deps = Mix.Deps.all
+    assert Enum.find(deps, match?(Mix.Dep[app: :rebar_dep], &1))
 
-      assert Enum.find(deps, fn dep ->
-        Mix.Dep[app: app, opts: opts] = dep
-        if app == :git_rebar do
-          assert Enum.find(opts, match?({:git, "../git_rebar"}, &1))
-          assert Enum.find(opts, match?({:ref, "master"}, &1))
-          true
-        end
-      end)
-    end
+    assert Enum.find(deps, fn dep ->
+      Mix.Dep[app: app, opts: opts] = dep
+      if app == :git_rebar do
+        assert Enum.find(opts, match?({:git, "../git_rebar"}, &1))
+        assert Enum.find(opts, match?({:ref, "master"}, &1))
+        true
+      end
+    end)
   after
     Mix.Project.pop
   end
 
   test "get and compile dependencies for rebar" do
+    # Use rebar from project root
+    System.put_env("MIX_HOME", MixTest.Case.elixir_root)
+
     Mix.Project.push(RebarAsDep)
 
     in_tmp "dependencies for rebar", fn ->
-      Mix.Tasks.Deps.Get.run []
+      Mix.Tasks.Deps.Get.run ["--no-compile"]
       assert_received { :mix_shell, :info, ["* Getting git_rebar [git: \"../git_rebar\"]"] }
 
-      Mix.Tasks.Compile.run []
+      Mix.Tasks.Deps.Compile.run []
       assert_received { :mix_shell, :info, ["* Compiling git_rebar"] }
       assert_received { :mix_shell, :info, ["* Compiling rebar_dep"] }
       assert :git_rebar.any_function == :ok

@@ -18,7 +18,7 @@ defmodule Mix.Shell.Process do
   @behavior Mix.Shell
 
   @doc """
-  Flush all :mix_shell messages from the current process.
+  Flush all :mix_shell and :mix_shell_input messages from the current process.
   If a callback is given, it is invoked for each received message.
 
   ## Examples
@@ -29,6 +29,9 @@ defmodule Mix.Shell.Process do
   def flush(callback // fn(x) -> x end) do
     receive do
       { :mix_shell, _, _ } = message ->
+        callback.(message)
+        flush(callback)
+      { :mix_shell_input, _, _ } = message ->
         callback.(message)
         flush(callback)
     after
