@@ -50,7 +50,6 @@ defmodule Dict do
   defcallback equal?(t, t) :: boolean
   defcallback get(t, key) :: value
   defcallback get(t, key, value) :: value
-  defcallback get!(t, key) :: value | no_return
   defcallback has_key?(t, key) :: boolean
   defcallback keys(t) :: list(key)
   defcallback merge(t, t) :: t
