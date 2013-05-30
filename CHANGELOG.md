@@ -1,4 +1,4 @@
-# v0.9.1.dev
+# v0.9.1 (2013-05-30)
 
 * enhancements
   * [IEx] Limit the number of entries kept in history and allow it to be configured
@@ -12,10 +12,7 @@
   * [Kernel] Unused functions with cyclic dependencies are now also warned as unused
   * [Mix] Fix a bug where `mix deps.get` was not retrieving nested dependencies
   * [Record] Fix a bug where nested records cannot be defined
-
-* deprecations
-
-* backwards incompatible changes
+  * [Record] Fix a bug where a record named Record cannot be defined
 
 # v0.9.0 (2013-05-23)
 
