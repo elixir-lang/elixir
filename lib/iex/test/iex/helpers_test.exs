@@ -171,6 +171,10 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper multiple modules" do
+    assert_raise UndefinedFunctionError, "undefined function: Helpers_test_module.run/0", fn ->
+      Helpers_test_module.run
+    end
+
     File.write! "test-module-code.ex", test_module_code <> "\n" <> another_test_module
     assert c("test-module-code.ex") |> Enum.sort == [Another_test_module,Helpers_test_module]
     assert Helpers_test_module.run == :run
@@ -187,6 +191,10 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper list" do
+    assert_raise UndefinedFunctionError, "undefined function: Helpers_test_module.run/0", fn ->
+      Helpers_test_module.run
+    end
+
     File.write! "test-module-code-1.ex", test_module_code
     File.write! "test-module-code-2.ex", another_test_module
     assert c(["test-module-code-1.ex", "test-module-code-2.ex"]) |> Enum.sort
@@ -207,13 +215,24 @@ defmodule IEx.HelpersTest do
   end
 
   test "l helper" do
+    assert_raise UndefinedFunctionError, "undefined function: Helpers_test_module.run/0", fn ->
+      Helpers_test_module.run
+    end
+
     assert l(:non_existent_module) == {:error,:nofile}
 
     File.write! "test-module-code.ex", test_module_code
     assert c("test-module-code.ex") == [Helpers_test_module]
-    #File.write! "test-module-code.ex", "defmodule Helpers_test_module do end"
-    assert l(Helpers_test_module) == {:module, Helpers_test_module}
     assert Helpers_test_module.run == :run
+
+    File.write! "test-module-code.ex", "defmodule Helpers_test_module do end"
+    # FIXME: is there another way to compile a file without loading its module?
+    System.cmd "elixirc test-module-code.ex"
+
+    assert l(Helpers_test_module) == {:module, Helpers_test_module}
+    assert_raise UndefinedFunctionError, fn ->
+      Helpers_test_module.run
+    end
   after
     File.rm "test-module-code.ex"
     File.rm! "Elixir.Helpers_test_module.beam"
@@ -225,6 +244,10 @@ defmodule IEx.HelpersTest do
   end
 
   test "r helper" do
+    assert_raise UndefinedFunctionError, "undefined function: Helpers_test_module.run/0", fn ->
+      Helpers_test_module.run
+    end
+
     assert r == []
     assert r(Kernel) == :nosource
     assert_raise UndefinedFunctionError, "undefined function: :non_existent_module.module_info/1", fn ->
@@ -232,8 +255,9 @@ defmodule IEx.HelpersTest do
     end
 
     File.write! "test-module-code.ex", test_module_code
-    # FIXME: `r Helpers_test_module` returns :nosource
     assert c("test-module-code.ex") == [Helpers_test_module]
+    assert Helpers_test_module.run == :run
+    # FIXME: `r Helpers_test_module` returns :nosource
     assert r(Helpers_test_module) == [Helpers_test_module]
 
     assert r == [Helpers_test_module]
