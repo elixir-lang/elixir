@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule IEx.HelpersTest do
   use IEx.Case
 
+  import IEx.Helpers
+
   @doc """
   Test function 1
   """
@@ -20,57 +22,54 @@ defmodule IEx.HelpersTest do
 
   test "h helper module" do
     assert "# IEx.Helpers\n\nWelcome to Interactive Elixir" <> _
-           = capture_iex("h IEx.Helpers")
-    assert capture_iex("h :whatever") == "Could not load module :whatever: nofile\n:ok"
+           = capture_io(fn -> h IEx.Helpers end)
+
+    assert capture_io(fn -> h :whatever end)
+           == "Could not load module :whatever: nofile\n"
   end
 
   test "h helper function" do
-    doc_1 = "* def test_fun_1()\n\nTest function 1\n:ok"
-    doc_2 = "* def test_fun_1(arg)\n\nTest function 2\n:ok"
+    doc_1 = "* def test_fun_1()\n\nTest function 1\n"
+    doc_2 = "* def test_fun_1(arg)\n\nTest function 2\n"
 
-    assert capture_iex("h IEx.HelpersTest.test_fun_1/0") == doc_1
-    assert capture_iex("h IEx.HelpersTest.test_fun_1/1") == doc_2
+    assert capture_io(fn -> h IEx.HelpersTest.test_fun_1/0 end) == doc_1
+    assert capture_io(fn -> h IEx.HelpersTest.test_fun_1/1 end) == doc_2
 
-    output = capture_iex("h IEx.HelpersTest.test_fun_1")
+    output = capture_io(fn -> h IEx.HelpersTest.test_fun_1 end)
     assert :binary.match(output, doc_1)
     assert :binary.match(output, doc_2)
 
-    assert capture_iex("h pwd") == "* def pwd()\n\nPrints the current working directory.\n\n:ok"
+    assert capture_io(fn -> h pwd end)
+           == "* def pwd()\n\nPrints the current working directory.\n\n"
   end
 
   test "t helper" do
-    assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.t/0" <> _
-           = capture_iex("t")
-
-    assert capture_iex("t ExUnit") == "No types for ExUnit have been found\n:ok"
+    assert capture_io(fn -> t ExUnit end) == "No types for ExUnit have been found\n"
 
     # Test that it shows at least two types
-    assert Enum.count(capture_iex("t Enum") |> String.split("\n"), fn line ->
+    assert Enum.count(capture_io(fn -> t Enum end) |> String.split("\n"), fn line ->
       String.starts_with? line, "@type"
     end) >= 2
 
     assert "@type t() :: " <> _
-           = capture_iex("t Enum.t")
-    assert capture_iex("t Enum.t") == capture_iex("t Enum.t/0")
+           = capture_io(fn -> t Enum.t end)
+    assert capture_io(fn -> t Enum.t end) == capture_io(fn -> t Enum.t/0 end)
   end
 
   test "s helper" do
-    assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.s/0" <> _
-           = capture_iex("s")
-
-    assert capture_iex("s ExUnit") == "No specs for ExUnit have been found\n:ok"
+    assert capture_io(fn -> s ExUnit end) == "No specs for ExUnit have been found\n"
 
     # Test that it shows at least two specs
-    assert Enum.count(capture_iex("s Enum") |> String.split("\n"), fn line ->
+    assert Enum.count(capture_io(fn -> s Enum end) |> String.split("\n"), fn line ->
       String.starts_with? line, "@spec"
     end) >= 2
 
-    assert Enum.count(capture_iex("s Enum.all?") |> String.split("\n"), fn line ->
+    assert Enum.count(capture_io(fn -> s Enum.all? end) |> String.split("\n"), fn line ->
       String.starts_with? line, "@spec"
     end) >= 2
 
-    assert capture_iex("s Enum.all?/1") == "@spec all?(t()) :: boolean()\n:ok"
-    assert capture_iex("s list_to_binary") == "@spec list_to_binary(iolist()) :: binary()\n:ok"
+    assert capture_io(fn -> s Enum.all?/1 end) == "@spec all?(t()) :: boolean()\n"
+    assert capture_io(fn -> s list_to_binary end) == "@spec list_to_binary(iolist()) :: binary()\n"
   end
 
   test "v helper" do
@@ -94,20 +93,20 @@ defmodule IEx.HelpersTest do
   end
 
   test "flush helper" do
-    assert capture_iex("self() <- :hello\nflush") == ":hello\n:hello\n:ok"
+    assert capture_io(fn -> self() <- :hello; flush end) == ":hello\n"
   end
 
   test "pwd helper" do
-    assert capture_iex("pwd") =~ %r"lib[\\/]iex\n:ok$"
+    assert capture_io(fn -> pwd end) =~ %r"lib[\\/]iex\n$"
   end
 
   test "ls helper" do
-    assert [":ok", "ebin", "lib", "mix.exs", "test"]
-           = capture_iex("ls")
+    assert ["ebin", "lib", "mix.exs", "test"]
+           = capture_io(fn -> ls end)
              |> String.split
              |> Enum.map(String.strip(&1))
              |> Enum.sort
-    assert capture_iex("ls \"~\"") == capture_iex("ls System.user_home")
+    assert capture_io(fn -> ls "~" end) == capture_io(fn -> ls System.user_home end)
   end
 
   test "import_file helper" do
@@ -149,7 +148,7 @@ defmodule IEx.HelpersTest do
       %r/^Kernel\s+.+Elixir\.Kernel\.beam$/,
     ]
 
-    assert Enum.count(capture_iex("m") |> String.split("\n"), fn line ->
+    assert Enum.count(capture_io(fn -> m end) |> String.split("\n"), fn line ->
       Enum.any? regexes, fn re ->
         Regex.match? re, line
       end
@@ -157,11 +156,13 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper" do
-    assert "** (UndefinedFunctionError) undefined function: Helpers_test_module.run/0" <> _
-           = capture_iex("Helpers_test_module.run")
+    assert_raise UndefinedFunctionError, "undefined function: Helpers_test_module.run/0", fn ->
+      Helpers_test_module.run
+    end
 
     File.write! "test-module-code.ex", test_module_code
-    assert capture_iex("c \"test-module-code.ex\"\nHelpers_test_module.run") == "[Helpers_test_module]\nrun!\n:ok"
+    assert c("test-module-code.ex") == [Helpers_test_module]
+    assert Helpers_test_module.run == :run
   after
     File.rm "test-module-code.ex"
     File.rm! "Elixir.Helpers_test_module.beam"
@@ -171,8 +172,9 @@ defmodule IEx.HelpersTest do
 
   test "c helper multiple modules" do
     File.write! "test-module-code.ex", test_module_code <> "\n" <> another_test_module
-    assert capture_iex("c(\"test-module-code.ex\") |> Enum.sort\nHelpers_test_module.run\nAnother_test_module.hello")
-           == "[Another_test_module,Helpers_test_module]\nrun!\n:ok\nworld\n:ok"
+    assert c("test-module-code.ex") |> Enum.sort == [Another_test_module,Helpers_test_module]
+    assert Helpers_test_module.run == :run
+    assert Another_test_module.hello == :world
   after
     File.rm "test-module-code.ex"
     File.rm "Elixir.Helpers_test_module.beam"
@@ -187,8 +189,10 @@ defmodule IEx.HelpersTest do
   test "c helper list" do
     File.write! "test-module-code-1.ex", test_module_code
     File.write! "test-module-code-2.ex", another_test_module
-    assert capture_iex("c([\"test-module-code-1.ex\", \"test-module-code-2.ex\"]) |> Enum.sort\nHelpers_test_module.run\nAnother_test_module.hello")
-           == "[Another_test_module,Helpers_test_module]\nrun!\n:ok\nworld\n:ok"
+    assert c(["test-module-code-1.ex", "test-module-code-2.ex"]) |> Enum.sort
+           == [Another_test_module,Helpers_test_module]
+    assert Helpers_test_module.run == :run
+    assert Another_test_module.hello == :world
   after
     File.rm "test-module-code-1.ex"
     File.rm "test-module-code-2.ex"
@@ -203,16 +207,13 @@ defmodule IEx.HelpersTest do
   end
 
   test "l helper" do
-    File.write! "test-module-code.ex", test_module_code
-    input = """
-    c "test-module-code.ex"
-    File.write! "test-module-code.ex", "defmodule Helpers_test_module do end"
-    l Helpers_test_module
-    Helpers_test_module.run
-    """
-    assert capture_iex(input) == "[Helpers_test_module]\n:ok\n{:module,Helpers_test_module}\nrun!\n:ok"
+    assert l(:non_existent_module) == {:error,:nofile}
 
-    assert capture_iex("l :non_existent_module") == "{:error,:nofile}"
+    File.write! "test-module-code.ex", test_module_code
+    assert c("test-module-code.ex") == [Helpers_test_module]
+    #File.write! "test-module-code.ex", "defmodule Helpers_test_module do end"
+    assert l(Helpers_test_module) == {:module, Helpers_test_module}
+    assert Helpers_test_module.run == :run
   after
     File.rm "test-module-code.ex"
     File.rm! "Elixir.Helpers_test_module.beam"
@@ -224,16 +225,18 @@ defmodule IEx.HelpersTest do
   end
 
   test "r helper" do
-    assert capture_iex("r") == "[]"
-    assert capture_iex("r Kernel") == ":nosource"
-    assert "** (UndefinedFunctionError) undefined function: :non_existent_module.module_info/1" <> _
-           = capture_iex("r :non_existent_module")
+    assert r == []
+    assert r(Kernel) == :nosource
+    assert_raise UndefinedFunctionError, "undefined function: :non_existent_module.module_info/1", fn ->
+      r :non_existent_module
+    end
 
     File.write! "test-module-code.ex", test_module_code
     # FIXME: `r Helpers_test_module` returns :nosource
-    assert capture_iex("c \"test-module-code.ex\"\nr Helpers_test_module") == "[Helpers_test_module]\n[Helpers_test_module]"
+    assert c("test-module-code.ex") == [Helpers_test_module]
+    assert r(Helpers_test_module) == [Helpers_test_module]
 
-    assert capture_iex("r") == "[Helpers_test_module]"
+    assert r == [Helpers_test_module]
   after
     File.rm "test-module-code.ex"
     File.rm! "Elixir.Helpers_test_module.beam"
@@ -248,7 +251,7 @@ defmodule IEx.HelpersTest do
     """
     defmodule Helpers_test_module do
       def run do
-        IO.puts "run!"
+        :run
       end
     end
     """
@@ -258,7 +261,7 @@ defmodule IEx.HelpersTest do
     """
     defmodule Another_test_module do
       def hello do
-        IO.puts "world"
+        :world
       end
     end
     """
