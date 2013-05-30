@@ -291,6 +291,14 @@ defmodule Regex do
     :re.replace(string, compiled, replacement, opts)
   end
 
+  { :ok, pattern } = :re.compile(%B"[.^$*+?()[{\\\\|]")
+  @escape_pattern pattern
+
+  @spec escape(String.t | char_list) :: String.t | char_list
+  def escape(string) do
+    :re.replace(string, @escape_pattern, "\\\\&", [:global, { :return, return_for(string) }])
+  end
+
   # Helpers
 
   @doc false
