@@ -65,15 +65,6 @@ defmodule ListDict do
     end
   end
 
-  @doc false
-  def get!(dict, key) do
-    IO.write "[WARNING] Dict.get! and ListDict.get! are deprecated, please use Dict.fetch! and ListDict.fetch! instead\n#{Exception.format_stacktrace}"
-    case :lists.keyfind(key, 1, dict) do
-      { ^key, value } -> value
-      false -> raise(KeyError, key: key)
-    end
-  end
-
   @doc """
   Returns the value under key from the given
   dict in a tagged tuple, otherwise `:error`.

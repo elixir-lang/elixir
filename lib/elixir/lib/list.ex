@@ -142,12 +142,6 @@ defmodule List do
     :lists.last(list)
   end
 
-  @doc false
-  def member?(list, term) do
-    IO.write "[WARNING] List.member? is deprecated, please use Enum.member? instead\n#{Exception.format_stacktrace}"
-    :lists.member(term, list)
-  end
-
   @doc """
   Receives a list of tuples and returns the first tuple
   where the item at position `position` matches with the

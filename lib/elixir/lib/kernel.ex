@@ -1998,12 +1998,6 @@ defmodule Kernel do
     quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
   end
 
-  @doc false
-  defmacro setelem(tuple, index, value) do
-    IO.puts "setelem is deprecated, please use set_elem instead\n#{Exception.format_stacktrace(__CALLER__.stacktrace)}"
-    quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
-  end
-
   @doc """
   Define insert_elem to insert element into a tuple according to
   Elixir conventions (i.e. it expects the tuple as first argument,

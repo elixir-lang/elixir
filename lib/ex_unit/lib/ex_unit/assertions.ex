@@ -141,16 +141,6 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion({ :inlist, _, [left, right] }, _else) do
-    quote do
-      IO.puts "[WARNING] assert(left inlist right) is deprecated, please use assert(left in right) instead"
-      Exception.print_stacktrace
-      left  = unquote(left)
-      right = unquote(right)
-      assert :lists.member(left, right), left, right, reason: "be in"
-    end
-  end
-
   ## Negative versions
 
   defp translate_assertion({ :!, _, [{ :=, _, [left, right] }] }, _else) do
@@ -182,16 +172,6 @@ defmodule ExUnit.Assertions do
       left  = unquote(left)
       right = unquote(right)
       assert !Enum.member?(right, left), left, right, reason: "be in", negation: true
-    end
-  end
-
-  defp translate_assertion({ negation, _, [{ :inlist, _, [left, right] }] }, _else) when negation in [:!, :not] do
-    quote do
-      IO.puts "[WARNING] refute(left inlist right) is deprecated, please use refute(left in right) instead"
-      Exception.print_stacktrace
-      left  = unquote(left)
-      right = unquote(right)
-      assert !(:lists.member(left, right)), left, right, reason: "be in", negation: true
     end
   end
 

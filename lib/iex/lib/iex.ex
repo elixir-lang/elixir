@@ -171,18 +171,6 @@ defmodule IEx do
     match?({ :ok, true }, :application.get_env(:iex, :started))
   end
 
-  @doc false
-  def inspect_opts(opts) when is_list(opts) do
-    IO.write "[WARNING] IEx.inspect_opts is deprecated, please use IEx.Options.get/set instead. See `IEx.Options.print_help :inspect`.\n#{Exception.format_stacktrace}"
-    IEx.Options.set :inspect, opts
-  end
-
-  @doc false
-  def inspect_opts do
-    IO.write "[WARNING] IEx.inspect_opts is deprecated, please use IEx.Options.get/set instead. See `IEx.Options.print_help :inspect`.\n#{Exception.format_stacktrace}"
-    IEx.Options.get :inspect
-  end
-
   # This is a callback invoked by Erlang shell utilities
   # when someone press Ctrl+G and adds 's Elixir.IEx'.
   @doc false

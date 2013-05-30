@@ -180,25 +180,6 @@ defmodule IO do
     :io.get_chars(map_dev(device), to_iodata(prompt), count)
   end
 
-  @doc false
-  def getb(prompt, count // 1)
-
-  def getb(prompt, count) when is_integer(count) do
-    IO.write "[WARNING] IO.getb is deprecated, please use IO.getn instead\n#{Exception.format_stacktrace}"
-    getn(prompt, count)
-  end
-
-  def getb(device, prompt) do
-    IO.write "[WARNING] IO.getb is deprecated, please use IO.getn instead\n#{Exception.format_stacktrace}"
-    getn(device, prompt)
-  end
-
-  @doc false
-  def getb(device, prompt, count) do
-    IO.write "[WARNING] IO.getb is deprecated, please use IO.getn instead\n#{Exception.format_stacktrace}"
-    getn(device, prompt, count)
-  end
-
   @doc """
   Reads a line from the IO device. It returns:
 

@@ -114,15 +114,6 @@ defmodule Keyword do
     end
   end
 
-  @doc false
-  def get!(keywords, key) when is_atom(key) do
-    IO.write "[WARNING] Keyword.get! is deprecated, please use Keyword.fetch! instead\n#{Exception.format_stacktrace}"
-    case :lists.keyfind(key, 1, keywords) do
-      { ^key, value } -> value
-      false -> raise(KeyError, key: key)
-    end
-  end
-
   @doc """
   Fetchs the value for specific key and return it in a tuple.
   If the key does not exist, returns `:error`.

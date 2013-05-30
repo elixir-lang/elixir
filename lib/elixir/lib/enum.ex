@@ -388,12 +388,6 @@ defmodule Enum do
     end
   end
 
-  @doc false
-  def at!(collection, n) when n >= 0 do
-    IO.write "[WARNING] Enum.at! is deprecated, please use Enum.fetch! instead\n#{Exception.format_stacktrace}"
-    fetch!(collection, n)
-  end
-
   @doc """
   Filters the collection, i.e. returns only those elements
   for which `fun` returns true.

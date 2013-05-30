@@ -150,12 +150,6 @@ defmodule Exception do
     ErlangError[original: other]
   end
 
-  @doc false
-  def format_entry(entry, cwd // nil) do
-    IO.write "[WARNING] Exception.format_stacktrace is deprecated, please use Exception.format_stacktrace_entry instead\n#{Exception.format_stacktrace}"
-    format_stacktrace_entry(entry, cwd)
-  end
-
   @doc """
   Receives a tuple representing a stacktrace entry and formats it.
   The current working directory may be given as argument, which

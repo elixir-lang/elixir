@@ -57,12 +57,6 @@ defmodule Code do
     :code.del_path(Path.expand to_char_list(path))
   end
 
-  @doc false
-  def eval(string, binding // [], opts // []) do
-    IO.write "[WARNING] Code.eval is deprecated, please use Code.eval_string instead\n#{Exception.format_stacktrace}"
-    eval_string(string, binding, opts)
-  end
-
   @doc """
   Evaluates the contents given by string. The second argument is the
   binding (which should be a keyword) followed by a keyword list of

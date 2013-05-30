@@ -151,15 +151,6 @@ defmodule HashDict do
     end
   end
 
-  @doc false
-  def get!(dict, key) when is_tuple(dict) do
-    IO.write "[WARNING] Dict.get! and HashDict.get! are deprecated, please use Dict.fetch! and HashDict.fetch! instead\n#{Exception.format_stacktrace}"
-    case dict_get(dict, key) do
-      { ^key, value } -> value
-      false -> raise(KeyError, key: key)
-    end
-  end
-
   @doc """
   Fetches the value under key from the dict
   and return it in a tagged tuple.
