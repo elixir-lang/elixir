@@ -13,12 +13,6 @@ defmodule AccessTest do
     assert nil[:foo] == nil
   end
 
-  test :function do
-    function = fn x -> x == :foo end
-    assert function[:foo] == true
-    assert function[:bar] == false
-  end
-
   # Test nil at compilation time does not fail
   # and that @config[:foo] has proper precedence.
   nil = @config[:foo]

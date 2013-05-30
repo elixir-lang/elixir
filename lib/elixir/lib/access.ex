@@ -11,7 +11,7 @@ defprotocol Access do
   following built-in types: keywords, records and functions.
   """
 
-  @only [List, Function, Record, Atom]
+  @only [List, Record, Atom]
 
   @doc """
   Receives the element being accessed and the access item.
@@ -53,20 +53,9 @@ defimpl Access, for: Atom do
   def access(nil, _) do
     nil
   end
+
   def access(atom, _) do
     raise "The access protocol can only be invoked for atoms at " <>
       "compilation time, tried to invoke it for #{inspect atom}"
-  end
-end
-
-defimpl Access, for: Function do
-  @doc """
-  The Access protocol for functions simply invokes
-  the function passing the item as argument. This
-  is useful because it allows a function to be
-  passed as argument in places a dict would also fit.
-  """
-  def access(function, item) do
-    function.(item)
   end
 end
