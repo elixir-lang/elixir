@@ -69,6 +69,10 @@ defmodule RecordTest.Macros do
     defrecord NestedInNested, it_compiles: true
   end
 
+  # Ensure there is no conflict in a nested module
+  # named record.
+  defrecord Record, [a: 1, b: 2]
+
   def new() do
     _user()
   end

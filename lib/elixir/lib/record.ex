@@ -30,7 +30,7 @@ defmodule Record do
 
       defmodule unquote(name) do
         @moduledoc false
-        import Record.DSL
+        import Elixir.Record.DSL
 
         @record_fields []
         @record_types  []
@@ -39,9 +39,9 @@ defmodule Record do
         # avoid conflicts in nested records
         values = unquoted_values
 
-        Record.deffunctions(values, __ENV__)
+        Elixir.Record.deffunctions(values, __ENV__)
         value = unquote(block)
-        Record.deftypes(values, @record_types, __ENV__)
+        Elixir.Record.deftypes(values, @record_types, __ENV__)
         value
       end
     end
