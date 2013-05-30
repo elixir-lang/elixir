@@ -290,10 +290,14 @@ defmodule ExUnit.Assertions do
         1 + "test"
       end
   """
-  def assert_raise(exception, message, function) when is_binary(message) and is_function(function) do
+  def assert_raise(exception, message, function) when is_function(function) do
     error = assert_raise(exception, function)
-    assert message == error.message, message, error.message,
-      prelude: "Expected #{inspect error}'s message", reason: "a match"
+    is_match = case message do
+      re  when is_regex(re)   -> error.message =~ re
+      bin when is_binary(bin) -> error.message == bin
+    end
+    assert is_match, message, error.message,
+      prelude: "Expected #{inspect error}'s message", reason: "match"
     error
   end
 

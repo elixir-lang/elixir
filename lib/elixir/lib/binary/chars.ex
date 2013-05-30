@@ -58,7 +58,15 @@ defimpl Binary.Chars, for: List do
 
   """
   def to_binary(thing) do
-    iolist_to_binary(thing)
+    try do
+      iolist_to_binary(thing)
+    rescue
+      ArgumentError ->
+        raise Protocol.UndefinedError,
+                 protocol: __MODULE__,
+                structure: thing,
+                    extra: "Only iolists are supported"
+    end
   end
 end
 
