@@ -327,10 +327,12 @@ defmodule Regex do
     end
   end
 
+  { :ok, pattern } = :re.compile(%B"\(\?<(?<G>[^>]*)>")
+  @groups_pattern pattern
+
   defp parse_groups(source) do
     options = [:global, {:capture, ['G'], :binary}]
-    {:ok, pattern} = :re.compile(%B"\(\?<(?<G>[^>]*)>")
-    case :re.run(source, pattern, options) do
+    case :re.run(source, @groups_pattern, options) do
       :nomatch -> []
       { :match, results } ->
         lc [group] inlist results, do: binary_to_atom(group)
