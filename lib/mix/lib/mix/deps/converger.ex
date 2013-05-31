@@ -20,8 +20,8 @@ defmodule Mix.Deps.Converger do
   def all(rest, callback) do
     config = [ deps_path: Path.expand(Mix.project[:deps_path]),
                root_lockfile: Path.expand(Mix.project[:lockfile]) ]
-    { main, rest } = Mix.Deps.Retriever.all(rest, config, callback)
-    { all(Enum.reverse(main), [], [], main), rest }
+    main = Mix.Deps.Retriever.children(config) |> Enum.reverse
+    all(main, [], [], main, config, rest, callback)
   end
 
   # We traverse the tree of dependencies in a breadth-
@@ -63,25 +63,30 @@ defmodule Mix.Deps.Converger do
   # Now, since `d` was specified in a parent project, no
   # exception is going to be raised since d is considered
   # to be the authorative source.
-  defp all([dep|t], acc, upper_breadths, current_breadths) do
+  defp all([dep|t], acc, upper_breadths, current_breadths, config, rest, callback) do
     cond do
       contains_dep?(upper_breadths, dep) ->
-        all(t, acc, upper_breadths, current_breadths)
+        all(t, acc, upper_breadths, current_breadths, config, rest, callback)
+
       match?({ diverged_acc, true }, diverged_dep?(acc, dep)) ->
-        all(t, diverged_acc, upper_breadths, current_breadths)
+        all(t, diverged_acc, upper_breadths, current_breadths, config, rest, callback)
+
       true ->
-        deps = dep.deps
+        { dep, rest } = callback.(dep, rest)
+        { dep, deps } = Mix.Deps.Retriever.nested_deps(dep, config)
+
         if deps != [] do
-          acc = all(t, [dep|acc], upper_breadths, current_breadths)
-          all(deps, acc, current_breadths, deps ++ current_breadths)
+          deps = Enum.reverse(deps)
+          { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, config, rest, callback)
+          all(deps, acc, current_breadths, deps ++ current_breadths, config, rest, callback)
         else
-          all(t, [dep|acc], upper_breadths, current_breadths)
+          all(t, [dep|acc], upper_breadths, current_breadths, config, rest, callback)
         end
     end
   end
 
-  defp all([], acc, _upper, _current) do
-    acc
+  defp all([], acc, _upper, _current, _config, rest, _callback) do
+    { acc, rest }
   end
 
   # Does the list contain the given dependency?

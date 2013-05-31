@@ -5,55 +5,41 @@ defmodule Mix.Deps.Retriever do
   @moduledoc false
 
   @doc """
-  Returns all dependencies for the current Mix.Project
-  as a `Mix.Dep` record.
+  Returns all dependencies of the given dependency as a
+  `Mix.Dep` record. Also modifies the given dependency
+  with information we get, most importantly setting the
+  manager and source fields.
 
   ## Exceptions
 
   This function raises an exception in case the developer
   provides a dependency in the wrong format.
   """
-  def all(post_config // []) do
-    { deps, _ } = all(nil, children(post_config), post_config, fn(dep, acc) -> { dep, acc } end)
-    deps
-  end
+  def nested_deps(dep, post_config // []) do
+    cond do
+      Mix.Deps.available?(dep) and mixfile?(dep) ->
+        Mix.Deps.in_dependency(dep, post_config, fn project ->
+          deps = children(post_config)
 
-  @doc """
-  Like `all/0` but takes a callback that is invoked for
-  each dependency and must return an updated depedency
-  in case some processing is done.
-  """
-  def all(rest, post_config // [], callback) do
-    all(rest, children(post_config), post_config, callback)
-  end
+          # We need to call with_mix_project once again
+          # here in case the dependency was not available
+          # the first time and the callback hook just
+          # happened to fetch it.
+          { with_mix_project(dep, project).deps(deps), deps }
+        end)
 
-  defp all(rest, childs, post_config, callback) do
-    Enum.map_reduce childs, rest, fn (dep, rest) ->
-      { dep, rest } = callback.(dep, rest)
+      Mix.Deps.available?(dep) and rebarconfig?(dep) ->
+        dep = rebar_dep(dep)
 
-      cond do
-        Mix.Deps.available?(dep) and mixfile?(dep) ->
-          Mix.Deps.in_dependency(dep, post_config, fn project ->
-            { deps, rest } = all(rest, children(post_config), post_config, callback)
+        Mix.Deps.in_dependency(dep, post_config, fn _ ->
+          deps = rebar_children(".")
+          # Note that when we set the deps field here and above manager and
+          # source fields might not be set on the sub deps.
+          { dep.deps(deps), deps }
+        end)
 
-            # We need to call with_mix_project once again
-            # here in case the dependency was not available
-            # the first time and the callback hook just
-            # happened to fetch it.
-            { with_mix_project(dep, project).deps(deps), rest }
-          end)
-
-        Mix.Deps.available?(dep) and rebarconfig?(dep) ->
-          dep = rebar_dep(dep)
-
-          Mix.Deps.in_dependency(dep, post_config, fn _ ->
-            { deps, rest } = all(rest, rebar_children("."), post_config, callback)
-            { dep.deps(deps), rest }
-          end)
-
-        true ->
-          { dep, rest }
-      end
+      true ->
+        { dep, [] }
     end
   end
 
