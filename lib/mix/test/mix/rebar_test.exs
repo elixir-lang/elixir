@@ -36,7 +36,7 @@ defmodule Mix.RebarTest do
     assert Enum.find(deps, fn dep ->
       Mix.Dep[app: app, opts: opts] = dep
       if app == :git_rebar do
-        assert Enum.find(opts, match?({:git, "../git_rebar"}, &1))
+        assert Enum.find(opts, match?({:git, "../../test/fixtures/git_rebar"}, &1))
         assert Enum.find(opts, match?({:ref, "master"}, &1))
         true
       end
@@ -51,9 +51,9 @@ defmodule Mix.RebarTest do
 
     Mix.Project.push(RebarAsDep)
 
-    in_tmp "dependencies for rebar", fn ->
+    in_tmp "get and compile dependencies for rebar", fn ->
       Mix.Tasks.Deps.Get.run ["--no-compile"]
-      assert_received { :mix_shell, :info, ["* Getting git_rebar [git: \"../git_rebar\"]"] }
+      assert_received { :mix_shell, :info, ["* Getting git_rebar [git: \"../../test/fixtures/git_rebar\"]"] }
 
       Mix.Tasks.Deps.Compile.run []
       assert_received { :mix_shell, :info, ["* Compiling git_rebar"] }

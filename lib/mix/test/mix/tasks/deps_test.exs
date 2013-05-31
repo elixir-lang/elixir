@@ -287,6 +287,8 @@ defmodule Mix.Tasks.DepsTest do
       message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
+      # Make sure retriever uses converger
+      refute_received { :mix_shell, :info, [^message] }
 
       Mix.Task.clear
       Mix.Tasks.Deps.Update.run []
