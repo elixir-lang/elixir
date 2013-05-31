@@ -1,3 +1,17 @@
+# v0.9.2.dev
+
+* enhancements
+  * [Mix] Automatically import git dependencies from Rebar
+  * [Regex] Add `Regex.escape`
+
+* bug fix
+  * [IEx] Do not interpret ANSI codes in IEx results
+  * [Mix] Fix usage of shell expressions in `Mix.Shell.cmd`
+
+* deprecations
+
+* backwards incompatible changes
+
 # v0.9.1 (2013-05-30)
 
 * enhancements
