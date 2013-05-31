@@ -104,6 +104,12 @@ defmodule ProtocolTest do
     false = ProtocolTest.WithAll.blank(ProtocolTest.Foo.new(a: 1))
   end
 
+  test :protocol_with_nil_record do
+    assert_raise UndefinedFunctionError, fn ->
+      ProtocolTest.WithOnly.blank({:nil})
+    end
+  end
+
   test :protocol_for do
     assert_protocol_for(ProtocolTest.WithAll, Atom, :foo)
     assert_protocol_for(ProtocolTest.WithAll, Function, fn(x) -> x end)
