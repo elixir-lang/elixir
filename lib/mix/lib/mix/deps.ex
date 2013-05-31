@@ -244,10 +244,14 @@ defmodule Mix.Deps do
 
   def load_paths(Mix.Dep[manager: :rebar, opts: opts, source: source]) do
     # Add root dir and all sub dirs with ebin/ directory
-    [ opts[:dest] | (source[:sub_dirs] || []) ]
+    sub_dirs = Enum.map(source[:sub_dirs] || [], fn path ->
+      Path.join(opts[:dest], path)
+    end)
+
+    [ opts[:dest] | sub_dirs ]
       |> Enum.map(Path.wildcard(&1))
       |> List.concat
-      |> Enum.map(fn path -> Path.join([opts[:dest], path, "ebin"]) end)
+      |> Enum.map(Path.join(&1, "ebin"))
       |> Enum.filter(File.dir?(&1))
   end
 

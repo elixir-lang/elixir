@@ -59,6 +59,13 @@ defmodule Mix.RebarTest do
       assert_received { :mix_shell, :info, ["* Compiling git_rebar"] }
       assert_received { :mix_shell, :info, ["* Compiling rebar_dep"] }
       assert :git_rebar.any_function == :ok
+
+      load_paths = Mix.Deps.all
+        |> Enum.map(Mix.Deps.load_paths(&1))
+        |> List.concat
+
+      assert Enum.any?(load_paths, String.ends_with?(&1, "git_rebar/ebin"))
+      assert Enum.any?(load_paths, String.ends_with?(&1, "rebar_dep/ebin"))
     end
   after
     Mix.Project.pop
