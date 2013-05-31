@@ -149,7 +149,7 @@ defmodule Mix.Project do
   use this function to transparently go through the project, regardless
   if it is an umbrella project or not.
   """
-  def recur(fun) do
+  def recur(post_config // [], fun) do
     if apps_path = config[:apps_path] do
       paths = Path.wildcard(Path.join(apps_path, "*"))
       paths = Enum.filter(paths, File.dir?(&1))
@@ -163,11 +163,12 @@ defmodule Mix.Project do
       projects = topsort_projects(projects, Path.expand(apps_path))
 
       results = Enum.map projects, fn { app, app_path } ->
-        in_project(app, app_path, fun)
+        in_project(app, app_path, post_config, fun)
       end
 
       results
     else
+      # Note that post_config isnt used for this case
       [fun.(get)]
     end
   end
