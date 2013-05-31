@@ -157,9 +157,8 @@ defmodule IEx.Server do
   end
 
   defp io_put(result) do
-    IO.puts IEx.color_fragment(:eval_result) <>
-            inspect(result, IEx.Options.get(:inspect)) <>
-            IEx.color_reset()
+    # FIXME: add tests for `result` containing ANSI escapes
+    IO.puts IEx.color(:eval_result, inspect(result, IEx.Options.get(:inspect)))
   end
 
   defp io_error(result) do

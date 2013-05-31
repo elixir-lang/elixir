@@ -244,26 +244,13 @@ defmodule IEx do
   end
 
   @doc """
-  Returns `string` escaped using the specified color.
+  Returns `string` escaped using the specified color. ANSI escapes in `string`
+  are not processed in any way.
   """
   def color(color_name, string) do
     colors = IEx.Options.get(:colors)
-    IO.ANSI.escape "%{#{colors[color_name]}}#{string}", colors[:enabled]
-  end
-
-  @doc """
-  Returns an escaped fragment using the specified color.
-  """
-  def color_fragment(color_name) do
-    colors = IEx.Options.get(:colors)
-    IO.ANSI.escape_fragment "%{#{colors[color_name]}}", colors[:enabled]
-  end
-
-  @doc """
-  Returns an escaped fragment that resets colors and attributes.
-  """
-  def color_reset() do
-    colors = IEx.Options.get(:colors)
-    IO.ANSI.escape_fragment "%{reset}", colors[:enabled]
+    enabled = colors[:enabled]
+    IO.ANSI.escape_fragment("%{#{colors[color_name]}}", enabled)
+      <> string <> IO.ANSI.escape_fragment("%{reset}", enabled)
   end
 end
