@@ -20,7 +20,7 @@ defmodule Mix.Deps.Converger do
   def all(rest, callback) do
     config = [ deps_path: Path.expand(Mix.project[:deps_path]),
                root_lockfile: Path.expand(Mix.project[:lockfile]) ]
-    { main, rest } = Mix.Deps.Retriever.all(rest, config,callback)
+    { main, rest } = Mix.Deps.Retriever.all(rest, config, callback)
     { all(Enum.reverse(main), [], [], main), rest }
   end
 

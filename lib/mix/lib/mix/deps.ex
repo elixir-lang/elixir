@@ -1,5 +1,5 @@
 defrecord Mix.Dep, [ scm: nil, app: nil, requirement: nil, status: nil, opts: nil,
-                     project: nil, deps: [] ] do
+                     deps: [], source: nil, manager: nil ] do
   @moduledoc """
   This is a record that keeps information about your project
   dependencies. It keeps:
@@ -9,7 +9,9 @@ defrecord Mix.Dep, [ scm: nil, app: nil, requirement: nil, status: nil, opts: ni
   * requirements - a binary or regexp with the deps requirement;
   * status - the current status of dependency, check `Mix.Deps.format_status/1` for more info;
   * opts - the options given by the developer
-  * project - the Mix.Project for the dependency
+  * source - any possible configuration associated with the manager field,
+             rebar.config for rebar or the Mix.Project for Mix
+  * manager - the project management, possible values: :rebar / :mix / nil
   """
 end
 
@@ -81,7 +83,7 @@ defmodule Mix.Deps do
     index = Mix.Dep.__index__(:app)
     Enum.each apps, fn(app) ->
       unless List.keyfind(deps, app, index) do
-        Mix.shell.info message: "unknown dependency #{app} for env #{Mix.env}"
+        Mix.shell.info "unknown dependency #{app} for env #{Mix.env}"
       end
     end
 
@@ -93,7 +95,20 @@ defmodule Mix.Deps do
   changing the current working directory and loading the given
   project into the project stack.
   """
-  def in_dependency(Mix.Dep[app: app, opts: opts], post_config // [], fun) do
+  def in_dependency(dep, post_config // [], fun)
+
+  def in_dependency(Mix.Dep[manager: :rebar, opts: opts], post_config, fun) do
+    # Use post_config for rebar deps
+    Mix.Project.post_config(post_config)
+    Mix.Project.push(Mix.Rebar)
+    try do
+      File.cd!(opts[:dest], fn -> fun.(nil) end)
+    after
+      Mix.Project.pop
+    end
+  end
+
+  def in_dependency(Mix.Dep[app: app, opts: opts], post_config, fun) do
     env     = opts[:env] || :prod
     old_env = Mix.env
 
@@ -207,8 +222,8 @@ defmodule Mix.Deps do
   @doc """
   Returns all compile paths for the dependency.
   """
-  def compile_paths(Mix.Dep[app: app, opts: opts] = dep) do
-    if mix?(dep) do
+  def compile_paths(Mix.Dep[app: app, opts: opts, manager: manager]) do
+    if manager == :mix do
       Mix.Project.in_project app, opts[:dest], fn _ ->
         Mix.Project.compile_paths
       end
@@ -220,31 +235,38 @@ defmodule Mix.Deps do
   @doc """
   Returns all load paths for the dependency.
   """
-  def load_paths(Mix.Dep[app: app, opts: opts] = dep) do
-    if mix?(dep) do
-      paths = Mix.Project.in_project app, opts[:dest], fn _ ->
-        Mix.Project.load_paths
-      end
-      Enum.uniq paths
-    else
-      [ Path.join(opts[:dest], "ebin") ]
+  def load_paths(Mix.Dep[manager: :mix, app: app, opts: opts]) do
+    paths = Mix.Project.in_project app, opts[:dest], fn _ ->
+      Mix.Project.load_paths
     end
+    Enum.uniq paths
+  end
+
+  def load_paths(Mix.Dep[manager: :rebar, opts: opts, source: source]) do
+    # Add root dir and all sub dirs with ebin/ directory
+    [ opts[:dest] | (source[:sub_dirs] || []) ]
+      |> Enum.map(Path.wildcard(&1))
+      |> List.concat
+      |> Enum.map(fn path -> Path.join([opts[:dest], path, "ebin"]) end)
+      |> Enum.filter(File.dir?(&1))
+  end
+
+  def load_paths(Mix.Dep[manager: nil, opts: opts]) do
+    [ Path.join(opts[:dest], "ebin") ]
   end
 
   @doc """
   Returns true if dependency is a mix project.
   """
-  def mix?(dep) do
-    dep.project != nil
+  def mix?(Mix.Dep[manager: manager]) do
+    manager == :mix
   end
 
   @doc """
   Returns true if dependency is a rebar project.
   """
-  def rebar?(dep) do
-    Enum.any? ["rebar.config", "rebar.config.script"], fn file ->
-      File.regular? Path.join(dep.opts[:dest], file)
-    end
+  def rebar?(Mix.Dep[manager: manager]) do
+    manager == :rebar
   end
 
   @doc """
