@@ -294,6 +294,17 @@ defmodule Regex do
   { :ok, pattern } = :re.compile(%B"[.^$*+?()[{\\\|\s#]", [:unicode])
   @escape_pattern pattern
 
+  @doc %B"""
+  Escapes a string to be literally matched in a regex.
+
+  ## Examples
+
+      iex> Regex.escape(".")
+      "\\."
+      iex> Regex.escape("\\what if")
+      "\\\\what\\ if"
+
+  """
   @spec escape(String.t | char_list) :: String.t | char_list
   def escape(string) do
     :re.replace(string, @escape_pattern, "\\\\&", [:global, { :return, return_for(string) }])
