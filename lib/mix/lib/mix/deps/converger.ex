@@ -20,8 +20,8 @@ defmodule Mix.Deps.Converger do
   def all(rest, callback) do
     config = [ deps_path: Path.expand(Mix.project[:deps_path]),
                root_lockfile: Path.expand(Mix.project[:lockfile]) ]
-    { main, rest } = Mix.Deps.Retriever.all(rest, config, callback)
-    { all(Enum.reverse(main), [], [], main), rest }
+    main = Mix.Deps.Retriever.children(config)
+    all(main, [], [], main, config, callback, rest)
   end
 
   # We traverse the tree of dependencies in a breadth-
@@ -63,25 +63,22 @@ defmodule Mix.Deps.Converger do
   # Now, since `d` was specified in a parent project, no
   # exception is going to be raised since d is considered
   # to be the authorative source.
-  defp all([dep|t], acc, upper_breadths, current_breadths) do
+  defp all([dep|t], acc, upper_breadths, current_breadths, config, callback, rest) do
     cond do
       contains_dep?(upper_breadths, dep) ->
-        all(t, acc, upper_breadths, current_breadths)
+        all(t, acc, upper_breadths, current_breadths, config, callback, rest)
       match?({ diverged_acc, true }, diverged_dep?(acc, dep)) ->
-        all(t, diverged_acc, upper_breadths, current_breadths)
+        all(t, diverged_acc, upper_breadths, current_breadths, config, callback, rest)
       true ->
-        deps = dep.deps
-        if deps != [] do
-          acc = all(t, [dep|acc], upper_breadths, current_breadths)
-          all(deps, acc, current_breadths, deps ++ current_breadths)
-        else
-          all(t, [dep|acc], upper_breadths, current_breadths)
-        end
+        { dep, rest } = callback.(dep, rest)
+        deps = Mix.Deps.Retriever.children(dep, config)
+        { acc, rest } = all(t, [dep.deps(deps)|acc], upper_breadths, current_breadths, config, callback, rest)
+        all(deps, acc, current_breadths, deps ++ current_breadths, config, callback, rest)
     end
   end
 
-  defp all([], acc, _upper, _current) do
-    acc
+  defp all([], acc, _upper, _current, _config, _callback, rest) do
+    { acc, rest }
   end
 
   # Does the list contain the given dependency?
