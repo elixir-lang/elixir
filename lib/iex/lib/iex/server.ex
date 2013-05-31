@@ -157,7 +157,9 @@ defmodule IEx.Server do
   end
 
   defp io_put(result) do
-    IO.puts :stdio, IEx.color(:eval_result, inspect(result, IEx.Options.get(:inspect)))
+    IO.puts IEx.color_fragment(:eval_result) <>
+            inspect(result, IEx.Options.get(:inspect)) <>
+            IEx.color_reset()
   end
 
   defp io_error(result) do
