@@ -129,24 +129,35 @@ defmodule Regex.BinaryTest do
   end
 
   test :escape do
-    assert escaping(".", ".")
-    refute escaping(".", "x")
+    assert matches_escaped?(".")
+    refute matches_escaped?(".", "x")
 
-    assert escaping("[\w]", "[\w]")
-    refute escaping("[\w]", "x")
+    assert matches_escaped?("[\w]")
+    refute matches_escaped?("[\w]", "x")
 
-    assert escaping("\\", "\\")
+    assert matches_escaped?("\\")
 
-    assert escaping("\\xff", "\\xff")
-    refute escaping("\\xff", "\xff")
+    assert matches_escaped?("\\xff", "\\xff")
+    refute matches_escaped?("\\xff", "\xff")
 
-    assert escaping("(", "(")
-    assert escaping("()", "()")
-    assert escaping("(?:foo)", "(?:foo)")
+    assert matches_escaped?("(")
+    assert matches_escaped?("()")
+    assert matches_escaped?("(?:foo)")
+
+    assert matches_escaped?("\\A  \\z")
+    assert matches_escaped?("  x  ")
+    assert matches_escaped?("  x    x ") # unicode spaces here
+    assert matches_escaped?("# lol")
+
+    assert matches_escaped?("\\A.^$*+?()[{\\| \t\n\xff\\z #hello\x{202F}\x{205F}")
   end
 
-  defp escaping(string, match) do
-    Regex.match? %r/#{Regex.escape(string)}/, match
+  defp matches_escaped?(string) do
+    matches_escaped?(string, string)
+  end
+
+  defp matches_escaped?(string, match) do
+    Regex.match? %r/#{Regex.escape(string)}/usimx, match
   end
 end
 
