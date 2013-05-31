@@ -7,6 +7,7 @@
 * bug fix
   * [IEx] Do not interpret ANSI codes in IEx results
   * [Mix] Fix usage of shell expressions in `Mix.Shell.cmd`
+  * [Kernel] Don't ignore :nil when dispatching protocols to avoid infinite loops.
 
 * deprecations
 

@@ -137,7 +137,7 @@ raw_concat(['Elixir'|Args]) -> do_concat(Args);
 raw_concat(Args)            -> do_concat(Args).
 
 do_concat(Args) ->
-  Aliases = [to_partial(Arg) || Arg <- Args, Arg /= nil],
+  Aliases = [to_partial(Arg) || Arg <- Args],
   "Elixir" ++ lists:concat(Aliases).
 
 to_partial(Arg) when is_binary(Arg) -> to_partial(binary_to_list(Arg));
