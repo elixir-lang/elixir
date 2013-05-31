@@ -9,8 +9,7 @@ defmodule IEx.Introspection do
       { :module, _ } ->
         case module.__info__(:moduledoc) do
           { _, binary } when is_binary(binary) ->
-            # FIXME: add tests for `binary` containing ANSI escapes
-            IO.write IEx.color(:info, "# #{inspect module}\n" <> binary)
+            IO.write IEx.color(:info, "# #{inspect module}\n\n" <> binary)
           { _, _ } ->
             IO.puts IEx.color(:error, "No docs for #{inspect module} have been found")
           _ ->
@@ -148,7 +147,6 @@ defmodule IEx.Introspection do
   defp print_doc({ { fun, _ }, _line, kind, args, doc }) do
     args = Enum.map_join(args, ", ", print_doc_arg(&1))
     IO.puts IEx.color(:info, "* #{kind} #{fun}(#{args})\n")
-    # FIXME: add tests for `doc` containing ANSI escapes
     if doc, do: IO.write IEx.color(:info, doc)
   end
 
