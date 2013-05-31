@@ -288,6 +288,9 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
 
+      # Make sure retriever uses converger
+      refute_received { :mix_shell, :info, [^message] }
+
       Mix.Task.clear
       Mix.Tasks.Deps.Update.run []
 
