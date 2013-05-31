@@ -1,12 +1,19 @@
 defmodule Mix.Rebar do
   @moduledoc false
+  @local_rebar_name "rebar"
 
+  # Make Mix.Rebar work like a project so we can push it into the stack.
   @doc false
   def project, do: []
 
   @doc """
-  Loads the rebar.config and evaluates rebar.config.script if it exists in the
-  given directory.
+  Return the path to the local copy of rebar. Used when building deps.
+  """
+  def local_rebar_path, do: Path.join(Mix.Utils.mix_home, @local_rebar_name)
+
+  @doc """
+  Loads the rebar.config and evaluates rebar.config.script if it
+  exists in the given directory.
   """
   def load_config(dir) do
     config_path = Path.join(dir, "rebar.config")

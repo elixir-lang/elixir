@@ -137,8 +137,8 @@ defmodule Mix.Tasks.Deps.Compile do
       File.regular?("./rebar") ->
         Path.join(File.cwd!, "rebar")
 
-      File.regular?(Mix.Tasks.Local.Rebar.local_rebar_path) ->
-        Mix.Tasks.Local.Rebar.local_rebar_path
+      File.regular?(Mix.Rebar.local_rebar_path) ->
+        Mix.Rebar.local_rebar_path
 
       System.find_executable("rebar") ->
         "rebar"
@@ -152,7 +152,7 @@ defmodule Mix.Tasks.Deps.Compile do
             "dependency #{app}, please ensure rebar is available"
         end
         Mix.Task.run "local.rebar", []
-        Mix.Tasks.Local.Rebar.local_rebar_path
+        Mix.Tasks.local_rebar_path
     end
   end
 
