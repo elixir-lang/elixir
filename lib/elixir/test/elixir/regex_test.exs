@@ -143,10 +143,15 @@ defmodule Regex.BinaryTest do
     assert escaping("(", "(")
     assert escaping("()", "()")
     assert escaping("(?:foo)", "(?:foo)")
+
+    assert escaping("\\A  \\z", "\\A  \\z")
+    assert escaping("  x  ", "  x  ")
+    assert escaping("  x    x ", "  x    x ") # unicode spaces here
+    assert escaping("# lol", "# lol")
   end
 
   defp escaping(string, match) do
-    Regex.match? %r/#{Regex.escape(string)}/, match
+    Regex.match? %r/#{Regex.escape(string)}/xu, match
   end
 end
 

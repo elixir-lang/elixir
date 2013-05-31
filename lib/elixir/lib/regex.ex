@@ -291,7 +291,7 @@ defmodule Regex do
     :re.replace(string, compiled, replacement, opts)
   end
 
-  { :ok, pattern } = :re.compile(%B"[.^$*+?()[{\\\\|]")
+  { :ok, pattern } = :re.compile(%B"[.^$*+?()[{\\\|\s#]", [:unicode])
   @escape_pattern pattern
 
   @spec escape(String.t | char_list) :: String.t | char_list
