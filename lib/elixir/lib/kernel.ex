@@ -1379,6 +1379,13 @@ defmodule Kernel do
       file_info = FileInfo.new(atime: now())
       file_info.atime         #=> Returns the value of atime
       file_info.atime(now())  #=> Updates the value of atime
+      
+      # Update multiple attributes at once:
+      file_info.update(atime: now(), accesses: 1)
+      
+      # Obtain the keywords representation of a record:
+      file_info.to_keywords   #=> [accesses: 1, atime: {1370,7171,911705}]
+      
 
   A record is simply a tuple where the first element is the record
   module name. We can get the record raw representation as follow:
