@@ -62,10 +62,10 @@ defmodule Mix.Shell do
       { :unix, _ } ->
         %c(sh -c '#{command}')
       { :win32, osname } ->
-        case { System.getenv("COMSPEC"), osname } do
-          { false, :windows } -> 'command.com /c #{command}'
-          { false, _ }        -> 'cmd /c #{command}'
-          { false, cmd }      -> '#{cmd} /c #{command}'
+        case { System.get_env("COMSPEC"), osname } do
+          { nil, :windows } -> 'command.com /c #{command}'
+          { nil, _ }        -> 'cmd /c #{command}'
+          { cmd, _ }          -> '#{cmd} /c #{command}'
         end
     end
   end
