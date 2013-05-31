@@ -127,6 +127,27 @@ defmodule Regex.BinaryTest do
     assert Regex.replace(%r(b), "abcbe", "[\\&]") == "a[&]c[&]e"
     assert Regex.replace(%r[(b)], "abcbe", "[\\1]") == "a[b]c[b]e"
   end
+
+  test :escape do
+    assert escaping(".", ".")
+    refute escaping(".", "x")
+
+    assert escaping("[\w]", "[\w]")
+    refute escaping("[\w]", "x")
+
+    assert escaping("\\", "\\")
+
+    assert escaping("\\xff", "\\xff")
+    refute escaping("\\xff", "\xff")
+
+    assert escaping("(", "(")
+    assert escaping("()", "()")
+    assert escaping("(?:foo)", "(?:foo)")
+  end
+
+  defp escaping(string, match) do
+    Regex.match? %r/#{Regex.escape(string)}/, match
+  end
 end
 
 defmodule Regex.ListTest do
