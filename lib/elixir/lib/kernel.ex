@@ -2949,7 +2949,7 @@ defmodule Kernel do
   @doc """
   `|>` is called the pipeline operator as it is useful
   to write pipeline style expressions. This operator
-  tntroduces the expression on the left as the first
+  introduces the expression on the left as the first
   argument to the expression on the right.
 
   ## Examples
