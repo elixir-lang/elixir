@@ -78,7 +78,7 @@ defmodule ExUnit.CaptureIOTest do
   test :capture_io_with_get_chars do
     assert capture_io(fn ->
       :io.get_chars(">", 3)
-    end) == nil
+    end) == ">"
 
     capture_io(fn ->
       assert :io.get_chars(">", 3) == :eof
@@ -104,7 +104,7 @@ defmodule ExUnit.CaptureIOTest do
   test :capture_io_with_get_line do
     assert capture_io(fn ->
       :io.get_line ">"
-    end) == nil
+    end) == ">"
 
     capture_io(fn ->
       assert :io.get_line(">") == :eof
@@ -144,8 +144,16 @@ defmodule ExUnit.CaptureIOTest do
 
   test :capture_io_with_get_until do
     assert capture_io(fn ->
-      assert :io.scan_erl_form('>')
-    end) == nil
+      :io.scan_erl_form('>')
+    end) == ">"
+
+    assert capture_io("1.\n", fn ->
+      :io.scan_erl_form('>')
+    end) == ">"
+
+    assert capture_io("1\n.\n", fn ->
+       :io.scan_erl_form('>')
+    end) == ">>"
 
     capture_io(fn ->
       assert :io.scan_erl_form('>') == { :eof, 1 }
