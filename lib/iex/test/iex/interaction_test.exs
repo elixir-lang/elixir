@@ -14,8 +14,9 @@ defmodule IEx.InteractionTest do
   end
 
   test "exception" do
-    assert capture_iex("1 + :atom\n:this_is_still_working") =~ %r/^#{iex_format_exception(ArithmeticError,
-      "bad argument in arithmetic expression")}.+\n:this_is_still_working$/s
+    exception = Regex.escape("** (ArithmeticError) bad argument in arithmetic expression")
+    assert capture_iex("1 + :atom\n:this_is_still_working")
+           =~ %r/^#{exception}.+\n:this_is_still_working$/s
   end
 
   test "empty history at the start" do
