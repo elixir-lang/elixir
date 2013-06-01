@@ -11,7 +11,7 @@ defrecord Mix.Dep, [ scm: nil, app: nil, requirement: nil, status: nil, opts: ni
   * opts - the options given by the developer
   * source - any possible configuration associated with the manager field,
              rebar.config for rebar or the Mix.Project for Mix
-  * manager - the project management, possible values: :rebar / :mix / nil
+  * manager - the project management, possible values: :rebar | :mix | :make | nil
   """
 end
 
@@ -276,7 +276,7 @@ defmodule Mix.Deps do
   @doc """
   Returns true if dependency is a make project.
   """
-  def make?(dep) do
-    File.regular? Path.join(dep.opts[:dest], "Makefile")
+  def make?(Mix.Dep[manager: manager]) do
+    manager == :make
   end
 end

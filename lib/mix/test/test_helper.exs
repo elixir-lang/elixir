@@ -186,7 +186,6 @@ target = Path.expand("fixtures/git_rebar", __DIR__)
 
 unless File.dir?(target) do
   File.mkdir_p!(Path.join(target, "src"))
-  File.write!(Path.join(target, "rebar.config"), "")
 
   File.write!(Path.join([target, "src", "git_rebar.app.src"]), """)
   {application, git_rebar,

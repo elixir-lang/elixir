@@ -36,7 +36,7 @@ defmodule Mix.Deps.Retriever do
   Receives a dependency and update its status.
   """
   def update(Mix.Dep[scm: scm, app: app, requirement: req, opts: opts]) do
-    update({ app, req, opts }, [scm])
+    update({ app, req, opts }, [scm], nil)
   end
 
   ## Helpers
@@ -44,31 +44,38 @@ defmodule Mix.Deps.Retriever do
   defp mix_children(config) do
     scms = Mix.SCM.available
     Mix.Project.recur(config, fn _ ->
-      (Mix.project[:deps] || []) |> Enum.map(update(&1, scms))
+      (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, nil))
     end) |> List.concat
   end
 
   defp rebar_children(dir) do
     scms = Mix.SCM.available
     Mix.Rebar.recur(dir, fn config ->
-      Mix.Rebar.deps(config) |> Enum.map(update(&1, scms))
+      Mix.Rebar.deps(config) |> Enum.map(update(&1, scms, :rebar))
     end) |> List.concat
   end
 
-  defp update(tuple, scms) do
+  defp update(tuple, scms, manager) do
     dep = with_scm_and_status(tuple, scms)
 
-    cond do
-      Mix.Deps.available?(dep) and mixfile?(dep) ->
-        Mix.Deps.in_dependency(dep, fn project ->
-          mix_dep(dep, project)
-        end)
+    if Mix.Deps.available?(dep) do
+      cond do
+        mixfile?(dep) ->
+          Mix.Deps.in_dependency(dep, fn project ->
+            mix_dep(dep, project)
+          end)
 
-      Mix.Deps.available?(dep) and rebarconfig?(dep) ->
-        rebar_dep(dep)
+        rebarconfig?(dep) ->
+          rebar_dep(dep)
 
-      true ->
-        dep
+        makefile?(dep) ->
+          make_dep(dep)
+
+        true ->
+          dep.manager(manager)
+      end
+    else
+      dep
     end
   end
 
@@ -88,6 +95,12 @@ defmodule Mix.Deps.Retriever do
   end
 
   defp rebar_dep(dep), do: dep
+
+  defp make_dep(Mix.Dep[manager: nil] = dep) do
+    dep.manager(:make)
+  end
+
+  defp make_dep(dep), do: dep
 
   defp with_scm_and_status({ app, opts }, scms) when is_atom(app) and is_list(opts) do
     with_scm_and_status({ app, nil, opts }, scms)
@@ -168,5 +181,9 @@ defmodule Mix.Deps.Retriever do
     Enum.any?(["rebar.config", "rebar.config.script"], fn file ->
       File.regular?(Path.join(dep.opts[:dest], file))
     end)
+  end
+
+  defp makefile?(dep) do
+    File.regular? Path.join(dep.opts[:dest], "Makefile")
   end
 end

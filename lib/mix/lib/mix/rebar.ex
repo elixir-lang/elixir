@@ -70,7 +70,7 @@ defmodule Mix.Rebar do
   end
 
   defp parse_dep({ app, req }, deps_dir) do
-    { app, compile_req(req), [path: Path.join(deps_dir, app)]}
+    { app, compile_req(req), [path: Path.join(deps_dir, app)] }
   end
 
   defp parse_dep({ app, req, source }, _deps_dir) do

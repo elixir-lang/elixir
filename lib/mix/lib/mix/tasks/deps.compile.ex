@@ -155,5 +155,4 @@ defmodule Mix.Tasks.Deps.Compile do
         Mix.Tasks.local_rebar_path
     end
   end
-
 end
