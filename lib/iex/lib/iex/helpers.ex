@@ -252,7 +252,8 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Purges and reloads specified module.
+  Loads given module beam code (and ensures any previous
+  old version was properly purged before).
   """
   def l(module) do
     :code.purge(module)
