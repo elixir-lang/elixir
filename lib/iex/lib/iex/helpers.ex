@@ -286,8 +286,8 @@ defmodule IEx.Helpers do
     source = module.module_info(:compile)[:source]
 
     case source do
-      { :source, source } -> list_to_binary(source)
-      _ -> nil
+      nil -> nil
+      source -> list_to_binary(source)
     end
   end
 
