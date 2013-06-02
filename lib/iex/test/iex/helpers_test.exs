@@ -155,97 +155,103 @@ defmodule IEx.HelpersTest do
     end) >= 2
   end
 
+  defp cleanup_modules(mods) do
+    Enum.each mods, fn mod ->
+      File.rm! "#{mod}.beam"
+      true = :code.delete mod
+      :code.purge mod
+    end
+  end
+
+  defp with_file(names, codes, fun) when is_list(names) and is_list(codes) do
+    Enum.each Enum.zip(names, codes), fn { name, code } ->
+      File.write! name, code
+    end
+    try do
+      fun.()
+    after
+      Enum.each names, File.rm(&1)
+    end
+  end
+
+  defp with_file(name, code, fun) do
+    with_file(List.wrap(name), List.wrap(code), fun)
+  end
+
   test "c helper" do
-    assert_raise UndefinedFunctionError, "undefined function: Helpers_test_module.run/0", fn ->
-      Helpers_test_module.run
+    assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+      Sample.run
     end
 
-    File.write! "test-module-code.ex", test_module_code
-    assert c("test-module-code.ex") == [Helpers_test_module]
-    assert Helpers_test_module.run == :run
+    filename = "test-module-code.ex"
+    with_file filename, test_module_code, fn ->
+      assert c(filename) == [Sample]
+      assert Sample.run == :run
+    end
   after
-    File.rm "test-module-code.ex"
-    File.rm! "Elixir.Helpers_test_module.beam"
-    true = :code.delete Helpers_test_module
-    :code.purge Helpers_test_module
+    cleanup_modules([Sample])
   end
 
   test "c helper multiple modules" do
-    assert_raise UndefinedFunctionError, "undefined function: Helpers_test_module.run/0", fn ->
-      Helpers_test_module.run
+    assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+      Sample.run
     end
 
-    File.write! "test-module-code.ex", test_module_code <> "\n" <> another_test_module
-    assert c("test-module-code.ex") |> Enum.sort == [Another_test_module,Helpers_test_module]
-    assert Helpers_test_module.run == :run
-    assert Another_test_module.hello == :world
+    filename = "test-module-code.ex"
+    with_file filename, test_module_code <> "\n" <> another_test_module, fn ->
+      assert c(filename) |> Enum.sort == [Sample,Sample2]
+      assert Sample.run == :run
+      assert Sample2.hello == :world
+    end
   after
-    File.rm "test-module-code.ex"
-    File.rm "Elixir.Helpers_test_module.beam"
-    true = :code.delete Helpers_test_module
-    :code.purge Helpers_test_module
-
-    File.rm! "Elixir.Another_test_module.beam"
-    true = :code.delete Another_test_module
-    :code.purge Another_test_module
+    cleanup_modules([Sample, Sample2])
   end
 
   test "c helper list" do
-    assert_raise UndefinedFunctionError, "undefined function: Helpers_test_module.run/0", fn ->
-      Helpers_test_module.run
+    assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+      Sample.run
     end
 
-    File.write! "test-module-code-1.ex", test_module_code
-    File.write! "test-module-code-2.ex", another_test_module
-    assert c(["test-module-code-1.ex", "test-module-code-2.ex"]) |> Enum.sort
-           == [Another_test_module,Helpers_test_module]
-    assert Helpers_test_module.run == :run
-    assert Another_test_module.hello == :world
+    filenames = ["test-module-code-1.ex", "test-module-code-2.ex"]
+    with_file filenames, [test_module_code, another_test_module], fn ->
+      assert c(filenames) |> Enum.sort == [Sample,Sample2]
+      assert Sample.run == :run
+      assert Sample2.hello == :world
+    end
   after
-    File.rm "test-module-code-1.ex"
-    File.rm "test-module-code-2.ex"
-
-    File.rm "Elixir.Helpers_test_module.beam"
-    true = :code.delete Helpers_test_module
-    :code.purge Helpers_test_module
-
-    File.rm! "Elixir.Another_test_module.beam"
-    true = :code.delete Another_test_module
-    :code.purge Another_test_module
+    cleanup_modules([Sample, Sample2])
   end
 
   test "l helper" do
-    assert_raise UndefinedFunctionError, "undefined function: Helpers_test_module.run/0", fn ->
-      Helpers_test_module.run
+    assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+      Sample.run
     end
 
     assert l(:non_existent_module) == {:error,:nofile}
 
-    File.write! "test-module-code.ex", test_module_code
-    assert c("test-module-code.ex") == [Helpers_test_module]
-    assert Helpers_test_module.run == :run
+    filename = "test-module-code.ex"
+    with_file filename, test_module_code, fn ->
+      assert c(filename) == [Sample]
+      assert Sample.run == :run
 
-    File.write! "test-module-code.ex", "defmodule Helpers_test_module do end"
-    # FIXME: is there another way to compile a file without loading its module?
-    System.cmd "elixirc test-module-code.ex"
+      File.write! filename, "defmodule Sample do end"
+      # FIXME: is there another way to compile a file without loading its module?
+      System.cmd "elixirc test-module-code.ex"
 
-    assert l(Helpers_test_module) == {:module, Helpers_test_module}
-    assert_raise UndefinedFunctionError, fn ->
-      Helpers_test_module.run
+      assert l(Sample) == {:module, Sample}
+      assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+        Sample.run
+      end
     end
   after
-    File.rm "test-module-code.ex"
-    File.rm! "Elixir.Helpers_test_module.beam"
-
-    # FIXME: This errors out with "Module 'Elixir.Helpers_test_module' must be purged before loading"
-    #true = :code.delete Helpers_test_module
-
-    :code.purge Helpers_test_module
+    # Clean up the old version left over after l()
+    :code.purge(Sample)
+    cleanup_modules([Sample])
   end
 
   test "r helper" do
-    assert_raise UndefinedFunctionError, "undefined function: Helpers_test_module.run/0", fn ->
-      Helpers_test_module.run
+    assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+      Sample.run
     end
 
     assert r == []
@@ -254,26 +260,24 @@ defmodule IEx.HelpersTest do
       r :non_existent_module
     end
 
-    File.write! "test-module-code.ex", test_module_code
-    assert c("test-module-code.ex") == [Helpers_test_module]
-    assert Helpers_test_module.run == :run
-    # FIXME: `r Helpers_test_module` returns :nosource
-    assert r(Helpers_test_module) == [Helpers_test_module]
+    filename = "test-module-code.ex"
+    with_file filename, test_module_code, fn ->
+      assert c(filename) == [Sample]
+      assert Sample.run == :run
+      # FIXME: `r Sample` returns :nosource
+      assert r(Sample) == [Sample]
 
-    assert r == [Helpers_test_module]
+      assert r == [Sample]
+    end
   after
-    File.rm "test-module-code.ex"
-    File.rm! "Elixir.Helpers_test_module.beam"
-
-    # FIXME: This errors out with "Module 'Elixir.Helpers_test_module' must be purged before loading"
-    #true = :code.delete Helpers_test_module
-
-    :code.purge Helpers_test_module
+    # Clean up old version produced by the r helper
+    :code.purge(Sample)
+    cleanup_modules([Sample])
   end
 
   defp test_module_code do
     """
-    defmodule Helpers_test_module do
+    defmodule Sample do
       def run do
         :run
       end
@@ -283,7 +287,7 @@ defmodule IEx.HelpersTest do
 
   defp another_test_module do
     """
-    defmodule Another_test_module do
+    defmodule Sample2 do
       def hello do
         :world
       end
