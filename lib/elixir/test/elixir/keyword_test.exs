@@ -25,7 +25,7 @@ defmodule KeywordTest do
     list = [{:b,2},{:a,1},{:c,3}]
     dict = HashDict.new list
     assert Keyword.from_enum(list) == [b: 2, a: 1, c: 3]
-    assert Keyword.from_enum(dict) == [a: 1, b: 2, c: 3]
+    assert Keyword.equal?(Keyword.from_enum(dict), [a: 1, b: 2, c: 3])
   end
 
   test :keyword? do

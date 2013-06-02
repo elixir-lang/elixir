@@ -23,16 +23,16 @@ defmodule URITest do
   end
 
   test :decode_query do
-    assert URI.decode_query("q=search%20query&cookie=ab%26cd&block%20buster=") ==
-                HashDict.new [{"block buster", ""}, {"cookie", "ab&cd"}, {"q", "search query"}]
-    assert URI.decode_query("") == HashDict.new
-    assert URI.decode_query("something=weird%3Dhappening") == HashDict.new [{"something", "weird=happening"}]
+    assert HashDict.equal?(URI.decode_query("q=search%20query&cookie=ab%26cd&block%20buster="),
+      HashDict.new [{"block buster", ""}, {"cookie", "ab&cd"}, {"q", "search query"}])
+    assert HashDict.equal?(URI.decode_query(""), HashDict.new)
+    assert HashDict.equal?(URI.decode_query("something=weird%3Dhappening"), HashDict.new [{"something", "weird=happening"}])
 
     assert URI.decode_query("", []) == []
 
-    assert URI.decode_query("garbage")                   == HashDict.new [{"garbage", nil}]
-    assert URI.decode_query("=value")                    == HashDict.new [{"", "value"}]
-    assert URI.decode_query("something=weird=happening") == HashDict.new [{"something", "weird=happening"}]
+    assert HashDict.equal?(URI.decode_query("garbage"), HashDict.new [{"garbage", nil}])
+    assert HashDict.equal?(URI.decode_query("=value"), HashDict.new [{"", "value"}])
+    assert HashDict.equal?(URI.decode_query("something=weird=happening"), HashDict.new [{"something", "weird=happening"}])
   end
 
   test :decoder do
