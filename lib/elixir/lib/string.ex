@@ -514,7 +514,8 @@ defmodule String do
   def valid_character?(_), do: false
 
   @doc %B"""
-  Checks whether `str` is a valid codepoint.
+  Checks whether `cp` is a valid codepoint. It can be a string
+  or an integer value representing a code point.
 
   Note that the empty string is considered invalid, as are
   strings containing multiple codepoints.
@@ -529,10 +530,24 @@ defmodule String do
       false
       iex> String.valid_codepoint?("asdf")
       false
+      iex> String.valid_codepoint?(0x000A)
+      true
+      iex> String.valid_codepoint?(0x005C)
+      true
+      iex> String.valid_codepoint?(0xFFFFFF)
+      false
 
   """
   @spec valid_codepoint?(codepoint) :: boolean
-  def valid_codepoint?(<<_ :: utf8>>), do: true
+  def valid_codepoint?(cp = <<_ :: utf8>>) when is_binary(cp), do: true
+  def valid_codepoint?(cp) when is_integer(cp) do
+    try do
+      <<cp :: utf8>>
+      true
+    rescue
+      ArgumentError -> false
+    end
+  end
   def valid_codepoint?(_), do: false
 
   @doc """
