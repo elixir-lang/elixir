@@ -21,6 +21,7 @@ defmodule HashDictTest do
   test :fetch! do
     dict = filled_dict(8)
     assert HashDict.fetch!(dict, 1) == 1
+    assert HashDict.fetch!(dict, 1.0) == 1
     assert_raise KeyError, fn ->
       HashDict.fetch!(dict, 11)
     end
@@ -35,13 +36,23 @@ defmodule HashDictTest do
   test :fetch do
     dict = filled_dict(8)
     assert HashDict.fetch(dict, 4)  == { :ok, 4 }
+    assert HashDict.fetch(dict, 4.0) == { :ok, 4 }
     assert HashDict.fetch(dict, 16) == :error
+
+    dict = filled_dict(120)
+    assert HashDict.fetch(dict, 120.0) == { :ok, 120 }
+    assert HashDict.fetch(dict, 120.1) == :error
+
+    dict = HashDict.put(dict, [1, {1.0}], 1)
+    assert HashDict.fetch(dict, [1, {1.0}]) == { :ok, 1}
+    assert HashDict.fetch(dict, [1.0, {1}]) == { :ok, 1}
   end
 
   test :has_key? do
     dict = filled_dict(8)
     assert HashDict.has_key? dict, 4
     refute HashDict.has_key? dict, 16
+    assert HashDict.has_key? dict, 4.0
 
     dict = filled_dict(20)
     assert HashDict.has_key? dict, 10
@@ -50,6 +61,7 @@ defmodule HashDictTest do
     dict = filled_dict(120)
     assert HashDict.has_key? dict, 60
     refute HashDict.has_key? dict, 240
+    assert HashDict.has_key? dict, 60.0
   end
 
   test :put_new do
@@ -62,6 +74,22 @@ defmodule HashDictTest do
     dict = HashDict.put_new(dict, 11, 13)
     assert HashDict.get(dict, 11) == 13
     assert HashDict.size(dict) == 9
+
+    dict = filled_dict(120)
+
+    dict = HashDict.put_new(dict, 120.0, 121)
+    assert HashDict.get(dict, 120) == 120
+    assert HashDict.get(dict, 120.0) == 120
+    assert HashDict.size(dict) == 120
+
+    dict = HashDict.put_new(dict, 121.0, 121)
+    assert HashDict.get(dict, 121) == 121
+    assert HashDict.get(dict, 121.0) == 121
+
+    dict = HashDict.put_new(dict, {[1.0], {1}}, 1)
+    size = HashDict.size(dict)
+    dict = HashDict.put_new(dict, {[1], {1.0}}, 2)
+    assert HashDict.size(dict) == size
   end
 
   test :update do
@@ -82,6 +110,22 @@ defmodule HashDictTest do
     dict = HashDict.update(dict, 11, 13, &1 * 2)
     assert HashDict.get(dict, 11) == 13
     assert HashDict.size(dict) == 9
+
+    dict = filled_dict(120)
+
+    dict = HashDict.update(dict, 120, 240, &1 * 2)
+    assert HashDict.get(dict, 120.0) == 240
+    assert HashDict.size(dict) == 120
+
+    dict = HashDict.put_new(dict, 121.0, 121)
+    dict = HashDict.update(dict, 121, &1 * 2)
+    assert HashDict.get(dict, 121) == 242
+    assert HashDict.size(dict) == 121
+
+    dict = HashDict.update(dict, [{122, [122.0]}], 122, &1 * 2)
+    assert HashDict.get(dict, [{122.0, [122]}]) == 122
+    dict = HashDict.update(dict, [{122.0, [122]}], 122, &1 * 2)
+    assert HashDict.get(dict, [{122.0, [122.0]}]) == 244
   end
 
   test :to_list do

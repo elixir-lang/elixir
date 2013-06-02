@@ -146,7 +146,7 @@ defmodule HashDict do
   """
   def get(dict, key, default // nil) do
     case dict_get(dict, key) do
-      { ^key, value } -> value
+      { _key, value } -> value
       false -> default
     end
   end
@@ -157,14 +157,14 @@ defmodule HashDict do
   """
   def fetch(dict, key) do
     case dict_get(dict, key) do
-      { ^key, value } -> { :ok, value }
+      { _key, value } -> { :ok, value }
       false -> :error
     end
   end
 
   def fetch!(dict, key) when is_tuple(dict) do
     case dict_get(dict, key) do
-      { ^key, value } -> value
+      { _key, value } -> value
       false -> raise(KeyError, key: key)
     end
   end
@@ -174,7 +174,7 @@ defmodule HashDict do
   Checks if the dict has the given key.
   """
   def has_key?(dict, key) do
-    match? { ^key, _ }, dict_get(dict, key)
+    match? { _key, _value }, dict_get(dict, key)
   end
 
   @doc """
@@ -465,7 +465,28 @@ defmodule HashDict do
   end
 
   defp bucket_hash(key) do
-    :erlang.phash2(key)
+    :erlang.phash2(bucket_normalize(key))
+  end
+
+  defp bucket_normalize(key) when is_list(key) do
+    lc element inlist key, do: bucket_normalize(element)
+  end
+
+  defp bucket_normalize(key) when is_tuple(key) do
+    list_to_tuple(bucket_normalize(tuple_to_list(key)))
+  end
+
+  defp bucket_normalize(key) when is_float(key) do
+    case round(key) do
+      integer when integer == key ->
+        integer
+      _ ->
+        key
+    end
+  end
+
+  defp bucket_normalize(key) do
+    key
   end
 
   defp bucket_index(hash) do
