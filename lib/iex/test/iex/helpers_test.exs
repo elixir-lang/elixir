@@ -155,11 +155,15 @@ defmodule IEx.HelpersTest do
     end) >= 2
   end
 
+  defp purge(mod) do
+    true = :code.delete mod
+    :code.purge mod
+  end
+
   defp cleanup_modules(mods) do
     Enum.each mods, fn mod ->
       File.rm! "#{mod}.beam"
-      true = :code.delete mod
-      :code.purge mod
+      purge mod
     end
   end
 
@@ -183,7 +187,7 @@ defmodule IEx.HelpersTest do
       Sample.run
     end
 
-    filename = "test-module-code.ex"
+    filename = "sample.ex"
     with_file filename, test_module_code, fn ->
       assert c(filename) == [Sample]
       assert Sample.run == :run
@@ -197,7 +201,7 @@ defmodule IEx.HelpersTest do
       Sample.run
     end
 
-    filename = "test-module-code.ex"
+    filename = "sample.ex"
     with_file filename, test_module_code <> "\n" <> another_test_module, fn ->
       assert c(filename) |> Enum.sort == [Sample,Sample2]
       assert Sample.run == :run
@@ -212,7 +216,7 @@ defmodule IEx.HelpersTest do
       Sample.run
     end
 
-    filenames = ["test-module-code-1.ex", "test-module-code-2.ex"]
+    filenames = ["sample1.ex", "sample2.ex"]
     with_file filenames, [test_module_code, another_test_module], fn ->
       assert c(filenames) |> Enum.sort == [Sample,Sample2]
       assert Sample.run == :run
@@ -229,14 +233,14 @@ defmodule IEx.HelpersTest do
 
     assert l(:non_existent_module) == {:error,:nofile}
 
-    filename = "test-module-code.ex"
+    filename = "sample.ex"
     with_file filename, test_module_code, fn ->
       assert c(filename) == [Sample]
       assert Sample.run == :run
 
       File.write! filename, "defmodule Sample do end"
       # FIXME: is there another way to compile a file without loading its module?
-      System.cmd "elixirc test-module-code.ex"
+      System.cmd "../../bin/elixirc sample.ex"
 
       assert l(Sample) == {:module, Sample}
       assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
@@ -249,25 +253,38 @@ defmodule IEx.HelpersTest do
     cleanup_modules([Sample])
   end
 
+  test "r helper basic" do
+    assert r == []
+    assert_raise UndefinedFunctionError, "undefined function: :non_existent_module.module_info/1", fn ->
+      r :non_existent_module
+    end
+
+    # There is no source file for the module defined in IEx
+    assert ":ok\n** (Code.LoadError) could not load" <> _
+           = capture_iex("{:module, Sample, _, {:run,0}} = #{String.strip test_module_code}; :ok\nr Sample")
+  after
+    purge Sample
+  end
+
   test "r helper" do
     assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
       Sample.run
     end
 
-    assert r == []
-    assert r(Kernel) == :nosource
-    assert_raise UndefinedFunctionError, "undefined function: :non_existent_module.module_info/1", fn ->
-      r :non_existent_module
-    end
-
-    filename = "test-module-code.ex"
+    filename = "sample.ex"
     with_file filename, test_module_code, fn ->
-      assert c(filename) == [Sample]
-      assert Sample.run == :run
-      # FIXME: `r Sample` returns :nosource
-      assert r(Sample) == [Sample]
+      assert capture_io(:stdio, fn ->
+        assert c(filename) == [Sample]
+        assert Sample.run == :run
 
-      assert r == [Sample]
+        File.write! filename, "defmodule Sample do end"
+        assert {Sample, [Sample]} = r(Sample)
+        assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+          Sample.run
+        end
+
+        assert [Sample] = r()
+      end) =~ %r"^.+?sample\.ex:1: redefining module Sample\n.+?sample\.ex:1: redefining module Sample\n$"
     end
   after
     # Clean up old version produced by the r helper
