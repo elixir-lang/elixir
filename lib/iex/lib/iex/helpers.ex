@@ -233,7 +233,7 @@ defmodule IEx.Helpers do
   in the current IEx session.
   """
   def r do
-    Enum.map iex_reloaded, r(&1)
+    List.flatten(Enum.map(iex_reloaded, do_r(&1)))
   end
 
   @doc """
@@ -243,9 +243,16 @@ defmodule IEx.Helpers do
   are recompiled and reloaded.
   """
   def r(module) do
+    case do_r(module) do
+      mods when is_list(mods) -> { module, mods }
+      other -> other
+    end
+  end
+
+  defp do_r(module) do
     if source = source(module) do
       Process.put(:iex_reloaded, :ordsets.add_element(module, iex_reloaded))
-      { module, Code.load_file source }
+      Enum.map(Code.load_file(source), fn {name, _} -> name end)
     else
       :nosource
     end
