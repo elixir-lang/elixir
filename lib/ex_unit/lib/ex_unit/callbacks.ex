@@ -29,6 +29,11 @@ defmodule ExUnit.Callbacks do
           :ok
         end
 
+        teardown context do
+          assert context[:hello] == "world"
+          :ok
+        end
+
         test "always pass" do
           assert true
         end

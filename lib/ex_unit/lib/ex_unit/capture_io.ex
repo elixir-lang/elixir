@@ -1,7 +1,6 @@
 defmodule ExUnit.CaptureIO do
   @moduledoc %B"""
   This module provides functionality to capture IO to test it.
-  The way to use this module is to import them into your module.
 
   ## Examples
 
@@ -21,16 +20,16 @@ defmodule ExUnit.CaptureIO do
 
   @doc """
   Captures IO. Returns nil in case of no output,
-  otherwise returns the binary which is captured outputs.
+  otherwise returns the binary which is the captured output.
 
   By default, capture_io replaces the group_leader (`:stdio`)
   for the current process. However, the capturing of any other
   named device like `:stderr` is also possible globally by
   giving the registered device name explicitly as argument.
 
-  When capturing of `:stdio` and the `:capture_prompt` option
-  is not `false`, this function captures a prompt, otherwise 
-  do not.
+  When capturing `:stdio` and the `:capture_prompt` option is `false`,
+  prompts (specified as arguments in IO.get* functions) are not
+  captured.
 
   A developer can set a string as an input. The default
   input is `:eof`.

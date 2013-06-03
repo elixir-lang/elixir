@@ -205,7 +205,11 @@ defmodule IEx do
     :application.start(:iex)
   end
 
-  defp boot_config(opts) do
+  @doc """
+  Returns default config used to launch IEx. This config is also used by
+  IEx.TestFramework.
+  """
+  def boot_config(opts) do
     scope = :elixir.scope_for_eval(
       file: "iex",
       delegate_locals_to: IEx.Helpers
