@@ -5,6 +5,15 @@ defmodule IEx.InteractionTest do
 
   ### basic interaction ###
 
+  test "whole output" do
+    IEx.Options.set :colors, enabled: false
+
+    # We're using bare-bones capture_io instead of capture_iex only once here
+    assert capture_io("IO.puts \"Hello world\"", fn ->
+      IEx.Server.start(IEx.boot_config(dot_iex_path: ""))
+    end) =~ %r"^Interactive Elixir \(.+?\) - press Ctrl\+C to exit \(type h\(\) ENTER for help\)\niex\(1\)> Hello world\n:ok\niex\(2\)> $"
+  end
+
   test "empty input" do
     assert capture_iex("\n") == "nil"
   end
