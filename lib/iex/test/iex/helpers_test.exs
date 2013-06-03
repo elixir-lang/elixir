@@ -239,7 +239,7 @@ defmodule IEx.HelpersTest do
       assert Sample.run == :run
 
       File.write! filename, "defmodule Sample do end"
-      # FIXME: is there another way to compile a file without loading its module?
+      # FIXME: this could probably be improved
       System.cmd "../../bin/elixirc sample.ex"
 
       assert l(Sample) == {:module, Sample}

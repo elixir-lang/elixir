@@ -264,7 +264,6 @@ defmodule IEx.Helpers do
   """
   def l(module) do
     :code.purge(module)
-    # FIXME: shouldn't we use Code.load_file here?
     :code.load_file(module)
   end
 
