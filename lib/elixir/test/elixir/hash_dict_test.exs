@@ -111,13 +111,13 @@ defmodule HashDictTest do
     list = dict |> HashDict.to_list
     assert length(list) == 20
     assert { 1, 1 } in list
-    assert :lists.keysort(1, list) == :lists.keysort(1, Enum.to_list(dict))
+    assert list == Enum.to_list(dict)
 
     dict = filled_dict(120)
     list = dict |> HashDict.to_list
     assert length(list) == 120
     assert { 1, 1 } in list
-    assert :lists.keysort(1, list) == :lists.keysort(1, Enum.to_list(dict))
+    assert list == Enum.to_list(dict)
   end
 
   test :keys do

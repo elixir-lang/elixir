@@ -227,7 +227,7 @@ defmodule HashDict do
   end
 
   def to_list(dict) do
-    dict_fold(dict, [], [&1|&2])
+    dict_fold(dict, [], [&1|&2]) |> :lists.reverse
   end
 
   @doc """
@@ -393,21 +393,17 @@ defmodule HashDict do
   end
 
   defp dict_equal?(dict1, dict2) do
-    fun = fn({ key, value }, acc) ->
-      case fetch(dict2, key) do
-        { _ok, ^value } ->
-          acc
-        { _ok, _other} ->
-          throw(:error)
-        :error ->
-          throw(:error)
-      end
-    end
     try do
-      reduce(dict1, true, fun)
+      reduce(dict1, true, fn({ key, value }, acc) ->
+        case fetch(dict2, key) do
+          { _ok, ^value } ->
+            acc
+          _ ->
+            throw(:error)
+        end
+      end)
     catch
-      :error ->
-        false
+      :error -> false
     end
   end
 
@@ -415,7 +411,7 @@ defmodule HashDict do
 
   # Get value from the bucket
   defp bucket_get([{k,_}|_bucket], key) when k > key do
-    :false
+    false
   end
 
   defp bucket_get([{key,_}=e|_bucket], key) do
@@ -427,7 +423,7 @@ defmodule HashDict do
   end
 
   defp bucket_get([], _key) do
-    :false
+    false
   end
 
   # Puts a value in the bucket
