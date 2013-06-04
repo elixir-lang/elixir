@@ -222,6 +222,7 @@ core_main() ->
     "lib/elixir/lib/binary/chars.ex",
     "lib/elixir/lib/io.ex",
     "lib/elixir/lib/path.ex",
+    "lib/elixir/lib/system.ex",
     "lib/elixir/lib/kernel/cli.ex",
     "lib/elixir/lib/kernel/error_handler.ex",
     "lib/elixir/lib/kernel/parallel_compiler.ex",

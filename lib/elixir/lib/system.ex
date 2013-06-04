@@ -14,20 +14,40 @@ defmodule System do
   with the VM or the host system.
   """
 
-  # Read and strip the version from the `VERSION` file.
-  defmacrop get_version do
-    Regex.replace %r/^\s+|\s+$/, File.read!("VERSION"), ""
+  defp strip_re(iodata, pattern) do
+    :re.replace(iodata, pattern, "", [return: :binary])
   end
 
-  # Tries to run `git describe --always --tags`. In case of success
-  # returns the most recent tag, otherwise returns an empty string.
+  defp read_stripped(path) do
+    case :file.read_file(path) do
+      { :ok, binary } ->
+        strip_re(binary, "^\s+|\s+$")
+      _ -> ""
+    end
+  end
+
+  # Read and strip the version from the `VERSION` file.
+  defmacrop get_version do
+    case read_stripped("VERSION") do
+      ""   -> raise CompileError, message: "could not read the version number from VERSION"
+      data -> data
+    end
+  end
+
+  # Tries to run `git describe --always --tags`. In the case of success returns
+  # the most recent tag. If that is not available, tries to read the commit hash
+  # from .git/HEAD. If that fails, returns an empty string.
   defmacrop get_describe do
-    dotgit = Path.join(File.cwd!, ".git")
-    if :os.find_executable('git') && File.exists?(dotgit) do
-      data = :os.cmd('git describe --always --tags')
-      Regex.replace %r/\n/, to_binary(data), ""
-    else
-      ""
+    dirpath = ".git"
+    case :file.read_file_info(dirpath) do
+      { :ok, _ } ->
+        if :os.find_executable('git') do
+          data = :os.cmd('git describe --always --tags')
+          strip_re(data, "\n")
+        else
+          read_stripped(:filename.join(".git", "HEAD"))
+        end
+      _ -> ""
     end
   end
 
@@ -133,15 +153,22 @@ defmodule System do
   end
 
   defp write_env_tmp_dir(env) do
-    case System.get_env(env) do
+    case get_env(env) do
       nil -> nil
       tmp -> write_tmp_dir tmp
     end
   end
 
   defp write_tmp_dir(dir) do
-    case File.stat(dir) do
-      { :ok, File.Stat[type: :directory, access: access] } when access in [:read_write, :write] -> dir
+    case :file.read_file_info(dir) do
+      {:ok, info} ->
+        type_index = File.Stat.__index__ :type
+        access_index = File.Stat.__index__ :access
+        case { elem(info, type_index), elem(info, access_index) } do
+          { :directory, access } when access in [:read_write, :write] ->
+            dir
+          _ -> nil
+        end
       { :error, _ } -> nil
     end
   end
