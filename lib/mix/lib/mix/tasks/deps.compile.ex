@@ -129,7 +129,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_rebar(app, root_path) do
-    do_command app, find_rebar(app), "compile deps_dir=#{inspect root_path}"
+    do_command app, find_rebar(app), "compile skip_deps=true deps_dir=#{inspect root_path}"
   end
 
   defp find_rebar(app) do
