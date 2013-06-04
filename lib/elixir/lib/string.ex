@@ -845,4 +845,29 @@ defmodule String do
 
   def ends_with?(string, suffix), do: ends_with?(string, [ suffix ])
 
+  @doc """
+  Returns true if `string` contains match, otherwise false.
+  `matches` can be either a single match of a list of matches.
+
+  ## Examples
+
+      iex> String.contains? "elixir of life", "of"
+      true
+      iex> String.contains? "elixir of life", ["life", "death"]
+      true
+      iex> String.contains? "elixir of life", ["death", "mercury"]
+      false
+
+  """
+  def contains?(string, matches) when is_list(matches) do
+    Enum.any? matches, fn match ->
+      case :binary.matches(string, match) do
+        [_] -> true
+        []  -> false
+      end
+    end
+  end
+
+  def contains?(string, match), do: contains?(string, [ match ])
+
 end
