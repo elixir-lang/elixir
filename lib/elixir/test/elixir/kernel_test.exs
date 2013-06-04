@@ -231,21 +231,12 @@ defmodule KernelTest do
       assert  1  |> (&1*2).() == 2
       assert [1] |> hd(&1).() == 1
 
+      import CompileAssertion
+
       # FIXME: this mustn't work, but it doesn't call pipeline_op at all
-      #assert "Unsupported expression in pipeline |> operator: &1" = format_rescue("1 |> &1")
-      assert "Unsupported expression in pipeline |> operator: &1 * 2" = format_rescue("1 |> &1*2")
-      assert "Unsupported expression in pipeline |> operator: hd(&1)" = format_rescue("[1] |> hd(&1)")
-    end
-
-    defp format_rescue(expr) do
-      result = try do
-        :elixir.eval(to_char_list(expr), [])
-        nil
-      rescue
-        error -> error.message
-      end
-
-      result || raise(ExUnit.AssertionError, message: "Expected function given to format_rescue to fail")
+      #assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: &1", "1 |> &1"
+      assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: &1 * 2", "1 |> &1*2"
+      assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: hd(&1)", "[1] |> hd(&1)"
     end
 
     def constant, do: 13
