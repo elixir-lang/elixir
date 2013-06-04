@@ -129,4 +129,13 @@ defmodule URITest do
     assert URI.parse("http://GoOgLe.CoM").host == "google.com"
     assert URI.parse("http://LOL:wut@GoOgLe.CoM").authority == "LOL:wut@google.com"
   end
+
+  test :to_binary do
+    assert to_binary(URI.parse("http://google.com")) == "http://google.com"
+    assert to_binary(URI.parse("http://google.com:443")) == "http://google.com:443"
+    assert to_binary(URI.parse("https://google.com:443")) == "https://google.com"
+    assert to_binary(URI.parse("http://lol:wut@google.com")) == "http://lol:wut@google.com"
+    assert to_binary(URI.parse("http://google.com?q=lol")) == "http://google.com?q=lol"
+    assert to_binary(URI.parse("http://google.com?q=lol#omg")) == "http://google.com?q=lol#omg"
+  end
 end
