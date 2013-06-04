@@ -80,11 +80,12 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Checks if the task is defined for umbrella projects.
+  Checks if the task should be run recursively for all sub-apps in
+  umbrella projects. Returns true, false or :both.
   """
-  def recursive?(module) when is_atom(module) do
+  def recursive(module) when is_atom(module) do
     case List.keyfind module.__info__(:attributes), :recursive, 0 do
-      { :recursive, [bool] } -> bool
+      { :recursive, [setting] } -> setting
       _ -> false
     end
   end
@@ -120,13 +121,13 @@ defmodule Mix.Task do
   @doc """
   Runs a `task` with the given `args`.
 
-  If the task was not yet invoked, it returns `:ok`.
+  If the task was not yet invoked, it returns the task result.
 
   If the task was already invoked, it does not run the task
   again and simply aborts with `:noop`.
 
   It may raise an exception if the task was not found
-  or it is invalid. Check `get/2` for more information.
+  or it is invalid. Check `get/1` for more information.
   """
   def run(task, args // []) do
     task = to_binary(task)
@@ -138,8 +139,15 @@ defmodule Mix.Task do
       module = get(task)
       Mix.Server.cast({ :add_task, task, app })
 
-      if recursive?(module) do
-        Mix.Project.recur(fn _ -> module.run(args) end)
+      recursive = recursive(module)
+
+      if recursive do
+        res = if Mix.Project.umbrella? and recursive == :both do
+          [module.run(args)]
+        else
+          []
+        end
+        res ++ Mix.Project.recur(fn _ -> module.run(args) end)
       else
         module.run(args)
       end
