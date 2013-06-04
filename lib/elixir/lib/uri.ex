@@ -150,7 +150,8 @@ defmodule URI do
     scheme_specific(scheme, info)
   end
 
-  defp scheme_specific(scheme, info) do
+  @doc false
+  def scheme_module(scheme) do
     if scheme do
       module =
         try do
@@ -160,10 +161,14 @@ defmodule URI do
         end
 
       if module && Code.ensure_loaded?(module) do
-        module.parse(default_port(info, module))
-      else
-        info
+        module
       end
+    end
+  end
+
+  defp scheme_specific(scheme, info) do
+    if module = scheme_module(scheme) do
+      module.parse(default_port(info, module))
     else
       info
     end
@@ -200,5 +205,24 @@ defmodule URI do
     parsers = [URI.FTP, URI.HTTP, URI.HTTPS, URI.LDAP, URI.SFTP, URI.TFTP]
     Enum.each parsers, Code.ensure_loaded(&1)
     :ok
+  end
+end
+
+defimpl Binary.Chars, for: URI.Info do
+  def to_binary(uri) do
+    result = ""
+
+    if module = URI.scheme_module(uri.scheme) do
+      if module.default_port == uri.port, do: uri = uri.port(nil)
+    end
+
+    if uri.scheme,   do: result = result <> uri.scheme <> "://"
+    if uri.userinfo, do: result = result <> uri.userinfo <> "@"
+    if uri.host,     do: result = result <> uri.host
+    if uri.port,     do: result = result <> ":" <> integer_to_binary(uri.port)
+    if uri.query,    do: result = result <> "?" <> uri.query
+    if uri.fragment, do: result = result <> "#" <> uri.fragment
+
+    result
   end
 end
