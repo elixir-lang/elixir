@@ -303,4 +303,13 @@ defmodule StringTest do
     refute String.ends_with? "エリクシア", "仙丹"
   end
 
+  test :contains? do
+    assert String.contains? "elixir of life", "of"
+    assert String.contains? "エリクシア", "シ"
+    assert String.contains? "elixir of life", ["mercury", "life"]
+    refute String.contains? "exlixir of life", "death"
+    refute String.contains? "エリクシア", "仙"
+    refute String.contains? "elixir of life", ["death", "mercury", "eternal life"]
+  end
+
 end
