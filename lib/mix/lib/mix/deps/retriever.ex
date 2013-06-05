@@ -8,8 +8,10 @@ defmodule Mix.Deps.Retriever do
   Gets all direct children for the current Mix.Project
   as a `Mix.Dep` record.
   """
-  def children(post_config // []) do
-    mix_children(post_config)
+  def children() do
+    # Don't run recursively for the top-level project
+    scms = Mix.SCM.available
+    (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, nil))
   end
 
   @doc """
