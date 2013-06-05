@@ -4,8 +4,24 @@ defmodule KernelTest do
   use ExUnit.Case, async: true
 
   test :match do
-    assert "abcd" =~ %r/c(d)/
-    refute "abcd" =~ %r/e/
+    assert ("abcd" =~ %r/c(d)/) == true
+    assert ("abcd" =~ %r/e/) == false
+
+    string = "^ab+cd*$"
+    assert (string =~ "ab+") == true
+    assert (string =~ "bb") == false
+
+    assert_raise ArgumentError, "bad argument on the right side of =~: [\"^a\",\"*$\"]", fn ->
+      string =~ ["^a", "*$"]
+    end
+
+    assert_raise ArgumentError, "argument error", fn ->
+      1234 =~ "hello"
+    end
+
+    assert_raise ArgumentError, "argument error", fn ->
+      1234 =~ %r"hello"
+    end
   end
 
   test :nil? do
