@@ -24,7 +24,7 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      :{}.(1,2,3)
+      iex> { 1, 2, 3 }
       { 1, 2, 3 }
 
   """
@@ -35,7 +35,7 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      :[].(1,2,3)
+      iex> [ 1, 2, 3 ]
       [ 1, 2, 3 ]
 
   """
@@ -810,4 +810,12 @@ defmodule Kernel.SpecialForms do
 
   """
   defmacro __aliases__(args)
+
+  @doc """
+  Calls the overriden function when overriding it with `defoverridable`. If no
+  arguments are given to `super` the overriden function will be called with the
+  same arguments as the current one. See `Kernel.defoverridable` for more
+  information and documentation.
+  """
+  defmacro super(args)
 end
