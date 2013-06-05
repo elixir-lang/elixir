@@ -1379,13 +1379,13 @@ defmodule Kernel do
       file_info = FileInfo.new(atime: now())
       file_info.atime         #=> Returns the value of atime
       file_info.atime(now())  #=> Updates the value of atime
-      
+
       # Update multiple attributes at once:
       file_info.update(atime: now(), accesses: 1)
-      
+
       # Obtain the keywords representation of a record:
       file_info.to_keywords   #=> [accesses: 1, atime: {1370,7171,911705}]
-      
+
 
   A record is simply a tuple where the first element is the record
   module name. We can get the record raw representation as follow:
@@ -1835,9 +1835,34 @@ defmodule Kernel do
   end
 
   @doc """
-  Makes the given functions in the current module overridable.
-  An overridable function is lazily defined, allowing a
-  developer to customize it.
+  Makes the given functions in the current module overridable. An overridable
+  function is lazily defined, allowing a developer to customize it.
+
+  ## Example
+
+      defmodule DefaultMod do
+        defmacro __using__(_opts) do
+          quote do
+            def test(x, y) do
+              x + y
+            end
+
+            defoverridable [test: 2]
+          end
+        end
+      end
+
+      defmodule InheritMod do
+        use DefaultMod
+
+        def test(x, y) do
+          x * y + super
+        end
+      end
+
+  As seen as in the example `super` can be used to call the default
+  implementation, if no arguments are given to `super` it will be implictly
+  given the arguments of the current function.
   """
   defmacro defoverridable(tuples) do
     quote do
