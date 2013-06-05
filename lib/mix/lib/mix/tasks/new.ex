@@ -143,7 +143,7 @@ defmodule Mix.Tasks.New do
 
     # Returns the list of dependencies in the format:
     # { :foobar, "0.1", git: "https://github.com/elixir-lang/foobar.git" }
-    # Note that these dependencies can not be accessed by child applications
+    # These dependencies are not accessible from child applications
     defp deps do
       []
     end

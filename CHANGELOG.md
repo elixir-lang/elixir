@@ -1,12 +1,18 @@
 # v0.9.2.dev
 
 * enhancements
+  * [ExUnit] `capture_io` now captures prompt by default
   * [Mix] Automatically import git dependencies from Rebar
+  * [Mix] Support for dependencies directly from the umbrella application
   * [Regex] Add `Regex.escape`
+  * [String] Add `String.contains?`
+  * [URI] Implement `Binary.Chars` (aka `to_binary`) for `URI.Info`
 
 * bug fix
+  * [HashDict] Ensure HashDict uses exact match throughout its implementation
   * [IEx] Do not interpret ANSI codes in IEx results
-  * [Kernel] Don't ignore :nil when dispatching protocols to avoid infinite loops
+  * [IEx] Ensure --cookie is set before accessing remote shell
+  * [Kernel] Do not ignore nil when dispatching protocols to avoid infinite loops
   * [Mix] Fix usage of shell expressions in `Mix.Shell.cmd`
   * [Mix] Start the application by default on escripts
 
