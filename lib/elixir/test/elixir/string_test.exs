@@ -299,6 +299,10 @@ defmodule StringTest do
     refute String.starts_with? "hello", "hellö"
     refute String.starts_with? "hello", ["hellö", "goodbye"]
     refute String.starts_with? "エリクシア", "仙丹"
+
+    assert_raise ArgumentError, fn ->
+      String.starts_with? "abc", [["a"], "a"]
+    end
   end
 
   test :ends_with? do
@@ -321,6 +325,10 @@ defmodule StringTest do
     refute String.ends_with? "hello", "hellö"
     refute String.ends_with? "hello", ["hel", "goodbye"]
     refute String.ends_with? "エリクシア", "仙丹"
+
+    assert_raise ArgumentError, fn ->
+      String.ends_with? "abc", [["c"], "c"]
+    end
   end
 
   test :contains? do
@@ -337,6 +345,10 @@ defmodule StringTest do
     refute String.contains? "exlixir of life", "death"
     refute String.contains? "エリクシア", "仙"
     refute String.contains? "elixir of life", ["death", "mercury", "eternal life"]
+
+    assert_raise ArgumentError, fn ->
+      String.contains? "abc", [["b"], "b"]
+    end
   end
 
 end

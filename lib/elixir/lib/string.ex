@@ -811,16 +811,24 @@ defmodule String do
   """
   @spec starts_with?(t, t | [t]) :: boolean
 
-  def starts_with?(_, "") do
+  def starts_with?(string, prefixes) when is_list(prefixes) do
+    Enum.any?(prefixes, do_starts_with(string, &1))
+  end
+
+  def starts_with?(string, prefix) do
+    do_starts_with(string, prefix)
+  end
+
+  defp do_starts_with(_, "") do
     true
   end
 
-  def starts_with?(string, prefix) when is_binary(prefix) do
+  defp do_starts_with(string, prefix) when is_binary(prefix) do
     match?({0,_}, :binary.match(string, prefix))
   end
 
-  def starts_with?(string, prefixes) when is_list(prefixes) do
-    Enum.any?(prefixes, starts_with?(string, &1))
+  defp do_starts_with(_, _) do
+    raise ArgumentError
   end
 
   @doc """
@@ -839,19 +847,27 @@ defmodule String do
   """
   @spec ends_with?(t, t | [t]) :: boolean
 
-  def ends_with?(_, "") do
+  def ends_with?(string, suffixes) when is_list(suffixes) do
+    Enum.any?(suffixes, do_ends_with(string, &1))
+  end
+
+  def ends_with?(string, suffix) do
+    do_ends_with(string, suffix)
+  end
+
+  defp do_ends_with(_, "") do
     true
   end
 
-  def ends_with?(string, suffix) when is_binary(suffix) do
+  defp do_ends_with(string, suffix) when is_binary(suffix) do
     string_size = size(string)
     suffix_size = size(suffix)
     scope = {string_size - suffix_size, suffix_size}
     (suffix_size <= string_size) and (:nomatch != :binary.match(string, suffix, [scope: scope]))
   end
 
-  def ends_with?(string, suffixes) when is_list(suffixes) do
-    Enum.any?(suffixes, ends_with?(string, &1))
+  defp do_ends_with(_, _) do
+    raise ArgumentError
   end
 
   @doc """
