@@ -137,11 +137,7 @@ defmodule Kernel.CLI do
     process_shared t, config.update_commands [{:parallel_require,h}|&1]
   end
 
-  defp process_shared(["--cookie",h|t], config) do
-    process_shared t, config.update_commands [{:cookie,h}|&1]
-  end
-
-  defp process_shared([erl,_|t], config) when erl in ["--erl", "--sname", "--name"] do
+  defp process_shared([erl,_|t], config) when erl in ["--erl", "--sname", "--name", "--cookie"] do
     process_shared t, config
   end
 
