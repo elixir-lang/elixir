@@ -886,11 +886,23 @@ defmodule String do
   """
   @spec contains?(t, t | [t]) :: boolean
 
-  def contains?(_, "") do
+  def contains?(string, matches) when is_list(matches) do
+    Enum.any?(matches, do_contains(string, &1))
+  end
+
+  def contains?(string, match) do
+    do_contains(string, match)
+  end
+
+  defp do_contains(_, "") do
     true
   end
 
-  def contains?(string, matches) do
-    :nomatch != :binary.match(string, matches)
+  defp do_contains(string, match) when is_binary(match) do
+    :nomatch != :binary.match(string, match)
+  end
+
+  defp do_contains(_, _) do
+    raise ArgumentError
   end
 end

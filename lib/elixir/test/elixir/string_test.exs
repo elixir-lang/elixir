@@ -332,13 +332,7 @@ defmodule StringTest do
   end
 
   test :contains? do
-    assert String.contains? "", ""
-    assert String.contains? "abc", ""
-    assert String.contains? "abc", ["", "x"]
-
-    refute String.contains? "", " "
-    refute String.contains? "", "a"
-
+    ## Normal cases ##
     assert String.contains? "elixir of life", "of"
     assert String.contains? "エリクシア", "シ"
     assert String.contains? "elixir of life", ["mercury", "life"]
@@ -346,6 +340,17 @@ defmodule StringTest do
     refute String.contains? "エリクシア", "仙"
     refute String.contains? "elixir of life", ["death", "mercury", "eternal life"]
 
+    ## Edge cases ##
+    assert String.contains? "", ""
+    assert String.contains? "abc", ""
+    assert String.contains? "abc", ["", "x"]
+
+    refute String.contains? "", " "
+    refute String.contains? "", "a"
+
+    ## Sanity checks ##
+    assert String.contains? "", ["", ""]
+    assert String.contains? "abc", ["", ""]
     assert_raise ArgumentError, fn ->
       String.contains? "abc", [["b"], "b"]
     end
