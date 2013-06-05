@@ -281,6 +281,17 @@ defmodule StringTest do
   end
 
   test :starts_with? do
+    ## Normal cases ##
+    assert String.starts_with? "hello", "he"
+    assert String.starts_with? "hello", "hello"
+    assert String.starts_with? "hello", ["hellö", "hell"]
+    assert String.starts_with? "エリクシア", "エリ"
+    refute String.starts_with? "hello", "lo"
+    refute String.starts_with? "hello", "hellö"
+    refute String.starts_with? "hello", ["hellö", "goodbye"]
+    refute String.starts_with? "エリクシア", "仙丹"
+
+    ## Edge cases ##
     assert String.starts_with? "", ""
     assert String.starts_with? "", ["", "a"]
     assert String.starts_with? "b", ["", "a"]
@@ -291,31 +302,16 @@ defmodule StringTest do
     refute String.starts_with? "", "abc"
     refute String.starts_with? "", [" "]
 
-    assert String.starts_with? "hello", "he"
-    assert String.starts_with? "hello", "hello"
-    assert String.starts_with? "hello", ["hellö", "hell"]
-    assert String.starts_with? "エリクシア", "エリ"
-    refute String.starts_with? "hello", "lo"
-    refute String.starts_with? "hello", "hellö"
-    refute String.starts_with? "hello", ["hellö", "goodbye"]
-    refute String.starts_with? "エリクシア", "仙丹"
-
+    ## Sanity checks ##
+    assert String.starts_with? "", ["", ""]
+    assert String.starts_with? "abc", ["", ""]
     assert_raise ArgumentError, fn ->
       String.starts_with? "abc", [["a"], "a"]
     end
   end
 
   test :ends_with? do
-    assert String.ends_with? "", ""
-    assert String.ends_with? "", ["", "a"]
-    refute String.ends_with? "", ["a", "b"]
-
-    assert String.ends_with? "abc", ""
-    assert String.ends_with? "abc", ["", "x"]
-
-    refute String.ends_with? "", "abc"
-    refute String.ends_with? "", [" "]
-
+    ## Normal cases ##
     assert String.ends_with? "hello", "lo"
     assert String.ends_with? "hello", "hello"
     assert String.ends_with? "hello", ["hell", "lo", "xx"]
@@ -326,6 +322,20 @@ defmodule StringTest do
     refute String.ends_with? "hello", ["hel", "goodbye"]
     refute String.ends_with? "エリクシア", "仙丹"
 
+    ## Edge cases ##
+    assert String.ends_with? "", ""
+    assert String.ends_with? "", ["", "a"]
+    refute String.ends_with? "", ["a", "b"]
+
+    assert String.ends_with? "abc", ""
+    assert String.ends_with? "abc", ["", "x"]
+
+    refute String.ends_with? "", "abc"
+    refute String.ends_with? "", [" "]
+
+    ## Sanity checks ##
+    assert String.ends_with? "", ["", ""]
+    assert String.ends_with? "abc", ["", ""]
     assert_raise ArgumentError, fn ->
       String.ends_with? "abc", [["c"], "c"]
     end
