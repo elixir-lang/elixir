@@ -5,10 +5,13 @@ defmodule Mix.CLI do
   Runs Mix according to the command line arguments.
   """
   def run(args // System.argv) do
-    if help?(args) do
-      display_banner()
-    else
-      proceed(args)
+    case check_for_shortcuts(args) do
+      :help ->
+        display_banner()
+      :version ->
+        display_version()
+      nil ->
+        proceed(args)
     end
   end
 
@@ -68,6 +71,16 @@ defmodule Mix.CLI do
     run_task "help", []
   end
 
-  defp help?([first_arg|_]) when first_arg in ["--help", "-h", "-help"], do: true
-  defp help?(_), do: false
+  defp display_version() do
+    IO.puts "Elixir #{System.version}"
+  end
+
+  # Check for --help or --version in the args
+  defp check_for_shortcuts([first_arg|_]) when first_arg in
+      ["--help", "-h", "-help"], do: :help
+
+  defp check_for_shortcuts([first_arg|_]) when first_arg in
+      ["--version", "-v"], do: :version
+
+  defp check_for_shortcuts(_), do: nil
 end
