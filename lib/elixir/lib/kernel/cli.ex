@@ -102,7 +102,7 @@ defmodule Kernel.CLI do
 
   # Process shared options
 
-  defp process_shared([opt|t], config) when opt in ["-v", "--version"] do
+  defp process_shared([opt|_t], _config) when opt in ["-v", "--version"] do
     IO.puts "Elixir #{System.version}"
     System.halt 0
   end
