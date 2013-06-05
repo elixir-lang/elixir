@@ -20,7 +20,7 @@ defmodule Mix.Deps.Converger do
   def all(rest, callback) do
     config = [ deps_path: Path.expand(Mix.project[:deps_path]),
                root_lockfile: Path.expand(Mix.project[:lockfile]) ]
-    main = Mix.Deps.Retriever.children(config) |> Enum.reverse
+    main = Mix.Deps.Retriever.children |> Enum.reverse
     all(main, [], [], main, config, callback, rest)
   end
 

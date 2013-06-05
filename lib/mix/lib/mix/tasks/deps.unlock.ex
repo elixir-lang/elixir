@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Deps.Unlock do
   use Mix.Task
 
   @shortdoc "Unlock the given dependencies"
-  @recursive true
+  @recursive :both
 
   @moduledoc """
   Unlock the given dependencies. If no dependencies

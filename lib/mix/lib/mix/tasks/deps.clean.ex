@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Deps.Clean do
   use Mix.Task
 
   @shortdoc "Remove dependencies files"
-  @recursive true
+  @recursive :both
 
   @moduledoc """
   Clean dependencies.

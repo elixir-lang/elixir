@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Deps.Get do
   use Mix.Task
 
   @shortdoc "Get all out of date dependencies"
-  @recursive true
+  @recursive :both
 
   @moduledoc """
   Get all out of date dependencies, i.e. dependencies
