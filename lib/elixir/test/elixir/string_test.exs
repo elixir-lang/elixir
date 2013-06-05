@@ -281,6 +281,16 @@ defmodule StringTest do
   end
 
   test :starts_with? do
+    assert String.starts_with? "", ""
+    assert String.starts_with? "", ["", "a"]
+    assert String.starts_with? "b", ["", "a"]
+
+    assert String.starts_with? "abc", ""
+    assert String.starts_with? "abc", [""]
+
+    refute String.starts_with? "", "abc"
+    refute String.starts_with? "", [" "]
+
     assert String.starts_with? "hello", "he"
     assert String.starts_with? "hello", "hello"
     assert String.starts_with? "hello", ["hellö", "hell"]
@@ -292,6 +302,16 @@ defmodule StringTest do
   end
 
   test :ends_with? do
+    assert String.ends_with? "", ""
+    assert String.ends_with? "", ["", "a"]
+    refute String.ends_with? "", ["a", "b"]
+
+    assert String.ends_with? "abc", ""
+    assert String.ends_with? "abc", ["", "x"]
+
+    refute String.ends_with? "", "abc"
+    refute String.ends_with? "", [" "]
+
     assert String.ends_with? "hello", "lo"
     assert String.ends_with? "hello", "hello"
     assert String.ends_with? "hello", ["hell", "lo", "xx"]
@@ -304,6 +324,13 @@ defmodule StringTest do
   end
 
   test :contains? do
+    assert String.contains? "", ""
+    assert String.contains? "abc", ""
+    assert String.contains? "abc", ["", "x"]
+
+    refute String.contains? "", " "
+    refute String.contains? "", "a"
+
     assert String.contains? "elixir of life", "of"
     assert String.contains? "エリクシア", "シ"
     assert String.contains? "elixir of life", ["mercury", "life"]

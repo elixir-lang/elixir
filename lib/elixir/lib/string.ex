@@ -811,12 +811,16 @@ defmodule String do
   """
   @spec starts_with?(t, t | [t]) :: boolean
 
-  def starts_with?(string, prefixes) do
-    case :binary.match(string, prefixes) do
-      :nomatch -> false
-      {0, _}   -> true
-      _        -> false
-    end
+  def starts_with?(_, "") do
+    true
+  end
+
+  def starts_with?(string, prefix) when is_binary(prefix) do
+    match?({0,_}, :binary.match(string, prefix))
+  end
+
+  def starts_with?(string, prefixes) when is_list(prefixes) do
+    Enum.any?(prefixes, starts_with?(string, &1))
   end
 
   @doc """
@@ -847,7 +851,7 @@ defmodule String do
 
   @doc """
   Returns true if `string` contains match, otherwise false.
-  `matches` can be either a single match of a list of matches.
+  `matches` can be either a single string or a list of strings.
 
   ## Examples
 
@@ -859,13 +863,13 @@ defmodule String do
       false
 
   """
-  def contains?(string, matches) when is_list(matches) do
-    case :binary.match(string, matches) do
-      :nomatch -> false
-      _        -> true
-    end
+  @spec contains?(t, t | [t]) :: boolean
+
+  def contains?(_, "") do
+    true
   end
 
-  def contains?(string, match), do: contains?(string, [ match ])
-
+  def contains?(string, matches) do
+    :nomatch != :binary.match(string, matches)
+  end
 end
