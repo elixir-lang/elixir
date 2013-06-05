@@ -839,15 +839,20 @@ defmodule String do
   """
   @spec ends_with?(t, t | [t]) :: boolean
 
-  def ends_with?(string, suffixes) when is_list(suffixes) do
-    string_size = size(string)
-    Enum.any? suffixes, fn suffix ->
-      suffix_size = size(suffix)
-      (suffix_size <= string_size) and suffix == :binary.part(string, {string_size, -suffix_size})
-    end
+  def ends_with?(_, "") do
+    true
   end
 
-  def ends_with?(string, suffix), do: ends_with?(string, [ suffix ])
+  def ends_with?(string, suffix) when is_binary(suffix) do
+    string_size = size(string)
+    suffix_size = size(suffix)
+    scope = {string_size - suffix_size, suffix_size}
+    (suffix_size <= string_size) and (:nomatch != :binary.match(string, suffix, [scope: scope]))
+  end
+
+  def ends_with?(string, suffixes) when is_list(suffixes) do
+    Enum.any?(suffixes, ends_with?(string, &1))
+  end
 
   @doc """
   Returns true if `string` contains match, otherwise false.
