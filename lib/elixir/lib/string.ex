@@ -860,11 +860,9 @@ defmodule String do
 
   """
   def contains?(string, matches) when is_list(matches) do
-    Enum.any? matches, fn match ->
-      case :binary.matches(string, match) do
-        [_] -> true
-        []  -> false
-      end
+    case :binary.match(string, matches) do
+      :nomatch -> false
+      _        -> true
     end
   end
 
