@@ -58,6 +58,22 @@ defmodule Mix.CLITest do
     end
   end
 
+  test "--help smoke test" do
+    in_fixture "only_mixfile", fn ->
+      output = mix "--help"
+      assert output =~ %r"mix compile\s+# Compile source files"
+      refute output =~ %r"mix invalid"
+    end
+  end
+
+  test "--version smoke test" do
+    in_fixture "only_mixfile", fn ->
+      output = mix "--version"
+      assert output =~ %r"Elixir [0-9\.a-z]+"
+      refute output =~ %r"Something silly"
+    end
+  end
+
   test "help TASK smoke test" do
     in_fixture "only_mixfile", fn ->
       output = mix "help compile"

@@ -31,11 +31,26 @@ defmodule Mix.UmbrellaTest do
     purge [Umbrella.Mixfile, Foo.Mix, Bar.Mix]
   end
 
-  test "umbrella as dependency" do
+
+  test "list deps for umbrella as dependency" do
+    in_fixture("umbrella_dep", fn ->
+      Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
+        Mix.Task.run "deps"
+        assert_received { :mix_shell, :info, ["* umbrella [path: \"deps/umbrella\"]"] }
+        assert_received { :mix_shell, :info, ["* foo [path: \"../foo\"]"] }
+
+        # Don't include the umbrella projects top-level dependencies
+        refute_received { :mix_shell, :info, ["* some_dep [path: \"deps/some_dep\"]"] }
+      end)
+    end)
+  after
+    purge [UmbrellaDep.Mixfile, Umbrella.Mixfile]
+  end
+
+  test "compile for umbrella as dependency" do
     in_fixture "umbrella_dep", fn ->
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
         Mix.Tasks.Deps.Compile.run []
-        Mix.Tasks.Deps.Loadpaths.run []
         assert "hello world" == Bar.bar
       end)
     end

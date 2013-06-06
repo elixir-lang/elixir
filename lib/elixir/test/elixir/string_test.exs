@@ -281,6 +281,7 @@ defmodule StringTest do
   end
 
   test :starts_with? do
+    ## Normal cases ##
     assert String.starts_with? "hello", "he"
     assert String.starts_with? "hello", "hello"
     assert String.starts_with? "hello", ["hellö", "hell"]
@@ -289,9 +290,28 @@ defmodule StringTest do
     refute String.starts_with? "hello", "hellö"
     refute String.starts_with? "hello", ["hellö", "goodbye"]
     refute String.starts_with? "エリクシア", "仙丹"
+
+    ## Edge cases ##
+    assert String.starts_with? "", ""
+    assert String.starts_with? "", ["", "a"]
+    assert String.starts_with? "b", ["", "a"]
+
+    assert String.starts_with? "abc", ""
+    assert String.starts_with? "abc", [""]
+
+    refute String.starts_with? "", "abc"
+    refute String.starts_with? "", [" "]
+
+    ## Sanity checks ##
+    assert String.starts_with? "", ["", ""]
+    assert String.starts_with? "abc", ["", ""]
+    assert_raise ArgumentError, fn ->
+      String.starts_with? "abc", [["a"], "a"]
+    end
   end
 
   test :ends_with? do
+    ## Normal cases ##
     assert String.ends_with? "hello", "lo"
     assert String.ends_with? "hello", "hello"
     assert String.ends_with? "hello", ["hell", "lo", "xx"]
@@ -301,6 +321,49 @@ defmodule StringTest do
     refute String.ends_with? "hello", "hellö"
     refute String.ends_with? "hello", ["hel", "goodbye"]
     refute String.ends_with? "エリクシア", "仙丹"
+
+    ## Edge cases ##
+    assert String.ends_with? "", ""
+    assert String.ends_with? "", ["", "a"]
+    refute String.ends_with? "", ["a", "b"]
+
+    assert String.ends_with? "abc", ""
+    assert String.ends_with? "abc", ["", "x"]
+
+    refute String.ends_with? "", "abc"
+    refute String.ends_with? "", [" "]
+
+    ## Sanity checks ##
+    assert String.ends_with? "", ["", ""]
+    assert String.ends_with? "abc", ["", ""]
+    assert_raise ArgumentError, fn ->
+      String.ends_with? "abc", [["c"], "c"]
+    end
+  end
+
+  test :contains? do
+    ## Normal cases ##
+    assert String.contains? "elixir of life", "of"
+    assert String.contains? "エリクシア", "シ"
+    assert String.contains? "elixir of life", ["mercury", "life"]
+    refute String.contains? "exlixir of life", "death"
+    refute String.contains? "エリクシア", "仙"
+    refute String.contains? "elixir of life", ["death", "mercury", "eternal life"]
+
+    ## Edge cases ##
+    assert String.contains? "", ""
+    assert String.contains? "abc", ""
+    assert String.contains? "abc", ["", "x"]
+
+    refute String.contains? "", " "
+    refute String.contains? "", "a"
+
+    ## Sanity checks ##
+    assert String.contains? "", ["", ""]
+    assert String.contains? "abc", ["", ""]
+    assert_raise ArgumentError, fn ->
+      String.contains? "abc", [["b"], "b"]
+    end
   end
 
 end

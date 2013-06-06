@@ -19,6 +19,11 @@ defmodule CodeTest do
     assert { 3, _ } = Code.eval_string("a + b", [a: 1, b: 2], __ENV__.location)
   end
 
+  test :eval_with_unnamed_scopes do
+    assert { RuntimeError[], [a: RuntimeError[]] } =
+           Code.eval_string("a = (try do (raise \"hello\") rescue e -> e end)")
+  end
+
   test :eval_with_scope do
     assert Code.eval_string("one", [], delegate_locals_to: __MODULE__) == { 1, [] }
   end

@@ -62,6 +62,11 @@ defmodule HashDictTest do
     dict = HashDict.put_new(dict, 11, 13)
     assert HashDict.get(dict, 11) == 13
     assert HashDict.size(dict) == 9
+
+    dict = HashDict.put_new(dict, 11.0, 15)
+    assert HashDict.get(dict, 11.0) == 15
+    assert HashDict.get(dict, 11) == 13
+    assert HashDict.size(dict) == 10
   end
 
   test :update do
@@ -82,6 +87,17 @@ defmodule HashDictTest do
     dict = HashDict.update(dict, 11, 13, &1 * 2)
     assert HashDict.get(dict, 11) == 13
     assert HashDict.size(dict) == 9
+
+    assert_raise KeyError, fn->
+      HashDict.update(dict, 11.0, &1 * 2)
+    end
+    dict = HashDict.update(dict, 11.0, 15, &1 * 2)
+    assert HashDict.get(dict, 11.0) == 15
+    assert HashDict.size(dict) == 10
+    dict = HashDict.update(dict, 11.0, 15, &1 * 2)
+    assert HashDict.get(dict, 11.0) == 30
+    assert HashDict.get(dict, 11) == 13
+    assert HashDict.size(dict) == 10
   end
 
   test :to_list do

@@ -43,11 +43,16 @@ while [ $I -le $# ]; do
   case "$PEEK" in
     -v|--compile|--no-halt|+iex|+compile)
         ;;
-    -e|-r|-pr|-pa|-pz|--remsh|--cookie|-S)
+    -e|-r|-pr|-pa|-pz|--remsh|-S)
         S=2
         ;;
     --detached|--hidden)
         ERL="$ERL `echo $PEEK | cut -c 2-`"
+        ;;
+    --cookie)
+        I=$(expr $I + 1)
+        eval "VAL=\${$I}"
+        ERL="$ERL -setcookie "$VAL""
         ;;
     --sname|--name)
         I=$(expr $I + 1)

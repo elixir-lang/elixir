@@ -190,10 +190,10 @@ defmodule Code do
   defp unpack_ast(line, forms),                            do: { :__block__, [line: line], forms }
 
   @doc """
-  Loads the given `file`. Accepts `relative_to` as an argument
-  to tell where the file is located. If the file was already
-  required/loaded, loads it again. It returns all the modules
-  defined in the file.
+  Loads the given `file`. Accepts `relative_to` as an argument to tell where
+  the file is located. If the file was already required/loaded, loads it again.
+  It returns a list of tuples { ModuleName, <<byte_code>> }, one tuple for each
+  module defined in the file.
 
   Notice that if `load_file` is invoked by different processes
   concurrently, the target file will be invoked concurrently
@@ -211,8 +211,8 @@ defmodule Code do
 
   @doc """
   Requires the given `file`. Accepts `relative_to` as an argument to tell where
-  the file is located. It returns all the modules defined in the file. If the
-  file was already required/loaded, doesn't do anything and returns nil.
+  the file is located. The return value is the same as that of `load_file`. If
+  the file was already required/loaded, doesn't do anything and returns nil.
 
   Notice that if `require_file` is invoked by different processes concurrently,
   the first process to invoke `require_file` acquires a lock and the remaining

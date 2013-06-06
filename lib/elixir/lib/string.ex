@@ -826,12 +826,24 @@ defmodule String do
   """
   @spec starts_with?(t, t | [t]) :: boolean
 
-  def starts_with?(string, prefixes) do
-    case :binary.match(string, prefixes) do
-      :nomatch -> false
-      {0, _}   -> true
-      _        -> false
-    end
+  def starts_with?(string, prefixes) when is_list(prefixes) do
+    Enum.any?(prefixes, do_starts_with(string, &1))
+  end
+
+  def starts_with?(string, prefix) do
+    do_starts_with(string, prefix)
+  end
+
+  defp do_starts_with(_, "") do
+    true
+  end
+
+  defp do_starts_with(string, prefix) when is_binary(prefix) do
+    match?({0,_}, :binary.match(string, prefix))
+  end
+
+  defp do_starts_with(_, _) do
+    raise ArgumentError
   end
 
   @doc """
@@ -851,13 +863,61 @@ defmodule String do
   @spec ends_with?(t, t | [t]) :: boolean
 
   def ends_with?(string, suffixes) when is_list(suffixes) do
-    string_size = size(string)
-    Enum.any? suffixes, fn suffix ->
-      suffix_size = size(suffix)
-      (suffix_size <= string_size) and suffix == :binary.part(string, {string_size, -suffix_size})
-    end
+    Enum.any?(suffixes, do_ends_with(string, &1))
   end
 
-  def ends_with?(string, suffix), do: ends_with?(string, [ suffix ])
+  def ends_with?(string, suffix) do
+    do_ends_with(string, suffix)
+  end
 
+  defp do_ends_with(_, "") do
+    true
+  end
+
+  defp do_ends_with(string, suffix) when is_binary(suffix) do
+    string_size = size(string)
+    suffix_size = size(suffix)
+    scope = {string_size - suffix_size, suffix_size}
+    (suffix_size <= string_size) and (:nomatch != :binary.match(string, suffix, [scope: scope]))
+  end
+
+  defp do_ends_with(_, _) do
+    raise ArgumentError
+  end
+
+  @doc """
+  Returns true if `string` contains match, otherwise false.
+  `matches` can be either a single string or a list of strings.
+
+  ## Examples
+
+      iex> String.contains? "elixir of life", "of"
+      true
+      iex> String.contains? "elixir of life", ["life", "death"]
+      true
+      iex> String.contains? "elixir of life", ["death", "mercury"]
+      false
+
+  """
+  @spec contains?(t, t | [t]) :: boolean
+
+  def contains?(string, matches) when is_list(matches) do
+    Enum.any?(matches, do_contains(string, &1))
+  end
+
+  def contains?(string, match) do
+    do_contains(string, match)
+  end
+
+  defp do_contains(_, "") do
+    true
+  end
+
+  defp do_contains(string, match) when is_binary(match) do
+    :nomatch != :binary.match(string, match)
+  end
+
+  defp do_contains(_, _) do
+    raise ArgumentError
+  end
 end

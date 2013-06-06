@@ -362,7 +362,8 @@ defmodule Module do
   @doc """
   Makes the given functions in the given module overridable.
   An overridable function is lazily defined, allowing a
-  developer to customize it.
+  developer to customize it. See `Kernel.defoverridable` for
+  more information and documentation.
   """
   def make_overridable(module, tuples) do
     assert_not_compiled!(:make_overridable, module)

@@ -1,7 +1,6 @@
 defmodule ExUnit.CaptureIO do
   @moduledoc %B"""
   This module provides functionality to capture IO to test it.
-  The way to use this module is to import them into your module.
 
   ## Examples
 
@@ -21,15 +20,16 @@ defmodule ExUnit.CaptureIO do
 
   @doc """
   Captures IO. Returns nil in case of no output,
-  otherwise returns the binary which is captured outputs.
+  otherwise returns the binary which is the captured output.
 
   By default, capture_io replaces the group_leader (`:stdio`)
   for the current process. However, the capturing of any other
   named device like `:stderr` is also possible globally by
   giving the registered device name explicitly as argument.
 
-  When capturing of `:stdio`, this function captures a prompt,
-  otherwise do not.
+  When capturing `:stdio` and the `:capture_prompt` option is `false`,
+  prompts (specified as arguments in IO.get* functions) are not
+  captured.
 
   A developer can set a string as an input. The default
   input is `:eof`.
@@ -42,36 +42,49 @@ defmodule ExUnit.CaptureIO do
       true
       iex> capture_io(:stderr, fn -> IO.write(:stderr, "josé") end) == "josé"
       true
-      iex> capture_io("this is input", fn->
+      iex> capture_io("this is input", fn ->
       ...>   input = IO.gets ">"
       ...>   IO.write input
       ...> end) == ">this is input"
       true
+      iex> capture_io([input: "this is input", capture_prompt: false], fn ->
+      ...>   input = IO.gets ">"
+      ...>   IO.write input
+      ...> end) == "this is input"
+      true
 
   """
-  def capture_io(device, input, fun) do
-    do_capture_io(map_dev(device), input, fun)
+  def capture_io(fun) do
+    do_capture_io(:standard_io, [], fun)
   end
 
   def capture_io(device, fun) when is_atom(device) do
-    do_capture_io(map_dev(device), "", fun)
+    capture_io(device, [], fun)
   end
 
   def capture_io(input, fun) when is_binary(input) do
-    do_capture_io(:standard_io, input, fun)
+    capture_io(:standard_io, [input: input], fun)
   end
 
-  def capture_io(fun) do
-    do_capture_io(:standard_io, "", fun)
+  def capture_io(options, fun) when is_list(options) do
+    capture_io(:standard_io, options, fun)
+  end
+
+  def capture_io(device, input, fun) when is_binary(input) do
+    capture_io(device, [input: input], fun)
+  end
+
+  def capture_io(device, options, fun) when is_list(options) do
+    do_capture_io(map_dev(device), options, fun)
   end
 
   defp map_dev(:stdio),  do: :standard_io
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other),   do: other
 
-  defp do_capture_io(:standard_io, input, fun) do
+  defp do_capture_io(:standard_io, options, fun) do
     original_gl = :erlang.group_leader
-    capture_gl = new_group_leader(self, input, true)
+    capture_gl = new_group_leader(self, options)
     :erlang.group_leader(capture_gl, self)
 
     try do
@@ -86,13 +99,15 @@ defmodule ExUnit.CaptureIO do
     end
   end
 
-  defp do_capture_io(device, input, fun) do
+  defp do_capture_io(device, options, fun) do
     unless original_io = Process.whereis(device) do
       raise "could not find IO device registered at #{inspect device}"
     end
 
+    options = Keyword.put(options, :capture_prompt, false)
+
     Process.unregister(device)
-    capture_io = new_group_leader(self, input)
+    capture_io = new_group_leader(self, options)
     Process.register(capture_io, device)
 
     try do
@@ -108,18 +123,17 @@ defmodule ExUnit.CaptureIO do
     end
   end
 
-  defp new_group_leader(runner, input, prompt_config // false) do
-    spawn_link(fn -> group_leader_process(runner, input, prompt_config) end)
+  defp new_group_leader(runner, options) do
+    spawn_link(fn -> group_leader_process(runner, options) end)
   end
 
-  defp group_leader_process(runner, input, prompt_config) do
+  defp group_leader_process(runner, options) do
+    prompt_config = Keyword.get(options, :capture_prompt, true)
+    input = Keyword.get(options, :input, "")
+
     register_input(input)
     register_prompt_config(prompt_config)
     group_leader_loop(runner, :infinity, [])
-  end
-
-  defp register_input(nil) do
-    set_input(nil)
   end
 
   defp register_input(input) do

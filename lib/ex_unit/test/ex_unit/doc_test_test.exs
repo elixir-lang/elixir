@@ -44,7 +44,7 @@ defmodule ExUnit.DocTestTest.ExceptionModule do
   def two_exceptions
 end
 
-defmodule ExUnit.DocTestTest.SomewhatGoodModule do
+defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithOnly do
   @doc """
   iex> test_fun
   1
@@ -62,7 +62,7 @@ defmodule ExUnit.DocTestTest.SomewhatGoodModule do
   def test_fun1, do: 1
 end
 
-defmodule ExUnit.DocTestTest.SomewhatGoodModule1 do
+defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithExcept do
   @doc """
   iex> test_fun
   1
@@ -87,51 +87,42 @@ defmodule ExUnit.DocTestTest.NoImport do
   """
   def min(a,b), do: max(a,b)
 end
+
+defmodule ExUnit.DocTestTest.Invalid do
+  @doc """
+  iex> _a = 1
+  1
+
+  iex> _a + 1
+  2
+  """
+  def no_leak do
+  end
+end
+
+
 defmodule ExUnit.DocTestTest do
   use ExUnit.Case
 
-  # This is intentional. The doctests in DocTest's docs fail for demonstration
-  # purposes.
-  #doctest ExUnit.DocTest
+  # This is intentional. The doctests in DocTest's docs fail
+  # for demonstration purposes.
+  # doctest ExUnit.DocTest
+
   doctest ExUnit.DocTestTest.GoodModule, import: true
-  doctest ExUnit.DocTestTest.SomewhatGoodModule, only: [test_fun: 0], import: true
-  doctest ExUnit.DocTestTest.SomewhatGoodModule1, except: [test_fun1: 0], import: true
+  doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [test_fun: 0], import: true
+  doctest ExUnit.DocTestTest.SomewhatGoodModuleWithExcept, except: [test_fun1: 0], import: true
   doctest ExUnit.DocTestTest.NoImport
 
   assert_raise ExUnit.DocTest.Error, fn ->
     doctest ExUnit.DocTestTest.ExceptionModule
   end
 
-  test :var_leak do
-    assert "nofile:9: function '_a'/0 undefined" = format_rescue("""
-      defmodule M do
-      @doc \"\"\"
-      iex> _a = 1
-      1
-
-      iex> _a + 1
-      2
-      \"\"\"
-      def no_leak
+  test :no_var_leak do
+    assert_raise CompileError, %r"function '_a'/0 undefined", fn ->
+      defmodule NeverCompiled do
+        import ExUnit.DocTest
+        doctest ExUnit.DocTestTest.Invalid
       end
-
-      defmodule M.Test do
-        require ExUnit.DocTest
-
-        ExUnit.DocTest.doctest M
-      end
-      """
-      )
-  end
-
-  defp format_rescue(expr) do
-    result = try do
-      :elixir.eval(to_char_list(expr), [])
-      nil
-    rescue
-      error -> error.message
     end
-
-    result || raise(ExUnit.AssertionError, message: "Expected function given to format_rescue to fail")
   end
 end

@@ -157,7 +157,6 @@ defmodule IEx.Server do
   end
 
   defp io_put(result) do
-    # FIXME: add tests for `result` containing ANSI escapes
     IO.puts IEx.color(:eval_result, inspect(result, IEx.Options.get(:inspect)))
   end
 

@@ -213,24 +213,28 @@ defmodule ExUnit.CLIFormatter do
 
   # Print styles
 
+  defp colorize(escape, string) do
+    IO.ANSI.escape_fragment("%{#{escape}}") <> string <> IO.ANSI.escape_fragment("%{reset}")
+  end
+
   defp success(msg) do
-    IO.ANSI.escape("%{green}" <>  msg)
+    colorize("green", msg)
   end
 
   defp invalid(msg) do
-    IO.ANSI.escape("%{yellow}" <>  msg)
+    colorize("yellow", msg)
   end
 
   defp failure(msg) do
-    IO.ANSI.escape("%{red}" <>  msg)
+    colorize("red", msg)
   end
 
   defp error_info(msg) do
-    IO.ANSI.escape("%{red}     " <> msg)
+    colorize("red", "     " <> msg)
   end
 
   defp location_info(msg) do
-    IO.ANSI.escape("%{cyan}     " <> msg)
+    colorize("cyan", "     " <> msg)
   end
 
   defp stacktrace_info(msg) do

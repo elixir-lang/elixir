@@ -209,24 +209,14 @@ defmodule HashDict do
     ordered()
   end
 
-  def equal?(ordered(bucket: a, size: size), ordered(bucket: b, size: ^size)) do
-    a == b
-  end
-
-  def equal?(trie(size: size) = a, trie(size: ^size) = b) do
-    a == b
-  end
-
-  def equal?(ordered() = a, trie() = b) do
-    equal?(b, a)
-  end
-
-  def equal?(trie(size: size) = a, ordered(bucket: b, size: ^size)) do
-    :lists.keysort(1, to_list(a)) == :lists.keysort(1, b)
-  end
-
-  def equal?(_, _) do
-    false
+  def equal?(dict1, dict2) do
+    size = elem(dict1, 1)
+    case elem(dict2, 1) do
+      ^size ->
+        dict_equal?(dict1, dict1)
+      _ ->
+        false
+    end
   end
 
   @doc """
@@ -335,11 +325,11 @@ defmodule HashDict do
   ## Dict-wide functions
 
   defp dict_get(ordered(bucket: bucket), key) do
-    :lists.keyfind(key, 1, bucket)
+    bucket_get(bucket, key)
   end
 
   defp dict_get(trie(root: root, depth: depth), key) do
-    :lists.keyfind(key, 1, node_bucket(root, depth, bucket_hash(key)))
+    bucket_get(node_bucket(root, depth, bucket_hash(key)), key)
   end
 
   defp dict_fold(ordered(bucket: bucket), acc, fun) do
@@ -402,28 +392,60 @@ defmodule HashDict do
     end
   end
 
+  defp dict_equal?(dict1, dict2) do
+    try do
+      reduce(dict1, true, fn({ key, value }, acc) ->
+        case fetch(dict2, key) do
+          { _ok, ^value } ->
+            acc
+          _ ->
+            throw(:error)
+        end
+      end)
+    catch
+      :error -> false
+    end
+  end
+
   ## Bucket helpers
 
+  # Get value from the bucket
+  defp bucket_get([{k,_}|_bucket], key) when k > key do
+    false
+  end
+
+  defp bucket_get([{key,_}=e|_bucket], key) do
+    e
+  end
+
+  defp bucket_get([_e|bucket], key) do
+    bucket_get(bucket, key)
+  end
+
+  defp bucket_get([], _key) do
+    false
+  end
+
   # Puts a value in the bucket
-  defp bucket_put([{k,_}=e|bucket], key, { :put, value }) when key < k do
-    { [{key,value},e|bucket], 1 }
+  defp bucket_put([{k,_}|_]=bucket, key, { :put, value }) when k > key do
+    { [{key, value}|bucket], 1 }
   end
 
-  defp bucket_put([{k,_}=e|bucket], key, { :update, initial, _fun }) when key < k do
-    { [{key,initial},e|bucket], 1 }
+  defp bucket_put([{k,_}|_]=bucket, key, { :update, initial, _fun }) when k > key do
+    { [{key, initial}|bucket], 1 }
   end
 
-  defp bucket_put([{k,_}=e|bucket], key, value) when key > k do
-    { rest, count } = bucket_put(bucket, key, value)
-    { [e|rest], count }
-  end
-
-  defp bucket_put([{_,_}|bucket], key, { :put, value }) do
+  defp bucket_put([{key,_}|bucket], key, { :put, value }) do
     { [{key,value}|bucket], 0 }
   end
 
-  defp bucket_put([{_,value}|bucket], key, { :update, _initial, fun }) do
-    { [{key,fun.(value)}|bucket], 0 }
+  defp bucket_put([{key,value}|bucket], key, { :update, _initial, fun }) do
+    { [{key, fun.(value)}|bucket], 0 }
+  end
+
+  defp bucket_put([e|bucket], key, value) do
+    { rest, count } = bucket_put(bucket, key, value)
+    { [e|rest], count }
   end
 
   defp bucket_put([], key, { :put, value }) do
@@ -436,23 +458,23 @@ defmodule HashDict do
 
   # Puts a value in the bucket without returning
   # the operation value
-  defp bucket_put!([{k,_}=e|bucket], key, value) when key < k, do: [{key,value},e|bucket]
-  defp bucket_put!([{k,_}=e|bucket], key, value) when key > k, do: [e|bucket_put!(bucket, key, value)]
-  defp bucket_put!([{_,_}|bucket], key, value), do: [{key,value}|bucket]
+  defp bucket_put!([{k,_}|_]=bucket, key, value) when k > key, do: [{key,value}|bucket]
+  defp bucket_put!([{key,_}|bucket], key, value), do: [{key,value}|bucket]
+  defp bucket_put!([{_,_}=e|bucket], key, value), do: [e|bucket_put!(bucket, key, value)]
   defp bucket_put!([], key, value), do: [{key,value}]
 
   # Deletes a key from the bucket
-  defp bucket_delete([{k,_}|_] = bucket, key) when key < k do
+  defp bucket_delete([{k,_}|_]=bucket, key) when k > key do
     { bucket, nil, 0 }
   end
 
-  defp bucket_delete([{k,_}=e|bucket], key) when key > k do
-    { rest, value, count } = bucket_delete(bucket, key)
-    { [e|rest], value, count }
+  defp bucket_delete([{key,value}|bucket], key) do
+    { bucket, value, -1 }
   end
 
-  defp bucket_delete([{_,value}|bucket], _key) do
-    { bucket, value, -1 }
+  defp bucket_delete([e|bucket], key) do
+    { rest, value, count } = bucket_delete(bucket, key)
+    { [e|rest], value, count }
   end
 
   defp bucket_delete([], _key) do
