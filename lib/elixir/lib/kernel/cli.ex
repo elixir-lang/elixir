@@ -198,6 +198,10 @@ defmodule Kernel.CLI do
     process_compiler t, config.update_compiler_options([{:ignore_module_conflict,true}|&1])
   end
 
+  defp process_compiler(["--warnings-as-errors"|t], config) do
+    process_compiler t, config.update_compiler_options([{:warnings_as_errors,true}|&1])
+  end
+
   defp process_compiler([h|t] = list, config) do
     case h do
       "-" <> _ ->
