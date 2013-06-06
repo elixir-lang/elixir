@@ -9,15 +9,18 @@ defmodule ExUnit.Case do
              in parallel with others. Must be used for performance
              when your test cases do not change any global state;
 
-  This module automatically includes all callbacks defined
-  in `ExUnit.Callbacks`. Read it for more information.
+  This module automatically includes all callbacks defined in
+  `ExUnit.Callbacks`. See that module's documentation for more
+  information.
 
- ## Examples
+  ## Examples
 
      defmodule AssertionTest do
+       # Use the module
        use ExUnit.Case, async: true
 
-       def test_always_pass
+       # The `test` macro is imported by ExUnit.Case
+       test "always pass" do
          assert true
        end
      end
