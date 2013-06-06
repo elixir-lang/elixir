@@ -1383,7 +1383,7 @@ defmodule Kernel do
     end
   end
 
-  @doc """
+  @doc %B"""
   Defines a record with a set of private macros to manipulate it.
 
   This macro defines a set of macros private to the current module to

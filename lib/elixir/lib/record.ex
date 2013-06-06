@@ -1,5 +1,5 @@
 defmodule Record do
-  @moduledoc """
+  @moduledoc %B"""
   Functions to define Elixir records
 
   A record is a tagged tuple which contains one or more elements and the first
