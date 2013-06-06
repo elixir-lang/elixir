@@ -16,7 +16,7 @@ defmodule ExUnit do
   end
 
   @moduledoc """
-  Basic unit test structure for Elixir.
+  Basic unit testing framework for Elixir.
 
   ## Example
 
@@ -24,10 +24,11 @@ defmodule ExUnit do
 
       # File: assertion_test.exs
 
-      # 1) Start ExUnit. You can pass some options as argument (list below)
+      # 1) Start ExUnit. You could also pass some options to the start function
+      # (see `configure/1` for the list of options)
       ExUnit.start
 
-      # 2) Next we create a new TestCase and use ExUnit.Case
+      # 2) Create a new test module (or "case") and use ExUnit.Case
       defmodule AssertionTest do
         # 3) Notice we pass async: true, this runs the test case
         #    concurrently with other test cases
@@ -45,7 +46,7 @@ defmodule ExUnit do
         end
       end
 
-  To run the test above, all you need to to is to run the file
+  To run the test above, all you need to do is to run the file
   using elixir from command line. Assuming you named your file
   assertion_test.exs, you can run it as:
 
@@ -53,11 +54,15 @@ defmodule ExUnit do
 
   ## Case, callbacks and assertions
 
-  Check `ExUnit.Case` and `ExUnit.Callbacks` for more information about
+  See `ExUnit.Case` and `ExUnit.Callbacks` for more information about
   defining test cases.
 
   The `ExUnit.Assertions` module contains a set of macros to easily
   generate assertions with appropriate error messages.
+
+  ## Integration with Mix
+
+  ... (as yet unwritten content) ...
 
   """
 
