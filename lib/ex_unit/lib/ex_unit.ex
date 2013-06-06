@@ -62,7 +62,25 @@ defmodule ExUnit do
 
   ## Integration with Mix
 
-  ... (as yet unwritten content) ...
+  Mix is the project management and build tool for Elixir. Invoking `mix test`
+  from the command line will run tests in each file matching the pattern
+  "*_test.exs" found in the `test` directory of your project.
+
+  By convention, you could also create a test_helper.exs file inside the
+  `test` directory and put the code common to all tests there.
+
+  The minimum example of a test_helper.exs file would be:
+
+    # test/test_helper.exs
+    ExUnit.start
+
+  Then, in each test file, require test_helper.exs before defining test modules
+  (or cases):
+
+    # test/myproject_test.exs
+    Code.require_file "test_helper.exs", __DIR__
+
+    # ... test cases follow
 
   """
 
