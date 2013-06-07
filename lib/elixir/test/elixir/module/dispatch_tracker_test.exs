@@ -103,6 +103,36 @@ defmodule Module.DispatchTrackerTest do
     assert unused == []
   end
 
+  ## Defaults
+
+  test "can add defaults", config do
+    D.add_definition(config[:pid], :def, { :foo, 4 })
+    D.add_defaults(config[:pid], :def, { :foo, 4 }, 2)
+  end
+
+  test "defaults are reachable if public", config do
+    D.add_definition(config[:pid], :def, { :foo, 4 })
+    D.add_defaults(config[:pid], :def, { :foo, 4 }, 2)
+    assert { :foo, 2 } in D.reachable(config[:pid])
+    assert { :foo, 3 } in D.reachable(config[:pid])
+  end
+
+  test "defaults are not reachable if private", config do
+    D.add_definition(config[:pid], :defp, { :foo, 4 })
+    D.add_defaults(config[:pid], :defp, { :foo, 4 }, 2)
+    refute { :foo, 2 } in D.reachable(config[:pid])
+    refute { :foo, 3 } in D.reachable(config[:pid])
+  end
+
+  test "defaults are connected", config do
+    D.add_definition(config[:pid], :defp, { :foo, 4 })
+    D.add_defaults(config[:pid], :defp, { :foo, 4 }, 2)
+    D.add_local(config[:pid], { :foo, 2 })
+    assert { :foo, 2 } in D.reachable(config[:pid])
+    assert { :foo, 3 } in D.reachable(config[:pid])
+    assert { :foo, 4 } in D.reachable(config[:pid])
+  end
+
   ## Imports
 
   test "can add import", config do

@@ -180,6 +180,12 @@ defmodule Module.DispatchTracker do
     :gen_server.cast(pid, { :add_definition, kind, tuple })
   end
 
+  # Adds and tracks defaults for a definition into the tracker.
+  @doc false
+  def add_defaults(pid, kind, tuple, defaults) when kind in [:def, :defp, :defmacro, :defmacrop] do
+    :gen_server.cast(pid, { :add_defaults, kind, tuple, defaults })
+  end
+
   # Adds a local dispatch to the given target.
   def add_local(pid, to) when is_tuple(to) do
     :gen_server.cast(pid, { :add_local, :local, to })
@@ -327,18 +333,17 @@ defmodule Module.DispatchTracker do
   end
 
   def handle_cast({ :add_local, from, to }, d) do
-    :digraph.add_vertex(d, to)
-    replace_edge!(d, from, to)
+    handle_add_local(d, from, to)
     { :noreply, d }
   end
 
   def handle_cast({ :add_remote, function, module, { name, arity } }, d) do
-    record_import_or_remote(d, :remote, function, module, name, arity)
+    handle_import_or_remote(d, :remote, function, module, name, arity)
     { :noreply, d }
   end
 
   def handle_cast({ :add_import, function, module, { name, arity } }, d) do
-    record_import_or_remote(d, :import, function, module, name, arity)
+    handle_import_or_remote(d, :import, function, module, name, arity)
     { :noreply, d }
   end
 
@@ -355,14 +360,16 @@ defmodule Module.DispatchTracker do
     { :noreply, d }
   end
 
-  def handle_cast({ :add_definition, public, tuple }, d) when public in [:def, :defmacro] do
-    :digraph.add_vertex(d, tuple)
-    replace_edge!(d, :local, tuple)
+  def handle_cast({ :add_definition, kind, tuple }, d) do
+    handle_add_definition(d, kind, tuple)
     { :noreply, d }
   end
 
-  def handle_cast({ :add_definition, private, tuple }, d) when private in [:defp, :defmacrop] do
-    :digraph.add_vertex(d, tuple)
+  def handle_cast({ :add_defaults, kind, { name, arity }, defaults }, d) do
+    lc i inlist :lists.seq(arity - defaults, arity - 1) do
+      handle_add_definition(d, kind, { name, i })
+      handle_add_local(d, { name, i }, { name, i + 1 })
+    end
     { :noreply, d }
   end
 
@@ -388,7 +395,7 @@ defmodule Module.DispatchTracker do
     { :ok, d }
   end
 
-  defp record_import_or_remote(d, kind, function, module, name, arity) do
+  defp handle_import_or_remote(d, kind, function, module, name, arity) do
     :digraph.add_vertex(d, module)
     replace_edge!(d, kind, module)
 
@@ -399,6 +406,20 @@ defmodule Module.DispatchTracker do
     if function != nil do
       replace_edge!(d, function, tuple)
     end
+  end
+
+  defp handle_add_local(d, from, to) do
+    :digraph.add_vertex(d, to)
+    replace_edge!(d, from, to)
+  end
+
+  defp handle_add_definition(d, public, tuple) when public in [:def, :defmacro] do
+    :digraph.add_vertex(d, tuple)
+    replace_edge!(d, :local, tuple)
+  end
+
+  defp handle_add_definition(d, private, tuple) when private in [:defp, :defmacrop] do
+    :digraph.add_vertex(d, tuple)
   end
 
   defp replace_edge!(d, from, to) do

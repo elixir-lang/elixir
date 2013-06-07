@@ -124,13 +124,16 @@ store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, #el
 
   { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Body, S),
 
+  DefaultsLength = length(Defaults),
+  elixir_tracker:record_defaults(Tuple, Kind, Module, DefaultsLength),
+
   File  = TS#elixir_scope.file,
   Table = table(Module),
   CTable = clauses_table(Module),
 
   compile_super(Module, TS),
   store_each(CheckClauses, Kind, File, Location,
-    Table, CTable, length(Defaults), Function),
+    Table, CTable, DefaultsLength, Function),
 
   [store_each(false, Kind, File, Location, Table, CTable, 0,
     default_function_for(Kind, Name, Default)) || Default <- Defaults],
