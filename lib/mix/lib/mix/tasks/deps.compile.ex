@@ -152,7 +152,7 @@ defmodule Mix.Tasks.Deps.Compile do
             "dependency #{app}, please ensure rebar is available"
         end
         Mix.Task.run "local.rebar", []
-        Mix.Tasks.local_rebar_path
+        Mix.Rebar.local_rebar_path
     end
   end
 end
