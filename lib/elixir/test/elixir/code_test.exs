@@ -96,6 +96,20 @@ defmodule CodeTest do
     assert Keyword.get(compile, :source) != nil
   end
 
+  test :compile_string do
+    assert [{ CompileStringSample, _ }] = Code.compile_string("defmodule CompileStringSample, do: :ok")
+  after
+    :code.purge CompileSimpleSample
+    :code.delete CompileSimpleSample
+  end
+
+  test :compile_quoted do
+    assert [{ CompileQuotedSample, _ }] = Code.compile_string("defmodule CompileQuotedSample, do: :ok")
+  after
+    :code.purge CompileQuotedSample
+    :code.delete CompileQuotedSample
+  end
+
   test :ensure_loaded? do
     assert Code.ensure_loaded?(__MODULE__)
     refute Code.ensure_loaded?(Unknown.Module)
