@@ -31,6 +31,8 @@ defmodule Mix.Project do
   defined.
   """
 
+  alias Mix.Server.Project
+
   @doc false
   defmacro __using__(_) do
     quote do
@@ -85,7 +87,7 @@ defmodule Mix.Project do
   """
   def get do
     case Mix.Server.call(:projects) do
-      [{ h, _ }|_] -> h
+      [Project[name: project]|_] -> project
       _ -> nil
     end
   end
@@ -103,7 +105,7 @@ defmodule Mix.Project do
   """
   def config do
     case Mix.Server.call(:projects) do
-      [{ h, config }|_] when h != nil -> config
+      [Project[name: name, config: config]|_] when name != nil -> config
       _ -> default_config
     end
   end
