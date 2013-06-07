@@ -946,7 +946,7 @@ defmodule Enum do
 
   """
   @spec uniq(t) :: list
-  @spec uniq(t, (element -> term)) :: boolean
+  @spec uniq(t, (element -> term)) :: list
   def uniq(collection, fun // fn x -> x end)
 
   def uniq(collection, fun) when is_list(collection) do
