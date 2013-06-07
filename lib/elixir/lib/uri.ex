@@ -220,6 +220,7 @@ defimpl Binary.Chars, for: URI.Info do
     if uri.userinfo, do: result = result <> uri.userinfo <> "@"
     if uri.host,     do: result = result <> uri.host
     if uri.port,     do: result = result <> ":" <> integer_to_binary(uri.port)
+    if uri.path,     do: result = result <> uri.path
     if uri.query,    do: result = result <> "?" <> uri.query
     if uri.fragment, do: result = result <> "#" <> uri.fragment
 
