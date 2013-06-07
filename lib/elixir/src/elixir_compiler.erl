@@ -108,10 +108,17 @@ module(Forms, File, RawOptions, Bootstrap, Callback) when
       end,
       format_warnings(Bootstrap, File, Warnings),
       code:load_binary(ModuleName, Listname, Binary),
-      Callback(ModuleName, Binary);
+      Callback(ModuleName, Binary),
+      ok;
     {error, Errors, Warnings} ->
-      format_warnings(Bootstrap, File, Warnings),
-      format_errors(Bootstrap, File, Errors, Warnings)
+      case get_opt(warnings_as_errors) of
+        true ->
+          format_errors(Bootstrap, File, Errors, Warnings),
+        false ->
+          format_warnings(Bootstrap, File, Warnings),
+          format_errors(Bootstrap, File, Errors, [])
+      end,
+      {error, 1}
   end.
 
 %% Compile core files for bootstrap.
