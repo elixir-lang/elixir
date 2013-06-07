@@ -8,6 +8,8 @@ defmodule Mix.Server do
     shell: Mix.Shell.IO, scm: Ordset.new, env: nil, post_config: [],
     io_done: false
 
+  defrecord Project, name: nil, config: nil
+
   def start_link(env) do
     :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, env, [])
   end
@@ -56,7 +58,7 @@ defmodule Mix.Server do
 
   def handle_call(:pop_project, _from, config) do
     case config.projects do
-      [{ project, _ }|tail] ->
+      [ Project[name: project] | tail ] ->
         { :reply, project, config.projects(tail).io_done(false) }
       _ ->
         { :reply, nil, config }
@@ -106,10 +108,11 @@ defmodule Mix.Server do
     { :noreply, config.update_tasks Ordset.filter(fn {t, _} -> t != task end, &1) }
   end
 
-  def handle_cast({ :push_project, name, project }, config) do
-    project = Keyword.merge(project, config.post_config)
+  def handle_cast({ :push_project, name, conf }, config) do
+    conf = Keyword.merge(conf, config.post_config)
+    project = Project[name: name, config: conf]
     config = config.post_config([])
-                   .update_projects([{ name, project }|&1])
+                   .update_projects([project|&1])
                    .io_done(false)
     { :noreply, config }
   end
@@ -136,13 +139,16 @@ defmodule Mix.Server do
 
   # Returns if project is part of an umbrella project
   defp in_umbrella?(config) do
-    Enum.any? config.projects, fn { _, conf } -> conf[:apps_path] != nil end
+    Enum.any?(config.projects, fn(Project[config: conf]) ->
+      conf[:apps_path] != nil
+    end)
   end
 
   # Returns if project is an umbrella project
   defp umbrella?(config) do
     case config.projects do
-      [ { h, conf } | _ ] when h != nil -> conf[:apps_path] != nil
+      [ Project[name: name, config: config] | _ ] when name != nil ->
+        config[:apps_path] != nil
       _ -> false
     end
   end
