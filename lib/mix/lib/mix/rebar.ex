@@ -1,15 +1,36 @@
 defmodule Mix.Rebar do
   @moduledoc false
-  @local_rebar_name "rebar"
 
   # Make Mix.Rebar work like a project so we can push it into the stack.
   @doc false
   def project, do: []
 
   @doc """
-  Return the path to the local copy of rebar. Used when building deps.
+  Returns the path supposed to host the local copy of rebar.
   """
-  def local_rebar_path, do: Path.join(Mix.Utils.mix_home, @local_rebar_name)
+  def local_rebar_path, do: Path.join(Mix.Utils.mix_home, "rebar")
+
+  @doc """
+  Returns the path to the global copy of rebar, if one exists.
+  """
+  def global_rebar_cmd do
+    wrap_cmd System.find_executable("rebar")
+  end
+
+  @doc """
+  Returns the path to the local copy of rebar, if one exists.
+  """
+  def local_rebar_cmd do
+    rebar = local_rebar_path
+    wrap_cmd(if File.regular?(rebar), do: rebar)
+  end
+
+  @doc """
+  Returns the path to the rebar copy in the current working directory, if one exists.
+  """
+  def cwd_rebar_cmd do
+    wrap_cmd(if File.regular?("./rebar"), do: Path.join(File.cwd!, "rebar"))
+  end
 
   @doc """
   Loads the rebar.config and evaluates rebar.config.script if it
@@ -122,5 +143,13 @@ defmodule Mix.Rebar do
     Enum.reduce(binds, :erl_eval.new_bindings, fn ({k, v}, binds) ->
       :erl_eval.add_binding(k, v, binds)
     end)
+  end
+
+  defp wrap_cmd(nil), do: nil
+  defp wrap_cmd(rebar) do
+    case :os.type do
+      { :win32, _ } -> "escript.exe #{rebar}"
+      _ -> rebar
+    end
   end
 end
