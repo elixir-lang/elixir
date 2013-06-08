@@ -5,7 +5,7 @@ defmodule Kernel.ParallelCompiler do
   A module responsible for compiling files in parallel.
   """
 
-  defmacrop default_callback, do: quote(do: fn x, exit_status -> x end)
+  defmacrop default_callback, do: quote(do: fn x -> x end)
 
   @doc """
   Compiles the given files.
@@ -16,9 +16,7 @@ defmodule Kernel.ParallelCompiler do
   resolved.
 
   A callback that is invoked every time a file is compiled
-  with its name and an exit_status as arguments. The exit_status
-  is :undefined if the compilation succeeded and an integer if
-  it failed.
+  with its name can be optionally given as argument.
   """
   def files(files, callback // default_callback) do
     spawn_compilers(files, nil, callback)
@@ -59,7 +57,7 @@ defmodule Kernel.ParallelCompiler do
         else
           :elixir_compiler.file(h)
         end
-        parent <- { :compiled, self(), h, :erlang.get(:exit_status) }
+        parent <- { :compiled, self(), h }
       catch
         kind, reason ->
           parent <- { :failure, self(), kind, reason, System.stacktrace }
@@ -86,8 +84,8 @@ defmodule Kernel.ParallelCompiler do
   # Wait for messages from child processes
   defp wait_for_messages(files, output, callback, waiting, queued, schedulers, result) do
     receive do
-      { :compiled, child, file, exit_status } ->
-        callback.(file, exit_status)
+      { :compiled, child, file } ->
+        callback.(file)
         new_queued  = List.keydelete(queued, child, 0)
         # Sometimes we may have spurious entries in the waiting
         # list because someone invoked try/rescue UndefinedFunctionError

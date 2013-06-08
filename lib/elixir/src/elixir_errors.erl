@@ -75,6 +75,13 @@ deprecation(Meta, File, Message, Args) ->
 
 %% Handle warnings and errors (called during module compilation)
 
+%% output warning based on warnings going to stdout or stderr.
+output_warning(Warning) ->
+  case elixir_compiler:get_opt(warnings_as_errors) of
+    true -> io:format(standard_error, Warning);
+    false -> io:format(Warning)
+  end.
+
 %% Ignore on bootstrap
 handle_file_warning(true, _File, { _Line, sys_core_fold, nomatch_guard }) -> [];
 handle_file_warning(true, _File, { _Line, sys_core_fold, { nomatch_shadow, _ } }) -> [];
@@ -93,7 +100,7 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity
   Kind    = protocol_or_behaviour(Module),
   Raw     = "undefined ~ts function ~ts/~B (for ~ts ~ts)",
   Message = io_lib:format(Raw, [Kind, Fun, Arity, Kind, inspect(Module)]),
-  io:format(file_format(Line, File, Message));
+  output_warning(file_format(Line, File, Message));
 
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
   case elixir_compiler:get_opt(internal) of
