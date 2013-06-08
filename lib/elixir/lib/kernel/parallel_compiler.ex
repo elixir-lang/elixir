@@ -16,7 +16,9 @@ defmodule Kernel.ParallelCompiler do
   resolved.
 
   A callback that is invoked every time a file is compiled
-  with its name can be optionally given as argument.
+  with its name and an exit_status as arguments. The exit_status
+  is :undefined if the compilation succeeded and an integer if
+  it failed.
   """
   def files(files, callback // default_callback) do
     spawn_compilers(files, nil, callback)
