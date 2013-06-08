@@ -57,31 +57,35 @@ defmodule String.Unicode do
 
   # Downcase
 
-  def downcase(""), do: ""
+  def downcase(string), do: do_downcase(string) |> list_to_binary
 
   lc { codepoint, _upper, lower, _title } inlist codes, lower && lower != codepoint do
-    def downcase(unquote(codepoint) <> rest) do
-      unquote(lower) <> downcase(rest)
+    defp do_downcase(unquote(codepoint) <> rest) do
+      unquote(binary_to_list(lower)) ++ downcase(rest)
     end
   end
 
-  def downcase(<< char, rest :: binary >>) do
-    << char >> <> downcase(rest)
+  defp do_downcase(<< char, rest :: binary >>) do
+    [char|do_downcase(rest)]
   end
+
+  defp do_downcase(""), do: []
 
   # Upcase
 
-  def upcase(""), do: ""
+  def upcase(string), do: do_upcase(string) |> list_to_binary
 
   lc { codepoint, upper, _lower, _title } inlist codes, upper && upper != codepoint do
-    def upcase(unquote(codepoint) <> rest) do
-      unquote(upper) <> upcase(rest)
+    defp do_upcase(unquote(codepoint) <> rest) do
+      unquote(binary_to_list(upper)) ++ do_upcase(rest)
     end
   end
 
-  def upcase(<< char, rest :: binary >>) do
-    << char >> <> upcase(rest)
+  defp do_upcase(<< char, rest :: binary >>) do
+    [char|do_upcase(rest)]
   end
+
+  defp do_upcase(""), do: []
 
   # Titlecase once
 
@@ -109,23 +113,27 @@ defmodule String.Unicode do
 
   def lstrip(other) when is_binary(other), do: other
 
-  def rstrip(""), do: ""
-
   def rstrip(string) when is_binary(string) do
-    do_rstrip(string, "")
+    do_rstrip(string, [], [])
   end
 
   lc codepoint inlist whitespace do
-    defp do_rstrip(unquote(codepoint) <> rest, buffer) do
-      do_rstrip(rest, unquote(codepoint) <> buffer)
+    c = binary_to_list(codepoint) |> :lists.reverse
+
+    defp do_rstrip(unquote(codepoint) <> rest, acc1, acc2) do
+      do_rstrip(rest, unquote(c) ++ (acc1 || acc2), acc2)
     end
   end
 
-  defp do_rstrip(<< char, rest :: binary >>, buffer) do
-    << buffer :: binary, char, do_rstrip(rest, "") :: binary >>
+  defp do_rstrip(<< char, rest :: binary >>, nil, acc2) do
+    do_rstrip(rest, nil, [char|acc2])
   end
 
-  defp do_rstrip(<<>>, _), do: <<>>
+  defp do_rstrip(<< char, rest :: binary >>, acc1, _acc2) do
+    do_rstrip(rest, nil, [char|acc1])
+  end
+
+  defp do_rstrip(<<>>, _acc1, acc2), do: acc2 |> :lists.reverse |> list_to_binary
 
   # Split
 

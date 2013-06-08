@@ -204,21 +204,23 @@ defmodule System do
   end
 
   @doc """
-  This functions looks up an executable program given
+  This function looks up an executable program given
   its name using the environment variable PATH on Unix
-  and Windows.
+  and Windows. It also considers the proper executable
+  extension for each OS, so for Windows it will try to
+  lookup files with `.com`, `.cmd` or similar extensions.
 
-  If `command` is a char list, a char list is returned.
+  If `program` is a char list, a char list is returned.
   Returns a binary otherwise.
   """
   @spec find_executable(char_list) :: char_list | nil
   @spec find_executable(String.t) :: String.t | nil
-  def find_executable(command) when is_list(command) do
-    :os.find_executable(command) || nil
+  def find_executable(program) when is_list(program) do
+    :os.find_executable(program) || nil
   end
 
-  def find_executable(command) do
-    case :os.find_executable(to_char_list(command)) do
+  def find_executable(program) do
+    case :os.find_executable(to_char_list(program)) do
       false -> nil
       other -> list_to_binary(other)
     end

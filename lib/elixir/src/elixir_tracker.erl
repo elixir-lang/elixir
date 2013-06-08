@@ -6,6 +6,7 @@
   record_local/2, record_local/3,
   record_import/4, record_remote/4,
   record_warn/4, record_definition/3,
+  record_defaults/4,
   ensure_no_import_conflict/4, ensure_all_imports_used/3,
   warn_unused_local/3, format_error/1
 ]).
@@ -67,6 +68,14 @@ record_remote(Tuple, Receiver, Module, Function) ->
 record_definition(Tuple, Kind, Module) ->
   if_tracker(Module, fun(Pid) ->
     ?tracker:add_definition(Pid, Kind, Tuple),
+    true
+  end).
+
+record_defaults(_Tuple, _Kind, _Module, 0) ->
+  true;
+record_defaults(Tuple, Kind, Module, Defaults) ->
+  if_tracker(Module, fun(Pid) ->
+    ?tracker:add_defaults(Pid, Kind, Tuple, Defaults),
     true
   end).
 

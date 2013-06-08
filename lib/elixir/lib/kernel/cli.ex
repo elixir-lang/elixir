@@ -271,7 +271,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:script, file}, _config) when is_binary(file) do
-    if exec = System.find_executable(file) do
+    if exec = find_elixir_executable(file) do
       Code.require_file(exec)
       :ok
     else
@@ -328,6 +328,21 @@ defmodule Kernel.CLI do
       :ok
     else
       { :error, "--compile : No files matched patterns #{Enum.join(patterns, ",")}" }
+    end
+  end
+
+  defp find_elixir_executable(file) do
+    if exec = System.find_executable(file) do
+      # If we are on Windows, the executable is going to be
+      # a .bat file that must be in the same directory as
+      # the actual Elixir executable.
+      case :os.type() do
+        { :win32, _ } ->
+          exec = Path.rootname(exec)
+          if File.regular?(exec), do: exec
+        _ ->
+          exec
+      end
     end
   end
 end
