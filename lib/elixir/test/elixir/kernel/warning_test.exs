@@ -12,7 +12,7 @@ defmodule Kernel.WarningTest do
         def hello(arg), do: nil
       end
       """
-    end) =~ %r"variable arg is unused"
+    end) =~ "variable arg is unused"
   after
     purge Sample
   end
@@ -24,7 +24,7 @@ defmodule Kernel.WarningTest do
         defp hello, do: nil
       end
       """
-    end) =~ %r"function hello/0 is unused"
+    end) =~ "function hello/0 is unused"
 
     assert capture_io(fn ->
       Code.eval_string """
@@ -33,7 +33,7 @@ defmodule Kernel.WarningTest do
         defp hello(1), do: :ok
       end
       """
-    end) =~ %r"function hello/1 is unused"
+    end) =~ "function hello/1 is unused"
 
     assert capture_io(fn ->
       Code.eval_string """
@@ -44,7 +44,7 @@ defmodule Kernel.WarningTest do
         defp d(x), do: x
       end
       """
-    end) =~ %r"function c/2 is unused"
+    end) =~ "function c/2 is unused"
 
   after
     purge [Sample1, Sample2, Sample3]
@@ -58,7 +58,7 @@ defmodule Kernel.WarningTest do
         defp b, do: a
       end
       """
-    end) =~ %r"function a/0 is unused"
+    end) =~ "function a/0 is unused"
   after
     purge Sample
   end
@@ -70,7 +70,7 @@ defmodule Kernel.WarningTest do
         defmacrop hello, do: nil
       end
       """
-    end) =~ %r"macro hello/0 is unused"
+    end) =~ "macro hello/0 is unused"
   after
     purge Sample
   end
@@ -83,7 +83,7 @@ defmodule Kernel.WarningTest do
         defp b(arg1 // 1, arg2 // 2, arg3 // 3), do: [arg1, arg2, arg3]
       end
       """
-    end) =~ %r"default arguments in b/3 are never used"
+    end) =~ "default arguments in b/3 are never used"
 
     assert capture_io(fn ->
       Code.eval_string """
@@ -92,7 +92,7 @@ defmodule Kernel.WarningTest do
         defp b(arg1 // 1, arg2 // 2, arg3 // 3), do: [arg1, arg2, arg3]
       end
       """
-    end) =~ %r"the first 2 default arguments in b/3 are never used"
+    end) =~ "the first 2 default arguments in b/3 are never used"
 
     assert capture_io(fn ->
       Code.eval_string """
@@ -101,7 +101,7 @@ defmodule Kernel.WarningTest do
         defp b(arg1 // 1, arg2 // 2, arg3 // 3), do: [arg1, arg2, arg3]
       end
       """
-    end) =~ %r"the first default argument in b/3 is never used"
+    end) =~ "the first default argument in b/3 is never used"
 
     assert capture_io(fn ->
       Code.eval_string """
@@ -127,7 +127,7 @@ defmodule Kernel.WarningTest do
         def a, do: nil
       end
       """
-    end) =~ %r"unused import Sample1"
+    end) =~ "unused import Sample1"
   after
     purge [Sample1, Sample2]
   end
@@ -140,7 +140,7 @@ defmodule Kernel.WarningTest do
         def hello, do: nil
       end
       """
-    end) =~ %r"this clause cannot match because a previous clause at line 2 always matches"
+    end) =~ "this clause cannot match because a previous clause at line 2 always matches"
   after
     purge Sample
   end
@@ -153,7 +153,7 @@ defmodule Kernel.WarningTest do
         def hello(arg // 0), do: nil
       end
       """
-    end) =~ %r"clause with defaults should be the first clause in def hello/1"
+    end) =~ "clause with defaults should be the first clause in def hello/1"
   after
     purge Sample
   end
@@ -166,7 +166,7 @@ defmodule Kernel.WarningTest do
         def hello(arg // 1), do: nil
       end
       """
-    end) =~ %r"def hello/1 has default values and multiple clauses, use a separate clause for declaring defaults"
+    end) =~ "def hello/1 has default values and multiple clauses, use a separate clause for declaring defaults"
   after
     purge Sample
   end
@@ -181,7 +181,7 @@ defmodule Kernel.WarningTest do
         def hello, do: :ok
       end
       """
-    end) =~ %r"function world/0 is unused"
+    end) =~ "function world/0 is unused"
   after
     purge Sample
   end
