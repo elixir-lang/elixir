@@ -208,7 +208,9 @@ defmodule String do
 
   """
   @spec upcase(t) :: t
-  defdelegate upcase(binary), to: String.Unicode
+  def upcase(binary) do
+    String.Unicode.upcase(binary, [])
+  end
 
   @doc """
   Convert all characters on the given string to downcase.
@@ -224,7 +226,9 @@ defmodule String do
 
   """
   @spec downcase(t) :: t
-  defdelegate downcase(binary), to: String.Unicode
+  def downcase(binary) do
+    String.Unicode.downcase(binary, [])
+  end
 
   @doc """
   Converts the first character in the given string to
