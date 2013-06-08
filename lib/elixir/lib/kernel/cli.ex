@@ -328,11 +328,14 @@ defmodule Kernel.CLI do
     if files != [] do
       Code.compiler_options(config.compiler_options)
       Kernel.ParallelCompiler.files_to_path(files, config.output,
-        fn file -> IO.puts "Compiled #{file}" end)
-      exit_status = :erlang.get(:exit_status)
-      if is_number(exit_status) do
-        "--compile : exit with status #{exit_status}"
-      end
+        fn file, exit_status ->
+          case exit_status do
+            :undefined -> IO.puts "Compiled #{file}"
+            _ ->
+              IO.puts "== Compilation error on file #{file} =="
+              System.halt(exit_status)
+          end
+        end)
       :ok
     else
       { :error, "--compile : No files matched patterns #{Enum.join(patterns, ",")}" }

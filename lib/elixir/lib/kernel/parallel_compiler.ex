@@ -85,9 +85,7 @@ defmodule Kernel.ParallelCompiler do
   defp wait_for_messages(files, output, callback, waiting, queued, schedulers, result) do
     receive do
       { :compiled, child, file, exit_status } ->
-        # It's only a number if something went wrong.
-        if is_number(exit_status), do: :erlang.put(:exit_status, exit_status)
-        callback.(file)
+        callback.(file, exit_status)
         new_queued  = List.keydelete(queued, child, 0)
         # Sometimes we may have spurious entries in the waiting
         # list because someone invoked try/rescue UndefinedFunctionError
