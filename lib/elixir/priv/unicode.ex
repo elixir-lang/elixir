@@ -55,32 +55,46 @@ defmodule String.Unicode do
     Enum.map codepoints, to_binary.(&1)
   end
 
-  # Downcase
-
-  def downcase(""), do: ""
-
-  lc { codepoint, _upper, lower, _title } inlist codes, lower && lower != codepoint do
-    def downcase(unquote(codepoint) <> rest) do
-      unquote(lower) <> downcase(rest)
-    end
+  # For these recursive transformations of the string
+  # we need to do the conversion into a list (where appending
+  # is O(1)) to avoid very poor performance appending
+  # to the end of long binaries. Then we convert from list
+  # to binary in one step.
+  defp recursive_transform(str, transform_fn) do
+    transform_fn.(str) |> list_to_binary
   end
 
-  def downcase(<< char, rest :: binary >>) do
-    << char >> <> downcase(rest)
+  # Downcase
+  def downcase(str) do
+    recursive_transform(str, function downcase_to_list/1)
+  end
+
+  lc { codepoint, _upper, lower, _title } inlist codes, lower && lower != codepoint do
+    defp downcase_to_list(unquote(codepoint) <> rest) do
+      [ unquote(lower), downcase_to_list(rest) ]
+    end
+  end
+  defp downcase_to_list(""), do: []
+
+  defp downcase_to_list(<< char, rest :: binary >>) do
+    [ char, downcase_to_list(rest)]
   end
 
   # Upcase
+  def upcase(str) do
+    recursive_transform(str, function upcase_to_list/1)
+  end
 
-  def upcase(""), do: ""
+  defp upcase_to_list(""), do: []
 
   lc { codepoint, upper, _lower, _title } inlist codes, upper && upper != codepoint do
-    def upcase(unquote(codepoint) <> rest) do
-      unquote(upper) <> upcase(rest)
+    defp upcase_to_list(unquote(codepoint) <> rest) do
+      [ unquote(upper) | upcase_to_list(rest) ]
     end
   end
 
-  def upcase(<< char, rest :: binary >>) do
-    << char >> <> upcase(rest)
+  defp upcase_to_list(<< char, rest :: binary >>) do
+    [ char | upcase_to_list(rest) ]
   end
 
   # Titlecase once
