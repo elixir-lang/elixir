@@ -5,8 +5,9 @@ defmodule Mix.Server do
   use GenServer.Behaviour
 
   defrecord Config, tasks: Ordset.new, projects: [], mixfile: [],
-    shell: Mix.Shell.IO, scm: Ordset.new, env: nil, post_config: [],
-    io_done: false
+    shell: Mix.Shell.IO, scm: Ordset.new, env: nil, post_config: []
+
+  defrecord Project, name: nil, config: nil, rec_enabled?: true, io_done: false
 
   def start_link(env) do
     :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, env, [])
@@ -56,8 +57,8 @@ defmodule Mix.Server do
 
   def handle_call(:pop_project, _from, config) do
     case config.projects do
-      [{ project, _ }|tail] ->
-        { :reply, project, config.projects(tail).io_done(false) }
+      [ Project[name: project] | tail ] ->
+        { :reply, project, config.projects(tail) }
       _ ->
         { :reply, nil, config }
     end
@@ -67,15 +68,25 @@ defmodule Mix.Server do
     { :reply, config.mixfile[app], config }
   end
 
-  def handle_call(:io_done, _from, config) do
-    { :reply, config.io_done, config.io_done(true) }
-  end
-
   def handle_call(:output_app?, _from, config) do
     # Check that we haven't already outputted app and that we are part of an
     # umbrella project
-    output = not config.io_done and not umbrella?(config) and in_umbrella?(config)
-    { :reply, output, config.io_done(true) }
+    case config.projects do
+      [ project | tail ] ->
+        output = not project.io_done and not umbrella?(config) and in_umbrella?(config)
+        { :reply, output, config.projects([project.io_done(true)|tail]) }
+      _ ->
+        { :reply, false, config }
+    end
+  end
+
+  def handle_call(:recursive_enabled?, _from, config) do
+    case config.projects do
+      [ Project[rec_enabled?: bool] | _ ] ->
+        { :reply, bool, config }
+      _ ->
+        { :reply, true, config }
+    end
   end
 
   def handle_call(request, from, config) do
@@ -106,11 +117,11 @@ defmodule Mix.Server do
     { :noreply, config.update_tasks Ordset.filter(fn {t, _} -> t != task end, &1) }
   end
 
-  def handle_cast({ :push_project, name, project }, config) do
-    project = Keyword.merge(project, config.post_config)
+  def handle_cast({ :push_project, name, conf }, config) do
+    conf = Keyword.merge(conf, config.post_config)
+    project = Project[name: name, config: conf]
     config = config.post_config([])
-                   .update_projects([{ name, project }|&1])
-                   .io_done(false)
+                   .update_projects([project|&1])
     { :noreply, config }
   end
 
@@ -130,19 +141,31 @@ defmodule Mix.Server do
     { :noreply, config.mixfile([]) }
   end
 
+  def handle_cast({:recursive_enabled?, bool}, config) do
+    case config.projects do
+      [ project | tail ] ->
+        { :noreply, config.projects([project.rec_enabled?(bool)|tail]) }
+      _ ->
+        { :noreply, config }
+    end
+  end
+
   def handle_cast(request, config) do
     super(request, config)
   end
 
-  # Returns if project is part of an umbrella project
+  # Returns true if project is part of an umbrella project
   defp in_umbrella?(config) do
-    Enum.any? config.projects, fn { _, conf } -> conf[:apps_path] != nil end
+    Enum.any?(config.projects, fn(Project[config: conf]) ->
+      conf[:apps_path] != nil
+    end)
   end
 
-  # Returns if project is an umbrella project
+  # Returns true if project is an umbrella project
   defp umbrella?(config) do
     case config.projects do
-      [ { h, conf } | _ ] when h != nil -> conf[:apps_path] != nil
+      [ Project[name: name, config: config] | _ ] when name != nil ->
+        config[:apps_path] != nil
       _ -> false
     end
   end
