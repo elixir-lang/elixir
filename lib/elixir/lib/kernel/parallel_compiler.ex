@@ -5,7 +5,7 @@ defmodule Kernel.ParallelCompiler do
   A module responsible for compiling files in parallel.
   """
 
-  defmacrop default_callback, do: quote(do: fn x -> x end)
+  defmacrop default_callback, do: quote(do: fn x, exit_status -> x end)
 
   @doc """
   Compiles the given files.
