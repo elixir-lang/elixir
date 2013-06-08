@@ -57,35 +57,35 @@ defmodule String.Unicode do
 
   # Downcase
 
-  lc { codepoint, _upper, lower, _title } inlist codes, lower && lower != codepoint do
-    l = binary_to_list(lower) |> :lists.reverse
+  def downcase(string), do: do_downcase(string) |> list_to_binary
 
-    def downcase(unquote(codepoint) <> rest, acc) do
-      downcase(rest, unquote(l) ++ acc)
+  lc { codepoint, _upper, lower, _title } inlist codes, lower && lower != codepoint do
+    defp do_downcase(unquote(codepoint) <> rest) do
+      unquote(binary_to_list(lower)) ++ downcase(rest)
     end
   end
 
-  def downcase(<< char, rest :: binary >>, acc) do
-    downcase(rest, [char|acc])
+  defp do_downcase(<< char, rest :: binary >>) do
+    [char|do_downcase(rest)]
   end
 
-  def downcase("", acc), do: acc |> :lists.reverse |> list_to_binary
+  defp do_downcase(""), do: []
 
   # Upcase
 
-  lc { codepoint, upper, _lower, _title } inlist codes, upper && upper != codepoint do
-    u = binary_to_list(upper) |> :lists.reverse
+  def upcase(string), do: do_upcase(string) |> list_to_binary
 
-    def upcase(unquote(codepoint) <> rest, acc) do
-      upcase(rest, unquote(u) ++ acc)
+  lc { codepoint, upper, _lower, _title } inlist codes, upper && upper != codepoint do
+    defp do_upcase(unquote(codepoint) <> rest) do
+      unquote(binary_to_list(upper)) ++ do_upcase(rest)
     end
   end
 
-  def upcase(<< char, rest :: binary >>, acc) do
-    upcase(rest, [char|acc])
+  defp do_upcase(<< char, rest :: binary >>) do
+    [char|do_upcase(rest)]
   end
 
-  def upcase("", acc), do: acc |> :lists.reverse |> list_to_binary
+  defp do_upcase(""), do: []
 
   # Titlecase once
 
