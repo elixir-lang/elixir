@@ -89,11 +89,7 @@ module(Forms, S, Callback) ->
     true -> [debug_info];
     _ -> []
   end,
-  Options2 = case get_opt(warnings_as_errors) of
-    true -> [warnings_as_errors | Options];
-    false -> Options
-  end,
-  module(Forms, S#elixir_scope.file, Options2, false, Callback).
+  module(Forms, S#elixir_scope.file, Options, false, Callback).
 
 module(Forms, File, RawOptions, Bootstrap, Callback) when
     is_binary(File), is_list(Forms), is_list(RawOptions), is_boolean(Bootstrap), is_function(Callback) ->
