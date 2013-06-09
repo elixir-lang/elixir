@@ -78,7 +78,9 @@ deprecation(Meta, File, Message, Args) ->
 %% output warning based on warnings going to stdout or stderr.
 output_warning(Warning) ->
   case elixir_compiler:get_opt(warnings_as_errors) of
-    true -> io:format(standard_error, Warning);
+    true ->
+      io:format(standard_error, Warning, []),
+      elixir_code_server:cast({ compilation_status, error });
     false -> io:format(Warning)
   end.
 
@@ -107,7 +109,7 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
     true  -> [];
     false ->
       Message = io_lib:format("behaviour ~ts undefined", [inspect(Module)]),
-      io:format(file_format(Line, File, Message))
+      output_warning(file_format(Line, File, Message))
   end;
 
 handle_file_warning(_, _File, {Line,erl_lint,{unused_var,_Var}}) when Line =< 0 ->
@@ -115,16 +117,16 @@ handle_file_warning(_, _File, {Line,erl_lint,{unused_var,_Var}}) when Line =< 0 
 
 handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
   Message = format_error(erl_lint, { unused_var, format_var(Var) }),
-  io:format(file_format(Line, File, Message));
+  output_warning(file_format(Line, File, Message));
 
 handle_file_warning(_, File, {Line,erl_lint,{shadowed_var,Var,Where}}) ->
   Message = format_error(erl_lint, { shadowed_var, format_var(Var), Where }),
-  io:format(file_format(Line, File, Message));
+  output_warning(file_format(Line, File, Message));
 
 %% Default behavior
 handle_file_warning(_, File, {Line,Module,Desc}) ->
   Message = format_error(Module, Desc),
-  io:format(file_format(Line, File, Message)).
+  output_warning(file_format(Line, File, Message)).
 
 handle_file_warning(File, Desc) ->
   handle_file_warning(false, File, Desc).

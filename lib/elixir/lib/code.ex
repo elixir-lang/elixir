@@ -285,6 +285,14 @@ defmodule Code do
   end
 
   @doc """
+  Loads the compile status from the code server. Returns :ok if all is
+  well. Returns :error if an error has ben generated.
+  """
+  def compilation_status do
+    :elixir_code_server.call :compilation_status
+  end
+
+  @doc """
   Ensures the given module is loaded. If the module is already
   loaded, it works as no-op. If the module was not loaded yet,
   it tries to load it.

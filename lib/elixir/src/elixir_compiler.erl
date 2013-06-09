@@ -241,7 +241,13 @@ format_error({ skip_native, Module }) ->
     [elixir_errors:inspect(Module)]).
 
 format_errors(_File, []) ->
-  exit({ nocompile, "compilation failed but no error was raised" });
+  case get_opt(warnings_as_errors) of
+    % If we get here we are treating warnings as errors and we
+    % have warnngs, but no errors
+    true -> ok;
+    false -> exit({ nocompile, "compilation failed but no error was raised" })
+  end;
+  
 
 format_errors(File, Errors) ->
   lists:foreach(fun ({_, Each}) ->
