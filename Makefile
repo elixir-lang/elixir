@@ -132,9 +132,9 @@ test_erlang: compile
 
 test_elixir: test_kernel test_ex_unit test_doctest test_mix test_eex test_iex
 
-test_doctest: compile
+test_doc_test: compile
 	@ echo "==> doctest (exunit)"
-	@ cd lib/elixir && ../../bin/elixir -r "test/doctest.exs";
+	@ cd lib/elixir && ../../bin/elixir -r "test/doc_test.exs";
 
 test_kernel: compile
 	@ echo "==> kernel (exunit)"

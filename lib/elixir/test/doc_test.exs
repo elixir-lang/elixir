@@ -16,7 +16,6 @@ defmodule KernelTest do
   doctest Code
   doctest Dict
   doctest Enum
-  doctest ExUnit.CaptureIO, import: true
   doctest IO.ANSI
   doctest Regex
   doctest String
