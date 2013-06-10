@@ -20,6 +20,15 @@ However, if tests fail, it is likely you have an outdated Erlang version (Elixir
 
 If you have the correct version and tests still fail, feel free to [open an issue][2].
 
+## Building documentation
+
+Building the documentation requires [ex_doc](https://github.com/elixir-lang/ex_doc) to be installed and built in the same containing folder as elixir.
+
+    # After cloning and compiling Elixir
+    $ git clone git://github.com/elixir-lang/ex_doc.git
+    $ cd ../ex_doc && ../elixir/bin/mix compile
+    $ cd ../elixir && make docs
+
 ## Contributing
 
 We appreciate any contribution to Elixir, so check out our [CONTRIBUTING.md](CONTRIBUTING.md) guide for more information. We usually keep a list of features and bugs [in the issue tracker][2].

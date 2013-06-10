@@ -96,12 +96,15 @@ clean:
 
 SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --points-at $$head | tail -1)" ; echo "$${tag:-$$head}\c")
 
-docs: compile
+docs: compile ../ex_doc/bin/ex_doc
 	mkdir -p ebin
 	rm -rf docs
 	cp -R -f lib/*/ebin/*.beam ./ebin
 	bin/elixir ../ex_doc/bin/ex_doc "Elixir" "$(VERSION)" -m Kernel -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)"
-	rm -rf ebin
+
+../ex_doc/bin/ex_doc:
+	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
+	@ false
 
 release_zip: compile
 	rm -rf v$(VERSION).zip
