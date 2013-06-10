@@ -14,7 +14,7 @@ defmodule Mix.Local do
   Append local tasks path into Erlang code path.
   """
   def append_tasks do
-    Code.append_path tasks_path
+    Enum.each(all_local_paths,Code.append_path(&1))
   end
 
   @doc """
@@ -27,12 +27,19 @@ defmodule Mix.Local do
   @doc """
   Returns all tasks modules in .mix/tasks.
   """
-  def all_tasks do
-    query   = Path.join(tasks_path, "Elixir.Mix.Tasks.*.beam")
-    files   = Path.wildcard(query)
-    modules = Enum.map files, &1 |> Path.basename |> Path.rootname(".beam") |> binary_to_atom
-    Enum.filter(modules, fn(mod) ->
-      match? { :module, _ }, Code.ensure_loaded(mod)
-    end)
+  def all_tasks, do: Mix.Task.load_paths(all_local_paths)
+
+  defp all_local_paths do
+    [tasks_path | Path.join([Mix.Utils.mix_home, "tasks", "*.ez"])
+                |> Path.wildcard
+                |> Enum.map(package_code_paths(&1))
+                |> List.flatten]
+    |> Enum.map(binary_to_list(&1))
+  end
+
+  defp package_code_paths(archive_file) do
+    Mix.Package.package_beams(archive_file)
+    |> Enum.map(fn(beam) -> Path.join(archive_file, Path.dirname(beam)) end)
+    |> Enum.uniq
   end
 end

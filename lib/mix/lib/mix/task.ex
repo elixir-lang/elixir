@@ -25,10 +25,25 @@ defmodule Mix.Task do
   @doc """
   Loads all tasks in all code paths.
   """
-  def load_all do
-    Enum.each :code.get_path, fn(codepath) ->
-      files = Path.wildcard(codepath ++ '/Elixir.Mix.Tasks.*.beam')
-      Enum.each files, &1 |> Path.basename |> Path.rootname('.beam') |> list_to_atom |> Code.ensure_loaded
+  def load_all, do: load_paths(:code.get_path)
+
+  @doc """
+  Loads all tasks in given paths.
+  """
+  def load_paths(paths) do
+    Enum.reduce(paths, [], fn(path, matches) ->
+      {:ok, files} = :erl_prim_loader.list_dir(path)
+      matches ++ Enum.reduce(files, [], match_tasks(&1, &2))
+    end)
+  end
+
+  defp match_tasks(file_name, modules) do
+    if Regex.match?(%r/Elixir\.Mix\.Tasks\..*\.beam/, file_name) do
+      mod = Path.rootname(file_name, '.beam') |> list_to_atom
+      if match?({ :module, _ }, Code.ensure_loaded(mod)), do: [mod | modules],
+      else: modules
+    else
+      modules
     end
   end
 
