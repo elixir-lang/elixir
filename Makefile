@@ -130,7 +130,7 @@ test_erlang: compile
 	@ $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt;
 	@ echo
 
-test_elixir: test_kernel test_ex_unit test_doctest test_mix test_eex test_iex
+test_elixir: test_kernel test_ex_unit test_doc_test test_mix test_eex test_iex
 
 test_doc_test: compile
 	@ echo "==> doctest (exunit)"
