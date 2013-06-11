@@ -43,6 +43,13 @@ defmodule IEx.HelpersTest do
            == "* def pwd()\n\nPrints the current working directory.\n\n"
   end
 
+  test "h helper __info__" do
+    h_output_module = capture_io(fn -> h Module.__info__ end)
+    assert capture_io(fn -> h Module.UnlikelyTo.Exist.__info__ end) == h_output_module
+    assert capture_io(fn -> h Module.UnlikelyTo.Exist.__info__/1 end) == h_output_module
+    assert capture_io(fn -> h __info__ end) == "No docs for __info__ have been found\n"
+  end
+
   test "t helper" do
     assert capture_io(fn -> t ExUnit end) == "No types for ExUnit have been found\n"
 
