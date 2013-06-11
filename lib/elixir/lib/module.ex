@@ -266,11 +266,37 @@ defmodule Module do
 
   ## Runtime information about a module
 
-  __info__
-
-  ... (as yet unwritten content) ...
+  It is possible to query a module at runtime to find out which functions and
+  macros it defines, extract its docstrings, etc. See `__info__/1`.
 
   '''
+
+  @doc """
+  Provides runtime information about functions and macros defined by the
+  module, enables docstring extraction, etc.
+
+  Each module gets an `__info__/1` function when it's compiled. The function
+  takes one of the following atoms:
+
+  * `:functions`  - keyword list of public functions along with their arities
+
+  * `:macros`     - keyword list of public macros along with their arities
+
+  * `:docs`       - list of all docstrings attached to functions and macros
+                    using the `@doc` attribute
+
+  * `:moduledoc`  - tuple `{ <line>, <doc> }` where `line` is the line on
+                    which module definition starts and `doc` is the string
+                    attached to the module using the `@moduledoc` attribute
+
+  * `:module`     - module name (`Module == Module.__info__(:module)`)
+
+  In addition to the above, you may also pass to `__info__/1` any atom supported
+  by Erlang's `module_info` function which also gets defined for each compiled
+  module. See http://erlang.org/doc/reference_manual/modules.html#id74571 for
+  more information.
+  """
+  def __info__(kind)
 
   @doc """
   Check if a module is open, i.e. it is currently being defined
