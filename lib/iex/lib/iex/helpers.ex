@@ -99,9 +99,23 @@ defmodule IEx.Helpers do
       h Enum.all?/2
       h Enum.all?
   """
+  # Special case for `h AnyModule.__info__/1`
+  defmacro h({ :/, _, [{ { :., _, [_mod, :__info__] }, _, [] }, 1] }) do
+    quote do
+      IEx.Introspection.h(Module, :__info__, 1)
+    end
+  end
+
   defmacro h({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
       IEx.Introspection.h(unquote(mod), unquote(fun), unquote(arity))
+    end
+  end
+
+  # Special case for `h AnyModule.__info__`
+  defmacro h({ { :., _, [_mod, :__info__] }, _, [] }) do
+    quote do
+      IEx.Introspection.h(Module, :__info__, 1)
     end
   end
 
