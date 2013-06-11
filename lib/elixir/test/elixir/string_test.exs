@@ -42,6 +42,7 @@ defmodule StringTest do
   test :upcase do
     assert String.upcase("123 abcd 456 efg hij ( %$#) kl mnop @ qrst = -_ uvwxyz") == "123 ABCD 456 EFG HIJ ( %$#) KL MNOP @ QRST = -_ UVWXYZ"
     assert String.upcase("") == ""
+    assert String.upcase("abcD") == "ABCD"
   end
 
   test :upcase_utf8 do
@@ -51,16 +52,19 @@ defmodule StringTest do
 
   test :upcase_utf8_multibyte do
     assert String.upcase("straße") == "STRASSE"
+    assert String.upcase("áüÈß") == "ÁÜÈSS"
   end
 
   test :downcase do
     assert String.downcase("123 ABcD 456 EfG HIJ ( %$#) KL MNOP @ QRST = -_ UVWXYZ") == "123 abcd 456 efg hij ( %$#) kl mnop @ qrst = -_ uvwxyz"
+    assert String.downcase("abcD") == "abcd"
     assert String.downcase("") == ""
   end
 
   test :downcase_utf8 do
     assert String.downcase("& % # ÀÁÂ ÃÄÅ 1 2 Ç Æ") == "& % # àáâ ãäå 1 2 ç æ"
     assert String.downcase("ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ") == "àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþ"
+    assert String.downcase("áüÈß") == "áüèß"
   end
 
   test :capitalize do

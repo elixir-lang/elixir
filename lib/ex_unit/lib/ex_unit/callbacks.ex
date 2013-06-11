@@ -12,11 +12,11 @@ defmodule ExUnit.Callbacks do
   and `teardown_all` share their own context in a similar way, but this one
   provides an ExUnit.TestCase record associated with the `:case` key.
 
-  If you return { :ok, <keyword list> } from `setup` or `teardown`, the keyword
+  If you return `{ :ok, <keyword list> }` from `setup` or `teardown`, the keyword
   list will get merged into the context that will be available in all
   subsequent `setup`, `test`, or `teardown` calls.
 
-  Similarly, returning { :ok, <keyword list> } from `setup_all` or
+  Similarly, returning `{ :ok, <keyword list> }` from `setup_all` or
   `teardown_all` will merge the keyword list into the context that will be
   available in all subsequent `setup_all` or `teardown_all` calls.
 
