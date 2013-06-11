@@ -7,16 +7,296 @@ defmodule Module do
     end
   end
 
-  @moduledoc """
+  @moduledoc %B'''
   This module provides many functions to deal with modules during
   compilation time. It allows a developer to dynamically attach
   documentation, add, delete and register attributes and so forth.
 
-  After the module is compiled, using many of the functions in
+  After a module is compiled, using many of the functions in
   this module will raise errors, since it is out of their purpose
   to inspect runtime data. Most of the runtime data can be inspected
   via the `__info__(attr)` function attached to each compiled module.
+
+  ## Module attributes
+
+  Each module can be decorated with one or more attributes. The following ones
+  are currently defined by Elixir:
+
+  * `@after_compile`
+
+      A hook that will be invoked right after the current module is compiled.
+
+      Accepts a module or a tuple `{ <module>, <function atom> }`. The function
+      must take two arguments: the module environment and its bytecode.
+      When just a module is provided, the function is assumed to be
+      `__after_compile__/2`.
+
+      **Example**
+
+          defmodule M do
+            @after_compile __MODULE__
+
+            def __after_compile__(env, _bytecode) do
+              IO.inspect env
+            end
+          end
+
+  * `@before_compile`
+
+      A hook that will be invoked before the module is compiled.
+
+      Accepts a module or a tuple `{ <module>, <function/macro atom> }`. The
+      function/macro must take one argument: the module environment. If it's a
+      macro, its returned value will be injected at the end of the module definition
+      before the compilation starts.
+
+      When just a module is provided, the function/macro is assumed to be
+      `__before_compile__/1`.
+
+      **Example**
+
+          defmodule M do
+            @before_compile __MODULE__
+
+            defmacro __before_compile__(_env) do
+              quote do
+                def hello, do: "world"
+              end
+            end
+          end
+
+  * `@behaviour`   (notice the british spelling)
+
+      Specify an OTP or user-defined behaviour.
+
+      **Example**
+
+          defmodule M do
+            @behaviour gen_event
+
+            # ...
+          end
+
+  * `@compile`
+
+      Define options for module compilation that are passed to the Erlang
+      compiler.
+
+      Accepts an atom, a tuple, or a list of atoms and tuples.
+
+      See http://www.erlang.org/doc/man/compile.html for the list of supported
+      options.
+
+      **Example**
+
+            defmodule M do
+              @compile { :inline, myfun: 1 }
+
+              def myfun(arg) do
+                to_binary(arg)
+              end
+            end
+
+  * `@doc`
+
+      Provide documentation for the function or macro that follows the
+      attribute.
+
+      Accepts a string (often a heredoc) or `false` where `@doc false` will
+      make the function/macro invisible to the documentation extraction tools
+      like ExDoc.
+
+      Can be invoked more than once.
+
+      **Example**
+
+            defmodule M do
+              @doc "Hello world"
+              def hello do
+                "world"
+              end
+
+              @doc """
+              Sum.
+              """
+              def sum(a, b) do
+                a + b
+              end
+            end
+
+  * `@file`
+
+      Change the filename used in stacktraces for the function or macro that
+      follows the attribute.
+
+      Accepts a string. Can be used more than once.
+
+      **Example**
+
+            defmodule M do
+              @doc "Hello world"
+              @file "hello.ex"
+              def hello do
+                "world"
+              end
+            end
+
+  * `@moduledoc`
+
+      Provide documentation for the current module.
+
+      Accepts a string (which is often a heredoc) or `false` where
+      `@moduledoc false` will make the module invisible to the
+      documentation extraction tools like ExDoc.
+
+      **Example**
+
+            defmodule M do
+              @moduledoc """
+              A very useful module
+              """
+            end
+
+
+  * `@on_definition`
+
+      A hook that will be invoked after each function or macro in the current
+      module is defined. This makes it easy to annotate and customize
+      functions.
+
+      Accepts a module or a tuple `{ <module>, <function atom> }`. The function
+      must take 6 arguments:
+
+        - the module environment
+        - kind: `:def`, `:defp`, `:defmacro`, or `:defmacrop`
+        - function/macro name
+        - list of quoted arguments
+        - list of quoted guards
+        - quoted function body
+
+      If the function/macro being defined has multiple clauses, the hook will
+      be called for each clause.
+
+      When just a module is provided, the function is assumed to be
+      `__on_definition__/6`.
+
+      Note that you can't provide the current module to `@on_definition`
+      because the hook function will not be defined in time.
+
+      **Example**
+
+            defmodule H do
+              def on_def(_env, kind, name, args, guards, body) do
+                IO.puts "Defining #{kind} named #{name} with args:"
+                IO.inspect args
+                IO.puts "and guards"
+                IO.inspect guards
+                IO.puts "and body"
+                IO.puts Macro.to_binary(body)
+              end
+            end
+
+            defmodule M do
+              @on_definition { H, :on_def }
+
+              def hello(arg) when is_binary(arg) or is_list(arg) do
+                "Hello" <> to_binary(arg)
+              end
+
+              def hello(_) do
+                :ok
+              end
+            end
+
+  * `@on_load`
+
+      A hook that will be invoked whenever the module is loaded.
+
+      Accepts a function atom of a function in the current module. The function
+      must have arity 0 (no arguments) and has to return `:ok`, otherwise the
+      loading of the module will be aborted.
+
+      **Example**
+
+            defmodule M do
+              @on_load :load_check
+
+              def load_check do
+                if some_condition() do
+                  :ok
+                else
+                  nil
+                end
+              end
+
+              def some_condition do
+                false
+              end
+            end
+
+  * `@vsn`
+
+      Specify the module version. Accepts any valid Elixir value.
+
+      **Example**
+
+            defmodule M do
+              @vsn "1.0"
+            end
+
+  The following attributes are part of typespecs and are also reserved by
+  Elixir:
+
+  * `@type`        - defines a type to be used in `@spec`
+  * `@spec`        - provides a specification for a function
+  * `@callback`    - provides a specification for the behavior callback
+  * `@export_type` - informs which types can be exported
+  * `@opaque`      - defines an opaque type to be used in `@spec`
+
+  In addition to the built-in attributes outlined above, custom attributes may
+  also be added. A custom attribute is any valid identifier prefixed with an
+  `@` and followed by a valid Elixir value:
+
+        defmodule M do
+          @custom_attr [some: "stuff"]
+        end
+
+  For more advanced options available when defining custom attributes, see
+  `register_attribute/3`.
+
+  ## Runtime information about a module
+
+  It is possible to query a module at runtime to find out which functions and
+  macros it defines, extract its docstrings, etc. See `__info__/1`.
+
+  '''
+
+  @doc """
+  Provides runtime information about functions and macros defined by the
+  module, enables docstring extraction, etc.
+
+  Each module gets an `__info__/1` function when it's compiled. The function
+  takes one of the following atoms:
+
+  * `:functions`  - keyword list of public functions along with their arities
+
+  * `:macros`     - keyword list of public macros along with their arities
+
+  * `:docs`       - list of all docstrings attached to functions and macros
+                    using the `@doc` attribute
+
+  * `:moduledoc`  - tuple `{ <line>, <doc> }` where `line` is the line on
+                    which module definition starts and `doc` is the string
+                    attached to the module using the `@moduledoc` attribute
+
+  * `:module`     - module name (`Module == Module.__info__(:module)`)
+
+  In addition to the above, you may also pass to `__info__/1` any atom supported
+  by Erlang's `module_info` function which also gets defined for each compiled
+  module. See http://erlang.org/doc/reference_manual/modules.html#id74571 for
+  more information.
   """
+  def __info__(kind)
 
   @doc """
   Check if a module is open, i.e. it is currently being defined
