@@ -6,9 +6,14 @@ defmodule Mix.Tasks.Local.Install do
   @shortdoc "Install a task locally"
 
   @moduledoc """
-  Install a task locally.
+  Install a task or task package locally.
 
-  The task can be either a local beam file or a beam
+  If no argument is supplied but there is a package in the root (created with mix package),
+  then the package will be installed as a local task package. e.g.
+  
+      mix do package, local.install
+
+  The task can also be a single local beam file or a beam
   file located at some URL.
 
       mix local.install http://example.com/some_task.beam
@@ -28,11 +33,17 @@ defmodule Mix.Tasks.Local.Install do
     { opts, argv } = OptionParser.parse(argv, switches: [force: :boolean])
     case argv do
       [] ->
-        raise Mix.Error, message: "expected PATH to be given, please use `mix local.install PATH`"
+        if File.exists?(package_name) do
+          do_install_package(package_name, opts)
+        else
+          raise Mix.Error, message: "expected PATH to be given, please use `mix local.install PATH`"
+        end
       [path|_] ->
         do_install path, opts
     end
   end
+
+  defp package_name, do: (Mix.project[:app] |> atom_to_binary) <> ".ez"
 
   defp do_install(path, opts) do
     beam = Mix.Utils.read_path(path)
@@ -45,6 +56,14 @@ defmodule Mix.Tasks.Local.Install do
       tasks = Mix.Local.tasks_path
       File.mkdir_p! tasks
       create_file Path.join(tasks, "#{module}.beam"), beam
+    end
+  end
+
+  defp do_install_package(name, opts) do
+    if opts[:force] || Mix.shell.yes?("Are you sure you want to install package #{name}?") do
+      tasks = Mix.Local.tasks_path
+      File.mkdir_p! tasks
+      File.copy(name, Path.join(tasks, name))
     end
   end
 

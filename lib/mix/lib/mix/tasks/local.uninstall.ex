@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Local.Uninstall do
   @moduledoc """
   Uninstall local tasks:
 
-      mix local.uninstall task_name
+      mix local.uninstall task_name | package_name
 
   """
 
@@ -15,8 +15,13 @@ defmodule Mix.Tasks.Local.Uninstall do
     Enum.each argv, do_uninstall(&1)
   end
 
-  defp do_uninstall(task) do
-    task = Mix.Task.get(task)
-    File.rm! Path.join(Mix.Local.tasks_path, "#{task}.beam")
+  defp do_uninstall(task = package) do
+    try do
+      task = Mix.Task.get(task)
+      File.rm! Path.join(Mix.Local.tasks_path, "#{task}.beam")
+    rescue
+      Mix.NoTaskError -> 
+        File.rm! Path.join(Mix.Local.tasks_path, "#{package}.ez")
+    end
   end
 end

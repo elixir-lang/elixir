@@ -6,9 +6,7 @@ defmodule Mix.PackageTest do
   setup_all do
     defmodule PackageProject do
       def project do
-        [ compile_path: "beams",
-          app: :fixtures
-        ]
+        [ app: :fixtures ]
       end
     end
     Mix.Project.push(PackageProject)
@@ -17,14 +15,19 @@ defmodule Mix.PackageTest do
   end
 
   test "create package" do
-    File.cd!("test/fixtures", fn() ->
-      path = Path.join([Mix.Utils.mix_home,"tasks"])
-      package = Path.join(path, "fixtures.ez")
-      Mix.Package.create_package(path)
-      assert File.exists?(package)
-      Mix.Package.package_beams(package)
-      |> Enum.first == "fixtures/beams/Elixir.Mix.Tasks.Local.Sample"
-    end)
+    archive_path = Path.join([Mix.Utils.mix_home,"tasks"])
+    package = Path.join(archive_path, "fixtures.ez")
+    Mix.Package.create_package("test/fixtures", archive_path)
+    assert File.exists?(package)
+    assert has_zip_file?(package, 'fixtures/priv/not_really_an.so')
+    assert has_zip_file?(package, 'fixtures/ebin/Elixir.Mix.Tasks.Local.Sample.beam')
+  end
+
+  defp has_zip_file?(package, name) do
+    :zip.list_dir(binary_to_list(package)) |> elem(1) 
+    |> Enum.filter(fn(f) -> elem(f,0) == :zip_file end) 
+    |> Enum.filter(fn(f) -> elem(f,1) == name end)
+    |> Enum.count == 1
   end
 
   teardown_all do

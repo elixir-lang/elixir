@@ -40,7 +40,7 @@ defmodule Mix.Task do
   defp match_tasks(file_name, modules) do
     if Regex.match?(%r/Elixir\.Mix\.Tasks\..*\.beam/, file_name) do
       mod = Path.rootname(file_name, '.beam') |> list_to_atom
-      if match?({ :module, _ }, Code.ensure_loaded(mod)), do: [mod | modules],
+      if Code.ensure_loaded?(mod), do: [mod | modules],
       else: modules
     else
       modules

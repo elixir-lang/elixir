@@ -32,14 +32,12 @@ defmodule Mix.Local do
   defp all_local_paths do
     [tasks_path | Path.join([Mix.Utils.mix_home, "tasks", "*.ez"])
                 |> Path.wildcard
-                |> Enum.map(package_code_paths(&1))
-                |> List.flatten]
+                |> Enum.map(package_code_path(&1))]
     |> Enum.map(binary_to_list(&1))
   end
 
-  defp package_code_paths(archive_file) do
-    Mix.Package.package_beams(archive_file)
-    |> Enum.map(fn(beam) -> Path.join(archive_file, Path.dirname(beam)) end)
-    |> Enum.uniq
+  defp package_code_path(archive_file) do
+    app_name = archive_file |> Path.rootname |> Path.split |> Enum.reverse |> Enum.first
+    Path.join([archive_file, app_name, "ebin"])
   end
 end
