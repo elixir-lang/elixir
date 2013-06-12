@@ -76,8 +76,8 @@ defmodule EEx.AssignsEngine do
         quote(do: Keyword.get var!(assigns), unquote(name))
       end
 
-      defp transform(_) do
-        super
+      defp transform(arg) do
+        super(arg)
       end
 
       defoverridable [transform: 1]

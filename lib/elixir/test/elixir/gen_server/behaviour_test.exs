@@ -16,8 +16,8 @@ defmodule GenServer.BehaviourTest do
       { :stop, :normal, :ok, config }
     end
 
-    def handle_call(_request, _from, _config) do
-      super
+    def handle_call(request, from, config) do
+      super(request, from, config)
     end
 
     def handle_cast({ :push, item }, config) do
