@@ -1717,13 +1717,12 @@ defmodule Kernel do
         use DefaultMod
 
         def test(x, y) do
-          x * y + super
+          x * y + super(x, y)
         end
       end
 
   As seen as in the example `super` can be used to call the default
-  implementation, if no arguments are given to `super` it will be implictly
-  given the arguments of the current function.
+  implementation.
   """
   defmacro defoverridable(tuples) do
     quote do
