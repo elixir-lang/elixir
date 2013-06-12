@@ -245,13 +245,13 @@ defmodule Module do
             end
 
   The following attributes are part of typespecs and are also reserved by
-  Elixir:
+  Elixir (see `Kernel.Typespec` for more information about typespecs):
 
   * `@type`        - defines a type to be used in `@spec`
+  * `@typep`       - defines a private type to be used in `@spec`
+  * `@opaque`      - defines an opaque type to be used in `@spec`
   * `@spec`        - provides a specification for a function
   * `@callback`    - provides a specification for the behavior callback
-  * `@export_type` - informs which types can be exported
-  * `@opaque`      - defines an opaque type to be used in `@spec`
 
   In addition to the built-in attributes outlined above, custom attributes may
   also be added. A custom attribute is any valid identifier prefixed with an
