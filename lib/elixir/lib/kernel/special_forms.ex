@@ -812,10 +812,8 @@ defmodule Kernel.SpecialForms do
   defmacro __aliases__(args)
 
   @doc """
-  Calls the overriden function when overriding it with `defoverridable`. If no
-  arguments are given to `super` the overriden function will be called with the
-  same arguments as the current one. See `Kernel.defoverridable` for more
-  information and documentation.
+  Calls the overriden function when overriding it with `defoverridable`.
+  See `Kernel.defoverridable` for more information and documentation.
   """
   defmacro super(args)
 end
