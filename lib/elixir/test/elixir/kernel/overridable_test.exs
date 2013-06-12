@@ -47,10 +47,6 @@ defmodule Kernel.Overridable do
     x + y
   end
 
-  def super_with_implicit_args(x, y) do
-    x + y
-  end
-
   def many_clauses(0) do
     11
   end
@@ -59,7 +55,7 @@ defmodule Kernel.Overridable do
     13
   end
 
-  defoverridable [implicit_nested_super: 0, super_with_implicit_args: 2,
+  defoverridable [implicit_nested_super: 0,
     super_with_explicit_args: 2, many_clauses: 1]
 
   def without_super do
@@ -82,14 +78,6 @@ defmodule Kernel.Overridable do
     super x, y * 2
   end
 
-  def super_with_implicit_args(x, y) do
-    if true do
-      x + y + super
-    else
-      raise :NEVER
-    end
-  end
-
   def many_clauses(2) do
     17
   end
@@ -98,8 +86,8 @@ defmodule Kernel.Overridable do
     super(0) + super(1)
   end
 
-  def many_clauses(_) do
-    super
+  def many_clauses(x) do
+    super(x)
   end
 end
 
@@ -129,10 +117,6 @@ defmodule Kernel.OverridableTest do
 
   test "calling super with explicit args" do
     assert Overridable.super_with_explicit_args(1, 2) == 5
-  end
-
-  test "calling super with implicit args" do
-    assert Overridable.super_with_implicit_args(1, 2) == 6
   end
 
   test "function without overridable returns false for super?" do
