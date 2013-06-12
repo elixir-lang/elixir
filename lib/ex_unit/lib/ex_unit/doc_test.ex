@@ -191,52 +191,40 @@ defmodule ExUnit.DocTest do
     end
     whole_expr = String.strip(whole_expr)
 
-    { exception, message } = case Enum.find(exprs, exc_filter_fn) do
+    exception = case Enum.find(exprs, exc_filter_fn) do
       { _, {:error, exception, message} } ->
-        { exception, message }
+        inspect(exception) <> "[message: \"#{message}\"]"
       nil ->
-        { nil, nil }
+        "nothing"
     end
 
     quote do
       unquote_splicing(test_import(module, do_import))
-      unquote(gen_code_for_tests(tests, whole_expr, exception, message, stack))
+      unquote(gen_code_for_tests(tests, whole_expr, exception, stack))
     end
   end
 
-  defp gen_code_for_tests(tests, whole_expr, exception, message, stack) do
+  defp gen_code_for_tests(tests, whole_expr, exception, stack) do
     quote do
+      stack = unquote(stack)
       try do
         # Put all tests into one context
         unquote_splicing(tests)
       rescue
         e in [ExUnit.ExpectationError] ->
-          raise e, [], unquote(stack)
-
-        # If there was no exception among the tests, `exception` here will be
-        # nil and this clause won't match.
-        error in [unquote(exception)] ->
-          unless error.message == unquote(message) do
-            raise ExUnit.ExpectationError,
-              [ prelude: "Expected doctest",
-                description: unquote(whole_expr),
-                expected: "#{inspect unquote(exception)} with message #{inspect unquote(message)}",
-                reason: "raise",
-                actual: inspect(error) ],
-              unquote(stack)
-          end
+          raise e, [], stack
 
         error ->
           raise ExUnit.ExpectationError,
             [ prelude: "Expected doctest",
               description: unquote(whole_expr),
-              expected: "#{inspect unquote(exception)}",
+              expected: unquote(exception),
               # We're using a combined message here because all expressions
               # (those that are expected to raise and those that aren't) are in
               # the same try block above.
               reason: "complete or raise",
               actual: inspect(error) ],
-            unquote(stack)
+            stack
       end
     end
   end
@@ -261,18 +249,36 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  defp test_case_content(expr, { :error, exception, _ }, module, line, file, stack) do
+  defp test_case_content(expr, { :error, exception, message }, module, line, file, stack) do
     expr_ast = string_to_ast(module, line, file, expr)
 
     quote do
-      v = unquote(expr_ast)
-      raise ExUnit.ExpectationError,
-        [ prelude: "Expected doctest",
-          description: unquote(expr),
-          expected: "#{inspect unquote(exception)}[]",
-          reason: "raise",
-          actual: inspect(v) ],
-        unquote(stack)
+      stack = unquote(stack)
+      expr = unquote(expr)
+      exception = inspect(unquote(exception)) <> "[message: \"#{unquote(message)}\"]"
+      try do
+        v = unquote(expr_ast)
+        raise ExUnit.ExpectationError,
+          [ prelude: "Expected doctest",
+            description: expr,
+            expected: exception,
+            reason: "raise",
+            actual: inspect(v) ],
+          stack
+      rescue
+        error in [unquote(exception)] ->
+          unless error.message == unquote(message) do
+            raise ExUnit.ExpectationError,
+              [ prelude: "Expected doctest",
+                description: expr,
+                expected: exception,
+                reason: "raise",
+                actual: inspect(error) ],
+              stack
+          end
+
+        other -> raise other
+      end
     end
   end
 
