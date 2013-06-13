@@ -258,6 +258,12 @@ defmodule HashDictTest do
     assert HashDict.size(dict) == 122
   end
 
+  test :trie_contract do
+    dict = filled_dict(120)
+    dict = Enum.reduce 16..120, dict, fn(x, acc) -> HashDict.delete(acc, x) end
+    assert (Enum.filter 1..120, fn(x) -> HashDict.get(dict, x) == x end) == (Enum.sort 1..15)
+  end
+
   defp smoke_test(range) do
     { dict, _ } = Enum.reduce range, { HashDict.new, 1 }, fn(x, { acc, i }) ->
       acc = HashDict.put(acc, x, x)
