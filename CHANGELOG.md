@@ -1,3 +1,13 @@
+# v0.9.3.dev
+
+* enhancements
+
+* bug fix
+
+* deprecations
+
+* backwards incompatible changes
+
 # v0.9.2 (2013-06-13)
 
 * enhancements
