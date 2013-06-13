@@ -1,7 +1,7 @@
 % Holds the logic responsible for defining overridable functions and handling super.
 -module(elixir_def_overridable).
 -export([store_pending/1, is_defined/2, ensure_defined/4,
-  assign_args/3, retrieve_args/3, name/2, store/3, format_error/1]).
+  assign_args/3, name/2, store/3, format_error/1]).
 -include("elixir.hrl").
 
 overridable(Module) ->
@@ -24,15 +24,6 @@ ensure_defined(Meta, Module, Tuple, S) ->
     true -> ok;
     _    -> elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, { no_super, Module, Tuple })
   end.
-
-%% Retrieve args defined for the given arity.
-
-retrieve_args(Meta, Arity, S) ->
-  Line = ?line(Meta),
-  {
-    [ { var, Line, super_arg(X) } || X <- lists:seq(1, Arity) ],
-    S#elixir_scope{name_args=true}
-  }.
 
 %% Assign pseudo variables to the given vars.
 

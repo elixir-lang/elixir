@@ -320,7 +320,7 @@ translate_each({ Kind, Meta, Args }, S) when is_list(Args), (Kind == lc) orelse 
 
 %% Super (exceptionally supports partial application)
 
-translate_each({ super, Meta, Args } = Original, S) ->
+translate_each({ super, Meta, Args } = Original, S) when is_list(Args) ->
   case elixir_partials:handle(Original, S) of
     error ->
       assert_no_match_or_guard_scope(Meta, super, S),
@@ -331,12 +331,7 @@ translate_each({ super, Meta, Args } = Original, S) ->
       { _, Arity } = Function,
 
       { TArgs, TS } = if
-        is_atom(Args) andalso Arity == 0 ->
-          elixir_def_overridable:retrieve_args(Meta, Arity, S);
-        is_atom(Args) ->
-          elixir_errors:deprecation(Meta, S#elixir_scope.file, "omitting arguments of super is deprecated, please call super with arguments instead"),
-          elixir_def_overridable:retrieve_args(Meta, Arity, S);
-        not is_atom(Args) andalso length(Args) == Arity ->
+        length(Args) == Arity ->
           translate_args(Args, S);
         true ->
           syntax_error(Meta, S#elixir_scope.file, "super must be called with the same number of arguments as the current function")

@@ -253,6 +253,5 @@ merge_clauses_scope(S1, S2) ->
     counter=S2#elixir_scope.counter,
     extra_guards=S2#elixir_scope.extra_guards,
     super=S1#elixir_scope.super orelse S2#elixir_scope.super,
-    caller=S1#elixir_scope.caller orelse S2#elixir_scope.caller,
-    name_args=S1#elixir_scope.name_args orelse S2#elixir_scope.name_args
+    caller=S1#elixir_scope.caller orelse S2#elixir_scope.caller
   }.

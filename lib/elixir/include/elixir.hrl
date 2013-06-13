@@ -13,7 +13,6 @@
   noname=false,            %% when true, don't add new names (used by try)
   super=false,             %% when true, it means super was invoked
   caller=false,            %% when true, it means caller was invoked
-  name_args=false,         %% when true, it means arguments should be named
   module=nil,              %% the current module
   function=nil,            %% the current function
   vars=[],                 %% a dict of defined variables and their alias

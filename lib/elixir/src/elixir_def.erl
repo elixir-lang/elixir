@@ -211,14 +211,6 @@ translate_clause(Line, Kind, Unpacked, Guards, Body, S) ->
   { TClause, TS } = elixir_clauses:assigns_block(Line,
     fun elixir_translator:translate/2, Unpacked, [Expr], Guards, S),
 
-  %% Add names to args
-  NClause = case TS#elixir_scope.name_args of
-    true  ->
-      NArgs = elixir_def_overridable:assign_args(Line, element(3, TClause), TS),
-      setelement(3, TClause, NArgs);
-    false -> TClause
-  end,
-
   %% Set __CALLER__ if used
   FClause = case is_macro(Kind) andalso TS#elixir_scope.caller of
     true  ->
@@ -226,8 +218,8 @@ translate_clause(Line, Kind, Unpacked, Guards, Body, S) ->
         { 'var', Line, '__CALLER__' },
         ?wrap_call(Line, elixir_scope, to_ex_env, [{ var, Line, '_@CALLER' }])
       },
-      setelement(5, NClause, [FBody|element(5, NClause)]);
-    false -> NClause
+      setelement(5, TClause, [FBody|element(5, TClause)]);
+    false -> TClause
   end,
 
   { [FClause], TS }.

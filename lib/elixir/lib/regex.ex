@@ -79,18 +79,6 @@ defmodule Regex do
     end
   end
 
-  @doc false
-  def index(regex(re_pattern: compiled), string) do
-    IO.puts "Regex.index(re, string) is deprecated. Please use " <>
-      "Regex.run(re, string, return: :index) instead."
-    Exception.print_stacktrace
-
-    case :re.run(string, compiled, [{ :capture, :first, :index }]) do
-      :nomatch -> nil
-      { :match, [{index,_}] } -> index
-    end
-  end
-
   @doc """
   Returns a boolean if there was a match or not.
 
