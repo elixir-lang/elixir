@@ -26,10 +26,10 @@ defmodule Mix.Rebar do
   end
 
   @doc """
-  Returns the path to the rebar copy in the current working directory, if one exists.
+  Returns the path to the available rebar command.
   """
-  def cwd_rebar_cmd do
-    wrap_cmd(if File.regular?("./rebar"), do: Path.join(File.cwd!, "rebar"))
+  def rebar_cmd do
+    global_rebar_cmd || local_rebar_cmd
   end
 
   @doc """

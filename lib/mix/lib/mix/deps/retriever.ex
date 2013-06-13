@@ -67,7 +67,7 @@ defmodule Mix.Deps.Retriever do
             mix_dep(dep, project)
           end)
 
-        rebarconfig?(dep) ->
+        rebarconfig?(dep) or rebarexec?(dep) ->
           rebar_dep(dep)
 
         makefile?(dep) ->
@@ -177,6 +177,10 @@ defmodule Mix.Deps.Retriever do
 
   defp mixfile?(dep) do
     File.regular?(Path.join(dep.opts[:dest], "mix.exs"))
+  end
+
+  defp rebarexec?(dep) do
+    File.regular?(Path.join(dep.opts[:dest], "rebar"))
   end
 
   defp rebarconfig?(dep) do

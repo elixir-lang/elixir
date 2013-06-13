@@ -108,10 +108,8 @@ defmodule Mix.Tasks.Deps.Compile do
     do_command app, rebar_cmd(app), "compile skip_deps=true deps_dir=#{inspect root_path}"
   end
 
-  @rebar_cmds [:cwd_rebar_cmd, :local_rebar_cmd, :global_rebar_cmd]
-
   defp rebar_cmd(app) do
-    Enum.find_value(@rebar_cmds, apply(Mix.Rebar, &1, [])) || handle_rebar_not_found(app)
+    Mix.Rebar.rebar_cmd || handle_rebar_not_found(app)
   end
 
   defp handle_rebar_not_found(app) do
