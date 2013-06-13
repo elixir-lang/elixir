@@ -17,6 +17,16 @@ defmodule SetTest do
     assert list == Enum.to_list(set)
   end
 
+  test :delete do
+    set = filled_set(8)
+    assert Set.delete(set, 8) == filled_set(7)
+
+    set = filled_set(8)
+    assert Set.delete(set, 9) == set
+
+    assert Set.delete(Set.new, 10) == Set.new
+  end
+
   test "a set removes duplicates" do
     assert Set.new([1,1,2,3,3,3]) == Set.new([1,2,3])
   end

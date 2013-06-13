@@ -52,9 +52,23 @@ defmodule Set do
     set
   end
 
-  defp set_put(ordered(size: size, bucket: bucket) = set, value) do
-    { new, count } = bucket_put(bucket, value)
+  def delete(set, value) do
+    { set, _, _ } = set_delete(set, value)
+    set
+  end
+
+  defp set_put(ordered(size: size, bucket: bucket) = set, member) do
+    { new, count } = bucket_put(bucket, member)
     { ordered(set, size: size + count, bucket: new), count }
+  end
+
+  defp set_delete(ordered(bucket: bucket, size: size) = set, member) do
+    case bucket_delete(bucket, member) do
+      { _, value, 0 } ->
+        { set, value, 0 }
+      { new_bucket, value, -1 } ->
+        { ordered(set, size: size - 1, bucket: new_bucket), value, -1 }
+    end
   end
 
   ## Bucket helpers
@@ -75,6 +89,25 @@ defmodule Set do
   defp bucket_put([], { :put, value }) do
     { [value], 1 }
   end
+
+  # Deletes a key from the bucket
+  defp bucket_delete([v,_|_]=bucket, value) when v > value do
+    { bucket, nil, 0 }
+  end
+
+  defp bucket_delete([value|bucket], value) do
+    { bucket, value, -1 }
+  end
+
+  defp bucket_delete([e|bucket], value) do
+    { rest, v, count } = bucket_delete(bucket, value)
+    { [e|rest], v, count }
+  end
+
+  defp bucket_delete([], _value) do
+    { [], nil, 0 }
+  end
+
 end
 
 defimpl Binary.Inspect, for: Set do
