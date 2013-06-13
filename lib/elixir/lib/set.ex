@@ -25,9 +25,9 @@ defmodule Set do
     ordered()
   end
 
-  def new(vals) do
-    Enum.reduce vals, ordered(), fn v, set ->
-      put(set, v)
+  def new(members) do
+    Enum.reduce members, ordered(), fn member, set ->
+      put(set, member)
     end
   end
 
@@ -47,13 +47,13 @@ defmodule Set do
     :lists.foldl(fun, acc, bucket)
   end
 
-  def put(set, value) do
-    { set, _ } = set_put(set, { :put, value })
+  def put(set, member) do
+    { set, _ } = set_put(set, { :put, member })
     set
   end
 
-  def delete(set, value) do
-    { set, _, _ } = set_delete(set, value)
+  def delete(set, member) do
+    { set, _, _ } = set_delete(set, member)
     set
   end
 
@@ -73,38 +73,38 @@ defmodule Set do
 
   ## Bucket helpers
 
-  defp bucket_put([v|_]=bucket, { :put, value }) when v > value do
-    { [value|bucket], 1 }
+  defp bucket_put([m|_]=bucket, { :put, member }) when m > member do
+    { [member|bucket], 1 }
   end
 
-  defp bucket_put([value|bucket], { :put, value }) do
-    { [value|bucket], 0 }
+  defp bucket_put([member|bucket], { :put, member }) do
+    { [member|bucket], 0 }
   end
 
-  defp bucket_put([e|bucket], value) do
-    { rest, count } = bucket_put(bucket, value)
+  defp bucket_put([e|bucket], member) do
+    { rest, count } = bucket_put(bucket, member)
     { [e|rest], count }
   end
 
-  defp bucket_put([], { :put, value }) do
-    { [value], 1 }
+  defp bucket_put([], { :put, member }) do
+    { [member], 1 }
   end
 
   # Deletes a key from the bucket
-  defp bucket_delete([v,_|_]=bucket, value) when v > value do
+  defp bucket_delete([m,_|_]=bucket, member) when m > member do
     { bucket, nil, 0 }
   end
 
-  defp bucket_delete([value|bucket], value) do
-    { bucket, value, -1 }
+  defp bucket_delete([member|bucket], member) do
+    { bucket, member, -1 }
   end
 
-  defp bucket_delete([e|bucket], value) do
-    { rest, v, count } = bucket_delete(bucket, value)
-    { [e|rest], v, count }
+  defp bucket_delete([e|bucket], member) do
+    { rest, value, count } = bucket_delete(bucket, member)
+    { [e|rest], value, count }
   end
 
-  defp bucket_delete([], _value) do
+  defp bucket_delete([], _member) do
     { [], nil, 0 }
   end
 
