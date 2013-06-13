@@ -227,6 +227,18 @@ defmodule KernelTest do
       assert __MODULE__ |> :constant == 13
     end
 
+    test "non-call" do
+      assert  1  |> (&1*2).() == 2
+      assert [1] |> hd(&1).() == 1
+
+      import CompileAssertion
+
+      # FIXME: this mustn't work, but it doesn't call pipeline_op at all
+      #assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: &1", "1 |> &1"
+      assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: &1 * 2", "1 |> &1*2"
+      assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: hd(&1)", "[1] |> hd(&1)"
+    end
+
     def constant, do: 13
 
     defp twice(a), do: a * 2

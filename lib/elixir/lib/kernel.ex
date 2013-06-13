@@ -2835,7 +2835,7 @@ defmodule Kernel do
   `|>` is called the pipeline operator as it is useful
   to write pipeline style expressions. This operator
   introduces the expression on the left as the first
-  argument to the expression on the right.
+  argument to the function call on the right.
 
   ## Examples
 
@@ -2846,8 +2846,8 @@ defmodule Kernel do
 
       Enum.map(List.flatten([1,[2],3]), &1 * 2)
 
-  Please be aware of operator precendence, when using
-  this operator. For example, the following expression:
+  Be aware of operator precendence when using this operator.
+  For example, the following expression:
 
       String.graphemes "Hello" |> Enum.reverse
 
@@ -2857,7 +2857,7 @@ defmodule Kernel do
 
   Which will result in an error as Enumerable protocol
   is not defined for binaries. Adding explicit parenthesis
-  is recommended:
+  resolves the ambiguity:
 
       String.graphemes("Hello") |> Enum.reverse
 
@@ -2874,7 +2874,11 @@ defmodule Kernel do
     { call, line, [left] }
   end
 
-  defp pipeline_op(left, { call, line, args }) when is_list(args) do
+  defp pipeline_op(left, { call, line, args }=right) when is_list(args) do
+    case validate_pipeline_args(args) do
+      :error -> pipeline_error(right)
+      _ -> nil
+    end
     { call, line, [left|args] }
   end
 
@@ -2883,7 +2887,17 @@ defmodule Kernel do
   end
 
   defp pipeline_op(_, other) do
-    raise ArgumentError, message: "Unsupported expression in pipeline |> operator: #{inspect other}"
+    pipeline_error(other)
+  end
+
+  defp validate_pipeline_args([]), do: nil
+  defp validate_pipeline_args([ {:&,_,_ } | _ ]), do: :error
+  defp validate_pipeline_args([_|t]) do
+    validate_pipeline_args(t)
+  end
+
+  defp pipeline_error(arg) do
+    raise ArgumentError, message: "Unsupported expression in pipeline |> operator: #{Macro.to_binary arg}"
   end
 
   @doc """
