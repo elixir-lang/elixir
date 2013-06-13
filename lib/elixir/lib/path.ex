@@ -423,13 +423,16 @@ defmodule Path do
   ## Examples
 
        iex> Path.split("")
-       ["/"]
+       []
        iex> Path.split("foo")
        ["foo"]
        iex> Path.split("/foo/bar")
        ["/", "foo", "bar"]
 
   """
+  # Work around a bug in Erlang on UNIX
+  def split(""), do: []
+
   def split(path) do
     FN.split(path)
   end

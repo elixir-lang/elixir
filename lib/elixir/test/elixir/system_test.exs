@@ -55,8 +55,8 @@ defmodule SystemTest do
   end
 
   test :cmd do
-    assert is_binary(System.cmd "binary")
-    assert is_list(System.cmd 'binary')
+    assert is_binary(System.cmd "cd .")
+    assert is_list(System.cmd 'cd .')
   end
 
   test :find_executable_with_binary do

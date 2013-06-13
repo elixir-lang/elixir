@@ -64,15 +64,15 @@ defmodule PathTest do
         assert Path.type("C:\\usr\\local\\bin") == :absolute
         assert Path.type("C:usr\\local\\bin")   == :volumerelative
 
-        assert Path.type("/usr/local/bin")   == :absolute
+        assert Path.type("/usr/local/bin")   == :volumerelative
         assert Path.type("usr/local/bin")    == :relative
         assert Path.type("../usr/local/bin") == :relative
 
-        assert Path.type('/usr/local/bin')   == :absolute
+        assert Path.type('/usr/local/bin')   == :volumerelative
         assert Path.type('usr/local/bin')    == :relative
         assert Path.type('../usr/local/bin') == :relative
 
-        assert Path.type(['/usr/', 'local/bin'])   == :absolute
+        assert Path.type(['/usr/', 'local/bin'])   == :volumerelative
         assert Path.type(['usr/', 'local/bin'])    == :relative
         assert Path.type(['../usr', '/local/bin']) == :relative
       end
@@ -238,13 +238,13 @@ defmodule PathTest do
   end
 
   test :split_with_binary do
-    assert Path.split("") == ["/"]
+    assert Path.split("") == []
     assert Path.split("foo") == ["foo"]
     assert Path.split("/foo/bar") == ["/", "foo", "bar"]
   end
 
   test :split_with_list do
-    assert Path.split('') == ''
+    assert Path.split('') == []
     assert Path.split('foo') == ['foo']
     assert Path.split('/foo/bar') == ['/', 'foo', 'bar']
   end
