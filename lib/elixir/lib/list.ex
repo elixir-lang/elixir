@@ -165,7 +165,7 @@ defmodule List do
 
   @doc """
   Receives a list of tuples and returns true if there is
-  a tuple where the item at position `posistion` matches
+  a tuple where the item at position `position` matches
   with the given `item`.
 
   ## Examples
@@ -215,7 +215,7 @@ defmodule List do
 
   @doc """
   Receives a list of tuples and deletes the first tuple
-  where the item at position `posistion` matches with the
+  where the item at position `position` matches with the
   given `item`. Returns the new tuple.
 
   ## Examples
