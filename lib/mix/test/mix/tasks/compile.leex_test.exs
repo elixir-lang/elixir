@@ -7,8 +7,7 @@ defmodule Mix.Tasks.Compile.LeexTest do
     in_fixture "compile_leex", fn ->
       output = mix "compile"
 
-      assert output =~ %r"src/test_fail.xrl.+bad rule"
-
+      assert output =~ "src/test_fail.xrl:15: bad rule"
     end
   end
 
@@ -16,7 +15,7 @@ defmodule Mix.Tasks.Compile.LeexTest do
     in_fixture "compile_leex", fn ->
       output = mix "compile"
 
-      assert output =~ %r"Compiled .+test_ok\.xrl"
+      assert output =~ "Compiled src/test_ok.xrl"
       assert File.regular?("src/test_ok.erl")
     end
   end
@@ -26,7 +25,7 @@ defmodule Mix.Tasks.Compile.LeexTest do
       mix "compile"
       output = mix "compile --force"
 
-      assert output =~ %r"Compiled .+test_ok\.xrl"
+      assert output =~ "Compiled src/test_ok.xrl"
       assert File.regular?("src/test_ok.erl")
     end
   end

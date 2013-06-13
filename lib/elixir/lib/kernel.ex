@@ -2813,21 +2813,51 @@ defmodule Kernel do
   defmacro left in right
 
   @doc """
-  Matches the term on the left against the regular expression
-  on the right. It returns nil if not match happened or the
-  first match otherwise.
+  Matches the term on the left against the regular expression or string on the
+  right. Returns true if `left` matches `right` (if it's a regular expression)
+  or contains `right` (if it's a string).
 
   ## Examples
 
       iex> "abcd" =~ %r/c(d)/
-      2
+      true
+
       iex> "abcd" =~ %r/e/
-      nil
+      false
+
+      iex> "abcd" =~ "bc"
+      true
+
+      iex> "abcd" =~ "ad"
+      false
 
   """
+  # fast path for literal binaries
+  defmacro left =~ right when is_binary(right) do
+    quote do
+      String.contains?(unquote(left), unquote(right))
+    end
+  end
+
+  # fast path for literal binaries
+  defmacro left =~ ({:<<>>, _, [_bin]} = right) do
+    quote do
+      String.contains?(unquote(left), unquote(right))
+    end
+  end
+
+  # slow path for everything else
   defmacro left =~ right do
     quote do
-      Regex.index(unquote(right), unquote(left))
+      str = unquote(left)
+      case unquote(right) do
+        bin when is_binary(bin) ->
+          String.contains?(str, bin)
+        re when is_regex(re) ->
+          Regex.match?(re, str)
+        other ->
+          raise ArgumentError, message: "bad argument on the right side of =~: #{inspect other}"
+      end
     end
   end
 
