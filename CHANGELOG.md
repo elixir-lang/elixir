@@ -17,8 +17,11 @@
   * [Mix] Start the application by default on escripts
 
 * deprecations
+  * [Regex] `Regex.index/2` is deprecated in favor `Regex.run/3`
+  * [Kernel] `super` no longer supports implicit arguments
 
 * backwards incompatible changes
+  * [Kernel] The `=~` operator now returns true or false instead of an index
 
 # v0.9.1 (2013-05-30)
 
