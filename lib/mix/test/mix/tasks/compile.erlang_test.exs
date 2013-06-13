@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
     in_fixture "compile_erlang", fn ->
       output = mix "compile"
 
-      assert output =~ %r"src/a.erl.+syntax error"
+      assert output =~ "src/a.erl:4: syntax error"
     end
   end
 
@@ -15,8 +15,8 @@ defmodule Mix.Tasks.Compile.ErlangTest do
     in_fixture "compile_erlang", fn ->
       output = mix "compile"
 
-      assert output =~ %r"Compiled .+c\.erl"
-      assert output =~ %r"Compiled .+b\.erl"
+      assert output =~ "Compiled src/b.erl"
+      assert output =~ "Compiled src/c.erl"
 
       assert File.regular?("ebin/b.beam")
       assert File.regular?("ebin/c.beam")
@@ -28,8 +28,8 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       mix "compile"
       output = mix "compile --force"
 
-      assert output =~ %r"Compiled .+c\.erl"
-      assert output =~ %r"Compiled .+b\.erl"
+      assert output =~ "Compiled src/b.erl"
+      assert output =~ "Compiled src/c.erl"
 
       assert File.regular?("ebin/b.beam")
       assert File.regular?("ebin/c.beam")

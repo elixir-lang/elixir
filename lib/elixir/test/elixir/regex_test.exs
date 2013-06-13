@@ -40,7 +40,7 @@ defmodule Regex.BinaryTest do
   end
 
   test :unicode do
-    assert ("josé" =~ %r"\p{Latin}$"u) == 3
+    assert ("josé" =~ %r"\p{Latin}$"u)
   end
 
   test :groups do

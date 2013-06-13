@@ -7,8 +7,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
     in_fixture "compile_yecc", fn ->
       output = mix "compile"
 
-      assert output =~ %r"src/test.yrl.+grammar rules are missing"
-
+      assert output =~ %r"src/test\.yrl.+grammar rules are missing"
     end
   end
 
@@ -16,7 +15,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
     in_fixture "compile_yecc", fn ->
       output = mix "compile"
 
-      assert output =~ %r"Compiled .+test_ok\.yrl"
+      assert output =~ "Compiled src/test_ok.yrl"
       assert File.regular?("src/test_ok.erl")
     end
   end
@@ -26,7 +25,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
       mix "compile"
       output = mix "compile --force"
 
-      assert output =~ %r"Compiled .+test_ok\.yrl"
+      assert output =~ "Compiled src/test_ok.yrl"
       assert File.regular?("src/test_ok.erl")
     end
   end

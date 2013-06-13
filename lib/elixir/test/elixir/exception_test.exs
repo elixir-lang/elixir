@@ -34,8 +34,8 @@ defmodule Kernel.ExceptionTest do
   end
 
   test :format_stacktrace_entry_with_fun do
-    assert Exception.format_stacktrace_entry({fn(x) -> x end, [1], []}) =~ %r"\(1\)"
-    assert Exception.format_stacktrace_entry({fn(x, y) -> { x, y } end, 2, []}) =~ %r"/2"
+    assert Exception.format_stacktrace_entry({fn(x) -> x end, [1], []}) =~ %r/#Function<.+>\(1\)/
+    assert Exception.format_stacktrace_entry({fn(x, y) -> { x, y } end, 2, []}) =~ %r"#Function<.+>/2"
   end
 
   test :format_module_function_arity do
