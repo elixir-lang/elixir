@@ -79,20 +79,12 @@ defmodule Regex do
     end
   end
 
-  @doc """
-  Runs the regular expression against the given string
-  and returns the index (zero indexes) where the first
-  match occurs, nil otherwise.
-
-  ## Examples
-
-      iex> Regex.index(%r/c(d)/, "abcd")
-      2
-      iex> Regex.index(%r/e/, "abcd")
-      nil
-
-  """
+  @doc false
   def index(regex(re_pattern: compiled), string) do
+    IO.puts "Regex.index(re, string) is deprecated. Please use " <>
+      "Regex.run(re, string, return: :index) instead."
+    Exception.print_stacktrace
+
     case :re.run(string, compiled, [{ :capture, :first, :index }]) do
       :nomatch -> nil
       { :match, [{index,_}] } -> index
@@ -125,6 +117,8 @@ defmodule Regex do
       ["cd", "d"]
       iex> Regex.run(%r/e/, "abcd")
       nil
+      iex> Regex.run(%r/c(d)/, "abcd", return: :index)
+      [{2,2},{3,1}]
 
   """
   def run(regex, string, options // [])
