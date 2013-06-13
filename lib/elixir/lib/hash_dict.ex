@@ -379,7 +379,7 @@ defmodule HashDict do
         { dict, value, 0 }
       { root, value, -1 } ->
         { if depth > 0 and trie(dict, :contract_on) == size do
-          root = node_contract(root, depth, depth - 1)
+          root = node_contract(root, depth)
           trie(dict,
             root: root,
             size: size - 1,
@@ -572,24 +572,23 @@ defmodule HashDict do
       node_expand(b7, depth, n), node_expand(b8, depth, n) }
   end
 
-  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8 }, depth, n) when depth > 1 do
+  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8 }, depth) when depth > 0 do
     depth = depth - 1
-    { node_contract(b1, depth, n), node_contract(b2, depth, n), node_contract(b3, depth, n),
-      node_contract(b4, depth, n), node_contract(b5, depth, n), node_contract(b6, depth, n),
-      node_contract(b7, depth, n), node_contract(b8, depth, n) }
+    { node_contract(b1, depth), node_contract(b2, depth), node_contract(b3, depth),
+      node_contract(b4, depth), node_contract(b5, depth), node_contract(b6, depth),
+      node_contract(b7, depth), node_contract(b8, depth) }
   end
 
-  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8 }, 1, n) do
-    @node_template |> each_contract(b1, n) |> each_contract(b2, n) |> each_contract(b3, n)
-                   |> each_contract(b4, n) |> each_contract(b5, n) |> each_contract(b6, n)
-                   |> each_contract(b7, n) |> each_contract(b8, n)
+  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8 }, 0) do
+    b1 |> each_contract(b2) |> each_contract(b3) |> each_contract(b4)
+       |> each_contract(b5) |> each_contract(b6) |> each_contract(b7)
+       |> each_contract(b8)
   end
 
-  defp each_contract(acc, { b1, b2, b3, b4, b5, b6, b7, b8 }, n) do
-    acc |> node_relocate(b1, n) |> node_relocate(b2, n) |> node_relocate(b3, n)
-        |> node_relocate(b4, n) |> node_relocate(b5, n) |> node_relocate(b6, n)
-        |> node_relocate(b7, n) |> node_relocate(b8, n)
-  end
+  defp each_contract([{k,_v}=e|acc], [{key,_value}|_]=bucket) when k < key, do: [e|each_contract(acc, bucket)]
+  defp each_contract(acc, [e|bucket]), do: [e|each_contract(acc, bucket)]
+  defp each_contract([], bucket), do: bucket
+  defp each_contract(acc, []), do: acc
 
   defp node_relocate(node // @node_template, bucket, n) do
     :lists.foldl fn { key, value }, acc ->
