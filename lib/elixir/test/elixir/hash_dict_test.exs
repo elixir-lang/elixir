@@ -38,6 +38,13 @@ defmodule HashDictTest do
     assert HashDict.fetch(dict, 16) == :error
   end
 
+  test :equal? do
+    assert HashDict.equal?(filled_dict(3), filled_dict(3)) == true
+
+    assert HashDict.equal?(HashDict.new([{:a,1},{:b,2}]),
+                           HashDict.new([{:a,2},{:b,3}])) == false
+  end
+
   test :has_key? do
     dict = filled_dict(8)
     assert HashDict.has_key? dict, 4
