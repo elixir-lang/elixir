@@ -15,13 +15,32 @@ defmodule Mix.Tasks.Local.Uninstall do
     Enum.each argv, do_uninstall(&1)
   end
 
-  defp do_uninstall(task = package) do
+  defp do_uninstall(task) do
     try do
-      task = Mix.Task.get(task)
-      File.rm! Path.join(Mix.Local.tasks_path, "#{task}.beam")
+      task_module = Mix.Task.get(task)
+      if (package = in_package('#{task_module}.beam') |> Enum.first) do
+        package = String.split(package, ".") |> Enum.first
+        Mix.shell.info """
+          The task #{task} is part of package #{package}.
+          To uninstall this task, you will need to:
+          
+             mix local.uninstall #{package}
+        """
+      else
+        File.rm! Path.join(Mix.Local.tasks_path, "#{task_module}.beam")
+      end
     rescue
       Mix.NoTaskError -> 
-        File.rm! Path.join(Mix.Local.tasks_path, "#{package}.ez")
+        File.rm! Path.join(Mix.Local.tasks_path, "#{task}.ez")
+    end
+  end
+
+  defp in_package(beam) do
+    case :code.where_is_file(beam) do
+      :non_existing -> []
+      found ->
+        list_to_binary(found) 
+          |> Path.split |> Enum.filter(String.ends_with?(&1, ".ez"))
     end
   end
 end

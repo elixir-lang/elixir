@@ -19,9 +19,9 @@ defmodule Mix.LocalInstallPackageTest do
   test "create package" do
     File.cd!("test/fixtures", fn() ->
       # Install it!
-      Mix.Tasks.Package.run []
+      Mix.Tasks.Package.run ["--no_compile"] #otherwise ebin/*beam gets loaded!
       assert File.regular? "fixtures.ez"
-      
+
       self <- { :mix_shell_input, :yes?, true }
       Mix.Tasks.Local.Install.run []
       assert File.regular? tmp_path("userhome/.mix/tasks/fixtures.ez")
@@ -35,7 +35,12 @@ defmodule Mix.LocalInstallPackageTest do
       Mix.Task.run "local.sample"
       assert_received { :mix_shell, :info, ["sample"] }
 
-      # Remove it!
+      # Try to remove it by task name!
+      Mix.Tasks.Local.Uninstall.run ["local.sample"]
+      assert_received { :mix_shell, :info, _ }
+      assert File.regular? tmp_path("userhome/.mix/tasks/fixtures.ez")
+
+      # Remove it for real!
       Mix.Tasks.Local.Uninstall.run ["fixtures"]
       refute File.regular? tmp_path("userhome/.mix/tasks/fixtures.ez")
 
