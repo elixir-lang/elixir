@@ -3,9 +3,15 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule SetTest do
   use ExUnit.Case, async: true
 
-  test :union do
+  test "union with ordered sets" do
     assert Set.union(Set.new([1,2,3]), Set.new([3,4,5])) == Set.new([1,2,3,4,5])
     assert Set.union(Set.new, Set.new) == Set.new
+  end
+
+  test "union with nodes" do
+    assert Set.union(filled_set(21), filled_set(22)) == filled_set(22)
+
+    assert Set.union(filled_set(121), filled_set(120)) == filled_set(121)
   end
 
   test :intersection do
