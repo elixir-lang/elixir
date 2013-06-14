@@ -21,6 +21,10 @@ defmodule Set do
     contract_on: @contract_load,
     root: @node_template
 
+  import Bitwise
+
+  @compile { :inline, bucket_hash: 1, bucket_index: 1, bucket_nth_index: 2, bucket_next: 1 }
+
   def new() do
     ordered()
   end
@@ -74,6 +78,10 @@ defmodule Set do
     :lists.foldl(fun, acc, bucket)
   end
 
+  def reduce(trie() = set, acc, fun) do
+    set_fold(set, acc, fun)
+  end
+
   def put(set, member) do
     { set, _ } = set_put(set, { :put, member })
     set
@@ -82,6 +90,18 @@ defmodule Set do
   def delete(set, member) do
     { set, _, _ } = set_delete(set, member)
     set
+  end
+
+  def to_list(ordered(bucket: bucket)) do
+    bucket
+  end
+
+  def to_list(set) do
+    set_fold(set, [], [&1|&2]) |> :lists.reverse
+  end
+
+  def reduce(ordered(bucket: bucket), acc, fun) do
+    :lists.foldl(fun, acc, bucket)
   end
 
   ## Set-wide functions
@@ -94,9 +114,20 @@ defmodule Set do
     new(bucket_difference(bucket1, bucket2))
   end
 
+  defp set_put(ordered(size: @ordered_threshold, bucket: bucket), member) do
+    root = node_relocate(bucket, 0)
+    set_put(trie(size: @ordered_threshold, root: root), member)
+  end
+
   defp set_put(ordered(size: size, bucket: bucket) = set, member) do
     { new, count } = bucket_put(bucket, member)
     { ordered(set, size: size + count, bucket: new), count }
+  end
+
+  defp set_put(trie(root: root, size: size, depth: depth) = set, member) do
+    pos = bucket_hash(member)
+    { root, count } = node_put(root, depth, pos, member)
+    { trie(set, size: size + count, root: root), count }
   end
 
   defp set_get(ordered(bucket: bucket), member) do
@@ -114,6 +145,10 @@ defmodule Set do
 
   defp set_fold(ordered(bucket: bucket), acc, fun) do
     bucket_fold(bucket, acc, fun)
+  end
+
+  defp set_fold(trie(root: root, depth: depth), acc, fun) do
+    node_fold(root, depth, acc, fun, @node_size)
   end
 
   ## Bucket helpers
@@ -175,6 +210,11 @@ defmodule Set do
     { [member], 1 }
   end
 
+  defp bucket_put!([m|_]=bucket, member)     when m > member, do: [member|bucket]
+  defp bucket_put!([member|bucket], member), do: [member|bucket]
+  defp bucket_put!([e|bucket], member),      do: [e|bucket_put!(bucket, member)]
+  defp bucket_put!([], member),              do: [member]
+
   # Deletes a key from the bucket
   defp bucket_delete([m,_|_]=bucket, member) when m > member do
     { bucket, nil, 0 }
@@ -207,6 +247,56 @@ defmodule Set do
 
   defp bucket_fold(bucket, acc, fun) do
     :lists.foldl(fun, acc, bucket)
+  end
+
+  defp bucket_hash(key) do
+    :erlang.phash2(key)
+  end
+
+  defp bucket_nth_index(hash, n) do
+    (hash >>> (@node_shift * n)) &&& @node_bitmap
+  end
+
+  defp bucket_index(hash) do
+    hash &&& @node_bitmap
+  end
+
+  defp bucket_next(hash) do
+    hash >>> @node_shift
+  end
+
+  # Node helpers
+
+  defp node_put(node, 0, hash, member) do
+    pos = bucket_index(hash)
+    { new, count } = bucket_put(elem(node, pos), member)
+    { set_elem(node, pos, new), count }
+  end
+
+  defp node_put(node, depth, hash, member) do
+    pos = bucket_index(hash)
+    { new, count } = node_put(elem(node, pos), depth - 1, bucket_next(hash), member)
+    { set_elem(node, pos, new), count }
+  end
+
+  defp node_fold(bucket, -1, acc, fun, _) do
+    bucket_fold(bucket, acc, fun)
+  end
+
+  defp node_fold(node, depth, acc, fun, count) when count >= 1 do
+    acc = node_fold(:erlang.element(count, node), depth - 1, acc, fun, @node_size)
+    node_fold(node, depth, acc, fun, count - 1)
+  end
+
+  defp node_fold(_node, _, acc, _fun, 0) do
+    acc
+  end
+
+  defp node_relocate(node // @node_template, bucket, n) do
+    :lists.foldl fn member, acc ->
+      pos = member |> bucket_hash() |> bucket_nth_index(n)
+      set_elem(acc, pos, bucket_put!(elem(acc, pos), member))
+    end, node, bucket
   end
 
 end

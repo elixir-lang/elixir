@@ -39,6 +39,12 @@ defmodule SetTest do
     assert length(list) == 8
     assert 1 in list
     assert list == Enum.to_list(set)
+
+    set = filled_set(20)
+    list = set |> Set.to_list
+    assert length(list) == 20
+    assert 1 in list
+    assert list == Enum.to_list(set)
   end
 
   test :delete do
