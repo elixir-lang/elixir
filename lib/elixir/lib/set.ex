@@ -31,6 +31,21 @@ defmodule Set do
     end
   end
 
+  def union(set1, set2) when is_record(set1, Set) and is_record(set2, Set) and elem(set1, 1) < elem(set2, 1) do
+    set_fold set1, set2, fn v1, acc ->
+      put(acc, v1)
+    end
+  end
+
+  def union(set1, set2) when is_record(set1, Set) and is_record(set2, Set) do
+    set_fold set2, set1, fn v, acc ->
+      put(acc, v)
+    end
+  end
+
+  def subset?(set1, set2) do
+  end
+
   def empty(_) do
     ordered()
   end
@@ -71,6 +86,10 @@ defmodule Set do
     end
   end
 
+  defp set_fold(ordered(bucket: bucket), acc, fun) do
+    bucket_fold(bucket, acc, fun)
+  end
+
   ## Bucket helpers
 
   defp bucket_put([m|_]=bucket, { :put, member }) when m > member do
@@ -106,6 +125,10 @@ defmodule Set do
 
   defp bucket_delete([], _member) do
     { [], nil, 0 }
+  end
+
+  defp bucket_fold(bucket, acc, fun) do
+    :lists.foldl(fun, acc, bucket)
   end
 
 end

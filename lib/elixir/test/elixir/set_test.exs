@@ -3,6 +3,11 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule SetTest do
   use ExUnit.Case, async: true
 
+  test :union do
+    assert Set.union(Set.new([1,2,3]), Set.new([3,4,5])) == Set.new([1,2,3,4,5])
+    assert Set.union(Set.new, Set.new) == Set.new
+  end
+
   test :empty do
     assert Set.empty filled_set(8)   == Set.new
     assert Set.empty filled_set(20)  == Set.new
