@@ -25,16 +25,37 @@ defmodule Set do
 
   @compile { :inline, bucket_hash: 1, bucket_index: 1, bucket_nth_index: 2, bucket_next: 1 }
 
+  @doc """
+  Creates a new empty set.
+  """
   def new() do
     ordered()
   end
 
+  @doc """
+  Creates a new set from the given enumerable.
+
+  ## Examples
+
+      Set.new [1, 1, 2, 3, 3]
+      #=> #Set<[1,2,3]>
+
+  """
   def new(members) do
     Enum.reduce members, ordered(), fn member, set ->
       put(set, member)
     end
   end
 
+  @doc """
+  Returns a set that is the two input sets combined.
+
+  ## Examples
+
+      Set.union(Set.new([1,2]), Set.new([2,3,4]))
+      #=> #Set<[1,2,3,4]>
+
+  """
   def union(set1, set2) when is_record(set1, Set) and is_record(set2, Set) and elem(set1, 1) < elem(set2, 1) do
     set_fold set1, set2, fn v1, acc ->
       put(acc, v1)
@@ -47,14 +68,35 @@ defmodule Set do
     end
   end
 
+  @doc """
+  Returns a set that is the members in common between the two input sets.
+
+  ## Examples
+
+      Set.intersection(Set.new([1,2]), Set.new([2,3,4]))
+      #=> #Set<[2]>
+
+  """
   def intersection(set1, set2) when is_record(set1, Set) and is_record(set2, Set) do
     set_intersect(set1, set2)
   end
 
+  @doc """
+  Returns a set that is the difference between the two input sets.
+
+  ## Examples
+
+      Set.difference(Set.new([1,2]), Set.new([2,3,4]))
+      #=> #Set<[1,3,4]>
+
+  """
   def difference(set1, set2) when is_record(set1, Set) and is_record(set2, Set) do
     set_difference(set1, set2)
   end
 
+  @doc """
+  Checks if the set has the given value.
+  """
   def member?(set, member) when is_record(set, Set) do
     case set_get(set, member) do
         ^member -> true
@@ -62,14 +104,23 @@ defmodule Set do
     end
   end
 
+  @doc """
+  Returns an empty set.
+  """
   def empty(_) do
     ordered()
   end
 
+  @doc """
+  Returns the set size.
+  """
   def size(set) do
     elem(set, 1)
   end
 
+  @doc """
+  Converts a set to a list.
+  """
   def to_list(ordered(bucket: bucket)) do
     bucket
   end
@@ -78,11 +129,17 @@ defmodule Set do
     set_fold(set, [], [&1|&2]) |> :lists.reverse
   end
 
+  @doc """
+  Puts the given value into the set if it does not already contain it.
+  """
   def put(set, member) do
     { set, _ } = set_put(set, { :put, member })
     set
   end
 
+  @doc """
+  Deletes a value from the set.
+  """
   def delete(set, member) do
     { set, _, _ } = set_delete(set, member)
     set
