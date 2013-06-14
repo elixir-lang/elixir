@@ -124,6 +124,13 @@ defmodule Set do
     { ordered(set, size: size + count, bucket: new), count }
   end
 
+  defp set_put(trie(root: root, depth: depth, size: size, expand_on: size, contract_on: contract_on) = set, member) do
+    root = node_expand(root, depth, depth + 1)
+    set = trie(set, root: root, depth: depth + 1,
+      expand_on: size * @node_size, contract_on: contract_on * @node_size)
+    set_put(set, member)
+  end
+
   defp set_put(trie(root: root, size: size, depth: depth) = set, member) do
     pos = bucket_hash(member)
     { root, count } = node_put(root, depth, pos, member)
@@ -298,6 +305,38 @@ defmodule Set do
       set_elem(acc, pos, bucket_put!(elem(acc, pos), member))
     end, node, bucket
   end
+
+  # Node resizing
+  defp node_expand({ b1, b2, b3, b4, b5, b6, b7, b8 }, 0, n) do
+    { node_relocate(b1, n), node_relocate(b2, n), node_relocate(b3, n),
+      node_relocate(b4, n), node_relocate(b5, n), node_relocate(b6, n),
+      node_relocate(b7, n), node_relocate(b8, n) }
+  end
+
+  defp node_expand({ b1, b2, b3, b4, b5, b6, b7, b8 }, depth, n) do
+    depth = depth - 1
+    { node_expand(b1, depth, n), node_expand(b2, depth, n), node_expand(b3, depth, n),
+      node_expand(b4, depth, n), node_expand(b5, depth, n), node_expand(b6, depth, n),
+      node_expand(b7, depth, n), node_expand(b8, depth, n) }
+  end
+
+  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8 }, depth) when depth > 0 do
+    depth = depth - 1
+    { node_contract(b1, depth), node_contract(b2, depth), node_contract(b3, depth),
+      node_contract(b4, depth), node_contract(b5, depth), node_contract(b6, depth),
+      node_contract(b7, depth), node_contract(b8, depth) }
+  end
+
+  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8 }, 0) do
+    b1 |> each_contract(b2) |> each_contract(b3) |> each_contract(b4)
+       |> each_contract(b5) |> each_contract(b6) |> each_contract(b7)
+       |> each_contract(b8)
+  end
+
+  defp each_contract([m1|acc], [m2|_]=bucket) when m1 < m2, do: [m1|each_contract(acc, bucket)]
+  defp each_contract(acc, [m|bucket]), do: [m|each_contract(acc, bucket)]
+  defp each_contract([], bucket), do: bucket
+  defp each_contract(acc, []), do: acc
 
 end
 
