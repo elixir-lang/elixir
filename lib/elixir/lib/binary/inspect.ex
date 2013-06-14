@@ -21,10 +21,8 @@ defmodule Binary.Inspect.Utils do
   ## groups aware of depth
   def inc_depth(opts),          do: Keyword.put(opts, :depth, (opts[:depth] || 0) + 1)
 
-  def group_maybe(x, opts),     do: group_maybe_do(x, 3, fn(x) -> group(x)  end, opts)
-  def group_maybe(x, t, opts),  do: group_maybe_do(x, t, fn(x) -> group(x)  end, opts)
-  def group1_maybe(x, opts),    do: group_maybe_do(x, 3, fn(x) -> group1(x) end, opts)
-  def group1_maybe(x, t, opts), do: group_maybe_do(x, t, fn(x) -> group1(x) end, opts)
+  def group_maybe(x, opts),     do: group_maybe_do(x, 3, fn(x) -> group(x) end, opts)
+  def group_maybe(x, t, opts),  do: group_maybe_do(x, t, fn(x) -> group(x) end, opts)
 
   defp group_maybe_do(x, t, f, opts) do
     if (opts[:depth] || 1) > t do
@@ -40,24 +38,24 @@ defmodule Binary.Inspect.Utils do
     if opts[:as_doc] do
       doc
     else
-      if opts[:pretty], do: pretty(opts[:width], doc), else: pretty(opts[:width], group(doc).left)
+      if opts[:pretty], do: pretty(opts[:width], doc), else: pretty(opts[:width], group(doc))
     end
   end
 
   defp maxwidth, do: :erlang.element 2, :io.columns
 
   ## container_join
-
   def container_join(tuple, first, last, opts) when is_tuple(tuple) do
     container_join(tuple_to_list(tuple), first, last, opts)
   end
 
   def container_join(list, first, last, opts) do
     opts = inc_depth(opts)
-    group1_maybe(
-      glue( text(first),
-            glue( nest((opts[:nest] || 0)+2, do_container_join(list, opts, opts[:limit] || :infinity)),
-                  text(last))
+    group_maybe(
+      surround(
+        first,
+        do_container_join(list, opts, opts[:limit] || :infinity),
+        last
       ),
     5, opts)
   end
@@ -71,13 +69,24 @@ defmodule Binary.Inspect.Utils do
   end
 
   defp do_container_join([h|t], opts, counter) when is_list(t) do
-    line( concat(Kernel.inspect(h, Keyword.put(opts, :as_doc, true)), text(",")),
-          do_container_join(t, opts, decrement(counter)) )
+    glue(
+      concat(
+        Kernel.inspect(h, Keyword.put(opts, :as_doc, true)), 
+        text(",")
+      ),
+      do_container_join(t, opts, decrement(counter)
+      ) 
+    )
   end
 
   defp do_container_join([h|t], opts, _counter) do
-    line( concat(Kernel.inspect(h, Keyword.put(opts, :as_doc, true)), text("|")),
-          Kernel.inspect(t, Keyword.put(opts, :as_doc, true)) )
+    glue(
+      concat(
+        Kernel.inspect(h, Keyword.put(opts, :as_doc, true)), 
+        text("|")
+      ),
+      Kernel.inspect(t, Keyword.put(opts, :as_doc, true))
+    )
   end
 
   defp do_container_join([], _opts, _counter) do
@@ -314,22 +323,30 @@ defimpl Binary.Inspect, for: List do
       keyword?(thing) -> 
         opts = inc_depth(opts)
         return(
-        group1_maybe(
-          concat( text("["),
-          concat( glue, 
-                  nest(2,
-          concat(   join_keywords(thing, Keyword.put(opts, :as_doc, true)),
-          concat(   glue, text("]") ))))),
-          opts
-        ),
-        opts)
+          group_maybe(
+            surround(
+              "[",
+              join_keywords(thing, Keyword.put(opts, :as_doc, true)),
+              "]"
+            ), opts
+          ), opts
+        )
       true ->
         return container_join(thing, "[", "]", opts), opts
     end
   end
 
-  defp join_keywords([x], opts),    do: keyword_to_docentity(x, opts)
-  defp join_keywords([x|xs], opts), do: line(concat(keyword_to_docentity(x, opts), text(", ")), join_keywords(xs, opts))
+  defp join_keywords([x], opts),   do: keyword_to_docentity(x, opts)
+  defp join_keywords([x|xs], opts) do 
+    glue(
+      concat(
+        keyword_to_docentity(x, opts), 
+        text(",")
+      ),
+      join_keywords(xs, opts)
+    )
+  end
+
   defp keyword_to_docentity({key, value}, opts) do
     keybin = key_to_binary(key, opts) <> ": "
     nest   = String.length(keybin)
@@ -411,13 +428,13 @@ defimpl Binary.Inspect, for: Tuple do
     fields = lc { field, _ } inlist fields, do: field
     namedoc = Binary.Inspect.Atom.inspect(name, opts)
     group_maybe(
-      concat(namedoc, 
-             concat(text("["),
-                    concat(
-                           nest(2, concat(line, record_join(fields, tail, opts))),
-                           concat(line, text("]"))
-                    )
-            )
+      concat(
+        namedoc, 
+        surround(
+          "[",
+          record_join(fields, tail, opts),
+          "]"
+        ),
       ),
       opts
     )
@@ -430,9 +447,15 @@ defimpl Binary.Inspect, for: Tuple do
 
   defp record_join([fh|ft], [vh|vt], opts) do
     fhbin = atom_to_binary(fh, :utf8) <> ": "
-    line( concat( text(fhbin),
-                  concat( Kernel.inspect(vh, opts), text(",") )),
-          record_join(ft, vt, opts)
+    glue(
+      concat(
+        text(fhbin),
+        concat(
+          Kernel.inspect(vh, opts), 
+          text(",")
+        )
+      ),
+      record_join(ft, vt, opts)
     )
   end
 
@@ -508,9 +531,11 @@ defimpl Binary.Inspect, for: Function do
   def inspect(function, opts) do
     fun_info = :erlang.fun_info(function)
     if fun_info[:type] == :external and fun_info[:env] == [] do
-      return(text(
-        "function(#{Kernel.inspect(fun_info[:module])}.#{fun_info[:name]}/#{fun_info[:arity]})"
-      ), opts)
+      return(
+        text(
+          "function(#{Kernel.inspect(fun_info[:module])}.#{fun_info[:name]}/#{fun_info[:arity]})"
+        ),
+      opts)
     else
       '#Fun' ++ rest = :erlang.fun_to_list(function)
       return text("#Function" <> list_to_binary(rest)), opts

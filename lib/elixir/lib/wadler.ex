@@ -51,6 +51,7 @@ defmodule Wadler do
   # some shortcut functions
   defp newline, do: "\n"
   defp strlen(s), do: String.length(s)
+  defp default_nesting, do: 2
 
   defp repeat(_, 0), do: ""
   defp repeat(s, i), do: String.duplicate s, i
@@ -111,6 +112,7 @@ defmodule Wadler do
 
   """
   @spec nest(non_neg_integer, doc) :: DocNest.t
+  def nest(0, x),                    do: x
   def nest(i, x) when is_integer(i), do: DocNest[indent: i, doc: x]
 
   @doc """
@@ -306,7 +308,7 @@ defmodule Wadler do
       concat(
              text(left), 
              concat(
-                    nest(2, concat(break, doc)),
+                    nest(default_nesting, concat(break, doc)),
                     concat(break, text(right))
              )
       )
