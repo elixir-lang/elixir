@@ -209,6 +209,9 @@ defmodule HashDict do
     ordered()
   end
 
+  @doc """
+  Checks if two dicts are equal
+  """
   def equal?(dict1, dict2) do
     size = elem(dict1, 1)
     case elem(dict2, 1) do
