@@ -43,7 +43,8 @@ defmodule Set do
     end
   end
 
-  def subset?(set1, set2) do
+  def intersection(set1, set2) when is_record(set1, Set) and is_record(set2, Set) do
+    set_intersect(set1, set2)
   end
 
   def empty(_) do
@@ -72,6 +73,13 @@ defmodule Set do
     set
   end
 
+  ## Set-wide functions
+
+  defp set_intersect(ordered(bucket: bucket1), ordered(bucket: bucket2)) do
+    new_bucket = bucket_intersect(bucket1, bucket2)
+    new(new_bucket)
+  end
+
   defp set_put(ordered(size: size, bucket: bucket) = set, member) do
     { new, count } = bucket_put(bucket, member)
     { ordered(set, size: size + count, bucket: new), count }
@@ -91,6 +99,26 @@ defmodule Set do
   end
 
   ## Bucket helpers
+
+  defp bucket_intersect([m1 | _] = bucket1, [m2 | bucket2]) when m1 > m2 do
+    bucket_intersect(bucket1, bucket2)
+  end
+
+  defp bucket_intersect([m1 | bucket1], [m2 | _] = bucket2) when m2 > m1 do
+    bucket_intersect(bucket1, bucket2)
+  end
+
+  defp bucket_intersect([member | bucket1], [member | bucket2]) do
+    [member | bucket_intersect(bucket1, bucket2)]
+  end
+
+  defp bucket_intersect([], _) do
+    []
+  end
+
+  defp bucket_intersect(_, []) do
+    []
+  end
 
   defp bucket_put([m|_]=bucket, { :put, member }) when m > member do
     { [member|bucket], 1 }

@@ -8,6 +8,13 @@ defmodule SetTest do
     assert Set.union(Set.new, Set.new) == Set.new
   end
 
+  test :intersection do
+    assert Set.intersection(Set.new([1,2,3,4,6]), Set.new([3,4,5])) == Set.new([3,4])
+    assert Set.intersection(Set.new, filled_set(8)) == Set.new
+    assert Set.intersection(filled_set(8), Set.new) == Set.new
+    assert Set.intersection(Set.new, Set.new) == Set.new
+  end
+
   test :empty do
     assert Set.empty filled_set(8)   == Set.new
     assert Set.empty filled_set(20)  == Set.new
