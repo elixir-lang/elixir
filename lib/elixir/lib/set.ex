@@ -51,6 +51,13 @@ defmodule Set do
     set_difference(set1, set2)
   end
 
+  def member?(set, member) when is_record(set, Set) do
+    case set_get(set, member) do
+        ^member -> true
+        _       -> false
+    end
+  end
+
   def empty(_) do
     ordered()
   end
@@ -90,6 +97,10 @@ defmodule Set do
   defp set_put(ordered(size: size, bucket: bucket) = set, member) do
     { new, count } = bucket_put(bucket, member)
     { ordered(set, size: size + count, bucket: new), count }
+  end
+
+  defp set_get(ordered(bucket: bucket), member) do
+    bucket_get(bucket, member)
   end
 
   defp set_delete(ordered(bucket: bucket, size: size) = set, member) do
@@ -180,6 +191,18 @@ defmodule Set do
 
   defp bucket_delete([], _member) do
     { [], nil, 0 }
+  end
+
+  defp bucket_get([member|bucket], member) do
+    member
+  end
+
+  defp bucket_get([member|bucket], candidate) when candidate > member do
+    bucket_get(bucket, candidate)
+  end
+
+  defp bucket_get(_, member) do
+    nil
   end
 
   defp bucket_fold(bucket, acc, fun) do

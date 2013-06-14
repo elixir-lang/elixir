@@ -22,6 +22,11 @@ defmodule SetTest do
     assert Set.difference(Set.new([1]), Set.new) == Set.new([1])
   end
 
+  test :member? do
+    assert Set.member?(filled_set(8), 8)
+    refute Set.member?(filled_set(8), 10)
+  end
+
   test :empty do
     assert Set.empty filled_set(8)   == Set.new
     assert Set.empty filled_set(20)  == Set.new
