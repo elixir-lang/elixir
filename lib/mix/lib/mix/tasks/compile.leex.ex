@@ -31,8 +31,8 @@ defmodule Mix.Tasks.Compile.Leex do
   * `:leex_options` - compilation options that applies
      to Leex's compiler. There are many available options
      here: http://www.erlang.org/doc/man/leex.html#file-2
-
   """
+
   def run(args) do
     { opts, _ } = OptionParser.parse(args, switches: [force: :boolean])
 

@@ -58,7 +58,6 @@ defmodule Mix.Tasks.Compile.Elixir do
       a compilation:
 
          [elixirc_watch_exts: [:ex, :eex]]
-
   """
 
   @switches [force: :boolean, quick: :boolean, docs: :boolean,

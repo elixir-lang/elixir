@@ -12,8 +12,8 @@ defmodule Mix.Tasks.Do do
   then the list of dependencies.
 
       mix do compile --list, deps
-
   """
+
   def run(args) do
     Enum.each(gather_commands(args), function do
       [task|args] -> Mix.Task.run task, args

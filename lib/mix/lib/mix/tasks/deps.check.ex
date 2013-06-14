@@ -14,6 +14,7 @@ defmodule Mix.Tasks.Deps.Check do
   This task is not shown in `mix help` but it is part
   of mix public API and can be depended on.
   """
+
   def run(_) do
     lock = Mix.Deps.Lock.read
     all  = Enum.map all, check_lock(&1, lock)

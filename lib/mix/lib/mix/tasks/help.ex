@@ -12,7 +12,6 @@ defmodule Mix.Tasks.Help do
 
       mix help      - prints all tasks and their shortdoc
       mix help TASK - prints full docs for the given task
-
   """
 
   def run([]) do

@@ -11,8 +11,8 @@ defmodule Mix.Tasks.Clean do
   ## Command line options
 
   * `--all` - Clean everything, including dependencies
-
   """
+
   def run(args) do
     { opts, _ } = OptionParser.parse(args)
     File.rm_rf Mix.project[:compile_path]  || "ebin"

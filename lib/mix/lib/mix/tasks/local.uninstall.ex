@@ -7,7 +7,6 @@ defmodule Mix.Tasks.Local.Uninstall do
   Uninstall local tasks:
 
       mix local.uninstall task_name | archive.ez
-
   """
 
   def run(argv) do

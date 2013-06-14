@@ -38,8 +38,8 @@ defmodule Mix.Tasks.Test do
 
   * `:test_coverage` - the directory to include test coverage results.
     Defaults to nil.
-
   """
+
   def run(args) do
     { opts, files } = OptionParser.parse(args, aliases: [q: :quick],
                         switches: [quick: :boolean, force: :boolean])

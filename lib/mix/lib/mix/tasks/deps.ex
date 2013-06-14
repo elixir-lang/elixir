@@ -13,8 +13,8 @@ defmodule Mix.Tasks.Deps do
     * APP [VERSION] SCM: LOCATION
       [locked at REF]
       STATUS
-
   """
+
   def run(_) do
     shell = Mix.shell
     lock  = Mix.Deps.Lock.read

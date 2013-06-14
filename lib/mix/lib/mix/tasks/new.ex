@@ -34,8 +34,8 @@ defmodule Mix.Tasks.New do
   To generate an app with supervisor and application behaviours:
 
       mix new hello_world --sup
-
   """
+
   def run(argv) do
     { opts, argv } = OptionParser.parse(argv, switches: [sup: :boolean, umbrella: :boolean])
 

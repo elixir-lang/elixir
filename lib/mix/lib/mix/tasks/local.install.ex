@@ -27,7 +27,6 @@ defmodule Mix.Tasks.Local.Install do
 
   * `--force` forces installation without a shell prompt. Primarily
     intended for automation in build systems like Make.
-
   """
 
   def run(argv) do

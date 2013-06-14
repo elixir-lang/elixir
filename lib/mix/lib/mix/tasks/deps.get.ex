@@ -12,7 +12,6 @@ defmodule Mix.Tasks.Deps.Get do
 
   * `--no-compile` - skip compilation of dependencies
   * `--quiet` - do not output success message
-
   """
 
   import Mix.Deps, only: [all: 2, by_name: 1, format_dep: 1, check_lock: 2, out_of_date?: 1]
