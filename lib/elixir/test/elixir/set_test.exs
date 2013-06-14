@@ -22,9 +22,17 @@ defmodule SetTest do
     assert Set.difference(Set.new([1]), Set.new) == Set.new([1])
   end
 
-  test :member? do
+  test "member? with ordered sets"  do
     assert Set.member?(filled_set(8), 8)
     refute Set.member?(filled_set(8), 10)
+  end
+
+  test "member? with nodes"  do
+    assert Set.member?(filled_set(20), 19)
+    refute Set.member?(filled_set(20), 100)
+
+    assert Set.member?(filled_set(120), 90)
+    refute Set.member?(filled_set(120), 200)
   end
 
   test :empty do

@@ -131,14 +131,18 @@ defmodule Set do
     set_put(set, member)
   end
 
-  defp set_put(trie(root: root, size: size, depth: depth) = set, member) do
+  defp set_put(trie(root: root, size: size, depth: depth) = set,  { :put, member }) do
     pos = bucket_hash(member)
-    { root, count } = node_put(root, depth, pos, member)
+    { root, count } = node_put(root, depth, pos, {:put, member})
     { trie(set, size: size + count, root: root), count }
   end
 
   defp set_get(ordered(bucket: bucket), member) do
     bucket_get(bucket, member)
+  end
+
+  defp set_get(trie(root: root, depth: depth), member) do
+    bucket_get(node_bucket(root, depth, bucket_hash(member)), member)
   end
 
   defp set_delete(ordered(bucket: bucket, size: size) = set, member) do
@@ -273,6 +277,16 @@ defmodule Set do
   end
 
   # Node helpers
+
+  # Gets a bucket from the node
+  defp node_bucket(node, 0, hash) do
+    elem(node, bucket_index(hash))
+  end
+
+  defp node_bucket(node, depth, hash) do
+    child = elem(node, bucket_index(hash))
+    node_bucket(child, depth - 1, bucket_next(hash))
+  end
 
   defp node_put(node, 0, hash, member) do
     pos = bucket_index(hash)
