@@ -34,16 +34,30 @@ defmodule Mix.Project do
   alias Mix.Server.Project
 
   @doc false
-  defmacro __using__(_) do
+  defmacro __using__(opts) do
+    Module.put_attribute(__CALLER__.module, :push_project, !opts[:no_push])
+
     quote do
-      @after_compile Mix.Project
+      import Mix.Project.DSL
+
+      Module.register_attribute(__MODULE__, :project_tasks, accumulate: true, persist: false)
+      @after_compile unquote(__MODULE__)
+      @before_compile unquote(__MODULE__)
     end
   end
 
-  # Invoked after each Mix.Project is compiled.
   @doc false
-  def __after_compile__(env, _binary) do
-    push env.module
+   def __after_compile__(env, _binary) do
+    if Module.get_attribute(env.module, :push_project), do: push env.module
+  end
+
+  @doc false
+  defmacro __before_compile__(_env) do
+    quote do
+      def __tasks__ do
+        @project_tasks
+      end
+    end
   end
 
   # Push a project into the project stack. Only
@@ -298,6 +312,22 @@ defmodule Mix.Project do
       config |> Keyword.delete(:env) |> Keyword.merge(env)
     else
       config
+    end
+  end
+end
+
+defmodule Mix.Project.DSL do
+  defmacro task(name, args, original // nil, block) do
+    original_opt = !! original
+    original = if original, do: original, else: (quote do _ end)
+
+    quote do
+      type = if unquote(original_opt), do: :override, else: :before
+      name = unquote(Macro.escape name)
+      name = if is_tuple(name), do: :_, else: name
+      @project_tasks { name , type }
+
+      def __task__(unquote(name), unquote(args), unquote(original)), do: unquote(block)
     end
   end
 end

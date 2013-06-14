@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Local.Uninstall do
     case Path.extname(task) do
       ".ez" -> File.rm! Path.join(Mix.Local.tasks_path, task)
       _ ->
-        task_module = Mix.Task.get(task)
+        task_module = Mix.Task.get_module!(task)
         if archive = in_archive('#{task_module}.beam') do
           raise Mix.Error, message: "The task #{task} is part of archive #{archive}." <>
             "To uninstall this task, please run: `mix local.uninstall #{archive}`"

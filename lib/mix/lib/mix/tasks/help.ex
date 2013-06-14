@@ -39,12 +39,12 @@ defmodule Mix.Tasks.Help do
   end
 
   def run([task]) do
-    module = Mix.Task.get(task)
+    module = Mix.Task.get_module!(task)
     shell  = Mix.shell
     shell.info "%{bright}# mix help #{task}\n"
 
     if doc = Mix.Task.moduledoc(module) do
-      IO.write doc
+      shell.info doc
     else
       shell.info "There is no documentation for this task"
     end
