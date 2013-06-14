@@ -47,6 +47,10 @@ defmodule Set do
     set_intersect(set1, set2)
   end
 
+  def difference(set1, set2) when is_record(set1, Set) and is_record(set2, Set) do
+    set_difference(set1, set2)
+  end
+
   def empty(_) do
     ordered()
   end
@@ -76,8 +80,11 @@ defmodule Set do
   ## Set-wide functions
 
   defp set_intersect(ordered(bucket: bucket1), ordered(bucket: bucket2)) do
-    new_bucket = bucket_intersect(bucket1, bucket2)
-    new(new_bucket)
+    new(bucket_intersect(bucket1, bucket2))
+  end
+
+  defp set_difference(ordered(bucket: bucket1), ordered(bucket: bucket2)) do
+    new(bucket_difference(bucket1, bucket2))
   end
 
   defp set_put(ordered(size: size, bucket: bucket) = set, member) do
@@ -118,6 +125,26 @@ defmodule Set do
 
   defp bucket_intersect(_, []) do
     []
+  end
+
+  defp bucket_difference([m | bucket1], [m | bucket2]) do
+    bucket_difference(bucket1, bucket2)
+  end
+
+  defp bucket_difference([m1 | _] = bucket1, [m2 | bucket2]) when m1 > m2 do
+    [m2 | bucket_difference(bucket1, bucket2)]
+  end
+
+  defp bucket_difference([m1 | bucket1], [m2 | _] = bucket2) when m2 > m1 do
+    [m1 | bucket_difference(bucket1, bucket2)]
+  end
+
+  defp bucket_difference([], bucket) do
+    bucket
+  end
+
+  defp bucket_difference(bucket, []) do
+    bucket
   end
 
   defp bucket_put([m|_]=bucket, { :put, member }) when m > member do
