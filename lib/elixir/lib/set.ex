@@ -74,12 +74,8 @@ defmodule Set do
     bucket
   end
 
-  def reduce(ordered(bucket: bucket), acc, fun) do
-    :lists.foldl(fun, acc, bucket)
-  end
-
-  def reduce(trie() = set, acc, fun) do
-    set_fold(set, acc, fun)
+  def to_list(set) do
+    set_fold(set, [], [&1|&2]) |> :lists.reverse
   end
 
   def put(set, member) do
@@ -92,16 +88,12 @@ defmodule Set do
     set
   end
 
-  def to_list(ordered(bucket: bucket)) do
-    bucket
-  end
-
-  def to_list(set) do
-    set_fold(set, [], [&1|&2]) |> :lists.reverse
-  end
-
   def reduce(ordered(bucket: bucket), acc, fun) do
     :lists.foldl(fun, acc, bucket)
+  end
+
+  def reduce(trie() = set, acc, fun) do
+    set_fold(set, acc, fun)
   end
 
   ## Set-wide functions
