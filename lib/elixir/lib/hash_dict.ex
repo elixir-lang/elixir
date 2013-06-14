@@ -213,7 +213,7 @@ defmodule HashDict do
     size = elem(dict1, 1)
     case elem(dict2, 1) do
       ^size ->
-        dict_equal?(dict1, dict1)
+        dict_equal?(dict1, dict2)
       _ ->
         false
     end
