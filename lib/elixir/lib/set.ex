@@ -154,6 +154,26 @@ defmodule Set do
     end
   end
 
+  defp set_delete(trie(root: root, size: size, depth: depth) = set, member) do
+    pos = bucket_hash(member)
+    case node_delete(root, depth, pos, member) do
+      { _, value, 0 } ->
+        { set, value, 0 }
+      { root, value, -1 } ->
+        { if depth > 0 and trie(set, :contract_on) == size do
+          root = node_contract(root, depth)
+          trie(set,
+            root: root,
+            size: size - 1,
+            depth: depth - 1,
+            contract_on: div(size, @node_size),
+            expand_on: div(trie(set, :expand_on), @node_size))
+        else
+          trie(set, size: size - 1, root: root)
+        end, member, -1 }
+    end
+  end
+
   defp set_fold(ordered(bucket: bucket), acc, fun) do
     bucket_fold(bucket, acc, fun)
   end
@@ -298,6 +318,23 @@ defmodule Set do
     pos = bucket_index(hash)
     { new, count } = node_put(elem(node, pos), depth - 1, bucket_next(hash), member)
     { set_elem(node, pos, new), count }
+  end
+
+  # Deletes a key from the bucket
+  defp node_delete(node, 0, hash, member) do
+    pos = bucket_index(hash)
+    case bucket_delete(elem(node, pos), member) do
+      { _, value, 0 } -> { node, value, 0 }
+      { new, value, -1 } -> { set_elem(node, pos, new), value, -1 }
+    end
+  end
+
+  defp node_delete(node, depth, hash, member) do
+    pos = bucket_index(hash)
+    case node_delete(elem(node, pos), depth - 1, bucket_next(hash), member) do
+      { _, value, 0 } -> { node, value, 0 }
+      { new, value, -1 } -> { set_elem(node, pos, new), value, -1 }
+    end
   end
 
   defp node_fold(bucket, -1, acc, fun, _) do

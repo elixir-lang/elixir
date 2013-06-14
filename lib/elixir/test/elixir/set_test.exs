@@ -68,13 +68,13 @@ defmodule SetTest do
   end
 
   test :delete do
-    set = filled_set(8)
-    assert Set.delete(set, 8) == filled_set(7)
-
-    set = filled_set(8)
-    assert Set.delete(set, 9) == set
-
+    assert Set.delete(filled_set(8), 8) == filled_set(7)
+    assert Set.delete(filled_set(8), 9) == filled_set(8)
     assert Set.delete(Set.new, 10) == Set.new
+
+    assert Set.delete(filled_set(21), 21) == filled_set(20)
+
+    assert Set.delete(filled_set(121), 121) == filled_set(120)
   end
 
   test "a set removes duplicates" do
