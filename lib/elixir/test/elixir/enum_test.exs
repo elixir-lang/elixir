@@ -629,6 +629,8 @@ end
 defmodule EnumTest.Others do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
+
   test :reverse do
     assert Enum.reverse(URI.query_decoder("foo=bar&baz=bat")) ==
       [{ "baz", "bat" }, { "foo", "bar" }]
@@ -636,5 +638,19 @@ defmodule EnumTest.Others do
 
   test :count do
     assert Enum.count(URI.query_decoder("foo=bar&baz=bat")) == 2
+  end
+
+  test :take do
+    # Use IO to simulate side-effects
+    reducible = fn(acc, fun) ->
+      Enum.reduce([1,2,3], acc, fn(x, acc) ->
+        IO.puts x
+        fun.(x, acc)
+      end)
+    end
+
+    assert capture_io(fn ->
+      Enum.take(reducible, 1)
+    end) == "1\n"
   end
 end

@@ -870,10 +870,10 @@ defmodule Enum do
 
   def take(collection, count) when count > 0 do
     { list, _ } = Enumerable.reduce(collection, { [], count }, fn(entry, { list, count }) ->
-      if count > 0 do
+      if count > 1 do
         { [entry|list], count - 1 }
       else
-        throw({ :enum_take, list })
+        throw({ :enum_take, [entry|list] })
       end
     end)
     :lists.reverse(list)
