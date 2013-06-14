@@ -87,6 +87,8 @@ defmodule SetTest do
     assert Set.new([:c,:a,:b]) == Set.new([:a,:b,:c])
 
     assert Set.new(["c","a","b"]) == Set.new(["b", "c", "a"])
+
+    assert Set.new([1,2,3,4,4,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]) == filled_set(20)
   end
 
   defp filled_set(range) do
