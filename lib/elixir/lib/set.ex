@@ -1,5 +1,5 @@
 defmodule Set do
-  # The ordered record contains a single bucket
+  # The ordered record contains a single bucket.
   @ordered_threshold 8
 
   defrecordp :ordered,
@@ -48,7 +48,7 @@ defmodule Set do
   end
 
   @doc """
-  Returns a set that is the two input sets combined.
+  Returns a set combining the two input sets.
 
   ## Examples
 
@@ -69,7 +69,7 @@ defmodule Set do
   end
 
   @doc """
-  Returns a set that is the members in common between the two input sets.
+  Returns a set containing only members in common between the two input sets.
 
   ## Examples
 

@@ -4,7 +4,7 @@ defmodule SetTest do
   use ExUnit.Case, async: true
 
   test "union with ordered sets" do
-    assert Set.union(Set.new([1,2,3]), Set.new([3,4,5])) == Set.new([1,2,3,4,5])
+    assert Set.union(Set.new([1, 2, 3]), Set.new([3, 4, 5])) == Set.new([1, 2, 3, 4, 5])
     assert Set.union(Set.new, Set.new) == Set.new
   end
 
@@ -15,7 +15,7 @@ defmodule SetTest do
   end
 
   test "intersection with ordered sets" do
-    assert Set.intersection(Set.new([1,2,3,4,6]), Set.new([3,4,5])) == Set.new([3,4])
+    assert Set.intersection(Set.new([1, 2, 3, 4, 6]), Set.new([3, 4, 5])) == Set.new([3, 4])
     assert Set.intersection(Set.new, filled_set(8)) == Set.new
     assert Set.intersection(filled_set(8), Set.new) == Set.new
     assert Set.intersection(Set.new, Set.new) == Set.new
@@ -28,7 +28,7 @@ defmodule SetTest do
   end
 
   test "difference with ordered sets" do
-    assert Set.difference(Set.new([1,2,3,5]), Set.new([3,4,5])) == Set.new([1,2])
+    assert Set.difference(Set.new([1, 2, 3, 5]), Set.new([3, 4, 5])) == Set.new([1, 2])
     assert Set.difference(Set.new, Set.new([1])) == Set.new([])
     assert Set.difference(Set.new, Set.new) == Set.new
     assert Set.difference(Set.new([1]), Set.new) == Set.new([1])
@@ -90,17 +90,18 @@ defmodule SetTest do
   end
 
   test "a set removes duplicates" do
-    assert Set.new([1,1,2,3,3,3]) == Set.new([1,2,3])
+    assert Set.new([1, 1, 2, 3, 3, 3]) == Set.new([1, 2, 3])
   end
 
   test "a set comparison ignores the order" do
-    assert Set.new([3,2,1]) == Set.new([1,2,3])
+    assert Set.new([3, 2, 1]) == Set.new([1, 2, 3])
 
-    assert Set.new([:c,:a,:b]) == Set.new([:a,:b,:c])
+    assert Set.new([:c, :a, :b]) == Set.new([:a, :b, :c])
 
-    assert Set.new(["c","a","b"]) == Set.new(["b", "c", "a"])
+    assert Set.new(["c", "a", "b"]) == Set.new(["b", "c", "a"])
 
-    assert Set.new([1,2,3,4,4,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]) == filled_set(20)
+    assert Set.new([1, 2, 3, 4, 4, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+                    13, 14, 15, 16, 17, 18, 19, 20]) == filled_set(20)
   end
 
   defp filled_set(range) do
