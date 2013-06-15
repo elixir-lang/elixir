@@ -1564,6 +1564,34 @@ defmodule Kernel do
   end
 
   @doc """
+  Matches the term on the left against the regular expression or string on the
+  right. Returns true if `left` matches `right` (if it's a regular expression)
+  or contains `right` (if it's a string).
+
+  ## Examples
+
+      iex> "abcd" =~ %r/c(d)/
+      true
+
+      iex> "abcd" =~ %r/e/
+      false
+
+      iex> "abcd" =~ "bc"
+      true
+
+      iex> "abcd" =~ "ad"
+      false
+
+  """
+  def left =~ right when is_binary(left) and is_binary(right) do
+    String.contains?(left, right)
+  end
+
+  def left =~ right when is_binary(left) and is_tuple(right) and :erlang.element(1, right) == Regex do
+    Regex.match?(right, left)
+  end
+
+  @doc """
   Defines the current module as a protocol and specifies the API
   that should be implemented.
 
@@ -2811,55 +2839,6 @@ defmodule Kernel do
   the variable for us.
   """
   defmacro left in right
-
-  @doc """
-  Matches the term on the left against the regular expression or string on the
-  right. Returns true if `left` matches `right` (if it's a regular expression)
-  or contains `right` (if it's a string).
-
-  ## Examples
-
-      iex> "abcd" =~ %r/c(d)/
-      true
-
-      iex> "abcd" =~ %r/e/
-      false
-
-      iex> "abcd" =~ "bc"
-      true
-
-      iex> "abcd" =~ "ad"
-      false
-
-  """
-  # fast path for literal binaries
-  defmacro left =~ right when is_binary(right) do
-    quote do
-      String.contains?(unquote(left), unquote(right))
-    end
-  end
-
-  # fast path for literal binaries
-  defmacro left =~ ({:<<>>, _, [_bin]} = right) do
-    quote do
-      String.contains?(unquote(left), unquote(right))
-    end
-  end
-
-  # slow path for everything else
-  defmacro left =~ right do
-    quote do
-      str = unquote(left)
-      case unquote(right) do
-        bin when is_binary(bin) ->
-          String.contains?(str, bin)
-        re when is_regex(re) ->
-          Regex.match?(re, str)
-        other ->
-          raise ArgumentError, message: "bad argument on the right side of =~: #{inspect other}"
-      end
-    end
-  end
 
   @doc """
   `|>` is called the pipeline operator as it is useful
