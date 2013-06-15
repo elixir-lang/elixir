@@ -76,7 +76,7 @@ defmodule Code do
   * `:macros` - a list of tuples where the first element is a module
     and the second a list of imported macro names and arity
 
-  Notice that setting any ov the values above overrides Elixir default
+  Notice that setting any of the values above overrides Elixir default
   values. For example, setting `:requires` to `[]`, will no longer
   automatically required the `Kernel` module, in the same way setting
   `:macros` will no longer auto-import `Kernel` macros as `if`, `case`,
