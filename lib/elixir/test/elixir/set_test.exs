@@ -52,6 +52,14 @@ defmodule SetTest do
     refute Set.member?(filled_set(120), 200)
   end
 
+  test :subset? do
+    assert Set.subset?(Set.new, Set.new)
+    assert Set.subset?(filled_set(6), filled_set(10))
+    assert Set.subset?(filled_set(6), filled_set(120))
+
+    refute Set.subset?(filled_set(120), filled_set(6))
+  end
+
   test :equal? do
     assert Set.equal?(Set.new, Set.new)
     assert Set.equal?(filled_set(20), Set.delete(filled_set(21), 21))

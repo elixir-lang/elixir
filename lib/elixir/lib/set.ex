@@ -158,6 +158,13 @@ defmodule Set do
     end
   end
 
+  @doc """
+  Checks if set1's members are all contained in set2.
+  """
+  def subset?(set1, set2) do
+    set_equal?(set1, set2)
+  end
+
   def reduce(ordered(bucket: bucket), acc, fun) do
     :lists.foldl(fun, acc, bucket)
   end
