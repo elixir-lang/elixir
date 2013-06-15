@@ -33,8 +33,6 @@ alias ExUnit.CaptureIOTest.GetUntil
 defmodule ExUnit.CaptureIOTest do
   use ExUnit.Case, async: true
 
-  doctest ExUnit.CaptureIO, import: true
-
   import ExUnit.CaptureIO
 
   test :capture_io_with_nothing do

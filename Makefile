@@ -135,7 +135,7 @@ test_elixir: test_kernel test_ex_unit test_doc_test test_mix test_eex test_iex
 
 test_doc_test: compile
 	@ echo "==> doctest (exunit)"
-	@ cd lib/elixir && ../../bin/elixir -r "test/doc_test.exs";
+	@ bin/elixir -r "lib/*/test/doc_test.exs";
 
 test_kernel: compile
 	@ echo "==> kernel (exunit)"
