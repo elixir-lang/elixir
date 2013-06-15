@@ -67,10 +67,10 @@ defmodule ProtocolTest do
     assert_undef(ProtocolTest.WithAll, Number, 1)
     assert_undef(ProtocolTest.WithAll, Number, 1.1)
     assert_undef(ProtocolTest.WithAll, List, [])
-    assert_undef(ProtocolTest.WithAll, List, [1,2,3])
+    assert_undef(ProtocolTest.WithAll, List, [1, 2, 3])
     assert_undef(ProtocolTest.WithAll, Tuple, {})
-    assert_undef(ProtocolTest.WithAll, Tuple, {1,2,3})
-    assert_undef(ProtocolTest.WithAll, Tuple, {Bar,2,3})
+    assert_undef(ProtocolTest.WithAll, Tuple, {1, 2, 3})
+    assert_undef(ProtocolTest.WithAll, Tuple, {Bar, 2, 3})
     assert_undef(ProtocolTest.WithAll, BitString, "foo")
     assert_undef(ProtocolTest.WithAll, BitString, <<1>>)
     assert_undef(ProtocolTest.WithAll, PID, self)
@@ -81,7 +81,7 @@ defmodule ProtocolTest do
   test :protocol_with_except do
     assert_undef(ProtocolTest.WithExcept, Any, :foo)
     assert_undef(ProtocolTest.WithExcept, Any, 1)
-    assert_undef(ProtocolTest.WithExcept, Any, [1,2,3])
+    assert_undef(ProtocolTest.WithExcept, Any, [1, 2, 3])
     assert_undef(ProtocolTest.WithExcept, Function, fn(x) -> x end)
     assert_undef(ProtocolTest.WithExcept, Tuple, {})
   end
@@ -116,10 +116,10 @@ defmodule ProtocolTest do
     assert_protocol_for(ProtocolTest.WithAll, Number, 1)
     assert_protocol_for(ProtocolTest.WithAll, Number, 1.1)
     assert_protocol_for(ProtocolTest.WithAll, List, [])
-    assert_protocol_for(ProtocolTest.WithAll, List, [1,2,3])
+    assert_protocol_for(ProtocolTest.WithAll, List, [1, 2, 3])
     assert_protocol_for(ProtocolTest.WithAll, Tuple, {})
-    assert_protocol_for(ProtocolTest.WithAll, Tuple, {1,2,3})
-    assert_protocol_for(ProtocolTest.WithAll, Tuple, {Bar,2,3})
+    assert_protocol_for(ProtocolTest.WithAll, Tuple, {1, 2, 3})
+    assert_protocol_for(ProtocolTest.WithAll, Tuple, {Bar, 2, 3})
     assert_protocol_for(ProtocolTest.WithAll, BitString, "foo")
     assert_protocol_for(ProtocolTest.WithAll, BitString, <<1>>)
     assert_protocol_for(ProtocolTest.WithAll, PID, Kernel.self)
@@ -129,7 +129,7 @@ defmodule ProtocolTest do
 
   test :protocol_docs do
     docs = ProtocolTest.WithAll.__info__(:docs)
-    assert { { :blank, 1 }, _, :def, [{ :thing,_,nil }], "Blank" } = List.keyfind(docs, { :blank, 1 }, 0)
+    assert { { :blank, 1 }, _, :def, [{ :thing, _, nil }], "Blank" } = List.keyfind(docs, { :blank, 1 }, 0)
   end
 
   test :protocol_with_two_items do
@@ -151,10 +151,10 @@ defmodule ProtocolTest do
 
   test :protocol_callback do
     assert get_callbacks(ProtocolTest.WithOnly, :blank, 1) ==
-      [{:type,17,:fun,[{:type,17,:product,[{:type,17,:t,[]}]},{:type,17,:term,[]}]}]
+      [{:type, 17, :fun, [{:type, 17, :product, [{:type, 17, :t, []}]}, {:type, 17, :term, []}]}]
 
     assert get_callbacks(ProtocolTest.WithExcept, :blank, 1) ==
-      [{:type,11,:fun,[{:type,11,:product,[{:type,11,:t,[]}]},{:type,11,:boolean,[]}]}]
+      [{:type, 11, :fun, [{:type, 11, :product, [{:type, 11, :t, []}]}, {:type, 11, :boolean, []}]}]
   end
 
   defp get_callbacks(module, name, arity) do

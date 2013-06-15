@@ -726,7 +726,7 @@ defmodule Record do
       @spec to_keywords(t) :: options
       @spec update(options, t) :: t
       @spec __record__(:name) :: atom
-      @spec __record__(:fields) :: [{atom,any}]
+      @spec __record__(:fields) :: [{atom, any}]
       @spec __index__(atom) :: non_neg_integer | nil
     end
   end

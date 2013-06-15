@@ -4,7 +4,7 @@ defmodule URITest do
   use ExUnit.Case, async: true
 
   test :encode_with_binary do
-    raw = <<13,10,38,60,62,34,32,227,130,134,227,130,147,227,130,134,227,130,147>>
+    raw = <<13, 10, 38, 60, 62, 34, 32, 227, 130, 134, 227, 130, 147, 227, 130, 134, 227, 130, 147>>
     expected = "%0D%0A%26%3C%3E%22+%E3%82%86%E3%82%93%E3%82%86%E3%82%93"
     assert URI.encode(raw) == expected
   end

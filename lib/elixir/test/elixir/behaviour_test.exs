@@ -16,8 +16,8 @@ defmodule BehaviourTest do
   test :docs do
     docs = Enum.sort(Sample.__behaviour__(:docs))
     assert docs == [
-      {{:bar,2},13,"Bar"},
-      {{:foo,2},10,"Foo"}
+      {{:bar, 2}, 13, "Bar"},
+      {{:foo, 2}, 10, "Foo"}
     ]
   end
 

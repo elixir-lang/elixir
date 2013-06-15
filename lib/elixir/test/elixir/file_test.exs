@@ -370,7 +370,7 @@ defmodule FileTest do
      File.Stat[mode: dest_mode] = File.stat! dest
      assert src_mode == dest_mode
      # on overwrite
-     File.cp! src, dest, fn(_,_) -> true end
+     File.cp! src, dest, fn(_, _) -> true end
      File.Stat[mode: src_mode] = File.stat! src
      File.Stat[mode: dest_mode] = File.stat! dest
      assert src_mode == dest_mode
@@ -525,13 +525,13 @@ defmodule FileTest do
 
     test :open_utf8_and_charlist do
       { :ok, file } = File.open(fixture_path("utf8.txt"), [:charlist, :utf8])
-      assert IO.gets(file, "") == [1056,1091,1089,1089,1082,1080,1081,10]
+      assert IO.gets(file, "") == [1056, 1091, 1089, 1089, 1082, 1080, 1081, 10]
       assert File.close(file) == :ok
     end
 
     test :open_respects_encoding do
       { :ok, file } = File.open(fixture_path("utf8.txt"), [{:encoding, :latin1}])
-      assert IO.gets(file, "") == <<195,144,194,160,195,145,194,131,195,145,194,129,195,145,194,129,195,144,194,186,195,144,194,184,195,144,194,185,10>>
+      assert IO.gets(file, "") == <<195, 144, 194, 160, 195, 145, 194, 131, 195, 145, 194, 129, 195, 145, 194, 129, 195, 144, 194, 186, 195, 144, 194, 184, 195, 144, 194, 185, 10>>
       assert File.close(file) == :ok
     end
 
@@ -1133,7 +1133,7 @@ defmodule FileTest do
     last_year :calendar.local_time
   end
 
-  defp last_year({ { year, month, day },time }) do
+  defp last_year({ { year, month, day }, time }) do
     { { year - 1, month, day }, time }
   end
 end

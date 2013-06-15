@@ -89,7 +89,7 @@ defmodule Regex.BinaryTest do
   end
 
   test :run_with_indexes do
-    assert Regex.run(%r"c(d)", "abcd", return: :index) == [{2,2},{3,1}]
+    assert Regex.run(%r"c(d)", "abcd", return: :index) == [{2, 2}, {3, 1}]
     assert Regex.run(%r"e", "abcd", return: :index) == nil
   end
 
@@ -179,7 +179,7 @@ defmodule Regex.ListTest do
   end
 
   test :indexes do
-    assert Regex.run(%r'c(d)', 'abcd', return: :index) == [{2,2},{3,1}]
+    assert Regex.run(%r'c(d)', 'abcd', return: :index) == [{2, 2}, {3, 1}]
     assert Regex.run(%r'e', 'abcd', return: :index) == nil
   end
 

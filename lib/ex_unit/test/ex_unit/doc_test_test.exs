@@ -82,10 +82,10 @@ end
 
 defmodule ExUnit.DocTestTest.NoImport do
   @doc """
-  iex> ExUnit.DocTestTest.NoImport.min(1,2)
+  iex> ExUnit.DocTestTest.NoImport.min(1, 2)
   2
   """
-  def min(a,b), do: max(a,b)
+  def min(a, b), do: max(a, b)
 end
 
 defmodule ExUnit.DocTestTest.Invalid do

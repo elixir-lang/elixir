@@ -236,13 +236,13 @@ defmodule Protocol do
 
   # Returns a quoted expression that allows to check
   # if the first item in the tuple is a built-in or not.
-  defp is_builtin?([{h,_,_}]) do
+  defp is_builtin?([{h, _, _}]) do
     quote do
       first == unquote(h)
     end
   end
 
-  defp is_builtin?([{h,_,_}|t]) do
+  defp is_builtin?([{h, _, _}|t]) do
     quote do
       first == unquote(h) or unquote(is_builtin?(t))
     end

@@ -31,12 +31,12 @@ defmodule KernelTest do
     refute x(4)
     refute x([])
 
-    assert 2 in [1,2,3]
+    assert 2 in [1, 2, 3]
     assert 2 in 1..3
-    refute 4 in [1,2,3]
+    refute 4 in [1, 2, 3]
     refute 4 in 1..3
 
-    list = [1,2,3]
+    list = [1, 2, 3]
     assert 2 in list
     refute 4 in list
   end
@@ -70,7 +70,7 @@ defmodule KernelTest do
   end
 
   test :apply do
-    assert apply(Enum, :reverse, [[1|[2,3]]]) == [3,2,1]
+    assert apply(Enum, :reverse, [[1|[2, 3]]]) == [3, 2, 1]
     assert apply(fn x -> x * 2 end, [2]) == 4
   end
 
@@ -82,7 +82,7 @@ defmodule KernelTest do
     assert __ENV__.function == { :test_function_from___ENV__, 1 }
   end
 
-  defp x(value) when value in [1,2,3], do: true
+  defp x(value) when value in [1, 2, 3], do: true
   defp x(_),                           do: false
 
   defmodule Conversions do
@@ -172,7 +172,7 @@ defmodule KernelTest do
     end
 
     test :list do
-      assert kernel.++([1], [2]) == [1,2]
+      assert kernel.++([1], [2]) == [1, 2]
       assert kernel.--([1], [1]) == []
     end
 
@@ -287,19 +287,19 @@ defmodule KernelTest do
     use ExUnit.Case, async: true
 
     test :simple do
-      assert [1,[2],3] |> List.flatten == [1,2,3]
+      assert [1, [2], 3] |> List.flatten == [1, 2, 3]
     end
 
     test :nested do
-      assert [1,[2],3] |> List.flatten |> Enum.map(&1 * 2) == [2,4,6]
+      assert [1, [2], 3] |> List.flatten |> Enum.map(&1 * 2) == [2, 4, 6]
     end
 
     test :local do
-      assert [1,[2],3] |> List.flatten |> local == [2,4,6]
+      assert [1, [2], 3] |> List.flatten |> local == [2, 4, 6]
     end
 
     test :map do
-      assert Enum.map([1,2,3], &1 |> twice |> twice) == [4,8,12]
+      assert Enum.map([1, 2, 3], &1 |> twice |> twice) == [4, 8, 12]
     end
 
     test :atom do
@@ -403,14 +403,14 @@ defmodule KernelTest do
     use ExUnit.Case, async: true
 
     test :less do
-      destructure [x,y,z], [1,2,3,4,5]
+      destructure [x, y, z], [1, 2, 3, 4, 5]
       assert x == 1
       assert y == 2
       assert z == 3
     end
 
     test :more do
-      destructure [a,b,c,d,e], [1,2,3]
+      destructure [a, b, c, d, e], [1, 2, 3]
       assert a == 1
       assert b == 2
       assert c == 3
@@ -419,26 +419,26 @@ defmodule KernelTest do
     end
 
     test :equal do
-      destructure [a,b,c], [1,2,3]
+      destructure [a, b, c], [1, 2, 3]
       assert a == 1
       assert b == 2
       assert c == 3
     end
 
     test :none do
-      destructure [a,b,c], []
+      destructure [a, b, c], []
       assert a == nil
       assert b == nil
       assert c == nil
     end
 
     test :match do
-      destructure [1,b,_], [1,2,3]
+      destructure [1, b, _], [1, 2, 3]
       assert b == 2
     end
 
     test :nil do
-      destructure [a,b,c], a_nil
+      destructure [a, b, c], a_nil
       assert a == nil
       assert b == nil
       assert c == nil
@@ -447,11 +447,11 @@ defmodule KernelTest do
     test :invalid_match do
       a = 3
       assert_raise CaseClauseError, fn ->
-        destructure [^a,_b,_c], a_list
+        destructure [^a, _b, _c], a_list
       end
     end
 
-    defp a_list, do: [1,2,3]
+    defp a_list, do: [1, 2, 3]
     defp a_nil, do: nil
   end
 end

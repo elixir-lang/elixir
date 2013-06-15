@@ -32,9 +32,9 @@ defmodule Supervisor.BehaviourTest do
   end
 
   test :worker do
-    assert worker(Foo, [1,2,3]) == {
+    assert worker(Foo, [1, 2, 3]) == {
       Foo,
-      { Foo, :start_link, [1,2,3] },
+      { Foo, :start_link, [1, 2, 3] },
       :permanent,
       5000,
       :worker,
@@ -44,9 +44,9 @@ defmodule Supervisor.BehaviourTest do
     opts = [id: :sample, function: :start, modules: :dynamic,
       restart: :temporary, shutdown: :brutal_kill]
 
-    assert worker(Foo, [1,2,3], opts) == {
+    assert worker(Foo, [1, 2, 3], opts) == {
       :sample,
-      { Foo, :start, [1,2,3] },
+      { Foo, :start, [1, 2, 3] },
       :temporary,
       :brutal_kill,
       :worker,
@@ -55,9 +55,9 @@ defmodule Supervisor.BehaviourTest do
   end
 
   test :supervisor do
-    assert supervisor(Foo, [1,2,3]) == {
+    assert supervisor(Foo, [1, 2, 3]) == {
       Foo,
-      { Foo, :start_link, [1,2,3] },
+      { Foo, :start_link, [1, 2, 3] },
       :permanent,
       5000,
       :supervisor,
@@ -67,9 +67,9 @@ defmodule Supervisor.BehaviourTest do
     opts = [id: :sample, function: :start, modules: :dynamic,
       restart: :temporary, shutdown: :brutal_kill]
 
-    assert supervisor(Foo, [1,2,3], opts) == {
+    assert supervisor(Foo, [1, 2, 3], opts) == {
       :sample,
-      { Foo, :start, [1,2,3] },
+      { Foo, :start, [1, 2, 3] },
       :temporary,
       :brutal_kill,
       :supervisor,

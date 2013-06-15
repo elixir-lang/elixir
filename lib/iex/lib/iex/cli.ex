@@ -64,11 +64,11 @@ defmodule IEx.CLI do
     :user_drv.start([:"tty_sl -c -e", args])
   end
 
-  defp find_dot_iex(['--dot-iex',h|_]), do: :unicode.characters_to_binary(h)
+  defp find_dot_iex(['--dot-iex', h|_]), do: :unicode.characters_to_binary(h)
   defp find_dot_iex([_|t]), do: find_dot_iex(t)
   defp find_dot_iex([]), do: nil
 
-  defp get_remsh(['--remsh',h|_]), do: list_to_atom(h)
+  defp get_remsh(['--remsh', h|_]), do: list_to_atom(h)
   defp get_remsh([_|t]), do: get_remsh(t)
   defp get_remsh([]), do: nil
 end

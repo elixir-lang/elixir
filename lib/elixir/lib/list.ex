@@ -15,7 +15,7 @@ defmodule List do
 
   ## Examples
 
-      iex> List.concat([[1,[2],3], [4], [5,6]])
+      iex> List.concat([[1, [2], 3], [4], [5, 6]])
       [1,[2],3,4,5,6]
 
   """
@@ -32,7 +32,7 @@ defmodule List do
 
   ## Examples
 
-      iex> List.concat([1,2,3], [4,5,6])
+      iex> List.concat([1, 2, 3], [4, 5, 6])
       [1,2,3,4,5,6]
 
   """
@@ -47,7 +47,7 @@ defmodule List do
 
   ## Examples
 
-      iex> List.delete([1,2,3], 1)
+      iex> List.delete([1, 2, 3], 1)
       [2,3]
 
   """
@@ -63,7 +63,7 @@ defmodule List do
       iex> List.duplicate("hello", 3)
       ["hello","hello","hello"]
 
-      iex> List.duplicate([1,2], 2)
+      iex> List.duplicate([1, 2], 2)
       [[1,2],[1,2]]
   """
   def duplicate(elem, n) do
@@ -77,10 +77,10 @@ defmodule List do
 
   ## Examples
 
-      iex> List.flatten([1,[[2],3]])
+      iex> List.flatten([1, [[2], 3]])
       [1,2,3]
 
-      iex> List.flatten([1,[[2],3]], [4,5])
+      iex> List.flatten([1, [[2], 3]], [4, 5])
       [1,2,3,4,5]
 
   """
@@ -98,10 +98,10 @@ defmodule List do
 
   ## Examples
 
-      iex> List.foldl([5,5], 10, fn (x, acc) -> x + acc end)
+      iex> List.foldl([5, 5], 10, fn (x, acc) -> x + acc end)
       20
 
-      iex> List.foldl([1,2,3,4], 0, fn (x, acc) -> x - acc end)
+      iex> List.foldl([1, 2, 3, 4], 0, fn (x, acc) -> x - acc end)
       2
 
   """
@@ -115,7 +115,7 @@ defmodule List do
 
   ## Examples
 
-      iex> List.foldr([1,2,3,4], 0, fn (x, acc) -> x - acc end)
+      iex> List.foldr([1, 2, 3, 4], 0, fn (x, acc) -> x - acc end)
       -2
 
   """
@@ -241,7 +241,7 @@ defmodule List do
 
   ## Examples
 
-      iex> List.wrap([1,2,3])
+      iex> List.wrap([1, 2, 3])
       [1,2,3]
 
   """

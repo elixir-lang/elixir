@@ -49,11 +49,11 @@ defmodule Kernel.PartialApplicationTest do
 
   test :partial_application_for_module_calls do
     fun = Enum.reverse(&1)
-    assert fun.([1,2,3]) == [3,2,1]
+    assert fun.([1, 2, 3]) == [3, 2, 1]
   end
 
   test :partial_application_for_operator do
-    assert Enum.map([1,2,3], &1 * 2) == [2,4,6]
+    assert Enum.map([1, 2, 3], &1 * 2) == [2, 4, 6]
   end
 
   defp minus(x, y) do

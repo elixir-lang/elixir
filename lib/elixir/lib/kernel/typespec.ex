@@ -225,7 +225,7 @@ defmodule Kernel.Typespec do
   @doc """
   Converts a spec clause back to Elixir AST.
   """
-  def spec_to_ast(name, { :type, line, :fun, [{:type, _, :product, args},result] }) do
+  def spec_to_ast(name, { :type, line, :fun, [{:type, _, :product, args}, result] }) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
     { :::, [line: line], [{ name, [line: line], args }, typespec_to_ast(result)] }
   end
@@ -451,7 +451,7 @@ defmodule Kernel.Typespec do
       fn(arg, expr) -> { :|, [line: line], [expr, arg] } end
   end
 
-  defp typespec_to_ast({ :type, line, :fun, [{:type, _, :product, args},result] }) do
+  defp typespec_to_ast({ :type, line, :fun, [{:type, _, :product, args}, result] }) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
     { :"->", [line: line], [{args, typespec_to_ast(result)}] }
   end
@@ -461,7 +461,7 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec_to_ast({ :type, line, :fun, [] }) do
-    typespec_to_ast({ :type, line, :fun, [{:type, line, :any}, {:type,line,:any, []} ] })
+    typespec_to_ast({ :type, line, :fun, [{:type, line, :any}, {:type, line, :any, []} ] })
   end
 
   defp typespec_to_ast({ :type, line, :range, [left, right] }) do
@@ -533,14 +533,14 @@ defmodule Kernel.Typespec do
   end
 
   # Handle unions
-  defp typespec({ :|, meta, [_,_] } = exprs, vars, caller) do
+  defp typespec({ :|, meta, [_, _] } = exprs, vars, caller) do
     exprs = Enum.reverse(collect_union(exprs))
     union = lc e inlist exprs, do: typespec(e, vars, caller)
     { :type, line(meta), :union, union }
   end
 
   # Handle binaries
-  defp typespec({:<<>>, meta, []}, _,_) do
+  defp typespec({:<<>>, meta, []}, _, _) do
     {:type, line(meta), :binary, [{:integer, line(meta), 0}, {:integer, line(meta), 0}]}
   end
 
@@ -702,7 +702,7 @@ defmodule Kernel.Typespec do
 
   defp fn_args(meta, args, return, vars, caller) do
     case [fn_args(meta, args, vars, caller), typespec(return, vars, caller)] do
-      [{:type,_,:any},{:type,_,:any,[]}] -> []
+      [{:type, _, :any}, {:type, _, :any, []}] -> []
       x -> x
     end
   end
@@ -724,11 +724,11 @@ defmodule Kernel.Typespec do
          next,
          { :type, _, :tuple, [{ :atom, _, atom }, type] }
        ] }, acc) do
-    unpack_typespec_kw(next, [{atom,typespec_to_ast(type)}|acc])
+    unpack_typespec_kw(next, [{atom, typespec_to_ast(type)}|acc])
   end
 
   defp unpack_typespec_kw({ :type, _, :tuple, [{ :atom, _, atom }, type] }, acc) do
-    { :ok, [{atom,typespec_to_ast(type)}|acc] }
+    { :ok, [{atom, typespec_to_ast(type)}|acc] }
   end
 
   defp unpack_typespec_kw(_, _acc) do

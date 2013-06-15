@@ -39,7 +39,7 @@ defmodule ExUnit.DocTest do
 
   Expressions on multiple lines are also supported:
 
-      iex> Enum.map [1,2,3], fn(x) ->
+      iex> Enum.map [1, 2, 3], fn(x) ->
       ...>   x * 2
       ...> end
       [2,4,6]

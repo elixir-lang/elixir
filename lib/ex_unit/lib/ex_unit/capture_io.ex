@@ -195,7 +195,7 @@ defmodule ExUnit.CaptureIO do
   end
 
   defp io_request({ :put_chars, m, f, as }, buf) do
-    chars = apply(m ,f, as)
+    chars = apply(m, f, as)
     { :ok, [chars|buf] }
   end
 

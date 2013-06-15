@@ -72,7 +72,7 @@ defmodule HashDict do
 
   ## Examples
 
-      HashDict.new [{:b,1},{:a,2}]
+      HashDict.new [{:b, 1}, {:a, 2}]
       #=> #HashDict<[a: 2, b: 1]>
 
   """
@@ -399,11 +399,11 @@ defmodule HashDict do
   ## Bucket helpers
 
   # Get value from the bucket
-  defp bucket_get([{k,_}|_bucket], key) when k > key do
+  defp bucket_get([{k, _}|_bucket], key) when k > key do
     false
   end
 
-  defp bucket_get([{key,_}=e|_bucket], key) do
+  defp bucket_get([{key, _}=e|_bucket], key) do
     e
   end
 
@@ -416,19 +416,19 @@ defmodule HashDict do
   end
 
   # Puts a value in the bucket
-  defp bucket_put([{k,_}|_]=bucket, key, { :put, value }) when k > key do
+  defp bucket_put([{k, _}|_]=bucket, key, { :put, value }) when k > key do
     { [{key, value}|bucket], 1 }
   end
 
-  defp bucket_put([{k,_}|_]=bucket, key, { :update, initial, _fun }) when k > key do
+  defp bucket_put([{k, _}|_]=bucket, key, { :update, initial, _fun }) when k > key do
     { [{key, initial}|bucket], 1 }
   end
 
-  defp bucket_put([{key,_}|bucket], key, { :put, value }) do
-    { [{key,value}|bucket], 0 }
+  defp bucket_put([{key, _}|bucket], key, { :put, value }) do
+    { [{key, value}|bucket], 0 }
   end
 
-  defp bucket_put([{key,value}|bucket], key, { :update, _initial, fun }) do
+  defp bucket_put([{key, value}|bucket], key, { :update, _initial, fun }) do
     { [{key, fun.(value)}|bucket], 0 }
   end
 
@@ -438,26 +438,26 @@ defmodule HashDict do
   end
 
   defp bucket_put([], key, { :put, value }) do
-    { [{key,value}], 1 }
+    { [{key, value}], 1 }
   end
 
   defp bucket_put([], key, { :update, initial, _fun }) do
-    { [{key,initial}], 1 }
+    { [{key, initial}], 1 }
   end
 
   # Puts a value in the bucket without returning
   # the operation value
-  defp bucket_put!([{k,_}|_]=bucket, key, value) when k > key, do: [{key,value}|bucket]
-  defp bucket_put!([{key,_}|bucket], key, value), do: [{key,value}|bucket]
-  defp bucket_put!([{_,_}=e|bucket], key, value), do: [e|bucket_put!(bucket, key, value)]
-  defp bucket_put!([], key, value), do: [{key,value}]
+  defp bucket_put!([{k, _}|_]=bucket, key, value) when k > key, do: [{key, value}|bucket]
+  defp bucket_put!([{key, _}|bucket], key, value), do: [{key, value}|bucket]
+  defp bucket_put!([{_, _}=e|bucket], key, value), do: [e|bucket_put!(bucket, key, value)]
+  defp bucket_put!([], key, value), do: [{key, value}]
 
   # Deletes a key from the bucket
-  defp bucket_delete([{k,_}|_]=bucket, key) when k > key do
+  defp bucket_delete([{k, _}|_]=bucket, key) when k > key do
     { bucket, nil, 0 }
   end
 
-  defp bucket_delete([{key,value}|bucket], key) do
+  defp bucket_delete([{key, value}|bucket], key) do
     { bucket, value, -1 }
   end
 
@@ -574,7 +574,7 @@ defmodule HashDict do
        |> each_contract(b8)
   end
 
-  defp each_contract([{k,_v}=e|acc], [{key,_value}|_]=bucket) when k < key, do: [e|each_contract(acc, bucket)]
+  defp each_contract([{k, _v}=e|acc], [{key, _value}|_]=bucket) when k < key, do: [e|each_contract(acc, bucket)]
   defp each_contract(acc, [e|bucket]), do: [e|each_contract(acc, bucket)]
   defp each_contract([], bucket), do: bucket
   defp each_contract(acc, []), do: acc

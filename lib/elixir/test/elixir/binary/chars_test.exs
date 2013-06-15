@@ -60,7 +60,7 @@ defmodule Binary.Chars.ListTest do
   use ExUnit.Case, async: true
 
   test :basic do
-    assert to_binary([ 1, "b", 3 ]) == <<1,98,3>>
+    assert to_binary([ 1, "b", 3 ]) == <<1, 98, 3>>
   end
 
   test :printable do
@@ -76,8 +76,8 @@ defmodule Binary.Chars.ErrorsTest do
   use ExUnit.Case, async: true
 
   test :list do
-    assert to_binary([0,1, 2, 3,255]) == <<0,1,2,3,255>>
-    assert to_binary([0,[1, "hello"], 2, [["bye"]]]) == <<0,1,104,101,108,108,111,2,98,121,101>>
+    assert to_binary([0, 1, 2, 3, 255]) == <<0, 1, 2, 3, 255>>
+    assert to_binary([0, [1, "hello"], 2, [["bye"]]]) == <<0, 1, 104, 101, 108, 108, 111, 2, 98, 121, 101>>
 
     assert_raise Protocol.UndefinedError, "protocol Binary.Chars.List not implemented for [256]. Only iolists are supported", fn ->
       to_binary([256])
@@ -92,7 +92,7 @@ defmodule Binary.Chars.ErrorsTest do
 
   test :tuple do
     assert_raise Protocol.UndefinedError, "protocol Binary.Chars not implemented for {1,2,3}", fn ->
-      to_binary({1,2,3})
+      to_binary({1, 2, 3})
     end
   end
 

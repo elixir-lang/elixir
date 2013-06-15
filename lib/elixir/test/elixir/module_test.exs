@@ -102,7 +102,7 @@ defmodule ModuleTest do
     assert env.module == ModuleTest.OnDefinition
     assert kind == :def
     assert name == :hello
-    assert [{ :foo, _, _ }, { :bar, _ ,_ }] = args
+    assert [{ :foo, _, _ }, { :bar, _ , _ }] = args
     assert [] = guards
     assert [do: { :+, _, [{ :foo, _, _ }, { :bar, _, _ }] }] = expr
   end
@@ -132,24 +132,24 @@ defmodule ModuleTest do
   ## Attributes
 
   test :reserved_attributes do
-    assert List.keyfind(ExUnit.Server.__info__(:attributes), :behavior, 0) == {:behavior,[:gen_server]}
+    assert List.keyfind(ExUnit.Server.__info__(:attributes), :behavior, 0) == {:behavior, [:gen_server]}
   end
 
   test :persisted_attributes do
-    assert [{:register_example,[:it_works]},{:register_example,[:still_works]}] ==
+    assert [{:register_example, [:it_works]}, {:register_example, [:still_works]}] ==
       Enum.filter __MODULE__.__info__(:attributes), match?({ :register_example, _ }, &1)
   end
 
   test :duplicated_attributes do
-    assert [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}] = ModuleTest.DuplicateAttribute.__info__(:attributes)
+    assert [{:vsn, _}, {:foo, [1]}, {:foo, [2]}, {:foo, [3]}] = ModuleTest.DuplicateAttribute.__info__(:attributes)
   end
 
   @some_attribute  [1]
-  @other_attribute [3,2,1]
+  @other_attribute [3, 2, 1]
 
   test :inside_function_attributes do
     assert [1] = @some_attribute
-    assert [3,2,1] = @other_attribute
+    assert [3, 2, 1] = @other_attribute
   end
 
   ## Naming
@@ -228,7 +228,7 @@ defmodule ModuleTest do
 
   test :definitions_in do
     in_module do
-      def foo(1,2,3), do: 4
+      def foo(1, 2, 3), do: 4
 
       assert Module.definitions_in(__MODULE__)        == [foo: 3]
       assert Module.definitions_in(__MODULE__, :def)  == [foo: 3]
