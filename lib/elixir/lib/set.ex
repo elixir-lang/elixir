@@ -82,12 +82,12 @@ defmodule Set do
   end
 
   @doc """
-  Returns a set that is the difference between the two input sets.
+  Returns a set that is the first set without members of the second set.
 
   ## Examples
 
       Set.difference(Set.new([1,2]), Set.new([2,3,4]))
-      #=> #Set<[1,3,4]>
+      #=> #Set<[1]>
 
   """
   def difference(set1, set2) when is_record(set1, Set) and is_record(set2, Set) do
@@ -177,13 +177,9 @@ defmodule Set do
     new(bucket_difference(bucket1, bucket2))
   end
 
-  defp set_difference(trie(size: size1) = set1, trie(size: size2) = set2) when size1 > size2 do
-    set_difference(set2, set1)
-  end
-
   defp set_difference(trie(size: size1) = set1, set2) do
-    set_fold set2, ordered(), fn m, acc ->
-      if member?(set1, m) do
+    set_fold set1, ordered(), fn m, acc ->
+      if member?(set2, m) do
         acc
       else
         put acc, m
@@ -285,16 +281,16 @@ defmodule Set do
     bucket_difference(bucket1, bucket2)
   end
 
-  defp bucket_difference([m1 | _] = bucket1, [m2 | bucket2]) when m1 > m2 do
-    [m2 | bucket_difference(bucket1, bucket2)]
+  defp bucket_difference([m1 | bucket1], [m2 | _] = bucket2) when m1 < m2 do
+    [m1 | bucket_difference(bucket1, bucket2)]
   end
 
-  defp bucket_difference([m | bucket1], bucket2) do
-    [m | bucket_difference(bucket1, bucket2)]
+  defp bucket_difference([m1 | _]= bucket1, [m2 | bucket2]) when m1 > m2 do
+    bucket_difference(bucket1, bucket2)
   end
 
   defp bucket_difference([], bucket) do
-    bucket
+    []
   end
 
   defp bucket_difference(bucket, []) do

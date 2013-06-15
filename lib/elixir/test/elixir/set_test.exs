@@ -28,14 +28,14 @@ defmodule SetTest do
   end
 
   test "difference with ordered sets" do
-    assert Set.difference(Set.new([1,2,3,5]), Set.new([3,4,5])) == Set.new([1,2,4])
-    assert Set.difference(Set.new, Set.new([1])) == Set.new([1])
+    assert Set.difference(Set.new([1,2,3,5]), Set.new([3,4,5])) == Set.new([1,2])
+    assert Set.difference(Set.new, Set.new([1])) == Set.new([])
     assert Set.difference(Set.new, Set.new) == Set.new
     assert Set.difference(Set.new([1]), Set.new) == Set.new([1])
   end
 
   test "difference with nodes" do
-    assert Set.difference(filled_set(20), filled_set(21)) == Set.new([21])
+    assert Set.difference(filled_set(20), filled_set(21)) == Set.new([])
 
     assert Set.difference(filled_set(121), filled_set(120)) == Set.new([121])
   end
