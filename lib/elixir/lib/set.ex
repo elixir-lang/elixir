@@ -233,16 +233,16 @@ defmodule Set do
 
   ## Bucket helpers
 
+  defp bucket_intersect([m | bucket1], [m | bucket2]) do
+    [m | bucket_intersect(bucket1, bucket2)]
+  end
+
   defp bucket_intersect([m1 | _] = bucket1, [m2 | bucket2]) when m1 > m2 do
     bucket_intersect(bucket1, bucket2)
   end
 
-  defp bucket_intersect([m1 | bucket1], [m2 | _] = bucket2) when m2 > m1 do
+  defp bucket_intersect([_ | bucket1], bucket2) do
     bucket_intersect(bucket1, bucket2)
-  end
-
-  defp bucket_intersect([member | bucket1], [member | bucket2]) do
-    [member | bucket_intersect(bucket1, bucket2)]
   end
 
   defp bucket_intersect([], _) do
@@ -261,8 +261,8 @@ defmodule Set do
     [m2 | bucket_difference(bucket1, bucket2)]
   end
 
-  defp bucket_difference([m1 | bucket1], [m2 | _] = bucket2) when m2 > m1 do
-    [m1 | bucket_difference(bucket1, bucket2)]
+  defp bucket_difference([m | bucket1], bucket2) do
+    [m | bucket_difference(bucket1, bucket2)]
   end
 
   defp bucket_difference([], bucket) do
