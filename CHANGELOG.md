@@ -1,6 +1,8 @@
 # v0.9.3.dev
 
 * enhancements
+  * [Kernel] Add --warnings-as-errors to Elixir's compiler options
+  * [Kernel] Print warnings to stderr
 
 * bug fix
 
