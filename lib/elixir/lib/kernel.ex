@@ -1846,7 +1846,7 @@ defmodule Kernel do
 
       defmodule AssertionTest do
         require ExUnit.Case
-        ExUnit.Case.__using__([sync: true])
+        ExUnit.Case.__using__([async: true])
 
         def test_always_pass do
           true = true
