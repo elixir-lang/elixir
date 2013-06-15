@@ -60,6 +60,12 @@ defmodule SetTest do
     refute Set.subset?(filled_set(120), filled_set(6))
   end
 
+  test :disjoint? do
+    assert Set.disjoint?(Set.new, Set.new)
+    assert Set.disjoint?(Set.new([1, 2, 3]), Set.new([4, 5 ,6]))
+    refute Set.disjoint?(Set.new([1, 2, 3]), Set.new([3, 4 ,5]))
+  end
+
   test :equal? do
     assert Set.equal?(Set.new, Set.new)
     assert Set.equal?(filled_set(20), Set.delete(filled_set(21), 21))

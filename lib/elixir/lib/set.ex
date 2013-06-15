@@ -165,6 +165,13 @@ defmodule Set do
     set_equal?(set1, set2)
   end
 
+  @doc """
+  Checks if set1 and set2 have no members in common.
+  """
+  def disjoint?(set1, set2) do
+    set_disjoint?(set1, set2)
+  end
+
   def reduce(ordered(bucket: bucket), acc, fun) do
     :lists.foldl(fun, acc, bucket)
   end
@@ -271,6 +278,19 @@ defmodule Set do
         case member?(set2, member) do
           true -> acc
           _    -> throw(:error)
+        end
+      end)
+    catch
+      :error -> false
+    end
+  end
+
+  defp set_disjoint?(set1, set2) do
+    try do
+      reduce(set1, true, fn member, acc ->
+        case member?(set2, member) do
+          false -> acc
+          _     -> throw(:error)
         end
       end)
     catch
