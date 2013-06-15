@@ -4,69 +4,69 @@ defmodule ListTest do
   use ExUnit.Case, async: true
 
   test :cons_cell_precedence do
-    assert [1|:lists.flatten([2,3])] == [1,2,3]
+    assert [1|:lists.flatten([2, 3])] == [1, 2, 3]
   end
 
   test :optional_comma do
     assert [1] == [ 1, ]
-    assert [1,2,3] == [1,2,3,]
+    assert [1, 2, 3] == [1, 2, 3, ]
   end
 
   test :partial_application do
-    assert ([&1, 2]).(1) == [1,2]
-    assert ([&1, &2]).(1, 2) == [1,2]
-    assert ([&2, &1]).(2, 1) == [1,2]
+    assert ([&1, 2]).(1) == [1, 2]
+    assert ([&1, &2]).(1, 2) == [1, 2]
+    assert ([&2, &1]).(2, 1) == [1, 2]
     assert ([&1|&2]).(1, 2) == [1|2]
-    assert ([&1, &2|&3]).(1,2,3) == [1,2|3]
+    assert ([&1, &2|&3]).(1, 2, 3) == [1, 2|3]
   end
 
   test :wrap do
-    assert List.wrap([1,2,3]) == [1,2,3]
+    assert List.wrap([1, 2, 3]) == [1, 2, 3]
     assert List.wrap(1) == [1]
     assert List.wrap(nil) == []
   end
 
   test :flatten do
-    assert List.flatten([1,2,3]) == [1,2,3]
-    assert List.flatten([1,[2],3]) == [1,2,3]
-    assert List.flatten([[1,[2],3]]) == [1,2,3]
+    assert List.flatten([1, 2, 3]) == [1, 2, 3]
+    assert List.flatten([1, [2], 3]) == [1, 2, 3]
+    assert List.flatten([[1, [2], 3]]) == [1, 2, 3]
 
     assert List.flatten([]) == []
     assert List.flatten([[]]) == []
   end
 
   test :flatten_with_tail do
-    assert List.flatten([1,2,3], [4,5]) == [1,2,3,4,5]
-    assert List.flatten([1,[2],3], [4,5]) == [1,2,3,4,5]
-    assert List.flatten([[1,[2],3]], [4,5]) == [1,2,3,4,5]
+    assert List.flatten([1, 2, 3], [4, 5]) == [1, 2, 3, 4, 5]
+    assert List.flatten([1, [2], 3], [4, 5]) == [1, 2, 3, 4, 5]
+    assert List.flatten([[1, [2], 3]], [4, 5]) == [1, 2, 3, 4, 5]
   end
 
   test :foldl do
-    assert List.foldl([1,2,3], 0, fn x,y -> x + y end) == 6
-    assert List.foldl([1,2,3], 10, fn x,y -> x + y end) == 16
-    assert List.foldl([1,2,3,4], 0, fn x,y -> x - y end) == 2
+    assert List.foldl([1, 2, 3], 0, fn x, y -> x + y end) == 6
+    assert List.foldl([1, 2, 3], 10, fn x, y -> x + y end) == 16
+    assert List.foldl([1, 2, 3, 4], 0, fn x, y -> x - y end) == 2
   end
 
   test :foldr do
-    assert List.foldr([1,2,3], 0, fn x,y -> x + y end) == 6
-    assert List.foldr([1,2,3], 10, fn x,y -> x + y end) == 16
-    assert List.foldr([1,2,3,4], 0, fn x,y -> x - y end) == -2
+    assert List.foldr([1, 2, 3], 0, fn x, y -> x + y end) == 6
+    assert List.foldr([1, 2, 3], 10, fn x, y -> x + y end) == 16
+    assert List.foldr([1, 2, 3, 4], 0, fn x, y -> x - y end) == -2
   end
 
   test :concat_1 do
-    assert List.concat([[1,[2],3], [4], [5,6]]) == [1,[2],3,4,5,6]
+    assert List.concat([[1, [2], 3], [4], [5, 6]]) == [1, [2], 3, 4, 5, 6]
   end
 
   test :concat_2 do
-    assert List.concat([1,[2],3], [4,5]) == [1,[2],3,4,5]
+    assert List.concat([1, [2], 3], [4, 5]) == [1, [2], 3, 4, 5]
   end
 
   test :reverse do
-    assert Enum.reverse([1,2,3]) == [3,2,1]
+    assert Enum.reverse([1, 2, 3]) == [3, 2, 1]
   end
 
   test :duplicate do
-    assert List.duplicate(1, 3) == [1,1,1]
+    assert List.duplicate(1, 3) == [1, 1, 1]
     assert List.duplicate([1], 1) == [[1]]
   end
 

@@ -29,11 +29,11 @@ defmodule MacroTest do
   end
 
   test :escape_simply_returns_any_other_structure do
-    assert [1,2,3] == Macro.escape([1,2,3])
+    assert [1, 2, 3] == Macro.escape([1, 2, 3])
   end
 
   test :escape_works_recursively do
-    assert [1,{:{}, [], [:a,:b,:c]},3] == Macro.escape([1, { :a, :b, :c },3])
+    assert [1,{:{}, [], [:a,:b,:c]}, 3] == Macro.escape([1, { :a, :b, :c }, 3])
   end
 
   test :escape_with_unquote do
@@ -70,23 +70,23 @@ defmodule MacroTest do
   end
 
   test :escape_with_splicing do
-    contents = quote unquote: false, do: [1,2,3,4,5]
-    assert Macro.escape_quoted(contents) == [1,2,3,4,5]
+    contents = quote unquote: false, do: [1, 2, 3, 4, 5]
+    assert Macro.escape_quoted(contents) == [1, 2, 3, 4, 5]
 
-    contents = quote unquote: false, do: [1,2,unquote_splicing([3,4,5])]
-    assert eval_escaped(contents) == [1,2,3,4,5]
+    contents = quote unquote: false, do: [1, 2, unquote_splicing([3, 4, 5])]
+    assert eval_escaped(contents) == [1, 2, 3, 4, 5]
 
-    contents = quote unquote: false, do: [unquote_splicing([1,2,3]), 4, 5]
-    assert eval_escaped(contents) == [1,2,3,4,5]
+    contents = quote unquote: false, do: [unquote_splicing([1, 2, 3]), 4, 5]
+    assert eval_escaped(contents) == [1, 2, 3, 4, 5]
 
-    contents = quote unquote: false, do: [unquote_splicing([1,2,3]), unquote_splicing([4, 5])]
-    assert eval_escaped(contents) == [1,2,3,4,5]
+    contents = quote unquote: false, do: [unquote_splicing([1, 2, 3]), unquote_splicing([4, 5])]
+    assert eval_escaped(contents) == [1, 2, 3, 4, 5]
 
     contents = quote unquote: false, do: [1, unquote_splicing([2]), 3, unquote_splicing([4]), 5]
-    assert eval_escaped(contents) == [1,2,3,4,5]
+    assert eval_escaped(contents) == [1, 2, 3, 4, 5]
 
     contents = quote unquote: false, do: [1, unquote_splicing([2]), 3, unquote_splicing([4])|[5]]
-    assert eval_escaped(contents) == [1,2,3,4,5]
+    assert eval_escaped(contents) == [1, 2, 3, 4, 5]
   end
 
   ## Expand aliases
@@ -162,7 +162,7 @@ defmodule MacroTest do
   end
 
   test :expand_with_not_expandable_expression do
-    expr = quote(do: other(1,2,3))
+    expr = quote(do: other(1, 2, 3))
     assert Macro.expand(expr, __ENV__) == expr
   end
 
@@ -302,7 +302,7 @@ defmodule MacroTest do
   test :binary_ops_to_binary do
     assert Macro.to_binary(quote do: 1 + 2)   == "1 + 2"
     assert Macro.to_binary(quote do: [ 1, 2 | 3 ]) == "[1, 2 | 3]"
-    assert Macro.to_binary(quote do: [h|t] = [1,2,3]) == "[h | t] = [1, 2, 3]"
+    assert Macro.to_binary(quote do: [h|t] = [1, 2, 3]) == "[h | t] = [1, 2, 3]"
   end
 
   test :unary_ops_to_binary do
@@ -320,12 +320,12 @@ defmodule MacroTest do
    assert Macro.safe_term(quote do: -1) == :ok
    assert Macro.safe_term(quote do: +1) == :ok
    assert Macro.safe_term(quote do: []) == :ok
-   assert Macro.safe_term(quote do: [1,2,3]) == :ok
+   assert Macro.safe_term(quote do: [1, 2, 3]) == :ok
    assert Macro.safe_term(quote do: "") == :ok
    assert Macro.safe_term(quote do: {}) == :ok
-   assert Macro.safe_term(quote do: {1,2}) == :ok
-   assert Macro.safe_term(quote do: {1,2,3}) == :ok
-   assert Macro.safe_term(quote do: {1,2,3,4}) == :ok
+   assert Macro.safe_term(quote do: {1, 2}) == :ok
+   assert Macro.safe_term(quote do: {1, 2, 3}) == :ok
+   assert Macro.safe_term(quote do: {1, 2, 3, 4}) == :ok
    assert Macro.safe_term(quote do: Alias) == :ok
   end
 
@@ -341,8 +341,8 @@ defmodule MacroTest do
     assert Macro.extract_args(quote do: foo)        == { :foo, [] }
     assert Macro.extract_args(quote do: foo())      == { :foo, [] }
     assert Macro.extract_args(quote do: :foo.())    == { :foo, [] }
-    assert Macro.extract_args(quote do: foo(1,2,3)) == { :foo, [1,2,3] }
-    assert Macro.extract_args(quote do: 1.(1,2,3))  == :error
+    assert Macro.extract_args(quote do: foo(1, 2, 3)) == { :foo, [1, 2, 3] }
+    assert Macro.extract_args(quote do: 1.(1, 2, 3))  == :error
   end
 
   ## env

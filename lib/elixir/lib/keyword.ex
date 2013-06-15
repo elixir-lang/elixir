@@ -56,7 +56,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.new([{:b,1},{:a,2}])
+      iex> Keyword.new([{:b, 1}, {:a, 2}])
       [a: 2, b: 1]
 
   """
@@ -74,7 +74,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.new([:a, :b], fn (x) -> {x,x} end) |> Enum.sort
+      iex> Keyword.new([:a, :b], fn (x) -> {x, x} end) |> Enum.sort
       [a: :a, b: :b]
 
   """
@@ -266,7 +266,7 @@ defmodule Keyword do
   def put_new(keywords, key, value) when is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, _ } -> keywords
-      false -> [{key,value}|keywords]
+      false -> [{key, value}|keywords]
     end
   end
 

@@ -21,7 +21,7 @@ defmodule EEx.TokenizerTest do
   end
 
   test "strings with more than one line" do
-    assert T.tokenize('foo\n<%= bar %>', 1) == [ { :text, 1, "foo\n" },{ :expr, 2, '=', ' bar ' } ]
+    assert T.tokenize('foo\n<%= bar %>', 1) == [ { :text, 1, "foo\n" }, { :expr, 2, '=', ' bar ' } ]
   end
 
   test "strings with more than one line and expression with more than one line" do

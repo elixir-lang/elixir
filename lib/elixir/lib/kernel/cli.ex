@@ -107,37 +107,37 @@ defmodule Kernel.CLI do
     System.halt 0
   end
 
-  defp process_shared(["-pa",h|t], config) do
+  defp process_shared(["-pa", h|t], config) do
     Enum.each Path.wildcard(Path.expand(h)), Code.prepend_path(&1)
     process_shared t, config
   end
 
-  defp process_shared(["-pz",h|t], config) do
+  defp process_shared(["-pz", h|t], config) do
     Enum.each Path.wildcard(Path.expand(h)), Code.append_path(&1)
     process_shared t, config
   end
 
-  defp process_shared(["--app",h|t], config) do
-    process_shared t, config.update_commands [{:app,h}|&1]
+  defp process_shared(["--app", h|t], config) do
+    process_shared t, config.update_commands [{:app, h}|&1]
   end
 
   defp process_shared(["--no-halt"|t], config) do
     process_shared t, config.halt(false)
   end
 
-  defp process_shared(["-e",h|t], config) do
-    process_shared t, config.update_commands [{:eval,h}|&1]
+  defp process_shared(["-e", h|t], config) do
+    process_shared t, config.update_commands [{:eval, h}|&1]
   end
 
-  defp process_shared(["-r",h|t], config) do
-    process_shared t, config.update_commands [{:require,h}|&1]
+  defp process_shared(["-r", h|t], config) do
+    process_shared t, config.update_commands [{:require, h}|&1]
   end
 
-  defp process_shared(["-pr",h|t], config) do
-    process_shared t, config.update_commands [{:parallel_require,h}|&1]
+  defp process_shared(["-pr", h|t], config) do
+    process_shared t, config.update_commands [{:parallel_require, h}|&1]
   end
 
-  defp process_shared([erl,_|t], config) when erl in ["--erl", "--sname", "--name", "--cookie"] do
+  defp process_shared([erl, _|t], config) when erl in ["--erl", "--sname", "--name", "--cookie"] do
     process_shared t, config
   end
 
@@ -159,8 +159,8 @@ defmodule Kernel.CLI do
     process_iex t, config
   end
 
-  defp process_argv(["-S",h|t], config) do
-    { config.update_commands([{:script,h}|&1]), t }
+  defp process_argv(["-S", h|t], config) do
+    { config.update_commands([{:script, h}|&1]), t }
   end
 
   defp process_argv([h|t] = list, config) do
@@ -168,7 +168,7 @@ defmodule Kernel.CLI do
       "-" <> _ ->
         shared_option? list, config, process_argv(&1, &2)
       _ ->
-        { config.update_commands([{:file,h}|&1]), t }
+        { config.update_commands([{:file, h}|&1]), t }
     end
   end
 
@@ -182,24 +182,24 @@ defmodule Kernel.CLI do
     { config, t }
   end
 
-  defp process_compiler(["-o",h|t], config) do
+  defp process_compiler(["-o", h|t], config) do
     process_compiler t, config.output(h)
   end
 
   defp process_compiler(["--no-docs"|t], config) do
-    process_compiler t, config.update_compiler_options([{:docs,false}|&1])
+    process_compiler t, config.update_compiler_options([{:docs, false}|&1])
   end
 
   defp process_compiler(["--no-debug-info"|t], config) do
-    process_compiler t, config.update_compiler_options([{:debug_info,false}|&1])
+    process_compiler t, config.update_compiler_options([{:debug_info, false}|&1])
   end
 
   defp process_compiler(["--ignore-module-conflict"|t], config) do
-    process_compiler t, config.update_compiler_options([{:ignore_module_conflict,true}|&1])
+    process_compiler t, config.update_compiler_options([{:ignore_module_conflict, true}|&1])
   end
 
   defp process_compiler(["--warnings-as-errors"|t], config) do
-    process_compiler t, config.update_compiler_options([{:warnings_as_errors,true}|&1])
+    process_compiler t, config.update_compiler_options([{:warnings_as_errors, true}|&1])
   end
 
   defp process_compiler([h|t] = list, config) do
@@ -213,7 +213,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_compiler([], config) do
-    { config.update_commands([{:compile,config.compile}|&1]), [] }
+    { config.update_commands([{:compile, config.compile}|&1]), [] }
   end
 
   # Process iex options
@@ -224,16 +224,16 @@ defmodule Kernel.CLI do
 
   # This clause is here so that Kernel.CLI does not error out with "unknown
   # option"
-  defp process_iex(["--dot-iex",_|t], config) do
+  defp process_iex(["--dot-iex", _|t], config) do
     process_iex t, config
   end
 
-  defp process_iex([opt,_|t], config) when opt in ["--remsh"] do
+  defp process_iex([opt, _|t], config) when opt in ["--remsh"] do
     process_iex t, config
   end
 
-  defp process_iex(["-S",h|t], config) do
-    { config.update_commands([{:script,h}|&1]), t }
+  defp process_iex(["-S", h|t], config) do
+    { config.update_commands([{:script, h}|&1]), t }
   end
 
   defp process_iex([h|t] = list, config) do
@@ -241,7 +241,7 @@ defmodule Kernel.CLI do
       "-" <> _ ->
         shared_option? list, config, process_iex(&1, &2)
       _ ->
-        { config.update_commands([{:file,h}|&1]), t }
+        { config.update_commands([{:file, h}|&1]), t }
     end
   end
 
@@ -251,7 +251,7 @@ defmodule Kernel.CLI do
 
   # Process commands
 
-  defp process_command({:cookie,h}, _config) do
+  defp process_command({:cookie, h}, _config) do
     if Node.alive? do
       Node.set_cookie(binary_to_atom(h))
       :ok

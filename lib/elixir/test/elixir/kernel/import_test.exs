@@ -12,22 +12,22 @@ defmodule Kernel.ImportOnlyTest do
   test :import_with_only do
     require Kernel.ImportAvailable
     import :lists, only: Kernel.ImportAvailable.flatten
-    assert flatten([1,[2],3]) == [1,2,3]
+    assert flatten([1, [2], 3]) == [1, 2, 3]
   end
 
   test :import_all do
     import :lists
-    assert flatten([1,[2],3]) == [1,2,3]
+    assert flatten([1, [2], 3]) == [1, 2, 3]
   end
 
   test :import_except_none do
     import :lists, except: []
-    assert flatten([1,[2],3]) == [1,2,3]
+    assert flatten([1, [2], 3]) == [1, 2, 3]
   end
 
   test :import_with_except_erlang do
     import :lists, except: [each: 2]
-    assert flatten([1,[2],3]) == [1,2,3]
+    assert flatten([1, [2], 3]) == [1, 2, 3]
   end
 
   defmacrop dynamic_opts do
@@ -36,7 +36,7 @@ defmodule Kernel.ImportOnlyTest do
 
   test :import_with_dynamic_opts do
     import :lists, dynamic_opts
-    assert flatten([1,[2],3]) == [1,2,3]
+    assert flatten([1, [2], 3]) == [1, 2, 3]
   end
 end
 
@@ -46,8 +46,8 @@ defmodule Kernel.DoubleImportTest do
   test :import_double_except do
     import :lists, except: [flatten: 1]
     import :lists, except: [each: 2]
-    assert append([1], [2,3]) == [1,2,3]
-    assert flatten([1,[2],3]) == [1,[2],3]
+    assert append([1], [2, 3]) == [1, 2, 3]
+    assert flatten([1, [2], 3]) == [1, [2], 3]
   end
 
   def flatten(list), do: list
@@ -135,6 +135,6 @@ defmodule Kernel.MultipleImportTest do
   test :import_many do
     [import(List), import(String)]
     assert capitalize("foo")  == "Foo"
-    assert flatten([1,[2],3]) == [1,2,3]
+    assert flatten([1, [2], 3]) == [1, 2, 3]
   end
 end

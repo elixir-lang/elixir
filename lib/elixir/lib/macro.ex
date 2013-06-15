@@ -42,8 +42,8 @@ defmodule Macro do
 
       extract_args(quote do: foo)        == { :foo, [] }
       extract_args(quote do: foo())      == { :foo, [] }
-      extract_args(quote do: foo(1,2,3)) == { :foo, [1,2,3] }
-      extract_args(quote do: 1.(1,2,3))  == :error
+      extract_args(quote do: foo(1, 2, 3)) == { :foo, [1, 2, 3] }
+      extract_args(quote do: 1.(1, 2, 3))  == :error
 
   """
   def extract_args(expr) do
@@ -213,7 +213,7 @@ defmodule Macro do
   end
 
   # Fn keyword
-  def to_binary({ :fn, _, [[do: { :->, _, [{_,tuple}] } = arrow]] })
+  def to_binary({ :fn, _, [[do: { :->, _, [{_, tuple}] } = arrow]] })
       when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
     "fn " <> arrow_to_binary(arrow) <> " end"
   end

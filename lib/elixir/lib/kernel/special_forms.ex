@@ -247,7 +247,7 @@ defmodule Kernel.SpecialForms do
   for example:
 
       iex> import List
-      ...> flatten([1,[2],3])
+      ...> flatten([1, [2], 3])
       [1,2,3]
 
   ## Selector
@@ -397,7 +397,7 @@ defmodule Kernel.SpecialForms do
       :sum         #=> Atoms
       1            #=> Integers
       2.0          #=> Floats
-      [1,2]        #=> Lists
+      [1, 2]       #=> Lists
       "binaries"   #=> Binaries
       {key, value} #=> Tuple with two elements
 
@@ -686,7 +686,7 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      values = [2,3,4]
+      values = [2, 3, 4]
       quote do: sum(1, unquote_splicing(values), 5)
       #=> { :sum, [], [1, 2, 3, 4, 5] }
 
@@ -697,7 +697,7 @@ defmodule Kernel.SpecialForms do
   @doc """
   List comprehensions allow you to quickly build a list from another list:
 
-      iex> lc n inlist [1,2,3,4], do: n * 2
+      iex> lc n inlist [1, 2, 3, 4], do: n * 2
       [2,4,6,8]
 
   A comprehension accepts many generators and also filters. Generators
@@ -705,33 +705,33 @@ defmodule Kernel.SpecialForms do
   to loop lists and bitstrings:
 
       # A list generator:
-      iex> lc n inlist [1,2,3,4], do: n * 2
+      iex> lc n inlist [1, 2, 3, 4], do: n * 2
       [2,4,6,8]
 
       # A bit string generator:
-      iex> lc <<n>> inbits <<1,2,3,4>>, do: n * 2
+      iex> lc <<n>> inbits <<1, 2, 3, 4>>, do: n * 2
       [2,4,6,8]
 
       # A generator from a variable:
-      iex> list = [1,2,3,4]
+      iex> list = [1, 2, 3, 4]
       ...> lc n inlist list, do: n * 2
       [2,4,6,8]
 
       # A comprehension with two generators
-      iex> lc x inlist [1,2], y inlist [2,3], do: x*y
+      iex> lc x inlist [1, 2], y inlist [2, 3], do: x*y
       [2,3,4,6]
 
   Filters can also be given:
 
       # A comprehension with a generator and a filter
-      iex> lc n inlist [1,2,3,4,5,6], rem(n, 2) == 0, do: n
+      iex> lc n inlist [1, 2, 3, 4, 5, 6], rem(n, 2) == 0, do: n
       [2,4,6]
 
   Bit string generators are quite useful when you need to
   organize bit string streams:
 
-      iex> pixels = <<213,45,132,64,76,32,76,0,0,234,32,15>>
-      iex> lc <<r::8,g::8,b::8>> inbits pixels, do: {r,g,b}
+      iex> pixels = <<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
+      iex> lc <<r::8, g::8, b::8>> inbits pixels, do: {r, g, b}
       [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
 
   """
@@ -755,7 +755,7 @@ defmodule Kernel.SpecialForms do
   and should not be invoked directly:
 
       iex> quote do: (1; 2; 3)
-      { :__block__, [], [1,2,3] }
+      { :__block__, [], [1, 2, 3] }
 
   """
   defmacro __block__(args)

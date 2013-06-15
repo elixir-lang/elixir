@@ -206,7 +206,7 @@ defmodule ExUnit.AssertionsTest do
 
   test :assert_raise_when_other_error do
     "This should never be tested" = assert_raise ArgumentError, fn ->
-      Certainly.Undefined.function(1,2,3)
+      Certainly.Undefined.function(1, 2, 3)
     end
   rescue
     error in [ExUnit.AssertionError] ->

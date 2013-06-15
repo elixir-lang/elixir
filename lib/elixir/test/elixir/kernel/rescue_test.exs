@@ -73,7 +73,7 @@ defmodule Kernel.RescueTest do
     named = ArgumentError
 
     result = try do
-      Certainly.Undefined.function(1,2,3)
+      Certainly.Undefined.function(1, 2, 3)
     rescue
       x in [named] -> x.message
     catch
@@ -149,7 +149,7 @@ defmodule Kernel.RescueTest do
 
   test :tuple_badarg_error do
     result = try do
-      :erlang.error({ :badarg, [1,2,3] })
+      :erlang.error({ :badarg, [1, 2, 3] })
     rescue
       x in [ArgumentError] -> x.message
     end
@@ -172,7 +172,7 @@ defmodule Kernel.RescueTest do
     string = "bad arity error: #{inspect(fun)} called with [1,2]"
 
     result = try do
-      fun.(1,2)
+      fun.(1, 2)
     rescue
       x in [BadArityError] -> x.message
     end

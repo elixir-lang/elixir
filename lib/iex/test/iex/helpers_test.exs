@@ -210,7 +210,7 @@ defmodule IEx.HelpersTest do
 
     filename = "sample.ex"
     with_file filename, test_module_code <> "\n" <> another_test_module, fn ->
-      assert c(filename) |> Enum.sort == [Sample,Sample2]
+      assert c(filename) |> Enum.sort == [Sample, Sample2]
       assert Sample.run == :run
       assert Sample2.hello == :world
     end
@@ -225,7 +225,7 @@ defmodule IEx.HelpersTest do
 
     filenames = ["sample1.ex", "sample2.ex"]
     with_file filenames, [test_module_code, another_test_module], fn ->
-      assert c(filenames) |> Enum.sort == [Sample,Sample2]
+      assert c(filenames) |> Enum.sort == [Sample, Sample2]
       assert Sample.run == :run
       assert Sample2.hello == :world
     end
@@ -238,7 +238,7 @@ defmodule IEx.HelpersTest do
       Sample.run
     end
 
-    assert l(:non_existent_module) == {:error,:nofile}
+    assert l(:non_existent_module) == {:error, :nofile}
 
     filename = "sample.ex"
     with_file filename, test_module_code, fn ->

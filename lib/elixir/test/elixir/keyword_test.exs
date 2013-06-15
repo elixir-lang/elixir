@@ -6,23 +6,23 @@ defmodule KeywordTest do
   test :literal do
     assert [B: 1] == [{ :B, 1 }]
     assert [foo?: :bar] == [{:foo?, :bar}]
-    assert [||: 2, +: 1] == [{:||,2}, {:+,1}]
+    assert [||: 2, +: 1] == [{:||, 2}, {:+, 1}]
   end
 
   test :ambiguity do
     # This raises a warning, so let's leave it commented
     # assert quote(do: [a:b])  == [a: { :b, 0, :quoted }]
-    assert [{ :::, _, [{ :a, _, _ },{ :b, _, _ }] }] = quote(do: [a::b])
+    assert [{ :::, _, [{ :a, _, _ }, { :b, _, _ }] }] = quote(do: [a::b])
   end
 
   test :optional_comma do
     [a: 1,
      b: 2,
-     c: 3,]
+     c: 3, ]
   end
 
   test :from_enum do
-    list = [{:b,2},{:a,1},{:c,3}]
+    list = [{:b, 2}, {:a, 1}, {:c, 3}]
     dict = HashDict.new list
     assert Keyword.from_enum(list) == [b: 2, a: 1, c: 3]
     assert Keyword.equal?(Keyword.from_enum(dict), [a: 1, b: 2, c: 3])
@@ -31,7 +31,7 @@ defmodule KeywordTest do
   test :keyword? do
     assert Keyword.keyword?([])
     assert Keyword.keyword?([a: 1])
-    assert Keyword.keyword?([{Foo,1}])
+    assert Keyword.keyword?([{Foo, 1}])
     refute Keyword.keyword?([{}])
     refute Keyword.keyword?(<<>>)
   end
@@ -130,7 +130,7 @@ defmodule Keyword.DuplicatedTest do
   use ExUnit.Case, async: true
 
   test :duplicated_entries do
-    assert create_keywords == [{:first_key,1},{:first_key,2},{:second_key,2}]
+    assert create_keywords == [{:first_key, 1}, {:first_key, 2}, {:second_key, 2}]
   end
 
   test :get do
@@ -141,7 +141,7 @@ defmodule Keyword.DuplicatedTest do
   end
 
   test :get_values do
-    assert Keyword.get_values(create_keywords, :first_key) == [1,2]
+    assert Keyword.get_values(create_keywords, :first_key) == [1, 2]
     assert Keyword.get_values(create_keywords, :second_key) == [2]
     assert Keyword.get_values(create_keywords, :other_key) == []
   end

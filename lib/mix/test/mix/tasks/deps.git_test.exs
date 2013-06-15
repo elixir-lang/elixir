@@ -212,7 +212,7 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.push GitApp
 
     # Get git repo first revision
-    [last,first|_] = get_git_repo_revs
+    [last, first|_] = get_git_repo_revs
 
     in_fixture "no_mixfile", fn ->
       Mix.Deps.Lock.write [git_repo: first]
@@ -241,7 +241,7 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.push GitApp
 
     # Get git repo first revision
-    [last,first|_] = get_git_repo_revs
+    [last, first|_] = get_git_repo_revs
 
     in_fixture "no_mixfile", fn ->
       Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), first, [branch: "master"] }]
