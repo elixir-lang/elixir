@@ -498,14 +498,17 @@ defmodule Set do
 
 end
 
+defimpl Enumerable, for: Set do
+  def reduce(set, acc, fun), do: Set.reduce(set, acc, fun)
+  def member?(set, v),       do: Set.member?(set, v)
+  def member?(_set, _),      do: false
+  def count(set),            do: Set.size(set)
+end
+
 defimpl Binary.Inspect, for: Set do
   import Kernel, except: [inspect: 2]
 
   def inspect(set, opts) do
     "#Set<" <> Kernel.inspect(Set.to_list(set), opts) <> ">"
   end
-end
-
-defimpl Enumerable, for: Set do
-  def reduce(set, acc, fun),  do: Set.reduce(set, acc, fun)
 end
