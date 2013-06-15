@@ -156,7 +156,8 @@ defmodule Set do
   ## Set-wide functions
 
   defp set_intersect(ordered(bucket: bucket1), ordered(bucket: bucket2)) do
-    new(bucket_intersect(bucket1, bucket2))
+    { new_bucket, size } = bucket_intersect(bucket1, bucket2)
+    ordered(bucket: new_bucket, size: size)
   end
 
   defp set_intersect(trie(size: size1) = set1, trie(size: size2) = set2) when size1 > size2 do
@@ -258,23 +259,26 @@ defmodule Set do
   ## Bucket helpers
 
   defp bucket_intersect([m | bucket1], [m | bucket2]) do
-    [m | bucket_intersect(bucket1, bucket2)]
+    { new, count } = bucket_intersect(bucket1, bucket2)
+    { [m | new], count + 1 }
   end
 
   defp bucket_intersect([m1 | _] = bucket1, [m2 | bucket2]) when m1 > m2 do
-    bucket_intersect(bucket1, bucket2)
+    { new, count } = bucket_intersect(bucket1, bucket2)
+    { new, count }
   end
 
   defp bucket_intersect([_ | bucket1], bucket2) do
-    bucket_intersect(bucket1, bucket2)
+    { new, count } = bucket_intersect(bucket1, bucket2)
+    { new, count }
   end
 
   defp bucket_intersect([], _) do
-    []
+    { [], 0 }
   end
 
   defp bucket_intersect(_, []) do
-    []
+    { [], 0 }
   end
 
   defp bucket_difference([m | bucket1], [m | bucket2]) do
