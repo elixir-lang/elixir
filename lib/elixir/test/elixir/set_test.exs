@@ -14,18 +14,30 @@ defmodule SetTest do
     assert Set.union(filled_set(121), filled_set(120)) == filled_set(121)
   end
 
-  test :intersection do
+  test "intersection with ordered sets" do
     assert Set.intersection(Set.new([1,2,3,4,6]), Set.new([3,4,5])) == Set.new([3,4])
     assert Set.intersection(Set.new, filled_set(8)) == Set.new
     assert Set.intersection(filled_set(8), Set.new) == Set.new
     assert Set.intersection(Set.new, Set.new) == Set.new
   end
 
-  test :difference do
+  test "intersection with nodes" do
+    assert Set.intersection(filled_set(21), filled_set(20)) == Set.new(filled_set(20))
+
+    assert Set.intersection(filled_set(120), filled_set(121)) == Set.new(filled_set(120))
+  end
+
+  test "difference with ordered sets" do
     assert Set.difference(Set.new([1,2,3,5]), Set.new([3,4,5])) == Set.new([1,2,4])
     assert Set.difference(Set.new, Set.new([1])) == Set.new([1])
     assert Set.difference(Set.new, Set.new) == Set.new
     assert Set.difference(Set.new([1]), Set.new) == Set.new([1])
+  end
+
+  test "difference with nodes" do
+    assert Set.difference(filled_set(20), filled_set(21)) == Set.new([21])
+
+    assert Set.difference(filled_set(121), filled_set(120)) == Set.new([121])
   end
 
   test "member? with ordered sets"  do

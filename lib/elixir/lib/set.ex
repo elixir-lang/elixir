@@ -159,8 +159,36 @@ defmodule Set do
     new(bucket_intersect(bucket1, bucket2))
   end
 
+  defp set_intersect(trie(size: size1) = set1, trie(size: size2) = set2) when size1 > size2 do
+    set_intersect(set2, set1)
+  end
+
+  defp set_intersect(trie(root: root, depth: depth, size: size) = set1, set2) do
+    set_fold set2, ordered(), fn m, acc ->
+      if member?(set1, m) do
+        put acc, m
+      else
+        acc
+      end
+    end
+  end
+
   defp set_difference(ordered(bucket: bucket1), ordered(bucket: bucket2)) do
     new(bucket_difference(bucket1, bucket2))
+  end
+
+  defp set_difference(trie(size: size1) = set1, trie(size: size2) = set2) when size1 > size2 do
+    set_difference(set2, set1)
+  end
+
+  defp set_difference(trie(size: size1) = set1, set2) do
+    set_fold set2, ordered(), fn m, acc ->
+      if member?(set1, m) do
+        acc
+      else
+        put acc, m
+      end
+    end
   end
 
   defp set_put(ordered(size: @ordered_threshold, bucket: bucket), member) do
