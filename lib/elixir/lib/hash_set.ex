@@ -1,4 +1,4 @@
-defmodule Set do
+defmodule HashSet do
   # The ordered record contains a single bucket.
   @ordered_threshold 8
 
@@ -37,7 +37,7 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.new [1, 1, 2, 3, 3] |> Set.to_list
+      iex> HashSet.new [1, 1, 2, 3, 3] |> HashSet.to_list
       [1,2,3]
 
   """
@@ -52,17 +52,17 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.union(Set.new([1,2]), Set.new([2,3,4])) |> Set.to_list
+      iex> HashSet.union(HashSet.new([1,2]), HashSet.new([2,3,4])) |> HashSet.to_list
       [1,2,3,4]
 
   """
-  def union(set1, set2) when is_record(set1, Set) and is_record(set2, Set) and elem(set1, 1) < elem(set2, 1) do
+  def union(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) and elem(set1, 1) < elem(set2, 1) do
     set_fold set1, set2, fn v1, acc ->
       put(acc, v1)
     end
   end
 
-  def union(set1, set2) when is_record(set1, Set) and is_record(set2, Set) do
+  def union(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) do
     set_fold set2, set1, fn v, acc ->
       put(acc, v)
     end
@@ -73,11 +73,11 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.intersection(Set.new([1,2]), Set.new([2,3,4])) |> Set.to_list
+      iex> HashSet.intersection(HashSet.new([1,2]), HashSet.new([2,3,4])) |> HashSet.to_list
       [2]
 
   """
-  def intersection(set1, set2) when is_record(set1, Set) and is_record(set2, Set) do
+  def intersection(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) do
     set_intersect(set1, set2)
   end
 
@@ -86,18 +86,18 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.difference(Set.new([1,2]), Set.new([2,3,4])) |> Set.to_list
+      iex> HashSet.difference(HashSet.new([1,2]), HashSet.new([2,3,4])) |> HashSet.to_list
       [1]
 
   """
-  def difference(set1, set2) when is_record(set1, Set) and is_record(set2, Set) do
+  def difference(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) do
     set_difference(set1, set2)
   end
 
   @doc """
   Checks if the set has the given value.
   """
-  def member?(set, member) when is_record(set, Set) do
+  def member?(set, member) when is_record(set, HashSet) do
     case set_get(set, member) do
         ^member -> true
         _       -> false
@@ -163,9 +163,9 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.subset?(Set.new([1, 2]), Set.new([1, 2, 3]))
+      iex> HashSet.subset?(HashSet.new([1, 2]), HashSet.new([1, 2, 3]))
       true
-      iex> Set.subset?(Set.new([1, 2, 3]), Set.new([1, 2]))
+      iex> HashSet.subset?(HashSet.new([1, 2, 3]), HashSet.new([1, 2]))
       false
   """
   def subset?(set1, set2) do
@@ -177,9 +177,9 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.disjoint?(Set.new([1, 2]), Set.new([3, 4]))
+      iex> HashSet.disjoint?(HashSet.new([1, 2]), HashSet.new([3, 4]))
       true
-      iex> Set.disjoint?(Set.new([1, 2]), Set.new([2, 3]))
+      iex> HashSet.disjoint?(HashSet.new([1, 2]), HashSet.new([2, 3]))
       false
 
   """
@@ -195,7 +195,7 @@ defmodule Set do
     set_fold(set, acc, fun)
   end
 
-  ## Set-wide functions
+  ## HashSet-wide functions
 
   defp set_intersect(ordered(bucket: bucket1), ordered(bucket: bucket2)) do
     { new_bucket, size } = bucket_intersect(bucket1, bucket2)
@@ -533,17 +533,17 @@ defmodule Set do
 
 end
 
-defimpl Enumerable, for: Set do
-  def reduce(set, acc, fun), do: Set.reduce(set, acc, fun)
-  def member?(set, v),       do: Set.member?(set, v)
+defimpl Enumerable, for: HashSet do
+  def reduce(set, acc, fun), do: HashSet.reduce(set, acc, fun)
+  def member?(set, v),       do: HashSet.member?(set, v)
   def member?(_set, _),      do: false
-  def count(set),            do: Set.size(set)
+  def count(set),            do: HashSet.size(set)
 end
 
-defimpl Binary.Inspect, for: Set do
+defimpl Binary.Inspect, for: HashSet do
   import Kernel, except: [inspect: 2]
 
   def inspect(set, opts) do
-    "#Set<" <> Kernel.inspect(Set.to_list(set), opts) <> ">"
+    "#HashSet<" <> Kernel.inspect(HashSet.to_list(set), opts) <> ">"
   end
 end
