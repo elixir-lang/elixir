@@ -77,7 +77,7 @@ deprecation(Meta, File, Message, Args) ->
 
 %% output warning based on warnings going to stdout or stderr.
 output_warning(Warning) ->
-  elixir_code_server:cast({ compilation_status, error }),
+  elixir_code_server:cast(register_warning),
   io:format(standard_error, Warning, []).
 
 %% Ignore on bootstrap

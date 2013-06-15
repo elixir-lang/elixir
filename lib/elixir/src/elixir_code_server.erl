@@ -60,8 +60,7 @@ handle_call(compiler_options, _From, Config) ->
   { reply, Config#elixir_code_server.compiler_options, Config };
 
 handle_call(compilation_status, _From, Config) ->
-  { reply, Config#elixir_code_server.compilation_status,
-    Config#elixir_code_server{compilation_status=ok} };
+  { reply, Config#elixir_code_server.compilation_status, Config };
 
 handle_call(retrieve_module_name, _From, Config) ->
   case Config#elixir_code_server.pool of
@@ -85,8 +84,14 @@ handle_cast({ compiler_options, Options }, Config) ->
   Final = orddict:merge(fun(_,_,V) -> V end, Config#elixir_code_server.compiler_options, Options),
   { noreply, Config#elixir_code_server{compiler_options=Final} };
 
-handle_cast({ compilation_status, Value }, Config) ->
-  { noreply, Config#elixir_code_server{compilation_status=Value} };
+handle_cast(register_warning, Config) ->
+  case orddict:find(warnings_as_errors, Config#elixir_code_server.compiler_options) of
+    { ok, true } -> { noreply, Config#elixir_code_server{compilation_status=error} };
+    _ -> { noreply, Config }
+  end;
+
+handle_cast(reset_warnings, Config) ->
+  { noreply, Config#elixir_code_server{compilation_status=ok} };
 
 handle_cast({ loaded, Path }, Config) ->
   Current = Config#elixir_code_server.loaded,

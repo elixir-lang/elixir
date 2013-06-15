@@ -132,7 +132,7 @@ defmodule IO do
   called during compilation, compilation will fail.
   """
   def warn(item) do
-    :elixir_code_server.cast({ :compilation_status, :error })
+    :elixir_code_server.cast(:register_warning)
     :io.put_chars :standard_error, [to_iodata(item), ?\n]
   end
 
