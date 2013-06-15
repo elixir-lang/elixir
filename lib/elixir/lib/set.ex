@@ -37,8 +37,8 @@ defmodule Set do
 
   ## Examples
 
-      Set.new [1, 1, 2, 3, 3]
-      #=> #Set<[1,2,3]>
+      iex> Set.new [1, 1, 2, 3, 3] |> Set.to_list
+      [1,2,3]
 
   """
   def new(members) do
@@ -52,8 +52,8 @@ defmodule Set do
 
   ## Examples
 
-      Set.union(Set.new([1,2]), Set.new([2,3,4]))
-      #=> #Set<[1,2,3,4]>
+      iex> Set.union(Set.new([1,2]), Set.new([2,3,4])) |> Set.to_list
+      [1,2,3,4]
 
   """
   def union(set1, set2) when is_record(set1, Set) and is_record(set2, Set) and elem(set1, 1) < elem(set2, 1) do
@@ -73,8 +73,8 @@ defmodule Set do
 
   ## Examples
 
-      Set.intersection(Set.new([1,2]), Set.new([2,3,4]))
-      #=> #Set<[2]>
+      iex> Set.intersection(Set.new([1,2]), Set.new([2,3,4])) |> Set.to_list
+      [2]
 
   """
   def intersection(set1, set2) when is_record(set1, Set) and is_record(set2, Set) do
@@ -86,8 +86,8 @@ defmodule Set do
 
   ## Examples
 
-      Set.difference(Set.new([1,2]), Set.new([2,3,4]))
-      #=> #Set<[1]>
+      iex> Set.difference(Set.new([1,2]), Set.new([2,3,4])) |> Set.to_list
+      [1]
 
   """
   def difference(set1, set2) when is_record(set1, Set) and is_record(set2, Set) do
