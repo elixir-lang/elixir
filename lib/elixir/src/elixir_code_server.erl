@@ -5,11 +5,12 @@
 -behavior(gen_server).
 -record(elixir_code_server, {
   argv=[],
+  compilation_status=ok,
   loaded=[],
   at_exit=[],
   pool=[],
   counter=0,
-  compiler_options=[{docs,true},{debug_info,true}],
+  compiler_options=[{docs,true},{debug_info,true},{warnings_as_errors,false}],
   waiting=[]
 }).
 
@@ -58,6 +59,9 @@ handle_call(argv, _From, Config) ->
 handle_call(compiler_options, _From, Config) ->
   { reply, Config#elixir_code_server.compiler_options, Config };
 
+handle_call(compilation_status, _From, Config) ->
+  { reply, Config#elixir_code_server.compilation_status, Config };
+
 handle_call(retrieve_module_name, _From, Config) ->
   case Config#elixir_code_server.pool of
     [H|T] ->
@@ -79,6 +83,9 @@ handle_cast({ argv, Argv }, Config) ->
 handle_cast({ compiler_options, Options }, Config) ->
   Final = orddict:merge(fun(_,_,V) -> V end, Config#elixir_code_server.compiler_options, Options),
   { noreply, Config#elixir_code_server{compiler_options=Final} };
+
+handle_cast({ compilation_status, Value }, Config) ->
+  { noreply, Config#elixir_code_server{compilation_status=Value} };
 
 handle_cast({ loaded, Path }, Config) ->
   Current = Config#elixir_code_server.loaded,
