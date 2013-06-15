@@ -13,9 +13,9 @@
 -define(builtin, 'Elixir.Kernel').
 
 default_functions() ->
-  [ { ?builtin, ordsets:union(in_elixir_functions(), in_erlang_functions()) } ].
+  [ { ?builtin, elixir_imported_functions() } ].
 default_macros() ->
-  [ { ?builtin, ordsets:union(in_elixir_macros(), in_erlang_macros()) } ].
+  [ { ?builtin, elixir_imported_macros() } ].
 default_requires() ->
   [ ?builtin, 'Elixir.Kernel.Typespec', 'Elixir.Record' ].
 
@@ -312,13 +312,18 @@ get_optional_macros(Receiver) ->
     { error, _ } -> []
   end.
 
-%% Functions imported from Kernel module. Sorted on compilation.
-
-in_elixir_functions() ->
+elixir_imported_functions() ->
   try
     ?builtin:'__info__'(functions)
   catch
-    error:undef -> []
+    error:undef -> in_erlang_functions()
+  end.
+
+elixir_imported_macros() ->
+  try
+    ?builtin:'__info__'(macros)
+  catch
+    error:undef -> in_erlang_macros()
   end.
 
 %% Macros imported from Kernel module. Sorted on compilation.

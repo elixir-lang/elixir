@@ -28,7 +28,9 @@ defmodule Kernel do
       3
 
   """
-  defmacro left + right
+  def left + right do
+    :erlang.+(left, right)
+  end
 
   @doc """
   Arithmetic minus. Allowed in guard clauses.
@@ -39,7 +41,35 @@ defmodule Kernel do
       -1
 
   """
-  defmacro left - right
+  def left - right do
+    :erlang.-(left, right)
+  end
+
+  @doc """
+  Arithmetic unary plus. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> +1
+      1
+
+  """
+  def (+value) do
+    :erlang.+(value)
+  end
+
+  @doc """
+  Arithmetic unary minus. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> -2
+      -2
+
+  """
+  def (-value) do
+    :erlang.-(value)
+  end
 
   @doc """
   Arithmetic multiplication. Allowed in guard clauses.
@@ -50,7 +80,9 @@ defmodule Kernel do
       2
 
   """
-  defmacro left * right
+  def left * right do
+    :erlang.*(left, right)
+  end
 
   @doc """
   Arithmetic division. Differently from other languages,
@@ -65,7 +97,9 @@ defmodule Kernel do
       2.0
 
   """
-  defmacro left / right
+  def left / right do
+    :erlang./(left, right)
+  end
 
   @doc """
   Sends a message to the process identified on the left.
@@ -78,7 +112,9 @@ defmodule Kernel do
       process <- { :ok, "Sending myself a message" }
 
   """
-  defmacro pid <- msg
+  def pid <- msg do
+    :erlang.!(pid, msg)
+  end
 
   @doc """
   Concatenates two lists. Allowed in guard clauses.
@@ -92,7 +128,9 @@ defmodule Kernel do
       'foobar'
 
   """
-  defmacro left ++ right
+  def left ++ right do
+    :erlang.++(left, right)
+  end
 
   @doc """
   Removes the first occorrence of an item on the left
@@ -107,7 +145,9 @@ defmodule Kernel do
       [3,1]
 
   """
-  defmacro left -- right
+  def left -- right do
+    :erlang.--(left, right)
+  end
 
   @doc """
   Boolean or. Arguments must be booleans.
@@ -158,7 +198,9 @@ defmodule Kernel do
       true
 
   """
-  defmacro not arg
+  def not(arg) do
+    :erlang.not(arg)
+  end
 
   @doc """
   Receives any argument and returns true if it is false
@@ -177,7 +219,9 @@ defmodule Kernel do
       true
 
   """
-  defmacro !arg
+  def !(arg) do
+    arg == nil or arg == false
+  end
 
   @doc """
   Returns true if left is less than right.
@@ -189,7 +233,9 @@ defmodule Kernel do
       true
 
   """
-  defmacro left < right
+  def left < right do
+    :erlang.<(left, right)
+  end
 
   @doc """
   Returns true if left is more than right.
@@ -201,7 +247,9 @@ defmodule Kernel do
       false
 
   """
-  defmacro left > right
+  def left > right do
+    :erlang.>(left, right)
+  end
 
   @doc """
   Returns true if left is less than or equal to right.
@@ -213,7 +261,9 @@ defmodule Kernel do
       true
 
   """
-  defmacro left <= right
+  def left <= right do
+    :erlang."=<"(left, right)
+  end
 
   @doc """
   Returns true if left is more than or equal to right.
@@ -225,7 +275,9 @@ defmodule Kernel do
       false
 
   """
-  defmacro left >= right
+  def left >= right do
+    :erlang.>=(left, right)
+  end
 
   @doc """
   Returns true if the two items are equal.
@@ -244,7 +296,9 @@ defmodule Kernel do
       true
 
   """
-  defmacro left == right
+  def left == right do
+    :erlang.==(left, right)
+  end
 
   @doc """
   Returns true if the two items are not equal.
@@ -262,7 +316,9 @@ defmodule Kernel do
       false
 
   """
-  defmacro left != right
+  def left != right do
+    :erlang."/="(left, right)
+  end
 
   @doc """
   Returns true if the two items are strictly equal.
@@ -277,7 +333,9 @@ defmodule Kernel do
       false
 
   """
-  defmacro left === right
+  def left === right do
+    :erlang."=:="(left, right)
+  end
 
   @doc """
   Returns true if the two items are strictly not equal.
@@ -292,7 +350,9 @@ defmodule Kernel do
       true
 
   """
-  defmacro left !== right
+  def left !== right do
+    :erlang."=/="(left, right)
+  end
 
   @doc """
   Invokes the given `fun` with the array of arguments `args`.
@@ -303,7 +363,9 @@ defmodule Kernel do
       4
 
   """
-  defmacro apply(fun, args)
+  def apply(fun, args) do
+    :erlang.apply(fun, args)
+  end
 
   @doc """
   Invokes the given `fun` from `module` with the array of arguments `args`.
@@ -314,7 +376,9 @@ defmodule Kernel do
       [3,2,1]
 
   """
-  defmacro apply(module, fun, args)
+  def apply(module, fun, args) do
+    :erlang.apply(module, fun, args)
+  end
 
   @doc """
   Returns an integer or float which is the arithmetical absolute value of `number`.
@@ -1840,14 +1904,10 @@ defmodule Kernel do
       #=> #Function<...>
 
   """
-  defmacro inspect(arg, opts // []) do
-    quote do
-      arg = unquote(arg)
-      opts = unquote(opts)
-      case is_tuple(arg) && Keyword.get(opts, :raw, false) do
-        true  -> Binary.Inspect.Tuple.inspect(arg, opts)
-        false -> Binary.Inspect.inspect(arg, opts)
-      end
+  def inspect(arg, opts // []) do
+    case is_tuple(arg) and Keyword.get(opts, :raw, false) do
+      true  -> Binary.Inspect.Tuple.inspect(arg, opts)
+      false -> Binary.Inspect.inspect(arg, opts)
     end
   end
 
