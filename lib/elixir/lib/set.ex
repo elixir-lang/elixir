@@ -160,6 +160,13 @@ defmodule Set do
 
   @doc """
   Checks if set1's members are all contained in set2.
+
+  ## Examples
+
+      iex> Set.subset?(Set.new([1, 2]), Set.new([1, 2, 3]))
+      true
+      iex> Set.subset?(Set.new([1, 2, 3]), Set.new([1, 2]))
+      false
   """
   def subset?(set1, set2) do
     set_equal?(set1, set2)
@@ -167,6 +174,14 @@ defmodule Set do
 
   @doc """
   Checks if set1 and set2 have no members in common.
+
+  ## Examples
+
+      iex> Set.disjoint?(Set.new([1, 2]), Set.new([3, 4]))
+      true
+      iex> Set.disjoint?(Set.new([1, 2]), Set.new([2, 3]))
+      false
+
   """
   def disjoint?(set1, set2) do
     set_disjoint?(set1, set2)
