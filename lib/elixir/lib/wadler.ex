@@ -330,13 +330,17 @@ defmodule Wadler do
   Renders a simple document into a binary
   """
   @spec render(sdoc) :: binary
-  def render(SNil), do: ""
-  def render(SText[str: s, sdoc: d]), do: s <> render(d)
-  def render(SLine[indent: i, sdoc: d]) do
-    prefix = repeat " ", i
-    newline <> prefix <> render d
+  def render(sdoc) do
+    Enum.join do_render sdoc
   end
-
+  
+  @spec do_render(sdoc) :: [binary]
+  defp do_render(SNil), do: [""]
+  defp do_render(SText[str: s, sdoc: d]), do: [s | do_render(d)]
+  defp do_render(SLine[indent: i, sdoc: d]) do
+    prefix = repeat " ", i
+    [newline | [prefix | do_render d]]
+  end
 
   @doc """
   The pretty printing function.
