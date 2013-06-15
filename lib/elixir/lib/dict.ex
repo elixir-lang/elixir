@@ -387,7 +387,7 @@ defmodule Dict do
   end
 
   @doc """
-  Returns a new dict where the the given `keys` a removed from `dict`.
+  Returns a new dict where the given `keys` are removed from `dict`.
   Any non-member keys are ignored.
 
   ## Examples
