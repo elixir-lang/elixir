@@ -8,6 +8,9 @@ defmodule Mix.Tasks.Archive do
   zip file according to the specification of the
   [Erlang Archive Format](http://www.erlang.org/doc/man/code.html).
 
+  Archives are meant to bundle small projects, usually installed
+  locally.
+
   The file will be created in the current directory (which is expected
   to be the project root), unless an argument is supplied in which case
   the argument is expected to be the PATH where the file will be created.

@@ -3,6 +3,8 @@
 * enhancements
   * [Kernel] Add --warnings-as-errors to Elixir's compiler options
   * [Kernel] Print warnings to stderr
+  * [Mix] Implement `Mix.Version` for basic versioniong semantics
+  * [Mix] Support creation and installation of archives (.ez files)
 
 * bug fix
 
