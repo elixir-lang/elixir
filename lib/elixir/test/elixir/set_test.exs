@@ -35,9 +35,8 @@ defmodule SetTest do
   end
 
   test "difference with nodes" do
-    assert Set.difference(filled_set(20), filled_set(21)) == Set.new([])
-
-    assert Set.difference(filled_set(121), filled_set(120)) == Set.new([121])
+    assert Set.equal?(Set.difference(filled_set(20), filled_set(21)), Set.new([]))
+    assert Set.equal?(Set.difference(filled_set(121), filled_set(120)), Set.new([121]))
   end
 
   test "member? with ordered sets"  do
@@ -51,6 +50,12 @@ defmodule SetTest do
 
     assert Set.member?(filled_set(120), 90)
     refute Set.member?(filled_set(120), 200)
+  end
+
+  test :equal? do
+    assert Set.equal?(Set.new, Set.new)
+    assert Set.equal?(filled_set(20), Set.delete(filled_set(21), 21))
+    assert Set.equal?(filled_set(120), filled_set(120))
   end
 
   test :empty do
