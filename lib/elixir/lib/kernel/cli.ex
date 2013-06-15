@@ -198,6 +198,10 @@ defmodule Kernel.CLI do
     process_compiler t, config.update_compiler_options([{:ignore_module_conflict,true}|&1])
   end
 
+  defp process_compiler(["--warnings-as-errors"|t], config) do
+    process_compiler t, config.update_compiler_options([{:warnings_as_errors,true}|&1])
+  end
+
   defp process_compiler([h|t] = list, config) do
     case h do
       "-" <> _ ->
@@ -325,7 +329,10 @@ defmodule Kernel.CLI do
       Code.compiler_options(config.compiler_options)
       Kernel.ParallelCompiler.files_to_path(files, config.output,
         fn file -> IO.puts "Compiled #{file}" end)
-      :ok
+      case Code.compilation_status do
+        :ok -> :ok
+        :error -> System.halt(1)
+      end
     else
       { :error, "--compile : No files matched patterns #{Enum.join(patterns, ",")}" }
     end

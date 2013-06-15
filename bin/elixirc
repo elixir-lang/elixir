@@ -6,6 +6,7 @@ if [ $# -eq 0 ]; then
   --no-docs        Do not attach documentation to compiled modules
   --no-debug-info  Do not attach debug info to compiled modules
   --ignore-module-conflict
+  --warnings-as-errors Treat warnings as errors and return non-zero exit code
 
 ** Options given after -- are passed down to the executed code
 ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS" >&2
