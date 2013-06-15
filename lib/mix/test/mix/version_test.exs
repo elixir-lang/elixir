@@ -2,25 +2,25 @@ Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Mix.VersionTest do
   use   ExUnit.Case, async: true
-  alias Mix.Version.Requirement, as: R
+  alias Mix.Version.Parser, as: P
   alias Mix.Version, as: V
 
   test "lexes specifications properly" do
-    assert R.lexer("== != > >= < <= ~>", []) == [:'==', :'!=', :'>', :'>=', :'<', :'<=', :'~>']
-    assert R.lexer("2.3", []) == [:'==', "2.3"]
-    assert R.lexer("!2.3", []) == [:'!=', "2.3"]
-    assert R.lexer(">>=", []) == [:'>', :'>=']
-    assert R.lexer(">2.4", []) == [:'>', "2.4"]
-    assert R.lexer("    >     2.4", []) == [:'>', "2.4"]
+    assert P.lexer("== != > >= < <= ~>", []) == [:'==', :'!=', :'>', :'>=', :'<', :'<=', :'~>']
+    assert P.lexer("2.3", []) == [:'==', "2.3"]
+    assert P.lexer("!2.3", []) == [:'!=', "2.3"]
+    assert P.lexer(">>=", []) == [:'>', :'>=']
+    assert P.lexer(">2.4", []) == [:'>', "2.4"]
+    assert P.lexer("    >     2.4", []) == [:'>', "2.4"]
   end
 
   test "lexer gets verified properly" do
-    assert R.valid?(R.lexer("2.3", []))
-    refute R.valid?(R.lexer("> >= 2.3", []))
-    refute R.valid?(R.lexer("> 2.3 and", []))
-    refute R.valid?(R.lexer("> 2.3 or and 4.3", []))
-    assert R.valid?(R.lexer("> 2.4 and 4.5", []))
-    refute R.valid?(R.lexer("& 1.0.0", []))
+    assert P.valid_requirement?(P.lexer("2.3", []))
+    refute P.valid_requirement?(P.lexer("> >= 2.3", []))
+    refute P.valid_requirement?(P.lexer("> 2.3 and", []))
+    refute P.valid_requirement?(P.lexer("> 2.3 or and 4.3", []))
+    assert P.valid_requirement?(P.lexer("> 2.4 and 4.5", []))
+    refute P.valid_requirement?(P.lexer("& 1.0.0", []))
   end
 
   test "matches properly" do

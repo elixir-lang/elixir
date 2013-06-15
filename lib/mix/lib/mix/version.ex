@@ -1,8 +1,12 @@
 defmodule Mix.Version do
-  defexception InvalidRequirement, reason: :invalid_specification do
+  @type matchable :: { major :: String.t | non_neg_integer,
+                       minor :: non_neg_integer | nil,
+                       patch :: non_neg_integer | nil,
+                       pre   :: { String.t, non_neg_integer } | nil }
+
+  defexception InvalidRequirement, reason: :invalid_requirement do
     def message(InvalidRequirement[reason: reason]) when is_binary(reason) do
       { first, rest } = String.next_grapheme(reason)
-
       String.downcase(first) <> rest
     end
 
@@ -12,6 +16,7 @@ defmodule Mix.Version do
   end
 
   defrecord Schema, major: 0, minor: 0, patch: 0, build: nil, source: nil
+  defrecord Requirement, source: nil, matchspec: nil
 
   import Kernel, except: [match?: 2]
 
@@ -20,10 +25,9 @@ defmodule Mix.Version do
   """
   @spec match?(String.t | Mix.Version.Requirement.t, String.t | Schema.t) :: boolean
   def match?(spec, version) when is_binary(spec) do
-    case Mix.Version.Requirement.parse(spec) do
+    case Mix.Version.Parser.parse_requirement(spec) do
       { :ok, spec } ->
         match?(spec, version)
-
       { :error, reason } ->
         raise InvalidRequirement, reason: reason
     end
@@ -33,8 +37,13 @@ defmodule Mix.Version do
     match?(spec, parse(version))
   end
 
-  def match?(spec, Mix.Version.Schema[] = version) do
-    Mix.Version.Requirement.match?(spec, to_matchable(version))
+  def match?(Requirement[matchspec: spec], Schema[] = version) do
+    case :ets.test_ms(to_matchable(version), spec) do
+      { :ok, result } ->
+        result != false
+      { :error, reason } ->
+        raise InvalidRequirement, reason: reason
+    end
   end
 
   @doc """
@@ -58,7 +67,7 @@ defmodule Mix.Version do
   """
   @spec valid?(String.t | Schema.t) :: boolean
   def valid?(string) when is_binary(string) do
-    Regex.match? %r/^\d+(\.\d+(\.\d+)?)?([\-+][^\s]+)?$/, string
+    Mix.Version.Parser.valid_version?(string)
   end
 
   def valid?(Mix.Version.Schema[major: nil]), do: false
@@ -85,27 +94,9 @@ defmodule Mix.Version do
   """
   @spec parse(String.t) :: { :ok, Schema.t } | { :error, term }
   def parse(string) when is_binary(string) do
-    if valid?(string) do
-      destructure [_, major, minor, patch, build],
-        Regex.run %r/^(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:[\-+]([^\s]+))?$/, string
-
-      major = binary_to_integer(major)
-      minor = binary_to_integer(minor || "0")
-      patch = binary_to_integer(patch || "0")
-      build = case build && Regex.run(%r/^(.*?)(\d+)?$/, build) do
-        [_, build] ->
-          { build, 0 }
-
-        [_, build, number] ->
-          { build, binary_to_integer(number) }
-
-        nil ->
-          nil
-      end
-
-      Mix.Version.from_matchable({ major, minor, patch, build })
-    else
-      Mix.Version.Schema[source: string]
+    case Mix.Version.Parser.parse_version(string) do
+      { :ok, matchable } -> from_matchable(matchable)
+      { :error, _ } -> Mix.Version.Schema[source: string]
     end
   end
 
@@ -128,7 +119,7 @@ defmodule Mix.Version do
       {"1.0.3.4",nil,nil,nil}
 
   """
-  @spec to_matchable(String.t | Schema.t) :: Mix.Version.Requirement.matchable
+  @spec to_matchable(String.t | Schema.t) :: Mix.Version.matchable
   def to_matchable(Schema[major: nil, source: source]) do
     { source, nil, nil, nil }
   end
@@ -156,7 +147,7 @@ defmodule Mix.Version do
   @doc """
   Convert a matchable to a `Mix.Version`.
   """
-  @spec from_matchable(Mix.Version.Requirement.matchable) :: Schema.t
+  @spec from_matchable(Mix.Version.matchable) :: Schema.t
   def from_matchable({ source, nil, nil, nil }) when is_binary(source) do
     Mix.Version.Schema[source: source]
   end
@@ -180,7 +171,9 @@ defmodule Mix.Version do
     Mix.Version.Schema[major: major, minor: minor, patch: patch, build: build, source: source]
   end
 
-  defmodule Requirement.DSL do
+  defmodule Parser.DSL do
+    @moduledoc false
+
     defmacro deflexer(match, do: body) when is_binary(match) do
       quote do
         def lexer(unquote(match) <> rest, acc) do
@@ -208,49 +201,10 @@ defmodule Mix.Version do
     end
   end
 
-  defmodule Requirement do
-    @opaque t :: record
+  defmodule Parser do
+    @moduledoc false
+    import Parser.DSL
 
-    @type matchable :: { major :: String.t | non_neg_integer,
-                         minor :: non_neg_integer | nil,
-                         patch :: non_neg_integer | nil,
-                         pre   :: { String.t, non_neg_integer } | nil }
-
-    defrecordp :requirement, source: nil, matchspec: nil
-
-    @spec parse(String.t) :: t
-    def parse(source) do
-      lexed = lexer(source, [])
-
-      if valid?(lexed) do
-        spec = to_matchspec(lexed)
-
-        case :ets.test_ms({}, spec) do
-          { :ok, _ } ->
-            { :ok, requirement(source: source, matchspec: spec) }
-
-          { :error, [error: reason] } ->
-            { :error, to_binary(reason) }
-        end
-      else
-        { :error, :invalid_specification }
-      end
-    end
-
-    @spec match?(t, matchable) :: boolean | no_return
-    def match?(requirement(matchspec: spec), version) do
-      case :ets.test_ms(version, spec) do
-        { :ok, result } ->
-          result != false
-
-        { :error, reason } ->
-          raise InvalidRequirement, reason: reason
-      end
-    end
-
-    import Requirement.DSL
-
-    @doc false
     deflexer ">=",    do: :'>='
     deflexer "<=",    do: :'<='
     deflexer "~>",    do: :'~>'
@@ -284,62 +238,111 @@ defmodule Mix.Version do
       Enum.filter(Enum.reverse(acc), &1 != :' ')
     end
 
-    @doc """
-    Checks if the version specification is valid.
-    """
-    @spec valid?(list) :: boolean
-    def valid?([]) do
+    @version_regex %r/^(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:[\-+]([^\s]+))?$/
+
+    @spec parse_requirement(String.t) :: { :ok, Mix.Version.Requirement.t } | { :error, binary | atom }
+    def parse_requirement(source) do
+      lexed = lexer(source, [])
+
+      if valid_requirement?(lexed) do
+        spec = to_matchspec(lexed)
+
+        case :ets.test_ms({}, spec) do
+          { :ok, _ } ->
+            { :ok, Requirement[source: source, matchspec: spec] }
+
+          { :error, [error: reason] } ->
+            { :error, to_binary(reason) }
+        end
+      else
+        { :error, :invalid_requirement }
+      end
+    end
+
+    @spec parse_version(String.t) :: { :ok, Mix.Version.matchable } | { :error, :invalid_version }
+    def parse_version(string) when is_binary(string) do
+      if valid_version?(string) do
+        destructure [_, major, minor, patch, build], Regex.run(@version_regex, string)
+
+        major = binary_to_integer(major)
+        minor = binary_to_integer(minor || "0")
+        patch = binary_to_integer(patch || "0")
+        build = build && parse_build(build)
+
+        { :ok, { major, minor, patch, build } }
+      else
+        { :error, :invalid_version }
+      end
+    end
+
+    defp parse_build(build) do
+      case Regex.run(%r/^(.*?)(\d+)?$/, build) do
+        [_, build] ->
+          { build, 0 }
+
+        [_, build, number] ->
+          { build, binary_to_integer(number) }
+      end
+    end
+
+    @spec valid_requirement?(list) :: boolean
+    def valid_requirement?([]) do
       false
     end
 
-    def valid?([a | next]) do
-      valid?(a, next)
+    def valid_requirement?([a | next]) do
+      valid_requirement?(a, next)
     end
 
     # it must finish with a version
-    defp valid?(a, []) when is_binary(a) do
+    defp valid_requirement?(a, []) when is_binary(a) do
       true
     end
 
     # version version
-    defp valid?(a, [b | _]) when is_binary(a) and is_binary(b) do
+    defp valid_requirement?(a, [b | _]) when is_binary(a) and is_binary(b) do
       false
     end
 
     # or <op> | and <op>
-    defp valid?(a, [b | next]) when is_atom(a) and is_atom(b) and a in [:'||', :'&&'] do
-      valid?(b, next)
+    defp valid_requirement?(a, [b | next]) when is_atom(a) and is_atom(b) and a in [:'||', :'&&'] do
+      valid_requirement?(b, next)
     end
 
     # <version> or | <version> and
-    defp valid?(a, [b | next]) when is_binary(a) and is_atom(b) and b in [:'||', :'&&'] do
-      valid?(b, next)
+    defp valid_requirement?(a, [b | next]) when is_binary(a) and is_atom(b) and b in [:'||', :'&&'] do
+      valid_requirement?(b, next)
     end
 
     # or <version> | and <version>
-    defp valid?(a, [b | next]) when is_atom(a) and is_binary(b) and a in [:'||', :'&&'] do
-      valid?(b, next)
+    defp valid_requirement?(a, [b | next]) when is_atom(a) and is_binary(b) and a in [:'||', :'&&'] do
+      valid_requirement?(b, next)
     end
 
     # <op> <version>; also checks operators work on valid versions
-    defp valid?(a, [b | next]) when is_atom(a) and is_binary(b) do
-      if Mix.Version.valid?(b) do
-        valid?(b, next)
+    defp valid_requirement?(a, [b | next]) when is_atom(a) and is_binary(b) do
+      if valid_version?(b) do
+        valid_requirement?(b, next)
       else
         if a in [:'==', :'!='] and Regex.match? %r/^\w/, b do
-          valid?(b, next)
+          valid_requirement?(b, next)
         else
           false
         end
       end
     end
 
-    defp valid?(_, _) do
+    defp valid_requirement?(_, _) do
       false
     end
 
+    @spec valid_version?(String.t) :: boolean
+    def valid_version?(string) do
+      Regex.match? %r/^\d+(\.\d+(\.\d+)?)?([\-+][^\s]+)?$/, string
+    end
+
     defp approximate(version) do
-      Mix.Version.from_matchable(case Regex.run %r/^(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:[\-+]([^\s]+))?$/, version do
+      Mix.Version.from_matchable(case Regex.run(@version_regex, version) do
         [_, major] ->
           { binary_to_integer(major) + 1, 0, 0, nil }
 
