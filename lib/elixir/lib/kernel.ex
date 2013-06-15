@@ -1648,7 +1648,7 @@ defmodule Kernel do
 
   """
   def left =~ right when is_binary(left) and is_binary(right) do
-    String.contains?(left, right)
+    :binary.match(left, right) != :nomatch
   end
 
   def left =~ right when is_binary(left) and is_tuple(right) and :erlang.element(1, right) == Regex do
