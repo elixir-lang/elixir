@@ -107,6 +107,7 @@ defmodule Mix.Tasks.New do
    /ebin
    /deps
    erl_crash.dump
+   *.ez
    """
 
   embed_template :mixfile, """
