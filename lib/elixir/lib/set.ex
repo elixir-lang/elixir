@@ -174,8 +174,9 @@ defmodule Set do
     end
   end
 
-  defp set_difference(ordered(bucket: bucket1), ordered(bucket: bucket2)) do
-    new(bucket_difference(bucket1, bucket2))
+  defp set_difference(ordered(bucket: bucket1, size: size), ordered(bucket: bucket2)) do
+    { new, count } = bucket_difference(bucket1, bucket2)
+    ordered(bucket: new, size: size - count)
   end
 
   defp set_difference(trie(size: size1) = set1, set2) do
@@ -264,13 +265,11 @@ defmodule Set do
   end
 
   defp bucket_intersect([m1 | _] = bucket1, [m2 | bucket2]) when m1 > m2 do
-    { new, count } = bucket_intersect(bucket1, bucket2)
-    { new, count }
+    bucket_intersect(bucket1, bucket2)
   end
 
   defp bucket_intersect([_ | bucket1], bucket2) do
-    { new, count } = bucket_intersect(bucket1, bucket2)
-    { new, count }
+    bucket_intersect(bucket1, bucket2)
   end
 
   defp bucket_intersect([], _) do
@@ -282,11 +281,13 @@ defmodule Set do
   end
 
   defp bucket_difference([m | bucket1], [m | bucket2]) do
-    bucket_difference(bucket1, bucket2)
+    { new, count } = bucket_difference(bucket1, bucket2)
+    { new, count + 1 }
   end
 
   defp bucket_difference([m1 | bucket1], [m2 | _] = bucket2) when m1 < m2 do
-    [m1 | bucket_difference(bucket1, bucket2)]
+    { new, count } = bucket_difference(bucket1, bucket2)
+    { [m1 | new], count }
   end
 
   defp bucket_difference([m1 | _]= bucket1, [m2 | bucket2]) when m1 > m2 do
@@ -294,11 +295,11 @@ defmodule Set do
   end
 
   defp bucket_difference([], bucket) do
-    []
+    { [], 0 }
   end
 
   defp bucket_difference(bucket, []) do
-    bucket
+    { bucket, 0 }
   end
 
   defp bucket_put([m|_]=bucket, { :put, member }) when m > member do
