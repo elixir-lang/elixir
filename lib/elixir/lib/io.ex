@@ -126,6 +126,17 @@ defmodule IO do
   end
 
   @doc """
+  Writes the given arguments to stderr as a warning.
+
+  If `--warnings-as-errors` is true and this function is
+  called during compilation, compilation will fail.
+  """
+  def warn(item) do
+    :elixir_code_server.cast({ :compilation_status, :error })
+    :io.put_chars :standard_error, [to_iodata(item), ?\n]
+  end
+
+  @doc """
   Inspects and writes the given argument to the device
   followed by a new line. A set of options can be given.
 

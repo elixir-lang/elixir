@@ -61,13 +61,6 @@ macro_file_test() ->
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo']).
 
-private_test() ->
-  F = fun() ->
-    eval("defmodule Foo do\ndefp version, do: __MODULE__\nend"),
-    ?assertError(undef, eval("Foo.version"))
-  end,
-  test_helper:run_and_remove(F, ['Elixir.Foo']).
-
 def_default_test() ->
   F = fun() ->
     eval("defmodule Foo do\ndef version(x // 1), do: x\nend"),

@@ -77,12 +77,8 @@ deprecation(Meta, File, Message, Args) ->
 
 %% output warning based on warnings going to stdout or stderr.
 output_warning(Warning) ->
-  case elixir_compiler:get_opt(warnings_as_errors) of
-    true ->
-      io:format(standard_error, Warning, []),
-      elixir_code_server:cast({ compilation_status, error });
-    false -> io:format(Warning)
-  end.
+  elixir_code_server:cast({ compilation_status, error }),
+  io:format(standard_error, Warning, []).
 
 %% Ignore on bootstrap
 handle_file_warning(true, _File, { _Line, sys_core_fold, nomatch_guard }) -> [];

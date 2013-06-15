@@ -280,7 +280,7 @@ defmodule IEx.HelpersTest do
 
     filename = "sample.ex"
     with_file filename, test_module_code, fn ->
-      assert capture_io(:stdio, fn ->
+      assert capture_io(:stderr, fn ->
         assert c(filename) == [Sample]
         assert Sample.run == :run
 

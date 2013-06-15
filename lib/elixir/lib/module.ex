@@ -836,7 +836,7 @@ defmodule Module do
       :ok ->
         :ok
       { :error, :private_doc } ->
-        IO.puts "#{env.file}:#{line} function #{name}/#{arity} is private, @doc's are always discarded for private functions"
+        IO.warn "#{env.file}:#{line} function #{name}/#{arity} is private, @doc's are always discarded for private functions"
     end
 
     delete_attribute(module, :doc)

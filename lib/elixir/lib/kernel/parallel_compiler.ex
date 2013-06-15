@@ -38,7 +38,9 @@ defmodule Kernel.ParallelCompiler do
 
   defp spawn_compilers(files, path, callback) do
     Code.ensure_loaded(Kernel.ErrorHandler)
+    :elixir_code_server.cast({ :compilation_status, :ok })
     schedulers = max(:erlang.system_info(:schedulers_online), 2)
+
     result = spawn_compilers(files, path, callback, [], [], schedulers, [])
     case :elixir_code_server.call(:compilation_status) do
       :ok    -> result

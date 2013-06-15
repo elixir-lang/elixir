@@ -60,7 +60,8 @@ handle_call(compiler_options, _From, Config) ->
   { reply, Config#elixir_code_server.compiler_options, Config };
 
 handle_call(compilation_status, _From, Config) ->
-  { reply, Config#elixir_code_server.compilation_status, Config };
+  { reply, Config#elixir_code_server.compilation_status,
+    Config#elixir_code_server{compilation_status=ok} };
 
 handle_call(retrieve_module_name, _From, Config) ->
   case Config#elixir_code_server.pool of

@@ -15,11 +15,11 @@ defmodule KernelTest do
       string =~ ["^a", "*$"]
     end
 
-    assert_raise ArgumentError, "argument error", fn ->
+    assert_raise FunctionClauseError, "no function clause matching in String.contains?/2", fn ->
       1234 =~ "hello"
     end
 
-    assert_raise ArgumentError, "argument error", fn ->
+    assert_raise FunctionClauseError, fn ->
       1234 =~ %r"hello"
     end
   end

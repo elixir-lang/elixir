@@ -79,7 +79,7 @@ operators_variables_precedence_test() ->
 
 operators_variables_precedence_on_namespaces_test() ->
   F = fun() ->
-    eval("defmodule Foo do; def l, do: 1; end; defmodule Bar do; def l(x), do: 1; end"),
+    eval("defmodule Foo do; def l, do: 1; end; defmodule Bar do; def l(_x), do: 1; end"),
     {3,[]} = eval("1 + Foo.l + 1"),
     {3,[]} = eval("1 + Foo.l+1"),
     {2,[]} = eval("1 + Bar.l +1")

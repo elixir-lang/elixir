@@ -207,17 +207,6 @@ defmodule Exception do
     end
   end
 
-  @doc """
-  Prints the current stacktrace to standard output.
-
-  A stacktrace must be given as argument. If not, this function
-  calculates the current stacktrace and formats it. As consequence,
-  the value of `System.stacktrace` is changed.
-  """
-  def print_stacktrace(trace // nil) do
-    IO.write format_stacktrace(trace)
-  end
-
   ## Helpers
 
   # Format fun and arity

@@ -5,8 +5,12 @@ defmodule Kernel.WarningTest do
 
   import ExUnit.CaptureIO
 
+  defp capture_err(fun) do
+    capture_io(:stderr, fun)
+  end
+
   test :unused_variable do
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         def hello(arg), do: nil
@@ -18,7 +22,7 @@ defmodule Kernel.WarningTest do
   end
 
   test :unused_function do
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample1 do
         defp hello, do: nil
@@ -26,7 +30,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "function hello/0 is unused"
 
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample2 do
         defp hello(0), do: hello(1)
@@ -35,7 +39,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "function hello/1 is unused"
 
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample3 do
         def a, do: nil
@@ -51,7 +55,7 @@ defmodule Kernel.WarningTest do
   end
 
   test :unused_cyclic_functions do
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         defp a, do: b
@@ -64,7 +68,7 @@ defmodule Kernel.WarningTest do
   end
 
   test :unused_macro do
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         defmacrop hello, do: nil
@@ -76,7 +80,7 @@ defmodule Kernel.WarningTest do
   end
 
   test :unused_default_args do
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample1 do
         def a, do: b(1,2,3)
@@ -85,7 +89,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "default arguments in b/3 are never used"
 
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample2 do
         def a, do: b(1,2)
@@ -94,7 +98,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "the first 2 default arguments in b/3 are never used"
 
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample3 do
         def a, do: b(1)
@@ -103,7 +107,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "the first default argument in b/3 is never used"
 
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample4 do
         def a, do: b(1)
@@ -116,7 +120,7 @@ defmodule Kernel.WarningTest do
   end
 
   test :unused_import do
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample1 do
         def hello, do: nil
@@ -133,7 +137,7 @@ defmodule Kernel.WarningTest do
   end
 
   test :clause_not_match do
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         def hello, do: nil
@@ -146,7 +150,7 @@ defmodule Kernel.WarningTest do
   end
 
   test :clause_with_defaults_should_be_first do
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         def hello(arg), do: nil
@@ -159,7 +163,7 @@ defmodule Kernel.WarningTest do
   end
 
   test :multiple_clauses_with_defaults do
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         def hello(arg // 0), do: nil
@@ -172,7 +176,7 @@ defmodule Kernel.WarningTest do
   end
 
   test :unused_with_local_with_overridable do
-    assert capture_io(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         def hello, do: world
@@ -187,7 +191,7 @@ defmodule Kernel.WarningTest do
   end
 
   test :used_with_local_with_reattached_overridable do
-    assert nil? capture_io(fn ->
+    assert nil? capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         def hello, do: world
