@@ -329,10 +329,6 @@ defmodule Kernel.CLI do
       Code.compiler_options(config.compiler_options)
       Kernel.ParallelCompiler.files_to_path(files, config.output,
         fn file -> IO.puts "Compiled #{file}" end)
-      case Code.compilation_status do
-        :ok -> :ok
-        :error -> System.halt(1)
-      end
     else
       { :error, "--compile : No files matched patterns #{Enum.join(patterns, ",")}" }
     end

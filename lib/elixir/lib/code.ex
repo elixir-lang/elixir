@@ -258,6 +258,7 @@ defmodule Code do
                     code, for such reasons, false by default;
   * `:ignore_module_conflict` - when true, override modules that were already defined
                                 without raising errors, false by default;
+  * `:warnings_as_errors` - cause compilation to fail when warnings are spewed;
 
   """
   def compiler_options(opts) do
@@ -282,14 +283,6 @@ defmodule Code do
   """
   def compile_quoted(quoted, file // "nofile") when is_binary(file) do
     :elixir_compiler.quoted [quoted], file
-  end
-
-  @doc """
-  Loads the compile status from the code server. Returns :ok if all is
-  well. Returns :error if an error has ben generated.
-  """
-  def compilation_status do
-    :elixir_code_server.call :compilation_status
   end
 
   @doc """

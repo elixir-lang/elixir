@@ -1,3 +1,5 @@
+defexception Kernel.CompilationError, message: "compilation failed"
+
 defmodule Kernel.ParallelCompiler do
   alias :orddict, as: OrdDict
 
@@ -14,6 +16,10 @@ defmodule Kernel.ParallelCompiler do
   detect dependencies between them. Once a dependency is found,
   the current file stops being compiled until the dependency is
   resolved.
+
+  If there is any error during compilation or if warnings_as_errors
+  is set to true and there is a warning, this function will fail
+  with an exception.
 
   A callback that is invoked every time a file is compiled
   with its name can be optionally given as argument.
@@ -33,7 +39,11 @@ defmodule Kernel.ParallelCompiler do
   defp spawn_compilers(files, path, callback) do
     Code.ensure_loaded(Kernel.ErrorHandler)
     schedulers = max(:erlang.system_info(:schedulers_online), 2)
-    spawn_compilers(files, path, callback, [], [], schedulers, [])
+    result = spawn_compilers(files, path, callback, [], [], schedulers, [])
+    case :elixir_code_server.call(:compilation_status) do
+      :ok    -> result
+      :error -> raise Kernel.CompilationError, [], []
+    end
   end
 
   # We already have 4 currently running, don't spawn new ones

@@ -84,12 +84,30 @@ end
 
 defmodule Kernel.CLI.ParallelCompilerTest do
   use ExUnit.Case, async: true
+
   import PathHelpers
+  import ExUnit.CaptureIO
 
   test :files do
     fixtures = [fixture_path("compile_sample.ex")]
     assert [{ CompileSample, binary }] = Kernel.ParallelCompiler.files fixtures
     assert is_binary(binary)
+  end
+
+  test :warnings_as_errors do
+    warnings_as_errors = Code.compiler_options[:warnings_as_errors]
+
+    try do
+      Code.compiler_options(warnings_as_errors: true)
+
+      assert_raise Kernel.CompilationError, fn ->
+        capture_io :stderr, fn ->
+          Kernel.ParallelCompiler.files [fixture_path("warnings_sample.ex")]
+        end
+      end
+    after
+      Code.compiler_options(warnings_as_errors: warnings_as_errors)
+    end
   end
 
   test :compile_code do
