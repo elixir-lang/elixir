@@ -131,12 +131,6 @@ defmodule ListDict do
     end
   end
 
-  @doc """
-  Splits a dict into two dicts,
-  one containing entries with key in the keys list,
-  and another containing entries with key not in keys.
-  Returns a 2-tuple of the new dicts.
-  """
   def split(dict, keys) do
     acc = { new(), new() }
     Enum.reduce dict, acc, fn({ k, v }, { take, drop }) ->
@@ -148,18 +142,10 @@ defmodule ListDict do
     end
   end
 
-  @doc """
-  Returns a new dict with only the entries
-  which key is in keys
-  """
   def take(dict, keys) do
     lc { k, _ } = tuple inlist dict, :lists.member(k, keys), do: tuple
   end
 
-  @doc """
-  Returns a new dict with only the entries
-  which key is not in keys
-  """
   def drop(dict, keys) do
     lc { k, _ } = tuple inlist dict, not :lists.member(k, keys), do: tuple
   end

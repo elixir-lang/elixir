@@ -270,12 +270,6 @@ defmodule HashDict do
     end
   end
 
-  @doc """
-  Splits a dict into two dicts,
-  one containing entries with key in the keys list,
-  and another containing entries with key not in keys.
-  Returns a 2-tuple of the new dicts.
-  """
   def split(dict, keys) do
     split(keys, new, dict)
   end
@@ -291,10 +285,6 @@ defmodule HashDict do
     end
   end
 
-  @doc """
-  Returns a new dict with only the entries
-  which key is in keys.
-  """
   def take(dict, keys) do
     take(dict, keys, new)
   end
@@ -307,10 +297,6 @@ defmodule HashDict do
     end
   end
 
-  @doc """
-  Returns a new dict with only the entries
-  which key is not in keys
-  """
   def drop(dict, []), do: dict
 
   def drop(dict, [key|keys]) do
