@@ -32,16 +32,15 @@ defmodule Mix.Task do
   """
   def load_paths(paths) do
     Enum.reduce(paths, [], fn(path, matches) ->
-      {:ok, files} = :erl_prim_loader.list_dir(path)
-      matches ++ Enum.reduce(files, [], match_tasks(&1, &2))
+      { :ok, files } = :erl_prim_loader.list_dir(path |> :unicode.characters_to_list)
+      Enum.reduce(files, matches, match_tasks(&1, &2))
     end)
   end
 
   defp match_tasks(file_name, modules) do
     if Regex.match?(%r/Elixir\.Mix\.Tasks\..*\.beam/, file_name) do
       mod = Path.rootname(file_name, '.beam') |> list_to_atom
-      if Code.ensure_loaded?(mod), do: [mod | modules],
-      else: modules
+      if Code.ensure_loaded?(mod), do: [mod | modules], else: modules
     else
       modules
     end
