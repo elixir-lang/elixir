@@ -23,9 +23,14 @@ find_import(Meta, Name, Arity, S) ->
   Tuple = { Name, Arity },
 
   case find_dispatch(Meta, Tuple, S) of
-    { function, Receiver } -> Receiver;
-    { macro, Receiver } -> Receiver;
-    _ -> false
+    { function, Receiver } ->
+      elixir_tracker:record_import(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
+      Receiver;
+    { macro, Receiver } ->
+      elixir_tracker:record_import(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
+      Receiver;
+    _ ->
+      false
   end.
 
 %% Function retrieval

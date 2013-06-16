@@ -49,7 +49,6 @@ defmodule Kernel.WarningTest do
       end
       """
     end) =~ "function c/2 is unused"
-
   after
     purge [Sample1, Sample2, Sample3]
   end
@@ -132,6 +131,27 @@ defmodule Kernel.WarningTest do
       end
       """
     end) =~ "unused import Sample1"
+  after
+    purge [Sample1, Sample2]
+  end
+
+  test :used_import_via_alias do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample1 do
+        import List, only: [flatten: 1]
+
+        defmacro generate do
+          List.duplicate(quote(do: flatten([1,2,3])), 100)
+        end
+      end
+
+      defmodule Sample2 do
+        import Sample1
+        generate
+      end
+      """
+    end) == nil
   after
     purge [Sample1, Sample2]
   end
