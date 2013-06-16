@@ -239,7 +239,7 @@ defmodule Code do
 
   @doc """
   Loads the compilation options from the code server.
-  Check compiler_options/1 for more information.
+  Check `compiler_options/1` for more information.
   """
   def compiler_options do
     :elixir_code_server.call :compiler_options
