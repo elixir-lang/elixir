@@ -106,7 +106,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push OutOfDateDepsApp
 
     in_fixture "deps_status", fn ->
-      assert_raise Mix.OutOfDateDepsError, "Some dependencies are out of date, please run `MIX_ENV=dev mix deps.get` to proceed", fn ->
+      assert_raise Mix.OutOfDateDepsError, fn ->
         Mix.Tasks.Deps.Check.run []
       end
 
@@ -257,7 +257,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
 
       Mix.Tasks.Deps.Update.run []
-      assert_received { :mix_shell, :info, ["* Updating deps_repo [path: \"custom/deps_repo\"]"] }
+      assert_received { :mix_shell, :info, ["* Updating deps_repo (0.1.0) [path: \"custom/deps_repo\"]"] }
     end
   after
     purge [GitRepo, GitRepo.Mix, DepsRepo]
@@ -288,10 +288,14 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
 
+      # Make sure retriever uses converger
+      refute_received { :mix_shell, :info, [^message] }
+
       Mix.Task.clear
       Mix.Tasks.Deps.Update.run []
-      assert_received { :mix_shell, :info, ["* Updating deps_repo [path: \"custom/deps_repo\"]"] }
-      assert_received { :mix_shell, :info, ["* Updating bad_deps_repo [path: \"custom/bad_deps_repo\"]"] }
+
+      assert_received { :mix_shell, :info, ["* Updating deps_repo (0.1.0) [path: \"custom/deps_repo\"]"] }
+      assert_received { :mix_shell, :info, ["* Updating bad_deps_repo (0.1.0) [path: \"custom/bad_deps_repo\"]"] }
 
       Mix.Tasks.Deps.Check.run []
     end
@@ -310,6 +314,23 @@ defmodule Mix.Tasks.DepsTest do
     end
   after
     purge [GitRepo, GitRepo.Mix, DepsRepo, BadDepsRepo]
+    Mix.Project.pop
+  end
+
+  test "update parent dependencies" do
+    Mix.Project.push NestedDepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Get.run []
+      Mix.Task.clear
+      Mix.Tasks.Deps.Update.run ["git_repo"]
+
+      message = "* Updating git_repo (0.1.0) [git: \"#{fixture_path("git_repo")}\"]"
+      assert_received { :mix_shell, :info, [^message] }
+      assert_received { :mix_shell, :info, ["* Updating deps_repo (0.1.0) [path: \"custom/deps_repo\"]"] }
+    end
+  after
+    purge [GitRepo, GitRepo.Mix, DepsRepo]
     Mix.Project.pop
   end
 end

@@ -23,10 +23,8 @@ defmodule List.Chars.NumberTest do
     assert to_char_list(1) == '1'
   end
 
-  unless :erlang.system_info(:otp_release) < 'R16' do
-    test :float do
-      assert to_char_list(1.0) == '1.0'
-    end
+  test :float do
+    assert to_char_list(1.0) == '1.0'
   end
 end
 

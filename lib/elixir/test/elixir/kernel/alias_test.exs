@@ -11,9 +11,9 @@ defmodule Kernel.AliasTest do
 
   test :alias_erlang do
     alias :lists, as: MyList
-    assert MyList.flatten([1,[2],3]) == [1,2,3]
-    assert Elixir.MyList.Bar == :"Elixir-MyList-Bar"
-    assert MyList.Bar == :"Elixir-lists-Bar"
+    assert MyList.flatten([1, [2], 3]) == [1, 2, 3]
+    assert Elixir.MyList.Bar == :"Elixir.MyList.Bar"
+    assert MyList.Bar == :"Elixir.lists.Bar"
   end
 
   test :double_alias do
@@ -34,7 +34,7 @@ defmodule Kernel.AliasTest do
       alias ABC, as: List
     end
 
-    assert List.flatten([1,[2],3]) == [1,2,3]
+    assert List.flatten([1, [2], 3]) == [1, 2, 3]
   end
 
   defmodule Elixir do

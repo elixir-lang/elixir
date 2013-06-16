@@ -1,5 +1,5 @@
-%% Handle code related to rocket args, guard and -> matching
-%% for case, fn, receive and friends. try is handled in elixir_try.
+%% Handle code related to args, guard and -> matching for case,
+%% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
 -export([
   assigns/3, assigns_block/5, assigns_block/6, extract_last_guards/1,
@@ -14,7 +14,7 @@ get_pairs(Meta, Key, Clauses, S) ->
 get_pairs(Meta, Key, Clauses, S, AllowNil) ->
   case lists:keyfind(Key, 1, Clauses) of
     { Key, { '->', _, Pairs } } ->
-      [{ Key, Left, Right } || { Left, Right } <- Pairs];
+      [{ Key, PMeta, Left, Right } || { Left, PMeta, Right } <- Pairs];
     { Key, nil } when AllowNil ->
       [];
     { Key, _ } ->
@@ -95,15 +95,15 @@ match(Meta, Clauses, #elixir_scope{clause_vars=C1} = S) ->
 do_match(_Meta, [], S) ->
   { [], S };
 
-do_match(Meta, [DecoupledClause], S) ->
-  { TDecoupledClause, TS } = each_clause(Meta, DecoupledClause, S),
+do_match(_Meta, [DecoupledClause], S) ->
+  { TDecoupledClause, TS } = each_clause(DecoupledClause, S),
   { [TDecoupledClause], TS };
 
 do_match(Meta, DecoupledClauses, S) ->
   % Transform tree just passing the variables counter forward
   % and storing variables defined inside each clause.
   Transformer = fun(X, {Acc, CV}) ->
-    { TX, TAcc } = each_clause(Meta, X, Acc),
+    { TX, TAcc } = each_clause(X, Acc),
     { TX, { merge_clauses_scope(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
   end,
 
@@ -163,21 +163,21 @@ expand_clauses(_Line, [], [], _FinalVars, Acc, S) ->
 
 % Handle each key/value clause pair and translate them accordingly.
 
-each_clause(Meta, { do, [Condition], Expr }, S) ->
+each_clause({ do, Meta, [Condition], Expr }, S) ->
   assigns_block(?line(Meta), fun elixir_translator:translate_each/2, Condition, [Expr], S);
 
-each_clause(Meta, { else, [Condition], Expr }, S) ->
+each_clause({ else, Meta, [Condition], Expr }, S) ->
   assigns_block(?line(Meta), fun elixir_translator:translate_each/2, Condition, [Expr], S);
 
-each_clause(Meta, { 'after', [Condition], Expr }, S) ->
+each_clause({ 'after', Meta, [Condition], Expr }, S) ->
   { TCondition, SC } = elixir_translator:translate_each(Condition, S),
   { TBody, SB } = elixir_translator:translate([Expr], SC),
   { { clause, ?line(Meta), [TCondition], [], TBody }, SB };
 
-each_clause(Meta, { Key, [_|_], _ }, S) when Key == do; Key == 'after' ->
+each_clause({ Key, Meta, [_|_], _ }, S) when Key == do; Key == 'after' ->
   elixir_errors:syntax_error(Meta, S#elixir_scope.file, "too many arguments given for ~ts", [Key]);
 
-each_clause(Meta, { Key, _, _ }, S) ->
+each_clause({ Key, Meta, _, _ }, S) ->
   elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid key ~ts", [Key]).
 
 % Check if the given expression is a match tuple.
@@ -253,6 +253,5 @@ merge_clauses_scope(S1, S2) ->
     counter=S2#elixir_scope.counter,
     extra_guards=S2#elixir_scope.extra_guards,
     super=S1#elixir_scope.super orelse S2#elixir_scope.super,
-    caller=S1#elixir_scope.caller orelse S2#elixir_scope.caller,
-    name_args=S1#elixir_scope.name_args orelse S2#elixir_scope.name_args
+    caller=S1#elixir_scope.caller orelse S2#elixir_scope.caller
   }.

@@ -3,6 +3,11 @@ Code.require_file "test_helper.exs", __DIR__
 defrecord RecordTest.FileInfo,
   Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
 
+defrecord RecordTest.SomeRecord, a: 0, b: 1
+defrecord RecordTest.WithNoField, []
+
+## Record import
+
 defmodule RecordTest.FileInfo.Helper do
   Record.import RecordTest.FileInfo, as: :file_info
 
@@ -13,8 +18,7 @@ defmodule RecordTest.FileInfo.Helper do
   def size(file_info(size: size)), do: size
 end
 
-defrecord RecordTest.SomeRecord, a: 0, b: 1
-defrecord RecordTest.WithNoField, []
+## Dynamic names and overridable
 
 name = RecordTest.DynamicName
 defrecord name, a: 0, b: 1 do
@@ -27,6 +31,11 @@ defrecord name, a: 0, b: 1 do
   def update_b(_, _) do
     :not_optimizable
   end
+end
+
+defmodule RecordTest.DynamicOpts do
+  @a [foo: 1..30]
+  defrecord State, (lc {name, _interval} inlist @a, do: {name, nil})
 end
 
 ## With types
@@ -43,11 +52,26 @@ end
 defmodule RecordTest.Macros do
   defrecordp :_user, name: "José", age: 25
 
+  defmacro gen do
+    quote do
+      alias RecordTest.Macros.Nested
+
+      def this_works, do: RecordTest.Macros.Nested[]
+      def this_should_too, do: Nested[]
+    end
+  end
+
   defrecord Nested do
     def nested_record_alias?(Nested[]) do
       true
     end
+
+    defrecord NestedInNested, it_compiles: true
   end
+
+  # Ensure there is no conflict in a nested module
+  # named record.
+  defrecord Record, [a: 1, b: 2]
 
   def new() do
     _user()
@@ -84,6 +108,11 @@ end
 
 defmodule RecordTest do
   use ExUnit.Case, async: true
+
+  # Check the access from the generated macro works
+  # as expected. If it compiles, we are good to go.
+  require RecordTest.Macros
+  RecordTest.Macros.gen
 
   test :record_access_with_nil_keyword do
     record = RecordTest.DynamicName.new(a: nil)

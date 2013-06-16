@@ -2,51 +2,11 @@
 %% in between local functions and imports.
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
--export([import/5, recorded_locals/1, format_error/1,
-  ensure_no_import_conflict/4, ensure_no_local_conflict/4,
-  ensure_all_imports_used/3,
-  build_table/1, delete_table/1, record/3]).
+-export([import/5, format_error/1,
+  ensure_no_local_conflict/4]).
 -include("elixir.hrl").
 
-table(Module) -> ?atom_concat([i, Module]).
-
-build_table(Module) ->
-  ets:new(table(Module), [bag, named_table, public]).
-
-delete_table(Module) ->
-  ets:delete(table(Module)).
-
-record(_Tuple, _Receiver, nil) ->
-  false;
-
-record(Tuple, Receiver, Module) ->
-  try
-    ets:insert(table(Module), { Tuple, Receiver })
-  catch
-    error:badarg -> false
-  end.
-
-record_warn(_Meta, _Ref, _Opts, #elixir_scope{module=nil}) -> false;
-
-record_warn(Meta, Ref, Opts, S) ->
-  Table = table(S#elixir_scope.module),
-  ets:delete(Table, Ref),
-
-  Warn =
-    case keyfind(warn, Opts) of
-      { warn, false } -> false;
-      { warn, true } -> true;
-      false -> S#elixir_scope.check_clauses
-    end,
-
-  Warn andalso ets:insert(Table, { Ref, ?line(Meta) }).
-
-recorded_locals(Module) ->
-  Table  = table(Module),
-  Match  = { '$1', Module },
-  Result = ets:match(Table, Match),
-  ets:match_delete(Table, Match),
-  lists:append(Result).
+%% IMPORT HELPERS
 
 %% Update the scope to consider the imports for aliases
 %% based on the given options and selector.
@@ -80,7 +40,16 @@ import(Meta, Ref, Opts, Selector, S) ->
   record_warn(Meta, Ref, Opts, S),
   SM.
 
-%% IMPORT FUNCTION RELATED HELPERS
+record_warn(_Meta, _Ref, _Opts, #elixir_scope{module=nil}) -> false;
+record_warn(Meta, Ref, Opts, #elixir_scope{module=Module}) ->
+  Warn =
+    case keyfind(warn, Opts) of
+      { warn, false } -> false;
+      { warn, true } -> true;
+      false -> not lists:keymember(context, 1, Meta)
+    end,
+
+  elixir_tracker:record_warn(Ref, Warn, ?line(Meta), Module).
 
 %% Calculates the imports based on only and except
 
@@ -88,8 +57,7 @@ calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
   File = S#elixir_scope.file,
 
   New = case keyfind(only, Opts) of
-    { only, RawOnly } ->
-      Only = expand_fun_arity(Meta, only, RawOnly, S),
+    { only, Only } ->
       case Only -- get_exports(Key) of
         [{Name,Arity}|_] ->
           Tuple = { invalid_import, { Key, Name, Arity } },
@@ -101,8 +69,7 @@ calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
       case keyfind(except, Opts) of
         false -> AvailableFun(true);
         { except, [] } -> AvailableFun(true);
-        { except, RawExcept } ->
-          Except = expand_fun_arity(Meta, except, RawExcept, S),
+        { except, Except } ->
           case keyfind(Key, Old) of
             false -> AvailableFun(true) -- Except;
             {Key,OldImports} -> OldImports -- Except
@@ -115,34 +82,24 @@ calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
   Final = remove_internals(Set),
 
   case Final of
-    [] -> { keydelete(Key, Old), keydelete(Key, Temp) };
+    [] -> { keydelete(Key, Old), if_quoted(Meta, Temp, fun(Value) -> keydelete(Key, Value) end) };
     _  ->
       ensure_no_special_form_conflict(Meta, File, Key, Final, internal_conflict),
-      { [{ Key, Final }|keydelete(Key, Old)], [{ Key, Final }|keydelete(Key, Temp)] }
+      { [{ Key, Final }|keydelete(Key, Old)],
+        if_quoted(Meta, Temp, fun(Value) -> [{ Key, Final }|keydelete(Key, Value)] end) }
   end.
 
-%% Ensure we are expanding macros and stuff
-
-expand_fun_arity(Meta, Kind, Value, S) ->
-  { TValue, _S } = elixir_translator:translate_each(Value, S),
-  cons_to_keywords(Meta, Kind, TValue, S).
-
-cons_to_keywords(Meta, Kind, { cons, _, Left, { nil, _ } }, S) ->
-  [tuple_to_fun_arity(Meta, Kind, Left, S)];
-
-cons_to_keywords(Meta, Kind, { cons, _, Left, Right }, S) ->
-  [tuple_to_fun_arity(Meta, Kind, Left, S)|cons_to_keywords(Meta, Kind, Right, S)];
-
-cons_to_keywords(Meta, Kind, _, S) ->
-  elixir_errors:syntax_error(Meta, S#elixir_scope.file,
-    "invalid value for :~ts, expected a list with functions and arities", [Kind]).
-
-tuple_to_fun_arity(_Meta, _Kind, { tuple, _, [{ atom, _, Atom }, { integer, _, Integer }] }, _S) ->
-  { Atom, Integer };
-
-tuple_to_fun_arity(Meta, Kind, _, S) ->
-  elixir_errors:syntax_error(Meta, S#elixir_scope.file,
-    "invalid value for :~ts, expected a list with functions and arities", [Kind]).
+if_quoted(Meta, Temp, Callback) ->
+  case lists:keyfind(context, 1, Meta) of
+    { context, Context } ->
+      Current = case orddict:find(Context, Temp) of
+        { ok, Value } -> Value;
+        error -> []
+      end,
+      orddict:store(Context, Callback(Current), Temp);
+    _ ->
+      Temp
+  end.
 
 %% Retrieve functions and macros from modules
 
@@ -183,37 +140,10 @@ get_optional_macros(Module)  ->
 %% VALIDATION HELPERS
 
 %% Check if any of the locals defined conflicts with an invoked
-%% Elixir "implemented in Erlang" macro. Checking if a local
-%% conflicts with an import is automatically done by Erlang.
+%% Elixir "implemented in Erlang" macro.
 
 ensure_no_local_conflict(Meta, File, Module, AllDefined) ->
   ensure_no_special_form_conflict(Meta, File, Module, AllDefined, local_conflict).
-
-%% Find conlicts in the given list of functions with
-%% the recorded set of imports.
-
-ensure_no_import_conflict(Meta, File, Module, AllDefined) ->
-  Table = table(Module),
-  Matches = [X || X <- AllDefined, ets:member(Table, X)],
-
-  case Matches of
-    [{Name,Arity}|_] ->
-      Key = ets:lookup_element(Table, { Name, Arity }, 2),
-      Tuple = { import_conflict, { hd(Key), Name, Arity } },
-      elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
-    [] ->
-      ok
-  end.
-
-ensure_all_imports_used(_Line, File, Module) ->
-  Table = table(Module),
-  [begin
-    elixir_errors:handle_file_warning(File, { L, ?MODULE, { unused_import, M } })
-   end || [M, L] <- ets:select(Table, module_line_spec()),
-          ets:match(Table, { '$1', M }) == []].
-
-module_line_spec() ->
-  [{ { '$1', '$2' }, [{ is_integer, '$2' }], ['$$'] }].
 
 %% Ensure the given functions don't clash with any
 %% of Elixir non overridable macros.
@@ -234,15 +164,8 @@ ensure_no_special_form_conflict(_Meta, _File, _Key, [], _) -> ok.
 
 %% ERROR HANDLING
 
-format_error({already_imported,{Receiver, Name, Arity}}) ->
-  io_lib:format("function ~ts/~B already imported from ~ts", [Name, Arity, elixir_errors:inspect(Receiver)]);
-
 format_error({invalid_import,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it doesn't exist",
-    [elixir_errors:inspect(Receiver), Name, Arity]);
-
-format_error({import_conflict,{Receiver, Name, Arity}}) ->
-  io_lib:format("imported ~ts.~ts/~B conflicts with local function",
     [elixir_errors:inspect(Receiver), Name, Arity]);
 
 format_error({local_conflict,{_, Name, Arity}}) ->
@@ -251,9 +174,6 @@ format_error({local_conflict,{_, Name, Arity}}) ->
 format_error({internal_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
     [elixir_errors:inspect(Receiver), Name, Arity]);
-
-format_error({ unused_import, Module }) ->
-  io_lib:format("unused import ~ts", [elixir_errors:inspect(Module)]);
 
 format_error({ no_macros, Module }) ->
   io_lib:format("could not load macros from module ~ts", [elixir_errors:inspect(Module)]).
@@ -274,8 +194,6 @@ intersection([H|T], All) ->
 
 intersection([], _All) -> [].
 
-%% INTROSPECTION
-
 %% Internal funs that are never imported etc.
 
 remove_underscored(default, List) -> remove_underscored(List);
@@ -295,7 +213,7 @@ remove_internals(Set) ->
   ordsets:del_element({ module_info, 1 },
     ordsets:del_element({ module_info, 0 }, Set)).
 
-%% Macros implemented in Erlang that are not overridable.
+%% Macros implemented in Erlang that are not importable.
 
 special_form() ->
   [
@@ -306,7 +224,7 @@ special_form() ->
     {'__ambiguousop__','*'},
     {'__scope__',2},
     {'__block__','*'},
-    {'->','2'},
+    {'->','*'},
     {'<<>>','*'},
     {'{}','*'},
     {'[]','*'},

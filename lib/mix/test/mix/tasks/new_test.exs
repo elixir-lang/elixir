@@ -8,8 +8,8 @@ defmodule Mix.Tasks.NewTest do
       Mix.Tasks.New.run ["hello_world"]
 
       assert_file "hello_world/mix.exs", fn(file) ->
-        assert file =~ %r/app: :hello_world/
-        assert file =~ %r/version: "0.0.1"/
+        assert file =~ "app: :hello_world"
+        assert file =~ "version: \"0.0.1\""
       end
 
       assert_file "hello_world/README.md", %r/# HelloWorld/
@@ -30,23 +30,23 @@ defmodule Mix.Tasks.NewTest do
       Mix.Tasks.New.run ["hello_world", "--sup"]
 
       assert_file "hello_world/mix.exs", fn(file) ->
-        assert file =~ %r/app: :hello_world/
-        assert file =~ %r/version: "0.0.1"/
-        assert file =~ %r/[mod: { HelloWorld, \[\] }]/
+        assert file =~ "app: :hello_world"
+        assert file =~ "version: \"0.0.1\""
+        assert file =~ "[mod: { HelloWorld, [] }]"
       end
 
       assert_file "hello_world/README.md", %r/# HelloWorld/
       assert_file "hello_world/.gitignore"
 
       assert_file "hello_world/lib/hello_world.ex", fn(file) ->
-        assert file =~ %r/defmodule HelloWorld do/
-        assert file =~ %r/use Application.Behaviour/
-        assert file =~ %r/HelloWorld.Supervisor.start_link/
+        assert file =~ "defmodule HelloWorld do"
+        assert file =~ "use Application.Behaviour"
+        assert file =~ "HelloWorld.Supervisor.start_link"
       end
 
       assert_file "hello_world/lib/hello_world/supervisor.ex", fn(file) ->
-        assert file =~ %r/defmodule HelloWorld.Supervisor do/
-        assert file =~ %r/supervise\(children, strategy: :one_for_one\)/
+        assert file =~ "defmodule HelloWorld.Supervisor do"
+        assert file =~ "supervise(children, strategy: :one_for_one)"
       end
 
       assert_file "hello_world/test/test_helper.exs", %r/HelloWorld.start/

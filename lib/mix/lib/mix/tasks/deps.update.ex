@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Deps.Update do
   use Mix.Task
 
   @shortdoc "Update dependencies"
-  @recursive true
+  @recursive :both
 
   @moduledoc """
   Update dependencies.
@@ -13,16 +13,19 @@ defmodule Mix.Tasks.Deps.Update do
 
   ## Command line options
 
-  * `--no-compile` skip compilation of dependencies
+  * `--no-compile` - skip compilation of dependencies
   """
 
-  import Mix.Deps, only: [all: 2, available?: 1, by_name!: 1, format_dep: 1]
+  import Mix.Deps, only: [ all: 0, all: 2, available?: 1, by_name: 2,
+                           depending: 2, format_dep: 1 ]
 
   def run(args) do
     { opts, rest } = OptionParser.parse(args, switches: [no_compile: :boolean])
 
     if rest != [] do
-      deps = Enum.map by_name!(rest), check_unavailable!(&1)
+      all_deps = all
+      deps = Enum.map by_name(rest, all_deps), check_unavailable!(&1)
+      deps = deps ++ depending(deps, all_deps)
       { _, acc } = Enum.map_reduce deps, init, deps_updater(&1, &2)
     else
       acc = all(init, deps_updater(&1, &2))

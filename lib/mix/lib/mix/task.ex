@@ -25,10 +25,24 @@ defmodule Mix.Task do
   @doc """
   Loads all tasks in all code paths.
   """
-  def load_all do
-    Enum.each :code.get_path, fn(codepath) ->
-      files = Path.wildcard(codepath ++ '/Elixir-Mix-Tasks-*.beam')
-      Enum.each files, &1 |> Path.basename |> Path.rootname('.beam') |> list_to_atom |> Code.ensure_loaded
+  def load_all, do: load_paths(:code.get_path)
+
+  @doc """
+  Loads all tasks in given paths.
+  """
+  def load_paths(paths) do
+    Enum.reduce(paths, [], fn(path, matches) ->
+      { :ok, files } = :erl_prim_loader.list_dir(path |> :unicode.characters_to_list)
+      Enum.reduce(files, matches, match_tasks(&1, &2))
+    end)
+  end
+
+  defp match_tasks(file_name, modules) do
+    if Regex.match?(%r/Elixir\.Mix\.Tasks\..*\.beam/, file_name) do
+      mod = Path.rootname(file_name, '.beam') |> list_to_atom
+      if Code.ensure_loaded?(mod), do: [mod | modules], else: modules
+    else
+      modules
     end
   end
 
@@ -39,7 +53,7 @@ defmodule Mix.Task do
   def all_modules do
     Enum.reduce :code.all_loaded, [], fn({ module, _ }, acc) ->
       case atom_to_list(module) do
-        'Elixir-Mix-Tasks-' ++ _ ->
+        'Elixir.Mix.Tasks.' ++ _ ->
           if is_task?(module), do: [module|acc], else: acc
         _ ->
           acc
@@ -80,11 +94,12 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Checks if the task is defined for umbrella projects.
+  Checks if the task should be run recursively for all sub-apps in
+  umbrella projects. Returns true, false or :both.
   """
-  def recursive?(module) when is_atom(module) do
+  def recursive(module) when is_atom(module) do
     case List.keyfind module.__info__(:attributes), :recursive, 0 do
-      { :recursive, [bool] } -> bool
+      { :recursive, [setting] } -> setting
       _ -> false
     end
   end
@@ -120,13 +135,13 @@ defmodule Mix.Task do
   @doc """
   Runs a `task` with the given `args`.
 
-  If the task was not yet invoked, it returns `:ok`.
+  If the task was not yet invoked, it returns the task result.
 
   If the task was already invoked, it does not run the task
   again and simply aborts with `:noop`.
 
   It may raise an exception if the task was not found
-  or it is invalid. Check `get/2` for more information.
+  or it is invalid. Check `get/1` for more information.
   """
   def run(task, args // []) do
     task = to_binary(task)
@@ -138,8 +153,18 @@ defmodule Mix.Task do
       module = get(task)
       Mix.Server.cast({ :add_task, task, app })
 
-      if Mix.Project.umbrella? && recursive?(module) do
-        Mix.Project.recursive(fn _ -> module.run(args) end)
+      recursive = recursive(module)
+
+      if recursive && Mix.Server.call(:recursive_enabled?) do
+        Mix.Server.cast({ :recursive_enabled?, false })
+        res = if Mix.Project.umbrella? and recursive == :both do
+          [module.run(args)]
+        else
+          []
+        end
+        res = res ++ Mix.Project.recur(fn _ -> module.run(args) end)
+        Mix.Server.cast({ :recursive_enabled?, true })
+        res
       else
         module.run(args)
       end

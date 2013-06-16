@@ -26,7 +26,7 @@ fi
 
 readlink_f () {
   cd "$(dirname "$1")" > /dev/null
-  local filename="$(basename "$1")"
+  filename="$(basename "$1")"
   if [ -h "$filename" ]; then
     readlink_f "$(readlink "$filename")"
   else
@@ -41,13 +41,18 @@ while [ $I -le $# ]; do
   S=1
   eval "PEEK=\${$I}"
   case "$PEEK" in
-    -v|--compile|--no-halt)
+    -v|--compile|--no-halt|+iex|+compile)
         ;;
-    -e|-r|-pr|-pa|-pz|--remsh|--cookie|-S)
+    -e|-r|-pr|-pa|-pz|--remsh|-S)
         S=2
         ;;
     --detached|--hidden)
         ERL="$ERL `echo $PEEK | cut -c 2-`"
+        ;;
+    --cookie)
+        I=$(expr $I + 1)
+        eval "VAL=\${$I}"
+        ERL="$ERL -setcookie "$VAL""
         ;;
     --sname|--name)
         I=$(expr $I + 1)

@@ -1,6 +1,155 @@
 defmodule Record do
-  @moduledoc """
+  @moduledoc %B"""
   Functions to define Elixir records
+
+  A record is a tagged tuple which contains one or more elements and the first
+  element is a module. One creates a record by calling `defrecord` or
+  `defrecordp` which are documented in `Kernel`.
+
+  ## Examples
+
+      defrecord FileInfo, atime: nil, accesses: 0
+
+  The line above will define a module named `FileInfo` which
+  contains a function named `new` that returns a new record
+  and other functions to read and set the values in the
+  record:
+
+      file_info = FileInfo.new(atime: now())
+      file_info.atime         #=> Returns the value of atime
+      file_info.atime(now())  #=> Updates the value of atime
+
+      # Update multiple attributes at once:
+      file_info.update(atime: now(), accesses: 1)
+
+      # Obtain the keywords representation of a record:
+      file_info.to_keywords   #=> [accesses: 1, atime: {1370,7171,911705}]
+
+
+  A record is simply a tuple where the first element is the record
+  module name. We can get the record raw representation as follow:
+
+      inspect FileInfo.new, raw: true
+      #=> { FileInfo, nil, nil }
+
+  Besides defining readers and writers for each attribute, Elixir also
+  defines an `update_#{attribute}` function to update the value. Such
+  functions expect a function as argument that receives the current
+  value and must return the new one. For example, every time the file
+  is accessed, the accesses counter can be incremented with:
+
+      file_info.update_accesses(fn(old) -> old + 1 end)
+
+  Which can be also written as:
+
+      file_info.update_accesses(&1 + 1)
+
+  ## Access syntax
+
+  Records in Elixir can be expanded at compilation time to provide
+  pattern matching and faster operations. For example, the clause
+  below will only match if a `FileInfo` is given and the number of
+  accesses is zero:
+
+      def enforce_no_access(FileInfo[accesses: 0]), do: :ok
+
+  The clause above will expand to:
+
+      def enforce_no_access({ FileInfo, _, 0 }), do: :ok
+
+  The downside of using such syntax is that, every time the record
+  changes, your code now needs to be recompiled (which is usually
+  not a concern since Elixir build tools by default recompiles the
+  whole project whenever there is a change).
+
+  Finally, keep in mind that Elixir triggers some optimizations whenever
+  the access syntax is used. For example:
+
+      def no_access?(FileInfo[] = file_info) do
+        file_info.accesses == 0
+      end
+
+  Is translated to:
+
+      def no_access?({ FileInfo, _, _ } = file_info) do
+        elem(file_info, 1) == 0
+      end
+
+  Which provides faster get and set times for record operations.
+
+  ## Runtime introspection
+
+  At runtime, developers can use `__record__` to get information
+  about the given record:
+
+      FileInfo.__record__(:name)
+      #=> FileInfo
+
+      FileInfo.__record__(:fields)
+      #=> [atime: nil, accesses: 0]
+
+  In order to quickly access the index of a field, one can use
+  the `__index__` function:
+
+      FileInfo.__index__(:atime)
+      #=> 0
+
+      FileInfo.__index__(:unknown)
+      #=> nil
+
+  ## Compile-time introspection
+
+  At the compile time, one can access following information about the record
+  from within the record module:
+
+  * `@record_fields` — a keyword list of record fields with defaults
+  * `@record_types` — a keyword list of record fields with types
+
+       defrecord Foo, bar: nil do
+         record_type bar: nil | integer
+         IO.inspect @record_fields
+         IO.inspect @record_types
+       end
+
+  prints out
+
+       [bar: nil]
+       [bar: {:|,[line: ...],[nil,{:integer,[line: ...],nil}]}]
+
+  where the last line is a quoted representation of
+
+       [bar: nil | integer]
+
+  ## Documentation
+
+  By default records are not documented and have `@moduledoc` set to false.
+
+  ## Types
+
+  Every record defines a type named `t` that can be accessed in typespecs.
+  For example, assuming the `Config` record defined above, it could be used
+  in typespecs as follow:
+
+      @spec handle_config(Config.t) :: boolean()
+
+  Inside the record definition, a developer can define his own types too:
+
+      defrecord Config, counter: 0, failures: [] do
+        @type kind :: term
+        record_type counter: integer, failures: [kind]
+      end
+
+  When defining a type, all the fields not mentioned in the type are
+  assumed to have type `term`.
+
+  ## Importing records
+
+  It is also possible to import a public record (a record, defined using
+  `defrecord`) as a set of private macros (as if it was defined using `defrecordp`):
+
+      Record.import Config, as: :config
+
+  See `Record.import/2` and `defrecordp/2` documentation for more information
   """
 
   @doc """
@@ -24,21 +173,24 @@ defmodule Record do
   """
   def defrecord(name, values, opts) do
     block = Keyword.get(opts, :do, nil)
-    opts  = Keyword.delete(opts, :do)
 
     quote do
+      unquoted_values = unquote(values)
+
       defmodule unquote(name) do
         @moduledoc false
-        import Record.DSL
+        import Elixir.Record.DSL
 
         @record_fields []
         @record_types  []
 
-        values = unquote(values)
-        opts   = unquote(opts)
-        Record.deffunctions(values, __ENV__)
+        # Reassign values to inner scope to
+        # avoid conflicts in nested records
+        values = unquoted_values
+
+        Elixir.Record.deffunctions(values, __ENV__)
         value = unquote(block)
-        Record.deftypes(values, @record_types, __ENV__)
+        Elixir.Record.deftypes(values, @record_types, __ENV__)
         value
       end
     end
@@ -157,7 +309,6 @@ defmodule Record do
     end
 
     contents = quote do
-
       defmacrop unquote(name)() do
         Record.access(unquote(tag) || __MODULE__, unquote(escaped), [], __CALLER__)
       end
@@ -243,7 +394,8 @@ defmodule Record do
     { match, remaining } = :lists.mapfoldl(iterator, keyword, fields)
 
     case remaining do
-      [] -> { :{}, [line: caller.line], [atom|match] }
+      [] ->
+        quote do: { unquote_splicing([atom|match]) }
       _  ->
         keys = lc { key, _ } inlist remaining, do: key
         raise "record #{inspect atom} does not have the keys: #{inspect keys}"
@@ -417,6 +569,7 @@ defmodule Record do
     quoted = lc { k, _ } inlist values do
       index = find_index(values, k, 0)
       quote do
+        @doc false
         def __index__(unquote(k)), do: unquote(index + 1)
       end
     end
@@ -459,27 +612,27 @@ defmodule Record do
   #
   # It will define four methods:
   #
-  #     def :atime.(record) do
+  #     def atime(record) do
   #       elem(record, 1)
   #     end
   #
-  #     def :mtime.(record) do
+  #     def mtime(record) do
   #       elem(record, 2)
   #     end
   #
-  #     def :atime.(value, record) do
+  #     def atime(value, record) do
   #       set_elem(record, 1, value)
   #     end
   #
-  #     def :mtime.(record) do
+  #     def mtime(record) do
   #       set_elem(record, 2, value)
   #     end
   #
-  #     def :atime.(callback, record) do
+  #     def atime(callback, record) do
   #       set_elem(record, 1, callback.(elem(record, 1)))
   #     end
   #
-  #     def :mtime.(callback, record) do
+  #     def mtime(callback, record) do
   #       set_elem(record, 2, callback.(elem(record, 2)))
   #     end
   #
@@ -526,7 +679,7 @@ defmodule Record do
         end
       end
 
-    contents = { :{}, [], [(quote do: __MODULE__)|fields] }
+    contents = quote do: { __MODULE__, unquote_splicing(fields) }
 
     quote do
       @doc false
@@ -572,6 +725,8 @@ defmodule Record do
       @spec new(options | tuple) :: t
       @spec to_keywords(t) :: options
       @spec update(options, t) :: t
+      @spec __record__(:name) :: atom
+      @spec __record__(:fields) :: [{atom, any}]
       @spec __index__(atom) :: non_neg_integer | nil
     end
   end

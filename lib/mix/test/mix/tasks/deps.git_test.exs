@@ -3,6 +3,16 @@ Code.require_file "../../test_helper.exs", __DIR__
 defmodule Mix.Tasks.DepsGitTest do
   use MixTest.Case
 
+  defmodule DepsOnGitApp do
+    def project do
+      [ app: :deps_on_git_app,
+        version: "0.1.0",
+        deps: [
+          { :deps_on_git_repo, "0.1.0", git: MixTest.Case.fixture_path("deps_on_git_repo") }
+        ] ]
+    end
+  end
+
   defmodule GitApp do
     def project do
       [ app: :git_app,
@@ -41,11 +51,11 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
-      assert File.exists?("deps/git_repo/ebin/Elixir-GitRepo.beam")
-      assert File.read!("mix.lock") =~ %r("git_repo": {:git,#{inspect fixture_path("git_repo")},"[a-f0-9]+",\[\]})
+      assert File.exists?("deps/git_repo/ebin/Elixir.GitRepo.beam")
+      assert File.read!("mix.lock") =~ %r/"git_repo": {:git,#{inspect fixture_path("git_repo")},"[a-f0-9]+",\[\]}/
 
       purge [GitRepo]
-      File.touch!("deps/git_repo/ebin", { { 2010, 4, 17 }, { 14, 0, 0 } })
+      File.touch!("deps/git_repo/ebin/.compile.elixir", { { 2010, 4, 17 }, { 14, 0, 0 } })
       Mix.Task.clear
 
       Mix.Tasks.Deps.Update.run []
@@ -57,10 +67,33 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Tasks.Deps.Clean.run []
       message = "* Cleaning git_repo (0.1.0) [git: #{inspect fixture_path("git_repo")}]"
       assert_received { :mix_shell, :info, [^message] }
-      refute File.exists?("deps/git_repo/ebin/Elixir-Git-Repo.beam")
+      refute File.exists?("deps/git_repo/ebin/Elixir.Git.Repo.beam")
     end
   after
     purge [GitRepo, GitRepo.Mix]
+    Mix.Project.pop
+  end
+
+  test "gets many levels deep dependencies" do
+    Mix.Project.push DepsOnGitApp
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Deps.Get.run []
+
+      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+      assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
+
+
+      message = "* Getting deps_on_git_repo [git: #{inspect fixture_path("deps_on_git_repo")}]"
+      assert_received { :mix_shell, :info, [^message] }
+      assert_received { :mix_shell, :info, ["* Compiling deps_on_git_repo"] }
+
+      assert File.exists?("deps/deps_on_git_repo/mix.exs")
+      assert File.exists?("deps/git_repo/mix.exs")
+    end
+  after
+    purge [GitRepo, GitRepo.Mix, DepsOnGitRepo.Mix]
     Mix.Project.pop
   end
 
@@ -179,25 +212,25 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.push GitApp
 
     # Get git repo first revision
-    [last,first|_] = get_git_repo_revs
+    [last, first|_] = get_git_repo_revs
 
     in_fixture "no_mixfile", fn ->
       Mix.Deps.Lock.write [git_repo: first]
 
       Mix.Tasks.Deps.Get.run []
       refute File.exists?("deps/git_repo/lib/git_repo.ex")
-      assert File.read!("mix.lock") =~ %r(#{first})
+      assert File.read!("mix.lock") =~ first
 
       Mix.Tasks.Deps.Update.run ["git_repo"]
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
-      assert File.read!("mix.lock") =~ %r(#{last})
+      assert File.read!("mix.lock") =~ last
 
       Mix.Tasks.Deps.Clean.run []
-      refute File.exists?("deps/git_repo/ebin/Elixir-Git-Repo.beam")
-      assert File.read!("mix.lock") =~ %r(#{last})
+      refute File.exists?("deps/git_repo/ebin/Elixir.Git.Repo.beam")
+      assert File.read!("mix.lock") =~ last
 
       Mix.Tasks.Deps.Clean.run ["--unlock"]
-      refute File.read!("mix.lock") =~ %r(#{last})
+      refute File.read!("mix.lock") =~ last
     end
   after
     purge [GitRepo, GitRepo.Mix]
@@ -208,14 +241,14 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.push GitApp
 
     # Get git repo first revision
-    [last,first|_] = get_git_repo_revs
+    [last, first|_] = get_git_repo_revs
 
     in_fixture "no_mixfile", fn ->
       Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), first, [branch: "master"] }]
 
       Mix.Tasks.Deps.Get.run []
       refute File.exists?("deps/git_repo/lib/git_repo.ex")
-      assert File.read!("mix.lock") =~ %r(#{first})
+      assert File.read!("mix.lock") =~ first
 
       message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
       assert_received { :mix_shell, :info, [^message] }
@@ -231,7 +264,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
       Mix.Tasks.Deps.Get.run []
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
-      assert File.read!("mix.lock") =~ %r(#{last})
+      assert File.read!("mix.lock") =~ last
 
       message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
       assert_received { :mix_shell, :info, [^message] }
@@ -251,7 +284,7 @@ defmodule Mix.Tasks.DepsGitTest do
       exception = assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Get.run []
       end
-      assert exception.message =~ %r/command `git clone/
+      assert exception.message =~ "command `git clone"
     end
   after
     Mix.Project.pop

@@ -4,48 +4,6 @@ Mix.shell(Mix.Shell.Process)
 ExUnit.start []
 System.put_env("EXUNIT_CONFIG", "none")
 
-target = Path.expand("../fixtures/git_repo", __FILE__)
-
-unless File.dir?(target) do
-  IO.puts "Creating git repo for tests"
-  File.mkdir_p!(Path.join(target, "lib"))
-
-  File.write!(Path.join(target, "mix.exs"), """)
-  defmodule GitRepo.Mix do
-    use Mix.Project
-
-    def project do
-      [app: :git_repo, version: "0.1.0"]
-    end
-  end
-  """
-
-  File.cd! target, fn ->
-    System.cmd("git init")
-    System.cmd("git config user.email \"mix@example.com\"")
-    System.cmd("git config user.name \"Mix Repo\"")
-    System.cmd("git add .")
-    System.cmd("git commit -m \"ok\"")
-  end
-
-  File.write!(Path.join(target, "lib/git_repo.ex"), """)
-  defmodule GitRepo do
-    def hello do
-      "World"
-    end
-  end
-  """
-
-  File.cd! target, fn ->
-    System.cmd("git add .")
-    System.cmd("git commit -m \"lib\"")
-  end
-end
-
-Enum.each [:invalidapp, :invalidvsn, :noappfile, :ok], fn(dep) ->
-  File.mkdir_p! Path.expand("../fixtures/deps_status/deps/#{dep}/.git", __FILE__)
-end
-
 defmodule MixTest.Case do
   use ExUnit.CaseTemplate
 
@@ -69,16 +27,20 @@ defmodule MixTest.Case do
     System.cmd "#{elixir_executable} #{mix_executable} #{args}"
   end
 
+  def elixir_root do
+    Path.expand("../../..", __DIR__)
+  end
+
   def mix_executable do
-    Path.expand("../../../../bin/mix", __FILE__)
+    Path.expand("../../../bin/mix", __DIR__)
   end
 
   def elixir_executable do
-    Path.expand("../../../../bin/elixir", __FILE__)
+    Path.expand("../../../bin/elixir", __DIR__)
   end
 
   def fixture_path do
-    Path.expand("../fixtures", __FILE__)
+    Path.expand("fixtures", __DIR__)
   end
 
   def fixture_path(extension) do
@@ -86,7 +48,7 @@ defmodule MixTest.Case do
   end
 
   def tmp_path do
-    Path.expand("../../tmp", __FILE__)
+    Path.expand("../tmp", __DIR__)
   end
 
   def tmp_path(extension) do
@@ -131,6 +93,8 @@ defmodule MixTest.Case do
   end
 end
 
+## Some tasks fixtures
+
 defmodule Mix.Tasks.Hello do
   use Mix.Task
   @shortdoc "This is short documentation, see"
@@ -145,4 +109,109 @@ defmodule Mix.Tasks.Hello do
 end
 
 defmodule Mix.Tasks.Invalid do
+end
+
+## Generate git repo fixtures
+
+# Git repo
+target = Path.expand("fixtures/git_repo", __DIR__)
+
+unless File.dir?(target) do
+  File.mkdir_p!(Path.join(target, "lib"))
+
+  File.write!(Path.join(target, "mix.exs"), """)
+  ## Auto-generated fixture
+  defmodule GitRepo.Mix do
+    use Mix.Project
+
+    def project do
+      [app: :git_repo, version: "0.1.0"]
+    end
+  end
+  """
+
+  File.cd! target, fn ->
+    System.cmd("git init")
+    System.cmd("git config user.email \"mix@example.com\"")
+    System.cmd("git config user.name \"Mix Repo\"")
+    System.cmd("git add .")
+    System.cmd("git commit -m \"ok\"")
+  end
+
+  File.write!(Path.join(target, "lib/git_repo.ex"), """)
+  ## Auto-generated fixture
+  defmodule GitRepo do
+    def hello do
+      "World"
+    end
+  end
+  """
+
+  File.cd! target, fn ->
+    System.cmd("git add .")
+    System.cmd("git commit -m \"lib\"")
+  end
+end
+
+# Deps on git repo
+target = Path.expand("fixtures/deps_on_git_repo", __DIR__)
+
+unless File.dir?(target) do
+  File.mkdir_p!(Path.join(target, "lib"))
+
+  File.write!(Path.join(target, "mix.exs"), """)
+  ## Auto-generated fixture
+  defmodule DepsOnGitRepo.Mix do
+    use Mix.Project
+
+    def project do
+      [ app: :deps_on_git_repo,
+        version: "0.2.0",
+        deps: [{ :git_repo, git: MixTest.Case.fixture_path("git_repo") }] ]
+    end
+  end
+  """
+
+  File.cd! target, fn ->
+    System.cmd("git init")
+    System.cmd("git config user.email \"mix@example.com\"")
+    System.cmd("git config user.name \"Mix Repo\"")
+    System.cmd("git add .")
+    System.cmd("git commit -m \"ok\"")
+  end
+end
+
+# Git rebar
+target = Path.expand("fixtures/git_rebar", __DIR__)
+
+unless File.dir?(target) do
+  File.mkdir_p!(Path.join(target, "src"))
+
+  File.write!(Path.join([target, "src", "git_rebar.app.src"]), """)
+  {application, git_rebar,
+    [
+      {vsn, "0.1.0"}
+    ]}.
+  """
+
+  File.write!(Path.join([target, "src", "git_rebar.erl"]), """)
+  -module(git_rebar).
+
+  -export ([any_function/0]).
+
+  any_function() ->
+      ok.
+  """
+
+  File.cd! target, fn ->
+    System.cmd("git init")
+    System.cmd("git config user.email \"mix@example.com\"")
+    System.cmd("git config user.name \"Mix Repo\"")
+    System.cmd("git add .")
+    System.cmd("git commit -m \"ok\"")
+  end
+end
+
+Enum.each [:invalidapp, :invalidvsn, :noappfile, :ok], fn(dep) ->
+  File.mkdir_p! Path.expand("fixtures/deps_status/deps/#{dep}/.git", __DIR__)
 end

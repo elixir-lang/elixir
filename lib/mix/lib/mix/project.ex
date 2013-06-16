@@ -31,6 +31,8 @@ defmodule Mix.Project do
   defined.
   """
 
+  alias Mix.Server.Project
+
   @doc false
   defmacro __using__(_) do
     quote do
@@ -85,7 +87,7 @@ defmodule Mix.Project do
   """
   def get do
     case Mix.Server.call(:projects) do
-      [{ h, _ }|_] -> h
+      [Project[name: project]|_] -> project
       _ -> nil
     end
   end
@@ -103,7 +105,7 @@ defmodule Mix.Project do
   """
   def config do
     case Mix.Server.call(:projects) do
-      [{ h, config }|_] when h != nil -> config
+      [Project[name: name, config: config]|_] when name != nil -> config
       _ -> default_config
     end
   end
@@ -128,7 +130,7 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns if project is an umbrella project.
+  Returns true if project is an umbrella project.
   """
   def umbrella? do
     config[:apps_path] != nil
@@ -142,70 +144,57 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Loads mix.exs in the current directory or loads the project from the
-  mixfile cache and pushes the project to the project stack. Optionally
-  takes a post_config.
+  Runs `fun` in the current project.
+
+  The goal of this function is to transparently abstract umbrella projects.
+  So if you want to gather data from a project, like beam files, you can
+  use this function to transparently go through the project, regardless
+  if it is an umbrella project or not.
   """
-  def load_project(app, post_config // []) do
-    if cached = Mix.Server.call({ :mixfile_cache, app }) do
-      Mix.Project.post_config(post_config)
-      Mix.Project.push(cached)
-      cached
+  def recur(post_config // [], fun) do
+    if apps_path = config[:apps_path] do
+      paths = Path.wildcard(Path.join(apps_path, "*"))
+      paths = Enum.filter(paths, File.dir?(&1))
+
+      projects = Enum.map paths, fn path ->
+        dir = Path.basename(path)
+        app = dir |> String.downcase |> binary_to_atom
+        { app, path }
+      end
+
+      projects = topsort_projects(projects, Path.expand(apps_path))
+
+      results = Enum.map projects, fn { app, app_path } ->
+        in_project(app, app_path, post_config, fun)
+      end
+
+      results
     else
-      old_proj = Mix.Project.get
-
-      if File.regular?("mix.exs") do
-        Mix.Project.post_config(post_config)
-        Code.load_file "mix.exs"
-      end
-
-      new_proj = Mix.Project.get
-
-      if old_proj == new_proj do
-        new_proj = nil
-        Mix.Project.push new_proj
-      end
-
-      Mix.Server.cast({ :mixfile_cache, app, new_proj })
-      new_proj
+      # Note that post_config isnt used for this case
+      [fun.(get)]
     end
   end
 
   @doc """
-  Run fun for every application in the umbrella project. Changes current
-  project and working directory.
+  Runs the given `fun` inside the given project by changing
+  the current working directory and loading the given project
+  into the project stack.
   """
-  def recursive(fun) do
-    paths = Path.wildcard(Path.join(Mix.project[:apps_path], "*"))
-    projects = Enum.map paths, fn path ->
-      dir = Path.basename(path)
-      app = dir |> String.downcase |> binary_to_atom
-      { app, path }
-    end
+  def in_project(app, app_path, post_config // [], fun)
 
-    projects = topsort_projects(projects)
-    results = Enum.map projects, fn { app, app_path } ->
-      in_project(app, app_path, fun)
+  def in_project(app, ".", post_config, fun) do
+    cached = load_project(app, post_config)
+    result = try do
+      fun.(cached)
+    after
+      Mix.Project.pop
     end
-
-    results
+    result
   end
 
-  @doc """
-  Run fun in the context of project app and working directory app_path.
-  Optionally takes a post_config.
-  """
-  def in_project(app, app_path, post_config // [], fun) do
-    umbrella_path = apps_path
-
+  def in_project(app, app_path, post_config, fun) do
     File.cd! app_path, fn ->
-      load_project(app, post_config)
-      result = try do
-        fun.(umbrella_path)
-      after
-        Mix.Project.pop
-      end
-      result
+      in_project(app, ".", post_config, fun)
     end
   end
 
@@ -213,27 +202,49 @@ defmodule Mix.Project do
   Returns the paths this project compiles to.
   """
   def compile_paths do
-    if umbrella? do
-      List.flatten recursive(fn _ -> compile_paths end)
-    else
-      [ Path.expand config[:compile_path] ]
-    end
+    recur(fn _ -> Path.expand config[:compile_path] end)
   end
 
   @doc """
   Returns all load paths for this project.
   """
   def load_paths do
-    paths = if umbrella? do
-      List.flatten recursive(fn _ -> load_paths end)
-    else
-      Enum.map config[:load_paths], Path.expand(&1)
-    end
+    paths =
+      recur(fn _ ->
+        Enum.map(config[:load_paths], Path.expand(&1))
+      end) |> List.concat
     paths ++ compile_paths
   end
 
+  # Loads mix.exs in the current directory or loads the project from the
+  # mixfile cache and pushes the project to the project stack.
+  defp load_project(app, post_config) do
+    if cached = Mix.Server.call({ :mixfile_cache, app }) do
+      post_config(post_config)
+      push(cached)
+      cached
+    else
+      old_proj = get
+
+      if File.regular?("mix.exs") do
+        post_config(post_config)
+        Code.load_file "mix.exs"
+      end
+
+      new_proj = get
+
+      if old_proj == new_proj do
+        new_proj = nil
+        push new_proj
+      end
+
+      Mix.Server.cast({ :mixfile_cache, app, new_proj })
+      new_proj
+    end
+  end
+
   # Sort projects in dependency order
-  defp topsort_projects(projects) do
+  defp topsort_projects(projects, apps_path) do
     graph = :digraph.new
 
     Enum.each projects, fn { app, app_path } ->
@@ -241,7 +252,7 @@ defmodule Mix.Project do
     end
 
     Enum.each projects, fn { app, app_path } ->
-      in_project app, app_path, fn apps_path ->
+      in_project app, app_path, fn _ ->
         Enum.each Mix.Deps.children, fn dep ->
           if Mix.Deps.available?(dep) and Mix.Deps.in_umbrella?(dep, apps_path) do
             :digraph.add_edge(graph, dep.app, app)
@@ -251,9 +262,8 @@ defmodule Mix.Project do
     end
 
     unless :digraph_utils.is_acyclic(graph) do
-      Mix.shell.error "Could not dependency sort umbrella projects. " <>
+      raise Mix.Error, message: "Could not dependency sort umbrella projects. " <>
         "There are cycles in the dependency graph."
-      exit(1)
     end
 
     vertices = :digraph_utils.topsort(graph)

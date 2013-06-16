@@ -39,7 +39,7 @@ defmodule SystemTest do
 
   test :argv do
     list = elixir('-e "IO.inspect System.argv" -- -o opt arg1 arg2 --long-opt 10')
-    { args, _ } = Code.eval list, []
+    { args, _ } = Code.eval_string list, []
     assert args == ["-o", "opt", "arg1", "arg2", "--long-opt", "10"]
   end
 
@@ -55,8 +55,8 @@ defmodule SystemTest do
   end
 
   test :cmd do
-    assert is_binary(System.cmd "binary")
-    assert is_list(System.cmd 'binary')
+    assert is_binary(System.cmd "cd .")
+    assert is_list(System.cmd 'cd .')
   end
 
   test :find_executable_with_binary do

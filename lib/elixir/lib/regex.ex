@@ -80,26 +80,6 @@ defmodule Regex do
   end
 
   @doc """
-  Runs the regular expression against the given string
-  and returns the index (zero indexes) where the first
-  match occurs, nil otherwise.
-
-  ## Examples
-
-      iex> Regex.index(%r/c(d)/, "abcd")
-      2
-      iex> Regex.index(%r/e/, "abcd")
-      nil
-
-  """
-  def index(regex(re_pattern: compiled), string) do
-    case :re.run(string, compiled, [{ :capture, :first, :index }]) do
-      :nomatch -> nil
-      { :match, [{index,_}] } -> index
-    end
-  end
-
-  @doc """
   Returns a boolean if there was a match or not.
 
   ## Examples
@@ -125,6 +105,8 @@ defmodule Regex do
       ["cd", "d"]
       iex> Regex.run(%r/e/, "abcd")
       nil
+      iex> Regex.run(%r/c(d)/, "abcd", return: :index)
+      [{2,2},{3,1}]
 
   """
   def run(regex, string, options // [])
@@ -291,6 +273,25 @@ defmodule Regex do
     :re.replace(string, compiled, replacement, opts)
   end
 
+  { :ok, pattern } = :re.compile(%B"[.^$*+?()[{\\\|\s#]", [:unicode])
+  @escape_pattern pattern
+
+  @doc %B"""
+  Escapes a string to be literally matched in a regex.
+
+  ## Examples
+
+      iex> Regex.escape(".")
+      "\\."
+      iex> Regex.escape("\\what if")
+      "\\\\what\\ if"
+
+  """
+  @spec escape(String.t | char_list) :: String.t | char_list
+  def escape(string) do
+    :re.replace(string, @escape_pattern, "\\\\&", [:global, { :return, return_for(string) }])
+  end
+
   # Helpers
 
   @doc false
@@ -313,7 +314,7 @@ defmodule Regex do
   defp translate_options(<<?x, t :: binary>>), do: [:extended|translate_options(t)]
   defp translate_options(<<?f, t :: binary>>), do: [:firstline|translate_options(t)]
   defp translate_options(<<?r, t :: binary>>), do: [:ungreedy|translate_options(t)]
-  defp translate_options(<<?s, t :: binary>>), do: [:dotall,{:newline,:anycrlf}|translate_options(t)]
+  defp translate_options(<<?s, t :: binary>>), do: [:dotall, {:newline, :anycrlf}|translate_options(t)]
   defp translate_options(<<?m, t :: binary>>), do: [:multiline|translate_options(t)]
   defp translate_options(<<?g, t :: binary>>), do: [:groups|translate_options(t)]
   defp translate_options(<<>>), do: []
@@ -327,10 +328,12 @@ defmodule Regex do
     end
   end
 
+  { :ok, pattern } = :re.compile(%B"\(\?<(?<G>[^>]*)>")
+  @groups_pattern pattern
+
   defp parse_groups(source) do
     options = [:global, {:capture, ['G'], :binary}]
-    {:ok, pattern} = :re.compile(%B"\(\?<(?<G>[^>]*)>")
-    case :re.run(source, pattern, options) do
+    case :re.run(source, @groups_pattern, options) do
       :nomatch -> []
       { :match, results } ->
         lc [group] inlist results, do: binary_to_atom(group)

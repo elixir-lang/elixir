@@ -18,15 +18,18 @@ defmodule Mix.Tasks.Escriptize do
   The following options can be specified in your mix.exs file:
 
   * `escript_name` - the name of the generated escript
-     Defaults to project name
+     Defaults to app name
 
   * `escript_path` - the path to write the escript to
-     Defaults to project name
+     Defaults to app name
 
-  * `escript_main_module` - the module containing the main/1 function.
+  * `escript_app` - the app to start with the escript
+     Defaults to app name
+
+  * `escript_main_module` - the module containing the main/1 function
      Defaults to `Project`
 
-  * `escript_embed_elixir` - if true embed elixir in the escript file.
+  * `escript_embed_elixir` - if true embed elixir in the escript file
      Defaults to true
 
   * `escript_embed_extra_apps` - embed additional Elixir applications
@@ -58,13 +61,17 @@ defmodule Mix.Tasks.Escriptize do
     filename     = project[:escript_path] || atom_to_binary(script_name)
     embed        = Keyword.get(project, :escript_embed_elixir, true)
     beams        = all_beams()
+    app          = Keyword.get(project, :escript_app, project[:app])
 
     cond do
+      !script_name ->
+        raise Mix.Error, message: "Could not generate escript, no name given, " <>
+          "set :escript_name or :app in the project settings"
       beams == [] ->
-        Mix.shell.error "Could not generate escript #{filename}, no beam files available"
-        :noop
+        raise Mix.Error, message: "Could not generate escript #{filename}, " <>
+          "no beam files available"
       force or Mix.Utils.stale?(beams, [filename]) ->
-        files = gen_main(script_name, project[:escript_main_module])
+        files = gen_main(script_name, project[:escript_main_module], app)
         files = files ++ all_files()
 
         if embed do
@@ -94,20 +101,14 @@ defmodule Mix.Tasks.Escriptize do
 
         set_perms(filename)
         Mix.shell.info "Generated escript #{filename}"
+        :ok
       true ->
         :noop
     end
   end
 
   defp all_beams() do
-    if Mix.Project.umbrella? do
-      beams = Mix.Project.recursive fn _ ->
-        get_beams()
-      end
-      List.concat(beams)
-    else
-      get_beams()
-    end
+    Mix.Project.recur(fn _ -> get_beams() end) |> List.concat
   end
 
   defp get_beams() do
@@ -119,12 +120,7 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp all_files() do
-    if Mix.Project.umbrella? do
-      files = Mix.Project.recursive(fn _ -> get_compiled_files() end)
-      List.concat(files)
-    else
-      get_compiled_files()
-    end
+    Mix.Project.recur(fn _ -> get_compiled_files() end) |> List.concat
   end
 
   defp get_compiled_files() do
@@ -157,28 +153,41 @@ defmodule Mix.Tasks.Escriptize do
     end
   end
 
-  defp gen_main(script_name, nil) do
+  defp gen_main(script_name, nil, app) do
     camelized = Mix.Utils.camelize(atom_to_binary(script_name))
-    gen_main(script_name, Module.concat([camelized]))
+    gen_main(script_name, Module.concat([camelized]), app)
   end
 
-  defp gen_main(script_name, script_name) do
+  defp gen_main(script_name, script_name, _app) do
     []
   end
 
-  defp gen_main(name, module) do
+  defp gen_main(name, module, app) do
     { :module, ^name, binary, _ } =
       defmodule name do
         @module module
+        @app app
 
         def main(args) do
           case :application.start(:elixir) do
             :ok ->
+              start_app
               args = Enum.map(args, :unicode.characters_to_binary(&1))
               Kernel.CLI.run fn -> @module.main(args) end, true
             _   ->
               IO.puts :stderr, IO.ANSI.escape("%{red, bright} Elixir is not in the code path, aborting.")
               System.halt(1)
+          end
+        end
+
+        defp start_app do
+          if app = @app do
+            case Application.Behaviour.start(app) do
+              :ok -> :ok
+              { :error, reason } ->
+                IO.puts :stderr, IO.ANSI.escape("%{red, bright} Could not start application #{app}: #{inspect reason}.")
+                System.halt(1)
+            end
           end
         end
       end

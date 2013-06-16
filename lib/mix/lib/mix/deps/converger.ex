@@ -4,8 +4,6 @@
 defmodule Mix.Deps.Converger do
   @moduledoc false
 
-  import Mix.Deps, only: [available?: 1]
-
   @doc """
   Clear up the mixfile cache.
   """
@@ -20,9 +18,9 @@ defmodule Mix.Deps.Converger do
   an updated depedency in case some processing is done.
   """
   def all(rest, callback) do
-    main   = Enum.reverse Mix.Deps.Project.all
     config = [ deps_path: Path.expand(Mix.project[:deps_path]),
                root_lockfile: Path.expand(Mix.project[:lockfile]) ]
+    main = Mix.Deps.Retriever.children |> Enum.reverse
     all(main, [], [], main, config, callback, rest)
   end
 
@@ -73,14 +71,9 @@ defmodule Mix.Deps.Converger do
         all(t, diverged_acc, upper_breadths, current_breadths, config, callback, rest)
       true ->
         { dep, rest } = callback.(dep, rest)
-
-        if available?(dep) and mixfile?(dep) do
-          { project, deps } = nested_deps(dep, config)
-          { acc, rest } = all(t, [dep.project(project)|acc], upper_breadths, current_breadths, config, callback, rest)
-          all(deps, acc, current_breadths, deps ++ current_breadths, config, callback, rest)
-        else
-          all(t, [dep|acc], upper_breadths, current_breadths, config, callback, rest)
-        end
+        deps = Mix.Deps.Retriever.children(dep, config)
+        { acc, rest } = all(t, [dep.deps(deps)|acc], upper_breadths, current_breadths, config, callback, rest)
+        all(deps, acc, current_breadths, deps ++ current_breadths, config, callback, rest)
     end
   end
 
@@ -103,36 +96,10 @@ defmodule Mix.Deps.Converger do
     Enum.map_reduce list, false, fn(other, diverged) ->
       Mix.Dep[app: other_app, scm: other_scm, opts: other_opts] = other
 
-      if app != other_app || scm == other_scm && scm.equals?(opts, other_opts) do
+      if app != other_app || scm == other_scm && scm.equal?(opts, other_opts) do
         { other, diverged }
       else
         { other.status({ :diverged, dep }), true }
-      end
-    end
-  end
-
-  defp mixfile?(dep) do
-    File.regular?(Path.join dep.opts[:dest], "mix.exs")
-  end
-
-  # The dependency contains a Mixfile, so let's
-  # load it and retrieve its nested dependencies.
-  defp nested_deps(Mix.Dep[app: app, opts: opts], config) do
-    File.cd! opts[:dest], fn ->
-      env     = opts[:env] || :prod
-      old_env = Mix.env
-
-      try do
-        Mix.env(env)
-        project = Mix.Project.load_project(app, config)
-
-        try do
-          { project, Enum.reverse Mix.Deps.Project.all }
-        after
-          Mix.Project.pop
-        end
-      after
-        Mix.env(old_env)
       end
     end
   end

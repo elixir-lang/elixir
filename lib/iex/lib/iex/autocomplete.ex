@@ -76,7 +76,7 @@ defmodule IEx.Autocomplete do
     case Code.string_to_ast expr do
       {:ok, atom} when is_atom(atom) ->
         expand_call atom, ''
-      {:ok, {:__aliases__,_,list}} ->
+      {:ok, {:__aliases__, _, list}} ->
         expand_elixir_modules list
       _ ->
         no_match
@@ -89,13 +89,13 @@ defmodule IEx.Autocomplete do
         expand_erlang_modules atom_to_list(atom)
       {:ok, { atom, _, nil }} when is_atom(atom) ->
         expand_call Kernel, atom_to_list(atom)
-      {:ok, {:__aliases__,_,[root]}} ->
+      {:ok, {:__aliases__, _, [root]}} ->
         expand_elixir_modules [], atom_to_list(root)
-      {:ok, {:__aliases__,_,[h|_] = list}} when is_atom(h) ->
+      {:ok, {:__aliases__, _, [h|_] = list}} when is_atom(h) ->
         hint = atom_to_list(List.last(list))
         list = Enum.take(list, length(list) - 1)
         expand_elixir_modules list, hint
-      {:ok, {{:., _, [mod,fun]},_,[]}} when is_atom(fun) ->
+      {:ok, {{:., _, [mod, fun]}, _, []}} when is_atom(fun) ->
         expand_call mod, atom_to_list(fun)
       _ -> no_match
     end
@@ -144,11 +144,11 @@ defmodule IEx.Autocomplete do
   ## Root Modules
 
   defp root_modules do
-    Enum.reduce :code.all_loaded, [], fn {m,_}, acc ->
+    Enum.reduce :code.all_loaded, [], fn {m, _}, acc ->
       mod = atom_to_list(m)
       case mod do
         'Elixir' ++ _ ->
-          tokens = :string.tokens(mod, '-')
+          tokens = :string.tokens(mod, '.')
           if length(tokens) === 2 do
             [Mod.new(name: List.last(tokens), type: :elixir)|acc]
           else
@@ -203,12 +203,12 @@ defmodule IEx.Autocomplete do
 
   defp elixir_submodules(mod, hint, root) do
     modname = atom_to_list(mod)
-    depth   = length(:string.tokens(modname, '-')) + 1
-    base    = modname ++ [?-|hint]
+    depth   = length(:string.tokens(modname, '.')) + 1
+    base    = modname ++ [?.|hint]
 
     Enum.reduce modules_as_lists(root), [], fn(m, acc) ->
       if :lists.prefix(base, m) do
-        tokens = :string.tokens(m, '-')
+        tokens = :string.tokens(m, '.')
         if length(tokens) == depth do
           name = List.last(tokens)
           [Mod.new(type: :elixir, name: name)|acc]
@@ -222,7 +222,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp modules_as_lists(true) do
-    ['Elixir-Elixir'] ++ modules_as_lists(false)
+    ['Elixir.Elixir'] ++ modules_as_lists(false)
   end
 
   defp modules_as_lists(false) do
@@ -236,9 +236,9 @@ defmodule IEx.Autocomplete do
       { :module, _ } ->
         falist = get_funs(mod)
 
-        list = Enum.reduce falist, [], fn {f,a}, acc ->
+        list = Enum.reduce falist, [], fn {f, a}, acc ->
           case :lists.keyfind(f, 1, acc) do
-            {f,aa} -> :lists.keyreplace(f, 1, acc, {f, [a|aa]})
+            {f, aa} -> :lists.keyreplace(f, 1, acc, {f, [a|aa]})
             false  -> [{f, [a]}|acc]
           end
         end

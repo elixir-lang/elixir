@@ -1,6 +1,5 @@
 -module(module_test).
 -include_lib("eunit/include/eunit.hrl").
--compile({parse_transform, elixir_transform}).
 
 eval(Content) ->
   { Value, Binding, _ } = elixir:eval(Content, []),
@@ -59,13 +58,6 @@ macro_file_test() ->
   F = fun() ->
     ?assertMatch({<<"nofile">>, []}, eval("defmodule Foo do\ndef line, do: __FILE__\nend\nFoo.line")),
     ?assertMatch({<<"nofile">>, []}, eval("__FILE__"))
-  end,
-  test_helper:run_and_remove(F, ['Elixir.Foo']).
-
-private_test() ->
-  F = fun() ->
-    eval("defmodule Foo do\ndefp version, do: __MODULE__\nend"),
-    ?assertError(undef, eval("Foo.version"))
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo']).
 

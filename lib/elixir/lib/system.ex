@@ -14,20 +14,40 @@ defmodule System do
   with the VM or the host system.
   """
 
-  # Read and strip the version from the `VERSION` file.
-  defmacrop get_version do
-    Regex.replace %r/^\s+|\s+$/, File.read!("VERSION"), ""
+  defp strip_re(iodata, pattern) do
+    :re.replace(iodata, pattern, "", [return: :binary])
   end
 
-  # Tries to run `git describe --always --tags`. In case of success
-  # returns the most recent tag, otherwise returns an empty string.
+  defp read_stripped(path) do
+    case :file.read_file(path) do
+      { :ok, binary } ->
+        strip_re(binary, "^\s+|\s+$")
+      _ -> ""
+    end
+  end
+
+  # Read and strip the version from the `VERSION` file.
+  defmacrop get_version do
+    case read_stripped("VERSION") do
+      ""   -> raise CompileError, message: "could not read the version number from VERSION"
+      data -> data
+    end
+  end
+
+  # Tries to run `git describe --always --tags`. In the case of success returns
+  # the most recent tag. If that is not available, tries to read the commit hash
+  # from .git/HEAD. If that fails, returns an empty string.
   defmacrop get_describe do
-    dotgit = Path.join(File.cwd!, ".git")
-    if :os.find_executable('git') && File.exists?(dotgit) do
-      data = :os.cmd('git describe --always --tags')
-      Regex.replace %r/\n/, to_binary(data), ""
-    else
-      ""
+    dirpath = ".git"
+    case :file.read_file_info(dirpath) do
+      { :ok, _ } ->
+        if :os.find_executable('git') do
+          data = :os.cmd('git describe --always --tags')
+          strip_re(data, "\n")
+        else
+          read_stripped(:filename.join(".git", "HEAD"))
+        end
+      _ -> ""
     end
   end
 
@@ -133,15 +153,22 @@ defmodule System do
   end
 
   defp write_env_tmp_dir(env) do
-    case System.get_env(env) do
+    case get_env(env) do
       nil -> nil
       tmp -> write_tmp_dir tmp
     end
   end
 
   defp write_tmp_dir(dir) do
-    case File.stat(dir) do
-      { :ok, File.Stat[type: :directory, access: access] } when access in [:read_write, :write] -> dir
+    case :file.read_file_info(dir) do
+      {:ok, info} ->
+        type_index = File.Stat.__index__ :type
+        access_index = File.Stat.__index__ :access
+        case { elem(info, type_index), elem(info, access_index) } do
+          { :directory, access } when access in [:read_write, :write] ->
+            dir
+          _ -> nil
+        end
       { :error, _ } -> nil
     end
   end
@@ -177,21 +204,23 @@ defmodule System do
   end
 
   @doc """
-  This functions looks up an executable program given
+  This function looks up an executable program given
   its name using the environment variable PATH on Unix
-  and Windows.
+  and Windows. It also considers the proper executable
+  extension for each OS, so for Windows it will try to
+  lookup files with `.com`, `.cmd` or similar extensions.
 
-  If `command` is a char list, a char list is returned.
+  If `program` is a char list, a char list is returned.
   Returns a binary otherwise.
   """
   @spec find_executable(char_list) :: char_list | nil
   @spec find_executable(String.t) :: String.t | nil
-  def find_executable(command) when is_list(command) do
-    :os.find_executable(command) || nil
+  def find_executable(program) when is_list(program) do
+    :os.find_executable(program) || nil
   end
 
-  def find_executable(command) do
-    case :os.find_executable(to_char_list(command)) do
+  def find_executable(program) do
+    case :os.find_executable(to_char_list(program)) do
       false -> nil
       other -> list_to_binary(other)
     end
@@ -294,19 +323,11 @@ defmodule System do
   def halt(status // 0, options // [])
 
   def halt(status, options) when is_integer(status) or status == :abort do
-    do_halt(status, options)
+    :erlang.halt(status, options)
   end
 
   def halt(status, options) do
-    do_halt(to_char_list(status), options)
-  end
-
-  # Support R15B
-  if { :halt, 2 } in :erlang.module_info(:exports) do
-    defp do_halt(status, options),  do: :erlang.halt(status, options)
-  else
-    IO.puts "Using limited halt support. Upgrade to R15B01 or later is recommended."
-    defp do_halt(status, _options), do: :erlang.halt(status)
+    :erlang.halt(to_char_list(status), options)
   end
 
   ## Helpers

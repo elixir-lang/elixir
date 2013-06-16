@@ -6,6 +6,7 @@ if [ $# -eq 0 ]; then
   --no-docs        Do not attach documentation to compiled modules
   --no-debug-info  Do not attach debug info to compiled modules
   --ignore-module-conflict
+  --warnings-as-errors Treat warnings as errors and return non-zero exit code
 
 ** Options given after -- are passed down to the executed code
 ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS" >&2
@@ -14,7 +15,7 @@ fi
 
 readlink_f () {
   cd "$(dirname "$1")" > /dev/null
-  local filename="$(basename "$1")"
+  filename="$(basename "$1")"
   if [ -h "$filename" ]; then
     readlink_f "$(readlink "$filename")"
   else
@@ -24,4 +25,4 @@ readlink_f () {
 
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-exec "$SCRIPT_PATH"/elixir --compile "$@"
+exec "$SCRIPT_PATH"/elixir +compile "$@"

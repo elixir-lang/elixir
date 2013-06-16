@@ -206,7 +206,7 @@ defmodule ExUnit.AssertionsTest do
 
   test :assert_raise_when_other_error do
     "This should never be tested" = assert_raise ArgumentError, fn ->
-      Certainly.Undefined.function(1,2,3)
+      Certainly.Undefined.function(1, 2, 3)
     end
   rescue
     error in [ExUnit.AssertionError] ->
@@ -219,7 +219,7 @@ defmodule ExUnit.AssertionsTest do
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected exception SyntaxError, got FunctionClauseError (no function clause matching: :lists.flatten(1))" = error.message
+      "Expected exception SyntaxError, got FunctionClauseError (no function clause matching in :lists.flatten/1)" = error.message
   end
 
   test :assert_operator_greater_pass do

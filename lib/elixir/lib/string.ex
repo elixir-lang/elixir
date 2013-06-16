@@ -146,7 +146,7 @@ defmodule String do
 
       iex> String.split("foo bar")
       ["foo", "bar"]
-      iex> String.split("foo" <> <<194,133>> <> "bar")
+      iex> String.split("foo" <> <<194, 133>> <> "bar")
       ["foo", "bar"]
       iex> String.split(" foo bar ")
       ["foo", "bar"]
@@ -383,7 +383,7 @@ defmodule String do
       "a,[b],c"
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: 2)
       "a[],b[],c"
-      iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1,1])
+      iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
 
   """
@@ -399,7 +399,7 @@ defmodule String do
     opts = if options[:global] != false, do: [:global], else: []
 
     if insert = options[:insert_replaced] do
-      opts = [{:insert_replaced,insert}|opts]
+      opts = [{:insert_replaced, insert}|opts]
     end
 
     opts
@@ -459,6 +459,61 @@ defmodule String do
   defdelegate next_codepoint(string), to: String.Unicode
 
   @doc %B"""
+  Checks whether `str` contains only valid characters.
+
+  ## Examples
+
+      iex> String.valid?("a")
+      true
+      iex> String.valid?("ø")
+      true
+      iex> String.valid?(<<0xffff :: 16>>)
+      false
+      iex> String.valid?("asd" <> <<0xffff :: 16>>)
+      false
+
+  """
+  @spec valid?(t) :: boolean
+
+  noncharacters = Enum.to_list(?\x{FDD0}..?\x{FDEF}) ++
+    [ ?\x{0FFFE}, ?\x{0FFFF}, ?\x{1FFFE}, ?\x{1FFFF}, ?\x{2FFFE}, ?\x{2FFFF},
+      ?\x{3FFFE}, ?\x{3FFFF}, ?\x{4FFFE}, ?\x{4FFFF}, ?\x{5FFFE}, ?\x{5FFFF},
+      ?\x{6FFFE}, ?\x{6FFFF}, ?\x{7FFFE}, ?\x{7FFFF}, ?\x{8FFFE}, ?\x{8FFFF},
+      ?\x{9FFFE}, ?\x{9FFFF}, ?\x{10FFFE}, ?\x{10FFFF} ]
+
+  lc noncharacter inlist noncharacters do
+    def valid?(<< unquote(noncharacter) :: utf8, _ :: binary >>), do: false
+  end
+
+  def valid?(<<_ :: utf8, t :: binary>>), do: valid?(t)
+  def valid?(<<>>), do: true
+  def valid?(_), do: false
+
+  @doc %B"""
+  Checks whether `str` is a valid character.
+
+  All characters are codepoints, but some codepoints
+  are not valid characters. They may be reserved, private,
+  or other.
+
+  More info at: http://en.wikipedia.org/wiki/Mapping_of_Unicode_characters#Noncharacters
+
+  ## Examples
+
+      iex> String.valid_character?("a")
+      true
+      iex> String.valid_character?("ø")
+      true
+      iex> String.valid_character?("\x{ffff}")
+      false
+
+  """
+  @spec valid_character?(t) :: boolean
+
+  def valid_character?(<<_ :: utf8>> = codepoint), do: valid?(codepoint)
+  def valid_character?(_), do: false
+
+  @doc %B"""
   Checks whether `str` is a valid codepoint.
 
   Note that the empty string is considered invalid, as are
@@ -470,7 +525,7 @@ defmodule String do
       true
       iex> String.valid_codepoint?("ø")
       true
-      iex> String.valid_codepoint?("\xffff")
+      iex> String.valid_codepoint?(<<0xffff :: 16>>)
       false
       iex> String.valid_codepoint?("asdf")
       false
@@ -632,6 +687,12 @@ defmodule String do
       "ixir"
       iex> String.slice("elixir", -10, 3)
       nil
+      iex> String.slice("a", 0, 1500)
+      "a"
+      iex> String.slice("a", 1, 1500)
+      ""
+      iex> String.slice("a", 2, 1500)
+      nil
 
   """
   @spec slice(t, integer, integer) :: grapheme | nil
@@ -664,10 +725,184 @@ defmodule String do
     acc <> char
   end
 
+  defp do_slice(:no_grapheme, start_pos, _, current_pos, acc) when start_pos == current_pos do
+    acc
+  end
+
   defp do_slice(:no_grapheme, _, _, _, acc) do
     case acc do
       "" -> nil
       _ -> acc
     end
+  end
+
+  @doc """
+  Converts a string to an integer. If successful, returns a
+  tuple of form {integer, remainder of string}. If unsuccessful,
+  returns :error.
+
+  ## Examples
+
+      iex> String.to_integer("34")
+      {34,""}
+      iex> String.to_integer("34.5")
+      {34,".5"}
+      iex> String.to_integer("three")
+      :error
+
+  """
+  @spec to_integer(t) :: {integer, t} | :error
+
+  def to_integer(string) do
+    {result, remainder} = :string.to_integer(binary_to_list(string))
+    case result do
+      :error -> :error
+      _ -> {result, list_to_binary(remainder)}
+    end
+  end
+
+  @doc """
+  Converts a string to a float. If successful, returns a
+  tuple of form {float, remainder of string}. If unsuccessful,
+  returns :error. If given an integer value, will return
+  same as to_integer/1.
+
+  ## Examples
+
+      iex> String.to_float("34")
+      {34.0,""}
+      iex> String.to_float("34.25")
+      {34.25,""}
+      iex> String.to_float("56.5xyz")
+      {56.5,"xyz"}
+      iex> String.to_float("pi")
+      :error
+
+  """
+  @spec to_float(t) :: {integer, t} | :error
+
+  def to_float(string) do
+    charlist = binary_to_list(string)
+    {result, remainder} = :string.to_float(charlist)
+    case result do
+      :error ->
+        {int_result, int_remainder} = :string.to_integer(charlist)
+        case int_result do
+          :error -> :error
+          _ -> {float(int_result), list_to_binary(int_remainder)}
+        end
+      _ -> {result, list_to_binary(remainder)}
+    end
+  end
+
+  @doc """
+  Returns true if `string` starts with any of the prefixes given, otherwise
+  false. `prefixes` can be either a single prefix or a list of prefixes.
+
+  ## Examples
+
+      iex> String.starts_with? "elixir", "eli"
+      true
+      iex> String.starts_with? "elixir", ["erlang", "elixir"]
+      true
+      iex> String.starts_with? "elixir", ["erlang", "ruby"]
+      false
+
+  """
+  @spec starts_with?(t, t | [t]) :: boolean
+
+  def starts_with?(string, prefixes) when is_list(prefixes) do
+    Enum.any?(prefixes, do_starts_with(string, &1))
+  end
+
+  def starts_with?(string, prefix) do
+    do_starts_with(string, prefix)
+  end
+
+  defp do_starts_with(_, "") do
+    true
+  end
+
+  defp do_starts_with(string, prefix) when is_binary(prefix) do
+    match?({0, _}, :binary.match(string, prefix))
+  end
+
+  defp do_starts_with(_, _) do
+    raise ArgumentError
+  end
+
+  @doc """
+  Returns true if `string` ends with any of the suffixes given, otherwise
+  false. `suffixes` can be either a single suffix or a list of suffixes.
+
+  ## Examples
+
+      iex> String.ends_with? "language", "age"
+      true
+      iex> String.ends_with? "language", ["youth", "age"]
+      true
+      iex> String.ends_with? "language", ["youth", "elixir"]
+      false
+
+  """
+  @spec ends_with?(t, t | [t]) :: boolean
+
+  def ends_with?(string, suffixes) when is_list(suffixes) do
+    Enum.any?(suffixes, do_ends_with(string, &1))
+  end
+
+  def ends_with?(string, suffix) do
+    do_ends_with(string, suffix)
+  end
+
+  defp do_ends_with(_, "") do
+    true
+  end
+
+  defp do_ends_with(string, suffix) when is_binary(suffix) do
+    string_size = size(string)
+    suffix_size = size(suffix)
+    scope = {string_size - suffix_size, suffix_size}
+    (suffix_size <= string_size) and (:nomatch != :binary.match(string, suffix, [scope: scope]))
+  end
+
+  defp do_ends_with(_, _) do
+    raise ArgumentError
+  end
+
+  @doc """
+  Returns true if `string` contains match, otherwise false.
+  `matches` can be either a single string or a list of strings.
+
+  ## Examples
+
+      iex> String.contains? "elixir of life", "of"
+      true
+      iex> String.contains? "elixir of life", ["life", "death"]
+      true
+      iex> String.contains? "elixir of life", ["death", "mercury"]
+      false
+
+  """
+  @spec contains?(t, t | [t]) :: boolean
+
+  def contains?(string, matches) when is_list(matches) do
+    Enum.any?(matches, do_contains(string, &1))
+  end
+
+  def contains?(string, match) do
+    do_contains(string, match)
+  end
+
+  defp do_contains(_, "") do
+    true
+  end
+
+  defp do_contains(string, match) when is_binary(match) do
+    :nomatch != :binary.match(string, match)
+  end
+
+  defp do_contains(_, _) do
+    raise ArgumentError
   end
 end

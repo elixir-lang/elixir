@@ -10,7 +10,7 @@ defmodule DictTest.Common do
       defmacrop dicts_equal(actual, expected) do
         quote do
           cmp = fn { k1, _ }, { k2, _ } -> k1 < k2 end
-          Enum.sort(expected, cmp) == Enum.sort(actual, cmp)
+          Enum.sort(unquote(expected), cmp) == Enum.sort(unquote(actual), cmp)
         end
       end
 
@@ -49,11 +49,11 @@ defmodule DictTest.Common do
         assert :error     == Dict.fetch(new_dict, "other_key")
       end
 
-      test :get! do
-        assert 1 == Dict.get!(new_dict, "first_key")
-        assert 2 == Dict.get!(new_dict, "second_key")
+      test :fetch! do
+        assert 1 == Dict.fetch!(new_dict, "first_key")
+        assert 2 == Dict.fetch!(new_dict, "second_key")
         assert_raise KeyError, fn ->
-          Dict.get!(new_dict, "other_key")
+          Dict.fetch!(new_dict, "other_key")
         end
       end
 
@@ -138,6 +138,71 @@ defmodule DictTest.Common do
         assert "..." == Dict.get dict, "non-existent"
       end
 
+      test :pop do
+        {v, actual} = Dict.pop(new_dict, "first_key")
+        assert 1 == v
+        assert dicts_equal actual, Dict.delete(new_dict, "first_key")
+
+        {v, actual} = Dict.pop(new_dict, "second_key")
+        assert 2 == v
+        assert dicts_equal actual, Dict.delete(new_dict, "second_key")
+
+        {v, actual} = Dict.pop(new_dict, "other_key")
+        assert nil == v
+        assert dicts_equal actual, new_dict
+
+        {v, actual} = Dict.pop(empty_dict, "first_key", "default")
+        assert "default" == v
+        assert dicts_equal actual, empty_dict
+
+        {v, actual} = Dict.pop(new_dict, "other_key", "default")
+        assert "default" == v
+        assert dicts_equal actual, new_dict
+      end
+
+			test :split do
+				split_keys = []
+				{take, drop} = Dict.split(new_dict, split_keys)
+				assert dicts_equal take, Dict.empty(new_dict)
+				assert dicts_equal drop, new_dict
+				
+				split_keys = ["unknown_key"]
+				{take, drop} = Dict.split(new_dict, split_keys)
+				assert dicts_equal take, Dict.empty(new_dict)
+				assert dicts_equal drop, new_dict
+
+				split_keys = ["first_key", "second_key", "unknown_key"]
+				{take, drop} = Dict.split(new_dict, split_keys)				
+				first_val = Dict.get(new_dict, "first_key")
+				second_val = Dict.get(new_dict, "second_key")
+				take_expected = Dict.empty(new_dict)
+				take_expected = Dict.put(take_expected, "first_key", first_val)
+				take_expected = Dict.put(take_expected, "second_key", second_val)			
+				drop_expected = new_dict
+				drop_expected = Dict.delete(drop_expected, "first_key")
+				drop_expected = Dict.delete(drop_expected, "second_key")
+				assert dicts_equal take, take_expected
+				assert dicts_equal drop, drop_expected
+			end
+
+			test :take do
+				result = Dict.take(new_dict, ["unknown_key"])
+				assert dicts_equal result, Dict.empty(new_dict)
+
+				result = Dict.take(new_dict, ["first_key"])
+				first_val = Dict.get(new_dict, "first_key")
+				expected = Dict.put(Dict.empty(new_dict), "first_key", first_val)
+				assert dicts_equal result, expected
+			end
+
+			test :drop do
+				result = Dict.drop(new_dict, ["unknown_key"])
+				assert dicts_equal result, new_dict
+
+				result = Dict.drop(new_dict, ["first_key"])
+				assert dicts_equal result, Dict.delete(new_dict, "first_key")
+			end
+
       test :empty do
         assert empty_dict == Dict.empty new_dict
       end
@@ -154,7 +219,7 @@ defmodule DictTest.Common do
 
       test :equal? do
         dict1 = HashDict.new(a: 2, b: 3, f: 5, c: 123)
-        dict2 = List.Dict.new(a: 2, b: 3, f: 5, c: 123)
+        dict2 = ListDict.new(a: 2, b: 3, f: 5, c: 123)
         assert Dict.equal?(dict1, dict2)
 
         dict2 = Dict.put(dict2, :a, 3)
@@ -169,5 +234,5 @@ defmodule Dict.HashDictTest do
 end
 
 defmodule Dict.ListTest do
-  use DictTest.Common, List.Dict
+  use DictTest.Common, ListDict
 end

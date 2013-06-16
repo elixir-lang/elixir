@@ -8,8 +8,8 @@ defmodule ExUnit.CLIFormatter do
   @timeout 30_000
   use GenServer.Behaviour
 
-  import Exception, only: [format_entry: 2]
-  defrecord Config, counter: 0, failures: []
+  import Exception, only: [format_stacktrace_entry: 2]
+  defrecord Config, counter: 0, test_failures: [], case_failures: []
 
   ## Behaviour
 
@@ -18,16 +18,16 @@ defmodule ExUnit.CLIFormatter do
     pid
   end
 
-  def suite_finished(id, ms) do
-    :gen_server.call(id, { :suite_finished, ms }, @timeout)
+  def suite_finished(id, run_us, load_us) do
+    :gen_server.call(id, { :suite_finished, run_us, load_us }, @timeout)
   end
 
   def case_started(_id, _test_case) do
     :ok
   end
 
-  def case_finished(_id, _test_case) do
-    :ok
+  def case_finished(id, test_case) do
+    :gen_server.cast(id, { :case_finished, test_case })
   end
 
   def test_started(_id, _test) do
@@ -44,13 +44,19 @@ defmodule ExUnit.CLIFormatter do
     { :ok, Config.new }
   end
 
-  def handle_call({ :suite_finished, ms }, _from, config) do
-    print_suite(config.counter, config.failures, ms)
-    { :stop, :normal, length(config.failures), config }
+  def handle_call({ :suite_finished, run_us, load_us }, _from, config) do
+    print_suite(config.counter, config.test_failures, config.case_failures, run_us, load_us)
+    { :stop, :normal, length(config.test_failures), config }
   end
 
-  def handle_call(_, _, _) do
-    super
+  def handle_call(reqest, from, config) do
+    super(reqest, from, config)
+  end
+
+  def handle_cast({ :test_finished, test = ExUnit.Test[invalid: true] }, config) do
+    IO.write invalid("?")
+    { :noreply, config.update_counter(&1 + 1).
+        update_test_failures([test|&1]) }
   end
 
   def handle_cast({ :test_finished, ExUnit.Test[failure: nil] }, config) do
@@ -61,30 +67,61 @@ defmodule ExUnit.CLIFormatter do
   def handle_cast({ :test_finished, test }, config) do
     IO.write failure("F")
     { :noreply, config.update_counter(&1 + 1).
-        update_failures([test|&1]) }
+        update_test_failures([test|&1]) }
   end
 
-  def handle_cast(_, _) do
-    super
+  def handle_cast({ :case_finished, test_case }, config) do
+    if test_case.failure do
+      { :noreply, config.update_case_failures([test_case|&1]) }
+    else
+      { :noreply, config }
+    end
   end
 
-  defp print_suite(counter, [], ms) do
+  def handle_cast(request, config) do
+    super(request, config)
+  end
+
+  defp print_suite(counter, [], [], run_us, load_us) do
     IO.write "\n\n"
-    IO.puts "Finished in #{format_ms ms} seconds"
+    print_time(run_us, load_us)
     IO.puts success("#{counter} tests, 0 failures")
   end
 
-  defp print_suite(counter, failures, ms) do
+  defp print_suite(counter, test_failures, case_failures, run_us, load_us) do
     IO.write "\n\nFailures:\n\n"
-    Enum.reduce Enum.reverse(failures), 1, print_failure(&1, &2, File.cwd!)
-    IO.puts "Finished in #{format_ms ms} seconds"
-    IO.puts failure("#{counter} tests, #{length(failures)} failures")
+    num_fails = Enum.reduce Enum.reverse(test_failures), 1, print_test_failure(&1, &2, File.cwd!)
+    Enum.reduce Enum.reverse(case_failures), num_fails, print_case_failure(&1, &2, File.cwd!)
+    num_invalids = Enum.count test_failures, fn test -> test.invalid end
+
+    print_time(run_us, load_us)
+
+    num_fails = num_fails - 1
+    message = "#{counter} tests, #{num_fails} failures"
+    if num_invalids > 0, do: message = message <>  ", #{num_invalids} invalid"
+    cond do
+      num_fails > 0    -> IO.puts failure(message)
+      num_invalids > 0 -> IO.puts invalid(message)
+      true             -> IO.puts success(message)
+    end
   end
 
-  defp print_failure(ExUnit.Test[case: test_case, name: test, failure: { kind, reason, stacktrace }], acc, cwd) do
-    IO.puts "  #{acc}) #{test} (#{inspect test_case})"
+  defp print_test_failure(ExUnit.Test[failure: nil], acc, _cwd) do
+    acc
+  end
+
+  defp print_test_failure(ExUnit.Test[case: test_case, name: test, failure: { kind, reason, stacktrace }], acc, cwd) do
+    IO.puts "  #{acc}) #{test} (#{inspect test_case.name})"
     print_kind_reason(kind, reason)
-    print_stacktrace(stacktrace, test_case, test, cwd)
+    print_stacktrace(stacktrace, test_case.name, test, cwd)
+    IO.write "\n"
+    acc + 1
+  end
+
+  defp print_case_failure(ExUnit.TestCase[name: case_name, failure: { kind, reason, stacktrace }], acc, cwd) do
+    IO.puts "  #{acc}) #{inspect case_name}: failure on setup_all/teardown_all callback, tests invalidated."
+    print_kind_reason(kind, reason)
+    print_stacktrace(stacktrace, case_name, nil, cwd)
     IO.write "\n"
     acc + 1
   end
@@ -120,7 +157,19 @@ defmodule ExUnit.CLIFormatter do
 
   defp print_stacktrace(stacktrace, _case, _test, cwd) do
     IO.puts location_info "stacktrace:"
-    Enum.each stacktrace, fn(s) -> IO.puts stacktrace_info format_entry(s, cwd) end
+    Enum.each stacktrace, fn(s) -> IO.puts stacktrace_info format_stacktrace_entry(s, cwd) end
+  end
+
+  defp print_time(run_us, nil) do
+    IO.puts "Finished in #{run_us |> normalize_us |> format_us} seconds"
+  end
+
+  defp print_time(run_us, load_us) do
+    run_us  = run_us |> normalize_us
+    load_us = load_us |> normalize_us
+
+    ms = run_us + load_us
+    IO.puts "Finished in #{format_us ms} seconds (#{format_us load_us}s on load, #{format_us run_us}s on tests)"
   end
 
   defp pad(binary, max) do
@@ -132,12 +181,16 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
-  defp format_ms(ms) do
-    if ms < 100000 do
-      "0.0#{div(ms, 10000)}"
+  defp normalize_us(us) do
+    div(us, 10000)
+  end
+
+  defp format_us(us) do
+    if us < 10 do
+      "0.0#{us}"
     else
-      ms = div ms, 100000
-      "#{div(ms, 10)}.#{rem(ms, 10)}"
+      us = div us, 10
+      "#{div(us, 10)}.#{rem(us, 10)}"
     end
   end
 
@@ -160,20 +213,28 @@ defmodule ExUnit.CLIFormatter do
 
   # Print styles
 
+  defp colorize(escape, string) do
+    IO.ANSI.escape_fragment("%{#{escape}}") <> string <> IO.ANSI.escape_fragment("%{reset}")
+  end
+
   defp success(msg) do
-    IO.ANSI.escape("%{green}" <>  msg)
+    colorize("green", msg)
+  end
+
+  defp invalid(msg) do
+    colorize("yellow", msg)
   end
 
   defp failure(msg) do
-    IO.ANSI.escape("%{red}" <>  msg)
+    colorize("red", msg)
   end
 
   defp error_info(msg) do
-    IO.ANSI.escape("%{red}     " <> msg)
+    colorize("red", "     " <> msg)
   end
 
   defp location_info(msg) do
-    IO.ANSI.escape("%{cyan}     " <> msg)
+    colorize("cyan", "     " <> msg)
   end
 
   defp stacktrace_info(msg) do

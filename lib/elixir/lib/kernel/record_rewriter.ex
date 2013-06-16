@@ -350,6 +350,10 @@ defmodule Kernel.RecordRewriter do
     vars
   end
 
+  defp join_dict([]) do
+    []
+  end
+
   defp join_dict([{ _, dict, _ }|t]) do
     join_dict(t, dict)
   end
@@ -372,6 +376,10 @@ defmodule Kernel.RecordRewriter do
 
   defp join_dict([], other) do
     other
+  end
+
+  defp join_result([]) do
+    []
   end
 
   defp join_result([{ _, _, res }|t]) do

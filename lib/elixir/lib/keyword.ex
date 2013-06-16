@@ -56,7 +56,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.new([{:b,1},{:a,2}])
+      iex> Keyword.new([{:b, 1}, {:a, 2}])
       [a: 2, b: 1]
 
   """
@@ -74,7 +74,7 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.new([:a, :b], fn (x) -> {x,x} end) |> Enum.sort
+      iex> Keyword.new([:a, :b], fn (x) -> {x, x} end) |> Enum.sort
       [a: :a, b: :b]
 
   """
@@ -115,26 +115,6 @@ defmodule Keyword do
   end
 
   @doc """
-  Gets the value for specific key. If key does not exist,
-  an error is raised.
-
-  ## Examples
-
-      iex> Keyword.get!([a: 1], :a)
-      1
-      iex> Keyword.get!([a: 1], :b)
-      ** (KeyError) key not found: :b
-
-  """
-  @spec get!(t, key) :: value | no_return
-  def get!(keywords, key) when is_atom(key) do
-    case :lists.keyfind(key, 1, keywords) do
-      { ^key, value } -> value
-      false -> raise(KeyError, key: key)
-    end
-  end
-
-  @doc """
   Fetchs the value for specific key and return it in a tuple.
   If the key does not exist, returns `:error`.
 
@@ -152,6 +132,27 @@ defmodule Keyword do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, value } -> { :ok, value }
       false -> :error
+    end
+  end
+
+  @doc """
+  Fetches the value for specific key. If key does not exist,
+  an error is raised.
+
+  ## Examples
+
+      iex> Keyword.fetch!([a: 1], :a)
+      1
+
+      iex> Keyword.fetch!([a: 1], :b)
+      ** (KeyError) key not found: :b
+
+  """
+  @spec fetch!(t, key) :: value | no_return
+  def fetch!(keywords, key) when is_atom(key) do
+    case :lists.keyfind(key, 1, keywords) do
+      { ^key, value } -> value
+      false -> raise(KeyError, key: key)
     end
   end
 
@@ -265,7 +266,7 @@ defmodule Keyword do
   def put_new(keywords, key, value) when is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, _ } -> keywords
-      false -> [{key,value}|keywords]
+      false -> [{key, value}|keywords]
     end
   end
 
@@ -348,6 +349,7 @@ defmodule Keyword do
 
       iex> Keyword.update([a: 1], :a, &1 * 2)
       [a: 2]
+
       iex> Keyword.update([a: 1], :b, &1 * 2)
       ** (KeyError) key not found: :b
 

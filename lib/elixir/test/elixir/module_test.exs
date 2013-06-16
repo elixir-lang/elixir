@@ -102,7 +102,7 @@ defmodule ModuleTest do
     assert env.module == ModuleTest.OnDefinition
     assert kind == :def
     assert name == :hello
-    assert [{ :foo, _, _ }, { :bar, _ ,_ }] = args
+    assert [{ :foo, _, _ }, { :bar, _ , _ }] = args
     assert [] = guards
     assert [do: { :+, _, [{ :foo, _, _ }, { :bar, _, _ }] }] = expr
   end
@@ -115,7 +115,7 @@ defmodule ModuleTest do
   end
 
   test :alias_with_raw_atom do
-    defmodule :"Elixir-ModuleTest-RawModule" do
+    defmodule :"Elixir.ModuleTest.RawModule" do
       def hello, do: :world
     end
 
@@ -132,24 +132,24 @@ defmodule ModuleTest do
   ## Attributes
 
   test :reserved_attributes do
-    assert List.keyfind(ExUnit.Server.__info__(:attributes), :behavior, 0) == {:behavior,[:gen_server]}
+    assert List.keyfind(ExUnit.Server.__info__(:attributes), :behavior, 0) == {:behavior, [:gen_server]}
   end
 
   test :persisted_attributes do
-    assert [{:register_example,[:it_works]},{:register_example,[:still_works]}] ==
+    assert [{:register_example, [:it_works]}, {:register_example, [:still_works]}] ==
       Enum.filter __MODULE__.__info__(:attributes), match?({ :register_example, _ }, &1)
   end
 
   test :duplicated_attributes do
-    assert [{:vsn,_},{:foo,[1]},{:foo,[2]},{:foo,[3]}] = ModuleTest.DuplicateAttribute.__info__(:attributes)
+    assert [{:vsn, _}, {:foo, [1]}, {:foo, [2]}, {:foo, [3]}] = ModuleTest.DuplicateAttribute.__info__(:attributes)
   end
 
   @some_attribute  [1]
-  @other_attribute [3,2,1]
+  @other_attribute [3, 2, 1]
 
   test :inside_function_attributes do
     assert [1] = @some_attribute
-    assert [3,2,1] = @other_attribute
+    assert [3, 2, 1] = @other_attribute
   end
 
   ## Naming
@@ -161,6 +161,7 @@ defmodule ModuleTest do
     assert Module.concat(Foo, 'Bar') == Foo.Bar
     assert Module.concat(Foo, Bar.Baz) == Foo.Bar.Baz
     assert Module.concat(Foo, "Bar.Baz") == Foo.Bar.Baz
+    assert Module.concat(Bar, :nil) == :"Elixir.Bar.nil"
   end
 
   test :safe_concat do
@@ -173,7 +174,7 @@ defmodule ModuleTest do
   test :split do
     module = Very.Long.Module.Name.And.Even.Longer
     assert Module.split(module) == ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
-    assert Module.split("Elixir-Very-Long") == ["Very", "Long"]
+    assert Module.split("Elixir.Very.Long") == ["Very", "Long"]
     assert Module.concat(Module.split(module)) == module
   end
 
@@ -182,11 +183,21 @@ defmodule ModuleTest do
     assert Module.to_binary(Hello.World) == "Hello.World"
   end
 
+  test :__MODULE__ do
+    assert Code.eval_string("__MODULE__.Foo") |> elem(0) == Foo
+  end
+
   ## Creation
 
   test :defmodule do
     assert match?({ :module, Defmodule, binary, 3 } when is_binary(binary), defmodule Defmodule do
       1 + 2
+    end)
+  end
+
+  test :defmodule_with_atom do
+    assert match?({ :module, :root_defmodule, _, _ }, defmodule :root_defmodule do
+      :ok
     end)
   end
 
@@ -227,7 +238,7 @@ defmodule ModuleTest do
 
   test :definitions_in do
     in_module do
-      def foo(1,2,3), do: 4
+      def foo(1, 2, 3), do: 4
 
       assert Module.definitions_in(__MODULE__)        == [foo: 3]
       assert Module.definitions_in(__MODULE__, :def)  == [foo: 3]

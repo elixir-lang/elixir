@@ -58,7 +58,7 @@ defmodule Code do
   end
 
   @doc """
-  Evalutes the contents given by string. The second argument is the
+  Evaluates the contents given by string. The second argument is the
   binding (which should be a keyword) followed by a keyword list of
   environment options. Those options can be:
 
@@ -76,7 +76,7 @@ defmodule Code do
   * `:macros` - a list of tuples where the first element is a module
     and the second a list of imported macro names and arity
 
-  Notice that setting any ov the values above overrides Elixir default
+  Notice that setting any of the values above overrides Elixir default
   values. For example, setting `:requires` to `[]`, will no longer
   automatically required the `Kernel` module, in the same way setting
   `:macros` will no longer auto-import `Kernel` macros as `if`, `case`,
@@ -84,34 +84,34 @@ defmodule Code do
 
   ## Examples
 
-      iex> Code.eval("a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
+      iex> Code.eval_string("a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
       { 3, [ {:a, 1}, {:b, 2} ] }
 
   For convenience, you can my pass `__ENV__` as argument and
   all imports, requires and aliases will be automatically carried
   over:
 
-      iex> Code.eval("a + b", [a: 1, b: 2], __ENV__)
+      iex> Code.eval_string("a + b", [a: 1, b: 2], __ENV__)
       { 3, [ {:a, 1}, {:b, 2} ] }
 
   """
-  def eval(string, binding // [], opts // [])
+  def eval_string(string, binding // [], opts // [])
 
-  def eval(string, binding, Macro.Env[] = env) do
-    eval(string, binding, env.to_keywords)
+  def eval_string(string, binding, Macro.Env[] = env) do
+    eval_string(string, binding, env.to_keywords)
   end
 
-  def eval(string, binding, opts) do
+  def eval_string(string, binding, opts) do
     { value, binding, _scope } =
       :elixir.eval :unicode.characters_to_list(string), binding, opts
     { value, binding }
   end
 
   @doc """
-  Evalutes the quoted contents.
+  Evaluates the quoted contents.
 
   This function accepts a list of environment options.
-  Check `Code.eval` for more information.
+  Check `Code.eval_string` for more information.
 
   ## Examples
 
@@ -153,6 +153,11 @@ defmodule Code do
   * `:existing_atoms_only` - When true, raises an error
     when non-existing atoms are found by the tokenizer.
 
+  ## Macro.to_binary/1
+
+  The opposite of converting a string to its AST is
+  `Macro.to_binary`, which converts a AST to a binary
+  representation.
   """
   def string_to_ast(string, opts // []) do
     file = Keyword.get opts, :file, "nofile"
@@ -185,10 +190,10 @@ defmodule Code do
   defp unpack_ast(line, forms),                            do: { :__block__, [line: line], forms }
 
   @doc """
-  Loads the given `file`. Accepts `relative_to` as an argument
-  to tell where the file is located. If the file was already
-  required/loaded, loads it again. It returns all the modules
-  defined in the file.
+  Loads the given `file`. Accepts `relative_to` as an argument to tell where
+  the file is located. If the file was already required/loaded, loads it again.
+  It returns a list of tuples { ModuleName, <<byte_code>> }, one tuple for each
+  module defined in the file.
 
   Notice that if `load_file` is invoked by different processes
   concurrently, the target file will be invoked concurrently
@@ -205,17 +210,17 @@ defmodule Code do
   end
 
   @doc """
-  Requires the given `file`. Accepts `relative_to` as an argument
-  to tell where the file is located. If the file was already
-  required/loaded, loads it again. It returns all the modules
-  defined in the file.
+  Requires the given `file`. Accepts `relative_to` as an argument to tell where
+  the file is located. The return value is the same as that of `load_file`. If
+  the file was already required/loaded, doesn't do anything and returns nil.
 
-  Notice that if `require_file` is invoked by different processes
-  concurrently, the first process to invoke `require_file` acquires
-  a lock and the remaining ones will block until the file is
-  available. I.e. if `require_file` is called N times with a given
-  file, the given file will be loaded only once. Check `load_file`
-  if you want a file to be loaded concurrently.
+  Notice that if `require_file` is invoked by different processes concurrently,
+  the first process to invoke `require_file` acquires a lock and the remaining
+  ones will block until the file is available. I.e. if `require_file` is called
+  N times with a given file, it will be loaded only once. The first process to
+  call `require_file` will get the list of loaded modules, others will get nil.
+
+  Check `load_file` if you want a file to be loaded concurrently.
   """
   def require_file(file, relative_to // nil) when is_binary(file) do
     file = find_file(file, relative_to)
@@ -234,7 +239,7 @@ defmodule Code do
 
   @doc """
   Loads the compilation options from the code server.
-  Check compiler_options/1 for more information.
+  Check `compiler_options/1` for more information.
   """
   def compiler_options do
     :elixir_code_server.call :compiler_options
@@ -246,13 +251,17 @@ defmodule Code do
 
   Available options are:
 
-  * docs       - when true, retain documentation in the compiled module.
-                 True by default;
-  * debug_info - when true, retain debug information in the compiled module.
-                 This allows a developer to reconstruct the original source
-                 code, for such reasons, false by default;
-  * ignore_module_conflict - when true, override modules that were already defined
-                             without raising errors, false by default;
+  * `:docs` - when true, retain documentation in the compiled module.
+    True by default;
+
+  * `:debug_info` - when true, retain debug information in the compiled module.
+    This allows a developer to reconstruct the original source
+    code, for such reasons, false by default;
+
+  * `:ignore_module_conflict` - when true, override modules that were already defined
+    without raising errors, false by default;
+
+  * `:warnings_as_errors` - cause compilation to fail when warnings are spewed;
 
   """
   def compiler_options(opts) do

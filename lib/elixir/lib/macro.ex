@@ -14,7 +14,7 @@ defmodule Macro do
       :===, :!==,
       :==, :!=, :<=, :>=,
       :&&, :||, :<>, :++, :--, :**, ://, :::, :<-, :.., :|>, :=~,
-      :<, :>,
+      :<, :>, :->,
       :+, :-, :*, :/, :=, :|, :.,
       :and, :or, :xor, :when, :in, :inlist, :inbits,
       :<<<, :>>>, :|||, :&&&, :^^^, :~~~
@@ -42,8 +42,8 @@ defmodule Macro do
 
       extract_args(quote do: foo)        == { :foo, [] }
       extract_args(quote do: foo())      == { :foo, [] }
-      extract_args(quote do: foo(1,2,3)) == { :foo, [1,2,3] }
-      extract_args(quote do: 1.(1,2,3))  == :error
+      extract_args(quote do: foo(1, 2, 3)) == { :foo, [1, 2, 3] }
+      extract_args(quote do: 1.(1, 2, 3))  == :error
 
   """
   def extract_args(expr) do
@@ -213,7 +213,7 @@ defmodule Macro do
   end
 
   # Fn keyword
-  def to_binary({ :fn, _, [[do: { :->, _, [{_,tuple}] } = arrow]] })
+  def to_binary({ :fn, _, [[do: { :->, _, [{_, _, tuple}] } = arrow]] })
       when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
     "fn " <> arrow_to_binary(arrow) <> " end"
   end
@@ -309,7 +309,7 @@ defmodule Macro do
   end
 
   defp block_to_binary({ :->, _, exprs }) do
-    Enum.map_join(exprs, "\n", fn({ left, right }) ->
+    Enum.map_join(exprs, "\n", fn({ left, _, right }) ->
       left = comma_join_or_empty_paren(left, false)
       left <> "->\n  " <> adjust_new_lines block_to_binary(right), "\n  "
     end)
@@ -328,7 +328,7 @@ defmodule Macro do
   defp op_to_binary(expr), do: to_binary(expr)
 
   defp arrow_to_binary({ :->, _, pairs }, paren // false) do
-    Enum.map_join(pairs, "; ", fn({ left, right }) ->
+    Enum.map_join(pairs, "; ", fn({ left, _, right }) ->
       left = comma_join_or_empty_paren(left, paren)
       left <> "-> " <> to_binary(right)
     end)
@@ -362,21 +362,20 @@ defmodule Macro do
   In case the expression cannot be expanded, it returns the expression itself.
 
   Notice that `Macro.expand` is not recursive and it does not
-  expand child expressions. In this example
+  expand child expressions. In this example:
 
-    Macro.expand(quote(do: !some_macro), __ENV__)
+    Macro.expand(quote(do: var && some_macro), __ENV__)
 
-  `!some_macro` will expand to something like:
+  `var && some_macro` will expand to something like:
 
-      case some_macro do
-        false -> true
-        nil   -> true
-        _     -> false
+      case var do
+        _ in [false, nil] -> var
+        _ -> some_macro
       end
 
-  Notice that the `!` operator is a macro that expands to a case.
+  Notice that the `&&` operator is a macro that expands to a case.
   Even though `some_macro` is also a macro, it is not expanded
-  because it is a child expression given to `!` as argument.
+  because it is a child expression given to `&&` as argument.
 
   ## Examples
 
@@ -444,7 +443,7 @@ defmodule Macro do
   end
 
   defp expand({ :__aliases__, _, _ } = original, env, cache) do
-    case :elixir_aliases.expand(original, env.aliases, []) do
+    case :elixir_aliases.expand(original, env.aliases, env.macro_aliases) do
       atom when is_atom(atom) -> atom
       aliases ->
         aliases = lc alias inlist aliases, do: expand(alias, env, cache)

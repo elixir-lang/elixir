@@ -31,14 +31,14 @@ defmodule Mix.SCM.Git do
     end)
   end
 
-  def equals?(opts1, opts2) do
+  def equal?(opts1, opts2) do
     get_lock(opts1, false) == get_lock(opts2, false)
   end
 
   def checkout(opts) do
     path     = opts[:dest]
     location = opts[:git]
-    command  = %b[git clone --no-checkout "#{location}" "#{path}"]
+    command  = %b[git clone --no-checkout --progress "#{location}" "#{path}"]
 
     run_cmd_or_raise(command)
     File.cd! path, fn -> do_checkout(opts) end
@@ -46,7 +46,7 @@ defmodule Mix.SCM.Git do
 
   def update(opts) do
     File.cd! opts[:dest], fn ->
-      command = "git fetch --force"
+      command = "git fetch --force --progress"
       if opts[:tag] do
         command = command <> " --tags"
       end

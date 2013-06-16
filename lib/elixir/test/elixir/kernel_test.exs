@@ -4,8 +4,20 @@ defmodule KernelTest do
   use ExUnit.Case, async: true
 
   test :match do
-    assert "abcd" =~ %r/c(d)/
-    refute "abcd" =~ %r/e/
+    assert ("abcd" =~ %r/c(d)/) == true
+    assert ("abcd" =~ %r/e/) == false
+
+    string = "^ab+cd*$"
+    assert (string =~ "ab+") == true
+    assert (string =~ "bb") == false
+
+    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+      1234 =~ "hello"
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+      1234 =~ %r"hello"
+    end
   end
 
   test :nil? do
@@ -19,12 +31,12 @@ defmodule KernelTest do
     refute x(4)
     refute x([])
 
-    assert 2 in [1,2,3]
+    assert 2 in [1, 2, 3]
     assert 2 in 1..3
-    refute 4 in [1,2,3]
+    refute 4 in [1, 2, 3]
     refute 4 in 1..3
 
-    list = [1,2,3]
+    list = [1, 2, 3]
     assert 2 in list
     refute 4 in list
   end
@@ -58,19 +70,19 @@ defmodule KernelTest do
   end
 
   test :apply do
-    assert apply(Enum, :reverse, [[1|[2,3]]]) == [3,2,1]
+    assert apply(Enum, :reverse, [[1|[2, 3]]]) == [3, 2, 1]
     assert apply(fn x -> x * 2 end, [2]) == 4
   end
 
   test :__MODULE__ do
-    assert __MODULE__ == :"Elixir-KernelTest"
+    assert __MODULE__ == :"Elixir.KernelTest"
   end
 
   test :function_from___ENV__ do
     assert __ENV__.function == { :test_function_from___ENV__, 1 }
   end
 
-  defp x(value) when value in [1,2,3], do: true
+  defp x(value) when value in [1, 2, 3], do: true
   defp x(_),                           do: false
 
   defmodule Conversions do
@@ -102,20 +114,14 @@ defmodule KernelTest do
       assert float_to_binary(7.0) == "7.00000000000000000000e+00"
     end
 
-    case :proplists.get_value(:float_to_binary,
-                              :proplists.get_value(:exports, :erlang.module_info, [])) do
-      2 ->
-        # We can only test this where this functionality is available
-        test :float_to_binary_with_options do
-          assert float_to_binary(7.1, [decimals: 2]) == "7.10"
-          assert float_to_binary(7.1, [scientific: 2]) == "7.10e+00"
-          assert float_to_binary(7.1, [decimals: 2, compact: true]) == "7.1"
-          assert float_to_binary(7.1, [scientific: 2, compact: true]) == "7.10e+00"
-          assert float_to_binary(7.1, [decimals: 2, compact: false]) == "7.10"
-        end
-      _ ->
-        :ok
+    test :float_to_binary_with_options do
+      assert float_to_binary(7.1, [decimals: 2]) == "7.10"
+      assert float_to_binary(7.1, [scientific: 2]) == "7.10e+00"
+      assert float_to_binary(7.1, [decimals: 2, compact: true]) == "7.1"
+      assert float_to_binary(7.1, [scientific: 2, compact: true]) == "7.10e+00"
+      assert float_to_binary(7.1, [decimals: 2, compact: false]) == "7.10"
     end
+
     test :atom_to_binary_defaults_to_utf8 do
       expected  = atom_to_binary :some_binary, :utf8
       actual    = atom_to_binary :some_binary
@@ -144,6 +150,73 @@ defmodule KernelTest do
       assert_raise ArgumentError, fn ->
         binary_to_existing_atom "nonexisting_atom"
       end
+    end
+  end
+
+  defmodule Runtime do
+    use ExUnit.Case, async: true
+    defp kernel, do: Kernel
+
+    # {apply,2},
+    # {apply,3},
+
+    test :not do
+      assert kernel.not(true) == false
+      assert kernel.not(false) == true
+    end
+
+    test :! do
+      assert kernel.!(true) == false
+      assert kernel.!(nil) == true
+      assert kernel.!(false) == true
+    end
+
+    test :list do
+      assert kernel.++([1], [2]) == [1, 2]
+      assert kernel.--([1], [1]) == []
+    end
+
+    test :math do
+      assert kernel.+(1, 2) == 3
+      assert kernel.-(2, 2) == 0
+      assert kernel.*(2, 2) == 4
+      assert kernel./(2, 2) == 1.0
+    end
+
+    test :unary do
+      assert kernel.+(1) == 1
+      assert kernel.-(1) == -1
+    end
+
+    test :send do
+      kernel.<-(self, :hello)
+      assert_received :hello
+    end
+
+    test :comp do
+      assert kernel.==(1, 1)
+      refute kernel.==(1, 2)
+
+      assert kernel.!=(1, 2)
+      refute kernel.!=(1, 1)
+
+      assert kernel.===(1, 1)
+      refute kernel.===(1, 2)
+
+      assert kernel.!==(1, 2)
+      refute kernel.!==(1, 1)
+
+      assert kernel.>(1, 0)
+      refute kernel.>(1, 2)
+
+      assert kernel.<(0, 1)
+      refute kernel.<(2, 1)
+
+      assert kernel.>=(1, 0)
+      refute kernel.>=(1, 2)
+
+      assert kernel.<=(0, 1)
+      refute kernel.<=(2, 1)
     end
   end
 
@@ -214,23 +287,35 @@ defmodule KernelTest do
     use ExUnit.Case, async: true
 
     test :simple do
-      assert [1,[2],3] |> List.flatten == [1,2,3]
+      assert [1, [2], 3] |> List.flatten == [1, 2, 3]
     end
 
     test :nested do
-      assert [1,[2],3] |> List.flatten |> Enum.map(&1 * 2) == [2,4,6]
+      assert [1, [2], 3] |> List.flatten |> Enum.map(&1 * 2) == [2, 4, 6]
     end
 
     test :local do
-      assert [1,[2],3] |> List.flatten |> local == [2,4,6]
+      assert [1, [2], 3] |> List.flatten |> local == [2, 4, 6]
     end
 
     test :map do
-      assert Enum.map([1,2,3], &1 |> twice |> twice) == [4,8,12]
+      assert Enum.map([1, 2, 3], &1 |> twice |> twice) == [4, 8, 12]
     end
 
     test :atom do
       assert __MODULE__ |> :constant == 13
+    end
+
+    test "non-call" do
+      assert  1  |> (&1*2).() == 2
+      assert [1] |> hd(&1).() == 1
+
+      import CompileAssertion
+
+      # FIXME: this mustn't work, but it doesn't call pipeline_op at all
+      #assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: &1", "1 |> &1"
+      assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: &1 * 2", "1 |> &1*2"
+      assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: hd(&1)", "[1] |> hd(&1)"
     end
 
     def constant, do: 13
@@ -318,14 +403,14 @@ defmodule KernelTest do
     use ExUnit.Case, async: true
 
     test :less do
-      destructure [x,y,z], [1,2,3,4,5]
+      destructure [x, y, z], [1, 2, 3, 4, 5]
       assert x == 1
       assert y == 2
       assert z == 3
     end
 
     test :more do
-      destructure [a,b,c,d,e], [1,2,3]
+      destructure [a, b, c, d, e], [1, 2, 3]
       assert a == 1
       assert b == 2
       assert c == 3
@@ -334,26 +419,26 @@ defmodule KernelTest do
     end
 
     test :equal do
-      destructure [a,b,c], [1,2,3]
+      destructure [a, b, c], [1, 2, 3]
       assert a == 1
       assert b == 2
       assert c == 3
     end
 
     test :none do
-      destructure [a,b,c], []
+      destructure [a, b, c], []
       assert a == nil
       assert b == nil
       assert c == nil
     end
 
     test :match do
-      destructure [1,b,_], [1,2,3]
+      destructure [1, b, _], [1, 2, 3]
       assert b == 2
     end
 
     test :nil do
-      destructure [a,b,c], a_nil
+      destructure [a, b, c], a_nil
       assert a == nil
       assert b == nil
       assert c == nil
@@ -362,11 +447,11 @@ defmodule KernelTest do
     test :invalid_match do
       a = 3
       assert_raise CaseClauseError, fn ->
-        destructure [^a,_b,_c], a_list
+        destructure [^a, _b, _c], a_list
       end
     end
 
-    defp a_list, do: [1,2,3]
+    defp a_list, do: [1, 2, 3]
     defp a_nil, do: nil
   end
 end

@@ -141,16 +141,6 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion({ :inlist, _, [left, right] }, _else) do
-    quote do
-      IO.puts "[WARNING] assert(left inlist right) is deprecated, please use assert(left in right) instead"
-      Exception.print_stacktrace
-      left  = unquote(left)
-      right = unquote(right)
-      assert :lists.member(left, right), left, right, reason: "be in"
-    end
-  end
-
   ## Negative versions
 
   defp translate_assertion({ :!, _, [{ :=, _, [left, right] }] }, _else) do
@@ -182,16 +172,6 @@ defmodule ExUnit.Assertions do
       left  = unquote(left)
       right = unquote(right)
       assert !Enum.member?(right, left), left, right, reason: "be in", negation: true
-    end
-  end
-
-  defp translate_assertion({ negation, _, [{ :inlist, _, [left, right] }] }, _else) when negation in [:!, :not] do
-    quote do
-      IO.puts "[WARNING] refute(left inlist right) is deprecated, please use refute(left in right) instead"
-      Exception.print_stacktrace
-      left  = unquote(left)
-      right = unquote(right)
-      assert !(:lists.member(left, right)), left, right, reason: "be in", negation: true
     end
   end
 
@@ -310,10 +290,17 @@ defmodule ExUnit.Assertions do
         1 + "test"
       end
   """
-  def assert_raise(exception, message, function) when is_binary(message) and is_function(function) do
+  def assert_raise(exception, message, function) when is_function(function) do
     error = assert_raise(exception, function)
-    assert message == error.message, message, error.message,
-      prelude: "Expected #{inspect error}'s message", reason: "a match"
+
+    is_match = case message do
+      re  when is_regex(re)   -> error.message =~ re
+      bin when is_binary(bin) -> error.message == bin
+    end
+
+    assert is_match, message, error.message,
+      prelude: "Expected error message", reason: "match"
+
     error
   end
 

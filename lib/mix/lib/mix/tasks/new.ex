@@ -10,16 +10,18 @@ defmodule Mix.Tasks.New do
   Creates a new Elixir project.
   It expects the path of the project as argument.
 
-      mix new PATH [--sup] [--module MODULE]
+      mix new PATH [--sup] [--module MODULE] [--umbrella]
 
   A project at the given PATH  will be created. The
   application name and module name will be retrieved
-  from the path, unless one of `-app` or `--module`
-  is given.
+  from the path, unless `--module` is given.
 
-  An `--sup` option can be given to generate an
+  A `--sup` option can be given to generate an
   app with a supervisor and an application module
   that starts the supervisor.
+
+  An `--umbrella` option can be given to generate an
+  umbrella project.
 
   ## Examples
 
@@ -35,7 +37,7 @@ defmodule Mix.Tasks.New do
 
   """
   def run(argv) do
-    { opts, argv } = OptionParser.parse(argv, switches: [sup: :boolean])
+    { opts, argv } = OptionParser.parse(argv, switches: [sup: :boolean, umbrella: :boolean])
 
     case argv do
       [] ->
@@ -44,7 +46,14 @@ defmodule Mix.Tasks.New do
         name = Path.basename(Path.expand(path))
         check_project_name!(name)
         File.mkdir_p!(path)
-        File.cd!(path, fn -> do_generate(name, opts) end)
+
+        File.cd! path, fn ->
+          if opts[:umbrella] do
+            do_generate_umbrella(name, opts)
+          else
+            do_generate(name, opts)
+          end
+        end
     end
   end
 
@@ -72,6 +81,16 @@ defmodule Mix.Tasks.New do
     create_file "test/#{app}_test.exs", test_lib_template(assigns)
   end
 
+  defp do_generate_umbrella(app, _opts) do
+    mod = camelize(app)
+    assigns = [mod: mod]
+
+    create_file "README.md", readme_template(assigns)
+    create_file "mix.exs",   mixfile_umbrella_template(assigns)
+
+    create_directory "apps"
+  end
+
   defp check_project_name!(name) do
     unless name =~ %r/^[a-z][\w_]*$/ do
       raise Mix.Error, message: "project path must start with a letter and have only lowercase letters, numbers and underscore"
@@ -88,6 +107,7 @@ defmodule Mix.Tasks.New do
    /ebin
    /deps
    erl_crash.dump
+   *.ez
    """
 
   embed_template :mixfile, """
@@ -107,6 +127,24 @@ defmodule Mix.Tasks.New do
 
     # Returns the list of dependencies in the format:
     # { :foobar, "0.1", git: "https://github.com/elixir-lang/foobar.git" }
+    defp deps do
+      []
+    end
+  end
+  """
+
+  embed_template :mixfile_umbrella, """
+  defmodule <%= @mod %>.Mixfile do
+    use Mix.Project
+
+    def project do
+      [ apps_path: "apps",
+        deps: deps ]
+    end
+
+    # Returns the list of dependencies in the format:
+    # { :foobar, "0.1", git: "https://github.com/elixir-lang/foobar.git" }
+    # These dependencies are not accessible from child applications
     defp deps do
       []
     end

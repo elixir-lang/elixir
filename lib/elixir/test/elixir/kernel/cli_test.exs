@@ -19,7 +19,7 @@ defmodule Kernel.CLI.OptionParsingTest do
   test :path do
     root = fixture_path("../../..") |> to_char_list
     list = elixir('-pa "#{root}/*" -pz "#{root}/lib/*" -e "IO.inspect :code.get_path"')
-    { path, _ } = Code.eval list, []
+    { path, _ } = Code.eval_string list, []
 
     # pa
     assert Path.expand('ebin', root) in path
@@ -78,26 +78,7 @@ defmodule Kernel.CLI.CompileTest do
     fixture = fixture_path "compile_sample.ex"
     assert elixirc('#{fixture} -o #{tmp_path}') ==
       'Compiled #{fixture}\n'
-    assert File.regular?(tmp_path "Elixir-CompileSample.beam")
-  end
-end
-
-defmodule Kernel.CLI.ParallelCompilerTest do
-  use ExUnit.Case, async: true
-  import PathHelpers
-
-  test :files do
-    fixtures = [fixture_path("compile_sample.ex")]
-    assert [{ CompileSample, binary }] = Kernel.ParallelCompiler.files fixtures
-    assert is_binary(binary)
-  end
-
-  test :compile_code do
-    output = elixirc('#{fixture_path("parallel_compiler")} -o #{tmp_path}')
-    assert :string.str(output, 'message_from_foo') > 0,
-      "Expected #{inspect output} to contain 'message_from_foo'"
-    assert File.regular?(tmp_path "Elixir-Foo.beam")
-    assert File.regular?(tmp_path "Elixir-Bar.beam")
+    assert File.regular?(tmp_path "Elixir.CompileSample.beam")
   end
 
   test :possible_deadlock do
@@ -106,5 +87,35 @@ defmodule Kernel.CLI.ParallelCompilerTest do
     bar = '* #{fixture_path "parallel_deadlock/bar.ex"} is missing module Foo'
     assert :string.str(output, foo) > 0, "expected foo.ex to miss module Bar"
     assert :string.str(output, bar) > 0, "expected bar.ex to miss module Foo"
+  end
+end
+
+defmodule Kernel.CLI.ParallelCompilerTest do
+  use ExUnit.Case
+  import PathHelpers
+  import ExUnit.CaptureIO
+
+  test :files do
+    fixtures = [fixture_path("parallel_compiler/bar.ex"), fixture_path("parallel_compiler/foo.ex")]
+    assert capture_io(fn ->
+      assert [{ Bar, bar }, { Foo, _foo }] = Kernel.ParallelCompiler.files fixtures
+      assert is_binary(bar)
+    end) =~ "message_from_foo"
+  end
+
+  test :warnings_as_errors do
+    warnings_as_errors = Code.compiler_options[:warnings_as_errors]
+
+    try do
+      Code.compiler_options(warnings_as_errors: true)
+
+      assert_raise Kernel.CompilationError, fn ->
+        capture_io :stderr, fn ->
+          Kernel.ParallelCompiler.files [fixture_path("warnings_sample.ex")]
+        end
+      end
+    after
+      Code.compiler_options(warnings_as_errors: warnings_as_errors)
+    end
   end
 end

@@ -1,5 +1,4 @@
-%% Convenience functions used to manipulate scope
-%% and its variables.
+%% Convenience functions used to manipulate scope and its variables.
 -module(elixir_scope).
 -export([translate_var/5,
   build_erl_var/2, build_ex_var/2,
@@ -9,7 +8,6 @@
   umergev/2, umergec/2, merge_clause_vars/2
 ]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 translate_var(Meta, Name, Kind, S, Callback) ->
   Line = ?line(Meta),
@@ -77,24 +75,28 @@ build_ex_var(Line, Key, Name, S) when is_integer(Line) ->
 
 % Handle Macro.Env conversion
 
-to_erl_env({ 'Elixir.Macro.Env', Module, File, _Line, Function, Aliases, Context, Requires, Functions, Macros }) ->
+to_erl_env({ 'Elixir.Macro.Env', Module, File, _Line, Function, Aliases, Context,
+    Requires, Functions, Macros, ContextModules, MacroAliases }) ->
   #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
-    requires=Requires,macros=Macros,functions=Functions}.
+    requires=Requires,macros=Macros,functions=Functions,
+    context_modules=ContextModules,macro_aliases=MacroAliases}.
 
 to_ex_env({ Line, #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
-    requires=Requires,macros=Macros,functions=Functions} }) when is_integer(Line) ->
-  { 'Elixir.Macro.Env', Module, File, Line, Function, Aliases, Context, Requires, Functions, Macros }.
+    requires=Requires,macros=Macros,functions=Functions,
+    context_modules=ContextModules,macro_aliases=MacroAliases} }) when is_integer(Line) ->
+  { 'Elixir.Macro.Env', Module, File, Line, Function, Aliases,
+    Context, Requires, Functions, Macros, ContextModules, MacroAliases }.
 
 % Provides a tuple with only the scope information we want to serialize.
 
 serialize(S) ->
-  elixir_tree_helpers:abstract_syntax(
-    { S#elixir_scope.file, S#elixir_scope.functions, S#elixir_scope.check_clauses,
+  elixir_tree_helpers:elixir_to_erl(
+    { S#elixir_scope.file, S#elixir_scope.functions,
       S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases,
       S#elixir_scope.macro_functions, S#elixir_scope.macro_macros, S#elixir_scope.macro_aliases,
-      S#elixir_scope.scheduled }
+      S#elixir_scope.context_modules }
   ).
 
 serialize_with_vars(Line, S) when is_integer(Line) ->
@@ -112,19 +114,18 @@ serialize_with_vars(Line, S) when is_integer(Line) ->
 
 deserialize(Tuple) -> deserialize_with_vars(Tuple, []).
 
-deserialize_with_vars({ File, Functions, CheckClauses, Requires, Macros,
-                        Aliases, MacroFunctions, MacroMacros, MacroAliases, Scheduled }, Vars) ->
+deserialize_with_vars({ File, Functions, Requires, Macros,
+                        Aliases, MacroFunctions, MacroMacros, MacroAliases, FileModules }, Vars) ->
   #elixir_scope{
     file=File,
     functions=Functions,
-    check_clauses=CheckClauses,
     requires=Requires,
     macros=Macros,
     aliases=Aliases,
     macro_functions=MacroFunctions,
     macro_macros=MacroMacros,
     macro_aliases=MacroAliases,
-    scheduled=Scheduled,
+    context_modules=FileModules,
     vars=orddict:from_list(Vars),
     counter=[{'',length(Vars)}]
   }.

@@ -2,7 +2,7 @@ Nonterminals
   grammar expr_list
   expr paren_expr block_expr fn_expr bracket_expr call_expr bracket_at_expr max_expr
   base_expr matched_expr matched_op_expr unmatched_expr op_expr
-  add_op mult_op unary_op two_op pipeline_op bin_concat_op
+  add_op mult_op unary_op two_op regex_op right_op bin_concat_op
   match_op send_op default_op when_op pipe_op in_op inc_op range_op
   andand_op oror_op and_op or_op comp_expr_op colon_colon_op three_op at_op
   open_paren close_paren empty_paren
@@ -10,7 +10,8 @@ Nonterminals
   open_curly close_curly
   open_bit close_bit
   base_comma_expr comma_expr optional_comma_expr matched_comma_expr
-  call_args call_args_parens call_args_parens_not_one call_args_no_parens parens_call
+  call_args call_args_parens parens_call
+  call_args_no_parens call_args_no_parens_strict call_args_parens_not_one
   stab stab_eol stab_op stab_expr stab_maybe_expr
   kw_eol kw_expr kw_comma kw_base
   matched_kw_expr matched_kw_comma matched_kw_base
@@ -30,7 +31,7 @@ Terminals
   'true' 'false' 'nil'
   '=' '+' '-' '*' '/' '++' '--' '**' '//'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '::'
-  eol ','  '&' '|'  '.' '^' '@' '<-' '<>' '->' '|>' '/>' '=~'
+  eol ','  '&' '|'  '.' '^' '@' '<-' '<>' '->' '|>' '=~'
   '&&' '||' '!' '...' '..'
   '<<<' '>>>' '&&&' '|||' '^^^' '~~~'
   .
@@ -53,13 +54,14 @@ Left     140 or_op.
 Left     150 and_op.
 Left     160 comp_expr_op.
 Left     170 in_op.
-Left     180 range_op.
-Left     190 three_op.
-Left     200 add_op.
-Left     210 mult_op.
-Right    220 bin_concat_op.
-Right    230 two_op.
-Right    290 pipeline_op.
+Right    180 regex_op.
+Right    190 right_op.
+Left     200 range_op.
+Left     210 three_op.
+Left     220 add_op.
+Left     230 mult_op.
+Right    240 bin_concat_op.
+Right    250 two_op.
 Nonassoc 300 unary_op.
 Left     310 dot_call_op.
 Left     310 dot_op.
@@ -102,7 +104,8 @@ op_expr -> match_op expr : { '$1', '$2' }.
 op_expr -> add_op expr : { '$1', '$2' }.
 op_expr -> mult_op expr : { '$1', '$2' }.
 op_expr -> two_op expr : { '$1', '$2' }.
-op_expr -> pipeline_op expr : { '$1', '$2' }.
+op_expr -> regex_op expr : { '$1', '$2' }.
+op_expr -> right_op expr : { '$1', '$2' }.
 op_expr -> andand_op expr : { '$1', '$2' }.
 op_expr -> three_op expr : { '$1', '$2' }.
 op_expr -> oror_op expr : { '$1', '$2' }.
@@ -123,7 +126,8 @@ matched_op_expr -> match_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> add_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> mult_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> two_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> pipeline_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> regex_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> right_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> andand_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> three_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> oror_op matched_expr : { '$1', '$2' }.
@@ -142,16 +146,16 @@ matched_op_expr -> comp_expr_op matched_expr : { '$1', '$2' }.
 
 block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
 block_expr -> parens_call call_args_parens call_args_parens do_block : build_nested_parens('$1', '$2', '$3' ++ '$4').
-block_expr -> dot_punctuated_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_punctuated_identifier call_args_no_parens_strict do_block : build_identifier('$1', '$2' ++ '$3').
 block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
-block_expr -> dot_identifier call_args_no_parens do_block : build_identifier('$1', '$2' ++ '$3').
+block_expr -> dot_identifier call_args_no_parens_strict do_block : build_identifier('$1', '$2' ++ '$3').
 
 fn_expr -> fn_eol stab end_eol : build_fn('$1', build_stab(lists:reverse('$2'))).
 fn_expr -> call_expr : '$1'.
 
-call_expr -> dot_punctuated_identifier call_args_no_parens : build_identifier('$1', '$2').
-call_expr -> dot_op_identifier call_args_no_parens : build_identifier('$1', '$2').
-call_expr -> dot_identifier call_args_no_parens : build_identifier('$1', '$2').
+call_expr -> dot_punctuated_identifier call_args_no_parens_strict : build_identifier('$1', '$2').
+call_expr -> dot_op_identifier call_args_no_parens_strict : build_identifier('$1', '$2').
+call_expr -> dot_identifier call_args_no_parens_strict : build_identifier('$1', '$2').
 call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
 call_expr -> dot_do_identifier : build_identifier('$1', nil).
 call_expr -> var : build_identifier('$1', nil).
@@ -214,8 +218,8 @@ stab_eol -> stab eol : '$1'.
 
 stab_expr -> expr : '$1'.
 stab_expr -> stab_op stab_maybe_expr : build_op('$1', [], '$2').
-stab_expr -> call_args_no_parens stab_op stab_maybe_expr : build_op('$2', '$1', '$3').
-stab_expr -> call_args_parens_not_one stab_op stab_maybe_expr : build_op('$2', '$1', '$3').
+stab_expr -> call_args_no_parens stab_op stab_maybe_expr : build_op('$2', unwrap_splice('$1'), '$3').
+stab_expr -> call_args_parens_not_one stab_op stab_maybe_expr : build_op('$2', unwrap_splice('$1'), '$3').
 
 stab_maybe_expr -> 'expr' : '$1'.
 stab_maybe_expr -> '$empty' : nil.
@@ -271,12 +275,11 @@ two_op -> '--' eol : '$1'.
 two_op -> '**' : '$1'.
 two_op -> '**' eol : '$1'.
 
-pipeline_op -> '=~' : '$1'.
-pipeline_op -> '=~' eol : '$1'.
-pipeline_op -> '|>' : '$1'.
-pipeline_op -> '|>' eol : '$1'.
-pipeline_op -> '/>' : '$1'.
-pipeline_op -> '/>' eol : '$1'.
+regex_op -> '=~' : '$1'.
+regex_op -> '=~' eol : '$1'.
+
+right_op -> '|>' : '$1'.
+right_op -> '|>' eol : '$1'.
 
 three_op -> '&&&' : '$1'.
 three_op -> '&&&' eol : '$1'.
@@ -389,6 +392,11 @@ parens_call -> matched_expr dot_call_op : { '.', [{line,?line('$2')}], ['$1'] }.
 
 matched_comma_expr -> matched_expr : ['$1'].
 matched_comma_expr -> matched_comma_expr ',' matched_expr : ['$3'|'$1'].
+
+call_args_no_parens_strict -> call_args_no_parens : '$1'.
+call_args_no_parens_strict -> open_paren ')' : throw_no_parens_strict('$1').
+call_args_no_parens_strict -> open_paren matched_kw_base close_paren : throw_no_parens_strict('$1').
+call_args_no_parens_strict -> open_paren matched_expr ',' call_args_no_parens close_paren : throw_no_parens_strict('$1').
 
 call_args_no_parens -> matched_comma_expr : lists:reverse('$1').
 call_args_no_parens -> matched_kw_base : ['$1'].
@@ -547,7 +555,7 @@ build_fn(Op, Stab) ->
 
 build_access(Expr, Access) ->
   Meta = [{line,?line(Access)}],
-  { { '.', Meta, ['Elixir-Kernel', access] }, Meta, [ Expr, ?op(Access) ] }.
+  { { '.', Meta, ['Elixir.Kernel', access] }, Meta, [ Expr, ?op(Access) ] }.
 
 %% Interpolation aware
 
@@ -571,18 +579,40 @@ build_atom({ atom, Line, Args }) ->
 %% Keywords
 
 build_stab([{ '->', Meta, [Left, Right] }|T]) ->
-  { '->', Meta, build_stab(T, Left, [Right], []) };
+  { '->', Meta, build_stab(Meta, T, Left, [Right], []) };
 
 build_stab(Else) ->
   build_block(Else).
 
-build_stab([{ '->', _, [Left, Right] }|T], Marker, Temp, Acc) ->
-  H = { Marker, build_block(lists:reverse(Temp)) },
-  build_stab(T, Left, [Right], [H|Acc]);
+build_stab(Old, [{ '->', New, [Left, Right] }|T], Marker, Temp, Acc) ->
+  H = { Marker, Old, build_block(lists:reverse(Temp)) },
+  build_stab(New, T, Left, [Right], [H|Acc]);
 
-build_stab([H|T], Marker, Temp, Acc) ->
-  build_stab(T, Marker, [H|Temp], Acc);
+build_stab(Meta, [H|T], Marker, Temp, Acc) ->
+  build_stab(Meta, T, Marker, [H|Temp], Acc);
 
-build_stab([], Marker, Temp, Acc) ->
-  H = { Marker, build_block(lists:reverse(Temp)) },
+build_stab(Meta, [], Marker, Temp, Acc) ->
+  H = { Marker, Meta, build_block(lists:reverse(Temp)) },
   lists:reverse([H|Acc]).
+
+%% Every time the parser sees a (unquote_splicing())
+%% it assumes that a block is being spliced, wrapping
+%% the splicing in a __block__. But in the stab cause,
+%% we can have (unquote_splicing(1,2,3)) -> :ok, in such
+%% case, we don't actually want the block, since it is
+%% an arg style call. unwrap_splice unwraps the splice
+%% from such blocks.
+unwrap_splice([{ '__block__', [], [{ unquote_splicing, _, _ }] = Splice }]) ->
+  Splice;
+
+unwrap_splice(Other) -> Other.
+
+%% Errors
+
+throw(Line, Error, Token) ->
+  throw({ error, { Line, ?MODULE, [Error, Token] }}).
+
+throw_no_parens_strict(Token) ->
+  throw(?line(Token), "invalid comma inside parenthesis. If you are making a "
+    "function call, do not insert spaces in between the function name and the "
+    "opening parentheses. Syntax error before: ", ")").

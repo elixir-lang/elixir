@@ -64,15 +64,15 @@ defmodule PathTest do
         assert Path.type("C:\\usr\\local\\bin") == :absolute
         assert Path.type("C:usr\\local\\bin")   == :volumerelative
 
-        assert Path.type("/usr/local/bin")   == :absolute
+        assert Path.type("/usr/local/bin")   == :volumerelative
         assert Path.type("usr/local/bin")    == :relative
         assert Path.type("../usr/local/bin") == :relative
 
-        assert Path.type('/usr/local/bin')   == :absolute
+        assert Path.type('/usr/local/bin')   == :volumerelative
         assert Path.type('usr/local/bin')    == :relative
         assert Path.type('../usr/local/bin') == :relative
 
-        assert Path.type(['/usr/', 'local/bin'])   == :absolute
+        assert Path.type(['/usr/', 'local/bin'])   == :volumerelative
         assert Path.type(['usr/', 'local/bin'])    == :relative
         assert Path.type(['../usr', '/local/bin']) == :relative
       end
@@ -98,11 +98,18 @@ defmodule PathTest do
   end
 
   test :expand_path_with_user_home do
-    assert System.user_home! == Path.expand("~")
+    home = System.user_home!
+
+    assert home == Path.expand("~")
     assert is_binary Path.expand("~/foo")
 
-    assert (System.user_home! |> :unicode.characters_to_list) == Path.expand('~')
+    assert (home |> :unicode.characters_to_list) == Path.expand('~')
     assert is_list Path.expand('~/foo')
+
+    assert Path.expand("~/file") == Path.join(home, "file")
+    assert Path.expand("~/file", "whatever") == Path.join(home, "file")
+    assert Path.expand("file", Path.expand("~")) == Path.expand("~/file")
+    assert Path.expand("file", "~") == Path.join(home, "file")
   end
 
   test :expand_path_with_binary do
@@ -171,6 +178,7 @@ defmodule PathTest do
 
   test :dirname_with_binary do
     assert Path.dirname("/foo/bar.ex") == "/foo"
+    assert Path.dirname("foo/bar.ex") == "foo"
     assert Path.dirname("~/foo/bar.ex") == "~/foo"
     assert Path.dirname("/foo/bar/baz/") == "/foo/bar/baz"
   end
@@ -230,13 +238,13 @@ defmodule PathTest do
   end
 
   test :split_with_binary do
-    assert Path.split("") == ["/"]
+    assert Path.split("") == []
     assert Path.split("foo") == ["foo"]
     assert Path.split("/foo/bar") == ["/", "foo", "bar"]
   end
 
   test :split_with_list do
-    assert Path.split('') == ''
+    assert Path.split('') == []
     assert Path.split('foo') == ['foo']
     assert Path.split('/foo/bar') == ['/', 'foo', 'bar']
   end

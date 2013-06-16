@@ -24,7 +24,7 @@ defmodule Mix.SCM.Path do
     true
   end
 
-  def equals?(opts1, opts2) do
+  def equal?(opts1, opts2) do
     opts1[:dest] == opts2[:dest]
   end
 

@@ -1,5 +1,5 @@
 defmodule ExUnit do
-  defrecord Test, [:name, :case, :failure] do
+  defrecord Test, [:name, :case, :failure, :invalid] do
     @moduledoc """
     A record that keeps information about the test.
     It is received by formatters and also accessible
@@ -7,8 +7,16 @@ defmodule ExUnit do
     """
   end
 
+  defrecord TestCase, [:name, :failure] do
+    @moduledoc """
+    A record that keeps information about the test case.
+    It is received by formatters and also accessible
+    in the metadata under the key `:case`.
+    """
+  end
+
   @moduledoc """
-  Basic unit test structure for Elixir.
+  Basic unit testing framework for Elixir.
 
   ## Example
 
@@ -16,10 +24,11 @@ defmodule ExUnit do
 
       # File: assertion_test.exs
 
-      # 1) Start ExUnit. You can pass some options as argument (list below)
+      # 1) Start ExUnit. You could also pass some options to the start function
+      # (see `configure/1` for the list of options)
       ExUnit.start
 
-      # 2) Next we create a new TestCase and use ExUnit.Case
+      # 2) Create a new test module (or "case") and use ExUnit.Case
       defmodule AssertionTest do
         # 3) Notice we pass async: true, this runs the test case
         #    concurrently with other test cases
@@ -37,7 +46,7 @@ defmodule ExUnit do
         end
       end
 
-  To run the test above, all you need to to is to run the file
+  To run the test above, all you need to do is to run the file
   using elixir from command line. Assuming you named your file
   assertion_test.exs, you can run it as:
 
@@ -45,11 +54,33 @@ defmodule ExUnit do
 
   ## Case, callbacks and assertions
 
-  Check `ExUnit.Case` and `ExUnit.Callbacks` for more information about
+  See `ExUnit.Case` and `ExUnit.Callbacks` for more information about
   defining test cases.
 
   The `ExUnit.Assertions` module contains a set of macros to easily
   generate assertions with appropriate error messages.
+
+  ## Integration with Mix
+
+  Mix is the project management and build tool for Elixir. Invoking `mix test`
+  from the command line will run tests in each file matching the pattern
+  "*_test.exs" found in the `test` directory of your project.
+
+  By convention, you could also create a test_helper.exs file inside the
+  `test` directory and put the code common to all tests there.
+
+  The minimum example of a test_helper.exs file would be:
+
+    # test/test_helper.exs
+    ExUnit.start
+
+  Then, in each test file, require test_helper.exs before defining test modules
+  (or cases):
+
+    # test/myproject_test.exs
+    Code.require_file "test_helper.exs", __DIR__
+
+    # ... test cases follow
 
   """
 
@@ -73,6 +104,7 @@ defmodule ExUnit do
     :application.start(:ex_unit)
 
     configure(options)
+    ExUnit.Server.start_load
 
     System.at_exit fn
       0 ->
@@ -110,7 +142,7 @@ defmodule ExUnit do
   Returns the number of failures.
   """
   def run do
-    { async, sync } = ExUnit.Server.cases
-    ExUnit.Runner.run async, sync, ExUnit.Server.options
+    { async, sync, options, load_us } = ExUnit.Server.start_run
+    ExUnit.Runner.run async, sync, options, load_us
   end
 end

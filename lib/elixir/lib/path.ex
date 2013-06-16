@@ -1,15 +1,15 @@
 defmodule Path do
   @moduledoc """
   This module provides conveniences for manipulating or
-  retrieving filesystem paths.
+  retrieving file system paths.
 
-  The functions on this module may receive a char list or
-  a binary as argument and will return the given type.
+  The functions in this module may receive a char list or
+  a binary as argument and will return a value of the same
+  type.
 
   The majority of the functions in this module do not
-  interact with the file system, unless some few functions
-  that needs to query the filesystem to retrieve paths
-  (like `Path.wildcard` and `Path.expand`).
+  interact with the file system, except for a few functions
+  that require it (like `Path.wildcard` and `Path.expand`).
   """
 
   alias :filename, as: FN
@@ -18,9 +18,8 @@ defmodule Path do
   @type r :: char_list | binary
 
   @doc """
-  Converts the given filename and returns an absolute name.
-  Differently from `Path.expand/1`, no attempt is made to
-  resolve `..`, `.` or `~`.
+  Converts the given path to an absolute one. Differently from
+  `Path.expand/1`, no attempt is made to resolve `..`, `.` or `~`.
 
   ## Unix examples
 
@@ -43,9 +42,8 @@ defmodule Path do
   end
 
   @doc """
-  Converts the given filename and returns an absolute name
-  relative to the given location. If the path is already
-  an absolute path, the relative path is ignored.
+  Builds a path from `relative_to` to `path`. If `path` is already
+  an absolute path, `relative_to` is ignored. See also `Path.relative/2`.
 
   Differently from `Path.expand/2`, no attempt is made to
   resolve `..`, `.` or `~`.
@@ -64,8 +62,8 @@ defmodule Path do
   end
 
   @doc """
-  Expands the path by returning its absolute name and expanding
-  any `.` and `..` characters.
+  Converts the path to an absolute one and expands
+  any `.` and `..` characters and a leading `~`.
 
   ## Examples
 
@@ -78,11 +76,20 @@ defmodule Path do
   end
 
   @doc """
-  Expands the path to the relative location and expanding
-  any `.` and `..` characters. If the path is already an
-  absolute path, the relative location is ignored.
+  Expands the path relative to the path given as the second argument
+  expanding any `.` and `..` characters. If the path is already an
+  absolute path, `relative_to` is ignored.
+
+  Note, that this function treats `path` with leading `~` as
+  an absolute one.
+
+  The second argument is first expanded to an absolute path.
 
   ## Examples
+
+      # Assuming that the absolute path to baz is /quux/baz
+      Path.expand("foo/bar/../bar", "baz")
+      #=> "/quux/baz/foo/bar"
 
       iex> Path.expand("foo/bar/../bar", "/baz")
       "/baz/foo/bar"
@@ -91,7 +98,7 @@ defmodule Path do
 
   """
   def expand(path, relative_to) do
-    normalize FN.absname(FN.absname(expand_home(path), relative_to), get_cwd(path))
+    normalize FN.absname(FN.absname(expand_home(path), expand_home(relative_to)), get_cwd(path))
   end
 
   @doc """
@@ -102,6 +109,7 @@ defmodule Path do
       Path.type("/usr/local/bin")   #=> :absolute
       Path.type("usr/local/bin")    #=> :relative
       Path.type("../usr/local/bin") #=> :relative
+      Path.type("~/file")           #=> :relative
 
   ## Windows examples
 
@@ -185,8 +193,9 @@ defmodule Path do
 
   @doc """
   Returns the given `path` relative to the given `from` path.
+  In other words, it tries to strip the `from` prefix from `path`.
 
-  This function does not query the filesystem, so it assumes
+  This function does not query the file system, so it assumes
   no symlinks in between the paths.
 
   In case a direct relative path cannot be found, it returns
@@ -267,12 +276,14 @@ defmodule Path do
   end
 
   @doc """
-  Return the `directory` component of `path`.
+  Returns the directory component of `path`.
 
   ## Examples
 
       Path.dirname("/foo/bar.ex")
-      #=> "foo"
+      #=> "/foo"
+      Path.dirname("/foo/bar/baz.ex")
+      #=> "/foo/bar"
 
   """
   def dirname(path) do
@@ -280,7 +291,7 @@ defmodule Path do
   end
 
   @doc """
-  Return the `extension` of the last component of `path`.
+  Returns the extension of the last component of `path`.
 
   ## Examples
 
@@ -326,8 +337,8 @@ defmodule Path do
   end
 
   @doc """
-  Returns a string with one or more paths components joint by the path separator.
-  This function should be used to convert a list of strings in a path.
+  Returns a string with one or more path components joined by the path separator.
+  This function should be used to convert a list of strings to a path.
 
   ## Examples
 
@@ -374,19 +385,16 @@ defmodule Path do
     join(left, atom_to_binary(right))
 
   defp major_os_type do
-    case :os.type do
-      { maj, _ } -> maj
-      maj -> maj
-    end
+    :os.type |> elem(0)
   end
 
   defp do_join(<<uc_letter, ?:, rest :: binary>>, relativename, [], :win32) when uc_letter in ?A..?Z, do:
     do_join(rest, relativename, [?:, uc_letter+?a-?A], :win32)
-  defp do_join(<<?\\,rest :: binary>>, relativename, result, :win32), do:
-    do_join(<<?/,rest :: binary>>, relativename, result, :win32)
-  defp do_join(<<?/,rest :: binary>>, relativename, [?., ?/|result], os_type), do:
+  defp do_join(<<?\\, rest :: binary>>, relativename, result, :win32), do:
+    do_join(<<?/, rest :: binary>>, relativename, result, :win32)
+  defp do_join(<<?/, rest :: binary>>, relativename, [?., ?/|result], os_type), do:
     do_join(rest, relativename, [?/|result], os_type)
-  defp do_join(<<?/,rest :: binary>>, relativename, [?/|result], os_type), do:
+  defp do_join(<<?/, rest :: binary>>, relativename, [?/|result], os_type), do:
     do_join(rest, relativename, [?/|result], os_type)
   defp do_join(<<>>, <<>>, result, os_type), do:
     list_to_binary(maybe_remove_dirsep(result, os_type))
@@ -396,7 +404,7 @@ defmodule Path do
     do_join(relativename, <<>>, [?/|result], os_type)
   defp do_join(<<>>, relativename, result, os_type), do:
     do_join(relativename, <<>>, [?/|result], os_type)
-  defp do_join(<<char,rest :: binary>>, relativename, result, os_type) when is_integer(char), do:
+  defp do_join(<<char, rest :: binary>>, relativename, result, os_type) when is_integer(char), do:
     do_join(rest, relativename, [char|result], os_type)
 
   defp maybe_remove_dirsep([?/, ?:, letter], :win32), do:
@@ -409,19 +417,22 @@ defmodule Path do
     :lists.reverse(name)
 
   @doc """
-  Returns a list with the path splitted by the path separator.
-  If an empty string is given, then it returns the root path.
+  Returns a list with the path split by the path separator.
+  If an empty string is given, returns the root path.
 
   ## Examples
 
        iex> Path.split("")
-       ["/"]
+       []
        iex> Path.split("foo")
        ["foo"]
        iex> Path.split("/foo/bar")
        ["/", "foo", "bar"]
 
   """
+  # Work around a bug in Erlang on UNIX
+  def split(""), do: []
+
   def split(path) do
     FN.split(path)
   end
@@ -450,7 +461,7 @@ defmodule Path do
 
   Imagine you have a directory called `projects` with three Elixir projects
   inside of it: `elixir`, `ex_doc` and `dynamo`. You can find all `.beam` files
-  inside their ebin directories all projects as follows:
+  inside the ebin directory of each project as follows:
 
       Path.wildcard("projects/*/ebin/**/*.beam")
 
@@ -460,12 +471,12 @@ defmodule Path do
 
   """
   def wildcard(glob) when is_binary(glob) do
-    paths = :elixir_glob.wildcard :unicode.characters_to_list(glob)
+    paths = :filelib.wildcard :unicode.characters_to_list(glob)
     Enum.map paths, :unicode.characters_to_binary(&1)
   end
 
   def wildcard(glob) when is_list(glob) do
-    :elixir_glob.wildcard glob
+    :filelib.wildcard glob
   end
 
   ## Helpers

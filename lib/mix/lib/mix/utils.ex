@@ -23,17 +23,31 @@ defmodule Mix.Utils do
   end
 
   @doc """
+  Gets all extra paths defined in the environment variable
+  MIX_PATH. MIX_PATH may contain multiple paths. If on windows,
+  those paths should be separated by `;`, if on unix systems,
+  use `:`.
+  """
+  def mix_path do
+    if path = System.get_env("MIX_PATH") do
+      String.split(path, path_separator)
+    else
+      []
+    end
+  end
+
+  defp path_separator do
+    case :os.type do
+      { :win32, _ } -> ";"
+      { :unix, _ }  -> ":"
+    end
+  end
+
+  @doc """
   Gets the source location of a module as a binary.
   """
   def source(module) do
-    compile = module.__info__(:compile)
-
-    # Get the source of the compiled module. Due to a bug in Erlang
-    # R15 and before, we need to look for the source first in the
-    # options and then into the real source.
-    options = compile[:options] || []
-    source  = options[:source]  || compile[:source]
-
+    source = module.__info__(:compile)[:source]
     source && list_to_binary(source)
   end
 
@@ -92,17 +106,21 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Executes a function but preserves the given path mtime
-  properties.
+  Generates a manifest containing all files generated
+  during a given compilation step. It receives the manifest
+  file name and a function to execute. The result of the
+  function is compared to the manifest in order do detect
+  the files removed from the manifest file.
   """
-  def preserving_mtime(path, fun) do
-    previous = last_modified(path)
-
-    try do
-      fun.()
-    after
-      File.touch!(path, previous)
-    end
+  def manifest(file, fun) do
+    old =
+      case File.read(file) do
+        { :ok, contents } -> String.split(contents, "\n")
+        { :error, _ } -> []
+      end
+    current = fun.()
+    File.write!(file, Enum.join(current, "\n"))
+    { current, old -- current }
   end
 
   @doc """
@@ -172,9 +190,8 @@ defmodule Mix.Utils do
 
   """
   def underscore(atom) when is_atom(atom) do
-    "Elixir-" <> rest = atom_to_binary(atom)
-    rest = :binary.replace(rest, "-", ".")
-    underscore rest
+    "Elixir." <> rest = atom_to_binary(atom)
+    underscore(rest)
   end
 
   def underscore(<<h, t :: binary>>) do

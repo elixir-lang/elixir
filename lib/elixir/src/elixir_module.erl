@@ -1,8 +1,11 @@
 -module(elixir_module).
--export([translate/4, compile/5, data_table/1, eval_quoted/4,
-         format_error/1, eval_callbacks/5]).
+-export([translate/4, compile/5, data_table/1, docs_table/1,
+         eval_quoted/4, format_error/1, eval_callbacks/5]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
+
+-define(docs_attr, '__docs_table').
+-define(acc_attr, '__acc_attributes').
+-define(persisted_attr, '__persisted_attributes').
 
 eval_quoted(Module, Quoted, RawBinding, Opts) ->
   Binding = binding_for_eval(Module, RawBinding),
@@ -15,7 +18,7 @@ eval_quoted(Module, Quoted, RawBinding, Opts) ->
     false -> Line = 1
   end,
 
-  { Value, FinalBinding, _Scope } = elixir:eval_quoted([Quoted], Binding, Line, Scope#elixir_scope{check_clauses=false}),
+  { Value, FinalBinding, _Scope } = elixir:eval_quoted([Quoted], Binding, Line, Scope),
   { Value, FinalBinding }.
 
 scope_for_eval(Module, #elixir_scope{} = S) ->
@@ -32,7 +35,7 @@ data_table(Module) ->
   Module.
 
 docs_table(Module) ->
-  ?atom_concat([o, Module]).
+  ets:lookup_element(Module, ?docs_attr, 2).
 
 %% TRANSFORMATION FUNCTIONS
 
@@ -42,7 +45,7 @@ docs_table(Module) ->
 
 translate(Meta, Ref, Block, S) ->
   Line            = ?line(Meta),
-  MetaBlock       = elixir_tree_helpers:abstract_syntax(Block),
+  MetaBlock       = elixir_tree_helpers:elixir_to_erl(Block),
   { MetaS, Vars } = elixir_scope:serialize_with_vars(Line, S),
 
   Args = [{integer, Line, Line}, Ref, MetaBlock, Vars, MetaS],
@@ -50,8 +53,13 @@ translate(Meta, Ref, Block, S) ->
 
 %% The compilation hook.
 
-compile(Line, Module, Block, Vars, #elixir_scope{} = S) when is_atom(Module) ->
+compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = RawS) when is_atom(Module) ->
   C = elixir_compiler:get_opts(),
+  S = case lists:member(Module, FileModules) of
+    true  -> RawS;
+    false -> RawS#elixir_scope{context_modules=[Module|FileModules]}
+  end,
+
   File = S#elixir_scope.file,
   FileList = binary_to_list(File),
 
@@ -66,9 +74,17 @@ compile(Line, Module, Block, Vars, #elixir_scope{} = S) when is_atom(Module) ->
     Forms1          = specs_form(Line, Module, Private, Defmacro, Forms0, C),
     Forms2          = attributes_form(Line, File, Module, Forms1),
 
-    elixir_import:ensure_all_imports_used(Line, File, Module),
+    case ets:lookup(data_table(Module), 'on_load') of
+      [] -> ok;
+      [{on_load,OnLoad}] ->
+        [elixir_tracker:record_local(Tuple, Module) || Tuple <- OnLoad]
+    end,
+
+    elixir_tracker:warn_unused_local(File, Module, Private),
+    elixir_tracker:ensure_no_import_conflict(Line, File, Module, All),
+    elixir_tracker:ensure_all_imports_used(Line, File, Module),
+
     elixir_import:ensure_no_local_conflict(Line, File, Module, All),
-    elixir_import:ensure_no_import_conflict(Line, File, Module, All),
 
     Final = [
       { attribute, Line, file, { FileList, Line } },
@@ -78,10 +94,10 @@ compile(Line, Module, Block, Vars, #elixir_scope{} = S) when is_atom(Module) ->
     Binary = load_form(Line, Final, S),
     { module, Module, Binary, Result }
   after
-    ets:delete(data_table(Module)),
+    elixir_tracker:cleanup(Module),
+    elixir_def:cleanup(Module),
     ets:delete(docs_table(Module)),
-    elixir_def:delete_table(Module),
-    elixir_import:delete_table(Module)
+    ets:delete(data_table(Module))
   end;
 
 compile(Line, Other, _Block, _Vars, #elixir_scope{file=File}) ->
@@ -114,20 +130,13 @@ build(Line, File, Module) ->
   end,
 
   Attributes = [behavior, behaviour, on_load, spec, type, export_type, opaque, callback, compile],
-  ets:insert(DataTable, { '__acc_attributes', [before_compile,after_compile,on_definition|Attributes] }),
-  ets:insert(DataTable, { '__persisted_attributes', [vsn|Attributes] }),
+  ets:insert(DataTable, { ?acc_attr, [before_compile,after_compile,on_definition|Attributes] }),
+  ets:insert(DataTable, { ?persisted_attr, [vsn|Attributes] }),
+  ets:insert(DataTable, { ?docs_attr, ets:new(DataTable, [ordered_set, public]) }),
 
-  %% Keep docs in another table since we don't want to pull out
-  %% all the binaries every time a new documentation is stored.
-  DocsTable = docs_table(Module),
-  ets:new(DocsTable, [ordered_set, named_table, public]),
-
-  %% We keep a separated table for function definitions
-  %% and another one for imports. We keep them in different
-  %% tables for organization and speed purpose (since the
-  %% imports table is frequently written to).
-  elixir_def:build_table(Module),
-  elixir_import:build_table(Module).
+  %% Setup other modules
+  elixir_def:setup(Module),
+  elixir_tracker:setup(Module).
 
 %% Receives the module representation and evaluates it.
 
@@ -141,6 +150,7 @@ eval_form(Line, Module, Block, Vars, RawS) ->
   Value.
 
 %% Return the form with exports and function declarations.
+
 functions_form(Line, File, Module, Export, Private, Def, Defmacro, RawFunctions, C) ->
   Functions = case elixir_compiler:get_opt(internal, C) of
     true  -> RawFunctions;
@@ -150,14 +160,7 @@ functions_form(Line, File, Module, Export, Private, Def, Defmacro, RawFunctions,
   { FinalExport, FinalFunctions } =
     add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C),
 
-  Recorded =
-    case ets:lookup(data_table(Module), 'on_load') of
-      [] -> elixir_import:recorded_locals(Module);
-      [{on_load,OnLoad}] -> elixir_import:recorded_locals(Module) ++ OnLoad
-    end,
-
-  elixir_def_local:check_unused_local_macros(File, Recorded, Private),
-  PrivateTuple = [Tuple || { Tuple, _, _, _ } <- Private],
+  PrivateTuple = [Tuple || { Tuple, _, _, _, _ } <- Private],
   { FinalExport ++ PrivateTuple, [
     {attribute, Line, export, lists:sort(FinalExport)} | FinalFunctions
   ] }.
@@ -198,7 +201,7 @@ attributes_form(Line, _File, Module, Current) ->
 %% Specs
 
 specs_form(Line, Module, Private, Defmacro, Forms, C) ->
-  Defmacrop = [Tuple || { Tuple, defmacrop, _, _ } <- Private],
+  Defmacrop = [Tuple || { Tuple, defmacrop, _, _, _ } <- Private],
   case elixir_compiler:get_opt(internal, C) of
     true -> Forms;
     _    ->
@@ -295,11 +298,11 @@ add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C) ->
   end.
 
 functions_clause(Def) ->
-  { clause, 0, [{ atom, 0, functions }], [], [elixir_tree_helpers:abstract_syntax(Def)] }.
+  { clause, 0, [{ atom, 0, functions }], [], [elixir_tree_helpers:elixir_to_erl(Def)] }.
 
 macros_clause(Module, Def, Defmacro) ->
   All = handle_builtin_macros(Module, Def, Defmacro),
-  { clause, 0, [{ atom, 0, macros }], [], [elixir_tree_helpers:abstract_syntax(All)] }.
+  { clause, 0, [{ atom, 0, macros }], [], [elixir_tree_helpers:elixir_to_erl(All)] }.
 
 handle_builtin_macros('Elixir.Kernel', Def, Defmacro) ->
   ordsets:subtract(ordsets:union(Defmacro,
@@ -311,14 +314,14 @@ module_clause(Module) ->
 
 docs_clause(Module, true) ->
   Docs = ordsets:from_list(ets:tab2list(docs_table(Module))),
-  { clause, 0, [{ atom, 0, docs }], [], [elixir_tree_helpers:abstract_syntax(Docs)] };
+  { clause, 0, [{ atom, 0, docs }], [], [elixir_tree_helpers:elixir_to_erl(Docs)] };
 
 docs_clause(_Module, _) ->
   { clause, 0, [{ atom, 0, docs }], [], [{ atom, 0, nil }] }.
 
 moduledoc_clause(Line, Module, true) ->
   Docs = 'Elixir.Module':get_attribute(Module, moduledoc),
-  { clause, 0, [{ atom, 0, moduledoc }], [], [elixir_tree_helpers:abstract_syntax({ Line, Docs })] };
+  { clause, 0, [{ atom, 0, moduledoc }], [], [elixir_tree_helpers:elixir_to_erl({ Line, Docs })] };
 
 moduledoc_clause(_Line, _Module, _) ->
   { clause, 0, [{ atom, 0, moduledoc }], [], [{ atom, 0, nil }] }.
@@ -329,8 +332,7 @@ else_clause() ->
 
 % HELPERS
 
-eval_callbacks(Line, Module, Name, Args, RawS) ->
-  S         = RawS#elixir_scope{check_clauses=false},
+eval_callbacks(Line, Module, Name, Args, S) ->
   Binding   = binding_for_eval(Module, []),
   Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
   Meta      = [{line,Line},{require,false}],

@@ -24,9 +24,6 @@ defmodule IO.ANSI do
   (http://en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
   in the text used to control formatting, color, and other output options
   on video text terminals.
-
-  Please be aware that in Erlang/OTP versions prior to R16, you will not
-  be able to render ANSI escape sequences in iex or erlang shell
   """
 
   import IO.ANSI.Sequence
@@ -36,23 +33,11 @@ defmodule IO.ANSI do
 
   Used to identify whether printing ANSI escape sequences will likely
   be printed as intended.
-
-  Please note that invoked while in shell (iex) in Erlang/OTP
-  prior to R16, terminal?/0 will always return false because
-  Erlang shell did not support ANSI escape sequences up until
-  R16.
   """
   @spec terminal? :: boolean
   @spec terminal?(:io.device) :: boolean
   def terminal?(device // :erlang.group_leader) do
-    if :erlang.system_info(:otp_release) < 'R16' and
-       Process.whereis(:user) != device do
-      # Shell prior to R16 doesn't support ANSI escape
-      # sequences
-      false
-    else
-      match?({:ok, _}, :io.columns(device))
-    end
+    match?({:ok, _}, :io.columns(device))
   end
 
   @doc "Resets all attributes"
@@ -91,7 +76,7 @@ defmodule IO.ANSI do
   @doc "Sets primary (default) font"
   defsequence :primary_font, 10
 
-  lc font_n inlist [1,2,3,4,5,6,7,8,9] do
+  lc font_n inlist [1, 2, 3, 4, 5, 6, 7, 8, 9] do
     @doc "Sets alternative font #{font_n}"
     defsequence :"font_#{font_n}", font_n + 10
   end
@@ -151,13 +136,13 @@ defmodule IO.ANSI do
   end
 
   @doc %B"""
-  Escapes a string coverting named ANSI sequences into actual ANSI codes.
+  Escapes a string by converting named ANSI sequences into actual ANSI codes.
 
-  The format for referring sequences is `%{red}` and `%{red,bright}` (for
-  multiple sequences)
+  The format for referring to sequences is `%{red}` and `%{red,bright}` (for
+  multiple sequences).
 
-  It will also force a %{reset} to get appended to every string. If you don't
-  want this behaviour, use `escape_fragment/1` and `escape_fragment/2`.
+  It will also append a %{reset} to the string. If you don't want this
+  behaviour, use `escape_fragment/1` and `escape_fragment/2`.
 
   An optional boolean parameter can be passed to enable or disable
   emitting actual ANSI codes. When false, no ANSI codes will emitted.
@@ -166,7 +151,7 @@ defmodule IO.ANSI do
 
   ## Example
 
-    iex> IO.ANSI.escape("Hello %{red,bright,green}yes")
+    iex> IO.ANSI.escape("Hello %{red,bright,green}yes", true)
     "Hello \e[31m\e[1m\e[32myes\e[0m"
   """
   @spec escape(String.t, emit :: boolean) :: String.t
@@ -180,10 +165,10 @@ defmodule IO.ANSI do
   end
 
   @doc %B"""
-  Escapes a string coverting named ANSI sequences into actual ANSI codes.
+  Escapes a string by converting named ANSI sequences into actual ANSI codes.
 
-  The format for referring sequences is `%{red}` and `%{red,bright}` (for
-  multiple sequences)
+  The format for referring to sequences is `%{red}` and `%{red,bright}` (for
+  multiple sequences).
 
   An optional boolean parameter can be passed to enable or disable
   emitting actual ANSI codes. When false, no ANSI codes will emitted.
@@ -192,8 +177,10 @@ defmodule IO.ANSI do
 
   ## Example
 
-    iex> IO.ANSI.escape("Hello %{red,bright,green}yes")
-    "Hello \e[31m\e[1m\e[32myes\e[0m"
+    iex> IO.ANSI.escape_fragment("Hello %{red,bright,green}yes", true)
+    "Hello \e[31m\e[1m\e[32myes"
+    iex> IO.ANSI.escape_fragment("%{reset}bye", true)
+    "\e[0mbye"
 
   """
   @spec escape_fragment(String.t, emit :: boolean) :: String.t

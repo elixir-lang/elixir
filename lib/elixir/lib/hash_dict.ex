@@ -72,7 +72,7 @@ defmodule HashDict do
 
   ## Examples
 
-      HashDict.new [{:b,1},{:a,2}]
+      HashDict.new [{:b, 1}, {:a, 2}]
       #=> #HashDict<[a: 2, b: 1]>
 
   """
@@ -152,17 +152,6 @@ defmodule HashDict do
   end
 
   @doc """
-  Gets the value under key from the dict,
-  raises KeyError if such key does not exist.
-  """
-  def get!(dict, key) when is_tuple(dict) do
-    case dict_get(dict, key) do
-      { ^key, value } -> value
-      false -> raise(KeyError, key: key)
-    end
-  end
-
-  @doc """
   Fetches the value under key from the dict
   and return it in a tagged tuple.
   """
@@ -173,6 +162,14 @@ defmodule HashDict do
     end
   end
 
+  def fetch!(dict, key) when is_tuple(dict) do
+    case dict_get(dict, key) do
+      { ^key, value } -> value
+      false -> raise(KeyError, key: key)
+    end
+  end
+
+
   @doc """
   Checks if the dict has the given key.
   """
@@ -181,35 +178,21 @@ defmodule HashDict do
   end
 
   @doc """
-  Deletes a value from the dict.
+  Returns the value under key from the dict as well as the dict without key.
   """
-  def delete(ordered(bucket: bucket, size: size) = dict, key) do
-    case bucket_delete(bucket, key) do
-      { _, 0 } ->
-        dict
-      { new_bucket, -1 } ->
-        ordered(dict, size: size - 1, bucket: new_bucket)
+  def pop(dict, key, default // nil) do
+    case dict_delete(dict, key) do
+      { dict, _, 0 } -> { default, dict }
+      { dict, value, _ } -> { value, dict }
     end
   end
 
-  def delete(trie(root: root, size: size, depth: depth) = dict, key) do
-    pos = bucket_hash(key)
-    case node_delete(root, depth, pos, key) do
-      { _, 0 } ->
-        dict
-      { root, -1 } ->
-        if depth > 0 and trie(dict, :contract_on) == size do
-          root = node_contract(root, depth, depth - 1)
-          trie(dict,
-            root: root,
-            size: size - 1,
-            depth: depth - 1,
-            contract_on: div(size, @node_size),
-            expand_on: div(trie(dict, :expand_on), @node_size))
-        else
-          trie(dict, size: size - 1, root: root)
-        end
-    end
+  @doc """
+  Deletes a value from the dict.
+  """
+  def delete(dict, key) do
+    { dict, _, _ } = dict_delete(dict, key)
+    dict
   end
 
   @doc """
@@ -226,24 +209,17 @@ defmodule HashDict do
     ordered()
   end
 
-  def equal?(ordered(bucket: a, size: size), ordered(bucket: b, size: ^size)) do
-    a == b
-  end
-
-  def equal?(trie(size: size) = a, trie(size: ^size) = b) do
-    a == b
-  end
-
-  def equal?(ordered() = a, trie() = b) do
-    equal?(b, a)
-  end
-
-  def equal?(trie(size: size) = a, ordered(bucket: b, size: ^size)) do
-    :lists.keysort(1, to_list(a)) == :lists.keysort(1, b)
-  end
-
-  def equal?(_, _) do
-    false
+  @doc """
+  Checks if two dicts are equal
+  """
+  def equal?(dict1, dict2) do
+    size = elem(dict1, 1)
+    case elem(dict2, 1) do
+      ^size ->
+        dict_equal?(dict1, dict2)
+      _ ->
+        false
+    end
   end
 
   @doc """
@@ -254,7 +230,7 @@ defmodule HashDict do
   end
 
   def to_list(dict) do
-    dict_fold(dict, [], [&1|&2])
+    dict_fold(dict, [], [&1|&2]) |> :lists.reverse
   end
 
   @doc """
@@ -294,14 +270,55 @@ defmodule HashDict do
     end
   end
 
+  def split(dict, keys) do
+    split(keys, new, dict)
+  end
+
+  defp split([], including, excluding) do
+    { including, excluding }
+  end
+
+  defp split([key|keys], including, excluding) do
+    case dict_delete(excluding, key) do
+      { excluding, _, 0 } -> split(keys, including, excluding)
+      { excluding, value, _ } -> split(keys, put(including, key, value), excluding)
+    end
+  end
+
+  def take(dict, keys) do
+    take(dict, keys, new)
+  end
+
+  defp take(_dict, [], acc), do: acc
+  defp take(dict, [key|keys], acc) do
+    case fetch(dict, key) do
+      { :ok, value } -> take(dict, keys, put(acc, key, value))
+      :error -> take(dict, keys, acc)
+    end
+  end
+
+  def drop(dict, []), do: dict
+
+  def drop(dict, [key|keys]) do
+    drop(delete(dict, key), keys)
+  end
+
+  def reduce(ordered(bucket: bucket), acc, fun) do
+    :lists.foldl(fun, acc, bucket)
+  end
+
+  def reduce(trie() = dict, acc, fun) do
+    dict_fold(dict, acc, fun)
+  end
+
   ## Dict-wide functions
 
   defp dict_get(ordered(bucket: bucket), key) do
-    :lists.keyfind(key, 1, bucket)
+    bucket_get(bucket, key)
   end
 
   defp dict_get(trie(root: root, depth: depth), key) do
-    :lists.keyfind(key, 1, node_bucket(root, depth, bucket_hash(key)))
+    bucket_get(node_bucket(root, depth, bucket_hash(key)), key)
   end
 
   defp dict_fold(ordered(bucket: bucket), acc, fun) do
@@ -335,61 +352,122 @@ defmodule HashDict do
     { trie(dict, size: size + count, root: root), count }
   end
 
+  defp dict_delete(ordered(bucket: bucket, size: size) = dict, key) do
+    case bucket_delete(bucket, key) do
+      { _, value, 0 } ->
+        { dict, value, 0 }
+      { new_bucket, value, -1 } ->
+        { ordered(dict, size: size - 1, bucket: new_bucket), value, -1 }
+    end
+  end
+
+  defp dict_delete(trie(root: root, size: size, depth: depth) = dict, key) do
+    pos = bucket_hash(key)
+    case node_delete(root, depth, pos, key) do
+      { _, value, 0 } ->
+        { dict, value, 0 }
+      { root, value, -1 } ->
+        { if depth > 0 and trie(dict, :contract_on) == size do
+          root = node_contract(root, depth)
+          trie(dict,
+            root: root,
+            size: size - 1,
+            depth: depth - 1,
+            contract_on: div(size, @node_size),
+            expand_on: div(trie(dict, :expand_on), @node_size))
+        else
+          trie(dict, size: size - 1, root: root)
+        end, value, -1 }
+    end
+  end
+
+  defp dict_equal?(dict1, dict2) do
+    try do
+      reduce(dict1, true, fn({ key, value }, acc) ->
+        case fetch(dict2, key) do
+          { _ok, ^value } ->
+            acc
+          _ ->
+            throw(:error)
+        end
+      end)
+    catch
+      :error -> false
+    end
+  end
+
   ## Bucket helpers
 
+  # Get value from the bucket
+  defp bucket_get([{k, _}|_bucket], key) when k > key do
+    false
+  end
+
+  defp bucket_get([{key, _}=e|_bucket], key) do
+    e
+  end
+
+  defp bucket_get([_e|bucket], key) do
+    bucket_get(bucket, key)
+  end
+
+  defp bucket_get([], _key) do
+    false
+  end
+
   # Puts a value in the bucket
-  defp bucket_put([{k,_}=e|bucket], key, { :put, value }) when key < k do
-    { [{key,value},e|bucket], 1 }
+  defp bucket_put([{k, _}|_]=bucket, key, { :put, value }) when k > key do
+    { [{key, value}|bucket], 1 }
   end
 
-  defp bucket_put([{k,_}=e|bucket], key, { :update, initial, _fun }) when key < k do
-    { [{key,initial},e|bucket], 1 }
+  defp bucket_put([{k, _}|_]=bucket, key, { :update, initial, _fun }) when k > key do
+    { [{key, initial}|bucket], 1 }
   end
 
-  defp bucket_put([{k,_}=e|bucket], key, value) when key > k do
+  defp bucket_put([{key, _}|bucket], key, { :put, value }) do
+    { [{key, value}|bucket], 0 }
+  end
+
+  defp bucket_put([{key, value}|bucket], key, { :update, _initial, fun }) do
+    { [{key, fun.(value)}|bucket], 0 }
+  end
+
+  defp bucket_put([e|bucket], key, value) do
     { rest, count } = bucket_put(bucket, key, value)
     { [e|rest], count }
   end
 
-  defp bucket_put([{_,_}|bucket], key, { :put, value }) do
-    { [{key,value}|bucket], 0 }
-  end
-
-  defp bucket_put([{_,value}|bucket], key, { :update, _initial, fun }) do
-    { [{key,fun.(value)}|bucket], 0 }
-  end
-
   defp bucket_put([], key, { :put, value }) do
-    { [{key,value}], 1 }
+    { [{key, value}], 1 }
   end
 
   defp bucket_put([], key, { :update, initial, _fun }) do
-    { [{key,initial}], 1 }
+    { [{key, initial}], 1 }
   end
 
   # Puts a value in the bucket without returning
   # the operation value
-  defp bucket_put!([{k,_}=e|bucket], key, value) when key < k, do: [{key,value},e|bucket]
-  defp bucket_put!([{k,_}=e|bucket], key, value) when key > k, do: [e|bucket_put!(bucket, key, value)]
-  defp bucket_put!([{_,_}|bucket], key, value), do: [{key,value}|bucket]
-  defp bucket_put!([], key, value), do: [{key,value}]
+  defp bucket_put!([{k, _}|_]=bucket, key, value) when k > key, do: [{key, value}|bucket]
+  defp bucket_put!([{key, _}|bucket], key, value), do: [{key, value}|bucket]
+  defp bucket_put!([{_, _}=e|bucket], key, value), do: [e|bucket_put!(bucket, key, value)]
+  defp bucket_put!([], key, value), do: [{key, value}]
 
   # Deletes a key from the bucket
-  defp bucket_delete([{k,_}|_] = bucket, key) when key < k do
-    { bucket, 0 }
+  defp bucket_delete([{k, _}|_]=bucket, key) when k > key do
+    { bucket, nil, 0 }
   end
 
-  defp bucket_delete([{k,_}=e|bucket], key) when key > k do
-    { rest, count } = bucket_delete(bucket, key)
-    { [e|rest], count }
+  defp bucket_delete([{key, value}|bucket], key) do
+    { bucket, value, -1 }
   end
 
-  defp bucket_delete([{_,_}|bucket], _key) do
-    { bucket, -1 }
+  defp bucket_delete([e|bucket], key) do
+    { rest, value, count } = bucket_delete(bucket, key)
+    { [e|rest], value, count }
   end
 
   defp bucket_delete([], _key) do
-    { [], 0 }
+    { [], nil, 0 }
   end
 
   # Folds the bucket
@@ -442,16 +520,16 @@ defmodule HashDict do
   defp node_delete(node, 0, hash, key) do
     pos = bucket_index(hash)
     case bucket_delete(elem(node, pos), key) do
-      { _, 0 }    -> { node, 0 }
-      { new, -1 } -> { set_elem(node, pos, new), -1 }
+      { _, value, 0 } -> { node, value, 0 }
+      { new, value, -1 } -> { set_elem(node, pos, new), value, -1 }
     end
   end
 
   defp node_delete(node, depth, hash, key) do
     pos = bucket_index(hash)
     case node_delete(elem(node, pos), depth - 1, bucket_next(hash), key) do
-      { _, 0 }    -> { node, 0 }
-      { new, -1 } -> { set_elem(node, pos, new), -1 }
+      { _, value, 0 } -> { node, value, 0 }
+      { new, value, -1 } -> { set_elem(node, pos, new), value, -1 }
     end
   end
 
@@ -483,24 +561,23 @@ defmodule HashDict do
       node_expand(b7, depth, n), node_expand(b8, depth, n) }
   end
 
-  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8 }, depth, n) when depth > 1 do
+  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8 }, depth) when depth > 0 do
     depth = depth - 1
-    { node_contract(b1, depth, n), node_contract(b2, depth, n), node_contract(b3, depth, n),
-      node_contract(b4, depth, n), node_contract(b5, depth, n), node_contract(b6, depth, n),
-      node_contract(b7, depth, n), node_contract(b8, depth, n) }
+    { node_contract(b1, depth), node_contract(b2, depth), node_contract(b3, depth),
+      node_contract(b4, depth), node_contract(b5, depth), node_contract(b6, depth),
+      node_contract(b7, depth), node_contract(b8, depth) }
   end
 
-  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8 }, 1, n) do
-    @node_template |> each_contract(b1, n) |> each_contract(b2, n) |> each_contract(b3, n)
-                   |> each_contract(b4, n) |> each_contract(b5, n) |> each_contract(b6, n)
-                   |> each_contract(b7, n) |> each_contract(b8, n)
+  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8 }, 0) do
+    b1 |> each_contract(b2) |> each_contract(b3) |> each_contract(b4)
+       |> each_contract(b5) |> each_contract(b6) |> each_contract(b7)
+       |> each_contract(b8)
   end
 
-  defp each_contract(acc, { b1, b2, b3, b4, b5, b6, b7, b8 }, n) do
-    acc |> node_relocate(b1, n) |> node_relocate(b2, n) |> node_relocate(b3, n)
-        |> node_relocate(b4, n) |> node_relocate(b5, n) |> node_relocate(b6, n)
-        |> node_relocate(b7, n) |> node_relocate(b8, n)
-  end
+  defp each_contract([{k, _v}=e|acc], [{key, _value}|_]=bucket) when k < key, do: [e|each_contract(acc, bucket)]
+  defp each_contract(acc, [e|bucket]), do: [e|each_contract(acc, bucket)]
+  defp each_contract([], bucket), do: bucket
+  defp each_contract(acc, []), do: acc
 
   defp node_relocate(node // @node_template, bucket, n) do
     :lists.foldl fn { key, value }, acc ->
@@ -510,9 +587,8 @@ defmodule HashDict do
   end
 end
 
-defimpl Enum.Iterator, for: HashDict do
-  def iterator(dict),          do: HashDict.to_list(dict)
-  def empty?(dict),            do: HashDict.size(dict) == 0
+defimpl Enumerable, for: HashDict do
+  def reduce(dict, acc, fun),  do: HashDict.reduce(dict, acc, fun)
   def member?(dict, { k, v }), do: match?({ :ok, ^v }, HashDict.fetch(dict, k))
   def member?(_dict, _),       do: false
   def count(dict),             do: HashDict.size(dict)

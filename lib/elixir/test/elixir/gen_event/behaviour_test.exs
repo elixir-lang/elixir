@@ -28,8 +28,8 @@ defmodule GenEvent.BehaviourTest do
 
     :gen_event.notify(pid, {:notification, 1})
     :gen_event.notify(pid, {:notification, 2})
-      
-    assert :gen_event.call(pid, MyEventHandler, :notifications) == [1,2]
+
+    assert :gen_event.call(pid, MyEventHandler, :notifications) == [1, 2]
     assert :gen_event.call(pid, MyEventHandler, :notifications) == []
   end
 

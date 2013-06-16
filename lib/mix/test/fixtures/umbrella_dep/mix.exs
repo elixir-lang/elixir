@@ -7,6 +7,6 @@ defmodule UmbrellaDep.Mixfile do
   end
 
   defp deps do
-    [ { :umbrella, path: "deps/umbrella", app: false } ]
+    [ { :umbrella, path: "deps/umbrella" } ]
   end
 end

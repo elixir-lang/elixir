@@ -1,4 +1,4 @@
-defmodule List.Dict do
+defmodule ListDict do
   @moduledoc """
   A Dict implementation that works on lists of two-items tuples.
 
@@ -7,19 +7,19 @@ defmodule List.Dict do
   """
 
   @doc """
-  Returns a new `List.Dict`, i.e. an empty list.
+  Returns a new `ListDict`, i.e. an empty list.
   """
   def new, do: []
 
   @doc """
-  Creates a new `List.Dict` from the given pairs.
+  Creates a new `ListDict` from the given pairs.
   """
   def new(pairs) do
     Enum.map pairs, fn({ k, v }) -> { k, v } end
   end
 
   @doc """
-  Creates a new `List.Dict` from the given pairs
+  Creates a new `ListDict` from the given pairs
   via the given transformation function.
   """
   def new(list, transform) when is_function(transform) do
@@ -66,17 +66,6 @@ defmodule List.Dict do
   end
 
   @doc """
-  Returns the value under the given key
-  raises `KeyError` if the key does not exist.
-  """
-  def get!(dict, key) do
-    case :lists.keyfind(key, 1, dict) do
-      { ^key, value } -> value
-      false -> raise(KeyError, key: key)
-    end
-  end
-
-  @doc """
   Returns the value under key from the given
   dict in a tagged tuple, otherwise `:error`.
   """
@@ -85,6 +74,25 @@ defmodule List.Dict do
       { ^key, value } -> { :ok, value }
       false -> :error
     end
+  end
+
+  @doc """
+  Returns the value under the given key
+  raises `KeyError` if the key does not exist.
+  """
+  def fetch!(dict, key) do
+    case :lists.keyfind(key, 1, dict) do
+      { ^key, value } -> value
+      false -> raise(KeyError, key: key)
+    end
+  end
+
+  @doc """
+  Returns the value under the given key
+  from the dict as well as the dict without that key.
+  """
+  def pop(dict, key, default // nil) do
+    { get(dict, key, default), delete(dict, key) }
   end
 
   @doc """
@@ -101,7 +109,7 @@ defmodule List.Dict do
   def put_new(dict, key, val) do
     case :lists.keyfind(key, 1, dict) do
       { ^key, _ } -> dict
-      false -> [{key,val}|dict]
+      false -> [{key, val}|dict]
     end
   end
 
@@ -121,6 +129,25 @@ defmodule List.Dict do
     Enum.reduce dict2, dict1, fn { k, v2 }, acc ->
       update(acc, k, v2, fn(v1) -> fun.(k, v1, v2) end)
     end
+  end
+
+  def split(dict, keys) do
+    acc = { new(), new() }
+    Enum.reduce dict, acc, fn({ k, v }, { take, drop }) ->
+      if :lists.member(k, keys) do
+        { [{k, v}|take], drop }
+      else
+        { take, [{k, v}|drop] }
+      end
+    end
+  end
+
+  def take(dict, keys) do
+    lc { k, _ } = tuple inlist dict, :lists.member(k, keys), do: tuple
+  end
+
+  def drop(dict, keys) do
+    lc { k, _ } = tuple inlist dict, not :lists.member(k, keys), do: tuple
   end
 
   @doc """
@@ -155,12 +182,12 @@ defmodule List.Dict do
   end
 
   @doc """
-  Returns an empty `List.Dict`.
+  Returns an empty `ListDict`.
   """
   def empty(_dict), do: []
 
   @doc """
-  Check if the List.Dict is equal to another List.Dict.
+  Check if the ListDict is equal to another ListDict.
   """
   def equal?(dict, other) do
     :lists.keysort(1, dict) == :lists.keysort(1, other)

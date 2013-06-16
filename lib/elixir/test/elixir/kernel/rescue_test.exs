@@ -73,7 +73,7 @@ defmodule Kernel.RescueTest do
     named = ArgumentError
 
     result = try do
-      Certainly.Undefined.function(1,2,3)
+      Certainly.Undefined.function(1, 2, 3)
     rescue
       x in [named] -> x.message
     catch
@@ -91,18 +91,6 @@ defmodule Kernel.RescueTest do
     end
 
     assert result == "an exception"
-  end
-
-  test :rescue_defined_variable do
-    var = Protocol.UndefinedError[protocol: Foo]
-
-    result = try do
-      raise Protocol.UndefinedError, protocol: Foo
-    rescue
-      ^var -> true
-    end
-
-    assert result, "Expected to rescue with success"
   end
 
   test :rescue_named_defined_variable do
@@ -146,7 +134,7 @@ defmodule Kernel.RescueTest do
       x in [FunctionClauseError] -> x.message
     end
 
-    assert result == "no function clause matching: Kernel.RescueTest.zero(1)"
+    assert result == "no function clause matching in Kernel.RescueTest.zero/1"
   end
 
   test :badarg_error do
@@ -161,7 +149,7 @@ defmodule Kernel.RescueTest do
 
   test :tuple_badarg_error do
     result = try do
-      :erlang.error({ :badarg, [1,2,3] })
+      :erlang.error({ :badarg, [1, 2, 3] })
     rescue
       x in [ArgumentError] -> x.message
     end
@@ -184,7 +172,7 @@ defmodule Kernel.RescueTest do
     string = "bad arity error: #{inspect(fun)} called with [1,2]"
 
     result = try do
-      fun.(1,2)
+      fun.(1, 2)
     rescue
       x in [BadArityError] -> x.message
     end
@@ -260,17 +248,6 @@ defmodule Kernel.RescueTest do
     end
 
     assert result == "undefined function: DoNotExist.for_sure/0"
-  end
-
-  test :pattern_matching do
-    result = try do
-      raise Protocol.UndefinedError, protocol: Foo
-    rescue
-      Protocol.UndefinedError[protocol: Bar] -> false
-      Protocol.UndefinedError[protocol: Foo] = x -> x.message
-    end
-
-    assert result == "protocol Foo not implemented for nil"
   end
 
   defp zero(0), do: 0

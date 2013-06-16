@@ -360,6 +360,7 @@ defmodule Process do
     :erlang.process_info(pid, spec)
   end
 
+  @compile { :inline, nillify: 1 }
   defp nillify(:undefined), do: nil
   defp nillify(other),      do: other
 end

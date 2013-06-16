@@ -18,6 +18,9 @@ colon_colon_test() ->
 arithmetic_test() ->
   [{number,1,1},{'+',1},{number,1,2},{'+',1},{number,1,3}] = tokenize("1 + 2 + 3").
 
+op_kw_test() ->
+  [{atom,1,foo},{'+',1},{atom,1,bar}] = tokenize(":foo+:bar").
+
 scientific_test() ->
   [{number, 1, 0.1}] = tokenize("1.0e-1").
 

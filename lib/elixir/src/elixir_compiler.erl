@@ -1,8 +1,7 @@
 -module(elixir_compiler).
--export([get_opts/0, get_opt/1, get_opt/2, string/2, file/1, file_to_path/2]).
+-export([get_opts/0, get_opt/1, get_opt/2, string/2, quoted/2, file/1, file_to_path/2]).
 -export([core/0, module/3, eval_forms/4, format_error/1]).
 -include("elixir.hrl").
--compile({parse_transform, elixir_transform}).
 
 %% Public API
 
@@ -213,7 +212,6 @@ core_main() ->
     "lib/elixir/lib/kernel/typespec.ex",
     "lib/elixir/lib/module.ex",
     "lib/elixir/lib/record.ex",
-    "lib/elixir/lib/record/extractor.ex",
     "lib/elixir/lib/macro.ex",
     "lib/elixir/lib/macro/env.ex",
     "lib/elixir/lib/exception.ex",
@@ -223,18 +221,14 @@ core_main() ->
     "lib/elixir/lib/wadler.ex",
     "lib/elixir/lib/binary/inspect.ex",
     "lib/elixir/lib/binary/chars.ex",
-    "lib/elixir/lib/list/chars.ex",
     "lib/elixir/lib/io.ex",
-    "lib/elixir/lib/file.ex",
     "lib/elixir/lib/path.ex",
-    "lib/elixir/lib/access.ex",
-    "lib/elixir/lib/regex.ex",
     "lib/elixir/lib/system.ex",
-    "lib/elixir/lib/process.ex",
     "lib/elixir/lib/kernel/cli.ex",
     "lib/elixir/lib/kernel/error_handler.ex",
     "lib/elixir/lib/kernel/parallel_compiler.ex",
-    "lib/elixir/lib/kernel/record_rewriter.ex"
+    "lib/elixir/lib/kernel/record_rewriter.ex",
+    "lib/elixir/lib/module/dispatch_tracker.ex"
   ].
 
 %% ERROR HANDLING

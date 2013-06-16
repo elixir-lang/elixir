@@ -6,7 +6,7 @@ defmodule IEx.Helpers do
   more joyful to work with.
 
   This message was triggered by invoking the helper
-  `h()`, usually referred as `h/0` (since it expects 0
+  `h()`, usually referred to as `h/0` (since it expects 0
   arguments).
 
   There are many other helpers available:
@@ -25,6 +25,7 @@ defmodule IEx.Helpers do
   * `t/1` — prints type information
   * `v/0` - prints all commands and values
   * `v/1` - retrieves nth value from console
+  * `import_file/1` - evaluate the given file in the shell's context
 
   Help for functions in this module can be consulted
   directly from the command line, as an example, try:
@@ -37,6 +38,7 @@ defmodule IEx.Helpers do
       h(Enum)
       h(Enum.reverse/1)
 
+  To learn more about IEx as a whole, just type `h(IEx)`.
   """
 
   @doc """
@@ -44,11 +46,15 @@ defmodule IEx.Helpers do
   to write their object code to. It returns the name
   of the compiled modules.
 
+  When compiling one file, there is no need to wrap it in a list.
+
   ## Examples
 
-      c ["foo.ex"], "ebin"
-      #=> [Foo]
+      c ["foo.ex", "bar.ex"], "ebin"
+      #=> [Foo,Bar]
 
+      c "baz.ex"
+      #=> [Baz]
   """
   def c(files, path // ".") do
     tuples = Kernel.ParallelCompiler.files_to_path List.wrap(files), path
@@ -56,7 +62,8 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Returns the name and module of all modules loaded.
+  Prints the list of all loaded modules with paths to their corresponding .beam
+  files.
   """
   def m do
     all    = Enum.map :code.all_loaded, fn { mod, file } -> { inspect(mod), file } end
@@ -70,26 +77,14 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints commands history and their result.
-  """
-  def v do
-    history = Enum.reverse(Process.get(:iex_history))
-    Enum.each(history, print_history(&1))
-  end
-
-  defp print_history(config) do
-    IO.puts IO.ANSI.escape("%{yellow}#{config.counter}: #{config.cache}#=> #{inspect config.result}\n")
-  end
-
-  @doc """
-  Shows the documentation for IEx.Helpers.
+  Prints the documentation for `IEx.Helpers`.
   """
   def h() do
     IEx.Introspection.h(IEx.Helpers)
   end
 
   @doc """
-  Shows the documentation for the given module
+  Prints the documentation for the given module
   or for the given function/arity pair.
 
   ## Examples
@@ -103,11 +98,24 @@ defmodule IEx.Helpers do
       h receive/1
       h Enum.all?/2
       h Enum.all?
-
   """
+  # Special case for `h AnyModule.__info__/1`
+  defmacro h({ :/, _, [{ { :., _, [_mod, :__info__] }, _, [] }, 1] }) do
+    quote do
+      IEx.Introspection.h(Module, :__info__, 1)
+    end
+  end
+
   defmacro h({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
       IEx.Introspection.h(unquote(mod), unquote(fun), unquote(arity))
+    end
+  end
+
+  # Special case for `h AnyModule.__info__`
+  defmacro h({ { :., _, [_mod, :__info__] }, _, [] }) do
+    quote do
+      IEx.Introspection.h(Module, :__info__, 1)
     end
   end
 
@@ -136,15 +144,16 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints all types for the given module or prints out a specified type's
-  specification
+  When given a module, prints specifications (or simply specs) for all the
+  types defined in it.
+
+  When given a particular type name, prints its spec.
 
   ## Examples
 
       t(Enum)
       t(Enum.t/0)
       t(Enum.t)
-
   """
   defmacro t({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
@@ -165,7 +174,11 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints all specs from a given module.
+  Similar to `t/1`, only for specs.
+
+  When given a module, prints the list of all specs defined in the module.
+
+  When given a particular spec name (with optional arity), prints its spec.
 
   ## Examples
 
@@ -174,7 +187,6 @@ defmodule IEx.Helpers do
       s(Enum.all?/2)
       s(list_to_atom)
       s(list_to_atom/1)
-
   """
   defmacro s({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
@@ -207,45 +219,62 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Retrieves nth query's value from the history. Use negative
-  values to lookup query's value from latest to earliest.
-  For instance, v(-1) returns the latest result.
+  Prints the history of expressions evaluated during the session along with
+  their results.
   """
-  def v(n) when n < 0 do
-    history = Process.get(:iex_history)
-    Enum.at!(history, abs(n) - 1).result
+  def v do
+    inspect_opts = IEx.Options.get(:inspect)
+    IEx.History.each(print_history_entry(&1, inspect_opts))
   end
 
-  def v(n) when n > 0 do
-    history = Process.get(:iex_history) |> Enum.reverse
-    Enum.at!(history, n - 1).result
+  defp print_history_entry(config, inspect_opts) do
+    IO.write IEx.color(:info, "#{config.counter}: #{config.cache}#=> ")
+    IO.puts  IEx.color(:eval_result, "#{inspect config.result, inspect_opts}\n")
   end
 
   @doc """
-  Reloads all modules that were already reloaded
-  at some point with `r/1`.
+  Retrieves nth expression's value from the history.
+
+  Use negative values to lookup expression values relative to the current one.
+  For instance, v(-1) returns the result of the last evaluated expression.
+  """
+  def v(n) do
+    IEx.History.nth(n).result
+  end
+
+  @doc """
+  Reloads all modules that have already been reloaded with `r/1` at any point
+  in the current IEx session.
   """
   def r do
-    Enum.map iex_reloaded, r(&1)
+    List.flatten(Enum.map(iex_reloaded, do_r(&1)))
   end
 
   @doc """
   Recompiles and reloads the specified module's source file.
 
-  Please note that all the modules defined in the specified
-  files are recompiled and reloaded.
+  Please note that all the modules defined in the same file as `module`
+  are recompiled and reloaded.
   """
   def r(module) do
+    case do_r(module) do
+      mods when is_list(mods) -> { module, mods }
+      other -> other
+    end
+  end
+
+  defp do_r(module) do
     if source = source(module) do
       Process.put(:iex_reloaded, :ordsets.add_element(module, iex_reloaded))
-      { module, Code.load_file source }
+      Enum.map(Code.load_file(source), fn {name, _} -> name end)
     else
       :nosource
     end
   end
 
   @doc """
-  Purges and reloads specified module
+  Loads given module beam code (and ensures any previous
+  old version was properly purged before).
   """
   def l(module) do
     :code.purge(module)
@@ -253,13 +282,18 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Flushes all messages sent to the shell and prints them out
+  Flushes all messages sent to the shell and prints them out.
   """
   def flush do
+    inspect_opts = IEx.Options.get(:inspect)
+    do_flush(inspect_opts)
+  end
+
+  defp do_flush(inspect_opts) do
     receive do
       msg ->
-        IO.inspect(msg)
-        flush
+        IO.inspect(msg, inspect_opts)
+        do_flush(inspect_opts)
     after
       0 -> :ok
     end
@@ -270,22 +304,11 @@ defmodule IEx.Helpers do
   end
 
   defp source(module) do
-    compile = module.module_info(:compile)
-
-    # Get the source of the compiled module. Due to a bug in Erlang
-    # R15 and before, we need to look for the source first in the
-    # options and then into the real source.
-    options =
-      case List.keyfind(compile, :options, 0) do
-        { :options, opts } -> opts
-        _ -> []
-      end
-
-    source = List.keyfind(options, :source, 0)  || List.keyfind(compile, :source, 0)
+    source = module.module_info(:compile)[:source]
 
     case source do
-      { :source, source } -> list_to_binary(source)
-      _ -> nil
+      nil -> nil
+      source -> list_to_binary(source)
     end
   end
 
@@ -293,17 +316,17 @@ defmodule IEx.Helpers do
   Prints the current working directory.
   """
   def pwd do
-    IO.puts IO.ANSI.escape("%{yellow}#{System.cwd!}")
+    IO.puts IEx.color(:info, System.cwd!)
   end
 
   @doc """
-  Changes the shell directory to the given path.
+  Changes the current working directory to the given path.
   """
   def cd(directory) do
     case File.cd(expand_home(directory)) do
       :ok -> pwd
       { :error, :enoent } ->
-        IO.puts IO.ANSI.escape("%{red}No directory #{directory}")
+        IO.puts IEx.color(:error, "No directory #{directory}")
     end
   end
 
@@ -319,10 +342,10 @@ defmodule IEx.Helpers do
         ls_print(path, sorted_items)
 
       { :error, :enoent } ->
-        IO.puts IO.ANSI.escape("%{red}No such file or directory #{path}")
+        IO.puts IEx.color(:error, "No such file or directory #{path}")
 
       { :error, :enotdir } ->
-        IO.puts IO.ANSI.escape("%{yellow}#{Path.absname(path)}")
+        IO.puts IEx.color(:info, Path.absname(path))
     end
   end
 
@@ -364,11 +387,37 @@ defmodule IEx.Helpers do
   defp format_item(path, representation) do
     case File.stat(path) do
       { :ok, File.Stat[type: :device] } ->
-        IO.ANSI.escape("%{green}#{representation}")
+        IEx.color(:device, representation)
       { :ok, File.Stat[type: :directory] } ->
-        IO.ANSI.escape("%{blue}#{representation}")
+        IEx.color(:directory, representation)
       _ ->
         representation
     end
+  end
+
+  @doc """
+  Evaluates the contents of file at `path` as if it were directly typed into
+  the shell. `path` has to be a literal binary.
+
+  Leading `~` in `path` is automatically expanded.
+
+  ## Examples
+
+      # ~/file.exs
+      value = 13
+
+      # in the shell
+      iex(1)> import_file "~/file.exs"
+      13
+      iex(2)> value
+      13
+  """
+  defmacro import_file(path) when is_binary(path) do
+    path = Path.expand(path)
+    Code.string_to_ast! File.read!(path), file: path
+  end
+
+  defmacro import_file(_) do
+    raise ArgumentError, message: "import_file/1 expects a literal binary as its argument"
   end
 end

@@ -37,14 +37,16 @@ defmodule URI do
   the query string in steps.
   """
   def query_decoder(q) when is_binary(q) do
-    fn -> { do_decoder(&1), q } end
+    fn(acc, fun) ->
+      do_decoder(q, acc, fun)
+    end
   end
 
-  defp do_decoder("") do
-    :stop
+  defp do_decoder("", acc, _fun) do
+    acc
   end
 
-  defp do_decoder(q) do
+  defp do_decoder(q, acc, fun) do
     next =
       case :binary.split(q, "&") do
         [first, rest] -> rest
@@ -57,7 +59,7 @@ defmodule URI do
         [ key ]        -> { decode(key), nil }
       end
 
-    { current, next }
+    do_decoder(next, fun.(current, acc), fun)
   end
 
   defp pair({k, v}) do
@@ -131,8 +133,16 @@ defmodule URI do
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
     { userinfo, host, port } = split_authority(authority)
 
+    if authority do
+      authority = ""
+
+      if userinfo, do: authority = authority <> userinfo <> "@"
+      if host, do: authority = authority <> host
+      if port, do: authority = authority <> ":" <> integer_to_binary(port)
+    end
+
     info = URI.Info[
-      scheme: scheme, path: path, query: query,
+      scheme: scheme && String.downcase(scheme), path: path, query: query,
       fragment: fragment, authority: authority,
       userinfo: userinfo, host: host, port: port
     ]
@@ -140,7 +150,8 @@ defmodule URI do
     scheme_specific(scheme, info)
   end
 
-  defp scheme_specific(scheme, info) do
+  @doc false
+  def scheme_module(scheme) do
     if scheme do
       module =
         try do
@@ -150,10 +161,14 @@ defmodule URI do
         end
 
       if module && Code.ensure_loaded?(module) do
-        module.parse(default_port(info, module))
-      else
-        info
+        module
       end
+    end
+  end
+
+  defp scheme_specific(scheme, info) do
+    if module = scheme_module(scheme) do
+      module.parse(default_port(info, module))
     else
       info
     end
@@ -169,7 +184,7 @@ defmodule URI do
     components = Regex.run %r/(^(.*)@)?([^:]*)(:(\d*))?/, s
     destructure [_, _, userinfo, host, _, port], nillify(components)
     port = if port, do: binary_to_integer(port)
-    { userinfo, host, port }
+    { userinfo, host && String.downcase(host), port }
   end
 
   # Regex.run returns empty strings sometimes. We want
@@ -190,5 +205,25 @@ defmodule URI do
     parsers = [URI.FTP, URI.HTTP, URI.HTTPS, URI.LDAP, URI.SFTP, URI.TFTP]
     Enum.each parsers, Code.ensure_loaded(&1)
     :ok
+  end
+end
+
+defimpl Binary.Chars, for: URI.Info do
+  def to_binary(uri) do
+    result = ""
+
+    if module = URI.scheme_module(uri.scheme) do
+      if module.default_port == uri.port, do: uri = uri.port(nil)
+    end
+
+    if uri.scheme,   do: result = result <> uri.scheme <> "://"
+    if uri.userinfo, do: result = result <> uri.userinfo <> "@"
+    if uri.host,     do: result = result <> uri.host
+    if uri.port,     do: result = result <> ":" <> integer_to_binary(uri.port)
+    if uri.path,     do: result = result <> uri.path
+    if uri.query,    do: result = result <> "?" <> uri.query
+    if uri.fragment, do: result = result <> "#" <> uri.fragment
+
+    result
   end
 end

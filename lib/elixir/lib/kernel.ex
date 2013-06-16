@@ -28,7 +28,9 @@ defmodule Kernel do
       3
 
   """
-  defmacro left + right
+  def left + right do
+    :erlang.+(left, right)
+  end
 
   @doc """
   Arithmetic minus. Allowed in guard clauses.
@@ -39,7 +41,35 @@ defmodule Kernel do
       -1
 
   """
-  defmacro left - right
+  def left - right do
+    :erlang.-(left, right)
+  end
+
+  @doc """
+  Arithmetic unary plus. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> +1
+      1
+
+  """
+  def (+value) do
+    :erlang.+(value)
+  end
+
+  @doc """
+  Arithmetic unary minus. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> -2
+      -2
+
+  """
+  def (-value) do
+    :erlang.-(value)
+  end
 
   @doc """
   Arithmetic multiplication. Allowed in guard clauses.
@@ -50,7 +80,9 @@ defmodule Kernel do
       2
 
   """
-  defmacro left * right
+  def left * right do
+    :erlang.*(left, right)
+  end
 
   @doc """
   Arithmetic division. Differently from other languages,
@@ -65,7 +97,9 @@ defmodule Kernel do
       2.0
 
   """
-  defmacro left / right
+  def left / right do
+    :erlang./(left, right)
+  end
 
   @doc """
   Sends a message to the process identified on the left.
@@ -78,21 +112,25 @@ defmodule Kernel do
       process <- { :ok, "Sending myself a message" }
 
   """
-  defmacro pid <- msg
+  def pid <- msg do
+    :erlang.!(pid, msg)
+  end
 
   @doc """
   Concatenates two lists. Allowed in guard clauses.
 
   ## Examples
 
-      iex> [1] ++ [2,3]
+      iex> [1] ++ [2, 3]
       [1,2,3]
 
       iex> 'foo' ++ 'bar'
       'foobar'
 
   """
-  defmacro left ++ right
+  def left ++ right do
+    :erlang.++(left, right)
+  end
 
   @doc """
   Removes the first occorrence of an item on the left
@@ -100,14 +138,16 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> [1,2,3] -- [1,2]
+      iex> [1, 2, 3] -- [1, 2]
       [3]
 
-      iex> [1,2,3,2,1] -- [1,2,2]
+      iex> [1, 2, 3, 2, 1] -- [1, 2, 2]
       [3,1]
 
   """
-  defmacro left -- right
+  def left -- right do
+    :erlang.--(left, right)
+  end
 
   @doc """
   Boolean or. Arguments must be booleans.
@@ -158,7 +198,9 @@ defmodule Kernel do
       true
 
   """
-  defmacro not arg
+  def not(arg) do
+    :erlang.not(arg)
+  end
 
   @doc """
   Receives any argument and returns true if it is false
@@ -169,7 +211,7 @@ defmodule Kernel do
 
       iex> !1
       false
-      iex> ![1,2,3]
+      iex> ![1, 2, 3]
       false
       iex> !false
       true
@@ -177,7 +219,9 @@ defmodule Kernel do
       true
 
   """
-  defmacro !arg
+  def !(arg) do
+    arg == nil or arg == false
+  end
 
   @doc """
   Returns true if left is less than right.
@@ -189,7 +233,9 @@ defmodule Kernel do
       true
 
   """
-  defmacro left < right
+  def left < right do
+    :erlang.<(left, right)
+  end
 
   @doc """
   Returns true if left is more than right.
@@ -201,7 +247,9 @@ defmodule Kernel do
       false
 
   """
-  defmacro left > right
+  def left > right do
+    :erlang.>(left, right)
+  end
 
   @doc """
   Returns true if left is less than or equal to right.
@@ -213,7 +261,9 @@ defmodule Kernel do
       true
 
   """
-  defmacro left <= right
+  def left <= right do
+    :erlang."=<"(left, right)
+  end
 
   @doc """
   Returns true if left is more than or equal to right.
@@ -225,7 +275,9 @@ defmodule Kernel do
       false
 
   """
-  defmacro left >= right
+  def left >= right do
+    :erlang.>=(left, right)
+  end
 
   @doc """
   Returns true if the two items are equal.
@@ -244,7 +296,9 @@ defmodule Kernel do
       true
 
   """
-  defmacro left == right
+  def left == right do
+    :erlang.==(left, right)
+  end
 
   @doc """
   Returns true if the two items are not equal.
@@ -262,7 +316,9 @@ defmodule Kernel do
       false
 
   """
-  defmacro left != right
+  def left != right do
+    :erlang."/="(left, right)
+  end
 
   @doc """
   Returns true if the two items are strictly equal.
@@ -277,7 +333,9 @@ defmodule Kernel do
       false
 
   """
-  defmacro left === right
+  def left === right do
+    :erlang."=:="(left, right)
+  end
 
   @doc """
   Returns true if the two items are strictly not equal.
@@ -292,7 +350,9 @@ defmodule Kernel do
       true
 
   """
-  defmacro left !== right
+  def left !== right do
+    :erlang."=/="(left, right)
+  end
 
   @doc """
   Invokes the given `fun` with the array of arguments `args`.
@@ -303,18 +363,22 @@ defmodule Kernel do
       4
 
   """
-  defmacro apply(fun, args)
+  def apply(fun, args) do
+    :erlang.apply(fun, args)
+  end
 
   @doc """
   Invokes the given `fun` from `module` with the array of arguments `args`.
 
   ## Examples
 
-      iex> apply(Enum, :reverse, [[1,2,3]])
+      iex> apply(Enum, :reverse, [[1, 2, 3]])
       [3,2,1]
 
   """
-  defmacro apply(module, fun, args)
+  def apply(module, fun, args) do
+    :erlang.apply(module, fun, args)
+  end
 
   @doc """
   Returns an integer or float which is the arithmetical absolute value of `number`.
@@ -481,9 +545,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> bit_size(<<433::16,3::3>>)
+      iex> bit_size(<<433::16, 3::3>>)
       19
-      iex> bit_size(<<1,2,3>>)
+      iex> bit_size(<<1, 2, 3>>)
       24
 
   """
@@ -511,9 +575,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> byte_size(<<433::16,3::3>>)
+      iex> byte_size(<<433::16, 3::3>>)
       3
-      iex> byte_size(<<1,2,3>>)
+      iex> byte_size(<<1, 2, 3>>)
       3
 
   """
@@ -602,7 +666,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> iolist_size([1,2|<<3,4>>])
+      iex> iolist_size([1, 2|<<3, 4>>])
       4
 
   """
@@ -616,10 +680,10 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> bin1 = <<1,2,3>>
-      ...> bin2 = <<4,5>>
+      iex> bin1 = <<1, 2, 3>>
+      ...> bin2 = <<4, 5>>
       ...> bin3 = <<6>>
-      ...> iolist_to_binary([bin1,1,[2,3,bin2],4|bin3])
+      ...> iolist_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
       <<1,2,3,1,2,3,4,5,4,6>>
 
   """
@@ -789,7 +853,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> length([1,2,3,4,5,6,7,8,9])
+      iex> length([1, 2, 3, 4, 5, 6, 7, 8, 9])
       9
   """
   @spec length(list) :: non_neg_integer
@@ -829,10 +893,10 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> bin1 = <<1,2,3>>
-      ...> bin2 = <<4,5>>
-      ...> bin3 = <<6,7::4>>
-      ...> list_to_bitstring([bin1,1,[2,3,bin2],4|bin3])
+      iex> bin1 = <<1, 2, 3>>
+      ...> bin2 = <<4, 5>>
+      ...> bin3 = <<6, 7::4>>
+      ...> list_to_bitstring([bin1, 1, [2, 3, bin2], 4|bin3])
       <<1,2,3,1,2,3,4,5,4,6,7::size(4)>>
 
   """
@@ -1072,7 +1136,7 @@ defmodule Kernel do
 
   ## Examples
 
-      spawn(SomeModule, :function, [1,2,3])
+      spawn(SomeModule, :function, [1, 2, 3])
 
   """
   @spec spawn(module, atom, list) :: pid
@@ -1110,7 +1174,7 @@ defmodule Kernel do
 
   ## Examples
 
-      spawn_link(SomeModule, :function, [1,2,3])
+      spawn_link(SomeModule, :function, [1, 2, 3])
 
   """
   @spec spawn_link(module, atom, list) :: pid
@@ -1362,145 +1426,39 @@ defmodule Kernel do
   @doc %B"""
   Defines a record.
 
-  A record is a tagged tuple which contains one or more elements
-  and the first element is a module. This macro defines a module
-  that generates accessors to manipulate the record at both
-  compilation and runtime.
+  This macro defines a module that generates accessors to manipulate the record
+  at both compilation and runtime.
+
+  See the `Record` module's documentation for a detailed description of records
+  in Elixir.
 
   ## Examples
 
       defrecord FileInfo, atime: nil, accesses: 0
 
-  The line above will define a module named `FileInfo` which
-  contains a function named `new` that returns a new record
-  and other functions to read and set the values in the
-  record:
-
-      file_info = FileInfo.new(atime: now())
-      file_info.atime         #=> Returns the value of atime
-      file_info.atime(now())  #=> Updates the value of atime
-
-  A record is simply a tuple where the first element is the record
-  module name. We can get the record raw representation as follow:
-
-      inspect FileInfo.new, raw: true
-      #=> { FileInfo, nil, nil }
-
-  Besides defining readers and writers for each attribute, Elixir also
-  defines an `update_#{attribute}` function to update the value. Such
-  functions expect a function as argument that receives the current
-  value and must return the new one. For example, every time the file
-  is accessed, the accesses counter can be incremented with:
-
-      file_info.update_accesses(fn(old) -> old + 1 end)
-
-  Which can be also written as:
-
-      file_info.update_accesses(&1 + 1)
-
-  ## Access syntax
-
-  Records in Elixir can be expanded at compilation time to provide
-  pattern matching and faster operations. For example, the clause
-  below will only match if a `FileInfo` is given and the number of
-  accesses is zero:
-
-      def enforce_no_access(FileInfo[accesses: 0]), do: :ok
-
-  The clause above will expand to:
-
-      def enforce_no_access({ FileInfo, _, 0 }), do: :ok
-
-  The downside of using such syntax is that, every time the record
-  changes, your code now needs to be recompiled (which is usually
-  not a concern since Elixir build tools by default recompiles the
-  whole project whenever there is a change).
-
-  Finally, keep in mind that Elixir triggers some optimizations whenever
-  the access syntax is used. For example:
-
-      def no_access?(FileInfo[] = file_info) do
-        file_info.accesses == 0
-      end
-
-  Is translated to:
-
-      def no_access?({ FileInfo, _, _ } = file_info) do
-        elem(file_info, 1) == 0
-      end
-
-  Which provides faster get and set times for record operations.
-
-  ## Compile-time introspection
-
-  At the compile time, one can access following information about the record
-  from within the record module:
-
-  * `@record_fields` — a keyword list of record fields with defaults
-  * `@record_types` — a keyword list of record fields with types
-
-       defrecord Foo, bar: nil do
-         record_type bar: nil | integer
-         IO.inspect @record_fields
-         IO.inspect @record_types
-       end
-
-  prints out
-
-       [bar: nil]
-       [bar: {:|,[line: ...],[nil,{:integer,[line: ...],nil}]}]
-
-  where the last line is a quoted representation of
-
-       [bar: nil | integer]
-
-  ## Documentation
-
-  By default records are not documented and have `@moduledoc` set to false.
-
-  ## Types
-
-  Every record defines a type named `t` that can be accessed in typespecs.
-  For example, assuming the `Config` record defined above, it could be used
-  in typespecs as follow:
-
-      @spec handle_config(Config.t) :: boolean()
-
-  Inside the record definition, a developer can define his own types too:
-
-      defrecord Config, counter: 0, failures: [] do
-        @type kind :: term
-        record_type counter: integer, failures: [kind]
-      end
-
-  When defining a type, all the fields not mentioned in the type are
-  assumed to have type `term`.
-
-  ## Importing records
-
-  It is also possible to import a public record (a record, defined using
-  `defrecord`) as a set of private macros (as if it was defined using `defrecordp`):
-
-      Record.import Config, as: :config
-
-  See `Record.import/2` and `defrecordp/2` documentation for more information
   """
-  defmacro defrecord(name, fields, opts // [], do_block // []) do
-    Record.defrecord(name, fields, Keyword.merge(opts, do_block))
+
+  defmacro defrecord(name, fields, do_block // [])
+
+  defmacro defrecord(name, fields, do_block) do
+    case is_list(fields) and Keyword.get(fields, :do, false) do
+      false -> Record.defrecord(name, fields, do_block)
+      other -> Record.defrecord(name, Keyword.delete(fields, :do), do: other)
+    end
   end
 
-  @doc """
+  @doc %B"""
   Defines a record with a set of private macros to manipulate it.
 
-  A record is a tagged tuple which contains one or more elements
-  and the first element is a module. This macro defines a set of
-  macros private to the current module to manipulate the record
-  exclusively at compilation time.
+  This macro defines a set of macros private to the current module to
+  manipulate the record exclusively at compilation time.
 
-  `defrecordp` must be used instead of `defrecord` when there is
-  no interest in exposing the record as a whole. In many ways,
-  it is similar to Erlang records, since it is only available at
-  compilation time.
+  `defrecordp` must be used instead of `defrecord` when there is no interest in
+  exposing the record outside of the module it's defined in. In many ways, it
+  is similar to an Erlang record, since it is only available at compilation time.
+
+  See the `Record` module's documentation for a detailed description of records
+  in Elixir.
 
   ## Examples
 
@@ -1545,8 +1503,8 @@ defmodule Kernel do
 
   1) Differently from records, exceptions are documented by default;
 
-  2) Exceptions **must** implement `message/1` as API that return a
-     binary as result;
+  2) Exceptions **must** implement `message/1` -- a function that returns a
+     string;
 
   """
   defmacro defexception(name, fields, opts // [], do_block // []) do
@@ -1569,7 +1527,10 @@ defmodule Kernel do
 
     quote do
       unquote(record)
-      Exception.check! unquote(name)
+
+      unless :erlang.function_exported(unquote(name), :message, 1) do
+        raise "expected exception #{inspect unquote(name)} to implement message/1"
+      end
     end
   end
 
@@ -1664,6 +1625,34 @@ defmodule Kernel do
     quote do
       is_record(unquote(thing), Range)
     end
+  end
+
+  @doc """
+  Matches the term on the left against the regular expression or string on the
+  right. Returns true if `left` matches `right` (if it's a regular expression)
+  or contains `right` (if it's a string).
+
+  ## Examples
+
+      iex> "abcd" =~ %r/c(d)/
+      true
+
+      iex> "abcd" =~ %r/e/
+      false
+
+      iex> "abcd" =~ "bc"
+      true
+
+      iex> "abcd" =~ "ad"
+      false
+
+  """
+  def left =~ right when is_binary(left) and is_binary(right) do
+    :binary.match(left, right) != :nomatch
+  end
+
+  def left =~ right when is_binary(left) and is_tuple(right) and :erlang.element(1, right) == Regex do
+    Regex.match?(right, left)
   end
 
   @doc """
@@ -1799,9 +1788,33 @@ defmodule Kernel do
   end
 
   @doc """
-  Makes the given functions in the current module overridable.
-  An overridable function is lazily defined, allowing a
-  developer to customize it.
+  Makes the given functions in the current module overridable. An overridable
+  function is lazily defined, allowing a developer to customize it.
+
+  ## Example
+
+      defmodule DefaultMod do
+        defmacro __using__(_opts) do
+          quote do
+            def test(x, y) do
+              x + y
+            end
+
+            defoverridable [test: 2]
+          end
+        end
+      end
+
+      defmodule InheritMod do
+        use DefaultMod
+
+        def test(x, y) do
+          x * y + super(x, y)
+        end
+      end
+
+  As seen as in the example `super` can be used to call the default
+  implementation.
   """
   defmacro defoverridable(tuples) do
     quote do
@@ -1833,7 +1846,7 @@ defmodule Kernel do
 
       defmodule AssertionTest do
         require ExUnit.Case
-        ExUnit.Case.__using__([sync: true])
+        ExUnit.Case.__using__([async: true])
 
         def test_always_pass do
           true = true
@@ -1863,11 +1876,11 @@ defmodule Kernel do
 
   The following options are supported:
 
-  * :raw - tuples are not formatted as the inspect protocol, they are
-    always shown as tuples, defaults to false;
+  * raw   -- when true, record tuples are not formatted by the inspect protocol,
+             but are printed as just tuples; default: false
 
-  * :limit - the limit of items that are shown in tuples, bitstrings and
-    lists. Does not apply to strings;
+  * limit -- limits the number of items that are printed for tuples, bitstrings,
+             and lists; does not apply to strings
 
   * :pretty - if set to true enables pretty printing, defaults to true;
 
@@ -1878,6 +1891,15 @@ defmodule Kernel do
 
       iex> inspect(:foo)
       ":foo"
+
+      iex> inspect [1, 2, 3, 4, 5], limit: 3
+      "[1,2,3,...]"
+
+      inspect(ArgumentError[])
+      #=> "ArgumentError[message: \"argument error\"]"
+
+      inspect(ArgumentError[], raw: true)
+      #=> "{ArgumentError,:__exception__,\"argument error\"}"
 
   Note that the inspect protocol does not necessarily return a valid
   representation of an Elixir term. In such cases, the inspected result must
@@ -1965,20 +1987,10 @@ defmodule Kernel do
     quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
   end
 
-  @doc false
-  defmacro setelem(tuple, index, value) do
-    IO.puts "setelem is deprecated, please use set_elem instead\n#{Exception.format_stacktrace(__CALLER__.stacktrace)}"
-    quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
-  end
-
   @doc """
   Define insert_elem to insert element into a tuple according to
   Elixir conventions (i.e. it expects the tuple as first argument,
   zero-index based).
-
-  Please note that in versions of Erlang prior to R16B there is no BIF
-  for this operation and it is emulated by converting the tuple to a list
-  and back and is, therefore, inefficient.
 
   ## Example
 
@@ -1987,30 +1999,11 @@ defmodule Kernel do
       { :foo, :bar, :baz }
   """
   defmacro insert_elem(tuple, index, value) when is_integer(index) do
-    case :proplists.get_value(:insert_element,
-                              :proplists.get_value(:exports, :erlang.module_info,[])) do
-      3 ->
-        quote do: :erlang.insert_element(unquote(index + 1), unquote(tuple), unquote(value))
-      :undefined ->
-        do_insert_elem(tuple, index, value)
-    end
-  end
-  defmacro insert_elem(tuple, index, value) do
-    case :proplists.get_value(:insert_element,
-                              :proplists.get_value(:exports, :erlang.module_info,[])) do
-      3 ->
-        quote do: :erlang.insert_element(unquote(index) + 1, unquote(tuple), unquote(value))
-      :undefined ->
-        do_insert_elem(tuple, index, value)
-    end
+    quote do: :erlang.insert_element(unquote(index + 1), unquote(tuple), unquote(value))
   end
 
-  defp do_insert_elem(tuple, index, value) do
-    quote do
-      {h, t} = :lists.split(unquote(index),
-                            tuple_to_list(unquote(tuple)))
-      list_to_tuple(h ++ [unquote(value)|t])
-    end
+  defmacro insert_elem(tuple, index, value) do
+    quote do: :erlang.insert_element(unquote(index) + 1, unquote(tuple), unquote(value))
   end
 
   @doc """
@@ -2029,30 +2022,11 @@ defmodule Kernel do
       { :bar, :baz }
   """
   defmacro delete_elem(tuple, index) when is_integer(index) do
-    case :proplists.get_value(:delete_element,
-                              :proplists.get_value(:exports, :erlang.module_info,[])) do
-      2 ->
-        quote do: :erlang.delete_element(unquote(index + 1), unquote(tuple))
-      :undefined ->
-        do_delete_elem(tuple, index)
-    end
-  end
-  defmacro delete_elem(tuple, index) do
-    case :proplists.get_value(:delete_element,
-                              :proplists.get_value(:exports, :erlang.module_info,[])) do
-      2 ->
-        quote do: :erlang.delete_element(unquote(index) + 1, unquote(tuple))
-      :undefined ->
-        do_delete_elem(tuple, index)
-    end
+    quote do: :erlang.delete_element(unquote(index + 1), unquote(tuple))
   end
 
-  defp do_delete_elem(tuple, index) do
-    quote do
-      {h, [_|t]} = :lists.split(unquote(index),
-                                tuple_to_list(unquote(tuple)))
-      list_to_tuple(h ++ t)
-    end
+  defmacro delete_elem(tuple, index) do
+    quote do: :erlang.delete_element(unquote(index) + 1, unquote(tuple))
   end
 
   @doc """
@@ -2111,17 +2085,17 @@ defmodule Kernel do
       true
       iex> match?(1, 2)
       false
-      iex> match?({1,_}, {1,2})
+      iex> match?({1, _}, {1, 2})
       true
 
   Match can also be used to filter or find a value in an enumerable:
 
-      list = [{:a,1},{:b,2},{:a,3}]
+      list = [{:a, 1}, {:b, 2}, {:a, 3}]
       Enum.filter list, match?({:a, _}, _)
 
   Guard clauses can also be given to the match:
 
-      list = [{:a,1},{:b,2},{:a,3}]
+      list = [{:a, 1}, {:b, 2}, {:a, 3}]
       Enum.filter list, match?({:a, x } when x < 2, &1)
 
   """
@@ -2191,7 +2165,7 @@ defmodule Kernel do
   In order to reduce verbosity, functions in Elixir can be written
   using a shortcut syntax via `fn`:
 
-      Enum.map [1,2,3], fn x ->
+      Enum.map [1, 2, 3], fn x ->
         x * 2
       end
 
@@ -2199,25 +2173,25 @@ defmodule Kernel do
   `do/end` always matches the furthest call, if we used the `function`
   macro as below:
 
-      Enum.map [1,2,3], function do
+      Enum.map [1, 2, 3], function do
         x -> x * 2
       end
 
   It would be parsed as:
 
-      Enum.map([1,2,3], function) do
+      Enum.map([1, 2, 3], function) do
         x -> x * 2
       end
 
   The stab shortcut syntax has the proper precedence:
 
-      Enum.map [1,2,3], fn
+      Enum.map [1, 2, 3], fn
         x -> x * 2
       end
 
   Which is handled as:
 
-      Enum.map([1,2,3], fn
+      Enum.map([1, 2, 3], fn
         x -> x * 2
       end)
 
@@ -2237,7 +2211,7 @@ defmodule Kernel do
   defmacro function(module, function, arity)
 
   @doc """
-  Matches the given condition against the match clauses.
+  Matches the given expression against the match clauses.
 
   ## Examples
 
@@ -2247,9 +2221,9 @@ defmodule Kernel do
         value -> value
       end
 
-  In the example above, we compare `thing` with each given match clause and
-  evaluate the expression corresponding to the first clause that matches. If no
-  clause matches, an error is raised.
+  In the example above, we compare `thing` with each given match
+  clause and evaluate the expression corresponding to the first clause
+  that matches. If no clause matches, an error is raised.
 
   Since Elixir variables can be assigned more than once, variables
   in a match clause will always be assigned instead of matching with
@@ -2270,17 +2244,6 @@ defmodule Kernel do
       end
 
   The example above will actually fail because 10 does not match 1.
-
-  Finally, `case` accepts an `else:` branch as a fallback if none
-  of the clauses match:
-
-      case thing do
-        { :selector, i, value } when is_integer(i) ->
-          value
-        _ ->
-          thing
-      end
-
   """
   defmacro case(condition, blocks)
 
@@ -2546,7 +2509,7 @@ defmodule Kernel do
       end
   """
   defmacro cond([do: { :->, _, pairs }]) do
-    [{ [condition], clause }|t] = :lists.reverse pairs
+    [{ [condition], meta, clause }|t] = :lists.reverse pairs
 
     new_acc =
       case condition do
@@ -2556,14 +2519,14 @@ defmodule Kernel do
         x when is_atom(x) and not x in [false, nil] ->
           clause
         _ ->
-          quote do
+          quote line: get_line(meta) do
             case !unquote(condition) do
               false -> unquote(clause)
             end
           end
       end
 
-    build_cond_clauses(t, new_acc)
+    build_cond_clauses(t, new_acc, meta)
   end
 
   @doc """
@@ -2596,7 +2559,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> destructure([x,y,z], [1,2,3,4,5])
+      iex> destructure([x, y, z], [1, 2, 3, 4, 5])
       ...> {x, y, z}
       {1, 2, 3}
 
@@ -2605,7 +2568,7 @@ defmodule Kernel do
   fine. If the right size is smaller, the remaining items
   are simply assigned to nil:
 
-      iex> destructure([x,y,z], [1])
+      iex> destructure([x, y, z], [1])
       ...> {x, y, z}
       {1, nil, nil}
 
@@ -2613,7 +2576,7 @@ defmodule Kernel do
   on the left side of a match:
 
       x = 1
-      destructure([^x,y,z], [1,2,3])
+      destructure([^x, y, z], [1, 2, 3])
 
   The example above will only work if x matches
   the first value from the right side. Otherwise,
@@ -2641,14 +2604,8 @@ defmodule Kernel do
       123
 
   """
-  defmacro binary_to_integer(some_binary) do
-    case :proplists.get_value(:binary_to_integer,
-                              :proplists.get_value(:exports, :erlang.module_info, [])) do
-      2 ->
-        quote do: :erlang.binary_to_integer(unquote(some_binary))
-      :undefined ->
-        quote do: list_to_integer(binary_to_list(unquote(some_binary)))
-    end
+  def binary_to_integer(some_binary) do
+    :erlang.binary_to_integer(some_binary)
   end
 
   @doc """
@@ -2661,14 +2618,8 @@ defmodule Kernel do
       1023
 
   """
-  defmacro binary_to_integer(some_binary, base) do
-    case :proplists.get_value(:binary_to_integer,
-                              :proplists.get_value(:exports, :erlang.module_info, [])) do
-      2 ->
-        quote do: :erlang.binary_to_integer(unquote(some_binary), unquote(base))
-      :undefined ->
-        quote do: list_to_integer(binary_to_list(unquote(some_binary)), unquote(base))
-    end
+  def binary_to_integer(some_binary, base) do
+    :erlang.binary_to_integer(some_binary, base)
   end
 
   @doc """
@@ -2680,14 +2631,8 @@ defmodule Kernel do
       2.2017764
 
   """
-  defmacro binary_to_float(some_binary) do
-    case :proplists.get_value(:binary_to_float,
-                              :proplists.get_value(:exports, :erlang.module_info, [])) do
-      1 ->
-        quote do: :erlang.binary_to_float(unquote(some_binary))
-      :undefined ->
-        quote do: list_to_float(binary_to_list(unquote(some_binary)))
-    end
+  def binary_to_float(some_binary) do
+    :erlang.binary_to_float(some_binary)
   end
 
   @doc """
@@ -2700,14 +2645,8 @@ defmodule Kernel do
       "123"
 
   """
-  defmacro integer_to_binary(some_integer) do
-    case :proplists.get_value(:integer_to_binary,
-                              :proplists.get_value(:exports, :erlang.module_info, [])) do
-      2 ->
-        quote do: :erlang.integer_to_binary(unquote(some_integer))
-      :undefined ->
-        quote do: list_to_binary(integer_to_list(unquote(some_integer)))
-    end
+  def integer_to_binary(some_integer) do
+    :erlang.integer_to_binary(some_integer)
   end
 
   @doc """
@@ -2716,18 +2655,12 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> integer_to_binary(77)
-      "77"
+      iex> integer_to_binary(100, 16)
+      "64"
 
   """
-  defmacro integer_to_binary(some_integer, base) do
-    case :proplists.get_value(:integer_to_binary,
-                              :proplists.get_value(:exports, :erlang.module_info, [])) do
-      2 ->
-        quote do: :erlang.integer_to_binary(unquote(some_integer), unquote(base))
-      :undefined ->
-        quote do: list_to_binary(integer_to_list(unquote(some_integer), unquote(base)))
-    end
+  def integer_to_binary(some_integer, base) do
+    :erlang.integer_to_binary(some_integer, base)
   end
 
   @doc """
@@ -2740,14 +2673,8 @@ defmodule Kernel do
       "7.00000000000000000000e+00"
 
   """
-  defmacro float_to_binary(some_float) do
-    case :proplists.get_value(:float_to_binary,
-                              :proplists.get_value(:exports, :erlang.module_info, [])) do
-      2 ->
-        quote do: :erlang.float_to_binary(unquote(some_float))
-      :undefined ->
-        quote do: list_to_binary(float_to_list(unquote(some_float)))
-    end
+  def float_to_binary(some_float) do
+    :erlang.float_to_binary(some_float)
   end
 
   @doc """
@@ -2950,7 +2877,7 @@ defmodule Kernel do
   ## Examples
 
       iex> x = 1
-      ...> x in [1,2,3]
+      ...> x in [1, 2, 3]
       true
 
   This macro simply translates the expression above to:
@@ -2966,14 +2893,14 @@ defmodule Kernel do
   optionally omit the variable declaration, for example:
 
       case 3 do
-        x when x in [1,2] -> x * 2
+        x when x in [1, 2] -> x * 2
         _ -> 0
       end
 
   Could be rewritten as:
 
       case 3 do
-        x in [1,2] -> x * 2
+        x in [1, 2] -> x * 2
         _ -> 0
       end
 
@@ -2983,41 +2910,22 @@ defmodule Kernel do
   defmacro left in right
 
   @doc """
-  Matches the term on the left against the regular expression
-  on the right. It returns nil if not match happened or the
-  first match otherwise.
-
-  ## Examples
-
-      iex> "abcd" =~ %r/c(d)/
-      2
-      iex> "abcd" =~ %r/e/
-      nil
-
-  """
-  defmacro left =~ right do
-    quote do
-      Regex.index(unquote(right), unquote(left))
-    end
-  end
-
-  @doc """
   `|>` is called the pipeline operator as it is useful
   to write pipeline style expressions. This operator
-  tntroduces the expression on the left as the first
-  argument to the expression on the right.
+  introduces the expression on the left as the first
+  argument to the function call on the right.
 
   ## Examples
 
-      iex> [1,[2],3] |> List.flatten |> Enum.map(&1 * 2)
+      iex> [1, [2], 3] |> List.flatten |> Enum.map(&1 * 2)
       [2,4,6]
 
   The expression above is simply translated to:
 
-      Enum.map(List.flatten([1,[2],3]), &1 * 2)
+      Enum.map(List.flatten([1, [2], 3]), &1 * 2)
 
-  Please be aware of operator precendence, when using
-  this operator. For example, the following expression:
+  Be aware of operator precendence when using this operator.
+  For example, the following expression:
 
       String.graphemes "Hello" |> Enum.reverse
 
@@ -3025,9 +2933,9 @@ defmodule Kernel do
 
       String.graphemes("Hello" |> Enum.reverse)
 
-  Which will result in an error as Enum.Iterator protocol
+  Which will result in an error as Enumerable protocol
   is not defined for binaries. Adding explicit parenthesis
-  is recommended:
+  resolves the ambiguity:
 
       String.graphemes("Hello") |> Enum.reverse
 
@@ -3044,7 +2952,11 @@ defmodule Kernel do
     { call, line, [left] }
   end
 
-  defp pipeline_op(left, { call, line, args }) when is_list(args) do
+  defp pipeline_op(left, { call, line, args }=right) when is_list(args) do
+    case validate_pipeline_args(args) do
+      :error -> pipeline_error(right)
+      _ -> nil
+    end
     { call, line, [left|args] }
   end
 
@@ -3053,7 +2965,17 @@ defmodule Kernel do
   end
 
   defp pipeline_op(_, other) do
-    raise ArgumentError, message: "Unsupported expression in pipeline |> operator: #{inspect other}"
+    pipeline_error(other)
+  end
+
+  defp validate_pipeline_args([]), do: nil
+  defp validate_pipeline_args([ {:&, _, _ } | _ ]), do: :error
+  defp validate_pipeline_args([_|t]) do
+    validate_pipeline_args(t)
+  end
+
+  defp pipeline_error(arg) do
+    raise ArgumentError, message: "Unsupported expression in pipeline |> operator: #{Macro.to_binary arg}"
   end
 
   @doc """
@@ -3234,14 +3156,9 @@ defmodule Kernel do
       true ->
         fields =
           try do
-            module = caller.module
-
-            # We are using the access protocol in the same
-            # module that defines it. It works, but we need
-            # to read the field values from @record_fields.
-            case atom do
-              ^module -> Module.get_attribute(module, :record_fields)
-              _ -> atom.__record__(:fields)
+            case :lists.member(atom, caller.context_modules) and Module.open?(atom) do
+              true  -> Module.get_attribute(atom, :record_fields)
+              false -> atom.__record__(:fields)
             end
           rescue
             UndefinedFunctionError ->
@@ -3250,7 +3167,7 @@ defmodule Kernel do
               # conflicts.
               case :code.ensure_loaded(atom) do
                 { :error, _ } ->
-                  raise "expected module #{inspect atom} to be loaded and defined"
+                  :elixir_aliases.ensure_loaded(caller.line, caller.file, atom, caller.context_modules)
                 _ ->
                   raise "cannot use module #{inspect atom} in access protocol because it does not export __record__/1"
               end
@@ -3301,10 +3218,10 @@ defmodule Kernel do
         defdelegate other_reverse(list), to: :lists, as: :reverse
       end
 
-      MyList.reverse([1,2,3])
+      MyList.reverse([1, 2, 3])
       #=> [3,2,1]
 
-      MyList.other_reverse([1,2,3])
+      MyList.other_reverse([1, 2, 3])
       #=> [3,2,1]
 
   """
@@ -3527,23 +3444,35 @@ defmodule Kernel do
   #         end
   #     end
   #
-  defp build_cond_clauses([{ [condition], clause }|t], acc) do
-    new_acc = quote do
-      case unquote(condition) do
-        _ in [false, nil] -> unquote(acc)
-        _                 -> unquote(clause)
-      end
+  defp build_cond_clauses([{ [condition], new, clause }|t], acc, old) do
+    stab = { :->, [], [falsy_clause(old, acc), truthy_clause(new, clause)] }
+    acc  = quote do
+      case unquote(condition), do: unquote(stab)
     end
-
-    build_cond_clauses(t, new_acc)
+    build_cond_clauses(t, acc, new)
   end
 
-  defp build_cond_clauses([], acc), do: acc
+  defp build_cond_clauses([], acc, _), do: acc
 
   defp expand_compact([{ :compact, false }|t]), do: expand_compact(t)
   defp expand_compact([{ :compact, true }|t]),  do: [:compact|expand_compact(t)]
   defp expand_compact([h|t]),                   do: [h|expand_compact(t)]
   defp expand_compact([]),                      do: []
+
+  defp falsy_clause(meta, acc) do
+    { [quote(do: _ in [false, nil])], meta, acc }
+  end
+
+  defp truthy_clause(meta, clause) do
+    { [quote(do: _)], meta, clause }
+  end
+
+  defp get_line(meta) do
+    case :lists.keyfind(:line, 1, meta) do
+      { :line, line } -> line
+      false -> 0
+    end
+  end
 
   defp split_words(string, modifiers) do
     mod = case modifiers do

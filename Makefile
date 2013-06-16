@@ -11,12 +11,12 @@ INSTALL_PATH := /usr/local
 #==> Templates
 
 define APP_TEMPLATE
-$(1): lib/$(1)/ebin/Elixir-$(2).beam lib/$(1)/ebin/$(1).app
+$(1): lib/$(1)/ebin/Elixir.$(2).beam lib/$(1)/ebin/$(1).app
 
 lib/$(1)/ebin/$(1).app:
 	@ cd lib/$(1) && ../../bin/elixir -e "Mix.Server.start_link(:dev)" -r mix.exs -e "Mix.Task.run('compile.app')"
 
-lib/$(1)/ebin/Elixir-$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex)
+lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex)
 	@ echo "==> $(1) (compile)"
 	@ $$(ELIXIRC) "lib/$(1)/lib/**/*.ex" -o lib/$(1)/ebin
 
@@ -27,8 +27,8 @@ endef
 
 #==> Compilation tasks
 
-KERNEL:=lib/elixir/ebin/Elixir-Kernel.beam
-UNICODE:=lib/elixir/ebin/Elixir-String-Unicode.beam
+KERNEL:=lib/elixir/ebin/Elixir.Kernel.beam
+UNICODE:=lib/elixir/ebin/Elixir.String.Unicode.beam
 
 default: compile
 
@@ -44,7 +44,7 @@ erlang:
 # Since Mix depends on EEx and EEx depends on
 # Mix, we first compile EEx without the .app
 # file, then mix and then compile eex fully
-elixir: kernel lib/eex/ebin/Elixir-EEx.beam mix ex_unit eex iex
+elixir: kernel lib/eex/ebin/Elixir.EEx.beam mix ex_unit eex iex
 
 kernel: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
@@ -94,12 +94,18 @@ clean:
 
 #==> Release tasks
 
-docs: compile
+SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --points-at $$head | tail -1)" ; echo "$${tag:-$$head}\c")
+
+docs: compile ../ex_doc/bin/ex_doc
 	mkdir -p ebin
 	rm -rf docs
 	cp -R -f lib/*/ebin/*.beam ./ebin
-	bin/elixir ../exdoc/bin/exdoc "Elixir" "$(VERSION)" -m Kernel -u "https://github.com/elixir-lang/elixir"
+	bin/elixir ../ex_doc/bin/ex_doc "Elixir" "$(VERSION)" -m Kernel -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)"
 	rm -rf ebin
+
+../ex_doc/bin/ex_doc:
+	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
+	@ false
 
 release_zip: compile
 	rm -rf v$(VERSION).zip
@@ -125,11 +131,11 @@ test_erlang: compile
 	@ $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt;
 	@ echo
 
-test_elixir: test_kernel test_doctest test_mix test_ex_unit test_eex test_iex
+test_elixir: test_kernel test_ex_unit test_doc_test test_mix test_eex test_iex
 
-test_doctest: compile
+test_doc_test: compile
 	@ echo "==> doctest (exunit)"
-	@ cd lib/elixir && ../../bin/elixir -r "test/doctest.exs";
+	@ cd lib/elixir && ../../bin/elixir -r "test/doc_test.exs";
 
 test_kernel: compile
 	@ echo "==> kernel (exunit)"

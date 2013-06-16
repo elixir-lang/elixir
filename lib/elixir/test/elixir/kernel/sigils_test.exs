@@ -65,6 +65,11 @@ defmodule Kernel.SigilsTest do
 
     bad_modifier = quote do: %w(foo bar baz)x
     assert ArgumentError[] = catch_error(Code.eval_quoted(bad_modifier))
+
+    assert %w(Foo Bar)a == [:"Foo", :"Bar"]
+    assert %w(Foo.#{Bar}.Baz)a == [:"Foo.Elixir.Bar.Baz"]
+    assert %w(Foo.Bar)b == ["Foo.Bar"]
+    assert %w(Foo.#{Bar})c == ['Foo.Elixir.Bar']
   end
 
   test :__W__ do
@@ -82,5 +87,8 @@ defmodule Kernel.SigilsTest do
 
     bad_modifier = quote do: %W(foo bar baz)x
     assert ArgumentError[] = catch_error(Code.eval_quoted(bad_modifier))
+
+    assert %W(Foo #{Bar})a == [:"Foo", :"\#{Bar}"]
+    assert %W(Foo.Bar.Baz)a == [:"Foo.Bar.Baz"]
   end
 end

@@ -7,7 +7,7 @@ defmodule ExUnit.NilFormatter do
     :ok
   end
 
-  def suite_finished(:ok, _ms) do
+  def suite_finished(:ok, _run_us, _load_us) do
     1
   end
 

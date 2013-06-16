@@ -8,6 +8,10 @@ defmodule Regex.BinaryTest do
     assert Regex.match?(%r/^b$/m, "a\nb\nc")
   end
 
+  test :precedence do
+    assert { "aa", :unknown } |> elem(0) =~ %r/(a)\1/
+  end
+
   test :backreference do
     assert "aa" =~ %r/(a)\1/
   end
@@ -36,7 +40,7 @@ defmodule Regex.BinaryTest do
   end
 
   test :unicode do
-    assert ("josé" =~ %r"\p{Latin}$"u) == 3
+    assert ("josé" =~ %r"\p{Latin}$"u)
   end
 
   test :groups do
@@ -85,13 +89,8 @@ defmodule Regex.BinaryTest do
   end
 
   test :run_with_indexes do
-    assert Regex.run(%r"c(d)", "abcd", return: :index) == [{2,2},{3,1}]
+    assert Regex.run(%r"c(d)", "abcd", return: :index) == [{2, 2}, {3, 1}]
     assert Regex.run(%r"e", "abcd", return: :index) == nil
-  end
-
-  test :index do
-    assert Regex.index(%r"c(d)", "abcd") == 2
-    assert Regex.index(%r"e", "abcd") == nil
   end
 
   test :scan do
@@ -123,6 +122,38 @@ defmodule Regex.BinaryTest do
     assert Regex.replace(%r(b), "abcbe", "[\\&]") == "a[&]c[&]e"
     assert Regex.replace(%r[(b)], "abcbe", "[\\1]") == "a[b]c[b]e"
   end
+
+  test :escape do
+    assert matches_escaped?(".")
+    refute matches_escaped?(".", "x")
+
+    assert matches_escaped?("[\w]")
+    refute matches_escaped?("[\w]", "x")
+
+    assert matches_escaped?("\\")
+
+    assert matches_escaped?("\\xff", "\\xff")
+    refute matches_escaped?("\\xff", "\xff")
+
+    assert matches_escaped?("(")
+    assert matches_escaped?("()")
+    assert matches_escaped?("(?:foo)")
+
+    assert matches_escaped?("\\A  \\z")
+    assert matches_escaped?("  x  ")
+    assert matches_escaped?("  x    x ") # unicode spaces here
+    assert matches_escaped?("# lol")
+
+    assert matches_escaped?("\\A.^$*+?()[{\\| \t\n\xff\\z #hello\x{202F}\x{205F}")
+  end
+
+  defp matches_escaped?(string) do
+    matches_escaped?(string, string)
+  end
+
+  defp matches_escaped?(string, match) do
+    Regex.match? %r/#{Regex.escape(string)}/usimx, match
+  end
 end
 
 defmodule Regex.ListTest do
@@ -147,13 +178,8 @@ defmodule Regex.ListTest do
     assert Regex.run(%r"c(d)", "abcd", return: :binary) == ["cd", "d"]
   end
 
-  test :index do
-    assert Regex.index(%r'c(d)', 'abcd') == 2
-    assert Regex.index(%r'e', 'abcd') == nil
-  end
-
   test :indexes do
-    assert Regex.run(%r'c(d)', 'abcd', return: :index) == [{2,2},{3,1}]
+    assert Regex.run(%r'c(d)', 'abcd', return: :index) == [{2, 2}, {3, 1}]
     assert Regex.run(%r'e', 'abcd', return: :index) == nil
   end
 

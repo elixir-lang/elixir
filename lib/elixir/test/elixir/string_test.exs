@@ -22,7 +22,7 @@ defmodule StringTest do
     assert String.split(" foo bar ") == ["foo", "bar"]
     assert String.split("foo\t\n\v\f\r\sbar\n") == ["foo", "bar"]
     assert String.split("foo" <> <<31>> <> "bar") == ["foo", "bar"]
-    assert String.split("foo" <> <<194,133>> <> "bar") == ["foo", "bar"]
+    assert String.split("foo" <> <<194, 133>> <> "bar") == ["foo", "bar"]
 
     assert String.split("a,b,c", ",") == ["a", "b", "c"]
     assert String.split("a,b", ".") == ["a,b"]
@@ -42,6 +42,7 @@ defmodule StringTest do
   test :upcase do
     assert String.upcase("123 abcd 456 efg hij ( %$#) kl mnop @ qrst = -_ uvwxyz") == "123 ABCD 456 EFG HIJ ( %$#) KL MNOP @ QRST = -_ UVWXYZ"
     assert String.upcase("") == ""
+    assert String.upcase("abcD") == "ABCD"
   end
 
   test :upcase_utf8 do
@@ -51,16 +52,19 @@ defmodule StringTest do
 
   test :upcase_utf8_multibyte do
     assert String.upcase("straße") == "STRASSE"
+    assert String.upcase("áüÈß") == "ÁÜÈSS"
   end
 
   test :downcase do
     assert String.downcase("123 ABcD 456 EfG HIJ ( %$#) KL MNOP @ QRST = -_ UVWXYZ") == "123 abcd 456 efg hij ( %$#) kl mnop @ qrst = -_ uvwxyz"
+    assert String.downcase("abcD") == "abcd"
     assert String.downcase("") == ""
   end
 
   test :downcase_utf8 do
     assert String.downcase("& % # ÀÁÂ ÃÄÅ 1 2 Ç Æ") == "& % # àáâ ãäå 1 2 ç æ"
     assert String.downcase("ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ") == "àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþ"
+    assert String.downcase("áüÈß") == "áüèß"
   end
 
   test :capitalize do
@@ -90,7 +94,7 @@ defmodule StringTest do
     assert String.rstrip("a  abc  a\n\n") == "a  abc  a"
     assert String.rstrip("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
     assert String.rstrip("a  abc  a " <> <<31>>) == "a  abc  a"
-    assert String.rstrip("a  abc  a" <> <<194,133>>) == "a  abc  a"
+    assert String.rstrip("a  abc  a" <> <<194, 133>>) == "a  abc  a"
     assert String.rstrip("   abc aa", ?a) == "   abc "
     assert String.rstrip("   abc __", ?_) == "   abc "
   end
@@ -102,7 +106,7 @@ defmodule StringTest do
     assert String.lstrip("\n\na  abc  a") == "a  abc  a"
     assert String.lstrip("\t\n\v\f\r\sa  abc  a") == "a  abc  a"
     assert String.lstrip(<<31>> <> " a  abc  a") == "a  abc  a"
-    assert String.lstrip(<<194,133>> <> "a  abc  a") == "a  abc  a"
+    assert String.lstrip(<<194, 133>> <> "a  abc  a") == "a  abc  a"
     assert String.lstrip("__  abc  _", ?_) == "  abc  _"
   end
 
@@ -116,14 +120,14 @@ defmodule StringTest do
 
   test :replace do
     assert String.replace("a,b,c", ",", "-") == "a-b-c"
-    assert String.replace("a,b,c", [",","b"], "-") == "a---c"
+    assert String.replace("a,b,c", [",", "b"], "-") == "a---c"
 
     assert String.replace("a,b,c", ",", "-", global: false) == "a-b,c"
     assert String.replace("a,b,c", [",", "b"], "-", global: false) == "a-b,c"
     assert String.replace("ãéã", "é", "e", global: false) == "ãeã"
 
     assert String.replace("a,b,c", ",", "[]", insert_replaced: 2) == "a[],b[],c"
-    assert String.replace("a,b,c", ",", "[]", insert_replaced: [1,1]) == "a[,,]b[,,]c"
+    assert String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1]) == "a[,,]b[,,]c"
     assert String.replace("a,b,c", "b", "[]", insert_replaced: 1, global: false) == "a,[b],c"
   end
 
@@ -134,30 +138,30 @@ defmodule StringTest do
   end
 
   test :codepoints do
-    assert String.codepoints("elixir") == ["e","l","i","x","i","r"]
-    assert String.codepoints("elixír") == ["e","l","i","x","í","r"] # slovak
-    assert String.codepoints("ոգելից ըմպելիք") == ["ո","գ","ե","լ","ի","ց"," ","ը","մ","պ","ե","լ","ի","ք"] # armenian
-    assert String.codepoints("эліксір") == ["э","л","і","к","с","і","р"] # belarussian
-    assert String.codepoints("ελιξήριο") == ["ε","λ","ι","ξ","ή","ρ","ι","ο"] # greek
-    assert String.codepoints("סם חיים") == ["ס","ם"," ","ח","י","י","ם"] # hebraic
-    assert String.codepoints("अमृत") == ["अ","म","ृ","त"] # hindi
-    assert String.codepoints("স্পর্শমণি") == ["স","্","প","র","্","শ","ম","ণ","ি"] # bengali
-    assert String.codepoints("સર્વશ્રેષ્ઠ ઇલાજ") == ["સ","ર","્","વ","શ","્","ર","ે","ષ","્","ઠ"," ","ઇ","લ","ા","જ"] # gujarati
-    assert String.codepoints("世界中の一番") == ["世","界","中", "の", "一", "番"] # japanese
+    assert String.codepoints("elixir") == ["e", "l", "i", "x", "i", "r"]
+    assert String.codepoints("elixír") == ["e", "l", "i", "x", "í", "r"] # slovak
+    assert String.codepoints("ոգելից ըմպելիք") == ["ո", "գ", "ե", "լ", "ի", "ց", " ", "ը", "մ", "պ", "ե", "լ", "ի", "ք"] # armenian
+    assert String.codepoints("эліксір") == ["э", "л", "і", "к", "с", "і", "р"] # belarussian
+    assert String.codepoints("ελιξήριο") == ["ε", "λ", "ι", "ξ", "ή", "ρ", "ι", "ο"] # greek
+    assert String.codepoints("סם חיים") == ["ס", "ם", " ", "ח", "י", "י", "ם"] # hebraic
+    assert String.codepoints("अमृत") == ["अ", "म", "ृ", "त"] # hindi
+    assert String.codepoints("স্পর্শমণি") == ["স", "্", "প", "র", "্", "শ", "ম", "ণ", "ি"] # bengali
+    assert String.codepoints("સર્વશ્રેષ્ઠ ઇલાજ") == ["સ", "ર", "્", "વ", "શ", "્", "ર", "ે", "ષ", "્", "ઠ", " ", "ઇ", "લ", "ા", "જ"] # gujarati
+    assert String.codepoints("世界中の一番") == ["世", "界", "中", "の", "一", "番"] # japanese
     assert String.codepoints("がガちゃ") == ["が", "ガ", "ち", "ゃ"]
     assert String.codepoints("") == []
   end
 
   test :mixed_codepoints do
-    assert String.codepoints("ϖͲϥЫݎߟΈټϘለДШव׆ש؇؊صلټܗݎޥޘ߉ऌ૫ሏᶆ℆ℙℱ ⅚Ⅷ↠∈⌘①ﬃ") == ["ϖ","Ͳ","ϥ","Ы","ݎ","ߟ","Έ","ټ","Ϙ","ለ","Д","Ш","व","׆","ש","؇","؊","ص","ل","ټ","ܗ","ݎ","ޥ","ޘ","߉","ऌ","૫","ሏ","ᶆ","℆","ℙ","ℱ"," ","⅚","Ⅷ","↠","∈","⌘","①","ﬃ"]
+    assert String.codepoints("ϖͲϥЫݎߟΈټϘለДШव׆ש؇؊صلټܗݎޥޘ߉ऌ૫ሏᶆ℆ℙℱ ⅚Ⅷ↠∈⌘①ﬃ") == ["ϖ", "Ͳ", "ϥ", "Ы", "ݎ", "ߟ", "Έ", "ټ", "Ϙ", "ለ", "Д", "Ш", "व", "׆", "ש", "؇", "؊", "ص", "ل", "ټ", "ܗ", "ݎ", "ޥ", "ޘ", "߉", "ऌ", "૫", "ሏ", "ᶆ", "℆", "ℙ", "ℱ", " ", "⅚", "Ⅷ", "↠", "∈", "⌘", "①", "ﬃ"]
   end
 
   test :graphemes do
-    assert String.graphemes("Ā̀stute") == ["Ā̀","s","t","u","t","e"]
+    assert String.graphemes("Ā̀stute") == ["Ā̀", "s", "t", "u", "t", "e"]
   end
 
   test :next_grapheme do
-    assert String.next_grapheme("Ā̀stute") == {"Ā̀","stute"}
+    assert String.next_grapheme("Ā̀stute") == {"Ā̀", "stute"}
     assert String.next_grapheme("") == :no_grapheme
   end
 
@@ -169,7 +173,7 @@ defmodule StringTest do
     assert String.first("ελιξήριο") == "ε"
     assert String.first("סם חיים") == "ס"
     assert String.first("がガちゃ") == "が"
-    assert String.first("Ā̀stute") == "Ā̀"        
+    assert String.first("Ā̀stute") == "Ā̀"
     assert String.first("") == nil
   end
 
@@ -193,7 +197,7 @@ defmodule StringTest do
     assert String.length("ειξήριολ") == 8
     assert String.length("סם ייםח") == 7
     assert String.length("がガちゃ") == 4
-    assert String.length("Ā̀stute") == 6    
+    assert String.length("Ā̀stute") == 6
     assert String.length("") == 0
   end
 
@@ -206,7 +210,7 @@ defmodule StringTest do
     assert String.at("がガちゃ", -2) == "ち"
     assert String.at("л", -3) == nil
     assert String.at("Ā̀stute", 1) == "s"
-    assert String.at("elixir",6) == nil
+    assert String.at("elixir", 6) == nil
   end
 
   test :slice do
@@ -224,8 +228,28 @@ defmodule StringTest do
     assert String.slice("ειξήριολ", -10, 3) == nil
     assert String.slice("elixir", 8, 2) == nil
     assert String.slice("あいうえお", 6, 2) == nil
-    assert String.slice("ειξήριολ", 8, 1) == nil
-    assert String.slice("", 0, 1) == nil
+    assert String.slice("ειξήριολ", 8, 1) == ""
+    assert String.slice("ειξήριολ", 9, 1) == nil
+    assert String.slice("", 0, 1) == ""
+    assert String.slice("", 1, 1) == nil
+  end
+
+  test :valid? do
+    assert String.valid?("afds")
+    assert String.valid?("øsdfh")
+    assert String.valid?("dskfjあska")
+
+    refute String.valid?(<<0xffff :: 16>>)
+    refute String.valid?("asd" <> <<0xffff :: 16>>)
+  end
+
+  test :valid_character? do
+    assert String.valid_character?("a")
+    assert String.valid_character?("ø")
+    assert String.valid_character?("あ")
+
+    refute String.valid_character?("\x{ffff}")
+    refute String.valid_character?("ab")
   end
 
   test :valid_codepoint? do
@@ -233,8 +257,117 @@ defmodule StringTest do
     assert String.valid_codepoint?("ø")
     assert String.valid_codepoint?("あ")
 
-    refute String.valid_codepoint?("\xffff")
+    refute String.valid_codepoint?(<<0xffff :: 16>>)
     refute String.valid_codepoint?("ab")
+  end
+
+  test :to_integer do
+    assert String.to_integer("12") === {12, ""}
+    assert String.to_integer("-12") === {-12, ""}
+    assert String.to_integer("123456789") === {123456789, ""}
+    assert String.to_integer("12.5") === {12, ".5"}
+    assert String.to_integer("7.5e-3") === {7, ".5e-3"}
+    assert String.to_integer("12x") === {12, "x"}
+    assert String.to_integer("three") === :error
+  end
+
+  test :to_float do
+    assert String.to_float("12") === {12.0, ""}
+    assert String.to_float("-12") === {-12.0, ""}
+    assert String.to_float("123456789") === {123456789.0, ""}
+    assert String.to_float("12.5") === {12.5, ""}
+    assert String.to_float("-12.5") === {-12.5, ""}
+    assert String.to_float("7.5e3") === {7.5e3, ""}
+    assert String.to_float("7.5e-3") === {7.5e-3, ""}
+    assert String.to_float("12x") === {12.0, "x"}
+    assert String.to_float("12.5x") === {12.5, "x"}
+    assert String.to_float("pi") === :error
+  end
+
+  test :starts_with? do
+    ## Normal cases ##
+    assert String.starts_with? "hello", "he"
+    assert String.starts_with? "hello", "hello"
+    assert String.starts_with? "hello", ["hellö", "hell"]
+    assert String.starts_with? "エリクシア", "エリ"
+    refute String.starts_with? "hello", "lo"
+    refute String.starts_with? "hello", "hellö"
+    refute String.starts_with? "hello", ["hellö", "goodbye"]
+    refute String.starts_with? "エリクシア", "仙丹"
+
+    ## Edge cases ##
+    assert String.starts_with? "", ""
+    assert String.starts_with? "", ["", "a"]
+    assert String.starts_with? "b", ["", "a"]
+
+    assert String.starts_with? "abc", ""
+    assert String.starts_with? "abc", [""]
+
+    refute String.starts_with? "", "abc"
+    refute String.starts_with? "", [" "]
+
+    ## Sanity checks ##
+    assert String.starts_with? "", ["", ""]
+    assert String.starts_with? "abc", ["", ""]
+    assert_raise ArgumentError, fn ->
+      String.starts_with? "abc", [["a"], "a"]
+    end
+  end
+
+  test :ends_with? do
+    ## Normal cases ##
+    assert String.ends_with? "hello", "lo"
+    assert String.ends_with? "hello", "hello"
+    assert String.ends_with? "hello", ["hell", "lo", "xx"]
+    assert String.ends_with? "hello", ["hellö", "lo"]
+    assert String.ends_with? "エリクシア", "シア"
+    refute String.ends_with? "hello", "he"
+    refute String.ends_with? "hello", "hellö"
+    refute String.ends_with? "hello", ["hel", "goodbye"]
+    refute String.ends_with? "エリクシア", "仙丹"
+
+    ## Edge cases ##
+    assert String.ends_with? "", ""
+    assert String.ends_with? "", ["", "a"]
+    refute String.ends_with? "", ["a", "b"]
+
+    assert String.ends_with? "abc", ""
+    assert String.ends_with? "abc", ["", "x"]
+
+    refute String.ends_with? "", "abc"
+    refute String.ends_with? "", [" "]
+
+    ## Sanity checks ##
+    assert String.ends_with? "", ["", ""]
+    assert String.ends_with? "abc", ["", ""]
+    assert_raise ArgumentError, fn ->
+      String.ends_with? "abc", [["c"], "c"]
+    end
+  end
+
+  test :contains? do
+    ## Normal cases ##
+    assert String.contains? "elixir of life", "of"
+    assert String.contains? "エリクシア", "シ"
+    assert String.contains? "elixir of life", ["mercury", "life"]
+    refute String.contains? "exlixir of life", "death"
+    refute String.contains? "エリクシア", "仙"
+    refute String.contains? "elixir of life", ["death", "mercury", "eternal life"]
+
+    ## Edge cases ##
+    assert String.contains? "", ""
+    assert String.contains? "abc", ""
+    assert String.contains? "abc", ["", "x"]
+
+    refute String.contains? "", " "
+    refute String.contains? "", "a"
+
+    ## Sanity checks ##
+    assert String.contains? "", ["", ""]
+    assert String.contains? "abc", ["", ""]
+    assert_raise ArgumentError, fn ->
+      String.contains? "abc", [["b"], "b"]
+    end
   end
 
 end

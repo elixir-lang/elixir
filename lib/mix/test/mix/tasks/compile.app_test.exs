@@ -46,10 +46,10 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert Mix.Tasks.Compile.App.run([]) == :ok
 
       contents = File.read!("ebin/simple_project.app")
-      assert contents =~ %r/\{application,simple_project/
-      assert contents =~ %r/0.1.0/
-      assert contents =~ %r/'Elixir-A'/
-      assert contents =~ %r/\{applications,\[kernel,stdlib,elixir\]\}/
+      assert contents =~ "{application,simple_project"
+      assert contents =~ "0.1.0"
+      assert contents =~ "'Elixir.A'"
+      assert contents =~ "{applications,[kernel,stdlib,elixir]}"
 
       assert Mix.Tasks.Compile.App.run([]) == :noop
     end
@@ -65,8 +65,8 @@ defmodule Mix.Tasks.Compile.AppTest do
       Mix.Tasks.Compile.Elixir.run([])
       Mix.Tasks.Compile.App.run([])
       contents = File.read!("ebin/custom_project.app")
-      assert contents =~ %r/0.2.0/
-      assert contents =~ %r/{maxT,infinity}/
+      assert contents =~ "0.2.0"
+      assert contents =~ "{maxT,infinity}"
     end
   after
     purge [A, B, C]
@@ -82,13 +82,21 @@ defmodule Mix.Tasks.Compile.AppTest do
         Process.put(:error, error)
         e = catch_error(Mix.Tasks.Compile.App.run([]))
         assert Mix.Error[] = e
-        assert e.message =~ %r/:#{error}/
-        assert e.message =~ %r/#{inspect InvalidProject.application[error]}/
+        assert e.message =~ ":#{error}"
+
+        err_token = InvalidProject.application[error]
+        cond do
+          is_list(err_token) ->
+            [tok] = err_token
+            assert e.message =~ inspect(tok)
+          true ->
+            assert e.message =~ inspect(err_token)
+        end
       end
       Process.delete(:error)
     end
   after
-    purge [A, B, C]  
+    purge [A, B, C]
     Mix.Project.pop
   end
 
@@ -102,12 +110,12 @@ defmodule Mix.Tasks.Compile.AppTest do
       {:ok, [{_app, _, properties}]} = :file.consult("ebin/simple_project.app")
       properties = Keyword.from_enum(properties)
       assert properties[:registered] == []
-      assert properties[:description] == 'simple_project'   
+      assert properties[:description] == 'simple_project'
 
       assert Mix.Tasks.Compile.App.run([]) == :noop
     end
   after
     purge [A, B, C]
     Mix.Project.pop
-  end  
+  end
 end

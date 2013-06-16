@@ -18,7 +18,7 @@ defmodule Mix.Tasks.App.StartTest do
       end
 
       Mix.Tasks.App.Start.run ["--no-start"]
-      assert File.regular?("ebin/Elixir-A.beam")
+      assert File.regular?("ebin/Elixir.A.beam")
       assert File.regular?("ebin/app_start_sample.app")
       refute List.keyfind(:application.loaded_applications, :app_start_sample, 0)
 

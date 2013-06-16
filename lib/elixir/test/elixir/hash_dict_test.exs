@@ -18,11 +18,11 @@ defmodule HashDictTest do
     smoke_test(1200..1)
   end
 
-  test :get! do
+  test :fetch! do
     dict = filled_dict(8)
-    assert HashDict.get!(dict, 1) == 1
+    assert HashDict.fetch!(dict, 1) == 1
     assert_raise KeyError, fn ->
-      HashDict.get!(dict, 11)
+      HashDict.fetch!(dict, 11)
     end
   end
 
@@ -36,6 +36,13 @@ defmodule HashDictTest do
     dict = filled_dict(8)
     assert HashDict.fetch(dict, 4)  == { :ok, 4 }
     assert HashDict.fetch(dict, 16) == :error
+  end
+
+  test :equal? do
+    assert HashDict.equal?(filled_dict(3), filled_dict(3)) == true
+
+    assert HashDict.equal?(HashDict.new([{:a, 1}, {:b, 2}]),
+                           HashDict.new([{:a, 2}, {:b, 3}])) == false
   end
 
   test :has_key? do
@@ -62,6 +69,11 @@ defmodule HashDictTest do
     dict = HashDict.put_new(dict, 11, 13)
     assert HashDict.get(dict, 11) == 13
     assert HashDict.size(dict) == 9
+
+    dict = HashDict.put_new(dict, 11.0, 15)
+    assert HashDict.get(dict, 11.0) == 15
+    assert HashDict.get(dict, 11) == 13
+    assert HashDict.size(dict) == 10
   end
 
   test :update do
@@ -82,20 +94,37 @@ defmodule HashDictTest do
     dict = HashDict.update(dict, 11, 13, &1 * 2)
     assert HashDict.get(dict, 11) == 13
     assert HashDict.size(dict) == 9
+
+    assert_raise KeyError, fn->
+      HashDict.update(dict, 11.0, &1 * 2)
+    end
+    dict = HashDict.update(dict, 11.0, 15, &1 * 2)
+    assert HashDict.get(dict, 11.0) == 15
+    assert HashDict.size(dict) == 10
+    dict = HashDict.update(dict, 11.0, 15, &1 * 2)
+    assert HashDict.get(dict, 11.0) == 30
+    assert HashDict.get(dict, 11) == 13
+    assert HashDict.size(dict) == 10
   end
 
   test :to_list do
-    list = filled_dict(8) |> HashDict.to_list
+    dict = filled_dict(8)
+    list = dict |> HashDict.to_list
     assert length(list) == 8
     assert { 1, 1 } in list
+    assert list == Enum.to_list(dict)
 
-    list = filled_dict(20) |> HashDict.to_list
+    dict = filled_dict(20)
+    list = dict |> HashDict.to_list
     assert length(list) == 20
     assert { 1, 1 } in list
+    assert list == Enum.to_list(dict)
 
-    list = filled_dict(120) |> HashDict.to_list
+    dict = filled_dict(120)
+    list = dict |> HashDict.to_list
     assert length(list) == 120
     assert { 1, 1 } in list
+    assert list == Enum.to_list(dict)
   end
 
   test :keys do
@@ -133,7 +162,7 @@ defmodule HashDictTest do
     assert Enum.member?(dict, { 5, 5 })
     refute Enum.member?(dict, { 5, 8 })
     assert Enum.count(dict) == 10
-    assert Enum.map(filled_dict(3), fn({ k, v }) -> k + v end) == [2,4,6]
+    assert Enum.map(filled_dict(3), fn({ k, v }) -> k + v end) == [2, 4, 6]
   end
 
   test :access do
@@ -143,7 +172,7 @@ defmodule HashDictTest do
   end
 
   test :inspect do
-    assert inspect(filled_dict(8)) =~ %r"#HashDict<"
+    assert inspect(filled_dict(8)) =~ "#HashDict<"
   end
 
   test :small_range_merge do
@@ -234,6 +263,12 @@ defmodule HashDictTest do
     assert HashDict.get(dict, 118) == 236
     assert HashDict.get(dict, 122) == 244
     assert HashDict.size(dict) == 122
+  end
+
+  test :trie_contract do
+    dict = filled_dict(120)
+    dict = Enum.reduce 16..120, dict, fn(x, acc) -> HashDict.delete(acc, x) end
+    assert (Enum.filter 1..120, fn(x) -> HashDict.get(dict, x) == x end) == (Enum.sort 1..15)
   end
 
   defp smoke_test(range) do

@@ -1,20 +1,14 @@
 %% Module responsible for local invocation of macros and functions.
 -module(elixir_def_local).
--export([
-  macro_for/3,
-  function_for/3,
-  format_error/1,
-  check_unused_local_macros/3
-]).
+-export([macro_for/3, function_for/3]).
 -include("elixir.hrl").
 
-%% Used by elixir_dispatch, returns false if no macro is found
-macro_for(_Tuple, _All, nil) -> false;
+macro_for(_Tuple, _All, #elixir_scope{module=nil}) -> false;
 
-macro_for(Tuple, All, Module) ->
+macro_for(Tuple, All, #elixir_scope{module=Module,function=Function}) ->
   try elixir_def:lookup_definition(Module, Tuple) of
     { { Tuple, Kind, Line, _, _, _, _ }, Clauses } when Kind == defmacro; All, Kind == defmacrop ->
-      elixir_import:record(Tuple, Module, Module),
+      elixir_tracker:record_local(Tuple, Module, Function),
       get_function(Line, Module, Clauses);
     _ ->
       false
@@ -22,19 +16,18 @@ macro_for(Tuple, All, Module) ->
     error:badarg -> false
   end.
 
-%% Used on runtime by rewritten clauses, raises an error if function is not found
 function_for(Module, Name, Arity) ->
   Tuple = { Name, Arity },
   case elixir_def:lookup_definition(Module, Tuple) of
     { { Tuple, _, Line, _, _, _, _ }, Clauses } ->
-      elixir_import:record(Tuple, Module, Module),
+      %% There is no need to record such calls
+      %% since they come from funtions that were
+      %% already analyzed at compilation time.
       get_function(Line, Module, Clauses);
     _ ->
       [_|T] = erlang:get_stacktrace(),
       erlang:raise(error, undef, [{Module,Name,Arity,[]}|T])
   end.
-
-%% Helpers
 
 get_function(Line, Module, Clauses) ->
   RewrittenClauses = [rewrite_clause(Clause, Module) || Clause <- Clauses],
@@ -67,16 +60,3 @@ rewrite_clause(List, Module) when is_list(List) ->
   [rewrite_clause(Item, Module) || Item <- List];
 
 rewrite_clause(Else, _) -> Else.
-
-%% Error handling
-
-check_unused_local_macros(File, Recorded, Private) ->
-  [elixir_errors:handle_file_warning(File,
-    { Line, ?MODULE, { unused_def, Kind, Fun } }) || { Fun, Kind, Line, Check } <- Private,
-      Check, not lists:member(Fun, Recorded)].
-
-format_error({unused_def,defp,{Name, Arity}}) ->
-  io_lib:format("function ~ts/~B is unused", [Name, Arity]);
-
-format_error({unused_def,defmacrop,{Name, Arity}}) ->
-  io_lib:format("macro ~ts/~B is unused", [Name, Arity]).

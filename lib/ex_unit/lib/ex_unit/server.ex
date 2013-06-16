@@ -4,13 +4,18 @@ defmodule ExUnit.Server do
   @timeout 30_000
   use GenServer.Behaviour
 
-  defrecord Config, options: [], async_cases: [], sync_cases: []
+  defrecord Config, options: [], async_cases: [], sync_cases: [],
+                    start_load: nil
 
   def start_link(options) do
     :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, options, [])
   end
 
   ## Before run API
+
+  def start_load() do
+    :gen_server.cast(__MODULE__, :start_load)
+  end
 
   def add_async_case(name) do
     :gen_server.cast(__MODULE__, { :add_async_case, name })
@@ -26,12 +31,8 @@ defmodule ExUnit.Server do
 
   ## After run API
 
-  def options do
-    :gen_server.call(__MODULE__, :options, @timeout)
-  end
-
-  def cases do
-    :gen_server.call(__MODULE__, :cases, @timeout)
+  def start_run() do
+    :gen_server.call(__MODULE__, :start_run, @timeout)
   end
 
   ## Callbacks
@@ -40,18 +41,23 @@ defmodule ExUnit.Server do
     { :ok, Config[options: options] }
   end
 
-  def handle_call(:options, _from, config) do
-    { :reply, config.options, config }
-  end
+  def handle_call(:start_run, _from, config) do
+    load_us =
+      if start_load = config.start_load do
+        :timer.now_diff(:os.timestamp, start_load)
+      end
 
-  def handle_call(:cases, _from, config) do
     { :reply,
-      { config.async_cases, config.sync_cases },
-      config.async_cases([]).sync_cases([]) }
+      { config.async_cases, config.sync_cases, config.options, load_us },
+      config.async_cases([]).sync_cases([]).start_load(nil) }
   end
 
   def handle_call(request, from, config) do
     super(request, from, config)
+  end
+
+  def handle_cast(:start_load, config) do
+    { :noreply, config.start_load(:os.timestamp) }
   end
 
   def handle_cast({:add_async_case, name}, config) do
