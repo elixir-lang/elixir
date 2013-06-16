@@ -550,11 +550,9 @@ no_alias_expansion(Other) ->
 %% Function
 
 translate_fn(Meta, Clauses, S) ->
-  Line = ?line(Meta),
-
-  Transformer = fun({ ArgsWithGuards, Expr }, Acc) ->
+  Transformer = fun({ ArgsWithGuards, CMeta, Expr }, Acc) ->
     { Args, Guards } = elixir_clauses:extract_last_guards(ArgsWithGuards),
-    elixir_clauses:assigns_block(Line, fun elixir_translator:translate/2, Args, [Expr], Guards, umergec(S, Acc))
+    elixir_clauses:assigns_block(?line(CMeta), fun elixir_translator:translate/2, Args, [Expr], Guards, umergec(S, Acc))
   end,
 
   { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
@@ -562,7 +560,7 @@ translate_fn(Meta, Clauses, S) ->
 
   case length(lists:usort(Arities)) of
     1 ->
-      { { 'fun', Line, { clauses, TClauses } }, umergec(S, NS) };
+      { { 'fun', ?line(Meta), { clauses, TClauses } }, umergec(S, NS) };
     _ ->
       syntax_error(Meta, S#elixir_scope.file, "cannot mix clauses with different arities in function definition")
   end.

@@ -453,11 +453,11 @@ defmodule Kernel.Typespec do
 
   defp typespec_to_ast({ :type, line, :fun, [{:type, _, :product, args}, result] }) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
-    { :"->", [line: line], [{args, typespec_to_ast(result)}] }
+    { :->, [line: line], [{args, [line: line], typespec_to_ast(result)}] }
   end
 
   defp typespec_to_ast({ :type, line, :fun, [args, result] }) do
-    { :"->", [line: line], [{[typespec_to_ast(args)], typespec_to_ast(result)}] }
+    { :->, [line: line], [{[typespec_to_ast(args)], [line: line], typespec_to_ast(result)}] }
   end
 
   defp typespec_to_ast({ :type, line, :fun, [] }) do
@@ -568,11 +568,11 @@ defmodule Kernel.Typespec do
   end
 
   # Handle funs
-  defp typespec({:->, meta, [{[{:fun, _, arguments}], return}]}, vars, caller) when is_list(arguments) do
-    typespec({:->, meta, [{arguments, return}]}, vars, caller)
+  defp typespec({:->, meta, [{[{:fun, _, arguments}], cmeta, return}]}, vars, caller) when is_list(arguments) do
+    typespec({:->, meta, [{arguments, cmeta, return}]}, vars, caller)
   end
 
-  defp typespec({:->, meta, [{arguments, return}]}, vars, caller) when is_list(arguments) do
+  defp typespec({:->, meta, [{arguments, _, return}]}, vars, caller) when is_list(arguments) do
     args = fn_args(meta, arguments, return, vars, caller)
     { :type, line(meta), :fun, args }
   end

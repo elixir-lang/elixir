@@ -14,7 +14,7 @@ defmodule Macro do
       :===, :!==,
       :==, :!=, :<=, :>=,
       :&&, :||, :<>, :++, :--, :**, ://, :::, :<-, :.., :|>, :=~,
-      :<, :>,
+      :<, :>, :->,
       :+, :-, :*, :/, :=, :|, :.,
       :and, :or, :xor, :when, :in, :inlist, :inbits,
       :<<<, :>>>, :|||, :&&&, :^^^, :~~~
@@ -213,7 +213,7 @@ defmodule Macro do
   end
 
   # Fn keyword
-  def to_binary({ :fn, _, [[do: { :->, _, [{_, tuple}] } = arrow]] })
+  def to_binary({ :fn, _, [[do: { :->, _, [{_, _, tuple}] } = arrow]] })
       when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
     "fn " <> arrow_to_binary(arrow) <> " end"
   end
@@ -309,7 +309,7 @@ defmodule Macro do
   end
 
   defp block_to_binary({ :->, _, exprs }) do
-    Enum.map_join(exprs, "\n", fn({ left, right }) ->
+    Enum.map_join(exprs, "\n", fn({ left, _, right }) ->
       left = comma_join_or_empty_paren(left, false)
       left <> "->\n  " <> adjust_new_lines block_to_binary(right), "\n  "
     end)
@@ -328,7 +328,7 @@ defmodule Macro do
   defp op_to_binary(expr), do: to_binary(expr)
 
   defp arrow_to_binary({ :->, _, pairs }, paren // false) do
-    Enum.map_join(pairs, "; ", fn({ left, right }) ->
+    Enum.map_join(pairs, "; ", fn({ left, _, right }) ->
       left = comma_join_or_empty_paren(left, paren)
       left <> "-> " <> to_binary(right)
     end)

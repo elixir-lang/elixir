@@ -94,7 +94,7 @@ returns_boolean({ call, _, { remote, _, { atom, _, erlang }, { atom, _, Fun } },
 returns_boolean({ call, _, { remote, _, { atom, _, erlang }, { atom, _, Fun } }, [_,_,_] }) when
   Fun == function_exported -> true;
 
-returns_boolean({ atom, _, Bool }) when Bool == true; Bool == false -> true;
+returns_boolean({ atom, _, Bool }) when is_boolean(Bool) -> true;
 
 returns_boolean({ 'case', _, _, Clauses }) ->
   lists:all(fun

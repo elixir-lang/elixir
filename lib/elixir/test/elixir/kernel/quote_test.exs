@@ -113,14 +113,14 @@ defmodule Kernel.QuoteTest do
   end
 
   test :stab do
-    assert { :->, _, [{[], _}] } = (quote do -> end)
-    assert { :->, _, [{[], _}] } = (quote do: (->))
+    assert { :->, _, [{[], _, _}] } = (quote do -> end)
+    assert { :->, _, [{[], _, _}] } = (quote do: (->))
 
-    assert { :->, _, [{[1], _}] } = (quote do 1 -> end)
-    assert { :->, _, [{[1], _}] } = (quote do: (1 ->))
+    assert { :->, _, [{[1], _, _}] } = (quote do 1 -> end)
+    assert { :->, _, [{[1], _, _}] } = (quote do: (1 ->))
 
-    assert { :->, _, [{[], 1}] } = (quote do -> 1 end)
-    assert { :->, _, [{[], 1}] } = (quote do: (-> 1))
+    assert { :->, _, [{[], _, 1}] } = (quote do -> 1 end)
+    assert { :->, _, [{[], _, 1}] } = (quote do: (-> 1))
   end
 
   defmacrop dynamic_opts do

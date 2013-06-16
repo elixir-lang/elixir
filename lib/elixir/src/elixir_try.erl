@@ -6,10 +6,10 @@
 clauses(Meta, Clauses, S) ->
   Catch  = elixir_clauses:get_pairs(Meta, 'catch', Clauses, S),
   Rescue = elixir_clauses:get_pairs(Meta, rescue, Clauses, S),
-  Transformer = fun(X, Acc) -> each_clause(Meta, X, umergec(S, Acc)) end,
+  Transformer = fun(X, Acc) -> each_clause(X, umergec(S, Acc)) end,
   lists:mapfoldl(Transformer, S, Rescue ++ Catch).
 
-each_clause(Meta, { 'catch', Raw, Expr }, S) ->
+each_clause({ 'catch', Meta, Raw, Expr }, S) ->
   { Args, Guards } = elixir_clauses:extract_last_guards(Raw),
 
   Final = case Args of
@@ -23,19 +23,19 @@ each_clause(Meta, { 'catch', Raw, Expr }, S) ->
   Condition = { '{}', Meta, Final },
   elixir_clauses:assigns_block(?line(Meta), fun elixir_translator:translate_each/2, Condition, [Expr], Guards, S);
 
-each_clause(Meta, { rescue, [Condition|T], Expr }, S) ->
+each_clause({ rescue, Meta, [Condition|T], Expr }, S) ->
   case normalize_rescue(Meta, Condition, S) of
     { Left, Right } ->
       case Left of
         { '_', _, _ } ->
           { ClauseVar, CS } = elixir_scope:build_ex_var(?line(Meta), S),
           { Clause, _ } = rescue_guards(Meta, ClauseVar, Right, S),
-          each_clause(Meta, { 'catch', [error, Clause|T], Expr }, CS);
+          each_clause({ 'catch', Meta, [error, Clause|T], Expr }, CS);
         _ ->
           { Clause, Safe } = rescue_guards(Meta, Left, Right, S),
           case Safe of
             true ->
-              each_clause(Meta, { 'catch', [error, Clause|T], Expr }, S);
+              each_clause({ 'catch', Meta, [error, Clause|T], Expr }, S);
             false ->
               { ClauseVar, CS }  = elixir_scope:build_ex_var(?line(Meta), S),
               { FinalClause, _ } = rescue_guards(Meta, ClauseVar, Right, S),
@@ -44,17 +44,17 @@ each_clause(Meta, { rescue, [Condition|T], Expr }, S) ->
                 { { '.', Meta, ['Elixir.Exception', normalize] }, Meta, [ClauseVar] }
               ] },
               FinalExpr = prepend_to_block(Meta, Match, Expr),
-              each_clause(Meta, { 'catch', [error, FinalClause|T], FinalExpr }, CS)
+              each_clause({ 'catch', Meta, [error, FinalClause|T], FinalExpr }, CS)
           end
       end;
     _ ->
-      each_clause(Meta, { 'catch', [error, Condition|T], Expr }, S)
+      each_clause({ 'catch', Meta, [error, Condition|T], Expr }, S)
   end;
 
-each_clause(Meta, {rescue,_,_}, S) ->
+each_clause({rescue,Meta,_,_}, S) ->
   elixir_errors:syntax_error(Meta, S#elixir_scope.file, "too many arguments given for rescue");
 
-each_clause(Meta, {Key,_,_}, S) ->
+each_clause({Key,Meta,_,_}, S) ->
   elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid key ~ts in try", [Key]).
 
 %% Helpers

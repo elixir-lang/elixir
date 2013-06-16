@@ -2500,7 +2500,7 @@ defmodule Kernel do
       end
   """
   defmacro cond([do: { :->, _, pairs }]) do
-    [{ [condition], clause }|t] = :lists.reverse pairs
+    [{ [condition], meta, clause }|t] = :lists.reverse pairs
 
     new_acc =
       case condition do
@@ -2510,14 +2510,14 @@ defmodule Kernel do
         x when is_atom(x) and not x in [false, nil] ->
           clause
         _ ->
-          quote do
+          quote line: get_line(meta) do
             case !unquote(condition) do
               false -> unquote(clause)
             end
           end
       end
 
-    build_cond_clauses(t, new_acc)
+    build_cond_clauses(t, new_acc, meta)
   end
 
   @doc """
@@ -3435,23 +3435,35 @@ defmodule Kernel do
   #         end
   #     end
   #
-  defp build_cond_clauses([{ [condition], clause }|t], acc) do
-    new_acc = quote do
-      case unquote(condition) do
-        _ in [false, nil] -> unquote(acc)
-        _                 -> unquote(clause)
-      end
+  defp build_cond_clauses([{ [condition], new, clause }|t], acc, old) do
+    stab = { :->, [], [falsy_clause(old, acc), truthy_clause(new, clause)] }
+    acc  = quote do
+      case unquote(condition), do: unquote(stab)
     end
-
-    build_cond_clauses(t, new_acc)
+    build_cond_clauses(t, acc, new)
   end
 
-  defp build_cond_clauses([], acc), do: acc
+  defp build_cond_clauses([], acc, _), do: acc
 
   defp expand_compact([{ :compact, false }|t]), do: expand_compact(t)
   defp expand_compact([{ :compact, true }|t]),  do: [:compact|expand_compact(t)]
   defp expand_compact([h|t]),                   do: [h|expand_compact(t)]
   defp expand_compact([]),                      do: []
+
+  defp falsy_clause(meta, acc) do
+    { [quote(do: _ in [false, nil])], meta, acc }
+  end
+
+  defp truthy_clause(meta, clause) do
+    { [quote(do: _)], meta, clause }
+  end
+
+  defp get_line(meta) do
+    case :lists.keyfind(:line, 1, meta) do
+      { :line, line } -> line
+      false -> 0
+    end
+  end
 
   defp split_words(string, modifiers) do
     mod = case modifiers do

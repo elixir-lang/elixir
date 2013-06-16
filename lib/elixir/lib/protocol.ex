@@ -349,36 +349,38 @@ defmodule Protocol.DSL do
   end
 
   defp default_clause(name, args) do
-    quote do: { [other], apply(other, unquote(name), [unquote_splicing(args)]) }
+    { [quote do: other],
+      [],
+      quote(do: apply(other, unquote(name), [unquote_splicing(args)])) }
   end
 
   defp nil_clause() do
-    quote do
-      { [nil], raise(Protocol.UndefinedError, protocol: __MODULE__, structure: xA) }
-    end
+    { [nil],
+      [],
+      quote(do: raise(Protocol.UndefinedError, protocol: __MODULE__, structure: xA)) }
   end
 
   defp record_clause(name, args, nil) do
-    quote do
-      { [__MODULE__.Record],
-        Module.concat(__MODULE__, :erlang.element(1, xA)).unquote(name)(unquote_splicing(args)) }
-    end
+    { [quote(do: __MODULE__.Record)],
+      [],
+      quote(do: Module.concat(__MODULE__, :erlang.element(1, xA)).unquote(name)(unquote_splicing(args))) }
   end
 
   defp record_clause(name, args, fallback) do
     arity = length(args)
 
-    quote do
-      { [__MODULE__.Record],
-        (target = Module.concat(__MODULE__, :erlang.element(1, xA))
+    { [quote(do: __MODULE__.Record)],
+      [],
+      quote do
+        target = Module.concat(__MODULE__, :erlang.element(1, xA))
         try do
           target.unquote(name)(unquote_splicing(args))
         catch
           :error, :undef, [[{ ^target, name, args, _ }|_]|_] when
               name == unquote(name) and length(args) == unquote(arity) ->
             apply unquote(fallback), name, [unquote_splicing(args)]
-        end) }
-    end
+        end
+      end }
   end
 
   defmacro def(expression) do

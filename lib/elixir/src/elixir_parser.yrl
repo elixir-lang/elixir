@@ -579,20 +579,20 @@ build_atom({ atom, Line, Args }) ->
 %% Keywords
 
 build_stab([{ '->', Meta, [Left, Right] }|T]) ->
-  { '->', Meta, build_stab(T, Left, [Right], []) };
+  { '->', Meta, build_stab(Meta, T, Left, [Right], []) };
 
 build_stab(Else) ->
   build_block(Else).
 
-build_stab([{ '->', _, [Left, Right] }|T], Marker, Temp, Acc) ->
-  H = { Marker, build_block(lists:reverse(Temp)) },
-  build_stab(T, Left, [Right], [H|Acc]);
+build_stab(Old, [{ '->', New, [Left, Right] }|T], Marker, Temp, Acc) ->
+  H = { Marker, Old, build_block(lists:reverse(Temp)) },
+  build_stab(New, T, Left, [Right], [H|Acc]);
 
-build_stab([H|T], Marker, Temp, Acc) ->
-  build_stab(T, Marker, [H|Temp], Acc);
+build_stab(Meta, [H|T], Marker, Temp, Acc) ->
+  build_stab(Meta, T, Marker, [H|Temp], Acc);
 
-build_stab([], Marker, Temp, Acc) ->
-  H = { Marker, build_block(lists:reverse(Temp)) },
+build_stab(Meta, [], Marker, Temp, Acc) ->
+  H = { Marker, Meta, build_block(lists:reverse(Temp)) },
   lists:reverse([H|Acc]).
 
 %% Every time the parser sees a (unquote_splicing())

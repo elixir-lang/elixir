@@ -318,8 +318,8 @@ decreasing_compare(Line, Var, Start, End) ->
     { op, Line, '=<', Var, Start },
     { op, Line, '>=', Var, End } }.
 
-rewrite_case_clauses([{do,[{in,_,[{'_',_,_},[false,nil]]}],False},{do,[{'_',_,_}],True}]) ->
-  [{do,[false],False},{do,[true],True}];
+rewrite_case_clauses([{do,Meta1,[{in,_,[{'_',_,_},[false,nil]]}],False},{do,Meta2,[{'_',_,_}],True}]) ->
+  [{do,Meta1,[false],False},{do,Meta2,[true],True}];
 
 rewrite_case_clauses(Clauses) ->
   Clauses.

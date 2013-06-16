@@ -11,6 +11,7 @@
 * deprecations
 
 * backwards incompatible changes
+  * [Kernel] The quoted representation for `->` clauses changed from a tuple with two elements to a tuple with three elements to support metadata
 
 # v0.9.2 (2013-06-13)
 
