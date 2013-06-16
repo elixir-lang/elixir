@@ -163,7 +163,7 @@ defmodule Wadler do
   def break(), do: DocBreak[str: " "]
 
   @doc"""
-  Inserts a break etween two docs.
+  Inserts a break between two docs.
   """
   @spec glue(doc, doc) :: DocCons.t
   def glue(x, y), do: concat(x, concat(break, y))
@@ -260,7 +260,7 @@ defmodule Wadler do
     ]
   """
   @spec line(doc, doc) :: DocCons.t
-  def line(x, y), do: concat(x, concat(text(newline), y))
+  def line(x, y), do: glue(x, newline, y)
 
   @doc """
   Folds a list of document entities into a document entity
@@ -300,28 +300,24 @@ defmodule Wadler do
 
   @doc """
   Surrounds a document with characters.
-  Puts the document between left and right enclosing and nests it using `group`.
+  Puts the document between left and right enclosing and nests it.
   """
+  @spec surround(binary, doc, binary, binary) :: doc
   @spec surround(binary, doc, binary) :: doc
-  def surround(left, doc, right) do
-    group(
-      concat(
-             text(left), 
-             concat(
-                    nest(default_nesting, concat(break, doc)),
-                    concat(break, text(right))
-             )
+  def surround(left, doc, right, sep//"") do
+    glue(
+      text(left), 
+      sep,
+      glue(
+        nest(default_nesting, doc),
+        sep,
+        text(right)
       )
     )
   end  
 
-  @spec surround(doc, binary) :: doc
-  def surround(doc, str) do
-    surround(str, doc, str)
-  end
-  
   # Records representing __simple__ documents, already on a fixed layout
-  # Those are generalized by `docfactor` type.
+  # Those are generalized by `sdoc` type.
   @type sdoc :: SNil | SText.t | SLine.t
   defrecord SText, str: "", sdoc: SNil
   defrecord SLine, indent: 1, sdoc: SNil # newline + spaces
@@ -369,14 +365,14 @@ defmodule Wadler do
   defp fits?(w, [{i, _, DocGroup[doc: x]} | t]),            do: fits? w, [{i, Flat, x} | t]
 
   @spec format(integer, integer, [{ integer, mode, doc }]) :: boolean
-  defp format(_, _, []),                                       do: SNil
-  defp format(w, k, [{_, _, DocNil} | t]),                     do: format w, k, t
-  defp format(w, k, [{i, m, DocCons[left: x, right: y]} | t]), do: format w, k, [{i, m, x} | [{i, m, y} | t]]
-  defp format(w, k, [{i, m, DocNest[indent: j, doc: x]} | t]), do: format w, k, [{i + j, m, x} | t]
-  defp format(w, k, [{_, _, DocText[str: s]} | t]),            do: SText[str: s, sdoc: format w, (k + strlen s), t]
-  defp format(w, k, [{_, Flat, DocBreak[str: s]} | t]),        do: SText[str: s, sdoc: format w, (k + strlen s), t]
-  defp format(w, _, [{i, Break, DocBreak[str: _]} | t]),       do: SLine[indent: i, sdoc: format w, i, t]
-  defp format(w, k, [{i, _, DocGroup[doc: x]} | t]) do
+  def format(_, _, []),                                       do: SNil
+  def format(w, k, [{_, _, DocNil} | t]),                     do: format w, k, t
+  def format(w, k, [{i, m, DocCons[left: x, right: y]} | t]), do: format w, k, [{i, m, x} | [{i, m, y} | t]]
+  def format(w, k, [{i, m, DocNest[indent: j, doc: x]} | t]), do: format w, k, [{i + j, m, x} | t]
+  def format(w, k, [{_, _, DocText[str: s]} | t]),            do: SText[str: s, sdoc: format w, (k + strlen s), t]
+  def format(w, k, [{_, Flat, DocBreak[str: s]} | t]),        do: SText[str: s, sdoc: format w, (k + strlen s), t]
+  def format(w, _, [{i, Break, DocBreak[str: _]} | t]),       do: SLine[indent: i, sdoc: format w, i, t]
+  def format(w, k, [{i, _, DocGroup[doc: x]} | t]) do
     if fits? (w - k), [{i, Flat, x} | t] do
       format w, k, [{i, Flat, x} | t]
     else

@@ -55,7 +55,8 @@ defmodule Binary.Inspect.Utils do
       surround(
         first,
         do_container_join(list, opts, opts[:limit] || :infinity),
-        last
+        last,
+        opts[:sep] || ""
       ),
     5, opts)
   end
@@ -74,6 +75,7 @@ defmodule Binary.Inspect.Utils do
         Kernel.inspect(h, Keyword.put(opts, :as_doc, true)), 
         text(",")
       ),
+      "",
       do_container_join(t, opts, decrement(counter)
       ) 
     )
@@ -85,6 +87,7 @@ defmodule Binary.Inspect.Utils do
         Kernel.inspect(h, Keyword.put(opts, :as_doc, true)), 
         text("|")
       ),
+      "",
       Kernel.inspect(t, Keyword.put(opts, :as_doc, true))
     )
   end
@@ -324,11 +327,8 @@ defimpl Binary.Inspect, for: List do
         opts = inc_depth(opts)
         return(
           group_maybe(
-            surround(
-              "[",
-              join_keywords(thing, Keyword.put(opts, :as_doc, true)),
-              "]"
-            ), opts
+            surround("[",join_keywords(thing, Keyword.put(opts, :as_doc, true)),"]"),
+            opts
           ), opts
         )
       true ->
@@ -430,11 +430,7 @@ defimpl Binary.Inspect, for: Tuple do
     group_maybe(
       concat(
         namedoc, 
-        surround(
-          "[",
-          record_join(fields, tail, opts),
-          "]"
-        ),
+        surround("[", record_join(fields, tail, opts), "]", " "),
       ),
       opts
     )
@@ -442,7 +438,10 @@ defimpl Binary.Inspect, for: Tuple do
 
   defp record_join([f], [v], opts) do
     fbin = atom_to_binary(f, :utf8) <> ": "
-    concat(text(fbin), Kernel.inspect(v, Keyword.put(opts, :nest, String.length(fbin))))
+    concat(
+      text(fbin),
+      Kernel.inspect(v, Keyword.put(opts, :nest, String.length(fbin)))
+    )
   end
 
   defp record_join([fh|ft], [vh|vt], opts) do
