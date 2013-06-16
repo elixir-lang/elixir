@@ -28,7 +28,7 @@ defmodule Mix.LocalArchiveTest do
       assert_received { :mix_shell, :info, ["sample"] }
 
       # Try to remove it by task name!
-      assert_raise Mix.Error, "The task local.sample is part of archive test archive.ez", fn ->
+      assert_raise Mix.Error, %r"The task local.sample is part of archive test archive.ez", fn ->
         Mix.Tasks.Local.Uninstall.run ["local.sample"]
       end
       assert File.regular? tmp_path("userhome/.mix/tasks/test archive.ez")
