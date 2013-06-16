@@ -331,7 +331,7 @@ defmodule Wadler do
   """
   @spec render(sdoc) :: binary
   def render(sdoc) do
-    Enum.join do_render sdoc
+    iolist_to_binary do_render sdoc
   end
   
   @spec do_render(sdoc) :: [binary]
