@@ -239,7 +239,7 @@ defmodule Code do
 
   @doc """
   Loads the compilation options from the code server.
-  Check compiler_options/1 for more information.
+  Check `compiler_options/1` for more information.
   """
   def compiler_options do
     :elixir_code_server.call :compiler_options
@@ -251,13 +251,16 @@ defmodule Code do
 
   Available options are:
 
-  * `:docs`       - when true, retain documentation in the compiled module.
-                    True by default;
+  * `:docs` - when true, retain documentation in the compiled module.
+    True by default;
+
   * `:debug_info` - when true, retain debug information in the compiled module.
-                    This allows a developer to reconstruct the original source
-                    code, for such reasons, false by default;
+    This allows a developer to reconstruct the original source
+    code, for such reasons, false by default;
+
   * `:ignore_module_conflict` - when true, override modules that were already defined
-                                without raising errors, false by default;
+    without raising errors, false by default;
+
   * `:warnings_as_errors` - cause compilation to fail when warnings are spewed;
 
   """
