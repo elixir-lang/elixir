@@ -39,7 +39,7 @@ defmodule CodeTest do
 
   test :eval_quoted_with_env do
     alias :lists, as: MyList
-    assert Code.eval_quoted(quote(do: MyList.flatten [[1,2,3]]), [], __ENV__) == { [1,2,3],[] }
+    assert Code.eval_quoted(quote(do: MyList.flatten [[1, 2, 3]]), [], __ENV__) == { [1, 2, 3],[] }
   end
 
   test :require do

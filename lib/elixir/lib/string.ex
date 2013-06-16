@@ -146,7 +146,7 @@ defmodule String do
 
       iex> String.split("foo bar")
       ["foo", "bar"]
-      iex> String.split("foo" <> <<194,133>> <> "bar")
+      iex> String.split("foo" <> <<194, 133>> <> "bar")
       ["foo", "bar"]
       iex> String.split(" foo bar ")
       ["foo", "bar"]
@@ -383,7 +383,7 @@ defmodule String do
       "a,[b],c"
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: 2)
       "a[],b[],c"
-      iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1,1])
+      iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
 
   """
@@ -399,7 +399,7 @@ defmodule String do
     opts = if options[:global] != false, do: [:global], else: []
 
     if insert = options[:insert_replaced] do
-      opts = [{:insert_replaced,insert}|opts]
+      opts = [{:insert_replaced, insert}|opts]
     end
 
     opts
@@ -773,8 +773,8 @@ defmodule String do
       {34.0,""}
       iex> String.to_float("34.25")
       {34.25,""}
-	    iex> String.to_float("56.5xyz")
-	    {56.5,"xyz"}
+      iex> String.to_float("56.5xyz")
+      {56.5,"xyz"}
       iex> String.to_float("pi")
       :error
 
@@ -824,7 +824,7 @@ defmodule String do
   end
 
   defp do_starts_with(string, prefix) when is_binary(prefix) do
-    match?({0,_}, :binary.match(string, prefix))
+    match?({0, _}, :binary.match(string, prefix))
   end
 
   defp do_starts_with(_, _) do

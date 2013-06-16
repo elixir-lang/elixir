@@ -22,20 +22,20 @@ defmodule Mix.UtilsTest do
   test :config_merge do
     old = [
       foo: "hello",
-      bar: [1,2],
+      bar: [1, 2],
       baz: [some: "option"],
       bat: "man"
     ]
 
     new = [
       foo: "bye",
-      bar: [3,4],
+      bar: [3, 4],
       baz: [yet: "another"]
     ]
 
     assert Keyword.equal? Mix.Utils.config_merge(old, new), [
       foo: "bye",
-      bar: [1,2,3,4],
+      bar: [1, 2, 3, 4],
       baz: [some: "option", yet: "another"],
       bat: "man"
     ]

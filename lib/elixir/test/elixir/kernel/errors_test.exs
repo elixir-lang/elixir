@@ -255,7 +255,7 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_bc_return do
     assert_compile_fail SyntaxError, "nofile:1: a bit comprehension expects a bit string << >> to be returned",
-      'bc x inlist [1,2,3], do: x'
+      'bc x inlist [1, 2, 3], do: x'
   end
 
   test :invalid_bc_inbits_gen do
@@ -284,7 +284,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :bodyless_function do
-    assert {{:module, M, _, {:foo,1}}, [], _} =
+    assert {{:module, M, _, {:foo, 1}}, [], _} =
       :elixir.eval(to_char_list("defmodule M do\ndef foo(n)\nend"), [])
   end
 
@@ -309,22 +309,22 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :macros_error_stacktrace do
-    assert [{:erlang,:+,[1,:foo],_},{Foo,:sample,1,_}|_] =
+    assert [{:erlang, :+, [1, :foo], _}, {Foo, :sample, 1, _}|_] =
       rescue_stacktrace("defmodule Foo do\ndefmacro sample(num), do: num + :foo\ndef other, do: sample(1)\nend")
   end
 
   test :macros_function_clause_stacktrace do
-    assert [{__MODULE__,:sample,1,_}|_] =
+    assert [{__MODULE__, :sample, 1, _}|_] =
       rescue_stacktrace("defmodule Foo do\nimport Kernel.ErrorsTest\nsample(1)\nend")
   end
 
   test :macros_interpreted_function_clause_stacktrace do
-    assert [{Foo,:sample,1,_}|_] =
+    assert [{Foo, :sample, 1, _}|_] =
       rescue_stacktrace("defmodule Foo do\ndefmacro sample(0), do: 0\ndef other, do: sample(1)\nend")
   end
 
   test :macros_compiled_callback do
-    assert [{Kernel.ErrorsTest,:__before_compile__,[Macro.Env[module: Foo]],_}|_] =
+    assert [{Kernel.ErrorsTest, :__before_compile__, [Macro.Env[module: Foo]], _}|_] =
       rescue_stacktrace("defmodule Foo do\nModule.put_attribute(__MODULE__, :before_compile, Kernel.ErrorsTest)\nend")
   end
 

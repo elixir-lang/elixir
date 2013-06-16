@@ -390,11 +390,11 @@ defmodule Path do
 
   defp do_join(<<uc_letter, ?:, rest :: binary>>, relativename, [], :win32) when uc_letter in ?A..?Z, do:
     do_join(rest, relativename, [?:, uc_letter+?a-?A], :win32)
-  defp do_join(<<?\\,rest :: binary>>, relativename, result, :win32), do:
-    do_join(<<?/,rest :: binary>>, relativename, result, :win32)
-  defp do_join(<<?/,rest :: binary>>, relativename, [?., ?/|result], os_type), do:
+  defp do_join(<<?\\, rest :: binary>>, relativename, result, :win32), do:
+    do_join(<<?/, rest :: binary>>, relativename, result, :win32)
+  defp do_join(<<?/, rest :: binary>>, relativename, [?., ?/|result], os_type), do:
     do_join(rest, relativename, [?/|result], os_type)
-  defp do_join(<<?/,rest :: binary>>, relativename, [?/|result], os_type), do:
+  defp do_join(<<?/, rest :: binary>>, relativename, [?/|result], os_type), do:
     do_join(rest, relativename, [?/|result], os_type)
   defp do_join(<<>>, <<>>, result, os_type), do:
     list_to_binary(maybe_remove_dirsep(result, os_type))
@@ -404,7 +404,7 @@ defmodule Path do
     do_join(relativename, <<>>, [?/|result], os_type)
   defp do_join(<<>>, relativename, result, os_type), do:
     do_join(relativename, <<>>, [?/|result], os_type)
-  defp do_join(<<char,rest :: binary>>, relativename, result, os_type) when is_integer(char), do:
+  defp do_join(<<char, rest :: binary>>, relativename, result, os_type) when is_integer(char), do:
     do_join(rest, relativename, [char|result], os_type)
 
   defp maybe_remove_dirsep([?/, ?:, letter], :win32), do:

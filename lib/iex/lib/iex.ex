@@ -111,7 +111,7 @@ defmodule IEx do
       Erlang R16B (erts-5.10.1) [...]
 
       Interactive Elixir (0.9.1.dev) - press Ctrl+C to exit (type h() ENTER for help)
-      iex(1)> [1,2,3,4,5]
+      iex(1)> [1, 2, 3, 4, 5]
       [1,2,3,...]
 
   ## Expressions in IEx
@@ -239,7 +239,7 @@ defmodule IEx do
   defp ensure_module_exists(node, mod) do
     unless :rpc.call node, :code, :is_loaded, [mod] do
       { m, b, f } = :code.get_object_code mod
-      { :module, _ } = :rpc.call node, :code, :load_binary, [m,f,b]
+      { :module, _ } = :rpc.call node, :code, :load_binary, [m, f, b]
     end
   end
 

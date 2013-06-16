@@ -76,7 +76,7 @@ defmodule IO.ANSI do
   @doc "Sets primary (default) font"
   defsequence :primary_font, 10
 
-  lc font_n inlist [1,2,3,4,5,6,7,8,9] do
+  lc font_n inlist [1, 2, 3, 4, 5, 6, 7, 8, 9] do
     @doc "Sets alternative font #{font_n}"
     defsequence :"font_#{font_n}", font_n + 10
   end

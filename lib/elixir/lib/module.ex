@@ -695,7 +695,7 @@ defmodule Module do
     new =
       if :lists.member(key, acc) do
         case ETS.lookup(table, key) do
-          [{^key,old}] -> [value|old]
+          [{^key, old}] -> [value|old]
           [] -> [value]
         end
       else
@@ -727,7 +727,7 @@ defmodule Module do
     table = data_table_for(module)
 
     case ETS.lookup(table, key) do
-      [{^key,old}] -> old
+      [{^key, old}] -> old
       [] ->
         acc = ETS.lookup_element(table, :__acc_attributes, 2)
         if :lists.member(key, acc), do: [], else: nil
@@ -851,7 +851,7 @@ defmodule Module do
 
     new =
       case ETS.lookup(table, key) do
-        [{^key,old}] -> [value|old]
+        [{^key, old}] -> [value|old]
         [] -> [value]
       end
 

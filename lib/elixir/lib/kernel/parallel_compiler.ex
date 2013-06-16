@@ -76,7 +76,7 @@ defmodule Kernel.ParallelCompiler do
       end
     end
 
-    spawn_compilers(t, output, callback, waiting, [{child,h}|queued], schedulers, result)
+    spawn_compilers(t, output, callback, waiting, [{child, h}|queued], schedulers, result)
   end
 
   # No more files, nothing waiting, queue is empty, we are done

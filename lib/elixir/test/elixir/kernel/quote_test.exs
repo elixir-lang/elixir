@@ -12,30 +12,30 @@ defmodule Kernel.QuoteTest do
   end
 
   test :list do
-    assert quote(do: [1,2,3]) == [1,2,3]
+    assert quote(do: [1, 2, 3]) == [1, 2, 3]
   end
 
   test :tuple do
-    assert quote(do: { :a, 1 }) == {:a,1}
+    assert quote(do: { :a, 1 }) == {:a, 1}
   end
 
   test :keep_line do
     ## DO NOT MOVE THIS LINE
-    assert quote(line: :keep, do: bar(1,2,3)) == { :bar, [line: 24], [1,2,3] }
+    assert quote(line: :keep, do: bar(1, 2, 3)) == { :bar, [line: 24], [1, 2, 3] }
   end
 
   test :fixed_line do
-    assert quote(line: 3, do: bar(1,2,3)) == { :bar, [line: 3], [1,2,3] }
+    assert quote(line: 3, do: bar(1, 2, 3)) == { :bar, [line: 3], [1, 2, 3] }
   end
 
   test :keep_location do
     ## DO NOT MOVE THIS LINE
-    assert quote(location: :keep, do: bar(1,2,3)) == {
+    assert quote(location: :keep, do: bar(1, 2, 3)) == {
       :__scope__,
       [line: 33],
       [
         [file: __FILE__],
-        [do: { :bar, [line: 33], [1,2,3] }]
+        [do: { :bar, [line: 33], [1, 2, 3] }]
       ]
     }
   end
@@ -43,7 +43,7 @@ defmodule Kernel.QuoteTest do
   test :quote_line_var do
     ## DO NOT MOVE THIS LINE
     line = __ENV__.line
-    assert quote(line: line, do: bar(1,2,3)) == { :bar, [line: 45], [1,2,3] }
+    assert quote(line: line, do: bar(1, 2, 3)) == { :bar, [line: 45], [1, 2, 3] }
   end
 
   test :unquote_call do
@@ -99,28 +99,28 @@ defmodule Kernel.QuoteTest do
 
   test :splice_on_pipe do
     contents = [1, 2, 3]
-    assert quote(do: [unquote_splicing(contents)|[1,2,3]]) == [1,2,3,1,2,3]
+    assert quote(do: [unquote_splicing(contents)|[1, 2, 3]]) == [1, 2, 3, 1, 2, 3]
   end
 
   test :splice_on_stab do
     { fun, [] } =
-      Code.eval_quoted(quote(do: fn(unquote_splicing([1,2,3])) -> :ok end), [])
-    assert fun.(1,2,3) == :ok
+      Code.eval_quoted(quote(do: fn(unquote_splicing([1, 2, 3])) -> :ok end), [])
+    assert fun.(1, 2, 3) == :ok
 
     { fun, [] } =
-      Code.eval_quoted(quote(do: fn(1, unquote_splicing([2,3])) -> :ok end), [])
-    assert fun.(1,2,3) == :ok
+      Code.eval_quoted(quote(do: fn(1, unquote_splicing([2, 3])) -> :ok end), [])
+    assert fun.(1, 2, 3) == :ok
   end
 
   test :stab do
-    assert { :->, _, [{[],_}] } = (quote do -> end)
-    assert { :->, _, [{[],_}] } = (quote do: (->))
+    assert { :->, _, [{[], _}] } = (quote do -> end)
+    assert { :->, _, [{[], _}] } = (quote do: (->))
 
-    assert { :->, _, [{[1],_}] } = (quote do 1 -> end)
-    assert { :->, _, [{[1],_}] } = (quote do: (1 ->))
+    assert { :->, _, [{[1], _}] } = (quote do 1 -> end)
+    assert { :->, _, [{[1], _}] } = (quote do: (1 ->))
 
-    assert { :->, _, [{[],1}] } = (quote do -> 1 end)
-    assert { :->, _, [{[],1}] } = (quote do: (-> 1))
+    assert { :->, _, [{[], 1}] } = (quote do -> 1 end)
+    assert { :->, _, [{[], 1}] } = (quote do: (-> 1))
   end
 
   defmacrop dynamic_opts do
@@ -128,7 +128,7 @@ defmodule Kernel.QuoteTest do
   end
 
   test :quote_with_dynamic_opts do
-    assert quote(dynamic_opts, do: bar(1,2,3)) == { :bar, [line: 3], [1,2,3] }
+    assert quote(dynamic_opts, do: bar(1, 2, 3)) == { :bar, [line: 3], [1, 2, 3] }
   end
 end
 

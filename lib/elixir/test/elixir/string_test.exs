@@ -22,7 +22,7 @@ defmodule StringTest do
     assert String.split(" foo bar ") == ["foo", "bar"]
     assert String.split("foo\t\n\v\f\r\sbar\n") == ["foo", "bar"]
     assert String.split("foo" <> <<31>> <> "bar") == ["foo", "bar"]
-    assert String.split("foo" <> <<194,133>> <> "bar") == ["foo", "bar"]
+    assert String.split("foo" <> <<194, 133>> <> "bar") == ["foo", "bar"]
 
     assert String.split("a,b,c", ",") == ["a", "b", "c"]
     assert String.split("a,b", ".") == ["a,b"]
@@ -94,7 +94,7 @@ defmodule StringTest do
     assert String.rstrip("a  abc  a\n\n") == "a  abc  a"
     assert String.rstrip("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
     assert String.rstrip("a  abc  a " <> <<31>>) == "a  abc  a"
-    assert String.rstrip("a  abc  a" <> <<194,133>>) == "a  abc  a"
+    assert String.rstrip("a  abc  a" <> <<194, 133>>) == "a  abc  a"
     assert String.rstrip("   abc aa", ?a) == "   abc "
     assert String.rstrip("   abc __", ?_) == "   abc "
   end
@@ -106,7 +106,7 @@ defmodule StringTest do
     assert String.lstrip("\n\na  abc  a") == "a  abc  a"
     assert String.lstrip("\t\n\v\f\r\sa  abc  a") == "a  abc  a"
     assert String.lstrip(<<31>> <> " a  abc  a") == "a  abc  a"
-    assert String.lstrip(<<194,133>> <> "a  abc  a") == "a  abc  a"
+    assert String.lstrip(<<194, 133>> <> "a  abc  a") == "a  abc  a"
     assert String.lstrip("__  abc  _", ?_) == "  abc  _"
   end
 
@@ -120,14 +120,14 @@ defmodule StringTest do
 
   test :replace do
     assert String.replace("a,b,c", ",", "-") == "a-b-c"
-    assert String.replace("a,b,c", [",","b"], "-") == "a---c"
+    assert String.replace("a,b,c", [",", "b"], "-") == "a---c"
 
     assert String.replace("a,b,c", ",", "-", global: false) == "a-b,c"
     assert String.replace("a,b,c", [",", "b"], "-", global: false) == "a-b,c"
     assert String.replace("ãéã", "é", "e", global: false) == "ãeã"
 
     assert String.replace("a,b,c", ",", "[]", insert_replaced: 2) == "a[],b[],c"
-    assert String.replace("a,b,c", ",", "[]", insert_replaced: [1,1]) == "a[,,]b[,,]c"
+    assert String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1]) == "a[,,]b[,,]c"
     assert String.replace("a,b,c", "b", "[]", insert_replaced: 1, global: false) == "a,[b],c"
   end
 
@@ -138,30 +138,30 @@ defmodule StringTest do
   end
 
   test :codepoints do
-    assert String.codepoints("elixir") == ["e","l","i","x","i","r"]
-    assert String.codepoints("elixír") == ["e","l","i","x","í","r"] # slovak
-    assert String.codepoints("ոգելից ըմպելիք") == ["ո","գ","ե","լ","ի","ց"," ","ը","մ","պ","ե","լ","ի","ք"] # armenian
-    assert String.codepoints("эліксір") == ["э","л","і","к","с","і","р"] # belarussian
-    assert String.codepoints("ελιξήριο") == ["ε","λ","ι","ξ","ή","ρ","ι","ο"] # greek
-    assert String.codepoints("סם חיים") == ["ס","ם"," ","ח","י","י","ם"] # hebraic
-    assert String.codepoints("अमृत") == ["अ","म","ृ","त"] # hindi
-    assert String.codepoints("স্পর্শমণি") == ["স","্","প","র","্","শ","ম","ণ","ি"] # bengali
-    assert String.codepoints("સર્વશ્રેષ્ઠ ઇલાજ") == ["સ","ર","્","વ","શ","્","ર","ે","ષ","્","ઠ"," ","ઇ","લ","ા","જ"] # gujarati
-    assert String.codepoints("世界中の一番") == ["世","界","中", "の", "一", "番"] # japanese
+    assert String.codepoints("elixir") == ["e", "l", "i", "x", "i", "r"]
+    assert String.codepoints("elixír") == ["e", "l", "i", "x", "í", "r"] # slovak
+    assert String.codepoints("ոգելից ըմպելիք") == ["ո", "գ", "ե", "լ", "ի", "ց", " ", "ը", "մ", "պ", "ե", "լ", "ի", "ք"] # armenian
+    assert String.codepoints("эліксір") == ["э", "л", "і", "к", "с", "і", "р"] # belarussian
+    assert String.codepoints("ελιξήριο") == ["ε", "λ", "ι", "ξ", "ή", "ρ", "ι", "ο"] # greek
+    assert String.codepoints("סם חיים") == ["ס", "ם", " ", "ח", "י", "י", "ם"] # hebraic
+    assert String.codepoints("अमृत") == ["अ", "म", "ृ", "त"] # hindi
+    assert String.codepoints("স্পর্শমণি") == ["স", "্", "প", "র", "্", "শ", "ম", "ণ", "ি"] # bengali
+    assert String.codepoints("સર્વશ્રેષ્ઠ ઇલાજ") == ["સ", "ર", "્", "વ", "શ", "્", "ર", "ે", "ષ", "્", "ઠ", " ", "ઇ", "લ", "ા", "જ"] # gujarati
+    assert String.codepoints("世界中の一番") == ["世", "界", "中", "の", "一", "番"] # japanese
     assert String.codepoints("がガちゃ") == ["が", "ガ", "ち", "ゃ"]
     assert String.codepoints("") == []
   end
 
   test :mixed_codepoints do
-    assert String.codepoints("ϖͲϥЫݎߟΈټϘለДШव׆ש؇؊صلټܗݎޥޘ߉ऌ૫ሏᶆ℆ℙℱ ⅚Ⅷ↠∈⌘①ﬃ") == ["ϖ","Ͳ","ϥ","Ы","ݎ","ߟ","Έ","ټ","Ϙ","ለ","Д","Ш","व","׆","ש","؇","؊","ص","ل","ټ","ܗ","ݎ","ޥ","ޘ","߉","ऌ","૫","ሏ","ᶆ","℆","ℙ","ℱ"," ","⅚","Ⅷ","↠","∈","⌘","①","ﬃ"]
+    assert String.codepoints("ϖͲϥЫݎߟΈټϘለДШव׆ש؇؊صلټܗݎޥޘ߉ऌ૫ሏᶆ℆ℙℱ ⅚Ⅷ↠∈⌘①ﬃ") == ["ϖ", "Ͳ", "ϥ", "Ы", "ݎ", "ߟ", "Έ", "ټ", "Ϙ", "ለ", "Д", "Ш", "व", "׆", "ש", "؇", "؊", "ص", "ل", "ټ", "ܗ", "ݎ", "ޥ", "ޘ", "߉", "ऌ", "૫", "ሏ", "ᶆ", "℆", "ℙ", "ℱ", " ", "⅚", "Ⅷ", "↠", "∈", "⌘", "①", "ﬃ"]
   end
 
   test :graphemes do
-    assert String.graphemes("Ā̀stute") == ["Ā̀","s","t","u","t","e"]
+    assert String.graphemes("Ā̀stute") == ["Ā̀", "s", "t", "u", "t", "e"]
   end
 
   test :next_grapheme do
-    assert String.next_grapheme("Ā̀stute") == {"Ā̀","stute"}
+    assert String.next_grapheme("Ā̀stute") == {"Ā̀", "stute"}
     assert String.next_grapheme("") == :no_grapheme
   end
 
@@ -210,7 +210,7 @@ defmodule StringTest do
     assert String.at("がガちゃ", -2) == "ち"
     assert String.at("л", -3) == nil
     assert String.at("Ā̀stute", 1) == "s"
-    assert String.at("elixir",6) == nil
+    assert String.at("elixir", 6) == nil
   end
 
   test :slice do
@@ -262,25 +262,25 @@ defmodule StringTest do
   end
 
   test :to_integer do
-    assert String.to_integer("12") === {12,""}
-    assert String.to_integer("-12") === {-12,""}
-    assert String.to_integer("123456789") === {123456789,""}
-    assert String.to_integer("12.5") === {12,".5"}
-    assert String.to_integer("7.5e-3") === {7,".5e-3"}
-    assert String.to_integer("12x") === {12,"x"}
+    assert String.to_integer("12") === {12, ""}
+    assert String.to_integer("-12") === {-12, ""}
+    assert String.to_integer("123456789") === {123456789, ""}
+    assert String.to_integer("12.5") === {12, ".5"}
+    assert String.to_integer("7.5e-3") === {7, ".5e-3"}
+    assert String.to_integer("12x") === {12, "x"}
     assert String.to_integer("three") === :error
   end
 
   test :to_float do
-    assert String.to_float("12") === {12.0,""}
-    assert String.to_float("-12") === {-12.0,""}
-    assert String.to_float("123456789") === {123456789.0,""}
-    assert String.to_float("12.5") === {12.5,""}
-    assert String.to_float("-12.5") === {-12.5,""}
-    assert String.to_float("7.5e3") === {7.5e3,""}
-    assert String.to_float("7.5e-3") === {7.5e-3,""}
-    assert String.to_float("12x") === {12.0,"x"}
-    assert String.to_float("12.5x") === {12.5,"x"}
+    assert String.to_float("12") === {12.0, ""}
+    assert String.to_float("-12") === {-12.0, ""}
+    assert String.to_float("123456789") === {123456789.0, ""}
+    assert String.to_float("12.5") === {12.5, ""}
+    assert String.to_float("-12.5") === {-12.5, ""}
+    assert String.to_float("7.5e3") === {7.5e3, ""}
+    assert String.to_float("7.5e-3") === {7.5e-3, ""}
+    assert String.to_float("12x") === {12.0, "x"}
+    assert String.to_float("12.5x") === {12.5, "x"}
     assert String.to_float("pi") === :error
   end
 

@@ -20,8 +20,8 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize('<%%' ++ t, current_line, line, buffer, acc) do
-    { buffer, new_line, rest } = tokenize_expr t, line, [?%,?<|buffer]
-    tokenize rest, current_line, new_line, [?>,?%|buffer], acc
+    { buffer, new_line, rest } = tokenize_expr t, line, [?%, ?<|buffer]
+    tokenize rest, current_line, new_line, [?>, ?%|buffer], acc
   end
 
   defp tokenize('<%#' ++ t, current_line, line, buffer, acc) do
@@ -63,7 +63,7 @@ defmodule EEx.Tokenizer do
 
   # Tokenize an expression until we find %>
 
-  defp tokenize_expr([?%,?>|t], line, buffer) do
+  defp tokenize_expr([?%, ?>|t], line, buffer) do
     { buffer, line, t }
   end
 

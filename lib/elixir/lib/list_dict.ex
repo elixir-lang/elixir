@@ -109,7 +109,7 @@ defmodule ListDict do
   def put_new(dict, key, val) do
     case :lists.keyfind(key, 1, dict) do
       { ^key, _ } -> dict
-      false -> [{key,val}|dict]
+      false -> [{key, val}|dict]
     end
   end
 
@@ -135,9 +135,9 @@ defmodule ListDict do
     acc = { new(), new() }
     Enum.reduce dict, acc, fn({ k, v }, { take, drop }) ->
       if :lists.member(k, keys) do
-        { [{k,v}|take], drop }
+        { [{k, v}|take], drop }
       else
-        { take, [{k,v}|drop] }
+        { take, [{k, v}|drop] }
       end
     end
   end

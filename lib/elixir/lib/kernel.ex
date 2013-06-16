@@ -121,7 +121,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> [1] ++ [2,3]
+      iex> [1] ++ [2, 3]
       [1,2,3]
 
       iex> 'foo' ++ 'bar'
@@ -138,10 +138,10 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> [1,2,3] -- [1,2]
+      iex> [1, 2, 3] -- [1, 2]
       [3]
 
-      iex> [1,2,3,2,1] -- [1,2,2]
+      iex> [1, 2, 3, 2, 1] -- [1, 2, 2]
       [3,1]
 
   """
@@ -211,7 +211,7 @@ defmodule Kernel do
 
       iex> !1
       false
-      iex> ![1,2,3]
+      iex> ![1, 2, 3]
       false
       iex> !false
       true
@@ -372,7 +372,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> apply(Enum, :reverse, [[1,2,3]])
+      iex> apply(Enum, :reverse, [[1, 2, 3]])
       [3,2,1]
 
   """
@@ -545,9 +545,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> bit_size(<<433::16,3::3>>)
+      iex> bit_size(<<433::16, 3::3>>)
       19
-      iex> bit_size(<<1,2,3>>)
+      iex> bit_size(<<1, 2, 3>>)
       24
 
   """
@@ -575,9 +575,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> byte_size(<<433::16,3::3>>)
+      iex> byte_size(<<433::16, 3::3>>)
       3
-      iex> byte_size(<<1,2,3>>)
+      iex> byte_size(<<1, 2, 3>>)
       3
 
   """
@@ -666,7 +666,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> iolist_size([1,2|<<3,4>>])
+      iex> iolist_size([1, 2|<<3, 4>>])
       4
 
   """
@@ -680,10 +680,10 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> bin1 = <<1,2,3>>
-      ...> bin2 = <<4,5>>
+      iex> bin1 = <<1, 2, 3>>
+      ...> bin2 = <<4, 5>>
       ...> bin3 = <<6>>
-      ...> iolist_to_binary([bin1,1,[2,3,bin2],4|bin3])
+      ...> iolist_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
       <<1,2,3,1,2,3,4,5,4,6>>
 
   """
@@ -853,7 +853,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> length([1,2,3,4,5,6,7,8,9])
+      iex> length([1, 2, 3, 4, 5, 6, 7, 8, 9])
       9
   """
   @spec length(list) :: non_neg_integer
@@ -893,10 +893,10 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> bin1 = <<1,2,3>>
-      ...> bin2 = <<4,5>>
-      ...> bin3 = <<6,7::4>>
-      ...> list_to_bitstring([bin1,1,[2,3,bin2],4|bin3])
+      iex> bin1 = <<1, 2, 3>>
+      ...> bin2 = <<4, 5>>
+      ...> bin3 = <<6, 7::4>>
+      ...> list_to_bitstring([bin1, 1, [2, 3, bin2], 4|bin3])
       <<1,2,3,1,2,3,4,5,4,6,7::size(4)>>
 
   """
@@ -1136,7 +1136,7 @@ defmodule Kernel do
 
   ## Examples
 
-      spawn(SomeModule, :function, [1,2,3])
+      spawn(SomeModule, :function, [1, 2, 3])
 
   """
   @spec spawn(module, atom, list) :: pid
@@ -1174,7 +1174,7 @@ defmodule Kernel do
 
   ## Examples
 
-      spawn_link(SomeModule, :function, [1,2,3])
+      spawn_link(SomeModule, :function, [1, 2, 3])
 
   """
   @spec spawn_link(module, atom, list) :: pid
@@ -1887,7 +1887,7 @@ defmodule Kernel do
       iex> inspect(:foo)
       ":foo"
 
-      iex> inspect [1,2,3,4,5], limit: 3
+      iex> inspect [1, 2, 3, 4, 5], limit: 3
       "[1,2,3,...]"
 
       inspect(ArgumentError[])
@@ -2076,17 +2076,17 @@ defmodule Kernel do
       true
       iex> match?(1, 2)
       false
-      iex> match?({1,_}, {1,2})
+      iex> match?({1, _}, {1, 2})
       true
 
   Match can also be used to filter or find a value in an enumerable:
 
-      list = [{:a,1},{:b,2},{:a,3}]
+      list = [{:a, 1}, {:b, 2}, {:a, 3}]
       Enum.filter list, match?({:a, _}, _)
 
   Guard clauses can also be given to the match:
 
-      list = [{:a,1},{:b,2},{:a,3}]
+      list = [{:a, 1}, {:b, 2}, {:a, 3}]
       Enum.filter list, match?({:a, x } when x < 2, &1)
 
   """
@@ -2156,7 +2156,7 @@ defmodule Kernel do
   In order to reduce verbosity, functions in Elixir can be written
   using a shortcut syntax via `fn`:
 
-      Enum.map [1,2,3], fn x ->
+      Enum.map [1, 2, 3], fn x ->
         x * 2
       end
 
@@ -2164,25 +2164,25 @@ defmodule Kernel do
   `do/end` always matches the furthest call, if we used the `function`
   macro as below:
 
-      Enum.map [1,2,3], function do
+      Enum.map [1, 2, 3], function do
         x -> x * 2
       end
 
   It would be parsed as:
 
-      Enum.map([1,2,3], function) do
+      Enum.map([1, 2, 3], function) do
         x -> x * 2
       end
 
   The stab shortcut syntax has the proper precedence:
 
-      Enum.map [1,2,3], fn
+      Enum.map [1, 2, 3], fn
         x -> x * 2
       end
 
   Which is handled as:
 
-      Enum.map([1,2,3], fn
+      Enum.map([1, 2, 3], fn
         x -> x * 2
       end)
 
@@ -2550,7 +2550,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> destructure([x,y,z], [1,2,3,4,5])
+      iex> destructure([x, y, z], [1, 2, 3, 4, 5])
       ...> {x, y, z}
       {1, 2, 3}
 
@@ -2559,7 +2559,7 @@ defmodule Kernel do
   fine. If the right size is smaller, the remaining items
   are simply assigned to nil:
 
-      iex> destructure([x,y,z], [1])
+      iex> destructure([x, y, z], [1])
       ...> {x, y, z}
       {1, nil, nil}
 
@@ -2567,7 +2567,7 @@ defmodule Kernel do
   on the left side of a match:
 
       x = 1
-      destructure([^x,y,z], [1,2,3])
+      destructure([^x, y, z], [1, 2, 3])
 
   The example above will only work if x matches
   the first value from the right side. Otherwise,
@@ -2868,7 +2868,7 @@ defmodule Kernel do
   ## Examples
 
       iex> x = 1
-      ...> x in [1,2,3]
+      ...> x in [1, 2, 3]
       true
 
   This macro simply translates the expression above to:
@@ -2884,14 +2884,14 @@ defmodule Kernel do
   optionally omit the variable declaration, for example:
 
       case 3 do
-        x when x in [1,2] -> x * 2
+        x when x in [1, 2] -> x * 2
         _ -> 0
       end
 
   Could be rewritten as:
 
       case 3 do
-        x in [1,2] -> x * 2
+        x in [1, 2] -> x * 2
         _ -> 0
       end
 
@@ -2908,12 +2908,12 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> [1,[2],3] |> List.flatten |> Enum.map(&1 * 2)
+      iex> [1, [2], 3] |> List.flatten |> Enum.map(&1 * 2)
       [2,4,6]
 
   The expression above is simply translated to:
 
-      Enum.map(List.flatten([1,[2],3]), &1 * 2)
+      Enum.map(List.flatten([1, [2], 3]), &1 * 2)
 
   Be aware of operator precendence when using this operator.
   For example, the following expression:
@@ -2960,7 +2960,7 @@ defmodule Kernel do
   end
 
   defp validate_pipeline_args([]), do: nil
-  defp validate_pipeline_args([ {:&,_,_ } | _ ]), do: :error
+  defp validate_pipeline_args([ {:&, _, _ } | _ ]), do: :error
   defp validate_pipeline_args([_|t]) do
     validate_pipeline_args(t)
   end
@@ -3209,10 +3209,10 @@ defmodule Kernel do
         defdelegate other_reverse(list), to: :lists, as: :reverse
       end
 
-      MyList.reverse([1,2,3])
+      MyList.reverse([1, 2, 3])
       #=> [3,2,1]
 
-      MyList.other_reverse([1,2,3])
+      MyList.other_reverse([1, 2, 3])
       #=> [3,2,1]
 
   """

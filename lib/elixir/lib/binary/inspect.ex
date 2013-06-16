@@ -314,7 +314,7 @@ defimpl Binary.Inspect, for: Tuple do
 
   ## Examples
 
-      iex> inspect({1,2,3})
+      iex> inspect({1, 2, 3})
       "{1,2,3}"
       iex> inspect(ArgumentError.new)
       "ArgumentError[message: \\\"argument error\\\"]"

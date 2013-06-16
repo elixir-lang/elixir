@@ -41,8 +41,8 @@ defmodule HashDictTest do
   test :equal? do
     assert HashDict.equal?(filled_dict(3), filled_dict(3)) == true
 
-    assert HashDict.equal?(HashDict.new([{:a,1},{:b,2}]),
-                           HashDict.new([{:a,2},{:b,3}])) == false
+    assert HashDict.equal?(HashDict.new([{:a, 1}, {:b, 2}]),
+                           HashDict.new([{:a, 2}, {:b, 3}])) == false
   end
 
   test :has_key? do
@@ -162,7 +162,7 @@ defmodule HashDictTest do
     assert Enum.member?(dict, { 5, 5 })
     refute Enum.member?(dict, { 5, 8 })
     assert Enum.count(dict) == 10
-    assert Enum.map(filled_dict(3), fn({ k, v }) -> k + v end) == [2,4,6]
+    assert Enum.map(filled_dict(3), fn({ k, v }) -> k + v end) == [2, 4, 6]
   end
 
   test :access do

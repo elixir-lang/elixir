@@ -29,7 +29,7 @@ defmodule Kernel.ClausesTest do
     assert with_in(0, :it_fails)  == false
   end
 
-  defp with_in(x in [1,2,3], other) when is_atom(other), do: other
+  defp with_in(x in [1, 2, 3], other) when is_atom(other), do: other
   defp with_in(_, _), do: false
 
   test :clauses_without_implementation_can_have_default_args do
