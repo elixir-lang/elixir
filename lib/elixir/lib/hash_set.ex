@@ -206,7 +206,7 @@ defmodule HashSet do
     set_intersect(set2, set1)
   end
 
-  defp set_intersect(trie(root: root, depth: depth, size: size) = set1, set2) do
+  defp set_intersect(trie() = set1, set2) do
     set_fold set2, ordered(), fn m, acc ->
       if member?(set1, m) do
         put acc, m
@@ -221,7 +221,7 @@ defmodule HashSet do
     ordered(bucket: new, size: size - count)
   end
 
-  defp set_difference(trie(size: size1) = set1, set2) do
+  defp set_difference(trie() = set1, set2) do
     set_fold set2, set1, fn m, acc ->
       delete(acc, m)
     end
@@ -272,7 +272,7 @@ defmodule HashSet do
     case node_delete(root, depth, pos, member) do
       { _, value, 0 } ->
         { set, value, 0 }
-      { root, value, -1 } ->
+      { root, _, -1 } ->
         { if depth > 0 and trie(set, :contract_on) == size do
           root = node_contract(root, depth)
           trie(set,
@@ -358,7 +358,7 @@ defmodule HashSet do
     bucket_difference(bucket1, bucket2)
   end
 
-  defp bucket_difference([], bucket) do
+  defp bucket_difference([], _bucket) do
     { [], 0 }
   end
 
@@ -406,7 +406,7 @@ defmodule HashSet do
     { [], nil, 0 }
   end
 
-  defp bucket_get([member|bucket], member) do
+  defp bucket_get([member|_], member) do
     member
   end
 
@@ -414,7 +414,7 @@ defmodule HashSet do
     bucket_get(bucket, candidate)
   end
 
-  defp bucket_get(_, member) do
+  defp bucket_get(_, _member) do
     nil
   end
 
@@ -536,7 +536,6 @@ end
 defimpl Enumerable, for: HashSet do
   def reduce(set, acc, fun), do: HashSet.reduce(set, acc, fun)
   def member?(set, v),       do: HashSet.member?(set, v)
-  def member?(_set, _),      do: false
   def count(set),            do: HashSet.size(set)
 end
 
