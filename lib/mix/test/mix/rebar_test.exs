@@ -21,6 +21,12 @@ defmodule Mix.RebarTest do
     assert config[:SCRIPT] == 'rebar.config.script'
   end
 
+  test "execute rebar.config.script on dependecy directory" do
+    path = MixTest.Case.fixture_path("rebar_dep_script")
+    config = Mix.Rebar.load_config(path)
+    assert config[:dir] == {:ok, binary_to_list(path)}
+  end
+
   test "rebar sub_dirs" do
     path = MixTest.Case.fixture_path("rebar_dep")
     assert Mix.Rebar.recur(path, fn _ -> File.cwd end)
