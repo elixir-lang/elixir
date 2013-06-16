@@ -128,14 +128,17 @@ defmodule Mix.Rebar do
     end
   end
 
-  defp eval_script(path, config) do
-    script = Path.basename(path) |> binary_to_list
-    case :file.script(path, eval_binds(CONFIG: config, SCRIPT: script)) do
+  defp eval_script(script_path, config) do
+    script = Path.basename(script_path) |> binary_to_list
+    result = File.cd!(Path.dirname(script_path), fn ->
+      :file.script(script, eval_binds(CONFIG: config, SCRIPT: script))
+    end)
+    case result do
       { :ok, config } ->
         config
       { :error, error } ->
         reason = :file.format_error(error)
-        raise Mix.Error, message: "Error evaluating rebar config script #{path}: #{reason}"
+        raise Mix.Error, message: "Error evaluating rebar config script #{script_path}: #{reason}"
     end
   end
 
