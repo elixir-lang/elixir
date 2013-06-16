@@ -325,8 +325,8 @@ rewrite_case_clauses(Clauses) ->
   Clauses.
 
 %% defmodule :foo
-expand_module(Raw, Module, #elixir_scope{module=Nesting}) when is_atom(Raw); Nesting == nil ->
-  Module;
+expand_module(Raw, _Module, _S) when is_atom(Raw) ->
+  Raw;
 
 %% defmodule Hello
 expand_module({ '__aliases__', _, [H] }, _Module, S) ->

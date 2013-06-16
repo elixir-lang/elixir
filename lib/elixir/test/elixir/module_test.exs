@@ -195,6 +195,12 @@ defmodule ModuleTest do
     end)
   end
 
+  test :defmodule_with_atom do
+    assert match?({ :module, :root_defmodule, _, _ }, defmodule :root_defmodule do
+      :ok
+    end)
+  end
+
   test :create do
     contents =
       quote do
