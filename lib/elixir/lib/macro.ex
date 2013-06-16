@@ -362,21 +362,20 @@ defmodule Macro do
   In case the expression cannot be expanded, it returns the expression itself.
 
   Notice that `Macro.expand` is not recursive and it does not
-  expand child expressions. In this example
+  expand child expressions. In this example:
 
-    Macro.expand(quote(do: !some_macro), __ENV__)
+    Macro.expand(quote(do: var && some_macro), __ENV__)
 
-  `!some_macro` will expand to something like:
+  `var && some_macro` will expand to something like:
 
-      case some_macro do
-        false -> true
-        nil   -> true
-        _     -> false
+      case var do
+        _ in [false, nil] -> var
+        _ -> some_macro
       end
 
-  Notice that the `!` operator is a macro that expands to a case.
+  Notice that the `&&` operator is a macro that expands to a case.
   Even though `some_macro` is also a macro, it is not expanded
-  because it is a child expression given to `!` as argument.
+  because it is a child expression given to `&&` as argument.
 
   ## Examples
 
