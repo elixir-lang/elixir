@@ -183,6 +183,10 @@ defmodule ModuleTest do
     assert Module.to_binary(Hello.World) == "Hello.World"
   end
 
+  test :__MODULE__ do
+    assert Code.eval_string("__MODULE__.Foo") |> elem(0) == Foo
+  end
+
   ## Creation
 
   test :defmodule do

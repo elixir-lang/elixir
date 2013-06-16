@@ -134,6 +134,7 @@ concat(Args) -> list_to_atom(raw_concat(Args)).
 safe_concat(Args) -> list_to_existing_atom(raw_concat(Args)).
 
 raw_concat(['Elixir'|Args]) -> do_concat(Args);
+raw_concat([nil|Args])      -> do_concat(Args);
 raw_concat(Args)            -> do_concat(Args).
 
 do_concat(Args) ->
