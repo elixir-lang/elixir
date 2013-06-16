@@ -2,6 +2,7 @@ Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Mix.ShellTest do
   use MixTest.Case
+  import ExUnit.CaptureIO
 
   test "shell process" do
     Mix.shell.info "abc"
@@ -18,10 +19,7 @@ defmodule Mix.ShellTest do
   end
 
   test "shell io" do
-    import ExUnit.CaptureIO
-
-    Mix.shell(Mix.Shell.IO)
-    assert Mix.shell == Mix.Shell.IO
+    Mix.shell Mix.Shell.IO
 
     assert capture_io(fn -> Mix.shell.info "abc" end) ==
            "abc\n"
@@ -33,12 +31,18 @@ defmodule Mix.ShellTest do
 
     assert capture_io(fn -> assert Mix.shell.cmd("echo first") == 0 end) ==
            "first\n"
-  after
-    Mix.shell(Mix.Shell.Process)
   end
 
-  test "shell cmd" do
-    assert Mix.shell.cmd("echo first && echo second") == 0
-    assert_received { :mix_shell, :run, ["first\nsecond\n"] }
+  test "shell cmd supports expressions" do
+    Mix.shell Mix.Shell.IO
+
+    assert capture_io(fn ->
+      assert Mix.shell.cmd("echo first && echo second") == 0
+    end) == "first\nsecond\n"
+  end
+
+  teardown do
+    Mix.shell(Mix.Shell.Process)
+    :ok
   end
 end
