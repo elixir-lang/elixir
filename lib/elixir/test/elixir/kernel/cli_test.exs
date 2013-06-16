@@ -80,18 +80,27 @@ defmodule Kernel.CLI.CompileTest do
       'Compiled #{fixture}\n'
     assert File.regular?(tmp_path "Elixir.CompileSample.beam")
   end
+
+  test :possible_deadlock do
+    output = elixirc('#{fixture_path("parallel_deadlock")} -o #{tmp_path}')
+    foo = '* #{fixture_path "parallel_deadlock/foo.ex"} is missing module Bar'
+    bar = '* #{fixture_path "parallel_deadlock/bar.ex"} is missing module Foo'
+    assert :string.str(output, foo) > 0, "expected foo.ex to miss module Bar"
+    assert :string.str(output, bar) > 0, "expected bar.ex to miss module Foo"
+  end
 end
 
 defmodule Kernel.CLI.ParallelCompilerTest do
-  use ExUnit.Case, async: true
-
+  use ExUnit.Case
   import PathHelpers
   import ExUnit.CaptureIO
 
   test :files do
-    fixtures = [fixture_path("compile_sample.ex")]
-    assert [{ CompileSample, binary }] = Kernel.ParallelCompiler.files fixtures
-    assert is_binary(binary)
+    fixtures = [fixture_path("parallel_compiler/bar.ex"), fixture_path("parallel_compiler/foo.ex")]
+    assert capture_io(fn ->
+      assert [{ Bar, bar }, { Foo, _foo }] = Kernel.ParallelCompiler.files fixtures
+      assert is_binary(bar)
+    end) =~ "message_from_foo"
   end
 
   test :warnings_as_errors do
@@ -108,21 +117,5 @@ defmodule Kernel.CLI.ParallelCompilerTest do
     after
       Code.compiler_options(warnings_as_errors: warnings_as_errors)
     end
-  end
-
-  test :compile_code do
-    output = elixirc('#{fixture_path("parallel_compiler")} -o #{tmp_path}')
-    assert :string.str(output, 'message_from_foo') > 0,
-      "Expected #{inspect output} to contain 'message_from_foo'"
-    assert File.regular?(tmp_path "Elixir.Foo.beam")
-    assert File.regular?(tmp_path "Elixir.Bar.beam")
-  end
-
-  test :possible_deadlock do
-    output = elixirc('#{fixture_path("parallel_deadlock")} -o #{tmp_path}')
-    foo = '* #{fixture_path "parallel_deadlock/foo.ex"} is missing module Bar'
-    bar = '* #{fixture_path "parallel_deadlock/bar.ex"} is missing module Foo'
-    assert :string.str(output, foo) > 0, "expected foo.ex to miss module Bar"
-    assert :string.str(output, bar) > 0, "expected bar.ex to miss module Foo"
   end
 end
