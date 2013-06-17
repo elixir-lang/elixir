@@ -312,8 +312,6 @@ defmodule KernelTest do
 
       import CompileAssertion
 
-      # FIXME: this mustn't work, but it doesn't call pipeline_op at all
-      #assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: &1", "1 |> &1"
       assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: &1 * 2", "1 |> &1*2"
       assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: hd(&1)", "[1] |> hd(&1)"
     end

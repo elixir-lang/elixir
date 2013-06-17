@@ -368,7 +368,7 @@ defmodule Record do
   @doc false
   def access(atom, fields, keyword, caller) do
     unless is_keyword(keyword) do
-      raise "expected contents inside brackets to be a Keyword"
+      raise ArgumentError, message: "expected contents inside brackets to be a Keyword"
     end
 
     in_match = caller.in_match?
@@ -398,7 +398,7 @@ defmodule Record do
         quote do: { unquote_splicing([atom|match]) }
       _  ->
         keys = lc { key, _ } inlist remaining, do: key
-        raise "record #{inspect atom} does not have the keys: #{inspect keys}"
+        raise ArgumentError, message: "record #{inspect atom} does not have the keys: #{inspect keys}"
     end
   end
 
@@ -418,11 +418,11 @@ defmodule Record do
   @doc false
   defp update(atom, fields, var, keyword, caller) do
     unless is_keyword(keyword) do
-      raise "expected contents inside brackets to be a Keyword"
+      raise ArgumentError, message: "expected contents inside brackets to be a Keyword"
     end
 
     if caller.in_match? do
-      raise "cannot invoke update style macro inside match context"
+      raise ArgumentError, message: "cannot invoke update style macro inside match context"
     end
 
     Enum.reduce keyword, var, fn({ key, value }, acc) ->
@@ -432,7 +432,7 @@ defmodule Record do
           :erlang.setelement(unquote(index + 2), unquote(acc), unquote(value))
         end
       else
-        raise "record #{inspect atom} does not have the key: #{inspect key}"
+        raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect key}"
       end
     end
   end
@@ -448,7 +448,7 @@ defmodule Record do
         :erlang.element(unquote(index + 2), unquote(var))
       end
     else
-      raise "record #{inspect atom} does not have the key: #{inspect key}"
+      raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect key}"
     end
   end
 
@@ -477,7 +477,7 @@ defmodule Record do
         if index do
           quote do: :erlang.element(unquote(index + 2), unquote(record))
         else
-          raise "record #{inspect atom} does not have the key: #{inspect key}"
+          raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect key}"
         end
       end
   end

@@ -246,7 +246,6 @@ defmodule IEx.HelpersTest do
       assert Sample.run == :run
 
       File.write! filename, "defmodule Sample do end"
-      # FIXME: this could probably be improved
       System.cmd "../../bin/elixirc sample.ex"
 
       assert l(Sample) == {:module, Sample}
