@@ -187,6 +187,19 @@ defmodule HashSet do
     set_disjoint?(set1, set2)
   end
 
+  @doc """
+  Returns a set with members that tested as true with the passed function.
+
+  ## Examples
+
+      iex> HashSet.filter(HashSet.new([1, 2]), fn m -> m == 1 end) |> HashSet.to_list
+      [1]
+
+  """
+  def filter(set, fun) do
+    set_filter(set, fun)
+  end
+
   def reduce(ordered(bucket: bucket), acc, fun) do
     :lists.foldl(fun, acc, bucket)
   end
@@ -197,9 +210,14 @@ defmodule HashSet do
 
   ## HashSet-wide functions
 
-  defp set_intersect(ordered(bucket: bucket1), ordered(bucket: bucket2)) do
-    { new_bucket, size } = bucket_intersect(bucket1, bucket2)
-    ordered(bucket: new_bucket, size: size)
+  defp set_intersect(ordered(size: size1) = set1, ordered(size: size2) = set2) when size1 <= size2 do
+    set_filter set1, fn e ->
+      member?(set2, e)
+    end
+  end
+
+  defp set_intersect(ordered() = set1, ordered() = set2) do
+    set_intersect(set2, set1)
   end
 
   defp set_intersect(trie(size: size1) = set1, trie(size: size2) = set2) when size1 > size2 do
@@ -216,15 +234,21 @@ defmodule HashSet do
     end
   end
 
-  defp set_difference(ordered(bucket: bucket1, size: size), ordered(bucket: bucket2)) do
-    { new, count } = bucket_difference(bucket1, bucket2)
-    ordered(bucket: new, size: size - count)
+  defp set_difference(ordered() = set1, ordered() = set2) do
+    set_filter set1, fn m ->
+      !member?(set2, m)
+    end
   end
 
   defp set_difference(trie() = set1, set2) do
     set_fold set2, set1, fn m, acc ->
       delete(acc, m)
     end
+  end
+
+  defp set_filter(ordered(bucket: bucket, size: size) = set, fun) do
+    {new, removed_count} = filter_bucket(bucket, fun)
+    ordered(bucket: new, size: size - removed_count)
   end
 
   defp set_put(ordered(size: @ordered_threshold, bucket: bucket), member) do
@@ -323,47 +347,19 @@ defmodule HashSet do
 
   ## Bucket helpers
 
-  defp bucket_intersect([m | bucket1], [m | bucket2]) do
-    { new, count } = bucket_intersect(bucket1, bucket2)
-    { [m | new], count + 1 }
+  defp filter_bucket([e|bucket], fun) do
+    case fun.(e) do
+      true  ->
+        { new, count } = filter_bucket(bucket, fun)
+        { [e | new], count }
+      false ->
+        { new, count } = filter_bucket(bucket, fun)
+        { new, count + 1 }
+    end
   end
 
-  defp bucket_intersect([m1 | _] = bucket1, [m2 | bucket2]) when m1 > m2 do
-    bucket_intersect(bucket1, bucket2)
-  end
-
-  defp bucket_intersect([_ | bucket1], bucket2) do
-    bucket_intersect(bucket1, bucket2)
-  end
-
-  defp bucket_intersect([], _) do
-    { [], 0 }
-  end
-
-  defp bucket_intersect(_, []) do
-    { [], 0 }
-  end
-
-  defp bucket_difference([m | bucket1], [m | bucket2]) do
-    { new, count } = bucket_difference(bucket1, bucket2)
-    { new, count + 1 }
-  end
-
-  defp bucket_difference([m1 | bucket1], [m2 | _] = bucket2) when m1 < m2 do
-    { new, count } = bucket_difference(bucket1, bucket2)
-    { [m1 | new], count }
-  end
-
-  defp bucket_difference([m1 | _]= bucket1, [m2 | bucket2]) when m1 > m2 do
-    bucket_difference(bucket1, bucket2)
-  end
-
-  defp bucket_difference([], _bucket) do
-    { [], 0 }
-  end
-
-  defp bucket_difference(bucket, []) do
-    { bucket, 0 }
+  defp filter_bucket([], fun) do
+    {[], 0}
   end
 
   defp bucket_put([m|_]=bucket, { :put, member }) when m > member do
