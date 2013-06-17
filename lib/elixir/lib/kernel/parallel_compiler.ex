@@ -58,7 +58,7 @@ defmodule Kernel.ParallelCompiler do
   defp spawn_compilers([h|t], output, callback, waiting, queued, schedulers, result) do
     parent = self()
 
-    child  = spawn_link fn ->
+    child  = spawn fn ->
       :erlang.put(:elixir_compiler_pid, parent)
       :erlang.put(:elixir_ensure_compiled, true)
       :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
