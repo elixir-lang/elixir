@@ -39,6 +39,9 @@ set parsErlang=
 rem Make sure we keep a copy of all parameters
 set allPars=%*
 
+rem Get the original path name from the batch file
+set originPath=%~dp0
+
 rem Optional parameters before the "-extra" parameter
 set beforeExtra=
 
@@ -115,4 +118,4 @@ REM Others should give a problem
 echo ERROR: Parameter %par% is not allowed before the .ex file
 exit /B -1
 :run
-erl -env ERL_LIBS %ERL_LIBS%;"%~dp0\..\lib" -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+erl -env ERL_LIBS %ERL_LIBS%;"%originPath%\..\lib" -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
