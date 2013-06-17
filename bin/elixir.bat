@@ -108,4 +108,4 @@ REM Others should give a problem
 echo ERROR: Parameter %par% is not allowed before the .ex file
 exit /B -1
 :run
-echo erl -env ERL_LIBS %ERL_LIBS%;"%~dp0\..\lib" -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+erl -env ERL_LIBS %ERL_LIBS%;"%~dp0\..\lib" -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
