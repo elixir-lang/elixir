@@ -80,7 +80,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:3: def hello/1 has default values and multiple clauses, " <>
       "use a separate clause for declaring defaults",
       '''
-      defmodule Sample do
+      defmodule ErrorsTest do
         def hello(arg // 0), do: nil
         def hello(arg // 1), do: nil
       end
@@ -91,7 +91,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:2: function bar/0 undefined",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         def foo, do: bar
       end
       '''
@@ -158,7 +158,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:1: imported Kernel.defrecord/2 conflicts with local function",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         defrecord(Kernel.ErrorsTest.MacroConflict, a: 1)
         def defrecord(_, _), do: OMG
       end
@@ -167,9 +167,9 @@ defmodule Kernel.ErrorsTest do
 
   test :macro_with_undefined_local do
     assert_compile_fail UndefinedFunctionError,
-      "undefined function: Foo.unknown/1",
+      "undefined function: ErrorsTest.unknown/1",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         defmacrop bar, do: unknown(1)
         def baz, do: bar()
       end
@@ -178,9 +178,9 @@ defmodule Kernel.ErrorsTest do
 
   test :private_macro do
     assert_compile_fail UndefinedFunctionError,
-      "undefined function: Foo.foo/0",
+      "undefined function: ErrorsTest.foo/0",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         defmacrop foo, do: 1
         defmacro bar, do: __MODULE__.foo
         defmacro baz, do: bar
@@ -192,7 +192,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail SyntaxError,
       "nofile:2: function names should start with lowercase characters or underscore, invalid name Bar",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         def Bar do
           :baz
         end
@@ -204,7 +204,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:3: function exit/1 imported from both :erlang and Kernel, call is ambiguous",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         import :erlang
         def foo, do: exit(:test)
       end
@@ -222,7 +222,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:2: tried to invoke macro Kernel.ErrorsTest.UnproperMacro.unproper/1 " <>
       "but module was not required. Required: Kernel, Kernel.Typespec, Record",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         Kernel.ErrorsTest.UnproperMacro.unproper([])
       end
       '''
@@ -232,7 +232,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:3: defmacro foo/1 already defined as def",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         def foo(1), do: 1
         defmacro foo(x), do: x
       end
@@ -243,7 +243,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:1: function __info__/1 is internal and should not be overridden",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         def __info__(_), do: []
       end
       '''
@@ -253,7 +253,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:2: could not load macros from module :lists",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         import :macros, :lists
       end
       '''
@@ -267,14 +267,14 @@ defmodule Kernel.ErrorsTest do
 
   test :scheduled_module do
     assert_compile_fail CompileError,
-      "nofile:4: module Foo.Hygiene is not loaded but was defined. " <>
+      "nofile:4: module ErrorsTest.Hygiene is not loaded but was defined. " <>
       "This happens because you are trying to use a module in the same context it is defined. " <>
       "Try defining the module outside the context that requires it.",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         defmodule Hygiene do
         end
-        import Foo.Hygiene
+        import ErrorsTest.Hygiene
       end
       '''
   end
@@ -296,7 +296,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:1: cannot define local quote/1 because it conflicts with Elixir special forms",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         def quote(x), do: x
         def bar(x), do: quote(do: x)
       end
@@ -305,14 +305,14 @@ defmodule Kernel.ErrorsTest do
 
   test :in_definition_module do
     assert_compile_fail CompileError,
-      "nofile:1: cannot define module Foo because it is currently being defined",
-      'defmodule Foo, do: (defmodule Elixir.Foo, do: true)'
+      "nofile:1: cannot define module ErrorsTest because it is currently being defined",
+      'defmodule ErrorsTest, do: (defmodule Elixir.ErrorsTest, do: true)'
   end
 
   test :invalid_definition do
     assert_compile_fail SyntaxError,
       "nofile:1: invalid syntax in def 1.(hello)",
-      'defmodule Foo, do: (def 1.(hello), do: true)'
+      'defmodule ErrorsTest, do: (def 1.(hello), do: true)'
   end
 
   test :duplicated_bitstring_size do
@@ -365,7 +365,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:2: module Unknown is not loaded and could not be found",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         def sample(Unknown[integer: 0]), do: true
       end
       '''
@@ -373,7 +373,7 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_access_protocol_not_alias do
     assert_raise ArgumentError, "the access protocol cannot be used inside match clauses (for example, on the left hand side of a match or in function signatures)", fn ->
-      defmodule Foo do
+      defmodule ErrorsTest do
         def sample(config[integer: 0]), do: true
       end
     end
@@ -381,7 +381,7 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_access_protocol_not_record do
     assert_raise ArgumentError, "cannot use module Kernel.ErrorsTest in access protocol because it does not export __record__/1", fn ->
-      defmodule Foo do
+      defmodule ErrorsTest do
         def sample(Kernel.ErrorsTest[integer: 0]), do: true
       end
     end
@@ -389,7 +389,7 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_access_protocol_not_keywords do
     assert_raise ArgumentError, "expected contents inside brackets to be a Keyword", fn ->
-      defmodule Foo do
+      defmodule ErrorsTest do
         def sample(Kernel.ErrorsTest.Config[0]), do: true
       end
     end
@@ -397,7 +397,7 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_access_protocol_invalid_keywords do
     assert_raise ArgumentError, "record Kernel.ErrorsTest.Config does not have the keys: [:foo]", fn ->
-      defmodule Foo do
+      defmodule ErrorsTest do
         def sample(Kernel.ErrorsTest.Config[foo: :bar]), do: true
       end
     end
@@ -460,7 +460,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail SyntaxError,
       "nofile:2: missing keyword do in def",
       '''
-      defmodule Foo do
+      defmodule ErrorsTest do
         def foo(n) when is_number(n)
       end
       '''
@@ -481,27 +481,46 @@ defmodule Kernel.ErrorsTest do
   test :invalid_remote_on_guard do
     assert_compile_fail SyntaxError,
       "nofile:1: cannot invoke remote function Hello.something_that_does_not_exist/0 inside guard",
-      ('case [] do; [] when Hello.something_that_does_not_exist == [] -> :ok; end')
+      'case [] do; [] when Hello.something_that_does_not_exist == [] -> :ok; end'
   end
 
   test :macros_error_stacktrace do
-    assert [{:erlang, :+, [1, :foo], _}, {Foo, :sample, 1, _}|_] =
-      rescue_stacktrace("defmodule Foo do\ndefmacro sample(num), do: num + :foo\ndef other, do: sample(1)\nend")
+    assert [{:erlang, :+, [1, :foo], _}, {ErrorsTest, :sample, 1, _}|_] =
+      rescue_stacktrace(""")
+      defmodule ErrorsTest do
+        defmacro sample(num), do: num + :foo
+        def other, do: sample(1)
+      end
+      """
   end
 
   test :macros_function_clause_stacktrace do
     assert [{__MODULE__, :sample, 1, _}|_] =
-      rescue_stacktrace("defmodule Foo do\nimport Kernel.ErrorsTest\nsample(1)\nend")
+      rescue_stacktrace(""")
+      defmodule ErrorsTest do
+        import Kernel.ErrorsTest
+        sample(1)
+      end
+      """
   end
 
   test :macros_interpreted_function_clause_stacktrace do
-    assert [{Foo, :sample, 1, _}|_] =
-      rescue_stacktrace("defmodule Foo do\ndefmacro sample(0), do: 0\ndef other, do: sample(1)\nend")
+    assert [{ErrorsTest, :sample, 1, _}|_] =
+      rescue_stacktrace(""")
+      defmodule ErrorsTest do
+        defmacro sample(0), do: 0
+        def other, do: sample(1)
+      end
+      """
   end
 
   test :macros_compiled_callback do
-    assert [{Kernel.ErrorsTest, :__before_compile__, [Macro.Env[module: Foo]], _}|_] =
-      rescue_stacktrace("defmodule Foo do\nModule.put_attribute(__MODULE__, :before_compile, Kernel.ErrorsTest)\nend")
+    assert [{Kernel.ErrorsTest, :__before_compile__, [Macro.Env[module: ErrorsTest]], _}|_] =
+      rescue_stacktrace(""")
+      defmodule ErrorsTest do
+        Module.put_attribute(__MODULE__, :before_compile, Kernel.ErrorsTest)
+      end
+      """
   end
 
   defmacro sample(0), do: 0
