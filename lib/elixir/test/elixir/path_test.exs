@@ -3,11 +3,13 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule PathTest do
   use ExUnit.Case, async: true
 
-  test :wildcard do
-    import PathHelpers
-
-    if :file.native_name_encoding == :utf8 do
-      assert Path.wildcard(fixture_path("héllò")) == [fixture_path("héllò")]
+  if :file.native_name_encoding == :utf8 do
+    test :wildcard do
+      import PathHelpers
+      File.mkdir_p(tmp_path("héllò"))
+      assert Path.wildcard(tmp_path("héllò")) == [tmp_path("héllò")]
+    after
+      File.rm_rf tmp_path("héllò")
     end
   end
 

@@ -1057,11 +1057,15 @@ defmodule FileTest do
     end
   end
 
-  test :cwd_and_cd_with_utf8 do
-    if :file.native_name_encoding == :utf8 do
-      File.cd!(fixture_path("héllò"), fn ->
+  if :file.native_name_encoding == :utf8 do
+    test :cwd_and_cd_with_utf8 do
+      File.mkdir_p(tmp_path("héllò"))
+
+      File.cd!(tmp_path("héllò"), fn ->
         assert Path.basename(File.cwd!) == "héllò"
       end)
+    after
+      File.rm_rf tmp_path("héllò")
     end
   end
 
