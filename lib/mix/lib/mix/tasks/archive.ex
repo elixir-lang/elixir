@@ -28,11 +28,6 @@ defmodule Mix.Tasks.Archive do
       Mix.Task.run :compile, args
     end
 
-    case argv do
-      [] ->
-        Mix.Archive.create(".")
-      [path|_] ->
-        Mix.Archive.create(".", path)
-    end
+    Mix.Archive.create(".")
   end
 end

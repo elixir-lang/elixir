@@ -74,11 +74,19 @@ defmodule Mix.Tasks.Compile.Elixir do
     watch_exts    = project[:elixirc_watch_exts]
     elixirc_paths = project[:elixirc_paths]
 
+    manifest   = Path.join(compile_path, @manifest)
     to_compile = Mix.Utils.extract_files(elixirc_paths, compile_exts)
-    to_watch   = Mix.Project.config_files ++ Mix.Utils.extract_files(elixirc_paths, watch_exts)
-    stale      = Mix.Utils.extract_stale(to_watch, [Path.join(compile_path, @manifest)])
+    to_watch   = Mix.Utils.extract_files(elixirc_paths, watch_exts)
 
-    if opts[:force] or stale != [] do
+    force = opts[:force]
+    stale = if Mix.Utils.stale?(Mix.Project.config_files, [manifest]) do
+      force = true
+      to_watch
+    else
+      Mix.Utils.extract_stale(to_watch, [manifest])
+    end
+
+    if force or stale != [] do
       File.mkdir_p! compile_path
       compile_files opts[:quick], project, compile_path, to_compile, stale, opts
       :ok
