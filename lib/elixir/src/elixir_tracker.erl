@@ -24,7 +24,7 @@ setup(Module) ->
   end.
 
 cleanup(Module) ->
-  if_tracker(Module, fun(Pid) -> ?tracker:stop(Pid) end).
+  if_tracker(Module, fun(Pid) -> unlink(Pid), ?tracker:stop(Pid) end).
 
 record_local(Tuple, Module) when is_atom(Module) ->
   if_tracker(Module, fun(Pid) ->
