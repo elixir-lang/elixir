@@ -10,18 +10,25 @@ if  %argc%== 0 (
 :documentation
 echo Usage: %~nx0 [options] [.exs file] [data]
 echo.
-echo  -v            Prints version and exit
-echo  -e command    Evaluates the given command (*)
-echo  -r command    Requires the given file/pattern (*)
-echo  -pr command   Requires the given file/pattern in parallel (*)
-echo  -pa path      Prepend the given path to Erlang code path (*)
-echo  -pz path      Append the given path to Erlang code path (*)
-echo  --app app     Start the given app and its dependencies (*)
-echo  --no-halt     Do not halt the Erlang VM after execution
+echo   -v                Prints version and exit
+echo   -e command        Evaluates the given command (*)
+echo   -r file           Requires the given files/patterns (*)
+echo   -S script         Finds and executes the given script (*)
+echo   -pr file          Requires the given files/patterns in parallel (*)
+echo   -pa path          Prepends the given path to Erlang code path (*)
+echo   -pz path          Appends the given path to Erlang code path (*)
+echo   --app app         Start the given app and its dependencies (*)
+echo   --erl switches    Switches to be passed down to erlang (*)
+echo   --name name       Makes and assigns a name to the distributed node
+echo   --sname name      Makes and assigns a short name to the distributed node
+echo   --cookie cookie   Sets a cookie for this distributed node
+echo   --hidden          Makes a hidden node
+echo   --detached        Starts the Erlang VM detached from console
+echo   --no-halt         Does not halt the Erlang VM after execution
 echo.
 echo ** Options marked with (*) can be given more than once
 echo ** Options given after the .exs file or -- are passed down to the executed code
-echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS
+echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS or --erl
 goto :EOF
 
 :parseopts
