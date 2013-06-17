@@ -306,13 +306,10 @@ defmodule Wadler do
   @spec surround(binary, doc, binary) :: doc
   def surround(left, doc, right, sep//"") do
     glue(
-      text(left), 
+      nest(default_nesting, 
+        glue(text(left), sep, doc)), # remember that first line is not nested
       sep,
-      glue(
-        nest(default_nesting, doc),
-        sep,
-        text(right)
-      )
+      text(right)
     )
   end  
 

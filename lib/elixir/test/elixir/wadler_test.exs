@@ -6,7 +6,7 @@ defmodule WadlerTest do
   alias Wadler, as: W
 
   def helloabcd do
-    glue(
+    concat(
       glue(
         glue(
           glue(text("hello"), text("a")),
@@ -88,12 +88,12 @@ defmodule WadlerTest do
     assert_raise FunctionClauseError, fn -> nest("foo", empty) end
 
     a1   = fn -> nest(1, text("a")) end
-    alb1 = fn -> nest(1, line(text("a"), text("b"))) end
+    alb1 = fn -> nest(1, glue(text("a"), text("b"))) end
     # Consistence of corresponding sdoc
     ## Trivial case
     assert factor(80, a1.())  == W.SText[str: "a", sdoc: SNil]
-    ## Correctly indenting line
-    assert factor(2, alb1.()) == W.SText[
+    ## Correctly indenting line forcing linebreak
+    assert W.format(2, 0, [{0, Break, alb1.()}]) == W.SText[
       str: "a", 
       sdoc: W.SLine[
         indent: 1,
@@ -105,7 +105,7 @@ defmodule WadlerTest do
     ## Trivial case
     assert pretty(80, a1.())   == "a"
     ## Correctly indenting line
-    assert pretty(80, alb1.()) == "a\n b"
+    assert W.render(W.format 2, 0, [{0, Break, alb1.()}]) == "a\n b"
   end
 
   test :group do
@@ -139,8 +139,7 @@ defmodule WadlerTest do
     ]
 
     # Consistent formatting
-    assert pretty(6,  helloabcd) == "hello\na\nb\nc d"
-    assert pretty(8,  helloabcd) == "hello a\nb\nc d"
+    assert pretty(5,  helloabcd) == "hello\na\nb\ncd"
     assert pretty(80, helloabcd) == "hello a b cd"
   end
 end
