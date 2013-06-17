@@ -7,6 +7,9 @@
   * [Mix] Support creation and installation of archives (.ez files)
 
 * bug fix
+  * [Kernel] Improve error messages on default clauses clash
+  * [Kernel] `__MODULE__.Foo` now returns `Foo` when outside of a Module
+  * [Mix] Mix now properly evaluates rebar scripts
 
 * deprecations
 
