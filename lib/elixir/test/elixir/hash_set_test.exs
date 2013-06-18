@@ -24,7 +24,7 @@ defmodule HashSetTest do
   test "intersection with nodes" do
     assert HashSet.intersection(filled_set(21), filled_set(20)) == HashSet.new(filled_set(20))
 
-    assert HashSet.intersection(filled_set(120), filled_set(121)) == HashSet.new(filled_set(120))
+    assert HashSet.equal?(HashSet.intersection(filled_set(120), filled_set(121)), HashSet.new(filled_set(120)))
   end
 
   test "difference with ordered sets" do
@@ -110,6 +110,8 @@ defmodule HashSetTest do
 
   test :filter do
     assert HashSet.filter(HashSet.new([1, 2, 3]), fn m -> m == 2 end) == HashSet.new([2])
+
+    assert HashSet.equal?(HashSet.filter(filled_set(20), fn m -> m == 2 end), HashSet.new([2]))
   end
 
   test "a set removes duplicates" do

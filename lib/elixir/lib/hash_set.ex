@@ -220,18 +220,14 @@ defmodule HashSet do
     set_intersect(set2, set1)
   end
 
-  defp set_intersect(trie(size: size1) = set1, trie(size: size2) = set2) when size1 > size2 do
-    set_intersect(set2, set1)
+  defp set_intersect(trie(size: size1) = set1, trie(size: size2) = set2) when size1 <= size2 do
+    set_filter set1, fn e ->
+      member?(set2, e)
+    end
   end
 
   defp set_intersect(trie() = set1, set2) do
-    set_fold set2, ordered(), fn m, acc ->
-      if member?(set1, m) do
-        put acc, m
-      else
-        acc
-      end
-    end
+    set_intersect(set2, set1)
   end
 
   defp set_difference(ordered() = set1, ordered() = set2) do
@@ -249,6 +245,11 @@ defmodule HashSet do
   defp set_filter(ordered(bucket: bucket, size: size) = set, fun) do
     {new, removed_count} = filter_bucket(bucket, fun)
     ordered(bucket: new, size: size - removed_count)
+  end
+
+  defp set_filter(trie(root: root, depth: depth, size: size), fun) do
+    { new, removed_count } = node_filter(root, depth, fun, @node_size)
+    trie(size: size - removed_count, root: new, depth: depth)
   end
 
   defp set_put(ordered(size: @ordered_threshold, bucket: bucket), member) do
@@ -486,6 +487,20 @@ defmodule HashSet do
 
   defp node_fold(_node, _, acc, _fun, 0) do
     acc
+  end
+
+  defp node_filter(bucket, -1, fun, _) do
+    filter_bucket(bucket, fun)
+  end
+
+  defp node_filter(node, depth, fun, count) when count >= 1 do
+    { new_element, count1 } = node_filter(:erlang.element(count, node), depth - 1, fun, @node_size)
+    { new_node, count2 } = node_filter(:erlang.setelement(count, node, new_element), depth, fun, count - 1)
+    { new_node , count1 + count2 }
+  end
+
+  defp node_filter(node, _,  _fun, 0) do
+   { node, 0 }
   end
 
   defp node_relocate(node // @node_template, bucket, n) do
