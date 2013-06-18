@@ -132,9 +132,10 @@ store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, #el
   CTable = clauses_table(Module),
 
   compile_super(Module, TS),
+  check_previous_defaults(Table, Line, Name, Arity, Kind, DefaultsLength, S),
+
   store_each(CheckClauses, Kind, File, Location,
     Table, CTable, DefaultsLength, Function),
-
   [store_each(false, Kind, File, Location, Table, CTable, 0,
     default_function_for(Kind, Name, Default)) || Default <- Defaults],
 
@@ -342,6 +343,17 @@ check_valid_defaults(Line, File, Name, Arity, Kind, _, 0) ->
 check_valid_defaults(Line, File, Name, Arity, Kind, _, _) ->
   elixir_errors:form_error(Line, File, ?MODULE, { clauses_with_defaults, { Kind, Name, Arity } }).
 
+check_previous_defaults(Table, Line, Name, Arity, Kind, Defaults, S) ->
+  Matches = ets:match(Table, { { Name, '$2' }, '$1', '_', '_', '_', '_', '$3' }),
+  [ begin
+      elixir_errors:form_error(Line, S#elixir_scope.file, ?MODULE,
+        { defs_with_defaults, Name, { Kind, Arity }, { K, A } })
+    end || [K, A, D] <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
+
+defaults_conflict(A, D, Arity, Defaults) ->
+  ((Arity >= (A - D)) andalso (Arity < A)) orelse
+    ((A >= (Arity - Defaults)) andalso (A < Arity)).
+
 assert_no_aliases_name(Line, '__aliases__', [Atom], #elixir_scope{file=File}) when is_atom(Atom) ->
   Message = "function names should start with lowercase characters or underscore, invalid name ~ts",
   elixir_errors:syntax_error(Line, File, Message, [Atom]);
@@ -354,8 +366,17 @@ assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
 format_error({no_module,{Kind,Name,Arity}}) ->
   io_lib:format("cannot define function outside module, invalid scope for ~ts ~ts/~B", [Kind, Name, Arity]);
 
+format_error({defs_with_defaults, Name, { Kind, Arity }, { K, A } }) when Arity > A ->
+  io_lib:format("~ts ~ts/~B defaults conflicts with ~ts ~ts/~B",
+    [Kind, Name, Arity, K, Name, A]);
+
+format_error({defs_with_defaults, Name, { Kind, Arity }, { K, A } }) when Arity < A ->
+  io_lib:format("~ts ~ts/~B conflicts with defaults from ~ts ~ts/~B",
+    [Kind, Name, Arity, K, Name, A]);
+
 format_error({clauses_with_defaults,{Kind,Name,Arity}}) ->
-  io_lib:format("~ts ~ts/~B has default values and multiple clauses, use a separate clause for declaring defaults", [Kind, Name, Arity]);
+  io_lib:format("~ts ~ts/~B has default values and multiple clauses, "
+    "use a separate clause for declaring defaults", [Kind, Name, Arity]);
 
 format_error({out_of_order_defaults,{Kind,Name,Arity}}) ->
   io_lib:format("clause with defaults should be the first clause in ~ts ~ts/~B", [Kind, Name, Arity]);
