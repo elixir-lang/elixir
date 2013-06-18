@@ -685,7 +685,7 @@ defmodule File do
             end
           reason -> reason
         end
-      { :error, :enotdir } ->
+      { :error, reason } when reason in [:enotdir, :eio] ->
         case rm(path) do
           :ok -> { :ok, [path|acc] }
           { :error, :enoent } -> entry
