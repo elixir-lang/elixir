@@ -243,7 +243,7 @@ defmodule HashSet do
   end
 
   defp set_filter(ordered(bucket: bucket, size: size) = set, fun) do
-    {new, removed_count} = filter_bucket(bucket, fun)
+    {new, removed_count} = bucket_filter(bucket, fun)
     ordered(bucket: new, size: size - removed_count)
   end
 
@@ -348,18 +348,18 @@ defmodule HashSet do
 
   ## Bucket helpers
 
-  defp filter_bucket([e|bucket], fun) do
+  defp bucket_filter([e|bucket], fun) do
     case fun.(e) do
       true  ->
-        { new, count } = filter_bucket(bucket, fun)
+        { new, count } = bucket_filter(bucket, fun)
         { [e | new], count }
       false ->
-        { new, count } = filter_bucket(bucket, fun)
+        { new, count } = bucket_filter(bucket, fun)
         { new, count + 1 }
     end
   end
 
-  defp filter_bucket([], fun) do
+  defp bucket_filter([], fun) do
     {[], 0}
   end
 
@@ -490,7 +490,7 @@ defmodule HashSet do
   end
 
   defp node_filter(bucket, -1, fun, _) do
-    filter_bucket(bucket, fun)
+    bucket_filter(bucket, fun)
   end
 
   defp node_filter(node, depth, fun, count) when count >= 1 do
