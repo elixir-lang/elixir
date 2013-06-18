@@ -707,8 +707,21 @@ defmodule Module do
 
   @doc """
   Gets the given attribute from a module. If the attribute
-  was marked as accumulate with `Module.register_attribute`,
+  was marked with `accumulate` with `Module.register_attribute`,
   a list is always returned.
+
+  The `@` macro compiles to a call to this function. For example,
+  the following code:
+
+      @foo
+
+  Expands to:
+
+      Module.get_attribute(__MODULE__, @foo, true)
+
+  Notice the third argument is used to indicate if a warning
+  should be emitted when the attribute was not previously defined.
+  This is true for `@foo` attributes but false for direct calls.
 
   ## Examples
 
@@ -722,15 +735,22 @@ defmodule Module do
       end
 
   """
-  def get_attribute(module, key) when is_atom(key) do
+  def get_attribute(module, key, warn // false) when is_atom(key) do
     assert_not_compiled!(:get_attribute, module)
     table = data_table_for(module)
 
     case ETS.lookup(table, key) do
-      [{^key, old}] -> old
+      [{^key, val}] -> val
       [] ->
         acc = ETS.lookup_element(table, :__acc_attributes, 2)
-        if :lists.member(key, acc), do: [], else: nil
+
+        if :lists.member(key, acc) do
+          []
+        else
+          warn && IO.warn "#{Exception.format_caller} undefined module attribute @#{key}, " <>
+            "please remove access to @#{key} or explicitly set it to nil before access"
+          nil
+        end
     end
   end
 

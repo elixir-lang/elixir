@@ -15,6 +15,7 @@ defmodule AccessTest do
 
   # Test nil at compilation time does not fail
   # and that @config[:foo] has proper precedence.
+  @config nil
   nil = @config[:foo]
 
   @config [foo: :bar]

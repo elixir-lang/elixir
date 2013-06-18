@@ -119,7 +119,7 @@ translate({'@', Meta, [{ Name, _, Args }]}, S) ->
               translate_each({
                 { '.', Meta, ['Elixir.Module', get_attribute] },
                 Meta,
-                [ { '__MODULE__', Meta, false }, Name ]
+                [ { '__MODULE__', Meta, false }, Name, true ]
               }, S);
             _ ->
               Contents = 'Elixir.Module':get_attribute(S#elixir_scope.module, Name),

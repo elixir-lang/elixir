@@ -34,6 +34,8 @@ defmodule Protocol do
 
         # Set up a clear slate to store defined functions
         @functions []
+        @only nil
+        @except nil
 
         # Invoke the user given block
         unquote(block)

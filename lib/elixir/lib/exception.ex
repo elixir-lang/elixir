@@ -192,9 +192,7 @@ defmodule Exception do
   calculates the current stacktrace and formats it. As consequence,
   the value of `System.stacktrace` is changed.
   """
-  def format_stacktrace(trace // nil)
-
-  def format_stacktrace(trace) do
+  def format_stacktrace(trace // nil) do
     trace = trace || try do
       throw(:stacktrace)
     catch
@@ -204,6 +202,25 @@ defmodule Exception do
     case trace do
       [] -> "\n"
       s  -> "    " <> Enum.map_join(s, "\n    ", format_stacktrace_entry(&1)) <> "\n"
+    end
+  end
+
+  @doc """
+  Formats the caller, i.e. the first entry in the stacktrace.
+  Notice that doing to tail call optimization, the stacktrace
+  may not report the direct caller of the function.
+  """
+  def format_caller(trace // nil) do
+    trace = trace || try do
+      throw(:stacktrace)
+    catch
+      :stacktrace -> Enum.drop(:erlang.get_stacktrace, 1)
+    end
+
+    if entry = Enum.at(trace, 1) do
+      format_stacktrace_entry(entry)
+    else
+      "nofile:0: "
     end
   end
 
