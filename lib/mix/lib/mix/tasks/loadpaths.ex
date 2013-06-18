@@ -12,8 +12,8 @@ defmodule Mix.Tasks.Loadpaths do
 
   * `:load_paths` extra load paths to be added.
     They are added with lower priority than the app ones.
-
   """
+
   def run(args) do
     { opts, _ } = OptionParser.parse(args)
 

@@ -33,8 +33,8 @@ defmodule Mix.Tasks.Compile do
     Defaults to `"ebin"`, can be configured as:
 
         [compile_path: "ebin"]
-
   """
+
   def run(["--list"]) do
     Mix.Task.load_all
 

@@ -33,8 +33,8 @@ defmodule Mix.Tasks.Compile.Yecc do
   * `:yecc_options` - compilation options that applies
      to Yecc's compiler. There are many other available
      options here: http://www.erlang.org/doc/man/yecc.html#file-1
-
   """
+
   def run(args) do
     { opts, _ } = OptionParser.parse(args, switches: [force: :boolean])
 

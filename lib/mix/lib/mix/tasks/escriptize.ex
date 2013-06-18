@@ -44,8 +44,8 @@ defmodule Mix.Tasks.Escriptize do
 
   * `escript_emu_args` - emulator arguments to embed in the escript file
      Defaults to "%%!\n"
-
   """
+
   def run(args) do
     { opts, _ } = OptionParser.parse(args, switches: [force: :boolean, no_compile: :boolean])
 

@@ -25,8 +25,8 @@ defmodule Mix.Tasks.Run do
   Command line options given to the `elixir` executable can be passed as:
 
       elixir --sname hello -S mix run "My.code"
-
   """
+
   def run(args) do
     { opts, head } = OptionParser.parse_head(args,
       aliases: [r: :require, pr: :parallel_require],

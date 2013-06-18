@@ -112,22 +112,33 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Receives a task name and retrives the task module.
+  Receives a task name and retrieves the task module.
 
   ## Exceptions
 
   * `Mix.NoTaskError` - raised if the task could not be found;
   * `Mix.InvalidTaskError` - raised if the task is not a valid `Mix.Task`
   """
-  def get(task) do
+  def get_module(task) do
     case Mix.Utils.command_to_module(task, Mix.Tasks) do
       { :module, module } ->
         if is_task?(module) do
-          module
+          { :module, module }
         else
-          raise Mix.InvalidTaskError, task: task
+          { :error, :invalidtask }
         end
       { :error, _ } ->
+       { :error, :notask }
+    end
+  end
+
+  def get_module!(task) do
+    case get_module(task) do
+      { :module, module } ->
+        module
+      { :error, :invalidtask } ->
+        raise Mix.InvalidTaskError, task: task
+      { :error, :notask } ->
         raise Mix.NoTaskError, task: task
     end
   end
@@ -150,23 +161,31 @@ defmodule Mix.Task do
     if Mix.Server.call({ :has_task?, task, app }) do
       :noop
     else
-      module = get(task)
       Mix.Server.cast({ :add_task, task, app })
 
-      recursive = recursive(module)
+      project_fun = get_project(task)
 
-      if recursive && Mix.Server.call(:recursive_enabled?) do
+      module = case get_module(task) do
+        { :module, module } ->
+          module
+        { :error, :invalidtask } when !project_fun ->
+          raise Mix.InvalidTaskError, task: task
+        { :error, :notask } when !project_fun ->
+          raise Mix.NoTaskError, task: task
+        _ -> nil
+      end
+
+      task_fun = task_fun(task, project_fun, module)
+
+      recursive = if module, do: recursive(module), else: false
+
+      if Mix.Project.umbrella? && recursive && Mix.Server.call(:recursive_enabled?) do
         Mix.Server.cast({ :recursive_enabled?, false })
-        res = if Mix.Project.umbrella? and recursive == :both do
-          [module.run(args)]
-        else
-          []
-        end
-        res = res ++ Mix.Project.recur(fn _ -> module.run(args) end)
+        res = if recursive == :both, do: [task_fun.(args)], else: []
         Mix.Server.cast({ :recursive_enabled?, true })
-        res
+        res ++ Mix.Project.recur(fn _ -> module.run(args) end)
       else
-        module.run(args)
+        task_fun.(args)
       end
     end
   end
@@ -200,5 +219,40 @@ defmodule Mix.Task do
 
   defp is_task?(module) do
     function_exported?(module, :run, 1)
+  end
+
+  # Get a function calling the task defined in the project
+  # or nil if no such task exist
+  defp get_project(task) do
+    project = Mix.Project.get
+
+    if function_exported?(project, :__tasks__, 0) and function_exported?(project, :__task__, 3) do
+      task_fun = function(project.__task__/3)
+
+      type = Enum.find_value(project.__tasks__, fn { name, type } ->
+        if name == task || name == :_, do: type
+      end)
+
+      case type do
+        nil -> nil
+        :override -> task_fun
+        :before ->
+          fn task, args, original ->
+            if original, do: original.(args)
+            task_fun.(task, args, nil)
+          end
+      end
+    end
+  end
+
+  # Create a function from the task module and project task
+  defp task_fun(task, project_fun, module) do
+    original = if module, do: function(module.run/1)
+
+    if project_fun do
+      project_fun.(task, &1, original)
+    else
+      original
+    end
   end
 end

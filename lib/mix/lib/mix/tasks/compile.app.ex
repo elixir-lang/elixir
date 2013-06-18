@@ -27,8 +27,8 @@ defmodule Mix.Tasks.Compile.App do
 
   * `:app` - The application name as a binary (required)
   * `:version` - The application version as a binary (required)
-
   """
+
   def run(args) do
     { opts, _ } = OptionParser.parse(args, switches: [force: :boolean])
 

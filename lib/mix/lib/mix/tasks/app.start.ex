@@ -13,8 +13,8 @@ defmodule Mix.Tasks.App.Start do
 
   * `--no-compile` - do not compile even if files require compilation;
   * `--no-start` - do not start applications after compilation;
-
   """
+
   def run(args) do
     { opts, _ } = OptionParser.parse(args)
 

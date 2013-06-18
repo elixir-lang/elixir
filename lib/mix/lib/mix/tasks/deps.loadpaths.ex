@@ -11,6 +11,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   Loads all dependencies. This is invoked directly
   by "loadpaths" when the CLI boots.
   """
+
   def run(args) do
     { opts, _ } = OptionParser.parse(args)
 

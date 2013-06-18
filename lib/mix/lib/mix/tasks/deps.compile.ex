@@ -21,7 +21,6 @@ defmodule Mix.Tasks.Deps.Compile do
   in the dependency:
 
       { :some_dependency, "0.1.0", git: "...", compile: "command to compile" }
-
   """
 
   import Mix.Deps, only: [ all: 0, available?: 1, by_name: 2, compile_paths: 1,
