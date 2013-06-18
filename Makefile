@@ -93,7 +93,7 @@ clean:
 	rm -rf lib/elixir/test/ebin
 
 clean_exbeam:
-	@ rm lib/*/ebin/Elixir.*.beam
+	@ rm -f lib/*/ebin/Elixir.*.beam
 
 #==> Release tasks
 
