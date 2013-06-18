@@ -813,7 +813,7 @@ defmodule FileTest do
 
     test :rm_rf_with_invalid do
       fixture = fixture_path "file.txt/path"
-      assert File.rm_rf(fixture) == { :error, :enotdir }
+      assert File.rm_rf(fixture) == { :ok, [] }
     end
 
     test :rm_rf! do
@@ -838,9 +838,7 @@ defmodule FileTest do
 
     test :rm_rf_with_invalid! do
       fixture = fixture_path "file.txt/path"
-      assert_raise File.Error, "could not remove files and directories recursively from #{fixture}: not a directory", fn ->
-        File.rm_rf!(fixture)
-      end
+      assert File.rm_rf!(fixture) == []
     end
 
     defp is_io_error?(result) do

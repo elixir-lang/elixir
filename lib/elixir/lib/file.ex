@@ -681,18 +681,18 @@ defmodule File do
             case rmdir(path) do
               :ok -> { :ok, [path|acc] }
               { :error, :enoent } -> res
-              reason -> reason
+              reason -> { :error, reason, :unicode.characters_to_binary(path) }
             end
-          reason -> reason
+          reason -> { :error, reason, :unicode.characters_to_binary(path) }
         end
       { :error, :enotdir } ->
         case rm(path) do
           :ok -> { :ok, [path|acc] }
-          { :error, :enoent } -> entry
-          reason -> reason
+          { :error, reason } when reason in [:enoent, :enotdir] -> entry
+          reason -> { :error, reason, :unicode.characters_to_binary(path) }
         end
       { :error, :enoent } -> entry
-      reason -> reason
+      { :error, reason } -> { :error, reason, :unicode.characters_to_binary(path) }
     end
   end
 
@@ -714,7 +714,7 @@ defmodule File do
   def rm_rf!(path) do
     case rm_rf(path) do
       { :ok, files } -> files
-      { :error, reason } ->
+      { :error, reason, _ } ->
         raise File.Error, reason: reason,
           action: "remove files and directories recursively from",
           path: :unicode.characters_to_binary(path)
