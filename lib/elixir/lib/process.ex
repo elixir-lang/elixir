@@ -102,6 +102,14 @@ defmodule Process do
   end
 
   @doc """
+  Returns the pid (process identifier) of the calling process.
+  """
+  @spec self() :: pid
+  def self() do
+    :erlang.self()
+  end
+
+  @doc """
   Returns the pid of a new process started by the application of `fun`.
   It behaves exactly the same as `Kernel.spawn/1`.
   """
