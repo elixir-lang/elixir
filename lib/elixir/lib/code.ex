@@ -72,9 +72,11 @@ defmodule Code do
   * `:aliases` - a list of tuples with the alias and its target
   * `:requires` - a list of modules required
   * `:functions` - a list of tuples where the first element is a module
-    and the second a list of imported function names and arity
+    and the second a list of imported function names and arity. The list
+    of function names and arity must be sorted;
   * `:macros` - a list of tuples where the first element is a module
-    and the second a list of imported macro names and arity
+    and the second a list of imported macro names and arity. The list
+    of function names and arity must be sorted;
 
   Notice that setting any of the values above overrides Elixir default
   values. For example, setting `:requires` to `[]`, will no longer
@@ -98,10 +100,15 @@ defmodule Code do
   def eval_string(string, binding // [], opts // [])
 
   def eval_string(string, binding, Macro.Env[] = env) do
-    eval_string(string, binding, env.to_keywords)
+    do_eval_string(string, binding, env.to_keywords)
   end
 
-  def eval_string(string, binding, opts) do
+  def eval_string(string, binding, opts) when is_list(opts) do
+    validate_eval_opts(opts)
+    do_eval_string(string, binding, opts)
+  end
+
+  defp do_eval_string(string, binding, opts) when is_list(binding) do
     { value, binding, _scope } =
       :elixir.eval :unicode.characters_to_list(string), binding, opts
     { value, binding }
@@ -130,13 +137,55 @@ defmodule Code do
   def eval_quoted(quoted, binding // [], opts // [])
 
   def eval_quoted(quoted, binding, Macro.Env[] = env) do
-    eval_quoted(quoted, binding, env.to_keywords)
+    do_eval_quoted(quoted, binding, env.to_keywords)
   end
 
-  def eval_quoted(quoted, binding, opts) do
+  def eval_quoted(quoted, binding, opts) when is_list(opts) do
+    validate_eval_opts(opts)
+    do_eval_quoted(quoted, binding, opts)
+  end
+
+  defp do_eval_quoted(quoted, binding, opts) when is_list(binding) do
     { value, binding, _scope } =
       :elixir.eval_quoted [quoted], binding, opts
     { value, binding }
+  end
+
+  defp validate_eval_opts(opts) do
+    if f = opts[:functions], do: validate_imports(:functions, f)
+    if m = opts[:macros],    do: validate_imports(:macros, m)
+    if a = opts[:aliases],   do: validate_aliases(:aliases, a)
+    if r = opts[:requires],  do: validate_requires(:requires, r)
+  end
+
+  defp validate_requires(kind, requires) do
+    valid = is_list(requires) and Enum.all?(requires, is_atom(&1))
+
+    unless valid do
+      raise ArgumentError, "expected :#{kind} option given to eval in the format: [module]"
+    end
+  end
+
+  defp validate_aliases(kind, aliases) do
+    valid = is_list(aliases) and Enum.all?(aliases, fn { k, v } ->
+      is_atom(k) and is_atom(v)
+    end)
+
+    unless valid do
+      raise ArgumentError, "expected :#{kind} option given to eval in the format: [{ module, module }]"
+    end
+  end
+
+  defp validate_imports(kind, imports) do
+    valid = is_list(imports) and Enum.all?(imports, fn { k, v } ->
+      is_atom(k) and is_list(v) and Enum.all?(v, fn { name, arity } ->
+        is_atom(name) and is_integer(arity)
+      end)
+    end)
+
+    unless valid do
+      raise ArgumentError, "expected :#{kind} option given to eval in the format: [{ module, [{ name, arity }] }]"
+    end
   end
 
   @doc """
