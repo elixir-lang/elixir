@@ -267,6 +267,9 @@ translate_in(Meta, Left, Right, S) ->
   end,
 
   { InGuard, TExpr } = case TRight of
+    { nil, _ } ->
+      Expr = { atom, Line, false },
+      { Cache, Expr };
     { cons, _, _, _ } ->
       [H|T] = elixir_tree_helpers:cons_to_list(TRight),
       Expr = lists:foldr(fun(X, Acc) ->
