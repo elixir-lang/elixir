@@ -685,7 +685,7 @@ defmodule File do
             end
           reason -> { :error, reason, :unicode.characters_to_binary(path) }
         end
-      { :error, :enotdir } ->
+      { :error, reason } when reason in [:enotdir, :eio] ->
         case rm(path) do
           :ok -> { :ok, [path|acc] }
           { :error, reason } when reason in [:enoent, :enotdir] -> entry
