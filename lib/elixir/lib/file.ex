@@ -38,10 +38,12 @@ defexception File.Error, [reason: nil, action: "", path: nil] do
   end
 end
 
-defexception File.CopyError, [reason: nil, action: "", source: nil, destination: nil] do
+defexception File.CopyError, [reason: nil, action: "", source: nil, destination: nil, on: nil] do
   def message(exception) do
     formatted = list_to_binary(:file.format_error(reason exception))
-    "could not #{action exception} from #{source exception} to #{destination exception}: #{formatted}"
+    location  = if on = on(exception), do: ". #{on}", else: ""
+    "could not #{action exception} from #{source exception} to " <>
+      "#{destination exception}#{location}: #{formatted}"
   end
 end
 
@@ -373,7 +375,7 @@ defmodule File do
         end
 
       case do_cp_file(source, output, callback, []) do
-        { :error, _ } = error -> error
+        { :error, reason, _ } -> { :error, reason }
         _ -> :ok
       end
     end
@@ -388,7 +390,8 @@ defmodule File do
       :ok -> :ok
       { :error, reason } ->
         raise File.CopyError, reason: reason, action: "copy recursively",
-          source: :unicode.characters_to_binary(source), destination: :unicode.characters_to_binary(destination)
+          source: :unicode.characters_to_binary(source),
+          destination: :unicode.characters_to_binary(destination)
     end
   end
 
@@ -448,7 +451,7 @@ defmodule File do
       end
 
     case do_cp_r(source, output, callback, []) do
-      { :error, _ } = error -> error
+      { :error, _, _ } = error -> error
       res -> { :ok, res }
     end
   end
@@ -460,19 +463,26 @@ defmodule File do
   def cp_r!(source, destination, callback // fn(_, _) -> true end) do
     case cp_r(source, destination, callback) do
       { :ok, files } -> files
-      { :error, reason } ->
+      { :error, reason, file } ->
         raise File.CopyError, reason: reason, action: "copy recursively",
-          source: :unicode.characters_to_binary(source), destination: :unicode.characters_to_binary(destination)
+          source: :unicode.characters_to_binary(source),
+          destination: :unicode.characters_to_binary(destination),
+          on: file
     end
   end
 
   # src may be a file or a directory, dest is definitely
   # a directory. Returns nil unless an error is found.
   defp do_cp_r(src, dest, callback, acc) when is_list(acc) do
-    case F.read_link(src) do
-      { :ok, link } ->
-        do_cp_link(link, src, dest, callback, acc)
-      _ ->
+    case :elixir.file_type(src) do
+      { :ok, :regular } ->
+        do_cp_file(src, dest, callback, acc)
+      { :ok, :symlink } ->
+        case F.read_link(src) do
+          { :ok, link } -> do_cp_link(link, src, dest, callback, acc)
+          { :error, reason } -> { :error, reason, :unicode.characters_to_binary(src) }
+        end
+      { :ok, :directory } ->
         case F.list_dir(src) do
           { :ok, files } ->
             case mkdir(dest) do
@@ -480,12 +490,12 @@ defmodule File do
                 Enum.reduce(files, [dest|acc], fn(x, acc) ->
                   do_cp_r(FN.join(src, x), FN.join(dest, x), callback, acc)
                 end)
-              reason -> reason
+              { :error, reason } -> { :error, reason, :unicode.characters_to_binary(dest) }
             end
-          { :error, :enotdir } ->
-            do_cp_file(src, dest, callback, acc)
-          reason -> reason
+          { :error, reason } -> { :error, reason, :unicode.characters_to_binary(src) }
         end
+      { :ok, _ } -> { :error, :eio, src }
+      { :error, reason } -> { :error, reason, :unicode.characters_to_binary(src) }
     end
   end
 
@@ -514,12 +524,12 @@ defmodule File do
             { :ok, _ } ->
               copy_file_mode!(src, dest)
               [dest|acc]
-            reason -> reason
+            { :error, reason } -> { :error, reason, :unicode.characters_to_binary(src) }
           end
         else
           acc
         end
-      reason -> reason
+      { :error, reason } -> { :error, reason, :unicode.characters_to_binary(src) }
     end
   end
 
@@ -533,12 +543,12 @@ defmodule File do
           rm(dest)
           case F.make_symlink(link, dest) do
             :ok -> [dest|acc]
-            reason -> reason
+            { :error, reason } -> { :error, reason, :unicode.characters_to_binary(src) }
           end
         else
           acc
         end
-      reason -> reason
+      { :error, reason } -> { :error, reason, :unicode.characters_to_binary(src) }
     end
   end
 
@@ -705,7 +715,9 @@ defmodule File do
     case rm_rf(path) do
       { :ok, files } -> files
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "remove files and directories recursively from", path: :unicode.characters_to_binary(path)
+        raise File.Error, reason: reason,
+          action: "remove files and directories recursively from",
+          path: :unicode.characters_to_binary(path)
     end
   end
 

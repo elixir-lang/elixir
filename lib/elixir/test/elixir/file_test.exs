@@ -9,20 +9,6 @@ defmodule FileTest do
   defmodule Cp do
     use ExUnit.Case
 
-    # cp_r/c is managed in setup/teardown because if it is stored in
-    # the repository, reltool can't build a release
-    setup do
-      src = fixture_path("cp_r")
-      :file.make_symlink 'certainly/invalid', Path.join([src, "c"])
-      :ok
-    end
-
-    teardown do
-      src = fixture_path("cp_r")
-      File.rm Path.join([src, "c"])
-      :ok
-    end
-
     test :cp_with_src_file_and_dest_file do
       src  = fixture_path("file.txt")
       dest = tmp_path("sample.txt")
@@ -187,12 +173,9 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 8
+        assert length(files) == 7
         assert tmp_path("tmp/cp_r/a") in files
-        assert tmp_path("tmp/cp_r/c") in files
         assert tmp_path("tmp/cp_r/a/1.txt") in files
-
-        assert { :ok, 'certainly/invalid' } = :file.read_link(tmp_path("tmp/cp_r/c"))
 
         assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
         assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
@@ -214,7 +197,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 8
+        assert length(files) == 7
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -246,7 +229,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 8
+        assert length(files) == 7
 
         assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
         assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
@@ -259,7 +242,7 @@ defmodule FileTest do
     test :cp_r_with_src_unknown do
       src  = fixture_path("unknown")
       dest = tmp_path("tmp")
-      assert File.cp_r(src, dest) == { :error, :enoent }
+      assert File.cp_r(src, dest) == { :error, :enoent, src }
     end
 
     test :cp_r_with_dir_and_file_conflict do
@@ -287,7 +270,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 8
+        assert length(files) == 7
         assert is_list(hd(files))
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
@@ -345,7 +328,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
-        assert length(File.cp_r!(src, dest)) == 8
+        assert length(File.cp_r!(src, dest)) == 7
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -358,7 +341,7 @@ defmodule FileTest do
     test :cp_r_with_src_unknown! do
       src  = fixture_path("unknown")
       dest = tmp_path("tmp")
-      assert_raise File.CopyError, "could not copy recursively from #{src} to #{dest}: no such file or directory", fn ->
+      assert_raise File.CopyError, "could not copy recursively from #{src} to #{dest}. #{src}: no such file or directory", fn ->
         File.cp_r!(src, dest)
       end
     end
@@ -370,7 +353,8 @@ defmodule FileTest do
      File.Stat[mode: src_mode] = File.stat! src
      File.Stat[mode: dest_mode] = File.stat! dest
      assert src_mode == dest_mode
-     # on overwrite
+
+     # On overwrite
      File.cp! src, dest, fn(_, _) -> true end
      File.Stat[mode: src_mode] = File.stat! src
      File.Stat[mode: dest_mode] = File.stat! dest
@@ -378,10 +362,8 @@ defmodule FileTest do
     end
 
     defp is_io_error?(result) do
-      {:error,errorcode} = result
-      errorcode in [:enotdir, :eio, :enoent, :eisdir]
+      elem(result, 1) in [:enotdir, :eio, :enoent, :eisdir]
     end
-    
   end
 
   defmodule Queries do
@@ -696,7 +678,7 @@ defmodule FileTest do
         File.mkdir_p!(invalid)
       end
     end
-    
+
     defp is_io_error?(result) do
       {:error,errorcode} = result
       errorcode in [:enotdir, :eio, :enoent, :eisdir]
@@ -706,20 +688,6 @@ defmodule FileTest do
 
   defmodule Rm do
     use ExUnit.Case
-
-    # cp_r/c is managed in setup/teardown because if it is stored in
-    # the repository, reltool can't build a release
-    setup do
-      src = fixture_path("cp_r")
-      :file.make_symlink 'certainly/invalid', Path.join([src, "c"])
-      :ok
-    end
-
-    teardown do
-      src = fixture_path("cp_r")
-      File.rm Path.join([src, "c"])
-      :ok
-    end
 
     test :rm_file do
       fixture = tmp_path("tmp_test.txt")
@@ -788,7 +756,7 @@ defmodule FileTest do
       assert File.exists?(tmp_path("tmp/b/3.txt"))
 
       { :ok, files } = File.rm_rf(fixture)
-      assert length(files) == 8
+      assert length(files) == 7
       assert fixture in files
       assert tmp_path("tmp/a/1.txt") in files
 
@@ -822,7 +790,7 @@ defmodule FileTest do
       assert File.exists?(tmp_path("tmp/b/3.txt"))
 
       { :ok, files } = File.rm_rf(fixture)
-      assert length(files) == 8
+      assert length(files) == 7
       assert fixture in files
       assert (tmp_path("tmp/a/1.txt") |> to_char_list) in files
 
@@ -858,7 +826,7 @@ defmodule FileTest do
       assert File.exists?(tmp_path("tmp/b/3.txt"))
 
       files = File.rm_rf!(fixture)
-      assert length(files) == 8
+      assert length(files) == 7
       assert fixture in files
       assert tmp_path("tmp/a/1.txt") in files
 
@@ -874,10 +842,9 @@ defmodule FileTest do
         File.rm_rf!(fixture)
       end
     end
-    
+
     defp is_io_error?(result) do
-      {:error,errorcode} = result
-      errorcode in [:enotdir, :eio, :enoent, :eisdir]
+      elem(result, 1) in [:enotdir, :eio, :enoent, :eisdir]
     end
   end
 
@@ -1157,7 +1124,7 @@ defmodule FileTest do
   defp last_year({ { year, month, day }, time }) do
     { { year - 1, month, day }, time }
   end
-  
+
   defp is_io_error?(result) do
     {:error,errorcode} = result
     errorcode in [:enotdir, :eio, :enoent, :eisdir]
