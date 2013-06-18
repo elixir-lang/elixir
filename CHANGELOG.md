@@ -5,7 +5,7 @@
   * [Kernel] Print warnings to stderr
   * [Kernel] Warn on undefined module attributes
   * [Kernel] Emit warning for 'x in []' in guards
-  * [Kernel] Support for `binding/0` and `binding/1` for retrieving bindings
+  * [Kernel] Add `binding/0` and `binding/1` for retrieving bindings
   * [Mix] Implement `Mix.Version` for basic versioniong semantics
   * [Mix] Support creation and installation of archives (.ez files)
 

@@ -142,13 +142,17 @@ translate({ 'binding', Meta, [] }, S) ->
 
 translate({ 'binding', Meta, [List] }, #elixir_scope{vars=Vars} = S) when is_list(List) ->
   Line = ?line(Meta),
-  Dict = lists:foldl(fun(Name, Acc) ->
-    case orddict:find({ Name, nil }, Vars) of
-      { ok, Var } ->
-        orddict:store(Name, Var, Acc);
-      error ->
-        Acc
-    end
+  Dict = lists:foldl(fun
+    (Name, Acc) when is_atom(Name) ->
+      case orddict:find({ Name, nil }, Vars) of
+        { ok, Var } ->
+          orddict:store(Name, Var, Acc);
+        error ->
+          Acc
+      end;
+    (Name, _Acc) ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.file, "binding/1 expects a list of atoms "
+        "at compilation time, got: ~ts", ['Elixir.Macro':to_binary(Name)])
   end, [], List),
   { elixir_tree_helpers:list_to_cons(Line,
     [ { tuple, Line, [

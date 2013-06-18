@@ -2452,15 +2452,16 @@ defmodule Kernel do
   defmacro binding
 
   @doc """
-  Returns the binding of the given variables as a keyword list
-  where the variable name is the key and the variable value is
-  the value. In case a variable in the list does not exist in
-  the binding, it is not included in the final dictionary.
+  Receives a list of atoms at compilation time and returns the
+  binding of the given variables as a keyword list where the
+  variable name is the key and the variable value is the value.
+  In case a variable in the list does not exist in the binding,
+  it is not included in the returned result.
 
   ## Examples
 
       iex> x = 1
-      iex> binding([:x, y])
+      iex> binding([:x, :y])
       [x: 1]
 
   """
