@@ -229,7 +229,7 @@ defmodule FileTest do
 
       try do
         File.touch!(dest)
-        assert File.cp_r(src, dest) == { :error, :enotdir }
+        assert (File.cp_r(src, dest) |> is_io_error?)
       after
         File.rm_rf dest
       end
@@ -268,7 +268,7 @@ defmodule FileTest do
       try do
         File.mkdir(dest)
         File.write!(Path.join(dest, "a"), "hello")
-        assert File.cp_r(src, dest) == { :error, :enotdir }
+        assert (File.cp_r(src, dest)  |> is_io_error?)
       after
         File.rm_rf dest
       end
@@ -376,6 +376,11 @@ defmodule FileTest do
      assert src_mode == dest_mode
     end
 
+    defp is_io_error?(result) do
+      {:error,errorcode} = result
+      errorcode in [:enotdir, :eio, :enoent, :eisdir]
+    end
+    
   end
 
   defmodule Queries do
@@ -586,7 +591,7 @@ defmodule FileTest do
       fixture = fixture_path("file.txt")
       invalid = Path.join fixture, "test"
       assert File.exists?(fixture)
-      assert File.mkdir(invalid) == { :error, :enotdir }
+      assert (File.mkdir(invalid) |> is_io_error?)
       refute File.exists?(invalid)
     end
 
@@ -667,7 +672,7 @@ defmodule FileTest do
     test :mkdir_p_with_invalid_path do
       assert File.exists?(fixture_path("file.txt"))
       invalid = Path.join fixture_path("file.txt"), "test/foo"
-      assert File.mkdir(invalid) == { :error, :enotdir }
+      assert (File.mkdir(invalid) |> is_io_error?)
       refute File.exists?(invalid)
     end
 
@@ -690,6 +695,12 @@ defmodule FileTest do
         File.mkdir_p!(invalid)
       end
     end
+    
+    defp is_io_error?(result) do
+      {:error,errorcode} = result
+      errorcode in [:enotdir, :eio, :enoent, :eisdir]
+    end
+
   end
 
   defmodule Rm do
@@ -748,7 +759,7 @@ defmodule FileTest do
     end
 
     test :rmdir_with_file do
-      assert File.rmdir(fixture_path("file.txt")) == { :error, :enotdir }
+      assert (File.rmdir(fixture_path("file.txt")) |> is_io_error?)
     end
 
     test :rmdir! do
@@ -861,6 +872,11 @@ defmodule FileTest do
       assert_raise File.Error, "could not remove files and directories recursively from #{fixture}: not a directory", fn ->
         File.rm_rf!(fixture)
       end
+    end
+    
+    defp is_io_error?(result) do
+      {:error,errorcode} = result
+      errorcode in [:enotdir, :eio, :enoent, :eisdir]
     end
   end
 
@@ -1070,7 +1086,7 @@ defmodule FileTest do
   end
 
   test :invalid_cd do
-    assert File.cd(fixture_path("file.txt")) == { :error, :enotdir }
+    assert(File.cd(fixture_path("file.txt")) |> is_io_error?)
   end
 
   test :invalid_cd! do
@@ -1139,5 +1155,10 @@ defmodule FileTest do
 
   defp last_year({ { year, month, day }, time }) do
     { { year - 1, month, day }, time }
+  end
+  
+  defp is_io_error?(result) do
+    {:error,errorcode} = result
+    errorcode in [:enotdir, :eio, :enoent, :eisdir]
   end
 end
