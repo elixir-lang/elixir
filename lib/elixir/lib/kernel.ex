@@ -2436,6 +2436,37 @@ defmodule Kernel do
   defmacro @(expr)
 
   @doc """
+  Returns the binding as a keyword list where the variable name
+  is the key and the variable value is the value.
+
+  ## Examples
+
+      iex> x = 1
+      iex> binding()
+      [x: 1]
+      iex> x = 2
+      iex> binding()
+      [x: 2]
+
+  """
+  defmacro binding
+
+  @doc """
+  Returns the binding of the given variables as a keyword list
+  where the variable name is the key and the variable value is
+  the value. In case a variable in the list does not exist in
+  the binding, it is not included in the final dictionary.
+
+  ## Examples
+
+      iex> x = 1
+      iex> binding([:x, y])
+      [x: 1]
+
+  """
+  defmacro binding(list)
+
+  @doc """
   Provides an `if` macro. This macro expects the first argument to
   be a condition and the rest are keyword arguments.
 

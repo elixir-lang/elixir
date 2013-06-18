@@ -82,8 +82,20 @@ defmodule KernelTest do
     assert __ENV__.function == { :test_function_from___ENV__, 1 }
   end
 
+  test :binding do
+    x = 1
+    assert binding == [x: 1]
+    assert binding([:x, :y]) == [x: 1]
+
+    x = 2
+    assert binding == [x: 2]
+
+    y = 3
+    assert binding == [x: 2, y: 3]
+  end
+
   defp x(value) when value in [1, 2, 3], do: true
-  defp x(_),                           do: false
+  defp x(_),                             do: false
 
   defmodule Conversions do
     use ExUnit.Case, async: true
@@ -156,9 +168,6 @@ defmodule KernelTest do
   defmodule Runtime do
     use ExUnit.Case, async: true
     defp kernel, do: Kernel
-
-    # {apply,2},
-    # {apply,3},
 
     test :not do
       assert kernel.not(true) == false

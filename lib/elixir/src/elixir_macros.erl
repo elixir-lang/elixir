@@ -130,6 +130,32 @@ translate({'@', Meta, [{ Name, _, Args }]}, S) ->
       end
   end;
 
+%% Binding
+
+translate({ 'binding', Meta, [] }, S) ->
+  Line = ?line(Meta),
+  { elixir_tree_helpers:list_to_cons(Line,
+    [ { tuple, Line, [
+      { atom, Line, Name },
+      { var, Line, Var }
+    ] } || { { Name, nil }, Var } <- S#elixir_scope.vars]), S };
+
+translate({ 'binding', Meta, [List] }, #elixir_scope{vars=Vars} = S) when is_list(List) ->
+  Line = ?line(Meta),
+  Dict = lists:foldl(fun(Name, Acc) ->
+    case orddict:find({ Name, nil }, Vars) of
+      { ok, Var } ->
+        orddict:store(Name, Var, Acc);
+      error ->
+        Acc
+    end
+  end, [], List),
+  { elixir_tree_helpers:list_to_cons(Line,
+    [ { tuple, Line, [
+      { atom, Line, Name },
+      { var, Line, Var }
+    ] } || { Name, Var } <- Dict]), S };
+
 %% Case
 
 translate({'case', Meta, [Expr, KV]}, S) ->

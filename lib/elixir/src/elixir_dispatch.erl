@@ -447,6 +447,8 @@ in_erlang_macros() ->
     {'and',2},
     {apply,2},
     {apply,3},
+    {binding,0},
+    {binding,1},
     {'case',2},
     {def,1},
     {def,2},
