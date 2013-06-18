@@ -356,7 +356,7 @@ defmodule Kernel.Typespec do
   end
 
   def deftype(_kind, other, _caller) do
-    type_spec = Macro.to_binary(other)
+    type_spec = Macro.to_string(other)
     raise ArgumentError, message: "invalid type specification #{type_spec}"
   end
 
@@ -397,7 +397,7 @@ defmodule Kernel.Typespec do
   end
 
   def defspec(_type, other, _caller) do
-    spec = Macro.to_binary(other)
+    spec = Macro.to_string(other)
     raise ArgumentError, message: "invalid function type specification #{spec}"
   end
 

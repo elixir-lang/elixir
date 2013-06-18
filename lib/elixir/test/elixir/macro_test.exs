@@ -176,47 +176,47 @@ defmodule MacroTest do
   ## to_binary
 
   test :var_to_binary do
-    assert Macro.to_binary(quote do: foo) == "foo"
+    assert Macro.to_string(quote do: foo) == "foo"
   end
 
   test :local_call_to_binary do
-    assert Macro.to_binary(quote do: foo(1, 2, 3)) == "foo(1, 2, 3)"
-    assert Macro.to_binary(quote do: foo([1, 2, 3])) == "foo([1, 2, 3])"
+    assert Macro.to_string(quote do: foo(1, 2, 3)) == "foo(1, 2, 3)"
+    assert Macro.to_string(quote do: foo([1, 2, 3])) == "foo([1, 2, 3])"
   end
 
   test :remote_call_to_binary do
-    assert Macro.to_binary(quote do: foo.bar(1, 2, 3)) == "foo.bar(1, 2, 3)"
-    assert Macro.to_binary(quote do: foo.bar([1, 2, 3])) == "foo.bar([1, 2, 3])"
+    assert Macro.to_string(quote do: foo.bar(1, 2, 3)) == "foo.bar(1, 2, 3)"
+    assert Macro.to_string(quote do: foo.bar([1, 2, 3])) == "foo.bar([1, 2, 3])"
   end
 
   test :low_atom_remote_call_to_binary do
-    assert Macro.to_binary(quote do: :foo.bar(1, 2, 3)) == ":foo.bar(1, 2, 3)"
+    assert Macro.to_string(quote do: :foo.bar(1, 2, 3)) == ":foo.bar(1, 2, 3)"
   end
 
   test :big_atom_remote_call_to_binary do
-    assert Macro.to_binary(quote do: Foo.Bar.bar(1, 2, 3)) == "Foo.Bar.bar(1, 2, 3)"
+    assert Macro.to_string(quote do: Foo.Bar.bar(1, 2, 3)) == "Foo.Bar.bar(1, 2, 3)"
   end
 
   test :remote_and_fun_call_to_binary do
-    assert Macro.to_binary(quote do: foo.bar.(1, 2, 3)) == "foo.bar().(1, 2, 3)"
-    assert Macro.to_binary(quote do: foo.bar.([1, 2, 3])) == "foo.bar().([1, 2, 3])"
+    assert Macro.to_string(quote do: foo.bar.(1, 2, 3)) == "foo.bar().(1, 2, 3)"
+    assert Macro.to_string(quote do: foo.bar.([1, 2, 3])) == "foo.bar().([1, 2, 3])"
   end
 
   test :atom_call_to_binary do
-    assert Macro.to_binary(quote do: :foo.(1, 2, 3)) == ":foo.(1, 2, 3)"
+    assert Macro.to_string(quote do: :foo.(1, 2, 3)) == ":foo.(1, 2, 3)"
   end
 
   test :aliases_call_to_binary do
-    assert Macro.to_binary(quote do: Foo.Bar.baz(1, 2, 3)) == "Foo.Bar.baz(1, 2, 3)"
-    assert Macro.to_binary(quote do: Foo.Bar.baz([1, 2, 3])) == "Foo.Bar.baz([1, 2, 3])"
+    assert Macro.to_string(quote do: Foo.Bar.baz(1, 2, 3)) == "Foo.Bar.baz(1, 2, 3)"
+    assert Macro.to_string(quote do: Foo.Bar.baz([1, 2, 3])) == "Foo.Bar.baz([1, 2, 3])"
   end
 
   test :arrow_to_binary do
-    assert Macro.to_binary(quote do: foo(1, (2 -> 3))) == "foo(1, (2 -> 3))"
+    assert Macro.to_string(quote do: foo(1, (2 -> 3))) == "foo(1, (2 -> 3))"
   end
 
   test :blocks_to_binary do
-    assert Macro.to_binary(quote do: (1; 2; (:foo; :bar); 3)) <> "\n" == """
+    assert Macro.to_string(quote do: (1; 2; (:foo; :bar); 3)) <> "\n" == """
     (
       1
       2
@@ -230,7 +230,7 @@ defmodule MacroTest do
   end
 
   test :if_else_to_binary do
-    assert Macro.to_binary(quote do: (if foo, do: bar, else: baz)) <> "\n" == """
+    assert Macro.to_string(quote do: (if foo, do: bar, else: baz)) <> "\n" == """
     if(foo) do
       bar
     else
@@ -240,7 +240,7 @@ defmodule MacroTest do
   end
 
   test :case_to_binary do
-    assert Macro.to_binary(quote do: (case foo do true -> 0; false -> (1; 2) end)) <> "\n" == """
+    assert Macro.to_string(quote do: (case foo do true -> 0; false -> (1; 2) end)) <> "\n" == """
     case(foo) do
       true ->
         0
@@ -252,18 +252,18 @@ defmodule MacroTest do
   end
 
   test :fn_to_binary do
-    assert Macro.to_binary(quote do: (() -> x)) == "(() -> x)"
-    assert Macro.to_binary(quote do: (fn -> 1 + 2 end)) == "fn -> 1 + 2 end"
-    assert Macro.to_binary(quote do: (fn(x) -> x + 1 end)) == "fn x -> x + 1 end"
+    assert Macro.to_string(quote do: (() -> x)) == "(() -> x)"
+    assert Macro.to_string(quote do: (fn -> 1 + 2 end)) == "fn -> 1 + 2 end"
+    assert Macro.to_string(quote do: (fn(x) -> x + 1 end)) == "fn x -> x + 1 end"
 
-    assert Macro.to_binary(quote do: (fn(x) -> y = x + 1; y end)) <> "\n" == """
+    assert Macro.to_string(quote do: (fn(x) -> y = x + 1; y end)) <> "\n" == """
     fn x ->
       y = (x + 1)
       y
     end
     """
 
-    assert Macro.to_binary(quote do: (fn(x) -> y = x + 1; y; (z) -> z end)) <> "\n" == """
+    assert Macro.to_string(quote do: (fn(x) -> y = x + 1; y; (z) -> z end)) <> "\n" == """
     fn
       x ->
         y = (x + 1)
@@ -275,11 +275,11 @@ defmodule MacroTest do
   end
 
   test :partial_to_binary do
-    assert Macro.to_binary(quote do: identity(&1)) == "identity(&1)"
+    assert Macro.to_string(quote do: identity(&1)) == "identity(&1)"
   end
 
   test :nested_to_binary do
-    assert Macro.to_binary(quote do: (defmodule Foo do def foo do 1 + 1 end end)) <> "\n" == """
+    assert Macro.to_string(quote do: (defmodule Foo do def foo do 1 + 1 end end)) <> "\n" == """
     defmodule(Foo) do
       def(foo) do
         1 + 1
@@ -289,27 +289,27 @@ defmodule MacroTest do
   end
 
   test :op_precedence_to_binary do
-    assert Macro.to_binary(quote do: (1 + 2) * (3 - 4)) == "(1 + 2) * (3 - 4)"
-    assert Macro.to_binary(quote do: ((1 + 2) * 3) - 4) == "((1 + 2) * 3) - 4"
+    assert Macro.to_string(quote do: (1 + 2) * (3 - 4)) == "(1 + 2) * (3 - 4)"
+    assert Macro.to_string(quote do: ((1 + 2) * 3) - 4) == "((1 + 2) * 3) - 4"
   end
 
   test :containers_to_binary do
-    assert Macro.to_binary(quote do: { 1, 2, 3 })   == "{1, 2, 3}"
-    assert Macro.to_binary(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
-    assert Macro.to_binary(quote do: << 1, 2, 3 >>) == "<<1, 2, 3>>"
+    assert Macro.to_string(quote do: { 1, 2, 3 })   == "{1, 2, 3}"
+    assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
+    assert Macro.to_string(quote do: << 1, 2, 3 >>) == "<<1, 2, 3>>"
   end
 
   test :binary_ops_to_binary do
-    assert Macro.to_binary(quote do: 1 + 2)   == "1 + 2"
-    assert Macro.to_binary(quote do: [ 1, 2 | 3 ]) == "[1, 2 | 3]"
-    assert Macro.to_binary(quote do: [h|t] = [1, 2, 3]) == "[h | t] = [1, 2, 3]"
+    assert Macro.to_string(quote do: 1 + 2)   == "1 + 2"
+    assert Macro.to_string(quote do: [ 1, 2 | 3 ]) == "[1, 2 | 3]"
+    assert Macro.to_string(quote do: [h|t] = [1, 2, 3]) == "[h | t] = [1, 2, 3]"
   end
 
   test :unary_ops_to_binary do
-    assert Macro.to_binary(quote do: not 1) == "not 1"
-    assert Macro.to_binary(quote do: not foo) == "not foo"
-    assert Macro.to_binary(quote do: -1) == "-1"
-    assert Macro.to_binary(quote do: @foo(bar)) == "@foo(bar)"
+    assert Macro.to_string(quote do: not 1) == "not 1"
+    assert Macro.to_string(quote do: not foo) == "not foo"
+    assert Macro.to_string(quote do: -1) == "-1"
+    assert Macro.to_string(quote do: @foo(bar)) == "@foo(bar)"
   end
 
   ## safe_term

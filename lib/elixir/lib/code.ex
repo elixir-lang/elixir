@@ -202,10 +202,10 @@ defmodule Code do
   * `:existing_atoms_only` - When true, raises an error
     when non-existing atoms are found by the tokenizer.
 
-  ## Macro.to_binary/1
+  ## Macro.to_string/1
 
   The opposite of converting a string to its AST is
-  `Macro.to_binary`, which converts a AST to a binary
+  `Macro.to_string`, which converts a AST to a binary
   representation.
   """
   def string_to_ast(string, opts // []) do
