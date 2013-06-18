@@ -1,9 +1,10 @@
 Code.require_file "test_helper.exs", __DIR__
 
 defmodule FileTest do
-  import PathHelpers
-
   use ExUnit.Case
+
+  import PathHelpers
+  import Regex, only: [escape: 1]
 
   defmodule Cp do
     use ExUnit.Case
@@ -610,7 +611,7 @@ defmodule FileTest do
       fixture = fixture_path("file.txt")
       invalid = Path.join fixture, "test"
       assert File.exists?(fixture)
-      assert_raise File.Error, "could not make directory #{invalid}: not a directory", fn ->
+      assert_raise File.Error, %r"^could not make directory #{escape invalid}: (not a directory|no such file or directory)", fn ->
         File.mkdir!(invalid)
       end
     end
@@ -691,7 +692,7 @@ defmodule FileTest do
       fixture = fixture_path("file.txt")
       invalid = Path.join fixture, "test"
       assert File.exists?(fixture)
-      assert_raise File.Error, "could not make directory (with -p) #{invalid}: not a directory", fn ->
+      assert_raise File.Error, %r"^could not make directory \(with -p\) #{escape invalid}: (not a directory|no such file or directory)", fn ->
         File.mkdir_p!(invalid)
       end
     end
@@ -772,7 +773,7 @@ defmodule FileTest do
 
     test :rmdir_with_file! do
       fixture = fixture_path("file.txt")
-      assert_raise File.Error, "could not remove directory #{fixture}: not a directory", fn ->
+      assert_raise File.Error, %r"^could not remove directory #{escape fixture}: (not a directory|I/O error)", fn ->
         File.rmdir!(fixture)
       end
     end
@@ -1090,7 +1091,7 @@ defmodule FileTest do
   end
 
   test :invalid_cd! do
-    message = "could not set current working directory to #{fixture_path("file.txt")}: not a directory"
+    message = %r"^could not set current working directory to #{escape fixture_path("file.txt")}: (not a directory|no such file or directory)"
     assert_raise File.Error, message, fn ->
       File.cd!(fixture_path("file.txt"))
     end
@@ -1144,7 +1145,7 @@ defmodule FileTest do
 
   test :touch_with_failure! do
     fixture = fixture_path("file.txt/bar")
-    assert_raise File.Error, "could not touch #{fixture}: not a directory", fn ->
+    assert_raise File.Error, %r"could not touch #{escape fixture}: (not a directory|no such file or directory)", fn ->
       File.touch!(fixture)
     end
   end
