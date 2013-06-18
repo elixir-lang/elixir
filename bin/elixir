@@ -74,12 +74,12 @@ done
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
 
-if [ "$ERL_LIBS" == "" ]
+if [ "$ERL_LIBS" = "" ]
 then
   ERL_LIBS="$SCRIPT_PATH/../lib"
 else
   PATHSEP=":"
-  if [ "$OSTYPE" == "msys" ]; then PATHSEP=";" ; fi
+  if [ "$OSTYPE" = "msys" ]; then PATHSEP=";" ; fi
   ERL_LIBS="$ERL_LIBS$PATHSEP$SCRIPT_PATH/../lib"
 fi
 
