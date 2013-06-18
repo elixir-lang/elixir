@@ -3,6 +3,8 @@
 * enhancements
   * [Kernel] Add --warnings-as-errors to Elixir's compiler options
   * [Kernel] Print warnings to stderr
+  * [Kernel] Warn on undefined module attributes
+  * [Kernel] Emit warning for 'x in []' in guards
   * [Mix] Implement `Mix.Version` for basic versioniong semantics
   * [Mix] Support creation and installation of archives (.ez files)
 
@@ -10,6 +12,7 @@
   * [Kernel] The elixir executable on Windows now supports the same options as the UNIX one
   * [Kernel] Improve error messages on default clauses clash
   * [Kernel] `__MODULE__.Foo` now returns `Foo` when outside of a Module
+  * [Kernel] Improve error messages when default clauses from different definitions collide
   * [Mix] Mix now properly evaluates rebar scripts
 
 * deprecations
