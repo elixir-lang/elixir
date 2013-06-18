@@ -52,7 +52,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
       assert File.exists?("deps/git_repo/ebin/Elixir.GitRepo.beam")
-      assert File.read!("mix.lock") =~ %r/"git_repo": {:git,#{inspect fixture_path("git_repo")},"[a-f0-9]+",\[\]}/
+      assert File.read!("mix.lock") =~ %r/"git_repo": {\s+:git,\s+#{inspect fixture_path("git_repo")},\s+"[a-f0-9]+",\s+\[\]\n}/
 
       purge [GitRepo]
       File.touch!("deps/git_repo/ebin/.compile.elixir", { { 2010, 4, 17 }, { 14, 0, 0 } })
@@ -85,7 +85,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
 
 
-      message = "* Getting deps_on_git_repo [git: #{inspect fixture_path("deps_on_git_repo")}]"
+      message = "* Getting deps_on_git_repo [\n  git: #{inspect fixture_path("deps_on_git_repo")}\n]"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["* Compiling deps_on_git_repo"] }
 
