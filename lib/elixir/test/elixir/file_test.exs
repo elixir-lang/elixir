@@ -1103,7 +1103,7 @@ defmodule FileTest do
 
   test :touch_with_failure do
     fixture = fixture_path("file.txt/bar")
-    assert File.touch(fixture) == { :error, :enotdir }
+    assert (File.touch(fixture) |> is_io_error?)
   end
 
   test :touch_with_success! do
