@@ -120,7 +120,7 @@ defmodule Binary.Inspect.TupleTest do
   defrecord Config, a: 1, b: []
 
   test :with_record do
-    assert inspect(Config.new) == "Binary.Inspect.TupleTest.Config[ a: 1, b: [] ]"
+    assert inspect(Config.new) == "Binary.Inspect.TupleTest.Config[a: 1, b: []]"
   end
 
   test :with_tuple_matching_record_name_but_not_length do
@@ -128,13 +128,13 @@ defmodule Binary.Inspect.TupleTest do
   end
 
   test :exception do
-    assert inspect(RuntimeError.new) == "RuntimeError[ message: \"runtime error\" ]"
+    assert inspect(RuntimeError.new) == "RuntimeError[message: \"runtime error\"]"
   end
 
   defrecord :something, [:a, :b]
 
   test :non_module_record do
-    assert inspect(:something.new) == ":something[ a: nil, b: nil ]"
+    assert inspect(:something.new) == ":something[a: nil, b: nil]"
   end
 
   test :empty do

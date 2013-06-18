@@ -387,7 +387,7 @@ defimpl Binary.Inspect, for: Tuple do
       iex> inspect({1, 2, 3})
       "{1,2,3}"
       iex> inspect(ArgumentError.new)
-      "ArgumentError[ message: \\\"argument error\\\" ]"
+      "ArgumentError[message: \\\"argument error\\\"]"
 
   """
 
@@ -430,7 +430,7 @@ defimpl Binary.Inspect, for: Tuple do
     group_maybe(
       concat(
         namedoc, 
-        surround("[", record_join(fields, tail, opts), "]", " "),
+        surround("[", record_join(fields, tail, opts), "]"),
       ),
       opts
     )

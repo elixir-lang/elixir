@@ -58,11 +58,11 @@ defmodule Wadler do
 
   # Records representing a __complex__ document
   @type doc :: DocNil | DocCons.t | DocText.t | DocNest.t | DocBreak.t | DocGroup.t
-  defrecord DocCons, left: DocNil, right: DocNil
-  defrecord DocText, str: ""
-  defrecord DocNest, indent: 1, doc: DocNil
-  defrecord DocBreak, str: " "
-  defrecord DocGroup, doc: DocNil
+  defrecord DocCons, [left: DocNil, right: DocNil]
+  defrecord DocText, [str: ""]
+  defrecord DocNest, [indent: 1, doc: DocNil]
+  defrecord DocBreak, [str: " "]
+  defrecord DocGroup, [doc: DocNil]
 
   # Functional interface to `doc` records
   @doc """
@@ -316,8 +316,8 @@ defmodule Wadler do
   # Records representing __simple__ documents, already on a fixed layout
   # Those are generalized by `sdoc` type.
   @type sdoc :: SNil | SText.t | SLine.t
-  defrecord SText, str: "", sdoc: SNil
-  defrecord SLine, indent: 1, sdoc: SNil # newline + spaces
+  defrecord SText, [str: "", sdoc: SNil]
+  defrecord SLine, [indent: 1, sdoc: SNil] # newline + spaces
 
   @doc """
   Renders a simple document into a binary
