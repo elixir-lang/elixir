@@ -216,7 +216,7 @@ defmodule HashSet do
     end
   end
 
-  defp set_intersect(ordered() = set1, ordered() = set2) do
+  defp set_intersect(ordered() = set1, set2) do
     set_intersect(set2, set1)
   end
 
@@ -230,15 +230,9 @@ defmodule HashSet do
     set_intersect(set2, set1)
   end
 
-  defp set_difference(ordered() = set1, ordered() = set2) do
+  defp set_difference(set1, set2) do
     set_filter set1, fn m ->
       !member?(set2, m)
-    end
-  end
-
-  defp set_difference(trie() = set1, set2) do
-    set_fold set2, set1, fn m, acc ->
-      delete(acc, m)
     end
   end
 
