@@ -23,6 +23,7 @@
 * backwards incompatible changes
   * [File] `rm_rf` and `cp_r` now returns a tuple with three elements on failures
   * [Kernel] The quoted representation for `->` clauses changed from a tuple with two elements to a tuple with three elements to support metadata
+  * [Mix] No longer support beam files on `mix local`
 
 # v0.9.2 (2013-06-13)
 

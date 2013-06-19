@@ -28,7 +28,7 @@ defmodule Mix.Utils do
   those paths should be separated by `;`, if on unix systems,
   use `:`.
   """
-  def mix_path do
+  def mix_paths do
     if path = System.get_env("MIX_PATH") do
       String.split(path, path_separator)
     else

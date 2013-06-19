@@ -25,12 +25,12 @@ defmodule Mix.Task do
   @doc """
   Loads all tasks in all code paths.
   """
-  def load_all, do: load_paths(:code.get_path)
+  def load_all, do: load_tasks(:code.get_path)
 
   @doc """
   Loads all tasks in given paths.
   """
-  def load_paths(paths) do
+  def load_tasks(paths) do
     Enum.reduce(paths, [], fn(path, matches) ->
       { :ok, files } = :erl_prim_loader.list_dir(path |> :unicode.characters_to_list)
       Enum.reduce(files, matches, match_tasks(&1, &2))

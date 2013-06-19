@@ -1,40 +1,36 @@
 defmodule Mix.Local do
   @moduledoc """
-  Module responsible to manage local .mix installation.
+  Module responsible to manage local mix archives and paths.
   """
 
   @doc """
-  The path for local tasks and archives.
+  The path for local archives.
   """
-  def tasks_path do
-    Path.join Mix.Utils.mix_home, "tasks"
+  def archives_path do
+    Path.join Mix.Utils.mix_home, "archives"
   end
 
   @doc """
-  Append local tasks and archives paths into Erlang code path.
+  Append archives paths into Erlang code path.
   """
-  def append_tasks do
-    Enum.each(all_tasks_paths, Code.append_path(&1))
+  def append_archives do
+    Enum.each(archives_ebin, Code.append_path(&1))
   end
 
   @doc """
   Append mix paths into Erlang code path.
   """
   def append_paths do
-    Enum.each(Mix.Utils.mix_path, Code.append_path(&1))
+    Enum.each(Mix.Utils.mix_paths, Code.append_path(&1))
   end
 
   @doc """
-  Returns all tasks modules in ~/.mix/tasks and archives.
+  Returns all tasks in local archives.
   """
-  def all_tasks, do: Mix.Task.load_paths(all_tasks_paths)
+  def all_tasks, do: Mix.Task.load_tasks(archives_ebin)
 
-  defp all_tasks_paths do
-    [tasks_path | archives_paths]
-  end
-
-  defp archives_paths do
-    Path.join(tasks_path, "*.ez") |> Path.wildcard |> Enum.map(archive_ebin(&1))
+  defp archives_ebin do
+    Path.join(archives_path, "*.ez") |> Path.wildcard |> Enum.map(archive_ebin(&1))
   end
 
   defp archive_ebin(archive_file) do

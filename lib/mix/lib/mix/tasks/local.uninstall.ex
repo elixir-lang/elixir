@@ -17,14 +17,16 @@ defmodule Mix.Tasks.Local.Uninstall do
 
   defp do_uninstall(task) do
     case Path.extname(task) do
-      ".ez" -> File.rm! Path.join(Mix.Local.tasks_path, task)
+      ".ez" -> File.rm! Path.join(Mix.Local.archives_path, task)
       _ ->
         task_module = Mix.Task.get(task)
-        if archive = in_archive('#{task_module}.beam') do
-          raise Mix.Error, message: "The task #{task} is part of archive #{archive}. " <>
-            "To uninstall this task, please run: `mix local.uninstall #{archive}`"
+        archive = in_archive('#{task_module}.beam')
+
+        if archive && Mix.shell.yes?("The task #{task} is part of archive #{archive}. " <>
+             "Do you want to remove this archive?") do
+          do_uninstall(archive)
         else
-          File.rm! Path.join(Mix.Local.tasks_path, "#{task_module}.beam")
+          raise Mix.Error, message: "cannot uninstall task #{task}"
         end
     end
   end
