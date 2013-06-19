@@ -1,6 +1,6 @@
 defmodule Kernel.Typespec do
   @moduledoc """
-  Holds macros and functions for working with typespecs.
+  Provides macros and functions for working with typespecs.
 
   The attributes `@type`, `@opaque`, `@typep`, `@spec` and
   `@callback` available in modules are handled by the equivalent
@@ -8,20 +8,19 @@ defmodule Kernel.Typespec do
 
   ## Defining a type
 
-  @type type_name :: type
-  @typep type_name :: type
-  @opaque type_name :: type
+      @type type_name :: type
+      @typep type_name :: type
+      @opaque type_name :: type
 
-  For more details, see documentation for deftype, deftypep and defopaque in
-  Kernel.Typespec
+  For more details, see documentation for `deftype`, `deftypep` and `defopaque`
+  below.
 
   ## Defining a specification
 
-  @spec function_name(type, type) :: type
-  @callback function_name(type, type) :: type
+      @spec function_name(type, type) :: type
+      @callback function_name(type, type) :: type
 
-  For more details, see documentation for defspec and defcallback in
-  Kernel.Typespec
+  For more details, see documentation for `defspec` and `defcallback` below.
 
   ## Types
 
@@ -30,9 +29,10 @@ defmodule Kernel.Typespec do
 
   Most of the built-in types provided in Erlang (for example, `pid()`)
   are expressed the same way: `pid()` or simply `pid`. Parametrized types
-  are also supported: `list(integer())` and so are remote types: `Enum.t`.
+  are also supported (`list(integer())`) and so are remote types (`Enum.t`).
 
-  Certain data type shortcuts ([...], <<>> and {...}) are supported as well.
+  Certain data type shortcuts (`[...]`, `<<>>` and `{...}`) are supported as
+  well.
 
   Main differences lie in how bit strings and functions are defined:
 
@@ -81,7 +81,7 @@ defmodule Kernel.Typespec do
 
   @doc """
   Defines a type.
-  This macro is the one responsible to handle the attribute @type.
+  This macro is the one responsible for handling the attribute `@type`.
 
   ## Examples
 
@@ -96,7 +96,7 @@ defmodule Kernel.Typespec do
 
   @doc """
   Defines an opaque type.
-  This macro is the one responsible to handle the attribute @opaque.
+  This macro is the one responsible for handling the attribute `@opaque`.
 
   ## Examples
 
@@ -111,7 +111,7 @@ defmodule Kernel.Typespec do
 
   @doc """
   Defines a private type.
-  This macro is the one responsible to handle the attribute @typep.
+  This macro is the one responsible for handling the attribute `@typep`.
 
   ## Examples
 
@@ -126,7 +126,7 @@ defmodule Kernel.Typespec do
 
   @doc """
   Defines a spec.
-  This macro is the one responsible to handle the attribute @spec.
+  This macro is the one responsible for handling the attribute `@spec`.
 
   ## Examples
 
@@ -141,7 +141,7 @@ defmodule Kernel.Typespec do
 
   @doc """
   Defines a callback.
-  This macro is the one responsible to handle the attribute @callback.
+  This macro is the one responsible for handling the attribute `@callback`.
 
   ## Examples
 
@@ -188,7 +188,7 @@ defmodule Kernel.Typespec do
   end
 
   @doc """
-  Returns true if the current module defines a given type
+  Returns `true` if the current module defines a given type
   (private, opaque or not). This function is only available
   for modules being compiled.
   """
@@ -199,7 +199,7 @@ defmodule Kernel.Typespec do
   end
 
   @doc """
-  Returns true if the current module defines a given spec.
+  Returns `true` if the current module defines a given spec.
   This function is only available for modules being compiled.
   """
   def defines_spec?(module, name, arity) do
@@ -208,7 +208,7 @@ defmodule Kernel.Typespec do
   end
 
   @doc """
-  Returns true if the current module defines a callback.
+  Returns `true` if the current module defines a callback.
   This function is only available for modules being compiled.
   """
   def defines_callback?(module, name, arity) do
@@ -256,13 +256,13 @@ defmodule Kernel.Typespec do
   end
 
   @doc """
-  Returns all types available from the beam.
+  Returns all types available from the module's beam code.
 
   It is returned as a list of tuples where the first
   element is the type (`:typep`, `:type` and `:opaque`).
 
-  The module has to have a corresponding beam file
-  on the file system.
+  The module has to have a corresponding beam file on the disk which can be
+  located by the runtime system.
   """
   def beam_types(module) do
     case abstract_code(module) do
@@ -283,26 +283,26 @@ defmodule Kernel.Typespec do
   end
 
   @doc """
-  Returns all specs available from the beam.
+  Returns all specs available from the module's beam code.
 
   It is returned as a list of tuples where the first
   element is spec name and arity and the second is the spec.
 
-  The module has to have a corresponding beam file
-  on the file system.
+  The module has to have a corresponding beam file on the disk which can be
+  located by the runtime system.
   """
   def beam_specs(module) do
     from_abstract_code(module, :spec)
   end
 
   @doc """
-  Returns all callbacks available from the beam.
+  Returns all callbacks available from the module's beam code.
 
   It is returned as a list of tuples where the first
   element is spec name and arity and the second is the spec.
 
-  The module has to have a corresponding beam file
-  on the file system.
+  The module has to have a corresponding beam file on the disk which can be
+  located by the runtime system.
   """
   def beam_callbacks(module) do
     from_abstract_code(module, :callback)
