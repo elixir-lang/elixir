@@ -230,8 +230,8 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_case_content(expr, { :test, expected }, module, line, file, stack) do
-    expr_ast     = string_to_ast(module, line, file, expr)
-    expected_ast = string_to_ast(module, line, file, expected)
+    expr_ast     = string_to_quoted(module, line, file, expr)
+    expected_ast = string_to_quoted(module, line, file, expected)
 
     quote do
       v = unquote(expected_ast)
@@ -250,7 +250,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_case_content(expr, { :error, exception, message }, module, line, file, stack) do
-    expr_ast = string_to_ast(module, line, file, expr)
+    expr_ast = string_to_quoted(module, line, file, expr)
 
     quote do
       stack = unquote(stack)
@@ -287,11 +287,11 @@ defmodule ExUnit.DocTest do
     [quote do: import(unquote(mod))]
   end
 
-  defp string_to_ast(module, line, file, expr) do
+  defp string_to_quoted(module, line, file, expr) do
     location = [line: line, file: Path.relative_to(file, System.cwd!)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
     try do
-      Code.string_to_ast!(expr, line: line, file: file)
+      Code.string_to_quoted!(expr, line: line, file: file)
     rescue e ->
       quote do
         raise ExUnit.ExpectationError,

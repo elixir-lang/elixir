@@ -57,7 +57,7 @@ defmodule Behaviour do
     case Macro.extract_args(fun) do
       { name, args } -> :ok
       :error ->
-        raise ArgumentError, message: "invalid syntax in defcallback #{Macro.to_binary(fun)}"
+        raise ArgumentError, message: "invalid syntax in defcallback #{Macro.to_string(fun)}"
     end
 
     arity = length(args)

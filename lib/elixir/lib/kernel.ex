@@ -2998,7 +2998,7 @@ defmodule Kernel do
   end
 
   defp pipeline_error(arg) do
-    raise ArgumentError, message: "Unsupported expression in pipeline |> operator: #{Macro.to_binary arg}"
+    raise ArgumentError, message: "Unsupported expression in pipeline |> operator: #{Macro.to_string arg}"
   end
 
   @doc """
@@ -3261,7 +3261,7 @@ defmodule Kernel do
       lc fun inlist List.wrap(funs) do
         case Macro.extract_args(fun) do
           { name, args } -> :ok
-          :error -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_binary(fun)}"
+          :error -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_string(fun)}"
         end
 
         actual_args =

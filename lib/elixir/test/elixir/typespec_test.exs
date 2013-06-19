@@ -374,7 +374,7 @@ defmodule Typespec.TypeTest do
 
     lc { type, definition } inlist Enum.zip(types, quoted) do
       ast = Kernel.Typespec.type_to_ast(type)
-      assert Macro.to_binary(quote do: @type unquote(ast)) == Macro.to_binary(definition)
+      assert Macro.to_string(quote do: @type unquote(ast)) == Macro.to_string(definition)
     end
   end
 
@@ -427,7 +427,7 @@ defmodule Typespec.TypeTest do
 
     lc { { { _, _ }, spec }, definition } inlist Enum.zip(compiled, specs) do
       quoted = quote do: @spec unquote(Kernel.Typespec.spec_to_ast(:a, spec))
-      assert Macro.to_binary(quoted) == Macro.to_binary(definition)
+      assert Macro.to_string(quoted) == Macro.to_string(definition)
     end
   end
 

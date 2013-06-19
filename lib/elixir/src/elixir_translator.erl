@@ -364,7 +364,7 @@ translate_each({ '^', Meta, [ { Name, _, Kind } ] }, S) when is_atom(Name), is_a
 
 translate_each({ '^', Meta, [ Expr ] }, S) ->
   syntax_error(Meta, S#elixir_scope.file,
-    "the unary operator ^ can only be used with variables, invalid expression ^~ts", ['Elixir.Macro':to_binary(Expr)]);
+    "the unary operator ^ can only be used with variables, invalid expression ^~ts", ['Elixir.Macro':to_string(Expr)]);
 
 translate_each({ Name, Meta, Kind }, S) when is_atom(Name), is_atom(Kind) ->
   elixir_scope:translate_var(Meta, Name, Kind, S, fun() ->
@@ -461,7 +461,7 @@ translate_each({ { '.', _, [Expr] }, Meta, Args } = Original, S) ->
 
 translate_each({ Invalid, Meta, _Args }, S) ->
   syntax_error(Meta, S#elixir_scope.file, "unexpected parenthesis after ~ts",
-    ['Elixir.Macro':to_binary(Invalid)]);
+    ['Elixir.Macro':to_string(Invalid)]);
 
 %% Literals
 

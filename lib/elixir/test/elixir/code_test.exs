@@ -73,25 +73,25 @@ defmodule CodeTest do
     assert :filename.absname(__FILE__) == __FILE__
   end
 
-  test :string_to_ast do
-    assert Code.string_to_ast("1 + 2") == { :ok, { :+, [line: 1], [1, 2] } }
-    assert { :error, _ } = Code.string_to_ast("a.1")
+  test :string_to_quoted do
+    assert Code.string_to_quoted("1 + 2") == { :ok, { :+, [line: 1], [1, 2] } }
+    assert { :error, _ } = Code.string_to_quoted("a.1")
   end
 
-  test :string_to_ast_existing_atoms_only do
-    assert :badarg = catch_error(Code.string_to_ast(":thereisnosuchatom", existing_atoms_only: true))
-    assert :badarg = catch_error(Code.string_to_ast!(":thereisnosuchatom", existing_atoms_only: true))
+  test :string_to_quoted_existing_atoms_only do
+    assert :badarg = catch_error(Code.string_to_quoted(":thereisnosuchatom", existing_atoms_only: true))
+    assert :badarg = catch_error(Code.string_to_quoted!(":thereisnosuchatom", existing_atoms_only: true))
   end
 
-  test :string_to_ast! do
-    assert Code.string_to_ast!("1 + 2") == { :+, [line: 1], [1, 2] }
+  test :string_to_quoted! do
+    assert Code.string_to_quoted!("1 + 2") == { :+, [line: 1], [1, 2] }
 
     assert_raise SyntaxError, fn ->
-      Code.string_to_ast!("a.1")
+      Code.string_to_quoted!("a.1")
     end
 
     assert_raise TokenMissingError, fn ->
-      Code.string_to_ast!("1 +")
+      Code.string_to_quoted!("1 +")
     end
   end
 

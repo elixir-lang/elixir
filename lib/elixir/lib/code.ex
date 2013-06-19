@@ -188,8 +188,14 @@ defmodule Code do
     end
   end
 
+  @doc false
+  def string_to_ast(string, opts // []) do
+    IO.write "[WARNING] Code.string_to_ast is deprecated, please use Code.string_to_quoted instead\n#{Exception.format_stacktrace}"
+    string_to_quoted(string, opts)
+  end
+
   @doc """
-  Converts the given string to AST. It returns `{ :ok, ast }`
+  Converts the given string to quoted. It returns `{ :ok, ast }`
   if it succeeds, `{ :error, { line, error, token } }` otherwise.
 
   ## Options
@@ -202,41 +208,47 @@ defmodule Code do
   * `:existing_atoms_only` - When true, raises an error
     when non-existing atoms are found by the tokenizer.
 
-  ## Macro.to_binary/1
+  ## Macro.to_string/1
 
   The opposite of converting a string to its AST is
-  `Macro.to_binary`, which converts a AST to a binary
+  `Macro.to_string`, which converts a AST to a binary
   representation.
   """
-  def string_to_ast(string, opts // []) do
+  def string_to_quoted(string, opts // []) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
     res  = :elixir_translator.forms(:unicode.characters_to_list(string), line, file, opts)
 
     case res do
-      { :ok, ast } -> { :ok, unpack_ast(line, ast) }
+      { :ok, ast } -> { :ok, unpack_qoute(line, ast) }
       _ -> res
     end
   end
 
+  @doc false
+  def string_to_ast!(string, opts // []) do
+    IO.write "[WARNING] Code.string_to_ast! is deprecated, please use Code.string_to_quoted! instead\n#{Exception.format_stacktrace}"
+    string_to_quoted!(string, opts)
+  end
+
   @doc """
-  Converts the given string to AST. It returns the ast if it succeeds,
+  Converts the given string to quoted form. It returns the ast if it succeeds,
   raises an exception otherwise. The exception is a TokenMissingError
   in case a token is missing (usually because the expression is incomplete),
   SyntaxError otherwise.
 
-  Check `Code.string_to_ast/2` for options information.
+  Check `Code.string_to_quoted/2` for options information.
   """
-  def string_to_ast!(string, opts // []) do
+  def string_to_quoted!(string, opts // []) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
     res  = :elixir_translator.forms!(:unicode.characters_to_list(string), line, file, opts)
-    unpack_ast(line, res)
+    unpack_qoute(line, res)
   end
 
-  defp unpack_ast(_line, []),                              do: nil
-  defp unpack_ast(_line, [forms]) when not is_list(forms), do: forms
-  defp unpack_ast(line, forms),                            do: { :__block__, [line: line], forms }
+  defp unpack_qoute(_line, []),                              do: nil
+  defp unpack_qoute(_line, [forms]) when not is_list(forms), do: forms
+  defp unpack_qoute(line, forms),                            do: { :__block__, [line: line], forms }
 
   @doc """
   Loads the given `file`. Accepts `relative_to` as an argument to tell where

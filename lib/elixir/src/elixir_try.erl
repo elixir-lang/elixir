@@ -238,8 +238,8 @@ erlang_rescue_guard_for(Meta, Var, 'Elixir.ErlangError') ->
 %% Helpers
 
 format_error({ rescue_no_match, Var, Alias }) ->
-  VarBinary   = 'Elixir.Macro':to_binary(Var),
-  AliasBinary = 'Elixir.Macro':to_binary(Alias),
+  VarBinary   = 'Elixir.Macro':to_string(Var),
+  AliasBinary = 'Elixir.Macro':to_string(Alias),
   Message = "rescue clause (~ts = ~ts) can never match, maybe you meant to write: ~ts in [~ts] ?",
   io_lib:format(Message, [AliasBinary, VarBinary, VarBinary, AliasBinary]).
 

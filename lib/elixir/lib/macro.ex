@@ -1,4 +1,4 @@
-import Kernel, except: [to_binary: 1]
+import Kernel, except: [to_string: 1]
 
 defmodule Macro do
   @moduledoc """
@@ -166,112 +166,118 @@ defmodule Macro do
     :elixir_interpolation.unescape_tokens(tokens, map)
   end
 
+  @doc false
+  def to_binary(tree) do
+    IO.write "[WARNING] Macro.to_binary is deprecated, please use Macro.to_string instead\n#{Exception.format_stacktrace}"
+    to_string(tree)
+  end
+
   @doc """
   Converts the given expression to a binary.
 
   ## Examples
 
-      iex> Macro.to_binary(quote do: foo.bar(1, 2, 3))
+      iex> Macro.to_string(quote do: foo.bar(1, 2, 3))
       "foo.bar(1, 2, 3)"
 
   """
-  def to_binary(tree)
+  def to_string(tree)
 
   # Variables
-  def to_binary({ var, _, atom }) when is_atom(atom) do
+  def to_string({ var, _, atom }) when is_atom(atom) do
     atom_to_binary(var, :utf8)
   end
 
   # Aliases
-  def to_binary({ :__aliases__, _, refs }) do
-    Enum.map_join(refs, ".", call_to_binary(&1))
+  def to_string({ :__aliases__, _, refs }) do
+    Enum.map_join(refs, ".", call_to_string(&1))
   end
 
   # Blocks
-  def to_binary({ :__block__, _, [expr] }) do
-    to_binary(expr)
+  def to_string({ :__block__, _, [expr] }) do
+    to_string(expr)
   end
 
-  def to_binary({ :__block__, _, _ } = expr) do
-    block = adjust_new_lines block_to_binary(expr), "\n  "
+  def to_string({ :__block__, _, _ } = expr) do
+    block = adjust_new_lines block_to_string(expr), "\n  "
     "(\n  " <> block <> "\n)"
   end
 
   # Bits containers
-  def to_binary({ :<<>>, _, args }) do
-    "<<" <> Enum.map_join(args, ", ", to_binary(&1)) <> ">>"
+  def to_string({ :<<>>, _, args }) do
+    "<<" <> Enum.map_join(args, ", ", to_string(&1)) <> ">>"
   end
 
   # Tuple containers
-  def to_binary({ :{}, _, args }) do
-    "{" <> Enum.map_join(args, ", ", to_binary(&1)) <> "}"
+  def to_string({ :{}, _, args }) do
+    "{" <> Enum.map_join(args, ", ", to_string(&1)) <> "}"
   end
 
   # List containers
-  def to_binary({ :[], _, args }) do
-    "[" <> Enum.map_join(args, ", ", to_binary(&1)) <> "]"
+  def to_string({ :[], _, args }) do
+    "[" <> Enum.map_join(args, ", ", to_string(&1)) <> "]"
   end
 
   # Fn keyword
-  def to_binary({ :fn, _, [[do: { :->, _, [{_, _, tuple}] } = arrow]] })
+  def to_string({ :fn, _, [[do: { :->, _, [{_, _, tuple}] } = arrow]] })
       when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
-    "fn " <> arrow_to_binary(arrow) <> " end"
+    "fn " <> arrow_to_string(arrow) <> " end"
   end
 
-  def to_binary({ :fn, _, [[do: { :->, _, [_] } = block]] }) do
-    "fn " <> block_to_binary(block) <> "\nend"
+  def to_string({ :fn, _, [[do: { :->, _, [_] } = block]] }) do
+    "fn " <> block_to_string(block) <> "\nend"
   end
 
-  def to_binary({ :fn, _, [[do: block]] }) do
-    block = adjust_new_lines block_to_binary(block), "\n  "
+  def to_string({ :fn, _, [[do: block]] }) do
+    block = adjust_new_lines block_to_string(block), "\n  "
     "fn\n  " <> block <> "\nend"
   end
 
   # Partial call
-  def to_binary({ :&, _, [num] }) do
+  def to_string({ :&, _, [num] }) do
     "&#{num}"
   end
 
   # left -> right
-  def to_binary({ :->, _, _ } = arrow) do
-    "(" <> arrow_to_binary(arrow, true) <> ")"
+  def to_string({ :->, _, _ } = arrow) do
+    "(" <> arrow_to_string(arrow, true) <> ")"
   end
 
   # Binary ops
-  def to_binary({ op, _, [left, right] }) when op in binary_ops do
-    op_to_binary(left) <> " #{op} " <> op_to_binary(right)
+  def to_string({ op, _, [left, right] }) when op in binary_ops do
+    op_to_string(left) <> " #{op} " <> op_to_string(right)
   end
 
   # Unary ops
-  def to_binary({ :not, _, [arg] })  do
-    "not " <> to_binary(arg)
+  def to_string({ :not, _, [arg] })  do
+    "not " <> to_string(arg)
   end
 
-  def to_binary({ op, _, [arg] }) when op in unary_ops do
-    atom_to_binary(op, :utf8) <> to_binary(arg)
+  def to_string({ op, _, [arg] }) when op in unary_ops do
+    atom_to_binary(op, :utf8) <> to_string(arg)
   end
 
   # All other calls
-  def to_binary({ target, _, args }) when is_list(args) do
+  def to_string({ target, _, args }) when is_list(args) do
     { list, last } = :elixir_tree_helpers.split_last(args)
     case is_kw_blocks?(last) do
-      true  -> call_to_binary_with_args(target, list) <> kw_blocks_to_binary(last)
-      false -> call_to_binary_with_args(target, args)
+      true  -> call_to_string_with_args(target, list) <> kw_blocks_to_string(last)
+      false -> call_to_string_with_args(target, args)
     end
   end
 
   # Two-item tuples
-  def to_binary({ left, right }) do
-    to_binary({ :{}, [], [left, right] })
+  def to_string({ left, right }) do
+    to_string({ :{}, [], [left, right] })
   end
 
   # Lists
-  def to_binary(list) when is_list(list) do
-    to_binary({ :[], [], list })
+  def to_string(list) when is_list(list) do
+    to_string({ :[], [], list })
   end
 
   # All other structures
-  def to_binary(other), do: inspect(other, raw: true)
+  def to_string(other), do: inspect(other, raw: true)
 
   # Block keywords
   defmacrop kw_keywords, do: [:do, :catch, :rescue, :after, :else]
@@ -281,56 +287,56 @@ defmodule Macro do
   end
   defp is_kw_blocks?(_), do: false
 
-  defp module_to_binary(atom) when is_atom(atom), do: inspect(atom, raw: true)
-  defp module_to_binary(other), do: call_to_binary(other)
+  defp module_to_string(atom) when is_atom(atom), do: inspect(atom, raw: true)
+  defp module_to_string(other), do: call_to_string(other)
 
-  defp call_to_binary(atom) when is_atom(atom),  do: atom_to_binary(atom, :utf8)
-  defp call_to_binary({ :., _, [arg] }),         do: module_to_binary(arg) <> "."
-  defp call_to_binary({ :., _, [left, right] }), do: module_to_binary(left) <> "." <> call_to_binary(right)
-  defp call_to_binary(other),                    do: to_binary(other)
+  defp call_to_string(atom) when is_atom(atom),  do: atom_to_binary(atom, :utf8)
+  defp call_to_string({ :., _, [arg] }),         do: module_to_string(arg) <> "."
+  defp call_to_string({ :., _, [left, right] }), do: module_to_string(left) <> "." <> call_to_string(right)
+  defp call_to_string(other),                    do: to_string(other)
 
-  defp call_to_binary_with_args(target, args) do
-    args = Enum.map_join(args, ", ", to_binary(&1))
-    call_to_binary(target) <> "(" <> args <> ")"
+  defp call_to_string_with_args(target, args) do
+    args = Enum.map_join(args, ", ", to_string(&1))
+    call_to_string(target) <> "(" <> args <> ")"
   end
 
-  defp kw_blocks_to_binary(kw) do
+  defp kw_blocks_to_string(kw) do
     Enum.reduce(kw_keywords, " ", fn(x, acc) ->
       case Keyword.has_key?(kw, x) do
-        true  -> acc <> kw_block_to_binary(x, Keyword.get(kw, x))
+        true  -> acc <> kw_block_to_string(x, Keyword.get(kw, x))
         false -> acc
       end
     end) <> "end"
   end
 
-  defp kw_block_to_binary(key, value) do
-    block = adjust_new_lines block_to_binary(value), "\n  "
+  defp kw_block_to_string(key, value) do
+    block = adjust_new_lines block_to_string(value), "\n  "
     atom_to_binary(key, :utf8) <> "\n  " <> block <> "\n"
   end
 
-  defp block_to_binary({ :->, _, exprs }) do
+  defp block_to_string({ :->, _, exprs }) do
     Enum.map_join(exprs, "\n", fn({ left, _, right }) ->
       left = comma_join_or_empty_paren(left, false)
-      left <> "->\n  " <> adjust_new_lines block_to_binary(right), "\n  "
+      left <> "->\n  " <> adjust_new_lines block_to_string(right), "\n  "
     end)
   end
 
-  defp block_to_binary({ :__block__, _, exprs }) do
-    Enum.map_join(exprs, "\n", to_binary(&1))
+  defp block_to_string({ :__block__, _, exprs }) do
+    Enum.map_join(exprs, "\n", to_string(&1))
   end
 
-  defp block_to_binary(other), do: to_binary(other)
+  defp block_to_string(other), do: to_string(other)
 
-  defp op_to_binary({ op, _, [_, _] } = expr) when op in binary_ops do
-    "(" <> to_binary(expr) <> ")"
+  defp op_to_string({ op, _, [_, _] } = expr) when op in binary_ops do
+    "(" <> to_string(expr) <> ")"
   end
 
-  defp op_to_binary(expr), do: to_binary(expr)
+  defp op_to_string(expr), do: to_string(expr)
 
-  defp arrow_to_binary({ :->, _, pairs }, paren // false) do
+  defp arrow_to_string({ :->, _, pairs }, paren // false) do
     Enum.map_join(pairs, "; ", fn({ left, _, right }) ->
       left = comma_join_or_empty_paren(left, paren)
-      left <> "-> " <> to_binary(right)
+      left <> "-> " <> to_string(right)
     end)
   end
 
@@ -338,7 +344,7 @@ defmodule Macro do
   defp comma_join_or_empty_paren([], false), do: ""
 
   defp comma_join_or_empty_paren(left, _) do
-    Enum.map_join(left, ", ", to_binary(&1)) <> " "
+    Enum.map_join(left, ", ", to_string(&1)) <> " "
   end
 
   defp adjust_new_lines(block, replacement) do
