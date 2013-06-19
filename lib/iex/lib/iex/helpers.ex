@@ -414,7 +414,7 @@ defmodule IEx.Helpers do
   """
   defmacro import_file(path) when is_binary(path) do
     path = Path.expand(path)
-    Code.string_to_qouted! File.read!(path), file: path
+    Code.string_to_quoted! File.read!(path), file: path
   end
 
   defmacro import_file(_) do

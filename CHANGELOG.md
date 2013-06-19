@@ -17,8 +17,11 @@
   * [Mix] Mix now properly evaluates rebar scripts
 
 * deprecations
+  * [Code] `Code.string_to_ast/1` has been deprecated in favor of `Code.string_to_quoted/1`
+  * [Macro] `Macro.to_binary/1` has been deprecated in favor of `Macro.to_string/1`
 
 * backwards incompatible changes
+  * [File] `rm_rf` and `cp_r` now returns a tuple with three elements on failures
   * [Kernel] The quoted representation for `->` clauses changed from a tuple with two elements to a tuple with three elements to support metadata
 
 # v0.9.2 (2013-06-13)
