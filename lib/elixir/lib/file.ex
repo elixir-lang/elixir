@@ -57,27 +57,28 @@ end
 defmodule File do
   @moduledoc """
   This module contains function to manipulate files.
-  Many of the functions that interact with the filesystem
-  have their naming based on its UNIX variants. For
-  example, deleting a file is done with `File.rm`.
-  Getting its stats with `File.stat`.
 
-  In order to write and read files, one must use the
-  functions in the IO module. By default, a file is
-  opened in binary mode which requires the functions
-  `IO.binread`, `IO.binwrite` and `IO.binreadline` to
-  interact with the file. A developer may pass `:utf8`
-  as an option when opening the file and then all other
-  functions from IO are available, since they work directly
+  Some of those functions are low-level, allowing the user
+  to interact with the file or IO devices, like `File.open/2`,
+  `File.copy/3` and others. This module also provides higher
+  level functions, with their naming based on its UNIX variants.
+  For example, one can copy a file via `File.cp/3` and remove
+  files and directories recursively via `File.rm_rf/2`
+
+  In order to write and read files, one must use the functions
+  in the IO module. By default, a file is opened in binary mode
+  which requires the functions `IO.binread`, `IO.binwrite` and
+  `IO.binreadline` to interact with the file. A developer may
+  pass `:utf8` as an option when opening the file and then all
+  other functions from IO are available, since they work directly
   with Unicode data.
 
-  Most of the functions in this module return `:ok`
-  or `{ :ok, result }` in case of success, `{ :error, reason }`
-  otherwise. Those function are also followed by
-  a variant that ends with `!` which returns the
-  result (without the `{ :ok, result }` tuple) in
-  case of success or raises an exception in case it
-  fails. For example:
+  Most of the functions in this module return `:ok` or
+  `{ :ok, result }` in case of success, `{ :error, reason }`
+  otherwise. Those function are also followed by a variant
+  that ends with `!` which returns the result (without the
+  `{ :ok, result }` tuple) in case of success or raises an
+  exception in case it fails. For example:
 
       File.read("hello.txt")
       #=> { :ok, "World" }
@@ -91,16 +92,10 @@ defmodule File do
       File.read!("invalid.txt")
       #=> raises File.Error
 
-  In general, a developer should use the former in case
-  he wants to react in the fie does not exist. The latter
-  should be used when the developer expects his software
-  to fail in case the file cannot be read (i.e. it is
-  literally an exception).
-
-  Finally, the functions in this module accept either
-  a char lists or a binary. When manipulating paths, a char
-  list is returned if one is given as argument. However,
-  when reading files, binaries are always returned.
+  In general, a developer should use the former in case he wants
+  to react in the fie does not exist. The latter should be used
+  when the developer expects his software to fail in case the
+  file cannot be read (i.e. it is literally an exception).
   """
 
   alias :file,     as: F
@@ -312,16 +307,23 @@ defmodule File do
   end
 
   @doc """
-  Copies the contents of `source` to `destination`. Both
-  parameters can be a filename or an io device opened with `File.open`.
-  `bytes_count` specifies the number of bytes to count, the default
-  being `:infinity`.
+  Copies the contents of `source` to `destination`.
+
+  Both parameters can be a filename or an io device opened
+  with `File.open/2`. `bytes_count` specifies the number of
+  bytes to copy, the default being `:infinity`.
 
   If file `destination` already exists, it is overriden
   by the contents in `source`.
 
   Returns `{ :ok, bytes_copied }` if successful,
   `{ :error, reason }` otherwise.
+
+  Compared to the `File.cp/3`, this function is more low-level,
+  allowing a copy from device to device limited by a number of
+  bytes. On the other hand, `File.cp/3` performs more extensive
+  checks on both source and destination and it also preserves
+  the file mode after copy.
 
   Typical error reasons are the same as in `open/2`,
   `read/1` and `write/2`.
@@ -331,7 +333,7 @@ defmodule File do
   end
 
   @doc """
-  The same as `copy/3` but raises an File.CopyError if it fails.
+  The same as `copy/3` but raises an `File.CopyError` if it fails.
   Returns the `bytes_copied` otherwise.
   """
   def copy!(source, destination, bytes_count // :infinity) do
@@ -344,40 +346,36 @@ defmodule File do
   end
 
   @doc """
-  Copies the contents in `source` to `destination`.
-  Similar to the command `cp -r` in Unix systems,
-  this function behaves differently depending
-  if `source` and `destination` are a file or a directory.
+  Copies the contents in `source` to `destination` preserving its mode.
 
-  If both are files, it simply copies `source` to
-  `destination`. However, if `destination` is a directory,
-  it copies the contents of `source` to `destination/source`
-  recursively.
+  Similar to the command `cp` in Unix systems, this function
+  behaves differently depending if `destination` is a directory
+  or not. In paritcular, if `destination` is a directory, it
+  copies the contents of `source` to `destination/source`.
 
-  If a file already exists in the destination,
-  it invokes a callback which should return
-  true if the existing file should be overriden,
-  false otherwise. It defaults to return true.
+  If a file already exists in the destination, it invokes a
+  callback which should return true if the existing file
+  should be overriden, false otherwise. It defaults to return true.
 
   It returns `:ok` in case of success, returns
   `{ :error, reason }` otherwise.
+
+  If you want to copy contents from an io device to another device
+  or do a straight copy from a source to a destination without
+  preserving modes, check `File.copy/3` instead.
   """
   def cp(source, destination, callback // fn(_, _) -> true end) do
-    if dir?(source) do
-      { :error, :eisdir }
-    else
-      output =
-        if dir?(destination) do
-          mkdir(destination)
-          FN.join(destination, FN.basename(source))
-        else
-          destination
-        end
-
-      case do_cp_file(source, output, callback, []) do
-        { :error, reason, _ } -> { :error, reason }
-        _ -> :ok
+    output =
+      if dir?(destination) do
+        mkdir(destination)
+        FN.join(destination, FN.basename(source))
+      else
+        destination
       end
+
+    case do_cp_file(source, output, callback, []) do
+      { :error, reason, _ } -> { :error, reason }
+      _ -> :ok
     end
   end
 
