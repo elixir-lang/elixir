@@ -335,7 +335,7 @@ defimpl Binary.Inspect, for: Tuple do
     list = tuple_to_list(record)
     [name|tail] = list
 
-    if (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
+    if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
       if Enum.first(tail) == :__exception__ do
         record_join(name, tl(fields), tl(tail), opts)
       else
