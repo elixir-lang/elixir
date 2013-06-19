@@ -100,7 +100,7 @@ store_definition(Kind, Line, CheckClauses, Module, Call, Body, RawS) ->
 
   { Name, Args } = case elixir_clauses:extract_args(NameAndArgs) of
     error ->
-      Format = [Kind, 'Elixir.Macro':to_binary(NameAndArgs)],
+      Format = [Kind, 'Elixir.Macro':to_string(NameAndArgs)],
       elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid syntax in ~ts ~ts", Format);
     Tuple ->
       Tuple

@@ -192,7 +192,7 @@ defmodule Module do
                 IO.puts "and guards"
                 IO.inspect guards
                 IO.puts "and body"
-                IO.puts Macro.to_binary(body)
+                IO.puts Macro.to_string(body)
               end
             end
 

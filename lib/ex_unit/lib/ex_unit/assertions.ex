@@ -91,7 +91,7 @@ defmodule ExUnit.Assertions do
         _ ->
           raise ExUnit.ExpectationError,
             expected: inspect(right),
-            actual: unquote(Macro.to_binary(left)),
+            actual: unquote(Macro.to_string(left)),
             reason: "match pattern (=)"
       end
     end
@@ -150,7 +150,7 @@ defmodule ExUnit.Assertions do
         unquote(left) ->
           raise ExUnit.ExpectationError,
             expected: inspect(right),
-            actual: unquote(Macro.to_binary(left)),
+            actual: unquote(Macro.to_string(left)),
             reason: "match pattern (=)",
             negation: true
           _ ->
@@ -268,7 +268,7 @@ defmodule ExUnit.Assertions do
   end
 
   defp do_assert_receive(expected, timeout, message) do
-    binary = Macro.to_binary(expected)
+    binary = Macro.to_string(expected)
 
     quote do
       receive do
@@ -449,7 +449,7 @@ defmodule ExUnit.Assertions do
   end
 
   defp do_refute_receive(not_expected, timeout, message) do
-    binary = Macro.to_binary(not_expected)
+    binary = Macro.to_string(not_expected)
 
     quote do
       receive do

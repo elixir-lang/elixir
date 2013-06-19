@@ -73,7 +73,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp expand_dot(expr) do
-    case Code.string_to_ast expr do
+    case Code.string_to_quoted expr do
       {:ok, atom} when is_atom(atom) ->
         expand_call atom, ''
       {:ok, {:__aliases__, _, list}} ->
@@ -84,7 +84,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp expand_expr(expr) do
-    case Code.string_to_ast expr do
+    case Code.string_to_quoted expr do
       {:ok, atom} when is_atom(atom) ->
         expand_erlang_modules atom_to_list(atom)
       {:ok, { atom, _, nil }} when is_atom(atom) ->
