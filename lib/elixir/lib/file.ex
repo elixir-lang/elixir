@@ -56,7 +56,7 @@ end
 
 defmodule File do
   @moduledoc """
-  This module contains function to manipulate files.
+  This module contains functions to manipulate files.
 
   Some of those functions are low-level, allowing the user
   to interact with the file or IO devices, like `File.open/2`,

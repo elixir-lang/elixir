@@ -133,12 +133,17 @@ translate({'@', Meta, [{ Name, _, Args }]}, S) ->
 %% Binding
 
 translate({ 'binding', Meta, [] }, S) ->
+  translate({ 'binding', Meta, [false] }, S);
+
+translate({ 'binding', Meta, [false] }, S) ->
   Line = ?line(Meta),
   { elixir_tree_helpers:list_to_cons(Line,
-    [ { tuple, Line, [
-      { atom, Line, Name },
-      { var, Line, Var }
-    ] } || { { Name, nil }, Var } <- S#elixir_scope.vars]), S };
+    [ to_var_value_tuple(Line, Name, Var) || { { Name, nil }, Var } <- S#elixir_scope.vars]), S };
+
+translate({ 'binding', Meta, [true] }, S) ->
+  Line = ?line(Meta),
+  { elixir_tree_helpers:list_to_cons(Line,
+    [ to_var_value_tuple(Line, Name, Kind, Var) || { { Name, Kind }, Var } <- S#elixir_scope.vars]), S };
 
 translate({ 'binding', Meta, [List] }, #elixir_scope{vars=Vars} = S) when is_list(List) ->
   Line = ?line(Meta),
@@ -155,10 +160,24 @@ translate({ 'binding', Meta, [List] }, #elixir_scope{vars=Vars} = S) when is_lis
         "at compilation time, got: ~ts", ['Elixir.Macro':to_string(Name)])
   end, [], List),
   { elixir_tree_helpers:list_to_cons(Line,
-    [ { tuple, Line, [
-      { atom, Line, Name },
-      { var, Line, Var }
-    ] } || { Name, Var } <- Dict]), S };
+    [ to_var_value_tuple(Line, Name, Var) || { Name, Var } <- Dict]), S };
+
+translate({ 'binding', Meta, [List, true] }, #elixir_scope{vars=Vars} = S) when is_list(List) ->
+  Line = ?line(Meta),
+  Dict = lists:foldl(fun
+    (Tuple, Acc) when is_tuple(Tuple) ->
+      case orddict:find(Tuple, Vars) of
+        { ok, Var } ->
+          orddict:store(Tuple, Var, Acc);
+        error ->
+          Acc
+      end;
+    (Tuple, _Acc) ->
+      elixir_errors:syntax_error(Line, S#elixir_scope.file, "binding/2 expects a list of tuples "
+        "at compilation time, got: ~ts", ['Elixir.Macro':to_string(Tuple)])
+  end, [], List),
+  { elixir_tree_helpers:list_to_cons(Line,
+    [ to_var_value_tuple(Line, Name, Kind, Var) || { { Name, Kind }, Var } <- Dict]), S };
 
 %% Case
 
@@ -381,6 +400,19 @@ expand_module(_Raw, Module, S) ->
 is_reserved_data(moduledoc) -> true;
 is_reserved_data(doc)       -> true;
 is_reserved_data(_)         -> false.
+
+to_var_value_tuple(Line, Name, Var) ->
+  { tuple, Line,
+    [ { atom, Line, Name },
+      { var, Line, Var } ] }.
+
+to_var_value_tuple(Line, Name, Kind, Var) ->
+  { tuple, Line,
+    [ { tuple, Line, [
+        { atom, Line, Name },
+        { atom, Line, Kind }
+      ] },
+      { var, Line, Var } ] }.
 
 spec_to_macro(type)     -> deftype;
 spec_to_macro(typep)    -> deftypep;

@@ -2468,6 +2468,26 @@ defmodule Kernel do
   defmacro binding(list)
 
   @doc """
+  Receives a list of tuples at compilation time containing the
+  variable name and its scope and returns the binding of the given
+  variables as a keyword list with the variable name and scope pair
+  as key and the variable value as value.
+
+  In case a variable in the list does not exist in the binding,
+  it is not included in the returned result.
+
+  ## Examples
+
+      iex> var!(x, :foo) = 1
+      iex> binding([x: nil], true)
+      []
+      iex> binding([x: :foo], true)
+      [{ { :x, :foo }, 1 }]
+
+  """
+  defmacro binding(list, true)
+
+  @doc """
   Provides an `if` macro. This macro expects the first argument to
   be a condition and the rest are keyword arguments.
 

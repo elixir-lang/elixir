@@ -449,6 +449,7 @@ in_erlang_macros() ->
     {apply,3},
     {binding,0},
     {binding,1},
+    {binding,2},
     {'case',2},
     {def,1},
     {def,2},
