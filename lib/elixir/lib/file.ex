@@ -61,9 +61,10 @@ defmodule File do
   Some of those functions are low-level, allowing the user
   to interact with the file or IO devices, like `File.open/2`,
   `File.copy/3` and others. This module also provides higher
-  level functions, with their naming based on its UNIX variants.
-  For example, one can copy a file via `File.cp/3` and remove
-  files and directories recursively via `File.rm_rf/2`
+  level functions that works with filenames and have their naming
+  based on UNIX variants. For example, one can copy a file
+  via `File.cp/3` and remove files and directories recursively
+  via `File.rm_rf/2`
 
   In order to write and read files, one must use the functions
   in the IO module. By default, a file is opened in binary mode
