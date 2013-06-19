@@ -1,4 +1,10 @@
 defmodule HashSet do
+  @moduledoc """
+  A set store.
+
+  The `HashSet` is meant to work well with both small and large sets.
+  """
+
   # The ordered record contains a single bucket.
   @ordered_threshold 8
 
