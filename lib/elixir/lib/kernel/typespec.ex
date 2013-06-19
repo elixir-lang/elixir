@@ -50,22 +50,16 @@ defmodule Kernel.Typespec do
 
   Any anonymous function:
 
-      (fun(...) -> any)
-      or
       ((...) -> any)
       or
       (... -> any)
 
   Anonymous function with arity of zero:
 
-      (fun() -> type)
-      or
       (() -> type)
 
   Anonymous function with some arity:
 
-      (fun(type, type) -> type)
-      or
       ((type, type) -> type)
       or
       (type, type -> type)
@@ -475,12 +469,12 @@ defmodule Kernel.Typespec do
 
   defp typespec_to_ast({ :var, line, var }) do
     var =
-    case atom_to_binary(var) do
-      <<"_", c :: [binary, size(1)], rest :: binary>> ->
-        binary_to_atom("_#{String.downcase(c)}#{rest}")
-      <<c :: [binary, size(1)], rest :: binary>> ->
-        binary_to_atom("#{String.downcase(c)}#{rest}")
-    end
+      case atom_to_binary(var) do
+        <<"_", c :: [binary, size(1)], rest :: binary>> ->
+          binary_to_atom("_#{String.downcase(c)}#{rest}")
+        <<c :: [binary, size(1)], rest :: binary>> ->
+          binary_to_atom("#{String.downcase(c)}#{rest}")
+      end
     { var, line, nil }
   end
 
@@ -569,6 +563,8 @@ defmodule Kernel.Typespec do
 
   # Handle funs
   defp typespec({:->, meta, [{[{:fun, _, arguments}], cmeta, return}]}, vars, caller) when is_list(arguments) do
+    IO.warn "(fun(...) -> ...) in typespecs is deprecated, please drop fun() and " <>
+            "write (... -> ...) instead. #{Exception.format_stacktrace(caller.stacktrace)}"
     typespec({:->, meta, [{arguments, cmeta, return}]}, vars, caller)
   end
 
