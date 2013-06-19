@@ -195,7 +195,7 @@ defmodule Code do
   end
 
   @doc """
-  Converts the given string to quoted. It returns `{ :ok, ast }`
+  Converts the given string to quoted form. It returns `{ :ok, quoted_form }`
   if it succeeds, `{ :error, { line, error, token } }` otherwise.
 
   ## Options
@@ -210,8 +210,8 @@ defmodule Code do
 
   ## Macro.to_string/1
 
-  The opposite of converting a string to its AST is
-  `Macro.to_string`, which converts a AST to a binary
+  The opposite of converting a string to its qouted form is
+  `Macro.to_string`, which converts a qouted form to a string/binary
   representation.
   """
   def string_to_quoted(string, opts // []) do
@@ -220,7 +220,7 @@ defmodule Code do
     res  = :elixir_translator.forms(:unicode.characters_to_list(string), line, file, opts)
 
     case res do
-      { :ok, ast } -> { :ok, unpack_qoute(line, ast) }
+      { :ok, forms } -> { :ok, unpack_qoute(line, forms) }
       _ -> res
     end
   end
