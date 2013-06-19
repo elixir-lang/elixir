@@ -210,8 +210,8 @@ defmodule Code do
 
   ## Macro.to_string/1
 
-  The opposite of converting a string to its qouted form is
-  `Macro.to_string`, which converts a qouted form to a string/binary
+  The opposite of converting a string to its quoted form is
+  `Macro.to_string`, which converts a quoted form to a string/binary
   representation.
   """
   def string_to_quoted(string, opts // []) do
@@ -220,7 +220,7 @@ defmodule Code do
     res  = :elixir_translator.forms(:unicode.characters_to_list(string), line, file, opts)
 
     case res do
-      { :ok, forms } -> { :ok, unpack_qoute(line, forms) }
+      { :ok, forms } -> { :ok, unpack_quote(line, forms) }
       _ -> res
     end
   end
@@ -243,12 +243,12 @@ defmodule Code do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
     res  = :elixir_translator.forms!(:unicode.characters_to_list(string), line, file, opts)
-    unpack_qoute(line, res)
+    unpack_quote(line, res)
   end
 
-  defp unpack_qoute(_line, []),                              do: nil
-  defp unpack_qoute(_line, [forms]) when not is_list(forms), do: forms
-  defp unpack_qoute(line, forms),                            do: { :__block__, [line: line], forms }
+  defp unpack_quote(_line, []),                              do: nil
+  defp unpack_quote(_line, [forms]) when not is_list(forms), do: forms
+  defp unpack_quote(line, forms),                            do: { :__block__, [line: line], forms }
 
   @doc """
   Loads the given `file`. Accepts `relative_to` as an argument to tell where
