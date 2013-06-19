@@ -81,9 +81,9 @@ defmodule PathTest do
   end
 
   test :absname_with_binary do
-    assert Path.absname("/foo/bar") == "/foo/bar"
-    assert Path.absname("/foo/bar/") == "/foo/bar"
-    assert Path.absname("/foo/bar/../bar") == "/foo/bar/../bar"
+    assert (Path.absname("/foo/bar") |> strip_drive_letter_if_windows) == "/foo/bar"
+    assert (Path.absname("/foo/bar/") |> strip_drive_letter_if_windows)  == "/foo/bar"
+    assert (Path.absname("/foo/bar/../bar")  |> strip_drive_letter_if_windows) == "/foo/bar/../bar"
 
     assert Path.absname("bar", "/foo") == "/foo/bar"
     assert Path.absname("bar/", "/foo") == "/foo/bar"
@@ -93,10 +93,10 @@ defmodule PathTest do
   end
 
   test :absname_with_list do
-    assert Path.absname('/foo/bar') == '/foo/bar'
-    assert Path.absname('/foo/bar/') == '/foo/bar'
-    assert Path.absname('/foo/bar/.') == '/foo/bar/.'
-    assert Path.absname('/foo/bar/../bar') == '/foo/bar/../bar'
+    assert (Path.absname('/foo/bar') |> strip_drive_letter_if_windows)  == '/foo/bar'
+    assert (Path.absname('/foo/bar/') |> strip_drive_letter_if_windows)  == '/foo/bar'
+    assert (Path.absname('/foo/bar/.')  |> strip_drive_letter_if_windows)  == '/foo/bar/.'
+    assert (Path.absname('/foo/bar/../bar')  |> strip_drive_letter_if_windows) == '/foo/bar/../bar'
   end
 
   test :expand_path_with_user_home do
@@ -115,26 +115,26 @@ defmodule PathTest do
   end
 
   test :expand_path_with_binary do
-    assert Path.expand("/foo/bar") == "/foo/bar"
-    assert Path.expand("/foo/bar/") == "/foo/bar"
-    assert Path.expand("/foo/bar/.") == "/foo/bar"
-    assert Path.expand("/foo/bar/../bar") == "/foo/bar"
+    assert (Path.expand("/foo/bar") |> strip_drive_letter_if_windows) == "/foo/bar"
+    assert (Path.expand("/foo/bar/")  |> strip_drive_letter_if_windows) == "/foo/bar"
+    assert (Path.expand("/foo/bar/.")  |> strip_drive_letter_if_windows)== "/foo/bar"
+    assert (Path.expand("/foo/bar/../bar")  |> strip_drive_letter_if_windows) == "/foo/bar"
 
-    assert Path.expand("bar", "/foo") == "/foo/bar"
-    assert Path.expand("bar/", "/foo") == "/foo/bar"
-    assert Path.expand("bar/.", "/foo") == "/foo/bar"
-    assert Path.expand("bar/../bar", "/foo") == "/foo/bar"
-    assert Path.expand("../bar/../bar", "/foo/../foo/../foo") == "/bar"
+    assert (Path.expand("bar", "/foo") |> strip_drive_letter_if_windows)== "/foo/bar"
+    assert (Path.expand("bar/", "/foo") |> strip_drive_letter_if_windows)== "/foo/bar"
+    assert (Path.expand("bar/.", "/foo") |> strip_drive_letter_if_windows)== "/foo/bar"
+    assert (Path.expand("bar/../bar", "/foo") |> strip_drive_letter_if_windows)== "/foo/bar"
+    assert (Path.expand("../bar/../bar", "/foo/../foo/../foo")|> strip_drive_letter_if_windows) == "/bar"
 
     full = Path.expand("foo/bar")
     assert Path.expand("bar/../bar", "foo") == full
   end
 
   test :expand_path_with_list do
-    assert Path.expand('/foo/bar') == '/foo/bar'
-    assert Path.expand('/foo/bar/') == '/foo/bar'
-    assert Path.expand('/foo/bar/.') == '/foo/bar'
-    assert Path.expand('/foo/bar/../bar') == '/foo/bar'
+    assert (Path.expand('/foo/bar')|> strip_drive_letter_if_windows)  == '/foo/bar'
+    assert (Path.expand('/foo/bar/')|> strip_drive_letter_if_windows)  == '/foo/bar'
+    assert (Path.expand('/foo/bar/.')|> strip_drive_letter_if_windows)  == '/foo/bar'
+    assert (Path.expand('/foo/bar/../bar')|> strip_drive_letter_if_windows)  == '/foo/bar'
   end
 
   test :relative_to_with_binary do
@@ -249,5 +249,12 @@ defmodule PathTest do
     assert Path.split('') == []
     assert Path.split('foo') == ['foo']
     assert Path.split('/foo/bar') == ['/', 'foo', 'bar']
+  end
+  
+  if match? { :win32, _ }, :os.type do
+    defp strip_drive_letter_if_windows([_d,?:|rest]), do: rest
+    defp strip_drive_letter_if_windows(<<_d,?:,rest::binary>>), do: rest
+  else
+    defp strip_drive_letter_if_windows(path), do: path
   end
 end
