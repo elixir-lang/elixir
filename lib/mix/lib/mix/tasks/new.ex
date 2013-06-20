@@ -49,15 +49,15 @@ defmodule Mix.Tasks.New do
 
         File.cd! path, fn ->
           if opts[:umbrella] do
-            do_generate_umbrella(name, opts)
+            do_generate_umbrella(name, path, opts)
           else
-            do_generate(name, opts)
+            do_generate(name, path, opts)
           end
         end
     end
   end
 
-  defp do_generate(app, opts) do
+  defp do_generate(app, path, opts) do
     mod     = opts[:module] || camelize(app)
     otp_app = if opts[:sup], do: "[mod: { #{mod}, [] }]", else: "[]"
     assigns = [app: app, mod: mod, otp_app: otp_app]
@@ -79,9 +79,21 @@ defmodule Mix.Tasks.New do
     create_directory "test"
     create_file "test/test_helper.exs", test_helper_template(assigns)
     create_file "test/#{app}_test.exs", test_lib_template(assigns)
+
+    Mix.shell.info """
+
+    Your mix project was created with success.
+    You can use mix to compile it, test it, and more:
+
+        cd #{path}
+        mix compile
+        mix test
+
+    Run `mix help` for more information.
+    """
   end
 
-  defp do_generate_umbrella(app, _opts) do
+  defp do_generate_umbrella(app, path, _opts) do
     mod = camelize(app)
     assigns = [mod: mod]
 
@@ -89,6 +101,21 @@ defmodule Mix.Tasks.New do
     create_file "mix.exs",   mixfile_umbrella_template(assigns)
 
     create_directory "apps"
+
+    Mix.shell.info """
+
+    Your umbrella project was created with success.
+    Inside your project, you will find an apps/ directory
+    where you can create and host many apps:
+
+        cd #{path}
+        cd apps
+        mix new my_app
+
+    Commands like `mix compile` and `mix test`, when executed
+    in the umbrella project root, will automatically run
+    inside each application in the apps/ directory.
+    """
   end
 
   defp check_project_name!(name) do
