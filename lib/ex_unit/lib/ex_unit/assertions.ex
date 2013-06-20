@@ -5,7 +5,7 @@ defexception ExUnit.ExpectationError, expected: nil, actual: nil, reason: "",
   def message(exception) do
     if desc = exception.description do
       "#{exception.prelude} #{desc} #{exception.full_reason} " <>
-        "#{exception.expected}. Insted got #{exception.actual}"
+        "#{exception.expected}, instead got #{exception.actual}"
     else
       "#{exception.prelude} #{exception.expected} " <>
         "#{exception.full_reason} #{exception.actual}"
