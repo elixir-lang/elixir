@@ -3,6 +3,7 @@ defmodule Mix.Tasks.Escriptize do
   use Bitwise, only_operators: true
 
   @shortdoc "Generates an escript for the project"
+  @recursive true
 
   @moduledoc %B"""
   Generates an escript for the project.
@@ -105,15 +106,13 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp project_files do
-    Mix.Project.recur(fn _ -> get_files(".") end) |> List.concat
+    get_files(".")
   end
 
   defp deps_tuples do
-    Mix.Project.recur(fn _ ->
-      Enum.reduce Mix.Deps.all || [], [], fn(dep, acc) ->
-        dep_tuples(dep.app) ++ acc
-      end
-    end) |> List.concat
+    Enum.reduce Mix.Deps.all || [], [], fn(dep, acc) ->
+      dep_tuples(dep.app) ++ acc
+    end
   end
 
   defp set_perms(filename) do
