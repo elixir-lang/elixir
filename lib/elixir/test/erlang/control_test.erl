@@ -1,10 +1,15 @@
--module(conditionals_test).
+-module(control_test).
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->
   { Value, Binding, _ } = elixir:eval(Content, []),
   { Value, Binding }.
+
+to_erl(String) ->
+  Forms = elixir_translator:'forms!'(String, 1, "nofile", []),
+  { Tree, _ } = elixir_translator:translate(Forms, elixir:scope_for_eval([])),
+  Tree.
 
 % Booleans
 
@@ -261,3 +266,11 @@ oror_test() ->
     {true, _} = eval("false && false || true")
   end,
   test_helper:run_and_remove(F, ['Elixir.Bar']).
+
+% Optimized
+
+optimized_if_test() ->
+  [{ 'case', _, _,
+    [{clause,_,[{atom,_,false}],[],[{atom,_,else}]},
+     {clause,_,[{atom,_,true}],[],[{atom,_,do}]} ]
+  }] = to_erl("if is_list(x), do: :do, else: :else").
