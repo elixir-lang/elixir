@@ -178,7 +178,7 @@ defmodule ExUnit.Callbacks do
   def __merge__(_mod, other, { :ok, data }) when is_list(data), do: Keyword.merge(other, data)
   def __merge__(mod, _, failure) do
     raise "expected ExUnit callback in #{inspect mod} to return :ok " <>
-          " or { :ok, data }, got #{inspect failure} instead"
+          " or { :ok, keywords }, got #{inspect failure} instead"
   end
 
   defp escape(contents) do
