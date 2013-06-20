@@ -110,12 +110,6 @@ for /f "usebackq" %%m in (`echo %par%^|findstr \--remsh`) do (
   shift
   goto:startloop
 )
-rem ******* elixir file **********************
-for /f "usebackq" %%m in (`echo %par%^|findstr \.ex`) do (
-  goto:run
-)
-REM Others should give a problem
-echo ERROR: Parameter %par% is not allowed before the .ex file
-exit /B -1
+rem ******* assume all pre-params are parsed ********************
 :run
 erl -env ERL_LIBS %ERL_LIBS%;"%originPath%\..\lib" -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
