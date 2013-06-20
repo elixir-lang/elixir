@@ -23,15 +23,21 @@ defmodule PathHelpers do
   end
 
   def elixirc(args) do
-    :os.cmd '#{elixirc_executable} #{args}'
+    :os.cmd binary_to_list("#{elixirc_executable} #{:unicode.characters_to_binary(args)}")
   end
 
   def elixir_executable do
-    Path.expand("../../../../../bin/elixir", __FILE__)
+    Path.expand("../../../../../bin/elixir#{executable_extension}", __FILE__)
   end
 
   def elixirc_executable do
-    elixir_executable <> "c"
+    Path.expand("../../../../../bin/elixirc#{executable_extension}", __FILE__)
+  end
+
+  if match? { :win32, _ }, :os.type do
+    def executable_extension, do: ".bat"
+  else
+    def executable_extension, do: ""
   end
 end
 
