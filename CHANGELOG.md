@@ -8,6 +8,7 @@
   * [Kernel] Add `binding/0` and `binding/1` for retrieving bindings
   * [Mix] Implement `Mix.Version` for basic versioniong semantics
   * [Mix] Support creation and installation of archives (.ez files)
+  * [Mix] `github: ...` shortcut now uses the faster `git` schema instead of `https`
 
 * bug fix
   * [Kernel] The elixir executable on Windows now supports the same options as the UNIX one
@@ -19,6 +20,7 @@
 * deprecations
   * [Code] `Code.string_to_ast/1` has been deprecated in favor of `Code.string_to_quoted/1`
   * [Macro] `Macro.to_binary/1` has been deprecated in favor of `Macro.to_string/1`
+  * [Typespec] Deprecate `(fun(...) -> ...)` in favor of `(... -> ...)`
 
 * backwards incompatible changes
   * [File] `rm_rf` and `cp_r` now returns a tuple with three elements on failures
