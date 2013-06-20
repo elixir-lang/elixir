@@ -98,7 +98,7 @@ for /f "usebackq" %%m in (`echo %par%^|findstr \+iex`) do (
 for /f "usebackq" %%m in (`echo %par%^|findstr \+compile`) do (
   goto:startloop
 )
-for /f "usebackq" %%m in (`echo %par%^|findstr \-[erS]`) do (
+for /f "usebackq" %%m in (`echo %par%^|findstr \-[er]`) do (
   shift
   goto:startloop
 )

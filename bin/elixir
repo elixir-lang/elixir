@@ -43,7 +43,7 @@ while [ $I -le $# ]; do
   case "$PEEK" in
     -v|--compile|--no-halt|+iex|+compile)
         ;;
-    -e|-r|-pr|-pa|-pz|--remsh|-S)
+    -e|-r|-pr|-pa|-pz|--remsh)
         S=2
         ;;
     --detached|--hidden)
