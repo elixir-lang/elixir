@@ -488,7 +488,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Like binary_to_list/1, but returns a list of integers corresponding to the bytes
+  Like `binary_to_list/1`, but returns a list of integers corresponding to the bytes
   from position `start` to position `stop` in `binary`. Positions in the binary
   are numbered starting from 1.
   """
