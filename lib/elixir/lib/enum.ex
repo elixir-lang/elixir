@@ -65,6 +65,8 @@ defmodule Enum do
   `{ key, value }` tuple.
   """
 
+  @compile :inline_list_funcs
+
   @type t :: Enumerable.t
   @type element :: any
   @type index :: non_neg_integer

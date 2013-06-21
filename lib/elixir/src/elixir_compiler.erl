@@ -208,9 +208,9 @@ core_main() ->
   [
     "lib/elixir/lib/kernel.ex",
     "lib/elixir/lib/keyword.ex",
+    "lib/elixir/lib/module.ex",
     "lib/elixir/lib/list.ex",
     "lib/elixir/lib/kernel/typespec.ex",
-    "lib/elixir/lib/module.ex",
     "lib/elixir/lib/record.ex",
     "lib/elixir/lib/macro.ex",
     "lib/elixir/lib/macro/env.ex",
