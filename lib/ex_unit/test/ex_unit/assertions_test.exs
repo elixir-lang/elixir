@@ -15,15 +15,6 @@ defmodule ExUnit.AssertionsTest do
     true = assert true
   end
 
-  test :assert_when_value_is_false do
-    try do
-      "This should never be tested" = assert false
-    rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected false to be true. Instead got false" = error.message
-    end
-  end
-
   test :assert_with_message_when_value_is_false do
     try do
       "This should never be tested" = assert false, "This should be true"
