@@ -280,8 +280,8 @@ defmodule ExUnit.CaptureIOTest do
         assert false
       end)
     rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected false to be true" = error.message
+      error in [ExUnit.ExpectationError] ->
+        "Expected false to be true. Instead got false" = error.message
     end
 
     # Ensure no leakage on failures

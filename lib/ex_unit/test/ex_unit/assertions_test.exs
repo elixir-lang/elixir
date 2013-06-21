@@ -19,8 +19,8 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = assert false
     rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected false to be true" = error.message
+      error in [ExUnit.ExpectationError] ->
+        "Expected false to be true. Instead got false" = error.message
     end
   end
 
@@ -37,8 +37,8 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = assert Value.happy?
     rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected Value.happy?() to be true" = error.message
+      error in [ExUnit.ExpectationError] ->
+        "Expected Value.happy?() to be true. Instead got false" = error.message
     end
   end
 
@@ -68,8 +68,8 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = refute true
     rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected true to be false" = error.message
+      error in [ExUnit.ExpectationError] ->
+        "Expected true to be false. Instead got true" = error.message
     end
   end
 
@@ -86,8 +86,8 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = refute Value.sad?
     rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected Value.sad?() to be false" = error.message
+      error in [ExUnit.ExpectationError] ->
+        "Expected Value.sad?() to be false. Instead got true" = error.message
     end
   end
 

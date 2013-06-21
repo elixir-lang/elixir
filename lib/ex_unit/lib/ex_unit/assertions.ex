@@ -53,7 +53,16 @@ defmodule ExUnit.Assertions do
     translate_assertion(expected, fn ->
       quote do
         value = unquote(expected)
-        assert value, "Expected #{unquote(Macro.to_string(expected))} to be true"
+
+        unless value do
+          raise ExUnit.ExpectationError,
+            description: unquote(Macro.to_string(expected)),
+            reason: "be",
+            expected: "true",
+            actual: inspect(value)
+        end
+
+        value
       end
     end)
   end
@@ -73,7 +82,16 @@ defmodule ExUnit.Assertions do
     contents = translate_assertion({ :!, [], [expected] }, fn ->
       quote do
         value = unquote(expected)
-        assert !value, "Expected #{unquote(Macro.to_string(expected))} to be false"
+
+        if value do
+          raise ExUnit.ExpectationError,
+            description: unquote(Macro.to_string(expected)),
+            reason: "be",
+            expected: "false",
+            actual: inspect(value)
+        end
+
+        true
       end
     end)
 
