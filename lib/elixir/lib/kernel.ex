@@ -2874,8 +2874,8 @@ defmodule Kernel do
   defmacro left && right do
     quote do
       case unquote(left) do
-        andand in [false, nil] ->
-          andand
+        var!(andand, false) in [false, nil] ->
+          var!(andand, false)
         _ ->
           unquote(right)
       end
@@ -2905,10 +2905,10 @@ defmodule Kernel do
   defmacro left || right do
     quote do
       case unquote(left) do
-        oror in [false, nil] ->
+        var!(oror, false) in [false, nil] ->
           unquote(right)
-        oror ->
-          oror
+        var!(oror, false) ->
+          var!(oror, false)
       end
     end
   end

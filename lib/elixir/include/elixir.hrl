@@ -16,7 +16,7 @@
   module=nil,              %% the current module
   function=nil,            %% the current function
   vars=[],                 %% a dict of defined variables and their alias
-  temp_vars=[],            %% a dict of all variables defined in a particular assign
+  temp_vars=nil,           %% a set of all variables defined in a particular assign
   clause_vars=nil,         %% a dict of all variables defined in a particular clause
   extra_guards=nil,        %% extra guards from args expansion
   counter=[],              %% a counter for the variables defined

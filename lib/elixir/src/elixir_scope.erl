@@ -12,6 +12,7 @@
 translate_var(Meta, Name, Kind, S, Callback) ->
   Line = ?line(Meta),
   Vars = S#elixir_scope.vars,
+  Tuple = { Name, Kind },
 
   case Name of
     '_' ->
@@ -20,9 +21,9 @@ translate_var(Meta, Name, Kind, S, Callback) ->
       case S#elixir_scope.context of
         match ->
           TempVars = S#elixir_scope.temp_vars,
-          case { orddict:is_key({ Name, Kind }, Vars), orddict:find(Name, TempVars) } of
-            { true, { ok, Kind } } ->
-              { { var, Line, orddict:fetch({ Name, Kind }, Vars) }, S };
+          case { orddict:is_key(Tuple, Vars), is_list(TempVars) andalso ordsets:is_element(Tuple, TempVars) } of
+            { true, true } ->
+              { { var, Line, orddict:fetch(Tuple, Vars) }, S };
             { Else, _ } ->
               { NewVar, NS } = if
                 Kind /= nil -> build_erl_var(Line, S);
@@ -33,11 +34,14 @@ translate_var(Meta, Name, Kind, S, Callback) ->
               RealName = element(3, NewVar),
               ClauseVars = S#elixir_scope.clause_vars,
               { NewVar, NS#elixir_scope{
-                vars=orddict:store({ Name, Kind }, RealName, Vars),
-                temp_vars=orddict:store(Name, Kind, TempVars),
+                vars=orddict:store(Tuple, RealName, Vars),
+                temp_vars=if
+                  TempVars == nil -> TempVars;
+                  true -> ordsets:add_element(Tuple, TempVars)
+                end,
                 clause_vars=if
-                  ClauseVars == nil -> nil;
-                  true -> orddict:store({ Name, Kind }, RealName, ClauseVars)
+                  ClauseVars == nil; Kind == false -> ClauseVars;
+                  true -> orddict:store(Tuple, RealName, ClauseVars)
                 end
               } }
           end;

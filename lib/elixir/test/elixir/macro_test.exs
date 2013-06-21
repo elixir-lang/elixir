@@ -146,8 +146,8 @@ defmodule MacroTest do
   test :expand_with_imported_macro do
     assert Macro.expand(quote(do: 1 || false), __ENV__) == (quote context: Kernel do
       case 1 do
-        oror in [false, nil] -> false
-        oror -> oror
+        var!(oror, false) in [false, nil] -> false
+        var!(oror, false) -> var!(oror, false)
       end
     end)
   end
@@ -155,8 +155,8 @@ defmodule MacroTest do
   test :expand_with_require_macro do
     assert Macro.expand(quote(do: Kernel.||(1, false)), __ENV__) == (quote context: Kernel do
       case 1 do
-        oror in [false, nil] -> false
-        oror -> oror
+        var!(oror, false) in [false, nil] -> false
+        var!(oror, false) -> var!(oror, false)
       end
     end)
   end
