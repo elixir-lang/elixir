@@ -20,6 +20,15 @@ defmodule KernelTest do
     end
   end
 
+  test :^ do
+    x = 1
+
+    assert_raise MatchError, fn ->
+      { x, ^x } = { 2, 2 }
+      x
+    end
+  end
+
   test :nil? do
     assert nil?(nil)
     refute nil?(0)

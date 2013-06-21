@@ -351,7 +351,7 @@ translate_each({ 'super?', Meta, [] }, S) ->
 %% Variables
 
 translate_each({ '^', Meta, [ { Name, _, Kind } ] }, #elixir_scope{context=match} = S) when is_atom(Name), is_atom(Kind) ->
-  case orddict:find({ Name, Kind }, S#elixir_scope.vars) of
+  case orddict:find({ Name, Kind }, S#elixir_scope.backup_vars) of
     { ok, Value } ->
       { { var, Meta, Value }, S };
     error ->

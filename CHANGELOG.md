@@ -15,6 +15,7 @@
   * [Kernel] Improve error messages on default clauses clash
   * [Kernel] `__MODULE__.Foo` now returns `Foo` when outside of a Module
   * [Kernel] Improve error messages when default clauses from different definitions collide
+  * [Kernel] ^x variables should always refer to the value before the expression
   * [Mix] Mix now properly evaluates rebar scripts
 
 * deprecations

@@ -25,9 +25,12 @@ get_pairs(Meta, Key, Clauses, S, AllowNil) ->
 
 % Function for translating assigns.
 
-assigns(Fun, Args, #elixir_scope{context=Context} = S) when Context /= match ->
-  { Result, NewS } = assigns(Fun, Args, S#elixir_scope{context=match, temp_vars=ordsets:new()}),
-  { Result, NewS#elixir_scope{context=Context, temp_vars=S#elixir_scope.temp_vars} };
+assigns(Fun, Args, #elixir_scope{context=Context, temp_vars=TempVars,
+    backup_vars=BackupVars, vars=Vars} = S) when Context /= match ->
+  { Result, NewS } = assigns(Fun, Args, S#elixir_scope{context=match,
+                       temp_vars=ordsets:new(), backup_vars=Vars}),
+  { Result, NewS#elixir_scope{context=Context,
+      temp_vars=TempVars, backup_vars=BackupVars} };
 
 assigns(Fun, Args, S) -> Fun(Args, S).
 
