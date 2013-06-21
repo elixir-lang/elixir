@@ -351,6 +351,7 @@ defmodule Wadler do
 
   # the fits? and format methods have to deal explicitly with the document modes
   @spec fits?(integer, [{ integer, mode, doc }]) :: boolean
+  defp fits?(:infinity, _),                                 do: true # no pretty printing
   defp fits?(w, _) when w < 0,                              do: false
   defp fits?(_, []),                                        do: true
   defp fits?(w, [{_, _, DocNil} | t]),                      do: fits? w, t
@@ -362,6 +363,7 @@ defmodule Wadler do
   defp fits?(w, [{i, _, DocGroup[doc: x]} | t]),            do: fits? w, [{i, Flat, x} | t]
 
   @spec format(integer, integer, [{ integer, mode, doc }]) :: boolean
+  def format(:infinity, k, [{i, _, DocGroup[doc: x]} | t]),   do: format :infinity, k, [{i, Flat, x} | t] # no pretty printing
   def format(_, _, []),                                       do: SNil
   def format(w, k, [{_, _, DocNil} | t]),                     do: format w, k, t
   def format(w, k, [{i, m, DocCons[left: x, right: y]} | t]), do: format w, k, [{i, m, x} | [{i, m, y} | t]]

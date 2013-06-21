@@ -30,7 +30,7 @@ defmodule WadlerTest do
     # Consistence with definitions
     ## Normal case
     assert break("break") == W.DocBreak[str: "break"]
-    ## Degeneration
+    ## Degeneracy
     assert break("") == W.DocBreak[str: ""]
     ## Wrong argument type
     assert_raise FunctionClauseError, fn -> break(42) end
@@ -60,7 +60,7 @@ defmodule WadlerTest do
     # Consistence with definitions
     ## Normal case
     assert text("text") == W.DocText[str: "text"]
-    ## Degeneration
+    ## Degeneracy
     assert text("") == W.DocText[str: ""]
     ## Wrong argument type
     assert_raise FunctionClauseError, fn -> text(42) end
@@ -82,7 +82,7 @@ defmodule WadlerTest do
     # Consistence with definitions
     ## Normal case
     assert nest(1, empty) == W.DocNest[indent: 1, doc: empty]
-    ## Degeneration
+    ## Degeneracy
     assert nest(0, empty) == DocNil
     ## Wrong argument type
     assert_raise FunctionClauseError, fn -> nest("foo", empty) end
@@ -106,6 +106,16 @@ defmodule WadlerTest do
     assert pretty(80, a1.())   == "a"
     ## Correctly indenting line
     assert W.render(W.format 2, 0, [{0, Break, alb1.()}]) == "a\n b"
+  end
+
+  test :infinity do
+    # w = :infinity should disable pretty printer
+    s = String.duplicate "x", 50
+    t = text(s)
+    g = ";"
+    big_document = group(glue(t, g, t) |>  glue(g, t) |>  glue(g, t) |> glue(g, t))
+
+   assert pretty(:infinity, big_document) == s <> g <> s <> g <> s <> g <> s <> g <> s
   end
 
   test :group do
