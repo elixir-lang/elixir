@@ -54,7 +54,7 @@ defmodule Wadler do
   defp default_nesting, do: 2
 
   defp repeat(_, 0), do: ""
-  defp repeat(s, i), do: String.duplicate s, i
+  defp repeat(s, i), do: :lists.duplicate(i, s)
 
   # Records representing a __complex__ document
   @type doc :: DocNil | DocCons.t | DocText.t | DocNest.t | DocBreak.t | DocGroup.t
