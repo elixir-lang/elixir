@@ -94,7 +94,7 @@ defmodule File do
       #=> raises File.Error
 
   In general, a developer should use the former in case he wants
-  to react in the fie does not exist. The latter should be used
+  to react if the file does not exist. The latter should be used
   when the developer expects his software to fail in case the
   file cannot be read (i.e. it is literally an exception).
   """
@@ -123,7 +123,7 @@ defmodule File do
   end
 
   @doc """
-  Returns true if the given argument exists.
+  Returns true if the given path exists.
   It can be regular file, directory, socket,
   symbolic link, named pipe or device file.
 
@@ -231,7 +231,7 @@ defmodule File do
 
   @doc """
   Returns information about the `path`. If it exists, it
-  returns a `{ :ok, info }` tuple, where info is  as a
+  returns a `{ :ok, info }` tuple, where info is a
   `File.Info` record. Retuns `{ :error, reason }` with
   the same reasons as `File.read` if a failure occurs.
 
@@ -314,7 +314,7 @@ defmodule File do
   with `File.open/2`. `bytes_count` specifies the number of
   bytes to copy, the default being `:infinity`.
 
-  If file `destination` already exists, it is overriden
+  If file `destination` already exists, it is overwritten
   by the contents in `source`.
 
   Returns `{ :ok, bytes_copied }` if successful,
@@ -351,12 +351,12 @@ defmodule File do
 
   Similar to the command `cp` in Unix systems, this function
   behaves differently depending if `destination` is a directory
-  or not. In paritcular, if `destination` is a directory, it
+  or not. In particular, if `destination` is a directory, it
   copies the contents of `source` to `destination/source`.
 
   If a file already exists in the destination, it invokes a
   callback which should return true if the existing file
-  should be overriden, false otherwise. It defaults to return true.
+  should be overwritten, false otherwise. It defaults to return true.
 
   It returns `:ok` in case of success, returns
   `{ :error, reason }` otherwise.
@@ -407,7 +407,7 @@ defmodule File do
 
   If a file already exists in the destination,
   it invokes a callback which should return
-  true if the existing file should be overriden,
+  true if the existing file should be overwritten,
   false otherwise. It defaults to return true.
 
   If a directory already exists in the destination
@@ -436,7 +436,7 @@ defmodule File do
 
       # Same as before, but asks the user how to proceed in case of conflicts
       File.cp_r "samples/.", "tmp", fn(source, destination) ->
-        IO.gets("Overriding #{destination} by #{source}. Type y to confirm.") == "y"
+        IO.gets("Overwriting #{destination} by #{source}. Type y to confirm.") == "y"
       end
 
   """
@@ -647,7 +647,7 @@ defmodule File do
 
   @doc """
   Remove files and directories recursively at the given `path`.
-  Symlinks are not followed but simply removed, non existing
+  Symlinks are not followed but simply removed, non-existing
   files are simply ignored (i.e. doesn't make this function fail).
 
   Returns `{ :ok, files_and_directories }` with all files and
@@ -764,14 +764,14 @@ defmodule File do
 
   This function returns:
 
-  * { :ok, io_device } - The file has been opened in the requested mode.
+  * `{ :ok, io_device }` - The file has been opened in the requested mode.
                          `io_device` is actually the pid of the process which handles the file.
                          This process is linked to the process which originally opened the file.
-                         If any process to which the io_device is linked terminates, the file will
-                         be closed and the process itself will be terminated. An io_device returned
+                         If any process to which the `io_device` is linked terminates, the file will
+                         be closed and the process itself will be terminated. An `io_device` returned
                          from this call can be used as an argument to the `IO` module functions.
 
-  * { :error, reason } - The file could not be opened.
+  * `{ :error, reason }` - The file could not be opened.
 
   ## Examples
 
@@ -950,13 +950,13 @@ defmodule File do
   passed into `Enum`. The device is iterated line
   by line, at the end of iteration the file is closed.
 
-  This reads the file as utf-8. CHeck out `File.biniterator`
+  This reads the file as utf-8. Check out `File.biniterator`
   to handle the file as a raw binary.
 
   ## Examples
 
   An example that lazily iterates a file replacing all double
-  quotes per single quotes and write each line to a target file
+  quotes per single quotes and writes each line to a target file
   is shown below:
 
       { :ok, device } = File.open("README.md")
