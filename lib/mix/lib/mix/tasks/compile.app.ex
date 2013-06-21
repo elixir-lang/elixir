@@ -98,40 +98,40 @@ defmodule Mix.Tasks.Compile.App do
     Enum.each properties, fn
       { :description, value } ->
         unless is_list(value), do:
-          invalid "Application description (:description) is not a character list (got #{inspect value})"
+          invalid "Application description (:description) is not a character list (got #{inspect value, pretty: false})"
       { :id, value } ->
         unless is_list(value), do:
-          invalid "Application id (:id) is not a character list (got #{inspect value} instead)"
+          invalid "Application id (:id) is not a character list (got #{inspect value, pretty: false} instead)"
       { :vsn, value } ->
         unless is_list(value), do:
-          invalid "Application vsn (:vsn) is not a character list (got #{inspect value} instead)"
+          invalid "Application vsn (:vsn) is not a character list (got #{inspect value, pretty: false} instead)"
       { :maxT, value } ->
         unless value == :infinity or is_integer(value), do:
-          invalid "Application maximum time (:maxT) is not an integer or :infinity (got #{inspect value} instead)"
+          invalid "Application maximum time (:maxT) is not an integer or :infinity (got #{inspect value, pretty: false} instead)"
       { :modules, value } ->
         unless is_list(value) and Enum.all?(value, is_atom(&1)), do:
-          invalid "Application modules (:modules) should be a list of atoms (got #{inspect value} instead)"
+          invalid "Application modules (:modules) should be a list of atoms (got #{inspect value, pretty: false} instead)"
       { :registered, value } ->
         unless is_list(value) and Enum.all?(value, is_atom(&1)), do:
-          invalid "Application registered processes (:registered) should be a list of atoms (got #{inspect value} instead)"
+          invalid "Application registered processes (:registered) should be a list of atoms (got #{inspect value, pretty: false} instead)"
       { :included_applications, value } ->
         unless is_list(value) and Enum.all?(value, is_atom(&1)), do:
-          invalid "Application included applications (:included_applications) should be a list of atoms (got #{inspect value} instead)"
+          invalid "Application included applications (:included_applications) should be a list of atoms (got #{inspect value, pretty: false} instead)"
       { :applications, value } ->
         unless is_list(value) and Enum.all?(value, is_atom(&1)), do:
-          invalid "Application dependencies (:applications) should be a list of atoms (got #{inspect value} instead)"
+          invalid "Application dependencies (:applications) should be a list of atoms (got #{inspect value, pretty: false} instead)"
       { :env, value } ->
         unless Keyword.keyword?(value), do:
-          invalid "Application dependencies (:env) should be a keyword list (got #{inspect value} instead)"
+          invalid "Application dependencies (:env) should be a keyword list (got #{inspect value, pretty: false} instead)"
       { :start_phases, value } ->
         unless Keyword.keyword?(value), do:
-          invalid "Application start phases (:start_phases) should be a keyword list (got #{inspect value} instead)"
+          invalid "Application start phases (:start_phases) should be a keyword list (got #{inspect value, pretty: false} instead)"
       { :mod, [] } ->
         :ok
       { :mod, { module, _args } } when is_atom(module) ->
         :ok
       { :mod, value } ->
-        invalid "Application callback module (:mod) should be either [] or {module, start_args} (got #{inspect value} instead)"
+        invalid "Application callback module (:mod) should be either [] or {module, start_args} (got #{inspect value, pretty: false} instead)"
       _ ->
         :ok
     end

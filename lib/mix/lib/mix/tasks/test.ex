@@ -69,7 +69,7 @@ defmodule Mix.Tasks.Test do
     if nil?(file) or File.exists?(file) do
       true
     else
-      raise Mix.Error, message: "Cannot run tests because test helper file #{inspect file} does not exist"
+      raise Mix.Error, message: "Cannot run tests because test helper file #{inspect file, pretty: false} does not exist"
     end
   end
 

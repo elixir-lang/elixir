@@ -55,7 +55,7 @@ defmodule Mix.Tasks.Local.Install do
     validate_module_name!(path, module)
     task_name = Mix.Task.task_name(module)
 
-    if opts[:force] || Mix.shell.yes?("Are you sure you want to install task #{inspect task_name}?") do
+    if opts[:force] || Mix.shell.yes?("Are you sure you want to install task #{inspect task_name, pretty: false}?") do
       tasks = Mix.Local.tasks_path
       File.mkdir_p! tasks
       create_file Path.join(tasks, "#{module}.beam"), beam

@@ -149,7 +149,7 @@ defmodule Mix.Deps do
     do: "the dependency is not available, run `mix deps.get`"
 
   defp inspect_kw(list) do
-    middle = lc { key, value } inlist Enum.sort(list), do: "#{key}: #{inspect value, raw: true}"
+    middle = lc { key, value } inlist Enum.sort(list), do: "#{key}: #{inspect value, raw: true, pretty: false}"
     "[ " <> Enum.join(middle, ",\n  ") <> " ]"
   end
 
@@ -216,7 +216,7 @@ defmodule Mix.Deps do
         _ -> ""
       end
 
-    "#{app} #{version}#{inspect scm.format(opts)}"
+    "#{app} #{version}#{inspect scm.format(opts), pretty: false}"
   end
 
   @doc """

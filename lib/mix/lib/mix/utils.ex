@@ -290,7 +290,7 @@ defmodule Mix.Utils do
   def module_name_to_command(module, nesting // 0)
 
   def module_name_to_command(module, nesting) when is_atom(module) do
-    module_name_to_command(inspect(module), nesting)
+    module_name_to_command(inspect(module, pretty: false), nesting)
   end
 
   def module_name_to_command(module, nesting) do
@@ -354,7 +354,7 @@ defmodule Mix.Utils do
       { :ok, { { _, status, _ }, _, _ } } ->
         raise Mix.Error, message: "could not access url #{path}, got status: #{status}"
       { :error, reason } ->
-        raise Mix.Error, message: "could not access url #{path}, error: #{inspect reason}"
+        raise Mix.Error, message: "could not access url #{path}, error: #{inspect reason, pretty: false}"
     end
   end
 
