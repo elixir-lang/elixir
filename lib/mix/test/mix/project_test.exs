@@ -53,7 +53,7 @@ defmodule Mix.ProjectTest do
     assert Mix.project[:compile_path] == "ebin"
   end
 
-  test "raises an error when trying to retrieve the current project but none it set" do
+  test "raises an error when trying to retrieve the current project but none is set" do
     assert_raise Mix.NoProjectError, fn ->
       Mix.Project.get!
     end
