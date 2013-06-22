@@ -221,7 +221,7 @@ defmodule Record do
   end
 
   defp record_split([], defaults, types) do
-    { Enum.reverse(defaults), types }
+    { :lists.reverse(defaults), types }
   end
 
   @doc """
@@ -270,7 +270,7 @@ defmodule Record do
   end
 
   defp recordp_split([], defaults, types) do
-    { Enum.reverse(defaults), Enum.reverse(types) }
+    { :lists.reverse(defaults), :lists.reverse(types) }
   end
 
   @doc """
