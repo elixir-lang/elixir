@@ -1489,6 +1489,21 @@ defmodule Kernel do
       user(name: name) = record
       name #=> "José"
 
+  ## Types
+
+  `defrecordp` automatically generates an opaque time based
+  on the record name and the types can be modified too. The
+  following definition:
+
+      defrecordp :user,
+        name: "José" :: binary,
+        age: 25 :: integer
+
+  Will generate the following type:
+
+      @opaque user :: { :user, binary, integer }
+
+  All the fields without a specified type are assumed to have type `term`.
   """
   defmacro defrecordp(name, fields) when is_atom(name) do
     Record.defrecordp(name, fields)

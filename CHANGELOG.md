@@ -9,6 +9,7 @@
   * [Mix] Implement `Mix.Version` for basic versioniong semantics
   * [Mix] Support creation and installation of archives (.ez files)
   * [Mix] `github: ...` shortcut now uses the faster `git` schema instead of `https`
+  * [Record] Allow types to be given to `defrecordp`
 
 * bug fix
   * [Kernel] The elixir executable on Windows now supports the same options as the UNIX one

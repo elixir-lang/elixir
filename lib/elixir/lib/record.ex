@@ -127,20 +127,27 @@ defmodule Record do
   ## Types
 
   Every record defines a type named `t` that can be accessed in typespecs.
-  For example, assuming the `Config` record defined above, it could be used
-  in typespecs as follow:
+  Those types can be passed at the moment the record is defined:
 
-      @spec handle_config(Config.t) :: boolean()
+      defrecord User,
+        name: "" :: string,
+        age: 0 :: integer
 
-  Inside the record definition, a developer can define his own types too:
+  All the fields without a specified type are assumed to have type `term`.
+
+  Assuming the `User` record defined above, it could be used in typespecs
+  as follow:
+
+      @spec handle_user(User.t) :: boolean()
+
+  If the developer wants to define their own types to be used with the
+  record, Elixir allows a more lengthy definition with the help of the
+  `record_type` macro:
 
       defrecord Config, counter: 0, failures: [] do
         @type kind :: term
         record_type counter: integer, failures: [kind]
       end
-
-  When defining a type, all the fields not mentioned in the type are
-  assumed to have type `term`.
 
   ## Importing records
 
@@ -173,27 +180,48 @@ defmodule Record do
   """
   def defrecord(name, values, opts) do
     block = Keyword.get(opts, :do, nil)
+    { fields, types } = record_split(values)
 
     quote do
-      unquoted_values = unquote(values)
+      unquoted_fields = unquote(fields)
 
       defmodule unquote(name) do
         @moduledoc false
         import Elixir.Record.DSL
 
         @record_fields []
-        @record_types  []
+        @record_types  unquote(types)
 
-        # Reassign values to inner scope to
+        # Reassign fields to inner scope to
         # avoid conflicts in nested records
-        values = unquoted_values
+        fields = unquoted_fields
 
-        Elixir.Record.deffunctions(values, __ENV__)
+        Elixir.Record.deffunctions(fields, __ENV__)
         value = unquote(block)
-        Elixir.Record.deftypes(values, @record_types, __ENV__)
+        Elixir.Record.deftypes(fields, @record_types, __ENV__)
         value
       end
     end
+  end
+
+  defp record_split(fields) when is_list(fields) do
+    record_split(fields, [], [])
+  end
+
+  defp record_split(other) do
+    { other, [] }
+  end
+
+  defp record_split([{ field, { :::, _, [default, type] }}|t], defaults, types) do
+    record_split t, [{ field, default }|defaults], [{ field, Macro.escape(type) }|types]
+  end
+
+  defp record_split([other|t], defaults, types) do
+    record_split t, [other|defaults], types
+  end
+
+  defp record_split([], defaults, types) do
+    { Enum.reverse(defaults), types }
   end
 
   @doc """
@@ -224,10 +252,25 @@ defmodule Record do
   in `values`. This is invoked directly by `Kernel.defrecordp`,
   so check it for more information and documentation.
   """
-  def defrecordp(name, fields) do
+  def defrecordp(name, fields) when is_atom(name) and is_list(fields) do
+    { fields, types } = recordp_split(fields, [], [])
+
     quote do
       Record.defmacros(unquote(name), unquote(fields), __ENV__)
+      @opaque unquote(name)() :: { unquote(name), unquote_splicing(types) }
     end
+  end
+
+  defp recordp_split([{ field, { :::, _, [default, type] }}|t], defaults, types) do
+    recordp_split t, [{ field, default }|defaults], [type|types]
+  end
+
+  defp recordp_split([other|t], defaults, types) do
+    recordp_split t, [other|defaults], [quote(do: term)|types]
+  end
+
+  defp recordp_split([], defaults, types) do
+    { Enum.reverse(defaults), Enum.reverse(types) }
   end
 
   @doc """

@@ -49,6 +49,8 @@ defrecord RecordTest.WithRecordType, a: 0, b: 1 do
   record_type a: integer
 end
 
+defrecord RecordTest.WithInlineType, a: nil :: atom, b: 1 :: integer
+
 defmodule RecordTest.Macros do
   defrecordp :_user, name: "José", age: 25
 
