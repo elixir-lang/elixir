@@ -1,8 +1,71 @@
 defmodule Mix.Version do
+  @moduledoc %B"""
+  This module provides functions for parsing and matching
+  versions with requirements.
+
+  A version is a string or a `Mix.Version.Schema` generated
+  after parsing via `Mix.Version.parse/1`. A requirement is
+  a string that follows a specific format.
+
+  `Mix.Version` parsing and requirements follows
+  [SemVer 2.0 schema](http://semver.org/) and you will get
+  the most of Mix' version system by following it. In order
+  to support integration with projects that may
+  follow different versioning schemas, Elixir won't choke
+  on unknown versions, however you won't be able to use
+  Mix requirements with such unformatted versions.
+
+  ## Versions
+
+  In a nutshell, a version is given by three numbers:
+
+      MAJOR.MINOR.PATCH
+
+  Pre-releases are supported by appending `-[0-9A-Za-z-\.]`:
+
+      "1.0.0-alpha3"
+
+  Build information can be added by appending `+[0-9A-Za-z-\.]`:
+
+      "1.0.0-alpha3+20130417140000"
+
+  ## Requirements
+
+  Requirements allow you to specify which versions of a given
+  dependency you are willing to work against. It supports common
+  operators like `>=`, `<=`, `>`, `==` and friends that would
+  work as one would expect:
+
+      # Only version 2.0.0
+      "== 2.0.0"
+
+      # Anything later than 2.0.0
+      "> 2.0.0"
+
+  Requirements also support `and` and `or` for complex conditions:
+
+      # 2.0.0 and later until 2.1.0
+      ">= 2.0.0 and < 2.1.0"
+
+  Since the example above is such a common requirement, it can
+  be expressed as:
+
+      "~> 2.0.0"
+
+  """
+
+  @type t :: String.t | Mix.Version.Schema.t
+  @type requirement :: String.t | Mix.Version.Requirement.t
+
   @type matchable :: { major :: String.t | non_neg_integer,
                        minor :: non_neg_integer | nil,
                        patch :: non_neg_integer | nil,
                        pre   :: { String.t, non_neg_integer } | nil }
+
+   import Kernel, except: [match?: 2]
+
+   defrecord Schema, major: 0, minor: 0, patch: 0, build: nil, source: nil
+   defrecord Requirement, source: nil, matchspec: nil
 
   defexception InvalidRequirement, reason: :invalid_requirement do
     def message(InvalidRequirement[reason: reason]) when is_binary(reason) do
@@ -15,29 +78,24 @@ defmodule Mix.Version do
     end
   end
 
-  defrecord Schema, major: 0, minor: 0, patch: 0, build: nil, source: nil
-  defrecord Requirement, source: nil, matchspec: nil
-
-  import Kernel, except: [match?: 2]
-
   @doc """
-  Checks if the given specification matches the given version.
+  Checks if the given version matches the specification.
   """
-  @spec match?(String.t | Mix.Version.Requirement.t, String.t | Schema.t) :: boolean
-  def match?(spec, version) when is_binary(spec) do
-    case Mix.Version.Parser.parse_requirement(spec) do
-      { :ok, spec } ->
-        match?(spec, version)
+  @spec match?(t, requirement) :: boolean
+  def match?(version, requirement) when is_binary(requirement) do
+    case Mix.Version.Parser.parse_requirement(requirement) do
+      { :ok, req } ->
+        match?(version, req)
       { :error, reason } ->
         raise InvalidRequirement, reason: reason
     end
   end
 
-  def match?(spec, version) when is_binary(version) do
-    match?(spec, parse(version))
+  def match?(version, requirement) when is_binary(version) do
+    match?(parse(version), requirement)
   end
 
-  def match?(Requirement[matchspec: spec], Schema[] = version) do
+  def match?(Schema[] = version, Requirement[matchspec: spec]) do
     case :ets.test_ms(to_matchable(version), spec) do
       { :ok, result } ->
         result != false
