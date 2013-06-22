@@ -1491,7 +1491,7 @@ defmodule Kernel do
 
   ## Types
 
-  `defrecordp` automatically generates an opaque time based
+  `defrecordp` automatically generates an opaque type based
   on the record name and the types can be modified too. The
   following definition:
 
