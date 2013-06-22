@@ -1019,6 +1019,66 @@ defmodule File do
     end
   end
 
+  @doc """
+  Changes the unix file `mode` for a given `file`. 
+  Returns `:ok` on success, or `{:error, reason}` 
+  on failure.  
+  """
+  def chmod(file, mode) do
+    F.change_mode(file, mode)
+  end
+
+  @doc """
+  Same as `chmod/2`, but raises an exception in case of failure. Otherwise `:ok`.
+  """
+  def chmod!(file, mode) do
+    case chmod(file, mode) do
+      :ok -> :ok
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "change mode for", path: :unicode.characters_to_binary(file)
+    end
+  end
+
+  @doc """
+  Changes the user group given by the group id `gid` 
+  for a given `file`. Returns `:ok` on success, or 
+  `{:error, reason}` on failure.  
+  """
+  def chgrp(file, gid) do
+    F.change_group(file, gid)
+  end
+
+  @doc """
+  Same as `chgrp/2`, but raises an exception in case of failure. Otherwise `:ok`.
+  """
+  def chgrp!(file, gid) do
+    case chgrp(file, gid) do
+      :ok -> :ok
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "change group for", path: :unicode.characters_to_binary(file)
+    end
+  end
+
+  @doc """
+  Changes the owner given by the user id `gid` 
+  for a given `file`. Returns `:ok` on success, 
+  or `{:error, reason}` on failure.  
+  """
+  def chown(file, uid) do 
+    F.change_owner(file, uid)
+  end
+
+  @doc """
+  Same as `chown/2`, but raises an exception in case of failure. Otherwise `:ok`.
+  """
+  def chown!(file, gid) do
+    case chown(file, gid) do
+      :ok -> :ok
+      { :error, reason } ->
+        raise File.Error, reason: reason, action: "change owner for", path: :unicode.characters_to_binary(file)
+    end
+  end
+
   ## Helpers
 
   defp open_defaults([:charlist|t], _add_binary) do
