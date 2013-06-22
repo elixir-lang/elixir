@@ -1115,6 +1115,92 @@ defmodule FileTest do
     end
   end
 
+  test :chmod_with_success do
+    fixture = tmp_path("tmp_test.txt")
+
+    File.touch(fixture)
+    try do
+      assert File.chmod(fixture, 0100666) == :ok
+      stat = File.stat!(fixture)
+      assert stat.mode == 0100666
+
+      assert File.chmod(fixture, 0100777) == :ok
+      stat = File.stat!(fixture)
+      assert stat.mode == 0100777
+    after
+      File.rm(fixture)
+    end
+  end
+
+  test :chmod_with_success! do
+    fixture = tmp_path("tmp_test.txt")
+
+    File.touch(fixture)
+    try do
+      assert File.chmod!(fixture, 0100666) == :ok
+      stat = File.stat!(fixture)
+      assert stat.mode == 0100666
+
+      assert File.chmod!(fixture, 0100777) == :ok
+      stat = File.stat!(fixture)
+      assert stat.mode == 0100777
+    after
+      File.rm(fixture)
+    end
+  end
+
+  test :chmod_with_failue do
+    fixture = tmp_path("tmp_test.txt")
+    File.rm(fixture)
+
+    assert File.chmod(fixture, 0100777) == {:error,:enoent}
+  end
+
+  test :chmod_with_failue! do
+    fixture = tmp_path("tmp_test.txt")
+    File.rm(fixture)
+
+    message = %r"could not change mode for #{escape fixture}: no such file or directory"
+    assert_raise File.Error, message, fn ->
+      File.chmod!(fixture, 0100777)
+    end
+  end
+
+  test :chgrp_with_failue do
+    fixture = tmp_path("tmp_test.txt")
+    File.rm(fixture)
+
+    assert File.chgrp(fixture, 1) == {:error,:enoent}
+  end
+
+  test :chgrp_with_failue! do
+    fixture = tmp_path("tmp_test.txt")
+    File.rm(fixture)
+
+    message = %r"could not change group for #{escape fixture}: no such file or directory"
+    assert_raise File.Error, message, fn ->
+      File.chgrp!(fixture, 1)
+    end
+  end
+
+  test :chown_with_failue do
+    fixture = tmp_path("tmp_test.txt")
+    File.rm(fixture)
+
+    assert File.chown(fixture, 1) == {:error,:enoent}    
+  end
+
+  test :chown_with_failue! do
+    fixture = tmp_path("tmp_test.txt")
+    File.rm(fixture)
+
+    message = %r"could not change owner for #{escape fixture}: no such file or directory"
+    assert_raise File.Error, message, fn ->
+      File.chown!(fixture, 1)
+    end
+  end
+
+
   defp last_year do
     last_year :calendar.local_time
   end
