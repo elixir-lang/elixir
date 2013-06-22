@@ -51,6 +51,13 @@ defmodule Mix.Project do
   @doc false
   def push(atom) when is_atom(atom) do
     config = Keyword.merge default_config, get_project_config(atom)
+
+    if requirement = config[:elixir] do
+      unless Mix.Version.match?(System.version, requirement) do
+        raise Mix.SystemVersionError, expected: requirement, actual: System.version
+      end
+    end
+
     Mix.Server.cast({ :push_project, atom, config })
   end
 
