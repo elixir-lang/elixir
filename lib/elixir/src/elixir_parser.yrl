@@ -218,8 +218,12 @@ stab_eol -> stab eol : '$1'.
 
 stab_expr -> expr : '$1'.
 stab_expr -> stab_op stab_maybe_expr : build_op('$1', [], '$2').
-stab_expr -> call_args_no_parens stab_op stab_maybe_expr : build_op('$2', unwrap_splice('$1'), '$3').
-stab_expr -> call_args_parens_not_one stab_op stab_maybe_expr : build_op('$2', unwrap_splice('$1'), '$3').
+stab_expr -> call_args_no_parens stab_op stab_maybe_expr :
+               build_op('$2', unwrap_when(unwrap_splice('$1')), '$3').
+stab_expr -> call_args_parens_not_one stab_op stab_maybe_expr :
+               build_op('$2', unwrap_splice('$1'), '$3').
+stab_expr -> call_args_parens_not_one when_op matched_expr stab_op stab_maybe_expr :
+               build_op('$4', [{ 'when', [{line,?line('$2')}], unwrap_splice('$1') ++ ['$3'] }], '$5').
 
 stab_maybe_expr -> 'expr' : '$1'.
 stab_maybe_expr -> '$empty' : nil.
@@ -239,7 +243,7 @@ open_paren -> '(' eol  : '$1'.
 close_paren -> ')'     : '$1'.
 close_paren -> eol ')' : '$2'.
 
-empty_paren -> open_paren ')' : nil.
+empty_paren -> open_paren ')' : '$1'.
 
 open_bracket  -> '['     : '$1'.
 open_bracket  -> '[' eol : '$1'.
@@ -394,7 +398,7 @@ matched_comma_expr -> matched_expr : ['$1'].
 matched_comma_expr -> matched_comma_expr ',' matched_expr : ['$3'|'$1'].
 
 call_args_no_parens_strict -> call_args_no_parens : '$1'.
-call_args_no_parens_strict -> open_paren ')' : throw_no_parens_strict('$1').
+call_args_no_parens_strict -> empty_paren : throw_no_parens_strict('$1').
 call_args_no_parens_strict -> open_paren matched_kw_base close_paren : throw_no_parens_strict('$1').
 call_args_no_parens_strict -> open_paren matched_expr ',' call_args_no_parens close_paren : throw_no_parens_strict('$1').
 
@@ -402,7 +406,7 @@ call_args_no_parens -> matched_comma_expr : lists:reverse('$1').
 call_args_no_parens -> matched_kw_base : ['$1'].
 call_args_no_parens -> matched_comma_expr ',' matched_kw_base : lists:reverse(['$3'|'$1']).
 
-call_args_parens_not_one -> open_paren ')' : [].
+call_args_parens_not_one -> empty_paren : [].
 call_args_parens_not_one -> open_paren matched_kw_base close_paren : ['$2'].
 call_args_parens_not_one -> open_paren matched_expr ',' call_args_no_parens close_paren : ['$2'|'$4'].
 
@@ -420,7 +424,7 @@ optional_comma_expr -> paren_expr ',' : '$1'.
 
 call_args -> comma_expr : lists:reverse('$1').
 
-call_args_parens -> open_paren ')' : [].
+call_args_parens -> empty_paren : [].
 call_args_parens -> open_paren call_args close_paren : '$2'.
 
 % KV
@@ -597,7 +601,7 @@ build_stab(Meta, [], Marker, Temp, Acc) ->
 
 %% Every time the parser sees a (unquote_splicing())
 %% it assumes that a block is being spliced, wrapping
-%% the splicing in a __block__. But in the stab cause,
+%% the splicing in a __block__. But in the stab clause,
 %% we can have (unquote_splicing(1,2,3)) -> :ok, in such
 %% case, we don't actually want the block, since it is
 %% an arg style call. unwrap_splice unwraps the splice
@@ -606,6 +610,14 @@ unwrap_splice([{ '__block__', [], [{ unquote_splicing, _, _ }] = Splice }]) ->
   Splice;
 
 unwrap_splice(Other) -> Other.
+
+unwrap_when(Args) ->
+  case elixir_tree_helpers:split_last(Args) of
+    { Start, { 'when', Meta, [_, _] = End } } ->
+      [{ 'when', Meta, Start ++ End }];
+    { _, _ } ->
+      Args
+  end.
 
 %% Errors
 

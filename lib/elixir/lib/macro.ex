@@ -248,6 +248,12 @@ defmodule Macro do
     op_to_string(left) <> " #{op} " <> op_to_string(right)
   end
 
+  # Splat when
+  def to_string({ :when, _, args }) do
+    { left, right } = :elixir_tree_helpers.split_last(args)
+    "(" <> Enum.map_join(left, ", ", to_string(&1)) <> ") when " <> to_string(right)
+  end
+
   # Unary ops
   def to_string({ :not, _, [arg] })  do
     "not " <> to_string(arg)

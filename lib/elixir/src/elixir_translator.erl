@@ -551,7 +551,7 @@ no_alias_expansion(Other) ->
 
 translate_fn(Meta, Clauses, S) ->
   Transformer = fun({ ArgsWithGuards, CMeta, Expr }, Acc) ->
-    { Args, Guards } = elixir_clauses:extract_last_guards(ArgsWithGuards),
+    { Args, Guards } = elixir_clauses:extract_splat_guards(ArgsWithGuards),
     elixir_clauses:assigns_block(?line(CMeta), fun elixir_translator:translate/2, Args, [Expr], Guards, umergec(S, Acc))
   end,
 

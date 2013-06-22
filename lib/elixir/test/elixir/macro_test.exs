@@ -252,7 +252,6 @@ defmodule MacroTest do
   end
 
   test :fn_to_binary do
-    assert Macro.to_string(quote do: (() -> x)) == "(() -> x)"
     assert Macro.to_string(quote do: (fn -> 1 + 2 end)) == "fn -> 1 + 2 end"
     assert Macro.to_string(quote do: (fn(x) -> x + 1 end)) == "fn x -> x + 1 end"
 
@@ -272,6 +271,13 @@ defmodule MacroTest do
         z
     end
     """
+  end
+
+  test :when do
+    assert Macro.to_string(quote do: (() -> x)) == "(() -> x)"
+    assert Macro.to_string(quote do: (x when y -> z)) == "(x when y -> z)"
+    assert Macro.to_string(quote do: (x, y when z -> w)) == "((x, y) when z -> w)"
+    assert Macro.to_string(quote do: ((x, y) when z -> w)) == "((x, y) when z -> w)"
   end
 
   test :partial_to_binary do

@@ -2,7 +2,7 @@
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
 -export([
-  assigns/3, assigns_block/5, assigns_block/6, extract_last_guards/1,
+  assigns/3, assigns_block/5, assigns_block/6, extract_splat_guards/1,
   get_pairs/4, get_pairs/5, match/3, extract_args/1, extract_guards/1]).
 -include("elixir.hrl").
 
@@ -80,13 +80,13 @@ extract_args({ Name, _, Args }) when is_atom(Name), is_atom(Args) -> { Name, [] 
 extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args };
 extract_args(_) -> error.
 
-% Extract guards when it is in the last element of the args
+% Extract guards when multiple left side args are allowed.
 
-extract_last_guards([]) -> { [], [] };
-extract_last_guards(Args) ->
-  { Left, Right }  = elixir_tree_helpers:split_last(Args),
-  { Bare, Guards } = extract_guards(Right),
-  { Left ++ [Bare], Guards }.
+extract_splat_guards([{ 'when', _, [_,_|_] = Args }]) ->
+  { Left, Right } = elixir_tree_helpers:split_last(Args),
+  { Left, extract_or_clauses(Right, []) };
+extract_splat_guards(Else) ->
+  { Else, [] }.
 
 % Function for translating macros with match style like case and receive.
 
