@@ -133,7 +133,7 @@ defmodule Mix.Tasks.Escriptize do
 
   defp get_files(app) do
     Path.wildcard("#{app}/ebin/*.{app,beam}") ++
-      Path.wildcard("#{app}/priv/**/*")
+      (Path.wildcard("#{app}/priv/**/*") |> Enum.filter(File.regular?(&1)))
   end
 
   defp get_tuples(app) do
