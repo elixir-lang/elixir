@@ -115,6 +115,9 @@ defmodule Kernel.QuoteTest do
   test :when do
     assert {:->,_,[{[{:when,_,[1,2,3,4]}],_,5}]} = quote(do: (1, 2, 3 when 4 -> 5))
     assert {:->,_,[{[{:when,_,[1,2,3,4]}],_,5}]} = quote(do: ((1, 2, 3) when 4 -> 5))
+
+    assert {:->,_,[{[{:when,_,[1,2,3,{:when,_,[4,5]}]}],_,6}]} =
+             quote(do: ((1, 2, 3) when 4 when 5 -> 6))
   end
 
   test :stab do

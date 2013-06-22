@@ -109,6 +109,20 @@ function_call_with_multiline_test() ->
 function_call_with_tabs_test() ->
   {3, _} = eval("a = fn a, b -> a + b end; a .\n\t(1,2)").
 
+function_call_with_args_and_nested_when_test() ->
+  {Fun, _} = eval("fn a, b when a == 1 when b == 2 -> a + b end"),
+  3 = Fun(1, 2),
+  2 = Fun(0, 2),
+  1 = Fun(1, 0),
+  ?assertError(function_clause, Fun(0, 0)).
+
+function_call_with_parens_args_and_nested_when_test() ->
+  {Fun, _} = eval("fn\n(a, b) when a == 1 when b == 2 -> a + b\nend"),
+  3 = Fun(1, 2),
+  2 = Fun(0, 2),
+  1 = Fun(1, 0),
+  ?assertError(function_clause, Fun(0, 0)).
+
 %% Partial application
 
 require_partial_application_test() ->
