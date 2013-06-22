@@ -62,10 +62,10 @@ defmodule Mix.Version do
                        patch :: non_neg_integer | nil,
                        pre   :: { String.t, non_neg_integer } | nil }
 
-   import Kernel, except: [match?: 2]
+  import Kernel, except: [match?: 2]
 
-   defrecord Schema, major: 0, minor: 0, patch: 0, build: nil, source: nil
-   defrecord Requirement, source: nil, matchspec: nil
+  defrecord Schema, major: 0, minor: 0, patch: 0, pre: nil, build: nil, source: nil
+  defrecord Requirement, source: nil, matchspec: nil
 
   defexception InvalidRequirement, reason: :invalid_requirement do
     def message(InvalidRequirement[reason: reason]) when is_binary(reason) do
@@ -153,8 +153,18 @@ defmodule Mix.Version do
   @spec parse(String.t) :: { :ok, Schema.t } | { :error, term }
   def parse(string) when is_binary(string) do
     case Mix.Version.Parser.parse_version(string) do
-      { :ok, matchable } -> from_matchable(matchable)
+      { :ok, matchable } -> from_matchable(matchable).source(string).build(get_build(string))
       { :error, _ } -> Mix.Version.Schema[source: string]
+    end
+  end
+
+  defp get_build(string) do
+    case Regex.run(%r/\+([^\s]+)$/, string) do
+      nil ->
+        nil
+
+      [_, build] ->
+        build
     end
   end
 
@@ -164,38 +174,30 @@ defmodule Mix.Version do
   ## Examples
 
       iex> Mix.Version.to_matchable("1")
-      {1,0,0,nil}
+      {1,0,0,[]}
       iex> Mix.Version.to_matchable("1.0")
-      {1,0,0,nil}
+      {1,0,0,[]}
       iex> Mix.Version.to_matchable("1.0.0")
-      {1,0,0,nil}
+      {1,0,0,[]}
       iex> Mix.Version.to_matchable("1.0.0+alpha1")
-      {1,0,0,{"alpha",1}}
+      {1,0,0,["alpha",1]}
       iex> Mix.Version.to_matchable("1.0.0-alpha10")
-      {1,0,0,{"alpha",10}}
+      {1,0,0,["alpha",10]}
       iex> Mix.Version.to_matchable("1.0.3.4")
       {"1.0.3.4",nil,nil,nil}
 
   """
   @spec to_matchable(String.t | Schema.t) :: Mix.Version.matchable
   def to_matchable(Schema[major: nil, source: source]) do
-    { source, nil, nil, nil }
+    { source, nil, nil, [] }
   end
 
-  def to_matchable(Mix.Version.Schema[major: major, minor: minor, patch: patch, build: nil]) do
-    { major, minor, patch, nil }
+  def to_matchable(Mix.Version.Schema[major: major, minor: minor, patch: patch, pre: nil]) do
+    { major, minor, patch, [] }
   end
 
-  def to_matchable(Mix.Version.Schema[major: major, minor: minor, patch: patch, build: build]) do
-    build = case Regex.run %r/^(.*?)(\d+)?$/, build do
-      [_, build] ->
-        { build, 0 }
-
-      [_, build, number] ->
-        { build, binary_to_integer(number) }
-    end
-
-    { major, minor, patch, build }
+  def to_matchable(Mix.Version.Schema[major: major, minor: minor, patch: patch, pre: pre]) do
+    { major, minor, patch, Mix.Version.Parser.parse_pre(pre) }
   end
 
   def to_matchable(string) do
@@ -210,7 +212,7 @@ defmodule Mix.Version do
     Mix.Version.Schema[source: source]
   end
 
-  def from_matchable({ major, minor, patch, build }) do
+  def from_matchable({ major, minor, patch, pre }) do
     source = "#{major}"
 
     if minor do
@@ -219,14 +221,18 @@ defmodule Mix.Version do
       if patch do
         source = "#{source}.#{patch}"
 
-        if build do
-          build  = "#{elem build, 0}#{elem build, 1}"
-          source = "#{source}-#{build}"
+        case pre do
+          [] ->
+            pre = nil
+
+          list ->
+            pre    = Enum.join(list, ".")
+            source = "#{source}-#{pre}"
         end
       end
     end
 
-    Mix.Version.Schema[major: major, minor: minor, patch: patch, build: build, source: source]
+    Mix.Version.Schema[major: major, minor: minor, patch: patch, pre: pre, source: source]
   end
 
   defmodule Parser.DSL do
@@ -296,7 +302,7 @@ defmodule Mix.Version do
       Enum.filter(Enum.reverse(acc), &1 != :' ')
     end
 
-    @version_regex %r/^(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:[\-+]([^\s]+))?$/
+    @version_regex %r/^(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:\-([^\s]+))?(?:\+[^\d]+)?$/
 
     @spec parse_requirement(String.t) :: { :ok, Mix.Version.Requirement.t } | { :error, binary | atom }
     def parse_requirement(source) do
@@ -309,8 +315,10 @@ defmodule Mix.Version do
           { :ok, _ } ->
             { :ok, Requirement[source: source, matchspec: spec] }
 
-          { :error, [error: reason] } ->
-            { :error, to_binary(reason) }
+          { :error, errors } ->
+            { :error, Enum.map(errors, fn { :error, reason } ->
+              to_binary(reason)
+            end) }
         end
       else
         { :error, :invalid_requirement }
@@ -320,26 +328,27 @@ defmodule Mix.Version do
     @spec parse_version(String.t) :: { :ok, Mix.Version.matchable } | { :error, :invalid_version }
     def parse_version(string) when is_binary(string) do
       if valid_version?(string) do
-        destructure [_, major, minor, patch, build], Regex.run(@version_regex, string)
+        destructure [_, major, minor, patch, pre], Regex.run(@version_regex, string)
 
         major = binary_to_integer(major)
         minor = binary_to_integer(minor || "0")
         patch = binary_to_integer(patch || "0")
-        build = build && parse_build(build)
+        pre   = pre && parse_pre(pre) || []
 
-        { :ok, { major, minor, patch, build } }
+        { :ok, { major, minor, patch, pre } }
       else
         { :error, :invalid_version }
       end
     end
 
-    defp parse_build(build) do
-      case Regex.run(%r/^(.*?)(\d+)?$/, build) do
-        [_, build] ->
-          { build, 0 }
-
-        [_, build, number] ->
-          { build, binary_to_integer(number) }
+    @doc false
+    def parse_pre(pre) do
+      String.split(pre, ".") |> Enum.map fn piece ->
+        if piece =~ %r/^[1-9][0-9]*$/ do
+          binary_to_integer(piece)
+        else
+          piece
+        end
       end
     end
 
@@ -396,22 +405,22 @@ defmodule Mix.Version do
 
     @spec valid_version?(String.t) :: boolean
     def valid_version?(string) do
-      Regex.match? %r/^\d+(\.\d+(\.\d+)?)?([\-+][^\s]+)?$/, string
+      Regex.match? %r/^\d+(\.\d+(\.\d+)?)?(\-[^\s]+)?(?:\+[^\s]+)?$/, string
     end
 
     defp approximate(version) do
       Mix.Version.from_matchable(case Regex.run(@version_regex, version) do
         [_, major] ->
-          { binary_to_integer(major) + 1, 0, 0, nil }
+          { binary_to_integer(major) + 1, 0, 0, [] }
 
         [_, major, _] ->
-          { binary_to_integer(major) + 1, 0, 0, nil }
+          { binary_to_integer(major) + 1, 0, 0, [] }
 
         [_, major, minor, _] ->
-          { binary_to_integer(major), binary_to_integer(minor) + 1, 0, nil }
+          { binary_to_integer(major), binary_to_integer(minor) + 1, 0, [] }
 
-        [_, major, minor, patch, _] ->
-         { binary_to_integer(major), binary_to_integer(minor), binary_to_integer(patch) + 1, nil }
+        [_, major, minor, _, _] ->
+          { binary_to_integer(major), binary_to_integer(minor) + 1, 0, [] }
       end)
     end
 
@@ -434,40 +443,64 @@ defmodule Mix.Version do
       { :'/=', :'$_', { :const, version } }
     end
 
-    defp to_condition([:'>', version | _]) do
-      version = Mix.Version.to_matchable(version)
-
-      { :andalso, { :not, { :is_binary, :'$1' } },
-                  { :'>', :'$_', { :const, version } } }
-    end
-
-    defp to_condition([:'>=', version | _]) do
-      version = Mix.Version.to_matchable(version)
-
-      { :andalso, { :not, { :is_binary, :'$1' } },
-                  { :'>=', :'$_', { :const, version } } }
-    end
-
-    defp to_condition([:'<', version | _]) do
-      version = Mix.Version.to_matchable(version)
-
-      { :andalso, { :not, { :is_binary, :'$1' } },
-                  { :'<', :'$_', { :const, version } } }
-    end
-
-    defp to_condition([:'<=', version | _]) do
-      version = Mix.Version.to_matchable(version)
-
-      { :andalso, { :not, { :is_binary, :'$1' } },
-                  { :'=<', :'$_', { :const, version } } }
-    end
-
     defp to_condition([:'~>', version | _]) do
       from = Mix.Version.parse(version)
       to   = approximate(version)
 
       { :andalso, to_condition([:'>=', to_binary(from)]),
                   to_condition([:'<', to_binary(to)]) }
+    end
+
+    defp to_condition([:'>', version | _]) do
+      { major, minor, patch, pre } = Mix.Version.to_matchable(version)
+
+      # don't you just love match_specs?
+      { :andalso, { :not, { :is_binary, :'$1' } },
+                  { :orelse, { :'>', {{ :'$1', :'$2', :'$3' }},
+                                     { :const, { major, minor, patch } } },
+                             { :andalso, { :'==', {{ :'$1', :'$2', :'$3' }},
+                                                  { :const, { major, minor, patch } } },
+                                         { :orelse, { :'<', { :length, :'$4' }, { :const, length(pre) } },
+                                                    { :'>', :'$4', { :const, pre } } } } } }
+    end
+
+    defp to_condition([:'>=', version | _]) do
+      { major, minor, patch, pre } = Mix.Version.to_matchable(version)
+
+      # really, they're lovely
+      { :andalso, { :not, { :is_binary, :'$1' } },
+                  { :orelse, { :'>=', {{ :'$1', :'$2', :'$3' }},
+                                      { :const, { major, minor, patch } } },
+                             { :andalso, { :'==', {{ :'$1', :'$2', :'$3' }},
+                                                  { :const, { major, minor, patch } } },
+                                         { :orelse, { :'<', { :length, :'$4' }, { :const, length(pre) } },
+                                                    { :'>=', :'$4', { :const, pre } } } } } }
+    end
+
+    defp to_condition([:'<', version | _]) do
+      { major, minor, patch, pre } = Mix.Version.to_matchable(version)
+
+      # almost as lovely as a pie full of bees
+      { :andalso, { :not, { :is_binary, :'$1' } },
+                  { :orelse, { :'<', {{ :'$1', :'$2', :'$3' }},
+                                     { :const, { major, minor, patch } } },
+                             { :andalso, { :'==', {{ :'$1', :'$2', :'$3' }},
+                                                  { :const, { major, minor, patch } } },
+                                         { :orelse, { :'>', { :length, :'$4' }, { :const, length(pre) } },
+                                                    { :'<', :'$4', { :const, pre } } } } } }
+    end
+
+    defp to_condition([:'<=', version | _]) do
+      { major, minor, patch, pre } = Mix.Version.to_matchable(version)
+
+      # or a bee full of pie
+      { :andalso, { :not, { :is_binary, :'$1' } },
+                  { :orelse, { :'=<', {{ :'$1', :'$2', :'$3' }},
+                                      { :const, { major, minor, patch } } },
+                             { :andalso, { :'==', {{ :'$1', :'$2', :'$3' }},
+                                                  { :const, { major, minor, patch } } },
+                                         { :orelse, { :'>', { :length, :'$4' }, { :const, length(pre) } },
+                                                    { :'=<', :'$4', { :const, pre } } } } } }
     end
 
     defp to_condition(current, []) do

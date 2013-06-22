@@ -23,29 +23,64 @@ defmodule Mix.VersionTest do
     refute P.valid_requirement?(P.lexer("& 1.0.0", []))
   end
 
-  test "matches properly" do
+  test :== do
     assert V.match?("2.3", "2.3")
     refute V.match?("2.4", "2.3")
 
+    assert V.match?("2.3", "== 2.3")
+    refute V.match?("2.4", "== 2.3")
+
+    assert V.match?("1.0.0", "1.0.0")
+    assert V.match?("1.0.0", "1.0")
+
+    assert V.match?("1.2.3-alpha", "1.2.3-alpha")
+
+    assert V.match?("iliketrains", "iliketrains")
+    assert V.match?("1.2.3.4", "1.2.3.4")
+
+    assert V.match?("0.9.3", "== 0.9.3+dev")
+  end
+
+  test :!= do
     assert V.match?("2.4", "!2.3")
     refute V.match?("2.3", "!2.3")
 
+    assert V.match?("2.4", "!= 2.3")
+    refute V.match?("2.3", "!= 2.3")
+  end
+
+  test :> do
     assert V.match?("2.4", "> 2.3")
     refute V.match?("2.2", "> 2.3")
     refute V.match?("2.3", "> 2.3")
 
+    assert V.match?("1.2.3", "> 1.2.3-alpha")
+    assert V.match?("1.2.3-alpha.1", "> 1.2.3-alpha")
+    refute V.match?("1.2.3-alpha.10", "< 1.2.3-alpha.1")
+  end
+
+  test :>= do
     assert V.match?("2.4", ">= 2.3")
     refute V.match?("2.2", ">= 2.3")
     assert V.match?("2.3", ">= 2.3")
 
+    assert V.match?("2.0", ">= 1.0")
+    assert V.match?("1.0.0", ">= 1.0")
+  end
+
+  test :< do
     assert V.match?("2.2", "< 2.3")
     refute V.match?("2.4", "< 2.3")
     refute V.match?("2.3", "< 2.3")
+  end
 
+  test :<= do
     assert V.match?("2.2", "<= 2.3")
     refute V.match?("2.4", "<= 2.3")
     assert V.match?("2.3", "<= 2.3")
+  end
 
+  test :'~>' do
     assert V.match?("3.0", "~> 3.0")
     assert V.match?("3.2", "~> 3.0")
     refute V.match?("4.0", "~> 3.0")
@@ -66,17 +101,18 @@ defmodule Mix.VersionTest do
     refute V.match?("3.6", "~> 3.5.0")
     refute V.match?("3.6.3", "~> 3.5.0")
 
-    assert V.match?("1.0.0", "1.0.0")
-    assert V.match?("1.0.0", "1.0")
-    assert V.match?("2.0", ">= 1.0")
-    assert V.match?("1.0.0", ">= 1.0")
+    assert V.match?("0.9.3", "~> 0.9.3-dev")
+    refute V.match?("0.10.0", "~> 0.9.3-dev")
+  end
 
-    assert V.match?("1.2.3-alpha", "1.2.3-alpha")
-    refute V.match?("1.2.3", "> 1.2.3-alpha")
-    assert V.match?("1.2.3-alpha1", "> 1.2.3-alpha")
-    assert V.match?("1.2.3-alpha10", "> 1.2.3-alpha1")
+  test :and do
+    assert V.match?("0.9.3", "> 0.9 and < 0.10")
+    refute V.match?("0.10.2", "> 0.9 and < 0.10")
+  end
 
-    assert V.match?("iliketrains", "iliketrains")
-    assert V.match?("1.2.3.4", "1.2.3.4")
+  test :or do
+    assert V.match?("0.9.1", "0.9.1 or 0.9.3 or 0.9.5")
+    assert V.match?("0.9.3", "0.9.1 or 0.9.3 or 0.9.5")
+    assert V.match?("0.9.5", "0.9.1 or 0.9.3 or 0.9.5")
   end
 end
