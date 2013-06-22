@@ -1,4 +1,4 @@
-# v0.9.3.dev
+# v0.9.3+dev
 
 * enhancements
   * [File] Add `File.chgrp`, `File.chmod` and `File.chown`
