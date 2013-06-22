@@ -25,7 +25,8 @@ defmodule Mix.Tasks.Escriptize do
      Defaults to app name
 
   * `escript_app` - the app to start with the escript
-     Defaults to app name
+     Defaults to app name. Set it to `nil` if no application should
+     be started.
 
   * `escript_main_module` - the module containing the main/1 function
      Defaults to `Project`
