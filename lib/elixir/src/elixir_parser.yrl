@@ -2,7 +2,7 @@ Nonterminals
   grammar expr_list
   expr paren_expr block_expr fn_expr bracket_expr call_expr bracket_at_expr max_expr
   base_expr matched_expr matched_op_expr unmatched_expr op_expr
-  mult_op two_op regex_op right_op bin_concat_op
+  mult_op two_op right_op bin_concat_op
   match_op send_op default_op when_op pipe_op in_op inc_op range_op
   andand_op oror_op and_op or_op colon_colon_op three_op
   comp_op_eol at_op_eol unary_op_eol dual_op_eol
@@ -33,7 +33,7 @@ Terminals
   'true' 'false' 'nil'
   '=' '*' '/' '++' '--' '**' '//'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '::'
-  eol ','  '&' '|'  '.' '<-' '<>' '->' '|>' '=~'
+  eol ','  '&' '|'  '.' '<-' '<>' '->' '|>'
   '&&' '||' '...' '..'
   '<<<' '>>>' '&&&' '|||' '^^^'
   .
@@ -54,9 +54,8 @@ Left     120 oror_op.
 Left     130 andand_op.
 Left     140 or_op.
 Left     150 and_op.
-Left     160 comp_op_eol.
+Left     160 comp_op_eol. %% < (op), > (op), <=, >=, ==, !=, =~, ===, !===
 Left     170 in_op.
-Right    180 regex_op.
 Right    190 right_op.
 Left     200 range_op.
 Left     210 three_op.
@@ -67,7 +66,7 @@ Right    250 two_op.
 Nonassoc 300 unary_op_eol. %% +, -, !, ^, not, ~~~
 Left     310 dot_call_op.
 Left     310 dot_op.
-Nonassoc 320 at_op_eol. %% @<op>
+Nonassoc 320 at_op_eol. %% @ (op)
 Nonassoc 330 var.
 
 %%% MAIN FLOW OF EXPRESSIONS
@@ -106,7 +105,6 @@ op_expr -> match_op expr : { '$1', '$2' }.
 op_expr -> dual_op_eol expr : { '$1', '$2' }.
 op_expr -> mult_op expr : { '$1', '$2' }.
 op_expr -> two_op expr : { '$1', '$2' }.
-op_expr -> regex_op expr : { '$1', '$2' }.
 op_expr -> right_op expr : { '$1', '$2' }.
 op_expr -> andand_op expr : { '$1', '$2' }.
 op_expr -> three_op expr : { '$1', '$2' }.
@@ -128,7 +126,6 @@ matched_op_expr -> match_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> dual_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> mult_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> two_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> regex_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> right_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> andand_op matched_expr : { '$1', '$2' }.
 matched_op_expr -> three_op matched_expr : { '$1', '$2' }.
@@ -281,9 +278,6 @@ two_op -> '++' eol : '$1'.
 two_op -> '--' eol : '$1'.
 two_op -> '**' : '$1'.
 two_op -> '**' eol : '$1'.
-
-regex_op -> '=~' : '$1'.
-regex_op -> '=~' eol : '$1'.
 
 right_op -> '|>' : '$1'.
 right_op -> '|>' eol : '$1'.
