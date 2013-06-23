@@ -514,7 +514,7 @@ build_access(Expr, Access) ->
 
 build_sigil({ sigil, Line, Sigil, Parts, Modifiers }) ->
   Meta = [{line,Line}],
-  { list_to_atom([$_,$_,Sigil,$_,$_]), Meta, [ { '<<>>', Meta, Parts }, Modifiers ] }.
+  { list_to_atom("sigil_" ++ [Sigil]), Meta, [ { '<<>>', Meta, Parts }, Modifiers ] }.
 
 build_bin_string({ bin_string, _Line, [H] }) when is_binary(H) -> H;
 build_bin_string({ bin_string, Line, Args }) -> { '<<>>', [{line,Line}], Args }.

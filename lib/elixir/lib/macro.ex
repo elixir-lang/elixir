@@ -153,7 +153,7 @@ defmodule Macro do
 
   Only tokens that are binaries are unescaped, all others are
   ignored. This function is useful when implementing your own
-  sigils. Check the implementation of `Kernel.__b__`
+  sigils. Check the implementation of `Kernel.sigil_b`
   for examples.
   """
   def unescape_tokens(tokens) do

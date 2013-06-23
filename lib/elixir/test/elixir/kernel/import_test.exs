@@ -61,7 +61,6 @@ end
 defmodule Kernel.Underscored do
   def hello(x),          do: x
   def __underscore__(x), do: x
-  def __s__(x),          do: x
 end
 
 defmodule Kernel.ExplicitUnderscored do
@@ -86,11 +85,6 @@ defmodule Kernel.ImportUnderscoreTest do
   test :includes_remaining do
     import Kernel.Underscored
     assert hello(2) == 2
-  end
-
-  test :includes_sigil_like do
-    import Kernel.Underscored
-    assert __s__(3) == 3
   end
 end
 

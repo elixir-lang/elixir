@@ -12,7 +12,7 @@
   * [Mix] Implement `Mix.Version` for basic versioniong semantics
   * [Mix] Support creation and installation of archives (.ez files)
   * [Mix] `github: ...` shortcut now uses the faster `git` schema instead of `https`
-  * [Record] Allow types to be given to `defrecordp`
+  * [Record] Allow types to be given to `defrecord` and `defrecordp`
 
 * bug fix
   * [Kernel] The elixir executable on Windows now supports the same options as the UNIX one
@@ -32,7 +32,8 @@
   * [Bitwise] Precedence of operators used by the Bitwise module were changed. Check `elixir_parser.yrl` for more information.
   * [File] `rm_rf` and `cp_r` now returns a tuple with three elements on failures
   * [Kernel] The quoted representation for `->` clauses changed from a tuple with two elements to a tuple with three elements to support metadata
-  * [Macro] `Macro.expand/2` now expands until final form. Although this is backwards incompatible, it is **very** likely your code should expand the node until its final form, particularly if you are expecting an atom out of it
+  * [Kernel] Sigils now dispatch to `sigil_$` instead of `__$__` where `$` is the sigil caracter
+  * [Macro] `Macro.expand/2` now expands until final form. Although this is backwards incompatible, it is very likely you do not need to change your code, since expansion until its final form is recommended, particularly if you are expecting an atom out of it
   * [Mix] No longer support beam files on `mix local`
 
 # v0.9.2 (2013-06-13)
