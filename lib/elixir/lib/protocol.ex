@@ -83,14 +83,14 @@ defmodule Protocol do
   def assert_protocol(module) do
     case Code.ensure_compiled(module) do
       { :module, ^module } -> nil
-      _ -> raise ArgumentError, message: "#{module} is not loaded"
+      _ -> raise ArgumentError, message: "#{inspect module} is not loaded"
     end
 
     try do
       module.__protocol__(:name)
     rescue
       UndefinedFunctionError ->
-        raise ArgumentError, message: "#{module} is not a protocol"
+        raise ArgumentError, message: "#{inspect module} is not a protocol"
     end
   end
 
