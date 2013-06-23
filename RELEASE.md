@@ -2,7 +2,7 @@
 
 This document simply outlines the release process:
 
-1) Remove `+dev` extension from VERSION
+1) Remove `-dev` extension from VERSION
 
 2) Run `make clean test` to ensure all tests pass from scratch and the CI is green
 
@@ -18,7 +18,7 @@ This document simply outlines the release process:
 
 8) Push package to expm with `expm publish package.exs`
 
-9) After release, bump versions and add `+dev` back
+9) After release, bump versions and add `-dev` back
 
 ## Places where version is mentioned
 
