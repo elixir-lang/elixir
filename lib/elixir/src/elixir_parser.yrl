@@ -29,13 +29,13 @@ Terminals
   number signed_number atom bin_string list_string sigil
   dot_call_op op_identifier
   comp_op at_op unary_op dual_op
-  'not' 'and' 'or' 'xor' 'when' 'in' 'inlist' 'inbits' 'do'
+  'and' 'or' 'xor' 'when' 'in' 'inlist' 'inbits' 'do'
   'true' 'false' 'nil'
   '=' '*' '/' '++' '--' '**' '//'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '::'
   eol ','  '&' '|'  '.' '<-' '<>' '->' '|>' '=~'
   '&&' '||' '...' '..'
-  '<<<' '>>>' '&&&' '|||' '^^^' '~~~'
+  '<<<' '>>>' '&&&' '|||' '^^^'
   .
 
 Rootsymbol grammar.
@@ -64,7 +64,7 @@ Left     220 dual_op_eol. %% +, -
 Left     230 mult_op.
 Right    240 bin_concat_op.
 Right    250 two_op.
-Nonassoc 300 unary_op_eol. %% +, -, !, ^
+Nonassoc 300 unary_op_eol. %% +, -, !, ^, not, ~~~
 Left     310 dot_call_op.
 Left     310 dot_op.
 Nonassoc 320 at_op_eol. %% @<op>
@@ -309,10 +309,6 @@ unary_op_eol -> unary_op : '$1'.
 unary_op_eol -> unary_op eol : '$1'.
 unary_op_eol -> dual_op : '$1'.
 unary_op_eol -> dual_op eol : '$1'.
-unary_op_eol -> 'not' : '$1'.
-unary_op_eol -> 'not' eol : '$1'.
-unary_op_eol -> '~~~' : '$1'.
-unary_op_eol -> '~~~' eol : '$1'.
 
 match_op -> '=' : '$1'.
 match_op -> '=' eol : '$1'.

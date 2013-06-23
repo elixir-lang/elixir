@@ -70,14 +70,17 @@
 -define(at_op(T),
   T == $@).
 
--define(dual_op(T),
-  T == $+ orelse T == $-).
-
 -define(unary_op(T),
   % T == $&;
   T == $!;
   T == $^
 ).
+
+-define(unary_op3(T1, T2, T3),
+  T1 == $~, T2 == $~, T3 == $~).
+
+-define(dual_op(T),
+  T == $+ orelse T == $-).
 
 tokenize(String, Line, Opts) ->
   File = case lists:keyfind(file, 1, Opts) of
@@ -227,6 +230,9 @@ tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when ?container2(T1, T2) ->
   handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Three Token Operators
+tokenize([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
+  handle_call_identifier(Rest, Line, list_to_atom([T1, T2, T3]), Scope, Tokens);
+
 tokenize([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when ?comp3(T1, T2, T3); ?op3(T1, T2, T3) ->
   handle_call_identifier(Rest, Line, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
@@ -303,6 +309,9 @@ tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when ?container2(T1, T2) ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2]) }|Tokens]);
 
 % ## Three Token Operators
+tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
+  tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2,T3]) }|Tokens]);
+
 tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when ?comp3(T1, T2, T3); ?op3(T1, T2, T3)  ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2,T3]) }|Tokens]);
 
@@ -349,6 +358,9 @@ tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?comp3(T1, T2, T3) ->
   handle_comp_op(Rest, Line, list_to_atom([T1,T2,T3]), Scope, Tokens);
 
 % ## Three token operators
+tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
+  handle_unary_op(Rest, Line, unary_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
+
 tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?op3(T1, T2, T3) ->
   handle_op(Rest, Line, list_to_atom([T1,T2,T3]), Scope, Tokens);
 
@@ -847,7 +859,8 @@ check_keyword(Line, Identifier, Atom, Tokens) when
         true  -> { ok, [{ Atom, Line }|Tokens] };
         false -> { error, "do" }
       end;
-    false -> nomatch
+    false -> nomatch;
+    unary_op -> { ok, [{ unary_op, Line, Atom }|Tokens] }
   end;
 
 check_keyword(_, _, _, _) -> nomatch.
@@ -862,12 +875,12 @@ keyword('end')   -> true;
 keyword('true')  -> true;
 keyword('false') -> true;
 keyword('nil')   -> true;
-keyword('not')   -> true;
 
 % Special handling for do
 keyword('do')    -> do;
 
-% Bin operator keywords
+% Operators keywords
+keyword('not')    -> unary_op;
 keyword('and')    -> op;
 keyword('or')     -> op;
 keyword('xor')    -> op;
