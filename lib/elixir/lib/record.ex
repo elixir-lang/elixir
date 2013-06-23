@@ -225,11 +225,10 @@ defmodule Record do
   end
 
   @doc """
-  Import public record definition as a set of private macros (as defined by defrecordp/2)
-
-  ## Usage
-
-     Record.import Record.Module, as: macro_name
+  Import public record definition as a set of private macros,
+  as defined by `Kernel.defrecordp/2`. This is useful when one
+  desires to manipulate a record via a set of macros instead
+  of the regular access syntax.
 
   ## Example
 
@@ -242,7 +241,8 @@ defmodule Record do
   """
   defmacro import(module, as: name) do
     quote do
-      Record.defmacros(unquote(name), unquote(module).__record__(:fields), __ENV__, unquote(module))
+      Record.defmacros(unquote(name),
+        unquote(module).__record__(:fields), __ENV__, unquote(module))
     end
   end
 
