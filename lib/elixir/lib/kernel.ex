@@ -3264,9 +3264,8 @@ defmodule Kernel do
   * `:append_first` - If true, when delegated, first argument
     passed to the delegate will be relocated to the end of the
     arguments when dispatched to the target. The motivation behind
-    this is a disparity between conventions used in Elixir and :
-    Elixir's convention is to pass the "handle" as a first argument,
-    while in Erlang the convention is to pass it as the last argument
+    this is because Elixir normalizes the "handle" as a first
+    argument and some Erlang modules expect it as last argument.
 
   ## Examples
 
