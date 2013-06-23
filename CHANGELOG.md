@@ -1,11 +1,11 @@
-# v0.9.3+dev
+# v0.9.3 (2013-06-23)
 
 * enhancements
   * [File] Add `File.chgrp`, `File.chmod` and `File.chown`
   * [Kernel] Add --warnings-as-errors to Elixir's compiler options
   * [Kernel] Print warnings to stderr
   * [Kernel] Warn on undefined module attributes
-  * [Kernel] Emit warning for 'x in []' in guards
+  * [Kernel] Emit warning for `x in []` in guards
   * [Kernel] Add `binding/0` and `binding/1` for retrieving bindings
   * [Kernel] `quote` now allows a binding as an option
   * [Macro] Add `Macro.expand_once/2` and `Macro.expand_all/2`
