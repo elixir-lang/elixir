@@ -234,8 +234,7 @@ andand_test() ->
     {3, _} = eval("Bar.foo && 1 + 2"),
     {false, _} = eval("Bar.bar && error(:bad)"),
     {2, _} = eval("1 && 2"),
-    {nil, _} = eval("nil && 2"),
-    {false, _} = eval("false && false or true")
+    {nil, _} = eval("nil && 2")
   end,
   test_helper:run_and_remove(F, ['Elixir.Bar']).
 

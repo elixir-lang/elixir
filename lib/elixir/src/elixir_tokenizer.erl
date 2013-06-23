@@ -77,6 +77,12 @@
   T1 == $=, T2 == $=, T3 == $=;
   T1 == $!, T2 == $=, T3 == $=).
 
+-define(and_op(T1, T2),
+  T1 == $&, T2 == $&).
+
+-define(or_op(T1, T2),
+  T1 == $|, T2 == $|).
+
 tokenize(String, Line, Opts) ->
   File = case lists:keyfind(file, 1, Opts) of
     { file, V1 } -> V1;
@@ -232,7 +238,7 @@ tokenize([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when ?op3(T1, T2, T3) ->
 
 % ## Two Token Operators
 tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when
-    ?comp_op2(T1, T2) ->
+    ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2) ->
   handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when ?op2(T1, T2) ->
@@ -317,7 +323,7 @@ tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when ?op3(T1, T2, T3)  ->
 
 % ## Two Token Operators
 tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when
-    ?comp_op2(T1, T2) ->
+    ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2) ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2]) }|Tokens]);
 
 tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when ?op2(T1, T2) ->
@@ -380,6 +386,12 @@ tokenize([T|Rest], Line, Scope, Tokens) when T == $(;
 % ## Two Token Operators
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?comp_op2(T1, T2) ->
   handle_op(Rest, Line, comp_op, list_to_atom([T1, T2]), Scope, Tokens);
+
+tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?and_op(T1, T2) ->
+  handle_op(Rest, Line, and_op, list_to_atom([T1, T2]), Scope, Tokens);
+
+tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?or_op(T1, T2) ->
+  handle_op(Rest, Line, or_op, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?op2(T1, T2) ->
   handle_op(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
@@ -846,16 +858,17 @@ check_keyword(Line, Identifier, Atom, Tokens) when
     Identifier ==  identifier; Identifier == do_identifier;
     Identifier ==  bracket_identifier; Identifier == paren_identifier ->
   case keyword(Atom) of
-    true  -> { ok, [{ Atom, Line }|Tokens] };
-    op    -> { ok, add_token_with_nl({ Atom, Line }, Tokens) };
-    block -> { ok, [{ block_identifier, Line, Atom }|Tokens] };
-    do    ->
+    do ->
       case do_keyword_valid(Tokens) of
         true  -> { ok, [{ Atom, Line }|Tokens] };
         false -> { error, "do" }
       end;
-    false -> nomatch;
-    unary_op -> { ok, [{ unary_op, Line, Atom }|Tokens] }
+    false    -> nomatch;
+    true     -> { ok, [{ Atom, Line }|Tokens] };
+    block    -> { ok, [{ block_identifier, Line, Atom }|Tokens] };
+    unary_op -> { ok, [{ unary_op, Line, Atom }|Tokens] };
+    op       -> { ok, add_token_with_nl({ Atom, Line }, Tokens) };
+    Kind     -> { ok, add_token_with_nl({ Kind, Line, Atom }, Tokens) }
   end;
 
 check_keyword(_, _, _, _) -> nomatch.
@@ -876,9 +889,9 @@ keyword('do')    -> do;
 
 % Operators keywords
 keyword('not')    -> unary_op;
-keyword('and')    -> op;
-keyword('or')     -> op;
-keyword('xor')    -> op;
+keyword('and')    -> and_op;
+keyword('or')     -> or_op;
+keyword('xor')    -> or_op;
 keyword('when')   -> op;
 keyword('in')     -> op;
 keyword('inlist') -> op;
