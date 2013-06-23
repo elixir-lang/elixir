@@ -17,7 +17,7 @@ defmodule Macro do
       :<, :>, :->,
       :+, :-, :*, :/, :=, :|, :.,
       :and, :or, :xor, :when, :in, :inlist, :inbits,
-      :<<<, :>>>, :|||, :&&&, :^^^, :~~~
+      :<<<, :>>>, :|||, :&&&, :^^^
     ]
   end
 
@@ -26,7 +26,7 @@ defmodule Macro do
   as a macro so it can be used in guard clauses.
   """
   defmacro unary_ops do
-    [:!, :@, :^, :not, :+, :-]
+    [:!, :@, :^, :not, :+, :-, :~~~, :&]
   end
 
   @doc """

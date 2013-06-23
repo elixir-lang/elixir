@@ -59,23 +59,24 @@
 ).
 
 -define(op1(T),
-  T == $+;
-  T == $-;
   T == $*;
   T == $/;
   T == $=;
-  T == $|;
-  T == $!;
-  T == $^;
-  T == $@
+  T == $|
 ).
 
+%% New ops table
+
+-define(at_op(T),
+  T == $@).
+
+-define(dual_op(T),
+  T == $+ orelse T == $-).
+
 -define(unary_op(T),
-  T == '+';
-  T == '-';
-  T == '@';
-  T == '!';
-  T == '^'
+  % T == $&;
+  T == $!;
+  T == $^
 ).
 
 tokenize(String, Line, Opts) ->
@@ -234,6 +235,9 @@ tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when ?comp2(T1, T2); ?op2(T1, T2)
   handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators
+tokenize([$.,T|Rest], Line, Scope, Tokens) when ?at_op(T); ?unary_op(T); ?dual_op(T) ->
+  handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
+
 tokenize([$.,T|Rest], Line, Scope, Tokens) when ?comp1(T); ?op1(T); T == $& ->
   handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
 
@@ -307,6 +311,10 @@ tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when ?comp2(T1, T2); ?op2(T1, T2)
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2]) }|Tokens]);
 
 % ## Single Token Operators
+
+tokenize([$:,T|Rest], Line, Scope, Tokens) when ?at_op(T); ?unary_op(T); ?dual_op(T) ->
+  tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T]) }|Tokens]);
+
 tokenize([$:,T|Rest], Line, Scope, Tokens) when ?comp1(T); ?op1(T); T == $&; T == $. ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T]) }|Tokens]);
 
@@ -367,6 +375,15 @@ tokenize([T|Rest], Line, Scope, Tokens) when ?comp1(T) ->
   handle_comp_op(Rest, Line, list_to_atom([T]), Scope, Tokens);
 
 % ## Single Token Operators
+tokenize([T|Rest], Line, Scope, Tokens) when ?at_op(T) ->
+  handle_unary_op(Rest, Line, at_op, list_to_atom([T]), Scope, Tokens);
+
+tokenize([T|Rest], Line, Scope, Tokens) when ?unary_op(T) ->
+  handle_unary_op(Rest, Line, unary_op, list_to_atom([T]), Scope, Tokens);
+
+tokenize([T|Rest], Line, Scope, Tokens) when ?dual_op(T) ->
+  handle_unary_op(Rest, Line, dual_op, list_to_atom([T]), Scope, Tokens);
+
 tokenize([T|Rest], Line, Scope, Tokens) when ?op1(T) ->
   handle_op(Rest, Line, list_to_atom([T]), Scope, Tokens);
 
@@ -410,13 +427,13 @@ tokenize([H|_] = String, Line, Scope, Tokens) when ?is_downcase(H); H == $_ ->
 % Ambiguous unary/binary operators tokens
 
 tokenize([Space, Sign, NotMarker|T], Line, Scope, [{ Identifier, _, _ } = H|Tokens]) when
-  Sign == $+ orelse Sign == $-,
-  ?is_horizontal_space(Space),
-  not(?is_space(NotMarker)),
-  NotMarker /= $(, NotMarker /= $+, NotMarker /= $-, NotMarker /= $>,
-  Identifier == identifier orelse Identifier == punctuated_identifier ->
+    ?dual_op(Sign),
+    ?is_horizontal_space(Space),
+    not(?is_space(NotMarker)),
+    NotMarker /= $(, NotMarker /= $+, NotMarker /= $-, NotMarker /= $>,
+    Identifier == identifier orelse Identifier == punctuated_identifier ->
   Rest = [NotMarker|T],
-  tokenize(Rest, Line, Scope, [{ list_to_atom([Sign]), Line }, setelement(1, H, op_identifier)|Tokens]);
+  tokenize(Rest, Line, Scope, [{ dual_op, Line, list_to_atom([Sign]) }, setelement(1, H, op_identifier)|Tokens]);
 
 % Spaces
 
@@ -471,11 +488,20 @@ handle_comp_op(Rest, Line, Op, Scope, Tokens) ->
 handle_op([$:|Rest], Line, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Scope, [{ kw_identifier, Line, Op }|Tokens]);
 
-handle_op(Rest, Line, Op, Scope, Tokens) when ?unary_op(Op) ->
-  tokenize(Rest, Line, Scope, [{ Op, Line }|Tokens]);
-
 handle_op(Rest, Line, Op, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, add_token_with_nl({ Op, Line }, Tokens)).
+
+handle_unary_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
+  tokenize(Rest, Line, Scope, [{ kw_identifier, Line, Op }|Tokens]);
+
+handle_unary_op(Rest, Line, Kind, Op, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, [{ Kind, Line, Op }|Tokens]).
+
+handle_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
+  tokenize(Rest, Line, Scope, [{ kw_identifier, Line, Op }|Tokens]);
+
+handle_op(Rest, Line, Kind, Op, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, add_token_with_nl({ Kind, Op, Line }, Tokens)).
 
 handle_call_identifier(Rest, Line, Op, Scope, Tokens) ->
   Token = check_call_identifier(identifier, Line, Op, Rest),
