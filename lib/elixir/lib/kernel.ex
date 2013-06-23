@@ -3284,7 +3284,7 @@ defmodule Kernel do
   """
   defmacro defdelegate(funs, opts) do
     quote do
-      funs = unquote(Macro.escape_quoted(funs))
+      funs = unquote(Macro.escape(funs, unquote: true))
       opts = unquote(opts)
 
       target = Keyword.get(opts, :to) ||

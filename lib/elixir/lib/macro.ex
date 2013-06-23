@@ -54,6 +54,10 @@ defmodule Macro do
   Recursively escapes a value so it can be inserted
   into a syntax tree.
 
+  One may pass `unquote: true` to `Macro.escape/2`
+  which leaves unquote statements unescaped, effectively
+  unquoting the contents on escape.
+
   ## Examples
 
       iex> Macro.escape(:foo)
@@ -62,14 +66,12 @@ defmodule Macro do
       iex> Macro.escape({ :a, :b, :c })
       { :{}, [], [:a, :b, :c] }
 
-  """
-  def escape(expr) do
-    :elixir_quote.escape(expr, false) |> elem(0)
-  end
+      iex> Macro.escape({ :unquote, [], [1] }, unquote: true)
+      1
 
-  @doc false
-  def escape_quoted(expr) do
-    :elixir_quote.escape(expr, true) |> elem(0)
+  """
+  def escape(expr, opts // []) do
+    :elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)) |> elem(0)
   end
 
   @doc %B"""
