@@ -6,8 +6,8 @@ tokenize(String) ->
   { ok, Result } = elixir_tokenizer:tokenize(String, 1, []),
   Result.
 
-colon_colon_test() ->
-  [{number,1,1},{'::',1},{number,1,3}] = tokenize("1 :: 3"),
+type_test() ->
+  [{number,1,1},{type_op,1,'::'},{number,1,3}] = tokenize("1 :: 3"),
   [{identifier,1,foo},
    {'.',1},
    {paren_identifier,1,'::'},

@@ -15,19 +15,6 @@
   T1 == $[, T2 == $]
 ).
 
--define(op2(T1, T2),
-  T1 == $+, T2 == $+;
-  T1 == $-, T2 == $-;
-  T1 == $*, T2 == $*;
-  T1 == $:, T2 == $:;
-  T1 == $-, T2 == $>
-).
-
--define(op1(T),
-  T == $=;
-  T == $|
-).
-
 %% New ops table
 
 -define(at_op(T),
@@ -58,6 +45,17 @@
 -define(dual_op(T),
   T == $+ orelse T == $-).
 
+-define(range_op(T1, T2),
+  T1 == $., T2 == $.).
+
+-define(arrow_op3(T1, T2, T3),
+  T1 == $<, T2 == $<, T3 == $<;
+  T1 == $>, T2 == $>, T3 == $>).
+
+-define(arrow_op(T1, T2),
+  T1 == $<, T2 == $-;
+  T1 == $|, T2 == $>).
+
 -define(comp_op(T),
   T == $<;
   T == $>).
@@ -85,19 +83,20 @@
 -define(or_op3(T1, T2, T3),
   T1 == $|, T2 == $|, T3 == $|).
 
--define(arrow_op3(T1, T2, T3),
-  T1 == $<, T2 == $<, T3 == $<;
-  T1 == $>, T2 == $>, T3 == $>).
+-define(match_op(T),
+  T == $=).
 
--define(arrow_op(T1, T2),
-  T1 == $<, T2 == $-;
-  T1 == $|, T2 == $>).
-
--define(range_op(T1, T2),
-  T1 == $., T2 == $.).
+-define(tail_op(T),
+  T == $|).
 
 -define(default_op(T1, T2),
   T1 == $/, T2 == $/).
+
+-define(stab_op(T1, T2),
+  T1 == $-, T2 == $>).
+
+-define(type_op(T1, T2),
+  T1 == $:, T2 == $:).
 
 tokenize(String, Line, Opts) ->
   File = case lists:keyfind(file, 1, Opts) of
@@ -253,18 +252,14 @@ tokenize([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when
 % ## Two Token Operators
 tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when
     ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?range_op(T1, T2); ?than_op(T1, T2); ?default_op(T1, T2); ?two_op(T1, T2) ->
-  handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
-
-tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when ?op2(T1, T2) ->
+    ?range_op(T1, T2); ?than_op(T1, T2); ?default_op(T1, T2); ?two_op(T1, T2);
+    ?stab_op(T1, T2); ?type_op(T1, T2) ->
   handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators
 tokenize([$.,T|Rest], Line, Scope, Tokens) when
-    ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T) ->
-  handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
-
-tokenize([$.,T|Rest], Line, Scope, Tokens) when ?op1(T); T == $& ->
+    ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
+    ?match_op(T); ?tail_op(T); T == $& ->
   handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
 
 % Dot call
@@ -337,18 +332,14 @@ tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when
 % ## Two Token Operators
 tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when
     ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?range_op(T1, T2); ?than_op(T1, T2); ?default_op(T1, T2); ?two_op(T1, T2) ->
-  tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2]) }|Tokens]);
-
-tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when ?op2(T1, T2) ->
+    ?range_op(T1, T2); ?than_op(T1, T2); ?default_op(T1, T2); ?two_op(T1, T2);
+    ?stab_op(T1, T2); ?type_op(T1, T2) ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2]) }|Tokens]);
 
 % ## Single Token Operators
 tokenize([$:,T|Rest], Line, Scope, Tokens) when
-    ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T) ->
-  tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T]) }|Tokens]);
-
-tokenize([$:,T|Rest], Line, Scope, Tokens) when ?op1(T); T == $&; T == $. ->
+    ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
+    ?match_op(T); ?tail_op(T); T == $&; T == $. ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T]) }|Tokens]);
 
 % End of line
@@ -379,7 +370,7 @@ tokenize([$&,H|Rest], Line, Scope, Tokens) when ?is_digit(H) ->
 
 % ## Three token operators
 tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
-  handle_unary_op(Rest, Line, unary_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
+  handle_nonl_op(Rest, Line, unary_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
 
 tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?comp_op3(T1, T2, T3) ->
   handle_op(Rest, Line, comp_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
@@ -431,27 +422,33 @@ tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?or_op(T1, T2) ->
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?default_op(T1, T2) ->
   handle_op(Rest, Line, default_op, list_to_atom([T1, T2]), Scope, Tokens);
 
-tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?op2(T1, T2) ->
-  handle_op(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
+tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?stab_op(T1, T2) ->
+  handle_op(Rest, Line, stab_op, list_to_atom([T1, T2]), Scope, Tokens);
+
+tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?type_op(T1, T2) ->
+  handle_op(Rest, Line, type_op, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators
 tokenize([T|Rest], Line, Scope, Tokens) when ?at_op(T) ->
-  handle_unary_op(Rest, Line, at_op, list_to_atom([T]), Scope, Tokens);
+  handle_nonl_op(Rest, Line, at_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?unary_op(T) ->
-  handle_unary_op(Rest, Line, unary_op, list_to_atom([T]), Scope, Tokens);
+  handle_nonl_op(Rest, Line, unary_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?comp_op(T) ->
   handle_op(Rest, Line, comp_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?dual_op(T) ->
-  handle_unary_op(Rest, Line, dual_op, list_to_atom([T]), Scope, Tokens);
+  handle_nonl_op(Rest, Line, dual_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?mult_op(T) ->
   handle_op(Rest, Line, mult_op, list_to_atom([T]), Scope, Tokens);
 
-tokenize([T|Rest], Line, Scope, Tokens) when ?op1(T) ->
-  handle_op(Rest, Line, list_to_atom([T]), Scope, Tokens);
+tokenize([T|Rest], Line, Scope, Tokens) when ?match_op(T) ->
+  handle_op(Rest, Line, match_op, list_to_atom([T]), Scope, Tokens);
+
+tokenize([T|Rest], Line, Scope, Tokens) when ?tail_op(T) ->
+  handle_op(Rest, Line, tail_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([$.|Rest], Line, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, add_token_with_nl({ '.', Line }, Tokens));
@@ -545,16 +542,10 @@ handle_strings(T, Line, H, #scope{file=File} = Scope, Tokens) ->
       interpolation_error(Error, " (for string starting at line ~B)", [Line])
   end.
 
-handle_op([$:|Rest], Line, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
+handle_nonl_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Scope, [{ kw_identifier, Line, Op }|Tokens]);
 
-handle_op(Rest, Line, Op, Scope, Tokens) ->
-  tokenize(Rest, Line, Scope, add_token_with_nl({ Op, Line }, Tokens)).
-
-handle_unary_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
-  tokenize(Rest, Line, Scope, [{ kw_identifier, Line, Op }|Tokens]);
-
-handle_unary_op(Rest, Line, Kind, Op, Scope, Tokens) ->
+handle_nonl_op(Rest, Line, Kind, Op, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, [{ Kind, Line, Op }|Tokens]).
 
 handle_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
