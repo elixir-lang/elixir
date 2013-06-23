@@ -365,31 +365,18 @@ defmodule Macro do
   end
 
   @doc """
-  Receives an expression representation and expands it. The following
-  contents are expanded:
+  Receives a AST node and expands it once. The following contents are expanded:
 
   * Macros (local or remote);
   * Aliases are expanded (if possible) and return atoms;
   * All pseudo-variables (__FILE__, __MODULE__, etc);
   * Module attributes reader (@foo);
 
-  In case the expression cannot be expanded, it returns the expression itself.
-
-  Notice that `Macro.expand` is not recursive and it does not
-  expand child expressions. In this example:
-
-    Macro.expand(quote(do: var && some_macro), __ENV__)
-
-  `var && some_macro` will expand to something like:
-
-      case var do
-        _ in [false, nil] -> var
-        _ -> some_macro
-      end
-
-  Notice that the `&&` operator is a macro that expands to a case.
-  Even though `some_macro` is also a macro, it is not expanded
-  because it is a child expression given to `&&` as argument.
+  In case the expression cannot be expanded, it returns the expression
+  itself. Notice that `Macro.expand_once/2` performs the expansion just
+  once and it is not recursive. Check `Macro.expand/2` for expansion
+  until the node no longer represents a macro and `Macro.expand_all/2`
+  for recursive expansion.
 
   ## Examples
 
@@ -452,46 +439,50 @@ defmodule Macro do
       end
 
   """
-  def expand(aliases, env) do
-    expand(aliases, env, nil)
+  def expand_once(aliases, env) do
+    expand_once(aliases, env, nil) |> elem(0)
   end
 
-  defp expand({ :__aliases__, _, _ } = original, env, cache) do
+  defp expand_once({ :__aliases__, _, _ } = original, env, cache) do
     case :elixir_aliases.expand(original, env.aliases, env.macro_aliases) do
-      atom when is_atom(atom) -> atom
+      atom when is_atom(atom) -> { atom, true, cache }
       aliases ->
-        aliases = lc alias inlist aliases, do: expand(alias, env, cache)
+        aliases = lc alias inlist aliases, do: (expand_once(alias, env, cache) |> elem(0))
 
         case :lists.all(is_atom(&1), aliases) do
-          true  -> :elixir_aliases.concat(aliases)
-          false -> original
+          true  -> { :elixir_aliases.concat(aliases), true, cache }
+          false -> { original, false, cache }
         end
     end
   end
 
   # Expand @ calls
-  defp expand({ :@, _, [{ name, _, args }] } = original, env, _cache) when is_atom(args) or args == [] do
+  defp expand_once({ :@, _, [{ name, _, args }] } = original, env, cache) when is_atom(args) or args == [] do
     case (module = env.module) && Module.open?(module) do
-      true  -> Module.get_attribute(module, name)
-      false -> original
+      true  -> { Module.get_attribute(module, name), true, cache }
+      false -> { original, false, cache }
     end
   end
 
   # Expand pseudo-variables
-  defp expand({ :__MODULE__, _, atom }, env, _cache) when is_atom(atom), do: env.module
-  defp expand({ :__FILE__, _, atom }, env, _cache)   when is_atom(atom), do: env.file
-  defp expand({ :__DIR__, _, atom }, env, _cache)    when is_atom(atom), do: :filename.dirname(env.file)
-  defp expand({ :__ENV__, _, atom }, env, _cache)    when is_atom(atom), do: env
+  defp expand_once({ :__MODULE__, _, atom }, env, cache) when is_atom(atom),
+    do: { env.module, true, cache }
+  defp expand_once({ :__FILE__, _, atom }, env, cache)   when is_atom(atom),
+    do: { env.file, true, cache }
+  defp expand_once({ :__DIR__, _, atom }, env, cache)    when is_atom(atom),
+    do: { :filename.dirname(env.file), true, cache }
+  defp expand_once({ :__ENV__, _, atom }, env, cache)    when is_atom(atom),
+    do: { env, true, cache }
 
   # Expand possible macro import invocation
-  defp expand({ atom, line, args } = original, env, cache) when is_atom(atom) do
+  defp expand_once({ atom, line, args } = original, env, cache) when is_atom(atom) do
     args = case is_atom(args) do
       true  -> []
       false -> args
     end
 
     case not is_partial?(args) do
-      false -> original
+      false -> { original, false, cache }
       true  ->
         module = env.module
 
@@ -501,41 +492,101 @@ defmodule Macro do
           []
         end
 
+        cache  = to_erl_env(env, cache)
         expand = :elixir_dispatch.expand_import(line, { atom, length(args) }, args,
-          env.module, extra, to_erl_env(env, cache))
+          env.module, extra, cache)
+
         case expand do
-          { :ok, _, expanded } -> expanded
-          { :error, _ }     -> original
+          { :ok, _, expanded } -> { expanded, true, cache }
+          { :error, _ }        -> { original, false, cache }
         end
     end
   end
 
   # Expand possible macro require invocation
-  defp expand({ { :., _, [left, right] }, line, args } = original, env, cache) when is_atom(right) do
-    receiver = expand(left, env)
+  defp expand_once({ { :., _, [left, right] }, line, args } = original, env, cache) when is_atom(right) do
+    { receiver, _, _ } = expand_once(left, env, cache)
 
     case is_atom(receiver) and not is_partial?(args) do
-      false -> original
+      false -> { original, false, cache }
       true  ->
+        cache  = to_erl_env(env, cache)
         expand = :elixir_dispatch.expand_require(line, receiver, { right, length(args) },
-          args, env.module, to_erl_env(env, cache))
+          args, env.module, cache)
+
         case expand do
-          { :ok, _receiver, expanded } -> expanded
-          { :error, _ }                -> original
+          { :ok, _receiver, expanded } -> { expanded, true, cache }
+          { :error, _ }                -> { original, false, cache }
         end
     end
   end
 
   # Anything else is just returned
-  defp expand(other, _env, _cache), do: other
+  defp expand_once(other, _env, cache), do: { other, false, cache }
 
   defp to_erl_env(env, nil),    do: :elixir_scope.to_erl_env(env)
   defp to_erl_env(_env, cache), do: cache
 
-  ## Helpers
-
   defp is_partial?(args) do
     :lists.any(match?({ :&, _, [_] }, &1), args)
+  end
+
+  @doc """
+  Receives a AST node and expands it until it no longer represents
+  a macro. Check `Macro.expand_once/2` for more information on how
+  expansion works and `Macro.expand_all/2` for recursive expansion.
+  """
+  def expand(tree, env) do
+    expand(tree, env, nil) |> elem(0)
+  end
+
+  @doc false # Used internally by Elixir
+  def expand(tree, env, cache) do
+    expand_until({ tree, true, cache }, env)
+  end
+
+  defp expand_until({ tree, true, cache }, env) do
+    expand_until(expand_once(tree, env, cache), env)
+  end
+
+  defp expand_until({ tree, false, cache }, _env) do
+    { tree, cache }
+  end
+
+  @doc """
+  Receives a AST node and expands it until it no longer represents
+  a macro. Then it expands all of its children recursively.
+
+  Check `Macro.expand_once/2` for more information on how expansion
+  works.
+  """
+  def expand_all(tree, env) do
+    expand_all(tree, env, nil) |> elem(0)
+  end
+
+  @doc false # Used internally by Elixir
+  def expand_all(tree, env, cache) do
+    expand_all_until(expand(tree, env, cache), env)
+  end
+
+  defp expand_all_until({ { left, meta, right }, cache }, env) do
+    { left, cache }  = expand_all(left, env, cache)
+    { right, cache } = expand_all(right, env, cache)
+    { { left, meta, right }, cache }
+  end
+
+  defp expand_all_until({ { left, right }, cache }, env) do
+    { left, cache }  = expand_all(left, env, cache)
+    { right, cache } = expand_all(right, env, cache)
+    { { left, right }, cache }
+  end
+
+  defp expand_all_until({ list, cache }, env) when is_list(list) do
+    :lists.mapfoldl(expand_all(&1, env, &2), cache, list)
+  end
+
+  defp expand_all_until({ other, cache }, _env) do
+    { other, cache }
   end
 
   @doc """

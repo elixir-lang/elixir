@@ -7,6 +7,10 @@ defmodule Macro.ExternalTest do
     18 = __CALLER__.location[:line]
     __FILE__ = __CALLER__.location[:file]
   end
+
+  defmacro oror(left, right) do
+    quote do: unquote(left) || unquote(right)
+  end
 end
 
 defmodule MacroTest do
@@ -14,8 +18,7 @@ defmodule MacroTest do
 
   # Changing the lines above will make compilation
   # fail since we are assertnig on the caller lines
-  require Macro.ExternalTest
-  Macro.ExternalTest.external()
+  import Macro.ExternalTest
 
   ## Escape
 
@@ -91,60 +94,64 @@ defmodule MacroTest do
 
   ## Expand aliases
 
-  test :expand_with_raw_atom do
-    assert Macro.expand(quote(do: :foo), __ENV__) == :foo
+  test :expand_once do
+    assert { :||, _, _ } = Macro.expand_once(quote(do: oror(1, false)), __ENV__)
   end
 
-  test :expand_with_current_module do
-    assert Macro.expand(quote(do: __MODULE__), __ENV__) == __MODULE__
+  test :expand_once_with_raw_atom do
+    assert Macro.expand_once(quote(do: :foo), __ENV__) == :foo
   end
 
-  test :expand_with_main do
-    assert Macro.expand(quote(do: Elixir), __ENV__) == Elixir
+  test :expand_once_with_current_module do
+    assert Macro.expand_once(quote(do: __MODULE__), __ENV__) == __MODULE__
   end
 
-  test :expand_with_simple_alias do
-    assert Macro.expand(quote(do: Foo), __ENV__) == Foo
+  test :expand_once_with_main do
+    assert Macro.expand_once(quote(do: Elixir), __ENV__) == Elixir
   end
 
-  test :expand_with_current_module_plus_alias do
-    assert Macro.expand(quote(do: __MODULE__.Foo), __ENV__) == __MODULE__.Foo
+  test :expand_once_with_simple_alias do
+    assert Macro.expand_once(quote(do: Foo), __ENV__) == Foo
   end
 
-  test :expand_with_main_plus_alias do
-    assert Macro.expand(quote(do: Elixir.Foo), __ENV__) == Foo
+  test :expand_once_with_current_module_plus_alias do
+    assert Macro.expand_once(quote(do: __MODULE__.Foo), __ENV__) == __MODULE__.Foo
   end
 
-  test :expand_with_custom_alias do
+  test :expand_once_with_main_plus_alias do
+    assert Macro.expand_once(quote(do: Elixir.Foo), __ENV__) == Foo
+  end
+
+  test :expand_once_with_custom_alias do
     alias Foo, as: Bar
-    assert Macro.expand(quote(do: Bar.Baz), __ENV__) == Foo.Baz
+    assert Macro.expand_once(quote(do: Bar.Baz), __ENV__) == Foo.Baz
   end
 
-  test :expand_with_main_plus_custom_alias do
+  test :expand_once_with_main_plus_custom_alias do
     alias Foo, as: Bar
-    assert Macro.expand(quote(do: Elixir.Bar.Baz), __ENV__) == Elixir.Bar.Baz
+    assert Macro.expand_once(quote(do: Elixir.Bar.Baz), __ENV__) == Elixir.Bar.Baz
   end
 
-  test :expand_with_op do
-    assert Macro.expand(quote(do: Foo.bar.Baz), __ENV__) == (quote do
+  test :expand_once_with_op do
+    assert Macro.expand_once(quote(do: Foo.bar.Baz), __ENV__) == (quote do
       Foo.bar.Baz
     end)
   end
 
-  test :expand_with_erlang do
-    assert Macro.expand(quote(do: :foo), __ENV__) == :foo
+  test :expand_once_with_erlang do
+    assert Macro.expand_once(quote(do: :foo), __ENV__) == :foo
   end
 
   defmacro local_macro do
     :local_macro
   end
 
-  test :expand_local_macro do
-    assert Macro.expand(quote(do: local_macro), __ENV__) == :local_macro
+  test :expand_once_local_macro do
+    assert Macro.expand_once(quote(do: local_macro), __ENV__) == :local_macro
   end
 
-  test :expand_with_imported_macro do
-    assert Macro.expand(quote(do: 1 || false), __ENV__) == (quote context: Kernel do
+  test :expand_once_with_imported_macro do
+    assert Macro.expand_once(quote(do: 1 || false), __ENV__) == (quote context: Kernel do
       case 1 do
         var!(oror, false) in [false, nil] -> false
         var!(oror, false) -> var!(oror, false)
@@ -152,8 +159,8 @@ defmodule MacroTest do
     end)
   end
 
-  test :expand_with_require_macro do
-    assert Macro.expand(quote(do: Kernel.||(1, false)), __ENV__) == (quote context: Kernel do
+  test :expand_once_with_require_macro do
+    assert Macro.expand_once(quote(do: Kernel.||(1, false)), __ENV__) == (quote context: Kernel do
       case 1 do
         var!(oror, false) in [false, nil] -> false
         var!(oror, false) -> var!(oror, false)
@@ -161,16 +168,34 @@ defmodule MacroTest do
     end)
   end
 
-  test :expand_with_not_expandable_expression do
+  test :expand_once_with_not_expandable_expression do
     expr = quote(do: other(1, 2, 3))
-    assert Macro.expand(expr, __ENV__) == expr
+    assert Macro.expand_once(expr, __ENV__) == expr
   end
 
   @foo 1
-  @bar Macro.expand(quote(do: @foo), __ENV__)
+  @bar Macro.expand_once(quote(do: @foo), __ENV__)
 
-  test :expand_with_module_at do
+  test :expand_once_with_module_at do
     assert @bar == 1
+  end
+
+  test :expand do
+    assert Macro.expand(quote(do: oror(1, false)), __ENV__) == (quote context: Kernel do
+      case 1 do
+        var!(oror, false) in [false, nil] -> false
+        var!(oror, false) -> var!(oror, false)
+      end
+    end)
+  end
+
+  test :expand_all do
+    assert Macro.expand_all(quote(do: oror(1, local_macro)), __ENV__) == (quote context: Kernel do
+      case 1 do
+        var!(oror, false) in [false, nil] -> :local_macro
+        var!(oror, false) -> var!(oror, false)
+      end
+    end)
   end
 
   ## to_binary

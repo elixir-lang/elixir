@@ -388,6 +388,8 @@ defmodule Kernel.SpecialForms do
                   Read the Stacktrace information section below for more information;
   * `:hygiene` - Allows a developer to disable hygiene selectively;
   * `:context` - Sets the context resolution happens at;
+  * `:binding` - Passes a binding to the macro. Whenever a binding is given,
+                 unquote is automatically disabled;
 
   ## Macro literals
 
@@ -629,6 +631,79 @@ defmodule Kernel.SpecialForms do
   code as if it was defined inside `GenServer.Behaviour` file, in
   particular, the macro `__FILE__` and exceptions happening inside
   the quote will always point to `GenServer.Behaviour` file.
+
+  ## Binding and unquote fragments
+
+  Elixir quote/unquote mechanisms provides a functionality called
+  unquote fragments. Unquote fragments provide an easy to generate
+  functions on the fly. Consider this example:
+
+      kv = [foo: 1, bar: 2]
+      Enum.each kv, fn { k, v } ->
+        def unquote(k)(), do: unquote(v)
+      end
+
+  In the example above, we have generated the function `foo/0` and
+  `bar/0` dynamically. Now, imagine that, we want to convert this
+  functionality into a macro:
+
+      defmacro defkv(kv) do
+        Enum.each kv, fn { k, v } ->
+          quote do
+            def unquote(k)(), do: unquote(v)
+          end
+        end
+      end
+
+  We can invoke this macro as:
+
+      defkv [foo: 1, bar: 2]
+
+  However, we can't invoke it as follows:
+
+      kv = [foo: 1, bar: 2]
+      defkv kv
+
+  This is because the macro is expecting its arguments to be a
+  key-value at **compilation** time. Since in the example above
+  we are passing the representation of the variable `kv`, our
+  code fails.
+
+  This is actually a common pitfall when developing macros. In
+  practive, we want to avoid doing work at compilation time as
+  much as we can. That said, let's attempt to improve our macro:
+
+      defmacro defkv(kv) do
+        quote do
+          Enum.each unquote(kv), fn { k, v } ->
+            def unquote(k)(), do: unquote(v)
+          end
+        end
+      end
+
+  If you try to run our new macro, you will notice it won't
+  even compile, complaining that the variables `k` and `v`
+  do not exist. This is because of the ambiguity: `unquote(k)`
+  can either be an unquote fragment, as previously, or a regular
+  unquote as in `unquote(kv)`.
+
+  One solution for this problem is to disable unquoting in the
+  macro, however, doing that would make it impossible to inject
+  `kv` representation into the tree. That's when the `:binding`
+  option comes to the rescue. By using `:binding`, we can
+  automatically disable unquoting while still injecting the
+  desired variables into the tree:
+
+      defmacro defkv(kv) do
+        quote binding: [kv: kv] do
+          Enum.each kv, fn { k, v } ->
+            def unquote(k)(), do: unquote(v)
+          end
+        end
+      end
+
+  In fact, the `:binding` option is recommended every time one
+  desires to inject a value into the quote.
   """
   defmacro quote(opts, block)
 

@@ -79,11 +79,11 @@ normalize_rescue(_, { in, Meta, [Left, Right] }, S) ->
     _ when is_list(Right) ->
       is_valid_rescue_list(Right, S) andalso { Left, Right };
     _ ->
-      Expanded = 'Elixir.Macro':expand(Right, elixir_scope:to_ex_env({ ?line(Meta), S })),
-      case is_valid_rescue_list(Expanded, S) of
+      { Expanded, ES } = 'Elixir.Macro':expand_all(Right, elixir_scope:to_ex_env({ ?line(Meta), S }), S),
+      case is_valid_rescue_list(Expanded, ES) of
         true  -> { Left, Expanded };
         false ->
-          elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid use of operator \"in\" in rescue inside try")
+          elixir_errors:syntax_error(Meta, ES#elixir_scope.file, "invalid use of operator \"in\" in rescue inside try")
       end
   end;
 
