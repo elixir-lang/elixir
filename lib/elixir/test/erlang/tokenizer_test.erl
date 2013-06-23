@@ -92,7 +92,7 @@ newline_test() ->
   {'.',2},
   {identifier,2,bar}]  = tokenize("foo\n.bar"),
   [{number,1,1},
-   {'++',2},
+   {two_op,2,'++'},
    {number,2,2}]  = tokenize("1\n++2").
 
 aliases_test() ->
@@ -112,10 +112,10 @@ empty_string_test() ->
   [{list_string,1,[<<>>]}] = tokenize("''").
 
 default_test() ->
-  [{identifier,1,x},{'//',1},{number,1,1}] = tokenize("x // 1").
+  [{identifier,1,x},{default_op,1,'//'},{number,1,1}] = tokenize("x // 1").
 
 addadd_test() ->
-  [{identifier,1,x},{'++',1},{identifier,1,y}] = tokenize("x ++ y").
+  [{identifier,1,x},{two_op,1,'++'},{identifier,1,y}] = tokenize("x ++ y").
 
 chars_test() ->
   [{number,1,97}]      = tokenize("?a"),

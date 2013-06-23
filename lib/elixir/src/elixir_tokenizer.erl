@@ -16,19 +16,14 @@
 ).
 
 -define(op2(T1, T2),
-  T1 == $<, T2 == $>;
   T1 == $+, T2 == $+;
   T1 == $-, T2 == $-;
   T1 == $*, T2 == $*;
-  T1 == $/, T2 == $/;
   T1 == $:, T2 == $:;
-  T1 == $-, T2 == $>;
-  T1 == $., T2 == $.
+  T1 == $-, T2 == $>
 ).
 
 -define(op1(T),
-  T == $*;
-  T == $/;
   T == $=;
   T == $|
 ).
@@ -46,9 +41,16 @@
 -define(unary_op3(T1, T2, T3),
   T1 == $~, T2 == $~, T3 == $~).
 
--define(pin_op3(T1, T2, T3),
-  T1 == $^, T2 == $^, T3 == $^
-).
+-define(exp_op3(T1, T2, T3),
+  T1 == $^, T2 == $^, T3 == $^).
+
+-define(two_op(T1, T2),
+  T1 == $+, T2 == $+;
+  T1 == $-, T2 == $-;
+  T1 == $*, T2 == $*).
+
+-define(than_op(T1, T2),
+  T1 == $<, T2 == $>).
 
 -define(mult_op(T),
   T == $* orelse T == $/).
@@ -93,6 +95,9 @@
 
 -define(range_op(T1, T2),
   T1 == $., T2 == $.).
+
+-define(default_op(T1, T2),
+  T1 == $/, T2 == $/).
 
 tokenize(String, Line, Opts) ->
   File = case lists:keyfind(file, 1, Opts) of
@@ -242,13 +247,13 @@ tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when ?container(T1, T2) ->
 % ## Three Token Operators
 tokenize([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?pin_op3(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3); ?exp_op3(T1, T2, T3) ->
   handle_call_identifier(Rest, Line, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 % ## Two Token Operators
 tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when
     ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?range_op(T1, T2) ->
+    ?range_op(T1, T2); ?than_op(T1, T2); ?default_op(T1, T2); ?two_op(T1, T2) ->
   handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when ?op2(T1, T2) ->
@@ -326,13 +331,13 @@ tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when ?container(T1, T2) ->
 % ## Three Token Operators
 tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?pin_op3(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3); ?exp_op3(T1, T2, T3) ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2,T3]) }|Tokens]);
 
 % ## Two Token Operators
 tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when
     ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?range_op(T1, T2) ->
+    ?range_op(T1, T2); ?than_op(T1, T2); ?default_op(T1, T2); ?two_op(T1, T2) ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2]) }|Tokens]);
 
 tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when ?op2(T1, T2) ->
@@ -388,8 +393,8 @@ tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?or_op3(T1, T2, T3) ->
 tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?arrow_op3(T1, T2, T3) ->
   handle_op(Rest, Line, arrow_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
 
-tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?pin_op3(T1, T2, T3) ->
-  handle_op(Rest, Line, pin_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
+tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?exp_op3(T1, T2, T3) ->
+  handle_op(Rest, Line, exp_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
 
 % ## Containers + punctuation tokens
 tokenize([T,T|Rest], Line, Scope, Tokens) when T == $<; T == $> ->
@@ -402,6 +407,12 @@ tokenize([T|Rest], Line, Scope, Tokens) when T == $(;
   handle_terminator(Rest, Line, Scope, Token, Tokens);
 
 % ## Two Token Operators
+tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?two_op(T1, T2) ->
+  handle_op(Rest, Line, two_op, list_to_atom([T1, T2]), Scope, Tokens);
+
+tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?than_op(T1, T2) ->
+  handle_op(Rest, Line, than_op, list_to_atom([T1, T2]), Scope, Tokens);
+
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?range_op(T1, T2) ->
   handle_op(Rest, Line, range_op, list_to_atom([T1, T2]), Scope, Tokens);
 
@@ -416,6 +427,9 @@ tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?and_op(T1, T2) ->
 
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?or_op(T1, T2) ->
   handle_op(Rest, Line, or_op, list_to_atom([T1, T2]), Scope, Tokens);
+
+tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?default_op(T1, T2) ->
+  handle_op(Rest, Line, default_op, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?op2(T1, T2) ->
   handle_op(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
