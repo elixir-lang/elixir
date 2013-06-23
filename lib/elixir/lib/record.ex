@@ -253,24 +253,28 @@ defmodule Record do
   so check it for more information and documentation.
   """
   def defrecordp(name, fields) when is_atom(name) and is_list(fields) do
-    { fields, types } = recordp_split(fields, [], [])
+    { fields, types, def_type } = recordp_split(fields, [], [], false)
+    type = :"#{name}_t"
 
     quote do
       Record.defmacros(unquote(name), unquote(fields), __ENV__)
-      @opaque unquote(name)() :: { unquote(name), unquote_splicing(types) }
+
+      if unquote(def_type) do
+        @typep unquote(type)() :: { unquote(name), unquote_splicing(types) }
+      end
     end
   end
 
-  defp recordp_split([{ field, { :::, _, [default, type] }}|t], defaults, types) do
-    recordp_split t, [{ field, default }|defaults], [type|types]
+  defp recordp_split([{ field, { :::, _, [default, type] }}|t], defaults, types, _) do
+    recordp_split t, [{ field, default }|defaults], [type|types], true
   end
 
-  defp recordp_split([other|t], defaults, types) do
-    recordp_split t, [other|defaults], [quote(do: term)|types]
+  defp recordp_split([other|t], defaults, types, def_type) do
+    recordp_split t, [other|defaults], [quote(do: term)|types], def_type
   end
 
-  defp recordp_split([], defaults, types) do
-    { :lists.reverse(defaults), :lists.reverse(types) }
+  defp recordp_split([], defaults, types, def_type) do
+    { :lists.reverse(defaults), :lists.reverse(types), def_type }
   end
 
   @doc """

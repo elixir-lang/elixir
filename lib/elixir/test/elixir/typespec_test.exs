@@ -262,10 +262,11 @@ defmodule Typespec.TypeTest do
   test "@type from defrecordp" do
     types = test_module do
       defrecordp :user, name: nil, age: 0 :: integer
-      @opaque
+      @opaque user :: user_t
+      @type
     end
 
-    assert [{:user, {:type, _, :tuple,
+    assert [{:user_t, {:type, _, :tuple,
              [{:atom, _, :user}, {:type, _, :term, []}, {:type, _, :integer, []}]}, []}] = types
   end
 

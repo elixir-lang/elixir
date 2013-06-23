@@ -1491,9 +1491,9 @@ defmodule Kernel do
 
   ## Types
 
-  `defrecordp` automatically generates an opaque type based
-  on the record name and the types can be modified too. The
-  following definition:
+  `defrecordp` allows a developer to generate a type
+  automatically by simply providing a type to its fields.
+  The following definition:
 
       defrecordp :user,
         name: "José" :: binary,
@@ -1501,9 +1501,8 @@ defmodule Kernel do
 
   Will generate the following type:
 
-      @opaque user :: { :user, binary, integer }
+      @typep user_t :: { :user, binary, integer }
 
-  All the fields without a specified type are assumed to have type `term`.
   """
   defmacro defrecordp(name, fields) when is_atom(name) do
     Record.defrecordp(name, fields)
