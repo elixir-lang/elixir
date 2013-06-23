@@ -5,7 +5,7 @@ defmodule Mix.ArchiveTest do
 
   test "archive" do
     in_fixture "archive", fn ->
-      Mix.Archive.create(".")
+      Mix.Archive.create("test archive.ez")
       archive = 'test archive.ez'
       assert File.exists?(archive)
       assert has_zip_file?(archive, 'test archive/priv/not_really_an.so')
