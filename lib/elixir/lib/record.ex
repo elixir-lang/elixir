@@ -192,13 +192,9 @@ defmodule Record do
         @record_fields []
         @record_types  unquote(types)
 
-        # Reassign fields to inner scope to
-        # avoid conflicts in nested records
-        fields = unquoted_fields
-
-        Elixir.Record.deffunctions(fields, __ENV__)
+        Elixir.Record.deffunctions(unquoted_fields, __ENV__)
         value = unquote(block)
-        Elixir.Record.deftypes(fields, @record_types, __ENV__)
+        Elixir.Record.deftypes(@record_fields, @record_types, __ENV__)
         value
       end
     end
