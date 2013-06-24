@@ -459,10 +459,13 @@ defmodule Record do
   # Dispatch the call to either update or to_list depending on the args given.
   @doc false
   def dispatch(atom, fields, record, args, caller) do
-    if is_keyword(args) do
-      update(atom, fields, record, args, caller)
-    else
-      to_list(atom, fields, record, args)
+    cond do
+      is_keyword(args) ->
+        update(atom, fields, record, args, caller)
+      is_list(args) ->
+        to_list(atom, fields, record, args)
+      true ->
+        raise ArgumentError, message: "expected arguments to be a compile time list or compile time keywords"
     end
   end
 
@@ -472,7 +475,7 @@ defmodule Record do
   @doc false
   defp update(atom, fields, var, keyword, caller) do
     unless is_keyword(keyword) do
-      raise ArgumentError, message: "expected contents inside brackets to be a Keyword"
+      raise ArgumentError, message: "expected arguments to be a compile time keywords"
     end
 
     if caller.in_match? do
@@ -511,13 +514,20 @@ defmodule Record do
   # converting record to keywords list.
   @doc false
   def to_keywords(_atom, fields, record) do
-    Enum.map fields,
+    { var, extra } = cache_var(record)
+
+    keywords = Enum.map fields,
       fn { key, _default } ->
         index = find_index(fields, key, 0)
         quote do
-          { unquote(key), :erlang.element(unquote(index + 2), unquote(record)) }
+          { unquote(key), :erlang.element(unquote(index + 2), unquote(var)) }
         end
       end
+
+    quote do
+      unquote_splicing(extra)
+      unquote(keywords)
+    end
   end
 
   # Implements to_list macro defined by defmacros.
@@ -525,7 +535,13 @@ defmodule Record do
   # extracting given fields from record.
   @doc false
   defp to_list(atom, fields, record, keys) do
-    Enum.map keys,
+    unless is_list(fields) do
+      raise ArgumentError, message: "expected arguments to be a compile time list"
+    end
+
+    { var, extra } = cache_var(record)
+
+    list = Enum.map keys,
       fn(key) ->
         index = find_index(fields, key, 0)
         if index do
@@ -534,6 +550,21 @@ defmodule Record do
           raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect key}"
         end
       end
+
+    quote do
+      unquote_splicing(extra)
+      unquote(list)
+    end
+  end
+
+  defp cache_var({ var, _, kind } = tuple) when is_atom(var) and is_atom(kind) do
+    { tuple, [] }
+  end
+
+  defp cache_var(other) do
+    quote do
+      { x, [x = unquote(other)] }
+    end
   end
 
   ## Function generation
