@@ -717,6 +717,26 @@ defmodule Enum do
   end
 
   @doc """
+  Returns elements of collection for which `fun` returns false.
+
+  ## Examples
+
+      iex> Enum.reject([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
+      [1, 3]
+
+  """
+  @spec reject(t, (element -> as_boolean(term))) :: list
+  def reject(collection, fun) when is_list(collection) do
+    lc item inlist collection, !fun.(item), do: item
+  end
+
+  def reject(collection, fun) do
+    Enumerable.reduce(collection, [], fn(entry, acc) ->
+      unless fun.(entry), do: [entry|acc], else: acc
+    end) |> :lists.reverse
+  end
+
+  @doc """
   Reverses the collection.
 
   ## Examples
