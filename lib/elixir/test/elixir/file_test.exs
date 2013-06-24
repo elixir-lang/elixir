@@ -1124,9 +1124,11 @@ defmodule FileTest do
       stat = File.stat!(fixture)
       assert stat.mode == 0100666
 
-      assert File.chmod(fixture, 0100777) == :ok
-      stat = File.stat!(fixture)
-      assert stat.mode == 0100777
+      if !match? { :win32, _ }, :os.type do
+        assert File.chmod(fixture, 0100777) == :ok
+        stat = File.stat!(fixture)
+        assert stat.mode == 0100777
+      end   
     after
       File.rm(fixture)
     end
@@ -1141,9 +1143,11 @@ defmodule FileTest do
       stat = File.stat!(fixture)
       assert stat.mode == 0100666
 
-      assert File.chmod!(fixture, 0100777) == :ok
-      stat = File.stat!(fixture)
-      assert stat.mode == 0100777
+      if !match? { :win32, _ }, :os.type do
+        assert File.chmod!(fixture, 0100777) == :ok
+        stat = File.stat!(fixture)
+        assert stat.mode == 0100777
+      end   
     after
       File.rm(fixture)
     end

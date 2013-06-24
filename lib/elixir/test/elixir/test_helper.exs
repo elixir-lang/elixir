@@ -18,29 +18,38 @@ defmodule PathHelpers do
     Path.join(tmp_path, extra)
   end
 
-  def elixirc(args) do
-    runcmd(elixirc_executable,args)
-  end
-  
   def elixir(args) do
     runcmd(elixir_executable,args)
   end
   
+  def elixir_executable do
+    executable_path("elixir")
+  end
+
+  def elixirc(args) do
+    runcmd(elixirc_executable,args)
+  end
+  
+  def elixirc_executable do
+    executable_path("elixirc")
+  end
+
+  defp runcmd(executable,args) do 
+    :os.cmd binary_to_list("#{executable} #{:unicode.characters_to_binary(args)}#{redirect_std_err_on_win}")
+  end 
+  
+  defp executable_path(name) do
+    Path.expand("../../../../../bin/#{name}#{executable_extension}", __FILE__)
+  end
+  
   if match? { :win32, _ }, :os.type do
     def executable_extension, do: ".bat"
-    defp runcmd(executable,args), do: :os.cmd binary_to_list("#{executable} #{:unicode.characters_to_binary(args)} 2>&1")
+    def redirect_std_err_on_win, do: " 2>&1"
   else
     def executable_extension, do: ""
-    defp runcmd(executable,args), do: :os.cmd binary_to_list("#{executable} #{:unicode.characters_to_binary(args)}")
+    def redirect_std_err_on_win, do: ""
   end
 
-  def elixir_executable do
-    Path.expand("../../../../../bin/elixir#{executable_extension}", __FILE__)
-  end
-
-  def elixirc_executable do
-    Path.expand("../../../../../bin/elixirc#{executable_extension}", __FILE__)
-  end
 end
 
 defmodule CompileAssertion do
