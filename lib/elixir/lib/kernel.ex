@@ -2483,8 +2483,8 @@ defmodule Kernel do
 
   @doc """
   Receives a list of tuples at compilation time containing the
-  variable name and its scope and returns the binding of the given
-  variables as a keyword list with the variable name and scope pair
+  variable name and its context and returns the binding of the given
+  variables as a keyword list with the variable name and context pair
   as key and the variable value as value.
 
   In case a variable in the list does not exist in the binding,
@@ -2499,7 +2499,7 @@ defmodule Kernel do
       [{ { :x, :foo }, 1 }]
 
   """
-  defmacro binding(list, all_scopes)
+  defmacro binding(list, all_contexts)
 
   @doc """
   Provides an `if` macro. This macro expects the first argument to

@@ -387,7 +387,7 @@ defmodule Kernel.SpecialForms do
   * `:location` - When set to `:keep`, keeps the current line and file on quotes.
                   Read the Stacktrace information section below for more information;
   * `:hygiene` - Allows a developer to disable hygiene selectively;
-  * `:context` - Sets the context resolution happens at;
+  * `:context` - Sets the resolution context;
   * `:binding` - Passes a binding to the macro. Whenever a binding is given,
                  unquote is automatically disabled;
 
