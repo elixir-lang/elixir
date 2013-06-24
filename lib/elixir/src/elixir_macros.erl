@@ -145,7 +145,10 @@ translate({ 'binding', Meta, [true] }, S) ->
   { elixir_tree_helpers:list_to_cons(Line,
     [ to_var_value_tuple(Line, Name, Kind, Var) || { { Name, Kind }, Var } <- S#elixir_scope.vars]), S };
 
-translate({ 'binding', Meta, [List] }, #elixir_scope{vars=Vars} = S) when is_list(List) ->
+translate({ 'binding', Meta, [List] }, S) when is_list(List) ->
+  translate({ 'binding', Meta, [List, false] }, S);
+
+translate({ 'binding', Meta, [List, false] }, #elixir_scope{vars=Vars} = S) when is_list(List) ->
   Line = ?line(Meta),
   Dict = lists:foldl(fun
     (Name, Acc) when is_atom(Name) ->

@@ -2499,7 +2499,7 @@ defmodule Kernel do
       [{ { :x, :foo }, 1 }]
 
   """
-  defmacro binding(list, true)
+  defmacro binding(list, all_scopes)
 
   @doc """
   Provides an `if` macro. This macro expects the first argument to

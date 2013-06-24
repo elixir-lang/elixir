@@ -95,6 +95,7 @@ defmodule KernelTest do
     x = 1
     assert binding == [x: 1]
     assert binding([:x, :y]) == [x: 1]
+    assert binding([:x, :y], false) == [x: 1]
 
     x = 2
     assert binding == [x: 2]
