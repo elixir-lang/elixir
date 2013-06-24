@@ -18,12 +18,12 @@ defmodule PathHelpers do
     Path.join(tmp_path, extra)
   end
 
-  def elixir(args) do
-    :os.cmd binary_to_list("#{elixir_executable} #{:unicode.characters_to_binary(args)}")
-  end
-
-  def elixirc(args) do
-    :os.cmd binary_to_list("#{elixirc_executable} #{:unicode.characters_to_binary(args)}")
+  if match? { :win32, _ }, :os.type do
+    def elixirc(args), do: :os.cmd binary_to_list("#{elixirc_executable} #{:unicode.characters_to_binary(args)} 2>&1")
+    def elixir(args), do: :os.cmd binary_to_list("#{elixir_executable} #{:unicode.characters_to_binary(args)} 2>&1")
+  else
+    def elixirc(args), do: :os.cmd binary_to_list("#{elixirc_executable} #{:unicode.characters_to_binary(args)}")
+    def elixir(args), do: :os.cmd binary_to_list("#{elixir_executable} #{:unicode.characters_to_binary(args)}")
   end
 
   def elixir_executable do
