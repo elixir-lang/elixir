@@ -757,6 +757,19 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a list of collection elements shuffled.
+  """
+  @spec shuffle(t) :: list
+  def shuffle(collection) when is_list(collection) do
+    do_shuffle(collection, [])
+  end
+
+  def shuffle(collection) do
+    {leading, [h|t]} = Enum.split(collection, :random.uniform(Enum.count(collection)) - 1)
+    do_shuffle(leading ++ t, [h])
+  end
+
+  @doc """
   Returns a sorted list of collection elements. Uses the merge sort algorithm.
 
   ## Examples
@@ -1282,6 +1295,17 @@ defmodule Enum do
 
   defp do_find_value([], ifnone, _) do
     ifnone
+  end
+
+  ## shuffle
+
+  defp do_shuffle([], acc) do
+    acc
+  end
+
+  defp do_shuffle(list, acc) do
+    { leading, [h|t] } = :lists.split(:random.uniform(length(list)) - 1, list)
+    do_shuffle(leading ++ t, [h|acc])
   end
 
   ## sort

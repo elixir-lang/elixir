@@ -205,6 +205,19 @@ defmodule EnumTest.List do
     assert Enum.reverse([1, 2, 3]) == [3, 2, 1]
   end
 
+  test :shuffle do
+    a = [1, 2, 3, 4, 5]
+
+    different = Enum.map(1..10, fn(_) ->
+      s = Enum.shuffle(a)
+      assert Enum.sort(s) == a
+      (a != s)
+    end) |> Enum.any?(fn(x) -> x == true end)
+
+    assert different
+    assert Enum.shuffle([]) == []
+  end
+
   test :sort do
     assert Enum.sort([5, 3, 2, 4, 1]) == [1, 2, 3, 4, 5]
     assert Enum.sort([5, 3, 2, 4, 1], &1 > &2) == [5, 4, 3, 2, 1]
