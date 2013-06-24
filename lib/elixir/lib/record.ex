@@ -545,7 +545,7 @@ defmodule Record do
       fn(key) ->
         index = find_index(fields, key, 0)
         if index do
-          quote do: :erlang.element(unquote(index + 2), unquote(record))
+          quote do: :erlang.element(unquote(index + 2), unquote(var))
         else
           raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect key}"
         end

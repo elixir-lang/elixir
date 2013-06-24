@@ -19,7 +19,7 @@
   * [Kernel] Add `binding/0` and `binding/1` for retrieving bindings
   * [Kernel] `quote` now allows a binding as an option
   * [Macro] Add `Macro.expand_once/2` and `Macro.expand_all/2`
-  * [Mix] Implement `Mix.Version` for basic versioniong semantics
+  * [Mix] Implement `Mix.Version` for basic versioning semantics
   * [Mix] Support creation and installation of archives (.ez files)
   * [Mix] `github: ...` shortcut now uses the faster `git` schema instead of `https`
   * [Record] Allow types to be given to `defrecord` and `defrecordp`
