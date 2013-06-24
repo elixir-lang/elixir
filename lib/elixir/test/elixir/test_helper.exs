@@ -18,12 +18,20 @@ defmodule PathHelpers do
     Path.join(tmp_path, extra)
   end
 
-  def elixir(args) do
-    :os.cmd binary_to_list("#{elixir_executable} #{:unicode.characters_to_binary(args)}")
-  end
-
   def elixirc(args) do
-    :os.cmd binary_to_list("#{elixirc_executable} #{:unicode.characters_to_binary(args)}")
+    runcmd(elixirc_executable,args)
+  end
+  
+  def elixir(args) do
+    runcmd(elixir_executable,args)
+  end
+  
+  if match? { :win32, _ }, :os.type do
+    def executable_extension, do: ".bat"
+    defp runcmd(executable,args), do: :os.cmd binary_to_list("#{executable} #{:unicode.characters_to_binary(args)} 2>&1")
+  else
+    def executable_extension, do: ""
+    defp runcmd(executable,args), do: :os.cmd binary_to_list("#{executable} #{:unicode.characters_to_binary(args)}")
   end
 
   def elixir_executable do
@@ -32,12 +40,6 @@ defmodule PathHelpers do
 
   def elixirc_executable do
     Path.expand("../../../../../bin/elixirc#{executable_extension}", __FILE__)
-  end
-
-  if match? { :win32, _ }, :os.type do
-    def executable_extension, do: ".bat"
-  else
-    def executable_extension, do: ""
   end
 end
 
