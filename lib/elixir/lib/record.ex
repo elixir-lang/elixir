@@ -241,8 +241,15 @@ defmodule Record do
   """
   defmacro import(module, as: name) do
     quote do
-      Record.defmacros(unquote(name),
-        unquote(module).__record__(:fields), __ENV__, unquote(module))
+      module = unquote(module)
+
+      fields = if module == __MODULE__ do
+        @record_fields
+      else
+        module.__record__(:fields)
+      end
+
+      Record.defmacros(unquote(name), fields, __ENV__, module)
     end
   end
 

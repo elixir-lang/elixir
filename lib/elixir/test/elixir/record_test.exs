@@ -31,6 +31,8 @@ defrecord name, a: 0, b: 1 do
   def update_b(_, _) do
     :not_optimizable
   end
+
+  Record.import __MODULE__, as: :self
 end
 
 defmodule RecordTest.DynamicOpts do
