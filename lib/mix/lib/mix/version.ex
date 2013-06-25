@@ -23,11 +23,11 @@ defmodule Mix.Version do
 
   Pre-releases are supported by appending `-[0-9A-Za-z-\.]`:
 
-      "1.0.0-alpha3"
+      "1.0.0-alpha.3"
 
   Build information can be added by appending `+[0-9A-Za-z-\.]`:
 
-      "1.0.0-alpha3+20130417140000"
+      "1.0.0-alpha.3+20130417140000"
 
   ## Requirements
 
@@ -106,22 +106,6 @@ defmodule Mix.Version do
 
   @doc """
   Checks if a version string is compatible with [semver](http://semver.org/).
-
-  ## Examples
-
-      iex> Mix.Version.valid?("1")
-      true
-      iex> Mix.Version.valid?("1.0")
-      true
-      iex> Mix.Version.valid?("1.0.0")
-      true
-      iex> Mix.Version.valid?("1.0.0+alpha1")
-      true
-      iex> Mix.Version.valid?("1.0.0-alpha1")
-      true
-      iex> Mix.Version.valid?("1.0.3.4")
-      false
-
   """
   @spec valid?(String.t | Schema.t) :: boolean
   def valid?(string) when is_binary(string) do
@@ -133,22 +117,6 @@ defmodule Mix.Version do
 
   @doc """
   Parse a version into a matchable value.
-
-  ## Examples
-
-      iex> Mix.Version.parse("1")
-      1
-      iex> Mix.Version.parse("1.0")
-      1.0
-      iex> Mix.Version.parse("1.0.0")
-      1.0.0
-      iex> Mix.Version.parse("1.0.0+alpha1")
-      1.0.0-alpha1
-      iex> Mix.Version.parse("1.0.0-alpha1")
-      1.0.0-alpha1
-      iex> Mix.Version.parse("1.0.3.4")
-      1.0.3.4
-
   """
   @spec parse(String.t) :: { :ok, Schema.t } | { :error, term }
   def parse(string) when is_binary(string) do
@@ -170,22 +138,6 @@ defmodule Mix.Version do
 
   @doc """
   Get the matchable representation.
-
-  ## Examples
-
-      iex> Mix.Version.to_matchable("1")
-      {1,0,0,[]}
-      iex> Mix.Version.to_matchable("1.0")
-      {1,0,0,[]}
-      iex> Mix.Version.to_matchable("1.0.0")
-      {1,0,0,[]}
-      iex> Mix.Version.to_matchable("1.0.0+alpha1")
-      {1,0,0,["alpha",1]}
-      iex> Mix.Version.to_matchable("1.0.0-alpha10")
-      {1,0,0,["alpha",10]}
-      iex> Mix.Version.to_matchable("1.0.3.4")
-      {"1.0.3.4",nil,nil,nil}
-
   """
   @spec to_matchable(String.t | Schema.t) :: Mix.Version.matchable
   def to_matchable(Schema[major: nil, source: source]) do
