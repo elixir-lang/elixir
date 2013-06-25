@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Archive do
 
   ## Command line options
 
-  * `-o` specify output file name
+  * `-o` - specify output file name
   * `--no-compile` - skip compilation
 
   """
@@ -28,11 +28,14 @@ defmodule Mix.Tasks.Archive do
       Mix.Task.run :compile, args
     end
 
-    if opts[:o] do
-      archive_file = opts[:o]
-    else
-      app_name = Mix.project[:app] |> atom_to_binary
-      archive_file = app_name <> "-" <> (Mix.project[:version] || "") <> ".ez"
+    archive_file = cond do
+      o = opts[:o] ->
+        o
+      app = Mix.project[:app] ->
+        Mix.Archive.name(app, Mix.project[:version])
+      true ->
+        raise Mix.Error, message: "Could not create archive without a name. " <>
+          "Please pass -o as an option"
     end
 
     Mix.Archive.create(archive_file)

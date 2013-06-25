@@ -43,7 +43,6 @@ defmodule Mix.Tasks.LocalTest do
       assert File.regular? "archive-0.2.0.ez"
 
       self <- { :mix_shell_input, :yes?, true }
-      self <- { :mix_shell_input, :yes?, true }
       Mix.Tasks.Local.Install.run []
       assert File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
       refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")

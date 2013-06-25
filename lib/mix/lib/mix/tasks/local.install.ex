@@ -33,7 +33,8 @@ defmodule Mix.Tasks.Local.Install do
     { opts, argv } = OptionParser.parse(argv, switches: [force: :boolean])
 
     unless path = Enum.first(argv) do
-      path = "#{app_name <> "-" <> Mix.project[:version]}.ez"
+      path = Mix.Archive.name(Mix.project[:app], Mix.project[:version])
+
       unless File.exists?(path) do
         raise Mix.Error, message: "expected PATH to be given, please use `mix local.install PATH`"
       end
@@ -46,34 +47,27 @@ defmodule Mix.Tasks.Local.Install do
   end
 
   defp install_archive(src, opts) do
-    if ready_install? do
-      if opts[:force] || Mix.shell.yes?("Are you sure you want to install archive #{src}?") do
-        dest = Mix.Local.archives_path
-        File.mkdir_p! dest
-        create_file Path.join(dest, Path.basename(src)), Mix.Utils.read_path(src)
-      end
+    if should_install?(src, opts[:force]) do
+      dest = Mix.Local.archives_path
+      File.mkdir_p! dest
+      create_file Path.join(dest, Path.basename(src)), Mix.Utils.read_path(src)
     end
   end
 
-  defp ready_install? do
-    if !(file = already_installed) do
-      true
-    else
-      if Mix.shell.yes?("Found #{Path.basename(file)}.\nDo you want to delete this archive?") do
+  defp should_install?(src, force) do
+    if file = already_installed(src) do
+      if force || Mix.shell.yes?("Found existing archive #{Path.basename(file)}.\n" <>
+          "Do you want to override this archive?") do
         File.rm(file)
         true
-      else
-        Mix.shell.info("Not installing.")
-        false
       end
+    else
+      force || Mix.shell.yes?("Are you sure you want to install archive #{src}?")
     end
   end
 
-  defp already_installed do
-   Path.join(Mix.Local.archives_path,app_name) <> "-*.ez"
-      |> Path.wildcard
-      |> Enum.first
+  defp already_installed(src) do
+    app = Mix.Archive.dir(src) |> String.split("-") |> Enum.first
+    Path.join(Mix.Local.archives_path, app <> "-*.ez") |> Path.wildcard |> Enum.first
   end
-
-  defp app_name, do: atom_to_binary(Mix.project[:app])
 end

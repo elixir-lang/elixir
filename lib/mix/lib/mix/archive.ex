@@ -9,24 +9,45 @@ defmodule Mix.Archive do
   """
 
   @doc """
+  Returns the archive name based on the app and version.
+  """
+  def name(app, nil), do: "#{app}.ez"
+  def name(app, vsn), do: "#{app}-#{vsn}.ez"
+
+  @doc """
+  Returns the archive internal directory from its full path.
+  """
+  def dir(path) do
+    path |> Path.basename |> Path.rootname
+  end
+
+  @doc """
   Creates an application archive from the current project.
   The path will be the root of the project and must contain an ebin folder.
   The archive file will be created in archive_path.
   """
-  def create(project_path // ".", archive_file) do
+  def create(archive_file, project_path // ".") do
     project_path = Path.expand(project_path)
     archive_file = Path.expand(archive_file)
-    opts = [ cwd: Path.dirname(project_path),
-             uncompress: ['.beam', '.app'] ]
-    {:ok, _ } = :zip.create(archive_file, files_to_add(project_path), opts)
+    dir = dir(archive_file) |> :unicode.characters_to_list
+    {:ok, _ } = :zip.create(archive_file,
+                  files_to_add(project_path, dir),
+                  uncompress: ['.beam', '.app'])
   end
 
+  defp files_to_add(path, dir) do
+    File.cd! path, fn ->
+      ebin = Path.wildcard('ebin/*.{beam,app}')
+      priv = Path.wildcard('priv/**/*')
 
-  defp files_to_add(path) do
-    ebin = Path.join([path, "ebin", "*.{beam,app}"]) |> Path.wildcard
-    priv = Path.join([path, "priv", "*"]) |> Path.wildcard
-    Enum.map(ebin ++ priv, fn(f) ->
-      Path.relative_to(f, Path.dirname(path)) |> :unicode.characters_to_list
-    end)
+      Enum.reduce ebin ++ priv, [], fn(f, acc) ->
+        case File.read(f) do
+          { :ok, bin } ->
+            [{ Path.join(dir, f), bin }|acc]
+          { :error, _ } ->
+            acc
+        end
+      end
+    end
   end
 end

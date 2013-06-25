@@ -34,18 +34,7 @@ defmodule Mix.Local do
   end
 
   defp archive_ebin(archive_file) do
-    Path.join(archive_file,zip_ebin(archive_file))
-  end
-
-  #the inner app folder optionally includes the version according to Erlang spec
-  #so just find the actual ebin folder in the zip file
-  defp zip_ebin(zip_file) do
-    {:ok, zip_list} = :zip.list_dir(binary_to_list(zip_file))
-    Enum.find(zip_list, fn(entry) ->
-      case entry do
-        {:zip_file, file, _,_,_,_} -> Regex.match?(%r/\/ebin/, file)
-        _ -> false
-      end
-    end) |> elem(1) |> Path.dirname
+    dir = Mix.Archive.dir(archive_file)
+    Path.join [archive_file, dir, "ebin"]
   end
 end
