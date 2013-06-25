@@ -13,16 +13,14 @@ defmodule Mix.Archive do
   The path will be the root of the project and must contain an ebin folder.
   The archive file will be created in archive_path.
   """
-  def create(project_path // ".", archive_path // ".") do
+  def create(project_path // ".", archive_file) do
     project_path = Path.expand(project_path)
-    archive_path = Path.expand(archive_path)
-    archive_file = Path.join(archive_path, app_name(project_path) <> ".ez")
+    archive_file = Path.expand(archive_file)
     opts = [ cwd: Path.dirname(project_path),
              uncompress: ['.beam', '.app'] ]
     {:ok, _ } = :zip.create(archive_file, files_to_add(project_path), opts)
   end
 
-  defp app_name(path), do: Path.basename(path)
 
   defp files_to_add(path) do
     ebin = Path.join([path, "ebin", "*.{beam,app}"]) |> Path.wildcard

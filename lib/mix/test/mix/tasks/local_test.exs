@@ -7,14 +7,26 @@ defmodule Mix.Tasks.LocalTest do
     File.rm_rf! tmp_path("userhome")
     System.put_env "MIX_HOME", tmp_path("userhome/.mix")
 
+     defmodule ArchiveProject do
+       def project do
+         [ app: :archive, version: "0.1.0" ]
+       end
+     end
+     defmodule ArchiveProject2 do
+       def project do
+         [ app: :archive, version: "0.2.0" ]
+       end
+     end
+     Mix.Project.push(ArchiveProject)
+
     in_fixture "archive", fn() ->
       # Install it!
       Mix.Tasks.Archive.run ["--no_compile"]
-      assert File.regular? "test archive.ez"
+      assert File.regular? "archive-0.1.0.ez"
 
       self <- { :mix_shell_input, :yes?, true }
-      Mix.Tasks.Local.Install.run ["test archive.ez"]
-      assert File.regular? tmp_path("userhome/.mix/archives/test archive.ez")
+      Mix.Tasks.Local.Install.run []
+      assert File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
 
       # List it!
       Mix.Local.append_archives
@@ -25,11 +37,25 @@ defmodule Mix.Tasks.LocalTest do
       Mix.Task.run "local.sample"
       assert_received { :mix_shell, :info, ["sample"] }
 
+      #Install new version!
+      Mix.Project.push(ArchiveProject2)
+      Mix.Tasks.Archive.run ["--no_compile"]
+      assert File.regular? "archive-0.2.0.ez"
+
+      self <- { :mix_shell_input, :yes?, true }
+      self <- { :mix_shell_input, :yes?, true }
+      Mix.Tasks.Local.Install.run []
+      assert File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
+      refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
+      Mix.Local.append_archives
+
       # Remove it!
       self <- { :mix_shell_input, :yes?, true }
       Mix.Tasks.Local.Uninstall.run ["local.sample"]
-      refute File.regular? tmp_path("userhome/.mix/archives/test archive.ez")
+      refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
+      Mix.Project.pop
     end
+     Mix.Project.pop
   end
 
   test "MIX_PATH" do

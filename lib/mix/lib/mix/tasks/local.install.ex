@@ -11,10 +11,10 @@ defmodule Mix.Tasks.Local.Install do
   If no argument is supplied but there is an archive in the root
   (created with mix archive), then the archive will be installed
   locally. For example:
-  
+
       mix do archive, local.install
 
-  The task can also be an archive located at some URL:
+  The argument can be an archive located at some URL:
 
       mix local.install http://example.com/foo.ez
 
@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Local.Install do
     { opts, argv } = OptionParser.parse(argv, switches: [force: :boolean])
 
     unless path = Enum.first(argv) do
-      path = "#{Mix.project[:app]}.ez"
+      path = "#{app_name <> "-" <> Mix.project[:version]}.ez"
       unless File.exists?(path) do
         raise Mix.Error, message: "expected PATH to be given, please use `mix local.install PATH`"
       end
@@ -46,10 +46,34 @@ defmodule Mix.Tasks.Local.Install do
   end
 
   defp install_archive(src, opts) do
-    if opts[:force] || Mix.shell.yes?("Are you sure you want to install archive #{src}?") do
-      dest = Mix.Local.archives_path
-      File.mkdir_p! dest
-      create_file Path.join(dest, Path.basename(src)), Mix.Utils.read_path(src)
+    if ready_install? do
+      if opts[:force] || Mix.shell.yes?("Are you sure you want to install archive #{src}?") do
+        dest = Mix.Local.archives_path
+        File.mkdir_p! dest
+        create_file Path.join(dest, Path.basename(src)), Mix.Utils.read_path(src)
+      end
     end
   end
+
+  defp ready_install? do
+    if !(file = already_installed) do
+      true
+    else
+      if Mix.shell.yes?("Found #{Path.basename(file)}.\nDo you want to delete this archive?") do
+        File.rm(file)
+        true
+      else
+        Mix.shell.info("Not installing.")
+        false
+      end
+    end
+  end
+
+  defp already_installed do
+   Path.join(Mix.Local.archives_path,app_name) <> "-*.ez"
+      |> Path.wildcard
+      |> Enum.first
+  end
+
+  defp app_name, do: atom_to_binary(Mix.project[:app])
 end
