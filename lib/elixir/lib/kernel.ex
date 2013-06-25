@@ -2103,8 +2103,8 @@ defmodule Kernel do
       list = [{:a, 1}, {:b, 2}, {:a, 3}]
       Enum.filter list, match?({:a, x } when x < 2, &1)
 
-  However, variables assigned in the match will not be available outside of the
-  function call:
+  However, variables assigned in the match will not be available
+  outside of the function call:
 
       iex> match?(x, 1)
       true
@@ -2112,13 +2112,15 @@ defmodule Kernel do
       true
 
   """
+  defmacro match?(pattern, expr)
+
+  # Special case underscore since it always matches
   defmacro match?({ :_, _, atom }, _right) when is_atom(atom) do
-    # Special case underscore since it always matches.
     true
   end
 
   defmacro match?(left, right) do
-    left = falsify_var(left)
+    { left, _ } = falsify_var(left, [], falsify_all(&1, &2))
 
     quote do
       case unquote(right) do
@@ -2128,6 +2130,51 @@ defmodule Kernel do
           false
       end
     end
+  end
+
+  defp falsify_all({ var, meta, scope }, acc) when is_atom(var) and is_atom(scope) do
+    { { var, meta, false }, [{ var, scope }|acc] }
+  end
+
+  defp falsify_selected({ var, meta, scope } = original, acc) when is_atom(var) and is_atom(scope) do
+    case :lists.member({ var, scope }, acc) do
+      true  -> { { var, meta, false }, acc }
+      false -> { original, acc }
+    end
+  end
+
+  defp falsify_var({ :^, _, [_] } = contents, acc, _fun) do
+    { contents, acc }
+  end
+
+  defp falsify_var({ :when, meta, [left, right] }, acc, fun) do
+    { left, acc }  = falsify_var(left, acc, fun)
+    { right, acc } = falsify_var(right, acc, falsify_selected(&1, &2))
+    { { :when, meta, [left, right] }, acc }
+  end
+
+  defp falsify_var({ var, _, scope } = original, acc, fun) when is_atom(var) and is_atom(scope) do
+    fun.(original, acc)
+  end
+
+  defp falsify_var({ left, meta, right }, acc, fun) do
+    { left, acc }  = falsify_var(left, acc, fun)
+    { right, acc } = falsify_var(right, acc, fun)
+    { { left, meta, right }, acc }
+  end
+
+  defp falsify_var({ left, right }, acc, fun) do
+    { left, acc }  = falsify_var(left, acc, fun)
+    { right, acc } = falsify_var(right, acc, fun)
+    { { left, right }, acc }
+  end
+
+  defp falsify_var(list, acc, fun) when is_list(list) do
+    :lists.mapfoldl(falsify_var(&1, &2, fun), acc, list)
+  end
+
+  defp falsify_var(other, acc, _fun) do
+    { other, acc }
   end
 
   @doc """
@@ -3551,25 +3598,6 @@ defmodule Kernel do
       ?b -> quote do: String.split(unquote(string))
       ?a -> quote do: lc p inlist String.split(unquote(string)), do: binary_to_atom(p)
       ?c -> quote do: lc p inlist String.split(unquote(string)), do: :unicode.characters_to_list(p)
-    end
-  end
-
-  defp falsify_var(contents) do
-    case contents do
-      { :^, _, [_] } ->
-        contents
-      { :when, _, _ } ->
-        contents
-      { var, meta, scope } when is_atom(var) and is_atom(scope) ->
-        { var, meta, false }
-      { left, meta, right } ->
-        { falsify_var(left), meta, falsify_var(right) }
-      { left, right } ->
-        { falsify_var(left), falsify_var(right) }
-      list when is_list(list) ->
-        lc i inlist list, do: falsify_var(i)
-      other ->
-        other
     end
   end
 end

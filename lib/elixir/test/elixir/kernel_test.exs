@@ -29,6 +29,18 @@ defmodule KernelTest do
     end
   end
 
+  test :match? do
+    assert match?(x, 1)
+    assert binding([:x]) == []
+
+    a = 0
+    assert match?(b when b > a, 1)
+    assert binding([:b]) == []
+
+    refute match?(b when b > a, -1)
+    assert binding([:b]) == []
+  end
+
   test :nil? do
     assert nil?(nil)
     refute nil?(0)
