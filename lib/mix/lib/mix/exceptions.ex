@@ -21,3 +21,10 @@ defexception Mix.OutOfDateDepsError, mix_error: true, env: nil do
     "or run `MIX_ENV=#{exception.env} mix deps` for more information"
   end
 end
+
+defexception Mix.SystemVersionError, mix_error: true, expected: nil, actual: nil do
+  def message(exception) do
+    "You're trying to run the project on Elixir v#{exception.actual} " <>
+    "but it's supposed to run on Elixir #{exception.expected}"
+  end
+end
