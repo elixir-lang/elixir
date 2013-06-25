@@ -67,7 +67,8 @@ defmodule Mix.Deps.Converger do
     cond do
       contains_dep?(upper_breadths, dep) ->
         all(t, acc, upper_breadths, current_breadths, config, callback, rest)
-      match?({ diverged_acc, true }, diverged_dep?(acc, dep)) ->
+      match?({ _, true }, diverged_dep?(acc, dep)) ->
+        { diverged_acc, true } = diverged_dep?(acc, dep)
         all(t, diverged_acc, upper_breadths, current_breadths, config, callback, rest)
       true ->
         { dep, rest } = callback.(dep, rest)
