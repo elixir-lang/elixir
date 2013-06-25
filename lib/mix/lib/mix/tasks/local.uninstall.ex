@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Local.Uninstall do
   use Mix.Task
 
-  @shortdoc "Uninstall local tasks or achives"
+  @shortdoc "Uninstall local tasks or archives"
 
   @moduledoc """
   Uninstall local tasks:
