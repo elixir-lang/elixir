@@ -175,8 +175,7 @@ defmodule Record do
   @doc """
   Main entry point for records definition. It defines a module
   with the given `name` and the fields specified in `values`.
-  This is invoked directly by `Kernel.defrecord`, so check it
-  for more information and documentation.
+  Check the module documentation for more information.
   """
   def defrecord(name, values, opts) do
     block = Keyword.get(opts, :do, nil)
