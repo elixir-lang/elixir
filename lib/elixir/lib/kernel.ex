@@ -2103,6 +2103,14 @@ defmodule Kernel do
       list = [{:a, 1}, {:b, 2}, {:a, 3}]
       Enum.filter list, match?({:a, x } when x < 2, &1)
 
+  However, variables assigned in the match will not be available outside of the
+  function call:
+
+      iex> match?(x, 1)
+      true
+      iex> binding([:x]) == []
+      true
+
   """
   defmacro match?({ :_, _, atom }, _right) when is_atom(atom) do
     # Special case underscore since it always matches.
@@ -2110,6 +2118,8 @@ defmodule Kernel do
   end
 
   defmacro match?(left, right) do
+    left = falsify_var(left)
+
     quote do
       case unquote(right) do
         unquote(left) ->
@@ -3541,6 +3551,25 @@ defmodule Kernel do
       ?b -> quote do: String.split(unquote(string))
       ?a -> quote do: lc p inlist String.split(unquote(string)), do: binary_to_atom(p)
       ?c -> quote do: lc p inlist String.split(unquote(string)), do: :unicode.characters_to_list(p)
+    end
+  end
+
+  defp falsify_var(contents) do
+    case contents do
+      { :^, _, [_] } ->
+        contents
+      { :when, _, _ } ->
+        contents
+      { var, meta, scope } when is_atom(var) and is_atom(scope) ->
+        { var, meta, false }
+      { left, meta, right } ->
+        { falsify_var(left), meta, falsify_var(right) }
+      { left, right } ->
+        { falsify_var(left), falsify_var(right) }
+      list when is_list(list) ->
+        lc i inlist list, do: falsify_var(i)
+      other ->
+        other
     end
   end
 end
