@@ -12,11 +12,11 @@ defmodule Mix.Tasks.Archive do
   locally.
 
   The file will be created in the current directory (which is expected
-  to be the project root), unless an argument is supplied in which case
-  the argument is expected to be the PATH where the file will be created.
+  to be the project root), unless an argument -o is provided with the file name.
 
   ## Command line options
 
+  * `-o` specify output file name
   * `--no-compile` - skip compilation
 
   """
@@ -28,6 +28,13 @@ defmodule Mix.Tasks.Archive do
       Mix.Task.run :compile, args
     end
 
-    Mix.Archive.create(".")
+    if opts[:o] do
+      archive_file = opts[:o]
+    else
+      app_name = Mix.project[:app] |> atom_to_binary
+      archive_file = app_name <> "-" <> (Mix.project[:version] || "") <> ".ez"
+    end
+
+    Mix.Archive.create(archive_file)
   end
 end
