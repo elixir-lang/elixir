@@ -404,55 +404,19 @@ defmodule Mix.Version do
     end
 
     defp to_condition([:'>', version | _]) do
-      { major, minor, patch, pre } = Mix.Version.to_matchable(version)
-
-      # don't you just love match_specs?
-      { :andalso, { :not, { :is_binary, :'$1' } },
-                  { :orelse, { :'>', {{ :'$1', :'$2', :'$3' }},
-                                     { :const, { major, minor, patch } } },
-                             { :andalso, { :'==', {{ :'$1', :'$2', :'$3' }},
-                                                  { :const, { major, minor, patch } } },
-                                         { :orelse, { :'<', { :length, :'$4' }, { :const, length(pre) } },
-                                                    { :'>', :'$4', { :const, pre } } } } } }
+      matchspec(version, :'>', :<)
     end
 
     defp to_condition([:'>=', version | _]) do
-      { major, minor, patch, pre } = Mix.Version.to_matchable(version)
-
-      # really, they're lovely
-      { :andalso, { :not, { :is_binary, :'$1' } },
-                  { :orelse, { :'>=', {{ :'$1', :'$2', :'$3' }},
-                                      { :const, { major, minor, patch } } },
-                             { :andalso, { :'==', {{ :'$1', :'$2', :'$3' }},
-                                                  { :const, { major, minor, patch } } },
-                                         { :orelse, { :'<', { :length, :'$4' }, { :const, length(pre) } },
-                                                    { :'>=', :'$4', { :const, pre } } } } } }
+      matchspec(version, :'>=', :<)
     end
 
     defp to_condition([:'<', version | _]) do
-      { major, minor, patch, pre } = Mix.Version.to_matchable(version)
-
-      # almost as lovely as a pie full of bees
-      { :andalso, { :not, { :is_binary, :'$1' } },
-                  { :orelse, { :'<', {{ :'$1', :'$2', :'$3' }},
-                                     { :const, { major, minor, patch } } },
-                             { :andalso, { :'==', {{ :'$1', :'$2', :'$3' }},
-                                                  { :const, { major, minor, patch } } },
-                                         { :orelse, { :'>', { :length, :'$4' }, { :const, length(pre) } },
-                                                    { :'<', :'$4', { :const, pre } } } } } }
+      matchspec(version, :'<', :>)
     end
 
     defp to_condition([:'<=', version | _]) do
-      { major, minor, patch, pre } = Mix.Version.to_matchable(version)
-
-      # or a bee full of pie
-      { :andalso, { :not, { :is_binary, :'$1' } },
-                  { :orelse, { :'=<', {{ :'$1', :'$2', :'$3' }},
-                                      { :const, { major, minor, patch } } },
-                             { :andalso, { :'==', {{ :'$1', :'$2', :'$3' }},
-                                                  { :const, { major, minor, patch } } },
-                                         { :orelse, { :'>', { :length, :'$4' }, { :const, length(pre) } },
-                                                    { :'=<', :'$4', { :const, pre } } } } } }
+      matchspec(version, :'=<', :>)
     end
 
     defp to_condition(current, []) do
@@ -465,6 +429,18 @@ defmodule Mix.Version do
 
     defp to_condition(current, [:'||', operator, version | rest]) do
       to_condition({ :orelse, current, to_condition([operator, version]) }, rest)
+    end
+
+    defp matchspec(version, comp_op, length_op) do
+      { major, minor, patch, pre } = Mix.Version.to_matchable(version)
+
+      { :andalso, { :not, { :is_binary, :'$1' } },
+                  { :orelse, { comp_op, {{ :'$1', :'$2', :'$3' }},
+                                      { :const, { major, minor, patch } } },
+                             { :andalso, { :'==', {{ :'$1', :'$2', :'$3' }},
+                                                  { :const, { major, minor, patch } } },
+                                         { :orelse, { length_op, { :length, :'$4' }, { :const, length(pre) } },
+                                                    { comp_op, :'$4', { :const, pre } } } } } }
     end
   end
 end
