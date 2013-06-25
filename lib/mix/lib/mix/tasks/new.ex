@@ -144,6 +144,7 @@ defmodule Mix.Tasks.New do
     def project do
       [ app: :<%= @app %>,
         version: "0.0.1",
+        elixir: "~> <%= System.version %>",
         deps: deps ]
     end
 
