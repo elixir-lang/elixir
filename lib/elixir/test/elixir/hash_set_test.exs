@@ -60,12 +60,6 @@ defmodule HashSetTest do
     refute HashSet.subset?(filled_set(120), filled_set(6))
   end
 
-  test :disjoint? do
-    assert HashSet.disjoint?(HashSet.new, HashSet.new)
-    assert HashSet.disjoint?(HashSet.new([1, 2, 3]), HashSet.new([4, 5 ,6]))
-    refute HashSet.disjoint?(HashSet.new([1, 2, 3]), HashSet.new([3, 4 ,5]))
-  end
-
   test :equal? do
     assert HashSet.equal?(HashSet.new, HashSet.new)
     assert HashSet.equal?(filled_set(20), HashSet.delete(filled_set(21), 21))
@@ -106,21 +100,6 @@ defmodule HashSetTest do
     assert HashSet.delete(filled_set(21), 21) == filled_set(20)
 
     assert HashSet.delete(filled_set(121), 121) == filled_set(120)
-  end
-
-  test "a set removes duplicates" do
-    assert HashSet.new([1, 1, 2, 3, 3, 3]) == HashSet.new([1, 2, 3])
-  end
-
-  test "a set comparison ignores the order" do
-    assert HashSet.new([3, 2, 1]) == HashSet.new([1, 2, 3])
-
-    assert HashSet.new([:c, :a, :b]) == HashSet.new([:a, :b, :c])
-
-    assert HashSet.new(["c", "a", "b"]) == HashSet.new(["b", "c", "a"])
-
-    assert HashSet.new([1, 2, 3, 4, 4, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-                    13, 14, 15, 16, 17, 18, 19, 20]) == filled_set(20)
   end
 
   defp filled_set(range) do

@@ -5,6 +5,8 @@ defmodule HashSet do
   The `HashSet` is meant to work well with both small and large sets.
   """
 
+  @behaviour Set
+
   # The ordered record contains a single bucket.
   @ordered_threshold 8
 
