@@ -29,6 +29,7 @@ defmodule HashSet do
 
   import Bitwise
 
+  @compile :inline_list_funcs
   @compile { :inline, bucket_hash: 1, bucket_index: 1, bucket_nth_index: 2, bucket_next: 1 }
 
   @doc """
@@ -62,7 +63,7 @@ defmodule HashSet do
       [1,2,3,4]
 
   """
-  def union(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) and elem(set1, 1) < elem(set2, 1) do
+  def union(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) and elem(set1, 1) <= elem(set2, 1) do
     set_fold set1, set2, fn v1, acc ->
       put(acc, v1)
     end
@@ -83,8 +84,12 @@ defmodule HashSet do
       [2]
 
   """
+  def intersection(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) and elem(set1, 1) <= elem(set2, 1) do
+    set_filter set1, fn e -> set_member?(set2, e) end
+  end
+
   def intersection(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) do
-    set_intersect(set1, set2)
+    set_filter set2, fn e -> set_member?(set1, e) end
   end
 
   @doc """
@@ -97,17 +102,14 @@ defmodule HashSet do
 
   """
   def difference(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) do
-    set_difference(set1, set2)
+    set_filter set1, fn m -> not set_member?(set2, m) end
   end
 
   @doc """
   Checks if the set has the given value.
   """
   def member?(set, member) when is_record(set, HashSet) do
-    case set_get(set, member) do
-        ^member -> true
-        _       -> false
-    end
+    set_member?(set, member)
   end
 
   @doc """
@@ -193,19 +195,6 @@ defmodule HashSet do
     set_disjoint?(set1, set2)
   end
 
-  @doc """
-  Returns a set with members that tested as true with the passed function.
-
-  ## Examples
-
-      iex> HashSet.filter(HashSet.new([1, 2]), fn m -> m == 1 end) |> HashSet.to_list
-      [1]
-
-  """
-  def filter(set, fun) do
-    set_filter(set, fun)
-  end
-
   def reduce(ordered(bucket: bucket), acc, fun) do
     :lists.foldl(fun, acc, bucket)
   end
@@ -216,39 +205,14 @@ defmodule HashSet do
 
   ## HashSet-wide functions
 
-  defp set_intersect(ordered(size: size1) = set1, ordered(size: size2) = set2) when size1 <= size2 do
-    set_filter set1, fn e ->
-      member?(set2, e)
-    end
-  end
-
-  defp set_intersect(ordered() = set1, set2) do
-    set_intersect(set2, set1)
-  end
-
-  defp set_intersect(trie(size: size1) = set1, trie(size: size2) = set2) when size1 <= size2 do
-    set_filter set1, fn e ->
-      member?(set2, e)
-    end
-  end
-
-  defp set_intersect(trie() = set1, set2) do
-    set_intersect(set2, set1)
-  end
-
-  defp set_difference(set1, set2) do
-    set_filter set1, fn m ->
-      !member?(set2, m)
-    end
-  end
-
   defp set_filter(ordered(bucket: bucket, size: size) = set, fun) do
-    {new, removed_count} = bucket_filter(bucket, fun)
+    { new, removed_count } = bucket_filter(bucket, fun, [], 0)
     ordered(bucket: new, size: size - removed_count)
   end
 
   defp set_filter(trie(root: root, depth: depth, size: size), fun) do
     { new, removed_count } = node_filter(root, depth, fun, @node_size)
+    # TODO: We need to check if the trie needs contraction
     trie(size: size - removed_count, root: new, depth: depth)
   end
 
@@ -275,12 +239,12 @@ defmodule HashSet do
     { trie(set, size: size + count, root: root), count }
   end
 
-  defp set_get(ordered(bucket: bucket), member) do
-    bucket_get(bucket, member)
+  defp set_member?(ordered(bucket: bucket), member) do
+    :lists.member(member, bucket)
   end
 
-  defp set_get(trie(root: root, depth: depth), member) do
-    bucket_get(node_bucket(root, depth, bucket_hash(member)), member)
+  defp set_member?(trie(root: root, depth: depth), member) do
+    :lists.member(member, node_bucket(root, depth, bucket_hash(member)))
   end
 
   defp set_delete(ordered(bucket: bucket, size: size) = set, member) do
@@ -348,19 +312,15 @@ defmodule HashSet do
 
   ## Bucket helpers
 
-  defp bucket_filter([e|bucket], fun) do
+  defp bucket_filter([e|bucket], fun, acc, count) do
     case fun.(e) do
-      true  ->
-        { new, count } = bucket_filter(bucket, fun)
-        { [e | new], count }
-      false ->
-        { new, count } = bucket_filter(bucket, fun)
-        { new, count + 1 }
+      true  -> bucket_filter(bucket, fun, [e|acc], count)
+      false -> bucket_filter(bucket, fun, acc, count + 1)
     end
   end
 
-  defp bucket_filter([], fun) do
-    {[], 0}
+  defp bucket_filter([], _fun, acc, count) do
+    { :lists.reverse(acc), count }
   end
 
   defp bucket_put([m|_]=bucket, { :put, member }) when m > member do
@@ -401,18 +361,6 @@ defmodule HashSet do
 
   defp bucket_delete([], _member) do
     { [], nil, 0 }
-  end
-
-  defp bucket_get([member|_], member) do
-    member
-  end
-
-  defp bucket_get([member|bucket], candidate) when candidate > member do
-    bucket_get(bucket, candidate)
-  end
-
-  defp bucket_get(_, _member) do
-    nil
   end
 
   defp bucket_fold(bucket, acc, fun) do
@@ -490,13 +438,17 @@ defmodule HashSet do
   end
 
   defp node_filter(bucket, -1, fun, _) do
-    bucket_filter(bucket, fun)
+    bucket_filter(bucket, fun, [], 0)
   end
 
   defp node_filter(node, depth, fun, count) when count >= 1 do
-    { new_element, count1 } = node_filter(:erlang.element(count, node), depth - 1, fun, @node_size)
-    { new_node, count2 } = node_filter(:erlang.setelement(count, node, new_element), depth, fun, count - 1)
-    { new_node , count1 + count2 }
+    case node_filter(:erlang.element(count, node), depth - 1, fun, @node_size) do
+      { _, 0 } ->
+        node_filter(node, depth, fun, count - 1)
+      { new_element, count1 } ->
+        { new_node, count2 } = node_filter(:erlang.setelement(count, node, new_element), depth, fun, count - 1)
+        { new_node, count1 + count2 }
+    end
   end
 
   defp node_filter(node, _,  _fun, 0) do

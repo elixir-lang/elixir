@@ -108,12 +108,6 @@ defmodule HashSetTest do
     assert HashSet.delete(filled_set(121), 121) == filled_set(120)
   end
 
-  test :filter do
-    assert HashSet.filter(HashSet.new([1, 2, 3]), fn m -> m == 2 end) == HashSet.new([2])
-
-    assert HashSet.equal?(HashSet.filter(filled_set(20), fn m -> m == 2 end), HashSet.new([2]))
-  end
-
   test "a set removes duplicates" do
     assert HashSet.new([1, 1, 2, 3, 3, 3]) == HashSet.new([1, 2, 3])
   end
