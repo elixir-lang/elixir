@@ -15,9 +15,9 @@ defmodule HashSet do
   # The bucketed record contains a series of buckets.
   @expand_load 5
   @contract_load 2
-  @node_bitmap 0b111
-  @node_shift 3
-  @node_size 8
+  @node_bitmap 0b1111
+  @node_shift 4
+  @node_size 16
   @node_template :erlang.make_tuple(@node_size, [])
 
   defrecordp :trie,
@@ -463,30 +463,41 @@ defmodule HashSet do
   end
 
   # Node resizing
-  defp node_expand({ b1, b2, b3, b4, b5, b6, b7, b8 }, 0, n) do
+  defp node_expand({ b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16 }, 0, n) do
     { node_relocate(b1, n), node_relocate(b2, n), node_relocate(b3, n),
       node_relocate(b4, n), node_relocate(b5, n), node_relocate(b6, n),
-      node_relocate(b7, n), node_relocate(b8, n) }
+      node_relocate(b7, n), node_relocate(b8, n), node_relocate(b9, n),
+      node_relocate(b10, n), node_relocate(b11, n), node_relocate(b12, n),
+      node_relocate(b13, n), node_relocate(b14, n), node_relocate(b15, n),
+      node_relocate(b16, n) }
   end
 
-  defp node_expand({ b1, b2, b3, b4, b5, b6, b7, b8 }, depth, n) do
+  defp node_expand({ b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16 }, depth, n) do
     depth = depth - 1
     { node_expand(b1, depth, n), node_expand(b2, depth, n), node_expand(b3, depth, n),
       node_expand(b4, depth, n), node_expand(b5, depth, n), node_expand(b6, depth, n),
-      node_expand(b7, depth, n), node_expand(b8, depth, n) }
+      node_expand(b7, depth, n), node_expand(b8, depth, n), node_expand(b9, depth, n),
+      node_expand(b10, depth, n), node_expand(b11, depth, n), node_expand(b12, depth, n),
+      node_expand(b13, depth, n), node_expand(b14, depth, n), node_expand(b15, depth, n),
+      node_expand(b16, depth, n) }
   end
 
-  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8 }, depth) when depth > 0 do
+  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16 }, depth) when depth > 0 do
     depth = depth - 1
     { node_contract(b1, depth), node_contract(b2, depth), node_contract(b3, depth),
       node_contract(b4, depth), node_contract(b5, depth), node_contract(b6, depth),
-      node_contract(b7, depth), node_contract(b8, depth) }
+      node_contract(b7, depth), node_contract(b8, depth), node_contract(b9, depth),
+      node_contract(b10, depth), node_contract(b11, depth), node_contract(b12, depth),
+      node_contract(b13, depth), node_contract(b14, depth), node_contract(b15, depth),
+      node_contract(b16, depth) }
   end
 
-  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8 }, 0) do
+  defp node_contract({ b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16 }, 0) do
     b1 |> each_contract(b2) |> each_contract(b3) |> each_contract(b4)
        |> each_contract(b5) |> each_contract(b6) |> each_contract(b7)
-       |> each_contract(b8)
+       |> each_contract(b8) |> each_contract(b9) |> each_contract(b10)
+       |> each_contract(b11) |> each_contract(b12) |> each_contract(b13)
+       |> each_contract(b14) |> each_contract(b15) |> each_contract(b16)
   end
 
   defp each_contract([m1|acc], [m2|_]=bucket) when m1 < m2, do: [m1|each_contract(acc, bucket)]
