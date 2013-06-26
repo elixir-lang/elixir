@@ -205,7 +205,7 @@ defmodule HashSet do
 
   ## HashSet-wide functions
 
-  defp set_filter(ordered(bucket: bucket, size: size) = set, fun) do
+  defp set_filter(ordered(bucket: bucket, size: size), fun) do
     { new, removed_count } = bucket_filter(bucket, fun, [], 0)
     ordered(bucket: new, size: size - removed_count)
   end
