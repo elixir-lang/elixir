@@ -141,7 +141,7 @@ defmodule HashSet do
   Puts the given value into the set if it does not already contain it.
   """
   def put(set, member) do
-    { set, _ } = set_put(set, { :put, member })
+    { set, _ } = set_put(set, member)
     set
   end
 
@@ -149,7 +149,7 @@ defmodule HashSet do
   Deletes a value from the set.
   """
   def delete(set, member) do
-    { set, _, _ } = set_delete(set, member)
+    { set, _ } = set_delete(set, member)
     set
   end
 
@@ -233,9 +233,9 @@ defmodule HashSet do
     set_put(set, member)
   end
 
-  defp set_put(trie(root: root, size: size, depth: depth) = set,  { :put, member }) do
+  defp set_put(trie(root: root, size: size, depth: depth) = set, member) do
     pos = bucket_hash(member)
-    { root, count } = node_put(root, depth, pos, {:put, member})
+    { root, count } = node_put(root, depth, pos, member)
     { trie(set, size: size + count, root: root), count }
   end
 
@@ -249,19 +249,19 @@ defmodule HashSet do
 
   defp set_delete(ordered(bucket: bucket, size: size) = set, member) do
     case bucket_delete(bucket, member) do
-      { _, value, 0 } ->
-        { set, value, 0 }
-      { new_bucket, value, -1 } ->
-        { ordered(set, size: size - 1, bucket: new_bucket), value, -1 }
+      { _, 0 } ->
+        { set, 0 }
+      { new_bucket, -1 } ->
+        { ordered(set, size: size - 1, bucket: new_bucket), -1 }
     end
   end
 
   defp set_delete(trie(root: root, size: size, depth: depth) = set, member) do
     pos = bucket_hash(member)
     case node_delete(root, depth, pos, member) do
-      { _, value, 0 } ->
-        { set, value, 0 }
-      { root, _, -1 } ->
+      { _, 0 } ->
+        { set, 0 }
+      { root, -1 } ->
         { if depth > 0 and trie(set, :contract_on) == size do
           root = node_contract(root, depth)
           trie(set,
@@ -272,7 +272,7 @@ defmodule HashSet do
             expand_on: div(trie(set, :expand_on), @node_size))
         else
           trie(set, size: size - 1, root: root)
-        end, member, -1 }
+        end, -1 }
     end
   end
 
@@ -323,11 +323,11 @@ defmodule HashSet do
     { :lists.reverse(acc), count }
   end
 
-  defp bucket_put([m|_]=bucket, { :put, member }) when m > member do
+  defp bucket_put([m|_]=bucket, member) when m > member do
     { [member|bucket], 1 }
   end
 
-  defp bucket_put([member|bucket], { :put, member }) do
+  defp bucket_put([member|bucket], member) do
     { [member|bucket], 0 }
   end
 
@@ -336,7 +336,7 @@ defmodule HashSet do
     { [e|rest], count }
   end
 
-  defp bucket_put([], { :put, member }) do
+  defp bucket_put([], member) do
     { [member], 1 }
   end
 
@@ -347,20 +347,20 @@ defmodule HashSet do
 
   # Deletes a key from the bucket
   defp bucket_delete([m,_|_]=bucket, member) when m > member do
-    { bucket, nil, 0 }
+    { bucket, 0 }
   end
 
   defp bucket_delete([member|bucket], member) do
-    { bucket, member, -1 }
+    { bucket, -1 }
   end
 
   defp bucket_delete([e|bucket], member) do
-    { rest, value, count } = bucket_delete(bucket, member)
-    { [e|rest], value, count }
+    { rest, count } = bucket_delete(bucket, member)
+    { [e|rest], count }
   end
 
   defp bucket_delete([], _member) do
-    { [], nil, 0 }
+    { [], 0 }
   end
 
   defp bucket_fold(bucket, acc, fun) do
@@ -411,16 +411,16 @@ defmodule HashSet do
   defp node_delete(node, 0, hash, member) do
     pos = bucket_index(hash)
     case bucket_delete(elem(node, pos), member) do
-      { _, value, 0 } -> { node, value, 0 }
-      { new, value, -1 } -> { set_elem(node, pos, new), value, -1 }
+      { _, 0 } -> { node, 0 }
+      { new, -1 } -> { set_elem(node, pos, new), -1 }
     end
   end
 
   defp node_delete(node, depth, hash, member) do
     pos = bucket_index(hash)
     case node_delete(elem(node, pos), depth - 1, bucket_next(hash), member) do
-      { _, value, 0 } -> { node, value, 0 }
-      { new, value, -1 } -> { set_elem(node, pos, new), value, -1 }
+      { _, 0 } -> { node, 0 }
+      { new, -1 } -> { set_elem(node, pos, new), -1 }
     end
   end
 
