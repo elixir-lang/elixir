@@ -145,6 +145,10 @@ defmodule Kernel.QuoteTest do
       { :foo, [], Kernel.QuoteTest }
     ] }
   end
+
+  test :quote_with_list_block do
+    assert (quote do [] end) == []
+  end
 end
 
 defmodule Kernel.QuoteTest.VarHygiene do
