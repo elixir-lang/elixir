@@ -2526,6 +2526,7 @@ defmodule Kernel do
   Receives a list of atoms at compilation time and returns the
   binding of the given variables as a keyword list where the
   variable name is the key and the variable value is the value.
+
   In case a variable in the list does not exist in the binding,
   it is not included in the returned result.
 
@@ -2539,10 +2540,10 @@ defmodule Kernel do
   defmacro binding(list)
 
   @doc """
-  Receives a list of tuples at compilation time containing the
-  variable name and its context and returns the binding of the given
-  variables as a keyword list with the variable name and context pair
-  as key and the variable value as value.
+  Receives a list of atoms at compilation time and returns the
+  binding of the given variables in the given context as a keyword
+  list where the variable name is the key and the variable value
+  is the value.
 
   In case a variable in the list does not exist in the binding,
   it is not included in the returned result.
@@ -2550,13 +2551,13 @@ defmodule Kernel do
   ## Examples
 
       iex> var!(x, :foo) = 1
-      iex> binding([x: nil], true)
+      iex> binding([:x, :y])
       []
-      iex> binding([x: :foo], true)
-      [{ { :x, :foo }, 1 }]
+      iex> binding([:x, :y], :foo)
+      [x: 1]
 
   """
-  defmacro binding(list, all_contexts)
+  defmacro binding(list, context)
 
   @doc """
   Provides an `if` macro. This macro expects the first argument to
