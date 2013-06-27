@@ -1424,7 +1424,80 @@ defmodule Kernel do
   defmacro defmacrop(name, args, guards, do: contents)
 
   @doc %B"""
-  Defines a record.
+  Exports a module with a record definition and runtime operations.
+
+  Please see the `Record` module's documentation for an introduction
+  for records in Elixir. The following sections are going into details
+  specific to `defrecord`.
+
+  ## Examples
+
+      defrecord User, name: nil, age: 0
+
+  The following line defines a module that exports information
+  about a record. The definition above provides a short-cut
+  syntax for creating and updating the record at compilation
+  time:
+
+      user = User[]
+      #=> User[name: nil, age: 0]
+
+      User[user, name: "José", age: 25]
+      #=> User[name: "José", age: 25]
+
+  And also a set of functions for working with the record
+  at runtime:
+
+      user = User.new(age: 25)
+      user.name          #=> Returns the value of name
+      user.name("José")  #=> Updates the value of name
+
+      # Update multiple attributes at once:
+      user.update(name: "Other", age: 25)
+
+      # Obtain the keywords representation of a record:
+      user.to_keywords #=> [name: "José", age: 25]
+
+  Since a record is simply a tuple where the first element is
+  the record name, we can get its record raw representation as
+  follow:
+
+      inspect User.new, raw: true
+      #=> { User, nil, 0 }
+
+  Besides defining readers and writers for each attribute, Elixir also
+  defines an `update_#{attribute}` function to update the value. Such
+  functions expect a function as argument that receives the current
+  value and must return the new one. For example, every time the file
+  is accessed, the accesses counter can be incremented with:
+
+      user.update_age(fn(old) -> old + 1 end)
+
+  ## Types
+
+  Every record defines a type named `t` that can be accessed in typespecs.
+  Those types can be passed at the moment the record is defined:
+
+      defrecord User,
+        name: "" :: string,
+        age: 0 :: integer
+
+  All the fields without a specified type are assumed to have type `term`.
+
+  Assuming the `User` record defined above, it could be used in typespecs
+  as follow:
+
+      @spec handle_user(User.t) :: boolean()
+
+  If the developer wants to define their own types to be used with the
+  record, Elixir allows a more lengthy definition with the help of the
+  `record_type` macro:
+
+      defrecord Config, counter: 0, failures: [] do
+        @type kind :: term
+        record_type counter: integer, failures: [kind]
+      end
+
 
   This macro defines a module that generates accessors to manipulate the record
   at both compilation and runtime.
@@ -1432,12 +1505,50 @@ defmodule Kernel do
   See the `Record` module's documentation for a detailed description of records
   in Elixir.
 
-  ## Examples
+  ## Runtime introspection
 
-      defrecord FileInfo, atime: nil, accesses: 0
+  At runtime, developers can use `__record__` to get information
+  about the given record:
+
+      User.__record__(:name)
+      #=> User
+
+      User.__record__(:fields)
+      #=> [name: nil, age: 0]
+
+  In order to quickly access the index of a field, one can use
+  the `__index__` function:
+
+      User.__index__(:age)
+      #=> 2
+
+      User.__index__(:unknown)
+      #=> nil
+
+  ## Compile-time introspection
+
+  At the compile time, one can access following information about the record
+  from within the record module:
+
+  * `@record_fields` — a keyword list of record fields with defaults
+  * `@record_types` — a keyword list of record fields with types
+
+       defrecord Foo, bar: nil do
+         record_type bar: nil | integer
+         IO.inspect @record_fields
+         IO.inspect @record_types
+       end
+
+  Prints out:
+
+       [bar: nil]
+       [bar: {:|,[line: ...],[nil,{:integer,[line: ...],nil}]}]
+
+  Where the last line is a quoted representation of
+
+       [bar: nil | integer]
 
   """
-
   defmacro defrecord(name, fields, do_block // [])
 
   defmacro defrecord(name, fields, do_block) do
@@ -1448,17 +1559,13 @@ defmodule Kernel do
   end
 
   @doc %B"""
-  Defines a record with a set of private macros to manipulate it.
+  Defines a set of private macros to manipulate a record definition.
 
   This macro defines a set of macros private to the current module to
   manipulate the record exclusively at compilation time.
 
-  `defrecordp` must be used instead of `defrecord` when there is no interest in
-  exposing the record outside of the module it's defined in. In many ways, it
-  is similar to an Erlang record, since it is only available at compilation time.
-
-  See the `Record` module's documentation for a detailed description of records
-  in Elixir.
+  Please see the `Record` module's documentation for an introduction
+  for records in Elixir.
 
   ## Examples
 
