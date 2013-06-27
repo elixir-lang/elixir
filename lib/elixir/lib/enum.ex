@@ -277,7 +277,7 @@ defmodule Enum do
 
   @doc """
   Invokes the given `fun` for each item in the `collection`.
-  Returns the `collection` itself. `fun` can take two parameters,
+  Returns `:ok`. `fun` can take two parameters,
   in which case the second parameter will be the iteration index.
 
   ## Examples
