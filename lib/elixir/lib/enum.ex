@@ -282,10 +282,10 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.each(["some", "example"], fn(x) -> IO.puts x end)
+      Enum.each(["some", "example"], fn(x) -> IO.puts x end)
       "some"
       "example"
-      :ok
+      #=> :ok
 
   """
   @spec each(t, (element -> any) | (element, index -> any)) :: :ok
