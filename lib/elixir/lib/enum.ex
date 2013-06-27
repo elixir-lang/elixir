@@ -104,6 +104,11 @@ defmodule Enum do
 
   @doc """
   Counts for how many items the function returns true.
+
+  ## Examples
+      iex> Enum.count([1, 2, 3, 4, 5], fn(x) -> rem(x, 2) == 0 end)
+      2
+
   """
   @spec count(t, (element -> as_boolean(term))) :: non_neg_integer
   def count(collection, fun) do
@@ -996,6 +1001,15 @@ defmodule Enum do
   of tuples. The number of elements in the resulting list is
   dictated by the first enum. In case the second list is shorter,
   values are filled with nil.
+
+  ## Examples
+
+      iex> Enum.zip([1, 2, 3], [:a, :b, :c])
+      [{1,:a},{2,:b},{3,:c}]
+
+      iex> Enum.zip([1,2,3,4,5], [:a, :b, :c])
+      [{1,:a},{2,:b},{3,:c},{4,nil},{5,nil}]
+
   """
   @spec zip(t, t) :: [{any, any}]
   def zip(coll1, coll2) when is_list(coll1) and is_list(coll2) do
