@@ -196,16 +196,16 @@ defmodule Enum do
 
   Expects an ordered collection.
 
-    ## Examples
+  ## Examples
 
-        iex> Enum.at([2, 4, 6], 0)
-        2
-        iex> Enum.at([2, 4, 6], 2)
-        6
-        iex> Enum.at([2, 4, 6], 4)
-        nil
-        iex> Enum.at([2, 4, 6], 4, :none)
-        :none
+      iex> Enum.at([2, 4, 6], 0)
+      2
+      iex> Enum.at([2, 4, 6], 2)
+      6
+      iex> Enum.at([2, 4, 6], 4)
+      nil
+      iex> Enum.at([2, 4, 6], 4, :none)
+      :none
 
   """
   @spec at(t, index) :: element | nil
@@ -336,14 +336,14 @@ defmodule Enum do
 
   Expects an ordered collection.
 
-    ## Examples
+  ## Examples
 
-        iex> Enum.fetch([2, 4, 6], 0)
-        { :ok, 2 }
-        iex> Enum.fetch([2, 4, 6], 2)
-        { :ok, 6 }
-        iex> Enum.fetch([2, 4, 6], 4)
-        :error
+      iex> Enum.fetch([2, 4, 6], 0)
+      { :ok, 2 }
+      iex> Enum.fetch([2, 4, 6], 2)
+      { :ok, 6 }
+      iex> Enum.fetch([2, 4, 6], 4)
+      :error
 
   """
   @spec fetch(t, index) :: { :ok, element } | :error
