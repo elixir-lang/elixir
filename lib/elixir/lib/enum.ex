@@ -1088,7 +1088,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the manimum value.
+  Returns the minimum value.
   Raises empty error in case the collection is empty.
 
   ## Examples
@@ -1128,7 +1128,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the manimum value.
+  Returns the minimum value.
   Raises empty error in case the collection is empty.
 
   ## Examples
