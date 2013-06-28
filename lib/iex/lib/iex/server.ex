@@ -11,7 +11,7 @@ defmodule IEx.Server do
 
   """
   def start(config) do
-    IEx.History.init
+    init_systems()
 
     { _, _, scope } = :elixir.eval('require IEx.Helpers', [], 0, config.scope)
     config = config.scope(scope)
@@ -46,6 +46,16 @@ defmodule IEx.Server do
         end
 
       do_loop(new_config)
+    end
+  end
+
+  defp init_systems() do
+    IEx.History.init
+
+    # Disable ANSI-escape-sequence-based coloring on Windows
+    # Can be overriden in .iex
+    if match?({ :win32, _ }, :os.type()) do
+      IEx.Options.set :colors, enabled: false
     end
   end
 
