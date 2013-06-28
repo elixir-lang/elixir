@@ -18,8 +18,8 @@ defmodule Keyword do
   @type t :: [{key, value}]
 
   @doc """
-  Creates a Keyword from enum. Differently from `Keyword.new`
-  which behaves as a dict, `Keyword.from_enum` do not remove
+  Creates a Keyword from an enum. Unlike `Keyword.new`
+  which behaves as a dict, `Keyword.from_enum` does not remove
   duplicated entries.
   """
   @spec from_enum(Enum.t) :: t
@@ -51,7 +51,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Creates a Keyword from an enumerable. Similarly to dicts,
+  Creates a Keyword from an enumerable. Similar to dicts,
   duplicated entries are removed, the latest one prevails.
 
   ## Examples
@@ -87,20 +87,21 @@ defmodule Keyword do
   end
 
   @doc """
-  Gets the value for specific key.
+  Gets the value for a specific `key`.
 
-  If key not exist return default value (nil if no default value)
-  exists.
+  If `key` does not exist, return default value (`nil` if no default value).
 
   If duplicated entries exist, the first one is returned.
-  Use get_values/2 to retrieve all entries.
+  Use `get_values/2` to retrieve all entries.
 
   ## Examples
 
       iex> Keyword.get([a: 1], :a)
       1
+
       iex> Keyword.get([a: 1], :b)
       nil
+
       iex> Keyword.get([a: 1], :b, 3)
       3
 
@@ -115,8 +116,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Fetchs the value for specific key and return it in a tuple.
-  If the key does not exist, returns `:error`.
+  Fetches the value for a specific `key` and returns it in a tuple.
+  If the `key` does not exist, returns `:error`.
 
   ## Examples
 
@@ -136,8 +137,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Fetches the value for specific key. If key does not exist,
-  an error is raised.
+  Fetches the value for specific `key`. If `key` does not exist,
+  a `KeyError` is raised.
 
   ## Examples
 
@@ -157,7 +158,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Gets all values for a specific key.
+  Gets all values for a specific `key`.
 
   ## Examples
 
@@ -179,6 +180,9 @@ defmodule Keyword do
       iex> Keyword.keys([a: 1, b: 2])
       [:a,:b]
 
+      iex> Keyword.keys([a: 1, b: 2, a: 3])
+      [:a,:b,:a]
+
   """
   @spec keys(t) :: [key]
   def keys(keywords) do
@@ -186,7 +190,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Returns all values.
+  Returns all values from the keyword list.
 
   ## Examples
 
@@ -200,8 +204,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Deletes all entries in the keyword list for a specific key.
-  If the key does not exist, returns the keyword list unchanged.
+  Deletes all entries in the keyword list for a specific `key`.
+  If the `key` does not exist, returns the keyword list unchanged.
   Use `delete_first` to delete just the first entry in case of
   duplicated keys.
 
@@ -209,6 +213,10 @@ defmodule Keyword do
 
       iex> Keyword.delete([a: 1, b: 2], :a)
       [b: 2]
+
+      iex> Keyword.delete([a: 1, b: 2, a: 3], :a)
+      [b: 2]
+
       iex> Keyword.delete([b: 2], :a)
       [b: 2]
 
@@ -219,13 +227,14 @@ defmodule Keyword do
   end
 
   @doc """
-  Deletes the first entry in the keyword list for a specific key.
-  If the key does not exist, returns the keyword list unchanged.
+  Deletes the first entry in the keyword list for a specific `key`.
+  If the `key` does not exist, returns the keyword list unchanged.
 
   ## Examples
 
       iex> Keyword.delete_first([a: 1, b: 2, a: 3], :a)
       [b: 2, a: 3]
+
       iex> Keyword.delete_first([b: 2], :a)
       [b: 2]
 
@@ -246,6 +255,9 @@ defmodule Keyword do
       iex> Keyword.put([a: 1, b: 2], :a, 3)
       [a: 3, b: 2]
 
+      iex> Keyword.put([a: 1, b: 2, a: 4], :a, 3)
+      [a: 3, b: 2]
+
   """
   @spec put(t, key, value) :: t
   def put(keywords, key, value) when is_atom(key) do
@@ -257,6 +269,8 @@ defmodule Keyword do
   already exists.
 
   ## Examples
+      iex> Keyword.put_new([a: 1], :b, 2)
+      [b: 2, a: 1]
 
       iex> Keyword.put_new([a: 1, b: 2], :a, 3)
       [a: 1, b: 2]
@@ -326,12 +340,13 @@ defmodule Keyword do
   end
 
   @doc """
-  Returns whether a given key exists in the given keywords.
+  Returns whether a given `key` exists in the given `keywords`.
 
   ## Examples
 
       iex> Keyword.has_key?([a: 1], :a)
       true
+
       iex> Keyword.has_key?([a: 1], :b)
       false
 
@@ -342,7 +357,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Updates the key with the given function. If the key does
+  Updates the `key` with the given function. If the `key` does
   not exist, raises `KeyError`.
 
   ## Examples
@@ -368,13 +383,14 @@ defmodule Keyword do
   end
 
   @doc """
-  Updates the key with the given function. If the key does
+  Updates the `key` with the given function. If the `key` does
   not exist, inserts the given `initial` value.
 
   ## Examples
 
       iex> Keyword.update([a: 1], :a, 13, &1 * 2)
       [a: 2]
+
       iex> Keyword.update([a: 1], :b, 11, &1 * 2)
       [a: 1, b: 11]
 
