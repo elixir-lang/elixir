@@ -67,7 +67,7 @@ defmodule Path do
 
   ## Examples
 
-      iex> Path.expand("/foo/bar/../bar")
+      Path.expand("/foo/bar/../bar")
       "/foo/bar"
 
   """
@@ -91,9 +91,9 @@ defmodule Path do
       Path.expand("foo/bar/../bar", "baz")
       #=> "/quux/baz/foo/bar"
 
-      iex> Path.expand("foo/bar/../bar", "/baz")
+      Path.expand("foo/bar/../bar", "/baz")
       "/baz/foo/bar"
-      iex> Path.expand("/foo/bar/../bar", "/baz")
+      Path.expand("/foo/bar/../bar", "/baz")
       "/foo/bar"
 
   """
