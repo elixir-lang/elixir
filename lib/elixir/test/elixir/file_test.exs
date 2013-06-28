@@ -771,13 +771,15 @@ defmodule FileTest do
 
       File.mkdir_p(tmp_path("tmp"))
       :file.make_symlink(fixture_path, fixture)
-      assert File.exists?(fixture)
+      if File.exists?(fixture) or !match?({:win32,_},:os.type) do
+        assert File.exists?(fixture)
 
-      { :ok, files } = File.rm_rf(fixture)
-      assert length(files) == 1
+        { :ok, files } = File.rm_rf(fixture)
+        assert length(files) == 1
 
-      assert File.exists?(fixture_path("file.txt"))
-      refute File.exists?(fixture)
+        assert File.exists?(fixture_path("file.txt"))
+        refute File.exists?(fixture)
+      end 
     end
 
     test :rm_rf_with_char_list do
