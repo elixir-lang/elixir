@@ -98,8 +98,10 @@ defmodule Keyword do
 
       iex> Keyword.get([a: 1], :a)
       1
+
       iex> Keyword.get([a: 1], :b)
       nil
+
       iex> Keyword.get([a: 1], :b, 3)
       3
 
@@ -178,6 +180,9 @@ defmodule Keyword do
       iex> Keyword.keys([a: 1, b: 2])
       [:a,:b]
 
+      iex> Keyword.keys([a: 1, b: 2, a: 3])
+      [:a,:b,:a]
+
   """
   @spec keys(t) :: [key]
   def keys(keywords) do
@@ -208,6 +213,10 @@ defmodule Keyword do
 
       iex> Keyword.delete([a: 1, b: 2], :a)
       [b: 2]
+
+      iex> Keyword.delete([a: 1, b: 2, a: 3], :a)
+      [b: 2]
+
       iex> Keyword.delete([b: 2], :a)
       [b: 2]
 
@@ -225,6 +234,7 @@ defmodule Keyword do
 
       iex> Keyword.delete_first([a: 1, b: 2, a: 3], :a)
       [b: 2, a: 3]
+
       iex> Keyword.delete_first([b: 2], :a)
       [b: 2]
 
@@ -245,6 +255,9 @@ defmodule Keyword do
       iex> Keyword.put([a: 1, b: 2], :a, 3)
       [a: 3, b: 2]
 
+      iex> Keyword.put([a: 1, b: 2, a: 4], :a, 3)
+      [a: 3, b: 2]
+
   """
   @spec put(t, key, value) :: t
   def put(keywords, key, value) when is_atom(key) do
@@ -256,6 +269,8 @@ defmodule Keyword do
   already exists.
 
   ## Examples
+      iex> Keyword.put_new([a: 1], :b, 2)
+      [b: 2, a: 1]
 
       iex> Keyword.put_new([a: 1, b: 2], :a, 3)
       [a: 1, b: 2]
@@ -331,6 +346,7 @@ defmodule Keyword do
 
       iex> Keyword.has_key?([a: 1], :a)
       true
+
       iex> Keyword.has_key?([a: 1], :b)
       false
 
@@ -374,6 +390,7 @@ defmodule Keyword do
 
       iex> Keyword.update([a: 1], :a, 13, &1 * 2)
       [a: 2]
+
       iex> Keyword.update([a: 1], :b, 11, &1 * 2)
       [a: 1, b: 11]
 
