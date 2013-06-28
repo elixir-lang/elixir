@@ -246,7 +246,7 @@ defmodule IEx.HelpersTest do
       assert Sample.run == :run
 
       File.write! filename, "defmodule Sample do end"
-      System.cmd "../../bin/elixirc sample.ex"
+      runcmd(Path.expand("../../bin/elixirc"),"sample.ex")
 
       assert l(Sample) == {:module, Sample}
       assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
@@ -317,4 +317,17 @@ defmodule IEx.HelpersTest do
     end
     """
   end
+
+
+  defp runcmd(executable,args) do 
+    executable = Path.expand executable
+    :os.cmd binary_to_list("#{executable} #{:unicode.characters_to_binary(args)}#{redirect_std_err_on_win}")
+  end 
+
+  if match? { :win32, _ }, :os.type do
+    def redirect_std_err_on_win, do: " 2>&1"
+  else
+    def redirect_std_err_on_win, do: ""
+  end
+
 end
