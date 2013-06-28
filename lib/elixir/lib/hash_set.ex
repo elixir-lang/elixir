@@ -2,7 +2,10 @@ defmodule HashSet do
   @moduledoc """
   A set store.
 
-  The `HashSet` is meant to work well with both small and large sets.
+  The `HashSet` is meant to work well with both small and
+  large sets. It is an implementation of the `Set` behaviour.
+  For more information about the functions and their APIs,
+  please consult the `Set` module.
   """
 
   @behaviour Set
@@ -58,12 +61,6 @@ defmodule HashSet do
 
   @doc """
   Returns a set combining the two input sets.
-
-  ## Examples
-
-      iex> HashSet.union(HashSet.new([1,2]), HashSet.new([2,3,4])) |> HashSet.to_list
-      [1,2,3,4]
-
   """
   def union(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) and elem(set1, 1) <= elem(set2, 1) do
     set_fold set1, set2, fn v1, acc ->
@@ -77,31 +74,19 @@ defmodule HashSet do
     end
   end
 
-  @doc """
-  Returns a set containing only members in common between the two input sets.
-
-  ## Examples
-
-      iex> HashSet.intersection(HashSet.new([1,2]), HashSet.new([2,3,4])) |> HashSet.to_list
-      [2]
-
-  """
   def intersection(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) and elem(set1, 1) <= elem(set2, 1) do
     set_filter set1, fn e -> set_member?(set2, e) end
   end
 
+  @doc """
+  Returns a set containing only members in common between the two input sets.
+  """
   def intersection(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) do
     set_filter set2, fn e -> set_member?(set1, e) end
   end
 
   @doc """
   Returns a set that is the first set without members of the second set.
-
-  ## Examples
-
-      iex> HashSet.difference(HashSet.new([1,2]), HashSet.new([2,3,4])) |> HashSet.to_list
-      [1]
-
   """
   def difference(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) do
     set_filter set1, fn m -> not set_member?(set2, m) end
@@ -170,13 +155,6 @@ defmodule HashSet do
 
   @doc """
   Checks if set1's members are all contained in set2.
-
-  ## Examples
-
-      iex> HashSet.subset?(HashSet.new([1, 2]), HashSet.new([1, 2, 3]))
-      true
-      iex> HashSet.subset?(HashSet.new([1, 2, 3]), HashSet.new([1, 2]))
-      false
   """
   def subset?(set1, set2) do
     set_equal?(set1, set2)
@@ -184,14 +162,6 @@ defmodule HashSet do
 
   @doc """
   Checks if set1 and set2 have no members in common.
-
-  ## Examples
-
-      iex> HashSet.disjoint?(HashSet.new([1, 2]), HashSet.new([3, 4]))
-      true
-      iex> HashSet.disjoint?(HashSet.new([1, 2]), HashSet.new([2, 3]))
-      false
-
   """
   def disjoint?(set1, set2) do
     set_disjoint?(set1, set2)
