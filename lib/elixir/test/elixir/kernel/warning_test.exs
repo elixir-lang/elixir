@@ -228,19 +228,6 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :multiple_clauses_with_defaults do
-    assert capture_err(fn ->
-      Code.eval_string """
-      defmodule Sample do
-        def hello(arg // 0), do: nil
-        def hello(arg // 1), do: nil
-      end
-      """
-    end) =~ "def hello/1 has default values and multiple clauses, use a separate clause for declaring defaults"
-  after
-    purge Sample
-  end
-
   test :unused_with_local_with_overridable do
     assert capture_err(fn ->
       Code.eval_string """
@@ -266,6 +253,30 @@ defmodule Kernel.WarningTest do
       end
       """
     end)
+  after
+    purge Sample
+  end
+
+  test :undefined_module_attribute do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @foo
+      end
+      """
+    end) =~ "undefined module attribute @foo, please remove access to @foo or explicitly set it to nil before access"
+  after
+    purge Sample
+  end
+
+  test :in_guard_empty_list do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        def a(x) when x in [], do: x
+      end
+      """
+    end) =~ "the guard for this clause evaluates to 'false'"
   after
     purge Sample
   end

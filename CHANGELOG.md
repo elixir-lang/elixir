@@ -1,17 +1,53 @@
-# v0.9.3.dev
+# v0.9.4-dev
 
 * enhancements
-  * [Kernel] Add --warnings-as-errors to Elixir's compiler options
-  * [Kernel] Print warnings to stderr
-  * [Mix] Implement `Mix.Version` for basic versioniong semantics
-  * [Mix] Support creation and installation of archives (.ez files)
+  * [Mix] `mix archive` now includes the version of the generated archive
+  * [Mix] Projects can now define an `:elixir` key to outline supported Elixir versions
 
 * bug fix
+  * [Kernel] `match?/2` does not leak variables to outer scope
 
 * deprecations
 
 * backwards incompatible changes
+
+# v0.9.3 (2013-06-23)
+
+* enhancements
+  * [File] Add `File.chgrp`, `File.chmod` and `File.chown`
+  * [Kernel] Add --warnings-as-errors to Elixir's compiler options
+  * [Kernel] Print warnings to stderr
+  * [Kernel] Warn on undefined module attributes
+  * [Kernel] Emit warning for `x in []` in guards
+  * [Kernel] Add `binding/0` and `binding/1` for retrieving bindings
+  * [Kernel] `quote` now allows a binding as an option
+  * [Macro] Add `Macro.expand_once/2` and `Macro.expand_all/2`
+  * [Mix] Implement `Mix.Version` for basic versioning semantics
+  * [Mix] Support creation and installation of archives (.ez files)
+  * [Mix] `github: ...` shortcut now uses the faster `git` schema instead of `https`
+  * [Record] Allow types to be given to `defrecord` and `defrecordp`
+
+* bug fix
+  * [Kernel] The elixir executable on Windows now supports the same options as the UNIX one
+  * [Kernel] Improve error messages on default clauses clash
+  * [Kernel] `__MODULE__.Foo` now returns `Foo` when outside of a Module
+  * [Kernel] Improve error messages when default clauses from different definitions collide
+  * [Kernel] `^x` variables should always refer to the value before the expression
+  * [Kernel] Allow `(x, y) when z` in function clauses and try expressions
+  * [Mix] Mix now properly evaluates rebar scripts
+
+* deprecations
+  * [Code] `Code.string_to_ast/1` has been deprecated in favor of `Code.string_to_quoted/1`
+  * [Macro] `Macro.to_binary/1` has been deprecated in favor of `Macro.to_string/1`
+  * [Typespec] Deprecate `(fun(...) -> ...)` in favor of `(... -> ...)`
+
+* backwards incompatible changes
+  * [Bitwise] Precedence of operators used by the Bitwise module were changed. Check `elixir_parser.yrl` for more information.
+  * [File] `rm_rf` and `cp_r` now returns a tuple with three elements on failures
   * [Kernel] The quoted representation for `->` clauses changed from a tuple with two elements to a tuple with three elements to support metadata
+  * [Kernel] Sigils now dispatch to `sigil_$` instead of `__$__` where `$` is the sigil caracter
+  * [Macro] `Macro.expand/2` now expands until final form. Although this is backwards incompatible, it is very likely you do not need to change your code, since expansion until its final form is recommended, particularly if you are expecting an atom out of it
+  * [Mix] No longer support beam files on `mix local`
 
 # v0.9.2 (2013-06-13)
 

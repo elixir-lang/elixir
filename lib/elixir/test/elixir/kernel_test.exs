@@ -20,6 +20,27 @@ defmodule KernelTest do
     end
   end
 
+  test :^ do
+    x = 1
+
+    assert_raise MatchError, fn ->
+      { x, ^x } = { 2, 2 }
+      x
+    end
+  end
+
+  test :match? do
+    assert match?(x, 1)
+    assert binding([:x]) == []
+
+    a = 0
+    assert match?(b when b > a, 1)
+    assert binding([:b]) == []
+
+    refute match?(b when b > a, -1)
+    assert binding([:b]) == []
+  end
+
   test :nil? do
     assert nil?(nil)
     refute nil?(0)
@@ -82,8 +103,25 @@ defmodule KernelTest do
     assert __ENV__.function == { :test_function_from___ENV__, 1 }
   end
 
+  test :binding do
+    x = 1
+    assert binding == [x: 1]
+    assert binding([:x, :y]) == [x: 1]
+    assert binding([:x, :y], nil) == [x: 1]
+
+    x = 2
+    assert binding == [x: 2]
+
+    y = 3
+    assert binding == [x: 2, y: 3]
+
+    var!(x, :foo) = 2
+    assert binding(:foo) == [x: 2]
+    assert binding([:x, :y], :foo) == [x: 2]
+  end
+
   defp x(value) when value in [1, 2, 3], do: true
-  defp x(_),                           do: false
+  defp x(_),                             do: false
 
   defmodule Conversions do
     use ExUnit.Case, async: true
@@ -156,9 +194,6 @@ defmodule KernelTest do
   defmodule Runtime do
     use ExUnit.Case, async: true
     defp kernel, do: Kernel
-
-    # {apply,2},
-    # {apply,3},
 
     test :not do
       assert kernel.not(true) == false
@@ -312,8 +347,6 @@ defmodule KernelTest do
 
       import CompileAssertion
 
-      # FIXME: this mustn't work, but it doesn't call pipeline_op at all
-      #assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: &1", "1 |> &1"
       assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: &1 * 2", "1 |> &1*2"
       assert_compile_fail ArgumentError, "Unsupported expression in pipeline |> operator: hd(&1)", "[1] |> hd(&1)"
     end

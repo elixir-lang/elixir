@@ -119,7 +119,7 @@ translate({'@', Meta, [{ Name, _, Args }]}, S) ->
               translate_each({
                 { '.', Meta, ['Elixir.Module', get_attribute] },
                 Meta,
-                [ { '__MODULE__', Meta, false }, Name ]
+                [ { '__MODULE__', Meta, false }, Name, true ]
               }, S);
             _ ->
               Contents = 'Elixir.Module':get_attribute(S#elixir_scope.module, Name),
@@ -129,6 +129,26 @@ translate({'@', Meta, [{ Name, _, Args }]}, S) ->
           syntax_error(Meta, S#elixir_scope.file, "expected 0 or 1 argument for @~ts, got: ~p", [Name, length(Args)])
       end
   end;
+
+%% Binding
+
+translate({ 'binding', Meta, [] }, S) ->
+  translate({ 'binding', Meta, [nil] }, S);
+
+translate({ 'binding', Meta, [Context] }, #elixir_scope{vars=Vars} = S) when is_atom(Context) ->
+  Line = ?line(Meta),
+  { elixir_tree_helpers:list_to_cons(Line,
+    [ to_var_value_tuple(Line, Name, Var)
+      || { { Name, C }, Var } <- Vars, C == Context]), S };
+
+translate({ 'binding', Meta, [List] }, S) when is_list(List) ->
+  translate({ 'binding', Meta, [List, nil] }, S);
+
+translate({ 'binding', Meta, [List, Context] }, #elixir_scope{vars=Vars} = S) when is_list(List), is_atom(Context) ->
+  Line = ?line(Meta),
+  { elixir_tree_helpers:list_to_cons(Line,
+    [ to_var_value_tuple(Line, Name, Var)
+      || { { Name, C }, Var } <- Vars, C == Context, lists:member(Name, List)]), S };
 
 %% Case
 
@@ -267,6 +287,9 @@ translate_in(Meta, Left, Right, S) ->
   end,
 
   { InGuard, TExpr } = case TRight of
+    { nil, _ } ->
+      Expr = { atom, Line, false },
+      { Cache, Expr };
     { cons, _, _, _ } ->
       [H|T] = elixir_tree_helpers:cons_to_list(TRight),
       Expr = lists:foldr(fun(X, Acc) ->
@@ -348,6 +371,11 @@ expand_module(_Raw, Module, S) ->
 is_reserved_data(moduledoc) -> true;
 is_reserved_data(doc)       -> true;
 is_reserved_data(_)         -> false.
+
+to_var_value_tuple(Line, Name, Var) ->
+  { tuple, Line,
+    [ { atom, Line, Name },
+      { var, Line, Var } ] }.
 
 spec_to_macro(type)     -> deftype;
 spec_to_macro(typep)    -> deftypep;

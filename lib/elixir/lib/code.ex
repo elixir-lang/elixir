@@ -72,9 +72,11 @@ defmodule Code do
   * `:aliases` - a list of tuples with the alias and its target
   * `:requires` - a list of modules required
   * `:functions` - a list of tuples where the first element is a module
-    and the second a list of imported function names and arity
+    and the second a list of imported function names and arity. The list
+    of function names and arity must be sorted;
   * `:macros` - a list of tuples where the first element is a module
-    and the second a list of imported macro names and arity
+    and the second a list of imported macro names and arity. The list
+    of function names and arity must be sorted;
 
   Notice that setting any of the values above overrides Elixir default
   values. For example, setting `:requires` to `[]`, will no longer
@@ -98,10 +100,15 @@ defmodule Code do
   def eval_string(string, binding // [], opts // [])
 
   def eval_string(string, binding, Macro.Env[] = env) do
-    eval_string(string, binding, env.to_keywords)
+    do_eval_string(string, binding, env.to_keywords)
   end
 
-  def eval_string(string, binding, opts) do
+  def eval_string(string, binding, opts) when is_list(opts) do
+    validate_eval_opts(opts)
+    do_eval_string(string, binding, opts)
+  end
+
+  defp do_eval_string(string, binding, opts) when is_list(binding) do
     { value, binding, _scope } =
       :elixir.eval :unicode.characters_to_list(string), binding, opts
     { value, binding }
@@ -130,17 +137,65 @@ defmodule Code do
   def eval_quoted(quoted, binding // [], opts // [])
 
   def eval_quoted(quoted, binding, Macro.Env[] = env) do
-    eval_quoted(quoted, binding, env.to_keywords)
+    do_eval_quoted(quoted, binding, env.to_keywords)
   end
 
-  def eval_quoted(quoted, binding, opts) do
+  def eval_quoted(quoted, binding, opts) when is_list(opts) do
+    validate_eval_opts(opts)
+    do_eval_quoted(quoted, binding, opts)
+  end
+
+  defp do_eval_quoted(quoted, binding, opts) when is_list(binding) do
     { value, binding, _scope } =
       :elixir.eval_quoted [quoted], binding, opts
     { value, binding }
   end
 
+  defp validate_eval_opts(opts) do
+    if f = opts[:functions], do: validate_imports(:functions, f)
+    if m = opts[:macros],    do: validate_imports(:macros, m)
+    if a = opts[:aliases],   do: validate_aliases(:aliases, a)
+    if r = opts[:requires],  do: validate_requires(:requires, r)
+  end
+
+  defp validate_requires(kind, requires) do
+    valid = is_list(requires) and Enum.all?(requires, is_atom(&1))
+
+    unless valid do
+      raise ArgumentError, "expected :#{kind} option given to eval in the format: [module]"
+    end
+  end
+
+  defp validate_aliases(kind, aliases) do
+    valid = is_list(aliases) and Enum.all?(aliases, fn { k, v } ->
+      is_atom(k) and is_atom(v)
+    end)
+
+    unless valid do
+      raise ArgumentError, "expected :#{kind} option given to eval in the format: [{ module, module }]"
+    end
+  end
+
+  defp validate_imports(kind, imports) do
+    valid = is_list(imports) and Enum.all?(imports, fn { k, v } ->
+      is_atom(k) and is_list(v) and Enum.all?(v, fn { name, arity } ->
+        is_atom(name) and is_integer(arity)
+      end)
+    end)
+
+    unless valid do
+      raise ArgumentError, "expected :#{kind} option given to eval in the format: [{ module, [{ name, arity }] }]"
+    end
+  end
+
+  @doc false
+  def string_to_ast(string, opts // []) do
+    IO.write "[WARNING] Code.string_to_ast is deprecated, please use Code.string_to_quoted instead\n#{Exception.format_stacktrace}"
+    string_to_quoted(string, opts)
+  end
+
   @doc """
-  Converts the given string to AST. It returns `{ :ok, ast }`
+  Converts the given string to quoted form. It returns `{ :ok, quoted_form }`
   if it succeeds, `{ :error, { line, error, token } }` otherwise.
 
   ## Options
@@ -153,41 +208,47 @@ defmodule Code do
   * `:existing_atoms_only` - When true, raises an error
     when non-existing atoms are found by the tokenizer.
 
-  ## Macro.to_binary/1
+  ## Macro.to_string/1
 
-  The opposite of converting a string to its AST is
-  `Macro.to_binary`, which converts a AST to a binary
+  The opposite of converting a string to its quoted form is
+  `Macro.to_string`, which converts a quoted form to a string/binary
   representation.
   """
-  def string_to_ast(string, opts // []) do
+  def string_to_quoted(string, opts // []) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
     res  = :elixir_translator.forms(:unicode.characters_to_list(string), line, file, opts)
 
     case res do
-      { :ok, ast } -> { :ok, unpack_ast(line, ast) }
+      { :ok, forms } -> { :ok, unpack_quote(line, forms) }
       _ -> res
     end
   end
 
+  @doc false
+  def string_to_ast!(string, opts // []) do
+    IO.write "[WARNING] Code.string_to_ast! is deprecated, please use Code.string_to_quoted! instead\n#{Exception.format_stacktrace}"
+    string_to_quoted!(string, opts)
+  end
+
   @doc """
-  Converts the given string to AST. It returns the ast if it succeeds,
+  Converts the given string to quoted form. It returns the ast if it succeeds,
   raises an exception otherwise. The exception is a TokenMissingError
   in case a token is missing (usually because the expression is incomplete),
   SyntaxError otherwise.
 
-  Check `Code.string_to_ast/2` for options information.
+  Check `Code.string_to_quoted/2` for options information.
   """
-  def string_to_ast!(string, opts // []) do
+  def string_to_quoted!(string, opts // []) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
     res  = :elixir_translator.forms!(:unicode.characters_to_list(string), line, file, opts)
-    unpack_ast(line, res)
+    unpack_quote(line, res)
   end
 
-  defp unpack_ast(_line, []),                              do: nil
-  defp unpack_ast(_line, [forms]) when not is_list(forms), do: forms
-  defp unpack_ast(line, forms),                            do: { :__block__, [line: line], forms }
+  defp unpack_quote(_line, []),                              do: nil
+  defp unpack_quote(_line, [forms]) when not is_list(forms), do: forms
+  defp unpack_quote(line, forms),                            do: { :__block__, [line: line], forms }
 
   @doc """
   Loads the given `file`. Accepts `relative_to` as an argument to tell where

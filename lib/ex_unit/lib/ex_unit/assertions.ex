@@ -5,7 +5,7 @@ defexception ExUnit.ExpectationError, expected: nil, actual: nil, reason: "",
   def message(exception) do
     if desc = exception.description do
       "#{exception.prelude} #{desc} #{exception.full_reason} " <>
-        "#{exception.expected}. Insted got #{exception.actual}"
+        "#{exception.expected}. Instead got #{exception.actual}"
     else
       "#{exception.prelude} #{exception.expected} " <>
         "#{exception.full_reason} #{exception.actual}"
@@ -53,7 +53,16 @@ defmodule ExUnit.Assertions do
     translate_assertion(expected, fn ->
       quote do
         value = unquote(expected)
-        assert value, "Expected #{inspect value} to be true"
+
+        unless value do
+          raise ExUnit.ExpectationError,
+            description: unquote(Macro.to_string(expected)),
+            reason: "be",
+            expected: "true",
+            actual: inspect(value)
+        end
+
+        value
       end
     end)
   end
@@ -73,7 +82,16 @@ defmodule ExUnit.Assertions do
     contents = translate_assertion({ :!, [], [expected] }, fn ->
       quote do
         value = unquote(expected)
-        assert !value, "Expected #{inspect value} to be false"
+
+        if value do
+          raise ExUnit.ExpectationError,
+            description: unquote(Macro.to_string(expected)),
+            reason: "be",
+            expected: "false",
+            actual: inspect(value)
+        end
+
+        true
       end
     end)
 
@@ -91,7 +109,7 @@ defmodule ExUnit.Assertions do
         _ ->
           raise ExUnit.ExpectationError,
             expected: inspect(right),
-            actual: unquote(Macro.to_binary(left)),
+            actual: unquote(Macro.to_string(left)),
             reason: "match pattern (=)"
       end
     end
@@ -150,7 +168,7 @@ defmodule ExUnit.Assertions do
         unquote(left) ->
           raise ExUnit.ExpectationError,
             expected: inspect(right),
-            actual: unquote(Macro.to_binary(left)),
+            actual: unquote(Macro.to_string(left)),
             reason: "match pattern (=)",
             negation: true
           _ ->
@@ -268,7 +286,7 @@ defmodule ExUnit.Assertions do
   end
 
   defp do_assert_receive(expected, timeout, message) do
-    binary = Macro.to_binary(expected)
+    binary = Macro.to_string(expected)
 
     quote do
       receive do
@@ -449,7 +467,7 @@ defmodule ExUnit.Assertions do
   end
 
   defp do_refute_receive(not_expected, timeout, message) do
-    binary = Macro.to_binary(not_expected)
+    binary = Macro.to_string(not_expected)
 
     quote do
       receive do

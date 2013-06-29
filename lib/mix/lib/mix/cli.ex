@@ -52,7 +52,7 @@ defmodule Mix.CLI do
   end
 
   defp proceed(args) do
-    Mix.Local.append_tasks
+    Mix.Local.append_archives
     Mix.Local.append_paths
 
     args = load_mixfile(args)

@@ -67,7 +67,7 @@ defmodule Mix.Deps.Converger do
     cond do
       contains_dep?(upper_breadths, dep) ->
         all(t, acc, upper_breadths, current_breadths, config, callback, rest)
-      match?({ diverged_acc, true }, diverged_dep?(acc, dep)) ->
+      ({ diverged_acc, diverged } = diverged_deps(acc, dep)) && diverged ->
         all(t, diverged_acc, upper_breadths, current_breadths, config, callback, rest)
       true ->
         { dep, rest } = callback.(dep, rest)
@@ -90,7 +90,7 @@ defmodule Mix.Deps.Converger do
   # In case dependencies are found, check if their
   # scm info match. If not, mark the dependencies
   # as diverged.
-  def diverged_dep?(list, dep) do
+  def diverged_deps(list, dep) do
     Mix.Dep[app: app, scm: scm, opts: opts] = dep
 
     Enum.map_reduce list, false, fn(other, diverged) ->

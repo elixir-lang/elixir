@@ -57,7 +57,7 @@ defmodule Mix.Tasks.DepsTest do
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.run []
 
-      assert_received { :mix_shell, :info, ["* ok [git: \"https://github.com/elixir-lang/ok.git\"]"] }
+      assert_received { :mix_shell, :info, ["* ok [git: \"git://github.com/elixir-lang/ok.git\"]"] }
       assert_received { :mix_shell, :info, ["  locked at \"abcdef\""] }
       assert_received { :mix_shell, :info, ["  lock mismatch: the dependency is out of date"] }
       assert_received { :mix_shell, :info, ["* invalidvsn [path: \"deps/invalidvsn\"]"] }
@@ -124,7 +124,7 @@ defmodule Mix.Tasks.DepsTest do
         Mix.Tasks.Deps.Check.run []
       end
 
-      assert_received { :mix_shell, :error, ["* ok [git: \"https://github.com/elixir-lang/ok.git\"]"] }
+      assert_received { :mix_shell, :error, ["* ok [git: \"git://github.com/elixir-lang/ok.git\"]"] }
       assert_received { :mix_shell, :error, ["  lock mismatch: the dependency is out of date"] }
       assert_received { :mix_shell, :error, ["* invalidvsn [path: \"deps/invalidvsn\"]"] }
       assert_received { :mix_shell, :error, ["  the dependency does not match the specified version, got 0.1.0"] }

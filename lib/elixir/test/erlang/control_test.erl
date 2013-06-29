@@ -1,10 +1,15 @@
--module(conditionals_test).
+-module(control_test).
 -include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->
   { Value, Binding, _ } = elixir:eval(Content, []),
   { Value, Binding }.
+
+to_erl(String) ->
+  Forms = elixir_translator:'forms!'(String, 1, "nofile", []),
+  { Tree, _ } = elixir_translator:translate(Forms, elixir:scope_for_eval([])),
+  Tree.
 
 % Booleans
 
@@ -229,8 +234,7 @@ andand_test() ->
     {3, _} = eval("Bar.foo && 1 + 2"),
     {false, _} = eval("Bar.bar && error(:bad)"),
     {2, _} = eval("1 && 2"),
-    {nil, _} = eval("nil && 2"),
-    {false, _} = eval("false && false or true")
+    {nil, _} = eval("nil && 2")
   end,
   test_helper:run_and_remove(F, ['Elixir.Bar']).
 
@@ -261,3 +265,29 @@ oror_test() ->
     {true, _} = eval("false && false || true")
   end,
   test_helper:run_and_remove(F, ['Elixir.Bar']).
+
+% Optimized
+
+optimized_if_test() ->
+  [{ 'case', _, _,
+    [{clause,_,[{atom,_,false}],[],[{atom,_,else}]},
+     {clause,_,[{atom,_,true}],[],[{atom,_,do}]} ]
+  }] = to_erl("if is_list(x), do: :do, else: :else").
+
+optimized_andand_test() ->
+  [{ 'case', _, _,
+    [{clause,_,
+      [{var,_,Var}],
+      [[{op,_,'orelse',_,_}]],
+      [{var,_,Var}]},
+    {clause,_,[{var,_,'_'}],[],[{atom,0,done}]}]
+  }] = to_erl("is_list(x) && :done").
+
+optimized_oror_test() ->
+  [{ 'case', _, _,
+    [{clause,1,
+      [{var,1,_}],
+      [[{op,1,'orelse',_,_}]],
+      [{atom,0,done}]},
+    {clause,1,[{var,1,Var}],[],[{var,1,Var}]}]
+  }] = to_erl("is_list(x) || :done").

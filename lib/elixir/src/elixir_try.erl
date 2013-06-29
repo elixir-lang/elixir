@@ -10,7 +10,7 @@ clauses(Meta, Clauses, S) ->
   lists:mapfoldl(Transformer, S, Rescue ++ Catch).
 
 each_clause({ 'catch', Meta, Raw, Expr }, S) ->
-  { Args, Guards } = elixir_clauses:extract_last_guards(Raw),
+  { Args, Guards } = elixir_clauses:extract_splat_guards(Raw),
 
   Final = case Args of
     [X]     -> [throw, X, { '_', Meta, nil }];
@@ -23,19 +23,19 @@ each_clause({ 'catch', Meta, Raw, Expr }, S) ->
   Condition = { '{}', Meta, Final },
   elixir_clauses:assigns_block(?line(Meta), fun elixir_translator:translate_each/2, Condition, [Expr], Guards, S);
 
-each_clause({ rescue, Meta, [Condition|T], Expr }, S) ->
+each_clause({ rescue, Meta, [Condition], Expr }, S) ->
   case normalize_rescue(Meta, Condition, S) of
     { Left, Right } ->
       case Left of
         { '_', _, _ } ->
           { ClauseVar, CS } = elixir_scope:build_ex_var(?line(Meta), S),
           { Clause, _ } = rescue_guards(Meta, ClauseVar, Right, S),
-          each_clause({ 'catch', Meta, [error, Clause|T], Expr }, CS);
+          each_clause({ 'catch', Meta, Clause, Expr }, CS);
         _ ->
           { Clause, Safe } = rescue_guards(Meta, Left, Right, S),
           case Safe of
             true ->
-              each_clause({ 'catch', Meta, [error, Clause|T], Expr }, S);
+              each_clause({ 'catch', Meta, Clause, Expr }, S);
             false ->
               { ClauseVar, CS }  = elixir_scope:build_ex_var(?line(Meta), S),
               { FinalClause, _ } = rescue_guards(Meta, ClauseVar, Right, S),
@@ -44,11 +44,11 @@ each_clause({ rescue, Meta, [Condition|T], Expr }, S) ->
                 { { '.', Meta, ['Elixir.Exception', normalize] }, Meta, [ClauseVar] }
               ] },
               FinalExpr = prepend_to_block(Meta, Match, Expr),
-              each_clause({ 'catch', Meta, [error, FinalClause|T], FinalExpr }, CS)
+              each_clause({ 'catch', Meta, FinalClause, FinalExpr }, CS)
           end
       end;
     _ ->
-      each_clause({ 'catch', Meta, [error, Condition|T], Expr }, S)
+      each_clause({ 'catch', Meta, [error, Condition], Expr }, S)
   end;
 
 each_clause({rescue,Meta,_,_}, S) ->
@@ -79,11 +79,11 @@ normalize_rescue(_, { in, Meta, [Left, Right] }, S) ->
     _ when is_list(Right) ->
       is_valid_rescue_list(Right, S) andalso { Left, Right };
     _ ->
-      Expanded = 'Elixir.Macro':expand(Right, elixir_scope:to_ex_env({ ?line(Meta), S })),
-      case is_valid_rescue_list(Expanded, S) of
+      { Expanded, ES } = 'Elixir.Macro':expand_all(Right, elixir_scope:to_ex_env({ ?line(Meta), S }), S),
+      case is_valid_rescue_list(Expanded, ES) of
         true  -> { Left, Expanded };
         false ->
-          elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid use of operator \"in\" in rescue inside try")
+          elixir_errors:syntax_error(Meta, ES#elixir_scope.file, "invalid use of operator \"in\" in rescue inside try")
       end
   end;
 
@@ -97,7 +97,7 @@ normalize_rescue(Meta, Condition, S) ->
   end.
 
 %% Convert rescue clauses into guards.
-rescue_guards(_, Var, nil, _) -> { Var, false };
+rescue_guards(_, Var, nil, _) -> { [error, Var], false };
 
 rescue_guards(Meta, Var, Guards, S) ->
   { RawElixir, RawErlang } = rescue_each_var(Meta, Var, Guards),
@@ -114,7 +114,7 @@ rescue_guards(Meta, Var, Guards, S) ->
       [join(Meta, 'and', [IsTuple, IsException, OrElse])|Erlang]
   end,
   {
-    { 'when', Meta, [Var, reverse_join(Meta, 'when', Final)] },
+    [{ 'when', Meta, [error, Var, reverse_join(Meta, 'when', Final)] }],
     Safe
   }.
 
@@ -238,8 +238,8 @@ erlang_rescue_guard_for(Meta, Var, 'Elixir.ErlangError') ->
 %% Helpers
 
 format_error({ rescue_no_match, Var, Alias }) ->
-  VarBinary   = 'Elixir.Macro':to_binary(Var),
-  AliasBinary = 'Elixir.Macro':to_binary(Alias),
+  VarBinary   = 'Elixir.Macro':to_string(Var),
+  AliasBinary = 'Elixir.Macro':to_string(Alias),
   Message = "rescue clause (~ts = ~ts) can never match, maybe you meant to write: ~ts in [~ts] ?",
   io_lib:format(Message, [AliasBinary, VarBinary, VarBinary, AliasBinary]).
 

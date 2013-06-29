@@ -19,20 +19,37 @@ defmodule PathHelpers do
   end
 
   def elixir(args) do
-    :os.cmd binary_to_list("#{elixir_executable} #{:unicode.characters_to_binary(args)}")
+    runcmd(elixir_executable,args)
+  end
+  
+  def elixir_executable do
+    executable_path("elixir")
   end
 
   def elixirc(args) do
-    :os.cmd '#{elixirc_executable} #{args}'
+    runcmd(elixirc_executable,args)
   end
-
-  def elixir_executable do
-    Path.expand("../../../../../bin/elixir", __FILE__)
-  end
-
+  
   def elixirc_executable do
-    elixir_executable <> "c"
+    executable_path("elixirc")
   end
+
+  defp runcmd(executable,args) do 
+    :os.cmd binary_to_list("#{executable} #{:unicode.characters_to_binary(args)}#{redirect_std_err_on_win}")
+  end 
+  
+  defp executable_path(name) do
+    Path.expand("../../../../../bin/#{name}#{executable_extension}", __FILE__)
+  end
+  
+  if match? { :win32, _ }, :os.type do
+    def executable_extension, do: ".bat"
+    def redirect_std_err_on_win, do: " 2>&1"
+  else
+    def executable_extension, do: ""
+    def redirect_std_err_on_win, do: ""
+  end
+
 end
 
 defmodule CompileAssertion do

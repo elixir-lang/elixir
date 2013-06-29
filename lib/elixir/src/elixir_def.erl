@@ -100,7 +100,7 @@ store_definition(Kind, Line, CheckClauses, Module, Call, Body, RawS) ->
 
   { Name, Args } = case elixir_clauses:extract_args(NameAndArgs) of
     error ->
-      Format = [Kind, 'Elixir.Macro':to_binary(NameAndArgs)],
+      Format = [Kind, 'Elixir.Macro':to_string(NameAndArgs)],
       elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid syntax in ~ts ~ts", Format);
     Tuple ->
       Tuple
@@ -132,9 +132,10 @@ store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, #el
   CTable = clauses_table(Module),
 
   compile_super(Module, TS),
+  check_previous_defaults(Table, Line, Name, Arity, Kind, DefaultsLength, S),
+
   store_each(CheckClauses, Kind, File, Location,
     Table, CTable, DefaultsLength, Function),
-
   [store_each(false, Kind, File, Location, Table, CTable, 0,
     default_function_for(Kind, Name, Default)) || Default <- Defaults],
 
@@ -309,8 +310,8 @@ store_each(Check, Kind, File, Location, Table, CTable, Defaults, {function, Line
       FinalLocation = StoredLocation,
       FinalDefaults = max(Defaults, StoredDefaults),
       check_valid_kind(Line, File, Name, Arity, Kind, StoredKind),
-      check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, StoredDefaults),
-      (Check and StoredCheck) andalso check_valid_clause(Line, File, Name, Arity, Kind, Table);
+      (Check and StoredCheck) andalso check_valid_clause(Line, File, Name, Arity, Kind, Table),
+      check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, StoredDefaults);
     [] ->
       FinalLine = Line,
       FinalLocation = Location,
@@ -340,7 +341,18 @@ check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _) -> [];
 check_valid_defaults(Line, File, Name, Arity, Kind, _, 0) ->
   elixir_errors:handle_file_warning(File, { Line, ?MODULE, { out_of_order_defaults, { Kind, Name, Arity } } });
 check_valid_defaults(Line, File, Name, Arity, Kind, _, _) ->
-  elixir_errors:handle_file_warning(File, { Line, ?MODULE, { clauses_with_defaults, { Kind, Name, Arity } } }).
+  elixir_errors:form_error(Line, File, ?MODULE, { clauses_with_defaults, { Kind, Name, Arity } }).
+
+check_previous_defaults(Table, Line, Name, Arity, Kind, Defaults, S) ->
+  Matches = ets:match(Table, { { Name, '$2' }, '$1', '_', '_', '_', '_', '$3' }),
+  [ begin
+      elixir_errors:form_error(Line, S#elixir_scope.file, ?MODULE,
+        { defs_with_defaults, Name, { Kind, Arity }, { K, A } })
+    end || [K, A, D] <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
+
+defaults_conflict(A, D, Arity, Defaults) ->
+  ((Arity >= (A - D)) andalso (Arity < A)) orelse
+    ((A >= (Arity - Defaults)) andalso (A < Arity)).
 
 assert_no_aliases_name(Line, '__aliases__', [Atom], #elixir_scope{file=File}) when is_atom(Atom) ->
   Message = "function names should start with lowercase characters or underscore, invalid name ~ts",
@@ -354,8 +366,17 @@ assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
 format_error({no_module,{Kind,Name,Arity}}) ->
   io_lib:format("cannot define function outside module, invalid scope for ~ts ~ts/~B", [Kind, Name, Arity]);
 
+format_error({defs_with_defaults, Name, { Kind, Arity }, { K, A } }) when Arity > A ->
+  io_lib:format("~ts ~ts/~B defaults conflicts with ~ts ~ts/~B",
+    [Kind, Name, Arity, K, Name, A]);
+
+format_error({defs_with_defaults, Name, { Kind, Arity }, { K, A } }) when Arity < A ->
+  io_lib:format("~ts ~ts/~B conflicts with defaults from ~ts ~ts/~B",
+    [Kind, Name, Arity, K, Name, A]);
+
 format_error({clauses_with_defaults,{Kind,Name,Arity}}) ->
-  io_lib:format("~ts ~ts/~B has default values and multiple clauses, use a separate clause for declaring defaults", [Kind, Name, Arity]);
+  io_lib:format("~ts ~ts/~B has default values and multiple clauses, "
+    "use a separate clause for declaring defaults", [Kind, Name, Arity]);
 
 format_error({out_of_order_defaults,{Kind,Name,Arity}}) ->
   io_lib:format("clause with defaults should be the first clause in ~ts ~ts/~B", [Kind, Name, Arity]);

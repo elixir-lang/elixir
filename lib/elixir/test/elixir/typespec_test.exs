@@ -166,18 +166,13 @@ defmodule Typespec.TypeTest do
     assert {:mytype, {:type, _, :fun, []}, []} = spec
   end
 
-  test "@type with a fun with arguments and return type" do
-    {spec1, spec2} = test_module do
-      t1 = @type mytype :: (integer, integer -> integer)
-      t2 = @type mytype2 :: (fun(integer, integer) -> integer)
-      {t1, t2}
+  test "@type with a fun with multiple arguments and return type" do
+    t = test_module do
+      @type mytype :: (integer, integer -> integer)
     end
     assert {:mytype, {:type, _, :fun, [{:type, _, :product,
              [{:type, _, :integer, []}, {:type, _, :integer, []}]},
-             {:type, _, :integer, []}]}, []} = spec1
-    assert {:mytype2, {:type, _, :fun, [{:type, _, :product,
-             [{:type, _, :integer, []}, {:type, _, :integer, []}]},
-             {:type, _, :integer, []}]}, []} = spec2
+             {:type, _, :integer, []}]}, []} = t
   end
 
   test "@type with a fun with no arguments and return type" do
@@ -262,6 +257,17 @@ defmodule Typespec.TypeTest do
       @type ++ @opaque
     end
     assert [{:mytype, _, []}, {:mytype1, _, []}] = types
+  end
+
+  test "@type from defrecordp" do
+    types = test_module do
+      defrecordp :user, name: nil, age: 0 :: integer
+      @opaque user :: user_t
+      @type
+    end
+
+    assert [{:user_t, {:type, _, :tuple,
+             [{:atom, _, :user}, {:type, _, :term, []}, {:type, _, :integer, []}]}, []}] = types
   end
 
   test "defines_type?" do
@@ -374,7 +380,7 @@ defmodule Typespec.TypeTest do
 
     lc { type, definition } inlist Enum.zip(types, quoted) do
       ast = Kernel.Typespec.type_to_ast(type)
-      assert Macro.to_binary(quote do: @type unquote(ast)) == Macro.to_binary(definition)
+      assert Macro.to_string(quote do: @type unquote(ast)) == Macro.to_string(definition)
     end
   end
 
@@ -427,7 +433,7 @@ defmodule Typespec.TypeTest do
 
     lc { { { _, _ }, spec }, definition } inlist Enum.zip(compiled, specs) do
       quoted = quote do: @spec unquote(Kernel.Typespec.spec_to_ast(:a, spec))
-      assert Macro.to_binary(quoted) == Macro.to_binary(definition)
+      assert Macro.to_string(quoted) == Macro.to_string(definition)
     end
   end
 

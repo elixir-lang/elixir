@@ -10,6 +10,8 @@ defmodule List do
   first argument.
   """
 
+  @compile :inline_list_funcs
+
   @doc """
   Given a list of lists, concatenates the sublists into a single list.
 

@@ -12,27 +12,32 @@ defmodule Mix.Tasks.Archive do
   locally.
 
   The file will be created in the current directory (which is expected
-  to be the project root), unless an argument is supplied in which case
-  the argument is expected to be the PATH where the file will be created.
+  to be the project root), unless an argument -o is provided with the file name.
 
   ## Command line options
 
+  * `-o` - specify output file name
   * `--no-compile` - skip compilation
 
   """
 
   def run(args) do
-    { opts, argv } = OptionParser.parse(args, switches: [force: :boolean, no_compile: :boolean])
+    { opts, _ } = OptionParser.parse(args, switches: [force: :boolean, no_compile: :boolean])
 
     unless opts[:no_compile] do
       Mix.Task.run :compile, args
     end
 
-    case argv do
-      [] ->
-        Mix.Archive.create(".")
-      [path|_] ->
-        Mix.Archive.create(".", path)
+    archive_file = cond do
+      o = opts[:o] ->
+        o
+      app = Mix.project[:app] ->
+        Mix.Archive.name(app, Mix.project[:version])
+      true ->
+        raise Mix.Error, message: "Could not create archive without a name. " <>
+          "Please pass -o as an option"
     end
+
+    Mix.Archive.create(archive_file)
   end
 end

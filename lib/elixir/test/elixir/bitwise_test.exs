@@ -38,11 +38,11 @@ defmodule Bitwise.OperatorsTest do
   end
 
   test :band do
-    assert 1 &&& 1 == 1
+    assert (1 &&& 1) == 1
   end
 
   test :bor do
-    assert 0 ||| 1 == 1
+    assert (0 ||| 1) == 1
   end
 
   test :bxor do
@@ -50,10 +50,10 @@ defmodule Bitwise.OperatorsTest do
   end
 
   test :bsl do
-    assert 1 <<< 1 == 2
+    assert (1 <<< 1) == 2
   end
 
   test :bsr do
-    assert 1 >>> 1 == 0
+    assert (1 >>> 1) == 0
   end
 end

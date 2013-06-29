@@ -196,18 +196,15 @@ intersection([], _All) -> [].
 
 %% Internal funs that are never imported etc.
 
-remove_underscored(default, List) -> remove_underscored(List);
-remove_underscored(_, List)       -> List.
+remove_underscored(default, List) ->
+  lists:filter(fun({ Name, _ }) ->
+    case atom_to_list(Name) of
+      "_" ++ _ -> false;
+      _ -> true
+    end
+  end, List);
 
-remove_underscored([{ Name, _ } = H|T]) when Name < a  ->
-  case atom_to_list(Name) of
-    [$_, $_, _, $_, $_] -> [H|remove_underscored(T)];
-    "_" ++ _            -> remove_underscored(T);
-    _                   -> [H|remove_underscored(T)]
-  end;
-
-remove_underscored(T) ->
-  T.
+remove_underscored(_, List) -> List.
 
 remove_internals(Set) ->
   ordsets:del_element({ module_info, 1 },

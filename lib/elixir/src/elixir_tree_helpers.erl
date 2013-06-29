@@ -2,7 +2,7 @@
 %% to generate erlang abstract format for basic structures
 %% as lists, condition clauses, etc.
 -module(elixir_tree_helpers).
--export([elixir_to_erl/1, erl_to_elixir/1, split_last/1,
+-export([elixir_to_erl/1, split_last/1,
   cons_to_list/1, list_to_cons/2, list_to_cons/3,
   convert_to_boolean/5, returns_boolean/1, get_line/1]).
 -include("elixir.hrl").
@@ -53,22 +53,6 @@ elixir_to_erl_cons([H|T], Acc) ->
   elixir_to_erl_cons(T, { cons, 0, elixir_to_erl(H), Acc });
 
 elixir_to_erl_cons([], Acc) -> Acc.
-
-erl_to_elixir({ tuple, _, Args }) ->
-  list_to_tuple([erl_to_elixir(X) || X <- Args]);
-
-erl_to_elixir({ Kind, _, Value }) when Kind == atom; Kind == integer; Kind == float ->
-  Value;
-
-erl_to_elixir({ bin, _, [{ bin_element, 0, { string, 0, String }, default, default }] }) ->
-  list_to_binary(String);
-
-erl_to_elixir({ nil, _ }) -> [];
-
-erl_to_elixir({ cons, _, Left, Right }) -> [erl_to_elixir(Left)|erl_to_elixir(Right)];
-
-erl_to_elixir(Other) ->
-  { '__scope__', [], [[{erl,true}],[{do,Other}]] }.
 
 %% Others
 

@@ -112,6 +112,14 @@ defmodule Kernel.QuoteTest do
     assert fun.(1, 2, 3) == :ok
   end
 
+  test :when do
+    assert {:->,_,[{[{:when,_,[1,2,3,4]}],_,5}]} = quote(do: (1, 2, 3 when 4 -> 5))
+    assert {:->,_,[{[{:when,_,[1,2,3,4]}],_,5}]} = quote(do: ((1, 2, 3) when 4 -> 5))
+
+    assert {:->,_,[{[{:when,_,[1,2,3,{:when,_,[4,5]}]}],_,6}]} =
+             quote(do: ((1, 2, 3) when 4 when 5 -> 6))
+  end
+
   test :stab do
     assert { :->, _, [{[], _, _}] } = (quote do -> end)
     assert { :->, _, [{[], _, _}] } = (quote do: (->))
@@ -129,6 +137,17 @@ defmodule Kernel.QuoteTest do
 
   test :quote_with_dynamic_opts do
     assert quote(dynamic_opts, do: bar(1, 2, 3)) == { :bar, [line: 3], [1, 2, 3] }
+  end
+
+  test :binding do
+    assert quote(binding: [foo: 1 + 2], do: foo) == { :__block__, [], [
+      { :=, [], [{ :foo, [], Kernel.QuoteTest }, 3] },
+      { :foo, [], Kernel.QuoteTest }
+    ] }
+  end
+
+  test :quote_with_list_block do
+    assert (quote do [] end) == []
   end
 end
 

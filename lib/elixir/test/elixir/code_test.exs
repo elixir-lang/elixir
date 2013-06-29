@@ -28,6 +28,14 @@ defmodule CodeTest do
     assert Code.eval_string("one", [], delegate_locals_to: __MODULE__) == { 1, [] }
   end
 
+  test :eval_options do
+    assert Code.eval_string("is_atom(:foo) and is_record(1..2, Range) and K.is_list([])", [],
+      functions: [{ Kernel, [is_atom: 1] }],
+      macros: [{ Kernel, [..: 2, and: 2, is_record: 2]}],
+      aliases: [{K, Kernel}],
+      requires: [Kernel]) == { true, [] }
+  end
+
   test :eval_with_requires do
     assert Code.eval_string("Kernel.if true, do: :ok", [], requires: [Z, Kernel]) == { :ok, [] }
   end
@@ -65,25 +73,25 @@ defmodule CodeTest do
     assert :filename.absname(__FILE__) == __FILE__
   end
 
-  test :string_to_ast do
-    assert Code.string_to_ast("1 + 2") == { :ok, { :+, [line: 1], [1, 2] } }
-    assert { :error, _ } = Code.string_to_ast("a.1")
+  test :string_to_quoted do
+    assert Code.string_to_quoted("1 + 2") == { :ok, { :+, [line: 1], [1, 2] } }
+    assert { :error, _ } = Code.string_to_quoted("a.1")
   end
 
-  test :string_to_ast_existing_atoms_only do
-    assert :badarg = catch_error(Code.string_to_ast(":thereisnosuchatom", existing_atoms_only: true))
-    assert :badarg = catch_error(Code.string_to_ast!(":thereisnosuchatom", existing_atoms_only: true))
+  test :string_to_quoted_existing_atoms_only do
+    assert :badarg = catch_error(Code.string_to_quoted(":thereisnosuchatom", existing_atoms_only: true))
+    assert :badarg = catch_error(Code.string_to_quoted!(":thereisnosuchatom", existing_atoms_only: true))
   end
 
-  test :string_to_ast! do
-    assert Code.string_to_ast!("1 + 2") == { :+, [line: 1], [1, 2] }
+  test :string_to_quoted! do
+    assert Code.string_to_quoted!("1 + 2") == { :+, [line: 1], [1, 2] }
 
     assert_raise SyntaxError, fn ->
-      Code.string_to_ast!("a.1")
+      Code.string_to_quoted!("a.1")
     end
 
     assert_raise TokenMissingError, fn ->
-      Code.string_to_ast!("1 +")
+      Code.string_to_quoted!("1 +")
     end
   end
 

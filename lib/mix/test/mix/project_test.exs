@@ -16,6 +16,11 @@ defmodule Mix.ProjectTest do
     end
   end
 
+  defmodule WrongElixirProject do
+    def project do
+      [ elixir: "~> 0.8.1" ]
+    end
+  end
 
   test "push and pop projects" do
     refute Mix.Project.get
@@ -48,9 +53,15 @@ defmodule Mix.ProjectTest do
     assert Mix.project[:compile_path] == "ebin"
   end
 
-  test "raises an error when trying to retrieve the current project but none it set" do
+  test "raises an error when trying to retrieve the current project but none is set" do
     assert_raise Mix.NoProjectError, fn ->
       Mix.Project.get!
+    end
+  end
+
+  test "raises an error when the project is supposed to run on another Elixir version" do
+    assert_raise Mix.SystemVersionError, fn ->
+      Mix.Project.push(WrongElixirProject)
     end
   end
 end

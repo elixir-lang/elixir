@@ -13,6 +13,9 @@ if [ $# -gt 0 ] && ([ $1 = "--help" ] || [ $1 = "-h" ]); then
   --erl \"switches\"  Switches to be passed down to erlang (*)
   --name \"name\"     Makes and assigns a name to the distributed node
   --sname \"name\"    Makes and assigns a short name to the distributed node
+  --cookie \"cookie\" Sets a cookie for this distributed node
+  --hidden          Makes a hidden node
+  --detached        Starts the Erlang VM detached from console
   --remsh \"name\"    Connects to a node using a remote shell
   --dot-iex \"path\"  Overrides default .iex file and uses path instead;
                     path can be empty, then no file will be loaded

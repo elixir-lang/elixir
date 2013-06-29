@@ -2,6 +2,8 @@ Code.require_file "../test_helper.exs", __DIR__
 
 defmodule ExUnit.AssertionsTest.Value do
   def tuple, do: { 2, 1 }
+  def happy?, do: false
+  def sad?, do: true
 end
 
 alias ExUnit.AssertionsTest.Value
@@ -13,21 +15,21 @@ defmodule ExUnit.AssertionsTest do
     true = assert true
   end
 
-  test :assert_when_value_is_false do
-    try do
-      "This should never be tested" = assert false
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected false to be true" = error.message
-    end
-  end
-
   test :assert_with_message_when_value_is_false do
     try do
       "This should never be tested" = assert false, "This should be true"
     rescue
       error in [ExUnit.AssertionError] ->
         "This should be true" = error.message
+    end
+  end
+
+  test :assert_when_value_evaluates_to_false do
+    try do
+      "This should never be tested" = assert Value.happy?
+    rescue
+      error in [ExUnit.ExpectationError] ->
+        "Expected Value.happy?() to be true. Instead got false" = error.message
     end
   end
 
@@ -57,8 +59,8 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = refute true
     rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected true to be false" = error.message
+      error in [ExUnit.ExpectationError] ->
+        "Expected true to be false. Instead got true" = error.message
     end
   end
 
@@ -68,6 +70,15 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "This should be false" = error.message
+    end
+  end
+
+  test :refute_when_value_evaluates_to_true do
+    try do
+      "This should never be tested" = refute Value.sad?
+    rescue
+      error in [ExUnit.ExpectationError] ->
+        "Expected Value.sad?() to be false. Instead got true" = error.message
     end
   end
 

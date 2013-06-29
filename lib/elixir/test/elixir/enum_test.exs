@@ -195,6 +195,11 @@ defmodule EnumTest.List do
     assert Enum.partition([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == { [2, 4, 6], [] }
   end
 
+  test :reject do
+    assert Enum.reject([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == [1, 3]
+    assert Enum.reject([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == []
+  end
+
   test :reverse do
     assert Enum.reverse([]) == []
     assert Enum.reverse([1, 2, 3]) == [3, 2, 1]
@@ -473,6 +478,14 @@ defmodule EnumTest.Range do
 
     range = Range.new(first: 1, last: 3)
     assert Enum.reduce(range, 1, fn(x, acc) -> x + acc end) == 7
+  end
+
+  test :reject do
+    range = Range.new(first: 1, last: 3)
+    assert Enum.reject(range, fn(x) -> rem(x, 2) == 0 end) == [1, 3]
+
+    range = Range.new(first: 1, last: 6)
+    assert Enum.reject(range, fn(x) -> rem(x, 2) == 0 end) == [1, 3, 5]
   end
 
   test :join_with_bin do

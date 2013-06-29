@@ -71,7 +71,7 @@ defmodule Regex.BinaryTest do
     assert Regex.captures(%r/c(.)/g, 'cat') == []
   end
 
-  test :__R__ do
+  test :sigil_R do
     assert Regex.match?(%R/f#{1,3}o/, "f#o")
   end
 

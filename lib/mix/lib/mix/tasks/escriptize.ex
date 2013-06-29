@@ -3,6 +3,7 @@ defmodule Mix.Tasks.Escriptize do
   use Bitwise, only_operators: true
 
   @shortdoc "Generates an escript for the project"
+  @recursive true
 
   @moduledoc %B"""
   Generates an escript for the project.
@@ -24,7 +25,8 @@ defmodule Mix.Tasks.Escriptize do
      Defaults to app name
 
   * `escript_app` - the app to start with the escript
-     Defaults to app name
+     Defaults to app name. Set it to `nil` if no application should
+     be started.
 
   * `escript_main_module` - the module containing the main/1 function
      Defaults to `Project`
@@ -60,32 +62,29 @@ defmodule Mix.Tasks.Escriptize do
     script_name  = project[:escript_name] || project[:app]
     filename     = project[:escript_path] || atom_to_binary(script_name)
     embed        = Keyword.get(project, :escript_embed_elixir, true)
-    beams        = all_beams()
     app          = Keyword.get(project, :escript_app, project[:app])
+    files        = project_files()
 
     cond do
       !script_name ->
         raise Mix.Error, message: "Could not generate escript, no name given, " <>
           "set :escript_name or :app in the project settings"
-      beams == [] ->
-        raise Mix.Error, message: "Could not generate escript #{filename}, " <>
-          "no beam files available"
-      force or Mix.Utils.stale?(beams, [filename]) ->
-        files = gen_main(script_name, project[:escript_main_module], app)
-        files = files ++ all_files()
+      force or Mix.Utils.stale?(files, [filename]) ->
+        tuples = gen_main(script_name, project[:escript_main_module], app) ++ to_tuples(files)
+        tuples = tuples ++ deps_tuples()
 
         if embed do
           extra_apps = project[:escript_embed_extra_apps] || []
-          files = Enum.reduce [:elixir|extra_apps], files, fn(app, acc) ->
-            app_files(app) ++ acc
+          tuples = Enum.reduce [:elixir|extra_apps], tuples, fn(app, acc) ->
+            app_tuples(app) ++ acc
           end
         end
 
-        # We might get duplicate files in umbrella projects from applications
+        # We might get duplicate tuples in umbrella projects from applications
         # sharing the same dependencies
-        files = Enum.uniq(files, fn {name, _} -> name end)
+        tuples = Enum.uniq(tuples, fn {name, _} -> name end)
 
-        case :zip.create 'mem', files, [:memory] do
+        case :zip.create 'mem', tuples, [:memory] do
           { :ok, { 'mem', zip } } ->
             shebang  = project[:escript_shebang]  || "#! /usr/bin/env escript\n"
             comment  = project[:escript_comment]  || "%%\n"
@@ -107,27 +106,13 @@ defmodule Mix.Tasks.Escriptize do
     end
   end
 
-  defp all_beams() do
-    Mix.Project.recur(fn _ -> get_beams() end) |> List.concat
+  defp project_files do
+    get_files(".")
   end
 
-  defp get_beams() do
-    compile_path = Mix.project[:compile_path] || "ebin"
-    configs      = Mix.Project.config_files
-    beams        = Path.wildcard('#{compile_path}/*.beam')
-    beams        = Enum.map(beams, Path.absname(&1))
-    configs ++ beams
-  end
-
-  defp all_files() do
-    Mix.Project.recur(fn _ -> get_compiled_files() end) |> List.concat
-  end
-
-  defp get_compiled_files() do
-    compile_path = Mix.project[:compile_path] || "ebin"
-    files = get_files(compile_path)
-    Enum.reduce Mix.Deps.all || [], files, fn(dep, acc) ->
-      dep_files(dep.app) ++ acc
+  defp deps_tuples do
+    Enum.reduce Mix.Deps.all || [], [], fn(dep, acc) ->
+      dep_tuples(dep.app) ++ acc
     end
   end
 
@@ -136,20 +121,29 @@ defmodule Mix.Tasks.Escriptize do
     :ok  = :file.change_mode(filename, stat.mode ||| 73)
   end
 
-  defp dep_files(dep) do
-    get_files(Path.join(["deps", atom_to_binary(dep), "ebin"]))
+  defp dep_tuples(dep) do
+    get_tuples(Path.join("deps", atom_to_binary(dep)))
   end
 
-  defp app_files(app) do
+  defp app_tuples(app) do
     case :code.where_is_file('#{app}.app') do
       :non_existing -> raise Mix.Error, "Could not find application #{app}"
-      file -> get_files(Path.dirname(file))
+      file -> get_tuples(Path.dirname(Path.dirname(file)))
     end
   end
 
-  defp get_files(dir) do
-    lc f inlist Path.wildcard("#{dir}/**/*.{app,beam}") do
-      { binary_to_list(Path.basename(f)), File.read!(f) }
+  defp get_files(app) do
+    Path.wildcard("#{app}/ebin/*.{app,beam}") ++
+      (Path.wildcard("#{app}/priv/**/*") |> Enum.filter(File.regular?(&1)))
+  end
+
+  defp get_tuples(app) do
+    get_files(app) |> to_tuples
+  end
+
+  defp to_tuples(files) do
+    lc f inlist files do
+      { :unicode.characters_to_list(Path.basename(f)), File.read!(f) }
     end
   end
 

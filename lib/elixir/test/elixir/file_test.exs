@@ -1,26 +1,13 @@
 Code.require_file "test_helper.exs", __DIR__
 
 defmodule FileTest do
-  import PathHelpers
-
   use ExUnit.Case
+
+  import PathHelpers
+  import Regex, only: [escape: 1]
 
   defmodule Cp do
     use ExUnit.Case
-
-    # cp_r/c is managed in setup/teardown because if it is stored in
-    # the repository, reltool can't build a release
-    setup do
-      src = fixture_path("cp_r")
-      :file.make_symlink 'certainly/invalid', Path.join([src, "c"])
-      :ok
-    end
-
-    teardown do
-      src = fixture_path("cp_r")
-      File.rm Path.join([src, "c"])
-      :ok
-    end
 
     test :cp_with_src_file_and_dest_file do
       src  = fixture_path("file.txt")
@@ -186,12 +173,9 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 8
+        assert length(files) == 7
         assert tmp_path("tmp/cp_r/a") in files
-        assert tmp_path("tmp/cp_r/c") in files
         assert tmp_path("tmp/cp_r/a/1.txt") in files
-
-        assert { :ok, 'certainly/invalid' } = :file.read_link(tmp_path("tmp/cp_r/c"))
 
         assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
         assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
@@ -213,7 +197,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 8
+        assert length(files) == 7
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -229,7 +213,7 @@ defmodule FileTest do
 
       try do
         File.touch!(dest)
-        assert File.cp_r(src, dest) == { :error, :enotdir }
+        assert (File.cp_r(src, dest) |> is_io_error?)
       after
         File.rm_rf dest
       end
@@ -245,7 +229,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 8
+        assert length(files) == 7
 
         assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
         assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
@@ -258,7 +242,7 @@ defmodule FileTest do
     test :cp_r_with_src_unknown do
       src  = fixture_path("unknown")
       dest = tmp_path("tmp")
-      assert File.cp_r(src, dest) == { :error, :enoent }
+      assert File.cp_r(src, dest) == { :error, :enoent, src }
     end
 
     test :cp_r_with_dir_and_file_conflict do
@@ -268,7 +252,7 @@ defmodule FileTest do
       try do
         File.mkdir(dest)
         File.write!(Path.join(dest, "a"), "hello")
-        assert File.cp_r(src, dest) == { :error, :enotdir }
+        assert (File.cp_r(src, dest)  |> is_io_error?)
       after
         File.rm_rf dest
       end
@@ -286,7 +270,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 8
+        assert length(files) == 7
         assert is_list(hd(files))
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
@@ -344,7 +328,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
-        assert length(File.cp_r!(src, dest)) == 8
+        assert length(File.cp_r!(src, dest)) == 7
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -357,7 +341,7 @@ defmodule FileTest do
     test :cp_r_with_src_unknown! do
       src  = fixture_path("unknown")
       dest = tmp_path("tmp")
-      assert_raise File.CopyError, "could not copy recursively from #{src} to #{dest}: no such file or directory", fn ->
+      assert_raise File.CopyError, "could not copy recursively from #{src} to #{dest}. #{src}: no such file or directory", fn ->
         File.cp_r!(src, dest)
       end
     end
@@ -369,13 +353,17 @@ defmodule FileTest do
      File.Stat[mode: src_mode] = File.stat! src
      File.Stat[mode: dest_mode] = File.stat! dest
      assert src_mode == dest_mode
-     # on overwrite
+
+     # On overwrite
      File.cp! src, dest, fn(_, _) -> true end
      File.Stat[mode: src_mode] = File.stat! src
      File.Stat[mode: dest_mode] = File.stat! dest
      assert src_mode == dest_mode
     end
 
+    defp is_io_error?(result) do
+      elem(result, 1) in [:enotdir, :eio, :enoent, :eisdir]
+    end
   end
 
   defmodule Queries do
@@ -586,7 +574,7 @@ defmodule FileTest do
       fixture = fixture_path("file.txt")
       invalid = Path.join fixture, "test"
       assert File.exists?(fixture)
-      assert File.mkdir(invalid) == { :error, :enotdir }
+      assert (File.mkdir(invalid) |> is_io_error?)
       refute File.exists?(invalid)
     end
 
@@ -605,7 +593,7 @@ defmodule FileTest do
       fixture = fixture_path("file.txt")
       invalid = Path.join fixture, "test"
       assert File.exists?(fixture)
-      assert_raise File.Error, "could not make directory #{invalid}: not a directory", fn ->
+      assert_raise File.Error, %r"^could not make directory #{escape invalid}: (not a directory|no such file or directory)", fn ->
         File.mkdir!(invalid)
       end
     end
@@ -667,7 +655,7 @@ defmodule FileTest do
     test :mkdir_p_with_invalid_path do
       assert File.exists?(fixture_path("file.txt"))
       invalid = Path.join fixture_path("file.txt"), "test/foo"
-      assert File.mkdir(invalid) == { :error, :enotdir }
+      assert (File.mkdir(invalid) |> is_io_error?)
       refute File.exists?(invalid)
     end
 
@@ -686,28 +674,20 @@ defmodule FileTest do
       fixture = fixture_path("file.txt")
       invalid = Path.join fixture, "test"
       assert File.exists?(fixture)
-      assert_raise File.Error, "could not make directory (with -p) #{invalid}: not a directory", fn ->
+      assert_raise File.Error, %r"^could not make directory \(with -p\) #{escape invalid}: (not a directory|no such file or directory)", fn ->
         File.mkdir_p!(invalid)
       end
     end
+
+    defp is_io_error?(result) do
+      {:error,errorcode} = result
+      errorcode in [:enotdir, :eio, :enoent, :eisdir]
+    end
+
   end
 
   defmodule Rm do
     use ExUnit.Case
-
-    # cp_r/c is managed in setup/teardown because if it is stored in
-    # the repository, reltool can't build a release
-    setup do
-      src = fixture_path("cp_r")
-      :file.make_symlink 'certainly/invalid', Path.join([src, "c"])
-      :ok
-    end
-
-    teardown do
-      src = fixture_path("cp_r")
-      File.rm Path.join([src, "c"])
-      :ok
-    end
 
     test :rm_file do
       fixture = tmp_path("tmp_test.txt")
@@ -748,7 +728,7 @@ defmodule FileTest do
     end
 
     test :rmdir_with_file do
-      assert File.rmdir(fixture_path("file.txt")) == { :error, :enotdir }
+      assert (File.rmdir(fixture_path("file.txt")) |> is_io_error?)
     end
 
     test :rmdir! do
@@ -761,7 +741,7 @@ defmodule FileTest do
 
     test :rmdir_with_file! do
       fixture = fixture_path("file.txt")
-      assert_raise File.Error, "could not remove directory #{fixture}: not a directory", fn ->
+      assert_raise File.Error, %r"^could not remove directory #{escape fixture}: (not a directory|I/O error)", fn ->
         File.rmdir!(fixture)
       end
     end
@@ -776,7 +756,7 @@ defmodule FileTest do
       assert File.exists?(tmp_path("tmp/b/3.txt"))
 
       { :ok, files } = File.rm_rf(fixture)
-      assert length(files) == 8
+      assert length(files) == 7
       assert fixture in files
       assert tmp_path("tmp/a/1.txt") in files
 
@@ -791,13 +771,15 @@ defmodule FileTest do
 
       File.mkdir_p(tmp_path("tmp"))
       :file.make_symlink(fixture_path, fixture)
-      assert File.exists?(fixture)
+      if File.exists?(fixture) or !match?({:win32,_},:os.type) do
+        assert File.exists?(fixture)
 
-      { :ok, files } = File.rm_rf(fixture)
-      assert length(files) == 1
+        { :ok, files } = File.rm_rf(fixture)
+        assert length(files) == 1
 
-      assert File.exists?(fixture_path("file.txt"))
-      refute File.exists?(fixture)
+        assert File.exists?(fixture_path("file.txt"))
+        refute File.exists?(fixture)
+      end 
     end
 
     test :rm_rf_with_char_list do
@@ -810,7 +792,7 @@ defmodule FileTest do
       assert File.exists?(tmp_path("tmp/b/3.txt"))
 
       { :ok, files } = File.rm_rf(fixture)
-      assert length(files) == 8
+      assert length(files) == 7
       assert fixture in files
       assert (tmp_path("tmp/a/1.txt") |> to_char_list) in files
 
@@ -833,7 +815,7 @@ defmodule FileTest do
 
     test :rm_rf_with_invalid do
       fixture = fixture_path "file.txt/path"
-      assert File.rm_rf(fixture) == { :error, :enotdir }
+      assert File.rm_rf(fixture) == { :ok, [] }
     end
 
     test :rm_rf! do
@@ -846,7 +828,7 @@ defmodule FileTest do
       assert File.exists?(tmp_path("tmp/b/3.txt"))
 
       files = File.rm_rf!(fixture)
-      assert length(files) == 8
+      assert length(files) == 7
       assert fixture in files
       assert tmp_path("tmp/a/1.txt") in files
 
@@ -858,9 +840,11 @@ defmodule FileTest do
 
     test :rm_rf_with_invalid! do
       fixture = fixture_path "file.txt/path"
-      assert_raise File.Error, "could not remove files and directories recursively from #{fixture}: not a directory", fn ->
-        File.rm_rf!(fixture)
-      end
+      assert File.rm_rf!(fixture) == []
+    end
+
+    defp is_io_error?(result) do
+      elem(result, 1) in [:enotdir, :eio, :enoent, :eisdir]
     end
   end
 
@@ -1057,20 +1041,24 @@ defmodule FileTest do
     end
   end
 
-  test :cwd_and_cd_with_utf8 do
-    if :file.native_name_encoding == :utf8 do
-      File.cd!(fixture_path("héllò"), fn ->
+  if :file.native_name_encoding == :utf8 do
+    test :cwd_and_cd_with_utf8 do
+      File.mkdir_p(tmp_path("héllò"))
+
+      File.cd!(tmp_path("héllò"), fn ->
         assert Path.basename(File.cwd!) == "héllò"
       end)
+    after
+      File.rm_rf tmp_path("héllò")
     end
   end
 
   test :invalid_cd do
-    assert File.cd(fixture_path("file.txt")) == { :error, :enotdir }
+    assert(File.cd(fixture_path("file.txt")) |> is_io_error?)
   end
 
   test :invalid_cd! do
-    message = "could not set current working directory to #{fixture_path("file.txt")}: not a directory"
+    message = %r"^could not set current working directory to #{escape fixture_path("file.txt")}: (not a directory|no such file or directory)"
     assert_raise File.Error, message, fn ->
       File.cd!(fixture_path("file.txt"))
     end
@@ -1115,7 +1103,7 @@ defmodule FileTest do
 
   test :touch_with_failure do
     fixture = fixture_path("file.txt/bar")
-    assert File.touch(fixture) == { :error, :enotdir }
+    assert (File.touch(fixture) |> is_io_error?)
   end
 
   test :touch_with_success! do
@@ -1124,10 +1112,100 @@ defmodule FileTest do
 
   test :touch_with_failure! do
     fixture = fixture_path("file.txt/bar")
-    assert_raise File.Error, "could not touch #{fixture}: not a directory", fn ->
+    assert_raise File.Error, %r"could not touch #{escape fixture}: (not a directory|no such file or directory)", fn ->
       File.touch!(fixture)
     end
   end
+
+  test :chmod_with_success do
+    fixture = tmp_path("tmp_test.txt")
+
+    File.touch(fixture)
+    try do
+      assert File.chmod(fixture, 0100666) == :ok
+      stat = File.stat!(fixture)
+      assert stat.mode == 0100666
+
+      if !match? { :win32, _ }, :os.type do
+        assert File.chmod(fixture, 0100777) == :ok
+        stat = File.stat!(fixture)
+        assert stat.mode == 0100777
+      end   
+    after
+      File.rm(fixture)
+    end
+  end
+
+  test :chmod_with_success! do
+    fixture = tmp_path("tmp_test.txt")
+
+    File.touch(fixture)
+    try do
+      assert File.chmod!(fixture, 0100666) == :ok
+      stat = File.stat!(fixture)
+      assert stat.mode == 0100666
+
+      if !match? { :win32, _ }, :os.type do
+        assert File.chmod!(fixture, 0100777) == :ok
+        stat = File.stat!(fixture)
+        assert stat.mode == 0100777
+      end   
+    after
+      File.rm(fixture)
+    end
+  end
+
+  test :chmod_with_failue do
+    fixture = tmp_path("tmp_test.txt")
+    File.rm(fixture)
+
+    assert File.chmod(fixture, 0100777) == {:error,:enoent}
+  end
+
+  test :chmod_with_failue! do
+    fixture = tmp_path("tmp_test.txt")
+    File.rm(fixture)
+
+    message = %r"could not change mode for #{escape fixture}: no such file or directory"
+    assert_raise File.Error, message, fn ->
+      File.chmod!(fixture, 0100777)
+    end
+  end
+
+  test :chgrp_with_failue do
+    fixture = tmp_path("tmp_test.txt")
+    File.rm(fixture)
+
+    assert File.chgrp(fixture, 1) == {:error,:enoent}
+  end
+
+  test :chgrp_with_failue! do
+    fixture = tmp_path("tmp_test.txt")
+    File.rm(fixture)
+
+    message = %r"could not change group for #{escape fixture}: no such file or directory"
+    assert_raise File.Error, message, fn ->
+      File.chgrp!(fixture, 1)
+    end
+  end
+
+  test :chown_with_failue do
+    fixture = tmp_path("tmp_test.txt")
+    File.rm(fixture)
+
+    assert File.chown(fixture, 1) == {:error,:enoent}    
+  end
+
+  test :chown_with_failue! do
+    fixture = tmp_path("tmp_test.txt")
+    File.rm(fixture)
+
+    message = %r"could not change owner for #{escape fixture}: no such file or directory"
+    assert_raise File.Error, message, fn ->
+      File.chown!(fixture, 1)
+    end
+  end
+
 
   defp last_year do
     last_year :calendar.local_time
@@ -1135,5 +1213,10 @@ defmodule FileTest do
 
   defp last_year({ { year, month, day }, time }) do
     { { year - 1, month, day }, time }
+  end
+
+  defp is_io_error?(result) do
+    {:error,errorcode} = result
+    errorcode in [:enotdir, :eio, :enoent, :eisdir]
   end
 end

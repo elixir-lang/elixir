@@ -151,7 +151,7 @@ defmodule IEx.Introspection do
   end
 
   defp print_doc_arg({ ://, _, [left, right] }) do
-    print_doc_arg(left) <> " // " <> Macro.to_binary(right)
+    print_doc_arg(left) <> " // " <> Macro.to_string(right)
   end
 
   defp print_doc_arg({ var, _, _ }) do
@@ -248,13 +248,13 @@ defmodule IEx.Introspection do
 
   defp print_type({ kind, type }) do
     ast = Kernel.Typespec.type_to_ast(type)
-    IO.puts IEx.color(:info, "@#{kind} #{Macro.to_binary(ast)}")
+    IO.puts IEx.color(:info, "@#{kind} #{Macro.to_string(ast)}")
     true
   end
 
   defp print_spec({kind, { { name, _arity }, specs }}) do
     Enum.each specs, fn(spec) ->
-      binary = Macro.to_binary Kernel.Typespec.spec_to_ast(name, spec)
+      binary = Macro.to_string Kernel.Typespec.spec_to_ast(name, spec)
       IO.puts IEx.color(:info, "@#{kind} #{binary}")
     end
     true

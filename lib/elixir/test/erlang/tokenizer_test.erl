@@ -6,8 +6,8 @@ tokenize(String) ->
   { ok, Result } = elixir_tokenizer:tokenize(String, 1, []),
   Result.
 
-colon_colon_test() ->
-  [{number,1,1},{'::',1},{number,1,3}] = tokenize("1 :: 3"),
+type_test() ->
+  [{number,1,1},{type_op,1,'::'},{number,1,3}] = tokenize("1 :: 3"),
   [{identifier,1,foo},
    {'.',1},
    {paren_identifier,1,'::'},
@@ -16,10 +16,10 @@ colon_colon_test() ->
    {')',1}] = tokenize("foo.::(3)").
 
 arithmetic_test() ->
-  [{number,1,1},{'+',1},{number,1,2},{'+',1},{number,1,3}] = tokenize("1 + 2 + 3").
+  [{number,1,1},{dual_op,1,'+'},{number,1,2},{dual_op,1,'+'},{number,1,3}] = tokenize("1 + 2 + 3").
 
 op_kw_test() ->
-  [{atom,1,foo},{'+',1},{atom,1,bar}] = tokenize(":foo+:bar").
+  [{atom,1,foo},{dual_op,1,'+'},{atom,1,bar}] = tokenize(":foo+:bar").
 
 scientific_test() ->
   [{number, 1, 0.1}] = tokenize("1.0e-1").
@@ -92,7 +92,7 @@ newline_test() ->
   {'.',2},
   {identifier,2,bar}]  = tokenize("foo\n.bar"),
   [{number,1,1},
-   {'++',2},
+   {two_op,2,'++'},
    {number,2,2}]  = tokenize("1\n++2").
 
 aliases_test() ->
@@ -112,10 +112,10 @@ empty_string_test() ->
   [{list_string,1,[<<>>]}] = tokenize("''").
 
 default_test() ->
-  [{identifier,1,x},{'//',1},{number,1,1}] = tokenize("x // 1").
+  [{identifier,1,x},{default_op,1,'//'},{number,1,1}] = tokenize("x // 1").
 
 addadd_test() ->
-  [{identifier,1,x},{'++',1},{identifier,1,y}] = tokenize("x ++ y").
+  [{identifier,1,x},{two_op,1,'++'},{identifier,1,y}] = tokenize("x ++ y").
 
 chars_test() ->
   [{number,1,97}]      = tokenize("?a"),

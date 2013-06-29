@@ -2,9 +2,10 @@ Nonterminals
   grammar expr_list
   expr paren_expr block_expr fn_expr bracket_expr call_expr bracket_at_expr max_expr
   base_expr matched_expr matched_op_expr unmatched_expr op_expr
-  add_op mult_op unary_op two_op regex_op right_op bin_concat_op
-  match_op send_op default_op when_op pipe_op in_op inc_op range_op
-  andand_op oror_op and_op or_op comp_expr_op colon_colon_op three_op at_op
+  comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol tail_op_eol
+  add_op_eol mult_op_eol exp_op_eol two_op_eol type_op_eol stab_op_eol
+  arrow_op_eol range_op_eol than_op_eol default_op_eol match_op_eol
+  when_op_eol in_op_eol inc_op_eol
   open_paren close_paren empty_paren
   open_bracket close_bracket
   open_curly close_curly
@@ -12,7 +13,7 @@ Nonterminals
   base_comma_expr comma_expr optional_comma_expr matched_comma_expr
   call_args call_args_parens parens_call
   call_args_no_parens call_args_no_parens_strict call_args_parens_not_one
-  stab stab_eol stab_op stab_expr stab_maybe_expr
+  stab stab_eol stab_expr stab_maybe_expr
   kw_eol kw_expr kw_comma kw_base
   matched_kw_expr matched_kw_comma matched_kw_base
   dot_op dot_ref dot_identifier dot_op_identifier dot_do_identifier
@@ -26,46 +27,40 @@ Terminals
   bracket_identifier paren_identifier do_identifier block_identifier
   fn 'end' aliases
   number signed_number atom bin_string list_string sigil
-  dot_call_op comp_op op_identifier
-  'not' 'and' 'or' 'xor' 'when' 'in' 'inlist' 'inbits' 'do'
-  'true' 'false' 'nil'
-  '=' '+' '-' '*' '/' '++' '--' '**' '//'
-  '(' ')' '[' ']' '{' '}' '<<' '>>' '::'
-  eol ','  '&' '|'  '.' '^' '@' '<-' '<>' '->' '|>' '=~'
-  '&&' '||' '!' '...' '..'
-  '<<<' '>>>' '&&&' '|||' '^^^' '~~~'
+  dot_call_op op_identifier
+  comp_op at_op unary_op and_op or_op arrow_op match_op
+  range_op in_op inc_op when_op than_op default_op tail_op
+  dual_op add_op mult_op exp_op two_op type_op stab_op
+  'true' 'false' 'nil' 'do' eol ',' '.' '&' '...'
+  '(' ')' '[' ']' '{' '}' '<<' '>>'
   .
 
 Rootsymbol grammar.
 
 Left       5 do.
-Right     10 stab_op.
-Left      20 ','.  % Solve nested call_args conflicts
-Right     30 colon_colon_op.
-Right     40 when_op.
-Right     50 default_op.
-Left      60 pipe_op.
-Left      70 inc_op.
-Right     80 match_op.
-Right    110 send_op.
-Left     120 oror_op.
-Left     130 andand_op.
-Left     140 or_op.
-Left     150 and_op.
-Left     160 comp_expr_op.
-Left     170 in_op.
-Right    180 regex_op.
-Right    190 right_op.
-Left     200 range_op.
-Left     210 three_op.
-Left     220 add_op.
-Left     230 mult_op.
-Right    240 bin_concat_op.
-Right    250 two_op.
-Nonassoc 300 unary_op.
+Right     10 stab_op_eol.     %% ->
+Left      20 ','.
+Right     30 type_op_eol.     %% ::
+Right     40 when_op_eol.     %% when
+Left      50 inc_op_eol.      %% inlist, inbits
+Right     60 default_op_eol.  %% //
+Left      70 tail_op_eol.     %% |
+Right     80 match_op_eol.    %% =
+Left     130 or_op_eol.       %% ||, |||, or, xor
+Left     140 and_op_eol.      %% &&, &&&, and
+Left     150 comp_op_eol.     %% <, >, <=, >=, ==, !=, =~, ===, !==
+Right    160 arrow_op_eol.    %% < (op), (op) > (e.g <-, |>, <<<, >>>)
+Left     170 in_op_eol.       %% in
+Left     200 range_op_eol.    %% ..
+Left     210 add_op_eol.      %% + (op), - (op)
+Left     220 mult_op_eol.     %% * (op), / (op)
+Right    230 than_op_eol.     %% < (op) > (e.g <>)
+Right    240 two_op_eol.      %% ++, --, **
+Left     250 exp_op_eol.      %% ^ (op) (e.g ^^^)
+Nonassoc 300 unary_op_eol.    %% +, -, !, ^, not, ~~~
 Left     310 dot_call_op.
-Left     310 dot_op.
-Nonassoc 320 at_op.
+Left     310 dot_op.          %% .
+Nonassoc 320 at_op_eol.       %% @ (op)
 Nonassoc 330 var.
 
 %%% MAIN FLOW OF EXPRESSIONS
@@ -89,60 +84,52 @@ expr -> matched_expr : '$1'.
 expr -> unmatched_expr : '$1'.
 
 matched_expr -> matched_expr matched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
-matched_expr -> unary_op matched_expr : build_unary_op('$1', '$2').
-matched_expr -> at_op matched_expr : build_unary_op('$1', '$2').
+matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
+matched_expr -> at_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> bracket_at_expr : '$1'.
 matched_expr -> fn_expr : '$1'.
 
 unmatched_expr -> matched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unmatched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
-unmatched_expr -> unary_op expr : build_unary_op('$1', '$2').
-unmatched_expr -> at_op expr : build_unary_op('$1', '$2').
+unmatched_expr -> unary_op_eol expr : build_unary_op('$1', '$2').
+unmatched_expr -> at_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> block_expr : '$1'.
 
-op_expr -> match_op expr : { '$1', '$2' }.
-op_expr -> add_op expr : { '$1', '$2' }.
-op_expr -> mult_op expr : { '$1', '$2' }.
-op_expr -> two_op expr : { '$1', '$2' }.
-op_expr -> regex_op expr : { '$1', '$2' }.
-op_expr -> right_op expr : { '$1', '$2' }.
-op_expr -> andand_op expr : { '$1', '$2' }.
-op_expr -> three_op expr : { '$1', '$2' }.
-op_expr -> oror_op expr : { '$1', '$2' }.
-op_expr -> and_op expr : { '$1', '$2' }.
-op_expr -> or_op expr : { '$1', '$2' }.
-op_expr -> pipe_op expr : { '$1', '$2' }.
-op_expr -> bin_concat_op expr : { '$1', '$2' }.
-op_expr -> in_op expr : { '$1', '$2' }.
-op_expr -> inc_op expr : { '$1', '$2' }.
-op_expr -> when_op expr : { '$1', '$2' }.
-op_expr -> send_op expr : { '$1', '$2' }.
-op_expr -> range_op expr : { '$1', '$2' }.
-op_expr -> default_op expr : { '$1', '$2' }.
-op_expr -> colon_colon_op expr : { '$1', '$2' }.
-op_expr -> comp_expr_op expr : { '$1', '$2' }.
+op_expr -> match_op_eol expr : { '$1', '$2' }.
+op_expr -> add_op_eol expr : { '$1', '$2' }.
+op_expr -> mult_op_eol expr : { '$1', '$2' }.
+op_expr -> exp_op_eol expr : { '$1', '$2' }.
+op_expr -> two_op_eol expr : { '$1', '$2' }.
+op_expr -> and_op_eol expr : { '$1', '$2' }.
+op_expr -> or_op_eol expr : { '$1', '$2' }.
+op_expr -> tail_op_eol expr : { '$1', '$2' }.
+op_expr -> than_op_eol expr : { '$1', '$2' }.
+op_expr -> in_op_eol expr : { '$1', '$2' }.
+op_expr -> inc_op_eol expr : { '$1', '$2' }.
+op_expr -> when_op_eol expr : { '$1', '$2' }.
+op_expr -> range_op_eol expr : { '$1', '$2' }.
+op_expr -> default_op_eol expr : { '$1', '$2' }.
+op_expr -> type_op_eol expr : { '$1', '$2' }.
+op_expr -> comp_op_eol expr : { '$1', '$2' }.
+op_expr -> arrow_op_eol expr : { '$1', '$2' }.
 
-matched_op_expr -> match_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> add_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> mult_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> two_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> regex_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> right_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> andand_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> three_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> oror_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> and_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> or_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> pipe_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> bin_concat_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> in_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> inc_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> when_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> send_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> range_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> default_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> colon_colon_op matched_expr : { '$1', '$2' }.
-matched_op_expr -> comp_expr_op matched_expr : { '$1', '$2' }.
+matched_op_expr -> match_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> add_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> mult_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> exp_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> two_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> and_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> or_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> tail_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> than_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> in_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> inc_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> when_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> range_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> default_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> type_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> comp_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> arrow_op_eol matched_expr : { '$1', '$2' }.
 
 block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
 block_expr -> parens_call call_args_parens call_args_parens do_block : build_nested_parens('$1', '$2', '$3' ++ '$4').
@@ -171,24 +158,27 @@ max_expr -> open_paren stab close_paren : build_stab(lists:reverse('$2')).
 bracket_expr -> dot_bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
 bracket_expr -> max_expr bracket_access : build_access('$1', '$2').
 
-bracket_at_expr -> at_op dot_bracket_identifier bracket_access : build_access(build_unary_op('$1', build_identifier('$2', nil)), '$3').
-bracket_at_expr -> at_op max_expr bracket_access : build_access(build_unary_op('$1', '$2'), '$3').
-bracket_at_expr -> bracket_at_expr bracket_access : build_access('$1', '$2').
+bracket_at_expr -> at_op_eol dot_bracket_identifier bracket_access :
+                     build_access(build_unary_op('$1', build_identifier('$2', nil)), '$3').
+bracket_at_expr -> at_op_eol max_expr bracket_access :
+                     build_access(build_unary_op('$1', '$2'), '$3').
+bracket_at_expr -> bracket_at_expr bracket_access :
+                     build_access('$1', '$2').
 
 base_expr -> number : ?exprs('$1').
 base_expr -> signed_number : { element(4, '$1'), [{line,?line('$1')}], ?exprs('$1') }.
 base_expr -> atom : build_atom('$1').
 base_expr -> list : '$1'.
 base_expr -> tuple : '$1'.
-base_expr -> 'true' : ?op('$1').
-base_expr -> 'false' : ?op('$1').
-base_expr -> 'nil' : ?op('$1').
+base_expr -> 'true' : ?id('$1').
+base_expr -> 'false' : ?id('$1').
+base_expr -> 'nil' : ?id('$1').
 base_expr -> aliases : { '__aliases__', [{line,?line('$1')}], ?exprs('$1') }.
 base_expr -> bin_string  : build_bin_string('$1').
 base_expr -> list_string : build_list_string('$1').
 base_expr -> bit_string : '$1'.
 base_expr -> '&' : { '&', [{line,?line('$1')}], ?exprs('$1') }.
-base_expr -> '...' : { ?op('$1'), [{line,?line('$1')}], [] }.
+base_expr -> '...' : { ?id('$1'), [{line,?line('$1')}], [] }.
 base_expr -> sigil : build_sigil('$1').
 
 %% Blocks
@@ -217,9 +207,13 @@ stab_eol -> stab : '$1'.
 stab_eol -> stab eol : '$1'.
 
 stab_expr -> expr : '$1'.
-stab_expr -> stab_op stab_maybe_expr : build_op('$1', [], '$2').
-stab_expr -> call_args_no_parens stab_op stab_maybe_expr : build_op('$2', unwrap_splice('$1'), '$3').
-stab_expr -> call_args_parens_not_one stab_op stab_maybe_expr : build_op('$2', unwrap_splice('$1'), '$3').
+stab_expr -> stab_op_eol stab_maybe_expr : build_op('$1', [], '$2').
+stab_expr -> call_args_no_parens stab_op_eol stab_maybe_expr :
+               build_op('$2', unwrap_when(unwrap_splice('$1')), '$3').
+stab_expr -> call_args_parens_not_one stab_op_eol stab_maybe_expr :
+               build_op('$2', unwrap_splice('$1'), '$3').
+stab_expr -> call_args_parens_not_one when_op matched_expr stab_op_eol stab_maybe_expr :
+               build_op('$4', [{ 'when', [{line,?line('$2')}], unwrap_splice('$1') ++ ['$3'] }], '$5').
 
 stab_maybe_expr -> 'expr' : '$1'.
 stab_maybe_expr -> '$empty' : nil.
@@ -239,7 +233,7 @@ open_paren -> '(' eol  : '$1'.
 close_paren -> ')'     : '$1'.
 close_paren -> eol ')' : '$2'.
 
-empty_paren -> open_paren ')' : nil.
+empty_paren -> open_paren ')' : '$1'.
 
 open_bracket  -> '['     : '$1'.
 open_bracket  -> '[' eol : '$1'.
@@ -258,107 +252,69 @@ close_curly -> eol '}' : '$2'.
 
 % Operators
 
-add_op -> '+' : '$1'.
-add_op -> '-' : '$1'.
-add_op -> '+' eol : '$1'.
-add_op -> '-' eol : '$1'.
+add_op_eol -> add_op : '$1'.
+add_op_eol -> add_op eol : '$1'.
+add_op_eol -> dual_op : '$1'.
+add_op_eol -> dual_op eol : '$1'.
 
-mult_op -> '*' : '$1'.
-mult_op -> '/' : '$1'.
-mult_op -> '*' eol : '$1'.
-mult_op -> '/' eol : '$1'.
+mult_op_eol -> mult_op : '$1'.
+mult_op_eol -> mult_op eol : '$1'.
 
-two_op -> '++' : '$1'.
-two_op -> '--' : '$1'.
-two_op -> '++' eol : '$1'.
-two_op -> '--' eol : '$1'.
-two_op -> '**' : '$1'.
-two_op -> '**' eol : '$1'.
+exp_op_eol -> exp_op : '$1'.
+exp_op_eol -> exp_op eol : '$1'.
 
-regex_op -> '=~' : '$1'.
-regex_op -> '=~' eol : '$1'.
+two_op_eol -> two_op : '$1'.
+two_op_eol -> two_op eol : '$1'.
 
-right_op -> '|>' : '$1'.
-right_op -> '|>' eol : '$1'.
+default_op_eol -> default_op : '$1'.
+default_op_eol -> default_op eol : '$1'.
 
-three_op -> '&&&' : '$1'.
-three_op -> '&&&' eol : '$1'.
-three_op -> '|||' : '$1'.
-three_op -> '|||' eol : '$1'.
-three_op -> '<<<' : '$1'.
-three_op -> '<<<' eol : '$1'.
-three_op -> '>>>' : '$1'.
-three_op -> '>>>' eol : '$1'.
-three_op -> '^^^' : '$1'.
-three_op -> '^^^' eol : '$1'.
+type_op_eol -> type_op : '$1'.
+type_op_eol -> type_op eol : '$1'.
 
-default_op -> '//' : '$1'.
-default_op -> '//' eol : '$1'.
+unary_op_eol -> unary_op : '$1'.
+unary_op_eol -> unary_op eol : '$1'.
+unary_op_eol -> dual_op : '$1'.
+unary_op_eol -> dual_op eol : '$1'.
 
-colon_colon_op -> '::' : '$1'.
-colon_colon_op -> '::' eol : '$1'.
+match_op_eol -> match_op : '$1'.
+match_op_eol -> match_op eol : '$1'.
 
-unary_op -> '+' : '$1'.
-unary_op -> '+' eol : '$1'.
-unary_op -> '-' : '$1'.
-unary_op -> '-' eol : '$1'.
-unary_op -> '!' : '$1'.
-unary_op -> '!' eol : '$1'.
-unary_op -> '^' : '$1'.
-unary_op -> '^' eol : '$1'.
-unary_op -> 'not' : '$1'.
-unary_op -> 'not' eol : '$1'.
-unary_op -> '~~~' : '$1'.
-unary_op -> '~~~' eol : '$1'.
+and_op_eol -> and_op : '$1'.
+and_op_eol -> and_op eol : '$1'.
 
-at_op -> '@' : '$1'.
-at_op -> '@' eol : '$1'.
+or_op_eol -> or_op : '$1'.
+or_op_eol -> or_op eol : '$1'.
 
-match_op -> '=' : '$1'.
-match_op -> '=' eol : '$1'.
+tail_op_eol -> tail_op : '$1'.
+tail_op_eol -> tail_op eol : '$1'.
 
-andand_op -> '&&' : '$1'.
-andand_op -> '&&' eol : '$1'.
+than_op_eol -> than_op : '$1'.
+than_op_eol -> than_op eol : '$1'.
 
-oror_op -> '||' : '$1'.
-oror_op -> '||' eol : '$1'.
+in_op_eol -> in_op : '$1'.
+in_op_eol -> in_op eol : '$1'.
 
-and_op -> 'and' : '$1'.
-and_op -> 'and' eol : '$1'.
+inc_op_eol -> inc_op : '$1'.
+inc_op_eol -> inc_op eol : '$1'.
 
-or_op -> 'or' : '$1'.
-or_op -> 'or' eol : '$1'.
-or_op -> 'xor' : '$1'.
-or_op -> 'xor' eol : '$1'.
+when_op_eol -> when_op : '$1'.
+when_op_eol -> when_op eol : '$1'.
 
-pipe_op -> '|' : '$1'.
-pipe_op -> '|' eol : '$1'.
+stab_op_eol -> stab_op : '$1'.
+stab_op_eol -> stab_op eol : '$1'.
 
-bin_concat_op -> '<>' : '$1'.
-bin_concat_op -> '<>' eol : '$1'.
+range_op_eol -> range_op : '$1'.
+range_op_eol -> range_op eol : '$1'.
 
-in_op -> 'in' : '$1'.
-in_op -> 'in' eol : '$1'.
+at_op_eol -> at_op : '$1'.
+at_op_eol -> at_op eol : '$1'.
 
-inc_op -> 'inlist' : '$1'.
-inc_op -> 'inlist' eol : '$1'.
-inc_op -> 'inbits' : '$1'.
-inc_op -> 'inbits' eol : '$1'.
+comp_op_eol -> comp_op : '$1'.
+comp_op_eol -> comp_op eol : '$1'.
 
-when_op -> 'when' : '$1'.
-when_op -> 'when' eol : '$1'.
-
-stab_op -> '->' : '$1'.
-stab_op -> '->' eol : '$1'.
-
-send_op -> '<-' : '$1'.
-send_op -> '<-' eol : '$1'.
-
-range_op -> '..' : '$1'.
-range_op -> '..' eol : '$1'.
-
-comp_expr_op -> comp_op : '$1'.
-comp_expr_op -> comp_op eol : '$1'.
+arrow_op_eol -> arrow_op : '$1'.
+arrow_op_eol -> arrow_op eol : '$1'.
 
 % Dot operator
 
@@ -394,7 +350,7 @@ matched_comma_expr -> matched_expr : ['$1'].
 matched_comma_expr -> matched_comma_expr ',' matched_expr : ['$3'|'$1'].
 
 call_args_no_parens_strict -> call_args_no_parens : '$1'.
-call_args_no_parens_strict -> open_paren ')' : throw_no_parens_strict('$1').
+call_args_no_parens_strict -> empty_paren : throw_no_parens_strict('$1').
 call_args_no_parens_strict -> open_paren matched_kw_base close_paren : throw_no_parens_strict('$1').
 call_args_no_parens_strict -> open_paren matched_expr ',' call_args_no_parens close_paren : throw_no_parens_strict('$1').
 
@@ -402,7 +358,7 @@ call_args_no_parens -> matched_comma_expr : lists:reverse('$1').
 call_args_no_parens -> matched_kw_base : ['$1'].
 call_args_no_parens -> matched_comma_expr ',' matched_kw_base : lists:reverse(['$3'|'$1']).
 
-call_args_parens_not_one -> open_paren ')' : [].
+call_args_parens_not_one -> empty_paren : [].
 call_args_parens_not_one -> open_paren matched_kw_base close_paren : ['$2'].
 call_args_parens_not_one -> open_paren matched_expr ',' call_args_no_parens close_paren : ['$2'|'$4'].
 
@@ -420,7 +376,7 @@ optional_comma_expr -> paren_expr ',' : '$1'.
 
 call_args -> comma_expr : lists:reverse('$1').
 
-call_args_parens -> open_paren ')' : [].
+call_args_parens -> empty_paren : [].
 call_args_parens -> open_paren call_args close_paren : '$2'.
 
 % KV
@@ -466,7 +422,7 @@ bit_string -> open_bit call_args close_bit : { '<<>>', [{line,?line('$1')}], '$2
 
 Erlang code.
 
--define(op(Node), element(1, Node)).
+-define(id(Node), element(1, Node)).
 -define(line(Node), element(2, Node)).
 -define(exprs(Node), element(3, Node)).
 
@@ -479,17 +435,14 @@ Erlang code.
 
 %% Operators
 
-build_op({ _, _, _ } = Op, Left, Right) ->
-  { ?exprs(Op), [{line,?line(Op)}], [Left, Right] };
-
-build_op({ BOp, Line }, { UOp, _, [Left] }, Right) when ?rearrange_bop(BOp), ?rearrange_uop(UOp) ->
+build_op({ _Kind, Line, BOp }, { UOp, _, [Left] }, Right) when ?rearrange_bop(BOp), ?rearrange_uop(UOp) ->
   { UOp, [{line,Line}], [{ BOp, [{line,Line}], [Left, Right] }] };
 
-build_op(Op, Left, Right) ->
-  { ?op(Op), [{line,?line(Op)}], [Left, Right] }.
+build_op({ _Kind, Line, Op }, Left, Right) ->
+  { Op, [{line,Line}], [Left, Right] }.
 
-build_unary_op(Op, Expr) ->
-  { ?op(Op), [{line,?line(Op)}], [Expr] }.
+build_unary_op({ _Kind, Line, Op }, Expr) ->
+  { Op, [{line,Line}], [Expr] }.
 
 build_tuple(_Marker, [Left, Right]) ->
   { Left, Right };
@@ -503,7 +456,7 @@ build_block([nil])                                      -> { '__block__', [], [n
 build_block([{Op,_,[_]}]=Exprs) when ?rearrange_uop(Op) -> { '__block__', [], Exprs };
 build_block([{unquote_splicing,_,Args}]=Exprs) when
                                       length(Args) =< 2 -> { '__block__', [], Exprs };
-build_block([Expr]) when not is_list(Expr)              -> Expr;
+build_block([Expr])                                     -> Expr;
 build_block(Exprs)                                      -> { '__block__', [], Exprs }.
 
 %% Dots
@@ -555,13 +508,13 @@ build_fn(Op, Stab) ->
 
 build_access(Expr, Access) ->
   Meta = [{line,?line(Access)}],
-  { { '.', Meta, ['Elixir.Kernel', access] }, Meta, [ Expr, ?op(Access) ] }.
+  { { '.', Meta, ['Elixir.Kernel', access] }, Meta, [ Expr, ?id(Access) ] }.
 
 %% Interpolation aware
 
 build_sigil({ sigil, Line, Sigil, Parts, Modifiers }) ->
   Meta = [{line,Line}],
-  { list_to_atom([$_,$_,Sigil,$_,$_]), Meta, [ { '<<>>', Meta, Parts }, Modifiers ] }.
+  { list_to_atom("sigil_" ++ [Sigil]), Meta, [ { '<<>>', Meta, Parts }, Modifiers ] }.
 
 build_bin_string({ bin_string, _Line, [H] }) when is_binary(H) -> H;
 build_bin_string({ bin_string, Line, Args }) -> { '<<>>', [{line,Line}], Args }.
@@ -597,7 +550,7 @@ build_stab(Meta, [], Marker, Temp, Acc) ->
 
 %% Every time the parser sees a (unquote_splicing())
 %% it assumes that a block is being spliced, wrapping
-%% the splicing in a __block__. But in the stab cause,
+%% the splicing in a __block__. But in the stab clause,
 %% we can have (unquote_splicing(1,2,3)) -> :ok, in such
 %% case, we don't actually want the block, since it is
 %% an arg style call. unwrap_splice unwraps the splice
@@ -606,6 +559,14 @@ unwrap_splice([{ '__block__', [], [{ unquote_splicing, _, _ }] = Splice }]) ->
   Splice;
 
 unwrap_splice(Other) -> Other.
+
+unwrap_when(Args) ->
+  case elixir_tree_helpers:split_last(Args) of
+    { Start, { 'when', Meta, [_, _] = End } } ->
+      [{ 'when', Meta, Start ++ End }];
+    { _, _ } ->
+      Args
+  end.
 
 %% Errors
 

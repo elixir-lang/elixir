@@ -17,13 +17,16 @@ defmodule SystemTest do
     assert is_binary System.cwd!
   end
 
-  test :cwd_with_utf8 do
-    import PathHelpers
+  if :file.native_name_encoding == :utf8 do
+    test :cwd_with_utf8 do
+      import PathHelpers
+      File.mkdir_p(tmp_path("héllò"))
 
-    if :file.native_name_encoding == :utf8 do
-      File.cd!(fixture_path("héllò"), fn ->
+      File.cd!(tmp_path("héllò"), fn ->
         assert Path.basename(System.cwd!) == "héllò"
       end)
+    after
+      File.rm_rf tmp_path("héllò")
     end
   end
 

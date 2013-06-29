@@ -404,13 +404,11 @@ defimpl Binary.Inspect, for: Tuple do
   defp record_inspect(record, opts) do
     [name|tail] = tuple_to_list(record)
 
-    if (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
-      if fields != nil do
-        if Enum.first(tail) == :__exception__ do
-          record_join(name, tl(fields), tl(tail), opts)
-        else
-          record_join(name, fields, tail, opts)
-        end
+   if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
+      if Enum.first(tail) == :__exception__ do
+        record_join(name, tl(fields), tl(tail), opts)
+      else
+        record_join(name, fields, tail, opts)
       end
     end || container_join(record, "{", "}", opts)
   end

@@ -31,6 +31,8 @@ defrecord name, a: 0, b: 1 do
   def update_b(_, _) do
     :not_optimizable
   end
+
+  Record.import __MODULE__, as: :self
 end
 
 defmodule RecordTest.DynamicOpts do
@@ -48,6 +50,8 @@ defrecord RecordTest.WithRecordType, a: 0, b: 1 do
   record_type a: non_pos_integer
   record_type a: integer
 end
+
+defrecord RecordTest.WithInlineType, a: nil :: atom, b: 1 :: integer
 
 defmodule RecordTest.Macros do
   defrecordp :_user, name: "José", age: 25

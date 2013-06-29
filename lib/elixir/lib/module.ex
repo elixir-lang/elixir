@@ -1,6 +1,4 @@
 defmodule Module do
-  require :ets, as: ETS
-
   defmacrop is_env(env) do
     quote do
       is_tuple(unquote(env)) and size(unquote(env)) > 1 and elem(unquote(env), 0) == Macro.Env
@@ -192,7 +190,7 @@ defmodule Module do
                 IO.puts "and guards"
                 IO.inspect guards
                 IO.puts "and body"
-                IO.puts Macro.to_binary(body)
+                IO.puts Macro.to_string(body)
               end
             end
 
@@ -304,7 +302,7 @@ defmodule Module do
   """
   def open?(module) do
     table = data_table_for(module)
-    table == ETS.info(table, :name)
+    table == :ets.info(table, :name)
   end
 
   @doc """
@@ -492,12 +490,12 @@ defmodule Module do
       { simplify_signature(x, line, acc), acc + 1 }
     end
 
-    case ETS.lookup(table, tuple) do
+    case :ets.lookup(table, tuple) do
       [] ->
-        ETS.insert(table, { tuple, line, kind, signature, doc })
+        :ets.insert(table, { tuple, line, kind, signature, doc })
         :ok
       [{ tuple, line, _old_kind, old_sign, old_doc }] ->
-        ETS.insert(table, {
+        :ets.insert(table, {
           tuple,
           line,
           kind,
@@ -577,7 +575,7 @@ defmodule Module do
   def defines?(module, tuple) when is_tuple(tuple) do
     assert_not_compiled!(:defines?, module)
     table = function_table_for(module)
-    ETS.lookup(table, tuple) != []
+    :ets.lookup(table, tuple) != []
   end
 
   @doc """
@@ -597,7 +595,7 @@ defmodule Module do
   def defines?(module, tuple, kind) do
     assert_not_compiled!(:defines?, module)
     table = function_table_for(module)
-    case ETS.lookup(table, tuple) do
+    case :ets.lookup(table, tuple) do
       [{ _, ^kind, _, _, _, _, _ }] -> true
       _ -> false
     end
@@ -617,7 +615,7 @@ defmodule Module do
   def definitions_in(module) do
     assert_not_compiled!(:definitions_in, module)
     table = function_table_for(module)
-    lc { tuple, _, _, _, _, _, _ } inlist ETS.tab2list(table), do: tuple
+    lc { tuple, _, _, _, _, _, _ } inlist :ets.tab2list(table), do: tuple
   end
 
   @doc """
@@ -636,7 +634,7 @@ defmodule Module do
   def definitions_in(module, kind) do
     assert_not_compiled!(:definitions_in, module)
     table = function_table_for(module)
-    lc { tuple, stored_kind, _, _, _, _, _ } inlist ETS.tab2list(table), stored_kind == kind, do: tuple
+    lc { tuple, stored_kind, _, _, _, _, _ } inlist :ets.tab2list(table), stored_kind == kind, do: tuple
   end
 
   @doc """
@@ -690,11 +688,11 @@ defmodule Module do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
     value = normalize_attribute(key, value)
-    acc   = ETS.lookup_element(table, :__acc_attributes, 2)
+    acc   = :ets.lookup_element(table, :__acc_attributes, 2)
 
     new =
       if :lists.member(key, acc) do
-        case ETS.lookup(table, key) do
+        case :ets.lookup(table, key) do
           [{^key, old}] -> [value|old]
           [] -> [value]
         end
@@ -702,13 +700,26 @@ defmodule Module do
         value
       end
 
-    ETS.insert(table, { key, new })
+    :ets.insert(table, { key, new })
   end
 
   @doc """
   Gets the given attribute from a module. If the attribute
-  was marked as accumulate with `Module.register_attribute`,
+  was marked with `accumulate` with `Module.register_attribute`,
   a list is always returned.
+
+  The `@` macro compiles to a call to this function. For example,
+  the following code:
+
+      @foo
+
+  Expands to:
+
+      Module.get_attribute(__MODULE__, @foo, true)
+
+  Notice the third argument is used to indicate if a warning
+  should be emitted when the attribute was not previously defined.
+  This is true for `@foo` attributes but false for direct calls.
 
   ## Examples
 
@@ -722,15 +733,22 @@ defmodule Module do
       end
 
   """
-  def get_attribute(module, key) when is_atom(key) do
+  def get_attribute(module, key, warn // false) when is_atom(key) do
     assert_not_compiled!(:get_attribute, module)
     table = data_table_for(module)
 
-    case ETS.lookup(table, key) do
-      [{^key, old}] -> old
+    case :ets.lookup(table, key) do
+      [{^key, val}] -> val
       [] ->
-        acc = ETS.lookup_element(table, :__acc_attributes, 2)
-        if :lists.member(key, acc), do: [], else: nil
+        acc = :ets.lookup_element(table, :__acc_attributes, 2)
+
+        if :lists.member(key, acc) do
+          []
+        else
+          warn && IO.warn "#{Exception.format_caller} undefined module attribute @#{key}, " <>
+            "please remove access to @#{key} or explicitly set it to nil before access"
+          nil
+        end
     end
   end
 
@@ -748,7 +766,7 @@ defmodule Module do
   def delete_attribute(module, key) when is_atom(key) do
     assert_not_compiled!(:delete_attribute, module)
     table = data_table_for(module)
-    ETS.delete(table, key)
+    :ets.delete(table, key)
   end
 
   @doc """
@@ -789,13 +807,13 @@ defmodule Module do
     table = data_table_for(module)
 
     if Keyword.get(opts, :persist, true) do
-      old = ETS.lookup_element(table, :__persisted_attributes, 2)
-      ETS.insert(table, { :__persisted_attributes,  [new|old] })
+      old = :ets.lookup_element(table, :__persisted_attributes, 2)
+      :ets.insert(table, { :__persisted_attributes,  [new|old] })
     end
 
     if Keyword.get(opts, :accumulate, true) do
-      old = ETS.lookup_element(table, :__acc_attributes, 2)
-      ETS.insert(table, { :__acc_attributes,  [new|old] })
+      old = :ets.lookup_element(table, :__acc_attributes, 2)
+      :ets.insert(table, { :__acc_attributes,  [new|old] })
     end
   end
 
@@ -850,12 +868,12 @@ defmodule Module do
     table = data_table_for(module)
 
     new =
-      case ETS.lookup(table, key) do
+      case :ets.lookup(table, key) do
         [{^key, old}] -> [value|old]
         [] -> [value]
       end
 
-    ETS.insert(table, { key, new })
+    :ets.insert(table, { key, new })
   end
 
   ## Helpers

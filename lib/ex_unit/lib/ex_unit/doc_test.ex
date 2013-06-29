@@ -172,18 +172,17 @@ defmodule ExUnit.DocTest do
     location = [line: line, file: Path.relative_to(file, System.cwd!)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
 
-    exc_filter_fn = (function do
+    exc_filter_fn = fn
       { _, {:error, _, _} } -> true
       _ -> false
-    end)
+    end
 
     exceptions_num = Enum.count exprs, exc_filter_fn
     if exceptions_num > 1 do
-      # Format the info about error location as if it were a part of the
-      # stacktrace
+      # Format the info about error location as if it were a part of the stacktrace
       { fun, arity } = fun_arity
       error_info = "    #{file}:#{line}: #{inspect module}.#{fun}/#{arity}"
-      raise Error, [message: "Multiple exceptions in one doctest case are not supported.\n#{error_info}"]
+      raise Error, message: "multiple exceptions in one doctest case are not supported.\n#{error_info}"
     end
 
     { tests, whole_expr } = Enum.map_reduce exprs, "", fn {expr, expected}, acc ->
@@ -193,7 +192,7 @@ defmodule ExUnit.DocTest do
 
     exception = case Enum.find(exprs, exc_filter_fn) do
       { _, {:error, exception, message} } ->
-        inspect(exception) <> "[message: \"#{message}\"]"
+        inspect(exception) <> " with message " <> message
       nil ->
         "nothing"
     end
@@ -230,8 +229,8 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_case_content(expr, { :test, expected }, module, line, file, stack) do
-    expr_ast     = string_to_ast(module, line, file, expr)
-    expected_ast = string_to_ast(module, line, file, expected)
+    expr_ast     = string_to_quoted(module, line, file, expr)
+    expected_ast = string_to_quoted(module, line, file, expected)
 
     quote do
       v = unquote(expected_ast)
@@ -250,12 +249,12 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_case_content(expr, { :error, exception, message }, module, line, file, stack) do
-    expr_ast = string_to_ast(module, line, file, expr)
+    expr_ast = string_to_quoted(module, line, file, expr)
 
     quote do
       stack = unquote(stack)
       expr = unquote(expr)
-      exception = inspect(unquote(exception)) <> "[message: \"#{unquote(message)}\"]"
+      exception = inspect(unquote(exception)) <> " with message " <> inspect(unquote(message))
       try do
         v = unquote(expr_ast)
         raise ExUnit.ExpectationError,
@@ -273,7 +272,7 @@ defmodule ExUnit.DocTest do
                 description: expr,
                 expected: exception,
                 reason: "raise",
-                actual: inspect(error) ],
+                actual: inspect(elem(error, 0)) <> " with message " <> inspect(error.message) ],
               stack
           end
 
@@ -287,11 +286,11 @@ defmodule ExUnit.DocTest do
     [quote do: import(unquote(mod))]
   end
 
-  defp string_to_ast(module, line, file, expr) do
+  defp string_to_quoted(module, line, file, expr) do
     location = [line: line, file: Path.relative_to(file, System.cwd!)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
     try do
-      Code.string_to_ast!(expr, line: line, file: file)
+      Code.string_to_quoted!(expr, line: line, file: file)
     rescue e ->
       quote do
         raise ExUnit.ExpectationError,

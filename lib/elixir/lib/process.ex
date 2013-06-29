@@ -76,9 +76,9 @@ defmodule Process do
   @doc """
   Sends an exit signal with the given reason to the pid.
 
-  The following behavior apply if reason is any term except `:normal` or `:kill`:
+  The following behavior applies if reason is any term except `:normal` or `:kill`:
 
-  1) If pid is not trapping exits, pid itself will exist with the given reason;
+  1) If pid is not trapping exits, pid will exit with the given reason;
 
   2) If pid is trapping exits, the exit signal is transformed into a message
      {'EXIT', from, reason} and delivered to the message queue of pid;
@@ -99,6 +99,14 @@ defmodule Process do
   @spec exit(pid, term) :: true
   def exit(pid, reason) do
     :erlang.exit(pid, reason)
+  end
+
+  @doc """
+  Returns the pid (process identifier) of the calling process.
+  """
+  @spec self() :: pid
+  def self() do
+    :erlang.self()
   end
 
   @doc """

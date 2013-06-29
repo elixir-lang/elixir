@@ -2,18 +2,14 @@ defmodule IO.ANSI.Sequence do
   @moduledoc false
 
   defmacro defsequence(name, code) do
-    quote do
-      name = unquote(name)
-      code = unquote(code)
+    quote binding: [name: name, code: code] do
+      def unquote(name)() do
+        "\e[#{unquote(code)}m"
+      end
 
-      def name, [], [], do:
-        quote do: "\e[#{unquote(code)}m"
-
-      args =
-        quote do: [<< unquote(atom_to_binary(name)), rest :: binary >> ]
-
-      defp :escape_sequence, args, [], do:
-        quote do: { "\e[#{unquote(code)}m", rest }
+      defp escape_sequence(<< unquote(atom_to_binary(name)), rest :: binary >>) do
+        { "\e[#{unquote(code)}m", rest }
+      end
     end
   end
 end

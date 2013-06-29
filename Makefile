@@ -39,7 +39,7 @@ lib/elixir/src/elixir.app.src: src/elixir.app.src
 	@ cp src/elixir.app.src lib/elixir/src/elixir.app.src
 
 erlang:
-	@ cd lib/elixir && $(REBAR) compile
+	@ cd lib/elixir && PROMPT="ex" $(REBAR) compile
 
 # Since Mix depends on EEx and EEx depends on
 # Mix, we first compile EEx without the .app
@@ -56,7 +56,7 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
 	@ $(ELIXIRC) "lib/elixir/lib/**/*.ex" -o lib/elixir/ebin;
 	@ $(MAKE) unicode
 	@ rm -rf lib/elixir/ebin/elixir.app
-	@ cd lib/elixir && $(REBAR) compile
+	@ cd lib/elixir && PROMPT="ex" $(REBAR) compile
 
 unicode: $(UNICODE)
 $(UNICODE): lib/elixir/priv/unicode.ex lib/elixir/priv/UnicodeData.txt lib/elixir/priv/NamedSequences.txt
@@ -81,7 +81,7 @@ install: compile
 	ln -sf $(INSTALL_PATH)/lib/elixir/bin/* $(INSTALL_PATH)/bin
 
 clean:
-	@ cd lib/elixir && $(REBAR) clean
+	@ cd lib/elixir && PROMPT="ex" $(REBAR) clean
 	rm -rf ebin
 	rm -rf lib/*/ebin
 	rm -rf lib/*/test/tmp
@@ -91,6 +91,9 @@ clean:
 	rm -rf lib/elixir/src/*_lexer.erl
 	rm -rf lib/elixir/src/*_parser.erl
 	rm -rf lib/elixir/test/ebin
+
+clean_exbeam:
+	@ rm -f lib/*/ebin/Elixir.*.beam
 
 #==> Release tasks
 

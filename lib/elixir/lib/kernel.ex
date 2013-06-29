@@ -488,7 +488,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Like binary_to_list/1, but returns a list of integers corresponding to the bytes
+  Like `binary_to_list/1`, but returns a list of integers corresponding to the bytes
   from position `start` to position `stop` in `binary`. Positions in the binary
   are numbered starting from 1.
   """
@@ -1489,6 +1489,20 @@ defmodule Kernel do
       user(name: name) = record
       name #=> "José"
 
+  ## Types
+
+  `defrecordp` allows a developer to generate a type
+  automatically by simply providing a type to its fields.
+  The following definition:
+
+      defrecordp :user,
+        name: "José" :: binary,
+        age: 25 :: integer
+
+  Will generate the following type:
+
+      @typep user_t :: { :user, binary, integer }
+
   """
   defmacro defrecordp(name, fields) when is_atom(name) do
     Record.defrecordp(name, fields)
@@ -2098,13 +2112,25 @@ defmodule Kernel do
       list = [{:a, 1}, {:b, 2}, {:a, 3}]
       Enum.filter list, match?({:a, x } when x < 2, &1)
 
+  However, variables assigned in the match will not be available
+  outside of the function call:
+
+      iex> match?(x, 1)
+      true
+      iex> binding([:x]) == []
+      true
+
   """
+  defmacro match?(pattern, expr)
+
+  # Special case underscore since it always matches
   defmacro match?({ :_, _, atom }, _right) when is_atom(atom) do
-    # Special case underscore since it always matches.
     true
   end
 
   defmacro match?(left, right) do
+    { left, _ } = falsify_var(left, [], falsify_all(&1, &2))
+
     quote do
       case unquote(right) do
         unquote(left) ->
@@ -2113,6 +2139,51 @@ defmodule Kernel do
           false
       end
     end
+  end
+
+  defp falsify_all({ var, meta, scope }, acc) when is_atom(var) and is_atom(scope) do
+    { { var, meta, false }, [{ var, scope }|acc] }
+  end
+
+  defp falsify_selected({ var, meta, scope } = original, acc) when is_atom(var) and is_atom(scope) do
+    case :lists.member({ var, scope }, acc) do
+      true  -> { { var, meta, false }, acc }
+      false -> { original, acc }
+    end
+  end
+
+  defp falsify_var({ :^, _, [_] } = contents, acc, _fun) do
+    { contents, acc }
+  end
+
+  defp falsify_var({ :when, meta, [left, right] }, acc, fun) do
+    { left, acc }  = falsify_var(left, acc, fun)
+    { right, acc } = falsify_var(right, acc, falsify_selected(&1, &2))
+    { { :when, meta, [left, right] }, acc }
+  end
+
+  defp falsify_var({ var, _, scope } = original, acc, fun) when is_atom(var) and is_atom(scope) do
+    fun.(original, acc)
+  end
+
+  defp falsify_var({ left, meta, right }, acc, fun) do
+    { left, acc }  = falsify_var(left, acc, fun)
+    { right, acc } = falsify_var(right, acc, fun)
+    { { left, meta, right }, acc }
+  end
+
+  defp falsify_var({ left, right }, acc, fun) do
+    { left, acc }  = falsify_var(left, acc, fun)
+    { right, acc } = falsify_var(right, acc, fun)
+    { { left, right }, acc }
+  end
+
+  defp falsify_var(list, acc, fun) when is_list(list) do
+    :lists.mapfoldl(falsify_var(&1, &2, fun), acc, list)
+  end
+
+  defp falsify_var(other, acc, _fun) do
+    { other, acc }
   end
 
   @doc """
@@ -2443,6 +2514,59 @@ defmodule Kernel do
   to manipulate module attributes.
   """
   defmacro @(expr)
+
+  @doc """
+  Returns the binding as a keyword list where the variable name
+  is the key and the variable value is the value.
+
+  ## Examples
+
+      iex> x = 1
+      iex> binding()
+      [x: 1]
+      iex> x = 2
+      iex> binding()
+      [x: 2]
+
+  """
+  defmacro binding
+
+  @doc """
+  Receives a list of atoms at compilation time and returns the
+  binding of the given variables as a keyword list where the
+  variable name is the key and the variable value is the value.
+
+  In case a variable in the list does not exist in the binding,
+  it is not included in the returned result.
+
+  ## Examples
+
+      iex> x = 1
+      iex> binding([:x, :y])
+      [x: 1]
+
+  """
+  defmacro binding(list)
+
+  @doc """
+  Receives a list of atoms at compilation time and returns the
+  binding of the given variables in the given context as a keyword
+  list where the variable name is the key and the variable value
+  is the value.
+
+  In case a variable in the list does not exist in the binding,
+  it is not included in the returned result.
+
+  ## Examples
+
+      iex> var!(x, :foo) = 1
+      iex> binding([:x, :y])
+      []
+      iex> binding([:x, :y], :foo)
+      [x: 1]
+
+  """
+  defmacro binding(list, context)
 
   @doc """
   Provides an `if` macro. This macro expects the first argument to
@@ -2831,8 +2955,8 @@ defmodule Kernel do
   defmacro left && right do
     quote do
       case unquote(left) do
-        andand in [false, nil] ->
-          andand
+        var!(andand, false) in [false, nil] ->
+          var!(andand, false)
         _ ->
           unquote(right)
       end
@@ -2862,10 +2986,10 @@ defmodule Kernel do
   defmacro left || right do
     quote do
       case unquote(left) do
-        oror in [false, nil] ->
+        var!(oror, false) in [false, nil] ->
           unquote(right)
-        oror ->
-          oror
+        var!(oror, false) ->
+          var!(oror, false)
       end
     end
   end
@@ -2975,7 +3099,7 @@ defmodule Kernel do
   end
 
   defp pipeline_error(arg) do
-    raise ArgumentError, message: "Unsupported expression in pipeline |> operator: #{Macro.to_binary arg}"
+    raise ArgumentError, message: "Unsupported expression in pipeline |> operator: #{Macro.to_string arg}"
   end
 
   @doc """
@@ -3169,14 +3293,14 @@ defmodule Kernel do
                 { :error, _ } ->
                   :elixir_aliases.ensure_loaded(caller.line, caller.file, atom, caller.context_modules)
                 _ ->
-                  raise "cannot use module #{inspect atom} in access protocol because it does not export __record__/1"
+                  raise ArgumentError, message: "cannot use module #{inspect atom} in access protocol because it does not export __record__/1"
               end
           end
 
         Record.access(atom, fields, args, caller)
       false ->
         case caller.in_match? do
-          true  -> raise << "the access protocol cannot be used inside match clauses ",
+          true  -> raise ArgumentError, message: << "the access protocol cannot be used inside match clauses ",
                      "(for example, on the left hand side of a match or in function signatures)" >>
           false -> quote do: Access.access(unquote(element), unquote(args))
         end
@@ -3206,9 +3330,8 @@ defmodule Kernel do
   * `:append_first` - If true, when delegated, first argument
     passed to the delegate will be relocated to the end of the
     arguments when dispatched to the target. The motivation behind
-    this is a disparity between conventions used in Elixir and :
-    Elixir's convention is to pass the "handle" as a first argument,
-    while in Erlang the convention is to pass it as the last argument
+    this is because Elixir normalizes the "handle" as a first
+    argument and some Erlang modules expect it as last argument.
 
   ## Examples
 
@@ -3227,7 +3350,7 @@ defmodule Kernel do
   """
   defmacro defdelegate(funs, opts) do
     quote do
-      funs = unquote(Macro.escape_quoted(funs))
+      funs = unquote(Macro.escape(funs, unquote: true))
       opts = unquote(opts)
 
       target = Keyword.get(opts, :to) ||
@@ -3238,7 +3361,7 @@ defmodule Kernel do
       lc fun inlist List.wrap(funs) do
         case Macro.extract_args(fun) do
           { name, args } -> :ok
-          :error -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_binary(fun)}"
+          :error -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_string(fun)}"
         end
 
         actual_args =
@@ -3267,7 +3390,7 @@ defmodule Kernel do
       "f\\\#{o}o"
 
   """
-  defmacro __B__(string, []) do
+  defmacro sigil_B(string, []) do
     string
   end
 
@@ -3283,7 +3406,7 @@ defmodule Kernel do
       "foo"
 
   """
-  defmacro __b__({ :<<>>, line, pieces }, []) do
+  defmacro sigil_b({ :<<>>, line, pieces }, []) do
     { :<<>>, line, Macro.unescape_tokens(pieces) }
   end
 
@@ -3299,7 +3422,7 @@ defmodule Kernel do
       'f\\\#{o}o'
 
   """
-  defmacro __C__({ :<<>>, _line, [string] }, []) when is_binary(string) do
+  defmacro sigil_C({ :<<>>, _line, [string] }, []) when is_binary(string) do
     binary_to_list(string)
   end
 
@@ -3318,11 +3441,11 @@ defmodule Kernel do
 
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
-  defmacro __c__({ :<<>>, _line, [string] }, []) when is_binary(string) do
+  defmacro sigil_c({ :<<>>, _line, [string] }, []) when is_binary(string) do
     :unicode.characters_to_list(Macro.unescape_binary(string))
   end
 
-  defmacro __c__({ :<<>>, line, pieces }, []) do
+  defmacro sigil_c({ :<<>>, line, pieces }, []) do
     binary = { :<<>>, line, Macro.unescape_tokens(pieces) }
     quote do: :unicode.characters_to_list(unquote(binary))
   end
@@ -3336,13 +3459,13 @@ defmodule Kernel do
       true
 
   """
-  defmacro __r__({ :<<>>, _line, [string] }, options) when is_binary(string) do
+  defmacro sigil_r({ :<<>>, _line, [string] }, options) when is_binary(string) do
     binary = Macro.unescape_binary(string, Regex.unescape_map(&1))
     regex  = Regex.compile!(binary, options)
     Macro.escape(regex)
   end
 
-  defmacro __r__({ :<<>>, line, pieces }, options) do
+  defmacro sigil_r({ :<<>>, line, pieces }, options) do
     binary = { :<<>>, line, Macro.unescape_tokens(pieces, Regex.unescape_map(&1)) }
     quote do: Regex.compile!(unquote(binary), unquote(options))
   end
@@ -3357,7 +3480,7 @@ defmodule Kernel do
       true
 
   """
-  defmacro __R__({ :<<>>, _line, [string] }, options) when is_binary(string) do
+  defmacro sigil_R({ :<<>>, _line, [string] }, options) when is_binary(string) do
     regex = Regex.compile!(string, options)
     Macro.escape(regex)
   end
@@ -3382,11 +3505,11 @@ defmodule Kernel do
 
   """
 
-  defmacro __w__({ :<<>>, _line, [string] }, modifiers) when is_binary(string) do
+  defmacro sigil_w({ :<<>>, _line, [string] }, modifiers) when is_binary(string) do
     split_words(Macro.unescape_binary(string), modifiers)
   end
 
-  defmacro __w__({ :<<>>, line, pieces }, modifiers) do
+  defmacro sigil_w({ :<<>>, line, pieces }, modifiers) do
     binary = { :<<>>, line, Macro.unescape_tokens(pieces) }
     split_words(binary, modifiers)
   end
@@ -3407,7 +3530,7 @@ defmodule Kernel do
       ["foo", "\\\#{bar}", "baz"]
 
   """
-  defmacro __W__({ :<<>>, _line, [string] }, modifiers) when is_binary(string) do
+  defmacro sigil_W({ :<<>>, _line, [string] }, modifiers) when is_binary(string) do
     split_words(string, modifiers)
   end
 

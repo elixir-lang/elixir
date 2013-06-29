@@ -6,8 +6,7 @@ test() ->
   application:start(elixir),
   eunit:test([
     atom_test,
-    conditionals_test,
-    erlang_call_test,
+    control_test,
     function_test,
     match_test,
     module_test,

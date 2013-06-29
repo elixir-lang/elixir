@@ -134,6 +134,7 @@ defmodule ExUnit.CLIFormatter do
     IO.puts error_info "** (ExUnit.ExpectationError)"
 
     if desc = record.description do
+      max = max(max, size("instead got"))
       IO.puts error_info "  #{pad(prelude, max)}: #{maybe_multiline(desc, max)}"
       IO.puts error_info "  #{pad(reason, max)}: #{maybe_multiline(record.expected, max)}"
       IO.puts error_info "  #{pad("instead got", max)}: #{maybe_multiline(record.actual, max)}"

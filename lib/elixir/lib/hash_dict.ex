@@ -57,6 +57,7 @@ defmodule HashDict do
   import Bitwise
 
   # Let's inline common instructions
+  @compile :inline_list_funcs
   @compile { :inline, bucket_hash: 1, bucket_index: 1, bucket_nth_index: 2, bucket_next: 1 }
 
   @doc """

@@ -2,7 +2,7 @@
 if [ $# -eq 0 ] || [ $1 = "--help" ] || [ $1 = "-h" ]; then
   echo "Usage: `basename $0` [options] [.exs file] [data]
 
-  -v                Prints version
+  -v                Prints version and exit
   -e \"command\"      Evaluates the given command (*)
   -r \"file\"         Requires the given files/patterns (*)
   -S \"script\"       Finds and executes the given script (*)
@@ -43,7 +43,7 @@ while [ $I -le $# ]; do
   case "$PEEK" in
     -v|--compile|--no-halt|+iex|+compile)
         ;;
-    -e|-r|-pr|-pa|-pz|--remsh|-S)
+    -e|-r|-pr|-pa|-pz|--remsh)
         S=2
         ;;
     --detached|--hidden)
@@ -74,12 +74,21 @@ done
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
 
+if [ "$ERL_LIBS" = "" ]
+then
+  ERL_LIBS="$SCRIPT_PATH/../lib"
+else
+  PATHSEP=":"
+  if [ "$OSTYPE" = "msys" ]; then PATHSEP=";" ; fi
+  ERL_LIBS="$ERL_LIBS$PATHSEP$SCRIPT_PATH/../lib"
+fi
+
 if [ -f "$HOME/.elixirrc" ]; then . "$HOME/.elixirrc"; fi
 if [ "$ELIXIR_NO_CLI" != "1" ]; then ERL="$ERL -s elixir start_cli"; fi
 
 if [ -f "$SCRIPT_PATH/../releases/RELEASES" ] && [ -f "$SCRIPT_PATH/erl" ]
 then
-  exec "$SCRIPT_PATH"/erl -env ERL_LIBS $ERL_LIBS:"$SCRIPT_PATH/../lib" -boot elixir -noshell $ELIXIR_ERL_OPTS $ERL -extra "$@"
+  exec "$SCRIPT_PATH"/erl -env ERL_LIBS "$ERL_LIBS" -boot elixir -noshell $ELIXIR_ERL_OPTS $ERL -extra "$@"
 else
-  exec erl -env ERL_LIBS $ERL_LIBS:"$SCRIPT_PATH/../lib" -noshell $ELIXIR_ERL_OPTS $ERL -extra "$@"
+  exec erl -env ERL_LIBS "$ERL_LIBS" -noshell $ELIXIR_ERL_OPTS $ERL -extra "$@"
 fi
