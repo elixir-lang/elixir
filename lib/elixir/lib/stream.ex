@@ -33,34 +33,34 @@ defmodule Stream do
   computations that are executed just at a later moment. Let's see another
   example:
 
-      iex> 1..3 |>
-      ...>  Enum.map(IO.inspect(&1)) |>
-      ...>  Enum.map(&1 * 2) |>
-      ...>  Enum.map(IO.inspect(&1))
+      1..3 |>
+        Enum.map(IO.inspect(&1)) |>
+        Enum.map(&1 * 2) |>
+        Enum.map(IO.inspect(&1))
       1
       2
       3
       2
       4
       6
-      [2,4,6]
+      #=> [2,4,6]
 
   Notice that we first printed each item in the list, then multiplied each
   element by 2 and finally printed each new value. In this example, the list
   was iterated three times. Let's see an example with streams:
 
-      iex> stream = 1..3 |>
-      ...>  Stream.map(IO.inspect(&1)) |>
-      ...>  Stream.map(&1 * 2) |>
-      ...>  Stream.map(IO.inspect(&1))
-      iex> Enum.to_list(stream)
+      stream = 1..3 |>
+        Stream.map(IO.inspect(&1)) |>
+        Stream.map(&1 * 2) |>
+        Stream.map(IO.inspect(&1))
+      Enum.to_list(stream)
       1
       2
       2
       4
       3
       6
-      [2,4,6]
+      #=> [2,4,6]
 
   Although the end result is the same, the order in which the iterms were
   printed changed! With streams, we print the first item and then print
