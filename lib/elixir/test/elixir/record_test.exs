@@ -231,6 +231,11 @@ defmodule RecordTest do
     assert RecordTest.FileInfo.Helper.size(RecordTest.FileInfo.new(size: 100)) == 100
   end
 
+  test :extract_with_nested_records do
+    namespace = Record.extract(:xmlElement, from_lib: "xmerl/include/xmerl.hrl")[:namespace]
+    assert is_record(namespace, :xmlNamespace)
+  end
+
   defp file_info do
     { :ok, file_info } = :file.read_file_info(__FILE__)
     file_info
