@@ -207,6 +207,59 @@ defmodule IO do
     :io.get_line(map_dev(device), to_iodata(prompt))
   end
 
+  @doc """
+  Converts the io device into a Stream. The device is
+  iterated line by line.
+
+  This reads the io as utf-8. Check out
+  `IO.binlines_stream/1` to handle the IO as a raw binary.
+
+  ## Examples
+
+  Here is an example on how we mimic an echo server
+  from the command line:
+
+    Enum.each IO.lines_stream(:stdio), IO.write(&1)
+
+  """
+  def lines_stream(device) do
+    lines_stream(map_dev(device), &1, &2)
+  end
+
+  @doc """
+  Converts the io device into a Stream. The device is
+  iterated line by line.
+
+  This reads the io as a raw binary.
+  """
+  def binlines_stream(device) do
+    binlines_stream(map_dev(device), &1, &2)
+  end
+
+  @doc false
+  def lines_stream(device, acc, fun) do
+    case :io.get_line(device, '') do
+      :eof ->
+        acc
+      { :error, reason } ->
+        raise File.IteratorError, reason: reason
+      data ->
+        lines_stream(device, fun.(data, acc), fun)
+    end
+  end
+
+  @doc false
+  def binlines_stream(device, acc, fun) do
+    case :file.read_line(device) do
+      :eof ->
+        acc
+      { :error, reason } ->
+        raise File.IteratorError, reason: reason
+      { :ok, data } ->
+        binlines_stream(device, fun.(data, acc), fun)
+    end
+  end
+
   # Map the Elixir names for standard io and error to Erlang names
   defp map_dev(:stdio),  do: :standard_io
   defp map_dev(:stderr), do: :standard_error

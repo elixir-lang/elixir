@@ -945,78 +945,62 @@ defmodule File do
     F.close(io_device)
   end
 
-  @doc """
-  Converts the file device into an iterator that can be
-  passed into `Enum`. The device is iterated line
-  by line, at the end of iteration the file is closed.
-
-  This reads the file as utf-8. Check out `File.biniterator`
-  to handle the file as a raw binary.
-
-  ## Examples
-
-  An example that lazily iterates a file replacing all double
-  quotes per single quotes and writes each line to a target file
-  is shown below:
-
-      { :ok, device } = File.open("README.md")
-      source = File.iterator(device)
-      File.open "NEWREADME.md", [:write], fn(target) ->
-        Enum.each source, fn(line) ->
-          IO.write target, Regex.replace(%r/"/, line, "'")
-        end
-      end
-
-  """
+  @doc false
   def iterator(device) do
-    fn(acc, fun) ->
-      do_iterator(device, acc, fun)
-    end
+    IO.write "[WARNING] File.iterator/1 is deprecated, please use IO.lines_stream/1 instead\n#{Exception.format_stacktrace}"
+    IO.lines_stream(device)
   end
 
   @doc """
   Opens the given `file` with the given `mode` and
-  returns its iterator. The returned iterator will
+  returns its stream. The returned stream will
   fail for the same reasons as `File.open!`. Note
   that the file is opened when the iteration begins.
   """
-  def iterator!(file, mode // []) do
+  def lines_stream!(file, mode // []) do
     fn(acc, fun) ->
       device = open!(file, mode)
       try do
-        do_iterator(device, acc, fun)
+        IO.lines_stream(device, acc, fun)
       after
         F.close(device)
       end
     end
   end
 
-  @doc """
-  Converts the file device into an iterator that can
-  be passed into `Enum` to iterate line by line as a
-  binary. Check `iterator/1` for more information.
-  """
+  @doc false
+  def iterator!(device, mode // []) do
+    IO.write "[WARNING] File.iterator!/2 is deprecated, please use File.lines_stream!/2 instead\n#{Exception.format_stacktrace}"
+    lines_stream!(device, mode)
+  end
+
+  @doc false
   def biniterator(device) do
-    fn(fun, acc) ->
-      do_biniterator(device, fun, acc)
-    end
+    IO.write "[WARNING] File.biniterator/1 is deprecated, please use IO.binlines_stream/1 instead\n#{Exception.format_stacktrace}"
+    IO.binlines_stream(device)
   end
 
   @doc """
   Opens the given `file` with the given `mode` and
-  returns its biniterator. The returned iterator will
+  returns its binstream. The returned stream will
   fail for the same reasons as `File.open!`. Note
   that the file is opened when the iteration begins.
   """
-  def biniterator!(file, mode // []) do
+  def binlines_stream!(file, mode // []) do
     fn(fun, acc) ->
       device = open!(file, mode)
       try do
-        do_biniterator(device, fun, acc)
+        IO.binlines_stream(device, fun, acc)
       after
         F.close(device)
       end
     end
+  end
+
+  @doc false
+  def biniterator!(device, mode // []) do
+    IO.write "[WARNING] File.binlines_stream!/2 is deprecated, please use File.binlines_stream!/2 instead\n#{Exception.format_stacktrace}"
+    binlines_stream!(device, mode)
   end
 
   @doc """
@@ -1095,26 +1079,4 @@ defmodule File do
 
   defp open_defaults([], true),  do: [:binary]
   defp open_defaults([], false), do: []
-
-  defp do_iterator(device, acc, fun) do
-    case :io.get_line(device, '') do
-      :eof ->
-        acc
-      { :error, reason } ->
-        raise File.IteratorError, reason: reason
-      data ->
-        do_iterator(device, fun.(data, acc), fun)
-    end
-  end
-
-  defp do_biniterator(device, acc, fun) do
-    case F.read_line(device) do
-      :eof ->
-        acc
-      { :error, reason } ->
-        raise File.IteratorError, reason: reason
-      { :ok, data } ->
-        do_iterator(device, fun.(data, acc), fun)
-    end
-  end
 end

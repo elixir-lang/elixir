@@ -233,7 +233,7 @@ defmodule EnumTest.List do
   test :take_does_not_consume_next_without_a_need do
     import PathHelpers
     File.open!(fixture_path("one-liner.txt"), [], fn file ->
-      iterator = File.iterator(file)
+      iterator = IO.lines_stream(file)
       assert Enum.take(iterator, 1) == ["ONE"]
       assert Enum.take(iterator, 5) == []
     end)
@@ -241,7 +241,7 @@ defmodule EnumTest.List do
 
   test :take_with_no_item_works_as_no_op do
     import PathHelpers
-    iterator = File.iterator!(fixture_path("one-liner.txt"))
+    iterator = File.lines_stream!(fixture_path("one-liner.txt"))
 
     assert Enum.take(iterator, 0) == []
     assert Enum.take(iterator, 0) == []
