@@ -3,6 +3,7 @@
 * enhancements
   * [Mix] `mix archive` now includes the version of the generated archive
   * [Mix] Projects can now define an `:elixir` key to outline supported Elixir versions
+  * [Kernel] `defrecordp/3` has been added that enables specifying a custom tag
 
 * bug fix
   * [Kernel] `match?/2` does not leak variables to outer scope
