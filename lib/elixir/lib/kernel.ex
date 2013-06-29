@@ -1501,7 +1501,7 @@ defmodule Kernel do
 
   Will generate the following type:
 
-      @typep user_t :: { :user, binary, integer }
+      @typep user_t :: { User, binary, integer }
 
   """
   defmacro defrecordp(name, fields) when is_atom(name) do
