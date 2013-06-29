@@ -12,8 +12,8 @@ defmodule Stream do
       [2,4,6,8,10]
 
   In the example above, as we mapped over the range, the elements being
-  enumerated were created one by one, during enumeration. This module
-  allows us to create lazy computations on top of streams:
+  enumerated were created one by one, during enumeration. The `Stream`
+  module allows us to map the range, without triggering its enumeration:
 
       iex> range = 1..3
       iex> stream = Stream.map(range, &1 * 2)
@@ -22,13 +22,13 @@ defmodule Stream do
 
   Notice we started with a range and then we created a stream that is
   meant to multiply each item in the range by 2. At this point, no
-  computation was done yet. Just when `Enum.map/2` is called that we
+  computation was done yet. Just when `Enum.map/2` is called is that we
   enumerate each item in the range, multiplying it per 2 and adding 1.
   We say the functions in `Stream` are lazy and the functions in `Enum`
   are eager.
 
   Due to its laziness, streams are useful when working with large collections
-  or even infinite collections. When chaining many operations with `Enum`,
+  (or even infinite collections). When chaining many operations with `Enum`,
   intermediary lists are created, while `Stream` creates a recipe of
   computations that are executed just at a later moment. Let's see another
   example:
