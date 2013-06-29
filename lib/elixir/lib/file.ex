@@ -969,8 +969,8 @@ defmodule File do
 
   """
   def iterator(device) do
-    fn(fun, acc) ->
-      do_iterator(device, fun, acc)
+    fn(acc, fun) ->
+      do_iterator(device, acc, fun)
     end
   end
 
@@ -981,10 +981,10 @@ defmodule File do
   that the file is opened when the iteration begins.
   """
   def iterator!(file, mode // []) do
-    fn(fun, acc) ->
+    fn(acc, fun) ->
       device = open!(file, mode)
       try do
-        do_iterator(device, fun, acc)
+        do_iterator(device, acc, fun)
       after
         F.close(device)
       end
