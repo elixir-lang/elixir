@@ -715,7 +715,7 @@ defmodule Module do
 
   Expands to:
 
-      Module.get_attribute(__MODULE__, @foo, true)
+      Module.get_attribute(__MODULE__, :foo, true)
 
   Notice the third argument is used to indicate if a warning
   should be emitted when the attribute was not previously defined.
