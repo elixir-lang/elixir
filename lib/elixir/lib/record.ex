@@ -262,7 +262,7 @@ defmodule Record do
       Record.defmacros(unquote(name), unquote(fields), __ENV__)
 
       if unquote(def_type) do
-        @typep unquote(type)() :: { unquote(name), unquote_splicing(types) }
+        @typep unquote(type)() :: { __MODULE__, unquote_splicing(types) }
       end
     end
   end
