@@ -18,6 +18,7 @@ defmodule KernelTest do
   doctest Enum
   doctest IO.ANSI
   doctest Regex
+  doctest Stream
   doctest String
   doctest OptionParser
   doctest Path
