@@ -36,7 +36,14 @@ defmodule HashSetTest do
 
   test "difference with nodes" do
     assert HashSet.equal?(HashSet.difference(filled_set(20), filled_set(21)), HashSet.new([]))
-    assert HashSet.equal?(HashSet.difference(filled_set(121), filled_set(120)), HashSet.new([121]))
+
+    diff = HashSet.difference(filled_set(9000), filled_set(9000))
+    assert HashSet.equal?(diff, HashSet.new([]))
+
+    #Ensure the trie has correctly resized
+    assert HashSet.inspect_depth(diff) == 0
+    assert HashSet.inspect_contract(diff) ==  2
+    assert HashSet.inspect_expand(diff) == 80
   end
 
   test "member? with ordered sets"  do

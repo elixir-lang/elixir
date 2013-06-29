@@ -25,11 +25,14 @@ defmodule HashSet do
   @node_size 16
   @node_template :erlang.make_tuple(@node_size, [])
 
+  @expand_default (@node_size * @expand_load)
+  @contract_default @contract_load
+
   defrecordp :trie,
     size: 0,
     depth: 0,
-    expand_on: @node_size * @expand_load,
-    contract_on: @contract_load,
+    expand_on: @expand_default,
+    contract_on: @contract_default,
     root: @node_template
 
   import Bitwise
@@ -182,10 +185,18 @@ defmodule HashSet do
     ordered(bucket: new, size: size - removed_count)
   end
 
-  defp set_filter(trie(root: root, depth: depth, size: size), fun) do
+  defp set_filter(trie(root: root, depth: depth, size: size) = set, fun) do
     { new, removed_count } = node_filter(root, depth, fun, @node_size)
-    # TODO: We need to check if the trie needs contraction
-    trie(size: size - removed_count, root: new, depth: depth)
+
+    if depth > 0 and trie(set, :contract_on) >= (size - removed_count) do
+      contract_trie(trie(root: new,
+                         size: size - removed_count,
+                         depth: depth,
+                         contract_on: trie(set, :contract_on),
+                         expand_on:   trie(set, :expand_on)))
+    else
+      trie(size: size - removed_count, root: new, depth: depth)
+    end
   end
 
   defp set_put(ordered(size: @ordered_threshold, bucket: bucket), member) do
@@ -355,6 +366,30 @@ defmodule HashSet do
     hash >>> @node_shift
   end
 
+  # Trie resizing
+
+  defp contract_trie(trie(depth: 0) = set) do
+    set
+  end
+
+  defp contract_trie(trie(root: root, depth: depth, size: size, contract_on: contract_on, expand_on: expand_on) = set) when size <= contract_on do
+    new_contract_on = div(contract_on, @node_size)
+    new_expand_on   = div(expand_on, @node_size)
+
+    if new_contract_on == 0, do: new_contract_on =  @contract_default
+    if new_expand_on == 0,   do: new_expand_on = @expand_default
+
+    contract_trie(trie(set, root: node_contract(root, depth),
+                             size: size,
+                             depth: depth - 1,
+                             contract_on: new_contract_on,
+                             expand_on: new_expand_on))
+  end
+
+  defp contract_trie(set) do
+    set
+  end
+
   # Node helpers
 
   # Gets a bucket from the node
@@ -477,6 +512,12 @@ defmodule HashSet do
   defp each_contract([], bucket), do: bucket
   defp each_contract(acc, []), do: acc
 
+  @doc false
+  def inspect_depth(trie(depth: d)), do: d
+  @doc false
+  def inspect_contract(trie(contract_on: c)), do: c
+  @doc false
+  def inspect_expand(trie(expand_on: e)), do: e
 end
 
 defimpl Enumerable, for: HashSet do
