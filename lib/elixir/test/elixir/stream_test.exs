@@ -37,6 +37,12 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [2]
   end
 
+  test :with_index do
+    stream = Stream.with_index([1,2,3])
+    assert is_lazy(stream)
+    assert Enum.to_list(stream) == [{1,0},{2,1},{3,2}]
+  end
+
   defp is_lazy(stream) do
     assert is_record(stream, Stream.Lazy)
   end
