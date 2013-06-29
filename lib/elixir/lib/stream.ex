@@ -10,7 +10,7 @@ defmodule Stream do
       1..5
       iex> Enum.map range, &1 * 2
       [2,4,6,8,10]
-  
+
   In the example above, as we mapped over the range, the elements being
   enumerated were created one by one, during enumeration. This module
   allows us to create lazy computations on top of streams:
@@ -76,14 +76,10 @@ defmodule Stream do
   There are many functions in Elixir's standard library that returns
   streams, some examples are:
 
-  * `File.stream/1` - It creates a file stream, that streams the given
-                      file lines one by one;
-  * `URI.query_stream/1` - Receives a query string as a binary and step
-                           bt step;
-  * `x .. y` - Ranges are also streams;
+  * `IO.lines_stream/1` - It streams input lines, one by one;
+  * `URI.query_decoder/1` - Decodes a query string, pair by pair;
 
-  However, this module also allows us to create streams from any
-  enumerable! Here is another example:
+  This module also allows us to create streams from any enumerable:
 
       iex> stream = Stream.map([1,2,3], &1 * 2)
       iex> Enum.map(stream, &1 + 1)
@@ -93,8 +89,8 @@ defmodule Stream do
   to `Stream.map/2`, we have automatically created a stream that will
   multiply the items in the list by 2 on enumeration.
 
-  Finally, this module also provides other functions for creating
-  streams, like `Stream.cycle/1`.
+  This module also provides other functions for creating streams, like
+  `Stream.cycle/1`.
   """
 
   defrecord Lazy, [:enumerable, :fun, :acc]
@@ -132,6 +128,27 @@ defmodule Stream do
   @type element :: any
   @type index :: non_neg_integer
   @type default :: any
+
+  @doc """
+  Creates a stream that cycles through the given enumerable,
+  undefnitely.
+
+  ## Examples
+
+      iex> stream = Stream.cycle([1,2,3])
+      iex> Enum.take(stream, 5)
+      [1,2,3,1,2]
+
+  """
+  @spec cycle(Enumerable.t) :: Lazy.t
+  def cycle(enumerable) do
+    do_cycle(enumerable, &1, &2)
+  end
+
+  defp do_cycle(enumerable, acc, fun) do
+    acc = Enumerable.reduce(enumerable, acc, fun)
+    do_cycle(enumerable, acc, fun)
+  end
 
   @doc """
   Creates a stream that will filter elements according to

@@ -25,6 +25,12 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [3,5,7]
   end
 
+  test :cycle do
+    stream = Stream.cycle([1,2,3])
+    assert is_function(stream)
+    assert Enum.take(stream, 5) == [1,2,3,1,2]
+  end
+
   test :map do
     stream = Stream.map([1,2,3], &1 * 2)
     assert is_lazy(stream)
