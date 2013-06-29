@@ -277,8 +277,7 @@ defmodule Enum do
 
   @doc """
   Invokes the given `fun` for each item in the `collection`.
-  Returns `:ok`. `fun` can take two parameters,
-  in which case the second parameter will be the iteration index.
+  Returns `:ok`.
 
   ## Examples
 
@@ -292,7 +291,10 @@ defmodule Enum do
   def each(collection, fun) when is_list(collection) do
     cond do
       is_function(fun, 1) -> :lists.foreach(fun, collection)
-      is_function(fun, 2) -> :lists.foldl(fn(h, idx) -> fun.(h, idx); idx + 1 end, 0, collection)
+      is_function(fun, 2) ->
+        IO.write "[WARNING] Passing a funtion of arity 2 to Enum.each/2 is deprecated, " <>
+                 "please use Stream.with_index/1 instead\n#{Exception.format_stacktrace}"
+        :lists.foldl(fn(h, idx) -> fun.(h, idx); idx + 1 end, 0, collection)
     end
 
     :ok
@@ -307,6 +309,9 @@ defmodule Enum do
         end)
 
       is_function(fun, 2) ->
+        IO.write "[WARNING] Passing a funtion of arity 2 to Enum.each/2 is deprecated, " <>
+                 "please use Stream.with_index/1 instead\n#{Exception.format_stacktrace}"
+
         Enumerable.reduce(collection, 0, fn(entry, idx) ->
           fun.(entry, idx)
           idx + 1
@@ -593,8 +598,6 @@ defmodule Enum do
   @doc """
   Returns a new collection, where each item is the result
   of invoking `fun` on each corresponding item of `collection`.
-  `fun` can take two parameters, in which case the second parameter
-  will be the iteration index.
 
   For dicts, the function accepts a key-value tuple.
 
@@ -613,6 +616,8 @@ defmodule Enum do
       is_function(fun, 1) ->
         lc item inlist collection, do: fun.(item)
       is_function(fun, 2) ->
+        IO.write "[WARNING] Passing a funtion of arity 2 to Enum.map/2 is deprecated, " <>
+                 "please use Stream.with_index/1 instead\n#{Exception.format_stacktrace}"
         mapper = fn(h, idx) -> { fun.(h, idx), idx + 1 } end
         { list, _ } = :lists.mapfoldl(mapper, 0, collection)
         list
@@ -1064,6 +1069,22 @@ defmodule Enum do
     end
   end
 
+  @doc """
+  Returns the collection with each element wrapped in a tuple
+  along side its index.
+
+  ## Examples
+
+      iex> Enum.with_index [1,2,3]
+      [{1,0},{2,1},{3,2}]
+
+  """
+  @spec with_index(t) :: list({ element, non_neg_integer })
+  def with_index(collection) do
+    map_reduce(collection, 0, fn x, acc ->
+      { { x, acc }, acc + 1 }
+    end) |> elem(0)
+  end
 
   @doc """
   Returns the maximum value.

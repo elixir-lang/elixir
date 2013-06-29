@@ -97,20 +97,11 @@ defmodule EnumTest.List do
   end
 
   test :each do
-    try do
-      assert Enum.each([], fn(x) -> x end) == :ok
-
-      assert Enum.each([1, 2, 3], fn(x) -> Process.put(:enum_test_each, x * 2) end) == :ok
-      assert Process.get(:enum_test_each) == 6
-
-      assert Enum.each([], fn(x, idx) -> {x, idx} end) == :ok
-
-      assert Enum.each([1, 2, 3], fn(_, idx) -> Process.put(:enum_test_indexed_each, idx) end) == :ok
-      assert Process.get(:enum_test_indexed_each) == 2
-    after
-      Process.delete(:enum_test_each)
-      Process.delete(:enum_test_indexed_each)
-    end
+    assert Enum.each([], fn(x) -> x end) == :ok
+    assert Enum.each([1, 2, 3], fn(x) -> Process.put(:enum_test_each, x * 2) end) == :ok
+    assert Process.get(:enum_test_each) == 6
+  after
+    Process.delete(:enum_test_each)
   end
 
   test :fetch do
@@ -180,9 +171,6 @@ defmodule EnumTest.List do
   test :map do
     assert Enum.map([], fn x -> x * 2 end) == []
     assert Enum.map([1, 2, 3], fn x -> x * 2 end) == [2, 4, 6]
-
-    assert Enum.map([], fn x, idx -> x * idx end) == []
-    assert Enum.map([1, 2, 3], fn _, idx -> idx end) == [0, 1, 2]
   end
 
   test :map_reduce do
@@ -285,6 +273,11 @@ defmodule EnumTest.List do
     assert Enum.zip([], [1]) == []
     assert Enum.zip([1], []) == [{ 1, nil }]
     assert Enum.zip([], []) == []
+  end
+
+  test :with_index do
+    assert Enum.with_index([]) == []
+    assert Enum.with_index([1,2,3]) == [{1,0},{2,1},{3,2}]
   end
 
   test :max do
@@ -618,6 +611,10 @@ defmodule EnumTest.Range do
     assert Enum.zip(1..2, 1..2) == [{1, 1}, {2, 2}]
     assert Enum.zip(1..4, 1..2) == [{1, 1}, {2, 2}, {3, nil}, {4, nil}]
     assert Enum.zip(1..2, 1..4) == [{1, 1}, {2, 2}]
+  end
+
+  test :with_index do
+    assert Enum.with_index(1..3) == [{1,0},{2,1},{3,2}]
   end
 
   test :max do

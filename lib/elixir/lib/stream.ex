@@ -97,34 +97,35 @@ defmodule Stream do
   streams, like `Stream.cycle/1`.
   """
 
-  defrecord Lazy, [:collection, :compose]
+  defrecord Lazy, [:enumerable, :fun, :acc]
 
   defimpl Enumerable, for: Lazy do
     def reduce(Lazy[] = lazy, acc, fun) do
-      { collection, fun } = unwind(lazy, fun)
-      Enumerable.reduce(collection, acc, fun)
+      do_reduce(lazy, acc, fun)
     end
 
     def count(Lazy[] = lazy) do
-      { collection, fun } = unwind(lazy, fn _, acc -> acc + 1 end)
-      Enumerable.reduce(collection, 0, fun)
+      do_reduce(lazy, 0, fn _, acc -> acc + 1 end)
     end
 
     def member?(Lazy[] = lazy, value) do
-      { collection, fun } = unwind(lazy, fn(entry, _) ->
+      do_reduce(lazy, false, fn(entry, _) ->
         if entry === value, do: throw(:function_member?), else: false
       end)
-      Enumerable.reduce(collection, false, fun)
     catch
       :function_member? -> true
     end
 
-    defp unwind(Lazy[collection: collection, compose: compose], fun) do
-      unwind(collection, compose.(fun))
+    defp do_reduce(Lazy[enumerable: enumerable, fun: f1, acc: nil], acc, fun) do
+      do_reduce(enumerable, acc, f1.(fun))
     end
 
-    defp unwind(collection, fun) do
-      { collection, fun }
+    defp do_reduce(Lazy[enumerable: enumerable, fun: f1, acc: side], acc, fun) do
+      do_reduce(enumerable, { acc, side }, f1.(fun)) |> elem(0)
+    end
+
+    defp do_reduce(enumerable, acc, fun) do
+      Enumerable.reduce(enumerable, acc, fun)
     end
   end
 
@@ -144,9 +145,9 @@ defmodule Stream do
 
   """
   @spec filter(Enumerable.t, (element -> as_boolean(term))) :: Lazy.t
-  def filter(collection, f) do
-    Lazy[collection: collection,
-         compose: fn(f1) ->
+  def filter(enumerable, f) do
+    Lazy[enumerable: enumerable,
+         fun: fn(f1) ->
            fn(entry, acc) ->
              if f.(entry), do: f1.(entry, acc), else: acc
            end
@@ -165,12 +166,35 @@ defmodule Stream do
 
   """
   @spec map(Enumerable.t, (element -> any)) :: Lazy.t
-  def map(collection, f) do
-    Lazy[collection: collection,
-         compose: fn(f1) ->
+  def map(enumerable, f) do
+    Lazy[enumerable: enumerable,
+         fun: fn(f1) ->
            fn(entry, acc) ->
              f1.(f.(entry), acc)
            end
          end]
+  end
+
+  @doc """
+  Creates a stream where each item in the enumerable will
+  be accompanied by its index.
+
+  ## Examples
+
+      iex> stream = Stream.with_index([1, 2, 3])
+      iex> Enum.to_list(stream)
+      [{1,0},{2,1},{3,2}]
+
+  """
+  @spec with_index(Enumerable.t) :: Lazy.t
+  def with_index(enumerable) do
+    Lazy[enumerable: enumerable,
+         fun: fn(f1) ->
+           fn(entry, { acc, counter }) ->
+             acc = f1.({ entry, counter }, acc)
+             { acc, counter + 1}
+           end
+         end,
+         acc: 0]
   end
 end
