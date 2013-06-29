@@ -55,7 +55,8 @@ defrecord RecordTest.WithInlineType, a: nil :: atom, b: 1 :: integer
 
 defmodule RecordTest.Macros do
   defrecordp :_user, name: "José", age: 25
-  defrecordp MyUser, :_my_user, name: "José", age: 25
+  defrecordp :my_user, :_my_user, name: "José", age: 25
+  defrecordp MyUser, :_My_user, name: "José", age: 25
 
   defmacro gen do
     quote do
@@ -113,6 +114,10 @@ defmodule RecordTest.Macros do
 
   def my_new() do
     _my_user()
+  end
+
+  def my_new_() do
+    _My_user()
   end
 
   def my_new(name, age) do
@@ -258,7 +263,10 @@ defmodule RecordTest do
     assert RecordTest.Macros.my_name_and_age(record) == [RecordTest.Macros.my_name(record), RecordTest.Macros.my_age(record)]
     assert RecordTest.Macros.my_age_and_name(record) == [RecordTest.Macros.my_age(record), RecordTest.Macros.my_name(record)]
 
-    assert elem(record, 0) == MyUser
+    assert elem(record, 0) == :my_user
+
+    record = RecordTest.Macros.my_new_
+    assert elem(record, 0) == RecordTest.Macros.MyUser
   end
 
   test :record_update do

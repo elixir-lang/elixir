@@ -1500,9 +1500,9 @@ defmodule Kernel do
        defrecordp State, :state, data: nil
      end
 
-  This way, the record created will have `State` as a tag, not `MyServer`:
+  This way, the record created will have `MyServer.State` as a tag, not `MyServer`:
 
-     state()        #=> { State, nil }
+     state()        #=> { MyServer.State, nil }
 
   ## Types
 
