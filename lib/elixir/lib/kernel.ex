@@ -1489,6 +1489,21 @@ defmodule Kernel do
       user(name: name) = record
       name #=> "José"
 
+  It is important to understand that in the above example, the record
+  will assume leading tuple element (the "tag") from the current module
+  (in the above case, `User`).
+
+  In many cases, however, this might be undesirable and for that, one
+  can use an extended `defrecordp` syntax to specify the tag explicitly:
+
+     defmodule MyServer do
+       defrecordp :state, State, data: nil
+     end
+
+  This way, the record created will have `MyServer.State` as a tag, not `MyServer`:
+
+     state()        #=> { MyServer.State, nil }
+
   ## Types
 
   `defrecordp` allows a developer to generate a type
@@ -1504,8 +1519,8 @@ defmodule Kernel do
       @typep user_t :: { User, binary, integer }
 
   """
-  defmacro defrecordp(name, fields) when is_atom(name) do
-    Record.defrecordp(name, fields)
+  defmacro defrecordp(name, tag // nil, fields) when is_atom(name) do
+    Record.defrecordp(name, tag, fields)
   end
 
   @doc """
