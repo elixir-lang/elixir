@@ -68,11 +68,11 @@ defmodule File do
 
   In order to write and read files, one must use the functions
   in the IO module. By default, a file is opened in binary mode
-  which requires the functions `IO.binread`, `IO.binwrite` and
-  `IO.binreadline` to interact with the file. A developer may
-  pass `:utf8` as an option when opening the file and then all
-  other functions from IO are available, since they work directly
-  with Unicode data.
+  which requires the functions `IO.binread` and `IO.binwrite`
+  to interact with the file. A developer may pass `:utf8` as an
+  option when opening the file and then all other functions
+  from IO are available, since they work directly with Unicode
+  data.
 
   Most of the functions in this module return `:ok` or
   `{ :ok, result }` in case of success, `{ :error, reason }`
@@ -725,11 +725,10 @@ defmodule File do
 
   In order to write and read files, one must use the functions
   in the IO module. By default, a file is opened in binary mode
-  which requires the functions `IO.binread`, `IO.binwrite` and
-  `IO.binreadline` to interact with the file. A developer may pass
-  `:utf8` as an option when opening the file and then all other
-  functions from IO are available, since they work directly with
-  Unicode data.
+  which requires the functions `IO.binread` and `IO.binwrite`
+  to interact with the file. A developer may pass `:utf8` as an
+  option when opening the file and then all other functions from
+  `IO` are available, since they work directly with Unicode data.
 
   The allowed modes:
 
@@ -776,7 +775,7 @@ defmodule File do
   ## Examples
 
       { :ok, file } = File.open("foo.tar.gz", [:read, :compressed])
-      IO.readline(file)
+      IO.read(file, :line)
       File.close(file)
 
   """
@@ -807,7 +806,7 @@ defmodule File do
   ## Examples
 
       File.open("file.txt", [:read, :write], fn(file) ->
-        IO.readline(file)
+        IO.read(file, :line)
       end)
 
   """
@@ -947,8 +946,8 @@ defmodule File do
 
   @doc false
   def iterator(device) do
-    IO.write "[WARNING] File.iterator/1 is deprecated, please use IO.lines_stream/1 instead\n#{Exception.format_stacktrace}"
-    IO.lines_stream(device)
+    IO.write "[WARNING] File.iterator/1 is deprecated, please use IO.stream/1 instead\n#{Exception.format_stacktrace}"
+    IO.stream(device)
   end
 
   @doc """
@@ -957,11 +956,11 @@ defmodule File do
   fail for the same reasons as `File.open!`. Note
   that the file is opened when the iteration begins.
   """
-  def lines_stream!(file, mode // []) do
+  def stream!(file, mode // []) do
     fn(acc, fun) ->
       device = open!(file, mode)
       try do
-        IO.lines_stream(device, acc, fun)
+        IO.stream(device, acc, fun)
       after
         F.close(device)
       end
@@ -970,14 +969,14 @@ defmodule File do
 
   @doc false
   def iterator!(device, mode // []) do
-    IO.write "[WARNING] File.iterator!/2 is deprecated, please use File.lines_stream!/2 instead\n#{Exception.format_stacktrace}"
-    lines_stream!(device, mode)
+    IO.write "[WARNING] File.iterator!/2 is deprecated, please use File.stream!/2 instead\n#{Exception.format_stacktrace}"
+    stream!(device, mode)
   end
 
   @doc false
   def biniterator(device) do
-    IO.write "[WARNING] File.biniterator/1 is deprecated, please use IO.binlines_stream/1 instead\n#{Exception.format_stacktrace}"
-    IO.binlines_stream(device)
+    IO.write "[WARNING] File.biniterator/1 is deprecated, please use IO.binstream/1 instead\n#{Exception.format_stacktrace}"
+    IO.binstream(device)
   end
 
   @doc """
@@ -986,11 +985,11 @@ defmodule File do
   fail for the same reasons as `File.open!`. Note
   that the file is opened when the iteration begins.
   """
-  def binlines_stream!(file, mode // []) do
+  def binstream!(file, mode // []) do
     fn(fun, acc) ->
       device = open!(file, mode)
       try do
-        IO.binlines_stream(device, fun, acc)
+        IO.binstream(device, fun, acc)
       after
         F.close(device)
       end
@@ -999,14 +998,14 @@ defmodule File do
 
   @doc false
   def biniterator!(device, mode // []) do
-    IO.write "[WARNING] File.binlines_stream!/2 is deprecated, please use File.binlines_stream!/2 instead\n#{Exception.format_stacktrace}"
-    binlines_stream!(device, mode)
+    IO.write "[WARNING] File.binstream!/2 is deprecated, please use File.binstream!/2 instead\n#{Exception.format_stacktrace}"
+    binstream!(device, mode)
   end
 
   @doc """
-  Changes the unix file `mode` for a given `file`. 
-  Returns `:ok` on success, or `{:error, reason}` 
-  on failure.  
+  Changes the unix file `mode` for a given `file`.
+  Returns `:ok` on success, or `{:error, reason}`
+  on failure.
   """
   def chmod(file, mode) do
     F.change_mode(file, mode)
@@ -1024,9 +1023,9 @@ defmodule File do
   end
 
   @doc """
-  Changes the user group given by the group id `gid` 
-  for a given `file`. Returns `:ok` on success, or 
-  `{:error, reason}` on failure.  
+  Changes the user group given by the group id `gid`
+  for a given `file`. Returns `:ok` on success, or
+  `{:error, reason}` on failure.
   """
   def chgrp(file, gid) do
     F.change_group(file, gid)
@@ -1044,11 +1043,11 @@ defmodule File do
   end
 
   @doc """
-  Changes the owner given by the user id `gid` 
-  for a given `file`. Returns `:ok` on success, 
-  or `{:error, reason}` on failure.  
+  Changes the owner given by the user id `gid`
+  for a given `file`. Returns `:ok` on success,
+  or `{:error, reason}` on failure.
   """
-  def chown(file, uid) do 
+  def chown(file, uid) do
     F.change_owner(file, uid)
   end
 

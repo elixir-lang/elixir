@@ -529,7 +529,7 @@ defmodule FileTest do
 
     test :open_a_file_with_function do
       file = fixture_path("file.txt")
-      assert File.open(file, IO.readline(&1)) == { :ok, "FOO\n" }
+      assert File.open(file, IO.read(&1, :line)) == { :ok, "FOO\n" }
     end
 
     test :open_a_missing_file! do
@@ -541,7 +541,7 @@ defmodule FileTest do
 
     test :open_a_file_with_function! do
       file = fixture_path("file.txt")
-      assert File.open!(file, IO.readline(&1)) == "FOO\n"
+      assert File.open!(file, IO.read(&1, :line)) == "FOO\n"
     end
   end
 
@@ -872,7 +872,7 @@ defmodule FileTest do
     dest = tmp_path("tmp_test.txt")
 
     try do
-      iterator = IO.lines_stream(src)
+      iterator = IO.stream(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
           IO.write target, Regex.replace(%r/"/, line, "'")
@@ -889,7 +889,7 @@ defmodule FileTest do
     dest = tmp_path("tmp_test.txt")
 
     try do
-      iterator = File.lines_stream!(src)
+      iterator = File.stream!(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
           IO.write target, Regex.replace(%r/"/, line, "'")
@@ -906,7 +906,7 @@ defmodule FileTest do
     dest = tmp_path("tmp_test.txt")
 
     try do
-      iterator = File.lines_stream!(src)
+      iterator = File.stream!(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
           IO.write target, Regex.replace(%r/"/, line, "'")
@@ -923,7 +923,7 @@ defmodule FileTest do
     dest = tmp_path("tmp_test.txt")
 
     try do
-      iterator = IO.binlines_stream(src)
+      iterator = IO.binstream(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
           IO.write target, Regex.replace(%r/"/, line, "'")
@@ -940,7 +940,7 @@ defmodule FileTest do
     dest = tmp_path("tmp_test.txt")
 
     try do
-      iterator = File.binlines_stream!(src)
+      iterator = File.binstream!(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
           IO.write target, Regex.replace(%r/"/, line, "'")
@@ -957,7 +957,7 @@ defmodule FileTest do
     dest = tmp_path("tmp_test.txt")
 
     try do
-      iterator = File.binlines_stream!(src)
+      iterator = File.binstream!(src)
       File.open dest, [:write], fn(target) ->
         Enum.each iterator, fn(line) ->
           IO.write target, Regex.replace(%r/"/, line, "'")
