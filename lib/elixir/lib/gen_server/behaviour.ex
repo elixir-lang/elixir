@@ -1,15 +1,15 @@
 defmodule GenServer.Behaviour do
   @moduledoc """
-  This module is a convenience to define GenServer callbacks in Elixir.
+  This module is a convenience for defining GenServer callbacks in Elixir.
 
-  A server is responsible to react to messages received from client
-  and a GenServer is an OTP behaviour that encapsulates common server
+  A server is responsible for reacting to messages received from a client.
+  A GenServer is an OTP behaviour that encapsulates common server
   functionalities.
 
   ## Example
 
-  Bellow follows an example of a GenServer that push and pop items
-  into a stack:
+  Below is an example of a GenServer that pushes and pops items
+  onto a stack:
 
       defmodule MyServer do
         use GenServer.Behaviour
@@ -47,8 +47,8 @@ defmodule GenServer.Behaviour do
 
   Notice we never call the server callbacks directly, they are called
   by OTP whenever we interact with the server. **cast** messages are
-  asynchronous while **call** ones are synchronous.  In the case of
-  GenServer's, there are 8 different values a callback such as
+  asynchronous while **call** ones are synchronous. For a
+  GenServer, there are 8 different values a callback such as
   `handle_call` or `handle_cast` can return:
 
       { :reply, reply, new_state }
@@ -62,7 +62,7 @@ defmodule GenServer.Behaviour do
 
   There are 6 callbacks required to be implemented in a GenServer. The
   `GenServer.Behaviour` module defines all of them automatically, but
-  allows us to customize the ones we need. The list of callbacks are:
+  allows us to customize the ones we need. The required callbacks are:
 
   * `init(args)` - invoked when the server is started;
   * `handle_call(msg, from, state)` - invoked to handle call messages;
@@ -74,13 +74,13 @@ defmodule GenServer.Behaviour do
   * `code_change(old_vsn, state, extra)` - called when the application
     code is being upgraded live (hot code swap);
 
-  Starting and sending messages to the gen_server is done
+  Starting and sending messages to the GenServer is done
   via Erlang's `:gen_server` module. For more information,
   please refer to the following:
 
-  http://www.erlang.org/doc/man/gen_server.html
-  http://www.erlang.org/doc/design_principles/gen_server_concepts.html
-  http://learnyousomeerlang.com/clients-and-servers
+  * http://www.erlang.org/doc/man/gen_server.html
+  * http://www.erlang.org/doc/design_principles/gen_server_concepts.html
+  * http://learnyousomeerlang.com/clients-and-servers
   """
 
   @doc false
