@@ -76,7 +76,7 @@ defmodule Stream do
   There are many functions in Elixir's standard library that returns
   streams, some examples are:
 
-  * `IO.lines_stream/1` - It streams input lines, one by one;
+  * `IO.stream/1` - It streams input lines, one by one;
   * `URI.query_decoder/1` - Decodes a query string, pair by pair;
 
   This module also allows us to create streams from any enumerable:
@@ -280,7 +280,7 @@ defmodule Stream do
            fn
              (entry, { acc, n }) when n > 0 ->
                { f1.(entry, acc), n-1 }
-             (entry, acc) ->
+             (_entry, acc) ->
                acc
            end
          end,
