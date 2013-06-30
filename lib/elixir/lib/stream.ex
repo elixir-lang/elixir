@@ -151,6 +151,55 @@ defmodule Stream do
   end
 
   @doc """
+  Lazily drops the next `n` items from the enumerable.
+
+  ## Examples
+
+      iex> stream = Stream.drop(1..10, 5)
+      iex> Enum.to_list(stream)
+      [6,7,8,9,10]
+
+  """
+  @spec drop(Enumerable.t, non_neg_integer) :: Lazy.t
+  def drop(enumerable, n) when n >= 0 do
+    Lazy[enumerable: enumerable,
+         fun: fn(f1) ->
+           fn
+             _entry, { acc, n } when n > 0 ->
+               { acc, n - 1 }
+             entry, { acc, n } ->
+               { f1.(entry, acc), n }
+           end
+         end,
+         acc: n]
+  end
+
+  @doc """
+  Lazily drops elements of the enumerable while the given
+  function returns true.
+
+  ## Examples
+
+      iex> stream = Stream.drop_while(1..10, &1 <= 5)
+      iex> Enum.to_list(stream)
+      [6,7,8,9,10]
+
+  """
+  @spec drop_while(Enumerable.t, (element -> as_boolean(term))) :: Lazy.t
+  def drop_while(enumerable, f) do
+    Lazy[enumerable: enumerable,
+         fun: fn(f1) ->
+           fn
+             entry, { acc, true } ->
+               if f.(entry), do: { acc, true }, else: { f1.(entry, acc), false }
+             entry, { acc, false } ->
+               { f1.(entry, acc), false }
+           end
+         end,
+         acc: true]
+  end
+
+  @doc """
   Creates a stream that will filter elements according to
   the given function on enumeration.
 
@@ -190,6 +239,77 @@ defmodule Stream do
              f1.(f.(entry), acc)
            end
          end]
+  end
+
+  @doc """
+  Creates a stream that will reject elements according to
+  the given function on enumeration.
+
+  ## Examples
+
+      iex> stream = Stream.reject([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
+      iex> Enum.to_list(stream)
+      [1,3]
+
+  """
+  @spec reject(Enumerable.t, (element -> as_boolean(term))) :: Lazy.t
+  def reject(enumerable, f) do
+    Lazy[enumerable: enumerable,
+         fun: fn(f1) ->
+           fn(entry, acc) ->
+             unless f.(entry), do: f1.(entry, acc), else: acc
+           end
+         end]
+  end
+
+  @doc """
+  Lazily takes the next `n` items from the enumerable and stops
+  enumeration.
+
+  ## Examples
+
+      iex> stream = Stream.take(1..100, 5)
+      iex> Enum.to_list(stream)
+      [1,2,3,4,5]
+
+  """
+  @spec take(Enumerable.t, non_neg_integer) :: Lazy.t
+  def take(enumerable, n) when n >= 0 do
+    Lazy[enumerable: enumerable,
+         fun: fn(f1) ->
+           fn
+             (entry, { acc, n }) when n > 0 ->
+               { f1.(entry, acc), n-1 }
+             (entry, acc) ->
+               acc
+           end
+         end,
+         acc: n]
+  end
+
+  @doc """
+  Lazily takes elements of the enumerable while the given
+  function returns true.
+
+  ## Examples
+
+      iex> stream = Stream.take_while(1..100, &1 <= 5)
+      iex> Enum.to_list(stream)
+      [1,2,3,4,5]
+
+  """
+  @spec take_while(Enumerable.t, (element -> as_boolean(term))) :: Lazy.t
+  def take_while(enumerable, f) do
+    Lazy[enumerable: enumerable,
+         fun: fn(f1) ->
+           fn
+             entry, { acc, true } ->
+               if f.(entry), do: { f1.(entry, acc), true }, else: { acc, false }
+             _entry, acc ->
+               acc
+           end
+         end,
+         acc: true]
   end
 
   @doc """
