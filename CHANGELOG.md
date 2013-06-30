@@ -1,9 +1,10 @@
 # v0.9.4-dev
 
 * enhancements
+  * [Kernel] `defrecordp/3` has been added that enables specifying the first element of the tuple
+  * [Kernel] Add `HashSet`
   * [Mix] `mix archive` now includes the version of the generated archive
   * [Mix] Projects can now define an `:elixir` key to outline supported Elixir versions
-  * [Kernel] `defrecordp/3` has been added that enables specifying a custom tag
 
 * bug fix
   * [Kernel] `match?/2` does not leak variables to outer scope
