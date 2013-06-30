@@ -124,10 +124,8 @@ defmodule URITest do
     assert URI.parse("https")
   end
 
-  test :downcase_properly do
+  test :downcase_scheme do
     assert URI.parse("hTtP://google.com").scheme == "http"
-    assert URI.parse("http://GoOgLe.CoM").host == "google.com"
-    assert URI.parse("http://LOL:wut@GoOgLe.CoM").authority == "LOL:wut@google.com"
   end
 
   test :to_binary do

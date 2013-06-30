@@ -142,7 +142,7 @@ defmodule URI do
     end
 
     info = URI.Info[
-      scheme: scheme && String.downcase(scheme), path: path, query: query,
+      scheme: downcase_scheme(scheme), path: path, query: query,
       fragment: fragment, authority: authority,
       userinfo: userinfo, host: host, port: port
     ]
@@ -150,19 +150,25 @@ defmodule URI do
     scheme_specific(scheme, info)
   end
 
-  @doc false
-  def scheme_module(scheme) do
-    if scheme do
-      module =
-        try do
-          Module.safe_concat(URI, String.upcase(scheme))
-        rescue
-          ArgumentError -> nil
-        end
+  defp downcase_scheme(nil),     do: nil
+  defp downcase_scheme("http"),  do: "http"
+  defp downcase_scheme("https"), do: "https"
+  defp downcase_scheme(scheme),  do: String.downcase(scheme)
 
-      if module && Code.ensure_loaded?(module) do
-        module
+  @doc false
+  def scheme_module(nil), do: nil
+  def scheme_module("http"), do: URI.HTTP
+  def scheme_module("https"), do: URI.HTTPS
+  def scheme_module(scheme) do
+    module =
+      try do
+        Module.safe_concat(URI, String.upcase(scheme))
+      rescue
+        ArgumentError -> nil
       end
+
+    if module && Code.ensure_loaded?(module) do
+      module
     end
   end
 
@@ -184,7 +190,7 @@ defmodule URI do
     components = Regex.run %r/(^(.*)@)?([^:]*)(:(\d*))?/, s
     destructure [_, _, userinfo, host, _, port], nillify(components)
     port = if port, do: binary_to_integer(port)
-    { userinfo, host && String.downcase(host), port }
+    { userinfo, host, port }
   end
 
   # Regex.run returns empty strings sometimes. We want
