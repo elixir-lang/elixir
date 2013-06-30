@@ -62,9 +62,6 @@ defmodule HashSet do
     end
   end
 
-  @doc """
-  Returns a set combining the two input sets.
-  """
   def union(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) and elem(set1, 1) <= elem(set2, 1) do
     set_fold set1, set2, fn v1, acc ->
       put(acc, v1)
@@ -81,44 +78,26 @@ defmodule HashSet do
     set_filter set1, fn e -> set_member?(set2, e) end
   end
 
-  @doc """
-  Returns a set containing only members in common between the two input sets.
-  """
   def intersection(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) do
     set_filter set2, fn e -> set_member?(set1, e) end
   end
 
-  @doc """
-  Returns a set that is the first set without members of the second set.
-  """
   def difference(set1, set2) when is_record(set1, HashSet) and is_record(set2, HashSet) do
     set_filter set1, fn m -> not set_member?(set2, m) end
   end
 
-  @doc """
-  Checks if the set has the given value.
-  """
   def member?(set, member) when is_record(set, HashSet) do
     set_member?(set, member)
   end
 
-  @doc """
-  Returns an empty set.
-  """
   def empty(_) do
     ordered()
   end
 
-  @doc """
-  Returns the set size.
-  """
   def size(set) do
     elem(set, 1)
   end
 
-  @doc """
-  Converts a set to a list.
-  """
   def to_list(ordered(bucket: bucket)) do
     bucket
   end
@@ -127,25 +106,16 @@ defmodule HashSet do
     set_fold(set, [], [&1|&2]) |> :lists.reverse
   end
 
-  @doc """
-  Puts the given value into the set if it does not already contain it.
-  """
   def put(set, member) do
     { set, _ } = set_put(set, member)
     set
   end
 
-  @doc """
-  Deletes a value from the set.
-  """
   def delete(set, member) do
     { set, _ } = set_delete(set, member)
     set
   end
 
-  @doc """
-  Checks if two sets are equal
-  """
   def equal?(set1, set2) do
     size = elem(set1, 1)
     case elem(set2, 1) do
@@ -156,20 +126,15 @@ defmodule HashSet do
     end
   end
 
-  @doc """
-  Checks if set1's members are all contained in set2.
-  """
   def subset?(set1, set2) do
     set_equal?(set1, set2)
   end
 
-  @doc """
-  Checks if set1 and set2 have no members in common.
-  """
   def disjoint?(set1, set2) do
     set_disjoint?(set1, set2)
   end
 
+  @doc false
   def reduce(ordered(bucket: bucket), acc, fun) do
     :lists.foldl(fun, acc, bucket)
   end
