@@ -15,6 +15,7 @@ defmodule KernelTest do
   doctest Bitwise
   doctest Code
   doctest Dict
+  doctest Set
   doctest Enum
   doctest IO.ANSI
   doctest Regex
