@@ -144,16 +144,26 @@ in order to craft an excellent pull request:
    [interactive rebase](https://help.github.com/articles/interactive-rebase)
    feature to tidy up your commits before making them public.
 
-5. Push your topic branch up to your fork:
+5. Make sure all the tests are still passing.
+
+   ```bash
+   make test
+   ```
+
+   This command will compile the code in your branch and use that
+   version of Elixir to run the tests. This is needed to ensure your changes can
+   pass all the tests.
+
+6. Push your topic branch up to your fork:
 
    ```bash
    git push origin <topic-branch-name>
    ```
 
-6. [Open a Pull Request](https://help.github.com/articles/using-pull-requests/)
+7. [Open a Pull Request](https://help.github.com/articles/using-pull-requests/)
     with a clear title and description.
 
-7. If you haven't updated your pull request for a while, you should consider
+8. If you haven't updated your pull request for a while, you should consider
    rebasing on master and resolving any conflicts.
 
    **IMPORTANT**: _Never ever_ merge upstream `master` into your branches. You
