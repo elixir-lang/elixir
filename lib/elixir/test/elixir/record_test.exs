@@ -22,10 +22,6 @@ end
 
 name = RecordTest.DynamicName
 defrecord name, a: 0, b: 1 do
-  def get_a(RecordTest.DynamicName[a: a]) do
-    a
-  end
-
   defoverridable [update_b: 2]
 
   def update_b(_, _) do
@@ -54,10 +50,6 @@ end
 defrecord RecordTest.WithInlineType, a: nil :: atom, b: 1 :: integer
 
 defmodule RecordTest.Macros do
-  defrecordp :_user, name: "José", age: 25
-  defrecordp :_my_user, :my_user, name: "José", age: 25
-  defrecordp :_My_user, __MODULE__.MyUser,  name: "José", age: 25
-
   defmacro gen do
     quote do
       alias RecordTest.Macros.Nested
@@ -78,76 +70,6 @@ defmodule RecordTest.Macros do
   # Ensure there is no conflict in a nested module
   # named record.
   defrecord Record, [a: 1, b: 2]
-
-  def new() do
-    _user()
-  end
-
-  def new(name, age) do
-    _user(name: name, age: age)
-  end
-
-  def name(_user(name: name)) do
-    name
-  end
-
-  def add_bar_to_name(_user(name: name) = user) do
-    _user(user, name: name <> " bar")
-  end
-
-  def age(user) do
-    _user(user, :age)
-  end
-
-  def to_keywords(user) do
-    _user(user)
-  end
-
-  def name_and_age(user) do
-    _user(user, [:name, :age])
-  end
-
-  def age_and_name(user) do
-    _user(user, [:age, :name])
-  end
-
-
-  def my_new() do
-    _my_user()
-  end
-
-  def my_new_() do
-    _My_user()
-  end
-
-  def my_new(name, age) do
-    _my_user(name: name, age: age)
-  end
-
-  def my_name(_my_user(name: name)) do
-    name
-  end
-
-  def my_add_bar_to_name(_my_user(name: name) = user) do
-    _my_user(user, name: name <> " bar")
-  end
-
-  def my_age(user) do
-    _my_user(user, :age)
-  end
-
-  def my_to_keywords(user) do
-    _my_user(user)
-  end
-
-  def my_name_and_age(user) do
-    _my_user(user, [:name, :age])
-  end
-
-  def my_age_and_name(user) do
-    _my_user(user, [:age, :name])
-  end
-
 end
 
 defmodule RecordTest do
@@ -157,12 +79,6 @@ defmodule RecordTest do
   # as expected. If it compiles, we are good to go.
   require RecordTest.Macros
   RecordTest.Macros.gen
-
-  test :record_access_with_nil_keyword do
-    record = RecordTest.DynamicName.new(a: nil)
-    record_access = RecordTest.DynamicName[a: nil]
-    assert record == record_access
-  end
 
   test :record_constructor_with_dict do
     record   = RecordTest.FileInfo.new(type: :regular)
@@ -214,59 +130,6 @@ defmodule RecordTest do
     record = RecordTest.DynamicName.new(a: "a", b: "b")
     assert record.to_keywords[:a] == "a"
     assert record.to_keywords[:b] == "b"
-  end
-
-  test :underscore_record_syntax do
-    record = RecordTest.DynamicName[_: "a"]
-    assert RecordTest.DynamicName[a: "a", b: "a"] == record
-    assert RecordTest.DynamicName[_: _] = RecordTest.DynamicName[_: "x"]
-    assert { :badmatch, RecordTest.DynamicName[a: "y", b: "y"] } =
-      catch_error(RecordTest.DynamicName[_: "x"] = RecordTest.DynamicName[_: "y"])
-  end
-
-  test :access_protocol_on_being_defined_record do
-    assert RecordTest.DynamicName.new(a: "a").get_a == "a"
-  end
-
-  test :record_macros do
-    record = RecordTest.Macros.new
-    assert record.name == "José"
-
-    record = RecordTest.Macros.new("Foo", 25)
-    assert record.name == "Foo"
-
-    record = record.add_bar_to_name
-    assert record.name == "Foo bar"
-
-    assert record.age == 25
-    assert record.to_keywords == [name: record.name, age: record.age]
-
-    assert record.name_and_age == [record.name, record.age]
-    assert record.age_and_name == [record.age, record.name]
-
-    assert elem(record, 0) == RecordTest.Macros
-  end
-
-  test :custom_tag_record_macros do
-    record = RecordTest.Macros.my_new
-    assert RecordTest.Macros.my_name(record) == "José"
-
-    record = RecordTest.Macros.my_new("Foo", 25)
-    assert RecordTest.Macros.my_name(record) == "Foo"
-
-    record = RecordTest.Macros.my_add_bar_to_name(record)
-    assert RecordTest.Macros.my_name(record) == "Foo bar"
-
-    assert RecordTest.Macros.my_age(record) == 25
-    assert RecordTest.Macros.my_to_keywords(record) == [name: RecordTest.Macros.my_name(record), age: RecordTest.Macros.my_age(record)]
-
-    assert RecordTest.Macros.my_name_and_age(record) == [RecordTest.Macros.my_name(record), RecordTest.Macros.my_age(record)]
-    assert RecordTest.Macros.my_age_and_name(record) == [RecordTest.Macros.my_age(record), RecordTest.Macros.my_name(record)]
-
-    assert elem(record, 0) == :my_user
-
-    record = RecordTest.Macros.my_new_
-    assert elem(record, 0) == RecordTest.Macros.MyUser
   end
 
   test :record_update do
