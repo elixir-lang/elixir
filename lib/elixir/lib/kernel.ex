@@ -1521,7 +1521,10 @@ defmodule Kernel do
 
   """
   defmacro defrecordp(name, tag // nil, fields) when is_atom(name) do
-    tag = Macro.expand(tag, __CALLER__) || __CALLER__.module
+    tag = case Macro.expand(tag, __CALLER__) do
+      nil -> __CALLER__.module
+      other -> other
+    end
     Record.defrecordp(name, tag, fields)
   end
 
