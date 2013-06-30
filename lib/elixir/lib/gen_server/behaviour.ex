@@ -20,17 +20,17 @@ defmodule GenServer.Behaviour do
           { :reply, h, t }
         end
 
-        def handle_call(_request, _from, _config) do
+        def handle_call(request, from, config) do
           # Call the default implementation from GenServer.Behaviour
-          super
+          super(request, from, config)
         end
 
         def handle_cast({ :push, item }, config) do
           { :noreply, [item|config] }
         end
 
-        def handle_cast(_request, _config) do
-          super
+        def handle_cast(request, config) do
+          super(request, config)
         end
       end
 
