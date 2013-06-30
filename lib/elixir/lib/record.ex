@@ -387,10 +387,6 @@ defmodule Record do
         Record.access(unquote(tag) || __MODULE__, unquote(escaped), args, __CALLER__)
       end
 
-      defmacrop unquote(name)(record, key) when is_atom(key) do
-        Record.get(unquote(tag) || __MODULE__, unquote(escaped), record, key)
-      end
-
       defmacrop unquote(name)(record, args) do
         Record.dispatch(unquote(tag) || __MODULE__, unquote(escaped), record, args, __CALLER__)
       end
@@ -468,10 +464,12 @@ defmodule Record do
     end
   end
 
-  # Dispatch the call to either update or to_list depending on the args given.
+  # Dispatch the call to either get, to_list or update depending on the args given.
   @doc false
   def dispatch(atom, fields, record, args, caller) do
     cond do
+      is_atom(args) ->
+        get(atom, fields, record, args)
       is_keyword(args) ->
         update(atom, fields, record, args, caller)
       is_list(args) ->

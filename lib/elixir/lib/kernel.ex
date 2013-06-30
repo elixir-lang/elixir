@@ -1604,13 +1604,13 @@ defmodule Kernel do
   define what the first element of the record should be:
 
      defmodule MyServer do
-       defrecordp :state, :state, data: nil
+       defrecordp :state, :my_state, data: nil
      end
 
-  This way, the record created will have `:state` as first element,
+  This way the record created will have `:my_state` as first element,
   not `MyServer`:
 
-     state() #=> { :state, nil }
+     state() #=> { :my_state, nil }
 
   ## Types
 
@@ -3344,12 +3344,12 @@ defmodule Kernel do
       sample = [a: 1, b: 2, c: 3]
       sample[:b] #=> 2
 
-  ## Atoms
+  ## Aliases
 
-  Whenever invoked on an atom, the access protocol is expanded
-  at compilation time rather than on runtime. This feature is used
-  by records to allow a developer to match against an specific part
-  of a record:
+  Whenever invoked on an alias or an atom, the access protocol is
+  expanded at compilation time rather than on runtime. This feature
+  is used by records to allow a developer to match against an specific
+  part of a record:
 
       def increment(State[counter: counter, other: 13] = state) do
         state.counter(counter + 1)
@@ -3373,9 +3373,9 @@ defmodule Kernel do
         State[counter: counter]
       end
 
-  The example above is slightly faster than `State.new(counter: :counter)`
-  because the record is expanded at compilation time and not at runtime.
-  If a field is not specified on creation, it will have its default value.
+  The example above is faster than `State.new(counter: :counter)` because
+  the record is expanded at compilation time and not at runtime. If a field
+  is not specified on creation, it will have its default value.
 
   Finally, as in Erlang, Elixir also allows the following syntax:
 
@@ -3388,42 +3388,71 @@ defmodule Kernel do
       new_uri = State[_: IO.puts "Hello"]
 
   In this case, `"Hello"` will be printed twice (one per each field).
-
   """
   defmacro access(element, args) do
-    caller = __CALLER__
-    atom   = Macro.expand(element, caller)
+    atom = Macro.expand(element, __CALLER__)
 
-    case is_atom(atom) and atom != nil do
-      true ->
-        fields =
-          try do
-            case :lists.member(atom, caller.context_modules) and Module.open?(atom) do
-              true  -> Module.get_attribute(atom, :record_fields)
-              false -> atom.__record__(:fields)
-            end
-          rescue
-            UndefinedFunctionError ->
-              # We first try to call __access__ and just then check if
-              # it is loaded so we allow the ParallelCompiler to solve
-              # conflicts.
-              case :code.ensure_loaded(atom) do
-                { :error, _ } ->
-                  :elixir_aliases.ensure_loaded(caller.line, caller.file, atom, caller.context_modules)
-                _ ->
-                  raise ArgumentError, message: "cannot use module #{inspect atom} in access protocol because it does not export __record__/1"
-              end
-          end
-
-        Record.access(atom, fields, args, caller)
-      false ->
-        case caller.in_match? do
+    case access_fields(atom, __CALLER__) do
+      nil ->
+        case __CALLER__.in_match? do
           true  -> raise ArgumentError, message: << "the access protocol cannot be used inside match clauses ",
                      "(for example, on the left hand side of a match or in function signatures)" >>
           false -> quote do: Access.access(unquote(element), unquote(args))
         end
+      fields -> Record.access(atom, fields, args, __CALLER__)
     end
   end
+
+  @doc """
+  Accesses or updates the given elements of a record backed
+  up by a record module.
+
+      # Retrieving one field
+      iex> range = 1..2
+      iex> Range[range, :first]
+      1
+
+      # Retrieving many field
+      iex> range = 1..2
+      iex> Range[range, [:first, :last]]
+      [1,2]
+
+      # Updating fields
+      iex> range = 1..2
+      iex> Range[range, last: 10]
+      1..10
+
+  """
+  defmacro access(record, element, args) do
+    atom = Macro.expand(element, __CALLER__)
+
+    case access_fields(atom, __CALLER__) do
+      nil    -> raise ArgumentError, message: "the access protocol with extra args can only be used at compilation time"
+      fields -> Record.dispatch(atom, fields, record, args, __CALLER__)
+    end
+  end
+
+  defp access_fields(atom, caller) when is_atom(atom) and atom != nil do
+    try do
+      case :lists.member(atom, caller.context_modules) and Module.open?(atom) do
+        true  -> Module.get_attribute(atom, :record_fields)
+        false -> atom.__record__(:fields)
+      end
+    rescue
+      UndefinedFunctionError ->
+        # We first try to call __access__ and just then check if
+        # it is loaded so we allow the ParallelCompiler to solve
+        # conflicts.
+        case :code.ensure_loaded(atom) do
+          { :error, _ } ->
+            :elixir_aliases.ensure_loaded(caller.line, caller.file, atom, caller.context_modules)
+          _ ->
+            raise ArgumentError, message: "cannot use module #{inspect atom} in access protocol because it does not export __record__/1"
+        end
+    end
+  end
+
+  defp access_fields(_other, _caller), do: nil
 
   @doc """
   Defines the given functions in the current module that will

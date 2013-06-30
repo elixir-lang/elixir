@@ -18,7 +18,7 @@ Nonterminals
   matched_kw_expr matched_kw_comma matched_kw_base
   dot_op dot_ref dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_punctuated_identifier dot_bracket_identifier
-  var list bracket_access bit_string tuple
+  var list bracket_access bracket_last bit_string tuple
   do_block fn_eol do_eol end_eol block_eol block_item block_list
   .
 
@@ -400,9 +400,12 @@ matched_kw_base  -> matched_kw_comma : '$1'.
 
 % Lists
 
-bracket_access -> open_bracket ']' : { [], ?line('$1') }.
-bracket_access -> open_bracket optional_comma_expr close_bracket : { '$2', ?line('$1') }.
-bracket_access -> open_bracket kw_base close_bracket : { '$2', ?line('$1') }.
+bracket_access -> open_bracket ']' : { access, ?line('$1'), [] }.
+bracket_access -> open_bracket bracket_last close_bracket : { access, ?line('$1'), '$2' }.
+bracket_access -> open_bracket paren_expr ',' bracket_last close_bracket : { access, ?line('$1'), '$2', '$4' }.
+
+bracket_last -> kw_base : '$1'.
+bracket_last -> optional_comma_expr : '$1'.
 
 list -> open_bracket ']' : [].
 list -> open_bracket kw_base close_bracket : '$2'.
@@ -506,9 +509,13 @@ build_fn(Op, Stab) ->
 
 %% Access
 
-build_access(Expr, Access) ->
-  Meta = [{line,?line(Access)}],
-  { { '.', Meta, ['Elixir.Kernel', access] }, Meta, [ Expr, ?id(Access) ] }.
+build_access(Expr, { access, Line, Args }) ->
+  Meta = [{line,Line}],
+  { { '.', Meta, ['Elixir.Kernel', access] }, Meta, [ Expr, Args ] };
+
+build_access(Expr, { access, Line, Target, Args }) ->
+  Meta = [{line,Line}],
+  { { '.', Meta, ['Elixir.Kernel', access] }, Meta, [ Target, Expr, Args ] }.
 
 %% Interpolation aware
 
