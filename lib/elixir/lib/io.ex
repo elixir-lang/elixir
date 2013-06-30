@@ -26,7 +26,8 @@ defmodule IO do
   import :erlang, only: [group_leader: 0]
 
   @doc """
-  Reads `count` bytes from the IO device. It returns:
+  Reads `count` characters from the IO device or until
+  the end of the line if `:line` is given. It returns:
 
   * `data` - The input characters.
 
@@ -36,48 +37,53 @@ defmodule IO do
     for instance {:error, :estale} if reading from an
     NFS file system.
   """
-  def read(device // group_leader(), count) do
+  def read(device // group_leader, chars_or_line)
+
+  def read(device, :line) do
+    :io.get_line(map_dev(device), "")
+  end
+
+  def read(device, count) when count >= 0 do
     :io.get_chars(map_dev(device), "", count)
   end
 
   @doc """
-  Reads `count` bytes from the IO device as binary,
-  no unicode conversion happens.
+  Reads `count` bytes from the IO device or until
+  the end of the line if `:line` is given. It returns:
 
-  Check `read/2` for more information.
+  * `data` - The input characters.
+
+  * :eof - End of file was encountered.
+
+  * {:error, reason} - Other (rare) error condition,
+    for instance {:error, :estale} if reading from an
+    NFS file system.
   """
-  def binread(device // group_leader(), count) do
+  def binread(device // group_leader, chars_or_line)
+
+  def binread(device, :line) do
+    case :file.read_line(map_dev(device)) do
+      { :ok, data } -> data
+      other -> other
+    end
+  end
+
+  def binread(device, count) when count >= 0 do
     case :file.read(map_dev(device), count) do
       { :ok, data } -> data
       other -> other
     end
   end
 
-  @doc """
-  Reads a line from the IO device. It returns:
-
-  * `data` - The input characters.
-
-  * :eof - End of file was encountered.
-
-  * {:error, reason} - Other (rare) error condition,
-    for instance {:error, :estale} if reading from an
-    NFS file system.
-
-  This function does the same as `gets/2`,
-  except the prompt is not required as argument.
-  """
+  @doc false
   def readline(device // group_leader()) do
+    IO.write "[WARNING] IO.readline(device) is deprecated, please use IO.read(device, :line) instead\n#{Exception.format_stacktrace}"
     :io.get_line(map_dev(device), "")
   end
 
-  @doc """
-  Reads a line from the IO device as binary,
-  no unicode conversion happens.
-
-  Check `readline/1` for more information.
-  """
+  @doc false
   def binreadline(device // group_leader()) do
+    IO.write "[WARNING] IO.binreadline(device) is deprecated, please use IO.binread(device, :line) instead\n#{Exception.format_stacktrace}"
     case :file.read_line(map_dev(device)) do
       { :ok, data } -> data
       other -> other
@@ -194,6 +200,59 @@ defmodule IO do
   """
   def gets(device // group_leader(), prompt) do
     :io.get_line(map_dev(device), to_iodata(prompt))
+  end
+
+  @doc """
+  Converts the io device into a Stream. The device is
+  iterated line by line.
+
+  This reads the io as utf-8. Check out
+  `IO.binstream/1` to handle the IO as a raw binary.
+
+  ## Examples
+
+  Here is an example on how we mimic an echo server
+  from the command line:
+
+    Enum.each IO.stream(:stdio), IO.write(&1)
+
+  """
+  def stream(device) do
+    stream(map_dev(device), &1, &2)
+  end
+
+  @doc """
+  Converts the io device into a Stream. The device is
+  iterated line by line.
+
+  This reads the io as a raw binary.
+  """
+  def binstream(device) do
+    binstream(map_dev(device), &1, &2)
+  end
+
+  @doc false
+  def stream(device, acc, fun) do
+    case read(device, :line) do
+      :eof ->
+        acc
+      { :error, reason } ->
+        raise File.IteratorError, reason: reason
+      data ->
+        stream(device, fun.(data, acc), fun)
+    end
+  end
+
+  @doc false
+  def binstream(device, acc, fun) do
+    case binread(device, :line) do
+      :eof ->
+        acc
+      { :error, reason } ->
+        raise File.IteratorError, reason: reason
+      data ->
+        binstream(device, fun.(data, acc), fun)
+    end
   end
 
   # Map the Elixir names for standard io and error to Erlang names

@@ -26,5 +26,6 @@ defmodule KernelTest do
   doctest Path
   doctest Regex
   doctest Set
+  doctest Stream
   doctest String
 end
