@@ -254,7 +254,7 @@ defmodule Record do
   in `values`. This is invoked directly by `Kernel.defrecordp`,
   so check it for more information and documentation.
   """
-  def defrecordp(tag // nil, name, fields) when is_atom(name) and is_list(fields) do
+  def defrecordp(name, tag // nil, fields) when is_atom(name) and is_list(fields) do
     { fields, types, def_type } = recordp_split(fields, [], [], false)
     type = :"#{name}_t"
     is_tag_alias = match?({:__aliases__, _, _}, tag)

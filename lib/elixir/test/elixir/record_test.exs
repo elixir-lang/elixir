@@ -55,8 +55,8 @@ defrecord RecordTest.WithInlineType, a: nil :: atom, b: 1 :: integer
 
 defmodule RecordTest.Macros do
   defrecordp :_user, name: "José", age: 25
-  defrecordp :my_user, :_my_user, name: "José", age: 25
-  defrecordp MyUser, :_My_user, name: "José", age: 25
+  defrecordp :_my_user, :my_user, name: "José", age: 25
+  defrecordp :_My_user, MyUser,  name: "José", age: 25
 
   defmacro gen do
     quote do

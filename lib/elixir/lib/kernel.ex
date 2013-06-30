@@ -1497,7 +1497,7 @@ defmodule Kernel do
   can use an extended `defrecordp` syntax to specify the tag explicitly:
 
      defmodule MyServer do
-       defrecordp State, :state, data: nil
+       defrecordp :state, State, data: nil
      end
 
   This way, the record created will have `MyServer.State` as a tag, not `MyServer`:
@@ -1519,8 +1519,8 @@ defmodule Kernel do
       @typep user_t :: { User, binary, integer }
 
   """
-  defmacro defrecordp(tag // nil, name, fields) when is_atom(name) do
-    Record.defrecordp(tag, name, fields)
+  defmacro defrecordp(name, tag // nil, fields) when is_atom(name) do
+    Record.defrecordp(name, tag, fields)
   end
 
   @doc """
