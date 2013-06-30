@@ -1490,19 +1490,20 @@ defmodule Kernel do
       name #=> "José"
 
   It is important to understand that in the above example, the record
-  will assume leading tuple element (the "tag") from the current module
-  (in the above case, `User`).
+  will assume leading tuple element from the current module (in the
+  above case, `User`).
 
-  In many cases, however, this might be undesirable and for that, one
-  can use an extended `defrecordp` syntax to specify the tag explicitly:
+  In some cases, however, this might be undesirable and one can explicitly
+  define what the first element of the record should be:
 
      defmodule MyServer do
-       defrecordp :state, State, data: nil
+       defrecordp :state, :state, data: nil
      end
 
-  This way, the record created will have `MyServer.State` as a tag, not `MyServer`:
+  This way, the record created will have `:state` as first element,
+  not `MyServer`:
 
-     state()        #=> { MyServer.State, nil }
+     state() #=> { :state, nil }
 
   ## Types
 
@@ -1520,6 +1521,7 @@ defmodule Kernel do
 
   """
   defmacro defrecordp(name, tag // nil, fields) when is_atom(name) do
+    tag = Macro.expand(tag, __CALLER__) || __CALLER__.module
     Record.defrecordp(name, tag, fields)
   end
 

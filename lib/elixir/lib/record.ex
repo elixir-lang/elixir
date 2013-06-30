@@ -254,29 +254,16 @@ defmodule Record do
   in `values`. This is invoked directly by `Kernel.defrecordp`,
   so check it for more information and documentation.
   """
-  def defrecordp(name, tag // nil, fields) when is_atom(name) and is_list(fields) do
+  def defrecordp(name, tag, fields) when is_atom(name) and is_atom(tag) and is_list(fields) do
     { fields, types, def_type } = recordp_split(fields, [], [], false)
     type = :"#{name}_t"
-    is_tag_alias = match?({:__aliases__, _, _}, tag)
 
     quote do
-      tag = if unquote(is_tag_alias) do
-        __MODULE__.unquote(tag)
-      else
-        unquote(tag)
+      Record.defmacros(unquote(name), unquote(fields), __ENV__, unquote(tag))
+
+      if unquote(def_type) do
+        @typep unquote(type)() :: { unquote(tag), unquote_splicing(types) }
       end
-
-      Record.defmacros(unquote(name), unquote(fields), __ENV__, tag)
-
-      cond do
-        unquote(def_type) and unquote(is_tag_alias) and not nil?(unquote(tag)) ->
-          @typep unquote(type)() :: { __MODULE__.unquote(tag), unquote_splicing(types) }
-        unquote(def_type) and not nil?(unquote(tag)) ->
-          @typep unquote(type)() :: { unquote(tag), unquote_splicing(types) }
-        unquote(def_type)  ->
-          @typep unquote(type)() :: { __MODULE__, unquote_splicing(types) }
-        true ->
-       end
     end
   end
 
