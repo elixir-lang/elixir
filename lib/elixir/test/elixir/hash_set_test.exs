@@ -22,9 +22,9 @@ defmodule HashSetTest do
   end
 
   test "intersection with nodes" do
-    assert HashSet.intersection(filled_set(21), filled_set(20)) == HashSet.new(filled_set(20))
+    assert HashSet.intersection(filled_set(21), filled_set(20)) == filled_set(20)
 
-    assert HashSet.equal?(HashSet.intersection(filled_set(120), filled_set(121)), HashSet.new(filled_set(120)))
+    assert HashSet.equal?(HashSet.intersection(filled_set(120), filled_set(121)), filled_set(120))
   end
 
   test "difference with ordered sets" do
