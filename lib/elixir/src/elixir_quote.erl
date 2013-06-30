@@ -50,7 +50,7 @@ escape(Expr, Unquote) ->
     aliases_hygiene=false,
     imports_hygiene=false,
     unquote=Unquote,
-    mark=false
+    escape=true
   }, nil).
 
 erl_escape(Expr, Unquote, S) ->
@@ -92,11 +92,11 @@ do_quote({ unquote, _Meta, [Expr] }, #elixir_quote{unquote=true} = Q, _) ->
 
 %% Context mark
 
-do_quote({ Def, Meta, Args }, #elixir_quote{mark=true} = Q, S) when ?defs(Def); Def == defmodule; Def == alias; Def == import ->
+do_quote({ Def, Meta, Args }, #elixir_quote{escape=false} = Q, S) when ?defs(Def); Def == defmodule; Def == alias; Def == import ->
   NewMeta = lists:keystore(context, 1, Meta, { context, Q#elixir_quote.context }),
   do_quote_tuple({ Def, NewMeta, Args }, Q, S);
 
-do_quote({ { '.', _, [_, Def] } = Target, Meta, Args }, #elixir_quote{mark=true} = Q, S) when ?defs(Def); Def == defmodule; Def == alias; Def == import ->
+do_quote({ { '.', _, [_, Def] } = Target, Meta, Args }, #elixir_quote{escape=false} = Q, S) when ?defs(Def); Def == defmodule; Def == alias; Def == import ->
   NewMeta = lists:keystore(context, 1, Meta, { context, Q#elixir_quote.context }),
   do_quote_tuple({ Target, NewMeta, Args }, Q, S);
 
@@ -153,7 +153,7 @@ do_quote({ Name, Meta, ArgsOrAtom } = Tuple, #elixir_quote{imports_hygiene=true}
       do_quote_tuple({ Name, ImportMeta, ArgsOrAtom }, Q, S)
   end;
 
-do_quote({ _, _, _ } = Tuple, Q, S) ->
+do_quote({ _, _, _ } = Tuple, #elixir_quote{escape=false} = Q, S) ->
   do_quote_tuple(Tuple, Q, S);
 
 %% Literals
@@ -168,7 +168,7 @@ do_quote({ Left, Right }, Q, S) ->
   { TRight, RQ } = do_quote(Right, LQ, S),
   { { TLeft, TRight }, RQ };
 
-do_quote(Tuple, Q, S) when is_tuple(Tuple) ->
+do_quote(Tuple, #elixir_quote{escape=true} = Q, S) when is_tuple(Tuple) ->
   { TT, TQ } = do_quote(tuple_to_list(Tuple), Q, S),
   { { '{}', [], TT }, TQ };
 
