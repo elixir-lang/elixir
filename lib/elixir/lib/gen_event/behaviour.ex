@@ -29,11 +29,16 @@ defmodule GenEvent.Behaviour do
       end
 
       { :ok, pid } = :gen_event.start_link
+      #=> {:ok,#PID<0.42.0>}
 
       :gen_event.add_handler(pid, MyEventHandler, [])
+      #=> :ok
 
       :gen_event.notify(pid, {:notification, 1})
+      #=> :ok
+
       :gen_event.notify(pid, {:notification, 2})
+      #=> :ok
       
       :gen_event.call(pid, MyEventHandler, :notifications)
       #=> [1, 2]
