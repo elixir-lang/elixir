@@ -92,7 +92,7 @@ defmodule ExUnit.Runner do
 
       if test_case.failure do
         Enum.each tests, fn test_name ->
-          test = ExUnit.Test[name: test_name, case: test_case, invalid: true]
+          test = ExUnit.Test[name: test_name, case: case_name, failure: { :invalid, test_case }]
           pid <- { self, :test_finished, test }
         end
 
@@ -125,8 +125,9 @@ defmodule ExUnit.Runner do
   end
 
   defp run_test(config, pid, test_case, test_name, context) do
-    test = ExUnit.Test[name: test_name, case: test_case]
     ExUnit.TestCase[name: case_name] = test_case
+
+    test = ExUnit.Test[name: test_name, case: case_name]
     config.formatter.test_started(config.formatter_id, test)
 
     # Run test in a new process so that we can trap exits for a single test

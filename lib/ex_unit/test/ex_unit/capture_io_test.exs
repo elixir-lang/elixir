@@ -37,12 +37,12 @@ defmodule ExUnit.CaptureIOTest do
 
   import ExUnit.CaptureIO
 
-  test :capture_io_with_nothing do
+  test "with no output" do
     assert capture_io(fn ->
     end) == nil
   end
 
-  test :capture_io_with_put_chars do
+  test "with put chars" do
     assert capture_io(fn ->
       :io.put_chars("")
     end) == ""
@@ -69,13 +69,13 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test :capture_io_with_put_chars_to_stderr do
+  test "with put chars to stderr" do
     assert capture_io(:stderr, fn ->
       :io.put_chars(:standard_error, "a")
     end) == "a"
   end
 
-  test :capture_io_with_get_chars do
+  test "with get chars" do
     assert capture_io(fn ->
       :io.get_chars(">", 3)
     end) == ">"
@@ -105,7 +105,7 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test :capture_io_with_get_line do
+  test "with get line" do
     assert capture_io(fn ->
       :io.get_line ">"
     end) == ">"
@@ -150,7 +150,7 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test :capture_io_with_get_until do
+  test "with get until" do
     assert capture_io(fn ->
       :io.scan_erl_form('>')
     end) == ">"
@@ -210,7 +210,7 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test :capture_io_with_setopts do
+  test "with setopts" do
     assert capture_io(fn ->
       :io.setopts({ :encoding, :latin1 })
     end) == nil
@@ -220,7 +220,7 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test :capture_io_with_getopts do
+  test "with getopts" do
     assert capture_io(fn ->
       :io.getopts
     end) == nil
@@ -230,7 +230,7 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test :capture_io_with_columns do
+  test "with columns" do
     assert capture_io(fn ->
       :io.columns
     end) == nil
@@ -240,7 +240,7 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test :capture_io_with_rows do
+  test "with rows" do
     assert capture_io(fn ->
       :io.rows
     end) == nil
@@ -250,7 +250,7 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test :capture_io_with_multiple_io_requests do
+  test "with multiple io requests" do
     assert capture_io(fn ->
       send_and_receive_io({ :requests, [{ :put_chars, :unicode, "a" },
                                         { :put_chars, :unicode, "b" }]})
@@ -262,7 +262,7 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test :caputure_io_with_unknown_io_request do
+  test "with unknown io request" do
     assert capture_io(fn ->
       send_and_receive_io(:unknown)
     end) == nil
@@ -272,7 +272,7 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test :capture_io_with_inside_assert do
+  test "with assert inside" do
     group_leader = :erlang.group_leader
 
     try do

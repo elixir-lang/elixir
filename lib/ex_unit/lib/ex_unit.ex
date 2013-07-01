@@ -24,11 +24,11 @@ defmodule ExUnit do
 
       # File: assertion_test.exs
 
-      # 1) Start ExUnit. You could also pass some options to the start function
-      # (see `configure/1` for the list of options)
+      # 1) Start ExUnit. You can pass some options
+      #    (see `configure/1` for the list of options)
       ExUnit.start
 
-      # 2) Create a new test module (or "case") and use ExUnit.Case
+      # 2) Create a new test module (test case) and use ExUnit.Case
       defmodule AssertionTest do
         # 3) Notice we pass async: true, this runs the test case
         #    concurrently with other test cases
@@ -40,7 +40,7 @@ defmodule ExUnit do
           assert true
         end
 
-        # 5) It is recommended to use the test macro instead of def
+        # 5) It is recommended to use the "test" macro instead of def
         test "the truth" do
           assert true
         end
@@ -66,21 +66,21 @@ defmodule ExUnit do
   from the command line will run tests in each file matching the pattern
   "*_test.exs" found in the `test` directory of your project.
 
-  By convention, you could also create a test_helper.exs file inside the
+  By convention, you could also create a `test_helper.exs` file inside the
   `test` directory and put the code common to all tests there.
 
   The minimum example of a test_helper.exs file would be:
 
-    # test/test_helper.exs
-    ExUnit.start
+      # test/test_helper.exs
+      ExUnit.start
 
   Then, in each test file, require test_helper.exs before defining test modules
   (or cases):
 
-    # test/myproject_test.exs
-    Code.require_file "test_helper.exs", __DIR__
+      # test/myproject_test.exs
+      Code.require_file "test_helper.exs", __DIR__
 
-    # ... test cases follow
+      # ... test cases follow
 
   """
 
@@ -88,7 +88,9 @@ defmodule ExUnit do
 
   @doc false
   def start(_type, []) do
-    ExUnit.Sup.start_link([])
+    pid = ExUnit.Sup.start_link([])
+    ExUnit.Server.start_load
+    pid
   end
 
   @doc """
@@ -104,7 +106,6 @@ defmodule ExUnit do
     :application.start(:ex_unit)
 
     configure(options)
-    ExUnit.Server.start_load
 
     System.at_exit fn
       0 ->
