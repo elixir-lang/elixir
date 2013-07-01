@@ -50,11 +50,7 @@ defmodule ExUnit.Runner do
   # cases counter and attempt to spawn new ones.
   defp wait_until_available(config) do
     receive do
-      { _pid, :test_finished, test } ->
-        config.formatter.test_finished(config.formatter_id, test)
-        wait_until_available config
-      { _pid, :case_finished, test_case } ->
-        config.formatter.case_finished(config.formatter_id, test_case)
+      { _pid, :case_finished, _test_case } ->
         loop config.update_taken_cases(&1-1)
     end
   end
@@ -98,7 +94,7 @@ defmodule ExUnit.Runner do
 
         self_pid <- { self, :case_finished, test_case }
       else
-        Enum.each tests, run_test(config, pid, test_case, &1, context)
+        Enum.each tests, run_test(config, test_case, &1, context)
 
         test_case = try do
           case_name.__exunit__(:teardown_all, context)
@@ -117,14 +113,16 @@ defmodule ExUnit.Runner do
 
     receive do
       { ^case_pid, :case_finished, test_case } ->
+        config.formatter.case_finished(config.formatter_id, test_case)
         pid <- { case_pid, :case_finished, test_case }
       { :DOWN, ^case_ref, :process, ^case_pid, { error, stacktrace } } ->
         test_case = test_case.failure { :EXIT, error, filter_stacktrace(stacktrace) }
+        config.formatter.case_finished(config.formatter_id, test_case)
         pid <- { case_pid, :case_finished, test_case }
     end
   end
 
-  defp run_test(config, pid, test_case, test_name, context) do
+  defp run_test(config, test_case, test_name, context) do
     ExUnit.TestCase[name: case_name] = test_case
 
     test = ExUnit.Test[name: test_name, case: case_name]
@@ -162,10 +160,10 @@ defmodule ExUnit.Runner do
 
     receive do
       { ^test_pid, :test_finished, test } ->
-        pid <- { test_pid, :test_finished, test }
+        config.formatter.test_finished(config.formatter_id, test)
       { :DOWN, ^test_ref, :process, ^test_pid, { error, stacktrace } } ->
         test = test.failure { :EXIT, error, filter_stacktrace(stacktrace) }
-        pid <- { test_pid, :test_finished, test }
+        config.formatter.test_finished(config.formatter_id, test)
     end
   end
 
