@@ -83,7 +83,7 @@ defmodule ExUnit.CLIFormatter do
     if config.trace do
       IO.puts failure("\r  * #{trace_test_name test}")
     else
-      IO.write failure(".")
+      IO.write failure("F")
     end
     { :noreply, config.update_tests_counter(&1 + 1).
         update_test_failures([test|&1]) }
