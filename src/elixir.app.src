@@ -4,7 +4,8 @@
  {modules, [
 	elixir
   ]},
- {registered,[elixir_code_server]},
+ {registered, [elixir_code_server]},
  {applications, [kernel,stdlib]},
- {mod, {elixir,[]}}
+ {mod, {elixir,[]}},
+ {env, [{uri, []}]}
 ]}.
