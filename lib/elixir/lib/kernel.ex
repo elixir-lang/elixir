@@ -1427,7 +1427,7 @@ defmodule Kernel do
   Exports a module with a record definition and runtime operations.
 
   Please see the `Record` module's documentation for an introduction
-  for records in Elixir. The following sections are going into details
+  to records in Elixir. The following sections are going into details
   specific to `defrecord`.
 
   ## Examples
@@ -1459,7 +1459,7 @@ defmodule Kernel do
       user.to_keywords #=> [name: "José", age: 25]
 
   Since a record is simply a tuple where the first element is
-  the record name, we can get its record raw representation as
+  the record name, we can get its raw record representation as
   follow:
 
       inspect User.new, raw: true
@@ -1604,13 +1604,13 @@ defmodule Kernel do
   define what the first element of the record should be:
 
      defmodule MyServer do
-       defrecordp :state, :state, data: nil
+       defrecordp :state, :my_state, data: nil
      end
 
-  This way, the record created will have `:state` as first element,
+  This way, the record created will have `:my_state` as first element,
   not `MyServer`:
 
-     state() #=> { :state, nil }
+     state() #=> { :my_state, nil }
 
   ## Types
 
@@ -3344,12 +3344,12 @@ defmodule Kernel do
       sample = [a: 1, b: 2, c: 3]
       sample[:b] #=> 2
 
-  ## Atoms
+  ## Aliases
 
-  Whenever invoked on an atom, the access protocol is expanded
-  at compilation time rather than on runtime. This feature is used
-  by records to allow a developer to match against an specific part
-  of a record:
+  Whenever invoked on an alias or an atom, the access protocol is
+  expanded at compilation time rather than on runtime. This feature
+  is used by records to allow a developer to match against an specific
+  part of a record:
 
       def increment(State[counter: counter, other: 13] = state) do
         state.counter(counter + 1)
@@ -3373,9 +3373,9 @@ defmodule Kernel do
         State[counter: counter]
       end
 
-  The example above is slightly faster than `State.new(counter: :counter)`
-  because the record is expanded at compilation time and not at runtime.
-  If a field is not specified on creation, it will have its default value.
+  The example above is faster than `State.new(counter: :counter)` because
+  the record is expanded at compilation time and not at runtime. If a field
+  is not specified on creation, it will have its default value.
 
   Finally, as in Erlang, Elixir also allows the following syntax:
 
@@ -3388,7 +3388,6 @@ defmodule Kernel do
       new_uri = State[_: IO.puts "Hello"]
 
   In this case, `"Hello"` will be printed twice (one per each field).
-
   """
   defmacro access(element, args) do
     caller = __CALLER__

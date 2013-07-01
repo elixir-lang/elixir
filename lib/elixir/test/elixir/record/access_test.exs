@@ -3,56 +3,55 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Record.AccessTest do
   use ExUnit.Case, async: true
 
-  defrecord Config, integer: 0, value: nil do
-    def get_integer(__MODULE__[integer: integer]) do
-      integer
+  defrecord User, age: 0, name: nil do
+    def get_age(__MODULE__[age: age]) do
+      age
     end
   end
 
-  test :keywords do
-    assert Config[] == { Config, 0, nil }
-    assert Config[integer: 1] == { Config, 1, nil }
+  test "access with keywords" do
+    assert User[] == { User, 0, nil }
+    assert User[age: 1] == { User, 1, nil }
   end
 
-  test :in_match_with_variable do
-    assert get_var(Config.new) == 0
-    assert get_var(Config.new(integer: 1)) == 1
+  test "access with variable inside match" do
+    assert get_var(User.new) == 0
+    assert get_var(User.new(age: 1)) == 1
   end
 
-  test :in_match_with_record_match do
-    assert is_config(Config.new) == true
-    assert is_config({ Access.AtomTest, 1 }) == false
-    assert is_config({ Config, 1, 2, 3 }) == false
+  test "access match on record name" do
+    assert is_user(User.new) == true
+    assert is_user({ Access.AtomTest, 1 }) == false
+    assert is_user({ User, 1, 2, 3 }) == false
   end
 
-  test :in_match_with_field_match do
-    assert is_zero(Config.new) == true
-    assert is_zero(Config.new(integer: 1)) == false
+  test "access with field match" do
+    assert is_zero(User.new) == true
+    assert is_zero(User.new(age: 1)) == false
   end
 
-  test :match do
-    assert Config[integer: 1] = Config.new(integer: 1)
-    refute Config[integer: 1] = Config.new(integer: 0)
+  test "match (=)" do
+    assert User[age: 1] = User.new(age: 1)
+    refute User[age: 1] = User.new(age: 0)
   end
 
-  test :underscore_record_syntax do
-    record = Config[_: 0]
-    assert Config[integer: 0, value: 0] == record
-    assert Config[_: _] = Config[_: "x"]
-    refute match?(Config[_: 0], Config[_: 1])
+  test "access with underscore" do
+    assert User[age: 0, name: 0] == User[_: 0]
+    assert User[_: _] = User[_: "x"]
+    refute match?(User[_: 0], User[_: 1])
   end
 
-  test :access_protocol_on_being_defined_record do
-    assert Config.new(integer: 13).get_integer == 13
+  test "access during record definition" do
+    assert User.new(age: 13).get_age == 13
   end
 
-  defp get_var(Config[integer: integer]) do
-    integer
+  defp get_var(User[age: age]) do
+    age
   end
 
-  defp is_zero(Config[integer: 0]), do: true
-  defp is_zero(Config[integer: _]),  do: false
+  defp is_zero(User[age: 0]), do: true
+  defp is_zero(User[age: _]),  do: false
 
-  defp is_config(Config[]), do: true
-  defp is_config(_), do: false
+  defp is_user(User[]), do: true
+  defp is_user(_), do: false
 end

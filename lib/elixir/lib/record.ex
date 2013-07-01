@@ -29,8 +29,7 @@ defmodule Record do
 
   ## defrecordp
 
-  One of the simplest ways of working with records is by defining
-  calling `defrecordp`:
+  The simplest way of working with records is via `defrecordp`:
 
       defmodule User do
         defrecordp :user, name: "José", age: 25
@@ -108,14 +107,6 @@ defmodule Record do
       # Skipping a field uses its default value
       User[]        #=> User[name: "José", age: 25]
       User[age: 26] #=> User[name: "José", age: 26]
-
-  Updates can also be done via the shortcut syntax:
-
-      # The previous syntax
-      user(user, age: 26)
-
-      # Now becomes:
-      User[user, age: 26]
 
   The macro name is replaced by the module name and the parenthesis
   are replaced by brackets. When the shortcut syntax is used, there
@@ -394,10 +385,6 @@ defmodule Record do
         Record.access(unquote(tag) || __MODULE__, unquote(escaped), args, __CALLER__)
       end
 
-      defmacrop unquote(name)(record, key) when is_atom(key) do
-        Record.get(unquote(tag) || __MODULE__, unquote(escaped), record, key)
-      end
-
       defmacrop unquote(name)(record, args) do
         Record.dispatch(unquote(tag) || __MODULE__, unquote(escaped), record, args, __CALLER__)
       end
@@ -475,23 +462,45 @@ defmodule Record do
     end
   end
 
-  # Dispatch the call to either update or to_list depending on the args given.
+  # Implements to_keywords macro defined by defmacros.
+  # It returns a quoted expression that represents
+  # converting record to keywords list.
+  @doc false
+  def to_keywords(_atom, fields, record) do
+    { var, extra } = cache_var(record)
+
+    keywords = Enum.map fields,
+      fn { key, _default } ->
+        index = find_index(fields, key, 0)
+        quote do
+          { unquote(key), :erlang.element(unquote(index + 2), unquote(var)) }
+        end
+      end
+
+    quote do
+      unquote_splicing(extra)
+      unquote(keywords)
+    end
+  end
+
+  # Dispatch the call to either get, update or to_list depending on the args given.
   @doc false
   def dispatch(atom, fields, record, args, caller) do
     cond do
+      is_atom(args) ->
+        get(atom, fields, record, args)
       is_keyword(args) ->
         update(atom, fields, record, args, caller)
       is_list(args) ->
         to_list(atom, fields, record, args)
       true ->
-        raise ArgumentError, message: "expected arguments to be a compile time list or compile time keywords"
+        raise ArgumentError, message: "expected arguments to be a compile time atom, list or keywords"
     end
   end
 
   # Implements the update macro defined by defmacros.
   # It returns a quoted expression that represents
   # the access given by the keywords.
-  @doc false
   defp update(atom, fields, var, keyword, caller) do
     unless is_keyword(keyword) do
       raise ArgumentError, message: "expected arguments to be a compile time keywords"
@@ -516,8 +525,7 @@ defmodule Record do
   # Implements the get macro defined by defmacros.
   # It returns a quoted expression that represents
   # getting the value of a given field.
-  @doc false
-  def get(atom, fields, var, key) do
+  defp get(atom, fields, var, key) do
     index = find_index(fields, key, 0)
     if index do
       quote do
@@ -525,27 +533,6 @@ defmodule Record do
       end
     else
       raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect key}"
-    end
-  end
-
-  # Implements to_keywords macro defined by defmacros.
-  # It returns a quoted expression that represents
-  # converting record to keywords list.
-  @doc false
-  def to_keywords(_atom, fields, record) do
-    { var, extra } = cache_var(record)
-
-    keywords = Enum.map fields,
-      fn { key, _default } ->
-        index = find_index(fields, key, 0)
-        quote do
-          { unquote(key), :erlang.element(unquote(index + 2), unquote(var)) }
-        end
-      end
-
-    quote do
-      unquote_splicing(extra)
-      unquote(keywords)
     end
   end
 
