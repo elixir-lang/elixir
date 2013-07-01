@@ -19,6 +19,8 @@ defmodule Mix.Tasks.Test do
 
   ## Command line options
 
+  * `--debug` - run tests in debug mode. Automatically set max cases to 1;
+  * `--max-cases` - set the maximum number of cases running async;
   * `--cover` - the directory to include coverage results;
   * `--force` - forces compilation regardless of module times;
   * `--quick`, `-q` - only compile files that changed;
@@ -40,9 +42,12 @@ defmodule Mix.Tasks.Test do
     Defaults to nil.
 
   """
+
+  @switches [quick: :boolean, force: :boolean,
+             debug: :boolean, max_cases: :integer]
+
   def run(args) do
-    { opts, files } = OptionParser.parse(args, aliases: [q: :quick],
-                        switches: [quick: :boolean, force: :boolean])
+    { opts, files } = OptionParser.parse(args, aliases: [q: :quick], switches: @switches)
 
     unless System.get_env("MIX_ENV") do
       Mix.env(:test)
@@ -60,6 +65,9 @@ defmodule Mix.Tasks.Test do
 
     test_paths   = if files == [], do: project[:test_paths] || ["test"], else: files
     test_pattern = project[:test_pattern] || "*_test.exs"
+
+    :application.load(:ex_unit)
+    ExUnit.configure(Dict.take(opts, [:debug, :max_cases]))
 
     files = Mix.Utils.extract_files(test_paths, test_pattern)
     Kernel.ParallelRequire.files files

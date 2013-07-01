@@ -53,17 +53,32 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--docs=true"]) == { [docs: true], [] }
   end
 
-  test "parses booleans" do
+  test "parses configured boolean" do
     assert OptionParser.parse(["--docs", "foo"], switches: [docs: :boolean]) == { [docs: true], ["foo"] }
   end
 
-  test "not parsed booleans defaults to false" do
+  test "sets configured booleans to false by default" do
     assert OptionParser.parse(["foo"], switches: [docs: :boolean]) == { [docs: false], ["foo"] }
   end
 
-  test "parses booleans with explicit value" do
+  test "parses configured booleans with explicit value" do
     assert OptionParser.parse(["--docs", "true", "foo"], switches: [docs: :boolean])  == { [docs: true], ["foo"] }
     assert OptionParser.parse(["--docs", "false", "foo"], switches: [docs: :boolean]) == { [docs: false], ["foo"] }
+  end
+
+  test "keeps options on configured keep" do
+    assert OptionParser.parse(["--require", "foo", "--require", "bar", "baz"], switches: [require: :keep]) ==
+      { [require: "foo", require: "bar"], ["baz"] }
+  end
+
+  test "parses configured integers" do
+    assert OptionParser.parse(["--value", "1", "foo"], switches: [value: :integer])  == { [value: 1], ["foo"] }
+    assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :integer]) == { [], ["foo"] }
+  end
+
+  test "parses configured floats" do
+    assert OptionParser.parse(["--value", "1.0", "foo"], switches: [value: :float])  == { [value: 1.0], ["foo"] }
+    assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :float]) == { [], ["foo"] }
   end
 
   test "parses no switches as flags" do
@@ -78,11 +93,6 @@ defmodule OptionParserTest do
   test "overrides options by default" do
     assert OptionParser.parse(["--require", "foo", "--require", "bar", "baz"]) ==
       { [require: "bar"], ["baz"] }
-  end
-
-  test "keeps options on keep" do
-    assert OptionParser.parse(["--require", "foo", "--require", "bar", "baz"], switches: [require: :keep]) ==
-      { [require: "foo", require: "bar"], ["baz"] }
   end
 
   test "parses mixed options" do
