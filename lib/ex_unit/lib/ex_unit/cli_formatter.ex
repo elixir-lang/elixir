@@ -1,13 +1,11 @@
 defmodule ExUnit.CLIFormatter do
   @moduledoc """
-  Formatter responsible for printing raw text
-  on the CLI
+  Formatter responsible for printing test results to the CLI.
   """
 
   @behaviour ExUnit.Formatter
   @timeout 30_000
   use GenServer.Behaviour
-
 
   import ExUnit.Formatter, only: [format_time: 2, format_test_failure: 4, format_test_case_failure: 4]
 
@@ -48,7 +46,8 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_call({ :suite_finished, run_us, load_us }, _from, config) do
-    print_suite(config.tests_counter, config.invalid_counter, config.test_failures, config.case_failures, run_us, load_us)
+    print_suite(config.tests_counter, config.invalid_counter,
+                config.test_failures, config.case_failures, run_us, load_us)
     { :stop, :normal, length(config.test_failures), config }
   end
 
@@ -56,14 +55,14 @@ defmodule ExUnit.CLIFormatter do
     super(reqest, from, config)
   end
 
-  def handle_cast({ :test_started, ExUnit.Test[name: name] }, config) do
-    if config.debug, do: IO.write("  * #{name}")
+  def handle_cast({ :test_started, ExUnit.Test[] = test }, config) do
+    if config.debug, do: IO.write("  * #{debug_test_name test}")
     { :noreply, config }
   end
 
   def handle_cast({ :test_finished, ExUnit.Test[failure: nil] = test }, config) do
     if config.debug do
-      IO.puts success("\r  * #{test.name}")
+      IO.puts success("\r  * #{debug_test_name test}")
     else
       IO.write success(".")
     end
@@ -72,7 +71,7 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_cast({ :test_finished, ExUnit.Test[failure: { :invalid, _ }] = test }, config) do
     if config.debug do
-      IO.puts invalid("\r  * #{test.name}")
+      IO.puts invalid("\r  * #{debug_test_name test}")
     else
       IO.write invalid("?")
     end
@@ -82,7 +81,7 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_cast({ :test_finished, test }, config) do
     if config.debug do
-      IO.puts failure("\r  * #{test.name}")
+      IO.puts failure("\r  * #{debug_test_name test}")
     else
       IO.write failure(".")
     end
@@ -105,6 +104,13 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_cast(request, config) do
     super(request, config)
+  end
+
+  defp debug_test_name(ExUnit.Test[name: name]) do
+    case atom_to_binary(name) do
+      "test_" <> rest -> rest
+      "test " <> rest -> rest
+    end
   end
 
   defp print_suite(counter, 0, [], [], run_us, load_us) do
