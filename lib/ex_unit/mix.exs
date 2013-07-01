@@ -10,6 +10,6 @@ defmodule ExUnit.Mixfile do
       mod: { ExUnit, [] },
       env: [
         debug: false,
-        format: ExUnit.CLIFormatter ] ]
+        formatter: ExUnit.CLIFormatter ] ]
   end
 end
