@@ -1,5 +1,4 @@
-# Configure ExUnit, no options supported yet.
-ExUnit.start []
+ExUnit.start [debug: "--debug" in System.argv]
 
 defmodule PathHelpers do
   def fixture_path() do

@@ -1,1 +1,1 @@
-ExUnit.start []
+ExUnit.start [debug: "--debug" in System.argv]

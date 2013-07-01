@@ -1,5 +1,5 @@
 :application.start(:iex)
-ExUnit.start []
+ExUnit.start [debug: "--debug" in System.argv]
 
 defmodule IEx.Case do
   @moduledoc false
