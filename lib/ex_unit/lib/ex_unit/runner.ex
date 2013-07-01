@@ -20,10 +20,10 @@ defmodule ExUnit.Runner do
   end
 
   defp normalize_opts(opts) do
-    if opts[:debug] do
+    if opts[:trace] do
       Keyword.put_new(opts, :max_cases, 1)
     else
-      Keyword.put(opts, :debug, false)
+      Keyword.put(opts, :trace, false)
     end
   end
 

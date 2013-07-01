@@ -9,7 +9,7 @@ defmodule ExUnit.Mixfile do
     [ registered: [ExUnit.Server],
       mod: { ExUnit, [] },
       env: [
-        debug: false,
+        trace: false,
         formatter: ExUnit.CLIFormatter ] ]
   end
 end

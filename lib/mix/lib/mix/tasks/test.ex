@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Test do
 
   ## Command line options
 
-  * `--debug` - run tests in debug mode. Automatically set max cases to 1;
+  * `--trace` - run tests with detailed reporting. Automatically set max cases to 1;
   * `--max-cases` - set the maximum number of cases running async;
   * `--cover` - the directory to include coverage results;
   * `--force` - forces compilation regardless of module times;
@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Test do
   """
 
   @switches [quick: :boolean, force: :boolean,
-             debug: :boolean, max_cases: :integer]
+             trace: :boolean, max_cases: :integer]
 
   def run(args) do
     { opts, files } = OptionParser.parse(args, aliases: [q: :quick], switches: @switches)
@@ -67,7 +67,7 @@ defmodule Mix.Tasks.Test do
     test_pattern = project[:test_pattern] || "*_test.exs"
 
     :application.load(:ex_unit)
-    ExUnit.configure(Dict.take(opts, [:debug, :max_cases]))
+    ExUnit.configure(Dict.take(opts, [:trace, :max_cases]))
 
     files = Mix.Utils.extract_files(test_paths, test_pattern)
     Kernel.ParallelRequire.files files

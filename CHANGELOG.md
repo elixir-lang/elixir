@@ -1,7 +1,7 @@
 # v0.9.4-dev
 
 * enhancements
-  * [ExUnit] Support `debug: true` option which prints test names before each run
+  * [ExUnit] Support `trace: true` option which gives detailed reporting on test runs
   * [Kernel] `defrecordp/3` has been added that enables specifying the first element of the tuple
   * [Kernel] Add the `Set` API and a hash based implementation via `HashSet`
   * [Kernel] Add `Stream` as composable, lazy-enumerables

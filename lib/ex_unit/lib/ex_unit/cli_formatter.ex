@@ -10,12 +10,12 @@ defmodule ExUnit.CLIFormatter do
   import ExUnit.Formatter, only: [format_time: 2, format_test_failure: 4, format_test_case_failure: 4]
 
   defrecord Config, tests_counter: 0, invalid_counter: 0,
-                    test_failures: [], case_failures: [], debug: false
+                    test_failures: [], case_failures: [], trace: false
 
   ## Behaviour
 
   def suite_started(opts) do
-    { :ok, pid } = :gen_server.start_link(__MODULE__, opts[:debug], [])
+    { :ok, pid } = :gen_server.start_link(__MODULE__, opts[:trace], [])
     pid
   end
 
@@ -41,8 +41,8 @@ defmodule ExUnit.CLIFormatter do
 
   ## Callbacks
 
-  def init(debug) do
-    { :ok, Config[debug: debug] }
+  def init(trace) do
+    { :ok, Config[trace: trace] }
   end
 
   def handle_call({ :suite_finished, run_us, load_us }, _from, config) do
@@ -56,13 +56,13 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({ :test_started, ExUnit.Test[] = test }, config) do
-    if config.debug, do: IO.write("  * #{debug_test_name test}")
+    if config.trace, do: IO.write("  * #{trace_test_name test}")
     { :noreply, config }
   end
 
   def handle_cast({ :test_finished, ExUnit.Test[failure: nil] = test }, config) do
-    if config.debug do
-      IO.puts success("\r  * #{debug_test_name test}")
+    if config.trace do
+      IO.puts success("\r  * #{trace_test_name test}")
     else
       IO.write success(".")
     end
@@ -70,8 +70,8 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({ :test_finished, ExUnit.Test[failure: { :invalid, _ }] = test }, config) do
-    if config.debug do
-      IO.puts invalid("\r  * #{debug_test_name test}")
+    if config.trace do
+      IO.puts invalid("\r  * #{trace_test_name test}")
     else
       IO.write invalid("?")
     end
@@ -80,8 +80,8 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({ :test_finished, test }, config) do
-    if config.debug do
-      IO.puts failure("\r  * #{debug_test_name test}")
+    if config.trace do
+      IO.puts failure("\r  * #{trace_test_name test}")
     else
       IO.write failure(".")
     end
@@ -90,7 +90,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({ :case_started, ExUnit.TestCase[name: name] }, config) do
-    if config.debug, do: IO.puts("\n#{name}")
+    if config.trace, do: IO.puts("\n#{name}")
     { :noreply, config }
   end
 
@@ -106,7 +106,7 @@ defmodule ExUnit.CLIFormatter do
     super(request, config)
   end
 
-  defp debug_test_name(ExUnit.Test[name: name]) do
+  defp trace_test_name(ExUnit.Test[name: name]) do
     case atom_to_binary(name) do
       "test_" <> rest -> rest
       "test " <> rest -> rest

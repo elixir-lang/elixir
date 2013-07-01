@@ -1,4 +1,4 @@
-ExUnit.start [debug: "--debug" in System.argv]
+ExUnit.start [trace: "--trace" in System.argv]
 
 defmodule PathHelpers do
   def fixture_path() do

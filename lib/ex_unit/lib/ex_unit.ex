@@ -131,7 +131,7 @@ defmodule ExUnit do
   * `:max_cases` - Maximum number of cases to run in parallel.
                    Defaults to `:erlang.system_info(:schedulers_online)`;
 
-  * `:debug` - Set ExUnit into debug mode, this set `:max_cases` to 1
+  * `:trace` - Set ExUnit into trace mode, this set `:max_cases` to 1
                and prints each test case and test while running;
 
   """
