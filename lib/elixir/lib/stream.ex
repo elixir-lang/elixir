@@ -3,7 +3,7 @@ defmodule Stream do
   Module for creating and composing streams.
 
   Streams are composable, lazy enumerables. Any enumerable that generates
-  items one by one during enumeration are called streams. For example,
+  items one by one during enumeration is called a stream. For example,
   Elixir's `Range` is a stream:
 
       iex> range = 1..5
@@ -22,15 +22,15 @@ defmodule Stream do
 
   Notice we started with a range and then we created a stream that is
   meant to multiply each item in the range by 2. At this point, no
-  computation was done yet. Just when `Enum.map/2` is called is that we
-  enumerate each item in the range, multiplying it per 2 and adding 1.
-  We say the functions in `Stream` are lazy and the functions in `Enum`
-  are eager.
+  computation was done yet. Just when `Enum.map/2` is called we
+  enumerate over each item in the range, multiplying it by 2 and adding 1.
+  We say the functions in `Stream` are *lazy* and the functions in `Enum`
+  are *eager*.
 
-  Due to its laziness, streams are useful when working with large collections
-  (or even infinite collections). When chaining many operations with `Enum`,
-  intermediary lists are created, while `Stream` creates a recipe of
-  computations that are executed just at a later moment. Let's see another
+  Due to their laziness, streams are useful when working with large 
+  (or even infinite) collections. When chaining many operations with `Enum`,
+  intermediate lists are created, while `Stream` creates a recipe of
+  computations that are executed at a later moment. Let's see another
   example:
 
       1..3 |>
@@ -62,7 +62,7 @@ defmodule Stream do
       6
       #=> [2,4,6]
 
-  Although the end result is the same, the order in which the iterms were
+  Although the end result is the same, the order in which the items were
   printed changed! With streams, we print the first item and then print
   its double. In this example, the list was iterated just once!
 
@@ -73,10 +73,10 @@ defmodule Stream do
 
   ## Creating Streams
 
-  There are many functions in Elixir's standard library that returns
+  There are many functions in Elixir's standard library that return
   streams, some examples are:
 
-  * `IO.stream/1` - It streams input lines, one by one;
+  * `IO.stream/1` - Streams input lines, one by one;
   * `URI.query_decoder/1` - Decodes a query string, pair by pair;
 
   This module also allows us to create streams from any enumerable:
@@ -85,7 +85,7 @@ defmodule Stream do
       iex> Enum.map(stream, &1 + 1)
       [3,5,7]
 
-  By simply passing a list (which is an enumerable) as first argument
+  By simply passing a list (which is an enumerable) as the first argument
   to `Stream.map/2`, we have automatically created a stream that will
   multiply the items in the list by 2 on enumeration.
 
@@ -131,7 +131,7 @@ defmodule Stream do
 
   @doc """
   Creates a stream that cycles through the given enumerable,
-  undefnitely.
+  infinitely.
 
   ## Examples
 
