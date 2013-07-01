@@ -117,6 +117,14 @@ defmodule URITest do
                  URI.parse("http://foo.com:4444")
   end
 
+  test :default_port do
+    assert URI.default_port("http") == 80
+    assert URI.default_port("unknown") == nil
+
+    URI.default_port("unknown", 13)
+    assert URI.default_port("unknown") == 13
+  end
+
   test :parse_bad_uris do
     assert URI.parse("https:??@?F?@#>F//23/")
     assert URI.parse("")
