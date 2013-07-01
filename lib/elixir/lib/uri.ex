@@ -5,8 +5,7 @@ defmodule URI do
 
   defrecord Info, [scheme: nil, path: nil, query: nil,
                    fragment: nil, authority: nil,
-                   userinfo: nil, host: nil, port: nil,
-                   specifics: nil]
+                   userinfo: nil, host: nil, port: nil]
 
   import Bitwise
 
