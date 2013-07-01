@@ -45,6 +45,7 @@ defmodule Mix.Tasks.New do
       [path|_] ->
         name = Path.basename(Path.expand(path))
         check_project_name!(name)
+        check_project_root!(path)
         File.mkdir_p!(path)
 
         File.cd! path, fn ->
@@ -121,6 +122,13 @@ defmodule Mix.Tasks.New do
   defp check_project_name!(name) do
     unless name =~ %r/^[a-z][\w_]*$/ do
       raise Mix.Error, message: "project path must start with a letter and have only lowercase letters, numbers and underscore"
+    end
+  end
+
+  defp check_project_root!(path) do
+    is_root = Path.expand(path) |> Path.dirname |> Path.join("mix.exs") |> File.exists?
+    if is_root do
+      raise Mix.Error, message: "project path must be outside the root of another project."
     end
   end
 
