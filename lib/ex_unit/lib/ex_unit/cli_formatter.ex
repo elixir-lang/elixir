@@ -11,12 +11,13 @@ defmodule ExUnit.CLIFormatter do
 
   import ExUnit.Formatter, only: [format_time: 2, format_test_failure: 4, format_test_case_failure: 4]
 
-  defrecord Config, tests_counter: 0, invalid_counter: 0, test_failures: [], case_failures: []
+  defrecord Config, tests_counter: 0, invalid_counter: 0,
+                    test_failures: [], case_failures: [], debug: false
 
   ## Behaviour
 
-  def suite_started(_opts) do
-    { :ok, pid } = :gen_server.start_link(__MODULE__, [], [])
+  def suite_started(opts) do
+    { :ok, pid } = :gen_server.start_link(__MODULE__, opts[:debug], [])
     pid
   end
 
@@ -24,16 +25,16 @@ defmodule ExUnit.CLIFormatter do
     :gen_server.call(id, { :suite_finished, run_us, load_us }, @timeout)
   end
 
-  def case_started(_id, _test_case) do
-    :ok
+  def case_started(id, test_case) do
+    :gen_server.cast(id, { :case_started, test_case })
   end
 
   def case_finished(id, test_case) do
     :gen_server.cast(id, { :case_finished, test_case })
   end
 
-  def test_started(_id, _test) do
-    :ok
+  def test_started(id, test) do
+    :gen_server.cast(id, { :test_started, test })
   end
 
   def test_finished(id, test) do
@@ -42,8 +43,8 @@ defmodule ExUnit.CLIFormatter do
 
   ## Callbacks
 
-  def init(_args) do
-    { :ok, Config.new }
+  def init(debug) do
+    { :ok, Config[debug: debug] }
   end
 
   def handle_call({ :suite_finished, run_us, load_us }, _from, config) do
@@ -55,21 +56,43 @@ defmodule ExUnit.CLIFormatter do
     super(reqest, from, config)
   end
 
-  def handle_cast({ :test_finished, ExUnit.Test[failure: nil] }, config) do
-    IO.write success(".")
+  def handle_cast({ :test_started, ExUnit.Test[name: name] }, config) do
+    if config.debug, do: IO.write("  * #{name}")
+    { :noreply, config }
+  end
+
+  def handle_cast({ :test_finished, ExUnit.Test[failure: nil] = test }, config) do
+    if config.debug do
+      IO.puts success("\r  * #{test.name}")
+    else
+      IO.write success(".")
+    end
     { :noreply, config.update_tests_counter(&1 + 1) }
   end
 
-  def handle_cast({ :test_finished, ExUnit.Test[failure: { :invalid, _ }] }, config) do
-    IO.write invalid("?")
+  def handle_cast({ :test_finished, ExUnit.Test[failure: { :invalid, _ }] = test }, config) do
+    if config.debug do
+      IO.puts invalid("\r  * #{test.name}")
+    else
+      IO.write invalid("?")
+    end
     { :noreply, config.update_tests_counter(&1 + 1).
         update_invalid_counter(&1 + 1) }
   end
 
   def handle_cast({ :test_finished, test }, config) do
-    IO.write failure("F")
+    if config.debug do
+      IO.puts failure("\r  * #{test.name}")
+    else
+      IO.write failure(".")
+    end
     { :noreply, config.update_tests_counter(&1 + 1).
         update_test_failures([test|&1]) }
+  end
+
+  def handle_cast({ :case_started, ExUnit.TestCase[name: name] }, config) do
+    if config.debug, do: IO.puts("\n#{name}")
+    { :noreply, config }
   end
 
   def handle_cast({ :case_finished, test_case }, config) do

@@ -5,6 +5,8 @@ defmodule ExUnit.Runner do
                     max_cases: 4, taken_cases: 0, async_cases: [], sync_cases: []
 
   def run(async, sync, opts, load_us) do
+    opts = normalize_opts(opts)
+
     config = Config[max_cases: :erlang.system_info(:schedulers_online)]
     config = config.update(opts)
 
@@ -15,6 +17,14 @@ defmodule ExUnit.Runner do
       end
 
     config.formatter.suite_finished(config.formatter_id, run_us, load_us)
+  end
+
+  defp normalize_opts(opts) do
+    if opts[:debug] do
+      Keyword.put(opts, :max_cases, 1)
+    else
+      Keyword.put(opts, :debug, false)
+    end
   end
 
   defp loop(Config[] = config) do

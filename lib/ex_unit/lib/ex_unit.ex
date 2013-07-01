@@ -88,7 +88,7 @@ defmodule ExUnit do
 
   @doc false
   def start(_type, []) do
-    pid = ExUnit.Sup.start_link([])
+    pid = ExUnit.Sup.start_link
     ExUnit.Server.start_load
     pid
   end
@@ -123,7 +123,7 @@ defmodule ExUnit do
 
   ## Options
 
-  ExUnit supports the following options given to start:
+  ExUnit supports the following options:
 
   * `:formatter` - The formatter that will print results.
                    Defaults to `ExUnit.CLIFormatter`;
@@ -131,9 +131,21 @@ defmodule ExUnit do
   * `:max_cases` - Maximum number of cases to run in parallel.
                    Defaults to `:erlang.system_info(:schedulers_online)`;
 
+  * `:debug` - Set ExUnit into debug mode, this set `:max_cases` to 1
+               and prints each test case and test while running;
+
   """
   def configure(options) do
-    ExUnit.Server.merge_options(options)
+    Enum.each options, fn { k, v } ->
+      :application.set_env(:ex_unit, k, v)
+    end
+  end
+
+  @doc """
+  Returns ExUnit configuration.
+  """
+  def configuration do
+    :application.get_all_env(:ex_unit)
   end
 
   @doc """
@@ -143,7 +155,7 @@ defmodule ExUnit do
   Returns the number of failures.
   """
   def run do
-    { async, sync, options, load_us } = ExUnit.Server.start_run
-    ExUnit.Runner.run async, sync, options, load_us
+    { async, sync, load_us } = ExUnit.Server.start_run
+    ExUnit.Runner.run async, sync, configuration, load_us
   end
 end

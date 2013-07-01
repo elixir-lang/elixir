@@ -7,6 +7,9 @@ defmodule ExUnit.Mixfile do
 
   def application do
     [ registered: [ExUnit.Server],
-      mod: { ExUnit, [] } ]
+      mod: { ExUnit, [] },
+      env: [
+        debug: false,
+        format: ExUnit.CLIFormatter ] ]
   end
 end
