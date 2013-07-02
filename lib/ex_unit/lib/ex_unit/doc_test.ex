@@ -330,8 +330,32 @@ defmodule ExUnit.DocTest do
     end
   end
 
+  defp strip_indent("", _pos), do: ""
+
+  defp strip_indent(lines, pos) when is_list(lines) do
+    Enum.map lines, fn(line) ->
+      strip_indent(line, pos)
+    end
+  end
+
+  defp strip_indent(line, pos) do
+    String.slice(line, pos, String.length(line))
+  end
+
+  defp find_indent([]), do:  0
+
+  defp find_indent([line|lines]) do
+    case :binary.match line, "iex>" do
+      { pos, _len } -> pos
+      :nomatch -> find_indent(lines)
+    end
+  end
+
   defp extract_tests(line, doc) do
-    lines = String.split(doc, %r/\n/) |> Enum.map(function(String.strip/1))
+    lines = String.split(doc, %r/\n/)
+    indent_width = find_indent(lines)
+    lines = strip_indent(lines, indent_width)
+
     extract_tests(lines, line, "", "", [], true)
   end
 
