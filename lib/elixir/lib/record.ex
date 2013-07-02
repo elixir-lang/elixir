@@ -503,7 +503,7 @@ defmodule Record do
   # the access given by the keywords.
   defp update(atom, fields, var, keyword, caller) do
     unless is_keyword(keyword) do
-      raise ArgumentError, message: "expected arguments to be a compile time keywords"
+      raise ArgumentError, message: "expected arguments to be compile time keywords"
     end
 
     if caller.in_match? do
