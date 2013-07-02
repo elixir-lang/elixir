@@ -59,22 +59,22 @@ defmodule IOTest do
 
   test :readline do
     { :ok, file } = File.open(Path.expand('../fixtures/file.txt', __FILE__))
-    assert "FOO\n" == IO.readline(file)
-    assert :eof == IO.readline(file)
+    assert "FOO\n" == IO.read(file, :line)
+    assert :eof == IO.read(file, :line)
     assert File.close(file) == :ok
   end
 
   test :readline_with_utf8_and_binary do
     { :ok, file } = File.open(Path.expand('../fixtures/utf8.txt', __FILE__), [:utf8])
-    assert "Русский\n" == IO.readline(file)
-    assert "日\n" == IO.readline(file)
+    assert "Русский\n" == IO.read(file, :line)
+    assert "日\n" == IO.read(file, :line)
     assert File.close(file) == :ok
   end
 
   test :binreadline do
     { :ok, file } = File.open(Path.expand('../fixtures/utf8.txt', __FILE__))
-    assert "Русский\n" == IO.binreadline(file)
-    assert "日\n" == IO.binreadline(file)
+    assert "Русский\n" == IO.binread(file, :line)
+    assert "日\n" == IO.binread(file, :line)
     assert File.close(file) == :ok
   end
 end

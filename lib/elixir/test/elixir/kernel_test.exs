@@ -107,22 +107,17 @@ defmodule KernelTest do
     x = 1
     assert binding == [x: 1]
     assert binding([:x, :y]) == [x: 1]
-    assert binding([:x, :y], false) == [x: 1]
+    assert binding([:x, :y], nil) == [x: 1]
 
     x = 2
     assert binding == [x: 2]
 
     y = 3
     assert binding == [x: 2, y: 3]
-  end
-
-  test :binding_with_all_contexts do
-    x = 1
-    assert { { :x, nil }, 1 } in binding(true)
 
     var!(x, :foo) = 2
-    assert { { :x, :foo }, 2 } in binding(true)
-    assert binding([x: :foo], true) == [{ { :x, :foo }, 2 }]
+    assert binding(:foo) == [x: 2]
+    assert binding([:x, :y], :foo) == [x: 2]
   end
 
   defp x(value) when value in [1, 2, 3], do: true

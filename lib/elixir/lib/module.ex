@@ -715,7 +715,7 @@ defmodule Module do
 
   Expands to:
 
-      Module.get_attribute(__MODULE__, @foo, true)
+      Module.get_attribute(__MODULE__, :foo, true)
 
   Notice the third argument is used to indicate if a warning
   should be emitted when the attribute was not previously defined.
@@ -745,8 +745,8 @@ defmodule Module do
         if :lists.member(key, acc) do
           []
         else
-          warn && IO.warn "#{Exception.format_caller} undefined module attribute @#{key}, " <>
-            "please remove access to @#{key} or explicitly set it to nil before access"
+          warn && :elixir_errors.warn "#{Exception.format_caller} undefined module attribute @#{key}, " <>
+            "please remove access to @#{key} or explicitly set it to nil before access\n"
           nil
         end
     end
@@ -854,7 +854,7 @@ defmodule Module do
       :ok ->
         :ok
       { :error, :private_doc } ->
-        IO.warn "#{env.file}:#{line} function #{name}/#{arity} is private, @doc's are always discarded for private functions"
+        :elixir_errors.warn "#{env.file}:#{line} function #{name}/#{arity} is private, @doc's are always discarded for private functions\n"
     end
 
     delete_attribute(module, :doc)

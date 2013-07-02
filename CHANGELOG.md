@@ -1,6 +1,10 @@
 # v0.9.4-dev
 
 * enhancements
+  * [ExUnit] Support `trace: true` option which gives detailed reporting on test runs
+  * [Kernel] `defrecordp/3` has been added that enables specifying the first element of the tuple
+  * [Kernel] Add the `Set` API and a hash based implementation via `HashSet`
+  * [Kernel] Add `Stream` as composable, lazy-enumerables
   * [Mix] `mix archive` now includes the version of the generated archive
   * [Mix] Projects can now define an `:elixir` key to outline supported Elixir versions
 
@@ -8,6 +12,9 @@
   * [Kernel] `match?/2` does not leak variables to outer scope
 
 * deprecations
+  * [Enum] Receiving the index of iteration in `Enum.map/2` and `Enum.each/2` is deprecated in favor of `Stream.with_index/1`
+  * [File] `File.iterator/1` and `File.biniterator/1` are deprecated in favor of `IO.stream/1` and `IO.binstream/1`
+  * [File] `File.iterator!/2` and `File.biniterator!/2` are deprecated in favor of `File.stream!/2` and `File.binstream!/2`
 
 * backwards incompatible changes
 

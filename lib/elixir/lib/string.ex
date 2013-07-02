@@ -410,6 +410,8 @@ defmodule String do
 
   ## Examples
 
+      iex> String.duplicate("abc", 0)
+      ""
       iex> String.duplicate("abc", 1)
       "abc"
       iex> String.duplicate("abc", 2)
@@ -417,7 +419,7 @@ defmodule String do
 
   """
   @spec duplicate(t, pos_integer) :: t
-  def duplicate(subject, n) when is_integer(n) and n > 0 do
+  def duplicate(subject, n) when is_integer(n) and n >= 0 do
     :binary.copy(subject, n)
   end
 

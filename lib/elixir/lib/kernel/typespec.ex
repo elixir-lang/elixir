@@ -563,8 +563,6 @@ defmodule Kernel.Typespec do
 
   # Handle funs
   defp typespec({:->, meta, [{[{:fun, _, arguments}], cmeta, return}]}, vars, caller) when is_list(arguments) do
-    IO.warn "(fun(...) -> ...) in typespecs is deprecated, please drop fun() and " <>
-            "write (... -> ...) instead. #{Exception.format_stacktrace(caller.stacktrace)}"
     typespec({:->, meta, [{arguments, cmeta, return}]}, vars, caller)
   end
 

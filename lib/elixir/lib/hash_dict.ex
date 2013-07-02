@@ -102,27 +102,15 @@ defmodule HashDict do
     end
   end
 
-  @doc """
-  Puts the given key and value in the dict.
-  """
   def put(dict, key, value) do
     { dict, _ } = dict_put(dict, key, { :put, value })
     dict
   end
 
-  @doc """
-  Puts the given value under key in the dictionary
-  only if one does not exist yet.
-  """
   def put_new(dict, key, value) do
     update(dict, key, value, fn(v) -> v end)
   end
 
-  @doc """
-  Updates the key in the dictionary according
-  to the given function. Raises if the key does
-  not exist in the dictionary.
-  """
   def update(dict, key, fun) when is_function(fun, 1) do
     case dict_put(dict, key, { :update, nil, fun }) do
       { dict, 0 } ->
@@ -132,19 +120,11 @@ defmodule HashDict do
     end
   end
 
-  @doc """
-  Updates the key in the dictionary according
-  to the given function. Adds initial value if
-  the key does not exist in the dicionary.
-  """
   def update(dict, key, initial, fun) when is_function(fun, 1) do
     { dict, _ } = dict_put(dict, key, { :update, initial, fun })
     dict
   end
 
-  @doc """
-  Gets the value under key from the dict.
-  """
   def get(dict, key, default // nil) do
     case dict_get(dict, key) do
       { ^key, value } -> value
@@ -152,10 +132,6 @@ defmodule HashDict do
     end
   end
 
-  @doc """
-  Fetches the value under key from the dict
-  and return it in a tagged tuple.
-  """
   def fetch(dict, key) do
     case dict_get(dict, key) do
       { ^key, value } -> { :ok, value }
@@ -170,17 +146,10 @@ defmodule HashDict do
     end
   end
 
-
-  @doc """
-  Checks if the dict has the given key.
-  """
   def has_key?(dict, key) do
     match? { ^key, _ }, dict_get(dict, key)
   end
 
-  @doc """
-  Returns the value under key from the dict as well as the dict without key.
-  """
   def pop(dict, key, default // nil) do
     case dict_delete(dict, key) do
       { dict, _, 0 } -> { default, dict }
@@ -188,31 +157,19 @@ defmodule HashDict do
     end
   end
 
-  @doc """
-  Deletes a value from the dict.
-  """
   def delete(dict, key) do
     { dict, _, _ } = dict_delete(dict, key)
     dict
   end
 
-  @doc """
-  Returns the dict size.
-  """
   def size(dict) do
     elem(dict, 1)
   end
 
-  @doc """
-  Returns an empty dict.
-  """
   def empty(_) do
     ordered()
   end
 
-  @doc """
-  Checks if two dicts are equal
-  """
   def equal?(dict1, dict2) do
     size = elem(dict1, 1)
     case elem(dict2, 1) do
@@ -223,9 +180,6 @@ defmodule HashDict do
     end
   end
 
-  @doc """
-  Converts the dict to a list.
-  """
   def to_list(ordered(bucket: bucket)) do
     bucket
   end
@@ -234,23 +188,14 @@ defmodule HashDict do
     dict_fold(dict, [], [&1|&2]) |> :lists.reverse
   end
 
-  @doc """
-  Get all keys in the dict.
-  """
   def keys(dict) do
     dict_fold(dict, [], fn { k, _ }, acc -> [k|acc] end)
   end
 
-  @doc """
-  Get all values in the dict.
-  """
   def values(dict) do
     dict_fold(dict, [], fn { _, v }, acc -> [v|acc] end)
   end
 
-  @doc """
-  Merges two dictionaries.
-  """
   def merge(dict, enum, callback // fn(_k, _v1, v2) -> v2 end)
 
   def merge(dict1, dict2, callback) when is_record(dict1, HashDict) and is_record(dict2, HashDict) and elem(dict1, 1) < elem(dict2, 1) do
@@ -304,6 +249,7 @@ defmodule HashDict do
     drop(delete(dict, key), keys)
   end
 
+  @doc false
   def reduce(ordered(bucket: bucket), acc, fun) do
     :lists.foldl(fun, acc, bucket)
   end

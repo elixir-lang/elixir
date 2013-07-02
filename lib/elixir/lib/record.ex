@@ -1,162 +1,187 @@
 defmodule Record do
   @moduledoc %B"""
-  Functions to define Elixir records
+  Convenience functions for working with Records.
 
-  A record is a tagged tuple which contains one or more elements and the first
-  element is a module. One creates a record by calling `defrecord` or
-  `defrecordp` which are documented in `Kernel`.
+  A record is a tagged tuple which contains one or more elements
+  and the first element is an atom. We can manually create a record
+  by simply defining such tuple:
 
-  ## Examples
+      iex> record = { User, "josé", 25 }
+      iex> is_record(record, User)
+      true
 
-      defrecord FileInfo, atime: nil, accesses: 0
+  However, manually constructing tuples can be quite error prone.
+  In case we need to add a new field to our User, it would require
+  us to carefully change all places where the tuple is used.
+  Furthermore, as more and more items are added to the tuple, they
+  lose semantic value.
 
-  The line above will define a module named `FileInfo` which
-  contains a function named `new` that returns a new record
-  and other functions to read and set the values in the
-  record:
+  This module solves those problems by allowing us to name each
+  element and encapsulate the generation and manipulation of
+  such tuples. Many functionality provided by this module happens
+  at compilation time, meaning they don't add any overhead while
+  considerably improving the quality of our code.
 
-      file_info = FileInfo.new(atime: now())
-      file_info.atime         #=> Returns the value of atime
-      file_info.atime(now())  #=> Updates the value of atime
+  For those reasons, Records are frequently used in Elixir and
+  they are also very useful when used with Protocols. This module
+  provides different mechanisms for working with records and we
+  are going to explore them in the following sections.
 
-      # Update multiple attributes at once:
-      file_info.update(atime: now(), accesses: 1)
+  ## defrecordp
 
-      # Obtain the keywords representation of a record:
-      file_info.to_keywords   #=> [accesses: 1, atime: {1370,7171,911705}]
+  The simplest way of working with records is via `defrecordp`:
 
-
-  A record is simply a tuple where the first element is the record
-  module name. We can get the record raw representation as follow:
-
-      inspect FileInfo.new, raw: true
-      #=> { FileInfo, nil, nil }
-
-  Besides defining readers and writers for each attribute, Elixir also
-  defines an `update_#{attribute}` function to update the value. Such
-  functions expect a function as argument that receives the current
-  value and must return the new one. For example, every time the file
-  is accessed, the accesses counter can be incremented with:
-
-      file_info.update_accesses(fn(old) -> old + 1 end)
-
-  Which can be also written as:
-
-      file_info.update_accesses(&1 + 1)
-
-  ## Access syntax
-
-  Records in Elixir can be expanded at compilation time to provide
-  pattern matching and faster operations. For example, the clause
-  below will only match if a `FileInfo` is given and the number of
-  accesses is zero:
-
-      def enforce_no_access(FileInfo[accesses: 0]), do: :ok
-
-  The clause above will expand to:
-
-      def enforce_no_access({ FileInfo, _, 0 }), do: :ok
-
-  The downside of using such syntax is that, every time the record
-  changes, your code now needs to be recompiled (which is usually
-  not a concern since Elixir build tools by default recompiles the
-  whole project whenever there is a change).
-
-  Finally, keep in mind that Elixir triggers some optimizations whenever
-  the access syntax is used. For example:
-
-      def no_access?(FileInfo[] = file_info) do
-        file_info.accesses == 0
+      defmodule User do
+        defrecordp :user, name: "José", age: 25
       end
 
-  Is translated to:
+  In the example above, `defrecordp` is going to generate a set of
+  macros named `user` that allows us to create, update and match
+  on a record. Our record is going to have two fields, a name with
+  default value of "José" and age of 25.
 
-      def no_access?({ FileInfo, _, _ } = file_info) do
-        elem(file_info, 1) == 0
+  Let's see some examples:
+
+      # To create records
+      user()        #=> { User, "José", 25 }
+      user(age: 26) #=> { User, "José", 26 }
+
+  By using the `user` macro, we no longer need to explicitly create
+  a tuple with all elements. It also allows us to create and modify
+  values by name:
+
+      # Create a new record
+      user = user()
+
+      # And now change its age to 26
+      user(user, age: 26)
+
+  Since `user` is a macro, all the work happens at compilation time.
+  This means all the operations, like changing the age above, works
+  as a simple tuple operation at runtime:
+
+      # This update operation...
+      user(user, age: 26)
+
+      # Literally translates to this one:
+      set_elem(user, 2, 26)
+
+  For this reason, the following operation is not allowed as all
+  values need to be explicit:
+
+      new_values = [age: 26]
+      user(user, new_values)
+
+  As the name says, `defrecordp` is useful when you don't want to
+  expose the record definition. The `user` macro used above, for
+  example, is only available inside the `User` module and nowhere else.
+  You can find more information in `Kernel.defrecordp/2` docs.
+
+  In general, though, records are used as part of a module's public
+  interface. For such use cases, Elixir provides record modules.
+
+  ## defrecord
+
+  By using `defrecord`, a developer can make a Record definition
+  available everywhere within Elixir code. Let's see an example:
+
+      defrecord User, name: "José", age: 25
+
+  Notice that, different to `defrecordp`, `defrecord` expects an
+  alias as first argument. This is because `defrecord` is going
+  to create a module named `User` with all the relevant metadata.
+  This module can then be imported and we can manipulate the user
+  as with `defrecordp`:
+
+      Record.import User, as: :user
+      user()        #=> User[name: "José", age: 25]
+      user(age: 26) #=> User[name: "José", age: 26]
+
+  Notice that now, since the record definition is accessible, Elixir
+  shows the record nicely formatted, no longer as a simple tuple.
+
+  Since working with external records is frequent, Elixir allows
+  developers to skip importing the record altogether in favor
+  of a `Module[args]` syntax:
+
+      # Skipping a field uses its default value
+      User[]        #=> User[name: "José", age: 25]
+      User[age: 26] #=> User[name: "José", age: 26]
+
+  The macro name is replaced by the module name and the parenthesis
+  are replaced by brackets. When the shortcut syntax is used, there
+  is no need to import the record.
+
+  Before we sum up the differences in between `defrecord` and
+  `defrecordp`, there is one last functionality introduced by
+  `defrecord` that we need to discuss.
+
+  ## Runtime access
+
+  All the functionality discussed above happens at compilation time.
+  This means that both `user(user, age: 26)` and `User[user, age: 26]`
+  will be transformed into a simple tuple operation at compile time.
+
+  However, there are some situations where we want to set or update
+  fields dynamically. `defrecord` (and `defrecord` only) supports
+  it out of the box:
+
+      defrecord User, name: "José", age: 25
+
+      opts = [name: "Hello"]
+      user = User.new(opts)
+      #=> User[name: "Hello", age: 25]
+      user.update(age: 26)
+      #=> User[name: "Hello", age: 26]
+
+  All the calls above are happening at runtime. It gives Elixir
+  records a lot of flexibility at the cost of performance since
+  there is more work happening at runtime.
+
+  To sum it up, `defrecordp` should be used when you don't want
+  to expose the record information while `defrecord` should be used
+  whenever you want to share a record within your code or with other
+  libraries or whenever you need to dynamically set or update fields.
+
+  You can learn more about it on `Kernel.defrecord/2` docs. Now
+  let's discuss the usefulness of using records with protocols.
+
+  ## Protocols
+
+  Developers can extend existing protocols by creating their own
+  records and implementing the desired protocols. For instance,
+  imagine that you have created a new representation for storing
+  date and time, represented by the year, the week of the year
+  and the week day:
+
+      defrecord WeekDate, year: nil, week: nil, week_day: nil
+
+  Now we want this date to be represented as a string and this
+  can be done by implementing the `Binary.Chars` protocol for
+  our record:
+
+      defimpl Binary.Chars, for: WeekDate do
+        def to_binary(WeekDate[year: year, week: week, week_day: day]) do
+          "#{year}-W#{week}-#{day}"
+        end
       end
 
-  Which provides faster get and set times for record operations.
+  Now we can explicitly convert our WeekDate:
 
-  ## Runtime introspection
+      to_binary WeekDate[year: 2013, week: 26, week_day: 4]
+      "2013-W26-4"
 
-  At runtime, developers can use `__record__` to get information
-  about the given record:
+  A protocol can be implemented for any record, regardless if
+  it was generated by `defrecord` or `defrecordp`. That's because
+  records are simply tuples and the protocol works directly on
+  the tuple.
 
-      FileInfo.__record__(:name)
-      #=> FileInfo
+  Note: Although a record can be defined using a regular atom
+  instead of an alias, as shown below, such records are **not**
+  supported in Protocols:
 
-      FileInfo.__record__(:fields)
-      #=> [atime: nil, accesses: 0]
+      defrecord :just_an_atom, [:name, :age]
 
-  In order to quickly access the index of a field, one can use
-  the `__index__` function:
-
-      FileInfo.__index__(:atime)
-      #=> 0
-
-      FileInfo.__index__(:unknown)
-      #=> nil
-
-  ## Compile-time introspection
-
-  At the compile time, one can access following information about the record
-  from within the record module:
-
-  * `@record_fields` — a keyword list of record fields with defaults
-  * `@record_types` — a keyword list of record fields with types
-
-       defrecord Foo, bar: nil do
-         record_type bar: nil | integer
-         IO.inspect @record_fields
-         IO.inspect @record_types
-       end
-
-  prints out
-
-       [bar: nil]
-       [bar: {:|,[line: ...],[nil,{:integer,[line: ...],nil}]}]
-
-  where the last line is a quoted representation of
-
-       [bar: nil | integer]
-
-  ## Documentation
-
-  By default records are not documented and have `@moduledoc` set to false.
-
-  ## Types
-
-  Every record defines a type named `t` that can be accessed in typespecs.
-  Those types can be passed at the moment the record is defined:
-
-      defrecord User,
-        name: "" :: string,
-        age: 0 :: integer
-
-  All the fields without a specified type are assumed to have type `term`.
-
-  Assuming the `User` record defined above, it could be used in typespecs
-  as follow:
-
-      @spec handle_user(User.t) :: boolean()
-
-  If the developer wants to define their own types to be used with the
-  record, Elixir allows a more lengthy definition with the help of the
-  `record_type` macro:
-
-      defrecord Config, counter: 0, failures: [] do
-        @type kind :: term
-        record_type counter: integer, failures: [kind]
-      end
-
-  ## Importing records
-
-  It is also possible to import a public record (a record, defined using
-  `defrecord`) as a set of private macros (as if it was defined using `defrecordp`):
-
-      Record.import Config, as: :config
-
-  See `Record.import/2` and `defrecordp/2` documentation for more information
   """
 
   @doc """
@@ -173,10 +198,35 @@ defmodule Record do
   end
 
   @doc """
-  Main entry point for records definition. It defines a module
-  with the given `name` and the fields specified in `values`.
-  Check the module documentation for more information.
+  Imports a public record definition as a set of private macros,
+  as defined by `Kernel.defrecordp/2`. This is useful when one
+  desires to manipulate a record via a set of macros instead
+  of the regular access syntax.
+
+  ## Example
+
+     defmodule Test do
+       Record.import File.Stat, as: :file_stat
+
+       def size(file_stat(size: size)), do: size
+     end
+
   """
+  defmacro import(module, as: name) do
+    quote do
+      module = unquote(module)
+
+      fields = if module == __MODULE__ do
+        @record_fields
+      else
+        module.__record__(:fields)
+      end
+
+      Record.defmacros(unquote(name), fields, __ENV__, module)
+    end
+  end
+
+  @doc false
   def defrecord(name, values, opts) do
     block = Keyword.get(opts, :do, nil)
     { fields, types } = record_split(values)
@@ -185,7 +235,6 @@ defmodule Record do
       unquoted_fields = unquote(fields)
 
       defmodule unquote(name) do
-        @moduledoc false
         import Elixir.Record.DSL
 
         @record_fields []
@@ -219,50 +268,16 @@ defmodule Record do
     { :lists.reverse(defaults), types }
   end
 
-  @doc """
-  Import public record definition as a set of private macros,
-  as defined by `Kernel.defrecordp/2`. This is useful when one
-  desires to manipulate a record via a set of macros instead
-  of the regular access syntax.
-
-  ## Example
-
-     defmodule Test do
-       Record.import File.Stat, as: :file_stat
-
-       def size(file_stat(size: size)), do: size
-     end
-
-  """
-  defmacro import(module, as: name) do
-    quote do
-      module = unquote(module)
-
-      fields = if module == __MODULE__ do
-        @record_fields
-      else
-        module.__record__(:fields)
-      end
-
-      Record.defmacros(unquote(name), fields, __ENV__, module)
-    end
-  end
-
-  @doc """
-  Main entry point for private records definition. It defines
-  a set of macros with the given `name` and the fields specified
-  in `values`. This is invoked directly by `Kernel.defrecordp`,
-  so check it for more information and documentation.
-  """
-  def defrecordp(name, fields) when is_atom(name) and is_list(fields) do
+  @doc false
+  def defrecordp(name, tag, fields) when is_atom(name) and is_atom(tag) and is_list(fields) do
     { fields, types, def_type } = recordp_split(fields, [], [], false)
     type = :"#{name}_t"
 
     quote do
-      Record.defmacros(unquote(name), unquote(fields), __ENV__)
+      Record.defmacros(unquote(name), unquote(fields), __ENV__, unquote(tag))
 
       if unquote(def_type) do
-        @typep unquote(type)() :: { unquote(name), unquote_splicing(types) }
+        @typep unquote(type)() :: { unquote(tag), unquote_splicing(types) }
       end
     end
   end
@@ -370,10 +385,6 @@ defmodule Record do
         Record.access(unquote(tag) || __MODULE__, unquote(escaped), args, __CALLER__)
       end
 
-      defmacrop unquote(name)(record, key) when is_atom(key) do
-        Record.get(unquote(tag) || __MODULE__, unquote(escaped), record, key)
-      end
-
       defmacrop unquote(name)(record, args) do
         Record.dispatch(unquote(tag) || __MODULE__, unquote(escaped), record, args, __CALLER__)
       end
@@ -451,23 +462,45 @@ defmodule Record do
     end
   end
 
-  # Dispatch the call to either update or to_list depending on the args given.
+  # Implements to_keywords macro defined by defmacros.
+  # It returns a quoted expression that represents
+  # converting record to keywords list.
+  @doc false
+  def to_keywords(_atom, fields, record) do
+    { var, extra } = cache_var(record)
+
+    keywords = Enum.map fields,
+      fn { key, _default } ->
+        index = find_index(fields, key, 0)
+        quote do
+          { unquote(key), :erlang.element(unquote(index + 2), unquote(var)) }
+        end
+      end
+
+    quote do
+      unquote_splicing(extra)
+      unquote(keywords)
+    end
+  end
+
+  # Dispatch the call to either get, update or to_list depending on the args given.
   @doc false
   def dispatch(atom, fields, record, args, caller) do
     cond do
+      is_atom(args) ->
+        get(atom, fields, record, args)
       is_keyword(args) ->
         update(atom, fields, record, args, caller)
       is_list(args) ->
         to_list(atom, fields, record, args)
       true ->
-        raise ArgumentError, message: "expected arguments to be a compile time list or compile time keywords"
+        raise ArgumentError, message: "expected arguments to be a compile time atom, list or keywords"
     end
   end
 
   # Implements the update macro defined by defmacros.
   # It returns a quoted expression that represents
   # the access given by the keywords.
-  @doc false
   defp update(atom, fields, var, keyword, caller) do
     unless is_keyword(keyword) do
       raise ArgumentError, message: "expected arguments to be a compile time keywords"
@@ -492,8 +525,7 @@ defmodule Record do
   # Implements the get macro defined by defmacros.
   # It returns a quoted expression that represents
   # getting the value of a given field.
-  @doc false
-  def get(atom, fields, var, key) do
+  defp get(atom, fields, var, key) do
     index = find_index(fields, key, 0)
     if index do
       quote do
@@ -501,27 +533,6 @@ defmodule Record do
       end
     else
       raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect key}"
-    end
-  end
-
-  # Implements to_keywords macro defined by defmacros.
-  # It returns a quoted expression that represents
-  # converting record to keywords list.
-  @doc false
-  def to_keywords(_atom, fields, record) do
-    { var, extra } = cache_var(record)
-
-    keywords = Enum.map fields,
-      fn { key, _default } ->
-        index = find_index(fields, key, 0)
-        quote do
-          { unquote(key), :erlang.element(unquote(index + 2), unquote(var)) }
-        end
-      end
-
-    quote do
-      unquote_splicing(extra)
-      unquote(keywords)
     end
   end
 

@@ -104,6 +104,11 @@ defmodule Enum do
 
   @doc """
   Counts for how many items the function returns true.
+
+  ## Examples
+      iex> Enum.count([1, 2, 3, 4, 5], fn(x) -> rem(x, 2) == 0 end)
+      2
+
   """
   @spec count(t, (element -> as_boolean(term))) :: non_neg_integer
   def count(collection, fun) do
@@ -196,16 +201,16 @@ defmodule Enum do
 
   Expects an ordered collection.
 
-    ## Examples
+  ## Examples
 
-        iex> Enum.at([2, 4, 6], 0)
-        2
-        iex> Enum.at([2, 4, 6], 2)
-        6
-        iex> Enum.at([2, 4, 6], 4)
-        nil
-        iex> Enum.at([2, 4, 6], 4, :none)
-        :none
+      iex> Enum.at([2, 4, 6], 0)
+      2
+      iex> Enum.at([2, 4, 6], 2)
+      6
+      iex> Enum.at([2, 4, 6], 4)
+      nil
+      iex> Enum.at([2, 4, 6], 4, :none)
+      :none
 
   """
   @spec at(t, index) :: element | nil
@@ -272,19 +277,24 @@ defmodule Enum do
 
   @doc """
   Invokes the given `fun` for each item in the `collection`.
-  Returns the `collection` itself. `fun` can take two parameters,
-  in which case the second parameter will be the iteration index.
+  Returns `:ok`.
 
   ## Examples
 
-      Enum.each(['some', 'example'], fn(x) -> IO.puts x end)
+      Enum.each(["some", "example"], fn(x) -> IO.puts x end)
+      "some"
+      "example"
+      #=> :ok
 
   """
   @spec each(t, (element -> any) | (element, index -> any)) :: :ok
   def each(collection, fun) when is_list(collection) do
     cond do
       is_function(fun, 1) -> :lists.foreach(fun, collection)
-      is_function(fun, 2) -> :lists.foldl(fn(h, idx) -> fun.(h, idx); idx + 1 end, 0, collection)
+      is_function(fun, 2) ->
+        IO.write "[WARNING] Passing a funtion of arity 2 to Enum.each/2 is deprecated, " <>
+                 "please use Stream.with_index/1 instead\n#{Exception.format_stacktrace}"
+        :lists.foldl(fn(h, idx) -> fun.(h, idx); idx + 1 end, 0, collection)
     end
 
     :ok
@@ -299,6 +309,9 @@ defmodule Enum do
         end)
 
       is_function(fun, 2) ->
+        IO.write "[WARNING] Passing a funtion of arity 2 to Enum.each/2 is deprecated, " <>
+                 "please use Stream.with_index/1 instead\n#{Exception.format_stacktrace}"
+
         Enumerable.reduce(collection, 0, fn(entry, idx) ->
           fun.(entry, idx)
           idx + 1
@@ -336,14 +349,14 @@ defmodule Enum do
 
   Expects an ordered collection.
 
-    ## Examples
+  ## Examples
 
-        iex> Enum.fetch([2, 4, 6], 0)
-        { :ok, 2 }
-        iex> Enum.fetch([2, 4, 6], 2)
-        { :ok, 6 }
-        iex> Enum.fetch([2, 4, 6], 4)
-        :error
+      iex> Enum.fetch([2, 4, 6], 0)
+      { :ok, 2 }
+      iex> Enum.fetch([2, 4, 6], 2)
+      { :ok, 6 }
+      iex> Enum.fetch([2, 4, 6], 4)
+      :error
 
   """
   @spec fetch(t, index) :: { :ok, element } | :error
@@ -585,8 +598,6 @@ defmodule Enum do
   @doc """
   Returns a new collection, where each item is the result
   of invoking `fun` on each corresponding item of `collection`.
-  `fun` can take two parameters, in which case the second parameter
-  will be the iteration index.
 
   For dicts, the function accepts a key-value tuple.
 
@@ -605,6 +616,8 @@ defmodule Enum do
       is_function(fun, 1) ->
         lc item inlist collection, do: fun.(item)
       is_function(fun, 2) ->
+        IO.write "[WARNING] Passing a funtion of arity 2 to Enum.map/2 is deprecated, " <>
+                 "please use Stream.with_index/1 instead\n#{Exception.format_stacktrace}"
         mapper = fn(h, idx) -> { fun.(h, idx), idx + 1 } end
         { list, _ } = :lists.mapfoldl(mapper, 0, collection)
         list
@@ -993,6 +1006,15 @@ defmodule Enum do
   of tuples. The number of elements in the resulting list is
   dictated by the first enum. In case the second list is shorter,
   values are filled with nil.
+
+  ## Examples
+
+      iex> Enum.zip([1, 2, 3], [:a, :b, :c])
+      [{1,:a},{2,:b},{3,:c}]
+
+      iex> Enum.zip([1,2,3,4,5], [:a, :b, :c])
+      [{1,:a},{2,:b},{3,:c},{4,nil},{5,nil}]
+
   """
   @spec zip(t, t) :: [{any, any}]
   def zip(coll1, coll2) when is_list(coll1) and is_list(coll2) do
@@ -1047,6 +1069,22 @@ defmodule Enum do
     end
   end
 
+  @doc """
+  Returns the collection with each element wrapped in a tuple
+  along side its index.
+
+  ## Examples
+
+      iex> Enum.with_index [1,2,3]
+      [{1,0},{2,1},{3,2}]
+
+  """
+  @spec with_index(t) :: list({ element, non_neg_integer })
+  def with_index(collection) do
+    map_reduce(collection, 0, fn x, acc ->
+      { { x, acc }, acc + 1 }
+    end) |> elem(0)
+  end
 
   @doc """
   Returns the maximum value.
@@ -1088,7 +1126,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the manimum value.
+  Returns the minimum value.
   Raises empty error in case the collection is empty.
 
   ## Examples
@@ -1128,7 +1166,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the manimum value.
+  Returns the minimum value.
   Raises empty error in case the collection is empty.
 
   ## Examples

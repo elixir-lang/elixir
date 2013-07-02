@@ -29,17 +29,18 @@ defmodule Record.Extractor do
 
   # Retrieve the record with the given name from the given file
   defp retrieve_record(name, file) do
-    records = retrieve_from_file(file)
+    form = read_file(file)
+    records = retrieve_records(form)
     if record = List.keyfind(records, name, 0) do
-      parse_record(record)
+      parse_record(record, form)
     else
       raise ArgumentError, "no record #{name} found at #{to_binary(file)}"
     end
   end
 
   # Parse the given file and retrieve all existent records.
-  defp retrieve_from_file(file) do
-    lc { :attribute, _, :record, record } inlist read_file(file), do: record
+  defp retrieve_records(form) do
+    lc { :attribute, _, :record, record } inlist form, do: record
   end
 
   # Read a file and return its abstract syntax form that also
@@ -57,12 +58,11 @@ defmodule Record.Extractor do
   # Parse a tuple with name and fields and returns a
   # list of tuples where the first element is the field
   # and the second is its default value.
-  defp parse_record({ _name, fields }) do
+  defp parse_record({ _name, fields }, form) do
     cons = List.foldr fields, { nil, 0 }, fn f, acc ->
       { :cons, 0, parse_field(f), acc }
     end
-    { :value, list, _ } = :erl_eval.expr(cons, [])
-    list
+    eval_record(cons, form)
   end
 
   defp parse_field({ :typed_record_field, record_field, _type }) do
@@ -75,5 +75,17 @@ defmodule Record.Extractor do
 
   defp parse_field({ :record_field, _, key, value }) do
     { :tuple, 0, [key, value] }
+  end
+
+  defp eval_record(cons, form) do
+    form = form ++
+      [ { :function, 0, :hello, 0, [
+          { :clause, 0, [], [], [ cons ] } ] } ]
+
+    { :function, 0, :hello, 0, [
+      { :clause, 0, [], [], [ record_ast ] } ] } = :erl_expand_records.module(form, []) |> List.last
+
+    { :value, record, _ } = :erl_eval.expr(record_ast, [])
+    record
   end
 end

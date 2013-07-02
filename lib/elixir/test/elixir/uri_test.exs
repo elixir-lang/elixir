@@ -117,6 +117,14 @@ defmodule URITest do
                  URI.parse("http://foo.com:4444")
   end
 
+  test :default_port do
+    assert URI.default_port("http") == 80
+    assert URI.default_port("unknown") == nil
+
+    URI.default_port("unknown", 13)
+    assert URI.default_port("unknown") == 13
+  end
+
   test :parse_bad_uris do
     assert URI.parse("https:??@?F?@#>F//23/")
     assert URI.parse("")
@@ -124,10 +132,8 @@ defmodule URITest do
     assert URI.parse("https")
   end
 
-  test :downcase_properly do
+  test :downcase_scheme do
     assert URI.parse("hTtP://google.com").scheme == "http"
-    assert URI.parse("http://GoOgLe.CoM").host == "google.com"
-    assert URI.parse("http://LOL:wut@GoOgLe.CoM").authority == "LOL:wut@google.com"
   end
 
   test :to_binary do

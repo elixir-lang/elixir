@@ -22,10 +22,6 @@ end
 
 name = RecordTest.DynamicName
 defrecord name, a: 0, b: 1 do
-  def get_a(RecordTest.DynamicName[a: a]) do
-    a
-  end
-
   defoverridable [update_b: 2]
 
   def update_b(_, _) do
@@ -54,8 +50,6 @@ end
 defrecord RecordTest.WithInlineType, a: nil :: atom, b: 1 :: integer
 
 defmodule RecordTest.Macros do
-  defrecordp :_user, name: "José", age: 25
-
   defmacro gen do
     quote do
       alias RecordTest.Macros.Nested
@@ -76,38 +70,6 @@ defmodule RecordTest.Macros do
   # Ensure there is no conflict in a nested module
   # named record.
   defrecord Record, [a: 1, b: 2]
-
-  def new() do
-    _user()
-  end
-
-  def new(name, age) do
-    _user(name: name, age: age)
-  end
-
-  def name(_user(name: name)) do
-    name
-  end
-
-  def add_bar_to_name(_user(name: name) = user) do
-    _user(user, name: name <> " bar")
-  end
-
-  def age(user) do
-    _user(user, :age)
-  end
-
-  def to_keywords(user) do
-    _user(user)
-  end
-
-  def name_and_age(user) do
-    _user(user, [:name, :age])
-  end
-
-  def age_and_name(user) do
-    _user(user, [:age, :name])
-  end
 end
 
 defmodule RecordTest do
@@ -117,12 +79,6 @@ defmodule RecordTest do
   # as expected. If it compiles, we are good to go.
   require RecordTest.Macros
   RecordTest.Macros.gen
-
-  test :record_access_with_nil_keyword do
-    record = RecordTest.DynamicName.new(a: nil)
-    record_access = RecordTest.DynamicName[a: nil]
-    assert record == record_access
-  end
 
   test :record_constructor_with_dict do
     record   = RecordTest.FileInfo.new(type: :regular)
@@ -176,35 +132,6 @@ defmodule RecordTest do
     assert record.to_keywords[:b] == "b"
   end
 
-  test :underscore_record_syntax do
-    record = RecordTest.DynamicName[_: "a"]
-    assert RecordTest.DynamicName[a: "a", b: "a"] == record
-    assert RecordTest.DynamicName[_: _] = RecordTest.DynamicName[_: "x"]
-    assert { :badmatch, RecordTest.DynamicName[a: "y", b: "y"] } =
-      catch_error(RecordTest.DynamicName[_: "x"] = RecordTest.DynamicName[_: "y"])
-  end
-
-  test :access_protocol_on_being_defined_record do
-    assert RecordTest.DynamicName.new(a: "a").get_a == "a"
-  end
-
-  test :record_macros do
-    record = RecordTest.Macros.new
-    assert record.name == "José"
-
-    record = RecordTest.Macros.new("Foo", 25)
-    assert record.name == "Foo"
-
-    record = record.add_bar_to_name
-    assert record.name == "Foo bar"
-
-    assert record.age == 25
-    assert record.to_keywords == [name: record.name, age: record.age]
-
-    assert record.name_and_age == [record.name, record.age]
-    assert record.age_and_name == [record.age, record.name]
-  end
-
   test :record_update do
     record = RecordTest.SomeRecord.new
     assert RecordTest.SomeRecord.a(record.update(a: 2, b: 3)) == 2
@@ -229,6 +156,11 @@ defmodule RecordTest do
   test :import do
     assert RecordTest.FileInfo.Helper.new == RecordTest.FileInfo.new
     assert RecordTest.FileInfo.Helper.size(RecordTest.FileInfo.new(size: 100)) == 100
+  end
+
+  test :extract_with_nested_records do
+    namespace = Record.extract(:xmlElement, from_lib: "xmerl/include/xmerl.hrl")[:namespace]
+    assert is_record(namespace, :xmlNamespace)
   end
 
   defp file_info do

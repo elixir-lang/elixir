@@ -5,6 +5,8 @@ defmodule ExUnit.Runner do
                     max_cases: 4, taken_cases: 0, async_cases: [], sync_cases: []
 
   def run(async, sync, opts, load_us) do
+    opts = normalize_opts(opts)
+
     config = Config[max_cases: :erlang.system_info(:schedulers_online)]
     config = config.update(opts)
 
@@ -15,6 +17,14 @@ defmodule ExUnit.Runner do
       end
 
     config.formatter.suite_finished(config.formatter_id, run_us, load_us)
+  end
+
+  defp normalize_opts(opts) do
+    if opts[:trace] do
+      Keyword.put_new(opts, :max_cases, 1)
+    else
+      Keyword.put(opts, :trace, false)
+    end
   end
 
   defp loop(Config[] = config) do
@@ -50,11 +60,7 @@ defmodule ExUnit.Runner do
   # cases counter and attempt to spawn new ones.
   defp wait_until_available(config) do
     receive do
-      { _pid, :test_finished, test } ->
-        config.formatter.test_finished(config.formatter_id, test)
-        wait_until_available config
-      { _pid, :case_finished, test_case } ->
-        config.formatter.case_finished(config.formatter_id, test_case)
+      { _pid, :case_finished, _test_case } ->
         loop config.update_taken_cases(&1-1)
     end
   end
@@ -92,13 +98,13 @@ defmodule ExUnit.Runner do
 
       if test_case.failure do
         Enum.each tests, fn test_name ->
-          test = ExUnit.Test[name: test_name, case: test_case, invalid: true]
+          test = ExUnit.Test[name: test_name, case: case_name, failure: { :invalid, test_case }]
           pid <- { self, :test_finished, test }
         end
 
         self_pid <- { self, :case_finished, test_case }
       else
-        Enum.each tests, run_test(config, pid, test_case, &1, context)
+        Enum.each tests, run_test(config, test_case, &1, context)
 
         test_case = try do
           case_name.__exunit__(:teardown_all, context)
@@ -117,16 +123,19 @@ defmodule ExUnit.Runner do
 
     receive do
       { ^case_pid, :case_finished, test_case } ->
+        config.formatter.case_finished(config.formatter_id, test_case)
         pid <- { case_pid, :case_finished, test_case }
       { :DOWN, ^case_ref, :process, ^case_pid, { error, stacktrace } } ->
         test_case = test_case.failure { :EXIT, error, filter_stacktrace(stacktrace) }
+        config.formatter.case_finished(config.formatter_id, test_case)
         pid <- { case_pid, :case_finished, test_case }
     end
   end
 
-  defp run_test(config, pid, test_case, test_name, context) do
-    test = ExUnit.Test[name: test_name, case: test_case]
+  defp run_test(config, test_case, test_name, context) do
     ExUnit.TestCase[name: case_name] = test_case
+
+    test = ExUnit.Test[name: test_name, case: case_name]
     config.formatter.test_started(config.formatter_id, test)
 
     # Run test in a new process so that we can trap exits for a single test
@@ -161,10 +170,10 @@ defmodule ExUnit.Runner do
 
     receive do
       { ^test_pid, :test_finished, test } ->
-        pid <- { test_pid, :test_finished, test }
+        config.formatter.test_finished(config.formatter_id, test)
       { :DOWN, ^test_ref, :process, ^test_pid, { error, stacktrace } } ->
         test = test.failure { :EXIT, error, filter_stacktrace(stacktrace) }
-        pid <- { test_pid, :test_finished, test }
+        config.formatter.test_finished(config.formatter_id, test)
     end
   end
 

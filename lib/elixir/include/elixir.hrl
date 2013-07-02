@@ -41,7 +41,7 @@
   imports_hygiene=true,
   unquote=true,
   unquoted=false,
-  mark=true
+  escape=false
 }).
 
 %% Introspection
