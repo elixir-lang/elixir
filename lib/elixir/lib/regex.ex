@@ -2,7 +2,7 @@ defmodule Regex do
   @moduledoc %B"""
   Regular expressions for Elixir built on top of the re module
   in the Erlang Standard Library. More information can be found
-  on re documentation: http://www.erlang.org/doc/man/re.html
+  in the re documentation: http://www.erlang.org/doc/man/re.html
 
   Regular expressions in Elixir can be created using Regex.compile!
   or using the special form with `%r`:
@@ -10,19 +10,19 @@ defmodule Regex do
       # A simple regular expressions that matches foo anywhere in the string
       %r/foo/
 
-      # A regular expression with case insensitive options and handle unicode chars
+      # A regular expression with case insensitive options and handling for unicode chars
       %r/foo/iu
 
-  The re module provides several options, the one available in Elixir, followed by
+  The re module provides several options, the ones available in Elixir, followed by
   their shortcut in parenthesis, are:
 
   * unicode (u) - enable unicode specific patterns like \p
   * caseless (i) - add case insensitivity
   * dotall (s) - causes dot to match newlines and also set newline to anycrlf.
-    The new line setting can be overwritten by setting `(*CR)` or `(*LF)` or
+    The new line setting can be overridden by setting `(*CR)` or `(*LF)` or
     `(*CRLF)` or `(*ANY)` according to re documentation
   * multiline (m) - causes `^` and `$` to mark the beginning and end of each line.
-    You need to use `\A` and `\z` to match the end or beginning of the string
+    Use `\A` and `\z` to match the end or beginning of the string
   * extended (x) - whitespace characters are ignored except when escaped and
     allow `#` to delimit comments
   * firstline (f) - forces the unanchored pattern to match before or at the first
@@ -80,7 +80,7 @@ defmodule Regex do
   end
 
   @doc """
-  Returns a boolean if there was a match or not.
+  Returns a boolean indicating whether there was a match or not.
 
   ## Examples
 
@@ -96,8 +96,8 @@ defmodule Regex do
 
   @doc """
   Runs the regular expression against the given string.
-  It returns a list with all matches, nil if no match ocurred, or []
-  if it matched, /g was specified, but nothing was captured.
+  It returns a list with all matches, `nil` if no match ocurred, or []
+  if it matched, `/g` was specified, but nothing was captured.
 
   ## Examples
 
@@ -158,7 +158,7 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the regex source as binary.
+  Returns the regex source as a binary.
 
   ## Examples
 
@@ -184,7 +184,7 @@ defmodule Regex do
   end
 
   @doc """
-  Returns list of named groups in regex.
+  Returns a list of named groups in the regex.
 
   ## Examples
 
@@ -224,8 +224,8 @@ defmodule Regex do
   end
 
   @doc """
-  Split the given target in the number of parts specified.
-  If no ammount of parts is given, it defaults to :infinity.
+  Split the given target into the number of parts specified.
+  If no number of parts is given, it defaults to :infinity.
   """
 
   def split(regex, string, options // [])
@@ -244,7 +244,7 @@ defmodule Regex do
   end
 
   @doc %B"""
-  Receives a regex, a binary and a replacement and returns a new
+  Receives a regex, a binary and a replacement, returns a new
   binary where the all matches are replaced by replacement.
 
   Inside the replacement, you can either give "&" to access the
