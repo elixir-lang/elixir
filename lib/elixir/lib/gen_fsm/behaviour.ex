@@ -23,10 +23,10 @@ defmodule GenFSM.Behaviour do
 
 
       defmodule MyFsm do
-        use GenFsm.Behaviour
+        use GenFSM.Behaviour
 
         # keeping track of what is going on inside the CVM.
-        defrecordp StateData, coins: 0, price: 3
+        defrecord StateData, coins: 0, price: 3
 
         # API functions
 
@@ -35,18 +35,18 @@ defmodule GenFSM.Behaviour do
         end
 
         def insert_coin() do
-          :gen_fsm.send_event(:cvm, :insert_coin)
+          :gen_fsm.send_event(:cvm, :coin)
         end
 
         def request_coffee() do
-          :gen_fsm.send_event(:cvm, request_coffee)
+          :gen_fsm.send_event(:cvm, :request_coffee)
         end
 
         # Callbacks
 
         # idle is the initial state and 3 is the target price for a
         # cup of coffee.
-        def init(args) do
+        def init(_args) do
           { :ok, :idle, StateData.new }
         end
 
@@ -58,13 +58,13 @@ defmodule GenFSM.Behaviour do
           { :next_state, :requested_short_paid, state_data }
         end
   
-        def short_paid(:coin, state_data = StateData[price:p]) 
-          when state_data.coins + 1 < p do
+        def short_paid(:coin, state_data = StateData[coins: c, price: p]) 
+          when c + 1 < p do
           { :next_state, :short_paid, 
             state_data.coins fn old_coins -> old_coins +1 end } 
         end
 
-        def short_pain(:coin, state_data) do
+        def short_paid(:coin, state_data) do
           { :next_state, :paid_in_full, 
             state_data.coins fn old_coins -> old_coins + 1 end }
         end
@@ -73,12 +73,12 @@ defmodule GenFSM.Behaviour do
           { :next_state, :requested_short_paid, state_data }
         end
             
-        def requested_short_paid(:coin, state_data=StateData[coins:c, price:p])
+        def requested_short_paid(:coin, state_data=StateData[coins: c, price: p])
           when c+1 < p do
           { :next_state, :requested_short_paid, state_data.coins(c+1) }
         end
 
-        def requested_short_paid(:coin, state_data) do
+        def requested_short_paid(:coin, _state_data) do
           IO.puts "Here's your coffee!"
           { :next_state, :idle, StateData.new }
         end
@@ -95,7 +95,7 @@ defmodule GenFSM.Behaviour do
 
       end
 
-      { :ok, pid } = MyFsm.start_link()
+      { :ok, _pid } = MyFsm.start_link()
 
       MyFsm.insert_coin
       #=> :ok
@@ -106,8 +106,8 @@ defmodule GenFSM.Behaviour do
       #=> :ok
 
       MyFsm.insert_coin
-      #=> "Here's your coffee!"
       #=> :ok
+      #=> Here's your coffee!
 
 
   Notice we never call the FSM callbacks directly, they are called by
@@ -167,7 +167,7 @@ defmodule GenFSM.Behaviour do
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
-      @behavior :gen_server
+      @behavior :gen_fsm
 
       @doc false
       def handle_event(_event, state_name, state_data) do
@@ -194,7 +194,7 @@ defmodule GenFSM.Behaviour do
         { :ok, state_name, state_data }
       end
 
-      defoverridable [init: 1, handle_event: 3, handle_event: 4, 
+      defoverridable [handle_event: 3, handle_sync_event: 4, 
                       handle_info: 3, terminate: 3, code_change: 4]
     end
   end
