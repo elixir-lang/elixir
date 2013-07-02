@@ -10,6 +10,7 @@
 
 * bug fix
   * [Kernel] `match?/2` does not leak variables to outer scope
+  * [Module] Calling `Module.register_attribute/3` no longer automatically changes it to persisted or accumulated
 
 * deprecations
   * [Enum] Receiving the index of iteration in `Enum.map/2` and `Enum.each/2` is deprecated in favor of `Stream.with_index/1`
@@ -17,6 +18,8 @@
   * [File] `File.iterator!/2` and `File.biniterator!/2` are deprecated in favor of `File.stream!/2` and `File.binstream!/2`
 
 * backwards incompatible changes
+  * [Module] Calling `Module.register_attribute/3` no longer automatically changes it to persisted or accumulated
+  * [URI] Remove custom URI parsers in favor of `URI.default_port/2`
 
 # v0.9.3 (2013-06-23)
 

@@ -14,10 +14,10 @@ defmodule Mix.Task do
 
   @doc false
   defmacro __using__(_opts) do
-    Enum.each [:shortdoc, :hidden, :recursive],
-      Module.register_attribute __CALLER__.module, &1, accumulate: false
-
     quote do
+      Enum.each [:shortdoc, :hidden, :recursive],
+        Module.register_attribute __MODULE__, &1, persist: true
+
       @behaviour Mix.Task
     end
   end

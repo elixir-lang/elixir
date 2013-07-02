@@ -37,19 +37,10 @@ defmodule ModuleTest.ToUse do
   use ModuleTest.ToBeUsed
 end
 
-defmodule ModuleTest.DuplicateAttribute do
-  Module.register_attribute __MODULE__, :foo
-  @foo 1
-  def first_foo, do: @foo
-  @foo 2
-  @foo 3
-  def third_foo, do: @foo
-end
-
 defmodule ModuleTest do
   use ExUnit.Case, async: true
 
-  Module.register_attribute __MODULE__, :register_example
+  Module.register_attribute __MODULE__, :register_example, accumulate: true, persist: true
   @register_example :it_works
   @register_example :still_works
 
@@ -135,13 +126,9 @@ defmodule ModuleTest do
     assert List.keyfind(ExUnit.Server.__info__(:attributes), :behavior, 0) == {:behavior, [:gen_server]}
   end
 
-  test :persisted_attributes do
+  test :registered_attributes do
     assert [{:register_example, [:it_works]}, {:register_example, [:still_works]}] ==
       Enum.filter __MODULE__.__info__(:attributes), match?({ :register_example, _ }, &1)
-  end
-
-  test :duplicated_attributes do
-    assert [{:vsn, _}, {:foo, [1]}, {:foo, [2]}, {:foo, [3]}] = ModuleTest.DuplicateAttribute.__info__(:attributes)
   end
 
   @some_attribute  [1]

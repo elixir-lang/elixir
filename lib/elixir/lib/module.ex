@@ -785,9 +785,7 @@ defmodule Module do
   * `:persist` - The attribute will be persisted in the Erlang
     Abstract Format. Useful when interfacing with Erlang libraries.
 
-  By default, both options are true. Which means that registering
-  an attribute without passing any options will revert the attribute
-  behavior to exactly the same expected in :
+  By default, both options are false.
 
   ## Examples
 
@@ -802,16 +800,16 @@ defmodule Module do
       end
 
   """
-  def register_attribute(module, new, opts // []) do
+  def register_attribute(module, new, opts) do
     assert_not_compiled!(:register_attribute, module)
     table = data_table_for(module)
 
-    if Keyword.get(opts, :persist, true) do
+    if Keyword.get(opts, :persist) do
       old = :ets.lookup_element(table, :__persisted_attributes, 2)
       :ets.insert(table, { :__persisted_attributes,  [new|old] })
     end
 
-    if Keyword.get(opts, :accumulate, true) do
+    if Keyword.get(opts, :accumulate) do
       old = :ets.lookup_element(table, :__acc_attributes, 2)
       :ets.insert(table, { :__acc_attributes,  [new|old] })
     end
