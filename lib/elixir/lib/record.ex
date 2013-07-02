@@ -3,8 +3,8 @@ defmodule Record do
   Convenience functions for working with Records.
 
   A record is a tagged tuple which contains one or more elements
-  and the first element is an atom. We can manually create a record
-  by simply defining such tuple:
+  where the first element is an atom. We can manually create a record
+  by simply defining such a tuple:
 
       iex> record = { User, "josé", 25 }
       iex> is_record(record, User)
@@ -16,14 +16,14 @@ defmodule Record do
   Furthermore, as more and more items are added to the tuple, they
   lose semantic value.
 
-  This module solves those problems by allowing us to name each
+  This module solves these problems by allowing us to name each
   element and encapsulate the generation and manipulation of
-  such tuples. Many functionality provided by this module happens
-  at compilation time, meaning they don't add any overhead while
+  such tuples. Much of the functionality provided by this module happens
+  at compilation time, meaning they don't add any runtime overhead while
   considerably improving the quality of our code.
 
-  For those reasons, Records are frequently used in Elixir and
-  they are also very useful when used with Protocols. This module
+  For these reasons, Records are frequently used in Elixir and
+  are also very useful when combined with Protocols. This module
   provides different mechanisms for working with records and we
   are going to explore them in the following sections.
 
@@ -37,8 +37,8 @@ defmodule Record do
 
   In the example above, `defrecordp` is going to generate a set of
   macros named `user` that allows us to create, update and match
-  on a record. Our record is going to have two fields, a name with
-  default value of "José" and age of 25.
+  on a record. Our record is going to have two fields, a `name` with
+  default value of "José" and `age` of 25.
 
   Let's see some examples:
 
@@ -51,26 +51,26 @@ defmodule Record do
   values by name:
 
       # Create a new record
-      user = user()
+      sample_user = user()
 
       # And now change its age to 26
-      user(user, age: 26)
+      user(sample_user, age: 26)
 
   Since `user` is a macro, all the work happens at compilation time.
-  This means all the operations, like changing the age above, works
+  This means all the operations, like changing the `age` above, works
   as a simple tuple operation at runtime:
 
       # This update operation...
-      user(user, age: 26)
+      user(sample_user, age: 26)
 
       # Literally translates to this one:
-      set_elem(user, 2, 26)
+      set_elem(sample_user, 2, 26)
 
   For this reason, the following operation is not allowed as all
   values need to be explicit:
 
       new_values = [age: 26]
-      user(user, new_values)
+      user(sample_user, new_values)
 
   As the name says, `defrecordp` is useful when you don't want to
   expose the record definition. The `user` macro used above, for
@@ -87,7 +87,7 @@ defmodule Record do
 
       defrecord User, name: "José", age: 25
 
-  Notice that, different to `defrecordp`, `defrecord` expects an
+  Notice that, unlike `defrecordp`, `defrecord` expects an
   alias as first argument. This is because `defrecord` is going
   to create a module named `User` with all the relevant metadata.
   This module can then be imported and we can manipulate the user
@@ -112,7 +112,7 @@ defmodule Record do
   are replaced by brackets. When the shortcut syntax is used, there
   is no need to import the record.
 
-  Before we sum up the differences in between `defrecord` and
+  Before we sum up the differences between `defrecord` and
   `defrecordp`, there is one last functionality introduced by
   `defrecord` that we need to discuss.
 
@@ -134,17 +134,17 @@ defmodule Record do
       user.update(age: 26)
       #=> User[name: "Hello", age: 26]
 
-  All the calls above are happening at runtime. It gives Elixir
-  records a lot of flexibility at the cost of performance since
+  All the calls above happen at runtime. It gives Elixir
+  records flexibility at the cost of performance since
   there is more work happening at runtime.
 
-  To sum it up, `defrecordp` should be used when you don't want
+  To sum up, `defrecordp` should be used when you don't want
   to expose the record information while `defrecord` should be used
   whenever you want to share a record within your code or with other
   libraries or whenever you need to dynamically set or update fields.
 
-  You can learn more about it on `Kernel.defrecord/2` docs. Now
-  let's discuss the usefulness of using records with protocols.
+  You can learn more about records in the `Kernel.defrecord/2` docs. Now
+  let's discuss the usefulness of combining records with protocols.
 
   ## Protocols
 
