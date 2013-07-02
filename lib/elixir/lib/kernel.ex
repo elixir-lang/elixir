@@ -1435,7 +1435,7 @@ defmodule Kernel do
       defrecord User, name: nil, age: 0
 
   The following line defines a module that exports information
-  about a record. The definition above provides a short-cut
+  about a record. The definition above provides a shortcut
   syntax for creating and updating the record at compilation
   time:
 
@@ -1459,15 +1459,15 @@ defmodule Kernel do
       user.to_keywords #=> [name: "José", age: 25]
 
   Since a record is simply a tuple where the first element is
-  the record name, we can get its raw record representation as
-  follow:
+  the record name, we can get the raw record representation as
+  follows:
 
       inspect User.new, raw: true
       #=> { User, nil, 0 }
 
-  Besides defining readers and writers for each attribute, Elixir also
+  In addition to defining readers and writers for each attribute, Elixir also
   defines an `update_#{attribute}` function to update the value. Such
-  functions expect a function as argument that receives the current
+  functions expect a function as an argument that receives the current
   value and must return the new one. For example, every time the file
   is accessed, the accesses counter can be incremented with:
 
@@ -1476,13 +1476,13 @@ defmodule Kernel do
   ## Types
 
   Every record defines a type named `t` that can be accessed in typespecs.
-  Those types can be passed at the moment the record is defined:
+  Those types can be specified when the record is defined:
 
       defrecord User,
         name: "" :: string,
         age: 0 :: integer
 
-  All the fields without a specified type are assumed to have type `term`.
+  All fields without a specified type are assumed to have type `term`.
 
   Assuming the `User` record defined above, it could be used in typespecs
   as follow:
@@ -1527,17 +1527,19 @@ defmodule Kernel do
 
   ## Compile-time introspection
 
-  At the compile time, one can access following information about the record
+  At compile time, one can access the following information about the record
   from within the record module:
 
   * `@record_fields` — a keyword list of record fields with defaults
   * `@record_types` — a keyword list of record fields with types
 
-       defrecord Foo, bar: nil do
-         record_type bar: nil | integer
-         IO.inspect @record_fields
-         IO.inspect @record_types
-       end
+  For example:
+
+      defrecord Foo, bar: nil do
+        record_type bar: nil | integer
+        IO.inspect @record_fields
+        IO.inspect @record_types
+      end
 
   Prints out:
 
@@ -1565,7 +1567,7 @@ defmodule Kernel do
   manipulate the record exclusively at compilation time.
 
   Please see the `Record` module's documentation for an introduction
-  for records in Elixir.
+  to records in Elixir.
 
   ## Examples
 
@@ -1597,20 +1599,20 @@ defmodule Kernel do
       name #=> "José"
 
   It is important to understand that in the above example, the record
-  will assume leading tuple element from the current module (in the
+  will assume the leading tuple element from the current module (in the
   above case, `User`).
 
   In some cases, however, this might be undesirable and one can explicitly
   define what the first element of the record should be:
 
-     defmodule MyServer do
-       defrecordp :state, :my_state, data: nil
-     end
+      defmodule MyServer do
+        defrecordp :state, :my_state, data: nil
+      end
 
   This way, the record created will have `:my_state` as first element,
   not `MyServer`:
 
-     state() #=> { :my_state, nil }
+      state() #=> { :my_state, nil }
 
   ## Types
 
