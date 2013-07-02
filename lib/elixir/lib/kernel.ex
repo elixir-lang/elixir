@@ -2701,7 +2701,7 @@ defmodule Kernel do
 
   An else option can be given to specify the opposite:
 
-      if(foo, do: bar, else: bar)
+      if(foo, do: bar, else: baz)
 
   ## Blocks examples
 
