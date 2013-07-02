@@ -103,7 +103,7 @@ defmodule Kernel do
 
   @doc """
   Sends a message to the process identified on the left.
-  A process can be identified bu its PID or, if it is registered,
+  A process can be identified by its PID or, if it is registered,
   by an atom.
 
   ## Examples
@@ -133,7 +133,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Removes the first occorrence of an item on the left
+  Removes the first occurrence of an item on the left
   for each item on the right. Allowed in guard clauses.
 
   ## Examples
@@ -568,7 +568,7 @@ defmodule Kernel do
 
   @doc """
   Returns an integer which is the number of bytes needed to contain `bitstring`.
-  (That is, if the number of bits in Bitstring is not divisible by 8, the resulting
+  (That is, if the number of bits in `bitstring` is not divisible by 8, the resulting
   number of bytes will be rounded up.)
 
   Allowed in guard tests.
@@ -1319,7 +1319,7 @@ defmodule Kernel do
       end
 
   In the example above, we defined a function `sum` that receives
-  two arguments and sum them.
+  two arguments and sums them.
 
   """
   defmacro def(name, do: contents)
@@ -1359,8 +1359,8 @@ defmodule Kernel do
   defmacro def(name, args, guards, do: contents)
 
   @doc """
-  Defines a function that is private. Private functions
-  can only be accessible from the same module it is defined.
+  Defines a function that is private. Private functions are
+  only accessible from the same module in which they are defined.
 
   Check `def/2` for more information
 
@@ -1411,8 +1411,8 @@ defmodule Kernel do
   defmacro defmacro(name, args, guards, do: contents)
 
   @doc """
-  Defines a macro that is private. Private macros
-  can only be accessible from the same module it is defined.
+  Defines a macro that is private. Private macros are
+  only accessible from the same module in which they are defined.
 
   Check `defmacro/2` for more information
   """
