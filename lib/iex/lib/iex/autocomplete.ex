@@ -69,7 +69,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp identifier?(h) do
-    (h in ?a..?z) or (h in ?A..?Z) or h in [?_, ??, ?!]
+    (h in ?a..?z) or (h in ?A..?Z) or (h in ?0..?9) or h in [?_, ??, ?!]
   end
 
   defp expand_dot(expr) do

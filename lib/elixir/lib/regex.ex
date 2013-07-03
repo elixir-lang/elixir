@@ -2,7 +2,7 @@ defmodule Regex do
   @moduledoc %B"""
   Regular expressions for Elixir built on top of the re module
   in the Erlang Standard Library. More information can be found
-  on re documentation: http://www.erlang.org/doc/man/re.html
+  in the re documentation: http://www.erlang.org/doc/man/re.html
 
   Regular expressions in Elixir can be created using Regex.compile!
   or using the special form with `%r`:
@@ -10,32 +10,32 @@ defmodule Regex do
       # A simple regular expressions that matches foo anywhere in the string
       %r/foo/
 
-      # A regular expression with case insensitive options and handle unicode chars
+      # A regular expression with case insensitive options and handling for unicode chars
       %r/foo/iu
 
-  The re module provides several options, the one available in Elixir, followed by
+  The re module provides several options, the ones available in Elixir, followed by
   their shortcut in parenthesis, are:
 
-  * unicode (u) - enable unicode specific patterns like \p
-  * caseless (i) - add case insensitivity
-  * dotall (s) - causes dot to match newlines and also set newline to anycrlf.
-    The new line setting can be overwritten by setting `(*CR)` or `(*LF)` or
+  * `unicode` (u) - enable unicode specific patterns like \p
+  * `caseless` (i) - add case insensitivity
+  * `dotall` (s) - causes dot to match newlines and also set newline to anycrlf.
+    The new line setting can be overridden by setting `(*CR)` or `(*LF)` or
     `(*CRLF)` or `(*ANY)` according to re documentation
-  * multiline (m) - causes `^` and `$` to mark the beginning and end of each line.
-    You need to use `\A` and `\z` to match the end or beginning of the string
-  * extended (x) - whitespace characters are ignored except when escaped and
+  * `multiline` (m) - causes `^` and `$` to mark the beginning and end of each line.
+    Use `\A` and `\z` to match the end or beginning of the string
+  * `extended` (x) - whitespace characters are ignored except when escaped and
     allow `#` to delimit comments
-  * firstline (f) - forces the unanchored pattern to match before or at the first
+  * `firstline` (f) - forces the unanchored pattern to match before or at the first
     newline, though the matched text may continue over the newline
-  * ungreedy (r) - invert the "greediness" of the regexp
-  * groups (g) - compile with info about groups available
+  * `ungreedy` (r) - invert the "greediness" of the regexp
+  * `groups` (g) - compile with info about groups available
 
   The options not available are:
 
-  * anchored - not available, use `^` or `\A` instead
-  * dollar_endonly - not available, use `\z` instead
-  * no_auto_capture - not available, use `?:` instead
-  * newline - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or `(*ANYCRLF)`
+  * `anchored` - not available, use `^` or `\A` instead
+  * `dollar_endonly` - not available, use `\z` instead
+  * `no_auto_capture` - not available, use `?:` instead
+  * `newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or `(*ANYCRLF)`
     or `(*ANY)` at the beginning of the regexp according to the re documentation
 
   Most of the functions in this module accept either a binary or a char list
@@ -80,7 +80,7 @@ defmodule Regex do
   end
 
   @doc """
-  Returns a boolean if there was a match or not.
+  Returns a boolean indicating whether there was a match or not.
 
   ## Examples
 
@@ -96,8 +96,8 @@ defmodule Regex do
 
   @doc """
   Runs the regular expression against the given string.
-  It returns a list with all matches, nil if no match ocurred, or []
-  if it matched, /g was specified, but nothing was captured.
+  It returns a list with all matches, `nil` if no match occurred, or `[]`
+  if it matched, `/g` was specified, but nothing was captured.
 
   ## Examples
 
@@ -128,14 +128,17 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the given captures as a list of tuples.
+  Returns the given captures as a keyword list or `nil` if no captures are found.
   Requires the regex to be compiled with the groups option.
 
   ## Examples
 
       iex> Regex.captures(%r/c(?<foo>d)/g, "abcd")
       [foo: "d"]
-
+      iex> Regex.captures(%r/a(?<foo>b)c(?<bar>d)/g, "abcd")
+      [bar: "d", foo: "b"]
+      iex> Regex.captures(%r/a(?<foo>b)c(?<bar>d)/g, "efgh") 
+      nil
   """
   def captures(regex(groups: groups) = regex, string, options // []) do
     unless captures = Keyword.get(options, :capture) do
@@ -158,7 +161,7 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the regex source as binary.
+  Returns the regex source as a binary.
 
   ## Examples
 
@@ -184,11 +187,11 @@ defmodule Regex do
   end
 
   @doc """
-  Returns list of named groups in regex.
+  Returns a list of named groups in the regex.
 
   ## Examples
 
-      iex> Regex.groups(%r/(?<foo>foo)/g)
+      iex> Regex.groups(%r/(?<foo>bar)/g)
       [:foo]
 
   """
@@ -224,8 +227,16 @@ defmodule Regex do
   end
 
   @doc """
-  Split the given target in the number of parts specified.
-  If no ammount of parts is given, it defaults to :infinity.
+  Split the given target into the number of parts specified.
+  If no number of parts is given, it defaults to `:infinity`.
+
+  ## Examples
+      iex> Regex.split(%r/-/, "a-b-c")
+      ["a","b","c"]
+      iex> Regex.split(%r/-/, "a-b-c", [parts: 2])
+      ["a","b-c"]
+      iex> Regex.split(%r/-/, "abc")              
+      ["abc"]
   """
 
   def split(regex, string, options // [])
@@ -244,11 +255,11 @@ defmodule Regex do
   end
 
   @doc %B"""
-  Receives a regex, a binary and a replacement and returns a new
+  Receives a regex, a binary and a replacement, returns a new
   binary where the all matches are replaced by replacement.
 
-  Inside the replacement, you can either give "&" to access the
-  whole regular expression or \N, where N is in integer to access
+  Inside the replacement, you can either give `&` to access the
+  whole regular expression or `\N`, where `N` is in integer to access
   a specific matching parens. You can also set global to false
   if you want to replace just the first occurrence.
 

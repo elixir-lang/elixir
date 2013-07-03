@@ -25,6 +25,7 @@ defmodule MacroTest do
   test :escape_handle_tuples_with_size_different_than_two do
     assert { :{}, [], [:a] } == Macro.escape({ :a })
     assert { :{}, [], [:a, :b, :c] } == Macro.escape({ :a, :b, :c })
+    assert { :{}, [], [:a, { :{}, [], [1,2,3] }, :c] } == Macro.escape({ :a, { 1, 2, 3 }, :c })
   end
 
   test :escape_simply_returns_tuples_with_size_equal_to_two do

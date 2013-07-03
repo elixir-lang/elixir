@@ -31,13 +31,13 @@ defmodule ExUnit.CaseTemplate do
   @doc false
   defmacro __using__(_) do
     quote do
-      use ExUnit.Callbacks, parent: ExUnit.Case
+      use ExUnit.Callbacks
 
-      import unquote(__MODULE__)
       import ExUnit.Assertions
+      import unquote(__MODULE__)
 
       defmacro __using__(opts) do
-        unquote(__MODULE__).__parent__(__MODULE__, opts)
+        unquote(__MODULE__).__proxy__(__MODULE__, opts)
       end
 
       defoverridable [__using__: 1]
@@ -45,22 +45,36 @@ defmodule ExUnit.CaseTemplate do
   end
 
   @doc false
-  def __parent__(module, opts) do
-    opts = Keyword.put(opts, :parent, module)
-
+  def __proxy__(module, opts) do
     quote do
       use ExUnit.Case, unquote(opts)
+
+      setup_all context do
+        unquote(module).__ex_unit__(:setup_all, context)
+      end
+
+      setup context do
+        unquote(module).__ex_unit__(:setup, context)
+      end
+
+      teardown context do
+        unquote(module).__ex_unit__(:teardown, context)
+      end
+
+      teardown_all context do
+        unquote(module).__ex_unit__(:teardown_all, context)
+      end
     end
   end
 
   @doc """
-  Allows a developer to code to be invoked when
-  this module is used.
+  Allows a developer to customize the using block
+  when the case template is used.
   """
   defmacro using(var // quote(do: _), do: block) do
     quote location: :keep do
       defmacro __using__(unquote(var) = opts) do
-        parent = unquote(__MODULE__).__parent__(__MODULE__, opts)
+        parent = unquote(__MODULE__).__proxy__(__MODULE__, opts)
         result = unquote(block)
         { :__block__, [], [parent, result] }
       end

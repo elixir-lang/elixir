@@ -5,10 +5,14 @@
   form_error/4, parse_error/4, assert_module_scope/3,
   assert_no_function_scope/3, assert_function_scope/3,
   assert_no_match_scope/3, assert_no_guard_scope/3,
-  assert_no_match_or_guard_scope/3,
+  assert_no_match_or_guard_scope/3, warn/1,
   handle_file_warning/2, handle_file_warning/3, handle_file_error/2,
   deprecation/3, deprecation/4, file_format/3]).
 -include("elixir.hrl").
+
+warn(Warning) ->
+  elixir_code_server:cast(register_warning),
+  io:put_chars(standard_error, Warning).
 
 %% Handle inspecting for exceptions
 
@@ -75,11 +79,6 @@ deprecation(Meta, File, Message, Args) ->
 
 %% Handle warnings and errors (called during module compilation)
 
-%% output warning based on warnings going to stdout or stderr.
-output_warning(Warning) ->
-  elixir_code_server:cast(register_warning),
-  io:format(standard_error, Warning, []).
-
 %% Ignore on bootstrap
 handle_file_warning(true, _File, { _Line, sys_core_fold, nomatch_guard }) -> [];
 handle_file_warning(true, _File, { _Line, sys_core_fold, { nomatch_shadow, _ } }) -> [];
@@ -98,14 +97,14 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity
   Kind    = protocol_or_behaviour(Module),
   Raw     = "undefined ~ts function ~ts/~B (for ~ts ~ts)",
   Message = io_lib:format(Raw, [Kind, Fun, Arity, Kind, inspect(Module)]),
-  output_warning(file_format(Line, File, Message));
+  warn(file_format(Line, File, Message));
 
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
   case elixir_compiler:get_opt(internal) of
     true  -> [];
     false ->
       Message = io_lib:format("behaviour ~ts undefined", [inspect(Module)]),
-      output_warning(file_format(Line, File, Message))
+      warn(file_format(Line, File, Message))
   end;
 
 handle_file_warning(_, _File, {Line,erl_lint,{unused_var,_Var}}) when Line =< 0 ->
@@ -113,16 +112,16 @@ handle_file_warning(_, _File, {Line,erl_lint,{unused_var,_Var}}) when Line =< 0 
 
 handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
   Message = format_error(erl_lint, { unused_var, format_var(Var) }),
-  output_warning(file_format(Line, File, Message));
+  warn(file_format(Line, File, Message));
 
 handle_file_warning(_, File, {Line,erl_lint,{shadowed_var,Var,Where}}) ->
   Message = format_error(erl_lint, { shadowed_var, format_var(Var), Where }),
-  output_warning(file_format(Line, File, Message));
+  warn(file_format(Line, File, Message));
 
 %% Default behavior
 handle_file_warning(_, File, {Line,Module,Desc}) ->
   Message = format_error(Module, Desc),
-  output_warning(file_format(Line, File, Message)).
+  warn(file_format(Line, File, Message)).
 
 handle_file_warning(File, Desc) ->
   handle_file_warning(false, File, Desc).

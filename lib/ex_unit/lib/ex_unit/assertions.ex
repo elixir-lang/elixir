@@ -505,7 +505,7 @@ defmodule ExUnit.Assertions do
   """
   @spec flunk :: no_return
   @spec flunk(String.t) :: no_return
-  def flunk(message // "Epic Fail!") do
+  def flunk(message // "Flunked!") do
     raise ExUnit.AssertionError, message: message
   end
 end

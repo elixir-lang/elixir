@@ -78,4 +78,8 @@ defmodule IEx.InteractionTest do
     File.rm("dot-iex-1")
     File.rm!("dot-iex")
   end
+
+  test "receive exit" do
+    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~ %r"EXIT from #PID"
+  end
 end

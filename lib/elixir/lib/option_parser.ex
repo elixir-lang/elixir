@@ -29,13 +29,15 @@ defmodule OptionParser do
 
   The following types are supported:
 
-  * `:boolean` - Mark the given switch as boolean. Boolean switches
+  * `:boolean` - Marks the given switch as boolean. Boolean switches
                  never consumes the following value unless it is
                  true or false;
+  * `:integer` - Parses the switch as an integer;
+  * `:float`   - Parses the switch as a float;
 
   The following extra options are supported:
 
-  * `:keep` - Keep duplicated items in the list instead of overriding;
+  * `:keep` - Keeps duplicated items in the list instead of overriding;
 
   Examples:
 
@@ -127,10 +129,21 @@ defmodule OptionParser do
   end
 
   defp store_option(dict, option, value, kind) do
-    if is_switch_a? :keep, kind do
-      [{ option, value }|dict]
-    else
-      [{ option, value }|Keyword.delete(dict, option)]
+    case kind do
+      :keep ->
+        [{ option, value }|dict]
+      :integer ->
+        case String.to_integer(value) do
+          { value, "" } -> [{ option, value }|Keyword.delete(dict, option)]
+          _ -> dict
+        end
+      :float ->
+        case String.to_float(value) do
+          { value, "" } -> [{ option, value }|Keyword.delete(dict, option)]
+          _ -> dict
+        end
+      _ ->
+        [{ option, value }|Keyword.delete(dict, option)]
     end
   end
 

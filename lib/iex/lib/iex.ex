@@ -1,5 +1,5 @@
 defrecord IEx.Config, binding: nil, cache: '', counter: 1, scope: nil,
-                      result: nil, dot_iex_path: nil
+                      result: nil, dot_iex_path: nil, input_pid: nil
 
 defmodule IEx do
   @moduledoc %B"""

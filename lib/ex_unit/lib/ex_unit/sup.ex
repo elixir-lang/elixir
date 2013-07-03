@@ -3,12 +3,12 @@ defmodule ExUnit.Sup do
 
   use Supervisor.Behaviour
 
-  def start_link(options) do
-    :supervisor.start_link({ :local, __MODULE__ }, __MODULE__, options)
+  def start_link() do
+    :supervisor.start_link({ :local, __MODULE__ }, __MODULE__, :ok)
   end
 
-  def init(options) do
-    tree = [ worker(ExUnit.Server, [options]) ]
+  def init(:ok) do
+    tree = [ worker(ExUnit.Server, []) ]
     supervise(tree, strategy: :one_for_one)
   end
 end

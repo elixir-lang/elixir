@@ -6,13 +6,11 @@ defmodule Code do
   end
 
   @moduledoc """
-  The Code module is responsible to manage code compilation,
+  The Code module is responsible for managing code compilation,
   code evaluation and code loading.
 
-  It complements (Erlang's code module)[1] to add behavior
-  which is specific to Elixir.
-
-    [1]: (www.erlang.org/doc/man/code.html)
+  It complements [Erlang's code module](http://www.erlang.org/doc/man/code.html)
+  to add behavior which is specific to Elixir.
 
   """
 
@@ -26,8 +24,8 @@ defmodule Code do
   @doc """
   Removes the given files from the loaded files list.
   The modules defined in the file are not removed,
-  calling this function only removes it from the list,
-  allowing it to be required again.
+  calling this function only removes them from the list,
+  allowing them to be required again.
   """
   def unload_files(files) do
     :elixir_code_server.cast { :unload_files, files }
@@ -35,7 +33,7 @@ defmodule Code do
 
   @doc """
   Appends a path to Erlang VM code path.
-  The path is expanded with `Path.expand` before added.
+  The path is expanded with `Path.expand` before being appended.
   """
   def append_path(path) do
     :code.add_pathz(Path.expand to_char_list(path))
@@ -43,7 +41,7 @@ defmodule Code do
 
   @doc """
   Prepends a path to Erlang VM code path.
-  The path is expanded with `Path.expand` before added.
+  The path is expanded with `Path.expand` before being prepended.
   """
   def prepend_path(path) do
     :code.add_patha(Path.expand to_char_list(path))
@@ -51,7 +49,7 @@ defmodule Code do
 
   @doc """
   Deletes a path from Erlang VM code path.
-  The path is expanded with `Path.expand` before deleted.
+  The path is expanded with `Path.expand` before being deleted.
   """
   def delete_path(path) do
     :code.del_path(Path.expand to_char_list(path))
@@ -59,15 +57,15 @@ defmodule Code do
 
   @doc """
   Evaluates the contents given by string. The second argument is the
-  binding (which should be a keyword) followed by a keyword list of
+  binding (which should be a keyword), followed by a keyword list of
   environment options. Those options can be:
 
   * `:file` - the file to be considered in the evaluation
-  * `:line` - the line the script starts
+  * `:line` - the line on which the script starts
   * `:delegate_locals_to` - delegate local calls to the given module,
     the default is to not delegate
 
-  Besides, the following scope values can be configured:
+  Additionally, the following scope values can be configured:
 
   * `:aliases` - a list of tuples with the alias and its target
   * `:requires` - a list of modules required
@@ -80,8 +78,8 @@ defmodule Code do
 
   Notice that setting any of the values above overrides Elixir default
   values. For example, setting `:requires` to `[]`, will no longer
-  automatically required the `Kernel` module, in the same way setting
-  `:macros` will no longer auto-import `Kernel` macros as `if`, `case`,
+  automatically require the `Kernel` module; in the same way setting
+  `:macros` will no longer auto-import `Kernel` macros like `if`, `case`,
   etc.
 
   ## Examples
@@ -89,7 +87,7 @@ defmodule Code do
       iex> Code.eval_string("a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
       { 3, [ {:a, 1}, {:b, 2} ] }
 
-  For convenience, you can my pass `__ENV__` as argument and
+  For convenience, you can pass `__ENV__` as an argument and
   all imports, requires and aliases will be automatically carried
   over:
 
@@ -126,7 +124,7 @@ defmodule Code do
       ...> Code.eval_quoted(contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
       { 3, [ {:a, 1}, {:b, 2} ] }
 
-  For convenience, you can my pass `__ENV__` as argument and
+  For convenience, you can pass `__ENV__` as an argument and
   all options will be automatically extracted from the environment:
 
       iex> contents = quote(hygiene: [vars: false], do: a + b)
@@ -195,7 +193,7 @@ defmodule Code do
   end
 
   @doc """
-  Converts the given string to quoted form. It returns `{ :ok, quoted_form }`
+  Converts the given string to its quoted form. Returns `{ :ok, quoted_form }`
   if it succeeds, `{ :error, { line, error, token } }` otherwise.
 
   ## Options
@@ -232,7 +230,7 @@ defmodule Code do
   end
 
   @doc """
-  Converts the given string to quoted form. It returns the ast if it succeeds,
+  Converts the given string to its quoted form. It returns the ast if it succeeds,
   raises an exception otherwise. The exception is a TokenMissingError
   in case a token is missing (usually because the expression is incomplete),
   SyntaxError otherwise.
@@ -258,7 +256,7 @@ defmodule Code do
 
   Notice that if `load_file` is invoked by different processes
   concurrently, the target file will be invoked concurrently
-  in many times. I.e. if `load_file` is called N times with
+  many times. I.e. if `load_file` is called N times with
   a given file, the given file will be loaded N times. Check
   `require_file` if you don't want a file to be loaded concurrently.
   """
@@ -307,13 +305,13 @@ defmodule Code do
   end
 
   @doc """
-  Sets compilation options. Those options are global
+  Sets compilation options. These options are global
   since they are stored by Elixir's Code Server.
 
   Available options are:
 
-  * `:docs` - when true, retain documentation in the compiled module.
-    True by default;
+  * `:docs` - when true, retain documentation in the compiled module,
+    true by default;
 
   * `:debug_info` - when true, retain debug information in the compiled module.
     This allows a developer to reconstruct the original source
@@ -354,7 +352,7 @@ defmodule Code do
   loaded, it works as no-op. If the module was not loaded yet,
   it tries to load it.
 
-  If it succeeds loading the module anyhow, it returns
+  If it succeeds loading the module, it returns
   `{ :module, module }`. If not, returns `{ :error, reason }` with
   the error reason.
 
@@ -362,7 +360,7 @@ defmodule Code do
 
   Erlang has two modes to load code: interactive and embedded.
 
-  By default, the Erlang VM runs on interactive mode, where modules
+  By default, the Erlang VM runs in interactive mode, where modules
   are loaded as needed. In embedded mode the opposite happens, as all
   modules need to be loaded upfront or explicitly.
 
@@ -405,7 +403,7 @@ defmodule Code do
   loaded yet, it checks if it needs to be compiled first and just
   then tries to load it.
 
-  If it succeeds loading the module anyhow, it returns
+  If it succeeds loading the module, it returns
   `{ :module, module }`. If not, returns `{ :error, reason }` with
   the error reason.
 

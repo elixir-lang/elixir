@@ -88,13 +88,13 @@ defmodule Behaviour do
   def store_docs(module, line, name, arity) do
     doc = Module.get_attribute module, :doc
     Module.delete_attribute module, :doc
-    Module.put_attribute module, :__behaviour_docs, { { name, arity }, line, doc }
+    Module.put_attribute module, :__behaviour_docs__, { { name, arity }, line, doc }
   end
 
   @doc false
   defmacro __using__(_) do
     quote do
-      Module.register_attribute(__MODULE__, :__behaviour_docs, accumulate: true)
+      Module.register_attribute(__MODULE__, :__behaviour_docs__, accumulate: true)
       @before_compile unquote(__MODULE__)
       import unquote(__MODULE__)
     end
@@ -109,7 +109,7 @@ defmodule Behaviour do
       end
 
       def __behaviour__(:docs) do
-        @__behaviour_docs
+        @__behaviour_docs__
       end
     end
   end

@@ -168,6 +168,12 @@ defmodule Kernel.ErrorsTest do
       'foo(1)(2)'
   end
 
+  test :unhandled_stab do
+    assert_compile_fail SyntaxError,
+      "nofile:1: unhandled operator ->",
+      'casea foo do: (bar -> baz)'
+  end
+
   test :invalid_fn_args do
     assert_compile_fail TokenMissingError,
       "nofile:1: missing terminator: end (for \"fn\" starting at line 1)",

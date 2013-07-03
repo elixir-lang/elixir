@@ -7,17 +7,17 @@ defmodule Mix.Task do
   """
 
   @doc """
-  A task needs to implement run which receives
+  A task needs to implement `run` which receives
   a list of command line args.
   """
   defcallback run([binary]) :: any
 
   @doc false
   defmacro __using__(_opts) do
-    Enum.each [:shortdoc, :hidden, :recursive],
-      Module.register_attribute __CALLER__.module, &1, accumulate: false
-
     quote do
+      Enum.each [:shortdoc, :hidden, :recursive],
+        Module.register_attribute __MODULE__, &1, persist: true
+
       @behaviour Mix.Task
     end
   end
@@ -28,7 +28,7 @@ defmodule Mix.Task do
   def load_all, do: load_tasks(:code.get_path)
 
   @doc """
-  Loads all tasks in given paths.
+  Loads all tasks in the given `paths`.
   """
   def load_tasks(paths) do
     Enum.reduce(paths, [], fn(path, matches) ->
@@ -47,7 +47,7 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Returns all loaded modules. Modules that were not yet loaded
+  Returns all loaded modules. Modules that are not yet loaded
   won't show up. Check `load_all/0` if you want to preload all tasks.
   """
   def all_modules do
@@ -62,7 +62,7 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Gets the moduledoc for the given module.
+  Gets the moduledoc for the given `module`.
   Returns the moduledoc or `nil`.
   """
   def moduledoc(module) when is_atom(module) do
@@ -73,7 +73,7 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Gets the shortdoc for the given module.
+  Gets the shortdoc for the given `module`.
   Returns the shortdoc or `nil`.
   """
   def shortdoc(module) when is_atom(module) do
@@ -95,7 +95,7 @@ defmodule Mix.Task do
 
   @doc """
   Checks if the task should be run recursively for all sub-apps in
-  umbrella projects. Returns true, false or :both.
+  umbrella projects. Returns `true`, `false` or `:both`.
   """
   def recursive(module) when is_atom(module) do
     case List.keyfind module.__info__(:attributes), :recursive, 0 do
@@ -105,14 +105,14 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Returns the task name for the given module.
+  Returns the task name for the given `module`.
   """
   def task_name(module) do
     Mix.Utils.module_name_to_command(module, 2)
   end
 
   @doc """
-  Receives a task name and retrives the task module.
+  Receives a task name and retrieves the task module.
 
   ## Exceptions
 
@@ -135,7 +135,8 @@ defmodule Mix.Task do
   @doc """
   Runs a `task` with the given `args`.
 
-  If the task was not yet invoked, it returns the task result.
+  If the task was not yet invoked, it runs the task and 
+  returns the result.
 
   If the task was already invoked, it does not run the task
   again and simply aborts with `:noop`.

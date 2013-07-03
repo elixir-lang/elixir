@@ -103,7 +103,7 @@ defmodule Kernel do
 
   @doc """
   Sends a message to the process identified on the left.
-  A process can be identified bu its PID or, if it is registered,
+  A process can be identified by its PID or, if it is registered,
   by an atom.
 
   ## Examples
@@ -133,7 +133,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Removes the first occorrence of an item on the left
+  Removes the first occurrence of an item on the left
   for each item on the right. Allowed in guard clauses.
 
   ## Examples
@@ -568,7 +568,7 @@ defmodule Kernel do
 
   @doc """
   Returns an integer which is the number of bytes needed to contain `bitstring`.
-  (That is, if the number of bits in Bitstring is not divisible by 8, the resulting
+  (That is, if the number of bits in `bitstring` is not divisible by 8, the resulting
   number of bytes will be rounded up.)
 
   Allowed in guard tests.
@@ -1319,7 +1319,7 @@ defmodule Kernel do
       end
 
   In the example above, we defined a function `sum` that receives
-  two arguments and sum them.
+  two arguments and sums them.
 
   """
   defmacro def(name, do: contents)
@@ -1359,8 +1359,8 @@ defmodule Kernel do
   defmacro def(name, args, guards, do: contents)
 
   @doc """
-  Defines a function that is private. Private functions
-  can only be accessible from the same module it is defined.
+  Defines a function that is private. Private functions are
+  only accessible from the same module in which they are defined.
 
   Check `def/2` for more information
 
@@ -1411,8 +1411,8 @@ defmodule Kernel do
   defmacro defmacro(name, args, guards, do: contents)
 
   @doc """
-  Defines a macro that is private. Private macros
-  can only be accessible from the same module it is defined.
+  Defines a macro that is private. Private macros are
+  only accessible from the same module in which they are defined.
 
   Check `defmacro/2` for more information
   """
@@ -1424,7 +1424,80 @@ defmodule Kernel do
   defmacro defmacrop(name, args, guards, do: contents)
 
   @doc %B"""
-  Defines a record.
+  Exports a module with a record definition and runtime operations.
+
+  Please see the `Record` module's documentation for an introduction
+  to records in Elixir. The following sections are going into details
+  specific to `defrecord`.
+
+  ## Examples
+
+      defrecord User, name: nil, age: 0
+
+  The following line defines a module that exports information
+  about a record. The definition above provides a shortcut
+  syntax for creating and updating the record at compilation
+  time:
+
+      user = User[]
+      #=> User[name: nil, age: 0]
+
+      User[user, name: "José", age: 25]
+      #=> User[name: "José", age: 25]
+
+  And also a set of functions for working with the record
+  at runtime:
+
+      user = User.new(age: 25)
+      user.name          #=> Returns the value of name
+      user.name("José")  #=> Updates the value of name
+
+      # Update multiple attributes at once:
+      user.update(name: "Other", age: 25)
+
+      # Obtain the keywords representation of a record:
+      user.to_keywords #=> [name: "José", age: 25]
+
+  Since a record is simply a tuple where the first element is
+  the record name, we can get the raw record representation as
+  follows:
+
+      inspect User.new, raw: true
+      #=> { User, nil, 0 }
+
+  In addition to defining readers and writers for each attribute, Elixir also
+  defines an `update_#{attribute}` function to update the value. Such
+  functions expect a function as an argument that receives the current
+  value and must return the new one. For example, every time the file
+  is accessed, the accesses counter can be incremented with:
+
+      user.update_age(fn(old) -> old + 1 end)
+
+  ## Types
+
+  Every record defines a type named `t` that can be accessed in typespecs.
+  Those types can be specified when the record is defined:
+
+      defrecord User,
+        name: "" :: string,
+        age: 0 :: integer
+
+  All fields without a specified type are assumed to have type `term`.
+
+  Assuming the `User` record defined above, it could be used in typespecs
+  as follow:
+
+      @spec handle_user(User.t) :: boolean()
+
+  If the developer wants to define their own types to be used with the
+  record, Elixir allows a more lengthy definition with the help of the
+  `record_type` macro:
+
+      defrecord Config, counter: 0, failures: [] do
+        @type kind :: term
+        record_type counter: integer, failures: [kind]
+      end
+
 
   This macro defines a module that generates accessors to manipulate the record
   at both compilation and runtime.
@@ -1432,12 +1505,52 @@ defmodule Kernel do
   See the `Record` module's documentation for a detailed description of records
   in Elixir.
 
-  ## Examples
+  ## Runtime introspection
 
-      defrecord FileInfo, atime: nil, accesses: 0
+  At runtime, developers can use `__record__` to get information
+  about the given record:
+
+      User.__record__(:name)
+      #=> User
+
+      User.__record__(:fields)
+      #=> [name: nil, age: 0]
+
+  In order to quickly access the index of a field, one can use
+  the `__index__` function:
+
+      User.__index__(:age)
+      #=> 2
+
+      User.__index__(:unknown)
+      #=> nil
+
+  ## Compile-time introspection
+
+  At compile time, one can access the following information about the record
+  from within the record module:
+
+  * `@record_fields` — a keyword list of record fields with defaults
+  * `@record_types` — a keyword list of record fields with types
+
+  For example:
+
+      defrecord Foo, bar: nil do
+        record_type bar: nil | integer
+        IO.inspect @record_fields
+        IO.inspect @record_types
+      end
+
+  Prints out:
+
+       [bar: nil]
+       [bar: {:|,[line: ...],[nil,{:integer,[line: ...],nil}]}]
+
+  Where the last line is a quoted representation of
+
+       [bar: nil | integer]
 
   """
-
   defmacro defrecord(name, fields, do_block // [])
 
   defmacro defrecord(name, fields, do_block) do
@@ -1448,17 +1561,13 @@ defmodule Kernel do
   end
 
   @doc %B"""
-  Defines a record with a set of private macros to manipulate it.
+  Defines a set of private macros to manipulate a record definition.
 
   This macro defines a set of macros private to the current module to
   manipulate the record exclusively at compilation time.
 
-  `defrecordp` must be used instead of `defrecord` when there is no interest in
-  exposing the record outside of the module it's defined in. In many ways, it
-  is similar to an Erlang record, since it is only available at compilation time.
-
-  See the `Record` module's documentation for a detailed description of records
-  in Elixir.
+  Please see the `Record` module's documentation for an introduction
+  to records in Elixir.
 
   ## Examples
 
@@ -1489,6 +1598,22 @@ defmodule Kernel do
       user(name: name) = record
       name #=> "José"
 
+  It is important to understand that in the above example, the record
+  will assume the leading tuple element from the current module (in the
+  above case, `User`).
+
+  In some cases, however, this might be undesirable and one can explicitly
+  define what the first element of the record should be:
+
+      defmodule MyServer do
+        defrecordp :state, :my_state, data: nil
+      end
+
+  This way, the record created will have `:my_state` as first element,
+  not `MyServer`:
+
+      state() #=> { :my_state, nil }
+
   ## Types
 
   `defrecordp` allows a developer to generate a type
@@ -1501,11 +1626,15 @@ defmodule Kernel do
 
   Will generate the following type:
 
-      @typep user_t :: { :user, binary, integer }
+      @typep user_t :: { User, binary, integer }
 
   """
-  defmacro defrecordp(name, fields) when is_atom(name) do
-    Record.defrecordp(name, fields)
+  defmacro defrecordp(name, tag // nil, fields) when is_atom(name) do
+    tag = case Macro.expand(tag, __CALLER__) do
+      nil -> __CALLER__.module
+      other -> other
+    end
+    Record.defrecordp(name, tag, fields)
   end
 
   @doc """
@@ -2581,7 +2710,7 @@ defmodule Kernel do
 
   An else option can be given to specify the opposite:
 
-      if(foo, do: bar, else: bar)
+      if(foo, do: bar, else: baz)
 
   ## Blocks examples
 
@@ -3226,12 +3355,12 @@ defmodule Kernel do
       sample = [a: 1, b: 2, c: 3]
       sample[:b] #=> 2
 
-  ## Atoms
+  ## Aliases
 
-  Whenever invoked on an atom, the access protocol is expanded
-  at compilation time rather than on runtime. This feature is used
-  by records to allow a developer to match against an specific part
-  of a record:
+  Whenever invoked on an alias or an atom, the access protocol is
+  expanded at compilation time rather than on runtime. This feature
+  is used by records to allow a developer to match against an specific
+  part of a record:
 
       def increment(State[counter: counter, other: 13] = state) do
         state.counter(counter + 1)
@@ -3255,9 +3384,9 @@ defmodule Kernel do
         State[counter: counter]
       end
 
-  The example above is slightly faster than `State.new(counter: :counter)`
-  because the record is expanded at compilation time and not at runtime.
-  If a field is not specified on creation, it will have its default value.
+  The example above is faster than `State.new(counter: :counter)` because
+  the record is expanded at compilation time and not at runtime. If a field
+  is not specified on creation, it will have its default value.
 
   Finally, as in Erlang, Elixir also allows the following syntax:
 
@@ -3270,7 +3399,6 @@ defmodule Kernel do
       new_uri = State[_: IO.puts "Hello"]
 
   In this case, `"Hello"` will be printed twice (one per each field).
-
   """
   defmacro access(element, args) do
     caller = __CALLER__

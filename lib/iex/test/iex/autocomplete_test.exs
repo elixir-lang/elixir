@@ -53,6 +53,7 @@ defmodule IEx.AutocompleteTest do
 
   test :elixir_function_completion do
     assert expand('System.ve') == {:yes, 'rsion', []}
+    assert expand(':ets.fun2') == {:yes, 'ms', []}
   end
 
   test :elixir_function_completion_with_arity do

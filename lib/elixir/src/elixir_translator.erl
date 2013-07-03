@@ -375,6 +375,9 @@ translate_each({ Name, Meta, Kind }, S) when is_atom(Name), is_atom(Kind) ->
 
 %% Local calls
 
+translate_each({ '->', Meta, _Args }, S) ->
+  syntax_error(Meta, S#elixir_scope.file, "unhandled operator ->");
+
 translate_each({ Atom, Meta, Args } = Original, S) when is_atom(Atom) ->
   case elixir_partials:is_sequential(Args) andalso
        elixir_dispatch:import_function(Meta, Atom, length(Args), S) of

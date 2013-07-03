@@ -1,12 +1,12 @@
 defmodule GenEvent.Behaviour do
   @moduledoc """
-  This module is a convenience to define GenEvent callbacks in Elixir.
+  This module is a convenience for defining GenEvent callbacks in Elixir.
 
   GenEvent is an OTP behaviour that encapsulates event handling functionality.
 
   ## Example
 
-  Bellow follows an example of a GenEvent that stores notifications
+  Below is an example of a GenEvent that stores notifications
   until they are fetched:
 
       defmodule MyEventHandler do
@@ -29,11 +29,16 @@ defmodule GenEvent.Behaviour do
       end
 
       { :ok, pid } = :gen_event.start_link
+      #=> {:ok,#PID<0.42.0>}
 
       :gen_event.add_handler(pid, MyEventHandler, [])
+      #=> :ok
 
       :gen_event.notify(pid, {:notification, 1})
+      #=> :ok
+
       :gen_event.notify(pid, {:notification, 2})
+      #=> :ok
       
       :gen_event.call(pid, MyEventHandler, :notifications)
       #=> [1, 2]
@@ -44,12 +49,12 @@ defmodule GenEvent.Behaviour do
   Notice we never call the server callbacks directly, they are called
   by OTP whenever we interact with the server. 
 
-  Starting and sending messages to gen_event is done
+  Starting and sending messages to the GenEvent is done
   via Erlang's `:gen_event` module. For more information,
   please refer to the following:
 
-  http://www.erlang.org/doc/man/gen_event.html
-  http://learnyousomeerlang.com/event-handlers
+  * http://www.erlang.org/doc/man/gen_event.html
+  * http://learnyousomeerlang.com/event-handlers
   """
 
   @doc false

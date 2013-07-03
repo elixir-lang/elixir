@@ -18,7 +18,7 @@ defmodule String.Unicode do
 
   data_path = Path.join(__DIR__, "UnicodeData.txt")
 
-  { codes, whitespace } = Enum.reduce File.iterator!(data_path), { [], [] }, fn(line, { cacc, wacc }) ->
+  { codes, whitespace } = Enum.reduce File.stream!(data_path), { [], [] }, fn(line, { cacc, wacc }) ->
     [ codepoint, _name, _category,
       _class, bidi, _decomposition,
       _numeric_1, _numeric_2, _numeric_3,
@@ -39,7 +39,7 @@ defmodule String.Unicode do
 
   special_path = Path.join(__DIR__, "SpecialCasing.txt")
 
-  codes = Enum.reduce File.iterator!(special_path), codes, fn(line, acc) ->
+  codes = Enum.reduce File.stream!(special_path), codes, fn(line, acc) ->
     [ codepoint, lower, title, upper, _comment ] = :binary.split(line, "; ", [:global])
     key = to_binary.(codepoint)
     :lists.keystore(key, 1, acc, { key, to_binary.(upper), to_binary.(lower), to_binary.(title) })
@@ -47,7 +47,7 @@ defmodule String.Unicode do
 
   seqs_path = Path.join(__DIR__, "NamedSequences.txt")
 
-  seqs = Enum.map File.iterator!(seqs_path), fn(line) ->
+  seqs = Enum.map File.stream!(seqs_path), fn(line) ->
     [ _name, codepoints ] = :binary.split(line, ";", [:global])
     codepoints = :binary.split(codepoints, " ", [:global])
     codepoints = Enum.map codepoints, Regex.replace(%r/\s+/, &1, "")
