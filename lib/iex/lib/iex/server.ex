@@ -23,29 +23,52 @@ defmodule IEx.Server do
     end
 
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
-    do_loop(config)
+
+
+    old_flag = Process.flag(:trap_exit, true)
+    self_pid = self
+    pid = spawn_link(fn -> input_loop(self_pid) end)
+    try do
+      do_loop(config.input_pid(pid))
+    after
+      Process.exit(pid, :normal)
+      Process.flag(:trap_exit, old_flag)
+    end
   end
 
   defp do_loop(config) do
-    counter = config.counter
-    code    = config.cache
-    line    = io_get(config)
+    prefix = config.cache != []
+    config.input_pid <- { :do_input, prefix, config.counter }
+    wait_input(config)
+  end
 
-    unless line == :eof do
-      new_config =
-        try do
-          eval(code, line, counter, config)
-        rescue
-          exception ->
-            print_exception(exception, System.stacktrace)
-            config.cache('')
-        catch
-          kind, error ->
-            print_error(kind, error, System.stacktrace)
-            config.cache('')
+  defp wait_input(config) do
+    receive do
+      { :input, line } ->
+        unless line == :eof do
+          new_config =
+            try do
+              counter = config.counter
+              code    = config.cache
+              eval(code, line, counter, config)
+            rescue
+              exception ->
+                print_exception(exception, System.stacktrace)
+                config.cache('')
+            catch
+              kind, error ->
+                print_error(kind, error, System.stacktrace)
+                config.cache('')
+            end
+
+          do_loop(new_config)
         end
 
-      do_loop(new_config)
+      { :EXIT, _pid, :normal } ->
+        wait_input(config)
+      { :EXIT, pid, reason } ->
+        print_exit(pid, reason)
+        wait_input(config)
     end
   end
 
@@ -149,21 +172,27 @@ defmodule IEx.Server do
     IEx.History.append(config, config.counter)
   end
 
-  defp io_get(config) do
-    prefix = if config.cache != [], do: "..."
+  defp input_loop(iex_pid) do
+    receive do
+      { :do_input, prefix, counter } ->
+        prefix = if prefix, do: "..."
 
-    prompt =
-      if is_alive do
-        "#{prefix || remote_prefix}(#{node})#{config.counter}> "
-      else
-        "#{prefix || "iex"}(#{config.counter})> "
-      end
+        prompt =
+          if is_alive do
+            "#{prefix || remote_prefix}(#{node})#{counter}> "
+          else
+            "#{prefix || "iex"}(#{counter})> "
+          end
 
-    case IO.gets(:stdio, prompt) do
-      :eof -> :eof
-      { :error, _ } -> ''
-      data -> :unicode.characters_to_list(data)
+        input = case IO.gets(:stdio, prompt) do
+          :eof -> :eof
+          { :error, _ } -> ''
+          data -> :unicode.characters_to_list(data)
+        end
+
+        iex_pid <- { :input, input }
     end
+    input_loop(iex_pid)
   end
 
   defp io_put(result) do
@@ -188,6 +217,10 @@ defmodule IEx.Server do
     print_stacktrace stacktrace, fn ->
       "** (#{kind}) #{inspect(reason)}"
     end
+  end
+
+  defp print_exit(pid, reason) do
+    io_error "** (EXIT from #{inspect pid}) #{inspect(reason)}"
   end
 
   defp print_stacktrace(trace, callback) do
