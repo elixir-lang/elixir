@@ -47,7 +47,7 @@ set beforeExtra=
 
 rem Recursive loop called for each parameter that parses the cmd line parameters
 :startloop
-set par=%1
+set par="%1"
 shift
 if "%par%"=="" (
   rem if no parameters defined
