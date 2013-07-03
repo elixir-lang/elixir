@@ -228,7 +228,15 @@ defmodule Regex do
 
   @doc """
   Split the given target into the number of parts specified.
-  If no number of parts is given, it defaults to :infinity.
+  If no number of parts is given, it defaults to `:infinity`.
+
+  ## Examples
+      iex> Regex.split(%r/-/, "a-b-c")
+      ["a","b","c"]
+      iex> Regex.split(%r/-/, "a-b-c", [parts: 2])
+      ["a","b-c"]
+      iex> Regex.split(%r/-/, "abc")              
+      ["abc"]
   """
 
   def split(regex, string, options // [])
