@@ -2,6 +2,7 @@
 
 * enhancements
   * [ExUnit] Support `trace: true` option which gives detailed reporting on test runs
+  * [HashDict] Optimize `HashDict` to store pairs in a cons cell reducing storage per key by half
   * [Kernel] `defrecordp/3` has been added that enables specifying the first element of the tuple
   * [Kernel] Add the `Set` API and a hash based implementation via `HashSet`
   * [Kernel] Add `Stream` as composable, lazy-enumerables
