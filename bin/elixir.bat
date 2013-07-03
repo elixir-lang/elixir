@@ -40,14 +40,14 @@ rem Make sure we keep a copy of all parameters
 set allPars=%*
 
 rem Get the original path name from the batch file
-set originPath=%~dp0
+set originPath="%~dp0"
 
 rem Optional parameters before the "-extra" parameter
 set beforeExtra=
 
 rem Recursive loop called for each parameter that parses the cmd line parameters
 :startloop
-set par=%1
+set par="%1"
 shift
 if "%par%"=="" (
   rem if no parameters defined
