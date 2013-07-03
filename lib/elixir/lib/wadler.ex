@@ -20,30 +20,30 @@ defmodule Wadler do
   ## Examples
 
     iex> Wadler.text "foo"                      
-    Wadler.DocText[str: "foo"]
+    Wadler.doc_text(str: "foo")
     
     iex> doc = Wadler.group(Wadler.concat(Wadler.text("1"), Wadler.concat(Wadler.break, Wadler.text("2"))))
-    Wadler.DocGroup[
-      doc: Wadler.DocCons[
-        left: Wadler.DocText[str: "1"], 
-        right: Wadler.DocCons[
-          left: Wadler.DocBreak[str: " "], 
-          right: Wadler.DocText[str: "2"]
-        ]
-      ]
-    ]
+    Wadler.doc_group(
+      doc: Wadler.doc_cons(
+        left: Wadler.doc_text(str: "1"), 
+        right: Wadler.doc_cons(
+          left: Wadler.doc_break(str: " "), 
+          right: Wadler.doc_text(str: "2")
+        )
+      )
+    )
 
-    iex> sdoc = Wadler.format w, 0, [{0, Wadler.Flat, doc}]
+    iex> sdoc = Wadler.format w, 0, [{0, :flat, doc})
     Wadler.SText[
       str: "1", 
       sdoc: Wadler.SText[
         str: " ", 
         sdoc: Wadler.SText[
           str: "2",
-          sdoc: SNil
-        ]
-      ]
-    ]
+          sdoc: :s_nil
+        )
+      )
+    )
 
 
   """
@@ -57,26 +57,26 @@ defmodule Wadler do
   defp repeat(s, i), do: :lists.duplicate(i, s)
 
   # Records representing a __complex__ document
-  @type doc :: DocNil | DocCons.t | DocText.t | DocNest.t | DocBreak.t | DocGroup.t
-  defrecord DocCons, [left: DocNil, right: DocNil]
-  defrecord DocText, [str: ""]
-  defrecord DocNest, [indent: 1, doc: DocNil]
-  defrecord DocBreak, [str: " "]
-  defrecord DocGroup, [doc: DocNil]
+  @type doc :: :doc_nil | :doc_cons_t | :doc_text_t | :doc_nest_t | :doc_break_t | :doc_group_t
+  defrecordp :doc_cons, :doc_cons, [left: :doc_nil, right: :doc_nil]
+  defrecordp :doc_text, :doc_text, [str: ""]
+  defrecordp :doc_nest, :doc_nest, [indent: 1, doc: :doc_nil]
+  defrecordp :doc_break, :doc_break, [str: " "]
+  defrecordp :doc_group, :doc_group, [doc: :doc_nil]
 
   # Functional interface to `doc` records
   @doc """
-  Returns DocNil which is a document entity used to represent
+  Returns :doc_nil which is a document entity used to represent
   nothingness. Takes no arguments.
 
   ## Examples
 
     iex> Wadler.empty
-    DocNil
+    :doc_nil
 
   """
-  @spec empty() :: DocNil
-  def empty, do: DocNil
+  @spec empty() :: :doc_nil
+  def empty, do: :doc_nil
 
   @doc """
   Concatenates two document entities. Takes two arguments:
@@ -85,15 +85,15 @@ defmodule Wadler do
   ## Examples
     
     iex(1)> Wadler.concat Wadler.text("Tasteless"), Wadler.text("Artosis")
-    Wadler.DocCons[left: Wadler.DocText[str: "Tasteless"], right: Wadler.DocText[str: "Artosis"]]  
+    Wadler.doc_cons(left: Wadler.doc_text(str: "Tasteless"), right: Wadler.doc_text(str: "Artosis"))  
 
     iex(2)> IO.puts Wadler.pretty(80, v(1))
     TastelessArtosis
     :ok
 
   """
-  @spec concat(doc, doc) :: DocCons.t
-  def concat(x, y), do: DocCons[left: x, right: y]
+  @spec concat(doc, doc) :: :doc_cons_t
+  def concat(x, y), do: doc_cons(left: x, right: y)
   
 
   @doc """
@@ -103,7 +103,7 @@ defmodule Wadler do
   ## Examples
 
     iex(1)> Wadler.nest(5, Wadler.concat(Wadler.break, Wadler.text("6")))
-    Wadler.DocNest[indent: 5, doc: Wadler.DocCons[left: Wadler.DocBreak, right: Wadler.DocText[str: "6"]]]
+    Wadler.doc_nest(indent: 5, doc: Wadler.doc_cons(left: Wadler.doc_break(str: " "), right: Wadler.doc_text(str: "6")))
 
     iex(2)> IO.puts Wadler.pretty(80, v(1))
     
@@ -111,9 +111,9 @@ defmodule Wadler do
     :ok
 
   """
-  @spec nest(non_neg_integer, doc) :: DocNest.t
+  @spec nest(non_neg_integer, doc) :: :doc_nest_t
   def nest(0, x),                    do: x
-  def nest(i, x) when is_integer(i), do: DocNest[indent: i, doc: x]
+  def nest(i, x) when is_integer(i), do: doc_nest(indent: i, doc: x)
 
   @doc """
   Document entity representation of a text.
@@ -121,15 +121,15 @@ defmodule Wadler do
   ## Examples 
 
     iex(1)> Wadler.text "Hello, World!"
-    Wadler.DocText[str: "Hello, World!"]
+    Wadler.doc_text(str: "Hello, World!")
 
     iex(2)> IO.puts Wadler.pretty(80, v(9))
     Hello, World!
     :ok
 
   """
-  @spec text(binary) :: DocText.t
-  def text(s) when is_binary(s), do: DocText[str: s]
+  @spec text(binary) :: :doc_text_t
+  def text(s) when is_binary(s), do: doc_text(str: s)
 
   
   @doc """
@@ -140,39 +140,39 @@ defmodule Wadler do
   ## Examples
 
     iex(2)> Wadler.break "hello"
-    Wadler.DocBreak[str: "hello"]
+    Wadler.doc_break(str: "hello")
    
     iex(3)> Wadler.break        
-    Wadler.DocBreak[str: " "]
+    Wadler.doc_break(str: " ")
 
     iex(4)> Wadler.concat(
               Wadler.concat(
                 Wadler.text("a"), Wadler.break), Wadler.text("b"))
 
-    iex(5)> Wadler.render Wadler.format w, 0, [{0, Wadler.Flat, v(4)}]
+    iex(5)> Wadler.render Wadler.format w, 0, [{0, :flat, v(4)})
     "a b"
 
-    iex(6)> Wadler.render Wadler.format w, 0, [{0, Wadler.Break, v(4)}]
+    iex(6)> Wadler.render Wadler.format w, 0, [{0, :break, v(4)})
     "a\nb"
 
   """
-  @spec break(binary) :: DocBreak.t
-  def break(s) when is_binary(s), do: DocBreak[str: s]
+  @spec break(binary) :: :doc_break_t
+  def break(s) when is_binary(s), do: doc_break(str: s)
 
-  @spec break() :: DocBreak.t
-  def break(), do: DocBreak[str: " "]
+  @spec break() :: :doc_break_t
+  def break(), do: doc_break(str: " ")
 
   @doc"""
   Inserts a break between two docs.
   """
-  @spec glue(doc, doc) :: DocCons.t
+  @spec glue(doc, doc) :: :doc_cons_t
   def glue(x, y), do: concat(x, concat(break, y))
 
   @doc"""
   Inserts a break, passed as second argument, between two docs,
   the first and the third argument.
   """
-  @spec glue(doc, binary, doc) :: DocCons.t
+  @spec glue(doc, binary, doc) :: :doc_cons_t
   def glue(x, g, y) when is_binary(g), do: concat(x, concat(break(g), y))
 
   @doc """
@@ -195,23 +195,23 @@ defmodule Wadler do
     ...(1)>       Wadler.text("B")
     ...(1)>     )
     ...(1)> )) # Output is prettified for readability.
-    Wadler.DocGroup[
-      doc: Wadler.DocCons[
-        left:  Wadler.DocGroup[
-          doc: Wadler.DocCons[
-            left:  Wadler.DocText[str: "Hello,"], 
-            right: Wadler.DocCons[
-              left:  Wadler.DocBreak[str: " "], 
-              right: Wadler.DocText[str: "A"]
-            ]
-          ]
-        ], 
-        right: Wadler.DocCons[
-          left:  Wadler.DocBreak[str: " "], 
-          right: Wadler.DocText[str: "B"]
-        ]
-      ]
-    ]
+    Wadler.doc_group(
+      doc: Wadler.doc_cons(
+        left:  Wadler.doc_group(
+          doc: Wadler.doc_cons(
+            left:  Wadler.doc_text(str: "Hello,"), 
+            right: Wadler.doc_cons(
+              left:  Wadler.doc_break(str: " "), 
+              right: Wadler.doc_text(str: "A")
+            )
+          )
+        ), 
+        right: Wadler.doc_cons(
+          left:  Wadler.doc_break(str: " "), 
+          right: Wadler.doc_text(str: "B")
+        )
+      )
+    )
 
     iex(2)> IO.puts Wadler.pretty(80, v(1))
     Hello, A B
@@ -223,8 +223,8 @@ defmodule Wadler do
     B
     :ok
   """
-  @spec group(doc) :: DocGroup.t
-  def group(d), do: DocGroup[doc: d]
+  @spec group(doc) :: :doc_group_t
+  def group(d), do: doc_group(doc: d)
 
   # Helpers
   @doc """
@@ -233,16 +233,16 @@ defmodule Wadler do
   ## Examples
   
     iex(1)> Wadler.space Wadler.text("Hughes"), Wadler.text("Wadler")
-    Wadler.DocCons[
-      left:  Wadler.DocText[str: "Hughes"], 
-      right: Wadler.DocCons[
-        left:  Wadler.DocText[str: " "],
-        right: Wadler.DocText[str: "Wadler"]
-      ]
-    ] 
+    Wadler.doc_cons(
+      left:  Wadler.doc_text(str: "Hughes"), 
+      right: Wadler.doc_cons(
+        left:  Wadler.doc_text(str: " "),
+        right: Wadler.doc_text(str: "Wadler")
+      )
+    ) 
 
   """
-  @spec space(doc, doc) :: DocCons.t
+  @spec space(doc, doc) :: :doc_cons_t
   def space(x, y), do: concat(x, concat(text(" "), y))
   
   @doc """
@@ -251,15 +251,15 @@ defmodule Wadler do
   ## Examples
 
     iex(1)> Wadler.line Wadler.text("Hughes"), Wadler.text("Wadler")
-    Wadler.DocCons[
-      left:  Wadler.DocText[str: "Hughes"], 
-      right: Wadler.DocCons[
-        left:  Wadler.DocText[str: "\n"],
-        right: Wadler.DocText[str: "Wadler"]
-      ]
-    ]
+    Wadler.doc_cons(
+      left:  Wadler.doc_text(str: "Hughes"), 
+      right: Wadler.doc_cons(
+        left:  Wadler.doc_text(str: "\n"),
+        right: Wadler.doc_text(str: "Wadler")
+      )
+    )
   """
-  @spec line(doc, doc) :: DocCons.t
+  @spec line(doc, doc) :: :doc_cons_t
   def line(x, y), do: glue(x, newline, y)
 
   @doc """
@@ -268,17 +268,17 @@ defmodule Wadler do
 
   ## Example
 
-    iex(1)> [Wadler.text("A"), Wadler.text("B")] 
-    [Wadler.DocText[string: "A"], Wadler.DocText[string: "B"]]
+    iex(1)> [Wadler.text("A"), Wadler.text("B")) 
+    [Wadler.doc_text(string: "A"), Wadler.doc_text(string: "B"))
     
     iex(2)> Wadler.folddoc(fn(x,y) -> Wadler.concat(x, Wadler.concat(Wadler.text("!"), y)) end, v(1))
     Wadler.CONCAT[
-      left: Wadler.DocText[str: "A"], 
-      right: Wadler.DocCons[
-        left: Wadler.DocText[string: "!"], 
-        right: Wadler.DocText[string: "B"]
-      ]
-    ]
+      left: Wadler.doc_text(str: "A"), 
+      right: Wadler.doc_cons(
+        left: Wadler.doc_text(string: "!"), 
+        right: Wadler.doc_text(string: "B")
+      )
+    )
     
   """
   @spec folddoc( ((doc, [doc]) -> doc), [doc]) :: doc 
@@ -315,9 +315,9 @@ defmodule Wadler do
 
   # Records representing __simple__ documents, already on a fixed layout
   # Those are generalized by `sdoc` type.
-  @type sdoc :: SNil | SText.t | SLine.t
-  defrecord SText, [str: "", sdoc: SNil]
-  defrecord SLine, [indent: 1, sdoc: SNil] # newline + spaces
+  @type sdoc :: :s_nil | :s_text_t | :s_line_t
+  defrecordp :s_text, :s_text, [str: "", sdoc: :s_nil]
+  defrecordp :s_line, :s_line, [indent: 1, sdoc: :s_nil] # newline + spaces
 
   @doc """
   Renders a simple document into a binary
@@ -328,9 +328,9 @@ defmodule Wadler do
   end
   
   @spec do_render(sdoc) :: [binary]
-  defp do_render(SNil), do: [""]
-  defp do_render(SText[str: s, sdoc: d]), do: [s | do_render(d)]
-  defp do_render(SLine[indent: i, sdoc: d]) do
+  defp do_render(:s_nil), do: [""]
+  defp do_render(s_text(str: s, sdoc: d)), do: [s | do_render(d)]
+  defp do_render(s_line(indent: i, sdoc: d)) do
     prefix = repeat " ", i
     [newline | [prefix | do_render d]]
   end
@@ -342,40 +342,40 @@ defmodule Wadler do
   """
   @spec pretty(non_neg_integer, doc) :: binary
   def pretty(w, d) do
-    sdoc = format w, 0, [{0, Flat, DocGroup[doc: d]}]
+    sdoc = format w, 0, [{0, :flat, doc_group(doc: d)}]
     render(sdoc)
   end
 
   # Record representing the document mode to be rendered: __flat__ or __broken__
-  @type mode :: Flat | Break
+  @type mode :: :flat | :break
 
   # the fits? and format methods have to deal explicitly with the document modes
   @spec fits?(integer, [{ integer, mode, doc }]) :: boolean
-  defp fits?(:infinity, _),                                 do: true # no pretty printing
-  defp fits?(w, _) when w < 0,                              do: false
-  defp fits?(_, []),                                        do: true
-  defp fits?(w, [{_, _, DocNil} | t]),                      do: fits? w, t
-  defp fits?(w, [{i, m, DocCons[left: x, right: y]} | t]),  do: fits? w, [{i, m, x} | [{i, m, y} | t]]
-  defp fits?(w, [{i, m, DocNest[indent: j, doc: x]} | t]),  do: fits? w, [{i + j, m, x} | t]
-  defp fits?(w, [{_, _, DocText[str: s]} | t]),             do: fits? (w - strlen s), t
-  defp fits?(w, [{_, Flat, DocBreak[str: s]} | t]),         do: fits? (w - strlen s), t
-  defp fits?(_, [{_, Break, DocBreak[str: _]} | _]),        do: true # impossible (but why?)
-  defp fits?(w, [{i, _, DocGroup[doc: x]} | t]),            do: fits? w, [{i, Flat, x} | t]
+  defp fits?(:infinity, _),                                  do: true # no pretty printing
+  defp fits?(w, _) when w < 0,                               do: false
+  defp fits?(_, []),                                         do: true
+  defp fits?(w, [{_, _, :doc_nil} | t]),                     do: fits? w, t
+  defp fits?(w, [{i, m, doc_cons(left: x, right: y)} | t]),  do: fits? w, [{i, m, x} | [{i, m, y} | t]]
+  defp fits?(w, [{i, m, doc_nest(indent: j, doc: x)} | t]),  do: fits? w, [{i + j, m, x} | t]
+  defp fits?(w, [{_, _, doc_text(str: s)} | t]),             do: fits? (w - strlen s), t
+  defp fits?(w, [{_, :flat, doc_break(str: s)} | t]),        do: fits? (w - strlen s), t
+  defp fits?(_, [{_, :break, doc_break(str: _)} | _]),       do: true # impossible (but why?)
+  defp fits?(w, [{i, _, doc_group(doc: x)} | t]),            do: fits? w, [{i, :flat, x} | t]
 
   @spec format(integer, integer, [{ integer, mode, doc }]) :: boolean
-  def format(:infinity, k, [{i, _, DocGroup[doc: x]} | t]),   do: format :infinity, k, [{i, Flat, x} | t] # no pretty printing
-  def format(_, _, []),                                       do: SNil
-  def format(w, k, [{_, _, DocNil} | t]),                     do: format w, k, t
-  def format(w, k, [{i, m, DocCons[left: x, right: y]} | t]), do: format w, k, [{i, m, x} | [{i, m, y} | t]]
-  def format(w, k, [{i, m, DocNest[indent: j, doc: x]} | t]), do: format w, k, [{i + j, m, x} | t]
-  def format(w, k, [{_, _, DocText[str: s]} | t]),            do: SText[str: s, sdoc: format w, (k + strlen s), t]
-  def format(w, k, [{_, Flat, DocBreak[str: s]} | t]),        do: SText[str: s, sdoc: format w, (k + strlen s), t]
-  def format(w, _, [{i, Break, DocBreak[str: _]} | t]),       do: SLine[indent: i, sdoc: format w, i, t]
-  def format(w, k, [{i, _, DocGroup[doc: x]} | t]) do
-    if fits? (w - k), [{i, Flat, x} | t] do
-      format w, k, [{i, Flat, x} | t]
+  def format(:infinity, k, [{i, _, doc_group(doc: x)} | t]),   do: format :infinity, k, [{i, :flat, x} | t] # no pretty printing
+  def format(_, _, []),                                        do: :s_nil
+  def format(w, k, [{_, _, :doc_nil} | t]),                    do: format w, k, t
+  def format(w, k, [{i, m, doc_cons(left: x, right: y)} | t]), do: format w, k, [{i, m, x} | [{i, m, y} | t]]
+  def format(w, k, [{i, m, doc_nest(indent: j, doc: x)} | t]), do: format w, k, [{i + j, m, x} | t]
+  def format(w, k, [{_, _, doc_text(str: s)} | t]),            do: s_text(str: s, sdoc: format w, (k + strlen s), t)
+  def format(w, k, [{_, :flat, doc_break(str: s)} | t]),       do: s_text(str: s, sdoc: format w, (k + strlen s), t)
+  def format(w, _, [{i, :break, doc_break(str: _)} | t]),      do: s_line(indent: i, sdoc: format w, i, t)
+  def format(w, k, [{i, _, doc_group(doc: x)} | t]) do
+    if fits? (w - k), [{i, :flat, x} | t] do
+      format w, k, [{i, :flat, x} | t]
     else
-      format w, k, [{i, Break, x} | t]
+      format w, k, [{i, :break, x} | t]
     end
   end
 end

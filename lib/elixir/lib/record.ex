@@ -271,7 +271,7 @@ defmodule Record do
   @doc false
   def defrecordp(name, tag, fields) when is_atom(name) and is_atom(tag) and is_list(fields) do
     { fields, types, def_type } = recordp_split(fields, [], [], false)
-    type = :"#{name}_t"
+    type = binary_to_atom(atom_to_binary(name) <> "_t")
 
     quote do
       Record.defmacros(unquote(name), unquote(fields), __ENV__, unquote(tag))
