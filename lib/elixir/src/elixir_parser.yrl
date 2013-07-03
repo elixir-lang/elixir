@@ -1,7 +1,7 @@
 Nonterminals
   grammar expr_list
-  expr paren_expr block_expr fn_expr bracket_expr call_expr bracket_at_expr max_expr
-  base_expr matched_expr matched_op_expr unmatched_expr op_expr
+  expr paren_expr block_expr no_parens_expr identifier_expr max_expr bracket_expr
+  bracket_at_expr base_expr matched_expr matched_op_expr unmatched_expr op_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol tail_op_eol
   add_op_eol mult_op_eol exp_op_eol two_op_eol type_op_eol stab_op_eol
   arrow_op_eol range_op_eol than_op_eol default_op_eol match_op_eol
@@ -16,7 +16,7 @@ Nonterminals
   stab stab_eol stab_expr stab_maybe_expr
   kw_eol kw_expr kw_comma kw_base
   matched_kw_expr matched_kw_comma matched_kw_base
-  dot_op dot_ref dot_identifier dot_op_identifier dot_do_identifier
+  dot_op dot_alias dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_punctuated_identifier dot_bracket_identifier
   var list bracket_access bit_string tuple
   do_block fn_eol do_eol end_eol block_eol block_item block_list
@@ -31,7 +31,7 @@ Terminals
   comp_op at_op unary_op and_op or_op arrow_op match_op
   range_op in_op inc_op when_op than_op default_op tail_op
   dual_op add_op mult_op exp_op two_op type_op stab_op
-  'true' 'false' 'nil' 'do' eol ',' '.' '&' '...'
+  'true' 'false' 'nil' 'do' eol ',' '.' '&'
   '(' ')' '[' ']' '{' '}' '<<' '>>'
   .
 
@@ -87,7 +87,7 @@ matched_expr -> matched_expr matched_op_expr : build_op(element(1, '$2'), '$1', 
 matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> bracket_at_expr : '$1'.
-matched_expr -> fn_expr : '$1'.
+matched_expr -> no_parens_expr : '$1'.
 
 unmatched_expr -> matched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unmatched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
@@ -137,23 +137,23 @@ block_expr -> dot_punctuated_identifier call_args_no_parens_strict do_block : bu
 block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
 block_expr -> dot_identifier call_args_no_parens_strict do_block : build_identifier('$1', '$2' ++ '$3').
 
-fn_expr -> fn_eol stab end_eol : build_fn('$1', build_stab(lists:reverse('$2'))).
-fn_expr -> call_expr : '$1'.
+no_parens_expr -> dot_punctuated_identifier call_args_no_parens_strict : build_identifier('$1', '$2').
+no_parens_expr -> dot_op_identifier call_args_no_parens_strict : build_identifier('$1', '$2').
+no_parens_expr -> dot_identifier call_args_no_parens_strict : build_identifier('$1', '$2').
+no_parens_expr -> identifier_expr : '$1'.
 
-call_expr -> dot_punctuated_identifier call_args_no_parens_strict : build_identifier('$1', '$2').
-call_expr -> dot_op_identifier call_args_no_parens_strict : build_identifier('$1', '$2').
-call_expr -> dot_identifier call_args_no_parens_strict : build_identifier('$1', '$2').
-call_expr -> dot_punctuated_identifier : build_identifier('$1', []).
-call_expr -> dot_do_identifier : build_identifier('$1', nil).
-call_expr -> var : build_identifier('$1', nil).
-call_expr -> max_expr : '$1'.
+identifier_expr -> dot_punctuated_identifier : build_identifier('$1', []).
+identifier_expr -> dot_do_identifier : build_identifier('$1', nil).
+identifier_expr -> var : build_identifier('$1', nil).
+identifier_expr -> max_expr : '$1'.
 
+max_expr -> fn_eol stab end_eol : build_fn('$1', build_stab(lists:reverse('$2'))).
+max_expr -> open_paren stab close_paren : build_stab(lists:reverse('$2')).
 max_expr -> bracket_expr : '$1'.
 max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 max_expr -> parens_call call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3').
-max_expr -> dot_ref : '$1'.
+max_expr -> dot_alias : '$1'.
 max_expr -> base_expr : '$1'.
-max_expr -> open_paren stab close_paren : build_stab(lists:reverse('$2')).
 
 bracket_expr -> dot_bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
 bracket_expr -> max_expr bracket_access : build_access('$1', '$2').
@@ -178,7 +178,6 @@ base_expr -> bin_string  : build_bin_string('$1').
 base_expr -> list_string : build_list_string('$1').
 base_expr -> bit_string : '$1'.
 base_expr -> '&' : { '&', [{line,?line('$1')}], ?exprs('$1') }.
-base_expr -> '...' : { ?id('$1'), [{line,?line('$1')}], [] }.
 base_expr -> sigil : build_sigil('$1').
 
 %% Blocks
@@ -324,7 +323,7 @@ dot_op -> '.' eol : '$1'.
 dot_identifier -> identifier : '$1'.
 dot_identifier -> matched_expr dot_op identifier : build_dot('$2', '$1', '$3').
 
-dot_ref -> matched_expr dot_op aliases : build_dot_ref('$2', '$1', '$3').
+dot_alias -> matched_expr dot_op aliases : build_dot_alias('$2', '$1', '$3').
 
 dot_op_identifier -> op_identifier : '$1'.
 dot_op_identifier -> matched_expr dot_op op_identifier : build_dot('$2', '$1', '$3').
@@ -461,10 +460,10 @@ build_block(Exprs)                                      -> { '__block__', [], Ex
 
 %% Dots
 
-build_dot_ref(Dot, { '__aliases__', _, Left }, { 'aliases', _, Right }) ->
+build_dot_alias(Dot, { '__aliases__', _, Left }, { 'aliases', _, Right }) ->
   { '__aliases__', [{line,?line(Dot)}], Left ++ Right };
 
-build_dot_ref(Dot, Other, { 'aliases', _, Right }) ->
+build_dot_alias(Dot, Other, { 'aliases', _, Right }) ->
   { '__aliases__', [{line,?line(Dot)}], [Other|Right] }.
 
 build_dot(Dot, Left, Right) ->
