@@ -73,18 +73,18 @@ defmodule ExUnit.Runner do
   defp spawn_case(config, test_case) do
     pid = self()
     spawn_link fn ->
-      run_tests(config, pid, test_case)
+      run_test_case(config, pid, test_case)
     end
   end
 
-  defp run_tests(config, pid, case_name) do
+  defp run_test_case(config, pid, case_name) do
     test_case = ExUnit.TestCase[name: case_name]
     config.formatter.case_started(config.formatter_id, test_case)
 
     self_pid = self
     { case_pid, case_ref } = Process.spawn_monitor fn ->
       { test_case, context } = try do
-        context = case_name.__exunit__(:setup_all, [case: test_case])
+        { :ok, context } = case_name.__ex_unit__(:setup_all, [case: test_case])
         { test_case, context }
       rescue
         error ->
@@ -97,17 +97,13 @@ defmodule ExUnit.Runner do
       tests = tests_for(case_name)
 
       if test_case.failure do
-        Enum.each tests, fn test_name ->
-          test = ExUnit.Test[name: test_name, case: case_name, failure: { :invalid, test_case }]
-          pid <- { self, :test_finished, test }
-        end
-
-        self_pid <- { self, :case_finished, test_case }
+        tests = Enum.map tests, fn test -> test.failure({ :invalid, test_case }) end
+        self_pid <- { self, :case_finished, test_case, tests }
       else
-        Enum.each tests, run_test(config, test_case, &1, context)
+        Enum.each tests, run_test(config, &1, context)
 
         test_case = try do
-          case_name.__exunit__(:teardown_all, context)
+          case_name.__ex_unit__(:teardown_all, context)
           test_case
         rescue
           error ->
@@ -117,12 +113,13 @@ defmodule ExUnit.Runner do
             test_case.failure { kind, error, filtered_stacktrace }
         end
 
-        self_pid <- { self, :case_finished, test_case }
+        self_pid <- { self, :case_finished, test_case, [] }
       end
     end
 
     receive do
-      { ^case_pid, :case_finished, test_case } ->
+      { ^case_pid, :case_finished, test_case, tests } ->
+        Enum.map tests, config.formatter.test_finished(config.formatter_id, &1)
         config.formatter.case_finished(config.formatter_id, test_case)
         pid <- { case_pid, :case_finished, test_case }
       { :DOWN, ^case_ref, :process, ^case_pid, { error, stacktrace } } ->
@@ -132,20 +129,18 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp run_test(config, test_case, test_name, context) do
-    ExUnit.TestCase[name: case_name] = test_case
-
-    test = ExUnit.Test[name: test_name, case: case_name]
+  defp run_test(config, test, context) do
+    case_name = test.case
     config.formatter.test_started(config.formatter_id, test)
 
     # Run test in a new process so that we can trap exits for a single test
     self_pid = self
     { test_pid, test_ref } = Process.spawn_monitor fn ->
       test = try do
-        context = case_name.__exunit__(:setup, Keyword.put(context, :test, test))
+        { :ok, context } = case_name.__ex_unit__(:setup, Keyword.put(context, :test, test))
 
         test = try do
-          apply case_name, test_name, [context]
+          apply case_name, test.name, [context]
           test
         rescue
           error1 ->
@@ -155,7 +150,7 @@ defmodule ExUnit.Runner do
             test.failure { kind1, error1, filtered_stacktrace }
         end
 
-        case_name.__exunit__(:teardown, Keyword.put(context, :test, test))
+        case_name.__ex_unit__(:teardown, Keyword.put(context, :test, test))
         test
       rescue
         error2 ->
@@ -195,15 +190,11 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp tests_for(mod) do
-    exports = mod.__info__(:functions)
-
-    lc { function, 0 } inlist exports, is_test?(atom_to_list(function)) do
-      IO.puts "Test function #{inspect mod}.#{function} with arity 0 is no longer supported. Use the test macro instead."
-    end
+  defp tests_for(case_name) do
+    exports = case_name.__info__(:functions)
 
     lc { function, 1 } inlist exports, is_test?(atom_to_list(function)) do
-      function
+      ExUnit.Test[name: function, case: case_name]
     end
   end
 

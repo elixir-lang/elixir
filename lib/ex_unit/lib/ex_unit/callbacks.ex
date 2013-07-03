@@ -83,46 +83,24 @@ defmodule ExUnit.Callbacks do
   """
 
   @doc false
-  defmacro __using__(opts) do
-    parent = opts[:parent]
-
+  defmacro __using__(_) do
     quote do
-      @exunit_setup []
-      @exunit_teardown []
-      @exunit_setup_all []
-      @exunit_teardown_all []
+      @ex_unit_setup []
+      @ex_unit_teardown []
+      @ex_unit_setup_all []
+      @ex_unit_teardown_all []
 
       @before_compile unquote(__MODULE__)
       import unquote(__MODULE__)
-
-      def __exunit__(:parent) do
-        unquote(parent)
-      end
-
-      def __exunit__(:setup, context) do
-        __exunit_setup__ unquote(parent).__exunit__(:setup, context)
-      end
-
-      def __exunit__(:teardown, context) do
-        unquote(parent).__exunit__(:teardown, __exunit_teardown__ context)
-      end
-
-      def __exunit__(:setup_all, context) do
-        __exunit_setup_all__ unquote(parent).__exunit__(:setup_all, context)
-      end
-
-      def __exunit__(:teardown_all, context) do
-        unquote(parent).__exunit__(:teardown_all, __exunit_teardown_all__ context)
-      end
     end
   end
 
   @doc false
   defmacro __before_compile__(env) do
-    [ compile_callbacks(env, :exunit_setup),
-      compile_callbacks(env, :exunit_teardown),
-      compile_callbacks(env, :exunit_setup_all),
-      compile_callbacks(env, :exunit_teardown_all) ]
+    [ compile_callbacks(env, :setup),
+      compile_callbacks(env, :teardown),
+      compile_callbacks(env, :setup_all),
+      compile_callbacks(env, :teardown_all) ]
   end
 
   @doc """
@@ -130,9 +108,9 @@ defmodule ExUnit.Callbacks do
   """
   defmacro setup(var // quote(do: _), block) do
     quote do
-      name = :"__exunit_setup_#{length(@exunit_setup)}"
+      name = :"__ex_unit_setup_#{length(@ex_unit_setup)}"
       defp name, [unquote(escape var)], [], unquote(escape block)
-      @exunit_setup [name|@exunit_setup]
+      @ex_unit_setup [name|@ex_unit_setup]
     end
   end
 
@@ -142,9 +120,9 @@ defmodule ExUnit.Callbacks do
   """
   defmacro teardown(var // quote(do: _), block) do
     quote do
-      name = :"__exunit_teardown_#{length(@exunit_teardown)}"
+      name = :"__ex_unit_teardown_#{length(@ex_unit_teardown)}"
       defp name, [unquote(escape var)], [], unquote(escape block)
-      @exunit_teardown [name|@exunit_teardown]
+      @ex_unit_teardown [name|@ex_unit_teardown]
     end
   end
 
@@ -154,9 +132,9 @@ defmodule ExUnit.Callbacks do
   """
   defmacro setup_all(var // quote(do: _), block) do
     quote do
-      name = :"__exunit_setup_all_#{length(@exunit_setup_all)}"
+      name = :"__ex_unit_setup_all_#{length(@ex_unit_setup_all)}"
       defp name, [unquote(escape var)], [], unquote(escape block)
-      @exunit_setup_all [name|@exunit_setup_all]
+      @ex_unit_setup_all [name|@ex_unit_setup_all]
     end
   end
 
@@ -165,17 +143,23 @@ defmodule ExUnit.Callbacks do
   """
   defmacro teardown_all(var // quote(do: _), block) do
     quote do
-      name = :"__exunit_teardown_all_#{length(@exunit_teardown_all)}"
+      name = :"__ex_unit_teardown_all_#{length(@ex_unit_teardown_all)}"
       defp name, [unquote(escape var)], [], unquote(escape block)
-      @exunit_teardown_all [name|@exunit_teardown_all]
+      @ex_unit_teardown_all [name|@ex_unit_teardown_all]
     end
   end
 
   ## Helpers
 
   @doc false
-  def __merge__(_mod, other, :ok), do: other
-  def __merge__(_mod, other, { :ok, data }) when is_list(data), do: Keyword.merge(other, data)
+  def __merge__(_mod, other, :ok) do
+    { :ok, other }
+  end
+
+  def __merge__(_mod, other, { :ok, data }) when is_list(data) do
+    { :ok, Keyword.merge(other, data) }
+  end
+
   def __merge__(mod, _, failure) do
     raise "expected ExUnit callback in #{inspect mod} to return :ok " <>
           " or { :ok, keywords }, got #{inspect failure} instead"
@@ -186,18 +170,33 @@ defmodule ExUnit.Callbacks do
   end
 
   defp compile_callbacks(env, kind) do
-    callbacks = Module.get_attribute(env.module, kind) |> Enum.reverse
+    callbacks = Module.get_attribute(env.module, :"ex_unit_#{kind}") |> Enum.reverse
 
     acc =
-      Enum.reduce callbacks, quote(do: context), fn(callback, acc) ->
-        quote do
-          context = unquote(acc)
-          unquote(__MODULE__).__merge__(__MODULE__, context, unquote(callback)(context))
-        end
+      case callbacks do
+        [] ->
+          quote do: { :ok, context }
+        [h|t] ->
+          Enum.reduce t, compile_merge(h), fn(callback, acc) ->
+            quote do
+              case unquote(acc) do
+                { :ok, context } ->
+                  unquote(compile_merge(callback))
+                other ->
+                  other
+              end
+            end
+          end
       end
 
     quote do
-      defp unquote(:"__#{kind}__")(context), do: unquote(acc)
+      def __ex_unit__(unquote(kind), context), do: unquote(acc)
+    end
+  end
+
+  defp compile_merge(callback) do
+    quote do
+      unquote(__MODULE__).__merge__(__MODULE__, context, unquote(callback)(context))
     end
   end
 end

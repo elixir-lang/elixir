@@ -14,12 +14,12 @@ defmodule ExUnit.SampleCase do
   end
 
   setup_all do
-    { :ok, [context: :setup_all] }
+    { :ok, [context: :setup_all, setup_all: 1] }
   end
 
   setup context do
     assert context[:context] == :setup_all
-    { :ok, [context: :setup] }
+    { :ok, [context: :setup, setup: 1] }
   end
 
   teardown context do
@@ -33,8 +33,21 @@ defmodule ExUnit.SampleCase do
   end
 end
 
+defmodule ExUnit.NestedCase do
+  use ExUnit.CaseTemplate
+
+  setup_all context do
+    { :ok, [setup_all: context[:setup_all] + 1] }
+  end
+
+  setup context do
+    { :ok, [setup: context[:setup] + 1] }
+  end
+end
+
 defmodule ExUnit.CaseTemplateTest do
   use ExUnit.SampleCase, async: true
+  use ExUnit.NestedCase
 
   two = 2
 
@@ -46,7 +59,15 @@ defmodule ExUnit.CaseTemplateTest do
     assert context[:context] == :setup
   end
 
+  test "runs both templates setup", context do
+    assert context[:setup] == 2
+  end
+
+  test "runs both templates setup all", context do
+    assert context[:setup_all] == 2
+  end
+
   test "using code is executed" do
-    assert hello == "world"
+    assert hello() == "world"
   end
 end

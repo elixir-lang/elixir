@@ -30,26 +30,25 @@ defmodule ExUnit.Case do
   @doc false
   defmacro __using__(opts // []) do
     async  = Keyword.get(opts, :async, false)
-    parent = Keyword.get(opts, :parent, __MODULE__)
 
     quote do
-      if unquote(async) do
-        ExUnit.Server.add_async_case(__MODULE__)
-      else
-        ExUnit.Server.add_sync_case(__MODULE__)
+      unless Module.get_attribute(__MODULE__, :ex_unit_case) do
+        if unquote(async) do
+          ExUnit.Server.add_async_case(__MODULE__)
+        else
+          ExUnit.Server.add_sync_case(__MODULE__)
+        end
+
+        use ExUnit.Callbacks
       end
 
-      use ExUnit.Callbacks, parent: unquote(parent)
+      @ex_unit_case true
 
+      import ExUnit.Callbacks
       import ExUnit.Assertions
       import ExUnit.Case
       import ExUnit.DocTest, only: [doctest: 1, doctest: 2]
     end
-  end
-
-  @doc false
-  def __exunit__(kind, context) when kind in [:setup, :teardown, :setup_all, :teardown_all] do
-    context
   end
 
   @doc """
