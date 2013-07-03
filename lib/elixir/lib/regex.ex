@@ -128,7 +128,7 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the given captures as a list of tuples.
+  Returns the given captures as a keyword list or `nil` if no captures are found.
   Requires the regex to be compiled with the groups option.
 
   ## Examples
@@ -136,6 +136,11 @@ defmodule Regex do
       iex> Regex.captures(%r/c(?<foo>d)/g, "abcd")
       [foo: "d"]
 
+      iex> Regex.captures(%r/a(?<foo>b)c(?<bar>d)/g, "abcd")
+      [bar: "d", foo: "b"]
+
+      iex> Regex.captures(%r/a(?<foo>b)c(?<bar>d)/g, "efgh") 
+      nil
   """
   def captures(regex(groups: groups) = regex, string, options // []) do
     unless captures = Keyword.get(options, :capture) do
