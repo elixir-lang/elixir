@@ -29,13 +29,13 @@ defmodule WadlerTest do
   test :break do
     # Consistence with definitions
     ## Normal case
-    assert break("break") == W.doc_break(str: "break")
+    assert break("break") == { :doc_break, "break" }
     ## Degeneracy
-    assert break("") == W.doc_break(str: "")
+    assert break("") == { :doc_break, "" }
     ## ong argument type
     assert_raise FunctionClauseError, fn -> break(42) end
     # Consistence of corresponding sdoc
-    assert factor(80, break("_")) == W.s_text(str: "_", sdoc: :s_nil)
+    assert factor(80, break("_")) == { :s_text, "_", :s_nil }
     # Consistent formatting
     assert pretty(80, break("_")) == "_"
   end
@@ -43,13 +43,10 @@ defmodule WadlerTest do
   test :glue do
     # Consistence with definitions
     ## Normal case
-    assert glue(text("a"), "->", text("b")) == W.doc_cons(
-      left:  W.doc_break(str: "a"),
-      right: W.doc_cons(
-        left: break(str: "->"), 
-        right: W.doc_text(str: "b")
-      )
-    )
+    assert glue(text("a"), "->", text("b")) == { :doc_cons, 
+      { :doc_text, "a" },
+      { :doc_cons, { :doc_break, "->" }, { :doc_text, "b" }}
+    }
     assert glue(text("a"), text("b")) == glue(text("a"), " ", text("b"))
 
     ## ong argument type
@@ -59,29 +56,28 @@ defmodule WadlerTest do
   test :text do
     # Consistence with definitions
     ## Normal case
-    assert text("text") == W.doc_text(str: "text")
+    assert text("text") == { :doc_text, "text" }
     ## Degeneracy
-    assert text("") == W.doc_text(str: "")
+    assert text("") == { :doc_text, "" }
     ## ong argument type
     assert_raise FunctionClauseError, fn -> text(42) end
     # Consistence of corresponding docfactor
-    assert factor(80, text("_")) == W.s_text(str: "_", sdoc: :s_nil)
+    assert factor(80, text("_")) == { :s_text, "_", :s_nil }
     # Consistent formatting
     assert pretty(80, text("_")) == "_"
   end
 
   test :space do
     # Consistency with definitions
-    assert space(text("a"), text("b")) == W.doc_cons(
-      left:  text("a"), 
-      right: W.doc_cons(left: text(" "), right: text("b"))
-    )
+    assert space(text("a"), text("b")) == { :doc_cons, 
+      text("a"), { :doc_cons, text(" "), text("b") }
+    }
   end
 
   test :nest do
     # Consistence with definitions
     ## Normal case
-    assert nest(1, empty) == W.doc_nest(indent: 1, doc: empty)
+    assert nest(1, empty) == { :doc_nest, 1, empty }
     ## Degeneracy
     assert nest(0, empty) == :doc_nil
     ## ong argument type
@@ -91,15 +87,10 @@ defmodule WadlerTest do
     alb1 = fn -> nest(1, glue(text("a"), text("b"))) end
     # Consistence of corresponding sdoc
     ## Trivial case
-    assert factor(80, a1.())  == W.s_text(str: "a", sdoc: :s_nil)
+    assert factor(80, a1.())  == { :s_text, "a", :s_nil }
     ## Correctly indenting line forcing linebreak
-    assert format(2, 0, [{0, :break, alb1.()}]) == W.s_text(
-      str: "a", 
-      sdoc: W.s_line(
-        indent: 1,
-        sdoc: W.s_text(str: "b", sdoc: :s_nil)
-      )
-    )
+    assert format(2, 0, [{0, :break, alb1.()}]) == 
+      { :s_text, "a", { :s_line, 1, { :s_text, "b", :s_nil }}}
 
     # Consistent formatting
     ## Trivial case
@@ -121,32 +112,18 @@ defmodule WadlerTest do
   test :group do
     # Consistency with definitions 
     ## Normal case
-    assert group(glue(text("a"), text("b"))) == W.doc_group(
-      doc: W.doc_cons(
-        left: text("a"), 
-        right: concat(break, text("b"))
-      )
-    )
+    assert group(glue(text("a"), text("b"))) == 
+      { :doc_group, { :doc_cons, text("a"), concat(break, text("b")) }}
 
     ## Degeneracy
-    assert group(empty) == W.doc_group(doc: empty)
+    assert group(empty) == { :doc_group, empty }
 
     # Consistence of corresponding sdoc
-    assert factor(1, glue(text("a"), text("b"))) == W.s_text(
-      str: "a", 
-      sdoc: W.s_line(
-        indent: 0,
-        sdoc: W.s_text(str: "b", sdoc: :s_nil)
-      )
-    )
+    assert factor(1, glue(text("a"), text("b"))) == 
+      { :s_text, "a", { :s_line, 0, { :s_text, "b", :s_nil }}}
 
-    assert factor(9, glue(text("a"), text("b"))) == W.s_text(
-      str: "a",
-      sdoc: W.s_text(
-        str: " ", 
-        sdoc: W.s_text(str: "b", sdoc: :s_nil)
-      )
-    )
+    assert factor(9, glue(text("a"), text("b"))) == 
+      { :s_text, "a", { :s_text, " ", { :s_text, "b", :s_nil }}}
 
     # Consistent formatting
     assert pretty(5,  helloabcd) == "hello\na\nb\ncd"
