@@ -521,18 +521,12 @@ defimpl Binary.Inspect, for: Number do
   to_binary = :proplists.get_value(:float_to_binary,
                 :proplists.get_value(:exports, :erlang.module_info, []))
 
-  if to_binary == 2 do
-    def inspect(thing, opts) when thing > @limit do
-      return text(float_to_binary(thing, scientific: @digits)), opts
-    end
+  def inspect(thing, opts) when thing > @limit do
+    return text(float_to_binary(thing, scientific: @digits)), opts
+  end
 
-    def inspect(thing, opts) do
-      return text(float_to_binary(thing, compact: true, decimals: @digits)), opts
-    end
-  else
-    def inspect(thing, opts) do
-      return text(float_to_binary(thing)), opts
-    end
+  def inspect(thing, opts) do
+    return text(float_to_binary(thing, compact: true, decimals: @digits)), opts
   end
 end
 
