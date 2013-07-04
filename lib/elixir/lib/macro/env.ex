@@ -21,6 +21,7 @@ defmodule Macro.Env do
   * `macros` - a list of macros imported from each module
   * `context_modules` - a list of modules defined in the current context
   * `macro_aliases` - a list of aliases defined inside the current macro
+  * `vars` - a list keeping all defined varaibles as { var, context }
   """
 
   @type name_arity :: { atom, non_neg_integer }
@@ -32,14 +33,15 @@ defmodule Macro.Env do
   @type functions :: [{ module, [name_arity] }]
   @type macros :: [{ module, [name_arity] }]
   @type context_modules :: [module]
+  @type vars :: [{ atom, atom }]
 
   fields = [:module, :file, :line, :function, :aliases, :context, :requires,
-            :functions, :macros, :context_modules, :macro_aliases]
+            :functions, :macros, :context_modules, :macro_aliases, :vars]
 
   types  = quote do: [module: module, file: file, line: line,
     function: name_arity, aliases: aliases, requires: requires,
     functions: functions, macros: macros, context_modules: context_modules,
-    macro_aliases: aliases]
+    macro_aliases: aliases, vars: vars]
 
   Record.deffunctions(fields, __MODULE__)
   Record.deftypes(fields, types, __MODULE__)

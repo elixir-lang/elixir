@@ -2649,7 +2649,9 @@ defmodule Kernel do
       [x: 2]
 
   """
-  defmacro binding
+  defmacro binding() do
+    do_binding(nil, __CALLER__.vars, __CALLER__.in_match?)
+  end
 
   @doc """
   Receives a list of atoms at compilation time and returns the
@@ -2666,7 +2668,13 @@ defmodule Kernel do
       [x: 1]
 
   """
-  defmacro binding(list)
+  defmacro binding(list) when is_list(list) do
+    do_binding(list, nil, __CALLER__.vars, __CALLER__.in_match?)
+  end
+
+  defmacro binding(context) when is_atom(context) do
+    do_binding(context, __CALLER__.vars, __CALLER__.in_match?)
+  end
 
   @doc """
   Receives a list of atoms at compilation time and returns the
@@ -2686,7 +2694,29 @@ defmodule Kernel do
       [x: 1]
 
   """
-  defmacro binding(list, context)
+  defmacro binding(list, context) when is_list(list) and is_atom(context) do
+    do_binding(list, context, __CALLER__.vars, __CALLER__.in_match?)
+  end
+
+  defp do_binding(context, vars, in_match) do
+    lc { v, c } inlist vars, c == context do
+      { v, wrap_binding(in_match, { v, [], c }) }
+    end
+  end
+
+  defp do_binding(list, context, vars, in_match) do
+    lc { v, c } inlist vars, c == context, :lists.member(v, list) do
+      { v, wrap_binding(in_match, { v, [], c }) }
+    end
+  end
+
+  defp wrap_binding(true, var) do
+    quote do: ^(unquote(var))
+  end
+
+  defp wrap_binding(_, var) do
+    var
+  end
 
   @doc """
   Provides an `if` macro. This macro expects the first argument to

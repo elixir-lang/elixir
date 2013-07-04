@@ -130,26 +130,6 @@ translate({'@', Meta, [{ Name, _, Args }]}, S) ->
       end
   end;
 
-%% Binding
-
-translate({ 'binding', Meta, [] }, S) ->
-  translate({ 'binding', Meta, [nil] }, S);
-
-translate({ 'binding', Meta, [Context] }, #elixir_scope{vars=Vars} = S) when is_atom(Context) ->
-  Line = ?line(Meta),
-  { elixir_tree_helpers:list_to_cons(Line,
-    [ to_var_value_tuple(Line, Name, Var)
-      || { { Name, C }, Var } <- Vars, C == Context]), S };
-
-translate({ 'binding', Meta, [List] }, S) when is_list(List) ->
-  translate({ 'binding', Meta, [List, nil] }, S);
-
-translate({ 'binding', Meta, [List, Context] }, #elixir_scope{vars=Vars} = S) when is_list(List), is_atom(Context) ->
-  Line = ?line(Meta),
-  { elixir_tree_helpers:list_to_cons(Line,
-    [ to_var_value_tuple(Line, Name, Var)
-      || { { Name, C }, Var } <- Vars, C == Context, lists:member(Name, List)]), S };
-
 %% Case
 
 translate({'case', Meta, [Expr, KV]}, S) ->
@@ -371,11 +351,6 @@ expand_module(_Raw, Module, S) ->
 is_reserved_data(moduledoc) -> true;
 is_reserved_data(doc)       -> true;
 is_reserved_data(_)         -> false.
-
-to_var_value_tuple(Line, Name, Var) ->
-  { tuple, Line,
-    [ { atom, Line, Name },
-      { var, Line, Var } ] }.
 
 spec_to_macro(type)     -> deftype;
 spec_to_macro(typep)    -> deftypep;

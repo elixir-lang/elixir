@@ -120,6 +120,12 @@ defmodule KernelTest do
     assert binding([:x, :y], :foo) == [x: 2]
   end
 
+  test :binding_on_match do
+    x = 1
+    assert binding() = [x: 1]
+    refute binding() = [x: 2]
+  end
+
   defp x(value) when value in [1, 2, 3], do: true
   defp x(_),                             do: false
 
