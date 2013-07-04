@@ -11,6 +11,7 @@
 
 * bug fix
   * [Kernel] `match?/2` does not leak variables to outer scope
+  * [Mix] On dependencies conflict, show from where each source is coming from
   * [Module] Calling `Module.register_attribute/3` no longer automatically changes it to persisted or accumulated
 
 * deprecations
@@ -19,6 +20,11 @@
   * [File] `File.iterator!/2` and `File.biniterator!/2` are deprecated in favor of `File.stream!/2` and `File.binstream!/2`
 
 * backwards incompatible changes
+  * [Kernel] Tighten up the grammar rules regarding parentheses omission, previously the examples below would compile but now they raise an error message:
+
+            do_something 1, is_list [], 3
+            [1, is_atom :foo, 3]
+
   * [Module] Calling `Module.register_attribute/3` no longer automatically changes it to persisted or accumulated
   * [URI] Remove custom URI parsers in favor of `URI.default_port/2`
 
