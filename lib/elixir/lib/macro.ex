@@ -553,12 +553,33 @@ defmodule Macro do
     { tree, cache }
   end
 
-  @doc """
+  @doc %B"""
   Receives a AST node and expands it until it no longer represents
   a macro. Then it expands all of its children recursively.
 
-  Check `Macro.expand_once/2` for more information on how expansion
-  works.
+  The documentation for `Macro.expand_once/2` goes into more detail
+  on how expansion works. Keep in mind that `Macro.expand_all/2` is
+  naive as it doesn't mutate the environment. Take this example:
+
+      quoted = quote do: __MODULE__
+      Macro.to_string Macro.expand_all(quoted, __ENV__)
+      #=> "nil"
+
+  The example above, works as expected. Outside of a module,
+  `__MODULE__` returns nil. Now consider this variation:
+
+      quoted = quote do
+        defmodule Foo, do: __MODULE__
+      end
+      Macro.to_string Macro.expand_all(quoted, __ENV__)
+      #=> "defmodule(Foo) do\n  nil\nend"
+
+  One would expect `__MODULE__` to be expanded to `Foo`
+  but that is not the case since all the expansion is done
+  based on the environment `__ENV__`. This behaviour is on
+  purpose, as the proper expansion would require passing through
+  the whole Elixir compiler by actually executing the code, which
+  is beyond the scope of this function.
   """
   def expand_all(tree, env) do
     expand_all(tree, env, nil) |> elem(0)
