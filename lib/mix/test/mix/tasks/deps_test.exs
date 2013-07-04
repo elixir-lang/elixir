@@ -106,7 +106,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push OutOfDateDepsApp
 
     in_fixture "deps_status", fn ->
-      assert_raise Mix.OutOfDateDepsError, fn ->
+      assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Check.run []
       end
 

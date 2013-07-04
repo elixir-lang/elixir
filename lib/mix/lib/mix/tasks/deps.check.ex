@@ -24,20 +24,12 @@ defmodule Mix.Tasks.Deps.Check do
         shell = Mix.shell
         shell.error "Unchecked dependencies for environment #{Mix.env}:"
 
-        if Enum.all? not_ok, out_of_date?(&1) do
-          Enum.each not_ok, fn(dep) ->
-            shell.error "* #{format_dep(dep)}"
-          end
-
-          raise Mix.OutOfDateDepsError, env: Mix.env
-        else
-          Enum.each not_ok, fn(dep) ->
-            shell.error "* #{format_dep(dep)}"
-            shell.error "  #{format_status dep}"
-          end
-
-          raise Mix.Error
+        Enum.each not_ok, fn(dep) ->
+          shell.error "* #{format_dep(dep)}"
+          shell.error "  #{format_status dep}"
         end
+
+        raise Mix.Error, message: "Can't continue due to errors on dependencies"
     end
   end
 
