@@ -1,10 +1,5 @@
 defmodule Wadler do
   @moduledoc """
-  Pretty printing library inspired by Philip Wadler.
-
-  Custom pretty printers can be implemented using
-  functions, exported from this module.
-
   Elixir implementation of the Wadler document algebra as described in 
   "Strictly Pretty" (2000) by Christian Lindig
   http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.34.2200
@@ -16,6 +11,9 @@ defmodule Wadler do
   to an exponential growth of the possible documents, unless document
   groups are encoded explictly as _flat_ or _broken_. Those groups are
   then reduced to a simple document, where the layout is already decided.
+
+  Custom pretty printers can be implemented using
+  functions, exported from this module.
 
   ## Examples
 

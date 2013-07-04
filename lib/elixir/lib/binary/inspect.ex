@@ -16,23 +16,57 @@ defprotocol Binary.Inspect do
 end
 
 defmodule Binary.Inspect.Utils do
-  @moduledoc false
+  @moduledoc """
+  This module defines useful functions to be used on the
+  implementation of custom pretty-printers. The provided 
+  functions use the document algebra implemented on the
+  `Wadler` module.
+  """
 
   ## groups aware of depth
-  def inc_depth(opts),          do: Keyword.put(opts, :depth, (opts[:depth] || 0) + 1)
+  @doc """
+  Increases the depth count to be used with group_maybe.
+  """
+  def inc_depth(opts), do: Keyword.put(opts, :depth, (opts[:depth] || 0) + 1)
 
-  def group_maybe(x, opts),     do: group_maybe_do(x, 3, fn(x) -> group(x) end, opts)
-  def group_maybe(x, t, opts),  do: group_maybe_do(x, t, fn(x) -> group(x) end, opts)
+  @doc """
+  Wraps a document `d` on a group if the current nest level on the pretty-printer is
+  smaller than `t`. `group_maybe/2` uses a default nesting level of 3.
 
-  defp group_maybe_do(x, t, f, opts) do
-    if (opts[:depth] || 1) > t do
-      x
-    else
-      f.(x)
-    end
+    # group_maybe enables the output for
+    iex(1)> inspect([foo: [1,2,3,:bar], bazzz: :bat], [pretty: true, width: 30])
+
+    # to be a much more concise
+    [
+      foo: [1,2,3,:bar], bazzz: :bat
+    ]
+
+    # instead of
+    [
+      foo: [
+        1,
+        2,
+        3,
+        :bar
+      ],
+      bazzz: :bat
+    ]
+
+
+  """
+  def group_maybe(d, opts),    do: group_maybe_do(d, 3, fn(d) -> group(d) end, opts)
+  def group_maybe(d, t, opts), do: group_maybe_do(d, t, fn(d) -> group(d) end, opts)
+
+  defp group_maybe_do(d, t, f, opts) do
+    if (opts[:depth] || 1) > t, do: d, else: f.(d)
   end
 
-  ## replaces last expression in implementations
+  @doc """
+  Renders a document with regard to the the provided options:
+  * `:as_doc`: returns doc if true, useful for recursive Kernel.inspect calls.
+  * `:pretty`: applies pretty-printing on the document if true.
+  * `:width`: the number of columns available for rendering the document.
+  """
   def return(doc, opts) do
     opts = Keyword.put_new(opts, :width, min(80, maxwidth()))
     if opts[:as_doc] do
@@ -44,7 +78,11 @@ defmodule Binary.Inspect.Utils do
 
   defp maxwidth, do: :erlang.element 2, :io.columns
 
-  ## container_join
+  @doc """
+  Creates a document from a sequence (tuples and lists), using first and 
+  last to enclose the document. The `:sep` option defines the character used
+  as a separator between sequence items.
+  """
   def container_join(tuple, first, last, opts) when is_tuple(tuple) do
     container_join(tuple_to_list(tuple), first, last, opts)
   end
