@@ -915,7 +915,7 @@ defmodule File do
   """
   def ls(path // ".") do
     case F.list_dir(path) do
-      { :ok, file_list } -> { :ok, Enum.map file_list, :unicode.characters_to_binary(&1) }
+      { :ok, file_list } -> { :ok, Enum.map(file_list, :unicode.characters_to_binary(&1)) }
       { :error, _ } = error -> error
     end
   end

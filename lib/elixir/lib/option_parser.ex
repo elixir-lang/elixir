@@ -173,7 +173,7 @@ defmodule OptionParser do
   end
 
   defp to_underscore(option) do
-    bc <<c>> inbits option, do: << if c == ?-, do: ?_, else: c >>
+    bc <<c>> inbits option, do: << if(c == ?-, do: ?_, else: c) >>
   end
 
   defp is_no?("no-" <> _), do: true

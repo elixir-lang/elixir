@@ -39,7 +39,7 @@ defmodule Mix.Tasks.Deps.Get do
     else
       Mix.Deps.Lock.write(lock)
 
-      unless opts[:no_compile], do: Mix.Task.run "deps.compile", apps
+      unless opts[:no_compile], do: Mix.Task.run("deps.compile", apps)
     end
   end
 

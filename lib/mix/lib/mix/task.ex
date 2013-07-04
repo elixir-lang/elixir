@@ -16,7 +16,7 @@ defmodule Mix.Task do
   defmacro __using__(_opts) do
     quote do
       Enum.each [:shortdoc, :hidden, :recursive],
-        Module.register_attribute __MODULE__, &1, persist: true
+        Module.register_attribute(__MODULE__, &1, persist: true)
 
       @behaviour Mix.Task
     end

@@ -2,7 +2,7 @@ Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Kernel.DefClause do
   defmacro defclause(expr, block) do
-    quote do: def unquote(expr), unquote(block)
+    quote do: def(unquote(expr), unquote(block))
   end
 end
 

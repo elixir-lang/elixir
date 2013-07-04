@@ -64,9 +64,34 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :syntax_error_on_parens_call do
-    assert_compile_fail SyntaxError, "nofile:1: invalid comma inside parenthesis. If you are making a function call, " <>
-     "do not insert spaces in between the function name and the opening parentheses. " <>
-     "Syntax error before: )", 'foo (hello, world)'
+    msg = "nofile:1: unexpected parenthesis. If you are making a function call, do not " <>
+          "insert spaces in between the function name and the opening parentheses. " <>
+          "Syntax error before: '('"
+
+    assert_compile_fail SyntaxError, msg, 'foo (hello, world)'
+    assert_compile_fail SyntaxError, msg, 'foo ()'
+    assert_compile_fail SyntaxError, msg, 'foo (), 1'
+
+    refute if true, do: ()
+    refute Kernel.&& nil, ()
+  end
+
+  test :syntax_error_on_nested_no_parens_call do
+    msg = "nofile:1: unexpected comma. Parentheses are required to solve ambiguity in " <>
+          "nested calls. Syntax error before: ','"
+
+    assert_compile_fail SyntaxError, msg, '[foo 1, 2]'
+    assert_compile_fail SyntaxError, msg, '[do: foo 1, 2]'
+    assert_compile_fail SyntaxError, msg, 'foo(do: bar 1, 2)'
+    assert_compile_fail SyntaxError, msg, '{foo 1, 2}'
+    assert_compile_fail SyntaxError, msg, 'foo 1, foo 2, 3'
+    assert_compile_fail SyntaxError, msg, 'foo(1, foo 2, 3)'
+
+    assert is_list []
+    assert is_list do: 1
+    assert is_list List.flatten [1]
+    assert is_atom binary_to_atom "foo", :utf8
+    assert is_atom(binary_to_atom "foo", :utf8)
   end
 
   test :syntax_error_with_no_token do

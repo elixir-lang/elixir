@@ -135,7 +135,7 @@ defmodule IEx.Autocomplete do
     prefix = :binary.longest_common_prefix(binary)
     if prefix == 0 or (prefix == length) do
       {:yes, '',
-         Enum.reduce entries, [], fn e, acc -> Entry.to_entries(e) ++ acc end }
+         Enum.reduce(entries, [], fn e, acc -> Entry.to_entries(e) ++ acc end) }
     else
       {:yes, :lists.sublist(first.name, 1 + length, prefix-length), [] }
     end

@@ -169,7 +169,7 @@ defmodule Kernel.Typespec do
 
     Module.compile_typespec module, kind, type
     if export, do:
-      Module.compile_typespec module, :export_type, [{ name, length(vars) }]
+      Module.compile_typespec(module, :export_type, [{ name, length(vars) }])
     type
   end
 
@@ -593,7 +593,7 @@ defmodule Kernel.Typespec do
   # Handle remote calls
   defp typespec({{:., meta, [remote, name]}, _, args}, vars, caller) do
     remote = Macro.expand remote, caller
-    unless is_atom(remote), do: raise ArgumentError, message: "invalid remote in typespec"
+    unless is_atom(remote), do: raise(ArgumentError, message: "invalid remote in typespec")
     remote_type({typespec(remote, vars, caller), meta, typespec(name, vars, caller), args}, vars, caller)
   end
 

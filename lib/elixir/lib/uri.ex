@@ -104,7 +104,7 @@ defmodule URI do
   @doc """
   Percent (URL) encodes a URI.
   """
-  def encode(s), do: bc <<c>> inbits s, do: <<percent(c) :: binary>>
+  def encode(s), do: bc(<<c>> inbits s, do: <<percent(c) :: binary>>)
 
   defp percent(32), do: <<?+>>
   defp percent(?-), do: <<?->>

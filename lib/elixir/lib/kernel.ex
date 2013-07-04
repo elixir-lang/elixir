@@ -2175,7 +2175,7 @@ defmodule Kernel do
 
   """
   defmacro div(left, right) do
-    quote do: __op__ :div, unquote(left), unquote(right)
+    quote do: __op__(:div, unquote(left), unquote(right))
   end
 
   @doc """
@@ -2190,7 +2190,7 @@ defmodule Kernel do
 
   """
   defmacro rem(left, right) do
-    quote do: __op__ :rem, unquote(left), unquote(right)
+    quote do: __op__(:rem, unquote(left), unquote(right))
   end
 
   @doc """
@@ -3755,8 +3755,8 @@ defmodule Kernel do
 
     case mod do
       ?b -> quote do: String.split(unquote(string))
-      ?a -> quote do: lc p inlist String.split(unquote(string)), do: binary_to_atom(p)
-      ?c -> quote do: lc p inlist String.split(unquote(string)), do: :unicode.characters_to_list(p)
+      ?a -> quote do: lc(p inlist String.split(unquote(string)), do: binary_to_atom(p))
+      ?c -> quote do: lc(p inlist String.split(unquote(string)), do: :unicode.characters_to_list(p))
     end
   end
 end

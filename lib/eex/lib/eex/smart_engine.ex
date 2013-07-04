@@ -73,7 +73,7 @@ defmodule EEx.AssignsEngine do
   defmacro __using__(_) do
     quote unquote: false do
       defp transform({ :@, line, [{ name, _, atom }] }) when is_atom(name) and is_atom(atom) do
-        quote(do: Keyword.get var!(assigns), unquote(name))
+        quote do: Keyword.get(var!(assigns), unquote(name))
       end
 
       defp transform(arg) do

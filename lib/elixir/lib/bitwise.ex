@@ -46,83 +46,83 @@ defmodule Bitwise do
   Bitwise not.
   """
   defmacro bnot(expr) do
-    quote do: __op__ :bnot, unquote(expr)
+    quote do: __op__(:bnot, unquote(expr))
   end
 
   @doc """
   Bitwise not as operator.
   """
   defmacro ~~~expr do
-    quote do: __op__ :bnot, unquote(expr)
+    quote do: __op__(:bnot, unquote(expr))
   end
 
   @doc """
   Bitwise and.
   """
   defmacro band(left, right) do
-    quote do: __op__ :band, unquote(left), unquote(right)
+    quote do: __op__(:band, unquote(left), unquote(right))
   end
 
   @doc """
   Bitwise and as operator.
   """
   defmacro left &&& right do
-    quote do: __op__ :band, unquote(left), unquote(right)
+    quote do: __op__(:band, unquote(left), unquote(right))
   end
 
   @doc """
   Bitwise or.
   """
   defmacro bor(left, right) do
-    quote do: __op__ :bor, unquote(left), unquote(right)
+    quote do: __op__(:bor, unquote(left), unquote(right))
   end
 
   @doc """
   Bitwise or as operator.
   """
   defmacro left ||| right do
-    quote do: __op__ :bor, unquote(left), unquote(right)
+    quote do: __op__(:bor, unquote(left), unquote(right))
   end
 
   @doc """
   Bitwise xor.
   """
   defmacro bxor(left, right) do
-    quote do: __op__ :bxor, unquote(left), unquote(right)
+    quote do: __op__(:bxor, unquote(left), unquote(right))
   end
 
   @doc """
   Bitwise xor as operator.
   """
   defmacro left ^^^ right do
-    quote do: __op__ :bxor, unquote(left), unquote(right)
+    quote do: __op__(:bxor, unquote(left), unquote(right))
   end
 
   @doc """
   Arithmetic bitshift left.
   """
   defmacro bsl(left, right) do
-    quote do: __op__ :bsl, unquote(left), unquote(right)
+    quote do: __op__(:bsl, unquote(left), unquote(right))
   end
 
   @doc """
   Arithmetic bitshift left as operator.
   """
   defmacro left <<< right do
-    quote do: __op__ :bsl, unquote(left), unquote(right)
+    quote do: __op__(:bsl, unquote(left), unquote(right))
   end
 
   @doc """
   Arithmetic bitshift right.
   """
   defmacro bsr(left, right) do
-    quote do: __op__ :bsr, unquote(left), unquote(right)
+    quote do: __op__(:bsr, unquote(left), unquote(right))
   end
 
   @doc """
   Arithmetic bitshift right as operator.
   """
   defmacro left >>> right do
-    quote do: __op__ :bsr, unquote(left), unquote(right)
+    quote do: __op__(:bsr, unquote(left), unquote(right))
   end
 end
