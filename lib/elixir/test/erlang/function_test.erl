@@ -6,8 +6,8 @@ eval(Content) ->
   { Value, Binding }.
 
 function_arg_do_end_test() ->
-  {3, _} = eval("if date do\n1 + 2\nend"),
-  {nil, _} = eval("if date do end").
+  {3, _} = eval("if true do\n1 + 2\nend"),
+  {nil, _} = eval("if true do end").
 
 function_stab_end_test() ->
   {_, [{a, Fun1}]} = eval("a = fn -> end"),

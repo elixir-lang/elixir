@@ -187,7 +187,7 @@ and_test() ->
     {false, _} = eval("Bar.foo and Bar.baz 2"),
     {true, _} = eval("false and false or true"),
     {3, _} = eval("Bar.foo and 1 + 2"),
-    {false, _} = eval("Bar.bar and error(:bad)"),
+    {false, _} = eval("Bar.bar and :erlang.error(:bad)"),
     ?assertError({badarg, 1}, eval("1 and 2"))
   end,
   test_helper:run_and_remove(F, ['Elixir.Bar']).
@@ -205,7 +205,7 @@ or_test() ->
     {true, _} = eval("Bar.bar or Bar.baz 1"),
     {false, _} = eval("Bar.bar or Bar.baz 2"),
     {3, _} = eval("Bar.bar or 1 + 2"),
-    {true, _} = eval("Bar.foo or error(:bad)"),
+    {true, _} = eval("Bar.foo or :erlang.error(:bad)"),
     ?assertError({badarg, 1}, eval("1 or 2"))
   end,
   test_helper:run_and_remove(F, ['Elixir.Bar']).
@@ -232,7 +232,7 @@ andand_test() ->
     {false, _} = eval("Bar.foo && Bar.baz 2"),
     {true, _} = eval("1 == 1 && 2 < 3"),
     {3, _} = eval("Bar.foo && 1 + 2"),
-    {false, _} = eval("Bar.bar && error(:bad)"),
+    {false, _} = eval("Bar.bar && :erlang.error(:bad)"),
     {2, _} = eval("1 && 2"),
     {nil, _} = eval("nil && 2")
   end,
@@ -259,7 +259,7 @@ oror_test() ->
     {false, _} = eval("Bar.bar || Bar.baz 2"),
     {false, _} = eval("1 == 2 || 2 > 3"),
     {3, _} = eval("Bar.bar || 1 + 2"),
-    {true, _} = eval("Bar.foo || error(:bad)"),
+    {true, _} = eval("Bar.foo || :erlang.error(:bad)"),
     {1, _} = eval("1 || 2"),
     {2, _} = eval("nil || 2"),
     {true, _} = eval("false && false || true")
@@ -272,7 +272,7 @@ optimized_if_test() ->
   [{ 'case', _, _,
     [{clause,_,[{atom,_,false}],[],[{atom,_,else}]},
      {clause,_,[{atom,_,true}],[],[{atom,_,do}]} ]
-  }] = to_erl("if is_list(x), do: :do, else: :else").
+  }] = to_erl("if is_list([]), do: :do, else: :else").
 
 optimized_andand_test() ->
   [{ 'case', _, _,
@@ -281,7 +281,7 @@ optimized_andand_test() ->
       [[{op,_,'orelse',_,_}]],
       [{var,_,Var}]},
     {clause,_,[{var,_,'_'}],[],[{atom,0,done}]}]
-  }] = to_erl("is_list(x) && :done").
+  }] = to_erl("is_list([]) && :done").
 
 optimized_oror_test() ->
   [{ 'case', _, _,
@@ -290,4 +290,4 @@ optimized_oror_test() ->
       [[{op,1,'orelse',_,_}]],
       [{atom,0,done}]},
     {clause,1,[{var,1,Var}],[],[{var,1,Var}]}]
-  }] = to_erl("is_list(x) || :done").
+  }] = to_erl("is_list([]) || :done").

@@ -13,8 +13,7 @@ test() ->
     operators_test,
     record_test,
     string_test,
-    tokenizer_test,
-    translator_test
+    tokenizer_test
   ]).
 
 % Execute a piece of code and purge given modules right after
