@@ -134,26 +134,37 @@ defmodule GenFSM.Behaviour do
   { :stop, reason, reply, new_state_data }
   { :stop, reason, new_state_date }
    
-  There are 6 callbacks required to be implemented in a GenFsm plus 2
-  for each state. The
-  `GenFsm.Behaviour` module defines handle_sync_event, handle_info, terminate and code_change for you.  The list of callbacks are:
+  There are 6 callbacks required to be implemented in a GenFsm plus 1
+  or 2 for each state. The `GenFsm.Behaviour` module defines
+  `handle_sync_event`, `handle_info`, `terminate` and `code_change`
+  for you. The list of callbacks are:
 
 
   * `init(args)` - invoked when the FSM is started;
-  * `handle_sync_event(event, from, state_name, state_data)` - invoked to handle sync_send_all_state_event messages;
-  * `handle_event(event, state_name, state_data)` - invoked to handle send_all_state_event messages;
-  * `handle_info(msg, state_name, state_data)` - handle all other messages which are
-     normally received by processes;
-  * `terminate(reason, state_name, state_data)` - called when the FSM is about to
-     terminate, useful for cleaning up;
-  * `code_change(old_vsn, state, extra)` - called when the application
-    code is being upgraded live (hot code swap);
+  * `handle_sync_event(event, from, state_name, state_data)` 
+    - invoked to handle sync_send_all_state_event messages;
+  * `handle_event(event, state_name, state_data)` 
+    - invoked to handle send_all_state_event messages;
+  * `handle_info(msg, state_name, state_data)` 
+    - handle all other messages which are normally received by processes;
+  * `terminate(reason, state_name, state_data)` 
+     - called when the FSM is about to terminate, useful for cleaning up;
+  * `code_change(old_vsn, state, extra)` 
+    - called when the application code is being upgraded live (hot code swap);
 
-  For each state you need to define:
+  For each state you need to define either or both of these:
 
-  * `state_name(event, state_data)` - invoked to handle send_event messages;
-  * `state_name(event, from, state_data)` - invoked to handle sync_send_event messages;
+  * `state_name(event, state_data)` 
+    - invoked to handle `send_event` messages;
+  * `state_name(event, from, state_data)` 
+    - invoked to handle `sync_send_event` messages;
  
+  If you send asyncchronous events you only need to implement the
+  `state_name/2` variant and vice versa for synchronous events and
+  `state_name/3`. Keep in mind that if you mix `send_event` and
+  `sync_send_event` the best thing to do is to implement both
+  callbacks for all states.
+  
 
   Starting and sending messages to the GenFsm is done via Erlang's
   `:gen_fsm` module. For more information, please refer to the
