@@ -3,6 +3,12 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule HashDictTest do
   use ExUnit.Case, async: true
 
+  @dict HashDict.new(foo: :bar)
+
+  test :is_serializable_as_attribute do
+    assert @dict == HashDict.new(foo: :bar)
+  end
+
   test :smoke_small_range_test do
     smoke_test(1..8)
     smoke_test(8..1)

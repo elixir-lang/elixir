@@ -34,8 +34,11 @@ list_to_cons(Line, List, Tail) ->
 elixir_to_erl(Tree) when is_tuple(Tree) ->
   { tuple, 0, [elixir_to_erl(X) || X <- tuple_to_list(Tree)] };
 
+elixir_to_erl([]) ->
+  { nil, 0 };
+
 elixir_to_erl(Tree) when is_list(Tree) ->
-  elixir_to_erl_cons(lists:reverse(Tree), { nil, 0 });
+  elixir_to_erl_cons_1(Tree, []);
 
 elixir_to_erl(Tree) when is_atom(Tree) ->
   { atom, 0, Tree };
@@ -49,10 +52,13 @@ elixir_to_erl(Tree) when is_float(Tree) ->
 elixir_to_erl(Tree) when is_binary(Tree) ->
   { bin, 0, [{ bin_element, 0, { string, 0, binary_to_list(Tree) }, default, default }] }.
 
-elixir_to_erl_cons([H|T], Acc) ->
-  elixir_to_erl_cons(T, { cons, 0, elixir_to_erl(H), Acc });
+elixir_to_erl_cons_1([H|T], Acc) -> elixir_to_erl_cons_1(T, [H|Acc]);
+elixir_to_erl_cons_1(Other, Acc) -> elixir_to_erl_cons_2(Acc, elixir_to_erl(Other)).
 
-elixir_to_erl_cons([], Acc) -> Acc.
+elixir_to_erl_cons_2([H|T], Acc) ->
+  elixir_to_erl_cons_2(T, { cons, 0, elixir_to_erl(H), Acc });
+elixir_to_erl_cons_2([], Acc) ->
+  Acc.
 
 %% Others
 
