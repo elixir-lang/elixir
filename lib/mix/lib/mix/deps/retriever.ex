@@ -59,6 +59,7 @@ defmodule Mix.Deps.Retriever do
 
   defp update(tuple, scms, manager) do
     dep = with_scm_and_status(tuple, scms)
+    dep = update_from(dep)
 
     if Mix.Deps.available?(dep) do
       cond do
@@ -79,6 +80,17 @@ defmodule Mix.Deps.Retriever do
     else
       dep
     end
+  end
+
+  defp update_from(dep) do
+    filename = cond do
+      File.exists?("mix.exs")      -> "mix.exs"
+      File.exists?("rebar.config") -> "rebar.config"
+      File.exists?("Makefile")     -> "Makefile"
+      true                         -> nil
+    end
+    path = if filename, do: Path.absname(filename), else: File.cwd!
+    dep.from(path)
   end
 
   defp mix_dep(Mix.Dep[manager: nil] = dep, project) do
