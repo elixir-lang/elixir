@@ -1,7 +1,8 @@
 % A bunch of helpers to help to deal with errors in Elixir source code.
 % This is not exposed in the Elixir language.
 -module(elixir_errors).
--export([syntax_error/3, syntax_error/4, inspect/1,
+-export([syntax_error/3, syntax_error/4,
+  compile_error/3, compile_error/4, inspect/1,
   form_error/4, parse_error/4, assert_module_scope/3,
   assert_no_function_scope/3, assert_function_scope/3,
   assert_no_match_scope/3, assert_no_guard_scope/3,
@@ -33,6 +34,16 @@ syntax_error(Meta, File, Message) when is_binary(Message) ->
 syntax_error(Meta, File, Format, Args)  ->
   Message = io_lib:format(Format, Args),
   raise(Meta, File, 'Elixir.SyntaxError', unicode:characters_to_binary(Message)).
+
+compile_error(Meta, File, Message) when is_list(Message) ->
+  compile_error(Meta, File, iolist_to_binary(Message));
+
+compile_error(Meta, File, Message) when is_binary(Message) ->
+  raise(Meta, File, 'Elixir.CompileError', Message).
+
+compile_error(Meta, File, Format, Args)  ->
+  Message = io_lib:format(Format, Args),
+  raise(Meta, File, 'Elixir.CompileError', unicode:characters_to_binary(Message)).
 
 %% Raised on tokenizing/parsing
 

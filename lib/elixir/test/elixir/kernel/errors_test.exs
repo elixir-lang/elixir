@@ -170,8 +170,20 @@ defmodule Kernel.ErrorsTest do
 
   test :unhandled_stab do
     assert_compile_fail SyntaxError,
-      "nofile:1: unhandled operator ->",
-      'casea foo do: (bar -> baz)'
+      "nofile:3: unhandled operator ->",
+      '''
+      defmodule Mod do
+        def fun do
+          casea foo, do: (bar -> baz)
+        end
+      end
+      '''
+  end
+
+  test :undefined_non_local_function do
+    assert_compile_fail CompileError,
+      "nofile:1: function casea/2 undefined",
+      'casea foo, do: (bar -> baz)'
   end
 
   test :invalid_fn_args do
@@ -366,7 +378,7 @@ defmodule Kernel.ErrorsTest do
 
     assert_compile_fail SyntaxError,
       "nofile:1: unit in bitstring expects an integer as argument",
-      '<<1 :: unit(x)>>'
+      '<<1 :: unit(:x)>>'
   end
 
   test :invalid_var! do

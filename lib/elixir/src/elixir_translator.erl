@@ -583,6 +583,9 @@ translate_fn(Meta, Clauses, S) ->
 
 %% Locals
 
+translate_local(Meta, Name, Args, #elixir_scope{local=nil,function=nil} = S) ->
+  elixir_errors:compile_error(Meta, S#elixir_scope.file, "function ~ts/~B undefined", [Name, length(Args)]);
+
 translate_local(Meta, Name, Args, #elixir_scope{local=nil,module=Module,function=Function} = S) ->
   elixir_tracker:record_local({ Name, length(Args) }, Module, Function),
   Line = ?line(Meta),

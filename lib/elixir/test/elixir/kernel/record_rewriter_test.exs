@@ -19,7 +19,7 @@ defmodule Kernel.RecordRewriterTest do
 
   defp extract_clause(fun) do
     { { :fun, _, { :clauses, clauses } }, _ } =
-      :elixir_translator.translate_each(fun, :elixir.scope_for_eval([]))
+      :elixir_translator.translate_each(fun, :elixir.scope_for_eval(delegate_locals_to: __MODULE__))
     hd(clauses)
   end
 
