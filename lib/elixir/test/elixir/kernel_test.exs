@@ -64,9 +64,18 @@ defmodule KernelTest do
 
   test :paren do
     assert nil?(())
+    assert ((); ();) == nil
     assert [ 1, (), 3 ] == [1, nil, 3 ]
     assert [do: ()] == [do: nil]
     assert { 1, (), 3 } == { 1, nil, 3 }
+    assert (Kernel.&& nil, ()) == nil
+    assert (Kernel.&& nil, ()) == nil
+    assert (() && ()) == nil
+    assert (if(() && ()) do
+      :ok
+    else
+      :error
+    end) == :error
   end
 
   test :__info__ do

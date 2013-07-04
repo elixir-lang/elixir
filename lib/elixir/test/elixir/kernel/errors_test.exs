@@ -71,9 +71,6 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail SyntaxError, msg, 'foo (hello, world)'
     assert_compile_fail SyntaxError, msg, 'foo ()'
     assert_compile_fail SyntaxError, msg, 'foo (), 1'
-
-    refute if true, do: ()
-    refute Kernel.&& nil, ()
   end
 
   test :syntax_error_on_nested_no_parens_call do

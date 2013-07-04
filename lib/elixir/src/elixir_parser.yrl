@@ -99,6 +99,7 @@ no_parens_expr -> dot_punctuated_identifier call_args_no_parens_many_strict : bu
 no_parens_expr -> dot_op_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
 no_parens_expr -> dot_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
 
+unmatched_expr -> empty_paren op_expr : build_op(element(1, '$2'), nil, element(2, '$2')).
 unmatched_expr -> matched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unmatched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unary_op_eol expr : build_unary_op('$1', '$2').
