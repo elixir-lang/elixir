@@ -1,5 +1,5 @@
 defrecord Mix.Dep, [ scm: nil, app: nil, requirement: nil, status: nil, opts: nil,
-                     deps: [], source: nil, manager: nil ] do
+                     deps: [], source: nil, manager: nil, from: nil ] do
   @moduledoc """
   This is a record that keeps information about your project
   dependencies. It keeps:
@@ -141,9 +141,11 @@ defmodule Mix.Deps do
   def format_status(Mix.Dep[status: :nolock]),
     do: "the dependency is not locked"
 
-  def format_status(Mix.Dep[status: { :diverged, other }, opts: opts]),
-    do: "different specs were given for this dependency, choose one in your deps:\n" <>
-        "$ #{inspect_kw opts}\n$ #{inspect_kw other.opts}\n"
+  def format_status(Mix.Dep[status: { :diverged, other }, opts: opts] = dep) do
+    "different specs were given for this dependency, choose one in your deps:\n" <>
+    "> In #{dep.from}:\n$ #{inspect_kw opts}\n" <>
+    "> In #{other.from}:\n$ #{inspect_kw other.opts}\n"
+  end
 
   def format_status(Mix.Dep[status: { :unavailable, _ }]),
     do: "the dependency is not available, run `mix deps.get`"
