@@ -47,7 +47,7 @@ defmodule ExUnit.Case do
       import ExUnit.Callbacks
       import ExUnit.Assertions
       import ExUnit.Case
-      import ExUnit.DocTest, only: [doctest: 1, doctest: 2]
+      import ExUnit.DocTest
     end
   end
 
@@ -81,17 +81,18 @@ defmodule ExUnit.Case do
           end
       end
 
-    quote do
-      message = unquote(message)
+    var      = Macro.escape(var)
+    contents = Macro.escape(contents, unquote: true)
 
+    quote binding: binding do
       message = if is_binary(message) do
         :"test #{message}"
       else
         :"test_#{message}"
       end
 
-      def message, [unquote(Macro.escape var)], [], do:
-        unquote(Macro.escape contents, unquote: true)
+      def unquote(message)(unquote(var)), do:
+        unquote(contents)
     end
   end
 end

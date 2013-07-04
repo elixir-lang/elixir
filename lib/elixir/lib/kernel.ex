@@ -2699,7 +2699,7 @@ defmodule Kernel do
   end
 
   defp do_binding(context, vars, in_match) do
-    lc { v, c } inlist vars, c == context do
+    lc { v, c } inlist vars, c == context, v != :_@CALLER do
       { v, wrap_binding(in_match, { v, [], c }) }
     end
   end
