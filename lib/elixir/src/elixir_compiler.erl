@@ -218,6 +218,7 @@ core_main() ->
     "lib/elixir/lib/code.ex",
     "lib/elixir/lib/protocol.ex",
     "lib/elixir/lib/enum.ex",
+    "lib/elixir/lib/wadler.ex",
     "lib/elixir/lib/binary/inspect.ex",
     "lib/elixir/lib/binary/chars.ex",
     "lib/elixir/lib/io.ex",

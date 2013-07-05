@@ -98,6 +98,7 @@ defmodule Binary.Inspect.TupleTest do
 
   test :basic do
     assert inspect({ 1, "b", 3 }) == "{1,\"b\",3}"
+    assert inspect({ 1, "b", 3 }, [pretty: true, width: 1]) == "{\n  1,\n  \"b\",\n  3\n}"
   end
 
   test :record_like do
@@ -160,6 +161,7 @@ defmodule Binary.Inspect.ListTest do
 
   test :basic do
     assert inspect([ 1, "b", 3 ]) == "[1,\"b\",3]"
+    assert inspect([ 1, "b", 3 ], [pretty: true, width: 1]) == "[\n  1,\n  \"b\",\n  3\n]"
   end
 
   test :printable do
@@ -171,6 +173,8 @@ defmodule Binary.Inspect.ListTest do
     assert inspect([a: 1, b: 2]) == "[a: 1, b: 2]"
     assert inspect([a: 1, a: 2, b: 2]) == "[a: 1, a: 2, b: 2]"
     assert inspect(["123": 1]) == %b(["123": 1])
+
+    assert inspect([foo: [1,2,3,:bar], bazzz: :bat], [pretty: true, width: 30]) == "[\n  foo: [1,2,3,:bar],\n  bazzz: :bat\n]"
   end
 
   test :non_keyword do
@@ -183,6 +187,8 @@ defmodule Binary.Inspect.ListTest do
 
   test :unproper do
     assert inspect([:foo | :bar]) == "[:foo|:bar]"
+
+    assert inspect([1,2,3,4,5|42], [pretty: true, width: 1]) == "[\n  1,\n  2,\n  3,\n  4,\n  5|\n  42\n]"
   end
 
   test :codepoints do

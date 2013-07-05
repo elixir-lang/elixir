@@ -2025,6 +2025,11 @@ defmodule Kernel do
   * limit -- limits the number of items that are printed for tuples, bitstrings,
              and lists; does not apply to strings
 
+  * :pretty - if set to true enables pretty printing, defaults to true;
+
+  * :width - the width avaliable for inspect to lay out the data structure
+    representation. Defaults to the least of 80 and terminal width;
+
   ## Examples
 
       iex> inspect(:foo)
@@ -2047,10 +2052,14 @@ defmodule Kernel do
       #=> #Function<...>
 
   """
-  def inspect(arg, opts // []) do
-    case is_tuple(arg) and Keyword.get(opts, :raw, false) do
-      true  -> Binary.Inspect.Tuple.inspect(arg, opts)
-      false -> Binary.Inspect.inspect(arg, opts)
+  defmacro inspect(arg, opts // [pretty: true]) do
+    quote do
+      arg = unquote(arg)
+      opts = unquote(opts)
+      case is_tuple(arg) && Keyword.get(opts, :raw, false) do
+        true  -> Binary.Inspect.Tuple.inspect(arg, opts)
+        false -> Binary.Inspect.inspect(arg, opts)
+      end
     end
   end
 
