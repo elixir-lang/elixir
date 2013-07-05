@@ -28,4 +28,5 @@ defmodule KernelTest do
   doctest Set
   doctest Stream
   doctest String
+  doctest Wadler
 end

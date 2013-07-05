@@ -222,7 +222,7 @@ defmodule ExUnit.DocTest do
               # (those that are expected to raise and those that aren't) are in
               # the same try block above.
               reason: "complete or raise",
-              actual: inspect(error) ],
+              actual: inspect(elem(error, 0)) <> " with message " <> inspect(error.message) ],
             stack
       end
     end

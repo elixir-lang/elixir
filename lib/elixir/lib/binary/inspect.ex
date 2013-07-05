@@ -72,7 +72,7 @@ defmodule Binary.Inspect.Utils do
     if opts[:as_doc] do
       doc
     else
-      if opts[:pretty], do: pretty(opts[:width], doc), else: pretty(:infinity, doc)
+      if opts[:pretty], do: pretty(doc, opts[:width]), else: pretty(doc, :infinity)
     end
   end
 

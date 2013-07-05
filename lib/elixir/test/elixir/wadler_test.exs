@@ -2,8 +2,8 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule WadlerTest do
   use ExUnit.Case, async: true
+
   import Wadler
-  alias Wadler, as: W
 
   def helloabcd do
     concat(
@@ -15,15 +15,15 @@ defmodule WadlerTest do
       text("d"))
   end
 
-  def factor(w, doc), do: format(w, 0, [{0, :flat, group(doc)}])
+  def factor(doc, w), do: format(w, 0, [{0, :flat, group(doc)}])
 
   test :empty do
     # Consistence with definitions
     assert empty == :doc_nil
     # Consistence of corresponding sdoc
-    assert factor(80, empty) == :s_nil
+    assert factor(empty, 80) == :s_nil
     # Consistent formatting
-    assert pretty(80, empty) == ""
+    assert pretty(empty, 80) == ""
   end
 
   test :break do
@@ -35,15 +35,15 @@ defmodule WadlerTest do
     ## ong argument type
     assert_raise FunctionClauseError, fn -> break(42) end
     # Consistence of corresponding sdoc
-    assert factor(80, break("_")) == { :s_text, "_", :s_nil }
+    assert factor(break("_"), 80) == { :s_text, "_", :s_nil }
     # Consistent formatting
-    assert pretty(80, break("_")) == "_"
+    assert pretty(break("_"), 80) == "_"
   end
 
   test :glue do
     # Consistence with definitions
     ## Normal case
-    assert glue(text("a"), "->", text("b")) == { :doc_cons, 
+    assert glue(text("a"), "->", text("b")) == { :doc_cons,
       { :doc_text, "a" },
       { :doc_cons, { :doc_break, "->" }, { :doc_text, "b" }}
     }
@@ -62,14 +62,14 @@ defmodule WadlerTest do
     ## ong argument type
     assert_raise FunctionClauseError, fn -> text(42) end
     # Consistence of corresponding docfactor
-    assert factor(80, text("_")) == { :s_text, "_", :s_nil }
+    assert factor(text("_"), 80) == { :s_text, "_", :s_nil }
     # Consistent formatting
-    assert pretty(80, text("_")) == "_"
+    assert pretty(text("_"), 80) == "_"
   end
 
   test :space do
     # Consistency with definitions
-    assert space(text("a"), text("b")) == { :doc_cons, 
+    assert space(text("a"), text("b")) == { :doc_cons,
       text("a"), { :doc_cons, text(" "), text("b") }
     }
   end
@@ -77,24 +77,24 @@ defmodule WadlerTest do
   test :nest do
     # Consistence with definitions
     ## Normal case
-    assert nest(1, empty) == { :doc_nest, 1, empty }
+    assert nest(empty, 1) == { :doc_nest, 1, empty }
     ## Degeneracy
-    assert nest(0, empty) == :doc_nil
+    assert nest(empty, 0) == :doc_nil
     ## ong argument type
     assert_raise FunctionClauseError, fn -> nest("foo", empty) end
 
-    a1   = fn -> nest(1, text("a")) end
-    alb1 = fn -> nest(1, glue(text("a"), text("b"))) end
+    a1   = fn -> nest(text("a"), 1) end
+    alb1 = fn -> nest(glue(text("a"), text("b")), 1) end
     # Consistence of corresponding sdoc
     ## Trivial case
-    assert factor(80, a1.())  == { :s_text, "a", :s_nil }
+    assert factor(a1.(), 80)  == { :s_text, "a", :s_nil }
     ## Correctly indenting line forcing linebreak
-    assert format(2, 0, [{0, :break, alb1.()}]) == 
+    assert format(2, 0, [{0, :break, alb1.()}]) ==
       { :s_text, "a", { :s_line, 1, { :s_text, "b", :s_nil }}}
 
     # Consistent formatting
     ## Trivial case
-    assert pretty(80, a1.())   == "a"
+    assert pretty(a1.(), 80)   == "a"
     ## Correctly indenting line
     assert render(format 2, 0, [{0, :break, alb1.()}]) == "a\n b"
   end
@@ -106,27 +106,27 @@ defmodule WadlerTest do
     g = ";"
     big_document = group(glue(t, g, t) |>  glue(g, t) |>  glue(g, t) |> glue(g, t))
 
-   assert pretty(:infinity, big_document) == s <> g <> s <> g <> s <> g <> s <> g <> s
+   assert pretty(big_document, :infinity) == s <> g <> s <> g <> s <> g <> s <> g <> s
   end
 
   test :group do
-    # Consistency with definitions 
+    # Consistency with definitions
     ## Normal case
-    assert group(glue(text("a"), text("b"))) == 
+    assert group(glue(text("a"), text("b"))) ==
       { :doc_group, { :doc_cons, text("a"), concat(break, text("b")) }}
 
     ## Degeneracy
     assert group(empty) == { :doc_group, empty }
 
     # Consistence of corresponding sdoc
-    assert factor(1, glue(text("a"), text("b"))) == 
+    assert factor(glue(text("a"), text("b")), 1) ==
       { :s_text, "a", { :s_line, 0, { :s_text, "b", :s_nil }}}
 
-    assert factor(9, glue(text("a"), text("b"))) == 
+    assert factor(glue(text("a"), text("b")), 9) ==
       { :s_text, "a", { :s_text, " ", { :s_text, "b", :s_nil }}}
 
     # Consistent formatting
-    assert pretty(5,  helloabcd) == "hello\na\nb\ncd"
-    assert pretty(80, helloabcd) == "hello a b cd"
+    assert pretty(helloabcd, 5) == "hello\na\nb\ncd"
+    assert pretty(helloabcd, 80) == "hello a b cd"
   end
 end
