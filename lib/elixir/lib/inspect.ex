@@ -21,7 +21,7 @@ end
 defmodule Inspect.Utils do
   @moduledoc """
   This module defines useful functions to be used on the
-  implementation of custom pretty-printers. The provided 
+  implementation of custom pretty-printers. The provided
   functions use the document algebra implemented on the
   `Inspect.Algebra` module.
   """
@@ -30,7 +30,7 @@ defmodule Inspect.Utils do
   @doc """
   Increases the depth count to be used with group_maybe.
   """
-  def inc_depth(opts), do: Keyword.put(opts, :depth, (opts[:depth] || 0) + 1)
+  def inc_depth(Inspect.Opts[] = opts), do: opts.update_depth(&1 + 1)
 
   @doc """
   Wraps a document `d` on a group if the current nest level on the pretty-printer is
@@ -61,7 +61,7 @@ defmodule Inspect.Utils do
   def group_maybe(d, t, opts), do: group_maybe_do(d, t, fn(d) -> group(d) end, opts)
 
   defp group_maybe_do(d, t, f, opts) do
-    if (opts[:depth] || 1) > t, do: d, else: f.(d)
+    if opts.depth > t, do: d, else: f.(d)
   end
 
   @doc """
@@ -70,21 +70,17 @@ defmodule Inspect.Utils do
   * `:pretty`: applies pretty-printing on the document if true.
   * `:width`: the number of columns available for rendering the document.
   """
-  def return(doc, opts) do
-    opts = Keyword.put_new(opts, :width, min(80, maxwidth()))
-    if opts[:as_doc] do
-      doc
-    else
-      if opts[:pretty], do: pretty(doc, opts[:width]), else: pretty(doc, :infinity)
+  def return(doc, Inspect.Opts[] = opts) do
+    cond do
+      opts.as_doc -> doc
+      opts.pretty -> pretty(doc, opts.width)
+      true -> pretty(doc, :infinity)
     end
   end
 
-  defp maxwidth, do: :erlang.element(2, :io.columns)
-
   @doc """
-  Creates a document from a sequence (tuples and lists), using first and 
-  last to enclose the document. The `:sep` option defines the character used
-  as a separator between sequence items.
+  Creates a document from a sequence (tuples and lists), using first and
+  last to enclose the document.
   """
   def container_join(tuple, first, last, opts) when is_tuple(tuple) do
     container_join(tuple_to_list(tuple), first, last, opts)
@@ -95,9 +91,9 @@ defmodule Inspect.Utils do
     group_maybe(
       surround(
         first,
-        do_container_join(list, opts, opts[:limit] || :infinity),
+        do_container_join(list, opts, opts.limit),
         last,
-        opts[:sep] || ""
+        ""
       ),
     5, opts)
   end
@@ -107,29 +103,28 @@ defmodule Inspect.Utils do
   end
 
   defp do_container_join([h], opts, _counter) do
-    Kernel.inspect(h, Keyword.put(opts, :as_doc, true))
+    Kernel.inspect(h, opts.as_doc(true))
   end
 
   defp do_container_join([h|t], opts, counter) when is_list(t) do
     glue(
       concat(
-        Kernel.inspect(h, Keyword.put(opts, :as_doc, true)), 
+        Kernel.inspect(h, opts.as_doc(true)),
         text(",")
       ),
       "",
-      do_container_join(t, opts, decrement(counter)
-      ) 
+      do_container_join(t, opts, decrement(counter))
     )
   end
 
   defp do_container_join([h|t], opts, _counter) do
     glue(
       concat(
-        Kernel.inspect(h, Keyword.put(opts, :as_doc, true)), 
+        Kernel.inspect(h, opts.as_doc(true)),
         text("|")
       ),
       "",
-      Kernel.inspect(t, Keyword.put(opts, :as_doc, true))
+      Kernel.inspect(t, opts.as_doc(true))
     )
   end
 
@@ -231,7 +226,7 @@ defimpl Inspect, for: Atom do
       valid_atom_identifier?(binary) ->
         ":" <> binary
       valid_ref_identifier?(binary) ->
-        Module.to_binary(atom)
+        Module.to_string(atom)
       atom in Macro.binary_ops or atom in Macro.unary_ops ->
         ":" <> binary
       true ->
@@ -308,8 +303,8 @@ defimpl Inspect, for: BitString do
 
   ## Bitstrings
 
-  defp as_bitstring(bitstring, opts) do
-    "<<" <> each_bit(bitstring, Keyword.get(opts, :limit, :infinity)) <> ">>"
+  defp as_bitstring(bitstring, Inspect.Opts[] = opts) do
+    "<<" <> each_bit(bitstring, opts.limit) <> ">>"
   end
 
   defp each_bit(_, 0) do
@@ -365,15 +360,15 @@ defimpl Inspect, for: List do
 
   def inspect([], opts), do: return(text("[]"), opts)
 
-  def inspect(thing, opts) do
+  def inspect(thing, Inspect.Opts[] = opts) do
     cond do
       :io_lib.printable_list(thing) ->
         return text(escape(:unicode.characters_to_binary(thing), ?')), opts
-      keyword?(thing) -> 
+      keyword?(thing) ->
         opts = inc_depth(opts)
         return(
           group_maybe(
-            surround("[",join_keywords(thing, Keyword.put(opts, :as_doc, true)),"]"),
+            surround("[",join_keywords(thing, opts.as_doc(true)),"]"),
             opts
           ), opts
         )
@@ -383,10 +378,10 @@ defimpl Inspect, for: List do
   end
 
   defp join_keywords([x], opts),   do: keyword_to_docentity(x, opts)
-  defp join_keywords([x|xs], opts) do 
+  defp join_keywords([x|xs], opts) do
     glue(
       concat(
-        keyword_to_docentity(x, opts), 
+        keyword_to_docentity(x, opts),
         text(",")
       ),
       join_keywords(xs, opts)
@@ -395,16 +390,15 @@ defimpl Inspect, for: List do
 
   defp keyword_to_docentity({key, value}, opts) do
     keybin = key_to_binary(key, opts) <> ": "
-    nest   = String.length(keybin)
-    opts   = Keyword.put(opts, :nest, nest)
+
     concat(
-      text(keybin), 
-      Kernel.inspect(value, Keyword.put(opts, :as_doc, true))
+      text(keybin),
+      Kernel.inspect(value, opts.as_doc(true))
     )
   end
 
   defp key_to_binary(key, opts) do
-    case Inspect.Atom.inspect(key, Keyword.put(opts, :as_doc, false)) do
+    case Inspect.Atom.inspect(key, opts.as_doc(false)) do
       ":" <> right -> right
       other -> other
     end
@@ -440,8 +434,8 @@ defimpl Inspect, for: Tuple do
   def inspect({}, opts), do: return(text("{}"), opts)
 
   def inspect(tuple, opts) do
-    unless opts[:raw] do
-      return record_inspect(tuple, Keyword.put(opts, :as_doc, true)), opts
+    unless opts.raw do
+      return record_inspect(tuple, opts.as_doc(true)), opts
     end || return container_join(tuple, "{", "}", opts), opts
   end
 
@@ -473,7 +467,7 @@ defimpl Inspect, for: Tuple do
     namedoc = Inspect.Atom.inspect(name, opts)
     group_maybe(
       concat(
-        namedoc, 
+        namedoc,
         surround("[", record_join(fields, tail, opts), "]")
       ),
       opts
@@ -484,7 +478,7 @@ defimpl Inspect, for: Tuple do
     fbin = atom_to_binary(f, :utf8) <> ": "
     concat(
       text(fbin),
-      Kernel.inspect(v, Keyword.put(opts, :nest, String.length(fbin)))
+      Kernel.inspect(v, opts)
     )
   end
 
@@ -494,7 +488,7 @@ defimpl Inspect, for: Tuple do
       concat(
         text(fhbin),
         concat(
-          Kernel.inspect(vh, opts), 
+          Kernel.inspect(vh, opts),
           text(",")
         )
       ),
@@ -545,7 +539,7 @@ defimpl Inspect, for: Regex do
   end
 
   def inspect(other, opts) do
-    return Kernel.inspect(other, Keyword.put(Keyword.put(opts, :raw, true), :as_doc, true)), opts
+    return Kernel.inspect(other, opts.raw(true).as_doc(true)), opts
   end
 end
 
@@ -604,11 +598,5 @@ end
 defimpl Inspect, for: HashSet do
   def inspect(set, opts) do
     "#HashSet<" <> Kernel.inspect(HashSet.to_list(set), opts) <> ">"
-  end
-end
-
-defimpl Inspect, for: Range do
-  def inspect(Range[first: first, last: last], opts) do
-    Kernel.inspect(first, opts) <> ".." <> Kernel.inspect(last, opts)
   end
 end
