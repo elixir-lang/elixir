@@ -46,7 +46,7 @@ defmodule Mix.Deps.Retriever do
   defp mix_children(config) do
     scms = Mix.SCM.available
     Mix.Project.recur(config, fn _ ->
-      (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, nil))
+      (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, :mix))
     end) |> List.concat
   end
 
@@ -59,7 +59,12 @@ defmodule Mix.Deps.Retriever do
 
   defp update(tuple, scms, manager) do
     dep = with_scm_and_status(tuple, scms)
-    dep = update_from(dep)
+      |> update_from(manager)
+
+    if match?({ _, req, _ } when is_regex(req), tuple) and manager != :rebar do
+      Mix.shell.info("[WARNING] Regex version requirement for dependencies is " <>
+        "deprecated, please use Mix.Version instead")
+    end
 
     if Mix.Deps.available?(dep) do
       cond do
@@ -82,12 +87,11 @@ defmodule Mix.Deps.Retriever do
     end
   end
 
-  defp update_from(dep) do
-    filename = cond do
-      File.exists?("mix.exs")      -> "mix.exs"
-      File.exists?("rebar.config") -> "rebar.config"
-      File.exists?("Makefile")     -> "Makefile"
-      true                         -> nil
+  defp update_from(dep, manager) do
+    filename = case manager do
+      :mix   -> "mix.exs"
+      :rebar -> "rebar.config"
+      nil    -> nil
     end
     path = if filename, do: Path.absname(filename), else: File.cwd!
     dep.from(path)
@@ -184,8 +188,10 @@ defmodule Mix.Deps.Retriever do
   end
 
   defp vsn_match?(nil, _actual), do: true
-  defp vsn_match?(expected, actual) when is_binary(expected), do: actual == expected
-  defp vsn_match?(expected, actual) when is_regex(expected),  do: actual =~ expected
+  defp vsn_match?(req, actual) when is_regex(req),  do: actual =~ req
+  defp vsn_match?(req, actual) when is_binary(req) do
+    Mix.Version.match?(actual, req)
+  end
 
   defp mixfile?(dep) do
     File.regular?(Path.join(dep.opts[:dest], "mix.exs"))
