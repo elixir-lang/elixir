@@ -35,15 +35,15 @@ defmodule Mix.Tasks.App.Start do
       parent = ebin |> Path.expand |> Path.dirname |> Path.basename
 
       if parent != atom_to_binary(app) do
-        Mix.shell.error "Mix requires the compile path #{inspect ebin} to be inside " <>
+        Mix.shell.error "Mix requires the compile path #{inspect ebin, pretty: false} to be inside " <>
                         "a directory with the same name as the application name " <>
-                        "#{inspect app}, got #{inspect Path.expand(ebin)}"
+                        "#{inspect app, pretty: false}, got #{inspect Path.expand(ebin), pretty: false}"
       end
 
       case Application.Behaviour.start(app) do
         :ok -> :ok
         { :error, reason } ->
-          raise Mix.Error, message: "Could not start application #{app}: #{inspect reason}"
+          raise Mix.Error, message: "Could not start application #{app}: #{inspect reason, pretty: false}"
       end
     end
   end

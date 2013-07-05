@@ -1,4 +1,5 @@
 import Kernel, except: [inspect: 1]
+import Wadler
 
 defprotocol Binary.Inspect do
   @moduledoc """
@@ -15,36 +16,122 @@ defprotocol Binary.Inspect do
 end
 
 defmodule Binary.Inspect.Utils do
-  @moduledoc false
+  @moduledoc """
+  This module defines useful functions to be used on the
+  implementation of custom pretty-printers. The provided 
+  functions use the document algebra implemented on the
+  `Wadler` module.
+  """
 
-  ## container_join
+  ## groups aware of depth
+  @doc """
+  Increases the depth count to be used with group_maybe.
+  """
+  def inc_depth(opts), do: Keyword.put(opts, :depth, (opts[:depth] || 0) + 1)
 
+  @doc """
+  Wraps a document `d` on a group if the current nest level on the pretty-printer is
+  smaller than `t`. `group_maybe/2` uses a default nesting level of 3.
+
+    # group_maybe enables the output for
+    iex(1)> inspect([foo: [1,2,3,:bar], bazzz: :bat], [pretty: true, width: 30])
+
+    # to be a much more concise
+    [
+      foo: [1,2,3,:bar], bazzz: :bat
+    ]
+
+    # instead of
+    [
+      foo: [
+        1,
+        2,
+        3,
+        :bar
+      ],
+      bazzz: :bat
+    ]
+
+
+  """
+  def group_maybe(d, opts),    do: group_maybe_do(d, 3, fn(d) -> group(d) end, opts)
+  def group_maybe(d, t, opts), do: group_maybe_do(d, t, fn(d) -> group(d) end, opts)
+
+  defp group_maybe_do(d, t, f, opts) do
+    if (opts[:depth] || 1) > t, do: d, else: f.(d)
+  end
+
+  @doc """
+  Renders a document with regard to the the provided options:
+  * `:as_doc`: returns doc if true, useful for recursive Kernel.inspect calls.
+  * `:pretty`: applies pretty-printing on the document if true.
+  * `:width`: the number of columns available for rendering the document.
+  """
+  def return(doc, opts) do
+    opts = Keyword.put_new(opts, :width, min(80, maxwidth()))
+    if opts[:as_doc] do
+      doc
+    else
+      if opts[:pretty], do: pretty(opts[:width], doc), else: pretty(:infinity, doc)
+    end
+  end
+
+  defp maxwidth, do: :erlang.element 2, :io.columns
+
+  @doc """
+  Creates a document from a sequence (tuples and lists), using first and 
+  last to enclose the document. The `:sep` option defines the character used
+  as a separator between sequence items.
+  """
   def container_join(tuple, first, last, opts) when is_tuple(tuple) do
     container_join(tuple_to_list(tuple), first, last, opts)
   end
 
   def container_join(list, first, last, opts) do
-    first <> do_container_join(list, opts, Keyword.get(opts, :limit, :infinity)) <> last
+    opts = inc_depth(opts)
+    group_maybe(
+      surround(
+        first,
+        do_container_join(list, opts, opts[:limit] || :infinity),
+        last,
+        opts[:sep] || ""
+      ),
+    5, opts)
   end
 
   defp do_container_join(_, _opts, 0) do
-    "..."
+    text "..."
   end
 
   defp do_container_join([h], opts, _counter) do
-    Kernel.inspect(h, opts)
+    Kernel.inspect(h, Keyword.put(opts, :as_doc, true))
   end
 
   defp do_container_join([h|t], opts, counter) when is_list(t) do
-    Kernel.inspect(h, opts) <> "," <> do_container_join(t, opts, decrement(counter))
+    glue(
+      concat(
+        Kernel.inspect(h, Keyword.put(opts, :as_doc, true)), 
+        text(",")
+      ),
+      "",
+      do_container_join(t, opts, decrement(counter)
+      ) 
+    )
   end
 
   defp do_container_join([h|t], opts, _counter) do
-    Kernel.inspect(h, opts) <> "|" <> Kernel.inspect(t, opts)
+    glue(
+      concat(
+        Kernel.inspect(h, Keyword.put(opts, :as_doc, true)), 
+        text("|")
+      ),
+      "",
+      Kernel.inspect(t, Keyword.put(opts, :as_doc, true))
+    )
   end
 
   defp do_container_join([], _opts, _counter) do
-    ""
+    text ""
   end
 
   defp decrement(:infinity), do: :infinity
@@ -123,24 +210,24 @@ defimpl Binary.Inspect, for: Atom do
 
   """
 
-  def inspect(false, _),  do: "false"
-  def inspect(true, _),   do: "true"
-  def inspect(nil, _),    do: "nil"
-  def inspect(:"", _),    do: ":\"\""
-  def inspect(Elixir, _), do: "Elixir"
+  def inspect(false, opts),  do: return text("false"), opts
+  def inspect(true, opts),   do: return text("true"), opts
+  def inspect(nil, opts),    do: return text("nil"), opts
+  def inspect(:"", opts),    do: return text(":\"\""), opts
+  def inspect(Elixir, opts), do: return text("Elixir"), opts
 
-  def inspect(atom, _) do
+  def inspect(atom, opts) do
     binary = atom_to_binary(atom)
 
     cond do
       valid_atom_identifier?(binary) ->
-        ":" <> binary
+        return text(":" <> binary), opts
       valid_ref_identifier?(binary) ->
-        Module.to_binary(atom)
+        return text(Module.to_binary(atom)), opts
       atom in Macro.binary_ops or atom in Macro.unary_ops ->
-        ":" <> binary
+        return text(":" <> binary), opts
       true ->
-        ":" <> escape(binary, ?")
+        return text(":" <> escape(binary, ?")), opts
     end
   end
 
@@ -201,14 +288,14 @@ defimpl Binary.Inspect, for: BitString do
 
   def inspect(thing, opts) when is_binary(thing) do
     if String.printable?(thing) do
-      escape(thing, ?")
+      return text(escape(thing, ?")), opts
     else
-      as_bitstring(thing, opts)
+      return text(as_bitstring(thing, opts)), opts
     end
   end
 
   def inspect(thing, opts) do
-    as_bitstring(thing, opts)
+    return text(as_bitstring(thing, opts)), opts
   end
 
   ## Bitstrings
@@ -268,27 +355,48 @@ defimpl Binary.Inspect, for: List do
 
   """
 
-  def inspect([], _), do: "[]"
+  def inspect([], opts), do: return text("[]"), opts
 
   def inspect(thing, opts) do
     cond do
       :io_lib.printable_list(thing) ->
-        escape(:unicode.characters_to_binary(thing), ?')
-      keyword?(thing) ->
-        "[" <> join_keywords(thing, opts) <> "]"
+        return text(escape(:unicode.characters_to_binary(thing), ?')), opts
+      keyword?(thing) -> 
+        opts = inc_depth(opts)
+        return(
+          group_maybe(
+            surround("[",join_keywords(thing, Keyword.put(opts, :as_doc, true)),"]"),
+            opts
+          ), opts
+        )
       true ->
-        container_join(thing, "[", "]", opts)
+        return container_join(thing, "[", "]", opts), opts
     end
   end
 
-  defp join_keywords(thing, opts) do
-    Enum.join(lc {key, value} inlist thing do
-      key_to_binary(key, opts) <> ": " <> Kernel.inspect(value, opts)
-    end, ", ")
+  defp join_keywords([x], opts),   do: keyword_to_docentity(x, opts)
+  defp join_keywords([x|xs], opts) do 
+    glue(
+      concat(
+        keyword_to_docentity(x, opts), 
+        text(",")
+      ),
+      join_keywords(xs, opts)
+    )
+  end
+
+  defp keyword_to_docentity({key, value}, opts) do
+    keybin = key_to_binary(key, opts) <> ": "
+    nest   = String.length(keybin)
+    opts   = Keyword.put(opts, :nest, nest)
+    concat(
+      text(keybin), 
+      Kernel.inspect(value, Keyword.put(opts, :as_doc, true))
+    )
   end
 
   defp key_to_binary(key, opts) do
-    case Binary.Inspect.Atom.inspect(key, opts) do
+    case Binary.Inspect.Atom.inspect(key, Keyword.put(opts, :as_doc, false)) do
       ":" <> right -> right
       other -> other
     end
@@ -321,27 +429,26 @@ defimpl Binary.Inspect, for: Tuple do
 
   """
 
-  def inspect({}, _), do: "{}"
+  def inspect({}, opts), do: return text("{}"), opts
 
   def inspect(tuple, opts) do
     unless opts[:raw] do
-      record_inspect(tuple, opts)
-    end || container_join(tuple, "{", "}", opts)
+      return record_inspect(tuple, Keyword.put(opts, :as_doc, true)), opts
+    end || return container_join(tuple, "{", "}", opts), opts
   end
 
   ## Helpers
 
   defp record_inspect(record, opts) do
-    list = tuple_to_list(record)
-    [name|tail] = list
+    [name|tail] = tuple_to_list(record)
 
-    if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
+   if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
       if Enum.first(tail) == :__exception__ do
         record_join(name, tl(fields), tl(tail), opts)
       else
         record_join(name, fields, tail, opts)
       end
-    end
+    end || container_join(record, "{", "}", opts)
   end
 
   defp record_fields(name) do
@@ -353,27 +460,47 @@ defimpl Binary.Inspect, for: Tuple do
   end
 
   defp record_join(name, fields, tail, opts) do
+    opts = inc_depth(opts)
     fields = lc { field, _ } inlist fields, do: field
-    Binary.Inspect.Atom.inspect(name, opts) <> "[" <>
-      record_join(fields, tail, opts) <> "]"
+    namedoc = Binary.Inspect.Atom.inspect(name, opts)
+    group_maybe(
+      concat(
+        namedoc, 
+        surround("[", record_join(fields, tail, opts), "]"),
+      ),
+      opts
+    )
   end
 
   defp record_join([f], [v], opts) do
-    atom_to_binary(f, :utf8) <> ": " <> Kernel.inspect(v, opts)
+    fbin = atom_to_binary(f, :utf8) <> ": "
+    concat(
+      text(fbin),
+      Kernel.inspect(v, Keyword.put(opts, :nest, String.length(fbin)))
+    )
   end
 
   defp record_join([fh|ft], [vh|vt], opts) do
-    atom_to_binary(fh, :utf8) <> ": " <>
-      Kernel.inspect(vh, opts) <> ", " <>
+    fhbin = atom_to_binary(fh, :utf8) <> ": "
+    glue(
+      concat(
+        text(fhbin),
+        concat(
+          Kernel.inspect(vh, opts), 
+          text(",")
+        )
+      ),
       record_join(ft, vt, opts)
+    )
   end
 
   defp record_join([], [], _opts) do
-    ""
+    text ""
   end
 end
 
 defimpl Binary.Inspect, for: Number do
+  import Binary.Inspect.Utils
   @moduledoc """
   Represents the number as a binary.
 
@@ -387,20 +514,24 @@ defimpl Binary.Inspect, for: Number do
   @digits 20
   @limit  :math.pow(10, @digits)
 
-  def inspect(thing, _) when is_integer(thing) do
-    integer_to_binary(thing)
+  def inspect(thing, opts) when is_integer(thing) do
+    return text(integer_to_binary(thing)), opts
   end
 
-  def inspect(thing, _) when thing > @limit do
-    float_to_binary(thing, scientific: @digits)
+  to_binary = :proplists.get_value(:float_to_binary,
+                :proplists.get_value(:exports, :erlang.module_info, []))
+
+  def inspect(thing, opts) when thing > @limit do
+    return text(float_to_binary(thing, scientific: @digits)), opts
   end
 
-  def inspect(thing, _) do
-    float_to_binary(thing, compact: true, decimals: @digits)
+  def inspect(thing, opts) do
+    return text(float_to_binary(thing, compact: true, decimals: @digits)), opts
   end
 end
 
 defimpl Binary.Inspect, for: Regex do
+  import Binary.Inspect.Utils
   @moduledoc %B"""
   Represents the Regex using the `%r""` syntax.
 
@@ -411,52 +542,60 @@ defimpl Binary.Inspect, for: Regex do
 
   """
 
-  def inspect(regex, _opts) when size(regex) == 5 do
-    "%r" <> Kernel.inspect(Regex.source(regex), []) <> Regex.opts(regex)
+  def inspect(regex, opts) when size(regex) == 5 do
+    return text("%r" <> Kernel.inspect(Regex.source(regex), []) <> Regex.opts(regex)), opts
   end
 
   def inspect(other, opts) do
-    Kernel.inspect other, Keyword.put(opts, :raw, true)
+    return Kernel.inspect(other, Keyword.put(Keyword.put(opts, :raw, true), :as_doc, true)), opts
   end
 end
 
 defimpl Binary.Inspect, for: Function do
+  import Binary.Inspect.Utils
   @moduledoc """
   Inspect functions, when possible, in a literal form.
   """
 
-  def inspect(function, _opts) do
+  def inspect(function, opts) do
     fun_info = :erlang.fun_info(function)
     if fun_info[:type] == :external and fun_info[:env] == [] do
-      "function(#{Kernel.inspect(fun_info[:module])}.#{fun_info[:name]}/#{fun_info[:arity]})"
+      return(
+        text(
+          "function(#{Kernel.inspect(fun_info[:module])}.#{fun_info[:name]}/#{fun_info[:arity]})"
+        ),
+      opts)
     else
       '#Fun' ++ rest = :erlang.fun_to_list(function)
-      "#Function" <> list_to_binary(rest)
+      return text("#Function" <> list_to_binary(rest)), opts
     end
   end
 end
 
 defimpl Binary.Inspect, for: PID do
+  import Binary.Inspect.Utils
   @moduledoc "Inspect PIDs"
 
-  def inspect(pid, _) do
-    "#PID" <> list_to_binary pid_to_list(pid)
+  def inspect(pid, opts) do
+    return(text("#PID" <> list_to_binary pid_to_list(pid)), opts)
   end
 end
 
 defimpl Binary.Inspect, for: Port do
+  import Binary.Inspect.Utils
   @moduledoc "Inspect ports"
 
-  def inspect(port, _) do
-    list_to_binary :erlang.port_to_list(port)
+  def inspect(port, opts) do
+    return(text(list_to_binary :erlang.port_to_list(port)), opts)
   end
 end
 
 defimpl Binary.Inspect, for: Reference do
+  import Binary.Inspect.Utils
   @moduledoc "Inspect references"
 
-  def inspect(ref, _) do
+  def inspect(ref, opts) do
     '#Ref' ++ rest = :erlang.ref_to_list(ref)
-    "#Reference" <> list_to_binary(rest)
+    return text("#Reference" <> list_to_binary(rest)), opts
   end
 end

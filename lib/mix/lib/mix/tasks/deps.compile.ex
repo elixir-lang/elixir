@@ -105,7 +105,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_rebar(app, root_path) do
-    do_command app, rebar_cmd(app), "compile skip_deps=true deps_dir=#{inspect root_path}"
+    do_command app, rebar_cmd(app), "compile skip_deps=true deps_dir=#{inspect root_path, pretty: false}"
   end
 
   defp rebar_cmd(app) do
