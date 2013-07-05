@@ -1,4 +1,4 @@
-defmodule Wadler do
+defmodule Inspect.Algebra do
   @moduledoc """
   Elixir implementation of the Wadler document algebra as described in
   ["Strictly Pretty" (2000) by Christian Lindig][0].
@@ -18,11 +18,10 @@ defmodule Wadler do
 
   """
 
-  # some shortcut functions
-  defp newline, do: "\n"
-  defp strlen(s), do: String.length(s)
-  defp default_nesting, do: 2
+  @default_nesting 2
+  @newline "\n"
 
+  defp strlen(s), do: String.length(s)
   defp repeat(_, 0), do: ""
   defp repeat(s, i), do: :lists.duplicate(i, s)
 
@@ -41,7 +40,7 @@ defmodule Wadler do
 
   ## Examples
 
-      iex> Wadler.empty
+      iex> Inspect.Algebra.empty
       :doc_nil
 
   """
@@ -54,8 +53,8 @@ defmodule Wadler do
 
   ## Examples
 
-      iex> doc = Wadler.concat Wadler.text("Tasteless"), Wadler.text("Artosis")
-      iex> Wadler.pretty(doc, 80)
+      iex> doc = Inspect.Algebra.concat Inspect.Algebra.text("Tasteless"), Inspect.Algebra.text("Artosis")
+      iex> Inspect.Algebra.pretty(doc, 80)
       "TastelessArtosis"
 
   """
@@ -69,8 +68,8 @@ defmodule Wadler do
 
   ## Examples
 
-      iex> doc = Wadler.nest(Wadler.concat(Wadler.break, Wadler.text("6")), 5)
-      iex> Wadler.pretty(doc, 80)
+      iex> doc = Inspect.Algebra.nest(Inspect.Algebra.concat(Inspect.Algebra.break, Inspect.Algebra.text("6")), 5)
+      iex> Inspect.Algebra.pretty(doc, 80)
       " 6"
 
   """
@@ -83,8 +82,8 @@ defmodule Wadler do
 
   ## Examples
 
-      iex> doc = Wadler.text "Hello, World!"
-      iex> Wadler.pretty(doc, 80)
+      iex> doc = Inspect.Algebra.text "Hello, World!"
+      iex> Inspect.Algebra.pretty(doc, 80)
       "Hello, World!"
 
   """
@@ -100,15 +99,15 @@ defmodule Wadler do
 
   Let's glue two docs together with a break and then render it:
 
-    iex> doc = Wadler.glue(Wadler.text("a"), " ", Wadler.text("b"))
-    iex> Wadler.pretty(doc, 80)
+    iex> doc = Inspect.Algebra.glue(Inspect.Algebra.text("a"), " ", Inspect.Algebra.text("b"))
+    iex> Inspect.Algebra.pretty(doc, 80)
     "a b"
 
   Notice the break was represented as is, because we haven't reached
   a line limit. Once we do, it is replaced by a new line:
 
-      iex> doc = Wadler.glue(Wadler.text(String.duplicate "a", 20), " ", Wadler.text("b"))
-      iex> Wadler.pretty(doc, 10)
+      iex> doc = Inspect.Algebra.glue(Inspect.Algebra.text(String.duplicate "a", 20), " ", Inspect.Algebra.text("b"))
+      iex> Inspect.Algebra.pretty(doc, 10)
       "aaaaaaaaaaaaaaaaaaaa\nb"
 
   """
@@ -136,25 +135,25 @@ defmodule Wadler do
 
   ## Examples
 
-      iex> doc = Wadler.group(
-      ...>   Wadler.concat(
-      ...>     Wadler.group(
-      ...>       Wadler.concat(
-      ...>         Wadler.text("Hello,"),
-      ...>         Wadler.concat(
-      ...>           Wadler.break,
-      ...>           Wadler.text("A")
+      iex> doc = Inspect.Algebra.group(
+      ...>   Inspect.Algebra.concat(
+      ...>     Inspect.Algebra.group(
+      ...>       Inspect.Algebra.concat(
+      ...>         Inspect.Algebra.text("Hello,"),
+      ...>         Inspect.Algebra.concat(
+      ...>           Inspect.Algebra.break,
+      ...>           Inspect.Algebra.text("A")
       ...>         )
       ...>       )
       ...>     ),
-      ...>     Wadler.concat(
-      ...>       Wadler.break,
-      ...>       Wadler.text("B")
+      ...>     Inspect.Algebra.concat(
+      ...>       Inspect.Algebra.break,
+      ...>       Inspect.Algebra.text("B")
       ...>     )
       ...> ))
-      iex> Wadler.pretty(doc, 80)
+      iex> Inspect.Algebra.pretty(doc, 80)
       "Hello, A B"
-      iex> Wadler.pretty(doc, 6)
+      iex> Inspect.Algebra.pretty(doc, 6)
       "Hello,\nA\nB"
 
   """
@@ -167,9 +166,9 @@ defmodule Wadler do
 
   ## Examples
 
-      iex> doc = Wadler.space Wadler.text("Hughes"), Wadler.text("Wadler")
-      iex> Wadler.pretty(doc, 80)
-      "Hughes Wadler"
+      iex> doc = Inspect.Algebra.space Inspect.Algebra.text("Hughes"), Inspect.Algebra.text("Inspect.Algebra")
+      iex> Inspect.Algebra.pretty(doc, 80)
+      "Hughes Inspect.Algebra"
 
   """
   @spec space(doc, doc) :: :doc_cons_t
@@ -180,13 +179,13 @@ defmodule Wadler do
 
   ## Examples
 
-      iex> doc = Wadler.line Wadler.text("Hughes"), Wadler.text("Wadler")
-      iex> Wadler.pretty(doc, 80)
-      "Hughes\nWadler"
+      iex> doc = Inspect.Algebra.line Inspect.Algebra.text("Hughes"), Inspect.Algebra.text("Inspect.Algebra")
+      iex> Inspect.Algebra.pretty(doc, 80)
+      "Hughes\nInspect.Algebra"
 
   """
   @spec line(doc, doc) :: :doc_cons_t
-  def line(x, y), do: glue(x, newline, y)
+  def line(x, y), do: glue(x, @newline, y)
 
   @doc """
   Folds a list of document entities into a document entity
@@ -194,9 +193,9 @@ defmodule Wadler do
 
   ## Examples
 
-      iex> doc = [Wadler.text("A"), Wadler.text("B")]
-      iex> doc = Wadler.folddoc(doc, fn(x,y) -> Wadler.concat(x, Wadler.concat(Wadler.text("!"), y)) end)
-      iex> Wadler.pretty(doc, 80)
+      iex> doc = [Inspect.Algebra.text("A"), Inspect.Algebra.text("B")]
+      iex> doc = Inspect.Algebra.folddoc(doc, fn(x,y) -> Inspect.Algebra.concat(x, Inspect.Algebra.concat(Inspect.Algebra.text("!"), y)) end)
+      iex> Inspect.Algebra.pretty(doc, 80)
       "A!B"
 
   """
@@ -210,8 +209,8 @@ defmodule Wadler do
 
   ## Examples
 
-      iex> doc = [Wadler.text("A"), Wadler.text("B")]
-      iex> doc |> Wadler.spread |> Wadler.pretty(80)
+      iex> doc = [Inspect.Algebra.text("A"), Inspect.Algebra.text("B")]
+      iex> doc |> Inspect.Algebra.spread |> Inspect.Algebra.pretty(80)
       "A B"
 
   """
@@ -223,8 +222,8 @@ defmodule Wadler do
 
   ## Examples
 
-      iex> doc = [Wadler.text("A"), Wadler.text("B")]
-      iex> doc |> Wadler.stack |> Wadler.pretty(80)
+      iex> doc = [Inspect.Algebra.text("A"), Inspect.Algebra.text("B")]
+      iex> doc |> Inspect.Algebra.stack |> Inspect.Algebra.pretty(80)
       "A\nB"
   """
   @spec stack([doc]) :: doc
@@ -238,7 +237,7 @@ defmodule Wadler do
   @spec surround(binary, doc, binary) :: doc
   def surround(left, doc, right, sep // "") do
     glue(
-      nest(glue(text(left), sep, doc), default_nesting), # remember that first line is not nested
+      nest(glue(text(left), sep, doc), @default_nesting), # remember that first line is not nested
       sep,
       text(right)
     )
@@ -263,7 +262,7 @@ defmodule Wadler do
   defp do_render(s_text(str: s, sdoc: d)), do: [s | do_render(d)]
   defp do_render(s_line(indent: i, sdoc: d)) do
     prefix = repeat " ", i
-    [newline | [prefix | do_render d]]
+    [@newline | [prefix | do_render d]]
   end
 
   @doc """

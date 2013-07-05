@@ -559,11 +559,3 @@ end
 defimpl Access, for: HashDict do
   def access(dict, key), do: HashDict.get(dict, key, nil)
 end
-
-defimpl Binary.Inspect, for: HashDict do
-  import Kernel, except: [inspect: 2]
-
-  def inspect(dict, opts) do
-    "#HashDict<" <> Kernel.inspect(HashDict.to_list(dict), opts) <> ">"
-  end
-end

@@ -1,6 +1,6 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file "test_helper.exs", __DIR__
 
-defmodule Binary.Inspect.AtomTest do
+defmodule Inspect.AtomTest do
   use ExUnit.Case, async: true
 
   test :basic do
@@ -42,11 +42,11 @@ defmodule Binary.Inspect.AtomTest do
   end
 
   test :impl do
-    assert Binary.Inspect.Atom.__impl__ == Binary.Inspect
+    assert Inspect.Atom.__impl__ == Inspect
   end
 end
 
-defmodule Binary.Inspect.BitStringTest do
+defmodule Inspect.BitStringTest do
   use ExUnit.Case, async: true
 
   test :bitstring do
@@ -79,7 +79,7 @@ defmodule Binary.Inspect.BitStringTest do
   end
 end
 
-defmodule Binary.Inspect.NumberTest do
+defmodule Inspect.NumberTest do
   use ExUnit.Case, async: true
 
   test :integer do
@@ -93,7 +93,7 @@ defmodule Binary.Inspect.NumberTest do
   end
 end
 
-defmodule Binary.Inspect.TupleTest do
+defmodule Inspect.TupleTest do
   use ExUnit.Case, async: true
 
   test :basic do
@@ -120,7 +120,7 @@ defmodule Binary.Inspect.TupleTest do
   defrecord Config, a: 1, b: []
 
   test :with_record do
-    assert inspect(Config.new) == "Binary.Inspect.TupleTest.Config[a: 1, b: []]"
+    assert inspect(Config.new) == "Inspect.TupleTest.Config[a: 1, b: []]"
   end
 
   test :with_tuple_matching_record_name_but_not_length do
@@ -140,7 +140,7 @@ defmodule Binary.Inspect.TupleTest do
   defrecord Rec, value: 1
 
   test :two_items_record do
-    assert inspect({ Rec[value: 1], 1 }) == "{Binary.Inspect.TupleTest.Rec[value: 1],1}"
+    assert inspect({ Rec[value: 1], 1 }) == "{Inspect.TupleTest.Rec[value: 1],1}"
   end
 
   test :empty do
@@ -152,11 +152,11 @@ defmodule Binary.Inspect.TupleTest do
   end
 
   test :with_raw do
-    assert inspect(Config.new, raw: true) == "{Binary.Inspect.TupleTest.Config,1,[]}"
+    assert inspect(Config.new, raw: true) == "{Inspect.TupleTest.Config,1,[]}"
   end
 end
 
-defmodule Binary.Inspect.ListTest do
+defmodule Inspect.ListTest do
   use ExUnit.Case, async: true
 
   test :basic do
@@ -204,7 +204,7 @@ defmodule Binary.Inspect.ListTest do
   end
 end
 
-defmodule Binary.Inspect.OthersTest do
+defmodule Inspect.OthersTest do
   use ExUnit.Case, async: true
 
   def f do

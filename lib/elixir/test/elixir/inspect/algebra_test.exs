@@ -1,9 +1,9 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file "../test_helper.exs", __DIR__
 
-defmodule WadlerTest do
+defmodule Inspect.AlgebraTest do
   use ExUnit.Case, async: true
 
-  import Wadler
+  import Inspect.Algebra
 
   def helloabcd do
     concat(

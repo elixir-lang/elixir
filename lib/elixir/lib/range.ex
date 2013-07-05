@@ -60,11 +60,3 @@ defimpl Range.Iterator, for: Number do
     first - last + 1
   end
 end
-
-defimpl Binary.Inspect, for: Range do
-  import Kernel, except: [inspect: 2]
-
-  def inspect(Range[first: first, last: last], opts) do
-    Kernel.inspect(first, opts) <> ".." <> Kernel.inspect(last, opts)
-  end
-end

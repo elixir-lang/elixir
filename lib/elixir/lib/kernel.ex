@@ -2013,7 +2013,7 @@ defmodule Kernel do
   end
 
   @doc %B"""
-  Inspect the given arguments according to the `Binary.Inspect` protocol.
+  Inspect the given arguments according to the `Inspect` protocol.
 
   ## Options
 
@@ -2054,8 +2054,8 @@ defmodule Kernel do
   """
   def inspect(arg, opts // []) do
     case is_tuple(arg) and Keyword.get(opts, :raw, false) do
-      true  -> Binary.Inspect.Tuple.inspect(arg, opts)
-      false -> Binary.Inspect.inspect(arg, opts)
+      true  -> Inspect.Tuple.inspect(arg, opts)
+      false -> Inspect.inspect(arg, opts)
     end
   end
 

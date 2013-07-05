@@ -1,9 +1,12 @@
 import Kernel, except: [inspect: 1]
-import Wadler
+import Inspect.Algebra
 
-defprotocol Binary.Inspect do
+defrecord Inspect.Opts, raw: false, limit: :infinity, depth: 0,
+                        pretty: false, width: 80, as_doc: false
+
+defprotocol Inspect do
   @moduledoc """
-  The `Binary.Inspect` protocol is responsible for
+  The `Inspect` protocol is responsible for
   converting any structure to a binary for textual
   representation. All basic data structures
   (tuple, list, function, pid, etc) implement the
@@ -15,12 +18,12 @@ defprotocol Binary.Inspect do
   def inspect(thing, opts)
 end
 
-defmodule Binary.Inspect.Utils do
+defmodule Inspect.Utils do
   @moduledoc """
   This module defines useful functions to be used on the
   implementation of custom pretty-printers. The provided 
   functions use the document algebra implemented on the
-  `Wadler` module.
+  `Inspect.Algebra` module.
   """
 
   ## groups aware of depth
@@ -187,9 +190,9 @@ defmodule Binary.Inspect.Utils do
   end
 end
 
-defimpl Binary.Inspect, for: Atom do
+defimpl Inspect, for: Atom do
   require Macro
-  import Binary.Inspect.Utils
+  import Inspect.Utils
 
   @doc """
   Represents the atom as an Elixir term. The atoms false, true
@@ -209,25 +212,30 @@ defimpl Binary.Inspect, for: Atom do
       "Foo.Bar"
 
   """
-
-  def inspect(false, opts),  do: return(text("false"), opts)
-  def inspect(true, opts),   do: return(text("true"), opts)
-  def inspect(nil, opts),    do: return(text("nil"), opts)
-  def inspect(:"", opts),    do: return(text(":\"\""), opts)
-  def inspect(Elixir, opts), do: return(text("Elixir"), opts)
-
   def inspect(atom, opts) do
+    return text(inspect_text(atom)), opts
+  end
+
+  # Used internally by Elixir
+  @doc false
+  def inspect_text(false),  do: "false"
+  def inspect_text(true),   do: "true"
+  def inspect_text(nil),    do: "nil"
+  def inspect_text(:""),    do: ":\"\""
+  def inspect_text(Elixir), do: "Elixir"
+
+  def inspect_text(atom) do
     binary = atom_to_binary(atom)
 
     cond do
       valid_atom_identifier?(binary) ->
-        return text(":" <> binary), opts
+        ":" <> binary
       valid_ref_identifier?(binary) ->
-        return text(Module.to_binary(atom)), opts
+        Module.to_binary(atom)
       atom in Macro.binary_ops or atom in Macro.unary_ops ->
-        return text(":" <> binary), opts
+        ":" <> binary
       true ->
-        return text(":" <> escape(binary, ?")), opts
+        ":" <> escape(binary, ?")
     end
   end
 
@@ -270,8 +278,8 @@ defimpl Binary.Inspect, for: Atom do
   defp valid_identifier?(other), do: other
 end
 
-defimpl Binary.Inspect, for: BitString do
-  import Binary.Inspect.Utils
+defimpl Inspect, for: BitString do
+  import Inspect.Utils
 
   @doc %B"""
   Represents the string as itself escaping
@@ -330,8 +338,8 @@ defimpl Binary.Inspect, for: BitString do
   defp decrement(counter),   do: counter - 1
 end
 
-defimpl Binary.Inspect, for: List do
-  import Binary.Inspect.Utils
+defimpl Inspect, for: List do
+  import Inspect.Utils
 
   @doc %B"""
   Represents a list checking if it can be printed or not.
@@ -396,7 +404,7 @@ defimpl Binary.Inspect, for: List do
   end
 
   defp key_to_binary(key, opts) do
-    case Binary.Inspect.Atom.inspect(key, Keyword.put(opts, :as_doc, false)) do
+    case Inspect.Atom.inspect(key, Keyword.put(opts, :as_doc, false)) do
       ":" <> right -> right
       other -> other
     end
@@ -413,8 +421,8 @@ defimpl Binary.Inspect, for: List do
   defp keyword?(_other), do: false
 end
 
-defimpl Binary.Inspect, for: Tuple do
-  import Binary.Inspect.Utils
+defimpl Inspect, for: Tuple do
+  import Inspect.Utils
 
   @doc """
   Inspect tuples. If the tuple represents a record,
@@ -462,7 +470,7 @@ defimpl Binary.Inspect, for: Tuple do
   defp record_join(name, fields, tail, opts) do
     opts = inc_depth(opts)
     fields = lc { field, _ } inlist fields, do: field
-    namedoc = Binary.Inspect.Atom.inspect(name, opts)
+    namedoc = Inspect.Atom.inspect(name, opts)
     group_maybe(
       concat(
         namedoc, 
@@ -499,8 +507,8 @@ defimpl Binary.Inspect, for: Tuple do
   end
 end
 
-defimpl Binary.Inspect, for: Number do
-  import Binary.Inspect.Utils
+defimpl Inspect, for: Number do
+  import Inspect.Utils
 
   @doc """
   Represents the number as a binary.
@@ -520,8 +528,8 @@ defimpl Binary.Inspect, for: Number do
   end
 end
 
-defimpl Binary.Inspect, for: Regex do
-  import Binary.Inspect.Utils
+defimpl Inspect, for: Regex do
+  import Inspect.Utils
 
   @moduledoc %B"""
   Represents the Regex using the `%r""` syntax.
@@ -541,8 +549,8 @@ defimpl Binary.Inspect, for: Regex do
   end
 end
 
-defimpl Binary.Inspect, for: Function do
-  import Binary.Inspect.Utils
+defimpl Inspect, for: Function do
+  import Inspect.Utils
 
   @moduledoc """
   Inspect functions, when possible, in a literal form.
@@ -562,27 +570,45 @@ defimpl Binary.Inspect, for: Function do
   end
 end
 
-defimpl Binary.Inspect, for: PID do
-  import Binary.Inspect.Utils
+defimpl Inspect, for: PID do
+  import Inspect.Utils
 
   def inspect(pid, opts) do
     return(text("#PID" <> list_to_binary pid_to_list(pid)), opts)
   end
 end
 
-defimpl Binary.Inspect, for: Port do
-  import Binary.Inspect.Utils
+defimpl Inspect, for: Port do
+  import Inspect.Utils
 
   def inspect(port, opts) do
     return(text(list_to_binary :erlang.port_to_list(port)), opts)
   end
 end
 
-defimpl Binary.Inspect, for: Reference do
-  import Binary.Inspect.Utils
+defimpl Inspect, for: Reference do
+  import Inspect.Utils
 
   def inspect(ref, opts) do
     '#Ref' ++ rest = :erlang.ref_to_list(ref)
     return text("#Reference" <> list_to_binary(rest)), opts
+  end
+end
+
+defimpl Inspect, for: HashDict do
+  def inspect(dict, opts) do
+    "#HashDict<" <> Kernel.inspect(HashDict.to_list(dict), opts) <> ">"
+  end
+end
+
+defimpl Inspect, for: HashSet do
+  def inspect(set, opts) do
+    "#HashSet<" <> Kernel.inspect(HashSet.to_list(set), opts) <> ">"
+  end
+end
+
+defimpl Inspect, for: Range do
+  def inspect(Range[first: first, last: last], opts) do
+    Kernel.inspect(first, opts) <> ".." <> Kernel.inspect(last, opts)
   end
 end
