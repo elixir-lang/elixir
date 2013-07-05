@@ -9,10 +9,10 @@ defmodule Inspect.AlgebraTest do
     concat(
       glue(
         glue(
-          glue(text("hello"), text("a")),
-          text("b")),
-        text("c")),
-      text("d"))
+          glue("hello", "a"),
+          "b"),
+        "c"),
+      "d")
   end
 
   def factor(doc, w), do: format(w, 0, [{0, :flat, group(doc)}])
@@ -42,35 +42,26 @@ defmodule Inspect.AlgebraTest do
 
   test :glue do
     # Consistence with definitions
-    ## Normal case
-    assert glue(text("a"), "->", text("b")) == { :doc_cons,
-      { :doc_text, "a" },
-      { :doc_cons, { :doc_break, "->" }, { :doc_text, "b" }}
+    assert glue("a", "->", "b") == { :doc_cons,
+      "a", { :doc_cons, { :doc_break, "->" }, "b" }
     }
-    assert glue(text("a"), text("b")) == glue(text("a"), " ", text("b"))
+    assert glue("a", "b") == glue("a", " ", "b")
 
-    ## ong argument type
-    assert_raise FunctionClauseError, fn -> glue(text("a"), 42, text("b")) end
+    ## Wrong argument type
+    assert_raise FunctionClauseError, fn -> glue("a", 42, "b") end
   end
 
   test :text do
-    # Consistence with definitions
-    ## Normal case
-    assert text("text") == { :doc_text, "text" }
-    ## Degeneracy
-    assert text("") == { :doc_text, "" }
-    ## ong argument type
-    assert_raise FunctionClauseError, fn -> text(42) end
     # Consistence of corresponding docfactor
-    assert factor(text("_"), 80) == { :s_text, "_", :s_nil }
+    assert factor("_", 80) == { :s_text, "_", :s_nil }
     # Consistent formatting
-    assert pretty(text("_"), 80) == "_"
+    assert pretty("_", 80) == "_"
   end
 
   test :space do
     # Consistency with definitions
-    assert space(text("a"), text("b")) == { :doc_cons,
-      text("a"), { :doc_cons, text(" "), text("b") }
+    assert space("a", "b") == { :doc_cons,
+      "a", { :doc_cons, " ", "b" }
     }
   end
 
@@ -83,8 +74,8 @@ defmodule Inspect.AlgebraTest do
     ## ong argument type
     assert_raise FunctionClauseError, fn -> nest("foo", empty) end
 
-    a1   = fn -> nest(text("a"), 1) end
-    alb1 = fn -> nest(glue(text("a"), text("b")), 1) end
+    a1   = fn -> nest("a", 1) end
+    alb1 = fn -> nest(glue("a", "b"), 1) end
     # Consistence of corresponding sdoc
     ## Trivial case
     assert factor(a1.(), 80)  == { :s_text, "a", :s_nil }
@@ -102,27 +93,26 @@ defmodule Inspect.AlgebraTest do
   test :infinity do
     # w = :infinity should disable pretty printer
     s = String.duplicate "x", 50
-    t = text(s)
     g = ";"
-    big_document = group(glue(t, g, t) |>  glue(g, t) |>  glue(g, t) |> glue(g, t))
+    big_document = group(glue(s, g, s) |>  glue(g, s) |>  glue(g, s) |> glue(g, s))
 
-   assert pretty(big_document, :infinity) == s <> g <> s <> g <> s <> g <> s <> g <> s
+    assert pretty(big_document, :infinity) == s <> g <> s <> g <> s <> g <> s <> g <> s
   end
 
   test :group do
     # Consistency with definitions
     ## Normal case
-    assert group(glue(text("a"), text("b"))) ==
-      { :doc_group, { :doc_cons, text("a"), concat(break, text("b")) }}
+    assert group(glue("a", "b")) ==
+      { :doc_group, { :doc_cons, "a", concat(break, "b") }}
 
     ## Degeneracy
     assert group(empty) == { :doc_group, empty }
 
     # Consistence of corresponding sdoc
-    assert factor(glue(text("a"), text("b")), 1) ==
+    assert factor(glue("a", "b"), 1) ==
       { :s_text, "a", { :s_line, 0, { :s_text, "b", :s_nil }}}
 
-    assert factor(glue(text("a"), text("b")), 9) ==
+    assert factor(glue("a", "b"), 9) ==
       { :s_text, "a", { :s_text, " ", { :s_text, "b", :s_nil }}}
 
     # Consistent formatting

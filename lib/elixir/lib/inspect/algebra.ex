@@ -26,9 +26,8 @@ defmodule Inspect.Algebra do
   defp repeat(s, i), do: :lists.duplicate(i, s)
 
   # Records representing a __complex__ document
-  @type doc :: :doc_nil | :doc_cons_t | :doc_text_t | :doc_nest_t | :doc_break_t | :doc_group_t
+  @type doc :: :doc_nil | :doc_cons_t | :doc_nest_t | :doc_break_t | :doc_group_t | binary
   defrecordp :doc_cons, :doc_cons, [left: :doc_nil, right: :doc_nil]
-  defrecordp :doc_text, :doc_text, [str: ""]
   defrecordp :doc_nest, :doc_nest, [indent: 1, doc: :doc_nil]
   defrecordp :doc_break, :doc_break, [str: " "]
   defrecordp :doc_group, :doc_group, [doc: :doc_nil]
@@ -53,7 +52,7 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.concat Inspect.Algebra.text("Tasteless"), Inspect.Algebra.text("Artosis")
+      iex> doc = Inspect.Algebra.concat "Tasteless", "Artosis"
       iex> Inspect.Algebra.pretty(doc, 80)
       "TastelessArtosis"
 
@@ -61,6 +60,11 @@ defmodule Inspect.Algebra do
   @spec concat(doc, doc) :: :doc_cons_t
   def concat(x, y), do: doc_cons(left: x, right: y)
 
+  @doc """
+  Concatenates a list of documents.
+  """
+  @spec concat(doc, doc) :: :doc_cons_t
+  def concat(docs), do: folddoc(docs, concat(&1, &2))
 
   @doc """
   Nests document entity x positions deep. Nesting will be
@@ -68,7 +72,7 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.nest(Inspect.Algebra.concat(Inspect.Algebra.break, Inspect.Algebra.text("6")), 5)
+      iex> doc = Inspect.Algebra.nest(Inspect.Algebra.concat(Inspect.Algebra.break, "6"), 5)
       iex> Inspect.Algebra.pretty(doc, 80)
       " 6"
 
@@ -76,19 +80,6 @@ defmodule Inspect.Algebra do
   @spec nest(non_neg_integer, doc) :: :doc_nest_t
   def nest(x, 0),                    do: x
   def nest(x, i) when is_integer(i), do: doc_nest(indent: i, doc: x)
-
-  @doc """
-  Document entity representation of a text.
-
-  ## Examples
-
-      iex> doc = Inspect.Algebra.text "Hello, World!"
-      iex> Inspect.Algebra.pretty(doc, 80)
-      "Hello, World!"
-
-  """
-  @spec text(binary) :: :doc_text_t
-  def text(s) when is_binary(s), do: doc_text(str: s)
 
   @doc %B"""
   Document entity representating a break. This break can
@@ -99,14 +90,14 @@ defmodule Inspect.Algebra do
 
   Let's glue two docs together with a break and then render it:
 
-    iex> doc = Inspect.Algebra.glue(Inspect.Algebra.text("a"), " ", Inspect.Algebra.text("b"))
+    iex> doc = Inspect.Algebra.glue("a", " ", "b")
     iex> Inspect.Algebra.pretty(doc, 80)
     "a b"
 
   Notice the break was represented as is, because we haven't reached
   a line limit. Once we do, it is replaced by a new line:
 
-      iex> doc = Inspect.Algebra.glue(Inspect.Algebra.text(String.duplicate "a", 20), " ", Inspect.Algebra.text("b"))
+      iex> doc = Inspect.Algebra.glue(String.duplicate("a", 20), " ", "b")
       iex> Inspect.Algebra.pretty(doc, 10)
       "aaaaaaaaaaaaaaaaaaaa\nb"
 
@@ -139,16 +130,16 @@ defmodule Inspect.Algebra do
       ...>   Inspect.Algebra.concat(
       ...>     Inspect.Algebra.group(
       ...>       Inspect.Algebra.concat(
-      ...>         Inspect.Algebra.text("Hello,"),
+      ...>         "Hello,",
       ...>         Inspect.Algebra.concat(
       ...>           Inspect.Algebra.break,
-      ...>           Inspect.Algebra.text("A")
+      ...>           "A"
       ...>         )
       ...>       )
       ...>     ),
       ...>     Inspect.Algebra.concat(
       ...>       Inspect.Algebra.break,
-      ...>       Inspect.Algebra.text("B")
+      ...>       "B"
       ...>     )
       ...> ))
       iex> Inspect.Algebra.pretty(doc, 80)
@@ -166,22 +157,22 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.space Inspect.Algebra.text("Hughes"), Inspect.Algebra.text("Inspect.Algebra")
+      iex> doc = Inspect.Algebra.space "Hughes", "Wadler"
       iex> Inspect.Algebra.pretty(doc, 80)
-      "Hughes Inspect.Algebra"
+      "Hughes Wadler"
 
   """
   @spec space(doc, doc) :: :doc_cons_t
-  def space(x, y), do: concat(x, concat(text(" "), y))
+  def space(x, y), do: concat(x, concat(" ", y))
 
   @doc %B"""
   Inserts a mandatory linebreak between two document entities.
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.line Inspect.Algebra.text("Hughes"), Inspect.Algebra.text("Inspect.Algebra")
+      iex> doc = Inspect.Algebra.line "Hughes", "Wadler"
       iex> Inspect.Algebra.pretty(doc, 80)
-      "Hughes\nInspect.Algebra"
+      "Hughes\nWadler"
 
   """
   @spec line(doc, doc) :: :doc_cons_t
@@ -193,8 +184,10 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> doc = [Inspect.Algebra.text("A"), Inspect.Algebra.text("B")]
-      iex> doc = Inspect.Algebra.folddoc(doc, fn(x,y) -> Inspect.Algebra.concat(x, Inspect.Algebra.concat(Inspect.Algebra.text("!"), y)) end)
+      iex> doc = ["A", "B"]
+      iex> doc = Inspect.Algebra.folddoc(doc, fn(x,y) ->
+      ...>   Inspect.Algebra.concat [x, "!", y]
+      ...> end)
       iex> Inspect.Algebra.pretty(doc, 80)
       "A!B"
 
@@ -209,7 +202,7 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> doc = [Inspect.Algebra.text("A"), Inspect.Algebra.text("B")]
+      iex> doc = ["A", "B"]
       iex> doc |> Inspect.Algebra.spread |> Inspect.Algebra.pretty(80)
       "A B"
 
@@ -222,7 +215,7 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> doc = [Inspect.Algebra.text("A"), Inspect.Algebra.text("B")]
+      iex> doc = ["A", "B"]
       iex> doc |> Inspect.Algebra.stack |> Inspect.Algebra.pretty(80)
       "A\nB"
   """
@@ -233,13 +226,12 @@ defmodule Inspect.Algebra do
   Surrounds a document with characters.
   Puts the document between left and right enclosing and nests it.
   """
-  @spec surround(binary, doc, binary, binary) :: doc
   @spec surround(binary, doc, binary) :: doc
-  def surround(left, doc, right, sep // "") do
+  def surround(left, doc, right) do
     glue(
-      nest(glue(text(left), sep, doc), @default_nesting), # remember that first line is not nested
-      sep,
-      text(right)
+      nest(glue(left, "", doc), @default_nesting), # remember that first line is not nested
+      "",
+      right
     )
   end
 
@@ -288,7 +280,7 @@ defmodule Inspect.Algebra do
   def fits?(w, [{_, _, :doc_nil} | t]),                     do: fits?(w, t)
   def fits?(w, [{i, m, doc_cons(left: x, right: y)} | t]),  do: fits?(w, [{i, m, x} | [{i, m, y} | t]])
   def fits?(w, [{i, m, doc_nest(indent: j, doc: x)} | t]),  do: fits?(w, [{i + j, m, x} | t])
-  def fits?(w, [{_, _, doc_text(str: s)} | t]),             do: fits?((w - strlen s), t)
+  def fits?(w, [{_, _, s} | t]) when is_binary(s),          do: fits?((w - strlen s), t)
   def fits?(w, [{_, :flat, doc_break(str: s)} | t]),        do: fits?((w - strlen s), t)
   def fits?(_, [{_, :break, doc_break(str: _)} | _]),       do: true
   def fits?(w, [{i, _, doc_group(doc: x)} | t]),            do: fits?(w, [{i, :flat, x} | t])
@@ -300,7 +292,7 @@ defmodule Inspect.Algebra do
   def format(w, k, [{_, _, :doc_nil} | t]),                    do: format(w, k, t)
   def format(w, k, [{i, m, doc_cons(left: x, right: y)} | t]), do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
   def format(w, k, [{i, m, doc_nest(indent: j, doc: x)} | t]), do: format(w, k, [{i + j, m, x} | t])
-  def format(w, k, [{_, _, doc_text(str: s)} | t]),            do: s_text(str: s, sdoc: format(w, (k + strlen s), t))
+  def format(w, k, [{_, _, s} | t]) when is_binary(s),         do: s_text(str: s, sdoc: format(w, (k + strlen s), t))
   def format(w, k, [{_, :flat, doc_break(str: s)} | t]),       do: s_text(str: s, sdoc: format(w, (k + strlen s), t))
   def format(w, _, [{i, :break, doc_break(str: _)} | t]),      do: s_line(indent: i, sdoc: format(w, i, t))
   def format(w, k, [{i, _, doc_group(doc: x)} | t]) do

@@ -66,6 +66,6 @@ end
 
 defimpl Inspect, for: Range do
   def inspect(Range[first: first, last: last], opts) do
-    Kernel.inspect(first, opts) <> ".." <> Kernel.inspect(last, opts)
+    Inspect.Algebra.concat [Kernel.inspect(first, opts), "..", Kernel.inspect(last, opts)]
   end
 end

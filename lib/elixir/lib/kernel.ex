@@ -2146,7 +2146,12 @@ defmodule Kernel do
   end
 
   def inspect(arg, opts) when is_list(opts) do
-    inspect(arg, Inspect.Opts.new(opts))
+    opts = Inspect.Opts.new(opts)
+
+    case opts.pretty do
+      true  -> Inspect.Algebra.pretty(inspect(arg, opts), opts.width)
+      false -> Inspect.Algebra.pretty(inspect(arg, opts), :infinity)
+    end
   end
 
   @doc """
