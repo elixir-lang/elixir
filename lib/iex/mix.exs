@@ -8,7 +8,7 @@ defmodule IEx.Mixfile do
   def application do
     [ env: [
         after_spawn: [],
-        inspect_opts: [limit: 50, raw: false],
+        inspect_opts: [limit: 50, raw: false, pretty: true],
         colors: [ enabled: true,
                   eval_result: "yellow",
                   error: "red",

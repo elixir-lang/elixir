@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Deps do
       dep = check_lock(dep, lock)
       shell.info "* #{format_dep(dep)}"
       if (lock = lock[app]) && (formatted = scm.format_lock(lock)) do
-        shell.info "  locked at #{inspect formatted, pretty: false}"
+        shell.info "  locked at #{inspect formatted}"
       end
       shell.info "  #{format_status dep}"
     end

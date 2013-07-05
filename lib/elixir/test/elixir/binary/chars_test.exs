@@ -52,7 +52,7 @@ defmodule Binary.Chars.NumberTest do
 
   test :float do
     assert to_binary(1.0) == "1.0"
-    assert to_binary(1.0e10) == "10000000000.0"
+    assert to_binary(1.0e10) == "1.0e10"
   end
 end
 

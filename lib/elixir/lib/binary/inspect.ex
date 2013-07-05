@@ -76,7 +76,7 @@ defmodule Binary.Inspect.Utils do
     end
   end
 
-  defp maxwidth, do: :erlang.element 2, :io.columns
+  defp maxwidth, do: :erlang.element(2, :io.columns)
 
   @doc """
   Creates a document from a sequence (tuples and lists), using first and 
@@ -191,7 +191,7 @@ defimpl Binary.Inspect, for: Atom do
   require Macro
   import Binary.Inspect.Utils
 
-  @moduledoc """
+  @doc """
   Represents the atom as an Elixir term. The atoms false, true
   and nil are simply quoted. Modules are properly represented
   as modules using the dot notation.
@@ -210,11 +210,11 @@ defimpl Binary.Inspect, for: Atom do
 
   """
 
-  def inspect(false, opts),  do: return text("false"), opts
-  def inspect(true, opts),   do: return text("true"), opts
-  def inspect(nil, opts),    do: return text("nil"), opts
-  def inspect(:"", opts),    do: return text(":\"\""), opts
-  def inspect(Elixir, opts), do: return text("Elixir"), opts
+  def inspect(false, opts),  do: return(text("false"), opts)
+  def inspect(true, opts),   do: return(text("true"), opts)
+  def inspect(nil, opts),    do: return(text("nil"), opts)
+  def inspect(:"", opts),    do: return(text(":\"\""), opts)
+  def inspect(Elixir, opts), do: return(text("Elixir"), opts)
 
   def inspect(atom, opts) do
     binary = atom_to_binary(atom)
@@ -273,7 +273,7 @@ end
 defimpl Binary.Inspect, for: BitString do
   import Binary.Inspect.Utils
 
-  @moduledoc %B"""
+  @doc %B"""
   Represents the string as itself escaping
   all necessary characters.
 
@@ -333,7 +333,7 @@ end
 defimpl Binary.Inspect, for: List do
   import Binary.Inspect.Utils
 
-  @moduledoc %B"""
+  @doc %B"""
   Represents a list checking if it can be printed or not.
   If so, a single-quoted representation is returned,
   otherwise the brackets syntax is used.
@@ -355,7 +355,7 @@ defimpl Binary.Inspect, for: List do
 
   """
 
-  def inspect([], opts), do: return text("[]"), opts
+  def inspect([], opts), do: return(text("[]"), opts)
 
   def inspect(thing, opts) do
     cond do
@@ -416,7 +416,7 @@ end
 defimpl Binary.Inspect, for: Tuple do
   import Binary.Inspect.Utils
 
-  @moduledoc """
+  @doc """
   Inspect tuples. If the tuple represents a record,
   it shows it nicely formatted using the access syntax.
 
@@ -429,7 +429,7 @@ defimpl Binary.Inspect, for: Tuple do
 
   """
 
-  def inspect({}, opts), do: return text("{}"), opts
+  def inspect({}, opts), do: return(text("{}"), opts)
 
   def inspect(tuple, opts) do
     unless opts[:raw] do
@@ -442,7 +442,7 @@ defimpl Binary.Inspect, for: Tuple do
   defp record_inspect(record, opts) do
     [name|tail] = tuple_to_list(record)
 
-   if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
+    if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
       if Enum.first(tail) == :__exception__ do
         record_join(name, tl(fields), tl(tail), opts)
       else
@@ -466,7 +466,7 @@ defimpl Binary.Inspect, for: Tuple do
     group_maybe(
       concat(
         namedoc, 
-        surround("[", record_join(fields, tail, opts), "]"),
+        surround("[", record_join(fields, tail, opts), "]")
       ),
       opts
     )
@@ -501,7 +501,8 @@ end
 
 defimpl Binary.Inspect, for: Number do
   import Binary.Inspect.Utils
-  @moduledoc """
+
+  @doc """
   Represents the number as a binary.
 
   ## Examples
@@ -510,28 +511,18 @@ defimpl Binary.Inspect, for: Number do
       "1"
 
   """
-
-  @digits 20
-  @limit  :math.pow(10, @digits)
-
   def inspect(thing, opts) when is_integer(thing) do
     return text(integer_to_binary(thing)), opts
   end
 
-  to_binary = :proplists.get_value(:float_to_binary,
-                :proplists.get_value(:exports, :erlang.module_info, []))
-
-  def inspect(thing, opts) when thing > @limit do
-    return text(float_to_binary(thing, scientific: @digits)), opts
-  end
-
   def inspect(thing, opts) do
-    return text(float_to_binary(thing, compact: true, decimals: @digits)), opts
+    return text(list_to_binary(:io_lib_format.fwrite_g(thing))), opts
   end
 end
 
 defimpl Binary.Inspect, for: Regex do
   import Binary.Inspect.Utils
+
   @moduledoc %B"""
   Represents the Regex using the `%r""` syntax.
 
@@ -541,7 +532,6 @@ defimpl Binary.Inspect, for: Regex do
       "%r\"foo\"m"
 
   """
-
   def inspect(regex, opts) when size(regex) == 5 do
     return text("%r" <> Kernel.inspect(Regex.source(regex), []) <> Regex.opts(regex)), opts
   end
@@ -553,10 +543,10 @@ end
 
 defimpl Binary.Inspect, for: Function do
   import Binary.Inspect.Utils
+
   @moduledoc """
   Inspect functions, when possible, in a literal form.
   """
-
   def inspect(function, opts) do
     fun_info = :erlang.fun_info(function)
     if fun_info[:type] == :external and fun_info[:env] == [] do
@@ -574,7 +564,6 @@ end
 
 defimpl Binary.Inspect, for: PID do
   import Binary.Inspect.Utils
-  @moduledoc "Inspect PIDs"
 
   def inspect(pid, opts) do
     return(text("#PID" <> list_to_binary pid_to_list(pid)), opts)
@@ -583,7 +572,6 @@ end
 
 defimpl Binary.Inspect, for: Port do
   import Binary.Inspect.Utils
-  @moduledoc "Inspect ports"
 
   def inspect(port, opts) do
     return(text(list_to_binary :erlang.port_to_list(port)), opts)
@@ -592,7 +580,6 @@ end
 
 defimpl Binary.Inspect, for: Reference do
   import Binary.Inspect.Utils
-  @moduledoc "Inspect references"
 
   def inspect(ref, opts) do
     '#Ref' ++ rest = :erlang.ref_to_list(ref)

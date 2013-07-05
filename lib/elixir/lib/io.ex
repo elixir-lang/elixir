@@ -135,6 +135,10 @@ defmodule IO do
   Inspects and writes the given argument to the device
   followed by a new line. A set of options can be given.
 
+  It sets by default pretty printing to true and the
+  width to be the width of the device, with a minimum
+  of 80 characters.
+
   ## Examples
 
       IO.inspect Process.list
@@ -148,6 +152,11 @@ defmodule IO do
   Inspects the item with options using the given device.
   """
   def inspect(device, item, opts) do
+    opts = Keyword.put_new(opts, :pretty, true)
+    opts = case :io.columns(device) do
+      { :ok, width } -> Keyword.put_new(opts, :width, min(width, 80))
+      { :error, _ }  -> opts
+    end
     puts device, Kernel.inspect(item, opts)
     item
   end

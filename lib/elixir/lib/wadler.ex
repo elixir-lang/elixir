@@ -352,23 +352,23 @@ defmodule Wadler do
   defp fits?(:infinity, _),                                  do: true # no pretty printing
   defp fits?(w, _) when w < 0,                               do: false
   defp fits?(_, []),                                         do: true
-  defp fits?(w, [{_, _, :doc_nil} | t]),                     do: fits? w, t
-  defp fits?(w, [{i, m, doc_cons(left: x, right: y)} | t]),  do: fits? w, [{i, m, x} | [{i, m, y} | t]]
-  defp fits?(w, [{i, m, doc_nest(indent: j, doc: x)} | t]),  do: fits? w, [{i + j, m, x} | t]
-  defp fits?(w, [{_, _, doc_text(str: s)} | t]),             do: fits? (w - strlen s), t
-  defp fits?(w, [{_, :flat, doc_break(str: s)} | t]),        do: fits? (w - strlen s), t
-  defp fits?(_, [{_, :break, doc_break(str: _)} | _]),       do: true # impossible (but why?)
-  defp fits?(w, [{i, _, doc_group(doc: x)} | t]),            do: fits? w, [{i, :flat, x} | t]
+  defp fits?(w, [{_, _, :doc_nil} | t]),                     do: fits?(w, t)
+  defp fits?(w, [{i, m, doc_cons(left: x, right: y)} | t]),  do: fits?(w, [{i, m, x} | [{i, m, y} | t]])
+  defp fits?(w, [{i, m, doc_nest(indent: j, doc: x)} | t]),  do: fits?(w, [{i + j, m, x} | t])
+  defp fits?(w, [{_, _, doc_text(str: s)} | t]),             do: fits?((w - strlen s), t)
+  defp fits?(w, [{_, :flat, doc_break(str: s)} | t]),        do: fits?((w - strlen s), t)
+  defp fits?(_, [{_, :break, doc_break(str: _)} | _]),       do: true
+  defp fits?(w, [{i, _, doc_group(doc: x)} | t]),            do: fits?(w, [{i, :flat, x} | t])
 
   @spec format(integer, integer, [{ integer, mode, doc }]) :: boolean
-  def format(:infinity, k, [{i, _, doc_group(doc: x)} | t]),   do: format :infinity, k, [{i, :flat, x} | t] # no pretty printing
+  def format(:infinity, k, [{i, _, doc_group(doc: x)} | t]),   do: format(:infinity, k, [{i, :flat, x} | t]) # no pretty printing
   def format(_, _, []),                                        do: :s_nil
-  def format(w, k, [{_, _, :doc_nil} | t]),                    do: format w, k, t
-  def format(w, k, [{i, m, doc_cons(left: x, right: y)} | t]), do: format w, k, [{i, m, x} | [{i, m, y} | t]]
-  def format(w, k, [{i, m, doc_nest(indent: j, doc: x)} | t]), do: format w, k, [{i + j, m, x} | t]
-  def format(w, k, [{_, _, doc_text(str: s)} | t]),            do: s_text(str: s, sdoc: format w, (k + strlen s), t)
-  def format(w, k, [{_, :flat, doc_break(str: s)} | t]),       do: s_text(str: s, sdoc: format w, (k + strlen s), t)
-  def format(w, _, [{i, :break, doc_break(str: _)} | t]),      do: s_line(indent: i, sdoc: format w, i, t)
+  def format(w, k, [{_, _, :doc_nil} | t]),                    do: format(w, k, t)
+  def format(w, k, [{i, m, doc_cons(left: x, right: y)} | t]), do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
+  def format(w, k, [{i, m, doc_nest(indent: j, doc: x)} | t]), do: format(w, k, [{i + j, m, x} | t])
+  def format(w, k, [{_, _, doc_text(str: s)} | t]),            do: s_text(str: s, sdoc: format(w, (k + strlen s), t))
+  def format(w, k, [{_, :flat, doc_break(str: s)} | t]),       do: s_text(str: s, sdoc: format(w, (k + strlen s), t))
+  def format(w, _, [{i, :break, doc_break(str: _)} | t]),      do: s_line(indent: i, sdoc: format(w, i, t))
   def format(w, k, [{i, _, doc_group(doc: x)} | t]) do
     if fits? (w - k), [{i, :flat, x} | t] do
       format w, k, [{i, :flat, x} | t]

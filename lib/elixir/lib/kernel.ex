@@ -2012,7 +2012,7 @@ defmodule Kernel do
     end
   end
 
-  @doc """
+  @doc %B"""
   Inspect the given arguments according to the `Binary.Inspect` protocol.
 
   ## Options
@@ -2020,15 +2020,15 @@ defmodule Kernel do
   The following options are supported:
 
   * raw   -- when true, record tuples are not formatted by the inspect protocol,
-             but are printed as just tuples; default: false
+             but are printed as just tuples, defaults to false;
 
   * limit -- limits the number of items that are printed for tuples, bitstrings,
-             and lists; does not apply to strings
+             and lists, does not apply to strings nor char lists;
 
-  * :pretty - if set to true enables pretty printing, defaults to true;
+  * :pretty - if set to true enables pretty printing, defaults to false;
 
   * :width - the width avaliable for inspect to lay out the data structure
-    representation. Defaults to the least of 80 and terminal width;
+             representation. Defaults to the least of 80 and terminal width;
 
   ## Examples
 
@@ -2052,14 +2052,10 @@ defmodule Kernel do
       #=> #Function<...>
 
   """
-  defmacro inspect(arg, opts // [pretty: true]) do
-    quote do
-      arg = unquote(arg)
-      opts = unquote(opts)
-      case is_tuple(arg) && Keyword.get(opts, :raw, false) do
-        true  -> Binary.Inspect.Tuple.inspect(arg, opts)
-        false -> Binary.Inspect.inspect(arg, opts)
-      end
+  def inspect(arg, opts // []) do
+    case is_tuple(arg) and Keyword.get(opts, :raw, false) do
+      true  -> Binary.Inspect.Tuple.inspect(arg, opts)
+      false -> Binary.Inspect.inspect(arg, opts)
     end
   end
 

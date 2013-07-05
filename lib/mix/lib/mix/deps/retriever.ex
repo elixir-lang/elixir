@@ -145,7 +145,7 @@ defmodule Mix.Deps.Retriever do
   end
 
   defp with_scm_and_status(other, _scms) do
-    raise Mix.Error, message: %b(dependency specified in the wrong format: #{inspect other, pretty: false}, ) <>
+    raise Mix.Error, message: %b(dependency specified in the wrong format: #{inspect other}, ) <>
       %b(expected { :app, scm: "location" } | { :app, "requirement", scm: "location" })
   end
 
