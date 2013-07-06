@@ -12,7 +12,7 @@ defmodule Set do
 
       HashSet.new  #=> creates an empty HashSet
 
-  For simplicity's sake, in the examples below everytime
+  For simplicity's sake, in the examples below every time
   `new` is used, it implies one of the module-specific
   calls like above.
   """
@@ -45,7 +45,7 @@ defmodule Set do
   end
 
   @doc """
-  Deletes a value from the set.
+  Deletes `value` from `set`.
 
   ## Examples
 
@@ -63,7 +63,7 @@ defmodule Set do
   end
 
   @doc """
-  Returns a set that is the first set without members of the second set.
+  Returns a set that is `set1` without the members of `set2`.
 
   ## Examples
 
@@ -77,7 +77,7 @@ defmodule Set do
   end
 
   @doc """
-  Checks if set1 and set2 have no members in common.
+  Checks if `set1` and `set2` have no members in common.
 
   ## Examples
 
@@ -101,12 +101,15 @@ defmodule Set do
   end
 
   @doc """
-  Checks if two sets are equal.
+  Checks if `set1` and `set2` are equal.
 
   ## Examples
 
       iex> Set.equal?(HashSet.new([1, 2]), HashSet.new([2, 1, 1]))
       true
+      
+      iex> Set.equal?(HashSet.new([1, 2]), HashSet.new([3, 4]))
+      false
 
   """
   @spec equal?(t, t) :: boolean
@@ -115,12 +118,15 @@ defmodule Set do
   end
 
   @doc """
-  Returns a set containing only members in common between the two input sets.
+  Returns a set containing only members in common between `set1` and `set2`.
 
   ## Examples
 
       iex> Set.intersection(HashSet.new([1,2]), HashSet.new([2,3,4])) |> HashSet.to_list
       [2]
+
+      iex> Set.intersection(HashSet.new([1,2]), HashSet.new([3,4])) |> HashSet.to_list  
+      []
 
   """
   @spec intersection(t, t) :: t
@@ -129,12 +135,15 @@ defmodule Set do
   end
 
   @doc """
-  Checks if the set has the given value.
+  Checks if `set` contains `value`.
 
   ## Examples
 
       iex> Set.member?(HashSet.new([1, 2, 3]), 2)
       true
+
+      iex> Set.member?(HashSet.new([1, 2, 3]), 4) 
+      false
 
   """
   @spec member?(t, value) :: boolean
@@ -143,7 +152,7 @@ defmodule Set do
   end
 
   @doc """
-  Puts the given value into the set if it does not already contain it.
+  Inserts `value` into `set` if it does not already contain it.
 
   ## Examples
 
@@ -160,7 +169,13 @@ defmodule Set do
   end
 
   @doc """
-  Returns the set size.
+  Returns the number of elements in `set`.
+
+  ## Examples
+
+      iex> Set.size(HashSet.new([1, 2, 3]))
+      3
+
   """
   @spec size(t) :: non_neg_integer
   def size(set) do
@@ -168,7 +183,7 @@ defmodule Set do
   end
 
   @doc """
-  Checks if set1's members are all contained in set2.
+  Checks if `set1`'s members are all contained in `set2`.
 
   ## Examples
 
@@ -183,7 +198,13 @@ defmodule Set do
   end
 
   @doc """
-  Converts a set to a list.
+  Converts `set` to a list.
+
+  ## Examples
+
+      iex> HashSet.to_list(HashSet.new([1, 2, 3]))
+      [1,2,3]
+
   """
   @spec to_list(t) :: list
   def to_list(set) do
@@ -191,7 +212,7 @@ defmodule Set do
   end
 
   @doc """
-  Returns a set combining the two input sets.
+  Returns a set containing all members of `set1` and `set2`.
 
   ## Examples
 
