@@ -9,7 +9,7 @@ linify(Line, Exprs) when is_integer(Line) ->
 
 do_linify(Line, { Left, Meta, Right }) ->
   NewMeta = case ?line(Meta) of
-    0 -> lists:keystore(line, 1, Meta, { line, Line });
+    0 -> keystore(line, Meta, Line);
     _ -> Meta
   end,
   { do_linify(Line, Left), NewMeta, do_linify(Line, Right) };
@@ -93,11 +93,11 @@ do_quote({ unquote, _Meta, [Expr] }, #elixir_quote{unquote=true} = Q, _) ->
 %% Context mark
 
 do_quote({ Def, Meta, Args }, #elixir_quote{escape=false} = Q, S) when ?defs(Def); Def == defmodule; Def == alias; Def == import ->
-  NewMeta = lists:keystore(context, 1, Meta, { context, Q#elixir_quote.context }),
+  NewMeta = keystore(context, Meta, Q#elixir_quote.context),
   do_quote_tuple({ Def, NewMeta, Args }, Q, S);
 
 do_quote({ { '.', _, [_, Def] } = Target, Meta, Args }, #elixir_quote{escape=false} = Q, S) when ?defs(Def); Def == defmodule; Def == alias; Def == import ->
-  NewMeta = lists:keystore(context, 1, Meta, { context, Q#elixir_quote.context }),
+  NewMeta = keystore(context, Meta, Q#elixir_quote.context),
   do_quote_tuple({ Target, NewMeta, Args }, Q, S);
 
 %% Aliases
@@ -111,7 +111,7 @@ do_quote({ '__aliases__', Meta, [H|T] } = Alias, #elixir_quote{aliases_hygiene=t
     Atom when is_atom(Atom) -> Atom;
     Aliases when is_list(Aliases) -> false
   end,
-  AliasMeta = lists:keystore(alias, 1, Meta, { alias, Annotation }),
+  AliasMeta = keystore(alias, Meta, Annotation),
   do_quote_tuple({ '__aliases__', AliasMeta, [H|T] }, Q, S);
 
 %% Vars
@@ -137,19 +137,25 @@ do_quote({ { '.', _, [_, function] } = Target, Meta, [{ '/', _, [{F, _, C}, A]}]
     #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(F), is_integer(A), is_atom(C) ->
   do_quote_fa(Target, Meta, Args, F, A, Q, S);
 
-do_quote({ Name, Meta, ArgsOrAtom } = Tuple, #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(Name) ->
+do_quote({ Name, Meta, ArgsOrAtom }, #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(Name) ->
   Arity = case is_atom(ArgsOrAtom) of
     true  -> 0;
     false -> length(ArgsOrAtom)
   end,
 
-  case (lists:keyfind(import, 1, Meta) == false) andalso
+  case (keyfind(import, Meta) == false) andalso
       elixir_dispatch:find_import(Meta, Name, Arity, S) of
-    false    -> do_quote_tuple(Tuple, Q, S);
+    false ->
+      AmbMeta =
+        case (Arity == 1) andalso keyfind(ambiguous_op, Meta) of
+          { ambiguous_op, nil } -> keystore(ambiguous_op, Meta, Q#elixir_quote.context);
+          _ -> Meta
+        end,
+      do_quote_tuple({ Name, AmbMeta, ArgsOrAtom }, Q, S);
     Receiver ->
-      ImportMeta = lists:keystore(import, 1,
-        lists:keystore(context, 1, Meta, { context, Q#elixir_quote.context }),
-        { import, Receiver }),
+      ImportMeta = keystore(import,
+        keystore(context, Meta, Q#elixir_quote.context),
+        Receiver),
       do_quote_tuple({ Name, ImportMeta, ArgsOrAtom }, Q, S)
   end;
 
@@ -187,10 +193,10 @@ do_quote_call(Left, Meta, Expr, Args, Q, S) ->
 
 do_quote_fa(Target, Meta, Args, F, A, Q, S) ->
   NewMeta =
-    case (lists:keyfind(import_fa, 1, Meta) == false) andalso
+    case (keyfind(import_fa, Meta) == false) andalso
          elixir_dispatch:find_import(Meta, F, A, S) of
       false    -> Meta;
-      Receiver -> lists:keystore(import_fa, 1, Meta, { import_fa, { Receiver, Q#elixir_quote.context } })
+      Receiver -> keystore(import_fa, Meta, { Receiver, Q#elixir_quote.context })
     end,
   do_quote_tuple({ Target, NewMeta, Args }, Q, S).
 
@@ -202,9 +208,16 @@ do_quote_tuple({ Left, Meta, Right }, Q, S) ->
 meta(Meta, #elixir_quote{line=keep}) ->
   Meta;
 meta(Meta, #elixir_quote{line=nil}) ->
-  lists:keydelete(line, 1, Meta);
+  keydelete(line, Meta);
 meta(Meta, #elixir_quote{line=Line}) ->
-  lists:keystore(line, 1, Meta, { line, Line }).
+  keystore(line, Meta, Line).
+
+keyfind(Key, Meta) ->
+  lists:keyfind(Key, 1, Meta).
+keydelete(Key, Meta) ->
+  lists:keydelete(Key, 1, Meta).
+keystore(Key, Meta, Value) ->
+  lists:keystore(Key, 1, Meta, { Key, Value }).
 
 %% Quote splicing
 

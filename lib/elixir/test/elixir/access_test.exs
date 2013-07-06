@@ -3,16 +3,6 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule AccessTest do
   use ExUnit.Case, async: true
 
-  test :list do
-    assert [foo: :bar][:foo] == :bar
-    assert [foo: [bar: :baz]][:foo][:bar] == :baz
-    assert [foo: [bar: :baz]][:fuu][:bar] == nil
-  end
-
-  test :nil do
-    assert nil[:foo] == nil
-  end
-
   # Test nil at compilation time does not fail
   # and that @config[:foo] has proper precedence.
   @config nil
@@ -24,11 +14,25 @@ defmodule AccessTest do
   @mod :lists
   [1, 2, 3] = @mod.flatten([1, [2], 3])
 
+  @mod -13
+  -13 = @mod
+
+  test :nil do
+    assert nil[:foo] == nil
+  end
+
+  test :list do
+    assert [foo: :bar][:foo] == :bar
+    assert [foo: [bar: :baz]][:foo][:bar] == :baz
+    assert [foo: [bar: :baz]][:fuu][:bar] == nil
+  end
+
   test :atom do
     exception = assert_raise RuntimeError, fn ->
       foo = :foo
       foo[:atom]
     end
-    assert exception.message == "The access protocol can only be invoked for atoms at compilation time, tried to invoke it for :foo"
+    assert exception.message == "The access protocol can only be invoked for atoms " <>
+                                "at compilation time, tried to invoke it for :foo"
   end
 end

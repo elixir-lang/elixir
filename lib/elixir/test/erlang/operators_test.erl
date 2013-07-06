@@ -67,11 +67,9 @@ float_with_parens_and_unary_test() ->
   {0.25,[]}  = eval("4 / (11.0 + 5)").
 
 operators_precedence_test() ->
-  {true, _} = eval("a = -1; a +1 == 0"),
-  {true, _} = eval("a = -1; a -1 + 2 == 0"),
-  {2, _}    = eval("max -1, 2"),
-  {5, []}   = eval("abs -10 + 5"),
-  {15, []}  = eval("abs(-10) + 5").
+  {2, _}   = eval("max -1, 2"),
+  {5, []}  = eval("abs -10 + 5"),
+  {15, []} = eval("abs(-10) + 5").
 
 operators_variables_precedence_test() ->
   {30, _} = eval("a = 10\nb= 20\na+b"),

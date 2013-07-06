@@ -77,18 +77,6 @@ translate_each({ '__op__', Meta, [Op, Left, Right] }, S) when is_atom(Op) ->
   { [TLeft, TRight], NS }  = translate_args([Left, Right], S),
   { { op, ?line(Meta), convert_op(Op), TLeft, TRight }, NS };
 
-translate_each({ '__ambiguousop__', Meta, [Var, H|T] }, S) ->
-  { Name, _, Kind } = Var,
-
-  case orddict:find({ Name, Kind }, S#elixir_scope.vars) of
-    error -> translate_each({ Name, Meta, [H|T] }, S);
-    _ ->
-      case T of
-        [] -> translate_each(rellocate_ambiguous_op(H, Var), S);
-        _  -> syntax_error(Meta, S#elixir_scope.file, "Many arguments given to ~s, but ~s is a variable. Use even spaces to solve ambiguity.", [Name, Name])
-      end
-  end;
-
 %% Lexical
 
 translate_each({ alias, Meta, [Ref] }, S) ->
@@ -379,6 +367,8 @@ translate_each({ '->', Meta, _Args }, S) ->
   syntax_error(Meta, S#elixir_scope.file, "unhandled operator ->");
 
 translate_each({ Atom, Meta, Args } = Original, S) when is_atom(Atom) ->
+  assert_no_ambiguous_op(Atom, Meta, Args, S),
+
   case elixir_partials:is_sequential(Args) andalso
        elixir_dispatch:import_function(Meta, Atom, length(Args), S) of
     false ->
@@ -563,6 +553,9 @@ no_alias_expansion({ '__aliases__', Meta, [H|T] }) when (H /= 'Elixir') and is_a
 no_alias_expansion(Other) ->
   Other.
 
+is_atom_tuple({ atom, _, _ }) -> true;
+is_atom_tuple(_) -> false.
+
 %% Function
 
 translate_fn(Meta, Clauses, S) ->
@@ -662,14 +655,19 @@ convert_op('<=')   ->  '=<';
 convert_op('<-')   ->  '!';
 convert_op(Else)   ->  Else.
 
-is_atom_tuple({ atom, _, _ }) -> true;
-is_atom_tuple(_) -> false.
+assert_no_ambiguous_op(Name, Meta, [Arg], S) ->
+  case lists:keyfind(ambiguous_op, 1, Meta) of
+    { ambiguous_op, Kind } ->
+      case orddict:find({ Name, Kind }, S#elixir_scope.vars) of
+        error -> ok;
+        _ ->
+          syntax_error(Meta, S#elixir_scope.file, "\"~ts ~ts\" looks like a function call but there is a variable named \"~ts\", "
+            "please use explicit parenthesis or even spaces", [Name, 'Elixir.Macro':to_string(Arg), Name])
+      end;
+    _ -> ok
+  end;
 
-rellocate_ambiguous_op({ Op, Meta, [Expr] }, Var) when Op == '+'; Op == '-' ->
-  { Op, Meta, [Var, Expr] };
-
-rellocate_ambiguous_op({ Call, Meta, [H|T] }, Var) ->
-  { Call, Meta, [rellocate_ambiguous_op(H, Var)|T] }.
+assert_no_ambiguous_op(_Atom, _Meta, _Args, _S) -> ok.
 
 %% Comprehensions
 

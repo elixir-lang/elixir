@@ -533,8 +533,8 @@ build_identifier({ '.', Meta, _ } = Dot, Args) ->
 build_identifier({ Keyword, Line }, Args) when Keyword == fn ->
   { fn, [{line,Line}], Args };
 
-build_identifier({ op_identifier, Line, Identifier }, Args) ->
-  { '__ambiguousop__', [{line,Line}], [{ Identifier, [{line,Line}], nil }|Args] };
+build_identifier({ op_identifier, Line, Identifier }, [Arg]) ->
+  { Identifier, [{ambiguous_op,nil},{line,Line}], [Arg] };
 
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, [{line,Line}], Args }.

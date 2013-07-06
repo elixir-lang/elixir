@@ -63,6 +63,16 @@ defmodule Kernel.ErrorsTest do
       '+.foo'
   end
 
+  test :syntax_error_on_op_ambiguity do
+    msg = "nofile:1: \"a -1\" looks like a function call but there is a variable named \"a\", " <>
+          "please use explicit parenthesis or even spaces"
+    assert_compile_fail SyntaxError, msg, 'a = 1; a -1'
+
+    max = 1
+    assert max == 1
+    assert (max 1, 2) == 2
+  end
+
   test :syntax_error_on_parens_call do
     msg = "nofile:1: unexpected parenthesis. If you are making a function call, do not " <>
           "insert spaces in between the function name and the opening parentheses. " <>
