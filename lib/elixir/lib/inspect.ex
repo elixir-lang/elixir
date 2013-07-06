@@ -17,119 +17,8 @@ defprotocol Inspect do
   def inspect(thing, opts)
 end
 
-defmodule Inspect.Utils do
-  @moduledoc """
-  This module defines useful functions to be used on the
-  implementation of custom pretty-printers. The provided
-  functions use the document algebra implemented on the
-  `Inspect.Algebra` module.
-  """
-
-  @doc """
-  Creates a document from a sequence (tuples and lists), using first and
-  last to enclose the document.
-  """
-  def container_join(tuple, first, last, opts) when is_tuple(tuple) do
-    container_join(tuple_to_list(tuple), first, last, opts)
-  end
-
-  def container_join(list, first, last, opts) do
-    surround(
-      first,
-      do_container_join(list, opts, opts.limit),
-      last
-    )
-  end
-
-  defp do_container_join(_, _opts, 0) do
-    "..."
-  end
-
-  defp do_container_join([h], opts, _counter) do
-    Kernel.inspect(h, opts)
-  end
-
-  defp do_container_join([h|t], opts, counter) when is_list(t) do
-    glue(
-      concat(
-        Kernel.inspect(h, opts),
-        ","
-      ),
-      do_container_join(t, opts, decrement(counter))
-    )
-  end
-
-  defp do_container_join([h|t], opts, _counter) do
-    glue(
-      concat(
-        Kernel.inspect(h, opts),
-        "|"
-      ),
-      "",
-      Kernel.inspect(t, opts)
-    )
-  end
-
-  defp do_container_join([], _opts, _counter) do
-    ""
-  end
-
-  defp decrement(:infinity), do: :infinity
-  defp decrement(counter),   do: counter - 1
-
-  ## escape
-
-  def escape(other, char) do
-    b = do_escape(other, char, <<>>)
-    << char, b :: binary, char >>
-  end
-
-  @compile {:inline, do_escape: 3}
-  defp do_escape(<<>>, _char, binary), do: binary
-  defp do_escape(<< char, t :: binary >>, char, binary) do
-    do_escape(t, char, << binary :: binary, ?\\, char >>)
-  end
-  defp do_escape(<<?#, ?{, t :: binary>>, char, binary) do
-    do_escape(t, char, << binary :: binary, ?\\, ?#, ?{ >>)
-  end
-  defp do_escape(<<?\a, t :: binary>>, char, binary) do
-    do_escape(t, char, << binary :: binary, ?\\, ?a >>)
-  end
-  defp do_escape(<<?\b, t :: binary>>, char, binary) do
-    do_escape(t, char, << binary :: binary, ?\\, ?b >>)
-  end
-  defp do_escape(<<?\d, t :: binary>>, char, binary) do
-    do_escape(t, char, << binary :: binary, ?\\, ?d >>)
-  end
-  defp do_escape(<<?\e, t :: binary>>, char, binary) do
-    do_escape(t, char, << binary :: binary, ?\\, ?e >>)
-  end
-  defp do_escape(<<?\f, t :: binary>>, char, binary) do
-    do_escape(t, char, << binary :: binary, ?\\, ?f >>)
-  end
-  defp do_escape(<<?\n, t :: binary>>, char, binary) do
-    do_escape(t, char, << binary :: binary, ?\\, ?n >>)
-  end
-  defp do_escape(<<?\r, t :: binary>>, char, binary) do
-    do_escape(t, char, << binary :: binary, ?\\, ?r >>)
-  end
-  defp do_escape(<<?\\, t :: binary>>, char, binary) do
-    do_escape(t, char, << binary :: binary, ?\\, ?\\ >>)
-  end
-  defp do_escape(<<?\t, t :: binary>>, char, binary) do
-    do_escape(t, char, << binary :: binary, ?\\, ?t >>)
-  end
-  defp do_escape(<<?\v, t :: binary>>, char, binary) do
-    do_escape(t, char, << binary :: binary, ?\\, ?v >>)
-  end
-  defp do_escape(<<h, t :: binary>>, char, binary) do
-    do_escape(t, char, << binary :: binary, h >>)
-  end
-end
-
 defimpl Inspect, for: Atom do
   require Macro
-  import Inspect.Utils
 
   @doc """
   Represents the atom as an Elixir term. The atoms false, true
@@ -170,7 +59,7 @@ defimpl Inspect, for: Atom do
       atom in Macro.binary_ops or atom in Macro.unary_ops ->
         ":" <> binary
       true ->
-        ":" <> escape(binary, ?")
+        << ?:, ?", String.escape(binary, ?") :: binary, ?" >>
     end
   end
 
@@ -214,8 +103,6 @@ defimpl Inspect, for: Atom do
 end
 
 defimpl Inspect, for: BitString do
-  import Inspect.Utils
-
   @doc %B"""
   Represents the string as itself escaping
   all necessary characters.
@@ -231,7 +118,7 @@ defimpl Inspect, for: BitString do
 
   def inspect(thing, opts) when is_binary(thing) do
     if String.printable?(thing) do
-      escape(thing, ?")
+      << ?", String.escape(thing, ?") :: binary, ?" >>
     else
       as_bitstring(thing, opts)
     end
@@ -274,8 +161,6 @@ defimpl Inspect, for: BitString do
 end
 
 defimpl Inspect, for: List do
-  import Inspect.Utils
-
   @doc %B"""
   Represents a list checking if it can be printed or not.
   If so, a single-quoted representation is returned,
@@ -303,26 +188,15 @@ defimpl Inspect, for: List do
   def inspect(thing, Inspect.Opts[] = opts) do
     cond do
       :io_lib.printable_list(thing) ->
-        escape(:unicode.characters_to_binary(thing), ?')
+        << ?', String.escape(:unicode.characters_to_binary(thing), ?') :: binary, ?' >>
       keyword?(thing) ->
-        surround("[", join_keywords(thing, opts), "]")
+        surround_many("[", thing, "]", opts.limit, keyword(&1, opts))
       true ->
-        container_join(thing, "[", "]", opts)
+        surround_many("[", thing, "]", opts.limit, Kernel.inspect(&1, opts))
     end
   end
 
-  defp join_keywords([x], opts),   do: keyword_to_docentity(x, opts)
-  defp join_keywords([x|xs], opts) do
-    glue(
-      concat(
-        keyword_to_docentity(x, opts),
-        ","
-      ),
-      join_keywords(xs, opts)
-    )
-  end
-
-  defp keyword_to_docentity({key, value}, opts) do
+  defp keyword({key, value}, opts) do
     concat(
       key_to_binary(key) <> ": ",
       Kernel.inspect(value, opts)
@@ -348,8 +222,6 @@ defimpl Inspect, for: List do
 end
 
 defimpl Inspect, for: Tuple do
-  import Inspect.Utils
-
   @doc """
   Inspect tuples. If the tuple represents a record,
   it shows it nicely formatted using the access syntax.
@@ -368,7 +240,7 @@ defimpl Inspect, for: Tuple do
   def inspect(tuple, opts) do
     unless opts.raw do
       record_inspect(tuple, opts)
-    end || container_join(tuple, "{", "}", opts)
+    end || surround_many("{", tuple_to_list(tuple), "}", opts.limit, Kernel.inspect(&1, opts))
   end
 
   ## Helpers
@@ -378,11 +250,11 @@ defimpl Inspect, for: Tuple do
 
     if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
       if Enum.first(tail) == :__exception__ do
-        record_join(name, tl(fields), tl(tail), opts)
+        surround_record(name, tl(fields), tl(tail), opts)
       else
-        record_join(name, fields, tail, opts)
+        surround_record(name, fields, tail, opts)
       end
-    end || container_join(record, "{", "}", opts)
+    end || surround_many("{", [name|tail], "}", opts.limit, Kernel.inspect(&1, opts))
   end
 
   defp record_fields(name) do
@@ -393,36 +265,20 @@ defimpl Inspect, for: Tuple do
     end
   end
 
-  defp record_join(name, fields, tail, opts) do
+  defp surround_record(name, fields, tail, opts) do
     fields = lc { field, _ } inlist fields, do: field
-    namedoc = Inspect.Atom.inspect(name, opts)
 
     concat(
-      namedoc,
-      surround("[", record_join(fields, tail, opts), "]")
+      Inspect.Atom.inspect(name, opts),
+      surround_many("[", Enum.zip(fields, tail), "]", opts.limit, keyword(&1, opts))
     )
   end
 
-  defp record_join([f], [v], opts) do
+  defp keyword({ k, v }, opts) do
     concat(
-      atom_to_binary(f, :utf8) <> ": ",
+      atom_to_binary(k, :utf8) <> ": ",
       Kernel.inspect(v, opts)
     )
-  end
-
-  defp record_join([fh|ft], [vh|vt], opts) do
-    glue(
-      concat([
-        atom_to_binary(fh, :utf8) <> ": ",
-        Kernel.inspect(vh, opts),
-        ","
-      ]),
-      record_join(ft, vt, opts)
-    )
-  end
-
-  defp record_join([], [], _opts) do
-    ""
   end
 end
 

@@ -18,8 +18,11 @@ defmodule Inspect.Algebra do
 
   """
 
-  @default_nesting 1
+  @surround_separator ","
+  @tail_separator " |"
   @newline "\n"
+  @nesting 1
+  @break " "
 
   defp strlen(s), do: String.length(s)
   defp repeat(_, 0), do: ""
@@ -63,7 +66,7 @@ defmodule Inspect.Algebra do
   @doc """
   Concatenates a list of documents.
   """
-  @spec concat(doc, doc) :: :doc_cons_t
+  @spec concat([doc]) :: :doc_cons_t
   def concat(docs), do: folddoc(docs, concat(&1, &2))
 
   @doc """
@@ -77,7 +80,7 @@ defmodule Inspect.Algebra do
       " 6"
 
   """
-  @spec nest(non_neg_integer, doc) :: :doc_nest_t
+  @spec nest(doc, non_neg_integer) :: :doc_nest_t
   def nest(x, 0),                    do: x
   def nest(x, i) when is_integer(i), do: doc_nest(indent: i, doc: x)
 
@@ -106,7 +109,7 @@ defmodule Inspect.Algebra do
   def break(s) when is_binary(s), do: doc_break(str: s)
 
   @spec break() :: :doc_break_t
-  def break(), do: doc_break(str: " ")
+  def break(), do: doc_break(str: @break)
 
   @doc """
   Inserts a break between two docs. See `break/1` for more info.
@@ -151,7 +154,6 @@ defmodule Inspect.Algebra do
   @spec group(doc) :: :doc_group_t
   def group(d), do: doc_group(doc: d)
 
-  # Helpers
   @doc """
   Inserts a mandatory single space between two document entities.
 
@@ -176,7 +178,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec line(doc, doc) :: :doc_cons_t
-  def line(x, y), do: glue(x, @newline, y)
+  def line(x, y), do: concat(x, concat(@newline, y))
 
   @doc """
   Folds a list of document entities into a document entity
@@ -192,23 +194,81 @@ defmodule Inspect.Algebra do
       "A!B"
 
   """
-  @spec folddoc([doc], ((doc, [doc]) -> doc)) :: doc
+  @spec folddoc([any], ((doc, [doc]) -> doc)) :: doc
   def folddoc([], _), do: empty
   def folddoc([doc], _), do: doc
   def folddoc([d|ds], f), do: f.(d, folddoc(ds, f))
 
   # Elixir conveniences
 
-  @doc """
+  @doc %B"""
   Surrounds a document with characters.
+
   Puts the document between left and right enclosing and nests it.
   The document is marked as a group, to show the maximum as possible
   concisely together.
+
+  ## Examples
+
+      iex> doc = Inspect.Algebra.surround "[", Inspect.Algebra.glue("a", "b"), "]"
+      iex> Inspect.Algebra.pretty(doc, 3)
+      "[a\n b]"
+
   """
   @spec surround(binary, doc, binary) :: doc
   def surround(left, doc, right) do
-    group concat [left, nest(doc, @default_nesting), right]
+    group concat [left, nest(doc, @nesting), right]
   end
+
+  @doc %B"""
+  Maps and glues a collection of items together using the given separator
+  and surround them. A limit can be passed which, once reached, stops
+  glueing and outputs "..." instead.
+
+  ## Examples
+
+      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", :infinity, integer_to_binary(&1))
+      iex> Inspect.Algebra.pretty(doc, 5)
+      "[1,\n 2,\n 3,\n 4,\n 5]"
+
+      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", 3, integer_to_binary(&1))
+      iex> Inspect.Algebra.pretty(doc, 20)
+      "[1, 2, 3, ...]"
+
+  """
+  @spec surround_many(binary, [any], binary, integer | :infinity, (term -> doc)) :: doc
+  def surround_many(left, [], right, _, _fun) do
+    concat(left, right)
+  end
+
+  def surround_many(left, docs, right, limit, fun) do
+    surround(left, surround_many(docs, limit, fun), right)
+  end
+
+  defp surround_many(_, 0, _fun) do
+    "..."
+  end
+
+  defp surround_many([h], _limit, fun) do
+    fun.(h)
+  end
+
+  defp surround_many([h|t], limit, fun) when is_list(t) do
+    glue(
+      concat(fun.(h), @surround_separator),
+      surround_many(t, decrement(limit), fun)
+    )
+  end
+
+  defp surround_many([h|t], _limit, fun) do
+    glue(
+      concat(fun.(h), @tail_separator),
+      fun.(t)
+    )
+  end
+
+  defp decrement(:infinity), do: :infinity
+  defp decrement(counter),   do: counter - 1
 
   # Rendering and internal helpers
 
