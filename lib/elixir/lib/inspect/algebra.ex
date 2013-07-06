@@ -1,20 +1,60 @@
 defmodule Inspect.Algebra do
-  @moduledoc """
-  Elixir implementation of the Wadler document algebra as described in
-  ["Strictly Pretty" (2000) by Christian Lindig][0].
+  @moduledoc %B"""
+  A set of functions for creating and manipulating algebra
+  documents, as described in ["Strictly Pretty" (2000) by Christian Lindig][0].
 
-  The original Haskell implementation of the algorithm relies on lazy
-  evaluation to unfold document groups on two alternatives:
-  _flat_ (breaks as spaces) and _broken_ (breakes as newlines).
+  An algebra document is represented by an `Inspect.Algebra` node
+  or a regular string.
+
+      iex> Inspect.Algebra.empty
+      :doc_nil
+      iex> "foo"
+      "foo"
+
+  With the functions in this module, we can concatenate different
+  elements together and render them:
+
+      iex> doc = Inspect.Algebra.concat(Inspect.Algebra.empty, "foo")
+      iex> Inspect.Algebra.pretty(doc, 80)
+      "foo"
+
+  The functions `nest/2`, `space/2` and `line/2` helps you put the
+  document together into a rigid structure. However, the document
+  algebra gets interesting when using functions like `break/2`, which
+  converts the given string into a line break depending on much space
+  there is to print. Let's glue two docs together with a break and then
+  render it:
+
+      iex> doc = Inspect.Algebra.glue("a", " ", "b")
+      iex> Inspect.Algebra.pretty(doc, 80)
+      "a b"
+
+  Notice the break was represented as is, because we haven't reached
+  a line limit. Once we do, it is replaced by a new line:
+
+      iex> doc = Inspect.Algebra.glue(String.duplicate("a", 20), " ", "b")
+      iex> Inspect.Algebra.pretty(doc, 10)
+      "aaaaaaaaaaaaaaaaaaaa\nb"
+
+  Finally, this module also contains Elixir related functions, a bit
+  tied up to Elixir formatting, namely `surround/3` and `surround_many/5`.
+
+  ## Implementation details
+
+  The original Haskell implementation of the algorithm by [Wadler][1]
+  relies on lazy evaluation to unfold document groups on two alternatives:
+  `:flat` (breaks as spaces) and `:broken` (breakes as newlines).
   Implementing the same logic on a strict language such as Elixir leads
   to an exponential growth of the possible documents, unless document
-  groups are encoded explictly as _flat_ or _broken_. Those groups are
-  then reduced to a simple document, where the layout is already decided.
+  groups are encoded explictly as `:flat` or `:broken`. Those groups are
+  then reduced to a simple document, where the layout is already decided,
+  per [Lindig][0].
 
-  Custom pretty printers can be implemented using functions, exported
-  from this module.
+  Custom pretty printers can be implemented using the documents returned
+  by this module and by providing its own rendenring functions.
 
     [0]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.34.2200
+    [1]: http://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf
 
   """
 

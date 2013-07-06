@@ -151,7 +151,7 @@ defmodule IO do
   @doc """
   Inspects the item with options using the given device.
   """
-  def inspect(device, item, opts) do
+  def inspect(device, item, opts) when is_list(opts) do
     opts = Keyword.put_new(opts, :pretty, true)
     opts = case :io.columns(device) do
       { :ok, width } -> Keyword.put_new(opts, :width, min(width, 80))

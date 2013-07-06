@@ -2102,16 +2102,16 @@ defmodule Kernel do
 
   The following options are supported:
 
-  * raw   -- when true, record tuples are not formatted by the inspect protocol,
-             but are printed as just tuples, defaults to false;
+  * `:raw`   - when true, record tuples are not formatted by the inspect protocol,
+               but are printed as just tuples, defaults to false;
 
-  * limit -- limits the number of items that are printed for tuples, bitstrings,
-             and lists, does not apply to strings nor char lists;
+  * `:limit` - limits the number of items that are printed for tuples, bitstrings,
+               and lists, does not apply to strings nor char lists;
 
-  * :pretty - if set to true enables pretty printing, defaults to false;
+  * `:pretty` - if set to true enables pretty printing, defaults to false;
 
-  * :width - the width avaliable for inspect to lay out the data structure
-             representation. Defaults to the least of 80 and terminal width;
+  * `:width` - the width avaliable for inspect to lay out the data structure
+               representation. Defaults to the least of 80 and terminal width;
 
   ## Examples
 
@@ -2121,15 +2121,15 @@ defmodule Kernel do
       iex> inspect [1, 2, 3, 4, 5], limit: 3
       "[1, 2, 3, ...]"
 
-      inspect(ArgumentError[])
-      #=> "ArgumentError[message: \"argument error\"]"
+      iex> inspect(ArgumentError[])
+      "ArgumentError[message: \"argument error\"]"
 
-      inspect(ArgumentError[], raw: true)
-      #=> "{ArgumentError, :__exception__, \"argument error\"}"
+      iex> inspect(ArgumentError[], raw: true)
+      "{ArgumentError, :__exception__, \"argument error\"}"
 
   Note that the inspect protocol does not necessarily return a valid
-  representation of an Elixir term. In such cases, the inspected result must
-  start with `#`. For example, inspecting a function will return:
+  representation of an Elixir term. In such cases, the inspected result
+  must start with `#`. For example, inspecting a function will return:
 
       inspect &1 + &2
       #=> #Function<...>

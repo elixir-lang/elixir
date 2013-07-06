@@ -5,13 +5,42 @@ defrecord Inspect.Opts, raw: false, limit: :infinity, pretty: false, width: 80
 
 defprotocol Inspect do
   @moduledoc """
-  The `Inspect` protocol is responsible for
-  converting any structure to a binary for textual
-  representation. All basic data structures
-  (tuple, list, function, pid, etc) implement the
-  inspect protocol. Other structures are advised to
-  implement the protocol in order to provide pretty
-  printing.
+  The `Inspect` protocol is responsible for converting any Elixir
+  data structure into an algebra document. This document is then
+  formatted, either in pretty printing format or a regular one.
+
+  The `inspect/2` function receives the entity to be inspected
+  followed by the inspecting options, represented by the record
+  `Inspect.Opts`.
+
+  Inspection is done by using the functions available in
+  `Inspect.Algebra` and by calling `Kernel.inspect/2` recursively
+  passing the `Inspect.Opts` as argument. When `Kernel.inspect/2`
+  receives a `Inspect.Opts` record as second argument, it returns
+  the underlying algebra document instead of the formatted string.
+
+  Many times, inspecting a structure can be implemented in function
+  of the existing entities. For example, here is `HashSet`'s `inspect`
+  implementation:
+
+      defimpl Inspect, for: HashSet do
+        import Inspect.Algebra
+
+        def inspect(dict, opts) do
+          concat ["#HashSet<", Kernel.inspect(HashSet.to_list(dict), opts), ">"]
+        end
+      end
+
+  The `concat` function comes from `Inspect.Algebra` and it
+  concatenates algebra documents together. In the example above,
+  it is concatenating the string `"HashSet<"` (all strings are a
+  valid algebra document that keeps their formatting when pretty
+  printed), the document returned by `Kernel.inspect/2` and the
+  other string `">"`.
+
+  Since regular strings are a valid entity in an algebra document,
+  an implementation of inspect may as well simply return a binary,
+  although that will devoid it of any pretty-printing.
   """
 
   def inspect(thing, opts)
@@ -104,8 +133,10 @@ end
 
 defimpl Inspect, for: BitString do
   @doc %B"""
-  Represents the string as itself escaping
-  all necessary characters.
+  Represents a string as itself escaping all necessary
+  characters. Bitstrings and strings that contain non-
+  printable characters are printed using the bitstring
+  syntax.
 
   ## Examples
 
@@ -115,7 +146,6 @@ defimpl Inspect, for: BitString do
       "\"f\\\"oo\""
 
   """
-
   def inspect(thing, opts) when is_binary(thing) do
     if String.printable?(thing) do
       << ?", String.escape(thing, ?") :: binary, ?" >>
@@ -164,13 +194,8 @@ defimpl Inspect, for: List do
   @doc %B"""
   Represents a list checking if it can be printed or not.
   If so, a single-quoted representation is returned,
-  otherwise the brackets syntax is used.
-
-  Inspecting a list is conservative as it does not try
-  to guess how the list is encoded. That said, `'josé'`
-  will likely be inspected as `[106,111,115,195,169]`
-  because we can't know if it is encoded in utf-8
-  or iso-5569-1, which is common in Erlang libraries.
+  otherwise the brackets syntax is used. Keywords are
+  printed in keywords syntax.
 
   ## Examples
 
@@ -284,7 +309,13 @@ end
 
 defimpl Inspect, for: Number do
   @doc """
-  Represents the number as a binary.
+  Represents the number as a string.
+
+  Floats are represented using the shorted, correctly rounded string
+  that converts to float when read back with `binary_to_float/1`. This
+  is done via the Erlang implementation of the "Printing Floating-Point
+  Numbers Quickly and Accurately" in Proceedings of the SIGPLAN '96
+  Conference on Programming Language Design and Implementation.
 
   ## Examples
 
@@ -321,9 +352,6 @@ defimpl Inspect, for: Regex do
 end
 
 defimpl Inspect, for: Function do
-  @moduledoc """
-  Inspect functions, when possible, in a literal form.
-  """
   def inspect(function, _opts) do
     fun_info = :erlang.fun_info(function)
     if fun_info[:type] == :external and fun_info[:env] == [] do
