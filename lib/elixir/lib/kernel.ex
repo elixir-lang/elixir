@@ -3,9 +3,9 @@ import Kernel, except: [raise: 1, raise: 2]
 defmodule Kernel do
   @moduledoc """
   `Kernel` provides the default macros and functions
-  Elixir imports into your environment. Those macros and functions
+  Elixir imports into your environment. These macros and functions
   can be skipped or cherry-picked via the `import` macro. For
-  instance, if you want to tell Elixir to not import the `case`
+  instance, if you want to tell Elixir not to import the `case`
   macro, you can do:
 
       import Kernel, except: [case: 2]
@@ -14,7 +14,7 @@ defmodule Kernel do
   cannot be skipped. These are described in `Kernel.SpecialForms`.
 
   Some of the functions described in this module are simply
-  a proxy to its Erlang counterpart. Although they are documented
+  a proxy to their Erlang counterpart. Although they are documented
   here for convenience, you can access their original documentation
   at http://www.erlang.org/doc/man/erlang.html.
   """
@@ -85,8 +85,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Arithmetic division. Differently from other languages,
-  the result is always a float. Use div and rem if you want
+  Arithmetic division. Unlike other languages,
+  the result is always a float. Use `div` and `rem` if you want
   a natural division or the remainder. Allowed in guard clauses.
 
   ## Examples
@@ -1328,8 +1328,8 @@ defmodule Kernel do
   This macro allows a function to be defined more explicitly
   by accepting the name, args and guards as different entries.
 
-  Differently from `def/2`, the macro arguments are evaluated
-  and therefore requires quoting.
+  Unlike `def/2`, the macro arguments are evaluated
+  and therefore require quoting.
 
   The `name` must be an atom, the `arguments` a list where each
   element represents another argument and `guards` a list of
@@ -1644,7 +1644,7 @@ defmodule Kernel do
   the same API and similar behavior to `defrecord/4` with two notable
   differences:
 
-  1) Differently from records, exceptions are documented by default;
+  1) Unlike records, exceptions are documented by default;
 
   2) Exceptions **must** implement `message/1` -- a function that returns a
      string;
@@ -2603,7 +2603,7 @@ defmodule Kernel do
         # ... callbacks ...
       end
 
-  Elixir supports by default all Erlang module attributes but any developer
+  By default Elixir supports all Erlang module attributes, but any developer
   can also add custom attributes:
 
       defmodule MyServer do
@@ -2611,12 +2611,12 @@ defmodule Kernel do
         IO.inspect @my_data #=> 13
       end
 
-  Differently from Erlang, such attributes are not stored in the module by
+  Unlike Erlang, such attributes are not stored in the module by
   default since it is common in Elixir to use such attributes to store
   temporary data. A developer can configure an attribute to behave closer
   to Erlang by calling `Module.register_attribute/2`.
 
-  Finally notice that attributes can also be read inside functions:
+  Finally, notice that attributes can also be read inside functions:
 
       defmodule MyServer do
         @my_data 11
@@ -3098,8 +3098,8 @@ defmodule Kernel do
       iex> false && throw(:bad)
       false
 
-  Notice that, differently from Erlang `and` operator,
-  this operator accepts any expression as arguments,
+  Notice that, unlike Erlang's `and` operator,
+  this operator accepts any expression as an argument,
   not only booleans, however it is not allowed in guards.
   """
   defmacro left && right do
@@ -3129,8 +3129,8 @@ defmodule Kernel do
       iex> true || throw(:bad)
       true
 
-  Notice that, differently from Erlang `or` operator,
-  this operator accepts any expression as arguments,
+  Notice that, unlike Erlang's `or` operator,
+  this operator accepts any expression as an argument,
   not only booleans, however it is not allowed in guards.
   """
   defmacro left || right do
