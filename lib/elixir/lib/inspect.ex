@@ -84,7 +84,8 @@ defimpl Inspect, for: Atom do
       valid_atom_identifier?(binary) ->
         ":" <> binary
       valid_ref_identifier?(binary) ->
-        Module.to_string(atom)
+        "Elixir." <> rest = binary
+        rest
       atom in Macro.binary_ops or atom in Macro.unary_ops ->
         ":" <> binary
       true ->
@@ -283,9 +284,13 @@ defimpl Inspect, for: Tuple do
   end
 
   defp record_fields(name) do
-    try do
-      name.__record__(:fields)
-    rescue
+    case atom_to_binary(name) do
+      "Elixir." <> _ ->
+        try do
+          name.__record__(:fields)
+        rescue
+          _ -> nil
+        end
       _ -> nil
     end
   end

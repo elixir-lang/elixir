@@ -165,11 +165,6 @@ defmodule ModuleTest do
     assert Module.concat(Module.split(module)) == module
   end
 
-  test :to_binary do
-    assert Module.to_string(Elixir) == "Elixir"
-    assert Module.to_string(Hello.World) == "Hello.World"
-  end
-
   test :__MODULE__ do
     assert Code.eval_string("__MODULE__.Foo") |> elem(0) == Foo
   end

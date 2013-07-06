@@ -134,7 +134,9 @@ defmodule Inspect.TupleTest do
   defrecord :something, [:a, :b]
 
   test :non_module_record do
-    assert inspect(:something.new) == ":something[a: nil, b: nil]"
+    # They are on purpose not treated as Elixir records
+    # otherwise it affects inspect performance very strongly
+    assert inspect(:something.new) == "{:something, nil, nil}"
   end
 
   defrecord Rec, value: 1

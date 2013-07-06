@@ -64,7 +64,6 @@ defmodule Inspect.Algebra do
   @nesting 1
   @break " "
 
-  defp strlen(s), do: String.length(s)
   defp repeat(_, 0), do: ""
   defp repeat(s, i), do: :lists.duplicate(i, s)
 
@@ -357,8 +356,8 @@ defmodule Inspect.Algebra do
   def fits?(w, [{_, _, :doc_nil} | t]),                     do: fits?(w, t)
   def fits?(w, [{i, m, doc_cons(left: x, right: y)} | t]),  do: fits?(w, [{i, m, x} | [{i, m, y} | t]])
   def fits?(w, [{i, m, doc_nest(indent: j, doc: x)} | t]),  do: fits?(w, [{i + j, m, x} | t])
-  def fits?(w, [{_, _, s} | t]) when is_binary(s),          do: fits?((w - strlen s), t)
-  def fits?(w, [{_, :flat, doc_break(str: s)} | t]),        do: fits?((w - strlen s), t)
+  def fits?(w, [{_, _, s} | t]) when is_binary(s),          do: fits?((w - byte_size s), t)
+  def fits?(w, [{_, :flat, doc_break(str: s)} | t]),        do: fits?((w - byte_size s), t)
   def fits?(_, [{_, :break, doc_break(str: _)} | _]),       do: true
   def fits?(w, [{i, _, doc_group(doc: x)} | t]),            do: fits?(w, [{i, :flat, x} | t])
 
@@ -369,8 +368,8 @@ defmodule Inspect.Algebra do
   def format(w, k, [{_, _, :doc_nil} | t]),                    do: format(w, k, t)
   def format(w, k, [{i, m, doc_cons(left: x, right: y)} | t]), do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
   def format(w, k, [{i, m, doc_nest(indent: j, doc: x)} | t]), do: format(w, k, [{i + j, m, x} | t])
-  def format(w, k, [{_, _, s} | t]) when is_binary(s),         do: s_text(str: s, sdoc: format(w, (k + strlen s), t))
-  def format(w, k, [{_, :flat, doc_break(str: s)} | t]),       do: s_text(str: s, sdoc: format(w, (k + strlen s), t))
+  def format(w, k, [{_, _, s} | t]) when is_binary(s),         do: s_text(str: s, sdoc: format(w, (k + byte_size s), t))
+  def format(w, k, [{_, :flat, doc_break(str: s)} | t]),       do: s_text(str: s, sdoc: format(w, (k + byte_size s), t))
   def format(w, _, [{i, :break, doc_break(str: _)} | t]),      do: s_line(indent: i, sdoc: format(w, i, t))
   def format(w, k, [{i, _, doc_group(doc: x)} | t]) do
     if fits? (w - k), [{i, :flat, x} | t] do

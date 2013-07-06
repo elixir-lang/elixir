@@ -828,16 +828,6 @@ defmodule Module do
     tl(String.split(Binary.Chars.to_binary(module), "."))
   end
 
-  @doc """
-  Convert a module name to binary without the Elixir prefix.
-  """
-  def to_string(Elixir), do: "Elixir"
-
-  def to_string(module) do
-    "Elixir." <> rest = Binary.Chars.to_binary(module)
-    rest
-  end
-
   @doc false
   # Used internally to compile documentation. This function
   # is private and must be used only internally.
