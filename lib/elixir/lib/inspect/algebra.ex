@@ -18,21 +18,21 @@ defmodule Inspect.Algebra do
 
   """
 
-  @default_nesting 2
+  @default_nesting 1
   @newline "\n"
 
   defp strlen(s), do: String.length(s)
   defp repeat(_, 0), do: ""
   defp repeat(s, i), do: :lists.duplicate(i, s)
 
-  # Records representing a __complex__ document
+  # Functional interface to `doc` records
+
   @type doc :: :doc_nil | :doc_cons_t | :doc_nest_t | :doc_break_t | :doc_group_t | binary
   defrecordp :doc_cons, :doc_cons, [left: :doc_nil, right: :doc_nil]
   defrecordp :doc_nest, :doc_nest, [indent: 1, doc: :doc_nil]
   defrecordp :doc_break, :doc_break, [str: " "]
   defrecordp :doc_group, :doc_group, [doc: :doc_nil]
 
-  # Functional interface to `doc` records
   @doc """
   Returns :doc_nil which is a document entity used to represent
   nothingness. Takes no arguments.
@@ -197,43 +197,20 @@ defmodule Inspect.Algebra do
   def folddoc([doc], _), do: doc
   def folddoc([d|ds], f), do: f.(d, folddoc(ds, f))
 
-  @doc """
-  Folds a list of document entities with `space/2` function.
-
-  ## Examples
-
-      iex> doc = ["A", "B"]
-      iex> doc |> Inspect.Algebra.spread |> Inspect.Algebra.pretty(80)
-      "A B"
-
-  """
-  @spec spread([doc]) :: doc
-  def spread(docs), do: folddoc(docs, fn(d, x) -> space(d, x) end)
-
-  @doc %B"""
-  Folds a list of document entities with `line/2` function.
-
-  ## Examples
-
-      iex> doc = ["A", "B"]
-      iex> doc |> Inspect.Algebra.stack |> Inspect.Algebra.pretty(80)
-      "A\nB"
-  """
-  @spec stack([doc]) :: doc
-  def stack(docs), do: folddoc(docs, fn(d, x) -> line(d, x) end)
+  # Elixir conveniences
 
   @doc """
   Surrounds a document with characters.
   Puts the document between left and right enclosing and nests it.
+  The document is marked as a group, to show the maximum as possible
+  concisely together.
   """
   @spec surround(binary, doc, binary) :: doc
   def surround(left, doc, right) do
-    glue(
-      nest(glue(left, "", doc), @default_nesting), # remember that first line is not nested
-      "",
-      right
-    )
+    group concat [left, nest(doc, @default_nesting), right]
   end
+
+  # Rendering and internal helpers
 
   # Records representing __simple__ documents, already on a fixed layout
   # Those are generalized by `sdoc` type.

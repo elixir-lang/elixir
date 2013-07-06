@@ -143,17 +143,12 @@ defmodule Mix.Deps do
 
   def format_status(Mix.Dep[status: { :diverged, other }, opts: opts] = dep) do
     "different specs were given for this dependency, choose one in your deps:\n" <>
-    "> In #{dep.from}:\n$ #{inspect_kw opts}\n" <>
-    "> In #{other.from}:\n$ #{inspect_kw other.opts}\n"
+    "> In #{dep.from}:\n$ #{inspect opts, pretty: true}\n" <>
+    "> In #{other.from}:\n$ #{inspect other.opts, pretty: true}\n"
   end
 
   def format_status(Mix.Dep[status: { :unavailable, _ }]),
     do: "the dependency is not available, run `mix deps.get`"
-
-  defp inspect_kw(list) do
-    middle = lc { key, value } inlist Enum.sort(list), do: "#{key}: #{inspect value, raw: true}"
-    "[ " <> Enum.join(middle, ",\n  ") <> " ]"
-  end
 
   @doc """
   Checks the lock for the given dependency and update its status accordingly.

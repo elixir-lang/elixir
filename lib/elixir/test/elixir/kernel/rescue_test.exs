@@ -154,7 +154,7 @@ defmodule Kernel.RescueTest do
       x in [ArgumentError] -> x.message
     end
 
-    assert result == "argument error: [1,2,3]"
+    assert result == "argument error: [1, 2, 3]"
   end
 
   test :badarith_error do
@@ -169,7 +169,7 @@ defmodule Kernel.RescueTest do
 
   test :badarity_error do
     fun    = fn(x) -> x end
-    string = "bad arity error: #{inspect(fun)} called with [1,2]"
+    string = "bad arity error: #{inspect(fun)} called with [1, 2]"
 
     result = try do
       fun.(1, 2)

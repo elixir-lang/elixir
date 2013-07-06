@@ -146,7 +146,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = refute 'foo' in ['foo', 'bar']
     rescue
       error in [ExUnit.ExpectationError] ->
-        "Expected 'foo' to not be in ['foo','bar']" = error.message
+        "Expected 'foo' to not be in ['foo', 'bar']" = error.message
     end
   end
 

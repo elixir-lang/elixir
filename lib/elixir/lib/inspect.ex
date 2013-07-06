@@ -1,8 +1,7 @@
 import Kernel, except: [inspect: 1]
 import Inspect.Algebra
 
-defrecord Inspect.Opts, raw: false, limit: :infinity, depth: 0,
-                        pretty: false, width: 80
+defrecord Inspect.Opts, raw: false, limit: :infinity, pretty: false, width: 80
 
 defprotocol Inspect do
   @moduledoc """
@@ -26,44 +25,6 @@ defmodule Inspect.Utils do
   `Inspect.Algebra` module.
   """
 
-  ## groups aware of depth
-  @doc """
-  Increases the depth count to be used with group_maybe.
-  """
-  def inc_depth(Inspect.Opts[] = opts), do: opts.update_depth(&1 + 1)
-
-  @doc """
-  Wraps a document `d` on a group if the current nest level on the pretty-printer is
-  smaller than `t`. `group_maybe/2` uses a default nesting level of 3.
-
-    # group_maybe enables the output for
-    iex(1)> inspect([foo: [1,2,3,:bar], bazzz: :bat], [pretty: true, width: 30])
-
-    # to be a much more concise
-    [
-      foo: [1,2,3,:bar], bazzz: :bat
-    ]
-
-    # instead of
-    [
-      foo: [
-        1,
-        2,
-        3,
-        :bar
-      ],
-      bazzz: :bat
-    ]
-
-
-  """
-  def group_maybe(d, opts),    do: group_maybe_do(d, 3, fn(d) -> group(d) end, opts)
-  def group_maybe(d, t, opts), do: group_maybe_do(d, t, fn(d) -> group(d) end, opts)
-
-  defp group_maybe_do(d, t, f, opts) do
-    if opts.depth > t, do: d, else: f.(d)
-  end
-
   @doc """
   Creates a document from a sequence (tuples and lists), using first and
   last to enclose the document.
@@ -73,14 +34,11 @@ defmodule Inspect.Utils do
   end
 
   def container_join(list, first, last, opts) do
-    opts = inc_depth(opts)
-    group_maybe(
-      surround(
-        first,
-        do_container_join(list, opts, opts.limit),
-        last
-      ),
-    5, opts)
+    surround(
+      first,
+      do_container_join(list, opts, opts.limit),
+      last
+    )
   end
 
   defp do_container_join(_, _opts, 0) do
@@ -97,7 +55,6 @@ defmodule Inspect.Utils do
         Kernel.inspect(h, opts),
         ","
       ),
-      "",
       do_container_join(t, opts, decrement(counter))
     )
   end
@@ -295,7 +252,7 @@ defimpl Inspect, for: BitString do
   end
 
   defp each_bit(<<h, t :: bitstring>>, counter) when t != <<>> do
-    integer_to_binary(h) <> "," <> each_bit(t, decrement(counter))
+    integer_to_binary(h) <> ", " <> each_bit(t, decrement(counter))
   end
 
   defp each_bit(<<h :: size(8)>>, _counter) do
@@ -335,9 +292,9 @@ defimpl Inspect, for: List do
       iex> inspect('bar')
       "'bar'"
       iex> inspect([0|'bar'])
-      "[0,98,97,114]"
+      "[0, 98, 97, 114]"
       iex> inspect([:foo,:bar])
-      "[:foo,:bar]"
+      "[:foo, :bar]"
 
   """
 
@@ -348,12 +305,7 @@ defimpl Inspect, for: List do
       :io_lib.printable_list(thing) ->
         escape(:unicode.characters_to_binary(thing), ?')
       keyword?(thing) ->
-        opts = inc_depth(opts)
-
-        group_maybe(
-          surround("[", join_keywords(thing, opts), "]"),
-          opts
-        )
+        surround("[", join_keywords(thing, opts), "]")
       true ->
         container_join(thing, "[", "]", opts)
     end
@@ -405,7 +357,7 @@ defimpl Inspect, for: Tuple do
   ## Examples
 
       iex> inspect({1, 2, 3})
-      "{1,2,3}"
+      "{1, 2, 3}"
       iex> inspect(ArgumentError.new)
       "ArgumentError[message: \\\"argument error\\\"]"
 
@@ -442,15 +394,12 @@ defimpl Inspect, for: Tuple do
   end
 
   defp record_join(name, fields, tail, opts) do
-    opts = inc_depth(opts)
     fields = lc { field, _ } inlist fields, do: field
     namedoc = Inspect.Atom.inspect(name, opts)
-    group_maybe(
-      concat(
-        namedoc,
-        surround("[", record_join(fields, tail, opts), "]")
-      ),
-      opts
+
+    concat(
+      namedoc,
+      surround("[", record_join(fields, tail, opts), "]")
     )
   end
 
@@ -557,6 +506,6 @@ end
 
 defimpl Inspect, for: HashSet do
   def inspect(set, opts) do
-    concat ["#HashSet<", Inspect.List.inspect(HashDict.to_list(set), opts), ">"]
+    concat ["#HashSet<", Inspect.List.inspect(HashSet.to_list(set), opts), ">"]
   end
 end

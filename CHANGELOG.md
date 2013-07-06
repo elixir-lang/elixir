@@ -343,7 +343,7 @@
 * enhancements
   * [Behaviour] Add Behaviour with a simple callback DSL to define callbacks
   * [Binary] Add a Dict binary that converts its keys to binaries on insertion
-  * [Binary] Optimize `Inspect` and improve inspect for floats
+  * [Binary] Optimize `Binary.Inspect` and improve inspect for floats
   * [CLI] Support `--detached` option
   * [Code] `Code.string_to_ast` supports `:existing_atoms_only` as an option in order to guarantee no new atoms is generated when parsing the code
   * [EEx] Support `<%%` and `<%#` tags
