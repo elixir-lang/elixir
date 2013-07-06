@@ -490,11 +490,3 @@ defimpl Enumerable, for: HashSet do
   def member?(set, v),       do: HashSet.member?(set, v)
   def count(set),            do: HashSet.size(set)
 end
-
-defimpl Binary.Inspect, for: HashSet do
-  import Kernel, except: [inspect: 2]
-
-  def inspect(set, opts) do
-    "#HashSet<" <> Kernel.inspect(HashSet.to_list(set), opts) <> ">"
-  end
-end

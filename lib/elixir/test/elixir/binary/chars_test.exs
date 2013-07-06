@@ -52,7 +52,7 @@ defmodule Binary.Chars.NumberTest do
 
   test :float do
     assert to_binary(1.0) == "1.0"
-    assert to_binary(1.0e10) == "10000000000.0"
+    assert to_binary(1.0e10) == "1.0e10"
   end
 end
 
@@ -82,40 +82,40 @@ defmodule Binary.Chars.ErrorsTest do
     assert_raise Protocol.UndefinedError, "protocol Binary.Chars.List not implemented for [256]. Only iolists are supported", fn ->
       to_binary([256])
     end
-    assert_raise Protocol.UndefinedError, "protocol Binary.Chars.List not implemented for [1001,10001,100001]. Only iolists are supported", fn ->
+    assert_raise Protocol.UndefinedError, "protocol Binary.Chars.List not implemented for [1001, 10001, 100001]. Only iolists are supported", fn ->
       to_binary([1001, 10001, 100001])
     end
-    assert_raise Protocol.UndefinedError, "protocol Binary.Chars.List not implemented for [:atom,13,\"hello\"]. Only iolists are supported", fn ->
+    assert_raise Protocol.UndefinedError, "protocol Binary.Chars.List not implemented for [:atom, 13, \"hello\"]. Only iolists are supported", fn ->
       to_binary([:atom, 13, "hello"])
     end
   end
 
   test :tuple do
-    assert_raise Protocol.UndefinedError, "protocol Binary.Chars not implemented for {1,2,3}", fn ->
+    assert_raise Protocol.UndefinedError, "protocol Binary.Chars not implemented for {1, 2, 3}", fn ->
       to_binary({1, 2, 3})
     end
   end
 
   test :nested_in_tuple do
-    assert_raise Protocol.UndefinedError, "protocol Binary.Chars not implemented for {1,[2],:atom}", fn ->
+    assert_raise Protocol.UndefinedError, "protocol Binary.Chars not implemented for {1, [2], :atom}", fn ->
       to_binary({1, [2], :atom})
     end
   end
 
   test :nested_tuple do
-    assert_raise Protocol.UndefinedError, "protocol Binary.Chars.List not implemented for [1,{[2],:atom}]. Only iolists are supported", fn ->
+    assert_raise Protocol.UndefinedError, "protocol Binary.Chars.List not implemented for [1, {[2], :atom}]. Only iolists are supported", fn ->
       to_binary([1, {[2], :atom}])
     end
   end
 
   test :nested_pid do
-    assert_raise Protocol.UndefinedError, %r"^protocol Binary\.Chars\.List not implemented for \[#PID<.+?>,:atom\]\. Only iolists are supported$", fn ->
+    assert_raise Protocol.UndefinedError, %r"^protocol Binary\.Chars\.List not implemented for \[#PID<.+?>, :atom\]\. Only iolists are supported$", fn ->
       to_binary([self(), :atom])
     end
   end
 
   test :nested_fun do
-    assert_raise Protocol.UndefinedError, %r"^protocol Binary\.Chars\.List not implemented for \[:atom,#Function<.+?>\]\. Only iolists are supported$", fn ->
+    assert_raise Protocol.UndefinedError, %r"^protocol Binary\.Chars\.List not implemented for \[:atom, #Function<.+?>\]\. Only iolists are supported$", fn ->
       to_binary([:atom, fn -> end])
     end
   end

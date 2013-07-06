@@ -451,7 +451,7 @@ defimpl Binary.Chars, for: Mix.Version.Schema do
   end
 end
 
-defimpl Binary.Inspect, for: Mix.Version.Schema do
+defimpl Inspect, for: Mix.Version.Schema do
   def inspect(self, _opts) do
     "#Mix.Version.Schema<" <> to_binary(self) <> ">"
   end
@@ -463,7 +463,7 @@ defimpl Binary.Chars, for: Mix.Version.Requirement do
   end
 end
 
-defimpl Binary.Inspect, for: Mix.Version.Requirement do
+defimpl Inspect, for: Mix.Version.Requirement do
   def inspect({ _, source, _ }, _opts) do
     "#Mix.Version.Requirement<" <> source <> ">"
   end

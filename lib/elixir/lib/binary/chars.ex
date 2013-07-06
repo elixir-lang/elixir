@@ -74,19 +74,11 @@ defimpl Binary.Chars, for: Number do
   @doc """
   Simply converts the number (integer or a float) to a binary.
   """
-
-  @digits 20
-  @limit  :math.pow(10, @digits)
-
   def to_binary(thing) when is_integer(thing) do
     integer_to_binary(thing)
   end
 
-  def to_binary(thing) when thing > @limit do
-    float_to_binary(thing, scientific: @digits)
-  end
-
   def to_binary(thing) do
-    float_to_binary(thing, compact: true, decimals: @digits)
+    list_to_binary(:io_lib_format.fwrite_g(thing))
   end
 end

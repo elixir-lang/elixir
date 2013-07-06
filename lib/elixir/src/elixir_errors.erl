@@ -18,7 +18,7 @@ warn(Warning) ->
 %% Handle inspecting for exceptions
 
 inspect(Atom) when is_atom(Atom) ->
-  'Elixir.Binary.Inspect.Atom':inspect(Atom, []).
+  'Elixir.Inspect.Atom':inspect(Atom).
 
 %% Raised during macros translation.
 

@@ -5,12 +5,12 @@ defmodule KernelTest do
 
   doctest Access.List
   doctest Binary.Chars.List
-  doctest Binary.Inspect.Atom
-  doctest Binary.Inspect.BitString
-  doctest Binary.Inspect.List
-  doctest Binary.Inspect.Number
-  doctest Binary.Inspect.Regex
-  doctest Binary.Inspect.Tuple
+  doctest Inspect.Atom
+  doctest Inspect.BitString
+  doctest Inspect.List
+  doctest Inspect.Number
+  doctest Inspect.Regex
+  doctest Inspect.Tuple
   doctest Bitwise
   doctest Code
   doctest Dict
@@ -28,4 +28,5 @@ defmodule KernelTest do
   doctest Set
   doctest Stream
   doctest String
+  doctest Inspect.Algebra
 end

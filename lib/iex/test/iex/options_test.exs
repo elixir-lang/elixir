@@ -35,7 +35,7 @@ defmodule IEx.OptionsTest do
   test "inspect opts" do
     opts = [inspect: [limit: 3, raw: true]]
     assert capture_iex("[1,2,3,4,5]\nArgumentError[]", opts) ==
-              "[1,2,3,...]\n{ArgumentError,:__exception__,\"argument error\"}"
+              "[1, 2, 3, ...]\n{ArgumentError, :__exception__, \"argument error\"}"
 
     opts = [inspect: [raw: false]]
     assert capture_iex("ArgumentError[]", opts) == "ArgumentError[message: \"argument error\"]"
@@ -49,4 +49,3 @@ defmodule IEx.OptionsTest do
     assert "1\n2\n3\n4\n2\n** (RuntimeError) Out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(2)\nv(2)", opts)
   end
 end
-

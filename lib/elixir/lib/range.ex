@@ -5,6 +5,9 @@ defrecord Range, [:first, :last] do
 end
 
 defprotocol Range.Iterator do
+  @doc """
+  Reduces the range based on the type of the first argument.
+  """
   def reduce(first, range, acc, fun)
 
   @doc """
@@ -61,10 +64,8 @@ defimpl Range.Iterator, for: Number do
   end
 end
 
-defimpl Binary.Inspect, for: Range do
-  import Kernel, except: [inspect: 2]
-
+defimpl Inspect, for: Range do
   def inspect(Range[first: first, last: last], opts) do
-    Kernel.inspect(first, opts) <> ".." <> Kernel.inspect(last, opts)
+    Inspect.Algebra.concat [Kernel.inspect(first, opts), "..", Kernel.inspect(last, opts)]
   end
 end

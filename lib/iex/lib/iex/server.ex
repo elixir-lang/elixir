@@ -24,7 +24,6 @@ defmodule IEx.Server do
 
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
 
-
     old_flag = Process.flag(:trap_exit, true)
     self_pid = self
     pid = spawn_link(fn -> input_loop(self_pid) end)
@@ -98,7 +97,6 @@ defmodule IEx.Server do
   #
   @break_trigger '#iex:break\n'
   defp eval(_, @break_trigger, _, config=IEx.Config[cache: '']) do
-    # do nothing
     config
   end
 
@@ -175,32 +173,42 @@ defmodule IEx.Server do
   defp input_loop(iex_pid) do
     receive do
       { :do_input, prefix, counter } ->
-        prefix = if prefix, do: "..."
-
-        prompt =
-          if is_alive do
-            "#{prefix || remote_prefix}(#{node})#{counter}> "
-          else
-            "#{prefix || "iex"}(#{counter})> "
-          end
-
-        input = case IO.gets(:stdio, prompt) do
-          :eof -> :eof
-          { :error, _ } -> ''
-          data -> :unicode.characters_to_list(data)
-        end
-
-        iex_pid <- { :input, input }
+        iex_pid <- { :input, io_get(prefix, counter) }
     end
     input_loop(iex_pid)
   end
 
+  defp io_get(prefix, counter) do
+    prefix = if prefix, do: "..."
+
+    prompt =
+      if is_alive do
+        "#{prefix || remote_prefix}(#{node})#{counter}> "
+      else
+        "#{prefix || "iex"}(#{counter})> "
+      end
+
+    case IO.gets(:stdio, prompt) do
+      :eof -> :eof
+      { :error, _ } -> ''
+      data -> :unicode.characters_to_list(data)
+    end
+  end
+
   defp io_put(result) do
-    IO.puts IEx.color(:eval_result, inspect(result, IEx.Options.get(:inspect)))
+    IO.puts :stdio, IEx.color(:eval_result, inspect(result, inspect_opts))
   end
 
   defp io_error(result) do
     IO.puts :stdio, IEx.color(:error, result)
+  end
+
+  defp inspect_opts do
+    opts = IEx.Options.get(:inspect)
+    case :io.columns(:standard_input) do
+      { :ok, width } -> Keyword.put(opts, :width, min(width, 80))
+      { :error, _ }  -> opts
+    end
   end
 
   defp remote_prefix do

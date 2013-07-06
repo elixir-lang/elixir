@@ -1,6 +1,6 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file "test_helper.exs", __DIR__
 
-defmodule Binary.Inspect.AtomTest do
+defmodule Inspect.AtomTest do
   use ExUnit.Case, async: true
 
   test :basic do
@@ -42,15 +42,15 @@ defmodule Binary.Inspect.AtomTest do
   end
 
   test :impl do
-    assert Binary.Inspect.Atom.__impl__ == Binary.Inspect
+    assert Inspect.Atom.__impl__ == Inspect
   end
 end
 
-defmodule Binary.Inspect.BitStringTest do
+defmodule Inspect.BitStringTest do
   use ExUnit.Case, async: true
 
   test :bitstring do
-    assert inspect(<<1 :: [size(12), integer, signed]>>) == "<<0,1::size(4)>>"
+    assert inspect(<<1 :: [size(12), integer, signed]>>) == "<<0, 1::size(4)>>"
   end
 
   test :binary do
@@ -75,11 +75,11 @@ defmodule Binary.Inspect.BitStringTest do
   end
 
   test :unprintable_with_opts do
-    assert inspect(<<193, 193, 193, 193>>, limit: 3) == "<<193,193,193,...>>"
+    assert inspect(<<193, 193, 193, 193>>, limit: 3) == "<<193, 193, 193, ...>>"
   end
 end
 
-defmodule Binary.Inspect.NumberTest do
+defmodule Inspect.NumberTest do
   use ExUnit.Case, async: true
 
   test :integer do
@@ -88,38 +88,39 @@ defmodule Binary.Inspect.NumberTest do
 
   test :float do
     assert inspect(1.0) == "1.0"
-    assert inspect(1.0e10) == "10000000000.0"
-    assert inspect(1.0e-10) == "0.0000000001"
+    assert inspect(1.0e10) == "1.0e10"
+    assert inspect(1.0e-10) == "1.0e-10"
   end
 end
 
-defmodule Binary.Inspect.TupleTest do
+defmodule Inspect.TupleTest do
   use ExUnit.Case, async: true
 
   test :basic do
-    assert inspect({ 1, "b", 3 }) == "{1,\"b\",3}"
+    assert inspect({ 1, "b", 3 }) == "{1, \"b\", 3}"
+    assert inspect({ 1, "b", 3 }, [pretty: true, width: 1]) == "{1,\n \"b\",\n 3}"
   end
 
   test :record_like do
-    assert inspect({ :foo, :bar }) == "{:foo,:bar}"
+    assert inspect({ :foo, :bar }) == "{:foo, :bar}"
   end
 
   test :with_builtin_like_record do
-    assert inspect({ :list, 1 }) == "{:list,1}"
+    assert inspect({ :list, 1 }) == "{:list, 1}"
   end
 
   test :with_record_like_tuple do
-    assert inspect({ List, 1 }) == "{List,1}"
+    assert inspect({ List, 1 }) == "{List, 1}"
   end
 
   test :with_record_like_pseudo_exception do
-    assert inspect({ Other, :__exception__, 1 }) == "{Other,:__exception__,1}"
+    assert inspect({ Other, :__exception__, 1 }) == "{Other, :__exception__, 1}"
   end
 
   defrecord Config, a: 1, b: []
 
   test :with_record do
-    assert inspect(Config.new) == "Binary.Inspect.TupleTest.Config[a: 1, b: []]"
+    assert inspect(Config.new) == "Inspect.TupleTest.Config[a: 1, b: []]"
   end
 
   test :with_tuple_matching_record_name_but_not_length do
@@ -139,7 +140,7 @@ defmodule Binary.Inspect.TupleTest do
   defrecord Rec, value: 1
 
   test :two_items_record do
-    assert inspect({ Rec[value: 1], 1 }) == "{Binary.Inspect.TupleTest.Rec[value: 1],1}"
+    assert inspect({ Rec[value: 1], 1 }) == "{Inspect.TupleTest.Rec[value: 1], 1}"
   end
 
   test :empty do
@@ -147,19 +148,20 @@ defmodule Binary.Inspect.TupleTest do
   end
 
   test :with_limit do
-    assert inspect({ 1, 2, 3, 4 }, limit: 3) == "{1,2,3,...}"
+    assert inspect({ 1, 2, 3, 4 }, limit: 3) == "{1, 2, 3, ...}"
   end
 
   test :with_raw do
-    assert inspect(Config.new, raw: true) == "{Binary.Inspect.TupleTest.Config,1,[]}"
+    assert inspect(Config.new, raw: true) == "{Inspect.TupleTest.Config, 1, []}"
   end
 end
 
-defmodule Binary.Inspect.ListTest do
+defmodule Inspect.ListTest do
   use ExUnit.Case, async: true
 
   test :basic do
-    assert inspect([ 1, "b", 3 ]) == "[1,\"b\",3]"
+    assert inspect([ 1, "b", 3 ]) == "[1, \"b\", 3]"
+    assert inspect([ 1, "b", 3 ], [pretty: true, width: 1]) == "[1,\n \"b\",\n 3]"
   end
 
   test :printable do
@@ -171,10 +173,13 @@ defmodule Binary.Inspect.ListTest do
     assert inspect([a: 1, b: 2]) == "[a: 1, b: 2]"
     assert inspect([a: 1, a: 2, b: 2]) == "[a: 1, a: 2, b: 2]"
     assert inspect(["123": 1]) == %b(["123": 1])
+
+    assert inspect([foo: [1,2,3,:bar], bazzz: :bat], [pretty: true, width: 30]) ==
+           "[foo: [1, 2, 3, :bar],\n bazzz: :bat]"
   end
 
   test :non_keyword do
-    assert inspect([{ Regex, 1 }]) == "[{Regex,1}]"
+    assert inspect([{ Regex, 1 }]) == "[{Regex, 1}]"
   end
 
   test :non_printable do
@@ -182,7 +187,9 @@ defmodule Binary.Inspect.ListTest do
   end
 
   test :unproper do
-    assert inspect([:foo | :bar]) == "[:foo|:bar]"
+    assert inspect([:foo | :bar]) == "[:foo | :bar]"
+
+    assert inspect([1,2,3,4,5|42], [pretty: true, width: 1]) == "[1,\n 2,\n 3,\n 4,\n 5 |\n 42]"
   end
 
   test :codepoints do
@@ -194,11 +201,11 @@ defmodule Binary.Inspect.ListTest do
   end
 
   test :with_limit do
-    assert inspect([ 1, 2, 3, 4 ], limit: 3) == "[1,2,3,...]"
+    assert inspect([ 1, 2, 3, 4 ], limit: 3) == "[1, 2, 3, ...]"
   end
 end
 
-defmodule Binary.Inspect.OthersTest do
+defmodule Inspect.OthersTest do
   use ExUnit.Case, async: true
 
   def f do

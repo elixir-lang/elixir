@@ -1678,6 +1678,88 @@ defmodule Kernel do
   end
 
   @doc """
+  Define elem to get Tuple element according to Elixir conventions
+  (i.e. it expects the tuple as first argument, zero-index based).
+
+  It is implemented as a macro so it can be used in guards.
+
+  ## Example
+
+      iex> tuple = { :foo, :bar, 3 }
+      ...> elem(tuple, 1)
+      :bar
+
+  """
+  defmacro elem(tuple, index) when is_integer(index) do
+    quote do: :erlang.element(unquote(index + 1), unquote(tuple))
+  end
+
+  defmacro elem(tuple, index) do
+    quote do: :erlang.element(unquote(index) + 1, unquote(tuple))
+  end
+
+  @doc """
+  Define set_elem to set Tuple element according to Elixir conventions
+  (i.e. it expects the tuple as first argument, zero-index based).
+
+  ## Example
+
+      iex> tuple = { :foo, :bar, 3 }
+      ...> set_elem(tuple, 0, :baz)
+      { :baz, :bar, 3 }
+
+  """
+  defmacro set_elem(tuple, index, value) when is_integer(index) do
+    quote do: :erlang.setelement(unquote(index + 1), unquote(tuple), unquote(value))
+  end
+
+  defmacro set_elem(tuple, index, value) do
+    quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
+  end
+
+  @doc """
+  Define insert_elem to insert element into a tuple according to
+  Elixir conventions (i.e. it expects the tuple as first argument,
+  zero-index based).
+
+  ## Example
+
+      iex> tuple = { :bar, :baz }
+      ...> insert_elem(tuple, 0, :foo)
+      { :foo, :bar, :baz }
+  """
+  defmacro insert_elem(tuple, index, value) when is_integer(index) do
+    quote do: :erlang.insert_element(unquote(index + 1), unquote(tuple), unquote(value))
+  end
+
+  defmacro insert_elem(tuple, index, value) do
+    quote do: :erlang.insert_element(unquote(index) + 1, unquote(tuple), unquote(value))
+  end
+
+  @doc """
+  Define delete_elem to delete element from a tuple according to
+  Elixir conventions (i.e. it expects the tuple as first argument,
+  zero-index based).
+
+  Please note that in versions of Erlang prior to R16B there is no BIF
+  for this operation and it is emulated by converting the tuple to a list
+  and back and is, therefore, inefficient.
+
+  ## Example
+
+      iex> tuple = { :foo, :bar, :baz }
+      ...> delete_elem(tuple, 0)
+      { :bar, :baz }
+  """
+  defmacro delete_elem(tuple, index) when is_integer(index) do
+    quote do: :erlang.delete_element(unquote(index + 1), unquote(tuple))
+  end
+
+  defmacro delete_elem(tuple, index) do
+    quote do: :erlang.delete_element(unquote(index) + 1, unquote(tuple))
+  end
+
+  @doc """
   Checks if the given structure is an exception.
 
   ## Examples
@@ -1794,7 +1876,8 @@ defmodule Kernel do
     :binary.match(left, right) != :nomatch
   end
 
-  def left =~ right when is_binary(left) and is_tuple(right) and :erlang.element(1, right) == Regex do
+  def left =~ right when is_binary(left) and is_tuple(right) and
+      tuple_size(right) > 0 and elem(right, 0) == Regex do
     Regex.match?(right, left)
   end
 
@@ -2012,18 +2095,23 @@ defmodule Kernel do
     end
   end
 
-  @doc """
-  Inspect the given arguments according to the `Binary.Inspect` protocol.
+  @doc %B"""
+  Inspect the given arguments according to the `Inspect` protocol.
 
   ## Options
 
   The following options are supported:
 
-  * raw   -- when true, record tuples are not formatted by the inspect protocol,
-             but are printed as just tuples; default: false
+  * `:raw`   - when true, record tuples are not formatted by the inspect protocol,
+               but are printed as just tuples, defaults to false;
 
-  * limit -- limits the number of items that are printed for tuples, bitstrings,
-             and lists; does not apply to strings
+  * `:limit` - limits the number of items that are printed for tuples, bitstrings,
+               and lists, does not apply to strings nor char lists;
+
+  * `:pretty` - if set to true enables pretty printing, defaults to false;
+
+  * `:width` - the width avaliable for inspect to lay out the data structure
+               representation. Defaults to the least of 80 and terminal width;
 
   ## Examples
 
@@ -2031,26 +2119,38 @@ defmodule Kernel do
       ":foo"
 
       iex> inspect [1, 2, 3, 4, 5], limit: 3
-      "[1,2,3,...]"
+      "[1, 2, 3, ...]"
 
-      inspect(ArgumentError[])
-      #=> "ArgumentError[message: \"argument error\"]"
+      iex> inspect(ArgumentError[])
+      "ArgumentError[message: \"argument error\"]"
 
-      inspect(ArgumentError[], raw: true)
-      #=> "{ArgumentError,:__exception__,\"argument error\"}"
+      iex> inspect(ArgumentError[], raw: true)
+      "{ArgumentError, :__exception__, \"argument error\"}"
 
   Note that the inspect protocol does not necessarily return a valid
-  representation of an Elixir term. In such cases, the inspected result must
-  start with `#`. For example, inspecting a function will return:
+  representation of an Elixir term. In such cases, the inspected result
+  must start with `#`. For example, inspecting a function will return:
 
       inspect &1 + &2
       #=> #Function<...>
 
   """
-  def inspect(arg, opts // []) do
-    case is_tuple(arg) and Keyword.get(opts, :raw, false) do
-      true  -> Binary.Inspect.Tuple.inspect(arg, opts)
-      false -> Binary.Inspect.inspect(arg, opts)
+  def inspect(arg, opts // [])
+
+  def inspect(arg, opts) when is_tuple(opts) and tuple_size(opts) > 0 and
+      elem(opts, 0) == Inspect.Opts do
+    case is_tuple(arg) and elem(opts, 1) do
+      true  -> Inspect.Tuple.inspect(arg, opts)
+      false -> Inspect.inspect(arg, opts)
+    end
+  end
+
+  def inspect(arg, opts) when is_list(opts) do
+    opts = Inspect.Opts.new(opts)
+
+    case opts.pretty do
+      true  -> Inspect.Algebra.pretty(inspect(arg, opts), opts.width)
+      false -> Inspect.Algebra.pretty(inspect(arg, opts), :infinity)
     end
   end
 
@@ -2079,88 +2179,6 @@ defmodule Kernel do
   """
   defmacro to_char_list(arg) do
     quote do: List.Chars.to_char_list(unquote(arg))
-  end
-
-  @doc """
-  Define elem to get Tuple element according to Elixir conventions
-  (i.e. it expects the tuple as first argument, zero-index based).
-
-  It is implemented as a macro so it can be used in guards.
-
-  ## Example
-
-      iex> tuple = { :foo, :bar, 3 }
-      ...> elem(tuple, 1)
-      :bar
-
-  """
-  defmacro elem(tuple, index) when is_integer(index) do
-    quote do: :erlang.element(unquote(index + 1), unquote(tuple))
-  end
-
-  defmacro elem(tuple, index) do
-    quote do: :erlang.element(unquote(index) + 1, unquote(tuple))
-  end
-
-  @doc """
-  Define set_elem to set Tuple element according to Elixir conventions
-  (i.e. it expects the tuple as first argument, zero-index based).
-
-  ## Example
-
-      iex> tuple = { :foo, :bar, 3 }
-      ...> set_elem(tuple, 0, :baz)
-      { :baz, :bar, 3 }
-
-  """
-  defmacro set_elem(tuple, index, value) when is_integer(index) do
-    quote do: :erlang.setelement(unquote(index + 1), unquote(tuple), unquote(value))
-  end
-
-  defmacro set_elem(tuple, index, value) do
-    quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
-  end
-
-  @doc """
-  Define insert_elem to insert element into a tuple according to
-  Elixir conventions (i.e. it expects the tuple as first argument,
-  zero-index based).
-
-  ## Example
-
-      iex> tuple = { :bar, :baz }
-      ...> insert_elem(tuple, 0, :foo)
-      { :foo, :bar, :baz }
-  """
-  defmacro insert_elem(tuple, index, value) when is_integer(index) do
-    quote do: :erlang.insert_element(unquote(index + 1), unquote(tuple), unquote(value))
-  end
-
-  defmacro insert_elem(tuple, index, value) do
-    quote do: :erlang.insert_element(unquote(index) + 1, unquote(tuple), unquote(value))
-  end
-
-  @doc """
-  Define delete_elem to delete element from a tuple according to
-  Elixir conventions (i.e. it expects the tuple as first argument,
-  zero-index based).
-
-  Please note that in versions of Erlang prior to R16B there is no BIF
-  for this operation and it is emulated by converting the tuple to a list
-  and back and is, therefore, inefficient.
-
-  ## Example
-
-      iex> tuple = { :foo, :bar, :baz }
-      ...> delete_elem(tuple, 0)
-      { :bar, :baz }
-  """
-  defmacro delete_elem(tuple, index) when is_integer(index) do
-    quote do: :erlang.delete_element(unquote(index + 1), unquote(tuple))
-  end
-
-  defmacro delete_elem(tuple, index) do
-    quote do: :erlang.delete_element(unquote(index) + 1, unquote(tuple))
   end
 
   @doc """
@@ -3346,7 +3364,7 @@ defmodule Kernel do
   def function_exported?(module, function, arity) do
     case is_tuple(module) do
       true  ->
-        :erlang.function_exported(:erlang.element(1, module), function, arity + 1)
+        :erlang.function_exported(elem(module, 0), function, arity + 1)
       false ->
         :erlang.function_exported(module, function, arity)
     end
