@@ -125,7 +125,7 @@ defmodule Inspect.Algebra do
   def nest(x, i) when is_integer(i), do: doc_nest(indent: i, doc: x)
 
   @doc %B"""
-  Document entity representating a break. This break can
+  Document entity representing a break. This break can
   be rendered as a linebreak or as spaces, depending on the
   `mode` of the chosen layout or the provided separator.
 
@@ -336,7 +336,7 @@ defmodule Inspect.Algebra do
 
   @doc """
   The pretty printing function.
-  Takes maximum width and document to print as its arguments and returns the string
+  Takes maximum width and a document to print as its arguments and returns the string
   representation of the best layout for the document to fit in the given width.
   """
   @spec pretty(doc, non_neg_integer) :: binary
