@@ -3,7 +3,9 @@
 * enhancements
   * [ExUnit] Support `trace: true` option which gives detailed reporting on test runs
   * [HashDict] Optimize `HashDict` to store pairs in a cons cell reducing storage per key by half
-  * [Kernel] `defrecordp/3` has been added that enables specifying the first element of the tuple
+  * [Kernel] Add pretty printing support for inspect
+  * [Kernel] Add document algebra library used as the foundation for pretty printing
+  * [Kernel] Add `defrecordp/3` that enables specifying the first element of the tuple
   * [Kernel] Add the `Set` API and a hash based implementation via `HashSet`
   * [Kernel] Add `Stream` as composable, lazy-enumerables
   * [Mix] `mix archive` now includes the version of the generated archive
@@ -20,6 +22,7 @@
   * [File] `File.iterator!/2` and `File.biniterator!/2` are deprecated in favor of `File.stream!/2` and `File.binstream!/2`
 
 * backwards incompatible changes
+  * [Kernel] The `Binary.Inspect` protocol has been renamed to `Inspect`
   * [Kernel] Tighten up the grammar rules regarding parentheses omission, previously the examples below would compile but now they raise an error message:
 
             do_something 1, is_list [], 3
