@@ -4,7 +4,7 @@ defmodule Path do
   retrieving file system paths.
 
   The functions in this module may receive a char list or
-  a binary as argument and will return a value of the same
+  a binary as an argument and will return a value of the same
   type.
 
   The majority of the functions in this module do not
@@ -18,7 +18,7 @@ defmodule Path do
   @type r :: char_list | binary
 
   @doc """
-  Converts the given path to an absolute one. Differently from
+  Converts the given path to an absolute one. Unlike
   `Path.expand/1`, no attempt is made to resolve `..`, `.` or `~`.
 
   ## Unix examples
@@ -45,7 +45,7 @@ defmodule Path do
   Builds a path from `relative_to` to `path`. If `path` is already
   an absolute path, `relative_to` is ignored. See also `Path.relative/2`.
 
-  Differently from `Path.expand/2`, no attempt is made to
+  Unlike `Path.expand/2`, no attempt is made to
   resolve `..`, `.` or `~`.
 
   ## Examples
