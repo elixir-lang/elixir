@@ -2632,7 +2632,7 @@ defmodule Kernel do
   Unlike Erlang, such attributes are not stored in the module by
   default since it is common in Elixir to use such attributes to store
   temporary data. A developer can configure an attribute to behave closer
-  to Erlang by calling `Module.register_attribute/2`.
+  to Erlang by calling `Module.register_attribute/3`.
 
   Finally, notice that attributes can also be read inside functions:
 
