@@ -55,6 +55,13 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [2]
   end
 
+  test :iterate do
+    stream = Stream.iterate(0, &1+2)
+    assert Enum.take(stream, 5) == [0,2,4,6,8]
+    stream = Stream.iterate(5, &1+2)
+    assert Enum.take(stream, 5) == [5,7,9,11,13]
+  end
+
   test :map do
     stream = Stream.map([1,2,3], &1 * 2)
     assert is_lazy(stream)
@@ -65,23 +72,6 @@ defmodule StreamTest do
     stream = Stream.reject([1,2,3], fn(x) -> rem(x, 2) == 0 end)
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [1,3]
-  end
-
-  test :seq_default do
-    stream = Stream.seq
-    assert Enum.take(stream, 5) == [0,1,2,3,4]
-  end
-
-  test :seq_with_explicit_but_default do
-    stream = Stream.seq(&1+1, 0)
-    assert Enum.take(stream, 5) == [0,1,2,3,4]
-  end
-
-  test :seq_for_every_second_number do
-    stream = Stream.seq(&1+2)
-    assert Enum.take(stream, 5) == [0,2,4,6,8]
-    stream = Stream.seq(&1+2, 5)
-    assert Enum.take(stream, 5) == [5,7,9,11,13]
   end
 
   test :take do
