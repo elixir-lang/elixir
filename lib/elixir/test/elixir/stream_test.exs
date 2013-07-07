@@ -74,6 +74,14 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [1,3]
   end
 
+  test :repeatedly do 
+    stream = Stream.repeatedly(fn -> 1 end)
+    assert Enum.take(stream, 5) == [1,1,1,1,1]
+    stream = Stream.repeatedly(function(:random.uniform/0))
+    [r1,r2] = Enum.take(stream, 2)
+    assert r1 != r2
+  end
+
   test :take do
     stream = Stream.take(1..1000, 5)
     assert is_lazy(stream)
