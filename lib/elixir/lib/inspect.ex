@@ -13,13 +13,13 @@ defprotocol Inspect do
   followed by the inspecting options, represented by the record
   `Inspect.Opts`.
 
-  Inspection is done by using the functions available in
+  Inspection is done using the functions available in
   `Inspect.Algebra` and by calling `Kernel.inspect/2` recursively
-  passing the `Inspect.Opts` as argument. When `Kernel.inspect/2`
-  receives a `Inspect.Opts` record as second argument, it returns
+  passing the `Inspect.Opts` as an argument. When `Kernel.inspect/2`
+  receives an `Inspect.Opts` record as the second argument, it returns
   the underlying algebra document instead of the formatted string.
 
-  Many times, inspecting a structure can be implemented in function
+  Many times, inspecting a structure can be implemented using functions
   of the existing entities. For example, here is `HashSet`'s `inspect`
   implementation:
 
@@ -33,13 +33,13 @@ defprotocol Inspect do
 
   The `concat` function comes from `Inspect.Algebra` and it
   concatenates algebra documents together. In the example above,
-  it is concatenating the string `"HashSet<"` (all strings are a
-  valid algebra document that keeps their formatting when pretty
+  it is concatenating the string `"HashSet<"` (all strings are 
+  valid algebra documents that keep their formatting when pretty
   printed), the document returned by `Kernel.inspect/2` and the
   other string `">"`.
 
-  Since regular strings are a valid entity in an algebra document,
-  an implementation of inspect may as well simply return a binary,
+  Since regular strings are valid entities in an algebra document,
+  an implementation of inspect may simply return a binary,
   although that will devoid it of any pretty-printing.
   """
 
@@ -50,8 +50,8 @@ defimpl Inspect, for: Atom do
   require Macro
 
   @doc """
-  Represents the atom as an Elixir term. The atoms false, true
-  and nil are simply quoted. Modules are properly represented
+  Represents the atom as an Elixir term. The atoms `false`, `true`
+  and `nil` are simply quoted. Modules are properly represented
   as modules using the dot notation.
 
   Notice that in Elixir, all operators can be represented using
@@ -193,7 +193,7 @@ end
 
 defimpl Inspect, for: List do
   @doc %B"""
-  Represents a list checking if it can be printed or not.
+  Represents a list, checking if it can be printed or not.
   If so, a single-quoted representation is returned,
   otherwise the brackets syntax is used. Keywords are
   printed in keywords syntax.
@@ -249,7 +249,7 @@ end
 
 defimpl Inspect, for: Tuple do
   @doc """
-  Inspect tuples. If the tuple represents a record,
+  Represents tuples. If the tuple represents a record,
   it shows it nicely formatted using the access syntax.
 
   ## Examples
@@ -316,10 +316,10 @@ defimpl Inspect, for: Number do
   @doc """
   Represents the number as a string.
 
-  Floats are represented using the shorted, correctly rounded string
+  Floats are represented using the shortened, correctly rounded string
   that converts to float when read back with `binary_to_float/1`. This
-  is done via the Erlang implementation of the "Printing Floating-Point
-  Numbers Quickly and Accurately" in Proceedings of the SIGPLAN '96
+  is done via the Erlang implementation of _Printing Floating-Point
+  Numbers Quickly and Accurately_ in Proceedings of the SIGPLAN '96
   Conference on Programming Language Design and Implementation.
 
   ## Examples
@@ -338,7 +338,7 @@ defimpl Inspect, for: Number do
 end
 
 defimpl Inspect, for: Regex do
-  @moduledoc %B"""
+  @doc %B"""
   Represents the Regex using the `%r""` syntax.
 
   ## Examples
