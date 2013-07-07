@@ -18,7 +18,7 @@ defmodule PathHelpers do
   end
 
   def elixir(args) do
-    runcmd(elixir_executable,args)
+    runcmd(elixir_executable, args)
   end
   
   def elixir_executable do
@@ -26,7 +26,7 @@ defmodule PathHelpers do
   end
 
   def elixirc(args) do
-    runcmd(elixirc_executable,args)
+    runcmd(elixirc_executable, args)
   end
   
   def elixirc_executable do
@@ -48,7 +48,6 @@ defmodule PathHelpers do
     def executable_extension, do: ""
     def redirect_std_err_on_win, do: ""
   end
-
 end
 
 defmodule CompileAssertion do

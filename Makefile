@@ -1,4 +1,4 @@
-REBAR := $(shell echo `pwd`/rebar)
+REBAR := "$(shell echo `pwd`/rebar)"
 ELIXIRC := bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
