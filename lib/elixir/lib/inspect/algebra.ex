@@ -18,10 +18,10 @@ defmodule Inspect.Algebra do
       iex> Inspect.Algebra.pretty(doc, 80)
       "foo"
 
-  The functions `nest/2`, `space/2` and `line/2` helps you put the
+  The functions `nest/2`, `space/2` and `line/2` help you put the
   document together into a rigid structure. However, the document
   algebra gets interesting when using functions like `break/2`, which
-  converts the given string into a line break depending on much space
+  converts the given string into a line break depending on how much space
   there is to print. Let's glue two docs together with a break and then
   render it:
 
@@ -30,28 +30,28 @@ defmodule Inspect.Algebra do
       "a b"
 
   Notice the break was represented as is, because we haven't reached
-  a line limit. Once we do, it is replaced by a new line:
+  a line limit. Once we do, it is replaced by a newline:
 
       iex> doc = Inspect.Algebra.glue(String.duplicate("a", 20), " ", "b")
       iex> Inspect.Algebra.pretty(doc, 10)
       "aaaaaaaaaaaaaaaaaaaa\nb"
 
   Finally, this module also contains Elixir related functions, a bit
-  tied up to Elixir formatting, namely `surround/3` and `surround_many/5`.
+  tied to Elixir formatting, namely `surround/3` and `surround_many/5`.
 
   ## Implementation details
 
   The original Haskell implementation of the algorithm by [Wadler][1]
   relies on lazy evaluation to unfold document groups on two alternatives:
-  `:flat` (breaks as spaces) and `:broken` (breakes as newlines).
-  Implementing the same logic on a strict language such as Elixir leads
-  to an exponential growth of the possible documents, unless document
+  `:flat` (breaks as spaces) and `:broken` (breaks as newlines).
+  Implementing the same logic in a strict language such as Elixir leads
+  to an exponential growth of possible documents, unless document
   groups are encoded explictly as `:flat` or `:broken`. Those groups are
   then reduced to a simple document, where the layout is already decided,
   per [Lindig][0].
 
   Custom pretty printers can be implemented using the documents returned
-  by this module and by providing its own rendenring functions.
+  by this module and by providing their own rendering functions.
 
     [0]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.34.2200
     [1]: http://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf
@@ -76,7 +76,7 @@ defmodule Inspect.Algebra do
   defrecordp :doc_group, :doc_group, [doc: :doc_nil]
 
   @doc """
-  Returns :doc_nil which is a document entity used to represent
+  Returns `:doc_nil` which is a document entity used to represent
   nothingness. Takes no arguments.
 
   ## Examples
@@ -109,7 +109,7 @@ defmodule Inspect.Algebra do
   def concat(docs), do: folddoc(docs, concat(&1, &2))
 
   @doc """
-  Nests document entity x positions deep. Nesting will be
+  Nests document entity `x` positions deep. Nesting will be
   appended to the line breaks.
 
   ## Examples
@@ -132,12 +132,12 @@ defmodule Inspect.Algebra do
 
   Let's glue two docs together with a break and then render it:
 
-    iex> doc = Inspect.Algebra.glue("a", " ", "b")
-    iex> Inspect.Algebra.pretty(doc, 80)
-    "a b"
+      iex> doc = Inspect.Algebra.glue("a", " ", "b")
+      iex> Inspect.Algebra.pretty(doc, 80)
+      "a b"
 
   Notice the break was represented as is, because we haven't reached
-  a line limit. Once we do, it is replaced by a new line:
+  a line limit. Once we do, it is replaced by a newline:
 
       iex> doc = Inspect.Algebra.glue(String.duplicate("a", 20), " ", "b")
       iex> Inspect.Algebra.pretty(doc, 10)
@@ -157,8 +157,8 @@ defmodule Inspect.Algebra do
   def glue(x, y), do: concat(x, concat(break, y))
 
   @doc """
-  Inserts a break, passed as second argument, between two docs,
-  the first and the third argument.
+  Inserts a break, passed as the second argument, between two docs,
+  the first and the third arguments.
   """
   @spec glue(doc, binary, doc) :: :doc_cons_t
   def glue(x, g, y) when is_binary(g), do: concat(x, concat(break(g), y))
@@ -243,7 +243,7 @@ defmodule Inspect.Algebra do
   @doc %B"""
   Surrounds a document with characters.
 
-  Puts the document between left and right enclosing and nests it.
+  Puts the document between left and right enclosing and nesting it.
   The document is marked as a group, to show the maximum as possible
   concisely together.
 
@@ -261,8 +261,8 @@ defmodule Inspect.Algebra do
 
   @doc %B"""
   Maps and glues a collection of items together using the given separator
-  and surround them. A limit can be passed which, once reached, stops
-  glueing and outputs "..." instead.
+  and surrounds them. A limit can be passed which, once reached, stops
+  gluing and outputs "..." instead.
 
   ## Examples
 
@@ -335,7 +335,7 @@ defmodule Inspect.Algebra do
 
   @doc """
   The pretty printing function.
-  Takes maximum width and a document to print as its arguments and returns the string
+  Takes the maximum width and a document to print as its arguments and returns the string
   representation of the best layout for the document to fit in the given width.
   """
   @spec pretty(doc, non_neg_integer) :: binary
