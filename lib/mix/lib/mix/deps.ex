@@ -152,8 +152,8 @@ defmodule Mix.Deps do
   def format_status(Mix.Dep[status: { :override, other }, opts: opts] = dep) do
     "the dependency is overriding another dependency of one of your dependencies, " <>
     "if this is intended set `override: true` in the options\n" <>
-    "> In #{dep.from}:\n$ #{inspect_kw opts}\n" <>
-    "> In #{other.from}:\n$ #{inspect_kw other.opts}\n"
+    "> In #{dep.from}:\n$ #{inspect opts}\n" <>
+    "> In #{other.from}:\n$ #{inspect other.opts}\n"
   end
 
   def format_status(Mix.Dep[status: { :unavailable, _ }]),
