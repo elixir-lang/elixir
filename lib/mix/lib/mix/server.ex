@@ -85,7 +85,7 @@ defmodule Mix.Server do
       [ Project[rec_enabled?: bool] | _ ] ->
         { :reply, bool, config }
       _ ->
-        { :reply, true, config }
+        { :reply, false, config }
     end
   end
 
