@@ -1,3 +1,17 @@
+defmodule IEx.Options.Helper do
+  @moduledoc false
+
+  defmacro defget(opt_name, env_var_name // nil) do
+    env_var_name = env_var_name || opt_name
+    quote do
+      def get(unquote(opt_name)) do
+        { :ok, value } = :application.get_env(:iex, unquote(env_var_name))
+        value
+      end
+    end
+  end
+end
+
 defmodule IEx.Options do
   @moduledoc """
   Provides an interface for adjusting options of the running IEx session.
@@ -33,6 +47,9 @@ defmodule IEx.Options do
 
   """
 
+  require IEx.Options.Helper
+  import IEx.Options.Helper
+
   @supported_options [
     colors: [],
     inspect: [],
@@ -55,20 +72,9 @@ defmodule IEx.Options do
   """
   def get(name)
 
-  def get(:colors) do
-    { :ok, colors } = :application.get_env(:iex, :colors)
-    colors
-  end
-
-  def get(:inspect) do
-    { :ok, opts } = :application.get_env(:iex, :inspect_opts)
-    opts
-  end
-
-  def get(:history_size) do
-    { :ok, size } = :application.get_env(:iex, :history_size)
-    size
-  end
+  defget :colors
+  defget :inspect, :inspect_opts
+  defget :history_size
 
   def get(name) do
     raise_option(name)
@@ -91,15 +97,13 @@ defmodule IEx.Options do
 
   Returns option's previous value in the case of success.
 
-  Raises if `name` is not a known option or if the value is invalid.
+  If `name` is not a known option or if the value is invalid, raises
+  ArgumentError.
   """
   def set(name, value)
 
   def set(:colors, colors) when is_list(colors) do
-    old_colors = get(:colors)
-    filtered_colors = filtered_kw(old_colors, colors)
-    :application.set_env(:iex, :colors, Keyword.merge(old_colors, filtered_colors))
-    old_colors
+    filter_and_merge(:colors, colors)
   end
 
   def set(:colors, _) do
@@ -107,10 +111,7 @@ defmodule IEx.Options do
   end
 
   def set(:inspect, opts) when is_list(opts) do
-    old_opts = get(:inspect)
-    filtered_opts = filtered_kw(old_opts, opts)
-    :application.set_env(:iex, :inspect_opts, Keyword.merge(old_opts, filtered_opts))
-    old_opts
+    filter_and_merge(:inspect, :inspect_opts, opts)
   end
 
   def set(:inspect, _) do
@@ -223,9 +224,25 @@ defmodule IEx.Options do
     raise ArgumentError, message: "Expected the value to be #{type}"
   end
 
-  defp filtered_kw(reference_kw, user_kw) do
+  defp raise_key(option_name, name) do
+    raise ArgumentError, message: "Unsupported key '#{name}' for option '#{option_name}'"
+  end
+
+  defp filter_and_merge(option_name, env_var_name // nil, values) when is_list(values) do
+    env_var_name = env_var_name || option_name
+
+    old_values = get(option_name)
+    filtered_values = filtered_kw(option_name, old_values, values)
+    :application.set_env(:iex, env_var_name, Keyword.merge(old_values, filtered_values))
+    old_values
+  end
+
+  defp filtered_kw(option_name, reference_kw, user_kw) do
     Enum.filter user_kw, fn {name, _} ->
-      Keyword.has_key? reference_kw, name
+      if not Keyword.has_key?(reference_kw, name) do
+        raise_key(option_name, name)
+      end
+      true
     end
   end
 end
