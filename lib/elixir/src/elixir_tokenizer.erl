@@ -307,7 +307,7 @@ tokenize([$:,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
       interpolation_error(Error, " (for atom starting at line ~B)", [Line])
   end;
 
-tokenize([$:,T|String], Line, Scope, Tokens) when ?is_new_atom(T) ->
+tokenize([$:,T|String], Line, Scope, Tokens) when ?is_atom_start(T) ->
   { Rest, Atom } = tokenize_atom([T|String], [], Scope),
   tokenize(Rest, Line, Scope, [{ atom, Line, Atom }|Tokens]);
 
@@ -536,7 +536,7 @@ handle_strings(T, Line, H, #scope{file=File} = Scope, Tokens) ->
           { error, { Line, "invalid interpolation in key ", [$"|T] } }
       end;
     { NewLine, Parts, Rest } ->
-      Token = { string_type(H),Line,unescape_tokens(Parts) },
+      Token = { string_type(H), Line, unescape_tokens(Parts) },
       tokenize(Rest, NewLine, Scope, [Token|Tokens]);
     Error ->
       interpolation_error(Error, " (for string starting at line ~B)", [Line])
@@ -780,7 +780,7 @@ tokenize_any_identifier(String, Line, Acc, Scope) ->
 tokenize_kw_or_call_identifier(_Kind, Line, Atom, [$:,H|T]) when ?is_space(H) ->
   { [H|T], { kw_identifier, Line, Atom } };
 
-tokenize_kw_or_call_identifier(_Kind, Line, Atom, [$:,H|_]) when ?is_new_atom(H) ->
+tokenize_kw_or_call_identifier(_Kind, Line, Atom, [$:,H|_]) when ?is_atom_start(H) ->
   { error, { Line, "keyword argument must be followed by space after: ", atom_to_list(Atom) ++ [$:] } };
 
 tokenize_kw_or_call_identifier(Kind, Line, Atom, Rest) ->

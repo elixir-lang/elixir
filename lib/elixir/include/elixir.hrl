@@ -62,7 +62,7 @@
 -define(is_downcase(S), S >= $a andalso S =< $z).
 
 %% Atoms
--define(is_new_atom(S), ?is_quote(S) orelse ?is_upcase(S) orelse ?is_downcase(S) orelse (S == $_)).
+-define(is_atom_start(S), ?is_quote(S) orelse ?is_upcase(S) orelse ?is_downcase(S) orelse (S == $_)).
 -define(is_atom(S), ?is_identifier(S) orelse (S == $@)).
 
 -define(is_identifier(S), ?is_digit(S) orelse ?is_upcase(S) orelse ?is_downcase(S) orelse (S == $_)).
