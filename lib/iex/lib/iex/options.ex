@@ -1,17 +1,3 @@
-defmodule IEx.Options.Helper do
-  @moduledoc false
-
-  defmacro defget(opt_name, env_var_name // nil) do
-    env_var_name = env_var_name || opt_name
-    quote do
-      def get(unquote(opt_name)) do
-        { :ok, value } = :application.get_env(:iex, unquote(env_var_name))
-        value
-      end
-    end
-  end
-end
-
 defmodule IEx.Options do
   @moduledoc """
   Provides an interface for adjusting options of the running IEx session.
@@ -47,14 +33,7 @@ defmodule IEx.Options do
 
   """
 
-  require IEx.Options.Helper
-  import IEx.Options.Helper
-
-  @supported_options [
-    colors: [],
-    inspect: [],
-    history_size: [],
-  ]
+  @supported_options %w(colors inspect history_size)a
 
   @doc """
   Returns all supported IEx options with their respective values as a keyword
@@ -72,9 +51,16 @@ defmodule IEx.Options do
   """
   def get(name)
 
-  defget :colors
-  defget :inspect, :inspect_opts
-  defget :history_size
+  keys = [ colors: :colors,
+           inspect: :inspect_opts,
+           history_size: :history_size ]
+
+  Enum.each keys, fn { key, env } ->
+    def get(unquote(key)) do
+      { :ok, value } = :application.get_env(:iex, unquote(env))
+      value
+    end
+  end
 
   def get(name) do
     raise_option(name)
@@ -137,18 +123,17 @@ defmodule IEx.Options do
   known option.
   """
   def help(name) do
-    case @supported_options[name] do
-      kv when is_list(kv) ->
-        docs = __MODULE__.__info__(:docs)
-        { {_, _}, _, _, _, doc } = Enum.find docs, fn { {f, _}, _, _, _, _ } ->
-          f == name
-        end
+    if name in @supported_options do
+      docs = __MODULE__.__info__(:docs)
+      { {_, _}, _, _, _, doc } = Enum.find docs, fn { {f, _}, _, _, _, _ } ->
+        f == name
+      end
 
-        # Strip the first paragraph
-        stripped = String.lstrip(Regex.replace %r/\A.+?^$/ms, doc, "")
-        IEx.color :info, stripped
-
-      nil -> raise_option(name)
+      # Strip the first paragraph
+      stripped = String.lstrip(Regex.replace %r/\A.+?^$/ms, doc, "")
+      IEx.color :info, stripped
+    else
+      raise_option(name)
     end
   end
 
@@ -163,7 +148,7 @@ defmodule IEx.Options do
   Returns all supported options as a list of names.
   """
   def list() do
-    Enum.map @supported_options, fn {k, _} -> k end
+    @supported_options
   end
 
   @doc """
