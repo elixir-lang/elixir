@@ -241,6 +241,20 @@ defmodule Mix.Tasks.DepsTest do
         deps: [
           { :deps_repo, "0.1.0", path: "custom/deps_repo" },
           { :bad_deps_repo, "0.1.0", path: "custom/bad_deps_repo" },
+          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), override: true }
+        ]
+      ]
+    end
+  end
+
+  defmodule UnConvergedDepsApp do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          { :deps_repo, "0.1.0", path: "custom/deps_repo" },
+          { :bad_deps_repo, "0.1.0", path: "custom/bad_deps_repo" },
           { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
         ]
       ]
@@ -298,6 +312,20 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* Updating bad_deps_repo (0.1.0) [path: \"custom/bad_deps_repo\"]"] }
 
       Mix.Tasks.Deps.Check.run []
+    end
+  after
+    purge [GitRepo, GitRepo.Mix, DepsRepo, BadDepsRepo]
+    Mix.Project.pop
+  end
+
+  test "converged dependencies will error if not overriding" do
+    Mix.Project.push UnConvergedDepsApp
+
+    in_fixture "deps_status", fn ->
+      assert_raise Mix.Error, fn ->
+        Mix.Tasks.Deps.Check.run []
+      end
+      assert_received { :mix_shell, :error, ["  the dependency is overriding another dependency of one of your dependencies" <> _] }
     end
   after
     purge [GitRepo, GitRepo.Mix, DepsRepo, BadDepsRepo]

@@ -6,12 +6,14 @@ defrecord Mix.Dep, [ scm: nil, app: nil, requirement: nil, status: nil, opts: ni
 
   * scm - a module representing the source code management tool (SCM) operations;
   * app - the app name as an atom;
-  * requirements - a binary or regexp with the deps requirement;
+  * requirement - a binary or regex with the dep's requirement
   * status - the current status of dependency, check `Mix.Deps.format_status/1` for more info;
   * opts - the options given by the developer
+  * deps - dependencies of this dependency
   * source - any possible configuration associated with the manager field,
-             rebar.config for rebar or the Mix.Project for Mix
+      rebar.config for rebar or the Mix.Project for Mix
   * manager - the project management, possible values: :rebar | :mix | :make | nil
+  * from - path to file where dependency was defined
   """
 end
 
@@ -147,6 +149,13 @@ defmodule Mix.Deps do
     "> In #{other.from}:\n$ #{inspect other.opts, pretty: true}\n"
   end
 
+  def format_status(Mix.Dep[status: { :override, other }, opts: opts] = dep) do
+    "the dependency is overriding another dependency of one of your dependencies, " <>
+    "if this is intended set `override: true` in the options\n" <>
+    "> In #{dep.from}:\n$ #{inspect_kw opts}\n" <>
+    "> In #{other.from}:\n$ #{inspect_kw other.opts}\n"
+  end
+
   def format_status(Mix.Dep[status: { :unavailable, _ }]),
     do: "the dependency is not available, run `mix deps.get`"
 
@@ -183,6 +192,7 @@ defmodule Mix.Deps do
   @doc """
   Check if a dependency is available.
   """
+  def available?(Mix.Dep[status: { :override, _ }]),    do: false
   def available?(Mix.Dep[status: { :diverged, _ }]),    do: false
   def available?(Mix.Dep[status: { :unavailable, _ }]), do: false
   def available?(_), do: true
