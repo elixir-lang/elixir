@@ -28,6 +28,8 @@ defmodule StreamTest do
   test :cycle do
     stream = Stream.cycle([1,2,3])
     assert is_function(stream)
+
+    assert Stream.cycle([1,2,3]) |> Stream.take(5) |> Enum.to_list == [1,2,3,1,2]
     assert Enum.take(stream, 5) == [1,2,3,1,2]
   end
 

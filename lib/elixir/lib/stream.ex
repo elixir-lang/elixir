@@ -106,10 +106,8 @@ defmodule Stream do
 
     def member?(Lazy[] = lazy, value) do
       do_reduce(lazy, false, fn(entry, _) ->
-        if entry === value, do: throw(:function_member?), else: false
+        if entry === value, do: throw({ :stream_lazy, true }), else: false
       end)
-    catch
-      :function_member? -> true
     end
 
     defp do_reduce(Lazy[enumerable: enumerable, fun: f1, acc: nil], acc, fun) do
@@ -122,6 +120,8 @@ defmodule Stream do
 
     defp do_reduce(enumerable, acc, fun) do
       Enumerable.reduce(enumerable, acc, fun)
+    catch
+      { :stream_lazy, acc } -> acc
     end
   end
 
@@ -272,6 +272,10 @@ defmodule Stream do
       iex> Enum.to_list(stream)
       [1,2,3,4,5]
 
+      iex> stream = Stream.cycle([1, 2, 3]) |> Stream.take(5)
+      iex> Enum.to_list(stream)
+      [1,2,3,1,2]
+
   """
   @spec take(Enumerable.t, non_neg_integer) :: Lazy.t
   def take(enumerable, n) when n >= 0 do
@@ -281,7 +285,7 @@ defmodule Stream do
              (entry, { acc, n }) when n > 0 ->
                { f1.(entry, acc), n-1 }
              (_entry, acc) ->
-               acc
+               throw { :stream_lazy, acc }
            end
          end,
          acc: n]
