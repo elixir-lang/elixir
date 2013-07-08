@@ -1,7 +1,7 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule Kernel.DocTest do
-  use ExUnit.Case
+defmodule Kernel.DocsTest do
+  use ExUnit.Case, async: true
 
   test :compiled_docs do
     path = Path.join(__DIR__, "../fixtures/compiled_with_docs.ex")
