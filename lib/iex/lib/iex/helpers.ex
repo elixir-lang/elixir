@@ -11,20 +11,20 @@ defmodule IEx.Helpers do
 
   There are many other helpers available:
 
-  * `c/2` - compiles a file in the given path
+  * `c/2` - compiles a file at the given path
   * `ls/0` - list the contents of the current directory
   * `ls/1` - list the contents of the specified directory
   * `cd/1` - changes the current directory
   * `flush/0` — flush all messages sent to the shell
   * `h/0`, `h/1` - prints help/documentation
-  * `l/1` - loads given module beam code by purging the current version
+  * `l/1` - loads the given module's beam code and purges the current version
   * `m/0` - prints loaded modules
   * `pwd/0` - prints the current working directory
   * `r/0`, `r/1` - recompiles and reloads the given module's source file
   * `s/1` — prints spec information
   * `t/1` — prints type information
-  * `v/0` - prints all commands and values
-  * `v/1` - retrieves nth value from console
+  * `v/0` - prints the history of commands evaluated in the session
+  * `v/1` - retrieves the nth value from the history
   * `import_file/1` - evaluate the given file in the shell's context
 
   Help for functions in this module can be consulted
@@ -233,7 +233,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Retrieves nth expression's value from the history.
+  Retrieves the nth expression's value from the history.
 
   Use negative values to lookup expression values relative to the current one.
   For instance, v(-1) returns the result of the last evaluated expression.
@@ -273,7 +273,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Loads given module beam code (and ensures any previous
+  Load the given module's beam code (and ensures any previous
   old version was properly purged before).
   """
   def l(module) do
@@ -399,7 +399,7 @@ defmodule IEx.Helpers do
   Evaluates the contents of file at `path` as if it were directly typed into
   the shell. `path` has to be a literal binary.
 
-  Leading `~` in `path` is automatically expanded.
+  A leading `~` in `path` is automatically expanded.
 
   ## Examples
 
