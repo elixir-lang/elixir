@@ -8,7 +8,7 @@ defmodule IEx do
   This module is the main entry point for Interactive Elixir and
   in this documentation we will talk a bit about how IEx works.
 
-  Notice some of the functionality described here will be available
+  Notice that some of the functionality described here will not be available
   depending on your terminal. In particular, if you get a message
   saying that the smart terminal could not be run, some of the
   features described here won't work.
@@ -54,7 +54,7 @@ defmodule IEx do
   The user switch command menu also allows developers to connect to remote
   shells using the `r` command. Keep in mind that you can't connect to a
   remote node if you haven't given a name to the current node
-  (i.e. `Process.is_alive?` must return true).
+  (i.e. `Process.is_alive?` must return `true`).
 
   ## The .iex file
 
@@ -88,7 +88,7 @@ defmodule IEx do
       13
 
   It is possible to override the default loading sequence for .iex file by
-  supplying the --dot-iex option to iex. See `iex --help`.
+  supplying the `--dot-iex` option to iex. See `iex --help`.
 
   ## Configuring the shell
 
@@ -123,7 +123,7 @@ defmodule IEx do
   This means that any benchmarking done in the shell is going to have
   skewed results. So never run any profiling nor benchmarks in the shell.
 
-  Second of all, IEx allows you to break an expression into many lines,
+  Second, IEx allows you to break an expression into many lines,
   since this is common in Elixir. For example:
 
       iex(1)> "ab
@@ -150,7 +150,7 @@ defmodule IEx do
   """
 
   @doc """
-  Registers a function to be invoked after IEx process is spawned.
+  Registers a function to be invoked after the IEx process is spawned.
   """
   def after_spawn(fun) when is_function(fun) do
     :application.set_env(:iex, :after_spawn, [fun|after_spawn])
@@ -206,7 +206,7 @@ defmodule IEx do
   end
 
   @doc """
-  Returns default config used to launch IEx. This config is also used by
+  Returns the default config used to launch IEx. This config is also used by
   `IEx.TestFramework`.
   """
   def boot_config(opts) do

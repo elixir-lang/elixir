@@ -46,7 +46,7 @@ defmodule IEx.Options do
   end
 
   @doc """
-  Get current value of the option `name`. Raises ArgumentError if name is not a
+  Get current value of the option `name`. Raises `ArgumentError` if `name` is not a
   known option.
   """
   def get(name)
@@ -81,10 +81,10 @@ defmodule IEx.Options do
   @doc """
   Sets the value for the option `name` to `value`.
 
-  Returns option's previous value in the case of success.
+  Returns the option's previous value in the case of success.
 
-  If `name` is not a known option or if the value is invalid, raises
-  ArgumentError.
+  If `name` is not a known option or if `value` is invalid, raises
+  `ArgumentError`.
   """
   def set(name, value)
 
@@ -119,8 +119,8 @@ defmodule IEx.Options do
   end
 
   @doc """
-  Returns a string with the option's description. Raises if `name` is not a
-  known option.
+  Returns a string with the option's description. Raises `ArgumentError` 
+  if `name` is not a known option.
   """
   def help(name) do
     if name in @supported_options do
