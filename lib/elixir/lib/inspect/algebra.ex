@@ -70,10 +70,10 @@ defmodule Inspect.Algebra do
   # Functional interface to `doc` records
 
   @type doc :: :doc_nil | :doc_cons_t | :doc_nest_t | :doc_break_t | :doc_group_t | binary
-  defrecordp :doc_cons, :doc_cons, [left: :doc_nil, right: :doc_nil]
-  defrecordp :doc_nest, :doc_nest, [indent: 1, doc: :doc_nil]
-  defrecordp :doc_break, :doc_break, [str: " "]
-  defrecordp :doc_group, :doc_group, [doc: :doc_nil]
+  defrecordp :doc_cons, [left: :doc_nil, right: :doc_nil]
+  defrecordp :doc_nest, [indent: 1, doc: :doc_nil]
+  defrecordp :doc_break, [str: " "]
+  defrecordp :doc_group, [doc: :doc_nil]
 
   @doc """
   Returns `:doc_nil` which is a document entity used to represent
@@ -314,8 +314,8 @@ defmodule Inspect.Algebra do
   # Records representing __simple__ documents, already on a fixed layout
   # Those are generalized by `sdoc` type.
   @type sdoc :: :s_nil | :s_text_t | :s_line_t
-  defrecordp :s_text, :s_text, [str: "", sdoc: :s_nil]
-  defrecordp :s_line, :s_line, [indent: 1, sdoc: :s_nil] # newline + spaces
+  defrecordp :s_text, [str: "", sdoc: :s_nil]
+  defrecordp :s_line, [indent: 1, sdoc: :s_nil] # newline + spaces
 
   @doc """
   Renders a simple document into a binary

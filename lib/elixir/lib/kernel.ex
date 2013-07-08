@@ -1579,8 +1579,8 @@ defmodule Kernel do
   arities will be defined to manipulate the underlying record:
 
       # To create records
-      user()        #=> { User, "José", 25 }
-      user(age: 26) #=> { User, "José", 26 }
+      user()        #=> { :user, "José", 25 }
+      user(age: 26) #=> { :user, "José", 26 }
 
       # To get a field from the record
       user(record, :name) #=> "José"
@@ -1589,7 +1589,7 @@ defmodule Kernel do
       user(record, [:name, :age]) #=> ["José", 25]
 
       # To update the record
-      user(record, age: 26) #=> { User, "José", 26 }
+      user(record, age: 26) #=> { :user, "José", 26 }
 
       # To convert the record to keywords
       user(record) #=> [name: "José", age: 25]
@@ -1598,21 +1598,18 @@ defmodule Kernel do
       user(name: name) = record
       name #=> "José"
 
-  It is important to understand that in the above example, the record
-  will assume the leading tuple element from the current module (in the
-  above case, `User`).
-
-  In some cases, however, this might be undesirable and one can explicitly
+  By default, Elixir uses the record name as the first element of the tuple.
+  In some cases though,  this might be undesirable and one can explicitly
   define what the first element of the record should be:
 
       defmodule MyServer do
-        defrecordp :state, :my_state, data: nil
+        defrecordp :state, MyServer, data: nil
       end
 
-  This way, the record created will have `:my_state` as first element,
-  not `MyServer`:
+  This way, the record created will have `MyServer` as first element,
+  not `:state`:
 
-      state() #=> { :my_state, nil }
+      state() #=> { MyServer, nil }
 
   ## Types
 
@@ -1626,15 +1623,11 @@ defmodule Kernel do
 
   Will generate the following type:
 
-      @typep user_t :: { User, binary, integer }
+      @typep user_t :: { :user, binary, integer }
 
   """
   defmacro defrecordp(name, tag // nil, fields) when is_atom(name) do
-    tag = case Macro.expand(tag, __CALLER__) do
-      nil -> __CALLER__.module
-      other -> other
-    end
-    Record.defrecordp(name, tag, fields)
+    Record.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
   end
 
   @doc """

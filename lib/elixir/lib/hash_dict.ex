@@ -35,7 +35,7 @@ defmodule HashDict do
   # The ordered record contains a single bucket
   @ordered_threshold 8
 
-  defrecordp :ordered,
+  defrecordp :ordered, HashDict,
     size: 0,
     bucket: []
 
@@ -47,7 +47,7 @@ defmodule HashDict do
   @node_size 8
   @node_template :erlang.make_tuple(@node_size, [])
 
-  defrecordp :trie,
+  defrecordp :trie, HashDict,
     size: 0,
     depth: 0,
     expand_on: @node_size * @expand_load,

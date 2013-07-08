@@ -43,7 +43,7 @@ defmodule Regex do
   a binary, a char list will return a char list).
   """
 
-  defrecordp :regex, [:re_pattern, :source, :options, :groups]
+  defrecordp :regex, Regex, [:re_pattern, :source, :options, :groups]
   @type t :: { Regex, term, term, term, term }
 
   defexception CompileError, message: "regex could not be compiled"

@@ -260,25 +260,25 @@ defmodule Typespec.TypeTest do
   end
 
   test "@type from defrecordp" do
-    {types, module} = test_module do
-      defrecordp :user, name: nil, age: 0 :: integer
-      @opaque user :: user_t
-      {@type, __MODULE__}
-    end
-
-    assert [{:user_t, {:type, _, :tuple,
-             [{:atom, _, ^module}, {:type, _, :term, []}, {:type, _, :integer, []}]}, []}] = types
-  end
-
-  test "@type from defrecordp with a custom tag" do
     types = test_module do
-      defrecordp :user, :user, name: nil, age: 0 :: integer
+      defrecordp :user, name: nil, age: 0 :: integer
       @opaque user :: user_t
       @type
     end
 
     assert [{:user_t, {:type, _, :tuple,
              [{:atom, _, :user}, {:type, _, :term, []}, {:type, _, :integer, []}]}, []}] = types
+  end
+
+  test "@type from defrecordp with custom tag" do
+    {types, module} = test_module do
+      defrecordp :user, __MODULE__, name: nil, age: 0 :: integer
+      @opaque user :: user_t
+      {@type, __MODULE__}
+    end
+
+    assert [{:user_t, {:type, _, :tuple,
+             [{:atom, _, ^module}, {:type, _, :term, []}, {:type, _, :integer, []}]}, []}] = types
   end
 
   test "defines_type?" do

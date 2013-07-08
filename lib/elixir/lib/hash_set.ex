@@ -13,7 +13,7 @@ defmodule HashSet do
   # The ordered record contains a single bucket.
   @ordered_threshold 8
 
-  defrecordp :ordered,
+  defrecordp :ordered, HashSet,
     size: 0,
     bucket: []
 
@@ -28,7 +28,7 @@ defmodule HashSet do
   @expand_default (@node_size * @expand_load)
   @contract_default @contract_load
 
-  defrecordp :trie,
+  defrecordp :trie, HashSet,
     size: 0,
     depth: 0,
     expand_on: @expand_default,

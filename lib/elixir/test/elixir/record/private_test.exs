@@ -4,9 +4,8 @@ defmodule Record.PrivateTest do
   use ExUnit.Case, async: true
 
   defmodule Macros do
-    defrecordp :_user, name: "José", age: 25
+    defrecordp :_user, __MODULE__, name: "José", age: 25
     defrecordp :_my_user, :my_user, name: "José", age: 25
-    defrecordp :_My_user, __MODULE__.MyUser,  name: "José", age: 25
 
     def new() do
       _user()
@@ -44,10 +43,6 @@ defmodule Record.PrivateTest do
       _my_user()
     end
 
-    def my_new_() do
-      _My_user()
-    end
-
     def my_new(name, age) do
       _my_user(name: name, age: age)
     end
@@ -77,26 +72,7 @@ defmodule Record.PrivateTest do
     end
   end
 
-  test :macros do
-    record = Macros.new
-    assert record.name == "José"
-
-    record = Macros.new("Foo", 25)
-    assert record.name == "Foo"
-
-    record = record.add_bar_to_name
-    assert record.name == "Foo bar"
-
-    assert record.age == 25
-    assert record.to_keywords == [name: record.name, age: record.age]
-
-    assert record.name_and_age == [record.name, record.age]
-    assert record.age_and_name == [record.age, record.name]
-
-    assert elem(record, 0) == Macros
-  end
-
-  test :macros_with_custom_first_item do
+  test "defrecordp generates macros that generates tuples" do
     record = Macros.my_new
     assert Macros.my_name(record) == "José"
 
@@ -113,8 +89,24 @@ defmodule Record.PrivateTest do
     assert Macros.my_age_and_name(record) == [Macros.my_age(record), Macros.my_name(record)]
 
     assert elem(record, 0) == :my_user
+  end
 
-    record = Macros.my_new_
-    assert elem(record, 0) == Macros.MyUser
+  test "defrecordp generates tuples with custom first element" do
+    record = Macros.new
+    assert record.name == "José"
+
+    record = Macros.new("Foo", 25)
+    assert record.name == "Foo"
+
+    record = record.add_bar_to_name
+    assert record.name == "Foo bar"
+
+    assert record.age == 25
+    assert record.to_keywords == [name: record.name, age: record.age]
+
+    assert record.name_and_age == [record.name, record.age]
+    assert record.age_and_name == [record.age, record.name]
+
+    assert elem(record, 0) == Macros
   end
 end
