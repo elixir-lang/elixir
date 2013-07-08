@@ -9,11 +9,14 @@
   * [Kernel] Add the `Set` API and a hash based implementation via `HashSet`
   * [Kernel] Add `Stream` as composable, lazy-enumerables
   * [Mix] `mix archive` now includes the version of the generated archive
+  * [Mix] Mix now requires explicit dependency overriding to be given with `override: true`
   * [Mix] Projects can now define an `:elixir` key to outline supported Elixir versions
 
 * bug fix
+  * [CLI] Elixir can now run on Unix directories with `:` in its path
   * [Kernel] `match?/2` does not leak variables to outer scope
   * [Mix] On dependencies conflict, show from where each source is coming from
+  * [Mix] Empty projects no longer leave empty ebin files on `mix compile`
   * [Module] Calling `Module.register_attribute/3` no longer automatically changes it to persisted or accumulated
 
 * deprecations
@@ -29,6 +32,7 @@
             [1, is_atom :foo, 3]
 
   * [Module] Calling `Module.register_attribute/3` no longer automatically changes it to persisted or accumulated
+  * [Record] First element of a record via `defrecordp` is now the `defrecordp` name and no longer the current atom
   * [URI] Remove custom URI parsers in favor of `URI.default_port/2`
 
 # v0.9.3 (2013-06-23)
