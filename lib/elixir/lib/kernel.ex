@@ -3757,6 +3757,8 @@ defmodule Kernel do
     end
   end
 
+  defp split_words("", _modifiers), do: []
+
   defp split_words(string, modifiers) do
     mod = case modifiers do
       [] -> ?b
