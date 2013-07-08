@@ -125,6 +125,8 @@ defmodule Stream do
     end
   end
 
+  @type t :: Lazy.t | (acc, (element, acc -> acc) -> acc)
+  @type acc :: any
   @type element :: any
   @type index :: non_neg_integer
   @type default :: any
@@ -140,7 +142,7 @@ defmodule Stream do
       [1,2,3,1,2]
 
   """
-  @spec cycle(Enumerable.t) :: Lazy.t
+  @spec cycle(Enumerable.t) :: t
   def cycle(enumerable) do
     do_cycle(enumerable, &1, &2)
   end
@@ -160,7 +162,7 @@ defmodule Stream do
       [6,7,8,9,10]
 
   """
-  @spec drop(Enumerable.t, non_neg_integer) :: Lazy.t
+  @spec drop(Enumerable.t, non_neg_integer) :: t
   def drop(enumerable, n) when n >= 0 do
     Lazy[enumerable: enumerable,
          fun: fn(f1) ->
@@ -185,7 +187,7 @@ defmodule Stream do
       [6,7,8,9,10]
 
   """
-  @spec drop_while(Enumerable.t, (element -> as_boolean(term))) :: Lazy.t
+  @spec drop_while(Enumerable.t, (element -> as_boolean(term))) :: t
   def drop_while(enumerable, f) do
     Lazy[enumerable: enumerable,
          fun: fn(f1) ->
@@ -210,7 +212,7 @@ defmodule Stream do
       [2]
 
   """
-  @spec filter(Enumerable.t, (element -> as_boolean(term))) :: Lazy.t
+  @spec filter(Enumerable.t, (element -> as_boolean(term))) :: t
   def filter(enumerable, f) do
     Lazy[enumerable: enumerable,
          fun: fn(f1) ->
@@ -231,7 +233,7 @@ defmodule Stream do
 
   """
 
-  @spec iterate(element, (element -> element)) :: Lazy.t
+  @spec iterate(element, (element -> element)) :: t
   def iterate(start_value, next_fun) do
     fn acc, fun ->
       do_iterate(start_value, next_fun, fun.(start_value, acc), fun)
@@ -254,7 +256,7 @@ defmodule Stream do
       [2,4,6]
 
   """
-  @spec map(Enumerable.t, (element -> any)) :: Lazy.t
+  @spec map(Enumerable.t, (element -> any)) :: t
   def map(enumerable, f) do
     Lazy[enumerable: enumerable,
          fun: fn(f1) ->
@@ -275,7 +277,7 @@ defmodule Stream do
       [1,3]
 
   """
-  @spec reject(Enumerable.t, (element -> as_boolean(term))) :: Lazy.t
+  @spec reject(Enumerable.t, (element -> as_boolean(term))) :: t
   def reject(enumerable, f) do
     Lazy[enumerable: enumerable,
          fun: fn(f1) ->
@@ -295,7 +297,7 @@ defmodule Stream do
       [0.4435846174457203, 0.7230402056221108, 0.94581636451987]
 
   """
-  @spec repeatedly(( -> element)) :: Lazy.t
+  @spec repeatedly((() -> element)) :: t
   def repeatedly(generator_fun) 
   when is_function(generator_fun, 0) do
     do_repeatedly(generator_fun, &1, &2)
@@ -321,7 +323,7 @@ defmodule Stream do
       [1,2,3,1,2]
 
   """
-  @spec take(Enumerable.t, non_neg_integer) :: Lazy.t
+  @spec take(Enumerable.t, non_neg_integer) :: t
   def take(enumerable, n) when n >= 0 do
     Lazy[enumerable: enumerable,
          fun: fn(f1) ->
@@ -346,7 +348,7 @@ defmodule Stream do
       [1,2,3,4,5]
 
   """
-  @spec take_while(Enumerable.t, (element -> as_boolean(term))) :: Lazy.t
+  @spec take_while(Enumerable.t, (element -> as_boolean(term))) :: t
   def take_while(enumerable, f) do
     Lazy[enumerable: enumerable,
          fun: fn(f1) ->
@@ -371,7 +373,7 @@ defmodule Stream do
       [{1,0},{2,1},{3,2}]
 
   """
-  @spec with_index(Enumerable.t) :: Lazy.t
+  @spec with_index(Enumerable.t) :: t
   def with_index(enumerable) do
     Lazy[enumerable: enumerable,
          fun: fn(f1) ->
