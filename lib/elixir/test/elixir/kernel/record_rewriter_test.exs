@@ -89,6 +89,18 @@ defmodule Kernel.RecordRewriterTest do
     assert optimize_clause(clause) == { clause, [x: Range], { Range, [nil, { :hello, nil }, nil] } }
   end
 
+  test "with setelement" do
+    clause = clause(fn(x = Macro.Env[]) -> :erlang.setelement(2, x, :foo) end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env], { Macro.Env, nil } }
+
+    clause = clause(fn(x = Macro.Env[]) -> :erlang.setelement(2, x, y = Macro.Env[]) end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env, y: Macro.Env], { Macro.Env, nil } }
+
+    # Not optimized with changing the first element
+    clause = clause(fn(x = Macro.Env[]) -> :erlang.setelement(1, x, :foo) end)
+    assert optimize_clause(clause) == { clause, [x: Macro.Env], nil }
+  end
+
   test "conflicting definition" do
     clause = clause(fn(x = Macro.Env[]) -> ^x = Range[]; :foo end)
     assert optimize_clause(clause) == { clause, [x: nil], nil }
