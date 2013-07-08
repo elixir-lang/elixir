@@ -62,6 +62,10 @@ defmodule StreamTest do
     assert Enum.take(stream, 5) == [0,2,4,6,8]
     stream = Stream.iterate(5, &1+2)
     assert Enum.take(stream, 5) == [5,7,9,11,13]
+
+    # Only calculate values if needed
+    stream = Stream.iterate("HELLO", raise(&1))
+    assert Enum.take(stream, 1) == ["HELLO"]
   end
 
   test :map do
