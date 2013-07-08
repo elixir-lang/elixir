@@ -1,6 +1,6 @@
 %% Implements Elixir quote.
 -module(elixir_quote).
--export([escape/2, erl_escape/3, erl_quote/4, linify/2, unquote/5]).
+-export([escape/2, erl_escape/3, erl_quote/4, linify/2, unquote/6]).
 -include("elixir.hrl").
 
 %% Apply the line from site call on quoted contents.
@@ -24,10 +24,10 @@ do_linify(_, Else) -> Else.
 
 %% Some expressions cannot be unquoted at compilation time.
 %% This function is responsible for doing runtime unquoting.
-unquote(_File, Meta, Left, { '__aliases__', _, Args }, nil) ->
+unquote(_File, _Line, Meta, Left, { '__aliases__', _, Args }, nil) ->
   { '__aliases__', Meta, [Left|Args] };
 
-unquote(_File, Meta, Left, Right, nil) when is_atom(Right) ->
+unquote(_File, _Line, Meta, Left, Right, nil) when is_atom(Right) ->
   case atom_to_list(Right) of
     "Elixir." ++ _ ->
       { '__aliases__', Meta, [Left, Right] };
@@ -35,11 +35,25 @@ unquote(_File, Meta, Left, Right, nil) when is_atom(Right) ->
       { { '.', Meta, [Left, Right] }, Meta, [] }
   end;
 
-unquote(_File, Meta, Left, Right, Args) when is_atom(Right) ->
+unquote(_File, _Line, Meta, Left, { Right, _, Context }, nil) when is_atom(Right), is_atom(Context) ->
+  { { '.', Meta, [Left, Right] }, Meta, [] };
+
+unquote(_File, _Line, Meta, Left, { Right, _, Args }, nil) when is_atom(Right) ->
   { { '.', Meta, [Left, Right] }, Meta, Args };
 
-unquote(File, Meta, _Left, _Right, _Args) ->
-  elixir_errors:syntax_error(Meta, File, "expected unquote after dot to return an atom or an alias").
+unquote(File, Line, _Meta, _Left, Right, nil) ->
+  elixir_errors:syntax_error(Line, File, "expected unquote after dot to return an atom, "
+    "an alias or a quoted call, got: ~ts", ['Elixir.Macro':to_string(Right)]);
+
+unquote(_File, _Line, Meta, Left, Right, Args) when is_atom(Right) ->
+  { { '.', Meta, [Left, Right] }, Meta, Args };
+
+unquote(_File, _Line, Meta, Left, { Right, _, Context }, Args) when is_atom(Right), is_atom(Context) ->
+  { { '.', Meta, [Left, Right] }, Meta, Args };
+
+unquote(File, Line, _Meta, _Left, Right, _Args) ->
+  elixir_errors:syntax_error(Line, File, "expected unquote after dot with args to return an atom "
+    "or a quoted call, got: ~ts", ['Elixir.Macro':to_string(Right)]).
 
 %% Escapes the given expression. It is similar to quote, but
 %% lines are kept and hygiene mechanisms are disabled.
@@ -187,7 +201,7 @@ do_quote(Other, Q, _) ->
 %% Quote helpers
 
 do_quote_call(Left, Meta, Expr, Args, Q, S) ->
-  All  = [meta(Meta, Q), Left, { unquote, Meta, [Expr] }, Args],
+  All  = [?line(Meta), meta(Meta, Q), Left, { unquote, Meta, [Expr] }, Args],
   { TAll, TQ } = lists:mapfoldl(fun(X, Acc) -> do_quote(X, Acc, S) end, Q, All),
   { { { '.', Meta, [elixir_quote, unquote] }, Meta, [{ '__FILE__', [], nil }|TAll] }, TQ }.
 
