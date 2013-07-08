@@ -236,8 +236,26 @@ keystore(Key, Meta, Value) ->
 %% Quote splicing
 
 do_splice([{ '|', _, [{ unquote_splicing, _, [Left] }, Right] }|T], #elixir_quote{unquote=true} = Q, S) ->
-  { TT, TQ } = do_splice(T, Q, S, [], []),
-  { do_splice_join(do_splice_join(TT, Left), Right), TQ#elixir_quote{unquoted=true} };
+  %% Process the remaining entries on the list.
+  %% For [1, 2, 3, unquote_splicing(arg)|tail], this will quote
+  %% 1, 2 and 3, which could even be unquotes.
+  { TT, QT } = do_splice(T, Q, S, [], []),
+
+  %% Now that we have [1,2,3], join it with the argument spliced.
+  %% This is done with a ++ operation executed at compilation time.
+  ListWithoutTail = do_splice_join(TT, Left),
+
+  %% Let's add the tail, which is done with a ++ operation at runtime
+  %% unless Right is a list (which allows us to do it at compile time).
+  %% Since the LastWithoutTail was already quoted, wrap it inside an
+  %% unquote so it won't be quoted again.
+  case is_list(Right) of
+    true  ->
+      { TR, QR } = do_quote(Right, QT, S),
+      { do_splice_join(ListWithoutTail, TR), QR };
+    false ->
+      do_quote(do_splice_join({ unquote, [], [ListWithoutTail] }, Right), QT, S)
+  end;
 
 do_splice(List, Q, S) ->
   do_splice(List, Q, S, [], []).

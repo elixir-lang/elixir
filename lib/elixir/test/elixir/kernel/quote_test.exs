@@ -99,9 +99,16 @@ defmodule Kernel.QuoteTest do
     assert quote(do: (unquote_splicing(contents))) == quote do: (1; 2; 3)
   end
 
-  test :splice_on_pipe do
+  test :splice_with_tail do
     contents = [1, 2, 3]
-    assert quote(do: [unquote_splicing(contents)|[1, 2, 3]]) == [1, 2, 3, 1, 2, 3]
+    assert quote(do: [unquote_splicing(contents)|[1, 2, 3]]) ==
+           [1, 2, 3, 1, 2, 3]
+
+    assert quote(do: [unquote_splicing(contents)|val]) ==
+           quote(do: :"Elixir.Kernel".++([1, 2, 3], val))
+
+    assert quote(do: [unquote_splicing(contents)|unquote([4])]) ==
+           quote(do: :"Elixir.Kernel".++([1, 2, 3], [4]))
   end
 
   test :splice_on_stab do
