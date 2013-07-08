@@ -11,7 +11,7 @@
   * [Mix] `mix archive` now includes the version of the generated archive
   * [Mix] Mix now requires explicit dependency overriding to be given with `override: true`
   * [Mix] Projects can now define an `:elixir` key to outline supported Elixir versions
-  * [Rebar] Update to rebar 2.1.0-pre. This fixes an crash if environment variables contain UTF8
+
 * bug fix
   * [CLI] Elixir can now run on Unix directories with `:` in its path
   * [Kernel] `match?/2` does not leak variables to outer scope
