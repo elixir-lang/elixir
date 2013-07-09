@@ -57,7 +57,7 @@ defmodule Record do
       user(sample_user, age: 26)
 
   Since `user` is a macro, all the work happens at compilation time.
-  This means all the operations, like changing the `age` above, works
+  This means all operations, like changing the `age` above, work
   as a simple tuple operation at runtime:
 
       # This update operation...
@@ -88,7 +88,7 @@ defmodule Record do
       defrecord User, name: "José", age: 25
 
   Notice that, unlike `defrecordp`, `defrecord` expects an
-  alias as first argument. This is because `defrecord` is going
+  alias as the first argument. This is because `defrecord` is going
   to create a module named `User` with all the relevant metadata.
   This module can then be imported and we can manipulate the user
   as with `defrecordp`:
@@ -99,12 +99,12 @@ defmodule Record do
 
   Notice that now, since the record definition is accessible, Elixir
   shows the record nicely formatted, no longer as a simple tuple. We
-  can get the raw formatting with by passing raw: true to inspect:
+  can get the raw formatting by passing `raw: true` to `inspect`:
 
       inspect user(), raw: true
       { User, "José", 25 }
 
-  Since working with external records is frequent, Elixir allows
+  Since working with external records is common, Elixir allows
   developers to skip importing the record altogether in favor
   of a `Module[args]` syntax:
 
@@ -199,11 +199,11 @@ defmodule Record do
 
   ## Example
 
-     defmodule Test do
-       Record.import File.Stat, as: :file_stat
+      defmodule Test do
+        Record.import File.Stat, as: :file_stat
 
-       def size(file_stat(size: size)), do: size
-     end
+        def size(file_stat(size: size)), do: size
+      end
 
   """
   defmacro import(module, as: name) do
