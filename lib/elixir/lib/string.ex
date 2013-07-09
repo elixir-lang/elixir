@@ -246,6 +246,8 @@ defmodule String do
   @spec split(t, t | [t] | Regex.t, Keyword.t) :: [t]
   def split(binary, pattern, options // [])
 
+  def split("", _pattern, _options), do: [""]
+
   def split(binary, pattern, options) when is_regex(pattern) do
     Regex.split(pattern, binary, global: options[:global])
   end
