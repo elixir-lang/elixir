@@ -38,8 +38,10 @@ defmodule Set do
 
   defmacrop target(set) do
     quote do
-      cond do
-        is_tuple(unquote(set)) -> HashSet
+      if is_tuple(unquote(set)) do
+        elem(unquote(set), 0)
+      else
+        unsupported_set(unquote(set))
       end
     end
   end
@@ -225,4 +227,7 @@ defmodule Set do
     target(set1).union(set1, set2)
   end
 
+  defp unsupported_set(set) do
+    raise ArgumentError, message: "unsupported set: #{inspect set}"
+  end
 end
