@@ -5,7 +5,7 @@ defmodule Mix.Deps.Retriever do
   @moduledoc false
 
   @doc """
-  Gets all direct children for the current Mix.Project
+  Gets all direct children of the current Mix.Project
   as a `Mix.Dep` record.
   """
   def children() do
@@ -16,7 +16,7 @@ defmodule Mix.Deps.Retriever do
   end
 
   @doc """
-  Gets all children for a given dependency.
+  Gets all children of a given dependency.
   """
   def children(dep, config) do
     cond do
@@ -36,7 +36,7 @@ defmodule Mix.Deps.Retriever do
   end
 
   @doc """
-  Receives a dependency and update its status.
+  Updates the status of a dependency.
   """
   def update(Mix.Dep[scm: scm, app: app, requirement: req, opts: opts,
                      manager: manager, from: from]) do
@@ -71,7 +71,7 @@ defmodule Mix.Deps.Retriever do
 
     if match?({ _, req, _ } when is_regex(req), tuple) and
         not String.ends_with?(from, "rebar.config") do
-      Mix.shell.info("[WARNING] Regex version requirement for dependencies is " <>
+      Mix.shell.info("[WARNING] Regex version requirements for dependencies are " <>
         "deprecated, please use Mix.Version instead")
     end
 
