@@ -43,12 +43,19 @@ defmodule Inspect.Algebra do
 
   The original Haskell implementation of the algorithm by [Wadler][1]
   relies on lazy evaluation to unfold document groups on two alternatives:
-  `:flat` (breaks as spaces) and `:broken` (breaks as newlines).
+  `:flat` (breaks as spaces) and `:break` (breaks as newlines).
   Implementing the same logic in a strict language such as Elixir leads
-  to an exponential growth of possible documents, unless document
-  groups are encoded explictly as `:flat` or `:broken`. Those groups are
-  then reduced to a simple document, where the layout is already decided,
-  per [Lindig][0].
+  to an exponential growth of possible documents, unless document groups
+  are encoded explictly as `:flat` or `:break`. Those groups are then reduced
+  to a simple document, where the layout is already decided, per [Lindig][0].
+
+  This implementation slightly changes the semantic of Lindig's algorithm
+  to allow elements that belong to the same group to be printed together
+  in the same line, even if they do not fit the line fully. This was achieved
+  by changing `:break` to mean a possible break and `:flat` to force a flat
+  structure. Then deciding if a break works as a newline is just a matter
+  of checking if we have enough space until the next break that is not
+  inside a group (which is still flat).
 
   Custom pretty printers can be implemented using the documents returned
   by this module and by providing their own rendering functions.
@@ -187,7 +194,7 @@ defmodule Inspect.Algebra do
       iex> Inspect.Algebra.pretty(doc, 80)
       "Hello, A B"
       iex> Inspect.Algebra.pretty(doc, 6)
-      "Hello,\nA\nB"
+      "Hello,\nA B"
 
   """
   @spec group(doc) :: :doc_group_t
@@ -309,6 +316,22 @@ defmodule Inspect.Algebra do
   defp decrement(:infinity), do: :infinity
   defp decrement(counter),   do: counter - 1
 
+  @doc """
+  The pretty printing function.
+
+  Takes the maximum width and a document to print as its arguments
+  and returns the string representation of the best layout for the
+  document to fit in the given width.
+  """
+  @spec pretty(doc, non_neg_integer) :: binary
+  def pretty(d, w) do
+    sdoc = format w, 0, [{0, default_mode(w), doc_group(doc: d)}]
+    render(sdoc)
+  end
+
+  defp default_mode(:infinity), do: :flat
+  defp default_mode(_),         do: :break
+
   # Rendering and internal helpers
 
   # Records representing __simple__ documents, already on a fixed layout
@@ -317,37 +340,9 @@ defmodule Inspect.Algebra do
   defrecordp :s_text, [str: "", sdoc: :s_nil]
   defrecordp :s_line, [indent: 1, sdoc: :s_nil] # newline + spaces
 
-  @doc """
-  Renders a simple document into a binary
-  """
-  @spec render(sdoc) :: binary
-  def render(sdoc) do
-    iolist_to_binary do_render sdoc
-  end
-
-  @spec do_render(sdoc) :: [binary]
-  defp do_render(:s_nil), do: [""]
-  defp do_render(s_text(str: s, sdoc: d)), do: [s | do_render(d)]
-  defp do_render(s_line(indent: i, sdoc: d)) do
-    prefix = repeat " ", i
-    [@newline | [prefix | do_render d]]
-  end
-
-  @doc """
-  The pretty printing function.
-  Takes the maximum width and a document to print as its arguments and returns the string
-  representation of the best layout for the document to fit in the given width.
-  """
-  @spec pretty(doc, non_neg_integer) :: binary
-  def pretty(d, w) do
-    sdoc = format w, 0, [{0, :flat, doc_group(doc: d)}]
-    render(sdoc)
-  end
-
   # Record representing the document mode to be rendered: __flat__ or __broken__
   @type mode :: :flat | :break
 
-  # The fits? and format functions have to deal explicitly with the document modes
   @doc false
   @spec fits?(integer, [{ integer, mode, doc }]) :: boolean
   def fits?(:infinity, _),                                  do: true # no pretty printing
@@ -363,19 +358,33 @@ defmodule Inspect.Algebra do
 
   @doc false
   @spec format(integer, integer, [{ integer, mode, doc }]) :: atom | tuple
-  def format(:infinity, k, [{i, _, doc_group(doc: x)} | t]),   do: format(:infinity, k, [{i, :flat, x} | t]) # no pretty printing
   def format(_, _, []),                                        do: :s_nil
   def format(w, k, [{_, _, :doc_nil} | t]),                    do: format(w, k, t)
   def format(w, k, [{i, m, doc_cons(left: x, right: y)} | t]), do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
   def format(w, k, [{i, m, doc_nest(indent: j, doc: x)} | t]), do: format(w, k, [{i + j, m, x} | t])
   def format(w, k, [{_, _, s} | t]) when is_binary(s),         do: s_text(str: s, sdoc: format(w, (k + byte_size s), t))
+  def format(w, k, [{i, m, doc_group(doc: x)} | t]),           do: format(w, k, [{i, m, x} | t])
   def format(w, k, [{_, :flat, doc_break(str: s)} | t]),       do: s_text(str: s, sdoc: format(w, (k + byte_size s), t))
-  def format(w, _, [{i, :break, doc_break(str: _)} | t]),      do: s_line(indent: i, sdoc: format(w, i, t))
-  def format(w, k, [{i, _, doc_group(doc: x)} | t]) do
-    if fits? (w - k), [{i, :flat, x} | t] do
-      format w, k, [{i, :flat, x} | t]
+  def format(w, k, [{i, :break, doc_break(str: s)} | t]) do
+    k = k + byte_size(s)
+    if fits?(w - k, t) do
+      s_text(str: s, sdoc: format(w, k, t))
     else
-      format w, k, [{i, :break, x} | t]
+      s_line(indent: i, sdoc: format(w, i, t))
     end
+  end
+
+  @doc false
+  @spec render(sdoc) :: binary
+  def render(sdoc) do
+    iolist_to_binary do_render sdoc
+  end
+
+  @spec do_render(sdoc) :: [binary]
+  defp do_render(:s_nil), do: [""]
+  defp do_render(s_text(str: s, sdoc: d)), do: [s | do_render(d)]
+  defp do_render(s_line(indent: i, sdoc: d)) do
+    prefix = repeat " ", i
+    [@newline | [prefix | do_render d]]
   end
 end

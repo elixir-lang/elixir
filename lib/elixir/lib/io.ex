@@ -154,7 +154,7 @@ defmodule IO do
   def inspect(device, item, opts) when is_list(opts) do
     opts = Keyword.put_new(opts, :pretty, true)
     opts = case :io.columns(device) do
-      { :ok, width } -> Keyword.put_new(opts, :width, min(width, 80))
+      { :ok, width } -> Keyword.put_new(opts, :width, width)
       { :error, _ }  -> opts
     end
     puts device, Kernel.inspect(item, opts)

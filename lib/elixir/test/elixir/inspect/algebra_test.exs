@@ -110,13 +110,13 @@ defmodule Inspect.AlgebraTest do
 
     # Consistence of corresponding sdoc
     assert factor(glue("a", "b"), 1) ==
-      { :s_text, "a", { :s_line, 0, { :s_text, "b", :s_nil }}}
+      { :s_text, "a", { :s_text, " ", { :s_text, "b", :s_nil }}}
 
     assert factor(glue("a", "b"), 9) ==
       { :s_text, "a", { :s_text, " ", { :s_text, "b", :s_nil }}}
 
     # Consistent formatting
-    assert pretty(helloabcd, 5) == "hello\na\nb\ncd"
+    assert pretty(helloabcd, 5) == "hello\na b\ncd"
     assert pretty(helloabcd, 80) == "hello a b cd"
   end
 end
