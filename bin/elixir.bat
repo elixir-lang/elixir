@@ -106,6 +106,10 @@ for /f "usebackq" %%m in (`echo %par%^|findstr \-p[raz]`) do (
   shift
   goto:startloop
 )
+for /f "usebackq" %%m in (`echo %par%^|findstr \--app`) do (
+  shift
+  goto:startloop
+)
 for /f "usebackq" %%m in (`echo %par%^|findstr \--remsh`) do (
   shift
   goto:startloop
