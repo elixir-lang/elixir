@@ -800,7 +800,7 @@ defmodule Module do
       end
 
   """
-  def register_attribute(module, new, opts) do
+  def register_attribute(module, new, opts) when is_atom(new) do
     assert_not_compiled!(:register_attribute, module)
     table = data_table_for(module)
 
