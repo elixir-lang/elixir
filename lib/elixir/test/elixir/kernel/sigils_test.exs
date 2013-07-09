@@ -50,6 +50,7 @@ defmodule Kernel.SigilsTest do
   end
 
   test :sigil_w do
+    assert %w() == []
     assert %w(foo bar baz) == ["foo", "bar", "baz"]
     assert %w(foo #{:bar} baz) == ["foo", "bar", "baz"]
 
