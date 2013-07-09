@@ -79,7 +79,7 @@ if [ "$ELIXIR_NO_CLI" != "1" ]; then ERL="$ERL -s elixir start_cli"; fi
 
 if [ -f "$SCRIPT_PATH/../releases/RELEASES" ] && [ -f "$SCRIPT_PATH/erl" ]
 then
-  exec "$SCRIPT_PATH"/erl -pa "$SCRIPT_PATH"/../lib/*/ebin -boot start -noshell $ELIXIR_ERL_OPTS $ERL -extra "$@"
+  exec "$SCRIPT_PATH"/erl -pa "$SCRIPT_PATH"/../lib/*/ebin -noshell $ELIXIR_ERL_OPTS $ERL -boot start -extra "$@"
 else
   exec erl -pa "$SCRIPT_PATH"/../lib/*/ebin -noshell $ELIXIR_ERL_OPTS $ERL -extra "$@"
 fi
