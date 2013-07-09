@@ -12,7 +12,7 @@ defmodule Mix.Deps.Retriever do
     # Don't run recursively for the top-level project
     scms = Mix.SCM.available
     from = current_source(:mix)
-    (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, nil, from))
+    (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, from))
   end
 
   @doc """
@@ -40,7 +40,7 @@ defmodule Mix.Deps.Retriever do
   """
   def update(Mix.Dep[scm: scm, app: app, requirement: req, opts: opts,
                      manager: manager, from: from]) do
-    update({ app, req, opts }, [scm], manager, from)
+    update({ app, req, opts }, [scm], from, manager)
   end
 
   ## Helpers
@@ -52,7 +52,7 @@ defmodule Mix.Deps.Retriever do
 
       # The manager must be nil because mix supports mix,
       # rebar and make dependencies/managers.
-      (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, nil, from))
+      (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, from))
     end) |> List.concat
   end
 
@@ -62,11 +62,11 @@ defmodule Mix.Deps.Retriever do
       from = current_source(:rebar)
 
       # Rebar dependencies are always managed by rebar.
-      Mix.Rebar.deps(config) |> Enum.map(update(&1, scms, :rebar, from))
+      Mix.Rebar.deps(config) |> Enum.map(update(&1, scms, from, :rebar))
     end) |> List.concat
   end
 
-  defp update(tuple, scms, manager, from) do
+  defp update(tuple, scms, from, manager // nil) do
     dep = with_scm_and_status(tuple, scms).from(from)
 
     if match?({ _, req, _ } when is_regex(req), tuple) and
@@ -75,25 +75,28 @@ defmodule Mix.Deps.Retriever do
         "deprecated, please use Mix.Version instead")
     end
 
-    if Mix.Deps.available?(dep) do
-      cond do
-        # Force all dependencies of a rebar dependency to be managed by rebar
-        manager == :rebar or rebarconfig?(dep) or rebarexec?(dep) ->
-          rebar_dep(dep)
+    cond do
+      # If it is not available, there is nothing we can do
+      not Mix.Deps.available?(dep) ->
+        dep
 
-        mixfile?(dep) ->
-          Mix.Deps.in_dependency(dep, fn project ->
-            mix_dep(dep, project)
-          end)
+      # If the manager was already set to rebar, let's use it
+      manager == :rebar ->
+        rebar_dep(dep)
 
-        makefile?(dep) ->
-          make_dep(dep)
+      mixfile?(dep) ->
+        Mix.Deps.in_dependency(dep, fn project ->
+          mix_dep(dep, project)
+        end)
 
-        true ->
-          dep.manager(manager)
-      end
-    else
-      dep
+      rebarconfig?(dep) or rebarexec?(dep) ->
+        rebar_dep(dep)
+
+      makefile?(dep) ->
+        make_dep(dep)
+
+      true ->
+        dep
     end
   end
 
