@@ -77,13 +77,14 @@ defmodule Mix.Deps.Retriever do
 
     if Mix.Deps.available?(dep) do
       cond do
+        # Force all dependencies of a rebar dependency to be managed by rebar
+        manager == :rebar or rebarconfig?(dep) or rebarexec?(dep) ->
+          rebar_dep(dep)
+
         mixfile?(dep) ->
           Mix.Deps.in_dependency(dep, fn project ->
             mix_dep(dep, project)
           end)
-
-        rebarconfig?(dep) or rebarexec?(dep) ->
-          rebar_dep(dep)
 
         makefile?(dep) ->
           make_dep(dep)
