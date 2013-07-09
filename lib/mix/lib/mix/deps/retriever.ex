@@ -11,7 +11,8 @@ defmodule Mix.Deps.Retriever do
   def children() do
     # Don't run recursively for the top-level project
     scms = Mix.SCM.available
-    (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, nil))
+    from = current_source(:mix)
+    (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, nil, from))
   end
 
   @doc """
@@ -37,8 +38,9 @@ defmodule Mix.Deps.Retriever do
   @doc """
   Receives a dependency and update its status.
   """
-  def update(Mix.Dep[scm: scm, app: app, requirement: req, opts: opts]) do
-    update({ app, req, opts }, [scm], nil)
+  def update(Mix.Dep[scm: scm, app: app, requirement: req, opts: opts,
+                     manager: manager, from: from]) do
+    update({ app, req, opts }, [scm], manager, from)
   end
 
   ## Helpers
@@ -46,22 +48,24 @@ defmodule Mix.Deps.Retriever do
   defp mix_children(config) do
     scms = Mix.SCM.available
     Mix.Project.recur(config, fn _ ->
-      (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, :mix))
+      from = current_source(:mix)
+      (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, nil, from))
     end) |> List.concat
   end
 
   defp rebar_children(dir) do
     scms = Mix.SCM.available
     Mix.Rebar.recur(dir, fn config ->
-      Mix.Rebar.deps(config) |> Enum.map(update(&1, scms, :rebar))
+      from = current_source(:rebar)
+      Mix.Rebar.deps(config) |> Enum.map(update(&1, scms, :rebar, from))
     end) |> List.concat
   end
 
-  defp update(tuple, scms, manager) do
-    dep = with_scm_and_status(tuple, scms)
-      |> update_from(manager)
+  defp update(tuple, scms, manager, from) do
+    dep = with_scm_and_status(tuple, scms).from(from)
 
-    if match?({ _, req, _ } when is_regex(req), tuple) and manager != :rebar do
+    if match?({ _, req, _ } when is_regex(req), tuple) and
+        not String.ends_with?(from, "rebar.config") do
       Mix.shell.info("[WARNING] Regex version requirement for dependencies is " <>
         "deprecated, please use Mix.Version instead")
     end
@@ -87,14 +91,11 @@ defmodule Mix.Deps.Retriever do
     end
   end
 
-  defp update_from(dep, manager) do
-    filename = case manager do
+  defp current_source(manager) do
+    case manager do
       :mix   -> "mix.exs"
       :rebar -> "rebar.config"
-      nil    -> nil
-    end
-    path = if filename, do: Path.absname(filename), else: File.cwd!
-    dep.from(path)
+    end |> Path.absname
   end
 
   defp mix_dep(Mix.Dep[manager: nil] = dep, project) do
