@@ -5,22 +5,18 @@ defmodule SetTest.Common do
     quote location: :keep do
       use ExUnit.Case, async: true
 
-      def sets_equal(set1, set2) do
-        Set.equal?(set1, set2)
-      end
-
       test "a set removes duplicates" do
-        assert sets_equal(new_set([1, 1, 2, 3, 3, 3]), new_set([1, 2, 3]))
+        assert Set.equal?(new_set([1, 1, 2, 3, 3, 3]), new_set([1, 2, 3]))
       end
 
       test :delete do
         result = Set.delete(new_set([1, 2, 3]), 2)
-        assert sets_equal(result, new_set([1, 3]))
+        assert Set.equal?(result, new_set([1, 3]))
       end
 
       test :difference do
         result = Set.difference(new_set([1, 2, 3]), new_set([3]))
-        assert sets_equal(result, HashSet.new([1, 2]))
+        assert Set.equal?(result, HashSet.new([1, 2]))
       end
 
       test :disjoint? do
@@ -30,7 +26,7 @@ defmodule SetTest.Common do
 
       test :empty do
         result = Set.empty new_set([1, 2, 3])
-        assert sets_equal(result, new_set)
+        assert Set.equal?(result, new_set)
       end
 
       test :equal? do
@@ -39,7 +35,7 @@ defmodule SetTest.Common do
 
       test :intersection do
         result = Set.intersection(new_set([1, 2, 3]), new_set([2, 3, 4]))
-        assert sets_equal(result, new_set([2, 3]))
+        assert Set.equal?(result, new_set([2, 3]))
       end
 
       test :member? do
@@ -49,7 +45,7 @@ defmodule SetTest.Common do
 
       test :put do
         result = Set.put(new_set([1, 2]), 3)
-        assert sets_equal(result, new_set([1, 2, 3]))
+        assert Set.equal?(result, new_set([1, 2, 3]))
       end
 
       test :size do
@@ -67,13 +63,18 @@ defmodule SetTest.Common do
 
       test :union do
         result = Set.union(new_set([1, 2, 3]), new_set([2, 3, 4]))
-        assert sets_equal(result, new_set([1, 2, 3, 4]))
+        assert Set.equal?(result, new_set([1, 2, 3, 4]))
+      end
+
+      test "unsupported set" do
+        assert_raise ArgumentError, "unsupported set: :bad_set", fn ->
+          Set.to_list :bad_set
+        end
       end
 
       defp new_set(list // []) do
         unquote(module).new(list)
       end
-
     end
   end
 end

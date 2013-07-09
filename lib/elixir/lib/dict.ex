@@ -73,6 +73,8 @@ defmodule Dict do
           elem(unquote(dict), 0)
         is_list(unquote(dict)) ->
           ListDict
+        true ->
+          unsupported_dict(unquote(dict))
       end
     end
   end
@@ -479,5 +481,9 @@ defmodule Dict do
   @spec to_list(t) :: list
   def to_list(dict) do
     target(dict).to_list(dict)
+  end
+
+  defp unsupported_dict(dict) do
+    raise ArgumentError, message: "unsupported dict: #{inspect dict}"
   end
 end

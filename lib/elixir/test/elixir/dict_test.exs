@@ -207,6 +207,21 @@ defmodule DictTest.Common do
         assert empty_dict == Dict.empty new_dict
       end
 
+      test :equal? do
+        dict1 = HashDict.new(a: 2, b: 3, f: 5, c: 123)
+        dict2 = ListDict.new(a: 2, b: 3, f: 5, c: 123)
+        assert Dict.equal?(dict1, dict2)
+
+        dict2 = Dict.put(dict2, :a, 3)
+        refute Dict.equal?(dict1, dict2)
+      end
+
+      test "unsupported dict" do
+        assert_raise ArgumentError, "unsupported dict: :bad_dict", fn ->
+          Dict.to_list :bad_dict
+        end
+      end
+
       defp empty_dict, do: unquote(module).new
 
       defp new_dict(list // [{"first_key", 1}, {"second_key", 2}]) do
@@ -215,15 +230,6 @@ defmodule DictTest.Common do
 
       defp new_dict(list, transform) do
         unquote(module).new list, transform
-      end
-
-      test :equal? do
-        dict1 = HashDict.new(a: 2, b: 3, f: 5, c: 123)
-        dict2 = ListDict.new(a: 2, b: 3, f: 5, c: 123)
-        assert Dict.equal?(dict1, dict2)
-
-        dict2 = Dict.put(dict2, :a, 3)
-        refute Dict.equal?(dict1, dict2)
       end
     end
   end
