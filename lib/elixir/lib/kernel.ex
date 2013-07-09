@@ -1272,16 +1272,16 @@ defmodule Kernel do
 
   ## Nesting
 
-  Nesting a module inside the other affects its name:
+  Nesting a module inside another module affects its name:
 
       defmodule Foo do
         defmodule Bar do
         end
       end
 
-  In the example above, two modules `Foo` and `Foo.Bar`. The
+  In the example above, two modules `Foo` and `Foo.Bar` are created. The
   second can be accessed as `Bar` inside `Foo` in the same
-  lexical scope. If the module Bar is moved away to another
+  lexical scope. If the module `Bar` is moved to another
   file, it needs to be referenced via the full name or an
   alias need to be set with the help of `Kernel.SpecialForms.alias/2`.
 
@@ -1360,7 +1360,7 @@ defmodule Kernel do
 
   @doc """
   Defines a function that is private. Private functions are
-  only accessible from the same module in which they are defined.
+  only accessible from within the module in which they are defined.
 
   Check `def/2` for more information
 
@@ -1671,10 +1671,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Define elem to get Tuple element according to Elixir conventions
-  (i.e. it expects the tuple as first argument, zero-index based).
+  Get the element at the zero-based `index` in `tuple`.
 
-  It is implemented as a macro so it can be used in guards.
+  Implemented as a macro so it can be used in guards.
 
   ## Example
 
@@ -1692,8 +1691,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Define set_elem to set Tuple element according to Elixir conventions
-  (i.e. it expects the tuple as first argument, zero-index based).
+  Sets the element in `tuple` at the zero-based `index` to the given `value`.
 
   ## Example
 
@@ -1711,9 +1709,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Define insert_elem to insert element into a tuple according to
-  Elixir conventions (i.e. it expects the tuple as first argument,
-  zero-index based).
+  Inserts `value` into `tuple` at the given zero-based `index`.
 
   ## Example
 
@@ -1730,9 +1726,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Define delete_elem to delete element from a tuple according to
-  Elixir conventions (i.e. it expects the tuple as first argument,
-  zero-index based).
+  Deletes the element at the zero-based `index` from `tuple`.
 
   Please note that in versions of Erlang prior to R16B there is no BIF
   for this operation and it is emulated by converting the tuple to a list
@@ -2737,24 +2731,24 @@ defmodule Kernel do
 
       if(foo, do: bar)
 
-  In the example above, bar will be returned if foo evaluates to
-  true (i.e. it is not false nor nil). Otherwise, nil will be returned.
+  In the example above, `bar` will be returned if `foo` evaluates to
+  `true` (i.e. it is neither `false` nor `nil`). Otherwise, `nil` will be returned.
 
-  An else option can be given to specify the opposite:
+  An `else` option can be given to specify the opposite:
 
       if(foo, do: bar, else: baz)
 
   ## Blocks examples
 
-  Elixir also allows you to pass a block to the if macro. The first
+  Elixir also allows you to pass a block to the `if` macro. The first
   example above would be translated to:
 
       if foo do
         bar
       end
 
-  Notice that do/end becomes delimiters. The second example would
-  then translate do:
+  Notice that `do/end` becomes delimiters. The second example would
+  then translate to:
 
       if foo do
         bar
@@ -3156,8 +3150,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if the element on the left is equal (==) to
-  any of the items in the right.
+  Returns `true` if the element on the left is equal (==) to
+  any of the items on the right.
 
   ## Examples
 
