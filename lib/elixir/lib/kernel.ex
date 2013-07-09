@@ -1599,14 +1599,14 @@ defmodule Kernel do
       name #=> "José"
 
   By default, Elixir uses the record name as the first element of the tuple.
-  In some cases though,  this might be undesirable and one can explicitly
+  In some cases though, this might be undesirable and one can explicitly
   define what the first element of the record should be:
 
       defmodule MyServer do
         defrecordp :state, MyServer, data: nil
       end
 
-  This way, the record created will have `MyServer` as first element,
+  This way, the record created will have `MyServer` as the first element,
   not `:state`:
 
       state() #=> { MyServer, nil }
