@@ -122,7 +122,7 @@ format_error({import_conflict,{Receivers, Name, Arity}}) ->
   io_lib:format("imported ~ts.~ts/~B conflicts with local function",
     [elixir_errors:inspect(hd(Receivers)), Name, Arity]);
 
-format_error({ unused_import, Module }) ->
+format_error({unused_import, Module}) ->
   io_lib:format("unused import ~ts", [elixir_errors:inspect(Module)]);
 
 format_error({unused_args,{Name, Arity}}) ->

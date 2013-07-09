@@ -4,7 +4,7 @@
 -export([forms/4, 'forms!'/4]).
 -export([translate/2, translate_each/2, translate_arg/2,
          translate_args/2, translate_apply/7, translate_fn/3]).
--import(elixir_scope, [umergev/2, umergec/2]).
+-import(elixir_scope, [umergev/2, umergec/2, umergea/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4, parse_error/4,
   assert_function_scope/3, assert_module_scope/3, assert_no_guard_scope/3,
   assert_no_match_or_guard_scope/3]).
@@ -607,14 +607,14 @@ translate_local(Meta, Name, Args, S) ->
 
 translate_arg(Arg, { Acc, S }) ->
   { TArg, TAcc } = translate_each(Arg, Acc),
-  { TArg, { umergec(Acc, TAcc), umergev(S, TAcc) } }.
+  { TArg, { umergea(Acc, TAcc), umergev(S, TAcc) } }.
 
 translate_args(Args, #elixir_scope{context=match} = S) ->
   translate(Args, S);
 
 translate_args(Args, S) ->
   { TArgs, { SC, SV } } = lists:mapfoldl(fun translate_arg/2, {S, S}, Args),
-  { TArgs, umergec(SV, SC) }.
+  { TArgs, umergea(SV, SC) }.
 
 %% Translate apply
 %% Used by both apply and external function invocation macros.

@@ -3,7 +3,7 @@
 -module(elixir_macros).
 -export([translate/2]).
 -import(elixir_translator, [translate_each/2, translate_args/2, translate_apply/7]).
--import(elixir_scope, [umergec/2]).
+-import(elixir_scope, [umergec/2, umergea/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4,
   assert_no_function_scope/3, assert_module_scope/3, assert_no_match_or_guard_scope/3]).
 
@@ -154,13 +154,13 @@ translate({'try', Meta, [Clauses]}, S) ->
   { TDo, SB } = elixir_translator:translate_each(Do, S#elixir_scope{noname=true}),
 
   Catch = [Tuple || { X, _ } = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
-  { TCatch, SC } = elixir_try:clauses(Meta, Catch, umergec(S, SB)),
+  { TCatch, SC } = elixir_try:clauses(Meta, Catch, umergea(S, SB)),
 
   After = proplists:get_value('after', Clauses, nil),
-  { TAfter, SA } = elixir_translator:translate_each(After, umergec(S, SC)),
+  { TAfter, SA } = elixir_translator:translate_each(After, umergea(S, SC)),
 
   Else = elixir_clauses:get_pairs(Meta, else, Clauses, S),
-  { TElse, SE } = elixir_clauses:match(Meta, Else, umergec(S, SA)),
+  { TElse, SE } = elixir_clauses:match(Meta, Else, umergea(S, SA)),
 
   SF = (umergec(S, SE))#elixir_scope{noname=S#elixir_scope.noname},
   { { 'try', ?line(Meta), pack(TDo), TElse, TCatch, pack(TAfter) }, SF };

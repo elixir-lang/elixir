@@ -5,7 +5,7 @@
   serialize/1, deserialize/1,
   serialize_with_vars/2, deserialize_with_vars/2,
   to_erl_env/1, to_ex_env/1,
-  umergev/2, umergec/2, merge_clause_vars/2
+  umergev/2, umergec/2, umergea/2, merge_clause_vars/2
 ]).
 -include("elixir.hrl").
 
@@ -140,8 +140,8 @@ deserialize_with_vars({ File, Functions, Requires, Macros,
     counter=[{'',length(Vars)}]
   }.
 
-% Receives two scopes and return a new scope based on the second
-% with their variables merged.
+%% Receives two scopes and return a new scope based on the second
+%% with their variables merged.
 
 umergev(S1, S2) ->
   V1 = S1#elixir_scope.vars,
@@ -153,11 +153,22 @@ umergev(S1, S2) ->
     clause_vars=merge_clause_vars(C1, C2)
   }.
 
-% Receives two scopes and return the later scope
-% keeping the variables from the first (counters,
-% imports and everything else are passed forward).
+%% Receives two scopes and return the first scope with
+%% counters and flags from the later.
 
 umergec(S1, S2) ->
+  S1#elixir_scope{
+    counter=S2#elixir_scope.counter,
+    extra_guards=S2#elixir_scope.extra_guards,
+    super=S2#elixir_scope.super,
+    caller=S2#elixir_scope.caller
+  }.
+
+%% Receives two scopes and return the later scope
+%% keeping the variables from the first (counters,
+%% imports and everything else are passed forward).
+
+umergea(S1, S2) ->
   S2#elixir_scope{
     vars=S1#elixir_scope.vars,
     temp_vars=S1#elixir_scope.temp_vars,
