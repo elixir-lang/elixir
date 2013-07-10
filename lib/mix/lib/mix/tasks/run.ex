@@ -32,6 +32,8 @@ defmodule Mix.Tasks.Run do
       aliases: [r: :require, pr: :parallel_require],
       switches: [parallel_require: :keep, require: :keep])
 
+    Mix.Task.run "app.start", args
+
     Enum.each opts, fn({ key, value }) ->
       case key do
         :parallel_require ->
@@ -43,7 +45,6 @@ defmodule Mix.Tasks.Run do
       end
     end
 
-    Mix.Task.run "app.start", args
     if head != [], do: Code.eval_string Enum.join(head, " ")
     if opts[:no_halt], do: :timer.sleep(:infinity)
   end
