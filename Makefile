@@ -5,6 +5,7 @@ ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 VERSION := $(strip $(shell cat VERSION))
 Q := @
 PREFIX := /usr/local
+LIBDIR := lib
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
@@ -78,14 +79,14 @@ $(eval $(call APP_TEMPLATE,iex,IEx))
 install: compile
 	@ echo "==> elixir (install)"
 	for dir in lib/*; do \
-		$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/lib/elixir/$$dir/ebin"; \
-		$(INSTALL_DATA) $$dir/ebin/* "$(DESTDIR)$(PREFIX)/lib/elixir/$$dir/ebin"; \
+		$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin"; \
+		$(INSTALL_DATA) $$dir/ebin/* "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin"; \
 	done
-	$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/lib/elixir/bin"
-	$(INSTALL_PROGRAM) $(filter-out %.bat, $(wildcard bin/*)) "$(DESTDIR)$(PREFIX)/lib/elixir/bin"
+	$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
+	$(INSTALL_PROGRAM) $(filter-out %.bat, $(wildcard bin/*)) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
 	$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/bin"
-	for file in "$(DESTDIR)$(PREFIX)"/lib/elixir/bin/* ; do \
-		ln -sf "../lib/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/bin/" ; \
+	for file in "$(DESTDIR)$(PREFIX)"/$(LIBDIR)/elixir/bin/* ; do \
+		ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/bin/" ; \
 	done
 
 clean:
