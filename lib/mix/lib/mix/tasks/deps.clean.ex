@@ -1,15 +1,15 @@
 defmodule Mix.Tasks.Deps.Clean do
   use Mix.Task
 
-  @shortdoc "Remove dependencies files"
+  @shortdoc "Remove dependencies' files"
   @recursive :both
 
   @moduledoc """
   Clean dependencies.
 
-  By default, cleans all dependencies. A list of deps can
+  By default, cleans all dependencies. A list of dependencies can
   be given to clean specific ones. Clean does not unlock
-  the repositories, unless --unlock is given.
+  the repositories, unless `--unlock` is given.
   """
 
   import Mix.Deps, only: [all: 0, by_name: 1, format_dep: 1]

@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Deps.Update do
   @moduledoc """
   Update dependencies.
 
-  By default, updates all dependencies. A list of deps can
+  By default, updates all dependencies. A list of dependencies can
   be given to update specific ones. Recompiles the given
   projects after updating.
 

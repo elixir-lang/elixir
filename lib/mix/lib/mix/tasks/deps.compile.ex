@@ -7,10 +7,10 @@ defmodule Mix.Tasks.Deps.Compile do
   @moduledoc """
   Compile dependencies.
 
-  By default, compile all dependencies. A list of deps can
-  be given to force the compilation of specific deps.
+  By default, compile all dependencies. A list of dependencies can
+  be given to force the compilation of specific dependencies.
 
-  By default, it tries to detect if the project contains one of
+  By default, attempt to detect if the project contains one of
   the following files:
 
   * `mix.exs`      - if so, invokes `mix compile`
@@ -97,7 +97,7 @@ defmodule Mix.Tasks.Deps.Compile do
     catch
       kind, reason ->
         Mix.shell.error "could not compile dependency #{app}, mix compile failed. " <>
-          "In case you want to recompile this dependency, please run: mix deps.compile #{app}"
+          "If you want to recompile this dependency, please run: mix deps.compile #{app}"
         :erlang.raise(kind, reason, System.stacktrace)
     after
       Mix.env(old_env)
@@ -129,7 +129,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_command(app, command, extra // "") do
     if Mix.shell.cmd("#{command} #{extra}") != 0 do
       raise Mix.Error, message: "could not compile dependency #{app}, #{command} command failed. " <>
-        "In case you want to recompile this dependency, please run: mix deps.compile #{app}"
+        "If you want to recompile this dependency, please run: mix deps.compile #{app}"
     end
   end
 
@@ -141,7 +141,7 @@ defmodule Mix.Tasks.Deps.Compile do
     Mix.shell.info("#{app}: #{command}")
     if Mix.shell.cmd(command) != 0 do
       raise Mix.Error, message: "could not compile dependency #{app}, custom #{command} command failed. " <>
-        "In case you want to recompile this dependency, please run: mix deps.compile #{app}"
+        "If you want to recompile this dependency, please run: mix deps.compile #{app}"
     end
   end
 end
