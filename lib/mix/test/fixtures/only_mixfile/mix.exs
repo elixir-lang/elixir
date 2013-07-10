@@ -2,7 +2,8 @@ defmodule MyProject do
   use Mix.Project
 
   def project do
-    []
+    [ app: :no_mixfile,
+      version: "0.1" ]
   end
 
   def hello_world do

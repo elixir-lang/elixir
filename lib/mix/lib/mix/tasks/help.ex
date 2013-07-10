@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Help do
     shell.info "%{bright}# mix help #{task}\n"
 
     if doc = Mix.Task.moduledoc(module) do
-      IO.write doc
+      shell.info doc
     else
       shell.info "There is no documentation for this task"
     end

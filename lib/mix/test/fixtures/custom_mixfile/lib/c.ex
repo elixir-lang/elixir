@@ -1,3 +1,0 @@
-defmodule C do
-  
-end

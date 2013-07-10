@@ -2,32 +2,34 @@ Code.require_file "../../test_helper.exs", __DIR__
 
 defmodule Mix.Tasks.Compile.YeccTest do
   use MixTest.Case
+  import ExUnit.CaptureIO
 
   test "tries to compile src/test_fail.yrl" do
     in_fixture "compile_yecc", fn ->
-      output = mix "compile"
+      File.write!("src/test_fail.yrl", """)
+      oops.
+      """
 
-      assert output =~ %r"src/test\.yrl.+grammar rules are missing"
+      output = capture_io fn ->
+        Mix.Tasks.Compile.Yecc.run []
+      end
+
+      assert output =~ "src/test_fail.yrl:1: syntax error before:"
     end
   end
 
   test "compiles src/test_ok.yrl" do
     in_fixture "compile_yecc", fn ->
-      output = mix "compile"
+      Mix.Tasks.Compile.Yecc.run []
 
-      assert output =~ "Compiled src/test_ok.yrl"
+      assert_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
       assert File.regular?("src/test_ok.erl")
+
+      Mix.Tasks.Compile.Yecc.run []
+      refute_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
+
+      Mix.Tasks.Compile.Yecc.run ["--force"]
+      assert_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
     end
   end
-
-  test "compiles with --force src/test_ok.yrl" do
-    in_fixture "compile_yecc", fn ->
-      mix "compile"
-      output = mix "compile --force"
-
-      assert output =~ "Compiled src/test_ok.yrl"
-      assert File.regular?("src/test_ok.erl")
-    end
-  end
-
 end
