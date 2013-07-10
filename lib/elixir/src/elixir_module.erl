@@ -8,7 +8,7 @@
 -define(persisted_attr, '__persisted_attributes').
 
 eval_quoted(Module, Quoted, RawBinding, Opts) ->
-  Binding = binding_for_eval(Module, RawBinding),
+  Binding = elixir_scope:binding_for_eval(RawBinding, Module),
   Scope   = scope_for_eval(Module, Opts),
 
   elixir_def:reset_last(Module),
@@ -26,8 +26,6 @@ scope_for_eval(Module, #elixir_scope{} = S) ->
 
 scope_for_eval(Module, Opts) ->
   scope_for_eval(Module, elixir:scope_for_eval(Opts)).
-
-binding_for_eval(Module, Binding) -> [{'_@MODULE',Module}|Binding].
 
 %% TABLE METHODS
 
@@ -247,7 +245,7 @@ spec_for_macro(Else) -> Else.
 %% Loads the form into the code server.
 
 load_form(Line, Forms, S) ->
-  elixir_compiler:module(Forms, S, fun(Module, Binary) ->
+  elixir_compiler:module(Forms, S#elixir_scope.file, fun(Module, Binary) ->
     EvalS = scope_for_eval(Module, S),
     Env = elixir_scope:to_ex_env({ Line, EvalS }),
     eval_callbacks(Line, Module, after_compile, [Env, Binary], EvalS),
@@ -332,8 +330,9 @@ else_clause() ->
 
 % HELPERS
 
-eval_callbacks(Line, Module, Name, Args, S) ->
-  Binding   = binding_for_eval(Module, []),
+eval_callbacks(Line, Module, Name, Args, RawS) ->
+  Binding   = elixir_scope:binding_for_eval([], Module),
+  S         = elixir_scope:vars_from_binding(RawS, Binding),
   Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
   Meta      = [{line,Line},{require,false}],
 

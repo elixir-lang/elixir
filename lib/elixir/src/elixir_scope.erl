@@ -5,6 +5,7 @@
   serialize/1, deserialize/1,
   serialize_with_vars/2, deserialize_with_vars/2,
   to_erl_env/1, to_ex_env/1,
+  vars_from_binding/2, binding_for_eval/2, binding_from_vars/2,
   umergev/2, umergec/2, umergea/2, merge_clause_vars/2
 ]).
 -include("elixir.hrl").
@@ -200,3 +201,40 @@ var_merger(_Var, K1, K2) ->
 var_number([$@|T], _Acc) -> var_number(T, []);
 var_number([H|T], Acc)   -> var_number(T, [H|Acc]);
 var_number([], Acc)      -> list_to_integer(lists:reverse(Acc)).
+
+%% Setup the vars in scope from binding
+
+vars_from_binding(Scope, Binding) ->
+  Scope#elixir_scope{
+    vars=binding_dict(Binding),
+    temp_vars=[],
+    clause_vars=nil,
+    counter=[]
+  }.
+
+binding_dict(List) -> binding_dict(List, orddict:new()).
+binding_dict([{{H,Kind},_}|T], Dict) -> binding_dict(T, orddict:store({ H, Kind }, H, Dict));
+binding_dict([{H,_}|T], Dict) -> binding_dict(T, orddict:store({ H, nil }, H, Dict));
+binding_dict([], Dict) -> Dict.
+
+binding_for_eval(Binding, Module) ->
+  Keyword = orddict:from_list(Binding),
+  case orddict:find('_@MODULE', Keyword) of
+    { ok, _ } -> Keyword;
+    _ -> orddict:store('_@MODULE', Module, Keyword)
+  end.
+
+binding_from_vars(#elixir_scope{vars=Vars}, Binding) ->
+  binding_from_vars(Binding, [], Binding, Vars).
+
+binding_from_vars([{Var,_}|T], Acc, Binding, Vars) ->
+  case lists:member($@, atom_to_list(Var)) of
+    true  ->
+      binding_from_vars(T, Acc, Binding, Vars);
+    false ->
+      RealName  = orddict:fetch({ Var, nil }, Vars),
+      RealValue = proplists:get_value(RealName, Binding, nil),
+      binding_from_vars(T, [{Var, RealValue}|Acc], Binding, Vars)
+  end;
+
+binding_from_vars([], Acc, _Binding, _Vars) -> lists:reverse(Acc).

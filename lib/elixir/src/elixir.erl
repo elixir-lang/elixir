@@ -137,48 +137,18 @@ translate_forms(Tree, Binding, Opts) when is_list(Opts) ->
   translate_forms(Tree, Binding, scope_for_eval(Opts));
 
 translate_forms(Tree, Binding, #elixir_scope{} = Scope) ->
-  elixir_translator:translate(Tree, Scope#elixir_scope{
-    vars=binding_dict(Binding),
-    temp_vars=[],
-    clause_vars=nil,
-    counter=[]
-  }).
+  elixir_translator:translate(Tree, elixir_scope:vars_from_binding(Scope, Binding)).
 
 eval_forms(Tree, Binding, Scope) ->
   { ParseTree, NewScope } = translate_forms(Tree, Binding, Scope),
   case ParseTree of
     [] -> { nil, Binding, NewScope };
     _  ->
-      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, normalize_binding(Binding)),
-      {Value, final_binding(NewBinding, NewScope#elixir_scope.vars), NewScope }
+      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, elixir_scope:binding_for_eval(Binding, nil)),
+      {Value, elixir_scope:binding_from_vars(NewScope, NewBinding), NewScope }
   end.
 
 %% INTERNAL HELPERS
 
 to_binary(Bin)  when is_binary(Bin) -> Bin;
 to_binary(List) when is_list(List) -> list_to_binary(List).
-
-binding_dict(List) -> binding_dict(List, orddict:new()).
-binding_dict([{{H,Kind},_}|T], Dict) -> binding_dict(T, orddict:store({ H, Kind }, H, Dict));
-binding_dict([{H,_}|T], Dict) -> binding_dict(T, orddict:store({ H, nil }, H, Dict));
-binding_dict([], Dict) -> Dict.
-
-final_binding(Binding, Vars) -> final_binding(Binding, [], Binding, Vars).
-final_binding([{Var,_}|T], Acc, Binding, Vars) ->
-  case lists:member($@, atom_to_list(Var)) of
-    true  ->
-      final_binding(T, Acc, Binding, Vars);
-    false ->
-      RealName  = orddict:fetch({ Var, nil }, Vars),
-      RealValue = proplists:get_value(RealName, Binding, nil),
-      final_binding(T, [{Var, RealValue}|Acc], Binding, Vars)
-  end;
-
-final_binding([], Acc, _Binding, _Vars) -> lists:reverse(Acc).
-
-normalize_binding(Binding) ->
-  Keyword = orddict:from_list(Binding),
-  case orddict:find('_@MODULE', Keyword) of
-    { ok, _ } -> Keyword;
-    _ -> orddict:store('_@MODULE', nil, Keyword)
-  end.
