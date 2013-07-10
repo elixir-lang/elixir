@@ -3,8 +3,13 @@ ELIXIRC := bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 VERSION := $(strip $(shell cat VERSION))
-INSTALL_PATH := /usr/local
 Q := @
+PREFIX := /usr/local
+INSTALL = install
+INSTALL_DIR = $(INSTALL) -m755 -d
+INSTALL_DATA = $(INSTALL) -m644
+INSTALL_PROGRAM = $(INSTALL) -m755
+
 
 .PHONY: install compile erlang elixir dialyze test clean docs release_docs release_zip release_erl
 .NOTPARALLEL: compile
@@ -73,13 +78,15 @@ $(eval $(call APP_TEMPLATE,iex,IEx))
 install: compile
 	@ echo "==> elixir (install)"
 	for dir in lib/*; do \
-		install -m755 -d $(INSTALL_PATH)/lib/elixir/$$dir/ebin; \
-		install -m644 $$dir/ebin/* $(INSTALL_PATH)/lib/elixir/$$dir/ebin; \
+		$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/lib/elixir/$$dir/ebin"; \
+		$(INSTALL_DATA) $$dir/ebin/* "$(DESTDIR)$(PREFIX)/lib/elixir/$$dir/ebin"; \
 	done
-	install -m755 -d $(INSTALL_PATH)/lib/elixir/bin
-	install -m755 $(filter-out %.bat, $(wildcard bin/*)) $(INSTALL_PATH)/lib/elixir/bin
-	install -m755 -d $(INSTALL_PATH)/bin
-	ln -sf $(INSTALL_PATH)/lib/elixir/bin/* $(INSTALL_PATH)/bin
+	$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/lib/elixir/bin"
+	$(INSTALL_PROGRAM) $(filter-out %.bat, $(wildcard bin/*)) "$(DESTDIR)$(PREFIX)/lib/elixir/bin"
+	$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/bin"
+	for file in "$(DESTDIR)$(PREFIX)"/lib/elixir/bin/* ; do \
+		ln -sf "../lib/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/bin/" ; \
+	done
 
 clean:
 	$(Q) cd lib/elixir && $(REBAR) clean
