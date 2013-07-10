@@ -5,11 +5,11 @@ defmodule Mix.Archive do
   An archive is a zip file containing the app and beam files.
   A valid archive must be named with the name of the application and
   it should contain the relative paths beginning with the application
-  name, e.g. root of zip file should be `my_app/ebin/Elixir.My.App.beam`.
+  name, e.g. the root of the zip file should be `my_app/ebin/Elixir.My.App.beam`.
   """
 
   @doc """
-  Returns the archive name based on the app and version.
+  Returns the archive name based on `app` and version.
   """
   def name(app, nil), do: "#{app}.ez"
   def name(app, vsn), do: "#{app}-#{vsn}.ez"
