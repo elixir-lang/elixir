@@ -106,13 +106,24 @@ defmodule Mix.Utils do
   end
 
   @doc """
+  Read the manifest.
+  """
+  def read_manifest(file, fun) do
+    if File.exists?(file) do
+      Enum.each File.stream!(file), fn file ->
+        fun.(String.rstrip(file, ?\n))
+      end
+    end
+  end
+
+  @doc """
   Generates a manifest containing all files generated
   during a given compilation step. It receives the manifest
   file name and a function to execute. The result of the
   function is compared to the manifest in order do detect
   the files removed from the manifest file.
   """
-  def manifest(file, fun) do
+  def update_manifest(file, fun) do
     old =
       case File.read(file) do
         { :ok, contents } -> String.split(contents, "\n")

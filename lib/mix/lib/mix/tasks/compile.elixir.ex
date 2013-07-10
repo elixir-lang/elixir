@@ -103,17 +103,19 @@ defmodule Mix.Tasks.Compile.Elixir do
   end
 
   defp compile_files(false, project, compile_path, to_compile, _stale, opts) do
-    Code.delete_path compile_path
+    Mix.Utils.read_manifest Path.join(compile_path, @manifest), fn file ->
+      Path.join(compile_path, file) <> ".beam" |> File.rm
+    end
+
     set_compiler_opts(project, opts, [])
 
     { _current, to_remove } =
-      Mix.Utils.manifest Path.join(compile_path, @manifest), fn ->
+      Mix.Utils.update_manifest Path.join(compile_path, @manifest), fn ->
         compiled = compile_files to_compile, compile_path
         lc { mod, _ } inlist compiled, do: atom_to_binary(mod)
       end
 
     lc f inlist to_remove, do: File.rm(Path.join(compile_path, f) <> ".beam")
-    Code.prepend_path compile_path
   end
 
   defp set_compiler_opts(project, opts, extra) do
