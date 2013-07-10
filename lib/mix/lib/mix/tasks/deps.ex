@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Deps do
 
   @moduledoc """
   List all dependencies and their status.
-  The output is given as follow:
+  The output is given as follows:
 
     * APP [VERSION] SCM: LOCATION
       [locked at REF]
