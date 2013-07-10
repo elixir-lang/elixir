@@ -106,13 +106,12 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Read the manifest.
+  Reads the manifest and return each entry.
   """
-  def read_manifest(file, fun) do
-    if File.exists?(file) do
-      Enum.each File.stream!(file), fn file ->
-        fun.(String.rstrip(file, ?\n))
-      end
+  def read_manifest(file) do
+    case File.read(file) do
+      { :ok, contents } -> String.split(contents, "\n")
+      { :error, _ } -> []
     end
   end
 
@@ -123,15 +122,8 @@ defmodule Mix.Utils do
   function is compared to the manifest in order do detect
   the files removed from the manifest file.
   """
-  def update_manifest(file, fun) do
-    old =
-      case File.read(file) do
-        { :ok, contents } -> String.split(contents, "\n")
-        { :error, _ } -> []
-      end
-    current = fun.()
-    File.write!(file, Enum.join(current, "\n"))
-    { current, old -- current }
+  def update_manifest(file, new) do
+    File.write!(file, Enum.join(new, "\n"))
   end
 
   @doc """
