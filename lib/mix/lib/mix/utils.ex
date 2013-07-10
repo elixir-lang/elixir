@@ -75,16 +75,20 @@ defmodule Mix.Utils do
   compared to the given target.
   """
   def stale?(sources, targets) do
-    extract_stale(sources, targets) != []
+    Enum.any? stale_stream(sources, targets)
   end
 
   @doc """
   Extract all stale sources compared to the given targets.
   """
   def extract_stale(sources, targets) do
+    stale_stream(sources, targets) |> Enum.to_list
+  end
+
+  defp stale_stream(sources, targets) do
     last_modifieds = Enum.map(targets, last_modified(&1))
 
-    Enum.filter sources, fn(source) ->
+    Stream.filter sources, fn(source) ->
       source_stat = source_mtime(source)
       Enum.any?(last_modifieds, source_stat > &1)
     end

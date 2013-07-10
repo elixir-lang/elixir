@@ -98,7 +98,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   defp compile_files(true, project, compile_path, to_compile, stale, opts) do
     set_compiler_opts(project, opts, ignore_module_conflict: true)
-    to_compile = lc f inlist to_compile, f in stale, do: f
+    to_compile = lc f inlist stale, f in to_compile, do: f
     compile_files(to_compile, compile_path)
     File.touch! Path.join(compile_path, @manifest)
   end
