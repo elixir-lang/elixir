@@ -5,9 +5,9 @@ defmodule Mix do
   build tool for Clojure and was written by one of its contributors.
 
   This module works as a facade for accessing the most common functionality
-  in Elixir, as the shell and the current project configuration.
+  in Elixir, such as the shell and the current project configuration.
 
-  For getting started with Elixir, checkout out the guide available in
+  For getting started with Elixir, checkout out the guide available on
   [Elixir's website](http://elixir-lang.org).
   """
 
@@ -37,7 +37,7 @@ defmodule Mix do
 
   @doc """
   Changes the current mix env. Project configuration loaded
-  per environment is not going to be reloaded.
+  per environment will not be reloaded.
   """
   def env(env) when is_atom(env) do
     Mix.Server.cast({ :env, env })
@@ -52,7 +52,7 @@ defmodule Mix do
   end
 
   @doc """
-  Starts mix and loads the project and dependencies into
+  Starts mix and loads the project and dependencies in
   one step. Useful when invoking mix from an external tool.
   """
   def loadpaths do
@@ -64,8 +64,8 @@ defmodule Mix do
   The shell is a wrapper for doing IO.
 
   It contains conveniences for asking the user information,
-  printing status and so forth. The fact it is also swappable
-  allow developers to use a test shell, that simply sends the
+  printing status and so forth. It is also swappable,
+  allowing developers to use a test shell that simply sends the
   messages to the current process.
   """
   def shell do
@@ -81,9 +81,9 @@ defmodule Mix do
 
   @doc """
   Retrieves the current project configuration. If there
-  isn't a project defined, this function will simply
+  is not a project defined, this function will 
   return an empty keyword list. This allows many mix
-  tasks to work without a need for an underlying project.
+  tasks to work without the need for an underlying project.
   """
   def project do
     Mix.Project.config

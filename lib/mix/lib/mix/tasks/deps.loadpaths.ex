@@ -4,12 +4,12 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   import Mix.Deps, only: [all: 0, load_paths: 1, ok?: 1]
 
   @hidden true
-  @shortdoc "Load all dependencies paths"
+  @shortdoc "Load all dependencies' paths"
   @recursive :both
 
   @moduledoc """
   Loads all dependencies. This is invoked directly
-  by "loadpaths" when the CLI boots.
+  by `loadpaths` when the CLI boots.
   """
   def run(args) do
     { opts, _ } = OptionParser.parse(args)
