@@ -126,6 +126,16 @@ defmodule RecordTest do
     assert RecordTest.FileInfo.__index__(:atime) == record.__index__(:atime)
   end
 
+  test :__record_index__ do
+    record = RecordTest.DynamicName.new(a: "a", b: "b")
+    assert record.__record__(:index, :a) == 1
+    assert elem(record, record.__record__(:index, :a)) == "a"
+    assert elem(record, record.__record__(:index, :b)) == "b"
+    assert record.__record__(:index, :c) == nil
+    record = RecordTest.FileInfo.new
+    assert RecordTest.FileInfo.__record__(:index, :atime) == record.__record__(:index, :atime)
+  end
+
   test :to_keywords do
     record = RecordTest.DynamicName.new(a: "a", b: "b")
     assert record.to_keywords[:a] == "a"
