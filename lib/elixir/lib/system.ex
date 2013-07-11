@@ -162,8 +162,8 @@ defmodule System do
   defp write_tmp_dir(dir) do
     case :file.read_file_info(dir) do
       {:ok, info} ->
-        type_index = File.Stat.__index__ :type
-        access_index = File.Stat.__index__ :access
+        type_index = File.Stat.__record__(:index, :type)
+        access_index = File.Stat.__record__(:index, :access)
         case { elem(info, type_index), elem(info, access_index) } do
           { :directory, access } when access in [:read_write, :write] ->
             dir
