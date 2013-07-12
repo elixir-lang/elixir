@@ -15,6 +15,8 @@
 * bug fix
   * [CLI] Elixir can now run on Unix directories with `:` in its path
   * [Kernel] `match?/2` does not leak variables to outer scope
+  * [Kernel] Keep `head|tail` when splicing at the tail
+  * [Kernel] Ensure variables defined in the module body are not passed to callbacks
   * [Mix] On dependencies conflict, show from where each source is coming from
   * [Mix] Empty projects no longer leave empty ebin files on `mix compile`
   * [Module] Calling `Module.register_attribute/3` no longer automatically changes it to persisted or accumulated
