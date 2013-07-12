@@ -89,6 +89,10 @@ defmodule Mix.Tasks.Compile.Erlang do
     end
   end
 
+  def manifest do
+    @manifest
+  end
+
   defp scan_sources(files, include_path, source_paths) do
     include_paths = [include_path | source_paths]
     Enum.reduce(files, [], scan_source(&2, &1, include_paths)) |> Enum.reverse

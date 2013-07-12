@@ -1,6 +1,8 @@
 defmodule Mix.Tasks.Compile.Elixir do
   use Mix.Task
 
+  alias Mix.Tasks.Compile.Erlang
+
   @hidden true
   @shortdoc "Compile Elixir source files"
   @recursive true
@@ -78,7 +80,9 @@ defmodule Mix.Tasks.Compile.Elixir do
     to_compile = Mix.Utils.extract_files(elixirc_paths, compile_exts)
     to_watch   = Mix.Utils.extract_files(elixirc_paths, watch_exts)
 
-    stale = if Mix.Utils.stale?(Mix.Project.config_files, [manifest]) do
+    check_files = Mix.Project.config_files ++ [Erlang.manifest]
+
+    stale = if Mix.Utils.stale?(check_files, [manifest]) do
       force = true
       to_watch
     else
