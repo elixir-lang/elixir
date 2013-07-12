@@ -1,5 +1,4 @@
 defmodule Mix.Tasks.Compile.Leex do
-  alias :leex, as: Leex
   alias Mix.Tasks.Compile.Erlang
 
   use Mix.Task
@@ -7,6 +6,7 @@ defmodule Mix.Tasks.Compile.Leex do
   @hidden true
   @shortdoc "Compile Leex source files"
   @recursive true
+  @manifest ".compile.leex"
 
   @moduledoc """
   A task to compile Leex source files.
@@ -38,25 +38,36 @@ defmodule Mix.Tasks.Compile.Leex do
 
     project      = Mix.project
     source_paths = project[:erlc_paths]
+    compile_path = project[:compile_path]
 
     files = lc source_path inlist source_paths do
               Erlang.extract_stale_pairs(source_path, :xrl, source_path, :erl, opts[:force])
             end |> List.flatten
 
-    if files == [] do
+    if files == [] and not opts[:force] do
       :noop
     else
-      compile_files(files, project[:leex_options] || [])
+      compile_files(files, compile_path, project[:leex_options] || [])
       :ok
     end
   end
 
-  defp compile_files(files, options) do
-    lc {input, output} inlist files do
+  def manifest do
+    @manifest
+  end
+
+  defp compile_files(files, compile_path, options) do
+    manifest_path = Path.join(compile_path, @manifest)
+    Mix.Utils.read_manifest(manifest_path) |> Enum.each(File.rm(&1))
+
+    lc { input, output } inlist files do
       options = options ++ [scannerfile: Erlang.to_erl_file(output), report: true]
       Erlang.interpret_result(input,
-        Leex.file(Erlang.to_erl_file(input), options))
+        :leex.file(Erlang.to_erl_file(input), options))
     end
+
+    outputs = Enum.map(files, elem(&1, 1))
+    Mix.Utils.update_manifest(manifest_path, outputs)
   end
 end
 

@@ -32,4 +32,19 @@ defmodule Mix.Tasks.Compile.YeccTest do
       assert_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
     end
   end
+
+  test "removes old artifact files" do
+    in_fixture "compile_yecc", fn ->
+      assert Mix.Tasks.Compile.Yecc.run([]) == :ok
+      assert File.regular?("src/test_ok.erl")
+
+      # Now we have a noop
+      File.rm!("src/test_ok.yrl")
+      assert Mix.Tasks.Compile.Yecc.run([]) == :noop
+
+      # --force
+      assert Mix.Tasks.Compile.Yecc.run(["--force"]) == :ok
+      refute File.regular?("src/test_ok.erl")
+    end
+  end
 end

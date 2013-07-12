@@ -127,6 +127,7 @@ defmodule Mix.Utils do
   the files removed from the manifest file.
   """
   def update_manifest(file, new) do
+    Path.dirname(file) |> File.mkdir_p!
     File.write!(file, Enum.join(new, "\n"))
   end
 
