@@ -47,8 +47,6 @@ defrecord RecordTest.WithRecordType, a: 0, b: 1 do
   record_type a: integer
 end
 
-defrecord RecordTest.WithInlineType, a: nil :: atom, b: 1 :: integer
-
 defmodule RecordTest.Macros do
   defmacro gen do
     quote do

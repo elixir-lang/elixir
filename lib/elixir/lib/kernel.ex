@@ -1476,11 +1476,11 @@ defmodule Kernel do
   ## Types
 
   Every record defines a type named `t` that can be accessed in typespecs.
-  Those types can be specified when the record is defined:
+  Those types can be specified inside the record definition:
 
-      defrecord User,
-        name: "" :: string,
-        age: 0 :: integer
+      defrecord User do
+        record_type name: string, age: integer
+      end
 
   All fields without a specified type are assumed to have type `term`.
 
@@ -1488,22 +1488,6 @@ defmodule Kernel do
   as follow:
 
       @spec handle_user(User.t) :: boolean()
-
-  If the developer wants to define their own types to be used with the
-  record, Elixir allows a more lengthy definition with the help of the
-  `record_type` macro:
-
-      defrecord Config, counter: 0, failures: [] do
-        @type kind :: term
-        record_type counter: integer, failures: [kind]
-      end
-
-
-  This macro defines a module that generates accessors to manipulate the record
-  at both compilation and runtime.
-
-  See the `Record` module's documentation for a detailed description of records
-  in Elixir.
 
   ## Runtime introspection
 

@@ -221,9 +221,9 @@ defmodule Record do
   end
 
   @doc false
-  def defrecord(name, values, opts) do
+  def defrecord(name, fields, opts) do
     block = Keyword.get(opts, :do, nil)
-    { fields, types } = record_split(values)
+    record_check!(fields)
 
     quote do
       unquoted_fields = unquote(fields)
@@ -232,7 +232,7 @@ defmodule Record do
         import Elixir.Record.DSL
 
         @record_fields []
-        @record_types  unquote(types)
+        @record_types  []
 
         Elixir.Record.deffunctions(unquoted_fields, __ENV__)
         value = unquote(block)
@@ -242,25 +242,13 @@ defmodule Record do
     end
   end
 
-  defp record_split(fields) when is_list(fields) do
-    record_split(fields, [], [])
+  defp record_check!([{ field, { :::, _, [_, _] }}|_]) when is_atom(field) do
+    raise ArgumentError, message: "typespecs are not supported inlined with defrecord, " <>
+                                  "please use record_type instead"
   end
 
-  defp record_split(other) do
-    { other, [] }
-  end
-
-  defp record_split([{ field, { :::, _, [default, type] }}|t], defaults, types) do
-    record_split t, [{ field, default }|defaults], [{ field, Macro.escape(type) }|types]
-  end
-
-  defp record_split([other|t], defaults, types) do
-    record_split t, [other|defaults], types
-  end
-
-  defp record_split([], defaults, types) do
-    { :lists.reverse(defaults), types }
-  end
+  defp record_check!([_|t]), do: record_check!(t)
+  defp record_check!(_), do: :ok
 
   @doc false
   def defrecordp(name, tag, fields) when is_atom(name) and is_atom(tag) and is_list(fields) do
