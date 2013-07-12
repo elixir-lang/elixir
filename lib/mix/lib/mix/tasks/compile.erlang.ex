@@ -162,15 +162,14 @@ defmodule Mix.Tasks.Compile.Erlang do
   defp compile_files(files, compile_path, erlc_options) do
     manifest_path = Path.join(compile_path, @manifest)
     previous = Mix.Utils.read_manifest(manifest_path)
-    Enum.each(previous, fn(entry) ->
-      Path.join(compile_path, entry <> ".beam") |> File.rm
-    end)
+    Enum.each(previous, File.rm(&1))
 
     File.mkdir_p!(compile_path)
     results = Enum.map(files, compile_file(&1, erlc_options))
 
-    modules = Enum.filter_map(results, match?({:ok, _}, &1), elem(&1, 1))
-    Mix.Utils.update_manifest(manifest_path, modules)
+    compiled = Enum.filter_map(results, match?({:ok, _}, &1), elem(&1, 1))
+      |> Enum.map(fn(module) -> Path.join(compile_path, "#{module}.beam") end)
+    Mix.Utils.update_manifest(manifest_path, compiled)
   end
 
   defp compile_file(erl, erlc_options) do

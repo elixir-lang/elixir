@@ -19,10 +19,11 @@ defmodule Mix.Tasks.Clean do
 
     compile_path = Mix.project[:compile_path]
 
-    manifests = [ Leex.manifest, Yecc.manifest ]
+    manifests = Mix.Tasks.Compile.manifests
     Enum.each(manifests, fn(manifest) ->
       manifest_path = Path.join(compile_path, manifest)
       Mix.Utils.read_manifest(manifest_path) |> Enum.each(File.rm(&1))
+      File.rm(manifest_path)
     end)
 
     File.rm_rf(compile_path)

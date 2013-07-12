@@ -69,6 +69,17 @@ defmodule Mix.Tasks.Compile do
     end)
   end
 
+  def manifests do
+    Enum.reduce(get_compilers, [], fn(compiler, acc) ->
+      module = Mix.Task.get("compile.#{compiler}")
+      if function_exported?(module, :manifest, 0) do
+        [module.manifest|acc]
+      else
+        acc
+      end
+    end)
+  end
+
   defp get_compilers do
     Mix.project[:compilers] || if Mix.Project.get do
       [:yecc, :leex, :erlang, :elixir, :app]
