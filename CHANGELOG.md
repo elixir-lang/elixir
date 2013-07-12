@@ -11,6 +11,7 @@
   * [Mix] `mix archive` now includes the version of the generated archive
   * [Mix] Mix now requires explicit dependency overriding to be given with `override: true`
   * [Mix] Projects can now define an `:elixir` key to outline supported Elixir versions
+  * [Typespec] Improve error messages to contain file, line and the typespec itself
 
 * bug fix
   * [CLI] Elixir can now run on Unix directories with `:` in its path
@@ -53,7 +54,7 @@
   * [Mix] Implement `Mix.Version` for basic versioning semantics
   * [Mix] Support creation and installation of archives (.ez files)
   * [Mix] `github: ...` shortcut now uses the faster `git` schema instead of `https`
-  * [Record] Allow types to be given to `defrecord` and `defrecordp`
+  * [Record] Allow types to be given to `defrecordp`
 
 * bug fix
   * [Kernel] The elixir executable on Windows now supports the same options as the UNIX one
