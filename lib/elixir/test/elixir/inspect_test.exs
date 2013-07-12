@@ -180,6 +180,12 @@ defmodule Inspect.ListTest do
            "[foo: [1, 2, 3, :bar],\n bazzz: :bat]"
   end
 
+  test :keyword_with_raw do
+    assert inspect([a: 1], raw: true) == "[{:a, 1}]"
+    assert inspect([a: 1, b: 2], raw: true) == "[{:a, 1}, {:b, 2}]"
+    assert inspect([a: 1, a: 2, b: 2], raw: true) == "[{:a, 1}, {:a, 2}, {:b, 2}]"
+  end
+
   test :non_keyword do
     assert inspect([{ Regex, 1 }]) == "[{Regex, 1}]"
   end
