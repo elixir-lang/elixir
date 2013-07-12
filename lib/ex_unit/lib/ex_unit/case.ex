@@ -84,7 +84,7 @@ defmodule ExUnit.Case do
     var      = Macro.escape(var)
     contents = Macro.escape(contents, unquote: true)
 
-    quote binding: binding do
+    quote bind_quoted: binding do
       message = if is_binary(message) do
         :"test #{message}"
       else

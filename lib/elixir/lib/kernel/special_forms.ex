@@ -689,13 +689,13 @@ defmodule Kernel.SpecialForms do
 
   One solution for this problem is to disable unquoting in the
   macro, however, doing that would make it impossible to inject
-  `kv` representation into the tree. That's when the `:binding`
-  option comes to the rescue. By using `:binding`, we can
+  `kv` representation into the tree. That's when the `:bind_quoted`
+  option comes to the rescue. By using `:bind_quoted`, we can
   automatically disable unquoting while still injecting the
   desired variables into the tree:
 
       defmacro defkv(kv) do
-        quote binding: [kv: kv] do
+        quote bind_quoted: [kv: kv] do
           Enum.each kv, fn { k, v } ->
             def unquote(k)(), do: unquote(v)
           end

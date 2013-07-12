@@ -158,8 +158,8 @@ defmodule Kernel.QuoteTest do
     assert quote(dynamic_opts, do: bar(1, 2, 3)) == { :bar, [line: 3], [1, 2, 3] }
   end
 
-  test :binding do
-    assert quote(binding: [foo: 1 + 2], do: foo) == { :__block__, [], [
+  test :bind_quoted do
+    assert quote(bind_quoted: [foo: 1 + 2], do: foo) == { :__block__, [], [
       { :=, [], [{ :foo, [], Kernel.QuoteTest }, 3] },
       { :foo, [], Kernel.QuoteTest }
     ] }

@@ -2,7 +2,7 @@ defmodule IO.ANSI.Sequence do
   @moduledoc false
 
   defmacro defsequence(name, code) do
-    quote binding: [name: name, code: code] do
+    quote bind_quoted: [name: name, code: code] do
       def unquote(name)() do
         "\e[#{unquote(code)}m"
       end
