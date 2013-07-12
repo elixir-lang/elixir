@@ -607,6 +607,7 @@ defmodule Kernel do
   """
   @spec float(number) :: float
   def float(number) do
+    IO.write "[WARNING] Kernel.float is deprecated, please do an explicit conversion instead\n#{Exception.format_stacktrace}"
     :erlang.float(number)
   end
 

@@ -27,6 +27,7 @@
   * [File] `File.iterator/1` and `File.biniterator/1` are deprecated in favor of `IO.stream/1` and `IO.binstream/1`
   * [File] `File.iterator!/2` and `File.biniterator!/2` are deprecated in favor of `File.stream!/2` and `File.binstream!/2`
   * [Kernel] Deprecate recently added `quote binding: ...` in favor of the clearer `quote bind_quoted: ...`
+  * [Kernel] Deprecate `Kernel.float/1` in favor of a explicit conversion
   * [Record] `Record.__index__/2` deprecated in favor of `Record.__record__(:index, key)`
 
 * backwards incompatible changes

@@ -854,7 +854,7 @@ defmodule String do
         {int_result, int_remainder} = :string.to_integer(charlist)
         case int_result do
           :error -> :error
-          _ -> {float(int_result), list_to_binary(int_remainder)}
+          _ -> {:erlang.float(int_result), list_to_binary(int_remainder)}
         end
       _ -> {result, list_to_binary(remainder)}
     end
