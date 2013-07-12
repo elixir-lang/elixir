@@ -65,7 +65,11 @@ translate(Atom, S) when is_atom(Atom) ->
   { { atom, 0, Atom }, S };
 
 translate(Bitstring, S) when is_bitstring(Bitstring) ->
-  { elixir_tree_helpers:elixir_to_erl(Bitstring), S }.
+  { elixir_tree_helpers:elixir_to_erl(Bitstring), S };
+
+translate(Other, S) ->
+  elixir_errors:compile_error(0, S#elixir_scope.file, "invalid quoted expression: ~ts",
+                              ['Elixir.Kernel':inspect(Other)]).
 
 %% Helpers
 

@@ -5,6 +5,8 @@ defmodule Macro do
   This module provides conveniences for working with macros.
   """
 
+  @type t :: { t, t } | { t, Keyword.t, t } | atom | number | binary | list
+
   @doc """
   Returns a list of binary operators. This is available
   as a macro so it can be used in guard clauses.

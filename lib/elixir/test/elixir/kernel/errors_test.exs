@@ -329,6 +329,20 @@ defmodule Kernel.ErrorsTest do
       '''
   end
 
+  test :invalid_macro do
+    assert_compile_fail CompileError,
+      "nofile: invalid quoted expression: {:foo, :bar, :baz, :bat}",
+      '''
+      defmodule ErrorsTest do
+        defmacrop oops do
+          { :foo, :bar, :baz, :bat }
+        end
+
+        def test, do: oops
+      end
+      '''
+  end
+
   test :unloaded_module do
     assert_compile_fail CompileError,
       "nofile:1: module Certainly.Doesnt.Exist is not loaded and could not be found",

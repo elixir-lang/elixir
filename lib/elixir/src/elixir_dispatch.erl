@@ -189,7 +189,7 @@ expand_macro_fun(Meta, Fun, Receiver, Name, Args, Module, S) ->
     apply(Fun, [SArg|Args])
   catch
     Kind:Reason ->
-      Info = { Receiver, Name, length(Args), [{ file, S#elixir_scope.file }, { line, Line }] },
+      Info = { Receiver, Name, length(Args), location(Line, S) },
       erlang:raise(Kind, Reason, munge_stacktrace(Info, erlang:get_stacktrace(), SArg))
   end.
 
@@ -200,10 +200,29 @@ expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) ->
   expand_macro_fun(Meta, Fun, Receiver, Name, Args, Module, S).
 
 translate_expansion(Meta, Tree, S) ->
-  elixir_translator:translate_each(
-    elixir_quote:linify(?line(Meta), Tree),
-    S
-  ).
+  Line = ?line(Meta),
+
+  try
+    elixir_translator:translate_each(
+      elixir_quote:linify(Line, Tree),
+      S
+    )
+  catch
+    Kind:Reason ->
+      erlang:raise(Kind, Reason, [mfa(Line, S)|erlang:get_stacktrace()])
+  end.
+
+mfa(Line, #elixir_scope{module=nil} = S) ->
+  { elixir_compiler, '__FILE__', 2, location(Line, S) };
+
+mfa(Line, #elixir_scope{module=Module,function=nil} = S) ->
+  { Module, '__MODULE__', 0, location(Line, S) };
+
+mfa(Line, #elixir_scope{module=Module,function={ Name, Arity }} = S) ->
+  { Module, Name, Arity, location(Line, S) }.
+
+location(Line, S) ->
+  [{ file, S#elixir_scope.file }, { line, Line }].
 
 %% Helpers
 
