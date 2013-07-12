@@ -573,7 +573,7 @@ defmodule Record do
   ## Function generation
 
   # Define __record__/1 and __record__/2 as reflection functions
-  # that returns the record names and fields.
+  # that return the record names and fields.
   #
   # Note that fields are *not* keywords. They are in the same
   # order as given as parameter and reflects the order of the
@@ -585,9 +585,26 @@ defmodule Record do
   #
   #     FileInfo.__record__(:name)   #=> FileInfo
   #     FileInfo.__record__(:fields) #=> [atime: nil, mtime: nil]
+  #     FileInfo.__record__(:index, :atime) #=> 1
+  #     FileInfo.__record__(:index, :mtime) #=> 2
   #
   defp reflection(values) do
+    quoted = lc { k, _ } inlist values do
+      index = find_index(values, k, 0)
+      quote do
+        @doc false
+        def __record__(:index, unquote(k)), do: unquote(index + 1)
+      end
+    end
+
     quote do
+      unquote(quoted)
+
+      @doc false
+      def __record__(:index, _), do: nil
+      @doc false
+      def __record__(:index, arg, _), do: __record__(:index, arg)
+
       @doc false
       def __record__(kind, _),      do: __record__(kind)
 

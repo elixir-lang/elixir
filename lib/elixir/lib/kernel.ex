@@ -1517,12 +1517,12 @@ defmodule Kernel do
       #=> [name: nil, age: 0]
 
   In order to quickly access the index of a field, one can use
-  the `__index__` function:
+  the `__record__` function with `:index` as the first argument:
 
-      User.__index__(:age)
+      User.__record__(:index, :age)
       #=> 2
 
-      User.__index__(:unknown)
+      User.__record__(:index, :unknown)
       #=> nil
 
   ## Compile-time introspection
