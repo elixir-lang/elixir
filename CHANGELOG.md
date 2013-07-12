@@ -28,6 +28,7 @@
   * [File] `File.iterator!/2` and `File.biniterator!/2` are deprecated in favor of `File.stream!/2` and `File.binstream!/2`
   * [Kernel] Deprecate recently added `quote binding: ...` in favor of the clearer `quote bind_quoted: ...`
   * [Kernel] Deprecate `Kernel.float/1` in favor of a explicit conversion
+  * [Mix] Deprecate `mix run EXPR` in favor of `mix run -e EXPR`
   * [Record] `Record.__index__/2` deprecated in favor of `Record.__record__(:index, key)`
 
 * backwards incompatible changes
