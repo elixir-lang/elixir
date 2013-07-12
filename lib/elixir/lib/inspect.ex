@@ -215,7 +215,7 @@ defimpl Inspect, for: List do
     cond do
       :io_lib.printable_list(thing) ->
         << ?', String.escape(:unicode.characters_to_binary(thing), ?') :: binary, ?' >>
-      keyword?(thing) && !opts.raw ->
+      keyword?(thing) && not opts.raw ->
         surround_many("[", thing, "]", opts.limit, keyword(&1, opts))
       true ->
         surround_many("[", thing, "]", opts.limit, Kernel.inspect(&1, opts))

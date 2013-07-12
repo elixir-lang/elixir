@@ -572,8 +572,8 @@ defmodule Record do
 
   ## Function generation
 
-  # Define __record__/1 and __record__/2 as reflection functions
-  # that return the record names and fields.
+  # Define __record__/1, __record__/2, __record__/3 as reflection
+  # functions that return the record names and fields.
   #
   # Note that fields are *not* keywords. They are in the same
   # order as given as parameter and reflects the order of the
@@ -592,7 +592,6 @@ defmodule Record do
     quoted = lc { k, _ } inlist values do
       index = find_index(values, k, 0)
       quote do
-        @doc false
         def __record__(:index, unquote(k)), do: unquote(index + 1)
       end
     end
@@ -606,11 +605,11 @@ defmodule Record do
       def __record__(:index, arg, _), do: __record__(:index, arg)
 
       @doc false
-      def __record__(kind, _),      do: __record__(kind)
+      def __record__(kind, _), do: __record__(kind)
 
       @doc false
-      def __record__(:name),        do: __MODULE__
-      def __record__(:fields),      do: unquote(values)
+      def __record__(:name),   do: __MODULE__
+      def __record__(:fields), do: unquote(values)
     end
   end
 
@@ -675,7 +674,11 @@ defmodule Record do
       index = find_index(values, k, 0)
       quote do
         @doc false
-        def __index__(unquote(k)), do: unquote(index + 1)
+        def __index__(unquote(k)) do
+          IO.write "[WARNING] #{__MODULE__}.__index__/1 is deprecated, " <>
+                   "please use #{__MODULE__}.__record__(:index, key) instead\n#{Exception.format_stacktrace}"
+          unquote(index + 1)
+        end
       end
     end
     quote do
@@ -832,7 +835,7 @@ defmodule Record do
       @spec update(options, t) :: t
       @spec __record__(:name) :: atom
       @spec __record__(:fields) :: [{atom, any}]
-      @spec __index__(atom) :: non_neg_integer | nil
+      @spec __record__(:index, atom) :: non_neg_integer | nil
     end
   end
 
