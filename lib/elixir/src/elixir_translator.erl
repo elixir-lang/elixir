@@ -236,15 +236,8 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
     false -> { nil, nil }
   end,
 
-  Line = case lists:keyfind(line, 1, TKV) of
-    { line, LineValue } -> LineValue;
-    false -> DefaultLine
-  end,
-
-  File = case lists:keyfind(file, 1, TKV) of
-    { file, FileValue } -> FileValue;
-    false -> DefaultFile
-  end,
+  Line = proplists:get_value(line, TKV, DefaultLine),
+  File = proplists:get_value(file, TKV, DefaultFile),
 
   Scope = case File of
     keep -> S#elixir_scope.file;

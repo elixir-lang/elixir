@@ -70,7 +70,8 @@ translate({ function, MetaFA, [{ '/', _, [{F, Meta, C}, A]}] }, S) when is_atom(
     end,
 
   case elixir_dispatch:import_function(WrappedMeta, F, A, S) of
-    false -> syntax_error(WrappedMeta, S#elixir_scope.file, "expected ~ts/~B to be a function, but it is a macro", [F, A]);
+    false -> syntax_error(WrappedMeta, S#elixir_scope.file,
+                          "expected ~ts/~B to be a function, but it is a macro", [F, A]);
     Else  -> Else
   end;
 
@@ -132,7 +133,7 @@ translate({'@', Meta, [{ Name, _, Args }]}, S) ->
 
 %% Case
 
-translate({'case', Meta, [Expr, KV]}, S) ->
+translate({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
   assert_no_match_or_guard_scope(Meta, 'case', S),
   Clauses = elixir_clauses:get_pairs(Meta, do, KV, S),
   { TExpr, NS } = translate_each(Expr, S),
@@ -147,7 +148,7 @@ translate({'case', Meta, [Expr, KV]}, S) ->
 
 %% Try
 
-translate({'try', Meta, [Clauses]}, S) ->
+translate({'try', Meta, [Clauses]}, S) when is_list(Clauses) ->
   assert_no_match_or_guard_scope(Meta, 'try', S),
 
   Do = proplists:get_value('do', Clauses, nil),
@@ -167,7 +168,7 @@ translate({'try', Meta, [Clauses]}, S) ->
 
 %% Receive
 
-translate({'receive', Meta, [KV] }, S) ->
+translate({'receive', Meta, [KV] }, S) when is_list(KV) ->
   assert_no_match_or_guard_scope(Meta, 'receive', S),
   Do = elixir_clauses:get_pairs(Meta, do, KV, S, true),
 
@@ -185,7 +186,7 @@ translate({'receive', Meta, [KV] }, S) ->
 
 %% Definitions
 
-translate({defmodule, Meta, [Ref, KV]}, S) ->
+translate({defmodule, Meta, [Ref, KV]}, S) when is_list(KV) ->
   { TRef, _ } = translate_each(Ref, S),
 
   Block = case lists:keyfind(do, 1, KV) of
@@ -243,7 +244,11 @@ translate({ apply, Meta, [Left, Right, Args] }, S) when is_list(Args) ->
 
 translate({ apply, Meta, Args }, S) ->
   { TArgs, NS } = translate_args(Args, S),
-  { ?wrap_call(?line(Meta), erlang, apply, TArgs), NS }.
+  { ?wrap_call(?line(Meta), erlang, apply, TArgs), NS };
+
+translate({ Name, Meta, Args }, S) ->
+  syntax_error(Meta, S#elixir_scope.file,
+               "invalid arguments for macro ~ts/~B", [Name, length(Args)]).
 
 %% Helpers
 
@@ -302,7 +307,8 @@ translate_in(Meta, Left, Right, S) ->
         true ->
           { false, ?wrap_call(Line, 'Elixir.Enum', 'member?', [TRight, TLeft]) };
         false ->
-          syntax_error(Meta, S#elixir_scope.file, "invalid args for operator in, it expects an explicit array or an explicit range on the right side when used in guard expressions")
+          syntax_error(Meta, S#elixir_scope.file, "invalid args for operator in, it expects an explicit list "
+                       " or an explicit range on the right side when used in guard expressions")
       end
   end,
 
