@@ -150,13 +150,13 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :unbound_var do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: unbound variable ^x",
       '^x = 1'
   end
 
   test :unbound_not_match do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: cannot use ^x outside of match clauses",
       '^x'
   end
@@ -183,7 +183,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_unquote do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: unquote called outside quote",
       'unquote 1'
   end
@@ -428,20 +428,20 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_var! do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: expected var!(x) to expand to an existing variable or be a part of a match",
       'var!(x)'
   end
 
   test :invalid_alias do
-    assert_compile_fail SyntaxError,
-      "nofile:1: invalid args for alias, cannot create nested alias Sample.Lists",
+    assert_compile_fail CompileError,
+      "nofile:1: invalid :as for alias, nested alias Sample.Lists not allowed",
       'alias :lists, as: Sample.Lists'
   end
 
   test :invalid_import_option do
-    assert_compile_fail SyntaxError,
-      "nofile:1: unsupported option ops given to import",
+    assert_compile_fail CompileError,
+      "nofile:1: unsupported option :ops given to import",
       'import :lists, [ops: 1]'
   end
 
@@ -530,7 +530,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_var_or_function_on_guard do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:2: unknown variable something_that_does_not_exist or " <>
       "cannot invoke function something_that_does_not_exist/0 inside guard",
       '''
@@ -542,7 +542,7 @@ defmodule Kernel.ErrorsTest do
 
   test :bodyless_function_with_guard do
     assert_compile_fail SyntaxError,
-      "nofile:2: missing keyword do in def",
+      "nofile:2: missing do keyword in def",
       '''
       defmodule ErrorsTest do
         def foo(n) when is_number(n)
@@ -551,19 +551,19 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_function_on_match do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: cannot invoke function something_that_does_not_exist/0 inside match",
       'case [] do; something_that_does_not_exist() -> :ok; end'
   end
 
   test :invalid_remote_on_match do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: cannot invoke remote function Hello.something_that_does_not_exist/0 inside match",
       'case [] do; Hello.something_that_does_not_exist() -> :ok; end'
   end
 
   test :invalid_remote_on_guard do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: cannot invoke remote function Hello.something_that_does_not_exist/0 inside guard",
       'case [] do; [] when Hello.something_that_does_not_exist == [] -> :ok; end'
   end

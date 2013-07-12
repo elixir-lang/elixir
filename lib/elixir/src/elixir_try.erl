@@ -92,8 +92,8 @@ normalize_rescue(Meta, Condition, S) ->
     { { atom, _, Atom }, _ } ->
       normalize_rescue(Meta, { in, Meta, [{ '_', Meta, nil }, [Atom]] }, S);
     _ ->
-      elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid rescue clause. The clause should match on an alias, "
-        "a variable or be in the `var in [alias]` format")
+      elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid rescue clause. The clause should "
+                                 "match on an alias, a variable or be in the `var in [alias]` format")
   end.
 
 %% Convert rescue clauses into guards.

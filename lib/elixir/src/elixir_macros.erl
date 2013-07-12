@@ -4,8 +4,10 @@
 -export([translate/2]).
 -import(elixir_translator, [translate_each/2, translate_args/2, translate_apply/7]).
 -import(elixir_scope, [umergec/2, umergea/2]).
--import(elixir_errors, [syntax_error/3, syntax_error/4,
-  assert_no_function_scope/3, assert_module_scope/3, assert_no_match_or_guard_scope/3]).
+-import(elixir_errors, [compile_error/3, compile_error/4,
+  syntax_error/3, syntax_error/4,
+  assert_no_function_scope/3, assert_module_scope/3,
+  assert_no_match_or_guard_scope/3]).
 
 -include("elixir.hrl").
 -define(opt_in_types(Kind), Kind == atom orelse Kind == integer orelse Kind == float).
@@ -70,14 +72,15 @@ translate({ function, MetaFA, [{ '/', _, [{F, Meta, C}, A]}] }, S) when is_atom(
     end,
 
   case elixir_dispatch:import_function(WrappedMeta, F, A, S) of
-    false -> syntax_error(WrappedMeta, S#elixir_scope.file,
-                          "expected ~ts/~B to be a function, but it is a macro", [F, A]);
+    false -> compile_error(WrappedMeta, S#elixir_scope.file,
+                           "expected ~ts/~B to be a function, but it is a macro", [F, A]);
     Else  -> Else
   end;
 
-translate({ function, Meta, [_] }, S) ->
+translate({ function, Meta, [Arg] }, S) ->
   assert_no_match_or_guard_scope(Meta, 'function', S),
-  syntax_error(Meta, S#elixir_scope.file, "invalid args for function");
+  syntax_error(Meta, S#elixir_scope.file, "invalid args for function/1: ~ts",
+               ['Elixir.Macro':to_string(Arg)]);
 
 translate({ function, Meta, [_,_,_] = Args }, S) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, 'function', S),
@@ -191,7 +194,7 @@ translate({defmodule, Meta, [Ref, KV]}, S) when is_list(KV) ->
 
   Block = case lists:keyfind(do, 1, KV) of
     { do, DoValue } -> DoValue;
-    false -> syntax_error(Meta, S#elixir_scope.file, "expected do: argument in defmodule")
+    false -> syntax_error(Meta, S#elixir_scope.file, "missing do keyword in defmodule")
   end,
 
   { FRef, FS } = case TRef of
@@ -307,8 +310,8 @@ translate_in(Meta, Left, Right, S) ->
         true ->
           { false, ?wrap_call(Line, 'Elixir.Enum', 'member?', [TRight, TLeft]) };
         false ->
-          syntax_error(Meta, S#elixir_scope.file, "invalid args for operator in, it expects an explicit list "
-                       " or an explicit range on the right side when used in guard expressions")
+          compile_error(Meta, S#elixir_scope.file, "invalid args for operator in, it expects a "
+                        "compile time list or range on the right side when used in guard expressions")
       end
   end,
 

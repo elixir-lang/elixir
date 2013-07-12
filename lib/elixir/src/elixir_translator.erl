@@ -5,9 +5,10 @@
 -export([translate/2, translate_each/2, translate_arg/2,
          translate_args/2, translate_apply/7, translate_fn/3]).
 -import(elixir_scope, [umergev/2, umergec/2, umergea/2]).
--import(elixir_errors, [syntax_error/3, syntax_error/4, parse_error/4,
-  assert_function_scope/3, assert_module_scope/3, assert_no_guard_scope/3,
-  assert_no_match_or_guard_scope/3]).
+-import(elixir_errors, [syntax_error/3, syntax_error/4,
+  compile_error/3, compile_error/4,
+  assert_function_scope/3, assert_module_scope/3,
+  assert_no_guard_scope/3, assert_no_match_or_guard_scope/3]).
 -include("elixir.hrl").
 
 forms(String, StartLine, File, Opts) ->
@@ -26,8 +27,10 @@ forms(String, StartLine, File, Opts) ->
 
 'forms!'(String, StartLine, File, Opts) ->
   case forms(String, StartLine, File, Opts) of
-    { ok, Forms } -> Forms;
-    { error, { Line, Error, Token } } -> parse_error(Line, File, Error, Token)
+    { ok, Forms } ->
+      Forms;
+    { error, { Line, Error, Token } } ->
+      elixir_errors:parse_error(Line, File, Error, Token)
   end.
 
 translate(Forms, S) ->
@@ -91,7 +94,7 @@ translate_each({ alias, Meta, [Ref, KV] }, S) ->
     { atom, _, Old } ->
       translate_alias(Meta, true, Old, TKV, ST);
     _ ->
-      syntax_error(Meta, S#elixir_scope.file, "invalid args for alias, expected an atom or alias as argument")
+      compile_error(Meta, S#elixir_scope.file, "invalid args for alias, expected a compile time atom or alias as argument")
   end;
 
 translate_each({ require, Meta, [Ref] }, S) ->
@@ -108,7 +111,7 @@ translate_each({ require, Meta, [Ref, KV] }, S) ->
       elixir_aliases:ensure_loaded(Meta, Old, ST),
       translate_require(Meta, Old, TKV, ST);
     _ ->
-      syntax_error(Meta, S#elixir_scope.file, "invalid args for require, expected an atom or alias as argument")
+      compile_error(Meta, S#elixir_scope.file, "invalid args for require, expected a compile time atom or alias as argument")
   end;
 
 translate_each({ import, Meta, [Left] }, S) ->
@@ -134,7 +137,7 @@ translate_each({ import, Meta, [Left, Right, KV] }, S) ->
 
   Selector = case TSelector of
     { atom, _,  SelectorAtom } -> SelectorAtom;
-    _ -> syntax_error(Meta, S#elixir_scope.file, "invalid selector for import, expected an atom")
+    _ -> compile_error(Meta, S#elixir_scope.file, "invalid selector for import, expected a compile time atom")
   end,
 
   case TRef of
@@ -143,7 +146,7 @@ translate_each({ import, Meta, [Left, Right, KV] }, S) ->
       SF = elixir_import:import(Meta, Old, TKV, Selector, ST),
       translate_require(Meta, Old, TKV, SF);
     _ ->
-      syntax_error(Meta, S#elixir_scope.file, "invalid name for import, expected an atom or alias")
+      compile_error(Meta, S#elixir_scope.file, "invalid name for import, expected a compile time atom or alias")
   end;
 
 %% Pseudo variables
@@ -185,14 +188,14 @@ translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
 %% Quoting
 
 translate_each({ Unquote, Meta, [_|_] }, S) when Unquote == unquote; Unquote == unquote_splicing ->
-  syntax_error(Meta, S#elixir_scope.file, "~p called outside quote", [Unquote]);
+  compile_error(Meta, S#elixir_scope.file, "~p called outside quote", [Unquote]);
 
 translate_each({ quote, Meta, [Opts] }, S) when is_list(Opts) ->
   case lists:keyfind(do, 1, Opts) of
     { do, Do } ->
       translate_each({ quote, Meta, [lists:keydelete(do, 1, Opts), [{do,Do}]] }, S);
     false ->
-      syntax_error(Meta, S#elixir_scope.file, "invalid args for quote, do is missing")
+      syntax_error(Meta, S#elixir_scope.file, "missing do keyword in quote")
   end;
 
 translate_each({ quote, Meta, [_] }, S) ->
@@ -202,7 +205,7 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
   Exprs =
     case lists:keyfind(do, 1, Do) of
       { do, E } -> E;
-      false -> syntax_error(Meta, S#elixir_scope.file, "invalid args for quote")
+      false -> syntax_error(Meta, S#elixir_scope.file, "missing do keyword in quote")
     end,
 
   ValidOpts   = [hygiene, context, var_context, location, line, file, unquote, binding, bind_quoted],
@@ -219,7 +222,7 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
     { context, Atom } when is_atom(Atom) ->
       Atom;
     { context, _ } ->
-      syntax_error(Meta, S#elixir_scope.file, "invalid :context for quote, expected an atom or an alias");
+      compile_error(Meta, S#elixir_scope.file, "invalid :context for quote, expected a compile time atom or an alias");
     false ->
       case S#elixir_scope.module of
         nil -> 'Elixir';
@@ -250,7 +253,7 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
     File == nil ->
       Exprs;
     true ->
-      syntax_error(Meta, S#elixir_scope.file, "invalid args for quote, expected :file to be a binary")
+      compile_error(Meta, S#elixir_scope.file, "invalid :file for quote, expected a compile time binary")
   end,
 
   { Binding, DefaultUnquote } = case lists:keyfind(binding, 1, TKV) of
@@ -290,7 +293,8 @@ translate_each({ 'var!', Meta, [{Name, _, Atom}, Kind] }, S) when is_atom(Name),
 translate_each({ 'var!', Meta, [Name, Kind] }, S) when is_atom(Name) ->
   Expanded = expand_quote_context(Meta, Kind, "invalid second argument for var!", S),
   elixir_scope:translate_var(Meta, Name, Expanded, S, fun() ->
-    syntax_error(Meta, S#elixir_scope.file, "expected var!(~ts) to expand to an existing variable or be a part of a match", [Name])
+    compile_error(Meta, S#elixir_scope.file, "expected var!(~ts) to expand to an existing "
+                  "variable or be a part of a match", [Name])
   end);
 
 translate_each({ 'var!', Meta, [_, _] }, S) ->
@@ -323,7 +327,8 @@ translate_each({ super, Meta, Args } = Original, S) when is_list(Args) ->
         length(Args) == Arity ->
           translate_args(Args, S);
         true ->
-          syntax_error(Meta, S#elixir_scope.file, "super must be called with the same number of arguments as the current function")
+          syntax_error(Meta, S#elixir_scope.file, "super must be called with the same number of "
+                       "arguments as the current function")
       end,
 
       Super = elixir_def_overridable:name(Module, Function),
@@ -344,11 +349,11 @@ translate_each({ '^', Meta, [ { Name, _, Kind } ] }, #elixir_scope{context=match
     { ok, Value } ->
       { { var, Meta, Value }, S };
     error ->
-      syntax_error(Meta, S#elixir_scope.file, "unbound variable ^~ts", [Name])
+      compile_error(Meta, S#elixir_scope.file, "unbound variable ^~ts", [Name])
   end;
 
 translate_each({ '^', Meta, [ { Name, _, Kind } ] }, S) when is_atom(Name), is_atom(Kind) ->
-  syntax_error(Meta, S#elixir_scope.file,
+  compile_error(Meta, S#elixir_scope.file,
     "cannot use ^~ts outside of match clauses", [Name]);
 
 translate_each({ '^', Meta, [ Expr ] }, S) ->
@@ -376,13 +381,16 @@ translate_each({ Atom, Meta, Args } = Original, S) when is_atom(Atom) ->
           Callback = fun() ->
             case S#elixir_scope.context of
               match ->
-                syntax_error(Meta, S#elixir_scope.file, "cannot invoke function ~ts/~B inside match", [Atom, length(Args)]);
+                compile_error(Meta, S#elixir_scope.file,
+                              "cannot invoke function ~ts/~B inside match", [Atom, length(Args)]);
               guard ->
                 Arity = length(Args),
                 File  = S#elixir_scope.file,
                 case Arity of
-                  0 -> syntax_error(Meta, File, "unknown variable ~ts or cannot invoke function ~ts/~B inside guard", [Atom, Atom, Arity]);
-                  _ -> syntax_error(Meta, File, "cannot invoke local ~ts/~B inside guard", [Atom, Arity])
+                  0 -> compile_error(Meta, File, "unknown variable ~ts or cannot invoke "
+                                     "function ~ts/~B inside guard", [Atom, Atom, Arity]);
+                  _ -> compile_error(Meta, File, "cannot invoke local ~ts/~B inside guard",
+                                     [Atom, Arity])
                 end;
               _ ->
                 translate_local(Meta, Atom, Args, S)
@@ -415,7 +423,7 @@ translate_each({ { '.', _, [Left, Right] }, Meta, Args } = Original, S) when is_
               elixir_dispatch:dispatch_require(Meta, Receiver, Right, Args, umergev(SL, SR), fun() ->
                 case S#elixir_scope.context of
                   Context when Receiver /= erlang, (Context == match) orelse (Context == guard) ->
-                    syntax_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts.~ts/~B inside ~ts",
+                    compile_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts.~ts/~B inside ~ts",
                       [elixir_errors:inspect(Receiver), Right, length(Args), Context]);
                   _ ->
                     Callback()
@@ -424,7 +432,7 @@ translate_each({ { '.', _, [Left, Right] }, Meta, Args } = Original, S) when is_
             _ ->
               case S#elixir_scope.context of
                 Context when Context == match; Context == guard ->
-                  syntax_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts/~B inside ~ts",
+                  compile_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts/~B inside ~ts",
                     [Right, length(Args), Context]);
                 _ ->
                   Callback()
@@ -485,11 +493,12 @@ literal_opts(_) -> false.
 
 validate_opts(Meta, Kind, Allowed, Opts, S) when is_list(Opts) ->
   [begin
-    syntax_error(Meta, S#elixir_scope.file, "unsupported option ~s given to ~s", [Key, Kind])
+    compile_error(Meta, S#elixir_scope.file,
+                  "unsupported option ~ts given to ~s", ['Elixir.Kernel':inspect(Key), Kind])
   end || { Key, _ } <- Opts, not lists:member(Key, Allowed)];
 
 validate_opts(Meta, Kind, _Allowed, _Opts, S) ->
-  syntax_error(Meta, S#elixir_scope.file, "invalid options for ~s, expected a keyword list", [Kind]).
+  compile_error(Meta, S#elixir_scope.file, "invalid options for ~s, expected a keyword list", [Kind]).
 
 %% Quote
 
@@ -499,7 +508,7 @@ expand_quote_context(Meta, Alias, Msg, S) ->
     { { atom, _, Atom }, _ } ->
       Atom;
     _ ->
-      syntax_error(Meta, S#elixir_scope.file, "~ts, expected a compile time available alias or an atom", [Msg])
+      compile_error(Meta, S#elixir_scope.file, "~ts, expected a compile time available alias or an atom", [Msg])
   end.
 
 %% Require
@@ -526,14 +535,14 @@ translate_alias(Meta, IncludeByDefault, Old, TKV, S) ->
         true -> Old
       end;
     _ ->
-      syntax_error(Meta, S#elixir_scope.file,
-        "invalid args for alias, expected an atom or alias in option :as")
+      compile_error(Meta, S#elixir_scope.file,
+        "invalid :as for alias, expected a compile time atom or alias")
   end,
 
   case (New == Old) orelse (length(string:tokens(atom_to_list(New), ".")) == 2) of
     true  -> ok;
-    false -> syntax_error(Meta, S#elixir_scope.file,
-               "invalid args for alias, cannot create nested alias ~s", [elixir_errors:inspect(New)])
+    false -> compile_error(Meta, S#elixir_scope.file,
+               "invalid :as for alias, nested alias ~s not allowed", [elixir_errors:inspect(New)])
   end,
 
   { { atom, ?line(Meta), nil }, elixir_aliases:store(Meta, New, Old, S) }.
@@ -576,7 +585,7 @@ translate_fn(Meta, Clauses, S) ->
 %% Locals
 
 translate_local(Meta, Name, Args, #elixir_scope{local=nil,function=nil} = S) ->
-  elixir_errors:compile_error(Meta, S#elixir_scope.file, "function ~ts/~B undefined", [Name, length(Args)]);
+  compile_error(Meta, S#elixir_scope.file, "function ~ts/~B undefined", [Name, length(Args)]);
 
 translate_local(Meta, Name, Args, #elixir_scope{local=nil,module=Module,function=Function} = S) ->
   elixir_tracker:record_local({ Name, length(Args) }, Module, Function),
@@ -660,8 +669,9 @@ assert_no_ambiguous_op(Name, Meta, [Arg], S) ->
       case orddict:find({ Name, Kind }, S#elixir_scope.vars) of
         error -> ok;
         _ ->
-          syntax_error(Meta, S#elixir_scope.file, "\"~ts ~ts\" looks like a function call but there is a variable named \"~ts\", "
-            "please use explicit parenthesis or even spaces", [Name, 'Elixir.Macro':to_string(Arg), Name])
+          syntax_error(Meta, S#elixir_scope.file, "\"~ts ~ts\" looks like a function call but "
+                       "there is a variable named \"~ts\", please use explicit parenthesis or even spaces",
+                       [Name, 'Elixir.Macro':to_string(Arg), Name])
       end;
     _ -> ok
   end;
@@ -677,7 +687,7 @@ translate_comprehension(Meta, Kind, Args, S) ->
       { TExpr, SE }  = translate_comprehension_do(Meta, Kind, Expr, SC),
       { { Kind, ?line(Meta), TExpr, TCases }, umergec(S, SE) };
     _ ->
-      syntax_error(Meta, S#elixir_scope.file, "keyword argument :do missing for comprehension ~s", [Kind])
+      syntax_error(Meta, S#elixir_scope.file, "missing do keyword in comprehension ~s", [Kind])
   end.
 
 translate_comprehension_do(_Meta, bc, { '<<>>', _, _ } = Expr, S) ->

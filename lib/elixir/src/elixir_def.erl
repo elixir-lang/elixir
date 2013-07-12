@@ -204,7 +204,7 @@ translate_clause(_Line, _Kind, _Unpacked, [], nil, S) ->
   { [], S };
 
 translate_clause(Line, Kind, _Unpacked, _Guards, nil, #elixir_scope{file=File}) ->
-  elixir_errors:syntax_error(Line, File, "missing keyword do in ~ts", [Kind]);
+  elixir_errors:syntax_error(Line, File, "missing do keyword in ~ts", [Kind]);
 
 translate_clause(Line, Kind, Unpacked, Guards, Body, S) ->
   Expr = expr_from_body(Line, Body),
