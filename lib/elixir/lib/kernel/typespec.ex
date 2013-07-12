@@ -349,9 +349,9 @@ defmodule Kernel.Typespec do
     do_deftype(kind, type, { :term, [line: caller.line], nil }, caller)
   end
 
-  def deftype(_kind, other, _caller) do
+  def deftype(_kind, other, caller) do
     type_spec = Macro.to_string(other)
-    raise ArgumentError, message: "invalid type specification #{type_spec}"
+    compile_error caller, "invalid type specification #{type_spec}"
   end
 
   defp do_deftype(kind, { name, _, args }, definition, caller) do
@@ -390,9 +390,9 @@ defmodule Kernel.Typespec do
     code
   end
 
-  def defspec(_type, other, _caller) do
+  def defspec(_type, other, caller) do
     spec = Macro.to_string(other)
-    raise ArgumentError, message: "invalid function type specification #{spec}"
+    compile_error caller, "invalid function type specification #{spec}"
   end
 
   defp guard_to_constraints({ :is_subtype, meta, [{ name, _, _ }, type] }, caller) do
@@ -591,9 +591,11 @@ defmodule Kernel.Typespec do
   end
 
   # Handle remote calls
-  defp typespec({{:., meta, [remote, name]}, _, args}, vars, caller) do
+  defp typespec({{:., meta, [remote, name]}, _, args} = orig, vars, caller) do
     remote = Macro.expand remote, caller
-    unless is_atom(remote), do: raise(ArgumentError, message: "invalid remote in typespec")
+    unless is_atom(remote) do
+      compile_error(caller, "invalid remote in typespec: #{Macro.to_string(orig)}")
+    end
     remote_type({typespec(remote, vars, caller), meta, typespec(name, vars, caller), args}, vars, caller)
   end
 
@@ -668,8 +670,8 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec([h|t] = l, vars, caller) do
-    union = Enum.reduce(t, validate_kw(h, l), fn(x, acc) ->
-      { :|, [], [acc, validate_kw(x, l)] }
+    union = Enum.reduce(t, validate_kw(h, l, caller), fn(x, acc) ->
+      { :|, [], [acc, validate_kw(x, l, caller)] }
     end)
     typespec({ :list, [], [union] }, vars, caller)
   end
@@ -681,6 +683,10 @@ defmodule Kernel.Typespec do
 
   ## Helpers
 
+  defp compile_error(caller, desc) do
+    raise CompileError, file: caller.file, line: caller.line, description: desc
+  end
+
   defp remote_type({remote, meta, name, arguments}, vars, caller) do
     arguments = lc arg inlist arguments, do: typespec(arg, vars, caller)
     { :remote_type, line(meta), [ remote, name, arguments ] }
@@ -689,9 +695,9 @@ defmodule Kernel.Typespec do
   defp collect_union({ :|, _, [a, b] }), do: [b|collect_union(a)]
   defp collect_union(v), do: [v]
 
-  defp validate_kw({ key, _ } = t, _) when is_atom(key), do: t
-  defp validate_kw(_, original) do
-    raise ArgumentError, message: "unexpected list #{inspect original} in typespec"
+  defp validate_kw({ key, _ } = t, _, _caller) when is_atom(key), do: t
+  defp validate_kw(_, original, caller) do
+    compile_error(caller, "unexpected list #{Macro.to_string original} in typespec")
   end
 
   defp fn_args(meta, args, return, vars, caller) do
