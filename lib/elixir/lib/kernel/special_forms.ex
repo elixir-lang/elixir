@@ -813,6 +813,19 @@ defmodule Kernel.SpecialForms do
       iex> lc <<r::8, g::8, b::8>> inbits pixels, do: {r, g, b}
       [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
 
+  Note: Differently from Erlang, Elixir comprehensions filters
+  never behave as guards when it comes to errors. Errors in
+  list comprehensions will always be raised. Consider this
+  Erlang example:
+
+      erl> [I || I <- [1,2,3], hd(I)].
+      []
+
+  In Elixir, it will raise:
+
+      iex> lc i inlist [1,2,3], hd(i), do: i
+      ** (ArgumentError) argument error
+
   """
   defmacro lc(args)
 

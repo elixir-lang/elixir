@@ -713,5 +713,7 @@ translate_comprehension_clause(_Meta, {inlist, Meta, [Left, Right]}, S) ->
   { { generate, ?line(Meta), TLeft, TRight }, SL };
 
 translate_comprehension_clause(Meta, X, S) ->
+  Line = ?line(Meta),
   { TX, TS } = translate_each(X, S),
-  elixir_tree_helpers:convert_to_boolean(?line(Meta), TX, true, false, TS).
+  { BX, BS } = elixir_tree_helpers:convert_to_boolean(Line, TX, true, false, TS),
+  { { match, Line, { var, Line, '_' }, BX }, BS }.
