@@ -105,10 +105,10 @@ defmodule Kernel.QuoteTest do
            [1, 2, 3, 1, 2, 3]
 
     assert quote(do: [unquote_splicing(contents)|val]) ==
-           quote(do: :"Elixir.Kernel".++([1, 2, 3], val))
+           quote(do: [1, 2, 3 | val])
 
     assert quote(do: [unquote_splicing(contents)|unquote([4])]) ==
-           quote(do: :"Elixir.Kernel".++([1, 2, 3], [4]))
+           quote(do: [1, 2, 3, 4])
   end
 
   test :splice_on_stab do
@@ -119,6 +119,16 @@ defmodule Kernel.QuoteTest do
     { fun, [] } =
       Code.eval_quoted(quote(do: fn(1, unquote_splicing([2, 3])) -> :ok end), [])
     assert fun.(1, 2, 3) == :ok
+  end
+
+  test :splice_on_definition do
+    defmodule Hello do
+      def world([unquote_splicing(["foo", "bar"])|rest]) do
+        rest
+      end
+    end
+
+    assert Hello.world(["foo", "bar", "baz"]) == ["baz"]
   end
 
   test :when do

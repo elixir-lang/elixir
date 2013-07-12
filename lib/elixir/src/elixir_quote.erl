@@ -1,6 +1,6 @@
 %% Implements Elixir quote.
 -module(elixir_quote).
--export([escape/2, erl_escape/3, erl_quote/4, linify/2, unquote/6]).
+-export([escape/2, erl_escape/3, erl_quote/4, linify/2, unquote/6, join/5]).
 -include("elixir.hrl").
 
 %% Apply the line from site call on quoted contents.
@@ -54,6 +54,13 @@ unquote(_File, _Line, Meta, Left, { Right, _, Context }, Args) when is_atom(Righ
 unquote(File, Line, _Meta, _Left, Right, _Args) ->
   elixir_errors:syntax_error(Line, File, "expected unquote after dot with args to return an atom "
     "or a quoted call, got: ~ts", ['Elixir.Macro':to_string(Right)]).
+
+join(_File, _Line, Left, Right, Rest) when is_list(Left), is_list(Right), is_list(Rest) ->
+  Rest ++ Left ++ Right;
+
+join(_File, _Line, Left, Right, Rest)  ->
+  [H|T] = lists:reverse(Rest ++ Left),
+  lists:reverse([{ '|', [], [H, Right] }|T]).
 
 %% Escapes the given expression. It is similar to quote, but
 %% lines are kept and hygiene mechanisms are disabled.
@@ -235,27 +242,16 @@ keystore(Key, Meta, Value) ->
 
 %% Quote splicing
 
-do_splice([{ '|', _, [{ unquote_splicing, _, [Left] }, Right] }|T], #elixir_quote{unquote=true} = Q, S) ->
+do_splice([{ '|', Meta, [{ unquote_splicing, _, [Left] }, Right] }|T], #elixir_quote{unquote=true} = Q, S) ->
   %% Process the remaining entries on the list.
   %% For [1, 2, 3, unquote_splicing(arg)|tail], this will quote
   %% 1, 2 and 3, which could even be unquotes.
   { TT, QT } = do_splice(T, Q, S, [], []),
+  { TR, QR } = do_quote(Right, QT, S),
 
-  %% Now that we have [1,2,3], join it with the argument spliced.
-  %% This is done with a ++ operation executed at compilation time.
-  ListWithoutTail = do_splice_join(TT, Left),
-
-  %% Let's add the tail, which is done with a ++ operation at runtime
-  %% unless Right is a list (which allows us to do it at compile time).
-  %% Since the LastWithoutTail was already quoted, wrap it inside an
-  %% unquote so it won't be quoted again.
-  case is_list(Right) of
-    true  ->
-      { TR, QR } = do_quote(Right, QT, S),
-      { do_splice_join(ListWithoutTail, TR), QR };
-    false ->
-      do_quote(do_splice_join({ unquote, [], [ListWithoutTail] }, Right), QT, S)
-  end;
+  %% Do the joining at runtime when we are aware of the values.
+  Args = [{ '__FILE__', [], nil }, ?line(Meta), Left, TR, TT],
+  { { { '.', Meta, [elixir_quote, join] }, Meta, Args }, QR#elixir_quote{unquoted=true} };
 
 do_splice(List, Q, S) ->
   do_splice(List, Q, S, [], []).
