@@ -16,7 +16,7 @@
 * bug fix
   * [CLI] Elixir can now run on Unix directories with `:` in its path
   * [Kernel] `match?/2` does not leak variables to outer scope
-  * [Kernel] Keep `head|tail` when splicing at the tail
+  * [Kernel] Keep `head|tail` format when splicing at the tail
   * [Kernel] Ensure variables defined in the module body are not passed to callbacks
   * [Mix] On dependencies conflict, show from where each source is coming from
   * [Mix] Empty projects no longer leave empty ebin files on `mix compile`
@@ -46,7 +46,7 @@
 
 * enhancements
   * [File] Add `File.chgrp`, `File.chmod` and `File.chown`
-  * [Kernel] Add --warnings-as-errors to Elixir's compiler options
+  * [Kernel] Add `--warnings-as-errors` to Elixir's compiler options
   * [Kernel] Print warnings to stderr
   * [Kernel] Warn on undefined module attributes
   * [Kernel] Emit warning for `x in []` in guards
@@ -73,7 +73,7 @@
   * [Typespec] Deprecate `(fun(...) -> ...)` in favor of `(... -> ...)`
 
 * backwards incompatible changes
-  * [Bitwise] Precedence of operators used by the Bitwise module were changed. Check `elixir_parser.yrl` for more information.
+  * [Bitwise] Precedence of operators used by the Bitwise module were changed, check `elixir_parser.yrl` for more information
   * [File] `rm_rf` and `cp_r` now returns a tuple with three elements on failures
   * [Kernel] The quoted representation for `->` clauses changed from a tuple with two elements to a tuple with three elements to support metadata
   * [Kernel] Sigils now dispatch to `sigil_$` instead of `__$__` where `$` is the sigil caracter
@@ -93,7 +93,7 @@
 * bug fix
   * [HashDict] Ensure HashDict uses exact match throughout its implementation
   * [IEx] Do not interpret ANSI codes in IEx results
-  * [IEx] Ensure --cookie is set before accessing remote shell
+  * [IEx] Ensure `--cookie` is set before accessing remote shell
   * [Kernel] Do not ignore nil when dispatching protocols to avoid infinite loops
   * [Mix] Fix usage of shell expressions in `Mix.Shell.cmd`
   * [Mix] Start the application by default on escripts
