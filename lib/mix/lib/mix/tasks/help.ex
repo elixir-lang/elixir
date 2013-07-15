@@ -31,6 +31,8 @@ defmodule Mix.Tasks.Help do
       max(size(task), acc)
     end
 
+    display_default_task_doc(max)
+
     sorted = Enum.sort(docs)
 
     Enum.each sorted, fn({ task, doc }) ->
@@ -61,5 +63,11 @@ defmodule Mix.Tasks.Help do
 
   defp format(expression, args) do
     :io_lib.format(expression, args) |> iolist_to_binary
+  end
+
+  defp display_default_task_doc(indention) do
+    Mix.shell.info format("mix ~-#{indention}s # ~ts",
+                          ["",
+                          "Run the default task (current: mix #{Mix.project[:default_task]})"])
   end
 end
