@@ -433,7 +433,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts a message was not received and won't be within
-  a timeout value.
+  the `timeout` period.
 
   The `not_expected` argument must be a match pattern.
 
