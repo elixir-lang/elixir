@@ -14,13 +14,13 @@ This document simply outlines the release process:
 
 6) Release new docs with `make release_docs`, move docs to `docs/stable`
 
-7) Release new zip with `make release_zip`, push new zip to Elixir's elixir-lang.org/packages.html
+7) Release new zip with `make release_zip`, push new zip to Github Releases
 
 8) Push package to expm with `expm publish package.exs`
 
 9) After release, bump versions and add `-dev` back
 
-10) `make release_docs` once again, update `packages.html` and push `elixir-lang.github.com`
+10) `make release_docs` once again and push `elixir-lang.github.com`
 
 ## Places where version is mentioned
 

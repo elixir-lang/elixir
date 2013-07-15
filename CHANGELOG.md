@@ -1,4 +1,4 @@
-# v0.9.4-dev
+# v0.10.0 (2013-07-15)
 
 * enhancements
   * [ExUnit] Support `trace: true` option which gives detailed reporting on test runs
