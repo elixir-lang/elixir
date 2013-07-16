@@ -350,11 +350,21 @@ eval_callbacks(Line, Module, Name, Args, RawS) ->
           erl_eval:exprs([Tree], Binding)
         catch
           Kind:Reason ->
-            Info = { M, F, Args, [{ file, binary_to_list(S#elixir_scope.file) }, { line, Line }] },
-            erlang:raise(Kind, Reason, [Info|erlang:get_stacktrace()])
+            Info = { M, F, length(Args), [{ file, binary_to_list(S#elixir_scope.file) }, { line, Line }] },
+            erlang:raise(Kind, Reason, munge_stacktrace(Info, erlang:get_stacktrace()))
         end
     end
   end, Callbacks).
+
+%% We've reached the elixir_dispatch internals, skip it with the rest
+munge_stacktrace(Info, [{ elixir_module, _, _, _ }|_]) ->
+  [Info];
+
+munge_stacktrace(Info, [H|T]) ->
+  [H|munge_stacktrace(Info, T)];
+
+munge_stacktrace(Info, []) ->
+  [Info].
 
 % ERROR HANDLING
 

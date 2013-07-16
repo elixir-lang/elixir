@@ -44,7 +44,7 @@ defmodule Module do
       A hook that will be invoked before the module is compiled.
 
       Accepts a module or a tuple `{ <module>, <function/macro atom> }`. The
-      function/macro must take one argument: the module environment. If it's a
+      function/macro must take one argument: the module environment. If it\'s a
       macro, its returned value will be injected at the end of the module definition
       before the compilation starts.
 
@@ -178,8 +178,11 @@ defmodule Module do
       When just a module is provided, the function is assumed to be
       `__on_definition__/6`.
 
-      Note that you can't provide the current module to `@on_definition`
-      because the hook function will not be defined in time.
+      Note that you can\'t provide the current module to `@on_definition`
+      because the hook function will not be defined in time. Finally, since
+      the `on_definition` hook is executed inside the context of the defined
+      function (i.e. `env.function` returns the current function), the hook
+      can only be a function, not a macro.
 
       **Example**
 
@@ -266,7 +269,6 @@ defmodule Module do
 
   It is possible to query a module at runtime to find out which functions and
   macros it defines, extract its docstrings, etc. See `__info__/1`.
-
   '''
 
   @doc """
