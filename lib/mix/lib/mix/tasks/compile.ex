@@ -63,20 +63,21 @@ defmodule Mix.Tasks.Compile do
 
   def run(args) do
     Mix.Task.run "loadpaths", args
-    compile_path = Mix.project[:compile_path]
 
-    changed =
-      Enum.reduce get_compilers, false, fn(compiler, acc) ->
-        res = Mix.Task.run "compile.#{compiler}", args
-        acc or res != :noop
+    Enum.each(get_compilers, fn(compiler) ->
+      Mix.Task.run("compile.#{compiler}", args)
+    end)
+  end
+
+  def manifests do
+    Enum.reduce(get_compilers, [], fn(compiler, acc) ->
+      module = Mix.Task.get("compile.#{compiler}")
+      if function_exported?(module, :manifest, 0) do
+        [module.manifest|acc]
+      else
+        acc
       end
-
-    # If any of the tasks above returns something different
-    # than :noop, it means they produced something, so we
-    # touch the common target `compile_path`. Notice that
-    # we choose :noop since it is also the value returned
-    # by a task that we already invoked.
-    if changed, do: File.touch compile_path
+    end)
   end
 
   defp get_compilers do

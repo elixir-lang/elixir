@@ -32,4 +32,19 @@ defmodule Mix.Tasks.Compile.LeexTest do
       assert_received { :mix_shell, :info, ["Compiled src/test_ok.xrl"] }
     end
   end
+
+  test "removes old artifact files" do
+    in_fixture "compile_leex", fn ->
+      assert Mix.Tasks.Compile.Leex.run([]) == :ok
+      assert File.regular?("src/test_ok.erl")
+
+      # Now we have a noop
+      File.rm!("src/test_ok.xrl")
+      assert Mix.Tasks.Compile.Leex.run([]) == :noop
+
+      # --force
+      assert Mix.Tasks.Compile.Leex.run(["--force"]) == :ok
+      refute File.regular?("src/test_ok.erl")
+    end
+  end
 end
