@@ -1,9 +1,13 @@
 # v0.10.1-dev
 
 * enhancements
-  * [Mix] `test_helper` project configuration did not affect `mix test` and was therefore removed
+  * [Kernel] Add support for `GenFSM.Behaviour`
+  * [Mix] `:test_helper` project configuration did not affect `mix test` and was therefore removed
+  * [Mix] Add manifests for yecc, leex and Erlang compilers, making it easier to detect dependencies in between compilers and providing a more useful clean behaviour
+  * [Mix] `mix help` now outputs information about the default mix task
 
 * bug fix
+  * [Kernel] Improve error messages when the use of an operator has no effect
 
 * deprecations
 
