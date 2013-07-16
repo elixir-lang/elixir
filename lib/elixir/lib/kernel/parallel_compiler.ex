@@ -1,5 +1,3 @@
-defexception Kernel.CompilationError, message: "compilation failed"
-
 defmodule Kernel.ParallelCompiler do
   alias :orddict, as: OrdDict
 
@@ -42,9 +40,12 @@ defmodule Kernel.ParallelCompiler do
     schedulers = max(:erlang.system_info(:schedulers_online), 2)
 
     result = spawn_compilers(files, path, callback, [], [], schedulers, [])
+
+    # In case --warning-as-errors is enabled and there was a warning,
+    # compilation status will be set to error and we fail with Kernel.CompilationError
     case :elixir_code_server.call(:compilation_status) do
       :ok    -> result
-      :error -> raise Kernel.CompilationError, [], []
+      :error -> raise CompileError, [], []
     end
   end
 

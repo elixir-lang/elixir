@@ -109,7 +109,7 @@ defmodule Kernel.CLI.ParallelCompilerTest do
     try do
       Code.compiler_options(warnings_as_errors: true)
 
-      assert_raise Kernel.CompilationError, fn ->
+      assert_raise CompileError, fn ->
         capture_io :stderr, fn ->
           Kernel.ParallelCompiler.files [fixture_path("warnings_sample.ex")]
         end
