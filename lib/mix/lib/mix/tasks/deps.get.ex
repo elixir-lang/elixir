@@ -11,6 +11,7 @@ defmodule Mix.Tasks.Deps.Get do
   ## Command line options
 
   * `--no-compile` - skip compilation of dependencies
+  * `--no-deps-check` - skip dependency check
   * `--quiet` - do not output success message
 
   """
@@ -41,7 +42,7 @@ defmodule Mix.Tasks.Deps.Get do
 
       unless opts[:no_compile] do
         Mix.Task.run("deps.compile", apps)
-        Mix.Task.run("deps.check", [])
+        unless opts[:no_deps_check], do: Mix.Task.run("deps.check", [])
       end
     end
   end
