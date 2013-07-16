@@ -47,8 +47,8 @@ defmodule ExUnit do
       end
 
   To run the test above, all you need to do is to run the file
-  using elixir from command line. Assuming you named your file
-  assertion_test.exs, you can run it as:
+  using `elixir` from the command line. Assuming you named your file
+  `assertion_test.exs`, you can run it as:
 
       bin/elixir assertion_test.exs
 
@@ -64,17 +64,17 @@ defmodule ExUnit do
 
   Mix is the project management and build tool for Elixir. Invoking `mix test`
   from the command line will run tests in each file matching the pattern
-  "*_test.exs" found in the `test` directory of your project.
+  `*_test.exs` found in the `test` directory of your project.
 
   By convention, you could also create a `test_helper.exs` file inside the
   `test` directory and put the code common to all tests there.
 
-  The minimum example of a test_helper.exs file would be:
+  The minimum example of a `test_helper.exs` file would be:
 
       # test/test_helper.exs
       ExUnit.start
 
-  Then, in each test file, require test_helper.exs before defining test modules
+  Then, in each test file, require `test_helper.exs` before defining test modules
   (or cases):
 
       # test/myproject_test.exs
@@ -94,11 +94,11 @@ defmodule ExUnit do
   end
 
   @doc """
-  Starts up ExUnit and automatically set it up to run
-  tests at the VM exit. It accepts a set of options to
+  Starts up ExUnit and automatically runs
+  tests right before the VM terminates. It accepts a set of options to
   configure `ExUnit` (the same ones accepted by `configure/1`).
 
-  In case you want to run tests manually, skip calling this
+  If you want to run tests manually, skip calling this
   function and rely on `configure/1` and `run/0` instead.
   """
   def start(options // []) do
@@ -131,7 +131,7 @@ defmodule ExUnit do
   * `:max_cases` - Maximum number of cases to run in parallel.
                    Defaults to `:erlang.system_info(:schedulers_online)`;
 
-  * `:trace` - Set ExUnit into trace mode, this set `:max_cases` to 1
+  * `:trace` - Set ExUnit into trace mode, this sets `:max_cases` to 1
                and prints each test case and test while running;
 
   """

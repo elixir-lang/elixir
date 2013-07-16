@@ -4,19 +4,19 @@ defmodule ExUnit.DocTest do
   doctest](http://docs.python.org/2/library/doctest.html).
 
   In a nutshell, it allows us to generate tests from the code
-  examples existing in module/function/macro's documentation.
-  In order to do that, one needs to invoke `doctest/1` macro
+  examples existing in a module/function/macro's documentation.
+  In order to do that, one needs to invoke the `doctest/1` macro
   from their test case and write their examples according
   to some guidelines.
 
   The syntax for examples is as follows. Every new test starts
-  on a new line, with an "iex>" prefix. Multiline expressions
+  on a new line, with an `iex>` prefix. Multiline expressions
   can be employed if the following lines start with either
-  "...>" (recommended) or "iex>" prefix.
+  `...>` (recommended) or `iex>` prefix.
 
-  The expected result should start at the next line after "iex>"
-  or "...>" line(s) and is terminated either by a newline, new
-  "iex>" prefix or end of the string literal.
+  The expected result should start at the next line after `iex>`
+  or `...>` line(s) and is terminated either by a newline, new
+  `iex>` prefix or end of the string literal.
 
   ## Examples
 
@@ -30,7 +30,7 @@ defmodule ExUnit.DocTest do
 
   The `doctest` macro is going to loop through all functions and
   macros defined in `MyModule`, parsing their documentation in
-  search for code examples.
+  search of code examples.
 
   A very basic example is:
 
@@ -51,7 +51,7 @@ defmodule ExUnit.DocTest do
       iex> a + 1
       2
 
-  If you want to keep any two tests separate from each other,
+  If you want to keep any two tests separate,
   add an empty line between them:
 
       iex> a = 1
@@ -72,7 +72,7 @@ defmodule ExUnit.DocTest do
   * Copy-pasting examples from an actual iex sessions
 
   We also allow you to select or skip some functions when calling
-  `doctest`. See its documentation for more info.
+  `doctest`. See the documentation for more info.
 
   ## Exceptions
 
@@ -81,10 +81,10 @@ defmodule ExUnit.DocTest do
       iex(1)> binary_to_atom((fn() -> 1 end).())
       ** (ArgumentError) argument error
 
-  What DocTest will be looking for is a line starting with "** (" and it
-  will parse it accordingly to extract the exception name and the message.
+  What DocTest will be looking for is a line starting with `** (` and it
+  will parse it accordingly to extract the exception name and message.
   At this moment, the exception parser would make the parser treat the next
-  line as a start of a completely new expression (if it is prefixed with iex>)
+  line as a start of a completely new expression (if it is prefixed with `iex>`)
   or a no-op line with documentation. Thus, multiline messages are not
   supported.
 
@@ -114,12 +114,12 @@ defmodule ExUnit.DocTest do
   * `:except` — generate tests for all functions except those listed
                 (list of `{function, arity}` tuples)
 
-  * `:only`   — generate tests only forfunctions listed
+  * `:only`   — generate tests only for functions listed
                 (list of `{function, arity}` tuples)
 
   * `:import` — when true, one can test a function defined in the module
                 without referring to the module name. However, this is not
-                feasible when there is a clash with a number module like
+                feasible when there is a clash with a module like
                 Kernel. In these cases, `import` should be set to `false`
                 and a full `M.f` construct should be used.
 
