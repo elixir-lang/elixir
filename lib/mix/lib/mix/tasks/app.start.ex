@@ -31,7 +31,7 @@ defmodule Mix.Tasks.App.Start do
 
   defp start_app(project) do
     if app = project[:app] do
-      ebin   = (project[:compile_path] || "ebin")
+      ebin   = project[:compile_path]
       parent = ebin |> Path.expand |> Path.dirname |> Path.basename
 
       if parent != atom_to_binary(app) do

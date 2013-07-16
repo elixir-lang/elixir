@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Compile.App do
     validate_app(app)
     validate_version(version)
 
-    path    = config[:compile_path] || "ebin"
+    path    = config[:compile_path]
     beams   = Path.wildcard('#{path}/*.beam')
 
     target  = Path.join(path, "#{app}.app")
