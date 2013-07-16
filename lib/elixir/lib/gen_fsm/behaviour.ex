@@ -8,17 +8,17 @@ defmodule GenFSM.Behaviour do
 
   ## Example
 
-  Bellow follows an example of a GenFsm that runs a very simple minded
+  Bellow follows an example of a GenFSM that runs a very simple minded
   coffee vending machine (CVM). The CVM treats all coins the same. If
   you press the request button then the CVM will brew coffee if you
   have paid enough coins, if not it will wait until you have inserted
   enough coins and then it will instantly brew the coffee since you
-  had already pressed the request button! As I told you - a very
+  had already pressed the request button! As we told you - a very
   simple minded CVM! And greedy too. If you insert more coins than you
   need it will gladly eat them all until you press the request button.
 
-  I will leave it to the service minded reader to improve the way CVM
-  works - I hereby declare a full disclaimer for any lawsuits that the
+  We will leave it to the service minded reader to improve the way CVM
+  works - we hereby declare a full disclaimer for any lawsuits that the
   behaviour of CVM in its original state might encur.
 
 
@@ -44,8 +44,8 @@ defmodule GenFSM.Behaviour do
 
         # Callbacks
 
-        # idle is the initial state and 3 is the target price for a
-        # cup of coffee.
+        # :idle is the initial state and 3 is the target
+        # price for a cup of coffee.
         def init(_args) do
           { :ok, :idle, StateData.new }
         end
@@ -57,22 +57,22 @@ defmodule GenFSM.Behaviour do
         def idle(:request, state_data) do
           { :next_state, :requested_short_paid, state_data }
         end
-  
-        def short_paid(:coin, state_data = StateData[coins: c, price: p]) 
+
+        def short_paid(:coin, state_data = StateData[coins: c, price: p])
           when c + 1 < p do
-          { :next_state, :short_paid, 
-            state_data.coins fn old_coins -> old_coins +1 end } 
+          { :next_state, :short_paid,
+            state_data.coins fn old_coins -> old_coins +1 end }
         end
 
         def short_paid(:coin, state_data) do
-          { :next_state, :paid_in_full, 
+          { :next_state, :paid_in_full,
             state_data.coins fn old_coins -> old_coins + 1 end }
         end
 
         def short_paid(:request_coffee, state_data) do
           { :next_state, :requested_short_paid, state_data }
         end
-            
+
         def requested_short_paid(:coin, state_data=StateData[coins: c, price: p])
           when c+1 < p do
           { :next_state, :requested_short_paid, state_data.coins(c+1) }
@@ -84,7 +84,7 @@ defmodule GenFSM.Behaviour do
         end
 
         def paid_in_full(:coin, state_data) do
-          { :next_state, :paid_in_full, 
+          { :next_state, :paid_in_full,
             state_data.update_coins fn old_coins -> old_coins + 1 end }
         end
 
@@ -92,7 +92,6 @@ defmodule GenFSM.Behaviour do
           IO.puts "Here's your coffee!"
           { :next_state, :idle, StateData.new }
         end
-
       end
 
       { :ok, _pid } = MyFsm.start_link()
@@ -109,64 +108,64 @@ defmodule GenFSM.Behaviour do
       #=> :ok
       #=> Here's your coffee!
 
-
   Notice we never call the FSM callbacks directly, they are called by
-  OTP whenever we interact with the server. **send_event** is
-  asynchronous, whereas **sync_send_event** is synchronous. In the
-  case of GenFsm's, the different values a callback can return depends
+  OTP whenever we interact with the server. `send_event` is
+  asynchronous, whereas `sync_send_event` is synchronous. In the
+  case of GenFSM's, the different values a callback can return depends
   on the type of callback.
 
   State handling returns for send_event callbacks:
-  
-  { :next_state, next_state_name, new_state_data }
-  { :next_state, next_state_name, new_state_data, timeout }
-  { :next_state, next_state_name, new_state_data, :hibernate }
-  { :stop, reason, new_state_data }
+
+      { :next_state, next_state_name, new_state_data }
+      { :next_state, next_state_name, new_state_data, timeout }
+      { :next_state, next_state_name, new_state_data, :hibernate }
+      { :stop, reason, new_state_data }
 
   State handling returns for sync_send_event callbacks:
-  
-  { :reply, reply, next_state_name, new_state_data }
-  { :reply, reply, next_state_name, new_state_data, timeout }
-  { :reply, reply, next_state_name, new_state_data, :hibernate }
-  { :next_state, next_state_name, new_state_data }
-  { :next_state, next_state_name, new_state_data, timeout }
-  { :next_state, next_state_name, new_state_data, :hibernate }
-  { :stop, reason, reply, new_state_data }
-  { :stop, reason, new_state_date }
-   
+
+      { :reply, reply, next_state_name, new_state_data }
+      { :reply, reply, next_state_name, new_state_data, timeout }
+      { :reply, reply, next_state_name, new_state_data, :hibernate }
+      { :next_state, next_state_name, new_state_data }
+      { :next_state, next_state_name, new_state_data, timeout }
+      { :next_state, next_state_name, new_state_data, :hibernate }
+      { :stop, reason, reply, new_state_data }
+      { :stop, reason, new_state_date }
+
   There are 6 callbacks required to be implemented in a GenFsm plus 1
   or 2 for each state. The `GenFsm.Behaviour` module defines
   `handle_sync_event`, `handle_info`, `terminate` and `code_change`
   for you. The list of callbacks are:
 
-
   * `init(args)` - invoked when the FSM is started;
-  * `handle_sync_event(event, from, state_name, state_data)` 
+  * `handle_sync_event(event, from, state_name, state_data)`
     - invoked to handle sync_send_all_state_event messages;
-  * `handle_event(event, state_name, state_data)` 
+  * `handle_event(event, state_name, state_data)`
     - invoked to handle send_all_state_event messages;
-  * `handle_info(msg, state_name, state_data)` 
+  * `handle_info(msg, state_name, state_data)`
     - handle all other messages which are normally received by processes;
-  * `terminate(reason, state_name, state_data)` 
+  * `terminate(reason, state_name, state_data)`
      - called when the FSM is about to terminate, useful for cleaning up;
-  * `code_change(old_vsn, state, extra)` 
+  * `code_change(old_vsn, state, extra)`
     - called when the application code is being upgraded live (hot code swap);
+
+  Differently from `GenServer` and `GenEvent`, the callback `init/1` is not
+  implemented by default, as it requires the next state to be returned.
 
   For each state you need to define either or both of these:
 
-  * `state_name(event, state_data)` 
+  * `state_name(event, state_data)`
     - invoked to handle `send_event` messages;
-  * `state_name(event, from, state_data)` 
+  * `state_name(event, from, state_data)`
     - invoked to handle `sync_send_event` messages;
- 
-  If you send asyncchronous events you only need to implement the
-  `state_name/2` variant and vice versa for synchronous events and
+
+  If you send asynchronous events you only need to implement the
+  `state_name/2` variant and vice-versa for synchronous events and
   `state_name/3`. Keep in mind that if you mix `send_event` and
   `sync_send_event` the best thing to do is to implement both
   callbacks for all states.
-  
 
-  Starting and sending messages to the GenFsm is done via Erlang's
+  Starting and sending messages to the GenFSM is done via Erlang's
   `:gen_fsm` module. For more information, please refer to the
   following:
 
@@ -205,7 +204,7 @@ defmodule GenFSM.Behaviour do
         { :ok, state_name, state_data }
       end
 
-      defoverridable [handle_event: 3, handle_sync_event: 4, 
+      defoverridable [handle_event: 3, handle_sync_event: 4,
                       handle_info: 3, terminate: 3, code_change: 4]
     end
   end
