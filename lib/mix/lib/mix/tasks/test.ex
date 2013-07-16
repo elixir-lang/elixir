@@ -35,9 +35,6 @@ defmodule Mix.Tasks.Test do
   * `:test_pattern` - a pattern to load test files.
     Defaults to `*_test.exs`.
 
-  * `:test_helper` - a file that sets up whatever is necessary
-    for testing. Defaults to `test/test_helper.exs`.
-
   * `:test_coverage` - the directory to include test coverage results.
     Defaults to `nil`.
 
@@ -60,9 +57,6 @@ defmodule Mix.Tasks.Test do
     cover = Keyword.get(project, :test_coverage, opts[:cover])
     if cover, do: enable_cover(project, cover)
 
-    test_helper = Keyword.get(project, :test_helper, "test/test_helper.exs")
-    test_helper?(test_helper) && Code.require_file(test_helper)
-
     test_paths   = if files == [], do: project[:test_paths] || ["test"], else: files
     test_pattern = project[:test_pattern] || "*_test.exs"
 
@@ -71,14 +65,6 @@ defmodule Mix.Tasks.Test do
 
     files = Mix.Utils.extract_files(test_paths, test_pattern)
     Kernel.ParallelRequire.files files
-  end
-
-  defp test_helper?(file) do
-    if nil?(file) or File.exists?(file) do
-      true
-    else
-      raise Mix.Error, message: "Cannot run tests because test helper file #{inspect file} does not exist"
-    end
   end
 
   defp enable_cover(project, cover) do

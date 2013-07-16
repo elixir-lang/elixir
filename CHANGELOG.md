@@ -1,6 +1,7 @@
 # v0.10.1-dev
 
 * enhancements
+  * [Mix] `test_helper` project configuration did not affect `mix test` and was therefore removed
 
 * bug fix
 
