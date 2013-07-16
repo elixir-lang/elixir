@@ -113,4 +113,22 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   after
     purge [A, B, C]
   end
+
+  test "recompile after path dependency changed" do
+    in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
+      Mix.Project.in_project(:bar, "bar", fn _ ->
+        Mix.Tasks.Deps.Compile.run []
+        Mix.Tasks.Compile.Elixir.run []
+
+        assert :noop == Mix.Tasks.Compile.Elixir.run []
+        purge [Bar]
+
+        future = { { 2020, 1, 1 }, { 0, 0, 0 } }
+        File.touch!("../foo/ebin/.compile.elixir", future)
+        assert :ok == Mix.Tasks.Compile.Elixir.run []
+      end)
+    end)
+  after
+    purge [Bar.Mix, Foo.Mix, Bar, Foo]
+  end
 end

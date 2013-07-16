@@ -227,7 +227,7 @@ defmodule IO do
   Here is an example on how we mimic an echo server
   from the command line:
 
-    Enum.each IO.stream(:stdio), IO.write(&1)
+      Enum.each IO.stream(:stdio), IO.write(&1)
 
   """
   def stream(device) do

@@ -44,7 +44,7 @@ defmodule Mix.UmbrellaTest do
       end)
     end)
   after
-    purge [UmbrellaDep.Mixfile, Umbrella.Mixfile]
+    purge [UmbrellaDep.Mixfile, Umbrella.Mixfile, Bar.Mix, Foo.Mix]
   end
 
   test "compile for umbrella as dependency" do
@@ -55,7 +55,6 @@ defmodule Mix.UmbrellaTest do
       end)
     end
   after
-    Mix.Project.pop
     purge [UmbrellaDep.Mixfile, Umbrella.Mixfile, Foo, Foo.Mix, Bar, Bar.Mix]
   end
 end
