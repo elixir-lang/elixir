@@ -14,6 +14,7 @@ defmodule Mix.Tasks.Deps.Update do
   ## Command line options
 
   * `--no-compile` - skip compilation of dependencies
+  * `--no-deps-check` - skip dependency check
   """
 
   import Mix.Deps, only: [ all: 0, all: 2, available?: 1, by_name: 2,
@@ -31,16 +32,19 @@ defmodule Mix.Tasks.Deps.Update do
       acc = all(init, deps_updater(&1, &2))
     end
 
-    finalize_update acc, opts[:no_compile]
+    finalize_update(acc, opts)
   end
 
   defp init do
     { [], Mix.Deps.Lock.read }
   end
 
-  defp finalize_update({ apps, lock }, no_compile) do
+  defp finalize_update({ apps, lock }, opts) do
     Mix.Deps.Lock.write(lock)
-    unless no_compile, do: Mix.Task.run("deps.compile", apps)
+    unless opts[:no_compile] do
+      Mix.Task.run("deps.compile", apps)
+      unless opts[:no_deps_check], do: Mix.Task.run("deps.check", [])
+    end
   end
 
   defp deps_updater(dep, { acc, lock }) do
