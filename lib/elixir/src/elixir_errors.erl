@@ -103,7 +103,20 @@ handle_file_warning(_, _File, { _Line, v3_kernel, bad_call }) -> [];
 %% We handle unused local warnings ourselves
 handle_file_warning(_, _File, { _Line, erl_lint, { unused_function, _ } }) -> [];
 
-%% Rewrite
+%% Make no_effect clauses pretty
+handle_file_warning(_, File, { Line, sys_core_fold, { no_effect, { erlang, F, A } } }) ->
+  { Fmt, Args } = case erl_internal:comp_op(F, A) of
+    true -> { "use of operator ~ts has no effect", [translate_comp_op(F)] };
+    false ->
+      case erl_internal:bif(F, A) of
+        false -> { "the call to :erlang.~ts/~B has no effect", [F,A] };
+        true -> { "the call to ~ts/~B has no effect", [F,A] }
+      end
+  end,
+  Message = io_lib:format(Fmt, Args),
+  warn(file_format(Line, File, Message));
+
+%% Rewrite undefined behaviour to check for protocols
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity},Module}}) ->
   Kind    = protocol_or_behaviour(Module),
   Raw     = "undefined ~ts function ~ts/~B (for ~ts ~ts)",
@@ -118,13 +131,16 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
       warn(file_format(Line, File, Message))
   end;
 
+%% Ignore unused vars at "weird" lines (<= 0)
 handle_file_warning(_, _File, {Line,erl_lint,{unused_var,_Var}}) when Line =< 0 ->
   [];
 
+%% Properly format other unused vars
 handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
   Message = format_error(erl_lint, { unused_var, format_var(Var) }),
   warn(file_format(Line, File, Message));
 
+%% Properly format shadowed vars
 handle_file_warning(_, File, {Line,erl_lint,{shadowed_var,Var,Where}}) ->
   Message = format_error(erl_lint, { shadowed_var, format_var(Var), Where }),
   warn(file_format(Line, File, Message));
@@ -212,3 +228,9 @@ is_protocol(Module) ->
     { error, _ } ->
       false
   end.
+
+translate_comp_op('/=') -> '!=';
+translate_comp_op('=<') -> '<=';
+translate_comp_op('=:=') -> '===';
+translate_comp_op('=/=') -> '!==';
+translate_comp_op(Other) -> Other.
