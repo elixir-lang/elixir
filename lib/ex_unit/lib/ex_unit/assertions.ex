@@ -19,28 +19,28 @@ end
 
 defmodule ExUnit.Assertions do
   @moduledoc """
-  This module contains a set of assertions functions that are
+  This module contains a set of assertion functions that are
   imported by default into your test cases.
 
   In general, a developer will want to use the general
-  `assert` macro in tests. The macro tries to be smart
+  `assert` macro in tests. This macro tries to be smart
   and provide good reporting whenever there is a failure.
   For example, `assert some_fun() == 10` will fail (assuming
   `some_fun()` returns 13):
 
       Expected 10 to be equal to 13
 
-  This module also provides other small convenient functions
+  This module also provides other convenience functions
   like `assert_in_delta` and `assert_raise` to easily handle other
-  common cases as checking a float number or handling exceptions.
+  common cases such as checking a floating point number or handling exceptions.
   """
 
   @doc """
   Asserts the `expected` value is true.
 
-  `assert` in general tries to be smart and provide a good
+  `assert` in general tries to be smart and provide good
   reporting whenever there is a failure. For example,
-  `assert 10 > 15` is going to fail with a message:
+  `assert 10 > 15` is going to fail with the message:
 
       Expected 10 to be more than 15
 
@@ -70,7 +70,7 @@ defmodule ExUnit.Assertions do
   @doc """
   Refutes the `expected` value is true.
 
-  `refute` in general tries to be smart and provide a good
+  `refute` in general tries to be smart and provide good
   reporting whenever there is a failure.
 
   ## Examples
@@ -226,7 +226,7 @@ defmodule ExUnit.Assertions do
   @doc """
   Asserts the `expected` value is true.
   If it fails, it raises an expectation error
-  using the given expected and actual values.
+  using the given `expected` and `actual` values.
 
   ## Examples
 
@@ -242,10 +242,10 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Assets a message was or is going to be received. Differently from
-  `assert_received`, it has a default timeout time of 100 miliseconds.
+  Asserts a message was or is going to be received. Unlike
+  `assert_received`, it has a default timeout of 100 miliseconds.
 
-  The given `expected` content must be a pattern.
+  The given `expected` argument must be a pattern.
 
   ## Examples
 
@@ -266,7 +266,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts a message was received and is in the current process mailbox.
-  The given `expected` content must to be a match pattern.
+  The given `expected` argument must to be a match pattern.
 
   Timeout is set to 0, so there is no waiting time.
 
@@ -419,7 +419,7 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts the `not_expected` value is nil or false.
+  Asserts the `not_expected` value is `nil` or `false`.
   In case it is a truthy value, raises the given message.
 
   ## Examples
@@ -432,10 +432,10 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts a message was not received and won't be during
-  a timeout value.
+  Asserts a message was not received and won't be within
+  the `timeout` period.
 
-  The `not_expected` contents must be a match pattern.
+  The `not_expected` argument must be a match pattern.
 
   ## Examples
 
@@ -452,7 +452,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts a message was not received (i.e. it is not in the current process mailbox).
-  The `not_expected` contents must be a match pattern.
+  The `not_expected` argument must be a match pattern.
 
   Timeout is set to 0, so there is no waiting time.
 
