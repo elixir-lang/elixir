@@ -30,7 +30,7 @@ defmodule Mix.CLI do
   end
 
   defp get_task([]) do
-    { Mix.project[:default_task] || "run", [] }
+    { Mix.project[:default_task], [] }
   end
 
   defp run_task(name, args) do
@@ -59,7 +59,7 @@ defmodule Mix.CLI do
     { task, args } = get_task(args)
 
     if Mix.Project.get do
-      Mix.Task.run "loadpaths", ["--no-check"]
+      Mix.Task.run "loadpaths", ["--no-deps-check"]
       Mix.Task.reenable "loadpaths"
       Mix.Task.reenable "deps.loadpaths"
     end
