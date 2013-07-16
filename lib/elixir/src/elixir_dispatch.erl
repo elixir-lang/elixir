@@ -209,7 +209,7 @@ translate_expansion(Meta, Tree, S) ->
     )
   catch
     Kind:Reason ->
-      erlang:raise(Kind, Reason, [mfa(Line, S)|erlang:get_stacktrace()])
+      erlang:raise(Kind, Reason, munge_stacktrace(mfa(Line, S), erlang:get_stacktrace(), nil))
   end.
 
 mfa(Line, #elixir_scope{module=nil} = S) ->
@@ -281,17 +281,19 @@ not_an_import(Tuple, Context, Dict) ->
       true
   end.
 
+%% We've reached the invoked macro, skip it with the rest
 munge_stacktrace(Info, [{ _, _, [S|_], _ }|_], S) ->
   [Info];
 
-munge_stacktrace(Info, [{ elixir_dispatch, expand_macro_fun, _, _ }|_], _) ->
+%% We've reached the elixir_dispatch internals, skip it with the rest
+munge_stacktrace(Info, [{ elixir_dispatch, _, _, _ }|_], _) ->
   [Info];
 
 munge_stacktrace(Info, [H|T], S) ->
   [H|munge_stacktrace(Info, T, S)];
 
-munge_stacktrace(_, [], _) ->
-  [].
+munge_stacktrace(Info, [], _) ->
+  [Info].
 
 remote_function(Meta, Receiver, Name, Arity, S) ->
   Line  = ?line(Meta),
