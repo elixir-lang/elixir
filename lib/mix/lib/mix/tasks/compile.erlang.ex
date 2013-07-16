@@ -8,6 +8,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   @hidden true
   @shortdoc "Compile Erlang source files"
   @recursive true
+  @manifest ".compile.erlang"
 
   @moduledoc """
   A task to compile Erlang source files.
@@ -79,13 +80,17 @@ defmodule Mix.Tasks.Compile.Erlang do
       files = Enum.filter(files, requires_compilation?(compile_path, &1))
     end
 
-    if files == [] do
+    if files == [] and not opts[:force] do
       :noop
     else
       File.mkdir_p! compile_path
       compile_files files, compile_path, erlc_options
       :ok
     end
+  end
+
+  def manifest do
+    @manifest
   end
 
   defp scan_sources(files, include_path, source_paths) do
@@ -155,16 +160,26 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   defp compile_files(files, compile_path, erlc_options) do
+    manifest_path = Path.join(compile_path, @manifest)
+    previous = Mix.Utils.read_manifest(manifest_path)
+    Enum.each(previous, File.rm(&1))
+
     File.mkdir_p!(compile_path)
-    Enum.each files, compile_file(&1, erlc_options)
+    results = Enum.map(files, compile_file(&1, erlc_options))
+
+    compiled = Enum.filter_map(results, match?({:ok, _}, &1), elem(&1, 1))
+      |> Enum.map(fn(module) -> Path.join(compile_path, "#{module}.beam") end)
+    Mix.Utils.update_manifest(manifest_path, compiled)
   end
 
   defp compile_file(erl, erlc_options) do
-    file = to_erl_file Path.rootname(erl.file, ".erl")
-    interpret_result file, :compile.file(file, erlc_options), ".erl"
+    file = to_erl_file(Path.rootname(erl.file, ".erl"))
+    result = :compile.file(file, erlc_options)
+    interpret_result(file, result, ".erl")
+    result
   end
 
-  ## Helpers shared accross erlang compilers
+  ## Helpers shared across erlang compilers
 
   @doc """
   Extract stale pairs considering the set of directories

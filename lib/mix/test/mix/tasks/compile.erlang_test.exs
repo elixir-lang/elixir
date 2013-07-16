@@ -36,4 +36,19 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       assert_received { :mix_shell, :info, ["Compiled src/c.erl"] }
     end
   end
+
+  test "removes old artifact files" do
+    in_fixture "compile_erlang", fn ->
+      assert Mix.Tasks.Compile.Erlang.run([]) == :ok
+      assert File.regular?("ebin/b.beam")
+
+      # Now we have a noop
+      File.rm!("src/b.erl")
+      assert Mix.Tasks.Compile.Erlang.run([]) == :noop
+
+      # --force
+      assert Mix.Tasks.Compile.Erlang.run(["--force"]) == :ok
+      refute File.regular?("ebin/b.beam")
+    end
+  end
 end

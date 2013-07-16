@@ -1,6 +1,8 @@
 defmodule Mix.Tasks.Compile.Elixir do
   use Mix.Task
 
+  alias Mix.Tasks.Compile.Erlang
+
   @hidden true
   @shortdoc "Compile Elixir source files"
   @recursive true
@@ -78,7 +80,9 @@ defmodule Mix.Tasks.Compile.Elixir do
     to_compile = Mix.Utils.extract_files(elixirc_paths, compile_exts)
     to_watch   = Mix.Utils.extract_files(elixirc_paths, watch_exts)
 
-    stale = if Mix.Utils.stale?(Mix.Project.config_files, [manifest]) do
+    check_files = Mix.Project.config_files ++ [Erlang.manifest]
+
+    stale = if Mix.Utils.stale?(check_files, [manifest]) do
       force = true
       to_watch
     else
@@ -105,15 +109,15 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   defp compile_files(false, project, compile_path, to_compile, _stale, opts) do
     previous = Mix.Utils.read_manifest(Path.join(compile_path, @manifest))
-
-    Enum.each previous, fn entry ->
-      Path.join(compile_path, entry <> ".beam") |> File.rm
-    end
+    Enum.each(previous, File.rm(&1))
 
     set_compiler_opts(project, opts, [])
     compiled = compile_files to_compile, compile_path
     compiled = lc { mod, _ } inlist compiled, do: atom_to_binary(mod)
 
+    compiled = Enum.map(compiled, fn(module) ->
+      Path.join(compile_path, module <> ".beam")
+    end)
     Mix.Utils.update_manifest(Path.join(compile_path, @manifest), compiled)
   end
 

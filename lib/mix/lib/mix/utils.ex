@@ -81,17 +81,18 @@ defmodule Mix.Utils do
   @doc """
   Extract all stale sources compared to the given targets.
   """
+  def extract_stale(_sources, []), do: []
+
   def extract_stale(sources, targets) do
     stale_stream(sources, targets) |> Enum.to_list
   end
 
   defp stale_stream(sources, targets) do
-    last_modifieds = Enum.map(targets, last_modified(&1))
+    modified_target = targets |> Enum.map(last_modified(&1)) |> Enum.min
 
-    Stream.filter sources, fn(source) ->
-      source_stat = source_mtime(source)
-      Enum.any?(last_modifieds, source_stat > &1)
-    end
+    Stream.filter(sources, fn(source) ->
+      source_mtime(source) > modified_target
+    end)
   end
 
   defp source_mtime({ _, { { _, _, _ }, { _, _, _ } } = source }) do
@@ -99,7 +100,7 @@ defmodule Mix.Utils do
   end
 
   defp source_mtime(source) do
-    File.stat!(source).mtime
+    last_modified(source)
   end
 
   defp last_modified(path) do
@@ -127,6 +128,7 @@ defmodule Mix.Utils do
   the files removed from the manifest file.
   """
   def update_manifest(file, new) do
+    Path.dirname(file) |> File.mkdir_p!
     File.write!(file, Enum.join(new, "\n"))
   end
 
@@ -160,9 +162,9 @@ defmodule Mix.Utils do
   and concatenating normal lists.
   """
   def config_merge(old, new) do
-    Keyword.merge old, new, fn(_, x, y) ->
+    Keyword.merge(old, new, fn(_, x, y) ->
       if is_list(x) and is_list(y) do
-        if is_keyword(x) and is_keyword(y) do
+        if Keyword.keyword?(x) and Keyword.keyword?(y) do
           config_merge(x, y)
         else
           x ++ y
@@ -170,11 +172,7 @@ defmodule Mix.Utils do
       else
         y
       end
-    end
-  end
-
-  defp is_keyword(x) do
-    Enum.all? x, match?({ atom, _ } when is_atom(atom), &1)
+    end)
   end
 
   @doc """
