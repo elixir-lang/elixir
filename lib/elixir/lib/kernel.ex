@@ -1978,6 +1978,9 @@ defmodule Kernel do
   @doc """
   Defines an implementation for the given protocol. See
   `defprotocol/2` for examples.
+
+  It makes available the name of the protocol and of the module it's being
+  implemented for inside the @protocol attribute as a two-tuple.
   """
   defmacro defimpl(name, opts, do_block // []) do
     merged = Keyword.merge(opts, do_block)

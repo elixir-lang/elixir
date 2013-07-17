@@ -71,6 +71,7 @@ defmodule Protocol do
 
       defmodule name do
         @behaviour unquote(protocol)
+        @protocol { unquote(protocol), unquote(for) }
         unquote(block)
         def __impl__, do: unquote(protocol)
       end
