@@ -8,20 +8,20 @@ defmodule Mix.Tasks.Compile.App do
   @moduledoc """
   Writes an .app file.
 
-  By default, this task will detect all modules in your compile_path
-  (default to "ebin") and generate a best guess for your application
-  specification. This best guess also includes "kernel", "stdlib"
-  and "elixir" as application dependencies.
+  By default, this task will detect all modules in your `compile_path`
+  (defaults to `ebin`) and generate a best guess for your application
+  specification. This best guess also includes `kernel`, `stdlib`
+  and `elixir` as application dependencies.
 
   You can optionally define an `application/0` function inside your
   `Mix.Project` that returns a keyword list to further configure
-  your application according to OTP design principles:
+  your application according to the OTP design principles:
 
   http://www.erlang.org/doc/design_principles/applications.html
 
   ## Command line options
 
-  * `--force` forces compilation regardless of mod times
+  * `--force` - forces compilation regardless of modification times
 
   ## Configuration
 
