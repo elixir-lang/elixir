@@ -88,7 +88,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     check_files = Mix.Project.config_files ++ [Erlang.manifest]
 
-    stale = if Mix.Utils.stale?(check_files, [manifest]) do
+    stale = if Mix.Utils.stale?(check_files, [manifest]) or path_deps_changed?(manifest) do
       force = true
       to_watch
     else
@@ -99,11 +99,15 @@ defmodule Mix.Tasks.Compile.Elixir do
     if force or stale != [] do
       File.mkdir_p! compile_path
       Code.prepend_path compile_path
-      compile_files opts[:quick], project, compile_path, to_compile, stale, opts
+      compile_files(opts[:quick], project, compile_path, to_compile, stale, opts)
       :ok
     else
       :noop
     end
+  end
+
+  def manifest do
+    @manifest
   end
 
   defp compile_files(true, project, compile_path, to_compile, stale, opts) do
@@ -138,5 +142,25 @@ defmodule Mix.Tasks.Compile.Elixir do
       Mix.shell.info "Compiled #{x}"
       x
     end
+  end
+
+  defp path_deps_changed?(manifest) do
+    manifest = Path.absname(manifest)
+    deps = Mix.Deps.children
+      |> Enum.filter(fn(Mix.Dep[] = dep) -> dep.scm == Mix.SCM.Path and dep.manager == :mix end)
+
+    Enum.any?(deps, fn(dep) ->
+      Mix.Deps.in_dependency(dep, fn(_) ->
+        Mix.Utils.stale?(collect_manifests, [manifest])
+      end)
+    end)
+  end
+
+  defp collect_manifests do
+    manifests = Mix.Tasks.Compile.manifests
+    Enum.map(manifests, fn(manifest) ->
+      compile_path = Mix.project[:compile_path]
+      Path.join(compile_path, manifest)
+    end)
   end
 end
