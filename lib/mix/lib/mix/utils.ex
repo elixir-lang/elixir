@@ -133,6 +133,36 @@ defmodule Mix.Utils do
   end
 
   @doc """
+  Automatically maintains the manifest in three steps:
+
+  1. Deletes previous entries
+  2. Stores existing entries in the directory
+  3. Executes the given function
+  4. Updates the manifest file with the function results
+
+  In case an exception is raised while executing the function,
+  we will delete any new entries created after step 2.
+  """
+  def watch_manifest(manifest, directory, function) do
+    read_manifest(manifest) |> Enum.each(File.rm(&1))
+    current = File.ls!(directory)
+
+    try do
+      function.()
+    rescue
+      e ->
+        stacktrace = System.stacktrace
+        Enum.each(File.ls!(directory) -- current, fn(x) ->
+          File.rm(Path.join(directory, x))
+        end)
+        raise e, [], stacktrace
+    else
+      res ->
+        update_manifest(manifest, res)
+    end
+  end
+
+  @doc """
   Extract files from a list of paths.
 
   In case any of the paths is a directory, the directory is looped

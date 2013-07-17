@@ -118,17 +118,15 @@ defmodule Mix.Tasks.Compile.Elixir do
   end
 
   defp compile_files(false, project, compile_path, to_compile, _stale, opts) do
-    previous = Mix.Utils.read_manifest(Path.join(compile_path, @manifest))
-    Enum.each(previous, File.rm(&1))
+    manifest = Path.join(compile_path, @manifest)
 
-    set_compiler_opts(project, opts, [])
-    compiled = compile_files to_compile, compile_path
-    compiled = lc { mod, _ } inlist compiled, do: atom_to_binary(mod)
-
-    compiled = Enum.map(compiled, fn(module) ->
-      Path.join(compile_path, module <> ".beam")
+    Mix.Utils.watch_manifest(manifest, compile_path, fn ->
+      set_compiler_opts(project, opts, [])
+      compiled = compile_files to_compile, compile_path
+      lc { mod, _ } inlist compiled do
+        Path.join(compile_path, atom_to_binary(mod) <> ".beam")
+      end
     end)
-    Mix.Utils.update_manifest(Path.join(compile_path, @manifest), compiled)
   end
 
   defp set_compiler_opts(project, opts, extra) do
@@ -146,8 +144,9 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   defp path_deps_changed?(manifest) do
     manifest = Path.absname(manifest)
-    deps = Mix.Deps.children
-      |> Enum.filter(fn(Mix.Dep[] = dep) -> dep.scm == Mix.SCM.Path and dep.manager == :mix end)
+    deps = Enum.filter(Mix.Deps.children, fn(Mix.Dep[] = dep) ->
+      dep.scm == Mix.SCM.Path and dep.manager == :mix
+    end)
 
     Enum.any?(deps, fn(dep) ->
       Mix.Deps.in_dependency(dep, fn(_) ->
