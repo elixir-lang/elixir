@@ -13,40 +13,43 @@ defmodule Mix.Tasks.Compile.Erlang do
   @moduledoc """
   A task to compile Erlang source files.
 
-  When this task runs, it will first check the mod times of
-  all of the files. Every file will checked, if file or
-  file dependencies, like include files, was changed.
-  If file of his dependencies haven't been changed since the
-  last compilation, it will not compile. If file or one of his
-  dependency has changed, it will compile.
+  When this task runs, it will first check the modification times of
+  all of the files to be compiled and if they haven't been
+  changed since the last compilation, it will not compile
+  them at all. If any one of them has changed, it compiles
+  everything.
 
-  For this reason, this task touches your `:compile_path`
+  For this reason, the task touches your `:compile_path`
   directory and sets the modification time to the current
   time and date at the end of each compilation. You can
-  force compilation regardless of mod times by passing
+  force compilation regardless of modification times by passing
   the `--force` option.
 
   ## Command line options
 
-  * `--force` - forces compilation regardless of module times
+  * `--force` - forces compilation regardless of modification times
 
   ## Configuration
 
   * `ERL_COMPILER_OPTIONS` - can be used to give default compile options.
-     It's value must be a valid Erlang term. If the value is a list, it will
+     The value must be a valid Erlang term. If the value is a list, it will
      be used as is. If it is not a list, it will be put into a list.
 
   * `:erlc_paths` - directories to find source files.
     Defaults to `["src"]`, can be configured as:
 
-        [erlc_paths: ["src", "other"]]
+    ```
+    [erlc_paths: ["src", "other"]]
+    ```
 
   * `:erlc_include_path` - directory for adding include files.
     Defaults to `"include"`, can be configured as:
 
-        [`erlc_include_path`: "other"]
+    ```
+    [erlc_include_path: "other"]
+    ```
 
-  * `:erlc_options` - compilation options that applies to Erlang's
+  * `:erlc_options` - compilation options that apply to Erlang's
      compiler. `:debug_info` is enabled by default.
 
      There are many available options here:
@@ -183,10 +186,10 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   @doc """
   Extract stale pairs considering the set of directories
-  and filename extensions. It first looks up the `dir1`
+  and filename extensions. It first looks in `dir1`
   for files with `ext1` extensions and then recursively
-  try to find matching pairs in `dir2` with `ext2`
-  extension.
+  attempts to find matching pairs in `dir2` with `ext2`
+  extensions.
   """
   def extract_stale_pairs(dir1, ext1, dir2, ext2, force) do
     files = Mix.Utils.extract_files([dir1], List.wrap(ext1))
@@ -215,7 +218,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   @doc """
   Converts the given file to a format accepted by
-  Erlang compilation tools.
+  the Erlang compilation tools.
   """
   def to_erl_file(file) do
     to_char_list(file)
