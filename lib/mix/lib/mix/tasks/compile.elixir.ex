@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   @moduledoc """
   A task to compile Elixir source files.
 
-  When this task runs, it will first check the mod times of
+  When this task runs, it will first check the modification times of
   all of the files to be compiled and if they haven't been
   changed since the last compilation, it will not compile
   them at all. If any one of them has changed, it compiles
@@ -20,46 +20,52 @@ defmodule Mix.Tasks.Compile.Elixir do
   For this reason, this task touches your `:compile_path`
   directory and sets the modification time to the current
   time and date at the end of each compilation. You can
-  force compilation regardless of mod times by passing
+  force compilation regardless of modification times by passing
   the `--force` option.
 
   Note it is important to recompile all files because
   often there are compilation time dependencies between
-  the files (macros and etc). However, in some cases it
+  the files (macros, etc). However, in some cases it
   is useful to compile just the changed files for quick
   development cycles, for such, a developer can pass
-  the `--quick` otion.
+  the `--quick` option.
 
   ## Command line options
 
-  * `--force` - forces compilation regardless of module times;
+  * `--force` - forces compilation regardless of modification times;
   * `--quick`, `-q` - only compile files that changed;
   * `--no-docs` - Do not attach documentation to compiled modules;
   * `--no-debug-info` - Do not attach debug info to compiled modules;
   * `--ignore-module-conflict`
-  * `--warnings-as-errors` - Treat warnings as errors and return non-zero exit code
+  * `--warnings-as-errors` - Treat warnings as errors and return a non-zero exit code
 
   ## Configuration
 
   * `:elixirc_paths` - directories to find source files.
     Defaults to `["lib"]`, can be configured as:
 
+    ```
         [elixirc_paths: ["lib", "other"]]
+    ```
 
-  * `:elixirc_options` - compilation options that applies
+  * `:elixirc_options` - compilation options that apply
      to Elixir's compiler, they are: `:ignore_module_conflict`,
      `:docs` and `:debug_info`. By default, uses the same
      behaviour as Elixir;
 
-   * `:elixirc_exts` - extensions to compile whenever there
+  * `:elixirc_exts` - extensions to compile whenever there
      is a change:
 
+     ```
          [compile_exts: [:ex]]
+     ```
 
-   * `:watch_exts` - extensions to watch in order to trigger
+  * `:watch_exts` - extensions to watch in order to trigger
       a compilation:
 
+      ```
          [elixirc_watch_exts: [:ex, :eex]]
+      ```
 
   """
 

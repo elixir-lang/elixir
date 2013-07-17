@@ -5,7 +5,7 @@ defmodule Mix.Tasks.Compile do
   @recursive true
 
   @moduledoc """
-  A meta task that compile source files. It simply runs the
+  A meta task that compiles source files. It simply runs the
   compilers registered in your project. At the end of compilation
   it ensures load paths are set.
 
@@ -13,11 +13,15 @@ defmodule Mix.Tasks.Compile do
 
   * `:compilers` - compilers to be run, defaults to:
 
-      [:elixir, :app]
+    ```
+    [:elixir, :app]
+    ```
 
     It can be configured to handle custom compilers, for example:
 
-      [compilers: [:elixir, :mycompiler, :app]]
+    ```
+    [compilers: [:elixir, :mycompiler, :app]]
+    ```
 
   ## Command line options
 
@@ -32,7 +36,9 @@ defmodule Mix.Tasks.Compile do
   * `:compile_path` - directory to output compiled files.
     Defaults to `"ebin"`, can be configured as:
 
-        [compile_path: "ebin"]
+    ```
+    [compile_path: "ebin"]
+    ```
 
   """
   def run(["--list"]) do
