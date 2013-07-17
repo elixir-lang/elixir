@@ -157,6 +157,22 @@ defmodule ProtocolTest do
       [{:type, 11, :fun, [{:type, 11, :product, [{:type, 11, :t, []}]}, {:type, 11, :boolean, []}]}]
   end
 
+  test :protocol_attribute do
+    alias ProtocolTest.Foo
+
+    defprotocol Attribute do
+      def test(thing)
+    end
+
+    defimpl Attribute, for: Foo do
+      def test(_) do
+        @protocol
+      end
+    end
+
+    assert Attribute.test(Foo[]) == { Attribute, Foo }
+  end
+
   defp get_callbacks(module, name, arity) do
     callbacks = lc { :callback, info } inlist module.__info__(:attributes), do: hd(info)
     List.keyfind(callbacks, { name, arity }, 0) |> elem(1)
