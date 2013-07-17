@@ -55,6 +55,10 @@ defmodule IEx.InteractionTest do
     assert "** (TokenMissingError) iex:1: incomplete expression" <> _ = capture_iex(input)
   end
 
+  test "invalid input" do
+    assert "** (SyntaxError) iex:1: \"do\" starting at" <> _ = capture_iex("if true do ) false end")
+  end
+
   ### .iex file loading ###
 
   test "no .iex" do

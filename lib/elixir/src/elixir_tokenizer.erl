@@ -854,9 +854,10 @@ check_terminator({ E, _ }, [{ S, _ }|Terminators]) when
 
 check_terminator({ E, Line }, [{ Start, StartLine }|_]) when
     E == 'end'; E == ')'; E == ']'; E == '}'; E == '>>' ->
-  End     = terminator(Start),
-  Message = io_lib:format("missing terminator: ~ts (for \"~ts\" starting at line ~B)", [End, Start, StartLine]),
-  { error, { Line, Message, [] } };
+  End = terminator(Start),
+  Message = io_lib:format("\"~ts\" starting at line ~B is missing terminator \"~ts\". "
+                          "Unexpected token: ", [Start, StartLine, End]),
+  { error, { Line, Message, atom_to_list(E) } };
 
 check_terminator({ E, Line }, []) when
     E == 'end'; E == ')'; E == ']'; E == '}'; E == '>>' ->
