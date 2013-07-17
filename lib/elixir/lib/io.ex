@@ -5,7 +5,7 @@ defmodule IO do
 
   An IO device must be a pid or an atom representing a process.
   For convenience, Elixir provides `:stdio` and `:stderr` as
-  shortcut to Erlang's `:standard_io` and `:standard_error`.
+  shortcuts to Erlang's `:standard_io` and `:standard_error`.
 
   An io data can be:
 
@@ -18,7 +18,7 @@ defmodule IO do
 
   * A list of binaries or a list of char lists (as described above);
 
-  * If none of the above, `to_binary` is invoked in the
+  * If none of the above, `to_binary` is invoked on the
     given argument;
 
   """
@@ -31,10 +31,10 @@ defmodule IO do
 
   * `data` - The input characters.
 
-  * :eof - End of file was encountered.
+  * `:eof` - End of file was encountered.
 
-  * {:error, reason} - Other (rare) error condition,
-    for instance {:error, :estale} if reading from an
+  * `{:error, reason}` - Other (rare) error condition,
+    for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
   def read(device // group_leader, chars_or_line)
@@ -53,10 +53,10 @@ defmodule IO do
 
   * `data` - The input characters.
 
-  * :eof - End of file was encountered.
+  * `:eof` - End of file was encountered.
 
-  * {:error, reason} - Other (rare) error condition,
-    for instance {:error, :estale} if reading from an
+  * `{:error, reason}` - Other (rare) error condition,
+    for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
   def binread(device // group_leader, chars_or_line)
@@ -122,8 +122,8 @@ defmodule IO do
   end
 
   @doc """
-  Writes the argument to the device, similarly to write
-  but adds a new line at the end. The argument is expected
+  Writes the argument to the device, similar to `write/2`,
+  but adds a newline at the end. The argument is expected
   to be a chardata.
   """
   def puts(device // group_leader(), item) do
@@ -133,7 +133,7 @@ defmodule IO do
 
   @doc """
   Inspects and writes the given argument to the device
-  followed by a new line. A set of options can be given.
+  followed by a newline. A set of options can be given.
 
   It sets by default pretty printing to true and the
   width to be the width of the device, with a minimum
@@ -167,16 +167,17 @@ defmodule IO do
 
   @doc """
   Gets a number of bytes from the io device. If the
-  io device is a unicode device, count implies
+  io device is a unicode device, `count` implies
   the number of unicode codepoints to be retrieved.
-  Otherwise, the number of raw bytes. It returns:
+  Otherwise, `count` is the number of raw bytes to be retrieved. 
+  It returns:
 
   * `data` - The input characters.
 
-  * :eof - End of file was encountered.
+  * `:eof` - End of file was encountered.
 
-  * {:error, reason} - Other (rare) error condition,
-    for instance {:error, :estale} if reading from an
+  * `{:error, reason}` - Other (rare) error condition,
+    for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
   def getn(prompt, count // 1)
@@ -191,9 +192,9 @@ defmodule IO do
 
   @doc """
   Gets a number of bytes from the io device. If the
-  io device is a unicode device, count implies
+  io device is a unicode device, `count` implies
   the number of unicode codepoints to be retrieved.
-  Otherwise, the number of raw bytes.
+  Otherwise, `count` is the number of raw bytes to be retrieved.
   """
   def getn(device, prompt, count) do
     :io.get_chars(map_dev(device), to_iodata(prompt), count)
@@ -205,10 +206,10 @@ defmodule IO do
   * `data` - The characters in the line terminated
     by a LF (or end of file).
 
-  * :eof - End of file was encountered.
+  * `:eof` - End of file was encountered.
 
-  * {:error, reason} - Other (rare) error condition,
-    for instance {:error, :estale} if reading from an
+  * `{:error, reason}` - Other (rare) error condition,
+    for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
   def gets(device // group_leader(), prompt) do
