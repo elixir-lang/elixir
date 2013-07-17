@@ -39,8 +39,8 @@ defmodule Mix.Deps do
   Return all dependencies, but with a custom callback and
   accumulator. This is useful in case you want to retrieve
   the dependency tree for a project but process and change
-  them along the way. Fo r example, `mix deps.get` uses it
-  to get all dependencies, by first fetching the parent and
+  them along the way. For example, `mix deps.get` uses it
+  to get all dependencies by first fetching the parent and
   then updating the tree as it goes.
   """
   def all(acc, callback) do
