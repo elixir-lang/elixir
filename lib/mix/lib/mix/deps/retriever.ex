@@ -16,7 +16,8 @@ defmodule Mix.Deps.Retriever do
   end
 
   @doc """
-  Gets all children of a given dependency.
+  Gets all children of a given dependency using
+  the base project configuration.
   """
   def children(dep, config) do
     cond do

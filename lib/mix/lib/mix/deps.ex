@@ -27,8 +27,8 @@ defmodule Mix.Deps do
 
   ## Exceptions
 
-  This function raises an exception if the provided
-  dependency is in the wrong format.
+  This function raises an exception if any of the dependencies
+  provided in the project are in the wrong format.
   """
   def all do
     { deps, _ } = Mix.Deps.Converger.all(nil, fn(dep, acc) -> { dep, acc } end)
@@ -37,7 +37,11 @@ defmodule Mix.Deps do
 
   @doc """
   Return all dependencies, but with a custom callback and
-  accumulator.
+  accumulator. This is useful in case you want to retrieve
+  the dependency tree for a project but process and change
+  them along the way. Fo r example, `mix deps.get` uses it
+  to get all dependencies, by first fetching the parent and
+  then updating the tree as it goes.
   """
   def all(acc, callback) do
     { _deps, acc } = Mix.Deps.Converger.all(acc, callback)
@@ -45,7 +49,12 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Return all direct child dependencies.
+  Return all direct child dependencies for the current project.
+
+  ## Exceptions
+
+  This function raises an exception if any of the dependencies
+  provided in the project are in the wrong format.
   """
   defdelegate children(), to: Mix.Deps.Retriever
 
