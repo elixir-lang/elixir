@@ -158,9 +158,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   defp collect_manifests do
     manifests = Mix.Tasks.Compile.manifests
-    Enum.map(manifests, fn(manifest) ->
-      compile_path = Mix.project[:compile_path]
-      Path.join(compile_path, manifest)
-    end)
+    compile_path = Mix.project[:compile_path]
+    Enum.map(manifests, Path.join(compile_path, &1))
   end
 end

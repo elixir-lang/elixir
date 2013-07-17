@@ -79,15 +79,17 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     files = files |> scan_sources(include_path, source_paths) |> sort_dependencies
 
-    unless opts[:force] do
-      files = Enum.filter(files, requires_compilation?(compile_path, &1))
+    if opts[:force] do
+      filtered = files
+    else
+      filtered = Enum.filter(files, requires_compilation?(compile_path, &1))
     end
 
-    if files == [] and not opts[:force] do
+    if filtered == [] do
       :noop
     else
       File.mkdir_p! compile_path
-      compile_files files, compile_path, erlc_options
+      compile_files filtered, files, compile_path, erlc_options
       :ok
     end
   end
@@ -102,7 +104,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   defp scan_source(acc, file, include_paths) do
-    erl_file = Erl[file: file, module: Path.basename(file, ".erl")]
+    erl_file = Erl[file: file, module: module_from_artifact(file)]
 
     case Epp.parse_file(to_erl_file(file), include_paths, []) do
       { :ok, forms } ->
@@ -162,16 +164,21 @@ defmodule Mix.Tasks.Compile.Erlang do
     Mix.Utils.stale?([erl.file|erl.includes], [beam])
   end
 
-  defp compile_files(files, compile_path, erlc_options) do
+  defp compile_files(files, all, compile_path, erlc_options) do
     manifest_path = Path.join(compile_path, @manifest)
+
+    modules  = lc erl inlist all, do: erl.module
     previous = Mix.Utils.read_manifest(manifest_path)
-    Enum.each(previous, File.rm(&1))
 
-    File.mkdir_p!(compile_path)
-    results = Enum.map(files, compile_file(&1, erlc_options))
+    lc beam inlist previous, not (module_from_artifact(beam) in modules) do
+      File.rm(beam)
+    end
 
-    compiled = Enum.filter_map(results, match?({:ok, _}, &1), elem(&1, 1))
-      |> Enum.map(fn(module) -> Path.join(compile_path, "#{module}.beam") end)
+    compiled = files
+      |> Enum.map(compile_file(&1, erlc_options))
+      |> Enum.filter(match? { :ok, _ }, &1)
+      |> Enum.map(fn({ :ok, mod }) -> Path.join(compile_path, "#{mod}.beam") end)
+
     Mix.Utils.update_manifest(manifest_path, compiled)
   end
 
@@ -182,7 +189,11 @@ defmodule Mix.Tasks.Compile.Erlang do
     result
   end
 
-  ## Helpers shared across erlang compilers
+  defp module_from_artifact(artifact) do
+    artifact |> Path.basename |> Path.rootname
+  end
+
+  # Helpers shared across erlang compilers
 
   @doc """
   Extract stale pairs considering the set of directories
@@ -194,7 +205,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   def extract_stale_pairs(dir1, ext1, dir2, ext2, force) do
     files = Mix.Utils.extract_files([dir1], List.wrap(ext1))
     Enum.reduce files, [], fn(file, acc) ->
-      compiled_file = Path.rootname(file) |> Path.basename
+      compiled_file = module_from_artifact(file)
       compiled_file = Path.join(dir2, compiled_file <> "." <> to_binary(ext2))
       if force or Mix.Utils.stale?([file], [compiled_file]) do
         [{file, compiled_file} | acc]
