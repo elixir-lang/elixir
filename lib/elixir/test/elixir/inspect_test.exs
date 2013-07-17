@@ -40,10 +40,6 @@ defmodule Inspect.AtomTest do
     assert inspect(:@)   == ":@"
     assert inspect(:&&&) == ":&&&"
   end
-
-  test :impl do
-    assert Inspect.Atom.__impl__ == Inspect
-  end
 end
 
 defmodule Inspect.BitStringTest do
