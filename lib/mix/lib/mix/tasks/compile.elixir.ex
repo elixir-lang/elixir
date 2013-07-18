@@ -9,23 +9,36 @@ defmodule Mix.Tasks.Compile.Elixir do
       entries = read_manifest(manifest)
 
       # Each entry that is not in all must be removed
-      entries = lc { _b, _m, s, _d, _y } = entry inlist entries, s in all, do: entry
+      entries = lc { beam, _m, source, _d } = entry inlist entries,
+                   is_in_list_or_remove(source, all, beam),
+                   do: entry
 
       # Filter stale to be a subset of all
       stale = lc i inlist stale, i in all, do: i
 
       # Each entry in all that's not in the manifest is also stale
       stale = stale ++ lc i inlist all,
-                          not Enum.any?(entries, fn { _b, _m, s, _d, _y } -> s == i end),
+                          not Enum.any?(entries, fn { _b, _m, s, _d } -> s == i end),
                           do: i
 
-      { :ok, pid } = :gen_server.start_link(__MODULE__, entries, [])
+      if stale != [] do
+        { :ok, pid } = :gen_server.start_link(__MODULE__, entries, [])
 
-      try do
-        files_to_path(pid, entries, stale, compile_path, File.cwd!)
-        :gen_server.cast(pid, :merge)
-      after
-        :gen_server.call(pid, { :stop, manifest })
+        try do
+          files_to_path(pid, entries, stale, compile_path, File.cwd!)
+          :gen_server.cast(pid, :merge)
+        after
+          :gen_server.call(pid, { :stop, manifest })
+        end
+      end
+    end
+
+    defp is_in_list_or_remove(source, all, beam) do
+      if source in all do
+        true
+      else
+        File.rm(beam)
+        false
       end
     end
 
@@ -57,7 +70,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     defp each_waiting(entries, module) do
       module = atom_to_binary(module)
       Enum.find_value(entries, fn
-        { _b, m, s, _d, _y } when m == module -> s
+        { _b, m, s, _d } when m == module -> s
         _ -> nil
       end)
     end
@@ -68,13 +81,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       Enum.reduce Mix.Utils.read_manifest(manifest), [], fn x, acc ->
         case String.split(x, "\t") do
           [beam, module, source|deps] ->
-            case File.read(beam) do
-              { :ok, binary } ->
-                File.rm(beam)
-                [{ beam, module, source, deps, binary }|acc]
-              { :error, _ } ->
-                acc
-            end
+            [{ beam, module, source, deps }|acc]
           _ ->
             acc
         end
@@ -95,8 +102,20 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     # Callbacks
 
-    def init(old) do
-      { :ok, { old, [] } }
+    def init(entries) do
+      entries =
+        Enum.reduce entries, [], fn
+          { beam, module, source, deps }, acc ->
+            case File.read(beam) do
+              { :ok, binary } ->
+                File.rm(beam)
+                [{ beam, module, source, deps, binary }|acc]
+              { :error, _ } ->
+                acc
+            end
+        end
+
+      { :ok, { entries, [] } }
     end
 
     def handle_call(:next, _from, { old, new }) do
