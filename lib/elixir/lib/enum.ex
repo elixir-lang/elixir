@@ -289,35 +289,15 @@ defmodule Enum do
   """
   @spec each(t, (element -> any) | (element, index -> any)) :: :ok
   def each(collection, fun) when is_list(collection) do
-    cond do
-      is_function(fun, 1) -> :lists.foreach(fun, collection)
-      is_function(fun, 2) ->
-        IO.write "[WARNING] Passing a funtion of arity 2 to Enum.each/2 is deprecated, " <>
-                 "please use Stream.with_index/1 instead\n#{Exception.format_stacktrace}"
-        :lists.foldl(fn(h, idx) -> fun.(h, idx); idx + 1 end, 0, collection)
-    end
-
+    :lists.foreach(fun, collection)
     :ok
   end
 
   def each(collection, fun) do
-    cond do
-      is_function(fun, 1) ->
-        Enumerable.reduce(collection, nil, fn(entry, _) ->
-          fun.(entry)
-          nil
-        end)
-
-      is_function(fun, 2) ->
-        IO.write "[WARNING] Passing a funtion of arity 2 to Enum.each/2 is deprecated, " <>
-                 "please use Stream.with_index/1 instead\n#{Exception.format_stacktrace}"
-
-        Enumerable.reduce(collection, 0, fn(entry, idx) ->
-          fun.(entry, idx)
-          idx + 1
-        end)
-    end
-
+    Enumerable.reduce(collection, nil, fn(entry, _) ->
+      fun.(entry)
+      nil
+    end)
     :ok
   end
 
@@ -612,16 +592,7 @@ defmodule Enum do
   """
   @spec map(t, (element -> any) | (element, index -> any)) :: list
   def map(collection, fun) when is_list(collection) do
-    cond do
-      is_function(fun, 1) ->
-        lc item inlist collection, do: fun.(item)
-      is_function(fun, 2) ->
-        IO.write "[WARNING] Passing a funtion of arity 2 to Enum.map/2 is deprecated, " <>
-                 "please use Stream.with_index/1 instead\n#{Exception.format_stacktrace}"
-        mapper = fn(h, idx) -> { fun.(h, idx), idx + 1 } end
-        { list, _ } = :lists.mapfoldl(mapper, 0, collection)
-        list
-    end
+    lc item inlist collection, do: fun.(item)
   end
 
   def map(collection, fun) do

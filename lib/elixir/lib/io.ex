@@ -75,21 +75,6 @@ defmodule IO do
     end
   end
 
-  @doc false
-  def readline(device // group_leader()) do
-    IO.write "[WARNING] IO.readline(device) is deprecated, please use IO.read(device, :line) instead\n#{Exception.format_stacktrace}"
-    :io.get_line(map_dev(device), "")
-  end
-
-  @doc false
-  def binreadline(device // group_leader()) do
-    IO.write "[WARNING] IO.binreadline(device) is deprecated, please use IO.binread(device, :line) instead\n#{Exception.format_stacktrace}"
-    case :file.read_line(map_dev(device)) do
-      { :ok, data } -> data
-      other -> other
-    end
-  end
-
   @doc """
   Writes the given argument to the given device.
   By default the device is the standard output.

@@ -170,12 +170,6 @@ defmodule Macro do
     :elixir_interpolation.unescape_tokens(tokens, map)
   end
 
-  @doc false
-  def to_binary(tree) do
-    IO.write "[WARNING] Macro.to_binary is deprecated, please use Macro.to_string instead\n#{Exception.format_stacktrace}"
-    to_string(tree)
-  end
-
   @doc """
   Converts the given expression to a binary.
 

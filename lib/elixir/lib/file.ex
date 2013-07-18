@@ -944,12 +944,6 @@ defmodule File do
     F.close(io_device)
   end
 
-  @doc false
-  def iterator(device) do
-    IO.write "[WARNING] File.iterator/1 is deprecated, please use IO.stream/1 instead\n#{Exception.format_stacktrace}"
-    IO.stream(device)
-  end
-
   @doc """
   Opens the given `file` with the given `mode` and
   returns its stream. The returned stream will
@@ -967,18 +961,6 @@ defmodule File do
     end
   end
 
-  @doc false
-  def iterator!(device, mode // []) do
-    IO.write "[WARNING] File.iterator!/2 is deprecated, please use File.stream!/2 instead\n#{Exception.format_stacktrace}"
-    stream!(device, mode)
-  end
-
-  @doc false
-  def biniterator(device) do
-    IO.write "[WARNING] File.biniterator/1 is deprecated, please use IO.binstream/1 instead\n#{Exception.format_stacktrace}"
-    IO.binstream(device)
-  end
-
   @doc """
   Opens the given `file` with the given `mode` and
   returns its binstream. The returned stream will
@@ -994,12 +976,6 @@ defmodule File do
         F.close(device)
       end
     end
-  end
-
-  @doc false
-  def biniterator!(device, mode // []) do
-    IO.write "[WARNING] File.binstream!/2 is deprecated, please use File.binstream!/2 instead\n#{Exception.format_stacktrace}"
-    binstream!(device, mode)
   end
 
   @doc """
