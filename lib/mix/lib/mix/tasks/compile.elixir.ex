@@ -110,6 +110,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     Path.join(Mix.project[:compile_path], @manifest)
   end
 
+
   defp compile_files(true, project, compile_path, to_compile, stale, opts) do
     set_compiler_opts(project, opts, ignore_module_conflict: true)
     to_compile = lc f inlist stale, f in to_compile, do: f
@@ -117,16 +118,151 @@ defmodule Mix.Tasks.Compile.Elixir do
     File.touch! Path.join(compile_path, @manifest)
   end
 
-  defp compile_files(false, project, compile_path, to_compile, _stale, opts) do
-    manifest = Path.join(compile_path, @manifest)
+  defmodule ManifestCompiler do
+    @moduledoc false
+    use GenServer.Behaviour
 
-    Mix.Utils.watch_manifest(manifest, compile_path, fn ->
-      set_compiler_opts(project, opts, [])
-      compiled = compile_files to_compile, compile_path
-      lc { mod, _ } inlist compiled do
-        Path.join(compile_path, atom_to_binary(mod) <> ".beam")
+    def files_to_path(manifest, stale, all, compile_path) do
+      entries = read_manifest(manifest)
+
+      # Each entry that is not in all was removed and must be pruned
+      entries = prune_entries(entries, fn(x) -> not(x in all) end)
+
+      # Filter stale to be a subset of all
+      stale = lc i inlist stale, i in all, do: i
+
+      # Each entry in all that's not in the manifest is also stale
+      stale  = stale ++ lc i inlist all,
+                           not Enum.any?(entries, fn { _b, _m, s, _d } -> s == i end),
+                           do: i
+
+      { :ok, pid } = :gen_server.start_link(__MODULE__, entries, [])
+
+      try do
+        do_files_to_path(pid, stale, compile_path, File.cwd!)
+        :gen_server.cast(pid, :merge)
+      after
+        case :gen_server.call(pid, :stop) do
+          { :ok, entries }  -> write_manifest(manifest, entries)
+          { :error, beams } -> Enum.each(beams, File.rm(&1))
+        end
       end
-    end)
+    end
+
+    defp do_files_to_path(_pid, [], _compile_path, _cwd), do: :ok
+    defp do_files_to_path(pid, files, compile_path, cwd) do
+      Kernel.ParallelCompiler.files_to_path :lists.usort(files), compile_path,
+        each_module: each_module(pid, compile_path, cwd, &1, &2, &3),
+        each_file: each_file(&1)
+
+      do_files_to_path(pid, :gen_server.call(pid, :next), compile_path, cwd)
+    end
+
+    defp each_module(pid, compile_path, cwd, source, module, _binary) do
+      bin  = atom_to_binary(module)
+      beam = Path.join(compile_path, bin <> ".beam")
+
+      deps = Module.DispatchTracker.remotes(module) ++
+             Module.DispatchTracker.imports(module)
+      deps = deps |> :lists.usort |> Enum.map(atom_to_binary(&1))
+
+      :gen_server.cast(pid, { :store, beam, bin, Path.relative_to(source, cwd), deps })
+    end
+
+    defp each_file(file) do
+      Mix.shell.info "Compiled #{file}"
+    end
+
+    # Reads the manifest returning the results as tuples.
+    defp read_manifest(manifest) do
+      Enum.reduce Mix.Utils.read_manifest(manifest), [], fn x, acc ->
+        case String.split(x, "\t") do
+          [beam, module, source | deps] ->  [{ beam, module, source, deps }|acc]
+          _ -> acc
+        end
+      end
+    end
+
+    # Writes the manifest separating entries by tabs.
+    defp write_manifest(manifest, entries) do
+      lines = Enum.map(entries, fn
+        { beam, module, source, deps } ->
+          [beam, module, source | deps] |> Enum.join("\t")
+      end)
+
+      Mix.Utils.write_manifest(manifest, lines)
+    end
+
+    # If the source is no longer available OR the source is stale,
+    # we remove its artifacts and prune the entry from the list.
+    defp prune_entries([{ beam, _, source, _ } = entry|entries], callback) do
+      if callback.(source) do
+        File.rm(beam)
+        prune_entries(entries, callback)
+      else
+        [entry|prune_entries(entries, callback)]
+      end
+    end
+
+    defp prune_entries([], _callback), do: []
+
+    # Callbacks
+
+    def init(old) do
+      { :ok, { old, [] } }
+    end
+
+    def handle_call(:stop, _from, { old, [] }) do
+      modules  = lc { _b, module, _s, _d } inlist old, do: module
+
+      filtered = lc { b, m, s, deps } inlist old do
+        { b, m, s, Enum.filter(deps, &1 in modules) }
+      end
+
+      { :stop, :normal, { :ok, filtered }, { filtered, [] } }
+    end
+
+    def handle_call(:stop, _from, { _old, new } = state) do
+      beams = lc { beam, _m, _s, _d } inlist new, do: beam
+      { :stop, :normal, { :error, beams }, state }
+    end
+
+    def handle_call(:next, _from, { old, new }) do
+      modules = lc { _b, module, _s, _d } inlist new, do: module
+
+      # For each previous entry in the manifest that
+      # had its dependency changed and it was not yet
+      # compiled, get its source as next
+      next = lc { beam, module, source, deps } inlist old,
+                Enum.any?(modules, &1 in deps),
+                not(module in modules),
+                do: File.rm(beam) && source
+
+      { :reply, next, { old, new } }
+    end
+
+    def handle_call(msg, from, state) do
+      super(msg, from, state)
+    end
+
+    def handle_cast(:merge, { old, new }) do
+      old = :lists.keymerge(1, :lists.sort(new), :lists.sort(old))
+      { :noreply, { old, [] } }
+    end
+
+    def handle_cast({ :store, beam, module, source, deps }, { old, new }) do
+      { :noreply, { old, [{ beam, module, source, deps }|new] } }
+    end
+
+    def handle_cast(msg, state) do
+      super(msg ,state)
+    end
+  end
+
+  defp compile_files(false, project, compile_path, to_compile, stale, opts) do
+    manifest = Path.join(compile_path, @manifest)
+    set_compiler_opts(project, opts, [])
+    ManifestCompiler.files_to_path(manifest, stale, to_compile, compile_path)
   end
 
   defp set_compiler_opts(project, opts, extra) do
@@ -136,10 +272,10 @@ defmodule Mix.Tasks.Compile.Elixir do
   end
 
   defp compile_files(files, to) do
-    Kernel.ParallelCompiler.files_to_path files, to, each_file: fn(x) ->
-      Mix.shell.info "Compiled #{x}"
-      x
-    end
+    Kernel.ParallelCompiler.files_to_path files, to,
+      each_file: fn(file) ->
+        Mix.shell.info "Compiled #{file}"
+      end
   end
 
   defp path_deps_changed?(manifest) do

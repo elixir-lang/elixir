@@ -68,8 +68,8 @@ defmodule Mix.Tasks.Compile.Yecc do
     end
 
     outputs = Enum.map(files, elem(&1, 1))
-    Mix.Utils.update_manifest(manifest_path, outputs)
 
+    Mix.Utils.write_manifest(manifest_path, outputs)
     if Enum.any?(results, &1 == :error), do: raise CompileError
   end
 end

@@ -179,7 +179,7 @@ defmodule Mix.Tasks.Compile.Erlang do
       Path.join(compile_path, "#{mod}.beam")
     end
 
-    Mix.Utils.update_manifest(manifest_path, compiled)
+    Mix.Utils.write_manifest(manifest_path, compiled)
     if Enum.any?(results, &1 == :error), do: raise CompileError
   end
 
