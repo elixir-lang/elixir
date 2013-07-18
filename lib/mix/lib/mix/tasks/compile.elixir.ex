@@ -23,9 +23,9 @@ defmodule Mix.Tasks.Compile.Elixir do
 
       try do
         files_to_path(pid, entries, stale, compile_path, File.cwd!)
-        :gen_server.call(pid, { :dump, manifest })
+        :gen_server.cast(pid, :merge)
       after
-        :gen_server.cast(pid, :stop)
+        :gen_server.call(pid, { :stop, manifest })
       end
     end
 
@@ -90,7 +90,7 @@ defmodule Mix.Tasks.Compile.Elixir do
           [beam, module, source | deps] |> Enum.join("\t")
       end)
 
-      Mix.Utils.write_manifest(manifest, lines)
+      manifest && Mix.Utils.write_manifest(manifest, lines)
     end
 
     # Callbacks
@@ -115,23 +115,23 @@ defmodule Mix.Tasks.Compile.Elixir do
       { :reply, next, { old, new } }
     end
 
-    def handle_call({ :dump, manifest }, _from, { old, new }) do
-      merged  = :lists.keymerge(1, :lists.sort(new), :lists.sort(old))
-      modules = lc { _b, m, _s, _d, _y } inlist merged, do: m
-      write_manifest(manifest, merged, modules)
-      { :reply, :ok, { merged, [] } }
+    def handle_call({ :stop, manifest }, _from, { old, new }) do
+      modules = lc { _b, m, _s, _d, _y } inlist old, do: m
+      write_manifest(new == [] && manifest, old, modules)
+      { :stop, :normal, :ok, { old, new } }
     end
 
     def handle_call(msg, from, state) do
       super(msg, from, state)
     end
 
-    def handle_cast({ :store, beam, module, source, deps, binary }, { old, new }) do
-      { :noreply, { old, :lists.keystore(beam, 1, new, { beam, module, source, deps, binary }) } }
+    def handle_cast(:merge, { old, new }) do
+      merged = :lists.keymerge(1, :lists.sort(new), :lists.sort(old))
+      { :noreply, { merged, [] } }
     end
 
-    def handle_cast(:stop, state) do
-      { :stop, :normal, state }
+    def handle_cast({ :store, beam, module, source, deps, binary }, { old, new }) do
+      { :noreply, { old, :lists.keystore(beam, 1, new, { beam, module, source, deps, binary }) } }
     end
 
     def handle_cast(msg, state) do
