@@ -156,7 +156,11 @@ defmodule Module.DispatchTracker do
   end
 
   defp to_pid(pid) when is_pid(pid),  do: pid
-  defp to_pid(mod) when is_atom(mod), do: Module.get_attribute(mod, :__dispatch_tracker)
+  defp to_pid(mod) when is_atom(mod) do
+    table = :elixir_module.data_table(mod)
+    [{ _, val }] = :ets.lookup(table, :__dispatch_tracker)
+    val
+  end
 
   defp only_tuples(list) do
     lc x inlist list, is_tuple(x), do: x
