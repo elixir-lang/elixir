@@ -171,14 +171,18 @@ translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
 
 translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
   case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases) of
-    Atom when is_atom(Atom) -> { { atom, ?line(Meta), Atom }, S };
+    Receiver when is_atom(Receiver) ->
+      elixir_tracker:record_remote(Receiver, S#elixir_scope.module),
+      { { atom, ?line(Meta), Receiver }, S };
     Aliases ->
       { TAliases, SA } = translate_args(Aliases, S),
 
       case lists:all(fun is_atom_tuple/1, TAliases) of
         true ->
           Atoms = [Atom || { atom, _, Atom } <- TAliases],
-          { { atom, ?line(Meta), elixir_aliases:concat(Atoms) }, SA };
+          Receiver = elixir_aliases:concat(Atoms),
+          elixir_tracker:record_remote(Receiver, S#elixir_scope.module),
+          { { atom, ?line(Meta), Receiver }, SA };
         false ->
           Args = [elixir_tree_helpers:list_to_cons(?line(Meta), TAliases)],
           { ?wrap_call(?line(Meta), elixir_aliases, concat, Args), SA }
@@ -511,7 +515,6 @@ translate_require(Meta, Old, TKV, S) ->
   SF = S#elixir_scope{
     requires=ordsets:add_element(Old, S#elixir_scope.requires)
   },
-  elixir_tracker:record_remote(Old, S#elixir_scope.module),
   translate_alias(Meta, false, Old, TKV, SF).
 
 %% Aliases
@@ -638,21 +641,17 @@ translate_apply(Meta, TLeft, TRight, Args, S, SL, SR) ->
       end
   end,
 
-  case TLeft of
-    { atom, _, Receiver } ->
-      case Optimize of
-        true ->
-          Tuple = { element(3, TRight), length(Args) },
-          elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function);
-        false ->
-          elixir_tracker:record_remote(Receiver, S#elixir_scope.module)
-      end;
-    _ ->
-      ok
-  end,
-
   case Optimize of
     true ->
+      %% Register the remote
+      case TLeft of
+        { atom, _, Receiver } ->
+          Tuple = { element(3, TRight), length(Args) },
+          elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function);
+        _ ->
+          ok
+      end,
+
       { TArgs, SA } = translate_args(Args, umergec(S, SR)),
       FS = umergev(SL, umergev(SR,SA)),
       { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, FS };
