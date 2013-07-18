@@ -35,6 +35,10 @@ defmodule Mix.Tasks.Compile.Yecc do
      options here: http://www.erlang.org/doc/man/yecc.html#file-1
 
   """
+
+  @doc """
+  Runs this task.
+  """
   def run(args) do
     { opts, _ } = OptionParser.parse(args, switches: [force: :boolean])
 
@@ -54,6 +58,9 @@ defmodule Mix.Tasks.Compile.Yecc do
     end
   end
 
+  @doc """
+  Returns Yecc manifest.
+  """
   def manifest do
     @manifest
   end

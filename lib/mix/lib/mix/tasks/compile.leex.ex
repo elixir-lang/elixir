@@ -35,6 +35,10 @@ defmodule Mix.Tasks.Compile.Leex do
      here: http://www.erlang.org/doc/man/leex.html#file-2
 
   """
+
+  @doc """
+  Runs this task.
+  """
   def run(args) do
     { opts, _ } = OptionParser.parse(args, switches: [force: :boolean])
 
@@ -54,6 +58,9 @@ defmodule Mix.Tasks.Compile.Leex do
     end
   end
 
+  @doc """
+  Returns Leex manifest.
+  """
   def manifest do
     @manifest
   end

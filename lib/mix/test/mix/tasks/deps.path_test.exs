@@ -30,7 +30,6 @@ defmodule Mix.Tasks.DepsPathTest do
       assert_received { :mix_shell, :info, ["  custom/raw_repo is a path dependency, it was not cleaned"] }
     end
   after
-    purge [RawRepo, RawRepo.Mix]
     Mix.Project.pop
   end
 
@@ -44,7 +43,6 @@ defmodule Mix.Tasks.DepsPathTest do
       assert_received { :mix_shell, :info, ["world"] }
     end
   after
-    purge [RawRepo, RawRepo.Mix]
     Mix.Project.pop
   end
 end
