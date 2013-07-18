@@ -179,7 +179,7 @@ defmodule Mix.Tasks.Compile.Erlang do
       |> Enum.filter(match? { :ok, _ }, &1)
       |> Enum.map(fn({ :ok, mod }) -> Path.join(compile_path, "#{mod}.beam") end)
 
-    Mix.Utils.update_manifest(manifest_path, compiled)
+    Mix.Utils.write_manifest(manifest_path, compiled)
   end
 
   defp compile_file(erl, erlc_options) do

@@ -69,7 +69,7 @@ defmodule Mix.Tasks.Compile.Leex do
     end
 
     outputs = Enum.map(files, elem(&1, 1))
-    Mix.Utils.update_manifest(manifest_path, outputs)
+    Mix.Utils.write_manifest(manifest_path, outputs)
   end
 end
 
