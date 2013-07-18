@@ -70,4 +70,137 @@ defmodule Mix.Tasks.CompileTest do
     purge [A, B, C]
     Mix.Project.pop
   end
+
+  test "compile a project with multiple compilers" do
+    in_fixture "compile_multi", fn ->
+      Mix.Tasks.Compile.run ["--force"]
+
+      assert_received { :mix_shell, :info, ["Compiled src/yecc_ok.yrl"] }
+      assert File.regular?("src/yecc_ok.erl")
+
+      assert_received { :mix_shell, :info, ["Compiled src/leex_ok.xrl"] }
+      assert File.regular?("src/leex_ok.erl")
+
+      assert_received { :mix_shell, :info, ["Compiled src/b.erl"] }
+      assert_received { :mix_shell, :info, ["Compiled src/c.erl"] }
+      assert File.regular?("ebin/b.beam")
+      assert File.regular?("ebin/c.beam")
+
+      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+      assert File.regular?("ebin/Elixir.A.beam")
+    end
+  after
+    purge [A, B, C]
+  end
+
+  test "compile a project with multiple compilers and a syntax error in a yecc file" do
+    in_fixture "compile_multi_broken_yecc", fn ->
+      import ExUnit.CaptureIO
+
+      assert_raise CompileError, fn ->
+        capture_io fn -> Mix.Tasks.Compile.run ["--force"] end
+      end
+
+      refute File.regular?("src/yecc_broken.erl")
+
+      refute File.regular?("src/leex_ok.erl")
+
+      refute File.regular?("ebin/b.beam")
+      refute File.regular?("ebin/c.beam")
+
+      refute File.regular?("ebin/Elixir.A.beam")
+    end
+  after
+    purge [A, B, C]
+  end
+
+  test "compile a project with multiple compilers and a syntax error in a leex file" do
+    in_fixture "compile_multi_broken_leex", fn ->
+      import ExUnit.CaptureIO
+
+      assert_raise CompileError, fn ->
+        capture_io fn -> Mix.Tasks.Compile.run ["--force"] end
+      end
+
+      assert_received { :mix_shell, :info, ["Compiled src/yecc_ok.yrl"] }
+      assert File.regular?("src/yecc_ok.erl")
+
+      refute File.regular?("src/leex_broken.erl")
+
+      refute File.regular?("ebin/b.beam")
+      refute File.regular?("ebin/c.beam")
+
+      refute File.regular?("ebin/Elixir.A.beam")
+    end
+  after
+    purge [A, B, C]
+  end
+
+  test "compile a project with multiple compilers and a syntax error in a erlang file" do
+    in_fixture "compile_multi_broken_erlang", fn ->
+      import ExUnit.CaptureIO
+
+      assert_raise CompileError, fn ->
+        capture_io fn -> Mix.Tasks.Compile.run ["--force"] end
+      end
+
+      assert_received { :mix_shell, :info, ["Compiled src/yecc_ok.yrl"] }
+      assert File.regular?("src/yecc_ok.erl")
+
+      assert_received { :mix_shell, :info, ["Compiled src/leex_ok.xrl"] }
+      assert File.regular?("src/leex_ok.erl")
+
+      refute File.regular?("ebin/b.beam")
+
+      assert_received { :mix_shell, :info, ["Compiled src/c.erl"] }
+      assert File.regular?("ebin/c.beam")
+
+      refute File.regular?("ebin/Elixir.A.beam")
+    end
+  after
+    purge [A, B, C]
+  end
+
+  test "compile a project with multiple compilers and a syntax error in an elixir file" do
+    in_fixture "compile_multi_broken_elixir", fn ->
+      import ExUnit.CaptureIO
+
+      assert_raise SyntaxError, fn ->
+        capture_io fn -> Mix.Tasks.Compile.run ["--force"] end
+      end
+
+      assert_received { :mix_shell, :info, ["Compiled src/yecc_ok.yrl"] }
+      assert File.regular?("src/yecc_ok.erl")
+
+      assert_received { :mix_shell, :info, ["Compiled src/leex_ok.xrl"] }
+      assert File.regular?("src/leex_ok.erl")
+
+      assert_received { :mix_shell, :info, ["Compiled src/b.erl"] }
+      assert_received { :mix_shell, :info, ["Compiled src/c.erl"] }
+      assert File.regular?("ebin/b.beam")
+      assert File.regular?("ebin/c.beam")
+    end
+  after
+    purge [A, B, C]
+  end
+
+  # test "compile a project that fails with multiple compilers" do
+  #   in_fixture "compile_multi_broken", fn ->
+  #     Mix.Tasks.Compile.run []
+
+  #     refute File.regular?("src/test_broken.erl")
+
+  #     # assert_received { :mix_shell, :info, ["Compiled src/b.erl"] }
+  #     # assert_received { :mix_shell, :info, ["Compiled src/c.erl"] }
+
+  #     refute File.regular?("ebin/b.beam")
+  #     refute File.regular?("ebin/c.beam")
+
+  #     # assert_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
+  #     # assert File.regular?("src/test_ok.erl")
+  #   end
+  # after
+  #   purge [B, C]
+  # end
+
 end

@@ -11,11 +11,11 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       def b(), do: b
       """
 
-      output = capture_io fn ->
-        Mix.Tasks.Compile.Erlang.run []
+      assert_raise CompileError, fn ->
+        capture_io fn ->
+          Mix.Tasks.Compile.Erlang.run []
+        end
       end
-
-      assert output =~ "src/a.erl:2: syntax error"
     end
   end
 

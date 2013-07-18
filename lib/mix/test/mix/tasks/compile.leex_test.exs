@@ -10,11 +10,11 @@ defmodule Mix.Tasks.Compile.LeexTest do
       oops.
       """
 
-      output = capture_io fn ->
-        Mix.Tasks.Compile.Leex.run []
+      assert_raise CompileError, fn ->
+        capture_io fn ->
+          Mix.Tasks.Compile.Leex.run []
+        end
       end
-
-      assert output =~ "src/test_fail.xrl:1: missing Definitions"
     end
   end
 

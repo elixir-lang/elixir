@@ -10,11 +10,11 @@ defmodule Mix.Tasks.Compile.YeccTest do
       oops.
       """
 
-      output = capture_io fn ->
-        Mix.Tasks.Compile.Yecc.run []
+      assert_raise CompileError, fn ->
+        capture_io fn ->
+          Mix.Tasks.Compile.Yecc.run []
+        end
       end
-
-      assert output =~ "src/test_fail.yrl:1: syntax error before:"
     end
   end
 

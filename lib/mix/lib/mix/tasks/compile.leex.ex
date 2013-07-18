@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Compile.Leex do
     manifest_path = Path.join(compile_path, @manifest)
     Mix.Utils.read_manifest(manifest_path) |> Enum.each(File.rm(&1))
 
-    lc { input, output } inlist files do
+    results = lc { input, output } inlist files do
       options = options ++ [scannerfile: Erlang.to_erl_file(output), report: true]
       Erlang.interpret_result(input,
         :leex.file(Erlang.to_erl_file(input), options))
@@ -70,6 +70,8 @@ defmodule Mix.Tasks.Compile.Leex do
 
     outputs = Enum.map(files, elem(&1, 1))
     Mix.Utils.update_manifest(manifest_path, outputs)
+
+    if Enum.any?(results, &1 == :error), do: raise CompileError
   end
 end
 

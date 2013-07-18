@@ -174,12 +174,14 @@ defmodule Mix.Tasks.Compile.Erlang do
       File.rm(beam)
     end
 
-    compiled = files
-      |> Enum.map(compile_file(&1, erlc_options))
+    results = Enum.map(files, compile_file(&1, erlc_options))
+    compiled = results
       |> Enum.filter(match? { :ok, _ }, &1)
       |> Enum.map(fn({ :ok, mod }) -> Path.join(compile_path, "#{mod}.beam") end)
 
     Mix.Utils.update_manifest(manifest_path, compiled)
+
+    if Enum.any?(results, &1 == :error), do: raise CompileError
   end
 
   defp compile_file(erl, erlc_options) do
@@ -222,8 +224,9 @@ defmodule Mix.Tasks.Compile.Erlang do
     case result do
       { :ok, _ } ->
         Mix.shell.info "Compiled #{file}#{ext}"
-      :error ->
         :ok
+      :error ->
+        :error
     end
   end
 
