@@ -15,12 +15,12 @@ defmodule Kernel.ParallelCompiler do
   the current file stops being compiled until the dependency is
   resolved.
 
-  If there is any error during compilation or if warnings_as_errors
-  is set to true and there is a warning, this function will fail
+  If there is an error during compilation or if `warnings_as_errors`
+  is set to `true` and there is a warning, this function will fail
   with an exception.
 
-  A callback that is invoked every time a file is compiled
-  with its name can be optionally given as argument.
+  A callback that will be invoked every time a file is compiled
+  with its name can be optionally given as an argument.
   """
   def files(files, callback // default_callback) do
     spawn_compilers(files, nil, callback)
@@ -28,7 +28,7 @@ defmodule Kernel.ParallelCompiler do
 
   @doc """
   Compiles the given files to the given path.
-  Read files/2 for more information.
+  Read `files/2` for more information.
   """
   def files_to_path(files, path, callback // default_callback) when is_binary(path) do
     spawn_compilers(files, path, callback)
