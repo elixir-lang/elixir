@@ -240,7 +240,7 @@ translate({Kind, Meta, [Name, Args, Guards, Expr]}, S) when ?defs(Kind) ->
 
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
 
-translate({ apply, Meta, [Left, Right, Args] }, S) when is_list(Args) ->
+translate({ apply, Meta, [Left, Right, Args] }, S) ->
   { TLeft,  SL } = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
   translate_apply(Meta, TLeft, TRight, Args, S, SL, SR);

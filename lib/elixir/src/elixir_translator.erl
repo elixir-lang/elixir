@@ -511,6 +511,7 @@ translate_require(Meta, Old, TKV, S) ->
   SF = S#elixir_scope{
     requires=ordsets:add_element(Old, S#elixir_scope.requires)
   },
+  elixir_tracker:record_remote(Old, S#elixir_scope.module),
   translate_alias(Meta, false, Old, TKV, SF).
 
 %% Aliases
@@ -624,13 +625,30 @@ translate_args(Args, S) ->
 translate_apply(Meta, TLeft, TRight, Args, S, SL, SR) ->
   Line = ?line(Meta),
 
-  Optimize = case (Args == []) orelse lists:last(Args) of
-    { '|', _, _ } -> false;
-    _ ->
-      case TRight of
-        { atom, _, _ } -> true;
-        _ -> false
+  Optimize = case is_list(Args) of
+    false -> false;
+    true  ->
+      case (Args == []) orelse lists:last(Args) of
+        { '|', _, _ } -> false;
+        _ ->
+          case TRight of
+            { atom, _, _ } -> true;
+            _ -> false
+          end
       end
+  end,
+
+  case TLeft of
+    { atom, _, Receiver } ->
+      case Optimize of
+        true ->
+          Tuple = { element(3, TRight), length(Args) },
+          elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function);
+        false ->
+          elixir_tracker:record_remote(Receiver, S#elixir_scope.module)
+      end;
+    _ ->
+      ok
   end,
 
   case Optimize of

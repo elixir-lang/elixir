@@ -69,14 +69,31 @@ defmodule MixTest.Case do
     tmp      = Path.join(module, function)
 
     quote do
-      src  = Path.join fixture_path(unquote(which)), "."
-      dest = tmp_path(unquote(tmp))
+      unquote(__MODULE__).in_fixture(unquote(which), unquote(tmp), unquote(block))
+    end
+  end
 
-      File.rm_rf!(dest)
-      File.mkdir_p!(dest)
-      File.cp_r!(src, dest)
+  def in_fixture(which, tmp, function) do
+    src  = Path.join fixture_path(which), "."
+    dest = tmp_path(tmp)
+    flag = tmp_path |> :unicode.characters_to_list
 
-      File.cd! dest, unquote(block)
+    File.rm_rf!(dest)
+    File.mkdir_p!(dest)
+    File.cp_r!(src, dest)
+
+    get_path = :code.get_path
+    previous = :code.all_loaded
+
+    try do
+      File.cd! dest, function
+    after
+      :code.set_path(get_path)
+      Enum.each (:code.all_loaded -- previous), fn { mod, file } ->
+        if is_list(file) and :lists.prefix(flag, file) do
+          purge [mod]
+        end
+      end
     end
   end
 end

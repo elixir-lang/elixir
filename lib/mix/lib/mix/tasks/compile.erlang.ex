@@ -59,6 +59,9 @@ defmodule Mix.Tasks.Compile.Erlang do
   defrecord Erl, file: nil, module: nil, behaviours: [], compile: [],
     includes: [], mtime: nil, invalid: false
 
+  @doc """
+  Runs this task.
+  """
   def run(args) do
     { opts, _ } = OptionParser.parse(args, switches: [force: :boolean])
 
@@ -94,9 +97,53 @@ defmodule Mix.Tasks.Compile.Erlang do
     end
   end
 
+  @doc """
+  Returns the Erlang manifest.
+  """
   def manifest do
     Path.join(Mix.project[:compile_path], @manifest)
   end
+
+  @doc """
+  Extract stale pairs considering the set of directories
+  and filename extensions. It first looks in `dir1`
+  for files with `ext1` extensions and then recursively
+  attempts to find matching pairs in `dir2` with `ext2`
+  extensions.
+  """
+  def extract_stale_pairs(dir1, ext1, dir2, ext2, force) do
+    files = Mix.Utils.extract_files([dir1], List.wrap(ext1))
+    Enum.reduce files, [], fn(file, acc) ->
+      compiled_file = module_from_artifact(file)
+      compiled_file = Path.join(dir2, compiled_file <> "." <> to_binary(ext2))
+      if force or Mix.Utils.stale?([file], [compiled_file]) do
+        [{file, compiled_file} | acc]
+      else
+        acc
+      end
+    end
+  end
+
+  @doc """
+  Interprets compilation results and prints them to the console.
+  """
+  def interpret_result(file, result, ext // "") do
+    case result do
+      { :ok, _ } -> Mix.shell.info "Compiled #{file}#{ext}"
+      :error -> :error
+    end
+    result
+  end
+
+  @doc """
+  Converts the given file to a format accepted by
+  the Erlang compilation tools.
+  """
+  def to_erl_file(file) do
+    to_char_list(file)
+  end
+
+  ## Internal helpers
 
   defp scan_sources(files, include_path, source_paths) do
     include_paths = [include_path | source_paths]
@@ -190,46 +237,5 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   defp module_from_artifact(artifact) do
     artifact |> Path.basename |> Path.rootname
-  end
-
-  # Helpers shared across erlang compilers
-
-  @doc """
-  Extract stale pairs considering the set of directories
-  and filename extensions. It first looks in `dir1`
-  for files with `ext1` extensions and then recursively
-  attempts to find matching pairs in `dir2` with `ext2`
-  extensions.
-  """
-  def extract_stale_pairs(dir1, ext1, dir2, ext2, force) do
-    files = Mix.Utils.extract_files([dir1], List.wrap(ext1))
-    Enum.reduce files, [], fn(file, acc) ->
-      compiled_file = module_from_artifact(file)
-      compiled_file = Path.join(dir2, compiled_file <> "." <> to_binary(ext2))
-      if force or Mix.Utils.stale?([file], [compiled_file]) do
-        [{file, compiled_file} | acc]
-      else
-        acc
-      end
-    end
-  end
-
-  @doc """
-  Interprets compilation results and prints them to the console.
-  """
-  def interpret_result(file, result, ext // "") do
-    case result do
-      { :ok, _ } -> Mix.shell.info "Compiled #{file}#{ext}"
-      :error -> :error
-    end
-    result
-  end
-
-  @doc """
-  Converts the given file to a format accepted by
-  the Erlang compilation tools.
-  """
-  def to_erl_file(file) do
-    to_char_list(file)
   end
 end

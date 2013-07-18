@@ -15,8 +15,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
       assert_received { :mix_shell, :info, ["Compiled lib/c.ex"] }
     end
-  after
-    purge [A, B, C]
   end
 
   test "only recompiles if file was updated unless forced" do
@@ -32,8 +30,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge [A, B, C]
       assert Mix.Tasks.Compile.Elixir.run(["--force"]) == :ok
     end
-  after
-    purge [A, B, C]
   end
 
   test "removes old artifact files" do
@@ -50,8 +46,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run(["--force"]) == :ok
       refute File.regular?("ebin/Elixir.A.beam")
     end
-  after
-    purge [A, B, C]
   end
 
   defmodule SourcePathsProject do
@@ -86,7 +80,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert File.regular?("custom/Elixir.A.beam")
     end
   after
-    purge [A, B, C]
     Mix.Project.pop
   end
 
@@ -101,17 +94,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       future = { { 2020, 1, 1 }, { 0, 0, 0 } }
       File.touch!("lib/a.ex", future)
       File.touch!("lib/a.eex", future)
-      Mix.Tasks.Compile.Elixir.run ["--quick"]
+      Mix.Tasks.Compile.Elixir.run []
 
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
       refute_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
 
       File.touch!("ebin/.compile.elixir", future)
-
-      assert Mix.Tasks.Compile.Elixir.run(["--quick"]) == :noop
+      assert Mix.Tasks.Compile.Elixir.run([]) == :noop
     end
-  after
-    purge [A, B, C]
   end
 
   test "recompile after path dependency changed" do
@@ -128,7 +118,5 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         assert :ok == Mix.Tasks.Compile.Elixir.run []
       end)
     end)
-  after
-    purge [Bar.Mix, Foo.Mix, Bar, Foo]
   end
 end

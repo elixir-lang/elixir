@@ -70,7 +70,6 @@ defmodule Mix.Tasks.DepsGitTest do
       refute File.exists?("deps/git_repo/ebin/Elixir.Git.Repo.beam")
     end
   after
-    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 
@@ -93,7 +92,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/mix.exs")
     end
   after
-    purge [GitRepo, GitRepo.Mix, DepsOnGitRepo.Mix]
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 
@@ -120,7 +119,7 @@ defmodule Mix.Tasks.DepsGitTest do
       end
     end
   after
-    purge [GitRepo, GitRepo.Mix, A, B, C]
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 
@@ -150,7 +149,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
     end
   after
-    purge [GitRepo, GitRepo.Mix, A, B, C]
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 
@@ -173,7 +172,7 @@ defmodule Mix.Tasks.DepsGitTest do
       refute_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
     end
   after
-    purge [GitRepo, GitRepo.Mix, A, B, C]
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 

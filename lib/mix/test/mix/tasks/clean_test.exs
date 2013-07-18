@@ -10,7 +10,5 @@ defmodule Mix.Tasks.CleanTest do
       Mix.Tasks.Clean.run []
       refute File.regular?("ebin/Elixir.A.beam")
     end
-  after
-    purge [A, B, C]
   end
 end
