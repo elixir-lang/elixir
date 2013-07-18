@@ -208,7 +208,7 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
       false -> syntax_error(Meta, S#elixir_scope.file, "missing do keyword in quote")
     end,
 
-  ValidOpts   = [hygiene, context, var_context, location, line, file, unquote, binding, bind_quoted],
+  ValidOpts   = [hygiene, context, var_context, location, line, file, unquote, bind_quoted],
   { TKV, ST } = translate_opts(Meta, quote, ValidOpts, KV, S),
 
   Hygiene = case lists:keyfind(hygiene, 1, TKV) of
@@ -256,15 +256,9 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
       compile_error(Meta, S#elixir_scope.file, "invalid :file for quote, expected a compile time binary")
   end,
 
-  { Binding, DefaultUnquote } = case lists:keyfind(binding, 1, TKV) of
-    { binding, B } when is_list(B) ->
-      elixir_errors:deprecation(Meta, S#elixir_scope.file, ":binding in quote is deprecated in favor of :bind_quoted"),
-      { B, false };
-    false ->
-      case lists:keyfind(bind_quoted, 1, TKV) of
-        { bind_quoted, BQ } -> { BQ, false };
-        false -> { nil, true }
-      end
+  { Binding, DefaultUnquote } = case lists:keyfind(bind_quoted, 1, TKV) of
+    { bind_quoted, BQ } -> { BQ, false };
+    false -> { nil, true }
   end,
 
   Unquote = case lists:keyfind(unquote, 1, TKV) of
