@@ -115,13 +115,20 @@ defmodule Kernel.ParallelCompiler do
         if callback = Keyword.get(callbacks, :each_file) do
           callback.(file)
         end
-
         new_queued  = List.keydelete(queued, child, 0)
+
         # Sometimes we may have spurious entries in the waiting
         # list because someone invoked try/rescue UndefinedFunctionError
         new_waiting = List.keydelete(waiting, child, 0)
         spawn_compilers(files, output, callbacks, new_waiting, new_queued, schedulers, result)
-      { :module_available, _child, module, binary } ->
+      { :module_available, child, file, module, binary } ->
+        if callback = Keyword.get(callbacks, :each_module) do
+          callback.(file, module, binary)
+        end
+
+        # Release the compiler which is waiting for an ack
+        child <- { self, :ack }
+
         new_waiting = release_waiting_processes(module, waiting)
         new_result  = [{module, binary}|result]
         wait_for_messages(files, output, callbacks, new_waiting, queued, schedulers, new_result)
