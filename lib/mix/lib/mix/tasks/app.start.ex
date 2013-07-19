@@ -19,6 +19,7 @@ defmodule Mix.Tasks.App.Start do
     { opts, _ } = OptionParser.parse(args)
 
     project = Mix.project
+    Mix.Task.run "loadpaths", args
 
     unless opts[:no_compile] do
       Mix.Task.run "compile", args
