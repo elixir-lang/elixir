@@ -145,7 +145,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     end
 
     def handle_cast(:merge, { old, new }) do
-      merged = :lists.keymerge(1, :lists.sort(new), :lists.sort(old))
+      merged = :lists.ukeymerge(1, :lists.sort(new), :lists.sort(old))
       { :noreply, { merged, [] } }
     end
 
