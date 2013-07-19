@@ -35,6 +35,10 @@ defmodule Mix.Tasks.Compile.Leex do
      here: http://www.erlang.org/doc/man/leex.html#file-2
 
   """
+
+  @doc """
+  Runs this task.
+  """
   def run(args) do
     { opts, _ } = OptionParser.parse(args, switches: [force: :boolean])
 
@@ -54,6 +58,9 @@ defmodule Mix.Tasks.Compile.Leex do
     end
   end
 
+  @doc """
+  Returns Leex manifest.
+  """
   def manifest do
     Path.join(Mix.project[:compile_path], @manifest)
   end
@@ -68,8 +75,8 @@ defmodule Mix.Tasks.Compile.Leex do
     end
 
     outputs = Enum.map(files, elem(&1, 1))
-    Mix.Utils.update_manifest(manifest_path, outputs)
 
+    Mix.Utils.write_manifest(manifest_path, outputs)
     if Enum.any?(results, &1 == :error), do: raise CompileError
   end
 end

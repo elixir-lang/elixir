@@ -127,7 +127,7 @@ defmodule Mix.Utils do
   function is compared to the manifest in order do detect
   the files removed from the manifest file.
   """
-  def update_manifest(file, new) do
+  def write_manifest(file, new) do
     Path.dirname(file) |> File.mkdir_p!
     File.write!(file, Enum.join(new, "\n"))
   end

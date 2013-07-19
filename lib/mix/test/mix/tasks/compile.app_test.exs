@@ -54,7 +54,6 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert Mix.Tasks.Compile.App.run([]) == :noop
     end
   after
-    purge [A, B, C]
     Mix.Project.pop
   end
 
@@ -69,7 +68,6 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert contents =~ "{maxT,infinity}"
     end
   after
-    purge [A, B, C]
     Mix.Project.pop
   end
 
@@ -96,7 +94,6 @@ defmodule Mix.Tasks.Compile.AppTest do
       Process.delete(:error)
     end
   after
-    purge [A, B, C]
     Mix.Project.pop
   end
 
@@ -115,7 +112,6 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert Mix.Tasks.Compile.App.run([]) == :noop
     end
   after
-    purge [A, B, C]
     Mix.Project.pop
   end
 end

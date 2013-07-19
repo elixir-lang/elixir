@@ -52,8 +52,6 @@ defmodule Mix.Tasks.CompileTest do
       assert File.regular?("ebin/Elixir.A.beam")
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
     end
-  after
-    purge [A, B, C]
   end
 
   test "compile a project with mixfile" do
@@ -67,7 +65,6 @@ defmodule Mix.Tasks.CompileTest do
       assert_received { :mix_shell, :info, ["Generated custom_app.app"] }
     end
   after
-    purge [A, B, C]
     Mix.Project.pop
   end
 

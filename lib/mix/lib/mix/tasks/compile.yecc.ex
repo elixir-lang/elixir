@@ -35,6 +35,10 @@ defmodule Mix.Tasks.Compile.Yecc do
      options here: http://www.erlang.org/doc/man/yecc.html#file-1
 
   """
+
+  @doc """
+  Runs this task.
+  """
   def run(args) do
     { opts, _ } = OptionParser.parse(args, switches: [force: :boolean])
 
@@ -54,6 +58,9 @@ defmodule Mix.Tasks.Compile.Yecc do
     end
   end
 
+  @doc """
+  Returns Yecc manifest.
+  """
   def manifest do
     Path.join(Mix.project[:compile_path], @manifest)
   end
@@ -68,8 +75,8 @@ defmodule Mix.Tasks.Compile.Yecc do
     end
 
     outputs = Enum.map(files, elem(&1, 1))
-    Mix.Utils.update_manifest(manifest_path, outputs)
 
+    Mix.Utils.write_manifest(manifest_path, outputs)
     if Enum.any?(results, &1 == :error), do: raise CompileError
   end
 end

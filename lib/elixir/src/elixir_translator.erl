@@ -171,14 +171,18 @@ translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
 
 translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
   case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases) of
-    Atom when is_atom(Atom) -> { { atom, ?line(Meta), Atom }, S };
+    Receiver when is_atom(Receiver) ->
+      elixir_tracker:record_remote(Receiver, S#elixir_scope.module),
+      { { atom, ?line(Meta), Receiver }, S };
     Aliases ->
       { TAliases, SA } = translate_args(Aliases, S),
 
       case lists:all(fun is_atom_tuple/1, TAliases) of
         true ->
           Atoms = [Atom || { atom, _, Atom } <- TAliases],
-          { { atom, ?line(Meta), elixir_aliases:concat(Atoms) }, SA };
+          Receiver = elixir_aliases:concat(Atoms),
+          elixir_tracker:record_remote(Receiver, S#elixir_scope.module),
+          { { atom, ?line(Meta), Receiver }, SA };
         false ->
           Args = [elixir_tree_helpers:list_to_cons(?line(Meta), TAliases)],
           { ?wrap_call(?line(Meta), elixir_aliases, concat, Args), SA }
@@ -208,7 +212,7 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
       false -> syntax_error(Meta, S#elixir_scope.file, "missing do keyword in quote")
     end,
 
-  ValidOpts   = [hygiene, context, var_context, location, line, file, unquote, binding, bind_quoted],
+  ValidOpts   = [hygiene, context, var_context, location, line, file, unquote, bind_quoted],
   { TKV, ST } = translate_opts(Meta, quote, ValidOpts, KV, S),
 
   Hygiene = case lists:keyfind(hygiene, 1, TKV) of
@@ -256,15 +260,9 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
       compile_error(Meta, S#elixir_scope.file, "invalid :file for quote, expected a compile time binary")
   end,
 
-  { Binding, DefaultUnquote } = case lists:keyfind(binding, 1, TKV) of
-    { binding, B } when is_list(B) ->
-      elixir_errors:deprecation(Meta, S#elixir_scope.file, ":binding in quote is deprecated in favor of :bind_quoted"),
-      { B, false };
-    false ->
-      case lists:keyfind(bind_quoted, 1, TKV) of
-        { bind_quoted, BQ } -> { BQ, false };
-        false -> { nil, true }
-      end
+  { Binding, DefaultUnquote } = case lists:keyfind(bind_quoted, 1, TKV) of
+    { bind_quoted, BQ } -> { BQ, false };
+    false -> { nil, true }
   end,
 
   Unquote = case lists:keyfind(unquote, 1, TKV) of
@@ -641,6 +639,15 @@ translate_apply(Meta, TLeft, TRight, Args, S, SL, SR) ->
 
   case Optimize of
     true ->
+      %% Register the remote
+      case TLeft of
+        { atom, _, Receiver } ->
+          Tuple = { element(3, TRight), length(Args) },
+          elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function);
+        _ ->
+          ok
+      end,
+
       { TArgs, SA } = translate_args(Args, umergec(S, SR)),
       FS = umergev(SL, umergev(SR,SA)),
       { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, FS };

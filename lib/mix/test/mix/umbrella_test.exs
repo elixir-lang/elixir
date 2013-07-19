@@ -15,8 +15,6 @@ defmodule Mix.UmbrellaTest do
         assert_received { :mix_shell, :info, ["Generated foo.app"] }
       end)
     end
-  after
-    purge [Umbrella.Mixfile, Foo, Foo.Mix, Bar, Bar.Mix]
   end
 
   test "dependency in umbrella" do
@@ -27,8 +25,6 @@ defmodule Mix.UmbrellaTest do
         assert_received { :mix_shell, :info, ["* foo [path: \"../foo\"]"] }
       end)
     end
-  after
-    purge [Umbrella.Mixfile, Foo.Mix, Bar.Mix]
   end
 
 
@@ -43,8 +39,6 @@ defmodule Mix.UmbrellaTest do
         refute_received { :mix_shell, :info, ["* some_dep [path: \"deps/some_dep\"]"] }
       end)
     end)
-  after
-    purge [UmbrellaDep.Mixfile, Umbrella.Mixfile, Bar.Mix, Foo.Mix]
   end
 
   test "compile for umbrella as dependency" do
@@ -54,7 +48,5 @@ defmodule Mix.UmbrellaTest do
         assert "hello world" == Bar.bar
       end)
     end
-  after
-    purge [UmbrellaDep.Mixfile, Umbrella.Mixfile, Foo, Foo.Mix, Bar, Bar.Mix]
   end
 end

@@ -156,7 +156,11 @@ defmodule Module.DispatchTracker do
   end
 
   defp to_pid(pid) when is_pid(pid),  do: pid
-  defp to_pid(mod) when is_atom(mod), do: Module.get_attribute(mod, :__dispatch_tracker)
+  defp to_pid(mod) when is_atom(mod) do
+    table = :elixir_module.data_table(mod)
+    [{ _, val }] = :ets.lookup(table, :__dispatch_tracker)
+    val
+  end
 
   defp only_tuples(list) do
     lc x inlist list, is_tuple(x), do: x
@@ -197,16 +201,22 @@ defmodule Module.DispatchTracker do
     :gen_server.cast(pid, { :add_local, from, to })
   end
 
+  # Adds a remote. Used when the targetted function is unknown.
+  @doc false
+  def add_remote(pid, module) when is_atom(module) do
+    :gen_server.cast(pid, { :add_external, :remote, module })
+  end
+
   # Adds a remote dispatch to the given target.
   @doc false
   def add_remote(pid, function, module, target) when is_atom(module) and is_tuple(target) do
-    :gen_server.cast(pid, { :add_remote, function, module, target })
+    :gen_server.cast(pid, { :add_external, :remote, function, module, target })
   end
 
   # Adds a import dispatch to the given target.
   @doc false
   def add_import(pid, function, module, target) when is_atom(module) and is_tuple(target) do
-    :gen_server.cast(pid, { :add_import, function, module, target })
+    :gen_server.cast(pid, { :add_external, :import, function, module, target })
   end
 
   # Associates a module with a warn. This adds the given
@@ -337,13 +347,14 @@ defmodule Module.DispatchTracker do
     { :noreply, d }
   end
 
-  def handle_cast({ :add_remote, function, module, { name, arity } }, d) do
-    handle_import_or_remote(d, :remote, function, module, name, arity)
+  def handle_cast({ :add_external, kind, module }, d) do
+    :digraph.add_vertex(d, module)
+    replace_edge!(d, kind, module)
     { :noreply, d }
   end
 
-  def handle_cast({ :add_import, function, module, { name, arity } }, d) do
-    handle_import_or_remote(d, :import, function, module, name, arity)
+  def handle_cast({ :add_external, kind, function, module, { name, arity } }, d) do
+    handle_import_or_remote(d, kind, function, module, name, arity)
     { :noreply, d }
   end
 

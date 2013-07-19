@@ -328,7 +328,7 @@ defmodule Kernel.CLI do
     if files != [] do
       Code.compiler_options(config.compiler_options)
       Kernel.ParallelCompiler.files_to_path(files, config.output,
-        fn file -> IO.puts "Compiled #{file}" end)
+        each_file: fn file -> IO.puts "Compiled #{file}" end)
     else
       { :error, "--compile : No files matched patterns #{Enum.join(patterns, ",")}" }
     end

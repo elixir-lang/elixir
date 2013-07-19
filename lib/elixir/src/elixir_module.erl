@@ -244,8 +244,8 @@ spec_for_macro(Else) -> Else.
 
 %% Loads the form into the code server.
 
-load_form(Line, Forms, S) ->
-  elixir_compiler:module(Forms, S#elixir_scope.file, fun(Module, Binary) ->
+load_form(Line, Forms, #elixir_scope{file=File} = S) ->
+  elixir_compiler:module(Forms, File, fun(Module, Binary) ->
     EvalS = scope_for_eval(Module, S),
     Env = elixir_scope:to_ex_env({ Line, EvalS }),
     eval_callbacks(Line, Module, after_compile, [Env, Binary], EvalS),
@@ -253,11 +253,15 @@ load_form(Line, Forms, S) ->
     case get(elixir_compiled) of
       Current when is_list(Current) ->
         put(elixir_compiled, [{Module,Binary}|Current]),
+
         case get(elixir_compiler_pid) of
           undefined -> [];
-          PID -> PID ! { module_available, self(), Module, Binary }
+          PID ->
+            PID ! { module_available, self(), File, Module, Binary },
+            receive { PID, ack } -> ok end
         end;
-      _ -> []
+      _ ->
+        []
     end,
 
     Binary

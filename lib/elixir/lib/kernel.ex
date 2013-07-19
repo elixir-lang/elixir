@@ -603,15 +603,6 @@ defmodule Kernel do
   end
 
   @doc """
-  Converts the given number to a float. Allowed in guard clauses.
-  """
-  @spec float(number) :: float
-  def float(number) do
-    IO.write "[WARNING] Kernel.float is deprecated, please do an explicit conversion instead\n#{Exception.format_stacktrace}"
-    :erlang.float(number)
-  end
-
-  @doc """
   Returns a char list which corresponds to the text representation of the given float.
 
   ## Examples
