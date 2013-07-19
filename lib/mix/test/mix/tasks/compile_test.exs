@@ -71,58 +71,6 @@ defmodule Mix.Tasks.CompileTest do
     Mix.Project.pop
   end
 
-  test "compile a project with multiple compilers and a syntax error in a leex file" do
-    Mix.Project.push CustomApp
-
-    in_fixture "no_mixfile", fn ->
-      import ExUnit.CaptureIO
-
-      File.mkdir!("src")
-      File.write!("src/test_fail.xrl", """)
-      oops.
-      """
-
-      assert File.regular?("src/test_fail.xrl")
-
-      assert_raise CompileError, fn ->
-        capture_io fn -> Mix.Tasks.Compile.run ["--force"] end
-      end
-
-      refute File.regular?("ebin/Elixir.A.beam")
-      refute File.regular?("ebin/Elixir.B.beam")
-      refute File.regular?("ebin/Elixir.C.beam")
-    end
-  after
-    purge [A, B, C]
-    Mix.Project.pop
-  end
-
-  test "compile a project with multiple compilers and a syntax error in a yecc file" do
-    Mix.Project.push CustomApp
-
-    in_fixture "no_mixfile", fn ->
-      import ExUnit.CaptureIO
-
-      File.mkdir!("src")
-      File.write!("src/test_fail.yrl", """)
-      oops.
-      """
-
-      assert File.regular?("src/test_fail.yrl")
-
-      assert_raise CompileError, fn ->
-        capture_io fn -> Mix.Tasks.Compile.run ["--force"] end
-      end
-
-      refute File.regular?("ebin/Elixir.A.beam")
-      refute File.regular?("ebin/Elixir.B.beam")
-      refute File.regular?("ebin/Elixir.C.beam")
-    end
-  after
-    purge [A, B, C]
-    Mix.Project.pop
-  end
-
   test "compile a project with multiple compilers and a syntax error in an erlang file" do
     Mix.Project.push CustomApp
 

@@ -64,8 +64,7 @@ defmodule Mix.Tasks.Compile.Yecc do
 
     results = lc { input, output } inlist files do
       options = options ++ [parserfile: Erlang.to_erl_file(output), report: true]
-      Erlang.interpret_result(input,
-        :yecc.file(Erlang.to_erl_file(input), options))
+      Erlang.interpret_result(input, :yecc.file(Erlang.to_erl_file(input), options))
     end
 
     outputs = Enum.map(files, elem(&1, 1))
