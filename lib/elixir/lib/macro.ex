@@ -442,7 +442,7 @@ defmodule Macro do
   defp expand_once({ :__aliases__, _, _ } = original, env, cache) do
     case :elixir_aliases.expand(original, env.aliases, env.macro_aliases) do
       receiver when is_atom(receiver) ->
-        :elixir_tracker.record_remote(receiver, env.module)
+        :elixir_tracker.record_alias(receiver, env.module)
         { receiver, true, cache }
       aliases ->
         aliases = lc alias inlist aliases, do: (expand_once(alias, env, cache) |> elem(0))
@@ -450,7 +450,7 @@ defmodule Macro do
         case :lists.all(is_atom(&1), aliases) do
           true ->
             receiver = :elixir_aliases.concat(aliases)
-            :elixir_tracker.record_remote(receiver, env.module)
+            :elixir_tracker.record_alias(receiver, env.module)
             { receiver, true, cache }
           false -> { original, false, cache }
         end

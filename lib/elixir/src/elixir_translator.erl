@@ -172,7 +172,7 @@ translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
 translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
   case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases) of
     Receiver when is_atom(Receiver) ->
-      elixir_tracker:record_remote(Receiver, S#elixir_scope.module),
+      elixir_tracker:record_alias(Receiver, S#elixir_scope.module),
       { { atom, ?line(Meta), Receiver }, S };
     Aliases ->
       { TAliases, SA } = translate_args(Aliases, S),
@@ -181,7 +181,7 @@ translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
         true ->
           Atoms = [Atom || { atom, _, Atom } <- TAliases],
           Receiver = elixir_aliases:concat(Atoms),
-          elixir_tracker:record_remote(Receiver, S#elixir_scope.module),
+          elixir_tracker:record_alias(Receiver, S#elixir_scope.module),
           { { atom, ?line(Meta), Receiver }, SA };
         false ->
           Args = [elixir_tree_helpers:list_to_cons(?line(Meta), TAliases)],

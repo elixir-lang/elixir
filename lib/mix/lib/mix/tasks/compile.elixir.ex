@@ -56,7 +56,8 @@ defmodule Mix.Tasks.Compile.Elixir do
       bin  = atom_to_binary(module)
       beam = Path.join(compile_path, bin <> ".beam")
 
-      deps = Module.DispatchTracker.remotes(module) ++
+      deps = Module.DispatchTracker.aliases(module) ++
+             Module.DispatchTracker.remotes(module) ++
              Module.DispatchTracker.imports(module)
       deps = deps |> :lists.usort |> Enum.map(atom_to_binary(&1))
 

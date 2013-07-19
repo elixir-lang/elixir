@@ -94,8 +94,6 @@ defmodule Module.DispatchTracker do
 
   @doc """
   Returns all the modules which were imported.
-  All external dependencies to a module is the sum
-  of imports and remotes.
   """
   @spec imports(ref) :: [module]
   def imports(ref) do
@@ -114,9 +112,16 @@ defmodule Module.DispatchTracker do
   end
 
   @doc """
-  Returns all the modules which were remotely dispatched
-  to. All external dependencies to a module is the sum
-  of imports and remotes.
+  Returns all the aliases defined in the given module.
+  """
+  @spec aliases(ref) :: [module]
+  def aliases(ref) do
+    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
+    :digraph.out_neighbours(d, :alias)
+  end
+
+  @doc """
+  Returns all the modules which were remotely dispatched to.
   """
   @spec remotes(ref) :: [module]
   def remotes(ref) do
@@ -201,10 +206,10 @@ defmodule Module.DispatchTracker do
     :gen_server.cast(pid, { :add_local, from, to })
   end
 
-  # Adds a remote. Used when the targetted function is unknown.
+  # Adds an alias.
   @doc false
-  def add_remote(pid, module) when is_atom(module) do
-    :gen_server.cast(pid, { :add_external, :remote, module })
+  def add_alias(pid, module) when is_atom(module) do
+    :gen_server.cast(pid, { :add_alias, module })
   end
 
   # Adds a remote dispatch to the given target.
@@ -317,6 +322,7 @@ defmodule Module.DispatchTracker do
   def init([]) do
     d = :digraph.new([:protected])
     :digraph.add_vertex(d, :local)
+    :digraph.add_vertex(d, :alias)
     :digraph.add_vertex(d, :import)
     :digraph.add_vertex(d, :remote)
     :digraph.add_vertex(d, :warn)
@@ -347,9 +353,9 @@ defmodule Module.DispatchTracker do
     { :noreply, d }
   end
 
-  def handle_cast({ :add_external, kind, module }, d) do
+  def handle_cast({ :add_alias, module }, d) do
     :digraph.add_vertex(d, module)
-    replace_edge!(d, kind, module)
+    replace_edge!(d, :alias, module)
     { :noreply, d }
   end
 

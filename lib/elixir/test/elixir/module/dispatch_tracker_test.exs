@@ -133,6 +133,17 @@ defmodule Module.DispatchTrackerTest do
     assert { :foo, 4 } in D.reachable(config[:pid])
   end
 
+  ## Aliases
+
+  test "can add alias", config do
+    D.add_alias(config[:pid], Module)
+  end
+
+  test "can retrieve aliases", config do
+    D.add_alias(config[:pid], Module)
+    assert Module in D.aliases(config[:pid])
+  end
+
   ## Imports
 
   test "can add import", config do
