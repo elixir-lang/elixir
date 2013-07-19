@@ -11,11 +11,29 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       def b(), do: b
       """
 
-      output = capture_io fn ->
-        Mix.Tasks.Compile.Erlang.run []
+      assert_raise CompileError, fn ->
+        capture_io fn ->
+          Mix.Tasks.Compile.Erlang.run []
+        end
+      end
+    end
+  end
+
+  test "compilation continues if one file fails to compile" do
+    in_fixture "compile_erlang", fn ->
+      File.write!("src/zzz.erl", """)
+      -module(zzz).
+      def zzz(), do: b
+      """
+
+      assert_raise CompileError, fn ->
+        capture_io fn ->
+          Mix.Tasks.Compile.Erlang.run ["--force"]
+        end
       end
 
-      assert output =~ "src/a.erl:2: syntax error"
+      assert File.regular?("ebin/b.beam")
+      assert File.regular?("ebin/c.beam")
     end
   end
 
