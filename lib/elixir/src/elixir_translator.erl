@@ -628,16 +628,12 @@ translate_args(Args, S) ->
 translate_apply(Meta, TLeft, TRight, Args, S, SL, SR) ->
   Line = ?line(Meta),
 
-  Optimize = case is_list(Args) of
-    false -> false;
-    true  ->
-      case (Args == []) orelse lists:last(Args) of
-        { '|', _, _ } -> false;
-        _ ->
-          case TRight of
-            { atom, _, _ } -> true;
-            _ -> false
-          end
+  Optimize = case (Args == []) orelse lists:last(Args) of
+    { '|', _, _ } -> false;
+    _ ->
+      case TRight of
+        { atom, _, _ } -> true;
+        _ -> false
       end
   end,
 
