@@ -18,6 +18,21 @@ defmodule Mix.Tasks.Compile.YeccTest do
     end
   end
 
+  test "compilation continues if one file fails to compile" do
+    in_fixture "compile_yecc", fn ->
+      File.write!("src/zzz.yrl", """)
+      oops.
+      """
+      assert_raise CompileError, fn ->
+        capture_io fn ->
+          Mix.Tasks.Compile.Yecc.run ["--force"]
+        end
+      end
+
+      assert File.regular?("src/test_ok.erl")
+    end
+  end
+
   test "compiles src/test_ok.yrl" do
     in_fixture "compile_yecc", fn ->
       Mix.Tasks.Compile.Yecc.run []

@@ -18,6 +18,22 @@ defmodule Mix.Tasks.Compile.LeexTest do
     end
   end
 
+  test "compilation continues if one file fails to compile" do
+    in_fixture "compile_leex", fn ->
+      File.write!("src/zzz.xrl", """)
+      oops.
+      """
+
+      assert_raise CompileError, fn ->
+        capture_io fn ->
+          Mix.Tasks.Compile.Leex.run ["--force"]
+        end
+      end
+
+      assert File.regular?("src/test_ok.erl")
+    end
+  end
+
   test "compiles src/test_ok.xrl" do
     in_fixture "compile_leex", fn ->
       Mix.Tasks.Compile.Leex.run []

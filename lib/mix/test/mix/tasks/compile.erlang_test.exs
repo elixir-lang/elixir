@@ -19,6 +19,24 @@ defmodule Mix.Tasks.Compile.ErlangTest do
     end
   end
 
+  test "compilation continues if one file fails to compile" do
+    in_fixture "compile_erlang", fn ->
+      File.write!("src/zzz.erl", """)
+      -module(zzz).
+      def zzz(), do: b
+      """
+
+      assert_raise CompileError, fn ->
+        capture_io fn ->
+          Mix.Tasks.Compile.Erlang.run ["--force"]
+        end
+      end
+
+      assert File.regular?("ebin/b.beam")
+      assert File.regular?("ebin/c.beam")
+    end
+  end
+
   test "compiles src/b.erl and src/c.erl" do
     in_fixture "compile_erlang", fn ->
       Mix.Tasks.Compile.Erlang.run []
