@@ -55,7 +55,7 @@ defmodule Mix.Tasks.Compile.Leex do
   end
 
   def manifest do
-    @manifest
+    Path.join(Mix.project[:compile_path], @manifest)
   end
 
   defp compile_files(files, compile_path, options) do

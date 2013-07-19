@@ -17,16 +17,13 @@ defmodule Mix.Tasks.Clean do
   def run(args) do
     { opts, _ } = OptionParser.parse(args)
 
-    compile_path = Mix.project[:compile_path]
-
     manifests = Mix.Tasks.Compile.manifests
     Enum.each(manifests, fn(manifest) ->
-      manifest_path = Path.join(compile_path, manifest)
-      Mix.Utils.read_manifest(manifest_path) |> Enum.each(File.rm(&1))
-      File.rm(manifest_path)
+      Mix.Utils.read_manifest(manifest) |> Enum.each(File.rm(&1))
+      File.rm(manifest)
     end)
 
-    File.rm_rf(compile_path)
+    File.rm_rf(Mix.project[:compile_path])
 
     if opts[:all], do: Mix.Task.run("deps.clean")
   end
