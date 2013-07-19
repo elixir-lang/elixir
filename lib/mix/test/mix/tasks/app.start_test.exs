@@ -40,7 +40,7 @@ defmodule Mix.Tasks.App.StartTest do
     Mix.Project.push WrongElixirProject
 
     in_fixture "no_mixfile", fn ->
-      error = assert_raise Mix.SystemVersionError, fn ->
+      error = assert_raise Mix.ElixirVersionError, fn ->
         Mix.Tasks.App.Start.run ["--no-start"]
       end
 

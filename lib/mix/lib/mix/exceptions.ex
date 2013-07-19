@@ -15,7 +15,7 @@ defexception Mix.NoProjectError, mix_error: true,
 
 defexception Mix.Error, mix_error: true, message: nil
 
-defexception Mix.SystemVersionError, mix_error: true, target: nil, expected: nil, actual: nil do
+defexception Mix.ElixirVersionError, mix_error: true, target: nil, expected: nil, actual: nil do
   def message(exception) do
     "You're trying to run #{inspect exception.target} on Elixir v#{exception.actual} " <>
     "but it's supposed to run on Elixir #{exception.expected}"

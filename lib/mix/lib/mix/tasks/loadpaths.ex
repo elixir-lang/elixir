@@ -13,6 +13,12 @@ defmodule Mix.Tasks.Loadpaths do
   * `:load_paths` extra load paths to be added.
     They are added with lower priority than the app ones.
 
+  ## Command line options
+
+  * `--no-deps` - do not load dependencies
+  * `--no-deps-check` - do not check dependencies
+  * `--no-elixir-version-check` - do not check elixir version
+
   """
   def run(args) do
     { opts, _ } = OptionParser.parse(args)
@@ -26,7 +32,7 @@ defmodule Mix.Tasks.Loadpaths do
 
       if requirement = config[:elixir] do
         unless Mix.Version.match?(System.version, requirement) do
-          raise Mix.SystemVersionError, target: config[:app] || Mix.Project.get,
+          raise Mix.ElixirVersionError, target: config[:app] || Mix.Project.get,
                                         expected: requirement,
                                         actual: System.version
         end

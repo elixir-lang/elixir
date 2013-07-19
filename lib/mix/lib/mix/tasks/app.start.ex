@@ -11,8 +11,11 @@ defmodule Mix.Tasks.App.Start do
 
   ## Command line options
 
-  * `--no-compile` - do not compile even if files require compilation;
-  * `--no-start` - do not start applications after compilation;
+  * `--no-compile` - do not compile even if files require compilation
+  * `--no-start` - do not start applications after compilation
+  * `--no-deps` - do not load dependencies
+  * `--no-deps-check` - do not check dependencies
+  * `--no-elixir-version-check` - do not check elixir version
 
   """
   def run(args) do
