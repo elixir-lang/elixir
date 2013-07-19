@@ -95,7 +95,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   def manifest do
-    @manifest
+    Path.join(Mix.project[:compile_path], @manifest)
   end
 
   defp scan_sources(files, include_path, source_paths) do
