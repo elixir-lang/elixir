@@ -10,11 +10,27 @@ defmodule Mix.Tasks.Compile.LeexTest do
       oops.
       """
 
-      output = capture_io fn ->
-        Mix.Tasks.Compile.Leex.run []
+      assert_raise CompileError, fn ->
+        capture_io fn ->
+          Mix.Tasks.Compile.Leex.run []
+        end
+      end
+    end
+  end
+
+  test "compilation continues if one file fails to compile" do
+    in_fixture "compile_leex", fn ->
+      File.write!("src/zzz.xrl", """)
+      oops.
+      """
+
+      assert_raise CompileError, fn ->
+        capture_io fn ->
+          Mix.Tasks.Compile.Leex.run ["--force"]
+        end
       end
 
-      assert output =~ "src/test_fail.xrl:1: missing Definitions"
+      assert File.regular?("src/test_ok.erl")
     end
   end
 
