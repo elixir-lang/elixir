@@ -18,7 +18,7 @@ defmodule Mix.ProjectTest do
 
   defmodule WrongElixirProject do
     def project do
-      [ elixir: "~> 0.8.1" ]
+      [ app: :error, elixir: "~> 0.8.1" ]
     end
   end
 
@@ -60,8 +60,10 @@ defmodule Mix.ProjectTest do
   end
 
   test "raises an error when the project is supposed to run on another Elixir version" do
-    assert_raise Mix.SystemVersionError, fn ->
+    error = assert_raise Mix.SystemVersionError, fn ->
       Mix.Project.push(WrongElixirProject)
     end
+
+    assert error.message =~ %r/ to run :error /
   end
 end
