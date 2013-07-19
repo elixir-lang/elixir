@@ -54,7 +54,9 @@ defmodule Mix.Project do
 
     if requirement = config[:elixir] do
       unless Mix.Version.match?(System.version, requirement) do
-        raise Mix.SystemVersionError, expected: requirement, actual: System.version
+        raise Mix.SystemVersionError, target: config[:app] || atom,
+                                      expected: requirement,
+                                      actual: System.version
       end
     end
 
