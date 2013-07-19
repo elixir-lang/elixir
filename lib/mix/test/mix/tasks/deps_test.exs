@@ -190,7 +190,6 @@ defmodule Mix.Tasks.DepsTest do
       assert Process.get(:raw_repo_env) == :prod
     end
   after
-    purge [RawRepo, RawRepo.Mix]
     Mix.Project.pop
   end
 
@@ -202,7 +201,6 @@ defmodule Mix.Tasks.DepsTest do
       assert Process.get(:raw_repo_env) == :dev
     end
   after
-    purge [RawRepo, RawRepo.Mix]
     Mix.Project.pop
   end
 
@@ -274,7 +272,6 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* Updating deps_repo (0.1.0) [path: \"custom/deps_repo\"]"] }
     end
   after
-    purge [GitRepo, GitRepo.Mix, DepsRepo]
     Mix.Project.pop
   end
 
@@ -289,7 +286,6 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :error, ["  different specs were given for this dependency, choose one in your deps:" <> _] }
     end
   after
-    purge [GitRepo, GitRepo.Mix, DepsRepo, BadDepsRepo]
     Mix.Project.pop
   end
 
@@ -314,7 +310,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Check.run []
     end
   after
-    purge [GitRepo, GitRepo.Mix, DepsRepo, BadDepsRepo]
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 
@@ -328,7 +324,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :error, ["  the dependency is overriding another dependency of one of your dependencies" <> _] }
     end
   after
-    purge [GitRepo, GitRepo.Mix, DepsRepo, BadDepsRepo]
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 
@@ -341,7 +337,6 @@ defmodule Mix.Tasks.DepsTest do
       assert [Mix.Dep[app: :git_repo], Mix.Dep[app: :deps_repo]] = Mix.Deps.all
     end
   after
-    purge [GitRepo, GitRepo.Mix, DepsRepo, BadDepsRepo]
     Mix.Project.pop
   end
 
@@ -358,7 +353,6 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* Updating deps_repo (0.1.0) [path: \"custom/deps_repo\"]"] }
     end
   after
-    purge [GitRepo, GitRepo.Mix, DepsRepo]
     Mix.Project.pop
   end
 end

@@ -186,12 +186,6 @@ defmodule Code do
     end
   end
 
-  @doc false
-  def string_to_ast(string, opts // []) do
-    IO.write "[WARNING] Code.string_to_ast is deprecated, please use Code.string_to_quoted instead\n#{Exception.format_stacktrace}"
-    string_to_quoted(string, opts)
-  end
-
   @doc """
   Converts the given string to its quoted form. Returns `{ :ok, quoted_form }`
   if it succeeds, `{ :error, { line, error, token } }` otherwise.
@@ -221,12 +215,6 @@ defmodule Code do
       { :ok, forms } -> { :ok, unpack_quote(line, forms) }
       _ -> res
     end
-  end
-
-  @doc false
-  def string_to_ast!(string, opts // []) do
-    IO.write "[WARNING] Code.string_to_ast! is deprecated, please use Code.string_to_quoted! instead\n#{Exception.format_stacktrace}"
-    string_to_quoted!(string, opts)
   end
 
   @doc """

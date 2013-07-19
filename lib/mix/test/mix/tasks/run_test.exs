@@ -22,7 +22,7 @@ defmodule Mix.Tasks.RunTest do
       assert_received { :mix_shell, :info, ["World"] }
     end
   after
-    purge [GitRepo, GitRepo.Mix, A, B, C]
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 
@@ -36,7 +36,5 @@ defmodule Mix.Tasks.RunTest do
       Mix.Tasks.Run.run ["-pr", git_repo, "Mix.shell.info", "GitRepo.hello"]
       assert_received { :mix_shell, :info, ["World"] }
     end
-  after
-    purge [GitRepo, GitRepo.Mix, A, B, C]
   end
 end

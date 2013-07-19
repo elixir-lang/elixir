@@ -64,9 +64,7 @@ defmodule Mix.Tasks.Compile.App do
       contents   = { :application, app, properties }
 
       File.mkdir_p!(Path.dirname(target))
-      file = File.open!(target, [:write])
-      :io.fwrite(file, "~p.", [contents])
-      File.close(file)
+      File.open!(target, [:write], :io.fwrite(&1, "~p.", [contents]))
 
       Mix.shell.info "Generated #{app}.app"
       :ok

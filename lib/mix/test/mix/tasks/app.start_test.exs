@@ -26,7 +26,6 @@ defmodule Mix.Tasks.App.StartTest do
       assert List.keyfind(:application.loaded_applications, :app_start_sample, 0)
     end
   after
-    purge [A, B, C]
     Mix.Project.pop
   end
 end

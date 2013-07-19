@@ -67,14 +67,22 @@ defmodule Mix.Tasks.Compile do
     shell.info "\nEnabled compilers: #{Enum.join get_compilers, ", "}"
   end
 
+  @doc """
+  Runs this compile task by recursively calling all registered compilers.
+  """
   def run(args) do
-    Mix.Task.run "loadpaths", args
+    Mix.Task.run("loadpaths", args)
 
     Enum.each(get_compilers, fn(compiler) ->
       Mix.Task.run("compile.#{compiler}", args)
     end)
+
+    Code.prepend_path Mix.project[:compile_path]
   end
 
+  @doc """
+  Returns manifests for all compilers.
+  """
   def manifests do
     Enum.reduce(get_compilers, [], fn(compiler, acc) ->
       module = Mix.Task.get("compile.#{compiler}")
