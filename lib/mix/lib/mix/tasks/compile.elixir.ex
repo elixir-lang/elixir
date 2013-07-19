@@ -107,7 +107,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   end
 
   def manifest do
-    @manifest
+    Path.join(Mix.project[:compile_path], @manifest)
   end
 
   defp compile_files(true, project, compile_path, to_compile, stale, opts) do
@@ -151,14 +151,8 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     Enum.any?(deps, fn(dep) ->
       Mix.Deps.in_dependency(dep, fn(_) ->
-        Mix.Utils.stale?(collect_manifests, [manifest])
+        Mix.Utils.stale?(Mix.Tasks.Compile.manifests, [manifest])
       end)
     end)
-  end
-
-  defp collect_manifests do
-    manifests = Mix.Tasks.Compile.manifests
-    compile_path = Mix.project[:compile_path]
-    Enum.map(manifests, Path.join(compile_path, &1))
   end
 end
