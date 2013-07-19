@@ -10,41 +10,41 @@ defmodule Mix.Tasks.Escriptize do
 
   ## Command line options
 
-  * `--force` forces compilation regardless of mod times
+  * `--force` - forces compilation regardless of modification times
 
-  * `--no-compile` skips compilation to .beam
+  * `--no-compile` - skips compilation to .beam files
 
   ## Configuration
 
-  The following options can be specified in your mix.exs file:
+  The following options can be specified in your `mix.exs` file:
 
-  * `escript_name` - the name of the generated escript
+  * `escript_name` - the name of the generated escript.
      Defaults to app name
 
-  * `escript_path` - the path to write the escript to
+  * `escript_path` - the path to write the escript to.
      Defaults to app name
 
-  * `escript_app` - the app to start with the escript
+  * `escript_app` - the app to start with the escript.
      Defaults to app name. Set it to `nil` if no application should
      be started.
 
-  * `escript_main_module` - the module containing the main/1 function
+  * `escript_main_module` - the module containing the `main/1` function.
      Defaults to `Project`
 
-  * `escript_embed_elixir` - if true embed elixir in the escript file
-     Defaults to true
+  * `escript_embed_elixir` - if `true` embed elixir in the escript file.
+     Defaults to `true`
 
-  * `escript_embed_extra_apps` - embed additional Elixir applications
-     if `escript_embed_elixir` is true.
-     Defaults to []
+  * `escript_embed_extra_apps` - embed additional Elixir applications.
+     if `escript_embed_elixir` is `true`.
+     Defaults to `[]`
 
-  * `escript_shebang`
+  * `escript_shebang` - shebang interpreter directive used to execute the escript.
      Defaults to "#! /usr/bin/env escript\n"
 
-  * `escript_comment`
+  * `escript_comment` - comment line to follow shebang directive in the escript.
      Defaults to "%%\n"
 
-  * `escript_emu_args` - emulator arguments to embed in the escript file
+  * `escript_emu_args` - emulator arguments to embed in the escript file.
      Defaults to "%%!\n"
 
   """
