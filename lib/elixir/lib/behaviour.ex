@@ -109,7 +109,7 @@ defmodule Behaviour do
       end
 
       def __behaviour__(:docs) do
-        @__behaviour_docs__
+         Enum.reverse(@__behaviour_docs__)
       end
     end
   end

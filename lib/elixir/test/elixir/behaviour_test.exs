@@ -6,27 +6,35 @@ defmodule BehaviourTest do
   defmodule Sample do
     use Behaviour
 
+    @doc "I should be first."
+    defcallback first(integer) :: integer
+
     @doc "Foo"
     defcallback foo(atom, binary) :: binary
 
     @doc "Bar"
     defcallback bar(External.hello, my_var :: binary) :: binary
+
+    @doc "I should be last."
+    defcallback last(integer) :: integer
   end
 
   test :docs do
-    docs = Enum.sort(Sample.__behaviour__(:docs))
+    docs = Sample.__behaviour__(:docs)
     assert docs == [
-      {{:bar, 2}, 13, "Bar"},
-      {{:foo, 2}, 10, "Foo"}
+      {{:first, 1}, 10, "I should be first."},
+      {{:foo, 2}, 13, "Foo"},
+      {{:bar, 2}, 16, "Bar"},
+      {{:last, 1}, 19, "I should be last."}
     ]
   end
 
   test :callbacks do
-    assert Sample.__behaviour__(:callbacks) == [foo: 2, bar: 2]
+    assert Sample.__behaviour__(:callbacks) == [first: 1, foo: 2, bar: 2, last: 1]
   end
 
   test :specs do
-    assert length(Keyword.get_values(Sample.module_info[:attributes], :callback)) == 2
+    assert length(Keyword.get_values(Sample.module_info[:attributes], :callback)) == 4
   end
 
   test :default_is_not_supported do
