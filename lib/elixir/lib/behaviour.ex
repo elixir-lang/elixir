@@ -88,20 +88,22 @@ defmodule Behaviour do
   def store_docs(module, line, name, arity) do
     doc = Module.get_attribute module, :doc
     Module.delete_attribute module, :doc
-    Module.put_attribute module, :__behaviour_docs__, { { name, arity }, line, doc }
+    Module.put_attribute module, :behaviour_docs, { { name, arity }, line, doc }
   end
 
   @doc false
   defmacro __using__(_) do
     quote do
-      Module.register_attribute(__MODULE__, :__behaviour_docs__, accumulate: true)
+      Module.register_attribute(__MODULE__, :behaviour_docs, accumulate: true)
       @before_compile unquote(__MODULE__)
       import unquote(__MODULE__)
     end
   end
 
   @doc false
-  defmacro __before_compile__(_) do
+  defmacro __before_compile__(env) do
+    docs = Enum.reverse Module.get_attribute(env.module, :behaviour_docs)
+
     quote do
       @doc false
       def __behaviour__(:callbacks) do
@@ -109,7 +111,7 @@ defmodule Behaviour do
       end
 
       def __behaviour__(:docs) do
-         Enum.reverse(@__behaviour_docs__)
+        unquote(Macro.escape(docs))
       end
     end
   end
