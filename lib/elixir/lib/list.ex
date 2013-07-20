@@ -201,6 +201,23 @@ defmodule List do
   end
 
   @doc """
+  Receives a list of tuples and sorts the items
+  at position `pos` of the tuples. The sort is stable.
+
+  ## Examples
+
+      iex> List.keysort([a: 5, b: 1, c: 3], 1)
+      [b: 1, c: 3, a: 5]
+
+      iex> List.keysort([a: 5, c: 1, b: 3], 0)
+      [a: 5, b: 3, c: 1]
+
+  """
+  def keysort(list, position) do
+    :lists.keysort(position + 1, list)
+  end
+
+  @doc """
   Receives a list of tuples and replaces the item
   identified by `key` at position `pos`. If the item
   does not exist, it is added to the end of the list.
