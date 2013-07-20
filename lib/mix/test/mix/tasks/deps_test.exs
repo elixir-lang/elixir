@@ -42,10 +42,10 @@ defmodule Mix.Tasks.DepsTest do
     def project do
       [
         deps: [
-          { :ok, %r"^0\.{1,2}",    path: "deps/ok" },
-          { :invalidvsn, %r"^2.0", path: "deps/invalidvsn" },
-          { :noappfile,            path: "deps/noappfile", app: false },
-          { :apppath,              path: "deps/noappfile", app: "../deps/ok/ebin/ok.app" }
+          { :ok, ">= 0.1 and < 0.3", path: "deps/ok" },
+          { :invalidvsn, "2.0",      path: "deps/invalidvsn" },
+          { :noappfile,              path: "deps/noappfile", app: false },
+          { :apppath,                path: "deps/noappfile", app: "../deps/ok/ebin/ok.app" }
         ]
       ]
     end

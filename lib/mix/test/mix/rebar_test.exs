@@ -8,7 +8,7 @@ defmodule Mix.RebarTest do
       [ app: :rebar_as_dep,
         version: "0.1.0",
         deps: [
-          { :rebar_dep, %r/.*/, path: MixTest.Case.fixture_path("rebar_dep"), app: false }
+          { :rebar_dep, path: MixTest.Case.fixture_path("rebar_dep"), app: false }
         ]
       ]
     end
