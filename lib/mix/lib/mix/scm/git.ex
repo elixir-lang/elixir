@@ -37,7 +37,7 @@ defmodule Mix.SCM.Git do
 
   def checkout(opts) do
     path     = opts[:dest]
-    location = opts[:git]
+    location = location(opts[:git])
     command  = %b[git clone --no-checkout --progress "#{location}" "#{path}"]
 
     run_cmd_or_raise(command)
@@ -61,6 +61,16 @@ defmodule Mix.SCM.Git do
   end
 
   ## Helpers
+
+  defp location("git://github.com/" <> rest) do
+    if System.get_env("MIX_GIT_FORCE_HTTPS") == "1" do
+      "https://github.com/" <> rest
+    else
+      "git://github.com/" <> rest
+    end
+  end
+
+  defp location(other), do: other
 
   defp do_checkout(opts) do
     ref = get_lock_rev(opts[:lock]) || get_opts_rev(opts)
