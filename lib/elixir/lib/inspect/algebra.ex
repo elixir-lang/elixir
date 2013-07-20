@@ -76,11 +76,11 @@ defmodule Inspect.Algebra do
 
   # Functional interface to `doc` records
 
-  @type doc :: :doc_nil | :doc_cons_t | :doc_nest_t | :doc_break_t | :doc_group_t | binary
-  defrecordp :doc_cons, [left: :doc_nil, right: :doc_nil]
-  defrecordp :doc_nest, [indent: 1, doc: :doc_nil]
-  defrecordp :doc_break, [str: " "]
-  defrecordp :doc_group, [doc: :doc_nil]
+  @type t :: :doc_nil | doc_cons_t | doc_nest_t | doc_break_t | doc_group_t | binary
+  defrecordp :doc_cons, left: :doc_nil :: t, right: :doc_nil :: t
+  defrecordp :doc_nest, indent: 1 :: non_neg_integer, doc: :doc_nil :: t
+  defrecordp :doc_break, str: " " :: binary
+  defrecordp :doc_group, doc: :doc_nil :: t
 
   @doc """
   Returns `:doc_nil` which is a document entity used to represent
@@ -106,13 +106,13 @@ defmodule Inspect.Algebra do
       "TastelessArtosis"
 
   """
-  @spec concat(doc, doc) :: :doc_cons_t
+  @spec concat(t, t) :: doc_cons_t
   def concat(x, y), do: doc_cons(left: x, right: y)
 
   @doc """
   Concatenates a list of documents.
   """
-  @spec concat([doc]) :: :doc_cons_t
+  @spec concat([t]) :: doc_cons_t
   def concat(docs), do: folddoc(docs, concat(&1, &2))
 
   @doc """
@@ -126,7 +126,7 @@ defmodule Inspect.Algebra do
       " 6"
 
   """
-  @spec nest(doc, non_neg_integer) :: :doc_nest_t
+  @spec nest(t, non_neg_integer) :: doc_nest_t
   def nest(x, 0),                    do: x
   def nest(x, i) when is_integer(i), do: doc_nest(indent: i, doc: x)
 
@@ -151,23 +151,23 @@ defmodule Inspect.Algebra do
       "aaaaaaaaaaaaaaaaaaaa\nb"
 
   """
-  @spec break(binary) :: :doc_break_t
+  @spec break(binary) :: doc_break_t
   def break(s) when is_binary(s), do: doc_break(str: s)
 
-  @spec break() :: :doc_break_t
+  @spec break() :: doc_break_t
   def break(), do: doc_break(str: @break)
 
   @doc """
   Inserts a break between two docs. See `break/1` for more info.
   """
-  @spec glue(doc, doc) :: :doc_cons_t
+  @spec glue(t, t) :: doc_cons_t
   def glue(x, y), do: concat(x, concat(break, y))
 
   @doc """
   Inserts a break, passed as the second argument, between two docs,
   the first and the third arguments.
   """
-  @spec glue(doc, binary, doc) :: :doc_cons_t
+  @spec glue(t, binary, t) :: doc_cons_t
   def glue(x, g, y) when is_binary(g), do: concat(x, concat(break(g), y))
 
   @doc %B"""
@@ -197,7 +197,7 @@ defmodule Inspect.Algebra do
       "Hello,\nA B"
 
   """
-  @spec group(doc) :: :doc_group_t
+  @spec group(t) :: doc_group_t
   def group(d), do: doc_group(doc: d)
 
   @doc """
@@ -210,7 +210,7 @@ defmodule Inspect.Algebra do
       "Hughes Wadler"
 
   """
-  @spec space(doc, doc) :: :doc_cons_t
+  @spec space(t, t) :: doc_cons_t
   def space(x, y), do: concat(x, concat(" ", y))
 
   @doc %B"""
@@ -223,7 +223,7 @@ defmodule Inspect.Algebra do
       "Hughes\nWadler"
 
   """
-  @spec line(doc, doc) :: :doc_cons_t
+  @spec line(t, t) :: doc_cons_t
   def line(x, y), do: concat(x, concat(@newline, y))
 
   @doc """
@@ -240,7 +240,7 @@ defmodule Inspect.Algebra do
       "A!B"
 
   """
-  @spec folddoc([any], ((doc, [doc]) -> doc)) :: doc
+  @spec folddoc([any], ((t, [t]) -> t)) :: t
   def folddoc([], _), do: empty
   def folddoc([doc], _), do: doc
   def folddoc([d|ds], f), do: f.(d, folddoc(ds, f))
@@ -261,7 +261,7 @@ defmodule Inspect.Algebra do
       "[a\n b]"
 
   """
-  @spec surround(binary, doc, binary) :: doc
+  @spec surround(binary, t, binary) :: t
   def surround(left, doc, right) do
     group concat [left, nest(doc, @nesting), right]
   end
@@ -282,7 +282,7 @@ defmodule Inspect.Algebra do
       "[1, 2, 3, ...]"
 
   """
-  @spec surround_many(binary, [any], binary, integer | :infinity, (term -> doc)) :: doc
+  @spec surround_many(binary, [any], binary, integer | :infinity, (term -> t)) :: t
   def surround_many(left, [], right, _, _fun) do
     concat(left, right)
   end
@@ -323,7 +323,7 @@ defmodule Inspect.Algebra do
   and returns the string representation of the best layout for the
   document to fit in the given width.
   """
-  @spec pretty(doc, non_neg_integer) :: binary
+  @spec pretty(t, non_neg_integer) :: binary
   def pretty(d, w) do
     sdoc = format w, 0, [{0, default_mode(w), doc_group(doc: d)}]
     render(sdoc)
@@ -336,15 +336,15 @@ defmodule Inspect.Algebra do
 
   # Records representing __simple__ documents, already on a fixed layout
   # Those are generalized by `sdoc` type.
-  @type sdoc :: :s_nil | :s_text_t | :s_line_t
-  defrecordp :s_text, [str: "", sdoc: :s_nil]
-  defrecordp :s_line, [indent: 1, sdoc: :s_nil] # newline + spaces
+  @type sdoc :: :s_nil | s_text_t | s_line_t
+  defrecordp :s_text, str: "" :: binary, sdoc: :s_nil :: sdoc
+  defrecordp :s_line, indent: 1 :: non_neg_integer, sdoc: :s_nil :: sdoc
 
-  # Record representing the document mode to be rendered: __flat__ or __broken__
-  @type mode :: :flat | :break
+  # Record representing the document mode to be rendered: flat or broken
+  @typep mode :: :flat | :break
 
   @doc false
-  @spec fits?(integer, [{ integer, mode, doc }]) :: boolean
+  @spec fits?(integer, [{ integer, mode, t }]) :: boolean
   def fits?(:infinity, _),                                  do: true # no pretty printing
   def fits?(w, _) when w < 0,                               do: false
   def fits?(_, []),                                         do: true
@@ -357,7 +357,7 @@ defmodule Inspect.Algebra do
   def fits?(w, [{i, _, doc_group(doc: x)} | t]),            do: fits?(w, [{i, :flat, x} | t])
 
   @doc false
-  @spec format(integer, integer, [{ integer, mode, doc }]) :: atom | tuple
+  @spec format(integer, integer, [{ integer, mode, t }]) :: atom | tuple
   def format(_, _, []),                                        do: :s_nil
   def format(w, k, [{_, _, :doc_nil} | t]),                    do: format(w, k, t)
   def format(w, k, [{i, m, doc_cons(left: x, right: y)} | t]), do: format(w, k, [{i, m, x} | [{i, m, y} | t]])

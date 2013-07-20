@@ -2101,6 +2101,8 @@ defmodule Kernel do
       #=> #Function<...>
 
   """
+  @spec inspect(Inspect.t, Inspect.Opts.t) :: Inspect.Algebra.t
+  @spec inspect(Inspect.t, Keyword.t) :: String.t
   def inspect(arg, opts // [])
 
   def inspect(arg, opts) when is_tuple(opts) and tuple_size(opts) > 0 and

@@ -287,7 +287,7 @@ defmodule Enum do
       #=> :ok
 
   """
-  @spec each(t, (element -> any) | (element, index -> any)) :: :ok
+  @spec each(t, (element -> any)) :: :ok
   def each(collection, fun) when is_list(collection) do
     :lists.foreach(fun, collection)
     :ok
@@ -590,7 +590,7 @@ defmodule Enum do
       [a: -1, b: -2]
 
   """
-  @spec map(t, (element -> any) | (element, index -> any)) :: list
+  @spec map(t, (element -> any)) :: list
   def map(collection, fun) when is_list(collection) do
     lc item inlist collection, do: fun.(item)
   end
