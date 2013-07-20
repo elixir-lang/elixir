@@ -1,6 +1,7 @@
 defmodule Mix.Local do
   @moduledoc """
-  Module responsible to manage local mix archives and paths.
+  Module responsible to manage local mix archives and paths,
+  installed at `Mix.Utils.mix_home`.
   """
 
   @doc """

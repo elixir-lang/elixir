@@ -25,7 +25,7 @@ defmodule Mix.Tasks.Compile.Elixir do
         { :ok, pid } = :gen_server.start_link(__MODULE__, entries, [])
 
         try do
-          files_to_path(pid, entries, stale, compile_path, File.cwd!)
+          files_to_path(pid, entries, stale, compile_path, File.cwd)
           :gen_server.cast(pid, :merge)
         after
           :gen_server.call(pid, { :stop, manifest })
@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Compile.Elixir do
              Module.DispatchTracker.imports(module)
       deps = deps |> :lists.usort |> Enum.map(atom_to_binary(&1))
 
-      :gen_server.cast(pid, { :store, beam, bin, Path.relative_to(source, cwd), deps, binary })
+      :gen_server.cast(pid, { :store, beam, bin, Mix.Utils.relative_to_cwd(source, cwd), deps, binary })
     end
 
     defp each_file(file) do
@@ -237,7 +237,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     check_files = Mix.Project.config_files ++ [Erlang.manifest]
 
-    all   = opts[:force] or Mix.Utils.stale?(check_files, [manifest]) or path_deps_changed?(manifest)
+    all   = opts[:force] || Mix.Utils.stale?(check_files, [manifest]) || path_deps_changed?(manifest)
     stale = if all, do: to_watch, else: Mix.Utils.extract_stale(to_watch, [manifest])
 
     if stale != [] do

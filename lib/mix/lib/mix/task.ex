@@ -3,7 +3,8 @@ defmodule Mix.Task do
   alias :ordsets, as: Ordset
 
   @moduledoc """
-  A simple module that provides conveniences for creating tasks.
+  A simple module that provides conveniences for creating,
+  loading and manipulating tasks.
   """
 
   @doc """
@@ -47,7 +48,7 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Returns all loaded modules. Modules that are not yet loaded
+  Returns all loaded tasks. Modules that are not yet loaded
   won't show up. Check `load_all/0` if you want to preload all tasks.
   """
   def all_modules do
@@ -62,7 +63,7 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Gets the moduledoc for the given `module`.
+  Gets the moduledoc for the given task `module`.
   Returns the moduledoc or `nil`.
   """
   def moduledoc(module) when is_atom(module) do
@@ -73,7 +74,7 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Gets the shortdoc for the given `module`.
+  Gets the shortdoc for the given task `module`.
   Returns the shortdoc or `nil`.
   """
   def shortdoc(module) when is_atom(module) do
@@ -135,7 +136,7 @@ defmodule Mix.Task do
   @doc """
   Runs a `task` with the given `args`.
 
-  If the task was not yet invoked, it runs the task and 
+  If the task was not yet invoked, it runs the task and
   returns the result.
 
   If the task was already invoked, it does not run the task
@@ -190,13 +191,6 @@ defmodule Mix.Task do
     else
       Mix.Server.cast({ :delete_task, to_binary(task), Mix.project[:app] })
     end
-  end
-
-  # Used internally by Mix to swap tasks in and out when
-  # moving in between projects.
-  @doc false
-  def set_tasks(tasks) do
-    Mix.Server.cast({ :set_tasks, tasks })
   end
 
   defp is_task?(module) do

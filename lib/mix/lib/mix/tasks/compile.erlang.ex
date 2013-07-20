@@ -116,7 +116,7 @@ defmodule Mix.Tasks.Compile.Erlang do
     Enum.reduce files, [], fn(file, acc) ->
       compiled_file = module_from_artifact(file)
       compiled_file = Path.join(dir2, compiled_file <> "." <> to_binary(ext2))
-      if force or Mix.Utils.stale?([file], [compiled_file]) do
+      if force || Mix.Utils.stale?([file], [compiled_file]) do
         [{file, compiled_file} | acc]
       else
         acc

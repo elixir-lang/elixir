@@ -69,7 +69,7 @@ defmodule Mix.Tasks.Escriptize do
       !script_name ->
         raise Mix.Error, message: "Could not generate escript, no name given, " <>
           "set :escript_name or :app in the project settings"
-      force or Mix.Utils.stale?(files, [filename]) ->
+      force || Mix.Utils.stale?(files, [filename]) ->
         tuples = gen_main(script_name, project[:escript_main_module], app) ++ to_tuples(files)
         tuples = tuples ++ deps_tuples()
 

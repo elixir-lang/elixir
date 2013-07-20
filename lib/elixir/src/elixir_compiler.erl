@@ -94,7 +94,7 @@ module(Forms, File, Callback) ->
 module(Forms, File, RawOptions, Bootstrap, Callback) when
     is_binary(File), is_list(Forms), is_list(RawOptions), is_boolean(Bootstrap), is_function(Callback) ->
   { Options, SkipNative } = compile_opts(Forms, RawOptions),
-  Listname = binary_to_list(File),
+  Listname = unicode:characters_to_list(File),
 
   case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
     {ok, ModuleName, Binary, RawWarnings} ->

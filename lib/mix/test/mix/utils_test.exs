@@ -41,10 +41,6 @@ defmodule Mix.UtilsTest do
     ]
   end
 
-  test :source do
-    assert Mix.Utils.source(__MODULE__) == __FILE__
-  end
-
   test :underscore do
     assert Mix.Utils.underscore("foo") == "foo"
     assert Mix.Utils.underscore("foo_bar") == "foo_bar"

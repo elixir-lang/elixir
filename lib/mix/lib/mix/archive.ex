@@ -9,13 +9,28 @@ defmodule Mix.Archive do
   """
 
   @doc """
-  Returns the archive name based on `app` and version.
+  Returns the archive name based on `app` and `version`.
+
+  ## Examples
+
+      iex> Mix.Archive.name("foo", nil)
+      "foo.ez"
+
+      iex> Mix.Archive.name("foo", "0.1.0")
+      "foo-0.1.0.ez"
+
   """
   def name(app, nil), do: "#{app}.ez"
   def name(app, vsn), do: "#{app}-#{vsn}.ez"
 
   @doc """
-  Returns the archive internal directory from its full path.
+  Returns the archive internal directory from its `path`.
+
+  ## Examples
+
+      iex> Mix.Archive.dir("foo/bar/baz-0.1.0.ez")
+      "baz-0.1.0"
+
   """
   def dir(path) do
     path |> Path.basename |> Path.rootname

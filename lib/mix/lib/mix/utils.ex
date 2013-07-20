@@ -44,14 +44,6 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Gets the source location of a module as a binary.
-  """
-  def source(module) do
-    source = module.__info__(:compile)[:source]
-    source && list_to_binary(source)
-  end
-
-  @doc """
   Takes a `command` name and try to load a module
   with the command name converted to a module name
   in the given `at` scope.
@@ -110,8 +102,15 @@ defmodule Mix.Utils do
     end
   end
 
-  @doc """
-  Reads the manifest and return each entry.
+  @doc %B"""
+  Reads the given file as manifest and return each entry
+  as a list.
+
+  A manifest is a tabular file where each line is a row
+  and each entry in a row is separated by "\t". The first
+  entry must always be a path to a compiled artifact.
+
+  In case there is no manifest file, returns an emoty list.
   """
   def read_manifest(file) do
     case File.read(file) do
@@ -121,15 +120,11 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Generates a manifest containing all files generated
-  during a given compilation step. It receives the manifest
-  file name and a function to execute. The result of the
-  function is compared to the manifest in order do detect
-  the files removed from the manifest file.
+  Writes down a manifest file with the given `entries` list.
   """
-  def write_manifest(file, new) do
+  def write_manifest(file, entries) do
     Path.dirname(file) |> File.mkdir_p!
-    File.write!(file, Enum.join(new, "\n"))
+    File.write!(file, Enum.join(entries, "\n"))
   end
 
   @doc """
@@ -269,10 +264,11 @@ defmodule Mix.Utils do
 
   @doc """
   Returns the given path string relative to the current
-  working directory.
+  working directory. In case the current working directory
+  cannot be retrieved, returns the path with no changes.
   """
-  def relative_to_cwd(path) do
-    case File.cwd do
+  def relative_to_cwd(path, cwd // File.cwd) do
+    case cwd do
       { :ok, base } -> Path.relative_to(path, base)
       _ -> path
     end
@@ -332,9 +328,14 @@ defmodule Mix.Utils do
 
 	@doc """
 	Opens and reads content from either a URL or a local filesystem path.
-	Used by local.install and local.rebar.
+
+	Used by tasks like `local.install` and `local.rebar` that support
+	installation either from a URL or a local file.
+
+  Raises in case the given path is not a url, nor a file or if the
+  file or url are invalid.
 	"""
-	def read_path(path) do
+	def read_path!(path) do
     cond do
       is_url?(path)  -> read_url(path)
       is_file?(path) -> read_file(path)

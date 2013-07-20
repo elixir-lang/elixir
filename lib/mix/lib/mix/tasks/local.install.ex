@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Local.Install do
     if should_install?(src, opts[:force]) do
       dest = Mix.Local.archives_path
       File.mkdir_p! dest
-      create_file Path.join(dest, Path.basename(src)), Mix.Utils.read_path(src)
+      create_file Path.join(dest, Path.basename(src)), Mix.Utils.read_path!(src)
     end
   end
 

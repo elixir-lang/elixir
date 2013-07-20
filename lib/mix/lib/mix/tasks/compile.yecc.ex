@@ -50,11 +50,11 @@ defmodule Mix.Tasks.Compile.Yecc do
               Erlang.extract_stale_pairs(source_path, :yrl, source_path, :erl, opts[:force])
             end |> List.flatten
 
-    if files == [] and not opts[:force] do
-      :noop
-    else
+    if files != [] || opts[:force] do
       compile_files(files, compile_path, project[:yecc_options] || [])
       :ok
+    else
+      :noop
     end
   end
 

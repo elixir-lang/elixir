@@ -29,7 +29,7 @@ The local copy is stored in your MIX_HOME (defaults to ~/.mix).
   end
 
   defp do_install(path) do
-    rebar = Mix.Utils.read_path(path)
+    rebar = Mix.Utils.read_path!(path)
     local_rebar_path = Mix.Rebar.local_rebar_path
     File.mkdir_p! Path.dirname(local_rebar_path)
     create_file local_rebar_path, rebar

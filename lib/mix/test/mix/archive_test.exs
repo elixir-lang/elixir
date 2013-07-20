@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Mix.ArchiveTest do
   use MixTest.Case
 
+  doctest Mix.Archive
+
   test "archive" do
     in_fixture "archive", fn ->
       Mix.Archive.create("sample.ez")

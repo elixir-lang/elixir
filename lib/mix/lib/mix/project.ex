@@ -76,15 +76,13 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Retrieves the current project.
+  Retrieves the current project, nil if there is no
+  current project (i.e. there is no mixfile in the current
+  project).
 
-  This is usually called by tasks that needs additional
-  functions on the project to be defined. Since such
-  tasks usually depends on a project to be defined, this
-  function raises `Mix.NoProjectError` in case no project
-  is available.
-
-  Returns nil if no project.
+  If you expect a project to be defined, i.e. it is an
+  requirement of the current task, you should call
+  `get!/0` instead.
   """
   def get do
     case Mix.Server.call(:projects) do
@@ -95,14 +93,19 @@ defmodule Mix.Project do
 
   @doc """
   Same as `get/0` but raises an exception if no project.
+
+  This is usually called by tasks that needs additional
+  functions on the project to be defined. Since such
+  tasks usually depends on a project to be defined, this
+  function raises `Mix.NoProjectError` in case no project
+  is available.
   """
   def get! do
     get || raise Mix.NoProjectError
   end
 
   @doc """
-  Returns the project configuration already
-  considering the current environment.
+  Returns the project configuration for the current environment.
   """
   def config do
     case Mix.Server.call(:projects) do
@@ -112,7 +115,10 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns a list of project config files (mix.exs and mix.lock).
+  Returns a list of project config files, for example,
+  `mix.exs` and `mix.lock`. This function is usually used
+  in compilation tasks to trigger a full recompilation
+  whenever such configuration files change.
   """
   def config_files do
     opts     = []
@@ -123,8 +129,8 @@ defmodule Mix.Project do
       opts = [lockfile|opts]
     end
 
-    if project do
-      opts = [Mix.Utils.source(project)|opts]
+    if project && (source = project.__info__(:compile)[:source]) do
+      opts = [:unicode.characters_to_binary(source)|opts]
     end
 
     opts
@@ -135,13 +141,6 @@ defmodule Mix.Project do
   """
   def umbrella? do
     config[:apps_path] != nil
-  end
-
-  @doc """
-  Returns the path to the apps directory.
-  """
-  def apps_path do
-    Path.expand(config[:apps_path])
   end
 
   @doc """

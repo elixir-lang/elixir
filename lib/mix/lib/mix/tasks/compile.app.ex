@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Compile.App do
     target  = Path.join(path, "#{app}.app")
     sources = Mix.Project.config_files ++ beams
 
-    if opts[:force] or Mix.Utils.stale?(sources, [target]) do
+    if opts[:force] || Mix.Utils.stale?(sources, [target]) do
       best_guess = [
         vsn: to_char_list(version),
         modules: modules_from(beams),

@@ -101,10 +101,6 @@ defmodule Mix.Server do
     { :noreply, config.env(env) }
   end
 
-  def handle_cast({ :set_tasks, tasks }, config) do
-    { :noreply, config.tasks(tasks) }
-  end
-
   def handle_cast({ :add_task, task, app }, config) do
     { :noreply, config.update_tasks Ordset.add_element({task, app}, &1) }
   end

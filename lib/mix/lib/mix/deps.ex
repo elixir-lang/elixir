@@ -14,12 +14,50 @@ defrecord Mix.Dep, [ scm: nil, app: nil, requirement: nil, status: nil, opts: ni
       `rebar.config` for rebar or the `Mix.Project` for Mix
   * `manager` - the project management, possible values: `:rebar` | `:mix` | `:make` | `nil`
   * `from` - path to the file where the dependency was defined
+
   """
 end
 
 defmodule Mix.Deps do
   @moduledoc """
   A module with common functions to work with dependencies.
+
+  Dependencies must be specified in the Mix application in the
+  following format:
+
+      { app :: atom, opts :: Keyword.t }
+      { app :: atom, version :: String.t, opts :: Keyword.t }
+
+  The application name must be an atom, the version must be a string
+  according to the specification outline in `Mix.Version` and opts
+  is a keyword lists that may include options for the underlying SCM
+  or options used by Mix. Each set of options is documented below.
+
+  ## Mix options
+
+  * `:app` - Do not try to read the app file for this dependency
+
+  ## Git options (`:git`)
+
+  * `:git`        - The git repository URI
+  * `:github`     - A shortcut for specifying git repos from github, uses `git:`
+  * `:ref`        - The reference to checkout (may be a branch, a commit sha or a tag)
+  * `:branch`     - The git branch to checkout
+  * `:tag`        - The git tag to checkout
+  * `:submodules` - When true, initialize submodules for the repo
+
+  ## Path options (`:path`)
+
+  * `:path` - The path for the dependency
+
+  ## Internal options
+
+  Those options are set internally by Mix and they can't be
+  overriden from the Mixfile:
+
+  * `:dest` - The destination path for the dependency
+  * `:lock` - The lock information retrieved from mix.lock
+
   """
 
   @doc """
@@ -36,12 +74,15 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Return all dependencies, but with a custom callback and
-  accumulator. This is useful in case you want to retrieve
-  the dependency tree for a project but process and change
-  them along the way. For example, `mix deps.get` uses it
-  to get all dependencies by first fetching the parent and
-  then updating the tree as it goes.
+  Maps and reduces over all dependencies, one by one.
+
+  This is useful in case you want to retrieve the dependency
+  tree for a project but process and change them along the way.
+  For example, `mix deps.get` uses it to get all dependencies
+  by first fetching the parent and then updating the tree as it goes.
+
+  The callback expects the current dependency and the accumulator
+  as arguments. The accumulator is returned as result.
   """
   def all(acc, callback) do
     { _deps, acc } = Mix.Deps.Converger.all(acc, callback)
