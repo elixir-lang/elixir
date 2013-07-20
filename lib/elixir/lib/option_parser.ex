@@ -115,12 +115,12 @@ defmodule OptionParser do
     parse(t, aliases, switches, dict, [h|args], true)
   end
 
-  defp parse([], _, switches, dict, args, true) do
-    { reverse_dict(dict, switches), Enum.reverse(args) }
+  defp parse([], _, _switches, dict, args, true) do
+    { Enum.reverse(dict), Enum.reverse(args) }
   end
 
-  defp parse(value, _, switches, dict, _args, false) do
-    { reverse_dict(dict, switches), value }
+  defp parse(value, _, _switches, dict, _args, false) do
+    { Enum.reverse(dict), value }
   end
 
   defp boolean_from_tail([h|t]) when h in ["false", "true"], do: { h, t }
@@ -153,12 +153,6 @@ defmodule OptionParser do
     end
   end
 
-  defp reverse_dict(dict, switches) do
-    switches = lc { k, v } inlist switches,
-                  is_switch_a?(:boolean, v),
-                  not Keyword.has_key?(dict, k), do: { k, false }
-    Enum.reverse switches ++ dict
-  end
 
   defp normalize_option(<<?-, option :: binary>>, aliases) do
     normalize_option(option, aliases)

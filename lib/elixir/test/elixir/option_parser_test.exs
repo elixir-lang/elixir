@@ -57,8 +57,8 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--docs", "foo"], switches: [docs: :boolean]) == { [docs: true], ["foo"] }
   end
 
-  test "sets configured booleans to false by default" do
-    assert OptionParser.parse(["foo"], switches: [docs: :boolean]) == { [docs: false], ["foo"] }
+  test "does not set unparsed booleans" do
+    assert OptionParser.parse(["foo"], switches: [docs: :boolean]) == { [], ["foo"] }
   end
 
   test "parses configured booleans with explicit value" do
