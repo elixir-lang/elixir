@@ -121,6 +121,15 @@ defmodule StringTest do
     assert String.strip("___  abc  ___", ?_) == "  abc  "
   end
 
+  test :reverse do
+    assert String.reverse("") == ""
+    assert String.reverse("abc") == "cba"
+    assert String.reverse("Hello World") == "dlroW olleH"
+    assert String.reverse("Hello ∂og") == "go∂ olleH"
+    assert String.reverse("Ā̀stute") == "etutsĀ̀"
+    assert String.reverse(String.reverse("Hello World")) == "Hello World"
+  end
+
   test :replace do
     assert String.replace("a,b,c", ",", "-") == "a-b-c"
     assert String.replace("a,b,c", [",", "b"], "-") == "a---c"
