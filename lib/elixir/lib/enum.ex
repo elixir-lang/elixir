@@ -748,6 +748,17 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a list of collection elements shuffled.
+  """
+  @spec shuffle(t) :: list
+  def shuffle(collection) do
+    randomized = Enumerable.reduce(collection, [], fn x, acc ->
+      [{ :random.uniform, x }|acc]
+    end)
+    unwrap(:lists.keysort(1, randomized), [])
+  end
+
+  @doc """
   Returns a sorted list of collection elements. Uses the merge sort algorithm.
 
   ## Examples
@@ -1299,6 +1310,14 @@ defmodule Enum do
   defp do_find_value([], ifnone, _) do
     ifnone
   end
+
+  ## shuffle
+
+  defp unwrap([{_, h} | collection], t) do
+    unwrap(collection, [h|t])
+  end
+
+  defp unwrap([], t), do: t
 
   ## sort
 
