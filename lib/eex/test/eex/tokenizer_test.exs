@@ -13,15 +13,15 @@ defmodule EEx.TokenizerTest do
   end
 
   test "strings with embedded code" do
-    assert T.tokenize('foo <% bar %>', 1) == [ { :text, 1, "foo " }, { :expr, 1, [], ' bar ' } ]
+    assert T.tokenize('foo <% bar %>', 1) == [ { :text, 1, "foo " }, { :expr, 1, "", ' bar ' } ]
   end
 
   test "strings with embedded equals code" do
-    assert T.tokenize('foo <%= bar %>', 1) == [ { :text, 1, "foo " }, { :expr, 1, '=', ' bar ' } ]
+    assert T.tokenize('foo <%= bar %>', 1) == [ { :text, 1, "foo " }, { :expr, 1, "=", ' bar ' } ]
   end
 
   test "strings with more than one line" do
-    assert T.tokenize('foo\n<%= bar %>', 1) == [ { :text, 1, "foo\n" }, { :expr, 2, '=', ' bar ' } ]
+    assert T.tokenize('foo\n<%= bar %>', 1) == [ { :text, 1, "foo\n" }, { :expr, 2, "=", ' bar ' } ]
   end
 
   test "strings with more than one line and expression with more than one line" do
@@ -34,9 +34,9 @@ baz %>
 
     assert T.tokenize(string, 1) == [
       {:text, 1, "foo "},
-      {:expr, 1, '=', ' bar\n\nbaz '},
+      {:expr, 1, "=", ' bar\n\nbaz '},
       {:text, 3, "\n"},
-      {:expr, 4, [], ' foo '},
+      {:expr, 4, "", ' foo '},
       {:text, 4, "\n"}
     ] 
   end
@@ -68,32 +68,32 @@ baz %>
   test "strings with embedded do end" do
     assert T.tokenize('foo <% if true do %>bar<% end %>', 1) == [
       { :text, 1, "foo " },
-      { :start_expr, 1, '', ' if true do ' },
+      { :start_expr, 1, "", ' if true do ' },
       { :text, 1, "bar" },
-      { :end_expr, 1, '', ' end ' }
+      { :end_expr, 1, "", ' end ' }
     ]
   end
 
   test "strings with embedded -> end" do
     assert T.tokenize('foo <% cond do %><% false -> %>bar<% true -> %>baz<% end %>', 1) == [
       { :text, 1, "foo " },
-      { :start_expr, 1, '', ' cond do ' },
-      { :middle_expr, 1, '', ' false -> ' },
+      { :start_expr, 1, "", ' cond do ' },
+      { :middle_expr, 1, "", ' false -> ' },
       { :text, 1, "bar" },
-      { :middle_expr, 1, '', ' true -> ' },
+      { :middle_expr, 1, "", ' true -> ' },
       { :text, 1, "baz" },
-      { :end_expr, 1, '', ' end ' }
+      { :end_expr, 1, "", ' end ' }
     ]
   end
 
   test "strings with embedded keywords blocks" do
     assert T.tokenize('foo <% if true do %>bar<% else %>baz<% end %>', 1) == [
       { :text, 1, "foo " },
-      { :start_expr, 1, '', ' if true do ' },
+      { :start_expr, 1, "", ' if true do ' },
       { :text, 1, "bar" },
-      { :middle_expr, 1, '', ' else ' },
+      { :middle_expr, 1, "", ' else ' },
       { :text, 1, "baz" },
-      { :end_expr, 1, '', ' end ' }
+      { :end_expr, 1, "", ' end ' }
     ]
   end
 

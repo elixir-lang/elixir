@@ -20,6 +20,11 @@ defmodule EEx.Engine do
     implemented by default by this engine.
   """
 
+  use Behaviour
+
+  defcallback handle_text(Macro.t, binary) :: Macro.t
+  defcallback handle_expr(Macro.t, binary, Macro.t) :: Macro.t
+
   @doc """
   The default implementation simply concatenates text to the buffer.
   """
@@ -35,22 +40,18 @@ defmodule EEx.Engine do
 
   All other markers are not implemented by this engine.
   """
-  def handle_expr(buffer, '=', expr) do
+  def handle_expr(buffer, "=", expr) do
     quote do
       tmp = unquote(buffer)
       tmp <> to_binary(unquote(expr))
     end
   end
 
-  def handle_expr(buffer, '', expr) do
+  def handle_expr(buffer, "", expr) do
     quote do
       tmp = unquote(buffer)
       unquote(expr)
       tmp
     end
-  end
-
-  def behaviour_info(:callbacks) do
-    [handle_text: 2, handle_expr: 3]
   end
 end
