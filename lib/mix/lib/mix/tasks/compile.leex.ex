@@ -44,7 +44,6 @@ defmodule Mix.Tasks.Compile.Leex do
 
     project      = Mix.project
     source_paths = project[:erlc_paths]
-    compile_path = project[:compile_path]
 
     files = lc source_path inlist source_paths do
               Erlang.extract_stale_pairs(source_path, :xrl, source_path, :erl, opts[:force])
@@ -53,7 +52,7 @@ defmodule Mix.Tasks.Compile.Leex do
     if files == [] and not opts[:force] do
       :noop
     else
-      compile_files(files, compile_path, project[:leex_options] || [])
+      compile_files(files, project[:leex_options] || [])
       :ok
     end
   end
@@ -65,9 +64,8 @@ defmodule Mix.Tasks.Compile.Leex do
     Path.join(Mix.project[:compile_path], @manifest)
   end
 
-  defp compile_files(files, compile_path, options) do
-    manifest_path = Path.join(compile_path, @manifest)
-    Mix.Utils.read_manifest(manifest_path) |> Enum.each(File.rm(&1))
+  defp compile_files(files, options) do
+    Mix.Utils.read_manifest(manifest) |> Enum.each(File.rm(&1))
 
     results = lc { input, output } inlist files do
       options = options ++ [scannerfile: Erlang.to_erl_file(output), report: true]
@@ -76,7 +74,7 @@ defmodule Mix.Tasks.Compile.Leex do
 
     outputs = Enum.map(files, elem(&1, 1))
 
-    Mix.Utils.write_manifest(manifest_path, outputs)
+    Mix.Utils.write_manifest(manifest, outputs)
     if Enum.any?(results, &1 == :error), do: raise CompileError
   end
 end
