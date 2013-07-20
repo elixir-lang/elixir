@@ -72,8 +72,7 @@ defmodule Mix.Deps.Retriever do
 
     if match?({ _, req, _ } when is_regex(req), tuple) and
         not String.ends_with?(from, "rebar.config") do
-      Mix.shell.info("[WARNING] Regex version requirements for dependencies are " <>
-        "deprecated, please use Mix.Version instead")
+      invalid_dep_format(tuple)
     end
 
     cond do
@@ -160,8 +159,7 @@ defmodule Mix.Deps.Retriever do
   end
 
   defp with_scm_and_status(other, _scms) do
-    raise Mix.Error, message: %b(dependency specified in the wrong format: #{inspect other}, ) <>
-      %b(expected { :app, scm: "location" } | { :app, "requirement", scm: "location" })
+    invalid_dep_format(other)
   end
 
   defp status(scm, app, req, opts) do
@@ -220,5 +218,10 @@ defmodule Mix.Deps.Retriever do
 
   defp makefile?(dep) do
     File.regular? Path.join(dep.opts[:dest], "Makefile")
+  end
+
+  defp invalid_dep_format(dep) do
+    raise Mix.Error, message: %b(dependency specified in the wrong format: #{inspect dep}, ) <>
+      %b(expected { app :: atom, opts :: Keyword.t } | { app :: atom, requirement :: String.t, opts :: Keyword.t })
   end
 end
