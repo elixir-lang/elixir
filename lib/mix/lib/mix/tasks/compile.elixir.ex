@@ -175,16 +175,16 @@ defmodule Mix.Tasks.Compile.Elixir do
   a function defined over `lib/b.ex`, whenever `lib/b.ex` changes,
   `lib/a.ex` is also recompiled.
 
-  Note it is important to recompile a file dependencies because
-  often there are compilation time dependencies in between them.
+  Note it is important to recompile a file's dependencies because
+  often there are compilation time dependencies between them.
 
   ## Command line options
 
-  * `--force` - forces compilation regardless of modification times;
-  * `--no-docs` - Do not attach documentation to compiled modules;
-  * `--no-debug-info` - Do not attach debug info to compiled modules;
+  * `--force` - forces compilation regardless of modification times
+  * `--no-docs` - do not attach documentation to compiled modules
+  * `--no-debug-info` - do not attach debug info to compiled modules
   * `--ignore-module-conflict`
-  * `--warnings-as-errors` - Treat warnings as errors and return a non-zero exit code
+  * `--warnings-as-errors` - treat warnings as errors and return a non-zero exit code
 
   ## Configuration
 
@@ -198,7 +198,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   * `:elixirc_options` - compilation options that apply
      to Elixir's compiler, they are: `:ignore_module_conflict`,
      `:docs` and `:debug_info`. By default, uses the same
-     behaviour as Elixir;
+     behaviour as Elixir
 
   * `:elixirc_exts` - extensions to compile whenever there
      is a change:
@@ -231,7 +231,6 @@ defmodule Mix.Tasks.Compile.Elixir do
     watch_exts    = project[:elixirc_watch_exts]
     elixirc_paths = project[:elixirc_paths]
 
-    manifest   = manifest()
     to_compile = Mix.Utils.extract_files(elixirc_paths, compile_exts)
     to_watch   = Mix.Utils.extract_files(elixirc_paths, watch_exts)
 
@@ -244,7 +243,6 @@ defmodule Mix.Tasks.Compile.Elixir do
       File.mkdir_p!(compile_path)
       Code.prepend_path(compile_path)
 
-      manifest = Path.join(compile_path, @manifest)
       set_compiler_opts(project, opts, [])
       files_to_path(manifest, stale, to_compile, compile_path)
       :ok
@@ -268,8 +266,8 @@ defmodule Mix.Tasks.Compile.Elixir do
   where compiled files will be written to. All paths are required
   to be relative to the current working directory.
 
-  The manifest is written down with information including dependencies
-  in between modules, which helps it recompile only the modules that
+  The manifest is written with information including dependencies
+  between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
   defdelegate files_to_path(manifest, stale, all, path), to: ManifestCompiler

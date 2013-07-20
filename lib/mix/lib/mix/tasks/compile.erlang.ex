@@ -212,10 +212,8 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   defp compile_files(files, all, compile_path, erlc_options) do
-    manifest_path = Path.join(compile_path, @manifest)
-
     modules  = lc erl inlist all, do: erl.module
-    previous = Mix.Utils.read_manifest(manifest_path)
+    previous = Mix.Utils.read_manifest(manifest)
 
     lc beam inlist previous, not (module_from_artifact(beam) in modules) do
       File.rm(beam)
@@ -226,7 +224,7 @@ defmodule Mix.Tasks.Compile.Erlang do
       Path.join(compile_path, "#{mod}.beam")
     end
 
-    Mix.Utils.write_manifest(manifest_path, compiled)
+    Mix.Utils.write_manifest(manifest, compiled)
     if Enum.any?(results, &1 == :error), do: raise CompileError
   end
 
