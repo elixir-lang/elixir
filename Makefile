@@ -155,12 +155,12 @@ test_kernel: compile
 
 .dialyzer.base_plt:
 	@ echo "==> Adding Erlang/OTP basic applications to a new base PLT"
-	$(Q) dialyzer --output_plt .dialyzer.base_plt --build_plt --apps erts kernel stdlib compiler syntax_tools inets crypto ssl
+	$(Q) dialyzer --output_plt .dialyzer.base_plt --build_plt --apps erts kernel stdlib compiler tools syntax_tools parsetools
 
 dialyze: .dialyzer.base_plt
 	$(Q) rm -f .dialyzer_plt
 	$(Q) cp .dialyzer.base_plt .dialyzer_plt
 	@ echo "==> Adding Elixir to PLT..."
-	$(Q) dialyzer --plt .dialyzer_plt --add_to_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/mix/ebin lib/iex/ebin lib/eex/ebin
+	$(Q) dialyzer --plt .dialyzer_plt --add_to_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/eex/ebin lib/iex/ebin lib/mix/ebin
 	@ echo "==> Dialyzing Elixir..."
-	$(Q) dialyzer --plt .dialyzer_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/mix/ebin lib/iex/ebin lib/eex/ebin
+	$(Q) dialyzer --plt .dialyzer_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/eex/ebin lib/iex/ebin lib/mix/ebin

@@ -75,7 +75,7 @@ parse_error(Meta, File, Error, Token) ->
 
 %% Raised during compilation
 
--spec form_error(non_neg_integer(), file:filename(), module(), any()) -> no_return().
+-spec form_error(non_neg_integer() | list(), file:filename(), module(), any()) -> no_return().
 
 form_error(Meta, File, Module, Desc) ->
   Message = iolist_to_binary(format_error(Module, Desc)),

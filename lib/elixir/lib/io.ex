@@ -40,11 +40,11 @@ defmodule IO do
   def read(device // group_leader, chars_or_line)
 
   def read(device, :line) do
-    :io.get_line(map_dev(device), "")
+    :io.get_line(map_dev(device), '')
   end
 
   def read(device, count) when count >= 0 do
-    :io.get_chars(map_dev(device), "", count)
+    :io.get_chars(map_dev(device), '', count)
   end
 
   @doc """

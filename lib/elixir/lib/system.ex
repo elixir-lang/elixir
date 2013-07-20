@@ -153,9 +153,9 @@ defmodule System do
   end
 
   defp write_env_tmp_dir(env) do
-    case get_env(env) do
-      nil -> nil
-      tmp -> write_tmp_dir tmp
+    case :os.getenv(env) do
+      false -> nil
+      tmp   -> write_tmp_dir(tmp)
     end
   end
 
@@ -166,7 +166,7 @@ defmodule System do
         access_index = File.Stat.__record__(:index, :access)
         case { elem(info, type_index), elem(info, access_index) } do
           { :directory, access } when access in [:read_write, :write] ->
-            dir
+            :unicode.characters_to_binary(dir)
           _ -> nil
         end
       { :error, _ } -> nil
@@ -193,14 +193,17 @@ defmodule System do
   If `command` is a char list, a char list is returned.
   Returns a binary otherwise.
   """
+  @spec cmd(binary) :: binary
   @spec cmd(char_list) :: char_list
-  @spec cmd(String.t) :: String.t
+
   def cmd(command) when is_list(command) do
     :os.cmd(command)
   end
 
-  def cmd(command) do
-    list_to_binary :os.cmd(to_char_list(command))
+  def cmd(command) when is_binary(command) do
+    # Notice we don't use unicode for conversion
+    # because the OS is expecting and returning raw bytes
+    list_to_binary :os.cmd(binary_to_list(command))
   end
 
   @doc """
@@ -213,14 +216,17 @@ defmodule System do
   If `program` is a char list, a char list is returned.
   Returns a binary otherwise.
   """
+  @spec find_executable(binary) :: binary | nil
   @spec find_executable(char_list) :: char_list | nil
-  @spec find_executable(String.t) :: String.t | nil
+
   def find_executable(program) when is_list(program) do
     :os.find_executable(program) || nil
   end
 
-  def find_executable(program) do
-    case :os.find_executable(to_char_list(program)) do
+  def find_executable(program) when is_binary(program) do
+    # Notice we don't use unicode for conversion
+    # because the OS is expecting and returning raw bytes
+    case :os.find_executable(binary_to_list(program)) do
       false -> nil
       other -> list_to_binary(other)
     end
@@ -231,9 +237,9 @@ defmodule System do
   given as a single string of the format "VarName=Value", where VarName is the
   name of the variable and Value its value.
   """
-  @spec get_env() :: [{String.t, String.t}]
+  @spec get_env() :: [{binary, binary}]
   def get_env do
-    Enum.map :os.getenv, :unicode.characters_to_binary &1
+    Enum.map :os.getenv, :unicode.characters_to_binary(&1)
   end
 
   @doc """
@@ -241,9 +247,9 @@ defmodule System do
   `varname` as a binary, or nil if the environment
   variable is undefined.
   """
-  @spec get_env(String.t) :: String.t | nil
-  def get_env(varname) do
-    case :os.getenv(to_char_list(varname)) do
+  @spec get_env(binary) :: binary | nil
+  def get_env(varname) when is_binary(varname) do
+    case :os.getenv(:unicode.characters_to_list(varname)) do
       false -> nil
       other -> :unicode.characters_to_binary(other)
     end
@@ -255,15 +261,15 @@ defmodule System do
 
   See http://www.erlang.org/doc/man/os.html#getpid-0 for more info.
   """
-  @spec get_pid() :: String.t
+  @spec get_pid() :: binary
   def get_pid, do: list_to_binary(:os.getpid)
 
   @doc """
   Sets a new `value` for the environment variable `varname`.
   """
-  @spec put_env(String.t, String.t | char_list) :: :ok
-  def put_env(varname, value) when is_binary(value) or is_list(value) do
-   :os.putenv to_char_list(varname), :unicode.characters_to_list(value)
+  @spec put_env(binary, binary) :: :ok
+  def put_env(varname, value) when is_binary(varname) and is_binary(value) do
+   :os.putenv binary_to_list(varname), :unicode.characters_to_list(value)
    :ok
   end
 
@@ -318,16 +324,16 @@ defmodule System do
 
   """
   @spec halt() :: no_return
-  @spec halt(non_neg_integer | List.Chars.t | :abort) :: no_return
-  @spec halt(non_neg_integer | List.Chars.t | :abort, [] | [flush: false]) :: no_return
+  @spec halt(non_neg_integer | binary | :abort) :: no_return
+  @spec halt(non_neg_integer | binary | :abort, [] | [flush: false]) :: no_return
   def halt(status // 0, options // [])
 
   def halt(status, options) when is_integer(status) or status == :abort do
     :erlang.halt(status, options)
   end
 
-  def halt(status, options) do
-    :erlang.halt(to_char_list(status), options)
+  def halt(status, options) when is_binary(status) do
+    :erlang.halt(binary_to_list(status), options)
   end
 
   ## Helpers

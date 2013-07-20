@@ -240,7 +240,7 @@ defmodule Inspect.Algebra do
       "A!B"
 
   """
-  @spec folddoc([any], ((t, [t]) -> t)) :: t
+  @spec folddoc([any], ((any, [t]) -> t)) :: t
   def folddoc([], _), do: empty
   def folddoc([doc], _), do: doc
   def folddoc([d|ds], f), do: f.(d, folddoc(ds, f))
@@ -323,7 +323,7 @@ defmodule Inspect.Algebra do
   and returns the string representation of the best layout for the
   document to fit in the given width.
   """
-  @spec pretty(t, non_neg_integer) :: binary
+  @spec pretty(t, non_neg_integer | :infinity) :: binary
   def pretty(d, w) do
     sdoc = format w, 0, [{0, default_mode(w), doc_group(doc: d)}]
     render(sdoc)

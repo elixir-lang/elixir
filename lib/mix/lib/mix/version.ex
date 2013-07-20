@@ -60,7 +60,7 @@ defmodule Mix.Version do
   @type matchable :: { major :: String.t | non_neg_integer,
                        minor :: non_neg_integer | nil,
                        patch :: non_neg_integer | nil,
-                       pre   :: { String.t, non_neg_integer } | nil }
+                       pre   :: [String.t] }
 
   import Kernel, except: [match?: 2]
 

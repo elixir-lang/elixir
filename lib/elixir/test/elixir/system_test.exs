@@ -53,7 +53,7 @@ defmodule SystemTest do
 
   test :env do
     assert System.get_env("SYSTEM_ELIXIR_ENV_TEST_VAR") == nil
-    System.put_env('SYSTEM_ELIXIR_ENV_TEST_VAR', 'SAMPLE')
+    System.put_env("SYSTEM_ELIXIR_ENV_TEST_VAR", "SAMPLE")
     assert System.get_env("SYSTEM_ELIXIR_ENV_TEST_VAR") == "SAMPLE"
   end
 

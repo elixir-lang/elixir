@@ -631,9 +631,16 @@ defmodule Enum do
 
   def map_join(collection, joiner, mapper) when is_binary(joiner) do
     Enumerable.reduce(collection, "", fn
-      entry, ""  -> to_binary(mapper.(entry))
-      entry, acc -> acc <> joiner <> to_binary(mapper.(entry))
+      entry, ""  -> to_binary(mapper, entry)
+      entry, acc -> acc <> joiner <> to_binary(mapper, entry)
     end)
+  end
+
+  defp to_binary(mapper, entry) do
+    case mapper.(entry) do
+      x when is_binary(x) -> x
+      o -> Binary.Chars.to_binary(o)
+    end
   end
 
   @doc """
