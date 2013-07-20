@@ -244,7 +244,6 @@ defmodule Mix.Tasks.Compile.Elixir do
       File.mkdir_p!(compile_path)
       Code.prepend_path(compile_path)
 
-      manifest = Path.join(compile_path, @manifest)
       set_compiler_opts(project, opts, [])
       files_to_path(manifest, stale, to_compile, compile_path)
       :ok
