@@ -3741,10 +3741,19 @@ defmodule Kernel do
       _else -> raise ArgumentError, message: "modifier must be one of: b, a, c"
     end
 
-    case mod do
-      ?b -> quote do: String.split(unquote(string))
-      ?a -> quote do: lc(p inlist String.split(unquote(string)), do: binary_to_atom(p))
-      ?c -> quote do: lc(p inlist String.split(unquote(string)), do: :unicode.characters_to_list(p))
+    case is_binary(string) do
+      true ->
+        case mod do
+          ?b -> String.split(string)
+          ?a -> lc p inlist String.split(string), do: binary_to_atom(p)
+          ?c -> lc p inlist String.split(string), do: :unicode.characters_to_list(p)
+        end
+      false ->
+        case mod do
+          ?b -> quote do: String.split(unquote(string))
+          ?a -> quote do: lc(p inlist String.split(unquote(string)), do: binary_to_atom(p))
+          ?c -> quote do: lc(p inlist String.split(unquote(string)), do: :unicode.characters_to_list(p))
+        end
     end
   end
 end

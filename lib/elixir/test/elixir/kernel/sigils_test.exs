@@ -71,6 +71,9 @@ defmodule Kernel.SigilsTest do
     assert %w(Foo.#{Bar}.Baz)a == [:"Foo.Elixir.Bar.Baz"]
     assert %w(Foo.Bar)b == ["Foo.Bar"]
     assert %w(Foo.#{Bar})c == ['Foo.Elixir.Bar']
+
+    # Ensure it is fully expanded at compile time
+    assert Macro.expand(quote(do: %w(a b c)a), __ENV__) == [:a, :b, :c]
   end
 
   test :sigil_W do
