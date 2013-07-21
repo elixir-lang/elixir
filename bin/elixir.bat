@@ -51,7 +51,7 @@ set par="%1"
 shift
 if "%par%"=="" (
   rem if no parameters defined
-  goto :run
+  goto :expand_erl_libs
 )
 rem ******* ERLANG PARAMETERS **********************
 for /f "usebackq" %%m in (`echo %par%^|findstr \--detached`) do (
@@ -115,5 +115,11 @@ for /f "usebackq" %%m in (`echo %par%^|findstr \--remsh`) do (
   goto:startloop
 )
 rem ******* assume all pre-params are parsed ********************
+:expand_erl_libs
+rem ******* expand all ebin paths as Windows does not support the ..\*\ebin wildcard ********************
+set ext_libs=
+for  /d %%d in ("%originPath%..\lib\*.") do (
+  set ext_libs=!ext_libs! -pa "%%~fd\ebin"
+)
 :run
-erl -env ERL_LIBS %ERL_LIBS%;"%originPath%\..\lib" -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+erl %ext_libs% -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
