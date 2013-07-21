@@ -4,25 +4,12 @@ defmodule Mix.Tasks.Compile.YeccTest do
   use MixTest.Case
   import ExUnit.CaptureIO
 
-  test "tries to compile src/test_fail.yrl" do
-    in_fixture "compile_yecc", fn ->
-      File.write!("src/test_fail.yrl", """)
-      oops.
-      """
-
-      assert_raise CompileError, fn ->
-        capture_io fn ->
-          Mix.Tasks.Compile.Yecc.run []
-        end
-      end
-    end
-  end
-
   test "compilation continues if one file fails to compile" do
     in_fixture "compile_yecc", fn ->
       File.write!("src/zzz.yrl", """)
       oops.
       """
+
       assert_raise CompileError, fn ->
         capture_io fn ->
           Mix.Tasks.Compile.Yecc.run ["--force"]
@@ -35,15 +22,15 @@ defmodule Mix.Tasks.Compile.YeccTest do
 
   test "compiles src/test_ok.yrl" do
     in_fixture "compile_yecc", fn ->
-      Mix.Tasks.Compile.Yecc.run []
+      assert Mix.Tasks.Compile.Yecc.run([]) == :ok
 
       assert_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
       assert File.regular?("src/test_ok.erl")
 
-      Mix.Tasks.Compile.Yecc.run []
+      assert Mix.Tasks.Compile.Yecc.run([]) == :noop
       refute_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
 
-      Mix.Tasks.Compile.Yecc.run ["--force"]
+      assert Mix.Tasks.Compile.Yecc.run(["--force"]) == :ok
       assert_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
     end
   end
@@ -53,12 +40,8 @@ defmodule Mix.Tasks.Compile.YeccTest do
       assert Mix.Tasks.Compile.Yecc.run([]) == :ok
       assert File.regular?("src/test_ok.erl")
 
-      # Now we have a noop
       File.rm!("src/test_ok.yrl")
-      assert Mix.Tasks.Compile.Yecc.run([]) == :noop
-
-      # --force
-      assert Mix.Tasks.Compile.Yecc.run(["--force"]) == :ok
+      assert Mix.Tasks.Compile.Yecc.run([]) == :ok
       refute File.regular?("src/test_ok.erl")
     end
   end

@@ -44,17 +44,21 @@ defmodule Mix.Tasks.Compile.Yecc do
 
     project      = Mix.project
     source_paths = project[:erlc_paths]
-    compile_path = project[:compile_path]
+    entries      = Mix.Utils.read_manifest(manifest())
 
-    files = lc source_path inlist source_paths do
-              Erlang.extract_stale_pairs(source_path, :yrl, source_path, :erl, opts[:force])
-            end |> List.flatten
+    { stale, removed } =
+      Enum.reduce(source_paths, { [], [] }, fn
+        path, { acc1, acc2 } ->
+          { stale, removed } = Erlang.extract_stale_pairs(entries, path, :yrl, path, :erl, opts[:force])
+          { stale ++ acc1, removed ++ acc2 }
+      end)
 
-    if files != [] || opts[:force] do
-      compile_files(files, compile_path, project[:yecc_options] || [])
-      :ok
-    else
+    if stale == [] && removed == [] do
       :noop
+    else
+      Enum.each(removed, File.rm(&1))
+      compile_files(entries -- removed, stale, project[:yecc_options] || [])
+      :ok
     end
   end
 
@@ -65,18 +69,15 @@ defmodule Mix.Tasks.Compile.Yecc do
     Path.join(Mix.project[:compile_path], @manifest)
   end
 
-  defp compile_files(files, compile_path, options) do
-    manifest_path = Path.join(compile_path, @manifest)
-    Mix.Utils.read_manifest(manifest_path) |> Enum.each(File.rm(&1))
-
+  defp compile_files(entries, files, options) do
     results = lc { input, output } inlist files do
       options = options ++ [parserfile: Erlang.to_erl_file(output), report: true]
       Erlang.interpret_result(input, :yecc.file(Erlang.to_erl_file(input), options))
     end
 
-    outputs = Enum.map(files, elem(&1, 1))
+    outputs = entries ++ Enum.map(files, elem(&1, 1))
+    Mix.Utils.write_manifest(manifest(), :lists.usort(outputs))
 
-    Mix.Utils.write_manifest(manifest_path, outputs)
     if Enum.any?(results, &1 == :error), do: raise CompileError
   end
 end

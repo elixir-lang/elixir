@@ -88,11 +88,18 @@ defmodule Mix.Tasks.Compile.Erlang do
       filtered = Enum.filter(files, requires_compilation?(compile_path, &1))
     end
 
-    if filtered == [] do
+    modules = lc erl inlist files, do: erl.module
+    entries = Mix.Utils.read_manifest(manifest())
+    removed = lc beam_path inlist entries,
+                  not (module_from_artifact(beam_path) in modules),
+                  do: beam_path
+
+    if filtered == [] and removed == [] do
       :noop
     else
-      File.mkdir_p! compile_path
-      compile_files filtered, files, compile_path, erlc_options
+      File.mkdir_p!(compile_path)
+      Enum.each(removed, File.rm(&1))
+      compile_files(entries -- removed, filtered, compile_path, erlc_options)
       :ok
     end
   end
@@ -111,17 +118,24 @@ defmodule Mix.Tasks.Compile.Erlang do
   attempts to find matching pairs in `dir2` with `ext2`
   extensions.
   """
-  def extract_stale_pairs(dir1, ext1, dir2, ext2, force) do
-    files = Mix.Utils.extract_files([dir1], List.wrap(ext1))
-    Enum.reduce files, [], fn(file, acc) ->
-      compiled_file = module_from_artifact(file)
-      compiled_file = Path.join(dir2, compiled_file <> "." <> to_binary(ext2))
+  def extract_stale_pairs(entries, dir1, ext1, dir2, ext2, force) do
+    files   = Mix.Utils.extract_files([dir1], List.wrap(ext1))
+    modules = Enum.map(files, module_from_artifact(&1))
+
+    stale = Enum.reduce Enum.zip(files, modules), [], fn({ file, module }, acc) ->
+      compiled_file = Path.join(dir2, module <> "." <> to_binary(ext2))
       if force || Mix.Utils.stale?([file], [compiled_file]) do
         [{file, compiled_file} | acc]
       else
         acc
       end
     end
+
+    removed = Enum.filter(entries, fn entry ->
+      not(module_from_artifact(entry) in modules)
+    end)
+
+    { stale, removed }
   end
 
   @doc """
@@ -211,22 +225,13 @@ defmodule Mix.Tasks.Compile.Erlang do
     Mix.Utils.stale?([erl.file|erl.includes], [beam])
   end
 
-  defp compile_files(files, all, compile_path, erlc_options) do
-    manifest_path = Path.join(compile_path, @manifest)
-
-    modules  = lc erl inlist all, do: erl.module
-    previous = Mix.Utils.read_manifest(manifest_path)
-
-    lc beam inlist previous, not (module_from_artifact(beam) in modules) do
-      File.rm(beam)
-    end
-
-    results  = Enum.map(files, compile_file(&1, erlc_options))
-    compiled = lc { :ok, mod } inlist results do
+  defp compile_files(entries, files, compile_path, erlc_options) do
+    results = Enum.map(files, compile_file(&1, erlc_options))
+    outputs = lc { :ok, mod } inlist results do
       Path.join(compile_path, "#{mod}.beam")
     end
 
-    Mix.Utils.write_manifest(manifest_path, compiled)
+    Mix.Utils.write_manifest(manifest(), :lists.usort(entries ++ outputs))
     if Enum.any?(results, &1 == :error), do: raise CompileError
   end
 
