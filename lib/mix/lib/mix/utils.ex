@@ -9,14 +9,14 @@ defmodule Mix.Utils do
   * From command names to module names, i.e. how the command
     `deps.get` translates to `Deps.Get` and vice-versa;
 
-  * From underscore to camelize, i.e. how the file path
+  * From underscore to CamelCase, i.e. how the file path
     `my_project` translates to `MyProject`;
 
   """
 
   @doc """
   Gets the mix home. It defaults to `~/.mix` unless the
-  MIX_HOME environment variable is set.
+  `MIX_HOME` environment variable is set.
   """
   def mix_home do
     System.get_env("MIX_HOME") || Path.expand("~/.mix")
@@ -24,7 +24,7 @@ defmodule Mix.Utils do
 
   @doc """
   Gets all extra paths defined in the environment variable
-  MIX_PATH. MIX_PATH may contain multiple paths. If on windows,
+  `MIX_PATH`. `MIX_PATH` may contain multiple paths. If on Windows,
   those paths should be separated by `;`, if on unix systems,
   use `:`.
   """
@@ -44,7 +44,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Takes a `command` name and try to load a module
+  Takes a `command` name and attempts to load a module
   with the command name converted to a module name
   in the given `at` scope.
 
@@ -63,15 +63,15 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Returns true if any of the sources are stale
-  compared to the given target.
+  Returns `true` if any of the `sources` are stale
+  compared to the given `targets`.
   """
   def stale?(sources, targets) do
     Enum.any? stale_stream(sources, targets)
   end
 
   @doc """
-  Extract all stale sources compared to the given targets.
+  Extract all stale `sources` compared to the given `targets`.
   """
   def extract_stale(_sources, []), do: []
 
@@ -103,14 +103,14 @@ defmodule Mix.Utils do
   end
 
   @doc %B"""
-  Reads the given file as manifest and return each entry
+  Reads the given file as a manifest and returns each entry
   as a list.
 
   A manifest is a tabular file where each line is a row
   and each entry in a row is separated by "\t". The first
   entry must always be a path to a compiled artifact.
 
-  In case there is no manifest file, returns an emoty list.
+  In case there is no manifest file, returns an empty list.
   """
   def read_manifest(file) do
     case File.read(file) do
@@ -120,7 +120,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Writes down a manifest file with the given `entries` list.
+  Writes a manifest file with the given `entries` list.
   """
   def write_manifest(file, entries) do
     Path.dirname(file) |> File.mkdir_p!
@@ -130,7 +130,7 @@ defmodule Mix.Utils do
   @doc """
   Extract files from a list of paths.
 
-  In case any of the paths is a directory, the directory is looped
+  If any of the paths is a directory, the directory is looped
   recursively searching for the given extensions or the given pattern.
   When looking up directories, files starting with "." are ignored.
   """
@@ -182,8 +182,8 @@ defmodule Mix.Utils do
       Mix.Utils.underscore "Foo.Bar" #=> "foo/bar"
       Mix.Utils.underscore Foo.Bar   #=> "foo/bar"
 
-  In general, underscore can be thought as the reverse of
-  camelize, however, in some cases formatting may be lost:
+  In general, `underscore` can be thought of as the reverse of
+  `camelize`, however, in some cases formatting may be lost:
 
       Mix.Utils.underscore "SAPExample"  #=> "sap_example"
       Mix.Utils.camelize   "sap_example" #=> "SapExample"
@@ -223,7 +223,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Converts the given string to camelize format.
+  Converts the given string to CamelCase format.
 
   ## Examples
 
@@ -276,7 +276,7 @@ defmodule Mix.Utils do
 
   @doc """
   Takes a module and converts it to a command. The nesting
-  argument can be given in order to remove the nesting of
+  argument can be given in order to remove the nesting of a
   module.
 
   ## Examples
@@ -300,7 +300,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Takes a command and converts it to a module name format.
+  Takes a command and converts it to the module name format.
 
   ## Examples
 
@@ -326,16 +326,16 @@ defmodule Mix.Utils do
   defp to_lower_char(char) when char in ?A..?Z, do: char + 32
   defp to_lower_char(char), do: char
 
-	@doc """
-	Opens and reads content from either a URL or a local filesystem path.
+  @doc """
+  Opens and reads content from either a URL or a local filesystem path.
 
-	Used by tasks like `local.install` and `local.rebar` that support
-	installation either from a URL or a local file.
+  Used by tasks like `local.install` and `local.rebar` that support
+  installation either from a URL or a local file.
 
-  Raises in case the given path is not a url, nor a file or if the
+  Raises if the given path is not a url, nor a file or if the
   file or url are invalid.
-	"""
-	def read_path!(path) do
+  """
+  def read_path!(path) do
     cond do
       is_url?(path)  -> read_url(path)
       is_file?(path) -> read_file(path)
