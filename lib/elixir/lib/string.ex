@@ -469,6 +469,30 @@ defmodule String do
   end
 
   @doc """
+  Reverses the given string. Works on graphemes.
+
+  ## Examples
+
+      iex> String.reverse("abcd")
+      "dcba"
+      iex> String.reverse("hello world")
+      "dlrow olleh"
+      iex> String.reverse("hello ∂og")
+      "go∂ olleh"
+
+  """
+  @spec reverse(t) :: t
+  def reverse(string) do
+    do_reverse(String.Unicode.next_grapheme(string), [])
+  end
+
+  defp do_reverse({grapheme, rest}, acc) do
+    do_reverse(String.Unicode.next_grapheme(rest), [grapheme|acc])
+  end
+
+  defp do_reverse(:no_grapheme, acc), do: list_to_binary(acc)
+
+  @doc """
   Returns a binary `subject` duplicated `n` times.
 
   ## Examples
