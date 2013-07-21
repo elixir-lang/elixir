@@ -7,19 +7,19 @@ defmodule Mix.Tasks.Test do
   @moduledoc """
   Run the tests for a project.
 
-  This task will preload the `test/test_helper.exs` which
-  should do all testing setup and then require all files
-  that match the given `test_pattern` in parallel.
+  This task starts the current application and then requires
+  all files that match the given `test_pattern` in parallel.
 
-  Before running tests, it invokes the `App.Start` task
-  which defaults to compile and load your project.
+  It is expected from each test file to properly setup the
+  test framework, usually by providing a `test/test_helper.exs`
+  file that is usually require at the top of each test file.
 
   A list of files can be given after the task name in
   order to select the files to compile.
 
   ## Command line options
 
-  * `--trace` - run tests with detailed reporting. Automatically sets `max-cases` to 1;
+  * `--trace` - run tests with detailed reporting. Automatically sets `--max-cases` to 1;
   * `--max-cases` - set the maximum number of cases running async;
   * `--cover` - the directory to include coverage results;
   * `--force` - forces compilation regardless of module times;
