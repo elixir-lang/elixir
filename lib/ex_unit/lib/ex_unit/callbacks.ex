@@ -8,9 +8,9 @@ defmodule ExUnit.Callbacks do
   may optionally put extra data into `context` to be used in the tests.
 
   **Note**: `setup` and `teardown` callbacks share the same context, it
-  provides an ExUnit.Test record associated with the `:test` key. `setup_all`
+  provides an `ExUnit.Test` record associated with the `:test` key. `setup_all`
   and `teardown_all` share their own context in a similar way, but this one
-  provides an ExUnit.TestCase record associated with the `:case` key.
+  provides an `ExUnit.TestCase` record associated with the `:case` key.
 
   If you return `{ :ok, <keyword list> }` from `setup` or `teardown`, the keyword
   list will get merged into the context that will be available in all
@@ -20,7 +20,7 @@ defmodule ExUnit.Callbacks do
   `teardown_all` will merge the keyword list into the context that will be
   available in all subsequent `setup_all` or `teardown_all` calls.
 
-  Returning :ok leaves the context unchanged in both cases.
+  Returning `:ok` leaves the context unchanged in both cases.
 
   Returning anything else from `setup` or `teardown` will force the current
   test to fail, and subsequent `setup`, `test`, and `teardown` callbacks won't
