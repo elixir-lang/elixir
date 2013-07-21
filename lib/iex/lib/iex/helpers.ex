@@ -11,21 +11,25 @@ defmodule IEx.Helpers do
 
   There are many other helpers available:
 
-  * `c/2` - compiles a file at the given path
-  * `ls/0` - list the contents of the current directory
-  * `ls/1` - list the contents of the specified directory
-  * `cd/1` - changes the current directory
+  * `c/2`     — compiles a file at the given path
+  * `clear/0` — clear the screen 
+  * `ls/0`    — list the contents of the current directory
+  * `ls/1`    — list the contents of the specified directory
+  * `cd/1`    — changes the current directory
   * `flush/0` — flush all messages sent to the shell
-  * `h/0`, `h/1` - prints help/documentation
-  * `l/1` - loads the given module's beam code and purges the current version
-  * `m/0` - prints loaded modules
-  * `pwd/0` - prints the current working directory
-  * `r/0`, `r/1` - recompiles and reloads the given module's source file
-  * `s/1` — prints spec information
-  * `t/1` — prints type information
-  * `v/0` - prints the history of commands evaluated in the session
-  * `v/1` - retrieves the nth value from the history
-  * `import_file/1` - evaluate the given file in the shell's context
+  * `h/0`     — print this help
+  * `h/1`     — prints help for the given module, function, macro, →
+  * `l/1`     — loads the given module's beam code and purges the current version
+  * `m/0`     — prints loaded modules
+  * `pwd/0`   — prints the current working directory
+  * `r/0`     — recompile and reload all modules that were previously reloaded
+  *  r/1`     — recompiles and reloads the given module's source file
+  * `s/1`     — prints spec information
+  * `t/1`     — prints type information
+  * `v/0`     — prints the history of commands evaluated in the session
+  * `v/1`     — retrieves the nth value from the history
+  * `import_file/1` 
+              — evaluate the given file in the shell's context
 
   Help for functions in this module can be consulted
   directly from the command line, as an example, try:
@@ -40,6 +44,9 @@ defmodule IEx.Helpers do
 
   To learn more about IEx as a whole, just type `h(IEx)`.
   """
+
+  @doc false
+  def dont_display_result, do: :"do not show this result in the repl"
 
   @doc """
   Expects a list of files to compile and a path
@@ -62,6 +69,14 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Clear the console screen.
+  """
+  def clear do
+    IO.write [ IO.ANSI.home, IO.ANSI.clear ]
+    dont_display_result
+  end
+
+  @doc """
   Prints the list of all loaded modules with paths to their corresponding .beam
   files.
   """
@@ -74,6 +89,7 @@ defmodule IEx.Helpers do
     Enum.each sorted, fn({ mod, file }) ->
       :io.format(format, [mod, file])
     end
+    dont_display_result
   end
 
   @doc """
@@ -81,6 +97,7 @@ defmodule IEx.Helpers do
   """
   def h() do
     IEx.Introspection.h(IEx.Helpers)
+    dont_display_result
   end
 
   @doc """
@@ -101,47 +118,46 @@ defmodule IEx.Helpers do
   """
   # Special case for `h AnyModule.__info__/1`
   defmacro h({ :/, _, [{ { :., _, [_mod, :__info__] }, _, [] }, 1] }) do
-    quote do
-      IEx.Introspection.h(Module, :__info__, 1)
-    end
+    h_wrapper([Module, :__info__, 1])
   end
 
   defmacro h({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
-    quote do
-      IEx.Introspection.h(unquote(mod), unquote(fun), unquote(arity))
+    quote do 
+      h_wrapper([unquote(mod), unquote(fun), unquote(arity)])
     end
   end
 
   # Special case for `h AnyModule.__info__`
   defmacro h({ { :., _, [_mod, :__info__] }, _, [] }) do
-    quote do
-      IEx.Introspection.h(Module, :__info__, 1)
-    end
+    h_wrapper([Module, :__info__, 1])
   end
 
   defmacro h({ { :., _, [mod, fun] }, _, [] }) do
     quote do
-      IEx.Introspection.h(unquote(mod), unquote(fun))
+      h_wrapper([unquote(mod), unquote(fun)])
     end
   end
 
   defmacro h({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
-    quote do
-      IEx.Introspection.h(unquote(fun), unquote(arity))
+    quote do 
+      h_wrapper([unquote(fun), unquote(arity)])
     end
   end
 
   defmacro h({ name, _, args }) when args == [] or is_atom(args) do
     quote do
-      IEx.Introspection.h([unquote(__MODULE__), Kernel, Kernel.SpecialForms], unquote(name))
+      h_wrapper([[unquote(__MODULE__), Kernel, Kernel.SpecialForms], unquote(name)])
     end
   end
 
   defmacro h(other) do
     quote do
-      IEx.Introspection.h(unquote(other))
+      h_wrapper([unquote(other)])
     end
   end
+
+  @doc false
+  def h_wrapper(args), do: inspect_wrapper(:h, args)
 
   @doc """
   When given a module, prints specifications (or simply specs) for all the
@@ -157,21 +173,38 @@ defmodule IEx.Helpers do
   """
   defmacro t({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
-      IEx.Introspection.t(unquote(mod), unquote(fun), unquote(arity))
+      t_wrapper([unquote(mod), unquote(fun), unquote(arity)])
     end
   end
 
   defmacro t({ { :., _, [mod, fun] }, _, [] }) do
     quote do
-      IEx.Introspection.t(unquote(mod), unquote(fun))
+      t_wrapper([unquote(mod), unquote(fun)])
     end
   end
 
-  defmacro t(module) do
+  defmacro t(module) when is_atom(module) do
     quote do
-      IEx.Introspection.t(unquote(module))
+      t_wrapper([unquote(module)])
     end
   end
+
+  defmacro t(module = {:__aliases__, _, _}) do
+    quote do
+      t_wrapper([unquote(module)])
+    end
+  end
+
+  defmacro t(other) do
+    IO.inspect is_atom(other)
+    quote do
+      IO.puts IEx.color(:error, "Invalid argument to t/1:\n")
+      h(t)
+    end
+  end
+
+  @doc false
+  def t_wrapper(args), do: inspect_wrapper(:t, args)
 
   @doc """
   Similar to `t/1`, only for specs.
@@ -190,33 +223,36 @@ defmodule IEx.Helpers do
   """
   defmacro s({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
-      IEx.Introspection.s(unquote(mod), unquote(fun), unquote(arity))
+      s_wrapper([unquote(mod), unquote(fun), unquote(arity)])
     end
   end
 
   defmacro s({ { :., _, [mod, fun] }, _, [] }) do
     quote do
-      IEx.Introspection.s(unquote(mod), unquote(fun))
+      s_wrapper([unquote(mod), unquote(fun)])
     end
   end
 
   defmacro s({ fun, _, args }) when args == [] or is_atom(args) do
     quote do
-      IEx.Introspection.s(Kernel, unquote(fun))
+      s_wrapper([Kernel, unquote(fun)])
     end
   end
 
   defmacro s({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
     quote do
-      IEx.Introspection.s(Kernel, unquote(fun), unquote(arity))
+      s_wrapper([Kernel, unquote(fun), unquote(arity)])
     end
   end
 
   defmacro s(module) do
     quote do
-      IEx.Introspection.s(unquote(module))
+      s_wrapper([unquote(module)])
     end
   end
+
+  @doc false
+  def s_wrapper(args), do: inspect_wrapper(:s, args)
 
   @doc """
   Prints the history of expressions evaluated during the session along with
@@ -420,4 +456,11 @@ defmodule IEx.Helpers do
   defmacro import_file(_) do
     raise ArgumentError, message: "import_file/1 expects a literal binary as its argument"
   end
+
+
+  defp inspect_wrapper(func, args) do
+    apply(IEx.Introspection, func, args)
+    dont_display_result
+  end
+
 end
