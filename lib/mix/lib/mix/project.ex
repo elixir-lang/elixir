@@ -20,13 +20,13 @@ defmodule Mix.Project do
         end
       end
 
-  After defined, the configuration for this project can be read
-  as `Mix.project/0`. Notice that config won't fail if a
-  project is not defined, this allows many of mix tasks to work
+  After being defined, the configuration for this project can be read
+  as `Mix.project/0`. Notice that `config/0` won't fail if a
+  project is not defined; this allows many mix tasks to work
   even without a project.
 
-  In case the developer needs a project or want to access a special
-  function in the project, he can access `Mix.Project.get!/0`
+  In case the developer needs a project or wants to access a special
+  function in the project, he can call `Mix.Project.get!/0`
   which fails with `Mix.NoProjectError` in case a project is not
   defined.
   """
@@ -46,7 +46,7 @@ defmodule Mix.Project do
     push env.module
   end
 
-  # Push a project into the project stack. Only
+  # Push a project onto the project stack. Only
   # the top of the stack can be accessed.
   @doc false
   def push(atom) when is_atom(atom) do
@@ -76,11 +76,11 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Retrieves the current project, nil if there is no
+  Retrieves the current project, `nil` if there is no
   current project (i.e. there is no mixfile in the current
   project).
 
-  If you expect a project to be defined, i.e. it is an
+  If you expect a project to be defined, i.e. it is a
   requirement of the current task, you should call
   `get!/0` instead.
   """
@@ -92,11 +92,11 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Same as `get/0` but raises an exception if no project.
+  Same as `get/0`, but raises an exception if there is no current project.
 
-  This is usually called by tasks that needs additional
+  This is usually called by tasks that need additional
   functions on the project to be defined. Since such
-  tasks usually depends on a project to be defined, this
+  tasks usually depend on a project being defined, this
   function raises `Mix.NoProjectError` in case no project
   is available.
   """
@@ -115,7 +115,7 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns a list of project config files, for example,
+  Returns a list of project configuration files, for example,
   `mix.exs` and `mix.lock`. This function is usually used
   in compilation tasks to trigger a full recompilation
   whenever such configuration files change.
@@ -137,7 +137,7 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns true if project is an umbrella project.
+  Returns `true` if project is an umbrella project.
   """
   def umbrella? do
     config[:apps_path] != nil
@@ -178,7 +178,7 @@ defmodule Mix.Project do
   @doc """
   Runs the given `fun` inside the given project by changing
   the current working directory and loading the given project
-  into the project stack.
+  onto the project stack.
   """
   def in_project(app, app_path, post_config // [], fun)
 
