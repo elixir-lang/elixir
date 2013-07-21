@@ -80,28 +80,16 @@ defmodule Mix.Tasks.Compile.Erlang do
         opt
     end
 
-    files = files |> scan_sources(include_path, source_paths) |> sort_dependencies
+    tuples = files
+             |> scan_sources(include_path, source_paths)
+             |> sort_dependencies
+             |> Enum.map(annotate_target(&1, compile_path, opts[:force]))
 
-    if opts[:force] do
-      filtered = files
-    else
-      filtered = Enum.filter(files, requires_compilation?(compile_path, &1))
-    end
-
-    modules = lc erl inlist files, do: erl.module
-    entries = Mix.Utils.read_manifest(manifest())
-    removed = lc beam_path inlist entries,
-                  not (module_from_artifact(beam_path) in modules),
-                  do: beam_path
-
-    if filtered == [] and removed == [] do
-      :noop
-    else
-      File.mkdir_p!(compile_path)
-      Enum.each(removed, File.rm(&1))
-      compile_files(entries -- removed, filtered, compile_path, erlc_options)
-      :ok
-    end
+    compile_mappings(manifest(), tuples, fn
+      input, _output ->
+        file = to_erl_file(Path.rootname(input, ".erl"))
+        :compile.file(file, erlc_options)
+    end)
   end
 
   @doc """
@@ -112,41 +100,46 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   @doc """
-  Extract stale pairs considering the set of directories
-  and filename extensions. It first looks in `dir1`
-  for files with `ext1` extensions and then recursively
-  attempts to find matching pairs in `dir2` with `ext2`
-  extensions.
-  """
-  def extract_stale_pairs(entries, dir1, ext1, dir2, ext2, force) do
-    files   = Mix.Utils.extract_files([dir1], List.wrap(ext1))
-    modules = Enum.map(files, module_from_artifact(&1))
+  Extracts the extensions from the mappings, automatically
+  invoking the callback for each stale input and output pairs
+  (or for all if force is true) and removing files that no
+  longer have a source, while maintaining the manifest up
+  to date.
 
-    stale = Enum.reduce Enum.zip(files, modules), [], fn({ file, module }, acc) ->
-      compiled_file = Path.join(dir2, module <> "." <> to_binary(ext2))
-      if force || Mix.Utils.stale?([file], [compiled_file]) do
-        [{file, compiled_file} | acc]
-      else
-        acc
+  ## Examples
+
+  For example, a simple compiler for Lisp Flavored Erlang
+  would be implemented like:
+
+      compile_mappings "ebin/.compile.lfe",
+                       [{ "src", "ebin" }],
+                       :lfe, :beam, opts[:force], fn
+        input, output ->
+          lfe_comp:file(to_erl_file(input),
+                        [output_dir: Path.dirname(output)])
       end
-    end
 
-    removed = Enum.filter(entries, fn entry ->
-      not(module_from_artifact(entry) in modules)
-    end)
+  The command above will:
 
-    { stale, removed }
-  end
+  1. Look for files ending with `lfe` extension in src
+     and their `beam` counterpart in ebin;
+  2. For each stale file (or for all if force is true),
+     invoke the callback passing the calculated input
+     and output;
+  3. Update the manifest with the newly compiled outputs;
+  4. Remove any output in the manifest that that does not
+     have an equivalent source;
 
-  @doc """
-  Interprets compilation results and prints them to the console.
+  The callback must return `{ :ok, mod }` or :error in case
+  of error. An error is raised at the end in case any of the
+  files failed to compile.
   """
-  def interpret_result(file, result, ext // "") do
-    case result do
-      { :ok, _ } -> Mix.shell.info "Compiled #{file}#{ext}"
-      :error -> :error
-    end
-    result
+  def compile_mappings(manifest, mappings, src_ext, dest_ext, force, callback) do
+    files = lc { src, dest } inlist mappings do
+              extract_targets(src, src_ext, dest, dest_ext, force)
+            end |> List.concat
+
+    compile_mappings(manifest, files, callback)
   end
 
   @doc """
@@ -220,27 +213,77 @@ defmodule Mix.Tasks.Compile.Erlang do
     result
   end
 
-  defp requires_compilation?(compile_path, erl) do
-    beam = Path.join(compile_path, "#{erl.module}#{:code.objfile_extension}")
-    Mix.Utils.stale?([erl.file|erl.includes], [beam])
-  end
+  defp annotate_target(erl, compile_path, force) do
+    beam   = Path.join(compile_path, "#{erl.module}#{:code.objfile_extension}")
 
-  defp compile_files(entries, files, compile_path, erlc_options) do
-    results = Enum.map(files, compile_file(&1, erlc_options))
-    outputs = lc { :ok, mod } inlist results do
-      Path.join(compile_path, "#{mod}.beam")
+    if force || Mix.Utils.stale?([erl.file|erl.includes], [beam]) do
+      { erl.file, erl.module, beam }
+    else
+      { erl.file, erl.module, nil }
     end
-
-    Mix.Utils.write_manifest(manifest(), :lists.usort(entries ++ outputs))
-    if Enum.any?(results, &1 == :error), do: raise CompileError
-  end
-
-  defp compile_file(erl, erlc_options) do
-    file = to_erl_file(Path.rootname(erl.file, ".erl"))
-    interpret_result(file, :compile.file(file, erlc_options), ".erl")
   end
 
   defp module_from_artifact(artifact) do
     artifact |> Path.basename |> Path.rootname
+  end
+
+  defp extract_targets(dir1, src_ext, dir2, dest_ext, force) do
+    files = Mix.Utils.extract_files([dir1], List.wrap(src_ext))
+
+    lc file inlist files do
+      module = module_from_artifact(file)
+      target = Path.join(dir2, module <> "." <> to_binary(dest_ext))
+
+      if force || Mix.Utils.stale?([file], [target]) do
+        { file, module, target }
+      else
+        { file, module, nil }
+      end
+    end
+  end
+
+  defp compile_mappings(manifest, tuples, callback) do
+    # Stale files are the ones with a destination
+    stale = lc { src, _mod, dest } inlist tuples, dest != nil, do: { src, dest }
+
+    # Get the previous entries from the manifest
+    entries = Mix.Utils.read_manifest(manifest)
+
+    # Files to remove are the ones in the
+    # manifest but they no longer have a source
+    removed = Enum.filter(entries, fn entry ->
+      module = module_from_artifact(entry)
+      not Enum.any?(tuples, fn { _src, mod, _dest } -> module == mod end)
+    end)
+
+    if stale == [] && removed == [] do
+      :noop
+    else
+      File.mkdir_p!(Path.dirname(manifest))
+
+      # Remove manifest entries with no source
+      Enum.each(removed, File.rm(&1))
+
+      # Compile stale files and print the results
+      results = lc { input, output } inlist stale do
+        interpret_result(input, callback.(input, output))
+      end
+
+      # Write final entries to manifest
+      entries = (entries -- removed) ++ Enum.map(stale, elem(&1, 1))
+      Mix.Utils.write_manifest(manifest, :lists.usort(entries))
+
+      # Raise if any error, return :ok otherwise
+      if Enum.any?(results, &1 == :error), do: raise CompileError
+      :ok
+    end
+  end
+
+  defp interpret_result(file, result) do
+    case result do
+      { :ok, _ } -> Mix.shell.info "Compiled #{file}"
+      :error -> :error
+    end
+    result
   end
 end

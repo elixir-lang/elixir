@@ -44,22 +44,14 @@ defmodule Mix.Tasks.Compile.Leex do
 
     project      = Mix.project
     source_paths = project[:erlc_paths]
-    entries      = Mix.Utils.read_manifest(manifest())
+    mappings     = Enum.zip(source_paths, source_paths)
+    options      = project[:leex_options] || []
 
-    { stale, removed } =
-      Enum.reduce(source_paths, { [], [] }, fn
-        path, { acc1, acc2 } ->
-          { stale, removed } = Erlang.extract_stale_pairs(entries, path, :xrl, path, :erl, opts[:force])
-          { stale ++ acc1, removed ++ acc2 }
-      end)
-
-    if stale == [] && removed == [] do
-      :noop
-    else
-      Enum.each(removed, File.rm(&1))
-      compile_files(entries -- removed, stale, project[:leex_options] || [])
-      :ok
-    end
+    Erlang.compile_mappings(manifest(), mappings, :xrl, :erl, opts[:force], fn
+      input, output ->
+        options = options ++ [scannerfile: Erlang.to_erl_file(output), report: true]
+        :leex.file(Erlang.to_erl_file(input), options)
+    end)
   end
 
   @doc """
@@ -68,17 +60,4 @@ defmodule Mix.Tasks.Compile.Leex do
   def manifest do
     Path.join(Mix.project[:compile_path], @manifest)
   end
-
-  defp compile_files(entries, files, options) do
-    results = lc { input, output } inlist files do
-      options = options ++ [scannerfile: Erlang.to_erl_file(output), report: true]
-      Erlang.interpret_result(input, :leex.file(Erlang.to_erl_file(input), options))
-    end
-
-    outputs = entries ++ Enum.map(files, elem(&1, 1))
-    Mix.Utils.write_manifest(manifest(), :lists.usort(outputs))
-
-    if Enum.any?(results, &1 == :error), do: raise CompileError
-  end
 end
-
