@@ -1,6 +1,7 @@
 # v0.10.1-dev
 
 * enhancements
+  * [IEx] Add the `clear` helper to clear the screen.
   * [Kernel] Add support for `GenFSM.Behaviour`
   * [Mix] `:test_helper` project configuration did not affect `mix test` and was therefore removed
   * [Mix] Add manifests for yecc, leex and Erlang compilers, making it easier to detect dependencies in between compilers and providing a more useful clean behaviour
