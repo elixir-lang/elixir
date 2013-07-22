@@ -383,4 +383,40 @@ defmodule StringTest do
     end
   end
 
+  test :to_char_list do
+    assert String.to_char_list("æß")  == { :ok, [?æ, ?ß] }
+    assert String.to_char_list("abc") == { :ok, [?a, ?b, ?c] }
+
+    assert String.to_char_list(<< 0xDF, 0xFF >>) == { :error, [], << 223, 255 >> }
+    assert String.to_char_list(<< 106, 111, 115, 195 >>) == { :incomplete, 'jos', << 195 >> }
+  end
+
+  test :to_char_list! do
+    assert String.to_char_list!("æß")  == [?æ, ?ß]
+    assert String.to_char_list!("abc") == [?a, ?b, ?c]
+
+    assert_raise String.ConversionError, fn ->
+      String.to_char_list!(<< 0xDF, 0xFF >>)
+    end
+
+    assert_raise String.IncompleteError, fn ->
+      String.to_char_list!(<< 106, 111, 115, 195 >>)
+    end
+  end
+
+  test :from_char_list do
+    assert String.from_char_list([?æ, ?ß]) == { :ok, "æß" }
+    assert String.from_char_list([?a, ?b, ?c]) == { :ok, "abc" }
+
+    assert String.from_char_list([0xDFFF]) == { :error, "", [0xDFFF] }
+  end
+
+  test :from_char_list! do
+    assert String.from_char_list!([?æ, ?ß]) == "æß"
+    assert String.from_char_list!([?a, ?b, ?c]) == "abc"
+
+    assert_raise String.ConversionError, fn ->
+      String.from_char_list!([0xDFFF])
+    end
+  end
 end
