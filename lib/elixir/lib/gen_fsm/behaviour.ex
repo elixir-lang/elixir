@@ -25,71 +25,74 @@ defmodule GenFSM.Behaviour do
       defmodule MyFsm do
         use GenFSM.Behaviour
 
-        # keeping track of what is going on inside the CVM.
-        # 3 coins is the target price for a cup of coffee
-        defrecord StateData, coins: 0, price: 3
+          # keeping track of what is going on inside the CVM.
+          # 3 is the target price for a cup of coffee
+          defrecord StateData, coins: 0, price: 3
 
-        # API functions
+          #
+          # API functions
+          #
 
-        def start_link() do
-          :gen_fsm.start_link({:local, :cvm}, __MODULE__, [], [])
+          def start_link() do
+            :gen_fsm.start_link({:local, :cvm}, __MODULE__, [], [])
+          end
+
+          def insert_coin() do
+            :gen_fsm.send_event(:cvm, :coin)
+          end
+
+          def request_coffee() do
+            :gen_fsm.send_event(:cvm, :request_coffee)
+          end
+
+          #
+          # Callbacks
+          #
+
+          def init(_args) do
+            { :ok, :short_paid, StateData.new }
+          end
+
+
+          def short_paid(:coin, state_data = StateData[coins: c, price: p]) 
+           when c + 1 < p do
+            { :next_state, :short_paid, state_data.coins(c + 1) }
+          end
+
+          def short_paid(:coin, state_data) do
+            { :next_state, :paid_in_full, state_data.update_coins(&1 + 1) }
+          end
+
+          def short_paid(:request_coffee, state_data) do
+            { :next_state, :requested_short_paid, state_data }
+          end
+
+
+          def requested_short_paid(:request_coffee, state_data) do
+            {:next_state, :requested_short_paid, state_data }
+          end
+
+          def requested_short_paid(:coin, state_data=StateData[coins: c, price: p]) 
+           when c+1 < p do
+            { :next_state, :requested_short_paid, state_data.coins(c + 1) }
+          end
+
+          def requested_short_paid(:coin, _state_data) do
+            IO.puts "Here's your coffee!"
+            { :next_state, :short_paid, StateData.new }
+          end
+
+
+          def paid_in_full(:coin, state_data) do
+            { :next_state, :paid_in_full, state_data.update_coins(&1 + 1) }
+          end
+
+          def paid_in_full(:request_coffee, _state_data) do
+            IO.puts "Here's your coffee!"
+            { :next_state, :short_paid, StateData.new }
+          end
         end
 
-        def insert_coin() do
-          :gen_fsm.send_event(:cvm, :coin)
-        end
-
-        def request_coffee() do
-          :gen_fsm.send_event(:cvm, :request_coffee)
-        end
-
-        # Callbacks
-
-        # :idle is the initial state
-        def init(_args) do
-          { :ok, :idle, StateData.new }
-        end
-
-        def idle(:coin, state_data) do
-          { :next_state, :short_paid, state_data }
-        end
-
-        def idle(:request, state_data) do
-          { :next_state, :requested_short_paid, state_data }
-        end
-
-        def short_paid(:coin, state_data = StateData[coins: c, price: p])
-          when c + 1 < p do
-          { :next_state, :short_paid, state_data.coins(c+1) }
-        end
-
-        def short_paid(:coin, state_data) do
-          { :next_state, :paid_in_full, state_data.update_coins(&1 + 1) }
-        end
-
-        def short_paid(:request_coffee, state_data) do
-          { :next_state, :requested_short_paid, state_data }
-        end
-
-        def requested_short_paid(:coin, state_data = StateData[coins: c, price: p])
-          when c+1 < p do
-          { :next_state, :requested_short_paid, state_data.coins(c+1) }
-        end
-
-        def requested_short_paid(:coin, _) do
-          IO.puts "Here's your coffee!"
-          { :next_state, :idle, StateData.new }
-        end
-
-        def paid_in_full(:coin, state_data) do
-          { :next_state, :paid_in_full, state_data.update_coins(&1 + 1) }
-        end
-
-        def paid_in_full(:request_coffee, _) do
-          IO.puts "Here's your coffee!"
-          { :next_state, :idle, StateData.new }
-        end
-      end
 
       { :ok, _pid } = MyFsm.start_link()
 
