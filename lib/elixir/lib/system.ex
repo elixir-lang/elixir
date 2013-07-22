@@ -101,7 +101,10 @@ defmodule System do
   It returns nil if no user home is set.
   """
   def user_home do
-    get_unix_home || get_windows_home
+    case :os.type() do
+      { :win32, _ } -> get_windows_home
+      _             -> get_unix_home
+    end
   end
 
   @doc """
@@ -117,10 +120,12 @@ defmodule System do
   end
 
   defp get_windows_home do
-    get_env("USERPROFILE") || (
-      hd = get_env("HOMEDRIVE")
-      hp = get_env("HOMEPATH")
-      hd && hp && hd <> hp
+    :filename.absname(
+      get_env("USERPROFILE") || (
+        hd = get_env("HOMEDRIVE")
+        hp = get_env("HOMEPATH")
+        hd && hp && hd <> hp
+      )
     )
   end
 
