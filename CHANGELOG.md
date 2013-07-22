@@ -1,20 +1,25 @@
 # v0.10.1-dev
 
 * enhancements
+  * [Enum] Add `Enum.shuffle/1`
+  * [ExUnit] `--trace` now also reports run time for each test
   * [IEx] Add the `clear` helper to clear the screen.
   * [Kernel] Add support for `GenFSM.Behaviour`
-  * [List] Add `keysort/2`
+  * [List] Add `List.keysort/2`
   * [Mix] `:test_helper` project configuration did not affect `mix test` and was therefore removed
   * [Mix] Add manifests for yecc, leex and Erlang compilers, making it easier to detect dependencies in between compilers and providing a more useful clean behaviour
   * [Mix] `mix help` now outputs information about the default mix task
   * [Mix] Add `--no-deps-check` option to `mix run`, `mix compile` and friends to not check dependency status
+  * [Mix] Add support for `MIX_GIT_FORCE_HTTPS` system environment that forces HTTPS for known providers, useful when the regular git port is blocked. This configuration does not affect the `mix.lock` results
+  * [String] Add `String.reverse/1`
 
 * bug fix
   * [Behaviour] Ensure callbacks are stored in the definition order
   * [IEx] Reduce cases where IEx parser can get stuck
   * [Kernel] Improve error messages when the use of an operator has no effect
   * [Kernel] Document that `on_definition` can only be a function as it is evaluated inside the function context
-  * [Mix] Always `loadpaths` on `app.start`, even if `--no-compile` is given
+  * [Kernel] Ensure `%w` sigils with no interpolation are fully expanded at compile time
+  * [Mix] Always run ` mix loadpaths` on `mix app.start`, even if `--no-compile` is given
   * [OptionParser] Do not add boolean flags to the end result if they were not given
 
 * deprecations
