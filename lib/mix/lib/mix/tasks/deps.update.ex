@@ -1,18 +1,20 @@
 defmodule Mix.Tasks.Deps.Update do
   use Mix.Task
 
-  @shortdoc "Update dependencies"
+  @shortdoc "Update the given dependencies"
   @recursive :both
 
   @moduledoc """
-  Update dependencies.
+  Update the given dependencies.
 
-  By default, updates all dependencies. A list of dependencies can
-  be given to update specific ones. Recompiles the given
-  projects after updating.
+  Since this is a "dangerous" operation, update of all dependencies
+  can only happen by passing the `--all` command line option.
+
+  All dependencies are automatically recompiled after update.
 
   ## Command line options
 
+  * `--all` - update all dependencies
   * `--no-compile` - skip compilation of dependencies
   * `--no-deps-check` - skip dependency check
   """
@@ -21,15 +23,19 @@ defmodule Mix.Tasks.Deps.Update do
                            depending: 2, format_dep: 1 ]
 
   def run(args) do
-    { opts, rest } = OptionParser.parse(args, switches: [no_compile: :boolean])
+    { opts, rest } = OptionParser.parse(args, switches: [no_compile: :boolean, all: :boolean])
 
-    if rest != [] do
-      all_deps = all
-      deps = Enum.map by_name(rest, all_deps), check_unavailable!(&1)
-      deps = deps ++ depending(deps, all_deps)
-      { _, acc } = Enum.map_reduce deps, init, deps_updater(&1, &2)
-    else
-      acc = all(init, deps_updater(&1, &2))
+    cond do
+      opts[:all] ->
+        acc = all(init, deps_updater(&1, &2))
+      rest != [] ->
+        all_deps = all
+        deps = Enum.map by_name(rest, all_deps), check_unavailable!(&1)
+        deps = deps ++ depending(deps, all_deps)
+        { _, acc } = Enum.map_reduce deps, init, deps_updater(&1, &2)
+      true ->
+        raise Mix.Error, message: "mix deps.update expects dependencies as arguments or " <>
+                                  "the --all option to update all dependencies"
     end
 
     finalize_update(acc, opts)

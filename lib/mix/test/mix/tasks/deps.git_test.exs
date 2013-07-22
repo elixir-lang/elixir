@@ -58,7 +58,7 @@ defmodule Mix.Tasks.DepsGitTest do
       File.touch!("deps/git_repo/ebin/.compile.elixir", { { 2010, 4, 17 }, { 14, 0, 0 } })
       Mix.Task.clear
 
-      Mix.Tasks.Deps.Update.run []
+      Mix.Tasks.Deps.Update.run ["--all"]
       message = "* Updating git_repo (0.1.0) [git: #{inspect fixture_path("git_repo")}]"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }

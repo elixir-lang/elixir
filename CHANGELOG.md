@@ -20,6 +20,7 @@
   * [Kernel] Improve error messages when the use of an operator has no effect
   * [Kernel] Document that `on_definition` can only be a function as it is evaluated inside the function context
   * [Kernel] Ensure `%w` sigils with no interpolation are fully expanded at compile time
+  * [Mix] `mix deps.update` no longer update all dependencies unless `--all` is given
   * [Mix] Always run ` mix loadpaths` on `mix app.start`, even if `--no-compile` is given
   * [OptionParser] Do not add boolean flags to the end result if they were not given
 

@@ -186,7 +186,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push DepsEnvApp
 
     in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Update.run []
+      Mix.Tasks.Deps.Update.run ["--all"]
       assert Process.get(:raw_repo_env) == :prod
     end
   after
@@ -197,7 +197,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push CustomDepsEnvApp
 
     in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Update.run []
+      Mix.Tasks.Deps.Update.run ["--all"]
       assert Process.get(:raw_repo_env) == :dev
     end
   after
@@ -268,7 +268,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
 
-      Mix.Tasks.Deps.Update.run []
+      Mix.Tasks.Deps.Update.run ["--all"]
       assert_received { :mix_shell, :info, ["* Updating deps_repo (0.1.0) [path: \"custom/deps_repo\"]"] }
     end
   after
@@ -302,7 +302,7 @@ defmodule Mix.Tasks.DepsTest do
       refute_received { :mix_shell, :info, [^message] }
 
       Mix.Task.clear
-      Mix.Tasks.Deps.Update.run []
+      Mix.Tasks.Deps.Update.run ["--all"]
 
       assert_received { :mix_shell, :info, ["* Updating deps_repo (0.1.0) [path: \"custom/deps_repo\"]"] }
       assert_received { :mix_shell, :info, ["* Updating bad_deps_repo (0.1.0) [path: \"custom/bad_deps_repo\"]"] }
