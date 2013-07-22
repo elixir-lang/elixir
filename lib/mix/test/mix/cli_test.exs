@@ -60,6 +60,7 @@ defmodule Mix.CLITest do
       assert File.regular?("ebin/Elixir.NewWithTests.beam")
       assert output =~ "1 tests, 0 failures"
       assert output =~ "Generating cover results ... ok"
+      assert File.regular?("cover/Elixir.NewWithTests.html")
     end
   end
 

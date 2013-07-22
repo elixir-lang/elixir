@@ -11,6 +11,7 @@
   * [Mix] `mix help` now outputs information about the default mix task
   * [Mix] Add `--no-deps-check` option to `mix run`, `mix compile` and friends to not check dependency status
   * [Mix] Add support for `MIX_GIT_FORCE_HTTPS` system environment that forces HTTPS for known providers, useful when the regular git port is blocked. This configuration does not affect the `mix.lock` results
+  * [Mix] Allow coverate tool to be pluggable via the `:test_coverage` configuration
   * [String] Add `String.reverse/1`
 
 * bug fix
@@ -24,6 +25,7 @@
 
 * deprecations
   * [Kernel] `Kernel.ParallelCompiler` now receives a set of callbacks instead of a single one
+  * [Mix] `:test_coverage` option now expect keywords arguments and the `--cover` flag is now treated as a boolean
 
 * backwards incompatible changes
 
