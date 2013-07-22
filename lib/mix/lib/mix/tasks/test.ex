@@ -10,9 +10,9 @@ defmodule Mix.Tasks.Test do
   This task starts the current application and then requires
   all files that match the given `test_pattern` in parallel.
 
-  It is expected from each test file to properly setup the
+  It is expected that each test file will properly setup the
   test framework, usually by providing a `test/test_helper.exs`
-  file that is usually require at the top of each test file.
+  file that is required at the top of the file.
 
   A list of files can be given after the task name in
   order to select the files to compile.
@@ -22,9 +22,9 @@ defmodule Mix.Tasks.Test do
   * `--trace` - run tests with detailed reporting. Automatically sets `--max-cases` to 1;
   * `--max-cases` - set the maximum number of cases running async;
   * `--cover` - the directory to include coverage results;
-  * `--force` - forces compilation regardless of module times;
+  * `--force` - forces compilation regardless of modification times;
   * `--quick`, `-q` - only compile files that changed;
-  * `--no-compile` - do not compile even if files require compilation;
+  * `--no-compile` - do not compile, even if files require compilation;
   * `--no-start` - do not start applications after compilation;
 
   ## Configuration
