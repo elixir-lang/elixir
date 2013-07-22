@@ -108,48 +108,49 @@ defmodule IEx.HelpersTest do
   end
 
   test "pwd helper" do
-    assert capture_io(fn -> pwd end) =~ %r"lib[\\/]iex\n$"
+    File.cd! iex_path, fn ->
+      assert capture_io(fn -> pwd end) =~ %r"lib[\\/]iex\n$"
+    end
   end
 
   test "ls helper" do
-    assert ["ebin", "lib", "mix.exs", "test"]
-           = capture_io(fn -> ls end)
-             |> String.split
-             |> Enum.map(String.strip(&1))
-             |> Enum.sort
-    assert capture_io(fn -> ls "~" end) == capture_io(fn -> ls System.user_home end)
+    File.cd! iex_path, fn ->
+      assert ["ebin", "lib", "mix.exs", "test"]
+             = capture_io(fn -> ls end)
+               |> String.split
+               |> Enum.map(String.strip(&1))
+               |> Enum.sort
+      assert capture_io(fn -> ls "~" end) == capture_io(fn -> ls System.user_home end)
+    end
   end
 
   test "import_file helper" do
-    File.write! "dot-iex", "variable = :hello\nimport IO"
+    with_file "dot-iex", "variable = :hello\nimport IO", fn ->
+      assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.variable/0" <> _
+             = capture_iex("variable")
+      assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.puts/1" <> _
+             = capture_iex("puts \"hi\"")
 
-    assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.variable/0" <> _
-           = capture_iex("variable")
-    assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.puts/1" <> _
-           = capture_iex("puts \"hi\"")
-
-    assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"")
-           == "nil\n:hello\nhi\n:ok"
-  after
-    File.rm! "dot-iex"
+      assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"")
+             == "nil\n:hello\nhi\n:ok"
+    end
   end
 
   test "import_file nested" do
-    File.write! "dot-iex-1", "variable = :hello\nimport IO"
-    File.write! "dot-iex", "parent = true\nimport_file \"dot-iex-1\""
+    dot   = "parent = true\nimport_file \"dot-iex-1\""
+    dot_1 = "variable = :hello\nimport IO"
 
-    assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.parent/0" <> _
-           = capture_iex("parent")
-    assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.variable/0" <> _
-           = capture_iex("variable")
-    assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.puts/1" <> _
-           = capture_iex("puts \"hi\"")
+    with_file ["dot-iex", "dot-iex-1"], [dot, dot_1], fn ->
+      assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.parent/0" <> _
+             = capture_iex("parent")
+      assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.variable/0" <> _
+             = capture_iex("variable")
+      assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.puts/1" <> _
+             = capture_iex("puts \"hi\"")
 
-    assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"\nparent")
-           == "nil\n:hello\nhi\n:ok\ntrue"
-  after
-    File.rm "dot-iex-1"
-    File.rm! "dot-iex"
+      assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"\nparent")
+             == "nil\n:hello\nhi\n:ok\ntrue"
+    end
   end
 
   test "m helper" do
@@ -164,33 +165,6 @@ defmodule IEx.HelpersTest do
         Regex.match? re, line
       end
     end) >= 2
-  end
-
-  defp purge(mod) do
-    true = :code.delete mod
-    :code.purge mod
-  end
-
-  defp cleanup_modules(mods) do
-    Enum.each mods, fn mod ->
-      File.rm! "#{mod}.beam"
-      purge mod
-    end
-  end
-
-  defp with_file(names, codes, fun) when is_list(names) and is_list(codes) do
-    Enum.each Enum.zip(names, codes), fn { name, code } ->
-      File.write! name, code
-    end
-    try do
-      fun.()
-    after
-      Enum.each names, File.rm(&1)
-    end
-  end
-
-  defp with_file(name, code, fun) do
-    with_file(List.wrap(name), List.wrap(code), fun)
   end
 
   test "c helper" do
@@ -250,7 +224,7 @@ defmodule IEx.HelpersTest do
       assert Sample.run == :run
 
       File.write! filename, "defmodule Sample do end"
-      runcmd("../../bin/elixirc", "sample.ex")
+      elixirc("sample.ex")
 
       assert l(Sample) == {:module, Sample}
       assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
@@ -273,7 +247,7 @@ defmodule IEx.HelpersTest do
     assert ":ok\n** (Code.LoadError) could not load" <> _
            = capture_iex("{:module, Sample, _, {:run,0}} = #{String.strip test_module_code}; :ok\nr Sample")
   after
-    purge Sample
+    cleanup_modules([Sample])
   end
 
   test "r helper" do
@@ -322,9 +296,36 @@ defmodule IEx.HelpersTest do
     """
   end
 
-  defp runcmd(executable, args) do
-    executable = Path.expand executable
-    System.cmd "#{executable}#{executable_extension} #{args}"
+  defp cleanup_modules(mods) do
+    Enum.each mods, fn mod ->
+      File.rm("#{mod}.beam")
+      true = :code.delete(mod)
+      :code.purge mod
+    end
+  end
+
+  defp with_file(names, codes, fun) when is_list(names) and is_list(codes) do
+    Enum.each Enum.zip(names, codes), fn { name, code } ->
+      File.write! name, code
+    end
+    try do
+      fun.()
+    after
+      Enum.each names, File.rm(&1)
+    end
+  end
+
+  defp with_file(name, code, fun) do
+    with_file(List.wrap(name), List.wrap(code), fun)
+  end
+
+  defp elixirc(args) do
+    executable = Path.expand("../../../../elixir", __DIR__)
+    System.cmd "elixirc#{executable_extension} #{args}"
+  end
+
+  defp iex_path do
+    Path.expand "../..", __DIR__
   end
 
   if match? { :win32, _ }, :os.type do

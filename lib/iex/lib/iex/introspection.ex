@@ -264,6 +264,5 @@ defmodule IEx.Introspection do
   defp notypes(for), do: nodocs(for, "type information")
   defp nodocs(for, type // "documentation") do
     IO.puts IEx.color(:error, "No #{type} for #{for} was found")
-
   end
 end
