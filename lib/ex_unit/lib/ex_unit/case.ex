@@ -29,7 +29,12 @@ defmodule ExUnit.Case do
 
   @doc false
   defmacro __using__(opts // []) do
-    async  = Keyword.get(opts, :async, false)
+    async = Keyword.get(opts, :async, false)
+
+    unless Process.whereis(ExUnit.Server) do
+      raise "cannot use ExUnit.Case without starting ExUnit application, " <>
+            "please call ExUnit.start() or explicitly start the :ex_unit app"
+    end
 
     quote do
       unless Module.get_attribute(__MODULE__, :ex_unit_case) do
