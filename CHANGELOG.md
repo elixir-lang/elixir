@@ -1,6 +1,7 @@
 # v0.10.1-dev
 
 * enhancements
+  * [IEx] Add the `clear` helper to clear the screen.
   * [Kernel] Add support for `GenFSM.Behaviour`
   * [List] Add `keysort/2`
   * [Mix] `:test_helper` project configuration did not affect `mix test` and was therefore removed

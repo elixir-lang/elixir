@@ -11,7 +11,7 @@ defmodule IEx.Introspection do
           { _, binary } when is_binary(binary) ->
             IO.write IEx.color(:info, "# #{inspect module}\n\n" <> binary)
           { _, _ } ->
-            IO.puts IEx.color(:error, "No docs for #{inspect module} have been found")
+            nodocs(inspect module)
           _ ->
             IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
         end
@@ -33,7 +33,7 @@ defmodule IEx.Introspection do
       end
 
     unless result == :ok, do:
-      IO.puts IEx.color(:error, "No docs for #{function} have been found")
+      nodocs(function)
 
     :ok
   end
@@ -45,7 +45,7 @@ defmodule IEx.Introspection do
       :no_docs ->
         IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
       :not_found ->
-        IO.puts IEx.color(:error, "No docs for #{inspect module}.#{function} have been found")
+        nodocs("#{inspect module}.#{function}")
     end
 
     :ok
@@ -81,7 +81,7 @@ defmodule IEx.Introspection do
       end
 
     unless result == :ok, do:
-      IO.puts IEx.color(:error, "No docs for #{function}/#{arity} have been found")
+      nodocs("#{function}/#{arity}")
 
     :ok
   end
@@ -93,7 +93,7 @@ defmodule IEx.Introspection do
       :no_docs ->
         IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
       :not_found ->
-        IO.puts IEx.color(:error, "No docs for #{inspect module}.#{function}/#{arity} have been found")
+        nodocs("#{inspect module}.#{function}/#{arity}")
     end
 
     :ok
@@ -163,7 +163,7 @@ defmodule IEx.Introspection do
     types = lc type inlist Kernel.Typespec.beam_types(module), do: print_type(type)
 
     if types == [] do
-      IO.puts IEx.color(:error, "No types for #{inspect module} have been found")
+      notypes(inspect module)
     end
 
     :ok
@@ -178,7 +178,7 @@ defmodule IEx.Introspection do
     end
 
     if types == [] do
-       IO.puts  IEx.color(:error, "No types for #{inspect module}.#{type} have been found")
+       notypes("#{inspect module}.#{type}")
     end
 
     :ok
@@ -191,7 +191,7 @@ defmodule IEx.Introspection do
 
     case types do
      [] ->
-       IO.puts  IEx.color(:error, "No types for #{inspect module}.#{type}/#{arity} have been found")
+       notypes("#{inspect module}.#{type}/#{arity}")
      [type] ->
        print_type(type)
     end
@@ -204,7 +204,7 @@ defmodule IEx.Introspection do
     specs = lc spec inlist beam_specs(module), do: print_spec(spec)
 
     if specs == [] do
-      IO.puts  IEx.color(:error, "No specs for #{inspect module} have been found")
+      nospecs(inspect module)
     end
 
     :ok
@@ -219,7 +219,7 @@ defmodule IEx.Introspection do
     end
 
     if specs == [] do
-      IO.puts  IEx.color(:error, "No specs for #{inspect module}.#{function} have been found")
+      nospecs("#{inspect module}.#{function}")
     end
 
     :ok
@@ -234,7 +234,7 @@ defmodule IEx.Introspection do
     end
 
     if specs == [] do
-      IO.puts  IEx.color(:error, "No specs for #{inspect module}.#{function} have been found")
+      nodocs("#{inspect module}.#{function}")
     end
 
     :ok
@@ -258,5 +258,12 @@ defmodule IEx.Introspection do
       IO.puts IEx.color(:info, "@#{kind} #{binary}")
     end
     true
+  end
+
+  defp nospecs(for), do: nodocs(for, "specification")
+  defp notypes(for), do: nodocs(for, "type information")
+  defp nodocs(for, type // "documentation") do
+    IO.puts IEx.color(:error, "No #{type} for #{for} was found")
+
   end
 end
