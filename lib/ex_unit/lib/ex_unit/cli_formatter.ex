@@ -62,7 +62,7 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_cast({ :test_finished, ExUnit.Test[failure: nil] = test }, config) do
     if config.trace do
-      IO.puts success("\r  * #{trace_test_name test}")
+      IO.puts success(trace_test_result(test))
     else
       IO.write success(".")
     end
@@ -71,7 +71,7 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_cast({ :test_finished, ExUnit.Test[failure: { :invalid, _ }] = test }, config) do
     if config.trace do
-      IO.puts invalid("\r  * #{trace_test_name test}")
+      IO.puts invalid(trace_test_result(test))
     else
       IO.write invalid("?")
     end
@@ -81,7 +81,7 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_cast({ :test_finished, test }, config) do
     if config.trace do
-      IO.puts failure("\r  * #{trace_test_name test}")
+      IO.puts failure(trace_test_result(test))
     else
       IO.write failure("F")
     end
@@ -106,10 +106,28 @@ defmodule ExUnit.CLIFormatter do
     super(request, config)
   end
 
+  defp trace_test_result(test) do
+    "\r  * #{trace_test_name test} (#{trace_test_time(test)})"
+  end
+
   defp trace_test_name(ExUnit.Test[name: name]) do
     case atom_to_binary(name) do
       "test_" <> rest -> rest
       "test " <> rest -> rest
+    end
+  end
+
+  defp trace_test_time(ExUnit.Test[time: time]) do
+    "#{format_us(time)}ms"
+  end
+
+  defp format_us(us) do
+    us = div(us, 10)
+    if us < 10 do
+      "0.0#{us}"
+    else
+      us = div us, 10
+      "#{div(us, 10)}.#{rem(us, 10)}"
     end
   end
 

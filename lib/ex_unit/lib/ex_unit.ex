@@ -1,5 +1,5 @@
 defmodule ExUnit do
-  defrecord Test, [:name, :case, :failure, :invalid] do
+  defrecord Test, [:name, :case, :failure, :time] do
     @moduledoc """
     A record that keeps information about the test.
     It is received by formatters and also accessible

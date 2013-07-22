@@ -136,31 +136,33 @@ defmodule ExUnit.Runner do
     # Run test in a new process so that we can trap exits for a single test
     self_pid = self
     { test_pid, test_ref } = Process.spawn_monitor fn ->
-      test = try do
-        { :ok, context } = case_name.__ex_unit__(:setup, Keyword.put(context, :test, test))
+      { us, test } = :timer.tc(fn ->
+          try do
+          { :ok, context } = case_name.__ex_unit__(:setup, Keyword.put(context, :test, test))
 
-        test = try do
-          apply case_name, test.name, [context]
+          test = try do
+            apply case_name, test.name, [context]
+            test
+          rescue
+            error1 ->
+              test.failure { :error, error1, filtered_stacktrace }
+          catch
+            kind1, error1 ->
+              test.failure { kind1, error1, filtered_stacktrace }
+          end
+
+          case_name.__ex_unit__(:teardown, Keyword.put(context, :test, test))
           test
         rescue
-          error1 ->
-            test.failure { :error, error1, filtered_stacktrace }
+          error2 ->
+            test.failure { :error, error2, filtered_stacktrace }
         catch
-          kind1, error1 ->
-            test.failure { kind1, error1, filtered_stacktrace }
+          kind2, error2 ->
+            test.failure { kind2, error2, filtered_stacktrace }
         end
+      end)
 
-        case_name.__ex_unit__(:teardown, Keyword.put(context, :test, test))
-        test
-      rescue
-        error2 ->
-          test.failure { :error, error2, filtered_stacktrace }
-      catch
-        kind2, error2 ->
-          test.failure { kind2, error2, filtered_stacktrace }
-      end
-
-      self_pid <- { self, :test_finished, test }
+      self_pid <- { self, :test_finished, test.time(us) }
     end
 
     receive do
