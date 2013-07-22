@@ -308,6 +308,7 @@ defmodule IEx.HelpersTest do
     Enum.each Enum.zip(names, codes), fn { name, code } ->
       File.write! name, code
     end
+
     try do
       fun.()
     after
@@ -320,8 +321,8 @@ defmodule IEx.HelpersTest do
   end
 
   defp elixirc(args) do
-    executable = Path.expand("../../../../elixir", __DIR__)
-    System.cmd "elixirc#{executable_extension} #{args}"
+    executable = Path.expand("../../../../bin/elixirc", __DIR__)
+    System.cmd("#{executable}#{executable_extension} #{args}")
   end
 
   defp iex_path do

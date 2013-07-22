@@ -6,7 +6,7 @@ defmodule PathHelpers do
   end
 
   def tmp_path() do
-    Path.expand("../../tmp", __FILE__)
+    Path.expand("../../../tmp", __FILE__)
   end
 
   def fixture_path(extra) do
