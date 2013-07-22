@@ -178,6 +178,8 @@ defmodule Record do
   A protocol can be implemented for any record defined via `defrecord`.
   """
 
+  @type t :: tuple
+
   @doc """
   Extract record information from an Erlang file and
   return the fields as a list of tuples.
