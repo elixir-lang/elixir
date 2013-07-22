@@ -10,6 +10,13 @@ defmodule IO.ANSITest do
            "Hello, #{IO.ANSI.red}world!#{IO.ANSI.reset}"
   end
 
+  test :escape_non_attribute do
+    assert IO.ANSI.escape("Hello %{clear}world!", true) ==
+           "Hello #{IO.ANSI.clear}world!#{IO.ANSI.reset}"
+    assert IO.ANSI.escape("Hello %{home}world!", true) ==
+           "Hello #{IO.ANSI.home}world!#{IO.ANSI.reset}"
+  end
+
   test :escape_multiple do
     assert IO.ANSI.escape("Hello, %{red,bright}world!", true) ==
            "Hello, #{IO.ANSI.red}#{IO.ANSI.bright}world!#{IO.ANSI.reset}"

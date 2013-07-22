@@ -15,6 +15,10 @@ defmodule IEx.HelpersTest do
   """
   def test_fun_1(arg)
 
+  test "clear helper" do
+    assert "\e[H\e[2J" == capture_iex("clear")
+  end
+
   test "h helper" do
     assert "# IEx.Helpers\n\nWelcome to Interactive Elixir" <> _
            = capture_iex("h")
@@ -47,11 +51,11 @@ defmodule IEx.HelpersTest do
     h_output_module = capture_io(fn -> h Module.__info__ end)
     assert capture_io(fn -> h Module.UnlikelyTo.Exist.__info__ end) == h_output_module
     assert capture_io(fn -> h Module.UnlikelyTo.Exist.__info__/1 end) == h_output_module
-    assert capture_io(fn -> h __info__ end) == "No docs for __info__ have been found\n"
+    assert capture_io(fn -> h __info__ end) == "No documentation for __info__ was found\n"
   end
 
   test "t helper" do
-    assert capture_io(fn -> t ExUnit end) == "No types for ExUnit have been found\n"
+    assert capture_io(fn -> t ExUnit end) == "No type information for ExUnit was found\n"
 
     # Test that it shows at least two types
     assert Enum.count(capture_io(fn -> t Enum end) |> String.split("\n"), fn line ->
@@ -64,7 +68,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "s helper" do
-    assert capture_io(fn -> s ExUnit end) == "No specs for ExUnit have been found\n"
+    assert capture_io(fn -> s ExUnit end) == "No specification for ExUnit was found\n"
 
     # Test that it shows at least two specs
     assert Enum.count(capture_io(fn -> s Enum end) |> String.split("\n"), fn line ->

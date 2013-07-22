@@ -1,14 +1,14 @@
 defmodule IO.ANSI.Sequence do
   @moduledoc false
 
-  defmacro defsequence(name, code) do
-    quote bind_quoted: [name: name, code: code] do
+  defmacro defsequence(name, code // "", terminator // "m") do
+    quote bind_quoted: [name: name, code: code, terminator: terminator] do
       def unquote(name)() do
-        "\e[#{unquote(code)}m"
+        "\e[#{unquote(code)}#{unquote(terminator)}"
       end
 
       defp escape_sequence(<< unquote(atom_to_binary(name)), rest :: binary >>) do
-        { "\e[#{unquote(code)}m", rest }
+        { "\e[#{unquote(code)}#{unquote(terminator)}", rest }
       end
     end
   end
@@ -120,6 +120,13 @@ defmodule IO.ANSI do
 
   @doc "Not overlined"
   defsequence :not_overlined, 55
+
+  @doc "Send cursor home"
+  defsequence :home, "", "H"
+
+  @doc "Clear screen"
+  defsequence :clear, "2", "J"
+
 
   # Catch spaces between codes
   defp escape_sequence(<< ?\s, rest :: binary >>) do

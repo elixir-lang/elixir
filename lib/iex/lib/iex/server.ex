@@ -111,7 +111,7 @@ defmodule IEx.Server do
         { result, new_binding, scope } =
           :elixir.eval_forms(forms, config.binding, config.scope)
 
-        io_put result
+        unless result == IEx.Helpers.dont_display_result, do: io_put result
 
         config = config.cache(code).scope(nil).result(result)
         update_history(config)
