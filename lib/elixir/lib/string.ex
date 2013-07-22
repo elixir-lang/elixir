@@ -994,4 +994,130 @@ defmodule String do
   defp do_contains(_, _) do
     raise ArgumentError
   end
+
+  defexception ConversionError, encoded: nil, rest: nil do
+    def message(exception) do
+      "Failed unicode conversion"
+    end
+  end
+
+  defexception IncompleteError, encoded: nil, rest: nil do
+    def message(exception) do
+      "Incomplete unicode conversion"
+    end
+  end
+
+  @doc """
+  Converts a string into a char list converting each codepoint to its
+  respective integer value.
+
+  ## Examples
+
+      iex> String.to_char_list("æß")
+      { :ok, 'æß' }
+      iex> String.to_char_list("abc")
+      { :ok, 'abc' }
+
+  """
+  @spec to_char_list(String.t) :: { :ok, char_list } | { :error, list, binary } | { :incomplete, list, binary }
+  def to_char_list(string) do
+    case :unicode.characters_to_list(string) do
+      { :error, _, _ } = error ->
+        error
+
+      { :incomplete, _, _ } = incomplete ->
+        incomplete
+
+      result ->
+        { :ok, result }
+    end
+  end
+
+  @doc """
+  Converts a string into a char list converting each codepoint to its
+  respective integer value.
+
+  In case the conversion fails it raises a `String.ConversionError`.
+
+  In case the conversion is incomplete it raises a `String.IncompleteError`.
+
+  ## Examples
+
+      iex> String.to_char_list!("æß")
+      'æß'
+      iex> String.to_char_list!("abc")
+      'abc'
+
+  """
+  @spec to_char_list!(String.t) :: char_list | no_return
+  def to_char_list!(string) do
+    import Kernel, except: [to_char_list: 1]
+
+    case to_char_list(string) do
+      { :ok, result } ->
+        result
+
+      { :error, encoded, rest } ->
+        raise ConversionError, encoded: encoded, rest: rest
+
+      { :incomplete, encoded, rest } ->
+        raise IncompleteError, encoded: encoded, rest: rest
+    end
+  end
+
+  @doc """
+  Converts a list of integer codepoints to a string.
+
+  ## Examples
+
+      iex> String.from_char_list([0x00E6, 0x00DF])
+      { :ok, "æß" }
+      iex> String.from_char_list([0x0061, 0x0062, 0x0063])
+      { :ok, "abc" }
+
+  """
+  @spec from_char_list(char_list) :: { :ok, String.t } | { :error, binary, binary } | { :incomplete, binary, binary }
+  def from_char_list(list) do
+    case :unicode.characters_to_binary(list) do
+      { :error, _, _ } = error ->
+        error
+
+      { :incomplete, _, _ } = incomplete ->
+        incomplete
+
+      result ->
+        { :ok, result }
+    end
+  end
+
+  @doc """
+  Converts a list of integer codepoints to a string.
+
+  In case the conversion fails it raises a `String.ConversionError`.
+
+  In case the conversion is incomplete it raises a `String.IncompleteError`.
+
+  ## Examples
+
+      iex> String.from_char_list!([0x00E6, 0x00DF])
+      "æß"
+      iex> String.from_char_list!([0x0061, 0x0062, 0x0063])
+      "abc"
+
+  """
+  @spec from_char_list!(char_list) :: String.t | no_return
+  def from_char_list!(list) do
+    import Kernel, except: [from_char_list: 1]
+
+    case from_char_list(list) do
+      { :ok, result } ->
+        result
+
+      { :error, encoded, rest } ->
+        raise ConversionError, encoded: encoded, rest: rest
+
+      { :incomplete, encoded, rest } ->
+        raise IncompleteError, encoded: encoded, rest: rest
+    end
+  end
 end
