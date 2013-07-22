@@ -14,9 +14,9 @@ defmodule Mix.Tasks.Compile.Erlang do
   A task to compile Erlang source files.
 
   When this task runs, it will first check the modification times of
-  all of the files to be compiled and if they haven't been
+  all files to be compiled and if they haven't been
   changed since the last compilation, it will not compile
-  them at all. If any one of them has changed, it compiles
+  them. If any of them have changed, it compiles
   everything.
 
   For this reason, the task touches your `:compile_path`
@@ -93,7 +93,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   @doc """
-  Returns the Erlang manifest.
+  Returns the path of the Erlang manifest.
   """
   def manifest do
     Path.join(Mix.project[:compile_path], @manifest)
@@ -101,9 +101,9 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   @doc """
   Extracts the extensions from the mappings, automatically
-  invoking the callback for each stale input and output pairs
-  (or for all if force is true) and removing files that no
-  longer have a source, while maintaining the manifest up
+  invoking the callback for each stale input and output pair
+  (or for all if `force` is true) and removing files that no
+  longer have a source, while keeping the manifest up
   to date.
 
   ## Examples
@@ -121,17 +121,17 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   The command above will:
 
-  1. Look for files ending with `lfe` extension in src
-     and their `beam` counterpart in ebin;
-  2. For each stale file (or for all if force is true),
+  1. Look for files ending with the `lfe` extension in `src`
+     and their `beam` counterpart in `ebin`;
+  2. For each stale file (or for all if `force` is true),
      invoke the callback passing the calculated input
      and output;
   3. Update the manifest with the newly compiled outputs;
   4. Remove any output in the manifest that that does not
      have an equivalent source;
 
-  The callback must return `{ :ok, mod }` or :error in case
-  of error. An error is raised at the end in case any of the
+  The callback must return `{ :ok, mod }` or `:error` in case
+  of error. An error is raised at the end if any of the
   files failed to compile.
   """
   def compile_mappings(manifest, mappings, src_ext, dest_ext, force, callback) do
