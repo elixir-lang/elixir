@@ -995,15 +995,17 @@ defmodule String do
     raise ArgumentError
   end
 
-  defexception ConversionError, encoded: nil, rest: nil do
+  defexception UnicodeConversionError, encoded: nil, rest: nil, kind: nil do
     def message(exception) do
-      "Failed unicode conversion"
+      "#{exception.kind} #{detail(exception.rest)}"
     end
-  end
 
-  defexception IncompleteError, encoded: nil, rest: nil do
-    def message(exception) do
-      "Incomplete unicode conversion"
+    defp detail(rest) when is_binary(rest) do
+      "encoding starting at #{inspect rest}"
+    end
+
+    defp detail([h|_]) do
+      "code point #{h}"
     end
   end
 
@@ -1022,14 +1024,14 @@ defmodule String do
   @spec to_char_list(String.t) :: { :ok, char_list } | { :error, list, binary } | { :incomplete, list, binary }
   def to_char_list(string) do
     case :unicode.characters_to_list(string) do
+      result when is_list(result) ->
+        { :ok, result }
+
       { :error, _, _ } = error ->
         error
 
       { :incomplete, _, _ } = incomplete ->
         incomplete
-
-      result ->
-        { :ok, result }
     end
   end
 
@@ -1037,9 +1039,8 @@ defmodule String do
   Converts a string into a char list converting each codepoint to its
   respective integer value.
 
-  In case the conversion fails it raises a `String.ConversionError`.
-
-  In case the conversion is incomplete it raises a `String.IncompleteError`.
+  In case the conversion fails or is incomplete,
+  it raises a `String.UnicodeConversionError`.
 
   ## Examples
 
@@ -1051,17 +1052,15 @@ defmodule String do
   """
   @spec to_char_list!(String.t) :: char_list | no_return
   def to_char_list!(string) do
-    import Kernel, except: [to_char_list: 1]
-
-    case to_char_list(string) do
-      { :ok, result } ->
+    case :unicode.characters_to_list(string) do
+      result when is_list(result) ->
         result
 
       { :error, encoded, rest } ->
-        raise ConversionError, encoded: encoded, rest: rest
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
 
       { :incomplete, encoded, rest } ->
-        raise IncompleteError, encoded: encoded, rest: rest
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
     end
   end
 
@@ -1079,23 +1078,21 @@ defmodule String do
   @spec from_char_list(char_list) :: { :ok, String.t } | { :error, binary, binary } | { :incomplete, binary, binary }
   def from_char_list(list) do
     case :unicode.characters_to_binary(list) do
+      result when is_binary(result) ->
+        { :ok, result }
+
       { :error, _, _ } = error ->
         error
 
       { :incomplete, _, _ } = incomplete ->
         incomplete
-
-      result ->
-        { :ok, result }
     end
   end
 
   @doc """
   Converts a list of integer codepoints to a string.
 
-  In case the conversion fails it raises a `String.ConversionError`.
-
-  In case the conversion is incomplete it raises a `String.IncompleteError`.
+  In case the conversion fails, it raises a `String.UnicodeConversionError`.
 
   ## Examples
 
@@ -1107,17 +1104,15 @@ defmodule String do
   """
   @spec from_char_list!(char_list) :: String.t | no_return
   def from_char_list!(list) do
-    import Kernel, except: [from_char_list: 1]
-
-    case from_char_list(list) do
-      { :ok, result } ->
+    case :unicode.characters_to_binary(list) do
+      result when is_binary(result) ->
         result
 
       { :error, encoded, rest } ->
-        raise ConversionError, encoded: encoded, rest: rest
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
 
       { :incomplete, encoded, rest } ->
-        raise IncompleteError, encoded: encoded, rest: rest
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
     end
   end
 end

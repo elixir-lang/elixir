@@ -395,11 +395,13 @@ defmodule StringTest do
     assert String.to_char_list!("æß")  == [?æ, ?ß]
     assert String.to_char_list!("abc") == [?a, ?b, ?c]
 
-    assert_raise String.ConversionError, fn ->
+    assert_raise String.UnicodeConversionError,
+                 "invalid encoding starting at <<223, 255>>", fn ->
       String.to_char_list!(<< 0xDF, 0xFF >>)
     end
 
-    assert_raise String.IncompleteError, fn ->
+    assert_raise String.UnicodeConversionError,
+                 "incomplete encoding starting at <<195>>", fn ->
       String.to_char_list!(<< 106, 111, 115, 195 >>)
     end
   end
@@ -415,7 +417,8 @@ defmodule StringTest do
     assert String.from_char_list!([?æ, ?ß]) == "æß"
     assert String.from_char_list!([?a, ?b, ?c]) == "abc"
 
-    assert_raise String.ConversionError, fn ->
+    assert_raise String.UnicodeConversionError,
+                 "invalid code point 57343", fn ->
       String.from_char_list!([0xDFFF])
     end
   end
