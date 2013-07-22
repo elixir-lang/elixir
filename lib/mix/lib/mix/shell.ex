@@ -35,7 +35,7 @@ defmodule Mix.Shell do
 
   @doc """
   An implementation of the command callback that
-  is shared accross different shells.
+  is shared across different shells.
   """
   def cmd(command, callback) do
     port = Port.open({ :spawn, shell_command(command) },
@@ -56,11 +56,13 @@ defmodule Mix.Shell do
   # Finding shell command logic from :os.cmd in OTP
   # https://github.com/erlang/otp/blob/8deb96fb1d017307e22d2ab88968b9ef9f1b71d0/lib/kernel/src/os.erl#L184
   defp shell_command(command) do
-    command = to_char_list(command)
+    command = command
+      |> String.replace("\"", "\\\"")
+      |> to_char_list
 
     case :os.type do
       { :unix, _ } ->
-        %c(sh -c '#{command}')
+        %c(sh -c "#{command}")
       { :win32, osname } ->
         case { System.get_env("COMSPEC"), osname } do
           { nil, :windows } -> 'command.com /c #{command}'
