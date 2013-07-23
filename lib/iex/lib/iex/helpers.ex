@@ -461,10 +461,8 @@ defmodule IEx.Helpers do
     raise ArgumentError, message: "import_file/1 expects a literal binary as its argument"
   end
 
-
   defp inspect_wrapper(func, args) do
     apply(IEx.Introspection, func, args)
     dont_display_result
   end
-
 end

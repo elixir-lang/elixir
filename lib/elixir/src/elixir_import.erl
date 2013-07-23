@@ -2,8 +2,7 @@
 %% in between local functions and imports.
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
--export([import/5, format_error/1,
-  ensure_no_local_conflict/4]).
+-export([import/5, format_error/1]).
 -include("elixir.hrl").
 
 %% IMPORT HELPERS
@@ -84,7 +83,7 @@ calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
   case Final of
     [] -> { keydelete(Key, Old), if_quoted(Meta, Temp, fun(Value) -> keydelete(Key, Value) end) };
     _  ->
-      ensure_no_special_form_conflict(Meta, File, Key, Final, internal_conflict),
+      ensure_no_special_form_conflict(Meta, File, Key, Final),
       { [{ Key, Final }|keydelete(Key, Old)],
         if_quoted(Meta, Temp, fun(Value) -> [{ Key, Final }|keydelete(Key, Value)] end) }
   end.
@@ -139,28 +138,20 @@ get_optional_macros(Module)  ->
 
 %% VALIDATION HELPERS
 
-%% Check if any of the locals defined conflicts with an invoked
-%% Elixir "implemented in Erlang" macro.
-
-ensure_no_local_conflict(Meta, File, Module, AllDefined) ->
-  ensure_no_special_form_conflict(Meta, File, Module, AllDefined, local_conflict).
-
-%% Ensure the given functions don't clash with any
-%% of Elixir non overridable macros.
-
-ensure_no_special_form_conflict(Meta, File, Key, [{Name,Arity}|T], Reason) ->
+ensure_no_special_form_conflict(Meta, File, Key, [{Name,Arity}|T]) ->
   Values = lists:filter(fun({X,Y}) ->
     (Name == X) andalso ((Y == '*') orelse (Y == Arity))
   end, special_form()),
 
   case Values /= [] of
     true  ->
-      Tuple = { Reason, { Key, Name, Arity } },
+      Tuple = { special_form_conflict, { Key, Name, Arity } },
       elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
-    false -> ensure_no_special_form_conflict(Meta, File, Key, T, Reason)
+    false ->
+      ensure_no_special_form_conflict(Meta, File, Key, T)
   end;
 
-ensure_no_special_form_conflict(_Meta, _File, _Key, [], _) -> ok.
+ensure_no_special_form_conflict(_Meta, _File, _Key, []) -> ok.
 
 %% ERROR HANDLING
 
@@ -168,10 +159,7 @@ format_error({invalid_import,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it doesn't exist",
     [elixir_errors:inspect(Receiver), Name, Arity]);
 
-format_error({local_conflict,{_, Name, Arity}}) ->
-  io_lib:format("cannot define local ~ts/~B because it conflicts with Elixir special forms", [Name, Arity]);
-
-format_error({internal_conflict,{Receiver, Name, Arity}}) ->
+format_error({special_form_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
     [elixir_errors:inspect(Receiver), Name, Arity]);
 

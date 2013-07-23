@@ -66,9 +66,9 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
 
   try
     Result = eval_form(Line, Module, Block, Vars, S),
-    { Export, Private, Def, Defmacro, Functions } = elixir_def:unwrap_stored_definitions(FileList, Module),
+    { Base, Export, Private, Def, Defmacro, Functions } = elixir_def:unwrap_stored_definitions(FileList, Module),
 
-    { All, Forms0 } = functions_form(Line, File, Module, Export, Private, Def, Defmacro, Functions, C),
+    { All, Forms0 } = functions_form(Line, File, Module, Base, Export, Def, Defmacro, Functions, C),
     Forms1          = specs_form(Line, Module, Private, Defmacro, Forms0, C),
     Forms2          = attributes_form(Line, File, Module, Forms1),
 
@@ -81,8 +81,7 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
     elixir_tracker:warn_unused_local(File, Module, Private),
     elixir_tracker:ensure_no_import_conflict(Line, File, Module, All),
     elixir_tracker:ensure_all_imports_used(Line, File, Module),
-
-    elixir_import:ensure_no_local_conflict(Line, File, Module, All),
+    warn_unused_docs(Line, File, Module, All),
 
     Final = [
       { attribute, Line, file, { FileList, Line } },
@@ -149,18 +148,20 @@ eval_form(Line, Module, Block, Vars, RawS) ->
 
 %% Return the form with exports and function declarations.
 
-functions_form(Line, File, Module, Export, Private, Def, Defmacro, RawFunctions, C) ->
-  Functions = case elixir_compiler:get_opt(internal, C) of
+functions_form(Line, File, Module, BaseAll, BaseExport, Def, Defmacro, RawFunctions, C) ->
+  BaseFunctions = case elixir_compiler:get_opt(internal, C) of
     true  -> RawFunctions;
     false -> record_rewrite_functions(Module, RawFunctions)
   end,
 
-  { FinalExport, FinalFunctions } =
-    add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C),
+  Info = add_info_function(Line, File, Module, BaseExport, Def, Defmacro, C),
 
-  PrivateTuple = [Tuple || { Tuple, _, _, _, _ } <- Private],
-  { FinalExport ++ PrivateTuple, [
-    {attribute, Line, export, lists:sort(FinalExport)} | FinalFunctions
+  All       = [{ '__info__', 1 }|BaseAll],
+  Export    = [{ '__info__', 1 }|BaseExport],
+  Functions = [Info|BaseFunctions],
+
+  { All, [
+    { attribute, Line, export, lists:sort(Export) } | Functions
   ] }.
 
 record_rewrite_functions(Module, Functions) ->
@@ -280,23 +281,36 @@ check_module_availability(Line, File, Module, Compiler) ->
       []
   end.
 
+warn_unused_docs(_Line, _File, 'Elixir.Kernel', _All) -> ok;
+warn_unused_docs(_Line, _File, 'Elixir.Kernel.SpecialForms', _All) -> ok;
+warn_unused_docs(_Line, File, Module, All) ->
+  ets:foldl(fun
+    ({ Tuple, Line, _, _, _ }, Acc) ->
+      case lists:member(Tuple, All) of
+        true  -> Acc;
+        false ->
+          elixir_errors:handle_file_warning(File, { Line, ?MODULE, { invalid_doc, Tuple } })
+      end
+  end, ok, docs_table(Module)).
+
+
 % EXTRA FUNCTIONS
 
-add_info_function(Line, File, Module, Export, Functions, Def, Defmacro, C) ->
+add_info_function(Line, File, Module, Export, Def, Defmacro, C) ->
   Pair = { '__info__', 1 },
   case lists:member(Pair, Export) of
-    true  -> elixir_errors:form_error(Line, File, ?MODULE, {internal_function_overridden, Pair});
+    true  ->
+      elixir_errors:form_error(Line, File, ?MODULE, {internal_function_overridden, Pair});
     false ->
       Docs = elixir_compiler:get_opt(docs, C),
-      Contents = { function, 0, '__info__', 1, [
+      { function, 0, '__info__', 1, [
         functions_clause(Def),
         macros_clause(Module, Def, Defmacro),
         docs_clause(Module, Docs),
         moduledoc_clause(Line, Module, Docs),
         module_clause(Module),
         else_clause()
-      ] },
-      { [Pair|Export], [Contents|Functions] }
+      ] }
   end.
 
 functions_clause(Def) ->
@@ -371,6 +385,9 @@ munge_stacktrace(Info, []) ->
   [Info].
 
 % ERROR HANDLING
+
+format_error({ invalid_doc, { Name, Arity } }) ->
+  io_lib:format("docs provided for nonexistent function or macro ~ts/~B", [Name, Arity]);
 
 format_error({ internal_function_overridden, { Name, Arity } }) ->
   io_lib:format("function ~ts/~B is internal and should not be overridden", [Name, Arity]);

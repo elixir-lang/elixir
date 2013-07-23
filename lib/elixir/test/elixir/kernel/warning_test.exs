@@ -181,6 +181,19 @@ defmodule Kernel.WarningTest do
     purge [Sample1, Sample2, Sample3]
   end
 
+  test :unused_docs do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample1 do
+        @doc "Oops"
+        def hello
+      end
+      """
+    end) =~ "docs provided for nonexistent function or macro hello/0"
+  after
+    purge [Sample1]
+  end
+
   test :used_import_via_alias do
     assert capture_err(fn ->
       Code.eval_string """

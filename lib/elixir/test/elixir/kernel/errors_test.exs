@@ -224,13 +224,24 @@ defmodule Kernel.ErrorsTest do
       'fn 1'
   end
 
-  test :macro_conflict do
+  test :function_local_conflict do
     assert_compile_fail CompileError,
-      "nofile:1: imported Kernel.defrecord/2 conflicts with local function",
+      "nofile:1: imported Kernel.&&/2 conflicts with local function",
       '''
       defmodule ErrorsTest do
-        defrecord(Kernel.ErrorsTest.MacroConflict, a: 1)
-        def defrecord(_, _), do: OMG
+        1 && 2
+        def _ && _, do: OMG
+      end
+      '''
+  end
+
+  test :macro_local_conflict do
+    assert_compile_fail CompileError,
+      "nofile:1: imported Kernel.&&/2 conflicts with local function",
+      '''
+      defmodule ErrorsTest do
+        1 && 2
+        defmacro _ && _, do: OMG
       end
       '''
   end
@@ -374,17 +385,6 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail SyntaxError,
       "nofile:1: \"do\" starting at line 1 is missing terminator \"end\". Unexpected token: )",
       '"foo\#{case 1 do )}bar"'
-  end
-
-  test :cant_define_local_due_to_in_erlang_macros_conflict do
-    assert_compile_fail CompileError,
-      "nofile:1: cannot define local quote/1 because it conflicts with Elixir special forms",
-      '''
-      defmodule ErrorsTest do
-        def quote(x), do: x
-        def bar(x), do: quote(do: x)
-      end
-      '''
   end
 
   test :in_definition_module do

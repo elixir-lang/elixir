@@ -239,9 +239,9 @@ unwrap_stored_definitions(File, Module) ->
   Table = table(Module),
   CTable = clauses_table(Module),
   ets:delete(Table, last),
-  unwrap_stored_definition(ets:tab2list(Table), CTable, File, [], [], [], [], [], []).
+  unwrap_stored_definition(ets:tab2list(Table), CTable, File, [], [], [], [], [], [], []).
 
-unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro, Functions, Tail) ->
+unwrap_stored_definition([Fun|T], CTable, File, All, Exports, Private, Def, Defmacro, Functions, Tail) ->
   Tuple   = element(1, Fun),
   Clauses = [Clause || { _, Clause } <- ets:lookup(CTable, Tuple)],
 
@@ -252,15 +252,19 @@ unwrap_stored_definition([Fun|T], CTable, File, Exports, Private, Def, Defmacro,
     end,
 
   { NewFunctions, NewTail } = case NewFun of
-    false -> { Functions, Tail };
-    _     -> function_for_stored_definition(NewFun, Clauses, File, Functions, Tail)
+    false ->
+      NewAll = All,
+      { Functions, Tail };
+    _ ->
+      NewAll = [Tuple|All],
+      function_for_stored_definition(NewFun, Clauses, File, Functions, Tail)
   end,
 
-  unwrap_stored_definition(T, CTable, File, NewExports, NewPrivate,
+  unwrap_stored_definition(T, CTable, File, NewAll, NewExports, NewPrivate,
     NewDef, NewDefmacro, NewFunctions, NewTail);
 
-unwrap_stored_definition([], _CTable, _File, Exports, Private, Def, Defmacro, Functions, Tail) ->
-  { Exports, Private, ordsets:from_list(Def),
+unwrap_stored_definition([], _CTable, _File, All, Exports, Private, Def, Defmacro, Functions, Tail) ->
+  { All, Exports, Private, ordsets:from_list(Def),
     ordsets:from_list(Defmacro), lists:reverse(Tail ++ Functions) }.
 
 unwrap_stored_definition(def, Tuple, Fun, Exports, Private, Def, Defmacro) ->
