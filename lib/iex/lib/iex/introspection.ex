@@ -3,6 +3,8 @@ defmodule IEx.Introspection do
   # from modules. Invoked directly from IEX.Helpers.
   @moduledoc false
 
+  import IEx, only: [dont_display_result: 0]
+
   @doc false
   def h(module) when is_atom(module) do
     case Code.ensure_loaded(module) do
@@ -18,10 +20,12 @@ defmodule IEx.Introspection do
       { :error, reason } ->
         IO.puts IEx.color(:error, "Could not load module #{inspect module}: #{reason}")
     end
+    dont_display_result
   end
 
   def h(_) do
     IO.puts IEx.color(:error, "Invalid arguments for h helper")
+    dont_display_result
   end
 
   @doc false
@@ -35,7 +39,7 @@ defmodule IEx.Introspection do
     unless result == :ok, do:
       nodocs(function)
 
-    :ok
+    dont_display_result
   end
 
   def h(module, function) when is_atom(module) and is_atom(function) do
@@ -48,15 +52,17 @@ defmodule IEx.Introspection do
         nodocs("#{inspect module}.#{function}")
     end
 
-    :ok
+    dont_display_result
   end
 
   def h(function, arity) when is_atom(function) and is_integer(arity) do
     h([IEx.Helpers, Kernel, Kernel.SpecialForms], function, arity)
+    dont_display_result
   end
 
   def h(_, _) do
     IO.puts IEx.color(:error, "Invalid arguments for h helper")
+    dont_display_result
   end
 
   defp h_mod_fun(mod, fun) when is_atom(mod) and is_atom(fun) do
@@ -83,7 +89,7 @@ defmodule IEx.Introspection do
     unless result == :ok, do:
       nodocs("#{function}/#{arity}")
 
-    :ok
+    dont_display_result
   end
 
   def h(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
@@ -96,11 +102,12 @@ defmodule IEx.Introspection do
         nodocs("#{inspect module}.#{function}/#{arity}")
     end
 
-    :ok
+    dont_display_result
   end
 
   def h(_, _, _) do
     IO.puts IEx.color(:error, "Invalid arguments for h helper")
+    dont_display_result
   end
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) and is_atom(fun) and is_integer(arity) do
@@ -166,7 +173,7 @@ defmodule IEx.Introspection do
       notypes(inspect module)
     end
 
-    :ok
+    dont_display_result
   end
 
   @doc false
@@ -181,7 +188,7 @@ defmodule IEx.Introspection do
        notypes("#{inspect module}.#{type}")
     end
 
-    :ok
+    dont_display_result
   end
 
   @doc false
@@ -196,7 +203,7 @@ defmodule IEx.Introspection do
        print_type(type)
     end
 
-    :ok
+    dont_display_result
   end
 
   @doc false
@@ -207,7 +214,7 @@ defmodule IEx.Introspection do
       nospecs(inspect module)
     end
 
-    :ok
+    dont_display_result
   end
 
   @doc false
@@ -222,7 +229,7 @@ defmodule IEx.Introspection do
       nospecs("#{inspect module}.#{function}")
     end
 
-    :ok
+    dont_display_result
   end
 
   @doc false
@@ -237,7 +244,7 @@ defmodule IEx.Introspection do
       nodocs("#{inspect module}.#{function}")
     end
 
-    :ok
+    dont_display_result
   end
 
   defp beam_specs(module) do

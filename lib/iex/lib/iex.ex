@@ -198,6 +198,9 @@ defmodule IEx do
     end
   end
 
+  @doc false
+  def dont_display_result, do: :"do not show this result in iex"
+
   ## Boot Helpers
 
   defp start_iex do

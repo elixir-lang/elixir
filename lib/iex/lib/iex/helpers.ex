@@ -45,8 +45,7 @@ defmodule IEx.Helpers do
   To learn more about IEx as a whole, just type `h(IEx)`.
   """
 
-  @doc false
-  def dont_display_result, do: :"do not show this result in the repl"
+  import IEx, only: [dont_display_result: 0]
 
   @doc """
   Expects a list of files to compile and a path
@@ -119,49 +118,46 @@ defmodule IEx.Helpers do
   # Special case for `h AnyModule.__info__/1`
   defmacro h({ :/, _, [{ { :., _, [_mod, :__info__] }, _, [] }, 1] }) do
     quote do
-      h_wrapper([Module, :__info__, 1])
+      IEx.Introspection.h(Module, :__info__, 1)
     end
   end
 
   defmacro h({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
-      h_wrapper([unquote(mod), unquote(fun), unquote(arity)])
+      IEx.Introspection.h(unquote(mod), unquote(fun), unquote(arity))
     end
   end
 
   # Special case for `h AnyModule.__info__`
   defmacro h({ { :., _, [_mod, :__info__] }, _, [] }) do
     quote do
-      h_wrapper([Module, :__info__, 1])
+      IEx.Introspection.h(Module, :__info__, 1)
     end
   end
 
   defmacro h({ { :., _, [mod, fun] }, _, [] }) do
     quote do
-      h_wrapper([unquote(mod), unquote(fun)])
+      IEx.Introspection.h(unquote(mod), unquote(fun))
     end
   end
 
   defmacro h({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
     quote do
-      h_wrapper([unquote(fun), unquote(arity)])
+      IEx.Introspection.h(unquote(fun), unquote(arity))
     end
   end
 
   defmacro h({ name, _, args }) when args == [] or is_atom(args) do
     quote do
-      h_wrapper([[unquote(__MODULE__), Kernel, Kernel.SpecialForms], unquote(name)])
+      IEx.Introspection.h([unquote(__MODULE__), Kernel, Kernel.SpecialForms], unquote(name))
     end
   end
 
   defmacro h(other) do
     quote do
-      h_wrapper([unquote(other)])
+      IEx.Introspection.h(unquote(other))
     end
   end
-
-  @doc false
-  def h_wrapper(args), do: inspect_wrapper(:h, args)
 
   @doc """
   When given a module, prints specifications (or simply specs) for all the
@@ -177,38 +173,21 @@ defmodule IEx.Helpers do
   """
   defmacro t({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
-      t_wrapper([unquote(mod), unquote(fun), unquote(arity)])
+      IEx.Introspection.t(unquote(mod), unquote(fun), unquote(arity))
     end
   end
 
   defmacro t({ { :., _, [mod, fun] }, _, [] }) do
     quote do
-      t_wrapper([unquote(mod), unquote(fun)])
+      IEx.Introspection.t(unquote(mod), unquote(fun))
     end
   end
 
-  defmacro t(module) when is_atom(module) do
+  defmacro t(module) do
     quote do
-      t_wrapper([unquote(module)])
+      IEx.Introspection.t(unquote(module))
     end
   end
-
-  defmacro t(module = {:__aliases__, _, _}) do
-    quote do
-      t_wrapper([unquote(module)])
-    end
-  end
-
-  defmacro t(other) do
-    IO.inspect is_atom(other)
-    quote do
-      IO.puts IEx.color(:error, "Invalid argument to t/1:\n")
-      h(t)
-    end
-  end
-
-  @doc false
-  def t_wrapper(args), do: inspect_wrapper(:t, args)
 
   @doc """
   Similar to `t/1`, only for specs.
@@ -227,36 +206,33 @@ defmodule IEx.Helpers do
   """
   defmacro s({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
     quote do
-      s_wrapper([unquote(mod), unquote(fun), unquote(arity)])
+      IEx.Introspection.s(unquote(mod), unquote(fun), unquote(arity))
     end
   end
 
   defmacro s({ { :., _, [mod, fun] }, _, [] }) do
     quote do
-      s_wrapper([unquote(mod), unquote(fun)])
+      IEx.Introspection.s(unquote(mod), unquote(fun))
     end
   end
 
   defmacro s({ fun, _, args }) when args == [] or is_atom(args) do
     quote do
-      s_wrapper([Kernel, unquote(fun)])
+      IEx.Introspection.s(Kernel, unquote(fun))
     end
   end
 
   defmacro s({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
     quote do
-      s_wrapper([Kernel, unquote(fun), unquote(arity)])
+      IEx.Introspection.s(Kernel, unquote(fun), unquote(arity))
     end
   end
 
   defmacro s(module) do
     quote do
-      s_wrapper([unquote(module)])
+      IEx.Introspection.s(unquote(module))
     end
   end
-
-  @doc false
-  def s_wrapper(args), do: inspect_wrapper(:s, args)
 
   @doc """
   Prints the history of expressions evaluated during the session along with
@@ -459,10 +435,5 @@ defmodule IEx.Helpers do
 
   defmacro import_file(_) do
     raise ArgumentError, message: "import_file/1 expects a literal binary as its argument"
-  end
-
-  defp inspect_wrapper(func, args) do
-    apply(IEx.Introspection, func, args)
-    dont_display_result
   end
 end
