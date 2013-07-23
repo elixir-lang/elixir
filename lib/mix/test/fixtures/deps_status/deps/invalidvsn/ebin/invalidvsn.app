@@ -1,3 +1,3 @@
 { application, invalidvsn, [
-  {vsn,"0.1.0"}
+  {vsn,ok}
 ] }.

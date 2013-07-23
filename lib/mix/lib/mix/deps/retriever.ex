@@ -182,14 +182,17 @@ defmodule Mix.Deps.Retriever do
     case :file.consult(app_path) do
       { :ok, [{ :application, ^app, config }] } ->
         case List.keyfind(config, :vsn, 0) do
-          { :vsn, actual } ->
+          { :vsn, actual } when is_list(actual) ->
             actual = list_to_binary(actual)
             if vsn_match?(req, actual) do
               { :ok, actual }
             else
-              { :invalidvsn, actual }
+              { :nomatchvsn, actual }
             end
-          nil -> { :invalidvsn, nil }
+          { :vsn, actual } ->
+            { :invalidvsn, actual }
+          nil ->
+            { :invalidvsn, nil }
         end
       { :ok, _ } -> { :invalidapp, app_path }
       { :error, _ } -> { :noappfile, app_path }

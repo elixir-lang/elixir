@@ -29,7 +29,7 @@ defmodule Mix.DepsTest do
     in_fixture "deps_status", fn ->
       deps = Mix.Deps.all
       assert Enum.find deps, match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
-      assert Enum.find deps, match?(Mix.Dep[app: :invalidvsn, status: { :invalidvsn, "0.1.0" }], &1)
+      assert Enum.find deps, match?(Mix.Dep[app: :invalidvsn, status: { :invalidvsn, :ok }], &1)
       assert Enum.find deps, match?(Mix.Dep[app: :invalidapp, status: { :invalidapp, _ }], &1)
       assert Enum.find deps, match?(Mix.Dep[app: :noappfile, status: { :noappfile, _ }], &1)
       assert Enum.find deps, match?(Mix.Dep[app: :uncloned, status: { :unavailable, _ }], &1)

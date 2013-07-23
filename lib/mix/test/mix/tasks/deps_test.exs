@@ -42,10 +42,9 @@ defmodule Mix.Tasks.DepsTest do
     def project do
       [
         deps: [
-          { :ok, ">= 0.1 and < 0.3", path: "deps/ok" },
-          { :invalidvsn, "2.0",      path: "deps/invalidvsn" },
-          { :noappfile,              path: "deps/noappfile", app: false },
-          { :apppath,                path: "deps/noappfile", app: "../deps/ok/ebin/ok.app" }
+          { :ok, ">= 2.0",  path: "deps/ok" },
+          { :noappfile,     path: "deps/noappfile", app: false },
+          { :apppath,       path: "deps/noappfile", app: "../deps/ok/ebin/ok.app" }
         ]
       ]
     end
@@ -61,7 +60,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["  locked at \"abcdef\""] }
       assert_received { :mix_shell, :info, ["  lock mismatch: the dependency is out of date"] }
       assert_received { :mix_shell, :info, ["* invalidvsn [path: \"deps/invalidvsn\"]"] }
-      assert_received { :mix_shell, :info, ["  the dependency does not match the specified version, got 0.1.0"] }
+      assert_received { :mix_shell, :info, ["  the app file contains an invalid version: :ok"] }
       assert_received { :mix_shell, :info, ["* invalidapp [path: \"deps/invalidapp\"]"] }
       assert_received { :mix_shell, :info, ["  the app file at deps/invalidapp/ebin/invalidapp.app is invalid"] }
       assert_received { :mix_shell, :info, ["* noappfile [path: \"deps/noappfile\"]"] }
@@ -73,16 +72,14 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.pop
   end
 
-  test "prints list of dependencies and their status including req matches" do
+  test "prints list of dependencies and their status, including req mismatches and custom apps" do
     Mix.Project.push ReqDepsApp
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.run []
 
-      assert_received { :mix_shell, :info, ["* ok (0.1.0) [path: \"deps/ok\"]"] }
-      assert_received { :mix_shell, :info, ["  ok"] }
-      assert_received { :mix_shell, :info, ["* invalidvsn [path: \"deps/invalidvsn\"]"] }
-      assert_received { :mix_shell, :info, ["  the dependency does not match the specified version, got 0.1.0"] }
+      assert_received { :mix_shell, :info, ["* ok [path: \"deps/ok\"]"] }
+      assert_received { :mix_shell, :info, ["  the dependency does not match the requirement >= 2.0, got 0.1.0"] }
       assert_received { :mix_shell, :info, ["* noappfile [path: \"deps/noappfile\"]"] }
       assert_received { :mix_shell, :info, ["* apppath [path: \"deps/noappfile\"]"] }
       refute_received { :mix_shell, :info, ["  could not find app file at deps/noappfile/ebin/apppath.app"] }
@@ -102,7 +99,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.pop
   end
 
-  test "check list of dependencies and their status on the first run" do
+  test "check list of dependencies and their status with failure" do
     Mix.Project.push OutOfDateDepsApp
 
     in_fixture "deps_status", fn ->
@@ -127,7 +124,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :error, ["* ok [git: \"git://github.com/elixir-lang/ok.git\"]"] }
       assert_received { :mix_shell, :error, ["  lock mismatch: the dependency is out of date"] }
       assert_received { :mix_shell, :error, ["* invalidvsn [path: \"deps/invalidvsn\"]"] }
-      assert_received { :mix_shell, :error, ["  the dependency does not match the specified version, got 0.1.0"] }
+      assert_received { :mix_shell, :error, ["  the app file contains an invalid version: :ok"] }
       assert_received { :mix_shell, :error, ["* invalidapp [path: \"deps/invalidapp\"]"] }
       assert_received { :mix_shell, :error, ["  the app file at deps/invalidapp/ebin/invalidapp.app is invalid"] }
       assert_received { :mix_shell, :error, ["* noappfile [path: \"deps/noappfile\"]"] }

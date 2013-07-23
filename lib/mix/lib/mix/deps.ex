@@ -185,7 +185,10 @@ defmodule Mix.Deps do
     do: "the app file at #{Mix.Utils.relative_to_cwd(path)} is invalid"
 
   def format_status(Mix.Dep[status: { :invalidvsn, vsn }]),
-    do: "the dependency does not match the specified version, got #{vsn}"
+    do: "the app file contains an invalid version: #{inspect vsn}"
+
+  def format_status(Mix.Dep[status: { :nomatchvsn, vsn }, requirement: req]),
+    do: "the dependency does not match the requirement #{req}, got #{vsn}"
 
   def format_status(Mix.Dep[status: { :lockmismatch, _ }]),
     do: "lock mismatch: the dependency is out of date"
