@@ -170,7 +170,7 @@ module_form(Fun, Exprs, Line, File, Module, Vars) when
   Relative =
     case get_opt(internal) of
       true  -> File;
-      false -> 'Elixir.Path':relative_to(File, 'Elixir.File':'cwd!'())
+      false -> 'Elixir.Path':relative_to(File, 'Elixir.System':'cwd!'())
     end,
 
   [

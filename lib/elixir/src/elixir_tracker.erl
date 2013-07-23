@@ -65,6 +65,7 @@ record_remote(Tuple, Receiver, Module, Function) ->
     error:badarg -> false
   end.
 
+record_alias(_Receiver, nil) -> false;
 record_alias(Receiver, Module) ->
   try
     Pid = ets:lookup_element(Module, ?attr, 2),
