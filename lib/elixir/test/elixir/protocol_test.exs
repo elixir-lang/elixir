@@ -166,12 +166,13 @@ defmodule ProtocolTest do
 
     defimpl Attribute, for: Foo do
       def test(_) do
-        @protocol
+        { @protocol, @for }
       end
     end
 
     assert Attribute.test(Foo[]) == { Attribute, Foo }
-    assert ProtocolTest.Attribute.ProtocolTest.Foo.__impl__(:protocol) == { Attribute, Foo }
+    assert ProtocolTest.Attribute.ProtocolTest.Foo.__impl__(:protocol) == Attribute
+    assert ProtocolTest.Attribute.ProtocolTest.Foo.__impl__(:for) == Foo
   end
 
   defp get_callbacks(module, name, arity) do
