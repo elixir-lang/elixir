@@ -5,6 +5,8 @@
   * [ExUnit] `--trace` now also reports run time for each test
   * [IEx] Add the `clear` helper to clear the screen.
   * [Kernel] Add support for `GenFSM.Behaviour`
+  * [Kernel] Functions now points to the module and function they were defined when inspected
+  * [Kernel] A documentation attached to a function that is never defined now prints warnings
   * [List] Add `List.keysort/2`
   * [Mix] `:test_helper` project configuration did not affect `mix test` and was therefore removed
   * [Mix] Add manifests for yecc, leex and Erlang compilers, making it easier to detect dependencies in between compilers and providing a more useful clean behaviour
@@ -18,9 +20,10 @@
   * [Behaviour] Ensure callbacks are stored in the definition order
   * [IEx] Reduce cases where IEx parser can get stuck
   * [Kernel] Improve error messages when the use of an operator has no effect
+  * [Kernel] Fix a bug where imported macros were not being warned when conflicting with a local function or macro
   * [Kernel] Document that `on_definition` can only be a function as it is evaluated inside the function context
   * [Kernel] Ensure `%w` sigils with no interpolation are fully expanded at compile time
-  * [Mix] `mix deps.update` no longer update all dependencies unless `--all` is given
+  * [Mix] `mix deps.update` no longer updates all dependencies unless `--all` is given
   * [Mix] Always run ` mix loadpaths` on `mix app.start`, even if `--no-compile` is given
   * [OptionParser] Do not add boolean flags to the end result if they were not given
 
