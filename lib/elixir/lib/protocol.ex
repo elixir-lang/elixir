@@ -71,10 +71,14 @@ defmodule Protocol do
 
       defmodule name do
         @behaviour unquote(protocol)
-        @protocol { unquote(protocol), unquote(for) }
+        @protocol  unquote(protocol)
+        @for       unquote(for)
+
         unquote(block)
+
         def __impl__(:name),     do: __MODULE__
         def __impl__(:protocol), do: @protocol
+        def __impl__(:for),      do: @for
       end
     end
   end
