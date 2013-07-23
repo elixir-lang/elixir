@@ -28,7 +28,7 @@ defmodule IEx.Helpers do
   * `t/1`     — prints type information
   * `v/0`     — prints the history of commands evaluated in the session
   * `v/1`     — retrieves the nth value from the history
-  * `import_file/1` 
+  * `import_file/1`
               — evaluates the given file in the shell's context
 
   Help for functions in this module can be consulted
@@ -124,7 +124,7 @@ defmodule IEx.Helpers do
   end
 
   defmacro h({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
-    quote do 
+    quote do
       h_wrapper([unquote(mod), unquote(fun), unquote(arity)])
     end
   end
@@ -143,7 +143,7 @@ defmodule IEx.Helpers do
   end
 
   defmacro h({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
-    quote do 
+    quote do
       h_wrapper([unquote(fun), unquote(arity)])
     end
   end

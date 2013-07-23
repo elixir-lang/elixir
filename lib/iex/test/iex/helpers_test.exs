@@ -8,12 +8,12 @@ defmodule IEx.HelpersTest do
   @doc """
   Test function 1
   """
-  def test_fun_1
+  def test_fun_1, do: :ok
 
   @doc """
   Test function 2
   """
-  def test_fun_1(arg)
+  def test_fun_1(arg), do: arg
 
   test "clear helper" do
     assert "\e[H\e[2J" == capture_iex("clear")

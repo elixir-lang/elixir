@@ -118,23 +118,43 @@ defmodule IEx.Options do
     raise_option(name)
   end
 
+  def help(:colors), do: """
+  This is an aggregate option that encapsulates all color settings used by the
+  shell. See documentation for the `IO.ANSI` module for the list of supported
+  colors and attributes.
+
+  The value is a keyword list. List of supported keys:
+
+    * enabled     -- boolean value that allows for switching the coloring
+                     on and off
+    * eval_result -- color for an expression's resulting value
+    * error       -- color for error messages
+    * info        -- color for various informational messages
+    * directory   -- color for directory entries (ls helper)
+    * device      -- color for device entries (ls helper)
+  """
+
+  def help(:inspect), do: """
+  Inspect options used by the shell when printing results of expression
+  evaluation.
+
+  The value is a keyword list.
+
+  See `Kernel.inspect/2` for the full list of options.
+  """
+
+  def help(:history_size), do: """
+  Number of expressions and their results to keep in the history.
+
+  The value is an integer. When it is negative, the history is unlimited.
+  """
+
   @doc """
-  Returns a string with the option's description. Raises `ArgumentError` 
+  Returns a string with the option's description. Raises `ArgumentError`
   if `name` is not a known option.
   """
   def help(name) do
-    if name in @supported_options do
-      docs = __MODULE__.__info__(:docs)
-      { {_, _}, _, _, _, doc } = Enum.find docs, fn { {f, _}, _, _, _, _ } ->
-        f == name
-      end
-
-      # Strip the first paragraph
-      stripped = String.lstrip(Regex.replace %r/\A.+?^$/ms, doc, "")
-      IEx.color :info, stripped
-    else
-      raise_option(name)
-    end
+    raise_option(name)
   end
 
   @doc """
@@ -150,56 +170,6 @@ defmodule IEx.Options do
   def list() do
     @supported_options
   end
-
-  @doc """
-  **NOTE**: This is just a stub for documentation purposes. Use
-  `IEx.Options.get` and `IEx.Options.set` to query and change the option's
-  value.
-
-  This is an aggregate option that encapsulates all color settings used by the
-  shell. See documentation for the `IO.ANSI` module for the list of supported
-  colors and attributes.
-
-  The value is a keyword list. List of supported keys:
-
-    * enabled     -- boolean value that allows for switching the coloring
-                     on and off
-
-    * eval_result -- color for an expression's resulting value
-    * error       -- color for error messages
-    * info        -- color for various informational messages
-    * directory   -- color for directory entries (ls helper)
-    * device      -- color for device entries (ls helper)
-
-  """
-  def colors
-
-  @doc """
-  **NOTE**: This is just a stub for documentation purposes. Use
-  `IEx.Options.get` and `IEx.Options.set` to query and change the option's
-  value.
-
-  Inspect options used by the shell when printing results of expression
-  evaluation.
-
-  The value is a keyword list.
-
-  See `Kernel.inspect/2` for the full list of options.
-
-  """
-  def inspect
-
-  @doc """
-  **NOTE**: This is just a stub for documentation purposes. Use
-  `IEx.Options.get` and `IEx.Options.set` to query and change the option's
-  value.
-
-  Number of expressions and their results to keep in the history.
-
-  The value is an integer. When it is negative, the history is unlimited.
-
-  """
-  def history_size
 
   defp raise_option(name) do
     raise ArgumentError, message: "Unknown IEx option #{inspect name}"

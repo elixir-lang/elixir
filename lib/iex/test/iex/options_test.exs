@@ -6,7 +6,8 @@ defmodule IEx.OptionsTest do
   @doc """
   Hello, I have %{red}ANSI%{reset} escapes.
   """
-  def ansi_escapes
+  def ansi_escapes, do: :ok
+
   unless match?({:win32,_}, :os.type) do
     test "color" do
       opts = [colors: [enabled: true, eval_result: "red"]]

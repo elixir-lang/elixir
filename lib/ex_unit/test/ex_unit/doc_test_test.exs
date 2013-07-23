@@ -16,7 +16,7 @@ defmodule ExUnit.DocTestTest.GoodModule do
   iex> a + b
   4
   """
-  def single_context
+  def single_context, do: :ok
 
   @doc """
   iex> 1 + (fn() -> "" end).()
@@ -25,13 +25,13 @@ defmodule ExUnit.DocTestTest.GoodModule do
   iex> 2 + (fn() -> :a end).()
   ** (ArithmeticError) bad argument in arithmetic expression
   """
-  def two_exceptions
+  def two_exceptions, do: :ok
 
   @doc """
   iex> 1 + (fn() -> :a end).()
   ** (ArithmeticError) bad argument in arithmetic expression
   """
-  def exception_test, do: 1
+  def exception_test, do: :ok
 end
 
 defmodule ExUnit.DocTestTest.ExceptionModule do
@@ -41,7 +41,7 @@ defmodule ExUnit.DocTestTest.ExceptionModule do
   iex> 2 + ""
   ** (ArithmeticError) bad argument in arithmetic expression
   """
-  def two_exceptions
+  def two_exceptions, do: :ok
 end
 
 defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithOnly do
@@ -96,8 +96,7 @@ defmodule ExUnit.DocTestTest.Invalid do
   iex> _a + 1
   2
   """
-  def no_leak do
-  end
+  def no_leak, do: :ok
 end
 
 
