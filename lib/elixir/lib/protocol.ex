@@ -175,7 +175,7 @@ defmodule Protocol do
     impl_bang = if returns_nil do
       quote do
         def __impl_for__!(arg) do
-          __impl_for__(arg) || raise(Protocol.UndefinedError, protocol: __MODULE__, structure: arg)
+          __impl_for__(arg) || raise(Protocol.UndefinedError, protocol: __MODULE__, value: arg)
         end
       end
     else
@@ -365,7 +365,7 @@ defmodule Protocol.DSL do
   defp nil_clause() do
     { [nil],
       [],
-      quote(do: raise(Protocol.UndefinedError, protocol: __MODULE__, structure: xA)) }
+      quote(do: raise(Protocol.UndefinedError, protocol: __MODULE__, value: xA)) }
   end
 
   defp record_clause(name, args, nil) do

@@ -63,9 +63,9 @@ defimpl Binary.Chars, for: List do
     rescue
       ArgumentError ->
         raise Protocol.UndefinedError,
-                 protocol: __MODULE__,
-                structure: thing,
-                    extra: "Only iolists are supported"
+                 protocol: @protocol,
+                    value: thing,
+              description: "only iolists are supported"
     end
   end
 end
