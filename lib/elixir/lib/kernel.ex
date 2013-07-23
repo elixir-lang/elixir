@@ -1091,7 +1091,7 @@ defmodule Kernel do
 
   @doc """
   Returns the size of the given argument, which must be a tuple
-  or a binary. If possible, please use `tuple_size` or `binary_size`.
+  or a binary. If possible, please use `tuple_size` or `byte_size`.
   """
   @spec size(tuple|binary) :: non_neg_integer
   def size(arg) do
