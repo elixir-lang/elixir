@@ -61,15 +61,15 @@ defmodule Mix.Tasks.Test do
 
   The `:test_coverage` configuration accepts the following options:
 
-  * `:output` - the output for cover results, defaults to "cover"
+  * `:output` - the output for cover results, defaults to `"cover"`
   * `:tool`   - the coverage tool
 
-  By default, a very simple wraper around OTP's cover is used as a tool,
+  By default, a very simple wrapper around OTP's `cover` is used as a tool,
   but it can be overriden as follows:
 
       test_coverage: [tool: CoverModule]
 
-  `CoverModule` can be any modile that exports `start/2`, receiving the
+  `CoverModule` can be any module that exports `start/2`, receiving the
   compilation path and the `test_coverage` options as arguments.
   """
 
