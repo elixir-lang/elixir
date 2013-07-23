@@ -33,7 +33,7 @@ defprotocol Inspect do
 
   The `concat` function comes from `Inspect.Algebra` and it
   concatenates algebra documents together. In the example above,
-  it is concatenating the string `"HashSet<"` (all strings are 
+  it is concatenating the string `"HashSet<"` (all strings are
   valid algebra documents that keep their formatting when pretty
   printed), the document returned by `Kernel.inspect/2` and the
   other string `">"`.
@@ -359,12 +359,37 @@ end
 defimpl Inspect, for: Function do
   def inspect(function, _opts) do
     fun_info = :erlang.fun_info(function)
+    mod = fun_info[:module]
+
     if fun_info[:type] == :external and fun_info[:env] == [] do
-      "function(#{Inspect.Atom.inspect(fun_info[:module])}.#{fun_info[:name]}/#{fun_info[:arity]})"
+      "function(#{Inspect.Atom.inspect(mod)}.#{fun_info[:name]}/#{fun_info[:arity]})"
     else
-      '#Fun' ++ rest = :erlang.fun_to_list(function)
-      "#Function" <> list_to_binary(rest)
+      case atom_to_list(mod) do
+        'elixir_compiler_' ++ _ ->
+          if function_exported?(mod, :__RELATIVE__, 0) do
+            "#Function<#{uniq(fun_info)} in file:#{mod.__RELATIVE__}>"
+          else
+            default_inspect(mod, fun_info)
+          end
+        _ ->
+          default_inspect(mod, fun_info)
+      end
     end
+  end
+
+  defp default_inspect(mod, fun_info) do
+    "#Function<#{uniq(fun_info)} in #{Inspect.Atom.inspect(mod)}.#{extract_name(fun_info[:name])}>"
+  end
+
+  defp extract_name(name) do
+    case :binary.split(atom_to_binary(name), "-", [:global]) do
+      ["", name | _] -> name
+      _ -> name
+    end
+  end
+
+  defp uniq(fun_info) do
+    integer_to_binary(fun_info[:new_index]) <> "." <> integer_to_binary(fun_info[:uniq])
   end
 end
 
