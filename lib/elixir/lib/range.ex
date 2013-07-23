@@ -20,6 +20,7 @@ defimpl Enumerable, for: Range do
   def reduce(Range[first: first] = range, acc, fun) do
     Range.Iterator.reduce(first, range, acc, fun)
   end
+
   def member?(Range[first: first, last: last], value) do
     value in first..last
   end

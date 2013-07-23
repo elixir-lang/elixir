@@ -87,6 +87,7 @@ defmodule Kernel.CLI.CompileTest do
     bar = '* #{fixture_path "parallel_deadlock/bar.ex"} is missing module Foo'
     assert :string.str(output, foo) > 0, "expected foo.ex to miss module Bar"
     assert :string.str(output, bar) > 0, "expected bar.ex to miss module Foo"
+    assert :string.str(output, 'elixir_compiler') == 0, "expected elixir_compiler to not be in output"
   end
 end
 

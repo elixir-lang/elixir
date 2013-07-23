@@ -167,12 +167,12 @@ defmodule Exception do
     "#{format_file_line(file_line, cwd)}#{inspect module} (module)"
   end
 
-  # From :elixir_compiler
+  # From :elixir_compiler_*
   def format_stacktrace_entry({ _module, :__MODULE__, 2, file_line }, cwd) do
     "#{format_file_line(file_line, cwd)}(module)"
   end
 
-  # From :elixir_compiler
+  # From :elixir_compiler_*
   def format_stacktrace_entry({ _module, :__FILE__, 2, file_line }, cwd) do
     "#{format_file_line(file_line, cwd)}(file)"
   end

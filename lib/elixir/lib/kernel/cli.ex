@@ -1,13 +1,12 @@
 defmodule Kernel.CLI do
-  @moduledoc """
-  Module responsible for controlling Elixir's CLI
-  """
+  @moduledoc false
 
   defrecord Config, commands: [], output: ".", compile: [],
                     halt: true, compiler_options: [], errors: []
 
-  # This is the API invoked by Elixir boot process.
-  @doc false
+  @doc """
+  This is the API invoked by Elixir boot process.
+  """
   def main(argv) do
     argv = lc arg inlist argv, do: :unicode.characters_to_binary(arg)
 
@@ -46,7 +45,7 @@ defmodule Kernel.CLI do
         at_exit(1)
         trace = System.stacktrace
         IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-        IO.puts :stderr, Exception.format_stacktrace(trace)
+        IO.puts :stderr, format_stacktrace(trace)
         System.halt(1)
     catch
       :exit, reason when is_integer(reason) ->
@@ -59,7 +58,7 @@ defmodule Kernel.CLI do
         at_exit(1)
         trace = System.stacktrace
         IO.puts :stderr, "** (#{kind}) #{inspect(reason)}"
-        IO.puts :stderr, Exception.format_stacktrace(trace)
+        IO.puts :stderr, format_stacktrace(trace)
         System.halt(1)
     end
   end
@@ -76,12 +75,12 @@ defmodule Kernel.CLI do
         exception ->
           trace = System.stacktrace
           IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-          IO.puts :stderr, Exception.format_stacktrace(trace)
+          IO.puts :stderr, format_stacktrace(trace)
       catch
         kind, reason ->
           trace = System.stacktrace
           IO.puts :stderr, "** #{kind} #{inspect(reason)}"
-          IO.puts :stderr, Exception.format_stacktrace(trace)
+          IO.puts :stderr, format_stacktrace(trace)
       end
     end
 
@@ -98,6 +97,24 @@ defmodule Kernel.CLI do
       { new_list, new_config } ->
         callback.(new_list, new_config)
     end
+  end
+
+  defp format_stacktrace(stack) do
+    Exception.format_stacktrace(prune_stacktrace(stack))
+  end
+
+  @elixir_internals [:elixir_compiler, :elixir_module]
+
+  defp prune_stacktrace([{ mod, _, _, _ }|t]) when mod in @elixir_internals do
+    prune_stacktrace(t)
+  end
+
+  defp prune_stacktrace([h|t]) do
+    [h|prune_stacktrace(t)]
+  end
+
+  defp prune_stacktrace([]) do
+    []
   end
 
   # Process shared options
@@ -329,6 +346,7 @@ defmodule Kernel.CLI do
       Code.compiler_options(config.compiler_options)
       Kernel.ParallelCompiler.files_to_path(files, config.output,
         each_file: fn file -> IO.puts "Compiled #{file}" end)
+      :ok
     else
       { :error, "--compile : No files matched patterns #{Enum.join(patterns, ",")}" }
     end
