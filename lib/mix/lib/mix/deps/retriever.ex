@@ -68,35 +68,35 @@ defmodule Mix.Deps.Retriever do
   end
 
   defp update(tuple, scms, from, manager // nil) do
-    dep = with_scm_and_status(tuple, scms).from(from)
+    dep = with_scm_and_app(tuple, scms).from(from)
 
     if match?({ _, req, _ } when is_regex(req), tuple) and
         not String.ends_with?(from, "rebar.config") do
       invalid_dep_format(tuple)
     end
 
-    cond do
-      # If it is not available, there is nothing we can do
-      not Mix.Deps.available?(dep) ->
-        dep
+    if Mix.Deps.available?(dep) do
+      validate_app(cond do
+        # If the manager was already set to rebar, let's use it
+        manager == :rebar ->
+          rebar_dep(dep)
 
-      # If the manager was already set to rebar, let's use it
-      manager == :rebar ->
-        rebar_dep(dep)
+        mixfile?(dep) ->
+          Mix.Deps.in_dependency(dep, fn project ->
+            mix_dep(dep, project)
+          end)
 
-      mixfile?(dep) ->
-        Mix.Deps.in_dependency(dep, fn project ->
-          mix_dep(dep, project)
-        end)
+        rebarconfig?(dep) or rebarexec?(dep) ->
+          rebar_dep(dep)
 
-      rebarconfig?(dep) or rebarexec?(dep) ->
-        rebar_dep(dep)
+        makefile?(dep) ->
+          make_dep(dep)
 
-      makefile?(dep) ->
-        make_dep(dep)
-
-      true ->
-        dep
+        true ->
+          dep
+      end)
+    else
+      dep
     end
   end
 
@@ -107,12 +107,15 @@ defmodule Mix.Deps.Retriever do
     end |> Path.absname
   end
 
-  defp mix_dep(Mix.Dep[manager: nil] = dep, project) do
-    if match?({ :noappfile, _ }, dep.status) and Mix.Project.umbrella? do
-      dep = dep.update_opts(Keyword.put(&1, :app, false))
-               .status({ :ok, nil })
-    end
-    dep.manager(:mix).source(project)
+  defp mix_dep(Mix.Dep[manager: nil, opts: opts, app: app] = dep, project) do
+    opts =
+      if Mix.Project.umbrella? do
+        Keyword.put_new(opts, :app, false)
+      else
+        Keyword.put_new(opts, :app, Path.join(Mix.project[:compile_path], "#{app}.app"))
+      end
+
+    dep.manager(:mix).source(project).opts(opts)
   end
 
   defp mix_dep(dep, _project), do: dep
@@ -130,11 +133,11 @@ defmodule Mix.Deps.Retriever do
 
   defp make_dep(dep), do: dep
 
-  defp with_scm_and_status({ app, opts }, scms) when is_atom(app) and is_list(opts) do
-    with_scm_and_status({ app, nil, opts }, scms)
+  defp with_scm_and_app({ app, opts }, scms) when is_atom(app) and is_list(opts) do
+    with_scm_and_app({ app, nil, opts }, scms)
   end
 
-  defp with_scm_and_status({ app, req, opts }, scms) when is_atom(app) and
+  defp with_scm_and_app({ app, req, opts }, scms) when is_atom(app) and
       (is_binary(req) or is_regex(req) or req == nil) and is_list(opts) do
 
     path = Path.join(Mix.project[:deps_path], app)
@@ -149,7 +152,7 @@ defmodule Mix.Deps.Retriever do
         scm: scm,
         app: app,
         requirement: req,
-        status: status(scm, app, req, opts),
+        status: scm_status(scm, opts),
         opts: opts
       ]
     else
@@ -158,27 +161,31 @@ defmodule Mix.Deps.Retriever do
     end
   end
 
-  defp with_scm_and_status(other, _scms) do
+  defp with_scm_and_app(other, _scms) do
     invalid_dep_format(other)
   end
 
-  defp status(scm, app, req, opts) do
+  defp scm_status(scm, opts) do
     if scm.checked_out? opts do
-      opts_app = opts[:app]
-
-      if opts_app == false do
-        { :ok, nil }
-      else
-        path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
-        path = Path.join(opts[:dest], path)
-        validate_app_file(path, app, req)
-      end
+      { :ok, nil }
     else
       { :unavailable, opts[:dest] }
     end
   end
 
-  defp validate_app_file(app_path, app, req) do
+  defp validate_app(Mix.Dep[opts: opts, requirement: req, app: app] = dep) do
+    opts_app = opts[:app]
+
+    if opts_app == false do
+      dep
+    else
+      path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
+      path = Path.expand(path, opts[:dest])
+      dep.status app_status(path, app, req)
+    end
+  end
+
+  defp app_status(app_path, app, req) do
     case :file.consult(app_path) do
       { :ok, [{ :application, ^app, config }] } ->
         case List.keyfind(config, :vsn, 0) do
