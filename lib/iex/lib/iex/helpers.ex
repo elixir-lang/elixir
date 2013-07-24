@@ -412,7 +412,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Evaluates the contents of file at `path` as if it were directly typed into
+  Evaluates the contents of the file at `path` as if it were directly typed into
   the shell. `path` has to be a literal binary.
 
   A leading `~` in `path` is automatically expanded.
