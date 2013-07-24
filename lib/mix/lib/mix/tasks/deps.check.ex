@@ -15,8 +15,18 @@ defmodule Mix.Tasks.Deps.Check do
   of the `mix` public API and can be depended on.
   """
   def run(_) do
+    deps = all
+    if apps_path = Mix.Project.umbrella_apps_path do
+      deps = Enum.filter(deps, fn(Mix.Dep[opts: opts]) ->
+        if opts[:path] do
+          parent_dir = Path.join(opts[:dest], "..") |> Path.expand
+          parent_dir != apps_path
+        end
+      end)
+    end
+
     lock = Mix.Deps.Lock.read
-    all  = Enum.map all, check_lock(&1, lock)
+    all  = Enum.map(deps, check_lock(&1, lock))
 
     case Enum.partition all, ok?(&1) do
       { _, [] }     -> :ok

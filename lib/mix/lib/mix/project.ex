@@ -144,6 +144,19 @@ defmodule Mix.Project do
   end
 
   @doc """
+  Returns the `apps_path` of the parent umbrella project or `nil`
+  if there is no umbrella project.
+  """
+  def umbrella_apps_path do
+    projects = Mix.Server.call(:projects)
+    Enum.find_value(projects, fn(Mix.Server.Project[config: config]) ->
+      if apps_path = config[:apps_path] do
+        Path.join(config[:cwd], apps_path)
+      end
+    end)
+  end
+
+  @doc """
   Runs `fun` in the current project.
 
   The goal of this function is to transparently abstract umbrella projects.
@@ -286,7 +299,8 @@ defmodule Mix.Project do
       lockfile: "mix.lock",
       erlc_paths: ["src"],
       erlc_include_path: "include",
-      erlc_options: [:debug_info] ]
+      erlc_options: [:debug_info],
+      cwd: File.cwd! ]
   end
 
   defp get_project_config(nil), do: []
