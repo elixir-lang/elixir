@@ -154,7 +154,7 @@ defmodule Mix.Tasks.New do
     end
 
     # Returns the list of dependencies in the format:
-    # { :foobar, "0.1", git: "https://github.com/elixir-lang/foobar.git" }
+    # { :foobar, "~> 0.1", git: "https://github.com/elixir-lang/foobar.git" }
     defp deps do
       []
     end
@@ -171,7 +171,7 @@ defmodule Mix.Tasks.New do
     end
 
     # Returns the list of dependencies in the format:
-    # { :foobar, "0.1", git: "https://github.com/elixir-lang/foobar.git" }
+    # { :foobar, "~> 0.1", git: "https://github.com/elixir-lang/foobar.git" }
     # These dependencies are not accessible from child applications
     defp deps do
       []
