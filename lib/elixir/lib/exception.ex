@@ -96,21 +96,21 @@ defexception Enum.EmptyError, message: "empty error"
 
 defmodule Exception do
   @moduledoc """
-  Several convenience functions to work and pretty print
+  Several convenience functions to work with and pretty print
   exceptions and stacktraces.
   """
 
   @doc """
-  Normalizes an exception converting Erlang exceptions
+  Normalizes an exception, converting Erlang exceptions
   to Elixir exceptions. It takes the kind spilled by
-  catch as argument as a convenience for converting only
-  :errors, ignorning the others.
+  `catch` as an argument as a convenience for converting only
+  `:errors`, ignorning the others.
   """
   def normalize(:error, exception), do: normalize(exception)
   def normalize(_kind, other), do: other
 
   @doc """
-  Normalizes an exception converting Erlang exceptions
+  Normalizes an exception, converting Erlang exceptions
   to Elixir exceptions. Useful when interfacing Erlang
   code with Elixir code.
   """
@@ -166,7 +166,7 @@ defmodule Exception do
 
   @doc """
   Receives a tuple representing a stacktrace entry and formats it.
-  The current working directory may be given as argument, which
+  The current working directory may be given as an argument, which
   is used to prettify the stacktrace.
   """
   def format_stacktrace_entry(entry, cwd // nil)
@@ -197,8 +197,8 @@ defmodule Exception do
   @doc """
   Formats the stacktrace.
 
-  A stacktrace must be given as argument. If not, this function
-  calculates the current stacktrace and formats it. As consequence,
+  A stacktrace must be given as an argument. If not, this function
+  calculates the current stacktrace and formats it. As a consequence,
   the value of `System.stacktrace` is changed.
   """
   def format_stacktrace(trace // nil) do
@@ -216,7 +216,7 @@ defmodule Exception do
 
   @doc """
   Formats the caller, i.e. the first entry in the stacktrace.
-  Notice that doing to tail call optimization, the stacktrace
+  Notice that due to tail call optimization, the stacktrace
   may not report the direct caller of the function.
   """
   def format_caller(trace // nil) do
