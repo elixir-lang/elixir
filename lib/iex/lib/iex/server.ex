@@ -27,6 +27,7 @@ defmodule IEx.Server do
     old_flag = Process.flag(:trap_exit, true)
     self_pid = self
     pid = spawn_link(fn -> input_loop(self_pid) end)
+
     try do
       do_loop(config.input_pid(pid))
     after
@@ -50,13 +51,9 @@ defmodule IEx.Server do
               counter = config.counter
               code    = config.cache
               eval(code, line, counter, config)
-            rescue
-              exception ->
-                print_exception(exception, System.stacktrace)
-                config.cache('')
             catch
               kind, error ->
-                print_error(kind, error, System.stacktrace)
+                print_error(kind, Exception.normalize(kind, error), System.stacktrace)
                 config.cache('')
             end
 
@@ -96,6 +93,7 @@ defmodule IEx.Server do
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   #
   @break_trigger '#iex:break\n'
+
   defp eval(_, @break_trigger, _, config=IEx.Config[cache: '']) do
     config
   end
@@ -106,6 +104,7 @@ defmodule IEx.Server do
 
   defp eval(code_so_far, latest_input, line_no, config) do
     code = code_so_far ++ latest_input
+
     case :elixir_translator.forms(code, line_no, "iex", []) do
       { :ok, forms } ->
         { result, new_binding, scope } =
@@ -137,12 +136,14 @@ defmodule IEx.Server do
     else
       Enum.map [".iex", "~/.iex"], Path.expand(&1)
     end
+
     path = Enum.find candidates, fn path -> File.regular?(path) end
+
     if nil?(path) do
       config
     else
       try do
-        code = File.read!(path)
+        code  = File.read!(path)
         scope = :elixir.scope_for_eval(config.scope, file: path)
 
         # Evaluate the contents in the same environment do_loop will run in
@@ -154,13 +155,9 @@ defmodule IEx.Server do
 
         scope = :elixir.scope_for_eval(scope, file: "iex")
         config.binding(binding).scope(scope)
-      rescue
-        exception ->
-          print_exception(exception, System.stacktrace)
-          System.halt(1)
       catch
         kind, error ->
-          print_error(kind, error, System.stacktrace)
+          print_error(kind, Exception.normalize(kind, error), System.stacktrace)
           System.halt(1)
       end
     end
@@ -215,7 +212,7 @@ defmodule IEx.Server do
     if node == node(:erlang.group_leader), do: "iex", else: "rem"
   end
 
-  defp print_exception(exception, stacktrace) do
+  defp print_error(:error, exception, stacktrace) do
     print_stacktrace stacktrace, fn ->
       "** (#{inspect exception.__record__(:name)}) #{exception.message}"
     end
@@ -234,10 +231,17 @@ defmodule IEx.Server do
   defp print_stacktrace(trace, callback) do
     try do
       io_error callback.()
-      io_error Exception.format_stacktrace(trace)
+      case prune_stacktrace(trace) do
+        []    -> :ok
+        other -> io_error Exception.format_stacktrace(other)
+      end
     catch
       _, _ ->
         io_error "** (IEx.Error) error when printing exception message and stacktrace"
     end
   end
+
+  defp prune_stacktrace([{ IEx.Server, _, _, _ }|t]), do: prune_stacktrace(t)
+  defp prune_stacktrace([h|t]), do: [h|prune_stacktrace(t)]
+  defp prune_stacktrace([]), do: []
 end

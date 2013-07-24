@@ -193,9 +193,15 @@ raise(none, File, Kind, Message) ->
   raise(0, File, Kind, Message);
 
 raise(Line, File, Kind, Message) when is_integer(Line) ->
+  %% Populate the stacktrace so we can raise it
+  try
+    throw(ok)
+  catch
+    ok -> ok
+  end,
   Stacktrace = erlang:get_stacktrace(),
   Exception = Kind:new([{description, Message}, {file, iolist_to_binary(File)}, {line, Line}]),
-  erlang:raise(error, Exception, Stacktrace).
+  erlang:raise(error, Exception, tl(Stacktrace)).
 
 file_format(0, File, Message) ->
   io_lib:format("~ts: ~ts~n", [File, Message]);

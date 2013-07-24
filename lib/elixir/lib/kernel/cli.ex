@@ -40,13 +40,6 @@ defmodule Kernel.CLI do
         at_exit(0)
         System.halt(0)
       end
-    rescue
-      exception ->
-        at_exit(1)
-        trace = System.stacktrace
-        IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-        IO.puts :stderr, format_stacktrace(trace)
-        System.halt(1)
     catch
       :exit, reason when is_integer(reason) ->
         at_exit(reason)
@@ -56,9 +49,7 @@ defmodule Kernel.CLI do
         System.halt(0)
       kind, reason ->
         at_exit(1)
-        trace = System.stacktrace
-        IO.puts :stderr, "** (#{kind}) #{inspect(reason)}"
-        IO.puts :stderr, format_stacktrace(trace)
+        print_error(kind, Exception.normalize(kind, reason), System.stacktrace)
         System.halt(1)
     end
   end
@@ -71,16 +62,9 @@ defmodule Kernel.CLI do
     lc hook inlist hooks do
       try do
         hook.(status)
-      rescue
-        exception ->
-          trace = System.stacktrace
-          IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-          IO.puts :stderr, format_stacktrace(trace)
       catch
         kind, reason ->
-          trace = System.stacktrace
-          IO.puts :stderr, "** #{kind} #{inspect(reason)}"
-          IO.puts :stderr, format_stacktrace(trace)
+          print_error(kind, Exception.normalize(kind, reason), System.stacktrace)
       end
     end
 
@@ -97,6 +81,16 @@ defmodule Kernel.CLI do
       { new_list, new_config } ->
         callback.(new_list, new_config)
     end
+  end
+
+  defp print_error(:error, exception, trace) do
+    IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+    IO.puts :stderr, format_stacktrace(trace)
+  end
+
+  defp print_error(kind, reason, trace) do
+    IO.puts :stderr, "** #{kind} #{inspect(reason)}"
+    IO.puts :stderr, format_stacktrace(trace)
   end
 
   defp format_stacktrace(stack) do

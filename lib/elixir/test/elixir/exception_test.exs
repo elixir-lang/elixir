@@ -10,6 +10,15 @@ defmodule Kernel.ExceptionTest do
     refute is_exception(a_list)
   end
 
+  test :normalize do
+    assert is_record Exception.normalize(:badarg), ArgumentError
+    assert is_record Exception.normalize(ArgumentError[]), ArgumentError
+
+    assert Exception.normalize(:throw, :badarg) == :badarg
+    assert is_record Exception.normalize(:error, :badarg), ArgumentError
+    assert is_record Exception.normalize(:error, ArgumentError[]), ArgumentError
+  end
+
   test :format_stacktrace_entry_with_no_file_or_line do
     assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], []}) == "Foo.bar(1, 2, 3)"
     assert Exception.format_stacktrace_entry({Foo, :bar, [], []}) == "Foo.bar()"

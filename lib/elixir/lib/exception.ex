@@ -102,6 +102,15 @@ defmodule Exception do
 
   @doc """
   Normalizes an exception converting Erlang exceptions
+  to Elixir exceptions. It takes the kind spilled by
+  catch as argument as a convenience for converting only
+  :errors, ignorning the others.
+  """
+  def normalize(:error, exception), do: normalize(exception)
+  def normalize(_kind, other), do: other
+
+  @doc """
+  Normalizes an exception converting Erlang exceptions
   to Elixir exceptions. Useful when interfacing Erlang
   code with Elixir code.
   """
