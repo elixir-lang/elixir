@@ -36,6 +36,9 @@ defmodule Mix.Deps do
   ## Mix options
 
   * `:app` - Do not try to read the app file for this dependency
+  * `:env` - The environment to run the dependency on, defaults to :prod
+  * `:compile` - A command to compile the dependency, defaults to a mix,
+                 rebar or make command
 
   ## Git options (`:git`)
 
