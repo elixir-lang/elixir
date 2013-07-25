@@ -34,7 +34,7 @@ defmodule Mix.SCM do
   sense for the Git SCM, it will return an update list of options
   while other SCMs would simply return nil.
   """
-  defcallback accepts_options(opts) :: opts | nil
+  defcallback accepts_options(app :: atom, opts) :: opts | nil
 
   @doc """
   This behavior function returns a boolean if the

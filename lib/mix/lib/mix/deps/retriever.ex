@@ -144,7 +144,7 @@ defmodule Mix.Deps.Retriever do
     opts = Keyword.put(opts, :dest, path)
 
     { scm, opts } = Enum.find_value scms, fn(scm) ->
-      (new = scm.accepts_options(opts)) && { scm, new }
+      (new = scm.accepts_options(app, opts)) && { scm, new }
     end
 
     if scm do

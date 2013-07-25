@@ -184,7 +184,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Update.run ["--all"]
-      assert Process.get(:raw_repo_env) == :prod
+      assert_received { :mix_shell, :info, [":raw_repo env is prod"] }
     end
   after
     Mix.Project.pop
@@ -195,7 +195,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Update.run ["--all"]
-      assert Process.get(:raw_repo_env) == :dev
+      assert_received { :mix_shell, :info, [":raw_repo env is dev"] }
     end
   after
     Mix.Project.pop

@@ -13,6 +13,9 @@ defmodule Mix.UmbrellaTest do
         assert_received { :mix_shell, :info, ["==> foo"] }
         assert_received { :mix_shell, :info, ["Compiled lib/foo.ex"] }
         assert_received { :mix_shell, :info, ["Generated foo.app"] }
+
+        # Ensure foo was loaded and in the same env as Mix.env
+        assert_received { :mix_shell, :info, [":foo env is dev"] }
       end)
     end
   end
@@ -26,7 +29,6 @@ defmodule Mix.UmbrellaTest do
       end)
     end
   end
-
 
   test "list deps for umbrella as dependency" do
     in_fixture("umbrella_dep", fn ->

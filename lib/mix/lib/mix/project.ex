@@ -270,7 +270,6 @@ defmodule Mix.Project do
 
   defp default_config do
     [ compile_path: "ebin",
-      default_env: [test: :test],
       default_task: "run",
       deps_path: "deps",
       elixirc_exts: [:ex],
