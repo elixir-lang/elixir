@@ -53,15 +53,36 @@ defmodule Behaviour do
     do_defcallback(fun, quote(do: term), __CALLER__)
   end
 
-  defp do_defcallback(fun, return, caller) do
+  @doc """
+  Defines a macro callback according to the given type specification.
+  """
+  defmacro defmacrocallback({ :::, _, [fun, return] }) do
+    do_defmacrocallback(fun, return, __CALLER__)
+  end
+
+  defmacro defmacrocallback(fun) do
+    do_defmacrocallback(fun, quote(do: Macro.t), __CALLER__)
+  end
+
+  defp do_defcallback(fun, spec, caller) do
     case Macro.extract_args(fun) do
-      { name, args } -> :ok
+      { name, args } ->
+        do_callback(:def, name, args, name, length(args), spec, caller)
       :error ->
         raise ArgumentError, message: "invalid syntax in defcallback #{Macro.to_string(fun)}"
     end
+  end
 
-    arity = length(args)
+  defp do_defmacrocallback(fun, spec, caller) do
+    case Macro.extract_args(fun) do
+      { name, args } ->
+        do_callback(:defmacro, :"MACRO-#{name}", [quote(do: env :: Macro.Env.t)|args], name, length(args), spec, caller)
+      :error ->
+        raise ArgumentError, message: "invalid syntax in defmacrocallback #{Macro.to_string(fun)}"
+    end
+  end
 
+  defp do_callback(kind, name, args, docs_name, docs_arity, return, caller) do
     Enum.each args, fn
       { :::, _, [left, right] } ->
         ensure_not_default(left)
@@ -74,7 +95,7 @@ defmodule Behaviour do
 
     quote do
       @callback unquote(name)(unquote_splicing(args)) :: unquote(return)
-      Behaviour.store_docs __MODULE__, unquote(caller.line), unquote(name), unquote(arity)
+      Behaviour.store_docs __MODULE__, unquote(caller.line), unquote(kind), unquote(docs_name), unquote(docs_arity)
     end
   end
 
@@ -85,10 +106,10 @@ defmodule Behaviour do
   defp ensure_not_default(_), do: :ok
 
   @doc false
-  def store_docs(module, line, name, arity) do
+  def store_docs(module, line, kind, name, arity) do
     doc = Module.get_attribute module, :doc
     Module.delete_attribute module, :doc
-    Module.put_attribute module, :behaviour_docs, { { name, arity }, line, doc }
+    Module.put_attribute module, :behaviour_docs, { { name, arity }, line, kind, doc }
   end
 
   @doc false

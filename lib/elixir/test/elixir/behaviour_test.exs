@@ -16,21 +16,21 @@ defmodule BehaviourTest do
     defcallback bar(External.hello, my_var :: binary) :: binary
 
     @doc "I should be last."
-    defcallback last(integer) :: integer
+    defmacrocallback last(integer) :: Macro.t
   end
 
   test :docs do
     docs = Sample.__behaviour__(:docs)
     assert docs == [
-      {{:first, 1}, 10, "I should be first."},
-      {{:foo, 2}, 13, "Foo"},
-      {{:bar, 2}, 16, "Bar"},
-      {{:last, 1}, 19, "I should be last."}
+      {{:first, 1}, 10, :def, "I should be first."},
+      {{:foo, 2}, 13, :def, "Foo"},
+      {{:bar, 2}, 16, :def, "Bar"},
+      {{:last, 1}, 19, :defmacro, "I should be last."}
     ]
   end
 
   test :callbacks do
-    assert Sample.__behaviour__(:callbacks) == [first: 1, foo: 2, bar: 2, last: 1]
+    assert Sample.__behaviour__(:callbacks) == [first: 1, foo: 2, bar: 2, "MACRO-last": 2]
   end
 
   test :specs do

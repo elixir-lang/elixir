@@ -118,9 +118,15 @@ handle_file_warning(_, File, { Line, sys_core_fold, { no_effect, { erlang, F, A 
 
 %% Rewrite undefined behaviour to check for protocols
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity},Module}}) ->
+  { DefKind, Def, DefArity } =
+    case atom_to_list(Fun) of
+      "MACRO-" ++ Rest -> { macro, list_to_atom(Rest), Arity - 1 };
+      _ -> { function, Fun, Arity }
+    end,
+
   Kind    = protocol_or_behaviour(Module),
-  Raw     = "undefined ~ts function ~ts/~B (for ~ts ~ts)",
-  Message = io_lib:format(Raw, [Kind, Fun, Arity, Kind, inspect(Module)]),
+  Raw     = "undefined ~ts ~ts ~ts/~B (for ~ts ~ts)",
+  Message = io_lib:format(Raw, [Kind, DefKind, Def, DefArity, Kind, inspect(Module)]),
   warn(file_format(Line, File, Message));
 
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->

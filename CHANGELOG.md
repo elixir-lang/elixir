@@ -1,6 +1,7 @@
 # v0.10.1-dev
 
 * enhancements
+  * [Behaviour] Add support for `defmacrocallback/1`
   * [Enum] Add `Enum.shuffle/1`
   * [ExUnit] The `:trace` option now also reports run time for each test
   * [ExUnit] Add support for `:color` to enable/disable ANSI coloring

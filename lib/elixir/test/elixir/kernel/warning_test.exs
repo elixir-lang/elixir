@@ -309,6 +309,55 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
+  test :undefined_function_for_behaviour do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample1 do
+        use Behaviour
+        defcallback foo
+      end
+
+      defmodule Sample2 do
+        @behaviour Sample1
+      end
+      """
+    end) =~ "undefined behaviour function foo/0 (for behaviour Sample1)"
+  after
+    purge [Sample1, Sample2, Sample3]
+  end
+
+  test :undefined_macro_for_behaviour do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample1 do
+        use Behaviour
+        defmacrocallback foo
+      end
+
+      defmodule Sample2 do
+        @behaviour Sample1
+      end
+      """
+    end) =~ "undefined behaviour macro foo/0 (for behaviour Sample1)"
+  after
+    purge [Sample1, Sample2, Sample3]
+  end
+
+  test :undefined_macro_for_protocol do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defprotocol Sample1 do
+        def foo(subject)
+      end
+
+      defimpl Sample1, for: Atom do
+      end
+      """
+    end) =~ "undefined protocol function foo/1 (for protocol Sample1)"
+  after
+    purge [Sample1, Sample1.Atom]
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each list, purge(&1)
   end
