@@ -10,6 +10,7 @@ defmodule ExUnit.Mixfile do
       mod: { ExUnit, [] },
       env: [
         trace: false,
+        color: true,
         formatter: ExUnit.CLIFormatter ] ]
   end
 end

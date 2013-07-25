@@ -41,13 +41,13 @@ defmodule Mix.Tasks.Test do
 
   ## Command line options
 
-  * `--trace` - run tests with detailed reporting. Automatically sets `--max-cases` to 1;
-  * `--max-cases` - set the maximum number of cases running async;
-  * `--cover` - the directory to include coverage results;
-  * `--force` - forces compilation regardless of modification times;
-  * `--quick`, `-q` - only compile files that changed;
-  * `--no-compile` - do not compile, even if files require compilation;
-  * `--no-start` - do not start applications after compilation;
+  * `--trace` - run tests with detailed reporting. Automatically sets `--max-cases` to 1
+  * `--max-cases` - set the maximum number of cases running async
+  * `--cover` - the directory to include coverage results
+  * `--force` - forces compilation regardless of modification times
+  * `--no-compile` - do not compile, even if files require compilation
+  * `--no-start` - do not start applications after compilation
+  * `--no-color` - disable color in the output
 
   ## Configuration
 
@@ -73,13 +73,13 @@ defmodule Mix.Tasks.Test do
   compilation path and the `test_coverage` options as arguments.
   """
 
-  @switches [quick: :boolean, force: :boolean,
+  @switches [force: :boolean, color: :boolean,
              trace: :boolean, max_cases: :integer]
 
   @cover [output: "cover", tool: Cover]
 
   def run(args) do
-    { opts, files } = OptionParser.parse(args, aliases: [q: :quick], switches: @switches)
+    { opts, files } = OptionParser.parse(args, switches: @switches)
 
     unless System.get_env("MIX_ENV") || Mix.env == :test do
       raise Mix.Error, "mix test is running on environment #{Mix.env}. If you are " <>
@@ -113,7 +113,7 @@ defmodule Mix.Tasks.Test do
     test_pattern = project[:test_pattern] || "*_test.exs"
 
     :application.load(:ex_unit)
-    ExUnit.configure(Dict.take(opts, [:trace, :max_cases]))
+    ExUnit.configure(Dict.take(opts, [:trace, :max_cases, :color]))
 
     files = Mix.Utils.extract_files(test_paths, test_pattern)
     Kernel.ParallelRequire.files files

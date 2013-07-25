@@ -43,27 +43,18 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["-s=from_docs/", "other"], aliases: [s: :source]) == { [source: "from_docs/"], ["other"] }
   end
 
-  test "parses key/value option when value is boolean" do
-    assert OptionParser.parse(["--docs", "false"]) == { [docs: false], [] }
-    assert OptionParser.parse(["--docs", "true"]) == { [docs: true], [] }
-  end
+  test "parses configured booleans" do
+    assert OptionParser.parse(["--docs=false"], switches: [docs: :boolean]) == { [docs: false], [] }
+    assert OptionParser.parse(["--docs=true"],  switches: [docs: :boolean]) == { [docs: true], [] }
+    assert OptionParser.parse(["--docs=other"], switches: [docs: :boolean]) == { [docs: false], [] }
 
-  test "parses key=value option when value is boolean" do
-    assert OptionParser.parse(["--docs=false"]) == { [docs: false], [] }
-    assert OptionParser.parse(["--docs=true"]) == { [docs: true], [] }
-  end
-
-  test "parses configured boolean" do
-    assert OptionParser.parse(["--docs", "foo"], switches: [docs: :boolean]) == { [docs: true], ["foo"] }
+    assert OptionParser.parse(["--docs", "foo"],    switches: [docs: :boolean]) == { [docs: true], ["foo"] }
+    assert OptionParser.parse(["--docs", "foo"],    switches: [docs: :boolean])  == { [docs: true], ["foo"] }
+    assert OptionParser.parse(["--no-docs", "foo"], switches: [docs: :boolean]) == { [docs: false], ["foo"] }
   end
 
   test "does not set unparsed booleans" do
     assert OptionParser.parse(["foo"], switches: [docs: :boolean]) == { [], ["foo"] }
-  end
-
-  test "parses configured booleans with explicit value" do
-    assert OptionParser.parse(["--docs", "true", "foo"], switches: [docs: :boolean])  == { [docs: true], ["foo"] }
-    assert OptionParser.parse(["--docs", "false", "foo"], switches: [docs: :boolean]) == { [docs: false], ["foo"] }
   end
 
   test "keeps options on configured keep" do
@@ -76,6 +67,11 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :integer]) == { [], ["foo"] }
   end
 
+  test "parses configured integers with keep" do
+    assert OptionParser.parse(["--value", "1", "--value", "2", "foo"],
+                              switches: [value: [:integer, :keep]]) == { [value: 1, value: 2], ["foo"] }
+  end
+
   test "parses configured floats" do
     assert OptionParser.parse(["--value", "1.0", "foo"], switches: [value: :float])  == { [value: 1.0], ["foo"] }
     assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :float]) == { [], ["foo"] }
@@ -86,8 +82,8 @@ defmodule OptionParserTest do
   end
 
   test "parses more than one key/value options" do
-    assert OptionParser.parse(["--source", "from_docs/", "--docs", "false"]) ==
-      { [source: "from_docs/", docs: false], [] }
+    assert OptionParser.parse(["--source", "from_docs/", "--docs", "show"]) ==
+      { [source: "from_docs/", docs: "show"], [] }
   end
 
   test "overrides options by default" do
@@ -96,8 +92,8 @@ defmodule OptionParserTest do
   end
 
   test "parses mixed options" do
-    options = OptionParser.parse(["--source", "from_docs/", "--docs", "false", "--compile", "-x"])
-    assert options == { [source: "from_docs/", docs: false, compile: true, x: true], [] }
+    options = OptionParser.parse(["--source", "from_docs/", "--compile", "-x"])
+    assert options == { [source: "from_docs/", compile: true, x: true], [] }
   end
 
   test "stops on first non option arguments" do

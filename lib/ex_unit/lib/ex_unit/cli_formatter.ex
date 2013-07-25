@@ -10,12 +10,12 @@ defmodule ExUnit.CLIFormatter do
   import ExUnit.Formatter, only: [format_time: 2, format_test_failure: 4, format_test_case_failure: 4]
 
   defrecord Config, tests_counter: 0, invalid_counter: 0,
-                    test_failures: [], case_failures: [], trace: false
+                    test_failures: [], case_failures: [], trace: false, color: true
 
   ## Behaviour
 
   def suite_started(opts) do
-    { :ok, pid } = :gen_server.start_link(__MODULE__, opts[:trace], [])
+    { :ok, pid } = :gen_server.start_link(__MODULE__, opts, [])
     pid
   end
 
@@ -41,13 +41,13 @@ defmodule ExUnit.CLIFormatter do
 
   ## Callbacks
 
-  def init(trace) do
-    { :ok, Config[trace: trace] }
+  def init(opts) do
+    { :ok, Config.new(opts) }
   end
 
   def handle_call({ :suite_finished, run_us, load_us }, _from, config) do
     print_suite(config.tests_counter, config.invalid_counter,
-                config.test_failures, config.case_failures, run_us, load_us)
+                config.test_failures, config.case_failures, run_us, load_us, config)
     { :stop, :normal, length(config.test_failures), config }
   end
 
@@ -62,18 +62,18 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_cast({ :test_finished, ExUnit.Test[failure: nil] = test }, config) do
     if config.trace do
-      IO.puts success(trace_test_result(test))
+      IO.puts success(trace_test_result(test), config)
     else
-      IO.write success(".")
+      IO.write success(".", config)
     end
     { :noreply, config.update_tests_counter(&1 + 1) }
   end
 
   def handle_cast({ :test_finished, ExUnit.Test[failure: { :invalid, _ }] = test }, config) do
     if config.trace do
-      IO.puts invalid(trace_test_result(test))
+      IO.puts invalid(trace_test_result(test), config)
     else
-      IO.write invalid("?")
+      IO.write invalid("?", config)
     end
     { :noreply, config.update_tests_counter(&1 + 1).
         update_invalid_counter(&1 + 1) }
@@ -81,9 +81,9 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_cast({ :test_finished, test }, config) do
     if config.trace do
-      IO.puts failure(trace_test_result(test))
+      IO.puts failure(trace_test_result(test), config)
     else
-      IO.write failure("F")
+      IO.write failure("F", config)
     end
     { :noreply, config.update_tests_counter(&1 + 1).
         update_test_failures([test|&1]) }
@@ -131,17 +131,17 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
-  defp print_suite(counter, 0, [], [], run_us, load_us) do
+  defp print_suite(counter, 0, [], [], run_us, load_us, config) do
     IO.write "\n\n"
     IO.puts format_time(run_us, load_us)
-    IO.puts success("#{counter} tests, 0 failures")
+    IO.puts success("#{counter} tests, 0 failures", config)
   end
 
-  defp print_suite(counter, num_invalids, test_failures, case_failures, run_us, load_us) do
+  defp print_suite(counter, num_invalids, test_failures, case_failures, run_us, load_us, config) do
     IO.write "\n\nFailures:\n\n"
 
-    num_fails = Enum.reduce Enum.reverse(test_failures), 0, print_test_failure(&1, &2, File.cwd!)
-    Enum.reduce Enum.reverse(case_failures), num_fails, print_test_case_failure(&1, &2, File.cwd!)
+    num_fails = Enum.reduce Enum.reverse(test_failures), 0, print_test_failure(&1, &2, File.cwd!, config)
+    Enum.reduce Enum.reverse(case_failures), num_fails, print_test_case_failure(&1, &2, File.cwd!, config)
 
     IO.puts format_time(run_us, load_us)
     message = "#{counter} tests, #{num_fails} failures"
@@ -151,41 +151,43 @@ defmodule ExUnit.CLIFormatter do
     end
 
     cond do
-      num_fails > 0    -> IO.puts failure(message)
-      num_invalids > 0 -> IO.puts invalid(message)
-      true             -> IO.puts success(message)
+      num_fails > 0    -> IO.puts failure(message, config)
+      num_invalids > 0 -> IO.puts invalid(message, config)
+      true             -> IO.puts success(message, config)
     end
   end
 
-  defp print_test_failure(test, acc, cwd) do
-    IO.puts format_test_failure(test, acc + 1, cwd, function(formatter/2))
+  defp print_test_failure(test, acc, cwd, config) do
+    IO.puts format_test_failure(test, acc + 1, cwd, formatter(&1, &2, config))
     acc + 1
   end
 
-  defp print_test_case_failure(test_case, acc, cwd) do
-    IO.puts format_test_case_failure(test_case, acc + 1, cwd, function(formatter/2))
+  defp print_test_case_failure(test_case, acc, cwd, config) do
+    IO.puts format_test_case_failure(test_case, acc + 1, cwd, formatter(&1, &2, config))
     acc + 1
   end
 
   # Color styles
 
-  defp colorize(escape, string) do
-    IO.ANSI.escape_fragment("%{#{escape}}") <> string <> IO.ANSI.escape_fragment("%{reset}")
+  defp colorize(escape, string, Config[color: color]) do
+    IO.ANSI.escape_fragment("%{#{escape}}", color)
+      <> string
+      <> IO.ANSI.escape_fragment("%{reset}", color)
   end
 
-  defp success(msg) do
-    colorize("green", msg)
+  defp success(msg, config) do
+    colorize("green", msg, config)
   end
 
-  defp invalid(msg) do
-    colorize("yellow", msg)
+  defp invalid(msg, config) do
+    colorize("yellow", msg, config)
   end
 
-  defp failure(msg) do
-    colorize("red", msg)
+  defp failure(msg, config) do
+    colorize("red", msg, config)
   end
 
-  defp formatter(:error_info, msg),    do: colorize("red", msg)
-  defp formatter(:location_info, msg), do: colorize("cyan", msg)
-  defp formatter(_,  msg),             do: msg
+  defp formatter(:error_info, msg, config),    do: colorize("red", msg, config)
+  defp formatter(:location_info, msg, config), do: colorize("cyan", msg, config)
+  defp formatter(_,  msg, _config),            do: msg
 end

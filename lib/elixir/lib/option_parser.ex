@@ -48,8 +48,9 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--unlock", "path/to/file"], switches: [unlock: :boolean])
       { [unlock: true], ["path/to/file"] }
 
-      iex> OptionParser.parse(["--unlock", "false", "path/to/file"], switches: [unlock: :boolean])
-      { [unlock: false], ["path/to/file"] }
+      iex> OptionParser.parse(["--unlock", "--limit", "0", "path/to/file"],
+      ...>                    switches: [unlock: :boolean, limit: :integer])
+      { [unlock: true, limit: 0], ["path/to/file"] }
 
   ## Negation switches
 
@@ -58,6 +59,11 @@ defmodule OptionParser do
 
       iex> OptionParser.parse(["--no-op", "path/to/file"])
       { [no_op: true], ["path/to/file"] }
+
+  In case the negated switch exists as a boolean, it sets the boolean to false:
+
+      iex> OptionParser.parse(["--no-op", "path/to/file"], switches: [op: :boolean])
+      { [op: false], ["path/to/file"] }
 
   """
   def parse(argv, opts // []) when is_list(argv) and is_list(opts) do
@@ -95,19 +101,18 @@ defmodule OptionParser do
   end
 
   defp parse(["-" <> option|t], aliases, switches, dict, args, all) do
-    { option, value } = normalize_option(option, aliases)
-    kind = switches[option]
+    { option, kinds, value } = normalize_option(option, switches, aliases)
 
-    if value == nil do
+    if nil?(value) do
       { value, t } =
-        if is_switch_a? :boolean, kind do
-          boolean_from_tail(t)
+        if :boolean in kinds do
+          { true, t }
         else
           value_from_tail(t)
         end
     end
 
-    dict = store_option dict, option, value, kind
+    dict = store_option(dict, option, value, kinds)
     parse(t, aliases, switches, dict, args, all)
   end
 
@@ -123,52 +128,63 @@ defmodule OptionParser do
     { Enum.reverse(dict), value }
   end
 
-  defp boolean_from_tail([h|t]) when h in ["false", "true"], do: { h, t }
-  defp boolean_from_tail(t)                                , do: { true, t }
-
   defp value_from_tail(["-" <> _|_] = t), do: { true, t }
   defp value_from_tail([h|t]),            do: { h, t }
   defp value_from_tail([]),               do: { true, [] }
 
-  defp store_option(dict, option, value, switches) when value in ["true", "false"] do
-    store_option dict, option, binary_to_atom(value), switches
+  defp store_option(dict, option, value, kinds) do
+    cond do
+      :boolean in kinds ->
+        do_store_option(dict, option, value in ["true", true], kinds)
+      :integer in kinds ->
+        case String.to_integer(value) do
+          { value, "" } -> do_store_option(dict, option, value, kinds)
+          _ -> dict
+        end
+      :float in kinds ->
+        case String.to_float(value) do
+          { value, "" } -> do_store_option(dict, option, value, kinds)
+          _ -> dict
+        end
+      true ->
+        do_store_option(dict, option, value, kinds)
+    end
   end
 
-  defp store_option(dict, option, value, kind) do
-    case kind do
-      :keep ->
+  defp do_store_option(dict, option, value, kinds) do
+    cond do
+      :keep in kinds ->
         [{ option, value }|dict]
-      :integer ->
-        case String.to_integer(value) do
-          { value, "" } -> [{ option, value }|Keyword.delete(dict, option)]
-          _ -> dict
-        end
-      :float ->
-        case String.to_float(value) do
-          { value, "" } -> [{ option, value }|Keyword.delete(dict, option)]
-          _ -> dict
-        end
-      _ ->
+      true ->
         [{ option, value }|Keyword.delete(dict, option)]
     end
   end
 
-
-  defp normalize_option(<<?-, option :: binary>>, aliases) do
-    normalize_option(option, aliases)
+  defp normalize_option(<<?-, option :: binary>>, switches, aliases) do
+    normalize_option(option, switches, aliases)
   end
 
-  defp normalize_option(option, aliases) do
+  defp normalize_option(option, switches, aliases) do
     { option, value } = split_option(option)
-    if is_no?(option), do: value = true
-    atom = option |> to_underscore |> binary_to_atom
-    { aliases[atom] || atom, value }
+
+    if non_neg = get_non_negated(option, aliases) do
+      kinds = List.wrap(switches[non_neg])
+
+      if :boolean in kinds do
+        { non_neg, kinds, false }
+      else
+        { get_aliased(option, aliases), [:boolean], true }
+      end
+    else
+      atom = get_aliased(option, aliases)
+      { atom, List.wrap(switches[atom]), value }
+    end
   end
 
   defp split_option(option) do
     case :binary.split(option, "=") do
-      [h]   -> { h, nil }
-      [h|t] -> { h, Enum.join(t, "=") }
+      [h]    -> { h, nil }
+      [h, t] -> { h, t }
     end
   end
 
@@ -176,10 +192,11 @@ defmodule OptionParser do
     bc <<c>> inbits option, do: << if(c == ?-, do: ?_, else: c) >>
   end
 
-  defp is_no?("no-" <> _), do: true
-  defp is_no?(_),          do: false
+  defp get_aliased(option, aliases) do
+    atom = option |> to_underscore |> binary_to_atom
+    aliases[atom] || atom
+  end
 
-  defp is_switch_a?(kind, list) when is_list(list), do: kind in list
-  defp is_switch_a?(kind, kind), do: true
-  defp is_switch_a?(_, _),       do: false
+  defp get_non_negated("no-" <> rest, aliases), do: get_aliased(rest, aliases)
+  defp get_non_negated(_, _),                   do: nil
 end

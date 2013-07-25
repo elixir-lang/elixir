@@ -129,6 +129,8 @@ defmodule ExUnit do
 
   ExUnit supports the following options:
 
+  * `:color` - When color should be used by specific formatters;
+
   * `:formatter` - The formatter that will print results.
                    Defaults to `ExUnit.CLIFormatter`;
 
