@@ -1,13 +1,30 @@
 Code.require_file "test_helper.exs", __DIR__
 
-defmodule FileTest do
-  use ExUnit.Case
-
+defmodule Elixir.FileCase do
+  use ExUnit.CaseTemplate
   import PathHelpers
+
+  using do
+    quote do
+      import PathHelpers
+    end
+  end
+
+  setup _ do
+    File.mkdir_p!(tmp_path)
+  end
+
+  teardown _ do
+    File.rm_rf(tmp_path)
+  end
+end
+
+defmodule FileTest do
+  use Elixir.FileCase
   import Regex, only: [escape: 1]
 
   defmodule Cp do
-    use ExUnit.Case
+    use Elixir.FileCase
 
     test :cp_with_src_file_and_dest_file do
       src  = fixture_path("file.txt")
@@ -347,9 +364,11 @@ defmodule FileTest do
     end
 
     test :cp_preserves_mode do
-     src = fixture_path("cp_mode")
+     File.mkdir_p!(tmp_path("tmp"))
+     src  = fixture_path("cp_mode")
      dest = tmp_path("tmp/cp_mode")
-     File.cp! src, dest
+
+     File.cp!(src, dest)
      File.Stat[mode: src_mode] = File.stat! src
      File.Stat[mode: dest_mode] = File.stat! dest
      assert src_mode == dest_mode
@@ -404,7 +423,7 @@ defmodule FileTest do
   end
 
   defmodule OpenReadWrite do
-    use ExUnit.Case
+    use Elixir.FileCase
 
     test :read_with_binary do
       assert { :ok, "FOO\n" } = File.read(fixture_path("file.txt"))
@@ -546,7 +565,7 @@ defmodule FileTest do
   end
 
   defmodule Mkdir do
-    use ExUnit.Case
+    use Elixir.FileCase
 
     test :mkdir_with_binary do
       fixture = tmp_path("tmp_test")
@@ -687,7 +706,7 @@ defmodule FileTest do
   end
 
   defmodule Rm do
-    use ExUnit.Case
+    use Elixir.FileCase
 
     test :rm_file do
       fixture = tmp_path("tmp_test.txt")
@@ -767,19 +786,24 @@ defmodule FileTest do
     end
 
     test :rm_rf_with_symlink do
-      fixture = tmp_path("tmp/link")
+      from = tmp_path("tmp/from")
+      to   = tmp_path("tmp/to")
 
-      File.mkdir_p(tmp_path("tmp"))
-      :file.make_symlink(fixture_path, fixture)
-      if File.exists?(fixture) or !match?({:win32,_},:os.type) do
-        assert File.exists?(fixture)
+      File.mkdir_p!(to)
+      File.write!(Path.join(to, "hello"), "world")
+      :file.make_symlink(to, from)
 
-        { :ok, files } = File.rm_rf(fixture)
+      if File.exists?(from) or not is_win? do
+        assert File.exists?(from)
+
+        { :ok, files } = File.rm_rf(from)
         assert length(files) == 1
 
-        assert File.exists?(fixture_path("file.txt"))
-        refute File.exists?(fixture)
-      end 
+        assert File.exists?(Path.join(to, "hello"))
+        refute File.exists?(from)
+      end
+    after
+      File.rm(tmp_path("tmp/from"))
     end
 
     test :rm_rf_with_char_list do
@@ -1126,11 +1150,11 @@ defmodule FileTest do
       stat = File.stat!(fixture)
       assert stat.mode == 0100666
 
-      if !match? { :win32, _ }, :os.type do
+      unless is_win? do
         assert File.chmod(fixture, 0100777) == :ok
         stat = File.stat!(fixture)
         assert stat.mode == 0100777
-      end   
+      end
     after
       File.rm(fixture)
     end
@@ -1145,11 +1169,11 @@ defmodule FileTest do
       stat = File.stat!(fixture)
       assert stat.mode == 0100666
 
-      if !match? { :win32, _ }, :os.type do
+      unless is_win? do
         assert File.chmod!(fixture, 0100777) == :ok
         stat = File.stat!(fixture)
         assert stat.mode == 0100777
-      end   
+      end
     after
       File.rm(fixture)
     end
@@ -1193,7 +1217,7 @@ defmodule FileTest do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
-    assert File.chown(fixture, 1) == {:error,:enoent}    
+    assert File.chown(fixture, 1) == {:error,:enoent}
   end
 
   test :chown_with_failue! do
@@ -1205,7 +1229,6 @@ defmodule FileTest do
       File.chown!(fixture, 1)
     end
   end
-
 
   defp last_year do
     last_year :calendar.local_time

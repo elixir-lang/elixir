@@ -1,7 +1,5 @@
 Code.require_file "test_helper.exs", __DIR__
 
-require :os, as: OS
-
 defmodule SystemTest do
   use ExUnit.Case, async: true
   import PathHelpers
@@ -19,7 +17,6 @@ defmodule SystemTest do
 
   if :file.native_name_encoding == :utf8 do
     test :cwd_with_utf8 do
-      import PathHelpers
       File.mkdir_p(tmp_path("héllò"))
 
       File.cd!(tmp_path("héllò"), fn ->

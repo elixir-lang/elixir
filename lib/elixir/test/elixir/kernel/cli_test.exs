@@ -1,8 +1,9 @@
 Code.require_file "../test_helper.exs", __DIR__
 
+import PathHelpers
+
 defmodule Kernel.CLI.InitTest do
   use ExUnit.Case, async: true
-  import PathHelpers
 
   test :code_init do
     assert elixir('-e "IO.puts 3"') == '3\n'
@@ -14,7 +15,6 @@ end
 
 defmodule Kernel.CLI.OptionParsingTest do
   use ExUnit.Case, async: true
-  import PathHelpers
 
   test :path do
     root = fixture_path("../../..") |> to_char_list
@@ -33,7 +33,6 @@ end
 
 defmodule Kernel.CLI.AtExitTest do
   use ExUnit.Case, async: true
-  import PathHelpers
 
   test :at_exit do
     assert elixir(fixture_path("at_exit.exs") |> to_char_list) ==
@@ -43,7 +42,6 @@ end
 
 defmodule Kernel.CLI.ErrorTest do
   use ExUnit.Case, async: true
-  import PathHelpers
 
   test :code_error do
     assert :string.str('** (throw) 1', elixir('-e "throw 1"')) == 0
@@ -56,7 +54,6 @@ end
 
 defmodule Kernel.CLI.SyntaxErrorTest do
   use ExUnit.Case, async: true
-  import PathHelpers
 
   test :syntax_code_error do
     message = '** (TokenMissingError) nofile:1: syntax error: expression is incomplete'
@@ -72,13 +69,14 @@ end
 
 defmodule Kernel.CLI.CompileTest do
   use ExUnit.Case, async: true
-  import PathHelpers
 
   test :compile_code do
     fixture = fixture_path "compile_sample.ex"
     assert elixirc('#{fixture} -o #{tmp_path}') ==
       'Compiled #{fixture}\n'
     assert File.regular?(tmp_path "Elixir.CompileSample.beam")
+  after
+    File.rm(tmp_path("Elixir.CompileSample.beam"))
   end
 
   test :possible_deadlock do
@@ -93,7 +91,6 @@ end
 
 defmodule Kernel.CLI.ParallelCompilerTest do
   use ExUnit.Case
-  import PathHelpers
   import ExUnit.CaptureIO
 
   test :files do
