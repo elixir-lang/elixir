@@ -36,7 +36,7 @@ defmodule ExUnit.Assertions do
   """
 
   @doc """
-  Asserts the `expected` value is truthy.
+  Asserts the `expected` value is true.
 
   `assert` in general tries to be smart and provide good
   reporting whenever there is a failure. For example,
@@ -47,7 +47,6 @@ defmodule ExUnit.Assertions do
   ## Examples
 
       assert true
-      assert :ok
 
   """
   defmacro assert(expected) do
@@ -69,7 +68,7 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Refutes the `expected` value is truthy.
+  Refutes the `expected` value is true.
 
   `refute` in general tries to be smart and provide good
   reporting whenever there is a failure.
@@ -211,7 +210,7 @@ defmodule ExUnit.Assertions do
   ## END HELPERS
 
   @doc """
-  Asserts the `expected` value is truthy.
+  Asserts the `expected` value is true.
   If it fails, raises the given `message`.
 
   ## Examples
@@ -225,7 +224,7 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts the `expected` value is truthy.
+  Asserts the `expected` value is true.
   If it fails, it raises an expectation error
   using the given `expected` and `actual` values.
 
@@ -420,7 +419,7 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Refutes the `not_expected` value is truthy.
+  Asserts the `not_expected` value is `nil` or `false`.
   In case it is a truthy value, raises the given message.
 
   ## Examples
