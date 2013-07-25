@@ -2,7 +2,8 @@
 
 * enhancements
   * [Enum] Add `Enum.shuffle/1`
-  * [ExUnit] `--trace` now also reports run time for each test
+  * [ExUnit] The `:trace` option now also reports run time for each test
+  * [ExUnit] Add support for `:color` to enable/disable ANSI coloring
   * [IEx] Add the `clear` helper to clear the screen.
   * [Kernel] Add support for `GenFSM.Behaviour`
   * [Kernel] Functions now points to the module and function they were defined when inspected
@@ -14,6 +15,8 @@
   * [Mix] Add `--no-deps-check` option to `mix run`, `mix compile` and friends to not check dependency status
   * [Mix] Add support for `MIX_GIT_FORCE_HTTPS` system environment that forces HTTPS for known providers, useful when the regular git port is blocked. This configuration does not affect the `mix.lock` results
   * [Mix] Allow coverate tool to be pluggable via the `:test_coverage` configuration
+  * [Mix] Add `mix cmd` as a convenience to run a command recursively in child apps in an umbrella application
+  * [Mix] Support `umbrella: true` in dependencies as a convenience for setting up umbrella path deps
   * [String] Add `String.reverse/1`
 
 * bug fix
@@ -26,6 +29,9 @@
   * [Mix] `mix deps.update` no longer updates all dependencies unless `--all` is given
   * [Mix] Always run ` mix loadpaths` on `mix app.start`, even if `--no-compile` is given
   * [OptionParser] Do not add boolean flags to the end result if they were not given
+  * [OptionParser] Do not parse non-boolean flags as booleans when true or false are given
+  * [OptionParser] Ensure `:keep` and `:integer`|`:float` can be given together as options
+  * [OptionParser] Ensure `--no-flag` sets `:flag` to false when `:flag` is a registered boolean switch
 
 * deprecations
   * [Kernel] `Kernel.ParallelCompiler` now receives a set of callbacks instead of a single one
