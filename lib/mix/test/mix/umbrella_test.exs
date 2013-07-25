@@ -46,7 +46,7 @@ defmodule Mix.UmbrellaTest do
   test "compile for umbrella as dependency" do
     in_fixture "umbrella_dep", fn ->
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
-        Mix.Tasks.Deps.Compile.run []
+        Mix.Task.run "deps.compile"
         assert "hello world" == Bar.bar
       end)
     end

@@ -1,10 +1,10 @@
 defmodule Mix.Tasks.Do do
   use Mix.Task
 
-  @shortdoc "Executes the commands separated by comma"
+  @shortdoc "Executes the tasks separated by comma"
 
   @moduledoc """
-  Executes the commands separated by comma.
+  Executes the tasks separated by comma.
 
   ## Examples
 
