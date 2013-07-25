@@ -7,10 +7,7 @@ defmodule Macro do
 
   @type t :: { t, t } | { t, Keyword.t, t } | atom | number | binary | list
 
-  @doc """
-  Returns a list of binary operators. This is available
-  as a macro so it can be used in guard clauses.
-  """
+  @doc false
   defmacro binary_ops do
     [
       :===, :!==,
@@ -19,14 +16,11 @@ defmodule Macro do
       :<, :>, :->,
       :+, :-, :*, :/, :=, :|, :.,
       :and, :or, :xor, :when, :in, :inlist, :inbits,
-      :<<<, :>>>, :|||, :&&&, :^^^
+      :<<<, :>>>, :|||, :&&&, :^^^, :~~~
     ]
   end
 
-  @doc """
-  Returns a list of unary operators. This is available
-  as a macro so it can be used in guard clauses.
-  """
+  @doc false
   defmacro unary_ops do
     [:!, :@, :^, :not, :+, :-, :~~~, :&]
   end
