@@ -139,7 +139,7 @@ test_erlang: compile
 	$(Q) mkdir -p lib/elixir/test/ebin
 	$(Q) $(ERLC) -pa lib/elixir/ebin -o lib/elixir/test/ebin lib/elixir/test/erlang/*.erl
 	$(Q) $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt;
-	@ echo
+	@ echo ""
 
 test_elixir: test_kernel test_ex_unit test_doc_test test_mix test_eex test_iex
 
