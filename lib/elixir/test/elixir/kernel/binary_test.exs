@@ -1,6 +1,6 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file "../test_helper.exs", __DIR__
 
-defmodule Binary.LiteralTest do
+defmodule Kernel.BinaryTest do
   use ExUnit.Case, async: true
 
   test :heredoc do
@@ -71,6 +71,12 @@ bar
   test :match do
     assert is_match?("ab", ?a)
     assert not is_match?("cd", ?a)
+  end
+
+  test :interpolation do
+    res = "hello \\abc"
+    assert "hello #{"\\abc"}" == res
+    assert "hello #{"\\abc" <> ""}" == res
   end
 
   test :pattern_match do

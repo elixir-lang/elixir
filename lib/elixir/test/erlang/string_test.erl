@@ -19,35 +19,35 @@ extract_interpolations_with_escaped_interpolation_test() ->
 
 extract_interpolations_with_interpolation_test() ->
   [<<"f">>,
-   {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Binary.Chars',to_binary]},[{line,1}],[o]}, { binary, _ , _ }]},
+   {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Kernel',to_binary]},[{line,1}],[o]}, { binary, _ , _ }]},
    <<"o">>] = extract_interpolations("f#{:o}o").
 
 extract_interpolations_with_two_interpolations_test() ->
   [<<"f">>,
-   {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Binary.Chars',to_binary]},[{line,1}],[o]}, { binary, _ , _ }]},
-   {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Binary.Chars',to_binary]},[{line,1}],[o]}, { binary, _ , _ }]},
+   {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Kernel',to_binary]},[{line,1}],[o]}, { binary, _ , _ }]},
+   {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Kernel',to_binary]},[{line,1}],[o]}, { binary, _ , _ }]},
    <<"o">>] = extract_interpolations("f#{:o}#{:o}o").
 
 extract_interpolations_with_only_two_interpolations_test() ->
-  [{'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Binary.Chars',to_binary]},[{line,1}],[o]}, { binary, _ , _ }]},
-   {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Binary.Chars',to_binary]},[{line,1}],[o]}, { binary, _ , _ }]}] = extract_interpolations("#{:o}#{:o}").
+  [{'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Kernel',to_binary]},[{line,1}],[o]}, { binary, _ , _ }]},
+   {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Kernel',to_binary]},[{line,1}],[o]}, { binary, _ , _ }]}] = extract_interpolations("#{:o}#{:o}").
 
 extract_interpolations_with_tuple_inside_interpolation_test() ->
   [<<"f">>,
-   {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Binary.Chars',to_binary]},[{line,1}],[{'{}',[{line,1}],[1]}]}, { binary, _ , _ }]},
+   {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Kernel',to_binary]},[{line,1}],[{'{}',[{line,1}],[1]}]}, { binary, _ , _ }]},
    <<"o">>] = extract_interpolations("f#{{1}}o").
 
 extract_interpolations_with_many_expressions_inside_interpolation_test() ->
   [<<"f">>,
-  {'::',[{line,2}],[{{'.',[{line,2}],['Elixir.Binary.Chars',to_binary]},[{line,2}],[{'__block__',[{line,2}],[1,2]}]},
+  {'::',[{line,2}],[{{'.',[{line,2}],['Elixir.Kernel',to_binary]},[{line,2}],[{'__block__',[{line,2}],[1,2]}]},
   { binary, _ , _ }]},
   <<"o">>] = extract_interpolations("f#{1\n2}o").
 
-extract_interpolations_with_string_inside_interpolation_test() ->
-  [<<"f">>, <<"foo">>, <<"o">>] = extract_interpolations("f#{\"foo\"}o").
-
 extract_interpolations_with_right_curly_inside_string_inside_interpolation_test() ->
-  [<<"f">>, <<"f}o">>, <<"o">>] = extract_interpolations("f#{\"f}o\"}o").
+  [<<"f">>,
+  {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Kernel',to_binary]},[{line,1}],[<<"f}o">>]},
+  { binary, _ , _ }]},
+  <<"o">>] = extract_interpolations("f#{\"f}o\"}o").
 
 extract_interpolations_with_invalid_expression_inside_interpolation_test() ->
   ?assertThrow({interpolation_error, { 1, "invalid token: ", ":1" } }, extract_interpolations("f#{:1}o")).

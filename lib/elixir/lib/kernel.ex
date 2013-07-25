@@ -2132,6 +2132,10 @@ defmodule Kernel do
       "foo"
 
   """
+
+  # If it is a binary at compilation time, simply return it.
+  defmacro to_binary(arg) when is_binary(arg), do: arg
+
   defmacro to_binary(arg) do
     quote do: Binary.Chars.to_binary(unquote(arg))
   end

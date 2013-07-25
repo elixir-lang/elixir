@@ -164,12 +164,9 @@ build_interpol(s, _Line, _File, Buffer, Output) ->
 build_interpol(i, Line, File, Buffer, Output) ->
   [wrap_interpol(Line, forms(lists:reverse(Buffer), Line, File))| Output].
 
-wrap_interpol(_Line, Form) when is_binary(Form) ->
-  Form;
-
 wrap_interpol(Line, Form) ->
   Meta = [{line,Line}],
-  { '::', Meta, [{ { '.', Meta, ['Elixir.Binary.Chars', to_binary] }, Meta, [Form]}, { binary, Meta, nil }]}.
+  { '::', Meta, [{ { '.', Meta, ['Elixir.Kernel', to_binary] }, Meta, [Form]}, { binary, Meta, nil }]}.
 
 forms(String, StartLine, File) ->
   case elixir_translator:forms(String, StartLine, File, []) of
