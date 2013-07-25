@@ -107,14 +107,18 @@ defmodule ExUnit do
 
     configure(options)
 
-    System.at_exit fn
-      0 ->
-        failures = ExUnit.run
-        System.at_exit fn _ ->
-          if failures > 0, do: System.halt(1), else: System.halt(0)
-        end
-      _ ->
-        :ok
+    if :application.get_env(:ex_unit, :started) != { :ok, true } do
+      :application.set_env(:ex_unit, :started, true)
+
+      System.at_exit fn
+        0 ->
+          failures = ExUnit.run
+          System.at_exit fn _ ->
+            if failures > 0, do: System.halt(1), else: System.halt(0)
+          end
+        _ ->
+          :ok
+      end
     end
   end
 

@@ -114,7 +114,7 @@ defmodule Mix.Tasks.New do
 
     Commands like `mix compile` and `mix test`, when executed
     in the umbrella project root, will automatically run
-    inside each application in the apps/ directory.
+    for each application in the apps/ directory.
     """
   end
 
