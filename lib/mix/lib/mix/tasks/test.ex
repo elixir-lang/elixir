@@ -81,9 +81,9 @@ defmodule Mix.Tasks.Test do
   def run(args) do
     { opts, files } = OptionParser.parse(args, aliases: [q: :quick], switches: @switches)
 
-    unless System.get_env("MIX_ENV") do
-      Mix.env(:test)
-      Mix.Project.refresh
+    unless System.get_env("MIX_ENV") || Mix.env == :test do
+      raise Mix.Error, "mix test is running on environment #{Mix.env}. If you are " <>
+                       "running tests along another task, please set MIX_ENV explicitly"
     end
 
     Mix.Task.run "app.start", args

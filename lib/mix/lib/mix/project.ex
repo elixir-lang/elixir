@@ -68,14 +68,6 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Refresh the project configuration. Usually required
-  when the environment changes during a task.
-  """
-  def refresh do
-    push pop
-  end
-
-  @doc """
   Retrieves the current project, `nil` if there is no
   current project (i.e. there is no mixfile in the current
   project).
@@ -199,14 +191,16 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns the paths this project compiles to.
+  Returns the paths this project compiles to,
+  collecting all `:compile_path` in case of umbrella apps.
   """
   def compile_paths do
     recur(fn _ -> Path.expand config[:compile_path] end)
   end
 
   @doc """
-  Returns all load paths for this project.
+  Returns all load paths for this project,
+  collecting all `:load_paths` in case of umbrella apps.
   """
   def load_paths do
     paths =
@@ -284,6 +278,7 @@ defmodule Mix.Project do
       elixirc_watch_exts: [:ex, :eex, :exs],
       load_paths: [],
       lockfile: "mix.lock",
+      preferred_cli_env: [{ "test", :test }],
       erlc_paths: ["src"],
       erlc_include_path: "include",
       erlc_options: [:debug_info] ]

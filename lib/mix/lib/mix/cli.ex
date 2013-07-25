@@ -57,6 +57,7 @@ defmodule Mix.CLI do
 
     args = load_mixfile(args)
     { task, args } = get_task(args)
+    change_env(task)
 
     if Mix.Project.get do
       Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
@@ -65,6 +66,13 @@ defmodule Mix.CLI do
     end
 
     run_task task, args
+  end
+
+  defp change_env(task) do
+    if env = Mix.project[:preferred_cli_env][task] do
+      Mix.env(env)
+      Mix.Project.push Mix.Project.pop
+    end
   end
 
   defp display_banner() do
