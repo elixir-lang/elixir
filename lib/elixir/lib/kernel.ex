@@ -174,7 +174,7 @@ defmodule Kernel do
   defmacro left and right
 
   @doc """
-  Boolean exclusive-or. Arguments must be booleans. Returns true if and only if
+  Boolean exclusive-or. Arguments must be booleans. Returns `true` if and only if
   both arguments are different.
   Allowed in guard clauses.
 
@@ -203,8 +203,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Receives any argument and returns true if it is false
-  or nil. Returns false otherwise. Not allowed in guard
+  Receives any argument and returns `true` if it is `false`
+  or `nil`. Returns `false` otherwise. Not allowed in guard
   clauses.
 
   ## Examples
@@ -224,7 +224,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if left is less than right.
+  Returns `true` if left is less than right.
   Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
@@ -238,7 +238,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if left is more than right.
+  Returns `true` if left is more than right.
   Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
@@ -252,7 +252,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if left is less than or equal to right.
+  Returns `true` if left is less than or equal to right.
   Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
@@ -266,7 +266,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if left is more than or equal to right.
+  Returns `true` if left is more than or equal to right.
   Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
@@ -280,7 +280,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if the two items are equal.
+  Returns `true` if the two items are equal.
 
   This operator considers 1 and 1.0 to be equal. For strict
   comparison, use `===` instead.
@@ -301,7 +301,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if the two items are not equal.
+  Returns `true` if the two items are not equal.
 
   This operator considers 1 and 1.0 to be equal. For strict
   comparison, use `!==` instead.
@@ -321,7 +321,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if the two items are strictly equal.
+  Returns `true` if the two items are strictly equal.
   Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
@@ -338,7 +338,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if the two items are strictly not equal.
+  Returns `true` if the two items are strictly not equal.
   Like Erlang, Elixir can compare any term. Allowed in guard clauses.
 
   ## Examples
@@ -617,7 +617,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the head of a list, raises badarg if the list is empty.
+  Returns the head of a list, raises `badarg` if the list is empty.
   """
   @spec hd(list) :: term
   def hd(list) do
@@ -685,7 +685,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if the local node is alive; that is,
+  Returns `true` if the local node is alive; that is,
   if the node can be part of a distributed system.
   """
   @spec is_alive :: boolean
@@ -694,7 +694,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is an atom; otherwise returns false.
+  Returns `true` if `term` is an atom; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -704,7 +704,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a binary; otherwise returns false.
+  Returns `true` if `term` is a binary; otherwise returns `false`.
 
   A binary always contains a complete number of bytes.
 
@@ -716,7 +716,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a bitstring (including a binary); otherwise returns false.
+  Returns `true` if `term` is a bitstring (including a binary); otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -726,7 +726,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is either the atom `true` or the atom `false` (i.e. a boolean);
+  Returns `true` if `term` is either the atom `true` or the atom `false` (i.e. a boolean);
   otherwise returns false.
 
   Allowed in guard tests.
@@ -737,7 +737,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a floating point number; otherwise returns false.
+  Returns `true` if `term` is a floating point number; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -747,7 +747,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a function; otherwise returns false.
+  Returns `true` if `term` is a function; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -757,8 +757,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a function that can be applied with `arity` number of arguments;
-  otherwise returns false.
+  Returns `true` if `term` is a function that can be applied with `arity` number of arguments;
+  otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -768,7 +768,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is an integer; otherwise returns false.
+  Returns `true` if `term` is an integer; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -778,7 +778,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a list with zero or more elements; otherwise returns false.
+  Returns `true` if `term` is a list with zero or more elements; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -788,8 +788,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is either an integer or a floating point number;
-  otherwise returns false.
+  Returns `true` if `term` is either an integer or a floating point number;
+  otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -799,7 +799,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a pid (process identifier); otherwise returns false.
+  Returns `true` if `term` is a pid (process identifier); otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -809,7 +809,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a port identifier; otherwise returns false.
+  Returns `true` if `term` is a port identifier; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -819,7 +819,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a reference; otherwise returns false.
+  Returns `true` if `term` is a reference; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -829,7 +829,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a tuple; otherwise returns false.
+  Returns `true` if `term` is a tuple; otherwise returns `false`.
 
   Allowed in guard tests.
   """
@@ -1027,7 +1027,7 @@ defmodule Kernel do
 
   @doc """
   Returns an atom representing the name of the local node.
-  If the node is not alive, nonode@nohost is returned instead.
+  If the node is not alive, `nonode@nohost` is returned instead.
 
   Allowed in guard tests.
   """
@@ -1039,7 +1039,7 @@ defmodule Kernel do
   @doc """
   Returns the node where the given argument is located.
   The argument can be a pid, a reference, or a port.
-  If the local node is not alive, nonode@nohost is returned.
+  If the local node is not alive, `nonode@nohost` is returned.
 
   Allowed in guard tests.
   """
@@ -1175,12 +1175,12 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns a binary which is the result of encoding the given term
+  Returns a binary which is the result of encoding the given `term`
   according to the Erlang external term format.
 
   This can be used for a variety of purposes, for example, writing a term
   to a file in an efficient way, or sending an Erlang term to some type
-  of communications channel not supported by distributed :
+  of communications channel not supported by distributed.
   """
   @spec term_to_binary(term) :: binary
   def term_to_binary(term) do
@@ -1202,7 +1202,7 @@ defmodule Kernel do
   end
 
   @doc """
-  A non-local return from a function. Check try/2 for more information.
+  A non-local return from a function. Check `try/2` for more information.
   """
   @spec throw(term) :: no_return
   def throw(term) do
@@ -1210,7 +1210,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the tail of a list. Raises ArgumentError if the list is empty.
+  Returns the tail of a list. Raises `ArgumentError` if the list is empty.
   """
   @spec tl(maybe_improper_list) :: maybe_improper_list
   def tl(list) do
@@ -2211,7 +2211,7 @@ defmodule Kernel do
   Match can also be used to filter or find a value in an enumerable:
 
       list = [{:a, 1}, {:b, 2}, {:a, 3}]
-      Enum.filter list, match?({:a, _}, _)
+      Enum.filter list, match?({:a, _}, &1)
 
   Guard clauses can also be given to the match:
 
