@@ -48,6 +48,9 @@ lib/elixir/src/elixir.app.src: src/elixir.app.src
 erlang:
 	$(Q) cd lib/elixir && $(REBAR) compile
 
+compile_windows:
+	$(Q) gcc -o bin/wac windows/wac/wac.c
+
 # Since Mix depends on EEx and EEx depends on
 # Mix, we first compile EEx without the .app
 # file, then mix and then compile eex fully
