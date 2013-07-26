@@ -1,5 +1,4 @@
 @echo off
-SETLOCAL enabledelayedexpansion
 set argc=0
 for %%x in (%*) do set /A argc+=1
 if  %argc%== 0 (
@@ -118,9 +117,11 @@ rem ******* assume all pre-params are parsed ********************
 :expand_erl_libs
 rem ******* expand all ebin paths as Windows does not support the ..\*\ebin wildcard ********************
 set ext_libs=
+SETLOCAL enabledelayedexpansion
 for  /d %%d in ("%originPath%..\lib\*.") do (
   set ext_libs=!ext_libs! -pa "%%~fd\ebin"
 )
+SETLOCAL disabledelayedexpansion
 :run
 set to_run=erl %ext_libs% -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %* 
 :pipe_through_wac_if_availble
