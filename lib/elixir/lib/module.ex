@@ -159,8 +159,7 @@ defmodule Module do
   * `@on_definition`
 
       A hook that will be invoked after each function or macro in the current
-      module is defined. This makes it easy to annotate and customize
-      functions.
+      module is defined. Useful when annotating functions.
 
       Accepts a module or a tuple `{ <module>, <function atom> }`. The function
       must take 6 arguments:
