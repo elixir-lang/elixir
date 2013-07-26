@@ -122,4 +122,11 @@ for  /d %%d in ("%originPath%..\lib\*.") do (
   set ext_libs=!ext_libs! -pa "%%~fd\ebin"
 )
 :run
-erl %ext_libs% -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+set to_run=erl %ext_libs% -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %* 
+:pipe_through_wac_if_availble
+REM ******* this gives us ANSI color support on windows ********************
+if exist %originPath%wac.exe (
+   %to_run% | %originPath%wac.exe
+) else (
+   %to_run%
+)

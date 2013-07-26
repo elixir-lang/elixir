@@ -39,7 +39,7 @@ UNICODE:=lib/elixir/ebin/Elixir.String.Unicode.beam
 
 default: compile
 
-compile: lib/elixir/src/elixir.app.src erlang elixir
+compile: lib/elixir/src/elixir.app.src erlang elixir compile_windows
 
 lib/elixir/src/elixir.app.src: src/elixir.app.src
 	$(Q) rm -rf lib/elixir/src/elixir.app.src
@@ -47,6 +47,9 @@ lib/elixir/src/elixir.app.src: src/elixir.app.src
 
 erlang:
 	$(Q) cd lib/elixir && $(REBAR) compile
+
+compile_windows:
+	$(Q) gcc -o bin/wac windows/wac/wac.c
 
 # Since Mix depends on EEx and EEx depends on
 # Mix, we first compile EEx without the .app
