@@ -25,7 +25,7 @@ defmodule Mix.Tasks.DepsPathTest do
       assert_received { :mix_shell, :info, ["Generated raw_repo.app"] }
       assert File.exists?("custom/raw_repo/ebin/Elixir.RawRepo.beam")
 
-      Mix.Tasks.Deps.Clean.run []
+      Mix.Tasks.Deps.Clean.run ["--all"]
       assert_received { :mix_shell, :info, ["* Cleaning raw_repo (0.1.0) [path: \"custom/raw_repo\"]"] }
       assert_received { :mix_shell, :info, ["  custom/raw_repo is a path dependency, it was not cleaned"] }
     end

@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Deps.Update do
   @moduledoc """
   Update the given dependencies.
 
-  Since this is a "dangerous" operation, update of all dependencies
+  Since this is a destructive action, update of all dependencies
   can only happen by passing the `--all` command line option.
 
   All dependencies are automatically recompiled after update.

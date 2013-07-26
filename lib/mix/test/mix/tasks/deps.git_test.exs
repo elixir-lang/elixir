@@ -64,7 +64,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
 
-      Mix.Tasks.Deps.Clean.run []
+      Mix.Tasks.Deps.Clean.run ["--all"]
       message = "* Cleaning git_repo (0.1.0) [git: #{inspect fixture_path("git_repo")}]"
       assert_received { :mix_shell, :info, [^message] }
       refute File.exists?("deps/git_repo/ebin/Elixir.Git.Repo.beam")
@@ -224,11 +224,11 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ last
 
-      Mix.Tasks.Deps.Clean.run []
+      Mix.Tasks.Deps.Clean.run ["--all"]
       refute File.exists?("deps/git_repo/ebin/Elixir.Git.Repo.beam")
       assert File.read!("mix.lock") =~ last
 
-      Mix.Tasks.Deps.Clean.run ["--unlock"]
+      Mix.Tasks.Deps.Clean.run ["--unlock", "--all"]
       refute File.read!("mix.lock") =~ last
     end
   after

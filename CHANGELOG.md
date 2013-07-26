@@ -27,7 +27,7 @@
   * [Kernel] Fix a bug where warnings were not being generated when imported macros conflicted with local functions or macros
   * [Kernel] Document that `on_definition` can only be a function as it is evaluated inside the function context
   * [Kernel] Ensure `%w` sigils with no interpolation are fully expanded at compile time
-  * [Mix] `mix deps.update` no longer updates all dependencies unless `--all` is given
+  * [Mix] `mix deps.update`, `mix deps.clean` and `mix deps.unlock` no longer change all dependencies unless `--all` is given
   * [Mix] Always run ` mix loadpaths` on `mix app.start`, even if `--no-compile` is given
   * [OptionParser] Do not add boolean flags to the end result if they were not given
   * [OptionParser] Do not parse non-boolean flags as booleans when true or false are given

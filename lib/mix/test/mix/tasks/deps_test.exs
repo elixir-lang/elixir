@@ -140,7 +140,7 @@ defmodule Mix.Tasks.DepsTest do
     in_fixture "no_mixfile", fn ->
       Mix.Deps.Lock.write [git_repo: "abcdef"]
       assert Mix.Deps.Lock.read == [git_repo: "abcdef"]
-      Mix.Tasks.Deps.Unlock.run []
+      Mix.Tasks.Deps.Unlock.run ["--all"]
       assert Mix.Deps.Lock.read == []
     end
   end
