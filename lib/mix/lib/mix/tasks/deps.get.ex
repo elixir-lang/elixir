@@ -49,31 +49,39 @@ defmodule Mix.Tasks.Deps.Get do
 
   defp deps_getter(dep, { acc, lock }) do
     shell = Mix.shell
-    dep = check_lock(dep, lock)
+    Mix.Dep[app: app, scm: scm, opts: opts] = dep = check_lock(dep, lock)
 
-    if out_of_date?(dep) do
-      Mix.Dep[app: app, scm: scm, opts: opts] = dep
-      shell.info "* Getting #{format_dep(dep)}"
+    cond do
+      # Path dependencies are specially handled because they cannot
+      # be fetched although they are always compiled afterwards
+      scm == Mix.SCM.Path ->
+        { dep, { [app|acc], lock } }
 
-      old  = lock[app]
-      opts = Keyword.put(opts, :lock, old)
+      # If the dependency is not available or we have a lock mismatch
+      out_of_date?(dep) ->
+        shell.info "* Getting #{format_dep(dep)}"
 
-      new =
-        if scm.checked_out?(opts) do
-          scm.update(opts)
+        old  = lock[app]
+        opts = Keyword.put(opts, :lock, old)
+
+        new =
+          if scm.checked_out?(opts) do
+            scm.update(opts)
+          else
+            scm.checkout(opts)
+          end
+
+        if new do
+          # Update the dependency returned so it is now
+          # available and nested dependencies can be fetched
+          { Mix.Deps.update(dep), { [app|acc], Keyword.put(lock, app, new) } }
         else
-          scm.checkout(opts)
+          { dep, { acc, lock } }
         end
 
-      if new do
-        # Update the dependency returned so it is now
-        # available and nested dependencies can be fetched
-        { Mix.Deps.update(dep), { [app|acc], Keyword.put(lock, app, new) } }
-      else
+      # The dependency is ok or has some other error
+      true ->
         { dep, { acc, lock } }
-      end
-    else
-      { dep, { acc, lock } }
     end
   end
 end

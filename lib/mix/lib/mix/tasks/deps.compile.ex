@@ -48,7 +48,6 @@ defmodule Mix.Tasks.Deps.Compile do
       shell.info "* Compiling #{app}"
 
       deps_path = opts[:dest]
-
       root_path = Path.expand(Mix.project[:deps_path])
 
       config = [
@@ -123,7 +122,7 @@ defmodule Mix.Tasks.Deps.Compile do
     end
 
     Mix.Task.run "local.rebar", []
-    Mix.Rebar.local_rebar_cmd || raise Mix.Error, message: "Rebar instalation failed"
+    Mix.Rebar.local_rebar_cmd || raise Mix.Error, message: "rebar instalation failed"
   end
 
   defp do_command(app, command, extra // "") do

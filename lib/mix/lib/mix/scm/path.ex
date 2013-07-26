@@ -18,8 +18,8 @@ defmodule Mix.SCM.Path do
         path = "../#{app}"
 
         opts
-          |> Keyword.put(:path, path)
           |> Keyword.put(:dest, Path.expand(path))
+          |> Keyword.put_new(:path, path)
           |> Keyword.put_new(:env, Mix.env)
       true ->
         nil
@@ -40,7 +40,7 @@ defmodule Mix.SCM.Path do
 
   def checkout(opts) do
     path = Mix.Utils.relative_to_cwd opts[:dest]
-    raise Mix.Error, message: "Cannot checkout path dependency. Expected a dependency at #{path}"
+    raise Mix.Error, message: "cannot checkout path dependency, expected a dependency at #{path}"
   end
 
   def update(opts) do
