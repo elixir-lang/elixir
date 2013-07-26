@@ -10,12 +10,14 @@ defmodule Elixir.FileCase do
     end
   end
 
-  setup _ do
+  setup do
     File.mkdir_p!(tmp_path)
+    :ok
   end
 
-  teardown _ do
+  teardown do
     File.rm_rf(tmp_path)
+    :ok
   end
 end
 
