@@ -15,7 +15,7 @@
   * [Mix] `mix help` now outputs information about the default mix task
   * [Mix] Add `--no-deps-check` option to `mix run`, `mix compile` and friends to not check dependency status
   * [Mix] Add support for `MIX_GIT_FORCE_HTTPS` system environment that forces HTTPS for known providers, useful when the regular git port is blocked. This configuration does not affect the `mix.lock` results
-  * [Mix] Allow coverate tool to be pluggable via the `:test_coverage` configuration
+  * [Mix] Allow coverage tool to be pluggable via the `:test_coverage` configuration
   * [Mix] Add `mix cmd` as a convenience to run a command recursively in child apps in an umbrella application
   * [Mix] Support `umbrella: true` in dependencies as a convenience for setting up umbrella path deps
   * [String] Add `String.reverse/1`
@@ -24,7 +24,7 @@
   * [Behaviour] Ensure callbacks are stored in the definition order
   * [IEx] Reduce cases where IEx parser can get stuck
   * [Kernel] Improve error messages when the use of an operator has no effect
-  * [Kernel] Fix a bug where imported macros were not being warned when conflicting with a local function or macro
+  * [Kernel] Fix a bug where warnings were not being generated when imported macros conflicted with local functions or macros
   * [Kernel] Document that `on_definition` can only be a function as it is evaluated inside the function context
   * [Kernel] Ensure `%w` sigils with no interpolation are fully expanded at compile time
   * [Mix] `mix deps.update` no longer updates all dependencies unless `--all` is given
