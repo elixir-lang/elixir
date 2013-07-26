@@ -79,7 +79,7 @@ defmodule System do
   end
 
   @doc """
-  Returns the current working directory or nil if one
+  Returns the current working directory or `nil` if one
   is not available.
   """
   def cwd do
@@ -98,7 +98,7 @@ defmodule System do
 
   @doc """
   Returns the user home (platform independent).
-  It returns nil if no user home is set.
+  It returns `nil` if no user home is set.
   """
   def user_home do
     case :os.type() do
@@ -108,8 +108,8 @@ defmodule System do
   end
 
   @doc """
-  Same as `user_home` but raises `System.NoHomeError`
-  instead of returning nil if no user home is set.
+  Same as `user_home/0` but raises `System.NoHomeError`
+  instead of returning `nil` if no user home is set.
   """
   def user_home! do
     user_home || raise NoHomeError
@@ -139,7 +139,7 @@ defmodule System do
   4. `C:\TMP` on Windows or `/tmp` on Unix
   5.  As a last resort, the current working directory
 
-  Returns nil if none of the above are writable.
+  Returns `nil` if none of the above are writable.
   """
   def tmp_dir do
     write_env_tmp_dir('TMPDIR') ||
@@ -151,7 +151,7 @@ defmodule System do
 
   @doc """
   Same as `tmp_dir` but raises `System.NoTmpDirError`
-  instead of returning nil if no temp dir is set.
+  instead of returning `nil` if no temp dir is set.
   """
   def tmp_dir! do
     tmp_dir || raise NoTmpDirError
@@ -249,7 +249,7 @@ defmodule System do
 
   @doc """
   Returns the value of the environment variable
-  `varname` as a binary, or nil if the environment
+  `varname` as a binary, or `nil` if the environment
   variable is undefined.
   """
   @spec get_env(binary) :: binary | nil
@@ -317,7 +317,7 @@ defmodule System do
 
   For integer status, Erlang runtime system closes all ports and allows async
   threads to finish their operations before exiting. To exit without such
-  flushing, pass options [flush: false] instead.
+  flushing, pass options `[flush: false]` instead.
 
   For more information, check: http://www.erlang.org/doc/man/erlang.html#halt-2
 

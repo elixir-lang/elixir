@@ -6,22 +6,22 @@ defmodule String do
 
   The functions in this module act according to the
   Unicode Standard, version 6.2.0. For example,
-  `titlecase`, `downcase`, `strip` are provided by this
+  `capitalize/1`, `downcase/1`, `strip/1` are provided by this
   module.
 
   Besides this module, Elixir provides more low-level
-  operations that works directly with binaries. Some
+  operations that work directly with binaries. Some
   of those can be found in the `Kernel` module, as:
 
-  * `binary_part/2` and `binary_part/3` - retrieves part of the binary
-  * `bit_size/1` and `byte_size/1` - size related functions
-  * `is_bitstring/1` and `is_binary/1` - type checking function
-  * Plus a bunch of conversion functions, like `binary_to_atom/2`,
-    `binary_to_integer/2`, `binary_to_term/1` and their opposite
-    like `integer_to_binary/2`
+  * `Kernel.binary_part/2` and `Kernelbinary_part/3` - retrieves part of the binary
+  * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
+  * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
+  * Plus a number of conversion functions, like `Kernel.binary_to_atom/2`,
+    `Kernel.binary_to_integer/2`, `Kernel.binary_to_term/1` and their opposite
+    like `Kernel.integer_to_binary/2`
 
-  Finally, [the `:binary` module](http://erlang.org/doc/man/binary.html)
-  provides a couple other functions that works on the byte level.
+  Finally, the [`:binary` module](http://erlang.org/doc/man/binary.html)
+  provides a few other functions that work on the byte level.
 
   ## Codepoints and graphemes
 
@@ -93,7 +93,7 @@ defmodule String do
   codepoint needs to be rejected.
 
   This module relies on this behaviour to ignore such invalid
-  characters. For example, `String.length` is going to return
+  characters. For example, `length/1` is going to return
   a correct result even if an invalid codepoint is fed into it.
 
   In other words, this module expects invalid data to be detected
@@ -108,7 +108,7 @@ defmodule String do
 
   @doc """
   Checks if a string is printable considering it is encoded
-  as UTF-8. Returns true if so, false otherwise.
+  as UTF-8. Returns `true` if so, `false` otherwise.
 
   ## Examples
 
@@ -200,7 +200,7 @@ defmodule String do
   end
 
   @doc """
-  Splits a string on sub strings at each Unicode whitespace
+  Splits a string on substrings at each Unicode whitespace
   occurrence with leading and trailing whitespace ignored.
 
   ## Examples
@@ -217,12 +217,12 @@ defmodule String do
   defdelegate split(binary), to: String.Unicode
 
   @doc """
-  Divides a string into sub strings based on a pattern,
-  returning a list of these sub string. The pattern can
+  Divides a string into substrings based on a pattern,
+  returning a list of these substrings. The pattern can
   be a string, a list of strings or a regular expression.
 
   The string is split into as many parts as possible by
-  default, unless the `global` option is set to false.
+  default, unless the `global` option is set to `false`.
 
   ## Examples
 
@@ -258,7 +258,7 @@ defmodule String do
   end
 
   @doc """
-  Convert all characters on the given string to upcase.
+  Convert all characters on the given string to uppercase.
 
   ## Examples
 
@@ -274,7 +274,7 @@ defmodule String do
   defdelegate upcase(binary), to: String.Unicode
 
   @doc """
-  Convert all characters on the given string to downcase.
+  Convert all characters on the given string to lowercase.
 
   ## Examples
 
@@ -291,11 +291,11 @@ defmodule String do
 
   @doc """
   Converts the first character in the given string to
-  titlecase and the remaining to downcase.
+  uppercase and the remaining to lowercase.
 
   This relies on the titlecase information provided
   by the Unicode Standard. Note this function makes
-  no attempt in capitalizing all words in the string
+  no attempt to capitalize all words in the string
   (usually known as titlecase).
 
   ## Examples
@@ -430,7 +430,7 @@ defmodule String do
   @doc """
   Returns a new binary based on `subject` by replacing the parts
   matching `pattern` for `replacement`. By default, it replaces
-  all entries, except if the `global` option is set to false.
+  all entries, except if the `global` option is set to `false`.
 
   If the replaced part must be used in `replacement`, then the
   position or the positions where it is to be inserted must be
@@ -533,7 +533,7 @@ defmodule String do
   remaining of the string or `:no_codepoint` in case
   the string reached its end.
 
-  As the other functions in the String module, this
+  As with other functions in the String module, this
   function does not check for the validity of the codepoint.
   That said, if an invalid codepoint is found, it will
   be returned by this function.
@@ -674,7 +674,7 @@ defmodule String do
 
   @doc """
   Returns the last grapheme from an utf8 string,
-  nil if the string is empty.
+  `nil` if the string is empty.
 
   ## Examples
 
@@ -762,7 +762,7 @@ defmodule String do
   @doc """
   Returns a substring starting at the offset given by the first, and
   a length given by the second.
-  If the offset is greater than string length, than it returns nil.
+  If the offset is greater than string length, than it returns `nil`.
 
   ## Examples
 
@@ -827,8 +827,8 @@ defmodule String do
 
   @doc """
   Converts a string to an integer. If successful, returns a
-  tuple of form {integer, remainder of string}. If unsuccessful,
-  returns :error.
+  tuple of the form `{integer, remainder of string}`. If unsuccessful,
+  returns `:error`.
 
   ## Examples
 
@@ -852,9 +852,9 @@ defmodule String do
 
   @doc """
   Converts a string to a float. If successful, returns a
-  tuple of form {float, remainder of string}. If unsuccessful,
-  returns :error. If given an integer value, will return
-  same as to_integer/1.
+  tuple of the form `{float, remainder of string}`. If unsuccessful,
+  returns `:error`. If given an integer value, will return
+  the same value as `to_integer/1`.
 
   ## Examples
 
@@ -885,8 +885,8 @@ defmodule String do
   end
 
   @doc """
-  Returns true if `string` starts with any of the prefixes given, otherwise
-  false. `prefixes` can be either a single prefix or a list of prefixes.
+  Returns `true` if `string` starts with any of the prefixes given, otherwise
+  `false`. `prefixes` can be either a single prefix or a list of prefixes.
 
   ## Examples
 
@@ -921,8 +921,8 @@ defmodule String do
   end
 
   @doc """
-  Returns true if `string` ends with any of the suffixes given, otherwise
-  false. `suffixes` can be either a single suffix or a list of suffixes.
+  Returns `true` if `string` ends with any of the suffixes given, otherwise
+  `false`. `suffixes` can be either a single suffix or a list of suffixes.
 
   ## Examples
 
@@ -960,7 +960,7 @@ defmodule String do
   end
 
   @doc """
-  Returns true if `string` contains match, otherwise false.
+  Returns `true` if `string` contains match, otherwise `false`.
   `matches` can be either a single string or a list of strings.
 
   ## Examples

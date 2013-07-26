@@ -9,7 +9,7 @@ defmodule Path do
 
   The majority of the functions in this module do not
   interact with the file system, except for a few functions
-  that require it (like `Path.wildcard` and `Path.expand`).
+  that require it (like `wildcard/1` and `expand/1`).
   """
 
   alias :filename, as: FN
@@ -19,7 +19,7 @@ defmodule Path do
 
   @doc """
   Converts the given path to an absolute one. Unlike
-  `Path.expand/1`, no attempt is made to resolve `..`, `.` or `~`.
+  `expand/1`, no attempt is made to resolve `..`, `.` or `~`.
 
   ## Unix examples
 
@@ -43,9 +43,9 @@ defmodule Path do
 
   @doc """
   Builds a path from `relative_to` to `path`. If `path` is already
-  an absolute path, `relative_to` is ignored. See also `Path.relative/2`.
+  an absolute path, `relative_to` is ignored. See also `relative/2`.
 
-  Unlike `Path.expand/2`, no attempt is made to
+  Unlike `expand/2`, no attempt is made to
   resolve `..`, `.` or `~`.
 
   ## Examples
@@ -80,7 +80,7 @@ defmodule Path do
   expanding any `.` and `..` characters. If the path is already an
   absolute path, `relative_to` is ignored.
 
-  Note, that this function treats `path` with leading `~` as
+  Note, that this function treats `path` with a leading `~` as
   an absolute one.
 
   The second argument is first expanded to an absolute path.
@@ -461,7 +461,7 @@ defmodule Path do
 
   Imagine you have a directory called `projects` with three Elixir projects
   inside of it: `elixir`, `ex_doc` and `dynamo`. You can find all `.beam` files
-  inside the ebin directory of each project as follows:
+  inside the `ebin` directory of each project as follows:
 
       Path.wildcard("projects/*/ebin/**/*.beam")
 
