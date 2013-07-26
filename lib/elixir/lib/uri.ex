@@ -31,8 +31,8 @@ defmodule URI do
 
   @doc """
   Returns the default port for a given scheme.
-  If the scheme is unknown to URI, returns nil.
-  Any scheme may be registered via `URI.default_port/2`.
+  If the scheme is unknown to URI, returns `nil`.
+  Any scheme may be registered via `default_port/2`.
   """
   def default_port(scheme) when is_binary(scheme) do
     { :ok, dict } = :application.get_env(:elixir, :uri)
@@ -40,7 +40,7 @@ defmodule URI do
   end
 
   @doc """
-  Registers a scheme with a default port into Elixir.
+  Registers a scheme with a default port.
   """
   def default_port(scheme, port) when is_binary(scheme) and port > 0 do
     { :ok, dict } = :application.get_env(:elixir, :uri)
@@ -49,10 +49,10 @@ defmodule URI do
 
   @doc """
   Takes an enumerable (containing a sequence of two-item tuples)
-  and returns a string of k=v&k2=v2... where keys and values are
-  URL encoded as per encode. Keys and values can be any term
-  that implements the Binary.Chars protocol (i.e. can be converted
-  to binary).
+  and returns a string of the form "k=v&k2=v2..." where keys and values are
+  URL encoded as per `encode/1`. Keys and values can be any term
+  that implements the `Binary.Chars` protocol (i.e. can be converted
+  to a binary).
   """
   def encode_query(l), do: Enum.map_join(l, "&", pair(&1))
 
@@ -61,7 +61,7 @@ defmodule URI do
   orddict with one entry for each key-value pair. Each key and value will be a
   binary. It also does percent-unescaping of both keys and values.
 
-  Use decoder/1 if you want to customize or iterate each value manually.
+  Use `query_decoder/1` if you want to iterate over each value manually.
   """
   def decode_query(q, dict // HashDict.new) when is_binary(q) do
     Enum.reduce query_decoder(q), dict, fn({ k, v }, acc) -> Dict.put(acc, k, v) end
@@ -150,14 +150,14 @@ defmodule URI do
   have different default ports. Sometimes the parsing
   of portions themselves are different. This parser
   is extensible via behavior modules. If you have a
-  module named URI.MYSCHEME with a function called
-  'parse' that takes a single argument, the generically
+  module named `URI.MYSCHEME` with a function called
+  `parse` that takes a single argument, the generically
   parsed URI, that function will be called when this
   parse function is passed a URI of that scheme. This
   allows you to build on top of what the URI library
-  currently offers. You also need to define default_port
-  which takes 0 arguments and returns the default port
-  for that particular scheme. Take a look at URI.HTTPS for an
+  currently offers. You also need to define `default_port`
+  which takes no arguments and returns the default port
+  for that particular scheme. Take a look at `URI.HTTPS` for an
   example of one of these extension modules.
   """
   def parse(s) when is_binary(s) do
