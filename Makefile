@@ -39,7 +39,7 @@ UNICODE:=lib/elixir/ebin/Elixir.String.Unicode.beam
 
 default: compile
 
-compile: lib/elixir/src/elixir.app.src erlang elixir compile_windows
+compile: lib/elixir/src/elixir.app.src erlang elixir
 
 lib/elixir/src/elixir.app.src: src/elixir.app.src
 	$(Q) rm -rf lib/elixir/src/elixir.app.src
