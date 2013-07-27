@@ -37,13 +37,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       assert File.regular?("ebin/Elixir.A.beam")
 
-      # Now we have a noop
       File.rm!("lib/a.ex")
-      assert Mix.Tasks.Compile.Elixir.run([]) == :noop
-
-      # --force
-      purge [A, B, C]
-      assert Mix.Tasks.Compile.Elixir.run(["--force"]) == :ok
+      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       refute File.regular?("ebin/Elixir.A.beam")
     end
   end
