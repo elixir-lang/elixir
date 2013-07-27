@@ -100,7 +100,7 @@ defmodule OptionParser do
     parse(argv, aliases, switches, [], [], all)
   end
 
-  defp parse(["-" <> option|t], aliases, switches, dict, args, all) do
+  defp parse(["-" <> option|t], aliases, switches, dict, args, all) when option != "-" do
     { option, kinds, value } = normalize_option(option, switches, aliases)
 
     if nil?(value) do

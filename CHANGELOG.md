@@ -18,6 +18,7 @@
   * [Mix] Allow coverage tool to be pluggable via the `:test_coverage` configuration
   * [Mix] Add `mix cmd` as a convenience to run a command recursively in child apps in an umbrella application
   * [Mix] Support `umbrella: true` in dependencies as a convenience for setting up umbrella path deps
+  * [Mix] `mix run` now behaves closer to the `elixir` command and properly mangles the ARGV
   * [String] Add `String.reverse/1`
 
 * bug fix

@@ -18,7 +18,7 @@ defmodule Mix.Tasks.RunTest do
 
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
-      Mix.Tasks.Run.run ["Mix.shell.info", "GitRepo.hello"]
+      Mix.Tasks.Run.run ["-e", "Mix.shell.info GitRepo.hello"]
       assert_received { :mix_shell, :info, ["World"] }
     end
   after
@@ -30,10 +30,10 @@ defmodule Mix.Tasks.RunTest do
     git_repo = fixture_path("git_repo/lib/git_repo.ex")
 
     in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Run.run ["-r", git_repo, "Mix.shell.info", "GitRepo.hello"]
+      Mix.Tasks.Run.run ["-r", git_repo, "-e", "Mix.shell.info GitRepo.hello"]
       assert_received { :mix_shell, :info, ["World"] }
 
-      Mix.Tasks.Run.run ["-pr", git_repo, "Mix.shell.info", "GitRepo.hello"]
+      Mix.Tasks.Run.run ["-pr", git_repo, "-e", "Mix.shell.info GitRepo.hello"]
       assert_received { :mix_shell, :info, ["World"] }
     end
   end

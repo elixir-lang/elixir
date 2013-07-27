@@ -101,6 +101,11 @@ defmodule OptionParserTest do
     assert options == { [source: "from_docs/"], ["test/enum_test.exs", "--verbose"] }
   end
 
+  test "stops on --" do
+    options = OptionParser.parse_head(["--source", "from_docs/", "--", "1", "2", "3"])
+    assert options == { [source: "from_docs/"], ["--", "1", "2", "3"] }
+  end
+
   test "goes beyond the first non option arguments" do
     options = OptionParser.parse(["--source", "from_docs/", "test/enum_test.exs", "--verbose"])
     assert options == { [source: "from_docs/", verbose: true], ["test/enum_test.exs"] }

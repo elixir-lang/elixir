@@ -79,6 +79,15 @@ defmodule System do
   end
 
   @doc """
+  Changes the list of command-line arguments. Use it with caution,
+  as it destory any previous argv information.
+  """
+  @spec argv([String.t]) :: :ok
+  def argv(argv) do
+    :elixir_code_server.cast({ :argv, argv })
+  end
+
+  @doc """
   Returns the current working directory or `nil` if one
   is not available.
   """

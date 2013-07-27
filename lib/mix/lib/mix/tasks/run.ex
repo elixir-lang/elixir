@@ -4,10 +4,21 @@ defmodule Mix.Tasks.Run do
   @shortdoc "Run the given file or expression"
 
   @moduledoc """
-  Runs the given file or expession in the context of the application.
+  Runs the given file or expression in the context of the application.
 
-  Before running the code, it invokes the app.start task
-  which defaults to compile and load your project.
+  Before running the code, it invokes the `app.start` task which compiles
+  and loads your project.
+
+  It is the goal of this task to provide a subset of the functionality
+  existent in the `elixir` executable, including setting up the `System.argv`:
+
+      mix run -e Hello.world
+      mix run my_script.exs arg1 arg2 arg3
+
+  Many command line options need to be passed to the `elixir` executable
+  directly, which can be done as follows:
+
+      elixir --sname hello -S mix run -e "My.code"
 
   ## Command line options
 
@@ -18,16 +29,6 @@ defmodule Mix.Tasks.Run do
   * `--no-compile` - Does not compile even if files require compilation
   * `--no-start` - Does not start applications after compilation
 
-  ## Examples
-
-      mix run -e Hello.world
-      mix run -e "Some.function with_args"
-      mix run -r some_file.exs
-
-  Command line options given to the `elixir` executable can be passed as:
-
-      elixir --sname hello -S mix run -e "My.code"
-
   """
   def run(args) do
     { opts, head } = OptionParser.parse_head(args,
@@ -35,6 +36,13 @@ defmodule Mix.Tasks.Run do
       switches: [parallel_require: :keep, require: :keep])
 
     Mix.Task.run "app.start", args
+
+    file =
+      case head do
+        ["--"|t] -> System.argv(t); nil
+        [h|t]    -> System.argv(t); h
+        []       -> System.argv([]); nil
+      end
 
     Enum.each opts, fn({ key, value }) ->
       case key do
@@ -49,10 +57,7 @@ defmodule Mix.Tasks.Run do
       end
     end
 
-    if head != [] do
-      Mix.shell.error "[WARNING] mix run EXPR is deprecated, please use mix run -e EXPR instead"
-      Code.eval_string Enum.join(head, " ")
-    end
+    if file, do: Code.require_file(h)
     if opts[:no_halt], do: :timer.sleep(:infinity)
   end
 

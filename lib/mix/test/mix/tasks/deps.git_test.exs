@@ -106,7 +106,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
       # We can compile just fine
       Mix.Task.clear
-      Mix.Tasks.Run.run ["1+2"]
+      Mix.Tasks.Run.run ["-e", "1+2"]
 
       # Now let's add a submodules option
       Mix.Project.pop

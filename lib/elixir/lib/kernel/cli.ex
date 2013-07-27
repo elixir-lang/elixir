@@ -11,7 +11,7 @@ defmodule Kernel.CLI do
     argv = lc arg inlist argv, do: :unicode.characters_to_binary(arg)
 
     { config, argv } = process_argv(argv, Kernel.CLI.Config.new)
-    :elixir_code_server.cast({ :argv, argv })
+    System.argv(argv)
 
     run fn ->
       command_results = Enum.map(Enum.reverse(config.commands), process_command(&1, config))
