@@ -67,6 +67,21 @@ defmodule EEx.AssignsEngine do
   a template, after compiled, may receive different assigns
   and the developer don't want to recompile it for each
   variable set.
+
+  Assigns can also be used when compiled to a function:
+
+      # sample.eex
+      <%= @a + @b %>
+
+      # sample.ex
+      defmodule Sample do
+        require EEx
+        EEx.function_from_file :def, :sample, "sample.eex", [:assigns]
+      end
+
+      # iex
+      Sample.sample(a: 1, b: 2) #=> "3"
+
   """
 
   @doc false
@@ -91,7 +106,7 @@ defmodule EEx.SmartEngine do
 
   @moduledoc """
   An engine meant for end-user usage that includes
-  `AssignsEngine` and other conveniences. Read
+  `EEx.AssignsEngine` and other conveniences. Read
   `EEx.AssignsEngine` for examples.
   """
 end
