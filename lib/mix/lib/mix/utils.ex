@@ -339,7 +339,7 @@ defmodule Mix.Utils do
     cond do
       is_url?(path)  -> read_url(path)
       is_file?(path) -> read_file(path)
-      :else          -> raise Mix.Error, message: "expected #{path} to be a url or a local file path"
+      :else          -> raise Mix.Error, message: "Expected #{path} to be a url or a local file path"
     end
   end
 
@@ -358,9 +358,9 @@ defmodule Mix.Utils do
       { :ok, { { _, status, _ }, _, body } } when status in 200..299 ->
         iolist_to_binary(body)
       { :ok, { { _, status, _ }, _, _ } } ->
-        raise Mix.Error, message: "could not access url #{path}, got status: #{status}"
+        raise Mix.Error, message: "Could not access url #{path}, got status: #{status}"
       { :error, reason } ->
-        raise Mix.Error, message: "could not access url #{path}, error: #{inspect reason}"
+        raise Mix.Error, message: "Could not access url #{path}, error: #{inspect reason}"
     end
   end
 

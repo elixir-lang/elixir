@@ -16,6 +16,8 @@ defmodule Mix.Tasks.Deps.Clean do
   import Mix.Deps, only: [all: 0, by_name: 1, format_dep: 1]
 
   def run(args) do
+    Mix.Project.get! # Require the project to be available
+
     { opts, args } = OptionParser.parse(args, switches: [unlock: :boolean, all: :boolean])
 
     cond do

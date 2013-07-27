@@ -9,10 +9,9 @@ defmodule Mix.Deps.Retriever do
   as a `Mix.Dep` record.
   """
   def children() do
-    # Don't run recursively for the top-level project
     scms = Mix.SCM.available
     from = current_source(:mix)
-    (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, from))
+    Enum.map(Mix.project[:deps], update(&1, scms, from))
   end
 
   @doc """
@@ -157,7 +156,7 @@ defmodule Mix.Deps.Retriever do
       ]
     else
       supported = Enum.join scms, ", "
-      raise Mix.Error, message: "did not specify a supported scm, expected one of: " <> supported
+      raise Mix.Error, message: "#{inspect Mix.Project.get} did not specify a supported scm, expected one of: " <> supported
     end
   end
 
@@ -231,7 +230,7 @@ defmodule Mix.Deps.Retriever do
   end
 
   defp invalid_dep_format(dep) do
-    raise Mix.Error, message: %b(dependency specified in the wrong format: #{inspect dep}, ) <>
+    raise Mix.Error, message: %b(Dependency specified in the wrong format: #{inspect dep}, ) <>
       %b(expected { app :: atom, opts :: Keyword.t } | { app :: atom, requirement :: String.t, opts :: Keyword.t })
   end
 end

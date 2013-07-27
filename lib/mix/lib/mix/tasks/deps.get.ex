@@ -19,6 +19,8 @@ defmodule Mix.Tasks.Deps.Get do
   import Mix.Deps, only: [all: 2, by_name: 1, format_dep: 1, check_lock: 2, out_of_date?: 1]
 
   def run(args) do
+    Mix.Project.get! # Require the project to be available
+
     { opts, rest } = OptionParser.parse(args, switches: [no_compile: :boolean, quiet: :boolean])
 
     if rest != [] do

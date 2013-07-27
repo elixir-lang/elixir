@@ -35,6 +35,9 @@ defmodule Mix.Tasks.Run do
       aliases: [r: :require, pr: :parallel_require, e: :eval],
       switches: [parallel_require: :keep, require: :keep])
 
+    # Require the project to be available
+    Mix.Project.get!
+
     Mix.Task.run "app.start", args
 
     file =

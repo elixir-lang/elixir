@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Do do
   def run(args) do
     Enum.each(gather_commands(args), function do
       [task|args] -> Mix.Task.run task, args
-      [] -> raise Mix.Error, message: "no expression between commas"
+      [] -> raise Mix.Error, message: "No expression between commas"
     end)
   end
 

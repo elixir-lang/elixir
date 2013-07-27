@@ -26,7 +26,7 @@ defmodule Mix.Tasks.Local.Uninstall do
              "Do you want to remove this archive?") do
           do_uninstall(archive)
         else
-          raise Mix.Error, message: "cannot uninstall task #{task}"
+          raise Mix.Error, message: "Cannot uninstall task #{task}"
         end
     end
   end

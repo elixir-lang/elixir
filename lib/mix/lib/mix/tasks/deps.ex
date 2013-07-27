@@ -16,6 +16,8 @@ defmodule Mix.Tasks.Deps do
 
   """
   def run(_) do
+    Mix.Project.get! # Require the project to be available
+
     shell = Mix.shell
     lock  = Mix.Deps.Lock.read
 

@@ -51,6 +51,9 @@ defmodule Mix.Tasks.Escriptize do
   def run(args) do
     { opts, _ } = OptionParser.parse(args, switches: [force: :boolean, no_compile: :boolean])
 
+    # Require the project to be available
+    Mix.Project.get!
+
     unless opts[:no_compile] do
       Mix.Task.run :compile, args
     end

@@ -23,6 +23,7 @@ defmodule Mix.Tasks.Deps.Update do
                            depending: 2, format_dep: 1 ]
 
   def run(args) do
+    Mix.Project.get! # Require the project to be available
     { opts, rest } = OptionParser.parse(args, switches: [no_compile: :boolean, all: :boolean])
 
     cond do
@@ -73,7 +74,7 @@ defmodule Mix.Tasks.Deps.Update do
 
   defp check_unavailable!(dep) do
     unless available?(dep) do
-      raise Mix.Error, message: "cannot update dependency #{dep.app} because " <>
+      raise Mix.Error, message: "Cannot update dependency #{dep.app} because " <>
         "it isn't available, run `mix deps.get` first"
     end
     dep

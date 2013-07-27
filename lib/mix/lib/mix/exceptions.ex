@@ -11,7 +11,7 @@ defexception Mix.InvalidTaskError, task: nil, mix_error: true do
 end
 
 defexception Mix.NoProjectError, mix_error: true,
-  message: "Could not find a Mix.Project"
+  message: "Could not find a Mix.Project, please ensure a mix.exs file is available"
 
 defexception Mix.Error, mix_error: true, message: nil
 

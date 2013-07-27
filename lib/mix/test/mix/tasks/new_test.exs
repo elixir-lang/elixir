@@ -66,11 +66,11 @@ defmodule Mix.Tasks.NewTest do
 
   test "new with invalid args" do
     in_tmp "new with invalid args", fn ->
-      assert_raise Mix.Error, "project path must start with a letter and have only lowercase letters, numbers and underscore", fn ->
+      assert_raise Mix.Error, "Project path must start with a letter and have only lowercase letters, numbers and underscore", fn ->
         Mix.Tasks.New.run ["007invalid"]
       end
 
-      assert_raise Mix.Error, "expected PATH to be given, please use `mix new PATH`", fn ->
+      assert_raise Mix.Error, "Expected PATH to be given, please use `mix new PATH`", fn ->
         Mix.Tasks.New.run []
       end
     end

@@ -28,6 +28,8 @@ defmodule Mix.Tasks.Deps.Compile do
                            depending: 2, format_dep: 1, make?: 1, mix?: 1, rebar?: 1 ]
 
   def run(args) do
+    Mix.Project.get! # Require the project to be available
+
     case OptionParser.parse(args) do
       { _, [] } ->
         do_compile Enum.filter(all, available?(&1))
@@ -117,7 +119,7 @@ defmodule Mix.Tasks.Deps.Compile do
     shell.info "I can install a local copy which is just used by mix"
 
     unless shell.yes?("Shall I install this local copy?") do
-      raise Mix.Error, message: "could not find rebar to compile " <>
+      raise Mix.Error, message: "Could not find rebar to compile " <>
         "dependency #{app}, please ensure rebar is available"
     end
 
@@ -127,7 +129,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp do_command(app, command, extra // "") do
     if Mix.shell.cmd("#{command} #{extra}") != 0 do
-      raise Mix.Error, message: "could not compile dependency #{app}, #{command} command failed. " <>
+      raise Mix.Error, message: "Could not compile dependency #{app}, #{command} command failed. " <>
         "If you want to recompile this dependency, please run: mix deps.compile #{app}"
     end
   end
@@ -139,7 +141,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_compile(app, command) when is_binary(command) do
     Mix.shell.info("#{app}: #{command}")
     if Mix.shell.cmd(command) != 0 do
-      raise Mix.Error, message: "could not compile dependency #{app}, custom #{command} command failed. " <>
+      raise Mix.Error, message: "Could not compile dependency #{app}, custom #{command} command failed. " <>
         "If you want to recompile this dependency, please run: mix deps.compile #{app}"
     end
   end

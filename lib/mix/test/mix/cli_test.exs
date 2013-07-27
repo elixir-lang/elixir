@@ -18,6 +18,12 @@ defmodule Mix.CLITest do
 
   test "default task" do
     in_fixture "no_mixfile", fn ->
+      File.write! "mix.exs", """
+      defmodule P do
+        use Mix.Project
+        def project, do: []
+      end
+      """
       output = mix ""
       assert File.regular?("ebin/Elixir.A.beam")
       assert output =~ "Compiled lib/a.ex"
