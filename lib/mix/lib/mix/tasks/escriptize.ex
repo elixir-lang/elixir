@@ -130,7 +130,7 @@ defmodule Mix.Tasks.Escriptize do
 
   defp app_tuples(app) do
     case :code.where_is_file('#{app}.app') do
-      :non_existing -> raise Mix.Error, "Could not find application #{app}"
+      :non_existing -> raise Mix.Error, message: "Could not find application #{app}"
       file -> get_tuples(Path.dirname(Path.dirname(file)))
     end
   end
