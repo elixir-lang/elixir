@@ -10,7 +10,7 @@
   * [Kernel] Functions now points to the module and function they were defined when inspected
   * [Kernel] A documentation attached to a function that is never defined now prints warnings
   * [List] Add `List.keysort/2`
-  * [Mix] `:test_helper` project configuration did not affect `mix test` and was therefore removed
+  * [Mix] `:test_helper` project configuration did not affect `mix test` and was therefore removed. A `test/test_helper.exs` file is still necessary albeit it doesn't need to be automatically required in each test file
   * [Mix] Add manifests for yecc, leex and Erlang compilers, making it easier to detect dependencies in between compilers and providing a more useful clean behaviour
   * [Mix] `mix help` now outputs information about the default mix task
   * [Mix] Add `--no-deps-check` option to `mix run`, `mix compile` and friends to not check dependency status

@@ -29,15 +29,14 @@ defmodule Mix.Tasks.Test do
   @moduledoc """
   Run the tests for a project.
 
-  This task starts the current application and then requires
-  all files that match the given `test_pattern` in parallel.
+  This task starts the current application, loads up
+  `test/test_helper.exs` and then requires all files matching the
+  `test/**/_test.exs` pattern in parallel.
 
-  It is expected that each test file will properly setup the
-  test framework, usually by providing a `test/test_helper.exs`
-  file that is required at the top of the file.
+  A list of files can be given after the task name in order to select
+  the files to compile:
 
-  A list of files can be given after the task name in
-  order to select the files to compile.
+      mix test test/some/particular/file_test.exs
 
   ## Command line options
 
@@ -51,7 +50,8 @@ defmodule Mix.Tasks.Test do
 
   ## Configuration
 
-  * `:test_paths` - list of paths containing test files, defaults to `["test"]`
+  * `:test_paths` - list of paths containing test files, defaults to `["test"]`.
+                    it is expected all test paths to contain a `test_helper.exs` file
 
   * `:test_pattern` - a pattern to load test files, defaults to `*_test.exs`
 
@@ -109,13 +109,26 @@ defmodule Mix.Tasks.Test do
                 "please set the output directory as test_coverage: [output: \"PATH\"] instead"
     end
 
-    test_paths   = if files == [], do: project[:test_paths] || ["test"], else: files
-    test_pattern = project[:test_pattern] || "*_test.exs"
-
     :application.load(:ex_unit)
     ExUnit.configure(Dict.take(opts, [:trace, :max_cases, :color]))
 
+    test_paths = project[:test_paths] || ["test"]
+    Enum.each(test_paths, require_test_helper(&1))
+
+    test_paths   = if files == [], do: test_paths, else: files
+    test_pattern = project[:test_pattern] || "*_test.exs"
+
     files = Mix.Utils.extract_files(test_paths, test_pattern)
     Kernel.ParallelRequire.files files
+  end
+
+  defp require_test_helper(dir) do
+    file = Path.join(dir, "test_helper.exs")
+
+    if File.exists?(file) do
+      Code.require_file file
+    else
+      raise Mix.Error, message: "Cannot run tests because test helper file #{inspect file} does not exist"
+    end
   end
 end
