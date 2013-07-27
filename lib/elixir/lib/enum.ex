@@ -707,6 +707,39 @@ defmodule Enum do
   end
 
   @doc """
+  Invokes `fun` for each element in the collection passing that element and the
+  accumulator `acc` as arguments. `fun`'s return value is stored in `acc`.
+  The first element of collection is used as the initial value of `acc`.
+  Returns the accumulator.
+
+  ## Examples
+
+      iex> Enum.reduce([1, 2, 3, 4], fn(x, acc) -> x * acc end)
+      24
+
+  """
+  @spec reduce(t, (element, any -> any)) :: any
+  def reduce([h|t], fun) do
+    Enum.reduce(t, h, fun)
+  end
+
+  def reduce([], _fun) do
+    raise Enum.EmptyError
+  end
+
+  def reduce(collection, fun) do
+    result = Enumerable.reduce(collection, :first, fn
+      entry, :first -> { :reduce, entry }
+      entry, { :reduce, acc } -> { :reduce, fun.(entry, acc) }
+    end)
+
+    case result do
+      :first -> raise Enum.EmptyError
+      { :reduce, acc } -> acc
+    end
+  end
+
+  @doc """
   Returns elements of collection for which `fun` returns `false`.
 
   ## Examples
