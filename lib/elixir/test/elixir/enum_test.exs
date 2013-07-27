@@ -134,6 +134,11 @@ defmodule EnumTest.List do
   test :reduce do
     assert Enum.reduce([], 1, fn(x, acc) -> x + acc end) == 1
     assert Enum.reduce([1, 2, 3], 1, fn(x, acc) -> x + acc end) == 7
+
+    assert Enum.reduce([1, 2, 3], fn(x, acc) -> x + acc end) == 6
+    assert_raise Enum.EmptyError, fn ->
+      assert Enum.reduce([], fn(x, acc) -> x + acc end)
+    end
   end
 
   test :join_with_bin do
@@ -477,6 +482,9 @@ defmodule EnumTest.Range do
 
     range = Range.new(first: 1, last: 3)
     assert Enum.reduce(range, 1, fn(x, acc) -> x + acc end) == 7
+
+    range = Range.new(first: 1, last: 3)
+    assert Enum.reduce(range, fn(x, acc) -> x + acc end) == 6
   end
 
   test :reject do
