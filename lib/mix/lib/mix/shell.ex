@@ -56,14 +56,15 @@ defmodule Mix.Shell do
   # Finding shell command logic from :os.cmd in OTP
   # https://github.com/erlang/otp/blob/8deb96fb1d017307e22d2ab88968b9ef9f1b71d0/lib/kernel/src/os.erl#L184
   defp shell_command(command) do
-    command = command
-      |> String.replace("\"", "\\\"")
-      |> to_char_list
-
     case :os.type do
       { :unix, _ } ->
+        command = command
+          |> String.replace("\"", "\\\"")
+          |> to_char_list
         %c(sh -c "#{command}")
+
       { :win32, osname } ->
+        command = to_char_list(command)
         case { System.get_env("COMSPEC"), osname } do
           { nil, :windows } -> 'command.com /c #{command}'
           { nil, _ }        -> 'cmd /c #{command}'
