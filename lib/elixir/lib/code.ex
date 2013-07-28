@@ -56,8 +56,8 @@ defmodule Code do
   end
 
   @doc """
-  Evaluates the contents given by string. The second argument is the
-  binding (which should be a keyword), followed by a keyword list of
+  Evaluates the contents given by `string`. The second argument is 
+  a keyword list of bindings, followed by a keyword list of
   environment options. Those options can be:
 
   * `:file` - the file to be considered in the evaluation
@@ -71,28 +71,39 @@ defmodule Code do
   * `:requires` - a list of modules required
   * `:functions` - a list of tuples where the first element is a module
     and the second a list of imported function names and arity. The list
-    of function names and arity must be sorted;
+    of function names and arity must be sorted
   * `:macros` - a list of tuples where the first element is a module
     and the second a list of imported macro names and arity. The list
-    of function names and arity must be sorted;
+    of function names and arity must be sorted
 
-  Notice that setting any of the values above overrides Elixir default
+  Notice that setting any of the values above overrides Elixir's default
   values. For example, setting `:requires` to `[]`, will no longer
   automatically require the `Kernel` module; in the same way setting
   `:macros` will no longer auto-import `Kernel` macros like `if`, `case`,
   etc.
 
+  Returns a tuple of the form `{ value, bindings }`,
+  where `value` is the the value returned from evaluating `string`; `bindings`
+  is a keyword list with the value of all variable bindings after evaluating
+  `string`. If an error occurs while evaluating `string` an exception will be raised.
+
   ## Examples
 
       iex> Code.eval_string("a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
-      { 3, [ {:a, 1}, {:b, 2} ] }
+      {3, [a: 1, b: 2]}
 
-  For convenience, you can pass `__ENV__` as an argument and
-  all imports, requires and aliases will be automatically carried
-  over:
+      iex> Code.eval_string("c = a + b", [a: 1, b: 2], __ENV__)
+      {3, [a: 1, b: 2, c: 3]}
+
+      iex> Code.eval_string("a = a + b", [a: 1, b: 2])          
+      {3, [a: 3, b: 2]}
+
+  For convenience, you can pass `__ENV__` as the `opts` argument and
+  all imports, requires and aliases defined in the current environment
+  will be automatically carried over:
 
       iex> Code.eval_string("a + b", [a: 1, b: 2], __ENV__)
-      { 3, [ {:a, 1}, {:b, 2} ] }
+      {3, [a: 1, b: 2]}
 
   """
   def eval_string(string, binding // [], opts // [])
@@ -115,21 +126,20 @@ defmodule Code do
   @doc """
   Evaluates the quoted contents.
 
-  This function accepts a list of environment options.
-  Check `Code.eval_string` for more information.
+  See `eval_string/3` for a description of arguments and return values.
 
   ## Examples
 
       iex> contents = quote(hygiene: [vars: false], do: a + b)
       ...> Code.eval_quoted(contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
-      { 3, [ {:a, 1}, {:b, 2} ] }
+      {3, [a: 1, b: 2]}
 
-  For convenience, you can pass `__ENV__` as an argument and
-  all options will be automatically extracted from the environment:
+  For convenience, you can pass `__ENV__` as the `opts` argument and
+  all options will be automatically extracted from the current environment:
 
       iex> contents = quote(hygiene: [vars: false], do: a + b)
       ...> Code.eval_quoted(contents, [a: 1, b: 2], __ENV__)
-      { 3, [ {:a, 1}, {:b, 2} ] }
+      {3, [a: 1, b: 2]}
 
   """
   def eval_quoted(quoted, binding // [], opts // [])
