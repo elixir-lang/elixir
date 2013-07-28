@@ -118,9 +118,8 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the `collection` and returns true if
-  each invocation returns true as well, otherwise it short-circuits and returns
-  false.
+  Invokes the given `fun` for each item in the `collection` and returns false
+  if at least one invocation returns false. Otherwise returns true.
 
   ## Examples
 
