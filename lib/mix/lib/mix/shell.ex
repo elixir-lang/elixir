@@ -60,7 +60,7 @@ defmodule Mix.Shell do
       { :unix, _ } ->
         command = command
           |> String.replace("\"", "\\\"")
-          |> to_char_list
+          |> binary_to_list # We need to send bytes, not chars
         %c(sh -c "#{command}")
 
       { :win32, osname } ->

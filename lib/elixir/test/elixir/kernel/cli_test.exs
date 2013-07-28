@@ -57,20 +57,13 @@ defmodule Kernel.CLI.SyntaxErrorTest do
 
   def check_output(elixir_cmd, expected_msg) do
     o = elixir(elixir_cmd)
-    expected_msg = to_char_list(:unicode.characters_to_binary expected_msg)
+    expected_msg = :unicode.characters_to_list(expected_msg)
     assert :string.str(o, expected_msg) == 1, "Expected this output: `#{expected_msg}`\nbut got this output: `#{o}`"
   end
 
   test :syntax_code_error do
     check_output('-e "[1,2"', '** (TokenMissingError) nofile:1: missing terminator: ]')
     check_output('-e "case 1 end"', %C"** (SyntaxError) nofile:1: unexpected token: end")
-    thischar = "あ"
-    if is_win? do
-      thatchar = %B"\x{3042}"
-    else
-      thatchar = :unicode.characters_to_binary(thischar)
-    end
-    check_output('-e "#{thischar}"', '** (SyntaxError) nofile:1: invalid token: #{thatchar}')
     check_output('-e "æ"', '** (SyntaxError) nofile:1: invalid token: æ')
   end
 end
