@@ -55,15 +55,23 @@ end
 defmodule Kernel.CLI.SyntaxErrorTest do
   use ExUnit.Case, async: true
 
+  def check_output(elixir_cmd, expected_msg) do
+    o = elixir(elixir_cmd)
+    expected_msg = to_char_list(:unicode.characters_to_binary expected_msg)
+    assert :string.str(o, expected_msg) == 1, "Expected this output: `#{expected_msg}`\nbut got this output: `#{o}`"
+  end
+
   test :syntax_code_error do
-    message = '** (TokenMissingError) nofile:1: syntax error: expression is incomplete'
-    assert :string.str(message, elixir('-e "[1,2"')) == 0
-    message = '** (SyntaxError) nofile:1: syntax error before: \'end\''
-    assert :string.str(message, elixir('-e "case 1 end"')) == 0
-    message = '** (SyntaxError) nofile:1: invalid token: あ'
-    assert :string.str(message, elixir('-e "あ"')) == 0
-    message = '** (SyntaxError) nofile:1: invalid token: æ'
-    assert :string.str(message, elixir('-e "æ"')) == 0
+    check_output('-e "[1,2"', '** (TokenMissingError) nofile:1: missing terminator: ]')
+    check_output('-e "case 1 end"', %C"** (SyntaxError) nofile:1: unexpected token: end")
+    thischar = "あ"
+    if is_win? do
+      thatchar = %B"\x{3042}"
+    else
+      thatchar = :unicode.characters_to_binary(thischar)
+    end
+    check_output('-e "#{thischar}"', '** (SyntaxError) nofile:1: invalid token: #{thatchar}')
+    check_output('-e "æ"', '** (SyntaxError) nofile:1: invalid token: æ')
   end
 end
 
