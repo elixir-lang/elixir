@@ -1058,23 +1058,6 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the collection with each element wrapped in a tuple
-  along side its index.
-
-  ## Examples
-
-      iex> Enum.with_index [1,2,3]
-      [{1,0},{2,1},{3,2}]
-
-  """
-  @spec with_index(t) :: list({ element, non_neg_integer })
-  def with_index(collection) do
-    map_reduce(collection, 0, fn x, acc ->
-      { { x, acc }, acc + 1 }
-    end) |> elem(0)
-  end
-
-  @doc """
   Returns the maximum value.
   Raises empty error in case the collection is empty.
 
@@ -1190,6 +1173,23 @@ defmodule Enum do
       :first                -> raise Enum.EmptyError
       { :reduce, entry, _ } -> entry
     end
+  end
+
+  @doc """
+  Returns the collection with each element wrapped in a tuple
+  along side its index.
+
+  ## Examples
+
+      iex> Enum.with_index [1,2,3]
+      [{1,0},{2,1},{3,2}]
+
+  """
+  @spec with_index(t) :: list({ element, non_neg_integer })
+  def with_index(collection) do
+    map_reduce(collection, 0, fn x, acc ->
+      { { x, acc }, acc + 1 }
+    end) |> elem(0)
   end
 
   ## Helpers
