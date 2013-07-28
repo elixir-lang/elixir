@@ -246,7 +246,7 @@ defmodule File do
   def stat(path, opts // []) do
     case F.read_file_info(path, opts) do
       {:ok, fileinfo} ->
-        {:ok, File.Stat.new fileinfo}
+        {:ok, set_elem(fileinfo, 0, File.Stat) }
       error ->
         error
     end

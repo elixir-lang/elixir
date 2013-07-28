@@ -78,19 +78,10 @@ defmodule RecordTest do
   require RecordTest.Macros
   RecordTest.Macros.gen
 
-  test :record_constructor_with_dict do
+  test :basic_functions do
     record   = RecordTest.FileInfo.new(type: :regular)
     assert record.type == :regular
     assert record.access == :undefined
-  end
-
-  test :record_accessors do
-    record = RecordTest.FileInfo.new(file_info)
-    assert record.type == :regular
-    assert record.access == :read_write
-
-    new_record = record.access :read
-    assert new_record.access == :read
   end
 
   test :dynamic_record_name do
@@ -160,11 +151,6 @@ defmodule RecordTest do
   test :extract_with_nested_records do
     namespace = Record.extract(:xmlElement, from_lib: "xmerl/include/xmerl.hrl")[:namespace]
     assert is_record(namespace, :xmlNamespace)
-  end
-
-  defp file_info do
-    { :ok, file_info } = :file.read_file_info(__FILE__)
-    file_info
   end
 
   defp empty_tuple, do: {}

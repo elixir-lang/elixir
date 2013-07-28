@@ -638,7 +638,6 @@ defmodule Record do
       @doc false
       def new([]), do: { __MODULE__, unquote_splicing(defaults) }
       def new(opts) when is_list(opts), do: { __MODULE__, unquote_splicing(selective) }
-      def new(tuple) when is_tuple(tuple), do: :erlang.setelement(1, tuple, __MODULE__)
     end
   end
 
@@ -780,7 +779,7 @@ defmodule Record do
       end
 
       @spec new :: t
-      @spec new(options | tuple) :: t
+      @spec new(options) :: t
       @spec to_keywords(t) :: options
       @spec update(options, t) :: t
       @spec __record__(:name) :: atom
