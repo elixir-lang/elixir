@@ -15,7 +15,7 @@ defmodule Code do
   """
 
   @doc """
-  Returns all the loaded files.
+  Returns all loaded files.
   """
   def loaded_files do
     :elixir_code_server.call :loaded
@@ -32,32 +32,32 @@ defmodule Code do
   end
 
   @doc """
-  Appends a path to Erlang VM code path.
-  The path is expanded with `Path.expand` before being appended.
+  Appends a path to the Erlang VM code path.
+  The path is expanded with `Path.expand/1` before being appended.
   """
   def append_path(path) do
     :code.add_pathz(Path.expand to_char_list(path))
   end
 
   @doc """
-  Prepends a path to Erlang VM code path.
-  The path is expanded with `Path.expand` before being prepended.
+  Prepends a path to the Erlang VM code path.
+  The path is expanded with `Path.expand/1` before being prepended.
   """
   def prepend_path(path) do
     :code.add_patha(Path.expand to_char_list(path))
   end
 
   @doc """
-  Deletes a path from Erlang VM code path.
-  The path is expanded with `Path.expand` before being deleted.
+  Deletes a path from the Erlang VM code path.
+  The path is expanded with `Path.expand/1` before being deleted.
   """
   def delete_path(path) do
     :code.del_path(Path.expand to_char_list(path))
   end
 
   @doc """
-  Evaluates the contents given by string. The second argument is the
-  binding (which should be a keyword), followed by a keyword list of
+  Evaluates the contents given by `string`. The second argument is 
+  a keyword list of variable bindings, followed by a keyword list of
   environment options. Those options can be:
 
   * `:file` - the file to be considered in the evaluation
@@ -71,28 +71,39 @@ defmodule Code do
   * `:requires` - a list of modules required
   * `:functions` - a list of tuples where the first element is a module
     and the second a list of imported function names and arity. The list
-    of function names and arity must be sorted;
+    of function names and arity must be sorted
   * `:macros` - a list of tuples where the first element is a module
     and the second a list of imported macro names and arity. The list
-    of function names and arity must be sorted;
+    of function names and arity must be sorted
 
-  Notice that setting any of the values above overrides Elixir default
+  Notice that setting any of the values above overrides Elixir's default
   values. For example, setting `:requires` to `[]`, will no longer
   automatically require the `Kernel` module; in the same way setting
   `:macros` will no longer auto-import `Kernel` macros like `if`, `case`,
   etc.
 
+  Returns a tuple of the form `{ value, binding }`,
+  where `value` is the the value returned from evaluating `string`; `binding`
+  is a keyword list with the value of all variable bindings after evaluating
+  `string`. If an error occurs while evaluating `string` an exception will be raised.
+
   ## Examples
 
       iex> Code.eval_string("a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
-      { 3, [ {:a, 1}, {:b, 2} ] }
+      {3, [a: 1, b: 2]}
 
-  For convenience, you can pass `__ENV__` as an argument and
-  all imports, requires and aliases will be automatically carried
-  over:
+      iex> Code.eval_string("c = a + b", [a: 1, b: 2], __ENV__)
+      {3, [a: 1, b: 2, c: 3]}
+
+      iex> Code.eval_string("a = a + b", [a: 1, b: 2])          
+      {3, [a: 3, b: 2]}
+
+  For convenience, you can pass `__ENV__` as the `opts` argument and
+  all imports, requires and aliases defined in the current environment
+  will be automatically carried over:
 
       iex> Code.eval_string("a + b", [a: 1, b: 2], __ENV__)
-      { 3, [ {:a, 1}, {:b, 2} ] }
+      {3, [a: 1, b: 2]}
 
   """
   def eval_string(string, binding // [], opts // [])
@@ -115,21 +126,20 @@ defmodule Code do
   @doc """
   Evaluates the quoted contents.
 
-  This function accepts a list of environment options.
-  Check `Code.eval_string` for more information.
+  See `eval_string/3` for a description of arguments and return values.
 
   ## Examples
 
       iex> contents = quote(hygiene: [vars: false], do: a + b)
       ...> Code.eval_quoted(contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
-      { 3, [ {:a, 1}, {:b, 2} ] }
+      {3, [a: 1, b: 2]}
 
-  For convenience, you can pass `__ENV__` as an argument and
-  all options will be automatically extracted from the environment:
+  For convenience, you can pass `__ENV__` as the `opts` argument and
+  all options will be automatically extracted from the current environment:
 
       iex> contents = quote(hygiene: [vars: false], do: a + b)
       ...> Code.eval_quoted(contents, [a: 1, b: 2], __ENV__)
-      { 3, [ {:a, 1}, {:b, 2} ] }
+      {3, [a: 1, b: 2]}
 
   """
   def eval_quoted(quoted, binding // [], opts // [])
@@ -193,17 +203,17 @@ defmodule Code do
   ## Options
 
   * `:file` - The filename to be used in stacktraces
-    and the file reported in the __ENV__ variable.
+    and the file reported in the `__ENV__` variable.
 
-  * `:line` - The line reported in the __ENV__ variable.
+  * `:line` - The line reported in the `__ENV__` variable.
 
-  * `:existing_atoms_only` - When true, raises an error
+  * `:existing_atoms_only` - When `true`, raises an error
     when non-existing atoms are found by the tokenizer.
 
   ## Macro.to_string/1
 
   The opposite of converting a string to its quoted form is
-  `Macro.to_string`, which converts a quoted form to a string/binary
+  `Macro.to_string/1`, which converts a quoted form to a string/binary
   representation.
   """
   def string_to_quoted(string, opts // []) do
@@ -219,11 +229,11 @@ defmodule Code do
 
   @doc """
   Converts the given string to its quoted form. It returns the ast if it succeeds,
-  raises an exception otherwise. The exception is a TokenMissingError
+  raises an exception otherwise. The exception is a `TokenMissingError`
   in case a token is missing (usually because the expression is incomplete),
-  SyntaxError otherwise.
+  `SyntaxError` otherwise.
 
-  Check `Code.string_to_quoted/2` for options information.
+  Check `string_to_quoted/2` for options information.
   """
   def string_to_quoted!(string, opts // []) do
     file = Keyword.get opts, :file, "nofile"
@@ -239,14 +249,14 @@ defmodule Code do
   @doc """
   Loads the given `file`. Accepts `relative_to` as an argument to tell where
   the file is located. If the file was already required/loaded, loads it again.
-  It returns a list of tuples { ModuleName, <<byte_code>> }, one tuple for each
+  It returns a list of tuples `{ ModuleName, <<byte_code>> }`, one tuple for each
   module defined in the file.
 
   Notice that if `load_file` is invoked by different processes
   concurrently, the target file will be invoked concurrently
   many times. I.e. if `load_file` is called N times with
   a given file, the given file will be loaded N times. Check
-  `require_file` if you don't want a file to be loaded concurrently.
+  `require_file/2` if you don't want a file to be loaded concurrently.
   """
   def load_file(file, relative_to // nil) when is_binary(file) do
     file = find_file(file, relative_to)
@@ -258,16 +268,16 @@ defmodule Code do
 
   @doc """
   Requires the given `file`. Accepts `relative_to` as an argument to tell where
-  the file is located. The return value is the same as that of `load_file`. If
+  the file is located. The return value is the same as that of `load_file/2`. If
   the file was already required/loaded, doesn't do anything and returns nil.
 
   Notice that if `require_file` is invoked by different processes concurrently,
   the first process to invoke `require_file` acquires a lock and the remaining
   ones will block until the file is available. I.e. if `require_file` is called
   N times with a given file, it will be loaded only once. The first process to
-  call `require_file` will get the list of loaded modules, others will get nil.
+  call `require_file` will get the list of loaded modules, others will get `nil`.
 
-  Check `load_file` if you want a file to be loaded concurrently.
+  Check `load_file/2` if you want a file to be loaded concurrently.
   """
   def require_file(file, relative_to // nil) when is_binary(file) do
     file = find_file(file, relative_to)
@@ -298,17 +308,17 @@ defmodule Code do
 
   Available options are:
 
-  * `:docs` - when true, retain documentation in the compiled module,
-    true by default;
+  * `:docs` - when `true`, retain documentation in the compiled module,
+    `true` by default;
 
-  * `:debug_info` - when true, retain debug information in the compiled module.
+  * `:debug_info` - when `true`, retain debug information in the compiled module.
     This allows a developer to reconstruct the original source
-    code, for such reasons, false by default;
+    code, for such reasons, `false` by default;
 
-  * `:ignore_module_conflict` - when true, override modules that were already defined
-    without raising errors, false by default;
+  * `:ignore_module_conflict` - when `true`, override modules that were already defined
+    without raising errors, `false` by default;
 
-  * `:warnings_as_errors` - cause compilation to fail when warnings are spewed;
+  * `:warnings_as_errors` - cause compilation to fail when warnings are generated;
 
   """
   def compiler_options(opts) do
@@ -337,7 +347,7 @@ defmodule Code do
 
   @doc """
   Ensures the given module is loaded. If the module is already
-  loaded, it works as no-op. If the module was not loaded yet,
+  loaded, it works as no-op. If the module was not yet loaded,
   it tries to load it.
 
   If it succeeds loading the module, it returns
@@ -352,9 +362,9 @@ defmodule Code do
   are loaded as needed. In embedded mode the opposite happens, as all
   modules need to be loaded upfront or explicitly.
 
-  Therefore, this function is useful to check if a module is loaded
-  before using it and react accordingly. For example, the `URI` module
-  uses this function to check if a specific parser exists for a given
+  Therefore, this function is used to check if a module is loaded
+  before using it and allows one to react accordingly. For example, the `URI` 
+  module uses this function to check if a specific parser exists for a given
   URI scheme.
 
   ## Code.ensure_compiled
@@ -363,15 +373,15 @@ defmodule Code do
   superset of `ensure_loaded/1`.
 
   Since Elixir's compilation happens in parallel, in some situations
-  you may need to use a module but it was not compiled yet, therefore
+  you may need to use a module but that was not yet compiled, therefore
   it can't even be loaded.
 
-  `ensure_compiled/1` puts a halt in the current process until the
+  `ensure_compiled/1` halts the current process until the
   module we are depending on is available.
 
-  In most of the cases, `ensure_loaded` is enough. `ensure_compiled`
-  must be used just in same rare conditions, usually involving macros
-  that needs to invoke a module for callback information.
+  In most cases, `ensure_loaded` is enough. `ensure_compiled`
+  must be used in some rare cases, usually involving macros
+  that need to invoke a module for callback information.
   """
   def ensure_loaded(module) when is_atom(module) do
     :code.ensure_loaded(module)
@@ -388,7 +398,7 @@ defmodule Code do
   @doc """
   Ensures the given module is compiled and loaded. If the module
   is already loaded, it works as no-op. If the module was not
-  loaded yet, it checks if it needs to be compiled first and just
+  loaded yet, it checks if it needs to be compiled first and 
   then tries to load it.
 
   If it succeeds loading the module, it returns
