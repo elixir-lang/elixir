@@ -324,30 +324,25 @@ defmodule System do
   Note that on many platforms, only the status codes 0-255 are supported
   by the operating system.
 
-  For integer status, Erlang runtime system closes all ports and allows async
-  threads to finish their operations before exiting. To exit without such
-  flushing, pass options `[flush: false]` instead.
-
-  For more information, check: http://www.erlang.org/doc/man/erlang.html#halt-2
+  For more information, check: http://www.erlang.org/doc/man/erlang.html#halt-1
 
   ## Examples
 
       System.halt(0)
-      System.halt(1, flush: false)
+      System.halt(1)
       System.halt(:abort)
 
   """
   @spec halt() :: no_return
   @spec halt(non_neg_integer | binary | :abort) :: no_return
-  @spec halt(non_neg_integer | binary | :abort, [] | [flush: false]) :: no_return
-  def halt(status // 0, options // [])
+  def halt(status // 0)
 
-  def halt(status, options) when is_integer(status) or status == :abort do
-    :erlang.halt(status, options)
+  def halt(status) when is_integer(status) or status == :abort do
+    :erlang.halt(status)
   end
 
-  def halt(status, options) when is_binary(status) do
-    :erlang.halt(binary_to_list(status), options)
+  def halt(status) when is_binary(status) do
+    :erlang.halt(binary_to_list(status))
   end
 
   ## Helpers

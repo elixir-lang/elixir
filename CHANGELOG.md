@@ -40,6 +40,7 @@
   * [Mix] `:test_coverage` option now expect keywords arguments and the `--cover` flag is now treated as a boolean
 
 * backwards incompatible changes
+  * [System] `System.halt/2` was removed since the current Erlang implementation of such function is bugged
 
 # v0.10.0 (2013-07-15)
 
