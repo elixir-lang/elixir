@@ -195,8 +195,7 @@ defmodule Enum do
 
   @doc """
   Finds the element at the given index (zero-based).
-  Raises out of bounds error in case the given position
-  is outside the range of the collection.
+  Returns `default` if index is out of bounds.
 
   Expects an ordered collection.
 
