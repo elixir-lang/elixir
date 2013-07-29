@@ -57,7 +57,7 @@ defmodule Code do
 
   @doc """
   Evaluates the contents given by `string`. The second argument is 
-  a keyword list of bindings, followed by a keyword list of
+  a keyword list of variable bindings, followed by a keyword list of
   environment options. Those options can be:
 
   * `:file` - the file to be considered in the evaluation
@@ -82,8 +82,8 @@ defmodule Code do
   `:macros` will no longer auto-import `Kernel` macros like `if`, `case`,
   etc.
 
-  Returns a tuple of the form `{ value, bindings }`,
-  where `value` is the the value returned from evaluating `string`; `bindings`
+  Returns a tuple of the form `{ value, binding }`,
+  where `value` is the the value returned from evaluating `string`; `binding`
   is a keyword list with the value of all variable bindings after evaluating
   `string`. If an error occurs while evaluating `string` an exception will be raised.
 
