@@ -340,7 +340,7 @@ defmodule System do
   @spec halt() :: no_return
   @spec halt(non_neg_integer | binary | :abort) :: no_return
   @spec halt(non_neg_integer | binary | :abort, [] | [flush: false]) :: no_return
-  def halt(status // 0, options // [])
+  def halt(status // 0, options // [{:flush, true}])
 
   def halt(status, options) when is_integer(status) or status == :abort do
     :erlang.halt(status, options)
