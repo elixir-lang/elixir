@@ -15,13 +15,11 @@
   T1 == $[, T2 == $]
 ).
 
-%% New ops table
-
 -define(at_op(T),
   T == $@).
 
 -define(unary_op(T),
-  % T == $&;
+  T == $&;
   T == $!;
   T == $^).
 
@@ -259,7 +257,7 @@ tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when
 % ## Single Token Operators
 tokenize([$.,T|Rest], Line, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
-    ?match_op(T); ?tail_op(T); T == $& ->
+    ?match_op(T); ?tail_op(T) ->
   handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
 
 % Dot call
@@ -339,7 +337,7 @@ tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when
 % ## Single Token Operators
 tokenize([$:,T|Rest], Line, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
-    ?match_op(T); ?tail_op(T); T == $&; T == $. ->
+    ?match_op(T); ?tail_op(T); T == $. ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T]) }|Tokens]);
 
 % End of line
@@ -363,10 +361,6 @@ tokenize("\r\n" ++ Rest, Line, Scope, Tokens) ->
   tokenize(Rest, Line + 1, Scope, eol(Line, newline, Tokens));
 
 % Stand-alone tokens
-
-% ## &
-tokenize([$&,H|Rest], Line, Scope, Tokens) when ?is_digit(H) ->
-  tokenize(Rest, Line, Scope, [{ '&', Line, [list_to_integer([H])] }|Tokens]);
 
 % ## Three token operators
 tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
@@ -474,17 +468,13 @@ tokenize([H|_] = String, Line, Scope, Tokens) when ?is_upcase(H) ->
 % Identifier
 
 tokenize([H|_] = String, Line, Scope, Tokens) when ?is_downcase(H); H == $_ ->
-  case tokenize_any_identifier(String, Line, [], Scope) of
-    { error, _ } = Error -> Error;
-    { Rest, { Kind, _, Identifier } } ->
-      case check_keyword(Line, Kind, Identifier, Tokens) of
-        nomatch ->
-          tokenize(Rest, Line, Scope, [{ Kind, Line, Identifier }|Tokens]);
-        { ok, [Check|T] } ->
-          handle_terminator(Rest, Line, Scope, Check, T);
-        { error, Token } ->
-          { error, { Line, "syntax error before: ", Token } }
-      end
+  case tokenize_any_identifier(String, Line, Scope, Tokens) of
+    { keyword, Rest, Check, T } ->
+      handle_terminator(Rest, Line, Scope, Check, T);
+    { identifier, Rest, Token } ->
+      tokenize(Rest, Line, Scope, [Token|Tokens]);
+    { error, _ } = Error ->
+      Error
   end;
 
 % Ambiguous unary/binary operators tokens
@@ -763,50 +753,39 @@ tokenize_identifier(Rest, Acc) ->
 
 %% Tokenize any identifier, handling kv, punctuated, paren, bracket and do identifiers.
 
-tokenize_any_identifier(String, Line, Acc, Scope) ->
-  { Rest, Identifier } = tokenize_identifier(String, Acc),
+tokenize_any_identifier(String, Line, Scope, Tokens) ->
+  { Rest, Identifier } = tokenize_identifier(String, []),
 
   case Rest of
     [H|T] when H == $?; H == $! ->
       Atom = unsafe_to_atom(Identifier ++ [H], Scope),
-      tokenize_kw_or_call_identifier(punctuated_identifier, Line, Atom, T);
+      tokenize_kw_or_other(T, punctuated_identifier, Line, Atom, Tokens);
     _ ->
       Atom = unsafe_to_atom(Identifier, Scope),
-      tokenize_kw_or_call_identifier(identifier, Line, Atom, Rest)
+      tokenize_kw_or_other(Rest, identifier, Line, Atom, Tokens)
   end.
 
-%% Tokenize kw or call identifier (paren | bracket | do)
+tokenize_kw_or_other([$:,H|T], _Kind, Line, Atom, _Tokens) when ?is_space(H) ->
+  { identifier, [H|T], { kw_identifier, Line, Atom } };
 
-tokenize_kw_or_call_identifier(_Kind, Line, Atom, [$:,H|T]) when ?is_space(H) ->
-  { [H|T], { kw_identifier, Line, Atom } };
-
-tokenize_kw_or_call_identifier(_Kind, Line, Atom, [$:,H|_]) when ?is_atom_start(H) ->
+tokenize_kw_or_other([$:,H|_], _Kind, Line, Atom, _Tokens) when ?is_atom_start(H) ->
   { error, { Line, "keyword argument must be followed by space after: ", atom_to_list(Atom) ++ [$:] } };
 
-tokenize_kw_or_call_identifier(Kind, Line, Atom, Rest) ->
-  { Rest, check_call_identifier(Kind, Line, Atom, Rest) }.
+tokenize_kw_or_other(Rest, Kind, Line, Atom, Tokens) ->
+  case check_keyword(Line, Atom, Tokens) of
+    nomatch ->
+      { identifier, Rest, check_call_identifier(Kind, Line, Atom, Rest) };
+    { ok, [Check|T] } ->
+      { keyword, Rest, Check, T };
+    { error, Token } ->
+      { error, { Line, "syntax error before: ", Token } }
+  end.
 
 %% Check if it is a call identifier (paren | bracket | do)
 
 check_call_identifier(_Kind, Line, Atom, [$(|_]) -> { paren_identifier, Line, Atom };
 check_call_identifier(_Kind, Line, Atom, [$[|_]) -> { bracket_identifier, Line, Atom };
-check_call_identifier(Kind, Line, Atom, Rest) ->
-  case next_is_block(Rest) of
-    false           -> { Kind, Line, Atom };
-    BlockIdentifier -> { BlockIdentifier, Line, Atom }
-  end.
-
-next_is_block([Space|Tokens]) when Space == $\t; Space == $\s ->
-  next_is_block(Tokens);
-
-next_is_block([$d,$o,H|_]) when ?is_identifier(H); ?is_terminator(H) ->
-  false;
-
-next_is_block([$d,$o|_]) ->
-  do_identifier;
-
-next_is_block(_) ->
-  false.
+check_call_identifier(Kind, Line, Atom, _Rest)   -> { Kind, Line, Atom }.
 
 add_token_with_nl(Left, [{eol,_,newline}|T]) -> [Left|T];
 add_token_with_nl(Left, T) -> [Left|T].
@@ -884,40 +863,47 @@ terminator('<<') -> '>>'.
 
 %% Keywords checking
 
-check_keyword(Line, Identifier, Atom, [{ '.', _ }|_] = Tokens) ->
-  { ok, [{ Identifier, Line, Atom }|Tokens] };
+check_keyword(_Line, _Atom, [{ '.', _ }|_]) ->
+  nomatch;
 
-check_keyword(Line, Identifier, Atom, Tokens) when
-    Identifier ==  identifier; Identifier == do_identifier;
-    Identifier ==  bracket_identifier; Identifier == paren_identifier ->
+check_keyword(Line, do, [{ identifier, Line, Atom }|T]) ->
+  { ok, [{ do, Line }, { do_identifier, Line, Atom }|T] };
+
+check_keyword(Line, do, Tokens) ->
+  case do_keyword_valid(Tokens) of
+    true  -> { ok, [{ do, Line }|Tokens] };
+    false -> { error, "do" }
+  end;
+
+check_keyword(Line, Atom, Tokens) ->
   case keyword(Atom) of
-    do ->
-      case do_keyword_valid(Tokens) of
-        true  -> { ok, [{ Atom, Line }|Tokens] };
-        false -> { error, "do" }
-      end;
     false    -> nomatch;
-    true     -> { ok, [{ Atom, Line }|Tokens] };
+    token    -> { ok, [{ Atom, Line }|Tokens] };
     block    -> { ok, [{ block_identifier, Line, Atom }|Tokens] };
     unary_op -> { ok, [{ unary_op, Line, Atom }|Tokens] };
     Kind     -> { ok, add_token_with_nl({ Kind, Line, Atom }, Tokens) }
+  end.
+
+%% do is only valid after the end, true, false and nil keywords
+do_keyword_valid([{ Atom, _ }|_]) ->
+  case Atom of
+    'end' -> true;
+    nil   -> true;
+    true  -> true;
+    false -> true;
+    _     -> keyword(Atom) == false
   end;
 
-check_keyword(_, _, _, _) -> nomatch.
-
-do_keyword_valid([{ Atom, _ }|_]) ->
-  is_boolean(keyword(Atom));
-do_keyword_valid(_) -> true.
+do_keyword_valid(_) ->
+  true.
 
 % Regular keywords
-keyword('fn')    -> true;
-keyword('end')   -> true;
-keyword('true')  -> true;
-keyword('false') -> true;
-keyword('nil')   -> true;
-
-% Special handling for do
-keyword('do')    -> do;
+keyword('fn')    -> token;
+keyword('do')    -> token;
+keyword('end')   -> token;
+keyword('true')  -> token;
+keyword('false') -> token;
+keyword('nil')   -> token;
 
 % Operators keywords
 keyword('not')    -> unary_op;

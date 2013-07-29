@@ -202,6 +202,7 @@ remove_internals(Set) ->
 
 special_form() ->
   [
+    {'&',1},
     {'^',1},
     {'=',2},
     {'__op__',2},
