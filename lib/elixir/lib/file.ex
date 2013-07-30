@@ -59,19 +59,19 @@ defmodule File do
   This module contains functions to manipulate files.
 
   Some of those functions are low-level, allowing the user
-  to interact with the file or IO devices, like `File.open/2`,
-  `File.copy/3` and others. This module also provides higher
+  to interact with the file or IO devices, like `open/2`,
+  `copy/3` and others. This module also provides higher
   level functions that works with filenames and have their naming
   based on UNIX variants. For example, one can copy a file
-  via `File.cp/3` and remove files and directories recursively
-  via `File.rm_rf/2`
+  via `cp/3` and remove files and directories recursively
+  via `rm_rf/1`
 
   In order to write and read files, one must use the functions
-  in the IO module. By default, a file is opened in binary mode
-  which requires the functions `IO.binread` and `IO.binwrite`
+  in the `IO` module. By default, a file is opened in binary mode
+  which requires the functions `IO.binread/2` and `IO.binwrite/2`
   to interact with the file. A developer may pass `:utf8` as an
   option when opening the file and then all other functions
-  from IO are available, since they work directly with Unicode
+  from `IO` are available, since they work directly with Unicode
   data.
 
   Most of the functions in this module return `:ok` or
@@ -104,7 +104,7 @@ defmodule File do
   alias :filelib,  as: FL
 
   @doc """
-  Returns true if the path is a regular file.
+  Returns `true` if the path is a regular file.
 
   ## Examples
 
@@ -116,14 +116,14 @@ defmodule File do
   end
 
   @doc """
-  Returns true if the path is a directory.
+  Returns `true` if the path is a directory.
   """
   def dir?(path) do
     FL.is_dir(path)
   end
 
   @doc """
-  Returns true if the given path exists.
+  Returns `true` if the given path exists.
   It can be regular file, directory, socket,
   symbolic link, named pipe or device file.
 
@@ -161,7 +161,7 @@ defmodule File do
   end
 
   @doc """
-  Same as `mkdir`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `mkdir/1`, but raises an exception in case of failure. Otherwise `:ok`.
   """
   def mkdir!(path) do
     case mkdir(path) do
@@ -186,7 +186,7 @@ defmodule File do
   end
 
   @doc """
-  Same as `mkdir_p`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `mkdir_p/1`, but raises an exception in case of failure. Otherwise `:ok`.
   """
   def mkdir_p!(path) do
     case mkdir_p(path) do
@@ -210,7 +210,7 @@ defmodule File do
                On some platforms, `:enoent` is returned instead.
   * :enomem  - There is not enough memory for the contents of the file.
 
-  You can use `:file.format_error(reason)` to get a descriptive string of the error.
+  You can use `:file.format_error/1` to get a descriptive string of the error.
   """
   def read(path) do
     F.read_file(path)
@@ -218,7 +218,7 @@ defmodule File do
 
   @doc """
   Returns binary with the contents of the given filename or raises
-  File.Error if an error occurs.
+  `File.Error` if an error occurs.
   """
   def read!(path) do
     case read(path) do
@@ -233,14 +233,14 @@ defmodule File do
   Returns information about the `path`. If it exists, it
   returns a `{ :ok, info }` tuple, where info is a
   `File.Info` record. Retuns `{ :error, reason }` with
-  the same reasons as `File.read` if a failure occurs.
+  the same reasons as `read/1` if a failure occurs.
 
   ## Options
 
   The accepted options are:
 
-  * `:time` if the time should be local, universal or posix.
-    Default is local.
+  * `:time` if the time should be `:local`, `:universal` or `:posix`.
+    Default is `:local`.
 
   """
   def stat(path, opts // []) do
@@ -253,7 +253,7 @@ defmodule File do
   end
 
   @doc """
-  Same as `stat` but returns the `File.Stat` directly and
+  Same as `stat/2` but returns the `File.Stat` directly and
   throws `File.Error` if an error is returned.
   """
   def stat!(path, opts // []) do
@@ -296,7 +296,7 @@ defmodule File do
   end
 
   @doc """
-  Same as `touch/1` but raises an exception if it fails.
+  Same as `touch/2` but raises an exception if it fails.
   Returns `:ok` otherwise.
   """
   def touch!(path, time // :calendar.local_time) do
@@ -311,7 +311,7 @@ defmodule File do
   Copies the contents of `source` to `destination`.
 
   Both parameters can be a filename or an io device opened
-  with `File.open/2`. `bytes_count` specifies the number of
+  with `open/2`. `bytes_count` specifies the number of
   bytes to copy, the default being `:infinity`.
 
   If file `destination` already exists, it is overwritten
@@ -320,14 +320,14 @@ defmodule File do
   Returns `{ :ok, bytes_copied }` if successful,
   `{ :error, reason }` otherwise.
 
-  Compared to the `File.cp/3`, this function is more low-level,
+  Compared to the `cp/3`, this function is more low-level,
   allowing a copy from device to device limited by a number of
-  bytes. On the other hand, `File.cp/3` performs more extensive
+  bytes. On the other hand, `cp/3` performs more extensive
   checks on both source and destination and it also preserves
   the file mode after copy.
 
   Typical error reasons are the same as in `open/2`,
-  `read/1` and `write/2`.
+  `read/1` and `write/3`.
   """
   def copy(source, destination, bytes_count // :infinity) do
     F.copy(source, destination, bytes_count)
@@ -355,15 +355,15 @@ defmodule File do
   copies the contents of `source` to `destination/source`.
 
   If a file already exists in the destination, it invokes a
-  callback which should return true if the existing file
-  should be overwritten, false otherwise. It defaults to return true.
+  callback which should return `true` if the existing file
+  should be overwritten, `false` otherwise. It defaults to return `true`.
 
   It returns `:ok` in case of success, returns
   `{ :error, reason }` otherwise.
 
   If you want to copy contents from an io device to another device
   or do a straight copy from a source to a destination without
-  preserving modes, check `File.copy/3` instead.
+  preserving modes, check `copy/3` instead.
   """
   def cp(source, destination, callback // fn(_, _) -> true end) do
     output =
@@ -381,7 +381,7 @@ defmodule File do
   end
 
   @doc """
-  The same as `cp/3`, but raises File.CopyError if it fails.
+  The same as `cp/3`, but raises `File.CopyError` if it fails.
   Returns the list of copied files otherwise.
   """
   def cp!(source, destination, callback // fn(_, _) -> true end) do
@@ -407,8 +407,8 @@ defmodule File do
 
   If a file already exists in the destination,
   it invokes a callback which should return
-  true if the existing file should be overwritten,
-  false otherwise. It defaults to return true.
+  `true` if the existing file should be overwritten,
+  `false` otherwise. It defaults to return `true`.
 
   If a directory already exists in the destination
   where a file is meant to be (or otherwise), this
@@ -456,7 +456,7 @@ defmodule File do
   end
 
   @doc """
-  The same as `cp_r/3`, but raises File.CopyError if it fails.
+  The same as `cp_r/3`, but raises `File.CopyError` if it fails.
   Returns the list of copied files otherwise.
   """
   def cp_r!(source, destination, callback // fn(_, _) -> true end) do
@@ -607,7 +607,7 @@ defmodule File do
   end
 
   @doc """
-  Same as `rm`, but raises an exception in case of failure. Otherwise `:ok`.
+  Same as `rm/1`, but raises an exception in case of failure. Otherwise `:ok`.
   """
   def rm!(path) do
     case rm(path) do
@@ -724,8 +724,8 @@ defmodule File do
   Opens the given `path` according to the given list of modes.
 
   In order to write and read files, one must use the functions
-  in the IO module. By default, a file is opened in binary mode
-  which requires the functions `IO.binread` and `IO.binwrite`
+  in the `IO` module. By default, a file is opened in binary mode
+  which requires the functions `IO.binread/2` and `IO.binwrite/2`
   to interact with the file. A developer may pass `:utf8` as an
   option when opening the file and then all other functions from
   `IO` are available, since they work directly with Unicode data.
@@ -758,8 +758,8 @@ defmodule File do
 
   If a function is given to modes (instead of a list), it dispatches to `open/3`.
 
-  Check `http://www.erlang.org/doc/man/file.html#open-2` for more information about
-  other options as `read_ahead` and `delayed_write`.
+  Check http://www.erlang.org/doc/man/file.html#open-2 for more information about
+  other options like `read_ahead` and `delayed_write`.
 
   This function returns:
 
@@ -879,7 +879,7 @@ defmodule File do
   end
 
   @doc """
-  The same as `cd/0`, but raises an exception if it fails.
+  The same as `cd/1`, but raises an exception if it fails.
   """
   def cd!(path) do
     case F.set_cwd(path) do
@@ -964,7 +964,7 @@ defmodule File do
   @doc """
   Opens the given `file` with the given `mode` and
   returns its binstream. The returned stream will
-  fail for the same reasons as `File.open!`. Note
+  fail for the same reasons as `open!/2`. Note
   that the file is opened when the iteration begins.
   """
   def binstream!(file, mode // []) do
