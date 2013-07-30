@@ -5,11 +5,11 @@ defmodule Mix.Tasks.Compile.Elixir do
     use GenServer.Behaviour
     @moduledoc false
 
-    def files_to_path(manifest, stale, all, compile_path) do
-      entries = read_manifest(manifest)
+    def files_to_path(manifest, stale, all, compile_path, on_start) do
+      all_entries = read_manifest(manifest)
 
       # Each entry that is not in all must be removed
-      entries = lc { beam, _m, source, _d } = entry inlist entries,
+      entries = lc { beam, _m, source, _d } = entry inlist all_entries,
                    is_in_list_or_remove(source, all, beam),
                    do: entry
 
@@ -21,15 +21,23 @@ defmodule Mix.Tasks.Compile.Elixir do
                           not Enum.any?(entries, fn { _b, _m, s, _d } -> s == i end),
                           do: i
 
-      if stale != [] do
-        { :ok, pid } = :gen_server.start_link(__MODULE__, entries, [])
+      cond do
+        stale != [] ->
+          on_start.()
+          { :ok, pid } = :gen_server.start_link(__MODULE__, entries, [])
 
-        try do
-          files_to_path(pid, entries, stale, compile_path, File.cwd)
-          :gen_server.cast(pid, :merge)
-        after
-          :gen_server.call(pid, { :stop, manifest })
-        end
+          try do
+            do_files_to_path(pid, entries, stale, compile_path, File.cwd)
+            :gen_server.cast(pid, :merge)
+          after
+            :gen_server.call(pid, { :stop, manifest })
+          end
+
+          :ok
+        all_entries != entries ->
+          :ok
+        true ->
+          :noop
       end
     end
 
@@ -42,14 +50,14 @@ defmodule Mix.Tasks.Compile.Elixir do
       end
     end
 
-    defp files_to_path(_pid, _entries, [], _compile_path, _cwd), do: :ok
-    defp files_to_path(pid, entries, files, compile_path, cwd) do
+    defp do_files_to_path(_pid, _entries, [], _compile_path, _cwd), do: :ok
+    defp do_files_to_path(pid, entries, files, compile_path, cwd) do
       Kernel.ParallelCompiler.files :lists.usort(files),
         each_module: each_module(pid, compile_path, cwd, &1, &2, &3),
         each_file: each_file(&1),
         each_waiting: each_waiting(entries, &1)
 
-      files_to_path(pid, entries, :gen_server.call(pid, :next), compile_path, cwd)
+      do_files_to_path(pid, entries, :gen_server.call(pid, :next), compile_path, cwd)
     end
 
     defp each_module(pid, compile_path, cwd, source, module, binary) do
@@ -240,16 +248,11 @@ defmodule Mix.Tasks.Compile.Elixir do
     all   = opts[:force] || Mix.Utils.stale?(check_files, [manifest]) || path_deps_changed?(manifest)
     stale = if all, do: to_watch, else: Mix.Utils.extract_stale(to_watch, [manifest])
 
-    if stale != [] do
+    files_to_path(manifest, stale, to_compile, compile_path, fn ->
       File.mkdir_p!(compile_path)
       Code.prepend_path(compile_path)
-
       set_compiler_opts(project, opts, [])
-      files_to_path(manifest, stale, to_compile, compile_path)
-      :ok
-    else
-      :noop
-    end
+    end)
   end
 
   @doc """
@@ -271,7 +274,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   in between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  defdelegate files_to_path(manifest, stale, all, path), to: ManifestCompiler
+  defdelegate files_to_path(manifest, stale, all, path, on_start), to: ManifestCompiler
 
   defp set_compiler_opts(project, opts, extra) do
     opts = Dict.take(opts, [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors])
