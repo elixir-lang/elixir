@@ -8,11 +8,6 @@ defmodule Mix.Tasks.Compile.Elixir do
     def files_to_path(manifest, stale, all, compile_path) do
       entries = read_manifest(manifest)
 
-      # Each entry that is not in all must be removed
-      entries = lc { beam, _m, source, _d } = entry inlist entries,
-                   is_in_list_or_remove(source, all, beam),
-                   do: entry
-
       # Filter stale to be a subset of all
       stale = lc i inlist stale, i in all, do: i
 
@@ -30,6 +25,13 @@ defmodule Mix.Tasks.Compile.Elixir do
         after
           :gen_server.call(pid, { :stop, manifest })
         end
+      end
+    end
+
+    def trim_unmatched_beams(manifest, to_compile) do
+      entries = read_manifest(manifest)
+      Enum.reduce entries, false, fn({ beam, _m, source, _d }, acc) ->
+        acc || !is_in_list_or_remove(source, to_compile, beam)
       end
     end
 
@@ -240,12 +242,18 @@ defmodule Mix.Tasks.Compile.Elixir do
     all   = opts[:force] || Mix.Utils.stale?(check_files, [manifest]) || path_deps_changed?(manifest)
     stale = if all, do: to_watch, else: Mix.Utils.extract_stale(to_watch, [manifest])
 
-    if stale != [] do
+    trimmed = trim_unmatched_beams(manifest, to_compile)
+    stale_files = !Enum.empty?(stale)
+
+    if stale_files do
       File.mkdir_p!(compile_path)
       Code.prepend_path(compile_path)
 
       set_compiler_opts(project, opts, [])
       files_to_path(manifest, stale, to_compile, compile_path)
+    end
+
+    if stale_files || trimmed do
       :ok
     else
       :noop
@@ -272,6 +280,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   have changed at runtime.
   """
   defdelegate files_to_path(manifest, stale, all, path), to: ManifestCompiler
+  defdelegate trim_unmatched_beams(manifest, to_compile), to: ManifestCompiler
 
   defp set_compiler_opts(project, opts, extra) do
     opts = Dict.take(opts, [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors])
