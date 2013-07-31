@@ -15,10 +15,10 @@ defmodule Mix.Tasks.Do do
 
   """
   def run(args) do
-    Enum.each(gather_commands(args), function do
+    Enum.each gather_commands(args), fn
       [task|args] -> Mix.Task.run task, args
       [] -> raise Mix.Error, message: "No expression between commas"
-    end)
+    end
   end
 
   defp gather_commands(args) do

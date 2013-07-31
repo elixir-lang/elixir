@@ -270,47 +270,6 @@ defmodule KernelTest do
     end
   end
 
-  defmodule Function do
-    use ExUnit.Case, async: true
-
-    test :remote_syntax_function do
-      assert function(:erlang, :atom_to_list, 1).(:a) == 'a'
-      assert function(:erlang.atom_to_list/1) ==
-             function(:erlang, :atom_to_list, 1)
-      assert function(Enum.map/2) == function(Enum, :map, 2)
-    end
-
-    test :local_syntax_function do
-      assert function(atl/1).(:a) == 'a'
-    end
-
-    test :retrieve_imported_function do
-      assert function(atom_to_list/1).(:a) == 'a'
-    end
-
-    test :retrieve_dynamic_function do
-      a = :erlang
-      b = :atom_to_list
-      c = 1
-
-      assert function(a, b, c).(:a) == 'a'
-    end
-
-    test :function do
-      f = function do
-        x, y when y > 0 -> x + y
-        x, y -> x - y
-      end
-
-      assert f.(1, 2)  == 3
-      assert f.(1, -2) == 3
-    end
-
-    defp atl(arg) do
-      :erlang.atom_to_list arg
-    end
-  end
-
   defmodule DefDelegate do
     use ExUnit.Case, async: true
 

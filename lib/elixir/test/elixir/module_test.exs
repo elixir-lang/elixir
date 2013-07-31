@@ -227,4 +227,9 @@ defmodule ModuleTest do
       assert Module.definitions_in(__MODULE__, :defp) == []
     end
   end
+
+  test :function do
+    assert Module.function(:erlang, :atom_to_list, 1).(:hello) == 'hello'
+    assert is_function Module.function(This, :also_works, 0)
+  end
 end

@@ -331,7 +331,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp extract_tests(line, doc) do
-    lines = String.split(doc, %r/\n/) |> Enum.map(function(String.strip/1))
+    lines = String.split(doc, %r/\n/) |> Enum.map(&String.strip/1)
     extract_tests(lines, line, "", "", [], true)
   end
 

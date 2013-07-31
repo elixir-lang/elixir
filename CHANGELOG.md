@@ -36,6 +36,8 @@
   * [OptionParser] Ensure `--no-flag` sets `:flag` to false when `:flag` is a registered boolean switch
 
 * deprecations
+  * [Kernel] `function(Mod.fun/arity)` and `function(fun/arity)` are deprecated in favor of `&Mod.fun/arity` and `&fun/arity`
+  * [Kernel] `function/3` is deprecated in favor of `Module.function/3`
   * [Kernel] `Kernel.ParallelCompiler` now receives a set of callbacks instead of a single one
   * [Mix] `:test_coverage` option now expect keywords arguments and the `--cover` flag is now treated as a boolean
 

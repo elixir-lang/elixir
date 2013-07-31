@@ -41,7 +41,7 @@ convert([{'|', Meta, [_, _] = Args}|T], S, allow_tail, CallAcc, DefAcc) ->
   { NewArgs, NewDef, NewS } = convert(Args, S, allow_tail, [], DefAcc),
   convert(T, NewS, allow_tail, [{ '|', Meta, NewArgs}|CallAcc], NewDef);
 
-convert([{'&', Meta, [Pos]}|T], S, Opt, CallAcc, DefAcc) ->
+convert([{'&', Meta, [Pos]}|T], S, Opt, CallAcc, DefAcc) when is_integer(Pos) ->
   case lists:keyfind(Pos, 1, DefAcc) of
     false ->
       { Var, SC } = elixir_scope:build_ex_var(?line(Meta), S),

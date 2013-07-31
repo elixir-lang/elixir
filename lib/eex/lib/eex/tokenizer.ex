@@ -128,11 +128,11 @@ defmodule EEx.Tokenizer do
   end
 
   defp fn_index(tokens) do
-    Enum.find_index(tokens, function do
+    Enum.find_index tokens, fn
       { :fn_paren, _ } -> true
       { :fn, _ }       -> true
       _                -> false
-    end)
+    end
   end
 
   defp end_index(tokens) do

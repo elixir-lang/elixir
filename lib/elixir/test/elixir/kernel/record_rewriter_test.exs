@@ -146,11 +146,6 @@ defmodule Kernel.RecordRewriterTest do
     assert optimize_clause(clause) == { clause, [], nil }
   end
 
-  test "inside function retrieval" do
-    clause = clause(fn -> function(x = Macro.Env[], y, z) end)
-    assert optimize_clause(clause) == { clause, [x: Macro.Env], nil }
-  end
-
   test "inside anonymous function" do
     clause = clause(fn -> fn (x = Macro.Env[]) -> x end end)
     assert optimize_clause(clause) == { clause, [], nil }

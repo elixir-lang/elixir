@@ -464,6 +464,19 @@ defmodule Module do
   end
 
   @doc """
+  Gets an anonymous function from the given module, function
+  and arity. The module and function are not verified to exist.
+
+      iex> fun = Module.function(Kernel, :is_atom, 1)
+      iex> fun.(:hello)
+      true
+
+  """
+  def function(mod, fun, arity) do
+    :erlang.make_fun(mod, fun, arity)
+  end
+
+  @doc """
   Attaches documentation to a given function. It expects
   the module the function belongs to, the line (a non negative
   integer), the kind (def or defmacro), a tuple representing

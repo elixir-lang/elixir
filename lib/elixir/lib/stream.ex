@@ -293,7 +293,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> Stream.repeatedly(function(:random.uniform/0)) |> Enum.take(3)
+      iex> Stream.repeatedly(&:random.uniform/0) |> Enum.take(3)
       [0.4435846174457203, 0.7230402056221108, 0.94581636451987]
 
   """
@@ -306,7 +306,6 @@ defmodule Stream do
   defp do_repeatedly(generator_fun, acc, fun) do
     do_repeatedly(generator_fun, fun.(generator_fun.(), acc), fun)
   end
-
 
   @doc """
   Lazily takes the next `n` items from the enumerable and stops

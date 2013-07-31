@@ -49,17 +49,22 @@ translate({ in, Meta, [Left, Right] }, #elixir_scope{extra_guards=Extra} = S) ->
   { TVar, TS#elixir_scope{extra_guards=[TExpr|Extra]} };
 
 %% Functions
-%% Once this function is removed, the related checks
-%% from quote needs to be removed too.
+%% Once this function is removed, the related checks from quote needs to be removed too.
+%% We also need to remove it from the Kernel in erlang list.
 
 translate({ function, Meta, [[{do,{ '->',_,Pairs}}]] }, S) ->
+  elixir_errors:deprecation(Meta, S#elixir_scope.file, "function do ... end is deprecated, please use fn ... end instead"),
   assert_no_match_or_guard_scope(Meta, 'function', S),
   elixir_fn:fn(Meta, Pairs, S);
 
 translate({ function, _, [{ '/', _, [{{ '.', Meta, [M, F] }, _ , []}, A]}] }, S) when is_atom(F), is_integer(A) ->
-  translate({ function, Meta, [M, F, A] }, S);
+  elixir_errors:deprecation(Meta, S#elixir_scope.file, "function(Mod.fun/a) is deprecated, please use &Mod.fun/a instead"),
+  assert_no_match_or_guard_scope(Meta, 'function', S),
+  { [A0,B0,C0], SA } = translate_args([M, F, A], S),
+  { { 'fun', ?line(Meta), { function, A0, B0, C0 } }, SA };
 
 translate({ function, MetaFA, [{ '/', _, [{F, Meta, C}, A]}] }, S) when is_atom(F), is_integer(A), is_atom(C) ->
+  elixir_errors:deprecation(Meta, S#elixir_scope.file, "function(fun/a) is deprecated, please use &fun/a instead"),
   assert_no_match_or_guard_scope(Meta, 'function', S),
 
   WrappedMeta =
@@ -84,6 +89,7 @@ translate({ function, Meta, [Arg] }, S) ->
                ['Elixir.Macro':to_string(Arg)]);
 
 translate({ function, Meta, [_,_,_] = Args }, S) when is_list(Args) ->
+  elixir_errors:deprecation(Meta, S#elixir_scope.file, "function/3 is deprecated, please use Module.function/3 instead"),
   assert_no_match_or_guard_scope(Meta, 'function', S),
   { [A,B,C], SA } = translate_args(Args, S),
   { { 'fun', ?line(Meta), { function, A, B, C } }, SA };

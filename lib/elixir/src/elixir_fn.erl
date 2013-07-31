@@ -1,7 +1,25 @@
 -module(elixir_fn).
 -export([fn/3, capture/3]).
 -import(elixir_scope, [umergec/2]).
+-import(elixir_errors, [syntax_error/3, syntax_error/4, compile_error/4]).
 -include("elixir.hrl").
+
+fn(Meta, Clauses, S) ->
+  Transformer = fun({ ArgsWithGuards, CMeta, Expr }, Acc) ->
+    { Args, Guards } = elixir_clauses:extract_splat_guards(ArgsWithGuards),
+    elixir_clauses:assigns_block(?line(CMeta), fun elixir_translator:translate/2, Args, [Expr], Guards, umergec(S, Acc))
+  end,
+
+  { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
+  Arities = [length(Args) || { clause, _Line, Args, _Guards, _Exprs } <- TClauses],
+
+  case length(lists:usort(Arities)) of
+    1 ->
+      { { 'fun', ?line(Meta), { clauses, TClauses } }, umergec(S, NS) };
+    _ ->
+      syntax_error(Meta, S#elixir_scope.file,
+                   "cannot mix clauses with different arities in function definition")
+  end.
 
 capture(Meta, { '/', _, [{ { '.', _, [M, F] }, _ , [] }, A] }, S) when is_atom(F), is_integer(A) ->
   { [MF, FF, AF], SF } = elixir_translator:translate_args([M, F, A], S),
@@ -19,24 +37,11 @@ capture(Meta, { '/', _, [{ F, _, C }, A] }, S) when is_atom(F), is_integer(A), i
     end,
 
   case elixir_dispatch:import_function(WrappedMeta, F, A, S) of
-    false -> elixir_errors:compile_error(WrappedMeta, S#elixir_scope.file,
-                                         "expected ~ts/~B to be a function, but it is a macro", [F, A]);
+    false -> compile_error(WrappedMeta, S#elixir_scope.file,
+                           "expected ~ts/~B to be a function, but it is a macro", [F, A]);
     Else  -> Else
-  end.
+  end;
 
-fn(Meta, Clauses, S) ->
-  Transformer = fun({ ArgsWithGuards, CMeta, Expr }, Acc) ->
-    { Args, Guards } = elixir_clauses:extract_splat_guards(ArgsWithGuards),
-    elixir_clauses:assigns_block(?line(CMeta), fun elixir_translator:translate/2, Args, [Expr], Guards, umergec(S, Acc))
-  end,
-
-  { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
-  Arities = [length(Args) || { clause, _Line, Args, _Guards, _Exprs } <- TClauses],
-
-  case length(lists:usort(Arities)) of
-    1 ->
-      { { 'fun', ?line(Meta), { clauses, TClauses } }, umergec(S, NS) };
-    _ ->
-      elixir_errors:syntax_error(Meta, S#elixir_scope.file,
-                                 "cannot mix clauses with different arities in function definition")
-  end.
+capture(Meta, Arg, S) ->
+  syntax_error(Meta, S#elixir_scope.file,
+               "invalid args for &: ~ts", ['Elixir.Macro':to_string(Arg)]).
