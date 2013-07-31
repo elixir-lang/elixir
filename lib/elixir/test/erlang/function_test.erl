@@ -35,7 +35,7 @@ function_with_kv_args_test() ->
   {Fun, _} = eval("fn(a, [other: b, another: c]) -> a + b + c end"),
   6 = Fun(1,[{other,2}, {another,3}]).
 
-function_as_clojure_test() ->
+function_as_closure_test() ->
   {_, [{a, Res1}|_]} = eval("b = 1; a = fn -> b + 2 end"),
   3 = Res1().
 
@@ -56,13 +56,6 @@ function_parens_test() ->
   {0,_} = eval("(fn () -> 0 end).()"),
   {1,_} = eval("(fn (1) -> 1 end).(1)"),
   {3,_} = eval("(fn (1, 2) -> 3 end).(1, 2)").
-
-function_macro_parens_test() ->
-  {0,_} = eval("(function do () -> 0 end).()"),
-  {1,_} = eval("(function do 1 -> 1 end).(1)"),
-  {3,_} = eval("(function do 1, 2 -> 3 end).(1, 2)"),
-  {1,_} = eval("(function do (1) -> 1 end).(1)"),
-  {3,_} = eval("(function do (1, 2) -> 3 end).(1, 2)").
 
 %% Function calls
 

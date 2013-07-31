@@ -3216,30 +3216,12 @@ defmodule Kernel do
     { call, line, [left] }
   end
 
-  defp pipeline_op(left, { call, line, args }=right) when is_list(args) do
-    case validate_pipeline_args(args) do
-      :error -> pipeline_error(right)
-      _ -> nil
-    end
+  defp pipeline_op(left, { call, line, args }) when is_list(args) do
     { call, line, [left|args] }
   end
 
-  defp pipeline_op(left, atom) when is_atom(atom) do
-    { { :., [], [left, atom] }, [], [] }
-  end
-
-  defp pipeline_op(_, other) do
-    pipeline_error(other)
-  end
-
-  defp validate_pipeline_args([]), do: nil
-  defp validate_pipeline_args([ {:&, _, _ } | _ ]), do: :error
-  defp validate_pipeline_args([_|t]) do
-    validate_pipeline_args(t)
-  end
-
-  defp pipeline_error(arg) do
-    raise ArgumentError, message: "Unsupported expression in pipeline |> operator: #{Macro.to_string arg}"
+  defp pipeline_op(_, arg) do
+    raise ArgumentError, message: "unsupported expression in pipeline |> operator: #{Macro.to_string arg}"
   end
 
   @doc """

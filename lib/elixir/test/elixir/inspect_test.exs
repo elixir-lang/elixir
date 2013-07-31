@@ -225,12 +225,12 @@ defmodule Inspect.OthersTest do
 
   test :external_elixir_funs do
     bin = inspect(function(Enum.map/2))
-    assert bin == "function(Enum.map/2)"
+    assert bin == "&Enum.map/2"
   end
 
   test :external_erlang_funs do
     bin = inspect(function(:lists.map/2))
-    assert bin == "function(:lists.map/2)"
+    assert bin == "&:lists.map/2"
   end
 
   test :other_funs do

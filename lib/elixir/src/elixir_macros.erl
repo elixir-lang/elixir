@@ -5,9 +5,8 @@
 -import(elixir_translator, [translate_each/2, translate_args/2, translate_apply/7]).
 -import(elixir_scope, [umergec/2, umergea/2]).
 -import(elixir_errors, [compile_error/3, compile_error/4,
-  syntax_error/3, syntax_error/4,
-  assert_no_function_scope/3, assert_module_scope/3,
-  assert_no_match_or_guard_scope/3]).
+  syntax_error/3, syntax_error/4, assert_no_function_scope/3,
+  assert_module_scope/3, assert_no_match_or_guard_scope/3]).
 
 -include("elixir.hrl").
 -define(opt_in_types(Kind), Kind == atom orelse Kind == integer orelse Kind == float).
@@ -50,10 +49,12 @@ translate({ in, Meta, [Left, Right] }, #elixir_scope{extra_guards=Extra} = S) ->
   { TVar, TS#elixir_scope{extra_guards=[TExpr|Extra]} };
 
 %% Functions
+%% Once this function is removed, the related checks
+%% from quote needs to be removed too.
 
 translate({ function, Meta, [[{do,{ '->',_,Pairs}}]] }, S) ->
   assert_no_match_or_guard_scope(Meta, 'function', S),
-  elixir_translator:translate_fn(Meta, Pairs, S);
+  elixir_fn:fn(Meta, Pairs, S);
 
 translate({ function, _, [{ '/', _, [{{ '.', Meta, [M, F] }, _ , []}, A]}] }, S) when is_atom(F), is_integer(A) ->
   translate({ function, Meta, [M, F, A] }, S);

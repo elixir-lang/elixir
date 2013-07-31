@@ -3,7 +3,7 @@
 -module(elixir_translator).
 -export([forms/4, 'forms!'/4]).
 -export([translate/2, translate_each/2, translate_arg/2,
-         translate_args/2, translate_apply/7, translate_fn/3]).
+         translate_args/2, translate_apply/7]).
 -import(elixir_scope, [umergev/2, umergec/2, umergea/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4,
   compile_error/3, compile_error/4,
@@ -300,9 +300,13 @@ translate_each({ 'var!', Meta, [_, _] }, S) ->
 
 %% Functions
 
+translate_each({ '&', Meta, [Arg] }, S) ->
+  assert_no_match_or_guard_scope(Meta, '&', S),
+  elixir_fn:capture(Meta, Arg, S);
+
 translate_each({ fn, Meta, [[{do, { '->', _, Pairs }}]] }, S) ->
   assert_no_match_or_guard_scope(Meta, 'fn', S),
-  translate_fn(Meta, Pairs, S);
+  elixir_fn:fn(Meta, Pairs, S);
 
 %% Comprehensions
 
@@ -561,24 +565,6 @@ no_alias_expansion(Other) ->
 
 is_atom_tuple({ atom, _, _ }) -> true;
 is_atom_tuple(_) -> false.
-
-%% Function
-
-translate_fn(Meta, Clauses, S) ->
-  Transformer = fun({ ArgsWithGuards, CMeta, Expr }, Acc) ->
-    { Args, Guards } = elixir_clauses:extract_splat_guards(ArgsWithGuards),
-    elixir_clauses:assigns_block(?line(CMeta), fun elixir_translator:translate/2, Args, [Expr], Guards, umergec(S, Acc))
-  end,
-
-  { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
-  Arities = [length(Args) || { clause, _Line, Args, _Guards, _Exprs } <- TClauses],
-
-  case length(lists:usort(Arities)) of
-    1 ->
-      { { 'fun', ?line(Meta), { clauses, TClauses } }, umergec(S, NS) };
-    _ ->
-      syntax_error(Meta, S#elixir_scope.file, "cannot mix clauses with different arities in function definition")
-  end.
 
 %% Locals
 

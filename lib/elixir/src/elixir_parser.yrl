@@ -481,7 +481,7 @@ Erlang code.
 
 %% Operators
 
-build_op({ _Kind, Line, '/' }, { '&', _, [{ _Kind, _, Atom } = Left] }, Right) when is_number(Right), is_atom(Atom) ->
+build_op({ _Kind, Line, '/' }, { '&', _, [{ Kind, _, Atom } = Left] }, Right) when is_number(Right), is_atom(Atom), is_atom(Kind) ->
   { '&', [{line,Line}], [{ '/', [{line,Line}], [Left, Right] }] };
 
 build_op({ _Kind, Line, '/' }, { '&', _, [{ { '.', _, [_, _] }, _, [] } = Left] }, Right) when is_number(Right) ->
@@ -490,7 +490,7 @@ build_op({ _Kind, Line, '/' }, { '&', _, [{ { '.', _, [_, _] }, _, [] } = Left] 
 build_op({ _Kind, Line, BOp }, { UOp, _, [Left] }, Right) when ?rearrange_bop(BOp), ?rearrange_uop(UOp) ->
   { UOp, [{line,Line}], [{ BOp, [{line,Line}], [Left, Right] }] };
 
-build_op({ _Kind, Line, Op }, Left, Right) ->
+build_op({ _Kind, Line, Op } = A, Left, Right) ->
   { Op, [{line,Line}], [Left, Right] }.
 
 build_unary_op({ _Kind, Line, Op }, Expr) ->

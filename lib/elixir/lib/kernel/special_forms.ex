@@ -853,6 +853,27 @@ defmodule Kernel.SpecialForms do
   defmacro __block__(args)
 
   @doc """
+  Captures a call as an anonymous function.
+
+  The most common format to capture a function is via module,
+  name and arity:
+
+      iex> fun = &Kernel.is_atom/1
+      iex> fun.(:atom)
+      true
+      iex> fun.("string")
+      false
+
+  Local functions, including private ones, and imported ones
+  can also be captured by omitting the module name:
+
+      &local_function/1
+
+  """
+  name = :&
+  defmacro unquote(name)(expr)
+
+  @doc """
   This is the special form used whenever we have to temporarily
   change the scope information of a block. Used when `quote` is
   invoked with `location: :keep` to execute a given block as if

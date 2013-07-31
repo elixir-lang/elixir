@@ -364,7 +364,7 @@ defimpl Inspect, for: Function do
     mod = fun_info[:module]
 
     if fun_info[:type] == :external and fun_info[:env] == [] do
-      "function(#{Inspect.Atom.inspect(mod)}.#{fun_info[:name]}/#{fun_info[:arity]})"
+      "&#{Inspect.Atom.inspect(mod)}.#{fun_info[:name]}/#{fun_info[:arity]}"
     else
       case atom_to_list(mod) do
         'elixir_compiler_' ++ _ ->
