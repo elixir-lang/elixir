@@ -46,8 +46,12 @@ import_function(Meta, Name, Arity, S) ->
     { import, Receiver } ->
       require_function(Meta, Receiver, Name, Arity, S);
     nomatch ->
-      elixir_tracker:record_local(Tuple, S#elixir_scope.module, S#elixir_scope.function),
-      { { 'fun', ?line(Meta), { function, Name, Arity } }, S }
+      case elixir_import:special_form(Name, Arity) of
+        true  -> false;
+        false ->
+          elixir_tracker:record_local(Tuple, S#elixir_scope.module, S#elixir_scope.function),
+          { { 'fun', ?line(Meta), { function, Name, Arity } }, S }
+      end
   end.
 
 require_function(Meta, Receiver, Name, Arity, S) ->

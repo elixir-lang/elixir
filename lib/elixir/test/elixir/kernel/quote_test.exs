@@ -298,7 +298,7 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
 
   defmacrop get_bin_size_with_partial do
     quote do
-      size(&1).("hello")
+      (&size(&1)).("hello")
     end
   end
 

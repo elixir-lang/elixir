@@ -869,6 +869,57 @@ defmodule Kernel.SpecialForms do
 
       &local_function/1
 
+  A capture also allows the captured functions to be partially
+  applied, for example:
+
+      iex> fun = &atom_to_binary(&1, :utf8)
+      iex> fun.(:hello)
+      "hello"
+
+  In the example above, we use &1 as a placeholder, generating
+  a function with one argument. We could also use `&2` and `&3`
+  to delimit more arguments:
+
+      iex> fun = &atom_to_binary(&1, &2)
+      iex> fun.(:hello, :utf8)
+      "hello"
+
+  Since operators are calls, they are also supported, although
+  they require explicit parentheses around:
+
+      iex> fun = &(&1 + &2)
+      iex> fun.(1, 2)
+      3
+
+  And even more complex call expressions:
+
+      iex> fun = &(&1 + &2 + &3)
+      iex> fun.(1, 2, 3)
+      6
+
+  Remember tuple and lists are represented as calls in the AST and
+  therefore are also allowed:
+
+      iex> fun = &{&1, &2}
+      iex> fun.(1, 2)
+      { 1, 2 }
+
+      iex> fun = &[&1|&2]
+      iex> fun.(1, 2)
+      [1|2]
+
+  Anything that is not a call is not allowed though, examples:
+
+      # An atom is not a call
+      &:foo
+
+      # A var is not a call
+      var = 1
+      &var
+
+      # A block expression is not a call
+      &(foo(&1, &2); &3 + &4)
+
   """
   name = :&
   defmacro unquote(name)(expr)
