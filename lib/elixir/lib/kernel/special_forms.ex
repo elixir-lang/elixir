@@ -897,6 +897,12 @@ defmodule Kernel.SpecialForms do
       iex> fun.(1, 2, 3)
       6
 
+  Record-like calls are also allowed:
+
+      iex> fun = &(&1.first)
+      iex> fun.(1..3)
+      1
+
   Remember tuple and lists are represented as calls in the AST and
   therefore are also allowed:
 

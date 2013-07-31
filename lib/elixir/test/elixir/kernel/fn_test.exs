@@ -60,6 +60,11 @@ defmodule Kernel.FnTest do
     assert (&[&1|&2]).(1, 2) == [1|2]
   end
 
+  test "capture and partially apply on call" do
+    assert (&(&1.file)).(__ENV__) == __FILE__
+    assert (&(&1.file(&2))).(__ENV__, "Hello").file == "Hello"
+  end
+
   test "failure on non-continuous" do
     assert_compile_fail CompileError, "nofile:1: capture &2 cannot be defined without &1", "&(&2)"
   end

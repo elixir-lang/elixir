@@ -33,7 +33,7 @@ Terminals
   comp_op at_op unary_op and_op or_op arrow_op match_op
   range_op in_op inc_op when_op than_op default_op tail_op
   dual_op add_op mult_op exp_op two_op type_op stab_op
-  'true' 'false' 'nil' 'do' eol ',' '.'
+  'true' 'false' 'nil' 'do' eol ',' '.' '&'
   '(' ')' '[' ']' '{' '}' '<<' '>>'
   .
 
@@ -205,6 +205,7 @@ base_expr -> bin_string  : build_bin_string('$1').
 base_expr -> list_string : build_list_string('$1').
 base_expr -> bit_string : '$1'.
 base_expr -> sigil : build_sigil('$1').
+base_expr -> '&' number : { '&', [{line,?line('$1')}], [?exprs('$2')] }.
 
 %% Blocks
 
@@ -490,7 +491,7 @@ build_op({ _Kind, Line, '/' }, { '&', _, [{ { '.', _, [_, _] }, _, [] } = Left] 
 build_op({ _Kind, Line, BOp }, { UOp, _, [Left] }, Right) when ?rearrange_bop(BOp), ?rearrange_uop(UOp) ->
   { UOp, [{line,Line}], [{ BOp, [{line,Line}], [Left, Right] }] };
 
-build_op({ _Kind, Line, Op } = A, Left, Right) ->
+build_op({ _Kind, Line, Op }, Left, Right) ->
   { Op, [{line,Line}], [Left, Right] }.
 
 build_unary_op({ _Kind, Line, Op }, Expr) ->
