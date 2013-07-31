@@ -225,11 +225,6 @@ defmodule Macro do
     "fn\n  " <> block <> "\nend"
   end
 
-  # Partial call
-  def to_string({ :&, _, [num] }) do
-    "&#{num}"
-  end
-
   # left -> right
   def to_string({ :->, _, _ } = arrow) do
     "(" <> arrow_to_string(arrow, true) <> ")"
