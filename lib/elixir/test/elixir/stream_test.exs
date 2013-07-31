@@ -40,6 +40,9 @@ defmodule StreamTest do
 
     assert Enum.to_list(Stream.drop(1..5, 0)) == [1,2,3,4,5]
     assert Enum.to_list(Stream.drop(1..3, 5)) == []
+
+    nats = Stream.iterate(1, &(&1 + 1))
+    assert Stream.drop(nats, 2) |> Enum.take(5) == [3,4,5,6,7]
   end
 
   test :drop_while do
@@ -49,12 +52,18 @@ defmodule StreamTest do
 
     assert Enum.to_list(Stream.drop_while(1..5, &1 <= 0)) == [1,2,3,4,5]
     assert Enum.to_list(Stream.drop_while(1..3, &1 <= 5)) == []
+
+    nats = Stream.iterate(1, &(&1 + 1))
+    assert Stream.drop_while(nats, &1 <= 5) |> Enum.take(5) == [6,7,8,9,10]
   end
 
   test :filter do
     stream = Stream.filter([1,2,3], fn(x) -> rem(x, 2) == 0 end)
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [2]
+
+    nats = Stream.iterate(1, &(&1 + 1))
+    assert Stream.filter(nats, &(rem(&1, 2) == 0)) |> Enum.take(5) == [2,4,6,8,10]
   end
 
   test :iterate do
@@ -72,15 +81,21 @@ defmodule StreamTest do
     stream = Stream.map([1,2,3], &1 * 2)
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [2,4,6]
+
+    nats = Stream.iterate(1, &(&1 + 1))
+    assert Stream.map(nats, &(&1 * 2)) |> Enum.take(5) == [2,4,6,8,10]
   end
 
   test :reject do
     stream = Stream.reject([1,2,3], fn(x) -> rem(x, 2) == 0 end)
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [1,3]
+
+    nats = Stream.iterate(1, &(&1 + 1))
+    assert Stream.reject(nats, &(rem(&1, 2) == 0)) |> Enum.take(5) == [1,3,5,7,9]
   end
 
-  test :repeatedly do 
+  test :repeatedly do
     stream = Stream.repeatedly(fn -> 1 end)
     assert Enum.take(stream, 5) == [1,1,1,1,1]
     stream = Stream.repeatedly(&:random.uniform/0)
@@ -95,6 +110,9 @@ defmodule StreamTest do
 
     assert Enum.to_list(Stream.take(1..1000, 0)) == []
     assert Enum.to_list(Stream.take(1..3, 5)) == [1,2,3]
+
+    nats = Stream.iterate(1, &(&1 + 1))
+    assert Enum.to_list(Stream.take(nats, 5)) == [1,2,3,4,5]
   end
 
   test :take_while do
@@ -104,12 +122,18 @@ defmodule StreamTest do
 
     assert Enum.to_list(Stream.take_while(1..1000, &1 <= 0)) == []
     assert Enum.to_list(Stream.take_while(1..3, &1 <= 5)) == [1,2,3]
+
+    nats = Stream.iterate(1, &(&1 + 1))
+    assert Enum.to_list(Stream.take_while(nats, &(&1 <= 5))) == [1,2,3,4,5]
   end
 
   test :with_index do
     stream = Stream.with_index([1,2,3])
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [{1,0},{2,1},{3,2}]
+
+    nats = Stream.iterate(1, &(&1 + 1))
+    assert Stream.with_index(nats) |> Enum.take(3) == [{1,0},{2,1},{3,2}]
   end
 
   defp is_lazy(stream) do

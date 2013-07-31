@@ -27,7 +27,7 @@ defmodule Stream do
   We say the functions in `Stream` are *lazy* and the functions in `Enum`
   are *eager*.
 
-  Due to their laziness, streams are useful when working with large 
+  Due to their laziness, streams are useful when working with large
   (or even infinite) collections. When chaining many operations with `Enum`,
   intermediate lists are created, while `Stream` creates a recipe of
   computations that are executed at a later moment. Let's see another
@@ -298,7 +298,7 @@ defmodule Stream do
 
   """
   @spec repeatedly((() -> element)) :: t
-  def repeatedly(generator_fun) 
+  def repeatedly(generator_fun)
   when is_function(generator_fun, 0) do
     do_repeatedly(generator_fun, &1, &2)
   end
@@ -323,14 +323,14 @@ defmodule Stream do
 
   """
   @spec take(Enumerable.t, non_neg_integer) :: t
-  def take(enumerable, n) when n >= 0 do
+  def take(_enumerable, 0), do: Lazy[enumerable: [], fun: & &1]
+
+  def take(enumerable, n) when n > 0 do
     Lazy[enumerable: enumerable,
          fun: fn(f1) ->
-           fn
-             (entry, { acc, n }) when n > 0 ->
-               { f1.(entry, acc), n-1 }
-             (_entry, acc) ->
-               throw { :stream_lazy, acc }
+           fn(entry, { acc, n }) ->
+             acc = { f1.(entry, acc), n-1 }
+             if n > 1, do: acc, else: throw { :stream_lazy, acc }
            end
          end,
          acc: n]
@@ -351,11 +351,12 @@ defmodule Stream do
   def take_while(enumerable, f) do
     Lazy[enumerable: enumerable,
          fun: fn(f1) ->
-           fn
-             entry, { acc, true } ->
-               if f.(entry), do: { f1.(entry, acc), true }, else: { acc, false }
-             _entry, acc ->
-               acc
+           fn(entry, { acc, true }) ->
+             if f.(entry) do
+               { f1.(entry, acc), true }
+             else
+               throw { :stream_lazy, { acc, false } }
+             end
            end
          end,
          acc: true]
