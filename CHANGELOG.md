@@ -19,6 +19,7 @@
   * [Mix] Add `mix cmd` as a convenience to run a command recursively in child apps in an umbrella application
   * [Mix] Support `umbrella: true` in dependencies as a convenience for setting up umbrella path deps
   * [Mix] `mix run` now behaves closer to the `elixir` command and properly mangles the ARGV
+  * [String] Add `Regex.scan/3` now supports capturing groups
   * [String] Add `String.reverse/1`
 
 * bug fix
@@ -42,7 +43,9 @@
   * [Mix] `:test_coverage` option now expect keywords arguments and the `--cover` flag is now treated as a boolean
 
 * backwards incompatible changes
+  * [Regex] `Regex.scan/3` now always returns a list of lists, normalizing the result, instead of list with mixed lists and binaries
   * [System] `System.halt/2` was removed since the current Erlang implementation of such function is bugged
+
 
 # v0.10.0 (2013-07-15)
 

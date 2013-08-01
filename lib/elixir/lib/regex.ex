@@ -96,8 +96,10 @@ defmodule Regex do
 
   @doc """
   Runs the regular expression against the given string.
-  It returns a list with all matches, `nil` if no match occurred, or `[]`
-  if it matched, `/g` was specified, but nothing was captured.
+  It returns a list with all matches or `nil` if no match occurred.
+
+  When the option `:capture` is set to `:groups`, it will capture all
+  the groups in the regex.
 
   ## Examples
 
@@ -128,29 +130,23 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the given captures as a keyword list or `nil` if no captures are found.
-  Requires the regex to be compiled with the groups option.
+  Returns the given captures as a keyword list or `nil` if no captures
+  are found. Requires the regex to be compiled with the groups option.
 
   ## Examples
 
       iex> Regex.captures(%r/c(?<foo>d)/g, "abcd")
       [foo: "d"]
       iex> Regex.captures(%r/a(?<foo>b)c(?<bar>d)/g, "abcd")
-      [bar: "d", foo: "b"]
+      [foo: "b", bar: "d"]
       iex> Regex.captures(%r/a(?<foo>b)c(?<bar>d)/g, "efgh") 
       nil
+
   """
   def captures(regex(groups: groups) = regex, string, options // []) do
-    unless captures = Keyword.get(options, :capture) do
-      captures = if groups do
-        Enum.sort(groups)
-      else
-        raise ArgumentError, message: "regex was not compiled with g"
-      end
-      options  = Keyword.put(options, :capture, captures)
-    end
+    options = Keyword.put_new(options, :capture, :groups)
     results = run(regex, string, options)
-    if results, do: Enum.zip(captures, results)
+    if results, do: Enum.zip(groups, results)
   end
 
   @doc """
@@ -200,29 +196,42 @@ defmodule Regex do
   end
 
   @doc """
-  Same as run, but scans the target several times collecting all matches of
-  the regular expression. A list is returned with each match. If the item in
-  the list is a binary, it means there were no captures. If the item is another
-  list, each element in this secondary list is a capture.
+  Same as run, but scans the target several times collecting all
+  matches of the regular expression. A list of lists is returned,
+  where each entry in the primary list represents a match and each
+  entry in the secondary list represents the captured contents.
+
+  The captured contents defaults to :all, which includes the whole
+  regex match and each capture.
+
+  When the option `:capture` is set to `:groups`, it will capture all
+  the groups in the regex.
 
   ## Examples
 
       iex> Regex.scan(%r/c(d|e)/, "abcd abce")
-      [["d"], ["e"]]
+      [["cd", "d"], ["ce", "e"]]
       iex> Regex.scan(%r/c(?:d|e)/, "abcd abce")
-      ["cd", "ce"]
+      [["cd"], ["ce"]]
       iex> Regex.scan(%r/e/, "abcd")
       []
 
   """
   def scan(regex, string, options // [])
 
-  def scan(regex(re_pattern: compiled), string, options) do
+  def scan(regex(re_pattern: compiled, groups: groups), string, options) do
     return  = Keyword.get(options, :return, return_for(string))
-    options = [{ :capture, :all, return }, :global]
+
+    captures =
+      case Keyword.get(options, :capture, :all) do
+        :groups -> groups || raise ArgumentError, message: "regex was not compiled with g"
+        others  -> others
+      end
+
+    options = [{ :capture, captures, return }, :global]
     case :re.run(string, compiled, options) do
       :nomatch -> []
-      { :match, results } -> flatten_result(results)
+      { :match, results } -> results
     end
   end
 
@@ -329,15 +338,6 @@ defmodule Regex do
   defp translate_options(<<?m, t :: binary>>), do: [:multiline|translate_options(t)]
   defp translate_options(<<?g, t :: binary>>), do: [:groups|translate_options(t)]
   defp translate_options(<<>>), do: []
-
-  defp flatten_result(results) do
-    lc result inlist results do
-      case result do
-        [t] -> t
-        [_|t] -> t
-      end
-    end
-  end
 
   { :ok, pattern } = :re.compile(%B"\(\?<(?<G>[^>]*)>")
   @groups_pattern pattern
