@@ -200,7 +200,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     Defaults to `["lib"]`, can be configured as:
 
     ```
-        [elixirc_paths: ["lib", "other"]]
+    [elixirc_paths: ["lib", "other"]]
     ```
 
   * `:elixirc_options` - compilation options that apply
@@ -212,14 +212,14 @@ defmodule Mix.Tasks.Compile.Elixir do
      is a change:
 
      ```
-         [compile_exts: [:ex]]
+     [compile_exts: [:ex]]
      ```
 
   * `:watch_exts` - extensions to watch in order to trigger
       a compilation:
 
       ```
-         [elixirc_watch_exts: [:ex, :eex]]
+      [elixirc_watch_exts: [:ex, :eex]]
       ```
 
   """
