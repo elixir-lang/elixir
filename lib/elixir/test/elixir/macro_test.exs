@@ -325,6 +325,7 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: { 1, 2, 3 })   == "{1, 2, 3}"
     assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
     assert Macro.to_string(quote do: << 1, 2, 3 >>) == "<<1, 2, 3>>"
+    assert Macro.to_string(quote do: << <<1>> >>) == "<< <<1>> >>"
   end
 
   test :binary_ops_to_string do

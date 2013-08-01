@@ -197,7 +197,10 @@ defmodule Macro do
 
   # Bits containers
   def to_string({ :<<>>, _, args }) do
-    "<<" <> Enum.map_join(args, ", ", to_string(&1)) <> ">>"
+    case Enum.map_join(args, ", ", to_string(&1)) do
+      "<" <> rest -> "<< <" <> rest  <> " >>"
+      rest -> "<<" <> rest <> ">>"
+    end
   end
 
   # Tuple containers
