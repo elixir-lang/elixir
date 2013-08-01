@@ -196,12 +196,12 @@ defmodule Regex do
   end
 
   @doc """
-  Same as run, but scans the target several times collecting all
+  Same as `run/3`, but scans the target several times collecting all
   matches of the regular expression. A list of lists is returned,
   where each entry in the primary list represents a match and each
   entry in the secondary list represents the captured contents.
 
-  The captured contents defaults to :all, which includes the whole
+  The captured contents defaults to `:all`, which includes the whole
   regex match and each capture.
 
   When the option `:capture` is set to `:groups`, it will capture all
@@ -269,7 +269,7 @@ defmodule Regex do
 
   Inside the replacement, you can either give `&` to access the
   whole regular expression or `\N`, where `N` is in integer to access
-  a specific matching parens. You can also set global to false
+  a specific matching parens. You can also set `:global` to `false`
   if you want to replace just the first occurrence.
 
   ## Examples
