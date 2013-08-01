@@ -908,7 +908,7 @@ defmodule String do
     do_starts_with(string, prefix)
   end
 
-  defp do_starts_with(_, "") do
+  defp do_starts_with(string, "") when is_binary(string) do
     true
   end
 
@@ -944,7 +944,7 @@ defmodule String do
     do_ends_with(string, suffix)
   end
 
-  defp do_ends_with(_, "") do
+  defp do_ends_with(string, "") when is_binary(string) do
     true
   end
 
