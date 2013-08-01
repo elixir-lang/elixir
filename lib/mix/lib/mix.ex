@@ -80,10 +80,12 @@ defmodule Mix do
   end
 
   @doc """
-  Retrieves the current project configuration. If there
-  is not a project defined, this function will 
-  return an empty keyword list. This allows many mix
-  tasks to work without the need for an underlying project.
+  Retrieves the current project configuration, with the current
+  environment configuration applied.
+
+  If there is no project defined, it still returns a keyword
+  list with default values. This allows many mix tasks to work
+  without the need for an underlying project.
   """
   def project do
     Mix.Project.config
