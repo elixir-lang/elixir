@@ -32,7 +32,7 @@ defmodule Macro do
   a valid call syntax.
 
   This is useful for macros that want to provide the same
-  arguments syntax available in def/defp/defmacro and friends.
+  argument syntax available in def/defp/defmacro and friends.
 
   ## Examples
 
@@ -50,7 +50,7 @@ defmodule Macro do
   Recursively escapes a value so it can be inserted
   into a syntax tree.
 
-  One may pass `unquote: true` to `Macro.escape/2`
+  One may pass `unquote: true` to `escape/2`
   which leaves unquote statements unescaped, effectively
   unquoting the contents on escape.
 
@@ -118,7 +118,7 @@ defmodule Macro do
       def unescape_map(?v), do: ?\v
       def unescape_map(e),  do: e
 
-  If the `unescape_map` function returns false. The char is
+  If the `unescape_map` function returns `false`. The char is
   not escaped and `\` is kept in the char list.
 
   ## Octals
@@ -128,7 +128,7 @@ defmodule Macro do
 
   ## Hex
 
-  Octals will by default be escaped unless the map function
+  Hexadecimals will by default be escaped unless the map function
   returns false for ?x.
 
   ## Examples
@@ -357,13 +357,13 @@ defmodule Macro do
 
   * Macros (local or remote);
   * Aliases are expanded (if possible) and return atoms;
-  * All pseudo-variables (__FILE__, __MODULE__, etc);
-  * Module attributes reader (@foo);
+  * All pseudo-variables (`__FILE__`, `__MODULE__`, etc);
+  * Module attributes reader (`@foo`);
 
   In case the expression cannot be expanded, it returns the expression
-  itself. Notice that `Macro.expand_once/2` performs the expansion just
-  once and it is not recursive. Check `Macro.expand/2` for expansion
-  until the node no longer represents a macro and `Macro.expand_all/2`
+  itself. Notice that `expand_once/2` performs the expansion just
+  once and it is not recursive. Check `expand/2` for expansion
+  until the node no longer represents a macro and `expand_all/2`
   for recursive expansion.
 
   ## Examples
@@ -526,8 +526,8 @@ defmodule Macro do
 
   @doc """
   Receives a AST node and expands it until it no longer represents
-  a macro. Check `Macro.expand_once/2` for more information on how
-  expansion works and `Macro.expand_all/2` for recursive expansion.
+  a macro. Check `expand_once/2` for more information on how
+  expansion works and `expand_all/2` for recursive expansion.
   """
   def expand(tree, env) do
     expand(tree, env, nil) |> elem(0)
@@ -550,8 +550,8 @@ defmodule Macro do
   Receives a AST node and expands it until it no longer represents
   a macro. Then it expands all of its children recursively.
 
-  The documentation for `Macro.expand_once/2` goes into more detail
-  on how expansion works. Keep in mind that `Macro.expand_all/2` is
+  The documentation for `expand_once/2` goes into more detail
+  on how expansion works. Keep in mind that `expand_all/2` is
   naive as it doesn't mutate the environment. Take this example:
 
       quoted = quote do: __MODULE__
@@ -559,7 +559,7 @@ defmodule Macro do
       #=> "nil"
 
   The example above, works as expected. Outside of a module,
-  `__MODULE__` returns nil. Now consider this variation:
+  `__MODULE__` returns `nil`. Now consider this variation:
 
       quoted = quote do
         defmodule Foo, do: __MODULE__
@@ -604,8 +604,8 @@ defmodule Macro do
   end
 
   @doc """
-  Recurs the quoted expression checking if all sub terms are
-  safe (i.e. they represented data structured and don't actually
+  Recurs the quoted expression checking if all sub-terms are
+  safe (i.e. they represent data structures and don't actually
   evaluate code) and returns `:ok` unless a given term is unsafe,
   which is returned as `{ :unsafe, term }`.
   """
