@@ -45,7 +45,7 @@ import_function(Meta, Name, Arity, S) ->
       false;
     { import, Receiver } ->
       require_function(Meta, Receiver, Name, Arity, S);
-    nomatch ->
+    false ->
       case elixir_import:special_form(Name, Arity) of
         true  -> false;
         false ->
@@ -123,6 +123,28 @@ expand_import(Meta, Tuple, Args, Module, Extra, S) ->
   do_expand_import(Meta, Tuple, Args, Module, S, Result).
 
 do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
+  Function = S#elixir_scope.function,
+
+  Fun = (Function /= nil) andalso (Function /= Tuple) andalso
+        elixir_def_local:macro_for(Tuple, true, S),
+
+  case Fun of
+    false ->
+      do_expand_import_no_local(Meta, Tuple, Args, Module, S, Result);
+    _ ->
+      case Result of
+        { Kind, Receiver } when Kind == import; Receiver == Module ->
+          do_expand_import_no_local(Meta, Tuple, Args, Module, S, Result);
+        { _, Receiver } ->
+          Error = { macro_conflict, { Receiver, Name, Arity } },
+          elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, Error);
+        false ->
+          elixir_tracker:record_local(Tuple, Module, S#elixir_scope.function),
+          { ok, Module, expand_macro_fun(Meta, Fun(), Module, Name, Args, Module, S) }
+      end
+  end.
+
+do_expand_import_no_local(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
   case Result of
     { macro, ?builtin } ->
       case is_element(Tuple, in_erlang_macros()) of
@@ -137,13 +159,7 @@ do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
     { import, Receiver } ->
       expand_require(Meta, Receiver, Tuple, Args, Module, S);
     _ ->
-      Fun = (S#elixir_scope.function /= Tuple) andalso
-        elixir_def_local:macro_for(Tuple, true, S),
-      case Fun of
-        false -> { error, noexpansion };
-        _ ->
-          { ok, Module, expand_macro_fun(Meta, Fun, Module, Name, Args, Module, S) }
-      end
+      { error, noexpansion }
   end.
 
 expand_require(Meta, ?builtin, { Name, Arity } = Tuple, Args, Module, S) ->
@@ -160,19 +176,22 @@ expand_require(Meta, ?builtin, { Name, Arity } = Tuple, Args, Module, S) ->
   end;
 
 expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, Module, S) ->
-  Fun = (Module == Receiver) andalso (S#elixir_scope.function /= Tuple) andalso
-    elixir_def_local:macro_for(Tuple, false, S),
+  Function = S#elixir_scope.function,
+
+  Fun = (Module == Receiver) andalso (Function /= nil) andalso
+        (Function /= Tuple) andalso elixir_def_local:macro_for(Tuple, false, S),
 
   case Fun of
     false ->
       case is_element(Tuple, get_optional_macros(Receiver)) of
         true  ->
-          elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
+          elixir_tracker:record_remote(Tuple, Receiver, Module, Function),
           { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) };
         false -> { error, noexpansion }
       end;
     _ ->
-      { ok, Receiver, expand_macro_fun(Meta, Fun, Receiver, Name, Args, Module, S) }
+      elixir_tracker:record_local(Tuple, Module, Function),
+      { ok, Receiver, expand_macro_fun(Meta, Fun(), Receiver, Name, Args, Module, S) }
   end.
 
 %% Expansion helpers
@@ -250,7 +269,7 @@ find_dispatch(Meta, Tuple, Extra, S) ->
       case { FunMatch, MacMatch } of
         { [], [Receiver] } -> { macro, Receiver };
         { [Receiver], [] } -> { function, Receiver };
-        { [], [] } -> nomatch;
+        { [], [] } -> false;
         _ ->
           { Name, Arity } = Tuple,
           [First, Second|_] = FunMatch ++ MacMatch,
@@ -321,6 +340,10 @@ format_error({ unrequired_module, { Receiver, Name, Arity, Required }}) ->
   String = 'Elixir.Enum':join([elixir_errors:inspect(R) || R <- Required], ", "),
   io_lib:format("tried to invoke macro ~ts.~ts/~B but module was not required. Required: ~ts",
     [elixir_errors:inspect(Receiver), Name, Arity, String]);
+
+format_error({ macro_conflict, { Receiver, Name, Arity } }) ->
+  io_lib:format("call to local macro ~ts/~B conflicts with imported ~ts.~ts/~B",
+    [Name, Arity, elixir_errors:inspect(Receiver), Name, Arity]);
 
 format_error({ ambiguous_call, { Mod1, Mod2, Name, Arity }}) ->
   io_lib:format("function ~ts/~B imported from both ~ts and ~ts, call is ambiguous",

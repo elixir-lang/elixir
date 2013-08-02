@@ -7,7 +7,7 @@
   record_import/4, record_remote/4,
   record_warn/4, record_definition/3,
   record_defaults/4, record_alias/2,
-  ensure_no_import_conflict/4, ensure_all_imports_used/3,
+  ensure_no_function_conflict/4, ensure_all_imports_used/3,
   warn_unused_local/3, format_error/1
 ]).
 -include("elixir.hrl").
@@ -98,10 +98,10 @@ if_tracker(Module, Callback) ->
 
 %% ERROR HANDLING
 
-ensure_no_import_conflict(Meta, File, Module, AllDefined) ->
+ensure_no_function_conflict(Meta, File, Module, AllDefined) ->
   if_tracker(Module, fun(Pid) ->
     [ begin
-        elixir_errors:form_error(Meta, File, ?MODULE, { import_conflict, Error })
+        elixir_errors:form_error(Meta, File, ?MODULE, { function_conflict, Error })
       end || Error <- ?tracker:collect_imports_conflicts(Pid, AllDefined) ]
   end),
   ok.
@@ -127,7 +127,7 @@ warn_unused_local(File, Module, Private) ->
       end || Error <- Unused ]
   end).
 
-format_error({import_conflict,{Receivers, Name, Arity}}) ->
+format_error({function_conflict,{Receivers, Name, Arity}}) ->
   io_lib:format("imported ~ts.~ts/~B conflicts with local function",
     [elixir_errors:inspect(hd(Receivers)), Name, Arity]);
 

@@ -5,11 +5,11 @@
 
 macro_for(_Tuple, _All, #elixir_scope{module=nil}) -> false;
 
-macro_for(Tuple, All, #elixir_scope{module=Module,function=Function}) ->
+macro_for(Tuple, All, #elixir_scope{module=Module}) ->
   try elixir_def:lookup_definition(Module, Tuple) of
-    { { Tuple, Kind, Line, _, _, _, _ }, Clauses } when Kind == defmacro; All, Kind == defmacrop ->
-      elixir_tracker:record_local(Tuple, Module, Function),
-      get_function(Line, Module, Clauses);
+    { { Tuple, Kind, Line, _, _, _, _ }, Clauses } when Kind == defmacro, Clauses /= [];
+                                                        All, Kind == defmacrop, Clauses /= [] ->
+      fun() -> get_function(Line, Module, Clauses) end;
     _ ->
       false
   catch
@@ -19,7 +19,7 @@ macro_for(Tuple, All, #elixir_scope{module=Module,function=Function}) ->
 function_for(Module, Name, Arity) ->
   Tuple = { Name, Arity },
   case elixir_def:lookup_definition(Module, Tuple) of
-    { { Tuple, _, Line, _, _, _, _ }, Clauses } ->
+    { { Tuple, _, Line, _, _, _, _ }, Clauses } when Clauses /= [] ->
       %% There is no need to record such calls
       %% since they come from funtions that were
       %% already analyzed at compilation time.

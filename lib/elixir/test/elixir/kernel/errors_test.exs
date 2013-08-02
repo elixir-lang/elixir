@@ -230,18 +230,21 @@ defmodule Kernel.ErrorsTest do
       '''
       defmodule ErrorsTest do
         1 && 2
-        def _ && _, do: OMG
+        def _ && _, do: :error
       end
       '''
   end
 
   test :macro_local_conflict do
     assert_compile_fail CompileError,
-      "nofile:1: imported Kernel.&&/2 conflicts with local function",
+      "nofile:6: call to local macro &&/2 conflicts with imported Kernel.&&/2",
       '''
       defmodule ErrorsTest do
-        1 && 2
-        defmacro _ && _, do: OMG
+        def hello, do: 1 || 2
+        defmacro _ || _, do: :ok
+
+        defmacro _ && _, do: :error
+        def world, do: 1 && 2
       end
       '''
   end

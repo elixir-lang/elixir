@@ -78,9 +78,10 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
         [elixir_tracker:record_local(Tuple, Module) || Tuple <- OnLoad]
     end,
 
-    elixir_tracker:warn_unused_local(File, Module, Private),
-    elixir_tracker:ensure_no_import_conflict(Line, File, Module, All),
+    AllFunctions = Def ++ [T || { T, defp, _, _, _ } <- Private],
+    elixir_tracker:ensure_no_function_conflict(Line, File, Module, AllFunctions),
     elixir_tracker:ensure_all_imports_used(Line, File, Module),
+    elixir_tracker:warn_unused_local(File, Module, Private),
     warn_unused_docs(Line, File, Module, All),
 
     Final = [
@@ -292,7 +293,6 @@ warn_unused_docs(_Line, File, Module, All) ->
           elixir_errors:handle_file_warning(File, { Line, ?MODULE, { invalid_doc, Tuple } })
       end
   end, ok, docs_table(Module)).
-
 
 % EXTRA FUNCTIONS
 
