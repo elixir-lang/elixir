@@ -199,6 +199,9 @@ has_match_tuple({'case', _, _, _}) ->
 has_match_tuple({match, _, _, _}) ->
   true;
 
+has_match_tuple({'fun', _, { clauses, _ }}) ->
+  false;
+
 has_match_tuple(H) when is_tuple(H) ->
   has_match_tuple(tuple_to_list(H));
 
