@@ -104,6 +104,13 @@ defmodule EnumTest.List do
     Process.delete(:enum_test_each)
   end
 
+  test :force do
+    assert Enum.force(Stream.map([1, 2, 3], &Process.put(:enum_test_each, &1 * 2))) == :ok
+    assert Process.get(:enum_test_each) == 6
+  after
+    Process.delete(:enum_test_each)
+  end
+
   test :fetch do
     assert Enum.fetch([2, 4, 6], 0) == { :ok, 2 }
     assert Enum.fetch([2, 4, 6], 2) == { :ok, 6 }
