@@ -983,7 +983,7 @@ defmodule String do
     do_contains(string, match)
   end
 
-  defp do_contains(_, "") do
+  defp do_contains(string, "") when is_binary(string) do
     true
   end
 
