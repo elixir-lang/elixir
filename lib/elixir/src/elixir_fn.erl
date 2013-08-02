@@ -7,7 +7,7 @@
 fn(Meta, Clauses, S) ->
   Transformer = fun({ ArgsWithGuards, CMeta, Expr }, Acc) ->
     { Args, Guards } = elixir_clauses:extract_splat_guards(ArgsWithGuards),
-    elixir_clauses:assigns_block(?line(CMeta), fun elixir_translator:translate/2, Args, [Expr], Guards, umergec(S, Acc))
+    elixir_clauses:assigns_block(?line(CMeta), fun translate_fn_match/2, Args, [Expr], Guards, umergec(S, Acc))
   end,
 
   { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
@@ -20,6 +20,10 @@ fn(Meta, Clauses, S) ->
       syntax_error(Meta, S#elixir_scope.file,
                    "cannot mix clauses with different arities in function definition")
   end.
+
+translate_fn_match(Arg, S) ->
+  { TArg, TS } = elixir_translator:translate(Arg, S#elixir_scope{extra=fn_match}),
+  { TArg, TS#elixir_scope{extra=S#elixir_scope.extra} }.
 
 capture(Meta, { '/', _, [{ { '.', _, [M, F] }, _ , [] }, A] }, S) when is_atom(F), is_integer(A) ->
   { [MF, FF, AF], SF } = elixir_translator:translate_args([M, F, A], S),

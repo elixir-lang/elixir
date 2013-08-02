@@ -78,6 +78,23 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
+  test :shadowing do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        def test(x) do
+          case x do
+            {:file, fid} -> fid
+            {:path, _}   -> fn(fid) -> fid end
+          end
+        end
+      end
+      """
+    end) == nil
+  after
+    purge Sample
+  end
+
   test :unused_default_args do
     assert capture_err(fn ->
       Code.eval_string """

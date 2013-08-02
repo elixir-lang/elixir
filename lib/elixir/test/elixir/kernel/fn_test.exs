@@ -4,6 +4,11 @@ defmodule Kernel.FnTest do
   use ExUnit.Case, async: true
   import CompileAssertion
 
+  test "clause with ^" do
+    x = 1
+    assert (fn ^x -> :ok; _ -> :error end).(1) == :ok
+  end
+
   test "capture remote" do
     assert (&:erlang.atom_to_list/1).(:a) == 'a'
     assert (&Kernel.atom_to_list/1).(:a) == 'a'

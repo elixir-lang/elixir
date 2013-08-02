@@ -281,7 +281,7 @@ translate_in(Meta, Left, Right, S) ->
     false -> { TLeft, SR }
   end,
 
-  { InGuard, TExpr } = case TRight of
+  { TCache, TExpr } = case TRight of
     { nil, _ } ->
       Expr = { atom, Line, false },
       { Cache, Expr };
@@ -322,7 +322,7 @@ translate_in(Meta, Left, Right, S) ->
       end
   end,
 
-  case InGuard of
+  case TCache of
     true  -> { Var, { block, Line, [ { match, Line, Var, TLeft }, TExpr ] }, SV };
     false -> { Var, TExpr, SV }
   end.

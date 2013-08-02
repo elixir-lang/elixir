@@ -346,10 +346,22 @@ translate_each({ 'super?', Meta, [] }, S) ->
 
 %% Variables
 
+translate_each({ '^', Meta, [ { Name, _, Kind } = Var ] },
+               #elixir_scope{extra=fn_match, extra_guards=Extra} = S) when is_atom(Name), is_atom(Kind) ->
+  case orddict:find({ Name, Kind }, S#elixir_scope.backup_vars) of
+    { ok, Value } ->
+      Line = ?line(Meta),
+      { TVar, TS } = translate_each(Var, S),
+      Guard = { op, Line, '=:=', { var, ?line(Meta), Value }, TVar },
+      { TVar, TS#elixir_scope{extra_guards=[Guard|Extra]} };
+    error ->
+      compile_error(Meta, S#elixir_scope.file, "unbound variable ^~ts", [Name])
+  end;
+
 translate_each({ '^', Meta, [ { Name, _, Kind } ] }, #elixir_scope{context=match} = S) when is_atom(Name), is_atom(Kind) ->
   case orddict:find({ Name, Kind }, S#elixir_scope.backup_vars) of
     { ok, Value } ->
-      { { var, Meta, Value }, S };
+      { { var, ?line(Meta), Value }, S };
     error ->
       compile_error(Meta, S#elixir_scope.file, "unbound variable ^~ts", [Name])
   end;

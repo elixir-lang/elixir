@@ -10,6 +10,7 @@
 
 -record(elixir_scope, {
   context=nil,             %% can be assign, guards or nil
+  extra=nil,               %% extra information about the context, like fn_match for fns
   noname=false,            %% when true, don't add new names (used by try)
   super=false,             %% when true, it means super was invoked
   caller=false,            %% when true, it means caller was invoked

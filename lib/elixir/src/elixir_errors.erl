@@ -141,14 +141,13 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
 handle_file_warning(_, _File, {Line,erl_lint,{unused_var,_Var}}) when Line =< 0 ->
   [];
 
+%% Ignore shadowed vars as we guarantee no conflicts ourselves
+handle_file_warning(_, _File, {_Line,erl_lint,{shadowed_var,_Var,_Where}}) ->
+  [];
+
 %% Properly format other unused vars
 handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
   Message = format_error(erl_lint, { unused_var, format_var(Var) }),
-  warn(file_format(Line, File, Message));
-
-%% Properly format shadowed vars
-handle_file_warning(_, File, {Line,erl_lint,{shadowed_var,Var,Where}}) ->
-  Message = format_error(erl_lint, { shadowed_var, format_var(Var), Where }),
   warn(file_format(Line, File, Message));
 
 %% Default behavior
