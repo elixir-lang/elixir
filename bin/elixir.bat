@@ -1,5 +1,4 @@
 @echo off
-SETLOCAL enabledelayedexpansion
 set argc=0
 for %%x in (%*) do set /A argc+=1
 if  %argc%== 0 (
@@ -51,7 +50,7 @@ set par=%1
 shift
 if "%par%"=="" (
   rem if no parameters defined
-  goto :run
+  goto :expand_erl_libs
 )
 rem ******* ERLANG PARAMETERS **********************
 IF NOT "%par%"=="%par:--detached=%" (Set parsErlang=%parsErlang% -detached) 
@@ -72,6 +71,14 @@ IF NOT "%par%"=="%par:--remsh=%" (shift)
 goto:startloop
 
 rem ******* assume all pre-params are parsed ********************
+:expand_erl_libs
+rem ******* expand all ebin paths as Windows does not support the ..\*\ebin wildcard ********************
+SETLOCAL enabledelayedexpansion
+set ext_libs=
+for  /d %%d in ("%originPath%..\lib\*.") do (
+  set ext_libs=!ext_libs! -pa "%%~fd\ebin"
+)
+SETLOCAL disabledelayedexpansion
 :run
-erl -env ERL_LIBS %ERL_LIBS%;"%originPath%\..\lib" -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+erl %ext_libs% -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 
