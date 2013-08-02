@@ -46,73 +46,30 @@ set beforeExtra=
 
 rem Recursive loop called for each parameter that parses the cmd line parameters
 :startloop
-set par="%1"
+set par=%1
 shift
 if "%par%"=="" (
   rem if no parameters defined
   goto :expand_erl_libs
 )
 rem ******* ERLANG PARAMETERS **********************
-for /f "usebackq" %%m in (`echo %par%^|findstr \--detached`) do (
-  set parsErlang=%parsErlang% -detached
-  goto:startloop
-)
-for /f "usebackq" %%m in (`echo %par%^|findstr \--hidden`) do (
-  set parsErlang=%parsErlang% -hidden
-  goto:startloop
-)
-for /f "usebackq" %%m in (`echo %par%^|findstr \--cookie`) do (
-  set parsErlang=%parsErlang% -setcookie %1
-  shift
-  goto:startloop
-)
-for /f "usebackq" %%m in (`echo %par%^|findstr \--sname`) do (
-  set parsErlang=%parsErlang% -sname %1
-  shift
-  goto:startloop
-)
-for /f "usebackq" %%m in (`echo %par%^|findstr \--name`) do (
-  set parsErlang=%parsErlang% -name %1
-  shift
-  goto:startloop
-)
-for /f "usebackq" %%m in (`echo %par%^|findstr \--erl`) do (
-  set beforeExtra=%beforeExtra% %~1
-  shift
-  goto:startloop
-)
+IF NOT "%par%"=="%par:--detached=%" (Set parsErlang=%parsErlang% -detached) 
+IF NOT "%par%"=="%par:--hidden=%"   (Set parsErlang=%parsErlang% -hidden)
+IF NOT "%par%"=="%par:--cookie=%"   (Set parsErlang=%parsErlang% -setcookie %1 && shift)
+IF NOT "%par%"=="%par:--sname=%"    (Set parsErlang=%parsErlang% -sname %1 && shift) 
+IF NOT "%par%"=="%par:--name=%"     (Set parsErlang=%parsErlang% -name %1 && shift) 
+IF NOT "%par%"=="%par:--erl=%"      (Set beforeExtra=%beforeExtra% %~1 && shift) 
 rem ******* elixir parameters **********************
-for /f "usebackq" %%m in (`echo %par%^|findstr \--v`) do (
-  goto:startloop
-)
-for /f "usebackq" %%m in (`echo %par%^|findstr \--compile`) do (
-  goto:startloop
-)
-for /f "usebackq" %%m in (`echo %par%^|findstr \--no-halt`) do (
-  goto:startloop
-)
-for /f "usebackq" %%m in (`echo %par%^|findstr \+iex`) do (
-  goto:startloop
-)
-for /f "usebackq" %%m in (`echo %par%^|findstr \+compile`) do (
-  goto:startloop
-)
-for /f "usebackq" %%m in (`echo %par%^|findstr \-[er]`) do (
-  shift
-  goto:startloop
-)
-for /f "usebackq" %%m in (`echo %par%^|findstr \-p[raz]`) do (
-  shift
-  goto:startloop
-)
-for /f "usebackq" %%m in (`echo %par%^|findstr \--app`) do (
-  shift
-  goto:startloop
-)
-for /f "usebackq" %%m in (`echo %par%^|findstr \--remsh`) do (
-  shift
-  goto:startloop
-)
+rem Note: we don't have to do anything with options that don't take an argument
+IF NOT "%par%"=="%par:-e=%"      (shift) 
+IF NOT "%par%"=="%par:-r=%"      (shift) 
+IF NOT "%par%"=="%par:-pr=%"     (shift) 
+IF NOT "%par%"=="%par:-pa=%"     (shift) 
+IF NOT "%par%"=="%par:-pz=%"     (shift) 
+IF NOT "%par%"=="%par:--app=%"   (shift) 
+IF NOT "%par%"=="%par:--remsh=%" (shift) 
+goto:startloop
+
 rem ******* assume all pre-params are parsed ********************
 :expand_erl_libs
 rem ******* expand all ebin paths as Windows does not support the ..\*\ebin wildcard ********************
@@ -124,3 +81,4 @@ for  /d %%d in ("%originPath%..\lib\*.") do (
 SETLOCAL disabledelayedexpansion
 :run
 erl %ext_libs% -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+
