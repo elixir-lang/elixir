@@ -1,4 +1,4 @@
-# v0.10.1-dev
+# v0.10.1 (2013-08-03)
 
 * enhancements
   * [Behaviour] Add support for `defmacrocallback/1`
@@ -24,6 +24,7 @@
 
 * bug fix
   * [Behaviour] Ensure callbacks are stored in the definition order
+  * [CLI] Speed up boot time on Elixir .bat files
   * [IEx] Reduce cases where IEx parser can get stuck
   * [Kernel] Improve error messages when the use of an operator has no effect
   * [Kernel] Fix a bug where warnings were not being generated when imported macros conflicted with local functions or macros
@@ -45,7 +46,6 @@
 * backwards incompatible changes
   * [Regex] `Regex.scan/3` now always returns a list of lists, normalizing the result, instead of list with mixed lists and binaries
   * [System] `System.halt/2` was removed since the current Erlang implementation of such function is bugged
-
 
 # v0.10.0 (2013-07-15)
 
