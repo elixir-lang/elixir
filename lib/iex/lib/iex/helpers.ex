@@ -153,6 +153,12 @@ defmodule IEx.Helpers do
     end
   end
 
+  defmacro h(string) when is_binary(string) do
+    quote do
+      IEx.Introspection.h(Kernel, binary_to_atom(unquote(string)))
+    end
+  end
+
   defmacro h(other) do
     quote do
       IEx.Introspection.h(unquote(other))

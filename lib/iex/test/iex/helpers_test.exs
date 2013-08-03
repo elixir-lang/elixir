@@ -47,6 +47,13 @@ defmodule IEx.HelpersTest do
            == "* def pwd()\n\nPrints the current working directory.\n\n"
   end
 
+  test "h helper function string" do
+    h_output_normal = capture_io(fn -> h Kernel.* end)
+    h_output_string = capture_io(fn -> h "*" end)
+
+    assert h_output_string == h_output_normal
+  end
+
   test "h helper __info__" do
     h_output_module = capture_io(fn -> h Module.__info__ end)
     assert capture_io(fn -> h Module.UnlikelyTo.Exist.__info__ end) == h_output_module
