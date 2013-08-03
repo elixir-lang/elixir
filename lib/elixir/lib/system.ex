@@ -146,9 +146,9 @@ defmodule System do
   2. The directory named by the TEMP environment variable
   3. The directory named by the TMP environment variable
   4. A platform-specific location. On Windows, the directories
-     C:\TEMP, C:\TMP, \TEMP, and \TMP, in that order. On all
-     other platforms, the directories /tmp, /var/tmp, and
-     /usr/tmp, in that order.
+     C:\Windows\Temp, C:\TEMP, C:\TMP, \TEMP, and \TMP, in that
+     order. On all other platforms, the directories /tmp,
+     /var/tmp, and /usr/tmp, in that order.
   5.  As a last resort, the current working directory
 
   Returns `nil` if none of the above are writable.
@@ -159,9 +159,10 @@ defmodule System do
       write_env_tmp_dir('TMP')  ||
       case :os.type do
         { :win32, _ } ->
-          write_tmp_dir("C:\\TEMP") ||
-          write_tmp_dir("C:\\TMP")  ||
-          write_tmp_dir("\\TEMP")   ||
+          write_tmp_dir("C:\\Windows\\Temp") ||
+          write_tmp_dir("C:\\TEMP")          ||
+          write_tmp_dir("C:\\TMP")           ||
+          write_tmp_dir("\\TEMP")            ||
           write_tmp_dir("\\TMP")
         _ ->
           write_tmp_dir("/tmp")     ||
