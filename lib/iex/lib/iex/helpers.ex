@@ -162,7 +162,7 @@ defmodule IEx.Helpers do
 
   defmacro h(string) when is_binary(string) do
     quote do
-      IEx.Introspection.h(Kernel, binary_to_atom(unquote(string)))
+      IEx.Introspection.h([unquote(__MODULE__), Kernel, Kernel.SpecialForms], binary_to_atom(unquote(string)))
     end
   end
 

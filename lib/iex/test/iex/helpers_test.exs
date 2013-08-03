@@ -48,10 +48,15 @@ defmodule IEx.HelpersTest do
   end
 
   test "h helper function string" do
-    h_output_normal = capture_io(fn -> h Kernel.* end)
-    h_output_string = capture_io(fn -> h "*" end)
+    h_times_normal = capture_io(fn -> h Kernel.* end)
+    h_times_string = capture_io(fn -> h "*" end)
 
-    assert h_output_string == h_output_normal
+    assert h_times_string == h_times_normal
+
+    h_anonfun_normal = capture_io(fn -> h Kernel.SpecialForms.& end)
+    h_anonfun_string = capture_io(fn -> h "&" end)
+
+    assert h_anonfun_normal == h_anonfun_string
   end
 
   test "h helper __info__" do
