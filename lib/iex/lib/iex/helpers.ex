@@ -114,6 +114,13 @@ defmodule IEx.Helpers do
       h receive/1
       h Enum.all?/2
       h Enum.all?
+
+  The h helper also accepts strings representing a function
+  name, useful for retrieving information about operators:
+
+      h "*"
+      h "+"
+      h "<>"
   """
   # Special case for `h AnyModule.__info__/1`
   defmacro h({ :/, _, [{ { :., _, [_mod, :__info__] }, _, [] }, 1] }) do
@@ -150,6 +157,12 @@ defmodule IEx.Helpers do
   defmacro h({ name, _, args }) when args == [] or is_atom(args) do
     quote do
       IEx.Introspection.h([unquote(__MODULE__), Kernel, Kernel.SpecialForms], unquote(name))
+    end
+  end
+
+  defmacro h(string) when is_binary(string) do
+    quote do
+      IEx.Introspection.h([unquote(__MODULE__), Kernel, Kernel.SpecialForms], binary_to_atom(unquote(string)))
     end
   end
 
