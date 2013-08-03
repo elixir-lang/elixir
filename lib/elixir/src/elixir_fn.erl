@@ -25,12 +25,12 @@ translate_fn_match(Arg, S) ->
   { TArg, TS } = elixir_translator:translate(Arg, S#elixir_scope{extra=fn_match}),
   { TArg, TS#elixir_scope{extra=S#elixir_scope.extra} }.
 
-capture(Meta, { '/', _, [{ { '.', _, [M, F] }, _ , [] }, A] }, S) when is_atom(F), is_integer(A) ->
-  { [MF, FF, AF], SF } = elixir_translator:translate_args([M, F, A], S),
-  { { 'fun', ?line(Meta), { function, MF, FF, AF } }, SF };
+capture(Meta, { '/', _, [{ { '.', _, [_, F] } = Dot, RequireMeta , [] }, A] }, S) when is_atom(F), is_integer(A) ->
+  Args = [{ '&', [], [X] } || X <- lists:seq(1, A)],
+  capture_require(Meta, { Dot, RequireMeta, Args }, S, true);
 
 capture(Meta, { '/', _, [{ F, _, C }, A] }, S) when is_atom(F), is_integer(A), is_atom(C) ->
-  WrappedMeta =
+  ImportMeta =
     case lists:keyfind(import_fa, 1, Meta) of
       { import_fa, { Receiver, Context } } ->
         lists:keystore(context, 1,
@@ -39,32 +39,18 @@ capture(Meta, { '/', _, [{ F, _, C }, A] }, S) when is_atom(F), is_integer(A), i
         );
       false -> Meta
     end,
+  Args = [{ '&', [], [X] } || X <- lists:seq(1, A)],
+  capture_import(Meta, { F, ImportMeta, Args }, S, true);
 
-  case elixir_dispatch:import_function(WrappedMeta, F, A, S) of
-    false -> compile_error(WrappedMeta, S#elixir_scope.file,
-                           "expected ~ts/~B to be a function, but it is a macro", [F, A]);
-    Else  -> Else
-  end;
-
-capture(Meta, { { '.', _, [Left, Right] }, RemoteMeta, Args } = Expr, S) when is_atom(Right), is_list(Args) ->
-  { Mod, SE } = 'Elixir.Macro':expand_all(Left, elixir_scope:to_ex_env({ ?line(Meta), S }), S),
-
-  case is_atom(Mod) andalso is_sequential(Args) andalso
-       elixir_dispatch:require_function(RemoteMeta, Mod, Right, length(Args), SE) of
-    false -> do_capture(Meta, Expr, S);
-    Else  -> Else
-  end;
+capture(Meta, { { '.', _, [_, Fun] }, _, Args } = Expr, S) when is_atom(Fun), is_list(Args) ->
+  capture_require(Meta, Expr, S, is_sequential_and_not_empty(Args));
 
 capture(Meta, { '__block__', _, _ } = Expr, S) ->
   Message = "invalid args for &, block expressions are not allowed, got: ~ts",
   syntax_error(Meta, S#elixir_scope.file, Message, ['Elixir.Macro':to_string(Expr)]);
 
-capture(Meta, { Atom, ImportMeta, Args } = Expr, S) when is_atom(Atom), is_list(Args) ->
-  case is_sequential(Args) andalso
-       elixir_dispatch:import_function(ImportMeta, Atom, length(Args), S) of
-    false -> do_capture(Meta, Expr, S);
-    Else  -> Else
-  end;
+capture(Meta, { Atom, _, Args } = Expr, S) when is_atom(Atom), is_list(Args) ->
+  capture_import(Meta, Expr, S, is_sequential_and_not_empty(Args));
 
 capture(Meta, { Left, Right }, S) ->
   capture(Meta, { '{}', Meta, [Left, Right] }, S);
@@ -80,9 +66,25 @@ capture(Meta, Arg, S) ->
 
 %% Helpers
 
-do_capture(Meta, Expr, S) ->
+capture_import(Meta, { Atom, ImportMeta, Args } = Expr, S, Sequential) ->
+  case Sequential andalso
+       elixir_dispatch:import_function(ImportMeta, Atom, length(Args), S) of
+    false -> do_capture(Meta, Expr, S, Sequential);
+    Else  -> Else
+  end.
+
+capture_require(Meta, { { '.', _, [Left, Right] }, RequireMeta, Args } = Expr, S, Sequential) ->
+  { Mod, SE } = 'Elixir.Macro':expand_all(Left, elixir_scope:to_ex_env({ ?line(Meta), S }), S),
+
+  case Sequential andalso is_atom(Mod) andalso
+       elixir_dispatch:require_function(RequireMeta, Mod, Right, length(Args), SE) of
+    false -> do_capture(Meta, Expr, S, Sequential);
+    Else  -> Else
+  end.
+
+do_capture(Meta, Expr, S, Sequential) ->
   case do_escape(Expr, S, []) of
-    { _, _, [] } ->
+    { _, _, [] } when not Sequential ->
       invalid_capture(Meta, Expr, S);
     { TExpr, TS, TDict } ->
       TVars = validate(Meta, TDict, 1, S),
@@ -139,8 +141,10 @@ do_escape_list([H|T], S, Dict, Acc) ->
 do_escape_list([], S, Dict, Acc) ->
   { lists:reverse(Acc), S, Dict }.
 
-is_sequential(List) -> is_sequential(List, 1).
+is_sequential_and_not_empty([])   -> false;
+is_sequential_and_not_empty(List) -> is_sequential(List, 1).
+
 is_sequential([{ '&', _, [Int] }|T], Int) ->
   is_sequential(T, Int + 1);
-is_sequential([], Int) when Int > 1 -> true;
+is_sequential([], _Int) -> true;
 is_sequential(_, _Int) -> false.

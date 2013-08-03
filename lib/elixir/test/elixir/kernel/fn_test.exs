@@ -32,6 +32,13 @@ defmodule Kernel.FnTest do
     assert &atom_to_list(&1) == &atom_to_list/1
   end
 
+  test "capture macro" do
+    assert (&to_binary/1).(:a) == "a"
+    assert (&to_binary(&1)).(:a) == "a"
+    assert (&Kernel.to_binary/1).(:a) == "a"
+    assert (&Kernel.to_binary(&1)).(:a) == "a"
+  end
+
   test "local partial application" do
     assert (&atb(&1, :utf8)).(:a) == "a"
     assert (&atb(list_to_atom(&1), :utf8)).('a') == "a"
