@@ -115,8 +115,8 @@ defmodule IEx.Helpers do
       h Enum.all?/2
       h Enum.all?
 
-  For ambiguous function names (e.g. *, +, etc.), it
-  accepts a string with the function name, for example:
+  The h helper also accepts strings representing a function
+  name, useful for retrieving information about operators:
 
       h "*"
       h "+"
