@@ -17,6 +17,7 @@
   * [ExUnit] The `:trace` option now also reports run time for each test
   * [ExUnit] Add support for `:color` to enable/disable ANSI coloring
   * [IEx] Add the `clear` helper to clear the screen.
+  * [Kernel] Add the capture operator `&`
   * [Kernel] Add support for `GenFSM.Behaviour`
   * [Kernel] Functions now points to the module and function they were defined when inspected
   * [Kernel] A documentation attached to a function that is never defined now prints warnings
