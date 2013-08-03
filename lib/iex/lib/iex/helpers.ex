@@ -114,6 +114,13 @@ defmodule IEx.Helpers do
       h receive/1
       h Enum.all?/2
       h Enum.all?
+
+  For ambiguous function names (e.g. *, +, etc.), it
+  accepts a string with the function name, for example:
+
+      h "*"
+      h "+"
+      h "<>"
   """
   # Special case for `h AnyModule.__info__/1`
   defmacro h({ :/, _, [{ { :., _, [_mod, :__info__] }, _, [] }, 1] }) do
