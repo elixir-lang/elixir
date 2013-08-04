@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Deps.Get do
 
   * `--no-compile` - skip compilation of dependencies
   * `--no-deps-check` - skip dependency check
-  * `--quiet` - do not output success message
+  * `--quiet` - do not output verbose messages
 
   """
 
@@ -43,7 +43,12 @@ defmodule Mix.Tasks.Deps.Get do
       Mix.Deps.Lock.write(lock)
 
       unless opts[:no_compile] do
-        Mix.Task.run("deps.compile", apps)
+        case opts[:quiet] do
+          true ->
+            Mix.Task.run("deps.compile", ["--quiet"|apps])
+          _ ->
+            Mix.Task.run("deps.compile", apps)
+        end
         unless opts[:no_deps_check], do: Mix.Task.run("deps.check", [])
       end
     end
