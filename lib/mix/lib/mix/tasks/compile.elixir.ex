@@ -215,7 +215,7 @@ defmodule Mix.Tasks.Compile.Elixir do
      [compile_exts: [:ex]]
      ```
 
-  * `:watch_exts` - extensions to watch in order to trigger
+  * `:elixirc_watch_exts` - extensions to watch in order to trigger
       a compilation:
 
       ```
