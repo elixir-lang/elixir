@@ -15,8 +15,12 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--source", "lib"])
       { [source: "lib"], [] }
 
-      iex> OptionParser.parse(["--source", "lib", "test/enum_test.exs", "--verbose"])
-      { [source: "lib", verbose: true], ["test/enum_test.exs"] }
+      iex> OptionParser.parse(["--source-path", "lib", "test/enum_test.exs", "--verbose"])
+      { [source_path: "lib", verbose: true], ["test/enum_test.exs"] }
+
+  Notice how Elixir automatically translates the "--source-path"
+  switch to the underscored atom `:source_path`, which better follows
+  Elixir conventions.
 
   ## Aliases
 
