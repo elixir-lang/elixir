@@ -105,7 +105,7 @@ validate(Meta, [{ Pos, _ }|_], Expected, S) ->
 validate(_Meta, [], _Pos, _S) ->
   [].
 
-do_escape({ '&', Meta, [Pos] }, S, Dict) when is_integer(Pos) ->
+do_escape({ '&', Meta, [Pos] }, S, Dict) when is_integer(Pos), Pos > 0 ->
   case orddict:find(Pos, Dict) of
     { ok, Var } ->
       { Var, S, Dict };
@@ -113,6 +113,9 @@ do_escape({ '&', Meta, [Pos] }, S, Dict) when is_integer(Pos) ->
       { Var, SC } = elixir_scope:build_ex_var(?line(Meta), S),
       { Var, SC, orddict:store(Pos, Var, Dict) }
   end;
+
+do_escape({ '&', Meta, [Pos] }, S, _Dict) when is_integer(Pos) ->
+  compile_error(Meta, S#elixir_scope.file, "capture &~B is not allowed", [Pos]);
 
 do_escape({ '&', Meta, _ } = Arg, S, _Dict) ->
   Message = "nested captures via & are not allowed: ~ts",
