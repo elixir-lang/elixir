@@ -17,6 +17,8 @@ defmodule Mix.Tasks.Deps.Update do
   * `--all` - update all dependencies
   * `--no-compile` - skip compilation of dependencies
   * `--no-deps-check` - skip dependency check
+  * `--quiet` - do not output verbose messages
+
   """
 
   import Mix.Deps, only: [ all: 0, all: 2, available?: 1, by_name: 2,
@@ -49,7 +51,12 @@ defmodule Mix.Tasks.Deps.Update do
   defp finalize_update({ apps, lock }, opts) do
     Mix.Deps.Lock.write(lock)
     unless opts[:no_compile] do
-      Mix.Task.run("deps.compile", apps)
+      case opts[:quiet] do
+        true ->
+          Mix.Task.run("deps.compile", ["--quiet"|apps])
+        _ ->
+          Mix.Task.run("deps.compile", apps)
+      end
       unless opts[:no_deps_check], do: Mix.Task.run("deps.check", [])
     end
   end
