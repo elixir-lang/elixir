@@ -73,11 +73,13 @@ defmodule Mix.Tasks.Compile do
   def run(args) do
     Mix.Task.run("loadpaths", args)
 
-    Enum.each(get_compilers, fn(compiler) ->
-      Mix.Task.run("compile.#{compiler}", args)
-    end)
+    res =
+      Enum.map(get_compilers, fn(compiler) ->
+        List.wrap Mix.Task.run("compile.#{compiler}", args)
+      end)
 
     Code.prepend_path Mix.project[:compile_path]
+    if Enum.any?(res, &(:ok in &1)), do: :ok, else: :noop
   end
 
   @doc """

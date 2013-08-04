@@ -157,14 +157,12 @@ defmodule Mix.Tasks.DepsGitTest do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
       message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      assert File.rm("ebin/.compile.deps") == :ok
       assert_received { :mix_shell, :info, [^message] }
 
-      # Recompile the dependency
       Mix.Tasks.Deps.Compile.run ["git_repo"]
       refute_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
-
-      Mix.Tasks.Deps.Compile.run ["git_repo"]
-      refute_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+      refute File.exists?("ebin/.compile.deps")
     end
   after
     purge [GitRepo, GitRepo.Mix]

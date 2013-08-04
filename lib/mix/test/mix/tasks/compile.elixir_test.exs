@@ -103,12 +103,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
         Mix.Tasks.Deps.Compile.run []
-        Mix.Tasks.Compile.Elixir.run []
 
-        # Remove the ebin/.compile.deps flag because
-        # we want to recompile regardless if the flag changed.
-        assert File.exists?("ebin/.compile.deps")
-
+        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
         purge [Bar]
 
