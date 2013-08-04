@@ -22,6 +22,10 @@ defmodule Mix.Tasks.Deps.Compile do
 
       { :some_dependency, "0.1.0", git: "...", compile: "command to compile" }
 
+  ## Command line options
+
+  * `--quiet` - do not output verbose messages
+
   """
 
   import Mix.Deps, only: [ all: 0, available?: 1, by_name: 2, compile_paths: 1,
@@ -30,17 +34,17 @@ defmodule Mix.Tasks.Deps.Compile do
   def run(args) do
     Mix.Project.get! # Require the project to be available
 
-    case OptionParser.parse(args) do
-      { _, [] } ->
-        do_compile Enum.filter(all, available?(&1))
-      { _, tail } ->
+    case OptionParser.parse(args, switches: [quiet: :boolean]) do
+      { opts, [] } ->
+        do_run(Enum.filter(all, available?(&1)), opts)
+      { opts, tail } ->
         all_deps = all
         deps = by_name(tail, all_deps)
-        do_compile(deps ++ depending(deps, all_deps))
+        do_run(deps ++ depending(deps, all_deps), opts)
     end
   end
 
-  defp do_compile(deps) do
+  defp do_run(deps, run_opts) do
     shell = Mix.shell
 
     compiled =
@@ -48,7 +52,7 @@ defmodule Mix.Tasks.Deps.Compile do
         Mix.Dep[app: app, status: status, opts: opts] = dep
 
         check_unavailable!(app, status)
-        shell.info "* Compiling #{app}"
+        unless run_opts[:quiet], do: shell.info "* Compiling #{app}"
 
         deps_path = opts[:dest]
         root_path = Path.expand(Mix.project[:deps_path])
