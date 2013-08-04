@@ -99,18 +99,22 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
-  test "recompile after path dependency changed" do
+  test "recompiles after path dependency changed" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
         Mix.Tasks.Deps.Compile.run []
         Mix.Tasks.Compile.Elixir.run []
 
-        assert :noop == Mix.Tasks.Compile.Elixir.run []
+        # Remove the ebin/.compile.deps flag because
+        # we want to recompile regardless if the flag changed.
+        assert File.exists?("ebin/.compile.deps")
+
+        assert Mix.Tasks.Compile.Elixir.run([]) == :noop
         purge [Bar]
 
-        future = { { 2020, 1, 1 }, { 0, 0, 0 } }
+        future = { { 2020, 4, 17 }, { 14, 0, 0 } }
         File.touch!("../foo/ebin/.compile.elixir", future)
-        assert :ok == Mix.Tasks.Compile.Elixir.run []
+        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       end)
     end)
   end

@@ -96,7 +96,7 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.pop
   end
 
-  test "does not check if repo information changes" do
+  test "checks if repo information changes" do
     Mix.Project.push GitApp
 
     in_fixture "no_mixfile", fn ->
@@ -129,21 +129,19 @@ defmodule Mix.Tasks.DepsGitTest do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
       message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      assert File.exists?("ebin/.compile.deps")
       assert_received { :mix_shell, :info, [^message] }
 
       # We can compile just fine
       Mix.Task.clear
       Mix.Tasks.Compile.run []
 
-      # Sleep so touch picks up a time difference
-      :timer.sleep(1_000)
-
-      # Recompile the dependency
-      Mix.Tasks.Deps.Compile.run ["git_repo"]
+      # Notify a deps changed
+      Mix.shell.flush
+      File.touch!("ebin/.compile.deps", { { 2020, 4, 17 }, { 14, 0, 0 } })
 
       # We are forced to recompile
       purge [A, B, C]
-      Mix.shell.flush
       Mix.Task.clear
       Mix.Tasks.Compile.run []
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
@@ -160,9 +158,6 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Tasks.Deps.Get.run []
       message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
       assert_received { :mix_shell, :info, [^message] }
-
-      # Sleep so touch picks up a time difference
-      :timer.sleep(1_000)
 
       # Recompile the dependency
       Mix.Tasks.Deps.Compile.run ["git_repo"]

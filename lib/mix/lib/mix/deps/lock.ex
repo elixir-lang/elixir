@@ -1,11 +1,30 @@
 defmodule Mix.Deps.Lock do
   @moduledoc false
+  @manifest ".compile.deps"
 
   @doc """
-  Touch the lockfile.
+  Returns the manifest file for dependencies.
+  """
+  def manifest do
+    Path.join(Mix.project[:compile_path], @manifest)
+  end
+
+  @doc """
+  Returns the lockfile path. In case this is a nested
+  dependencies, the lockfile will always point to the
+  parent project lockfile.
+  """
+  def lockfile do
+    Mix.project[:root_lockfile] || Mix.project[:lockfile]
+  end
+
+  @doc """
+  Touches the manifest timestamp.
   """
   def touch do
-    File.touch(lockfile)
+    compile_path = Mix.project[:compile_path]
+    File.mkdir_p!(compile_path)
+    File.touch!(Path.join(compile_path, @manifest))
   end
 
   @doc """
@@ -34,10 +53,7 @@ defmodule Mix.Deps.Lock do
       end
 
       File.write! lockfile, "[ " <> lines <> " ]\n"
+      touch
     end
-  end
-
-  defp lockfile do
-    Mix.project[:root_lockfile] || Mix.project[:lockfile]
   end
 end
