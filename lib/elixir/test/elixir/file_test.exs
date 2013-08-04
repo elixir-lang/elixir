@@ -1099,11 +1099,13 @@ defmodule FileTest do
 
   test :touch_with_no_file do
     fixture = tmp_path("tmp_test.txt")
+    time = { { 2010, 4, 17 }, { 14, 0, 0 }}
 
     try do
       refute File.exists?(fixture)
-      assert File.touch(fixture) == :ok
+      assert File.touch(fixture, time) == :ok
       assert { :ok, "" } == File.read(fixture)
+      assert File.stat!(fixture).mtime == time
     after
       File.rm(fixture)
     end

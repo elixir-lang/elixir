@@ -290,8 +290,11 @@ defmodule File do
   """
   def touch(path, time // :calendar.local_time) do
     case F.change_time(path, time) do
-      { :error, :enoent } -> write(path, "")
-      other -> other
+      { :error, :enoent } ->
+        write(path, "")
+        F.change_time(path, time)
+      other ->
+        other
     end
   end
 

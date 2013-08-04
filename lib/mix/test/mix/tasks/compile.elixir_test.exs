@@ -81,14 +81,11 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   test "compiles only changed files" do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run []
-      File.touch!("ebin")
-
       Mix.shell.flush
       purge [A, B, C]
 
       future = { { 2020, 1, 1 }, { 0, 0, 0 } }
       File.touch!("lib/a.ex", future)
-      File.touch!("lib/a.eex", future)
       Mix.Tasks.Compile.Elixir.run []
 
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
@@ -96,6 +93,21 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       File.touch!("ebin/.compile.elixir", future)
       assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+    end
+  end
+
+  test "compiles all when other watched exts change" do
+    in_fixture "no_mixfile", fn ->
+      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      Mix.shell.flush
+      purge [A, B, C]
+
+      future = { { 2020, 1, 1 }, { 0, 0, 0 } }
+      File.touch!("lib/a.eex", future)
+      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+
+      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+      assert_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
     end
   end
 

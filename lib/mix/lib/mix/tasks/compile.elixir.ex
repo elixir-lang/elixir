@@ -13,13 +13,19 @@ defmodule Mix.Tasks.Compile.Elixir do
                    is_in_list_or_remove(source, all, beam),
                    do: entry
 
-      # Filter stale to be a subset of all
-      stale = lc i inlist stale, i in all, do: i
+      outsider = Enum.any?(stale, &not(&1 in all))
 
-      # Each entry in all that's not in the manifest is also stale
-      stale = stale ++ lc i inlist all,
-                          not Enum.any?(entries, fn { _b, _m, s, _d } -> s == i end),
-                          do: i
+      stale =
+        if outsider do
+          # Outsider files trigger whole compilation
+          all
+        else
+          # Otherwise compile only stale. Also add each entry
+          # in all that's not in the manifest is also stale
+          stale ++ lc i inlist all,
+                      not Enum.any?(entries, fn { _b, _m, s, _d } -> s == i end),
+                      do: i
+        end
 
       cond do
         stale != [] ->
@@ -242,11 +248,13 @@ defmodule Mix.Tasks.Compile.Elixir do
     manifest   = manifest()
     to_compile = Mix.Utils.extract_files(elixirc_paths, compile_exts)
     to_watch   = Mix.Utils.extract_files(elixirc_paths, watch_exts)
+    to_watch   = Mix.Project.config_files ++ [Erlang.manifest] ++ to_watch
 
-    check_files = Mix.Project.config_files ++ [Erlang.manifest]
-
-    all   = opts[:force] || Mix.Utils.stale?(check_files, [manifest]) || path_deps_changed?(manifest)
-    stale = if all, do: to_watch, else: Mix.Utils.extract_stale(to_watch, [manifest])
+    stale = if opts[:force] || path_deps_changed?(manifest) do
+      to_compile
+    else
+      Mix.Utils.extract_stale(to_watch, [manifest])
+    end
 
     files_to_path(manifest, stale, to_compile, compile_path, fn ->
       File.mkdir_p!(compile_path)
