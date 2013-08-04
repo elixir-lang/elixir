@@ -59,7 +59,7 @@ defmodule Supervisor.BehaviourTest do
       Foo,
       { Foo, :start_link, [1, 2, 3] },
       :permanent,
-      5000,
+      :infinity,
       :supervisor,
       [Foo]
     }
