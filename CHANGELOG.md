@@ -1,8 +1,11 @@
 # v0.10.2-dev
 
 * enhancements
+  * [IEx] Allow for strings in `h` helper
 
 * bug fix
+  * [File] Fix a bug where `File.touch(file, datetime)` was not setting the proper datetime when the file did not exist
+  * [Mix] Ensure `watch_exts` trigger full recompilation on change with `mix compile`
 
 * deprecations
 
