@@ -95,8 +95,8 @@ defmodule Regex do
   end
 
   @doc """
-  Runs the regular expression against the given string.
-  It returns a list with all matches or `nil` if no match occurred.
+  Runs the regular expression against the given string until the first match.
+  It returns a list with all captures or `nil` if no match occurred.
 
   When the option `:capture` is set to `:groups`, it will capture all
   the groups in the regex.
