@@ -63,8 +63,16 @@ defmodule IEx.Helpers do
       #=> [Baz]
   """
   def c(files, path // ".") do
-    tuples = Kernel.ParallelCompiler.files_to_path List.wrap(files), path
-    Enum.map tuples, elem(&1, 0)
+    { erls, exs } = Enum.partition(List.wrap(files), &String.ends_with?(&1, ".erl"))
+
+    modules = Enum.map(erls, fn(source) ->
+      { module, binary } = compile_erlang(source)
+      File.write!(Path.join(path, source), binary)
+      module
+    end)
+
+    tuples = Kernel.ParallelCompiler.files_to_path(exs, path)
+    modules ++ Enum.map(tuples, &elem(&1, 0))
   end
 
   @doc """
@@ -293,11 +301,18 @@ defmodule IEx.Helpers do
   end
 
   defp do_r(module) do
-    if source = source(module) do
-      Process.put(:iex_reloaded, :ordsets.add_element(module, iex_reloaded))
-      Enum.map(Code.load_file(source), fn {name, _} -> name end)
-    else
-      :nosource
+    source = source(module)
+    cond do
+      source == nil ->
+        :nosource
+
+      String.ends_with?(source, ".erl") ->
+        Process.put(:iex_reloaded, :ordsets.add_element(module, iex_reloaded))
+        [ compile_erlang(source) |> elem(0) ]
+
+      true ->
+        Process.put(:iex_reloaded, :ordsets.add_element(module, iex_reloaded))
+        Enum.map(Code.load_file(source), fn {name, _} -> name end)
     end
   end
 
@@ -448,5 +463,18 @@ defmodule IEx.Helpers do
 
   defmacro import_file(_) do
     raise ArgumentError, message: "import_file/1 expects a literal binary as its argument"
+  end
+
+  # Compiles and loads an erlang source file, returns { module, binary }
+  defp compile_erlang(source) do
+    source = Path.relative_to(source, File.cwd!) |> binary_to_list
+    case :compile.file(source, [:binary, :report]) do
+      { :ok, module, binary } ->
+        :code.purge(module)
+        { :module, module } = :code.load_binary(module, source, binary)
+        { module, binary }
+      _ ->
+        raise CompileError
+    end
   end
 end
