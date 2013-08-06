@@ -21,6 +21,10 @@ defmodule Kernel.MacrosTest do
     quote do: 1 + unquote(value)
   end
 
+  defmacro do_identity!(do: x) do
+    x
+  end
+
   test :require do
     assert Kernel.MacrosTest.Nested.value == 1
   end
@@ -53,5 +57,10 @@ defmodule Kernel.MacrosTest do
   test :macros_cannot_be_called_dynamically do
     x = Nested
     assert_raise UndefinedFunctionError, fn -> x.value end
+  end
+
+  test :bang_do_block do
+    assert (do_identity! do 1 end) == 1
+    assert (__MODULE__.do_identity! do 1 end) == 1
   end
 end

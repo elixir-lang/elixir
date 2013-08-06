@@ -871,7 +871,8 @@ terminator('<<') -> '>>'.
 check_keyword(_Line, _Atom, [{ '.', _ }|_]) ->
   nomatch;
 
-check_keyword(Line, do, [{ identifier, Line, Atom }|T]) ->
+check_keyword(Line, do, [{ Identifier, Line, Atom }|T]) when
+    Identifier == identifier; Identifier == punctuated_identifier ->
   { ok, [{ do, Line }, { do_identifier, Line, Atom }|T] };
 
 check_keyword(Line, do, Tokens) ->
