@@ -46,10 +46,14 @@ set beforeExtra=
 
 rem Recursive loop called for each parameter that parses the cmd line parameters
 :startloop
-set par=%1
+set par="%1"
 shift
 if "%par%"=="" (
   rem if no parameters defined
+  goto :expand_erl_libs
+)
+if "%par%"=="""" (
+  rem if no parameters defined - special case for parameter that is already quoted
   goto :expand_erl_libs
 )
 rem ******* ERLANG PARAMETERS **********************
