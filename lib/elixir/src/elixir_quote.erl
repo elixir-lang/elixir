@@ -154,14 +154,6 @@ do_quote({ '&', Meta, [{ '/', _, [{F, _, C}, A]}] = Args },
     #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(F), is_integer(A), is_atom(C) ->
   do_quote_fa('&', Meta, Args, F, A, Q, S);
 
-do_quote({ function, Meta, [{ '/', _, [{F, _, C}, A]}] = Args },
-    #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(F), is_integer(A), is_atom(C) ->
-  do_quote_fa(function, Meta, Args, F, A, Q, S);
-
-do_quote({ { '.', _, [_, function] } = Target, Meta, [{ '/', _, [{F, _, C}, A]}] = Args },
-    #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(F), is_integer(A), is_atom(C) ->
-  do_quote_fa(Target, Meta, Args, F, A, Q, S);
-
 do_quote({ Name, Meta, ArgsOrAtom }, #elixir_quote{imports_hygiene=true} = Q, S) when is_atom(Name) ->
   Arity = case is_atom(ArgsOrAtom) of
     true  -> 0;

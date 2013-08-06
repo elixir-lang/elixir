@@ -27,15 +27,9 @@ defmodule Kernel.ParallelCompiler do
   by `each_waiting`, which must return nil or a file as a hint where the source
   could be found.
   """
-  def files(files, opts // [])
+  def files(files, callbacks // [])
 
-  def files(files, callback) when is_function(callback) do
-    IO.write "[WARNING] Kernel.ParallelCompiler.files(files, callback) is deprecated, " <>
-      "please use Kernel.ParallelCompiler.files(files, each_file: callback) instead\n#{Exception.format_stacktrace}"
-    spawn_compilers(files, nil, each_file: callback)
-  end
-
-  def files(files, callbacks) do
+  def files(files, callbacks) when is_list(callbacks) do
     spawn_compilers(files, nil, callbacks)
   end
 
@@ -43,15 +37,9 @@ defmodule Kernel.ParallelCompiler do
   Compiles the given files to the given path.
   Read `files/2` for more information.
   """
-  def files_to_path(files, path, opts // [])
+  def files_to_path(files, path, callbacks // [])
 
-  def files_to_path(files, path, callback) when is_function(callback) do
-    IO.write "[WARNING] Kernel.ParallelCompiler.files_to_path(files, path, callback) is deprecated, " <>
-      "please use Kernel.ParallelCompiler.files_to_path(files, path, each_file: callback) instead\n#{Exception.format_stacktrace}"
-    spawn_compilers(files, path, each_file: callback)
-  end
-
-  def files_to_path(files, path, callbacks) when is_binary(path) do
+  def files_to_path(files, path, callbacks) when is_binary(path) and is_list(callbacks) do
     spawn_compilers(files, path, callbacks)
   end
 

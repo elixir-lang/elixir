@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Test do
   compilation path and the `test_coverage` options as arguments.
   """
 
-  @switches [force: :boolean, color: :boolean,
+  @switches [force: :boolean, color: :boolean, cover: :boolean,
              trace: :boolean, max_cases: :integer]
 
   @cover [output: "cover", tool: Cover]
@@ -89,24 +89,10 @@ defmodule Mix.Tasks.Test do
     Mix.Task.run "app.start", args
 
     project = Mix.project
-    cover   = project[:test_coverage] || []
+    cover   = Keyword.merge(@cover, project[:test_coverage] || [])
 
-    if is_binary(cover) do
-      IO.puts "[WARNING] test_coverage: \"PATH\" is deprecated, " <>
-              "please use test_coverage: [output: \"PATH\"] instead"
-      cover = [output: cover]
-    end
-
-    cover = Keyword.merge(@cover, cover)
-
-    case opts[:cover] do
-      _ in ["true", true] ->
-        cover[:tool].start(project[:compile_path], cover)
-      nil ->
-        :ok
-      _ ->
-        IO.puts "[WARNING] --cover PATH is deprecated, " <>
-                "please set the output directory as test_coverage: [output: \"PATH\"] instead"
+    if opts[:cover] do
+      cover[:tool].start(project[:compile_path], cover)
     end
 
     :application.load(:ex_unit)
