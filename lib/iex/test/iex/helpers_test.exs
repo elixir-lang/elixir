@@ -223,6 +223,20 @@ defmodule IEx.HelpersTest do
     cleanup_modules([Sample, Sample2])
   end
 
+  test "c helper erlang" do
+    assert_raise UndefinedFunctionError, "undefined function: :sample.hello/0", fn ->
+      :sample.hello
+    end
+
+    filename = "sample.erl"
+    with_file filename, erlang_module_code, fn ->
+      assert c(filename) == [:sample]
+      assert :sample.hello == :world
+    end
+  after
+    cleanup_modules([:sample])
+  end
+
   test "l helper" do
     assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
       Sample.run
@@ -288,6 +302,25 @@ defmodule IEx.HelpersTest do
     cleanup_modules([Sample])
   end
 
+  test "r helper erlang" do
+    assert_raise UndefinedFunctionError, "undefined function: :sample.hello/0", fn ->
+      :sample.hello
+    end
+
+    filename = "sample.erl"
+    with_file filename, erlang_module_code, fn ->
+      assert c(filename) == [:sample]
+      assert :sample.hello == :world
+
+      File.write!(filename, other_erlang_module_code)
+      assert { :sample, [:sample] } = r(:sample)
+      assert :sample.hello == :bye
+    end
+  after
+    :code.purge(:sample)
+    cleanup_modules([:sample])
+  end
+
   defp test_module_code do
     """
     defmodule Sample do
@@ -305,6 +338,22 @@ defmodule IEx.HelpersTest do
         :world
       end
     end
+    """
+  end
+
+  defp erlang_module_code do
+    """
+    -module(sample).
+    -export([hello/0]).
+    hello() -> world.
+    """
+  end
+
+  defp other_erlang_module_code do
+    """
+    -module(sample).
+    -export([hello/0]).
+    hello() -> bye.
     """
   end
 
