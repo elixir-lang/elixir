@@ -71,8 +71,7 @@ defmodule IEx.Helpers do
       module
     end)
 
-    tuples = Kernel.ParallelCompiler.files_to_path(exs, path)
-    modules ++ Enum.map(tuples, &elem(&1, 0))
+    modules ++ Kernel.ParallelCompiler.files_to_path(exs, path)
   end
 
   @doc """

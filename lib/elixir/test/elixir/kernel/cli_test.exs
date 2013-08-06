@@ -96,8 +96,7 @@ defmodule Kernel.CLI.ParallelCompilerTest do
   test :files do
     fixtures = [fixture_path("parallel_compiler/bar.ex"), fixture_path("parallel_compiler/foo.ex")]
     assert capture_io(fn ->
-      assert [{ Bar, bar }, { Foo, _foo }] = Kernel.ParallelCompiler.files fixtures
-      assert is_binary(bar)
+      assert [Bar, Foo] = Kernel.ParallelCompiler.files fixtures
     end) =~ "message_from_foo"
   end
 
