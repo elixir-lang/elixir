@@ -141,6 +141,9 @@ defmodule StringTest do
     assert String.replace("a,b,c", ",", "[]", insert_replaced: 2) == "a[],b[],c"
     assert String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1]) == "a[,,]b[,,]c"
     assert String.replace("a,b,c", "b", "[]", insert_replaced: 1, global: false) == "a,[b],c"
+
+    assert String.replace("a,b,c", %r/,(.)/, ",\\1\\1") == "a,bb,cc"
+    assert String.replace("a,b,c", %r/,(.)/, ",\\1\\1", global: false) == "a,bb,c"
   end
 
   test :duplicate do

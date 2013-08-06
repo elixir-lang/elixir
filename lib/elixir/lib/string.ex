@@ -427,14 +427,22 @@ defmodule String do
     rstrip(lstrip(string, char), char)
   end
 
-  @doc """
+  @doc %B"""
   Returns a new binary based on `subject` by replacing the parts
   matching `pattern` for `replacement`. By default, it replaces
   all entries, except if the `global` option is set to `false`.
 
-  If the replaced part must be used in `replacement`, then the
-  position or the positions where it is to be inserted must be
-  specified by using the option `insert_replaced`.
+  ## String pattern
+
+  If the replaced part must be used in `replacement`, then the position or the
+  positions where it is to be inserted must be specified by using the option
+  `insert_replaced`.
+
+  ## Regex pattern
+
+  Inside the replacement, you can either give `&` to access the
+  whole regular expression or `\N`, where `N` is in integer to access
+  a specific matching parens.
 
   ## Examples
 
@@ -448,12 +456,20 @@ defmodule String do
       "a[],b[],c"
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
+      iex> String.replace("a,b,c", %r/,(.)/, ",\\1\\1")
+      "a,bb,cc"
 
   """
   @spec replace(t, t, t) :: t
   @spec replace(t, t, t, Keyword.t) :: t
 
-  def replace(subject, pattern, replacement, options // []) do
+  def replace(subject, pattern, replacement, options // [])
+
+  def replace(subject, pattern, replacement, options) when is_regex(pattern) do
+    Regex.replace(pattern, subject, replacement, global: options[:global])
+  end
+
+  def replace(subject, pattern, replacement, options) do
     opts = translate_replace_options(options)
     :binary.replace(subject, pattern, replacement, opts)
   end
