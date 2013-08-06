@@ -429,20 +429,10 @@ defmodule String do
 
   @doc %B"""
   Returns a new binary based on `subject` by replacing the parts
-  matching `pattern` for `replacement`. By default, it replaces
+  matching `pattern` by `replacement`. By default, it replaces
   all entries, except if the `global` option is set to `false`.
 
-  ## String pattern
-
-  If the replaced part must be used in `replacement`, then the position or the
-  positions where it is to be inserted must be specified by using the option
-  `insert_replaced`.
-
-  ## Regex pattern
-
-  Inside the replacement, you can either give `&` to access the
-  whole regular expression or `\N`, where `N` is in integer to access
-  a specific matching parens.
+  A `pattern` may be a string or a regex.
 
   ## Examples
 
@@ -450,14 +440,25 @@ defmodule String do
       "a-b-c"
       iex> String.replace("a,b,c", ",", "-", global: false)
       "a-b,c"
+
+  The pattern can also be a regex. In those cases, one can give `\N`
+  in the `replacement` string to access a specific catpure in the regex:
+
+      iex> String.replace("a,b,c", %r/,(.)/, ",\\1\\1")
+      "a,bb,cc"
+
+  Notice we had to escape the escape character `\`. By giving `&`,
+  one can inject the whole matched pattern in the replacement string.
+
+  When strings are used as a pattern, a developer can also use the
+  replaced part inside the `replacement` via the `:insert_replaced` option:
+
       iex> String.replace("a,b,c", "b", "[]", insert_replaced: 1)
       "a,[b],c"
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: 2)
       "a[],b[],c"
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
-      iex> String.replace("a,b,c", %r/,(.)/, ",\\1\\1")
-      "a,bb,cc"
 
   """
   @spec replace(t, t, t) :: t

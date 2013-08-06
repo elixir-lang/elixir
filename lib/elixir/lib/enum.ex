@@ -749,6 +749,14 @@ defmodule Enum do
   @doc """
   Returns a list of collection elements shuffled.
 
+  Notice you need to explicitly call `:random.seed/1` and
+  set a seed value for the random algorithm. Otherwise, the
+  default seed will be set which will always return the same
+  result. For example, one could the following to set a seed
+  dynamically:
+
+      :random.seed(:erlang.now)
+
   ## Examples
 
       iex(1)> Enum.shuffle([1, 2, 3])
