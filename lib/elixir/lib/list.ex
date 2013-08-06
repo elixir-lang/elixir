@@ -312,7 +312,7 @@ defmodule List do
 
   @doc """
   Returns a list with an inserted value at specified index. Note that the index
-  is capped at the list length and that negative indicies wraps around at the
+  is capped at the list length and that negative indices wraps around at the
   end of the list.
 
   ## Examples
@@ -335,7 +335,53 @@ defmodule List do
     end
   end
 
+  @doc """
+  Returns a list with a replaced value at specified index. Negative indices
+  wrap around at the end of the list. If the index is out of bounds, the
+  original list is returned.
+
+  ## Examples
+
+      iex> List.replace_at([1, 2, 3], 0, 0)
+      [0, 2, 3]
+
+      iex> List.replace_at([1, 2, 3], 10, 0)
+      [1, 2, 3]
+
+      iex> List.replace_at([1, 2, 3], -1, 0)
+      [1, 2, 0]
+
+      iex> List.replace_at([1, 2, 3], -10, 0)
+      [1, 2, 3]
+
+  """
+  def replace_at(list, index, value) do
+    if index < 0 do
+      do_replace_at(list, length(list) + index, value)
+    else
+      do_replace_at(list, index, value)
+    end
+  end
+
   ## Helpers
+
+  # replace_at
+
+  def do_replace_at([], _index, _value) do
+    []
+  end
+
+  def do_replace_at(list, index, _value) when index < 0 do
+    list
+  end
+
+  def do_replace_at([_old|rest], 0, value) do
+    [ value | rest ]
+  end
+
+  def do_replace_at([h|t], index, value) do
+    [ h | do_replace_at(t, index - 1, value) ]
+  end
 
   # insert_at
 

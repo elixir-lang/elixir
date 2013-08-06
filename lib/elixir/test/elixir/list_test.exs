@@ -131,4 +131,13 @@ defmodule ListTest do
     assert List.insert_at([1, 2, 3], -1, 0) == [1, 2, 0, 3]
     assert List.insert_at([1, 2, 3], -10, 0) == [0, 1, 2, 3]
   end
+
+  test :replace_at do
+    assert List.replace_at([1, 2, 3], 0, 0) == [0, 2, 3]
+    assert List.replace_at([1, 2, 3], 1, 0) == [1, 0, 3]
+    assert List.replace_at([1, 2, 3], 2, 0) == [1, 2, 0]
+    assert List.replace_at([1, 2, 3], 3, 0) == [1, 2, 3]
+    assert List.replace_at([1, 2, 3], -1, 0) == [1, 2, 0]
+    assert List.replace_at([1, 2, 3], -4, 0) == [1, 2, 3]
+  end
 end
