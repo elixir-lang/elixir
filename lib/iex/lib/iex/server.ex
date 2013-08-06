@@ -92,7 +92,7 @@ defmodule IEx.Server do
   # break out from a pending incomplete expression. See
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   #
-  @break_trigger '#iex:break\n'
+  @break_trigger '#!!!\n'
 
   defp eval(_, @break_trigger, _, config=IEx.Config[cache: '']) do
     config
