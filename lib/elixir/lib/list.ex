@@ -5,7 +5,7 @@ defmodule List do
   favor using the Enum API instead of List.
 
   A decision was taken to delegate most functions to
-  Erlang's standard lib but following Elixir's convention
+  Erlang's standard library but follow Elixir's convention
   of receiving the target (in this case, a list) as the
   first argument.
   """
@@ -13,7 +13,7 @@ defmodule List do
   @compile :inline_list_funcs
 
   @doc """
-  Given a list of lists, concatenates the sublists into a single list.
+  Given a list of lists, concatenate the sublists into a single list.
 
   ## Examples
 
@@ -28,9 +28,7 @@ defmodule List do
   @doc """
   Concatenates the list on the right with the list on the left.
 
-  This function produces the same result the `++` operator. The only difference
-  is a minor optimization: when the first list contains only one element, we
-  simply add it as a head to the second list.
+  This function produces the same result the `++` operator. 
 
   ## Examples
 
@@ -52,13 +50,16 @@ defmodule List do
       iex> List.delete([1, 2, 3], 1)
       [2,3]
 
+      iex> List.delete([1, 2, 2, 3], 2)
+      [1, 2, 3]
+
   """
   def delete(list, item) do
     :lists.delete(item, list)
   end
 
   @doc """
-  Duplicates the given element n times in a list.
+  Duplicates the given element `n` times in a list.
 
   ## Examples
 
@@ -73,23 +74,29 @@ defmodule List do
   end
 
   @doc """
-  Flattens the given `list` of nested lists. An optional
-  tail can be given that will be added at the end of
-  the flattened list.
+  Flattens the given `list` of nested lists.
 
   ## Examples
 
       iex> List.flatten([1, [[2], 3]])
       [1,2,3]
 
-      iex> List.flatten([1, [[2], 3]], [4, 5])
-      [1,2,3,4,5]
-
   """
   def flatten(list) do
     :lists.flatten(list)
   end
 
+  @doc """
+  Flattens the given `list` of nested lists. 
+  The list `tail` will be added at the end of
+  the flattened list.
+
+  ## Examples
+
+      iex> List.flatten([1, [[2], 3]], [4, 5])
+      [1,2,3,4,5]
+
+  """
   def flatten(list, tail) do
     :lists.flatten(list, tail)
   end
@@ -126,7 +133,7 @@ defmodule List do
   end
 
   @doc """
-  Returns the last element in `list` or nil if the `list` is empty.
+  Returns the last element in `list` or `nil` if `list` is empty.
 
   ## Examples
 
@@ -146,7 +153,7 @@ defmodule List do
 
   @doc """
   Receives a list of tuples and returns the first tuple
-  where the item at position `position` matches with the
+  where the item at `position` in the tuple matches the
   given `item`.
 
   ## Examples
@@ -166,9 +173,9 @@ defmodule List do
   end
 
   @doc """
-  Receives a list of tuples and returns true if there is
-  a tuple where the item at position `position` matches
-  with the given `item`.
+  Receives a list of tuples and returns `true` if there is
+  a tuple where the item at `position` in the tuple matches
+  the given `item`.
 
   ## Examples
 
@@ -188,7 +195,7 @@ defmodule List do
 
   @doc """
   Receives a list of tuples and replaces the item
-  identified by `key` at position `pos` if it exists.
+  identified by `key` at `position` if it exists.
 
   ## Examples
 
@@ -202,7 +209,7 @@ defmodule List do
 
   @doc """
   Receives a list of tuples and sorts the items
-  at position `pos` of the tuples. The sort is stable.
+  at `position` of the tuples. The sort is stable.
 
   ## Examples
 
@@ -219,13 +226,16 @@ defmodule List do
 
   @doc """
   Receives a list of tuples and replaces the item
-  identified by `key` at position `pos`. If the item
+  identified by `key` at `position`. If the item
   does not exist, it is added to the end of the list.
 
   ## Examples
 
       iex> List.keystore([a: 1, b: 2], :a, 0, { :a, 3 })
       [a: 3, b: 2]
+
+      iex> List.keystore([a: 1, b: 2], :c, 0, { :c, 3 })
+      [a: 1, b: 2, c: 3]
 
   """
   def keystore(list, key, position, new_tuple) do
@@ -234,8 +244,8 @@ defmodule List do
 
   @doc """
   Receives a list of tuples and deletes the first tuple
-  where the item at position `position` matches with the
-  given `item`. Returns the new tuple.
+  where the item at `position` matches the
+  given `item`. Returns the new list.
 
   ## Examples
 
@@ -256,12 +266,18 @@ defmodule List do
   @doc """
   Wraps the argument in a list.
   If the argument is already a list, returns the list.
-  If the argument is nil, returns an empty list.
+  If the argument is `nil`, returns an empty list.
 
   ## Examples
 
+      iex> List.wrap("hello")
+      ["hello"]
+
       iex> List.wrap([1, 2, 3])
       [1,2,3]
+
+      iex> List.wrap(nil)
+      []
 
   """
   def wrap(list) when is_list(list) do
@@ -311,8 +327,8 @@ defmodule List do
   end
 
   @doc """
-  Returns a list with an inserted value at specified index. Note that the index
-  is capped at the list length and that negative indices wraps around at the
+  Returns a list with `value` inserted at the specified `index`. Note that `index`
+  is capped at the list length. Negative indices indicate an offset from the
   end of the list.
 
   ## Examples
@@ -326,6 +342,9 @@ defmodule List do
       iex> List.insert_at([1, 2, 3], -1, 0)
       [1, 2, 3, 0]
 
+      iex> List.insert_at([1, 2, 3], -10, 0)
+      [0, 1, 2, 3]
+
   """
   def insert_at(list, index, value) do
     if index < 0 do
@@ -336,9 +355,9 @@ defmodule List do
   end
 
   @doc """
-  Returns a list with a replaced value at specified index. Negative indices
-  wrap around at the end of the list. If the index is out of bounds, the
-  original list is returned.
+  Returns a list with a replaced value at the specified `index`. Negative indices
+  indicate an offset from the end of the list. If `index` is out of bounds, the
+  original `list` is returned.
 
   ## Examples
 
@@ -367,19 +386,19 @@ defmodule List do
 
   # replace_at
 
-  def do_replace_at([], _index, _value) do
+  defp do_replace_at([], _index, _value) do
     []
   end
 
-  def do_replace_at(list, index, _value) when index < 0 do
+  defp do_replace_at(list, index, _value) when index < 0 do
     list
   end
 
-  def do_replace_at([_old|rest], 0, value) do
+  defp do_replace_at([_old|rest], 0, value) do
     [ value | rest ]
   end
 
-  def do_replace_at([h|t], index, value) do
+  defp do_replace_at([h|t], index, value) do
     [ h | do_replace_at(t, index - 1, value) ]
   end
 
