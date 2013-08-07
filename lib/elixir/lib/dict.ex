@@ -50,6 +50,8 @@ defmodule Dict do
   defcallback equal?(t, t) :: boolean
   defcallback get(t, key) :: value
   defcallback get(t, key, value) :: value
+  defcallback fetch(t, key) :: { :ok, value } | :error
+  defcallback fetch!(t, key) :: value | no_return
   defcallback has_key?(t, key) :: boolean
   defcallback keys(t) :: list(key)
   defcallback merge(t, t) :: t
@@ -160,11 +162,6 @@ defmodule Dict do
   @spec get(t, key, value) :: value
   def get(dict, key, default // nil) do
     target(dict).get(dict, key, default)
-  end
-
-  @doc false
-  def get!(dict, key) do
-    target(dict).get!(dict, key)
   end
 
   @doc """
