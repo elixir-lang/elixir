@@ -125,7 +125,7 @@ defmodule OptionParser do
         end
     end
 
-    { dict, invalid } = validate_option(dict, invalid, option, value, kinds)
+    { dict, invalid } = store_option(dict, invalid, option, value, kinds)
 
     parse(t, aliases, switches, dict, args, invalid, all)
   end
@@ -146,23 +146,35 @@ defmodule OptionParser do
   defp value_from_tail([h|t]),            do: { h, t }
   defp value_from_tail([]),               do: { true, [] }
 
-  defp store_option(dict, option, value, kinds) do
-    cond do
-      :boolean in kinds ->
-        do_store_option(dict, option, value in ["true", true], kinds)
-      :integer in kinds ->
-        case String.to_integer(value) do
-          { value, "" } -> do_store_option(dict, option, value, kinds)
-          _ -> dict
+  defp store_option(dict, invalid, option, value, kinds) do
+    { invalid_option, value } =
+      try do
+        cond do
+          kinds in [[], [:keep]] ->
+            { nil, value }
+          :boolean in kinds && value == "true" ->
+            { nil, true }
+          :boolean in kinds && is_binary(value) ->
+            { nil, false }
+          :boolean in kinds ->
+            { nil, value }
+          :integer in kinds && is_integer(binary_to_integer(value)) ->
+            { nil, binary_to_integer(value) }
+          :float in kinds && is_float(binary_to_float(value)) ->
+            { nil, binary_to_float(value) }
+          true ->
+            { { option, value }, value }
         end
-      :float in kinds ->
-        case String.to_float(value) do
-          { value, "" } -> do_store_option(dict, option, value, kinds)
-          _ -> dict
-        end
-      true ->
-        do_store_option(dict, option, value, kinds)
-    end
+      rescue
+        ArgumentError -> { { option, value }, value }
+      end
+
+    { dict, invalid } =
+      if invalid_option do
+        { dict, invalid ++ List.wrap(invalid_option) }
+      else
+        { do_store_option(dict, option, value, kinds), invalid }
+      end
   end
 
   defp do_store_option(dict, option, value, kinds) do
@@ -172,29 +184,6 @@ defmodule OptionParser do
       true ->
         [{ option, value }|Keyword.delete(dict, option)]
     end
-  end
-
-  def validate_option(dict, invalid, option, value, kinds) do
-    invalid_option =
-      try do
-        cond do
-          kinds in [[], [:keep]] -> nil
-          :boolean in kinds -> nil
-          :integer in kinds && is_integer(binary_to_integer(value)) -> nil
-          :float in kinds && is_float(binary_to_float(value)) -> nil
-          true -> { option, value }
-        end
-      rescue
-        ArgumentError -> { option, value }
-      end
-
-
-    { dict, invalid } =
-      if invalid_option do
-        { dict, invalid ++ List.wrap(invalid_option) }
-      else
-        { store_option(dict, option, value, kinds), invalid }
-      end
   end
 
   defp normalize_option(<<?-, option :: binary>>, switches, aliases) do
