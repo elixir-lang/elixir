@@ -43,6 +43,9 @@ defmodule OptionParser do
   * `:integer` - Parses the switch as an integer;
   * `:float`   - Parses the switch as a float;
 
+  If a switch can't be parsed, a third element is added to the returned
+  tuple with the invalid options.
+
   The following extra options are supported:
 
   * `:keep` - Keeps duplicated items in the list instead of overriding;
@@ -55,6 +58,12 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--unlock", "--limit", "0", "path/to/file"],
       ...>                    switches: [unlock: :boolean, limit: :integer])
       { [unlock: true, limit: 0], ["path/to/file"] }
+
+      iex> OptionParser.parse(["-limit", "3"], switches: [limit: :integer])
+      { [limit: 3], [] }
+
+      iex> OptionParser.parse(["-limit", "yyz"], switches: [limit: :integer])
+      { [], [], [limit: "yyz"] }
 
   ## Negation switches
 
