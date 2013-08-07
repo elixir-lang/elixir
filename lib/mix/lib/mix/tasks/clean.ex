@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Clean do
 
   """
   def run(args) do
-    { opts, _ } = OptionParser.parse(args)
+    { opts, _, _ } = OptionParser.parse(args)
 
     manifests = Mix.Tasks.Compile.manifests
     Enum.each(manifests, fn(manifest) ->

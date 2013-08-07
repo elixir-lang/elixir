@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Local.Uninstall do
   """
 
   def run(argv) do
-    { _, argv } = OptionParser.parse(argv)
+    { _, argv, _ } = OptionParser.parse(argv)
     Enum.each argv, do_uninstall(&1)
   end
 
