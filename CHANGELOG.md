@@ -1,13 +1,22 @@
 # v0.10.2-dev
 
 * enhancements
+  * [Enum] Add `Enum.reduce/2`
   * [IEx] Allow for strings in `h` helper
+  * [IEx] Helpers `r` and `c` can handle erlang sources
+  * [List] Add `List.replace_at/3`
+  * [String] Add regex pattern support to `String.replace/3`
 
 * bug fix
   * [File] Fix a bug where `File.touch(file, datetime)` was not setting the proper datetime when the file did not exist
+  * [Kernel] Fix default shutdown of child supervisors to infinity
+  * [Kernel] Fix regression when calling a function/macro ending with bang, followed by `do/end` blocks
   * [Mix] Ensure `watch_exts` trigger full recompilation on change with `mix compile`
+  * [Mix] Fix regression on `mix clean --all`
+  * [List] Fix bug on `List.insert_at/3` that added the item at the wrong position for negative indexes
 
 * deprecations
+  * [Enum] `Enum.min/2` and `Enum.max/2` are deprecated in favor of `Enum.min_by/2` and `Enum.max_by/2`
 
 * backwards incompatible changes
 
