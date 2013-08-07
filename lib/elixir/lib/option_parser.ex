@@ -190,7 +190,7 @@ defmodule OptionParser do
 
     { dict, invalid } =
       if invalid_option do
-        { dict, List.concat(invalid, List.wrap(invalid_option)) }
+        { dict, invalid ++ List.wrap(invalid_option) }
       else
         { store_option(dict, option, value, kinds), invalid }
       end
