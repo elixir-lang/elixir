@@ -4,19 +4,19 @@ defmodule OptionParser do
   """
 
   @doc """
-  Parses `argv` and returns a tuple with parsed options
-  and arguments.
+  Parses `argv` and returns a tuple with the parsed options, its
+  arguments, and a list options that couldn't be parsed.
 
   ## Examples
 
       iex> OptionParser.parse(["--debug"])
-      { [debug: true], [] }
+      { [debug: true], [], [] }
 
       iex> OptionParser.parse(["--source", "lib"])
-      { [source: "lib"], [] }
+      { [source: "lib"], [], [] }
 
       iex> OptionParser.parse(["--source-path", "lib", "test/enum_test.exs", "--verbose"])
-      { [source_path: "lib", verbose: true], ["test/enum_test.exs"] }
+      { [source_path: "lib", verbose: true], ["test/enum_test.exs"], [] }
 
   Notice how Elixir automatically translates the "--source-path"
   switch to the underscored atom `:source_path`, which better follows
@@ -27,7 +27,7 @@ defmodule OptionParser do
   A set of aliases can be given as the second argument:
 
       iex> OptionParser.parse(["-d"], aliases: [d: :debug])
-      { [debug: true], [] }
+      { [debug: true], [], [] }
 
   ## Switches
 
@@ -43,8 +43,8 @@ defmodule OptionParser do
   * `:integer` - Parses the switch as an integer;
   * `:float`   - Parses the switch as a float;
 
-  If a switch can't be parsed, a third element is added to the returned
-  tuple with the invalid options.
+  If a switch can't be parsed, the option is returned in the invalid
+  options list (third element of the returned tuple).
 
   The following extra options are supported:
 
@@ -53,14 +53,14 @@ defmodule OptionParser do
   Examples:
 
       iex> OptionParser.parse(["--unlock", "path/to/file"], switches: [unlock: :boolean])
-      { [unlock: true], ["path/to/file"] }
+      { [unlock: true], ["path/to/file"], [] }
 
       iex> OptionParser.parse(["--unlock", "--limit", "0", "path/to/file"],
       ...>                    switches: [unlock: :boolean, limit: :integer])
-      { [unlock: true, limit: 0], ["path/to/file"] }
+      { [unlock: true, limit: 0], ["path/to/file"], [] }
 
       iex> OptionParser.parse(["-limit", "3"], switches: [limit: :integer])
-      { [limit: 3], [] }
+      { [limit: 3], [], [] }
 
       iex> OptionParser.parse(["-limit", "yyz"], switches: [limit: :integer])
       { [], [], [limit: "yyz"] }
@@ -71,12 +71,12 @@ defmodule OptionParser do
   booleans and never parse the next value:
 
       iex> OptionParser.parse(["--no-op", "path/to/file"])
-      { [no_op: true], ["path/to/file"] }
+      { [no_op: true], ["path/to/file"], [] }
 
   In case the negated switch exists as a boolean, it sets the boolean to false:
 
       iex> OptionParser.parse(["--no-op", "path/to/file"], switches: [op: :boolean])
-      { [op: false], ["path/to/file"] }
+      { [op: false], ["path/to/file"], [] }
 
   """
   def parse(argv, opts // []) when is_list(argv) and is_list(opts) do
@@ -92,10 +92,10 @@ defmodule OptionParser do
   ## Example
 
       iex> OptionParser.parse_head(["--source", "lib", "test/enum_test.exs", "--verbose"])
-      { [source: "lib"], ["test/enum_test.exs", "--verbose"] }
+      { [source: "lib"], ["test/enum_test.exs", "--verbose"], [] }
 
       iex> OptionParser.parse_head(["--verbose", "--source", "lib", "test/enum_test.exs", "--unlock"])
-      {[verbose: true, source: "lib"], ["test/enum_test.exs", "--unlock"]}
+      { [verbose: true, source: "lib"], ["test/enum_test.exs", "--unlock"], [] }
   """
   def parse_head(argv, opts // []) when is_list(argv) and is_list(opts) do
     parse(argv, opts, false)
@@ -135,19 +135,11 @@ defmodule OptionParser do
   end
 
   defp parse([], _, _switches, dict, args, invalid, true) do
-    if List.wrap(invalid) == [] do
-      { Enum.reverse(dict), Enum.reverse(args) }
-    else
-      { Enum.reverse(dict), Enum.reverse(args), invalid }
-    end
+    { Enum.reverse(dict), Enum.reverse(args), invalid }
   end
 
   defp parse(value, _, _switches, dict, _args, invalid, false) do
-    if List.wrap(invalid) == [] do
-      { Enum.reverse(dict), value }
-    else
-      { Enum.reverse(dict), value, invalid }
-    end
+    { Enum.reverse(dict), value, invalid }
   end
 
   defp value_from_tail(["-" <> _|_] = t), do: { true, t }
