@@ -64,7 +64,7 @@ defmodule OptionParserTest do
 
   test "parses configured integers" do
     assert OptionParser.parse(["--value", "1", "foo"], switches: [value: :integer])  == { [value: 1], ["foo"] }
-    assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :integer]) == { [], ["foo"] }
+    assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :integer]) == { [], ["foo"], [value: "WAT"] }
   end
 
   test "parses configured integers with keep" do
@@ -74,7 +74,7 @@ defmodule OptionParserTest do
 
   test "parses configured floats" do
     assert OptionParser.parse(["--value", "1.0", "foo"], switches: [value: :float])  == { [value: 1.0], ["foo"] }
-    assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :float]) == { [], ["foo"] }
+    assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :float]) == { [], ["foo"], [value: "WAT"] }
   end
 
   test "parses no switches as flags" do

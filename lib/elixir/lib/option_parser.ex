@@ -101,10 +101,10 @@ defmodule OptionParser do
   end
 
   defp parse(argv, aliases, switches, all) do
-    parse(argv, aliases, switches, [], [], all)
+    parse(argv, aliases, switches, [], [], [], all)
   end
 
-  defp parse(["-" <> option|t], aliases, switches, dict, args, all) when option != "-" do
+  defp parse(["-" <> option|t], aliases, switches, dict, args, invalid, all) when option != "-" do
     { option, kinds, value } = normalize_option(option, switches, aliases)
 
     if nil?(value) do
@@ -116,20 +116,29 @@ defmodule OptionParser do
         end
     end
 
-    dict = store_option(dict, option, value, kinds)
-    parse(t, aliases, switches, dict, args, all)
+    { dict, invalid } = validate_option(dict, invalid, option, value, kinds)
+
+    parse(t, aliases, switches, dict, args, invalid, all)
   end
 
-  defp parse([h|t], aliases, switches, dict, args, true) do
-    parse(t, aliases, switches, dict, [h|args], true)
+  defp parse([h|t], aliases, switches, dict, args, invalid, true) do
+    parse(t, aliases, switches, dict, [h|args], invalid, true)
   end
 
-  defp parse([], _, _switches, dict, args, true) do
-    { Enum.reverse(dict), Enum.reverse(args) }
+  defp parse([], _, _switches, dict, args, invalid, true) do
+    if List.wrap(invalid) == [] do
+      { Enum.reverse(dict), Enum.reverse(args) }
+    else
+      { Enum.reverse(dict), Enum.reverse(args), invalid }
+    end
   end
 
-  defp parse(value, _, _switches, dict, _args, false) do
-    { Enum.reverse(dict), value }
+  defp parse(value, _, _switches, dict, _args, invalid, false) do
+    if List.wrap(invalid) == [] do
+      { Enum.reverse(dict), value }
+    else
+      { Enum.reverse(dict), value, invalid }
+    end
   end
 
   defp value_from_tail(["-" <> _|_] = t), do: { true, t }
@@ -162,6 +171,29 @@ defmodule OptionParser do
       true ->
         [{ option, value }|Keyword.delete(dict, option)]
     end
+  end
+
+  def validate_option(dict, invalid, option, value, kinds) do
+    invalid_option =
+      try do
+        cond do
+          kinds in [[], [:keep]] -> nil
+          :boolean in kinds -> nil
+          :integer in kinds && is_integer(binary_to_integer(value)) -> nil
+          :float in kinds && is_float(binary_to_float(value)) -> nil
+          true -> { option, value }
+        end
+      rescue
+        ArgumentError -> { option, value }
+      end
+
+
+    { dict, invalid } =
+      if invalid_option do
+        { dict, List.concat(invalid, List.wrap(invalid_option)) }
+      else
+        { store_option(dict, option, value, kinds), invalid }
+      end
   end
 
   defp normalize_option(<<?-, option :: binary>>, switches, aliases) do
