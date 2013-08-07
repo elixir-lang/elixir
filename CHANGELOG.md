@@ -14,6 +14,7 @@
   * [Mix] Ensure `watch_exts` trigger full recompilation on change with `mix compile`
   * [Mix] Fix regression on `mix clean --all`
   * [List] Fix bug on `List.insert_at/3` that added the item at the wrong position for negative indexes
+  * [System] `System.get_env/0` now returns a list of tuples as previously advertised
 
 * deprecations
   * [Enum] `Enum.min/2` and `Enum.max/2` are deprecated in favor of `Enum.min_by/2` and `Enum.max_by/2`

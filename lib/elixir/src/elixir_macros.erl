@@ -4,9 +4,8 @@
 -export([translate/2]).
 -import(elixir_translator, [translate_each/2, translate_args/2, translate_apply/7]).
 -import(elixir_scope, [umergec/2, umergea/2]).
--import(elixir_errors, [compile_error/3, compile_error/4,
-  syntax_error/3, syntax_error/4, assert_no_function_scope/3,
-  assert_module_scope/3, assert_no_match_or_guard_scope/3]).
+-import(elixir_errors, [compile_error/3, syntax_error/3, syntax_error/4,
+  assert_no_function_scope/3, assert_module_scope/3, assert_no_match_or_guard_scope/3]).
 
 -include("elixir.hrl").
 -define(opt_in_types(Kind), Kind == atom orelse Kind == integer orelse Kind == float).
