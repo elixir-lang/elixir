@@ -324,12 +324,12 @@ defmodule List do
       [1, 2, 3, 0]
 
       iex> List.insert_at([1, 2, 3], -1, 0)
-      [1, 2, 0, 3]
+      [1, 2, 3, 0]
 
   """
   def insert_at(list, index, value) do
     if index < 0 do
-      do_insert_at(list, length(list) + index, value)
+      do_insert_at(list, length(list) + index + 1, value)
     else
       do_insert_at(list, index, value)
     end

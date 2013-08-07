@@ -128,7 +128,8 @@ defmodule ListTest do
     assert List.insert_at([1, 2, 3], 3, 0) == [1, 2, 3, 0]
     assert List.insert_at([1, 2, 3], 2, 0) == [1, 2, 0, 3]
     assert List.insert_at([1, 2, 3], 10, 0) == [1, 2, 3, 0]
-    assert List.insert_at([1, 2, 3], -1, 0) == [1, 2, 0, 3]
+    assert List.insert_at([1, 2, 3], -1, 0) == [1, 2, 3, 0]
+    assert List.insert_at([1, 2, 3], -4, 0) == [0, 1, 2, 3]
     assert List.insert_at([1, 2, 3], -10, 0) == [0, 1, 2, 3]
   end
 
