@@ -1082,28 +1082,8 @@ defmodule Enum do
 
   """
   @spec max(t) :: element | no_return
-  def max([h|t]) do
-    Enumerable.reduce(t, h, fn(entry, max) ->
-      if entry > max, do: entry, else: max
-    end)
-  end
-
-  def max([]) do
-    raise Enum.EmptyError
-  end
-
   def max(collection) do
-    result = Enumerable.reduce(collection, :first, fn
-      entry, :first ->
-        { :reduce, entry }
-      entry, { :reduce, max } ->
-        if entry > max, do: { :reduce, entry }, else: { :reduce, max }
-    end)
-
-    case result do
-      :first           -> raise Enum.EmptyError
-      { :reduce, max } -> max
-    end
+    reduce(collection, &Kernel.max(&1, &2))
   end
 
   @doc """
@@ -1156,33 +1136,8 @@ defmodule Enum do
 
   """
   @spec min(t) :: element | no_return
-  def min([h|t]) do
-    Enumerable.reduce(t, h, fn(entry, min) ->
-      if entry < min, do: entry, else: min
-    end)
-  end
-
-  def min([]) do
-    raise Enum.EmptyError
-  end
-
-  def min(collection) when is_list(collection) do
-    if collection == [], do: raise Enum.EmptyError
-    :lists.min(collection)
-  end
-
   def min(collection) do
-    result = Enumerable.reduce(collection, :first, fn
-      entry, :first ->
-        { :reduce, entry }
-      entry, { :reduce, min } ->
-        if entry < min, do: { :reduce, entry }, else: { :reduce, min }
-    end)
-
-    case result do
-      :first           -> raise Enum.EmptyError
-      { :reduce, min } -> min
-    end
+    reduce(collection, &Kernel.min(&1, &2))
   end
 
   @doc """
