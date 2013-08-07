@@ -298,10 +298,12 @@ defmodule EnumTest.List do
     assert_raise Enum.EmptyError, fn ->
       assert Enum.max([])
     end
+  end
 
-    assert Enum.max(["a", "aa", "aaa"], fn(x) -> String.length(x) end) == "aaa"
+  test :max_by do
+    assert Enum.max_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end) == "aaa"
     assert_raise Enum.EmptyError, fn ->
-      Enum.max([], fn(x) -> String.length(x) end)
+      Enum.max_by([], fn(x) -> String.length(x) end)
     end
   end
 
@@ -312,10 +314,12 @@ defmodule EnumTest.List do
     assert_raise Enum.EmptyError, fn ->
       assert Enum.min([])
     end
+  end
 
-    assert Enum.min(["a", "aa", "aaa"], fn(x) -> String.length(x) end) == "a"
+  test :min_by do
+    assert Enum.min_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end) == "a"
     assert_raise Enum.EmptyError, fn ->
-      Enum.min([], fn(x) -> String.length(x) end)
+      Enum.min_by([], fn(x) -> String.length(x) end)
     end
   end
 end
@@ -641,18 +645,22 @@ defmodule EnumTest.Range do
     assert Enum.max(1..1) == 1
     assert Enum.max(1..3) == 3
     assert Enum.max(3..1) == 3
+  end
 
-    assert Enum.max(1..1, fn(x) -> :math.pow(-2, x) end) == 1
-    assert Enum.max(1..3, fn(x) -> :math.pow(-2, x) end) == 2
+  test :max_by do
+    assert Enum.max_by(1..1, fn(x) -> :math.pow(-2, x) end) == 1
+    assert Enum.max_by(1..3, fn(x) -> :math.pow(-2, x) end) == 2
   end
 
   test :min do
     assert Enum.min([1]) == 1
     assert Enum.min([1, 2, 3]) == 1
     assert Enum.min([[], :a, {}]) == :a
+  end
 
-    assert Enum.min(1..1, fn(x) -> :math.pow(-2, x) end) == 1
-    assert Enum.min(1..3, fn(x) -> :math.pow(-2, x) end) == 3
+  test :min_by do
+    assert Enum.min_by(1..1, fn(x) -> :math.pow(-2, x) end) == 1
+    assert Enum.min_by(1..3, fn(x) -> :math.pow(-2, x) end) == 3
   end
 end
 

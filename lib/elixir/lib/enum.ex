@@ -1086,18 +1086,24 @@ defmodule Enum do
     reduce(collection, &Kernel.max(&1, &2))
   end
 
+  @doc false
+  def max(coll, fun) do
+    IO.write "Enum.max/2 is deprecated, please use Enum.max_by/2 instead\n#{Exception.format_stacktrace}"
+    max_by(coll, fun)
+  end
+
   @doc """
-  Returns the maximum value.
+  Returns the maximum value as calculated per the given function.
   Raises `EmptyError` if the collection is empty.
 
   ## Examples
 
-      iex> Enum.max(["a", "aa", "aaa"], fn(x) -> String.length(x) end)
+      iex> Enum.max_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end)
       "aaa"
 
   """
-  @spec max(t, (element -> any)) :: element | no_return
-  def max([h|t], fun) do
+  @spec max_by(t, (element -> any)) :: element | no_return
+  def max_by([h|t], fun) do
     { max, _ } = Enumerable.reduce(t, { h, fun.(h) }, fn(entry, { _, fun_max } = old) ->
       fun_entry = fun.(entry)
       if fun_entry > fun_max, do: { entry, fun_entry }, else: old
@@ -1106,11 +1112,11 @@ defmodule Enum do
     max
   end
 
-  def max([], _fun) do
+  def max_by([], _fun) do
     raise Enum.EmptyError
   end
 
-  def max(collection, fun) do
+  def max_by(collection, fun) do
     result = Enumerable.reduce(collection, :first, fn
       entry, :first ->
         { :reduce, entry, fun.(entry) }
@@ -1140,18 +1146,24 @@ defmodule Enum do
     reduce(collection, &Kernel.min(&1, &2))
   end
 
+  @doc false
+  def min(coll, fun) do
+    IO.write "Enum.min/2 is deprecated, please use Enum.min_by/2 instead\n#{Exception.format_stacktrace}"
+    min_by(coll, fun)
+  end
+
   @doc """
-  Returns the minimum value.
+  Returns the minimum value as calculated per the given function.
   Raises `EmptyError` if the collection is empty.
 
   ## Examples
 
-      iex> Enum.min(["a", "aa", "aaa"], fn(x) -> String.length(x) end)
+      iex> Enum.min_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end)
       "a"
 
   """
-  @spec min(t, (element -> any)) :: element | no_return
-  def min([h|t], fun) do
+  @spec min_by(t, (element -> any)) :: element | no_return
+  def min_by([h|t], fun) do
     { min, _ } = Enumerable.reduce(t, { h, fun.(h) }, fn(entry, { _, fun_min } = old) ->
       fun_entry = fun.(entry)
       if fun_entry < fun_min, do: { entry, fun_entry }, else: old
@@ -1160,11 +1172,11 @@ defmodule Enum do
     min
   end
 
-  def min([], _fun) do
+  def min_by([], _fun) do
     raise Enum.EmptyError
   end
 
-  def min(collection, fun) do
+  def min_by(collection, fun) do
     result = Enumerable.reduce(collection, :first, fn
       entry, :first ->
         { :reduce, entry, fun.(entry) }
