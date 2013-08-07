@@ -8,10 +8,10 @@ defprotocol Enumerable do
 
   For example, in the expression
 
-      Enum.map([1, 2, 3], &1 * 2)
+      Enum.map([1, 2, 3], &(&1 * 2))
 
   `Enum.map/2` invokes `Enumerable.reduce/3` to perform the reducing operation
-  that builds a mapped list by calling the mapping function `&1 * 2` on every
+  that builds a mapped list by calling the mapping function `&(&1 * 2)` on every
   element in the collection and cons'ing the element with the accumulated list.
   """
 
@@ -359,7 +359,7 @@ defmodule Enum do
 
   @doc """
   Finds the element at the given index (zero-based).
-  Raises out of bounds error in case the given position
+  Raises `OutOfBoundsError` if the given position
   is outside the range of the collection.
 
   ## Examples
@@ -612,11 +612,11 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.map_join([1, 2, 3], &1 * 2)
+      iex> Enum.map_join([1, 2, 3], &(&1 * 2))
       "246"
-      iex> Enum.map_join([1, 2, 3], " = ", &1 * 2)
+      iex> Enum.map_join([1, 2, 3], " = ", &(&1 * 2))
       "2 = 4 = 6"
-      iex> Enum.map_join([1, 2, 3], ' = ', &1 * 2)
+      iex> Enum.map_join([1, 2, 3], ' = ', &(&1 * 2))
       '2 = 4 = 6'
 
   """
@@ -709,7 +709,7 @@ defmodule Enum do
   @doc """
   Invokes `fun` for each element in the collection passing that element and the
   accumulator `acc` as arguments. `fun`'s return value is stored in `acc`.
-  The first element of collection is used as the initial value of `acc`.
+  The first element of the collection is used as the initial value of `acc`.
   Returns the accumulator.
 
   ## Examples
@@ -831,7 +831,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.sort([1, 2, 3], &1 > &2)
+      iex> Enum.sort([1, 2, 3], &(&1 > &2))
       [3,2,1]
 
   """
@@ -1041,7 +1041,7 @@ defmodule Enum do
   @doc """
   Zips corresponding elements from two collections into one list
   of tuples. The number of elements in the resulting list is
-  dictated by the first enum. In case the second list is shorter,
+  dictated by the first enum. If the second list is shorter,
   values are filled with `nil`.
 
   ## Examples
@@ -1093,7 +1093,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the maximum value as calculated per the given function.
+  Returns the maximum value as calculated by the given function.
   Raises `EmptyError` if the collection is empty.
 
   ## Examples
@@ -1153,7 +1153,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the minimum value as calculated per the given function.
+  Returns the minimum value as calculated by the given function.
   Raises `EmptyError` if the collection is empty.
 
   ## Examples
