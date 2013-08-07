@@ -247,13 +247,16 @@ defmodule System do
   end
 
   @doc """
-  Returns a list of all environment variables. Each environment variable is
-  given as a single string of the format "VarName=Value", where VarName is the
-  name of the variable and Value its value.
+  Returns a list of all environment variables. Each variable is given as a
+  `{name, value}` tuple where both `name` and `value` are strings.
   """
-  @spec get_env() :: [{binary, binary}]
+  @spec get_env() :: [{String.t, String.t}]
   def get_env do
-    Enum.map :os.getenv, :unicode.characters_to_binary(&1)
+    Enum.map(:os.getenv, fn var ->
+        var = :unicode.characters_to_binary var
+        [k, v] = String.split var, "=", global: false
+        {k, v}
+    end)
   end
 
   @doc """
