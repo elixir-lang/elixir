@@ -6,7 +6,6 @@ defmodule Dict.Behaviour do
   Usage:
 
       defmodule MyDict do
-        @behaviour Dict
         use Dict.Behaviour
 
         # implement required functions (see below)
@@ -42,6 +41,8 @@ defmodule Dict.Behaviour do
 
   defmacro __using__(_) do
     quote do
+      @behaviour Dict
+      
       def get(dict, key, default // nil) do
         case fetch(dict, key) do
           { :ok, value } -> value

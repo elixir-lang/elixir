@@ -8,7 +8,6 @@ defmodule HashDict do
   their APIs, please consult the `Dict` module.
   """
 
-  @behaviour Dict
   use Dict.Behaviour
 
   # A dictionary (key-value) implementation based on dynamic hashing.

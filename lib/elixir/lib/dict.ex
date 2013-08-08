@@ -18,6 +18,9 @@ defmodule Dict do
   that the returned value is actually of the same dict type
   as the input one.
 
+  In the examples below, `dict_impl` means a specific
+  `Dict` implementation, for example `HashDict` or `ListDict`.
+
   ## Protocols
 
   Besides implementing the functions in this module, all
@@ -44,6 +47,8 @@ defmodule Dict do
   @type keys :: [ key ]
   @type t :: tuple | list
 
+  defcallback new :: t
+  defcallback new(Keyword.t) :: t
   defcallback delete(t, key) :: t
   defcallback drop(t, keys) :: t
   defcallback empty(t) :: t
@@ -67,6 +72,7 @@ defmodule Dict do
   defcallback update(t, key, (value -> value)) :: t | no_return
   defcallback update(t, key, value, (value -> value)) :: t
   defcallback values(t) :: list(value)
+  defcallback reduce(t, any, ({key, value}, any -> any)) :: any
 
   defmacrop target(dict) do
     quote do
@@ -364,10 +370,10 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1, b: 2])
-      ...> { d1, d2 } = Dict.split(d, [:a, :c])
+      iex> d = dict_impl.new([a: 1, b: 2, c: 3, d: 4])
+      ...> { d1, d2 } = Dict.split(d, [:a, :c, :e])
       ...> { Dict.to_list(d1), Dict.to_list(d2) }
-      { [a: 1], [b: 2] }
+      { [a: 1, c: 3], [b: 2, d: 4] }
 
       iex> d = dict_impl.new([])
       ...> { d1, d2 } = Dict.split(d, [:a, :c])
