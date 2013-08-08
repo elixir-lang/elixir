@@ -11,9 +11,9 @@ defmodule Dict do
 
       HashDict.new  #=> creates an empty HashDict
 
-  For simplicity's sake, in the examples below everytime
+  For simplicity's sake, in the examples below when
   `new` is used, it implies one of the module-specific
-  calls like above. Likewise, when the result of a function
+  calls as shown above. Likewise, when the result of a function
   invocation is shown in the form `[a: 1, b: 2]`, it implies
   that the returned value is actually of the same dict type
   as the input one.
@@ -21,7 +21,7 @@ defmodule Dict do
   ## Protocols
 
   Besides implementing the functions in this module, all
-  dictionaries are also required to implement the `Access`
+  dictionaries are required to implement the `Access`
   protocol:
 
       iex> dict = HashDict.new
@@ -29,7 +29,7 @@ defmodule Dict do
       ...> dict[:hello]
       :world
 
-  And also the `Enumerable` protocol, allowing one to write:
+  And the `Enumerable` protocol, allowing one to write:
 
       Enum.each(dict, fn ({ k, v }) ->
         IO.puts "#{k}: #{v}"
@@ -82,9 +82,8 @@ defmodule Dict do
   end
 
   @doc """
-  Returns a list containing all dict's keys.
-  The keys are not guaranteed to be sorted, unless
-  the underlying dict implementation defines so.
+  Returns a list of all keys in `dict`.
+  The keys are not guaranteed to be in any order.
 
   ## Examples
 
@@ -99,7 +98,8 @@ defmodule Dict do
   end
 
   @doc """
-  Returns a list containing all dict's values.
+  Returns a list of all values in `dict`
+  The values are not guaranteed to be in any order.
 
   ## Examples
 
@@ -129,7 +129,7 @@ defmodule Dict do
   end
 
   @doc """
-  Returns whether the given key exists in the given dict.
+  Returns whether the given `key` exists in the given `dict`.
 
   ## Examples
 
@@ -147,7 +147,7 @@ defmodule Dict do
 
   @doc """
   Returns the value associated with `key` in `dict`. If `dict` does not
-  contain `key`, returns `default` (or nil if not provided).
+  contain `key`, returns `default` (or `nil` if not provided).
 
   ## Examples
 
@@ -165,7 +165,7 @@ defmodule Dict do
   end
 
   @doc """
-  Returns the `{ :ok, value }` associated with `key` in `dict`.
+  Returns `{ :ok, value }` associated with `key` in `dict`.
   If `dict` does not contain `key`, returns `:error`.
 
   ## Examples
@@ -234,7 +234,7 @@ defmodule Dict do
   end
 
   @doc """
-  Removes the entry stored under the given key from `dict`.
+  Removes the entry stored under the given `key` from `dict`.
   If `dict` does not contain `key`, returns the dictionary unchanged.
 
   ## Examples
@@ -255,8 +255,9 @@ defmodule Dict do
   end
 
   @doc """
-  Merges the given enum into the dict. In case one of the enum entries
-  alread exist in the dict, it is given higher preference.
+  Merges the given `enum` into `dict`. If one of the `enum` keys
+  already exists in `dict`, the `dict` value is replaced by the `enum`
+  value.
 
   ## Examples
 
@@ -273,9 +274,9 @@ defmodule Dict do
   end
 
   @doc """
-  Merges the given enum into the dict. In case one of the enum entries
-  alread exist in the dict, the given function is invoked to solve
-  conflicts.
+  Merges the given `enum` into `dict`. If one of the `enum` entries
+  already exists in `dict`, the given function is invoked to resolve
+  the conflict.
 
   ## Examples
 
@@ -409,7 +410,8 @@ defmodule Dict do
 
   @doc """
   Returns a new dict where only the keys in `keys` from `dict` are
-  included. Any non-member keys are ignored.
+  included. 
+  Any non-member keys are ignored.
 
   ## Examples
 
@@ -431,6 +433,15 @@ defmodule Dict do
 
   @doc """
   Returns an empty dict of the same type as `dict`.
+
+  ## Examples
+
+      iex> d = HashDict.new([a: 1, b: 2])
+      ...>
+      ...> e = Dict.empty(d)
+      ...> Dict.to_list(e)
+      []
+
   """
   @spec empty(t) :: t
   def empty(dict) do
@@ -438,7 +449,7 @@ defmodule Dict do
   end
 
   @doc """
-  Check if two dicts are equal, if the dicts are of different types they're
+  Check if two dicts are equal. If the dicts are of different types, they are
   first converted to lists.
 
   ## Examples
