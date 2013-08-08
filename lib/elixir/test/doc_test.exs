@@ -13,7 +13,6 @@ defmodule KernelTest do
   doctest Inspect.Tuple
   doctest Bitwise
   doctest Code
-  doctest Dict
   doctest Enum
   doctest IO.ANSI
   doctest Keyword

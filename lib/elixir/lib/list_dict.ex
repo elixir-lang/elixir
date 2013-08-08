@@ -92,13 +92,15 @@ defmodule ListDict do
 
   def split(dict, keys) do
     acc = { new(), new() }
-    Enum.reduce dict, acc, fn({ k, v }, { take, drop }) ->
+    {take, drop} = Enum.reduce dict, acc, fn({ k, v }, { take, drop }) ->
       if :lists.member(k, keys) do
         { [{k, v}|take], drop }
       else
         { take, [{k, v}|drop] }
       end
     end
+    
+    {Enum.reverse(take), Enum.reverse(drop)}
   end
 
   def take(dict, keys) do
