@@ -15,12 +15,15 @@ defmodule IEx.CLI do
   """
   def start do
     if tty_works? do
+      :user.start_out
+      :elixir.start_cli
       tty
     else
       :user.start
+      :elixir.start_cli
       IO.puts "Warning: could not run smart terminal, falling back to dumb one"
       config = [dot_iex_path: find_dot_iex(:init.get_plain_arguments)]
-      IEx.start(config, fn -> :elixir.start_cli end)
+      IEx.start(config)
     end
   end
 
@@ -39,29 +42,36 @@ defmodule IEx.CLI do
 
   defp tty do
     plain_args = :init.get_plain_arguments
-
-    config = [dot_iex_path: find_dot_iex(plain_args)]
-    function = fn ->
-      IEx.start(config, fn -> :elixir.start_cli end)
-    end
+    config     = [dot_iex_path: find_dot_iex(plain_args)]
+    function   = fn -> IEx.start(config) end
 
     args =
       if remote = get_remsh(plain_args) do
-        unless is_alive do
-          function = fn ->
-            IO.puts(:stderr, "In order to use --remsh, you need to name the current node using --name or --sname. Aborting...")
-            System.halt(1)
+        if is_alive do
+          case :rpc.call remote, :code, :ensure_loaded, [IEx] do
+            { :badrpc, reason } ->
+              abort "Could not contact remote node #{remote}, reason: #{inspect reason}. Aborting..."
+            { :module, IEx } ->
+              { remote, :erlang, :apply, [function, []] }
+            _ ->
+              abort "Could not find IEx on remote node #{remote}. Aborting..."
           end
-
-          { :erlang, :apply, [function, []] }
         else
-          { remote, :erlang, :apply, [function, []] }
+          abort "In order to use --remsh, you need to name the current node using --name or --sname. Aborting..."
         end
       else
         { :erlang, :apply, [function, []] }
       end
 
     :user_drv.start([:"tty_sl -c -e", args])
+  end
+
+  defp abort(msg) do
+    function = fn ->
+      IO.puts(:stderr, msg)
+      System.halt(1)
+    end
+    { :erlang, :apply, [function, []] }
   end
 
   defp find_dot_iex(['--dot-iex', h|_]), do: :unicode.characters_to_binary(h)

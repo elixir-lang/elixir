@@ -17,7 +17,7 @@ defmodule IEx.Remsh do
   """
   def expand(node) do
     fn e ->
-      case :rpc.call node, Elixir.IEx.Autocomplete, :expand, [e] do
+      case :rpc.call node, IEx.Autocomplete, :expand, [e] do
         {:badrpc, _} -> {:no, '', []}
         r -> r
       end

@@ -174,7 +174,7 @@ defmodule IEx do
   # This is a callback invoked by Erlang shell utilities
   # when someone press Ctrl+G and adds 's Elixir.IEx'.
   @doc false
-  def start(config // [], callback // fn -> end) do
+  def start(config // []) do
     spawn fn ->
       config =
         case config do
@@ -182,16 +182,9 @@ defmodule IEx do
           opts -> boot_config(opts)
         end
 
-      case :init.notify_when_started(self()) do
-        :started -> :ok
-        _        -> :init.wait_until_started()
-      end
-
       Process.flag(:trap_exit, true)
 
       start_iex()
-      callback.()
-
       set_expand_fun()
       run_after_spawn()
       IEx.Server.start(config)
