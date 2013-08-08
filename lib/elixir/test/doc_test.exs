@@ -13,7 +13,7 @@ defmodule KernelTest do
   doctest Inspect.Tuple
   doctest Bitwise
   doctest Code
-  doctest Dict
+  doctest Dict; defp dict_impl, do: HashDict
   doctest Enum
   doctest IO.ANSI
   doctest Keyword

@@ -9,6 +9,7 @@ defmodule HashDict do
   """
 
   @behaviour Dict
+  use Dict.Behaviour
 
   # A dictionary (key-value) implementation based on dynamic hashing.
   #
@@ -107,10 +108,6 @@ defmodule HashDict do
     dict
   end
 
-  def put_new(dict, key, value) do
-    update(dict, key, value, fn(v) -> v end)
-  end
-
   def update(dict, key, fun) when is_function(fun, 1) do
     case dict_put(dict, key, { :update, nil, fun }) do
       { dict, 0 } ->
@@ -125,30 +122,12 @@ defmodule HashDict do
     dict
   end
 
-  def get(dict, key, default // nil) do
-    case fetch(dict, key) do
-      { :ok, value } -> value
-      :error -> default
-    end
-  end
-
   def fetch(ordered(bucket: bucket), key) do
     bucket_get(bucket, key)
   end
 
   def fetch(trie(root: root, depth: depth), key) do
     bucket_get(node_bucket(root, depth, bucket_hash(key)), key)
-  end
-
-  def fetch!(dict, key) when is_tuple(dict) do
-    case fetch(dict, key) do
-      { :ok, value } -> value
-      :error -> raise(KeyError, key: key)
-    end
-  end
-
-  def has_key?(dict, key) do
-    match? { :ok, _ }, fetch(dict, key)
   end
 
   def pop(dict, key, default // nil) do
@@ -171,32 +150,6 @@ defmodule HashDict do
     ordered()
   end
 
-  def equal?(dict1, dict2) do
-    size = elem(dict1, 1)
-    case elem(dict2, 1) do
-      ^size ->
-        dict_equal?(dict1, dict2)
-      _ ->
-        false
-    end
-  end
-
-  def to_list(ordered(bucket: bucket)) do
-    lc [k|v] inlist bucket, do: { k, v }
-  end
-
-  def to_list(dict) do
-    reduce(dict, [], [&1|&2]) |> :lists.reverse
-  end
-
-  def keys(dict) do
-    dict_fold(dict, [], fn [k|_], acc -> [k|acc] end)
-  end
-
-  def values(dict) do
-    dict_fold(dict, [], fn [_|v], acc -> [v|acc] end)
-  end
-
   def merge(dict, enum, callback // fn(_k, _v1, v2) -> v2 end)
 
   def merge(dict1, dict2, callback) when is_record(dict1, HashDict) and is_record(dict2, HashDict) and elem(dict1, 1) < elem(dict2, 1) do
@@ -211,10 +164,8 @@ defmodule HashDict do
     end
   end
 
-  def merge(dict1, dict2, callback) when is_record(dict1, HashDict) do
-    Enum.reduce dict2, dict1, fn { k, v2 }, acc ->
-      update(acc, k, v2, callback.(k, &1, v2))
-    end
+  def merge(dict, enumerable, callback) when is_record(dict, HashDict) do
+    super(dict, enumerable, callback)
   end
 
   def split(dict, keys) do
@@ -230,24 +181,6 @@ defmodule HashDict do
       { excluding, _, 0 } -> split(keys, including, excluding)
       { excluding, value, _ } -> split(keys, put(including, key, value), excluding)
     end
-  end
-
-  def take(dict, keys) do
-    take(dict, keys, new)
-  end
-
-  defp take(_dict, [], acc), do: acc
-  defp take(dict, [key|keys], acc) do
-    case fetch(dict, key) do
-      { :ok, value } -> take(dict, keys, put(acc, key, value))
-      :error -> take(dict, keys, acc)
-    end
-  end
-
-  def drop(dict, []), do: dict
-
-  def drop(dict, [key|keys]) do
-    drop(delete(dict, key), keys)
   end
 
   @doc false
@@ -318,21 +251,6 @@ defmodule HashDict do
         else
           trie(dict, size: size - 1, root: root)
         end, value, -1 }
-    end
-  end
-
-  defp dict_equal?(dict1, dict2) do
-    try do
-      dict_fold(dict1, true, fn [key|value], acc ->
-        case fetch(dict2, key) do
-          { :ok, ^value } ->
-            acc
-          _ ->
-            throw(:error)
-        end
-      end)
-    catch
-      :error -> false
     end
   end
 
