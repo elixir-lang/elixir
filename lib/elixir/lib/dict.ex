@@ -11,13 +11,6 @@ defmodule Dict do
 
       HashDict.new  #=> creates an empty HashDict
 
-  For simplicity's sake, in the examples below when
-  `new` is used, it implies one of the module-specific
-  calls as shown above. Likewise, when the result of a function
-  invocation is shown in the form `[a: 1, b: 2]`, it implies
-  that the returned value is actually of the same dict type
-  as the input one.
-
   In the examples below, `dict_impl` means a specific
   `Dict` implementation, for example `HashDict` or `ListDict`.
 
@@ -442,8 +435,7 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = HashDict.new([a: 1, b: 2])
-      ...>
+      iex> d = dict_impl.new([a: 1, b: 2])
       ...> e = Dict.empty(d)
       ...> Dict.to_list(e)
       []

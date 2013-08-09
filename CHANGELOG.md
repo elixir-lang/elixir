@@ -1,6 +1,7 @@
 # v0.10.2-dev
 
 * enhancements
+  * [Dict] Add `Dict.Behaviour` as a convenience to create your own dictionaries
   * [Enum] Add `Enum.reduce/2`
   * [IEx] Allow for strings in `h` helper
   * [IEx] Helpers `r` and `c` can handle erlang sources

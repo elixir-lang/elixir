@@ -3,10 +3,6 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule DictTest.Common do
   defmacro __using__(module) do
     quote location: :keep do
-      use ExUnit.Case
-
-      doctest Dict; defp dict_impl, do: unquote(module)
-
       # Most underlying Dict implementations have no key order guarantees,
       # sort them before we compare:
       defmacrop dicts_equal(actual, expected) do
@@ -240,9 +236,17 @@ defmodule DictTest.Common do
 end
 
 defmodule Dict.HashDictTest do
+  use ExUnit.Case, async: true
   use DictTest.Common, HashDict
+
+  doctest Dict
+  defp dict_impl, do: HashDict
 end
 
 defmodule Dict.ListDictTest do
+  use ExUnit.Case, async: true
   use DictTest.Common, ListDict
+
+  doctest Dict
+  defp dict_impl, do: ListDict
 end

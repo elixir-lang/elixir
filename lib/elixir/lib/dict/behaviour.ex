@@ -14,9 +14,8 @@ defmodule Dict.Behaviour do
       end
 
   The client module must contain following functions: `size/1`, `fetch/2`, 
-  `put/3`, `update/4`, `delete/2`. These functions should work as specified in 
-  the `Dict` module. In addition, `reduce/3` must be implemented with the same 
-  semantic as `Enum.reduce`.
+  `put/3`, `update/4`, `delete/2` and `reduce/3`. All of them are part of
+  the Dict behaviour, so no extra functions are actually required.
 
   Based on these functions, `Dict.Behaviour` generates default implementations 
   for other functions such as `drop`, `take`, etc. All of the functions are
@@ -34,7 +33,8 @@ defmodule Dict.Behaviour do
 
       defmodule MyTests do
         use ExUnit.Case
-        doctest Dict; defp dict_impl, do: MyDict
+        doctest Dict
+        defp dict_impl, do: MyDict
       end
 
   """
