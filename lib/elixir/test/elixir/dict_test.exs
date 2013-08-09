@@ -3,7 +3,9 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule DictTest.Common do
   defmacro __using__(module) do
     quote location: :keep do
-      use ExUnit.Case, async: true
+      use ExUnit.Case
+
+      doctest Dict; defp dict_impl, do: unquote(module)
 
       # Most underlying Dict implementations have no key order guarantees,
       # sort them before we compare:
