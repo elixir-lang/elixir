@@ -306,7 +306,8 @@ tokenize([$:,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
   end;
 
 tokenize([$:,T|String], Line, Scope, Tokens) when ?is_atom_start(T) ->
-  { Rest, Atom } = tokenize_atom([T|String], [], Scope),
+  { Rest, Part } = tokenize_atom([T|String], []),
+  Atom = unsafe_to_atom(Part, Scope),
   tokenize(Rest, Line, Scope, [{ atom, Line, Atom }|Tokens]);
 
 % Atom identifiers/operators
@@ -738,14 +739,14 @@ tokenize_comment([])                 -> [].
 %% Atoms
 %% Handle atoms specially since they support @
 
-tokenize_atom([H|T], Acc, Scope) when ?is_atom(H) ->
-  tokenize_atom(T, [H|Acc], Scope);
+tokenize_atom([H|T], Acc) when ?is_atom(H) ->
+  tokenize_atom(T, [H|Acc]);
 
-tokenize_atom([H|T], Acc, Scope) when H == $?; H == $! ->
-  { T, unsafe_to_atom(lists:reverse([H|Acc]), Scope) };
+tokenize_atom([H|T], Acc) when H == $?; H == $! ->
+  { T, lists:reverse([H|Acc]) };
 
-tokenize_atom(Rest, Acc, Scope) ->
-  { Rest, unsafe_to_atom(lists:reverse(Acc), Scope) }.
+tokenize_atom(Rest, Acc) ->
+  { Rest, lists:reverse(Acc) }.
 
 %% Identifiers
 %% At this point, the validity of the first character was already verified.
