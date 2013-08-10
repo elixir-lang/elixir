@@ -17,21 +17,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
-  test "only recompiles if file was updated unless forced" do
-    in_fixture "no_mixfile", fn ->
-      # Compile the first time
-      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
-      assert File.regular?("ebin/Elixir.A.beam")
-
-      # Now we have a noop
-      assert Mix.Tasks.Compile.Elixir.run([]) == :noop
-
-      # --force
-      purge [A, B, C]
-      assert Mix.Tasks.Compile.Elixir.run(["--force"]) == :ok
-    end
-  end
-
   test "removes old artifact files" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
@@ -80,7 +65,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles only changed files" do
     in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Compile.Elixir.run []
+      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       Mix.shell.flush
       purge [A, B, C]
 
@@ -125,5 +110,19 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       end)
     end)
+  end
+
+  test "recompiles with --force" do
+    in_fixture "no_mixfile", fn ->
+      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      purge [A, B, C]
+
+      # Now we have a noop
+      assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+
+      # --force
+      assert Mix.Tasks.Compile.Elixir.run(["--force"]) == :ok
+      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+    end
   end
 end

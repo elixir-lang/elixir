@@ -114,8 +114,7 @@ defmodule Mix.Utils do
   """
   def read_manifest(file) do
     case File.read(file) do
-      { :ok, contents } ->
-        String.split(contents, "\n") |> Enum.filter(&(&1 != ""))
+      { :ok, contents } -> String.split(contents, "\n")
       { :error, _ } -> []
     end
   end

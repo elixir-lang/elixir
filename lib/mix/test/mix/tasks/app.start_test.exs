@@ -15,27 +15,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  test "dont compile project if nothing changed" do
-    Mix.Project.push CustomApp
-
-    in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Compile.run []
-      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
-      assert_received { :mix_shell, :info, ["Generated app_start_sample.app"] }
-
-      Mix.Task.clear
-      Mix.Tasks.App.Start.run ["--no-start"]
-      refute_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
-      refute_received { :mix_shell, :info, ["Generated app_start_sample.app"] }
-    end
-  after
-    purge [A, B, C]
-    Mix.Project.pop
-  end
-
-  test "recompile project if elixir version changed" do
-    Mix.Project.push CustomApp
-
+  test "recompiles project if elixir version changed" do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.run []
       purge [A, B, C]
@@ -43,20 +23,20 @@ defmodule Mix.Tasks.App.StartTest do
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
       assert System.version == Mix.Deps.Lock.elixir_vsn
 
+      # There is not much we can do, we need to wait a second
+      # otherwise touching the file is not picked up by the compiler
+      :timer.sleep(1000)
+
       Mix.Task.clear
-      File.write!("ebin/.compile.deps", "the_past")
-      File.touch(Mix.Tasks.Compile.Elixir.manifest, { { 2000, 1, 1 }, { 0, 0, 2 } })
-      File.touch("ebin/.compile.deps", { { 2000, 1, 1 }, { 0, 0, 1 } })
+      File.write!("ebin/.compile.lock", "the_past")
+      File.touch("ebin/.compile.lock",   { { 2010, 1, 1 }, { 0, 0, 0 } })
 
       Mix.Tasks.App.Start.run ["--no-start"]
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
     end
-  after
-    purge [A, B, C]
-    Mix.Project.pop
   end
 
-  test "compile and starts the project" do
+  test "compiles and starts the project" do
     Mix.Project.push CustomApp
 
     in_fixture "no_mixfile", fn ->
