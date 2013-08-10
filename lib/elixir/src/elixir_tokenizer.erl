@@ -269,7 +269,7 @@ tokenize([$.,$(|Rest], Line, Scope, Tokens) ->
 tokenize([$.,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
     { NewLine, [Part], Rest } when is_binary(Part) ->
-      Atom  = unsafe_to_atom(Part, Scope),
+      Atom  = unsafe_to_atom(Part, Line, Scope),
       Token = check_call_identifier(identifier, Line, Atom, Rest),
       tokenize(Rest, NewLine, Scope, [Token|add_token_with_nl({ '.', Line }, Tokens)]);
     Error ->
@@ -297,7 +297,7 @@ tokenize([$:,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
     { NewLine, Parts, Rest } ->
       Token = case unescape_tokens(Parts) of
-        [Part] when is_list(Part) or is_binary(Part) -> { atom, Line, unsafe_to_atom(Part, Scope) };
+        [Part] when is_list(Part) or is_binary(Part) -> { atom, Line, unsafe_to_atom(Part, Line, Scope) };
         Unescaped -> { atom, Line, Unescaped }
       end,
       tokenize(Rest, NewLine, Scope, [Token|Tokens]);
@@ -307,7 +307,7 @@ tokenize([$:,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
 
 tokenize([$:,T|String], Line, Scope, Tokens) when ?is_atom_start(T) ->
   { Rest, Part } = tokenize_atom([T|String], []),
-  Atom = unsafe_to_atom(Part, Scope),
+  Atom = unsafe_to_atom(Part, Line, Scope),
   tokenize(Rest, Line, Scope, [{ atom, Line, Atom }|Tokens]);
 
 % Atom identifiers/operators
@@ -463,7 +463,7 @@ tokenize([H|_] = String, Line, Scope, Tokens) when ?is_digit(H) ->
 
 tokenize([H|_] = String, Line, Scope, Tokens) when ?is_upcase(H) ->
   { Rest, Alias } = tokenize_identifier(String, []),
-  Atom = unsafe_to_atom(Alias, Scope),
+  Atom = unsafe_to_atom(Alias, Line, Scope),
   case Rest of
     [$:|T] when ?is_space(hd(T)) ->
       tokenize(T, Line, Scope, [{ kw_identifier, Line, Atom }|Tokens]);
@@ -526,7 +526,7 @@ handle_strings(T, Line, H, #scope{file=File} = Scope, Tokens) ->
     { NewLine, Parts, [$:|Rest] } when ?is_space(hd(Rest)) ->
       case Parts of
         [Bin] when is_binary(Bin) ->
-          Atom = unsafe_to_atom(unescape_chars(Bin), Scope),
+          Atom = unsafe_to_atom(unescape_chars(Bin), Line, Scope),
           tokenize(Rest, NewLine, Scope, [{ kw_identifier, Line, Atom }|Tokens]);
         _ ->
           { error, { Line, "invalid interpolation in key ", [$"|T] } }
@@ -560,13 +560,13 @@ eol(_Line, _Mod, [{',',_}|_] = Tokens)   -> Tokens;
 eol(_Line, _Mod, [{eol,_,_}|_] = Tokens) -> Tokens;
 eol(Line, Mod, Tokens) -> [{eol,Line,Mod}|Tokens].
 
-unsafe_to_atom(Binary, #scope{existing_atoms_only=true}) when is_binary(Binary) ->
+unsafe_to_atom(Binary, _Line, #scope{existing_atoms_only=true}) when is_binary(Binary) ->
   binary_to_existing_atom(Binary, utf8);
-unsafe_to_atom(Binary, #scope{}) when is_binary(Binary) ->
+unsafe_to_atom(Binary, _Line, #scope{}) when is_binary(Binary) ->
   binary_to_atom(Binary, utf8);
-unsafe_to_atom(List, #scope{existing_atoms_only=true}) when is_list(List) ->
+unsafe_to_atom(List, _Line, #scope{existing_atoms_only=true}) when is_list(List) ->
   list_to_existing_atom(List);
-unsafe_to_atom(List, #scope{}) when is_list(List) ->
+unsafe_to_atom(List, _Line, #scope{}) when is_list(List) ->
   list_to_atom(List).
 
 collect_modifiers([H|T], Buffer) when ?is_downcase(H) ->
