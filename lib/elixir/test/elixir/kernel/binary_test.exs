@@ -32,6 +32,17 @@ bar
     """
   end
 
+  test :heredoc_with_interpolation do
+    assert "37\n" == """
+    #{__ENV__.line}
+    """
+
+    assert "\n42\n" == """
+
+    #{__ENV__.line}
+    """
+  end
+
   test :utf8 do
     assert size(" ゆんゆん") == 13
   end

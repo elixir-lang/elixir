@@ -581,7 +581,7 @@ extract_heredoc_with_interpolation(Line, File, Interpol, T, H) ->
     { error, _ } = Error ->
       Error;
     { Body, Rest } ->
-      case elixir_interpolation:extract(Line, File, Interpol, Body, 0) of
+      case elixir_interpolation:extract(Line + 1, File, Interpol, Body, 0) of
         { _, Parts, [] } -> { Parts, Rest };
         Error -> interpolation_error(Error, " (for heredoc starting at line ~B)", [Line])
       end
