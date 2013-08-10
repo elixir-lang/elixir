@@ -116,3 +116,16 @@ defmodule Kernel.CLI.ParallelCompilerTest do
     end
   end
 end
+
+defmodule Kernel.CLI.OverriddenDefTest do
+  use ExUnit.Case, async: true
+
+  test :compile_code do
+    fixture = fixture_path "overridden_def_sample.ex"
+    output = elixirc('#{fixture} -o #{tmp_path}')
+    expected_msg = "#{fixture}:11: trying to override previously defined def foo/2 (#{fixture}:3)"
+    expected_msg = :unicode.characters_to_list(expected_msg)
+    assert :string.str(output, expected_msg) == 1, 
+      "Expected this output: `#{expected_msg}`\nbut got this output: `#{output}`"
+  end
+end
