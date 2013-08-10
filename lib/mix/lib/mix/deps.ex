@@ -217,6 +217,9 @@ defmodule Mix.Deps do
   def format_status(Mix.Dep[status: { :unavailable, _ }]),
     do: "the dependency is not available, run `mix deps.get`"
 
+  def format_status(Mix.Dep[status: { :elixirlock, _ }]),
+    do: "the dependency is built with an out-of-date elixir version, run `mix deps.get`"
+
   @doc """
   Check the lock for the given dependency and update its status accordingly.
   """
@@ -225,11 +228,14 @@ defmodule Mix.Deps do
       rev  = lock[app]
       opts = Keyword.put(opts, :lock, rev)
 
-      if scm.matches_lock?(opts) do
-        dep
-      else
-        status = if rev, do: { :lockmismatch, rev }, else: :nolock
-        dep.status(status)
+      cond do
+        vsn = old_elixir_lock(dep) ->
+          dep.status({ :elixirlock, vsn })
+        scm.matches_lock?(opts) ->
+          dep
+        true ->
+          status = if rev, do: { :lockmismatch, rev }, else: :nolock
+          dep.status(status)
       end
     else
       dep
@@ -269,6 +275,7 @@ defmodule Mix.Deps do
   """
   def out_of_date?(Mix.Dep[status: { :lockmismatch, _ }]), do: true
   def out_of_date?(Mix.Dep[status: :nolock]),              do: true
+  def out_of_date?(Mix.Dep[status: { :elixirlock, _ }]),   do: true
   def out_of_date?(dep),                                   do: not available?(dep)
 
   @doc """
@@ -343,5 +350,17 @@ defmodule Mix.Deps do
   """
   def make?(Mix.Dep[manager: manager]) do
     manager == :make
+  end
+
+  ## Helpers
+
+  # Returns the elixir lock version of the given dependency
+  defp old_elixir_lock(dep) do
+    in_dependency(dep, fn _ ->
+      old_vsn = Mix.Deps.Lock.elixir_vsn
+      if old_vsn && old_vsn != System.version do
+        old_vsn
+      end
+    end)
   end
 end

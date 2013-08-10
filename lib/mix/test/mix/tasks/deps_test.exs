@@ -379,4 +379,25 @@ defmodule Mix.Tasks.DepsTest do
   after
     Mix.Project.pop
   end
+
+  test "check if dependencies are using old elixir" do
+    Mix.Project.push SuccessfulDepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Compile.run []
+      Mix.Tasks.Deps.Check.run []
+
+      File.write!("deps/ok/ebin/.compile.lock", "the_future")
+      Mix.Task.clear
+
+      assert_raise Mix.Error, "Can't continue due to errors on dependencies", fn ->
+        Mix.Tasks.Deps.Check.run []
+      end
+
+      assert_received { :mix_shell, :error, ["* ok [path: \"deps/ok\"]"] }
+      assert_received { :mix_shell, :error, ["  the dependency is built with an out-of-date elixir version, run `mix deps.get`"] }
+    end
+  after
+    Mix.Project.pop
+  end
 end
