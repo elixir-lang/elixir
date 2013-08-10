@@ -654,7 +654,7 @@ defmodule File do
   files are simply ignored (i.e. doesn't make this function fail).
 
   Returns `{ :ok, files_and_directories }` with all files and
-  directories removed in no specific order, `{ :error, reason }`
+  directories removed in no specific order, `{ :error, reason, file }`
   otherwise.
 
   ## Examples
@@ -683,15 +683,16 @@ defmodule File do
             case rmdir(path) do
               :ok -> { :ok, [path|acc] }
               { :error, :enoent } -> res
-              reason -> { :error, reason, :unicode.characters_to_binary(path) }
+              { :error, reason } -> { :error, reason, :unicode.characters_to_binary(path) }
             end
-          reason -> { :error, reason, :unicode.characters_to_binary(path) }
+          reason ->
+            reason
         end
       { :error, reason } when reason in [:enotdir, :eio] ->
         case rm(path) do
           :ok -> { :ok, [path|acc] }
           { :error, reason } when reason in [:enoent, :enotdir] -> entry
-          reason -> { :error, reason, :unicode.characters_to_binary(path) }
+          { :error, reason } -> { :error, reason, :unicode.characters_to_binary(path) }
         end
       { :error, :enoent } -> entry
       { :error, reason } -> { :error, reason, :unicode.characters_to_binary(path) }
