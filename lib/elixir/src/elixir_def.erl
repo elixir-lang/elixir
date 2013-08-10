@@ -337,8 +337,11 @@ check_valid_clause(Line, File, Name, Arity, Kind, Table) ->
     {Name,Arity} -> [];
     [] -> [];
     _ ->
+      % Safe because check_valid_clause/6 is only called if there is already
+      % a clause in the table.
+      [{_, _, FinalLine, File, _, _, _}] = ets:lookup(Table, {Name, Arity}),
       elixir_errors:handle_file_warning(File, { Line, ?MODULE,
-        { override_function, { Kind, Name, Arity } } })
+        { override_function, { Kind, Name, Arity, FinalLine, File } } })
   end.
 
 check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _) -> [];
@@ -385,8 +388,9 @@ format_error({clauses_with_defaults,{Kind,Name,Arity}}) ->
 format_error({out_of_order_defaults,{Kind,Name,Arity}}) ->
   io_lib:format("clause with defaults should be the first clause in ~ts ~ts/~B", [Kind, Name, Arity]);
 
-format_error({override_function,{Kind,Name,Arity}}) ->
-  io_lib:format("trying to override previously defined ~ts ~ts/~B", [Kind, Name, Arity]);
+format_error({override_function,{Kind,Name,Arity,OrigLine,OrigFile}}) ->
+  io_lib:format("trying to override previously defined ~ts ~ts/~B (~ts:~B)",
+    [Kind, Name, Arity, OrigFile, OrigLine]);
 
 format_error({changed_kind,{Name,Arity,Previous,Current}}) ->
   io_lib:format("~ts ~ts/~B already defined as ~ts", [Current, Name, Arity, Previous]).
