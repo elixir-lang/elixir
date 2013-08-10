@@ -540,6 +540,31 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a new collection appending the result of invoking `fun`
+  on each corresponding item of `collection`.
+
+  Given function should return a list.
+
+  ## Examples
+
+      iex> Enum.flat_map([:a, :b, :c], fn(x) -> [x, x] end)
+      [:a, :a, :b, :b, :c, :c]
+
+  """
+  @spec flat_map(t, (element -> any)) :: list
+  def flat_map([], _fun), do: []
+
+  def flat_map(collection, fun) when is_list(collection) do
+    :lists.flatmap(fun, collection)
+  end
+
+  def flat_map(collection, fun) do
+    Enumerable.reduce(collection, [], fn(entry, acc) ->
+      acc ++ fun.(entry)
+    end)
+  end
+
+  @doc """
   Joins the given `collection` according to `joiner`.
   `joiner` can be either a binary or a list and the
   result will be of the same type as `joiner`. If
