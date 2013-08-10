@@ -131,6 +131,11 @@ defmodule EnumTest.List do
     assert Enum.filter_map([2, 4, 6], fn(x) -> rem(x, 2) == 0 end, &1 * 2) == [4, 8, 12]
   end
 
+  test :flat_map do
+    assert Enum.flat_map([], fn(x) -> [x, x] end) == []
+    assert Enum.flat_map([1, 2, 3], fn(x) -> [x, x] end) == [1, 1, 2, 2, 3, 3]
+  end
+
   test :reduce do
     assert Enum.reduce([], 1, fn(x, acc) -> x + acc end) == 1
     assert Enum.reduce([1, 2, 3], 1, fn(x, acc) -> x + acc end) == 7
@@ -478,6 +483,11 @@ defmodule EnumTest.Range do
 
     range = Range.new(first: 2, last: 6)
     assert Enum.filter_map(range, fn(x) -> rem(x, 2) == 0 end, &1 * 2) == [4, 8, 12]
+  end
+
+  test :flat_map do
+    range = Range.new(first: 1, last: 3)
+    assert Enum.flat_map(range, fn(x) -> [x, x] end) == [1, 1, 2, 2, 3, 3]
   end
 
   test :reduce do
