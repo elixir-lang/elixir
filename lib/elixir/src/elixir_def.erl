@@ -309,12 +309,13 @@ default_function_for(_, Name, { clause, Line, Args, _Guards, _Exprs } = Clause) 
 store_each(Check, Kind, File, Location, Table, CTable, Defaults, {function, Line, Name, Arity, Clauses}) ->
   Tuple = { Name, Arity },
   case ets:lookup(Table, Tuple) of
-    [{ Tuple, StoredKind, StoredLine, _, StoredCheck, StoredLocation, StoredDefaults }] ->
+    [{ Tuple, StoredKind, StoredLine, StoredFile, StoredCheck, StoredLocation, StoredDefaults }] ->
       FinalLine = StoredLine,
       FinalLocation = StoredLocation,
       FinalDefaults = max(Defaults, StoredDefaults),
       check_valid_kind(Line, File, Name, Arity, Kind, StoredKind),
-      (Check and StoredCheck) andalso check_valid_clause(Line, File, Name, Arity, Kind, Table),
+      (Check and StoredCheck) andalso
+        check_valid_clause(Line, File, Name, Arity, Kind, Table, StoredLine, StoredFile),
       check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, StoredDefaults);
     [] ->
       FinalLine = Line,
@@ -332,17 +333,14 @@ check_valid_kind(Line, File, Name, Arity, Kind, StoredKind) ->
   elixir_errors:form_error(Line, File, ?MODULE,
     { changed_kind, { Name, Arity, StoredKind, Kind } }).
 
-check_valid_clause(Line, File, Name, Arity, Kind, Table) ->
+check_valid_clause(Line, File, Name, Arity, Kind, Table, StoredLine, StoredFile) ->
   case ets:lookup_element(Table, last, 2) of
     {Name,Arity} -> [];
     [] -> [];
     _ ->
-      % Safe because check_valid_clause/6 is only called if there is already
-      % a clause in the table.
-      [{_, _, FinalLine, File, _, _, _}] = ets:lookup(Table, {Name, Arity}),
-      FileRel = 'Elixir.Path':relative_to(File, 'Elixir.System':'cwd!'()),
+      FileRel = 'Elixir.Path':relative_to(StoredFile, 'Elixir.System':'cwd!'()),
       elixir_errors:handle_file_warning(File, { Line, ?MODULE,
-        { override_function, { Kind, Name, Arity, FinalLine, FileRel } } })
+        { override_function, { Kind, Name, Arity, StoredLine, FileRel } } })
   end.
 
 check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _) -> [];
