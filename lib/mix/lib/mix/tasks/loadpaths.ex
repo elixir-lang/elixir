@@ -39,6 +39,10 @@ defmodule Mix.Tasks.Loadpaths do
       end
     end
 
+    # Force recompile if we have a version mismatch
+    old_vsn = Mix.Deps.Lock.elixir_vsn
+    if old_vsn && old_vsn != System.version, do: Mix.Deps.Lock.touch
+
     Enum.each Mix.Project.load_paths, Code.prepend_path(&1)
   end
 end

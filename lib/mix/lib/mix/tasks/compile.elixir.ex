@@ -256,11 +256,14 @@ defmodule Mix.Tasks.Compile.Elixir do
       Mix.Utils.extract_stale(to_watch, [manifest])
     end
 
-    files_to_path(manifest, stale, to_compile, compile_path, fn ->
+    result = files_to_path(manifest, stale, to_compile, compile_path, fn ->
       File.mkdir_p!(compile_path)
       Code.prepend_path(compile_path)
       set_compiler_opts(project, opts, [])
     end)
+
+    unless result == :noop, do: Mix.Deps.Lock.touch
+    result
   end
 
   @doc """

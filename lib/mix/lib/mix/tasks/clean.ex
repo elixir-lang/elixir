@@ -1,7 +1,5 @@
 defmodule Mix.Tasks.Clean do
   use Mix.Task
-  alias Mix.Tasks.Compile.Leex
-  alias Mix.Tasks.Compile.Yecc
 
   @shortdoc "Clean generated application files"
   @recursive true
