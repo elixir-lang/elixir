@@ -688,6 +688,14 @@ defmodule EnumTest.Others do
     assert Enum.count(URI.query_decoder("foo=bar&baz=bat")) == 2
   end
 
+  test :sort do
+    d = HashDict.new [a: 1, another: 1, some: 1, multi_word: 1,
+                      this: 2, punctuation: 1, is: 2, sentence: 2, with: 1]
+    assert Enum.sort(d, fn({_, v1}, {_, v2}) -> v1 > v2 end) ==
+           [this: 2, is: 2, sentence: 2, with: 1, a: 1, another: 1,
+           multi_word: 1, some: 1, punctuation: 1]
+  end
+
   test :take do
     # Use IO to simulate side-effects
     reducible = fn(acc, fun) ->
