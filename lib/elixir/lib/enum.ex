@@ -1417,7 +1417,7 @@ defmodule Enum do
   defp sort_merge([t1, [h2 | t2] | l], acc, fun, true), do:
     sort_merge(l, [sort_merge_1(t1, h2, t2, [], fun, false) | acc], fun, true)
 
-  defp sort_merge([[h2 | t2], t1 | l] = o, acc, fun, false), do:
+  defp sort_merge([[h2 | t2], t1 | l], acc, fun, false), do:
     sort_merge(l, [sort_merge_1(t1, h2, t2, [], fun, false) | acc], fun, false)
 
   defp sort_merge([l], [], _fun, _bool), do: l
