@@ -340,8 +340,9 @@ check_valid_clause(Line, File, Name, Arity, Kind, Table) ->
       % Safe because check_valid_clause/6 is only called if there is already
       % a clause in the table.
       [{_, _, FinalLine, File, _, _, _}] = ets:lookup(Table, {Name, Arity}),
+      FileRel = 'Elixir.Path':relative_to(File, 'Elixir.System':'cwd!'()),
       elixir_errors:handle_file_warning(File, { Line, ?MODULE,
-        { override_function, { Kind, Name, Arity, FinalLine, File } } })
+        { override_function, { Kind, Name, Arity, FinalLine, FileRel } } })
   end.
 
 check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _) -> [];
