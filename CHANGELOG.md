@@ -2,14 +2,17 @@
 
 * enhancements
   * [Dict] Add `Dict.Behaviour` as a convenience to create your own dictionaries
-  * [Enum] Add `Enum.reduce/2`
+  * [Enum] Add `Enum.reduce/2` and `Enum.flat_map/2`
+  * [Elixir] Include file and line on error report for overriding an existing function/macro
   * [IEx] Allow for strings in `h` helper
   * [IEx] Helpers `r` and `c` can handle erlang sources
   * [List] Add `List.replace_at/3`
+  * [Mix] Automatically recompile a project if the Elixir version changes
   * [String] Add regex pattern support to `String.replace/3`
 
 * bug fix
   * [File] Fix a bug where `File.touch(file, datetime)` was not setting the proper datetime when the file did not exist
+  * [Kernel] Return a readable error on oversized atoms
   * [Kernel] Fix default shutdown of child supervisors to infinity
   * [Kernel] Fix regression when calling a function/macro ending with bang, followed by `do/end` blocks
   * [Mix] Ensure `watch_exts` trigger full recompilation on change with `mix compile`
@@ -21,6 +24,7 @@
   * [Enum] `Enum.min/2` and `Enum.max/2` are deprecated in favor of `Enum.min_by/2` and `Enum.max_by/2`
 
 * backwards incompatible changes
+  * [OptionParser] `parse` and `parse_head` now returns a tuple with three elements instead of two
 
 
 # v0.10.1 (2013-08-03)
