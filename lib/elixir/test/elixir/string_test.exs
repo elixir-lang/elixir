@@ -100,6 +100,7 @@ defmodule StringTest do
     assert String.rstrip("a  abc  a" <> <<194, 133>>) == "a  abc  a"
     assert String.rstrip("   abc aa", ?a) == "   abc "
     assert String.rstrip("   abc __", ?_) == "   abc "
+    assert String.rstrip("   cat 猫猫", ?猫) == "   cat "
   end
 
   test :lstrip do
@@ -111,6 +112,7 @@ defmodule StringTest do
     assert String.lstrip(<<31>> <> " a  abc  a") == "a  abc  a"
     assert String.lstrip(<<194, 133>> <> "a  abc  a") == "a  abc  a"
     assert String.lstrip("__  abc  _", ?_) == "  abc  _"
+    assert String.lstrip("猫猫 cat   ", ?猫) == " cat   "
   end
 
   test :strip do
@@ -119,6 +121,7 @@ defmodule StringTest do
     assert String.strip("a  abc  a\n\n") == "a  abc  a"
     assert String.strip("a  abc  a\t\n\v\f\r\s") == "a  abc  a"
     assert String.strip("___  abc  ___", ?_) == "  abc  "
+    assert String.strip("猫猫猫  cat  猫猫猫", ?猫) == "  cat  "
   end
 
   test :reverse do

@@ -343,7 +343,7 @@ defmodule String do
   # Do a quick check before we traverse the whole
   # binary. :binary.last is a fast operation (it
   # does not traverse the whole binary).
-  def rstrip(string, char) do
+  def rstrip(string, char) when char in 0..127 do
     if :binary.last(string) == char do
       do_rstrip(string, "", char)
     else
@@ -351,12 +351,16 @@ defmodule String do
     end
   end
 
-  defp do_rstrip(<<char, string :: binary>>, buffer, char) do
-    do_rstrip(string, <<char, buffer :: binary>>, char)
+  def rstrip(string, char) do
+    do_rstrip(string, "", char)
   end
 
-  defp do_rstrip(<<char, string :: binary>>, buffer, another_char) do
-    <<buffer :: binary, char, do_rstrip(string, "", another_char) :: binary>>
+  defp do_rstrip(<<char :: utf8, string :: binary>>, buffer, char) do
+    <<do_rstrip(string, <<char :: utf8, buffer :: binary>>, char) :: binary>>
+  end
+
+  defp do_rstrip(<<char :: utf8, string :: binary>>, buffer, another_char) do
+    <<buffer :: binary, char :: utf8, do_rstrip(string, "", another_char) :: binary>>
   end
 
   defp do_rstrip(<<>>, _, _) do
@@ -387,7 +391,7 @@ defmodule String do
 
   @spec lstrip(t, char) :: t
 
-  def lstrip(<<char, rest :: binary>>, char) do
+  def lstrip(<<char :: utf8, rest :: binary>>, char) do
     <<lstrip(rest, char) :: binary>>
   end
 
