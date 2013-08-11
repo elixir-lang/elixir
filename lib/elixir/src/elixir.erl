@@ -2,7 +2,7 @@
 -behaviour(application).
 -export([main/1, start_cli/0,
   scope_for_eval/1, scope_for_eval/2,
-  eval/2, eval/3, eval/4, file_type/1,
+  eval/2, eval/3, eval/4, file_type/1, file_type/2,
   eval_quoted/2, eval_quoted/3, eval_quoted/4,
   eval_forms/3, translate_forms/3]).
 -include("elixir.hrl").
@@ -47,7 +47,10 @@ start_cli() ->
 %% Helpers
 
 file_type(File) ->
-  case file:read_file_info(File) of
+  file_type(File, read_link_info).
+
+file_type(File, Op) ->
+  case file:Op(File) of
     { ok, #file_info{type=Type} } -> { ok, Type };
     { error, _ } = Error -> Error
   end.

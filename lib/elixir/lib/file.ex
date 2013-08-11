@@ -672,7 +672,7 @@ defmodule File do
 
   defp do_rm_rf(path, { :ok, acc } = entry) do
     case safe_list_dir(path) do
-      { :ok, files } ->
+      { :ok, files } when is_list(files) ->
         res =
           Enum.reduce files, entry, fn(file, tuple) ->
             do_rm_rf(FN.join(path, file), tuple)
@@ -688,13 +688,13 @@ defmodule File do
           reason ->
             reason
         end
-      { :error, reason } when reason in [:enotdir, :eio] ->
-        case rm(path) do
+      { :ok, remover } when is_function(remover) ->
+        case remover.(path) do
           :ok -> { :ok, [path|acc] }
           { :error, reason } when reason in [:enoent, :enotdir] -> entry
           { :error, reason } -> { :error, reason, :unicode.characters_to_binary(path) }
         end
-      { :error, :enoent } -> entry
+      { :error, reason } when reason in [:enoent, :enotdir] -> entry
       { :error, reason } -> { :error, reason, :unicode.characters_to_binary(path) }
     end
   end
@@ -704,9 +704,18 @@ defmodule File do
   end
 
   defp safe_list_dir(path) do
-    case F.read_link(path) do
-      { :ok, _ } -> { :error, :enotdir }
-      _ -> F.list_dir(path)
+    case :elixir.file_type(path) do
+      { :ok, :symlink } ->
+        case :elixir.file_type(path, :read_file_info) do
+          { :ok, :directory } -> { :ok, &rmdir/1 }
+          _ -> { :ok, &rm/1 }
+        end
+      { :ok, :directory } ->
+        F.list_dir(path)
+      { :ok, _ } ->
+        { :ok, &rm/1 }
+      { :error, reason } ->
+        { :error, reason }
     end
   end
 
