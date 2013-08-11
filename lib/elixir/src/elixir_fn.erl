@@ -45,6 +45,9 @@ capture(Meta, { '/', _, [{ F, _, C }, A] }, S) when is_atom(F), is_integer(A), i
 capture(Meta, { { '.', _, [_, Fun] }, _, Args } = Expr, S) when is_atom(Fun), is_list(Args) ->
   capture_require(Meta, Expr, S, is_sequential_and_not_empty(Args));
 
+capture(Meta, { { '.', _, [_] }, _, Args } = Expr, S) when is_list(Args) ->
+  do_capture(Meta, Expr, S, false);
+
 capture(Meta, { '__block__', _, _ } = Expr, S) ->
   Message = "invalid args for &, block expressions are not allowed, got: ~ts",
   syntax_error(Meta, S#elixir_scope.file, Message, ['Elixir.Macro':to_string(Expr)]);

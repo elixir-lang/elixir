@@ -77,6 +77,13 @@ defmodule Kernel.FnTest do
     assert (&(&1.file(&2))).(__ENV__, "Hello").file == "Hello"
   end
 
+  test "capture other" do
+    assert (& &1).(:ok) == :ok
+
+    fun = fn a, b -> a + b end
+    assert (&fun.(&1, 2)).(1) == 3
+  end
+
   test "failure on non-continuous" do
     assert_compile_fail CompileError, "nofile:1: capture &2 cannot be defined without &1", "&(&2)"
   end
