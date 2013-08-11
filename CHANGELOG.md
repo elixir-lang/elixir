@@ -6,6 +6,7 @@
   * [Elixir] Include file and line on error report for overriding an existing function/macro
   * [IEx] Allow for strings in `h` helper
   * [IEx] Helpers `r` and `c` can handle erlang sources
+  * [IO] Added support to specifying a number of bytes to stream to `IO.stream`, `IO.binstream`, `File.stream!` and `File.binstream!`
   * [List] Add `List.replace_at/3`
   * [Mix] Automatically recompile a project if the Elixir version changes
   * [String] Add regex pattern support to `String.replace/3`
@@ -22,6 +23,7 @@
 
 * deprecations
   * [Enum] `Enum.min/2` and `Enum.max/2` are deprecated in favor of `Enum.min_by/2` and `Enum.max_by/2`
+  * [IO] `IO.stream(device)` and `IO.binstream(device)` are deprecated in favor of `IO.stream(device, :line)` and `IO.binstream(device, :line)`
 
 * backwards incompatible changes
   * [OptionParser] `parse` and `parse_head` now returns a tuple with three elements instead of two

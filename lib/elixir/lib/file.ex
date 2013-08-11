@@ -975,16 +975,18 @@ defmodule File do
   end
 
   @doc """
-  Opens the given `file` with the given `mode` and
-  returns its stream. The returned stream will
-  fail for the same reasons as `File.open!`. Note
-  that the file is opened when the iteration begins.
+  Opens the given `file` with the given `mode` and returns
+  a stream for each `:line` (default) or for a given number
+  of bytes given by `line_or_bytes`.
+
+  The returned stream will fail for the same reasons as `File.open!`.
+  Note that the file is opened only when streaming begins.
   """
-  def stream!(file, mode // []) do
+  def stream!(file, mode // [], line_or_bytes // :line) do
     fn(acc, fun) ->
       device = open!(file, mode)
       try do
-        IO.stream(device, acc, fun)
+        IO.stream(device, line_or_bytes, acc, fun)
       after
         F.close(device)
       end
@@ -992,16 +994,18 @@ defmodule File do
   end
 
   @doc """
-  Opens the given `file` with the given `mode` and
-  returns its binstream. The returned stream will
-  fail for the same reasons as `open!/2`. Note
-  that the file is opened when the iteration begins.
+  Opens the given `file` with the given `mode` and returns
+  a binstream for each `:line` (default) or for a given number
+  of bytes given by `line_or_bytes`.
+
+  The returned stream will fail for the same reasons as `File.open!`.
+  Note that the file is opened only when streaming begins.
   """
-  def binstream!(file, mode // []) do
+  def binstream!(file, mode // [], line_or_bytes // :line) do
     fn(fun, acc) ->
       device = open!(file, mode)
       try do
-        IO.binstream(device, fun, acc)
+        IO.binstream(device, line_or_bytes, fun, acc)
       after
         F.close(device)
       end

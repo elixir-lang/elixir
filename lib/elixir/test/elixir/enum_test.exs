@@ -246,25 +246,6 @@ defmodule EnumTest.List do
     assert Enum.take([], 3) == []
   end
 
-  test :take_does_not_consume_next_without_a_need do
-    import PathHelpers
-    File.open!(fixture_path("one-liner.txt"), [], fn file ->
-      iterator = IO.stream(file)
-      assert Enum.take(iterator, 1) == ["ONE"]
-      assert Enum.take(iterator, 5) == []
-    end)
-  end
-
-  test :take_with_no_item_works_as_no_op do
-    import PathHelpers
-    iterator = File.stream!(fixture_path("one-liner.txt"))
-
-    assert Enum.take(iterator, 0) == []
-    assert Enum.take(iterator, 0) == []
-    assert Enum.take(iterator, 0) == []
-    assert Enum.take(iterator, 0) == []
-  end
-
   test :take_while do
     assert Enum.take_while([1, 2, 3], fn(x) -> x > 3 end) == []
     assert Enum.take_while([1, 2, 3], fn(x) -> x <= 1 end) == [1]
@@ -696,8 +677,7 @@ defmodule EnumTest.Others do
            multi_word: 1, some: 1, punctuation: 1]
   end
 
-  test :take do
-    # Use IO to simulate side-effects
+  test :take_with_side_effects do
     reducible = fn(acc, fun) ->
       Enum.reduce([1, 2, 3], acc, fn(x, acc) ->
         IO.puts x
@@ -708,5 +688,24 @@ defmodule EnumTest.Others do
     assert capture_io(fn ->
       Enum.take(reducible, 1)
     end) == "1\n"
+  end
+
+  test :take_does_not_consume_next_without_a_need do
+    import PathHelpers
+    File.open!(fixture_path("one-liner.txt"), [], fn file ->
+      iterator = IO.stream(file, :line)
+      assert Enum.take(iterator, 1) == ["ONE"]
+      assert Enum.take(iterator, 5) == []
+    end)
+  end
+
+  test :take_with_no_item_works_as_no_op do
+    import PathHelpers
+    iterator = File.stream!(fixture_path("unknown.txt"))
+
+    assert Enum.take(iterator, 0) == []
+    assert Enum.take(iterator, 0) == []
+    assert Enum.take(iterator, 0) == []
+    assert Enum.take(iterator, 0) == []
   end
 end

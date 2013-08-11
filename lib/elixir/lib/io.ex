@@ -203,21 +203,28 @@ defmodule IO do
 
   @doc """
   Converts the io device into a Stream. The device is
-  iterated line by line.
+  iterated line by line if :line is given or by a given
+  number of codepoints.
 
   This reads the io as utf-8. Check out
-  `IO.binstream/1` to handle the IO as a raw binary.
+  `IO.binstream/2` to handle the IO as a raw binary.
 
   ## Examples
 
   Here is an example on how we mimic an echo server
   from the command line:
 
-      Enum.each IO.stream(:stdio), IO.write(&1)
+      Enum.each IO.stream(:stdio, :line), IO.write(&1)
 
   """
+  def stream(device, line_or_bytes) do
+    stream(map_dev(device), line_or_bytes, &1, &2)
+  end
+
+  @doc false
   def stream(device) do
-    stream(map_dev(device), &1, &2)
+    IO.write "IO.stream(device) is deprecated, please use IO.stream(device, :line) instead\n#{Exception.format_stacktrace}"
+    stream(device, :line)
   end
 
   @doc """
@@ -226,31 +233,37 @@ defmodule IO do
 
   This reads the io as a raw binary.
   """
-  def binstream(device) do
-    binstream(map_dev(device), &1, &2)
+  def binstream(device, line_or_bytes) do
+    binstream(map_dev(device), line_or_bytes, &1, &2)
   end
 
   @doc false
-  def stream(device, acc, fun) do
-    case read(device, :line) do
+  def binstream(device) do
+    IO.write "IO.binstream(device) is deprecated, please use IO.binstream(device, :line) instead\n#{Exception.format_stacktrace}"
+    binstream(device, :line)
+  end
+
+  @doc false
+  def stream(device, what, acc, fun) do
+    case read(device, what) do
       :eof ->
         acc
       { :error, reason } ->
         raise File.IteratorError, reason: reason
       data ->
-        stream(device, fun.(data, acc), fun)
+        stream(device, what, fun.(data, acc), fun)
     end
   end
 
   @doc false
-  def binstream(device, acc, fun) do
-    case binread(device, :line) do
+  def binstream(device, what, acc, fun) do
+    case binread(device, what) do
       :eof ->
         acc
       { :error, reason } ->
         raise File.IteratorError, reason: reason
       data ->
-        binstream(device, fun.(data, acc), fun)
+        binstream(device, what, fun.(data, acc), fun)
     end
   end
 
