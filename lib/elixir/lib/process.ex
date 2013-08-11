@@ -286,7 +286,7 @@ defmodule Process do
 
   @doc """
   Returns the pid or port identifier with the registered name.
-  Returns undefined if the name is not registered.
+  Returns nil if the name is not registered.
 
   See http://www.erlang.org/doc/man/erlang.html#whereis-1 for more info.
   """
