@@ -35,9 +35,9 @@ defmodule Mix.Tasks.Deps.Compile do
     Mix.Project.get! # Require the project to be available
 
     case OptionParser.parse(args, switches: [quiet: :boolean]) do
-      { opts, [] } ->
+      { opts, [], _ } ->
         do_run(Enum.filter(all, available?(&1)), opts)
-      { opts, tail } ->
+      { opts, tail, _ } ->
         all_deps = all
         deps = by_name(tail, all_deps)
         do_run(deps ++ depending(deps, all_deps), opts)

@@ -19,7 +19,7 @@ defmodule Mix.Tasks.App.Start do
 
   """
   def run(args) do
-    { opts, _ } = OptionParser.parse(args)
+    { opts, _, _ } = OptionParser.parse(args)
 
     project = Mix.project
     Mix.Task.run "loadpaths", args

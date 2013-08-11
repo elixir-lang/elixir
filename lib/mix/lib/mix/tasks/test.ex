@@ -79,7 +79,7 @@ defmodule Mix.Tasks.Test do
   @cover [output: "cover", tool: Cover]
 
   def run(args) do
-    { opts, files } = OptionParser.parse(args, switches: @switches)
+    { opts, files, _ } = OptionParser.parse(args, switches: @switches)
 
     unless System.get_env("MIX_ENV") || Mix.env == :test do
       raise Mix.Error, message: "mix test is running on environment #{Mix.env}. If you are " <>

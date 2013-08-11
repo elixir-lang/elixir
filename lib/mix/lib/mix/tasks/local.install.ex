@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Local.Install do
   """
 
   def run(argv) do
-    { opts, argv } = OptionParser.parse(argv, switches: [force: :boolean])
+    { opts, argv, _ } = OptionParser.parse(argv, switches: [force: :boolean])
 
     unless path = Enum.first(argv) do
       path = Mix.Archive.name(Mix.project[:app], Mix.project[:version])

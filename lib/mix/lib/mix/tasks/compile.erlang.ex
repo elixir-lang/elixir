@@ -63,7 +63,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   Runs this task.
   """
   def run(args) do
-    { opts, _ } = OptionParser.parse(args, switches: [force: :boolean])
+    { opts, _, _ } = OptionParser.parse(args, switches: [force: :boolean])
 
     project      = Mix.project
     source_paths = project[:erlc_paths]

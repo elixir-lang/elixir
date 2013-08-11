@@ -31,7 +31,7 @@ defmodule Mix.Tasks.Run do
 
   """
   def run(args) do
-    { opts, head } = OptionParser.parse_head(args,
+    { opts, head, _ } = OptionParser.parse_head(args,
       aliases: [r: :require, pr: :parallel_require, e: :eval],
       switches: [parallel_require: :keep, require: :keep])
 

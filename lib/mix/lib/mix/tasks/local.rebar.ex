@@ -16,7 +16,7 @@ The local copy is stored in your MIX_HOME (defaults to ~/.mix).
   """
 
   def run(argv) do
-    { _, argv } = OptionParser.parse(argv)
+    { _, argv, _ } = OptionParser.parse(argv)
     do_install(case argv do
       []       -> rebar_path
       [path|_] -> path

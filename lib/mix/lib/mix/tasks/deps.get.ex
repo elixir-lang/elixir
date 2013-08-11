@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Deps.Get do
   def run(args) do
     Mix.Project.get! # Require the project to be available
 
-    { opts, rest } = OptionParser.parse(args, switches: [no_compile: :boolean, quiet: :boolean])
+    { opts, rest, _ } = OptionParser.parse(args, switches: [no_compile: :boolean, quiet: :boolean])
 
     if rest != [] do
       { _, acc } = Enum.map_reduce by_name(rest), init, deps_getter(&1, &2)
