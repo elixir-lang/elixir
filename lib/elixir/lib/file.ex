@@ -688,12 +688,8 @@ defmodule File do
           reason ->
             reason
         end
-      { :ok, remover } when is_function(remover) ->
-        case remover.(path) do
-          :ok -> { :ok, [path|acc] }
-          { :error, reason } when reason in [:enoent, :enotdir] -> entry
-          { :error, reason } -> { :error, reason, :unicode.characters_to_binary(path) }
-        end
+      { :ok, :directory } -> do_rm_directory(path, entry)
+      { :ok, :regular } -> do_rm_regular(path, entry)
       { :error, reason } when reason in [:enoent, :enotdir] -> entry
       { :error, reason } -> { :error, reason, :unicode.characters_to_binary(path) }
     end
@@ -703,17 +699,38 @@ defmodule File do
     reason
   end
 
+  defp do_rm_regular(path, { :ok, acc } = entry) do
+    case rm(path) do
+      :ok -> { :ok, [path|acc] }
+      { :error, :enoent } -> entry
+      { :error, reason } -> { :error, reason, :unicode.characters_to_binary(path) }
+    end
+  end
+
+  # On windows, symlinks are treated as directory and must be removed
+  # with rmdir/1. But on Unix, we remove them via rm/1. So we first try
+  # to remove it as a directory and, if we get :enotdir, we fallback to
+  # a file removal.
+  defp do_rm_directory(path, { :ok, acc } = entry) do
+    case rmdir(path) do
+      :ok -> { :ok, [path|acc] }
+      { :error, :enotdir } -> do_rm_regular(path, entry)
+      { :error, :enoent } -> entry
+      { :error, reason } -> { :error, reason, :unicode.characters_to_binary(path) }
+    end
+  end
+
   defp safe_list_dir(path) do
     case :elixir.file_type(path) do
       { :ok, :symlink } ->
         case :elixir.file_type(path, :read_file_info) do
-          { :ok, :directory } -> { :ok, &rmdir/1 }
-          _ -> { :ok, &rm/1 }
+          { :ok, :directory } -> { :ok, :directory }
+          _ -> { :ok, :regular }
         end
       { :ok, :directory } ->
         F.list_dir(path)
       { :ok, _ } ->
-        { :ok, &rm/1 }
+        { :ok, :regular }
       { :error, reason } ->
         { :error, reason }
     end
