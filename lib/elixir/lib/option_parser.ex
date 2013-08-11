@@ -135,11 +135,11 @@ defmodule OptionParser do
   end
 
   defp parse([], _, _switches, dict, args, invalid, true) do
-    { Enum.reverse(dict), Enum.reverse(args), invalid }
+    { Enum.reverse(dict), Enum.reverse(args), Enum.reverse(invalid) }
   end
 
   defp parse(value, _, _switches, dict, _args, invalid, false) do
-    { Enum.reverse(dict), value, invalid }
+    { Enum.reverse(dict), value, Enum.reverse(invalid) }
   end
 
   defp value_from_tail(["-" <> _|_] = t), do: { true, t }
@@ -148,33 +148,28 @@ defmodule OptionParser do
 
   defp store_option(dict, invalid, option, value, kinds) do
     { invalid_option, value } =
-      try do
-        cond do
-          kinds in [[], [:keep]] ->
-            { nil, value }
-          :boolean in kinds && value == "true" ->
-            { nil, true }
-          :boolean in kinds && is_binary(value) ->
-            { nil, false }
-          :boolean in kinds ->
-            { nil, value }
-          :integer in kinds && is_integer(binary_to_integer(value)) ->
-            { nil, binary_to_integer(value) }
-          :float in kinds && is_float(binary_to_float(value)) ->
-            { nil, binary_to_float(value) }
-          true ->
-            { { option, value }, value }
-        end
-      rescue
-        ArgumentError -> { { option, value }, value }
+      cond do
+        :boolean in kinds ->
+          { nil, value in [true, "true"] }
+        :integer in kinds ->
+          case String.to_integer(value) do
+            { value, "" } -> { nil, value }
+            _ -> { option, value }
+          end
+        :float in kinds ->
+          case String.to_float(value) do
+            { value, "" } -> { nil, value }
+            _ -> { option, value }
+          end
+        true ->
+          { nil, value }
       end
 
-    { dict, invalid } =
-      if invalid_option do
-        { dict, invalid ++ List.wrap(invalid_option) }
-      else
-        { do_store_option(dict, option, value, kinds), invalid }
-      end
+    if invalid_option do
+      { dict, [{ option, value }|invalid] }
+    else
+      { do_store_option(dict, option, value, kinds), invalid }
+    end
   end
 
   defp do_store_option(dict, option, value, kinds) do
