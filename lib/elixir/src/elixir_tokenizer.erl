@@ -269,9 +269,13 @@ tokenize([$.,$(|Rest], Line, Scope, Tokens) ->
 tokenize([$.,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
     { NewLine, [Part], Rest } when is_binary(Part) ->
-      Atom  = unsafe_to_atom(Part, Scope),
-      Token = check_call_identifier(identifier, Line, Atom, Rest),
-      tokenize(Rest, NewLine, Scope, [Token|add_token_with_nl({ '.', Line }, Tokens)]);
+      case unsafe_to_atom(Part, Line, Scope) of
+        { error, _ } = Error ->
+          Error;
+        Atom ->
+          Token = check_call_identifier(identifier, Line, Atom, Rest),
+          tokenize(Rest, NewLine, Scope, [Token|add_token_with_nl({ '.', Line }, Tokens)])
+      end;
     Error ->
       interpolation_error(Error, " (for function name starting at line ~B)", [Line])
   end;
@@ -296,18 +300,28 @@ tokenize([$'|T], Line, Scope, Tokens) ->
 tokenize([$:,H|T], Line, #scope{file=File} = Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, File, true, T, H) of
     { NewLine, Parts, Rest } ->
-      Token = case unescape_tokens(Parts) of
-        [Part] when is_list(Part) or is_binary(Part) -> { atom, Line, unsafe_to_atom(Part, Scope) };
-        Unescaped -> { atom, Line, Unescaped }
+      SafeAtom = case unescape_tokens(Parts) of
+        [Part] when is_list(Part) or is_binary(Part) -> unsafe_to_atom(Part, Line, Scope);
+        Unescaped -> Unescaped
       end,
-      tokenize(Rest, NewLine, Scope, [Token|Tokens]);
+      case SafeAtom of
+        { error, _ } = Error ->
+          Error;
+        Atom ->
+          tokenize(Rest, NewLine, Scope, [{ atom, Line, Atom }|Tokens])
+      end;
     Error ->
       interpolation_error(Error, " (for atom starting at line ~B)", [Line])
   end;
 
 tokenize([$:,T|String], Line, Scope, Tokens) when ?is_atom_start(T) ->
-  { Rest, Atom } = tokenize_atom([T|String], [], Scope),
-  tokenize(Rest, Line, Scope, [{ atom, Line, Atom }|Tokens]);
+  { Rest, Part } = tokenize_atom([T|String], []),
+  case unsafe_to_atom(Part, Line, Scope) of
+    { error, _ } = Error ->
+      Error;
+    Atom ->
+      tokenize(Rest, Line, Scope, [{ atom, Line, Atom }|Tokens])
+  end;
 
 % Atom identifiers/operators
 
@@ -462,12 +476,16 @@ tokenize([H|_] = String, Line, Scope, Tokens) when ?is_digit(H) ->
 
 tokenize([H|_] = String, Line, Scope, Tokens) when ?is_upcase(H) ->
   { Rest, Alias } = tokenize_identifier(String, []),
-  Atom = unsafe_to_atom(Alias, Scope),
-  case Rest of
-    [$:|T] when ?is_space(hd(T)) ->
-      tokenize(T, Line, Scope, [{ kw_identifier, Line, Atom }|Tokens]);
-    _ ->
-      tokenize(Rest, Line, Scope, [{ aliases, Line, [Atom] }|Tokens])
+  case unsafe_to_atom(Alias, Line, Scope) of
+    { error, _ } = Error ->
+      Error;
+    Atom ->
+      case Rest of
+        [$:|T] when ?is_space(hd(T)) ->
+          tokenize(T, Line, Scope, [{ kw_identifier, Line, Atom }|Tokens]);
+        _ ->
+          tokenize(Rest, Line, Scope, [{ aliases, Line, [Atom] }|Tokens])
+      end
   end;
 
 % Identifier
@@ -525,8 +543,12 @@ handle_strings(T, Line, H, #scope{file=File} = Scope, Tokens) ->
     { NewLine, Parts, [$:|Rest] } when ?is_space(hd(Rest)) ->
       case Parts of
         [Bin] when is_binary(Bin) ->
-          Atom = unsafe_to_atom(unescape_chars(Bin), Scope),
-          tokenize(Rest, NewLine, Scope, [{ kw_identifier, Line, Atom }|Tokens]);
+          case unsafe_to_atom(unescape_chars(Bin), Line, Scope) of
+            { error, _ } = Error ->
+              Error;
+            Atom ->
+              tokenize(Rest, NewLine, Scope, [{ kw_identifier, Line, Atom }|Tokens])
+          end;
         _ ->
           { error, { Line, "invalid interpolation in key ", [$"|T] } }
       end;
@@ -559,13 +581,17 @@ eol(_Line, _Mod, [{',',_}|_] = Tokens)   -> Tokens;
 eol(_Line, _Mod, [{eol,_,_}|_] = Tokens) -> Tokens;
 eol(Line, Mod, Tokens) -> [{eol,Line,Mod}|Tokens].
 
-unsafe_to_atom(Binary, #scope{existing_atoms_only=true}) when is_binary(Binary) ->
+unsafe_to_atom(Part, Line, #scope{}) when
+    is_binary(Part) andalso size(Part) > 255;
+    is_list(Part) andalso length(Part) > 255 ->
+  { error, { Line, "atom length must be less than system limit", ":" } };
+unsafe_to_atom(Binary, _Line, #scope{existing_atoms_only=true}) when is_binary(Binary) ->
   binary_to_existing_atom(Binary, utf8);
-unsafe_to_atom(Binary, #scope{}) when is_binary(Binary) ->
+unsafe_to_atom(Binary, _Line, #scope{}) when is_binary(Binary) ->
   binary_to_atom(Binary, utf8);
-unsafe_to_atom(List, #scope{existing_atoms_only=true}) when is_list(List) ->
+unsafe_to_atom(List, _Line, #scope{existing_atoms_only=true}) when is_list(List) ->
   list_to_existing_atom(List);
-unsafe_to_atom(List, #scope{}) when is_list(List) ->
+unsafe_to_atom(List, _Line, #scope{}) when is_list(List) ->
   list_to_atom(List).
 
 collect_modifiers([H|T], Buffer) when ?is_downcase(H) ->
@@ -738,14 +764,14 @@ tokenize_comment([])                 -> [].
 %% Atoms
 %% Handle atoms specially since they support @
 
-tokenize_atom([H|T], Acc, Scope) when ?is_atom(H) ->
-  tokenize_atom(T, [H|Acc], Scope);
+tokenize_atom([H|T], Acc) when ?is_atom(H) ->
+  tokenize_atom(T, [H|Acc]);
 
-tokenize_atom([H|T], Acc, Scope) when H == $?; H == $! ->
-  { T, unsafe_to_atom(lists:reverse([H|Acc]), Scope) };
+tokenize_atom([H|T], Acc) when H == $?; H == $! ->
+  { T, lists:reverse([H|Acc]) };
 
-tokenize_atom(Rest, Acc, Scope) ->
-  { Rest, unsafe_to_atom(lists:reverse(Acc), Scope) }.
+tokenize_atom(Rest, Acc) ->
+  { Rest, lists:reverse(Acc) }.
 
 %% Identifiers
 %% At this point, the validity of the first character was already verified.
@@ -763,11 +789,19 @@ tokenize_any_identifier(String, Line, Scope, Tokens) ->
 
   case Rest of
     [H|T] when H == $?; H == $! ->
-      Atom = unsafe_to_atom(Identifier ++ [H], Scope),
-      tokenize_kw_or_other(T, punctuated_identifier, Line, Atom, Tokens);
+      case unsafe_to_atom(Identifier ++ [H], Line, Scope) of
+        { error, _ } = Error ->
+          Error;
+        Atom ->
+          tokenize_kw_or_other(T, punctuated_identifier, Line, Atom, Tokens)
+      end;
     _ ->
-      Atom = unsafe_to_atom(Identifier, Scope),
-      tokenize_kw_or_other(Rest, identifier, Line, Atom, Tokens)
+      case unsafe_to_atom(Identifier, Line, Scope) of
+        { error, _ } = Error ->
+          Error;
+        Atom ->
+          tokenize_kw_or_other(Rest, identifier, Line, Atom, Tokens)
+      end
   end.
 
 tokenize_kw_or_other([$:,H|T], _Kind, Line, Atom, _Tokens) when ?is_space(H) ->
