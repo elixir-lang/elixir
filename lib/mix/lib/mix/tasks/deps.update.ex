@@ -26,7 +26,7 @@ defmodule Mix.Tasks.Deps.Update do
 
   def run(args) do
     Mix.Project.get! # Require the project to be available
-    { opts, rest } = OptionParser.parse(args, switches: [no_compile: :boolean, all: :boolean])
+    { opts, rest, _ } = OptionParser.parse(args, switches: [no_compile: :boolean, all: :boolean])
 
     cond do
       opts[:all] ->

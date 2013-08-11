@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Deps.Clean do
   def run(args) do
     Mix.Project.get! # Require the project to be available
 
-    { opts, args } = OptionParser.parse(args, switches: [unlock: :boolean, all: :boolean])
+    { opts, args, _ } = OptionParser.parse(args, switches: [unlock: :boolean, all: :boolean])
 
     cond do
       opts[:all] ->

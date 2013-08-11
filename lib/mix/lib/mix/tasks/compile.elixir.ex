@@ -237,7 +237,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   Runs this task.
   """
   def run(args) do
-    { opts, _ } = OptionParser.parse(args, switches: @switches)
+    { opts, _, _ } = OptionParser.parse(args, switches: @switches)
 
     project       = Mix.project
     compile_path  = project[:compile_path]

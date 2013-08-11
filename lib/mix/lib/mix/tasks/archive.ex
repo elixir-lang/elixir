@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Archive do
   """
 
   def run(args) do
-    { opts, _ } = OptionParser.parse(args, switches: [force: :boolean, no_compile: :boolean])
+    { opts, _, _ } = OptionParser.parse(args, switches: [force: :boolean, no_compile: :boolean])
 
     unless opts[:no_compile] do
       Mix.Task.run :compile, args

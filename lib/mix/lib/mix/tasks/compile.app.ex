@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Compile.App do
 
   """
   def run(args) do
-    { opts, _ } = OptionParser.parse(args, switches: [force: :boolean])
+    { opts, _, _ } = OptionParser.parse(args, switches: [force: :boolean])
 
     project = Mix.Project.get!
     config  = Mix.project
