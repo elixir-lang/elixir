@@ -62,8 +62,8 @@ defmodule Dict do
   defcallback split(t, keys) :: {t, t}
   defcallback take(t, keys) :: t
   defcallback to_list(t) :: list()
-  defcallback update(t, key, (value -> value)) :: t | no_return
   defcallback update(t, key, value, (value -> value)) :: t
+  defcallback update!(t, key, (value -> value)) :: t | no_return
   defcallback values(t) :: list(value)
   defcallback reduce(t, any, ({key, value}, any -> any)) :: any
 
@@ -327,12 +327,17 @@ defmodule Dict do
   ## Examples
 
       iex> d = dict_impl.new([a: 1, b: 2])
-      ...> d = Dict.update(d, :a, fn(val) -> -val end)
+      ...> d = Dict.update!(d, :a, fn(val) -> -val end)
       ...> Dict.get(d, :a)
       -1
 
   """
-  @spec update(t, key, (value -> value)) :: t
+  @spec update!(t, key, (value -> value)) :: t
+  def update!(dict, key, fun) do
+    target(dict).update!(dict, key, fun)
+  end
+
+  @doc false
   def update(dict, key, fun) do
     target(dict).update(dict, key, fun)
   end

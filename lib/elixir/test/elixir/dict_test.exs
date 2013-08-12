@@ -129,7 +129,7 @@ defmodule DictTest.Common do
       end
 
       test :update do
-        dict = Dict.update new_dict, "first_key", fn val -> -val end
+        dict = Dict.update! new_dict, "first_key", fn val -> -val end
         assert -1 == Dict.get dict, "first_key"
 
         dict = Dict.update dict, "non-existent", "...", fn val -> -val end

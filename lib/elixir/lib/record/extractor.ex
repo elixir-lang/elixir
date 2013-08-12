@@ -21,7 +21,7 @@ defmodule Record.Extractor do
 
     case :code.lib_dir(to_char_list(app)) do
       { :error, _ } ->
-        raise ArgumentError, "lib file #{to_binary(file)} could not be found"
+        raise ArgumentError, message: "lib file #{to_binary(file)} could not be found"
       libpath ->
         retrieve_record name, :filename.join([libpath|path])
     end
@@ -34,7 +34,7 @@ defmodule Record.Extractor do
     if record = List.keyfind(records, name, 0) do
       parse_record(record, form)
     else
-      raise ArgumentError, "no record #{name} found at #{to_binary(file)}"
+      raise ArgumentError, message: "no record #{name} found at #{to_binary(file)}"
     end
   end
 
