@@ -626,7 +626,7 @@ defmodule File do
 
   ## Examples
 
-      File.rddir('tmp_dir')
+      File.rmdir('tmp_dir')
       #=> :ok
 
       File.rmdir('file.txt')
