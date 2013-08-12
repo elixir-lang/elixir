@@ -23,16 +23,13 @@ defmodule Mix.Tasks.App.StartTest do
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
       assert System.version == Mix.Deps.Lock.elixir_vsn
 
-      # There is not much we can do, we need to wait a second
-      # otherwise touching the file is not picked up by the compiler
-      :timer.sleep(1000)
-
       Mix.Task.clear
       File.write!("ebin/.compile.lock", "the_past")
-      File.touch("ebin/.compile.lock",   { { 2010, 1, 1 }, { 0, 0, 0 } })
+      File.touch!("ebin/.compile.lock", { { 2010, 1, 1 }, { 0, 0, 0 } })
 
-      Mix.Tasks.App.Start.run ["--no-start"]
-      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+      Mix.Tasks.App.Start.run ["--no-start", "--no-compile"]
+      assert System.version == Mix.Deps.Lock.elixir_vsn
+      assert File.stat!("ebin/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
     end
   end
 
