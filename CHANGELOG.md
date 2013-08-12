@@ -19,11 +19,15 @@
   * [Mix] Ensure `watch_exts` trigger full recompilation on change with `mix compile`
   * [Mix] Fix regression on `mix clean --all`
   * [List] Fix bug on `List.insert_at/3` that added the item at the wrong position for negative indexes
+  * [String] `String.strip/2` now supports removing unicode characters
   * [System] `System.get_env/0` now returns a list of tuples as previously advertised
 
 * deprecations
+  * [Dict] `Dict.update/3` is deprecated in favor of `Dict.update!/3`
   * [Enum] `Enum.min/2` and `Enum.max/2` are deprecated in favor of `Enum.min_by/2` and `Enum.max_by/2`
+  * [Enum] `Enum.join/2` and `Enum.map_join/3` with a char list are deprecated
   * [IO] `IO.stream(device)` and `IO.binstream(device)` are deprecated in favor of `IO.stream(device, :line)` and `IO.binstream(device, :line)`
+  * [Macro] `Macro.unescape_binary/1` and `Macro.unescape_binary/2` are deprecated in favor of `Macro.unescape_string/1` and `Macro.unescape_string/2`
 
 * backwards incompatible changes
   * [OptionParser] `parse` and `parse_head` now returns a tuple with three elements instead of two
