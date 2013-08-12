@@ -147,7 +147,7 @@ defmodule Record do
   whenever you want to share a record within your code or with other
   libraries or whenever you need to dynamically set or update fields.
 
-  You can learn more about records in the `Kernel.defrecord/2` docs. Now
+  You can learn more about records in the `Kernel.defrecord/3` docs. Now
   let's discuss the usefulness of combining records with protocols.
 
   ## Protocols
