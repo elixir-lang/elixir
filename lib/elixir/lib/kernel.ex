@@ -3468,7 +3468,7 @@ defmodule Kernel do
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
   defmacro sigil_c({ :<<>>, _line, [string] }, []) when is_binary(string) do
-    :unicode.characters_to_list(Macro.unescape_binary(string))
+    :unicode.characters_to_list(Macro.unescape_string(string))
   end
 
   defmacro sigil_c({ :<<>>, line, pieces }, []) do
@@ -3486,7 +3486,7 @@ defmodule Kernel do
 
   """
   defmacro sigil_r({ :<<>>, _line, [string] }, options) when is_binary(string) do
-    binary = Macro.unescape_binary(string, Regex.unescape_map(&1))
+    binary = Macro.unescape_string(string, Regex.unescape_map(&1))
     regex  = Regex.compile!(binary, options)
     Macro.escape(regex)
   end
@@ -3532,7 +3532,7 @@ defmodule Kernel do
   """
 
   defmacro sigil_w({ :<<>>, _line, [string] }, modifiers) when is_binary(string) do
-    split_words(Macro.unescape_binary(string), modifiers)
+    split_words(Macro.unescape_string(string), modifiers)
   end
 
   defmacro sigil_w({ :<<>>, line, pieces }, modifiers) do

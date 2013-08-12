@@ -315,7 +315,7 @@ defmodule Regex do
   # Helpers
 
   @doc false
-  # Unescape map function used by Macro.unescape_binary.
+  # Unescape map function used by Macro.unescape_string.
   def unescape_map(?f), do: ?\f
   def unescape_map(?n), do: ?\n
   def unescape_map(?r), do: ?\r

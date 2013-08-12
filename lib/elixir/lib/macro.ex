@@ -70,10 +70,22 @@ defmodule Macro do
     :elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)) |> elem(0)
   end
 
+  @doc false
+  def unescape_binary(chars) do
+    IO.write "Macro.unescape_binary/1 is deprecated, please use Macro.unescape_string/1 instead\n#{Exception.format_stacktrace}"
+    unescape_string(chars)
+  end
+
+  @doc false
+  def unescape_binary(chars, map) do
+    IO.write "Macro.unescape_binary/2 is deprecated, please use Macro.unescape_string/2 instead\n#{Exception.format_stacktrace}"
+    unescape_string(chars, map)
+  end
+
   @doc %B"""
   Unescape the given chars. This is the unescaping behavior
   used by default in Elixir single- and double-quoted strings.
-  Check `unescape_binary/2` for information on how to customize
+  Check `unescape_string/2` for information on how to customize
   the escaping map.
 
   In this setup, Elixir will escape the following: `\a`, `\b`,
@@ -81,23 +93,24 @@ defmodule Macro do
   also escaped according to the latin1 set they represent.
 
   This function is commonly used on sigil implementations
-  (like `%r`, `%b` and others).
+  (like `%r`, `%b` and others) which receive a raw, unescaped
+  string.
 
   ## Examples
 
-      iex> Macro.unescape_binary("example\\n")
+      iex> Macro.unescape_string("example\\n")
       "example\n"
 
   In the example above, we pass a string with `\n` escaped
   and we return a version with it unescaped.
   """
-  def unescape_binary(chars) do
+  def unescape_string(chars) do
     :elixir_interpolation.unescape_chars(chars)
   end
 
   @doc %B"""
   Unescape the given chars according to the map given.
-  Check `unescape_binary/1` if you want to use the same map
+  Check `unescape_string/1` if you want to use the same map
   as Elixir single- and double-quoted strings.
 
   ## Map
@@ -135,16 +148,16 @@ defmodule Macro do
 
   Using the unescape_map defined above is easy:
 
-      Macro.unescape_binary "example\\n", unescape_map(&1)
+      Macro.unescape_string "example\\n", unescape_map(&1)
 
   """
-  def unescape_binary(chars, map) do
+  def unescape_string(chars, map) do
     :elixir_interpolation.unescape_chars(chars, map)
   end
 
   @doc """
   Unescape the given tokens according to the default map.
-  Check `unescape_binary/1` and `unescape_binary/2` for more
+  Check `unescape_string/1` and `unescape_string/2` for more
   information about unescaping.
 
   Only tokens that are binaries are unescaped, all others are
@@ -158,7 +171,7 @@ defmodule Macro do
 
   @doc """
   Unescape the given tokens according to the given map.
-  Check `unescape_tokens/1` and `unescape_binary/2` for more information.
+  Check `unescape_tokens/1` and `unescape_string/2` for more information.
   """
   def unescape_tokens(tokens, map) do
     :elixir_interpolation.unescape_tokens(tokens, map)

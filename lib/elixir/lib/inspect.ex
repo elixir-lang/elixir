@@ -19,8 +19,8 @@ defprotocol Inspect do
   receives an `Inspect.Opts` record as the second argument, it returns
   the underlying algebra document instead of the formatted string.
 
-  Many times, inspecting a structure can be implemented using functions
-  of the existing entities. For example, here is `HashSet`'s `inspect`
+  Many times, inspecting a structure can be implemented in function
+  of existing entities. For example, here is `HashSet`'s `inspect`
   implementation:
 
       defimpl Inspect, for: HashSet do
@@ -39,7 +39,7 @@ defprotocol Inspect do
   other string `">"`.
 
   Since regular strings are valid entities in an algebra document,
-  an implementation of inspect may simply return a binary,
+  an implementation of inspect may simply return a string,
   although that will devoid it of any pretty-printing.
   """
 
@@ -91,7 +91,7 @@ defimpl Inspect, for: Atom do
       atom in Macro.binary_ops or atom in Macro.unary_ops ->
         ":" <> binary
       true ->
-        << ?:, ?", String.escape(binary, ?") :: binary, ?" >>
+        << ?:, ?", Inspect.BitString.escape(binary, ?") :: binary, ?" >>
     end
   end
 
@@ -137,9 +137,8 @@ end
 defimpl Inspect, for: BitString do
   @doc %B"""
   Represents a string as itself escaping all necessary
-  characters. Bitstrings and strings that contain non-
-  printable characters are printed using the bitstring
-  syntax.
+  characters. Binaries that contain non-printable characters
+  are printed using the bitstring syntax.
 
   ## Examples
 
@@ -147,23 +146,73 @@ defimpl Inspect, for: BitString do
       "\"bar\""
       iex> inspect("f\"oo")
       "\"f\\\"oo\""
+      iex> inspect(<<0,1,2>>)
+      "<<0, 1, 2>>"
 
   """
   def inspect(thing, opts) when is_binary(thing) do
     if String.printable?(thing) do
-      << ?", String.escape(thing, ?") :: binary, ?" >>
+      << ?", escape(thing, ?") :: binary, ?" >>
     else
-      as_bitstring(thing, opts)
+      inspect_bitstring(thing, opts)
     end
   end
 
   def inspect(thing, opts) do
-    as_bitstring(thing, opts)
+    inspect_bitstring(thing, opts)
   end
+
+  ## Escaping
+
+  @doc false
+  def escape(other, char) do
+    escape(other, char, <<>>)
+  end
+
+  defp escape(<< char, t :: binary >>, char, binary) do
+    escape(t, char, << binary :: binary, ?\\, char >>)
+  end
+  defp escape(<<?#, ?{, t :: binary>>, char, binary) do
+    escape(t, char, << binary :: binary, ?\\, ?#, ?{ >>)
+  end
+  defp escape(<<?\a, t :: binary>>, char, binary) do
+    escape(t, char, << binary :: binary, ?\\, ?a >>)
+  end
+  defp escape(<<?\b, t :: binary>>, char, binary) do
+    escape(t, char, << binary :: binary, ?\\, ?b >>)
+  end
+  defp escape(<<?\d, t :: binary>>, char, binary) do
+    escape(t, char, << binary :: binary, ?\\, ?d >>)
+  end
+  defp escape(<<?\e, t :: binary>>, char, binary) do
+    escape(t, char, << binary :: binary, ?\\, ?e >>)
+  end
+  defp escape(<<?\f, t :: binary>>, char, binary) do
+    escape(t, char, << binary :: binary, ?\\, ?f >>)
+  end
+  defp escape(<<?\n, t :: binary>>, char, binary) do
+    escape(t, char, << binary :: binary, ?\\, ?n >>)
+  end
+  defp escape(<<?\r, t :: binary>>, char, binary) do
+    escape(t, char, << binary :: binary, ?\\, ?r >>)
+  end
+  defp escape(<<?\\, t :: binary>>, char, binary) do
+    escape(t, char, << binary :: binary, ?\\, ?\\ >>)
+  end
+  defp escape(<<?\t, t :: binary>>, char, binary) do
+    escape(t, char, << binary :: binary, ?\\, ?t >>)
+  end
+  defp escape(<<?\v, t :: binary>>, char, binary) do
+    escape(t, char, << binary :: binary, ?\\, ?v >>)
+  end
+  defp escape(<<h, t :: binary>>, char, binary) do
+    escape(t, char, << binary :: binary, h >>)
+  end
+  defp escape(<<>>, _char, binary), do: binary
 
   ## Bitstrings
 
-  defp as_bitstring(bitstring, Inspect.Opts[] = opts) do
+  defp inspect_bitstring(bitstring, Inspect.Opts[] = opts) do
     "<<" <> each_bit(bitstring, opts.limit) <> ">>"
   end
 
@@ -216,7 +265,7 @@ defimpl Inspect, for: List do
   def inspect(thing, Inspect.Opts[] = opts) do
     cond do
       :io_lib.printable_list(thing) ->
-        << ?', String.escape(:unicode.characters_to_binary(thing), ?') :: binary, ?' >>
+        << ?', Inspect.BitString.escape(:unicode.characters_to_binary(thing), ?') :: binary, ?' >>
       keyword?(thing) && not opts.raw ->
         surround_many("[", thing, "]", opts.limit, keyword(&1, opts))
       true ->
