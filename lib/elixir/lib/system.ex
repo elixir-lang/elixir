@@ -266,7 +266,7 @@ defmodule System do
   """
   @spec get_env(binary) :: binary | nil
   def get_env(varname) when is_binary(varname) do
-    case :os.getenv(:unicode.characters_to_list(varname)) do
+    case :os.getenv(String.to_char_list!(varname)) do
       false -> nil
       other -> String.from_char_list!(other)
     end
@@ -286,7 +286,7 @@ defmodule System do
   """
   @spec put_env(binary, binary) :: :ok
   def put_env(varname, value) when is_binary(varname) and is_binary(value) do
-   :os.putenv binary_to_list(varname), :unicode.characters_to_list(value)
+   :os.putenv binary_to_list(varname), String.to_char_list!(value)
    :ok
   end
 

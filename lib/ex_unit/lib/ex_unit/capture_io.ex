@@ -137,7 +137,7 @@ defmodule ExUnit.CaptureIO do
   end
 
   defp register_input(input) do
-    chars = :unicode.characters_to_list(input)
+    chars = String.to_char_list!(input)
     set_input(chars)
   end
 

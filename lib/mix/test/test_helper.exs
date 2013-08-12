@@ -76,7 +76,7 @@ defmodule MixTest.Case do
   def in_fixture(which, tmp, function) do
     src  = Path.join fixture_path(which), "."
     dest = tmp_path(tmp)
-    flag = tmp_path |> :unicode.characters_to_list
+    flag = tmp_path |> String.to_char_list!
 
     File.rm_rf!(dest)
     File.mkdir_p!(dest)

@@ -44,7 +44,7 @@ defmodule Mix.Archive do
   def create(archive_file, project_path // ".") do
     project_path = Path.expand(project_path)
     archive_file = Path.expand(archive_file)
-    dir = dir(archive_file) |> :unicode.characters_to_list
+    dir = dir(archive_file) |> String.to_char_list!
     {:ok, _ } = :zip.create(archive_file,
                   files_to_add(project_path, dir),
                   uncompress: ['.beam', '.app'])

@@ -146,7 +146,7 @@ defmodule Mix.Tasks.Escriptize do
 
   defp to_tuples(files) do
     lc f inlist files do
-      { :unicode.characters_to_list(Path.basename(f)), File.read!(f) }
+      { String.to_char_list!(Path.basename(f)), File.read!(f) }
     end
   end
 

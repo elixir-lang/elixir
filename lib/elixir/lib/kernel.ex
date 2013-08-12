@@ -3468,12 +3468,12 @@ defmodule Kernel do
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
   defmacro sigil_c({ :<<>>, _line, [string] }, []) when is_binary(string) do
-    :unicode.characters_to_list(Macro.unescape_string(string))
+    String.to_char_list!(Macro.unescape_string(string))
   end
 
   defmacro sigil_c({ :<<>>, line, pieces }, []) do
     binary = { :<<>>, line, Macro.unescape_tokens(pieces) }
-    quote do: :unicode.characters_to_list(unquote(binary))
+    quote do: String.to_char_list!(unquote(binary))
   end
 
   @doc """
@@ -3637,13 +3637,13 @@ defmodule Kernel do
         case mod do
           ?b -> String.split(string)
           ?a -> lc p inlist String.split(string), do: binary_to_atom(p)
-          ?c -> lc p inlist String.split(string), do: :unicode.characters_to_list(p)
+          ?c -> lc p inlist String.split(string), do: String.to_char_list!(p)
         end
       false ->
         case mod do
           ?b -> quote do: String.split(unquote(string))
           ?a -> quote do: lc(p inlist String.split(unquote(string)), do: binary_to_atom(p))
-          ?c -> quote do: lc(p inlist String.split(unquote(string)), do: :unicode.characters_to_list(p))
+          ?c -> quote do: lc(p inlist String.split(unquote(string)), do: String.to_char_list!(p))
         end
     end
   end

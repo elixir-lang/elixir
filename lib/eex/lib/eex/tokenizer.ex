@@ -12,7 +12,7 @@ defmodule EEx.Tokenizer do
 
   """
   def tokenize(bin, line) when is_binary(bin) do
-    tokenize(:unicode.characters_to_list(bin), line)
+    tokenize(String.to_char_list!(bin), line)
   end
 
   def tokenize(list, line) do

@@ -119,7 +119,7 @@ defmodule Code do
 
   defp do_eval_string(string, binding, opts) when is_list(binding) do
     { value, binding, _scope } =
-      :elixir.eval :unicode.characters_to_list(string), binding, opts
+      :elixir.eval String.to_char_list!(string), binding, opts
     { value, binding }
   end
 
@@ -219,7 +219,7 @@ defmodule Code do
   def string_to_quoted(string, opts // []) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    res  = :elixir_translator.forms(:unicode.characters_to_list(string), line, file, opts)
+    res  = :elixir_translator.forms(String.to_char_list!(string), line, file, opts)
 
     case res do
       { :ok, forms } -> { :ok, unpack_quote(line, forms) }
@@ -238,7 +238,7 @@ defmodule Code do
   def string_to_quoted!(string, opts // []) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    res  = :elixir_translator.forms!(:unicode.characters_to_list(string), line, file, opts)
+    res  = :elixir_translator.forms!(String.to_char_list!(string), line, file, opts)
     unpack_quote(line, res)
   end
 
@@ -333,7 +333,7 @@ defmodule Code do
   For compiling many files at once, check `Kernel.ParallelCompiler`.
   """
   def compile_string(string, file // "nofile") when is_binary(file) do
-    :elixir_compiler.string :unicode.characters_to_list(string), file
+    :elixir_compiler.string String.to_char_list!(string), file
   end
 
   @doc """

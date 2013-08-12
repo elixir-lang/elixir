@@ -33,7 +33,7 @@ defmodule Mix.Task do
   """
   def load_tasks(paths) do
     Enum.reduce(paths, [], fn(path, matches) ->
-      { :ok, files } = :erl_prim_loader.list_dir(path |> :unicode.characters_to_list)
+      { :ok, files } = :erl_prim_loader.list_dir(path |> String.to_char_list!)
       Enum.reduce(files, matches, match_tasks(&1, &2))
     end)
   end

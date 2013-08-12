@@ -57,7 +57,7 @@ defmodule Kernel.CLI.SyntaxErrorTest do
 
   def check_output(elixir_cmd, expected_msg) do
     o = elixir(elixir_cmd)
-    expected_msg = :unicode.characters_to_list(expected_msg)
+    expected_msg = String.to_char_list!(expected_msg)
     assert :string.str(o, expected_msg) == 1, "Expected this output: `#{expected_msg}`\nbut got this output: `#{o}`"
   end
 

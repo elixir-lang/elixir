@@ -148,7 +148,7 @@ defmodule IEx.Server do
 
         # Evaluate the contents in the same environment do_loop will run in
         { _result, binding, scope } =
-          :elixir.eval(:unicode.characters_to_list(code),
+          :elixir.eval(String.to_char_list!(code),
                        config.binding,
                        0,
                        scope)
@@ -188,7 +188,7 @@ defmodule IEx.Server do
     case IO.gets(:stdio, prompt) do
       :eof -> :eof
       { :error, _ } -> ''
-      data -> :unicode.characters_to_list(data)
+      data -> String.to_char_list!(data)
     end
   end
 
