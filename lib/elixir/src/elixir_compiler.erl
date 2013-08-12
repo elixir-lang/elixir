@@ -229,6 +229,8 @@ core_main() ->
     "lib/elixir/lib/enum.ex",
     "lib/elixir/lib/inspect/algebra.ex",
     "lib/elixir/lib/inspect.ex",
+    "lib/elixir/lib/range.ex",
+    "lib/elixir/lib/string.ex",
     "lib/elixir/lib/binary/chars.ex",
     "lib/elixir/lib/io.ex",
     "lib/elixir/lib/path.ex",

@@ -74,7 +74,7 @@ defmodule IEx.CLI do
     { :erlang, :apply, [function, []] }
   end
 
-  defp find_dot_iex(['--dot-iex', h|_]), do: :unicode.characters_to_binary(h)
+  defp find_dot_iex(['--dot-iex', h|_]), do: String.from_char_list!(h)
   defp find_dot_iex([_|t]), do: find_dot_iex(t)
   defp find_dot_iex([]), do: nil
 

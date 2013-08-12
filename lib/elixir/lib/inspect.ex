@@ -265,7 +265,7 @@ defimpl Inspect, for: List do
   def inspect(thing, Inspect.Opts[] = opts) do
     cond do
       :io_lib.printable_list(thing) ->
-        << ?', Inspect.BitString.escape(:unicode.characters_to_binary(thing), ?') :: binary, ?' >>
+        << ?', Inspect.BitString.escape(String.from_char_list!(thing), ?') :: binary, ?' >>
       keyword?(thing) && not opts.raw ->
         surround_many("[", thing, "]", opts.limit, keyword(&1, opts))
       true ->

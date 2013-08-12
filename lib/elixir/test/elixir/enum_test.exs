@@ -146,36 +146,23 @@ defmodule EnumTest.List do
     end
   end
 
-  test :join_with_bin do
+  test :join do
     assert Enum.join([], " = ") == ""
     assert Enum.join([1, 2, 3], " = ") == "1 = 2 = 3"
     assert Enum.join([1, "2", 3], " = ") == "1 = 2 = 3"
     assert Enum.join([1, 2, 3]) == "123"
   end
 
-  test :join_with_list do
-    assert Enum.join([], ' = ') == ''
-    assert Enum.join([1, 2, 3], ' = ') == '1 = 2 = 3'
-    assert Enum.join([1, "2", 3], ' = ') == '1 = 2 = 3'
-  end
-
-  test :map_join_with_bin do
+  test :map_join do
     assert Enum.map_join([], " = ", &1 * 2) == ""
     assert Enum.map_join([1, 2, 3], " = ", &1 * 2) == "2 = 4 = 6"
     assert Enum.map_join([1, 2, 3], &1 * 2) == "246"
-  end
-
-  test :map_join_with_list do
-    assert Enum.map_join([], ' = ', &1 * 2) == ''
-    assert Enum.map_join([1, 2, 3], ' = ', &1 * 2) == '2 = 4 = 6'
   end
 
   test :join_empty do
     fun = fn (acc, _) -> acc end
     assert Enum.join(fun, ".") == ""
     assert Enum.map_join(fun, ".", &1 + 0) == ""
-    assert Enum.join(fun, '.') == ''
-    assert Enum.map_join(fun, '.', &1 + 0) == ''
   end
 
   test :map do
@@ -490,7 +477,7 @@ defmodule EnumTest.Range do
     assert Enum.reject(range, fn(x) -> rem(x, 2) == 0 end) == [1, 3, 5]
   end
 
-  test :join_with_bin do
+  test :join do
     range = Range.new(first: 1, last: 0)
     assert Enum.join(range, " = ") == "1 = 0"
 
@@ -499,29 +486,13 @@ defmodule EnumTest.Range do
     assert Enum.join(range) == "123"
   end
 
-  test :join_with_list do
-    range = Range.new(first: 1, last: 0)
-    assert Enum.join(range, ' = ') == '1 = 0'
-
-    range = Range.new(first: 1, last: 3)
-    assert Enum.join(range, ' = ') == '1 = 2 = 3'
-  end
-
-  test :map_join_with_bin do
+  test :map_join do
     range = Range.new(first: 1, last: 0)
     assert Enum.map_join(range, " = ", &1 * 2) == "2 = 0"
 
     range = Range.new(first: 1, last: 3)
     assert Enum.map_join(range, " = ", &1 * 2) == "2 = 4 = 6"
     assert Enum.map_join(range, &1 * 2) == "246"
-  end
-
-  test :map_join_with_list do
-    range = Range.new(first: 1, last: 0)
-    assert Enum.map_join(range, ' = ', &1 * 2) == '2 = 0'
-
-    range = Range.new(first: 1, last: 3)
-    assert Enum.map_join(range, ' = ', &1 * 2) == '2 = 4 = 6'
   end
 
   test :map do

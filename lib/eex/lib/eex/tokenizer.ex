@@ -154,6 +154,6 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize_text(line, buffer, acc) do
-    [{ :text, line, :unicode.characters_to_binary(Enum.reverse(buffer)) } | acc]
+    [{ :text, line, String.from_char_list!(Enum.reverse(buffer)) } | acc]
   end
 end

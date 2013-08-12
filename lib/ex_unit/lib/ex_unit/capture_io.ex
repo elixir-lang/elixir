@@ -291,7 +291,7 @@ defmodule ExUnit.CaptureIO do
             :unicode.characters_to_binary(line)
           [_|t] ->
             set_input(t)
-            :unicode.characters_to_binary(line ++ '\n')
+            :unicode.characters_to_binary(line) <> "\n"
         end
     end
   end

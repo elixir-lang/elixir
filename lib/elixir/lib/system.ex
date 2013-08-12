@@ -93,7 +93,7 @@ defmodule System do
   """
   def cwd do
     case :file.get_cwd do
-      { :ok, list } -> :unicode.characters_to_binary(list)
+      { :ok, list } -> String.from_char_list!(list)
       _ -> nil
     end
   end
@@ -180,7 +180,7 @@ defmodule System do
         access_index = File.Stat.__record__(:index, :access)
         case { elem(info, type_index), elem(info, access_index) } do
           { :directory, access } when access in [:read_write, :write] ->
-            :unicode.characters_to_binary(dir)
+            String.from_char_list!(dir)
           _ -> nil
         end
       { :error, _ } -> nil
@@ -253,7 +253,7 @@ defmodule System do
   @spec get_env() :: [{String.t, String.t}]
   def get_env do
     Enum.map(:os.getenv, fn var ->
-        var = :unicode.characters_to_binary var
+        var = String.from_char_list! var
         [k, v] = String.split var, "=", global: false
         {k, v}
     end)
@@ -268,7 +268,7 @@ defmodule System do
   def get_env(varname) when is_binary(varname) do
     case :os.getenv(:unicode.characters_to_list(varname)) do
       false -> nil
-      other -> :unicode.characters_to_binary(other)
+      other -> String.from_char_list!(other)
     end
   end
 

@@ -580,8 +580,6 @@ defmodule Enum do
       "123"
       iex> Enum.join([1, 2, 3], " = ")
       "1 = 2 = 3"
-      iex> Enum.join([1, 2, 3], ' = ')
-      '1 = 2 = 3'
 
   """
   @spec join(t) :: String.t
@@ -589,6 +587,7 @@ defmodule Enum do
   def join(collection, joiner // "")
 
   def join(collection, joiner) when is_list(joiner) do
+    IO.write "Enum.join/2 with a char list is deprecated, please use do an explicit conversion instead\n#{Exception.format_stacktrace}"
     :unicode.characters_to_list join(collection, :unicode.characters_to_binary(joiner))
   end
 
@@ -641,8 +640,6 @@ defmodule Enum do
       "246"
       iex> Enum.map_join([1, 2, 3], " = ", &(&1 * 2))
       "2 = 4 = 6"
-      iex> Enum.map_join([1, 2, 3], ' = ', &(&1 * 2))
-      '2 = 4 = 6'
 
   """
   @spec map_join(t, (element -> any)) :: String.t
@@ -650,6 +647,7 @@ defmodule Enum do
   def map_join(collection, joiner // "", mapper)
 
   def map_join(collection, joiner, mapper) when is_list(joiner) do
+    IO.write "Enum.map_join/3 with a char list is deprecated, please use do an explicit conversion instead\n#{Exception.format_stacktrace}"
     :unicode.characters_to_list map_join(collection, :unicode.characters_to_binary(joiner), mapper)
   end
 

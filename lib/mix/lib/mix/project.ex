@@ -117,7 +117,7 @@ defmodule Mix.Project do
     opts     = [Mix.Deps.Lock.manifest]
 
     if project && (source = project.__info__(:compile)[:source]) do
-      opts = [:unicode.characters_to_binary(source)|opts]
+      opts = [String.from_char_list!(source)|opts]
     end
 
     opts

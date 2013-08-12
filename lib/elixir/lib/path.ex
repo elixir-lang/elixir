@@ -471,8 +471,9 @@ defmodule Path do
 
   """
   def wildcard(glob) when is_binary(glob) do
-    paths = :filelib.wildcard :unicode.characters_to_list(glob)
-    Enum.map paths, :unicode.characters_to_binary(&1)
+    paths = :filelib.wildcard binary_to_filename_string(glob)
+    encoding = :file.native_name_encoding()
+    Enum.map paths, &flatten_filename_to_binary(&1, encoding)
   end
 
   def wildcard(glob) when is_list(glob) do
@@ -494,7 +495,11 @@ defmodule Path do
   end
 
   defp filename_string_to_binary(list) do
-    case :unicode.characters_to_binary(:filename.flatten(list), :unicode, :file.native_name_encoding()) do
+    flatten_filename_to_binary(:filename.flatten(list), :file.native_name_encoding())
+  end
+
+  defp flatten_filename_to_binary(list, encoding) do
+    case :unicode.characters_to_binary(list, :unicode, encoding) do
       { :error, _, _ } ->
         :erlang.error(:badarg)
       bin when is_binary(bin) ->
