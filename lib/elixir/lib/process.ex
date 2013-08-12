@@ -286,7 +286,7 @@ defmodule Process do
 
   @doc """
   Returns the pid or port identifier with the registered name.
-  Returns undefined if the name is not registered.
+  Returns nil if the name is not registered.
 
   See http://www.erlang.org/doc/man/erlang.html#whereis-1 for more info.
   """
@@ -347,25 +347,26 @@ defmodule Process do
   end
 
   @doc """
-  Returns information about the process identified by pid.
+  Returns information about the process identified by pid or nil if the process
+  is not alive.
   Use this only for debugging information.
 
   See http://www.erlang.org/doc/man/erlang.html#process_info-1 for more info.
   """
   @spec info(pid) :: Keyword.t
   def info(pid) do
-    :erlang.process_info(pid)
+    nillify :erlang.process_info(pid)
   end
 
   @doc """
   Returns information about the process identified by pid
-  or undefined if the process is not alive.
+  or nil if the process is not alive.
 
   See http://www.erlang.org/doc/man/erlang.html#process_info-2 for more info.
   """
   @spec info(pid, atom) :: {atom, term}
   def info(pid, spec) do
-    :erlang.process_info(pid, spec)
+    nillify :erlang.process_info(pid, spec)
   end
 
   @compile { :inline, nillify: 1 }
