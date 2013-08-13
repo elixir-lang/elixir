@@ -443,23 +443,16 @@ defmodule String do
       "  abc"
       iex> String.rjust("abc", 5, ?-)
       "--abc"
-      iex> String.rjust("abc", 5, "def")
-      "deabc"
 
   """
   @spec rjust(t, pos_integer) :: t
   @spec rjust(t, pos_integer, char) :: t
-  @spec rjust(t, pos_integer, t) :: t
 
   def rjust(subject, len) do
-    rjust(subject, len, " ")
+    rjust(subject, len, ? )
   end
 
   def rjust(subject, len, padding) when is_integer(padding) do
-    rjust(subject, len, <<padding :: utf8>>)
-  end
-
-  def rjust(subject, len, padding) do
     do_justify(subject, len, padding, :right)
   end
 
@@ -474,45 +467,35 @@ defmodule String do
       "abc  "
       iex> String.ljust("abc", 5, ?-)
       "abc--"
-      iex> String.ljust("abc", 5, "def")
-      "abcde"
 
   """
   @spec ljust(t, pos_integer) :: t
   @spec ljust(t, pos_integer, char) :: t
-  @spec ljust(t, pos_integer, t) :: t
 
   def ljust(subject, len) do
-    ljust(subject, len, " ")
+    ljust(subject, len, ? )
   end
 
   def ljust(subject, len, padding) when is_integer(padding) do
-    ljust(subject, len, <<padding :: utf8>>)
-  end
-
-  def ljust(subject, len, padding) do
     do_justify(subject, len, padding, :left)
   end
 
-  def do_justify(_subject, 0, _padding, _type) do
-    ""
+  def do_justify(subject, 0, _padding, _type) do
+    subject
   end
 
-  def do_justify(subject, len, padding, type) do
-    subject_len = do_length(next_grapheme(subject))
+  def do_justify(subject, len, padding, type) when is_integer(padding) do
+    subject_len = String.length(subject)
 
     cond do
       subject_len >= len ->
         subject
       subject_len < len ->
-        diff = len - subject_len
-        padding_len = do_length(next_grapheme(padding))
-        fill = duplicate(padding, div(diff, padding_len))
-        part = slice(padding, 0, rem(diff, padding_len))
+        fill = String.duplicate(<<padding :: utf8>>, len - subject_len)
 
         case type do
-          :left  -> Enum.join([subject, fill, part])
-          :right -> Enum.join([fill, part, subject])
+          :left  -> Enum.join([subject, fill])
+          :right -> Enum.join([fill, subject])
         end
     end
   end

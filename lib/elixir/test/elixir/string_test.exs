@@ -131,7 +131,6 @@ defmodule StringTest do
     assert String.rjust("猫", 5) == "    猫"
     assert String.rjust("abc", 5, ?-) == "--abc"
     assert String.rjust("abc", 5, ?猫) == "猫猫abc"
-    assert String.rjust("abc", 7, "def") == "defdabc"
   end
 
   test :ljust do
@@ -141,7 +140,6 @@ defmodule StringTest do
     assert String.ljust("猫", 5) == "猫    "
     assert String.ljust("abc", 5, ?-) == "abc--"
     assert String.ljust("abc", 5, ?猫) == "abc猫猫"
-    assert String.ljust("abc", 7, "def") == "abcdefd"
   end
 
   test :reverse do
