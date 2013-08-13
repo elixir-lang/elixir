@@ -432,7 +432,20 @@ defmodule String do
   end
 
   @doc %B"""
-  TODO
+  Returns a new string of length `len` with `subject` right justified and
+  padded with `padding`. If `padding` is not present, it defaults to
+  whitespace. When `len` is less than the length of `subject`, `subject` is
+  truncated and returned.
+
+  ## Examples
+
+      iex> String.rjust("abc", 5)
+      "  abc"
+      iex> String.rjust("abc", 5, ?-)
+      "--abc"
+      iex> String.rjust("abc", 5, "def")
+      "deabc"
+
   """
   @spec rjust(t, pos_integer) :: t
   @spec rjust(t, pos_integer, char) :: t
@@ -451,7 +464,20 @@ defmodule String do
   end
 
   @doc %B"""
-  TODO
+  Returns a new string of length `len` with `subject` left justified and
+  padded with `padding`. If `padding` is not present, it defaults to
+  whitespace. When `len` is less than the length of `subject`, `subject` is
+  truncated and returned.
+
+  ## Examples
+
+      iex> String.ljust("abc", 5)
+      "abc  "
+      iex> String.ljust("abc", 5, ?-)
+      "abc--"
+      iex> String.ljust("abc", 5, "def")
+      "abcde"
+
   """
   @spec ljust(t, pos_integer) :: t
   @spec ljust(t, pos_integer, char) :: t
