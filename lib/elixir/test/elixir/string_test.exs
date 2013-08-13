@@ -126,7 +126,6 @@ defmodule StringTest do
 
   test :rjust do
     assert String.rjust("", 5) == "     "
-    assert String.rjust("abc", 1) == "a"
     assert String.rjust("abc", 5) == "  abc"
     assert String.rjust("  abc  ", 9) == "    abc  "
     assert String.rjust("猫", 5) == "    猫"
@@ -137,7 +136,6 @@ defmodule StringTest do
 
   test :ljust do
     assert String.ljust("", 5) == "     "
-    assert String.ljust("abc", 1) == "a"
     assert String.ljust("abc", 5) == "abc  "
     assert String.ljust("  abc  ", 9) == "  abc    "
     assert String.ljust("猫", 5) == "猫    "

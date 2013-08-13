@@ -435,7 +435,7 @@ defmodule String do
   Returns a new string of length `len` with `subject` right justified and
   padded with `padding`. If `padding` is not present, it defaults to
   whitespace. When `len` is less than the length of `subject`, `subject` is
-  truncated and returned.
+  returned.
 
   ## Examples
 
@@ -464,10 +464,9 @@ defmodule String do
   end
 
   @doc %B"""
-  Returns a new string of length `len` with `subject` left justified and
-  padded with `padding`. If `padding` is not present, it defaults to
-  whitespace. When `len` is less than the length of `subject`, `subject` is
-  truncated and returned.
+  Returns a new string of length `len` with `subject` left justified and padded
+  with `padding`. If `padding` is not present, it defaults to whitespace. When
+  `len` is less than the length of `subject`, `subject` is returned.
 
   ## Examples
 
@@ -503,8 +502,8 @@ defmodule String do
     subject_len = do_length(next_grapheme(subject))
 
     cond do
-      subject_len > len ->
-        slice(subject, 0, len)
+      subject_len >= len ->
+        subject
       subject_len < len ->
         diff = len - subject_len
         padding_len = do_length(next_grapheme(padding))
@@ -515,8 +514,6 @@ defmodule String do
           :left  -> Enum.join([subject, fill, part])
           :right -> Enum.join([fill, part, subject])
         end
-      subject_len == len ->
-        subject
     end
   end
 
