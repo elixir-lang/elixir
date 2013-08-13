@@ -746,6 +746,13 @@ defmodule String do
   """
   @spec slice(t, integer, integer) :: grapheme | nil
 
+  def slice(string, start, 0) do
+    case abs(start) <= String.length(string) do
+      true -> ""
+      false -> nil
+    end
+  end
+
   def slice(string, start, len) when start >= 0 do
     do_slice(next_grapheme(string), start, start + len - 1, 0, "")
   end
