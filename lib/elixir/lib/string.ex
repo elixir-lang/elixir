@@ -432,6 +432,69 @@ defmodule String do
   end
 
   @doc %B"""
+  TODO
+  """
+  @spec rjust(t, pos_integer) :: t
+  @spec rjust(t, pos_integer, char) :: t
+  @spec rjust(t, pos_integer, t) :: t
+
+  def rjust(subject, len) do
+    rjust(subject, len, " ")
+  end
+
+  def rjust(subject, len, padding) when is_integer(padding) do
+    rjust(subject, len, <<padding :: utf8>>)
+  end
+
+  def rjust(subject, len, padding) do
+    do_justify(subject, len, padding, :right)
+  end
+
+  @doc %B"""
+  TODO
+  """
+  @spec ljust(t, pos_integer) :: t
+  @spec ljust(t, pos_integer, char) :: t
+  @spec ljust(t, pos_integer, t) :: t
+
+  def ljust(subject, len) do
+    ljust(subject, len, " ")
+  end
+
+  def ljust(subject, len, padding) when is_integer(padding) do
+    ljust(subject, len, <<padding :: utf8>>)
+  end
+
+  def ljust(subject, len, padding) do
+    do_justify(subject, len, padding, :left)
+  end
+
+  def do_justify(_subject, 0, _padding, _type) do
+    ""
+  end
+
+  def do_justify(subject, len, padding, type) do
+    subject_len = do_length(next_grapheme(subject))
+
+    cond do
+      subject_len > len ->
+        slice(subject, 0, len)
+      subject_len < len ->
+        diff = len - subject_len
+        padding_len = do_length(next_grapheme(padding))
+        fill = duplicate(padding, div(diff, padding_len))
+        part = slice(padding, 0, rem(diff, padding_len))
+
+        case type do
+          :left  -> Enum.join([subject, fill, part])
+          :right -> Enum.join([fill, part, subject])
+        end
+      subject_len == len ->
+        subject
+    end
+  end
+
+  @doc %B"""
   Returns a new binary based on `subject` by replacing the parts
   matching `pattern` by `replacement`. By default, it replaces
   all entries, except if the `global` option is set to `false`.

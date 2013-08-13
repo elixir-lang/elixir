@@ -124,6 +124,28 @@ defmodule StringTest do
     assert String.strip("猫猫猫  cat  猫猫猫", ?猫) == "  cat  "
   end
 
+  test :rjust do
+    assert String.rjust("", 5) == "     "
+    assert String.rjust("abc", 1) == "a"
+    assert String.rjust("abc", 5) == "  abc"
+    assert String.rjust("  abc  ", 9) == "    abc  "
+    assert String.rjust("猫", 5) == "    猫"
+    assert String.rjust("abc", 5, ?-) == "--abc"
+    assert String.rjust("abc", 5, ?猫) == "猫猫abc"
+    assert String.rjust("abc", 7, "def") == "defdabc"
+  end
+
+  test :ljust do
+    assert String.ljust("", 5) == "     "
+    assert String.ljust("abc", 1) == "a"
+    assert String.ljust("abc", 5) == "abc  "
+    assert String.ljust("  abc  ", 9) == "  abc    "
+    assert String.ljust("猫", 5) == "猫    "
+    assert String.ljust("abc", 5, ?-) == "abc--"
+    assert String.ljust("abc", 5, ?猫) == "abc猫猫"
+    assert String.ljust("abc", 7, "def") == "abcdefd"
+  end
+
   test :reverse do
     assert String.reverse("") == ""
     assert String.reverse("abc") == "cba"
