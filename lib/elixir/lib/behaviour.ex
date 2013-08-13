@@ -123,7 +123,9 @@ defmodule Behaviour do
 
   @doc false
   defmacro __before_compile__(env) do
-    docs = Enum.reverse Module.get_attribute(env.module, :behaviour_docs)
+    docs = if Code.compiler_options[:docs] do
+      Enum.reverse Module.get_attribute(env.module, :behaviour_docs)
+    end
 
     quote do
       @doc false
