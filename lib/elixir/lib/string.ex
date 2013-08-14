@@ -879,19 +879,15 @@ defmodule String do
   @spec to_integer(t) :: {integer, t} | :error
 
   def to_integer(string) do
-    [primary | secondary] = Regex.split(%r/(\D)/, string, [parts: 2])
+    [{_, sign}, {_, primary}, {_, secondary}] = Regex.captures(%r/(?<sign>^[+-]?)(?<primary>[0-9]*)(?<secondary>.*)/g, string)
     result = try do
-      :erlang.binary_to_integer(primary)
+      :erlang.list_to_integer(:binary.bin_to_list(sign) ++ :binary.bin_to_list(primary))
     rescue
       ArgumentError -> :error
     end
     case result do
       :error -> :error
-      _ -> {result, case secondary do
-        [] -> ""
-        [s] -> s
-        [s | rest] -> :binary.list_to_bin(Enum.reduce(rest, s, fn (x, acc) -> :binary.bin_to_list(acc) ++ :binary.bin_to_list(x) end))
-      end}
+      _ -> {result, secondary}
     end
   end
 
@@ -916,16 +912,18 @@ defmodule String do
   @spec to_float(t) :: {integer, t} | :error
 
   def to_float(string) do
-    charlist = :binary.bin_to_list(string)
-    {result, remainder} = :string.to_float(charlist)
+    [{_, sign}, {_, primary}, {_, secondary}] = Regex.captures(%r/(?<sign>^[+-]?)(?<primary>[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)?(?<secondary>.*)/g, string)
+    result = try do
+      case Regex.match?(%r/\./g, primary) do
+        false -> :erlang.list_to_float(:binary.bin_to_list(sign) ++ :binary.bin_to_list(primary) ++ '.0')
+        true -> :erlang.list_to_float(:binary.bin_to_list(sign) ++ :binary.bin_to_list(primary))
+      end
+    rescue
+      ArgumentError -> :error
+    end
     case result do
-      :error ->
-        {int_result, int_remainder} = :string.to_integer(charlist)
-        case int_result do
-          :error -> :error
-          _ -> {:erlang.float(int_result), :binary.list_to_bin(int_remainder)}
-        end
-      _ -> {result, :binary.list_to_bin(remainder)}
+      :error -> :error
+      _ -> {result, secondary}
     end
   end
 
