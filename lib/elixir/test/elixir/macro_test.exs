@@ -343,6 +343,26 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: identity(&foo)) == "identity(&foo)"
   end
 
+  test :access_to_string do
+    assert Macro.to_string(quote do: a[b]) == "a[b]"
+    assert Macro.to_string(quote do: a[1 + 2]) == "a[1 + 2]"
+    assert Macro.to_string(quote do: Foo[bar: baz]) == "Foo[bar: baz]"
+    assert Macro.to_string(quote do: Foo[1 + 2]) == "Foo[1 + 2]"
+    assert Macro.to_string(quote do: Foo[bar: 1 + 2]) == "Foo[bar: 1 + 2]"
+  end
+
+  test :kw_list do
+    assert Macro.to_string(quote do: [a: a, b: b]) == "[a: a, b: b]"
+    assert Macro.to_string(quote do: [a: 1, b: 1 + 2]) == "[a: 1, b: 1 + 2]"
+  end
+
+  test :last_arg_kw_list do
+    assert Macro.to_string(quote do: foo(x: y)) == "foo(x: y)"
+    assert Macro.to_string(quote do: foo(x: 1 + 2)) == "foo(x: 1 + 2)"
+    assert Macro.to_string(quote do: foo(x: y, p: q)) == "foo(x: y, p: q)"
+    assert Macro.to_string(quote do: foo(a, x: y, p: q)) == "foo(a, x: y, p: q)"
+  end
+
   ## safe_term
 
   test :safe_terms do
