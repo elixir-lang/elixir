@@ -115,6 +115,16 @@ defmodule ExUnit.DocTestTest.IndentationHeredocs do
   def heredocs, do: :ok
 end
 
+defmodule ExUnit.DocTestTest.IndentationMismatchedPrompt do
+  @doc %B'''
+    iex> foo = 1
+     iex> bar = 2
+    iex> foo + bar
+    3
+  '''
+  def mismatched, do: :ok
+end
+
 
 defmodule ExUnit.DocTestTest do
   use ExUnit.Case
@@ -142,4 +152,8 @@ defmodule ExUnit.DocTestTest do
   end
 
   doctest ExUnit.DocTestTest.IndentationHeredocs
+
+  assert_raise ExUnit.DocTest.Error, fn ->
+    doctest ExUnit.DocTestTest.IndentationMismatchedPrompt
+  end
 end
