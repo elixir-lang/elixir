@@ -99,6 +99,22 @@ defmodule ExUnit.DocTestTest.Invalid do
   def no_leak, do: :ok
 end
 
+defmodule ExUnit.DocTestTest.IndentationHeredocs do
+  @doc %B'''
+  Receives a test and formats its failure.
+
+  ## Examples
+
+      iex> "  1\n  2\n"
+      """
+        1
+        2
+      """
+
+  '''
+  def heredocs, do: :ok
+end
+
 
 defmodule ExUnit.DocTestTest do
   use ExUnit.Case
@@ -124,4 +140,6 @@ defmodule ExUnit.DocTestTest do
       end
     end
   end
+
+  doctest ExUnit.DocTestTest.IndentationHeredocs
 end
