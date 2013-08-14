@@ -879,10 +879,15 @@ defmodule String do
   @spec to_integer(t) :: {integer, t} | :error
 
   def to_integer(string) do
-    {result, remainder} = :string.to_integer(:binary.bin_to_list(string))
+    [{_, sign}, {_, primary}, {_, secondary}] = Regex.captures(%r/(?<sign>^[+-]?)(?<primary>[0-9]*)(?<secondary>.*)/g, string)
+    result = try do
+      :erlang.list_to_integer(:binary.bin_to_list(sign) ++ :binary.bin_to_list(primary))
+    rescue
+      ArgumentError -> :error
+    end
     case result do
       :error -> :error
-      _ -> {result, :binary.list_to_bin(remainder)}
+      _ -> {result, secondary}
     end
   end
 
@@ -907,16 +912,18 @@ defmodule String do
   @spec to_float(t) :: {integer, t} | :error
 
   def to_float(string) do
-    charlist = :binary.bin_to_list(string)
-    {result, remainder} = :string.to_float(charlist)
+    [{_, sign}, {_, primary}, {_, secondary}] = Regex.captures(%r/(?<sign>^[+-]?)(?<primary>[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)?(?<secondary>.*)/g, string)
+    result = try do
+      case Regex.match?(%r/\./g, primary) do
+        false -> :erlang.list_to_float(:binary.bin_to_list(sign) ++ :binary.bin_to_list(primary) ++ '.0')
+        true -> :erlang.list_to_float(:binary.bin_to_list(sign) ++ :binary.bin_to_list(primary))
+      end
+    rescue
+      ArgumentError -> :error
+    end
     case result do
-      :error ->
-        {int_result, int_remainder} = :string.to_integer(charlist)
-        case int_result do
-          :error -> :error
-          _ -> {:erlang.float(int_result), :binary.list_to_bin(int_remainder)}
-        end
-      _ -> {result, :binary.list_to_bin(remainder)}
+      :error -> :error
+      _ -> {result, secondary}
     end
   end
 
