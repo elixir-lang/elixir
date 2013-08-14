@@ -160,6 +160,15 @@ handle_file_warning(File, Desc) ->
 
 -spec handle_file_error(file:filename(), {non_neg_integer(), module(), any()}) -> no_return().
 
+handle_file_error(File, {Line,erl_lint,{unsafe_var,Var,{In,_Where}}}) ->
+  Translated = case In of
+    'orelse'  -> 'or';
+    'andalso' -> 'and';
+    _ -> In
+  end,
+  Message = io_lib:format("cannot define variable ~ts inside ~ts", [format_var(Var), Translated]),
+  raise(Line, File, 'Elixir.CompileError', iolist_to_binary(Message));
+
 handle_file_error(File, {Line,Module,Desc}) ->
   form_error(Line, File, Module, Desc).
 

@@ -77,6 +77,7 @@ translate_each({ '__op__', Meta, [Op, Expr] }, S) when is_atom(Op) ->
   { { op, ?line(Meta), convert_op(Op), TExpr }, NS };
 
 translate_each({ '__op__', Meta, [Op, Left, Right] }, S) when is_atom(Op) ->
+  assert_no_match_scope_for_bin_op(Meta, Op, S),
   { [TLeft, TRight], NS }  = translate_args([Left, Right], S),
   { { op, ?line(Meta), convert_op(Op), TLeft, TRight }, NS };
 
@@ -657,10 +658,13 @@ translate_apply(Meta, TLeft, TRight, Args, S, SL, SR) ->
 
 %% __op__ helpers
 
+assert_no_match_scope_for_bin_op(Meta, Op, S)
+    when Op == 'and'; Op == 'or' ->
+  elixir_errors:assert_no_match_scope(Meta, Op, S);
+assert_no_match_scope_for_bin_op(_Meta, _Op, _S) -> ok.
+
 convert_op('and')  -> 'andalso';
 convert_op('or')   -> 'orelse';
-convert_op('and!') -> 'and';
-convert_op('or!')  -> 'or';
 convert_op('!==')  -> '=/=';
 convert_op('===')  -> '=:=';
 convert_op('!=')   ->  '/=';
