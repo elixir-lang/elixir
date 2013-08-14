@@ -419,11 +419,11 @@ defmodule String do
     do_justify(subject, len, padding, :left)
   end
 
-  def do_justify(subject, 0, _padding, _type) do
+  defp do_justify(subject, 0, _padding, _type) do
     subject
   end
 
-  def do_justify(subject, len, padding, type) when is_integer(padding) do
+  defp do_justify(subject, len, padding, type) when is_integer(padding) do
     subject_len = String.length(subject)
 
     cond do
