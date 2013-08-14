@@ -331,8 +331,57 @@ defmodule ExUnit.DocTest do
   end
 
   defp extract_tests(line, doc) do
-    lines = String.split(doc, %r/\n/)
+    lines = String.split(doc, %r/\n/) |> adjust_indent
     extract_tests(lines, line, "", "", [], true)
+  end
+
+  defp adjust_indent(lines) do
+    adjust_indent(lines, [], 0, false , false)
+  end
+
+  # We are done, return (reversed) adjusted_lines.
+  defp adjust_indent([], adjusted_lines, _indent, _in_code, _in_heredocs) do
+    Enum.reverse adjusted_lines
+  end
+
+  # If hit a prompt (i.e. "iex>") line, switch to in_code. Else, skip it.
+  defp adjust_indent([line|rest] = lines, adjusted_lines, indent, in_code, in_heredocs) when not in_code do
+    indent = get_indent(line) || indent
+
+    case Regex.match? %r/\Aiex/, String.lstrip(line) do
+      true -> adjust_indent(lines, adjusted_lines, indent, true, in_heredocs)
+      false -> adjust_indent(rest, [line|adjusted_lines], indent, false, in_heredocs)
+    end
+  end
+
+  # Hit an blank line, switch out of in_code.
+  defp adjust_indent([""|rest], adjusted_lines, indent, in_code, in_heredocs) do
+    adjust_indent(rest, [""|adjusted_lines], indent, !in_code, in_heredocs)
+  end
+
+  # Hit a non-blank line, adjust indentation.
+  defp adjust_indent([line|rest] = lines, adjusted_lines, indent, in_code, in_heredocs) do
+    striped_line = to_binary(String.slice(line, indent, String.length(line)))
+
+    # Line is heredocs delimiter, toggle in_heredocs.
+    if String.ends_with?(striped_line, %B'"""'), do: in_heredocs = !in_heredocs
+
+    cond do
+      striped_line == String.lstrip(line) ->
+        adjust_indent(rest, [striped_line|adjusted_lines], indent, in_code, in_heredocs)
+      in_heredocs ->
+        adjust_indent(rest, [striped_line|adjusted_lines], indent, in_code, in_heredocs)
+      true ->
+        raise Error, message: "Indentation level mismatch: \"#{line}\" vs. \"#{striped_line}\""
+    end
+  end
+
+  # Get indentation if iex prompt line
+  defp get_indent(line) do
+    case Regex.run %r/iex\(\d+\)>|iex>/, line, return: :index do
+      [{pos, _len}] -> pos
+      nil -> nil
+    end
   end
 
   defp extract_tests([], _line, "", "", [], _) do
