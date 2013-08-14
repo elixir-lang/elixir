@@ -266,6 +266,15 @@ defmodule Macro do
     atom_to_binary(op, :utf8) <> to_string(arg)
   end
 
+  # Access
+  def to_string({ { :., _, [Kernel, :access] }, _, [left, right] }) do
+    if right != [] and Keyword.keyword?(right) do
+      to_string(left) <> to_string(right)
+    else
+      to_string(left) <> "[" <> to_string(right) <> "]"
+    end
+  end
+
   # All other calls
   def to_string({ target, _, args }) when is_list(args) do
     { list, last } = :elixir_utils.split_last(args)
@@ -282,7 +291,11 @@ defmodule Macro do
 
   # Lists
   def to_string(list) when is_list(list) do
-    to_string({ :[], [], list })
+    if Keyword.keyword?(list) do
+      "[" <> kw_list_to_string(list) <> "]"
+    else
+      to_string({ :[], [], list })
+    end
   end
 
   # All other structures
@@ -305,8 +318,19 @@ defmodule Macro do
   defp call_to_string(other),                    do: to_string(other)
 
   defp call_to_string_with_args(target, args) do
-    args = Enum.map_join(args, ", ", to_string(&1))
-    call_to_string(target) <> "(" <> args <> ")"
+    { list, last } = :elixir_utils.split_last(args)
+    target = call_to_string(target)
+
+    case last != [] and Keyword.keyword?(last) do
+      true  ->
+        args = Enum.map_join(list, ", ", to_string(&1))
+        if list != [], do: args = args <> ", "
+        args = args <> kw_list_to_string(last)
+        target <> "(" <> args <> ")"
+      false ->
+        args = Enum.map_join(args, ", ", to_string(&1))
+        target <> "(" <> args <> ")"
+    end
   end
 
   defp kw_blocks_to_string(kw) do
@@ -335,6 +359,12 @@ defmodule Macro do
   end
 
   defp block_to_string(other), do: to_string(other)
+
+  defp kw_list_to_string(list) do
+    Enum.map_join(list, ", ", fn { key, value } ->
+      atom_to_binary(key) <> ": " <> to_string(value)
+    end)
+  end
 
   defp op_to_string({ op, _, [_, _] } = expr) when op in binary_ops do
     "(" <> to_string(expr) <> ")"
