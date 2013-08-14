@@ -129,10 +129,12 @@ defmodule Mix.Rebar do
   end
 
   defp eval_script(script_path, config) do
-    script = Path.basename(script_path) |> binary_to_list
+    script = Path.basename(script_path) |> String.to_char_list!
+
     result = File.cd!(Path.dirname(script_path), fn ->
       :file.script(script, eval_binds(CONFIG: config, SCRIPT: script))
     end)
+
     case result do
       { :ok, config } ->
         config

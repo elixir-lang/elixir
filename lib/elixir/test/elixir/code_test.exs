@@ -63,10 +63,10 @@ defmodule CodeTest do
   test :path_manipulation do
     path = Path.join(__DIR__, "binary")
     Code.prepend_path path
-    assert binary_to_list(path) in :code.get_path
+    assert String.to_char_list!(path) in :code.get_path
 
     Code.delete_path path
-    refute binary_to_list(path) in :code.get_path
+    refute String.to_char_list!(path) in :code.get_path
   end
 
   test :file do
@@ -96,7 +96,7 @@ defmodule CodeTest do
   end
 
   test :compile_source do
-    assert __MODULE__.__info__(:compile)[:source] == binary_to_list(__FILE__)
+    assert __MODULE__.__info__(:compile)[:source] == String.to_char_list!(__FILE__)
   end
 
   test :compile_info_returned_with_source_accessible_through_keyword_module do

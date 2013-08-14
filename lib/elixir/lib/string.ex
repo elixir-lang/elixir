@@ -519,7 +519,7 @@ defmodule String do
     do_reverse(String.Unicode.next_grapheme(rest), [grapheme|acc])
   end
 
-  defp do_reverse(:no_grapheme, acc), do: list_to_binary(acc)
+  defp do_reverse(:no_grapheme, acc), do: iolist_to_binary(acc)
 
   @doc """
   Returns a binary `subject` duplicated `n` times.
@@ -879,10 +879,10 @@ defmodule String do
   @spec to_integer(t) :: {integer, t} | :error
 
   def to_integer(string) do
-    {result, remainder} = :string.to_integer(binary_to_list(string))
+    {result, remainder} = :string.to_integer(:binary.bin_to_list(string))
     case result do
       :error -> :error
-      _ -> {result, list_to_binary(remainder)}
+      _ -> {result, :binary.list_to_bin(remainder)}
     end
   end
 
@@ -907,16 +907,16 @@ defmodule String do
   @spec to_float(t) :: {integer, t} | :error
 
   def to_float(string) do
-    charlist = binary_to_list(string)
+    charlist = :binary.bin_to_list(string)
     {result, remainder} = :string.to_float(charlist)
     case result do
       :error ->
         {int_result, int_remainder} = :string.to_integer(charlist)
         case int_result do
           :error -> :error
-          _ -> {:erlang.float(int_result), list_to_binary(int_remainder)}
+          _ -> {:erlang.float(int_result), :binary.list_to_bin(int_remainder)}
         end
-      _ -> {result, list_to_binary(remainder)}
+      _ -> {result, :binary.list_to_bin(remainder)}
     end
   end
 

@@ -397,7 +397,7 @@ defmodule Path do
   defp do_join(<<?/, rest :: binary>>, relativename, [?/|result], os_type), do:
     do_join(rest, relativename, [?/|result], os_type)
   defp do_join(<<>>, <<>>, result, os_type), do:
-    list_to_binary(maybe_remove_dirsep(result, os_type))
+    iolist_to_binary(maybe_remove_dirsep(result, os_type))
   defp do_join(<<>>, relativename, [?:|rest], :win32), do:
     do_join(relativename, <<>>, [?:|rest], :win32)
   defp do_join(<<>>, relativename, [?/|result], os_type), do:

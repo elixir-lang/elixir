@@ -160,10 +160,10 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO)
 
 retrieve_file(Line, Module, S, CO) ->
   case elixir_compiler:get_opt(internal, CO) of
-    true -> { binary_to_list(S#elixir_scope.file), Line };
+    true -> { unicode:characters_to_list(S#elixir_scope.file), Line };
     _ ->
       case 'Elixir.Module':get_attribute(Module, file) of
-        nil  -> { binary_to_list(S#elixir_scope.file), Line };
+        nil  -> { unicode:characters_to_list(S#elixir_scope.file), Line };
         Else ->
           'Elixir.Module':delete_attribute(Module, file),
           Else

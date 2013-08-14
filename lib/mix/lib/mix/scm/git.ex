@@ -123,7 +123,7 @@ defmodule Mix.SCM.Git do
   end
 
   defp check_rev(fin, acc) when fin == [?\n] or fin == [] do
-    Enum.reverse(acc) |> list_to_binary
+    Enum.reverse(acc) |> iolist_to_binary
   end
 
   defp check_rev(_, _) do

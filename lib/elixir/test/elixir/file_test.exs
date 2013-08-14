@@ -392,7 +392,7 @@ defmodule FileTest do
 
     test :regular do
       assert File.regular?(__FILE__)
-      assert File.regular?(binary_to_list(__FILE__))
+      assert File.regular?(String.to_char_list!(__FILE__))
       refute File.regular?("#{__FILE__}.unknown")
     end
 

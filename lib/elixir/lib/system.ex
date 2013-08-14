@@ -53,7 +53,7 @@ defmodule System do
 
   # Get the date at compilation time.
   defmacrop get_date do
-    list_to_binary :httpd_util.rfc1123_date
+    iolist_to_binary :httpd_util.rfc1123_date
   end
 
   @doc """
@@ -217,7 +217,7 @@ defmodule System do
   def cmd(command) when is_binary(command) do
     # Notice we don't use unicode for conversion
     # because the OS is expecting and returning raw bytes
-    list_to_binary :os.cmd(binary_to_list(command))
+    :binary.list_to_bin :os.cmd(:binary.bin_to_list(command))
   end
 
   @doc """
@@ -240,9 +240,9 @@ defmodule System do
   def find_executable(program) when is_binary(program) do
     # Notice we don't use unicode for conversion
     # because the OS is expecting and returning raw bytes
-    case :os.find_executable(binary_to_list(program)) do
+    case :os.find_executable(:binary.bin_to_list(program)) do
       false -> nil
-      other -> list_to_binary(other)
+      other -> :binary.list_to_bin(other)
     end
   end
 
@@ -279,14 +279,14 @@ defmodule System do
   See http://www.erlang.org/doc/man/os.html#getpid-0 for more info.
   """
   @spec get_pid() :: binary
-  def get_pid, do: list_to_binary(:os.getpid)
+  def get_pid, do: iolist_to_binary(:os.getpid)
 
   @doc """
   Sets a new `value` for the environment variable `varname`.
   """
   @spec put_env(binary, binary) :: :ok
   def put_env(varname, value) when is_binary(varname) and is_binary(value) do
-   :os.putenv binary_to_list(varname), String.to_char_list!(value)
+   :os.putenv :binary.bin_to_list(varname), String.to_char_list!(value)
    :ok
   end
 
@@ -312,8 +312,7 @@ defmodule System do
 
   @doc """
   Halts the Erlang runtime system where the first argument status must be a
-  non-negative integer, the atom `:abort` or any type that can be converted
-  to a char list.
+  non-negative integer, the atom `:abort` or a binary.
 
   * If an integer, the runtime system exits with the integer value which
     is returned to the Operating System;
@@ -345,7 +344,7 @@ defmodule System do
   end
 
   def halt(status) when is_binary(status) do
-    :erlang.halt(binary_to_list(status))
+    :erlang.halt(:binary.bin_to_list(status))
   end
 
   ## Helpers

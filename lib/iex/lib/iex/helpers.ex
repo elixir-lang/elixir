@@ -351,7 +351,7 @@ defmodule IEx.Helpers do
 
     case source do
       nil -> nil
-      source -> list_to_binary(source)
+      source -> String.from_char_list!(source)
     end
   end
 
@@ -416,8 +416,7 @@ defmodule IEx.Helpers do
         IO.puts ""
         len = 0
       end
-      IO.write format_item(Path.join(path, item),
-                           iolist_to_binary(:io_lib.format('~-*ts', [width, item])))
+      IO.write format_item(Path.join(path, item), String.ljust(item, width))
       len+width
     end)
     IO.puts ""
@@ -466,7 +465,7 @@ defmodule IEx.Helpers do
 
   # Compiles and loads an erlang source file, returns { module, binary }
   defp compile_erlang(source) do
-    source = Path.relative_to(source, File.cwd!) |> binary_to_list
+    source = Path.relative_to(source, File.cwd!) |> String.to_char_list!
     case :compile.file(source, [:binary, :report]) do
       { :ok, module, binary } ->
         :code.purge(module)

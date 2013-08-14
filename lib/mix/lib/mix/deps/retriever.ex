@@ -189,7 +189,7 @@ defmodule Mix.Deps.Retriever do
       { :ok, [{ :application, ^app, config }] } ->
         case List.keyfind(config, :vsn, 0) do
           { :vsn, actual } when is_list(actual) ->
-            actual = list_to_binary(actual)
+            actual = iolist_to_binary(actual)
             if vsn_match?(req, actual) do
               { :ok, actual }
             else

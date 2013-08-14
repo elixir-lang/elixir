@@ -204,7 +204,7 @@ binary_to_path({ModuleName, Binary}, CompilePath) ->
 
 core_file(File) ->
   try
-    Lists = file(list_to_binary(File)),
+    Lists = file(File),
     [binary_to_path(X, "lib/elixir/ebin") || X <- Lists],
     io:format("Compiled ~ts~n", [File])
   catch
@@ -215,31 +215,31 @@ core_file(File) ->
 
 core_main() ->
   [
-    "lib/elixir/lib/kernel.ex",
-    "lib/elixir/lib/keyword.ex",
-    "lib/elixir/lib/module.ex",
-    "lib/elixir/lib/list.ex",
-    "lib/elixir/lib/kernel/typespec.ex",
-    "lib/elixir/lib/record.ex",
-    "lib/elixir/lib/macro.ex",
-    "lib/elixir/lib/macro/env.ex",
-    "lib/elixir/lib/exception.ex",
-    "lib/elixir/lib/code.ex",
-    "lib/elixir/lib/protocol.ex",
-    "lib/elixir/lib/enum.ex",
-    "lib/elixir/lib/inspect/algebra.ex",
-    "lib/elixir/lib/inspect.ex",
-    "lib/elixir/lib/range.ex",
-    "lib/elixir/lib/string.ex",
-    "lib/elixir/lib/binary/chars.ex",
-    "lib/elixir/lib/io.ex",
-    "lib/elixir/lib/path.ex",
-    "lib/elixir/lib/system.ex",
-    "lib/elixir/lib/kernel/cli.ex",
-    "lib/elixir/lib/kernel/error_handler.ex",
-    "lib/elixir/lib/kernel/parallel_compiler.ex",
-    "lib/elixir/lib/kernel/record_rewriter.ex",
-    "lib/elixir/lib/module/dispatch_tracker.ex"
+    <<"lib/elixir/lib/kernel.ex">>,
+    <<"lib/elixir/lib/keyword.ex">>,
+    <<"lib/elixir/lib/module.ex">>,
+    <<"lib/elixir/lib/list.ex">>,
+    <<"lib/elixir/lib/kernel/typespec.ex">>,
+    <<"lib/elixir/lib/record.ex">>,
+    <<"lib/elixir/lib/macro.ex">>,
+    <<"lib/elixir/lib/macro/env.ex">>,
+    <<"lib/elixir/lib/exception.ex">>,
+    <<"lib/elixir/lib/code.ex">>,
+    <<"lib/elixir/lib/protocol.ex">>,
+    <<"lib/elixir/lib/enum.ex">>,
+    <<"lib/elixir/lib/inspect/algebra.ex">>,
+    <<"lib/elixir/lib/inspect.ex">>,
+    <<"lib/elixir/lib/range.ex">>,
+    <<"lib/elixir/lib/string.ex">>,
+    <<"lib/elixir/lib/binary/chars.ex">>,
+    <<"lib/elixir/lib/io.ex">>,
+    <<"lib/elixir/lib/path.ex">>,
+    <<"lib/elixir/lib/system.ex">>,
+    <<"lib/elixir/lib/kernel/cli.ex">>,
+    <<"lib/elixir/lib/kernel/error_handler.ex">>,
+    <<"lib/elixir/lib/kernel/parallel_compiler.ex">>,
+    <<"lib/elixir/lib/kernel/record_rewriter.ex">>,
+    <<"lib/elixir/lib/module/dispatch_tracker.ex">>
   ].
 
 %% ERROR HANDLING

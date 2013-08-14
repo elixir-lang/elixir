@@ -85,5 +85,5 @@ format_error({ no_super, Module, { Name, Arity } }) ->
 
 format_fa({ Name, Arity }) ->
   A = atom_to_binary(Name, utf8),
-  B = list_to_binary(integer_to_list(Arity)),
+  B = integer_to_binary(Arity),
   << A/binary, $/, B/binary >>.

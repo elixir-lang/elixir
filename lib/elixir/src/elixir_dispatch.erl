@@ -337,7 +337,7 @@ remote_function(Meta, Receiver, Name, Arity, S) ->
 %% ERROR HANDLING
 
 format_error({ unrequired_module, { Receiver, Name, Arity, Required }}) ->
-  String = 'Elixir.Enum':join([elixir_errors:inspect(R) || R <- Required], ", "),
+  String = 'Elixir.Enum':join([elixir_errors:inspect(R) || R <- Required], <<", ">>),
   io_lib:format("tried to invoke macro ~ts.~ts/~B but module was not required. Required: ~ts",
     [elixir_errors:inspect(Receiver), Name, Arity, String]);
 
@@ -401,8 +401,6 @@ in_erlang_functions() ->
     { binary_to_float, 2 },
     { binary_to_integer, 1 },
     { binary_to_integer, 2 },
-    { binary_to_list, 1 },
-    { binary_to_list, 3 },
     { binary_to_term, 1 },
     { binary_to_term, 2 },
     { bit_size, 1 },
@@ -437,7 +435,6 @@ in_erlang_functions() ->
     { is_tuple, 1 },
     { length, 1 },
     { list_to_atom, 1 },
-    { list_to_binary, 1 },
     { list_to_bitstring, 1 },
     { list_to_existing_atom, 1 },
     { list_to_float, 1 },

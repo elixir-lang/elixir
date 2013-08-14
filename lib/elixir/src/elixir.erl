@@ -69,7 +69,7 @@ scope_for_eval(Opts) ->
 
 scope_for_eval(Scope, Opts) ->
   File = case lists:keyfind(file, 1, Opts) of
-    { file, RawFile } -> to_binary(RawFile);
+    { file, RawFile } when is_binary(RawFile) -> RawFile;
     false -> Scope#elixir_scope.file
   end,
 
@@ -150,8 +150,3 @@ eval_forms(Tree, Binding, Scope) ->
       {value, Value, NewBinding} = erl_eval:exprs(ParseTree, elixir_scope:binding_for_eval(Binding, nil)),
       {Value, elixir_scope:binding_from_vars(NewScope, NewBinding), NewScope }
   end.
-
-%% INTERNAL HELPERS
-
-to_binary(Bin)  when is_binary(Bin) -> Bin;
-to_binary(List) when is_list(List) -> list_to_binary(List).

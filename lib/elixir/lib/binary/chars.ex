@@ -79,6 +79,6 @@ defimpl Binary.Chars, for: Number do
   end
 
   def to_binary(thing) do
-    list_to_binary(:io_lib_format.fwrite_g(thing))
+    iolist_to_binary(:io_lib_format.fwrite_g(thing))
   end
 end

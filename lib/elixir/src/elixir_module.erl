@@ -59,7 +59,7 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
   end,
 
   File = S#elixir_scope.file,
-  FileList = binary_to_list(File),
+  FileList = unicode:characters_to_list(File),
 
   check_module_availability(Line, File, Module, C),
   build(Line, File, Module),
@@ -368,7 +368,7 @@ eval_callbacks(Line, Module, Name, Args, RawS) ->
           erl_eval:exprs([Tree], Binding)
         catch
           Kind:Reason ->
-            Info = { M, F, length(Args), [{ file, binary_to_list(S#elixir_scope.file) }, { line, Line }] },
+            Info = { M, F, length(Args), [{ file, unicode:characters_to_list(S#elixir_scope.file) }, { line, Line }] },
             erlang:raise(Kind, Reason, munge_stacktrace(Info, erlang:get_stacktrace()))
         end
     end

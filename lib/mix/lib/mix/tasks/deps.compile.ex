@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Deps.Compile do
           root_lockfile: Path.expand(Mix.project[:lockfile])
         ]
 
-        ebins = Enum.map compile_paths(dep), binary_to_list(&1)
+        ebins = Enum.map compile_paths(dep), &String.to_char_list!(&1)
 
         # Avoid compilation conflicts
         Enum.each ebins, fn ebin -> :code.del_path(ebin |> Path.expand) end

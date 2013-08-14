@@ -312,7 +312,7 @@ foo
         { EExText.Compiled,
           :before_compile,
           0,
-          [file: binary_to_list(__FILE__), line: 7]
+          [file: to_char_list(__FILE__), line: 7]
         }
       }
 
@@ -321,7 +321,7 @@ foo
         { EExText.Compiled,
           :after_compile,
           0,
-          [file: binary_to_list(__FILE__), line: 18]
+          [file: to_char_list(__FILE__), line: 18]
         }
       }
 
@@ -339,7 +339,7 @@ foo
         { EExText.Compiled,
           :other,
           0,
-          [file: binary_to_list(__FILE__), line: 30]
+          [file: to_char_list(__FILE__), line: 30]
         }
       }
   end

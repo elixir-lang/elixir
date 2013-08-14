@@ -130,7 +130,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp format_expansion([first|_]=entries, hint) do
-    binary = Enum.map entries, fn e -> list_to_binary(e.name) end
+    binary = Enum.map entries, fn e -> iolist_to_binary(e.name) end
     length = length hint
     prefix = :binary.longest_common_prefix(binary)
     if prefix == 0 or (prefix == length) do

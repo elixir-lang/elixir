@@ -384,7 +384,7 @@ defimpl Inspect, for: Number do
   end
 
   def inspect(thing, _opts) do
-    list_to_binary(:io_lib_format.fwrite_g(thing))
+    iolist_to_binary(:io_lib_format.fwrite_g(thing))
   end
 end
 
@@ -446,20 +446,20 @@ end
 
 defimpl Inspect, for: PID do
   def inspect(pid, _opts) do
-    "#PID" <> list_to_binary(pid_to_list(pid))
+    "#PID" <> iolist_to_binary(pid_to_list(pid))
   end
 end
 
 defimpl Inspect, for: Port do
   def inspect(port, _opts) do
-    list_to_binary :erlang.port_to_list(port)
+    iolist_to_binary :erlang.port_to_list(port)
   end
 end
 
 defimpl Inspect, for: Reference do
   def inspect(ref, _opts) do
     '#Ref' ++ rest = :erlang.ref_to_list(ref)
-    "#Reference" <> list_to_binary(rest)
+    "#Reference" <> iolist_to_binary(rest)
   end
 end
 

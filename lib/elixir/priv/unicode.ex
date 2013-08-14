@@ -57,11 +57,11 @@ defmodule String.Unicode do
 
   # Downcase
 
-  def downcase(string), do: do_downcase(string) |> list_to_binary
+  def downcase(string), do: do_downcase(string) |> iolist_to_binary
 
   lc { codepoint, _upper, lower, _title } inlist codes, lower && lower != codepoint do
     defp do_downcase(unquote(codepoint) <> rest) do
-      unquote(binary_to_list(lower)) ++ downcase(rest)
+      unquote(:binary.bin_to_list(lower)) ++ downcase(rest)
     end
   end
 
@@ -73,11 +73,11 @@ defmodule String.Unicode do
 
   # Upcase
 
-  def upcase(string), do: do_upcase(string) |> list_to_binary
+  def upcase(string), do: do_upcase(string) |> iolist_to_binary
 
   lc { codepoint, upper, _lower, _title } inlist codes, upper && upper != codepoint do
     defp do_upcase(unquote(codepoint) <> rest) do
-      unquote(binary_to_list(upper)) ++ do_upcase(rest)
+      unquote(:binary.bin_to_list(upper)) ++ do_upcase(rest)
     end
   end
 
@@ -118,7 +118,7 @@ defmodule String.Unicode do
   end
 
   lc codepoint inlist whitespace do
-    c = binary_to_list(codepoint) |> :lists.reverse
+    c = :binary.bin_to_list(codepoint) |> :lists.reverse
 
     defp do_rstrip(unquote(codepoint) <> rest, acc1, acc2) do
       do_rstrip(rest, unquote(c) ++ (acc1 || acc2), acc2)
@@ -133,7 +133,7 @@ defmodule String.Unicode do
     do_rstrip(rest, nil, [char|acc1])
   end
 
-  defp do_rstrip(<<>>, _acc1, acc2), do: acc2 |> :lists.reverse |> list_to_binary
+  defp do_rstrip(<<>>, _acc1, acc2), do: acc2 |> :lists.reverse |> iolist_to_binary
 
   # Split
 

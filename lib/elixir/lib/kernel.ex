@@ -479,21 +479,17 @@ defmodule Kernel do
     :erlang.binary_to_existing_atom(binary, encoding)
   end
 
-  @doc """
-  Returns a list of integers which correspond to the bytes of `binary`.
-  """
-  @spec binary_to_list(binary) :: list
+  @doc false
   def binary_to_list(binary) do
+    IO.write "binary_to_list/1 is deprecated. Please use String.to_char_list!/1 instead "
+    IO.write "unless you are working with bytes, then you should use :binary.bin_to_list/1\n#{Exception.format_stacktrace}"
     :erlang.binary_to_list(binary)
   end
 
-  @doc """
-  Like `binary_to_list/1`, but returns a list of integers corresponding to the bytes
-  from position `start` to position `stop` in `binary`. Positions in the binary
-  are numbered starting from 1.
-  """
-  @spec binary_to_list(binary, pos_integer, pos_integer) :: list
+  @doc false
   def binary_to_list(binary, start, stop) do
+    IO.write "binary_to_list/3 is deprecated. Please use String.to_char_list!/1 instead "
+    IO.write "unless you are working with bytes, then you should use :binary.bin_to_list/3\n#{Exception.format_stacktrace}"
     :erlang.binary_to_list(binary, start, stop)
   end
 
@@ -611,7 +607,7 @@ defmodule Kernel do
       '7.00000000000000000000e+00'
 
   """
-  @spec float_to_list(number) :: char_list
+  @spec float_to_list(number) :: list
   def float_to_list(number) do
     :erlang.float_to_list(number)
   end
@@ -633,7 +629,7 @@ defmodule Kernel do
       '7'
 
   """
-  @spec integer_to_list(integer) :: char_list
+  @spec integer_to_list(integer) :: list
   def integer_to_list(number) do
     :erlang.integer_to_list(number)
   end
@@ -648,7 +644,7 @@ defmodule Kernel do
       '3FF'
 
   """
-  @spec integer_to_list(integer, pos_integer) :: char_list
+  @spec integer_to_list(integer, pos_integer) :: list
   def integer_to_list(number, base) do
     :erlang.integer_to_list(number, base)
   end
@@ -854,29 +850,23 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the atom whose text representation is `char_list`.
+  Returns the atom whose text representation is `list`.
 
   ## Examples
 
       iex> list_to_atom('elixir')
       :elixir
   """
-  @spec list_to_atom(char_list) :: atom
-  def list_to_atom(char_list) do
-    :erlang.list_to_atom(char_list)
+  @spec list_to_atom(list) :: atom
+  def list_to_atom(list) do
+    :erlang.list_to_atom(list)
   end
 
-  @doc """
-  Returns a binary which is made from the content of `char_list`.
-
-  ## Examples
-
-      iex> list_to_binary('Elixir')
-      "Elixir"
-  """
-  @spec list_to_binary(iolist) :: binary
-  def list_to_binary(char_list) do
-    :erlang.list_to_binary(char_list)
+  @doc false
+  def list_to_binary(list) do
+    IO.write "list_to_binary/1 is deprecated. Please use String.from_char_list!/1 instead "
+    IO.write "unless you are working with bytes, then you should use iolist_to_binary/1\n#{Exception.format_stacktrace}"
+    :erlang.list_to_binary(list)
   end
 
   @doc """
@@ -898,55 +888,55 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the atom whose text representation is `char_list`, but only if there already
-  exists such atom.
+  Returns the atom whose text representation is `list`,
+  but only if there already exists such atom.
   """
-  @spec list_to_existing_atom(char_list) :: atom
-  def list_to_existing_atom(char_list) do
-    :erlang.list_to_existing_atom(char_list)
+  @spec list_to_existing_atom(list) :: atom
+  def list_to_existing_atom(list) do
+    :erlang.list_to_existing_atom(list)
   end
 
   @doc """
-  Returns the float whose text representation is `char_list`.
+  Returns the float whose text representation is `list`.
 
   ## Examples
 
       iex> list_to_float('2.2017764e+0')
       2.2017764
   """
-  @spec list_to_float(char_list) :: float
-  def list_to_float(char_list) do
-    :erlang.list_to_float(char_list)
+  @spec list_to_float(list) :: float
+  def list_to_float(list) do
+    :erlang.list_to_float(list)
   end
 
   @doc """
-  Returns an integer whose text representation is `char_list`.
+  Returns an integer whose text representation is `list`.
 
   ## Examples
 
       iex> list_to_integer('123')
       123
   """
-  @spec list_to_integer(char_list) :: integer
-  def list_to_integer(char_list) do
-    :erlang.list_to_integer(char_list)
+  @spec list_to_integer(list) :: integer
+  def list_to_integer(list) do
+    :erlang.list_to_integer(list)
   end
 
   @doc """
-  Returns an integer whose text representation in base `base` is `char_list`.
+  Returns an integer whose text representation in base `base` is `list`.
 
   ## Examples
 
       iex> list_to_integer('3FF', 16)
       1023
   """
-  @spec list_to_integer(char_list, non_neg_integer) :: integer
-  def list_to_integer(char_list, base) do
-    :erlang.list_to_integer(char_list, base)
+  @spec list_to_integer(list, non_neg_integer) :: integer
+  def list_to_integer(list, base) do
+    :erlang.list_to_integer(list, base)
   end
 
   @doc """
-  Returns a pid whose text representation is `char_list`.
+  Returns a pid whose text representation is `list`.
 
   ## Warning:
 
@@ -959,9 +949,9 @@ defmodule Kernel do
 
       list_to_pid('<0.4.1>') #=> #PID<0.4.1>
   """
-  @spec list_to_pid(char_list) :: pid
-  def list_to_pid(char_list) do
-    :erlang.list_to_pid(char_list)
+  @spec list_to_pid(list) :: pid
+  def list_to_pid(list) do
+    :erlang.list_to_pid(list)
   end
 
   @doc """
@@ -3449,7 +3439,7 @@ defmodule Kernel do
 
   """
   defmacro sigil_C({ :<<>>, _line, [string] }, []) when is_binary(string) do
-    binary_to_list(string)
+    String.to_char_list!(string)
   end
 
   @doc """

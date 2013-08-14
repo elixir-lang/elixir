@@ -36,7 +36,7 @@ defmodule Mix.Tasks.Help do
     sorted = Enum.sort(docs)
 
     Enum.each sorted, fn({ task, doc }) ->
-      shell.info format("mix ~-#{max}s # ~ts", [task, doc])
+      shell.info format_task(task, max, doc)
     end
   end
 
@@ -54,6 +54,10 @@ defmodule Mix.Tasks.Help do
     shell.info "Location: #{where_is_file(module)}"
   end
 
+  defp format_task(task, max, doc) do
+    "mix " <> String.ljust(task, max) <> " # " <> doc
+  end
+
   defp where_is_file(module) do
     case :code.where_is_file(atom_to_list(module) ++ '.beam') do
       :non_existing -> "not available"
@@ -61,13 +65,8 @@ defmodule Mix.Tasks.Help do
     end
   end
 
-  defp format(expression, args) do
-    :io_lib.format(expression, args) |> iolist_to_binary
-  end
-
-  defp display_default_task_doc(indention) do
-    Mix.shell.info format("mix ~-#{indention}s # ~ts",
-                          ["",
-                          "Run the default task (current: mix #{Mix.project[:default_task]})"])
+  defp display_default_task_doc(max) do
+    Mix.shell.info format_task("", max,
+                    "Run the default task (current: mix #{Mix.project[:default_task]})")
   end
 end

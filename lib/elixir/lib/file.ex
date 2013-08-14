@@ -33,14 +33,14 @@ end
 
 defexception File.Error, [reason: nil, action: "", path: nil] do
   def message(exception) do
-    formatted = list_to_binary(:file.format_error(reason exception))
+    formatted = iolist_to_binary(:file.format_error(reason exception))
     "could not #{action exception} #{path exception}: #{formatted}"
   end
 end
 
 defexception File.CopyError, [reason: nil, action: "", source: nil, destination: nil, on: nil] do
   def message(exception) do
-    formatted = list_to_binary(:file.format_error(reason exception))
+    formatted = iolist_to_binary(:file.format_error(reason exception))
     location  = if on = on(exception), do: ". #{on}", else: ""
     "could not #{action exception} from #{source exception} to " <>
       "#{destination exception}#{location}: #{formatted}"
@@ -49,7 +49,7 @@ end
 
 defexception File.IteratorError, reason: nil do
   def message(exception) do
-    formatted = list_to_binary(:file.format_error(reason exception))
+    formatted = iolist_to_binary(:file.format_error(reason exception))
     "error during file iteration: #{formatted}"
   end
 end

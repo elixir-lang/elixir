@@ -354,9 +354,9 @@ defmodule Mix.Utils do
 
     :inets.start
 
-    case :httpc.request(binary_to_list(path)) do
+    case :httpc.request(:binary.bin_to_list(path)) do
       { :ok, { { _, status, _ }, _, body } } when status in 200..299 ->
-        iolist_to_binary(body)
+        :binary.list_to_bin(body)
       { :ok, { { _, status, _ }, _, _ } } ->
         raise Mix.Error, message: "Could not access url #{path}, got status: #{status}"
       { :error, reason } ->
