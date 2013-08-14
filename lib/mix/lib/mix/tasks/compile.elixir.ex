@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Compile.Elixir do
           { :ok, pid } = :gen_server.start_link(__MODULE__, entries, [])
 
           try do
-            do_files_to_path(pid, entries, stale, compile_path, File.cwd)
+            do_files_to_path(pid, entries, stale, compile_path, System.cwd)
             :gen_server.cast(pid, :merge)
           after
             :gen_server.call(pid, { :stop, manifest })
@@ -75,7 +75,8 @@ defmodule Mix.Tasks.Compile.Elixir do
              Module.DispatchTracker.imports(module)
       deps = deps |> :lists.usort |> Enum.map(atom_to_binary(&1))
 
-      :gen_server.cast(pid, { :store, beam, bin, Mix.Utils.relative_to_cwd(source, cwd), deps, binary })
+      relative = if cwd, do: Path.relative_to(source, cwd), else: source
+      :gen_server.cast(pid, { :store, beam, bin, relative, deps, binary })
     end
 
     defp each_file(file) do

@@ -166,12 +166,7 @@ module_form(Fun, Exprs, Line, File, Module, Vars) when
   end, { nil, Line }, Vars),
 
   Args = [{ var, Line, '_@MODULE'}, Cons],
-
-  Relative =
-    case get_opt(internal) of
-      true  -> File;
-      false -> 'Elixir.Path':relative_to(File, 'Elixir.System':'cwd!'())
-    end,
+  Relative = elixir_utils:relative_to_cwd(File),
 
   [
     { attribute, Line, file, { unicode:characters_to_list(File), 1 } },
@@ -181,7 +176,7 @@ module_form(Fun, Exprs, Line, File, Module, Vars) when
       { clause, Line, Args, [], Exprs }
     ] },
     { function, Line, '__RELATIVE__', 0, [
-      { clause, Line, [], [], [elixir_tree_helpers:elixir_to_erl(Relative)] }
+      { clause, Line, [], [], [elixir_utils:elixir_to_erl(Relative)] }
     ] }
   ].
 

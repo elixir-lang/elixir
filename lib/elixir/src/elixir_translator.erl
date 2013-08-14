@@ -162,7 +162,7 @@ translate_each({ '__DIR__', _Meta, Atom }, S) when is_atom(Atom) ->
 
 translate_each({ '__ENV__', Meta, Atom }, S) when is_atom(Atom) ->
   Env = elixir_scope:to_ex_env({ ?line(Meta), S }),
-  { elixir_tree_helpers:elixir_to_erl(Env), S };
+  { elixir_utils:elixir_to_erl(Env), S };
 
 translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
   { { var, ?line(Meta), '__CALLER__' }, S#elixir_scope{caller=true} };
@@ -184,7 +184,7 @@ translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
           elixir_tracker:record_alias(Receiver, S#elixir_scope.module),
           { { atom, ?line(Meta), Receiver }, SA };
         false ->
-          Args = [elixir_tree_helpers:list_to_cons(?line(Meta), TAliases)],
+          Args = [elixir_utils:list_to_cons(?line(Meta), TAliases)],
           { ?wrap_call(?line(Meta), elixir_aliases, concat, Args), SA }
       end
   end;
@@ -686,7 +686,7 @@ assert_no_ambiguous_op(_Atom, _Meta, _Args, _S) -> ok.
 %% Comprehensions
 
 translate_comprehension(Meta, Kind, Args, S) ->
-  case elixir_tree_helpers:split_last(Args) of
+  case elixir_utils:split_last(Args) of
     { Cases, [{do,Expr}] } ->
       { TCases, SC } = lists:mapfoldl(fun(C, Acc) -> translate_comprehension_clause(Meta, C, Acc) end, S, Cases),
       { TExpr, SE }  = translate_comprehension_do(Meta, Kind, Expr, SC),
@@ -720,5 +720,5 @@ translate_comprehension_clause(_Meta, {inlist, Meta, [Left, Right]}, S) ->
 translate_comprehension_clause(Meta, X, S) ->
   Line = ?line(Meta),
   { TX, TS } = translate_each(X, S),
-  { BX, BS } = elixir_tree_helpers:convert_to_boolean(Line, TX, true, false, TS),
+  { BX, BS } = elixir_utils:convert_to_boolean(Line, TX, true, false, TS),
   { { match, Line, { var, Line, '_' }, BX }, BS }.

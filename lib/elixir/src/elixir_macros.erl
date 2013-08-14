@@ -33,11 +33,11 @@ translate({ Op, Meta, Exprs }, S) when is_list(Exprs),
 
 translate({ '!', Meta, [{ '!', _, [Expr] }] }, S) ->
   { TExpr, SE } = translate_each(Expr, S),
-  elixir_tree_helpers:convert_to_boolean(?line(Meta), TExpr, true, S#elixir_scope.context == guard, SE);
+  elixir_utils:convert_to_boolean(?line(Meta), TExpr, true, S#elixir_scope.context == guard, SE);
 
 translate({ '!', Meta, [Expr] }, S) ->
   { TExpr, SE } = translate_each(Expr, S),
-  elixir_tree_helpers:convert_to_boolean(?line(Meta), TExpr, false, S#elixir_scope.context == guard, SE);
+  elixir_utils:convert_to_boolean(?line(Meta), TExpr, false, S#elixir_scope.context == guard, SE);
 
 translate({ in, Meta, [Left, Right] }, #elixir_scope{extra_guards=nil} = S) ->
   { _, TExpr, TS } = translate_in(Meta, Left, Right, S),
@@ -87,7 +87,7 @@ translate({'@', Meta, [{ Name, _, Args }]}, S) ->
               }, S);
             _ ->
               Contents = 'Elixir.Module':get_attribute(S#elixir_scope.module, Name),
-              { elixir_tree_helpers:elixir_to_erl(Contents), S }
+              { elixir_utils:elixir_to_erl(Contents), S }
           end;
         _ ->
           syntax_error(Meta, S#elixir_scope.file, "expected 0 or 1 argument for @~ts, got: ~p", [Name, length(Args)])
@@ -101,7 +101,7 @@ translate({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
   Clauses = elixir_clauses:get_pairs(Meta, do, KV, S),
   { TExpr, NS } = translate_each(Expr, S),
 
-  RClauses = case elixir_tree_helpers:returns_boolean(TExpr) of
+  RClauses = case elixir_utils:returns_boolean(TExpr) of
     true  -> rewrite_case_clauses(Clauses);
     false -> Clauses
   end,
@@ -142,7 +142,7 @@ translate({'receive', Meta, [KV] }, S) when is_list(KV) ->
     _ ->
       After = elixir_clauses:get_pairs(Meta, 'after', KV, S),
       { TClauses, SC } = elixir_clauses:match(Meta, Do ++ After, S),
-      { FClauses, TAfter } = elixir_tree_helpers:split_last(TClauses),
+      { FClauses, TAfter } = elixir_utils:split_last(TClauses),
       { _, _, [FExpr], _, FAfter } = TAfter,
       { { 'receive', ?line(Meta), FClauses, FExpr, FAfter }, SC }
   end;
@@ -239,7 +239,7 @@ translate_in(Meta, Left, Right, S) ->
       Expr = { atom, Line, false },
       { Cache, Expr };
     { cons, _, _, _ } ->
-      [H|T] = elixir_tree_helpers:cons_to_list(TRight),
+      [H|T] = elixir_utils:cons_to_list(TRight),
       Expr = lists:foldr(fun(X, Acc) ->
         { op, Line, 'orelse', { op, Line, '==', Var, X }, Acc }
       end, { op, Line, '==', Var, H }, T),

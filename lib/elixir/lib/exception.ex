@@ -166,8 +166,9 @@ defmodule Exception do
 
   @doc """
   Receives a tuple representing a stacktrace entry and formats it.
-  The current working directory may be given as an argument, which
-  is used to prettify the stacktrace.
+
+  The current working directory may be given as an argument,
+  otherwise one is automatically retrieved.
   """
   def format_stacktrace_entry(entry, cwd // nil)
 
@@ -208,9 +209,11 @@ defmodule Exception do
       :stacktrace -> Enum.drop(:erlang.get_stacktrace, 1)
     end
 
+    cwd = System.cwd
+
     case trace do
       [] -> "\n"
-      s  -> "    " <> Enum.map_join(s, "\n    ", format_stacktrace_entry(&1)) <> "\n"
+      s  -> "    " <> Enum.map_join(s, "\n    ", &format_stacktrace_entry(&1, cwd)) <> "\n"
     end
   end
 
@@ -274,10 +277,7 @@ defmodule Exception do
   def format_file_line(file, line, cwd) do
     if file do
       file = to_binary(file)
-
-      if cwd do
-        file = Path.relative_to(file, cwd)
-      end
+      file = if cwd, do: Path.relative_to(file, cwd), else: Path.relative_to_cwd(file)
 
       if line && line != 0 do
         "#{file}:#{line}: "

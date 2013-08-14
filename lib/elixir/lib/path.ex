@@ -237,6 +237,18 @@ defmodule Path do
   end
 
   @doc """
+  Convenience to get the path relative to the current working
+  directory. If, for some reason, the current working directory
+  cannot be retrieved, returns the full path.
+  """
+  def relative_to_cwd(path) do
+    case :file.get_cwd do
+      { :ok, base } -> relative_to(path, base)
+      _ -> path
+    end
+  end
+
+  @doc """
   Returns the last component of the path or the path
   itself if it does not contain any directory separators.
 

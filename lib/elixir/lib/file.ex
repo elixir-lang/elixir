@@ -476,7 +476,7 @@ defmodule File do
   # src may be a file or a directory, dest is definitely
   # a directory. Returns nil unless an error is found.
   defp do_cp_r(src, dest, callback, acc) when is_list(acc) do
-    case :elixir.file_type(src) do
+    case :elixir_utils.file_type(src) do
       { :ok, :regular } ->
         do_cp_file(src, dest, callback, acc)
       { :ok, :symlink } ->
@@ -721,9 +721,9 @@ defmodule File do
   end
 
   defp safe_list_dir(path) do
-    case :elixir.file_type(path) do
+    case :elixir_utils.file_type(path) do
       { :ok, :symlink } ->
-        case :elixir.file_type(path, :read_file_info) do
+        case :elixir_utils.file_type(path, :read_file_info) do
           { :ok, :directory } -> { :ok, :directory }
           _ -> { :ok, :regular }
         end

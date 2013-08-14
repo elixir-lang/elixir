@@ -27,12 +27,6 @@ defmodule Mix.RebarTest do
     assert config[:dir] == {:ok, String.to_char_list!(path)}
   end
 
-  test "rebar sub_dirs" do
-    path = MixTest.Case.fixture_path("rebar_dep")
-    assert Mix.Rebar.recur(path, fn _ -> File.cwd end)
-           [path, Path.join([path, "apps", "rebar_sub_dep"])]
-  end
-
   test "parse rebar dependencies" do
     Mix.Project.push(RebarAsDep)
 

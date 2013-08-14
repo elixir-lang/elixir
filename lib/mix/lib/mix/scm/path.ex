@@ -39,7 +39,7 @@ defmodule Mix.SCM.Path do
   end
 
   def checkout(opts) do
-    path = Mix.Utils.relative_to_cwd opts[:dest]
+    path = Path.relative_to_cwd opts[:dest]
     raise Mix.Error, message: "Cannot checkout path dependency, expected a dependency at #{path}"
   end
 
@@ -48,7 +48,7 @@ defmodule Mix.SCM.Path do
   end
 
   def clean(opts) do
-    path = Mix.Utils.relative_to_cwd opts[:dest]
+    path = Path.relative_to_cwd opts[:dest]
     Mix.shell.info "  #{path} is a path dependency, it was not cleaned"
     :noop
   end

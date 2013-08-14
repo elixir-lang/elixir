@@ -614,7 +614,7 @@ unwrap_splice([{ '__block__', [], [{ unquote_splicing, _, _ }] = Splice }]) ->
 unwrap_splice(Other) -> Other.
 
 unwrap_when(Args) ->
-  case elixir_tree_helpers:split_last(Args) of
+  case elixir_utils:split_last(Args) of
     { Start, { 'when', Meta, [_, _] = End } } ->
       [{ 'when', Meta, Start ++ End }];
     { _, _ } ->

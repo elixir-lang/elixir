@@ -79,6 +79,14 @@ defmodule PathTest do
     end
   end
 
+  test :relative_to_cwd do
+    assert Path.relative_to_cwd(__FILE__) ==
+           Path.relative_to(__FILE__, System.cwd!)
+
+    assert Path.relative_to_cwd(to_char_list(__FILE__)) ==
+           Path.relative_to(to_char_list(__FILE__), to_char_list(System.cwd!))
+  end
+
   test :absname_with_binary do
     assert (Path.absname("/foo/bar") |> strip_drive_letter_if_windows) == "/foo/bar"
     assert (Path.absname("/foo/bar/") |> strip_drive_letter_if_windows)  == "/foo/bar"
@@ -249,7 +257,7 @@ defmodule PathTest do
     assert Path.split('foo') == ['foo']
     assert Path.split('/foo/bar') == ['/', 'foo', 'bar']
   end
-  
+
   if is_win? do
     defp strip_drive_letter_if_windows([_d,?:|rest]), do: rest
     defp strip_drive_letter_if_windows(<<_d,?:,rest::binary>>), do: rest

@@ -7,7 +7,7 @@ defmodule ExUnit.CLIFormatter do
   @timeout 30_000
   use GenServer.Behaviour
 
-  import ExUnit.Formatter, only: [format_time: 2, format_test_failure: 4, format_test_case_failure: 4]
+  import ExUnit.Formatter, only: [format_time: 2, format_test_failure: 3, format_test_case_failure: 3]
 
   defrecord Config, tests_counter: 0, invalid_counter: 0,
                     test_failures: [], case_failures: [], trace: false, color: true
@@ -140,8 +140,8 @@ defmodule ExUnit.CLIFormatter do
   defp print_suite(counter, num_invalids, test_failures, case_failures, run_us, load_us, config) do
     IO.write "\n\nFailures:\n\n"
 
-    num_fails = Enum.reduce Enum.reverse(test_failures), 0, print_test_failure(&1, &2, File.cwd!, config)
-    Enum.reduce Enum.reverse(case_failures), num_fails, print_test_case_failure(&1, &2, File.cwd!, config)
+    num_fails = Enum.reduce Enum.reverse(test_failures), 0, print_test_failure(&1, &2, config)
+    Enum.reduce Enum.reverse(case_failures), num_fails, print_test_case_failure(&1, &2, config)
 
     IO.puts format_time(run_us, load_us)
     message = "#{counter} tests, #{num_fails} failures"
@@ -157,13 +157,13 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
-  defp print_test_failure(test, acc, cwd, config) do
-    IO.puts format_test_failure(test, acc + 1, cwd, formatter(&1, &2, config))
+  defp print_test_failure(test, acc, config) do
+    IO.puts format_test_failure(test, acc + 1, formatter(&1, &2, config))
     acc + 1
   end
 
-  defp print_test_case_failure(test_case, acc, cwd, config) do
-    IO.puts format_test_case_failure(test_case, acc + 1, cwd, formatter(&1, &2, config))
+  defp print_test_case_failure(test_case, acc, config) do
+    IO.puts format_test_case_failure(test_case, acc + 1, formatter(&1, &2, config))
     acc + 1
   end
 

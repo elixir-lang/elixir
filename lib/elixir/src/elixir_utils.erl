@@ -1,11 +1,12 @@
 %% Convenience functions used throughout elixir source code
-%% to generate erlang abstract format for basic structures
-%% as lists, condition clauses, etc.
--module(elixir_tree_helpers).
--export([elixir_to_erl/1, split_last/1,
+%% for ast manipulation and querying.
+-module(elixir_utils).
+-export([elixir_to_erl/1, get_line/1, split_last/1,
   cons_to_list/1, list_to_cons/2, list_to_cons/3,
-  convert_to_boolean/5, returns_boolean/1, get_line/1]).
+  convert_to_boolean/5, returns_boolean/1,
+  file_type/1, file_type/2, relative_to_cwd/1]).
 -include("elixir.hrl").
+-include_lib("kernel/include/file.hrl").
 
 get_line(Opts) ->
   case lists:keyfind(line, 1, Opts) of
@@ -17,6 +18,23 @@ split_last([])         -> { [], [] };
 split_last(List)       -> split_last(List, []).
 split_last([H], Acc)   -> { lists:reverse(Acc), H };
 split_last([H|T], Acc) -> split_last(T, [H|Acc]).
+
+file_type(File) ->
+  file_type(File, read_link_info).
+
+file_type(File, Op) ->
+  case file:Op(File) of
+    { ok, #file_info{type=Type} } -> { ok, Type };
+    { error, _ } = Error -> Error
+  end.
+
+relative_to_cwd(Path) ->
+  case elixir_compiler:get_opt(internal) of
+    true  -> Path;
+    false -> 'Elixir.Path':relative_to_cwd(Path)
+  end.
+
+%% List conversion
 
 cons_to_list({ nil, _ }) -> [];
 cons_to_list({ cons, _, Left, Right }) -> [Left|cons_to_list(Right)].
@@ -60,7 +78,7 @@ elixir_to_erl_cons_2([H|T], Acc) ->
 elixir_to_erl_cons_2([], Acc) ->
   Acc.
 
-%% Others
+%% Boolean checks
 
 returns_boolean({ op, _, Op, _ }) when Op == 'not' -> true;
 

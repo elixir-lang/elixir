@@ -253,7 +253,7 @@ defmodule Macro do
 
   # Splat when
   def to_string({ :when, _, args }) do
-    { left, right } = :elixir_tree_helpers.split_last(args)
+    { left, right } = :elixir_utils.split_last(args)
     "(" <> Enum.map_join(left, ", ", to_string(&1)) <> ") when " <> to_string(right)
   end
 
@@ -268,7 +268,7 @@ defmodule Macro do
 
   # All other calls
   def to_string({ target, _, args }) when is_list(args) do
-    { list, last } = :elixir_tree_helpers.split_last(args)
+    { list, last } = :elixir_utils.split_last(args)
     case is_kw_blocks?(last) do
       true  -> call_to_string_with_args(target, list) <> kw_blocks_to_string(last)
       false -> call_to_string_with_args(target, args)

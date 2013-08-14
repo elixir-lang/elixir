@@ -43,7 +43,7 @@ docs_table(Module) ->
 
 translate(Meta, Ref, Block, S) ->
   Line            = ?line(Meta),
-  MetaBlock       = elixir_tree_helpers:elixir_to_erl(Block),
+  MetaBlock       = elixir_utils:elixir_to_erl(Block),
   { MetaS, Vars } = elixir_scope:serialize_with_vars(Line, S),
 
   Args = [{integer, Line, Line}, Ref, MetaBlock, Vars, MetaS],
@@ -314,11 +314,11 @@ add_info_function(Line, File, Module, Export, Def, Defmacro, C) ->
   end.
 
 functions_clause(Def) ->
-  { clause, 0, [{ atom, 0, functions }], [], [elixir_tree_helpers:elixir_to_erl(Def)] }.
+  { clause, 0, [{ atom, 0, functions }], [], [elixir_utils:elixir_to_erl(Def)] }.
 
 macros_clause(Module, Def, Defmacro) ->
   All = handle_builtin_macros(Module, Def, Defmacro),
-  { clause, 0, [{ atom, 0, macros }], [], [elixir_tree_helpers:elixir_to_erl(All)] }.
+  { clause, 0, [{ atom, 0, macros }], [], [elixir_utils:elixir_to_erl(All)] }.
 
 handle_builtin_macros('Elixir.Kernel', Def, Defmacro) ->
   ordsets:subtract(ordsets:union(Defmacro,
@@ -330,14 +330,14 @@ module_clause(Module) ->
 
 docs_clause(Module, true) ->
   Docs = ordsets:from_list(ets:tab2list(docs_table(Module))),
-  { clause, 0, [{ atom, 0, docs }], [], [elixir_tree_helpers:elixir_to_erl(Docs)] };
+  { clause, 0, [{ atom, 0, docs }], [], [elixir_utils:elixir_to_erl(Docs)] };
 
 docs_clause(_Module, _) ->
   { clause, 0, [{ atom, 0, docs }], [], [{ atom, 0, nil }] }.
 
 moduledoc_clause(Line, Module, true) ->
   Docs = 'Elixir.Module':get_attribute(Module, moduledoc),
-  { clause, 0, [{ atom, 0, moduledoc }], [], [elixir_tree_helpers:elixir_to_erl({ Line, Docs })] };
+  { clause, 0, [{ atom, 0, moduledoc }], [], [elixir_utils:elixir_to_erl({ Line, Docs })] };
 
 moduledoc_clause(_Line, _Module, _) ->
   { clause, 0, [{ atom, 0, moduledoc }], [], [{ atom, 0, nil }] }.

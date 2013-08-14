@@ -338,9 +338,9 @@ check_valid_clause(Line, File, Name, Arity, Kind, Table, StoredLine, StoredFile)
     {Name,Arity} -> [];
     [] -> [];
     _ ->
-      FileRel = 'Elixir.Path':relative_to(StoredFile, 'Elixir.System':'cwd!'()),
+      Relative = elixir_utils:relative_to_cwd(StoredFile),
       elixir_errors:handle_file_warning(File, { Line, ?MODULE,
-        { override_function, { Kind, Name, Arity, StoredLine, FileRel } } })
+        { override_function, { Kind, Name, Arity, StoredLine, Relative } } })
   end.
 
 check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _) -> [];

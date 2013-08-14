@@ -6,7 +6,7 @@
 
 -define(atom_concat(Atoms), list_to_atom(lists:concat(Atoms))).
 -define(elixir_macro(Macro), list_to_atom(lists:concat(['MACRO-',Macro]))).
--define(line(Opts), elixir_tree_helpers:get_line(Opts)).
+-define(line(Opts), elixir_utils:get_line(Opts)).
 
 -record(elixir_scope, {
   context=nil,             %% can be assign, guards or nil

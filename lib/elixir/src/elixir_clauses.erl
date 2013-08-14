@@ -83,7 +83,7 @@ extract_args(_) -> error.
 % Extract guards when multiple left side args are allowed.
 
 extract_splat_guards([{ 'when', _, [_,_|_] = Args }]) ->
-  { Left, Right } = elixir_tree_helpers:split_last(Args),
+  { Left, Right } = elixir_utils:split_last(Args),
   { Left, extract_or_clauses(Right, []) };
 extract_splat_guards(Else) ->
   { Else, [] }.

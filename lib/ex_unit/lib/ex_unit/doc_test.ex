@@ -169,7 +169,7 @@ defmodule ExUnit.DocTest do
 
   defp test_content(Test[exprs: exprs, line: line, fun_arity: fun_arity], module, do_import) do
     file     = module.__info__(:compile)[:source]
-    location = [line: line, file: Path.relative_to(file, System.cwd!)]
+    location = [line: line, file: Path.relative_to_cwd(file)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
 
     exc_filter_fn = fn
@@ -287,7 +287,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp string_to_quoted(module, line, file, expr) do
-    location = [line: line, file: Path.relative_to(file, System.cwd!)]
+    location = [line: line, file: Path.relative_to_cwd(file)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
     try do
       Code.string_to_quoted!(expr, line: line, file: file)
