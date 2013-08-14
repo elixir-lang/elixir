@@ -125,6 +125,22 @@ defmodule ExUnit.DocTestTest.IndentationMismatchedPrompt do
   def mismatched, do: :ok
 end
 
+defmodule ExUnit.DocTestTest.IndentationTooMuch do
+  @doc %B'''
+    iex> 1 + 2
+      3
+  '''
+  def too_much, do: :ok
+end
+
+defmodule ExUnit.DocTestTest.IndentationNotEnough do
+  @doc %B'''
+      iex> 1 + 2
+    3
+  '''
+  def not_enough, do: :ok
+end
+
 
 defmodule ExUnit.DocTestTest do
   use ExUnit.Case
@@ -155,5 +171,9 @@ defmodule ExUnit.DocTestTest do
 
   assert_raise ExUnit.DocTest.Error, fn ->
     doctest ExUnit.DocTestTest.IndentationMismatchedPrompt
+  end
+
+  assert_raise ExUnit.DocTest.Error, fn ->
+    doctest ExUnit.DocTestTest.IndentationTooMuch
   end
 end
