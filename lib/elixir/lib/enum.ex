@@ -951,6 +951,8 @@ defmodule Enum do
       [1,2,3]
       iex> Enum.take([1, 2, 3], 0)
       []
+      iex> Enum.take([1, 2, 3], -1)
+      [1,2]
 
   """
   @spec take(t, integer) :: list
