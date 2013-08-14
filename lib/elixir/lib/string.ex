@@ -879,10 +879,19 @@ defmodule String do
   @spec to_integer(t) :: {integer, t} | :error
 
   def to_integer(string) do
-    {result, remainder} = :string.to_integer(:binary.bin_to_list(string))
+    [primary | secondary] = Regex.split(%r/(\D)/, string, [parts: 2])
+    result = try do
+      :erlang.binary_to_integer(primary)
+    rescue
+      ArgumentError -> :error
+    end
     case result do
       :error -> :error
-      _ -> {result, :binary.list_to_bin(remainder)}
+      _ -> {result, case secondary do
+        [] -> ""
+        [s] -> s
+        [s | rest] -> :binary.list_to_bin(Enum.reduce(rest, s, fn (x, acc) -> :binary.bin_to_list(acc) ++ :binary.bin_to_list(x) end))
+      end}
     end
   end
 
