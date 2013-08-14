@@ -786,7 +786,7 @@ defmodule File do
               or if data is read by a function that returns data in a format that cannot cope
               with the character range of the data, an error occurs and the file will be closed.
 
-  If a function is given to modes (instead of a list), it dispatches to `open/3`.
+  If a function is given two modes (instead of a list), it dispatches to `open/3`.
 
   Check http://www.erlang.org/doc/man/file.html#open-2 for more information about
   other options like `read_ahead` and `delayed_write`.
