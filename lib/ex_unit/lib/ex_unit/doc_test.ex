@@ -360,7 +360,7 @@ defmodule ExUnit.DocTest do
   end
 
   # Hit a non-blank line, adjust indentation.
-  defp adjust_indent([line|rest] = lines, adjusted_lines, indent, in_code, in_heredocs) do
+  defp adjust_indent([line|rest], adjusted_lines, indent, in_code, in_heredocs) do
     striped_line = to_binary(String.slice(line, indent, String.length(line)))
 
     # Line is heredocs delimiter, toggle in_heredocs.
