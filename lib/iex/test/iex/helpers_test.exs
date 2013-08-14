@@ -92,7 +92,7 @@ defmodule IEx.HelpersTest do
     end) >= 2
 
     assert capture_io(fn -> s Enum.all?/1 end) == "@spec all?(t()) :: boolean()\n"
-    assert capture_io(fn -> s iolist_to_binary end) == "@spec iolist_to_binary(iolist()) :: binary()\n"
+    assert capture_io(fn -> s iolist_to_binary end) == "@spec iolist_to_binary(iolist() | binary()) :: binary()\n"
   end
 
   test "v helper" do

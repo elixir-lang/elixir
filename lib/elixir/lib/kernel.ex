@@ -666,6 +666,13 @@ defmodule Kernel do
   @doc """
   Returns a binary which is made from the integers and binaries in iolist.
 
+  Notice this function treats lists of integers are a bytes representation
+  and does not perform any kind of encoding conversion. If you want to convert
+  from a char list to a string (both utf-8 encoded), please use
+  `String.from_char_list!/1` instead.
+
+  In case this function receives a binary, the binary passes through.
+
   ## Examples
 
       iex> bin1 = <<1, 2, 3>>
@@ -674,8 +681,12 @@ defmodule Kernel do
       ...> iolist_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
       <<1,2,3,1,2,3,4,5,4,6>>
 
+      iex> bin = <<1, 2, 3>>
+      ...> iolist_to_binary(bin)
+      <<1,2,3>>
+
   """
-  @spec iolist_to_binary(iolist) :: binary
+  @spec iolist_to_binary(iolist | binary) :: binary
   def iolist_to_binary(item) do
     :erlang.iolist_to_binary(item)
   end
