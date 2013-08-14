@@ -47,15 +47,17 @@ defmodule Kernel.ExceptionTest do
     assert Exception.format_stacktrace_entry({fn(x, y) -> { x, y } end, 2, []}) =~ %r"#Function<.+>/2"
   end
 
-  test :format_module_function_arity do
-    assert Exception.format_module_fun_arity Foo, nil, 1 == "Foo.nil/1"
-    assert Exception.format_module_fun_arity Foo, :bar, 1 == "Foo.bar/1"
-    assert Exception.format_module_fun_arity Foo, :bar, [] == "Foo.bar()"
-    assert Exception.format_module_fun_arity :foo, :bar, [1, 2] == ":foo.bar(1, 2)"
+  test :format_mfa do
+    assert Exception.format_mfa(Foo, nil, 1) == "Foo.nil/1"
+    assert Exception.format_mfa(Foo, :bar, 1) == "Foo.bar/1"
+    assert Exception.format_mfa(Foo, :bar, []) == "Foo.bar()"
+    assert Exception.format_mfa(:foo, :bar, [1, 2]) == ":foo.bar(1, 2)"
+    assert Exception.format_mfa(Foo, :"bar baz", 1) == "Foo.\"bar baz\"/1"
   end
 
-  test :format_module_function_arity_with_special_function_name do
-    assert Exception.format_module_fun_arity Foo, :"bar baz", 1 == "Foo.\"bar baz\"/1"
+  test :format_fa do
+    assert Exception.format_fa(fn -> end, 1) =~
+           %r"#Function<\d\.\d+ in Kernel\.ExceptionTest\.test_format_fa/1>/1"
   end
 
   test :runtime_error_message do

@@ -294,7 +294,7 @@ defmodule IEx.HelpersTest do
         end
 
         assert [Sample] = r()
-      end) =~ %r"^.+?sample\.ex:1: redefining module Sample\n.+?sample\.ex:1: redefining module Sample\n$"
+      end) =~ %r"^.*?sample\.ex:1: redefining module Sample\n.*?sample\.ex:1: redefining module Sample\n$"
     end
   after
     # Clean up old version produced by the r helper

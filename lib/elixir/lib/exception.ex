@@ -5,19 +5,19 @@ defexception SystemLimitError,  message: "a system limit has been reached"
 
 defexception SyntaxError, [file: nil, line: nil, description: "syntax error"] do
   def message(exception) do
-    "#{Exception.format_file_line(exception.file, exception.line, nil)}#{exception.description}"
+    "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
   end
 end
 
 defexception TokenMissingError, [file: nil, line: nil, description: "expression is incomplete"] do
   def message(exception) do
-    "#{Exception.format_file_line(exception.file, exception.line, nil)}#{exception.description}"
+    "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
   end
 end
 
 defexception CompileError, [file: nil, line: nil, description: "compile error"] do
   def message(exception) do
-    "#{Exception.format_file_line(exception.file, exception.line, nil)}#{exception.description}"
+    "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
   end
 end
 
@@ -48,7 +48,7 @@ end
 defexception UndefinedFunctionError, [module: nil, function: nil, arity: nil] do
   def message(exception) do
     if exception.function do
-      formatted = Exception.format_module_fun_arity exception.module, exception.function, exception.arity
+      formatted = Exception.format_mfa exception.module, exception.function, exception.arity
       "undefined function: #{formatted}"
     else
       "undefined function"
@@ -59,7 +59,7 @@ end
 defexception FunctionClauseError, [module: nil, function: nil, arity: nil] do
   def message(exception) do
     if exception.function do
-      formatted = Exception.format_module_fun_arity exception.module, exception.function, exception.arity
+      formatted = Exception.format_mfa exception.module, exception.function, exception.arity
       "no function clause matching in #{formatted}"
     else
       "no function clause matches"
@@ -174,25 +174,25 @@ defmodule Exception do
 
   # From Macro.Env.stacktrace
   def format_stacktrace_entry({ module, :__MODULE__, 0, file_line }, cwd) do
-    "#{format_file_line(file_line, cwd)}#{inspect module} (module)"
+    "#{format_location(file_line, cwd)}#{inspect module} (module)"
   end
 
   # From :elixir_compiler_*
   def format_stacktrace_entry({ _module, :__MODULE__, 2, file_line }, cwd) do
-    "#{format_file_line(file_line, cwd)}(module)"
+    "#{format_location(file_line, cwd)}(module)"
   end
 
   # From :elixir_compiler_*
   def format_stacktrace_entry({ _module, :__FILE__, 2, file_line }, cwd) do
-    "#{format_file_line(file_line, cwd)}(file)"
+    "#{format_location(file_line, cwd)}(file)"
   end
 
   def format_stacktrace_entry({module, fun, arity, file_line}, cwd) do
-    "#{format_file_line(file_line, cwd)}#{format_module_fun_arity(module, fun, arity)}"
+    "#{format_location(file_line, cwd)}#{format_mfa(module, fun, arity)}"
   end
 
   def format_stacktrace_entry({fun, arity, file_line}, cwd) do
-    "#{format_file_line(file_line, cwd)}#{format_fun_arity(fun, arity)}"
+    "#{format_location(file_line, cwd)}#{format_fa(fun, arity)}"
   end
 
   @doc """
@@ -236,11 +236,17 @@ defmodule Exception do
     end
   end
 
-  ## Helpers
+  @doc """
+  Receives an anonymous function and arity and formats it as
+  shown in stacktraces. The arity may also be a list of arguments.
 
-  # Format fun and arity
-  @doc false
-  def format_fun_arity(fun, arity) do
+  ## Examples
+
+      Exception.format_fa(fn -> end, 1)
+      #=> "#Function<...>/1"
+
+  """
+  def format_fa(fun, arity) do
     if is_list(arity) do
       inspected = lc x inlist arity, do: inspect(x)
       "#{inspect fun}(#{Enum.join(inspected, ", ")})"
@@ -249,11 +255,20 @@ defmodule Exception do
     end
   end
 
-  # Receives a module, fun and arity and returns a string
-  # representing such invocation. Arity may also be a list
-  # of arguments. It follows the same syntax as in stacktraces.
-  @doc false
-  def format_module_fun_arity(module, fun, arity) do
+  @doc """
+  Receives a module, fun and arity and formats it
+  as shown in stacktraces. The arity may also be a list
+  of arguments.
+
+  ## Examples
+
+      iex> Exception.format_mfa Foo, :bar, 1
+      "Foo.bar/1"
+      iex> Exception.format_mfa Foo, :bar, []
+      "Foo.bar()"
+
+  """
+  def format_mfa(module, fun, arity) do
     fun =
       case inspect(fun) do
         << ?:, erl :: binary >> -> erl
@@ -268,13 +283,26 @@ defmodule Exception do
     end
   end
 
-  # Format file and line for exception printing.
-  @doc false
-  def format_file_line(opts, cwd) do
-    format_file_line Keyword.get(opts, :file), Keyword.get(opts, :line), cwd
-  end
+  @doc """
+  Formats the given file and line as shown in stacktraces.
+  If any of the values are nil, they are omitted.
 
-  def format_file_line(file, line, cwd) do
+  The current working directory may be given as an argument,
+  otherwise one is automatically retrieved.
+
+  ## Examples
+
+      iex> Exception.format_file_line("foo", 1)
+      "foo:1: "
+
+      iex> Exception.format_file_line("foo", nil)
+      "foo: "
+
+      iex> Exception.format_file_line(nil, nil)
+      ""
+
+  """
+  def format_file_line(file, line, cwd // nil) do
     if file do
       file = to_binary(file)
       file = if cwd, do: Path.relative_to(file, cwd), else: Path.relative_to_cwd(file)
@@ -287,6 +315,10 @@ defmodule Exception do
     else
       ""
     end
+  end
+
+  defp format_location(opts, cwd) do
+    format_file_line Keyword.get(opts, :file), Keyword.get(opts, :line), cwd
   end
 
   defp from_stacktrace([{ module, function, args, _ }|_]) when is_list(args) do

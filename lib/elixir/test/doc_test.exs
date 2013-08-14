@@ -14,6 +14,7 @@ defmodule KernelTest do
   doctest Bitwise
   doctest Code
   doctest Enum
+  doctest Exception
   doctest IO.ANSI
   doctest Keyword
   doctest Kernel
