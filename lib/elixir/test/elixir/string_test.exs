@@ -124,6 +124,24 @@ defmodule StringTest do
     assert String.strip("猫猫猫  cat  猫猫猫", ?猫) == "  cat  "
   end
 
+  test :rjust do
+    assert String.rjust("", 5) == "     "
+    assert String.rjust("abc", 5) == "  abc"
+    assert String.rjust("  abc  ", 9) == "    abc  "
+    assert String.rjust("猫", 5) == "    猫"
+    assert String.rjust("abc", 5, ?-) == "--abc"
+    assert String.rjust("abc", 5, ?猫) == "猫猫abc"
+  end
+
+  test :ljust do
+    assert String.ljust("", 5) == "     "
+    assert String.ljust("abc", 5) == "abc  "
+    assert String.ljust("  abc  ", 9) == "  abc    "
+    assert String.ljust("猫", 5) == "猫    "
+    assert String.ljust("abc", 5, ?-) == "abc--"
+    assert String.ljust("abc", 5, ?猫) == "abc猫猫"
+  end
+
   test :reverse do
     assert String.reverse("") == ""
     assert String.reverse("abc") == "cba"
@@ -249,6 +267,9 @@ defmodule StringTest do
     assert String.slice("あいうえお", 6, 2) == nil
     assert String.slice("ειξήριολ", 8, 1) == ""
     assert String.slice("ειξήριολ", 9, 1) == nil
+    assert String.slice("elixir", 0, 0) == ""
+    assert String.slice("elixir", 5, 0) == ""
+    assert String.slice("elixir", -5, 0) == ""
     assert String.slice("", 0, 1) == ""
     assert String.slice("", 1, 1) == nil
   end

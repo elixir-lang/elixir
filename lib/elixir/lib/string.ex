@@ -371,6 +371,75 @@ defmodule String do
   end
 
   @doc %B"""
+  Returns a new string of length `len` with `subject` right justified and
+  padded with `padding`. If `padding` is not present, it defaults to
+  whitespace. When `len` is less than the length of `subject`, `subject` is
+  returned.
+
+  ## Examples
+
+      iex> String.rjust("abc", 5)
+      "  abc"
+      iex> String.rjust("abc", 5, ?-)
+      "--abc"
+
+  """
+  @spec rjust(t, pos_integer) :: t
+  @spec rjust(t, pos_integer, char) :: t
+
+  def rjust(subject, len) do
+    rjust(subject, len, ? )
+  end
+
+  def rjust(subject, len, padding) when is_integer(padding) do
+    do_justify(subject, len, padding, :right)
+  end
+
+  @doc %B"""
+  Returns a new string of length `len` with `subject` left justified and padded
+  with `padding`. If `padding` is not present, it defaults to whitespace. When
+  `len` is less than the length of `subject`, `subject` is returned.
+
+  ## Examples
+
+      iex> String.ljust("abc", 5)
+      "abc  "
+      iex> String.ljust("abc", 5, ?-)
+      "abc--"
+
+  """
+  @spec ljust(t, pos_integer) :: t
+  @spec ljust(t, pos_integer, char) :: t
+
+  def ljust(subject, len) do
+    ljust(subject, len, ? )
+  end
+
+  def ljust(subject, len, padding) when is_integer(padding) do
+    do_justify(subject, len, padding, :left)
+  end
+
+  def do_justify(subject, 0, _padding, _type) do
+    subject
+  end
+
+  def do_justify(subject, len, padding, type) when is_integer(padding) do
+    subject_len = String.length(subject)
+
+    cond do
+      subject_len >= len ->
+        subject
+      subject_len < len ->
+        fill = String.duplicate(<<padding :: utf8>>, len - subject_len)
+
+        case type do
+          :left  -> Enum.join([subject, fill])
+          :right -> Enum.join([fill, subject])
+        end
+    end
+  end
+
+  @doc %B"""
   Returns a new binary based on `subject` by replacing the parts
   matching `pattern` by `replacement`. By default, it replaces
   all entries, except if the `global` option is set to `false`.
@@ -745,6 +814,13 @@ defmodule String do
 
   """
   @spec slice(t, integer, integer) :: grapheme | nil
+
+  def slice(string, start, 0) do
+    case abs(start) <= String.length(string) do
+      true -> ""
+      false -> nil
+    end
+  end
 
   def slice(string, start, len) when start >= 0 do
     do_slice(next_grapheme(string), start, start + len - 1, 0, "")
