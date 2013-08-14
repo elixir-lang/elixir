@@ -1,5 +1,5 @@
 #!/bin/sh
-if [ $# -gt 0 ] && ([ $1 = "--help" ] || [ $1 = "-h" ]); then
+if [ $# -gt 0 ] && ([ "$1" = "--help" ] || [ "$1" = "-h" ]); then
   echo "Usage: `basename $0` [options] [.exs file] [data]
 
   -v                Prints version

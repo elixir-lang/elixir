@@ -1,5 +1,5 @@
 #!/bin/sh
-if [ $# -eq 0 ]; then
+if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   echo "Usage: `basename $0` [elixir switches] [compiler switches] [.ex files]
 
   -o               The directory to output compiled files
