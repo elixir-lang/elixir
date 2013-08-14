@@ -10,8 +10,10 @@
   * [List] Add `List.replace_at/3`
   * [Mix] Automatically recompile a project if the Elixir version changes
   * [String] Add regex pattern support to `String.replace/3`
+  * [String] Add `String.ljust/2`, `String.rjust/2`, `String.ljust/3` and `String.rjust/3`
 
 * bug fix
+  * [Behaviour] Do not compile behaviour docs if docs are disabled on compilation
   * [File] Fix a bug where `File.touch(file, datetime)` was not setting the proper datetime when the file did not exist
   * [Kernel] Return a readable error on oversized atoms
   * [Kernel] Fix default shutdown of child supervisors to infinity
@@ -20,6 +22,7 @@
   * [Mix] Fix regression on `mix clean --all`
   * [List] Fix bug on `List.insert_at/3` that added the item at the wrong position for negative indexes
   * [String] `String.strip/2` now supports removing unicode characters
+  * [String] `String.slice/3` still returns the proper result when there is no length to be extracted
   * [System] `System.get_env/0` now returns a list of tuples as previously advertised
 
 * deprecations

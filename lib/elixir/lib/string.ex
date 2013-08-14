@@ -388,7 +388,7 @@ defmodule String do
   @spec rjust(t, pos_integer, char) :: t
 
   def rjust(subject, len) do
-    rjust(subject, len, ? )
+    rjust(subject, len, ?\s)
   end
 
   def rjust(subject, len, padding) when is_integer(padding) do
@@ -412,7 +412,7 @@ defmodule String do
   @spec ljust(t, pos_integer, char) :: t
 
   def ljust(subject, len) do
-    ljust(subject, len, ? )
+    ljust(subject, len, ?\s)
   end
 
   def ljust(subject, len, padding) when is_integer(padding) do
@@ -433,8 +433,8 @@ defmodule String do
         fill = String.duplicate(<<padding :: utf8>>, len - subject_len)
 
         case type do
-          :left  -> Enum.join([subject, fill])
-          :right -> Enum.join([fill, subject])
+          :left  -> subject <> fill
+          :right -> fill <> subject
         end
     end
   end
