@@ -25,8 +25,7 @@ defmodule Macro do
     [:!, :@, :^, :not, :+, :-, :~~~, :&]
   end
 
-  # Keep this in sync with the associativity/precedence decls in src/elixir_parser.yrl
-  @type precedence :: integer # Higher means binds stronger
+  @typep precedence :: integer # Higher means binds stronger
   @spec binary_op_props(atom) :: {:left|:right, precedence}
   defp binary_op_props(o) do
     case o do
@@ -401,16 +400,14 @@ defmodule Macro do
     cond do
       parent_prec < prec -> to_string(expr)
       parent_prec > prec -> parenthise(expr)
-      # parent_prec == prec, so look at associativity.
-      # Side can't be :nonfix, so a nonfix associativity always generates
-      # parentheses. At the time of writing there are no binary operators
-      # with nonfix associativity though.
-      true               -> if parent_assoc == side do 
-                              to_string(expr)
-                            else
-                              parenthise(expr)
-                            end
-      end
+      true ->
+        # parent_prec == prec, so look at associativity.
+        if parent_assoc == side do
+          to_string(expr)
+        else
+          parenthise(expr)
+        end
+    end
   end
 
   defp op_to_string(expr, _, _), do: to_string(expr)

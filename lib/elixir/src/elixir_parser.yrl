@@ -42,6 +42,7 @@ Rootsymbol grammar.
 %% There are two shift/reduce conflicts coming from call_args_parens.
 Expect 2.
 
+%% Changes in ops and precedence should be reflected on lib/elixir/lib/macro.ex
 Left       5 do.
 Right     10 stab_op_eol.     %% ->
 Left      20 ','.
