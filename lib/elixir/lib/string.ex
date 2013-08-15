@@ -880,15 +880,13 @@ defmodule String do
 
   def to_integer(string) do
     {primary, secondary} = do_to_integer_sign string 
-    result = try do
-      :erlang.binary_to_integer(primary)
-      rescue ArgumentError -> :error
-    end
-    case result do
-      :error -> :error
-      _ -> {result, secondary}
+    if primary != "" do
+      {:erlang.binary_to_integer(primary), secondary}
+    else
+      :error
     end
   end
+
   defp do_to_integer_sign(<<'-', rest :: binary>>) do
     {head, rem} = do_to_integer rest
     {"-" <> head, rem}
@@ -899,14 +897,15 @@ defmodule String do
   defp do_to_integer(<<>>) do
     {"", ""}
   end
-  defp do_to_integer(<<h :: utf8>>) when h >= 48 and h < 58 do
-    {<<h :: utf8>>, ""}
-  end
+  #defp do_to_integer(<<h :: utf8>>) when h >= 48 and h < 58 do
+    #  {<<h :: utf8>>, ""}
+    #end
   defp do_to_integer(<<h :: utf8, rest :: binary>>) when h >= 48 and h < 58 do
     {head, rem} = do_to_integer rest 
-    case is_integer head do
-      true -> {<<h, head>>, rem}
-      false -> {:erlang.list_to_binary([h] ++ :erlang.binary_to_list(head)), rem}
+    if is_integer head do
+      {<<h, head>>, rem}
+    else
+      {<<h, head :: binary>>, rem}
     end
   end
   defp do_to_integer(<<h :: utf8, rest :: binary>>) when h < 48 or h >= 58 do
@@ -933,90 +932,99 @@ defmodule String do
   """
   @spec to_float(t) :: {integer, t} | :error
 
-  def to_float(string) do
+  defp to_float(string) do
     {primary, secondary} = do_to_float_sign string 
-    result = try do
-      :erlang.binary_to_float(primary)
-      rescue ArgumentError -> :error
-    end
-    case result do
-      :error -> :error
-      _ -> {result, secondary}
+    if primary != "" do
+      {:erlang.binary_to_float(primary), secondary}
+    else
+      :error
     end
   end
 
-  def do_to_float_sign(<<'-', rest :: binary>>) do
+  defp do_to_float_sign(<<'-', rest :: binary>>) do
     {head, rem} = do_to_float_whole rest
-    {"-" <> head, rem}
+    if head != ".0" do
+      {"-" <> head, rem}
+    else
+      {"", rem}
+    end
   end
-  def do_to_float_sign(rest) do
-    do_to_float_whole rest
+  defp do_to_float_sign(rest) do
+    {head, rem} = do_to_float_whole rest
+    if head != ".0" do
+      {head, rem}
+    else
+      {"", rem}
+    end
   end
-  def do_to_float_whole(<<'.', rest :: binary>>) do
+  defp do_to_float_whole(<<'.', rest :: binary>>) do
     {head, rem} = do_to_float_fraction rest
     {"." <> head, rem}
   end
-  def do_to_float_whole(<<'e', rest :: binary>>) do
+  defp do_to_float_whole(<<'e', rest :: binary>>) do
     {head, rem} = do_to_float_sign_exponent rest
     {"e" <> head, rem}
   end
-  def do_to_float_whole(<<>>) do
-    {"", ""}
+  defp do_to_float_whole(<<>>) do
+    {".0", ""}
   end
-  def do_to_float_whole(<<h :: utf8>>) when h >= 48 and h < 58 do
+  defp do_to_float_whole(<<h :: utf8>>) when h >= 48 and h < 58 do
     {<<h :: utf8, ".0">>, ""}
   end
-  def do_to_float_whole(<<h :: utf8, rest :: binary>>) when h >= 48 and h < 58 do
+  defp do_to_float_whole(<<h :: utf8, rest :: binary>>) when h >= 48 and h < 58 do
     {head, rem} = do_to_float_whole rest
-    case is_integer head do
-      true -> {<<h, head>>, rem}
-      false -> {:erlang.list_to_binary([h] ++ :erlang.binary_to_list(head)), rem}
+    if is_integer head do
+      {<<h, head>>, rem}
+    else
+      {<<h, head :: binary>>, rem}
     end
   end
-  def do_to_float_whole(<<h :: utf8, rest :: binary>>) when h < 48 or h >= 58 do
+  defp do_to_float_whole(<<h :: utf8, rest :: binary>>) when h < 48 or h >= 58 do
     {".0", <<h :: size(8), rest :: binary>>}
   end
-  def do_to_float_fraction(<<'e', rest :: binary>>) do
+  defp do_to_float_fraction(<<'e', rest :: binary>>) do
     {head, rem} = do_to_float_sign_exponent rest
     {"e" <> head, rem}
   end
-  def do_to_float_fraction(<<>>) do
+  defp do_to_float_fraction(<<>>) do
     {"", ""}
   end
-  def do_to_float_fraction(<<h :: utf8>>) when h >= 48 and h < 58 do
+  defp do_to_float_fraction(<<h :: utf8>>) when h >= 48 and h < 58 do
     {<<h :: utf8>>, ""}
   end
-  def do_to_float_fraction(<<h :: utf8, rest :: binary>>) when h >= 48 and h < 58 do
+  defp do_to_float_fraction(<<h :: utf8, rest :: binary>>) when h >= 48 and h < 58 do
     {head, rem} = do_to_float_fraction rest
-    case is_integer head do
-      true -> {<<h, head>>, rem}
-      false -> {:erlang.list_to_binary([h] ++ :erlang.binary_to_list(head)), rem}
+    if is_integer head do
+      {<<h, head>>, rem}
+    else
+      {:erlang.list_to_binary([h] ++ :erlang.binary_to_list(head)), rem}
     end
   end
-  def do_to_float_fraction(<<h :: utf8, rest :: binary>>) when h < 48 or h >= 58 do
+  defp do_to_float_fraction(<<h :: utf8, rest :: binary>>) when h < 48 or h >= 58 do
     {"", <<h :: size(8), rest :: binary>>}
   end
-  def do_to_float_sign_exponent(<<'-', rest :: binary>>) do
+  defp do_to_float_sign_exponent(<<'-', rest :: binary>>) do
     {head, rem} = do_to_float_exponent rest
     {"-" <> head, rem}
   end
-  def do_to_float_sign_exponent(rest) do
+  defp do_to_float_sign_exponent(rest) do
     do_to_float_exponent rest
   end
-  def do_to_float_exponent(<<>>) do
+  defp do_to_float_exponent(<<>>) do
     {"", ""}
   end
-  def do_to_float_exponent(<<h :: utf8>>) when h >= 48 and h < 58 do
+  defp do_to_float_exponent(<<h :: utf8>>) when h >= 48 and h < 58 do
     {<<h :: utf8>>, ""}
   end
-  def do_to_float_exponent(<<h :: utf8, rest :: binary>>) when h >= 48 and h < 58 do
+  defp do_to_float_exponent(<<h :: utf8, rest :: binary>>) when h >= 48 and h < 58 do
     {head, rem} = do_to_float_exponent rest
-    case is_integer head do
-      true -> {<<h, head>>, rem}
-      false -> {:erlang.list_to_binary([h] ++ :erlang.binary_to_list(head)), rem}
+    if is_integer head do
+      {<<h, head>>, rem}
+    else
+      {:erlang.list_to_binary([h] ++ :erlang.binary_to_list(head)), rem}
     end
   end
-  def do_to_float_exponent(<<h :: utf8, rest :: binary>>) when h < 48 or h >= 58 do
+  defp do_to_float_exponent(<<h :: utf8, rest :: binary>>) when h < 48 or h >= 58 do
     {"", <<h :: size(8), rest :: binary>>}
   end
 
