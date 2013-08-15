@@ -283,7 +283,7 @@ defmodule MacroTest do
 
     assert Macro.to_string(quote do: (fn(x) -> y = x + 1; y end)) <> "\n" == """
     fn x ->
-      y = (x + 1)
+      y = x + 1
       y
     end
     """
@@ -291,7 +291,7 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: (fn(x) -> y = x + 1; y; (z) -> z end)) <> "\n" == """
     fn
       x ->
-        y = (x + 1)
+        y = x + 1
         y
       z ->
         z
@@ -318,7 +318,9 @@ defmodule MacroTest do
 
   test :op_precedence_to_string do
     assert Macro.to_string(quote do: (1 + 2) * (3 - 4)) == "(1 + 2) * (3 - 4)"
-    assert Macro.to_string(quote do: ((1 + 2) * 3) - 4) == "((1 + 2) * 3) - 4"
+    assert Macro.to_string(quote do: ((1 + 2) * 3) - 4) == "(1 + 2) * 3 - 4"
+    assert Macro.to_string(quote do: (1 + 2 + 3) == "(1 + 2 + 3)")
+    assert Macro.to_string(quote do: (1 + 2 - 3) == "(1 + 2 - 3)")
   end
 
   test :containers_to_string do
