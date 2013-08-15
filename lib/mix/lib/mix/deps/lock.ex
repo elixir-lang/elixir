@@ -58,11 +58,13 @@ defmodule Mix.Deps.Lock do
   def write(dict) do
     sorted = lc { app, rev } inlist Enum.sort(dict), rev != nil, do: { app, rev }
 
-    lines  = Enum.map_join sorted, ",\n  ", fn { app, rev } ->
-      %b("#{app}": #{inspect rev, raw: true, limit: :infinity})
-    end
+    unless sorted == read do
+      lines  = Enum.map_join sorted, ",\n  ", fn { app, rev } ->
+        %b("#{app}": #{inspect rev, raw: true, limit: :infinity})
+      end
 
-    File.write! lockfile, "[ " <> lines <> " ]\n"
-    touch
+      File.write! lockfile, "[ " <> lines <> " ]\n"
+      touch
+    end
   end
 end
