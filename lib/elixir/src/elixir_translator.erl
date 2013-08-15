@@ -1,4 +1,4 @@
-%% Main entry point for translations. Are macros that cannot be
+%% Main entry point for translations. All macros that cannot be
 %% overriden are defined in this file.
 -module(elixir_translator).
 -export([forms/4, 'forms!'/4]).
