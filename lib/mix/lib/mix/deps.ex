@@ -203,8 +203,8 @@ defmodule Mix.Deps do
 
   def format_status(Mix.Dep[status: { :diverged, other }, opts: opts] = dep) do
     "different specs were given for this dependency, choose one in your deps:\n" <>
-    "> In #{dep.from}:\n$ #{inspect opts, pretty: true}\n" <>
-    "> In #{other.from}:\n$ #{inspect other.opts, pretty: true}\n"
+    "> In #{dep.from}:\n$ #{inspect Dict.drop(opts, [:dest]), pretty: true}\n" <>
+    "> In #{other.from}:\n$ #{inspect Dict.drop(other.opts, [:dest]), pretty: true}\n"
   end
 
   def format_status(Mix.Dep[status: { :override, other }, opts: opts] = dep) do

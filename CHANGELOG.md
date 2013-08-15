@@ -40,7 +40,6 @@
 * backwards incompatible changes
   * [OptionParser] `parse` and `parse_head` now returns a tuple with three elements instead of two
 
-
 # v0.10.1 (2013-08-03)
 
 * enhancements
