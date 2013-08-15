@@ -565,6 +565,26 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a new collection with elements grouped into smaller
+  collections of a given number of elements.
+  
+  ## Examples
+
+      iex> Enum.group([:a, :b, :c, :d], 2)
+      [[:a, :b], [:c, :d]]
+
+  """
+  @spec group(t, index, h) :: list
+  def group(collection, number, init // []) do
+    {part, rest} = Enum.split(collection, number)
+    group(rest, number, List.concat(init, [part]))
+  end
+
+  def group([], number, init // []) do
+    init
+  end
+
+  @doc """
   Joins the given `collection` according to `joiner`.
   `joiner` can be either a binary or a list and the
   result will be of the same type as `joiner`. If
