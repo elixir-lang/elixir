@@ -136,6 +136,16 @@ defmodule EnumTest.List do
     assert Enum.flat_map([1, 2, 3], fn(x) -> [x, x] end) == [1, 1, 2, 2, 3, 3]
   end
 
+  test :group do
+    assert Enum.group([[], 2) == []
+    assert Enum.group([[1,2], 1) == [[1],[2]]
+    assert Enum.group([[1,2], 2) == [[1,2]]
+    assert Enum.group([[1,2,3], 2) == [[1,2],[3]]
+    
+    assert Enum.group([[], 2, [6]) == [6]
+    assert Enum.group([1,2], 2, [6]) == [6,[1,2]]
+  end
+
   test :reduce do
     assert Enum.reduce([], 1, fn(x, acc) -> x + acc end) == 1
     assert Enum.reduce([1, 2, 3], 1, fn(x, acc) -> x + acc end) == 7
