@@ -213,29 +213,29 @@ defimpl Inspect, for: BitString do
   ## Bitstrings
 
   defp inspect_bitstring(bitstring, Inspect.Opts[] = opts) do
-    "<<" <> each_bit(bitstring, opts.limit) <> ">>"
+    each_bit(bitstring, opts.limit, "<<") <> ">>"
   end
 
-  defp each_bit(_, 0) do
-    "..."
+  defp each_bit(_, 0, acc) do
+    acc <> "..."
   end
 
-  defp each_bit(<<h, t :: bitstring>>, counter) when t != <<>> do
-    integer_to_binary(h) <> ", " <> each_bit(t, decrement(counter))
+  defp each_bit(<<h, t :: bitstring>>, counter, acc) when t != <<>> do
+    each_bit(t, decrement(counter), acc <> integer_to_binary(h) <> ", ")
   end
 
-  defp each_bit(<<h :: size(8)>>, _counter) do
-    integer_to_binary(h)
+  defp each_bit(<<h :: size(8)>>, _counter, acc) do
+    acc <> integer_to_binary(h)
   end
 
-  defp each_bit(<<>>, _counter) do
-    <<>>
+  defp each_bit(<<>>, _counter, acc) do
+    acc
   end
 
-  defp each_bit(bitstring, _counter) do
+  defp each_bit(bitstring, _counter, acc) do
     size = bit_size(bitstring)
     <<h :: size(size)>> = bitstring
-    integer_to_binary(h) <> "::size(" <> integer_to_binary(size) <> ")"
+    acc <> integer_to_binary(h) <> "::size(" <> integer_to_binary(size) <> ")"
   end
 
   defp decrement(:infinity), do: :infinity
