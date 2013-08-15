@@ -2073,7 +2073,7 @@ defmodule Kernel do
                but are printed as just tuples, defaults to false;
 
   * `:limit` - limits the number of items that are printed for tuples, bitstrings,
-               and lists, does not apply to strings nor char lists;
+               and lists, does not apply to strings nor char lists, defaults to 50;
 
   * `:pretty` - if set to true enables pretty printing, defaults to false;
 

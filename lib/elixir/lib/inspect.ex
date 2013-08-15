@@ -1,7 +1,7 @@
 import Kernel, except: [inspect: 1]
 import Inspect.Algebra
 
-defrecord Inspect.Opts, raw: false, limit: :infinity, pretty: false, width: 80
+defrecord Inspect.Opts, raw: false, limit: 50, pretty: false, width: 80
 
 defprotocol Inspect do
   @moduledoc """
