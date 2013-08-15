@@ -99,6 +99,48 @@ defmodule ExUnit.DocTestTest.Invalid do
   def no_leak, do: :ok
 end
 
+defmodule ExUnit.DocTestTest.IndentationHeredocs do
+  @doc %B'''
+  Receives a test and formats its failure.
+
+  ## Examples
+
+      iex> "  1\n  2\n"
+      """
+        1
+        2
+      """
+
+  '''
+  def heredocs, do: :ok
+end
+
+defmodule ExUnit.DocTestTest.IndentationMismatchedPrompt do
+  @doc %B'''
+    iex> foo = 1
+     iex> bar = 2
+    iex> foo + bar
+    3
+  '''
+  def mismatched, do: :ok
+end
+
+defmodule ExUnit.DocTestTest.IndentationTooMuch do
+  @doc %B'''
+    iex> 1 + 2
+      3
+  '''
+  def too_much, do: :ok
+end
+
+defmodule ExUnit.DocTestTest.IndentationNotEnough do
+  @doc %B'''
+      iex> 1 + 2
+    3
+  '''
+  def not_enough, do: :ok
+end
+
 
 defmodule ExUnit.DocTestTest do
   use ExUnit.Case
@@ -123,5 +165,15 @@ defmodule ExUnit.DocTestTest do
         doctest ExUnit.DocTestTest.Invalid
       end
     end
+  end
+
+  doctest ExUnit.DocTestTest.IndentationHeredocs
+
+  assert_raise ExUnit.DocTest.Error, fn ->
+    doctest ExUnit.DocTestTest.IndentationMismatchedPrompt
+  end
+
+  assert_raise ExUnit.DocTest.Error, fn ->
+    doctest ExUnit.DocTestTest.IndentationTooMuch
   end
 end
