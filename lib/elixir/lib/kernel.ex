@@ -666,12 +666,12 @@ defmodule Kernel do
   @doc """
   Returns a binary which is made from the integers and binaries in iolist.
 
-  Notice this function treats lists of integers are a bytes representation
+  Notice that this function treats lists of integers as raw bytes 
   and does not perform any kind of encoding conversion. If you want to convert
   from a char list to a string (both utf-8 encoded), please use
   `String.from_char_list!/1` instead.
 
-  In case this function receives a binary, the binary passes through.
+  If this function receives a binary, the same binary is returned.
 
   ## Examples
 
