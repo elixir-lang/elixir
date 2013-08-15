@@ -1,6 +1,6 @@
 defmodule Mix.Shell.Process do
   @moduledoc """
-  This is Mix shell that uses the current process mailbox
+  This is a Mix shell that uses the current process mailbox
   for communication instead of IO.
 
   When a developer calls `info("hello")`, the following
@@ -10,15 +10,15 @@ defmodule Mix.Shell.Process do
 
   This is mainly useful in tests, allowing us to assert
   if given messages were received or not. Since we need
-  to guarantee a clean slate in between tests, there
-  is also a flush function responsible for flushing all
-  `:mix_shell` related tasks from the process inbox.
+  to guarantee a clean slate between tests, there
+  is also a `flush/1` function responsible for flushing all
+  `:mix_shell` related messages from the process inbox.
   """
 
   @behavior Mix.Shell
 
   @doc """
-  Flush all :mix_shell and :mix_shell_input messages from the current process.
+  Flush all `:mix_shell` and `:mix_shell_input` messages from the current process.
   If a callback is given, it is invoked for each received message.
 
   ## Examples
@@ -51,7 +51,7 @@ defmodule Mix.Shell.Process do
   end
 
   @doc """
-  Simply forwards the message to the current process.
+  Forwards the message to the current process.
   """
   def info(message) do
     put_app
@@ -59,7 +59,7 @@ defmodule Mix.Shell.Process do
   end
 
   @doc """
-  Simply forwards the message to the current process.
+  Forwards the message to the current process.
   """
   def error(message) do
     put_app
@@ -67,13 +67,13 @@ defmodule Mix.Shell.Process do
   end
 
   @doc """
-  Simply forwards the message to the current process.
+  Forwards the message to the current process.
   It also checks the inbox for an input message matching:
 
       { :mix_shell_input, :yes?, value }
 
   If one does not exist, it will abort since there no shell
-  process input given. Value must be true or false.
+  process inputs given. Value must be `true` or `false`.
   """
   def yes?(message) do
     put_app
@@ -86,7 +86,7 @@ defmodule Mix.Shell.Process do
     end
   end
 
-  def put_app do
+  defp put_app do
     if Mix.Shell.output_app? do
       self <- { :mix_shell, :info, ["==> #{Mix.project[:app]}"] }
     end
