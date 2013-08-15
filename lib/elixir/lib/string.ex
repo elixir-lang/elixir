@@ -879,11 +879,36 @@ defmodule String do
   @spec to_integer(t) :: {integer, t} | :error
 
   def to_integer(string) do
-    {result, remainder} = :string.to_integer(:binary.bin_to_list(string))
+    {primary, secondary} = do_to_integer(string)
+    result = try do
+      :erlang.binary_to_integer(primary)
+      rescue ArgumentError -> :error
+    end
     case result do
       :error -> :error
-      _ -> {result, :binary.list_to_bin(remainder)}
+      _ -> {result, secondary}
     end
+  end
+
+  defp do_to_integer(<<'-', rest :: binary>>) do
+    {head, rem} = do_to_integer rest
+    {"-" <> head, rem}
+  end
+  defp do_to_integer(<<>>) do
+    {"", ""}
+  end
+  defp do_to_integer(<<h :: utf8>>) when h >= 48 and h < 58 do
+    {<<h :: utf8>>, ""}
+  end
+  defp do_to_integer(<<h :: utf8, rest :: binary>>) when h >= 48 and h < 58 do
+    {head, rem} = do_to_integer(rest)
+    case is_integer head do
+      true -> {<<h, head>>, rem}
+      false -> {:erlang.list_to_binary([h] ++ :erlang.binary_to_list(head)), rem}
+    end
+  end
+  defp do_to_integer(<<h :: utf8, rest :: binary>>) when h < 48 or h >= 58 do
+    {"", <<h :: size(8), rest :: binary>>}
   end
 
   @doc """
