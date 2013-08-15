@@ -25,6 +25,31 @@ defmodule Macro do
     [:!, :@, :^, :not, :+, :-, :~~~, :&]
   end
 
+  # Keep this in sync with the associativity/precedence decls in src/elixir_parser.yrl
+  @type precedence :: integer # Higher means binds stronger
+  @spec binary_op_props(atom) :: {:left|:right, precedence}
+  defp binary_op_props(o) do
+    case o do
+      :::                                                       -> {:right, 30}
+      :when                                                     -> {:right, 40}
+      o when o in [:inlist, :inbits]                            -> {:left, 50}
+      ://                                                       -> {:right, 60}
+      :|                                                        -> {:left, 70}
+      :=                                                        -> {:right, 80}
+      o when o in [:||, :|||, :or, :xor]                        -> {:left, 130}
+      o when o in [:&&, :&&&, :and]                             -> {:left, 140}
+      o when o in [:==, :!=, :<, :<=, :>=, :>, :=~, :===, :!==] -> {:left, 150}
+      o when o in [:<-, :|>, :<<<, :>>>]                        -> {:right, 160}
+      :in                                                       -> {:left, 170}
+      :..                                                       -> {:left, 200}
+      o when o in [:+, :-]                                      -> {:left, 210}
+      o when o in [:*, :/]                                      -> {:left, 220}
+      o when o in [:<>]                                         -> {:right, 230}
+      :^^^                                                      -> {:left, 250}
+      :.                                                        -> {:left, 310}
+    end
+  end
+
   @doc """
   Receives an expresion representing a possible definition
   and extracts its arguments. It returns a tuple with the
@@ -248,7 +273,7 @@ defmodule Macro do
 
   # Binary ops
   def to_string({ op, _, [left, right] }) when op in binary_ops do
-    op_to_string(left) <> " #{op} " <> op_to_string(right)
+    op_to_string(left, op, :left) <> " #{op} " <> op_to_string(right, op, :right)
   end
 
   # Splat when
@@ -366,11 +391,29 @@ defmodule Macro do
     end)
   end
 
-  defp op_to_string({ op, _, [_, _] } = expr) when op in binary_ops do
+  defp parenthise(expr) do
     "(" <> to_string(expr) <> ")"
   end
 
-  defp op_to_string(expr), do: to_string(expr)
+  defp op_to_string({ op, _, [_, _] } = expr, parent_op, side) when op in binary_ops do
+    { parent_assoc, parent_prec } = binary_op_props(parent_op)
+    { _, prec }                   = binary_op_props(op)
+    cond do
+      parent_prec < prec -> to_string(expr)
+      parent_prec > prec -> parenthise(expr)
+      # parent_prec == prec, so look at associativity.
+      # Side can't be :nonfix, so a nonfix associativity always generates
+      # parentheses. At the time of writing there are no binary operators
+      # with nonfix associativity though.
+      true               -> if parent_assoc == side do 
+                              to_string(expr)
+                            else
+                              parenthise(expr)
+                            end
+      end
+  end
+
+  defp op_to_string(expr, _, _), do: to_string(expr)
 
   defp arrow_to_string({ :->, _, pairs }, paren // false) do
     Enum.map_join(pairs, "; ", fn({ left, _, right }) ->
