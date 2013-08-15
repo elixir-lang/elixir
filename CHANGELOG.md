@@ -8,13 +8,17 @@
   * [IEx] Helpers `r` and `c` can handle erlang sources
   * [IO] Added support to specifying a number of bytes to stream to `IO.stream`, `IO.binstream`, `File.stream!` and `File.binstream!`
   * [List] Add `List.replace_at/3`
+  * [Macro] Improve printing of the access protocol on `Macro.to_string/1`
   * [Mix] Automatically recompile a project if the Elixir version changes
+  * [Path] Add `Path.relative_to_cwd`
   * [String] Add regex pattern support to `String.replace/3`
   * [String] Add `String.ljust/2`, `String.rjust/2`, `String.ljust/3` and `String.rjust/3`
 
 * bug fix
   * [Behaviour] Do not compile behaviour docs if docs are disabled on compilation
+  * [ExUnit] Doctests no longer each too much space and provides detailed reports for poorly indented lines
   * [File] Fix a bug where `File.touch(file, datetime)` was not setting the proper datetime when the file did not exist
+  * [Kernel] Limit `inspect` results to 50 items by default to avoid printint too much data
   * [Kernel] Return a readable error on oversized atoms
   * [Kernel] Fix default shutdown of child supervisors to infinity
   * [Kernel] Fix regression when calling a function/macro ending with bang, followed by `do/end` blocks

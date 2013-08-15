@@ -366,7 +366,7 @@ defmodule ExUnit.DocTest do
     striped_line = strip_indent(line, indent)
 
     if striped_line != String.lstrip(line) do
-      raise Error, message: "Indentation level mismatch: \"#{striped_line}\". Should have been #{indent}."
+      raise Error, message: "indentation level mismatch: \"#{striped_line}\", should have been #{indent} spaces"
     end
 
     case Regex.match? %r/\Aiex|\A\.\.\./, String.lstrip(line) do
