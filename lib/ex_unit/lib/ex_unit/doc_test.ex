@@ -336,52 +336,54 @@ defmodule ExUnit.DocTest do
   end
 
   defp adjust_indent(lines) do
-    adjust_indent(lines, [], 0, false , false)
+    adjust_indent(lines, [], 0, false, false)
   end
 
-  # We are done, return (reversed) adjusted_lines.
-  defp adjust_indent([], adjusted_lines, _indent, _in_code, _in_heredocs) do
+  defp adjust_indent([], adjusted_lines, _indent, _follows_iex_prompt, _is_code) do
     Enum.reverse adjusted_lines
   end
 
-  # If hit a prompt (i.e. "iex>") line, switch to in_code. Else, skip it.
-  defp adjust_indent([line|rest] = lines, adjusted_lines, indent, in_code, in_heredocs) when not in_code do
-    indent = get_indent(line) || indent
-
+  # If hit the first prompt line, set indent and enable follows_iex_prompt/is_code. Else, skip it.
+  defp adjust_indent([line|rest] = lines, adjusted_lines, indent, false, false) do
     case Regex.match? %r/\Aiex/, String.lstrip(line) do
-      true -> adjust_indent(lines, adjusted_lines, indent, true, in_heredocs)
-      false -> adjust_indent(rest, [line|adjusted_lines], indent, false, in_heredocs)
+      true  -> adjust_indent(lines, adjusted_lines, set_indent(line, indent), true, true)
+      false -> adjust_indent(rest, [line|adjusted_lines], indent, false, false)
     end
   end
 
-  # Hit an blank line, switch out of in_code.
-  defp adjust_indent([""|rest], adjusted_lines, indent, in_code, in_heredocs) do
-    adjust_indent(rest, [""|adjusted_lines], indent, !in_code, in_heredocs)
+  # If hit an empty line while is_code, disable is_code.
+  defp adjust_indent([""|rest], adjusted_lines, indent, follows_prompt, true) do
+    adjust_indent(rest, [""|adjusted_lines], indent, follows_prompt, false)
   end
 
-  # Hit a non-blank line, adjust indentation.
-  defp adjust_indent([line|rest], adjusted_lines, indent, in_code, in_heredocs) do
-    striped_line = to_binary(String.slice(line, indent, String.length(line)))
+  # Hit a non follow_iex_prompt line while is_code, strip it.
+  defp adjust_indent([line|rest], adjusted_lines, indent, false, true) do
+    adjust_indent(rest, [strip_indent(line, indent)|adjusted_lines], indent, false, true)
+  end
 
-    # Line is heredocs delimiter, toggle in_heredocs.
-    if String.ends_with?(striped_line, %B'"""'), do: in_heredocs = !in_heredocs
+  # If hit a non-empty line while follows_prompt, check indentation.
+  defp adjust_indent([line|rest], adjusted_lines, indent, true, true) do
+    striped_line = strip_indent(line, indent)
 
-    cond do
-      striped_line == String.lstrip(line) ->
-        adjust_indent(rest, [striped_line|adjusted_lines], indent, in_code, in_heredocs)
-      in_heredocs ->
-        adjust_indent(rest, [striped_line|adjusted_lines], indent, in_code, in_heredocs)
-      true ->
-        raise Error, message: "Indentation level mismatch: \"#{line}\" vs. \"#{striped_line}\""
+    if striped_line != String.lstrip(line) do
+      raise Error, message: "Indentation level mismatch: \"#{striped_line}\". Should have been #{indent}."
+    end
+
+    case Regex.match? %r/\Aiex|\A\.\.\./, String.lstrip(line) do
+      true  -> adjust_indent(rest, [striped_line|adjusted_lines], indent, true, true)
+      false -> adjust_indent(rest, [striped_line|adjusted_lines], indent, false, true)
     end
   end
 
-  # Get indentation if iex prompt line
-  defp get_indent(line) do
-    case Regex.run %r/iex\(\d+\)>|iex>/, line, return: :index do
+  defp set_indent(line, current_indent) do
+    case Regex.run %r/iex/, line, return: :index do
       [{pos, _len}] -> pos
-      nil -> nil
+      nil -> current_indent
     end
+  end
+
+  defp strip_indent(line, indent) do
+    line |> String.slice(indent, String.length(line)) |> to_binary
   end
 
   defp extract_tests([], _line, "", "", [], _) do
