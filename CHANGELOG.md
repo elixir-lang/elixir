@@ -16,7 +16,7 @@
 
 * bug fix
   * [Behaviour] Do not compile behaviour docs if docs are disabled on compilation
-  * [ExUnit] Doctests no longer each too much space and provides detailed reports for poorly indented lines
+  * [ExUnit] Doctests no longer eat too much space and provides detailed reports for poorly indented lines
   * [File] Fix a bug where `File.touch(file, datetime)` was not setting the proper datetime when the file did not exist
   * [Kernel] Limit `inspect` results to 50 items by default to avoid printint too much data
   * [Kernel] Return a readable error on oversized atoms
