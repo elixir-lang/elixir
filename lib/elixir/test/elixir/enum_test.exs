@@ -136,16 +136,6 @@ defmodule EnumTest.List do
     assert Enum.flat_map([1, 2, 3], fn(x) -> [x, x] end) == [1, 1, 2, 2, 3, 3]
   end
 
-  test :group do
-    assert Enum.group([[], 2) == []
-    assert Enum.group([[1,2], 1) == [[1],[2]]
-    assert Enum.group([[1,2], 2) == [[1,2]]
-    assert Enum.group([[1,2,3], 2) == [[1,2],[3]]
-    
-    assert Enum.group([[], 2, [6]) == [6]
-    assert Enum.group([1,2], 2, [6]) == [6,[1,2]]
-  end
-
   test :reduce do
     assert Enum.reduce([], 1, fn(x, acc) -> x + acc end) == 1
     assert Enum.reduce([1, 2, 3], 1, fn(x, acc) -> x + acc end) == 7
@@ -204,6 +194,13 @@ defmodule EnumTest.List do
     # set a fixed seed so the test can be deterministic
     :random.seed(1374, 347975, 449264)
     assert Enum.shuffle([1, 2, 3, 4, 5]) == [2, 4, 1, 5, 3]
+  end
+
+  test :slice do
+    assert Enum.slice([], 2) == []
+    assert Enum.slice([1,2], 1) == [[1],[2]]
+    assert Enum.slice([1,2], 2) == [[1,2]]
+    assert Enum.slice([1,2,3], 2) == [[1,2],[3]]
   end
 
   test :sort do
