@@ -25,7 +25,7 @@ defmodule IEx.Autocomplete do
     end
 
     def to_hint(Mod[name: name], hint) do
-      String.slice(name, size(hint), size(name)) <> "."
+      :binary.part(name, size(hint), size(name)-size(hint)) <> "."
     end
   end
 
@@ -41,7 +41,7 @@ defmodule IEx.Autocomplete do
     end
 
     def to_hint(Fun[name: name], hint) do
-      String.slice(name, size(hint), size(name))
+      :binary.part(name, size(hint), size(name)-size(hint))
     end
   end
 
@@ -144,7 +144,7 @@ defmodule IEx.Autocomplete do
       entries = Enum.reduce(entries, [], fn e, acc -> Entry.to_entries(e) ++ acc end)
       yes("", entries)
     else
-      yes(String.slice(first.name, length, prefix-length), [])
+      yes(:binary.part(first.name, prefix, length-prefix), [])
     end
   end
 
