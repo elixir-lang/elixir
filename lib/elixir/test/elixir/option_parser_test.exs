@@ -102,6 +102,9 @@ defmodule OptionParserTest do
   end
 
   test "stops on --" do
+    options = OptionParser.parse(["--source", "from_docs/", "--", "1", "2", "3"])
+    assert options == { [source: "from_docs/"], ["--", "1", "2", "3"], [] }
+
     options = OptionParser.parse_head(["--source", "from_docs/", "--", "1", "2", "3"])
     assert options == { [source: "from_docs/"], ["--", "1", "2", "3"], [] }
   end

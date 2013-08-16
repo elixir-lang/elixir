@@ -113,7 +113,11 @@ defmodule OptionParser do
     parse(argv, aliases, switches, [], [], [], all)
   end
 
-  defp parse(["-" <> option|t], aliases, switches, dict, args, invalid, all) when option != "-" do
+  defp parse(["--"|_] = value, aliases, switches, dict, args, invalid, all) do
+    { Enum.reverse(dict), value, Enum.reverse(invalid) }
+  end
+
+  defp parse(["-" <> option|t], aliases, switches, dict, args, invalid, all) do
     { option, kinds, value } = normalize_option(option, switches, aliases)
 
     if nil?(value) do
