@@ -1,7 +1,5 @@
 defmodule IEx.Autocomplete do
-  @moduledoc """
-  Autocompletion for the Elixir shell.
-  """
+  @moduledoc false
 
   defrecord Mod, name: nil, type: nil
   defrecord Fun, name: nil, arities: []

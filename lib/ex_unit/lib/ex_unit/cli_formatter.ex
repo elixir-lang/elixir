@@ -1,10 +1,8 @@
 defmodule ExUnit.CLIFormatter do
-  @moduledoc """
-  Formatter responsible for printing test results to the CLI.
-  """
-
-  @behaviour ExUnit.Formatter
+  @moduledoc false
   @timeout 30_000
+  @behaviour ExUnit.Formatter
+
   use GenServer.Behaviour
 
   import ExUnit.Formatter, only: [format_time: 2, format_test_failure: 3, format_test_case_failure: 3]
