@@ -44,25 +44,38 @@ defmodule Regex do
   """
 
   defrecordp :regex, Regex, [:re_pattern, :source, :options, :groups]
-  @type t :: { Regex, term, term, term, term }
+  @type t :: { Regex, term, binary, binary, [atom] }
 
   defexception CompileError, message: "regex could not be compiled"
 
   @doc """
-  Compiles the regular expression according to the given options.
+  Compiles the regular expression.
+
+  The given options can either be a binary with the characters
+  representing the same regex options given to the `%r` sigil,
+  or a list of options, as expected by the Erlang `re` docs.
 
   It returns `{ :ok, regex }` in case of success,
   `{ :error, reason }` otherwise.
   """
-  def compile(source, options // "") when is_binary(source) do
-    options = to_binary(options)
-    opts    = translate_options(options)
+  @spec compile(binary, binary | [term]) :: t
+  def compile(source, options // "")
+
+  def compile(source, options) when is_binary(options) do
+    compile(source, translate_options(options), options)
+  end
+
+  def compile(source, options) when is_list(options) do
+    compile(source, options, "")
+  end
+
+  defp compile(source, opts, doc_opts) when is_binary(source) do
     re_opts = opts -- [:groups]
     groups  = if opts != re_opts, do: parse_groups(source)
 
     case :re.compile(source, re_opts) do
       { :ok, re_pattern } ->
-        { :ok, regex(re_pattern: re_pattern, source: source, options: options, groups: groups) }
+        { :ok, regex(re_pattern: re_pattern, source: source, options: doc_opts, groups: groups) }
       error ->
         error
     end

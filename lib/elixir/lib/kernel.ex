@@ -3488,13 +3488,13 @@ defmodule Kernel do
   """
   defmacro sigil_r({ :<<>>, _line, [string] }, options) when is_binary(string) do
     binary = Macro.unescape_string(string, Regex.unescape_map(&1))
-    regex  = Regex.compile!(binary, options)
+    regex  = Regex.compile!(binary, :binary.list_to_bin(options))
     Macro.escape(regex)
   end
 
   defmacro sigil_r({ :<<>>, line, pieces }, options) do
     binary = { :<<>>, line, Macro.unescape_tokens(pieces, Regex.unescape_map(&1)) }
-    quote do: Regex.compile!(unquote(binary), unquote(options))
+    quote do: Regex.compile!(unquote(binary), unquote(:binary.list_to_bin(options)))
   end
 
   @doc """
@@ -3508,7 +3508,7 @@ defmodule Kernel do
 
   """
   defmacro sigil_R({ :<<>>, _line, [string] }, options) when is_binary(string) do
-    regex = Regex.compile!(string, options)
+    regex = Regex.compile!(string, :binary.list_to_bin(options))
     Macro.escape(regex)
   end
 

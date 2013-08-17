@@ -31,6 +31,11 @@ defmodule Regex.BinaryTest do
     assert { :error, _ } = Regex.compile("*foo")
   end
 
+  test :compile_with_erl_opts do
+    { :ok, regex } = Regex.compile("foo\\sbar", [:dotall, {:newline, :anycrlf}])
+    assert "foo\nbar" =~ regex
+  end
+
   test :source do
     assert Regex.source(Regex.compile!("foo")) == "foo"
   end
