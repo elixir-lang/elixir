@@ -113,7 +113,7 @@ defmodule OptionParser do
     parse(argv, aliases, switches, [], [], [], all)
   end
 
-  defp parse(["--"|_] = value, aliases, switches, dict, args, invalid, all) do
+  defp parse(["--"|_] = value, _aliases, _switches, dict, _args, invalid, _all) do
     { Enum.reverse(dict), value, Enum.reverse(invalid) }
   end
 
