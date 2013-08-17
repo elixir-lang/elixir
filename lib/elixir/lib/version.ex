@@ -1,13 +1,13 @@
-defmodule Mix.Version do
+defmodule Version do
   @moduledoc %S"""
   This module provides functions for parsing and matching
   versions with requirements.
 
-  A version is a string or a `Mix.Version.Schema` generated
-  after parsing via `Mix.Version.parse/1`. A requirement is
+  A version is a string or a `Version.Schema` generated
+  after parsing via `Version.parse/1`. A requirement is
   a string that follows a specific format.
 
-  `Mix.Version` parsing and requirements follows
+  `Version` parsing and requirements follows
   [SemVer 2.0 schema](http://semver.org/) and you will get
   the most of Mix' version system by following it. In order
   to support integration with projects that may
@@ -54,8 +54,8 @@ defmodule Mix.Version do
 
   """
 
-  @type t :: String.t | Mix.Version.Schema.t
-  @type requirement :: String.t | Mix.Version.Requirement.t
+  @type t :: String.t | Version.Schema.t
+  @type requirement :: String.t | Version.Requirement.t
 
   @type matchable :: { major :: String.t | non_neg_integer,
                        minor :: non_neg_integer | nil,
@@ -83,7 +83,7 @@ defmodule Mix.Version do
   """
   @spec match?(t, requirement) :: boolean
   def match?(version, requirement) when is_binary(requirement) do
-    case Mix.Version.Parser.parse_requirement(requirement) do
+    case Version.Parser.parse_requirement(requirement) do
       { :ok, req } ->
         match?(version, req)
       { :error, reason } ->
@@ -109,20 +109,20 @@ defmodule Mix.Version do
   """
   @spec valid?(String.t | Schema.t) :: boolean
   def valid?(string) when is_binary(string) do
-    Mix.Version.Parser.valid_version?(string)
+    Version.Parser.valid_version?(string)
   end
 
-  def valid?(Mix.Version.Schema[major: nil]), do: false
-  def valid?(Mix.Version.Schema[]),           do: true
+  def valid?(Version.Schema[major: nil]), do: false
+  def valid?(Version.Schema[]),           do: true
 
   @doc """
   Parse a version into a matchable value.
   """
   @spec parse(String.t) :: { :ok, Schema.t } | { :error, term }
   def parse(string) when is_binary(string) do
-    case Mix.Version.Parser.parse_version(string) do
+    case Version.Parser.parse_version(string) do
       { :ok, matchable } -> from_matchable(matchable).source(string).build(get_build(string))
-      { :error, _ } -> Mix.Version.Schema[source: string]
+      { :error, _ } -> Version.Schema[source: string]
     end
   end
 
@@ -139,17 +139,17 @@ defmodule Mix.Version do
   @doc """
   Get the matchable representation.
   """
-  @spec to_matchable(String.t | Schema.t) :: Mix.Version.matchable
+  @spec to_matchable(String.t | Schema.t) :: Version.matchable
   def to_matchable(Schema[major: nil, source: source]) do
     { source, nil, nil, [] }
   end
 
-  def to_matchable(Mix.Version.Schema[major: major, minor: minor, patch: patch, pre: nil]) do
+  def to_matchable(Version.Schema[major: major, minor: minor, patch: patch, pre: nil]) do
     { major, minor, patch, [] }
   end
 
-  def to_matchable(Mix.Version.Schema[major: major, minor: minor, patch: patch, pre: pre]) do
-    { major, minor, patch, Mix.Version.Parser.parse_pre(pre) }
+  def to_matchable(Version.Schema[major: major, minor: minor, patch: patch, pre: pre]) do
+    { major, minor, patch, Version.Parser.parse_pre(pre) }
   end
 
   def to_matchable(string) do
@@ -157,11 +157,11 @@ defmodule Mix.Version do
   end
 
   @doc """
-  Convert a matchable to a `Mix.Version`.
+  Convert a matchable to a `Version`.
   """
-  @spec from_matchable(Mix.Version.matchable) :: Schema.t
+  @spec from_matchable(Version.matchable) :: Schema.t
   def from_matchable({ source, nil, nil, nil }) when is_binary(source) do
-    Mix.Version.Schema[source: source]
+    Version.Schema[source: source]
   end
 
   def from_matchable({ major, minor, patch, pre }) do
@@ -184,7 +184,7 @@ defmodule Mix.Version do
       end
     end
 
-    Mix.Version.Schema[major: major, minor: minor, patch: patch, pre: pre, source: source]
+    Version.Schema[major: major, minor: minor, patch: patch, pre: pre, source: source]
   end
 
   defmodule Parser.DSL do
@@ -256,7 +256,7 @@ defmodule Mix.Version do
 
     @version_regex %r/^(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:\-([^\s]+))?(?:\+[^\d]+)?$/
 
-    @spec parse_requirement(String.t) :: { :ok, Mix.Version.Requirement.t } | { :error, binary | atom }
+    @spec parse_requirement(String.t) :: { :ok, Version.Requirement.t } | { :error, binary | atom }
     def parse_requirement(source) do
       lexed = lexer(source, [])
 
@@ -280,7 +280,7 @@ defmodule Mix.Version do
     defp nillify(""), do: nil
     defp nillify(o),  do: o
 
-    @spec parse_version(String.t) :: { :ok, Mix.Version.matchable } | { :error, :invalid_version }
+    @spec parse_version(String.t) :: { :ok, Version.matchable } | { :error, :invalid_version }
     def parse_version(string) when is_binary(string) do
       if valid_version?(string) do
         destructure [_, major, minor, patch, pre], Regex.run(@version_regex, string)
@@ -364,7 +364,7 @@ defmodule Mix.Version do
     end
 
     defp approximate(version) do
-      Mix.Version.from_matchable(case Regex.run(@version_regex, version) do
+      Version.from_matchable(case Regex.run(@version_regex, version) do
         [_, major] ->
           { binary_to_integer(major) + 1, 0, 0, [] }
 
@@ -387,19 +387,19 @@ defmodule Mix.Version do
     end
 
     defp to_condition([:'==', version | _]) do
-      version = Mix.Version.to_matchable(version)
+      version = Version.to_matchable(version)
 
       { :'==', :'$_', { :const, version } }
     end
 
     defp to_condition([:'!=', version | _]) do
-      version = Mix.Version.to_matchable(version)
+      version = Version.to_matchable(version)
 
       { :'/=', :'$_', { :const, version } }
     end
 
     defp to_condition([:'~>', version | _]) do
-      from = Mix.Version.parse(version)
+      from = Version.parse(version)
       to   = approximate(version)
 
       { :andalso, to_condition([:'>=', to_string(from)]),
@@ -407,7 +407,7 @@ defmodule Mix.Version do
     end
 
     defp to_condition([:'>', version | _]) do
-      { major, minor, patch, pre } = Mix.Version.to_matchable(version)
+      { major, minor, patch, pre } = Version.to_matchable(version)
 
       { :andalso, { :not, { :is_binary, :'$1' } },
                   { :orelse, { :'>', {{ :'$1', :'$2', :'$3' }},
@@ -423,7 +423,7 @@ defmodule Mix.Version do
     end
 
     defp to_condition([:'>=', version | _]) do
-      matchable = Mix.Version.to_matchable(version)
+      matchable = Version.to_matchable(version)
 
       { :orelse, { :andalso, { :not, { :is_binary, :'$1' } },
                              { :'==', :'$_', { :const, matchable } } },
@@ -431,7 +431,7 @@ defmodule Mix.Version do
     end
 
     defp to_condition([:'<', version | _]) do
-      { major, minor, patch, pre } = Mix.Version.to_matchable(version)
+      { major, minor, patch, pre } = Version.to_matchable(version)
 
       { :andalso, { :not, { :is_binary, :'$1' } },
                   { :orelse, { :'<', {{ :'$1', :'$2', :'$3' }},
@@ -447,7 +447,7 @@ defmodule Mix.Version do
     end
 
     defp to_condition([:'<=', version | _]) do
-      matchable = Mix.Version.to_matchable(version)
+      matchable = Version.to_matchable(version)
 
       { :orelse, { :andalso, { :not, { :is_binary, :'$1' } },
                              { :'==', :'$_', { :const, matchable } } },
@@ -468,26 +468,26 @@ defmodule Mix.Version do
   end
 end
 
-defimpl String.Chars, for: Mix.Version.Schema do
-  def to_string(Mix.Version.Schema[source: source]) do
+defimpl String.Chars, for: Version.Schema do
+  def to_string(Version.Schema[source: source]) do
     source
   end
 end
 
-defimpl Inspect, for: Mix.Version.Schema do
+defimpl Inspect, for: Version.Schema do
   def inspect(self, _opts) do
-    "#Mix.Version.Schema<" <> to_string(self) <> ">"
+    "#Version.Schema<" <> to_string(self) <> ">"
   end
 end
 
-defimpl String.Chars, for: Mix.Version.Requirement do
+defimpl String.Chars, for: Version.Requirement do
   def to_string({ _, source, _ }) do
     source
   end
 end
 
-defimpl Inspect, for: Mix.Version.Requirement do
+defimpl Inspect, for: Version.Requirement do
   def inspect({ _, source, _ }, _opts) do
-    "#Mix.Version.Requirement<" <> source <> ">"
+    "#Version.Requirement<" <> source <> ">"
   end
 end

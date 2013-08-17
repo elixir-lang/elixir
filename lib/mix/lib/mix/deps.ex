@@ -29,7 +29,7 @@ defmodule Mix.Deps do
       { app :: atom, requirement :: String.t, opts :: Keyword.t }
 
   The application name must be an atom, the version requirement must
-  be a string according to the specification outline in `Mix.Version`
+  be a string according to the specification outline in `Version`
   and opts is a keyword lists that may include options for the underlying
   SCM or options used by Mix. Each set of options is documented below.
 

@@ -208,7 +208,7 @@ defmodule Mix.Deps.Retriever do
   defp vsn_match?(nil, _actual), do: true
   defp vsn_match?(req, actual) when is_regex(req),  do: actual =~ req
   defp vsn_match?(req, actual) when is_binary(req) do
-    Mix.Version.match?(actual, req)
+    Version.match?(actual, req)
   end
 
   defp mixfile?(dep) do

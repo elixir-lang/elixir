@@ -1,9 +1,9 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file "test_helper.exs", __DIR__
 
-defmodule Mix.VersionTest do
+defmodule VersionTest do
   use   ExUnit.Case, async: true
-  alias Mix.Version.Parser, as: P
-  alias Mix.Version, as: V
+  alias Version.Parser, as: P
+  alias Version, as: V
 
   test "lexes specifications properly" do
     assert P.lexer("== != > >= < <= ~>", []) == [:'==', :'!=', :'>', :'>=', :'<', :'<=', :'~>']
