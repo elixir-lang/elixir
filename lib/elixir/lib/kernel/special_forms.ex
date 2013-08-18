@@ -51,27 +51,32 @@ defmodule Kernel.SpecialForms do
 
   ## Bitstring types
 
-  A bitstring may contain many parts and those may have
-  specific types. Most of the time, Elixir will figure out
-  the part's type and won't require any work from you:
+  A bitstring is made of many segments. Each segment has a
+  type, which defaults to integer:
 
-      iex> <<102, "oo">>
-      "foo"
+      iex> <<1, 2, 3>>
+      <<1, 2, 3>>
 
-  Above we have two parts: the first is an integer and the
-  second is a binary. If we use any other Elixir expression,
-  Elixir can no longer guess the type:
+  Elixir also accepts by default the segment to be a literal
+  string or a literal char list, which are by expanded to integers:
+
+      iex> <<0, "foo">>
+      <<0, 102, 111, 111>>
+
+  Any other type needs to be explicitly tagged. For example,
+  in order to store a float type in the binary, one has to do:
+
+      iex> <<3.14 :: float>>
+      <<64, 9, 30, 184, 81, 235, 133, 31>>
+
+  This also means that variables need to be explicitly tagged,
+  otherwise Elixir defaults to integer:
 
       iex> rest = "oo"
-      ...> <<102, rest>>
+      iex> <<102, rest>>
       ** (ArgumentError) argument error
 
-  When a variable or expression is given as a binary part,
-  Elixir defaults the type of that part to an unsigned
-  little-endian integer. In the example above, since we haven't
-  specified a type, Elixir expected an integer but we passed a
-  binary, resulting in `ArgumentError`. We can solve this by
-  explicitly tagging it as a binary:
+  We can solve this by explicitly tagging it as a binary:
 
       <<102, rest :: binary>>
 
@@ -111,7 +116,7 @@ defmodule Kernel.SpecialForms do
 
   Signedness is only relevant on integers.
 
-  The endianness of a part can be big, little or native (the
+  The endianness of a segment can be big, little or native (the
   latter meaning it will be resolved at VM load time). Passing
   many options can be done by giving a list:
 
@@ -126,9 +131,9 @@ defmodule Kernel.SpecialForms do
   Endianness only makes sense for integers and some UTF code
   point types (utf16 and utf32).
 
-  Finally, we can also specify size and unit for each part. The
+  Finally, we can also specify size and unit for each segment. The
   unit is multiplied by the size to give the effective size of
-  the part:
+  the segment:
 
       iex> <<102, _rest :: [size(2), unit(8)]>> = "foo"
       "foo"
@@ -141,7 +146,7 @@ defmodule Kernel.SpecialForms do
 
   In the example above, the first two expressions matches
   because the string "foo" takes 24 bits and we are matching
-  against a part of 24 bits as well, 8 of which are taken by
+  against a segment of 24 bits as well, 8 of which are taken by
   the integer 102 and the remaining 16 bits are specified on
   the rest. On the last example, we expect a rest with size 32,
   which won't match.

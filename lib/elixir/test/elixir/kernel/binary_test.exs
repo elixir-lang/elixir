@@ -80,8 +80,9 @@ bar
   end
 
   test :match do
-    assert is_match?("ab", ?a)
-    assert not is_match?("cd", ?a)
+    assert match?(<< ?a, _ :: binary >>, "ab")
+    refute match?(<< ?a, _ :: binary >>, "cd")
+    assert match?(<< _ :: utf8 >> <> _, "éf")
   end
 
   test :interpolation do
@@ -156,13 +157,5 @@ bar
        refb :: binary,
        size(sec_data) :: [size(1) | signed_16],
        sec_data :: binary >>
-  end
-
-  defp is_match?(<<char, _ :: binary>>, char) do
-    true
-  end
-
-  defp is_match?(_, _) do
-    false
   end
 end

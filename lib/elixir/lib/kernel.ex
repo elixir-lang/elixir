@@ -3566,21 +3566,25 @@ defmodule Kernel do
   # Extracts concatenations in order to optimize many
   # concatenations into one single clause.
   defp extract_concatenations({ :<>, _, [left, right] }) do
-    [wrap_concatenation(left) | extract_concatenations(right)]
+    wrap_concatenation(left) ++ extract_concatenations(right)
   end
 
   defp extract_concatenations(other) do
-    [wrap_concatenation(other)]
+    wrap_concatenation(other)
   end
 
   # If it is a binary, we don't need to add the binary
-  # tag. This allows us to use <> function signatures.
+  # tag. This allows us to use <> on pattern matching.
   defp wrap_concatenation(binary) when is_binary(binary) do
-    binary
+    [binary]
+  end
+
+  defp wrap_concatenation({ :<<>>, _, parts }) do
+    parts
   end
 
   defp wrap_concatenation(other) do
-    { :::, [], [other, { :binary, [], nil }] }
+    [{ :::, [], [other, { :binary, [], nil }] }]
   end
 
   # Builds cond clauses by nesting them recursively.

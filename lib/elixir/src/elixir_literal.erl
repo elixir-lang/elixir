@@ -103,8 +103,8 @@ build_bitstr_each(Fun, [H|T], Meta, S, Acc) ->
 build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
   { Expr, NS } = Fun(H, S),
   case (is_default_or_utf(Types) andalso Expr) of
-    { bin, _, BinElements } ->
-      build_bitstr_each(Fun, T, Meta, NS, rehash_bin_elements(BinElements, Size, Types, []) ++ Acc);
+    { bin, _,[{ bin_element, 0, { string, 0, String }, default, default }] } ->
+      build_bitstr_each(Fun, T, Meta, NS, [{ bin_element, ?line(Meta), { string, 0, String }, Size, Types }|Acc]);
     { cons, _, _, _ } = Cons ->
       build_bitstr_each(Fun, T, Meta, NS, rehash_cons(Cons, Size, Types, []) ++ Acc);
     { nil, _ } ->
@@ -116,12 +116,6 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
 rehash_cons({ nil, _ }, _Size, _Types, Acc) -> Acc;
 rehash_cons({ cons, Line, Left, Right }, Size, Types, Acc) ->
   rehash_cons(Right, Size, Types, [{ bin_element, Line, Left, Size, Types }|Acc]).
-
-rehash_bin_elements([{ bin_element, Line, Expr, _S, _T }|T], Size, Types, Acc) ->
-  rehash_bin_elements(T, Size, Types, [{ bin_element, Line, Expr, Size, Types }|Acc]);
-
-rehash_bin_elements([], _Size, _Types, Acc) ->
-  Acc.
 
 is_default_or_utf(default) -> true;
 is_default_or_utf([UTF|_]) when UTF == utf8; UTF == utf16; UTF == utf32 -> true;
