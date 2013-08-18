@@ -340,7 +340,7 @@ check_valid_clause(Line, File, Name, Arity, Kind, Table, StoredLine, StoredFile)
     _ ->
       Relative = elixir_utils:relative_to_cwd(StoredFile),
       elixir_errors:handle_file_warning(File, { Line, ?MODULE,
-        { override_function, { Kind, Name, Arity, StoredLine, Relative } } })
+        { ungrouped_clause, { Kind, Name, Arity, StoredLine, Relative } } })
   end.
 
 check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _) -> [];
@@ -387,9 +387,9 @@ format_error({clauses_with_defaults,{Kind,Name,Arity}}) ->
 format_error({out_of_order_defaults,{Kind,Name,Arity}}) ->
   io_lib:format("clause with defaults should be the first clause in ~ts ~ts/~B", [Kind, Name, Arity]);
 
-format_error({override_function,{Kind,Name,Arity,OrigLine,OrigFile}}) ->
-  io_lib:format("trying to override previously defined ~ts ~ts/~B (~ts:~B)",
-    [Kind, Name, Arity, OrigFile, OrigLine]);
+format_error({ungrouped_clause,{Kind,Name,Arity,OrigLine,OrigFile}}) ->
+  io_lib:format("clauses for the same ~ts should be grouped together, ~ts ~ts/~B was previously defined (~ts:~B)",
+    [Kind, Kind, Name, Arity, OrigFile, OrigLine]);
 
 format_error({changed_kind,{Name,Arity,Previous,Current}}) ->
   io_lib:format("~ts ~ts/~B already defined as ~ts", [Current, Name, Arity, Previous]).

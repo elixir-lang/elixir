@@ -384,7 +384,7 @@ defmodule Kernel.WarningTest do
         def foo(x, 2), do: x * 2
       end
       """
-    end) =~ "nofile:4: trying to override previously defined def foo/2 (nofile:2)"
+    end) =~ "nofile:4: clauses for the same def should be grouped together, def foo/2 was previously defined (nofile:2)"
   after
     purge [Sample]
   end
