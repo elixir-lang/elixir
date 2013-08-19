@@ -1,7 +1,7 @@
 defmodule IEx.Helpers do
   @moduledoc """
   Welcome to Interactive Elixir. You are currently
-  seeing the documentation for the module IEx.Helpers
+  seeing the documentation for the module `IEx.Helpers`
   which provides many helpers to make Elixir's shell
   more joyful to work with.
 
@@ -15,7 +15,7 @@ defmodule IEx.Helpers do
   * `cd/1`    — changes the current directory
   * `clear/0` — clears the screen
   * `flush/0` — flushes all messages sent to the shell
-  * `h/0`     — prints this help
+  * `h/0`     — prints this help message
   * `h/1`     — prints help for the given module, function or macro
   * `l/1`     — loads the given module's beam code and purges the current version
   * `ls/0`    — lists the contents of the current directory
@@ -23,7 +23,7 @@ defmodule IEx.Helpers do
   * `m/0`     — prints loaded modules
   * `pwd/0`   — prints the current working directory
   * `r/0`     — recompile and reload all modules that were previously reloaded
-  *  r/1`     — recompiles and reloads the given module's source file
+  * `r/1`     — recompiles and reloads the given module's source file
   * `s/1`     — prints spec information
   * `t/1`     — prints type information
   * `v/0`     — prints the history of commands evaluated in the session
