@@ -94,10 +94,15 @@ defmodule EEx do
   """
   defmacro function_from_string(kind, name, source, args // [], options // []) do
     info = [file: __CALLER__.file, line: __CALLER__.line + 1]
-    quote do
-      info = Keyword.merge unquote(info), unquote(options)
-      EEx.function_from_quoted(__MODULE__, unquote(kind), unquote(name),
-        unquote(args), EEx.compile_string(unquote(source), info), info)
+    quote bind_quoted: binding do
+      info = Keyword.merge info, options
+      args = Enum.map args, fn arg -> { arg, [], nil } end
+      compiled = EEx.compile_string(source, info)
+
+      case kind do
+        :def  -> def(unquote(name)(unquote_splicing(args)), do: unquote(compiled))
+        :defp -> defp(unquote(name)(unquote_splicing(args)), do: unquote(compiled))
+      end
     end
   end
 
@@ -124,14 +129,17 @@ defmodule EEx do
       Sample.sample(1, 2) #=> "3"
 
   """
-  defmacro function_from_file(kind, name, filename, args // [], options // []) do
-    quote do
-      file = unquote(filename)
-      info = Keyword.merge unquote(options), [file: file, line: 1]
+  defmacro function_from_file(kind, name, file, args // [], options // []) do
+    quote bind_quoted: binding do
+      info = Keyword.merge options, [file: file, line: 1]
+      args = Enum.map args, fn arg -> { arg, [], nil } end
+      compiled = EEx.compile_file(file, info)
 
-      @file file
-      EEx.function_from_quoted(__MODULE__, unquote(kind), unquote(name),
-        unquote(args), EEx.compile_file(file, info), info)
+      @file { file, 1 }
+      case kind do
+        :def  -> def(unquote(name)(unquote_splicing(args)), do: unquote(compiled))
+        :defp -> defp(unquote(name)(unquote_splicing(args)), do: unquote(compiled))
+      end
     end
   end
 
@@ -186,15 +194,6 @@ defmodule EEx do
   end
 
   ### Helpers
-
-  @doc false
-  def function_from_quoted(module, kind, name, args, source, info) do
-    args  = Enum.map args, fn arg -> { arg, [], nil } end
-    quote = quote do
-      unquote(kind)(unquote(name)(unquote_splicing(args)), do: unquote(source))
-    end
-    Module.eval_quoted module, quote, [], info
-  end
 
   defp do_eval(compiled, bindings, options) do
     { result, _ } = Code.eval_quoted(compiled, bindings, options)
