@@ -9,15 +9,13 @@ defmodule Macro do
 
   @doc false
   defmacro binary_ops do
-    [
-      :===, :!==,
+    [ :===, :!==,
       :==, :!=, :<=, :>=,
       :&&, :||, :<>, :++, :--, :**, ://, :::, :<-, :.., :|>, :=~,
       :<, :>, :->,
       :+, :-, :*, :/, :=, :|, :.,
       :and, :or, :xor, :when, :in, :inlist, :inbits,
-      :<<<, :>>>, :|||, :&&&, :^^^, :~~~
-    ]
+      :<<<, :>>>, :|||, :&&&, :^^^, :~~~ ]
   end
 
   @doc false
@@ -26,7 +24,7 @@ defmodule Macro do
   end
 
   @typep precedence :: integer # Higher means binds stronger
-  @spec binary_op_props(atom) :: {:left|:right, precedence}
+  @spec binary_op_props(atom) :: { :left|:right, precedence }
   defp binary_op_props(o) do
     case o do
       :::                                                       -> {:right, 30}
@@ -66,6 +64,7 @@ defmodule Macro do
       extract_args(quote do: 1.(1, 2, 3))  == :error
 
   """
+  @spec extract_args(Macro.t) :: { atom, [Macro.t] } | :error
   def extract_args(expr) do
     :elixir_clauses.extract_args(expr)
   end
@@ -90,6 +89,8 @@ defmodule Macro do
       1
 
   """
+  @spec escape(Macro.t) :: Macro.t
+  @spec escape(Macro.t, Keyword.t) :: Macro.t
   def escape(expr, opts // []) do
     :elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)) |> elem(0)
   end
@@ -128,6 +129,7 @@ defmodule Macro do
   In the example above, we pass a string with `\n` escaped
   and we return a version with it unescaped.
   """
+  @spec unescape_string(String.t) :: String.t
   def unescape_string(chars) do
     :elixir_interpolation.unescape_chars(chars)
   end
@@ -175,6 +177,7 @@ defmodule Macro do
       Macro.unescape_string "example\\n", unescape_map(&1)
 
   """
+  @spec unescape_string(String.t, (non_neg_integer -> non_neg_integer | false)) :: String.t
   def unescape_string(chars, map) do
     :elixir_interpolation.unescape_chars(chars, map)
   end
@@ -189,6 +192,7 @@ defmodule Macro do
   sigils. Check the implementation of `Kernel.sigil_b`
   for examples.
   """
+  @spec unescape_tokens([Macro.t]) :: [Macro.t]
   def unescape_tokens(tokens) do
     :elixir_interpolation.unescape_tokens(tokens)
   end
@@ -197,6 +201,7 @@ defmodule Macro do
   Unescape the given tokens according to the given map.
   Check `unescape_tokens/1` and `unescape_string/2` for more information.
   """
+  @spec unescape_tokens([Macro.t], (non_neg_integer -> non_neg_integer | false)) :: [Macro.t]
   def unescape_tokens(tokens, map) do
     :elixir_interpolation.unescape_tokens(tokens, map)
   end
@@ -210,120 +215,122 @@ defmodule Macro do
       "foo.bar(1, 2, 3)"
 
   """
-  def to_string(tree)
+  @spec to_string(Macro.t) :: String.t
+  @spec to_string(Macro.t, (Macro.t, String.t -> String.t)) :: String.t
+  def to_string(tree, fun // fn(_ast, string) -> string end)
 
   # Variables
-  def to_string({ var, _, atom }) when is_atom(atom) do
-    atom_to_binary(var, :utf8)
+  def to_string({ var, _, atom } = ast, fun) when is_atom(atom) do
+    fun.(ast, atom_to_binary(var, :utf8))
   end
 
   # Aliases
-  def to_string({ :__aliases__, _, refs }) do
-    Enum.map_join(refs, ".", call_to_string(&1))
+  def to_string({ :__aliases__, _, refs } = ast, fun) do
+    fun.(ast, Enum.map_join(refs, ".", &call_to_string(&1, fun)))
   end
 
   # Blocks
-  def to_string({ :__block__, _, [expr] }) do
-    to_string(expr)
+  def to_string({ :__block__, _, [expr] } = ast, fun) do
+    fun.(ast, to_string(expr, fun))
   end
 
-  def to_string({ :__block__, _, _ } = expr) do
-    block = adjust_new_lines block_to_string(expr), "\n  "
-    "(\n  " <> block <> "\n)"
+  def to_string({ :__block__, _, _ } = ast, fun) do
+    block = adjust_new_lines block_to_string(ast, fun), "\n  "
+    fun.(ast, "(\n  " <> block <> "\n)")
   end
 
   # Bits containers
-  def to_string({ :<<>>, _, args }) do
-    case Enum.map_join(args, ", ", to_string(&1)) do
+  def to_string({ :<<>>, _, args } = ast, fun) do
+    fun.(ast, case Enum.map_join(args, ", ", &to_string(&1, fun)) do
       "<" <> rest -> "<< <" <> rest  <> " >>"
       rest -> "<<" <> rest <> ">>"
-    end
+    end)
   end
 
   # Tuple containers
-  def to_string({ :{}, _, args }) do
-    "{" <> Enum.map_join(args, ", ", to_string(&1)) <> "}"
+  def to_string({ :{}, _, args } = ast, fun) do
+    fun.(ast, "{" <> Enum.map_join(args, ", ", &to_string(&1, fun)) <> "}")
   end
 
   # List containers
-  def to_string({ :[], _, args }) do
-    "[" <> Enum.map_join(args, ", ", to_string(&1)) <> "]"
+  def to_string({ :[], _, args } = ast, fun) do
+    fun.(ast, "[" <> Enum.map_join(args, ", ", &to_string(&1, fun)) <> "]")
   end
 
   # Fn keyword
-  def to_string({ :fn, _, [[do: { :->, _, [{_, _, tuple}] } = arrow]] })
+  def to_string({ :fn, _, [[do: { :->, _, [{_, _, tuple}] } = arrow]] } = ast, fun)
       when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
-    "fn " <> arrow_to_string(arrow) <> " end"
+    fun.(ast, "fn " <> arrow_to_string(arrow, fun) <> " end")
   end
 
-  def to_string({ :fn, _, [[do: { :->, _, [_] } = block]] }) do
-    "fn " <> block_to_string(block) <> "\nend"
+  def to_string({ :fn, _, [[do: { :->, _, [_] } = block]] } = ast, fun) do
+    fun.(ast, "fn " <> block_to_string(block, fun) <> "\nend")
   end
 
-  def to_string({ :fn, _, [[do: block]] }) do
-    block = adjust_new_lines block_to_string(block), "\n  "
-    "fn\n  " <> block <> "\nend"
+  def to_string({ :fn, _, [[do: block]] } = ast, fun) do
+    block = adjust_new_lines block_to_string(block, fun), "\n  "
+    fun.(ast, "fn\n  " <> block <> "\nend")
   end
 
   # left -> right
-  def to_string({ :->, _, _ } = arrow) do
-    "(" <> arrow_to_string(arrow, true) <> ")"
+  def to_string({ :->, _, _ } = ast, fun) do
+    fun.(ast, "(" <> arrow_to_string(ast, fun, true) <> ")")
   end
 
   # Binary ops
-  def to_string({ op, _, [left, right] }) when op in binary_ops do
-    op_to_string(left, op, :left) <> " #{op} " <> op_to_string(right, op, :right)
+  def to_string({ op, _, [left, right] } = ast, fun) when op in binary_ops do
+    fun.(ast, op_to_string(left, fun, op, :left) <> " #{op} " <> op_to_string(right, fun, op, :right))
   end
 
   # Splat when
-  def to_string({ :when, _, args }) do
+  def to_string({ :when, _, args } = ast, fun) do
     { left, right } = :elixir_utils.split_last(args)
-    "(" <> Enum.map_join(left, ", ", to_string(&1)) <> ") when " <> to_string(right)
+    fun.(ast, "(" <> Enum.map_join(left, ", ", &to_string(&1, fun)) <> ") when " <> to_string(right, fun))
   end
 
   # Unary ops
-  def to_string({ :not, _, [arg] })  do
-    "not " <> to_string(arg)
+  def to_string({ :not, _, [arg] } = ast, fun)  do
+    fun.(ast, "not " <> to_string(arg, fun))
   end
 
-  def to_string({ op, _, [arg] }) when op in unary_ops do
-    atom_to_binary(op, :utf8) <> to_string(arg)
+  def to_string({ op, _, [arg] } = ast, fun) when op in unary_ops do
+    fun.(ast, atom_to_binary(op, :utf8) <> to_string(arg, fun))
   end
 
   # Access
-  def to_string({ { :., _, [Kernel, :access] }, _, [left, right] }) do
-    if right != [] and Keyword.keyword?(right) do
-      to_string(left) <> to_string(right)
+  def to_string({ { :., _, [Kernel, :access] }, _, [left, right] } = ast, fun) do
+    fun.(ast, if right != [] and Keyword.keyword?(right) do
+      to_string(left, fun) <> to_string(right, fun)
     else
-      to_string(left) <> "[" <> to_string(right) <> "]"
-    end
+      to_string(left, fun) <> "[" <> to_string(right, fun) <> "]"
+    end)
   end
 
   # All other calls
-  def to_string({ target, _, args }) when is_list(args) do
+  def to_string({ target, _, args } = ast, fun) when is_list(args) do
     { list, last } = :elixir_utils.split_last(args)
-    case is_kw_blocks?(last) do
-      true  -> call_to_string_with_args(target, list) <> kw_blocks_to_string(last)
-      false -> call_to_string_with_args(target, args)
-    end
+    fun.(ast, case is_kw_blocks?(last) do
+      true  -> call_to_string_with_args(target, list, fun) <> kw_blocks_to_string(last, fun)
+      false -> call_to_string_with_args(target, args, fun)
+    end)
   end
 
   # Two-item tuples
-  def to_string({ left, right }) do
-    to_string({ :{}, [], [left, right] })
+  def to_string({ left, right }, fun) do
+    to_string({ :{}, [], [left, right] }, fun)
   end
 
   # Lists
-  def to_string(list) when is_list(list) do
+  def to_string(list = ast, fun) when is_list(list) do
     if Keyword.keyword?(list) do
-      "[" <> kw_list_to_string(list) <> "]"
+      fun.(ast, "[" <> kw_list_to_string(list, fun) <> "]")
     else
-      to_string({ :[], [], list })
+      to_string({ :[], [], list }, fun)
     end
   end
 
   # All other structures
-  def to_string(other), do: inspect(other, raw: true)
+  def to_string(other, fun), do: fun.(other, inspect(other, raw: true))
 
   # Block keywords
   defmacrop kw_keywords, do: [:do, :catch, :rescue, :after, :else]
@@ -333,97 +340,97 @@ defmodule Macro do
   end
   defp is_kw_blocks?(_), do: false
 
-  defp module_to_string(atom) when is_atom(atom), do: inspect(atom, raw: true)
-  defp module_to_string(other), do: call_to_string(other)
+  defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, raw: true)
+  defp module_to_string(other, fun), do: call_to_string(other, fun)
 
-  defp call_to_string(atom) when is_atom(atom),  do: atom_to_binary(atom, :utf8)
-  defp call_to_string({ :., _, [arg] }),         do: module_to_string(arg) <> "."
-  defp call_to_string({ :., _, [left, right] }), do: module_to_string(left) <> "." <> call_to_string(right)
-  defp call_to_string(other),                    do: to_string(other)
+  defp call_to_string(atom, _fun) when is_atom(atom), do: atom_to_binary(atom, :utf8)
+  defp call_to_string({ :., _, [arg] }, fun),         do: module_to_string(arg, fun) <> "."
+  defp call_to_string({ :., _, [left, right] }, fun), do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
+  defp call_to_string(other, fun),                    do: to_string(other, fun)
 
-  defp call_to_string_with_args(target, args) do
+  defp call_to_string_with_args(target, args, fun) do
     { list, last } = :elixir_utils.split_last(args)
-    target = call_to_string(target)
+    target = call_to_string(target, fun)
 
     case last != [] and Keyword.keyword?(last) do
       true  ->
-        args = Enum.map_join(list, ", ", to_string(&1))
+        args = Enum.map_join(list, ", ", &to_string(&1, fun))
         if list != [], do: args = args <> ", "
-        args = args <> kw_list_to_string(last)
+        args = args <> kw_list_to_string(last, fun)
         target <> "(" <> args <> ")"
       false ->
-        args = Enum.map_join(args, ", ", to_string(&1))
+        args = Enum.map_join(args, ", ", &to_string(&1, fun))
         target <> "(" <> args <> ")"
     end
   end
 
-  defp kw_blocks_to_string(kw) do
+  defp kw_blocks_to_string(kw, fun) do
     Enum.reduce(kw_keywords, " ", fn(x, acc) ->
       case Keyword.has_key?(kw, x) do
-        true  -> acc <> kw_block_to_string(x, Keyword.get(kw, x))
+        true  -> acc <> kw_block_to_string(x, Keyword.get(kw, x), fun)
         false -> acc
       end
     end) <> "end"
   end
 
-  defp kw_block_to_string(key, value) do
-    block = adjust_new_lines block_to_string(value), "\n  "
+  defp kw_block_to_string(key, value, fun) do
+    block = adjust_new_lines block_to_string(value, fun), "\n  "
     atom_to_binary(key, :utf8) <> "\n  " <> block <> "\n"
   end
 
-  defp block_to_string({ :->, _, exprs }) do
+  defp block_to_string({ :->, _, exprs }, fun) do
     Enum.map_join(exprs, "\n", fn({ left, _, right }) ->
-      left = comma_join_or_empty_paren(left, false)
-      left <> "->\n  " <> adjust_new_lines block_to_string(right), "\n  "
+      left = comma_join_or_empty_paren(left, fun, false)
+      left <> "->\n  " <> adjust_new_lines block_to_string(right, fun), "\n  "
     end)
   end
 
-  defp block_to_string({ :__block__, _, exprs }) do
-    Enum.map_join(exprs, "\n", to_string(&1))
+  defp block_to_string({ :__block__, _, exprs }, fun) do
+    Enum.map_join(exprs, "\n", &to_string(&1, fun))
   end
 
-  defp block_to_string(other), do: to_string(other)
+  defp block_to_string(other, fun), do: to_string(other, fun)
 
-  defp kw_list_to_string(list) do
+  defp kw_list_to_string(list, fun) do
     Enum.map_join(list, ", ", fn { key, value } ->
-      atom_to_binary(key) <> ": " <> to_string(value)
+      atom_to_binary(key) <> ": " <> to_string(value, fun)
     end)
   end
 
-  defp parenthise(expr) do
-    "(" <> to_string(expr) <> ")"
+  defp parenthise(expr, fun) do
+    "(" <> to_string(expr, fun) <> ")"
   end
 
-  defp op_to_string({ op, _, [_, _] } = expr, parent_op, side) when op in binary_ops do
+  defp op_to_string({ op, _, [_, _] } = expr, fun, parent_op, side) when op in binary_ops do
     { parent_assoc, parent_prec } = binary_op_props(parent_op)
     { _, prec }                   = binary_op_props(op)
     cond do
-      parent_prec < prec -> to_string(expr)
-      parent_prec > prec -> parenthise(expr)
+      parent_prec < prec -> to_string(expr, fun)
+      parent_prec > prec -> parenthise(expr, fun)
       true ->
         # parent_prec == prec, so look at associativity.
         if parent_assoc == side do
-          to_string(expr)
+          to_string(expr, fun)
         else
-          parenthise(expr)
+          parenthise(expr, fun)
         end
     end
   end
 
-  defp op_to_string(expr, _, _), do: to_string(expr)
+  defp op_to_string(expr, fun, _, _), do: to_string(expr, fun)
 
-  defp arrow_to_string({ :->, _, pairs }, paren // false) do
+  defp arrow_to_string({ :->, _, pairs }, fun, paren // false) do
     Enum.map_join(pairs, "; ", fn({ left, _, right }) ->
-      left = comma_join_or_empty_paren(left, paren)
-      left <> "-> " <> to_string(right)
+      left = comma_join_or_empty_paren(left, fun, paren)
+      left <> "-> " <> to_string(right, fun)
     end)
   end
 
-  defp comma_join_or_empty_paren([], true),  do: "() "
-  defp comma_join_or_empty_paren([], false), do: ""
+  defp comma_join_or_empty_paren([], _fun, true),  do: "() "
+  defp comma_join_or_empty_paren([], _fun, false), do: ""
 
-  defp comma_join_or_empty_paren(left, _) do
-    Enum.map_join(left, ", ", to_string(&1)) <> " "
+  defp comma_join_or_empty_paren(left, fun, _) do
+    Enum.map_join(left, ", ", &to_string(&1, fun)) <> " "
   end
 
   defp adjust_new_lines(block, replacement) do
@@ -510,8 +517,8 @@ defmodule Macro do
       end
 
   """
-  def expand_once(aliases, env) do
-    expand_once(aliases, env, nil) |> elem(0)
+  def expand_once(ast, env) do
+    expand_once(ast, env, nil) |> elem(0)
   end
 
   defp expand_once({ :__aliases__, _, _ } = original, env, cache) do

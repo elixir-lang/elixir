@@ -365,6 +365,14 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: foo(a, x: y, p: q)) == "foo(a, x: y, p: q)"
   end
 
+  test :to_string_with_fun do
+    assert Macro.to_string(quote(do: foo(1, 2, 3)), fn _, string -> ":#{string}:" end) ==
+           ":foo(:1:, :2:, :3:):"
+
+    assert Macro.to_string(quote(do: Bar.foo(1, 2, 3)), fn _, string -> ":#{string}:" end) ==
+           "::Bar:.foo(:1:, :2:, :3:):"
+  end
+
   ## safe_term
 
   test :safe_terms do
