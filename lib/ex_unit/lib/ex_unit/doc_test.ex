@@ -216,12 +216,12 @@ defmodule ExUnit.DocTest do
         error ->
           raise ExUnit.ExpectationError,
             [ prelude: "Expected doctest",
-              description: unquote(whole_expr),
+              expr: unquote(whole_expr),
               expected: unquote(exception),
               # We're using a combined message here because all expressions
               # (those that are expected to raise and those that aren't) are in
               # the same try block above.
-              reason: "complete or raise",
+              assertion: "complete or raise",
               actual: inspect(elem(error, 0)) <> " with message " <> inspect(error.message) ],
             stack
       end
@@ -239,9 +239,9 @@ defmodule ExUnit.DocTest do
         actual ->
           raise ExUnit.ExpectationError,
             [ prelude: "Expected doctest",
-              description: unquote(expr),
+              expr: unquote(expr),
               expected: inspect(v),
-              reason: "evaluate to",
+              assertion: "evaluate to",
               actual: inspect(actual) ],
             unquote(stack)
       end
@@ -259,9 +259,9 @@ defmodule ExUnit.DocTest do
         v = unquote(expr_ast)
         raise ExUnit.ExpectationError,
           [ prelude: "Expected doctest",
-            description: expr,
+            expr: expr,
             expected: exception,
-            reason: "raise",
+            assertion: "raise",
             actual: inspect(v) ],
           stack
       rescue
@@ -269,9 +269,9 @@ defmodule ExUnit.DocTest do
           unless error.message == unquote(message) do
             raise ExUnit.ExpectationError,
               [ prelude: "Expected doctest",
-                description: expr,
+                expr: expr,
                 expected: exception,
-                reason: "raise",
+                assertion: "raise",
                 actual: inspect(elem(error, 0)) <> " with message " <> inspect(error.message) ],
               stack
           end
@@ -295,9 +295,9 @@ defmodule ExUnit.DocTest do
       quote do
         raise ExUnit.ExpectationError,
           [ prelude: "Expected doctest",
-            description: unquote(String.strip(expr)),
+            expr: unquote(String.strip(expr)),
             expected: "successfully",
-            reason: "compile",
+            assertion: "compile",
             actual: unquote("** #{inspect e.__record__(:name)} #{e.message}") ],
           unquote(stack)
       end

@@ -1,19 +1,19 @@
 defexception ExUnit.AssertionError,  message: "assertion failed"
 
-defexception ExUnit.ExpectationError, expected: nil, actual: nil, reason: "",
-    negation: false, prelude: "Expected", description: nil do
+defexception ExUnit.ExpectationError, expected: nil, actual: nil, assertion: "",
+    negation: false, prelude: "Expected", expr: nil do
   def message(exception) do
-    if desc = exception.description do
-      "#{exception.prelude} #{desc} #{exception.full_reason} " <>
+    if desc = exception.expr do
+      "#{exception.prelude} #{desc} #{exception.full_assertion} " <>
         "#{exception.expected}. Instead got #{exception.actual}"
     else
       "#{exception.prelude} #{exception.expected} " <>
-        "#{exception.full_reason} #{exception.actual}"
+        "#{exception.full_assertion} #{exception.actual}"
     end
   end
 
-  def full_reason(exception) do
-    "to" <> if(exception.negation, do: " not ", else: " ") <> exception.reason
+  def full_assertion(exception) do
+    "to" <> if(exception.negation, do: " not ", else: " ") <> exception.assertion
   end
 end
 
@@ -56,8 +56,8 @@ defmodule ExUnit.Assertions do
 
         unless value do
           raise ExUnit.ExpectationError,
-            description: unquote(Macro.to_string(expected)),
-            reason: "be",
+            expr: unquote(Macro.to_string(expected)),
+            assertion: "be",
             expected: "true",
             actual: inspect(value)
         end
@@ -85,8 +85,8 @@ defmodule ExUnit.Assertions do
 
         if value do
           raise ExUnit.ExpectationError,
-            description: unquote(Macro.to_string(expected)),
-            reason: "be",
+            expr: unquote(Macro.to_string(expected)),
+            assertion: "be",
             expected: "false",
             actual: inspect(value)
         end
@@ -110,7 +110,7 @@ defmodule ExUnit.Assertions do
           raise ExUnit.ExpectationError,
             expected: inspect(right),
             actual: unquote(Macro.to_string(left)),
-            reason: "match pattern (=)"
+            assertion: "match pattern (=)"
       end
     end
   end
@@ -155,7 +155,7 @@ defmodule ExUnit.Assertions do
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert Enum.member?(right, left), left, right, reason: "be in"
+      assert Enum.member?(right, left), left, right, assertion: "be in"
     end
   end
 
@@ -169,7 +169,7 @@ defmodule ExUnit.Assertions do
           raise ExUnit.ExpectationError,
             expected: inspect(right),
             actual: unquote(Macro.to_string(left)),
-            reason: "match pattern (=)",
+            assertion: "match pattern (=)",
             negation: true
           _ ->
             nil
@@ -181,7 +181,7 @@ defmodule ExUnit.Assertions do
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert !(left =~ right), left, right, reason: "match (=~)", negation: true
+      assert !(left =~ right), left, right, assertion: "match (=~)", negation: true
     end
   end
 
@@ -189,7 +189,7 @@ defmodule ExUnit.Assertions do
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert !Enum.member?(right, left), left, right, reason: "be in", negation: true
+      assert !Enum.member?(right, left), left, right, assertion: "be in", negation: true
     end
   end
 
@@ -203,7 +203,7 @@ defmodule ExUnit.Assertions do
     quote do
       left  = unquote(expected)
       right = unquote(actual)
-      assert unquote(operator)(left, right), left, right, reason: unquote(text)
+      assert unquote(operator)(left, right), left, right, unquote(text)
     end
   end
 
@@ -230,9 +230,13 @@ defmodule ExUnit.Assertions do
 
   ## Examples
 
-      assert this > that, this, that, reason: "more than"
+      assert this > that, this, that, "more than"
 
   """
+  def assert(value, expected, actual, content) when is_binary(content) do
+    assert(value, expected, actual, assertion: content)
+  end
+
   def assert(value, expected, actual, opts) do
     unless value do
       raise ExUnit.ExpectationError,
@@ -317,7 +321,7 @@ defmodule ExUnit.Assertions do
     end
 
     assert is_match, message, error.message,
-      prelude: "Expected error message", reason: "match"
+      prelude: "Expected error message", assertion: "match"
 
     error
   end

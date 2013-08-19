@@ -91,19 +91,19 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_kind_reason(:error, ExUnit.ExpectationError[] = record, color) do
-    prelude  = String.downcase record.prelude
-    reason   = record.full_reason
-    max      = max(size(prelude), size(reason))
+    prelude   = String.downcase record.prelude
+    assertion = record.full_assertion
+    max       = max(size(prelude), size(assertion))
 
     error_info("** (ExUnit.ExpectationError)", color) <>
-      if desc = record.description do
+      if desc = record.expr do
         max = max(max, size("instead got"))
         error_info("  #{pad(prelude, max)}: #{maybe_multiline(desc, max)}", color) <>
-        error_info("  #{pad(reason, max)}: #{maybe_multiline(record.expected, max)}", color) <>
+        error_info("  #{pad(assertion, max)}: #{maybe_multiline(record.expected, max)}", color) <>
         error_info("  #{pad("instead got", max)}: #{maybe_multiline(record.actual, max)}", color)
       else
         error_info("  #{pad(prelude, max)}: #{maybe_multiline(record.expected, max)}", color) <>
-        error_info("  #{pad(reason, max)}: #{maybe_multiline(record.actual, max)}", color)
+        error_info("  #{pad(assertion, max)}: #{maybe_multiline(record.actual, max)}", color)
       end
   end
 
