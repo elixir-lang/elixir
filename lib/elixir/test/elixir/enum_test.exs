@@ -295,6 +295,14 @@ defmodule EnumTest.List do
       Enum.min_by([], fn(x) -> String.length(x) end)
     end
   end
+
+  test :chunks do
+    assert Enum.chunks([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4]]
+    assert Enum.chunks([1, 2, 3, 4, 5], 2, 2, [6]) == [[1, 2], [3, 4], [5, 6]]
+    assert Enum.chunks([1, 2, 3, 4, 5, 6], 3, 2) == [[1, 2, 3], [3, 4, 5]]
+    assert Enum.chunks([1, 2, 3, 4, 5, 6], 2, 3) == [[1, 2], [4, 5]]
+    assert Enum.chunks([1, 2, 3, 4, 5, 6], 3, 2, []) == [[1, 2, 3], [3, 4, 5], [5, 6]]
+  end
 end
 
 defmodule EnumTest.Range do

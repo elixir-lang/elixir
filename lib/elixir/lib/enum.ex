@@ -1233,6 +1233,41 @@ defmodule Enum do
     end) |> elem(0)
   end
 
+  @doc """
+  Returns a collection of lists containing `n` items each, where
+  each new chunk starts `step` elements into the collection.
+  `step` is optional and if not passed, defaults to `n`, i.e.
+  chunks do not overlap. If the final chunk does not have `n`
+  elements to fill the chunk, elements are taken as necessary
+  from `pad` if it was passed. If `pad` is passed and does not
+  have enough elements to fill the chunk, then the chunk is
+  returned anyway with less than `n` elements. If `pad` is not
+  passed at all or is nil, then the partial chunk is discarded
+  from the result.
+
+  ## Examples
+
+      iex> Enum.chunks([1, 2, 3, 4, 5, 6], 2)
+      [[1, 2], [3, 4], [5, 6]]
+      iex> Enum.chunks([1, 2, 3, 4, 5, 6], 3, 2)
+      [[1, 2, 3], [3, 4, 5]]
+      iex> Enum.chunks([1, 2, 3, 4, 5, 6], 3, 2, [7])
+      [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
+  """
+  @spec chunks(t, integer) :: [list]
+  @spec chunks(t, integer, integer) :: [list]
+  @spec chunks(t, integer, integer, list) :: [list]
+  def chunks(coll, n), do: chunks(coll, n, n, nil)
+  def chunks(coll, n, step, pad // nil)
+  def chunks([], _, _, _), do: []
+  def chunks(coll, n, step, pad) do
+    if segment = pad_segment(Enum.take(coll, n), pad, n) do
+      [segment | chunks(Enum.drop(coll, step), n, step, pad)]
+    else
+      []
+    end
+  end
+
   ## Helpers
 
   defp iterate_and_count(collection, count) do
@@ -1247,6 +1282,13 @@ defmodule Enum do
   defp do_iterate_and_count(collection) do
     reducer = fn(x, acc) -> { x, acc + 1 } end
     map_reduce(collection, 0, reducer)
+  end
+
+  defp pad_segment(segment, pad, n) do
+    case count = Enum.count(segment) do
+      ^n -> segment
+      _  -> if pad, do: segment ++ Enum.take(pad, n - count)
+    end
   end
 
   ## Implementations
