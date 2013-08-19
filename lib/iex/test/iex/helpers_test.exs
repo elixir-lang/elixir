@@ -25,11 +25,14 @@ defmodule IEx.HelpersTest do
   end
 
   test "h helper module" do
-    assert "# IEx.Helpers\n\nWelcome to Interactive Elixir" <> _
-           = capture_io(fn -> h IEx.Helpers end)
+    assert "# IEx.Helpers\n\nWelcome to Interactive Elixir" <> _ =
+           capture_io(fn -> h IEx.Helpers end)
 
-    assert capture_io(fn -> h :whatever end)
-           == "Could not load module :whatever: nofile\n"
+    assert capture_io(fn -> h :whatever end) ==
+           "Could not load module :whatever, got: nofile\n"
+
+    assert capture_io(fn -> h :lists end) ==
+           ":lists is an Erlang module and, as such, it was not compiled with docs\n"
   end
 
   test "h helper function" do

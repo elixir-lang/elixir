@@ -9,16 +9,20 @@ defmodule IEx.Introspection do
   def h(module) when is_atom(module) do
     case Code.ensure_loaded(module) do
       { :module, _ } ->
-        case module.__info__(:moduledoc) do
-          { _, binary } when is_binary(binary) ->
-            IO.write IEx.color(:info, "# #{inspect module}\n\n" <> binary)
-          { _, _ } ->
-            nodocs(inspect module)
-          _ ->
-            IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
+        if function_exported?(module, :__info__, 1) do
+          case module.__info__(:moduledoc) do
+            { _, binary } when is_binary(binary) ->
+              IO.write IEx.color(:info, "# #{inspect module}\n\n" <> binary)
+            { _, _ } ->
+              nodocs(inspect module)
+            _ ->
+              IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
+          end
+        else
+          IO.puts IEx.color(:error, "#{inspect module} is an Erlang module and, as such, it was not compiled with docs")
         end
       { :error, reason } ->
-        IO.puts IEx.color(:error, "Could not load module #{inspect module}: #{reason}")
+        IO.puts IEx.color(:error, "Could not load module #{inspect module}, got: #{reason}")
     end
     dont_display_result
   end
