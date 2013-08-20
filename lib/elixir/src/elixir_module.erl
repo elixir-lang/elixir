@@ -23,7 +23,6 @@ eval_quoted(Module, Quoted, RawBinding, Opts) ->
 
 scope_for_eval(Module, #elixir_scope{} = S) ->
   S#elixir_scope{module=Module};
-
 scope_for_eval(Module, Opts) ->
   scope_for_eval(Module, elixir:scope_for_eval(Opts)).
 
@@ -67,10 +66,17 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
   try
     Result = eval_form(Line, Module, Block, Vars, S),
     { Base, Export, Private, Def, Defmacro, Functions } = elixir_def:unwrap_stored_definitions(FileList, Module),
+    
+    % Needs to go before typedocs_form because it ensures a leftover `@typedoc`
+    % doesn't end up in the beam file. This has to do with the use of a typedoc
+    % attribute both for temporarily storing the doc for the next type to be
+    % defined and for storing the list of all typedocs in the module.
+    warn_and_delete_unused_typedoc(Line, File, Module),
 
     { All, Forms0 } = functions_form(Line, File, Module, Base, Export, Def, Defmacro, Functions, C),
     Forms1          = specs_form(Line, Module, Private, Defmacro, Forms0, C),
     Forms2          = attributes_form(Line, File, Module, Forms1),
+    Forms3          = typedocs_form(Module, Forms2),
 
     case ets:lookup(data_table(Module), 'on_load') of
       [] -> ok;
@@ -86,7 +92,7 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
 
     Final = [
       { attribute, Line, file, { FileList, Line } },
-      { attribute, Line, module, Module } | Forms2
+      { attribute, Line, module, Module } | Forms3
     ],
 
     Binary = load_form(Line, Final, S),
@@ -127,13 +133,9 @@ build(Line, File, Module) ->
     _    -> ets:insert(DataTable, { on_definition, [] })
   end,
 
-  % Note that type_doc is a persistent accumulating attribute that stores
-  % typedocs for all types in the module while typedoc is what the user types to
-  % add documentation for a type. The name clash is an unfortunate consequence
-  % of storing type docs as attributes.
-  Attributes = [behavior, behaviour, on_load, spec, type, type_doc, export_type, opaque, callback, compile],
+  Attributes = [behavior, behaviour, on_load, spec, type, export_type, opaque, callback, compile],
   ets:insert(DataTable, { ?acc_attr, [before_compile,after_compile,on_definition|Attributes] }),
-  ets:insert(DataTable, { ?persisted_attr, [vsn|Attributes] }),
+  ets:insert(DataTable, { ?persisted_attr, [vsn,typedoc|Attributes] }),
   ets:insert(DataTable, { ?docs_attr, ets:new(DataTable, [ordered_set, public]) }),
 
   %% Setup other modules
@@ -200,6 +202,18 @@ attributes_form(Line, _File, Module, Current) ->
     end
   end,
 
+  ets:foldl(Transform, Current, Table).
+
+%% Add typedocs to the form
+typedocs_form(Module, Current) ->
+  Table = docs_table(Module),
+  Transform = fun({ Tuple, Line, Kind, _Sig, Doc }, Acc) ->
+    case Kind of 
+      type      -> [{ attribute, Line, typedoc, { Tuple, Doc } } | Acc];
+      opaque    -> [{ attribute, Line, typedoc, { Tuple, Doc } } | Acc];
+      _         -> Acc
+    end
+  end,
   ets:foldl(Transform, Current, Table).
 
 %% Specs
@@ -290,13 +304,20 @@ warn_unused_docs(_Line, _File, 'Elixir.Kernel', _All) -> ok;
 warn_unused_docs(_Line, _File, 'Elixir.Kernel.SpecialForms', _All) -> ok;
 warn_unused_docs(_Line, File, Module, All) ->
   ets:foldl(fun
-    ({ Tuple, Line, _, _, _ }, Acc) ->
+    ({ Tuple, Line, Kind, _, _ }, Acc) ->
       case lists:member(Tuple, All) of
-        true  -> Acc;
-        false ->
-          elixir_errors:handle_file_warning(File, { Line, ?MODULE, { invalid_doc, Tuple } })
+        false when (Kind =/= type) and (Kind =/= opaque) ->
+          elixir_errors:handle_file_warning(File, { Line, ?MODULE, { invalid_doc, Tuple } });
+        _ -> Acc
       end
   end, ok, docs_table(Module)).
+
+warn_and_delete_unused_typedoc(Line, File, Module) ->
+  case ets:member(data_table(Module), typedoc) of
+    true -> elixir_errors:handle_file_warning(File, { Line, ?MODULE, { unused_typedoc } } ),
+            ets:delete(data_table(Module), typedoc);
+    _    -> ok
+  end.
 
 % EXTRA FUNCTIONS
 
@@ -333,7 +354,10 @@ module_clause(Module) ->
   { clause, 0, [{ atom, 0, module }], [], [{ atom, 0, Module }] }.
 
 docs_clause(Module, true) ->
-  Docs = ordsets:from_list(ets:tab2list(docs_table(Module))),
+  Docs = ordsets:from_list(
+    [{Tuple, Line, Kind, Sig, Doc} || 
+     {Tuple, Line, Kind, Sig, Doc} <- ets:tab2list(docs_table(Module)),
+     Kind =/= type, Kind =/= opaque]),
   { clause, 0, [{ atom, 0, docs }], [], [elixir_utils:elixir_to_erl(Docs)] };
 
 docs_clause(_Module, _) ->
@@ -392,6 +416,9 @@ munge_stacktrace(Info, []) ->
 
 format_error({ invalid_doc, { Name, Arity } }) ->
   io_lib:format("docs provided for nonexistent function or macro ~ts/~B", [Name, Arity]);
+
+format_error({ unused_typedoc } ) ->
+  "typedoc provided but no type follows it";
 
 format_error({ internal_function_overridden, { Name, Arity } }) ->
   io_lib:format("function ~ts/~B is internal and should not be overridden", [Name, Arity]);

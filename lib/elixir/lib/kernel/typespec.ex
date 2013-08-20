@@ -175,9 +175,7 @@ defmodule Kernel.Typespec do
     doc = Module.get_attribute(module, :typedoc)
     if doc do
       if export do
-        # `type_doc` is the attribute which stores all type docs,
-        # `typedoc` is the attribute used to add docs to `type_doc`.
-        Module.put_attribute(caller.module, :type_doc, { { name, arity }, doc })
+        Module.add_doc(caller.module, caller.line, kind, { name, arity }, vars, doc)
       else
         :elixir_errors.warn "#{caller.file}:#{caller.line}: type #{name} is private, @typedoc's are always discarded for private types\n"
       end
@@ -283,7 +281,7 @@ defmodule Kernel.Typespec do
   def beam_typedocs(module) do
     case abstract_code(module) do
       { :ok, abstract_code } ->
-        type_docs = lc { :attribute, _, :type_doc, tup } inlist abstract_code, do: tup
+        type_docs = lc { :attribute, _, :typedoc, tup } inlist abstract_code, do: tup
         List.flatten(type_docs)
       _ ->
         []

@@ -403,6 +403,18 @@ defmodule Kernel.WarningTest do
   after
     purge [Sample]
   end
+  
+  test :typedoc_with_no_type do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @typedoc "Something"
+      end
+      """
+    end) =~ "nofile:1: typedoc provided but no type follows it" 
+  after
+    purge [Sample]
+  end
 
   defp purge(list) when is_list(list) do
     Enum.each list, purge(&1)
