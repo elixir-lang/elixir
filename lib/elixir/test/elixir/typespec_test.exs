@@ -490,7 +490,6 @@ defmodule Typespec.TypeTest do
   end
 
   test "typedoc retrieval" do
-
     Code.compiler_options debug_info: true
 
     { :module, T, binary, _ } = defmodule T do
