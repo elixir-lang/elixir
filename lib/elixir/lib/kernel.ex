@@ -3560,6 +3560,20 @@ defmodule Kernel do
     split_words(string, modifiers)
   end
 
+  @doc """
+  Returns true if `n` is an odd number, otherwise false.
+  """
+  defmacro is_odd(n) do
+    quote do: rem(unquote(n), 2) != 0
+  end
+
+  @doc """
+  Returns true if `n` is an even number, otherwise false.
+  """
+  defmacro is_even(n) do
+    quote do: rem(unquote(n), 2) == 0
+  end
+
   ## Private functions
 
   # Extracts concatenations in order to optimize many
