@@ -196,6 +196,13 @@ defmodule EnumTest.List do
     assert Enum.shuffle([1, 2, 3, 4, 5]) == [2, 4, 1, 5, 3]
   end
 
+  test :slice do
+    assert Enum.slice([], 2) == []
+    assert Enum.slice([1,2], 1) == [[1],[2]]
+    assert Enum.slice([1,2], 2) == [[1,2]]
+    assert Enum.slice([1,2,3], 2) == [[1,2],[3]]
+  end
+
   test :sort do
     assert Enum.sort([5, 3, 2, 4, 1]) == [1, 2, 3, 4, 5]
     assert Enum.sort([5, 3, 2, 4, 1], &1 > &2) == [5, 4, 3, 2, 1]

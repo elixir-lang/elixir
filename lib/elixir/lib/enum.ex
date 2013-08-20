@@ -830,6 +830,21 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a new collection with elements sliced into smaller
+  collections of a given size.
+  
+  ## Examples
+
+      iex> Enum.slice([:a, :b, :c, :d], 2)
+      [[:a, :b], [:c, :d]]
+
+  """
+  @spec slice(t, index) :: list
+  def slice(collection, size) do
+    do_slice(collection, size, [])
+  end
+
+  @doc """
   Returns a sorted list of collection elements. Uses the merge sort algorithm.
 
   ## Examples
@@ -1507,6 +1522,16 @@ defmodule Enum do
 
   defp reverse_sort_merge([], acc, fun, bool), do:
     sort_merge(acc, [], fun, bool)
+
+
+  defp do_slice([], size, acc) do
+    acc
+  end
+
+  defp do_slice(list, size, acc) do
+    {part, rest} = Enum.split(list, size)
+    do_slice(rest, size, List.concat(acc, [part]))
+  end
 
 
   defp sort_merge_1([h1 | t1], h2, t2, m, fun, bool) do
