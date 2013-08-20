@@ -395,7 +395,6 @@ defmodule Kernel.WarningTest do
       defmodule Sample do
         @typedoc "Something"
         @typep priv :: any
-        
         @spec foo() :: priv
         def foo(), do: nil
       end
@@ -403,7 +402,6 @@ defmodule Kernel.WarningTest do
     end) =~ "nofile:3: type priv is private, @typedoc's are always discarded for private types" 
   after
     purge [Sample]
-
   end
 
   defp purge(list) when is_list(list) do
