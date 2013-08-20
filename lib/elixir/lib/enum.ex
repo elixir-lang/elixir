@@ -1234,6 +1234,12 @@ defmodule Enum do
   end
 
   @doc """
+  Shortcut to `chunks(coll, n, n)`.
+  """
+  @spec chunks(t, non_neg_integer) :: [list]
+  def chunks(coll, n), do: chunks(coll, n, n, nil)
+
+  @doc """
   Returns a collection of lists containing `n` items each, where
   each new chunk starts `step` elements into the collection.
   `step` is optional and if not passed, defaults to `n`, i.e.
@@ -1253,22 +1259,48 @@ defmodule Enum do
       [[1, 2, 3], [3, 4, 5]]
       iex> Enum.chunks([1, 2, 3, 4, 5, 6], 3, 2, [7])
       [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
+
   """
-  @spec chunks(t, integer) :: [list]
-  @spec chunks(t, integer, integer) :: [list]
-  @spec chunks(t, integer, integer, list) :: [list]
-  def chunks(coll, n), do: chunks(coll, n, n, nil)
-  def chunks(coll, n, step, pad // nil)
-  def chunks([], _, _, _), do: []
-  def chunks(coll, n, step, pad) do
-    if segment = pad_segment(Enum.take(coll, n), pad, n) do
-      [segment | chunks(Enum.drop(coll, step), n, step, pad)]
+  @spec chunks(t, non_neg_integer, non_neg_integer) :: [list]
+  @spec chunks(t, non_neg_integer, non_neg_integer, list) :: [list]
+  def chunks(coll, n, step, pad // nil) when n > 0 and step > 0 do
+    { acc, buffer, i } =
+      Enumerable.reduce(coll, { [], [], 0 }, fn
+        x, { acc, buffer, i } when i < n ->
+          chunks_n(acc, [x|buffer], i + 1, n, step)
+        x, { acc, buffer, i } when i < step ->
+          chunks_step(acc, [x|buffer], i + 1, step)
+      end)
+
+    if nil?(pad) do
+      :lists.reverse(acc)
     else
-      []
+      buffer = :lists.reverse(buffer) ++ take(pad, n - i)
+      :lists.reverse([buffer|acc])
     end
   end
 
   ## Helpers
+
+  @compile { :inline, chunks_n: 5, chunks_step: 4 }
+
+  defp chunks_n(acc, buffer, i, n, step) when i == n do
+    acc = [:lists.reverse(buffer)|acc]
+    chunks_step(acc, buffer, i, step)
+  end
+
+  defp chunks_n(acc, buffer, i, _n, _step) do
+    { acc, buffer, i }
+  end
+
+  defp chunks_step(acc, buffer, i, step) when i >= step do
+    left = i - step
+    { acc, take(buffer, left), left }
+  end
+
+  defp chunks_step(acc, buffer, i, _step) do
+    { acc, buffer, i }
+  end
 
   defp iterate_and_count(collection, count) do
     { list, total_items } = do_iterate_and_count(collection)
@@ -1282,13 +1314,6 @@ defmodule Enum do
   defp do_iterate_and_count(collection) do
     reducer = fn(x, acc) -> { x, acc + 1 } end
     map_reduce(collection, 0, reducer)
-  end
-
-  defp pad_segment(segment, pad, n) do
-    case count = Enum.count(segment) do
-      ^n -> segment
-      _  -> if pad, do: segment ++ Enum.take(pad, n - count)
-    end
   end
 
   ## Implementations

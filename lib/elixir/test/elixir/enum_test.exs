@@ -302,6 +302,7 @@ defmodule EnumTest.List do
     assert Enum.chunks([1, 2, 3, 4, 5, 6], 3, 2) == [[1, 2, 3], [3, 4, 5]]
     assert Enum.chunks([1, 2, 3, 4, 5, 6], 2, 3) == [[1, 2], [4, 5]]
     assert Enum.chunks([1, 2, 3, 4, 5, 6], 3, 2, []) == [[1, 2, 3], [3, 4, 5], [5, 6]]
+    assert Enum.chunks([1, 2, 3, 4, 5], 4, 4, 6..10) == [[1, 2, 3, 4], [5, 6, 7, 8]]
   end
 end
 
@@ -435,7 +436,6 @@ defmodule EnumTest.Range do
     after
       Process.delete(:enum_test_each)
     end
-
   end
 
   test :filter do
@@ -631,6 +631,15 @@ defmodule EnumTest.Range do
   test :min_by do
     assert Enum.min_by(1..1, fn(x) -> :math.pow(-2, x) end) == 1
     assert Enum.min_by(1..3, fn(x) -> :math.pow(-2, x) end) == 3
+  end
+
+  test :chunks do
+    assert Enum.chunks(1..5, 2) == [[1, 2], [3, 4]]
+    assert Enum.chunks(1..5, 2, 2, [6]) == [[1, 2], [3, 4], [5, 6]]
+    assert Enum.chunks(1..6, 3, 2) == [[1, 2, 3], [3, 4, 5]]
+    assert Enum.chunks(1..6, 2, 3) == [[1, 2], [4, 5]]
+    assert Enum.chunks(1..6, 3, 2, []) == [[1, 2, 3], [3, 4, 5], [5, 6]]
+    assert Enum.chunks(1..5, 4, 4, 6..10) == [[1, 2, 3, 4], [5, 6, 7, 8]]
   end
 end
 
