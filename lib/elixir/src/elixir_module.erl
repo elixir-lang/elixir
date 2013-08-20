@@ -127,7 +127,11 @@ build(Line, File, Module) ->
     _    -> ets:insert(DataTable, { on_definition, [] })
   end,
 
-  Attributes = [behavior, behaviour, on_load, spec, type, export_type, opaque, callback, compile],
+  % Note that type_doc is a persistent accumulating attribute that stores
+  % typedocs for all types in the module while typedoc is what the user types to
+  % add documentation for a type. The name clash is an unfortunate consequence
+  % of storing type docs as attributes.
+  Attributes = [behavior, behaviour, on_load, spec, type, type_doc, export_type, opaque, callback, compile],
   ets:insert(DataTable, { ?acc_attr, [before_compile,after_compile,on_definition|Attributes] }),
   ets:insert(DataTable, { ?persisted_attr, [vsn|Attributes] }),
   ets:insert(DataTable, { ?docs_attr, ets:new(DataTable, [ordered_set, public]) }),

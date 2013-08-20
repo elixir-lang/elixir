@@ -159,7 +159,7 @@ defmodule Kernel.Typespec do
   @doc """
   Defines a `type`, `typep` or `opaque` by receiving Erlang's typespec.
   """
-  def define_type(module, kind, { name, _, vars } = type) when kind in [:type, :typep, :opaque] do
+  def define_type(caller, kind, { name, _, vars } = type) when kind in [:type, :typep, :opaque] do
     { kind, export } =
       case kind do
         :type   -> { :type, true }
@@ -167,9 +167,23 @@ defmodule Kernel.Typespec do
         :opaque -> { :opaque, true }
       end
 
+    module = caller.module
     Module.compile_typespec module, kind, type
-    if export, do:
-      Module.compile_typespec(module, :export_type, [{ name, length(vars) }])
+    arity = length(vars)
+    if export, do: Module.compile_typespec(module, :export_type, [{ name, arity }])
+
+    doc = Module.get_attribute(module, :typedoc)
+    if doc do
+      if export do
+        # `type_doc` is the attribute which stores all type docs,
+        # `typedoc` is the attribute used to add docs to `type_doc`.
+        Module.put_attribute(caller.module, :type_doc, { { name, arity }, doc })
+      else
+        :elixir_errors.warn "#{caller.file}:#{caller.line}: type #{name} is private, @typedoc's are always discarded for private types\n"
+      end
+    end
+    Module.delete_attribute(module, :typedoc)
+
     type
   end
 
@@ -253,6 +267,27 @@ defmodule Kernel.Typespec do
   def type_to_ast({ name, type, args }) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
     quote do: unquote(name)(unquote_splicing(args)) :: unquote(typespec_to_ast(type))
+  end
+  
+  @doc """
+  Returns all type docs available from the module's beam code.
+
+  It is returned as a list of tuples where the first element is the pair of type
+  name and arity and the second element is the documentation.
+
+  The module has to have a corresponding beam file on the disk which can be
+  located by the runtime system.
+  """
+  # This is in Kernel.Typespec because it works very similar to beam_types and
+  # uses some of the introspection available here.
+  def beam_typedocs(module) do
+    case abstract_code(module) do
+      { :ok, abstract_code } ->
+        type_docs = lc { :attribute, _, :type_doc, tup } inlist abstract_code, do: tup
+        List.flatten(type_docs)
+      _ ->
+        []
+    end
   end
 
   @doc """
@@ -368,7 +403,7 @@ defmodule Kernel.Typespec do
     vars = lc { :var, _, _ } = var inlist args, do: var
     type = { name, spec, vars }
 
-    define_type(caller.module, kind, type)
+    define_type(caller, kind, type)
   end
 
   @doc false
