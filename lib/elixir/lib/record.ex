@@ -841,7 +841,8 @@ defmodule Record do
   defp check_value(atom, other) when is_function(other) do
     unless :erlang.fun_info(other, :env) == { :env, [] } and
            :erlang.fun_info(other, :type) == { :type, :external } do
-      raise(ArgumentError, message: "record field default value #{inspect atom} cannot contain an anonymous function")
+      raise ArgumentError, message: "record field default value #{inspect atom} can only contain " <>
+                                    "functions that point to an existing &Mod.fun/arity"
     end
   end
 

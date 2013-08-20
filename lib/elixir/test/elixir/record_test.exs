@@ -152,7 +152,7 @@ defmodule RecordTest do
     defrecord WithFun, fun: [&Kernel.is_atom/1]
     assert WithFun.new.fun == [&Kernel.is_atom/1]
 
-    assert_raise ArgumentError, "record field default value :bar cannot contain an anonymous function", fn ->
+    assert_raise ArgumentError, "record field default value :bar can only contain functions that point to an existing &Mod.fun/arity", fn ->
       defrecord Foo, bar: [fn x -> x end]
     end
   end

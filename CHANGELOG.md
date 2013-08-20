@@ -2,15 +2,18 @@
 
 * enhancements
   * [Dict] Add `Dict.Behaviour` as a convenience to create your own dictionaries
-  * [Enum] Add `Enum.reduce/2` and `Enum.flat_map/2`
+  * [Enum] Add `Enum.reduce/2`, `Enum.flat_map/2`, `Enum.chunks/2` and `Enum.chunks/4`
   * [Elixir] Include file and line on error report for overriding an existing function/macro
   * [IEx] Allow for strings in `h` helper
   * [IEx] Helpers `r` and `c` can handle erlang sources
   * [IO] Added support to specifying a number of bytes to stream to `IO.stream`, `IO.binstream`, `File.stream!` and `File.binstream!`
   * [List] Add `List.replace_at/3`
+  * [Kernel] Convert external functions into quoted expression. This allows record fields to cointain functions as long as they point to an `&Mod.fun/arity`
   * [Macro] Improve printing of the access protocol on `Macro.to_string/1`
+  * [Macro] Add `Macro.to_string/2` to support annotations on the converted string
   * [Mix] Automatically recompile a project if the Elixir version changes
   * [Path] Add `Path.relative_to_cwd`
+  * [Regex] Allow erlang `re` options when compiling Elixir regexes
   * [String] Add regex pattern support to `String.replace/3`
   * [String] Add `String.ljust/2`, `String.rjust/2`, `String.ljust/3` and `String.rjust/3`
 
@@ -22,6 +25,7 @@
   * [Kernel] Return a readable error on oversized atoms
   * [Kernel] Fix default shutdown of child supervisors to infinity
   * [Kernel] Fix regression when calling a function/macro ending with bang, followed by `do/end` blocks
+  * [Mix] Fix `Mix.Version` matching on pre-release info
   * [Mix] Ensure `watch_exts` trigger full recompilation on change with `mix compile`
   * [Mix] Fix regression on `mix clean --all`
   * [List] Fix bug on `List.insert_at/3` that added the item at the wrong position for negative indexes
