@@ -47,27 +47,34 @@ defmodule Mix.Tasks.Local.Install do
   end
 
   defp install_archive(src, opts) do
-    if should_install?(src, opts[:force]) do
+    previous = previous_version_filename(src)
+    if opts[:force] || should_install?(src, previous) do
+      remove_previous_version(previous)
       dest = Mix.Local.archives_path
       File.mkdir_p! dest
       create_file Path.join(dest, Path.basename(src)), Mix.Utils.read_path!(src)
     end
   end
 
-  defp should_install?(src, force) do
-    if file = already_installed(src) do
-      if force || Mix.shell.yes?("Found existing archive #{Path.basename(file)}.\n" <>
-          "Do you want to override this archive?") do
-        File.rm(file)
-        true
-      end
-    else
-      force || Mix.shell.yes?("Are you sure you want to install archive #{src}?")
-    end
+  defp should_install?(src, _previous_version_filename=nil) do
+    Mix.shell.yes?("Are you sure you want to install archive #{src}?")
   end
 
-  defp already_installed(src) do
+  defp should_install?(_src, previous_version_filename) do
+    Mix.shell.yes?("Found existing archive #{Path.basename(previous_version_filename)}.\n" <>
+          "Do you want to override this archive?")
+  end
+
+  defp previous_version_filename(src) do
     app = Mix.Archive.dir(src) |> String.split("-") |> Enum.first
     Path.join(Mix.Local.archives_path, app <> "-*.ez") |> Path.wildcard |> Enum.first
+  end
+
+  defp remove_previous_version(_previous=nil) do
+    true
+  end
+
+  defp remove_previous_version(previous) do
+    File.rm!(previous)
   end
 end
