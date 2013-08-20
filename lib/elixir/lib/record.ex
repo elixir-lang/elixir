@@ -822,16 +822,29 @@ defmodule Record do
 
   defp convert_value(atom) when is_atom(atom), do: { atom, nil }
 
-  defp convert_value({ atom, other }) when is_atom(atom) and is_function(other), do:
-    raise(ArgumentError, message: "record field default value #{inspect atom} cannot be a function")
-
-  defp convert_value({ atom, other }) when is_atom(atom) and (is_reference(other) or is_pid(other) or is_port(other)), do:
-    raise(ArgumentError, message: "record field default value #{inspect atom} cannot be a reference, pid or port")
-
-  defp convert_value({ atom, _ } = tuple) when is_atom(atom), do: tuple
+  defp convert_value({ atom, other }) when is_atom(atom), do:
+    { atom, check_value(atom, other) }
 
   defp convert_value({ field, _ }), do:
     raise(ArgumentError, message: "record field name has to be an atom, got #{inspect field}")
+
+  defp check_value(atom, other) when is_list(other) do
+    lc(i inlist other, do: check_value(atom, i))
+    other
+  end
+
+  defp check_value(atom, other) when is_tuple(other) do
+    lc(i inlist tuple_to_list(other), do: check_value(atom, i))
+    other
+  end
+
+  defp check_value(atom, other) when is_function(other), do:
+    raise(ArgumentError, message: "record field default value #{inspect atom} cannot contain a function")
+
+  defp check_value(atom, other) when is_reference(other) or is_pid(other) or is_port(other), do:
+    raise(ArgumentError, message: "record field default value #{inspect atom} cannot contain a reference, pid or port")
+
+  defp check_value(_atom, other), do: other
 
   defp find_index([{ k, _ }|_], k, i), do: i
   defp find_index([{ _, _ }|t], k, i), do: find_index(t, k, i + 1)

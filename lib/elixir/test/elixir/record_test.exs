@@ -148,6 +148,12 @@ defmodule RecordTest do
     assert RecordTest.FileInfo.Helper.size(RecordTest.FileInfo.new(size: 100)) == 100
   end
 
+  test :invalid_record do
+    assert_raise ArgumentError, "record field default value :bar cannot contain a function", fn ->
+      defrecord Foo, bar: [fn x -> x end]
+    end
+  end
+
   test :extract_with_nested_records do
     namespace = Record.extract(:xmlElement, from_lib: "xmerl/include/xmerl.hrl")[:namespace]
     assert is_record(namespace, :xmlNamespace)
