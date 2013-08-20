@@ -507,8 +507,8 @@ defmodule Typespec.TypeTest do
     :code.purge(T)
 
     assert [
-      {{:a, 0}, "A"},
-      {{:c, 2}, "C"}
+      {{:c, 2}, "C"},
+      {{:a, 0}, "A"}
     ] = Kernel.Typespec.beam_typedocs(binary)
   after
     Code.compiler_options debug_info: false
