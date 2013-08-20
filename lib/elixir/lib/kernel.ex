@@ -3117,13 +3117,32 @@ defmodule Kernel do
   defp pipeline_op(left, { :|>, _, [middle, right] }) do
     pipeline_op(pipeline_op(left, middle), right)
   end
+  
+  defp pipeline_op(left, { :&, line, _ } = right) do
+    { { :., line, [right] }, [], [ left ] }
+  end
+
+  # It would be nice to check if the arity is correct but that seems to be
+  # rather complicated due to the deeply nested AST involved.
+  defp pipeline_op(left, { :fn, line, _ } = right) do
+    { { :., line, [right] }, [], [ left ] }
+  end
 
   defp pipeline_op(left, { call, line, atom }) when is_atom(atom) do
     { call, line, [left] }
   end
 
   defp pipeline_op(left, { call, line, args }) when is_list(args) do
-    { call, line, [left|args] }
+    is_placeholder_one = fn
+      { :&, _, [1] } -> true
+      _              -> false
+    end
+    # We can't count on Enum.count being available yet when compiling this
+    # module.
+    case length(:lists.filter(is_placeholder_one, args)) do
+      0 -> { call, line, [left|args] } 
+      _ -> { { :., line, [ { call, [], args } ] }, [], [ left ] }
+    end
   end
 
   defp pipeline_op(_, arg) do
