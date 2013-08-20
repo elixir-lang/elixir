@@ -93,10 +93,9 @@ defmodule EEx do
 
   """
   defmacro function_from_string(kind, name, source, args // [], options // []) do
-    info = [file: __CALLER__.file, line: __CALLER__.line + 1]
     quote bind_quoted: binding do
-      info = Keyword.merge info, options
-      args = Enum.map args, fn arg -> { arg, [], nil } end
+      info = Keyword.merge [file: __ENV__.file, line: __ENV__.line], options
+      args = Enum.map args, fn arg -> { arg, [line: info[:line]], nil } end
       compiled = EEx.compile_string(source, info)
 
       case kind do
@@ -132,10 +131,10 @@ defmodule EEx do
   defmacro function_from_file(kind, name, file, args // [], options // []) do
     quote bind_quoted: binding do
       info = Keyword.merge options, [file: file, line: 1]
-      args = Enum.map args, fn arg -> { arg, [], nil } end
+      args = Enum.map args, fn arg -> { arg, [line: 1], nil } end
       compiled = EEx.compile_file(file, info)
 
-      @file { file, 1 }
+      @file file
       case kind do
         :def  -> def(unquote(name)(unquote_splicing(args)), do: unquote(compiled))
         :defp -> defp(unquote(name)(unquote_splicing(args)), do: unquote(compiled))

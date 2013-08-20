@@ -889,16 +889,8 @@ defmodule Module do
     atom
   end
 
-  defp normalize_attribute(:file, env) when is_env(env) do
-    { String.to_char_list!(env.file), env.line }
-  end
-
-  defp normalize_attribute(:file, { binary, line }) when is_binary(binary) do
-    { String.to_char_list!(binary), line }
-  end
-
-  defp normalize_attribute(:file, other) when not is_tuple(other) do
-    normalize_attribute(:file, { other, 1 })
+  defp normalize_attribute(:file, file) when is_binary(file) do
+    file
   end
 
   defp normalize_attribute(key, atom) when is_atom(atom) and
@@ -907,7 +899,7 @@ defmodule Module do
   end
 
   defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback] do
-    raise ArgumentError, message: "Attributes type, typep, export_type, opaque and callback " <>
+    raise ArgumentError, message: "attributes type, typep, export_type, opaque and callback " <>
       "must be set via Kernel.Typespec"
   end
 

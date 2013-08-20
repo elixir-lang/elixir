@@ -166,7 +166,7 @@ retrieve_file(Line, Module, S, CO) ->
         nil  -> { unicode:characters_to_list(S#elixir_scope.file), Line };
         Else ->
           'Elixir.Module':delete_attribute(Module, file),
-          Else
+          { Else, 0 }
       end
   end.
 

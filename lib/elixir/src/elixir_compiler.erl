@@ -102,12 +102,12 @@ module(Forms, File, RawOptions, Bootstrap, Callback) when
         true  -> [{?MODULE,[{0,?MODULE,{skip_native,ModuleName}}]}|RawWarnings];
         false -> RawWarnings
       end,
-      format_warnings(Bootstrap, File, Warnings),
+      format_warnings(Bootstrap, Warnings),
       code:load_binary(ModuleName, Listname, Binary),
       Callback(ModuleName, Binary);
     {error, Errors, Warnings} ->
-      format_warnings(Bootstrap, File, Warnings),
-      format_errors(File, Errors)
+      format_warnings(Bootstrap, Warnings),
+      format_errors(Errors)
   end.
 
 %% Compile core files for bootstrap.
@@ -243,15 +243,15 @@ format_error({ skip_native, Module }) ->
   io_lib:format("skipping native compilation for ~ts because it contains on_load attribute",
     [elixir_errors:inspect(Module)]).
 
-format_errors(_File, []) ->
+format_errors([]) ->
   exit({ nocompile, "compilation failed but no error was raised" });
 
-format_errors(File, Errors) ->
-  lists:foreach(fun ({_, Each}) ->
+format_errors(Errors) ->
+  lists:foreach(fun ({File, Each}) ->
     lists:foreach(fun (Error) -> elixir_errors:handle_file_error(File, Error) end, Each)
   end, Errors).
 
-format_warnings(Bootstrap, File, Warnings) ->
-  lists:foreach(fun ({_, Each}) ->
+format_warnings(Bootstrap, Warnings) ->
+  lists:foreach(fun ({File, Each}) ->
     lists:foreach(fun (Warning) -> elixir_errors:handle_file_warning(Bootstrap, File, Warning) end, Each)
   end, Warnings).
