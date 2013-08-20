@@ -1280,6 +1280,36 @@ defmodule Enum do
     end
   end
 
+  @doc """
+  Splits `coll` on every element for which `fun` returns a new value.
+
+  ## Examples
+
+      iex> Enum.chunks_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
+      [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
+
+  """
+  @spec chunks_by(t, (element -> any)) :: [list]
+  def chunks_by(coll, fun) do
+    res =
+      Enumerable.reduce(coll, nil, fn
+        x, {acc, buffer, value} ->
+          new_value = fun.(x)
+          if new_value == value do
+            {acc, [x | buffer], value}
+          else
+            {[:lists.reverse(buffer) | acc], [x], new_value}
+          end
+        x, nil -> {[], [x], fun.(x)}
+      end)
+    if nil?(res) do
+      []
+    else
+      {acc, buffer, _} = res
+      :lists.reverse([:lists.reverse(buffer) | acc])
+    end
+  end
+
   ## Helpers
 
   @compile { :inline, chunks_n: 5, chunks_step: 4 }
