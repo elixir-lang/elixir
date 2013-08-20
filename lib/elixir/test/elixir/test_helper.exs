@@ -60,7 +60,7 @@ defmodule CompileAssertion do
         raise ExUnit.ExpectationError,
           expected: inspect(exception),
           actual: inspect(elem(error, 0)),
-          reason: "match"
+          assertion: "match"
     end
   end
 
@@ -71,7 +71,7 @@ defmodule CompileAssertion do
         raise ExUnit.ExpectationError,
           expected: "#{inspect exception}[message: #{inspect message}]",
           actual: "#{inspect elem(error, 0)}[message: #{inspect elem(error, 1)}]",
-          reason: "match"
+          assertion: "match"
     end
   end
 

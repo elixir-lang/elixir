@@ -345,7 +345,7 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_macro do
     assert_compile_fail CompileError,
-      "nofile: invalid quoted expression: {:foo, :bar, :baz, :bat}",
+      "nofile: tuples in quoted expressions must have 2 or 3 items, invalid quoted expression: {:foo, :bar, :baz, :bat}",
       '''
       defmodule ErrorsTest do
         defmacrop oops do

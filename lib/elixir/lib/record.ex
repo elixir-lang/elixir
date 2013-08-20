@@ -838,11 +838,16 @@ defmodule Record do
     other
   end
 
-  defp check_value(atom, other) when is_function(other), do:
-    raise(ArgumentError, message: "record field default value #{inspect atom} cannot contain a function")
+  defp check_value(atom, other) when is_function(other) do
+    unless :erlang.fun_info(other, :env) == { :env, [] } and
+           :erlang.fun_info(other, :type) == { :type, :external } do
+      raise(ArgumentError, message: "record field default value #{inspect atom} cannot contain an anonymous function")
+    end
+  end
 
-  defp check_value(atom, other) when is_reference(other) or is_pid(other) or is_port(other), do:
+  defp check_value(atom, other) when is_reference(other) or is_pid(other) or is_port(other) do
     raise(ArgumentError, message: "record field default value #{inspect atom} cannot contain a reference, pid or port")
+  end
 
   defp check_value(_atom, other), do: other
 

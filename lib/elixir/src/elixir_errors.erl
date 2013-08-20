@@ -218,10 +218,10 @@ raise(Line, File, Kind, Message) when is_integer(Line) ->
   erlang:raise(error, Exception, tl(Stacktrace)).
 
 file_format(0, File, Message) ->
-  io_lib:format("~ts: ~ts~n", [elixir_helpers:relative_to_cwd(File), Message]);
+  io_lib:format("~ts: ~ts~n", [elixir_utils:relative_to_cwd(File), Message]);
 
 file_format(Line, File, Message) ->
-  io_lib:format("~ts:~w: ~ts~n", [elixir_helpers:relative_to_cwd(File), Line, Message]).
+  io_lib:format("~ts:~w: ~ts~n", [elixir_utils:relative_to_cwd(File), Line, Message]).
 
 format_var(Var) ->
   list_to_atom(lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var))).

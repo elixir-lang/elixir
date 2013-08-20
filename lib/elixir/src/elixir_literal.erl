@@ -55,21 +55,13 @@ translate({ Left, Right }, S) ->
 translate(Args, S) when is_list(Args) ->
   translate({ '[]', [], Args }, S);
 
-translate(Number, S) when is_integer(Number) ->
-  { { integer, 0, Number }, S };
-
-translate(Number, S) when is_float(Number) ->
-  { { float, 0, Number }, S };
-
-translate(Atom, S) when is_atom(Atom) ->
-  { { atom, 0, Atom }, S };
-
-translate(Bitstring, S) when is_bitstring(Bitstring) ->
-  { elixir_utils:elixir_to_erl(Bitstring), S };
+translate(Tuple, S) when is_tuple(Tuple) ->
+  elixir_errors:compile_error(0, S#elixir_scope.file,
+    "tuples in quoted expressions must have 2 or 3 items, invalid quoted expression: ~ts",
+    ['Elixir.Kernel':inspect(Tuple)]);
 
 translate(Other, S) ->
-  elixir_errors:compile_error(0, S#elixir_scope.file, "invalid quoted expression: ~ts",
-                              ['Elixir.Kernel':inspect(Other)]).
+  { elixir_utils:elixir_to_erl(0, Other, S), S }.
 
 %% Helpers
 

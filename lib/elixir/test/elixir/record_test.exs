@@ -148,8 +148,11 @@ defmodule RecordTest do
     assert RecordTest.FileInfo.Helper.size(RecordTest.FileInfo.new(size: 100)) == 100
   end
 
-  test :invalid_record do
-    assert_raise ArgumentError, "record field default value :bar cannot contain a function", fn ->
+  test :record_with_functions_as_defaults do
+    defrecord WithFun, fun: [&Kernel.is_atom/1]
+    assert WithFun.new.fun == [&Kernel.is_atom/1]
+
+    assert_raise ArgumentError, "record field default value :bar cannot contain an anonymous function", fn ->
       defrecord Foo, bar: [fn x -> x end]
     end
   end

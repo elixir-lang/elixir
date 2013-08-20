@@ -43,7 +43,7 @@ docs_table(Module) ->
 
 translate(Meta, Ref, Block, S) ->
   Line            = ?line(Meta),
-  MetaBlock       = elixir_utils:elixir_to_erl(Block),
+  MetaBlock       = elixir_utils:elixir_to_erl(Line, Block, S),
   { MetaS, Vars } = elixir_scope:serialize_with_vars(Line, S),
 
   Args = [{integer, Line, Line}, Ref, MetaBlock, Vars, MetaS],
