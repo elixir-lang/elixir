@@ -65,7 +65,7 @@ defmodule Mix.Deps.Converger do
   # to be the authorative source.
   defp all([dep|t], acc, upper_breadths, current_breadths, config, callback, rest) do
     cond do
-      (new_acc = override_dep(acc, upper_breadths, dep)) && new_acc ->
+      new_acc = overriden_deps(acc, upper_breadths, dep) ->
         all(t, new_acc, upper_breadths, current_breadths, config, callback, rest)
       ({ diverged_acc, diverged } = diverged_deps(acc, dep)) && diverged ->
         all(t, diverged_acc, upper_breadths, current_breadths, config, callback, rest)
@@ -84,27 +84,26 @@ defmodule Mix.Deps.Converger do
   # Look for an overriding dep in the upper breadths, if
   # found return a new acc without the overriden dep and
   # with the proper status set on the overrider
-  defp override_dep(acc, upper_breadths, dep) do
-    overrider = Enum.find(upper_breadths, fn(other) ->
+  defp overriden_deps(acc, upper_breadths, dep) do
+    overriden = Enum.any?(upper_breadths, fn(other) ->
       other.app == dep.app
     end)
 
-    if overrider do
-      Mix.Dep[app: app] = overrider
+    if overriden do
+      Mix.Dep[app: app] = dep
 
-      Enum.map(acc, fn(other) ->
+      Enum.map(acc, fn other ->
         Mix.Dep[app: other_app, opts: other_opts] = other
+
         cond do
-          app == other_app && other_opts[:override] ->
+          app == other_app && (other_opts[:override] || converge?(dep, other)) ->
             other
           app == other_app ->
-            other.status({ :override, dep })
+            other.status({ :overriden, dep })
           true ->
             other
         end
       end)
-    else
-      nil
     end
   end
 
@@ -113,16 +112,23 @@ defmodule Mix.Deps.Converger do
   # scm info match. If not, mark the dependencies
   # as diverged.
   defp diverged_deps(list, dep) do
-    Mix.Dep[app: app, scm: scm, opts: opts] = dep
+    Mix.Dep[app: app] = dep
 
     Enum.map_reduce list, false, fn(other, diverged) ->
-      Mix.Dep[app: other_app, scm: other_scm, opts: other_opts] = other
+      Mix.Dep[app: other_app] = other
 
-      if app != other_app || scm == other_scm && scm.equal?(opts, other_opts) do
+      if app != other_app || converge?(dep, other) do
         { other, diverged }
       else
         { other.status({ :diverged, dep }), true }
       end
     end
   end
+
+  defp converge?(Mix.Dep[scm: scm, requirement: req, opts: opts1],
+                 Mix.Dep[scm: scm, requirement: req, opts: opts2]) do
+    scm.equal?(opts1, opts2)
+  end
+
+  defp converge?(_, _), do: false
 end

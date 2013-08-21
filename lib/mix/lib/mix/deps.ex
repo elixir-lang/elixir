@@ -203,15 +203,15 @@ defmodule Mix.Deps do
 
   def format_status(Mix.Dep[status: { :diverged, other }, opts: opts] = dep) do
     "different specs were given for this dependency, choose one in your deps:\n" <>
-    "> In #{dep.from}:\n$ #{inspect Dict.drop(opts, [:dest]), pretty: true}\n" <>
-    "> In #{other.from}:\n$ #{inspect Dict.drop(other.opts, [:dest]), pretty: true}\n"
+    "> In #{Path.relative_to_cwd(dep.from)}:\n$ #{inspect Dict.drop(opts, [:dest]), pretty: true}\n" <>
+    "> In #{Path.relative_to_cwd(other.from)}:\n$ #{inspect Dict.drop(other.opts, [:dest]), pretty: true}\n"
   end
 
-  def format_status(Mix.Dep[status: { :override, other }, opts: opts] = dep) do
+  def format_status(Mix.Dep[status: { :overriden, other }, opts: opts] = dep) do
     "the dependency is overriding another dependency of one of your dependencies, " <>
     "if this is intended set `override: true` in the options\n" <>
-    "> In #{dep.from}:\n$ #{inspect opts}\n" <>
-    "> In #{other.from}:\n$ #{inspect other.opts}\n"
+    "> In #{Path.relative_to_cwd(dep.from)}:\n$ #{inspect opts}\n" <>
+    "> In #{Path.relative_to_cwd(other.from)}:\n$ #{inspect other.opts}\n"
   end
 
   def format_status(Mix.Dep[status: { :unavailable, _ }]),
@@ -256,7 +256,7 @@ defmodule Mix.Deps do
   @doc """
   Check if a dependency is available.
   """
-  def available?(Mix.Dep[status: { :override, _ }]),    do: false
+  def available?(Mix.Dep[status: { :overriden, _ }]),   do: false
   def available?(Mix.Dep[status: { :diverged, _ }]),    do: false
   def available?(Mix.Dep[status: { :unavailable, _ }]), do: false
   def available?(_), do: true
