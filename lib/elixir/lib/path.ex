@@ -43,7 +43,7 @@ defmodule Path do
 
   @doc """
   Builds a path from `relative_to` to `path`. If `path` is already
-  an absolute path, `relative_to` is ignored. See also `relative/2`.
+  an absolute path, `relative_to` is ignored. See also `relative_to/2`.
 
   Unlike `expand/2`, no attempt is made to
   resolve `..`, `.` or `~`.
