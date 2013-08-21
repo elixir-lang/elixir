@@ -122,6 +122,13 @@ defmodule KeywordTest do
     assert Keyword.update([a: 1], :b, 11, &1 * 2) == [a: 1, b: 11]
   end
 
+  test :slice do
+    assert Keyword.slice([a: 1, b: 2, c: 3], [:a, :c]) == [a: 1, c: 3]
+    assert Keyword.slice([a: 1, b: 2, c: 3], [:a]) == [a: 1]
+    assert Keyword.slice([a: 1, b: 2, c: 3], [:a, :c, :z]) == [a: 1, c: 3]
+    assert Keyword.slice([a: 1, b: 2, c: 3], []) == []
+  end
+
   defp create_empty_keywords, do: []
   defp create_keywords, do: [first_key: 1, second_key: 2]
 end
