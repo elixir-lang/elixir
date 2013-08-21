@@ -304,6 +304,13 @@ defmodule EnumTest.List do
     assert Enum.chunks([1, 2, 3, 4, 5, 6], 3, 2, []) == [[1, 2, 3], [3, 4, 5], [5, 6]]
     assert Enum.chunks([1, 2, 3, 4, 5], 4, 4, 6..10) == [[1, 2, 3, 4], [5, 6, 7, 8]]
   end
+
+  test :chunks_by do
+    assert Enum.chunks_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1)) == [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
+    assert Enum.chunks_by([1, 2, 3, 4], fn _ -> true end) == [[1, 2, 3, 4]]
+    assert Enum.chunks_by([], fn _ -> true end) == []
+    assert Enum.chunks_by([1], fn _ -> true end) == [[1]]
+  end
 end
 
 defmodule EnumTest.Range do
@@ -640,6 +647,11 @@ defmodule EnumTest.Range do
     assert Enum.chunks(1..6, 2, 3) == [[1, 2], [4, 5]]
     assert Enum.chunks(1..6, 3, 2, []) == [[1, 2, 3], [3, 4, 5], [5, 6]]
     assert Enum.chunks(1..5, 4, 4, 6..10) == [[1, 2, 3, 4], [5, 6, 7, 8]]
+  end
+
+  test :chunks_by do
+    assert Enum.chunks_by(1..4, fn _ -> true end) == [[1, 2, 3, 4]]
+    assert Enum.chunks_by(1..4, &(rem(&1, 2) == 1)) == [[1], [2], [3], [4]]
   end
 end
 
