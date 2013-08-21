@@ -86,12 +86,12 @@ defmodule Mix.Tasks.Compile do
   Returns manifests for all compilers.
   """
   def manifests do
-    Enum.reduce(get_compilers, [], fn(compiler, acc) ->
+    Enum.flat_map(get_compilers, fn(compiler) ->
       module = Mix.Task.get("compile.#{compiler}")
-      if function_exported?(module, :manifest, 0) do
-        [module.manifest|acc]
+      if function_exported?(module, :manifests, 0) do
+        module.manifests
       else
-        acc
+        []
       end
     end)
   end

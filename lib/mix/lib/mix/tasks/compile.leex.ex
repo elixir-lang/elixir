@@ -55,9 +55,8 @@ defmodule Mix.Tasks.Compile.Leex do
   end
 
   @doc """
-  Returns Leex manifest.
+  Returns Leex manifests.
   """
-  def manifest do
-    Path.join(Mix.project[:compile_path], @manifest)
-  end
+  def manifests, do: [manifest]
+  defp manifest, do: Path.join(Mix.project[:compile_path], @manifest)
 end

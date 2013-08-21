@@ -31,8 +31,7 @@ defmodule Mix.Deps.Lock do
   Returns the elixir lock version.
   """
   def elixir_vsn do
-    compile_path = Mix.project[:compile_path]
-    case File.read(Path.join(compile_path, @manifest)) do
+    case File.read(manifest) do
       { :ok, contents } -> contents
       { :error, _ } -> nil
     end

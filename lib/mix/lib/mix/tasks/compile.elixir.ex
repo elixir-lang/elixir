@@ -249,7 +249,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     manifest   = manifest()
     to_compile = Mix.Utils.extract_files(elixirc_paths, compile_exts)
     to_watch   = Mix.Utils.extract_files(elixirc_paths, watch_exts)
-    to_watch   = Mix.Project.config_files ++ [Erlang.manifest] ++ to_watch
+    to_watch   = Mix.Project.config_files ++ Erlang.manifests ++ to_watch
 
     stale = if opts[:force] || path_deps_changed?(manifest) do
       to_compile
@@ -268,11 +268,10 @@ defmodule Mix.Tasks.Compile.Elixir do
   end
 
   @doc """
-  The manifest for this compiler.
+  Returns Elixir manifests.
   """
-  def manifest do
-    Path.join(Mix.project[:compile_path], @manifest)
-  end
+  def manifests, do: [manifest]
+  defp manifest, do: Path.join(Mix.project[:compile_path], @manifest)
 
   @doc """
   Compiles stale Elixir files.

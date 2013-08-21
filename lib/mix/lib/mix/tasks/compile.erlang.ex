@@ -93,11 +93,10 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   @doc """
-  Returns the path of the Erlang manifest.
+  Returns Erlang manifests.
   """
-  def manifest do
-    Path.join(Mix.project[:compile_path], @manifest)
-  end
+  def manifests, do: [manifest]
+  defp manifest, do: Path.join(Mix.project[:compile_path], @manifest)
 
   @doc """
   Extracts the extensions from the mappings, automatically
