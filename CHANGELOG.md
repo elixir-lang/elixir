@@ -8,7 +8,7 @@
   * [IEx] Helpers `r` and `c` can handle erlang sources
   * [IO] Added support to specifying a number of bytes to stream to `IO.stream`, `IO.binstream`, `File.stream!` and `File.binstream!`
   * [List] Add `List.replace_at/3`
-  * [Kernel] Convert external functions into quoted expression. This allows record fields to cointain functions as long as they point to an `&Mod.fun/arity`
+  * [Kernel] Convert external functions into quoted expressions. This allows record fields to contain functions as long as they point to an `&Mod.fun/arity`
   * [Macro] Improve printing of the access protocol on `Macro.to_string/1`
   * [Macro] Add `Macro.to_string/2` to support annotations on the converted string
   * [Mix] Automatically recompile a project if the Elixir version changes
@@ -21,7 +21,7 @@
   * [Behaviour] Do not compile behaviour docs if docs are disabled on compilation
   * [ExUnit] Doctests no longer eat too much space and provides detailed reports for poorly indented lines
   * [File] Fix a bug where `File.touch(file, datetime)` was not setting the proper datetime when the file did not exist
-  * [Kernel] Limit `inspect` results to 50 items by default to avoid printint too much data
+  * [Kernel] Limit `inspect` results to 50 items by default to avoid printing too much data
   * [Kernel] Return a readable error on oversized atoms
   * [Kernel] Fix default shutdown of child supervisors to infinity
   * [Kernel] Fix regression when calling a function/macro ending with bang, followed by `do/end` blocks
