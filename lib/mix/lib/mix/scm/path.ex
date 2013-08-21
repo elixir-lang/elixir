@@ -14,7 +14,11 @@ defmodule Mix.SCM.Path do
     cond do
       raw = opts[:path] ->
         Keyword.put opts, :dest, Path.expand(raw)
-      opts[:umbrella] ->
+      opts[:umbrella] || opts[:in_umbrella] ->
+        if opts[:umbrella] do
+          Mix.shell.info ":umbrella option in path dependency is deprecated in favor of :in_umbrella"
+        end
+
         path = "../#{app}"
 
         opts

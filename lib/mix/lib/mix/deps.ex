@@ -52,8 +52,8 @@ defmodule Mix.Deps do
   ## Path options (`:path`)
 
   * `:path` - The path for the dependency
-  * `:umbrella` - When true, sets a path dependency pointing to "../#{app}",
-                  sharing the same environment as the current application
+  * `:in_umbrella` - When true, sets a path dependency pointing to "../#{app}",
+                     sharing the same environment as the current application
 
   ## Internal options
 
