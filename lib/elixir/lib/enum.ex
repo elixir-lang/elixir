@@ -301,6 +301,22 @@ defmodule Enum do
   end
 
   @doc """
+  Forces the realization (evaluation) of a lazy enumerable.
+  It does this by calling Enum.each on the collection and
+  an identity function.
+
+  ## Examples
+
+      Enum.force(Stream.map(["foo", "bar"], IO.puts(&1)))
+      "foo"
+      "bar"
+      #=> :ok
+
+  """
+  @spec force(t) :: :ok
+  def force(collection), do: each(collection, &(&1))
+
+  @doc """
   Returns `true` if the collection is empty, otherwise `false`.
 
   ## Examples
