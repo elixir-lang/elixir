@@ -14,6 +14,7 @@ defmodule Keyword do
   """
 
   @type key :: atom
+  @type keys :: list(atom)
   @type value :: any
   @type t :: [{key, value}]
 
@@ -412,5 +413,22 @@ defmodule Keyword do
 
   def update([], key, initial, _fun) when is_atom(key) do
     [{key, initial}]
+  end
+
+  @doc """
+  Filters the keywords to include only the given keys.
+
+  ## Examples
+
+      iex> Keyword.slice([a: 1, b: 2, c: 3], [:a, :c])
+      [a: 1, c: 3]
+
+      iex> Keyword.slice([a: 1, b: 2], [:a, :x, :y, :z])
+      [a: 1]
+
+  """
+  @spec slice(t, keys) :: t
+  def slice(keywords, keys) do
+    Enum.filter keywords, fn {key, _val} -> Enum.member?(keys, key) end
   end
 end
