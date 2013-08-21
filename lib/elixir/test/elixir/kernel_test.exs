@@ -319,6 +319,13 @@ defmodule KernelTest do
       assert_compile_fail ArgumentError, "unsupported expression in pipeline |> operator: 2", "1 |> 2"
     end
 
+    test "pipeline into function value" do
+      assert 1 |> &twice/1               == 2
+      assert 1 |> twice(&1)              == 2
+      assert 1 |> &twice(&1)             == 2
+      assert 1 |> fn (x) -> twice(x) end == 2
+    end
+
     defp twice(a), do: a * 2
 
     defp local(list) do
