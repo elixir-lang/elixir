@@ -2,7 +2,7 @@
 
 * enhancements
   * [Dict] Add `Dict.Behaviour` as a convenience to create your own dictionaries
-  * [Enum] Add `Enum.reduce/2`, `Enum.flat_map/2`, `Enum.chunks/2` and `Enum.chunks/4`
+  * [Enum] Add `Enum.reduce/2`, `Enum.flat_map/2`, `Enum.chunks/2`, `Enum.chunks/4` and `Enum.chunks_by/2`
   * [Elixir] Include file and line on error report for overriding an existing function/macro
   * [IEx] Allow for strings in `h` helper
   * [IEx] Helpers `r` and `c` can handle erlang sources
@@ -40,6 +40,7 @@
   * [IO] `IO.stream(device)` and `IO.binstream(device)` are deprecated in favor of `IO.stream(device, :line)` and `IO.binstream(device, :line)`
   * [Kernel] `list_to_binary/1`, `binary_to_list/1` and `binary_to_list/3` are deprecated in favor of `String.from_char_list!/1` and `String.to_char_list!/1` for characters and `:binary.list_to_bin/1`, `:binary.bin_to_list/1` and `:binary.bin_to_list/3` for bytes
   * [Macro] `Macro.unescape_binary/1` and `Macro.unescape_binary/2` are deprecated in favor of `Macro.unescape_string/1` and `Macro.unescape_string/2`
+  * [Mix] `:umbrella` option for umbrella paths has been deprecated in favor of `:in_umbrella`
 
 * backwards incompatible changes
   * [OptionParser] `parse` and `parse_head` now returns a tuple with three elements instead of two
