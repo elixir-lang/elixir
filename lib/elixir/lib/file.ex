@@ -884,8 +884,7 @@ defmodule File do
   """
   def cwd() do
     case F.get_cwd do
-      { :ok, base } when is_binary(base) -> { :ok, base }
-      { :ok, base } -> { :ok, to_string(base) }
+      { :ok, base } -> { :ok, String.from_char_list!(base) }
       { :error, _ } = error -> error
     end
   end

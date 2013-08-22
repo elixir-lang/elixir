@@ -243,7 +243,6 @@ defmodule Path do
   """
   def relative_to_cwd(path) do
     case :file.get_cwd do
-      { :ok, base } when is_binary(base) -> relative_to(path, to_char_list(base))
       { :ok, base } -> relative_to(path, base)
       _ -> path
     end

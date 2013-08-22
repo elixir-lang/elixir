@@ -93,7 +93,6 @@ defmodule System do
   """
   def cwd do
     case :file.get_cwd do
-      { :ok, base } when is_binary(base) -> base
       { :ok, base } -> String.from_char_list!(base)
       _ -> nil
     end
@@ -153,9 +152,9 @@ defmodule System do
   """
   def tmp_dir do
     write_env_tmp_dir('TMPDIR') ||
-      write_env_tmp_dir('TEMP')  ||
-      write_env_tmp_dir('TMP') ||
-      write_tmp_dir("/tmp")     ||
+      write_env_tmp_dir('TEMP') ||
+      write_env_tmp_dir('TMP')  ||
+      write_tmp_dir('/tmp')     ||
       ((cwd = cwd()) && write_tmp_dir(cwd))
   end
 
@@ -182,7 +181,8 @@ defmodule System do
         case { elem(info, type_index), elem(info, access_index) } do
           { :directory, access } when access in [:read_write, :write] ->
             String.from_char_list!(dir)
-          _ -> nil
+          _ ->
+            nil
         end
       { :error, _ } -> nil
     end
