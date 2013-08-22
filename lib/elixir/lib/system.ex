@@ -93,7 +93,8 @@ defmodule System do
   """
   def cwd do
     case :file.get_cwd do
-      { :ok, list } -> String.from_char_list!(list)
+      { :ok, base } when is_binary(base) -> base
+      { :ok, base } -> String.from_char_list!(base)
       _ -> nil
     end
   end
