@@ -2,42 +2,41 @@
 %% in between local functions and imports.
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
--export([import/5, special_form/2, format_error/1]).
+-export([import/4, special_form/2, format_error/1]).
 -include("elixir.hrl").
 
-%% IMPORT HELPERS
+%% IMPORT
 
-%% Update the scope to consider the imports for aliases
-%% based on the given options and selector.
+import(Meta, Ref, Opts, S) ->
+  SI =
+    case keyfind(only, Opts) of
+      { only, functions } ->
+        import_functions(Meta, Ref, Opts, S);
+      { only, macros } ->
+        import_macros(true, Meta, Ref, Opts, S);
+      { only, List } when is_list(List) ->
+        import_macros(false, Meta, Ref, Opts, import_functions(Meta, Ref, Opts, S));
+      false ->
+        import_macros(false, Meta, Ref, Opts, import_functions(Meta, Ref, Opts, S))
+    end,
+  record_warn(Meta, Ref, Opts, SI),
+  SI.
 
-import(Meta, Ref, Opts, Selector, S) ->
-  IncludeAll = (Selector == all) or (Selector == default),
+import_functions(Meta, Ref, Opts, S) ->
+  { Functions, Temp } = calculate(Meta, Ref, Opts, S#elixir_scope.functions,
+    S#elixir_scope.macro_functions, fun() -> get_functions(Ref) end, S),
+  S#elixir_scope{functions=Functions, macro_functions=Temp}.
 
-  SF = case IncludeAll or (Selector == functions) of
-    false -> S;
-    true  ->
-      FunctionsFun = fun(K) -> remove_underscored(K andalso Selector, get_functions(Ref)) end,
-      { Functions, TempF } = calculate(Meta, Ref, Opts,
-        S#elixir_scope.functions, S#elixir_scope.macro_functions, FunctionsFun, S),
-      S#elixir_scope{functions=Functions, macro_functions=TempF}
+import_macros(Force, Meta, Ref, Opts, S) ->
+  Existing = fun() ->
+    case Force of
+      true  -> get_macros(Meta, Ref, S);
+      false -> get_optional_macros(Ref)
+    end
   end,
-
-  SM = case IncludeAll or (Selector == macros) of
-    false -> SF;
-    true  ->
-      MacrosFun = fun(K) ->
-        case IncludeAll of
-          true  -> remove_underscored(K andalso Selector, get_optional_macros(Ref));
-          false -> get_macros(Meta, Ref, SF)
-        end
-      end,
-      { Macros, TempM } = calculate(Meta, Ref, Opts,
-        SF#elixir_scope.macros, SF#elixir_scope.macro_macros, MacrosFun, SF),
-      SF#elixir_scope{macros=Macros, macro_macros=TempM}
-  end,
-
-  record_warn(Meta, Ref, Opts, S),
-  SM.
+  { Macros, Temp } = calculate(Meta, Ref, Opts, S#elixir_scope.macros,
+    S#elixir_scope.macro_macros, Existing, S),
+  S#elixir_scope{macros=Macros, macro_macros=Temp}.
 
 record_warn(_Meta, _Ref, _Opts, #elixir_scope{module=nil}) -> false;
 record_warn(Meta, Ref, Opts, #elixir_scope{module=Module}) ->
@@ -47,30 +46,27 @@ record_warn(Meta, Ref, Opts, #elixir_scope{module=Module}) ->
       { warn, true } -> true;
       false -> not lists:keymember(context, 1, Meta)
     end,
-
   elixir_tracker:record_warn(Ref, Warn, ?line(Meta), Module).
 
 %% Calculates the imports based on only and except
 
-calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
-  File = S#elixir_scope.file,
-
+calculate(Meta, Key, Opts, Old, Temp, Existing, S) ->
   New = case keyfind(only, Opts) of
-    { only, Only } ->
+    { only, Only } when is_list(Only) ->
       case Only -- get_exports(Key) of
         [{Name,Arity}|_] ->
           Tuple = { invalid_import, { Key, Name, Arity } },
-          elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
+          elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, Tuple);
         _ ->
-          intersection(Only, AvailableFun(false))
+          intersection(Only, Existing())
       end;
-    false ->
+    _ ->
       case keyfind(except, Opts) of
-        false -> AvailableFun(true);
-        { except, [] } -> AvailableFun(true);
-        { except, Except } ->
+        false -> remove_underscored(Existing());
+        { except, [] } -> remove_underscored(Existing());
+        { except, Except } when is_list(Except) ->
           case keyfind(Key, Old) of
-            false -> AvailableFun(true) -- Except;
+            false -> remove_underscored(Existing()) -- Except;
             {Key,OldImports} -> OldImports -- Except
           end
       end
@@ -81,9 +77,11 @@ calculate(Meta, Key, Opts, Old, Temp, AvailableFun, S) ->
   Final = remove_internals(Set),
 
   case Final of
-    [] -> { keydelete(Key, Old), if_quoted(Meta, Temp, fun(Value) -> keydelete(Key, Value) end) };
+    [] ->
+      { keydelete(Key, Old),
+        if_quoted(Meta, Temp, fun(Value) -> keydelete(Key, Value) end) };
     _  ->
-      ensure_no_special_form_conflict(Meta, File, Key, Final),
+      ensure_no_special_form_conflict(Meta, S#elixir_scope.file, Key, Final),
       { [{ Key, Final }|keydelete(Key, Old)],
         if_quoted(Meta, Temp, fun(Value) -> [{ Key, Final }|keydelete(Key, Value)] end) }
   end.
@@ -180,15 +178,13 @@ intersection([], _All) -> [].
 
 %% Internal funs that are never imported etc.
 
-remove_underscored(default, List) ->
+remove_underscored(List) ->
   lists:filter(fun({ Name, _ }) ->
     case atom_to_list(Name) of
       "_" ++ _ -> false;
       _ -> true
     end
-  end, List);
-
-remove_underscored(_, List) -> List.
+  end, List).
 
 remove_internals(Set) ->
   ordsets:del_element({ module_info, 1 },
@@ -213,7 +209,6 @@ special_form('require',1) -> true;
 special_form('require',2) -> true;
 special_form('import',1) -> true;
 special_form('import',2) -> true;
-special_form('import',3) -> true;
 special_form('__ENV__',0) -> true;
 special_form('__CALLER__',0) -> true;
 special_form('__MODULE__',0) -> true;

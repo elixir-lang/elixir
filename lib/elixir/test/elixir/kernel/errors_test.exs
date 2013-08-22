@@ -338,7 +338,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:2: could not load macros from module :lists",
       '''
       defmodule ErrorsTest do
-        import :macros, :lists
+        import :lists, only: :macros
       end
       '''
   end

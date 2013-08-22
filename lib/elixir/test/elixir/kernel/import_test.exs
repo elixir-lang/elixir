@@ -62,16 +62,11 @@ defmodule Kernel.ImportTest do
     assert __underscore__(3) == 3
   end
 
-  test "import all includes underscores" do
-    import :all, ExplicitUnderscored
-    import Underscored
-    assert __underscore__(2) == 4
-  end
-
   test "import non underscored" do
-    import :all, ExplicitUnderscored
+    import ExplicitUnderscored, only: [__underscore__: 1]
     import Underscored
     assert hello(2) == 2
+    assert __underscore__(3) == 6
   end
 
   defmodule MessedBitwise do
@@ -79,11 +74,11 @@ defmodule Kernel.ImportTest do
     defmacro bor(x, _), do: x
   end
 
-  import :macros, Bitwise
+  import Bitwise, only: :macros
 
   test "conflicing imports with only and except" do
-    import :macros, Bitwise, except: [bnot: 1]
-    import :macros, MessedBitwise, only: [bnot: 1]
+    import Bitwise, only: :macros, except: [bnot: 1]
+    import MessedBitwise, only: [bnot: 1]
     assert bnot(0) == 0
     assert bor(0, 1) == 1
   end

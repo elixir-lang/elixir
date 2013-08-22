@@ -263,23 +263,27 @@ defmodule Kernel.SpecialForms do
 
       import List
 
-  A developer can change this behavior to include all macros and
-  functions, regardless if it starts with an underscore, by passing
-  `:all` as first argument:
+  A developer can filter to import only macros or functions via
+  the only option:
 
-      import :all, List
+      import List, only: :functions
+      import List, only: :macros
 
-  It can also be customized to import only all functions or
-  all macros:
-
-      import :functions, List
-      import :macros, List
-
-  Alternatively, Elixir allows a developer to specify `:only`
-  or `:except` as a fine grained control on what to import (or
-  not):
+  Alternatively, Elixir allows a developer to pass pairs of
+  name/arities to `:only` or `:except` as a fine grained control
+  on what to import (or not):
 
       import List, only: [flatten: 1]
+      import String, except: [split: 2]
+
+  Notice that calling `except` for a previously declared `import`
+  simply filters the previously imported elements. For example:
+
+      import List, only: [flatten: 1, keyfind: 3]
+      import List, except: [flatten: 1]
+
+  After the two import calls above, only `List.keyfind/3` will be
+  imported.
 
   ## Lexical scope
 
@@ -303,12 +307,6 @@ defmodule Kernel.SpecialForms do
   replacing the original `if/2` implementation by our own
   within that specific function. All other functions in that
   module will still be able to use the original one.
-
-  ## Alias/Require shortcut
-
-  All imported modules are also required by default. `import`
-  also accepts `as:` as an option so it automatically sets up
-  an alias. Please check `alias` for more information.
 
   ## Warnings
 

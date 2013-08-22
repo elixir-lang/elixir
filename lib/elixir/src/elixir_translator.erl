@@ -118,34 +118,16 @@ translate_each({ require, Meta, [Ref, KV] }, S) ->
 translate_each({ import, Meta, [Left] }, S) ->
   translate_each({ import, Meta, [Left, []]}, S);
 
-translate_each({ import, Meta, [Left,Opts] }, S) when is_list(Opts) ->
-  translate_each({ import, Meta, [default, Left, Opts]}, S);
-
-translate_each({ import, Meta, [Left,Right] }, S) ->
-  %% Second argument is ambiguous, translate it and take a peek
-  case translate_each(Right, S) of
-    { { atom, _, _ }, _ } ->
-      translate_each({ import, Meta, [Left, Right, []]}, S);
-    _ ->
-      translate_each({ import, Meta, [default, Left, Right]}, S)
-  end;
-
-translate_each({ import, Meta, [Left, Right, KV] }, S) ->
+translate_each({ import, Meta, [Ref, KV] }, S) ->
   assert_no_match_or_guard_scope(Meta, import, S),
-  { TSelector, SL } = translate_each(Left, S),
-  { TRef, SR } = translate_each(Right, SL),
-  { TKV, ST }  = translate_opts(Meta, import, [as, only, except, warn], no_alias_opts(KV), SR),
-
-  Selector = case TSelector of
-    { atom, _,  SelectorAtom } -> SelectorAtom;
-    _ -> compile_error(Meta, S#elixir_scope.file, "invalid selector for import, expected a compile time atom")
-  end,
+  { TRef, SR } = translate_each(Ref, S),
+  { TKV, ST }  = translate_opts(Meta, import, [only, except, warn], KV, SR),
 
   case TRef of
-    { atom, _, Old } ->
-      elixir_aliases:ensure_loaded(Meta, Old, ST),
-      SF = elixir_import:import(Meta, Old, TKV, Selector, ST),
-      translate_require(Meta, Old, TKV, SF);
+    { atom, _, Atom } ->
+      elixir_aliases:ensure_loaded(Meta, Atom, ST),
+      SF = elixir_import:import(Meta, Atom, TKV, ST),
+      translate_require(Meta, Atom, TKV, SF);
     _ ->
       compile_error(Meta, S#elixir_scope.file, "invalid name for import, expected a compile time atom or alias")
   end;
