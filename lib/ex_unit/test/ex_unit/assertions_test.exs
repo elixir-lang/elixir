@@ -9,7 +9,7 @@ end
 alias ExUnit.AssertionsTest.Value
 
 defmodule ExUnit.AssertionsTest do
-  use ExUnit.Case, sync: false
+  use ExUnit.Case, async: true
 
   test "assert with true value" do
     true = assert true

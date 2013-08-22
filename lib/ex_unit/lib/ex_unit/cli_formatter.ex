@@ -7,8 +7,8 @@ defmodule ExUnit.CLIFormatter do
 
   import ExUnit.Formatter, only: [format_time: 2, format_test_failure: 3, format_test_case_failure: 3]
 
-  defrecord Config, tests_counter: 0, invalid_counter: 0,
-                    test_failures: [], case_failures: [], trace: false, color: true
+  defrecord Config, tests_counter: 0, invalids_counter: 0, failures_counter: 0,
+                    trace: false, color: true, previous: nil
 
   ## Behaviour
 
@@ -43,10 +43,9 @@ defmodule ExUnit.CLIFormatter do
     { :ok, Config.new(opts) }
   end
 
-  def handle_call({ :suite_finished, run_us, load_us }, _from, config) do
-    print_suite(config.tests_counter, config.invalid_counter,
-                config.test_failures, config.case_failures, run_us, load_us, config)
-    { :stop, :normal, length(config.test_failures), config }
+  def handle_call({ :suite_finished, run_us, load_us }, _from, config = Config[]) do
+    print_suite(config, run_us, load_us)
+    { :stop, :normal, config.failures_counter, config }
   end
 
   def handle_call(reqest, from, config) do
@@ -58,43 +57,47 @@ defmodule ExUnit.CLIFormatter do
     { :noreply, config }
   end
 
-  def handle_cast({ :test_finished, ExUnit.Test[failure: nil] = test }, config) do
+  def handle_cast({ :test_finished, ExUnit.Test[failure: nil] = test }, config = Config[]) do
     if config.trace do
       IO.puts success(trace_test_result(test), config)
     else
       IO.write success(".", config)
     end
-    { :noreply, config.update_tests_counter(&1 + 1) }
+    { :noreply, config.previous(:ok).update_tests_counter(&(&1 + 1)) }
   end
 
-  def handle_cast({ :test_finished, ExUnit.Test[failure: { :invalid, _ }] = test }, config) do
+  def handle_cast({ :test_finished, ExUnit.Test[failure: { :invalid, _ }] = test }, config = Config[]) do
     if config.trace do
       IO.puts invalid(trace_test_result(test), config)
     else
       IO.write invalid("?", config)
     end
-    { :noreply, config.update_tests_counter(&1 + 1).
-        update_invalid_counter(&1 + 1) }
+
+    { :noreply, config.previous(:invalid).update_tests_counter(&(&1 + 1))
+                      .update_invalids_counter(&(&1 + 1)) }
   end
 
   def handle_cast({ :test_finished, test }, config) do
     if config.trace do
       IO.puts failure(trace_test_result(test), config)
-    else
-      IO.write failure("F", config)
     end
-    { :noreply, config.update_tests_counter(&1 + 1).
-        update_test_failures([test|&1]) }
+
+    config = print_test_failure(test, config)
+    { :noreply, config.update_tests_counter(&(&1 + 1)) }
   end
 
   def handle_cast({ :case_started, ExUnit.TestCase[name: name] }, config) do
-    if config.trace, do: IO.puts("\n#{name}")
+    if config.trace do
+      IO.puts("\n#{name}")
+    end
+
     { :noreply, config }
   end
 
   def handle_cast({ :case_finished, test_case }, config) do
     if test_case.failure do
-      { :noreply, config.update_case_failures([test_case|&1]) }
+      config = print_test_case_failure(test_case, config)
+      { :noreply, config }
     else
       { :noreply, config }
     end
@@ -112,6 +115,7 @@ defmodule ExUnit.CLIFormatter do
     case atom_to_binary(name) do
       "test_" <> rest -> rest
       "test " <> rest -> rest
+      rest -> rest
     end
   end
 
@@ -129,40 +133,41 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
-  defp print_suite(counter, 0, [], [], run_us, load_us, config) do
+  defp print_suite(config = Config[], run_us, load_us) do
     IO.write "\n\n"
     IO.puts format_time(run_us, load_us)
-    IO.puts success("#{counter} tests, 0 failures", config)
-  end
 
-  defp print_suite(counter, num_invalids, test_failures, case_failures, run_us, load_us, config) do
-    IO.write "\n\nFailures:\n\n"
+    message = "#{config.tests_counter} tests, #{config.failures_counter} failures"
 
-    num_fails = Enum.reduce Enum.reverse(test_failures), 0, print_test_failure(&1, &2, config)
-    Enum.reduce Enum.reverse(case_failures), num_fails, print_test_case_failure(&1, &2, config)
-
-    IO.puts format_time(run_us, load_us)
-    message = "#{counter} tests, #{num_fails} failures"
-
-    if num_invalids > 0 do
-      message = message <>  ", #{num_invalids} invalid"
+    if config.invalids_counter > 0 do
+      message = message <>  ", #{config.invalids_counter} invalid"
     end
 
     cond do
-      num_fails > 0    -> IO.puts failure(message, config)
-      num_invalids > 0 -> IO.puts invalid(message, config)
-      true             -> IO.puts success(message, config)
+      config.failures_counter > 0 -> IO.puts failure(message, config)
+      config.invalids_counter > 0 -> IO.puts invalid(message, config)
+      true                        -> IO.puts success(message, config)
     end
   end
 
-  defp print_test_failure(test, acc, config) do
-    IO.puts format_test_failure(test, acc + 1, formatter(&1, &2, config))
-    acc + 1
+  defp print_test_failure(test, config) do
+    formatted = format_test_failure(test, config.failures_counter + 1, &formatter(&1, &2, config))
+    print_any_failure formatted, config
   end
 
-  defp print_test_case_failure(test_case, acc, config) do
-    IO.puts format_test_case_failure(test_case, acc + 1, formatter(&1, &2, config))
-    acc + 1
+  defp print_test_case_failure(test_case, config) do
+    formatted = format_test_case_failure(test_case, config.failures_counter + 1, &formatter(&1, &2, config))
+    print_any_failure formatted, config
+  end
+
+  defp print_any_failure(formatted, config = Config[]) do
+    cond do
+      config.trace -> IO.puts ""
+      config.previous != :failure -> IO.puts "\n"
+      true -> :ok
+    end
+    IO.puts formatted
+    config.update_failures_counter(&(&1 + 1)).previous(:failure)
   end
 
   # Color styles
