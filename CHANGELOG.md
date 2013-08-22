@@ -8,9 +8,9 @@
   * [IEx] Allow for strings in `h` helper
   * [IEx] Helpers `r` and `c` can handle erlang sources
   * [IO] Added support to specifying a number of bytes to stream to `IO.stream`, `IO.binstream`, `File.stream!` and `File.binstream!`
-  * [List] Add `List.replace_at/3`
   * [Kernel] Add `is_odd/1` and `is_even/1`
   * [Kernel] Convert external functions into quoted expressions. This allows record fields to contain functions as long as they point to an `&Mod.fun/arity`
+  * [List] Add `List.replace_at/3`
   * [Macro] Improve printing of the access protocol on `Macro.to_string/1`
   * [Macro] Add `Macro.to_string/2` to support annotations on the converted string
   * [Mix] Automatically recompile a project if the Elixir version changes
@@ -27,10 +27,10 @@
   * [Kernel] Return a readable error on oversized atoms
   * [Kernel] Fix default shutdown of child supervisors to `:infinity`
   * [Kernel] Fix regression when calling a function/macro ending with bang, followed by `do/end` blocks
+  * [List] Fix bug on `List.insert_at/3` that added the item at the wrong position for negative indexes
   * [Mix] Fix `Mix.Version` matching on pre-release info
   * [Mix] Ensure `watch_exts` trigger full recompilation on change with `mix compile`
   * [Mix] Fix regression on `mix clean --all`
-  * [List] Fix bug on `List.insert_at/3` that added the item at the wrong position for negative indexes
   * [String] `String.strip/2` now supports removing unicode characters
   * [String] `String.slice/3` still returns the proper result when there is no length to be extracted
   * [System] `System.get_env/0` now returns a list of tuples as previously advertised
