@@ -4,10 +4,12 @@
   * [Dict] Add `Dict.Behaviour` as a convenience to create your own dictionaries
   * [Enum] Add `Enum.reduce/2`, `Enum.flat_map/2`, `Enum.chunks/2`, `Enum.chunks/4` and `Enum.chunks_by/2`
   * [Elixir] Include file and line on error report for overriding an existing function/macro
+  * [ExUnit] Show failures on CLIFormatter as soon as they pop up
   * [IEx] Allow for strings in `h` helper
   * [IEx] Helpers `r` and `c` can handle erlang sources
   * [IO] Added support to specifying a number of bytes to stream to `IO.stream`, `IO.binstream`, `File.stream!` and `File.binstream!`
   * [List] Add `List.replace_at/3`
+  * [Kernel] Add `is_odd/1` and `is_even/1`
   * [Kernel] Convert external functions into quoted expressions. This allows record fields to contain functions as long as they point to an `&Mod.fun/arity`
   * [Macro] Improve printing of the access protocol on `Macro.to_string/1`
   * [Macro] Add `Macro.to_string/2` to support annotations on the converted string
@@ -23,7 +25,7 @@
   * [File] Fix a bug where `File.touch(file, datetime)` was not setting the proper datetime when the file did not exist
   * [Kernel] Limit `inspect` results to 50 items by default to avoid printing too much data
   * [Kernel] Return a readable error on oversized atoms
-  * [Kernel] Fix default shutdown of child supervisors to infinity
+  * [Kernel] Fix default shutdown of child supervisors to `:infinity`
   * [Kernel] Fix regression when calling a function/macro ending with bang, followed by `do/end` blocks
   * [Mix] Fix `Mix.Version` matching on pre-release info
   * [Mix] Ensure `watch_exts` trigger full recompilation on change with `mix compile`
@@ -43,6 +45,7 @@
   * [Mix] `:umbrella` option for umbrella paths has been deprecated in favor of `:in_umbrella`
 
 * backwards incompatible changes
+  * [Kernel] The previous ambiguous import syntax `import :functions, Foo` was removed in favor of `import Foo, only: :functions`
   * [OptionParser] `parse` and `parse_head` now returns a tuple with three elements instead of two
 
 # v0.10.1 (2013-08-03)
