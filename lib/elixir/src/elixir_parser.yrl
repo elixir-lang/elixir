@@ -573,7 +573,7 @@ build_sigil({ sigil, Line, Sigil, Parts, Modifiers }) ->
 build_bin_string({ bin_string, _Line, [H] }) when is_binary(H) -> H;
 build_bin_string({ bin_string, Line, Args }) -> { '<<>>', [{line,Line}], Args }.
 
-build_list_string({ list_string, _Line, [H] }) when is_binary(H) -> unicode:characters_to_list(H);
+build_list_string({ list_string, _Line, [H] }) when is_binary(H) -> elixir_utils:characters_to_list(H);
 build_list_string({ list_string, Line, Args }) ->
   Meta = [{line,Line}],
   { { '.', Meta, ['Elixir.String', 'to_char_list!'] }, Meta, [{ '<<>>', Meta, Args}] }.

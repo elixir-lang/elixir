@@ -3,12 +3,12 @@ defmodule Record.Extractor do
 
   # Retrieve a record definition from an Erlang file using
   # the same lookup as the *include* attribute from Erlang modules.
-  def retrieve(name, from: string) do
-    file = to_char_list(string)
+  def retrieve(name, from: file) when is_binary(file) do
+    file = String.to_char_list!(file)
 
     case :code.where_is_file(file) do
       :non_existing -> realfile = file
-      realfile -> nil
+      realfile -> :ok
     end
 
     retrieve_record(name, realfile)
@@ -16,12 +16,12 @@ defmodule Record.Extractor do
 
   # Retrieve a record definition from an Erlang file using
   # the same lookup as the *include_lib* attribute from Erlang modules.
-  def retrieve(name, from_lib: file) do
-    [app|path] = :filename.split(to_char_list(file))
+  def retrieve(name, from_lib: file) when is_binary(file) do
+    [app|path] = :filename.split(String.to_char_list!(file))
 
-    case :code.lib_dir(to_char_list(app)) do
+    case :code.lib_dir(app) do
       { :error, _ } ->
-        raise ArgumentError, message: "lib file #{to_binary(file)} could not be found"
+        raise ArgumentError, message: "lib file #{file} could not be found"
       libpath ->
         retrieve_record name, :filename.join([libpath|path])
     end
@@ -34,7 +34,7 @@ defmodule Record.Extractor do
     if record = List.keyfind(records, name, 0) do
       parse_record(record, form)
     else
-      raise ArgumentError, message: "no record #{name} found at #{to_binary(file)}"
+      raise ArgumentError, message: "no record #{name} found at #{file}"
     end
   end
 
@@ -51,7 +51,7 @@ defmodule Record.Extractor do
       { :ok, form } ->
         form
       other ->
-        raise "error parsing file #{to_binary(file)}, got: #{inspect(other)}"
+        raise "error parsing file #{file}, got: #{inspect(other)}"
     end
   end
 

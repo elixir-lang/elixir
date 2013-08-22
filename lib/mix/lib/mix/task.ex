@@ -33,7 +33,7 @@ defmodule Mix.Task do
   """
   def load_tasks(paths) do
     Enum.reduce(paths, [], fn(path, matches) ->
-      { :ok, files } = :erl_prim_loader.list_dir(path |> String.to_char_list!)
+      { :ok, files } = :erl_prim_loader.list_dir(path |> to_char_list)
       Enum.reduce(files, matches, match_tasks(&1, &2))
     end)
   end
@@ -146,7 +146,7 @@ defmodule Mix.Task do
   or it is invalid. Check `get/1` for more information.
   """
   def run(task, args // []) do
-    task = to_binary(task)
+    task = to_string(task)
     app = Mix.project[:app]
 
     if Mix.Server.call({ :has_task?, task, app }) do
@@ -187,9 +187,9 @@ defmodule Mix.Task do
   """
   def reenable(task) do
     if Mix.Project.umbrella? do
-      Mix.Server.cast({ :delete_task, to_binary(task) })
+      Mix.Server.cast({ :delete_task, to_string(task) })
     else
-      Mix.Server.cast({ :delete_task, to_binary(task), Mix.project[:app] })
+      Mix.Server.cast({ :delete_task, to_string(task), Mix.project[:app] })
     end
   end
 

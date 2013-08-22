@@ -33,10 +33,10 @@ defmodule Kernel.FnTest do
   end
 
   test "capture macro" do
-    assert (&to_binary/1).(:a) == "a"
-    assert (&to_binary(&1)).(:a) == "a"
-    assert (&Kernel.to_binary/1).(:a) == "a"
-    assert (&Kernel.to_binary(&1)).(:a) == "a"
+    assert (&to_string/1).(:a) == "a"
+    assert (&to_string(&1)).(:a) == "a"
+    assert (&Kernel.to_string/1).(:a) == "a"
+    assert (&Kernel.to_string(&1)).(:a) == "a"
   end
 
   test "local partial application" do

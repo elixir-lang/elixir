@@ -4,7 +4,7 @@ defmodule KernelTest do
   use ExUnit.Case, async: true
 
   doctest Access.List
-  doctest Binary.Chars.List
+  doctest String.Chars.List
   doctest Inspect.Atom
   doctest Inspect.BitString
   doctest Inspect.List

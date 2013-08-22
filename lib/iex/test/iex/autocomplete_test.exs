@@ -44,7 +44,7 @@ defmodule IEx.AutocompleteTest do
   end
 
   test :elixir_submodule_completion do
-    assert expand('Binary.Cha') == {:yes, 'rs.', []}
+    assert expand('String.Cha') == {:yes, 'rs.', []}
   end
 
   test :elixir_submodule_no_completion do

@@ -51,7 +51,7 @@ defmodule URI do
   Takes an enumerable (containing a sequence of two-item tuples)
   and returns a string of the form "k=v&k2=v2..." where keys and values are
   URL encoded as per `encode/1`. Keys and values can be any term
-  that implements the `Binary.Chars` protocol (i.e. can be converted
+  that implements the `String.Chars` protocol (i.e. can be converted
   to a binary).
   """
   def encode_query(l), do: Enum.map_join(l, "&", pair(&1))
@@ -98,7 +98,7 @@ defmodule URI do
   end
 
   defp pair({k, v}) do
-    encode(to_binary(k)) <> "=" <> encode(to_binary(v))
+    encode(to_string(k)) <> "=" <> encode(to_string(v))
   end
 
   @doc """
@@ -207,8 +207,8 @@ defmodule URI do
   end
 end
 
-defimpl Binary.Chars, for: URI.Info do
-  def to_binary(URI.Info[] = uri) do
+defimpl String.Chars, for: URI.Info do
+  def to_string(URI.Info[] = uri) do
     scheme = uri.scheme
 
     if scheme && (port = URI.default_port(scheme)) do

@@ -91,7 +91,7 @@ defmodule Module do
               @compile { :inline, myfun: 1 }
 
               def myfun(arg) do
-                to_binary(arg)
+                to_string(arg)
               end
             end
 
@@ -200,7 +200,7 @@ defmodule Module do
               @on_definition { H, :on_def }
 
               def hello(arg) when is_binary(arg) or is_list(arg) do
-                "Hello" <> to_binary(arg)
+                "Hello" <> to_string(arg)
               end
 
               def hello(_) do
@@ -839,7 +839,7 @@ defmodule Module do
 
   """
   def split(module) do
-    tl(String.split(Binary.Chars.to_binary(module), "."))
+    tl(String.split(String.Chars.to_string(module), "."))
   end
 
   @doc false

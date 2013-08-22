@@ -40,7 +40,7 @@ quoted(Forms, File) when is_binary(File) ->
 file(Relative) when is_binary(Relative) ->
   File = filename:absname(Relative),
   { ok, Bin } = file:read_file(File),
-  string(unicode:characters_to_list(Bin), File).
+  string(elixir_utils:characters_to_list(Bin), File).
 
 %% Compiles a file to the given path (directory).
 
@@ -94,7 +94,7 @@ module(Forms, File, Callback) ->
 module(Forms, File, RawOptions, Bootstrap, Callback) when
     is_binary(File), is_list(Forms), is_list(RawOptions), is_boolean(Bootstrap), is_function(Callback) ->
   { Options, SkipNative } = compile_opts(Forms, RawOptions),
-  Listname = unicode:characters_to_list(File),
+  Listname = elixir_utils:characters_to_list(File),
 
   case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
     {ok, ModuleName, Binary, RawWarnings} ->
@@ -169,7 +169,7 @@ module_form(Fun, Exprs, Line, File, Module, Vars) when
   Relative = elixir_utils:relative_to_cwd(File),
 
   [
-    { attribute, Line, file, { unicode:characters_to_list(File), 1 } },
+    { attribute, Line, file, { elixir_utils:characters_to_list(File), 1 } },
     { attribute, Line, module, Module },
     { attribute, Line, export, [{ Fun, 2 }, { '__RELATIVE__', 0 }] },
     { function, Line, Fun, length(Args), [
@@ -226,7 +226,7 @@ core_main() ->
     <<"lib/elixir/lib/inspect.ex">>,
     <<"lib/elixir/lib/range.ex">>,
     <<"lib/elixir/lib/string.ex">>,
-    <<"lib/elixir/lib/binary/chars.ex">>,
+    <<"lib/elixir/lib/string/chars.ex">>,
     <<"lib/elixir/lib/io.ex">>,
     <<"lib/elixir/lib/path.ex">>,
     <<"lib/elixir/lib/system.ex">>,

@@ -136,13 +136,13 @@ defmodule URITest do
     assert URI.parse("hTtP://google.com").scheme == "http"
   end
 
-  test :to_binary do
-    assert to_binary(URI.parse("http://google.com")) == "http://google.com"
-    assert to_binary(URI.parse("http://google.com:443")) == "http://google.com:443"
-    assert to_binary(URI.parse("https://google.com:443")) == "https://google.com"
-    assert to_binary(URI.parse("http://lol:wut@google.com")) == "http://lol:wut@google.com"
-    assert to_binary(URI.parse("http://google.com/elixir")) == "http://google.com/elixir"
-    assert to_binary(URI.parse("http://google.com?q=lol")) == "http://google.com?q=lol"
-    assert to_binary(URI.parse("http://google.com?q=lol#omg")) == "http://google.com?q=lol#omg"
+  test :to_string do
+    assert to_string(URI.parse("http://google.com")) == "http://google.com"
+    assert to_string(URI.parse("http://google.com:443")) == "http://google.com:443"
+    assert to_string(URI.parse("https://google.com:443")) == "https://google.com"
+    assert to_string(URI.parse("http://lol:wut@google.com")) == "http://lol:wut@google.com"
+    assert to_string(URI.parse("http://google.com/elixir")) == "http://google.com/elixir"
+    assert to_string(URI.parse("http://google.com?q=lol")) == "http://google.com?q=lol"
+    assert to_string(URI.parse("http://google.com?q=lol#omg")) == "http://google.com?q=lol#omg"
   end
 end

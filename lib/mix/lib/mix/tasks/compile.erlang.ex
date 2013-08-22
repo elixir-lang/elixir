@@ -231,7 +231,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     lc file inlist files do
       module = module_from_artifact(file)
-      target = Path.join(dir2, module <> "." <> to_binary(dest_ext))
+      target = Path.join(dir2, module <> "." <> to_string(dest_ext))
 
       if force || Mix.Utils.stale?([file], [target]) do
         { file, module, target }

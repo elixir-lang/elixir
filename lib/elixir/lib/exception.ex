@@ -304,7 +304,7 @@ defmodule Exception do
   """
   def format_file_line(file, line, cwd // nil) do
     if file do
-      file = to_binary(file)
+      file = to_string(file)
       file = if cwd, do: Path.relative_to(file, cwd), else: Path.relative_to_cwd(file)
 
       if line && line != 0 do

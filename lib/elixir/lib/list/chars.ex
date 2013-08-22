@@ -19,7 +19,19 @@ defimpl List.Chars, for: Atom do
 end
 
 defimpl List.Chars, for: BitString do
-  def to_char_list(bitstring), do: bitstring_to_list(bitstring)
+  @doc """
+  Returns the given binary converted to a char list.
+  """
+  def to_char_list(thing) when is_binary(thing) do
+    String.to_char_list!(thing)
+  end
+
+  def to_char_list(thing) do
+    raise Protocol.UndefinedError,
+             protocol: @protocol,
+                value: thing,
+          description: "cannot convert a bitstring to a char list"
+  end
 end
 
 defimpl List.Chars, for: List do

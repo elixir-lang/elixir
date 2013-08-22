@@ -33,7 +33,7 @@ syntax_error(Meta, File, Message) when is_binary(Message) ->
 
 syntax_error(Meta, File, Format, Args)  ->
   Message = io_lib:format(Format, Args),
-  raise(Meta, File, 'Elixir.SyntaxError', unicode:characters_to_binary(Message)).
+  raise(Meta, File, 'Elixir.SyntaxError', elixir_utils:characters_to_binary(Message)).
 
 compile_error(Meta, File, Message) when is_list(Message) ->
   compile_error(Meta, File, iolist_to_binary(Message));
@@ -43,7 +43,7 @@ compile_error(Meta, File, Message) when is_binary(Message) ->
 
 compile_error(Meta, File, Format, Args)  ->
   Message = io_lib:format(Format, Args),
-  raise(Meta, File, 'Elixir.CompileError', unicode:characters_to_binary(Message)).
+  raise(Meta, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message)).
 
 %% Raised on tokenizing/parsing
 
@@ -67,7 +67,7 @@ parse_error(Meta, File, Error, Token) ->
 
   BinToken = if
     Token == [] -> <<>>;
-    true        -> unicode:characters_to_binary(Token)
+    true        -> elixir_utils:characters_to_binary(Token)
   end,
 
   Message = <<BinError / binary, BinToken / binary >>,

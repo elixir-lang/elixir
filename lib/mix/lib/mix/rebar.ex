@@ -99,9 +99,9 @@ defmodule Mix.Rebar do
 
     { ref, source } = case source do
       [""|s]                  -> { [branch: "HEAD"], s }
-      [{ :branch, branch }|s] -> { [branch: to_binary(branch)], s }
-      [{ :tag, tag }|s]       -> { [tag: to_binary(tag)], s }
-      [ref|s]                 -> { [ref: to_binary(ref)], s }
+      [{ :branch, branch }|s] -> { [branch: to_string(branch)], s }
+      [{ :tag, tag }|s]       -> { [tag: to_string(tag)], s }
+      [ref|s]                 -> { [ref: to_string(ref)], s }
       _                       -> { [], [] }
     end
 
@@ -111,7 +111,7 @@ defmodule Mix.Rebar do
       _               -> []
     end
 
-    opts = [{ scm, to_binary(url) }] ++ ref ++ raw
+    opts = [{ scm, to_string(url) }] ++ ref ++ raw
     { app, compile_req(req), opts }
   end
 
@@ -120,7 +120,7 @@ defmodule Mix.Rebar do
   end
 
   defp compile_req(req) do
-    case to_binary(req) |> Regex.compile do
+    case Regex.compile to_string(req) do
       { :ok, re } ->
         re
       { :error, reason } ->

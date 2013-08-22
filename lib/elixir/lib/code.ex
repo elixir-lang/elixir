@@ -118,8 +118,7 @@ defmodule Code do
   end
 
   defp do_eval_string(string, binding, opts) when is_list(binding) do
-    { value, binding, _scope } =
-      :elixir.eval String.to_char_list!(string), binding, opts
+    { value, binding, _scope } = :elixir.eval to_char_list(string), binding, opts
     { value, binding }
   end
 
@@ -216,10 +215,10 @@ defmodule Code do
   `Macro.to_string/1`, which converts a quoted form to a string/binary
   representation.
   """
-  def string_to_quoted(string, opts // []) do
+  def string_to_quoted(string, opts // []) when is_list(opts) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    res  = :elixir_translator.forms(String.to_char_list!(string), line, file, opts)
+    res  = :elixir_translator.forms(to_char_list(string), line, file, opts)
 
     case res do
       { :ok, forms } -> { :ok, unpack_quote(line, forms) }
@@ -235,10 +234,10 @@ defmodule Code do
 
   Check `string_to_quoted/2` for options information.
   """
-  def string_to_quoted!(string, opts // []) do
+  def string_to_quoted!(string, opts // []) when is_list(opts) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    res  = :elixir_translator.forms!(String.to_char_list!(string), line, file, opts)
+    res  = :elixir_translator.forms!(to_char_list(string), line, file, opts)
     unpack_quote(line, res)
   end
 

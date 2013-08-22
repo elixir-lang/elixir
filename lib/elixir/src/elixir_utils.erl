@@ -3,6 +3,7 @@
 -module(elixir_utils).
 -export([elixir_to_erl/1, elixir_to_erl/3,
   get_line/1, split_last/1,
+  characters_to_list/1, characters_to_binary/1,
   cons_to_list/1, list_to_cons/2, list_to_cons/3,
   convert_to_boolean/5, returns_boolean/1,
   file_type/1, file_type/2, relative_to_cwd/1]).
@@ -33,6 +34,22 @@ relative_to_cwd(Path) ->
   case elixir_compiler:get_opt(internal) of
     true  -> Path;
     false -> 'Elixir.Path':relative_to_cwd(Path)
+  end.
+
+characters_to_list(Data) when is_list(Data) ->
+  Data;
+characters_to_list(Data) ->
+  case elixir_compiler:get_opt(internal) of
+    true  -> unicode:characters_to_list(Data);
+    false -> 'Elixir.String':'to_char_list!'(Data)
+  end.
+
+characters_to_binary(Data) when is_binary(Data) ->
+  Data;
+characters_to_binary(Data) ->
+  case elixir_compiler:get_opt(internal) of
+    true  -> unicode:characters_to_binary(Data);
+    false -> 'Elixir.String':'from_char_list!'(Data)
   end.
 
 %% List conversion

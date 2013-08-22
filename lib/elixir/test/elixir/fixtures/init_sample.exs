@@ -1,1 +1,1 @@
-IO.puts to_binary(1 + 2)
+IO.puts to_string(1 + 2)

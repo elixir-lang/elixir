@@ -1058,7 +1058,7 @@ defmodule String do
 
   """
   @spec to_char_list(String.t) :: { :ok, char_list } | { :error, list, binary } | { :incomplete, list, binary }
-  def to_char_list(string) do
+  def to_char_list(string) when is_binary(string) do
     case :unicode.characters_to_list(string) do
       result when is_list(result) ->
         { :ok, result }
@@ -1087,7 +1087,7 @@ defmodule String do
 
   """
   @spec to_char_list!(String.t) :: char_list | no_return
-  def to_char_list!(string) do
+  def to_char_list!(string) when is_binary(string) do
     case :unicode.characters_to_list(string) do
       result when is_list(result) ->
         result
@@ -1112,7 +1112,7 @@ defmodule String do
 
   """
   @spec from_char_list(char_list) :: { :ok, String.t } | { :error, binary, binary } | { :incomplete, binary, binary }
-  def from_char_list(list) do
+  def from_char_list(list) when is_list(list) do
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
         { :ok, result }
@@ -1139,7 +1139,7 @@ defmodule String do
 
   """
   @spec from_char_list!(char_list) :: String.t | no_return
-  def from_char_list!(list) do
+  def from_char_list!(list) when is_list(list) do
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
         result

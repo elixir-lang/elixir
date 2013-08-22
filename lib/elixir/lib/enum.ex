@@ -593,8 +593,8 @@ defmodule Enum do
 
   def join(collection, joiner) when is_binary(joiner) do
     Enumerable.reduce(collection, "", fn
-      entry, ""  -> to_binary(entry)
-      entry, acc -> acc <> joiner <> to_binary(entry)
+      entry, ""  -> to_string(entry)
+      entry, acc -> acc <> joiner <> to_string(entry)
     end)
   end
 
@@ -653,16 +653,9 @@ defmodule Enum do
 
   def map_join(collection, joiner, mapper) when is_binary(joiner) do
     Enumerable.reduce(collection, "", fn
-      entry, ""  -> to_binary(mapper, entry)
-      entry, acc -> acc <> joiner <> to_binary(mapper, entry)
+      entry, ""  -> to_string(mapper, entry)
+      entry, acc -> acc <> joiner <> to_string(mapper, entry)
     end)
-  end
-
-  defp to_binary(mapper, entry) do
-    case mapper.(entry) do
-      x when is_binary(x) -> x
-      o -> Binary.Chars.to_binary(o)
-    end
   end
 
   @doc """
@@ -1312,7 +1305,7 @@ defmodule Enum do
 
   ## Helpers
 
-  @compile { :inline, chunks_n: 5, chunks_step: 4 }
+  @compile { :inline, chunks_n: 5, chunks_step: 4, to_string: 2 }
 
   defp chunks_n(acc, buffer, i, n, step) when i == n do
     acc = [:lists.reverse(buffer)|acc]
@@ -1344,6 +1337,13 @@ defmodule Enum do
   defp do_iterate_and_count(collection) do
     reducer = fn(x, acc) -> { x, acc + 1 } end
     map_reduce(collection, 0, reducer)
+  end
+
+  defp to_string(mapper, entry) do
+    case mapper.(entry) do
+      x when is_binary(x) -> x
+      o -> String.Chars.to_string(o)
+    end
   end
 
   ## Implementations

@@ -61,12 +61,12 @@ defmodule CodeTest do
   end
 
   test :path_manipulation do
-    path = Path.join(__DIR__, "binary")
+    path = __DIR__
     Code.prepend_path path
-    assert String.to_char_list!(path) in :code.get_path
+    assert to_char_list(path) in :code.get_path
 
     Code.delete_path path
-    refute String.to_char_list!(path) in :code.get_path
+    refute to_char_list(path) in :code.get_path
   end
 
   test :file do

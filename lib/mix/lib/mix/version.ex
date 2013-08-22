@@ -269,7 +269,7 @@ defmodule Mix.Version do
 
           { :error, errors } ->
             { :error, Enum.map(errors, fn { :error, reason } ->
-              to_binary(reason)
+              to_string(reason)
             end) }
         end
       else
@@ -399,8 +399,8 @@ defmodule Mix.Version do
       from = Mix.Version.parse(version)
       to   = approximate(version)
 
-      { :andalso, to_condition([:'>=', to_binary(from)]),
-                  to_condition([:'<', to_binary(to)]) }
+      { :andalso, to_condition([:'>=', to_string(from)]),
+                  to_condition([:'<', to_string(to)]) }
     end
 
     defp to_condition([:'>', version | _]) do
@@ -465,20 +465,20 @@ defmodule Mix.Version do
   end
 end
 
-defimpl Binary.Chars, for: Mix.Version.Schema do
-  def to_binary(Mix.Version.Schema[source: source]) do
+defimpl String.Chars, for: Mix.Version.Schema do
+  def to_string(Mix.Version.Schema[source: source]) do
     source
   end
 end
 
 defimpl Inspect, for: Mix.Version.Schema do
   def inspect(self, _opts) do
-    "#Mix.Version.Schema<" <> to_binary(self) <> ">"
+    "#Mix.Version.Schema<" <> to_string(self) <> ">"
   end
 end
 
-defimpl Binary.Chars, for: Mix.Version.Requirement do
-  def to_binary({ _, source, _ }) do
+defimpl String.Chars, for: Mix.Version.Requirement do
+  def to_string({ _, source, _ }) do
     source
   end
 end

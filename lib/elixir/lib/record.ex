@@ -161,18 +161,18 @@ defmodule Record do
       defrecord WeekDate, year: nil, week: nil, week_day: nil
 
   Now we want this date to be represented as a string and this
-  can be done by implementing the `Binary.Chars` protocol for
+  can be done by implementing the `String.Chars` protocol for
   our record:
 
-      defimpl Binary.Chars, for: WeekDate do
-        def to_binary(WeekDate[year: year, week: week, week_day: day]) do
+      defimpl String.Chars, for: WeekDate do
+        def to_string(WeekDate[year: year, week: week, week_day: day]) do
           "#{year}-W#{week}-#{day}"
         end
       end
 
   Now we can explicitly convert our WeekDate:
 
-      to_binary WeekDate[year: 2013, week: 26, week_day: 4]
+      to_string WeekDate[year: 2013, week: 26, week_day: 4]
       "2013-W26-4"
 
   A protocol can be implemented for any record defined via `defrecord`.

@@ -2124,21 +2124,26 @@ defmodule Kernel do
   end
 
   @doc """
-  Convert the argument to a string according to the Binary.Chars protocol.
+  Converts the argument to a string according to the String.Chars protocol.
   This is the function invoked when there is string interpolation.
 
   ## Examples
 
-      iex> to_binary(:foo)
+      iex> to_string(:foo)
       "foo"
 
   """
-
   # If it is a binary at compilation time, simply return it.
-  defmacro to_binary(arg) when is_binary(arg), do: arg
+  defmacro to_string(arg) when is_binary(arg), do: arg
 
-  defmacro to_binary(arg) do
-    quote do: Binary.Chars.to_binary(unquote(arg))
+  defmacro to_string(arg) do
+    quote do: String.Chars.to_string(unquote(arg))
+  end
+
+  @doc false
+  def to_binary(chars) do
+    IO.write "to_binary/1 is deprecated, please use to_string/1 instead\n#{Exception.format_stacktrace}"
+    String.Chars.to_string(chars)
   end
 
   @doc """

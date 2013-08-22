@@ -18,7 +18,7 @@ defmodule IO do
 
   * A list of binaries or a list of char lists (as described above);
 
-  * If none of the above, `to_binary` is invoked on the
+  * If none of the above, `to_string` is invoked on the
     given argument;
 
   """
@@ -273,5 +273,5 @@ defmodule IO do
   defp map_dev(other),   do: other
 
   defp to_iodata(io) when is_list(io) or is_binary(io), do: io
-  defp to_iodata(other), do: to_binary(other)
+  defp to_iodata(other), do: to_string(other)
 end
