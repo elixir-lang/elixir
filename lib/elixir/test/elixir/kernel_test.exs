@@ -450,6 +450,24 @@ defmodule KernelTest do
       end
     end
 
+    test :is_odd do
+      assert is_odd(1) == true
+      assert is_odd(2) == false
+      assert is_odd(3) == true
+      assert is_odd(-1) == true
+      assert is_odd(-2) == false
+      assert is_odd(-3) == true
+    end
+
+    test :is_even do
+      assert is_even(1) == false
+      assert is_even(2) == true
+      assert is_even(3) == false
+      assert is_even(-1) == false
+      assert is_even(-2) == true
+      assert is_even(-3) == false
+    end
+
     defp a_list, do: [1, 2, 3]
     defp a_nil, do: nil
   end
