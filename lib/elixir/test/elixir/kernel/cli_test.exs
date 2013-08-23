@@ -71,7 +71,15 @@ defmodule Kernel.CLI.CompileTest do
 
   test :compile_code do
     fixture = fixture_path "compile_sample.ex"
-    assert elixirc('#{fixture} -o #{tmp_path}') ==
+    assert elixirc('#{fixture} -o #{tmp_path}') == ''
+    assert File.regular?(tmp_path "Elixir.CompileSample.beam")
+  after
+    File.rm(tmp_path("Elixir.CompileSample.beam"))
+  end
+
+  test :compile_code_verbose do
+    fixture = fixture_path "compile_sample.ex"
+    assert elixirc('#{fixture} -o #{tmp_path} --verbose') ==
       'Compiled #{fixture}\n'
     assert File.regular?(tmp_path "Elixir.CompileSample.beam")
   after
