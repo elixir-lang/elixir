@@ -506,7 +506,6 @@ build_tuple(Marker, Args) ->
 
 %% Blocks
 
-build_block([nil])                                      -> { '__block__', [], [nil] };
 build_block([{Op,_,[_]}]=Exprs) when ?rearrange_uop(Op) -> { '__block__', [], Exprs };
 build_block([{unquote_splicing,_,Args}]=Exprs) when
                                       length(Args) =< 2 -> { '__block__', [], Exprs };

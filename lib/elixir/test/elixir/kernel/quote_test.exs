@@ -150,14 +150,6 @@ defmodule Kernel.QuoteTest do
     assert { :->, _, [{[], _, 1}] } = (quote do: (-> 1))
   end
 
-  defmacrop dynamic_opts do
-    [line: 3]
-  end
-
-  test :quote_with_dynamic_opts do
-    assert quote(dynamic_opts, do: bar(1, 2, 3)) == { :bar, [line: 3], [1, 2, 3] }
-  end
-
   test :bind_quoted do
     assert quote(bind_quoted: [foo: 1 + 2], do: foo) == { :__block__, [], [
       { :=, [], [{ :foo, [], Kernel.QuoteTest }, 3] },
@@ -165,8 +157,19 @@ defmodule Kernel.QuoteTest do
     ] }
   end
 
-  test :quote_with_list_block do
+  test :literals do
+    assert (quote do: []) == []
+    assert (quote do: nil) == nil
     assert (quote do [] end) == []
+    assert (quote do nil end) == nil
+  end
+
+  defmacrop dynamic_opts do
+    [line: 3]
+  end
+
+  test :with_dynamic_opts do
+    assert quote(dynamic_opts, do: bar(1, 2, 3)) == { :bar, [line: 3], [1, 2, 3] }
   end
 end
 
