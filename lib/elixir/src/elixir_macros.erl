@@ -190,6 +190,7 @@ translate({Kind, Meta, [Call, Expr]}, S) when ?defs(Kind) ->
   { elixir_def:wrap_definition(Kind, Meta, TCall, TExpr, CheckClauses, SE), SE };
 
 translate({Kind, Meta, [Name, Args, Guards, Expr]}, S) when ?defs(Kind) ->
+  elixir_errors:deprecation(Meta, S#elixir_scope.file, "~ts/4 is deprecated, please use ~ts/2 instead", [Kind, Kind]),
   assert_module_scope(Meta, Kind, S),
   assert_no_function_scope(Meta, Kind, S),
   { TName, SN }   = translate_each(Name, S),

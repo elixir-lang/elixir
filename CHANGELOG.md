@@ -42,6 +42,7 @@
   * [IO] `IO.stream(device)` and `IO.binstream(device)` are deprecated in favor of `IO.stream(device, :line)` and `IO.binstream(device, :line)`
   * [Kernel] `list_to_binary/1`, `binary_to_list/1` and `binary_to_list/3` are deprecated in favor of `String.from_char_list!/1` and `String.to_char_list!/1` for characters and `:binary.list_to_bin/1`, `:binary.bin_to_list/1` and `:binary.bin_to_list/3` for bytes
   * [Kernel] `to_binary/1` is deprecated in favor of `to_string/1`
+  * [Kernel] Deprecate `def/4` and friends in favor of `def/2` with unquote and friends
   * [Macro] `Macro.unescape_binary/1` and `Macro.unescape_binary/2` are deprecated in favor of `Macro.unescape_string/1` and `Macro.unescape_string/2`
   * [Mix] `:umbrella` option for umbrella paths has been deprecated in favor of `:in_umbrella`
 

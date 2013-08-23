@@ -23,16 +23,13 @@ defmodule ModuleTest.ToBeUsed do
   defmacro callback(env) do
     value = Module.get_attribute(env.module, :has_callback)
     quote do
-      name  = :original_value
-      args  = [1]
-      guard = []
-      def name, args, guard, do: unquote(value)
+      def original_value(1), do: unquote(value)
     end
   end
 end
 
 defmodule ModuleTest.ToUse do
-  35 = __ENV__.line # Moving the next line around can make tests fail
+  32 = __ENV__.line # Moving the next line around can make tests fail
   def original_value(2), do: true
   use ModuleTest.ToBeUsed
 end
@@ -62,7 +59,7 @@ defmodule ModuleTest do
   end
 
   test :line_from_macro do
-    assert ModuleTest.ToUse.line == 37
+    assert ModuleTest.ToUse.line == 34
   end
 
   ## Callbacks

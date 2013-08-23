@@ -130,9 +130,9 @@ defmodule ExUnit.DocTest do
   This macro is auto-imported with every `ExUnit.Case`.
   """
   defmacro doctest(mod, opts // []) do
-    quote do
-      lc { name, test } inlist unquote(__MODULE__).__doctests__(unquote(mod), unquote(opts)) do
-        def name, quote(do: [_]), [], do: test
+    quote bind_quoted: binding do
+      lc { name, test } inlist ExUnit.DocTest.__doctests__(mod, opts) do
+        def unquote(name)(_), do: unquote(test)
       end
     end
   end

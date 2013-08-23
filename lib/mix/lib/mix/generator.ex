@@ -75,8 +75,8 @@ defmodule Mix.Generator do
   `_text` that expects no argument.
   """
   defmacro embed_text(name, contents) do
-    quote do
-      defp :"#{unquote(name)}_text", [], [], do: unquote(contents)
+    quote bind_quoted: [name: name, contents: Macro.escape(contents)] do
+      defp unquote(:"#{name}_text")(), do: unquote(contents)
     end
   end
 end

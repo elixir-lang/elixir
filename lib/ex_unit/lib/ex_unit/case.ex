@@ -96,8 +96,7 @@ defmodule ExUnit.Case do
         :"test_#{message}"
       end
 
-      def unquote(message)(unquote(var)), do:
-        unquote(contents)
+      def unquote(message)(unquote(var)), do: unquote(contents)
     end
   end
 end

@@ -1317,38 +1317,7 @@ defmodule Kernel do
   """
   defmacro def(name, do: contents)
 
-  @doc """
-  This macro allows a function to be defined more explicitly
-  by accepting the name, args and guards as different entries.
-
-  Unlike `def/2`, the macro arguments are evaluated
-  and therefore require quoting.
-
-  The `name` must be an atom, the `arguments` a list where each
-  element represents another argument and `guards` a list of
-  clauses, where each clause is disjunct.
-
-  ## Examples
-
-  The most common mistake when using this macro is to pass the
-  arguments without quoting:
-
-      def :some_function, [first_arg, second_arg], is_list(first_arg) do
-        # ...
-      end
-
-  However, the example above will fail because it will attempt to
-  evaluate `[first_arg, second_arg]` and fail because the variable
-  `first_arg` is not defined. Therefore, we need to use quote:
-
-      name   = :some_function
-      args   = quote(do: [first_arg, second_arg])
-      guards = quote(do: is_list(first_arg))
-      exprs  = quote(do: ...)
-
-      def name, args, guards, do: exprs
-
-  """
+  @doc false
   defmacro def(name, args, guards, do: contents)
 
   @doc """
@@ -1372,9 +1341,7 @@ defmodule Kernel do
   """
   defmacro defp(name, do: contents)
 
-  @doc """
-  The same as `def/4` but generates a private function.
-  """
+  @doc false
   defmacro defp(name, args, guards, do: contents)
 
   @doc """
@@ -1398,9 +1365,7 @@ defmodule Kernel do
   """
   defmacro defmacro(name, do: contents)
 
-  @doc """
-  The same as `def/4` but generates a macro.
-  """
+  @doc false
   defmacro defmacro(name, args, guards, do: contents)
 
   @doc """
@@ -1411,9 +1376,7 @@ defmodule Kernel do
   """
   defmacro defmacrop(name, do: contents)
 
-  @doc """
-  The same as `def/4` but generates a private macro.
-  """
+  @doc false
   defmacro defmacrop(name, args, guards, do: contents)
 
   @doc %B"""
@@ -3381,10 +3344,8 @@ defmodule Kernel do
 
   """
   defmacro defdelegate(funs, opts) do
-    quote do
-      funs = unquote(Macro.escape(funs, unquote: true))
-      opts = unquote(opts)
-
+    funs = Macro.escape(funs, unquote: true)
+    quote bind_quoted: [funs: funs, opts: opts] do
       target = Keyword.get(opts, :to) ||
         raise(ArgumentError, message: "Expected to: to be given as argument")
 
@@ -3402,10 +3363,11 @@ defmodule Kernel do
             false -> args
           end
 
-        fun  = Keyword.get(opts, :as, name)
-        body = quote do: unquote(target).unquote(fun)(unquote_splicing(actual_args))
+        fun = Keyword.get(opts, :as, name)
 
-        def name, args, [], do: body
+        def unquote(name)(unquote_splicing(args)) do
+          unquote(target).unquote(fun)(unquote_splicing(actual_args))
+        end
       end
     end
   end

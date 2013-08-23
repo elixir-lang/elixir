@@ -107,9 +107,9 @@ defmodule ExUnit.Callbacks do
   Called before the start of each test.
   """
   defmacro setup(var // quote(do: _), block) do
-    quote do
+    quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_setup_#{length(@ex_unit_setup)}"
-      defp name, [unquote(escape var)], [], unquote(escape block)
+      defp unquote(name)(unquote(var)), unquote(block)
       @ex_unit_setup [name|@ex_unit_setup]
     end
   end
@@ -119,9 +119,9 @@ defmodule ExUnit.Callbacks do
   message, `teardown` will not be run.
   """
   defmacro teardown(var // quote(do: _), block) do
-    quote do
+    quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_teardown_#{length(@ex_unit_teardown)}"
-      defp name, [unquote(escape var)], [], unquote(escape block)
+      defp unquote(name)(unquote(var)), unquote(block)
       @ex_unit_teardown [name|@ex_unit_teardown]
     end
   end
@@ -131,9 +131,9 @@ defmodule ExUnit.Callbacks do
   the current module and before any `setup` callbacks.
   """
   defmacro setup_all(var // quote(do: _), block) do
-    quote do
+    quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_setup_all_#{length(@ex_unit_setup_all)}"
-      defp name, [unquote(escape var)], [], unquote(escape block)
+      defp unquote(name)(unquote(var)), unquote(block)
       @ex_unit_setup_all [name|@ex_unit_setup_all]
     end
   end
@@ -142,9 +142,9 @@ defmodule ExUnit.Callbacks do
   Called once after the last test finishes without emitting an :exit message.
   """
   defmacro teardown_all(var // quote(do: _), block) do
-    quote do
+    quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_teardown_all_#{length(@ex_unit_teardown_all)}"
-      defp name, [unquote(escape var)], [], unquote(escape block)
+      defp unquote(name)(unquote(var)), unquote(block)
       @ex_unit_teardown_all [name|@ex_unit_teardown_all]
     end
   end

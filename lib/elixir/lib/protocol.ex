@@ -406,7 +406,7 @@ defmodule Protocol.DSL do
     type_args = lc _ inlist :lists.seq(2, arity), do: quote(do: term)
     type_args = [quote(do: t) | type_args]
 
-    quote do
+    meta = quote do
       name  = unquote(name)
       arity = unquote(arity)
 
@@ -416,13 +416,17 @@ defmodule Protocol.DSL do
       # signature that will be used by docs
       Kernel.def unquote(name)(unquote_splicing(args))
 
-      { args, body } = Protocol.DSL.args_and_body(__MODULE__, name, arity)
-      Kernel.def unquote(name), args, [], do: body
-
       # Convert the spec to callback if possible,
       # otherwise generate a dummy callback
       Protocol.DSL.callback_from_spec(__MODULE__, name, arity) ||
         @callback unquote(name)(unquote_splicing(type_args)) :: term
     end
+
+    impl = quote bind_quoted: [name: name, arity: arity] do
+      { args, body } = Protocol.DSL.args_and_body(__MODULE__, name, arity)
+      Kernel.def unquote(name)(unquote_splicing(args)), do: unquote(body)
+    end
+
+    [meta, impl]
   end
 end
