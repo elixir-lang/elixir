@@ -39,6 +39,11 @@ defmodule MacroTest do
   test :escape_works_recursively do
     assert [1,{:{}, [], [:a,:b,:c]}, 3] == Macro.escape([1, { :a, :b, :c }, 3])
   end
+  
+  test :escape_improper do
+    assert [{:|, [], [1,2]}] == Macro.escape([1|2])
+    assert [1,{:|, [], [2,3]}] == Macro.escape([1,2|3])
+  end
 
   test :escape_with_unquote do
     contents = quote unquote: false, do: unquote(1)
