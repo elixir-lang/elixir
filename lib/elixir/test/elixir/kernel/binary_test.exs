@@ -96,13 +96,19 @@ bar
     assert <<_a, _b :: size(s)>> = "foo"
   end
 
+  test :pattern_match_with_splice do
+    assert << 1, <<2, 3, 4>>, 5 >> = <<1, 2, 3, 4, 5>>
+  end
+
   test :partial_application do
     assert (<< &1, 2 >>).(1) == << 1, 2 >>
     assert (<< &1, &2 >>).(1, 2) == << 1, 2 >>
     assert (<< &2, &1 >>).(2, 1) == << 1, 2 >>
   end
 
-  test :bitsyntax_with_utf do
+  test :literal do
+    assert <<106, 111, 115, 101>> == << "jose" :: binary >>
+
     assert <<106, 111, 115, 101>> == << "jose" :: utf8 >>
     assert <<106, 111, 115, 101>> == << 'jose' :: utf8 >>
 
