@@ -14,6 +14,7 @@ echo  --no-docs        Do not attach documentation to compiled modules
 echo  --no-debug-info  Do not attach debug info to compiled modules
 echo  --ignore-module-conflict
 echo  --warnings-as-errors Treat warnings as errors and return non-zero exit code
+echo  --verbose        Print informational messages.
 echo.
 echo ** Options marked with (*) can be given more than once
 echo ** Options given after -- are passed down to the executed code
