@@ -6,7 +6,7 @@ defmodule Node do
   @type t :: atom
 
   @doc """
-  Returns the current node. It returns the same as the built-in node().
+  Returns the current node. It returns the same as the built-in `node()`.
   """
   @spec self :: t
   def self do
@@ -14,8 +14,8 @@ defmodule Node do
   end
 
   @doc """
-  Returns true if the local node is alive; that is, if the node can be
-  part of a distributed system. Otherwise, it returns false.
+  Returns `true` if the local node is alive; that is, if the node can be
+  part of a distributed system. Otherwise, it returns `false`.
   """
   @spec alive? :: boolean
   def alive? do
@@ -24,7 +24,7 @@ defmodule Node do
 
   @doc """
   Returns a list of all visible nodes in the system, excluding
-  the local node. Same as list(visible).
+  the local node. Same as `list(:visible)`.
   """
   @spec list :: [t]
   def list do
@@ -45,8 +45,8 @@ defmodule Node do
   end
 
   @doc """
-  Monitors the status of the node. If flag is true, monitoring is
-  turned on. If flag is false, monitoring is turned off.
+  Monitors the status of the node. If `flag` is `true`, monitoring is
+  turned on. If `flag` is `false`, monitoring is turned off.
 
   See http://www.erlang.org/doc/man/erlang.html#monitor_node-2 for more info.
   """
@@ -56,8 +56,8 @@ defmodule Node do
   end
 
   @doc """
-  Behaves as monitor_node/2 except that it allows an extra
-  option to be given, namely :allow_passive_connect.
+  Behaves as `monitor/2` except that it allows an extra
+  option to be given, namely `:allow_passive_connect`.
 
   See http://www.erlang.org/doc/man/erlang.html#monitor_node-3 for more info.
   """
@@ -69,8 +69,8 @@ defmodule Node do
   @doc """
   Forces the disconnection of a node. This will appear to the `node` as if
   the local node has crashed. This BIF is mainly used in the Erlang network
-  authentication protocols. Returns true if disconnection succeeds, otherwise
-  false. If the local node is not alive, the function returns ignored.
+  authentication protocols. Returns `true` if disconnection succeeds, otherwise
+  `false`. If the local node is not alive, the function returns `:ignored`.
 
   See http://www.erlang.org/doc/man/erlang.html#disconnect_node-1 for more info.
   """
@@ -80,8 +80,8 @@ defmodule Node do
   end
 
   @doc """
-  Establishes a connection to Node. Returns true if successful,
-  false if not, and the atom `:ignored` if the local node is not
+  Establishes a connection to `node`. Returns `true` if successful,
+  `false` if not, and the atom `:ignored` if the local node is not
   alive.
 
   See http://erlang.org/doc/man/net_kernel.html#connect_node-1 for more info.
@@ -145,7 +145,7 @@ defmodule Node do
   Returns the pid of a new process started by the application of `fun`
   on `node`. A link is created between the calling process and the
   new process, atomically. If `node` does not exist, a useless pid is returned
-  (and due to the link, an exit signal with exit reason :noconnection will be
+  (and due to the link, an exit signal with exit reason `:noconnection` will be
   received).
   """
   @spec spawn_link(t, (() -> any)) :: pid
@@ -158,7 +158,7 @@ defmodule Node do
   `module.function(args)` on `node`. A link is created between the calling
   process and the new process, atomically. If `node` does not exist, a useless
   pid is returned (and due to the link, an exit signal with exit reason
-  :noconnection will be received).
+  `:noconnection` will be received).
   """
   @spec spawn_link(t, module, atom, [any]) :: pid
   def spawn_link(node, module, fun, args) do
@@ -167,10 +167,10 @@ defmodule Node do
 
   @doc """
   Sets the magic cookie of `node` to the atom `cookie`. The default node
-  is `Node.self`, the local node. If node is the local node, the function also
+  is `Node.self`, the local node. If `node` is the local node, the function also
   sets the cookie of all other unknown nodes to `cookie`.
 
-  This function will raise `FunctionClauseError` if the given node is not alive.
+  This function will raise `FunctionClauseError` if the given `node` is not alive.
   """
   def set_cookie(node // Node.self, cookie) when is_atom(cookie) do
     :erlang.set_cookie(node, cookie)

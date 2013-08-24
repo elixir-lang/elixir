@@ -9,15 +9,15 @@ defmodule String do
   `capitalize/1`, `downcase/1`, `strip/1` are provided by this
   module.
 
-  Besides this module, Elixir provides more low-level
+  In addition to this module, Elixir provides more low-level
   operations that work directly with binaries. Some
   of those can be found in the `Kernel` module, as:
 
-  * `Kernel.binary_part/2` and `Kernelbinary_part/3` - retrieves part of the binary
+  * `Kernel.binary_part/3` - retrieves part of the binary
   * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
   * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
   * Plus a number of conversion functions, like `Kernel.binary_to_atom/2`,
-    `Kernel.binary_to_integer/2`, `Kernel.binary_to_term/1` and their opposite
+    `Kernel.binary_to_integer/2`, `Kernel.binary_to_term/1` and their inverses,
     like `Kernel.integer_to_binary/2`
 
   Finally, the [`:binary` module](http://erlang.org/doc/man/binary.html)
