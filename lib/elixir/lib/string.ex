@@ -890,7 +890,7 @@ defmodule String do
   Converts a string to a float. If successful, returns a
   tuple of the form `{float, remainder of string}`. If unsuccessful,
   returns `:error`. If given an integer value, will return
-  the same value as `to_integer/1`.
+  it as a float.
 
   ## Examples
 
