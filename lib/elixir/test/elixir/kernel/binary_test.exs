@@ -108,6 +108,9 @@ bar
 
   test :literal do
     assert <<106, 111, 115, 101>> == << "jose" :: binary >>
+    assert <<106, 111, 115, 101>> == << "jose" :: bits >>
+    assert <<106, 111, 115, 101>> == << "jose" :: bitstring >>
+    assert <<106, 111, 115, 101>> == << "jose" :: bytes >>
 
     assert <<106, 111, 115, 101>> == << "jose" :: utf8 >>
     assert <<106, 111, 115, 101>> == << 'jose' :: utf8 >>
@@ -120,6 +123,20 @@ bar
 
     assert <<0, 0, 0, 106, 0, 0, 0, 111, 0, 0, 0, 115, 0, 0, 0, 101>> == << "jose" :: utf32 >>
     assert <<0, 0, 0, 106, 0, 0, 0, 111, 0, 0, 0, 115, 0, 0, 0, 101>> == << 'jose' :: utf32 >>
+  end
+
+  test :literal_errors do
+    assert_raise ArgumentError, fn ->
+      Code.eval_string(%b[<< "foo" :: integer >>])
+    end
+
+    assert_raise ArgumentError, fn ->
+      Code.eval_string(%b[<< "foo" :: float >>])
+    end
+
+    assert_raise ArgumentError, fn ->
+      Code.eval_string(%b[<< 'foo' :: binary >>])
+    end
   end
 
   @binary   "new "

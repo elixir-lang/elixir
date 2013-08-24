@@ -122,7 +122,9 @@ types_allow_string([]) -> true;
 types_allow_string(_) -> false.
 
 types_allow_splice(default) -> true;
+types_allow_splice([bytes]) -> true;
 types_allow_splice([binary]) -> true;
+types_allow_splice([bits]) -> true;
 types_allow_splice([bitstring]) -> true;
 types_allow_splice(_) -> false.
 
