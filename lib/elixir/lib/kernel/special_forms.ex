@@ -93,7 +93,7 @@ defmodule Kernel.SpecialForms do
   The utf8, utf16, and utf32 types are for UTF code points. They
   can also be applied to literal strings and char lists:
 
-      iex> <<"foo" :: utf16>>.
+      iex> <<"foo" :: utf16>>
       <<0,102,0,111,0,111>>
 
   The bits type is an alias for bitstring. The bytes type is an
