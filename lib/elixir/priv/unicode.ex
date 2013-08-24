@@ -145,11 +145,7 @@ defmodule String.Unicode do
 
   lc codepoint inlist whitespace do
     defp do_split(unquote(codepoint) <> rest, buffer, acc) do
-      if buffer != "" do
-        do_split(rest, "", [buffer | acc])
-      else
-        do_split(rest, buffer, acc)
-      end
+      do_split(rest, "", [buffer | acc])
     end
   end
 
@@ -158,11 +154,7 @@ defmodule String.Unicode do
   end
 
   defp do_split(<<>>, buffer, acc) do
-    if buffer != "" do
-      [buffer | acc]
-    else
-      acc
-    end
+    [buffer | acc]
   end
 
   # Graphemes

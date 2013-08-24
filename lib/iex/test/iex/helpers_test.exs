@@ -133,7 +133,7 @@ defmodule IEx.HelpersTest do
       assert ["ebin", "lib", "mix.exs", "test"]
              = capture_io(fn -> ls end)
                |> String.split
-               |> Enum.map(String.strip(&1))
+               |> Enum.filter(&(&1 != ""))
                |> Enum.sort
       assert capture_io(fn -> ls "~" end) == capture_io(fn -> ls System.user_home end)
     end
