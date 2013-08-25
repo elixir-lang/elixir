@@ -163,12 +163,17 @@ defmodule String do
   The string is split into as many parts as possible by
   default, unless the `global` option is set to `false`.
 
+  Empty strings are removed from the result, unless the
+  `trim` option is set to `false`.
+
   ## Examples
 
       iex> String.split("a,b,c", ",")
       ["a", "b", "c"]
       iex> String.split("a,b,c", ",", global: false)
       ["a", "b,c"]
+      iex> String.split(" a b c ", " ", trim: false)
+      ["", "a", "b", "c", ""]
 
       iex> String.split("1,2 3,4", [" ", ","])
       ["1", "2", "3", "4"]
@@ -188,12 +193,19 @@ defmodule String do
   def split("", _pattern, _options), do: [""]
 
   def split(binary, pattern, options) when is_regex(pattern) do
-    Regex.split(pattern, binary, global: options[:global])
+    Regex.split(pattern, binary, options)
   end
 
   def split(binary, pattern, options) do
-    opts = if options[:global] != false, do: [:global], else: []
-    :binary.split(binary, pattern, opts)
+    defaults = [global: true, trim: true]
+    options = Keyword.merge(defaults, options)
+
+    option_keys = Enum.filter_map(options, &elem(&1, 1), &elem(&1, 0))
+    splits = :binary.split(binary, pattern, option_keys)
+
+    if options[:trim], do: splits = Enum.filter(splits, &(&1 != ""))
+
+    splits
   end
 
   @doc """
