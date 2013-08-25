@@ -311,6 +311,18 @@ defmodule EnumTest.List do
     assert Enum.chunks_by([], fn _ -> true end) == []
     assert Enum.chunks_by([1], fn _ -> true end) == [[1]]
   end
+
+  test :slice do
+    assert Enum.slice([1,2,3,4,5], 0, 0) == []
+    assert Enum.slice([1,2,3,4,5], 0, 1) == [1]
+    assert Enum.slice([1,2,3,4,5], 0, 2) == [1, 2]
+    assert Enum.slice([1,2,3,4,5], 1, 2) == [2, 3]
+    assert Enum.slice([1,2,3,4,5], 1, 0) == []
+    assert Enum.slice([1,2,3,4,5], 2, 5) == [3, 4, 5]
+    assert Enum.slice([1,2,3,4,5], 5, 5) == []
+    assert Enum.slice([1,2,3,4,5], -2, 5) == [4, 5]
+    assert Enum.slice([1,2,3,4,5], -3, 1) == [3]
+  end
 end
 
 defmodule EnumTest.Range do
@@ -652,6 +664,18 @@ defmodule EnumTest.Range do
   test :chunks_by do
     assert Enum.chunks_by(1..4, fn _ -> true end) == [[1, 2, 3, 4]]
     assert Enum.chunks_by(1..4, &(rem(&1, 2) == 1)) == [[1], [2], [3], [4]]
+  end
+
+  test :slice do
+    assert Enum.slice(1..5, 0, 0) == []
+    assert Enum.slice(1..5, 0, 1) == [1]
+    assert Enum.slice(1..5, 0, 2) == [1, 2]
+    assert Enum.slice(1..5, 1, 2) == [2, 3]
+    assert Enum.slice(1..5, 1, 0) == []
+    assert Enum.slice(1..5, 2, 5) == [3, 4, 5]
+    assert Enum.slice(1..5, 5, 5) == []
+    assert Enum.slice(1..5, -2, 5) == [4, 5]
+    assert Enum.slice(1..5, -3, 1) == [3]
   end
 end
 
