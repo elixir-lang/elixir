@@ -25,6 +25,12 @@ defmodule Kernel.FnTest do
     assert (&atl(&1)).(:a) == 'a'
   end
 
+  test "capture local with question mark" do
+    assert (&is_a?/2).(:atom, :a)
+    assert (&(is_a?/2)).(:atom, :a)
+    assert (&is_a?(&1, &2)).(:atom, :a)
+  end
+
   test "capture imported" do
     assert (&atom_to_list/1).(:a) == 'a'
     assert (&(atom_to_list/1)).(:a) == 'a'
@@ -113,6 +119,9 @@ defmodule Kernel.FnTest do
       "&local/arity or a capture containing at least one argument as &1, got: foo()",
       "&foo()"
   end
+
+  defp is_a?(:atom, atom) when is_atom(atom), do: true
+  defp is_a?(_, _), do: false
 
   defp atl(arg) do
     :erlang.atom_to_list arg

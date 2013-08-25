@@ -3,6 +3,14 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule KernelTest do
   use ExUnit.Case, async: true
 
+  test :vars do
+    foo? = true
+    assert foo?
+
+    bar! = false
+    refute bar!
+  end
+
   test :match do
     assert ("abcd" =~ %r/c(d)/) == true
     assert ("abcd" =~ %r/e/) == false

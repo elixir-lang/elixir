@@ -507,7 +507,7 @@ tokenize([Space, Sign, NotMarker|T], Line, Scope, [{ Identifier, _, _ } = H|Toke
     ?is_horizontal_space(Space),
     not(?is_space(NotMarker)),
     NotMarker /= $(, NotMarker /= $+, NotMarker /= $-, NotMarker /= $>,
-    Identifier == identifier orelse Identifier == punctuated_identifier ->
+    Identifier == identifier ->
   Rest = [NotMarker|T],
   tokenize(Rest, Line, Scope, [{ dual_op, Line, list_to_atom([Sign]) }, setelement(1, H, op_identifier)|Tokens]);
 
@@ -787,21 +787,17 @@ tokenize_identifier(Rest, Acc) ->
 tokenize_any_identifier(String, Line, Scope, Tokens) ->
   { Rest, Identifier } = tokenize_identifier(String, []),
 
-  case Rest of
-    [H|T] when H == $?; H == $! ->
-      case unsafe_to_atom(Identifier ++ [H], Line, Scope) of
-        { error, _ } = Error ->
-          Error;
-        Atom ->
-          tokenize_kw_or_other(T, punctuated_identifier, Line, Atom, Tokens)
-      end;
-    _ ->
-      case unsafe_to_atom(Identifier, Line, Scope) of
-        { error, _ } = Error ->
-          Error;
-        Atom ->
-          tokenize_kw_or_other(Rest, identifier, Line, Atom, Tokens)
-      end
+  { AllIdentifier, AllRest } =
+    case Rest of
+      [H|T] when H == $?; H == $! -> { Identifier ++ [H], T };
+      _ -> { Identifier, Rest }
+    end,
+
+  case unsafe_to_atom(AllIdentifier, Line, Scope) of
+    { error, _ } = Error ->
+      Error;
+    Atom ->
+      tokenize_kw_or_other(AllRest, identifier, Line, Atom, Tokens)
   end.
 
 tokenize_kw_or_other([$:,H|T], _Kind, Line, Atom, _Tokens) when ?is_space(H) ->
@@ -905,8 +901,7 @@ terminator('<<') -> '>>'.
 check_keyword(_Line, _Atom, [{ '.', _ }|_]) ->
   nomatch;
 
-check_keyword(Line, do, [{ Identifier, Line, Atom }|T]) when
-    Identifier == identifier; Identifier == punctuated_identifier ->
+check_keyword(Line, do, [{ Identifier, Line, Atom }|T]) when Identifier == identifier ->
   { ok, [{ do, Line }, { do_identifier, Line, Atom }|T] };
 
 check_keyword(Line, do, Tokens) ->

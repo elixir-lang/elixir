@@ -74,9 +74,9 @@ comments_test() ->
 
 identifier_test() ->
   [{identifier,1,abc}] = tokenize("abc "),
-  [{punctuated_identifier,1,'abc?'}] = tokenize("abc?"),
-  [{punctuated_identifier,1,'abc!'}] = tokenize("abc!"),
-  [{punctuated_identifier,1,'a0c!'}] = tokenize("a0c!"),
+  [{identifier,1,'abc?'}] = tokenize("abc?"),
+  [{identifier,1,'abc!'}] = tokenize("abc!"),
+  [{identifier,1,'a0c!'}] = tokenize("a0c!"),
   [{paren_identifier,1,'a0c'},{'(',1},{')',1}] = tokenize("a0c()"),
   [{paren_identifier,1,'a0c!'},{'(',1},{')',1}] = tokenize("a0c!()").
 
