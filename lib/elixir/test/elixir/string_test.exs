@@ -43,6 +43,8 @@ defmodule StringTest do
     assert String.split("a,b", %r{,}) == ["a", "b"]
     assert String.split("a,b,c", %r{,}) == ["a", "b", "c"]
     assert String.split("a,b,c", %r{,}, global: false) == ["a", "b,c"]
+    assert String.split("a,b.c ", %r{\W}) == ["a", "b", "c"]
+    assert String.split("a,b.c ", %r{\W}, trim: false) == ["a", "b", "c", ""]
     assert String.split("a,b", %r{\.}) == ["a,b"]
   end
 
