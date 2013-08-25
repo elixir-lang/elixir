@@ -18,10 +18,10 @@ defmodule StringTest do
   test :split do
     assert String.split("") == [""]
     assert String.split("foo bar") == ["foo", "bar"]
-    assert String.split(" foo bar") == ["", "foo", "bar"]
-    assert String.split("foo bar ") == ["foo", "bar", ""]
-    assert String.split(" foo bar ") == ["", "foo", "bar", ""]
-    assert String.split("foo\t\n\v\f\r\sbar\n") == ["foo", "", "", "", "", "",  "bar", ""]
+    assert String.split(" foo bar") == ["foo", "bar"]
+    assert String.split("foo bar ") == ["foo", "bar"]
+    assert String.split(" foo bar ") == ["foo", "bar"]
+    assert String.split("foo\t\n\v\f\r\sbar\n") == ["foo", "bar"]
     assert String.split("foo" <> <<31>> <> "bar") == ["foo", "bar"]
     assert String.split("foo" <> <<194, 133>> <> "bar") == ["foo", "bar"]
 

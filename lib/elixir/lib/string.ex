@@ -140,7 +140,7 @@ defmodule String do
 
   @doc """
   Splits a string on substrings at each Unicode whitespace
-  occurrence.
+  occurrence with leading and trailing whitespace ignored.
 
   ## Examples
 
@@ -149,7 +149,7 @@ defmodule String do
       iex> String.split("foo" <> <<194, 133>> <> "bar")
       ["foo", "bar"]
       iex> String.split(" foo bar ")
-      ["", "foo", "bar", ""]
+      ["foo", "bar"]
 
   """
   @spec split(t) :: [t]
