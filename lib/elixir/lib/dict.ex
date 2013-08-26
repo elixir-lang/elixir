@@ -258,6 +258,9 @@ defmodule Dict do
   already exists in `dict`, the `dict` value is replaced by the `enum`
   value.
 
+  The `enum` must yield tuples with two elements on enumeration,
+  where the first element represents the key and the second the value.
+
   ## Examples
 
       iex> d1 = dict_impl.new([a: 1, b: 2])
@@ -276,6 +279,9 @@ defmodule Dict do
   Merges the given `enum` into `dict`. If one of the `enum` entries
   already exists in `dict`, the given function is invoked to resolve
   the conflict.
+
+  The `enum` must yield tuples with two elements on enumeration,
+  where the first element represents the key and the second the value.
 
   ## Examples
 
