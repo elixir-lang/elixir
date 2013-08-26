@@ -18,10 +18,10 @@ defmodule StringTest do
   test :split do
     assert String.split("") == [""]
     assert String.split("foo bar") == ["foo", "bar"]
-    assert String.split(" foo bar") == ["", "foo", "bar"]
-    assert String.split("foo bar ") == ["foo", "bar", ""]
-    assert String.split(" foo bar ") == ["", "foo", "bar", ""]
-    assert String.split("foo\t\n\v\f\r\sbar\n") == ["foo", "", "", "", "", "",  "bar", ""]
+    assert String.split(" foo bar") == ["foo", "bar"]
+    assert String.split("foo bar ") == ["foo", "bar"]
+    assert String.split(" foo bar ") == ["foo", "bar"]
+    assert String.split("foo\t\n\v\f\r\sbar\n") == ["foo", "bar"]
     assert String.split("foo" <> <<31>> <> "bar") == ["foo", "bar"]
     assert String.split("foo" <> <<194, 133>> <> "bar") == ["foo", "bar"]
 
@@ -29,9 +29,13 @@ defmodule StringTest do
     assert String.split("a,b,c", ",") == ["a", "b", "c"]
     assert String.split("a,b", ".") == ["a,b"]
     assert String.split("1,2 3,4", [" ", ","]) == ["1", "2", "3", "4"]
+    assert String.split(" a b c ", " ") == ["a", "b", "c"]
 
     assert String.split("a,b,c", ",", global: false) == ["a", "b,c"]
     assert String.split("1,2 3,4", [" ", ","], global: false) == ["1", "2 3,4"]
+
+    assert String.split(" a b c ", " ", trim: false) == ["", "a", "b", "c", ""]
+    assert String.split(" a b c ", " ", trim: false, global: false) == ["", "a b c "]
   end
 
   test :split_with_regex do
@@ -39,6 +43,8 @@ defmodule StringTest do
     assert String.split("a,b", %r{,}) == ["a", "b"]
     assert String.split("a,b,c", %r{,}) == ["a", "b", "c"]
     assert String.split("a,b,c", %r{,}, global: false) == ["a", "b,c"]
+    assert String.split("a,b.c ", %r{\W}) == ["a", "b", "c"]
+    assert String.split("a,b.c ", %r{\W}, trim: false) == ["a", "b", "c", ""]
     assert String.split("a,b", %r{\.}) == ["a,b"]
   end
 

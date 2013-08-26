@@ -3621,15 +3621,15 @@ defmodule Kernel do
     case is_binary(string) do
       true ->
         case mod do
-          ?b -> lc p inlist String.split(string), p != "", do: p
-          ?a -> lc p inlist String.split(string), p != "", do: binary_to_atom(p)
-          ?c -> lc p inlist String.split(string), p != "", do: String.to_char_list!(p)
+          ?b -> String.split(string)
+          ?a -> lc p inlist String.split(string), do: binary_to_atom(p)
+          ?c -> lc p inlist String.split(string), do: String.to_char_list!(p)
         end
       false ->
         case mod do
-          ?b -> quote do: lc(p inlist String.split(unquote(string)), p != "", do: p)
-          ?a -> quote do: lc(p inlist String.split(unquote(string)), p != "", do: binary_to_atom(p))
-          ?c -> quote do: lc(p inlist String.split(unquote(string)), p != "", do: String.to_char_list!(p))
+          ?b -> quote do: String.split(unquote(string))
+          ?a -> quote do: lc(p inlist String.split(unquote(string)), do: binary_to_atom(p))
+          ?c -> quote do: lc(p inlist String.split(unquote(string)), do: String.to_char_list!(p))
         end
     end
   end
