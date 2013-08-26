@@ -267,6 +267,28 @@ defmodule Stream do
   end
 
   @doc """
+  Creates a stream that will apply the given function on enumeration and
+  flatten the result.
+
+  ## Examples
+
+      iex> stream = Stream.flat_map([1, 2, 3], fn(x) -> [x, x * 2] end)
+      iex> Enum.to_list(stream)
+      [1, 2, 2, 4, 3, 6]
+
+  """
+
+  @spec flat_map(Enumerable.t, (element -> any)) :: t
+  def flat_map(enumerable, f) do
+    Lazy[enumerable: enumerable,
+         fun: fn(f1) ->
+           fn(entry, acc) ->
+             Enumerable.reduce(f.(entry), acc, f1)
+           end
+         end]
+  end
+
+  @doc """
   Creates a stream that will reject elements according to
   the given function on enumeration.
 
