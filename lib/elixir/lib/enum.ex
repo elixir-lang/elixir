@@ -449,8 +449,8 @@ defmodule Enum do
   end
 
   def find(collection, ifnone, fun) do
-    Enumerable.reduce(collection, ifnone, fn(entry, _) ->
-      if fun.(entry), do: throw({ :enum_find, entry })
+    Enumerable.reduce(collection, ifnone, fn(entry, ifnone) ->
+      if fun.(entry), do: throw({ :enum_find, entry }), else: ifnone
     end)
   catch
     { :enum_find, entry } -> entry
