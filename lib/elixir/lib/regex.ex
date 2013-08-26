@@ -152,7 +152,7 @@ defmodule Regex do
       [foo: "d"]
       iex> Regex.captures(%r/a(?<foo>b)c(?<bar>d)/g, "abcd")
       [foo: "b", bar: "d"]
-      iex> Regex.captures(%r/a(?<foo>b)c(?<bar>d)/g, "efgh") 
+      iex> Regex.captures(%r/a(?<foo>b)c(?<bar>d)/g, "efgh")
       nil
 
   """
@@ -257,24 +257,29 @@ defmodule Regex do
       ["a","b","c"]
       iex> Regex.split(%r/-/, "a-b-c", [parts: 2])
       ["a","b-c"]
-      iex> Regex.split(%r/-/, "abc")              
+      iex> Regex.split(%r/-/, "abc")
       ["abc"]
   """
 
   def split(regex, string, options // [])
 
   def split(regex(re_pattern: compiled), string, options) do
-    defaults = [global: true, trim: true, parts: :infinity, return: return_for(string)]
-    options = Keyword.merge(defaults, options)
+    parts =
+      cond do
+        Keyword.get(options, :global) == false -> 2
+        p = Keyword.get(options, :parts)       -> p
+        true                                   -> :infinity
+      end
 
-    unless options[:global], do: options = Keyword.put(options, :parts, 2)
+    return = Keyword.get(options, :return, return_for(string))
+    opts   = [return: return, parts: parts]
+    splits = :re.split(string, compiled, opts)
 
-    valid_options = Dict.take(options, [:parts, :return])
-    splits = :re.split(string, compiled, valid_options)
-
-    if options[:trim], do: splits = Enum.filter(splits, &(&1 != ""))
-
-    splits
+    if Keyword.get(options, :trim, true) do
+      lc split inlist splits, split != "", do: split
+    else
+      splits
+    end
   end
 
   @doc %B"""

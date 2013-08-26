@@ -145,11 +145,7 @@ defmodule String.Unicode do
 
   lc codepoint inlist whitespace do
     defp do_split(unquote(codepoint) <> rest, buffer, acc) do
-      if buffer != "" do
-        do_split(rest, "", [buffer | acc])
-      else
-        do_split(rest, buffer, acc)
-      end
+      do_split(rest, "", add_buffer_to_acc(buffer, acc))
     end
   end
 
@@ -158,12 +154,13 @@ defmodule String.Unicode do
   end
 
   defp do_split(<<>>, buffer, acc) do
-    if buffer != "" do
-      [buffer | acc]
-    else
-      acc
-    end
+    add_buffer_to_acc(buffer, acc)
   end
+
+  @compile { :inline, add_buffer_to_acc: 2 }
+
+  defp add_buffer_to_acc("", acc),     do: acc
+  defp add_buffer_to_acc(buffer, acc), do: [buffer|acc]
 
   # Graphemes
 

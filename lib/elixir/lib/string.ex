@@ -197,15 +197,14 @@ defmodule String do
   end
 
   def split(binary, pattern, options) do
-    defaults = [global: true, trim: true]
-    options = Keyword.merge(defaults, options)
+    opts = if options[:global] != false, do: [:global], else: []
+    splits  = :binary.split(binary, pattern, opts)
 
-    option_keys = Enum.filter_map(options, &elem(&1, 1), &elem(&1, 0))
-    splits = :binary.split(binary, pattern, option_keys)
-
-    if options[:trim], do: splits = Enum.filter(splits, &(&1 != ""))
-
-    splits
+    if Keyword.get(options, :trim, true) do
+      lc split inlist splits, split != "", do: split
+    else
+      splits
+    end
   end
 
   @doc """
