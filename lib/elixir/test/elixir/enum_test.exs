@@ -408,6 +408,8 @@ defmodule EnumTest.Range do
     range = Range.new(first: 2, last: 6)
     assert Enum.find(range, fn(x) -> rem(x, 2) == 0 end) == 2
     assert Enum.find(range, fn(x) -> rem(x, 2) == 1 end) == 3
+    assert Enum.find(range, fn _ -> false end) == nil
+    assert Enum.find(range, 0, fn _ -> false end) == 0
   end
 
   test :find_value do
