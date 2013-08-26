@@ -1312,11 +1312,11 @@ defmodule Enum do
 
   def slice(_coll, _start, 0), do: []
 
-  def slice(coll, start, count) when is_list(coll) and start >= 0 do
+  def slice(coll, start, count) when is_list(coll) and start >= 0 and count >= 0 do
     do_slice(coll, start, count)
   end
 
-  def slice(coll, start, count) when start >= 0 do
+  def slice(coll, start, count) when start >= 0 and count >= 0 do
     { _, _, list } = Enumerable.reduce(coll, { start, count, [] }, fn
       _entry, { start, count, _list } when start > 0 ->
         { start-1, count, [] }

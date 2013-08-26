@@ -822,11 +822,11 @@ defmodule String do
     end
   end
 
-  def slice(string, start, len) when start >= 0 do
+  def slice(string, start, len) when start >= 0 and len >= 0 do
     do_slice(next_grapheme(string), start, start + len - 1, 0, "")
   end
 
-  def slice(string, start, len) when start < 0 do
+  def slice(string, start, len) when start < 0 and len >= 0 do
     real_start_pos = do_length(next_grapheme(string)) - abs(start)
     case real_start_pos >= 0 do
       true -> do_slice(next_grapheme(string), real_start_pos, real_start_pos + len - 1, 0, "")
