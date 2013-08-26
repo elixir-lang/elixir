@@ -113,13 +113,14 @@ defmodule Regex.BinaryTest do
   end
 
   test :split do
-    assert Regex.split(%r",", "") == [""]
+    assert Regex.split(%r",", "") == []
     assert Regex.split(%r" ", "foo bar baz") == ["foo", "bar", "baz"]
     assert Regex.split(%r" ", "foo bar baz", parts: 2) == ["foo", "bar baz"]
     assert Regex.split(%r"\s", "foobar") == ["foobar"]
     assert Regex.split(%r" ", "foo bar baz") == ["foo", "bar", "baz"]
-    assert Regex.split(%r"=", "key=") == ["key", ""]
-    assert Regex.split(%r"=", "=value") == ["", "value"]
+    assert Regex.split(%r" ", " foo bar baz ", trim: false) == ["", "foo", "bar", "baz", ""]
+    assert Regex.split(%r"=", "key=") == ["key"]
+    assert Regex.split(%r"=", "=value") == ["value"]
   end
 
   test :replace do

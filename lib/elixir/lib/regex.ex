@@ -264,16 +264,17 @@ defmodule Regex do
   def split(regex, string, options // [])
 
   def split(regex(re_pattern: compiled), string, options) do
-    parts =
-      cond do
-        Keyword.get(options, :global) == false -> 2
-        p = Keyword.get(options, :parts)       -> p
-        true                                   -> :infinity
-      end
+    defaults = [global: true, trim: true, parts: :infinity, return: return_for(string)]
+    options = Keyword.merge(defaults, options)
 
-    return = Keyword.get(options, :return, return_for(string))
-    opts   = [return: return, parts: parts]
-    :re.split(string, compiled, opts)
+    unless options[:global], do: options = Keyword.put(options, :parts, 2)
+
+    valid_options = Dict.take(options, [:parts, :return])
+    splits = :re.split(string, compiled, valid_options)
+
+    if options[:trim], do: splits = Enum.filter(splits, &(&1 != ""))
+
+    splits
   end
 
   @doc %B"""

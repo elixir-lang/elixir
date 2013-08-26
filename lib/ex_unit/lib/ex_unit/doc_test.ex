@@ -331,7 +331,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp extract_tests(line, doc) do
-    lines = String.split(doc, %r/\n/) |> adjust_indent
+    lines = String.split(doc, %r/\n/, trim: false) |> adjust_indent
     extract_tests(lines, line, "", "", [], true)
   end
 
