@@ -1310,14 +1310,17 @@ defmodule Enum do
   """
   @spec slice(t, integer, integer) :: list
 
-  def slice(_coll, _start, 0), do: []
+  def slice(coll, start, count) when start < 0 do
+    { list, new_start } = iterate_and_count_oob(coll, start)
+    if new_start >= 0, do: slice(list, new_start, count)
+  end
 
-  def slice(coll, start, count) when is_list(coll) and start >= 0 and count >= 0 do
+  def slice(coll, start, count) when is_list(coll) and start >= 0 and count > 0 do
     do_slice(coll, start, count)
   end
 
-  def slice(coll, start, count) when start >= 0 and count >= 0 do
-    { _, _, list } = Enumerable.reduce(coll, { start, count, [] }, fn
+  def slice(coll, start, count) when start >= 0 and count > 0 do
+    { start, _, list } = Enumerable.reduce(coll, { start, count, [] }, fn
       _entry, { start, count, _list } when start > 0 ->
         { start-1, count, [] }
       entry, { start, count, list } when count > 1 ->
@@ -1325,14 +1328,19 @@ defmodule Enum do
       entry, { _start, _count, list } ->
         throw { :enum_slice, [entry|list] }
     end)
-    :lists.reverse(list)
+
+    if start <= 0, do: :lists.reverse(list)
   catch
     { :enum_slice, list } -> :lists.reverse(list)
   end
 
-  def slice(coll, start, count) when start < 0 do
-    { list, start } = iterate_and_count(coll, start)
-    slice(list, start, count)
+  def slice(coll, start, 0) do
+    Enumerable.reduce(coll, start, fn _, start ->
+      if start > 0, do: start-1, else: throw :enum_slice
+    end)
+    nil
+  catch
+    :enum_slice -> []
   end
 
   ## Helpers
@@ -1355,6 +1363,11 @@ defmodule Enum do
 
   defp chunks_step(acc, buffer, i, _step) do
     { acc, buffer, i }
+  end
+
+  defp iterate_and_count_oob(collection, count) do
+    { list, total_items } = do_iterate_and_count(collection)
+    { list, total_items - abs(count) }
   end
 
   defp iterate_and_count(collection, count) do
@@ -1680,9 +1693,13 @@ defmodule Enum do
 
   ## slice
 
-  defp do_slice([], _start, _count), do: []
+  defp do_slice([], start, _count) do
+    if start == 0, do: []
+  end
 
-  defp do_slice(_list, _start, 0), do: []
+  defp do_slice(list, start, 0) do
+    if start < length(list), do: []
+  end
 
   defp do_slice([h|t], 0, count) do
     [h|do_slice(t, 0, count-1)]
