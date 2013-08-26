@@ -1303,6 +1303,38 @@ defmodule Enum do
     end
   end
 
+  @doc """
+  Returns a subset list of the given collection. Dropping elements
+  until element position `start`, then taking `count` elements.
+  Expects an ordered collection.
+  """
+  @spec slice(t, integer, integer) :: list
+
+  def slice(_coll, _start, 0), do: []
+
+  def slice(coll, start, count) when is_list(coll) and start >= 0 do
+    do_slice(coll, start, count)
+  end
+
+  def slice(coll, start, count) when start >= 0 do
+    { _, _, list } = Enumerable.reduce(coll, { start, count, [] }, fn
+      _entry, { start, count, _list } when start > 0 ->
+        { start-1, count, [] }
+      entry, { start, count, list } when count > 1 ->
+        { start, count-1, [entry|list] }
+      entry, { _start, _count, list } ->
+        throw { :enum_slice, [entry|list] }
+    end)
+    :lists.reverse(list)
+  catch
+    { :enum_slice, list } -> :lists.reverse(list)
+  end
+
+  def slice(coll, start, count) when start < 0 do
+    { list, start } = iterate_and_count(coll, start)
+    slice(list, start, count)
+  end
+
   ## Helpers
 
   @compile { :inline, chunks_n: 5, chunks_step: 4, to_string: 2 }
@@ -1645,6 +1677,20 @@ defmodule Enum do
 
   defp do_zip_next([h|t]), do: { h, t }
   defp do_zip_next([]),    do: { nil, [] }
+
+  ## slice
+
+  defp do_slice([], _start, _count), do: []
+
+  defp do_slice(_list, _start, 0), do: []
+
+  defp do_slice([h|t], 0, count) do
+    [h|do_slice(t, 0, count-1)]
+  end
+
+  defp do_slice([_|t], start, count) do
+    do_slice(t, start-1, count)
+  end
 end
 
 defimpl Enumerable, for: List do
