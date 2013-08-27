@@ -98,6 +98,63 @@ check [the official build status on Travis-CI](https://travis-ci.org/elixir-lang
 With tests running and passing, you are ready to contribute to Elixir and
 send your pull requests.
 
+## Contributing Documentation
+
+Code documentation (`@doc`, `@moduledoc`, `@typedoc`) has a special convention:
+the first paragraph is considered to be a short summary.
+
+For functions, macros and callbacks say what it will do. For example write
+something like:
+
+```elixir
+@doc """
+Return only those elements for which `fun` is true.
+
+...
+"""
+def filter(collection, fun) ...
+```
+
+For modules, records, protocols and types say what it is. For example write
+something like:
+
+```elixir
+@doc """
+Information about a file.
+
+...
+"""
+defrecord File.Stat ...
+```
+
+Keep in mind that the first paragraph might show up in a summary somewhere, long
+texts in the first paragraph create very ugly summaries. As a rule of thumb
+anything longer than 80 characters is too long.
+
+Try to keep unneccesary details out of the first paragraph, it's only there to
+give a user a quick idea of what the documented "thing" does/is. The rest of the
+documentation string can contain the details, for example when a value and when
+`nil` is returned.
+
+If possible include examples, preferably in a form that works with doctests. For
+example:
+
+```elixir
+@doc """
+Return only those elements for which `fun` is true.
+
+## Examples
+
+    iex> Enum.filter([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
+    [2]
+
+"""
+def filter(collection, fun) ...
+```
+
+This makes it easy to test the examples so that they don't go stale and examples
+are often a great help in explaining what a function does. 
+
 ## Pull requests
 
 Good pull requests - patches, improvements, new features - are a fantastic
