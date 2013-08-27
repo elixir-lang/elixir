@@ -222,6 +222,57 @@ defmodule Enum do
   end
 
   @doc """
+  Given a list of enumerables, concatenate the enumerables into a single list.
+
+  ## Examples
+
+      iex> Enum.concat([1..3, 4..6, 7..9])
+      [1,2,3,4,5,6,7,8,9]
+
+      iex> Enum.concat([[1, [2], 3], [4], [5, 6]])
+      [1,[2],3,4,5,6]
+
+  """
+  @spec concat([t]) :: t
+  def concat(enumerables) when is_list(enumerables) do
+    do_concat(enumerables)
+  end
+
+  @doc """
+  Concatenates the enumerable on the right with the enumerable on the left.
+
+  This function produces the same result the `++` operator for lists.
+
+  ## Examples
+
+      iex> Enum.concat(1..3, 4..6)
+      [1,2,3,4,5,6]
+
+      iex> Enum.concat([1, 2, 3], [4, 5, 6])
+      [1,2,3,4,5,6]
+
+  """
+  @spec concat(t, t) :: t
+  def concat(left, right) when is_list(left) and is_list(right) do
+    left ++ right
+  end
+
+  def concat(left, right) do
+    do_concat([left, right])
+  end
+
+  defp do_concat(enumerables, acc // [])
+
+  defp do_concat([enumerable|enumerables], acc) do
+    acc = Enumerable.reduce(enumerable, acc, &[&1|&2])
+    do_concat(enumerables, acc)
+  end
+
+  defp do_concat([], acc) do
+    :lists.reverse(acc)
+  end
+
+  @doc """
   Drops the first `count` items from `collection`.
   Expects an ordered collection.
 
