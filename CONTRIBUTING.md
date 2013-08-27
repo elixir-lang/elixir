@@ -119,12 +119,13 @@ For modules, records, protocols and types say what it is. For example write
 something like:
 
 ```elixir
-@doc """
-Information about a file.
+defrecord File.Stat, [...] do
+  @moduledoc """
+  Information about a file.
 
-...
-"""
-defrecord File.Stat ...
+  ...
+  """
+end
 ```
 
 Keep in mind that the first paragraph might show up in a summary somewhere, long

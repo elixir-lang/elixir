@@ -16,7 +16,7 @@
   * [Macro] Improve printing of the access protocol on `Macro.to_string/1`
   * [Macro] Add `Macro.to_string/2` to support annotations on the converted string
   * [Mix] Automatically recompile a project if the Elixir version changes
-  * [Path] Add `Path.relative_to_cwd`
+  * [Path] Add `Path.relative_to_cwd/2`
   * [Regex] Allow erlang `re` options when compiling Elixir regexes
   * [String] Add regex pattern support to `String.replace/3`
   * [String] Add `String.ljust/2`, `String.rjust/2`, `String.ljust/3` and `String.rjust/3`
