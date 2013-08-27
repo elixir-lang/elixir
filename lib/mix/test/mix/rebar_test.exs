@@ -62,7 +62,7 @@ defmodule Mix.RebarTest do
 
       load_paths = Mix.Deps.all
         |> Enum.map(Mix.Deps.load_paths(&1))
-        |> List.concat
+        |> Enum.concat
 
       assert Enum.any?(load_paths, String.ends_with?(&1, "git_rebar/ebin"))
       assert Enum.any?(load_paths, String.ends_with?(&1, "rebar_dep/ebin"))

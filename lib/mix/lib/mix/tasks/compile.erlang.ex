@@ -136,7 +136,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   def compile_mappings(manifest, mappings, src_ext, dest_ext, force, callback) do
     files = lc { src, dest } inlist mappings do
               extract_targets(src, src_ext, dest, dest_ext, force)
-            end |> List.concat
+            end |> Enum.concat
 
     compile_mappings(manifest, files, callback)
   end

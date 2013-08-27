@@ -322,7 +322,7 @@ defmodule Mix.Deps do
 
     [ opts[:dest] | sub_dirs ]
       |> Enum.map(Path.wildcard(&1))
-      |> List.concat
+      |> Enum.concat
       |> Enum.map(Path.join(&1, "ebin"))
       |> Enum.filter(File.dir?(&1))
   end

@@ -132,6 +132,46 @@ defmodule Stream do
   @type default :: any
 
   @doc """
+  Creates a stream that enumerates each enumerable in an enumerable.
+
+  ## Examples
+
+      iex> stream = Stream.concat([1..3, 4..6, 7..9])
+      iex> Enum.to_list(stream)
+      [1,2,3,4,5,6,7,8,9]
+
+  """
+  @spec concat(Enumerable.t) :: t
+  def concat(enumerables) do
+    &do_concat(enumerables, &1, &2)
+  end
+
+  @doc """
+  Creates a stream that enumerates the first argument, followed by the second.
+
+  ## Examples
+
+      iex> stream = Stream.concat(1..3, 4..6)
+      iex> Enum.to_list(stream)
+      [1,2,3,4,5,6]
+
+      iex> stream1 = Stream.cycle([1, 2, 3])
+      iex> stream2 = Stream.cycle([4, 5, 6])
+      iex> stream = Stream.concat(stream1, stream2)
+      iex> Enum.take(stream, 6)
+      [1,2,3,1,2,3]
+
+  """
+  @spec concat(Enumerable.t, Enumerable.t) :: t
+  def concat(first, second) do
+    &do_concat([first, second], &1, &2)
+  end
+
+  defp do_concat(enumerables, acc, fun) do
+    Enumerable.reduce(enumerables, acc, &Enumerable.reduce(&1, &2, fun))
+  end
+
+  @doc """
   Creates a stream that cycles through the given enumerable,
   infinitely.
 

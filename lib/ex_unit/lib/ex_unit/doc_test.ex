@@ -311,7 +311,7 @@ defmodule ExUnit.DocTest do
 
     docs = lc doc inlist module.__info__(:docs) do
       extract_from_doc(doc)
-    end |> List.concat
+    end |> Enum.concat
 
     moduledocs ++ docs
   end
