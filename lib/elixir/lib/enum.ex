@@ -222,7 +222,7 @@ defmodule Enum do
   end
 
   @doc """
-  Given a list of enumerables, concatenate the enumerables into a single list.
+  Given an enumerable of enumerables, concatenate the enumerables into a single list.
 
   ## Examples
 
@@ -233,8 +233,8 @@ defmodule Enum do
       [1,[2],3,4,5,6]
 
   """
-  @spec concat([t]) :: t
-  def concat(enumerables) when is_list(enumerables) do
+  @spec concat(t) :: t
+  def concat(enumerables) do
     do_concat(enumerables)
   end
 
@@ -261,15 +261,10 @@ defmodule Enum do
     do_concat([left, right])
   end
 
-  defp do_concat(enumerables, acc // [])
-
-  defp do_concat([enumerable|enumerables], acc) do
-    acc = Enumerable.reduce(enumerable, acc, &[&1|&2])
-    do_concat(enumerables, acc)
-  end
-
-  defp do_concat([], acc) do
-    :lists.reverse(acc)
+  defp do_concat(enumerable, acc // []) do
+    fun = &[&1|&2]
+    Enumerable.reduce(enumerable, acc, &Enumerable.reduce(&1, &2, fun))
+      |> :lists.reverse
   end
 
   @doc """

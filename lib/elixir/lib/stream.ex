@@ -132,7 +132,7 @@ defmodule Stream do
   @type default :: any
 
   @doc """
-  Creates a stream that enumerates each enumerable in a list.
+  Creates a stream that enumerates each enumerable in an enumerable.
 
   ## Examples
 
@@ -141,9 +141,9 @@ defmodule Stream do
       [1,2,3,4,5,6,7,8,9]
 
   """
-  @spec concat([Enumerable.t]) :: t
+  @spec concat(Enumerable.t) :: t
   def concat(enumerables) do
-    do_concat(enumerables, &1, &2)
+    &do_concat(enumerables, &1, &2)
   end
 
   @doc """
@@ -155,19 +155,20 @@ defmodule Stream do
       iex> Enum.to_list(stream)
       [1,2,3,4,5,6]
 
+      iex> stream1 = Stream.cycle([1, 2, 3])
+      iex> stream2 = Stream.cycle([4, 5, 6])
+      iex> stream = Stream.concat(stream1, stream2)
+      iex> Enum.take(stream, 6)
+      [1,2,3,1,2,3]
+
   """
   @spec concat(Enumerable.t, Enumerable.t) :: t
   def concat(first, second) do
-    do_concat([first, second], &1, &2)
+    &do_concat([first, second], &1, &2)
   end
 
-  defp do_concat([enumerable|enumerables], acc, fun) do
-    acc = Enumerable.reduce(enumerable, acc, fun)
-    do_concat(enumerables, acc, fun)
-  end
-
-  defp do_concat([], acc, _fun) do
-    acc
+  defp do_concat(enumerables, acc, fun) do
+    Enumerable.reduce(enumerables, acc, &Enumerable.reduce(&1, &2, fun))
   end
 
   @doc """
