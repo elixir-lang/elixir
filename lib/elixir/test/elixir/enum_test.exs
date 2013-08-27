@@ -54,6 +54,14 @@ defmodule EnumTest.List do
     assert Enum.at([2, 4, 6], 4, :none) == :none
   end
 
+  test :concat_1 do
+    assert Enum.concat([[1, [2], 3], [4], [5, 6]]) == [1, [2], 3, 4, 5, 6]
+  end
+
+  test :concat_2 do
+    assert Enum.concat([1, [2], 3], [4, 5]) == [1, [2], 3, 4, 5]
+  end
+
   test :fetch! do
     assert Enum.fetch!([2, 4, 6], 0) == 2
     assert Enum.fetch!([2, 4, 6], 2) == 6
