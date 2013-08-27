@@ -53,7 +53,7 @@ defmodule Mix.Deps.Retriever do
       # The manager must be nil because mix supports mix,
       # rebar and make dependencies/managers.
       (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, from))
-    end) |> List.concat
+    end) |> Enum.concat
   end
 
   defp rebar_children(dir) do
@@ -63,7 +63,7 @@ defmodule Mix.Deps.Retriever do
 
       # Rebar dependencies are always managed by rebar.
       Mix.Rebar.deps(config) |> Enum.map(update(&1, scms, from, :rebar))
-    end) |> List.concat
+    end) |> Enum.concat
   end
 
   defp update(tuple, scms, from, manager // nil) do

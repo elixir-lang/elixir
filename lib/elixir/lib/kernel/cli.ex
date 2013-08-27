@@ -342,7 +342,7 @@ defmodule Kernel.CLI do
     :filelib.ensure_dir(:filename.join(config.output, "."))
 
     files = Enum.map patterns, Path.wildcard(&1)
-    files = Enum.uniq(List.concat(files))
+    files = Enum.uniq(Enum.concat(files))
     files = Enum.filter files, :filelib.is_regular(&1)
 
     if files != [] do

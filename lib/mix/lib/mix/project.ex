@@ -201,7 +201,7 @@ defmodule Mix.Project do
     paths =
       recur(fn _ ->
         Enum.map(config[:load_paths], Path.expand(&1))
-      end) |> List.concat
+      end) |> Enum.concat
     paths ++ compile_paths
   end
 

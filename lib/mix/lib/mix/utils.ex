@@ -141,7 +141,7 @@ defmodule Mix.Utils do
   end
 
   def extract_files(paths, pattern) do
-    files = List.concat(lc path inlist paths do
+    files = Enum.concat(lc path inlist paths do
       if File.regular?(path), do: [path], else: Path.wildcard("#{path}/**/#{pattern}")
     end)
     files |> exclude_files |> Enum.uniq
