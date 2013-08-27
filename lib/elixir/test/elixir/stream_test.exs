@@ -25,6 +25,37 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [3,5,7]
   end
 
+  test :concat_1 do
+    stream = Stream.concat([1..3, [], [4, 5, 6], [], 7..9])
+    assert is_function(stream)
+
+    assert Enum.to_list(stream) == [1,2,3,4,5,6,7,8,9]
+    assert Enum.take(stream, 5) == [1,2,3,4,5]
+
+    stream = Stream.concat([1..3, [4, 5, 6], Stream.cycle(7..100)])
+    assert is_function(stream)
+
+    assert Enum.take(stream, 13) == [1,2,3,4,5,6,7,8,9,10,11,12,13]
+  end
+
+  test :concat_2 do
+    stream = Stream.concat(1..3, 4..6)
+    assert is_function(stream)
+    assert Stream.cycle(stream) |> Enum.take(16) == [1,2,3,4,5,6,1,2,3,4,5,6,1,2,3,4]
+
+    stream = Stream.concat(1..3, [])
+    assert is_function(stream)
+    assert Stream.cycle(stream) |> Enum.take(5) == [1,2,3,1,2]
+
+    stream = Stream.concat(1..6, Stream.cycle(7..9))
+    assert is_function(stream)
+    assert Stream.drop(stream, 3) |> Enum.take(13) == [4,5,6,7,8,9,7,8,9,7,8,9,7]
+
+    stream = Stream.concat(Stream.cycle(1..3), Stream.cycle(4..6))
+    assert is_function(stream)
+    assert Enum.take(stream, 13) == [1,2,3,1,2,3,1,2,3,1,2,3,1]
+  end
+
   test :cycle do
     stream = Stream.cycle([1,2,3])
     assert is_function(stream)
