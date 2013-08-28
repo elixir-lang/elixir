@@ -22,11 +22,12 @@ defmodule IEx.OptionsTest do
              == "\e[34mhello\e[0m\n:ok"
 
       # Test that ANSI escapes in the docs are left alone
-      opts = [colors: [enabled: true, info: "red", eval_result: "red"]]
+      opts = [colors: [enabled: true]]
       assert capture_iex("h IEx.OptionsTest.ansi_escapes", opts)
-             == "\e[31m* def ansi_escapes()\n\e[0m\n\e[31mHello, I have %{red}ANSI%{reset} escapes.\n\e[0m"
+             == "* def ansi_escapes()\n\nHello, I have %{red}ANSI%{reset} escapes."
 
       # Test that ANSI escapes in iex output are left alone
+      opts = [colors: [enabled: true, eval_result: "red", info: "red"]]
       assert capture_iex("\"%{red} %{blue}\"", opts) == "\e[31m\"%{red} %{blue}\"\e[0m"
       assert capture_iex("IO.puts IEx.color(:info, \"%{red} %{blue}\")", opts)
              == "\e[31m%{red} %{blue}\e[0m\n\e[31m:ok\e[0m"
