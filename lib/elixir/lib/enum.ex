@@ -54,19 +54,26 @@ defmodule Enum do
 
   @moduledoc """
   Provides a set of algorithms that enumerate over collections according to the
-  `Enumerable` protocol. Most of the functions in this module have two
-  flavours. If a given collection implements the mentioned protocol (like
-  `List`, for instance), you can do:
+  `Enumerable` protocol:
 
-      Enum.map([1, 2, 3], fn(x) -> x * 2 end)
+      iex> Enum.map([1, 2, 3], fn(x) -> x * 2 end)
+      [2,4,6]
 
-  Depending on the type of the collection, the user-provided function will
-  accept a certain type of argument. For dicts, the argument is always a
-  `{ key, value }` tuple.
+  Some particular types, like dictionaries, yield a specific format on
+  enumeration. For dicts, the argument is always a `{ key, value }` tuple:
 
-  Note that all functions that return a collection return a list regardless of
-  what the type of the input collection was and that many functions will not
-  work with infinite streams.
+      iex> dict = HashDict.new [a: 1, b: 2]
+      iex> Enum.map(dict, fn { k, v } -> { k, v * 2 } end)
+      [a: 2, b: 4]
+
+  Note that the `Enum` module is eager: it always evaluates the whole collection
+  and returns a list out of it. The `Stream` module allows lazy enumeration of
+  collections and also provides infinite streams. Infinite streams needs to be
+  carefully used with `Enum` functions as they can potentially run forever, for
+  example:
+
+      Enum.each Stream.cycle([1,2,3]), &IO.puts(&1)
+
   """
 
   @compile :inline_list_funcs
