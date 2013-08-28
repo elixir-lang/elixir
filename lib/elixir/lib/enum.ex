@@ -67,7 +67,7 @@ defmodule Enum do
       [a: 2, b: 4]
 
   Note that the `Enum` module is eager: it always evaluates the whole collection
-  and returns a list out of it. The `Stream` module allows lazy enumeration of
+  and returns a list as result. The `Stream` module allows lazy enumeration of
   collections and also provides infinite streams. Infinite streams needs to be
   carefully used with `Enum` functions as they can potentially run forever, for
   example:
