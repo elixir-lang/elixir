@@ -249,11 +249,8 @@ defmodule IEx do
   """
   def color(color_name, string) do
     colors = IEx.Options.get(:colors)
-    if colors[:enabled] do
-      IO.ANSI.escape_fragment("%{#{colors[color_name]}}")
-        <> string <> IO.ANSI.escape_fragment("%{reset}")
-    else
-      string
-    end
+    enabled = colors[:enabled]
+    IO.ANSI.escape_fragment("%{#{colors[color_name]}}", enabled)
+      <> string <> IO.ANSI.escape_fragment("%{reset}", enabled)
   end
 end
