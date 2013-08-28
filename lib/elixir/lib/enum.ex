@@ -66,11 +66,14 @@ defmodule Enum do
       iex> Enum.map(dict, fn { k, v } -> { k, v * 2 } end)
       [a: 2, b: 4]
 
-  Note that the `Enum` module is eager: it always evaluates the whole collection
-  and returns a list as result. The `Stream` module allows lazy enumeration of
-  collections and also provides infinite streams. Infinite streams needs to be
-  carefully used with `Enum` functions as they can potentially run forever, for
-  example:
+  Note the functions in the `Enum` module are eager: they always start
+  the enumeration of the given collection. The `Stream` module allows
+  lazy enumeration of collections and also provides infinite streams.
+
+  Since the majority of the functions in `Enum` enumerate the whole
+  collection and return a list as result, infinite streams need to
+  be carefully used with such functions, as they can potentially run
+  forever, for example:
 
       Enum.each Stream.cycle([1,2,3]), &IO.puts(&1)
 
