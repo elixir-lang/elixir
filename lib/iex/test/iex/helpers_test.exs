@@ -20,12 +20,12 @@ defmodule IEx.HelpersTest do
   end
 
   test "h helper" do
-    assert "# IEx.Helpers\n\nWelcome to Interactive Elixir" <> _
+    assert "* IEx.Helpers\n\nWelcome to Interactive Elixir" <> _
            = capture_iex("h")
   end
 
   test "h helper module" do
-    assert "# IEx.Helpers\n\nWelcome to Interactive Elixir" <> _ =
+    assert "* IEx.Helpers\n\nWelcome to Interactive Elixir" <> _ =
            capture_io(fn -> h IEx.Helpers end)
 
     assert capture_io(fn -> h :whatever end) ==
@@ -36,8 +36,8 @@ defmodule IEx.HelpersTest do
   end
 
   test "h helper function" do
-    doc_1 = "* def test_fun_1()\n\nTest function 1\n"
-    doc_2 = "* def test_fun_1(arg)\n\nTest function 2\n"
+    doc_1 = "* def test_fun_1()\n\nTest function 1\n\n"
+    doc_2 = "* def test_fun_1(arg)\n\nTest function 2\n\n"
 
     assert capture_io(fn -> h IEx.HelpersTest.test_fun_1/0 end) == doc_1
     assert capture_io(fn -> h IEx.HelpersTest.test_fun_1/1 end) == doc_2
@@ -47,7 +47,7 @@ defmodule IEx.HelpersTest do
     assert :binary.match(output, doc_2)
 
     assert capture_io(fn -> h pwd end)
-           == "* def pwd()\n\nPrints the current working directory.\n\n"
+           == "* def pwd()\n\nPrints the current working directory.\n\n\n"
   end
 
   test "h helper function string" do
