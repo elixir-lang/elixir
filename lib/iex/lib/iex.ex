@@ -263,4 +263,18 @@ defmodule IEx do
   defp run_after_spawn do
     lc fun inlist Enum.reverse(after_spawn), do: fun.()
   end
+
+  @doc """
+  Returns `string` escaped using the specified color. ANSI escapes in `string`
+  are not processed in any way.
+  """
+  def color(color_name, string) do
+    colors = IEx.Options.get(:colors)
+    if colors[:enabled] do
+      IO.ANSI.escape_fragment("%{#{colors[color_name]}}")
+        <> string <> IO.ANSI.escape_fragment("%{reset}")
+    else
+      string
+    end
+  end
 end
