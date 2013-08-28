@@ -63,6 +63,10 @@ defmodule Enum do
   Depending on the type of the collection, the user-provided function will
   accept a certain type of argument. For dicts, the argument is always a
   `{ key, value }` tuple.
+
+  Note that all functions that return a collection return a list regardless of
+  what the type of the input collection was and that many functions will not
+  work with infinite streams.
   """
 
   @compile :inline_list_funcs
