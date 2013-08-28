@@ -53,14 +53,6 @@ defmodule ListTest do
     assert List.foldr([1, 2, 3, 4], 0, fn x, y -> x - y end) == -2
   end
 
-  test :concat_1 do
-    assert List.concat([[1, [2], 3], [4], [5, 6]]) == [1, [2], 3, 4, 5, 6]
-  end
-
-  test :concat_2 do
-    assert List.concat([1, [2], 3], [4, 5]) == [1, [2], 3, 4, 5]
-  end
-
   test :reverse do
     assert Enum.reverse([1, 2, 3]) == [3, 2, 1]
   end

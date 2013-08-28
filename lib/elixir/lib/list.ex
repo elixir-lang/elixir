@@ -12,31 +12,15 @@ defmodule List do
 
   @compile :inline_list_funcs
 
-  @doc """
-  Given a list of lists, concatenate the sublists into a single list.
-
-  ## Examples
-
-      iex> List.concat([[1, [2], 3], [4], [5, 6]])
-      [1,[2],3,4,5,6]
-
-  """
+  @doc false
   def concat(list) when is_list(list) do
+    IO.write "List.concat/1 is deprecated, please use Enum.concat/1 instead\n#{Exception.format_stacktrace}"
     :lists.append(list)
   end
 
-  @doc """
-  Concatenates the list on the right with the list on the left.
-
-  This function produces the same result the `++` operator. 
-
-  ## Examples
-
-      iex> List.concat([1, 2, 3], [4, 5, 6])
-      [1,2,3,4,5,6]
-
-  """
+  @doc false
   def concat(list, elements) when is_list(list) and is_list(elements) do
+    IO.write "List.concat/2 is deprecated, please use Enum.concat/2 instead\n#{Exception.format_stacktrace}"
     list ++ elements
   end
 
