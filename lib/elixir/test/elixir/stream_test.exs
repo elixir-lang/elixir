@@ -153,6 +153,9 @@ defmodule StreamTest do
 
     nats = Stream.iterate(1, &(&1 + 1))
     assert Enum.to_list(Stream.take(nats, 5)) == [1,2,3,4,5]
+
+    stream = Stream.drop(1..100, 5)
+    assert Stream.take(stream, 5) |> Enum.to_list == [6,7,8,9,10]
   end
 
   test :take_while do
@@ -165,6 +168,9 @@ defmodule StreamTest do
 
     nats = Stream.iterate(1, &(&1 + 1))
     assert Enum.to_list(Stream.take_while(nats, &(&1 <= 5))) == [1,2,3,4,5]
+
+    stream = Stream.drop(1..100, 5)
+    assert Stream.take_while(stream, &(&1 < 11)) |> Enum.to_list == [6,7,8,9,10]
   end
 
   test :with_index do

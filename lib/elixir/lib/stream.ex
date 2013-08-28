@@ -115,7 +115,10 @@ defmodule Stream do
     end
 
     defp do_reduce(Lazy[enumerable: enumerable, fun: f1, acc: side], acc, fun) do
-      do_reduce(enumerable, { acc, side }, f1.(fun)) |> elem(0)
+      case do_reduce(enumerable, { acc, side }, f1.(fun)) do
+        { acc, _ } -> acc
+        acc        -> acc
+      end
     end
 
     defp do_reduce(enumerable, acc, fun) do
