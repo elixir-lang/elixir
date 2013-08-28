@@ -107,7 +107,7 @@ defmodule Supervisor.Behaviour do
 
   * `:modules` - it should be a list with one element `[module]`,
     where module is the name of the callback module only if the
-    child process is a supervisor, gen_server or gen_fsm. If the
+    child process is a supervisor, `gen_server` or `gen_fsm`. If the
     child process is a gen_event, modules should be `:dynamic`.
     Defaults to a list with the given module;
 
