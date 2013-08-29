@@ -133,21 +133,29 @@ defmodule URITest do
   end
 
   test :ipv6_addresses do
-    simple_uri = URI.parse("http://[2607:f3f0:2:0:216:3cff:fef0:174a]/")
-    assert simple_uri.host == "2607:f3f0:2:0:216:3cff:fef0:174a"
-    
-    userinfo_uri = URI.parse("http://user:pass@[2607:f3f0:2:0:216:3cff:fef0:174a]/")
-    assert userinfo_uri.host == "2607:f3f0:2:0:216:3cff:fef0:174a"
-    assert userinfo_uri.userinfo == "user:pass"
+    addrs = [
+      "::1",
+      "2607:f3f0:2:0:216:3cff:fef0:174a",
+      "2051:0db8:2d5a:3521:8313:ffad:1242:8e2e"
+    ]
 
-    port_uri = URI.parse("http://[2607:f3f0:2:0:216:3cff:fef0:174a]:2222/")
-    assert port_uri.host == "2607:f3f0:2:0:216:3cff:fef0:174a"
-    assert port_uri.port == 2222
-    
-    userinfo_port_uri = URI.parse("http://user:pass@[2607:f3f0:2:0:216:3cff:fef0:174a]:2222/")
-    assert userinfo_port_uri.host == "2607:f3f0:2:0:216:3cff:fef0:174a"
-    assert userinfo_port_uri.userinfo == "user:pass"
-    assert userinfo_port_uri.port == 2222
+    Enum.each addrs, fn(addr) ->
+      simple_uri = URI.parse("http://[#{addr}]/")
+      assert simple_uri.host == addr
+
+      userinfo_uri = URI.parse("http://user:pass@[#{addr}]/")
+      assert userinfo_uri.host == addr
+      assert userinfo_uri.userinfo == "user:pass"
+
+      port_uri = URI.parse("http://[#{addr}]:2222/")
+      assert port_uri.host == addr
+      assert port_uri.port == 2222
+      
+      userinfo_port_uri = URI.parse("http://user:pass@[#{addr}]:2222/")
+      assert userinfo_port_uri.host == addr
+      assert userinfo_port_uri.userinfo == "user:pass"
+      assert userinfo_port_uri.port == 2222
+    end
   end
 
   test :downcase_scheme do
