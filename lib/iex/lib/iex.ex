@@ -176,6 +176,8 @@ defmodule IEx do
   @doc false
   def start(config // []) do
     spawn fn ->
+      pager = IEx.Pager.start_link(Process.group_leader)
+      Process.group_leader(pager, self)
       config =
         case config do
           IEx.Config[] -> config
