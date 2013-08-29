@@ -189,10 +189,17 @@ defmodule URI do
     ]
   end
 
+  defp has_ipv6_addr?(s), do: Regex.match?(%r/\[[0-9a-zA-Z:]*\]/, s)
   # Split an authority into its userinfo, host and port parts.
   defp split_authority(s) do
     s = s || ""
-    components = Regex.run %r/(^(.*)@)?([^:]*)(:(\d*))?/, s
+    components_regex = if has_ipv6_addr?(s) do
+      %r/(^(.*)@)?\[([a-zA-Z0-9:]*)\](:(\d*))?/
+    else
+      %r/(^(.*)@)?([^:]*)(:(\d*))?/
+    end
+
+    components = Regex.run components_regex, s
     destructure [_, _, userinfo, host, _, port], nillify(components)
     port = if port, do: binary_to_integer(port)
     { userinfo, host, port }
