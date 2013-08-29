@@ -132,6 +132,24 @@ defmodule URITest do
     assert URI.parse("https")
   end
 
+  test :ipv6_addresses do
+    simple_uri = URI.parse("http://[2607:f3f0:2:0:216:3cff:fef0:174a]/")
+    assert simple_uri.host == "2607:f3f0:2:0:216:3cff:fef0:174a"
+    
+    userinfo_uri = URI.parse("http://user:pass@[2607:f3f0:2:0:216:3cff:fef0:174a]/")
+    assert userinfo_uri.host == "2607:f3f0:2:0:216:3cff:fef0:174a"
+    assert userinfo_uri.userinfo == "user:pass"
+
+    port_uri = URI.parse("http://[2607:f3f0:2:0:216:3cff:fef0:174a]:2222/")
+    assert port_uri.host == "2607:f3f0:2:0:216:3cff:fef0:174a"
+    assert port_uri.port == 2222
+    
+    userinfo_port_uri = URI.parse("http://user:pass@[2607:f3f0:2:0:216:3cff:fef0:174a]:2222/")
+    assert userinfo_port_uri.host == "2607:f3f0:2:0:216:3cff:fef0:174a"
+    assert userinfo_port_uri.userinfo == "user:pass"
+    assert userinfo_port_uri.port == 2222
+  end
+
   test :downcase_scheme do
     assert URI.parse("hTtP://google.com").scheme == "http"
   end
