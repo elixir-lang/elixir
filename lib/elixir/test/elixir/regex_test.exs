@@ -29,6 +29,7 @@ defmodule Regex.BinaryTest do
     { :ok, regex } = Regex.compile("foo")
     assert is_regex(regex)
     assert { :error, _ } = Regex.compile("*foo")
+    assert { :error, _ } = Regex.compile("foo", "y")
   end
 
   test :compile_with_erl_opts do
