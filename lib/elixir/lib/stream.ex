@@ -97,35 +97,35 @@ defmodule Stream do
 
   defimpl Enumerable, for: Lazy do
     def reduce(Lazy[] = lazy, acc, fun) do
-      do_reduce(lazy, acc, fun)
+      do_reduce(lazy, acc, fun, 0)
     end
 
     def count(Lazy[] = lazy) do
-      do_reduce(lazy, 0, fn _, acc -> acc + 1 end)
+      do_reduce(lazy, 0, fn _, acc -> acc + 1 end, 0)
     end
 
     def member?(Lazy[] = lazy, value) do
       do_reduce(lazy, false, fn(entry, _) ->
         if entry === value, do: throw({ :stream_lazy, true }), else: false
-      end)
+      end, 0)
     end
 
-    defp do_reduce(Lazy[enumerable: enumerable, fun: f1, acc: nil], acc, fun) do
-      do_reduce(enumerable, acc, f1.(fun))
+    defp do_reduce(Lazy[enumerable: enumerable, fun: f1, acc: nil], acc, fun, nesting) do
+      do_reduce(enumerable, acc, f1.(fun), nesting)
     end
 
-    defp do_reduce(Lazy[enumerable: enumerable, fun: f1, acc: side], acc, fun) do
-      case do_reduce(enumerable, { acc, side }, f1.(fun)) do
-        { acc, _ } -> acc
-        acc        -> acc
-      end
+    defp do_reduce(Lazy[enumerable: enumerable, fun: f1, acc: side], acc, fun, nesting) do
+      do_reduce(enumerable, { acc, side }, f1.(fun), nesting + 1)
     end
 
-    defp do_reduce(enumerable, acc, fun) do
-      Enumerable.reduce(enumerable, acc, fun)
+    defp do_reduce(enumerable, acc, fun, nesting) do
+      Enumerable.reduce(enumerable, acc, fun) |> remove_nesting(nesting)
     catch
-      { :stream_lazy, acc } -> acc
+      { :stream_lazy, res } -> res
     end
+
+    defp remove_nesting(acc, 0),       do: acc
+    defp remove_nesting(acc, nesting), do: remove_nesting(elem(acc, 0), nesting - 1)
   end
 
   @type t :: Lazy.t | (acc, (element, acc -> acc) -> acc)
@@ -394,8 +394,8 @@ defmodule Stream do
     Lazy[enumerable: enumerable,
          fun: fn(f1) ->
            fn(entry, { acc, n }) ->
-             acc = { f1.(entry, acc), n-1 }
-             if n > 1, do: acc, else: throw { :stream_lazy, acc }
+             res = f1.(entry, acc)
+             if n > 1, do: { res, n-1 }, else: throw { :stream_lazy, res }
            end
          end,
          acc: n]
@@ -420,7 +420,7 @@ defmodule Stream do
              if f.(entry) do
                { f1.(entry, acc), true }
              else
-               throw { :stream_lazy, { acc, false } }
+               throw { :stream_lazy, acc }
              end
            end
          end,
