@@ -134,9 +134,14 @@ defmodule URITest do
 
   test :ipv6_addresses do
     addrs = [
-      "::1",
-      "2607:f3f0:2:0:216:3cff:fef0:174a",
-      "2051:0db8:2d5a:3521:8313:ffad:1242:8e2e"
+      "::",                                      # undefined
+      "::1",                                     # loopback
+      "1080::8:800:200C:417A",                   # unicast
+      "FF01::101",                               # multicast
+      "2607:f3f0:2:0:216:3cff:fef0:174a",        # abbreviated
+      "2607:f3F0:2:0:216:3cFf:Fef0:174A",        # mixed hex case
+      "2051:0db8:2d5a:3521:8313:ffad:1242:8e2e", # complete
+      "::00:192.168.10.184"                      # embedded IPv4
     ]
 
     Enum.each addrs, fn(addr) ->

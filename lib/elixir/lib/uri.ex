@@ -192,7 +192,7 @@ defmodule URI do
   # Split an authority into its userinfo, host and port parts.
   defp split_authority(s) do
     s = s || ""
-    components = Regex.run %r/(^(.*)@)?(\[[a-zA-Z0-9:]*\]|[^:]*)(:(\d*))?/, s
+    components = Regex.run %r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/, s
 
     destructure [_, _, userinfo, host, _, port], nillify(components)
     port = if port, do: binary_to_integer(port)
