@@ -132,6 +132,37 @@ defmodule URITest do
     assert URI.parse("https")
   end
 
+  test :ipv6_addresses do
+    addrs = [
+      "::",                                      # undefined
+      "::1",                                     # loopback
+      "1080::8:800:200C:417A",                   # unicast
+      "FF01::101",                               # multicast
+      "2607:f3f0:2:0:216:3cff:fef0:174a",        # abbreviated
+      "2607:f3F0:2:0:216:3cFf:Fef0:174A",        # mixed hex case
+      "2051:0db8:2d5a:3521:8313:ffad:1242:8e2e", # complete
+      "::00:192.168.10.184"                      # embedded IPv4
+    ]
+
+    Enum.each addrs, fn(addr) ->
+      simple_uri = URI.parse("http://[#{addr}]/")
+      assert simple_uri.host == addr
+
+      userinfo_uri = URI.parse("http://user:pass@[#{addr}]/")
+      assert userinfo_uri.host == addr
+      assert userinfo_uri.userinfo == "user:pass"
+
+      port_uri = URI.parse("http://[#{addr}]:2222/")
+      assert port_uri.host == addr
+      assert port_uri.port == 2222
+      
+      userinfo_port_uri = URI.parse("http://user:pass@[#{addr}]:2222/")
+      assert userinfo_port_uri.host == addr
+      assert userinfo_port_uri.userinfo == "user:pass"
+      assert userinfo_port_uri.port == 2222
+    end
+  end
+
   test :downcase_scheme do
     assert URI.parse("hTtP://google.com").scheme == "http"
   end
