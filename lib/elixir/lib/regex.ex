@@ -281,7 +281,7 @@ defmodule Regex do
     opts   = [return: return, parts: parts]
     splits = :re.split(string, compiled, opts)
 
-    if Keyword.get(options, :trim, true) do
+    if Keyword.get(options, :trim, false) do
       lc split inlist splits, split != "", do: split
     else
       splits
