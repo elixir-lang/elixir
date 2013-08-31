@@ -226,9 +226,9 @@ defmodule Enum do
       :none
 
   """
-  @spec at(t, index) :: element | nil
-  @spec at(t, index, default) :: element | default
-  def at(collection, n, default // nil) when n >= 0 do
+  @spec at(t, integer) :: element | nil
+  @spec at(t, integer, default) :: element | default
+  def at(collection, n, default // nil) do
     case fetch(collection, n) do
       { :ok, h } -> h
       :error     -> default
@@ -398,7 +398,7 @@ defmodule Enum do
       :error
 
   """
-  @spec fetch(t, index) :: { :ok, element } | :error
+  @spec fetch(t, integer) :: { :ok, element } | :error
   def fetch(collection, n) when is_list(collection) and n >= 0 do
     do_fetch(collection, n)
   end
@@ -415,6 +415,11 @@ defmodule Enum do
     :error
   catch
     { :enum_fetch, entry } -> { :ok, entry }
+  end
+
+  def fetch(collection, n) when n < 0 do
+    { list, count } = iterate_and_count_oob(collection, n)
+    if count >= 0, do: fetch(list, count), else: :error
   end
 
   @doc """
@@ -434,8 +439,8 @@ defmodule Enum do
       ** (Enum.OutOfBoundsError) out of bounds error
 
   """
-  @spec fetch!(t, index) :: element | no_return
-  def fetch!(collection, n) when n >= 0 do
+  @spec fetch!(t, integer) :: element | no_return
+  def fetch!(collection, n) do
     case fetch(collection, n) do
       { :ok, h } -> h
       :error     -> raise Enum.OutOfBoundsError
