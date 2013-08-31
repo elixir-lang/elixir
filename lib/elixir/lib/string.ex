@@ -163,8 +163,8 @@ defmodule String do
   The string is split into as many parts as possible by
   default, unless the `global` option is set to `false`.
 
-  Empty strings are removed from the result, unless the
-  `trim` option is set to `false`.
+  Empty strings are only removed from the result if the
+  `trim` option is set to `true`.
 
   ## Examples
 
@@ -172,8 +172,8 @@ defmodule String do
       ["a", "b", "c"]
       iex> String.split("a,b,c", ",", global: false)
       ["a", "b,c"]
-      iex> String.split(" a b c ", " ", trim: false)
-      ["", "a", "b", "c", ""]
+      iex> String.split(" a b c ", " ", trim: true)
+      ["a", "b", "c"]
 
       iex> String.split("1,2 3,4", [" ", ","])
       ["1", "2", "3", "4"]
@@ -200,7 +200,7 @@ defmodule String do
     opts = if options[:global] != false, do: [:global], else: []
     splits  = :binary.split(binary, pattern, opts)
 
-    if Keyword.get(options, :trim, true) do
+    if Keyword.get(options, :trim, false) do
       lc split inlist splits, split != "", do: split
     else
       splits
