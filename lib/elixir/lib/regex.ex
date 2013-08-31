@@ -62,7 +62,13 @@ defmodule Regex do
   def compile(source, options // "")
 
   def compile(source, options) when is_binary(options) do
-    compile(source, translate_options(options), options)
+    case translate_options(options) do
+      { :error, rest } ->
+        { :error, { :invalid_option, rest } }
+
+      translated_options ->
+        compile(source, translated_options, options)
+    end
   end
 
   def compile(source, options) when is_list(options) do
@@ -357,6 +363,7 @@ defmodule Regex do
   defp translate_options(<<?m, t :: binary>>), do: [:multiline|translate_options(t)]
   defp translate_options(<<?g, t :: binary>>), do: [:groups|translate_options(t)]
   defp translate_options(<<>>), do: []
+  defp translate_options(rest), do: { :error, rest }
 
   { :ok, pattern } = :re.compile(%B"\(\?<(?<G>[^>]*)>")
   @groups_pattern pattern
