@@ -36,6 +36,7 @@ defmodule FormatDocs do
   end
 
   @doc "Bring lines back to a common left margin"
+  def bring_to_margin([]), do: []
   def bring_to_margin(lines) do
     case (lines |> Enum.map(&get_leading_spaces/1) |> Enum.min) do
       0 -> lines
@@ -49,6 +50,7 @@ defmodule FormatDocs do
      leading_spaces
   end
 
+  def strip_leading_spaces("", _n),  do: ""
   def strip_leading_spaces(line, n), do: String.slice(line, n, 999)
 
 
@@ -65,8 +67,14 @@ defmodule FormatDocs do
     process(rest, "")
   end
 
+  def process([<< "### " :: utf8, heading :: binary>> | rest], indent) do
+    write_h3(String.strip(heading), indent)
+    process(rest, indent)
+  end
+
   def process([<< "* " :: utf8, line :: binary >> | rest], indent) do
     { list_content, rest } = split_out_list(rest)
+    list_content = bring_to_margin(list_content)
     process_ul(list_content, [line], indent <> "  ")
     process(rest, indent)
   end
@@ -102,6 +110,11 @@ defmodule FormatDocs do
     write_code(code, indent)
   end
 
+  # blank line between code blocks
+  def process_code([ "", << "    " :: utf8, line :: binary>> | rest ], code, indent) do
+    process_code(rest, [line, "" | code], indent)
+  end
+
   def process_code([ << "    " :: utf8, line :: binary>> | rest ], code, indent) do
     process_code(rest, [line|code], indent)
   end
@@ -111,15 +124,23 @@ defmodule FormatDocs do
     process(rest, indent)
   end
 
-  def process_ul([ << "  " :: utf8, line :: binary>> | rest], list, indent) do
-    process_ul(rest, [ line | list ], indent)
+  # def process_ul([ << "  " :: utf8, line :: binary>> | rest], list, indent) do
+  #   process_ul(rest, [ line | list ], indent)
+  # end
+
+  def process_ul([], result, indent) do
+    write_ul(result, indent)
   end
 
-  def process_ul(rest, list, indent) do
-    write_ul(list, indent)
-    process(rest, indent)
+  def process_ul(["" | rest], result, indent) do
+    write_ul(result, indent)
+    IO.puts ""
+    process(rest, indent) 
   end
 
+  def process_ul([line|rest], result, indent) do
+    process_ul(rest, [line|result], indent)
+  end
 
   def write_doc_heading(heading) do
     IO.puts IO.ANSI.reset
@@ -134,6 +155,11 @@ defmodule FormatDocs do
   end
 
   def write_h2(heading) do
+    write(:headings, heading)
+  end
+
+  def write_h3(heading, indent) do
+    IO.write(indent)
     write(:headings, heading)
   end
 
@@ -197,6 +223,7 @@ defmodule FormatDocs do
 
     if String.starts_with?(word, ["`", "_", "*"]) do
       << first::utf8, word::binary>> = word
+      if String.starts_with?(word, "*"), do: String.slice(word, 1, 999)
       leader = color(color_name_for(first))
     end
 
@@ -206,7 +233,8 @@ defmodule FormatDocs do
     end
 
     if String.ends_with?(word, ["`", "_", "*"]) do
-      word = String.slice(word, 0, String.length(word)-1)
+      chop = if String.ends_with?(word, "**"), do: 2, else: 1
+      word = String.slice(word, 0, String.length(word)-chop)
       trailer = IO.ANSI.reset
     end
   
@@ -218,7 +246,7 @@ defmodule FormatDocs do
   # leading spaces (which we remove)
   def split_out_list(lines) do
     { list, rest } = Enum.split_while lines, fn line ->
-      String.starts_with?(line, "  ") || line == ""
+      String.starts_with?(line, " ") || line == ""
     end
     { Enum.map(list, &chop(&1, 2)), rest }
   end
