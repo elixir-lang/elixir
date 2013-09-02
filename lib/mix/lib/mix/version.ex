@@ -277,14 +277,17 @@ defmodule Mix.Version do
       end
     end
 
+    defp nillify(""), do: nil
+    defp nillify(o),  do: o
+
     @spec parse_version(String.t) :: { :ok, Mix.Version.matchable } | { :error, :invalid_version }
     def parse_version(string) when is_binary(string) do
       if valid_version?(string) do
         destructure [_, major, minor, patch, pre], Regex.run(@version_regex, string)
 
         major = binary_to_integer(major)
-        minor = binary_to_integer(minor || "0")
-        patch = binary_to_integer(patch || "0")
+        minor = binary_to_integer(minor |> nillify || "0")
+        patch = binary_to_integer(patch |> nillify || "0")
         pre   = pre && parse_pre(pre) || []
 
         { :ok, { major, minor, patch, pre } }
