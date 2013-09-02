@@ -231,28 +231,34 @@ defmodule ModuleTest do
   end
 end
 
-defmodule ModuleTest.Prelude  do
-  # This test is separate because ModuleTest uses async: true
-  # but this test temporarily modifies global compiler settings,
-  # producing side effects on compiling some other test modules
-
+defmodule Code.CodeCompilationTest do
   use ExUnit.Case, async: false
 
   defmacro __using__(_) do
     quote do
-      def prelude?, do: true
+      def use?, do: true
     end
   end
 
-  test :prelude do
+  test :global_use do
     quoted = nil
 
     Code.compiler_options(use: __MODULE__)
-    Module.create ModuleTest.Prelude.Test, quoted
-    assert ModuleTest.Prelude.Test.prelude? == true
-    :code.purge(ModuleTest.Prelude.Test)
-    :code.delete(ModuleTest.Prelude.Test)
+    Module.create ModuleTest.Use.Test, quoted
+    assert ModuleTest.Use.Test.use? == true
+
+    :code.purge(ModuleTest.Use.Test)
+    :code.delete(ModuleTest.Use.Test)
+
+    Code.compiler_options(use: [__MODULE__])
+    Module.create ModuleTest.Use.Test, quoted
+    assert ModuleTest.Use.Test.use? == true
+
+  after
+    :code.purge(ModuleTest.Use.Test)
+    :code.delete(ModuleTest.Use.Test)
 
     Code.compiler_options(use: false)
   end
+
 end

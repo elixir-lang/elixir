@@ -56,7 +56,7 @@ defmodule Code do
   end
 
   @doc """
-  Evaluates the contents given by `string`. The second argument is 
+  Evaluates the contents given by `string`. The second argument is
   a keyword list of variable bindings, followed by a keyword list of
   environment options. Those options can be:
 
@@ -95,7 +95,7 @@ defmodule Code do
       iex> Code.eval_string("c = a + b", [a: 1, b: 2], __ENV__)
       {3, [a: 1, b: 2, c: 3]}
 
-      iex> Code.eval_string("a = a + b", [a: 1, b: 2])          
+      iex> Code.eval_string("a = a + b", [a: 1, b: 2])
       {3, [a: 3, b: 2]}
 
   For convenience, you can pass `__ENV__` as the `opts` argument and
@@ -319,8 +319,8 @@ defmodule Code do
 
   * `:warnings_as_errors` - cause compilation to fail when warnings are generated;
 
-  * `:use` - when specified, invokes a __using__ callback from the given module
-    before compiling every module;
+  * `:use` - when specified, invokes a `__using__/2` callback from the given module
+    or list of modules before compiling every module;
 
   """
   def compiler_options(opts) do
@@ -365,7 +365,7 @@ defmodule Code do
   modules need to be loaded upfront or explicitly.
 
   Therefore, this function is used to check if a module is loaded
-  before using it and allows one to react accordingly. For example, the `URI` 
+  before using it and allows one to react accordingly. For example, the `URI`
   module uses this function to check if a specific parser exists for a given
   URI scheme.
 
@@ -400,7 +400,7 @@ defmodule Code do
   @doc """
   Ensures the given module is compiled and loaded. If the module
   is already loaded, it works as no-op. If the module was not
-  loaded yet, it checks if it needs to be compiled first and 
+  loaded yet, it checks if it needs to be compiled first and
   then tries to load it.
 
   If it succeeds loading the module, it returns
