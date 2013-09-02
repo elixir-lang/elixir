@@ -290,7 +290,13 @@ defmodule Mix.Tasks.Compile.Elixir do
   defp set_compiler_opts(project, opts, extra) do
     opts = Dict.take(opts, [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors])
     opts = Keyword.merge(project[:elixirc_options] || [], opts)
-    Code.compiler_options Keyword.merge(opts, extra)
+    opts = Keyword.merge(opts, extra)
+    case opts[:use] do
+      module when is_atom(module) ->
+        Mix.shell.info "Using #{inspect module} to compile"
+      _ -> :ok
+    end
+    Code.compiler_options(opts)
   end
 
   defp path_deps_changed?(manifest) do
