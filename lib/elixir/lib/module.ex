@@ -29,7 +29,7 @@ defmodule Module do
       When just a module is provided, the function is assumed to be
       `__after_compile__/2`.
 
-      **Example**
+      ### Example
 
           defmodule M do
             @after_compile __MODULE__
@@ -44,14 +44,14 @@ defmodule Module do
       A hook that will be invoked before the module is compiled.
 
       Accepts a module or a tuple `{ <module>, <function/macro atom> }`. The
-      function/macro must take one argument: the module environment. If it\'s a
+      function/macro must take one argument: the module environment. If it's a
       macro, its returned value will be injected at the end of the module definition
       before the compilation starts.
 
       When just a module is provided, the function/macro is assumed to be
       `__before_compile__/1`.
 
-      **Example**
+      ### Example
 
           defmodule M do
             @before_compile __MODULE__
@@ -67,7 +67,7 @@ defmodule Module do
 
       Specify an OTP or user-defined behaviour.
 
-      **Example**
+      ### Example
 
           defmodule M do
             @behaviour gen_event
@@ -85,7 +85,7 @@ defmodule Module do
       See http://www.erlang.org/doc/man/compile.html for the list of supported
       options.
 
-      **Example**
+      ### Example
 
             defmodule M do
               @compile { :inline, myfun: 1 }
@@ -106,7 +106,7 @@ defmodule Module do
 
       Can be invoked more than once.
 
-      **Example**
+      ### Example
 
             defmodule M do
               @doc "Hello world"
@@ -129,7 +129,7 @@ defmodule Module do
 
       Accepts a string. Can be used more than once.
 
-      **Example**
+      ### Example
 
             defmodule M do
               @doc "Hello world"
@@ -147,7 +147,7 @@ defmodule Module do
       `@moduledoc false` will make the module invisible to the
       documentation extraction tools like ExDoc.
 
-      **Example**
+      ### Example
 
             defmodule M do
               @moduledoc """
@@ -183,7 +183,7 @@ defmodule Module do
       function (i.e. `env.function` returns the current function), the hook
       can only be a function, not a macro.
 
-      **Example**
+      ### Example
 
             defmodule H do
               def on_def(_env, kind, name, args, guards, body) do
@@ -216,7 +216,7 @@ defmodule Module do
       must have arity 0 (no arguments) and has to return `:ok`, otherwise the
       loading of the module will be aborted.
 
-      **Example**
+      ### Example
 
             defmodule M do
               @on_load :load_check
@@ -238,7 +238,7 @@ defmodule Module do
 
       Specify the module version. Accepts any valid Elixir value.
 
-      **Example**
+      ### Example
 
             defmodule M do
               @vsn "1.0"
