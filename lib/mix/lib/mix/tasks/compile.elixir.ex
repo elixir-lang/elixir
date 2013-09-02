@@ -294,6 +294,10 @@ defmodule Mix.Tasks.Compile.Elixir do
     case opts[:use] do
       module when is_atom(module) ->
         Mix.shell.info "Using #{inspect module} to compile"
+      modules when is_list(modules) ->
+        lc module inlist modules do
+          Mix.shell.info "Using #{inspect module} to compile"
+        end
       _ -> :ok
     end
     Code.compiler_options(opts)
