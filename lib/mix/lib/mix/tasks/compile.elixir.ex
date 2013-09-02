@@ -292,13 +292,17 @@ defmodule Mix.Tasks.Compile.Elixir do
     opts = Keyword.merge(project[:elixirc_options] || [], opts)
     opts = Keyword.merge(opts, extra)
     case opts[:use] do
+      _ in [nil, false] ->
+        :ok
       module when is_atom(module) ->
         Mix.shell.info "Using #{inspect module} to compile"
       modules when is_list(modules) ->
         lc module inlist modules do
           Mix.shell.info "Using #{inspect module} to compile"
         end
-      _ -> :ok
+      other ->
+        Mix.shell.info "Erroneous 'use' compiler option value, expected a module or a list of modules"
+        Mix.shell.info "Got #{inspect other} instead, ignoring."
     end
     Code.compiler_options(opts)
   end
