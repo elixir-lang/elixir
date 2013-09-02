@@ -303,6 +303,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       other ->
         Mix.shell.info "Erroneous 'use' compiler option value, expected a module or a list of modules"
         Mix.shell.info "Got #{inspect other} instead, ignoring."
+        opts = Keyword.put(opts, use: false)
     end
     Code.compiler_options(opts)
   end
