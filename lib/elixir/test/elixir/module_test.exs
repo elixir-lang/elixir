@@ -230,3 +230,35 @@ defmodule ModuleTest do
     assert is_function Module.function(This, :also_works, 0)
   end
 end
+
+defmodule ModuleTest.Prelude  do
+  # This test is separate because ModuleTest uses async: true
+  # but this test temporarily modifies global compiler settings,
+  # producing side effects on compiling some other test modules
+
+  use ExUnit.Case, async: false
+
+  defmacro __prelude__(_) do
+    quote do
+      def prelude?, do: true
+    end
+  end
+
+  test :prelude do
+    quoted = nil
+
+    Code.compiler_options(prelude: __MODULE__)
+    Module.create ModuleTest.Prelude.Test, quoted
+    assert ModuleTest.Prelude.Test.prelude? == true
+    :code.purge(ModuleTest.Prelude.Test)
+    :code.delete(ModuleTest.Prelude.Test)
+
+    Code.compiler_options(prelude: {__MODULE__, :__prelude__})
+    Module.create ModuleTest.Prelude.Test, quoted
+    assert ModuleTest.Prelude.Test.prelude? == true
+    :code.purge(ModuleTest.Prelude.Test)
+    :code.delete(ModuleTest.Prelude.Test)
+
+    Code.compiler_options(prelude: false)
+  end
+end
