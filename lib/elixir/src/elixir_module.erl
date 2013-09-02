@@ -118,13 +118,10 @@ build(Line, File, Module) ->
   end,
 
   PreludeCallbacks =
-  case elixir_compiler:get_opt(prelude) of
+  case elixir_compiler:get_opt(use) of
     false -> [];
     PreludeModule when is_atom(PreludeModule) ->
-      [{PreludeModule, '__prelude__'}];
-    {PreludeModule, PreludeFunction} = Prelude when is_atom(PreludeModule),
-                                                    is_atom(PreludeFunction) ->
-      [Prelude]
+      [{PreludeModule, '__using__'}]
   end,
 
   ets:new(DataTable, [set, named_table, public]),
@@ -152,7 +149,7 @@ build(Line, File, Module) ->
 eval_form(Line, Module, Block, Vars, RawS) ->
   S = scope_for_eval(Module, RawS),
   Env = elixir_scope:to_ex_env({ Line, S }),
-  eval_callbacks(Line, Module, prelude, [Env], S),
+  eval_callbacks(Line, Module, prelude, [[]], S),
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Vars, S),
   elixir_def_overridable:store_pending(Module),
   eval_callbacks(Line, Module, before_compile, [Env], NewS),

@@ -238,7 +238,7 @@ defmodule ModuleTest.Prelude  do
 
   use ExUnit.Case, async: false
 
-  defmacro __prelude__(_) do
+  defmacro __using__(_) do
     quote do
       def prelude?, do: true
     end
@@ -247,18 +247,12 @@ defmodule ModuleTest.Prelude  do
   test :prelude do
     quoted = nil
 
-    Code.compiler_options(prelude: __MODULE__)
+    Code.compiler_options(use: __MODULE__)
     Module.create ModuleTest.Prelude.Test, quoted
     assert ModuleTest.Prelude.Test.prelude? == true
     :code.purge(ModuleTest.Prelude.Test)
     :code.delete(ModuleTest.Prelude.Test)
 
-    Code.compiler_options(prelude: {__MODULE__, :__prelude__})
-    Module.create ModuleTest.Prelude.Test, quoted
-    assert ModuleTest.Prelude.Test.prelude? == true
-    :code.purge(ModuleTest.Prelude.Test)
-    :code.delete(ModuleTest.Prelude.Test)
-
-    Code.compiler_options(prelude: false)
+    Code.compiler_options(use: false)
   end
 end
