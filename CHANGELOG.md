@@ -3,7 +3,8 @@
 * enhancements
   * [CLI] Add `--verbose` to elixirc, which now is non-verbose by default
   * [Dict] Add `Dict.Behaviour` as a convenience to create your own dictionaries
-  * [Enum] Add `Enum.split/2`, `Enum.reduce/2`, `Enum.flat_map/2`, `Enum.chunks/2`, `Enum.chunks/4` and `Enum.chunks_by/2`
+  * [Enum] Add `Enum.split/2`, `Enum.reduce/2`, `Enum.flat_map/2`, `Enum.chunks/2`, `Enum.chunks/4`, `Enum.chunks_by/2`, `Enum.concat/1` and `Enum.concat/2`
+  * [Enum] Support negative indices in `Enum.at/fetch/fetch!`
   * [ExUnit] Show failures on CLIFormatter as soon as they pop up
   * [IEx] Allow for strings in `h` helper
   * [IEx] Helpers `r` and `c` can handle erlang sources
@@ -18,8 +19,10 @@
   * [Mix] Automatically recompile a project if the Elixir version changes
   * [Path] Add `Path.relative_to_cwd/2`
   * [Regex] Allow erlang `re` options when compiling Elixir regexes
+  * [Stream] Add `Stream.concat/1`, `Stream.concat/2` and `Stream.flat_map/2`
   * [String] Add regex pattern support to `String.replace/3`
   * [String] Add `String.ljust/2`, `String.rjust/2`, `String.ljust/3` and `String.rjust/3`
+  * [URI] `URI.parse/1` supports IPv6 addresses
 
 * bug fix
   * [Behaviour] Do not compile behaviour docs if docs are disabled on compilation
@@ -47,10 +50,12 @@
   * [Kernel] `list_to_binary/1`, `binary_to_list/1` and `binary_to_list/3` are deprecated in favor of `String.from_char_list!/1` and `String.to_char_list!/1` for characters and `:binary.list_to_bin/1`, `:binary.bin_to_list/1` and `:binary.bin_to_list/3` for bytes
   * [Kernel] `to_binary/1` is deprecated in favor of `to_string/1`
   * [Kernel] Deprecate `def/4` and friends in favor of `def/2` with unquote and friends
+  * [List] `List.concat/2` is deprecated in favor of `Enum.concat/2`
   * [Macro] `Macro.unescape_binary/1` and `Macro.unescape_binary/2` are deprecated in favor of `Macro.unescape_string/1` and `Macro.unescape_string/2`
   * [Mix] `:umbrella` option for umbrella paths has been deprecated in favor of `:in_umbrella`
 
 * backwards incompatible changes
+  * [IO] IO functions now only accept iolists as arguments
   * [Kernel] `Binary.Chars` was renamed to `String.Chars`
   * [Kernel] The previous ambiguous import syntax `import :functions, Foo` was removed in favor of `import Foo, only: :functions`
   * [OptionParser] `parse` and `parse_head` now returns a tuple with three elements instead of two
