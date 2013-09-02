@@ -319,6 +319,15 @@ defmodule Code do
 
   * `:warnings_as_errors` - cause compilation to fail when warnings are generated;
 
+  * `:prelude` - when specified, invokes a prelude callback before compiling every module.
+
+    Allowed values:
+
+    * ModuleName — will call ModuleName.__prelude__(env)
+    * {ModuleName, :callback} — will call ModuleName.callback(env)
+
+    Disabled by default;
+
   """
   def compiler_options(opts) do
     :elixir_code_server.cast { :compiler_options, opts }
