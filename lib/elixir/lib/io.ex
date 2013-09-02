@@ -25,6 +25,12 @@ defmodule IO do
 
   import :erlang, only: [group_leader: 0]
 
+  defmacrop is_iolist(data) do
+    quote do
+      is_list(unquote(data)) or is_binary(unquote(data))
+    end
+  end
+
   @doc """
   Reads `count` characters from the IO device or until
   the end of the line if `:line` is given. It returns:
@@ -92,8 +98,8 @@ defmodule IO do
       #=> "error"
 
   """
-  def write(device // group_leader(), item) do
-    :io.put_chars map_dev(device), to_iodata(item)
+  def write(device // group_leader(), item) when is_iolist(item) do
+    :io.put_chars map_dev(device), item
   end
 
   @doc """
@@ -102,8 +108,8 @@ defmodule IO do
 
   Check `write/2` for more information.
   """
-  def binwrite(device // group_leader(), item) do
-    :file.write map_dev(device), to_iodata(item)
+  def binwrite(device // group_leader(), item) when is_iolist(item) do
+    :file.write map_dev(device), item
   end
 
   @doc """
@@ -111,9 +117,9 @@ defmodule IO do
   but adds a newline at the end. The argument is expected
   to be a chardata.
   """
-  def puts(device // group_leader(), item) do
+  def puts(device // group_leader(), item) when is_iolist(item) do
     erl_dev = map_dev(device)
-    :io.put_chars erl_dev, [to_iodata(item), ?\n]
+    :io.put_chars erl_dev, [item, ?\n]
   end
 
   @doc """
@@ -182,7 +188,7 @@ defmodule IO do
   Otherwise, `count` is the number of raw bytes to be retrieved.
   """
   def getn(device, prompt, count) do
-    :io.get_chars(map_dev(device), to_iodata(prompt), count)
+    :io.get_chars(map_dev(device), prompt, count)
   end
 
   @doc """
@@ -198,7 +204,7 @@ defmodule IO do
     NFS file system.
   """
   def gets(device // group_leader(), prompt) do
-    :io.get_line(map_dev(device), to_iodata(prompt))
+    :io.get_line(map_dev(device), prompt)
   end
 
   @doc """
@@ -271,7 +277,4 @@ defmodule IO do
   defp map_dev(:stdio),  do: :standard_io
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other),   do: other
-
-  defp to_iodata(io) when is_list(io) or is_binary(io), do: io
-  defp to_iodata(other), do: to_string(other)
 end

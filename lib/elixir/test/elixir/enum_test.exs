@@ -751,7 +751,7 @@ defmodule EnumTest.Others do
   test :take_with_side_effects do
     reducible = fn(acc, fun) ->
       Enum.reduce([1, 2, 3], acc, fn(x, acc) ->
-        IO.puts x
+        IO.puts to_string(x)
         fun.(x, acc)
       end)
     end
