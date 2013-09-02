@@ -117,10 +117,21 @@ build(Line, File, Module) ->
     false -> []
   end,
 
+  PreludeCallbacks =
+  case elixir_compiler:get_opt(prelude) of
+    false -> [];
+    PreludeModule when is_atom(PreludeModule) ->
+      [{PreludeModule, '__prelude__'}];
+    {PreludeModule, PreludeFunction} = Prelude when is_atom(PreludeModule),
+                                                    is_atom(PreludeFunction) ->
+      [Prelude]
+  end,
+
   ets:new(DataTable, [set, named_table, public]),
   ets:insert(DataTable, { '__overridable', [] }),
   ets:insert(DataTable, { before_compile, [] }),
   ets:insert(DataTable, { after_compile, [] }),
+  ets:insert(DataTable, { prelude, PreludeCallbacks }),
 
   case elixir_compiler:get_opt(docs) of
     true -> ets:insert(DataTable, { on_definition, [{ 'Elixir.Module', compile_doc }] });
@@ -140,9 +151,10 @@ build(Line, File, Module) ->
 
 eval_form(Line, Module, Block, Vars, RawS) ->
   S = scope_for_eval(Module, RawS),
+  Env = elixir_scope:to_ex_env({ Line, S }),
+  eval_callbacks(Line, Module, prelude, [Env], S),
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Vars, S),
   elixir_def_overridable:store_pending(Module),
-  Env = elixir_scope:to_ex_env({ Line, S }),
   eval_callbacks(Line, Module, before_compile, [Env], NewS),
   elixir_def_overridable:store_pending(Module),
   Value.
