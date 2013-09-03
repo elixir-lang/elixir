@@ -227,12 +227,6 @@ defmodule IO do
     stream(map_dev(device), line_or_bytes, &1, &2)
   end
 
-  @doc false
-  def stream(device) do
-    IO.write "IO.stream(device) is deprecated, please use IO.stream(device, :line) instead\n#{Exception.format_stacktrace}"
-    stream(device, :line)
-  end
-
   @doc """
   Converts the io device into a Stream. The device is
   iterated line by line.
@@ -241,12 +235,6 @@ defmodule IO do
   """
   def binstream(device, line_or_bytes) do
     binstream(map_dev(device), line_or_bytes, &1, &2)
-  end
-
-  @doc false
-  def binstream(device) do
-    IO.write "IO.binstream(device) is deprecated, please use IO.binstream(device, :line) instead\n#{Exception.format_stacktrace}"
-    binstream(device, :line)
   end
 
   @doc false

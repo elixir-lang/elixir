@@ -8,9 +8,7 @@
   lookup_definition/2,
   delete_definition/2,
   wrap_definition/6,
-  wrap_definition/8,
   store_definition/7,
-  store_definition/9,
   store_each/8,
   unwrap_stored_definitions/2,
   format_error/1]).
@@ -72,24 +70,16 @@ delete_definition(Module, Tuple) ->
 %% before evaluating the function body), we would see both definitions.
 
 wrap_definition(Kind, Meta, Call, Expr, CheckClauses, S) ->
-  do_wrap_definition(Kind, Meta, CheckClauses, [
-    Call, Expr, elixir_scope:serialize(S)
+  Line = ?line(Meta),
+  ?wrap_call(Line, ?MODULE, store_definition, [
+    {atom, Line, Kind},
+    {integer, Line, Line},
+    {atom, Line, CheckClauses},
+    {var, Line, '_@MODULE'},
+    Call,
+    Expr,
+    elixir_scope:serialize(S)
   ]).
-
-wrap_definition(Kind, Meta, Name, Args, Guards, Expr, CheckClauses, S) ->
-  do_wrap_definition(Kind, Meta, CheckClauses, [
-    Name, Args, Guards, Expr, elixir_scope:serialize(S)
-  ]).
-
-do_wrap_definition(Kind, Meta, CheckClauses, Extra) ->
-  Line   = ?line(Meta),
-  Invoke =
-    [{atom, Line, Kind},
-     {integer, Line, Line},
-     {atom, Line, CheckClauses},
-     {var, Line, '_@MODULE'}] ++ Extra,
-
-  ?wrap_call(Line, ?MODULE, store_definition, Invoke).
 
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
@@ -139,10 +129,7 @@ store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, #el
   [store_each(false, Kind, File, Location, Table, CTable, 0,
     default_function_for(Kind, Name, Default)) || Default <- Defaults],
 
-  { Name, Arity };
-
-store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, RawS) ->
-  store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, elixir_scope:deserialize(RawS)).
+  { Name, Arity }.
 
 %% @on_definition
 

@@ -189,16 +189,6 @@ translate({Kind, Meta, [Call, Expr]}, S) when ?defs(Kind) ->
                    (not QC#elixir_quote.unquoted) andalso (not QE#elixir_quote.unquoted),
   { elixir_def:wrap_definition(Kind, Meta, TCall, TExpr, CheckClauses, SE), SE };
 
-translate({Kind, Meta, [Name, Args, Guards, Expr]}, S) when ?defs(Kind) ->
-  elixir_errors:deprecation(Meta, S#elixir_scope.file, "~ts/4 is deprecated, please use ~ts/2 instead", [Kind, Kind]),
-  assert_module_scope(Meta, Kind, S),
-  assert_no_function_scope(Meta, Kind, S),
-  { TName, SN }   = translate_each(Name, S),
-  { TArgs, SA }   = translate_each(Args, SN),
-  { TGuards, SG } = translate_each(Guards, SA),
-  { TExpr, SE }   = translate_each(Expr, SG),
-  { elixir_def:wrap_definition(Kind, Meta, TName, TArgs, TGuards, TExpr, false, SE), SE };
-
 %% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
 
 translate({ apply, Meta, [Left, Right, Args] }, S) when is_list(Args) ->

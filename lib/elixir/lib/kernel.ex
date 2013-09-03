@@ -479,20 +479,6 @@ defmodule Kernel do
     :erlang.binary_to_existing_atom(binary, encoding)
   end
 
-  @doc false
-  def binary_to_list(binary) do
-    IO.write "binary_to_list/1 is deprecated. Please use String.to_char_list!/1 instead "
-    IO.write "unless you are working with bytes, then you should use :binary.bin_to_list/1\n#{Exception.format_stacktrace}"
-    :erlang.binary_to_list(binary)
-  end
-
-  @doc false
-  def binary_to_list(binary, start, stop) do
-    IO.write "binary_to_list/3 is deprecated. Please use String.to_char_list!/1 instead "
-    IO.write "unless you are working with bytes, then you should use :binary.bin_to_list/3\n#{Exception.format_stacktrace}"
-    :erlang.binary_to_list(binary, start, stop)
-  end
-
   @doc """
   Returns an Erlang term which is the result of decoding the binary
   object `binary`, which must be encoded according to the Erlang external
@@ -871,13 +857,6 @@ defmodule Kernel do
   @spec list_to_atom(list) :: atom
   def list_to_atom(list) do
     :erlang.list_to_atom(list)
-  end
-
-  @doc false
-  def list_to_binary(list) do
-    IO.write "list_to_binary/1 is deprecated. Please use String.from_char_list!/1 instead "
-    IO.write "unless you are working with bytes, then you should use iolist_to_binary/1\n#{Exception.format_stacktrace}"
-    :erlang.list_to_binary(list)
   end
 
   @doc """
@@ -2101,12 +2080,6 @@ defmodule Kernel do
 
   defmacro to_string(arg) do
     quote do: String.Chars.to_string(unquote(arg))
-  end
-
-  @doc false
-  def to_binary(chars) do
-    IO.write "to_binary/1 is deprecated, please use to_string/1 instead\n#{Exception.format_stacktrace}"
-    String.Chars.to_string(chars)
   end
 
   @doc """
@@ -3388,12 +3361,6 @@ defmodule Kernel do
     string
   end
 
-  @doc false
-  defmacro sigil_B(string, []) do
-    IO.write "%B() is deprecated, please use %S() instead\n#{Exception.format_stacktrace}"
-    string
-  end
-
   @doc """
   Handles the sigil %s. It returns a string as if it was double quoted
   string, unescaping characters and replacing interpolations.
@@ -3407,12 +3374,6 @@ defmodule Kernel do
 
   """
   defmacro sigil_s({ :<<>>, line, pieces }, []) do
-    { :<<>>, line, Macro.unescape_tokens(pieces) }
-  end
-
-  @doc false
-  defmacro sigil_b({ :<<>>, line, pieces }, []) do
-    IO.write "%b() is deprecated, please use %s() instead\n#{Exception.format_stacktrace}"
     { :<<>>, line, Macro.unescape_tokens(pieces) }
   end
 
@@ -3612,9 +3573,6 @@ defmodule Kernel do
   defp split_words(string, modifiers) do
     mod = case modifiers do
       [] -> ?s
-      [mod] when mod in [?b] ->
-        IO.write "%w()b is deprecated, please use %w()s instead\n#{Exception.format_stacktrace}"
-        ?s
       [mod] when mod in [?s, ?a, ?c] -> mod
       _else -> raise ArgumentError, message: "modifier must be one of: s, a, c"
     end

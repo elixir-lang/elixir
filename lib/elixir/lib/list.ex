@@ -12,18 +12,6 @@ defmodule List do
 
   @compile :inline_list_funcs
 
-  @doc false
-  def concat(list) when is_list(list) do
-    IO.write "List.concat/1 is deprecated, please use Enum.concat/1 instead\n#{Exception.format_stacktrace}"
-    :lists.append(list)
-  end
-
-  @doc false
-  def concat(list, elements) when is_list(list) and is_list(elements) do
-    IO.write "List.concat/2 is deprecated, please use Enum.concat/2 instead\n#{Exception.format_stacktrace}"
-    list ++ elements
-  end
-
   @doc """
   Deletes the given item from the list. Returns a list without the item.
   If the item occurs more than once in the list, just the first occurrence

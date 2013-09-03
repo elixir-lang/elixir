@@ -356,12 +356,6 @@ defmodule Keyword do
     :lists.keymember(key, 1, keywords)
   end
 
-  @doc false
-  def update(dict, key, fun) when is_function(fun, 1) do
-    IO.write "Keyword.update/3 is deprecated, please use Keyword.update!/3 instead\n#{Exception.format_stacktrace}"
-    update!(dict, key, fun)
-  end
-
   @doc """
   Updates the `key` with the given function. If the `key` does
   not exist, raises `KeyError`.

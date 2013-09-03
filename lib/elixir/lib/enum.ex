@@ -648,13 +648,8 @@ defmodule Enum do
 
   """
   @spec join(t) :: String.t
-  @spec join(t, String.t | char_list) :: String.t | char_list
+  @spec join(t, String.t) :: String.t
   def join(collection, joiner // "")
-
-  def join(collection, joiner) when is_list(joiner) do
-    IO.write "Enum.join/2 with a char list is deprecated, please use do an explicit conversion instead\n#{Exception.format_stacktrace}"
-    :unicode.characters_to_list join(collection, :unicode.characters_to_binary(joiner))
-  end
 
   def join(collection, joiner) when is_binary(joiner) do
     Enumerable.reduce(collection, "", fn
@@ -708,13 +703,8 @@ defmodule Enum do
 
   """
   @spec map_join(t, (element -> any)) :: String.t
-  @spec map_join(t, String.t | char_list, (element -> any)) :: String.t | char_list
+  @spec map_join(t, String.t, (element -> any)) :: String.t
   def map_join(collection, joiner // "", mapper)
-
-  def map_join(collection, joiner, mapper) when is_list(joiner) do
-    IO.write "Enum.map_join/3 with a char list is deprecated, please use do an explicit conversion instead\n#{Exception.format_stacktrace}"
-    :unicode.characters_to_list map_join(collection, :unicode.characters_to_binary(joiner), mapper)
-  end
 
   def map_join(collection, joiner, mapper) when is_binary(joiner) do
     Enumerable.reduce(collection, "", fn
@@ -1169,12 +1159,6 @@ defmodule Enum do
     reduce(collection, &Kernel.max(&1, &2))
   end
 
-  @doc false
-  def max(coll, fun) do
-    IO.write "Enum.max/2 is deprecated, please use Enum.max_by/2 instead\n#{Exception.format_stacktrace}"
-    max_by(coll, fun)
-  end
-
   @doc """
   Returns the maximum value as calculated by the given function.
   Raises `EmptyError` if the collection is empty.
@@ -1227,12 +1211,6 @@ defmodule Enum do
   @spec min(t) :: element | no_return
   def min(collection) do
     reduce(collection, &Kernel.min(&1, &2))
-  end
-
-  @doc false
-  def min(coll, fun) do
-    IO.write "Enum.min/2 is deprecated, please use Enum.min_by/2 instead\n#{Exception.format_stacktrace}"
-    min_by(coll, fun)
   end
 
   @doc """

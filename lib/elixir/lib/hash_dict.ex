@@ -107,12 +107,6 @@ defmodule HashDict do
     dict
   end
 
-  @doc false
-  def update(dict, key, fun) when is_function(fun, 1) do
-    IO.write "HashDict.update/3 is deprecated, please use HashDict.update!/3 instead\n#{Exception.format_stacktrace}"
-    update!(dict, key, fun)
-  end
-
   def update!(dict, key, fun) when is_function(fun, 1) do
     case dict_put(dict, key, { :update, nil, fun }) do
       { dict, 0 } ->

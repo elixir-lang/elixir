@@ -95,18 +95,6 @@ defmodule Macro do
     :elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)) |> elem(0)
   end
 
-  @doc false
-  def unescape_binary(chars) do
-    IO.write "Macro.unescape_binary/1 is deprecated, please use Macro.unescape_string/1 instead\n#{Exception.format_stacktrace}"
-    unescape_string(chars)
-  end
-
-  @doc false
-  def unescape_binary(chars, map) do
-    IO.write "Macro.unescape_binary/2 is deprecated, please use Macro.unescape_string/2 instead\n#{Exception.format_stacktrace}"
-    unescape_string(chars, map)
-  end
-
   @doc %S"""
   Unescape the given chars. This is the unescaping behavior
   used by default in Elixir single- and double-quoted strings.
