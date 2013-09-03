@@ -1,6 +1,16 @@
+# v0.10.3-dev
+
+* Enhancements
+
+* Bug fixes
+
+* Deprecations
+
+* Backwards incompatible changes
+
 # v0.10.2 (2013-09-03)
 
-* enhancements
+* Enhancements
   * [CLI] Add `--verbose` to elixirc, which now is non-verbose by default
   * [Dict] Add `Dict.Behaviour` as a convenience to create your own dictionaries
   * [Enum] Add `Enum.split/2`, `Enum.reduce/2`, `Enum.flat_map/2`, `Enum.chunks/2`, `Enum.chunks/4`, `Enum.chunks_by/2`, `Enum.concat/1` and `Enum.concat/2`
@@ -24,7 +34,7 @@
   * [String] Add `String.ljust/2`, `String.rjust/2`, `String.ljust/3` and `String.rjust/3`
   * [URI] `URI.parse/1` supports IPv6 addresses
 
-* bug fix
+* Bug fixes
   * [Behaviour] Do not compile behaviour docs if docs are disabled on compilation
   * [ExUnit] Doctests no longer eat too much space and provides detailed reports for poorly indented lines
   * [File] Fix a bug where `File.touch(file, datetime)` was not setting the proper datetime when the file did not exist
@@ -42,7 +52,7 @@
   * [String] `String.slice/3` still returns the proper result when there is no length to be extracted
   * [System] `System.get_env/0` now returns a list of tuples as previously advertised
 
-* deprecations
+* Deprecations
   * [Dict] `Dict.update/3` is deprecated in favor of `Dict.update!/3`
   * [Enum] `Enum.min/2` and `Enum.max/2` are deprecated in favor of `Enum.min_by/2` and `Enum.max_by/2`
   * [Enum] `Enum.join/2` and `Enum.map_join/3` with a char list are deprecated
@@ -55,7 +65,7 @@
   * [Macro] `Macro.unescape_binary/1` and `Macro.unescape_binary/2` are deprecated in favor of `Macro.unescape_string/1` and `Macro.unescape_string/2`
   * [Mix] `:umbrella` option for umbrella paths has been deprecated in favor of `:in_umbrella`
 
-* backwards incompatible changes
+* Backwards incompatible changes
   * [IO] IO functions now only accept iolists as arguments
   * [Kernel] `Binary.Chars` was renamed to `String.Chars`
   * [Kernel] The previous ambiguous import syntax `import :functions, Foo` was removed in favor of `import Foo, only: :functions`
@@ -63,7 +73,7 @@
 
 # v0.10.1 (2013-08-03)
 
-* enhancements
+* Enhancements
   * [Behaviour] Add support for `defmacrocallback/1`
   * [Enum] Add `Enum.shuffle/1`
   * [ExUnit] The `:trace` option now also reports run time for each test
@@ -86,7 +96,7 @@
   * [String] Add `Regex.scan/3` now supports capturing groups
   * [String] Add `String.reverse/1`
 
-* bug fix
+* Bug fixes
   * [Behaviour] Ensure callbacks are stored in the definition order
   * [CLI] Speed up boot time on Elixir .bat files
   * [IEx] Reduce cases where IEx parser can get stuck
@@ -101,19 +111,19 @@
   * [OptionParser] Ensure `:keep` and `:integer`|`:float` can be given together as options
   * [OptionParser] Ensure `--no-flag` sets `:flag` to false when `:flag` is a registered boolean switch
 
-* deprecations
+* Deprecations
   * [Kernel] `function(Mod.fun/arity)` and `function(fun/arity)` are deprecated in favor of `&Mod.fun/arity` and `&fun/arity`
   * [Kernel] `function/3` is deprecated in favor of `Module.function/3`
   * [Kernel] `Kernel.ParallelCompiler` now receives a set of callbacks instead of a single one
   * [Mix] `:test_coverage` option now expect keywords arguments and the `--cover` flag is now treated as a boolean
 
-* backwards incompatible changes
+* Backwards incompatible changes
   * [Regex] `Regex.scan/3` now always returns a list of lists, normalizing the result, instead of list with mixed lists and binaries
   * [System] `System.halt/2` was removed since the current Erlang implementation of such function is bugged
 
 # v0.10.0 (2013-07-15)
 
-* enhancements
+* Enhancements
   * [ExUnit] Support `trace: true` option which gives detailed reporting on test runs
   * [HashDict] Optimize `HashDict` to store pairs in a cons cell reducing storage per key by half
   * [Kernel] Add pretty printing support for inspect
@@ -126,7 +136,7 @@
   * [Mix] Projects can now define an `:elixir` key to outline supported Elixir versions
   * [Typespec] Improve error messages to contain file, line and the typespec itself
 
-* bug fix
+* Bug fixes
   * [CLI] Elixir can now run on Unix directories with `:` in its path
   * [Kernel] `match?/2` does not leak variables to outer scope
   * [Kernel] Keep `head|tail` format when splicing at the tail
@@ -135,7 +145,7 @@
   * [Mix] Empty projects no longer leave empty ebin files on `mix compile`
   * [Module] Calling `Module.register_attribute/3` no longer automatically changes it to persisted or accumulated
 
-* deprecations
+* Deprecations
   * [Enum] Receiving the index of iteration in `Enum.map/2` and `Enum.each/2` is deprecated in favor of `Stream.with_index/1`
   * [File] `File.iterator/1` and `File.biniterator/1` are deprecated in favor of `IO.stream/1` and `IO.binstream/1`
   * [File] `File.iterator!/2` and `File.biniterator!/2` are deprecated in favor of `File.stream!/2` and `File.binstream!/2`
@@ -144,7 +154,7 @@
   * [Mix] Deprecate `mix run EXPR` in favor of `mix run -e EXPR`
   * [Record] `Record.__index__/2` deprecated in favor of `Record.__record__(:index, key)`
 
-* backwards incompatible changes
+* Backwards incompatible changes
   * [Kernel] The `Binary.Inspect` protocol has been renamed to `Inspect`
   * [Kernel] Tighten up the grammar rules regarding parentheses omission, previously the examples below would compile but now they raise an error message:
 
@@ -157,7 +167,7 @@
 
 # v0.9.3 (2013-06-23)
 
-* enhancements
+* Enhancements
   * [File] Add `File.chgrp`, `File.chmod` and `File.chown`
   * [Kernel] Add `--warnings-as-errors` to Elixir's compiler options
   * [Kernel] Print warnings to stderr
@@ -171,7 +181,7 @@
   * [Mix] `github: ...` shortcut now uses the faster `git` schema instead of `https`
   * [Record] Allow types to be given to `defrecordp`
 
-* bug fix
+* Bug fixes
   * [Kernel] The elixir executable on Windows now supports the same options as the UNIX one
   * [Kernel] Improve error messages on default clauses clash
   * [Kernel] `__MODULE__.Foo` now returns `Foo` when outside of a Module
@@ -180,12 +190,12 @@
   * [Kernel] Allow `(x, y) when z` in function clauses and try expressions
   * [Mix] Mix now properly evaluates rebar scripts
 
-* deprecations
+* Deprecations
   * [Code] `Code.string_to_ast/1` has been deprecated in favor of `Code.string_to_quoted/1`
   * [Macro] `Macro.to_binary/1` has been deprecated in favor of `Macro.to_string/1`
   * [Typespec] Deprecate `(fun(...) -> ...)` in favor of `(... -> ...)`
 
-* backwards incompatible changes
+* Backwards incompatible changes
   * [Bitwise] Precedence of operators used by the Bitwise module were changed, check `elixir_parser.yrl` for more information
   * [File] `rm_rf` and `cp_r` now returns a tuple with three elements on failures
   * [Kernel] The quoted representation for `->` clauses changed from a tuple with two elements to a tuple with three elements to support metadata
@@ -195,7 +205,7 @@
 
 # v0.9.2 (2013-06-13)
 
-* enhancements
+* Enhancements
   * [ExUnit] `capture_io` now captures prompt by default
   * [Mix] Automatically import git dependencies from Rebar
   * [Mix] Support for dependencies directly from the umbrella application
@@ -203,7 +213,7 @@
   * [String] Add `String.contains?`
   * [URI] Implement `Binary.Chars` (aka `to_binary`) for `URI.Info`
 
-* bug fix
+* Bug fixes
   * [HashDict] Ensure HashDict uses exact match throughout its implementation
   * [IEx] Do not interpret ANSI codes in IEx results
   * [IEx] Ensure `--cookie` is set before accessing remote shell
@@ -211,21 +221,21 @@
   * [Mix] Fix usage of shell expressions in `Mix.Shell.cmd`
   * [Mix] Start the application by default on escripts
 
-* deprecations
+* Deprecations
   * [Regex] `Regex.index/2` is deprecated in favor `Regex.run/3`
   * [Kernel] `super` no longer supports implicit arguments
 
-* backwards incompatible changes
+* Backwards incompatible changes
   * [Kernel] The `=~` operator now returns true or false instead of an index
 
 # v0.9.1 (2013-05-30)
 
-* enhancements
+* Enhancements
   * [IEx] Limit the number of entries kept in history and allow it to be configured
   * [Kernel] Add `String.start_with?` and `String.end_with?`
   * [Typespec] Allow keywords, e.g. `[foo: integer, bar: boolean | module]`, in typespecs
 
-* bug fix
+* Bug fixes
   * [Dict] `Enum.to_list` and `Dict.to_list` now return the same results for dicts
   * [IEx] Enable shell customization via the `IEx.Options` module
   * [Kernel] Fix a bug where `unquote_splicing` did not work on the left side of a stab op
@@ -236,12 +246,12 @@
 
 # v0.9.0 (2013-05-23)
 
-* enhancements
+* Enhancements
   * [ExUnit] `ExUnit.CaptureIO` now accepts an input to be used during capture
   * [IEx] Add support for .iex files that are loaded during shell's boot process
   * [IEx] Add `import_file/1` helper
 
-* backwards incompatible changes
+* Backwards incompatible changes
   * [Enum] `Enum.Iterator` was replaced by the more composable and functional `Enumerable` protocol which supports reductions
   * [File] `File.iterator/1` and `File.biniterator/1` have been removed in favor of the safe `File.iterator!/1` and `File.biniterator!/1` ones
   * [Kernel] Erlang R15 is no longer supported
@@ -249,7 +259,7 @@
 
 # v0.8.3 (2013-05-22)
 
-* enhancements
+* Enhancements
   * [CLI] Flags `-p` and `-pr` fails if pattern match no files
   * [CLI] Support `--hidden` and `--cookie` flags for distributed Erlang
   * [Enum] Add `Enum.to_list/1`, `Enum.member?/2`, `Enum.uniq/2`, `Enum.max/1`, `Enum.max/2`, `Enum.min/1` and `Enum.min/2`
@@ -272,7 +282,7 @@
   * [Mix] Load beam files available at `MIX_PATH` on CLI usage
   * [String] Add `String.valid?` and `String.valid_character?`
 
-* bug fix
+* Bug fixes
   * [ExUnit] Handle exit messages from in ExUnit
   * [ExUnit] Failures on ExUnit's setup_all now invalidates all tests
   * [Kernel] Ensure we don't splice keyword args unecessarily
@@ -284,7 +294,7 @@
   * [Regex] Fix badmatch with `Regex.captures(%r/(.)/g, "cat")`
   * [URI] Downcase host and scheme and URIs
 
-* deprecations
+* Deprecations
   * [Code] `Code.eval` is deprecated in favor of `Code.eval_string`
   * [Exception] `Exception.format_entry` is deprecated in favor of `Exception.format_stacktrace_entry`
   * [ExUnit] `assert left inlist right` is deprecated in favor of `assert left in right`
@@ -293,7 +303,7 @@
   * [Kernel] `var_context` in quote was deprecated in favor of `context`
   * [Kernel] `Enum.at!` and `Dict.get!` is deprecated in favor of `Enum.fetch!` and `Dict.fetch!`
 
-* backwards incompatible changes
+* Backwards incompatible changes
   * [Dict] `List.Dict` was moved to `ListDict`
   * [IO] `IO.gets`, `IO.getn` and friends now return binaries when reading from stdio
   * [Kernel] Precedence of `|>` has changed to lower to support constructs like `1..5 |> Enum.to_list`
@@ -301,7 +311,7 @@
 
 # v0.8.2 (2013-04-20)
 
-* enhancements
+* Enhancements
   * [ExUnit] Use ANSI escape codes in CLI output
   * [ExUnit] Include suite run time on CLI results
   * [ExUnit] Add support to doctests, allowing test cases to be generated from code samples
@@ -314,7 +324,7 @@
   * [Mix] Support `--cover` on mix test and `test_coverage` on Mixfiles
   * [Record] Each record now provides `Record.options` with the options supported by its `new` and `update` functions
 
-* bug fix
+* Bug fixes
   * [Binary] inspect no longer escapes standalone hash `#`
   * [IEx] The `h` helper can now retrieve docs for special forms
   * [Kernel] Record optimizations were not being triggered in functions inside the record module
@@ -322,11 +332,11 @@
   * [Kernel] Fix a bug where nested records could not use the Record[] syntax
   * [Path] Fix a bug on `Path.expand` when expanding paths starting with `~`
 
-* deprecations
+* Deprecations
   * [Kernel] `setelem/3` is deprecated in favor of `set_elem/3`
   * [Kernel] `function(:is_atom, 1)` is deprecated in favor of `function(is_atom/1)`
 
-* backwards incompatible changes
+* Backwards incompatible changes
   * [Kernel] `unquote` now only applies to the closest quote. If your code contains a quote that contains another quote that calls unquote, it will no longer work. Use `Macro.escape` instead and pass your quoted contents up in steps, for example:
 
             quote do
@@ -341,7 +351,7 @@
 
 # v0.8.1 (2013-02-17)
 
-* enhancements
+* Enhancements
   * [ExUnit] Tests can now receive metadata set on setup/teardown callbacks
   * [ExUnit] Add support to ExUnit.CaseTemplate to share callbacks in between test cases
   * [IO] Add `IO.ANSI` to make it easy to write ANSI escape codes
@@ -354,13 +364,13 @@
   * [OptionParser] Switches are now overridden by default but can be kept in order if chosen
   * [Typespec] Better error reporting for invalid typespecs
 
-* bug fix
+* Bug fixes
   * [Mix] Allow Mix projects to be generated with just one letter
 
-* backwards incompatible changes
+* Backwards incompatible changes
   * [Kernel] `before_compile` and `after_compile` callbacks now receive the environment as first argument instead of the module
 
-* deprecations
+* Deprecations
   * [ExUnit] Explicitly defined test/setup/teardown functions are deprecated
   * [Kernel] Tidy up and clean `quote` API
   * [Kernel] Old `:local.(args)` syntax is deprecated
@@ -368,7 +378,7 @@
 
 # v0.8.0 (2013-01-28)
 
-* enhancements
+* Enhancements
   * [Binary] Support `<< "string" :: utf8 >>` as in Erlang
   * [Binary] Support `\a` escape character in binaries
   * [Binary] Support syntax shortcut for specifying size in bit syntax
@@ -391,16 +401,16 @@
   * [String] Add `String.capitalize` and `String.slice`
   * [System] Add `System.tmp_dir`, `System.cwd` and `System.user_home`
 
-* bug fix
+* Bug fixes
   * [Kernel] `import` with `only` accepts functions starting with underscore
   * [String] `String.first` and `String.last` return nil for empty binaries
   * [String] `String.rstrip` and `String.lstrip` now verify if argument is a binary
   * [Typespec] Support `...` inside typespec's lists
 
-* backwards incompatible changes
+* Backwards incompatible changes
   * [Kernel] The AST now allows metadata to be attached to each node. This means the second item in the AST is no longer an integer (representing the line), but a keywords list. Code that relies on the line information from AST or that manually generate AST nodes need to be properly updated
 
-* deprecations
+* Deprecations
   * [Dict] Deprecate `Binary.Dict` and `OrdDict` in favor of `HashDict` and `ListDict`
   * [File] Deprecate path related functions in favor of the module `Path`
   * [Kernel] The `/>` operator has been deprecated in favor of `|>`
@@ -410,7 +420,7 @@
 
 # v0.7.2 (2012-12-04)
 
-* enhancements
+* Enhancements
   * [CLI] `--debug-info` is now true by default
   * [ExUnit] Make ExUnit exit happen in two steps allowing developers to add custom `at_exit` hooks
   * [IEx] Many improvements to helpers functions `h/1`, `s/1` and others
@@ -423,12 +433,12 @@
   * [Record] Record accessors are now optimized and can be up to 6x faster in some cases
   * [String] Support `\xXX` and `\x{HEX}` escape sequences in strings, char lists and regexes
 
-* bug fix
+* Bug fixes
   * [Bootstrap] Compiling Elixir source no longer fails if environment variables contain utf-8 entries
   * [IEx] IEx will now wait for all command line options to be processed before starting
   * [Kernel] Ensure proper stacktraces when showing deprecations
 
-* deprecations
+* Deprecations
   * [Enum] `Enum.qsort` is deprecated in favor of `Enum.sort`
   * [List] `List.sort` and `List.uniq` have been deprecated in favor of their `Enum` counterparts
   * [Record] Default-based generated functions are deprecated
@@ -436,7 +446,7 @@
 
 # v0.7.1 (2012-11-18)
 
-* enhancements
+* Enhancements
   * [IEx] Only show documented functions and also show docs for default generated functions
   * [IO] Add `IO.binread`, `IO.binwrite` and `IO.binreadline` to handle raw binary file operations
   * [ExUnit] Add support for user configuration at `HOME/.ex_unit.exs`
@@ -454,20 +464,20 @@
   * [Typespec] Define a default type `t` for protocols and records
   * [Typespec] Add support for the access protocol in typespecs
 
-* bug fix
+* Bug fixes
   * [Kernel] Fix an issue where variables inside clauses remained unassigned
   * [Kernel] Ensure `defoverridable` functions can be referred in many clauses
   * [Kernel] Allow keywords as function names when following a dot (useful when integrating with erlang libraries)
   * [File] File is opened by default on binary mode instead of utf-8
 
-* deprecations
+* Deprecations
   * [Behaviour] `defcallback/1` is deprecated in favor of `defcallback/2` which matches erlang `@callbacks`
   * [Enum] `Enum.times` is deprecated in favor of using ranges
   * [System] `halt` moved to `System` module
 
 # v0.7.0 (2012-10-20)
 
-* enhancements
+* Enhancements
   * [Behaviour] Add Behaviour with a simple callback DSL to define callbacks
   * [Binary] Add a Dict binary that converts its keys to binaries on insertion
   * [Binary] Optimize `Binary.Inspect` and improve inspect for floats
@@ -493,7 +503,7 @@
   * [Regex] Add `:return` option to `Regex.run` and `Regex.scan`
   * [String] Add a String module responsible for handling UTf-8 binaries
 
-* bug fix
+* Bug fixes
   * [File] `File.cp` and `File.cp_r` now preserves the file's mode
   * [IEx] Fix a bug where printing to `:stdio` on `IEx` was causing it to hang
   * [Macro] Fix a bug where quoted expressions were not behaving the same as their non-quoted counterparts
@@ -501,12 +511,12 @@
   * [Mix] Mix now exits with status 1 in case of failures
   * [Protocol] Avoid false positives on protocol dispatch (a bug caused the dispatch to be triggered to an invalid protocol)
 
-* backwards incompatible changes
+* Backwards incompatible changes
   * [ExUnit] `setup` and `teardown` callbacks now receives the test name as second argument
   * [Kernel] Raw function definition with `def/4`, `defp/4`, `defmacro/4`, `defmacrop/4` now evaluates all arguments. The previous behaviour was accidental and did not properly evaluate all arguments
   * [Kernel] Change tuple-related (`elem` and `setelem`), Enum functions (`find_index`, `nth!` and `times`) and List functions (List.key*) to zero-index
 
-* deprecations
+* Deprecations
   * [Code] `Code.require_file` and `Code.load_file` now expect the full name as argument
   * [Enum] `List.reverse/1` and `List.zip/2` were moved to `Enum`
   * [GenServer] Rename `GenServer.Behavior` to `GenServer.Behaviour`
@@ -516,14 +526,14 @@
 
 # v0.6.0 (2012-08-01)
 
-* incompatible changes
+* Backwards incompatible changes
   * [Kernel] Compile files now follow `Elixir-ModuleName` convention to solve issues with Erlang embedded mode. This removes the `__MAIN__` pseudo-variable as modules are now located inside `Elixir` namespace
   * [Kernel] `__using__` callback triggered by `use` now receives just one argument. Caller information can be accessed via macros using `__CALLER__`
   * [Kernel] Comprehensions syntax changed to be more compatible with Erlang behavior
   * [Kernel] loop and recur are removed in favor of recursion with named functions
   * [Module] Removed data functions in favor of unifying the attributes API
 
-* deprecations
+* Deprecations
   * [Access] The semantics of the access protocol were reduced from a broad query API to simple data structure key-based access
   * [ExUnit] Some assertions are deprecated in favor of simply using `assert()`
   * [File] `File.read_info` is deprecated in favor of `File.stat`
@@ -535,7 +545,7 @@
   * [Module] `Module.function_defined?` is deprecated in favor of `Module.defines?`
   * [Module] `Module.defined_functions` is deprecated in favor of `Module.definitions_in`
 
-* enhancements
+* Enhancements
   * [Enum] Enhance Enum protocol to support `Enum.count`
   * [Enum] Optimize functions when a list is given as collection
   * [Enum] Add `find_index`, `nth!` and others
