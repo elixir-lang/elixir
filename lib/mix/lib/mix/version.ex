@@ -1,5 +1,5 @@
 defmodule Mix.Version do
-  @moduledoc %B"""
+  @moduledoc %S"""
   This module provides functions for parsing and matching
   versions with requirements.
 

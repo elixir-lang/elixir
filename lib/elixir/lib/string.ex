@@ -1,5 +1,5 @@
 defmodule String do
-  @moduledoc %B"""
+  @moduledoc %S"""
   A String in Elixir is a UTF-8 encoded binary.
 
   ## String and binary operations
@@ -381,7 +381,7 @@ defmodule String do
     rstrip(lstrip(string, char), char)
   end
 
-  @doc %B"""
+  @doc %S"""
   Returns a new string of length `len` with `subject` right justified and
   padded with `padding`. If `padding` is not present, it defaults to
   whitespace. When `len` is less than the length of `subject`, `subject` is
@@ -406,7 +406,7 @@ defmodule String do
     do_justify(subject, len, padding, :right)
   end
 
-  @doc %B"""
+  @doc %S"""
   Returns a new string of length `len` with `subject` left justified and padded
   with `padding`. If `padding` is not present, it defaults to whitespace. When
   `len` is less than the length of `subject`, `subject` is returned.
@@ -450,7 +450,7 @@ defmodule String do
     end
   end
 
-  @doc %B"""
+  @doc %S"""
   Returns a new binary based on `subject` by replacing the parts
   matching `pattern` by `replacement`. By default, it replaces
   all entries, except if the `global` option is set to `false`.
@@ -587,7 +587,7 @@ defmodule String do
   @spec next_codepoint(t) :: {codepoint, t} | :no_codepoint
   defdelegate next_codepoint(string), to: String.Unicode
 
-  @doc %B"""
+  @doc %S"""
   Checks whether `str` contains only valid characters.
 
   ## Examples
@@ -618,7 +618,7 @@ defmodule String do
   def valid?(<<>>), do: true
   def valid?(_), do: false
 
-  @doc %B"""
+  @doc %S"""
   Checks whether `str` is a valid character.
 
   All characters are codepoints, but some codepoints
@@ -642,7 +642,7 @@ defmodule String do
   def valid_character?(<<_ :: utf8>> = codepoint), do: valid?(codepoint)
   def valid_character?(_), do: false
 
-  @doc %B"""
+  @doc %S"""
   Checks whether `str` is a valid codepoint.
 
   Note that the empty string is considered invalid, as are

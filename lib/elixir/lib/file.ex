@@ -397,7 +397,7 @@ defmodule File do
     end
   end
 
-  @doc %B"""
+  @doc %S"""
   Copies the contents in source to destination.
   Similar to the command `cp -r` in Unix systems,
   this function behaves differently depending

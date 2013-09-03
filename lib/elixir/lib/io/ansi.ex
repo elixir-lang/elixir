@@ -138,7 +138,7 @@ defmodule IO.ANSI do
     raise ArgumentError, message: "invalid ANSI sequence specification: #{spec}"
   end
 
-  @doc %B"""
+  @doc %S"""
   Escapes a string by converting named ANSI sequences into actual ANSI codes.
 
   The format for referring to sequences is `%{red}` and `%{red,bright}` (for
@@ -167,7 +167,7 @@ defmodule IO.ANSI do
     end
   end
 
-  @doc %B"""
+  @doc %S"""
   Escapes a string by converting named ANSI sequences into actual ANSI codes.
 
   The format for referring to sequences is `%{red}` and `%{red,bright}` (for

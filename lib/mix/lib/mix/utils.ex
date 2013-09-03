@@ -102,7 +102,7 @@ defmodule Mix.Utils do
     end
   end
 
-  @doc %B"""
+  @doc %S"""
   Reads the given file as a manifest and returns each entry
   as a list.
 

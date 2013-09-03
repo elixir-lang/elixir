@@ -68,7 +68,7 @@ defmodule ExUnit.Formatter do
     end
   end
 
-  @doc %B"""
+  @doc %S"""
   Receives a test and formats its failure.
   """
   def format_test_failure(ExUnit.Test[] = test, counter, color) do

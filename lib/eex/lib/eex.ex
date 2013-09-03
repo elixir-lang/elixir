@@ -1,7 +1,7 @@
 defexception EEx.SyntaxError, message: nil
 
 defmodule EEx do
-  @moduledoc %B"""
+  @moduledoc %S"""
   EEx stands for Embedded Elixir. It allows you to embed
   Elixir code inside a string in a robust way:
 

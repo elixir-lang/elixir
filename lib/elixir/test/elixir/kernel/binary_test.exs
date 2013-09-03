@@ -127,15 +127,15 @@ bar
 
   test :literal_errors do
     assert_raise ArgumentError, fn ->
-      Code.eval_string(%b[<< "foo" :: integer >>])
+      Code.eval_string(%s[<< "foo" :: integer >>])
     end
 
     assert_raise ArgumentError, fn ->
-      Code.eval_string(%b[<< "foo" :: float >>])
+      Code.eval_string(%s[<< "foo" :: float >>])
     end
 
     assert_raise ArgumentError, fn ->
-      Code.eval_string(%b[<< 'foo' :: binary >>])
+      Code.eval_string(%s[<< 'foo' :: binary >>])
     end
   end
 

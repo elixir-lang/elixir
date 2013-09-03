@@ -5,7 +5,7 @@ defmodule Mix.Tasks.Escriptize do
   @shortdoc "Generates an escript for the project"
   @recursive true
 
-  @moduledoc %B"""
+  @moduledoc %S"""
   Generates an escript for the project.
 
   ## Command line options

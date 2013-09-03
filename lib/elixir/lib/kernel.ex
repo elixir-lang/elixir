@@ -1379,7 +1379,7 @@ defmodule Kernel do
   @doc false
   defmacro defmacrop(name, args, guards, do: contents)
 
-  @doc %B"""
+  @doc %S"""
   Exports a module with a record definition and runtime operations.
 
   Please see the `Record` module's documentation for an introduction
@@ -1500,7 +1500,7 @@ defmodule Kernel do
     end
   end
 
-  @doc %B"""
+  @doc %S"""
   Defines a set of private macros to manipulate a record definition.
 
   This macro defines a set of macros private to the current module to
@@ -2025,7 +2025,7 @@ defmodule Kernel do
     end
   end
 
-  @doc %B"""
+  @doc %S"""
   Inspect the given arguments according to the `Inspect` protocol.
 
   ## Options
@@ -3373,34 +3373,46 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil %B. It simples returns a binary
+  Handles the sigil %S. It simples returns a string
   without escaping characters and without interpolations.
 
   ## Examples
 
-      iex> %B(foo)
+      iex> %S(foo)
       "foo"
-      iex> %B(f\#{o}o)
+      iex> %S(f\#{o}o)
       "f\\\#{o}o"
 
   """
+  defmacro sigil_S(string, []) do
+    string
+  end
+
+  @doc false
   defmacro sigil_B(string, []) do
+    IO.write "%B() is deprecated, please use %S() instead\n#{Exception.format_stacktrace}"
     string
   end
 
   @doc """
-  Handles the sigil %b. It returns a binary as if it was double quoted
+  Handles the sigil %s. It returns a string as if it was double quoted
   string, unescaping characters and replacing interpolations.
 
   ## Examples
 
-      iex> %b(foo)
+      iex> %s(foo)
       "foo"
-      iex> %b(f\#{:o}o)
+      iex> %s(f\#{:o}o)
       "foo"
 
   """
+  defmacro sigil_s({ :<<>>, line, pieces }, []) do
+    { :<<>>, line, Macro.unescape_tokens(pieces) }
+  end
+
+  @doc false
   defmacro sigil_b({ :<<>>, line, pieces }, []) do
+    IO.write "%b() is deprecated, please use %s() instead\n#{Exception.format_stacktrace}"
     { :<<>>, line, Macro.unescape_tokens(pieces) }
   end
 
@@ -3599,21 +3611,24 @@ defmodule Kernel do
 
   defp split_words(string, modifiers) do
     mod = case modifiers do
-      [] -> ?b
-      [mod] when mod in [?b, ?a, ?c] -> mod
-      _else -> raise ArgumentError, message: "modifier must be one of: b, a, c"
+      [] -> ?s
+      [mod] when mod in [?b] ->
+        IO.write "%w()b is deprecated, please use %w()s instead\n#{Exception.format_stacktrace}"
+        ?s
+      [mod] when mod in [?s, ?a, ?c] -> mod
+      _else -> raise ArgumentError, message: "modifier must be one of: s, a, c"
     end
 
     case is_binary(string) do
       true ->
         case mod do
-          ?b -> String.split(string)
+          ?s -> String.split(string)
           ?a -> lc p inlist String.split(string), do: binary_to_atom(p)
           ?c -> lc p inlist String.split(string), do: String.to_char_list!(p)
         end
       false ->
         case mod do
-          ?b -> quote do: String.split(unquote(string))
+          ?s -> quote do: String.split(unquote(string))
           ?a -> quote do: lc(p inlist String.split(unquote(string)), do: binary_to_atom(p))
           ?c -> quote do: lc(p inlist String.split(unquote(string)), do: String.to_char_list!(p))
         end

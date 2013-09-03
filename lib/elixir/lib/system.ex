@@ -138,7 +138,7 @@ defmodule System do
     )
   end
 
-  @doc %B"""
+  @doc %S"""
   Returns a writable temporary directory.
   It searches for directories in the following order:
 

@@ -135,7 +135,7 @@ defimpl Inspect, for: Atom do
 end
 
 defimpl Inspect, for: BitString do
-  @doc %B"""
+  @doc %S"""
   Represents a string as itself escaping all necessary
   characters. Binaries that contain non-printable characters
   are printed using the bitstring syntax.
@@ -243,7 +243,7 @@ defimpl Inspect, for: BitString do
 end
 
 defimpl Inspect, for: List do
-  @doc %B"""
+  @doc %S"""
   Represents a list, checking if it can be printed or not.
   If so, a single-quoted representation is returned,
   otherwise the brackets syntax is used. Keywords are
@@ -389,7 +389,7 @@ defimpl Inspect, for: Number do
 end
 
 defimpl Inspect, for: Regex do
-  @doc %B"""
+  @doc %S"""
   Represents the Regex using the `%r""` syntax.
 
   ## Examples

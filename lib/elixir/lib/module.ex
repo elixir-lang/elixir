@@ -5,7 +5,7 @@ defmodule Module do
     end
   end
 
-  @moduledoc %B'''
+  @moduledoc %S'''
   This module provides many functions to deal with modules during
   compilation time. It allows a developer to dynamically attach
   documentation, add, delete and register attributes and so forth.

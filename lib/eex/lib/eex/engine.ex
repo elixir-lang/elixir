@@ -1,5 +1,5 @@
 defmodule EEx.Engine do
-  @moduledoc %B"""
+  @moduledoc %S"""
   This is the basic EEx engine that ships with Elixir.
   An engine needs to implement two functions:
 

@@ -1,5 +1,5 @@
 defmodule Regex do
-  @moduledoc %B"""
+  @moduledoc %S"""
   Regular expressions for Elixir built on top of the re module
   in the Erlang Standard Library. More information can be found
   in the re documentation: http://www.erlang.org/doc/man/re.html
@@ -288,7 +288,7 @@ defmodule Regex do
     end
   end
 
-  @doc %B"""
+  @doc %S"""
   Receives a regex, a binary and a replacement, returns a new
   binary where the all matches are replaced by replacement.
 
@@ -318,10 +318,10 @@ defmodule Regex do
     :re.replace(string, compiled, replacement, opts)
   end
 
-  { :ok, pattern } = :re.compile(%B"[.^$*+?()[{\\\|\s#]", [:unicode])
+  { :ok, pattern } = :re.compile(%S"[.^$*+?()[{\\\|\s#]", [:unicode])
   @escape_pattern pattern
 
-  @doc %B"""
+  @doc %S"""
   Escapes a string to be literally matched in a regex.
 
   ## Examples
@@ -365,7 +365,7 @@ defmodule Regex do
   defp translate_options(<<>>), do: []
   defp translate_options(rest), do: { :error, rest }
 
-  { :ok, pattern } = :re.compile(%B"\(\?<(?<G>[^>]*)>")
+  { :ok, pattern } = :re.compile(%S"\(\?<(?<G>[^>]*)>")
   @groups_pattern pattern
 
   defp parse_groups(source) do

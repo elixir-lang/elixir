@@ -1,5 +1,5 @@
 defmodule ExUnit.Callbacks do
-  @moduledoc %B"""
+  @moduledoc %S"""
   This module defines four callbacks: `setup_all`, `teardown_all`,
   `setup` and `teardown`.
 

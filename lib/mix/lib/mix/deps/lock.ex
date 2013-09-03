@@ -59,7 +59,7 @@ defmodule Mix.Deps.Lock do
 
     unless sorted == read do
       lines  = Enum.map_join sorted, ",\n  ", fn { app, rev } ->
-        %b("#{app}": #{inspect rev, raw: true, limit: :infinity})
+        %s("#{app}": #{inspect rev, raw: true, limit: :infinity})
       end
 
       File.write! lockfile, "[ " <> lines <> " ]\n"

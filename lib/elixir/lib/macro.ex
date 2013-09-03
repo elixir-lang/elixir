@@ -107,7 +107,7 @@ defmodule Macro do
     unescape_string(chars, map)
   end
 
-  @doc %B"""
+  @doc %S"""
   Unescape the given chars. This is the unescaping behavior
   used by default in Elixir single- and double-quoted strings.
   Check `unescape_string/2` for information on how to customize
@@ -134,7 +134,7 @@ defmodule Macro do
     :elixir_interpolation.unescape_chars(chars)
   end
 
-  @doc %B"""
+  @doc %S"""
   Unescape the given chars according to the map given.
   Check `unescape_string/1` if you want to use the same map
   as Elixir single- and double-quoted strings.
@@ -636,7 +636,7 @@ defmodule Macro do
     { tree, cache }
   end
 
-  @doc %B"""
+  @doc %S"""
   Receives a AST node and expands it until it no longer represents
   a macro. Then it expands all of its children recursively.
 

@@ -2,7 +2,7 @@ defrecord IEx.Config, binding: nil, cache: '', counter: 1, scope: nil,
                       result: nil, dot_iex_path: nil, input_pid: nil
 
 defmodule IEx do
-  @moduledoc %B"""
+  @moduledoc %S"""
   Welcome to IEx.
 
   This module is the main entry point for Interactive Elixir and
