@@ -156,6 +156,9 @@ defmodule StreamTest do
 
     stream = Stream.drop(1..100, 5)
     assert Stream.take(stream, 5) |> Enum.to_list == [6,7,8,9,10]
+
+    stream = 1..5 |> Stream.take(10) |> Stream.drop(15)
+    assert { [], [] } = Enum.split(stream, 5)
   end
 
   test :take_while do

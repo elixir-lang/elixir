@@ -106,7 +106,7 @@ defmodule Stream do
 
     def member?(Lazy[] = lazy, value) do
       do_reduce(lazy, false, fn(entry, _) ->
-        if entry === value, do: throw({ :stream_lazy, true }), else: false
+        if entry === value, do: throw({ :stream_lazy, 0, true }), else: false
       end, 0)
     end
 
@@ -115,13 +115,13 @@ defmodule Stream do
     end
 
     defp do_reduce(Lazy[enumerable: enumerable, fun: f1, acc: side], acc, fun, nesting) do
-      do_reduce(enumerable, { acc, side }, f1.(fun), nesting + 1)
+      do_reduce(enumerable, { acc, side }, f1.(fun, nesting), nesting + 1)
     end
 
     defp do_reduce(enumerable, acc, fun, nesting) do
       Enumerable.reduce(enumerable, acc, fun) |> remove_nesting(nesting)
     catch
-      { :stream_lazy, res } -> res
+      { :stream_lazy, nesting, res } -> remove_nesting(res, nesting)
     end
 
     defp remove_nesting(acc, 0),       do: acc
@@ -208,7 +208,7 @@ defmodule Stream do
   @spec drop(Enumerable.t, non_neg_integer) :: t
   def drop(enumerable, n) when n >= 0 do
     Lazy[enumerable: enumerable,
-         fun: fn(f1) ->
+         fun: fn(f1, _) ->
            fn
              _entry, { acc, n } when n > 0 ->
                { acc, n - 1 }
@@ -233,7 +233,7 @@ defmodule Stream do
   @spec drop_while(Enumerable.t, (element -> as_boolean(term))) :: t
   def drop_while(enumerable, f) do
     Lazy[enumerable: enumerable,
-         fun: fn(f1) ->
+         fun: fn(f1, _) ->
            fn
              entry, { acc, true } ->
                if f.(entry), do: { acc, true }, else: { f1.(entry, acc), false }
@@ -392,10 +392,10 @@ defmodule Stream do
 
   def take(enumerable, n) when n > 0 do
     Lazy[enumerable: enumerable,
-         fun: fn(f1) ->
+         fun: fn(f1, nesting) ->
            fn(entry, { acc, n }) ->
              res = f1.(entry, acc)
-             if n > 1, do: { res, n-1 }, else: throw { :stream_lazy, res }
+             if n > 1, do: { res, n-1 }, else: throw { :stream_lazy, nesting, res }
            end
          end,
          acc: n]
@@ -415,12 +415,12 @@ defmodule Stream do
   @spec take_while(Enumerable.t, (element -> as_boolean(term))) :: t
   def take_while(enumerable, f) do
     Lazy[enumerable: enumerable,
-         fun: fn(f1) ->
+         fun: fn(f1, nesting) ->
            fn(entry, { acc, true }) ->
              if f.(entry) do
                { f1.(entry, acc), true }
              else
-               throw { :stream_lazy, acc }
+               throw { :stream_lazy, nesting, acc }
              end
            end
          end,
@@ -441,10 +441,10 @@ defmodule Stream do
   @spec with_index(Enumerable.t) :: t
   def with_index(enumerable) do
     Lazy[enumerable: enumerable,
-         fun: fn(f1) ->
+         fun: fn(f1, _) ->
            fn(entry, { acc, counter }) ->
              acc = f1.({ entry, counter }, acc)
-             { acc, counter + 1}
+             { acc, counter + 1 }
            end
          end,
          acc: 0]
