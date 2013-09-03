@@ -1,4 +1,4 @@
-# v0.10.2-dev
+# v0.10.2 (2013-09-03)
 
 * enhancements
   * [CLI] Add `--verbose` to elixirc, which now is non-verbose by default

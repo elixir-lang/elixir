@@ -1,5 +1,5 @@
 REBAR := "$(shell echo `pwd`/rebar)"
-ELIXIRC := bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
+ELIXIRC := bin/elixirc --verbose --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 VERSION := $(strip $(shell cat VERSION))
@@ -10,7 +10,6 @@ INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
-
 
 .PHONY: install compile erlang elixir dialyze test clean docs release_docs release_zip release_erl
 .NOTPARALLEL: compile
