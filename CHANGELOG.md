@@ -8,9 +8,9 @@
   * [ExUnit] Show failures on CLIFormatter as soon as they pop up
   * [IEx] Allow for strings in `h` helper
   * [IEx] Helpers `r` and `c` can handle erlang sources
+  * [Integer] Add `odd?/1` and `even?/1`
   * [IO] Added support to specifying a number of bytes to stream to `IO.stream`, `IO.binstream`, `File.stream!` and `File.binstream!`
   * [Kernel] Include file and line on error report for overriding an existing function/macro
-  * [Kernel] Add `is_odd/1` and `is_even/1`
   * [Kernel] Convert external functions into quoted expressions. This allows record fields to contain functions as long as they point to an `&Mod.fun/arity`
   * [Kernel] Allow `foo?` and `bar!` as valid variable names
   * [List] Add `List.replace_at/3`

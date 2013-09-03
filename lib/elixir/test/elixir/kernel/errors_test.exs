@@ -304,7 +304,7 @@ defmodule Kernel.ErrorsTest do
   test :unrequired_macro do
     assert_compile_fail CompileError,
       "nofile:2: tried to invoke macro Kernel.ErrorsTest.UnproperMacro.unproper/1 " <>
-      "but module was not required. Required: Kernel, Kernel.Typespec, Record",
+      "but module was not required. Required: Integer, Kernel, Kernel.Typespec, Record",
       '''
       defmodule ErrorsTest do
         Kernel.ErrorsTest.UnproperMacro.unproper([])
