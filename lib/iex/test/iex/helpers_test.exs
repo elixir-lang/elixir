@@ -112,7 +112,7 @@ defmodule IEx.HelpersTest do
       :ok
       """
 
-    assert "** (RuntimeError) Out of bounds" <> _
+    assert "** (RuntimeError) v(0) is out of bounds" <> _
            = capture_iex("v(0)")
     assert capture_iex("1\n2\nv(2)") == "1\n2\n2"
     assert capture_iex("1\n2\nv(2)") == capture_iex("1\n2\nv(-1)")

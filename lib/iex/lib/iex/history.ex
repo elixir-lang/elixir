@@ -122,7 +122,7 @@ defmodule IEx.History do
         Process.get({:iex_history, counter + n})
     end
     if nil?(entry) do
-      raise "Out of bounds"
+      raise "v(#{n}) is out of bounds"
     end
     entry
   end

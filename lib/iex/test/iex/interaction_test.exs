@@ -29,11 +29,11 @@ defmodule IEx.InteractionTest do
   end
 
   test "empty history at the start" do
-    assert "** (RuntimeError) Out of bounds" <> _ = capture_iex("v(-1)")
+    assert "** (RuntimeError) v(-1) is out of bounds" <> _ = capture_iex("v(-1)")
   end
 
   test "empty history at the start redux" do
-    assert "** (RuntimeError) Out of bounds" <> _ = capture_iex("v(1)")
+    assert "** (RuntimeError) v(1) is out of bounds" <> _ = capture_iex("v(1)")
   end
 
   test "no break" do
