@@ -820,6 +820,9 @@ defmodule Kernel.SpecialForms do
       iex> lc <<r::8, g::8, b::8>> inbits pixels, do: {r, g, b}
       [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
 
+  Variable assignments in the `do` block of the comprehension
+  are not reflected outside of the block.
+
   Note: Unlike Erlang, Elixir comprehension filters
   never behave as guards when it comes to errors. Errors in
   list comprehensions will always be raised. Consider this
@@ -837,10 +840,10 @@ defmodule Kernel.SpecialForms do
   defmacro lc(args)
 
   @doc """
-  Defines a bit comprehension. It follows the same syntax as
-  a list comprehension but expects each element returned to
-  be a bitstring. For example, here is how to remove all
-  spaces from a string:
+  Defines a bit comprehension. It follows the same syntax and
+  behaviour as a list comprehension but expects each element
+  returned to be a bitstring. For example, here is how to remove
+  all spaces from a string:
 
       iex> bc <<c>> inbits " hello world ", c != ? , do: <<c>>
       "helloworld"
