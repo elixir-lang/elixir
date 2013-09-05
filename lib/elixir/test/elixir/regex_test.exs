@@ -107,6 +107,7 @@ defmodule Regex.BinaryTest do
   end
 
   test :scan_with_groups do
+    assert Regex.scan(%r/cd/g, 'abcd', capture: :groups) == []
     assert Regex.scan(%r/c(?<foo>d)/g, 'abcd', capture: :groups) == [['d']]
     assert Regex.scan(%r/c(?<foo>d)/g, 'no_match', capture: :groups) == []
     assert Regex.scan(%r/c(?<foo>d|e)/g, 'abcd abce', capture: :groups) == [['d'], ['e']]

@@ -249,6 +249,7 @@ defmodule Regex do
 
     options = [{ :capture, captures, return }, :global]
     case :re.run(string, compiled, options) do
+      :match -> []
       :nomatch -> []
       { :match, results } -> results
     end
