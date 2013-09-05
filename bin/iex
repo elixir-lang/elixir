@@ -38,4 +38,4 @@ readlink_f () {
 
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-ELIXIR_NO_CLI=1 exec "$SCRIPT_PATH"/elixir --no-halt --erl "-nouser -s Elixir.IEx.CLI" +iex "$@"
+ELIXIR_NO_CLI=1 exec "$SCRIPT_PATH"/elixir --no-halt --erl "-user Elixir.IEx.CLI" +iex "$@"

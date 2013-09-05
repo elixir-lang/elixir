@@ -1,3 +1,39 @@
+# IEx sets the Erlang user to be IEx.CLI via the command line.
+# While this works most of the time, there are some problems
+# that may happen depending on how the booting process goes.
+# Those problems need to be manually tested in case changes are
+# done to this file.
+#
+# 1. In some situations, printing something before the shell
+#    starts becomes very slow. To verify this feature, just
+#    get an existing project and run:
+#
+#      $ mix clean
+#      $ iex -S mix
+#
+#    If the printing of data is slower than usual. This particular
+#    bug has arisen;
+#
+# 2. In some situations, connecting to a remote node via --remsh
+#    is not possible. This can be tested by starting two iex nodes:
+#
+#      $ iex --sname foo
+#      $ iex --sname bar --remsh foo@localhost
+#
+# 3. When still using --remsh, we need to guarantee the arguments
+#    are processed on the local node and not the remote one. For such,
+#    one can replace the last line above by:
+#
+#      $ iex --sname bar --remsh foo@localhost -e IO.inspect node
+#
+#    And verify that the local node name is printed.
+#
+# 4. Finally, in some other circunstances, printing messages may become
+#    borked. This can be verified with:
+#
+#      $ iex -e ":error_logger.info_msg("foo~nbar", [])"
+#
+# By the time those instructions have been written, all tests above pass.
 defmodule IEx.CLI do
   @moduledoc false
 
@@ -15,15 +51,11 @@ defmodule IEx.CLI do
   """
   def start do
     if tty_works? do
-      :user.start_out
-      :elixir.start_cli
-      tty
+      :user_drv.start([:"tty_sl -c -e", tty_args])
     else
       :user.start
-      :elixir.start_cli
       IO.puts "Warning: could not run smart terminal, falling back to dumb one"
-      config = [dot_iex_path: find_dot_iex(:init.get_plain_arguments)]
-      IEx.start(config)
+      local_start()
     end
   end
 
@@ -40,30 +72,55 @@ defmodule IEx.CLI do
     end
   end
 
-  defp tty do
-    plain_args = :init.get_plain_arguments
-    config     = [dot_iex_path: find_dot_iex(plain_args)]
-    function   = fn -> IEx.start(config) end
-
-    args =
-      if remote = get_remsh(plain_args) do
-        if is_alive do
-          case :rpc.call remote, :code, :ensure_loaded, [IEx] do
-            { :badrpc, reason } ->
-              abort "Could not contact remote node #{remote}, reason: #{inspect reason}. Aborting..."
-            { :module, IEx } ->
-              { remote, :erlang, :apply, [function, []] }
-            _ ->
-              abort "Could not find IEx on remote node #{remote}. Aborting..."
-          end
-        else
-          abort "In order to use --remsh, you need to name the current node using --name or --sname. Aborting..."
+  defp tty_args do
+    if remote = get_remsh(:init.get_plain_arguments) do
+      if is_alive do
+        case :rpc.call remote, :code, :ensure_loaded, [IEx] do
+          { :badrpc, reason } ->
+            abort "Could not contact remote node #{remote}, reason: #{inspect reason}. Aborting..."
+          { :module, IEx } ->
+            { remote, :erlang, :apply, [remote_start_function, []] }
+          _ ->
+            abort "Could not find IEx on remote node #{remote}. Aborting..."
         end
       else
-        { :erlang, :apply, [function, []] }
+        abort "In order to use --remsh, you need to name the current node using --name or --sname. Aborting..."
       end
+    else
+      { :erlang, :apply, [local_start_function, []] }
+    end
+  end
 
-    :user_drv.start([:"tty_sl -c -e", args])
+  def local_start do
+    IEx.start(config(), fn -> :elixir.start_cli end)
+  end
+
+  defp local_start_function do
+    &local_start/0
+  end
+
+  defp remote_start_function do
+    ref    = make_ref
+    config = config()
+
+    parent = spawn_link fn ->
+      receive do
+        { :begin, ^ref, other } ->
+          :elixir.start_cli
+          other <- { :done, ref }
+      end
+    end
+
+    fn ->
+      IEx.start(config, fn ->
+        parent <- { :begin, ref, self }
+        receive do: ({ :done, ^ref } -> :ok)
+      end)
+    end
+  end
+
+  defp config do
+    [dot_iex_path: find_dot_iex(:init.get_plain_arguments)]
   end
 
   defp abort(msg) do

@@ -4,6 +4,7 @@
 
 * Bug fixes
   * [Regex] Fix bug on `Regex.scan/3` when capturing groups and the regex has no groups
+  * [IEx] Fix regression when using `:error_messages` with IEx
 
 * Deprecations
 
