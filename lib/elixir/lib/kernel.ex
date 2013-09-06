@@ -2005,7 +2005,14 @@ defmodule Kernel do
   end
 
   @doc %S"""
-  Inspect the given arguments according to the `Inspect` protocol.
+  Inspect the given argument according to the `Inspect` protocol.
+  The second argument is a keywords list with options to control
+  inspection.
+
+  The second argument may also be an instance of the `Inspect.Opts`
+  record and, in such cases, instead of returning a string, it
+  returns an algebra document which can be converted to a string
+  via `Inspect.Algebra`.
 
   ## Options
 
