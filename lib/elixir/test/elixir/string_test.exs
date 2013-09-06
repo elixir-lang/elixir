@@ -36,6 +36,10 @@ defmodule StringTest do
 
     assert String.split(" a b c ", " ", trim: true) == ["a", "b", "c"]
     assert String.split(" a b c ", " ", trim: true, global: false) == ["a b c "]
+
+    assert String.split("abc", "") == ["a", "b", "c", ""]
+    assert String.split("abc", "", global: false) == ["a", "bc"]
+    assert String.split("abc", "", trim: true) == ["a", "b", "c"]
   end
 
   test :split_with_regex do

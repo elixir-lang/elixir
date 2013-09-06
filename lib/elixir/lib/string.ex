@@ -184,6 +184,12 @@ defmodule String do
       ["a", "b,c"]
       iex> String.split("a,b", %r{\\.})
       ["a,b"]
+      iex> String.split("abc", "")
+      ["a", "b", "c", ""]
+      iex> String.split("abc", "", trim: true)
+      ["a", "b", "c"]
+      iex> String.split("abc", "", global: false)
+      ["a", "bc"]
 
   """
   @spec split(t, t | [t] | Regex.t) :: [t]
@@ -191,6 +197,8 @@ defmodule String do
   def split(binary, pattern, options // [])
 
   def split("", _pattern, _options), do: [""]
+
+  def split(binary, "", options), do: split(binary, %r"", options)
 
   def split(binary, pattern, options) when is_regex(pattern) do
     Regex.split(pattern, binary, options)
