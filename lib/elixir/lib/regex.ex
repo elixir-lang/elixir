@@ -266,6 +266,10 @@ defmodule Regex do
       ["a","b-c"]
       iex> Regex.split(%r/-/, "abc")
       ["abc"]
+      iex> Regex.split(%r//, "abc")
+      ["a", "b", "c", ""]
+      iex> Regex.split(%r//, "abc", trim: true)
+      ["a", "b", "c"]
   """
 
   def split(regex, string, options // [])

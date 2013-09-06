@@ -184,6 +184,12 @@ defmodule String do
       ["a", "b,c"]
       iex> String.split("a,b", %r{\\.})
       ["a,b"]
+      iex> String.split("abc", %r{c})
+      ["ab", ""]
+      iex> String.split("abc", %r{})
+      ["a", "b", "c", ""]
+      iex> String.split("abc", %r{}, trim: true)
+      ["a", "b", "c"]
 
   """
   @spec split(t, t | [t] | Regex.t) :: [t]
