@@ -658,6 +658,9 @@ remove_heredoc_spaces([], Buffer, _Spaces, _Original) ->
 %% the remaining of the document and the number of spaces the heredoc
 %% is aligned.
 
+extract_heredoc_body(_Line, Marker, [{line,NewLine}|Rest], Buffer) ->
+  extract_heredoc_body(NewLine, Marker, Rest, Buffer);
+
 extract_heredoc_body(Line, Marker, Rest, Buffer) ->
   case extract_heredoc_line(Marker, Rest, Buffer, 0) of
     { ok, NewBuffer, NewRest } ->
