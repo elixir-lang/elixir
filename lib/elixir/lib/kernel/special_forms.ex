@@ -80,12 +80,12 @@ defmodule Kernel.SpecialForms do
 
       <<102, rest :: binary>>
 
-  The type can be integer, float, binary, bytes, bitstring,
-  bits, utf8, utf16 or utf32, e.g.:
+  The type can be integer, float, bitstring/bits, binary/bytes,
+  utf8, utf16 or utf32, e.g.:
 
       <<102 :: float, rest :: binary>>
 
-  Integer can be any arbitrary precision integer. A float is an
+  An integer can be any arbitrary precision integer. A float is an
   IEEE 754 binary32 or binary64 floating point number. A bitstring
   is an arbitrary series of bits. A binary is a special case of
   bitstring that has a total size divisible by 8.
