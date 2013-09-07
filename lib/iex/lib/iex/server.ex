@@ -114,6 +114,7 @@ defmodule IEx.Server do
 
         config = config.cache(code).scope(nil).result(result)
         update_history(config)
+        append_to_history_log(config)
         config.update_counter(&1+1).cache('').binding(new_binding).scope(scope).result(nil)
 
       { :error, { line_no, error, token } } ->
@@ -165,6 +166,10 @@ defmodule IEx.Server do
 
   defp update_history(config) do
     IEx.History.append(config, config.counter)
+  end
+
+  defp append_to_history_log(config, filename // "~/.iex_history") do
+    File.write(Path.expand(filename), config.cache, [:append])
   end
 
   defp input_loop(iex_pid) do
