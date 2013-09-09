@@ -896,11 +896,37 @@ defmodule String do
   @spec to_integer(t) :: {integer, t} | :error
 
   def to_integer(string) do
-    {result, remainder} = :string.to_integer(:binary.bin_to_list(string))
-    case result do
-      :error -> :error
-      _ -> {result, :binary.list_to_bin(remainder)}
+    {primary, secondary} = do_to_integer_sign string 
+    if primary != "" do
+      {:erlang.binary_to_integer(primary), secondary}
+    else
+      :error
     end
+  end
+
+  defp do_to_integer_sign(<<'-', rest :: binary>>) do
+    {head, rem} = do_to_integer rest
+    {"-" <> head, rem}
+  end
+  defp do_to_integer_sign(rest) do
+    do_to_integer rest
+  end
+  defp do_to_integer(<<>>) do
+    {"", ""}
+  end
+  #defp do_to_integer(<<h :: utf8>>) when h >= 48 and h < 58 do
+    #  {<<h :: utf8>>, ""}
+    #end
+  defp do_to_integer(<<h :: utf8, rest :: binary>>) when h >= 48 and h < 58 do
+    {head, rem} = do_to_integer rest 
+    if is_integer head do
+      {<<h, head>>, rem}
+    else
+      {<<h, head :: binary>>, rem}
+    end
+  end
+  defp do_to_integer(<<h :: utf8, rest :: binary>>) when h < 48 or h >= 58 do
+    {"", <<h :: size(8), rest :: binary>>}
   end
 
   @doc """
@@ -922,19 +948,102 @@ defmodule String do
   """
   @spec to_float(t) :: {integer, t} | :error
 
-  def to_float(string) do
-    charlist = :binary.bin_to_list(string)
-    {result, remainder} = :string.to_float(charlist)
-    case result do
-      :error ->
-        {int_result, int_remainder} = :string.to_integer(charlist)
-        case int_result do
-          :error -> :error
-          _ -> {:erlang.float(int_result), :binary.list_to_bin(int_remainder)}
-        end
-      _ -> {result, :binary.list_to_bin(remainder)}
+  defp to_float(string) do
+    {primary, secondary} = do_to_float_sign string 
+    if primary != "" do
+      {:erlang.binary_to_float(primary), secondary}
+    else
+      :error
     end
   end
+
+  defp do_to_float_sign(<<'-', rest :: binary>>) do
+    {head, rem} = do_to_float_whole rest
+    if head != ".0" do
+      {"-" <> head, rem}
+    else
+      {"", rem}
+    end
+  end
+  defp do_to_float_sign(rest) do
+    {head, rem} = do_to_float_whole rest
+    if head != ".0" do
+      {head, rem}
+    else
+      {"", rem}
+    end
+  end
+  defp do_to_float_whole(<<'.', rest :: binary>>) do
+    {head, rem} = do_to_float_fraction rest
+    {"." <> head, rem}
+  end
+  defp do_to_float_whole(<<'e', rest :: binary>>) do
+    {head, rem} = do_to_float_sign_exponent rest
+    {"e" <> head, rem}
+  end
+  defp do_to_float_whole(<<>>) do
+    {".0", ""}
+  end
+  defp do_to_float_whole(<<h :: utf8>>) when h >= 48 and h < 58 do
+    {<<h :: utf8, ".0">>, ""}
+  end
+  defp do_to_float_whole(<<h :: utf8, rest :: binary>>) when h >= 48 and h < 58 do
+    {head, rem} = do_to_float_whole rest
+    if is_integer head do
+      {<<h, head>>, rem}
+    else
+      {<<h, head :: binary>>, rem}
+    end
+  end
+  defp do_to_float_whole(<<h :: utf8, rest :: binary>>) when h < 48 or h >= 58 do
+    {".0", <<h :: size(8), rest :: binary>>}
+  end
+  defp do_to_float_fraction(<<'e', rest :: binary>>) do
+    {head, rem} = do_to_float_sign_exponent rest
+    {"e" <> head, rem}
+  end
+  defp do_to_float_fraction(<<>>) do
+    {"", ""}
+  end
+  defp do_to_float_fraction(<<h :: utf8>>) when h >= 48 and h < 58 do
+    {<<h :: utf8>>, ""}
+  end
+  defp do_to_float_fraction(<<h :: utf8, rest :: binary>>) when h >= 48 and h < 58 do
+    {head, rem} = do_to_float_fraction rest
+    if is_integer head do
+      {<<h, head>>, rem}
+    else
+      {:erlang.list_to_binary([h] ++ :erlang.binary_to_list(head)), rem}
+    end
+  end
+  defp do_to_float_fraction(<<h :: utf8, rest :: binary>>) when h < 48 or h >= 58 do
+    {"", <<h :: size(8), rest :: binary>>}
+  end
+  defp do_to_float_sign_exponent(<<'-', rest :: binary>>) do
+    {head, rem} = do_to_float_exponent rest
+    {"-" <> head, rem}
+  end
+  defp do_to_float_sign_exponent(rest) do
+    do_to_float_exponent rest
+  end
+  defp do_to_float_exponent(<<>>) do
+    {"", ""}
+  end
+  defp do_to_float_exponent(<<h :: utf8>>) when h >= 48 and h < 58 do
+    {<<h :: utf8>>, ""}
+  end
+  defp do_to_float_exponent(<<h :: utf8, rest :: binary>>) when h >= 48 and h < 58 do
+    {head, rem} = do_to_float_exponent rest
+    if is_integer head do
+      {<<h, head>>, rem}
+    else
+      {:erlang.list_to_binary([h] ++ :erlang.binary_to_list(head)), rem}
+    end
+  end
+  defp do_to_float_exponent(<<h :: utf8, rest :: binary>>) when h < 48 or h >= 58 do
+    {"", <<h :: size(8), rest :: binary>>}
+  end
+
 
   @doc """
   Returns `true` if `string` starts with any of the prefixes given, otherwise
