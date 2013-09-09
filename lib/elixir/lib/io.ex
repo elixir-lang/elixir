@@ -1,3 +1,10 @@
+defexception IO.StreamError, reason: nil do
+  def message(exception) do
+    formatted = iolist_to_binary(:file.format_error(reason exception))
+    "error during streaming: #{formatted}"
+  end
+end
+
 defmodule IO do
   @moduledoc """
   Module responsible for doing IO. Many functions in this
@@ -243,7 +250,7 @@ defmodule IO do
       :eof ->
         acc
       { :error, reason } ->
-        raise File.IteratorError, reason: reason
+        raise IO.StreamError, reason: reason
       data ->
         stream(device, what, fun.(data, acc), fun)
     end
@@ -255,7 +262,7 @@ defmodule IO do
       :eof ->
         acc
       { :error, reason } ->
-        raise File.IteratorError, reason: reason
+        raise IO.StreamError, reason: reason
       data ->
         binstream(device, what, fun.(data, acc), fun)
     end
