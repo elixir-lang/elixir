@@ -2,6 +2,9 @@ defmodule IO do
   @moduledoc """
   Module responsible for doing IO. Many functions in this
   module expects an IO device and an io data encoded in UTF-8.
+  Use the bin* functions if the data is binary, useful when
+  working with raw bytes or when no unicode conversion should
+  be performed.
 
   An IO device must be a pid or an atom representing a process.
   For convenience, Elixir provides `:stdio` and `:stderr` as
@@ -17,9 +20,6 @@ defmodule IO do
     with many bytes (Elixir's default representation);
 
   * A list of binaries or a list of char lists (as described above);
-
-  * If none of the above, `to_string` is invoked on the
-    given argument;
 
   """
 
@@ -160,7 +160,7 @@ defmodule IO do
   Gets a number of bytes from the io device. If the
   io device is a unicode device, `count` implies
   the number of unicode codepoints to be retrieved.
-  Otherwise, `count` is the number of raw bytes to be retrieved. 
+  Otherwise, `count` is the number of raw bytes to be retrieved.
   It returns:
 
   * `data` - The input characters.
