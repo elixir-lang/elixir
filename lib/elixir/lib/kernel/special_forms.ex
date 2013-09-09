@@ -395,8 +395,8 @@ defmodule Kernel.SpecialForms do
                   Read the Stacktrace information section below for more information;
   * `:hygiene` - Allows a developer to disable hygiene selectively;
   * `:context` - Sets the resolution context;
-  * `:binding` - Passes a binding to the macro. Whenever a binding is given,
-                 `unquote` is automatically disabled;
+  * `:bind_quoted` - Passes a binding to the macro. Whenever a binding is given,
+                    `unquote` is automatically disabled;
 
   ## Macro literals
 
@@ -709,8 +709,8 @@ defmodule Kernel.SpecialForms do
         end
       end
 
-  In fact, the `:binding` option is recommended every time one
-  desires to inject a value into the quote.
+  In fact, the `:bind_quoted` option is recommended every time
+  one desires to inject a value into the quote.
   """
   defmacro quote(opts, block)
 
