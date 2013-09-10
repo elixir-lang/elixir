@@ -25,6 +25,12 @@ defmodule Mix.CLI do
     args
   end
 
+  defp get_task(["-" <> _|_]) do
+    Mix.shell.error "** (Mix) Cannot implicitly pass flags to default mix task, " <>
+                    "please invoke instead: mix #{Mix.project[:default_task]}"
+    exit(1)
+  end
+
   defp get_task([h|t]) do
     { h, t }
   end
