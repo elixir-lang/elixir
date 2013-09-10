@@ -1045,14 +1045,15 @@ defmodule Enum do
   def take_every(_collection, 0), do: []
   def take_every(collection, nth) do
     res = Enumerable.reduce(collection, nil, fn
-      x, {acc, ^nth} -> {[x | acc], 1}
-      _, {acc, count} -> {acc, count + 1}
-      x, nil -> {[x], 1}
+      x, { acc, ^nth } -> { [x | acc], 1 }
+      _, { acc, count } -> { acc, count + 1 }
+      x, nil -> { [x], 1 }
     end)
-    if nil?(res) do
-      []
-    else
-      {list, _} = res
+
+    case res do
+      nil -> []
+      _ ->
+      { list, _ } = res
       :lists.reverse(list)
     end
   end
