@@ -309,6 +309,7 @@ expand_module(_Raw, Module, S) ->
   elixir_aliases:concat([S#elixir_scope.module, Module]).
 
 is_reserved_data(moduledoc) -> true;
+is_reserved_data(typedoc)   -> true;
 is_reserved_data(doc)       -> true;
 is_reserved_data(_)         -> false.
 

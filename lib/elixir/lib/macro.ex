@@ -5,6 +5,7 @@ defmodule Macro do
   This module provides conveniences for working with macros.
   """
 
+  @typedoc "Abstract Syntax Tree (AST) node"
   @type t :: { t, t } | { t, Keyword.t, t } | atom | number | binary | list
 
   @doc false
