@@ -168,21 +168,32 @@ defmodule Kernel.Typespec do
       end
 
     module = caller.module
-    Module.compile_typespec module, kind, type
-    arity = length(vars)
-    if export, do: Module.compile_typespec(module, :export_type, [{ name, arity }])
+    arity  = length(vars)
 
-    doc = Module.get_attribute(module, :typedoc)
+    Module.compile_typespec module, kind, type
+
+    if export do
+      Module.compile_typespec(module, :export_type, [{ name, arity }])
+    end
+
+    define_doc(caller, kind, name, arity, export)
+    type
+  end
+
+  defp define_doc(caller, kind, name, arity, export) do
+    module = caller.module
+    doc    = Module.get_attribute(module, :typedoc)
+
     if doc do
       if export do
-        Module.add_doc(caller.module, caller.line, kind, { name, arity }, vars, doc)
+        Module.add_doc(module, caller.line, kind, { name, arity }, doc)
       else
-        :elixir_errors.warn "#{caller.file}:#{caller.line}: type #{name} is private, @typedoc's are always discarded for private types\n"
+        :elixir_errors.warn "#{caller.file}:#{caller.line}: type #{name}/#{arity} is private, " <>
+                            "@typedoc's are always discarded for private types\n"
       end
     end
-    Module.delete_attribute(module, :typedoc)
 
-    type
+    Module.delete_attribute(module, :typedoc)
   end
 
   @doc """
@@ -266,7 +277,7 @@ defmodule Kernel.Typespec do
     args = lc arg inlist args, do: typespec_to_ast(arg)
     quote do: unquote(name)(unquote_splicing(args)) :: unquote(typespec_to_ast(type))
   end
-  
+
   @doc """
   Returns all type docs available from the module's beam code.
 

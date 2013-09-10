@@ -412,11 +412,11 @@ defmodule Kernel.WarningTest do
         def foo(), do: nil
       end
       """
-    end) =~ "nofile:3: type priv is private, @typedoc's are always discarded for private types" 
+    end) =~ "nofile:3: type priv/0 is private, @typedoc's are always discarded for private types"
   after
     purge [Sample]
   end
-  
+
   test :typedoc_with_no_type do
     assert capture_err(fn ->
       Code.eval_string """
@@ -424,7 +424,7 @@ defmodule Kernel.WarningTest do
         @typedoc "Something"
       end
       """
-    end) =~ "nofile:1: typedoc provided but no type follows it" 
+    end) =~ "nofile:1: typedoc provided but no type follows it"
   after
     purge [Sample]
   end
