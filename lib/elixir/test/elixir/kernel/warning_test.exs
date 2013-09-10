@@ -424,7 +424,7 @@ defmodule Kernel.WarningTest do
         @typedoc "Something"
       end
       """
-    end) =~ "nofile:1: typedoc provided but no type follows it"
+    end) =~ "nofile:1: @typedoc provided but no type follows it"
   after
     purge [Sample]
   end
