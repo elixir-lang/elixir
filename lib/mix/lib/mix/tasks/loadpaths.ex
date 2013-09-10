@@ -31,7 +31,7 @@ defmodule Mix.Tasks.Loadpaths do
       config = Mix.project
 
       if requirement = config[:elixir] do
-        unless Mix.Version.match?(System.version, requirement) do
+        unless Version.match?(System.version, requirement) do
           raise Mix.ElixirVersionError, target: config[:app] || Mix.Project.get,
                                         expected: requirement,
                                         actual: System.version
