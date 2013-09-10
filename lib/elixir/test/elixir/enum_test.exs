@@ -264,6 +264,13 @@ defmodule EnumTest.List do
     assert Enum.take([], 3) == []
   end
 
+  test :take_every do
+    assert Enum.take_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 2) == [1, 3, 5, 7, 9]
+    assert Enum.take_every([], 2) == []
+    assert Enum.take_every([1, 2], 2) == [1]
+    assert Enum.take_every([1, 2, 3], 0) == []
+  end
+
   test :take_while do
     assert Enum.take_while([1, 2, 3], fn(x) -> x > 3 end) == []
     assert Enum.take_while([1, 2, 3], fn(x) -> x <= 1 end) == [1]
@@ -640,6 +647,12 @@ defmodule EnumTest.Range do
 
     range = Range.new(first: 1, last: 0)
     assert Enum.take(range, 3) == [1, 0]
+  end
+
+  test :take_every do
+    assert Enum.take_every(1..10, 2) == [1, 3, 5, 7, 9]
+    assert Enum.take_every(1..2, 2) == [1]
+    assert Enum.take_every(1..3, 0) == []
   end
 
   test :take_while do
