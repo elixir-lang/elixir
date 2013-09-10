@@ -1032,6 +1032,32 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a collection of every `nth` items in the collection,
+  starting with the first.
+
+  ## Examples
+
+      iex> Enum.take_every(1..10, 2)
+      [1, 3, 5, 7, 9]
+
+  """
+  @spec take_every(t, integer) :: list
+  def take_every(_collection, 0), do: []
+  def take_every(collection, nth) do
+    res = Enumerable.reduce(collection, nil, fn
+      x, {acc, ^nth} -> {[x | acc], 1}
+      _, {acc, count} -> {acc, count + 1}
+      x, nil -> {[x], 1}
+    end)
+    if nil?(res) do
+      []
+    else
+      {list, _} = res
+      :lists.reverse(list)
+    end
+  end
+
+  @doc """
   Takes the items at the beginning of `collection` while `fun` returns `true`.
   Expects an ordered collection.
 
