@@ -1,14 +1,19 @@
 # v0.10.3-dev
 
 * Enhancements
+  * [Enum] Add `Enum.take_every/2`
+  * [Kernel] Allow documentation for types with `@typedoc`
 
 * Bug fixes
-  * [Regex] Fix bug on `Regex.scan/3` when capturing groups and the regex has no groups
   * [IEx] Fix regression when using `:error_messages` with IEx
+  * [Kernel] Fixed handling of multiple heredocs on the same line
+  * [Regex] Fix bug on `Regex.scan/3` when capturing groups and the regex has no groups
 
 * Deprecations
 
 * Backwards incompatible changes
+  * [Mix] `Mix.Version` was renamed to `Version`
+  * [Mix] `File.IteratorError` was renamed to `IO.StreamError`
 
 # v0.10.2 (2013-09-03)
 
