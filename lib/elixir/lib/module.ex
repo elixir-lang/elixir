@@ -477,11 +477,11 @@ defmodule Module do
   end
 
   @doc """
-  Attaches documentation to a given function. It expects
-  the module the function belongs to, the line (a non negative
+  Attaches documentation to a given function or type. It expects
+  the module the function/type belongs to, the line (a non negative
   integer), the kind (def or defmacro), a tuple representing
-  the function and its arity and the documentation, which should
-  be either a binary or a boolean.
+  the function and its arity, the function/type's signature and the
+  documentation, which should be either a binary or a boolean.
 
   ## Examples
 
@@ -491,7 +491,7 @@ defmodule Module do
       end
 
   """
-  def add_doc(_module, _line, kind, _tuple, _signature, doc) when kind in [:defp, :defmacrop] do
+  def add_doc(_module, _line, kind, _tuple, _signature, doc) when kind in [:defp, :defmacrop, :typep] do
     if doc, do: { :error, :private_doc }, else: :ok
   end
 
@@ -514,6 +514,29 @@ defmodule Module do
           line,
           kind,
           merge_signatures(old_sign, signature, 1),
+          if(nil?(doc), do: old_doc, else: doc)
+        })
+        :ok
+    end
+  end
+  
+  def add_doc(module, line, kind, tuple, signature, doc) when
+      kind in [:type, :opaque] and (is_binary(doc) or is_boolean(doc) or doc == nil) do
+    assert_not_compiled!(:add_doc, module)
+    table = docs_table_for(module)
+
+    case :ets.lookup(table, tuple) do
+      [] ->
+        :ets.insert(table, { tuple, line, kind, signature, doc })
+        :ok
+      [{ tuple, line, _old_kind, old_sign, old_doc }] ->
+        # This could happen if someone manually calls add_doc several times on
+        # the same type.
+        :ets.insert(table, {
+          tuple,
+          line,
+          kind,
+          signature,
           if(nil?(doc), do: old_doc, else: doc)
         })
         :ok

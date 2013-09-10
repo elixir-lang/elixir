@@ -488,4 +488,29 @@ defmodule Typespec.TypeTest do
   after
     Code.compiler_options debug_info: false
   end
+
+  test "typedoc retrieval" do
+    Code.compiler_options debug_info: true
+
+    { :module, T, binary, _ } = defmodule T do
+      @typedoc "A"
+      @type a :: any
+      @typep b :: any
+      @typedoc "C"
+      @opaque c(x, y) :: {x, y}
+      @type d :: any
+      @spec uses_b() :: b
+      def uses_b(), do: nil
+    end
+
+    :code.delete(T)
+    :code.purge(T)
+
+    assert [
+      {{:c, 2}, "C"},
+      {{:a, 0}, "A"}
+    ] = Kernel.Typespec.beam_typedocs(binary)
+  after
+    Code.compiler_options debug_info: false
+  end
 end
