@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     end
 
     lc dep inlist all, available?(dep) do
-      Enum.each(load_paths(dep), Code.prepend_path(&1))
+      Enum.each(load_paths(dep), &Code.prepend_path/1)
     end
   end
 end

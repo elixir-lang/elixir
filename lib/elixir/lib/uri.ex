@@ -54,7 +54,7 @@ defmodule URI do
   that implements the `String.Chars` protocol (i.e. can be converted
   to a binary).
   """
-  def encode_query(l), do: Enum.map_join(l, "&", pair(&1))
+  def encode_query(l), do: Enum.map_join(l, "&", &pair/1)
 
   @doc """
   Given a query string of the form "key1=value1&key=value2...", produces an

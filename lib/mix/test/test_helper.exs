@@ -94,7 +94,7 @@ defmodule MixTest.Case do
   defp delete_tmp_paths do
     tmp = tmp_path |> String.to_char_list!
     to_remove = Enum.filter :code.get_path, fn(path) -> :string.str(path, tmp) != 0 end
-    Enum.map to_remove, :code.del_path(&1)
+    Enum.map to_remove, &(:code.del_path(&1))
   end
 end
 

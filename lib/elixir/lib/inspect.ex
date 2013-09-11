@@ -267,9 +267,9 @@ defimpl Inspect, for: List do
       :io_lib.printable_list(thing) ->
         << ?', Inspect.BitString.escape(String.from_char_list!(thing), ?') :: binary, ?' >>
       keyword?(thing) && not opts.raw ->
-        surround_many("[", thing, "]", opts.limit, keyword(&1, opts))
+        surround_many("[", thing, "]", opts.limit, &keyword(&1, opts))
       true ->
-        surround_many("[", thing, "]", opts.limit, Kernel.inspect(&1, opts))
+        surround_many("[", thing, "]", opts.limit, &Kernel.inspect(&1, opts))
     end
   end
 
@@ -317,7 +317,7 @@ defimpl Inspect, for: Tuple do
   def inspect(tuple, opts) do
     unless opts.raw do
       record_inspect(tuple, opts)
-    end || surround_many("{", tuple_to_list(tuple), "}", opts.limit, Kernel.inspect(&1, opts))
+    end || surround_many("{", tuple_to_list(tuple), "}", opts.limit, &Kernel.inspect(&1, opts))
   end
 
   ## Helpers
@@ -331,7 +331,7 @@ defimpl Inspect, for: Tuple do
       else
         surround_record(name, fields, tail, opts)
       end
-    end || surround_many("{", [name|tail], "}", opts.limit, Kernel.inspect(&1, opts))
+    end || surround_many("{", [name|tail], "}", opts.limit, &Kernel.inspect(&1, opts))
   end
 
   defp record_fields(name) do
@@ -351,7 +351,7 @@ defimpl Inspect, for: Tuple do
 
     concat(
       Inspect.Atom.inspect(name, opts),
-      surround_many("[", Enum.zip(fields, tail), "]", opts.limit, keyword(&1, opts))
+      surround_many("[", Enum.zip(fields, tail), "]", opts.limit, &keyword(&1, opts))
     )
   end
 

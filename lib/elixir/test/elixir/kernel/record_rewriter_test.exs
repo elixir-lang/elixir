@@ -249,7 +249,7 @@ defmodule Kernel.RecordRewriterTest do
 
   test "updater call is rewriten" do
     { clause, rewriten } =
-      { clause(fn(x = Range[]) -> x.update_first(&1 + 1) end), clause(fn(x = Range[]) -> Range.update_first(&1 + 1, x) end) }
+      { clause(fn(x = Range[]) -> x.update_first(&(&1 + 1)) end), clause(fn(x = Range[]) -> Range.update_first(&(&1 + 1), x) end) }
     assert optimize_clause(clause) == { rewriten, [x: Range], { Range, nil } }
   end
 

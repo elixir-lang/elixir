@@ -2047,7 +2047,7 @@ defmodule Kernel do
   representation of an Elixir term. In such cases, the inspected result
   must start with `#`. For example, inspecting a function will return:
 
-      inspect &1 + &2
+      inspect &(&1 + &2)
       #=> #Function<...>
 
   """
@@ -2164,12 +2164,12 @@ defmodule Kernel do
   Match can also be used to filter or find a value in an enumerable:
 
       list = [{:a, 1}, {:b, 2}, {:a, 3}]
-      Enum.filter list, match?({:a, _}, &1)
+      Enum.filter list, &match?({:a, _}, &1)
 
   Guard clauses can also be given to the match:
 
       list = [{:a, 1}, {:b, 2}, {:a, 3}]
-      Enum.filter list, match?({:a, x } when x < 2, &1)
+      Enum.filter list, &match?({:a, x } when x < 2, &1)
 
   However, variables assigned in the match will not be available
   outside of the function call:
@@ -2188,7 +2188,7 @@ defmodule Kernel do
   end
 
   defmacro match?(left, right) do
-    { left, _ } = falsify_var(left, [], falsify_all(&1, &2))
+    { left, _ } = falsify_var(left, [], &falsify_all/2)
 
     quote do
       case unquote(right) do
@@ -2217,7 +2217,7 @@ defmodule Kernel do
 
   defp falsify_var({ :when, meta, [left, right] }, acc, fun) do
     { left, acc }  = falsify_var(left, acc, fun)
-    { right, acc } = falsify_var(right, acc, falsify_selected(&1, &2))
+    { right, acc } = falsify_var(right, acc, &falsify_selected/2)
     { { :when, meta, [left, right] }, acc }
   end
 
@@ -2238,7 +2238,7 @@ defmodule Kernel do
   end
 
   defp falsify_var(list, acc, fun) when is_list(list) do
-    :lists.mapfoldl(falsify_var(&1, &2, fun), acc, list)
+    :lists.mapfoldl(&falsify_var(&1, &2, fun), acc, list)
   end
 
   defp falsify_var(other, acc, _fun) do
@@ -3035,12 +3035,12 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> [1, [2], 3] |> List.flatten |> Enum.map(&1 * 2)
+      iex> [1, [2], 3] |> List.flatten |> Enum.map(&(&1 * 2))
       [2,4,6]
 
   The expression above is simply translated to:
 
-      Enum.map(List.flatten([1, [2], 3]), &1 * 2)
+      Enum.map(List.flatten([1, [2], 3]), &(&1 * 2))
 
   Be aware of operator precendence when using this operator.
   For example, the following expression:
@@ -3434,13 +3434,13 @@ defmodule Kernel do
 
   """
   defmacro sigil_r({ :<<>>, _line, [string] }, options) when is_binary(string) do
-    binary = Macro.unescape_string(string, Regex.unescape_map(&1))
+    binary = Macro.unescape_string(string, fn(x) -> Regex.unescape_map(x) end)
     regex  = Regex.compile!(binary, :binary.list_to_bin(options))
     Macro.escape(regex)
   end
 
   defmacro sigil_r({ :<<>>, line, pieces }, options) do
-    binary = { :<<>>, line, Macro.unescape_tokens(pieces, Regex.unescape_map(&1)) }
+    binary = { :<<>>, line, Macro.unescape_tokens(pieces, fn(x) -> Regex.unescape_map(x) end) }
     quote do: Regex.compile!(unquote(binary), unquote(:binary.list_to_bin(options)))
   end
 

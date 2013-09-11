@@ -362,10 +362,10 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.update!([a: 1], :a, &1 * 2)
+      iex> Keyword.update!([a: 1], :a, &(&1 * 2))
       [a: 2]
 
-      iex> Keyword.update!([a: 1], :b, &1 * 2)
+      iex> Keyword.update!([a: 1], :b, &(&1 * 2))
       ** (KeyError) key not found: :b
 
   """
@@ -388,10 +388,10 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.update([a: 1], :a, 13, &1 * 2)
+      iex> Keyword.update([a: 1], :a, 13, &(&1 * 2))
       [a: 2]
 
-      iex> Keyword.update([a: 1], :b, 11, &1 * 2)
+      iex> Keyword.update([a: 1], :b, 11, &(&1 * 2))
       [a: 1, b: 11]
 
   """

@@ -24,9 +24,9 @@ defmodule Mix.Tasks.Deps.Get do
     { opts, rest, _ } = OptionParser.parse(args, switches: [no_compile: :boolean, quiet: :boolean])
 
     if rest != [] do
-      { _, acc } = Enum.map_reduce by_name(rest), init, deps_getter(&1, &2)
+      { _, acc } = Enum.map_reduce by_name(rest), init, &deps_getter/2
     else
-      acc = all(init, deps_getter(&1, &2))
+      acc = all(init, &deps_getter/2)
     end
 
     finalize_get(acc, opts)

@@ -147,7 +147,7 @@ defmodule IEx.Introspection do
     Enum.find docs, fn(doc) ->
       case elem(doc, 0) do
         { ^function, max } when max > min ->
-          defaults = Enum.count elem(doc, 3), match?({ ://, _, _ }, &1)
+          defaults = Enum.count elem(doc, 3), &match?({ ://, _, _ }, &1)
           min + defaults >= max
         _ ->
           false
@@ -156,7 +156,7 @@ defmodule IEx.Introspection do
   end
 
   defp print_doc({ { fun, _ }, _line, kind, args, doc }) do
-    args = Enum.map_join(args, ", ", print_doc_arg(&1))
+    args = Enum.map_join(args, ", ", &print_doc_arg(&1))
     IO.puts IEx.color(:info, "* #{kind} #{fun}(#{args})\n")
     if doc, do: IO.write IEx.color(:info, doc)
   end
@@ -252,8 +252,8 @@ defmodule IEx.Introspection do
   end
 
   defp beam_specs(module) do
-    specs = Enum.map(Kernel.Typespec.beam_specs(module), {:spec, &1})
-    callbacks = Enum.map(Kernel.Typespec.beam_callbacks(module), {:callback, &1})
+    specs = Enum.map(Kernel.Typespec.beam_specs(module), &{:spec, &1})
+    callbacks = Enum.map(Kernel.Typespec.beam_callbacks(module), &{:callback, &1})
     Enum.concat(specs, callbacks)
   end
 

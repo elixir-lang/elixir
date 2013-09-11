@@ -59,9 +59,9 @@ defmodule Mix.Tasks.Compile.Elixir do
     defp do_files_to_path(_pid, _entries, [], _compile_path, _cwd), do: :ok
     defp do_files_to_path(pid, entries, files, compile_path, cwd) do
       Kernel.ParallelCompiler.files :lists.usort(files),
-        each_module: each_module(pid, compile_path, cwd, &1, &2, &3),
-        each_file: each_file(&1),
-        each_waiting: each_waiting(entries, &1)
+        each_module: &each_module(pid, compile_path, cwd, &1, &2, &3),
+        each_file: &each_file(&1),
+        each_waiting: &each_waiting(entries, &1)
 
       do_files_to_path(pid, entries, :gen_server.call(pid, :next), compile_path, cwd)
     end
@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       deps = Module.DispatchTracker.aliases(module) ++
              Module.DispatchTracker.remotes(module) ++
              Module.DispatchTracker.imports(module)
-      deps = deps |> :lists.usort |> Enum.map(atom_to_binary(&1))
+      deps = deps |> :lists.usort |> Enum.map(&atom_to_binary(&1))
 
       relative = if cwd, do: Path.relative_to(source, cwd), else: source
       :gen_server.cast(pid, { :store, beam, bin, relative, deps, binary })
@@ -109,7 +109,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       lines = Enum.map(entries, fn
         { beam, module, source, deps, binary } ->
           File.write!(beam, binary)
-          deps = Enum.filter(deps, &1 in modules)
+          deps = Enum.filter(deps, &(&1 in modules))
           [beam, module, source | deps] |> Enum.join("\t")
       end)
 
@@ -142,7 +142,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       # had its dependency changed and it was not yet
       # compiled, get its source as next
       next = lc { _b, module, source, deps, _y } inlist old,
-                Enum.any?(modules, &1 in deps),
+                Enum.any?(modules, &(&1 in deps)),
                 not(module in modules),
                 not(source in sources),
                 do: source

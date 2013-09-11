@@ -56,11 +56,11 @@ defmodule ExUnit.Server do
   end
 
   def handle_cast({:add_async_case, name}, config) do
-    { :noreply, config.update_async_cases [name|&1] }
+    { :noreply, config.update_async_cases &[name|&1] }
   end
 
   def handle_cast({:add_sync_case, name}, config) do
-    { :noreply, config.update_sync_cases [name|&1] }
+    { :noreply, config.update_sync_cases &[name|&1] }
   end
 
   def handle_cast(request, config) do

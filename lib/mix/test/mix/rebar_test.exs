@@ -31,13 +31,13 @@ defmodule Mix.RebarTest do
     Mix.Project.push(RebarAsDep)
 
     deps = Mix.Deps.all
-    assert Enum.find(deps, match?(Mix.Dep[app: :rebar_dep], &1))
+    assert Enum.find(deps, &match?(Mix.Dep[app: :rebar_dep], &1))
 
     assert Enum.find(deps, fn dep ->
       Mix.Dep[app: app, opts: opts] = dep
       if app == :git_rebar do
-        assert Enum.find(opts, match?({:git, "../../test/fixtures/git_rebar"}, &1))
-        assert Enum.find(opts, match?({:ref, "master"}, &1))
+        assert Enum.find(opts, &match?({:git, "../../test/fixtures/git_rebar"}, &1))
+        assert Enum.find(opts, &match?({:ref, "master"}, &1))
         true
       end
     end)
@@ -61,11 +61,11 @@ defmodule Mix.RebarTest do
       assert :git_rebar.any_function == :ok
 
       load_paths = Mix.Deps.all
-        |> Enum.map(Mix.Deps.load_paths(&1))
+        |> Enum.map(&Mix.Deps.load_paths(&1))
         |> Enum.concat
 
-      assert Enum.any?(load_paths, String.ends_with?(&1, "git_rebar/ebin"))
-      assert Enum.any?(load_paths, String.ends_with?(&1, "rebar_dep/ebin"))
+      assert Enum.any?(load_paths, &String.ends_with?(&1, "git_rebar/ebin"))
+      assert Enum.any?(load_paths, &String.ends_with?(&1, "rebar_dep/ebin"))
     end
   after
     Mix.Project.pop

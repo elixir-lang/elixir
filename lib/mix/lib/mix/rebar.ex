@@ -63,7 +63,7 @@ defmodule Mix.Rebar do
   def deps(config) do
     if deps = config[:deps] do
       deps_dir = config[:deps_dir] || "deps"
-      Enum.map(deps, parse_dep(&1, deps_dir))
+      Enum.map(deps, &parse_dep(&1, deps_dir))
     else
       []
     end
@@ -78,9 +78,9 @@ defmodule Mix.Rebar do
 
     if sub_dirs = config[:sub_dirs] do
       sub_dirs = sub_dirs
-       |> Enum.map(Path.wildcard(&1))
+       |> Enum.map(&Path.wildcard(&1))
        |> Enum.concat
-       |> Enum.filter(File.dir?(&1))
+       |> Enum.filter(&File.dir?(&1))
 
       Enum.map(sub_dirs, fn(dir) ->
         recur(dir, fun)

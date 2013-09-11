@@ -94,7 +94,7 @@ defmodule Mix.SCM.Git do
   defp get_lock_rev(_), do: nil
 
   defp get_lock_opts(opts) do
-    lock_opts = Enum.find_value [:branch, :ref, :tag], List.keyfind(opts, &1, 0)
+    lock_opts = Enum.find_value [:branch, :ref, :tag], &List.keyfind(opts, &1, 0)
     lock_opts = List.wrap(lock_opts)
     if opts[:submodules] do
       lock_opts ++ [submodules: true]

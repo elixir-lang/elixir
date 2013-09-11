@@ -145,7 +145,7 @@ defmodule ExUnit.DocTest do
 
     tests = Enum.filter(extract(module), fn(test) ->
       fa = test.fun_arity
-      Enum.all?(except, &1 != fa) and Enum.all?(only, &1 == fa)
+      Enum.all?(except, &(&1 != fa)) and Enum.all?(only, &(&1 == fa))
     end)
 
     Enum.map_reduce(tests, 1, fn(test, acc) ->

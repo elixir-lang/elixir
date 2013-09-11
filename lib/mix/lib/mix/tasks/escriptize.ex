@@ -137,7 +137,7 @@ defmodule Mix.Tasks.Escriptize do
 
   defp get_files(app) do
     Path.wildcard("#{app}/ebin/*.{app,beam}") ++
-      (Path.wildcard("#{app}/priv/**/*") |> Enum.filter(File.regular?(&1)))
+      (Path.wildcard("#{app}/priv/**/*") |> Enum.filter(&File.regular?/1))
   end
 
   defp get_tuples(app) do
@@ -169,7 +169,7 @@ defmodule Mix.Tasks.Escriptize do
           case :application.start(:elixir) do
             :ok ->
               start_app
-              args = Enum.map(args, String.from_char_list!(&1))
+              args = Enum.map(args, &String.from_char_list!(&1))
               Kernel.CLI.run fn -> @module.main(args) end, true
             _   ->
               IO.puts :stderr, IO.ANSI.escape("%{red, bright} Elixir is not in the code path, aborting.")

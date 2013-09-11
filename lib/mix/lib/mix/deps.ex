@@ -321,10 +321,10 @@ defmodule Mix.Deps do
     end)
 
     [ opts[:dest] | sub_dirs ]
-      |> Enum.map(Path.wildcard(&1))
+      |> Enum.map(&Path.wildcard(&1))
       |> Enum.concat
-      |> Enum.map(Path.join(&1, "ebin"))
-      |> Enum.filter(File.dir?(&1))
+      |> Enum.map(&Path.join(&1, "ebin"))
+      |> Enum.filter(&File.dir?(&1))
   end
 
   def load_paths(Mix.Dep[manager: manager, opts: opts]) when manager in [:make, nil] do

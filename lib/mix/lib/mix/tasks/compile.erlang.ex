@@ -83,7 +83,7 @@ defmodule Mix.Tasks.Compile.Erlang do
     tuples = files
              |> scan_sources(include_path, source_paths)
              |> sort_dependencies
-             |> Enum.map(annotate_target(&1, compile_path, opts[:force]))
+             |> Enum.map(&annotate_target(&1, compile_path, opts[:force]))
 
     compile_mappings(manifest(), tuples, fn
       input, _output ->
@@ -153,7 +153,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   defp scan_sources(files, include_path, source_paths) do
     include_paths = [include_path | source_paths]
-    Enum.reduce(files, [], scan_source(&2, &1, include_paths)) |> Enum.reverse
+    Enum.reduce(files, [], &scan_source(&2, &1, include_paths)) |> Enum.reverse
   end
 
   defp scan_source(acc, file, include_paths) do
@@ -161,7 +161,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     case Epp.parse_file(to_erl_file(file), include_paths, []) do
       { :ok, forms } ->
-        [List.foldl(tl(forms), erl_file, do_form(file, &1, &2)) | acc]
+        [List.foldl(tl(forms), erl_file, &do_form(file, &1, &2)) | acc]
       { :error, _error } ->
         acc
     end
@@ -171,14 +171,14 @@ defmodule Mix.Tasks.Compile.Erlang do
     case form do
       {:attribute, _, :file, {include_file, _}} when file != include_file ->
         if File.regular?(include_file) do
-          erl.update_includes [include_file|&1]
+          erl.update_includes &[include_file|&1]
         else
           erl
         end
       {:attribute, _, :behaviour, behaviour} ->
-        erl.update_behaviours [behaviour|&1]
+        erl.update_behaviours &[behaviour|&1]
       {:attribute, _, :compile, value} ->
-        erl.update_compile [value|&1]
+        erl.update_compile &[value|&1]
       _ ->
         erl
     end
@@ -261,7 +261,7 @@ defmodule Mix.Tasks.Compile.Erlang do
       File.mkdir_p!(Path.dirname(manifest))
 
       # Remove manifest entries with no source
-      Enum.each(removed, File.rm(&1))
+      Enum.each(removed, &File.rm/1)
 
       # Compile stale files and print the results
       results = lc { input, output } inlist stale do
@@ -269,11 +269,11 @@ defmodule Mix.Tasks.Compile.Erlang do
       end
 
       # Write final entries to manifest
-      entries = (entries -- removed) ++ Enum.map(stale, elem(&1, 1))
+      entries = (entries -- removed) ++ Enum.map(stale, &elem(&1, 1))
       Mix.Utils.write_manifest(manifest, :lists.usort(entries))
 
       # Raise if any error, return :ok otherwise
-      if Enum.any?(results, &1 == :error), do: raise CompileError
+      if :error in results, do: raise CompileError
       :ok
     end
   end

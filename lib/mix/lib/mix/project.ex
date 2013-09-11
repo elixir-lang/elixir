@@ -141,7 +141,7 @@ defmodule Mix.Project do
   def recur(post_config // [], fun) do
     if apps_path = config[:apps_path] do
       paths = Path.wildcard(Path.join(apps_path, "*"))
-      paths = Enum.filter(paths, File.dir?(&1))
+      paths = Enum.filter(paths, &File.dir?(&1))
 
       projects = Enum.map paths, fn path ->
         dir = Path.basename(path)
@@ -200,7 +200,7 @@ defmodule Mix.Project do
   def load_paths do
     paths =
       recur(fn _ ->
-        Enum.map(config[:load_paths], Path.expand(&1))
+        Enum.map(config[:load_paths], &Path.expand(&1))
       end) |> Enum.concat
     paths ++ compile_paths
   end

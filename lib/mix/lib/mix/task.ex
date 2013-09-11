@@ -17,7 +17,7 @@ defmodule Mix.Task do
   defmacro __using__(_opts) do
     quote do
       Enum.each [:shortdoc, :hidden, :recursive],
-        Module.register_attribute(__MODULE__, &1, persist: true)
+        &Module.register_attribute(__MODULE__, &1, persist: true)
 
       @behaviour Mix.Task
     end
@@ -34,7 +34,7 @@ defmodule Mix.Task do
   def load_tasks(paths) do
     Enum.reduce(paths, [], fn(path, matches) ->
       { :ok, files } = :erl_prim_loader.list_dir(path |> to_char_list)
-      Enum.reduce(files, matches, match_tasks(&1, &2))
+      Enum.reduce(files, matches, &match_tasks/2)
     end)
   end
 

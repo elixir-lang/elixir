@@ -61,13 +61,13 @@ defmodule ExUnit.Runner do
   defp wait_until_available(config) do
     receive do
       { _pid, :case_finished, _test_case } ->
-        loop config.update_taken_cases(&1-1)
+        loop config.update_taken_cases(&(&1-1))
     end
   end
 
   defp spawn_cases(config, cases) do
-    Enum.each cases, spawn_case(config, &1)
-    loop config.update_taken_cases(&1+length(cases))
+    Enum.each cases, &spawn_case(config, &1)
+    loop config.update_taken_cases(&(&1+length(cases)))
   end
 
   defp spawn_case(config, test_case) do
@@ -97,7 +97,7 @@ defmodule ExUnit.Runner do
         tests = Enum.map tests, fn test -> test.failure({ :invalid, test_case }) end
         self_pid <- { self, :case_finished, test_case, tests }
       else
-        Enum.each tests, run_test(config, &1, context)
+        Enum.each tests, &run_test(config, &1, context)
 
         test_case = try do
           case_name.__ex_unit__(:teardown_all, context)
@@ -113,7 +113,7 @@ defmodule ExUnit.Runner do
 
     receive do
       { ^case_pid, :case_finished, test_case, tests } ->
-        Enum.map tests, config.formatter.test_finished(config.formatter_id, &1)
+        Enum.map tests, &config.formatter.test_finished(config.formatter_id, &1)
         config.formatter.case_finished(config.formatter_id, test_case)
         pid <- { case_pid, :case_finished, test_case }
       { :DOWN, ^case_ref, :process, ^case_pid, { error, stacktrace } } ->

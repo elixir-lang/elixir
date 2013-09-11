@@ -152,14 +152,14 @@ defmodule EnumTest.List do
   end
 
   test :filter_with_match do
-    assert Enum.filter([1, 2, 3], match?(1, &1)) == [1]
-    assert Enum.filter([1, 2, 3], match?(x when x < 3, &1)) == [1, 2]
-    assert Enum.filter([1, 2, 3], match?(_, &1)) == [1, 2, 3]
+    assert Enum.filter([1, 2, 3], &match?(1, &1)) == [1]
+    assert Enum.filter([1, 2, 3], &match?(x when x < 3, &1)) == [1, 2]
+    assert Enum.filter([1, 2, 3], &match?(_, &1)) == [1, 2, 3]
   end
 
   test :filter_map do
-    assert Enum.filter_map([1, 2, 3], fn(x) -> rem(x, 2) == 0 end, &1 * 2) == [4]
-    assert Enum.filter_map([2, 4, 6], fn(x) -> rem(x, 2) == 0 end, &1 * 2) == [4, 8, 12]
+    assert Enum.filter_map([1, 2, 3], fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [4]
+    assert Enum.filter_map([2, 4, 6], fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [4, 8, 12]
   end
 
   test :flat_map do
@@ -185,15 +185,15 @@ defmodule EnumTest.List do
   end
 
   test :map_join do
-    assert Enum.map_join([], " = ", &1 * 2) == ""
-    assert Enum.map_join([1, 2, 3], " = ", &1 * 2) == "2 = 4 = 6"
-    assert Enum.map_join([1, 2, 3], &1 * 2) == "246"
+    assert Enum.map_join([], " = ", &(&1 * 2)) == ""
+    assert Enum.map_join([1, 2, 3], " = ", &(&1 * 2)) == "2 = 4 = 6"
+    assert Enum.map_join([1, 2, 3], &(&1 * 2)) == "246"
   end
 
   test :join_empty do
     fun = fn (acc, _) -> acc end
     assert Enum.join(fun, ".") == ""
-    assert Enum.map_join(fun, ".", &1 + 0) == ""
+    assert Enum.map_join(fun, ".", &(&1 + 0)) == ""
   end
 
   test :map do
@@ -229,7 +229,7 @@ defmodule EnumTest.List do
 
   test :sort do
     assert Enum.sort([5, 3, 2, 4, 1]) == [1, 2, 3, 4, 5]
-    assert Enum.sort([5, 3, 2, 4, 1], &1 > &2) == [5, 4, 3, 2, 1]
+    assert Enum.sort([5, 3, 2, 4, 1], &(&1 > &2)) == [5, 4, 3, 2, 1]
   end
 
   test :split do
@@ -384,10 +384,10 @@ defmodule EnumTest.Range do
 
   test :any? do
     range = Range.new(first: 0, last: 5)
-    refute Enum.any?(range, &1 > 10)
+    refute Enum.any?(range, &(&1 > 10))
 
     range = Range.new(first: 0, last: 5)
-    assert Enum.any?(range, &1 > 3)
+    assert Enum.any?(range, &(&1 > 3))
 
     range = Range.new(first: 1, last: 0)
     assert Enum.any?(range)
@@ -517,17 +517,17 @@ defmodule EnumTest.Range do
 
   test :filter_with_match do
     range = Range.new(first: 1, last: 3)
-    assert Enum.filter(range, match?(1, &1)) == [1]
-    assert Enum.filter(range, match?(x when x < 3, &1)) == [1, 2]
-    assert Enum.filter(range, match?(_, &1)) == [1, 2, 3]
+    assert Enum.filter(range, &match?(1, &1)) == [1]
+    assert Enum.filter(range, &match?(x when x < 3, &1)) == [1, 2]
+    assert Enum.filter(range, &match?(_, &1)) == [1, 2, 3]
   end
 
   test :filter_map do
     range = Range.new(first: 1, last: 3)
-    assert Enum.filter_map(range, fn(x) -> rem(x, 2) == 0 end, &1 * 2) == [4]
+    assert Enum.filter_map(range, fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [4]
 
     range = Range.new(first: 2, last: 6)
-    assert Enum.filter_map(range, fn(x) -> rem(x, 2) == 0 end, &1 * 2) == [4, 8, 12]
+    assert Enum.filter_map(range, fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [4, 8, 12]
   end
 
   test :flat_map do
@@ -565,11 +565,11 @@ defmodule EnumTest.Range do
 
   test :map_join do
     range = Range.new(first: 1, last: 0)
-    assert Enum.map_join(range, " = ", &1 * 2) == "2 = 0"
+    assert Enum.map_join(range, " = ", &(&1 * 2)) == "2 = 0"
 
     range = Range.new(first: 1, last: 3)
-    assert Enum.map_join(range, " = ", &1 * 2) == "2 = 4 = 6"
-    assert Enum.map_join(range, &1 * 2) == "246"
+    assert Enum.map_join(range, " = ", &(&1 * 2)) == "2 = 4 = 6"
+    assert Enum.map_join(range, &(&1 * 2)) == "246"
   end
 
   test :map do
@@ -604,9 +604,9 @@ defmodule EnumTest.Range do
     assert Enum.sort(Range.new(first: 2, last: 1)) == [1, 2]
     assert Enum.sort(Range.new(first: 1, last: 1)) == [1]
 
-    assert Enum.sort(Range.new(first: 3, last: 1), &1 > &2) == [3, 2, 1]
-    assert Enum.sort(Range.new(first: 2, last: 1), &1 > &2) == [2, 1]
-    assert Enum.sort(Range.new(first: 1, last: 1), &1 > &2) == [1]
+    assert Enum.sort(Range.new(first: 3, last: 1), &(&1 > &2)) == [3, 2, 1]
+    assert Enum.sort(Range.new(first: 2, last: 1), &(&1 > &2)) == [2, 1]
+    assert Enum.sort(Range.new(first: 1, last: 1), &(&1 > &2)) == [1]
   end
 
   test :split do

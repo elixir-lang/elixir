@@ -233,7 +233,7 @@ defmodule IEx do
       ensure_module_exists glnode, IEx.Remsh
       expand_fun = IEx.Remsh.expand node
     else
-      expand_fun = IEx.Autocomplete.expand &1
+      expand_fun = &IEx.Autocomplete.expand(&1)
     end
 
     :io.setopts gl, [expand_fun: expand_fun, binary: true, encoding: :unicode]

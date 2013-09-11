@@ -68,7 +68,7 @@ defmodule EEx.Compiler do
     else
       key = length(state.dict)
       placeholder = '__EEX__(' ++ integer_to_list(key) ++ ');'
-      { current ++ placeholder ++ new_lines ++ chars, state.update_dict([{key, buffer}|&1]) }
+      { current ++ placeholder ++ new_lines ++ chars, state.update_dict(&[{key, buffer}|&1]) }
     end
   end
 
@@ -108,7 +108,7 @@ defmodule EEx.Compiler do
   end
 
   defp insert_quotes(list, dict) when is_list(list) do
-    Enum.map list, insert_quotes(&1, dict)
+    Enum.map list, &insert_quotes(&1, dict)
   end
 
   defp insert_quotes(other, _dict) do

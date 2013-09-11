@@ -47,8 +47,8 @@ defmodule RangeTest do
     assert Enum.count(1..3) == 3
     assert Enum.count(3..1) == 3
 
-    assert Enum.map(1..3, &1 * 2) == [2, 4, 6]
-    assert Enum.map(3..1, &1 * 2) == [6, 4, 2]
+    assert Enum.map(1..3, &(&1 * 2)) == [2, 4, 6]
+    assert Enum.map(3..1, &(&1 * 2)) == [6, 4, 2]
   end
 
   test :inspect do

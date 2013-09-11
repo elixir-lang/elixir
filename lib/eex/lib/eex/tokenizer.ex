@@ -136,7 +136,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp end_index(tokens) do
-    Enum.find_index(tokens, match?({ :end, _ }, &1)) || :infinity
+    Enum.find_index(tokens, &match?({ :end, _ }, &1)) || :infinity
   end
 
   defp check_spaces(string, token) do

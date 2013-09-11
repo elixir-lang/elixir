@@ -30,12 +30,12 @@ defmodule Mix.Tasks.Deps.Update do
 
     cond do
       opts[:all] ->
-        acc = all(init, deps_updater(&1, &2))
+        acc = all(init, &deps_updater/2)
       rest != [] ->
         all_deps = all
-        deps = Enum.map by_name(rest, all_deps), check_unavailable!(&1)
+        deps = Enum.map by_name(rest, all_deps), &check_unavailable!/1
         deps = deps ++ depending(deps, all_deps)
-        { _, acc } = Enum.map_reduce deps, init, deps_updater(&1, &2)
+        { _, acc } = Enum.map_reduce deps, init, &deps_updater/2
       true ->
         raise Mix.Error, message: "mix deps.update expects dependencies as arguments or " <>
                                   "the --all option to update all dependencies"

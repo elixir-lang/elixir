@@ -1,11 +1,9 @@
 defmodule Mix.Server do
   @moduledoc false
-
-  alias :ordsets, as: Ordset
   use GenServer.Behaviour
 
-  defrecord Config, tasks: Ordset.new, projects: [], mixfile: [],
-    shell: Mix.Shell.IO, scm: Ordset.new, env: nil, post_config: []
+  defrecord Config, tasks: :ordsets.new, projects: [], mixfile: [],
+    shell: Mix.Shell.IO, scm: :ordsets.new, env: nil, post_config: []
 
   defrecord Project, name: nil, config: nil, rec_enabled?: true, io_done: false
 
@@ -48,11 +46,11 @@ defmodule Mix.Server do
   end
 
   def handle_call(:clear_tasks, _from, config) do
-    { :reply, config.tasks, config.tasks(Ordset.new) }
+    { :reply, config.tasks, config.tasks(:ordsets.new) }
   end
 
   def handle_call({ :has_task?, task, app }, _from, config) do
-    { :reply, Ordset.is_element({task, app}, config.tasks), config }
+    { :reply, :ordsets.is_element({task, app}, config.tasks), config }
   end
 
   def handle_call(:pop_project, _from, config) do
@@ -102,35 +100,35 @@ defmodule Mix.Server do
   end
 
   def handle_cast({ :add_task, task, app }, config) do
-    { :noreply, config.update_tasks Ordset.add_element({task, app}, &1) }
+    { :noreply, config.update_tasks &:ordsets.add_element({task, app}, &1) }
   end
 
   def handle_cast({ :delete_task, task, app }, config) do
-    { :noreply, config.update_tasks Ordset.del_element({task, app}, &1) }
+    { :noreply, config.update_tasks &:ordsets.del_element({task, app}, &1) }
   end
 
   def handle_cast({ :delete_task, task }, config) do
-    { :noreply, config.update_tasks Ordset.filter(fn {t, _} -> t != task end, &1) }
+    { :noreply, config.update_tasks &:ordsets.filter(fn {t, _} -> t != task end, &1) }
   end
 
   def handle_cast({ :push_project, name, conf }, config) do
     conf = Keyword.merge(conf, config.post_config)
     project = Project[name: name, config: conf]
     config = config.post_config([])
-                   .update_projects([project|&1])
+                   .update_projects(&[project|&1])
     { :noreply, config }
   end
 
   def handle_cast({ :post_config, value }, config) do
-    { :noreply, config.update_post_config(&1 |> Keyword.merge(value)) }
+    { :noreply, config.update_post_config(&Keyword.merge(&1, value)) }
   end
 
   def handle_cast({ :add_scm, mod }, config) do
-    { :noreply, config.update_scm Ordset.add_element(mod, &1) }
+    { :noreply, config.update_scm &:ordsets.add_element(mod, &1) }
   end
 
   def handle_cast({ :mixfile_cache, app, new }, config) do
-    { :noreply, config.update_mixfile(&1 |> Keyword.merge([{ app, new }])) }
+    { :noreply, config.update_mixfile(&Keyword.merge(&1, [{ app, new }])) }
   end
 
   def handle_cast(:clear_mixfile_cache, config) do

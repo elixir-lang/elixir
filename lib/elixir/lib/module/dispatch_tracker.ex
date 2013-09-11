@@ -157,7 +157,7 @@ defmodule Module.DispatchTracker do
     neighbours = (lc { _, _ } = t inlist neighbours, do: t) |> :ordsets.from_list
     remaining  = :ordsets.subtract(neighbours, vertices)
     vertices   = :ordsets.union(neighbours, vertices)
-    :lists.foldl(reduce_reachable(d, &1, &2), vertices, remaining)
+    :lists.foldl(&reduce_reachable(d, &1, &2), vertices, remaining)
   end
 
   defp to_pid(pid) when is_pid(pid),  do: pid
@@ -249,7 +249,7 @@ defmodule Module.DispatchTracker do
   end
 
   defp has_imports?(d, mod) do
-    Enum.any?(:digraph.in_neighbours(d, mod), match?({ :import, _, _ }, &1))
+    Enum.any?(:digraph.in_neighbours(d, mod), &match?({ :import, _, _ }, &1))
   end
 
   # Yanks a local node. Returns its in and out vertices in a tuple.
@@ -282,7 +282,7 @@ defmodule Module.DispatchTracker do
   @doc false
   def collect_unused_locals(pid, private) do
     reachable = reachable(pid)
-    :lists.foldl(collect_unused_locals(&1, &2, reachable), [], private)
+    :lists.foldl(&collect_unused_locals(&1, &2, reachable), [], private)
   end
 
   defp collect_unused_locals({ tuple, kind, 0 }, acc, reachable) do

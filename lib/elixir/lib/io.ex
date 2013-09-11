@@ -227,11 +227,11 @@ defmodule IO do
   Here is an example on how we mimic an echo server
   from the command line:
 
-      Enum.each IO.stream(:stdio, :line), IO.write(&1)
+      Enum.each IO.stream(:stdio, :line), &IO.write(&1)
 
   """
   def stream(device, line_or_bytes) do
-    stream(map_dev(device), line_or_bytes, &1, &2)
+    fn(acc, f) -> stream(map_dev(device), line_or_bytes, acc, f) end
   end
 
   @doc """
@@ -241,7 +241,7 @@ defmodule IO do
   This reads the io as a raw binary.
   """
   def binstream(device, line_or_bytes) do
-    binstream(map_dev(device), line_or_bytes, &1, &2)
+    fn(acc, f) -> binstream(map_dev(device), line_or_bytes, acc, f) end
   end
 
   @doc false

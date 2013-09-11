@@ -166,7 +166,7 @@ defmodule Code do
   end
 
   defp validate_requires(kind, requires) do
-    valid = is_list(requires) and Enum.all?(requires, is_atom(&1))
+    valid = is_list(requires) and Enum.all?(requires, &is_atom(&1))
 
     unless valid do
       raise ArgumentError, "expected :#{kind} option given to eval in the format: [module]"

@@ -36,7 +36,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
     case OptionParser.parse(args, switches: [quiet: :boolean]) do
       { opts, [], _ } ->
-        do_run(Enum.filter(all, available?(&1)), opts)
+        do_run(Enum.filter(all, &available?/1), opts)
       { opts, tail, _ } ->
         all_deps = all
         deps = by_name(tail, all_deps)
@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Deps.Compile do
           root_lockfile: Path.expand(Mix.project[:lockfile])
         ]
 
-        ebins = Enum.map compile_paths(dep), &String.to_char_list!(&1)
+        ebins = Enum.map compile_paths(dep), &String.to_char_list!/1
 
         # Avoid compilation conflicts
         Enum.each ebins, fn ebin -> :code.del_path(ebin |> Path.expand) end
@@ -76,7 +76,7 @@ defmodule Mix.Tasks.Deps.Compile do
                               "(pass :compile as an option to customize compilation, set it to :noop to do nothing)"
         end
 
-        Enum.each ebins, Code.prepend_path &1
+        Enum.each ebins, &Code.prepend_path/1
         compiled
       end
 

@@ -251,7 +251,7 @@ defmodule Version do
     end
 
     deflexer acc do
-      Enum.filter(Enum.reverse(acc), &1 != :' ')
+      Enum.filter(Enum.reverse(acc), &(&1 != :' '))
     end
 
     @version_regex %r/^(\d+)(?:\.(\d+)(?:\.(\d+))?)?(?:\-([^\s]+))?(?:\+[^\d]+)?$/

@@ -295,7 +295,7 @@ defmodule List do
 
   """
   def unzip(list) when is_list(list) do
-    :lists.map tuple_to_list(&1), zip(list)
+    :lists.map &tuple_to_list/1, zip(list)
   end
 
   @doc """

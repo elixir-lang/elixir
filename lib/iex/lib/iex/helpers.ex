@@ -260,7 +260,7 @@ defmodule IEx.Helpers do
   """
   def v do
     inspect_opts = IEx.Options.get(:inspect)
-    IEx.History.each(print_history_entry(&1, inspect_opts))
+    IEx.History.each(&print_history_entry(&1, inspect_opts))
   end
 
   defp print_history_entry(config, inspect_opts) do
@@ -283,7 +283,7 @@ defmodule IEx.Helpers do
   in the current IEx session.
   """
   def r do
-    List.flatten(Enum.map(iex_reloaded, do_r(&1)))
+    List.flatten(Enum.map(iex_reloaded, &do_r(&1)))
   end
 
   @doc """
@@ -404,7 +404,7 @@ defmodule IEx.Helpers do
 
   defp ls_print(path, list) do
     # print items in multiple columns (2 columns in the worst case)
-    lengths = Enum.map(list, String.length(&1))
+    lengths = Enum.map(list, &String.length(&1))
     maxlen = maxlength(lengths)
     width = min(maxlen, 30) + 5
     ls_print(path, list, width)
@@ -423,7 +423,7 @@ defmodule IEx.Helpers do
   end
 
   defp maxlength(list) do
-    Enum.reduce(list, 0, max(&1, &2))
+    Enum.reduce(list, 0, &max(&1, &2))
   end
 
   defp format_item(path, representation) do

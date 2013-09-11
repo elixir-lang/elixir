@@ -15,12 +15,12 @@ defmodule Kernel.CLI do
     System.argv(argv)
 
     run fn ->
-      command_results = Enum.map(Enum.reverse(config.commands), process_command(&1, config))
+      command_results = Enum.map(Enum.reverse(config.commands), &process_command(&1, config))
       command_errors  = lc { :error, msg } inlist command_results, do: msg
       errors          = Enum.reverse(config.errors) ++ command_errors
 
       if errors != [] do
-        Enum.each(errors, IO.puts(:stderr, &1))
+        Enum.each(errors, &IO.puts(:stderr, &1))
         System.halt(1)
       end
     end, config.halt
@@ -77,7 +77,7 @@ defmodule Kernel.CLI do
   defp shared_option?(list, config, callback) do
     case process_shared(list, config) do
       { [h|hs], _ } when h == hd(list) ->
-        new_config = config.update_errors ["#{h} : Unknown option" | &1]
+        new_config = config.update_errors &["#{h} : Unknown option" | &1]
         callback.(hs, new_config)
       { new_list, new_config } ->
         callback.(new_list, new_config)
@@ -120,17 +120,17 @@ defmodule Kernel.CLI do
   end
 
   defp process_shared(["-pa", h|t], config) do
-    Enum.each Path.wildcard(Path.expand(h)), Code.prepend_path(&1)
+    Enum.each Path.wildcard(Path.expand(h)), &Code.prepend_path(&1)
     process_shared t, config
   end
 
   defp process_shared(["-pz", h|t], config) do
-    Enum.each Path.wildcard(Path.expand(h)), Code.append_path(&1)
+    Enum.each Path.wildcard(Path.expand(h)), &Code.append_path(&1)
     process_shared t, config
   end
 
   defp process_shared(["--app", h|t], config) do
-    process_shared t, config.update_commands [{:app, h}|&1]
+    process_shared t, config.update_commands &[{:app, h}|&1]
   end
 
   defp process_shared(["--no-halt"|t], config) do
@@ -138,15 +138,15 @@ defmodule Kernel.CLI do
   end
 
   defp process_shared(["-e", h|t], config) do
-    process_shared t, config.update_commands [{:eval, h}|&1]
+    process_shared t, config.update_commands &[{:eval, h}|&1]
   end
 
   defp process_shared(["-r", h|t], config) do
-    process_shared t, config.update_commands [{:require, h}|&1]
+    process_shared t, config.update_commands &[{:require, h}|&1]
   end
 
   defp process_shared(["-pr", h|t], config) do
-    process_shared t, config.update_commands [{:parallel_require, h}|&1]
+    process_shared t, config.update_commands &[{:parallel_require, h}|&1]
   end
 
   defp process_shared([erl, _|t], config) when erl in ["--erl", "--sname", "--name", "--cookie"] do
@@ -176,15 +176,15 @@ defmodule Kernel.CLI do
   end
 
   defp process_argv(["-S", h|t], config) do
-    { config.update_commands([{:script, h}|&1]), t }
+    { config.update_commands(&[{:script, h}|&1]), t }
   end
 
   defp process_argv([h|t] = list, config) do
     case h do
       "-" <> _ ->
-        shared_option? list, config, process_argv(&1, &2)
+        shared_option? list, config, &process_argv(&1, &2)
       _ ->
-        { config.update_commands([{:file, h}|&1]), t }
+        { config.update_commands(&[{:file, h}|&1]), t }
     end
   end
 
@@ -203,19 +203,19 @@ defmodule Kernel.CLI do
   end
 
   defp process_compiler(["--no-docs"|t], config) do
-    process_compiler t, config.update_compiler_options([{:docs, false}|&1])
+    process_compiler t, config.update_compiler_options(&[{:docs, false}|&1])
   end
 
   defp process_compiler(["--no-debug-info"|t], config) do
-    process_compiler t, config.update_compiler_options([{:debug_info, false}|&1])
+    process_compiler t, config.update_compiler_options(&[{:debug_info, false}|&1])
   end
 
   defp process_compiler(["--ignore-module-conflict"|t], config) do
-    process_compiler t, config.update_compiler_options([{:ignore_module_conflict, true}|&1])
+    process_compiler t, config.update_compiler_options(&[{:ignore_module_conflict, true}|&1])
   end
 
   defp process_compiler(["--warnings-as-errors"|t], config) do
-    process_compiler t, config.update_compiler_options([{:warnings_as_errors, true}|&1])
+    process_compiler t, config.update_compiler_options(&[{:warnings_as_errors, true}|&1])
   end
   
   defp process_compiler(["--verbose"|t], config) do
@@ -225,15 +225,15 @@ defmodule Kernel.CLI do
   defp process_compiler([h|t] = list, config) do
     case h do
       "-" <> _ ->
-        shared_option? list, config, process_compiler(&1, &2)
+        shared_option? list, config, &process_compiler(&1, &2)
       _ ->
         pattern = if :filelib.is_dir(h), do: "#{h}/**/*.ex", else: h
-        process_compiler t, config.update_compile [pattern|&1]
+        process_compiler t, config.update_compile &[pattern|&1]
     end
   end
 
   defp process_compiler([], config) do
-    { config.update_commands([{:compile, config.compile}|&1]), [] }
+    { config.update_commands(&[{:compile, config.compile}|&1]), [] }
   end
 
   # Process iex options
@@ -253,15 +253,15 @@ defmodule Kernel.CLI do
   end
 
   defp process_iex(["-S", h|t], config) do
-    { config.update_commands([{:script, h}|&1]), t }
+    { config.update_commands(&[{:script, h}|&1]), t }
   end
 
   defp process_iex([h|t] = list, config) do
     case h do
       "-" <> _ ->
-        shared_option? list, config, process_iex(&1, &2)
+        shared_option? list, config, &process_iex(&1, &2)
       _ ->
-        { config.update_commands([{:file, h}|&1]), t }
+        { config.update_commands(&[{:file, h}|&1]), t }
     end
   end
 
@@ -315,10 +315,10 @@ defmodule Kernel.CLI do
   defp process_command({:require, pattern}, _config) when is_binary(pattern) do
     files = Path.wildcard(pattern)
     files = Enum.uniq(files)
-    files = Enum.filter files, :filelib.is_regular(&1)
+    files = Enum.filter files, &:filelib.is_regular(&1)
 
     if files != [] do
-      Enum.map files, Code.require_file(&1)
+      Enum.map files, &Code.require_file(&1)
       :ok
     else
       { :error, "-r : No files matched pattern #{pattern}" }
@@ -328,7 +328,7 @@ defmodule Kernel.CLI do
   defp process_command({:parallel_require, pattern}, _config) when is_binary(pattern) do
     files = Path.wildcard(pattern)
     files = Enum.uniq(files)
-    files = Enum.filter files, :filelib.is_regular(&1)
+    files = Enum.filter files, &:filelib.is_regular(&1)
 
     if files != [] do
       Kernel.ParallelRequire.files(files)
@@ -341,9 +341,9 @@ defmodule Kernel.CLI do
   defp process_command({:compile, patterns}, config) do
     :filelib.ensure_dir(:filename.join(config.output, "."))
 
-    files = Enum.map patterns, Path.wildcard(&1)
+    files = Enum.map patterns, &Path.wildcard(&1)
     files = Enum.uniq(Enum.concat(files))
-    files = Enum.filter files, :filelib.is_regular(&1)
+    files = Enum.filter files, &:filelib.is_regular(&1)
 
     if files != [] do
       Code.compiler_options(config.compiler_options)

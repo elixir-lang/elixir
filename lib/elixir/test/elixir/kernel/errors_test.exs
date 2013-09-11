@@ -45,12 +45,6 @@ defmodule Kernel.ErrorsTest do
       '"""\nbar'
   end
 
-  test :invalid_partial do
-    assert_compile_fail SyntaxError,
-      "nofile:1: partial variable &2 cannot be defined without &1",
-      '&2 + 3'
-  end
-
   test :unexpected_end do
     assert_compile_fail SyntaxError,
       "nofile:1: unexpected token: end",

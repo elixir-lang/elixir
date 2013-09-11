@@ -11,7 +11,7 @@ defmodule Mix.Deps.Retriever do
   def children() do
     scms = Mix.SCM.available
     from = current_source(:mix)
-    Enum.map(Mix.project[:deps], update(&1, scms, from))
+    Enum.map(Mix.project[:deps], &update(&1, scms, from))
   end
 
   @doc """
@@ -52,7 +52,7 @@ defmodule Mix.Deps.Retriever do
 
       # The manager must be nil because mix supports mix,
       # rebar and make dependencies/managers.
-      (Mix.project[:deps] || []) |> Enum.map(update(&1, scms, from))
+      (Mix.project[:deps] || []) |> Enum.map(&update(&1, scms, from))
     end) |> Enum.concat
   end
 
@@ -62,7 +62,7 @@ defmodule Mix.Deps.Retriever do
       from = current_source(:rebar)
 
       # Rebar dependencies are always managed by rebar.
-      Mix.Rebar.deps(config) |> Enum.map(update(&1, scms, from, :rebar))
+      Mix.Rebar.deps(config) |> Enum.map(&update(&1, scms, from, :rebar))
     end) |> Enum.concat
   end
 

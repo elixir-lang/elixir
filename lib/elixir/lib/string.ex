@@ -953,7 +953,7 @@ defmodule String do
   @spec starts_with?(t, t | [t]) :: boolean
 
   def starts_with?(string, prefixes) when is_list(prefixes) do
-    Enum.any?(prefixes, do_starts_with(string, &1))
+    Enum.any?(prefixes, &do_starts_with(string, &1))
   end
 
   def starts_with?(string, prefix) do
@@ -989,7 +989,7 @@ defmodule String do
   @spec ends_with?(t, t | [t]) :: boolean
 
   def ends_with?(string, suffixes) when is_list(suffixes) do
-    Enum.any?(suffixes, do_ends_with(string, &1))
+    Enum.any?(suffixes, &do_ends_with(string, &1))
   end
 
   def ends_with?(string, suffix) do
@@ -1028,7 +1028,7 @@ defmodule String do
   @spec contains?(t, t | [t]) :: boolean
 
   def contains?(string, matches) when is_list(matches) do
-    Enum.any?(matches, do_contains(string, &1))
+    Enum.any?(matches, &do_contains(string, &1))
   end
 
   def contains?(string, match) do

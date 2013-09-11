@@ -550,7 +550,7 @@ defmodule FileTest do
 
     test :open_a_file_with_function do
       file = fixture_path("file.txt")
-      assert File.open(file, IO.read(&1, :line)) == { :ok, "FOO\n" }
+      assert File.open(file, &IO.read(&1, :line)) == { :ok, "FOO\n" }
     end
 
     test :open_a_missing_file! do
@@ -562,7 +562,7 @@ defmodule FileTest do
 
     test :open_a_file_with_function! do
       file = fixture_path("file.txt")
-      assert File.open!(file, IO.read(&1, :line)) == "FOO\n"
+      assert File.open!(file, &IO.read(&1, :line)) == "FOO\n"
     end
   end
 

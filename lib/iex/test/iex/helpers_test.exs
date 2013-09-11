@@ -133,7 +133,7 @@ defmodule IEx.HelpersTest do
       assert ["ebin", "lib", "mix.exs", "test"]
              = capture_io(fn -> ls end)
                |> String.split
-               |> Enum.map(String.strip(&1))
+               |> Enum.map(&String.strip(&1))
                |> Enum.sort
       assert capture_io(fn -> ls "~" end) == capture_io(fn -> ls System.user_home end)
     end
@@ -376,7 +376,7 @@ defmodule IEx.HelpersTest do
     try do
       fun.()
     after
-      Enum.each names, File.rm(&1)
+      Enum.each names, &File.rm/1
     end
   end
 

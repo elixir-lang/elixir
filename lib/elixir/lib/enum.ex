@@ -473,7 +473,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.filter_map([1, 2, 3], fn(x) -> rem(x, 2) == 0 end, &1 * 2)
+      iex> Enum.filter_map([1, 2, 3], fn(x) -> rem(x, 2) == 0 end, &(&1 * 2))
       [4]
 
   """
@@ -892,8 +892,8 @@ defmodule Enum do
   end
 
   def sort(collection) do
-    fun = &1 <= &2
-    Enumerable.reduce(collection, [], sort_reducer(&1, &2, fun)) |>
+    fun = &(&1 <= &2)
+    Enumerable.reduce(collection, [], &sort_reducer(&1, &2, fun)) |>
       sort_terminator(fun)
   end
 
@@ -912,7 +912,7 @@ defmodule Enum do
   end
 
   def sort(collection, fun) do
-    Enumerable.reduce(collection, [], sort_reducer(&1, &2, fun)) |>
+    Enumerable.reduce(collection, [], &sort_reducer(&1, &2, fun)) |>
       sort_terminator(fun)
   end
 

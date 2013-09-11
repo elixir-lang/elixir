@@ -113,7 +113,7 @@ defmodule Inspect.Algebra do
   Concatenates a list of documents.
   """
   @spec concat([t]) :: doc_cons_t
-  def concat(docs), do: folddoc(docs, concat(&1, &2))
+  def concat(docs), do: folddoc(docs, &concat(&1, &2))
 
   @doc """
   Nests document entity `x` positions deep. Nesting will be
@@ -273,11 +273,11 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", :infinity, integer_to_binary(&1))
+      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", :infinity, &integer_to_binary(&1))
       iex> Inspect.Algebra.pretty(doc, 5)
       "[1,\n 2,\n 3,\n 4,\n 5]"
 
-      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", 3, integer_to_binary(&1))
+      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", 3, &integer_to_binary(&1))
       iex> Inspect.Algebra.pretty(doc, 20)
       "[1, 2, 3, ...]"
 

@@ -85,31 +85,31 @@ defmodule HashDictTest do
   test :update do
     dict = filled_dict(8)
 
-    dict = HashDict.update!(dict, 1, &1 * 2)
+    dict = HashDict.update!(dict, 1, &(&1 * 2))
     assert HashDict.get(dict, 1) == 2
     assert HashDict.size(dict) == 8
 
     assert_raise KeyError, fn ->
-      HashDict.update!(dict, 11, &1 * 2)
+      HashDict.update!(dict, 11, &(&1 * 2))
     end
 
-    dict = HashDict.update(dict, 3, 3, &1 * 2)
+    dict = HashDict.update(dict, 3, 3, &(&1 * 2))
     assert HashDict.get(dict, 3) == 6
     assert HashDict.size(dict) == 8
 
-    dict = HashDict.update(dict, 11, 13, &1 * 2)
+    dict = HashDict.update(dict, 11, 13, &(&1 * 2))
     assert HashDict.get(dict, 11) == 13
     assert HashDict.size(dict) == 9
 
     assert_raise KeyError, fn->
-      HashDict.update!(dict, 11.0, &1 * 2)
+      HashDict.update!(dict, 11.0, &(&1 * 2))
     end
 
-    dict = HashDict.update(dict, 11.0, 15, &1 * 2)
+    dict = HashDict.update(dict, 11.0, 15, &(&1 * 2))
     assert HashDict.get(dict, 11.0) == 15
     assert HashDict.size(dict) == 10
 
-    dict = HashDict.update(dict, 11.0, 15, &1 * 2)
+    dict = HashDict.update(dict, 11.0, 15, &(&1 * 2))
     assert HashDict.get(dict, 11.0) == 30
     assert HashDict.get(dict, 11) == 13
     assert HashDict.size(dict) == 10
@@ -302,6 +302,6 @@ defmodule HashDictTest do
   end
 
   defp filled_dict(range) do
-    Enum.reduce 1..range, HashDict.new, HashDict.put(&2, &1, &1)
+    Enum.reduce 1..range, HashDict.new, &HashDict.put(&2, &1, &1)
   end
 end

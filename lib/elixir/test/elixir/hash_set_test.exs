@@ -110,7 +110,7 @@ defmodule HashSetTest do
   end
 
   defp filled_set(range) do
-    Enum.reduce 1..range, HashSet.new, HashSet.put(&2, &1)
+    Enum.reduce 1..range, HashSet.new, &HashSet.put(&2, &1)
   end
 end
 

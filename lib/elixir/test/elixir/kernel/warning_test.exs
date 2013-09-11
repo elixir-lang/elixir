@@ -430,7 +430,7 @@ defmodule Kernel.WarningTest do
   end
 
   defp purge(list) when is_list(list) do
-    Enum.each list, purge(&1)
+    Enum.each list, &purge/1
   end
 
   defp purge(module) when is_atom(module) do

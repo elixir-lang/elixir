@@ -8,7 +8,7 @@ defmodule Stream do
 
       iex> range = 1..5
       1..5
-      iex> Enum.map range, &1 * 2
+      iex> Enum.map range, &(&1 * 2)
       [2,4,6,8,10]
 
   In the example above, as we mapped over the range, the elements being
@@ -16,8 +16,8 @@ defmodule Stream do
   module allows us to map the range, without triggering its enumeration:
 
       iex> range = 1..3
-      iex> stream = Stream.map(range, &1 * 2)
-      iex> Enum.map(stream, &1 + 1)
+      iex> stream = Stream.map(range, &(&1 * 2))
+      iex> Enum.map(stream, &(&1 + 1))
       [3,5,7]
 
   Notice we started with a range and then we created a stream that is
@@ -34,9 +34,9 @@ defmodule Stream do
   example:
 
       1..3 |>
-        Enum.map(IO.inspect(&1)) |>
-        Enum.map(&1 * 2) |>
-        Enum.map(IO.inspect(&1))
+        Enum.map(&IO.inspect(&1)) |>
+        Enum.map(&(&1 * 2)) |>
+        Enum.map(&IO.inspect(&1))
       1
       2
       3
@@ -50,9 +50,9 @@ defmodule Stream do
   was iterated three times. Let's see an example with streams:
 
       stream = 1..3 |>
-        Stream.map(IO.inspect(&1)) |>
-        Stream.map(&1 * 2) |>
-        Stream.map(IO.inspect(&1))
+        Stream.map(&IO.inspect(&1)) |>
+        Stream.map(&(&1 * 2)) |>
+        Stream.map(&IO.inspect(&1))
       Enum.to_list(stream)
       1
       2
@@ -81,8 +81,8 @@ defmodule Stream do
 
   This module also allows us to create streams from any enumerable:
 
-      iex> stream = Stream.map([1,2,3], &1 * 2)
-      iex> Enum.map(stream, &1 + 1)
+      iex> stream = Stream.map([1,2,3], &(&1 * 2))
+      iex> Enum.map(stream, &(&1 + 1))
       [3,5,7]
 
   By simply passing a list (which is an enumerable) as the first argument
@@ -187,7 +187,7 @@ defmodule Stream do
   """
   @spec cycle(Enumerable.t) :: t
   def cycle(enumerable) do
-    do_cycle(enumerable, &1, &2)
+    &do_cycle(enumerable, &1, &2)
   end
 
   defp do_cycle(enumerable, acc, fun) do
@@ -225,7 +225,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.drop_while(1..10, &1 <= 5)
+      iex> stream = Stream.drop_while(1..10, &(&1 <= 5))
       iex> Enum.to_list(stream)
       [6,7,8,9,10]
 
@@ -271,7 +271,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> Stream.iterate(0, &1+1) |> Enum.take(5)
+      iex> Stream.iterate(0, &(&1+1)) |> Enum.take(5)
       [0,1,2,3,4]
 
   """
@@ -365,7 +365,7 @@ defmodule Stream do
   @spec repeatedly((() -> element)) :: t
   def repeatedly(generator_fun)
   when is_function(generator_fun, 0) do
-    do_repeatedly(generator_fun, &1, &2)
+    &do_repeatedly(generator_fun, &1, &2)
   end
 
   defp do_repeatedly(generator_fun, acc, fun) do
@@ -388,7 +388,7 @@ defmodule Stream do
 
   """
   @spec take(Enumerable.t, non_neg_integer) :: t
-  def take(_enumerable, 0), do: Lazy[enumerable: [], fun: & &1]
+  def take(_enumerable, 0), do: Lazy[enumerable: [], fun: &(&1)]
 
   def take(enumerable, n) when n > 0 do
     Lazy[enumerable: enumerable,
@@ -407,7 +407,7 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.take_while(1..100, &1 <= 5)
+      iex> stream = Stream.take_while(1..100, &(&1 <= 5))
       iex> Enum.to_list(stream)
       [1,2,3,4,5]
 

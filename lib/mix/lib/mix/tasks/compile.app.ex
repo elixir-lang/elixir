@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Compile.App do
       contents   = { :application, app, properties }
 
       File.mkdir_p!(Path.dirname(target))
-      File.open!(target, [:write], :io.fwrite(&1, "~p.", [contents]))
+      File.open!(target, [:write], &:io.fwrite(&1, "~p.", [contents]))
 
       Mix.shell.info "Generated #{app}.app"
       :ok
@@ -80,7 +80,7 @@ defmodule Mix.Tasks.Compile.App do
   defp validate_version(_), do: raise(Mix.Error, message: "Expected :version to be a binary")
 
   defp modules_from(beams) do
-    Enum.map beams, &1 |> Path.basename |> Path.rootname('.beam') |> list_to_atom
+    Enum.map beams, &(&1 |> Path.basename |> Path.rootname('.beam') |> list_to_atom)
   end
 
   defp ensure_correct_properties(app, properties) do
@@ -107,16 +107,16 @@ defmodule Mix.Tasks.Compile.App do
         unless value == :infinity or is_integer(value), do:
           invalid "Application maximum time (:maxT) is not an integer or :infinity (got #{inspect value} instead)"
       { :modules, value } ->
-        unless is_list(value) and Enum.all?(value, is_atom(&1)), do:
+        unless is_list(value) and Enum.all?(value, &is_atom(&1)), do:
           invalid "Application modules (:modules) should be a list of atoms (got #{inspect value} instead)"
       { :registered, value } ->
-        unless is_list(value) and Enum.all?(value, is_atom(&1)), do:
+        unless is_list(value) and Enum.all?(value, &is_atom(&1)), do:
           invalid "Application registered processes (:registered) should be a list of atoms (got #{inspect value} instead)"
       { :included_applications, value } ->
-        unless is_list(value) and Enum.all?(value, is_atom(&1)), do:
+        unless is_list(value) and Enum.all?(value, &is_atom(&1)), do:
           invalid "Application included applications (:included_applications) should be a list of atoms (got #{inspect value} instead)"
       { :applications, value } ->
-        unless is_list(value) and Enum.all?(value, is_atom(&1)), do:
+        unless is_list(value) and Enum.all?(value, &is_atom(&1)), do:
           invalid "Application dependencies (:applications) should be a list of atoms (got #{inspect value} instead)"
       { :env, value } ->
         unless Keyword.keyword?(value), do:

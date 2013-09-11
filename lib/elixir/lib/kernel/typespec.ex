@@ -227,7 +227,7 @@ defmodule Kernel.Typespec do
   """
   def defines_spec?(module, name, arity) do
     tuple = { name, arity }
-    :lists.any(match?(^tuple, &1), Module.get_attribute(module, :spec))
+    :lists.any(&match?(^tuple, &1), Module.get_attribute(module, :spec))
   end
 
   @doc """
@@ -236,7 +236,7 @@ defmodule Kernel.Typespec do
   """
   def defines_callback?(module, name, arity) do
     tuple = { name, arity }
-    :lists.any(match?(^tuple, &1), Module.get_attribute(module, :callback))
+    :lists.any(&match?(^tuple, &1), Module.get_attribute(module, :callback))
   end
 
   @doc """

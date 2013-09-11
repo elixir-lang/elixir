@@ -114,7 +114,7 @@ defmodule IEx.Server do
 
         config = config.cache(code).scope(nil).result(result)
         update_history(config)
-        config.update_counter(&1+1).cache('').binding(new_binding).scope(scope).result(nil)
+        config.update_counter(&(&1+1)).cache('').binding(new_binding).scope(scope).result(nil)
 
       { :error, { line_no, error, token } } ->
         if token == [] do
@@ -134,7 +134,7 @@ defmodule IEx.Server do
     candidates = if path do
       [path]
     else
-      Enum.map [".iex", "~/.iex"], Path.expand(&1)
+      Enum.map [".iex", "~/.iex"], &Path.expand(&1)
     end
 
     path = Enum.find candidates, fn path -> File.regular?(path) end

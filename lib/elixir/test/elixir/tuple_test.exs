@@ -25,8 +25,8 @@ defmodule TupleTest do
   end
 
   test :partial_application do
-    assert ({ &1, 2 }).(1) == { 1, 2 }
-    assert ({ &1, &2 }).(1, 2) == { 1, 2 }
-    assert ({ &2, &1 }).(2, 1) == { 1, 2 }
+    assert (&{ &1, 2 }).(1) == { 1, 2 }
+    assert (&{ &1, &2 }).(1, 2) == { 1, 2 }
+    assert (&{ &2, &1 }).(2, 1) == { 1, 2 }
   end
 end

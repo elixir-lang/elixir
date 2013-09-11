@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Clean do
     manifests = Mix.Tasks.Compile.manifests
     Enum.each(manifests, fn(manifest) ->
       Enum.each Mix.Utils.read_manifest(manifest),
-                &1 |> String.split("\t") |> hd |> File.rm
+                &(&1 |> String.split("\t") |> hd |> File.rm)
       File.rm(manifest)
     end)
 

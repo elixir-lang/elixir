@@ -16,9 +16,9 @@ defmodule Mix.Tasks.Deps.Check do
   """
   def run(_) do
     lock = Mix.Deps.Lock.read
-    all  = Enum.map all, check_lock(&1, lock)
+    all  = Enum.map all, &check_lock(&1, lock)
 
-    case Enum.partition all, ok?(&1) do
+    case Enum.partition all, &ok?/1 do
       { _, [] }     -> :ok
       { _, not_ok } ->
         shell = Mix.shell

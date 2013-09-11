@@ -111,15 +111,15 @@ defmodule KeywordTest do
   end
 
   test :update do
-    assert Keyword.update!([a: 1], :a, &1 * 2) == [a: 2]
+    assert Keyword.update!([a: 1], :a, &(&1 * 2)) == [a: 2]
     assert_raise KeyError, fn ->
-      assert Keyword.update!([a: 1], :b, &1 * 2)
+      assert Keyword.update!([a: 1], :b, &(&1 * 2))
     end
   end
 
   test :update_with_initial do
-    assert Keyword.update([a: 1], :a, 13, &1 * 2) == [a: 2]
-    assert Keyword.update([a: 1], :b, 11, &1 * 2) == [a: 1, b: 11]
+    assert Keyword.update([a: 1], :a, 13, &(&1 * 2)) == [a: 2]
+    assert Keyword.update([a: 1], :b, 11, &(&1 * 2)) == [a: 1, b: 11]
   end
 
   defp create_empty_keywords, do: []

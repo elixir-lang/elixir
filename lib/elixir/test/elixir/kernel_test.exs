@@ -308,7 +308,7 @@ defmodule KernelTest do
     end
 
     test "nested pipelines" do
-      assert [1, [2], 3] |> List.flatten |> Enum.map(&1 * 2) == [2, 4, 6]
+      assert [1, [2], 3] |> List.flatten |> Enum.map(&(&1 * 2)) == [2, 4, 6]
     end
 
     test "local call" do
@@ -316,12 +316,12 @@ defmodule KernelTest do
     end
 
     test "pipeline with capture" do
-      assert Enum.map([1, 2, 3], &1 |> twice |> twice) == [4, 8, 12]
+      assert Enum.map([1, 2, 3], &(&1 |> twice |> twice)) == [4, 8, 12]
     end
 
     test "non-call" do
-      assert  1  |> (&1*2).() == 2
-      assert [1] |> hd(&1).() == 1
+      assert  1  |> (&(&1*2)).() == 2
+      assert [1] |> (&hd(&1)).() == 1
 
       import CompileAssertion
       assert_compile_fail ArgumentError, "unsupported expression in pipeline |> operator: 2", "1 |> 2"
@@ -330,7 +330,7 @@ defmodule KernelTest do
     defp twice(a), do: a * 2
 
     defp local(list) do
-      Enum.map(list, &1 * 2)
+      Enum.map(list, &(&1 * 2))
     end
   end
 

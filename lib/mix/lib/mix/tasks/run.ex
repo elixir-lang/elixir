@@ -52,7 +52,7 @@ defmodule Mix.Tasks.Run do
         :parallel_require ->
           value |> filter_patterns |> Kernel.ParallelRequire.files
         :require ->
-          value |> filter_patterns |> Enum.each Code.require_file(&1)
+          value |> filter_patterns |> Enum.each &Code.require_file(&1)
         :eval ->
           Code.eval_string(value)
         _ ->
@@ -65,6 +65,6 @@ defmodule Mix.Tasks.Run do
   end
 
   defp filter_patterns(pattern) do
-    Enum.filter(Enum.uniq(Path.wildcard(pattern)), File.regular?(&1))
+    Enum.filter(Enum.uniq(Path.wildcard(pattern)), &File.regular?(&1))
   end
 end

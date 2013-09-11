@@ -75,7 +75,7 @@ defmodule Kernel.RecordRewriter do
           if :lists.member({ function, length(args) + 1 }, optimizable) do
             case record_field_info(function) do
               { kind, field } ->
-                if index = Enum.find_index(fields, field == &1) do
+                if index = Enum.find_index(fields, &(field == &1)) do
                   optimize_record_accessor_call(line, res, kind, field, index, left, args)
                 end
               nil ->
@@ -352,7 +352,7 @@ defmodule Kernel.RecordRewriter do
   end
 
   defp extract_vars({ :tuple, _, args }, vars) do
-    [Enum.map(args, extract_vars(&1, []))|vars]
+    [Enum.map(args, &extract_vars(&1, []))|vars]
   end
 
   defp extract_vars(_, vars) do

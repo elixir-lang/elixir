@@ -814,7 +814,7 @@ defmodule Record do
 
   ## Helpers
 
-  defp is_keyword(list) when is_list(list), do: :lists.all(is_keyword_tuple(&1), list)
+  defp is_keyword(list) when is_list(list), do: :lists.all(&is_keyword_tuple/1, list)
   defp is_keyword(_), do: false
 
   defp is_keyword_tuple({ x, _ }) when is_atom(x), do: true

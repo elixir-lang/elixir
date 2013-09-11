@@ -12,7 +12,7 @@ defmodule Mix.Shell.IO do
   """
   def cmd(command) do
     put_app
-    Mix.Shell.cmd(command, IO.write(&1))
+    Mix.Shell.cmd(command, &IO.write(&1))
   end
 
   @doc """

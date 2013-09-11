@@ -125,7 +125,7 @@ defmodule ModuleTest do
 
   test :registered_attributes do
     assert [{:register_example, [:it_works]}, {:register_example, [:still_works]}] ==
-      Enum.filter __MODULE__.__info__(:attributes), match?({ :register_example, _ }, &1)
+      Enum.filter __MODULE__.__info__(:attributes), &match?({ :register_example, _ }, &1)
   end
 
   @some_attribute  [1]

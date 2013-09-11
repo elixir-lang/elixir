@@ -50,9 +50,9 @@ defmodule String.Unicode do
   seqs = Enum.map File.stream!(seqs_path), fn(line) ->
     [ _name, codepoints ] = :binary.split(line, ";", [:global])
     codepoints = :binary.split(codepoints, " ", [:global])
-    codepoints = Enum.map codepoints, Regex.replace(%r/\s+/, &1, "")
+    codepoints = Enum.map codepoints, &Regex.replace(%r/\s+/, &1, "")
     codepoints = Enum.filter codepoints, fn(x) -> size(x) > 0 end
-    Enum.map codepoints, to_binary.(&1)
+    Enum.map codepoints, to_binary
   end
 
   # Downcase

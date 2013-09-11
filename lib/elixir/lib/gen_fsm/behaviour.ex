@@ -60,7 +60,7 @@ defmodule GenFSM.Behaviour do
           end
 
           def short_paid(:coin, state_data) do
-            { :next_state, :paid_in_full, state_data.update_coins(&1 + 1) }
+            { :next_state, :paid_in_full, &state_data.update_coins(&1 + 1) }
           end
 
           def short_paid(:request_coffee, state_data) do
@@ -84,7 +84,7 @@ defmodule GenFSM.Behaviour do
 
 
           def paid_in_full(:coin, state_data) do
-            { :next_state, :paid_in_full, state_data.update_coins(&1 + 1) }
+            { :next_state, :paid_in_full, &state_data.update_coins(&1 + 1) }
           end
 
           def paid_in_full(:request_coffee, _state_data) do

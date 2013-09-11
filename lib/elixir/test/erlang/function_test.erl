@@ -119,9 +119,9 @@ function_call_with_parens_args_and_nested_when_test() ->
 %% Partial application
 
 require_partial_application_test() ->
-  { Fun, _ } = eval("List.flatten(&1)"),
+  { Fun, _ } = eval("&List.flatten(&1)"),
   Fun = fun 'Elixir.List':flatten/1.
 
 import_partial_application_test() ->
-  { Fun, _ } = eval("is_atom(&1)"),
+  { Fun, _ } = eval("&is_atom(&1)"),
   Fun = fun erlang:is_atom/1.
