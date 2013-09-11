@@ -77,9 +77,6 @@ defmodule Record do
   example, is only available inside the `User` module and nowhere else.
   You can find more information in `Kernel.defrecordp/2` docs.
 
-  In general, though, records are used as part of a module's public
-  interface. For such use cases, Elixir provides record modules.
-
   ## defrecord
 
   By using `defrecord`, a developer can make a Record definition
@@ -97,7 +94,7 @@ defmodule Record do
       user()        #=> User[name: "José", age: 25]
       user(age: 26) #=> User[name: "José", age: 26]
 
-  Notice that now, since the record definition is accessible, Elixir
+  Notice that now since the record definition is accessible, Elixir
   shows the record nicely formatted, no longer as a simple tuple. We
   can get the raw formatting by passing `raw: true` to `inspect`:
 
@@ -112,9 +109,9 @@ defmodule Record do
       User[]        #=> User[name: "José", age: 25]
       User[age: 26] #=> User[name: "José", age: 26]
 
-  The macro name is replaced by the module name and the parenthesis
-  are replaced by brackets. When the shortcut syntax is used, there
-  is no need to import the record.
+  The macro name is replaced by the module name and the parentheses
+  are replaced by brackets. When this syntax is used, there is no
+  need to import the record.
 
   Before we sum up the differences between `defrecord` and
   `defrecordp`, there is one last functionality introduced by
@@ -175,7 +172,7 @@ defmodule Record do
       to_string WeekDate[year: 2013, week: 26, week_day: 4]
       "2013-W26-4"
 
-  A protocol can be implemented for any record defined via `defrecord`.
+  A protocol can be implemented for any record.
   """
 
   @type t :: tuple
