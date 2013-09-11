@@ -113,6 +113,16 @@ defmodule Kernel.ErrorsTest do
       '''
   end
 
+  test :invalid_match_pattern do
+    assert_compile_fail CompileError,
+    "nofile:2: invalid pattern in match clause",
+    '''
+    case true do
+      true && true -> true
+    end
+    '''
+  end
+
   test :different_defs_with_defaults do
     assert_compile_fail CompileError,
       "nofile:3: def hello/3 defaults conflicts with def hello/2",
