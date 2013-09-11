@@ -1052,9 +1052,7 @@ defmodule Enum do
 
     case res do
       nil -> []
-      _ ->
-      { list, _ } = res
-      :lists.reverse(list)
+      { list, _ } -> :lists.reverse(list)
     end
   end
 
