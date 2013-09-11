@@ -383,7 +383,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp strip_indent(line, indent) do
-    line |> String.slice(indent, String.length(line))
+    String.slice(line, indent, String.length(line)) || ""
   end
 
   defp extract_tests([], _line, "", "", [], _) do

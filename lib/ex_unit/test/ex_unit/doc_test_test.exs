@@ -141,7 +141,6 @@ defmodule ExUnit.DocTestTest.IndentationNotEnough do
   def not_enough, do: :ok
 end
 
-
 defmodule ExUnit.DocTestTest do
   use ExUnit.Case
 
