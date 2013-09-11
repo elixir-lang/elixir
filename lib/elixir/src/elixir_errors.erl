@@ -15,7 +15,7 @@ warn(Warning) ->
   elixir_code_server:cast(register_warning),
   io:put_chars(standard_error, Warning).
 
-%% Handle inspecting for exceptions
+%% Handle inspecting for exceptions modules
 
 inspect(Atom) when is_atom(Atom) ->
   'Elixir.Inspect.Atom':inspect(Atom).

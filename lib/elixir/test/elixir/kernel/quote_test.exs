@@ -59,7 +59,7 @@ defmodule Kernel.QuoteTest do
     assert Code.eval_quoted(quote(do: Foo.unquote(Bar)))  == { Elixir.Foo.Bar, [] }
     assert Code.eval_quoted(quote(do: Foo.unquote(quote do: Bar))) == { Elixir.Foo.Bar, [] }
 
-    assert_raise SyntaxError, fn ->
+    assert_raise ArgumentError, fn ->
       quote(do: foo.unquote(1))
     end
   end

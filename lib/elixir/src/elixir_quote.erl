@@ -1,6 +1,7 @@
 %% Implements Elixir quote.
 -module(elixir_quote).
--export([escape/2, erl_escape/3, erl_quote/4, linify/2, unquote/6, join/5]).
+-export([escape/2, erl_escape/3, erl_quote/4,
+         linify/2, unquote/4, tail_join/3, join/2]).
 -include("elixir.hrl").
 
 %% Apply the line from site call on quoted contents.
@@ -24,10 +25,10 @@ do_linify(_, Else) -> Else.
 
 %% Some expressions cannot be unquoted at compilation time.
 %% This function is responsible for doing runtime unquoting.
-unquote(_File, _Line, Meta, Left, { '__aliases__', _, Args }, nil) ->
+unquote(Meta, Left, { '__aliases__', _, Args }, nil) ->
   { '__aliases__', Meta, [Left|Args] };
 
-unquote(_File, _Line, Meta, Left, Right, nil) when is_atom(Right) ->
+unquote(Meta, Left, Right, nil) when is_atom(Right) ->
   case atom_to_list(Right) of
     "Elixir." ++ _ ->
       { '__aliases__', Meta, [Left, Right] };
@@ -35,32 +36,47 @@ unquote(_File, _Line, Meta, Left, Right, nil) when is_atom(Right) ->
       { { '.', Meta, [Left, Right] }, Meta, [] }
   end;
 
-unquote(_File, _Line, Meta, Left, { Right, _, Context }, nil) when is_atom(Right), is_atom(Context) ->
+unquote(Meta, Left, { Right, _, Context }, nil) when is_atom(Right), is_atom(Context) ->
   { { '.', Meta, [Left, Right] }, Meta, [] };
 
-unquote(_File, _Line, Meta, Left, { Right, _, Args }, nil) when is_atom(Right) ->
+unquote(Meta, Left, { Right, _, Args }, nil) when is_atom(Right) ->
   { { '.', Meta, [Left, Right] }, Meta, Args };
 
-unquote(File, Line, _Meta, _Left, Right, nil) ->
-  elixir_errors:syntax_error(Line, File, "expected unquote after dot to return an atom, "
-    "an alias or a quoted call, got: ~ts", ['Elixir.Macro':to_string(Right)]);
+unquote(_Meta, _Left, Right, nil) ->
+  argument_error(<<"expected unquote after dot to return an atom, an alias or a quoted call, got: ",
+                   ('Elixir.Macro':to_string(Right))/binary>>);
 
-unquote(_File, _Line, Meta, Left, Right, Args) when is_atom(Right) ->
+unquote(Meta, Left, Right, Args) when is_atom(Right) ->
   { { '.', Meta, [Left, Right] }, Meta, Args };
 
-unquote(_File, _Line, Meta, Left, { Right, _, Context }, Args) when is_atom(Right), is_atom(Context) ->
+unquote(Meta, Left, { Right, _, Context }, Args) when is_atom(Right), is_atom(Context) ->
   { { '.', Meta, [Left, Right] }, Meta, Args };
 
-unquote(File, Line, _Meta, _Left, Right, _Args) ->
-  elixir_errors:syntax_error(Line, File, "expected unquote after dot with args to return an atom "
-    "or a quoted call, got: ~ts", ['Elixir.Macro':to_string(Right)]).
+unquote(_Meta, _Left, Right, _Args) ->
+  argument_error(<<"expected unquote after dot with args to return an atom or a quoted call, got: ",
+                   ('Elixir.Macro':to_string(Right))/binary>>).
 
-join(_File, _Line, Left, Right, Rest) when is_list(Left), is_list(Right), is_list(Rest) ->
-  Rest ++ Left ++ Right;
+join(Left, Right) when is_list(Right) ->
+  validate_join(Left),
+  Left ++ Right.
 
-join(_File, _Line, Left, Right, Rest)  ->
-  [H|T] = lists:reverse(Rest ++ Left),
+tail_join(Left, Right, Tail) when is_list(Right), is_list(Tail) ->
+  validate_join(Left),
+  Tail ++ Left ++ Right;
+
+tail_join(Left, Right, Tail) when is_list(Left) ->
+  validate_join(Left),
+  [H|T] = lists:reverse(Tail ++ Left),
   lists:reverse([{ '|', [], [H, Right] }|T]).
+
+validate_join(List) when is_list(List) ->
+  ok;
+validate_join(List) when not is_list(List) ->
+  argument_error(<<"expected a list with quoted expressions in unquote_splicing/1, got: ",
+                   ('Elixir.Kernel':inspect(List))/binary>>).
+
+argument_error(Message) ->
+  'Elixir.Kernel':raise('Elixir.ArgumentError', [{message,Message}]).
 
 %% Escapes the given expression. It is similar to quote, but
 %% lines are kept and hygiene mechanisms are disabled.
@@ -214,9 +230,9 @@ do_quote(Other, Q, _) ->
 %% Quote helpers
 
 do_quote_call(Left, Meta, Expr, Args, Q, S) ->
-  All  = [?line(Meta), meta(Meta, Q), Left, { unquote, Meta, [Expr] }, Args],
+  All  = [meta(Meta, Q), Left, { unquote, Meta, [Expr] }, Args],
   { TAll, TQ } = lists:mapfoldl(fun(X, Acc) -> do_quote(X, Acc, S) end, Q, All),
-  { { { '.', Meta, [elixir_quote, unquote] }, Meta, [{ '__FILE__', [], nil }|TAll] }, TQ }.
+  { { { '.', Meta, [elixir_quote, unquote] }, Meta, TAll }, TQ }.
 
 do_quote_fa(Target, Meta, Args, F, A, Q, S) ->
   NewMeta =
@@ -264,24 +280,24 @@ do_splice([{ '|', Meta, [{ unquote_splicing, _, [Left] }, Right] }|T], #elixir_q
   %% 1, 2 and 3, which could even be unquotes.
   { TT, QT } = do_splice(T, Q, S, [], []),
   { TR, QR } = do_quote(Right, QT, S),
-
-  %% Do the joining at runtime when we are aware of the values.
-  Args = [{ '__FILE__', [], nil }, ?line(Meta), Left, TR, TT],
-  { { { '.', Meta, [elixir_quote, join] }, Meta, Args }, QR#elixir_quote{unquoted=true} };
+  { do_runtime_join(Meta, tail_join, [Left, TR, TT]), QR#elixir_quote{unquoted=true} };
 
 do_splice(List, Q, S) ->
   do_splice(List, Q, S, [], []).
 
-do_splice([{ unquote_splicing, _, [Expr] }|T], #elixir_quote{unquote=true} = Q, S, Buffer, Acc) ->
-  do_splice(T, Q#elixir_quote{unquoted=true}, S, [], do_splice_join(do_splice_join(Expr, Buffer), Acc));
+do_splice([{ unquote_splicing, Meta, [Expr] }|T], #elixir_quote{unquote=true} = Q, S, Buffer, Acc) ->
+  do_splice(T, Q#elixir_quote{unquoted=true}, S, [], do_runtime_join(Meta, join, [Expr, do_join(Buffer, Acc)]));
 
 do_splice([H|T], Q, S, Buffer, Acc) ->
   { TH, TQ } = do_quote(H, Q, S),
   do_splice(T, TQ, S, [TH|Buffer], Acc);
 
 do_splice([], Q, _S, Buffer, Acc) ->
-  { do_splice_join(Buffer, Acc), Q }.
+  { do_join(Buffer, Acc), Q }.
 
-do_splice_join(Left, [])    -> Left;
-do_splice_join([], Right)   -> Right;
-do_splice_join(Left, Right) -> { { '.', [], ['Elixir.Kernel', '++'] }, [], [Left, Right] }.
+do_join(Left, [])    -> Left;
+do_join([], Right)   -> Right;
+do_join(Left, Right) -> { { '.', [], ['Elixir.Kernel', '++'] }, [], [Left, Right] }.
+
+do_runtime_join(Meta, Fun, Args) ->
+  { { '.', Meta, [elixir_quote, Fun] }, Meta, Args }.
