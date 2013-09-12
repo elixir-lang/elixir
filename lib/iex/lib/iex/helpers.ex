@@ -30,6 +30,7 @@ defmodule IEx.Helpers do
   * `v/1`     — retrieves the nth value from the history
   * `import_file/1`
               — evaluates the given file in the shell's context
+  * `exit/0` - exits the shell immediately
 
   Help for functions in this module can be consulted
   directly from the command line, as an example, try:
@@ -474,5 +475,18 @@ defmodule IEx.Helpers do
       _ ->
         raise CompileError
     end
+  end
+ 
+  @doc """
+  Exit the current shell immediately, terminating all resources, including
+  processes, links, monitors, and ports.
+ 
+  ## Examples
+ 
+      exit
+ 
+  """
+  def exit do
+    :init.stop
   end
 end
