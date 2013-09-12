@@ -171,6 +171,19 @@ defmodule IEx do
     match?({ :ok, true }, :application.get_env(:iex, :started))
   end
 
+  @doc """
+  Returns `string` escaped using the specified color.
+  ANSI escapes in `string` are not processed in any way.
+  """
+  def color(color_name, string) do
+    colors = IEx.Options.get(:colors)
+    enabled = colors[:enabled]
+    IO.ANSI.escape_fragment("%{#{colors[color_name]}}", enabled)
+      <> string <> IO.ANSI.escape_fragment("%{reset}", enabled)
+  end
+
+  ## Callbacks
+
   # This is a callback invoked by Erlang shell utilities
   # when someone press Ctrl+G and adds 's Elixir.IEx'.
   @doc false
@@ -187,8 +200,6 @@ defmodule IEx do
         _        -> :init.wait_until_started()
       end
 
-      Process.flag(:trap_exit, true)
-
       start_iex()
       callback.()
 
@@ -199,19 +210,6 @@ defmodule IEx do
   end
 
   @doc false
-  def dont_display_result, do: :"do not show this result in iex"
-
-  ## Boot Helpers
-
-  defp start_iex do
-    :application.start(:elixir)
-    :application.start(:iex)
-  end
-
-  @doc """
-  Returns the default config used to launch IEx. This config is also used by
-  `IEx.TestFramework`.
-  """
   def boot_config(opts) do
     scope = :elixir.scope_for_eval(
       file: "iex",
@@ -223,6 +221,22 @@ defmodule IEx do
       scope: scope,
       dot_iex_path: Keyword.get(opts, :dot_iex_path),
     ]
+  end
+
+  @doc false
+  def dont_display_result, do: :"do not show this result in iex"
+
+  ## Helpers
+
+  defp start_iex do
+    :application.start(:elixir)
+    :application.start(:iex)
+
+    # Disable ANSI-escape-sequence-based coloring on Windows
+    # Can be overriden in .iex
+    if match?({ :win32, _ }, :os.type()) do
+      IEx.Options.set :colors, enabled: false
+    end
   end
 
   defp set_expand_fun do
@@ -248,16 +262,5 @@ defmodule IEx do
 
   defp run_after_spawn do
     lc fun inlist Enum.reverse(after_spawn), do: fun.()
-  end
-
-  @doc """
-  Returns `string` escaped using the specified color. ANSI escapes in `string`
-  are not processed in any way.
-  """
-  def color(color_name, string) do
-    colors = IEx.Options.get(:colors)
-    enabled = colors[:enabled]
-    IO.ANSI.escape_fragment("%{#{colors[color_name]}}", enabled)
-      <> string <> IO.ANSI.escape_fragment("%{reset}", enabled)
   end
 end

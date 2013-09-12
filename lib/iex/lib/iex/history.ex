@@ -1,13 +1,18 @@
 defmodule IEx.History do
   @moduledoc false
 
+  @doc """
+  Initializes IEx process variables. All history
+  information is kept in the process dictionary.
+  """
   def init do
     Process.put(:iex_history_start_counter, 1)
     Process.put(:iex_history_counter, 1)
   end
 
-  ### append ###
-
+  @doc """
+  Appends one entry to the history with the given counter.
+  """
   def append(entry, counter) do
     Process.put({:iex_history, counter}, entry)
     Process.put(:iex_history_counter, counter+1)
@@ -93,8 +98,9 @@ defmodule IEx.History do
     :erlang.garbage_collect()
   end
 
-  ### each ###
-
+  @doc """
+  Enumerates each item in the history.
+  """
   def each(fun) do
     each(Process.get(:iex_history_start_counter),
          Process.get(:iex_history_counter),
@@ -111,8 +117,9 @@ defmodule IEx.History do
     :ok
   end
 
-  ### nth ###
-
+  @doc """
+  Gets the nth item in the history.
+  """
   def nth(n) do
     entry = case n do
       n when n >= 0 ->

@@ -4,14 +4,14 @@ defmodule IEx.Server do
   @doc """
   Eval loop for an IEx session. Its responsibilities include:
 
-    * loading of .iex files
-    * reading input
-    * trapping exceptions in the code being evaluated
-    * keeping expression history
+  * loading of .iex files
+  * reading input
+  * trapping exceptions in the code being evaluated
+  * keeping expression history
 
   """
   def start(config) do
-    init_systems()
+    IEx.History.init
 
     { _, _, scope } = :elixir.eval('require IEx.Helpers', [], 0, config.scope)
     config = config.scope(scope)
@@ -26,17 +26,22 @@ defmodule IEx.Server do
 
     old_flag = Process.flag(:trap_exit, true)
     self_pid = self
+
+    # We have one loop for receiving input and
+    # another loop for evaluating contents.
     pid = spawn_link(fn -> input_loop(self_pid) end)
 
     try do
-      do_loop(config.input_pid(pid))
+      eval_loop(config.input_pid(pid))
     after
       Process.exit(pid, :normal)
       Process.flag(:trap_exit, old_flag)
     end
   end
 
-  defp do_loop(config) do
+  ## Eval loop
+
+  defp eval_loop(config) do
     prefix = config.cache != []
     config.input_pid <- { :do_input, prefix, config.counter }
     wait_input(config)
@@ -57,7 +62,7 @@ defmodule IEx.Server do
                 config.cache('')
             end
 
-          do_loop(new_config)
+          eval_loop(new_config)
         end
 
       { :EXIT, _pid, :normal } ->
@@ -65,16 +70,6 @@ defmodule IEx.Server do
       { :EXIT, pid, reason } ->
         print_exit(pid, reason)
         wait_input(config)
-    end
-  end
-
-  defp init_systems() do
-    IEx.History.init
-
-    # Disable ANSI-escape-sequence-based coloring on Windows
-    # Can be overriden in .iex
-    if match?({ :win32, _ }, :os.type()) do
-      IEx.Options.set :colors, enabled: false
     end
   end
 
@@ -128,44 +123,68 @@ defmodule IEx.Server do
     end
   end
 
+  defp update_history(config) do
+    IEx.History.append(config, config.counter)
+  end
+
+  defp io_put(result) do
+    IO.puts :stdio, IEx.color(:eval_result, inspect(result, inspect_opts))
+  end
+
+  defp io_error(result) do
+    IO.puts :stdio, IEx.color(:error, result)
+  end
+
+  defp inspect_opts do
+    opts = IEx.Options.get(:inspect)
+    case :io.columns(:standard_input) do
+      { :ok, width } -> Keyword.put(opts, :width, min(width, 80))
+      { :error, _ }  -> opts
+    end
+  end
+
+  ## Load dot iex helpers
+
   # Locates and loads an .iex file from one of predefined locations. Returns
   # new config.
   defp load_dot_iex(config, path // nil) do
     candidates = if path do
       [path]
     else
-      Enum.map [".iex", "~/.iex"], &Path.expand(&1)
+      Enum.map [".iex", "~/.iex"], &Path.expand/1
     end
 
-    path = Enum.find candidates, fn path -> File.regular?(path) end
+    path = Enum.find candidates, &File.regular?/1
 
     if nil?(path) do
       config
     else
-      try do
-        code  = File.read!(path)
-        scope = :elixir.scope_for_eval(config.scope, file: path)
-
-        # Evaluate the contents in the same environment do_loop will run in
-        { _result, binding, scope } =
-          :elixir.eval(String.to_char_list!(code),
-                       config.binding,
-                       0,
-                       scope)
-
-        scope = :elixir.scope_for_eval(scope, file: "iex")
-        config.binding(binding).scope(scope)
-      catch
-        kind, error ->
-          print_error(kind, Exception.normalize(kind, error), System.stacktrace)
-          System.halt(1)
-      end
+      eval_dot_iex(config, path)
     end
   end
 
-  defp update_history(config) do
-    IEx.History.append(config, config.counter)
+  defp eval_dot_iex(config, path) do
+    try do
+      code  = File.read!(path)
+      scope = :elixir.scope_for_eval(config.scope, file: path)
+
+      # Evaluate the contents in the same environment eval_loop will run in
+      { _result, binding, scope } =
+        :elixir.eval(String.to_char_list!(code),
+                     config.binding,
+                     0,
+                     scope)
+
+      scope = :elixir.scope_for_eval(scope, file: "iex")
+      config.binding(binding).scope(scope)
+    catch
+      kind, error ->
+        print_error(kind, Exception.normalize(kind, error), System.stacktrace)
+        System.halt(1)
+    end
   end
+
+  ## Input loop
 
   defp input_loop(iex_pid) do
     receive do
@@ -192,25 +211,11 @@ defmodule IEx.Server do
     end
   end
 
-  defp io_put(result) do
-    IO.puts :stdio, IEx.color(:eval_result, inspect(result, inspect_opts))
-  end
-
-  defp io_error(result) do
-    IO.puts :stdio, IEx.color(:error, result)
-  end
-
-  defp inspect_opts do
-    opts = IEx.Options.get(:inspect)
-    case :io.columns(:standard_input) do
-      { :ok, width } -> Keyword.put(opts, :width, min(width, 80))
-      { :error, _ }  -> opts
-    end
-  end
-
   defp remote_prefix do
     if node == node(:erlang.group_leader), do: "iex", else: "rem"
   end
+
+  ## Error handling
 
   defp print_error(:error, exception, stacktrace) do
     print_stacktrace stacktrace, fn ->
