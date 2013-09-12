@@ -1,10 +1,10 @@
 defmodule Regex do
   @moduledoc %S"""
-  Regular expressions for Elixir built on top of the re module
+  Regular expressions for Elixir built on top of the `re` module
   in the Erlang Standard Library. More information can be found
-  in the re documentation: http://www.erlang.org/doc/man/re.html
+  in the [`re` documentation](http://www.erlang.org/doc/man/re.html).
 
-  Regular expressions in Elixir can be created using Regex.compile!
+  Regular expressions in Elixir can be created using `Regex.compile!`
   or using the special form with `%r`:
 
       # A simple regular expressions that matches foo anywhere in the string
@@ -13,10 +13,10 @@ defmodule Regex do
       # A regular expression with case insensitive options and handling for unicode chars
       %r/foo/iu
 
-  The re module provides several options, the ones available in Elixir, followed by
+  The `re` module provides several options, the ones available in Elixir, followed by
   their shortcut in parenthesis, are:
 
-  * `unicode` (u) - enable unicode specific patterns like \p
+  * `unicode` (u) - enables unicode specific patterns like \p
   * `caseless` (i) - add case insensitivity
   * `dotall` (s) - causes dot to match newlines and also set newline to anycrlf.
     The new line setting can be overridden by setting `(*CR)` or `(*LF)` or
@@ -27,8 +27,8 @@ defmodule Regex do
     allow `#` to delimit comments
   * `firstline` (f) - forces the unanchored pattern to match before or at the first
     newline, though the matched text may continue over the newline
-  * `ungreedy` (r) - invert the "greediness" of the regexp
-  * `groups` (g) - compile with info about groups available
+  * `ungreedy` (r) - inverts the "greediness" of the regexp
+  * `groups` (g) - compiles with info about groups available
 
   The options not available are:
 
@@ -53,10 +53,18 @@ defmodule Regex do
 
   The given options can either be a binary with the characters
   representing the same regex options given to the `%r` sigil,
-  or a list of options, as expected by the Erlang `re` docs.
+  or a list of options, as expected by the [Erlang `re` docs](http://www.erlang.org/doc/man/re.html).
 
   It returns `{ :ok, regex }` in case of success,
   `{ :error, reason }` otherwise.
+
+  ## Examples
+
+      iex> Regex.compile("foo")
+      {:ok, %r"foo"}
+      iex> Regex.compile("*foo")
+      {:error, {'nothing to repeat', 0}}
+
   """
   @spec compile(binary, binary | [term]) :: t
   def compile(source, options // "")
@@ -256,7 +264,7 @@ defmodule Regex do
   end
 
   @doc """
-  Split the given target into the number of parts specified.
+  Splits the given target into the number of parts specified.
   If no number of parts is given, it defaults to `:infinity`.
 
   ## Examples
