@@ -12,8 +12,8 @@ defmodule IEx.Introspection do
         if function_exported?(module, :__info__, 1) do
           case module.__info__(:moduledoc) do
             { _, binary } when is_binary(binary) ->
-              FormatDocs.doc_heading(inspect module)
-              FormatDocs.write(binary)
+              IEx.ANSIDocs.doc_heading(inspect module)
+              IEx.ANSIDocs.format(binary)
             { _, _ } ->
               nodocs(inspect module)
             _ ->
@@ -158,8 +158,8 @@ defmodule IEx.Introspection do
 
   defp print_doc({ { fun, _ }, _line, kind, args, doc }) do
     args = Enum.map_join(args, ", ", print_doc_arg(&1))
-    FormatDocs.doc_heading("#{kind} #{fun}(#{args})")
-    if doc, do: FormatDocs.write(doc)
+    IEx.ANSIDocs.doc_heading("#{kind} #{fun}(#{args})")
+    if doc, do: IEx.ANSIDocs.format(doc)
   end
 
   defp print_doc_arg({ ://, _, [left, right] }) do
