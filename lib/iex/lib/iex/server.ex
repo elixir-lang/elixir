@@ -43,28 +43,35 @@ defmodule IEx.Server do
 
   defp eval_loop(config) do
     prefix = config.cache != []
-    config.input_pid <- { :do_input, prefix, config.counter }
+    config.input_pid <- { :do_input, self, prefix, config.counter }
     wait_input(config)
   end
 
   defp wait_input(config) do
+    pid = config.input_pid
+
     receive do
-      { :input, line } ->
-        unless line == :eof do
-          new_config =
-            try do
-              counter = config.counter
-              code    = config.cache
-              eval(code, line, counter, config)
-            catch
-              kind, error ->
-                print_error(kind, Exception.normalize(kind, error), System.stacktrace)
-                config.cache('')
-            end
+      { :input, ^pid, data } when is_binary(data) ->
+        new_config =
+          try do
+            line    = String.to_char_list!(data)
+            counter = config.counter
+            code    = config.cache
+            eval(code, line, counter, config)
+          catch
+            kind, error ->
+              print_error(kind, Exception.normalize(kind, error), System.stacktrace)
+              config.cache('')
+          end
 
-          eval_loop(new_config)
-        end
-
+        eval_loop(new_config)
+      { :input, ^pid, :eof } ->
+        :ok
+      { :input, ^pid, { :error, :interrupted } } ->
+        io_error "** (EXIT) interrupted"
+        eval_loop(config.cache(''))
+      { :input, ^pid, { :error, :terminated } } ->
+        :ok
       { :EXIT, _pid, :normal } ->
         wait_input(config)
       { :EXIT, pid, reason } ->
@@ -186,12 +193,12 @@ defmodule IEx.Server do
 
   ## Input loop
 
-  defp input_loop(iex_pid) do
+  defp input_loop(pid) do
     receive do
-      { :do_input, prefix, counter } ->
-        iex_pid <- { :input, io_get(prefix, counter) }
+      { :do_input, ^pid, prefix, counter } ->
+        pid <- { :input, self, io_get(prefix, counter) }
     end
-    input_loop(iex_pid)
+    input_loop(pid)
   end
 
   defp io_get(prefix, counter) do
@@ -204,11 +211,7 @@ defmodule IEx.Server do
         "#{prefix || "iex"}(#{counter})> "
       end
 
-    case IO.gets(:stdio, prompt) do
-      :eof -> :eof
-      { :error, _ } -> ''
-      data -> String.to_char_list!(data)
-    end
+    IO.gets(:stdio, prompt)
   end
 
   defp remote_prefix do
