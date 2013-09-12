@@ -264,6 +264,21 @@ foo
     assert_eval expected, string
   end
 
+  test "evaluates nested do expressions" do
+    string = """
+    <% y = ["a", "b", "c"] %>
+    <%= cond do %>
+     <% "a" in y -> %>
+      Good
+     <% true -> %>
+      <% if true do %>true<% else %>false<% end %>
+      Bad
+    <% end %>
+    """
+
+    assert_eval "\n\n  Good\n \n", string
+  end
+
   test "unicode" do
     template = """
       • <%= "•" %> •

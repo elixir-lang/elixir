@@ -31,7 +31,7 @@ defmodule EEx.Compiler do
   defp generate_buffer([{ :start_expr, line, mark, chars }|t], buffer, scope, state) do
     { contents, t } = generate_buffer(t, "", [chars|scope], state.dict([]).line(line).start_line(line))
     buffer = state.engine.handle_expr(buffer, mark, contents)
-    generate_buffer(t, buffer, scope, state.dict([]))
+    generate_buffer(t, buffer, scope, state)
   end
 
   defp generate_buffer([{ :middle_expr, line, _, chars }|t], buffer, [current|scope], state) do
