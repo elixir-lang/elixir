@@ -179,7 +179,120 @@ defmodule Kernel.SpecialForms do
   defmacro :<<>>.(args)
 
   @doc """
-  `alias` is used to setup atom aliases, often useful with modules names.
+  Defines a remote call or an alias.
+
+  The dot (`.`) in Elixir can be used for remote calls:
+
+      iex> String.downcase("FOO")
+      "foo"
+
+  In this example above, we have used `.` to invoke `downcase` in the
+  `String` alias, passing "FOO" as argument. We can also use the dot
+  for creating aliases:
+
+      iex> Hello.World
+      Hello.World
+
+  This time, we have joined two aliases, defining the final alias
+  `Hello.World`.
+
+  ## Syntax
+
+  The right side of `.` may be a word starting in upcase, which represents
+  an alias, a word starting with lowercase or underscore, any valid language
+  operator or any name wrapped in single- or double-quotes. Those are all valid
+  examples:
+
+      iex> Kernel.Sample
+      Kernel.Sample
+      iex> Kernel.length([1,2,3])
+      3
+      iex> Kernel.+(1, 2)
+      3
+      iex> Kernel."length"([1,2,3])
+      3
+      iex> Kernel.'+'(1, 2)
+      3
+
+  Note that `Kernel."HELLO"` will be treated as a remote call and not an alias.
+  This choice was done so every time single- or double-quotes are used, we have
+  a remote call irregardless of the quote contents. This decision is also reflected
+  in the quoted expressions discussed below.
+
+  ## Runtime (dynamic) behaviour
+
+  The result returned by `.` is always specified by the right-side:
+
+      iex> x = String
+      iex> x.downcase("FOO")
+      "foo"
+      iex> x.Sample
+      String.Sample
+
+  In case the right-side is also dynamic, `.`'s behaviour can be reproduced
+  at runtime via `apply/3` and `Module.concat/2`:
+
+      iex> apply(Kernel, :+, [1,2])
+      3
+      iex> Module.concat(Kernel, Sample)
+      Kernel.Sample
+
+  ## Quoted expression
+
+  When `.` is used, the quoted expression may take two distinct
+  forms. When the right side starts with a lowercase letter (or
+  underscore):
+
+      iex> quote do: String.downcase("FOO")
+      {{:., [], [{:__aliases__, [alias: false], [:String]}, :downcase]}, [], ["FOO"]}
+
+  Notice we have an inner tuple, containing the atom `:.` representing
+  the dot as first element:
+
+      {:., [], [{:__aliases__, [alias: false], [:String]}, :downcase]}
+
+  This tuple follows the general quoted expression structure in Elixir,
+  with the name as first argument, some keyword list as metadata as second,
+  and the number of arguments as third. In this case, the arguments is the
+  alias `String` and the atom `:downcase`. The second argument is **always**
+  an atom:
+
+      iex> quote do: String."downcase"("FOO")
+      {{:., [], [{:__aliases__, [alias: false], [:String]}, :downcase]}, [], ["FOO"]}
+
+  The tuple containing `:.` is wrapped in another tuple, which actually
+  represents the function call, and has `"FOO"` as argument.
+
+  When the right side is an alias (i.e. starts with uppercase), we get instead:
+
+      iex> quote do: Hello.World
+      {:__aliases__, [alias: false], [:Hello, :World]}
+
+  We got into more details about aliases in the `__aliases__` special form
+  documentation.
+
+  ## Unquoting
+
+  We can also use unquote to generate a remote call in a quoted expression:
+
+      iex> x = :downcase
+      iex> quote do: String.unquote(x)("FOO")
+      {{:., [], [{:__aliases__, [alias: false], [:String]}, :downcase]}, [], ["FOO"]}
+
+  Similar to `Kernel."HELLO"`, `unquote(x)` will always generate a remote call,
+  independent of the value of `x`. To generate an alias via the quoted expression,
+  one needs to rely on `Module.concat/2`:
+
+      iex> x = Sample
+      iex> quote do: Module.concat(String, unquote(x))
+      {{:., [], [{:__aliases__, [alias: false], [:Module]}, :concat]}, [],
+       [{:__aliases__, [alias: false], [:String]}, Sample]}
+
+  """
+  defmacro (:.).(left, right)
+
+  @doc """
+  `alias` is used to setup aliases, often useful with modules names.
 
   ## Examples
 
@@ -217,8 +330,7 @@ defmodule Kernel.SpecialForms do
   defmacro alias(module, opts)
 
   @doc """
-  `require` is used to require the presence of external
-  modules so macros can be invoked.
+  Requires a given module to be compiled and loaded.
 
   ## Examples
 
@@ -246,6 +358,8 @@ defmodule Kernel.SpecialForms do
   defmacro require(module, opts)
 
   @doc """
+  Imports function and macros from other modules.
+
   `import` allows one to easily access functions or macros from
   others modules without using the qualified name.
 
@@ -335,14 +449,16 @@ defmodule Kernel.SpecialForms do
   defmacro import(module, opts)
 
   @doc """
-  Returns the current environment information as a `Macro.Env`
-  record. In the environment you can access the current filename,
+  Returns the current environment information as a `Macro.Env[]` record.
+
+  In the environment you can access the current filename,
   line numbers, set up aliases, the current function and others.
   """
   defmacro __ENV__
 
   @doc """
   Returns the current module name as an atom or `nil` otherwise.
+
   Although the module can be accessed in the `__ENV__`, this macro
   is a convenient shortcut.
   """
@@ -350,6 +466,7 @@ defmodule Kernel.SpecialForms do
 
   @doc """
   Returns the current file name as a binary.
+
   Although the file can be accessed in the `__ENV__`, this macro
   is a convenient shortcut.
   """
@@ -840,10 +957,11 @@ defmodule Kernel.SpecialForms do
   defmacro lc(args)
 
   @doc """
-  Defines a bit comprehension. It follows the same syntax and
-  behaviour as a list comprehension but expects each element
-  returned to be a bitstring. For example, here is how to remove
-  all spaces from a string:
+  Defines a bit comprehension.
+
+  It follows the same syntax and behaviour as a list comprehension
+  but expects each element returned to be a bitstring. For example,
+  here is how to remove all spaces from a string:
 
       iex> bc <<c>> inbits " hello world ", c != ? , do: <<c>>
       "helloworld"
@@ -852,6 +970,8 @@ defmodule Kernel.SpecialForms do
   defmacro bc(args)
 
   @doc """
+  Internal special form for block expressions.
+
   This is the special form used whenever we have a block
   of expressions in Elixir. This special form is private
   and should not be invoked directly:
@@ -863,7 +983,7 @@ defmodule Kernel.SpecialForms do
   defmacro __block__(args)
 
   @doc """
-  Captures a call as an anonymous function.
+  Captures an anonymous function.
 
   The most common format to capture a function is via module,
   name and arity:
@@ -941,30 +1061,31 @@ defmodule Kernel.SpecialForms do
   defmacro unquote(name)(expr)
 
   @doc """
-  This is the special form used whenever we have to temporarily
-  change the scope information of a block. Used when `quote` is
-  invoked with `location: :keep` to execute a given block as if
-  it belonged to another file.
+  Internal special form for modifying scope information.
+
+  Used when `quote` is invoked with `location: :keep` to execute
+  a given block as if it belonged to another file.
 
       quote location: :keep, do: 1
       #=> { :__scope__, [line: 1], [[file: "iex"],[do: 1]] }
 
-  Check `quote/1` for more information.
+  Check `quote/2` for more information.
   """
   defmacro __scope__(opts, args)
 
   @doc """
-  This is the special form used to hold aliases information.
+  Internal special form to hold aliases information.
+
   It is usually compiled to an atom:
 
-      quote do: Foo.Bar #=>
-      { :__aliases__, [], [:Foo,:Bar] }
+      iex> quote do: Foo.Bar
+      {:__aliases__, [alias: false], [:Foo, :Bar]}
 
   Elixir represents `Foo.Bar` as `__aliases__` so calls can be
   unambiguously identified by the operator `:.`. For example:
 
-      quote do: Foo.bar #=>
-      {{:.,[],[{:__aliases__,[],[:Foo]},:bar]},[],[]}
+      iex> quote do: Foo.bar
+      {{:., [], [{:__aliases__, [alias: false], [:Foo]}, :bar]}, [], []}
 
   Whenever an expression iterator sees a `:.` as the tuple key,
   it can be sure that it represents a call and the second argument
@@ -981,7 +1102,7 @@ defmodule Kernel.SpecialForms do
   4) When the head element of aliases is not an atom, it is expanded at runtime:
 
         quote do: some_var.Foo
-        {:__aliases__,[],[{:some_var,[],:quoted},:Bar]}
+        {:__aliases__, [], [{:some_var, [], Elixir}, :Foo]}
 
      Since `some_var` is not available at compilation time, the compiler
      expands such expression to:
