@@ -108,6 +108,16 @@ defmodule StreamTest do
     assert Enum.take(stream, 1) == ["HELLO"]
   end
 
+  test :unfold do
+    # iterate emulation
+    stream = Stream.unfold(0, &({&1, &1+1}))
+    assert Enum.take(stream, 10) == [0,1,2,3,4,5,6,7,8,9]
+
+    # fibonacci numbers
+    stream = Stream.unfold({0,1}, fn {f, s} -> {s, {s, f+s}} end)
+    assert Enum.take(stream, 10) == [1,1,2,3,5,8,13,21,34,55]
+  end
+
   test :map do
     stream = Stream.map([1,2,3], &(&1 * 2))
     assert is_lazy(stream)
