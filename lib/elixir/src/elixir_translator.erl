@@ -397,7 +397,9 @@ translate_each({ Atom, Meta, Args } = Original, S) when is_atom(Atom) ->
           elixir_dispatch:dispatch_import(Meta, Atom, Args, S, Callback);
         Else  -> Else
       end;
-    Else -> Else
+    Else ->
+      elixir_errors:deprecation(Meta, S#elixir_scope.file, "partial application without capture is deprecated"),
+      Else
   end;
 
 %% Remote calls
@@ -437,7 +439,9 @@ translate_each({ { '.', _, [Left, Right] }, Meta, Args } = Original, S) when is_
           end;
         Else -> Else
       end;
-    Else -> Else
+    Else ->
+      elixir_errors:deprecation(Meta, S#elixir_scope.file, "partial application without capture is deprecated"),
+      Else
   end;
 
 %% Anonymous function calls

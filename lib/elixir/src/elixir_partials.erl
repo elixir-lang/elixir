@@ -11,6 +11,7 @@ handle({ _, Meta, Args } = Original, S, Opt) when is_list(Args), S#elixir_scope.
     { Call, Def, SC } when Def /= [] ->
       Final = validate(Meta, Def, SC),
       Block = setelement(3, Original, Call),
+      elixir_errors:deprecation(Meta, S#elixir_scope.file, "partial application without capture is deprecated"),
       elixir_fn:fn(Meta, [{ Final, Meta, Block }], SC);
     _ -> error
   end;

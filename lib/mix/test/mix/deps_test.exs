@@ -43,7 +43,7 @@ defmodule Mix.DepsTest do
 
     in_fixture "deps_status", fn ->
       deps = Mix.Deps.all
-      assert Enum.find deps, match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
+      assert Enum.find deps, &match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
     end
   after
     Mix.Project.pop

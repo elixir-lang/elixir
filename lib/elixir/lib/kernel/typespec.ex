@@ -216,7 +216,7 @@ defmodule Kernel.Typespec do
   for modules being compiled.
   """
   def defines_type?(module, name, arity) do
-    finder = match?({ ^name, _, vars } when length(vars) == arity, &1)
+    finder = &match?({ ^name, _, vars } when length(vars) == arity, &1)
     :lists.any(finder, Module.get_attribute(module, :type)) or
       :lists.any(finder, Module.get_attribute(module, :opaque))
   end
