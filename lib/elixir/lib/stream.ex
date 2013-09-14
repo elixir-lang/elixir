@@ -278,14 +278,37 @@ defmodule Stream do
 
   @spec iterate(element, (element -> element)) :: t
   def iterate(start_value, next_fun) do
+		Stream.concat([start_value], unfold(start_value, fn el ->
+																													next_value = next_fun.(el)
+																													{next_value, next_value}
+																										 end))
+  end
+
+  @doc """
+  Emit a sequence from a seed value. `next_fun` takes the element and returns
+  tuple of two values: first one is to be emitted to the sequence and second one
+  is to be used as an argument for futher `next_fun` call.
+
+  ## Examples
+
+      iex> Stream.unfold(0, &({&1, &1+1})) |> Enum.take(5)
+      [0,1,2,3,4]
+
+      iex> Stream.unfold({0, 1}, fn {f, s} -> {s, {s, f+s}} end) |> Enum.take(10)
+      [1,1,2,3,5,8,13,21,34,55]
+
+  """
+
+  @spec unfold(element, (element -> {element, element})) :: t
+  def unfold(start_value, next_fun) do
     fn acc, fun ->
-      do_iterate(start_value, next_fun, fun.(start_value, acc), fun)
+      do_unfold(start_value, next_fun, acc, fun)
     end
   end
 
-  defp do_iterate(value, next_fun, acc, fun) do
-    next = next_fun.(value)
-    do_iterate(next, next_fun, fun.(next, acc), fun)
+  defp do_unfold(value, next_fun, acc, fun) do
+    {next, base} = next_fun.(value)
+    do_unfold(base, next_fun, fun.(next, acc), fun)
   end
 
   @doc """
