@@ -10,15 +10,16 @@ defmodule Mix.Tasks.New do
   Creates a new Elixir project.
   It expects the path of the project as argument.
 
-      mix new PATH [--sup] [--module MODULE] [--umbrella]
+      mix new PATH [--bare] [--module MODULE] [--umbrella]
 
   A project at the given PATH  will be created. The
   application name and module name will be retrieved
   from the path, unless `--module` is given.
 
-  A `--sup` option can be given to generate an
-  app with a supervisor and an application module
-  that starts the supervisor.
+  A `--bare` option can be given to not generate an OTP
+  application skeleton. Normally an app is generated with
+  a supervisor and an application module that starts the
+  supervisor.
 
   An `--umbrella` option can be given to generate an
   umbrella project.
@@ -31,13 +32,13 @@ defmodule Mix.Tasks.New do
 
       mix new hello_world --module HelloWorld
 
-  To generate an app with supervisor and application behaviours:
+  To generate an app without supervisor and application behaviours:
 
-      mix new hello_world --sup
+      mix new hello_world --bare
 
   """
   def run(argv) do
-    { opts, argv, _ } = OptionParser.parse(argv, switches: [sup: :boolean, umbrella: :boolean])
+    { opts, argv, _ } = OptionParser.parse(argv, switches: [bare: :boolean, umbrella: :boolean])
 
     case argv do
       [] ->
@@ -59,7 +60,7 @@ defmodule Mix.Tasks.New do
 
   defp do_generate(app, path, opts) do
     mod     = opts[:module] || camelize(app)
-    otp_app = if opts[:sup], do: "[mod: { #{mod}, [] }]", else: "[]"
+    otp_app = if opts[:bare], do: "[]", else: "[mod: { #{mod}, [] }]"
     assigns = [app: app, mod: mod, otp_app: otp_app]
 
     create_file "README.md",  readme_template(assigns)
@@ -68,12 +69,12 @@ defmodule Mix.Tasks.New do
 
     create_directory "lib"
 
-    if opts[:sup] do
+    if opts[:bare] do
+      create_file "lib/#{app}.ex", lib_template(assigns)
+    else
       create_file "lib/#{app}.ex", lib_app_template(assigns)
       create_directory "lib/#{app}"
       create_file "lib/#{app}/supervisor.ex", lib_supervisor_template(assigns)
-    else
-      create_file "lib/#{app}.ex", lib_template(assigns)
     end
 
     create_directory "test"

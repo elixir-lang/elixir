@@ -3,9 +3,9 @@ Code.require_file "../../test_helper.exs", __DIR__
 defmodule Mix.Tasks.NewTest do
   use MixTest.Case
 
-  test "new with underscore" do
+  test "new with underscore and --bare" do
     in_tmp "new with underscore", fn ->
-      Mix.Tasks.New.run ["hello_world"]
+      Mix.Tasks.New.run ["hello_world", "--bare"]
 
       assert_file "hello_world/mix.exs", fn(file) ->
         assert file =~ "app: :hello_world"
@@ -25,9 +25,9 @@ defmodule Mix.Tasks.NewTest do
     end
   end
 
-  test "new with --sup" do
+  test "new without --bare" do
     in_tmp "new with underscore", fn ->
-      Mix.Tasks.New.run ["hello_world", "--sup"]
+      Mix.Tasks.New.run ["hello_world"]
 
       assert_file "hello_world/mix.exs", fn(file) ->
         assert file =~ "app: :hello_world"
