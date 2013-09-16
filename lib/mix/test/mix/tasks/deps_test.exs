@@ -283,6 +283,8 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* Compiling deps_repo"] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
 
+      Mix.Task.clear
+
       Mix.Tasks.Deps.Update.run ["--all"]
       assert_received { :mix_shell, :info, ["* Updating deps_repo (0.1.0) [path: \"custom/deps_repo\"]"] }
       assert_received { :mix_shell, :info, ["* Compiling deps_repo"] }

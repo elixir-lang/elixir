@@ -105,22 +105,25 @@ defmodule Mix.Deps do
   defdelegate children(), to: Mix.Deps.Retriever
 
   @doc """
-  Return all dependencies depending on the given dependencies.
+  Return all given dependencies and their depending dependencies.
   """
-  def depending(deps, all_deps // all)
+  def with_depending(deps, all_deps // all) do
+    deps ++ do_with_depending(deps, all_deps)
+      |> Enum.uniq(&(&1.app))
+  end
 
-  def depending([], _all_deps) do
+  defp do_with_depending([], _all_deps) do
     []
   end
 
-  def depending(deps, all_deps) do
+  defp do_with_depending(deps, all_deps) do
     dep_names = Enum.map(deps, fn dep -> dep.app end)
 
     parents = Enum.filter all_deps, fn dep ->
       Enum.any?(dep.deps, fn child_dep -> child_dep.app in dep_names end)
     end
 
-    parents ++ depending(parents, all_deps)
+    do_with_depending(parents, all_deps) ++ parents
   end
 
   @doc """

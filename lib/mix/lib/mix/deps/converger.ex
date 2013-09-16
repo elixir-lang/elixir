@@ -83,7 +83,9 @@ defmodule Mix.Deps.Converger do
 
   # Look for an overriding dep in the upper breadths, if
   # found return a new acc without the overriden dep and
-  # with the proper status set on the overrider
+  # with the proper status set on the overrider. The
+  # overrider is moved to the front of the accumulator to
+  # preserve the position of the removed dep.
   defp overriden_deps(acc, upper_breadths, dep) do
     overriden = Enum.any?(upper_breadths, fn(other) ->
       other.app == dep.app
@@ -92,18 +94,21 @@ defmodule Mix.Deps.Converger do
     if overriden do
       Mix.Dep[app: app] = dep
 
-      Enum.map(acc, fn other ->
-        Mix.Dep[app: other_app, opts: other_opts] = other
+      { overrider, acc } =
+        Enum.reduce(acc, { nil , [] }, fn other, { overrider, acc } ->
+          Mix.Dep[app: other_app, opts: other_opts] = other
 
-        cond do
-          app == other_app && (other_opts[:override] || converge?(dep, other)) ->
-            other
-          app == other_app ->
-            other.status({ :overriden, dep })
-          true ->
-            other
-        end
-      end)
+          cond do
+            app == other_app && (other_opts[:override] || converge?(dep, other)) ->
+              { other, acc }
+            app == other_app ->
+              { other.status({ :overriden, dep }), acc }
+            true ->
+              { overrider, [other|acc] }
+          end
+        end)
+
+      [ overrider | Enum.reverse(acc) ]
     end
   end
 

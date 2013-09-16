@@ -29,7 +29,8 @@ defmodule Mix.Tasks.Deps.Compile do
   """
 
   import Mix.Deps, only: [ all: 0, available?: 1, by_name: 2, compile_paths: 1,
-                           depending: 2, format_dep: 1, make?: 1, mix?: 1, rebar?: 1 ]
+                           with_depending: 2, format_dep: 1, make?: 1, mix?: 1,
+                           rebar?: 1 ]
 
   def run(args) do
     Mix.Project.get! # Require the project to be available
@@ -39,8 +40,8 @@ defmodule Mix.Tasks.Deps.Compile do
         do_run(Enum.filter(all, &available?/1), opts)
       { opts, tail, _ } ->
         all_deps = all
-        deps = by_name(tail, all_deps)
-        do_run(deps ++ depending(deps, all_deps), opts)
+        deps = by_name(tail, all_deps) |> with_depending(all_deps)
+        do_run(deps, opts)
     end
   end
 
