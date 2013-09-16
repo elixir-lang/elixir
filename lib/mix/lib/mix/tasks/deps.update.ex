@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Deps.Update do
   """
 
   import Mix.Deps, only: [ all: 0, all: 2, available?: 1, by_name: 2,
-                           depending: 2, format_dep: 1 ]
+                           with_depending: 2, format_dep: 1 ]
 
   def run(args) do
     Mix.Project.get! # Require the project to be available
@@ -33,9 +33,10 @@ defmodule Mix.Tasks.Deps.Update do
         acc = all(init, &deps_updater/2)
       rest != [] ->
         all_deps = all
-        deps = Enum.map by_name(rest, all_deps), &check_unavailable!/1
-        deps = deps ++ depending(deps, all_deps)
-        { _, acc } = Enum.map_reduce deps, init, &deps_updater/2
+        deps = by_name(rest, all_deps)
+          |> Enum.map(&check_unavailable!/1)
+          |> with_depending(all_deps)
+        { _, acc } = Enum.map_reduce(deps, init, &deps_updater/2)
       true ->
         raise Mix.Error, message: "mix deps.update expects dependencies as arguments or " <>
                                   "the --all option to update all dependencies"
