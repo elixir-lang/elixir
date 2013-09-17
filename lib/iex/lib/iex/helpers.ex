@@ -22,7 +22,6 @@ defmodule IEx.Helpers do
   * `ls/1`    — lists the contents of the specified directory
   * `m/0`     — prints loaded modules
   * `pwd/0`   — prints the current working directory
-  * `r/0`     — recompile and reload all modules that were previously reloaded
   * `r/1`     — recompiles and reloads the given module's source file
   * `s/1`     — prints spec information
   * `t/1`     — prints type information
@@ -279,14 +278,6 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Reloads all modules that have already been reloaded with `r/1` at any point
-  in the current IEx session.
-  """
-  def r do
-    List.flatten(Enum.map(iex_reloaded, &do_r(&1)))
-  end
-
-  @doc """
   Recompiles and reloads the specified module's source file.
 
   Please note that all the modules defined in the same file as `module`
@@ -306,11 +297,9 @@ defmodule IEx.Helpers do
         :nosource
 
       String.ends_with?(source, ".erl") ->
-        Process.put(:iex_reloaded, :ordsets.add_element(module, iex_reloaded))
-        [ compile_erlang(source) |> elem(0) ]
+        [compile_erlang(source) |> elem(0)]
 
       true ->
-        Process.put(:iex_reloaded, :ordsets.add_element(module, iex_reloaded))
         Enum.map(Code.load_file(source), fn {name, _} -> name end)
     end
   end
@@ -340,10 +329,6 @@ defmodule IEx.Helpers do
     after
       0 -> :ok
     end
-  end
-
-  defp iex_reloaded do
-    Process.get(:iex_reloaded) || :ordsets.new
   end
 
   defp source(module) do

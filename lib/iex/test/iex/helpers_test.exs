@@ -266,20 +266,13 @@ defmodule IEx.HelpersTest do
     cleanup_modules([Sample])
   end
 
-  test "r helper basic" do
-    assert r == []
+  test "r helper unavailable" do
     assert_raise UndefinedFunctionError, "undefined function: :non_existent_module.module_info/1", fn ->
       r :non_existent_module
     end
-
-    # There is no source file for the module defined in IEx
-    assert ":ok\n** (Code.LoadError) could not load" <> _
-           = capture_iex("{:module, Sample, _, {:run,0}} = #{String.strip test_module_code}; :ok\nr Sample")
-  after
-    cleanup_modules([Sample])
   end
 
-  test "r helper" do
+  test "r helper elixir" do
     assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
       Sample.run
     end
@@ -296,8 +289,7 @@ defmodule IEx.HelpersTest do
           Sample.run
         end
 
-        assert [Sample] = r()
-      end) =~ %r"^.*?sample\.ex:1: redefining module Sample\n.*?sample\.ex:1: redefining module Sample\n$"
+      end) =~ %r"^.*?sample\.ex:1: redefining module Sample\n$"
     end
   after
     # Clean up old version produced by the r helper
