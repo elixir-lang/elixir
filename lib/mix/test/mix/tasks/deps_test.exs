@@ -443,4 +443,29 @@ defmodule Mix.Tasks.DepsTest do
   after
     Mix.Project.pop
   end
+
+  defmodule NonCompilingDeps do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          { :deps_repo, "0.1.0", path: "custom/deps_repo", compile: false },
+          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), compile: false }
+        ]
+      ]
+    end
+  end
+
+  test "dont compile deps" do
+    Mix.Project.push NonCompilingDeps
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Compile.run []
+      refute_received { :mix_shell, :info, ["* Compiling deps_repo"] }
+      refute_received { :mix_shell, :info, ["* Compiling git_repo"] }
+    end
+  after
+    Mix.Project.pop
+  end
 end
