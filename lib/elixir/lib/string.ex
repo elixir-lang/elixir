@@ -139,6 +139,32 @@ defmodule String do
   def printable?(_),    do: false
 
   @doc """
+  Get the Unicode general category of the codepoint, or nil if
+  the passed string does not represent a single valid code point.
+
+  The category is an atom like :Ll (for Letter, lowercase). For a complete list
+  of categories see the Unicode standard. [Wikipedia](https://en.wikipedia.org/wiki/Unicode_character_property#General_Category) also has a list.
+
+  ## Examples
+
+      iex> String.category("é")
+      :Ll
+      iex> String.category(" ")
+      :Zs
+      iex> String.category("")
+      nil
+      iex> String.category("ab")
+      nil
+  """
+  @spec category(t) :: { atom | binary }
+  def category(codepoint) do
+    case codepoint do
+      << cp :: utf8 >> -> String.Unicode.category_from_ordinal(cp)
+      _                -> nil
+    end
+  end
+
+  @doc """
   Splits a string on substrings at each Unicode whitespace
   occurrence with leading and trailing whitespace ignored.
 

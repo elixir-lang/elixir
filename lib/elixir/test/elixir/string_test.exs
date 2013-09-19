@@ -455,4 +455,12 @@ defmodule StringTest do
       String.from_char_list!([0xDFFF])
     end
   end
+
+  test :category do
+    assert String.category("é")          == :Ll
+    assert String.category(" ")          == :Zs
+    assert String.category("")           == nil
+    assert String.category(<<255, 255>>) == nil
+    assert String.category("ab")         == nil
+  end
 end

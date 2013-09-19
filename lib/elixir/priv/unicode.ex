@@ -18,8 +18,9 @@ defmodule String.Unicode do
 
   data_path = Path.join(__DIR__, "UnicodeData.txt")
 
-  { codes, whitespace } = Enum.reduce File.stream!(data_path), { [], [] }, fn(line, { cacc, wacc }) ->
-    [ codepoint, _name, _category,
+  { codes, whitespace, cat_tups } = Enum.reduce File.stream!(data_path), { [], [], [] }, 
+                                                  fn(line, { cacc, wacc, ctacc }) ->
+    [ codepoint, _name, category,
       _class, bidi, _decomposition,
       _numeric_1, _numeric_2, _numeric_3,
       _bidi_mirror, _unicode_1, _iso,
@@ -27,13 +28,15 @@ defmodule String.Unicode do
 
     title = :binary.part(title, 0, size(title) - 1)
 
+    ctacc = [{ binary_to_integer(codepoint, 16), binary_to_atom(category) } | ctacc]
+
     cond do
       upper != "" or lower != "" or title != "" ->
-        { [{ to_binary.(codepoint), to_binary.(upper), to_binary.(lower), to_binary.(title) } | cacc], wacc }
+        { [{ to_binary.(codepoint), to_binary.(upper), to_binary.(lower), to_binary.(title) } | cacc], wacc, ctacc }
       bidi in ["B", "S", "WS"] ->
-        { cacc, [to_binary.(codepoint) | wacc] }
+        { cacc, [to_binary.(codepoint) | wacc], ctacc }
       true ->
-        { cacc, wacc }
+        { cacc, wacc, ctacc }
     end
   end
 
@@ -100,6 +103,13 @@ defmodule String.Unicode do
   def titlecase_once(<< char, rest :: binary >>) do
     { << char >>, rest }
   end
+
+  # Codepoint category
+  
+  lc { codepoint, cat } inlist cat_tups do
+    def category_from_ordinal(unquote(codepoint)), do: unquote(cat)
+  end
+  def category_from_ordinal(_), do: nil
 
   # Strip
 
@@ -219,3 +229,4 @@ defmodule String.Unicode do
     []
   end
 end
+
