@@ -81,24 +81,21 @@ build_ex_var(Line, Key, Name, S) when is_integer(Line) ->
 % Handle Macro.Env conversion
 
 to_erl_env({ 'Elixir.Macro.Env', Module, File, _Line, Function, Aliases, Context,
-    Requires, Functions, Macros, ContextModules, MacroAliases, Vars }) ->
+    Requires, Functions, Macros, ContextModules, MacroAliases, _Vars }) ->
   #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros,functions=Functions,
-    context_modules=ContextModules,macro_aliases=MacroAliases,
-    list_vars=Vars}.
+    context_modules=ContextModules,macro_aliases=MacroAliases}.
 
 to_ex_env({ Line, #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros,functions=Functions,
-    context_modules=ContextModules,macro_aliases=MacroAliases,
-    vars=Vars,list_vars=ListVars} }) when is_integer(Line) ->
+    context_modules=ContextModules,macro_aliases=MacroAliases, vars=Vars} }) when is_integer(Line) ->
   { 'Elixir.Macro.Env', Module, File, Line, Function, Aliases,
     Context, Requires, Functions, Macros, ContextModules, MacroAliases,
-    list_vars(ListVars, Vars) }.
+    list_vars(Vars) }.
 
-list_vars(nil, Vars) -> [K || { K, _ } <- Vars];
-list_vars(Other, _)  -> Other.
+list_vars(Vars) -> [K || { K, _ } <- Vars].
 
 % Provides a tuple with only the scope information we want to serialize.
 
