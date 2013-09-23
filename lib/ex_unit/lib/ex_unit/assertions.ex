@@ -270,7 +270,7 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts a message was received and is in the current process mailbox.
-  The given `expected` argument must to be a match pattern.
+  The given `expected` argument must be a match pattern.
 
   Timeout is set to 0, so there is no waiting time.
 
