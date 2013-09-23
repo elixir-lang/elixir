@@ -480,6 +480,29 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns a list of integers which correspond to the bytes of `binary`
+
+  ## Examples
+
+      iex> binary_to_list("elixir")
+      'elixir'
+  """
+  @spec binary_to_list(binary) :: list
+  def binary_to_list(binary) do
+    :erlang.binary_to_list(binary)
+  end
+
+  @doc """
+  Works like `binary_to_list/1`, but returns a list of integers corresponding
+  to the bytes from position `start` to position `stop` in `binary`. Positions
+  in the binary are numbered starting from 1.
+  """
+  @spec binary_to_list(binary, integer, integer) :: list
+  def binary_to_list(binary, start, stop) do
+    :erlang.binary_to_list(binary, start, stop)
+  end
+
+  @doc """
   Returns an Erlang term which is the result of decoding the binary
   object `binary`, which must be encoded according to the Erlang external
   term format.
@@ -652,7 +675,7 @@ defmodule Kernel do
   @doc """
   Returns a binary which is made from the integers and binaries in iolist.
 
-  Notice that this function treats lists of integers as raw bytes 
+  Notice that this function treats lists of integers as raw bytes
   and does not perform any kind of encoding conversion. If you want to convert
   from a char list to a string (both utf-8 encoded), please use
   `String.from_char_list!/1` instead.
