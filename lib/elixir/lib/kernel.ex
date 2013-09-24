@@ -1,5 +1,3 @@
-import Kernel, except: [raise: 1, raise: 2]
-
 defmodule Kernel do
   @moduledoc """
   `Kernel` provides the default macros and functions
@@ -2015,8 +2013,7 @@ defmodule Kernel do
 
     case is_atom(expanded) do
       false ->
-        raise ArgumentError,
-          message: "invalid arguments for use, expected an atom or alias as argument"
+        :erlang.error ArgumentError.exception(message: "invalid arguments for use, expected an atom or alias as argument")
       true ->
         quote do
           require unquote(expanded)
@@ -2652,8 +2649,8 @@ defmodule Kernel do
     new_acc =
       case condition do
         { :_, _, atom } when is_atom(atom) ->
-          raise ArgumentError, message: <<"unbound variable _ inside cond. ",
-            "If you want the last clause to match, you probably meant to use true ->">>
+          :erlang.error ArgumentError.exception(message: <<"unbound variable _ inside cond. ",
+            "If you want the last clause to match, you probably meant to use true ->">>)
         x when is_atom(x) and not x in [false, nil] ->
           clause
         _ ->
@@ -3095,7 +3092,7 @@ defmodule Kernel do
   end
 
   defp pipeline_op(_, arg) do
-    raise ArgumentError, message: "unsupported expression in pipeline |> operator: #{Macro.to_string arg}"
+    :erlang.error ArgumentError.exception(message: "unsupported expression in pipeline |> operator: #{Macro.to_string arg}")
   end
 
   @doc """
@@ -3120,12 +3117,10 @@ defmodule Kernel do
 
   """
   @spec raise(binary | atom | tuple) :: no_return
-  def raise(msg) when is_binary(msg) do
-    :erlang.error RuntimeError[message: msg]
-  end
-
-  def raise(exception) do
-    raise(exception, [])
+  defmacro raise(msg) when is_binary(msg) do
+    quote do
+      :erlang.error RuntimeError[message: unquote(msg)]
+    end
   end
 
   @doc """
@@ -3146,8 +3141,16 @@ defmodule Kernel do
 
   """
   @spec raise(tuple | atom, list) :: no_return
-  def raise(exception, args) do
-    :erlang.error exception.exception(args)
+  defmacro raise(exception, args // []) do
+    quote do
+      exception = unquote(exception)
+      case exception do
+        e when is_binary(e) ->
+          :erlang.error RuntimeError.new(message: exception)
+        _ ->
+          :erlang.error exception.exception(unquote(args))
+      end
+    end
   end
 
   @doc """
@@ -3288,15 +3291,15 @@ defmodule Kernel do
                 { :error, _ } ->
                   :elixir_aliases.ensure_loaded(caller.line, caller.file, atom, caller.context_modules)
                 _ ->
-                  raise ArgumentError, message: "cannot use module #{inspect atom} in access protocol because it does not export __record__/1"
+                  :erlang.error ArgumentError.exception(message: "cannot use module #{inspect atom} in access protocol because it does not export __record__/1")
               end
           end
 
         Record.access(atom, fields, args, caller)
       false ->
         case caller.in_match? do
-          true  -> raise ArgumentError, message: << "the access protocol cannot be used inside match clauses ",
-                     "(for example, on the left hand side of a match or in function signatures)" >>
+          true  -> :erlang.error ArgumentError.exception(message: << "the access protocol cannot be used inside match clauses ",
+                     "(for example, on the left hand side of a match or in function signatures)" >>)
           false -> quote do: Access.access(unquote(element), unquote(args))
         end
     end
@@ -3347,14 +3350,14 @@ defmodule Kernel do
     funs = Macro.escape(funs, unquote: true)
     quote bind_quoted: [funs: funs, opts: opts] do
       target = Keyword.get(opts, :to) ||
-        raise(ArgumentError, message: "Expected to: to be given as argument")
+        :erlang.error ArgumentError.exception(message: "Expected to: to be given as argument")
 
       append_first = Keyword.get(opts, :append_first, false)
 
       lc fun inlist List.wrap(funs) do
         case Macro.extract_args(fun) do
           { name, args } -> :ok
-          :error -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_string(fun)}"
+          :error -> :erlang.error ArgumentError.exception(message: "invalid syntax in defdelegate #{Macro.to_string(fun)}")
         end
 
         actual_args =
@@ -3616,7 +3619,7 @@ defmodule Kernel do
         IO.write "%w()b is deprecated, please use %w()s instead\n#{Exception.format_stacktrace}"
         ?s
       [mod] when mod in [?s, ?a, ?c] -> mod
-      _else -> raise ArgumentError, message: "modifier must be one of: s, a, c"
+      _else -> :erlang.error ArgumentError.exception(message: "modifier must be one of: s, a, c")
     end
 
     case is_binary(string) do

@@ -84,6 +84,19 @@ defmodule Kernel.ExceptionTest do
     assert ErlangError.new(original: :sample).message == "erlang error: :sample"
   end
 
+  test :raise_preserves_the_stacktrace do
+    stacktrace =
+    try do
+      raise "a"
+    rescue _ -> 
+      [top|_] = System.stacktrace
+      top
+    end
+    file = to_char_list(__FILE__)
+    assert {Kernel.ExceptionTest, :test_raise_preserves_the_stacktrace, _,
+           [file: ^file, line: 90]} = stacktrace # line #90 is sensitive
+  end
+
   defp empty_tuple, do: {}
   defp a_tuple, do: { :foo, :bar, :baz }
   defp a_list,  do: [ :foo, :bar, :baz ]
