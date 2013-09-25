@@ -76,7 +76,7 @@ validate_join(List) when not is_list(List) ->
                    ('Elixir.Kernel':inspect(List))/binary>>).
 
 argument_error(Message) ->
-  'Elixir.Kernel':raise('Elixir.ArgumentError', [{message,Message}]).
+  error('Elixir.ArgumentError':exception([{message,Message}])).
 
 %% Escapes the given expression. It is similar to quote, but
 %% lines are kept and hygiene mechanisms are disabled.
