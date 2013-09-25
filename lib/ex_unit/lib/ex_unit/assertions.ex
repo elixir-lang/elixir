@@ -247,9 +247,9 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts a message was or is going to be received. Unlike
-  `assert_received`, it has a default timeout of 100 miliseconds.
+  `assert_received`, it has a default timeout of 100 milliseconds.
 
-  The given `expected` argument must be a pattern.
+  The given `expected` argument has to be a pattern.
 
   ## Examples
 
@@ -263,16 +263,19 @@ defmodule ExUnit.Assertions do
 
       assert_receive { :hello, _ }
 
+      x = 5
+      assert_receive { :count, ^x }
+
   """
   defmacro assert_receive(expected, timeout // 100, message // nil) do
     do_assert_receive(expected, timeout, message)
   end
 
   @doc """
-  Asserts a message was received and is in the current process mailbox.
-  The given `expected` argument must be a match pattern.
-
+  Asserts a message was received and is in the current process' mailbox.
   Timeout is set to 0, so there is no waiting time.
+
+  The given `expected` argument has to be a pattern.
 
   ## Examples
 
