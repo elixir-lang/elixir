@@ -92,9 +92,29 @@ defmodule ExUnit.AssertionsTest do
     :hello = assert_receive :hello
   end
 
+  test "assert receive when does not match" do
+    self <- :world
+    try do
+      "This should never be tested" = assert_receive :hello
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Expected to have received message matching :hello, got :world" = error.message
+    end
+  end
+
   test "assert received does not wait" do
     self <- :hello
     :hello = assert_received :hello
+  end
+
+  test "assert received when does not match" do
+    self <- :world
+    try do
+      "This should never be tested" = assert_received :hello
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Expected to have received message matching :hello, got :world" = error.message
+    end
   end
 
   test "assert received when different" do
