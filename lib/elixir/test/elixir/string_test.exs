@@ -278,6 +278,9 @@ defmodule StringTest do
     assert String.slice("elixir", -5, 0) == ""
     assert String.slice("", 0, 1) == ""
     assert String.slice("", 1, 1) == nil
+    assert String.slice("elixir", 2, -2) == "ixi"
+    assert String.slice("elixir", 3, -4) == nil
+    assert String.slice("あいうえお", 0, -1) == "あいうえお"
   end
 
   test :valid? do
