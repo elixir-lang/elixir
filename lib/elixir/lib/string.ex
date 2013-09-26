@@ -809,6 +809,8 @@ defmodule String do
   Returns a substring starting at the offset given by the first, and
   a length given by the second.
   If the offset is greater than string length, than it returns `nil`.
+  If the length is negative, its absolute value means offset from
+  string's end.
 
   ## Examples
 
@@ -827,6 +829,10 @@ defmodule String do
       iex> String.slice("a", 1, 1500)
       ""
       iex> String.slice("a", 2, 1500)
+      nil
+      iex> String.slice("elixir", 2, -2)
+      "ixi"
+      iex> String.slice("elixir, 3, -5)
       nil
 
   """
@@ -848,6 +854,15 @@ defmodule String do
     case real_start_pos >= 0 do
       true -> do_slice(next_grapheme(string), real_start_pos, real_start_pos + len - 1, 0, "")
       false -> nil
+    end
+  end
+
+  def slice(string, start, len) when len < 0 do
+    str_len = String.length(string)
+    real_end_pos = str_len - start + len + 1
+    case real_end_pos < start  do
+      true -> nil
+      false -> slice(string, start, real_end_pos)
     end
   end
 
