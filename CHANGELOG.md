@@ -2,18 +2,34 @@
 
 * Enhancements
   * [Enum] Add `Enum.take_every/2`
+  * [IEx] IEx now respects signals sent from the Ctrl+G menu
   * [Kernel] Allow documentation for types with `@typedoc`
+  * [Stream] Add `Stream.unfold/1`
 
 * Bug fixes
-  * [IEx] Fix regression when using `:error_messages` with IEx
-  * [Kernel] Fixed handling of multiple heredocs on the same line
+  * [Dict] Fix a bug when a HashDict was marked as equal when one was actually a subset of the other
+  * [EEx] Solve issue where `do` blocks inside templates were not properly aligned
+  * [ExUnit] Improve checks and have better error reports on poorly aligned doctests
+  * [Kernel] Fix handling of multiple heredocs on the same line
+  * [Kernel] Provide better error messages for match, guard and quoting errors
+  * [Kernel] Make `Kernel.raise/2` a macro to avoid messing up stacktraces
+  * [Kernel] Ensure `&()` works on quoted blocks with only one expression
+  * [Mix] Address an issue where a dependency was not compiled in the proper order when specified in different projects
+  * [Mix] Ensure `compile: false` is a valid mechanism for disabling the compilation of dependencies
   * [Regex] Fix bug on `Regex.scan/3` when capturing groups and the regex has no groups
+  * [String] Fix a bug with `String.split/2` when given an empty pattern
+  * [Typespec] Guarantee typespecs error reports point to the proper line
 
 * Deprecations
+  * [Kernel] The previous partial application syntax (without the `&` operator) has now been deprecated
+  * [Regex] `Regex.captures/3` is deprecated in favor of `Regex.named_captures/3`
+  * [String] `String.valid_codepoint?/1` is deprecated in favor of pattern matching with `<<_ :: utf8 >>`
 
 * Backwards incompatible changes
+  * [IEx] The `r/0` helper has been removed as it caused surprising behaviour when many modules with dependencies were accumulated
   * [Mix] `Mix.Version` was renamed to `Version`
   * [Mix] `File.IteratorError` was renamed to `IO.StreamError`
+  * [Mix] `mix new` now defaults to the `--sup` option, use `--bare` to get the previous behaviour
 
 # v0.10.2 (2013-09-03)
 
