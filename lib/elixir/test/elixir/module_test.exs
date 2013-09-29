@@ -230,3 +230,35 @@ defmodule ModuleTest do
     assert is_function Module.function(This, :also_works, 0)
   end
 end
+
+defmodule Code.CodeCompilationTest do
+  use ExUnit.Case, async: false
+
+  defmacro __using__(_) do
+    quote do
+      def use?, do: true
+    end
+  end
+
+  test :global_use do
+    quoted = nil
+
+    Code.compiler_options(use: __MODULE__)
+    Module.create ModuleTest.Use.Test, quoted
+    assert ModuleTest.Use.Test.use? == true
+
+    :code.purge(ModuleTest.Use.Test)
+    :code.delete(ModuleTest.Use.Test)
+
+    Code.compiler_options(use: [__MODULE__])
+    Module.create ModuleTest.Use.Test, quoted
+    assert ModuleTest.Use.Test.use? == true
+
+  after
+    :code.purge(ModuleTest.Use.Test)
+    :code.delete(ModuleTest.Use.Test)
+
+    Code.compiler_options(use: false)
+  end
+
+end

@@ -141,9 +141,20 @@ build(Line, File, Module) ->
 
 eval_form(Line, Module, Block, Vars, RawS) ->
   S = scope_for_eval(Module, RawS),
+  Env = elixir_scope:to_ex_env({ Line, S }),
+
+  UseCallbacks = case elixir_compiler:get_opt(use) of
+    false ->
+      [];
+    UseModule when is_atom(UseModule) ->
+      [{UseModule, '__using__'}];
+    UseModules when is_list(UseModules) ->
+      lists:map(fun(M) -> {M, '__using__'} end, UseModules)
+  end,
+  eval_callbacks(Line, Module, UseCallbacks, [[]], S),
+
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Vars, S),
   elixir_def_overridable:store_pending(Module),
-  Env = elixir_scope:to_ex_env({ Line, S }),
   eval_callbacks(Line, Module, before_compile, [Env], NewS),
   elixir_def_overridable:store_pending(Module),
   Value.
@@ -378,10 +389,13 @@ else_clause() ->
 
 % HELPERS
 
-eval_callbacks(Line, Module, Name, Args, RawS) ->
+eval_callbacks(Line, Module, Name, Args, RawS) when is_atom(Name) ->
+  Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
+  eval_callbacks(Line, Module, Callbacks, Args, RawS);
+
+eval_callbacks(Line, Module, Callbacks, Args, RawS) when is_list(Callbacks) ->
   Binding   = elixir_scope:binding_for_eval([], Module),
   S         = elixir_scope:vars_from_binding(RawS, Binding),
-  Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
   Meta      = [{line,Line},{require,false}],
 
   lists:foreach(fun({M,F}) ->
