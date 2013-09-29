@@ -575,6 +575,24 @@ defmodule Kernel.ErrorsTest do
       'case [] do; [] when Hello.something_that_does_not_exist == [] -> :ok; end'
   end
 
+  test :typespec_errors do
+    assert_compile_fail CompileError,
+      "nofile:2: type foo() undefined",
+      '''
+      defmodule Example do
+        @type omg :: foo
+      end
+      '''
+
+    assert_compile_fail CompileError,
+      "nofile:2: spec for undefined function Example.omg/0",
+      '''
+      defmodule Example do
+        @spec omg :: atom
+      end
+      '''
+  end
+
   test :macros_error_stacktrace do
     assert [{:erlang, :+, [1, :foo], _}, {ErrorsTest, :sample, 1, _}|_] =
       rescue_stacktrace(""")

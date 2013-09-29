@@ -169,6 +169,10 @@ handle_file_error(File, {Line,erl_lint,{unsafe_var,Var,{In,_Where}}}) ->
   Message = io_lib:format("cannot define variable ~ts inside ~ts", [format_var(Var), Translated]),
   raise(Line, File, 'Elixir.CompileError', iolist_to_binary(Message));
 
+handle_file_error(File, {Line,erl_lint,{spec_fun_undefined,{M,F,A}}}) ->
+  Message = io_lib:format("spec for undefined function ~ts.~ts/~B", [inspect(M), F, A]),
+  raise(Line, File, 'Elixir.CompileError', iolist_to_binary(Message));
+
 handle_file_error(File, {Line,Module,Desc}) ->
   form_error(Line, File, Module, Desc).
 
