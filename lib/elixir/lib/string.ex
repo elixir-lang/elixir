@@ -155,7 +155,7 @@ defmodule String do
   @spec split(t) :: [t]
   defdelegate split(binary), to: String.Unicode
 
-  @doc """
+  @doc %S"""
   Divides a string into substrings based on a pattern,
   returning a list of these substrings. The pattern can
   be a string, a list of strings or a regular expression.
@@ -168,6 +168,8 @@ defmodule String do
 
   ## Examples
 
+  Splitting with a string pattern:
+
       iex> String.split("a,b,c", ",")
       ["a", "b", "c"]
       iex> String.split("a,b,c", ",", global: false)
@@ -175,23 +177,24 @@ defmodule String do
       iex> String.split(" a b c ", " ", trim: true)
       ["a", "b", "c"]
 
+  A list of patterns:
+
       iex> String.split("1,2 3,4", [" ", ","])
       ["1", "2", "3", "4"]
+
+  A regular expression:
 
       iex> String.split("a,b,c", %r{,})
       ["a", "b", "c"]
       iex> String.split("a,b,c", %r{,}, global: false)
       ["a", "b,c"]
-      iex> String.split("a,b", %r{\\.})
-      ["a,b"]
-
-      iex> String.split("abc", %r{c})
-      ["ab", ""]
-      iex> String.split("abc", %r{})
-      ["a", "b", "c", ""]
-      iex> String.split("abc", %r{}, trim: true)
+      iex> String.split(" a b c ", %r{\s}, trim: true)
       ["a", "b", "c"]
 
+  Splitting on empty patterns returns codepoints:
+
+      iex> String.split("abc", %r{})
+      ["a", "b", "c", ""]
       iex> String.split("abc", "")
       ["a", "b", "c", ""]
       iex> String.split("abc", "", trim: true)
@@ -206,7 +209,7 @@ defmodule String do
 
   def split("", _pattern, _options), do: [""]
 
-  def split(binary, "", options), do: split(binary, %r"", options)
+  def split(binary, "", options), do: split(binary, %r""u, options)
 
   def split(binary, pattern, options) when is_regex(pattern) do
     Regex.split(pattern, binary, options)
