@@ -68,13 +68,13 @@ defmodule Regex.BinaryTest do
     assert Regex.match?(%r/foo$/,  "afoo")
   end
 
-  test :captures do
-    assert Keyword.equal? Regex.captures(%r/(?<foo>c)(?<bar>d)/g, 'abcd'), [bar: 'd', foo: 'c']
-    assert Regex.captures(%r/c(?<foo>d)/g, 'abcd') == [foo: 'd']
-    assert Regex.captures(%r/c(?<foo>d)/g, 'no_match') == nil
-    assert Regex.captures(%r/c(?<foo>d|e)/g, 'abcd abce') == [foo: 'd']
-    assert Regex.captures(%r/c(?<foo>d)/g, 'abcd', return: :binary) == [foo: "d"]
-    assert Regex.captures(%r/c(.)/g, 'cat') == []
+  test :named_captures do
+    assert Keyword.equal? Regex.named_captures(%r/(?<foo>c)(?<bar>d)/g, 'abcd'), [bar: 'd', foo: 'c']
+    assert Regex.named_captures(%r/c(?<foo>d)/g, 'abcd') == [foo: 'd']
+    assert Regex.named_captures(%r/c(?<foo>d)/g, 'no_match') == nil
+    assert Regex.named_captures(%r/c(?<foo>d|e)/g, 'abcd abce') == [foo: 'd']
+    assert Regex.named_captures(%r/c(?<foo>d)/g, 'abcd', return: :binary) == [foo: "d"]
+    assert Regex.named_captures(%r/c(.)/g, 'cat') == []
   end
 
   test :sigil_R do

@@ -661,27 +661,14 @@ defmodule String do
   def valid_character?(<<_ :: utf8>> = codepoint), do: valid?(codepoint)
   def valid_character?(_), do: false
 
-  @doc %S"""
-  Checks whether `str` is a valid codepoint.
+  @doc false
+  def valid_codepoint?(binary) do
+    IO.write "String.valid_codepoint?/1 is deprecated, please use match against << _ :: utf8 >> instead\n#{Exception.format_stacktrace}"
+    do_valid_codepoint?(binary)
+  end
 
-  Note that the empty string is considered invalid, as are
-  strings containing multiple codepoints.
-
-  ## Examples
-
-      iex> String.valid_codepoint?("a")
-      true
-      iex> String.valid_codepoint?("ø")
-      true
-      iex> String.valid_codepoint?(<<0xffff :: 16>>)
-      false
-      iex> String.valid_codepoint?("asdf")
-      false
-
-  """
-  @spec valid_codepoint?(codepoint) :: boolean
-  def valid_codepoint?(<<_ :: utf8>>), do: true
-  def valid_codepoint?(_), do: false
+  defp do_valid_codepoint?(<<_ :: utf8>>), do: true
+  defp do_valid_codepoint?(_), do: false
 
   @doc """
   Returns unicode graphemes in the string.

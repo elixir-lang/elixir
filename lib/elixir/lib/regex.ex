@@ -156,21 +156,27 @@ defmodule Regex do
     end
   end
 
+  @doc false
+  def captures(regex, string, options // []) do
+    IO.write "Regex.captures/3 is deprecated, please use Regex.named_captures/3\n#{Exception.format_stacktrace}"
+    named_captures(regex, string, options)
+  end
+
   @doc """
   Returns the given captures as a keyword list or `nil` if no captures
   are found. Requires the regex to be compiled with the groups option.
 
   ## Examples
 
-      iex> Regex.captures(%r/c(?<foo>d)/g, "abcd")
+      iex> Regex.named_captures(%r/c(?<foo>d)/g, "abcd")
       [foo: "d"]
-      iex> Regex.captures(%r/a(?<foo>b)c(?<bar>d)/g, "abcd")
+      iex> Regex.named_captures(%r/a(?<foo>b)c(?<bar>d)/g, "abcd")
       [foo: "b", bar: "d"]
-      iex> Regex.captures(%r/a(?<foo>b)c(?<bar>d)/g, "efgh")
+      iex> Regex.named_captures(%r/a(?<foo>b)c(?<bar>d)/g, "efgh")
       nil
 
   """
-  def captures(regex(groups: groups) = regex, string, options // []) do
+  def named_captures(regex(groups: groups) = regex, string, options // []) do
     options = Keyword.put_new(options, :capture, :groups)
     results = run(regex, string, options)
     if results, do: Enum.zip(groups, results)
