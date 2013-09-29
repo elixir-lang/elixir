@@ -61,8 +61,14 @@ defmodule IEx.Helpers do
       c "baz.ex"
       #=> [Baz]
   """
-  def c(files, path // ".") do
-    { erls, exs } = Enum.partition(List.wrap(files), &String.ends_with?(&1, ".erl"))
+  def c(files, path // ".") when is_binary(path) do
+    files = List.wrap(files)
+
+    unless Enum.all?(files, &is_binary/1) do
+      raise ArgumentError, message: "expected a binary or a list of binaries as argument"
+    end
+
+    { erls, exs } = Enum.partition(files, &String.ends_with?(&1, ".erl"))
 
     modules = Enum.map(erls, fn(source) ->
       { module, binary } = compile_erlang(source)
@@ -82,8 +88,8 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints the list of all loaded modules with paths to their corresponding .beam
-  files.
+  Prints the list of all loaded modules with paths to
+  their corresponding `.beam` files.
   """
   def m do
     all    = Enum.map :code.all_loaded, fn { mod, file } -> { inspect(mod), file } end
@@ -283,7 +289,7 @@ defmodule IEx.Helpers do
   Please note that all the modules defined in the same file as `module`
   are recompiled and reloaded.
   """
-  def r(module) do
+  def r(module) when is_atom(module) do
     case do_r(module) do
       mods when is_list(mods) -> { module, mods }
       other -> other
@@ -308,7 +314,7 @@ defmodule IEx.Helpers do
   Load the given module's beam code (and ensures any previous
   old version was properly purged before).
   """
-  def l(module) do
+  def l(module) when is_atom(module) do
     :code.purge(module)
     :code.load_file(module)
   end
@@ -350,7 +356,7 @@ defmodule IEx.Helpers do
   @doc """
   Changes the current working directory to the given path.
   """
-  def cd(directory) do
+  def cd(directory) when is_binary(directory) do
     case File.cd(expand_home(directory)) do
       :ok -> pwd
       { :error, :enoent } ->
@@ -362,7 +368,7 @@ defmodule IEx.Helpers do
   Produces a simple list of a directory's contents.
   If `path` points to a file, prints its full path.
   """
-  def ls(path // ".") do
+  def ls(path // ".") when is_binary(path) do
     path = expand_home(path)
     case File.ls(path) do
       { :ok, items } ->
