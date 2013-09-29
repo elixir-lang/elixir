@@ -225,6 +225,7 @@ core_main() ->
     <<"lib/elixir/lib/inspect/algebra.ex">>,
     <<"lib/elixir/lib/inspect.ex">>,
     <<"lib/elixir/lib/range.ex">>,
+    <<"lib/elixir/lib/regex.ex">>,
     <<"lib/elixir/lib/string.ex">>,
     <<"lib/elixir/lib/string/chars.ex">>,
     <<"lib/elixir/lib/io.ex">>,
