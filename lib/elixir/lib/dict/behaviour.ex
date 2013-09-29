@@ -99,7 +99,7 @@ defmodule Dict.Behaviour do
       defoverridable values: 1
  
       def equal?(dict1, dict2) do
-        case size(dict1) == size(dict2) do
+        case Dict.size(dict1) == Dict.size(dict2) do
           false -> false
           true -> 
             try do
