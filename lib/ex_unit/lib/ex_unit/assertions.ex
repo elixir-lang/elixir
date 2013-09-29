@@ -298,6 +298,8 @@ defmodule ExUnit.Assertions do
     quote do
       receive do
         unquote(expected) = received -> received
+        unexpected ->
+          flunk unquote(message) || "Expected to have received message matching #{unquote binary}, got #{Macro.to_string(unexpected)}"
       after
         unquote(timeout) ->
           flunk unquote(message) || "Expected to have received message matching #{unquote binary}"
