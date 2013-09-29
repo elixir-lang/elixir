@@ -82,6 +82,28 @@ defmodule Inspect.Algebra do
   defrecordp :doc_break, str: " " :: binary
   defrecordp :doc_group, doc: :doc_nil :: t
 
+  defmacrop is_doc(doc) do
+    if __CALLER__.in_guard? do
+      do_is_doc(doc)
+    else
+      var = quote do: doc
+      quote do
+        unquote(var) = unquote(doc)
+        unquote(do_is_doc(var))
+      end
+    end
+  end
+
+  defp do_is_doc(doc) do
+    quote do
+      unquote(doc) |> is_binary or
+      unquote(doc) |> is_integer or
+      unquote(doc) == :doc_nil or
+      (unquote(doc) |> is_tuple and
+       elem(unquote(doc), 0) in [:doc_cons, :doc_nest, :doc_break, :doc_group])
+    end
+  end
+
   @doc """
   Returns `:doc_nil` which is a document entity used to represent
   nothingness. Takes no arguments.
@@ -107,10 +129,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec concat(t, t) :: doc_cons_t
-  def concat(x, y) do
-    verify!(x)
-    verify!(y)
-
+  def concat(x, y) when is_doc(x) and is_doc(y) do
     doc_cons(left: x, right: y)
   end
 
@@ -119,8 +138,6 @@ defmodule Inspect.Algebra do
   """
   @spec concat([t]) :: doc_cons_t
   def concat(docs) do
-    Enum.each docs, &verify!(&1)
-
     folddoc(docs, &concat(&1, &2))
   end
 
@@ -136,15 +153,11 @@ defmodule Inspect.Algebra do
 
   """
   @spec nest(t, non_neg_integer) :: doc_nest_t
-  def nest(x, 0) do
-    verify!(x)
-
+  def nest(x, 0) when is_doc(x) do
     x
   end
 
-  def nest(x, i) when is_integer(i) do
-    verify!(x)
-
+  def nest(x, i) when is_doc(x) and is_integer(i) do
     doc_nest(indent: i, doc: x)
   end
 
@@ -216,9 +229,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec group(t) :: doc_group_t
-  def group(d) do
-    verify!(d)
-
+  def group(d) when is_doc(d) do
     doc_group(doc: d)
   end
 
@@ -408,29 +419,5 @@ defmodule Inspect.Algebra do
   defp do_render(s_line(indent: i, sdoc: d)) do
     prefix = repeat " ", i
     [@newline | [prefix | do_render d]]
-  end
-
-  defp verify!(doc) do
-    case verify(doc) do
-      :ok ->
-        :ok
-
-      _ ->
-        raise ArgumentError, message: "invalid document type"
-    end
-  end
-
-  defp verify(doc) when doc |> is_binary or
-                        doc |> is_integer or
-                        doc == :doc_nil or
-                        doc |> is_record(:doc_cons) or
-                        doc |> is_record(:doc_nest) or
-                        doc |> is_record(:doc_break) or
-                        doc |> is_record(:doc_group) do
-    :ok
-  end
-
-  defp verify(v) do
-    { :error, { :invalid_doc, v } }
   end
 end
