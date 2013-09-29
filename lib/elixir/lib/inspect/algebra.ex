@@ -107,13 +107,22 @@ defmodule Inspect.Algebra do
 
   """
   @spec concat(t, t) :: doc_cons_t
-  def concat(x, y), do: doc_cons(left: x, right: y)
+  def concat(x, y) do
+    verify!(x)
+    verify!(y)
+
+    doc_cons(left: x, right: y)
+  end
 
   @doc """
   Concatenates a list of documents.
   """
   @spec concat([t]) :: doc_cons_t
-  def concat(docs), do: folddoc(docs, &concat(&1, &2))
+  def concat(docs) do
+    Enum.each docs, &verify!(&1)
+
+    folddoc(docs, &concat(&1, &2))
+  end
 
   @doc """
   Nests document entity `x` positions deep. Nesting will be
@@ -127,8 +136,17 @@ defmodule Inspect.Algebra do
 
   """
   @spec nest(t, non_neg_integer) :: doc_nest_t
-  def nest(x, 0),                    do: x
-  def nest(x, i) when is_integer(i), do: doc_nest(indent: i, doc: x)
+  def nest(x, 0) do
+    verify!(x)
+
+    x
+  end
+
+  def nest(x, i) when is_integer(i) do
+    verify!(x)
+
+    doc_nest(indent: i, doc: x)
+  end
 
   @doc %S"""
   Document entity representing a break. This break can
@@ -198,7 +216,11 @@ defmodule Inspect.Algebra do
 
   """
   @spec group(t) :: doc_group_t
-  def group(d), do: doc_group(doc: d)
+  def group(d) do
+    verify!(d)
+
+    doc_group(doc: d)
+  end
 
   @doc """
   Inserts a mandatory single space between two document entities.
@@ -386,5 +408,29 @@ defmodule Inspect.Algebra do
   defp do_render(s_line(indent: i, sdoc: d)) do
     prefix = repeat " ", i
     [@newline | [prefix | do_render d]]
+  end
+
+  defp verify!(doc) do
+    case verify(doc) do
+      :ok ->
+        :ok
+
+      _ ->
+        raise ArgumentError, message: "invalid document type"
+    end
+  end
+
+  defp verify(doc) when doc |> is_binary or
+                        doc |> is_integer or
+                        doc == :doc_nil or
+                        doc |> is_record(:doc_cons) or
+                        doc |> is_record(:doc_nest) or
+                        doc |> is_record(:doc_break) or
+                        doc |> is_record(:doc_group) do
+    :ok
+  end
+
+  defp verify(v) do
+    { :error, { :invalid_doc, v } }
   end
 end
