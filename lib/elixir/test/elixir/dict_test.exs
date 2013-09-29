@@ -214,6 +214,10 @@ defmodule DictTest.Common do
 
         dict2 = Dict.put(dict2, :a, 3)
         refute Dict.equal?(dict1, dict2)
+
+        dict3 = HashDict.new(a: 2, b: 3, f: 5, c: 123, z: 666)
+        refute Dict.equal?(dict1, dict3)
+        refute Dict.equal?(dict3, dict1)
       end
 
       test "unsupported dict" do
