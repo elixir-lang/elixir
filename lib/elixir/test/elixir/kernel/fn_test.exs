@@ -83,6 +83,10 @@ defmodule Kernel.FnTest do
     assert (&(&1.file(&2))).(__ENV__, "Hello").file == "Hello"
   end
 
+  test "capture block like" do
+    assert (&(!is_atom(&1))).(:foo) == false
+  end
+
   test "capture other" do
     assert (& &1).(:ok) == :ok
 
