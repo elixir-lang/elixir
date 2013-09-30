@@ -1,18 +1,20 @@
 defmodule IEx.ANSIDocs do
   @moduledoc """
-  Take a Markdown formatted docstring and attempt to make it a little 
-  prettier on the terminal. We support only a minimal subset of Markdown,
-  and we cheat like crazy to avoid having to do a proper parse, so there'll 
-  be boundary conditions galore.
+  Take a Markdown formatted docstring and attempt to make it a
+  little  prettier on the terminal.
+
+  We support only a minimal subset of Markdown. It is preferrable
+  to keep it simple (and not properly escape in some cases) than have a
+  full-featured markdown parser.
 
   We use the following attributes (whose defaults are set in mix.exs):
 
-  * :code—the attributes for code blocks (cyan, bright)
-  * :inline_code:inline code (cyan)
-  * :headings: h1 and h2 (yellow, bright)
-  * :doc_heading—the overall heading for the output (reverse,yellow,bright)
-  * :bold (bright)
-  * :underline "underline",
+  * :doc_code — the attributes for code blocks (cyan, bright)
+  * :doc_inline_code - inline code (cyan)
+  * :doc_headings - h1 and h2 (yellow, bright)
+  * :doc_title — the overall heading for the output (reverse,yellow,bright)
+  * :doc_bold - (bright)
+  * :doc_underline - (underline)
   """
 
   def doc_heading(string, use_ansi // IO.ANSI.terminal?) do
@@ -141,7 +143,7 @@ defmodule IEx.ANSIDocs do
     width = column_width("")
     padding = div(width + String.length(heading), 2)
     heading = heading |> String.rjust(padding) |> String.ljust(width)
-    write(:doc_heading, heading)
+    write(:doc_title, heading)
   end
 
   defp write_h1(heading) do
@@ -149,12 +151,12 @@ defmodule IEx.ANSIDocs do
   end
 
   defp write_h2(heading) do
-    write(:headings, heading)
+    write(:doc_headings, heading)
   end
 
   defp write_h3(heading, indent) do
     IO.write(indent)
-    write(:headings, heading)
+    write(:doc_headings, heading)
   end
 
   defp write_para(para, indent) do
@@ -168,7 +170,7 @@ defmodule IEx.ANSIDocs do
   end
 
   defp write_code(code, indent) do
-    write(:code, "#{indent}┃ #{Enum.join(Enum.reverse(code), "\n#{indent}┃ ")}")
+    write(:doc_code, "#{indent}┃ #{Enum.join(Enum.reverse(code), "\n#{indent}┃ ")}")
   end
 
   defp write_ul(list, indent) do
@@ -202,21 +204,15 @@ defmodule IEx.ANSIDocs do
     if leader,  do: IO.write(leader)
     IO.write(word)
     if trailer, do: IO.write(trailer)
-    if punc do
-      IO.write(punc)
-    end
+    if punc,    do: IO.write(punc)
     IO.write(" ")
+
     write_with_wrap(words, left_on_line - word_length - 1, max_columns, indent)
   end
 
   defp look_for_markup(word) do
-    leader = nil
-    trailer = nil
-    punc    = nil
-
     if String.starts_with?(word, ["`", "_", "*"]) do
-      << first::utf8, word::binary>> = word
-      if String.starts_with?(word, "*"), do: String.slice(word, 1, 999)
+      <<first::utf8, word::binary>> = word
       leader = color(color_name_for(first))
     end
 
@@ -250,9 +246,9 @@ defmodule IEx.ANSIDocs do
 
   defp chop(_, _), do: ""
 
-  defp color_name_for(?`), do: :inline_code
-  defp color_name_for(?_), do: :underline
-  defp color_name_for(?*), do: :bold
+  defp color_name_for(?`), do: :doc_inline_code
+  defp color_name_for(?_), do: :doc_underline
+  defp color_name_for(?*), do: :doc_bold
 
   defp color(color_name) do
     colors = IEx.Options.get(:colors)
@@ -263,7 +259,7 @@ defmodule IEx.ANSIDocs do
     end
   end
 
-  defp column_width(indent) do
+  defp column_width(_indent) do
     case :io.columns do
       { :ok, width } -> width
       _              -> 80
