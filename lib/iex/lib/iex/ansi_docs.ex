@@ -31,7 +31,6 @@ defmodule IEx.ANSIDocs do
       doc
       |> String.split(["\r\n","\n"], trim: false)
       |> Enum.map(&String.rstrip/1)
-      |> bring_to_margin
       |> process(_indent = "")
     else
       IO.puts doc
@@ -77,9 +76,11 @@ defmodule IEx.ANSIDocs do
 
   defp process([<< "* " :: utf8, line :: binary >> | rest], indent) do
     { list_content, rest } = split_out_list(rest)
-    list_content = bring_to_margin(list_content)
-    process_ul(list_content, [line], indent <> "  ")
-    process(rest, indent)
+    list_content 
+    |> process_ul([line], indent)
+    rest 
+    |> bring_to_margin 
+    |> process(indent)
   end
 
   defp process([ "" | rest ], indent) do
@@ -136,8 +137,13 @@ defmodule IEx.ANSIDocs do
     process(rest, indent)
   end
 
-  defp process_ul([line|rest], result, indent) do
-    process_ul(rest, [line|result], indent)
+  defp process_ul(sublist = [line|rest], result, indent) do
+    if (String.lstrip(line) |> String.starts_with?("* ")) do
+      write_ul(result, indent)
+      sublist |> bring_to_margin |> process(indent <> "  ")
+    else
+      process_ul(rest, [line|result], indent)
+    end
   end
 
   defp write_doc_heading(heading) do
@@ -177,9 +183,10 @@ defmodule IEx.ANSIDocs do
 
   defp write_ul(list, indent) do
     list = list |> Enum.reverse |> Enum.join(" ") |> String.split(%r{\s})
+    IO.write(indent)
     IO.write("• ")
     width = column_width(indent)
-    write_with_wrap(list, width, width, indent)
+    write_with_wrap(list, width, width, indent <> "  ")
   end
 
   defp write(style, string) do
@@ -235,13 +242,16 @@ defmodule IEx.ANSIDocs do
 
   # divide the lines into the leading portion that can be part of
   # the list and the rest. The first group is lines with at least 2
-  # leading spaces (which we remove)
+  # leading spaces (which we remove). 
+
   defp split_out_list(lines) do
-    { list, rest } = Enum.split_while lines, fn line ->
-      String.starts_with?(line, " ") || line == ""
-    end
+    { list, rest } = Enum.split_while lines, &list_leader?/1
     { Enum.map(list, &chop(&1, 2)), rest }
   end
+
+  defp list_leader?(<<"  "::utf8, rest::binary>>), do: true
+  defp list_leader?(""), do: true
+  defp list_leader?(_),  do: false
 
   defp chop(line, n) when size(line) >= n do
     String.slice(line, n, 999)
