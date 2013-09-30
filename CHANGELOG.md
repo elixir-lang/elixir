@@ -3,7 +3,6 @@
 * Enhancements
   * [Enum] Add `Enum.take_every/2`
   * [IEx] IEx now respects signals sent from the Ctrl+G menu
-  * [IEx] Show markdown documentation formatted with ANSI colors
   * [Kernel] Allow documentation for types with `@typedoc`
   * [Mix] Allow apps to be selected in umbrella projects
   * [Stream] Add `Stream.unfold/1`
@@ -29,7 +28,6 @@
 
 * Backwards incompatible changes
   * [IEx] The `r/0` helper has been removed as it caused surprising behaviour when many modules with dependencies were accumulated
-  * [IEx] Configurable IEx colors have been renamed
   * [Mix] `Mix.Version` was renamed to `Version`
   * [Mix] `File.IteratorError` was renamed to `IO.StreamError`
   * [Mix] `mix new` now defaults to the `--sup` option, use `--bare` to get the previous behaviour
