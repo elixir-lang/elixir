@@ -9,20 +9,24 @@ defmodule IEx.Mixfile do
     [ env: [
         after_spawn: [],
         inspect_opts: [limit: 50, raw: false, pretty: true],
-        colors: [     enabled: true,
+        colors: [ enabled: true,
+
+                  # Used by default on evaluation cycle
                   eval_result: "yellow",
-                        error: "red",
-                         info: "normal",
-                    directory: "blue",
-                       device: "green",
-                # These are used for `h` output                       
-                         code: "cyan,bright",
-                  inline_code: "cyan",
-                         bold: "bright",
-                    underline: "underline",
-                     headings: "yellow,bright",
-                  doc_heading: "reverse,yellow,bright"
-                ],
+                  eval_error: "red",
+                  eval_info: "normal",
+
+                  # Used by ls
+                  ls_directory: "blue",
+                  ls_device: "green",
+
+                  # Used by ansi docs
+                  doc_bold: "bright",
+                  doc_code: "cyan,bright",
+                  doc_headings: "yellow,bright",
+                  doc_inline_code: "cyan",
+                  doc_underline: "underline",
+                  doc_title: "reverse,yellow,bright" ],
         history_size: 20,
         started: true ] ]
   end

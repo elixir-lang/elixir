@@ -17,19 +17,19 @@ defmodule IEx.Introspection do
             { _, _ } ->
               nodocs(inspect module)
             _ ->
-              IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
+              IO.puts IEx.color(:eval_error, "#{inspect module} was not compiled with docs")
           end
         else
-          IO.puts IEx.color(:error, "#{inspect module} is an Erlang module and, as such, it was not compiled with docs")
+          IO.puts IEx.color(:eval_error, "#{inspect module} is an Erlang module and, as such, it was not compiled with docs")
         end
       { :error, reason } ->
-        IO.puts IEx.color(:error, "Could not load module #{inspect module}, got: #{reason}")
+        IO.puts IEx.color(:eval_error, "Could not load module #{inspect module}, got: #{reason}")
     end
     dont_display_result
   end
 
   def h(_) do
-    IO.puts IEx.color(:error, "Invalid arguments for h helper")
+    IO.puts IEx.color(:eval_error, "Invalid arguments for h helper")
     dont_display_result
   end
 
@@ -52,7 +52,7 @@ defmodule IEx.Introspection do
       :ok ->
         :ok
       :no_docs ->
-        IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
+        IO.puts IEx.color(:eval_error, "#{inspect module} was not compiled with docs")
       :not_found ->
         nodocs("#{inspect module}.#{function}")
     end
@@ -66,7 +66,7 @@ defmodule IEx.Introspection do
   end
 
   def h(_, _) do
-    IO.puts IEx.color(:error, "Invalid arguments for h helper")
+    IO.puts IEx.color(:eval_error, "Invalid arguments for h helper")
     dont_display_result
   end
 
@@ -102,7 +102,7 @@ defmodule IEx.Introspection do
       :ok ->
         :ok
       :no_docs ->
-        IO.puts IEx.color(:error, "#{inspect module} was not compiled with docs")
+        IO.puts IEx.color(:eval_error, "#{inspect module} was not compiled with docs")
       :not_found ->
         nodocs("#{inspect module}.#{function}/#{arity}")
     end
@@ -111,7 +111,7 @@ defmodule IEx.Introspection do
   end
 
   def h(_, _, _) do
-    IO.puts IEx.color(:error, "Invalid arguments for h helper")
+    IO.puts IEx.color(:eval_error, "Invalid arguments for h helper")
     dont_display_result
   end
 
@@ -260,14 +260,14 @@ defmodule IEx.Introspection do
 
   defp print_type({ kind, type }) do
     ast = Kernel.Typespec.type_to_ast(type)
-    IO.puts IEx.color(:info, "@#{kind} #{Macro.to_string(ast)}")
+    IO.puts IEx.color(:eval_info, "@#{kind} #{Macro.to_string(ast)}")
     true
   end
 
   defp print_spec({kind, { { name, _arity }, specs }}) do
     Enum.each specs, fn(spec) ->
       binary = Macro.to_string Kernel.Typespec.spec_to_ast(name, spec)
-      IO.puts IEx.color(:info, "@#{kind} #{binary}")
+      IO.puts IEx.color(:eval_info, "@#{kind} #{binary}")
     end
     true
   end
@@ -275,6 +275,6 @@ defmodule IEx.Introspection do
   defp nospecs(for), do: nodocs(for, "specification")
   defp notypes(for), do: nodocs(for, "type information")
   defp nodocs(for, type // "documentation") do
-    IO.puts IEx.color(:error, "No #{type} for #{for} was found")
+    IO.puts IEx.color(:eval_error, "No #{type} for #{for} was found")
   end
 end
