@@ -27,9 +27,9 @@ defmodule IEx.OptionsTest do
              == "* def ansi_escapes()\n\nHello, I have %{red}ANSI%{reset} escapes."
 
       # Test that ANSI escapes in iex output are left alone
-      opts = [colors: [enabled: true, eval_result: "red", info: "red"]]
+      opts = [colors: [enabled: true, eval_result: "red", eval_info: "red"]]
       assert capture_iex("\"%{red} %{blue}\"", opts) == "\e[31m\"%{red} %{blue}\"\e[0m"
-      assert capture_iex("IO.puts IEx.color(:info, \"%{red} %{blue}\")", opts)
+      assert capture_iex("IO.puts IEx.color(:eval_info, \"%{red} %{blue}\")", opts)
              == "\e[31m%{red} %{blue}\e[0m\n\e[31m:ok\e[0m"
     end
   end
