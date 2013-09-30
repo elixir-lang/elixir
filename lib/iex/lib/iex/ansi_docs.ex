@@ -9,12 +9,12 @@ defmodule IEx.ANSIDocs do
 
   We use the following attributes (whose defaults are set in mix.exs):
 
-  * :doc_code — the attributes for code blocks (cyan, bright)
+  * :doc_code        — the attributes for code blocks (cyan, bright)
   * :doc_inline_code - inline code (cyan)
-  * :doc_headings - h1 and h2 (yellow, bright)
-  * :doc_title — the overall heading for the output (reverse,yellow,bright)
-  * :doc_bold - (bright)
-  * :doc_underline - (underline)
+  * :doc_headings    - h1 and h2 (yellow, bright)
+  * :doc_title       — the overall heading for the output (reverse,yellow,bright)
+  * :doc_bold        - (bright)
+  * :doc_underline   - (underline)
   """
 
   def doc_heading(string, use_ansi // IO.ANSI.terminal?) do
@@ -23,6 +23,7 @@ defmodule IEx.ANSIDocs do
     else
       IO.puts "* #{string}\n"
     end
+    IEx.dont_display_result
   end
 
   def format(doc, use_ansi // IO.ANSI.terminal?) do
@@ -35,6 +36,7 @@ defmodule IEx.ANSIDocs do
     else
       IO.puts doc
     end
+    IEx.dont_display_result
   end
 
   # Bring lines back to a common left margin
@@ -205,7 +207,8 @@ defmodule IEx.ANSIDocs do
     IO.write(word)
     if trailer, do: IO.write(trailer)
     if punc,    do: IO.write(punc)
-    IO.write(" ")
+
+    unless length(words) == 0, do: IO.write(" ")
 
     write_with_wrap(words, left_on_line - word_length - 1, max_columns, indent)
   end
@@ -249,6 +252,7 @@ defmodule IEx.ANSIDocs do
   defp color_name_for(?`), do: :doc_inline_code
   defp color_name_for(?_), do: :doc_underline
   defp color_name_for(?*), do: :doc_bold
+
 
   defp color(color_name) do
     colors = IEx.Options.get(:colors)
