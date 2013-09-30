@@ -54,6 +54,16 @@ defmodule IEx.AnsiDocsTest do
     assert result == "• one\n• two\n• three"
   end
 
+  test "list with continuation is converted" do
+    result = format("* one\n  two\n  three\n* four", @opts)
+    assert result == "• one two three\n• four"
+  end
+
+  test "nested lists are converted" do
+    result = format("* one\n  * one.one\n  * one.two\n* two")
+    assert result == "• one\n  • one.one\n  • one.two\n• two"
+  end
+
   test "paragraphs are split" do
     result = format("para1\n\npara2")
     assert result == "para1\n\npara2"
@@ -69,10 +79,5 @@ defmodule IEx.AnsiDocsTest do
     assert result == "para1\n\n• one\n• two"
   end
 
-
-  test "bold and italic work" do
-    result = format("baz _foo_ bar\n", @opts)
-    assert result == "foo bar"
-  end
 
 end
