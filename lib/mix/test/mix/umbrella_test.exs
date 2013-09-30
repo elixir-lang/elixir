@@ -51,4 +51,42 @@ defmodule Mix.UmbrellaTest do
       end)
     end
   end
+
+  test "recompiles after path dependency changed" do
+    in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
+      Mix.Project.in_project(:bar, "bar", fn _ ->
+        Mix.Tasks.Deps.Compile.run []
+
+        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+        assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+        purge [Bar]
+
+        future = { { 2020, 4, 17 }, { 14, 0, 0 } }
+        File.touch!("../foo/ebin/.compile.elixir", future)
+        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      end)
+    end)
+  end
+
+  defmodule Selective.Mixfile do
+    def project do
+      [ apps_path: "apps",
+        apps: [:foo, :bar] ]
+    end
+  end
+
+  test "can select which apps to use" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.push Selective.Mixfile
+
+      File.mkdir_p! "apps/errors/lib"
+      File.write! "apps/errors/lib/always_fail.ex", "raise %s[oops]"
+
+      assert Mix.Task.run("compile.elixir") == [:ok, :ok]
+      assert_received { :mix_shell, :info, ["Compiled lib/bar.ex"] }
+      assert_received { :mix_shell, :info, ["Compiled lib/foo.ex"] }
+    end)
+  after
+    Mix.Project.pop
+  end
 end

@@ -141,24 +141,34 @@ defmodule Mix.Project do
   def recur(post_config // [], fun) do
     if apps_path = config[:apps_path] do
       paths = Path.wildcard(Path.join(apps_path, "*"))
-      paths = Enum.filter(paths, &File.dir?(&1))
 
-      projects = Enum.map paths, fn path ->
-        dir = Path.basename(path)
-        app = dir |> String.downcase |> binary_to_atom
-        { app, path }
-      end
-
-      projects = topsort_projects(projects, Path.expand(apps_path))
-
-      results = Enum.map projects, fn { app, app_path } ->
-        in_project(app, app_path, post_config, fun)
-      end
-
-      results
+      paths
+      |> Enum.filter(&File.dir?(&1))
+      |> extract_projects
+      |> filter_projects(config[:apps])
+      |> topsort_projects(Path.expand(apps_path))
+      |> recur_projects(post_config, fun)
     else
       # Note that post_config isnt used for this case
       [fun.(get)]
+    end
+  end
+
+  defp extract_projects(paths) do
+    lc path inlist paths do
+      app = path |> Path.basename |> String.downcase |> binary_to_atom
+      { app, path }
+    end
+  end
+
+  defp filter_projects(pairs, nil), do: pairs
+  defp filter_projects(pairs, apps) when is_list(apps) do
+    lc { app, _ } = pair inlist pairs, app in apps, do: pair
+  end
+
+  defp recur_projects(pairs, post_config, fun) do
+    lc { app, path } inlist pairs do
+      in_project(app, path, post_config, fun)
     end
   end
 

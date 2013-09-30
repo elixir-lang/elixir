@@ -4,6 +4,7 @@
   * [Enum] Add `Enum.take_every/2`
   * [IEx] IEx now respects signals sent from the Ctrl+G menu
   * [Kernel] Allow documentation for types with `@typedoc`
+  * [Mix] Allow apps to be selected in umbrella projects
   * [Stream] Add `Stream.unfold/1`
 
 * Bug fixes
