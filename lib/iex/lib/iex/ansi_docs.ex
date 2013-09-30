@@ -131,7 +131,7 @@ defmodule IEx.ANSIDocs do
   defp process_ul(["" | rest], result, indent) do
     write_ul(result, indent)
     IO.puts ""
-    process(rest, indent) 
+    process(rest, indent)
   end
 
   defp process_ul([line|rest], result, indent) do
@@ -226,7 +226,7 @@ defmodule IEx.ANSIDocs do
       word = String.slice(word, 0, String.length(word)-chop)
       trailer = IO.ANSI.reset
     end
-  
+
     { word, leader, trailer, punc }
   end
 
