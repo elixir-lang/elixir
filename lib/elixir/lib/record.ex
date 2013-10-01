@@ -139,6 +139,10 @@ defmodule Record do
   records flexibility at the cost of performance since
   there is more work happening at runtime.
 
+  The above calls (new and update) can interchangeably accept both
+  atom and string keys for field names. Please note, however, that
+  atom keys are faster.
+
   To sum up, `defrecordp` should be used when you don't want
   to expose the record information while `defrecord` should be used
   whenever you want to share a record within your code or with other
@@ -625,7 +629,17 @@ defmodule Record do
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
     selective = lc { k, v } inlist values do
-      quote do: Keyword.get(opts, unquote(k), unquote(v))
+      string_k = atom_to_binary(k)
+      quote do
+        case :lists.keyfind(unquote(k), 1, opts) do
+          false ->
+            case :lists.keyfind(unquote(string_k), 1, opts) do
+              false -> unquote(v)
+              {_, value} -> value
+            end
+          {_, value} -> value
+        end
+      end
     end
 
     quote do
@@ -727,9 +741,17 @@ defmodule Record do
   defp updater(values) do
     fields =
       lc {key, _default} inlist values do
+        string_key = atom_to_binary(key)
         index = find_index(values, key, 1)
         quote do
-          Keyword.get(keywords, unquote(key), elem(record, unquote(index)))
+          case :lists.keyfind(unquote(key), 1, keywords) do
+            false ->
+              case :lists.keyfind(unquote(string_key), 1, keywords) do
+                false -> elem(record, unquote(index))
+                {_, value} -> value
+              end
+            {_, value} -> value
+          end
         end
       end
 
@@ -765,6 +787,7 @@ defmodule Record do
   defp core_specs(values) do
     types   = lc { _, _, spec } inlist values, do: spec
     options = if values == [], do: [], else: [options_specs(values)]
+    values_specs = if values == [], do: [], else: values_specs(values)
 
     quote do
       unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
@@ -772,7 +795,7 @@ defmodule Record do
       end
 
       unless Kernel.Typespec.defines_type?(__MODULE__, :options, 0) do
-        @type options :: unquote(options)
+        @type options :: unquote(options) | [{String.t, unquote(values_specs)}]
       end
 
       @spec new :: t
@@ -789,6 +812,11 @@ defmodule Record do
     :lists.foldl fn { k, _, v }, acc ->
       { :|, [], [{ k, v }, acc] }
     end, { k, v }, t
+  end
+  defp values_specs([{ _, _, v }|t]) do
+    :lists.foldl fn { _, _, v }, acc ->
+      { :|, [], [v, acc] }
+    end, v, t
   end
 
   defp accessor_specs([{ :__exception__, _, _ }|t], 1, acc) do
