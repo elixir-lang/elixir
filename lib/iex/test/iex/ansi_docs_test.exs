@@ -79,5 +79,10 @@ defmodule IEx.AnsiDocsTest do
     assert result == "para1\n\n• one\n• two"
   end
 
+  test "star between words doesn't get interpreted as bold" do
+    result = format("unit * size")
+    assert result == "unit * size"
+  end
+
 
 end
