@@ -220,6 +220,10 @@ defmodule IEx.ANSIDocs do
     write_with_wrap(words, left_on_line - word_length - 1, max_columns, indent)
   end
 
+  defp look_for_markup(word) when size(word) < 2 do
+    { word, nil, nil, nil }
+  end
+
   defp look_for_markup(word) do
     if String.starts_with?(word, ["`", "_", "*"]) do
       <<first::utf8, word::binary>> = word
