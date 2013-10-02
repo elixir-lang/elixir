@@ -630,18 +630,8 @@ defmodule Record do
     # an ordered dict of options (opts) and it will try to fetch
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
-    atom_selective = lc { k, v } inlist values do
-      quote do: Keyword.get(opts, unquote(k), unquote(v))
-    end
-    string_selective = lc { k, v } inlist values do
-      k = atom_to_binary(k)
-      quote do 
-        case :lists.keyfind(unquote(k), 1, opts) do
-          false -> unquote(v)
-          {_, v} -> v
-        end
-      end
-    end
+    atom_selective   = lc { k, v } inlist values, do: initialize_lookup(k, v)
+    string_selective = lc { k, v } inlist values, do: initialize_lookup(atom_to_binary(k), v)
 
     quote do
       @doc false
@@ -651,6 +641,15 @@ defmodule Record do
       def new([]), do: { __MODULE__, unquote_splicing(defaults) }
       def new([{key, _}|_] = opts) when is_atom(key), do: { __MODULE__, unquote_splicing(atom_selective) }
       def new([{key, _}|_] = opts) when is_binary(key), do: { __MODULE__, unquote_splicing(string_selective) }
+    end
+  end
+
+  defp initialize_lookup(k, v) do
+    quote do
+      case :lists.keyfind(unquote(k), 1, opts) do
+        false -> unquote(v)
+        {_, v} -> v
+      end
     end
   end
 
@@ -741,23 +740,11 @@ defmodule Record do
   # Define an updater method that receives a
   # keyword list and updates the record.
   defp updater(values) do
-    atom_fields = 
-      lc {key, _default} inlist values do
-        index = find_index(values, key, 1)
-        quote do: Keyword.get(keywords, unquote(key), elem(record, unquote(index)))
-      end
+    atom_fields =
+      lc {key, _default} inlist values, do: updater_lookup(key, key, values)
 
     string_fields =
-      lc {key, _default} inlist values do
-        index = find_index(values, key, 1)
-        key = atom_to_binary(key)
-        quote do
-          case :lists.keyfind(unquote(key), 1, keywords) do
-            false -> elem(record, unquote(index))
-            {_, value} -> value
-          end
-        end
-      end
+      lc {key, _default} inlist values, do: updater_lookup(atom_to_binary(key), key, values)
 
     atom_contents = quote do: { __MODULE__, unquote_splicing(atom_fields) }
     string_contents = quote do: { __MODULE__, unquote_splicing(string_fields) }
@@ -773,6 +760,17 @@ defmodule Record do
       end
       def update([{key, _}|_] = keywords, record) when is_binary(key) do
         unquote(string_contents)
+      end
+    end
+  end
+
+  defp updater_lookup(k, key, values) do
+    v = find_index(values, key, 1)
+
+    quote do
+      case :lists.keyfind(unquote(k), 1, keywords) do
+        false -> elem(record, unquote(v))
+        {_, value} -> value
       end
     end
   end
