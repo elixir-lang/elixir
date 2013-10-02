@@ -70,6 +70,8 @@ defmodule RecordTest.Macros do
   defrecord Record, [a: 1, b: 2]
 end
 
+defrecord RecordTest.FooTest, foo: nil, bar: nil 
+
 defmodule RecordTest do
   use ExUnit.Case, async: true
 
@@ -160,6 +162,22 @@ defmodule RecordTest do
   test :extract_with_nested_records do
     namespace = Record.extract(:xmlElement, from_lib: "xmerl/include/xmerl.hrl")[:namespace]
     assert is_record(namespace, :xmlNamespace)
+  end
+
+  test :string_names do
+    a = RecordTest.FooTest.new([{"foo", 1}, {"bar", 1}])
+    assert a.foo == 1
+    assert a.bar == 1
+    a = a.update([{"foo", 2}, {"bar", 2}])
+    assert a.foo == 2
+    assert a.bar == 2
+  end
+
+  test :string_names_import do
+    record   = RecordTest.FileInfo.new([{"type", :regular}, {"access", 100}])
+    assert record.type == :regular
+    assert record.access == 100
+    assert record.update([{"access", 101}]).access == 101
   end
 
   defp empty_tuple, do: {}
