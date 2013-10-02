@@ -1,4 +1,4 @@
-# v0.10.3-dev
+# v0.10.3 (2013-10-02)
 
 * Enhancements
   * [Enum] Add `Enum.take_every/2`
