@@ -140,8 +140,10 @@ defmodule Record do
   there is more work happening at runtime.
 
   The above calls (new and update) can interchangeably accept both
-  atom and string keys for field names. Please note, however, that
-  atom keys are faster.
+  atom and string keys for field names, however not both at the same time.
+  Please also note that atom keys are faster. This feature allows to
+  "sanitize" untrusted dictionaries and initialize/update records without
+  using `binary_to_existing_atom/1`.
 
   To sum up, `defrecordp` should be used when you don't want
   to expose the record information while `defrecord` should be used
@@ -628,16 +630,15 @@ defmodule Record do
     # an ordered dict of options (opts) and it will try to fetch
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
-    selective = lc { k, v } inlist values do
-      string_k = atom_to_binary(k)
-      quote do
+    atom_selective = lc { k, v } inlist values do
+      quote do: Keyword.get(opts, unquote(k), unquote(v))
+    end
+    string_selective = lc { k, v } inlist values do
+      k = atom_to_binary(k)
+      quote do 
         case :lists.keyfind(unquote(k), 1, opts) do
-          false ->
-            case :lists.keyfind(unquote(string_k), 1, opts) do
-              false -> unquote(v)
-              {_, value} -> value
-            end
-          {_, value} -> value
+          false -> unquote(v)
+          {_, v} -> v
         end
       end
     end
@@ -648,7 +649,8 @@ defmodule Record do
 
       @doc false
       def new([]), do: { __MODULE__, unquote_splicing(defaults) }
-      def new(opts) when is_list(opts), do: { __MODULE__, unquote_splicing(selective) }
+      def new([{key, _}|_] = opts) when is_atom(key), do: { __MODULE__, unquote_splicing(atom_selective) }
+      def new([{key, _}|_] = opts) when is_binary(key), do: { __MODULE__, unquote_splicing(string_selective) }
     end
   end
 
@@ -739,23 +741,26 @@ defmodule Record do
   # Define an updater method that receives a
   # keyword list and updates the record.
   defp updater(values) do
-    fields =
+    atom_fields = 
       lc {key, _default} inlist values do
-        string_key = atom_to_binary(key)
         index = find_index(values, key, 1)
+        quote do: Keyword.get(keywords, unquote(key), elem(record, unquote(index)))
+      end
+
+    string_fields =
+      lc {key, _default} inlist values do
+        index = find_index(values, key, 1)
+        key = atom_to_binary(key)
         quote do
           case :lists.keyfind(unquote(key), 1, keywords) do
-            false ->
-              case :lists.keyfind(unquote(string_key), 1, keywords) do
-                false -> elem(record, unquote(index))
-                {_, value} -> value
-              end
+            false -> elem(record, unquote(index))
             {_, value} -> value
           end
         end
       end
 
-    contents = quote do: { __MODULE__, unquote_splicing(fields) }
+    atom_contents = quote do: { __MODULE__, unquote_splicing(atom_fields) }
+    string_contents = quote do: { __MODULE__, unquote_splicing(string_fields) }
 
     quote do
       @doc false
@@ -763,8 +768,11 @@ defmodule Record do
         record
       end
 
-      def update(keywords, record) do
-        unquote(contents)
+      def update([{key, _}|_] = keywords, record) when is_atom(key) do
+        unquote(atom_contents)
+      end
+      def update([{key, _}|_] = keywords, record) when is_binary(key) do
+        unquote(string_contents)
       end
     end
   end

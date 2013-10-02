@@ -165,16 +165,16 @@ defmodule RecordTest do
   end
 
   test :string_names do
-    a = RecordTest.FooTest.new([{:foo, 1}, {"bar", 1}])
+    a = RecordTest.FooTest.new([{"foo", 1}, {"bar", 1}])
     assert a.foo == 1
     assert a.bar == 1
-    a = a.update([{"foo", 2}, {:bar, 2}])
+    a = a.update([{"foo", 2}, {"bar", 2}])
     assert a.foo == 2
     assert a.bar == 2
   end
 
   test :string_names_import do
-    record   = RecordTest.FileInfo.new([{"type", :regular}, {:access, 100}])
+    record   = RecordTest.FileInfo.new([{"type", :regular}, {"access", 100}])
     assert record.type == :regular
     assert record.access == 100
     assert record.update([{"access", 101}]).access == 101
