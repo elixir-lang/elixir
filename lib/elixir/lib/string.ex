@@ -661,15 +661,6 @@ defmodule String do
   def valid_character?(<<_ :: utf8>> = codepoint), do: valid?(codepoint)
   def valid_character?(_), do: false
 
-  @doc false
-  def valid_codepoint?(binary) do
-    IO.write "String.valid_codepoint?/1 is deprecated, please use match against << _ :: utf8 >> instead\n#{Exception.format_stacktrace}"
-    do_valid_codepoint?(binary)
-  end
-
-  defp do_valid_codepoint?(<<_ :: utf8>>), do: true
-  defp do_valid_codepoint?(_), do: false
-
   @doc """
   Returns unicode graphemes in the string.
 

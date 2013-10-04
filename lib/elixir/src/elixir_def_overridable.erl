@@ -1,7 +1,7 @@
 % Holds the logic responsible for defining overridable functions and handling super.
 -module(elixir_def_overridable).
 -export([store_pending/1, is_defined/2, ensure_defined/4,
-  assign_args/3, name/2, store/3, format_error/1]).
+  name/2, store/3, format_error/1]).
 -include("elixir.hrl").
 
 overridable(Module) ->
@@ -24,19 +24,6 @@ ensure_defined(Meta, Module, Tuple, S) ->
     true -> ok;
     _    -> elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, { no_super, Module, Tuple })
   end.
-
-%% Assign pseudo variables to the given vars.
-
-assign_args(Line, Args, S) when is_integer(Line) ->
-  { FArgs, _ } = lists:mapfoldl(fun(X, Acc) -> assign_args(Line, X, Acc, S) end, 1, Args),
-  FArgs.
-
-assign_args(Line, X, Acc, _) ->
-  Match = { match, Line, X, { var, Line, super_arg(Acc) } },
-  { Match, Acc + 1 }.
-
-super_arg(Counter) ->
-  ?atom_concat(['_@S', Counter]).
 
 %% Gets the name based on the function and stored overridables
 

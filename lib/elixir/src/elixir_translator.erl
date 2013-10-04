@@ -298,28 +298,24 @@ translate_each({ Kind, Meta, Args }, S) when is_list(Args), (Kind == lc) orelse 
 
 %% Super (exceptionally supports partial application)
 
-translate_each({ super, Meta, Args } = Original, S) when is_list(Args) ->
-  case elixir_partials:handle(Original, S) of
-    error ->
-      assert_no_match_or_guard_scope(Meta, super, S),
-      Module = assert_module_scope(Meta, super, S),
-      Function = assert_function_scope(Meta, super, S),
-      elixir_def_overridable:ensure_defined(Meta, Module, Function, S),
+translate_each({ super, Meta, Args }, S) when is_list(Args) ->
+  assert_no_match_or_guard_scope(Meta, super, S),
+  Module = assert_module_scope(Meta, super, S),
+  Function = assert_function_scope(Meta, super, S),
+  elixir_def_overridable:ensure_defined(Meta, Module, Function, S),
 
-      { _, Arity } = Function,
+  { _, Arity } = Function,
 
-      { TArgs, TS } = if
-        length(Args) == Arity ->
-          translate_args(Args, S);
-        true ->
-          syntax_error(Meta, S#elixir_scope.file, "super must be called with the same number of "
-                       "arguments as the current function")
-      end,
+  { TArgs, TS } = if
+    length(Args) == Arity ->
+      translate_args(Args, S);
+    true ->
+      syntax_error(Meta, S#elixir_scope.file, "super must be called with the same number of "
+                   "arguments as the current function")
+  end,
 
-      Super = elixir_def_overridable:name(Module, Function),
-      { { call, ?line(Meta), { atom, ?line(Meta), Super }, TArgs }, TS#elixir_scope{super=true} };
-    Else -> Else
-  end;
+  Super = elixir_def_overridable:name(Module, Function),
+  { { call, ?line(Meta), { atom, ?line(Meta), Super }, TArgs }, TS#elixir_scope{super=true} };
 
 translate_each({ 'super?', Meta, [] }, S) ->
   Module = assert_module_scope(Meta, 'super?', S),
@@ -367,97 +363,69 @@ translate_each({ Name, Meta, Kind }, S) when is_atom(Name), is_atom(Kind) ->
 translate_each({ '->', Meta, _Args }, S) ->
   syntax_error(Meta, S#elixir_scope.file, "unhandled operator ->");
 
-translate_each({ Atom, Meta, Args } = Original, S) when is_atom(Atom) ->
+translate_each({ Atom, Meta, Args }, S) when is_atom(Atom) ->
   assert_no_ambiguous_op(Atom, Meta, Args, S),
 
-  case elixir_partials:is_sequential(Args) andalso
-       elixir_dispatch:import_function(Meta, Atom, length(Args), S) of
-    false ->
-      case elixir_partials:handle(Original, S) of
-        error ->
-          Callback = fun() ->
-            case S#elixir_scope.context of
-              match ->
-                compile_error(Meta, S#elixir_scope.file,
-                              "cannot invoke function ~ts/~B inside match", [Atom, length(Args)]);
-              guard ->
-                Arity = length(Args),
-                File  = S#elixir_scope.file,
-                case Arity of
-                  0 -> compile_error(Meta, File, "unknown variable ~ts or cannot invoke "
-                                     "function ~ts/~B inside guard", [Atom, Atom, Arity]);
-                  _ -> compile_error(Meta, File, "cannot invoke local ~ts/~B inside guard",
-                                     [Atom, Arity])
-                end;
-              _ ->
-                translate_local(Meta, Atom, Args, S)
-            end
-          end,
+  Callback = fun() ->
+    case S#elixir_scope.context of
+      match ->
+        compile_error(Meta, S#elixir_scope.file,
+                      "cannot invoke function ~ts/~B inside match", [Atom, length(Args)]);
+      guard ->
+        Arity = length(Args),
+        File  = S#elixir_scope.file,
+        case Arity of
+          0 -> compile_error(Meta, File, "unknown variable ~ts or cannot invoke "
+                             "function ~ts/~B inside guard", [Atom, Atom, Arity]);
+          _ -> compile_error(Meta, File, "cannot invoke local ~ts/~B inside guard",
+                             [Atom, Arity])
+        end;
+      _ ->
+        translate_local(Meta, Atom, Args, S)
+    end
+  end,
 
-          elixir_dispatch:dispatch_import(Meta, Atom, Args, S, Callback);
-        Else  -> Else
-      end;
-    Else ->
-      elixir_errors:deprecation(Meta, S#elixir_scope.file, "partial application without capture is deprecated"),
-      Else
-  end;
+  elixir_dispatch:dispatch_import(Meta, Atom, Args, S, Callback);
 
 %% Remote calls
 
-translate_each({ { '.', _, [Left, Right] }, Meta, Args } = Original, S) when is_atom(Right) ->
+translate_each({ { '.', _, [Left, Right] }, Meta, Args }, S) when is_atom(Right) ->
   { TLeft,  SL } = translate_each(Left, S),
 
-  Fun = (element(1, TLeft) == atom) andalso elixir_partials:is_sequential(Args) andalso
-    elixir_dispatch:require_function(Meta, element(3, TLeft), Right, length(Args), SL),
+  { TRight, SR } = translate_each(Right, umergec(S, SL)),
+  Callback = fun() -> translate_apply(Meta, TLeft, TRight, Args, S, SL, SR) end,
 
-  case Fun of
-    false ->
-      case elixir_partials:handle(Original, S) of
-        error ->
-          { TRight, SR } = translate_each(Right, umergec(S, SL)),
-          Callback = fun() -> translate_apply(Meta, TLeft, TRight, Args, S, SL, SR) end,
-
-          case TLeft of
-            { atom, _, Receiver } ->
-              elixir_dispatch:dispatch_require(Meta, Receiver, Right, Args, umergev(SL, SR), fun() ->
-                case S#elixir_scope.context of
-                  Context when Receiver /= erlang, (Context == match) orelse (Context == guard) ->
-                    compile_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts.~ts/~B inside ~ts",
-                      [elixir_errors:inspect(Receiver), Right, length(Args), Context]);
-                  _ ->
-                    Callback()
-                end
-              end);
-            _ ->
-              case S#elixir_scope.context of
-                Context when Context == match; Context == guard ->
-                  compile_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts/~B inside ~ts",
-                    [Right, length(Args), Context]);
-                _ ->
-                  Callback()
-              end
-          end;
-        Else -> Else
-      end;
-    Else ->
-      elixir_errors:deprecation(Meta, S#elixir_scope.file, "partial application without capture is deprecated"),
-      Else
+  case TLeft of
+    { atom, _, Receiver } ->
+      elixir_dispatch:dispatch_require(Meta, Receiver, Right, Args, umergev(SL, SR), fun() ->
+        case S#elixir_scope.context of
+          Context when Receiver /= erlang, (Context == match) orelse (Context == guard) ->
+            compile_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts.~ts/~B inside ~ts",
+              [elixir_errors:inspect(Receiver), Right, length(Args), Context]);
+          _ ->
+            Callback()
+        end
+      end);
+    _ ->
+      case S#elixir_scope.context of
+        Context when Context == match; Context == guard ->
+          compile_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts/~B inside ~ts",
+            [Right, length(Args), Context]);
+        _ ->
+          Callback()
+      end
   end;
 
 %% Anonymous function calls
 
-translate_each({ { '.', _, [Expr] }, Meta, Args } = Original, S) ->
+translate_each({ { '.', _, [Expr] }, Meta, Args }, S) ->
   { TExpr, SE } = translate_each(Expr, S),
   case TExpr of
     { atom, _, Atom } ->
       syntax_error(Meta, S#elixir_scope.file, "invalid function call :~ts.()", [Atom]);
     _ ->
-      case elixir_partials:handle(Original, S) of
-        error ->
-          { TArgs, SA } = translate_args(Args, umergec(S, SE)),
-          { {call, ?line(Meta), TExpr, TArgs}, umergev(SE, SA) };
-        Else -> Else
-      end
+      { TArgs, SA } = translate_args(Args, umergec(S, SE)),
+      { {call, ?line(Meta), TExpr, TArgs}, umergev(SE, SA) }
   end;
 
 %% Invalid calls

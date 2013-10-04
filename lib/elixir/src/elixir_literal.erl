@@ -5,49 +5,37 @@
 -import(elixir_scope, [umergec/2]).
 -include("elixir.hrl").
 
-translate({ '<<>>', Meta, Args } = Original, S) when is_list(Args) ->
-  case elixir_partials:handle(Original, S, allow_tail) of
-    error ->
-      case S#elixir_scope.context of
-        match ->
-          build_bitstr(fun elixir_translator:translate_each/2, Args, Meta, S);
-        _ ->
-          { TArgs, { SC, SV } } = build_bitstr(fun elixir_translator:translate_arg/2, Args, Meta, { S, S }),
-          { TArgs, umergec(SV, SC) }
-      end;
-    Else -> Else
+translate({ '<<>>', Meta, Args }, S) when is_list(Args) ->
+  case S#elixir_scope.context of
+    match ->
+      build_bitstr(fun elixir_translator:translate_each/2, Args, Meta, S);
+    _ ->
+      { TArgs, { SC, SV } } = build_bitstr(fun elixir_translator:translate_arg/2, Args, Meta, { S, S }),
+      { TArgs, umergec(SV, SC) }
   end;
 
-translate({ '{}', Meta, Args } = Original, S) when is_list(Args) ->
-  case elixir_partials:handle(Original, S) of
-    error ->
-      { TArgs, SE } = translate_args(Args, S),
-      { { tuple, ?line(Meta), TArgs }, SE };
-    Else -> Else
-  end;
+translate({ '{}', Meta, Args }, S) when is_list(Args) ->
+  { TArgs, SE } = translate_args(Args, S),
+  { { tuple, ?line(Meta), TArgs }, SE };
 
 translate({ '[]', _Meta, [] }, S) ->
   { { nil, 0 }, S };
 
-translate({ '[]', Meta, Args } = Original, S) when is_list(Args) ->
-  case elixir_partials:handle(Original, S, allow_tail) of
-    error ->
-      [RTail|RArgs] = lists:reverse(Args),
+translate({ '[]', Meta, Args }, S) when is_list(Args) ->
+  [RTail|RArgs] = lists:reverse(Args),
 
-      case RTail of
-        {'|',_,[Left,Right]} ->
-          RExprs = [Left|RArgs],
-          TailFun = fun(ST) -> translate_each(Right, ST) end;
-        _ ->
-          RExprs = [RTail|RArgs],
-          TailFun = fun(ST) -> { { nil, ?line(Meta) }, ST } end
-      end,
+  case RTail of
+    {'|',_,[Left,Right]} ->
+      RExprs = [Left|RArgs],
+      TailFun = fun(ST) -> translate_each(Right, ST) end;
+    _ ->
+      RExprs = [RTail|RArgs],
+      TailFun = fun(ST) -> { { nil, ?line(Meta) }, ST } end
+  end,
 
-      { Exprs, SE } = translate_args(lists:reverse(RExprs), S),
-      { Tail, ST }  = TailFun(SE),
-      { elixir_utils:list_to_cons(?line(Meta), Exprs, Tail), ST };
-    Else -> Else
-  end;
+  { Exprs, SE } = translate_args(lists:reverse(RExprs), S),
+  { Tail, ST }  = TailFun(SE),
+  { elixir_utils:list_to_cons(?line(Meta), Exprs, Tail), ST };
 
 translate({ Left, Right }, S) ->
   translate({ '{}', [], [Left, Right]}, S);

@@ -156,12 +156,6 @@ defmodule Regex do
     end
   end
 
-  @doc false
-  def captures(regex, string, options // []) do
-    IO.write "Regex.captures/3 is deprecated, please use Regex.named_captures/3\n#{Exception.format_stacktrace}"
-    named_captures(regex, string, options)
-  end
-
   @doc """
   Returns the given captures as a keyword list or `nil` if no captures
   are found. Requires the regex to be compiled with the groups option.
