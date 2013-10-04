@@ -120,8 +120,8 @@ defmodule Record do
   ## Runtime access
 
   All the functionality discussed above happens at compilation time.
-  This means that both `user(user, age: 26)` and `User[user, age: 26]`
-  will be transformed into a simple tuple operation at compile time.
+  This means that both `user(age: 26)` and `User[age: 26]` are expanded
+  into a tuple at compile time.
 
   However, there are some situations where we want to set or update
   fields dynamically. `defrecord` (and `defrecord` only) supports
@@ -135,20 +135,23 @@ defmodule Record do
       user.update(age: 26)
       #=> User[name: "Hello", age: 26]
 
-  All the calls above happen at runtime. It gives Elixir
-  records flexibility at the cost of performance since
-  there is more work happening at runtime.
+  All the calls above happen at runtime. It gives Elixir records
+  flexibility at the cost of performance since there is more work
+  happening at runtime.
 
-  The above calls (new and update) can interchangeably accept both
-  atom and string keys for field names, however not both at the same time.
-  Please also note that atom keys are faster. This feature allows to
-  "sanitize" untrusted dictionaries and initialize/update records without
-  using `binary_to_existing_atom/1`.
+  The above calls (`new` and `update`) can accept both atom and string
+  keys for field names, however not both at the same time. This feature
+  allows to "sanitize" untrusted dictionaries and initialize/update
+  records without using `binary_to_existing_atom/1`.
 
-  To sum up, `defrecordp` should be used when you don't want
-  to expose the record information while `defrecord` should be used
-  whenever you want to share a record within your code or with other
-  libraries or whenever you need to dynamically set or update fields.
+  To sum up, `defrecordp` should be used when you don't want to expose
+  the record information while `defrecord` should be used whenever you
+  want to share a record within your code or with other libraries or
+  whenever you need to dynamically set or update fields.
+
+  The standard library contains excellent examples about both use cases,
+  with `HashDict` being implemented with `defrecordp` and `Range` with
+  `defrecord`.
 
   You can learn more about records in the `Kernel.defrecord/3` docs. Now
   let's discuss the usefulness of combining records with protocols.
@@ -178,7 +181,8 @@ defmodule Record do
       to_string WeekDate[year: 2013, week: 26, week_day: 4]
       "2013-W26-4"
 
-  A protocol can be implemented for any record.
+  A protocol can be implemented for any record, regardless if
+  generated with `defrecordp` or `defrecord`.
   """
 
   @type t :: tuple
