@@ -99,4 +99,31 @@ defmodule ExUnit.Case do
       def unquote(message)(unquote(var)), do: unquote(contents)
     end
   end
+
+  @doc """
+  Provides a macro to easily skip an entire test. The test
+  body will *not* be executed and will be reported as being
+  skipped by the test output formatter.
+
+  ## Examples
+
+      skip_test "skip this test" do
+        raise "this won't be executed."
+      end
+
+  """
+  defmacro skip_test(message, var // quote(do: _), contents) do
+    var      = Macro.escape(var)
+    contents = Macro.escape(contents, unquote: true)
+
+    quote bind_quoted: binding do
+      message = if is_binary(message) do
+        :"test #{message}"
+      else
+        :"test_#{message}"
+      end
+
+      def unquote(message)(unquote(var)), do: :skip
+    end
+  end
 end

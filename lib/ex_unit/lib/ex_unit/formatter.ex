@@ -19,6 +19,7 @@ defmodule ExUnit.Formatter do
   defcallback case_started(id, test_case) :: any
   defcallback case_finished(id, test_case) :: any
 
+  defcallback test_skipped(id, test) :: any
   defcallback test_started(id, test) :: any
   defcallback test_finished(id, test) :: any
 

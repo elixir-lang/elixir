@@ -7,7 +7,7 @@ defmodule ExUnit.CLIFormatter do
 
   import ExUnit.Formatter, only: [format_time: 2, format_test_failure: 3, format_test_case_failure: 3]
 
-  defrecord Config, tests_counter: 0, invalids_counter: 0, failures_counter: 0,
+  defrecord Config, tests_counter: 0, invalids_counter: 0, skipped_counter: 0, failures_counter: 0,
                     trace: false, color: true, previous: nil
 
   ## Behaviour
@@ -27,6 +27,10 @@ defmodule ExUnit.CLIFormatter do
 
   def case_finished(id, test_case) do
     :gen_server.cast(id, { :case_finished, test_case })
+  end
+
+  def test_skipped(id, test) do
+    :gen_server.cast(id, { :test_skipped, test })
   end
 
   def test_started(id, test) do
@@ -50,6 +54,12 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_call(reqest, from, config) do
     super(reqest, from, config)
+  end
+
+  def handle_cast({ :test_skipped, ExUnit.Test[] = test }, config) do
+    if config.trace, do: IO.write("  * #{trace_test_name test}")
+    IO.write invalid("S", config)
+    { :noreply, config.update_skipped_counter(&(&1 + 1)) }
   end
 
   def handle_cast({ :test_started, ExUnit.Test[] = test }, config) do
@@ -138,6 +148,10 @@ defmodule ExUnit.CLIFormatter do
     IO.puts format_time(run_us, load_us)
 
     message = "#{config.tests_counter} tests, #{config.failures_counter} failures"
+
+    if config.skipped_counter > 0 do
+      message = message <>  ", #{config.skipped_counter} skipped"
+    end
 
     if config.invalids_counter > 0 do
       message = message <>  ", #{config.invalids_counter} invalid"
