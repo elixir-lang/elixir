@@ -6,16 +6,18 @@
 007F..009F    ; Control # Cc  [33] <control-007F>..<control-009F>
 00AD          ; Control # Cf       SOFT HYPHEN
 0600..0604    ; Control # Cf   [5] ARABIC NUMBER SIGN..ARABIC SIGN SAMVAT
+061C          ; Control # Cf       ARABIC LETTER MARK
 06DD          ; Control # Cf       ARABIC END OF AYAH
 070F          ; Control # Cf       SYRIAC ABBREVIATION MARK
+180E          ; Control # Cf       MONGOLIAN VOWEL SEPARATOR
 200B          ; Control # Cf       ZERO WIDTH SPACE
 200E..200F    ; Control # Cf   [2] LEFT-TO-RIGHT MARK..RIGHT-TO-LEFT MARK
 2028          ; Control # Zl       LINE SEPARATOR
 2029          ; Control # Zp       PARAGRAPH SEPARATOR
 202A..202E    ; Control # Cf   [5] LEFT-TO-RIGHT EMBEDDING..RIGHT-TO-LEFT OVERRIDE
 2060..2064    ; Control # Cf   [5] WORD JOINER..INVISIBLE PLUS
-2065..2069    ; Control # Cn   [5] <reserved-2065>..<reserved-2069>
-206A..206F    ; Control # Cf   [6] INHIBIT SYMMETRIC SWAPPING..NOMINAL DIGIT SHAPES
+2065          ; Control # Cn       <reserved-2065>
+2066..206F    ; Control # Cf  [10] LEFT-TO-RIGHT ISOLATE..NOMINAL DIGIT SHAPES
 D800..DFFF    ; Control # Cs [2048] <surrogate-D800>..<surrogate-DFFF>
 FEFF          ; Control # Cf       ZERO WIDTH NO-BREAK SPACE
 FFF0..FFF8    ; Control # Cn   [9] <reserved-FFF0>..<reserved-FFF8>
@@ -162,6 +164,7 @@ E01F0..E0FFF  ; Control # Cn [3600] <reserved-E01F0>..<reserved-E0FFF>
 1932          ; Extend # Mn       LIMBU SMALL LETTER ANUSVARA
 1939..193B    ; Extend # Mn   [3] LIMBU SIGN MUKPHRENG..LIMBU SIGN SA-I
 1A17..1A18    ; Extend # Mn   [2] BUGINESE VOWEL SIGN I..BUGINESE VOWEL SIGN U
+1A1B          ; Extend # Mn       BUGINESE VOWEL SIGN AE
 1A56          ; Extend # Mn       TAI THAM CONSONANT SIGN MEDIAL LA
 1A58..1A5E    ; Extend # Mn   [7] TAI THAM SIGN MAI KANG LAI..TAI THAM CONSONANT SIGN SA
 1A60          ; Extend # Mn       TAI THAM SIGN SAKOT
@@ -326,7 +329,7 @@ E0100..E01EF  ; Extend # Mn [240] VARIATION SELECTOR-17..VARIATION SELECTOR-256
 1933..1938    ; SpacingMark # Mc   [6] LIMBU SMALL LETTER TA..LIMBU SMALL LETTER LA
 19B5..19B7    ; SpacingMark # Mc   [3] NEW TAI LUE VOWEL SIGN E..NEW TAI LUE VOWEL SIGN O
 19BA          ; SpacingMark # Mc       NEW TAI LUE VOWEL SIGN AY
-1A19..1A1B    ; SpacingMark # Mc   [3] BUGINESE VOWEL SIGN E..BUGINESE VOWEL SIGN AE
+1A19..1A1A    ; SpacingMark # Mc   [2] BUGINESE VOWEL SIGN E..BUGINESE VOWEL SIGN O
 1A55          ; SpacingMark # Mc       TAI THAM CONSONANT SIGN MEDIAL RA
 1A57          ; SpacingMark # Mc       TAI THAM CONSONANT SIGN LA TANG LAI
 1A6D..1A72    ; SpacingMark # Mc   [6] TAI THAM VOWEL SIGN OY..TAI THAM VOWEL SIGN THAM AI

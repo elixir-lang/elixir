@@ -3,7 +3,7 @@
 
 defmodule String.Unicode do
   @moduledoc false
-  def version, do: {6,2,0}
+  def version, do: {6,3,0}
 
   to_binary = fn
     "" ->
