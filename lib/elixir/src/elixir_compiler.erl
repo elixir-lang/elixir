@@ -1,6 +1,6 @@
 -module(elixir_compiler).
 -export([get_opts/0, get_opt/1, get_opt/2, string/2, quoted/2, file/1, file_to_path/2]).
--export([core/0, module/3, eval_forms/4, format_error/1]).
+-export([core/0, module/4, eval_forms/4, format_error/1]).
 -include("elixir.hrl").
 
 %% Public API
@@ -84,12 +84,13 @@ eval_forms(Forms, Line, Vars, S) ->
 %% Compile the module by forms based on the scope information
 %% executes the callback in case of success. This automatically
 %% handles errors and warnings. Used by this module and elixir_module.
-module(Forms, File, Callback) ->
-  Options = case get_opt(debug_info) of
-    true -> [debug_info];
-    _ -> []
-  end,
-  module(Forms, File, Options, false, Callback).
+module(Forms, File, Opts, Callback) ->
+  DebugInfo = (get_opt(debug_info) == true) orelse lists:member(debug_info, Opts),
+  Final =
+    if DebugInfo -> [debug_info];
+       true -> []
+    end,
+  module(Forms, File, Final, false, Callback).
 
 module(Forms, File, RawOptions, Bootstrap, Callback) when
     is_binary(File), is_list(Forms), is_list(RawOptions), is_boolean(Bootstrap), is_function(Callback) ->

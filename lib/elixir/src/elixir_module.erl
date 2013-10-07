@@ -90,7 +90,7 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
       { attribute, Line, module, Module } | Forms3
     ],
 
-    Binary = load_form(Line, Final, S),
+    Binary = load_form(Line, Final, compile_opts(Module), S),
     { module, Module, Binary, Result }
   after
     elixir_tracker:cleanup(Module),
@@ -129,7 +129,7 @@ build(Line, File, Module) ->
   end,
 
   Attributes = [behavior, behaviour, on_load, spec, type, export_type, opaque, callback, compile],
-  ets:insert(DataTable, { ?acc_attr, [before_compile,after_compile,on_definition|Attributes] }),
+  ets:insert(DataTable, { ?acc_attr, [before_compile, after_compile, on_definition|Attributes] }),
   ets:insert(DataTable, { ?persisted_attr, [vsn|Attributes] }),
   ets:insert(DataTable, { ?docs_attr, ets:new(DataTable, [ordered_set, public]) }),
 
@@ -260,8 +260,14 @@ spec_for_macro(Else) -> Else.
 
 %% Loads the form into the code server.
 
-load_form(Line, Forms, #elixir_scope{file=File} = S) ->
-  elixir_compiler:module(Forms, File, fun(Module, Binary) ->
+compile_opts(Module) ->
+  case ets:lookup(data_table(Module), compile) of
+    [{compile,Opts}] when is_list(Opts) -> Opts;
+    [] -> []
+  end.
+
+load_form(Line, Forms, Opts, #elixir_scope{file=File} = S) ->
+  elixir_compiler:module(Forms, File, Opts, fun(Module, Binary) ->
     EvalS = scope_for_eval(Module, S),
     Env = elixir_scope:to_ex_env({ Line, EvalS }),
     eval_callbacks(Line, Module, after_compile, [Env, Binary], EvalS),
