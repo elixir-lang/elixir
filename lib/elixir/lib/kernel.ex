@@ -1831,7 +1831,7 @@ defmodule Kernel do
       end
 
   And we would have to define the implementation for all types.
-  The types available are:
+  The builtin types available are:
 
   * Tuple
   * Atom
@@ -1842,16 +1842,21 @@ defmodule Kernel do
   * PID
   * Port
   * Reference
-  * Any
 
-  All types fallback to `Any` if an implementation cannot be found:
+  Besides the types above, Elixir defines two extra types:
 
-      defimpl Blank, for: Any do
-        def blank?(_), do: true
-      end
+  * `Any` - All types fallback to `Any` if an implementation
+    cannot be found:
 
-  Now all types that do not have a protocol defined won't be consired
-  blank.
+        defimpl Blank, for: Any do
+          def blank?(_), do: true
+        end
+
+    Now all types that do not have a protocol defined won't be
+    consired blank.
+
+  * `Record` - A type that represents all others non-builtin types.
+    Read more about records and protocols in the next section.
 
   ## Protocols + Records
 
@@ -1879,6 +1884,26 @@ defmodule Kernel do
 
   The `@spec` above expresses that all types allowed to implement the
   given protocol are valid argument types for the given function.
+
+  ## Prioritization
+
+  Elixir allows protocols lookups to be prioritized. This works as a hint
+  for the Elixir compiler to prioritize the dispatch for some specific
+  implementations:
+
+      defprotocol Blank do
+        @prioritize [List, Atom, HashDict]
+        @doc "Returns true if data is considered blank/empty"
+        def blank?(data)
+      end
+
+  The example above prioritizes the dispatch for lists, atoms
+  and hash dicts. All other types will be tried afterwards.
+
+  Keep in mind that prioritization can effectively change the
+  dispatch rules. If a developer prioritizes `Any`, `Any` will
+  always be the first type to be dispatch to, effectively skipping
+  all others.
 
   ## Reflection
 

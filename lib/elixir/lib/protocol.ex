@@ -22,6 +22,10 @@ defmodule Protocol do
         @functions []
         @prioritize []
 
+        # Deprecated
+        @only nil
+        @except nil
+
         # Invoke the user given block
         unquote(block)
 
@@ -49,6 +53,14 @@ defmodule Protocol do
 
       unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
         @type t :: term
+      end
+
+      if @only do
+        IO.write "warning: @only in protocols is deprecated, use @prioritize instead\n#{Exception.format_stacktrace}"
+      end
+
+      if @except do
+        IO.write "warning: @except in protocols is deprecated, use @prioritize instead\n#{Exception.format_stacktrace}"
       end
 
       @doc false

@@ -11,7 +11,7 @@ defprotocol Access do
   following built-in types: keywords, records and functions.
   """
 
-  @only [List, Record, Atom]
+  @prioritize [List, Record, Atom]
 
   @doc """
   Receives the element being accessed and the access item.

@@ -15,7 +15,7 @@ defprotocol Enumerable do
   element in the collection and cons'ing the element with the accumulated list.
   """
 
-  @only [List, Record, Function]
+  @prioritize [List, Record, Function]
 
   @doc """
   This function performs the reducing operation on a given collection. It
