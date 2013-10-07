@@ -1249,11 +1249,14 @@ defmodule Kernel do
         end
       end
 
-  In the example above, two modules `Foo` and `Foo.Bar` are created. The
-  second can be accessed as `Bar` inside `Foo` in the same
-  lexical scope. If the module `Bar` is moved to another
-  file, it needs to be referenced via the full name or an
-  alias need to be set with the help of `Kernel.SpecialForms.alias/2`.
+  In the example above, two modules `Foo` and `Foo.Bar` are created.
+  When nesting, Elixir automatically creates an alias, allowing the
+  second module `Foo.Bar` to be accessed as `Bar` in the same lexical
+  scope.
+
+  This means that, if the module `Bar` is moved to another file,
+  the references to `Bar` need to be updated or an alias needs to
+  be explicitly set with the help of `Kernel.SpecialForms.alias/2`.
 
   ## Dynamic names
 
@@ -1265,7 +1268,8 @@ defmodule Kernel do
       end
 
   Elixir will accept any module name as long as the expression
-  returns an atom.
+  returns an atom. Note that, when a dynamic name is used, an
+  alias is not automatically created, even when nested.
   """
   defmacro defmodule(name, do: contents)
 
@@ -1579,10 +1583,10 @@ defmodule Kernel do
     record = Record.defrecord(name, fields, opts)
 
     quote do
-      unquote(record)
+      { :module, name, _, _ } = unquote(record)
 
-      unless :erlang.function_exported(unquote(name), :message, 1) do
-        raise "expected exception #{inspect unquote(name)} to implement message/1"
+      unless :erlang.function_exported(name, :message, 1) do
+        raise "expected exception #{inspect name} to implement message/1"
       end
     end
   end
