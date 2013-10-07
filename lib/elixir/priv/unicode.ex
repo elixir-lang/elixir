@@ -205,7 +205,10 @@ defmodule String.Graphemes do
   end
 
   # There is no codepoint marked as Prepend by Unicode 6.3.0
-  cluster = Dict.put(cluster, "Prepend", [])
+  if cluster["Prepend"] do
+    raise "It seems this new unicode version has added Prepend items. " <>
+          "Please remove this error and uncomment the code below."
+  end
 
   # Don't break CRLF
   def next_grapheme(<< ?\n, ?\r, rest :: binary >>) do
@@ -220,11 +223,11 @@ defmodule String.Graphemes do
   end
 
   # Break on Prepend*
-  lc codepoint inlist cluster["Prepend"] do
-    def next_grapheme(<< unquote(codepoint), rest :: binary >>) do
-      next_prepend(<< unquote(codepoint) >>, rest)
-    end
-  end
+  # lc codepoint inlist cluster["Prepend"] do
+  #   def next_grapheme(<< unquote(codepoint), rest :: binary >>) do
+  #     next_prepend(<< unquote(codepoint) >>, rest)
+  #   end
+  # end
 
   # Handle Hangul L
   lc codepoint inlist cluster["L"] do
@@ -328,15 +331,15 @@ defmodule String.Graphemes do
   end
 
   # Handle Prepend
-  lc codepoint inlist cluster["Prepend"] do
-    defp next_prepend(<< unquote(codepoint), rest :: binary >>) do
-      next_prepend(head <> unquote(codepoint), rest)
-    end
-  end
-
-  defp next_prepend(head, tail) do
-    { head, tail }
-  end
+  # lc codepoint inlist cluster["Prepend"] do
+  #   defp next_prepend(<< unquote(codepoint), rest :: binary >>) do
+  #     next_prepend(head <> unquote(codepoint), rest)
+  #   end
+  # end
+  #
+  # defp next_prepend(head, tail) do
+  #   { head, tail }
+  # end
 
   def graphemes(binary) when is_binary(binary) do
     do_graphemes(next_grapheme(binary))

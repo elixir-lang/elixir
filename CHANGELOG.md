@@ -1,8 +1,10 @@
 # v0.10.4-dev
 
 * Enhancements
+  * [String] Update to Unicode 6.3.0
 
 * Bug fixes
+  * [String] Implement the extended grapheme cluster algorithm for `String` operations
 
 * Deprecations
 
