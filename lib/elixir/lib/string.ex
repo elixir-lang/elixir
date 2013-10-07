@@ -65,7 +65,7 @@ defmodule String do
 
   More information about graphemes can be found in the [Unicode
   Standard Annex #29](http://www.unicode.org/reports/tr29/).
-  This current Elixir version implements Legacy Grapheme Cluster
+  This current Elixir version implements Extended Grapheme Cluster
   algorithm.
 
   ## Integer codepoints
@@ -674,7 +674,7 @@ defmodule String do
   def valid_character?(_), do: false
 
   @doc """
-  Returns unicode graphemes in the string as per Legacy Grapheme
+  Returns unicode graphemes in the string as per Extended Grapheme
   Cluster algorithm outlined in the [Unicode Standard Annex #29,
   Unicode Text Segmentation](http://www.unicode.org/reports/tr29/).
 

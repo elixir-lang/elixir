@@ -204,6 +204,9 @@ defmodule String.Graphemes do
     end
   end
 
+  # There is no codepoint marked as Prepend by Unicode 6.3.0
+  cluster = Dict.put(cluster, "Prepend", [])
+
   # Don't break CRLF
   def next_grapheme(<< ?\n, ?\r, rest :: binary >>) do
     { "\n\r", rest }
@@ -213,6 +216,13 @@ defmodule String.Graphemes do
   lc codepoint inlist cluster["CR"] ++ cluster["LF"] ++ cluster["Control"] do
     def next_grapheme(<< unquote(codepoint), rest :: binary >>) do
       { << unquote(codepoint) >>, rest }
+    end
+  end
+
+  # Break on Prepend*
+  lc codepoint inlist cluster["Prepend"] do
+    def next_grapheme(<< unquote(codepoint), rest :: binary >>) do
+      next_prepend(<< unquote(codepoint) >>, rest)
     end
   end
 
@@ -306,14 +316,25 @@ defmodule String.Graphemes do
     next_extend(head, tail)
   end
 
-  # Handle Extend
-  lc codepoint inlist cluster["Extend"] do
+  # Handle Extend+SpacingMark
+  lc codepoint inlist cluster["Extend"] ++ cluster["SpacingMark"]  do
     defp next_extend(head, << unquote(codepoint), rest :: binary >>) do
       next_extend(head <> unquote(codepoint), rest)
     end
   end
 
   defp next_extend(head, tail) do
+    { head, tail }
+  end
+
+  # Handle Prepend
+  lc codepoint inlist cluster["Prepend"] do
+    defp next_prepend(<< unquote(codepoint), rest :: binary >>) do
+      next_prepend(head <> unquote(codepoint), rest)
+    end
+  end
+
+  defp next_prepend(head, tail) do
     { head, tail }
   end
 

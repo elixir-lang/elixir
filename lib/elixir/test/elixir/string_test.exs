@@ -210,6 +210,8 @@ defmodule StringTest do
     assert String.graphemes("\x{1F1E6}\x{1F1E7}\x{1F1E8}") == ["\x{1F1E6}\x{1F1E7}\x{1F1E8}"]
     # Hangul
     assert String.graphemes("\x{1100}\x{115D}\x{B4A4}") == ["ᄀᅝ뒤"]
+    # Special Marking with Extended
+    assert String.graphemes("a\x{0300}\x{0903}") == ["a\x{0300}\x{0903}"]
   end
 
   test :next_grapheme do
