@@ -30,9 +30,13 @@ defmodule String do
   For example, the character "é" is represented with two
   bytes:
 
-      iex> string = "é"
-      ...> byte_size(string)
+      iex> byte_size("é")
       2
+
+  However, this module returns the proper length:
+
+      iex> String.length("é")
+      1
 
   Furthermore, this module also presents the concept of
   graphemes, which are multiple characters that may be
@@ -43,6 +47,8 @@ defmodule String do
       iex> string = "\x{0065}\x{0301}"
       ...> byte_size(string)
       3
+      iex> String.length(string)
+      1
 
   Although the example above is made of two characters, it is
   perceived by users as one.
@@ -56,6 +62,11 @@ defmodule String do
   In general, the functions in this module rely on the Unicode
   Standard, but does not contain any of the locale specific
   behaviour.
+
+  More information about graphemes can be found in the [Unicode
+  Standard Annex #29](http://www.unicode.org/reports/tr29/).
+  This current Elixir version implements Legacy Grapheme Cluster
+  algorithm.
 
   ## Integer codepoints
 
@@ -542,11 +553,11 @@ defmodule String do
   """
   @spec reverse(t) :: t
   def reverse(string) do
-    do_reverse(String.Unicode.next_grapheme(string), [])
+    do_reverse(next_grapheme(string), [])
   end
 
   defp do_reverse({grapheme, rest}, acc) do
-    do_reverse(String.Unicode.next_grapheme(rest), [grapheme|acc])
+    do_reverse(next_grapheme(rest), [grapheme|acc])
   end
 
   defp do_reverse(:no_grapheme, acc), do: iolist_to_binary(acc)
@@ -603,6 +614,7 @@ defmodule String do
       { "j", "osé" }
 
   """
+  @compile { :inline, next_codepoint: 1 }
   @spec next_codepoint(t) :: {codepoint, t} | :no_codepoint
   defdelegate next_codepoint(string), to: String.Unicode
 
@@ -662,7 +674,9 @@ defmodule String do
   def valid_character?(_), do: false
 
   @doc """
-  Returns unicode graphemes in the string.
+  Returns unicode graphemes in the string as per Legacy Grapheme
+  Cluster algorithm outlined in the [Unicode Standard Annex #29,
+  Unicode Text Segmentation](http://www.unicode.org/reports/tr29/).
 
   ## Examples
 
@@ -671,7 +685,7 @@ defmodule String do
 
   """
   @spec graphemes(t) :: [grapheme]
-  defdelegate graphemes(string), to: String.Unicode
+  defdelegate graphemes(string), to: String.Graphemes
 
   @doc """
   Returns the next grapheme in a String.
@@ -686,8 +700,9 @@ defmodule String do
       { "j", "osé" }
 
   """
+  @compile { :inline, next_grapheme: 1 }
   @spec next_grapheme(t) :: { grapheme, t } | :no_grapheme
-  defdelegate next_grapheme(string), to: String.Unicode
+  defdelegate next_grapheme(string), to: String.Graphemes
 
   @doc """
   Returns the first grapheme from an utf8 string,

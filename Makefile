@@ -65,7 +65,7 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
 	$(Q) cd lib/elixir && $(REBAR) compile
 
 unicode: $(UNICODE)
-$(UNICODE): lib/elixir/priv/unicode.ex lib/elixir/priv/UnicodeData.txt lib/elixir/priv/NamedSequences.txt
+$(UNICODE): lib/elixir/priv/unicode.ex lib/elixir/priv/UnicodeData.txt lib/elixir/priv/GraphemeBreakProperty.txt
 	@ echo "==> unicode (compile)";
 	@ echo "This step can take up to a minute to compile in order to embed the Unicode database"
 	$(Q) $(ELIXIRC) lib/elixir/priv/unicode.ex -o lib/elixir/ebin;

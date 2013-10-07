@@ -197,15 +197,19 @@ defmodule StringTest do
     assert String.codepoints("世界中の一番") == ["世", "界", "中", "の", "一", "番"] # japanese
     assert String.codepoints("がガちゃ") == ["が", "ガ", "ち", "ゃ"]
     assert String.codepoints("") == []
-  end
-
-  test :mixed_codepoints do
     assert String.codepoints("ϖͲϥЫݎߟΈټϘለДШव׆ש؇؊صلټܗݎޥޘ߉ऌ૫ሏᶆ℆ℙℱ ⅚Ⅷ↠∈⌘①ﬃ") ==
            ["ϖ", "Ͳ", "ϥ", "Ы", "ݎ", "ߟ", "Έ", "ټ", "Ϙ", "ለ", "Д", "Ш", "व", "׆", "ש", "؇", "؊", "ص", "ل", "ټ", "ܗ", "ݎ", "ޥ", "ޘ", "߉", "ऌ", "૫", "ሏ", "ᶆ", "℆", "ℙ", "ℱ", " ", "⅚", "Ⅷ", "↠", "∈", "⌘", "①", "ﬃ"]
   end
 
   test :graphemes do
+    # Extended
     assert String.graphemes("Ā̀stute") == ["Ā̀", "s", "t", "u", "t", "e"]
+    # CLRF
+    assert String.graphemes("\n\r\f") == ["\n\r", "\f"]
+    # Regional indicator
+    assert String.graphemes("\x{1F1E6}\x{1F1E7}\x{1F1E8}") == ["\x{1F1E6}\x{1F1E7}\x{1F1E8}"]
+    # Hangul
+    assert String.graphemes("\x{1100}\x{115D}\x{B4A4}") == ["ᄀᅝ뒤"]
   end
 
   test :next_grapheme do
