@@ -206,7 +206,7 @@ defmodule Kernel.WarningTest do
         def hello
       end
       """
-    end) =~ "docs provided for nonexistent function or macro hello/0"
+    end) =~ "empty clause provided for nonexistent function or macro hello/0"
   after
     purge [Sample1]
   end

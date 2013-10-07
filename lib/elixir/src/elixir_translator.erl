@@ -363,7 +363,7 @@ translate_each({ Name, Meta, Kind }, S) when is_atom(Name), is_atom(Kind) ->
 translate_each({ '->', Meta, _Args }, S) ->
   syntax_error(Meta, S#elixir_scope.file, "unhandled operator ->");
 
-translate_each({ Atom, Meta, Args }, S) when is_atom(Atom) ->
+translate_each({ Atom, Meta, Args }, S) when is_atom(Atom), is_list(Meta), is_list(Args) ->
   assert_no_ambiguous_op(Atom, Meta, Args, S),
 
   Callback = fun() ->
@@ -389,7 +389,8 @@ translate_each({ Atom, Meta, Args }, S) when is_atom(Atom) ->
 
 %% Remote calls
 
-translate_each({ { '.', _, [Left, Right] }, Meta, Args }, S) when is_atom(Right) ->
+translate_each({ { '.', _, [Left, Right] }, Meta, Args }, S)
+    when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   { TLeft,  SL } = translate_each(Left, S),
 
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
@@ -418,7 +419,7 @@ translate_each({ { '.', _, [Left, Right] }, Meta, Args }, S) when is_atom(Right)
 
 %% Anonymous function calls
 
-translate_each({ { '.', _, [Expr] }, Meta, Args }, S) ->
+translate_each({ { '.', _, [Expr] }, Meta, Args }, S) when is_list(Args) ->
   { TExpr, SE } = translate_each(Expr, S),
   case TExpr of
     { atom, _, Atom } ->
@@ -430,9 +431,13 @@ translate_each({ { '.', _, [Expr] }, Meta, Args }, S) ->
 
 %% Invalid calls
 
-translate_each({ Invalid, Meta, _Args }, S) ->
+translate_each({ Invalid, Meta, Args }, S) when is_list(Meta) and is_list(Args) ->
   syntax_error(Meta, S#elixir_scope.file, "unexpected parenthesis after ~ts",
     ['Elixir.Macro':to_string(Invalid)]);
+
+translate_each({ _, _, _ } = Tuple, S) ->
+  syntax_error([{line,0}], S#elixir_scope.file, "expected a valid quoted expression, got: ~ts",
+    ['Elixir.Kernel':inspect(Tuple, [{raw,true}])]);
 
 %% Literals
 

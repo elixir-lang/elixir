@@ -579,16 +579,26 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:2: type foo() undefined",
       '''
-      defmodule Example do
+      defmodule ErrorsTest do
         @type omg :: foo
       end
       '''
 
     assert_compile_fail CompileError,
-      "nofile:2: spec for undefined function Example.omg/0",
+      "nofile:2: spec for undefined function ErrorsTest.omg/0",
       '''
-      defmodule Example do
+      defmodule ErrorsTest do
         @spec omg :: atom
+      end
+      '''
+  end
+
+  test :bad_unquoting do
+    assert_compile_fail SyntaxError,
+      "nofile: expected a valid quoted expression, got: {Range, 1, 3}",
+      '''
+      defmodule ErrorsTest do
+        def range(unquote(1..3)), do: :ok
       end
       '''
   end

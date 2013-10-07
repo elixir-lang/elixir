@@ -82,7 +82,7 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
     elixir_tracker:ensure_no_function_conflict(Line, File, Module, AllFunctions),
     elixir_tracker:ensure_all_imports_used(Line, File, Module),
     elixir_tracker:warn_unused_local(File, Module, Private),
-    warn_invalid_docs(Line, File, Module, All),
+    warn_invalid_clauses(Line, File, Module, All),
     warn_unused_docs(Line, File, Module),
 
     Final = [
@@ -296,16 +296,16 @@ check_module_availability(Line, File, Module, Compiler) ->
       []
   end.
 
-warn_invalid_docs(_Line, _File, 'Elixir.Kernel', _All) -> ok;
-warn_invalid_docs(_Line, _File, 'Elixir.Kernel.SpecialForms', _All) -> ok;
-warn_invalid_docs(_Line, File, Module, All) ->
+warn_invalid_clauses(_Line, _File, 'Elixir.Kernel', _All) -> ok;
+warn_invalid_clauses(_Line, _File, 'Elixir.Kernel.SpecialForms', _All) -> ok;
+warn_invalid_clauses(_Line, File, Module, All) ->
   ets:foldl(fun
     ({ _, _, Kind, _, _ }, _) when Kind == type; Kind == opaque ->
       ok;
     ({ Tuple, Line, _, _, _ }, _) ->
       case lists:member(Tuple, All) of
         false ->
-          elixir_errors:handle_file_warning(File, { Line, ?MODULE, { invalid_doc, Tuple } });
+          elixir_errors:handle_file_warning(File, { Line, ?MODULE, { invalid_clause, Tuple } });
         true ->
           ok
       end
@@ -416,8 +416,8 @@ munge_stacktrace(Info, []) ->
 
 % ERROR HANDLING
 
-format_error({ invalid_doc, { Name, Arity } }) ->
-  io_lib:format("docs provided for nonexistent function or macro ~ts/~B", [Name, Arity]);
+format_error({ invalid_clause, { Name, Arity } }) ->
+  io_lib:format("empty clause provided for nonexistent function or macro ~ts/~B", [Name, Arity]);
 
 format_error({ unused_doc, typedoc }) ->
   "@typedoc provided but no type follows it";

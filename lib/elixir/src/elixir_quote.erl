@@ -8,7 +8,7 @@
 linify(Line, Exprs) when is_integer(Line) ->
   do_linify(Line, Exprs).
 
-do_linify(Line, { Left, Meta, Right }) ->
+do_linify(Line, { Left, Meta, Right }) when is_list(Meta) ->
   NewMeta = case ?line(Meta) of
     0 -> keystore(line, Meta, Line);
     _ -> Meta
