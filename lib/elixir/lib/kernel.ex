@@ -1786,8 +1786,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines the current module as a protocol and specifies the API
-  that should be implemented.
+  Defines a module as a protocol and specifies the API that
+  should be defined by its implementations.
 
   ## Examples
 
@@ -1829,7 +1829,6 @@ defmodule Kernel do
   And we would have to define the implementation for all types.
   The types available are:
 
-  * Record
   * Tuple
   * Atom
   * List
@@ -1841,54 +1840,28 @@ defmodule Kernel do
   * Reference
   * Any
 
-  ## Selecting implementations
-
-  Implementing the protocol for all default types can be cumbersome.
-  Even more, if you consider that Number, Function, PID, Port and
-  Reference are never going to be blank, it would be easier if we
-  could simply provide a default implementation.
-
-  This can be achieved in Elixir as follows:
-
-      defprotocol Blank do
-        @only [Atom, Tuple, List, BitString, Any]
-        def blank?(data)
-      end
-
-  If the protocol is invoked with a data type that is not an Atom,
-  a Tuple, a List, or a BitString, Elixir will now dispatch to
-  Any. That said, the default behavior could be implemented as:
+  All types fallback to `Any` if an implementation cannot be found:
 
       defimpl Blank, for: Any do
-        def blank?(_), do: false
+        def blank?(_), do: true
       end
 
-  Now, all data types that we have not specified will be
-  automatically considered non blank.
+  Now all types that do not have a protocol defined won't be consired
+  blank.
 
   ## Protocols + Records
 
   The real benefit of protocols comes when mixed with records.
-  For instance, imagine we have a module called `RedBlack` that
-  provides an API to create and manipulate Red-Black trees. This
-  module represents such trees via a record named `RedBlack.Tree`
-  and we want this tree to be considered blank in case it has no
-  items. To achieve this, the developer just needs to implement
-  the protocol for `RedBlack.Tree`:
+  For instance, Elixir ships with many data types implemented as
+  records, like `HashDict` and `HashSet`. We can implement the
+  `Blank` protocol for those types as well:
 
-      defimpl Blank, for: RedBlack.Tree do
-        def blank?(tree), do: RedBlack.empty?(tree)
+      defimpl Blank, for: HashDict do
+        def blank?(dict), do: Dict.empty?(dict)
       end
 
-  In the example above, we have implemented `blank?` for
-  `RedBlack.Tree` that simply delegates to `RedBlack.empty?` passing
-  the tree as argument. This implementation doesn't need to be defined
-  inside the `RedBlack` tree or inside the record; it can be defined
-  anywhere in the code.
-
-  Finally, since records are simply tuples, one can add a default
-  protocol implementation to any record by defining a default
-  implementation for tuples.
+  Since records are tuples, if a protocol is not found a given
+  type, it will fallback to `Tuple` (and then fallback to `Any`).
 
   ## Types
 
@@ -1902,6 +1875,21 @@ defmodule Kernel do
 
   The `@spec` above expresses that all types allowed to implement the
   given protocol are valid argument types for the given function.
+
+  ## Reflection
+
+  Any protocol module contains three extra functions:
+
+
+  * `__protocol__/1` - returns the protocol name when :name is given,
+                       and a keyword list with the protocol functions
+                       when :functions is given;
+
+  * `impl_for/1` - receives a structure and returns the module that implements
+                   the protocol for the structure, nil otherwise;
+
+  * `impl_for!/1` - same as above but raises an error if an implementation is not found
+
   """
   defmacro defprotocol(name, do: block) do
     Protocol.defprotocol(name, do: block)
@@ -1911,8 +1899,8 @@ defmodule Kernel do
   Defines an implementation for the given protocol. See
   `defprotocol/2` for examples.
 
-  It makes available the name of the protocol and of the module it's being
-  implemented for inside the @protocol attribute as a two-tuple.
+  Inside an implementation, the name of the protocol can be accessed
+  via `@protocol` and the current target as `@for`.
   """
   defmacro defimpl(name, opts, do_block // []) do
     merged = Keyword.merge(opts, do_block)
