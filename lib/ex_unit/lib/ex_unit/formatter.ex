@@ -9,7 +9,6 @@ defmodule ExUnit.Formatter do
   @type id :: term
   @type test_case :: ExUnit.TestCase.t
   @type test :: ExUnit.Test.t
-  @type result :: { kind :: atom, reason :: term, stacktrace :: list } | nil
   @type run_us :: pos_integer
   @type load_us :: pos_integer | nil
 
