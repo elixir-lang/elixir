@@ -308,7 +308,7 @@ defmodule System do
   latest exception.
   """
   def stacktrace do
-    filter_stacktrace :erlang.get_stacktrace
+    :erlang.get_stacktrace
   end
 
   @doc """
@@ -347,9 +347,4 @@ defmodule System do
   def halt(status) when is_binary(status) do
     :erlang.halt(:binary.bin_to_list(status))
   end
-
-  ## Helpers
-
-  defp filter_stacktrace([{ Kernel, :raise, _, _ }|t]), do: t
-  defp filter_stacktrace(t), do: t
 end
