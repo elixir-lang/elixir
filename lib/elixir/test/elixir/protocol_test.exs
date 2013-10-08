@@ -5,6 +5,7 @@ defmodule ProtocolTest do
 
   defprotocol Sample do
     @type t :: any
+    @prioritize [Range]
     @doc "Blank"
     @spec blank(t) :: boolean
     def blank(thing)
@@ -65,6 +66,7 @@ defmodule ProtocolTest do
     assert nil? Sample.impl_for(self)
     assert nil? Sample.impl_for(hd(:erlang.ports))
     assert nil? Sample.impl_for(make_ref)
+    assert nil? Sample.impl_for(Range[])
 
     assert Sample.impl_for(Foo[]) ==
            Sample.ProtocolTest.Foo
@@ -107,15 +109,15 @@ defmodule ProtocolTest do
 
   test :protocol_callback do
     assert get_callbacks(Sample, :blank, 1) ==
-      [{:type, 9, :fun, [{:type, 9, :product, [{:type, 9, :t, []}]}, {:type, 9, :boolean, []}]}]
+      [{:type, 10, :fun, [{:type, 10, :product, [{:type, 10, :t, []}]}, {:type, 10, :boolean, []}]}]
 
     assert get_callbacks(Prioritized, :blank, 1) ==
-      [{:type, 17, :fun, [{:type, 17, :product, [{:type, 17, :t, []}]}, {:type, 17, :term, []}]}]
+      [{:type, 18, :fun, [{:type, 18, :product, [{:type, 18, :t, []}]}, {:type, 18, :term, []}]}]
   end
 
   test :prioritization do
     assert Sample.__protocol__(:prioritize) ==
-           [Record, Tuple, Atom, List, BitString, Number, Function, PID, Port, Reference]
+           [Range, Record, Tuple, Atom, List, BitString, Number, Function, PID, Port, Reference]
 
     assert Prioritized.__protocol__(:prioritize) ==
            [List, Record, Tuple, Atom, BitString, Number, Function, PID, Port, Reference, Any]
@@ -170,6 +172,7 @@ defmodule Protocol.ConsolidationTest do
 
   compile.(
     defprotocol Sample do
+      @prioritize [Range]
       @type t :: any
       @doc "Blank"
       @spec blank(t) :: boolean
@@ -209,6 +212,7 @@ defmodule Protocol.ConsolidationTest do
     assert nil? Sample.impl_for(self)
     assert nil? Sample.impl_for(hd(:erlang.ports))
     assert nil? Sample.impl_for(make_ref)
+    assert nil? Sample.impl_for(Range[])
 
     assert Sample.impl_for(Foo[]) ==
            Sample.Protocol.ConsolidationTest.Foo
