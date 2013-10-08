@@ -316,7 +316,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:eval, expr}, _config) when is_binary(expr) do
-    __wrapper__(fn -> Code.eval_string(expr, [], [file: "-e option"]) end)
+    __wrapper__(fn -> Code.eval_string(expr, [], [file: "-e"]) end)
     :ok
   end
 

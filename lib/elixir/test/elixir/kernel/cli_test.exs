@@ -61,8 +61,8 @@ defmodule Kernel.CLI.SyntaxErrorTest do
   end
 
   test :syntax_code_error do
-    check_output('-e "[1,2"', '** (TokenMissingError) nofile:1: missing terminator: ]')
-    check_output('-e "case 1 end"', %C"** (SyntaxError) nofile:1: unexpected token: end")
+    check_output('-e "[1,2"', '-e:1: missing terminator: ]')
+    check_output('-e "case 1 end"', %C"-e:1: unexpected token: end")
   end
 end
 

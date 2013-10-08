@@ -2035,10 +2035,10 @@ defmodule Kernel do
       "[1, 2, 3, ...]"
 
       iex> inspect(ArgumentError[])
-      "ArgumentError[message: \"argument error\"]"
+      "ArgumentError[message: \"argument error\", compile_time: false]"
 
       iex> inspect(ArgumentError[], raw: true)
-      "{ArgumentError, :__exception__, \"argument error\"}"
+      "{ArgumentError, :__exception__, \"argument error\", false}"
 
   Note that the inspect protocol does not necessarily return a valid
   representation of an Elixir term. In such cases, the inspected result

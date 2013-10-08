@@ -131,7 +131,7 @@ defmodule Inspect.TupleTest do
   end
 
   test :exception do
-    assert inspect(RuntimeError.new) == "RuntimeError[message: \"runtime error\"]"
+    assert inspect(RuntimeError.new) == "RuntimeError[message: \"runtime error\", compile_time: false]"
   end
 
   defrecord :something, [:a, :b]

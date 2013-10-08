@@ -84,6 +84,6 @@ defmodule IEx.InteractionTest do
   end
 
   test "receive exit" do
-    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~ %r"EXIT from #PID"
+    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~ %r"Exiting from #PID"
   end
 end
