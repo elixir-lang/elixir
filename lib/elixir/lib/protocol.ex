@@ -1,9 +1,6 @@
 defmodule Protocol do
   @moduledoc false
 
-  # We need to use :lists because Enum is not available yet
-  require :lists, as: L
-
   # Callback for defprotocol.
   @doc false
   def defprotocol(name, [do: block]) do
@@ -17,6 +14,9 @@ defmodule Protocol do
 
         # Import the new dsl that holds the new def
         import Protocol.DSL, only: :macros
+
+        # Compile with debug info for consolidation
+        @compile :debug_info
 
         # Set up a clear slate to store defined functions
         @functions []
@@ -119,6 +119,13 @@ defmodule Protocol do
     end
   end
 
+  # Builtin types.
+  @doc false
+  def builtin do
+    [ Record, Tuple, Atom, List, BitString, Number, Function,
+      PID, Port, Reference, Any ]
+  end
+
   # Implements the function that detects the protocol and
   # returns the module to dispatch to.
   @doc false
@@ -205,11 +212,6 @@ defmodule Protocol do
           unquote(impl_for(current, fallback, arg) |> elem(1))
       end
     end
-  end
-
-  defp builtin do
-    [ Record, Tuple, Atom, List, BitString, Number,
-      Function, PID, Port, Reference, Any ]
   end
 end
 

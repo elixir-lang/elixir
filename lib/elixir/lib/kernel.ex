@@ -1919,6 +1919,20 @@ defmodule Kernel do
 
   * `impl_for!/1` - same as above but raises an error if an implementation is not found
 
+  ## Consolidation
+
+  In order to cope with code loading in development, protocols in
+  Elixir provide a slow implementation of protocol dispatching in
+  development.
+
+  In order to speed up dispatching in production environments, where
+  all implementations are now up-front, Elixir provides a feature
+  called protocol consolidation. For this reason, all protocols are
+  compiled with `debug_info` set to true, regardless of the option
+  set by `elixirc` compiler.
+
+  For more information on how to apply protocol consolidation to
+  a given project, please check the `mix compile.protocols` task.
   """
   defmacro defprotocol(name, do: block) do
     Protocol.defprotocol(name, do: block)

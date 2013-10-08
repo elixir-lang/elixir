@@ -1,122 +1,119 @@
 Code.require_file "test_helper.exs", __DIR__
 
-defprotocol ProtocolTest.Sample do
-  @type t :: any
-  @doc "Blank"
-  @spec blank(t) :: boolean
-  def blank(thing)
-end
-
-defprotocol ProtocolTest.Prioritized do
-  @prioritize [Tuple]
-  @doc "Blank"
-  def blank(thing)
-end
-
-defrecord ProtocolTest.Foo, a: 0, b: 0
-
-defimpl ProtocolTest.Sample, for: ProtocolTest.Foo do
-  def blank(record) do
-    record.a + record.b == 0
-  end
-end
-
-defrecord ProtocolTest.Bar, a: 0 do
-  defimpl ProtocolTest.Sample do
-    def blank(record) do
-      Unknown.undefined(record)
-    end
-  end
-end
-
-defimpl ProtocolTest.Prioritized, for: ProtocolTest.Foo do
-  def blank(record) do
-    record.a + record.b == 0
-  end
-end
-
-defimpl ProtocolTest.Prioritized, for: Tuple do
-  def blank(_tuple) do
-    false
-  end
-end
-
-defimpl ProtocolTest.Prioritized, for: Any do
-  def blank(_any) do
-    true
-  end
-end
-
 defmodule ProtocolTest do
   use ExUnit.Case, async: true
 
-  test :protocol_impl_for do
-    assert nil? ProtocolTest.Sample.impl_for(:foo)
-    assert nil? ProtocolTest.Sample.impl_for(fn(x) -> x end)
-    assert nil? ProtocolTest.Sample.impl_for(1)
-    assert nil? ProtocolTest.Sample.impl_for(1.1)
-    assert nil? ProtocolTest.Sample.impl_for([])
-    assert nil? ProtocolTest.Sample.impl_for([1, 2, 3])
-    assert nil? ProtocolTest.Sample.impl_for({})
-    assert nil? ProtocolTest.Sample.impl_for({1, 2, 3})
-    assert nil? ProtocolTest.Sample.impl_for({Bar, 2, 3})
-    assert nil? ProtocolTest.Sample.impl_for("foo")
-    assert nil? ProtocolTest.Sample.impl_for(<<1>>)
-    assert nil? ProtocolTest.Sample.impl_for(self)
-    assert nil? ProtocolTest.Sample.impl_for(hd(:erlang.ports))
-    assert nil? ProtocolTest.Sample.impl_for(make_ref)
+  defprotocol Sample do
+    @type t :: any
+    @doc "Blank"
+    @spec blank(t) :: boolean
+    def blank(thing)
+  end
 
-    assert ProtocolTest.Sample.impl_for(ProtocolTest.Foo[]) ==
-           ProtocolTest.Sample.ProtocolTest.Foo
-    assert ProtocolTest.Sample.impl_for(ProtocolTest.Bar[]) ==
-           ProtocolTest.Sample.ProtocolTest.Bar
+  defprotocol Prioritized do
+    @prioritize [Tuple]
+    @doc "Blank"
+    def blank(thing)
+  end
+
+  defrecord Foo, a: 0, b: 0
+
+  defimpl Sample, for: Foo do
+    def blank(record) do
+      record.a + record.b == 0
+    end
+  end
+
+  defrecord Bar, a: 0 do
+    defimpl Sample do
+      def blank(record) do
+        Unknown.undefined(record)
+      end
+    end
+  end
+
+  defimpl Prioritized, for: Foo do
+    def blank(record) do
+      record.a + record.b == 0
+    end
+  end
+
+  defimpl Prioritized, for: Tuple do
+    def blank(_tuple) do
+      false
+    end
+  end
+
+  defimpl Prioritized, for: Any do
+    def blank(_any) do
+      true
+    end
+  end
+
+  test :protocol_impl_for do
+    assert nil? Sample.impl_for(:foo)
+    assert nil? Sample.impl_for(fn(x) -> x end)
+    assert nil? Sample.impl_for(1)
+    assert nil? Sample.impl_for(1.1)
+    assert nil? Sample.impl_for([])
+    assert nil? Sample.impl_for([1, 2, 3])
+    assert nil? Sample.impl_for({})
+    assert nil? Sample.impl_for({1, 2, 3})
+    assert nil? Sample.impl_for("foo")
+    assert nil? Sample.impl_for(<<1>>)
+    assert nil? Sample.impl_for(self)
+    assert nil? Sample.impl_for(hd(:erlang.ports))
+    assert nil? Sample.impl_for(make_ref)
+
+    assert Sample.impl_for(Foo[]) ==
+           Sample.ProtocolTest.Foo
+    assert Sample.impl_for(Bar[]) ==
+           Sample.ProtocolTest.Bar
   end
 
   test :protocol_impl_for_prioritized do
     # Has higher priority
-    assert ProtocolTest.Prioritized.impl_for(ProtocolTest.Foo[]) ==
-           ProtocolTest.Prioritized.Tuple
+    assert Prioritized.impl_for(Foo[]) ==
+           Prioritized.Tuple
 
     # Has fallback
-    assert ProtocolTest.Prioritized.impl_for(self) ==
-           ProtocolTest.Prioritized.Any
+    assert Prioritized.impl_for(self) ==
+           Prioritized.Any
   end
 
   test :protocol_not_implemented do
     assert_raise Protocol.UndefinedError, "protocol ProtocolTest.Sample not implemented for :foo", fn ->
-      ProtocolTest.Sample.blank(:foo)
+      Sample.blank(:foo)
     end
   end
 
   test :protocol_with_nil_record do
     assert_raise UndefinedFunctionError, fn ->
-      ProtocolTest.WithOnly.blank({:nil})
+      WithOnly.blank({:nil})
     end
   end
 
   test :protocol_docs do
-    docs = ProtocolTest.Sample.__info__(:docs)
+    docs = Sample.__info__(:docs)
     assert { { :blank, 1 }, _, :def, [{ :thing, _, nil }], "Blank" } =
            List.keyfind(docs, { :blank, 1 }, 0)
   end
 
   test :protocol_avoids_false_negatives do
     assert_raise UndefinedFunctionError, fn ->
-      ProtocolTest.WithAll.blank(ProtocolTest.Bar.new)
+      WithAll.blank(Bar.new)
     end
   end
 
   test :protocol_callback do
-    assert get_callbacks(ProtocolTest.Sample, :blank, 1) ==
-      [{:type, 6, :fun, [{:type, 6, :product, [{:type, 6, :t, []}]}, {:type, 6, :boolean, []}]}]
+    assert get_callbacks(Sample, :blank, 1) ==
+      [{:type, 9, :fun, [{:type, 9, :product, [{:type, 9, :t, []}]}, {:type, 9, :boolean, []}]}]
 
-    assert get_callbacks(ProtocolTest.Prioritized, :blank, 1) ==
-      [{:type, 13, :fun, [{:type, 13, :product, [{:type, 13, :t, []}]}, {:type, 13, :term, []}]}]
+    assert get_callbacks(Prioritized, :blank, 1) ==
+      [{:type, 16, :fun, [{:type, 16, :product, [{:type, 16, :t, []}]}, {:type, 16, :term, []}]}]
   end
 
   test :defimpl do
-    alias ProtocolTest.Foo
-
     defprotocol Attribute do
       def test(thing)
     end
@@ -128,8 +125,8 @@ defmodule ProtocolTest do
     end
 
     assert Attribute.test(Foo[]) == { Attribute, Foo }
-    assert ProtocolTest.Attribute.ProtocolTest.Foo.__impl__(:protocol) == Attribute
-    assert ProtocolTest.Attribute.ProtocolTest.Foo.__impl__(:for) == Foo
+    assert Attribute.ProtocolTest.Foo.__impl__(:protocol) == Attribute
+    assert Attribute.ProtocolTest.Foo.__impl__(:for) == Foo
   end
 
   defp get_callbacks(module, name, arity) do
@@ -148,5 +145,95 @@ defmodule ProtocolTest do
 
     assert Multi.test(1) == 1
     assert Multi.test(:a) == :a
+  end
+end
+
+## Those protocols needs to be the same as above.
+path = Path.expand("../ebin", __DIR__)
+Code.append_path(path)
+compile = fn { :module, module, binary, _ } ->
+  :code.purge(module)
+  :code.delete(module)
+  File.write!("#{path}/#{module}.beam", binary)
+end
+
+defmodule Protocol.ConsolidationTest do
+  use ExUnit.Case, async: true
+
+  compile.(
+    defprotocol Sample do
+      @type t :: any
+      @doc "Blank"
+      @spec blank(t) :: boolean
+      def blank(thing)
+    end
+  )
+
+  compile.(
+    defprotocol Prioritized do
+      @prioritize [Tuple]
+      @doc "Blank"
+      def blank(thing)
+    end
+  )
+
+  defrecord Foo, a: 0, b: 0
+  defrecord Bar, a: 0
+
+  { :ok, _ } = Protocol.Consolidation.apply_to(Sample, [Foo, Bar])
+  { :ok, _ } = Protocol.Consolidation.apply_to(Prioritized, [Any, Foo, Tuple])
+
+  test :consolidated_impl_for do
+    assert nil? Sample.impl_for(:foo)
+    assert nil? Sample.impl_for(fn(x) -> x end)
+    assert nil? Sample.impl_for(1)
+    assert nil? Sample.impl_for(1.1)
+    assert nil? Sample.impl_for([])
+    assert nil? Sample.impl_for([1, 2, 3])
+    assert nil? Sample.impl_for({})
+    assert nil? Sample.impl_for({1, 2, 3})
+    assert nil? Sample.impl_for("foo")
+    assert nil? Sample.impl_for(<<1>>)
+    assert nil? Sample.impl_for(self)
+    assert nil? Sample.impl_for(hd(:erlang.ports))
+    assert nil? Sample.impl_for(make_ref)
+
+    assert Sample.impl_for(Foo[]) ==
+           Sample.Protocol.ConsolidationTest.Foo
+    assert Sample.impl_for(Bar[]) ==
+           Sample.Protocol.ConsolidationTest.Bar
+  end
+
+  test :consolidated_impl_for_prioritized do
+    # Has higher priority
+    assert Prioritized.impl_for(ProtocolTest.Foo[]) ==
+           Prioritized.Tuple
+
+    # Has fallback
+    assert Prioritized.impl_for(self) ==
+           Prioritized.Any
+  end
+
+  test :consolidated_docs do
+    docs = Sample.__info__(:docs)
+    assert { { :blank, 1 }, _, :def, [{ :thing, _, nil }], "Blank" } =
+           List.keyfind(docs, { :blank, 1 }, 0)
+  end
+
+  test :consolidated_callback do
+    assert get_callbacks(Sample, :blank, 1) ==
+      [{:type, 161, :fun, [{:type, 161, :product, [{:type, 161, :t, []}]}, {:type, 161, :boolean, []}]}]
+  end
+
+  test :consolidated_errors do
+    defprotocol NoBeam, do: nil
+    assert Protocol.Consolidation.apply_to(Unknown, []) == { :error, :not_loaded }
+    assert Protocol.Consolidation.apply_to(String, [])  == { :error, :not_a_protocol }
+    assert Protocol.Consolidation.apply_to(NoBeam, [])  == { :error, :no_beam_info }
+  end
+
+  defp get_callbacks(module, name, arity) do
+    callbacks = lc { :callback, info } inlist module.__info__(:attributes), do: hd(info)
+    List.keyfind(callbacks, { name, arity }, 0) |> elem(1)
   end
 end
