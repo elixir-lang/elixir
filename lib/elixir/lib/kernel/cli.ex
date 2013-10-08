@@ -298,14 +298,6 @@ defmodule Kernel.CLI do
 
   # Process commands
 
-  # dummy return value to prevent inlining
-  def __wrapper__(func) do
-    func.()
-    nil
-  end
-
-  def wrap_require_file__(name), do: Code.require_file(name)
-
   defp process_command({:cookie, h}, _config) do
     if Node.alive? do
       Node.set_cookie(binary_to_atom(h))
@@ -353,7 +345,7 @@ defmodule Kernel.CLI do
     files = Enum.filter files, &:filelib.is_regular(&1)
 
     if files != [] do
-      Enum.map files, &wrap_require_file__(&1)
+      Enum.map files, fn file -> __wrapper__(fn -> Code.require_file(file) end) end
       :ok
     else
       { :error, "-r : No files matched pattern #{pattern}" }
@@ -389,6 +381,15 @@ defmodule Kernel.CLI do
       { :error, "--compile : No files matched patterns #{Enum.join(patterns, ",")}" }
     end
   end
+
+  # This puts a marker in the stack trace to we know how much
+  # we can safely eliminate while removing internal stuff. It
+  # returns a dummy value to prevent inlining.
+  defp __wrapper__(func) do
+    func.()
+    nil
+  end
+
 
   defp find_elixir_executable(file) do
     if exec = System.find_executable(file) do
