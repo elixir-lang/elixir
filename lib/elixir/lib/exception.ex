@@ -1,54 +1,55 @@
-defexception RuntimeError,      message: "runtime error"
-defexception ArgumentError,     message: "argument error"
-defexception ArithmeticError,   message: "bad argument in arithmetic expression"
-defexception SystemLimitError,  message: "a system limit has been reached"
+defexception RuntimeError,      message: "runtime error", compile_time: false
+defexception ArgumentError,     message: "argument error", compile_time: false
+defexception ArithmeticError,   message: "bad argument in arithmetic expression", compile_time: false
+defexception SystemLimitError,  message: "a system limit has been reached", compile_time: false
 
-defexception SyntaxError, [file: nil, line: nil, description: "syntax error"] do
+defexception SyntaxError, [file: nil, line: nil, description: "syntax error", compile_time: true] do
   def message(exception) do
     "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
   end
 end
 
-defexception TokenMissingError, [file: nil, line: nil, description: "expression is incomplete"] do
+defexception TokenMissingError, [file: nil, line: nil, description: "expression is incomplete", compile_time: true] do
   def message(exception) do
     "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
   end
 end
 
-defexception CompileError, [file: nil, line: nil, description: "compile error"] do
+defexception CompileError, [file: nil, line: nil, description: "compile error", compile_time: true] do
   def message(exception) do
     "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
   end
 end
 
-defexception BadFunctionError, [actual: nil] do
+defexception BadFunctionError, [actual: nil, compile_time: true] do
   def message(exception) do
     "expected a function, got: #{inspect(exception.actual)}"
   end
 end
 
-defexception MatchError, [actual: nil] do
+defexception MatchError, [actual: nil, compile_time: false] do
   def message(exception) do
     "no match of right hand side value: #{inspect(exception.actual)}"
   end
 end
 
-defexception CaseClauseError, [actual: nil] do
+defexception CaseClauseError, [actual: nil, compile_time: false] do
   def message(exception) do
     "no case clause matching: #{inspect(exception.actual)}"
   end
 end
 
-defexception BadArityError, [function: nil, args: nil] do
+defexception BadArityError, [function: nil, args: nil, compile_time: false] do
   def message(exception) do
     "bad arity error: #{inspect(exception.function)} called with #{inspect(exception.args)}"
   end
 end
 
-defexception UndefinedFunctionError, [module: nil, function: nil, arity: nil] do
+defexception UndefinedFunctionError, [module: nil, function: nil, arity: nil, compile_time: false] do
   def message(exception) do
     if exception.function do
-      formatted = Exception.format_mfa exception.module, exception.function, exception.arity
+      module = exception.module
+      formatted = Exception.format_mfa module, exception.function, exception.arity
       "undefined function: #{formatted}"
     else
       "undefined function"
@@ -56,7 +57,7 @@ defexception UndefinedFunctionError, [module: nil, function: nil, arity: nil] do
   end
 end
 
-defexception FunctionClauseError, [module: nil, function: nil, arity: nil] do
+defexception FunctionClauseError, [module: nil, function: nil, arity: nil, compile_time: false] do
   def message(exception) do
     if exception.function do
       formatted = Exception.format_mfa exception.module, exception.function, exception.arity
@@ -67,7 +68,7 @@ defexception FunctionClauseError, [module: nil, function: nil, arity: nil] do
   end
 end
 
-defexception Protocol.UndefinedError, [protocol: nil, value: nil, description: nil] do
+defexception Protocol.UndefinedError, [protocol: nil, value: nil, description: nil, compile_time: false] do
   def message(exception) do
     msg = "protocol #{inspect exception.protocol} not implemented for #{inspect exception.value}"
     if exception.description do
@@ -78,21 +79,21 @@ defexception Protocol.UndefinedError, [protocol: nil, value: nil, description: n
   end
 end
 
-defexception ErlangError, [original: nil] do
+defexception ErlangError, [original: nil, compile_time: false] do
   def message(exception) do
     "erlang error: #{inspect(exception.original)}"
   end
 end
 
-defexception KeyError, key: nil do
+defexception KeyError, key: nil, compile_time: false do
   def message(exception) do
     "key not found: #{inspect exception.key}"
   end
 end
 
-defexception Enum.OutOfBoundsError, message: "out of bounds error"
+defexception Enum.OutOfBoundsError, message: "out of bounds error", compile_time: false
 
-defexception Enum.EmptyError, message: "empty error"
+defexception Enum.EmptyError, message: "empty error", compile_time: false
 
 defmodule Exception do
   @moduledoc """
@@ -277,11 +278,14 @@ defmodule Exception do
 
     if is_list(arity) do
       inspected = lc x inlist arity, do: inspect(x)
-      "#{inspect module}.#{fun}(#{Enum.join(inspected, ", ")})"
+      "#{format_module module}#{fun}(#{Enum.join(inspected, ", ")})"
     else
-      "#{inspect module}.#{fun}/#{arity}"
+      "#{format_module module}#{fun}/#{arity}"
     end
   end
+
+  defp format_module(IEx.Helpers), do: ""
+  defp format_module(other),       do: "#{inspect other}."
 
   @doc """
   Formats the given file and line as shown in stacktraces.

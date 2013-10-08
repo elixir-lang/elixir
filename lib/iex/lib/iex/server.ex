@@ -60,7 +60,12 @@ defmodule IEx.Server do
             eval(code, line, counter, config)
           catch
             kind, error ->
-              print_error(kind, Exception.normalize(kind, error), System.stacktrace)
+              exception = Exception.normalize(kind, error)
+              if exception.compile_time do
+                print_compilation_error(exception)
+              else
+                print_error(kind, exception, System.stacktrace)
+              end
               config.cache('')
           end
 
@@ -220,20 +225,24 @@ defmodule IEx.Server do
 
   ## Error handling
 
+  defp print_compilation_error(exception) do
+    io_error("#{exception.message}") #"  [#{inspect exception.__record__(:name)}]")
+  end
+
   defp print_error(:error, exception, stacktrace) do
     print_stacktrace stacktrace, fn ->
-      "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+      "** #{exception.message}" #" [#{inspect exception.__record__(:name)}]"
     end
   end
 
   defp print_error(kind, reason, stacktrace) do
     print_stacktrace stacktrace, fn ->
-      "** (#{kind}) #{inspect(reason)}"
+      "** #{inspect(reason)} [#{kind}]"
     end
   end
 
   defp print_exit(pid, reason) do
-    io_error "** (EXIT from #{inspect pid}) #{inspect(reason)}"
+    io_error "** Exiting from #{inspect pid}: #{inspect(reason)}"
   end
 
   defp print_stacktrace(trace, callback) do
@@ -249,7 +258,26 @@ defmodule IEx.Server do
     end
   end
 
-  defp prune_stacktrace([{ IEx.Server, _, _, _ }|t]), do: prune_stacktrace(t)
-  defp prune_stacktrace([h|t]), do: [h|prune_stacktrace(t)]
-  defp prune_stacktrace([]), do: []
+  defp prune_stacktrace(trace) do
+    Enum.reverse(prune_runtime(Enum.reverse(_prune_stacktrace(trace))))
+  end
+
+  # This removes the spurious IExHelpers.ddd line if ddd is undefined
+  defp prune_runtime([{:elixir, :eval_forms, _, _},
+                      {:erl_eval, :do_apply, _, _},
+                      {IEx.Helpers, _, _, _} | tail]) do 
+    tail
+  end
+
+  # Otherwise remove unneeded internal stuff
+  defp prune_runtime([{:elixir, :eval_forms, _, _},
+                      {:erl_eval, :do_apply, _, _} | tail ]) do 
+    tail
+  end
+
+  defp prune_runtime(trace), do: trace
+
+  defp _prune_stacktrace([{ IEx.Server, _, _, _ }|t]), do: _prune_stacktrace(t)
+  defp _prune_stacktrace([h|t]), do: [h|_prune_stacktrace(t)]
+  defp _prune_stacktrace([]), do: []
 end
