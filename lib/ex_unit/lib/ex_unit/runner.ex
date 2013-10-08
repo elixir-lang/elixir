@@ -88,7 +88,7 @@ defmodule ExUnit.Runner do
         { test_case, context }
       catch
         kind, error ->
-          { test_case.failure({ kind, Exception.normalize(kind, error), filtered_stacktrace }), nil }
+          { test_case.failure({ kind, Exception.normalize(kind, error), pruned_stacktrace }), nil }
       end
 
       tests = tests_for(case_name)
@@ -104,7 +104,7 @@ defmodule ExUnit.Runner do
           test_case
         catch
           kind, error ->
-            test_case.failure { kind, Exception.normalize(kind, error), filtered_stacktrace }
+            test_case.failure { kind, Exception.normalize(kind, error), pruned_stacktrace }
         end
 
         self_pid <- { self, :case_finished, test_case, [] }
@@ -117,7 +117,7 @@ defmodule ExUnit.Runner do
         config.formatter.case_finished(config.formatter_id, test_case)
         pid <- { case_pid, :case_finished, test_case }
       { :DOWN, ^case_ref, :process, ^case_pid, { error, stacktrace } } ->
-        test_case = test_case.failure { :EXIT, error, filter_stacktrace(stacktrace) }
+        test_case = test_case.failure { :EXIT, error, prune_stacktrace(stacktrace) }
         config.formatter.case_finished(config.formatter_id, test_case)
         pid <- { case_pid, :case_finished, test_case }
     end
@@ -139,14 +139,14 @@ defmodule ExUnit.Runner do
             test
           catch
             kind1, error1 ->
-              test.failure { kind1, Exception.normalize(kind1, error1), filtered_stacktrace }
+              test.failure { kind1, Exception.normalize(kind1, error1), pruned_stacktrace }
           end
 
           case_name.__ex_unit__(:teardown, Keyword.put(context, :test, test))
           test
         catch
           kind2, error2 ->
-            test.failure { kind2, Exception.normalize(kind2, error2), filtered_stacktrace }
+            test.failure { kind2, Exception.normalize(kind2, error2), pruned_stacktrace }
         end
       end)
 
@@ -157,7 +157,7 @@ defmodule ExUnit.Runner do
       { ^test_pid, :test_finished, test } ->
         config.formatter.test_finished(config.formatter_id, test)
       { :DOWN, ^test_ref, :process, ^test_pid, { error, stacktrace } } ->
-        test = test.failure { :EXIT, error, filter_stacktrace(stacktrace) }
+        test = test.failure { :EXIT, error, prune_stacktrace(stacktrace) }
         config.formatter.test_finished(config.formatter_id, test)
     end
   end
@@ -192,15 +192,15 @@ defmodule ExUnit.Runner do
   defp is_test?('test ' ++ _), do: true
   defp is_test?(_)           , do: false
 
-  defp filtered_stacktrace, do: filter_stacktrace(System.stacktrace)
+  defp pruned_stacktrace, do: prune_stacktrace(System.stacktrace)
 
   # Assertions can pop-up in the middle of the stack
-  defp filter_stacktrace([{ ExUnit.Assertions, _, _, _ }|t]), do: filter_stacktrace(t)
+  defp prune_stacktrace([{ ExUnit.Assertions, _, _, _ }|t]), do: prune_stacktrace(t)
 
   # As soon as we see a Runner, it is time to ignore the stacktrace
-  defp filter_stacktrace([{ ExUnit.Runner, _, _, _ }|_]), do: []
+  defp prune_stacktrace([{ ExUnit.Runner, _, _, _ }|_]), do: []
 
   # All other cases
-  defp filter_stacktrace([h|t]), do: [h|filter_stacktrace(t)]
-  defp filter_stacktrace([]), do: []
+  defp prune_stacktrace([h|t]), do: [h|prune_stacktrace(t)]
+  defp prune_stacktrace([]), do: []
 end

@@ -213,7 +213,7 @@ expand_macro_fun(Meta, Fun, Receiver, Name, Args, Module, S) ->
   catch
     Kind:Reason ->
       Info = { Receiver, Name, length(Args), location(Line, S) },
-      erlang:raise(Kind, Reason, munge_stacktrace(Info, erlang:get_stacktrace(), SArg))
+      erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace(), SArg))
   end.
 
 expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) ->
@@ -232,7 +232,7 @@ translate_expansion(Meta, Tree, S) ->
     )
   catch
     Kind:Reason ->
-      erlang:raise(Kind, Reason, munge_stacktrace(mfa(Line, S), erlang:get_stacktrace(), nil))
+      erlang:raise(Kind, Reason, prune_stacktrace(mfa(Line, S), erlang:get_stacktrace(), nil))
   end.
 
 mfa(Line, #elixir_scope{module=nil} = S) ->
@@ -305,17 +305,17 @@ not_an_import(Tuple, Context, Dict) ->
   end.
 
 %% We've reached the invoked macro, skip it with the rest
-munge_stacktrace(Info, [{ _, _, [S|_], _ }|_], S) ->
+prune_stacktrace(Info, [{ _, _, [S|_], _ }|_], S) ->
   [Info];
 
 %% We've reached the elixir_dispatch internals, skip it with the rest
-munge_stacktrace(Info, [{ elixir_dispatch, _, _, _ }|_], _) ->
+prune_stacktrace(Info, [{ elixir_dispatch, _, _, _ }|_], _) ->
   [Info];
 
-munge_stacktrace(Info, [H|T], S) ->
-  [H|munge_stacktrace(Info, T, S)];
+prune_stacktrace(Info, [H|T], S) ->
+  [H|prune_stacktrace(Info, T, S)];
 
-munge_stacktrace(Info, [], _) ->
+prune_stacktrace(Info, [], _) ->
   [Info].
 
 remote_function(Meta, Receiver, Name, Arity, S) ->

@@ -399,19 +399,22 @@ eval_callbacks(Line, Module, Name, Args, RawS) ->
         catch
           Kind:Reason ->
             Info = { M, F, length(Args), [{ file, elixir_utils:characters_to_list(S#elixir_scope.file) }, { line, Line }] },
-            erlang:raise(Kind, Reason, munge_stacktrace(Info, erlang:get_stacktrace()))
+            erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace()))
         end
     end
   end, Callbacks).
 
-%% We've reached the elixir_dispatch internals, skip it with the rest
-munge_stacktrace(Info, [{ elixir_module, _, _, _ }|_]) ->
+%% We've reached the elixir_module or erl_eval internals, skip it with the rest
+prune_stacktrace(Info, [{ erl_eval, _, _, _ }|_]) ->
   [Info];
 
-munge_stacktrace(Info, [H|T]) ->
-  [H|munge_stacktrace(Info, T)];
+prune_stacktrace(Info, [{ elixir_module, _, _, _ }|_]) ->
+  [Info];
 
-munge_stacktrace(Info, []) ->
+prune_stacktrace(Info, [H|T]) ->
+  [H|prune_stacktrace(Info, T)];
+
+prune_stacktrace(Info, []) ->
   [Info].
 
 % ERROR HANDLING

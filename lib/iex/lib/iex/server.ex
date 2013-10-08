@@ -60,7 +60,7 @@ defmodule IEx.Server do
             eval(code, line, counter, config)
           catch
             kind, error ->
-              print_error(kind, Exception.normalize(kind, error), System.stacktrace)
+              print_error(kind, error, System.stacktrace)
               config.cache('')
           end
 
@@ -186,7 +186,7 @@ defmodule IEx.Server do
       config.binding(binding).scope(scope)
     catch
       kind, error ->
-        print_error(kind, Exception.normalize(kind, error), System.stacktrace)
+        print_error(kind, error, System.stacktrace)
         System.halt(1)
     end
   end
@@ -221,6 +221,7 @@ defmodule IEx.Server do
   ## Error handling
 
   defp print_error(:error, exception, stacktrace) do
+    { exception, stacktrace } = normalize_exception(exception, stacktrace)
     print_stacktrace stacktrace, fn ->
       "** (#{inspect exception.__record__(:name)}) #{exception.message}"
     end
@@ -236,6 +237,14 @@ defmodule IEx.Server do
     io_error "** (EXIT from #{inspect pid}) #{inspect(reason)}"
   end
 
+  defp normalize_exception(:undef, [{ IEx.Helpers, fun, arity, _ }|t]) do
+    { UndefinedFunctionError[function: fun, arity: arity], t }
+  end
+
+  defp normalize_exception(exception, stacktrace) do
+    { Exception.normalize(:error, exception), stacktrace }
+  end
+
   defp print_stacktrace(trace, callback) do
     try do
       io_error callback.()
@@ -249,7 +258,8 @@ defmodule IEx.Server do
     end
   end
 
-  defp prune_stacktrace([{ IEx.Server, _, _, _ }|t]), do: prune_stacktrace(t)
+  defp prune_stacktrace([{ :erl_eval, _, _, _ }|_]),  do: []
+  defp prune_stacktrace([{ IEx.Server, _, _, _ }|_]), do: []
   defp prune_stacktrace([h|t]), do: [h|prune_stacktrace(t)]
   defp prune_stacktrace([]), do: []
 end

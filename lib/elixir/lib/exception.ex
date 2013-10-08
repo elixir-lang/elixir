@@ -266,6 +266,8 @@ defmodule Exception do
       "Foo.bar/1"
       iex> Exception.format_mfa Foo, :bar, []
       "Foo.bar()"
+      iex> Exception.format_mfa nil, :bar, []
+      "bar()"
 
   """
   def format_mfa(module, fun, arity) do
@@ -277,11 +279,14 @@ defmodule Exception do
 
     if is_list(arity) do
       inspected = lc x inlist arity, do: inspect(x)
-      "#{inspect module}.#{fun}(#{Enum.join(inspected, ", ")})"
+      "#{format_module module}#{fun}(#{Enum.join(inspected, ", ")})"
     else
-      "#{inspect module}.#{fun}/#{arity}"
+      "#{format_module module}#{fun}/#{arity}"
     end
   end
+
+  defp format_module(nil), do: ""
+  defp format_module(mod), do: "#{inspect mod}."
 
   @doc """
   Formats the given file and line as shown in stacktraces.

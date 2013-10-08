@@ -26,6 +26,8 @@ defmodule IEx.InteractionTest do
     exception = Regex.escape("** (ArithmeticError) bad argument in arithmetic expression")
     assert capture_iex("1 + :atom\n:this_is_still_working")
            =~ %r/^#{exception}.+\n:this_is_still_working$/s
+    refute capture_iex("1 + :atom\n:this_is_still_working")
+           =~ %r/erl_eval/s
   end
 
   test "empty history at the start" do
@@ -62,7 +64,7 @@ defmodule IEx.InteractionTest do
   ### .iex file loading ###
 
   test "no .iex" do
-    assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.my_variable/0" <> _ = capture_iex("my_variable")
+    assert "** (UndefinedFunctionError) undefined function: my_variable()" <> _ = capture_iex("my_variable")
   end
 
   test ".iex" do
