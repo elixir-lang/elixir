@@ -38,6 +38,16 @@ defmodule Protocol do
 
   defp after_defprotocol do
     quote unquote: false do
+      if @only do
+        IO.write "warning: @only in protocols is deprecated, use @prioritize instead\n#{Exception.format_stacktrace}"
+        @fallback_to_any @fallback_to_any || Any in @only
+      end
+
+      if @except do
+        IO.write "warning: @except in protocols is deprecated, use @prioritize instead\n#{Exception.format_stacktrace}"
+        @fallback_to_any @fallback_to_any || not(Any in @except)
+      end
+
       { arg, bodies, prioritized } = Protocol.impl_for(__MODULE__, @prioritize)
 
       if @fallback_to_any do
@@ -69,14 +79,6 @@ defmodule Protocol do
 
       unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
         @type t :: term
-      end
-
-      if @only do
-        IO.write "warning: @only in protocols is deprecated, use @prioritize instead\n#{Exception.format_stacktrace}"
-      end
-
-      if @except do
-        IO.write "warning: @except in protocols is deprecated, use @prioritize instead\n#{Exception.format_stacktrace}"
       end
 
       @doc false
