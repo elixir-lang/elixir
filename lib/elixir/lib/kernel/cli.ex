@@ -104,6 +104,10 @@ defmodule Kernel.CLI do
     prune_stacktrace(t)
   end
 
+  defp prune_stacktrace([{ __MODULE__, :wrapper, 1, _ }|t]) do
+    []
+  end
+
   defp prune_stacktrace([h|t]) do
     [h|prune_stacktrace(t)]
   end
@@ -273,16 +277,14 @@ defmodule Kernel.CLI do
 
   defp process_command({:cookie, h}, _config) do
     if Node.alive? do
-      Node.set_cookie(binary_to_atom(h))
-      :ok
+      wrapper fn -> Node.set_cookie(binary_to_atom(h)) end
     else
       { :error, "--cookie : Cannot set cookie if the node is not alive (set --name or --sname)" }
     end
   end
 
   defp process_command({:eval, expr}, _config) when is_binary(expr) do
-    Code.eval_string(expr, [])
-    :ok
+    wrapper fn -> Code.eval_string(expr, []) end
   end
 
   defp process_command({:app, app}, _config) when is_binary(app) do
@@ -296,8 +298,7 @@ defmodule Kernel.CLI do
 
   defp process_command({:script, file}, _config) when is_binary(file) do
     if exec = find_elixir_executable(file) do
-      Code.require_file(exec)
-      :ok
+      wrapper fn -> Code.require_file(exec) end
     else
       { :error, "-S : Could not find executable #{file}" }
     end
@@ -305,8 +306,7 @@ defmodule Kernel.CLI do
 
   defp process_command({:file, file}, _config) when is_binary(file) do
     if :filelib.is_regular(file) do
-      Code.require_file(file)
-      :ok
+      wrapper fn -> Code.require_file(file) end
     else
       { :error, "No file named #{file}" }
     end
@@ -318,8 +318,7 @@ defmodule Kernel.CLI do
     files = Enum.filter files, &:filelib.is_regular(&1)
 
     if files != [] do
-      Enum.map files, &Code.require_file(&1)
-      :ok
+      wrapper fn -> Enum.map files, &Code.require_file(&1) end
     else
       { :error, "-r : No files matched pattern #{pattern}" }
     end
@@ -331,8 +330,7 @@ defmodule Kernel.CLI do
     files = Enum.filter files, &:filelib.is_regular(&1)
 
     if files != [] do
-      Kernel.ParallelRequire.files(files)
-      :ok
+      wrapper fn -> Kernel.ParallelRequire.files(files) end
     else
       { :error, "-pr : No files matched pattern #{pattern}" }
     end
@@ -346,13 +344,19 @@ defmodule Kernel.CLI do
     files = Enum.filter files, &:filelib.is_regular(&1)
 
     if files != [] do
-      Code.compiler_options(config.compiler_options)
-      Kernel.ParallelCompiler.files_to_path(files, config.output,
-        each_file: fn file -> if config.verbose_compile do IO.puts "Compiled #{file}" end end)
-      :ok
+      wrapper fn ->
+        Code.compiler_options(config.compiler_options)
+        Kernel.ParallelCompiler.files_to_path(files, config.output,
+          each_file: fn file -> if config.verbose_compile do IO.puts "Compiled #{file}" end end)
+      end
     else
       { :error, "--compile : No files matched patterns #{Enum.join(patterns, ",")}" }
     end
+  end
+
+  defp wrapper(fun) do
+    fun.()
+    :ok
   end
 
   defp find_elixir_executable(file) do
