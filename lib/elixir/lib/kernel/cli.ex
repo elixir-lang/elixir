@@ -104,7 +104,7 @@ defmodule Kernel.CLI do
     prune_stacktrace(t)
   end
 
-  defp prune_stacktrace([{ __MODULE__, :wrapper, 1, _ }|t]) do
+  defp prune_stacktrace([{ __MODULE__, :wrapper, 1, _ }|_]) do
     []
   end
 
