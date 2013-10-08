@@ -1831,8 +1831,9 @@ defmodule Kernel do
       end
 
   And we would have to define the implementation for all types.
-  The builtin types available are:
+  The supported types available are:
 
+  * Record (see below)
   * Tuple
   * Atom
   * List
@@ -1842,21 +1843,7 @@ defmodule Kernel do
   * PID
   * Port
   * Reference
-
-  Besides the types above, Elixir defines two extra types:
-
-  * `Any` - All types fallback to `Any` if an implementation
-    cannot be found:
-
-        defimpl Blank, for: Any do
-          def blank?(_), do: true
-        end
-
-    Now all types that do not have a protocol defined won't be
-    consired blank.
-
-  * `Record` - A type that represents all others non-builtin types.
-    Read more about records and protocols in the next section.
+  * Any (see below)
 
   ## Protocols + Records
 
@@ -1870,7 +1857,37 @@ defmodule Kernel do
       end
 
   Since records are tuples, if a protocol is not found a given
-  type, it will fallback to `Tuple` (and then fallback to `Any`).
+  type, it will fallback to `Tuple`.
+
+  ## Fallback to any
+
+  In some cases, it may be convenient to provide a default
+  implementation for all types. This can be achieving by
+  setting `@fallback_to_any` to true in the protocol definition:
+
+      defprotocol Blank do
+        @fallback_to_any true
+        def blank?(data)
+      end
+
+  Which can no be implemented as:
+
+      defimpl Blank, for: Any do
+        def blank?(_), do: true
+      end
+
+  One may ask: why such fallback is not always true by default?
+
+  It is two-fold: first, the majority of protocols actually
+  require some action to be performed in a way it is not possible
+  to perform such action in a generic way for all types. In fact,
+  providing a default implementation may be harmful, because users
+  may rely on the default implementation instead of providing a
+  specialized one.
+
+  Second, fallbacking to `Any` adds an extra lookup to all types,
+  which is unecessary overhead unless an implementation for Any is
+  provided.
 
   ## Types
 
@@ -1899,11 +1916,6 @@ defmodule Kernel do
 
   The example above prioritizes the dispatch for lists, atoms
   and hash dicts. All other types will be tried afterwards.
-
-  Keep in mind that prioritization can effectively change the
-  dispatch rules. If a developer prioritizes `Any`, `Any` will
-  always be the first type to be dispatch to, effectively skipping
-  all others.
 
   ## Reflection
 

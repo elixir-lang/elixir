@@ -61,12 +61,8 @@ defmodule Protocol.Consolidation do
   defp change_debug_info(other, _types), do: other
 
   defp change_impl_for([{ :function, line, :impl_for, 1, _ }|t], protocol, types, acc) do
-    # Get all protocols available in prioritized fashion
-    prioritized = protocol.__protocol__(:prioritize)
-    prioritized = prioritized ++ Enum.reduce(prioritized, Protocol.builtin, &:lists.delete/2)
-
-    # Now prioritize the given types given the prioritized compiled
-    all     = prioritize(prioritized, types)
+    # Now prioritize the given types given the compiled prioritized
+    all     = prioritize(protocol.__protocol__(:prioritize), types)
     clauses = lc type inlist all, do: clause_for(type, protocol, line)
 
     unless Any in all do
@@ -99,6 +95,7 @@ defmodule Protocol.Consolidation do
     end
   end
 
+  # Everything was processed
   defp prioritize([], _types) do
     []
   end

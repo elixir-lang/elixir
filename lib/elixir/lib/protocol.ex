@@ -21,6 +21,7 @@ defmodule Protocol do
         # Set up a clear slate to store defined functions
         @functions []
         @prioritize []
+        @fallback_to_any false
 
         # Deprecated
         @only nil
@@ -37,7 +38,22 @@ defmodule Protocol do
 
   defp after_defprotocol do
     quote unquote: false do
-      { arg, bodies } = Protocol.impl_for(__MODULE__, @prioritize)
+      { arg, bodies, prioritized } = Protocol.impl_for(__MODULE__, @prioritize)
+
+      if @fallback_to_any do
+        @prioritize prioritized ++ [Any]
+        Kernel.defp any_fallback do
+          try do
+            __MODULE__.Any.__impl__(:name)
+          catch
+            :error, :undef, [[{ __MODULE__.Any, :__impl__, [:name], _ }|_]|_] ->
+              nil
+          end
+        end
+      else
+        @prioritize prioritized
+        Kernel.defp any_fallback, do: nil
+      end
 
       @spec impl_for(term) :: module | nil
       Kernel.def impl_for(data)
@@ -122,19 +138,41 @@ defmodule Protocol do
   # Builtin types.
   @doc false
   def builtin do
-    [ Record, Tuple, Atom, List, BitString, Number, Function,
-      PID, Port, Reference, Any ]
+    [ Record, Tuple, Atom, List, BitString, Number,
+      Function, PID, Port, Reference, Any ]
+  end
+
+  # Any is simply discarded
+  defp ensure_no_clobbering([Any|t], acc) do
+    ensure_no_clobbering(t, acc)
+  end
+
+  # Tuple is a fallback for Record
+  defp ensure_no_clobbering([Tuple|t], acc) do
+    if :lists.member(Record, acc) do
+      ensure_no_clobbering(t, [Tuple|acc])
+    else
+      ensure_no_clobbering(:lists.delete(Record, t), [Tuple,Record|acc])
+    end
+  end
+
+  defp ensure_no_clobbering([h|t], acc) do
+    ensure_no_clobbering(t, [h|acc])
+  end
+
+  defp ensure_no_clobbering([], acc) do
+    :lists.reverse(acc)
   end
 
   # Implements the function that detects the protocol and
   # returns the module to dispatch to.
   @doc false
   def impl_for(current, prioritize) do
-    ordered = prioritize ++
-              :lists.foldl(&:lists.delete/2, builtin, prioritize)
+    prioritized = prioritize ++ :lists.foldl(&:lists.delete/2, builtin, prioritize)
+    prioritized = ensure_no_clobbering(prioritized, [])
 
     arg = quote(do: arg)
-    { arg, lc(mod inlist ordered, do: impl_for(current, mod, arg)) }
+    { arg, lc(mod inlist prioritized, do: impl_for(current, mod, arg)), prioritized }
   end
 
   defp impl_for(current, Record, arg) do
@@ -172,17 +210,8 @@ defmodule Protocol do
   defp impl_for(current, Port, arg),      do: impl_with_fallback(Port, :is_port, current, Any, arg)
   defp impl_for(current, Reference, arg), do: impl_with_fallback(Reference, :is_reference, current, Any, arg)
 
-  defp impl_for(current, Any, _arg) do
-    target = Module.concat(current, Any)
-
-    { true, quote do
-      try do
-        unquote(target).__impl__(:name)
-      catch
-        :error, :undef, [[{ unquote(target), :__impl__, [:name], _ }|_]|_] ->
-          nil
-      end
-    end }
+  defp impl_for(_current, Any, _arg) do
+    { true, quote(do: any_fallback) }
   end
 
   # Prioritized mdules are dispatched directly, falling back to tuples.
