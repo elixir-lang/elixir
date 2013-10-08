@@ -461,7 +461,8 @@ defmodule Typespec.TypeTest do
     :code.delete(T)
     :code.purge(T)
 
-    assert [{{:a, _}, [{:type, _, :fun, [{:type, _, :product, []}, {:type, _, :any, []}]}]}] = Kernel.Typespec.beam_specs(binary)
+    assert [{{:a, _}, [{:type, _, :fun, [{:type, _, :product, []}, {:type, _, :any, []}]}]}] =
+           Kernel.Typespec.beam_specs(binary)
   after
     Code.compiler_options debug_info: false
   end
@@ -512,5 +513,11 @@ defmodule Typespec.TypeTest do
     ] = Kernel.Typespec.beam_typedocs(binary)
   after
     Code.compiler_options debug_info: false
+  end
+
+  test "retrieval invalid data" do
+    assert Kernel.Typespec.beam_typedocs(Unknown) == nil
+    assert Kernel.Typespec.beam_types(Unknown) == nil
+    assert Kernel.Typespec.beam_specs(Unknown) == nil
   end
 end

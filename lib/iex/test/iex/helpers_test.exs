@@ -32,7 +32,7 @@ defmodule IEx.HelpersTest do
            "Could not load module :whatever, got: nofile\n"
 
     assert capture_io(fn -> h :lists end) ==
-           ":lists is an Erlang module and, as such, it was not compiled with docs\n"
+           ":lists is an Erlang module and, as such, it does not have Elixir-style docs\n"
   end
 
   test "h helper function" do
