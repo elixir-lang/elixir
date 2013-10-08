@@ -112,7 +112,7 @@ defmodule IEx.HelpersTest do
       :ok
       """
 
-    assert "** (RuntimeError) v(0) is out of bounds" <> _
+    assert "** v(0) is out of bounds" <> _
            = capture_iex("v(0)")
     assert capture_iex("1\n2\nv(2)") == "1\n2\n2"
     assert capture_iex("1\n2\nv(2)") == capture_iex("1\n2\nv(-1)")
@@ -141,9 +141,9 @@ defmodule IEx.HelpersTest do
 
   test "import_file helper" do
     with_file "dot-iex", "variable = :hello\nimport IO", fn ->
-      assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.variable/0" <> _
+      assert "** undefined function: variable/0" <> _
              = capture_iex("variable")
-      assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.puts/1" <> _
+      assert "** undefined function: puts/1" <> _
              = capture_iex("puts \"hi\"")
 
       assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"")
@@ -156,11 +156,11 @@ defmodule IEx.HelpersTest do
     dot_1 = "variable = :hello\nimport IO"
 
     with_file ["dot-iex", "dot-iex-1"], [dot, dot_1], fn ->
-      assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.parent/0" <> _
+      assert "** undefined function: parent/0" <> _
              = capture_iex("parent")
-      assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.variable/0" <> _
+      assert "** undefined function: variable/0" <> _
              = capture_iex("variable")
-      assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.puts/1" <> _
+      assert "** undefined function: puts/1" <> _
              = capture_iex("puts \"hi\"")
 
       assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"\nparent")

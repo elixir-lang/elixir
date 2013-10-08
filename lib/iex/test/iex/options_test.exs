@@ -36,18 +36,18 @@ defmodule IEx.OptionsTest do
   test "inspect opts" do
     opts = [inspect: [limit: 3, raw: true]]
     assert capture_iex("[1,2,3,4,5]\nArgumentError[]", opts) ==
-              "[1, 2, 3, ...]\n{ArgumentError, :__exception__, \"argument error\"}"
+              "[1, 2, 3, ...]\n{ArgumentError, :__exception__, \"argument error\", ...}"
 
     opts = [inspect: [raw: false]]
-    assert capture_iex("ArgumentError[]", opts) == "ArgumentError[message: \"argument error\"]"
+    assert capture_iex("ArgumentError[]", opts) == "ArgumentError[message: \"argument error\", compile_time: false]"
   end
 
   test "history size" do
     opts = [history_size: 3]
     assert capture_iex("1\n2\n3\nv(1)", opts) == "1\n2\n3\n1"
-    assert "1\n2\n3\n4\n** (RuntimeError) v(1) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(1)", opts)
-    assert "1\n2\n3\n4\n** (RuntimeError) v(-4) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(-4)", opts)
-    assert "1\n2\n3\n4\n2\n** (RuntimeError) v(2) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(2)\nv(2)", opts)
+    assert "1\n2\n3\n4\n** v(1) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(1)", opts)
+    assert "1\n2\n3\n4\n** v(-4) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(-4)", opts)
+    assert "1\n2\n3\n4\n2\n** v(2) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(2)\nv(2)", opts)
   end
 
   test "bad option" do

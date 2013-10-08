@@ -23,17 +23,17 @@ defmodule IEx.InteractionTest do
   end
 
   test "exception" do
-    exception = Regex.escape("** (ArithmeticError) bad argument in arithmetic expression")
+    exception = Regex.escape("** bad argument in arithmetic expression")
     assert capture_iex("1 + :atom\n:this_is_still_working")
            =~ %r/^#{exception}.+\n:this_is_still_working$/s
   end
 
   test "empty history at the start" do
-    assert "** (RuntimeError) v(-1) is out of bounds" <> _ = capture_iex("v(-1)")
+    assert "** v(-1) is out of bounds" <> _ = capture_iex("v(-1)")
   end
 
   test "empty history at the start redux" do
-    assert "** (RuntimeError) v(1) is out of bounds" <> _ = capture_iex("v(1)")
+    assert "** v(1) is out of bounds" <> _ = capture_iex("v(1)")
   end
 
   test "no break" do
@@ -52,17 +52,17 @@ defmodule IEx.InteractionTest do
       c
     #iex:break
     """
-    assert "** (TokenMissingError) iex:1: incomplete expression" <> _ = capture_iex(input)
+    assert "iex:1: incomplete expression" <> _ = capture_iex(input)
   end
 
   test "invalid input" do
-    assert "** (SyntaxError) iex:1: \"do\" starting at" <> _ = capture_iex("if true do ) false end")
+    assert "iex:1: \"do\" starting at" <> _ = capture_iex("if true do ) false end")
   end
 
   ### .iex file loading ###
 
   test "no .iex" do
-    assert "** (UndefinedFunctionError) undefined function: IEx.Helpers.my_variable/0" <> _ = capture_iex("my_variable")
+    assert "** undefined function: my_variable/0" <> _ = capture_iex("my_variable")
   end
 
   test ".iex" do
@@ -84,6 +84,6 @@ defmodule IEx.InteractionTest do
   end
 
   test "receive exit" do
-    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~ %r"EXIT from #PID"
+    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~ %r"Exiting from #PID"
   end
 end

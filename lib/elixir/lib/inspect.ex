@@ -308,7 +308,7 @@ defimpl Inspect, for: Tuple do
       iex> inspect({1, 2, 3})
       "{1, 2, 3}"
       iex> inspect(ArgumentError.new)
-      "ArgumentError[message: \\\"argument error\\\"]"
+      "ArgumentError[message: \\\"argument error\\\", compile_time: false]"
 
   """
 

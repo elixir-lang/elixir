@@ -50,7 +50,12 @@ defmodule Kernel.CLI do
         System.halt(0)
       kind, reason ->
         at_exit(1)
-        print_error(kind, Exception.normalize(kind, reason), System.stacktrace)
+        exception = Exception.normalize(kind, reason)
+        if exception.compile_time do
+          print_compile_error(kind, exception)
+        else
+          print_error(kind, exception, System.stacktrace)
+        end
         System.halt(1)
     end
   end
@@ -84,8 +89,12 @@ defmodule Kernel.CLI do
     end
   end
 
+  defp print_compile_error(:error, exception) do
+    IO.puts :stderr, "#{exception.message} [#{inspect exception.__record__(:name)}]"
+  end
+
   defp print_error(:error, exception, trace) do
-    IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+    IO.puts :stderr, "** #{exception.message} [#{inspect exception.__record__(:name)}]"
     IO.puts :stderr, format_stacktrace(trace)
   end
 
@@ -100,17 +109,35 @@ defmodule Kernel.CLI do
 
   @elixir_internals [:elixir_compiler, :elixir_module]
 
-  defp prune_stacktrace([{ mod, _, _, _ }|t]) when mod in @elixir_internals do
-    prune_stacktrace(t)
+  defp prune_stacktrace(stack) do
+    stack
+    |> Enum.filter(fn { mod, _, _, _ } -> !mod in @elixir_internals end)
+    |> Enum.reverse
+    |> drop_until_wrapper
+    |> Enum.reverse
   end
 
-  defp prune_stacktrace([h|t]) do
-    [h|prune_stacktrace(t)]
+  defp drop_until_wrapper([{Kernel.CLI, :__wrapper__, _, _} | t] ) do
+    drop_until_apply(t)
   end
 
-  defp prune_stacktrace([]) do
-    []
+  defp drop_until_wrapper([{_, _, _, _} | t] ) do 
+    drop_until_wrapper(t)
   end
+
+  defp drop_until_wrapper([]), do: []
+
+  defp drop_until_apply([{ Code,      :do_eval_string, _, _},
+                         { :elixir,   :eval_forms, _, _},
+                         { :erl_eval, :do_apply,   _, _} | tail]),
+    do: tail
+
+  defp drop_until_apply([{ Code,      :require_file, _, _}| tail]),
+    do: tail
+
+  defp drop_until_apply(anything), do: anything
+
+
 
   # Process shared options
 
@@ -281,7 +308,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:eval, expr}, _config) when is_binary(expr) do
-    Code.eval_string(expr, [])
+    __wrapper__(fn -> Code.eval_string(expr, [], [file: "-e"]) end)
     :ok
   end
 
@@ -296,7 +323,7 @@ defmodule Kernel.CLI do
 
   defp process_command({:script, file}, _config) when is_binary(file) do
     if exec = find_elixir_executable(file) do
-      Code.require_file(exec)
+      __wrapper__(fn -> Code.require_file(exec) end)
       :ok
     else
       { :error, "-S : Could not find executable #{file}" }
@@ -305,7 +332,7 @@ defmodule Kernel.CLI do
 
   defp process_command({:file, file}, _config) when is_binary(file) do
     if :filelib.is_regular(file) do
-      Code.require_file(file)
+      __wrapper__(fn -> Code.require_file(file) end)
       :ok
     else
       { :error, "No file named #{file}" }
@@ -318,7 +345,7 @@ defmodule Kernel.CLI do
     files = Enum.filter files, &:filelib.is_regular(&1)
 
     if files != [] do
-      Enum.map files, &Code.require_file(&1)
+      Enum.map files, fn file -> __wrapper__(fn -> Code.require_file(file) end) end
       :ok
     else
       { :error, "-r : No files matched pattern #{pattern}" }
@@ -354,6 +381,15 @@ defmodule Kernel.CLI do
       { :error, "--compile : No files matched patterns #{Enum.join(patterns, ",")}" }
     end
   end
+
+  # This puts a marker in the stack trace to we know how much
+  # we can safely eliminate while removing internal stuff. It
+  # returns a dummy value to prevent inlining.
+  defp __wrapper__(func) do
+    func.()
+    nil
+  end
+
 
   defp find_elixir_executable(file) do
     if exec = System.find_executable(file) do

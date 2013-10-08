@@ -59,7 +59,7 @@ integer_eol_test() ->
   {8,[]} = eval("1 + (\n2\n) + 3 + 2"),
   {8,[]} = eval("1 + (\n\n  2\n\n) + 3 + 2"),
   {3,[]} = eval(";1 + 2"),
-  ?assertError({'Elixir.SyntaxError', _, _, _, _}, eval("1 + 2;\n;\n3 + 5")).
+  ?assertError({'Elixir.SyntaxError', _, _, _, _, _}, eval("1 + 2;\n;\n3 + 5")).
 
 float_with_parens_and_unary_test() ->
   {-21.0,[]} = eval("-3.0 * (5 + 2)"),
