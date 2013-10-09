@@ -1,12 +1,31 @@
 defmodule Protocol.Consolidation do
-  @moduledoc false
+  @moduledoc """
+  Module responsible for consolidating protocols and helpers for
+  extracting protocols and implementations from code paths for
+  consolidation.
+  """
 
   @doc """
-  Receives a protocol and a list of implementations.
+  Receives a protocol and a list of implementations and
+  consolidates the given protocol. Consolidation happens
+  by changing the protocol `impl_for` in the abstract
+  format to have fast lookup rules.
+
+  It returns the updated version of the protocol bytecode.
+  A given bytecode or protocol implementation can be checked
+  to be consolidated or not by analyzing the protocol
+  attribute:
+
+      Enumerable.__info__(:attributes)[:protocol]
+
+  If the first element of the tuple is true, it means
+  the protocol was consolidated.
+
+  This function does not load the protocol at any point
+  nor loads the new bytecode for the compiled module.
   """
   @spec apply_to(module, [module]) ::
     { :ok, binary } |
-    { :error, :not_loaded } |
     { :error, :not_a_protocol } |
     { :error, :no_beam_info }
 
@@ -15,29 +34,31 @@ defmodule Protocol.Consolidation do
     |> ensure_protocol
     |> read_debug_info
     |> change_debug_info(types)
-    |> recompile
+    |> compile
   end
 
   # Ensure the given module is loaded and is a protocol.
   defp ensure_protocol({ :ok, protocol }) do
-    if Code.ensure_loaded?(protocol) do
-      if function_exported?(protocol, :__protocol__, 1) do
-        { :ok, protocol }
-      else
-        { :error, :not_a_protocol }
-      end
-    else
-      { :error, :not_loaded }
+    case :beam_lib.chunks(beam_file(protocol), [:attributes]) do
+      {:ok, { ^protocol, [attributes: attributes] } } ->
+        case attributes[:protocol] do
+          [{ _, prioritized }] ->
+            { :ok, protocol, prioritized }
+          _ ->
+            { :error, :not_a_protocol }
+        end
+      _ ->
+        { :error, :no_beam_info }
     end
   end
 
   defp ensure_protocol(other), do: other
 
   # Read the debug information from the protocol, fails if not available.
-  defp read_debug_info({ :ok, protocol }) do
+  defp read_debug_info({ :ok, protocol, prioritized }) do
     case :beam_lib.chunks(beam_file(protocol), [:abstract_code]) do
-      {:ok, { _, [{ :abstract_code, { _raw_abstract_v1, abstract_code } }] } } ->
-        { :ok, protocol, abstract_code }
+      {:ok, { ^protocol, [abstract_code: { _raw_abstract_v1, abstract_code }] } } ->
+        { :ok, protocol, prioritized, abstract_code }
       _ ->
         { :error, :no_beam_info }
     end
@@ -54,15 +75,19 @@ defmodule Protocol.Consolidation do
 
   # Change the debug information to the optimized
   # impl_for/1 dispatch version.
-  defp change_debug_info({ :ok, protocol, code }, types) do
-    change_impl_for(code, protocol, types, [])
+  defp change_debug_info({ :ok, protocol, prioritized, code }, types) do
+    change_impl_for(code, protocol, prioritized, types, [])
   end
 
   defp change_debug_info(other, _types), do: other
 
-  defp change_impl_for([{ :function, line, :impl_for, 1, _ }|t], protocol, types, acc) do
-    # Now prioritize the given types given the compiled prioritized
-    all     = prioritize(protocol.__protocol__(:prioritize), types)
+  defp change_impl_for([{ :attribute, line, :protocol, _ }|t], protocol, prioritized, types, acc) do
+    change_impl_for(t, protocol, prioritized, types,
+                    [{ :attribute, line, :protocol, { true, prioritized } }|acc])
+  end
+
+  defp change_impl_for([{ :function, line, :impl_for, 1, _ }|t], protocol, prioritized, types, acc) do
+    all     = prioritize(prioritized, types)
     clauses = lc type inlist all, do: clause_for(type, protocol, line)
 
     unless Any in all do
@@ -72,11 +97,11 @@ defmodule Protocol.Consolidation do
     { :ok, protocol, Enum.reverse(acc) ++ [{ :function, line, :impl_for, 1, clauses }|t] }
   end
 
-  defp change_impl_for([h|t], protocol, types, acc) do
-    change_impl_for(t, protocol, types, [h|acc])
+  defp change_impl_for([h|t], protocol, info, types, acc) do
+    change_impl_for(t, protocol, info, types, [h|acc])
   end
 
-  defp change_impl_for([], _protocol, _types, _acc) do
+  defp change_impl_for([], _protocol, _info, _types, _acc) do
     { :error, :not_a_protocol }
   end
 
@@ -145,15 +170,14 @@ defmodule Protocol.Consolidation do
       [{ :atom, line, nil }]}
   end
 
-  # Finally recompiled the module and emit its bytecode.
-  defp recompile({ :ok, protocol, code }) do
+  # Finally compile the module and emit its bytecode.
+  defp compile({ :ok, protocol, code }) do
     opts = if Code.compiler_options[:debug_info], do: [:debug_info], else: []
     { :ok, ^protocol, binary, _warnings } = :compile.forms(code, [:return|opts])
-    :code.load_binary(protocol, protocol.__info__(:compile)[:source], binary)
     { :ok, binary }
   end
 
-  defp recompile(other) do
+  defp compile(other) do
     other
   end
 end

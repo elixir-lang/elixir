@@ -81,10 +81,14 @@ defmodule Protocol do
         @type t :: term
       end
 
+      # Store information as an attribute so it
+      # can be read without loading the module.
+      Module.register_attribute(__MODULE__, :protocol, persist: true)
+      @protocol { false, @prioritize }
+
       @doc false
-      Kernel.def __protocol__(:name),       do: __MODULE__
-      Kernel.def __protocol__(:functions),  do: unquote(:lists.sort(@functions))
-      Kernel.def __protocol__(:prioritize), do: unquote(@prioritize)
+      Kernel.def __protocol__(:name),      do: __MODULE__
+      Kernel.def __protocol__(:functions), do: unquote(:lists.sort(@functions))
     end
   end
 
@@ -113,6 +117,10 @@ defmodule Protocol do
 
         unquote(block)
 
+        Module.register_attribute(__MODULE__, :impl, persist: true)
+        @impl { @protocol, @for }
+
+        @doc false
         def __impl__(:name),     do: __MODULE__
         def __impl__(:protocol), do: @protocol
         def __impl__(:for),      do: @for

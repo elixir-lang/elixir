@@ -115,12 +115,17 @@ defmodule ProtocolTest do
       [{:type, 18, :fun, [{:type, 18, :product, [{:type, 18, :t, []}]}, {:type, 18, :term, []}]}]
   end
 
-  test :prioritization do
-    assert Sample.__protocol__(:prioritize) ==
-           [Range, Record, Tuple, Atom, List, BitString, Number, Function, PID, Port, Reference]
+  test :protocol_attribute do
+    assert Sample.__info__(:attributes)[:protocol] ==
+           [false: [Range, Record, Tuple, Atom, List, BitString, Number, Function, PID, Port, Reference]]
 
-    assert Prioritized.__protocol__(:prioritize) ==
-           [List, Record, Tuple, Atom, BitString, Number, Function, PID, Port, Reference, Any]
+    assert Prioritized.__info__(:attributes)[:protocol] ==
+           [false: [List, Record, Tuple, Atom, BitString, Number, Function, PID, Port, Reference, Any]]
+  end
+
+  defp get_callbacks(module, name, arity) do
+    callbacks = lc { :callback, info } inlist module.__info__(:attributes), do: hd(info)
+    List.keyfind(callbacks, { name, arity }, 0) |> elem(1)
   end
 
   test :defimpl do
@@ -137,11 +142,7 @@ defmodule ProtocolTest do
     assert Attribute.test(Foo[]) == { Attribute, Foo }
     assert Attribute.ProtocolTest.Foo.__impl__(:protocol) == Attribute
     assert Attribute.ProtocolTest.Foo.__impl__(:for) == Foo
-  end
-
-  defp get_callbacks(module, name, arity) do
-    callbacks = lc { :callback, info } inlist module.__info__(:attributes), do: hd(info)
-    List.keyfind(callbacks, { name, arity }, 0) |> elem(1)
+    assert Attribute.ProtocolTest.Foo.__info__(:attributes)[:impl] == [{ Attribute, Foo }]
   end
 
   test :defimpl_multi do
@@ -193,10 +194,12 @@ defmodule Protocol.ConsolidationTest do
   defrecord Bar, a: 0
 
   # Any is ignored because there is no fallback
-  { :ok, _ } = Protocol.Consolidation.apply_to(Sample, [Any, Foo, Bar])
+  { :ok, binary } = Protocol.Consolidation.apply_to(Sample, [Any, Foo, Bar])
+  :code.load_binary(Sample, 'protocol_test.exs', binary)
 
   # Any should be moved to the end
-  { :ok, _ } = Protocol.Consolidation.apply_to(Prioritized, [Any, Foo, Tuple])
+  { :ok, binary } = Protocol.Consolidation.apply_to(Prioritized, [Any, Foo, Tuple])
+  :code.load_binary(Prioritized, 'protocol_test.exs', binary)
 
   test :consolidated_impl_for do
     assert nil? Sample.impl_for(:foo)
@@ -241,8 +244,15 @@ defmodule Protocol.ConsolidationTest do
 
   test :consolidation_errors do
     defprotocol NoBeam, do: nil
-    assert Protocol.Consolidation.apply_to(Unknown, []) == { :error, :not_loaded }
     assert Protocol.Consolidation.apply_to(String, [])  == { :error, :not_a_protocol }
     assert Protocol.Consolidation.apply_to(NoBeam, [])  == { :error, :no_beam_info }
+  end
+
+  test :consolidated_attribute do
+    assert Sample.__info__(:attributes)[:protocol] ==
+           [true: [Range, Record, Tuple, Atom, List, BitString, Number, Function, PID, Port, Reference]]
+
+    assert Prioritized.__info__(:attributes)[:protocol] ==
+           [true: [List, Record, Tuple, Atom, BitString, Number, Function, PID, Port, Reference, Any]]
   end
 end
