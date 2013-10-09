@@ -6,6 +6,93 @@ defmodule Protocol.Consolidation do
   """
 
   @doc """
+  Extract all protocols from the given paths.
+
+  The paths can be either a char list or a string. Internally
+  they are worked on as char lists, so passing them as lists
+  avoid extra conversion.
+
+  ## Examples
+
+      # Get Elixir's ebin and retrieve all protocols
+      iex> path = :code.lib_dir(:elixir, :ebin)
+      iex> mods = Protocol.Consolidation.extract_protocols([path])
+      iex> Enumerable in mods
+      true
+
+  """
+  @spec extract_protocols([char_list | String.t]) :: [atom]
+  def extract_protocols(paths) do
+    extract_matching_by_attribute paths, 'Elixir.',
+      fn module, attributes ->
+        case attributes[:protocol] do
+          [{ _, _ }] -> module
+          _ -> nil
+        end
+      end
+  end
+
+  @doc """
+  Extract all types implemented for the given protocol from
+  the given paths.
+
+  The paths can be either a char list or a string. Internally
+  they are worked on as char lists, so passing them as lists
+  avoid extra conversion.
+
+  ## Examples
+
+      # Get Elixir's ebin and retrieve all protocols
+      iex> path = :code.lib_dir(:elixir, :ebin)
+      iex> mods = Protocol.Consolidation.extract_impls(Enumerable, [path])
+      iex> List in mods
+      true
+
+  """
+  @spec extract_impls(module, [char_list | String.t]) :: [atom]
+  def extract_impls(protocol, paths) when is_atom(protocol) do
+    prefix = atom_to_list(protocol) ++ '.'
+    extract_matching_by_attribute paths, prefix, fn
+      _mod, attributes ->
+        case attributes[:impl] do
+          [{ ^protocol, for }] -> for
+          _ -> nil
+        end
+    end
+  end
+
+  defp extract_matching_by_attribute(paths, prefix, callback) do
+    lc path inlist paths,
+       file inlist list_dir(path),
+       mod = extract_from_file(path, file, prefix, callback),
+       do: mod
+  end
+
+  defp list_dir(path) when is_list(path) do
+    case :file.list_dir(path) do
+      { :ok, files } -> files
+      _ -> []
+    end
+  end
+
+  defp list_dir(path), do: list_dir(to_char_list(path))
+
+  defp extract_from_file(path, file, prefix, callback) do
+    if :lists.prefix(prefix, file) and Path.extname(file) == '.beam' do
+      extract_from_beam(Path.join(path, file), callback)
+    end
+  end
+
+  defp extract_from_beam(file, callback) do
+    case :beam_lib.chunks(file, [:attributes]) do
+      {:ok, { module, [attributes: attributes] } } ->
+        callback.(module, attributes)
+       _ ->
+         nil
+    end
+  end
+
+  @doc """
   Receives a protocol and a list of implementations and
   consolidates the given protocol. Consolidation happens
   by changing the protocol `impl_for` in the abstract
@@ -32,18 +119,18 @@ defmodule Protocol.Consolidation do
   def apply_to(protocol, types) when is_atom(protocol) do
     { :ok, protocol }
     |> ensure_protocol
-    |> read_debug_info
     |> change_debug_info(types)
     |> compile
   end
 
   # Ensure the given module is loaded and is a protocol.
   defp ensure_protocol({ :ok, protocol }) do
-    case :beam_lib.chunks(beam_file(protocol), [:attributes]) do
-      {:ok, { ^protocol, [attributes: attributes] } } ->
+    case :beam_lib.chunks(beam_file(protocol), [:abstract_code, :attributes]) do
+      { :ok, { ^protocol, [abstract_code: { _raw, abstract_code },
+                           attributes: attributes] } } ->
         case attributes[:protocol] do
           [{ _, prioritized }] ->
-            { :ok, protocol, prioritized }
+            { :ok, protocol, prioritized, abstract_code }
           _ ->
             { :error, :not_a_protocol }
         end
@@ -53,18 +140,6 @@ defmodule Protocol.Consolidation do
   end
 
   defp ensure_protocol(other), do: other
-
-  # Read the debug information from the protocol, fails if not available.
-  defp read_debug_info({ :ok, protocol, prioritized }) do
-    case :beam_lib.chunks(beam_file(protocol), [:abstract_code]) do
-      {:ok, { ^protocol, [abstract_code: { _raw_abstract_v1, abstract_code }] } } ->
-        { :ok, protocol, prioritized, abstract_code }
-      _ ->
-        { :error, :no_beam_info }
-    end
-  end
-
-  defp read_debug_info(other), do: other
 
   defp beam_file(module) when is_atom(module) do
     case :code.which(module) do

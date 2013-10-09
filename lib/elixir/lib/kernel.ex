@@ -1255,7 +1255,7 @@ defmodule Kernel do
   scope.
 
   This means that, if the module `Bar` is moved to another file,
-  the references to `Bar` need to be updated or an alias needs to
+  the references to `Bar` needs to be updated or an alias needs to
   be explicitly set with the help of `Kernel.SpecialForms.alias/2`.
 
   ## Dynamic names
@@ -1862,32 +1862,32 @@ defmodule Kernel do
   ## Fallback to any
 
   In some cases, it may be convenient to provide a default
-  implementation for all types. This can be achieving by
-  setting `@fallback_to_any` to true in the protocol definition:
+  implementation for all types. This can be achieved by
+  setting `@fallback_to_any` to `true` in the protocol
+  definition:
 
       defprotocol Blank do
         @fallback_to_any true
         def blank?(data)
       end
 
-  Which can no be implemented as:
+  Which can now be implemented as:
 
       defimpl Blank, for: Any do
         def blank?(_), do: true
       end
 
-  One may ask: why such fallback is not always true by default?
+  One may wonder why such fallback is not true by default.
 
-  It is two-fold: first, the majority of protocols actually
-  require some action to be performed in a way it is not possible
-  to perform such action in a generic way for all types. In fact,
+  It is two-fold: first, the majority of protocols cannot
+  implement an action in a generic way for all types. In fact,
   providing a default implementation may be harmful, because users
   may rely on the default implementation instead of providing a
   specialized one.
 
-  Second, fallbacking to `Any` adds an extra lookup to all types,
+  Second, falling back to `Any` adds an extra lookup to all types,
   which is unecessary overhead unless an implementation for Any is
-  provided.
+  required.
 
   ## Types
 

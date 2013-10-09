@@ -255,4 +255,16 @@ defmodule Protocol.ConsolidationTest do
     assert Prioritized.__info__(:attributes)[:protocol] ==
            [true: [List, Record, Tuple, Atom, BitString, Number, Function, PID, Port, Reference, Any]]
   end
+
+  test :protocols_extraction do
+    protos = Protocol.Consolidation.extract_protocols([:code.lib_dir(:elixir, :ebin)])
+    assert Enumerable in protos
+    assert Inspect in protos
+  end
+
+  test :impls_extraction do
+    protos = Protocol.Consolidation.extract_impls(Enumerable, [:code.lib_dir(:elixir, :ebin)])
+    assert List in protos
+    assert Function in protos
+  end
 end
