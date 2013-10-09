@@ -195,15 +195,6 @@ defmodule MacroTest do
     end)
   end
 
-  test :expand_all do
-    assert Macro.expand_all(quote(do: oror(1, local_macro)), __ENV__) == (quote context: Kernel do
-      case 1 do
-        var!(oror, false) in [false, nil] -> :local_macro
-        var!(oror, false) -> var!(oror, false)
-      end
-    end)
-  end
-
   ## to_string
 
   test :var_to_string do

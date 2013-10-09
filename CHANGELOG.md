@@ -7,6 +7,7 @@
   * [String] Implement the extended grapheme cluster algorithm for `String` operations
 
 * Deprecations
+  * [Macro] `Macro.expand_all/2` is deprecated
 
 * Backwards incompatible changes
 
