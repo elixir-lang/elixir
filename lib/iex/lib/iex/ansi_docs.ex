@@ -31,7 +31,7 @@ defmodule IEx.ANSIDocs do
       doc
       |> String.split(["\r\n","\n"], trim: false)
       |> Enum.map(&String.rstrip/1)
-      |> process(_indent = "")
+      |> process("")
     else
       IO.puts doc
     end
@@ -95,18 +95,20 @@ defmodule IEx.ANSIDocs do
     process_para(rest, [line], indent)
   end
 
+
   defp process_para(doc=[ "" | _rest], para, indent) do
-    write_para(para, indent)
+    write_para(Enum.reverse(para), indent)
     process(doc, indent)
   end
 
   defp process_para([], para, indent) do
-    write_para(para, indent)
+    write_para(Enum.reverse(para), indent)
   end
 
   defp process_para([line | rest], para, indent) do
     process_para(rest, [ line | para ], indent)
   end
+
 
   defp process_code([], code, indent) do
     write_code(code, indent)
@@ -168,13 +170,12 @@ defmodule IEx.ANSIDocs do
   end
 
   defp write_para(para, indent) do
-    para = para |> Enum.reverse |> Enum.join(" ")
-    para = Regex.replace(%r{\[(.*?)\]\((.*?)\)}, para, "\\1 (\\2)")
+    para  = para |> Enum.join(" ") |> handle_links
     words = para |> String.split(%r{\s})
     width = column_width(indent)
     IO.write(indent)
     write_with_wrap(words, width, width, indent)
-    IO.puts ""
+    IO.puts IO.ANSI.reset
   end
 
   defp write_code(code, indent) do
@@ -216,11 +217,10 @@ defmodule IEx.ANSIDocs do
     if punc,    do: IO.write(punc)
 
     unless length(words) == 0, do: IO.write(" ")
-
     write_with_wrap(words, left_on_line - word_length - 1, max_columns, indent)
   end
 
-  defp look_for_markup(word) when size(word) < 2 do
+  defp look_for_markup(word) when size(word) <= 2 do
     { word, nil, nil, nil }
   end
 
@@ -244,6 +244,10 @@ defmodule IEx.ANSIDocs do
     { word, leader, trailer, punc }
   end
 
+  defp handle_links(text) do
+    Regex.replace(%r{\[(.*?)\]\((.*?)\)}, text, "\\1 (\\2)")
+  end
+
   # divide the lines into the leading portion that can be part of
   # the list and the rest. The first group is lines with at least 2
   # leading spaces (which we remove). 
@@ -253,7 +257,7 @@ defmodule IEx.ANSIDocs do
     { Enum.map(list, &chop(&1, 2)), rest }
   end
 
-  defp list_leader?(<<"  "::utf8, rest::binary>>), do: true
+  defp list_leader?(<<"  "::utf8, _::binary>>), do: true
   defp list_leader?(""), do: true
   defp list_leader?(_),  do: false
 
@@ -267,11 +271,11 @@ defmodule IEx.ANSIDocs do
   defp color_name_for(?_), do: :doc_underline
   defp color_name_for(?*), do: :doc_bold
 
-
   defp color(color_name) do
     colors = IEx.Options.get(:colors)
+
     if colors[:enabled] do
-      IO.ANSI.escape_fragment("%{#{colors[color_name]}}")
+      IO.ANSI.escape_fragment("%{#{colors[color_name]}}", true)
     else
       ""
     end
