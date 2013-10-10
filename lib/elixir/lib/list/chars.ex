@@ -9,8 +9,6 @@ defprotocol List.Chars do
   by Kernel invokes this protocol.
   """
 
-  @only [BitString, List, Atom, Number, Record]
-
   def to_char_list(thing)
 end
 
