@@ -20,7 +20,6 @@ defmodule Protocol do
 
         # Set up a clear slate to store defined functions
         @functions []
-        @prioritize []
         @fallback_to_any false
 
         # Deprecated
@@ -38,32 +37,20 @@ defmodule Protocol do
 
   defp after_defprotocol do
     quote unquote: false do
+      msg = "is deprecated and should be removed. " <>
+            "Note if you want to fallback to Any, you have to set @fallback_to_any true"
+
       if @only do
-        IO.write "warning: @only in protocols is deprecated, use @prioritize instead\n#{Exception.format_stacktrace}"
+        IO.write "warning: @only in protocol #{inspect __MODULE__} " <> msg
         @fallback_to_any @fallback_to_any || Any in @only
       end
 
       if @except do
-        IO.write "warning: @except in protocols is deprecated, use @prioritize instead\n#{Exception.format_stacktrace}"
+        IO.write "warning: @except in protocol #{inspect __MODULE__} " <> msg
         @fallback_to_any @fallback_to_any || not(Any in @except)
       end
 
-      { arg, bodies, prioritized } = Protocol.impl_for(__MODULE__, @prioritize)
-
-      if @fallback_to_any do
-        @prioritize prioritized ++ [Any]
-        Kernel.defp any_fallback do
-          try do
-            __MODULE__.Any.__impl__(:name)
-          catch
-            :error, :undef, [[{ __MODULE__.Any, :__impl__, [:name], _ }|_]|_] ->
-              nil
-          end
-        end
-      else
-        @prioritize prioritized
-        Kernel.defp any_fallback, do: nil
-      end
+      { arg, bodies, rec } = Protocol.impl_for(__MODULE__)
 
       @spec impl_for(term) :: module | nil
       Kernel.def impl_for(data)
@@ -77,6 +64,26 @@ defmodule Protocol do
         impl_for(data) || raise(Protocol.UndefinedError, protocol: __MODULE__, value: data)
       end
 
+      # Handle special Record type
+      Kernel.defp rec_impl_for(unquote(arg)), do: unquote(rec)
+
+      # Handle special Any type
+      if @fallback_to_any do
+        Kernel.defp any_impl_for do
+          try do
+            __MODULE__.Any.__impl__(:name)
+          catch
+            :error, :undef, [[{ __MODULE__.Any, :__impl__, [:name], _ }|_]|_] ->
+              nil
+          end
+        end
+      else
+        Kernel.defp any_impl_for, do: nil
+      end
+
+      # Inline both helpers
+      @compile { :inline, any_impl_for: 0, rec_impl_for: 1 }
+
       unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
         @type t :: term
       end
@@ -84,7 +91,7 @@ defmodule Protocol do
       # Store information as an attribute so it
       # can be read without loading the module.
       Module.register_attribute(__MODULE__, :protocol, persist: true)
-      @protocol { false, @prioritize }
+      @protocol { !!@fallback_to_any, false }
 
       @doc false
       Kernel.def __protocol__(:name),      do: __MODULE__
@@ -148,41 +155,34 @@ defmodule Protocol do
   # Builtin types.
   @doc false
   def builtin do
-    [ Record, Tuple, Atom, List, BitString, Number,
+    [ Tuple, Atom, List, BitString, Number,
       Function, PID, Port, Reference, Any ]
-  end
-
-  # Any is simply discarded
-  defp ensure_no_clobbering([Any|t], acc) do
-    ensure_no_clobbering(t, acc)
-  end
-
-  # Tuple is a fallback for Record
-  defp ensure_no_clobbering([Tuple|t], acc) do
-    if :lists.member(Record, acc) do
-      ensure_no_clobbering(t, [Tuple|acc])
-    else
-      ensure_no_clobbering(:lists.delete(Record, t), [Tuple,Record|acc])
-    end
-  end
-
-  defp ensure_no_clobbering([h|t], acc) do
-    ensure_no_clobbering(t, [h|acc])
-  end
-
-  defp ensure_no_clobbering([], acc) do
-    :lists.reverse(acc)
   end
 
   # Implements the function that detects the protocol and
   # returns the module to dispatch to.
   @doc false
-  def impl_for(current, prioritize) do
-    prioritized = prioritize ++ :lists.foldl(&:lists.delete/2, builtin, prioritize)
-    prioritized = ensure_no_clobbering(prioritized, [])
-
+  def impl_for(current) do
     arg = quote(do: arg)
-    { arg, lc(mod inlist prioritized, do: impl_for(current, mod, arg)), prioritized }
+    all = [Record|builtin]
+
+    { arg,
+      lc(mod inlist all, do: impl_for(current, mod, arg)),
+      rec_impl_for(current, arg) }
+  end
+
+  defp rec_impl_for(current, arg) do
+    fallback = impl_for(current, Tuple, arg) |> elem(1)
+
+    quote do
+      target = Module.concat(unquote(current), unquote(arg))
+      try do
+        target.__impl__(:name)
+      catch
+        :error, :undef, [[{ ^target, :__impl__, [:name], _ }|_]|_] ->
+          unquote(fallback)
+      end
+    end
   end
 
   defp impl_for(current, Record, arg) do
@@ -192,16 +192,8 @@ defmodule Protocol do
       atom = :erlang.element(1, unquote(arg))
 
       case not(atom in unquote(builtin)) and match?('Elixir.' ++ _, atom_to_list(atom)) do
-        true ->
-          target = Module.concat(unquote(current), :erlang.element(1, unquote(arg)))
-          try do
-            target.__impl__(:name)
-          catch
-            :error, :undef, [[{ ^target, :__impl__, [:name], _ }|_]|_] ->
-              unquote(fallback)
-          end
-        false ->
-          unquote(fallback)
+        true  -> rec_impl_for(atom)
+        false -> unquote(fallback)
       end
     end
 
@@ -221,15 +213,7 @@ defmodule Protocol do
   defp impl_for(current, Reference, arg), do: impl_with_fallback(Reference, :is_reference, current, Any, arg)
 
   defp impl_for(_current, Any, _arg) do
-    { true, quote(do: any_fallback) }
-  end
-
-  # Prioritized mdules are dispatched directly, falling back to tuples.
-  defp impl_for(current, mod, arg) do
-    quote do
-      { is_record(unquote(arg), unquote(mod)),
-        unquote(with_fallback(Module.concat(current, mod), current, Tuple, arg)) }
-    end
+    { true, quote(do: any_impl_for) }
   end
 
   # Defines an implementation with fallback to the given module.

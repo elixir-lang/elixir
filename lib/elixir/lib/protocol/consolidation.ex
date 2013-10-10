@@ -129,8 +129,8 @@ defmodule Protocol.Consolidation do
       { :ok, { ^protocol, [abstract_code: { _raw, abstract_code },
                            attributes: attributes] } } ->
         case attributes[:protocol] do
-          [{ _, prioritized }] ->
-            { :ok, protocol, prioritized, abstract_code }
+          [{ any, _consolidated }] ->
+            { :ok, protocol, any, abstract_code }
           _ ->
             { :error, :not_a_protocol }
         end
@@ -150,26 +150,39 @@ defmodule Protocol.Consolidation do
 
   # Change the debug information to the optimized
   # impl_for/1 dispatch version.
-  defp change_debug_info({ :ok, protocol, prioritized, code }, types) do
-    change_impl_for(code, protocol, prioritized, types, [])
+  defp change_debug_info({ :ok, protocol, any, code }, types) do
+    types   = if any, do: types, else: List.delete(types, Any)
+    records = types -- Protocol.builtin
+    builtin = Protocol.builtin -- (Protocol.builtin -- types)
+    builtin = if records != [], do: [Record|builtin], else: builtin
+    change_impl_for(code, protocol, builtin, records, [])
   end
 
   defp change_debug_info(other, _types), do: other
 
-  defp change_impl_for([{ :attribute, line, :protocol, _ }|t], protocol, prioritized, types, acc) do
-    change_impl_for(t, protocol, prioritized, types,
-                    [{ :attribute, line, :protocol, { true, prioritized } }|acc])
+  defp change_impl_for([{ :attribute, line, :protocol, _ }|t], protocol, builtin, records, acc) do
+    change_impl_for(t, protocol, builtin, records,
+                    [{ :attribute, line, :protocol, { Any in builtin, true } }|acc])
   end
 
-  defp change_impl_for([{ :function, line, :impl_for, 1, _ }|t], protocol, prioritized, types, acc) do
-    all     = prioritize(prioritized, types)
-    clauses = lc type inlist all, do: clause_for(type, protocol, line)
+  defp change_impl_for([{ :function, line, :impl_for, 1, _ }|t], protocol, builtin, records, acc) do
+    clauses = lc type inlist builtin, do: clause_for(type, protocol, line)
 
-    unless Any in all do
-      clauses = clauses ++ [fallback_clause_for(protocol, line)]
+    unless Any in builtin do
+      clauses = clauses ++ [fallback_clause_for(nil, protocol, line)]
     end
 
-    { :ok, protocol, Enum.reverse(acc) ++ [{ :function, line, :impl_for, 1, clauses }|t] }
+    change_impl_for(t, protocol, builtin, records,
+                    [{ :function, line, :impl_for, 1, clauses }|acc])
+  end
+
+  defp change_impl_for([{ :function, line, :rec_impl_for, 1, _ }|t], protocol, builtin, records, acc) do
+    fallback = if Tuple in builtin, do: Module.concat(protocol, Tuple)
+    clauses  = lc type inlist records, do: record_clause_for(type, protocol, line)
+    clauses  = clauses ++ [fallback_clause_for(fallback, protocol, line)]
+
+    { :ok, protocol,
+      Enum.reverse(acc) ++ [{ :function, line, :rec_impl_for, 1, clauses }|t] }
   end
 
   defp change_impl_for([h|t], protocol, info, types, acc) do
@@ -178,26 +191,6 @@ defmodule Protocol.Consolidation do
 
   defp change_impl_for([], _protocol, _info, _types, _acc) do
     { :error, :not_a_protocol }
-  end
-
-  # Records should expand to all non-builtin types
-  defp prioritize([Record|t], types) do
-    records = types -- Protocol.builtin
-    records ++ prioritize(t, types)
-  end
-
-  # For each builtin type, get it from the list if available
-  defp prioritize([h|t], types) do
-    if h in types do
-      [h|prioritize(t, types)]
-    else
-      prioritize(t, types)
-    end
-  end
-
-  # Everything was processed
-  defp prioritize([], _types) do
-    []
   end
 
   defp clause_for(Tuple, protocol, line),     do: builtin_clause_for(Tuple, :is_tuple, protocol, line)
@@ -215,19 +208,24 @@ defmodule Protocol.Consolidation do
       [{ :atom, line, Module.concat(protocol, Any) }]}
   end
 
-  defp clause_for(other, protocol, line) do
+  defp clause_for(Record, _protocol, line) do
     {:clause, line, [{:var, line, :x}],
       [[{:op, line, :andalso,
           {:call, line,
             {:remote, line, {:atom, line, :erlang}, {:atom, line, :is_tuple}},
             [{:var, line, :x}]},
-          {:op, line, :==,
-            {:call, line,
+          {:call, line,
+            {:remote, line, {:atom, line, :erlang}, {:atom, line, :is_atom}},
+            [{:call, line,
               {:remote, line, {:atom, line, :erlang}, {:atom, line, :element}},
-              [{:integer, line, 1}, {:var, line, :x}]},
-            {:atom, line, other}}
+              [{:integer, line, 1}, {:var, line, :x}]
+            }]},
       }]],
-      [{:atom, line, Module.concat(protocol, other)}]}
+      [{:call, line,
+          {:atom, line, :rec_impl_for},
+          [{:call, line,
+            {:remote, line, {:atom, line, :erlang}, {:atom, line, :element}},
+            [{:integer, line, 1}, {:var, line, :x}]}]}]}
   end
 
   defp builtin_clause_for(mod, guard, protocol, line) do
@@ -240,9 +238,14 @@ defmodule Protocol.Consolidation do
       [{:atom, line, Module.concat(protocol, mod)}]}
   end
 
-  defp fallback_clause_for(_protocol, line) do
+  defp record_clause_for(other, protocol, line) do
+    {:clause, line, [{:atom, line, other}], [],
+      [{:atom, line, Module.concat(protocol, other)}]}
+  end
+
+  defp fallback_clause_for(value, _protocol, line) do
     {:clause, line, [{:var, line, :_}], [],
-      [{ :atom, line, nil }]}
+      [{ :atom, line, value }]}
   end
 
   # Finally compile the module and emit its bytecode.

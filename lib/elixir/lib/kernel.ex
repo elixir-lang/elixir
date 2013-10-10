@@ -1902,21 +1902,6 @@ defmodule Kernel do
   The `@spec` above expresses that all types allowed to implement the
   given protocol are valid argument types for the given function.
 
-  ## Prioritization
-
-  Elixir allows protocols lookups to be prioritized. This works as a hint
-  for the Elixir compiler to prioritize the dispatch for some specific
-  implementations:
-
-      defprotocol Blank do
-        @prioritize [List, Atom, HashDict]
-        @doc "Returns true if data is considered blank/empty"
-        def blank?(data)
-      end
-
-  The example above prioritizes the dispatch for lists, atoms
-  and hash dicts. All other types will be tried afterwards.
-
   ## Reflection
 
   Any protocol module contains three extra functions:

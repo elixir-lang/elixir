@@ -5,14 +5,12 @@ defmodule ProtocolTest do
 
   defprotocol Sample do
     @type t :: any
-    @prioritize [Range]
     @doc "Blank"
     @spec blank(t) :: boolean
     def blank(thing)
   end
 
-  defprotocol Prioritized do
-    @prioritize [List, Tuple, Any]
+  defprotocol WithAny do
     @fallback_to_any true
     @doc "Blank"
     def blank(thing)
@@ -34,19 +32,19 @@ defmodule ProtocolTest do
     end
   end
 
-  defimpl Prioritized, for: Foo do
+  defimpl WithAny, for: Foo do
     def blank(record) do
       record.a + record.b == 0
     end
   end
 
-  defimpl Prioritized, for: Tuple do
+  defimpl WithAny, for: Tuple do
     def blank(_tuple) do
       false
     end
   end
 
-  defimpl Prioritized, for: Any do
+  defimpl WithAny, for: Any do
     def blank(_any) do
       true
     end
@@ -75,12 +73,14 @@ defmodule ProtocolTest do
   end
 
   test :protocol_priority_does_not_override_records do
-    assert Prioritized.impl_for(Foo[]) ==
-           Prioritized.ProtocolTest.Foo
+    assert WithAny.impl_for(Foo[])    == WithAny.ProtocolTest.Foo
+    assert WithAny.impl_for(Range[])  == WithAny.Tuple
+    assert WithAny.impl_for({ :foo }) == WithAny.Tuple
+    assert WithAny.impl_for({})       == WithAny.Tuple
   end
 
   test :protocol_with_fallback do
-    assert Prioritized.impl_for(self) == Prioritized.Any
+    assert WithAny.impl_for(self) == WithAny.Any
   end
 
   test :protocol_not_implemented do
@@ -109,18 +109,15 @@ defmodule ProtocolTest do
 
   test :protocol_callback do
     assert get_callbacks(Sample, :blank, 1) ==
-      [{:type, 10, :fun, [{:type, 10, :product, [{:type, 10, :t, []}]}, {:type, 10, :boolean, []}]}]
+      [{:type, 9, :fun, [{:type, 9, :product, [{:type, 9, :t, []}]}, {:type, 9, :boolean, []}]}]
 
-    assert get_callbacks(Prioritized, :blank, 1) ==
-      [{:type, 18, :fun, [{:type, 18, :product, [{:type, 18, :t, []}]}, {:type, 18, :term, []}]}]
+    assert get_callbacks(WithAny, :blank, 1) ==
+      [{:type, 16, :fun, [{:type, 16, :product, [{:type, 16, :t, []}]}, {:type, 16, :term, []}]}]
   end
 
   test :protocol_attribute do
-    assert Sample.__info__(:attributes)[:protocol] ==
-           [false: [Range, Record, Tuple, Atom, List, BitString, Number, Function, PID, Port, Reference]]
-
-    assert Prioritized.__info__(:attributes)[:protocol] ==
-           [false: [List, Record, Tuple, Atom, BitString, Number, Function, PID, Port, Reference, Any]]
+    assert Sample.__info__(:attributes)[:protocol] == [{ false, false }]
+    assert WithAny.__info__(:attributes)[:protocol] == [{ true, false }]
   end
 
   defp get_callbacks(module, name, arity) do
@@ -161,7 +158,7 @@ end
 
 ## Those protocols needs to be the same as above.
 path = Path.expand("../ebin", __DIR__)
-Code.append_path(path)
+
 compile = fn { :module, module, binary, _ } ->
   :code.purge(module)
   :code.delete(module)
@@ -173,7 +170,6 @@ defmodule Protocol.ConsolidationTest do
 
   compile.(
     defprotocol Sample do
-      @prioritize [Range]
       @type t :: any
       @doc "Blank"
       @spec blank(t) :: boolean
@@ -182,8 +178,7 @@ defmodule Protocol.ConsolidationTest do
   )
 
   compile.(
-    defprotocol Prioritized do
-      @prioritize [List, Tuple, Any]
+    defprotocol WithAny do
       @fallback_to_any true
       @doc "Blank"
       def blank(thing)
@@ -193,13 +188,15 @@ defmodule Protocol.ConsolidationTest do
   defrecord Foo, a: 0, b: 0
   defrecord Bar, a: 0
 
+  Code.append_path(path)
+
   # Any is ignored because there is no fallback
   { :ok, binary } = Protocol.Consolidation.apply_to(Sample, [Any, Foo, Bar])
   :code.load_binary(Sample, 'protocol_test.exs', binary)
 
   # Any should be moved to the end
-  { :ok, binary } = Protocol.Consolidation.apply_to(Prioritized, [Any, Foo, Tuple])
-  :code.load_binary(Prioritized, 'protocol_test.exs', binary)
+  { :ok, binary } = Protocol.Consolidation.apply_to(WithAny, [Any, Foo, Tuple])
+  :code.load_binary(WithAny, 'protocol_test.exs', binary)
 
   test :consolidated_impl_for do
     assert nil? Sample.impl_for(:foo)
@@ -224,11 +221,14 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test :consolidated_impl_for_prioritized do
-    assert Prioritized.impl_for(ProtocolTest.Foo[]) == Prioritized.Tuple
+    assert WithAny.impl_for(Foo[])    == WithAny.Protocol.ConsolidationTest.Foo
+    assert WithAny.impl_for(Range[])  == WithAny.Tuple
+    assert WithAny.impl_for({ :foo }) == WithAny.Tuple
+    assert WithAny.impl_for({})       == WithAny.Tuple
   end
 
   test :consolidated_fallback do
-    assert Prioritized.impl_for(self) == Prioritized.Any
+    assert WithAny.impl_for(self) == WithAny.Any
   end
 
   test :consolidated_docs do
@@ -249,11 +249,8 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test :consolidated_attribute do
-    assert Sample.__info__(:attributes)[:protocol] ==
-           [true: [Range, Record, Tuple, Atom, List, BitString, Number, Function, PID, Port, Reference]]
-
-    assert Prioritized.__info__(:attributes)[:protocol] ==
-           [true: [List, Record, Tuple, Atom, BitString, Number, Function, PID, Port, Reference, Any]]
+    assert Sample.__info__(:attributes)[:protocol] == [{ false, true }]
+    assert WithAny.__info__(:attributes)[:protocol] == [{ true, true }]
   end
 
   test :protocols_extraction do
