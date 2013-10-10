@@ -3,20 +3,22 @@ defmodule Mix.Tasks.Test do
     @moduledoc false
 
     def start(compile_path, opts) do
-      IO.write "Cover compiling modules ... "
+      Mix.shell.info "Cover compiling modules ... "
       :cover.start
       :cover.compile_beam_directory(compile_path |> to_char_list)
-      IO.puts "ok"
 
-      output = opts[:output]
+      if :application.get_env(:ex_unit, :started) != { :ok, true } do
+        output = opts[:output]
 
-      System.at_exit fn(_) ->
-        IO.write "\nGenerating cover results ... "
-        File.mkdir_p!(output)
-        Enum.each :cover.modules, fn(mod) ->
-          :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
+        System.at_exit fn(_) ->
+          Mix.shell.info "\nGenerating cover results ... "
+          File.mkdir_p!(output)
+          Enum.each :cover.modules, fn(mod) ->
+            :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
+          end
         end
-        IO.puts "ok"
+
+        :application.set_env(:cover, :started, true)
       end
     end
   end
