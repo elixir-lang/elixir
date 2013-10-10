@@ -1,13 +1,18 @@
 # v0.10.4-dev
 
 * Enhancements
+  * [Kernel] Improve stacktraces on command line interfaces
+  * [Protocol] Protocols now provide `impl_for/1` and `impl_for!/1` functions which receive a structure and returns its respective implementation, otherwise returns nil or an error
   * [String] Update to Unicode 6.3.0
 
 * Bug fixes
+  * [Kernel] Fix a bug where aliases hygiene was not being respected
   * [String] Implement the extended grapheme cluster algorithm for `String` operations
 
 * Deprecations
   * [Macro] `Macro.expand_all/2` is deprecated
+  * [Protocol] `@only` and `@except` in protocols are now deprecated
+  * [Protocol] Protocols no longer fallbacks to `Any` out of the box (this functionality needs to be explicitly enabled by setting `@fallback_to_any` to true)
 
 * Backwards incompatible changes
 
