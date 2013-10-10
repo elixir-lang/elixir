@@ -13,9 +13,9 @@ defmodule IEx.AnsiDocsTest do
 
   @opts [colors: @colors]
 
-  def format(str, opts // [], use_ansi // true) do
+  def format(str, use_ansi // true) do
     cmd = "IEx.ANSIDocs.format(#{inspect str}, #{inspect use_ansi})"
-    capture_iex(cmd, opts)
+    capture_iex(cmd, @opts)
   end
 
   test "non-ansi heading just uses an asterisk" do
@@ -30,32 +30,32 @@ defmodule IEx.AnsiDocsTest do
   end
 
   test "first level heading is converted" do
-    result = format("# wibble\n\ntext\n", @opts)
-    assert result == "\e[33m\e[1mWIBBLE\e[0m\n\e[0m\ntext"
+    result = format("# wibble\n\ntext\n")
+    assert result == "\e[33m\e[1mWIBBLE\e[0m\n\e[0m\ntext\n\e[0m"
   end
 
   test "second level heading is converted" do
-    result = format("## wibble\n\ntext\n", @opts)
-    assert result == "\e[33m\e[1mwibble\e[0m\n\e[0m\ntext"
+    result = format("## wibble\n\ntext\n")
+    assert result == "\e[33m\e[1mwibble\e[0m\n\e[0m\ntext\n\e[0m"
   end
 
   test "third level heading is converted" do
-    result = format("## wibble\n\ntext\n", @opts)
-    assert result == "\e[33m\e[1mwibble\e[0m\n\e[0m\ntext"
+    result = format("## wibble\n\ntext\n")
+    assert result == "\e[33m\e[1mwibble\e[0m\n\e[0m\ntext\n\e[0m"
   end
 
   test "code block is converted" do
-    result = format("line\n\n    code\n    code2\n\nline2\n", @opts)
-    assert result == "line\n\n\e[36m\e[1m┃ code\n┃ code2\e[0m\n\e[0m\nline2"
+    result = format("line\n\n    code\n    code2\n\nline2\n")
+    assert result == "line\n\e[0m\n\e[36m\e[1m┃ code\n┃ code2\e[0m\n\e[0m\nline2\n\e[0m"
   end
 
   test "list is converted" do
-    result = format("* one\n* two\n* three\n", @opts)
+    result = format("* one\n* two\n* three\n")
     assert result == "• one\n• two\n• three"
   end
 
   test "list with continuation is converted" do
-    result = format("* one\n  two\n  three\n* four", @opts)
+    result = format("* one\n  two\n  three\n* four")
     assert result == "• one two three\n• four"
   end
 
@@ -66,23 +66,59 @@ defmodule IEx.AnsiDocsTest do
 
   test "paragraphs are split" do
     result = format("para1\n\npara2")
-    assert result == "para1\n\npara2"
+    assert result == "para1\n\e[0m\npara2\n\e[0m"
   end
 
   test "extra whitespace is ignored between paras" do
     result = format("para1\n   \npara2")
-    assert result == "para1\n\npara2"
+    assert result == "para1\n\e[0m\npara2\n\e[0m"
   end
 
   test "extra whitespace doesn't mess up a following list" do
     result = format("para1\n   \n* one\n* two")
-    assert result == "para1\n\n• one\n• two"
+    assert result == "para1\n\e[0m\n• one\n• two"
   end
 
-  test "star between words doesn't get interpreted as bold" do
+  test "star/underscore/backtick works" do
+    result = format("*world*")
+    assert result == "\e[1mworld\e[0m\n\e[0m"
+
+    result = format("**world**")
+    assert result == "\e[1m*world\e[0m\n\e[0m"
+
+    result = format("_world_")
+    assert result == "\e[4mworld\e[0m\n\e[0m"
+
+    result = format("`world`")
+    assert result == "\e[36mworld\e[0m\n\e[0m"
+  end
+
+  test "star/underscore/backtick between words doesn't get interpreted" do
     result = format("unit * size")
-    assert result == "unit * size"
+    assert result == "unit * size\n\e[0m"
+
+    result = format("unit ** size")
+    assert result == "unit ** size\n\e[0m"
+
+    result = format("unit _ size")
+    assert result == "unit _ size\n\e[0m"
+
+    result = format("unit ` size")
+    assert result == "unit ` size\n\e[0m"
   end
 
+  test "backtick close to underscores gets interpreted as code" do
+    result = format("`__world__`")
+    assert result == "\e[36m__world__\e[0m\n\e[0m"
+  end
 
+  test "backtick works accross words" do
+    result = format("`hello world`")
+    assert result == "\e[36mhello world\e[0m\n\e[0m"
+  end
+
+  test "backtick works inside parenthesis" do
+    result = format("(`hello world`)")
+    assert result == "(\e[36mhello world\e[0m)\n\e[0m"
+  end
 end
