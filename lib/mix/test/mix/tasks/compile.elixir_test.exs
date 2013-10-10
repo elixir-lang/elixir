@@ -66,6 +66,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   test "compiles only changed files" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+      assert_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
+
       Mix.shell.flush
       purge [A, B, C]
 
