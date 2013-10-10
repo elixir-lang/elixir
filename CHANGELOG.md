@@ -6,6 +6,7 @@
   * [String] Update to Unicode 6.3.0
 
 * Bug fixes
+  * [Exception] Ensure `defexception` fields can be set dynamically
   * [Kernel] Fix a bug where aliases hygiene was not being respected
   * [String] Implement the extended grapheme cluster algorithm for `String` operations
 

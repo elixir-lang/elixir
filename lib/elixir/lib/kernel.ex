@@ -1579,7 +1579,7 @@ defmodule Kernel do
       unquote(Keyword.get opts, :do)
     end)
 
-    fields = [{ :__exception__, :__exception__ }|fields]
+    fields = quote do: [__exception__: :__exception__] ++ unquote(fields)
     record = Record.defrecord(name, fields, opts)
 
     quote do

@@ -3,6 +3,9 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule Kernel.ExceptionTest do
   use ExUnit.Case, async: true
 
+  # Ensure fields passed through an expression are valid
+  defexception Custom, %w(message)a
+
   test :is_exception do
     assert is_exception(RuntimeError.new)
     refute is_exception(empty_tuple)
@@ -94,7 +97,7 @@ defmodule Kernel.ExceptionTest do
     end
     file = to_char_list(__FILE__)
     assert {Kernel.ExceptionTest, :test_raise_preserves_the_stacktrace, _,
-           [file: ^file, line: 90]} = stacktrace # line #90 is sensitive
+           [file: ^file, line: 93]} = stacktrace # line #90 is sensitive
   end
 
   defp empty_tuple, do: {}
