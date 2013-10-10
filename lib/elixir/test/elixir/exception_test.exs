@@ -97,7 +97,7 @@ defmodule Kernel.ExceptionTest do
     end
     file = to_char_list(__FILE__)
     assert {Kernel.ExceptionTest, :test_raise_preserves_the_stacktrace, _,
-           [file: ^file, line: 93]} = stacktrace # line #90 is sensitive
+           [file: ^file, line: 93]} = stacktrace # line is sensitive
   end
 
   defp empty_tuple, do: {}
