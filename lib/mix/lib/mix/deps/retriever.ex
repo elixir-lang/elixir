@@ -142,7 +142,7 @@ defmodule Mix.Deps.Retriever do
     path = Path.join(Mix.project[:deps_path], app)
     opts = Keyword.put(opts, :dest, path)
 
-    { scm, opts } = Enum.find_value scms, fn(scm) ->
+    { scm, opts } = Enum.find_value scms, { nil, [] }, fn(scm) ->
       (new = scm.accepts_options(app, opts)) && { scm, new }
     end
 
@@ -155,8 +155,8 @@ defmodule Mix.Deps.Retriever do
         opts: opts
       ]
     else
-      supported = Enum.join scms, ", "
-      raise Mix.Error, message: "#{inspect Mix.Project.get} did not specify a supported scm, expected one of: " <> supported
+      raise Mix.Error, message: "#{inspect Mix.Project.get} did not specify a supported scm " <>
+                                "for app #{inspect app}, expected one of :git, :path or :in_umbrella"
     end
   end
 

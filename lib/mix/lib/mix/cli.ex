@@ -15,6 +15,17 @@ defmodule Mix.CLI do
     end
   end
 
+  defp proceed(args) do
+    Mix.Local.append_archives
+    Mix.Local.append_paths
+
+    args = load_mixfile(args)
+    { task, args } = get_task(args)
+    change_env(task)
+
+    run_task task, args
+  end
+
   defp load_mixfile(args) do
     file = "mix.exs"
 
@@ -41,6 +52,12 @@ defmodule Mix.CLI do
 
   defp run_task(name, args) do
     try do
+      if Mix.Project.get do
+        Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
+        Mix.Task.reenable "loadpaths"
+        Mix.Task.reenable "deps.loadpaths"
+      end
+
       Mix.Task.run(name, args)
     rescue
       # We only rescue exceptions in the mix namespace, all
@@ -55,23 +72,6 @@ defmodule Mix.CLI do
           raise exception, [], stacktrace
         end
     end
-  end
-
-  defp proceed(args) do
-    Mix.Local.append_archives
-    Mix.Local.append_paths
-
-    args = load_mixfile(args)
-    { task, args } = get_task(args)
-    change_env(task)
-
-    if Mix.Project.get do
-      Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
-      Mix.Task.reenable "loadpaths"
-      Mix.Task.reenable "deps.loadpaths"
-    end
-
-    run_task task, args
   end
 
   defp change_env(task) do

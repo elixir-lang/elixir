@@ -23,6 +23,12 @@ defmodule Mix.DepsTest do
     end
   end
 
+  defmodule NoSCMApp do
+    def project do
+      [ deps: [ { :ok, "~> 0.1", not_really: :ok } ] ]
+    end
+  end
+
   test "extracts all dependencies from the given project" do
     Mix.Project.push DepsApp
 
@@ -44,6 +50,18 @@ defmodule Mix.DepsTest do
     in_fixture "deps_status", fn ->
       deps = Mix.Deps.all
       assert Enum.find deps, &match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
+    end
+  after
+    Mix.Project.pop
+  end
+
+  test "raises when no SCM is specified" do
+    Mix.Project.push NoSCMApp
+
+    in_fixture "deps_status", fn ->
+      msg = "Mix.DepsTest.NoSCMApp did not specify a supported scm for app :ok, " <>
+            "expected one of :git, :path or :in_umbrella"
+      assert_raise Mix.Error, msg, fn -> Mix.Deps.all end
     end
   after
     Mix.Project.pop
