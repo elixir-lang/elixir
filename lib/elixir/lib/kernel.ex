@@ -1249,11 +1249,14 @@ defmodule Kernel do
         end
       end
 
-  In the example above, two modules `Foo` and `Foo.Bar` are created. The
-  second can be accessed as `Bar` inside `Foo` in the same
-  lexical scope. If the module `Bar` is moved to another
-  file, it needs to be referenced via the full name or an
-  alias need to be set with the help of `Kernel.SpecialForms.alias/2`.
+  In the example above, two modules `Foo` and `Foo.Bar` are created.
+  When nesting, Elixir automatically creates an alias, allowing the
+  second module `Foo.Bar` to be accessed as `Bar` in the same lexical
+  scope.
+
+  This means that, if the module `Bar` is moved to another file,
+  the references to `Bar` needs to be updated or an alias needs to
+  be explicitly set with the help of `Kernel.SpecialForms.alias/2`.
 
   ## Dynamic names
 
@@ -1265,7 +1268,8 @@ defmodule Kernel do
       end
 
   Elixir will accept any module name as long as the expression
-  returns an atom.
+  returns an atom. Note that, when a dynamic name is used, an
+  alias is not automatically created, even when nested.
   """
   defmacro defmodule(name, do: contents)
 
@@ -1579,10 +1583,10 @@ defmodule Kernel do
     record = Record.defrecord(name, fields, opts)
 
     quote do
-      unquote(record)
+      { :module, name, _, _ } = unquote(record)
 
-      unless :erlang.function_exported(unquote(name), :message, 1) do
-        raise "expected exception #{inspect unquote(name)} to implement message/1"
+      unless :erlang.function_exported(name, :message, 1) do
+        raise "expected exception #{inspect name} to implement message/1"
       end
     end
   end
@@ -1786,8 +1790,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines the current module as a protocol and specifies the API
-  that should be implemented.
+  Defines a module as a protocol and specifies the API that
+  should be defined by its implementations.
 
   ## Examples
 
@@ -1827,9 +1831,9 @@ defmodule Kernel do
       end
 
   And we would have to define the implementation for all types.
-  The types available are:
+  The supported types available are:
 
-  * Record
+  * Record (see below)
   * Tuple
   * Atom
   * List
@@ -1839,56 +1843,51 @@ defmodule Kernel do
   * PID
   * Port
   * Reference
-  * Any
-
-  ## Selecting implementations
-
-  Implementing the protocol for all default types can be cumbersome.
-  Even more, if you consider that Number, Function, PID, Port and
-  Reference are never going to be blank, it would be easier if we
-  could simply provide a default implementation.
-
-  This can be achieved in Elixir as follows:
-
-      defprotocol Blank do
-        @only [Atom, Tuple, List, BitString, Any]
-        def blank?(data)
-      end
-
-  If the protocol is invoked with a data type that is not an Atom,
-  a Tuple, a List, or a BitString, Elixir will now dispatch to
-  Any. That said, the default behavior could be implemented as:
-
-      defimpl Blank, for: Any do
-        def blank?(_), do: false
-      end
-
-  Now, all data types that we have not specified will be
-  automatically considered non blank.
+  * Any (see below)
 
   ## Protocols + Records
 
   The real benefit of protocols comes when mixed with records.
-  For instance, imagine we have a module called `RedBlack` that
-  provides an API to create and manipulate Red-Black trees. This
-  module represents such trees via a record named `RedBlack.Tree`
-  and we want this tree to be considered blank in case it has no
-  items. To achieve this, the developer just needs to implement
-  the protocol for `RedBlack.Tree`:
+  For instance, Elixir ships with many data types implemented as
+  records, like `HashDict` and `HashSet`. We can implement the
+  `Blank` protocol for those types as well:
 
-      defimpl Blank, for: RedBlack.Tree do
-        def blank?(tree), do: RedBlack.empty?(tree)
+      defimpl Blank, for: HashDict do
+        def blank?(dict), do: Dict.empty?(dict)
       end
 
-  In the example above, we have implemented `blank?` for
-  `RedBlack.Tree` that simply delegates to `RedBlack.empty?` passing
-  the tree as argument. This implementation doesn't need to be defined
-  inside the `RedBlack` tree or inside the record; it can be defined
-  anywhere in the code.
+  Since records are tuples, if a protocol is not found a given
+  type, it will fallback to `Tuple`.
 
-  Finally, since records are simply tuples, one can add a default
-  protocol implementation to any record by defining a default
-  implementation for tuples.
+  ## Fallback to any
+
+  In some cases, it may be convenient to provide a default
+  implementation for all types. This can be achieved by
+  setting `@fallback_to_any` to `true` in the protocol
+  definition:
+
+      defprotocol Blank do
+        @fallback_to_any true
+        def blank?(data)
+      end
+
+  Which can now be implemented as:
+
+      defimpl Blank, for: Any do
+        def blank?(_), do: true
+      end
+
+  One may wonder why such fallback is not true by default.
+
+  It is two-fold: first, the majority of protocols cannot
+  implement an action in a generic way for all types. In fact,
+  providing a default implementation may be harmful, because users
+  may rely on the default implementation instead of providing a
+  specialized one.
+
+  Second, falling back to `Any` adds an extra lookup to all types,
+  which is unecessary overhead unless an implementation for Any is
+  required.
 
   ## Types
 
@@ -1902,6 +1901,35 @@ defmodule Kernel do
 
   The `@spec` above expresses that all types allowed to implement the
   given protocol are valid argument types for the given function.
+
+  ## Reflection
+
+  Any protocol module contains three extra functions:
+
+
+  * `__protocol__/1` - returns the protocol name when :name is given,
+                       and a keyword list with the protocol functions
+                       when :functions is given;
+
+  * `impl_for/1` - receives a structure and returns the module that implements
+                   the protocol for the structure, nil otherwise;
+
+  * `impl_for!/1` - same as above but raises an error if an implementation is not found
+
+  ## Consolidation
+
+  In order to cope with code loading in development, protocols in
+  Elixir provide a slow implementation of protocol dispatching in
+  development.
+
+  In order to speed up dispatching in production environments, where
+  all implementations are now up-front, Elixir provides a feature
+  called protocol consolidation. For this reason, all protocols are
+  compiled with `debug_info` set to true, regardless of the option
+  set by `elixirc` compiler.
+
+  For more information on how to apply protocol consolidation to
+  a given project, please check the `mix compile.protocols` task.
   """
   defmacro defprotocol(name, do: block) do
     Protocol.defprotocol(name, do: block)
@@ -1911,8 +1939,8 @@ defmodule Kernel do
   Defines an implementation for the given protocol. See
   `defprotocol/2` for examples.
 
-  It makes available the name of the protocol and of the module it's being
-  implemented for inside the @protocol attribute as a two-tuple.
+  Inside an implementation, the name of the protocol can be accessed
+  via `@protocol` and the current target as `@for`.
   """
   defmacro defimpl(name, opts, do_block // []) do
     merged = Keyword.merge(opts, do_block)

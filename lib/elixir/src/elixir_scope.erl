@@ -90,7 +90,7 @@ to_erl_env({ 'Elixir.Macro.Env', Module, File, _Line, Function, Aliases, Context
 to_ex_env({ Line, #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros,functions=Functions,
-    context_modules=ContextModules,macro_aliases=MacroAliases, vars=Vars} }) when is_integer(Line) ->
+    context_modules=ContextModules,macro_aliases=MacroAliases,vars=Vars} }) when is_integer(Line) ->
   { 'Elixir.Macro.Env', Module, File, Line, Function, Aliases,
     Context, Requires, Functions, Macros, ContextModules, MacroAliases,
     list_vars(Vars) }.
