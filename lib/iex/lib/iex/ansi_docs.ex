@@ -15,7 +15,7 @@ defmodule IEx.ANSIDocs do
 
   defp write_doc_heading(heading) do
     IO.puts IO.ANSI.reset
-    width = column_width("")
+    width   = column_width()
     padding = div(width + String.length(heading), 2)
     heading = heading |> String.rjust(padding) |> String.ljust(width)
     write(:doc_title, heading)
@@ -100,7 +100,7 @@ defmodule IEx.ANSIDocs do
     IO.write indent <> "• "
     { contents, rest, done } = process_list_next(rest, count, false, [])
     process_text(contents, [line], indent <> "  ", true)
-    if done, do: IO.puts IO.ANSI.reset
+    if done, do: IO.puts(IO.ANSI.reset)
     process(rest, indent)
   end
 
@@ -163,13 +163,15 @@ defmodule IEx.ANSIDocs do
     process_text(rest, [line | para], indent, from_list)
   end
 
-  defp write_text(para, indent, from_list) do
-    para  = para |> Enum.join(" ") |> handle_links
-    words = para |> String.split(%r{\s})
-    width = column_width(indent)
-    unless from_list, do: IO.write(indent)
-    write_with_wrap(words, width, width, indent)
-    unless from_list, do: IO.puts IO.ANSI.reset
+  defp write_text(lines, indent, from_list) do
+    lines
+    |> Enum.join(" ")
+    |> handle_links
+    |> handle_inline(nil, [], [])
+    |> String.split(%r{\s})
+    |> write_with_wrap(column_width() - size(indent), indent, from_list)
+
+    unless from_list, do: IO.puts(IO.ANSI.reset)
   end
 
   ## Code blocks
@@ -203,62 +205,113 @@ defmodule IEx.ANSIDocs do
     IO.puts IO.ANSI.reset
   end
 
-  defp write_with_wrap([], left, max, _indent) do
-    unless left == max, do: IO.write("\n")
+  defp write_with_wrap([], _available, _indent, _first) do
+    :ok
   end
 
-  defp write_with_wrap([word|words], left_on_line, max_columns, indent) do
-    { word, leader, trailer, punc } = look_for_markup(word)
-
-    word_length = String.length(word)
-    if punc, do: word_length = word_length + 1
-
-    if word_length >= left_on_line do
-      IO.write "\n"
-      IO.write indent
-      left_on_line = max_columns
-    end
-
-    if leader,  do: IO.write(leader)
-    IO.write(word)
-    if trailer, do: IO.write(trailer)
-    if punc,    do: IO.write(punc)
-
-    unless length(words) == 0, do: IO.write(" ")
-    write_with_wrap(words, left_on_line - word_length - 1, max_columns, indent)
+  defp write_with_wrap(words, available, indent, first) do
+    { words, rest } = take_words(words, available, [])
+    IO.puts (if first, do: "", else: indent) <> Enum.join(words, " ")
+    write_with_wrap(rest, available, indent, false)
   end
 
-  defp look_for_markup(word) when size(word) <= 2 do
-    { word, nil, nil, nil }
+  defp take_words([word|words], available, acc) do
+    available = available - length_without_escape(word, 0)
+
+    cond do
+      # It fits, take one for space and continue decreasing
+      available > 0 ->
+        take_words(words, available - 1, [word|acc])
+
+      # No space but we got no words
+      acc == [] ->
+        { [word], words }
+
+      # Otherwise
+      true ->
+        { Enum.reverse(acc), [word|words] }
+    end
   end
 
-  defp look_for_markup(word) do
-    if String.starts_with?(word, ["`", "_", "*"]) do
-      <<first::utf8, word::binary>> = word
-      leader = color(color_name_for(first))
-    end
+  defp take_words([], _available, acc) do
+    { Enum.reverse(acc), [] }
+  end
 
-    if String.ends_with?(word, %w/ . , : ; ' " ! - ] } )/) do
-      punc = String.last(word)
-      word = String.slice(word, 0, String.length(word)-1)
-    end
+  defp length_without_escape(<< ?\e, ?[, _, _, ?m, rest :: binary >>, count) do
+    length_without_escape(rest, count)
+  end
 
-    if String.ends_with?(word, ["`", "_", "*"]) do
-      chop = if String.ends_with?(word, "**"), do: 2, else: 1
-      word = String.slice(word, 0, String.length(word)-chop)
-      trailer = IO.ANSI.reset
-    end
+  defp length_without_escape(<< ?\e, ?[, _, ?m, rest :: binary >>, count) do
+    length_without_escape(rest, count)
+  end
 
-    { word, leader, trailer, punc }
+  defp length_without_escape(rest, count) do
+    case String.next_grapheme(rest) do
+      :no_grapheme -> count
+      { _, rest }  -> length_without_escape(rest, count + 1)
+    end
   end
 
   defp handle_links(text) do
     Regex.replace(%r{\[(.*?)\]\((.*?)\)}, text, "\\1 (\\2)")
   end
 
-  defp color_name_for(?`), do: :doc_inline_code
-  defp color_name_for(?_), do: :doc_underline
-  defp color_name_for(?*), do: :doc_bold
+  # Single inline quotes.
+  # Note we use ?d to represent double **.
+  @single [?`, ?_, ?*]
+
+  # Clauses for handling spaces
+  defp handle_inline(<<?*, ?*, ?\s, rest :: binary>>, nil, buffer, acc) do
+    handle_inline(rest, nil, [?\s, ?*, ?*|buffer], acc)
+  end
+
+  defp handle_inline(<<mark, ?\s, rest :: binary>>, nil, buffer, acc) when mark in @single do
+    handle_inline(rest, nil, [?\s, mark|buffer], acc)
+  end
+
+  defp handle_inline(<<?\s, ?*, ?*, rest :: binary>>, ?d, buffer, acc) do
+    handle_inline(rest, ?d, [?*, ?*, ?\s|buffer], acc)
+  end
+
+  defp handle_inline(<<?\s, mark, rest :: binary>>, mark, buffer, acc) when mark in @single do
+    handle_inline(rest, mark, [mark|buffer], acc)
+  end
+
+  # Inline start
+  defp handle_inline(<<?*, ?*, rest :: binary>>, nil, buffer, acc) when rest != "" do
+    handle_inline(rest, ?d, ["**"], [Enum.reverse(buffer)|acc])
+  end
+
+  defp handle_inline(<<mark, rest :: binary>>, nil, buffer, acc) when rest != "" and mark in @single do
+    handle_inline(rest, mark, [<<mark>>], [Enum.reverse(buffer)|acc])
+  end
+
+  # Inline end
+  defp handle_inline(<<?*, ?*, rest :: binary>>, ?d, buffer, acc) do
+    handle_inline(rest, nil, [], [inline_buffer(buffer)|acc])
+  end
+
+  defp handle_inline(<<mark, rest :: binary>>, mark, buffer, acc) when mark in @single do
+    handle_inline(rest, nil, [], [inline_buffer(buffer)|acc])
+  end
+
+  defp handle_inline(<<char, rest :: binary>>, mark, buffer, acc) do
+    handle_inline(rest, mark, [char|buffer], acc)
+  end
+
+  defp handle_inline(<<>>, _mark, buffer, acc) do
+    iolist_to_binary Enum.reverse([Enum.reverse(buffer)|acc])
+  end
+
+  defp inline_buffer(buffer) do
+    [h|t] = Enum.reverse([IO.ANSI.reset|buffer])
+    [color_for(h)|t]
+  end
+
+  defp color_for("`"),  do: color(:doc_inline_code)
+  defp color_for("_"),  do: color(:doc_underline)
+  defp color_for("*"),  do: color(:doc_bold)
+  defp color_for("**"), do: color(:doc_bold)
 
   defp color(color_name) do
     colors = IEx.Options.get(:colors)
@@ -270,9 +323,9 @@ defmodule IEx.ANSIDocs do
     end
   end
 
-  defp column_width(_indent) do
+  defp column_width() do
     case :io.columns do
-      { :ok, width } -> width
+      { :ok, width } -> min(width, 80)
       _              -> 80
     end
   end

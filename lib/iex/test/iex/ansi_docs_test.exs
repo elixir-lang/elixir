@@ -3,7 +3,7 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule IEx.AnsiDocsTest do
   use IEx.Case
 
-  @colors [ enabled: true, 
+  @colors [ enabled: true,
             doc_code: "cyan,bright",
             doc_inline_code: "cyan",
             doc_bold: "bright",
@@ -94,7 +94,7 @@ defmodule IEx.AnsiDocsTest do
     assert result == "\e[1mworld\e[0m\n\e[0m"
 
     result = format("**world**")
-    assert result == "\e[1m*world\e[0m\n\e[0m"
+    assert result == "\e[1mworld\e[0m\n\e[0m"
 
     result = format("_world_")
     assert result == "\e[4mworld\e[0m\n\e[0m"
@@ -115,6 +115,11 @@ defmodule IEx.AnsiDocsTest do
 
     result = format("unit ` size")
     assert result == "unit ` size\n\e[0m"
+  end
+
+  test "underscore when incomplete" do
+    result = format("unit_size")
+    assert result == "unit_size\n\e[0m"
   end
 
   test "backtick close to underscores gets interpreted as code" do
