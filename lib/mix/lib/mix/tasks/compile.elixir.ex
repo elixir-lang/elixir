@@ -8,20 +8,19 @@ defmodule Mix.Tasks.Compile.Elixir do
     def files_to_path(manifest, stale, all, compile_path, on_start) do
       all_entries = read_manifest(manifest)
 
-      # Each entry that is not in all must be removed
+      # Each manifest entry that is not in all must be removed
       entries = lc { beam, _m, source, _d } = entry inlist all_entries,
                    is_in_list_or_remove(source, all, beam),
                    do: entry
 
-      outsider = Enum.any?(stale, &not(&1 in all))
-
       stale =
-        if outsider do
-          # Outsider files trigger whole compilation
+        if Enum.any?(stale, &not(&1 in all)) do
+          # Any stale file not in all triggers whole compilation
+          # It means a file was removed
           all
         else
-          # Otherwise compile only stale. Also add each entry
-          # in all that's not in the manifest is also stale
+          # Otherwise compile only stale. Each entry in all
+          # that's not in the manifest is also considered stale
           stale ++ lc i inlist all,
                       not Enum.any?(entries, fn { _b, _m, s, _d } -> s == i end),
                       do: i
@@ -30,6 +29,10 @@ defmodule Mix.Tasks.Compile.Elixir do
       cond do
         stale != [] ->
           on_start.()
+          # Starts a server responsible for keeping track which files
+          # were compiled and the dependencies in between them. For every
+          # module compiled, we check which dependencies were affected
+          # and which files should be compiled next until we reach no-op.
           { :ok, pid } = :gen_server.start_link(__MODULE__, entries, [])
 
           try do
@@ -263,6 +266,9 @@ defmodule Mix.Tasks.Compile.Elixir do
       set_compiler_opts(project, opts, [])
     end)
 
+    # The Mix.Deps.Lock keeps all the project dependencies. Since Elixir
+    # is a dependency itself, we need to touch the lock so the current
+    # Elixir version, used to compile the files above, is properly stored.
     unless result == :noop, do: Mix.Deps.Lock.touch
     result
   end

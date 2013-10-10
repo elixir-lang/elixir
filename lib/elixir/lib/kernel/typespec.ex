@@ -287,15 +287,14 @@ defmodule Kernel.Typespec do
   The module has to have a corresponding beam file on the disk which can be
   located by the runtime system.
   """
-  # This is in Kernel.Typespec because it works very similar to beam_types and
-  # uses some of the introspection available here.
-  def beam_typedocs(module) do
+  @spec beam_typedocs(module | binary) :: [tuple] | nil
+  def beam_typedocs(module) when is_atom(module) or is_binary(module) do
     case abstract_code(module) do
       { :ok, abstract_code } ->
         type_docs = lc { :attribute, _, :typedoc, tup } inlist abstract_code, do: tup
         List.flatten(type_docs)
       _ ->
-        []
+        nil
     end
   end
 
@@ -308,7 +307,8 @@ defmodule Kernel.Typespec do
   The module has to have a corresponding beam file on the disk which can be
   located by the runtime system.
   """
-  def beam_types(module) do
+  @spec beam_types(module | binary) :: [tuple] | nil
+  def beam_types(module) when is_atom(module) or is_binary(module) do
     case abstract_code(module) do
       { :ok, abstract_code } ->
         exported_types = lc { :attribute, _, :export_type, types } inlist abstract_code, do: types
@@ -322,7 +322,7 @@ defmodule Kernel.Typespec do
           end
         end
       _ ->
-        []
+        nil
     end
   end
 
@@ -335,7 +335,8 @@ defmodule Kernel.Typespec do
   The module has to have a corresponding beam file on the disk which can be
   located by the runtime system.
   """
-  def beam_specs(module) do
+  @spec beam_specs(module | binary) :: [tuple] | nil
+  def beam_specs(module) when is_atom(module) or is_binary(module) do
     from_abstract_code(module, :spec)
   end
 
@@ -345,10 +346,11 @@ defmodule Kernel.Typespec do
   It is returned as a list of tuples where the first
   element is spec name and arity and the second is the spec.
 
-  The module has to have a corresponding beam file on the disk which can be
-  located by the runtime system.
+  The module has to have a corresponding beam file on the disk
+  which can be located by the runtime system.
   """
-  def beam_callbacks(module) do
+  @spec beam_callbacks(module | binary) :: [tuple] | nil
+  def beam_callbacks(module) when is_atom(module) or is_binary(module) do
     from_abstract_code(module, :callback)
   end
 
@@ -356,8 +358,8 @@ defmodule Kernel.Typespec do
     case abstract_code(module) do
       { :ok, abstract_code } ->
         lc { :attribute, _, abs_kind, value } inlist abstract_code, kind == abs_kind, do: value
-      _ ->
-        []
+      :error ->
+        nil
     end
   end
 
@@ -366,7 +368,7 @@ defmodule Kernel.Typespec do
       {:ok, { _, [{ :abstract_code, { _raw_abstract_v1, abstract_code } }] } } ->
         { :ok, abstract_code }
       _ ->
-        []
+        :error
     end
   end
 

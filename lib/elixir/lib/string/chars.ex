@@ -14,8 +14,6 @@ defprotocol String.Chars do
   as `"foo" <> to_string(bar)`.
   """
 
-  @only [BitString, List, Number, Atom, Record]
-
   def to_string(thing)
 end
 

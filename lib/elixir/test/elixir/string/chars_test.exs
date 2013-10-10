@@ -92,12 +92,8 @@ defmodule String.Chars.ErrorsTest do
   end
 
   test :record do
-    assert_raise UndefinedFunctionError, "undefined function: String.Chars.ArgumentError.to_string/1", fn ->
+    assert_raise Protocol.UndefinedError, "protocol String.Chars not implemented for ArgumentError[message: \"argument error\"]", fn ->
       to_string(ArgumentError[])
-    end
-
-    assert_raise UndefinedFunctionError, "undefined function: String.Chars.File.Stat.to_string/1", fn ->
-      to_string(File.Stat[])
     end
   end
 

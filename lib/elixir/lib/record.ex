@@ -238,14 +238,14 @@ defmodule Record do
       unquoted_fields = unquote(fields)
 
       defmodule unquote(name) do
-        import Elixir.Record.DSL
+        import Record.DSL
 
         @record_fields []
         @record_types  []
 
-        Elixir.Record.deffunctions(unquoted_fields, __ENV__)
+        Record.deffunctions(unquoted_fields, __ENV__)
         value = unquote(block)
-        Elixir.Record.deftypes(@record_fields, @record_types, __ENV__)
+        Record.deftypes(@record_fields, @record_types, __ENV__)
         value
       end
     end
