@@ -125,13 +125,23 @@ defmodule IEx.Options do
 
   The value is a keyword list. List of supported keys:
 
-    * enabled     -- boolean value that allows for switching the coloring
-                     on and off
-    * eval_result -- color for an expression's resulting value
-    * error       -- color for error messages
-    * info        -- color for various informational messages
-    * directory   -- color for directory entries (ls helper)
-    * device      -- color for device entries (ls helper)
+    * `:enabled`      - boolean value that allows for switching the coloring on and off
+    * `:eval_result`  - color for an expression's resulting value
+    * `:eval_error`   - color for error messages
+    * `:eval_info`    - color for various informational messages
+    * `:ls_directory` - color for directory entries (ls helper)
+    * `:ls_device`    - color for device entries (ls helper)
+
+  When printing documentation, IEx will convert the markdown
+  documentation to ANSI as well. Those can be configured via:
+
+    * `:doc_code`        — the attributes for code blocks (cyan, bright)
+    * `:doc_inline_code` - inline code (cyan)
+    * `:doc_headings`    - h1 and h2 (yellow, bright)
+    * `:doc_title`       — the overall heading for the output (reverse,yellow,bright)
+    * `:doc_bold`        - (bright)
+    * `:doc_underline`   - (underline)
+
   """
 
   def help(:inspect), do: """
@@ -161,7 +171,7 @@ defmodule IEx.Options do
   Same as `help/1` but instead of returning a string, prints it.
   """
   def print_help(name) do
-    IO.write help(name)
+    IEx.ANSIDocs.print help(name)
   end
 
   @doc """
