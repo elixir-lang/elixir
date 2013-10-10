@@ -1,23 +1,10 @@
 defmodule IEx.ANSIDocs do
-  @moduledoc """
-  Take a Markdown formatted docstring and attempt to make it a
-  little  prettier on the terminal.
+  @moduledoc false
 
-  We support only a minimal subset of Markdown. It is preferrable
-  to keep it simple (and not properly escape in some cases) than have a
-  full-featured markdown parser.
-
-  We use the following attributes (whose defaults are set in mix.exs):
-
-  * :doc_code        — the attributes for code blocks (cyan, bright)
-  * :doc_inline_code - inline code (cyan)
-  * :doc_headings    - h1 and h2 (yellow, bright)
-  * :doc_title       — the overall heading for the output (reverse,yellow,bright)
-  * :doc_bold        - (bright)
-  * :doc_underline   - (underline)
+  @doc """
+  Prints the head of the documentation (i.e. the function signature)
   """
-
-  def doc_heading(string, use_ansi // IO.ANSI.terminal?) do
+  def print_heading(string, use_ansi // IO.ANSI.terminal?) do
     if use_ansi do
       write_doc_heading(string)
     else
@@ -26,7 +13,18 @@ defmodule IEx.ANSIDocs do
     IEx.dont_display_result
   end
 
-  def format(doc, use_ansi // IO.ANSI.terminal?) do
+  defp write_doc_heading(heading) do
+    IO.puts IO.ANSI.reset
+    width = column_width("")
+    padding = div(width + String.length(heading), 2)
+    heading = heading |> String.rjust(padding) |> String.ljust(width)
+    write(:doc_title, heading)
+  end
+
+  @doc """
+  Prints the documentation body.
+  """
+  def print(doc, use_ansi // IO.ANSI.terminal?) do
     if use_ansi do
       doc
       |> String.split(["\r\n","\n"], trim: false)
@@ -38,123 +36,50 @@ defmodule IEx.ANSIDocs do
     IEx.dont_display_result
   end
 
-  # Bring lines back to a common left margin
-  defp bring_to_margin([]), do: []
-  defp bring_to_margin(lines) do
-    case (lines |> Enum.map(&get_leading_spaces/1) |> Enum.min) do
-      0 -> lines
-      n -> Enum.map(lines, &strip_leading_spaces(&1, n))
-    end
-  end
-
-  defp get_leading_spaces(""), do: 999
-  defp get_leading_spaces(line) do
-     [{ _, leading_spaces }] = Regex.run(%r{^\s*}, line, return: :index)
-     leading_spaces
-  end
-
-  defp strip_leading_spaces("", _n),  do: ""
-  defp strip_leading_spaces(line, n), do: String.slice(line, n, 999)
-
-
   defp process([], _indent), do: nil
 
-  defp process([<< "# " :: utf8, heading :: binary>> | rest], _indent) do
+  defp process(["# " <> heading | rest], _indent) do
     write_h1(String.strip(heading))
     process(rest, "")
   end
 
-  defp process([<< "## " :: utf8, heading :: binary>> | rest], _indent) do
+  defp process(["## " <> heading | rest], _indent) do
     write_h2(String.strip(heading))
     process(rest, "")
   end
 
-  defp process([<< "### " :: utf8, heading :: binary>> | rest], indent) do
+  defp process(["### " <> heading | rest], indent) do
     write_h3(String.strip(heading), indent)
     process(rest, indent)
   end
 
-  defp process([<< "* " :: utf8, line :: binary >> | rest], indent) do
-    { list_content, rest } = split_out_list(rest)
-    list_content 
-    |> process_ul([line], indent)
-    rest 
-    |> bring_to_margin 
-    |> process(indent)
-  end
-
-  defp process([ "" | rest ], indent) do
+  defp process(["" | rest], indent) do
     process(rest, indent)
   end
 
-  defp process( [ << "    " :: utf8, line :: binary>> | rest], indent) do
+  defp process(["    " <> line | rest], indent) do
     process_code(rest, [line], indent)
   end
 
-  defp process([ line | rest ], indent) do
-    process_para(rest, [line], indent)
-  end
-
-
-  defp process_para(doc=[ "" | _rest], para, indent) do
-    write_para(Enum.reverse(para), indent)
-    process(doc, indent)
-  end
-
-  defp process_para([], para, indent) do
-    write_para(Enum.reverse(para), indent)
-  end
-
-  defp process_para([line | rest], para, indent) do
-    process_para(rest, [ line | para ], indent)
-  end
-
-
-  defp process_code([], code, indent) do
-    write_code(code, indent)
-  end
-
-  # blank line between code blocks
-  defp process_code([ "", << "    " :: utf8, line :: binary>> | rest ], code, indent) do
-    process_code(rest, [line, "" | code], indent)
-  end
-
-  defp process_code([ << "    " :: utf8, line :: binary>> | rest ], code, indent) do
-    process_code(rest, [line|code], indent)
-  end
-
-  defp process_code(rest, code, indent) do
-    write_code(code, indent)
-    process(rest, indent)
-  end
-
-
-  defp process_ul([], result, indent) do
-    write_ul(result, indent)
-  end
-
-  defp process_ul(["" | rest], result, indent) do
-    write_ul(result, indent)
-    IO.puts ""
-    process(rest, indent)
-  end
-
-  defp process_ul(sublist = [line|rest], result, indent) do
-    if (String.lstrip(line) |> String.starts_with?("* ")) do
-      write_ul(result, indent)
-      sublist |> bring_to_margin |> process(indent <> "  ")
-    else
-      process_ul(rest, [line|result], indent)
+  defp process([line | rest], indent) do
+    { stripped, count } = strip_spaces(line, 0)
+    case stripped do
+      "* " <> item ->
+        process_list(item, rest, count, indent)
+      _ ->
+        process_text(rest, [line], indent, false)
     end
   end
 
-  defp write_doc_heading(heading) do
-    IO.puts IO.ANSI.reset
-    width = column_width("")
-    padding = div(width + String.length(heading), 2)
-    heading = heading |> String.rjust(padding) |> String.ljust(width)
-    write(:doc_title, heading)
+  defp strip_spaces(" " <> line, acc) do
+    strip_spaces(line, acc + 1)
   end
+
+  defp strip_spaces(rest, acc) do
+    { rest, acc }
+  end
+
+  ## Headings
 
   defp write_h1(heading) do
     write_h2(String.upcase(heading))
@@ -169,26 +94,109 @@ defmodule IEx.ANSIDocs do
     write(:doc_headings, heading)
   end
 
-  defp write_para(para, indent) do
+  ## Lists
+
+  defp process_list(line, rest, count, indent) do
+    IO.write indent <> "• "
+    { contents, rest, done } = process_list_next(rest, count, false, [])
+    process_text(contents, [line], indent <> "  ", true)
+    if done, do: IO.puts IO.ANSI.reset
+    process(rest, indent)
+  end
+
+  # Process the thing after a list item entry. It can be either:
+  #
+  # * Continuation of the list
+  # * A nested list
+  # * The end of the list
+  #
+  defp process_list_next([" " <> _ = line | rest], count, _done, acc) do
+    case list_next(line, count) do
+      :done    -> { Enum.reverse(acc), [line|rest], false }
+      chopped  -> process_list_next(rest, count, false, [chopped|acc])
+    end
+  end
+
+  defp process_list_next(["* " <> _ | _] = rest, _count, _done, acc) do
+    { Enum.reverse(acc), rest, false }
+  end
+
+  defp process_list_next(["" | rest], count, _done, acc) do
+    process_list_next(rest, count, true, [""|acc])
+  end
+
+  defp process_list_next(rest, _count, done, acc) do
+    { Enum.reverse(acc), rest, done }
+  end
+
+  defp list_next("* " <> _, 0),     do: :done
+  defp list_next(line, 0),          do: chop(line, 2)
+  defp list_next(" " <> line, acc), do: list_next(line, acc - 1)
+  defp list_next(line, _acc),       do: line
+
+  defp chop(" " <> line, acc) when acc > 0, do: chop(line, acc - 1)
+  defp chop(line, _acc), do: line
+
+  ## Text (paragraphs / lists)
+
+  defp process_text(doc=["" | _], para, indent, from_list) do
+    write_text(Enum.reverse(para), indent, from_list)
+    process(doc, indent)
+  end
+
+  defp process_text([], para, indent, from_list) do
+    write_text(Enum.reverse(para), indent, from_list)
+  end
+
+  defp process_text([line | rest], para, indent, true) do
+    { stripped, count } = strip_spaces(line, 0)
+    case stripped do
+      "* " <> item ->
+        write_text(Enum.reverse(para), indent, true)
+        process_list(item, rest, count, indent)
+      _ ->
+        process_text(rest, [line | para], indent, true)
+    end
+  end
+
+  defp process_text([line | rest], para, indent, from_list) do
+    process_text(rest, [line | para], indent, from_list)
+  end
+
+  defp write_text(para, indent, from_list) do
     para  = para |> Enum.join(" ") |> handle_links
     words = para |> String.split(%r{\s})
     width = column_width(indent)
-    IO.write(indent)
+    unless from_list, do: IO.write(indent)
     write_with_wrap(words, width, width, indent)
-    IO.puts IO.ANSI.reset
+    unless from_list, do: IO.puts IO.ANSI.reset
+  end
+
+  ## Code blocks
+
+  defp process_code([], code, indent) do
+    write_code(code, indent)
+  end
+
+  # Blank line between code blocks
+  defp process_code([ "", "    " <> line | rest ], code, indent) do
+    process_code(rest, [line, "" | code], indent)
+  end
+
+  defp process_code([ "    " <> line | rest ], code, indent) do
+    process_code(rest, [line|code], indent)
+  end
+
+  defp process_code(rest, code, indent) do
+    write_code(code, indent)
+    process(rest, indent)
   end
 
   defp write_code(code, indent) do
     write(:doc_code, "#{indent}┃ #{Enum.join(Enum.reverse(code), "\n#{indent}┃ ")}")
   end
 
-  defp write_ul(list, indent) do
-    list = list |> Enum.reverse |> Enum.join(" ") |> String.split(%r{\s})
-    IO.write(indent)
-    IO.write("• ")
-    width = column_width(indent)
-    write_with_wrap(list, width, width, indent <> "  ")
-  end
+  ## Helpers
 
   defp write(style, string) do
     IO.puts IEx.color(style, string)
@@ -247,25 +255,6 @@ defmodule IEx.ANSIDocs do
   defp handle_links(text) do
     Regex.replace(%r{\[(.*?)\]\((.*?)\)}, text, "\\1 (\\2)")
   end
-
-  # divide the lines into the leading portion that can be part of
-  # the list and the rest. The first group is lines with at least 2
-  # leading spaces (which we remove). 
-
-  defp split_out_list(lines) do
-    { list, rest } = Enum.split_while lines, &list_leader?/1
-    { Enum.map(list, &chop(&1, 2)), rest }
-  end
-
-  defp list_leader?(<<"  "::utf8, _::binary>>), do: true
-  defp list_leader?(""), do: true
-  defp list_leader?(_),  do: false
-
-  defp chop(line, n) when size(line) >= n do
-    String.slice(line, n, 999)
-  end
-
-  defp chop(_, _), do: ""
 
   defp color_name_for(?`), do: :doc_inline_code
   defp color_name_for(?_), do: :doc_underline

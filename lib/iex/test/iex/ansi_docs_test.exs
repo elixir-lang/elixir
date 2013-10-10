@@ -14,16 +14,16 @@ defmodule IEx.AnsiDocsTest do
   @opts [colors: @colors]
 
   def format(str, use_ansi // true) do
-    cmd = "IEx.ANSIDocs.format(#{inspect str}, #{inspect use_ansi})"
+    cmd = "IEx.ANSIDocs.print(#{inspect str}, #{inspect use_ansi})"
     capture_iex(cmd, @opts)
   end
 
   test "non-ansi heading just uses an asterisk" do
-    assert capture_iex("IEx.ANSIDocs.doc_heading(\"wibble\", false)", []) == "* wibble"
+    assert capture_iex("IEx.ANSIDocs.print_heading(\"wibble\", false)", []) == "* wibble"
   end
 
   test "ansi heading is formatted" do
-    result = capture_iex("IEx.ANSIDocs.doc_heading(\"wibble\", true)", @opts)
+    result = capture_iex("IEx.ANSIDocs.print_heading(\"wibble\", true)", @opts)
     assert String.starts_with?(result, "\e[0m\n\e[7m\e[33m\e[1m")
     assert String.ends_with?(result, "\e[0m\n\e[0m")
     assert String.contains?(result, " wibble ")
@@ -51,7 +51,12 @@ defmodule IEx.AnsiDocsTest do
 
   test "list is converted" do
     result = format("* one\n* two\n* three\n")
-    assert result == "• one\n• two\n• three"
+    assert result == "• one\n• two\n• three\n\e[0m"
+  end
+
+  test "list surrounded by text is converted" do
+    result = format("Count:\n\n* one\n* two\n* three\n\nDone")
+    assert result == "Count:\n\e[0m\n• one\n• two\n• three\n\e[0m\nDone\n\e[0m"
   end
 
   test "list with continuation is converted" do
@@ -62,6 +67,11 @@ defmodule IEx.AnsiDocsTest do
   test "nested lists are converted" do
     result = format("* one\n  * one.one\n  * one.two\n* two")
     assert result == "• one\n  • one.one\n  • one.two\n• two"
+  end
+
+  test "lists with spaces are converted" do
+    result = format("  * one\n  * two\n  * three")
+    assert result == "• one\n• two\n• three"
   end
 
   test "paragraphs are split" do
