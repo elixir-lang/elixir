@@ -103,33 +103,91 @@ defmodule IEx.AnsiDocsTest do
     assert result == "\e[36mworld\e[0m\n\e[0m"
   end
 
-  test "star/underscore/backtick between words doesn't get interpreted" do
-    result = format("unit * size")
-    assert result == "unit * size\n\e[0m"
+  test "star/underscore/backtick works accross words" do
+    result = format("*hello world*")
+    assert result == "\e[1mhello world\e[0m\n\e[0m"
 
-    result = format("unit ** size")
-    assert result == "unit ** size\n\e[0m"
+    result = format("**hello world**")
+    assert result == "\e[1mhello world\e[0m\n\e[0m"
 
-    result = format("unit _ size")
-    assert result == "unit _ size\n\e[0m"
+    result = format("_hello world_")
+    assert result == "\e[4mhello world\e[0m\n\e[0m"
 
-    result = format("unit ` size")
-    assert result == "unit ` size\n\e[0m"
+    result = format("`hello world`")
+    assert result == "\e[36mhello world\e[0m\n\e[0m"
   end
 
-  test "underscore when incomplete" do
+  test "star/underscore preceeded by space doesn't get interpreted" do
+    result = format("_unit _size")
+    assert result == "_unit _size\n\e[0m"
+
+    result = format("**unit **size")
+    assert result == "**unit **size\n\e[0m"
+
+    result = format("*unit *size")
+    assert result == "*unit *size\n\e[0m"
+  end
+
+  test "backtick preceeded by space gets interpreted" do
+    result = format("`unit `size")
+    assert result == "\e[36munit \e[0msize\n\e[0m"
+  end
+
+  test "star/underscore/backtick with leading escape" do
+    result = format("\\_unit_")
+    assert result == "_unit_\n\e[0m"
+
+    result = format("\\*unit*")
+    assert result == "*unit*\n\e[0m"
+
+    result = format("\\`unit`")
+    assert result == "`unit`\n\e[0m"
+  end
+
+  test "star/underscore/backtick with closing escape" do
+    result = format("_unit\\_")
+    assert result == "_unit_\n\e[0m"
+
+    result = format("*unit\\*")
+    assert result == "*unit*\n\e[0m"
+
+    result = format("`unit\\`")
+    assert result == "\e[36munit\\\e[0m\n\e[0m"
+  end
+
+  test "star/underscore/backtick with double escape" do
+    result = format("\\\\*world*")
+    assert result == "\\\e[1mworld\e[0m\n\e[0m"
+
+    result = format("\\\\_world_")
+    assert result == "\\\e[4mworld\e[0m\n\e[0m"
+
+    result = format("\\\\`world`")
+    assert result == "\\\e[36mworld\e[0m\n\e[0m"
+  end
+
+  test "star/underscore/backtick when incomplete" do
     result = format("unit_size")
     assert result == "unit_size\n\e[0m"
+
+    result = format("unit`size")
+    assert result == "unit`size\n\e[0m"
+
+    result = format("unit*size")
+    assert result == "unit*size\n\e[0m"
+
+    result = format("unit**size")
+    assert result == "unit**size\n\e[0m"
+  end
+
+  test "backtick with escape" do
+    result = format("`\\`")
+    assert result == "\e[36m\\\e[0m\n\e[0m"
   end
 
   test "backtick close to underscores gets interpreted as code" do
     result = format("`__world__`")
     assert result == "\e[36m__world__\e[0m\n\e[0m"
-  end
-
-  test "backtick works accross words" do
-    result = format("`hello world`")
-    assert result == "\e[36mhello world\e[0m\n\e[0m"
   end
 
   test "backtick works inside parenthesis" do

@@ -257,24 +257,41 @@ defmodule IEx.ANSIDocs do
   end
 
   # Single inline quotes.
-  # Note we use ?d to represent double **.
   @single [?`, ?_, ?*]
+
+  # ` does not require space in between
+  @spaced [?_, ?*]
 
   # Clauses for handling spaces
   defp handle_inline(<<?*, ?*, ?\s, rest :: binary>>, nil, buffer, acc) do
     handle_inline(rest, nil, [?\s, ?*, ?*|buffer], acc)
   end
 
-  defp handle_inline(<<mark, ?\s, rest :: binary>>, nil, buffer, acc) when mark in @single do
+  defp handle_inline(<<mark, ?\s, rest :: binary>>, nil, buffer, acc) when mark in @spaced do
     handle_inline(rest, nil, [?\s, mark|buffer], acc)
   end
 
-  defp handle_inline(<<?\s, ?*, ?*, rest :: binary>>, ?d, buffer, acc) do
-    handle_inline(rest, ?d, [?*, ?*, ?\s|buffer], acc)
+  defp handle_inline(<<?\s, ?*, ?*, rest :: binary>>, limit, buffer, acc) do
+    handle_inline(rest, limit, [?*, ?*, ?\s|buffer], acc)
   end
 
-  defp handle_inline(<<?\s, mark, rest :: binary>>, mark, buffer, acc) when mark in @single do
-    handle_inline(rest, mark, [mark|buffer], acc)
+  defp handle_inline(<<?\s, mark, rest :: binary>>, limit, buffer, acc) when mark in @spaced do
+    handle_inline(rest, limit, [mark, ?\s|buffer], acc)
+  end
+
+  # Clauses for handling escape
+  defp handle_inline(<<?\\, ?\\, rest :: binary>>, limit, buffer, acc) do
+    handle_inline(rest, limit, [?\\|buffer], acc)
+  end
+
+  defp handle_inline(<<?\\, ?*, ?*, rest :: binary>>, limit, buffer, acc) do
+    handle_inline(rest, limit, [?*, ?*|buffer], acc)
+  end
+
+  # A escape is not valid inside `
+  defp handle_inline(<<?\\, mark, rest :: binary>>, limit, buffer, acc)
+      when mark in [?_, ?*, ?`] and not(mark == limit and mark == ?`) do
+    handle_inline(rest, limit, [mark|buffer], acc)
   end
 
   # Inline start
