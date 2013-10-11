@@ -27,7 +27,6 @@ defmodule IEx.Mixfile do
                   doc_inline_code: "cyan",
                   doc_underline: "underline",
                   doc_title: "reverse,yellow,bright" ],
-        history_size: 20,
-        started: true ] ]
+        history_size: 20 ] ]
   end
 end
