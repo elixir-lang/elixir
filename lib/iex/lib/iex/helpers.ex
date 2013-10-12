@@ -268,9 +268,9 @@ defmodule IEx.Helpers do
     IEx.History.each(&print_history_entry(&1, inspect_opts))
   end
 
-  defp print_history_entry(config, inspect_opts) do
-    IO.write IEx.color(:eval_info, "#{config.counter}: #{config.cache}#=> ")
-    IO.puts  IEx.color(:eval_result, "#{inspect config.result, inspect_opts}\n")
+  defp print_history_entry({ counter, cache, result }, inspect_opts) do
+    IO.write IEx.color(:eval_info, "#{counter}: #{cache}#=> ")
+    IO.puts  IEx.color(:eval_result, "#{inspect result, inspect_opts}\n")
   end
 
   @doc """
@@ -280,7 +280,7 @@ defmodule IEx.Helpers do
   For instance, v(-1) returns the result of the last evaluated expression.
   """
   def v(n) do
-    IEx.History.nth(n).result
+    IEx.History.nth(n) |> elem(2)
   end
 
   @doc """

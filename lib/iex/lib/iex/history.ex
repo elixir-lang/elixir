@@ -36,7 +36,7 @@
   defp limit_history(counter, max_counter, limit, should_collect) do
     if not should_collect do
       entry = Process.delete({:iex_history, counter})
-      should_collect = has_binary(entry.result)
+      should_collect = has_binary(entry)
     else
       Process.delete({:iex_history, counter})
     end

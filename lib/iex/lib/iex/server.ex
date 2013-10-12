@@ -148,8 +148,8 @@ defmodule IEx.Server do
     end
   end
 
-  defp update_history(config) do
-    IEx.History.append(config, config.counter, IEx.Options.get(:history_size))
+  defp update_history(Config[result: result, counter: counter, cache: cache]) do
+    IEx.History.append({ counter, cache, result }, counter, IEx.Options.get(:history_size))
   end
 
   defp io_put(result) do
