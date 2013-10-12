@@ -43,6 +43,23 @@
     limit_history(counter+1, max_counter, limit, should_collect)
   end
 
+  @doc """
+  Removes all entries from the history and forces a garbage collection cycle.
+  """
+  def reset() do
+    # remove all entries
+    f = fn(key, _) ->
+      Process.delete(key)
+    end
+    each_pair(f)
+
+    # reset counter
+    counter = Process.get(:iex_history_counter)
+    Process.put(:iex_history_start_counter, counter)
+
+    collect_garbage()
+  end
+
   # Checks val and each of its elements (if it is a list or a tuple)
   # recursively to see if it has any binaries
   defp has_binary(val) do
@@ -98,26 +115,35 @@
   end
 
   @doc """
-  Enumerates each item in the history.
+  Enumerates over all items in the history starting from the oldest one and
+  applies `fun` to each one in turn.
   """
   def each(fun) do
-    each(Process.get(:iex_history_start_counter),
-         Process.get(:iex_history_counter),
-         fun)
+    each_pair(fn _, item -> fun.(item) end)
   end
 
-  defp each(counter, max_counter, fun) when counter < max_counter do
-    entry = Process.get({:iex_history, counter})
-    fun.(entry)
-    each(counter+1, max_counter, fun)
+  # Private helper that invokes fun with both key and item.
+  defp each_pair(fun) do
+    each_pair(Process.get(:iex_history_start_counter),
+              Process.get(:iex_history_counter),
+              fun)
   end
 
-  defp each(_, _, _) do
+  defp each_pair(counter, max_counter, fun) when counter < max_counter do
+    key = {:iex_history, counter}
+    entry = Process.get(key)
+    fun.(key, entry)
+    each_pair(counter+1, max_counter, fun)
+  end
+
+  defp each_pair(_, _, _) do
     :ok
   end
 
   @doc """
-  Gets the nth item in the history.
+  Gets the nth item from the history.
+
+  If `n` < 0, the count starts from the most recent item and goes back in time.
   """
   def nth(n) do
     entry = case n do
