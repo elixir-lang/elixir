@@ -141,7 +141,9 @@
   end
 
   @doc """
-  Gets the nth item in the history.
+  Gets the nth item from the history.
+
+  If `n` < 0, the count starts from the most recent item and goes back in time.
   """
   def nth(n) do
     entry = case n do
