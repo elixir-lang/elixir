@@ -1,8 +1,8 @@
 defmodule IEx.Server do
   @moduledoc false
 
-  defrecord Config, binding: nil, cache: '', counter: 1,
-                    scope: nil, result: nil
+  defrecord Config, binding: nil, cache: '', counter: 1, prefix: "iex",
+                    scope: nil, result: nil, evaluator: nil
 
   @doc """
   Finds where the current IEx server is located.
@@ -28,21 +28,41 @@ defmodule IEx.Server do
   end
 
   @doc """
-  Requests to take over the given shell.
+  Requests to take over the given shell from the
+  current process.
   """
+  @spec take_over(binary, Keyword.t, pos_integer) ::
+        :ok | { :error, :self } | { :error, :no_iex }
   def take_over(identifier, opts, timeout // 1000) do
-    spawn fn ->
+    server = whereis()
+    opts   = Keyword.put(opts, :evaluator, self)
+
+    if server == self do
+      { :error, :self }
+    else
       ref = make_ref()
-      pid = whereis()
-      pid <- { :take?, self, ref }
+      server <- { :take?, self, ref }
 
       receive do
         ^ref ->
-          pid <- { :take, identifier, opts }
+          server <- { :take, identifier, opts }
+          IEx.History.init
+          eval_loop(server)
       after
         timeout ->
-          IO.puts("#{identifier} failed. Is IEx running?")
+          { :error, :no_iex }
       end
+    end
+  end
+
+  defp eval_loop(server) do
+    receive do
+      { :eval, ^server, code, config } ->
+        server <- { :evaled, self, eval(code, config) }
+        eval_loop(server)
+      { :done, ^server } ->
+        IEx.History.reset
+        :ok
     end
   end
 
@@ -63,18 +83,22 @@ defmodule IEx.Server do
     old_flag = Process.flag(:trap_exit, true)
 
     try do
-      eval_loop(config)
+      server_loop(config)
     after
+      if evaluator = config.evaluator do
+        evaluator <- { :done, self }
+      end
+
       Process.flag(:trap_exit, old_flag)
     end
   end
 
-  ## Eval loop
+  ## Server loop
 
-  defp eval_loop(config) do
+  defp server_loop(config) do
     self_pid = self()
-    prefix   = config.cache != []
     counter  = config.counter
+    prefix   = if config.cache != [], do: "...", else: config.prefix
 
     pid = spawn(fn -> io_get(self_pid, prefix, counter) end)
     wait_input(config, pid)
@@ -82,25 +106,22 @@ defmodule IEx.Server do
 
   defp wait_input(config, pid) do
     receive do
-      { :input, ^pid, data } when is_binary(data) ->
-        new_config =
+      { :input, ^pid, code } when is_binary(code) ->
+        server_loop(
           try do
-            line    = String.to_char_list!(data)
-            counter = config.counter
-            code    = config.cache
-            eval(code, line, counter, config)
+            code = String.to_char_list!(code)
+            server_eval(code, config)
           catch
             kind, error ->
               print_error(kind, error, System.stacktrace)
               config.cache('')
           end
-
-        eval_loop(new_config)
+        )
       { :input, ^pid, :eof } ->
         :ok
       { :input, ^pid, { :error, :interrupted } } ->
         io_error "** (EXIT) interrupted"
-        eval_loop(config.cache(''))
+        server_loop(config.cache(''))
       { :input, ^pid, { :error, :terminated } } ->
         :ok
 
@@ -116,7 +137,7 @@ defmodule IEx.Server do
           start(opts)
         else
           IO.puts("")
-          eval_loop(config)
+          server_loop(config)
         end
 
       { :EXIT, _other, :normal } ->
@@ -143,18 +164,38 @@ defmodule IEx.Server do
   #
   @break_trigger '#iex:break\n'
 
-  defp eval(_, @break_trigger, _, config=Config[cache: '']) do
+  defp server_eval(code, config) do
+    if evaluator = config.evaluator do
+      evaluator <- { :eval, self, code, config }
+      receive do: ({ :evaled, ^evaluator, config } -> config)
+    else
+      eval(code, config)
+    end
+  end
+
+  defp eval(code, config) do
+    try do
+      do_eval(code, config)
+    catch
+      kind, error ->
+        print_error(kind, error, System.stacktrace)
+        config.cache('')
+    end
+  end
+
+  defp do_eval(@break_trigger, config=Config[cache: '']) do
     config
   end
 
-  defp eval(_, @break_trigger, line_no, _) do
-    :elixir_errors.parse_error(line_no, "iex", 'incomplete expression', [])
+  defp do_eval(@break_trigger, config) do
+    :elixir_errors.parse_error(config.counter, "iex", 'incomplete expression', [])
   end
 
-  defp eval(code_so_far, latest_input, line_no, config) do
-    code = code_so_far ++ latest_input
+  defp do_eval(latest_input, config) do
+    code = config.cache ++ latest_input
+    line = config.counter
 
-    case :elixir_translator.forms(code, line_no, "iex", []) do
+    case :elixir_translator.forms(code, line, "iex", []) do
       { :ok, forms } ->
         { result, new_binding, scope } =
           :elixir.eval_forms(forms, config.binding, config.scope)
@@ -165,14 +206,14 @@ defmodule IEx.Server do
         update_history(config)
         config.update_counter(&(&1+1)).cache('').binding(new_binding).scope(scope).result(nil)
 
-      { :error, { line_no, error, token } } ->
+      { :error, { line, error, token } } ->
         if token == [] do
           # Update config.cache so that IEx continues to add new input to
           # the unfinished expression in `code`
           config.cache(code)
         else
           # Encountered malformed expression
-          :elixir_errors.parse_error(line_no, "iex", error, token)
+          :elixir_errors.parse_error(line, "iex", error, token)
         end
     end
   end
@@ -200,17 +241,22 @@ defmodule IEx.Server do
   ## Config and load dot iex helpers
 
   defp boot_config(opts) do
+    locals = Keyword.get(opts, :delegate_locals_to, IEx.Helpers)
+
     scope =
       if env = opts[:env] do
         scope = :elixir_scope.to_erl_env(env)
-        :elixir.scope_for_eval(scope, delegate_locals_to: IEx.Helpers)
+        :elixir.scope_for_eval(scope, delegate_locals_to: locals)
       else
-        :elixir.scope_for_eval(file: "iex", delegate_locals_to: IEx.Helpers)
+        :elixir.scope_for_eval(file: "iex", delegate_locals_to: locals)
       end
 
-    # require IEx.Helpers to get it started
     { _, _, scope } = :elixir.eval('require IEx.Helpers', [], 0, scope)
-    config = Config[binding: opts[:binding] || [], scope: scope]
+
+    binding = Keyword.get(opts, :binding, [])
+    prefix  = Keyword.get(opts, :prefix, "iex")
+    config  = Config[binding: binding, scope: scope,
+                     prefix: prefix, evaluator: opts[:evaluator]]
 
     case opts[:dot_iex_path] do
       ""   -> config                     # don't load anything
@@ -242,7 +288,7 @@ defmodule IEx.Server do
       code  = File.read!(path)
       scope = :elixir.scope_for_eval(config.scope, file: path)
 
-      # Evaluate the contents in the same environment eval_loop will run in
+      # Evaluate the contents in the same environment server_loop will run in
       { _result, binding, scope } =
         :elixir.eval(String.to_char_list!(code),
                      config.binding,
@@ -261,8 +307,6 @@ defmodule IEx.Server do
   ## Get input
 
   defp io_get(pid, prefix, counter) do
-    prefix = if prefix, do: "..."
-
     prompt =
       if is_alive do
         "#{prefix || remote_prefix}(#{node})#{counter}> "

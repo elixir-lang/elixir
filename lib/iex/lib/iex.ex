@@ -277,24 +277,31 @@ defmodule IEx do
       2
       3
 
-  Keep in mind that `IEx.pry` runs in a new process, so you won't
-  have access to the pried process messages, only the environment
-  information, i.e. `self` in the caller and in the shell will
-  return different results. In fact, `IEx.pry` won't even block
-  the caller.
-
-  Since the information is exported, local functions also can't
-  be accessed from the environment and requires the qualified
-  form `Mod.fun(args)`.
+  Keep in mind that `IEx.pry` runs in the caller process,
+  blocking it during the evaluation cycle. The only limitation
+  is that the code is invoke externally to the current module,
+  so local functions need to be invoked with the full qualified
+  name.
   """
   defmacro pry(timeout // 1000) do
     quote do
       env = __ENV__
-      IEx.Server.take_over(
-        "Request to pry environment at #{env.file}:#{env.line}",
-        [binding: binding, dot_iex_path: "", env: env],
-        unquote(timeout)
-      )
+      inf = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
+      res = IEx.Server.take_over("Request to pry #{inf}",
+                                 [binding: binding, dot_iex_path: "",
+                                  env: env, delegate_locals_to: nil, prefix: "pry"],
+                                 unquote(timeout))
+
+      case res do
+        :ok ->
+          :ok
+        { :error, :self } ->
+          IO.puts IEx.color(:eval_error, "IEx cannot pry itself.")
+        { :error, :no_iex } ->
+          IO.puts IEx.color(:eval_error, "Cannot pry #{inf}. Is an IEx shell running?")
+      end
+
+      :done
     end
   end
 
