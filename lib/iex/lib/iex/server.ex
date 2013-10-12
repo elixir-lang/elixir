@@ -2,7 +2,7 @@ defmodule IEx.Server do
   @moduledoc false
 
   defrecord Config, binding: nil, cache: '', counter: 1,
-                    scope: nil, result: nil, input_pid: nil
+                    scope: nil, result: nil
 
   @doc """
   Finds where the current IEx server is located.
@@ -28,6 +28,25 @@ defmodule IEx.Server do
   end
 
   @doc """
+  Requests to take over the given shell.
+  """
+  def take_over(identifier, opts, timeout // 1000) do
+    spawn fn ->
+      ref = make_ref()
+      pid = whereis()
+      pid <- { :take?, self, ref }
+
+      receive do
+        ^ref ->
+          pid <- { :take, identifier, opts }
+      after
+        timeout ->
+          IO.puts("#{identifier} failed. Is IEx running?")
+      end
+    end
+  end
+
+  @doc """
   Eval loop for an IEx session. Its responsibilities include:
 
   * loading of .iex files
@@ -38,21 +57,14 @@ defmodule IEx.Server do
   """
   def start(opts) when is_list(opts) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
-
     IEx.History.init
 
     config   = boot_config(opts)
     old_flag = Process.flag(:trap_exit, true)
-    self_pid = self
-
-    # We have one loop for receiving input and
-    # another loop for evaluating contents.
-    pid = spawn_link(fn -> input_loop(self_pid) end)
 
     try do
-      eval_loop(config.input_pid(pid))
+      eval_loop(config)
     after
-      Process.exit(pid, :normal)
       Process.flag(:trap_exit, old_flag)
     end
   end
@@ -60,14 +72,15 @@ defmodule IEx.Server do
   ## Eval loop
 
   defp eval_loop(config) do
-    prefix = config.cache != []
-    config.input_pid <- { :do_input, self, prefix, config.counter }
-    wait_input(config)
+    self_pid = self()
+    prefix   = config.cache != []
+    counter  = config.counter
+
+    pid = spawn(fn -> io_get(self_pid, prefix, counter) end)
+    wait_input(config, pid)
   end
 
-  defp wait_input(config) do
-    pid = config.input_pid
-
+  defp wait_input(config, pid) do
     receive do
       { :input, ^pid, data } when is_binary(data) ->
         new_config =
@@ -90,11 +103,27 @@ defmodule IEx.Server do
         eval_loop(config.cache(''))
       { :input, ^pid, { :error, :terminated } } ->
         :ok
-      { :EXIT, _pid, :normal } ->
-        wait_input(config)
-      { :EXIT, pid, reason } ->
-        print_exit(pid, reason)
-        wait_input(config)
+
+      { :take?, other, ref } ->
+        other <- ref
+        wait_input(config, pid)
+      { :take, identifier, opts } ->
+        Process.exit(pid, :kill)
+        answer = IO.gets(:stdio, "\n#{identifier}. Allow? [Yn] ")
+
+        if answer =~ %r/^(Y(es)?)?$/i do
+          IEx.History.reset
+          start(opts)
+        else
+          IO.puts("")
+          eval_loop(config)
+        end
+
+      { :EXIT, _other, :normal } ->
+        wait_input(config, pid)
+      { :EXIT, other, reason } ->
+        print_exit(other, reason)
+        wait_input(config, pid)
     end
   end
 
@@ -172,7 +201,8 @@ defmodule IEx.Server do
 
   defp boot_config(opts) do
     scope =
-      if scope = opts[:scope] do
+      if env = opts[:env] do
+        scope = :elixir_scope.to_erl_env(env)
         :elixir.scope_for_eval(scope, delegate_locals_to: IEx.Helpers)
       else
         :elixir.scope_for_eval(file: "iex", delegate_locals_to: IEx.Helpers)
@@ -228,17 +258,9 @@ defmodule IEx.Server do
     end
   end
 
-  ## Input loop
+  ## Get input
 
-  defp input_loop(pid) do
-    receive do
-      { :do_input, ^pid, prefix, counter } ->
-        pid <- { :input, self, io_get(prefix, counter) }
-    end
-    input_loop(pid)
-  end
-
-  defp io_get(prefix, counter) do
+  defp io_get(pid, prefix, counter) do
     prefix = if prefix, do: "..."
 
     prompt =
@@ -248,7 +270,7 @@ defmodule IEx.Server do
         "#{prefix || "iex"}(#{counter})> "
       end
 
-    IO.gets(:stdio, prompt)
+    pid <- { :input, self, IO.gets(:stdio, prompt) }
   end
 
   defp remote_prefix do

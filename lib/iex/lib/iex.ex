@@ -246,6 +246,58 @@ defmodule IEx do
       <> string <> IO.ANSI.escape_fragment("%{reset}", enabled)
   end
 
+  @doc """
+  Pries the caller environment.
+  This is useful for debugging a particular chunk of code.
+
+  Status: This feature is experimental.
+
+  ## Examples
+
+  Let's suppose you want to investigate what is happening
+  with some particular function. By invoking `IEx.pry` from
+  the function, IEx will allow you to access its binding
+  (variables) and expose its lexical information. Let's see
+  an example:
+
+      import Enum, only: [map: 2]
+
+      def add(a, b) do
+        c = a + b
+        IEx.pry
+      end
+
+  When invoking `add(1, 2)`, you will receive a message in
+  your shell to pry the given environment. By allowing it,
+  the shell will be reset and you gain access to all variables
+  and the lexical scope from above:
+
+      iex(1)> map([a,b,c], &IO.inspect(&1))
+      1
+      2
+      3
+
+  Keep in mind that `IEx.pry` runs in a new process, so you won't
+  have access to the pried process messages, only the environment
+  information, i.e. `self` in the caller and in the shell will
+  return different results. In fact, `IEx.pry` won't even block
+  the caller.
+
+  Since the information is exported, local functions also can't
+  be accessed from the environment and requires the qualified
+  form `Mod.fun(args)`.
+  """
+  defmacro pry(timeout // 1000) do
+    quote do
+      env = __ENV__
+      IEx.Server.take_over(
+        "Request to pry environment at #{env.file}:#{env.line}",
+        [binding: binding, dot_iex_path: "", env: env],
+        unquote(timeout)
+      )
+    end
+  end
+
   ## Callbacks
 
   # This is a callback invoked by Erlang shell utilities
