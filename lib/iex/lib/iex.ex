@@ -247,8 +247,14 @@ defmodule IEx do
   end
 
   @doc """
-  Pries the caller environment.
-  This is useful for debugging a particular chunk of code.
+  Pries into the caller environment.
+
+  This is useful for debugging a particular chunk of code
+  and inspect the state of a particular server.
+
+  The code runs inside IEx and, therefore, is evaluated
+  and cannot access private functions in the module being
+  pried. Module functions need to be accessed via `Mod.fun(args)`.
 
   Status: This feature is experimental.
 
@@ -257,8 +263,8 @@ defmodule IEx do
   Let's suppose you want to investigate what is happening
   with some particular function. By invoking `IEx.pry` from
   the function, IEx will allow you to access its binding
-  (variables) and expose its lexical information. Let's see
-  an example:
+  (variables), verify its lexical information and access
+  the process information. Let's see an example:
 
       import Enum, only: [map: 2]
 
@@ -278,19 +284,17 @@ defmodule IEx do
       3
 
   Keep in mind that `IEx.pry` runs in the caller process,
-  blocking it during the evaluation cycle. The only limitation
-  is that the code is invoke externally to the current module,
-  so local functions need to be invoked with the full qualified
-  name.
+  blocking the caller during the evaluation cycle.
+
+  Setting variables or importing modules in IEx does not
+  affect the caller the environment (hence it is called `pry`).
   """
   defmacro pry(timeout // 1000) do
     quote do
-      env = __ENV__
-      inf = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
-      res = IEx.Server.take_over("Request to pry #{inf}",
-                                 [binding: binding, dot_iex_path: "",
-                                  env: env, delegate_locals_to: nil, prefix: "pry"],
-                                 unquote(timeout))
+      env  = __ENV__
+      meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
+      opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
+      res  = IEx.Server.take_over("Request to pry #{meta}", opts, unquote(timeout))
 
       case res do
         :ok ->
@@ -298,7 +302,7 @@ defmodule IEx do
         { :error, :self } ->
           IO.puts IEx.color(:eval_error, "IEx cannot pry itself.")
         { :error, :no_iex } ->
-          IO.puts IEx.color(:eval_error, "Cannot pry #{inf}. Is an IEx shell running?")
+          IO.puts IEx.color(:eval_error, "Cannot pry #{meta}. Is an IEx shell running?")
       end
 
       :done

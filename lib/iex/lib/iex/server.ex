@@ -37,21 +37,24 @@ defmodule IEx.Server do
     server = whereis()
     opts   = Keyword.put(opts, :evaluator, self)
 
-    if server == self do
-      { :error, :self }
-    else
-      ref = make_ref()
-      server <- { :take?, self, ref }
+    cond do
+      nil?(server) ->
+        { :error, :no_iex }
+      server == self ->
+        { :error, :self }
+      true ->
+        ref = make_ref()
+        server <- { :take?, self, ref }
 
-      receive do
-        ^ref ->
-          server <- { :take, identifier, opts }
-          IEx.History.init
-          eval_loop(server)
-      after
-        timeout ->
-          { :error, :no_iex }
-      end
+        receive do
+          ^ref ->
+            server <- { :take, identifier, opts }
+            IEx.History.init
+            eval_loop(server)
+        after
+          timeout ->
+            { :error, :no_iex }
+        end
     end
   end
 
