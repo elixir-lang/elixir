@@ -1,6 +1,32 @@
 defmodule IEx.Server do
   @moduledoc false
 
+  defrecord Config, binding: nil, cache: '', counter: 1,
+                    scope: nil, result: nil, input_pid: nil
+
+  @doc """
+  Finds where the current IEx server is located.
+  """
+  def whereis() do
+    # Locate top group leader, always registered as user
+    # can be implemented by group (normally) or user
+    # (if oldshell or noshell)
+    if user = Process.whereis(:user) do
+      case :group.interfaces(user) do
+        [] -> # Old or no shell
+          case :user.interfaces(user) do
+            [] -> nil
+            [shell: shell] -> shell
+          end
+        [user_drv: user_drv] -> # Get current group from user_drv
+          case :user_drv.interfaces(user_drv) do
+            [] -> nil
+            [current_group: group] -> :group.interfaces(group)[:shell]
+          end
+      end
+    end
+  end
+
   @doc """
   Eval loop for an IEx session. Its responsibilities include:
 
@@ -10,20 +36,12 @@ defmodule IEx.Server do
   * keeping expression history
 
   """
-  def start(config) do
-    IEx.History.init
-
-    { _, _, scope } = :elixir.eval('require IEx.Helpers', [], 0, config.scope)
-    config = config.scope(scope)
-
-    config = case config.dot_iex_path do
-      ""   -> config                     # don't load anything
-      nil  -> load_dot_iex(config)       # load .iex from predefined locations
-      path -> load_dot_iex(config, path) # load from `path`
-    end
-
+  def start(opts) when is_list(opts) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
 
+    IEx.History.init
+
+    config   = boot_config(opts)
     old_flag = Process.flag(:trap_exit, true)
     self_pid = self
 
@@ -96,7 +114,7 @@ defmodule IEx.Server do
   #
   @break_trigger '#iex:break\n'
 
-  defp eval(_, @break_trigger, _, config=IEx.Config[cache: '']) do
+  defp eval(_, @break_trigger, _, config=Config[cache: '']) do
     config
   end
 
@@ -150,7 +168,26 @@ defmodule IEx.Server do
     end
   end
 
-  ## Load dot iex helpers
+  ## Config and load dot iex helpers
+
+  defp boot_config(opts) do
+    scope =
+      if scope = opts[:scope] do
+        :elixir.scope_for_eval(scope, delegate_locals_to: IEx.Helpers)
+      else
+        :elixir.scope_for_eval(file: "iex", delegate_locals_to: IEx.Helpers)
+      end
+
+    # require IEx.Helpers to get it started
+    { _, _, scope } = :elixir.eval('require IEx.Helpers', [], 0, scope)
+    config = Config[binding: opts[:binding] || [], scope: scope]
+
+    case opts[:dot_iex_path] do
+      ""   -> config                     # don't load anything
+      nil  -> load_dot_iex(config)       # load .iex from predefined locations
+      path -> load_dot_iex(config, path) # load from `path`
+    end
+  end
 
   # Locates and loads an .iex file from one of predefined locations. Returns
   # new config.

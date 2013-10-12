@@ -1,6 +1,3 @@
-defrecord IEx.Config, binding: nil, cache: '', counter: 1, scope: nil,
-                      result: nil, dot_iex_path: nil, input_pid: nil
-
 defmodule IEx do
   @moduledoc %S"""
   Welcome to IEx.
@@ -254,14 +251,8 @@ defmodule IEx do
   # This is a callback invoked by Erlang shell utilities
   # when someone press Ctrl+G and adds 's Elixir.IEx'.
   @doc false
-  def start(config // [], callback // fn -> end) do
+  def start(opts // [], callback // fn -> end) do
     spawn fn ->
-      config =
-        case config do
-          IEx.Config[] -> config
-          opts -> boot_config(opts)
-        end
-
       case :init.notify_when_started(self()) do
         :started -> :ok
         _        -> :init.wait_until_started()
@@ -272,22 +263,8 @@ defmodule IEx do
 
       set_expand_fun()
       run_after_spawn()
-      IEx.Server.start(config)
+      IEx.Server.start(opts)
     end
-  end
-
-  @doc false
-  def boot_config(opts) do
-    scope = :elixir.scope_for_eval(
-      file: "iex",
-      delegate_locals_to: IEx.Helpers
-    )
-
-    IEx.Config[
-      binding: opts[:binding] || [],
-      scope: scope,
-      dot_iex_path: Keyword.get(opts, :dot_iex_path),
-    ]
   end
 
   @doc false

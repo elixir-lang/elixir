@@ -59,7 +59,7 @@ defmodule IEx.Case do
     end
 
     ExUnit.CaptureIO.capture_io([input: input, capture_prompt: false], fn ->
-      IEx.Server.start(IEx.boot_config(dot_iex_path: dot_iex_path))
+      IEx.Server.start([dot_iex_path: dot_iex_path])
     end) |> strip_iex
   end
 

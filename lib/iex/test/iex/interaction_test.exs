@@ -10,7 +10,7 @@ defmodule IEx.InteractionTest do
 
     # We're using bare-bones capture_io instead of capture_iex only once here
     assert capture_io("IO.puts \"Hello world\"", fn ->
-      IEx.Server.start(IEx.boot_config(dot_iex_path: ""))
+      IEx.Server.start([dot_iex_path: ""])
     end) =~ %r"^Interactive Elixir \(.+?\) - press Ctrl\+C to exit \(type h\(\) ENTER for help\)\niex\(1\)> Hello world\n:ok\niex\(2\)> $"
   end
 
