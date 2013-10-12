@@ -1,4 +1,4 @@
-defmodule IEx.History do
+ defmodule IEx.History do
   @moduledoc false
 
   @doc """
@@ -13,11 +13,10 @@ defmodule IEx.History do
   @doc """
   Appends one entry to the history with the given counter.
   """
-  def append(entry, counter) do
+  def append(entry, counter, limit) do
     Process.put({:iex_history, counter}, entry)
     Process.put(:iex_history_counter, counter+1)
 
-    limit = IEx.Options.get(:history_size)
     start_counter = Process.get(:iex_history_start_counter)
     should_collect = limit_history(start_counter, counter, limit, false)
     if should_collect do

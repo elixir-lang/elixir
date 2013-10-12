@@ -13,6 +13,11 @@ defmodule IEx do
   saying that the smart terminal could not be run, some of the
   features described here won't work.
 
+  ## Helpers
+
+  IEx provides a bunch of helpers. They can be accessed by typing
+  `h()` into the shell or as a documentation for the `IEx.Helpers` module.
+
   ## The Break command
 
   Inside IEx, hitting `Ctrl+C` will open up the `BREAK` menu. In this
@@ -45,16 +50,78 @@ defmodule IEx do
   Now, try to access the `hello` variable again:
 
       hello
-      ** (UndefinedFunctionError) undefined function: IEx.Helpers.hello/0
+      ** (UndefinedFunctionError) undefined function: hello/0
 
   The command above fails because we have switched shells.
   Since shells are isolated from each other, you can't access the
   variables defined in one shell from the other one.
 
   The user switch command menu also allows developers to connect to remote
-  shells using the `r` command. Keep in mind that you can't connect to a
-  remote node if you haven't given a name to the current node
-  (i.e. `Process.is_alive?` must return `true`).
+  shells using the `r` command. A topic which we will discuss next.
+
+  ## Remote shells
+
+  IEx allows you to connect to another node in two fashions.
+  First of all, we can only connect to a shell if we give names
+  both to the current shell and the shell we want to connect to.
+
+  Let's give it a try. First start a new shell:
+
+      $ iex --sname foo
+      iex(foo@HOST)1>
+
+  The string in between parenthesis in the prompt is the name
+  of your node. We can retrieve it by calling the `node()`
+  function:
+
+      iex(foo@HOST)1> node()
+      :"foo@HOST"
+      iex(foo@HOST)2> is_alive()
+      true
+
+  For fun, let's define a simple module in this shell too:
+
+      iex(foo@HOST)3> defmodule Hello do
+      ...(foo@HOST)3>   def world, do: "it works!"
+      ...(foo@HOST)3> end
+
+  Now, let's start another shell, giving it a name as well:
+
+      $ iex --sname bar
+      iex(bar@HOST)1>
+
+  If we try to dispatch to `Hello.world`, it won't be available
+  as it was defined only in the other shell:
+
+      iex(bar@HOST)1> Hello.world
+      ** (UndefinedFunctionError) undefined function: Hello.world/0
+
+  However, we can connect to the other shell remotely. Open up
+  the User Switch prompt (Ctrl+G) and type:
+
+      User switch command
+       --> r 'foo@HOST' 'Elixir.IEx'
+       --> c
+
+  Now we are connected into the remote node, as the prompt shows us,
+  and we can access the information and modules defined over there:
+
+      rem(foo@macbook)1> Hello.world
+      "it works"
+
+  In fact, connecting to remote shells is so common that we provide
+  a shortcut via the command line as well:
+
+      $ iex --sname baz --remsh foo@HOST
+
+  Where "remsh" means "remote shell". In general, Elixir supports:
+
+  * remsh from an elixir node to an elixir node
+  * remsh from a plain erlang node to an elixir node (through the ^G menu)
+  * remsh from an elixir node to a plain erlang node (and get an erl shell there)
+
+  Connecting an Elixir shell to a remote node without Elixir is
+  **not** supported.
 
   ## The .iex file
 
@@ -80,10 +147,10 @@ defmodule IEx do
   results in
 
       $ iex
-      Erlang R15B03 (erts-5.9.3.1) [...]
+      Erlang R16B [...]
 
       hello world
-      Interactive Elixir (0.8.3.dev) - press Ctrl+C to exit (type h() ENTER for help)
+      Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
       iex(1)> value
       13
 
@@ -93,7 +160,7 @@ defmodule IEx do
   ## Configuring the shell
 
   There are a number of customization options provided by the shell. Take a look
-  at the docs for the `IEx.Options` module.
+  at the docs for the `IEx.Options` module by typing `h IEx.Options`.
 
   The main functions there are `IEx.Options.get/1` and `IEx.Options.set/2`. One
   can also use `IEx.Options.list/0` to get the list of all supported options.

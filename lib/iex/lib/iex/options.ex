@@ -9,8 +9,8 @@ defmodule IEx.Options do
   mentioned will be changed. The rest of the sub-options will keep their
   current values. Any extraneous keys are filtered out, i.e. not used.
 
-  To get the list of all supported options, use `list/0`. You can also get an
-  option's description using `print_help/1`.
+  To get the list of all supported options, use `IEx.Options.list/0`.
+  You can also get an option's description using `IEx.Options.print_help/1`.
 
   ## Examples
 
@@ -51,13 +51,9 @@ defmodule IEx.Options do
   """
   def get(name)
 
-  keys = [ colors: :colors,
-           inspect: :inspect_opts,
-           history_size: :history_size ]
-
-  Enum.each keys, fn { key, env } ->
+  lc key inlist @supported_options do
     def get(unquote(key)) do
-      { :ok, value } = :application.get_env(:iex, unquote(env))
+      { :ok, value } = :application.get_env(:iex, unquote(key))
       value
     end
   end
@@ -97,7 +93,7 @@ defmodule IEx.Options do
   end
 
   def set(:inspect, opts) when is_list(opts) do
-    filter_and_merge(:inspect, :inspect_opts, opts)
+    filter_and_merge(:inspect, opts)
   end
 
   def set(:inspect, _) do
@@ -193,19 +189,17 @@ defmodule IEx.Options do
     raise ArgumentError, message: "Unsupported key '#{name}' for option '#{option_name}'"
   end
 
-  defp filter_and_merge(option_name, env_var_name // nil, values) when is_list(values) do
-    env_var_name = env_var_name || option_name
-
-    old_values = get(option_name)
-    filtered_values = filtered_kw(option_name, old_values, values)
-    :application.set_env(:iex, env_var_name, Keyword.merge(old_values, filtered_values))
+  defp filter_and_merge(opt, values) when is_list(values) do
+    old_values = get(opt)
+    filtered_values = filtered_kw(opt, old_values, values)
+    :application.set_env(:iex, opt, Keyword.merge(old_values, filtered_values))
     old_values
   end
 
-  defp filtered_kw(option_name, reference_kw, user_kw) do
+  defp filtered_kw(opt, reference_kw, user_kw) do
     Enum.filter user_kw, fn {name, _} ->
       if not Keyword.has_key?(reference_kw, name) do
-        raise_key(option_name, name)
+        raise_key(opt, name)
       end
       true
     end

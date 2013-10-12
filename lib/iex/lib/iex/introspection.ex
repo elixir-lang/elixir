@@ -1,6 +1,6 @@
+# Convenience helpers for showing docs, specs and types
+# from modules. Invoked directly from IEX.Helpers.
 defmodule IEx.Introspection do
-  # Convenience helpers for showing docs, specs and types
-  # from modules. Invoked directly from IEX.Helpers.
   @moduledoc false
 
   import IEx, only: [dont_display_result: 0]
