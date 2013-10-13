@@ -1,8 +1,10 @@
+defrecord IEx.Config, binding: nil, cache: '', counter: 1,
+                      prefix: "iex", scope: nil, result: nil
+
 defmodule IEx.Server do
   @moduledoc false
 
-  defrecord Config, binding: nil, cache: '', counter: 1, prefix: "iex",
-                    scope: nil, result: nil, evaluator: nil
+  alias IEx.Config
 
   @doc """
   Finds where the current IEx server is located.
@@ -49,8 +51,7 @@ defmodule IEx.Server do
         receive do
           ^ref ->
             server <- { :take, identifier, opts }
-            IEx.History.init
-            eval_loop(server)
+            IEx.Evaluator.start(server)
         after
           timeout ->
             { :error, :no_iex }
@@ -58,215 +59,99 @@ defmodule IEx.Server do
     end
   end
 
-  defp eval_loop(server) do
-    receive do
-      { :eval, ^server, code, config } ->
-        server <- { :evaled, self, eval(code, config) }
-        eval_loop(server)
-      { :done, ^server } ->
-        IEx.History.reset
-        :ok
-    end
-  end
-
   @doc """
-  Eval loop for an IEx session. Its responsibilities include:
+  Server loop for an IEx session. Its responsibilities include:
 
-  * loading of .iex files
+  * setting up the evaluator
   * reading input
-  * trapping exceptions in the code being evaluated
-  * keeping expression history
+  * sending messages to the evaluator
 
   """
   def start(opts) when is_list(opts) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
-
-    config   = boot_config(opts)
-    old_flag = Process.flag(:trap_exit, true)
-    before_loop(config)
-
-    try do
-      server_loop(config)
-    after
-      Process.flag(:trap_exit, old_flag)
-      after_loop(config)
-    end
+    self_pid  = self
+    evaluator = opts[:evaluator] || spawn(fn -> IEx.Evaluator.start(self_pid) end)
+    loop(boot_config(opts), evaluator, start_loop(evaluator))
   end
 
-  ## Server loop
-
-  defp restart(config, opts) do
-    after_loop(config)
+  defp restart(evaluator_ref, opts) do
+    exit_loop(evaluator_ref)
+    IO.write [IO.ANSI.home, IO.ANSI.clear]
     start(opts)
   end
 
-  defp server_loop(config) do
+  defp start_loop(evaluator) do
+    Process.monitor(evaluator)
+  end
+
+  defp exit_loop(evaluator_ref) do
+    Process.demonitor(evaluator_ref)
+    :ok
+  end
+
+  ## Loop
+
+  defp loop(config, evaluator, evaluator_ref) do
     self_pid = self()
     counter  = config.counter
     prefix   = if config.cache != [], do: "...", else: config.prefix
 
-    pid = spawn(fn -> io_get(self_pid, prefix, counter) end)
-    wait_input(config, pid)
+    input = spawn(fn -> io_get(self_pid, prefix, counter) end)
+    wait_input(config, evaluator, evaluator_ref, input)
   end
 
-  defp wait_input(config, pid) do
-    evaluator = config.evaluator
-
+  defp wait_input(config, evaluator, evaluator_ref, input) do
     receive do
-      { :input, ^pid, code } when is_binary(code) ->
-        server_loop(
-          try do
-            code = String.to_char_list!(code)
-            server_eval(code, config)
-          catch
-            kind, error ->
-              print_error(kind, error, System.stacktrace)
-              config.cache('')
-          end
-        )
-      { :input, ^pid, :eof } ->
-        :ok
-      { :input, ^pid, { :error, :interrupted } } ->
+      # Input handling.
+      # Message either go back to the main loop or exit.
+      { :input, ^input, code } when is_binary(code) ->
+        evaluator <- { :eval, self, code, config }
+        receive do
+          { :evaled, ^evaluator, config } ->
+            loop(config, evaluator, evaluator_ref)
+        end
+      { :input, ^input, { :error, :interrupted } } ->
         io_error "** (EXIT) interrupted"
-        server_loop(config.cache(''))
-      { :input, ^pid, { :error, :terminated } } ->
-        :ok
+        loop(config.cache(''), evaluator, evaluator_ref)
+      { :input, ^input, :eof } ->
+        exit_loop(evaluator_ref)
+      { :input, ^input, { :error, :terminated } } ->
+        exit_loop(evaluator_ref)
 
-      # Take over process
+      # Take process.
+      # The take? message is received out of band, so we can
+      # go back to wait for the same input. The take message
+      # needs to take hold of the IO, so it kills the input
+      # starts a new evaluator OR goes back to the main loop.
       { :take?, other, ref } ->
         other <- ref
-        wait_input(config, pid)
+        wait_input(config, evaluator, evaluator_ref, input)
       { :take, identifier, opts } ->
-        Process.exit(pid, :kill)
-        answer = IO.gets(:stdio, "\n#{identifier}. Allow? [Yn] ")
+        kill_input(input)
+        message = IEx.color(:eval_interrupt, "#{identifier}. Allow? [Yn] ")
+        answer  = IO.gets(:stdio, message)
 
         if answer =~ %r/^(Y(es)?)?$/i do
-          restart(config, opts)
+          restart(evaluator_ref, opts)
         else
-          IO.puts("")
-          server_loop(config)
+          loop(config, evaluator, evaluator_ref)
         end
 
-      # Accept respawn messages only from self and evaluator
-      { :EXIT, other, :respawn } when other in [self, evaluator] ->
+      # Evaluator handling.
+      # We always kill the input to start a new one or to exit for real.
+      { :respawn, ^evaluator } ->
+        kill_input(input)
         IO.puts("")
-        restart(config, [])
-
-      # All process normal exits are accepted, except the evaluator one
-      { :EXIT, other, :normal } when other != evaluator ->
-        wait_input(config, pid)
-
-      { :EXIT, other, reason } ->
-        print_exit(other, reason)
-        wait_input(config, pid)
+        restart(evaluator_ref, [])
+      { :DOWN, ^evaluator_ref, :process, ^evaluator,  reason } ->
+        io_error "** (EXIT from #{config.prefix} #{inspect evaluator}) #{inspect(reason)}"
+        kill_input(input)
+        exit_loop(evaluator_ref)
     end
   end
 
-  defp before_loop(config) do
-    IEx.History.init
-
-    if evaluator = config.evaluator do
-      Process.link(evaluator)
-    end
-  end
-
-  defp after_loop(config) do
-    IEx.History.reset
-
-    if evaluator = config.evaluator do
-      evaluator <- { :done, self }
-      Process.unlink(evaluator)
-    end
-  end
-
-  # Instead of doing just `:elixir.eval`, we first parse the expression to see
-  # if it's well formed. If parsing succeeds, we evaluate the AST as usual.
-  #
-  # If parsing fails, this might be a TokenMissingError which we treat in
-  # a special way (to allow for continuation of an expression on the next
-  # line in IEx). In case of any other error, we let :elixir_translator
-  # to re-raise it.
-  #
-  # Returns updated config.
-  #
-  # The first two clauses provide support for the break-trigger allowing to
-  # break out from a pending incomplete expression. See
-  # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
-  #
-  @break_trigger '#iex:break\n'
-
-  defp server_eval(code, config) do
-    if evaluator = config.evaluator do
-      evaluator <- { :eval, self, code, config }
-      receive do: ({ :evaled, ^evaluator, config } -> config)
-    else
-      eval(code, config)
-    end
-  end
-
-  defp eval(code, config) do
-    try do
-      do_eval(code, config)
-    catch
-      kind, error ->
-        print_error(kind, error, System.stacktrace)
-        config.cache('')
-    end
-  end
-
-  defp do_eval(@break_trigger, config=Config[cache: '']) do
-    config
-  end
-
-  defp do_eval(@break_trigger, config) do
-    :elixir_errors.parse_error(config.counter, "iex", 'incomplete expression', [])
-  end
-
-  defp do_eval(latest_input, config) do
-    code = config.cache ++ latest_input
-    line = config.counter
-
-    case :elixir_translator.forms(code, line, "iex", []) do
-      { :ok, forms } ->
-        { result, new_binding, scope } =
-          :elixir.eval_forms(forms, config.binding, config.scope)
-
-        unless result == IEx.dont_display_result, do: io_put result
-
-        config = config.cache(code).scope(nil).result(result)
-        update_history(config)
-        config.update_counter(&(&1+1)).cache('').binding(new_binding).scope(scope).result(nil)
-
-      { :error, { line, error, token } } ->
-        if token == [] do
-          # Update config.cache so that IEx continues to add new input to
-          # the unfinished expression in `code`
-          config.cache(code)
-        else
-          # Encountered malformed expression
-          :elixir_errors.parse_error(line, "iex", error, token)
-        end
-    end
-  end
-
-  defp update_history(Config[result: result, counter: counter, cache: cache]) do
-    IEx.History.append({ counter, cache, result }, counter, IEx.Options.get(:history_size))
-  end
-
-  defp io_put(result) do
-    IO.puts :stdio, IEx.color(:eval_result, inspect(result, inspect_opts))
-  end
-
-  defp io_error(result) do
-    IO.puts :stdio, IEx.color(:eval_error, result)
-  end
-
-  defp inspect_opts do
-    opts = IEx.Options.get(:inspect)
-    case :io.columns(:standard_input) do
-      { :ok, width } -> Keyword.put(opts, :width, min(width, 80))
-      { :error, _ }  -> opts
-    end
+  defp kill_input(input) do
+    Process.exit(input, :kill)
   end
 
   ## Config and load dot iex helpers
@@ -286,52 +171,11 @@ defmodule IEx.Server do
 
     binding = Keyword.get(opts, :binding, [])
     prefix  = Keyword.get(opts, :prefix, "iex")
-    config  = Config[binding: binding, scope: scope,
-                     prefix: prefix, evaluator: opts[:evaluator]]
+    config  = Config[binding: binding, scope: scope, prefix: prefix]
 
     case opts[:dot_iex_path] do
-      ""   -> config                     # don't load anything
-      nil  -> load_dot_iex(config)       # load .iex from predefined locations
-      path -> load_dot_iex(config, path) # load from `path`
-    end
-  end
-
-  # Locates and loads an .iex file from one of predefined locations. Returns
-  # new config.
-  defp load_dot_iex(config, path // nil) do
-    candidates = if path do
-      [path]
-    else
-      Enum.map [".iex", "~/.iex"], &Path.expand/1
-    end
-
-    path = Enum.find candidates, &File.regular?/1
-
-    if nil?(path) do
-      config
-    else
-      eval_dot_iex(config, path)
-    end
-  end
-
-  defp eval_dot_iex(config, path) do
-    try do
-      code  = File.read!(path)
-      scope = :elixir.scope_for_eval(config.scope, file: path)
-
-      # Evaluate the contents in the same environment server_loop will run in
-      { _result, binding, scope } =
-        :elixir.eval(String.to_char_list!(code),
-                     config.binding,
-                     0,
-                     scope)
-
-      scope = :elixir.scope_for_eval(scope, file: "iex")
-      config.binding(binding).scope(scope)
-    catch
-      kind, error ->
-        print_error(kind, error, System.stacktrace)
-        System.halt(1)
+      ""   -> config
+      path -> IEx.Evaluator.load_dot_iex(config, path)
     end
   end
 
@@ -348,52 +192,11 @@ defmodule IEx.Server do
     pid <- { :input, self, IO.gets(:stdio, prompt) }
   end
 
+  defp io_error(result) do
+    IO.puts :stdio, IEx.color(:eval_error, result)
+  end
+
   defp remote_prefix do
     if node == node(:erlang.group_leader), do: "iex", else: "rem"
   end
-
-  ## Error handling
-
-  defp print_error(:error, exception, stacktrace) do
-    { exception, stacktrace } = normalize_exception(exception, stacktrace)
-    print_stacktrace stacktrace, fn ->
-      "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-    end
-  end
-
-  defp print_error(kind, reason, stacktrace) do
-    print_stacktrace stacktrace, fn ->
-      "** (#{kind}) #{inspect(reason)}"
-    end
-  end
-
-  defp print_exit(pid, reason) do
-    io_error "** (EXIT from #{inspect pid}) #{inspect(reason)}"
-  end
-
-  defp normalize_exception(:undef, [{ IEx.Helpers, fun, arity, _ }|t]) do
-    { UndefinedFunctionError[function: fun, arity: arity], t }
-  end
-
-  defp normalize_exception(exception, stacktrace) do
-    { Exception.normalize(:error, exception), stacktrace }
-  end
-
-  defp print_stacktrace(trace, callback) do
-    try do
-      io_error callback.()
-      case prune_stacktrace(trace) do
-        []    -> :ok
-        other -> io_error Exception.format_stacktrace(other)
-      end
-    catch
-      _, _ ->
-        io_error "** (IEx.Error) error when printing exception message and stacktrace"
-    end
-  end
-
-  defp prune_stacktrace([{ :erl_eval, _, _, _ }|_]),  do: []
-  defp prune_stacktrace([{ IEx.Server, _, _, _ }|_]), do: []
-  defp prune_stacktrace([h|t]), do: [h|prune_stacktrace(t)]
-  defp prune_stacktrace([]), do: []
 end

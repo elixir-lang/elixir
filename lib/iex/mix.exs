@@ -12,6 +12,7 @@ defmodule IEx.Mixfile do
         colors: [ enabled: true,
 
                   # Used by default on evaluation cycle
+                  eval_interrupt: "yellow",
                   eval_result: "yellow",
                   eval_error: "red",
                   eval_info: "normal",

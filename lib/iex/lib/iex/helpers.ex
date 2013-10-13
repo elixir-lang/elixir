@@ -84,7 +84,7 @@ defmodule IEx.Helpers do
   Clear the console screen.
   """
   def clear do
-    IO.write [ IO.ANSI.home, IO.ANSI.clear ]
+    IO.write [IO.ANSI.home, IO.ANSI.clear]
     dont_display_result
   end
 
@@ -430,11 +430,13 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Respawns the current shell. Returns true if it worked.
+  Respawns the current shell by starting a new
+  process and a new scope. Returns true if it worked.
   """
   def respawn do
     if whereis = IEx.Server.whereis do
-      Process.exit(whereis, :respawn)
+      whereis <- { :respawn, self }
+      true
     else
       false
     end
