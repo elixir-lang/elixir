@@ -9,6 +9,7 @@ defmodule IEx.Server do
   @doc """
   Finds where the current IEx server is located.
   """
+  @spec whereis :: pid | nil
   def whereis() do
     # Locate top group leader, always registered as user
     # can be implemented by group (normally) or user
@@ -35,14 +36,11 @@ defmodule IEx.Server do
   """
   @spec take_over(binary, Keyword.t, pos_integer) ::
         :ok | { :error, :self } | { :error, :no_iex }
-  def take_over(identifier, opts, timeout // 1000) do
-    server = whereis()
-    opts   = Keyword.put(opts, :evaluator, self)
-
+  def take_over(identifier, opts, timeout // 1000, server // whereis()) do
     cond do
       nil?(server) ->
         { :error, :no_iex }
-      server == self ->
+      whereis_evaluator(server) == self ->
         { :error, :self }
       true ->
         ref = make_ref()
@@ -50,6 +48,7 @@ defmodule IEx.Server do
 
         receive do
           ^ref ->
+            opts = Keyword.put(opts, :evaluator, self)
             server <- { :take, identifier, opts }
             IEx.Evaluator.start(server)
         after
@@ -59,69 +58,77 @@ defmodule IEx.Server do
     end
   end
 
-  @doc """
-  Boots IEx by executing a given callback and starting
-  the server only after the callback is done. If there
-  is any take over during boot, we allow it.
-  """
-  def boot(opts, callback) do
-    { pid, ref } = Process.spawn_monitor(callback)
-    boot_loop(opts, pid, ref)
+  defp whereis_evaluator(server) do
+    case server && Process.info(server, :dictionary) do
+      { :dictionary, dict } -> dict[:evaluator]
+      _ -> nil
+    end
   end
 
-  defp boot_loop(opts, pid, ref) do
+  @doc """
+  Starts IEx by executing a given callback and spawning
+  the server only after the callback is done.
+
+  The server responsibilities include:
+
+  * reading input
+  * sending messages to the evaluator
+  * handling take over process of the evaluator
+
+  If there is any take over during the callback execution,
+  we spawn a new server for it without waiting to its
+  conclusion.
+  """
+  @spec start(list, fun) :: :ok
+  def start(opts, callback) do
+    { pid, ref } = Process.spawn_monitor(callback)
+    start_loop(opts, pid, ref)
+  end
+
+  defp start_loop(opts, pid, ref) do
     receive do
       { :take?, other, ref } ->
         other <- ref
-        boot_loop(opts, pid, ref)
+        start_loop(opts, pid, ref)
 
       { :take, identifier, opts } ->
         if allow_take?(identifier) do
-          start(opts)
+          run(opts)
         else
-          boot_loop(opts, pid, ref)
+          start_loop(opts, pid, ref)
         end
 
       { :DOWN, ^ref, :process, ^pid,  :normal } ->
-        start(opts)
+        run(opts)
 
       { :DOWN, ^ref, :process, ^pid,  _reason } ->
         :ok
     end
   end
 
-  @doc """
-  Server loop for an IEx session. Its responsibilities include:
+  # Run loop: this is where the work is really
+  # done after the start loop.
 
-  * setting up the evaluator
-  * reading input
-  * sending messages to the evaluator
-
-  """
-  def start(opts) when is_list(opts) do
+  defp run(opts) when is_list(opts) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
     self_pid  = self
     evaluator = opts[:evaluator] || spawn(fn -> IEx.Evaluator.start(self_pid) end)
-    loop(boot_config(opts), evaluator, start_loop(evaluator))
+    Process.put(:evaluator, evaluator)
+    loop(run_config(opts), evaluator, Process.monitor(evaluator))
   end
 
-  defp restart(evaluator, evaluator_ref, opts) do
+  defp reset_loop(opts, evaluator, evaluator_ref) do
     exit_loop(evaluator, evaluator_ref)
     IO.write [IO.ANSI.home, IO.ANSI.clear]
-    start(opts)
-  end
-
-  defp start_loop(evaluator) do
-    Process.monitor(evaluator)
+    run(opts)
   end
 
   defp exit_loop(evaluator, evaluator_ref) do
-    evaluator <- { :done, self }
+    Process.delete(:evaluator)
     Process.demonitor(evaluator_ref)
+    evaluator <- { :done, self }
     :ok
   end
-
-  ## Loop
 
   defp loop(config, evaluator, evaluator_ref) do
     self_pid = self()
@@ -153,8 +160,8 @@ defmodule IEx.Server do
       # Take process.
       # The take? message is received out of band, so we can
       # go back to wait for the same input. The take message
-      # needs to take hold of the IO, so it kills the input
-      # starts a new evaluator OR goes back to the main loop.
+      # needs to take hold of the IO, so it kills the input,
+      # re-runs the server OR goes back to the main loop.
       { :take?, other, ref } ->
         other <- ref
         wait_input(config, evaluator, evaluator_ref, input)
@@ -162,17 +169,17 @@ defmodule IEx.Server do
         kill_input(input)
 
         if allow_take?(identifier) do
-          restart(evaluator, evaluator_ref, opts)
+          reset_loop(opts, evaluator, evaluator_ref)
         else
           loop(config, evaluator, evaluator_ref)
         end
 
       # Evaluator handling.
-      # We always kill the input to start a new one or to exit for real.
+      # We always kill the input to run a new one or to exit for real.
       { :respawn, ^evaluator } ->
         kill_input(input)
         IO.puts("")
-        restart(evaluator, evaluator_ref, [])
+        reset_loop([], evaluator, evaluator_ref)
       { :DOWN, ^evaluator_ref, :process, ^evaluator,  reason } ->
         io_error "** (EXIT from #{config.prefix} #{inspect evaluator}) #{inspect(reason)}"
         kill_input(input)
@@ -189,9 +196,9 @@ defmodule IEx.Server do
     IO.gets(:stdio, message) =~ %r/^(Y(es)?)?$/i
   end
 
-  ## Config and load dot iex helpers
+  ## Config
 
-  defp boot_config(opts) do
+  defp run_config(opts) do
     locals = Keyword.get(opts, :delegate_locals_to, IEx.Helpers)
 
     scope =
@@ -214,7 +221,7 @@ defmodule IEx.Server do
     end
   end
 
-  ## Get input
+  ## IO
 
   defp io_get(pid, prefix, counter) do
     prompt =

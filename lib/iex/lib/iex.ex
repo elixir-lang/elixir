@@ -307,13 +307,13 @@ defmodule IEx do
       case res do
         :ok ->
           :ok
-        { :error, :self } ->
+        { :error, :self } = err ->
           IO.puts :stdio, "IEx cannot pry itself."
-        { :error, :no_iex } ->
+          err
+        { :error, :no_iex } = err ->
           IO.puts :stdio, "Cannot pry #{meta}. Is an IEx shell running?"
+          err
       end
-
-      :done
     end
   end
 
@@ -332,7 +332,7 @@ defmodule IEx do
       start_iex()
       set_expand_fun()
       run_after_spawn()
-      IEx.Server.boot(opts, callback)
+      IEx.Server.start(opts, callback)
     end
   end
 
