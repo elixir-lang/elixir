@@ -174,7 +174,7 @@ defmodule IEx do
       $ iex
       Erlang R16B (erts-5.10.1) [...]
 
-      Interactive Elixir (0.9.1.dev) - press Ctrl+C to exit (type h() ENTER for help)
+      Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
       iex(1)> [1, 2, 3, 4, 5]
       [1,2,3,...]
 
@@ -284,7 +284,14 @@ defmodule IEx do
       3
 
   Keep in mind that `IEx.pry` runs in the caller process,
-  blocking the caller during the evaluation cycle.
+  blocking the caller during the evaluation cycle. The caller
+  process can be freed by calling `respawn`, which starts a
+  new IEx evaluation cycle, letting this one go:
+
+      iex(2)> respawn
+      true
+
+      Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
 
   Setting variables or importing modules in IEx does not
   affect the caller the environment (hence it is called `pry`).

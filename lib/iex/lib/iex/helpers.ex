@@ -11,24 +11,25 @@ defmodule IEx.Helpers do
 
   There are many other helpers available:
 
-  * `c/2`     — compiles a file at the given path
-  * `cd/1`    — changes the current directory
-  * `clear/0` — clears the screen
-  * `flush/0` — flushes all messages sent to the shell
-  * `h/0`     — prints this help message
-  * `h/1`     — prints help for the given module, function or macro
-  * `l/1`     — loads the given module's beam code and purges the current version
-  * `ls/0`    — lists the contents of the current directory
-  * `ls/1`    — lists the contents of the specified directory
-  * `m/0`     — prints loaded modules
-  * `pwd/0`   — prints the current working directory
-  * `r/1`     — recompiles and reloads the given module's source file
-  * `s/1`     — prints spec information
-  * `t/1`     — prints type information
-  * `v/0`     — prints the history of commands evaluated in the session
-  * `v/1`     — retrieves the nth value from the history
+  * `c/2`       — compiles a file at the given path
+  * `cd/1`      — changes the current directory
+  * `clear/0`   — clears the screen
+  * `flush/0`   — flushes all messages sent to the shell
+  * `h/0`       — prints this help message
+  * `h/1`       — prints help for the given module, function or macro
+  * `l/1`       — loads the given module's beam code and purges the current version
+  * `ls/0`      — lists the contents of the current directory
+  * `ls/1`      — lists the contents of the specified directory
+  * `m/0`       — prints loaded modules
+  * `pwd/0`     — prints the current working directory
+  * `r/1`       — recompiles and reloads the given module's source file
+  * `respawn/0` — respawns the current shell
+  * `s/1`       — prints spec information
+  * `t/1`       — prints type information
+  * `v/0`       — prints the history of commands evaluated in the session
+  * `v/1`       — retrieves the nth value from the history
   * `import_file/1`
-              — evaluates the given file in the shell's context
+                — evaluates the given file in the shell's context
 
   Help for functions in this module can be consulted
   directly from the command line, as an example, try:
@@ -425,6 +426,17 @@ defmodule IEx.Helpers do
         IEx.color(:ls_directory, representation)
       _ ->
         representation
+    end
+  end
+
+  @doc """
+  Respawns the current shell. Returns true if it worked.
+  """
+  def respawn do
+    if whereis = IEx.Server.whereis do
+      Process.exit(whereis, :respawn)
+    else
+      false
     end
   end
 

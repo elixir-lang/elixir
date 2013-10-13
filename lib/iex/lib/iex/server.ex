@@ -80,23 +80,25 @@ defmodule IEx.Server do
   """
   def start(opts) when is_list(opts) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
-    IEx.History.init
 
     config   = boot_config(opts)
     old_flag = Process.flag(:trap_exit, true)
+    before_loop(config)
 
     try do
       server_loop(config)
     after
-      if evaluator = config.evaluator do
-        evaluator <- { :done, self }
-      end
-
       Process.flag(:trap_exit, old_flag)
+      after_loop(config)
     end
   end
 
   ## Server loop
+
+  defp restart(config, opts) do
+    after_loop(config)
+    start(opts)
+  end
 
   defp server_loop(config) do
     self_pid = self()
@@ -108,6 +110,8 @@ defmodule IEx.Server do
   end
 
   defp wait_input(config, pid) do
+    evaluator = config.evaluator
+
     receive do
       { :input, ^pid, code } when is_binary(code) ->
         server_loop(
@@ -128,6 +132,7 @@ defmodule IEx.Server do
       { :input, ^pid, { :error, :terminated } } ->
         :ok
 
+      # Take over process
       { :take?, other, ref } ->
         other <- ref
         wait_input(config, pid)
@@ -136,18 +141,41 @@ defmodule IEx.Server do
         answer = IO.gets(:stdio, "\n#{identifier}. Allow? [Yn] ")
 
         if answer =~ %r/^(Y(es)?)?$/i do
-          IEx.History.reset
-          start(opts)
+          restart(config, opts)
         else
           IO.puts("")
           server_loop(config)
         end
 
-      { :EXIT, _other, :normal } ->
+      # Accept respawn messages only from self and evaluator
+      { :EXIT, other, :respawn } when other in [self, evaluator] ->
+        IO.puts("")
+        restart(config, [])
+
+      # All process normal exits are accepted, except the evaluator one
+      { :EXIT, other, :normal } when other != evaluator ->
         wait_input(config, pid)
+
       { :EXIT, other, reason } ->
         print_exit(other, reason)
         wait_input(config, pid)
+    end
+  end
+
+  defp before_loop(config) do
+    IEx.History.init
+
+    if evaluator = config.evaluator do
+      Process.link(evaluator)
+    end
+  end
+
+  defp after_loop(config) do
+    IEx.History.reset
+
+    if evaluator = config.evaluator do
+      evaluator <- { :done, self }
+      Process.unlink(evaluator)
     end
   end
 
