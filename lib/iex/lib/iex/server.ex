@@ -60,6 +60,37 @@ defmodule IEx.Server do
   end
 
   @doc """
+  Boots IEx by executing a given callback and starting
+  the server only after the callback is done. If there
+  is any take over during boot, we allow it.
+  """
+  def boot(opts, callback) do
+    { pid, ref } = Process.spawn_monitor(callback)
+    boot_loop(opts, pid, ref)
+  end
+
+  defp boot_loop(opts, pid, ref) do
+    receive do
+      { :take?, other, ref } ->
+        other <- ref
+        boot_loop(opts, pid, ref)
+
+      { :take, identifier, opts } ->
+        if allow_take?(identifier) do
+          start(opts)
+        else
+          boot_loop(opts, pid, ref)
+        end
+
+      { :DOWN, ^ref, :process, ^pid,  :normal } ->
+        start(opts)
+
+      { :DOWN, ^ref, :process, ^pid,  _reason } ->
+        :ok
+    end
+  end
+
+  @doc """
   Server loop for an IEx session. Its responsibilities include:
 
   * setting up the evaluator
@@ -74,8 +105,8 @@ defmodule IEx.Server do
     loop(boot_config(opts), evaluator, start_loop(evaluator))
   end
 
-  defp restart(evaluator_ref, opts) do
-    exit_loop(evaluator_ref)
+  defp restart(evaluator, evaluator_ref, opts) do
+    exit_loop(evaluator, evaluator_ref)
     IO.write [IO.ANSI.home, IO.ANSI.clear]
     start(opts)
   end
@@ -84,7 +115,8 @@ defmodule IEx.Server do
     Process.monitor(evaluator)
   end
 
-  defp exit_loop(evaluator_ref) do
+  defp exit_loop(evaluator, evaluator_ref) do
+    evaluator <- { :done, self }
     Process.demonitor(evaluator_ref)
     :ok
   end
@@ -114,9 +146,9 @@ defmodule IEx.Server do
         io_error "** (EXIT) interrupted"
         loop(config.cache(''), evaluator, evaluator_ref)
       { :input, ^input, :eof } ->
-        exit_loop(evaluator_ref)
+        exit_loop(evaluator, evaluator_ref)
       { :input, ^input, { :error, :terminated } } ->
-        exit_loop(evaluator_ref)
+        exit_loop(evaluator, evaluator_ref)
 
       # Take process.
       # The take? message is received out of band, so we can
@@ -128,11 +160,9 @@ defmodule IEx.Server do
         wait_input(config, evaluator, evaluator_ref, input)
       { :take, identifier, opts } ->
         kill_input(input)
-        message = IEx.color(:eval_interrupt, "#{identifier}. Allow? [Yn] ")
-        answer  = IO.gets(:stdio, message)
 
-        if answer =~ %r/^(Y(es)?)?$/i do
-          restart(evaluator_ref, opts)
+        if allow_take?(identifier) do
+          restart(evaluator, evaluator_ref, opts)
         else
           loop(config, evaluator, evaluator_ref)
         end
@@ -142,16 +172,21 @@ defmodule IEx.Server do
       { :respawn, ^evaluator } ->
         kill_input(input)
         IO.puts("")
-        restart(evaluator_ref, [])
+        restart(evaluator, evaluator_ref, [])
       { :DOWN, ^evaluator_ref, :process, ^evaluator,  reason } ->
         io_error "** (EXIT from #{config.prefix} #{inspect evaluator}) #{inspect(reason)}"
         kill_input(input)
-        exit_loop(evaluator_ref)
+        exit_loop(evaluator, evaluator_ref)
     end
   end
 
   defp kill_input(input) do
     Process.exit(input, :kill)
+  end
+
+  defp allow_take?(identifier) do
+    message = IEx.color(:eval_interrupt, "#{identifier}. Allow? [Yn] ")
+    IO.gets(:stdio, message) =~ %r/^(Y(es)?)?$/i
   end
 
   ## Config and load dot iex helpers

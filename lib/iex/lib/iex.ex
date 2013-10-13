@@ -232,7 +232,7 @@ defmodule IEx do
   Returns `true` if IEx was properly started.
   """
   def started? do
-    match?({ :ok, true }, :application.get_env(:iex, :started))
+    :application.get_env(:iex, :started) == { :ok, true }
   end
 
   @doc """
@@ -303,13 +303,14 @@ defmodule IEx do
       opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
       res  = IEx.Server.take_over("Request to pry #{meta}", opts, unquote(timeout))
 
+      # We cannot use colors because IEx may be off.
       case res do
         :ok ->
           :ok
         { :error, :self } ->
-          IO.puts IEx.color(:eval_error, "IEx cannot pry itself.")
+          IO.puts :stdio, "IEx cannot pry itself."
         { :error, :no_iex } ->
-          IO.puts IEx.color(:eval_error, "Cannot pry #{meta}. Is an IEx shell running?")
+          IO.puts :stdio, "Cannot pry #{meta}. Is an IEx shell running?"
       end
 
       :done
@@ -329,11 +330,9 @@ defmodule IEx do
       end
 
       start_iex()
-      callback.()
-
       set_expand_fun()
       run_after_spawn()
-      IEx.Server.start(opts)
+      IEx.Server.boot(opts, callback)
     end
   end
 
