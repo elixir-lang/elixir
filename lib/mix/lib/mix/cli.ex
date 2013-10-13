@@ -5,6 +5,9 @@ defmodule Mix.CLI do
   Runs Mix according to the command line arguments.
   """
   def run(args // System.argv) do
+    Mix.Local.append_archives
+    Mix.Local.append_paths
+
     case check_for_shortcuts(args) do
       :help ->
         display_banner()
@@ -16,9 +19,6 @@ defmodule Mix.CLI do
   end
 
   defp proceed(args) do
-    Mix.Local.append_archives
-    Mix.Local.append_paths
-
     args = load_mixfile(args)
     { task, args } = get_task(args)
     change_env(task)
