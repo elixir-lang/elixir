@@ -26,7 +26,7 @@ defmodule Protocol.Consolidation do
     extract_matching_by_attribute paths, 'Elixir.',
       fn module, attributes ->
         case attributes[:protocol] do
-          [{ _, _ }] -> module
+          [fallback_to_any: _, consolidated: _] -> module
           _ -> nil
         end
       end
@@ -55,7 +55,7 @@ defmodule Protocol.Consolidation do
     extract_matching_by_attribute paths, prefix, fn
       _mod, attributes ->
         case attributes[:impl] do
-          [{ ^protocol, for }] -> for
+          [protocol: ^protocol, for: for] -> for
           _ -> nil
         end
     end
@@ -129,7 +129,7 @@ defmodule Protocol.Consolidation do
       { :ok, { ^protocol, [abstract_code: { _raw, abstract_code },
                            attributes: attributes] } } ->
         case attributes[:protocol] do
-          [{ any, _consolidated }] ->
+          [fallback_to_any: any, consolidated: _] ->
             { :ok, protocol, any, abstract_code }
           _ ->
             { :error, :not_a_protocol }
@@ -161,8 +161,9 @@ defmodule Protocol.Consolidation do
   defp change_debug_info(other, _types), do: other
 
   defp change_impl_for([{ :attribute, line, :protocol, _ }|t], protocol, builtin, records, acc) do
+    attr = [fallback_to_any: Any in builtin, consolidated: true]
     change_impl_for(t, protocol, builtin, records,
-                    [{ :attribute, line, :protocol, { Any in builtin, true } }|acc])
+                    [{ :attribute, line, :protocol, attr }|acc])
   end
 
   defp change_impl_for([{ :function, line, :impl_for, 1, _ }|t], protocol, builtin, records, acc) do

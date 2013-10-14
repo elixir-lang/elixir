@@ -91,7 +91,7 @@ defmodule Protocol do
       # Store information as an attribute so it
       # can be read without loading the module.
       Module.register_attribute(__MODULE__, :protocol, persist: true)
-      @protocol { !!@fallback_to_any, false }
+      @protocol [fallback_to_any: !!@fallback_to_any, consolidated: false]
 
       @doc false
       Kernel.def __protocol__(:name),      do: __MODULE__
@@ -125,7 +125,7 @@ defmodule Protocol do
         unquote(block)
 
         Module.register_attribute(__MODULE__, :impl, persist: true)
-        @impl { @protocol, @for }
+        @impl [protocol: @protocol, for: @for]
 
         @doc false
         def __impl__(:name),     do: __MODULE__
