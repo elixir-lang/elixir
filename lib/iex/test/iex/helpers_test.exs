@@ -129,6 +129,11 @@ defmodule IEx.HelpersTest do
            """
   end
 
+  test "zen helper" do
+    assert "* Object-Orientation is not the only way" <> _
+           = capture_iex("zen")
+  end
+
   test "flush helper" do
     assert capture_io(fn -> self() <- :hello; flush end) == ":hello\n"
   end
