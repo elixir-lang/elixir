@@ -83,6 +83,23 @@ defmodule Kernel do
   end
 
   @doc """
+  Raise a number to a power. Result is a float.
+
+  ## Examples
+  
+      iex> 2 ** 8
+      256.0
+      iex> 100 ** 0
+      1.0
+      iex> 10 ** -1
+      0.1
+
+  """
+  def left ** right do
+    :math.pow(left, right)
+  end
+
+  @doc """
   Arithmetic division. Unlike other languages,
   the result is always a float. Use `div` and `rem` if you want
   a natural division or the remainder. Allowed in guard clauses.
