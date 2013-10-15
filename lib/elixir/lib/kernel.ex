@@ -100,6 +100,23 @@ defmodule Kernel do
   end
 
   @doc """
+  Raise a number to a power. Result is a float.
+
+  ## Examples
+  
+      iex> 2 ** 8
+      256.0
+      iex> 100 ** 0
+      1.0
+      iex> 10 ** -1
+      0.1
+
+  """
+  def left ** right do
+    :math.pow(left, right)
+  end
+
+  @doc """
   Sends a message to the process identified on the left.
   A process can be identified by its PID or, if it is registered,
   by an atom.

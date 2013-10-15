@@ -239,6 +239,7 @@ defmodule KernelTest do
       assert kernel.-(2, 2) == 0
       assert kernel.*(2, 2) == 4
       assert kernel./(2, 2) == 1.0
+      assert kernel.**(2, 8) == 256.0
     end
 
     test :unary do
