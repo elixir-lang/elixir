@@ -284,6 +284,24 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Prints the "Zen of Elixir".
+  """
+  def zen do
+    IO.puts IEx.color(:eval_info, """)
+    * Object-Orientation is not the only way to design code.
+    * Functional programming need not be complex or mathematical.
+    * The foundations of programming are not assignment, if statements, and loops.
+    * Concurrency does not need locks, semaphores, monitors, and the like.
+    * Processes are not necessarily expensive resources.
+    * Metaprogramming is not just something tacked onto a language.
+    * Even if it is work, programming should be fun.
+    
+      -- Dave Thomas in "Programming Elixir"
+    """
+    dont_display_result
+  end
+
+  @doc """
   Recompiles and reloads the specified module's source file.
 
   Please note that all the modules defined in the same file as `module`
