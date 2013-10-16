@@ -8,10 +8,10 @@ defmodule IEx.Mixfile do
   def application do
     [ env: [
         after_spawn: [],
-        inspect: [limit: 50, raw: false, pretty: true],
         colors: [ enabled: true,
 
                   # Used by default on evaluation cycle
+                  eval_interrupt: "yellow",
                   eval_result: "yellow",
                   eval_error: "red",
                   eval_info: "normal",
@@ -27,6 +27,7 @@ defmodule IEx.Mixfile do
                   doc_inline_code: "cyan",
                   doc_underline: "underline",
                   doc_title: "reverse,yellow,bright" ],
+        inspect: [limit: 50, raw: false, pretty: true],
         history_size: 20 ] ]
   end
 end

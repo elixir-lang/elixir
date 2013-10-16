@@ -98,8 +98,7 @@ defmodule ExUnit do
   VM terminates. It accepts a set of options to configure `ExUnit`
   (the same ones accepted by `configure/1`).
 
-  If you want to run tests manually, skip calling this
-  function and rely on `configure/1` and `run/0` instead.
+  If you want to run tests manually, you can set :autorun to false.
   """
   def start(options // []) do
     :application.start(:elixir)
@@ -107,8 +106,8 @@ defmodule ExUnit do
 
     configure(options)
 
-    if :application.get_env(:ex_unit, :started) != { :ok, true } do
-      :application.set_env(:ex_unit, :started, true)
+    if :application.get_env(:ex_unit, :autorun) != { :ok, false } do
+      :application.set_env(:ex_unit, :autorun, false)
 
       System.at_exit fn
         0 ->
@@ -140,6 +139,7 @@ defmodule ExUnit do
   * `:trace` - Set ExUnit into trace mode, this sets `:max_cases` to 1
                and prints each test case and test while running;
 
+  * `:autorun` - If ExUnit should run by default on exit, defaults to true;
   """
   def configure(options) do
     Enum.each options, fn { k, v } ->

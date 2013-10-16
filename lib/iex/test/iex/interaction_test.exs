@@ -3,15 +3,14 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule IEx.InteractionTest do
   use IEx.Case
 
-  ### basic interaction ###
+  ## Basic interaction
 
   test "whole output" do
     IEx.Options.set :colors, enabled: false
 
-    # We're using bare-bones capture_io instead of capture_iex only once here
     assert capture_io("IO.puts \"Hello world\"", fn ->
-      IEx.Server.start([dot_iex_path: ""])
-    end) =~ %r"^Interactive Elixir \(.+?\) - press Ctrl\+C to exit \(type h\(\) ENTER for help\)\niex\(1\)> Hello world\n:ok\niex\(2\)> $"
+      IEx.Server.start([dot_iex_path: ""], fn -> end)
+    end) =~ "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)\niex(1)> Hello world\n:ok\niex(2)>"
   end
 
   test "empty input" do
@@ -31,11 +30,11 @@ defmodule IEx.InteractionTest do
   end
 
   test "empty history at the start" do
-    assert "** (RuntimeError) v(-1) is out of bounds" <> _ = capture_iex("v(-1)")
+    assert capture_iex("v(-1)") =~ "** (RuntimeError) v(-1) is out of bounds"
   end
 
   test "empty history at the start redux" do
-    assert "** (RuntimeError) v(1) is out of bounds" <> _ = capture_iex("v(1)")
+    assert capture_iex("v(1)") =~ "** (RuntimeError) v(1) is out of bounds"
   end
 
   test "no break" do
@@ -54,14 +53,14 @@ defmodule IEx.InteractionTest do
       c
     #iex:break
     """
-    assert "** (TokenMissingError) iex:1: incomplete expression" <> _ = capture_iex(input)
+    assert capture_iex(input) =~ "** (TokenMissingError) iex:1: incomplete expression"
   end
 
   test "invalid input" do
-    assert "** (SyntaxError) iex:1: \"do\" starting at" <> _ = capture_iex("if true do ) false end")
+    assert capture_iex("if true do ) false end") =~ "** (SyntaxError) iex:1: \"do\" starting at"
   end
 
-  ### .iex file loading ###
+  ## .iex file loading
 
   test "no .iex" do
     assert "** (UndefinedFunctionError) undefined function: my_variable()" <> _ = capture_iex("my_variable")
@@ -69,7 +68,7 @@ defmodule IEx.InteractionTest do
 
   test ".iex" do
     File.write!("dot-iex", "my_variable = 144")
-    assert capture_iex("my_variable", [], "dot-iex") == "144"
+    assert capture_iex("my_variable", [], [dot_iex_path: "dot-iex"]) == "144"
   after
     File.rm!("dot-iex")
   end
@@ -79,7 +78,7 @@ defmodule IEx.InteractionTest do
     File.write!("dot-iex", "import_file \"dot-iex-1\"\nmy_variable=14")
 
     input = "nested_var\nmy_variable\nputs \"hello\""
-    assert capture_iex(input, [], "dot-iex") == "13\n14\nhello\n:ok"
+    assert capture_iex(input, [], [dot_iex_path: "dot-iex"]) == "13\n14\nhello\n:ok"
   after
     File.rm("dot-iex-1")
     File.rm!("dot-iex")
