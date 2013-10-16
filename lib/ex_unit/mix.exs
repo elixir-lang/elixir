@@ -11,7 +11,6 @@ defmodule ExUnit.Mixfile do
       env: [
         autorun: true,
         trace: false,
-        color: true,
         formatter: ExUnit.CLIFormatter ] ]
   end
 end

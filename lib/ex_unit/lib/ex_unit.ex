@@ -128,7 +128,8 @@ defmodule ExUnit do
 
   ExUnit supports the following options:
 
-  * `:color` - When color should be used by specific formatters;
+  * `:color` - When color should be used by specific formatters.
+               Defaults to the result of `IO.ANSI.terminal?`;
 
   * `:formatter` - The formatter that will print results.
                    Defaults to `ExUnit.CLIFormatter`;
@@ -162,6 +163,7 @@ defmodule ExUnit do
   """
   def run do
     { async, sync, load_us } = ExUnit.Server.start_run
-    ExUnit.Runner.run async, sync, configuration, load_us
+    opts = Keyword.put_new(configuration, :color, IO.ANSI.terminal?)
+    ExUnit.Runner.run async, sync, opts, load_us
   end
 end
