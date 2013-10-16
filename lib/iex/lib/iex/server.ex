@@ -73,10 +73,10 @@ defmodule IEx.Server do
 
   * reading input
   * sending messages to the evaluator
-  * handling take over process of the evaluator
+  * handling takeover process of the evaluator
 
-  If there is any take over during the callback execution,
-  we spawn a new server for it without waiting to its
+  If there is any takeover during the callback execution
+  we spawn a new server for it without waiting for its
   conclusion.
   """
   @spec start(list, fun) :: :ok

@@ -1,6 +1,8 @@
 # v0.10.4-dev
 
 * Enhancements
+  * [IEx] Split `IEx.Evaluator` from `IEx.Server` to allow custom evaluators
+  * [IEx] Add support for `IEx.pry` which halts a given process for inspection
   * [Kernel] Improve stacktraces on command line interfaces
   * [Protocol] Protocols now provide `impl_for/1` and `impl_for!/1` functions which receive a structure and returns its respective implementation, otherwise returns nil or an error
   * [String] Update to Unicode 6.3.0
