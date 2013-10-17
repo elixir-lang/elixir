@@ -886,7 +886,7 @@ defmodule String do
       nil
 
   """
-  @spec slice(t, Range) :: grapheme | nil
+  @spec slice(t, Range.t) :: t | nil
 
   def slice(string, Range[first: first, last: last]) when first >= 0 and last >= 0 do
     do_slice(next_grapheme(string), first, last, 0, "")
