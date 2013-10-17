@@ -857,6 +857,58 @@ defmodule String do
     end
   end
 
+  @doc """
+  Returns a substring from the offset given by the start of the
+  range to the offset given by the end of the range.
+
+  If the start of the range is not a valid offset for the given
+  string or if the range is in reverse order, returns `nil`.
+
+  ## Examples
+
+  iex(1)> String.slice("elixir", 1..3)
+  "lix"
+  iex(2)> String.slice("elixir", 1..10)
+  "lixir"
+  iex(3)> String.slice("elixir", 10..3)
+  nil
+  iex(4)> String.slice("elixir", -4..-1)
+  "ixir"
+  iex(5)> String.slice("elixir", -1..-4)
+  nil
+  iex(6)> String.slice("elixir", -10..-7)
+  nil
+  iex(7)> String.slice("a", 0..1500)
+  "a"
+  iex(8)> String.slice("a", 1..1500)
+  ""
+  iex(9)> String.slice("a", 2..1500)
+  nil
+
+  """
+  @spec slice(t, Range) :: grapheme | nil
+
+  def slice(string, Range[first: first, last: last]) when first >= 0 and last >= 0 do
+    do_slice(next_grapheme(string), first, last, 0, "")
+  end
+
+  def slice(string, Range[first: first, last: last]) when first < 0 and last >= 0 do
+    real_first = do_length(next_grapheme(string)) - abs(first)
+    case real_first >= 0 do
+      true -> do_slice(next_grapheme(string), real_first, last, 0, "")
+      false -> nil
+    end
+  end
+
+  def slice(string, Range[first: first, last: last]) when first < 0 and last < 0 do
+    real_first = do_length(next_grapheme(string)) - abs(first)
+    real_last = do_length(next_grapheme(string)) - abs(last)
+    case real_first >= 0 do
+      true -> do_slice(next_grapheme(string), real_first, real_last, 0, "")
+      false -> nil
+    end
+  end
+
   defp do_slice(_, start_pos, last_pos, _, _) when start_pos > last_pos do
     nil
   end
