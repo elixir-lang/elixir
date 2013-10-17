@@ -35,7 +35,7 @@ defmodule IEx.Server do
   current process.
   """
   @spec take_over(binary, Keyword.t, pos_integer) ::
-        :ok | { :error, :self } | { :error, :no_iex }
+        :ok | { :error, :self } | { :error, :no_iex } | { :error, :refused }
   def take_over(identifier, opts, timeout // 1000, server // whereis()) do
     cond do
       nil?(server) ->
@@ -49,8 +49,14 @@ defmodule IEx.Server do
         receive do
           ^ref ->
             opts = Keyword.put(opts, :evaluator, self)
-            server <- { :take, identifier, opts }
-            IEx.Evaluator.start(server)
+            server <- { :take, self, identifier, ref, opts }
+
+            receive do
+              { ^ref, true } ->
+                IEx.Evaluator.start(server)
+              { ^ref, false } ->
+                { :error, :refused }
+            end
         after
           timeout ->
             { :error, :no_iex }
@@ -91,10 +97,12 @@ defmodule IEx.Server do
         other <- ref
         start_loop(opts, pid, ref)
 
-      { :take, identifier, opts } ->
+      { :take, other, identifier, ref, opts } ->
         if allow_take?(identifier) do
+          other <- { ref, true }
           run(opts)
         else
+          other <- { ref, false }
           start_loop(opts, pid, ref)
         end
 
@@ -165,12 +173,14 @@ defmodule IEx.Server do
       { :take?, other, ref } ->
         other <- ref
         wait_input(config, evaluator, evaluator_ref, input)
-      { :take, identifier, opts } ->
+      { :take, other, identifier, ref, opts } ->
         kill_input(input)
 
         if allow_take?(identifier) do
+          other <- { ref, true }
           reset_loop(opts, evaluator, evaluator_ref)
         else
+          other <- { ref, false }
           loop(config, evaluator, evaluator_ref)
         end
 
@@ -239,6 +249,6 @@ defmodule IEx.Server do
   end
 
   defp remote_prefix do
-    if node == node(:erlang.group_leader), do: "iex", else: "rem"
+    if node == node(Process.group_leader), do: "iex", else: "rem"
   end
 end

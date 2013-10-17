@@ -305,15 +305,15 @@ defmodule IEx do
 
       # We cannot use colors because IEx may be off.
       case res do
-        :ok ->
-          :ok
         { :error, :self } = err ->
           IO.puts :stdio, "IEx cannot pry itself."
-          err
         { :error, :no_iex } = err ->
           IO.puts :stdio, "Cannot pry #{meta}. Is an IEx shell running?"
-          err
+        _ ->
+          :ok
       end
+
+      res
     end
   end
 
