@@ -12,14 +12,17 @@ defmodule IEx.Evaluator do
   * keeping expression history
 
   """
-  def start(server) do
+  def start(server, leader) do
     IEx.History.init
-    old_flag = Process.flag(:trap_exit, true)
+    old_leader = Process.group_leader
+    old_flag   = Process.flag(:trap_exit, true)
+    Process.group_leader(self, leader)
 
     try do
       loop(server)
     after
       IEx.History.reset
+      Process.group_leader(self, old_leader)
       Process.flag(:trap_exit, old_flag)
     end
   end

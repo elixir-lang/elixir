@@ -10,6 +10,7 @@
 * Bug fixes
   * [Exception] Ensure `defexception` fields can be set dynamically
   * [Kernel] Fix a bug where aliases hygiene was not being respected
+  * [Process] Fix a bug where `Process.group_leader/2` args were reversed
   * [String] Implement the extended grapheme cluster algorithm for `String` operations
 
 * Deprecations
@@ -18,7 +19,7 @@
   * [Protocol] Protocols no longer fallbacks to `Any` out of the box (this functionality needs to be explicitly enabled by setting `@fallback_to_any` to true)
 
 * Backwards incompatible changes
-
+  * [Process] `Process.group_leader/2` values were reversed in order to fix a previous bug
 
 # v0.10.3 (2013-10-02)
 

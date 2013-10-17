@@ -247,14 +247,20 @@ defmodule IEx do
   end
 
   @doc """
-  Pries into the caller environment.
+  Pries into the process environment.
 
   This is useful for debugging a particular chunk of code
-  and inspect the state of a particular server.
+  and inspect the state of a particular process. The process
+  is temporarily changed to trap exits (i.e. the process flag
+  `:trap_exit` is set to true) and has the `group_leader` changed
+  to support ANSI escape codes. Those values are reverted by
+  calling `respawn`, which starts a new IEx shell, freeing up
+  the pried one.
 
-  The code runs inside IEx and, therefore, is evaluated
-  and cannot access private functions in the module being
-  pried. Module functions need to be accessed via `Mod.fun(args)`.
+  When a process is pried, all code runs inside IEx and, as
+  such, it is evaluated and cannot access private functions
+  of the module being pried. Module functions still need to be
+  accessed via `Mod.fun(args)`.
 
   Status: This feature is experimental.
 

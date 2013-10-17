@@ -52,10 +52,10 @@ defmodule IEx.Server do
             server <- { :take, self, identifier, ref, opts }
 
             receive do
-              { ^ref, true } ->
-                IEx.Evaluator.start(server)
-              { ^ref, false } ->
+              { ^ref, nil } ->
                 { :error, :refused }
+              { ^ref, leader } ->
+                IEx.Evaluator.start(server, leader)
             end
         after
           timeout ->
@@ -99,10 +99,10 @@ defmodule IEx.Server do
 
       { :take, other, identifier, ref, opts } ->
         if allow_take?(identifier) do
-          other <- { ref, true }
+          other <- { ref, Process.group_leader }
           run(opts)
         else
-          other <- { ref, false }
+          other <- { ref, nil }
           start_loop(opts, pid, ref)
         end
 
@@ -119,8 +119,9 @@ defmodule IEx.Server do
 
   defp run(opts) when is_list(opts) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
-    self_pid  = self
-    evaluator = opts[:evaluator] || spawn(fn -> IEx.Evaluator.start(self_pid) end)
+    self_pid    = self
+    self_leader = Process.group_leader
+    evaluator   = opts[:evaluator] || spawn(fn -> IEx.Evaluator.start(self_pid, self_leader) end)
     Process.put(:evaluator, evaluator)
     loop(run_config(opts), evaluator, Process.monitor(evaluator))
   end
@@ -177,10 +178,10 @@ defmodule IEx.Server do
         kill_input(input)
 
         if allow_take?(identifier) do
-          other <- { ref, true }
+          other <- { ref, Process.group_leader }
           reset_loop(opts, evaluator, evaluator_ref)
         else
-          other <- { ref, false }
+          other <- { ref, nil }
           loop(config, evaluator, evaluator_ref)
         end
 
