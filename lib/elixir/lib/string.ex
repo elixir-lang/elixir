@@ -894,18 +894,16 @@ defmodule String do
 
   def slice(string, Range[first: first, last: last]) when first < 0 and last >= 0 do
     real_first = do_length(next_grapheme(string)) - abs(first)
-    case real_first >= 0 do
-      true -> do_slice(next_grapheme(string), real_first, last, 0, "")
-      false -> nil
+    if real_first >= 0 do
+      do_slice(next_grapheme(string), real_first, last, 0, "")
     end
   end
 
   def slice(string, Range[first: first, last: last]) when first < 0 and last < 0 do
     real_first = do_length(next_grapheme(string)) - abs(first)
     real_last = do_length(next_grapheme(string)) - abs(last)
-    case real_first >= 0 do
-      true -> do_slice(next_grapheme(string), real_first, real_last, 0, "")
-      false -> nil
+    if real_first >= 0 do
+      do_slice(next_grapheme(string), real_first, real_last, 0, "")
     end
   end
 
