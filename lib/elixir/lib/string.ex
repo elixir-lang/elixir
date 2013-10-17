@@ -866,24 +866,24 @@ defmodule String do
 
   ## Examples
 
-  iex(1)> String.slice("elixir", 1..3)
-  "lix"
-  iex(2)> String.slice("elixir", 1..10)
-  "lixir"
-  iex(3)> String.slice("elixir", 10..3)
-  nil
-  iex(4)> String.slice("elixir", -4..-1)
-  "ixir"
-  iex(5)> String.slice("elixir", -1..-4)
-  nil
-  iex(6)> String.slice("elixir", -10..-7)
-  nil
-  iex(7)> String.slice("a", 0..1500)
-  "a"
-  iex(8)> String.slice("a", 1..1500)
-  ""
-  iex(9)> String.slice("a", 2..1500)
-  nil
+      iex(1)> String.slice("elixir", 1..3)
+      "lix"
+      iex(2)> String.slice("elixir", 1..10)
+      "lixir"
+      iex(3)> String.slice("elixir", 10..3)
+      nil
+      iex(4)> String.slice("elixir", -4..-1)
+      "ixir"
+      iex(5)> String.slice("elixir", -1..-4)
+      nil
+      iex(6)> String.slice("elixir", -10..-7)
+      nil
+      iex(7)> String.slice("a", 0..1500)
+      "a"
+      iex(8)> String.slice("a", 1..1500)
+      ""
+      iex(9)> String.slice("a", 2..1500)
+      nil
 
   """
   @spec slice(t, Range) :: grapheme | nil
