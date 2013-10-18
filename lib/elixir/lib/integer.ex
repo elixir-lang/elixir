@@ -3,12 +3,14 @@ defmodule Integer do
   Functions for working with integers.
   """
 
+  import Bitwise
+
   @doc """
   Returns true if `n` is an odd number, otherwise false.
   Implemented as a macro so it is allowed in guard clauses.
   """
   defmacro odd?(n) do
-    quote do: rem(unquote(n), 2) != 0
+    quote do: (unquote(n) &&& 1) == 1
   end
 
   @doc """
@@ -16,7 +18,7 @@ defmodule Integer do
   Implemented as a macro so it is allowed in guard clauses.
   """
   defmacro even?(n) do
-    quote do: rem(unquote(n), 2) == 0
+    quote do: (unquote(n) &&& 1) == 0
   end
 
   @doc """
