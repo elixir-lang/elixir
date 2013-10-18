@@ -934,62 +934,16 @@ defmodule String do
     end
   end
 
-  @doc """
-  Converts a string to an integer. If successful, returns a
-  tuple of the form `{integer, remainder of string}`. If unsuccessful,
-  returns `:error`.
-
-  ## Examples
-
-      iex> String.to_integer("34")
-      {34,""}
-      iex> String.to_integer("34.5")
-      {34,".5"}
-      iex> String.to_integer("three")
-      :error
-
-  """
-  @spec to_integer(t) :: {integer, t} | :error
-
+  @doc false
   def to_integer(string) do
-    {result, remainder} = :string.to_integer(:binary.bin_to_list(string))
-    case result do
-      :error -> :error
-      _ -> {result, :binary.list_to_bin(remainder)}
-    end
+    IO.write "String.to_float/1 is deprecated, please use Float.parse/1 instead\n#{Exception.format_stacktrace}"
+    Integer.parse(string)
   end
 
-  @doc """
-  Converts a string to a float. If successful, returns a
-  tuple of the form `{float, remainder of string}`.
-  If unsuccessful, returns `:error`.
-
-  ## Examples
-
-      iex> String.to_float("34")
-      {34.0,""}
-      iex> String.to_float("34.25")
-      {34.25,""}
-      iex> String.to_float("56.5xyz")
-      {56.5,"xyz"}
-      iex> String.to_float("pi")
-      :error
-
-  """
-  @spec to_float(t) :: {integer, t} | :error
-
+  @doc false
   def to_float(string) do
-    charlist = :binary.bin_to_list(string)
-    {result, remainder} = :string.to_float(charlist)
-    case result do
-      :error ->
-        {int_result, int_remainder} = :string.to_integer(charlist)
-        case int_result do
-          :error -> :error
-          _ -> {:erlang.float(int_result), :binary.list_to_bin(int_remainder)}
-        end
-      _ -> {result, :binary.list_to_bin(remainder)}
-    end
+    IO.write "String.to_float/1 is deprecated, please use Float.parse/1 instead\n#{Exception.format_stacktrace}"
+    Float.parse(string)
   end
 
   @doc """

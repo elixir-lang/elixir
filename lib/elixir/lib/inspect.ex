@@ -446,7 +446,7 @@ end
 
 defimpl Inspect, for: PID do
   def inspect(pid, _opts) do
-    "#PID" <> iolist_to_binary(pid_to_list(pid))
+    "#PID" <> iolist_to_binary(:erlang.pid_to_list(pid))
   end
 end
 

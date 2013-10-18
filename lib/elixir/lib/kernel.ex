@@ -923,22 +923,9 @@ defmodule Kernel do
     :erlang.list_to_integer(list, base)
   end
 
-  @doc """
-  Returns a pid whose text representation is `list`.
-
-  ## Warning:
-
-  This function is intended for debugging and for use in the Erlang
-  operating system.
-
-  It should not be used in application programs.
-
-  ## Examples
-
-      list_to_pid('<0.4.1>') #=> #PID<0.4.1>
-  """
-  @spec list_to_pid(list) :: pid
+  @doc false
   def list_to_pid(list) do
+    IO.write "pid_to_list/1 is deprecated, please use :erlang.pid_to_list/1 instead\n#{Exception.format_stacktrace}"
     :erlang.list_to_pid(list)
   end
 
@@ -1026,20 +1013,9 @@ defmodule Kernel do
     :erlang.node(arg)
   end
 
-  @doc """
-  Returns a char list which corresponds to the text representation of pid.
-  This function is intended for debugging and for use in the Erlang operating
-  system. It should not be used in application programs.
-
-  ## Warning:
-
-  This function is intended for debugging and for use in the Erlang
-  operating system.
-
-  It should not be used in application programs.
-  """
-  @spec pid_to_list(pid) :: list
+  @doc false
   def pid_to_list(pid) do
+    IO.write "pid_to_list/1 is deprecated, please use :erlang.pid_to_list/1 instead\n#{Exception.format_stacktrace}"
     :erlang.pid_to_list(pid)
   end
 
@@ -2859,8 +2835,11 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the atom whose text representation is
-  `some_binary` in UTF8 encoding.
+  Returns the atom whose text representation is `some_binary` in
+  UTF8 encoding.
+
+  Currently Elixir does not support conversions for binaries which
+  contains Unicode characters greater than 16#FF.
 
   ## Examples
 
@@ -2875,7 +2854,10 @@ defmodule Kernel do
   end
 
   @doc """
-  Works like `binary_to_atom` but the atom must exist.
+  Works like `binary_to_atom/1` but the atom must exist.
+
+  Currently Elixir does not support conversions for binaries which
+  contains Unicode characters greater than 16#FF.
 
   ## Examples
 

@@ -15,7 +15,9 @@ defmodule KernelTest do
   doctest Code
   doctest Enum
   doctest Exception
+  doctest Float
   doctest IO.ANSI
+  doctest Integer
   doctest Keyword
   doctest Kernel
   doctest Kernel.SpecialForms

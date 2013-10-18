@@ -15,9 +15,11 @@
   * [String] Implement the extended grapheme cluster algorithm for `String` operations
 
 * Deprecations
+  * [Kernel] `pid_to_list/1` and `list_to_pid/1` are deprecated in favor of the qualified `:erlang` call
   * [Macro] `Macro.expand_all/2` is deprecated
   * [Protocol] `@only` and `@except` in protocols are now deprecated
   * [Protocol] Protocols no longer fallbacks to `Any` out of the box (this functionality needs to be explicitly enabled by setting `@fallback_to_any` to true)
+  * [String] `String.to_integer/1` and `String.to_float/1` are deprecated in favor of `Integer.parse/1` and `Float.parse/1`
 
 * Backwards incompatible changes
   * [Kernel] `Kernel.access/2` now expects the second argument to be a compile time list
