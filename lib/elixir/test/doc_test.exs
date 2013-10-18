@@ -5,12 +5,6 @@ defmodule KernelTest do
 
   doctest Access.List
   doctest String.Chars.List
-  doctest Inspect.Atom
-  doctest Inspect.BitString
-  doctest Inspect.List
-  doctest Inspect.Number
-  doctest Inspect.Regex
-  doctest Inspect.Tuple
   doctest Bitwise
   doctest Code
   doctest Enum

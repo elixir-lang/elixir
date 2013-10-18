@@ -65,14 +65,19 @@ defimpl String.Chars, for: List do
   def to_string(char_list), do: String.from_char_list!(char_list)
 end
 
-defimpl String.Chars, for: Number do
+defimpl String.Chars, for: Integer do
   @doc """
-  Simply converts the number (integer or a float) to a binary.
+  Simply converts the integer to a string.
   """
-  def to_string(thing) when is_integer(thing) do
+  def to_string(thing) do
     integer_to_binary(thing)
   end
+end
 
+defimpl String.Chars, for: Float do
+  @doc """
+  Simply converts the float to a string.
+  """
   def to_string(thing) do
     iolist_to_binary(:io_lib_format.fwrite_g(thing))
   end

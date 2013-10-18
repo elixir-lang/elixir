@@ -1762,8 +1762,8 @@ defmodule Kernel do
   Now that the protocol is defined, we can implement it. We need
   to implement the protocol for each Elixir type. For example:
 
-      # Numbers are never blank
-      defimpl Blank, for: Number do
+      # Integers are never blank
+      defimpl Blank, for: Integer do
         def blank?(number), do: false
       end
 
@@ -1788,7 +1788,8 @@ defmodule Kernel do
   * Atom
   * List
   * BitString
-  * Number
+  * Integer
+  * Float
   * Function
   * PID
   * Port

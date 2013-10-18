@@ -148,7 +148,7 @@ defmodule ProtocolTest do
       def test(a)
     end
 
-    defimpl Multi, for: [Atom, Number] do
+    defimpl Multi, for: [Atom, Integer] do
       def test(a), do: a
     end
 

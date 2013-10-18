@@ -25,6 +25,7 @@
 * Backwards incompatible changes
   * [Kernel] `Kernel.access/2` now expects the second argument to be a compile time list
   * [Process] `Process.group_leader/2` values were reversed in order to fix a previous bug
+  * [Protocol] Protocol no longer dispatches to `Number`, but to `Integer` and `Float`
 
 # v0.10.3 (2013-10-02)
 
