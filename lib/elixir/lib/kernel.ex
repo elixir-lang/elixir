@@ -1605,42 +1605,16 @@ defmodule Kernel do
     quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
   end
 
-  @doc """
-  Inserts `value` into `tuple` at the given zero-based `index`.
-
-  ## Example
-
-      iex> tuple = { :bar, :baz }
-      ...> insert_elem(tuple, 0, :foo)
-      { :foo, :bar, :baz }
-  """
-  defmacro insert_elem(tuple, index, value) when is_integer(index) do
-    quote do: :erlang.insert_element(unquote(index + 1), unquote(tuple), unquote(value))
+  @doc false
+  def insert_elem(tuple, index, value) do
+    IO.write "insert_elem/3 is deprecated, please use Tuple.insert_at/3 instead\n#{Exception.format_stacktrace}"
+    :erlang.insert_element(index + 1, tuple, value)
   end
 
-  defmacro insert_elem(tuple, index, value) do
-    quote do: :erlang.insert_element(unquote(index) + 1, unquote(tuple), unquote(value))
-  end
-
-  @doc """
-  Deletes the element at the zero-based `index` from `tuple`.
-
-  Please note that in versions of Erlang prior to R16B there is no BIF
-  for this operation and it is emulated by converting the tuple to a list
-  and back and is, therefore, inefficient.
-
-  ## Example
-
-      iex> tuple = { :foo, :bar, :baz }
-      ...> delete_elem(tuple, 0)
-      { :bar, :baz }
-  """
-  defmacro delete_elem(tuple, index) when is_integer(index) do
-    quote do: :erlang.delete_element(unquote(index + 1), unquote(tuple))
-  end
-
-  defmacro delete_elem(tuple, index) do
-    quote do: :erlang.delete_element(unquote(index) + 1, unquote(tuple))
+  @doc false
+  def delete_elem(tuple, index) do
+    IO.write "delete_elem/2 is deprecated, please use Tuple.delete_at/2 instead\n#{Exception.format_stacktrace}"
+    :erlang.delete_element(index + 1, tuple)
   end
 
   @doc """

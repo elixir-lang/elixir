@@ -15,7 +15,8 @@
   * [String] Implement the extended grapheme cluster algorithm for `String` operations
 
 * Deprecations
-  * [Kernel] `pid_to_list/1` and `list_to_pid/1` are deprecated in favor of the qualified `:erlang` call
+  * [Kernel] `pid_to_list/1` and `list_to_pid/1` are deprecated in favor of `:erlang.pid_to_list/1` and `:erlang.list_to_pid/1`
+  * [Kernel] `insert_elem/3` and `delete_elem/2` are deprecated in favor of `Tuple.insert_at/3` and `Tuple.delete_at/2`
   * [Macro] `Macro.expand_all/2` is deprecated
   * [Protocol] `@only` and `@except` in protocols are now deprecated
   * [Protocol] Protocols no longer fallbacks to `Any` out of the box (this functionality needs to be explicitly enabled by setting `@fallback_to_any` to true)

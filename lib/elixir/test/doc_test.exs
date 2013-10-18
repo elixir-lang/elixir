@@ -17,6 +17,7 @@ defmodule KernelTest do
   doctest Exception
   doctest Float
   doctest IO.ANSI
+  doctest Inspect.Algebra
   doctest Integer
   doctest Keyword
   doctest Kernel
@@ -31,5 +32,5 @@ defmodule KernelTest do
   doctest Set
   doctest Stream
   doctest String
-  doctest Inspect.Algebra
+  doctest Tuple
 end
