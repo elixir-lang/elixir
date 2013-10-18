@@ -289,6 +289,27 @@ defmodule StringTest do
     assert String.slice("elixir", -5, 0) == ""
     assert String.slice("", 0, 1) == ""
     assert String.slice("", 1, 1) == nil
+
+    assert String.slice("elixir", 1..3) == "lix"
+    assert String.slice("あいうえお", 2..3) == "うえ"
+    assert String.slice("ειξήριολ", 2..4) == "ξήρ"
+    assert String.slice("elixir", 3..6) == "xir"
+    assert String.slice("あいうえお", 3..7) == "えお"
+    assert String.slice("ειξήριολ", 5..8) == "ιολ"
+    assert String.slice("elixir", -3..-2) == "xi"
+    assert String.slice("あいうえお", -4..-2) == "いうえ"
+    assert String.slice("ειξήριολ", -5..-3) == "ήρι"
+    assert String.slice("elixir", -10..-10) == nil
+    assert String.slice("あいうえお", -10..-9) == nil
+    assert String.slice("ειξήριολ", -10..-8) == nil
+    assert String.slice("elixir", 8..9) == nil
+    assert String.slice("あいうえお", 6..7) == nil
+    assert String.slice("ειξήριολ", 8..8) == ""
+    assert String.slice("ειξήριολ", 9..9) == nil
+    assert String.slice("", 0..0) == ""
+    assert String.slice("", 1..1) == nil
+    assert String.slice("あいうえお", -2..-4) == nil
+    assert String.slice("あいうえお", -10..-15) == nil
   end
 
   test :valid? do
