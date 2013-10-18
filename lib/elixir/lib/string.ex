@@ -936,7 +936,7 @@ defmodule String do
 
   @doc false
   def to_integer(string) do
-    IO.write "String.to_float/1 is deprecated, please use Float.parse/1 instead\n#{Exception.format_stacktrace}"
+    IO.write "String.to_integer/1 is deprecated, please use Integer.parse/1 instead\n#{Exception.format_stacktrace}"
     Integer.parse(string)
   end
 

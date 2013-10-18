@@ -7,7 +7,7 @@ defmodule TupleTest do
     assert elem({ :a, :b, :c }, 1) == :b
   end
 
-  test :sete_lem do
+  test :set_elem do
     assert set_elem({ :a, :b, :c }, 1, :d) == { :a, :d, :c }
   end
 
