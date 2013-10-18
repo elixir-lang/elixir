@@ -888,18 +888,18 @@ defmodule String do
   """
   @spec slice(t, Range.t) :: t | nil
 
-  def slice(string, Range[first: first, last: last]) when first >= 0 and last >= 0 do
+  def slice(string, Range[first: first, last: last] = range) when first >= 0 and last >= 0 do
     do_slice(next_grapheme(string), first, last, 0, "")
   end
 
-  def slice(string, Range[first: first, last: last]) when first < 0 and last >= 0 do
+  def slice(string, Range[first: first, last: last] = range) when first < 0 and last >= 0 do
     real_first = do_length(next_grapheme(string)) - abs(first)
     if real_first >= 0 do
       do_slice(next_grapheme(string), real_first, last, 0, "")
     end
   end
 
-  def slice(string, Range[first: first, last: last]) when first < 0 and last < 0 do
+  def slice(string, Range[first: first, last: last] = range) when first < 0 and last < 0 do
     real_first = do_length(next_grapheme(string)) - abs(first)
     real_last = do_length(next_grapheme(string)) - abs(last)
     if real_first >= 0 do
