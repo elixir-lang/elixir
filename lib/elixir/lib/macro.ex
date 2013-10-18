@@ -241,11 +241,6 @@ defmodule Macro do
     fun.(ast, "{" <> Enum.map_join(args, ", ", &to_string(&1, fun)) <> "}")
   end
 
-  # List containers
-  def to_string({ :[], _, args } = ast, fun) do
-    fun.(ast, "[" <> Enum.map_join(args, ", ", &to_string(&1, fun)) <> "]")
-  end
-
   # Fn keyword
   def to_string({ :fn, _, [[do: { :->, _, [{_, _, tuple}] } = arrow]] } = ast, fun)
       when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
@@ -310,11 +305,11 @@ defmodule Macro do
   end
 
   # Lists
-  def to_string(list = ast, fun) when is_list(list) do
+  def to_string(list, fun) when is_list(list) do
     if Keyword.keyword?(list) do
-      fun.(ast, "[" <> kw_list_to_string(list, fun) <> "]")
+      fun.(list, "[" <> kw_list_to_string(list, fun) <> "]")
     else
-      to_string({ :[], [], list }, fun)
+      fun.(list, "[" <> Enum.map_join(list, ", ", &to_string(&1, fun)) <> "]")
     end
   end
 
@@ -666,7 +661,7 @@ defmodule Macro do
     do_safe_term(terms) || :ok
   end
 
-  defp do_safe_term({ local, _, terms }) when local in [:{}, :[], :__aliases__] do
+  defp do_safe_term({ local, _, terms }) when local in [:{}, :__aliases__] do
     do_safe_term(terms)
   end
 

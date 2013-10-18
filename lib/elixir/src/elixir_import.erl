@@ -202,7 +202,6 @@ special_form('__block__',_) -> true;
 special_form('->',_) -> true;
 special_form('<<>>',_) -> true;
 special_form('{}',_) -> true;
-special_form('[]',_) -> true;
 special_form('alias',1) -> true;
 special_form('alias',2) -> true;
 special_form('require',1) -> true;

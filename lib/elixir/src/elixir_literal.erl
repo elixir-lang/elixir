@@ -18,30 +18,27 @@ translate({ '{}', Meta, Args }, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
   { { tuple, ?line(Meta), TArgs }, SE };
 
-translate({ '[]', _Meta, [] }, S) ->
+translate({ Left, Right }, S) ->
+  translate({ '{}', [], [Left, Right]}, S);
+
+translate([], S) ->
   { { nil, 0 }, S };
 
-translate({ '[]', Meta, Args }, S) when is_list(Args) ->
+translate([_|_] = Args, S) ->
   [RTail|RArgs] = lists:reverse(Args),
 
   case RTail of
-    {'|',_,[Left,Right]} ->
+    { '|', _, [Left,Right] } ->
       RExprs = [Left|RArgs],
       TailFun = fun(ST) -> translate_each(Right, ST) end;
     _ ->
       RExprs = [RTail|RArgs],
-      TailFun = fun(ST) -> { { nil, ?line(Meta) }, ST } end
+      TailFun = fun(ST) -> { { nil, 0 }, ST } end
   end,
 
   { Exprs, SE } = translate_args(lists:reverse(RExprs), S),
   { Tail, ST }  = TailFun(SE),
-  { elixir_utils:list_to_cons(?line(Meta), Exprs, Tail), ST };
-
-translate({ Left, Right }, S) ->
-  translate({ '{}', [], [Left, Right]}, S);
-
-translate(Args, S) when is_list(Args) ->
-  translate({ '[]', [], Args }, S);
+  { elixir_utils:list_to_cons(0, Exprs, Tail), ST };
 
 translate(Tuple, S) when is_tuple(Tuple) ->
   elixir_errors:compile_error(0, S#elixir_scope.file,

@@ -22,24 +22,19 @@ defmodule Kernel.SpecialForms do
   @doc """
   Defines a new tuple.
 
+  Only two item tuples are considered literals in Elixir.
+  Therefore all other tuples are represented in the AST
+  as a call to the special form `:{}`.
+
   ## Examples
 
       iex> { 1, 2, 3 }
       { 1, 2, 3 }
+      iex> quote do: { 1, 2, 3 }
+      { :{}, [], [1,2,3] }
 
   """
   defmacro :{}.(args)
-
-  @doc """
-  Defines a new list.
-
-  ## Examples
-
-      iex> [ 1, 2, 3 ]
-      [ 1, 2, 3 ]
-
-  """
-  defmacro :[].(args)
 
   @doc """
   Defines a new bitstring.

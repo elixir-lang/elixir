@@ -62,7 +62,7 @@ capture(Meta, { Left, Right }, S) ->
   capture(Meta, { '{}', Meta, [Left, Right] }, S);
 
 capture(Meta, List, S) when is_list(List) ->
-  capture(Meta, { '[]', Meta, List }, S);
+  do_capture(Meta, List, S, is_sequential_and_not_empty(List));
 
 capture(Meta, Arg, S) when is_integer(Arg) ->
   compile_error(Meta, S#elixir_scope.file, "unhandled &~B outside of a capture", [Arg]);
