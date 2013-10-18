@@ -463,7 +463,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_access_protocol_not_alias do
-    assert_raise ArgumentError, "the access protocol cannot be used inside match clauses (for example, on the left hand side of a match or in function signatures)", fn ->
+    assert_raise ArgumentError, "dynamic access cannot be invoked inside match and guard clauses", fn ->
       defmodule ErrorsTest do
         def sample(config[integer: 0]), do: true
       end
@@ -479,7 +479,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_access_protocol_not_keywords do
-    assert_raise ArgumentError, "expected contents inside brackets to be a Keyword", fn ->
+    assert_raise ArgumentError, "expected contents inside brackets to be a keyword list, got: [0]", fn ->
       defmodule ErrorsTest do
         def sample(Kernel.ErrorsTest.Config[0]), do: true
       end

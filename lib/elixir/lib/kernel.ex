@@ -650,7 +650,7 @@ defmodule Kernel do
   @doc """
   Returns a binary which is made from the integers and binaries in iolist.
 
-  Notice that this function treats lists of integers as raw bytes 
+  Notice that this function treats lists of integers as raw bytes
   and does not perform any kind of encoding conversion. If you want to convert
   from a char list to a string (both utf-8 encoded), please use
   `String.from_char_list!/1` instead.
@@ -3278,7 +3278,7 @@ defmodule Kernel do
 
   In this case, `"Hello"` will be printed twice (one per each field).
   """
-  defmacro access(element, args) do
+  defmacro access(element, args) when is_list(args) do
     caller = __CALLER__
     atom   = Macro.expand(element, caller)
 
@@ -3305,10 +3305,14 @@ defmodule Kernel do
 
         Record.access(atom, fields, args, caller)
       false ->
-        case caller.in_match? do
-          true  -> :erlang.error ArgumentError.exception(message: << "the access protocol cannot be used inside match clauses ",
-                     "(for example, on the left hand side of a match or in function signatures)" >>)
-          false -> quote do: Access.access(unquote(element), unquote(args))
+        case caller.in_match? or caller.in_guard? do
+          true  -> :erlang.error ArgumentError.exception(message: "dynamic access cannot be invoked inside match and guard clauses")
+          false -> :ok
+        end
+
+        case args do
+          [h] -> quote do: Access.access(unquote(element), unquote(h))
+          _   -> :erlang.error ArgumentError.exception(message: "expected at least one argument in access")
         end
     end
   end

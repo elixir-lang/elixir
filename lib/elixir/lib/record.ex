@@ -421,7 +421,7 @@ defmodule Record do
   @doc false
   def access(atom, fields, keyword, caller) do
     unless is_keyword(keyword) do
-      raise ArgumentError, message: "expected contents inside brackets to be a Keyword"
+      raise ArgumentError, message: "expected contents inside brackets to be a keyword list, got: #{inspect keyword}"
     end
 
     in_match = caller.in_match?

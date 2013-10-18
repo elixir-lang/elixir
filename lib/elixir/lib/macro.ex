@@ -283,11 +283,7 @@ defmodule Macro do
 
   # Access
   def to_string({ { :., _, [Kernel, :access] }, _, [left, right] } = ast, fun) do
-    fun.(ast, if right != [] and Keyword.keyword?(right) do
-      to_string(left, fun) <> to_string(right, fun)
-    else
-      to_string(left, fun) <> "[" <> to_string(right, fun) <> "]"
-    end)
+    fun.(ast, to_string(left, fun) <> to_string(right, fun))
   end
 
   # All other calls
