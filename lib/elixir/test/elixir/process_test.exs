@@ -8,7 +8,7 @@ defmodule ProcessTest do
   end
 
   test :group_leader do
-    another = spawn_link(fn -> :timer.tc(1000) end)
+    another = spawn_link(fn -> :timer.sleep(1000) end)
     assert Process.group_leader(self, another)
     assert Process.group_leader == another
   end
