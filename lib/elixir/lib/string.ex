@@ -150,7 +150,7 @@ defmodule String do
   def printable?(_),    do: false
 
   @doc """
-  Splits a string on substrings at each Unicode whitespace
+  Divides a string into substrings at each Unicode whitespace
   occurrence with leading and trailing whitespace ignored.
 
   ## Examples
