@@ -357,7 +357,7 @@ defimpl Inspect, for: Tuple do
 
   defp keyword({ k, v }, opts) do
     concat(
-      atom_to_binary(k, :utf8) <> ": ",
+      atom_to_binary(k) <> ": ",
       Kernel.inspect(v, opts)
     )
   end

@@ -91,8 +91,8 @@ defmodule Kernel.ErrorsTest do
     assert is_list []
     assert is_list do: 1
     assert is_list List.flatten [1]
-    assert is_atom binary_to_atom "foo", :utf8
-    assert is_atom(binary_to_atom "foo", :utf8)
+    assert is_atom is_record 1..3, Range
+    assert is_atom(is_record 1..3, Range)
   end
 
   test :syntax_error_with_no_token do

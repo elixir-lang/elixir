@@ -16,7 +16,7 @@ defmodule String do
   * `Kernel.binary_part/3` - retrieves part of the binary
   * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
   * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
-  * Plus a number of conversion functions, like `Kernel.binary_to_atom/2`,
+  * Plus a number of conversion functions, like `Kernel.binary_to_atom/1`,
     `Kernel.binary_to_integer/2`, `Kernel.binary_to_term/1` and their inverses,
     like `Kernel.integer_to_binary/2`
 

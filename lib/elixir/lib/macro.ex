@@ -210,7 +210,7 @@ defmodule Macro do
 
   # Variables
   def to_string({ var, _, atom } = ast, fun) when is_atom(atom) do
-    fun.(ast, atom_to_binary(var, :utf8))
+    fun.(ast, atom_to_binary(var))
   end
 
   # Aliases
@@ -278,7 +278,7 @@ defmodule Macro do
   end
 
   def to_string({ op, _, [arg] } = ast, fun) when op in unary_ops do
-    fun.(ast, atom_to_binary(op, :utf8) <> to_string(arg, fun))
+    fun.(ast, atom_to_binary(op) <> to_string(arg, fun))
   end
 
   # Access
@@ -323,7 +323,7 @@ defmodule Macro do
   defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, raw: true)
   defp module_to_string(other, fun), do: call_to_string(other, fun)
 
-  defp call_to_string(atom, _fun) when is_atom(atom), do: atom_to_binary(atom, :utf8)
+  defp call_to_string(atom, _fun) when is_atom(atom), do: atom_to_binary(atom)
   defp call_to_string({ :., _, [arg] }, fun),         do: module_to_string(arg, fun) <> "."
   defp call_to_string({ :., _, [left, right] }, fun), do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
   defp call_to_string(other, fun),                    do: to_string(other, fun)
@@ -355,7 +355,7 @@ defmodule Macro do
 
   defp kw_block_to_string(key, value, fun) do
     block = adjust_new_lines block_to_string(value, fun), "\n  "
-    atom_to_binary(key, :utf8) <> "\n  " <> block <> "\n"
+    atom_to_binary(key) <> "\n  " <> block <> "\n"
   end
 
   defp block_to_string({ :->, _, exprs }, fun) do

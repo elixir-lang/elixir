@@ -392,11 +392,8 @@ in_elixir_macros() ->
 in_erlang_functions() ->
   [
     { abs, 1 },
-    { atom_to_binary, 2 },
     { atom_to_list, 1 },
     { binary_part, 3 },
-    { binary_to_atom, 2 },
-    { binary_to_existing_atom, 2 },
     { binary_to_float, 1 },
     { binary_to_float, 2 },
     { binary_to_integer, 1 },

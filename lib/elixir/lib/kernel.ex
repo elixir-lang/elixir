@@ -395,21 +395,9 @@ defmodule Kernel do
     :erlang.abs(number)
   end
 
-  @doc """
-  Returns a binary which corresponds to the text representation of `atom`.
-  If `encoding` is latin1, there will be one byte for each character in the text
-  representation. If `encoding` is utf8 or unicode, the characters will be encoded
-  using UTF-8 (meaning that characters from 16#80 up to 0xFF will be encoded in
-  two bytes).
-
-  ## Examples
-
-      iex> atom_to_binary(:elixir, :utf8)
-      "elixir"
-
-  """
-  @spec atom_to_binary(atom, :utf8 | :unicode | :latin1) :: binary
+  @doc false
   def atom_to_binary(atom, encoding) do
+    IO.write "atom_to_binary/2 is deprecated, please use :erlang.atom_to_binary/2 instead\n#{Exception.format_stacktrace}"
     :erlang.atom_to_binary(atom, encoding)
   end
 
@@ -452,28 +440,15 @@ defmodule Kernel do
     :erlang.binary_part(binary, start, length)
   end
 
-  @doc """
-  Returns the atom whose text representation is `binary`. If `encoding` is latin1,
-  no translation of bytes in the binary is done. If `encoding` is utf8 or unicode,
-  the binary must contain valid UTF-8 sequences; furthermore, only Unicode
-  characters up to 0xFF are allowed.
-
-  ## Examples
-
-      iex> binary_to_atom("elixir", :utf8)
-      :elixir
-
-  """
-  @spec binary_to_atom(binary, :utf8 | :unicode | :latin1) :: atom
+  @doc false
   def binary_to_atom(binary, encoding) do
+    IO.write "binary_to_atom/2 is deprecated, please use :erlang.binary_to_atom/2 instead\n#{Exception.format_stacktrace}"
     :erlang.binary_to_atom(binary, encoding)
   end
 
-  @doc """
-  Works like `binary_to_atom/2`, but the atom must already exist.
-  """
-  @spec binary_to_existing_atom(binary, :utf8 | :unicode | :latin1) :: atom
+  @doc false
   def binary_to_existing_atom(binary, encoding) do
+    IO.write "binary_to_existing_atom/2 is deprecated, please use :erlang.binary_to_existing_atom/2 instead\n#{Exception.format_stacktrace}"
     :erlang.binary_to_existing_atom(binary, encoding)
   end
 
@@ -925,7 +900,7 @@ defmodule Kernel do
 
   @doc false
   def list_to_pid(list) do
-    IO.write "pid_to_list/1 is deprecated, please use :erlang.pid_to_list/1 instead\n#{Exception.format_stacktrace}"
+    IO.write "list_to_pid/1 is deprecated, please use :erlang.list_to_pid/1 instead\n#{Exception.format_stacktrace}"
     :erlang.list_to_pid(list)
   end
 
@@ -1239,7 +1214,7 @@ defmodule Kernel do
   Elixir module names can be dynamically generated. This is very
   useful for macros. For instance, one could write:
 
-      defmodule binary_to_atom("Foo\#{1}", :utf8) do
+      defmodule binary_to_atom("Foo\#{1}") do
         # contents ...
       end
 
@@ -2824,7 +2799,7 @@ defmodule Kernel do
   """
   defmacro binary_to_atom(some_binary) do
     quote do
-      binary_to_atom(unquote(some_binary), :utf8)
+      :erlang.binary_to_atom(unquote(some_binary), :utf8)
     end
   end
 
@@ -2846,7 +2821,7 @@ defmodule Kernel do
   """
   defmacro binary_to_existing_atom(some_binary) do
     quote do
-      binary_to_existing_atom(unquote(some_binary), :utf8)
+      :erlang.binary_to_existing_atom(unquote(some_binary), :utf8)
     end
   end
 
@@ -2862,7 +2837,7 @@ defmodule Kernel do
   """
   defmacro atom_to_binary(some_atom) do
     quote do
-      atom_to_binary(unquote(some_atom), :utf8)
+      :erlang.atom_to_binary(unquote(some_atom), :utf8)
     end
   end
 
