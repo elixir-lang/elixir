@@ -365,6 +365,25 @@ defmodule EnumTest.List do
     assert Enum.slice([1,2,3,4,5], -2, 5) == [4, 5]
     assert Enum.slice([1,2,3,4,5], -3, 1) == [3]
   end
+
+  test :slice_range do
+    assert Enum.slice([1,2,3,4,5], 0..0) == [1]
+    assert Enum.slice([1,2,3,4,5], 0..1) == [1, 2]
+    assert Enum.slice([1,2,3,4,5], 0..2) == [1, 2, 3]
+    assert Enum.slice([1,2,3,4,5], 1..2) == [2, 3]
+    assert Enum.slice([1,2,3,4,5], 1..0) == nil 
+    assert Enum.slice([1,2,3,4,5], 2..5) == [3, 4, 5]
+    assert Enum.slice([1,2,3,4,5], 4..4) == [5]
+    assert Enum.slice([1,2,3,4,5], 5..5) == []
+    assert Enum.slice([1,2,3,4,5], 6..5) == nil 
+    assert Enum.slice([1,2,3,4,5], 6..0) == nil 
+    assert Enum.slice([1,2,3,4,5], -6..0) == nil 
+    assert Enum.slice([1,2,3,4,5], -6..5) == nil 
+    assert Enum.slice([1,2,3,4,5], -5..-1) == [1, 2, 3, 4, 5]
+    assert Enum.slice([1,2,3,4,5], -5..-3) == [1, 2, 3]
+    assert Enum.slice([1,2,3,4,5], -6..-1) == nil
+    assert Enum.slice([1,2,3,4,5], -6..-3) == nil
+  end
 end
 
 defmodule EnumTest.Range do
@@ -736,6 +755,25 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..5, -6, 5) == nil
     assert Enum.slice(1..5, -2, 5) == [4, 5]
     assert Enum.slice(1..5, -3, 1) == [3]
+  end
+  
+  test :slice_range do
+    assert Enum.slice(1..5, 0..0) == [1]
+    assert Enum.slice(1..5, 0..1) == [1, 2]
+    assert Enum.slice(1..5, 0..2) == [1, 2, 3]
+    assert Enum.slice(1..5, 1..2) == [2, 3]
+    assert Enum.slice(1..5, 1..0) == nil 
+    assert Enum.slice(1..5, 2..5) == [3, 4, 5]
+    assert Enum.slice(1..5, 4..4) == [5]
+    assert Enum.slice(1..5, 5..5) == []
+    assert Enum.slice(1..5, 6..5) == nil 
+    assert Enum.slice(1..5, 6..0) == nil 
+    assert Enum.slice(1..5, -6..0) == nil 
+    assert Enum.slice(1..5, -6..5) == nil 
+    assert Enum.slice(1..5, -5..-1) == [1, 2, 3, 4, 5]
+    assert Enum.slice(1..5, -5..-3) == [1, 2, 3]
+    assert Enum.slice(1..5, -6..-1) == nil
+    assert Enum.slice(1..5, -6..-3) == nil
   end
 end
 
