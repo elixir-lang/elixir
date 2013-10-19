@@ -1,3 +1,5 @@
+import Kernel, except: [length: 1]
+
 defmodule String do
   @moduledoc %S"""
   A String in Elixir is a UTF-8 encoded binary.
@@ -465,13 +467,13 @@ defmodule String do
   end
 
   defp do_justify(subject, len, padding, type) when is_integer(padding) do
-    subject_len = String.length(subject)
+    subject_len = length(subject)
 
     cond do
       subject_len >= len ->
         subject
       subject_len < len ->
-        fill = String.duplicate(<<padding :: utf8>>, len - subject_len)
+        fill = duplicate(<<padding :: utf8>>, len - subject_len)
 
         case type do
           :left  -> subject <> fill
@@ -794,7 +796,7 @@ defmodule String do
   end
 
   def at(string, position) when position < 0 do
-    real_pos = do_length(next_grapheme(string)) - abs(position)
+    real_pos = length(string) - abs(position)
     case real_pos >= 0 do
       true  -> do_at(next_grapheme(string), real_pos, 0)
       false -> nil
@@ -839,7 +841,7 @@ defmodule String do
   @spec slice(t, integer, integer) :: grapheme | nil
 
   def slice(string, start, 0) do
-    case abs(start) <= String.length(string) do
+    case abs(start) <= length(string) do
       true -> ""
       false -> nil
     end
@@ -850,7 +852,7 @@ defmodule String do
   end
 
   def slice(string, start, len) when start < 0 and len >= 0 do
-    real_start_pos = do_length(next_grapheme(string)) - abs(start)
+    real_start_pos = length(string) - abs(start)
     case real_start_pos >= 0 do
       true -> do_slice(next_grapheme(string), real_start_pos, real_start_pos + len - 1, 0, "")
       false -> nil
@@ -866,44 +868,53 @@ defmodule String do
 
   ## Examples
 
-      iex(1)> String.slice("elixir", 1..3)
+      iex> String.slice("elixir", 1..3)
       "lix"
-      iex(2)> String.slice("elixir", 1..10)
+      iex> String.slice("elixir", 1..10)
       "lixir"
-      iex(3)> String.slice("elixir", 10..3)
+      iex> String.slice("elixir", 10..3)
       nil
-      iex(4)> String.slice("elixir", -4..-1)
+
+      iex> String.slice("elixir", -4..-1)
       "ixir"
-      iex(5)> String.slice("elixir", -1..-4)
+      iex> String.slice("elixir", 2..-1)
+      "ixir"
+      iex> String.slice("elixir", -4..6)
+      "ixir"
+      iex> String.slice("elixir", -1..-4)
       nil
-      iex(6)> String.slice("elixir", -10..-7)
+      iex> String.slice("elixir", -10..-7)
       nil
-      iex(7)> String.slice("a", 0..1500)
+
+      iex> String.slice("a", 0..1500)
       "a"
-      iex(8)> String.slice("a", 1..1500)
+      iex> String.slice("a", 1..1500)
       ""
-      iex(9)> String.slice("a", 2..1500)
+      iex> String.slice("a", 2..1500)
       nil
 
   """
   @spec slice(t, Range.t) :: t | nil
 
-  def slice(string, Range[first: first, last: last]) when first >= 0 and last >= 0 do
+  def slice(string, range)
+
+  def slice(string, first..last) when first >= 0 and last >= 0 do
     do_slice(next_grapheme(string), first, last, 0, "")
   end
 
-  def slice(string, Range[first: first, last: last]) when first < 0 and last >= 0 do
-    real_first = do_length(next_grapheme(string)) - abs(first)
-    if real_first >= 0 do
-      do_slice(next_grapheme(string), real_first, last, 0, "")
-    end
-  end
+  def slice(string, first..last) do
+    total = length(string)
 
-  def slice(string, Range[first: first, last: last]) when first < 0 and last < 0 do
-    real_first = do_length(next_grapheme(string)) - abs(first)
-    real_last = do_length(next_grapheme(string)) - abs(last)
-    if real_first >= 0 do
-      do_slice(next_grapheme(string), real_first, real_last, 0, "")
+    if first < 0 do
+      first = total + first
+    end
+
+    if last < 0 do
+      last = total + last
+    end
+
+    if first > 0 do
+      do_slice(next_grapheme(string), first, last, 0, "")
     end
   end
 
