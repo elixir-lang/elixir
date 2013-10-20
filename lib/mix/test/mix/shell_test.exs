@@ -2,7 +2,19 @@ Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Mix.ShellTest do
   use MixTest.Case
-  import ExUnit.CaptureIO
+
+  if (match?({:win32,_},:os.type)) do
+    def capture_io(somefunc) do
+      ExUnit.CaptureIO.capture_io(somefunc) |>
+         String.replace("\r\n","\n")
+    end
+    def capture_io(from,somefunc) do
+      ExUnit.CaptureIO.capture_io(from,somefunc) |>
+         String.replace("\r\n","\n")
+    end
+  else
+    import ExUnit.CaptureIO
+  end
 
   test "shell process" do
     Mix.shell.info "abc"
@@ -45,4 +57,5 @@ defmodule Mix.ShellTest do
     Mix.shell(Mix.Shell.Process)
     :ok
   end
+
 end
