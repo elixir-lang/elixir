@@ -3,29 +3,7 @@ Code.require_file "../../test_helper.exs", __DIR__
 defmodule Mix.Tasks.NewTest do
   use MixTest.Case
 
-  test "new with underscore and --bare" do
-    in_tmp "new with underscore", fn ->
-      Mix.Tasks.New.run ["hello_world", "--bare"]
-
-      assert_file "hello_world/mix.exs", fn(file) ->
-        assert file =~ "app: :hello_world"
-        assert file =~ "version: \"0.0.1\""
-      end
-
-      assert_file "hello_world/README.md", %r/# HelloWorld/
-      assert_file "hello_world/.gitignore"
-
-      assert_file "hello_world/lib/hello_world.ex",  %r/defmodule HelloWorld do/
-
-      assert_file "hello_world/test/test_helper.exs", %r/HelloWorld.start/
-      assert_file "hello_world/test/hello_world_test.exs", %r/defmodule HelloWorldTest do/
-
-      assert_received { :mix_shell, :info, ["* creating mix.exs"] }
-      assert_received { :mix_shell, :info, ["* creating lib/hello_world.ex"] }
-    end
-  end
-
-  test "new without --bare" do
+  test "new" do
     in_tmp "new with underscore", fn ->
       Mix.Tasks.New.run ["hello_world"]
 
@@ -54,6 +32,41 @@ defmodule Mix.Tasks.NewTest do
 
       assert_received { :mix_shell, :info, ["* creating mix.exs"] }
       assert_received { :mix_shell, :info, ["* creating lib/hello_world.ex"] }
+    end
+  end
+
+  test "new with --bare" do
+    in_tmp "new with underscore", fn ->
+      Mix.Tasks.New.run ["hello_world", "--bare"]
+
+      assert_file "hello_world/mix.exs", fn(file) ->
+        assert file =~ "app: :hello_world"
+        assert file =~ "version: \"0.0.1\""
+      end
+
+      assert_file "hello_world/README.md", %r/# HelloWorld/
+      assert_file "hello_world/.gitignore"
+
+      assert_file "hello_world/lib/hello_world.ex",  %r/defmodule HelloWorld do/
+
+      assert_file "hello_world/test/test_helper.exs", %r/HelloWorld.start/
+      assert_file "hello_world/test/hello_world_test.exs", %r/defmodule HelloWorldTest do/
+
+      assert_received { :mix_shell, :info, ["* creating mix.exs"] }
+      assert_received { :mix_shell, :info, ["* creating lib/hello_world.ex"] }
+    end
+  end
+
+  test "new inside umbrella" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      File.cd! "apps", fn ->
+        Mix.Tasks.New.run ["hello_world"]
+
+        assert_file "hello_world/mix.exs", fn(file) ->
+          assert file =~ "deps_path: \"../../deps\""
+          assert file =~ "lockfile: \"../../mix.lock\""
+        end
+      end
     end
   end
 

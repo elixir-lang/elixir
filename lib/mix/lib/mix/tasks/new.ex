@@ -65,7 +65,12 @@ defmodule Mix.Tasks.New do
 
     create_file "README.md",  readme_template(assigns)
     create_file ".gitignore", gitignore_text
-    create_file "mix.exs",    mixfile_template(assigns)
+
+    if in_umbrella? do
+      create_file "mix.exs", mixfile_apps_template(assigns)
+    else
+      create_file "mix.exs", mixfile_template(assigns)
+    end
 
     create_directory "lib"
 
@@ -125,6 +130,19 @@ defmodule Mix.Tasks.New do
     end
   end
 
+  defp in_umbrella? do
+    apps = Path.dirname(File.cwd!)
+
+    try do
+      Mix.Project.in_project(:umbrella_check, "../..", fn _ ->
+        path = Mix.project[:apps_path]
+        path && Path.expand(path) == apps
+      end)
+    catch
+      _, _ -> false
+    end
+  end
+
    embed_template :readme, """
    # <%= @mod %>
 
@@ -156,6 +174,35 @@ defmodule Mix.Tasks.New do
 
     # Returns the list of dependencies in the format:
     # { :foobar, "~> 0.1", git: "https://github.com/elixir-lang/foobar.git" }
+    defp deps do
+      []
+    end
+  end
+  """
+
+  embed_template :mixfile_apps, """
+  defmodule <%= @mod %>.Mixfile do
+    use Mix.Project
+
+    def project do
+      [ app: :<%= @app %>,
+        version: "0.0.1",
+        deps_path: "../../deps",
+        lockfile: "../../mix.lock",
+        elixir: "~> <%= System.version %>",
+        deps: deps ]
+    end
+
+    # Configuration for the OTP application
+    def application do
+      <%= @otp_app %>
+    end
+
+    # Returns the list of dependencies in the format:
+    # { :foobar, "~> 0.1", git: "https://github.com/elixir-lang/foobar.git" }
+    #
+    # You can depend on another app in the same umbrella with:
+    # { :other, in_umbrella: true }
     defp deps do
       []
     end
