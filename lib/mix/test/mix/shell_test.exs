@@ -3,20 +3,11 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Mix.ShellTest do
   use MixTest.Case
 
-  if (match?({:win32,_},:os.type)) do
-    defp capture_io(somefunc) do
-      ExUnit.CaptureIO.capture_io(somefunc) |> String.replace("\r\n","\n")
-    end
-    defp capture_io(from,somefunc) do
-      ExUnit.CaptureIO.capture_io(from,somefunc) |> String.replace("\r\n","\n")
-    end
-  else
-    defp capture_io(somefunc) do
-      ExUnit.CaptureIO.capture_io(somefunc)
-    end
-    defp capture_io(from,somefunc) do
-      ExUnit.CaptureIO.capture_io(from,somefunc)
-    end
+  defp capture_io(somefunc) do
+    ExUnit.CaptureIO.capture_io(somefunc) |> String.replace("\r\n","\n")
+  end
+  defp capture_io(from,somefunc) do
+    ExUnit.CaptureIO.capture_io(from,somefunc) |> String.replace("\r\n","\n")
   end
 
   test "shell process" do
@@ -60,5 +51,4 @@ defmodule Mix.ShellTest do
     Mix.shell(Mix.Shell.Process)
     :ok
   end
-
 end
