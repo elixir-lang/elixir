@@ -357,16 +357,29 @@ defimpl Inspect, for: Tuple do
 
   defp keyword({ k, v }, opts) do
     concat(
-      atom_to_binary(k, :utf8) <> ": ",
+      atom_to_binary(k) <> ": ",
       Kernel.inspect(v, opts)
     )
   end
 end
 
-defimpl Inspect, for: Number do
+defimpl Inspect, for: Integer do
   @doc """
-  Represents the number as a string.
+  Represents the integer as a string.
 
+  ## Examples
+
+      iex> inspect(1)
+      "1"
+
+  """
+  def inspect(thing, _opts) do
+    integer_to_binary(thing)
+  end
+end
+
+defimpl Inspect, for: Float do
+  @doc """
   Floats are represented using the shortened, correctly rounded string
   that converts to float when read back with `binary_to_float/1`. This
   is done via the Erlang implementation of _Printing Floating-Point
@@ -375,14 +388,10 @@ defimpl Inspect, for: Number do
 
   ## Examples
 
-      iex> inspect(1)
-      "1"
+      iex> inspect(1.0)
+      "1.0"
 
   """
-  def inspect(thing, _opts) when is_integer(thing) do
-    integer_to_binary(thing)
-  end
-
   def inspect(thing, _opts) do
     iolist_to_binary(:io_lib_format.fwrite_g(thing))
   end
@@ -446,7 +455,7 @@ end
 
 defimpl Inspect, for: PID do
   def inspect(pid, _opts) do
-    "#PID" <> iolist_to_binary(pid_to_list(pid))
+    "#PID" <> iolist_to_binary(:erlang.pid_to_list(pid))
   end
 end
 

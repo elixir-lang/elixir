@@ -156,12 +156,12 @@ defmodule OptionParser do
         :boolean in kinds ->
           { nil, value in [true, "true"] }
         :integer in kinds ->
-          case String.to_integer(value) do
+          case Integer.parse(value) do
             { value, "" } -> { nil, value }
             _ -> { option, value }
           end
         :float in kinds ->
-          case String.to_float(value) do
+          case Float.parse(value) do
             { value, "" } -> { nil, value }
             _ -> { option, value }
           end

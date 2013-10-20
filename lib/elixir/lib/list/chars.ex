@@ -36,13 +36,15 @@ defimpl List.Chars, for: List do
   def to_char_list(list), do: list
 end
 
-defimpl List.Chars, for: Number do
-  @digits 20
-  @limit  :math.pow(10, @digits)
-
-  def to_char_list(thing) when is_integer(thing) do
+defimpl List.Chars, for: Integer do
+  def to_char_list(thing) do
     integer_to_list(thing)
   end
+end
+
+defimpl List.Chars, for: Float do
+  @digits 20
+  @limit  :math.pow(10, @digits)
 
   def to_char_list(thing) when thing > @limit do
     float_to_list(thing, scientific: @digits)

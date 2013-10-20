@@ -26,7 +26,7 @@ defmodule Protocol.Consolidation do
     extract_matching_by_attribute paths, 'Elixir.',
       fn module, attributes ->
         case attributes[:protocol] do
-          [{ _, _ }] -> module
+          [fallback_to_any: _, consolidated: _] -> module
           _ -> nil
         end
       end
@@ -55,7 +55,7 @@ defmodule Protocol.Consolidation do
     extract_matching_by_attribute paths, prefix, fn
       _mod, attributes ->
         case attributes[:impl] do
-          [{ ^protocol, for }] -> for
+          [protocol: ^protocol, for: for] -> for
           _ -> nil
         end
     end
@@ -129,7 +129,7 @@ defmodule Protocol.Consolidation do
       { :ok, { ^protocol, [abstract_code: { _raw, abstract_code },
                            attributes: attributes] } } ->
         case attributes[:protocol] do
-          [{ any, _consolidated }] ->
+          [fallback_to_any: any, consolidated: _] ->
             { :ok, protocol, any, abstract_code }
           _ ->
             { :error, :not_a_protocol }
@@ -161,8 +161,9 @@ defmodule Protocol.Consolidation do
   defp change_debug_info(other, _types), do: other
 
   defp change_impl_for([{ :attribute, line, :protocol, _ }|t], protocol, builtin, records, acc) do
+    attr = [fallback_to_any: Any in builtin, consolidated: true]
     change_impl_for(t, protocol, builtin, records,
-                    [{ :attribute, line, :protocol, { Any in builtin, true } }|acc])
+                    [{ :attribute, line, :protocol, attr }|acc])
   end
 
   defp change_impl_for([{ :function, line, :impl_for, 1, _ }|t], protocol, builtin, records, acc) do
@@ -197,7 +198,8 @@ defmodule Protocol.Consolidation do
   defp clause_for(Atom, protocol, line),      do: builtin_clause_for(Atom, :is_atom, protocol, line)
   defp clause_for(List, protocol, line),      do: builtin_clause_for(List, :is_list, protocol, line)
   defp clause_for(BitString, protocol, line), do: builtin_clause_for(BitString, :is_bitstring, protocol, line)
-  defp clause_for(Number, protocol, line),    do: builtin_clause_for(Number, :is_number, protocol, line)
+  defp clause_for(Integer, protocol, line),   do: builtin_clause_for(Integer, :is_integer, protocol, line)
+  defp clause_for(Float, protocol, line),     do: builtin_clause_for(Float, :is_float, protocol, line)
   defp clause_for(Function, protocol, line),  do: builtin_clause_for(Function, :is_function, protocol, line)
   defp clause_for(PID, protocol, line),       do: builtin_clause_for(PID, :is_pid, protocol, line)
   defp clause_for(Port, protocol, line),      do: builtin_clause_for(Port, :is_port, protocol, line)

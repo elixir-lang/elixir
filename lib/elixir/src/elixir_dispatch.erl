@@ -392,11 +392,8 @@ in_elixir_macros() ->
 in_erlang_functions() ->
   [
     { abs, 1 },
-    { atom_to_binary, 2 },
     { atom_to_list, 1 },
     { binary_part, 3 },
-    { binary_to_atom, 2 },
-    { binary_to_existing_atom, 2 },
     { binary_to_float, 1 },
     { binary_to_float, 2 },
     { binary_to_integer, 1 },
@@ -440,7 +437,6 @@ in_erlang_functions() ->
     { list_to_float, 1 },
     { list_to_integer, 1 },
     { list_to_integer, 2 },
-    { list_to_pid, 1 },
     { list_to_tuple, 1 },
     { make_ref, 0 },
     { max, 2 },
@@ -448,7 +444,6 @@ in_erlang_functions() ->
     { node, 0 },
     { node, 1 },
     % { now, 0 },
-    { pid_to_list, 1 },
     { round, 1 },
     { self, 0 },
     { size, 1 },

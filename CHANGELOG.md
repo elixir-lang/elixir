@@ -1,22 +1,31 @@
 # v0.10.4-dev
 
 * Enhancements
+  * [IEx] Split `IEx.Evaluator` from `IEx.Server` to allow custom evaluators
+  * [IEx] Add support for `IEx.pry` which halts a given process for inspection
   * [Kernel] Improve stacktraces on command line interfaces
   * [Protocol] Protocols now provide `impl_for/1` and `impl_for!/1` functions which receive a structure and returns its respective implementation, otherwise returns nil or an error
   * [String] Update to Unicode 6.3.0
 
 * Bug fixes
   * [Exception] Ensure `defexception` fields can be set dynamically
-  * [Kernel] Fix a bug where aliases hygiene was not being respected
+  * [Kernel] Guarantee aliases hygiene is respected when the current module name is not known upfront
+  * [Kernel] `Kernel.access/2` no longer flattens lists
+  * [Process] `Process.group_leader/2` args have been reversed so the "subject" comes first
   * [String] Implement the extended grapheme cluster algorithm for `String` operations
 
 * Deprecations
+  * [Kernel] `pid_to_list/1`, `list_to_pid/1`, `binary_to_atom/2`, `binary_to_existing_atom/2` and `atom_to_binary/2` are deprecated in favor of their counterpars in the `:erlang` module
+  * [Kernel] `insert_elem/3` and `delete_elem/2` are deprecated in favor of `Tuple.insert_at/3` and `Tuple.delete_at/2`
   * [Macro] `Macro.expand_all/2` is deprecated
   * [Protocol] `@only` and `@except` in protocols are now deprecated
   * [Protocol] Protocols no longer fallbacks to `Any` out of the box (this functionality needs to be explicitly enabled by setting `@fallback_to_any` to true)
+  * [String] `String.to_integer/1` and `String.to_float/1` are deprecated in favor of `Integer.parse/1` and `Float.parse/1`
 
 * Backwards incompatible changes
-
+  * [Kernel] `Kernel.access/2` now expects the second argument to be a compile time list
+  * [Process] `Process.group_leader/2` values were reversed in order to fix a previous bug
+  * [Protocol] Protocol no longer dispatches to `Number`, but to `Integer` and `Float`
 
 # v0.10.3 (2013-10-02)
 

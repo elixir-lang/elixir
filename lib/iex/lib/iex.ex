@@ -174,7 +174,7 @@ defmodule IEx do
       $ iex
       Erlang R16B (erts-5.10.1) [...]
 
-      Interactive Elixir (0.9.1.dev) - press Ctrl+C to exit (type h() ENTER for help)
+      Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
       iex(1)> [1, 2, 3, 4, 5]
       [1,2,3,...]
 
@@ -232,7 +232,7 @@ defmodule IEx do
   Returns `true` if IEx was properly started.
   """
   def started? do
-    match?({ :ok, true }, :application.get_env(:iex, :started))
+    :application.get_env(:iex, :started) == { :ok, true }
   end
 
   @doc """
@@ -244,6 +244,83 @@ defmodule IEx do
     enabled = colors[:enabled]
     IO.ANSI.escape_fragment("%{#{colors[color_name]}}", enabled)
       <> string <> IO.ANSI.escape_fragment("%{reset}", enabled)
+  end
+
+  @doc """
+  Pries into the process environment.
+
+  This is useful for debugging a particular chunk of code
+  and inspect the state of a particular process. The process
+  is temporarily changed to trap exits (i.e. the process flag
+  `:trap_exit` is set to true) and has the `group_leader` changed
+  to support ANSI escape codes. Those values are reverted by
+  calling `respawn`, which starts a new IEx shell, freeing up
+  the pried one.
+
+  When a process is pried, all code runs inside IEx and, as
+  such, it is evaluated and cannot access private functions
+  of the module being pried. Module functions still need to be
+  accessed via `Mod.fun(args)`.
+
+  Status: This feature is experimental.
+
+  ## Examples
+
+  Let's suppose you want to investigate what is happening
+  with some particular function. By invoking `IEx.pry` from
+  the function, IEx will allow you to access its binding
+  (variables), verify its lexical information and access
+  the process information. Let's see an example:
+
+      import Enum, only: [map: 2]
+
+      def add(a, b) do
+        c = a + b
+        IEx.pry
+      end
+
+  When invoking `add(1, 2)`, you will receive a message in
+  your shell to pry the given environment. By allowing it,
+  the shell will be reset and you gain access to all variables
+  and the lexical scope from above:
+
+      iex(1)> map([a,b,c], &IO.inspect(&1))
+      1
+      2
+      3
+
+  Keep in mind that `IEx.pry` runs in the caller process,
+  blocking the caller during the evaluation cycle. The caller
+  process can be freed by calling `respawn`, which starts a
+  new IEx evaluation cycle, letting this one go:
+
+      iex(2)> respawn
+      true
+
+      Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
+
+  Setting variables or importing modules in IEx does not
+  affect the caller the environment (hence it is called `pry`).
+  """
+  defmacro pry(timeout // 1000) do
+    quote do
+      env  = __ENV__
+      meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
+      opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
+      res  = IEx.Server.take_over("Request to pry #{meta}", opts, unquote(timeout))
+
+      # We cannot use colors because IEx may be off.
+      case res do
+        { :error, :self } = err ->
+          IO.puts :stdio, "IEx cannot pry itself."
+        { :error, :no_iex } = err ->
+          IO.puts :stdio, "Cannot pry #{meta}. Is an IEx shell running?"
+        _ ->
+          :ok
+      end
+
+      res
+    end
   end
 
   ## Callbacks
@@ -259,11 +336,9 @@ defmodule IEx do
       end
 
       start_iex()
-      callback.()
-
       set_expand_fun()
       run_after_spawn()
-      IEx.Server.start(opts)
+      IEx.Server.start(opts, callback)
     end
   end
 

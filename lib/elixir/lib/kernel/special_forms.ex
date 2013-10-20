@@ -22,24 +22,19 @@ defmodule Kernel.SpecialForms do
   @doc """
   Defines a new tuple.
 
+  Only two item tuples are considered literals in Elixir.
+  Therefore all other tuples are represented in the AST
+  as a call to the special form `:{}`.
+
   ## Examples
 
       iex> { 1, 2, 3 }
       { 1, 2, 3 }
+      iex> quote do: { 1, 2, 3 }
+      { :{}, [], [1,2,3] }
 
   """
   defmacro :{}.(args)
-
-  @doc """
-  Defines a new list.
-
-  ## Examples
-
-      iex> [ 1, 2, 3 ]
-      [ 1, 2, 3 ]
-
-  """
-  defmacro :[].(args)
 
   @doc """
   Defines a new bitstring.
@@ -1002,17 +997,17 @@ defmodule Kernel.SpecialForms do
   A capture also allows the captured functions to be partially
   applied, for example:
 
-      iex> fun = &atom_to_binary(&1, :utf8)
-      iex> fun.(:hello)
-      "hello"
+      iex> fun = &is_record(&1, Range)
+      iex> fun.(1..3)
+      true
 
   In the example above, we use &1 as a placeholder, generating
   a function with one argument. We could also use `&2` and `&3`
   to delimit more arguments:
 
-      iex> fun = &atom_to_binary(&1, &2)
-      iex> fun.(:hello, :utf8)
-      "hello"
+      iex> fun = &is_record(&1, &2)
+      iex> fun.(1..3, Range)
+      true
 
   Since operators are calls, they are also supported, although
   they require explicit parentheses around:

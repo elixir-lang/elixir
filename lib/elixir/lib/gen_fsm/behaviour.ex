@@ -186,7 +186,7 @@ defmodule GenFSM.Behaviour do
 
       @doc false
       def handle_sync_event(_event, from, state_name, state_data) do
-        { :reply, :default_implementation, state_name, state_data }
+        { :reply, :ok, state_name, state_data }
       end
 
       @doc false

@@ -395,21 +395,9 @@ defmodule Kernel do
     :erlang.abs(number)
   end
 
-  @doc """
-  Returns a binary which corresponds to the text representation of `atom`.
-  If `encoding` is latin1, there will be one byte for each character in the text
-  representation. If `encoding` is utf8 or unicode, the characters will be encoded
-  using UTF-8 (meaning that characters from 16#80 up to 0xFF will be encoded in
-  two bytes).
-
-  ## Examples
-
-      iex> atom_to_binary(:elixir, :utf8)
-      "elixir"
-
-  """
-  @spec atom_to_binary(atom, :utf8 | :unicode | :latin1) :: binary
+  @doc false
   def atom_to_binary(atom, encoding) do
+    IO.write "atom_to_binary/2 is deprecated, please use :erlang.atom_to_binary/2 instead\n#{Exception.format_stacktrace}"
     :erlang.atom_to_binary(atom, encoding)
   end
 
@@ -452,28 +440,15 @@ defmodule Kernel do
     :erlang.binary_part(binary, start, length)
   end
 
-  @doc """
-  Returns the atom whose text representation is `binary`. If `encoding` is latin1,
-  no translation of bytes in the binary is done. If `encoding` is utf8 or unicode,
-  the binary must contain valid UTF-8 sequences; furthermore, only Unicode
-  characters up to 0xFF are allowed.
-
-  ## Examples
-
-      iex> binary_to_atom("elixir", :utf8)
-      :elixir
-
-  """
-  @spec binary_to_atom(binary, :utf8 | :unicode | :latin1) :: atom
+  @doc false
   def binary_to_atom(binary, encoding) do
+    IO.write "binary_to_atom/2 is deprecated, please use :erlang.binary_to_atom/2 instead\n#{Exception.format_stacktrace}"
     :erlang.binary_to_atom(binary, encoding)
   end
 
-  @doc """
-  Works like `binary_to_atom/2`, but the atom must already exist.
-  """
-  @spec binary_to_existing_atom(binary, :utf8 | :unicode | :latin1) :: atom
+  @doc false
   def binary_to_existing_atom(binary, encoding) do
+    IO.write "binary_to_existing_atom/2 is deprecated, please use :erlang.binary_to_existing_atom/2 instead\n#{Exception.format_stacktrace}"
     :erlang.binary_to_existing_atom(binary, encoding)
   end
 
@@ -650,7 +625,7 @@ defmodule Kernel do
   @doc """
   Returns a binary which is made from the integers and binaries in iolist.
 
-  Notice that this function treats lists of integers as raw bytes 
+  Notice that this function treats lists of integers as raw bytes
   and does not perform any kind of encoding conversion. If you want to convert
   from a char list to a string (both utf-8 encoded), please use
   `String.from_char_list!/1` instead.
@@ -923,22 +898,9 @@ defmodule Kernel do
     :erlang.list_to_integer(list, base)
   end
 
-  @doc """
-  Returns a pid whose text representation is `list`.
-
-  ## Warning:
-
-  This function is intended for debugging and for use in the Erlang
-  operating system.
-
-  It should not be used in application programs.
-
-  ## Examples
-
-      list_to_pid('<0.4.1>') #=> #PID<0.4.1>
-  """
-  @spec list_to_pid(list) :: pid
+  @doc false
   def list_to_pid(list) do
+    IO.write "list_to_pid/1 is deprecated, please use :erlang.list_to_pid/1 instead\n#{Exception.format_stacktrace}"
     :erlang.list_to_pid(list)
   end
 
@@ -1026,20 +988,9 @@ defmodule Kernel do
     :erlang.node(arg)
   end
 
-  @doc """
-  Returns a char list which corresponds to the text representation of pid.
-  This function is intended for debugging and for use in the Erlang operating
-  system. It should not be used in application programs.
-
-  ## Warning:
-
-  This function is intended for debugging and for use in the Erlang
-  operating system.
-
-  It should not be used in application programs.
-  """
-  @spec pid_to_list(pid) :: list
+  @doc false
   def pid_to_list(pid) do
+    IO.write "pid_to_list/1 is deprecated, please use :erlang.pid_to_list/1 instead\n#{Exception.format_stacktrace}"
     :erlang.pid_to_list(pid)
   end
 
@@ -1263,7 +1214,7 @@ defmodule Kernel do
   Elixir module names can be dynamically generated. This is very
   useful for macros. For instance, one could write:
 
-      defmodule binary_to_atom("Foo\#{1}", :utf8) do
+      defmodule binary_to_atom("Foo\#{1}") do
         # contents ...
       end
 
@@ -1629,42 +1580,16 @@ defmodule Kernel do
     quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
   end
 
-  @doc """
-  Inserts `value` into `tuple` at the given zero-based `index`.
-
-  ## Example
-
-      iex> tuple = { :bar, :baz }
-      ...> insert_elem(tuple, 0, :foo)
-      { :foo, :bar, :baz }
-  """
-  defmacro insert_elem(tuple, index, value) when is_integer(index) do
-    quote do: :erlang.insert_element(unquote(index + 1), unquote(tuple), unquote(value))
+  @doc false
+  def insert_elem(tuple, index, value) do
+    IO.write "insert_elem/3 is deprecated, please use Tuple.insert_at/3 instead\n#{Exception.format_stacktrace}"
+    :erlang.insert_element(index + 1, tuple, value)
   end
 
-  defmacro insert_elem(tuple, index, value) do
-    quote do: :erlang.insert_element(unquote(index) + 1, unquote(tuple), unquote(value))
-  end
-
-  @doc """
-  Deletes the element at the zero-based `index` from `tuple`.
-
-  Please note that in versions of Erlang prior to R16B there is no BIF
-  for this operation and it is emulated by converting the tuple to a list
-  and back and is, therefore, inefficient.
-
-  ## Example
-
-      iex> tuple = { :foo, :bar, :baz }
-      ...> delete_elem(tuple, 0)
-      { :bar, :baz }
-  """
-  defmacro delete_elem(tuple, index) when is_integer(index) do
-    quote do: :erlang.delete_element(unquote(index + 1), unquote(tuple))
-  end
-
-  defmacro delete_elem(tuple, index) do
-    quote do: :erlang.delete_element(unquote(index) + 1, unquote(tuple))
+  @doc false
+  def delete_elem(tuple, index) do
+    IO.write "delete_elem/2 is deprecated, please use Tuple.delete_at/2 instead\n#{Exception.format_stacktrace}"
+    :erlang.delete_element(index + 1, tuple)
   end
 
   @doc """
@@ -1812,8 +1737,8 @@ defmodule Kernel do
   Now that the protocol is defined, we can implement it. We need
   to implement the protocol for each Elixir type. For example:
 
-      # Numbers are never blank
-      defimpl Blank, for: Number do
+      # Integers are never blank
+      defimpl Blank, for: Integer do
         def blank?(number), do: false
       end
 
@@ -1838,7 +1763,8 @@ defmodule Kernel do
   * Atom
   * List
   * BitString
-  * Number
+  * Integer
+  * Float
   * Function
   * PID
   * Port
@@ -2859,8 +2785,11 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the atom whose text representation is
-  `some_binary` in UTF8 encoding.
+  Returns the atom whose text representation is `some_binary` in
+  UTF8 encoding.
+
+  Currently Elixir does not support conversions for binaries which
+  contains Unicode characters greater than 16#FF.
 
   ## Examples
 
@@ -2870,12 +2799,15 @@ defmodule Kernel do
   """
   defmacro binary_to_atom(some_binary) do
     quote do
-      binary_to_atom(unquote(some_binary), :utf8)
+      :erlang.binary_to_atom(unquote(some_binary), :utf8)
     end
   end
 
   @doc """
-  Works like `binary_to_atom` but the atom must exist.
+  Works like `binary_to_atom/1` but the atom must exist.
+
+  Currently Elixir does not support conversions for binaries which
+  contains Unicode characters greater than 16#FF.
 
   ## Examples
 
@@ -2889,7 +2821,7 @@ defmodule Kernel do
   """
   defmacro binary_to_existing_atom(some_binary) do
     quote do
-      binary_to_existing_atom(unquote(some_binary), :utf8)
+      :erlang.binary_to_existing_atom(unquote(some_binary), :utf8)
     end
   end
 
@@ -2905,7 +2837,7 @@ defmodule Kernel do
   """
   defmacro atom_to_binary(some_atom) do
     quote do
-      atom_to_binary(unquote(some_atom), :utf8)
+      :erlang.atom_to_binary(unquote(some_atom), :utf8)
     end
   end
 
@@ -3278,7 +3210,7 @@ defmodule Kernel do
 
   In this case, `"Hello"` will be printed twice (one per each field).
   """
-  defmacro access(element, args) do
+  defmacro access(element, args) when is_list(args) do
     caller = __CALLER__
     atom   = Macro.expand(element, caller)
 
@@ -3305,10 +3237,14 @@ defmodule Kernel do
 
         Record.access(atom, fields, args, caller)
       false ->
-        case caller.in_match? do
-          true  -> :erlang.error ArgumentError.exception(message: << "the access protocol cannot be used inside match clauses ",
-                     "(for example, on the left hand side of a match or in function signatures)" >>)
-          false -> quote do: Access.access(unquote(element), unquote(args))
+        case caller.in_match? or caller.in_guard? do
+          true  -> :erlang.error ArgumentError.exception(message: "dynamic access cannot be invoked inside match and guard clauses")
+          false -> :ok
+        end
+
+        case args do
+          [h] -> quote do: Access.access(unquote(element), unquote(h))
+          _   -> :erlang.error ArgumentError.exception(message: "expected at least one argument in access")
         end
     end
   end

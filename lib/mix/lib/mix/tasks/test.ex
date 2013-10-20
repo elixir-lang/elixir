@@ -98,7 +98,9 @@ defmodule Mix.Tasks.Test do
     end
 
     :application.load(:ex_unit)
-    ExUnit.configure(Dict.take(opts, [:trace, :max_cases, :color]))
+    opts = Dict.take(opts, [:trace, :max_cases, :color])
+    opts = Keyword.put(opts, :autorun, false)
+    ExUnit.configure(opts)
 
     test_paths = project[:test_paths] || ["test"]
     Enum.each(test_paths, &require_test_helper(&1))
@@ -108,6 +110,7 @@ defmodule Mix.Tasks.Test do
 
     files = Mix.Utils.extract_files(test_paths, test_pattern)
     Kernel.ParallelRequire.files files
+    ExUnit.run
   end
 
   defp require_test_helper(dir) do

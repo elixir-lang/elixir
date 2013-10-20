@@ -20,7 +20,7 @@ Nonterminals
   call_args_no_parens_kw_expr call_args_no_parens_kw_comma call_args_no_parens_kw
   dot_op dot_alias dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_bracket_identifier
-  var list bracket_access bit_string tuple
+  var list bit_string tuple
   do_block fn_eol do_eol end_eol block_eol block_item block_list
   .
 
@@ -179,20 +179,20 @@ max_expr -> parens_call call_args_parens call_args_parens : build_nested_parens(
 max_expr -> dot_alias : '$1'.
 max_expr -> base_expr : '$1'.
 
-bracket_expr -> dot_bracket_identifier bracket_access : build_access(build_identifier('$1', nil), '$2').
-bracket_expr -> max_expr bracket_access : build_access('$1', '$2').
+bracket_expr -> dot_bracket_identifier list : build_access(build_identifier('$1', nil), '$2').
+bracket_expr -> max_expr list : build_access('$1', '$2').
 
-bracket_at_expr -> at_op_eol dot_bracket_identifier bracket_access :
+bracket_at_expr -> at_op_eol dot_bracket_identifier list :
                      build_access(build_unary_op('$1', build_identifier('$2', nil)), '$3').
-bracket_at_expr -> at_op_eol max_expr bracket_access :
+bracket_at_expr -> at_op_eol max_expr list :
                      build_access(build_unary_op('$1', '$2'), '$3').
-bracket_at_expr -> bracket_at_expr bracket_access :
+bracket_at_expr -> bracket_at_expr list :
                      build_access('$1', '$2').
 
 base_expr -> number : ?exprs('$1').
 base_expr -> signed_number : { element(4, '$1'), [{line,?line('$1')}], ?exprs('$1') }.
 base_expr -> atom : build_atom('$1').
-base_expr -> list : '$1'.
+base_expr -> list : element(1, '$1').
 base_expr -> tuple : '$1'.
 base_expr -> 'true' : ?id('$1').
 base_expr -> 'false' : ?id('$1').
@@ -434,21 +434,17 @@ kw -> kw_expr : ['$1'].
 kw -> kw_comma : lists:reverse('$1').
 kw -> kw_comma kw_expr : lists:reverse(['$2'|'$1']).
 
-call_args_no_parens_kw_expr -> kw_eol call_args_no_parens_expr : {?exprs('$1'),'$2'}.
+call_args_no_parens_kw_expr -> kw_eol call_args_no_parens_expr : { ?exprs('$1'),'$2' }.
 call_args_no_parens_kw_comma -> call_args_no_parens_kw_expr : ['$1'].
 call_args_no_parens_kw_comma -> call_args_no_parens_kw_expr ',' call_args_no_parens_kw_comma : ['$1'|'$3'].
 call_args_no_parens_kw -> call_args_no_parens_kw_comma : '$1'.
 
 % Lists
 
-bracket_access -> open_bracket ']' : { [], ?line('$1') }.
-bracket_access -> open_bracket container_arg close_bracket : { '$2', ?line('$1') }.
-bracket_access -> open_bracket kw close_bracket : { '$2', ?line('$1') }.
-
-list -> open_bracket ']' : [].
-list -> open_bracket kw close_bracket : '$2'.
-list -> open_bracket container_arg close_bracket : ['$2'].
-list -> open_bracket container_expr ',' container_args close_bracket : ['$2'|'$4'].
+list -> open_bracket ']' : { [], ?line('$1') }.
+list -> open_bracket kw close_bracket : { '$2', ?line('$1') }.
+list -> open_bracket container_arg close_bracket : { ['$2'], ?line('$1') }.
+list -> open_bracket container_expr ',' container_args close_bracket : { ['$2'|'$4'], ?line('$1') }.
 
 % Tuple
 
@@ -552,9 +548,9 @@ build_fn(Op, Stab) ->
 
 %% Access
 
-build_access(Expr, Access) ->
-  Meta = [{line,?line(Access)}],
-  { { '.', Meta, ['Elixir.Kernel', access] }, Meta, [ Expr, ?id(Access) ] }.
+build_access(Expr, { List, Line }) ->
+  Meta = [{line,Line}],
+  { { '.', Meta, ['Elixir.Kernel', access] }, Meta, [Expr, List] }.
 
 %% Interpolation aware
 

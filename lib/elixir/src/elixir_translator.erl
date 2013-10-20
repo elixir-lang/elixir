@@ -50,7 +50,7 @@ translate_each({ '=', Meta, [Left, Right] }, S) ->
 
 %% Containers
 
-translate_each({ C, _, _ } = Original, S) when C == '[]'; C == '{}'; C == '<<>>' ->
+translate_each({ C, _, _ } = Original, S) when C == '{}'; C == '<<>>' ->
   elixir_literal:translate(Original, S);
 
 %% Blocks and scope rewriters

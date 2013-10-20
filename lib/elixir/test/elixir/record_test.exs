@@ -72,7 +72,7 @@ defmodule RecordTest.Macros do
   end
 end
 
-defrecord RecordTest.FooTest, foo: nil, bar: nil 
+defrecord RecordTest.FooTest, foo: nil, bar: nil
 
 defmodule RecordTest do
   use ExUnit.Case, async: true
@@ -118,6 +118,16 @@ defmodule RecordTest do
     assert record.__record__(:index, :c) == nil
     record = RecordTest.FileInfo.new
     assert RecordTest.FileInfo.__record__(:index, :atime) == record.__record__(:index, :atime)
+  end
+
+  defmacrop compose_dynamic(opts) do
+    quote do
+      RecordTest.DynamicName[unquote_splicing(opts), { :b, "b" }]
+    end
+  end
+
+  test :compile_time_composition do
+    assert compose_dynamic(a: "a") == RecordTest.DynamicName[a: "a", b: "b"]
   end
 
   test :to_keywords do

@@ -116,8 +116,8 @@ defmodule ProtocolTest do
   end
 
   test :protocol_attribute do
-    assert Sample.__info__(:attributes)[:protocol] == [{ false, false }]
-    assert WithAny.__info__(:attributes)[:protocol] == [{ true, false }]
+    assert Sample.__info__(:attributes)[:protocol] == [fallback_to_any: false, consolidated: false]
+    assert WithAny.__info__(:attributes)[:protocol] == [fallback_to_any: true, consolidated: false]
   end
 
   defp get_callbacks(module, name, arity) do
@@ -139,7 +139,8 @@ defmodule ProtocolTest do
     assert Attribute.test(Foo[]) == { Attribute, Foo }
     assert Attribute.ProtocolTest.Foo.__impl__(:protocol) == Attribute
     assert Attribute.ProtocolTest.Foo.__impl__(:for) == Foo
-    assert Attribute.ProtocolTest.Foo.__info__(:attributes)[:impl] == [{ Attribute, Foo }]
+    assert Attribute.ProtocolTest.Foo.__info__(:attributes)[:impl] ==
+           [protocol: Attribute, for: Foo]
   end
 
   test :defimpl_multi do
@@ -147,7 +148,7 @@ defmodule ProtocolTest do
       def test(a)
     end
 
-    defimpl Multi, for: [Atom, Number] do
+    defimpl Multi, for: [Atom, Integer] do
       def test(a), do: a
     end
 
@@ -249,8 +250,8 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test :consolidated_attribute do
-    assert Sample.__info__(:attributes)[:protocol] == [{ false, true }]
-    assert WithAny.__info__(:attributes)[:protocol] == [{ true, true }]
+    assert Sample.__info__(:attributes)[:protocol] == [fallback_to_any: false, consolidated: true]
+    assert WithAny.__info__(:attributes)[:protocol] == [fallback_to_any: true, consolidated: true]
   end
 
   test :protocols_extraction do

@@ -91,7 +91,7 @@ defmodule Protocol do
       # Store information as an attribute so it
       # can be read without loading the module.
       Module.register_attribute(__MODULE__, :protocol, persist: true)
-      @protocol { !!@fallback_to_any, false }
+      @protocol [fallback_to_any: !!@fallback_to_any, consolidated: false]
 
       @doc false
       Kernel.def __protocol__(:name),      do: __MODULE__
@@ -125,7 +125,7 @@ defmodule Protocol do
         unquote(block)
 
         Module.register_attribute(__MODULE__, :impl, persist: true)
-        @impl { @protocol, @for }
+        @impl [protocol: @protocol, for: @for]
 
         @doc false
         def __impl__(:name),     do: __MODULE__
@@ -155,7 +155,7 @@ defmodule Protocol do
   # Builtin types.
   @doc false
   def builtin do
-    [ Tuple, Atom, List, BitString, Number,
+    [ Tuple, Atom, List, BitString, Integer, Float,
       Function, PID, Port, Reference, Any ]
   end
 
@@ -206,7 +206,8 @@ defmodule Protocol do
   defp impl_for(current, Atom, arg),      do: impl_with_fallback(Atom, :is_atom, current, Any, arg)
   defp impl_for(current, List, arg),      do: impl_with_fallback(List, :is_list, current, Any, arg)
   defp impl_for(current, BitString, arg), do: impl_with_fallback(BitString, :is_bitstring, current, Any, arg)
-  defp impl_for(current, Number, arg),    do: impl_with_fallback(Number, :is_number, current, Any, arg)
+  defp impl_for(current, Integer, arg),   do: impl_with_fallback(Integer, :is_integer, current, Any, arg)
+  defp impl_for(current, Float, arg),     do: impl_with_fallback(Float, :is_float, current, Any, arg)
   defp impl_for(current, Function, arg),  do: impl_with_fallback(Function, :is_function, current, Any, arg)
   defp impl_for(current, PID, arg),       do: impl_with_fallback(PID, :is_pid, current, Any, arg)
   defp impl_for(current, Port, arg),      do: impl_with_fallback(Port, :is_port, current, Any, arg)

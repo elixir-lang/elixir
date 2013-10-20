@@ -304,11 +304,11 @@ defmodule Process do
   end
 
   @doc """
-  Sets the group leader of Pid to GroupLeader. Typically, this is used when a processes
+  Sets the group leader of `pid` to `leader`. Typically, this is used when a processes
   started from a certain shell should have another group leader than `:init`.
   """
-  @spec group_leader(leader :: pid, pid) :: true
-  def group_leader(leader, pid) do
+  @spec group_leader(pid, leader :: pid) :: true
+  def group_leader(pid, leader) do
     :erlang.group_leader(leader, pid)
   end
 
