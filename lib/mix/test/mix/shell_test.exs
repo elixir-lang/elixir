@@ -4,16 +4,19 @@ defmodule Mix.ShellTest do
   use MixTest.Case
 
   if (match?({:win32,_},:os.type)) do
-    def capture_io(somefunc) do
-      ExUnit.CaptureIO.capture_io(somefunc) |>
-         String.replace("\r\n","\n")
+    defp capture_io(somefunc) do
+      ExUnit.CaptureIO.capture_io(somefunc) |> String.replace("\r\n","\n")
     end
-    def capture_io(from,somefunc) do
-      ExUnit.CaptureIO.capture_io(from,somefunc) |>
-         String.replace("\r\n","\n")
+    defp capture_io(from,somefunc) do
+      ExUnit.CaptureIO.capture_io(from,somefunc) |> String.replace("\r\n","\n")
     end
   else
-    import ExUnit.CaptureIO
+    defp capture_io(somefunc) do
+      ExUnit.CaptureIO.capture_io(somefunc)
+    end
+    defp capture_io(from,somefunc) do
+      ExUnit.CaptureIO.capture_io(from,somefunc)
+    end
   end
 
   test "shell process" do
