@@ -37,27 +37,28 @@ defmodule Integer do
 
   """
   @spec parse(binary) :: { integer, binary } | :error
-  def parse(<< ?-, after_minus :: binary >>) do 
-    case parse(after_minus) do 
+  def parse(<< ?-, char, rest :: binary >>) when char in ?0..?9 do
+    case parse(<< char, rest :: binary >>, 0) do
       :error -> :error
-      {number, remainder} -> {-number, remainder}
+      { number, remainder } -> { -number, remainder }
     end
-  end 
+  end
 
-  def parse(<< ?+, after_plus :: binary >>),  do: parse(after_plus)
+  def parse(<< ?+, char, rest :: binary >>) when char in ?0..?9 do
+    parse(<< char, rest :: binary >>, 0)
+  end
 
-  def parse(<< char :: utf8, _ :: binary >> = bin) when char in ?0..?9, do: parse(bin, 0)
+  def parse(<< char, _ :: binary >> = bin) when char in ?0..?9 do
+    parse(bin, 0)
+  end
 
   def parse(bitstring) when is_binary(bitstring), do: :error
 
-  ### parser internals
-
-  #consume integers, omnomnom
-  defp parse(<< char :: utf8, rest :: binary >>, acc) when char in ?0..?9 do
+  defp parse(<< char, rest :: binary >>, acc) when char in ?0..?9 do
     parse rest, 10 * acc + (char - ?0)
   end
 
-  #stop condition
-  defp parse(bitstring, acc) when is_binary(bitstring), do: {acc, bitstring}
-
+  defp parse(bitstring, acc) do
+    { acc, bitstring }
+  end
 end

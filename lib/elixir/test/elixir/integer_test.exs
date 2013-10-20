@@ -28,6 +28,9 @@ defmodule IntegerTest do
     assert Integer.parse("12.5") === {12, ".5"}
     assert Integer.parse("7.5e-3") === {7, ".5e-3"}
     assert Integer.parse("12x") === {12, "x"}
+    assert Integer.parse("++1") === :error
+    assert Integer.parse("--1") === :error
+    assert Integer.parse("+-1") === :error
     assert Integer.parse("three") === :error
   end
 end

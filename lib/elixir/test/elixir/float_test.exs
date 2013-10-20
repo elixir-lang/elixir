@@ -19,6 +19,10 @@ defmodule FloatTest do
     assert Float.parse("-12.32453e-10") === {-1.232453e-9, ""}
     assert Float.parse("0.32453e-10") === {3.2453e-11, ""}
     assert Float.parse("1.32453e-10") === {1.32453e-10, ""}
+    assert Float.parse("1.32.45") === {1.32, ".45"}
+    assert Float.parse("1.o") === {1.0, ".o"}
+    assert Float.parse("--1.2") === :error
+    assert Float.parse("++1.2") === :error
     assert Float.parse("pi") === :error
   end
 end
