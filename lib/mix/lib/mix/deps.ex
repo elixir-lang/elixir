@@ -66,7 +66,7 @@ defmodule Mix.Deps do
   """
 
   @doc """
-  Return all dependencies recursively as a `Mix.Dep` record.
+  Returns all dependencies recursively as a `Mix.Dep` record.
 
   ## Exceptions
 
@@ -95,7 +95,8 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Return all direct child dependencies for the current project.
+  Returns all children dependencies for the current project.
+  Umbrella projects have their apps treated as direct dependencies.
 
   ## Exceptions
 
@@ -105,7 +106,7 @@ defmodule Mix.Deps do
   defdelegate children(), to: Mix.Deps.Retriever
 
   @doc """
-  Return all given dependencies and their depending dependencies.
+  Returns all given dependencies and their depending dependencies.
   """
   def with_depending(deps, all_deps // all) do
     deps ++ do_with_depending(deps, all_deps)
@@ -184,7 +185,7 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Format the status of a dependency.
+  Formats the status of a dependency.
   """
   def format_status(Mix.Dep[status: { :ok, _vsn }]),
     do: "ok"
@@ -207,17 +208,16 @@ defmodule Mix.Deps do
   def format_status(Mix.Dep[status: :nolock]),
     do: "the dependency is not locked"
 
-  def format_status(Mix.Dep[status: { :diverged, other }, opts: opts] = dep) do
-    "different specs were given for this dependency, choose one in your deps:\n" <>
-    "> In #{Path.relative_to_cwd(dep.from)}:\n$ #{inspect Dict.drop(opts, [:dest]), pretty: true}\n" <>
-    "> In #{Path.relative_to_cwd(other.from)}:\n$ #{inspect Dict.drop(other.opts, [:dest]), pretty: true}\n"
+  def format_status(Mix.Dep[app: app, status: { :diverged, other }] = dep) do
+    "different specs were given for the #{inspect app} app:\n" <>
+    "#{dep_info(dep)}#{dep_info(other)}" <>
+    "\n  Ensure they match or specify one in your #{inspect Mix.Project.get} deps and set `override: true`"
   end
 
-  def format_status(Mix.Dep[status: { :overriden, other }, opts: opts] = dep) do
-    "the dependency is overriding another dependency of one of your dependencies, " <>
-    "if this is intended set `override: true` in the options\n" <>
-    "> In #{Path.relative_to_cwd(dep.from)}:\n$ #{inspect opts}\n" <>
-    "> In #{Path.relative_to_cwd(other.from)}:\n$ #{inspect other.opts}\n"
+  def format_status(Mix.Dep[app: app, status: { :overriden, other }] = dep) do
+    "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
+    "#{dep_info(dep)}#{dep_info(other)}" <>
+    "\n  Specify one in your #{inspect Mix.Project.get} deps and set `override: true`"
   end
 
   def format_status(Mix.Dep[status: { :unavailable, _ }]),
@@ -225,6 +225,10 @@ defmodule Mix.Deps do
 
   def format_status(Mix.Dep[status: { :elixirlock, _ }]),
     do: "the dependency is built with an out-of-date elixir version, run `mix deps.get`"
+
+  defp dep_info(dep) do
+    "\n  > In #{Path.relative_to_cwd(dep.from)}:\n    #{inspect Dict.drop(dep.opts, [:dest]), pretty: true}\n"
+  end
 
   @doc """
   Check the lock for the given dependency and update its status accordingly.
@@ -266,17 +270,10 @@ defmodule Mix.Deps do
   @doc """
   Check if a dependency is available.
   """
-  def available?(Mix.Dep[status: { :overriden, _ }]),   do: false
-  def available?(Mix.Dep[status: { :diverged, _ }]),    do: false
-  def available?(Mix.Dep[status: { :unavailable, _ }]), do: false
+  def available?(Mix.Dep[status: { :overriden, _ }]),    do: false
+  def available?(Mix.Dep[status: { :diverged, _ }]),     do: false
+  def available?(Mix.Dep[status: { :unavailable, _ }]),  do: false
   def available?(_), do: true
-
-  @doc """
-  Check if a dependency is part of an umbrella project as a top level project.
-  """
-  def in_umbrella?(Mix.Dep[opts: opts], apps_path) do
-    apps_path == Path.expand(Path.join(opts[:dest], ".."))
-  end
 
   @doc """
   Check if a dependency is out of date considering its
@@ -302,7 +299,7 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Return all compile paths for the dependency.
+  Returns all compile paths for the dependency.
   """
   def compile_paths(Mix.Dep[app: app, opts: opts, manager: manager]) do
     if manager == :mix do
@@ -315,7 +312,7 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Return all load paths for the dependency.
+  Returns all load paths for the dependency.
   """
   def load_paths(Mix.Dep[manager: :mix, app: app, opts: opts]) do
     Mix.Project.in_project(app, opts[:dest], fn _ ->

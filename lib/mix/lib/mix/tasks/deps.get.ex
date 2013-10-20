@@ -2,7 +2,6 @@ defmodule Mix.Tasks.Deps.Get do
   use Mix.Task
 
   @shortdoc "Get all out of date dependencies"
-  @recursive :both
 
   @moduledoc """
   Get all out of date dependencies, i.e. dependencies
@@ -38,6 +37,7 @@ defmodule Mix.Tasks.Deps.Get do
 
   defp finalize_get({ apps, lock }, opts) do
     if apps == [] do
+      unless opts[:no_deps_check], do: Mix.Task.run("deps.check", [])
       unless opts[:quiet], do: Mix.shell.info "All dependencies up to date"
     else
       Mix.Deps.Lock.write(lock)

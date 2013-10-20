@@ -2,7 +2,6 @@ defmodule Mix.Tasks.Deps.Compile do
   use Mix.Task
 
   @shortdoc "Compile dependencies"
-  @recursive :both
 
   @moduledoc """
   Compile dependencies.

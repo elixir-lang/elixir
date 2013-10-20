@@ -319,7 +319,7 @@ defmodule Mix.Tasks.DepsTest do
         Mix.Tasks.Deps.Check.run []
       end
 
-      assert_received { :mix_shell, :error, ["  different specs were given for this dependency, choose one in your deps:" <> _] }
+      assert_received { :mix_shell, :error, ["  different specs were given for the :git_repo app:" <> _] }
     end
   after
     Mix.Project.pop
@@ -388,7 +388,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Check.run []
       end
-      assert_received { :mix_shell, :error, ["  the dependency is overriding another dependency of one of your dependencies" <> _] }
+      assert_received { :mix_shell, :error, ["  the dependency git_repo in mix.exs is overriding a child dependency:" <> _] }
     end
   after
     purge [GitRepo, GitRepo.Mix]

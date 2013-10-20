@@ -5,13 +5,12 @@ defmodule Mix.Deps.Retriever do
   @moduledoc false
 
   @doc """
-  Gets all direct children of the current Mix.Project
-  as a `Mix.Dep` record.
+  Gets all direct children of the current `Mix.Project`
+  as a `Mix.Dep` record. Umbrella project dependencies
+  are included as children.
   """
-  def children() do
-    scms = Mix.SCM.available
-    from = current_source(:mix)
-    Enum.map(Mix.project[:deps], &update(&1, scms, from))
+  def children do
+    to_deps(Mix.project[:deps]) ++ Mix.Deps.Umbrella.children
   end
 
   @doc """
@@ -22,13 +21,11 @@ defmodule Mix.Deps.Retriever do
     cond do
       Mix.Deps.available?(dep) and mixfile?(dep) ->
         Mix.Deps.in_dependency(dep, config, fn _ ->
-          mix_children(config)
+          to_deps(Mix.project[:deps]) ++ Mix.Deps.Umbrella.children
         end)
 
       Mix.Deps.available?(dep) and rebarconfig?(dep) ->
-        Mix.Deps.in_dependency(dep, config, fn _ ->
-          rebar_children(".")
-        end)
+        Mix.Deps.in_dependency(dep, config, fn _ -> rebar_children end)
 
       true ->
         []
@@ -43,25 +40,21 @@ defmodule Mix.Deps.Retriever do
     update({ app, req, opts }, [scm], from, manager)
   end
 
-  ## Helpers
-
-  defp mix_children(config) do
+  @doc """
+  Converts the given list of raw deps to dependencies.
+  """
+  def to_deps(deps) do
     scms = Mix.SCM.available
-    Mix.Project.recur(config, fn _ ->
-      from = current_source(:mix)
-
-      # The manager must be nil because mix supports mix,
-      # rebar and make dependencies/managers.
-      (Mix.project[:deps] || []) |> Enum.map(&update(&1, scms, from))
-    end) |> Enum.concat
+    from = current_source(:mix)
+    Enum.map(deps || [], &update(&1, scms, from))
   end
 
-  defp rebar_children(dir) do
-    scms = Mix.SCM.available
-    Mix.Rebar.recur(dir, fn config ->
-      from = current_source(:rebar)
+  ## Helpers
 
-      # Rebar dependencies are always managed by rebar.
+  defp rebar_children do
+    scms = Mix.SCM.available
+    from = current_source(:rebar)
+    Mix.Rebar.recur(".", fn config ->
       Mix.Rebar.deps(config) |> Enum.map(&update(&1, scms, from, :rebar))
     end) |> Enum.concat
   end
@@ -107,13 +100,14 @@ defmodule Mix.Deps.Retriever do
   end
 
   defp mix_dep(Mix.Dep[manager: nil, opts: opts, app: app] = dep, project) do
-    opts =
+    default =
       if Mix.Project.umbrella? do
-        Keyword.put_new(opts, :app, false)
+        false
       else
-        Keyword.put_new(opts, :app, Path.join(Mix.project[:compile_path], "#{app}.app"))
+        Path.join(Mix.project[:compile_path], "#{app}.app")
       end
 
+    opts = Keyword.put_new(opts, :app, default)
     dep.manager(:mix).source(project).opts(opts)
   end
 

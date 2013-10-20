@@ -24,8 +24,8 @@ defmodule Mix.UmbrellaTest do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run "deps"
-        assert_received { :mix_shell, :info, ["==> bar"] }
-        assert_received { :mix_shell, :info, ["* foo [path: \"../foo\"]"] }
+        assert_received { :mix_shell, :info, ["* bar [path: \"apps/bar\"]"] }
+        assert_received { :mix_shell, :info, ["* foo [path: \"apps/foo\"]"] }
       end)
     end
   end
@@ -35,10 +35,7 @@ defmodule Mix.UmbrellaTest do
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
         Mix.Task.run "deps"
         assert_received { :mix_shell, :info, ["* umbrella [path: \"deps/umbrella\"]"] }
-        assert_received { :mix_shell, :info, ["* foo [path: \"../foo\"]"] }
-
-        # Don't include the umbrella projects top-level dependencies
-        refute_received { :mix_shell, :info, ["* some_dep [path: \"deps/some_dep\"]"] }
+        assert_received { :mix_shell, :info, ["* foo [path: \"apps/foo\"]"] }
       end)
     end)
   end

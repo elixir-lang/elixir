@@ -2,7 +2,6 @@ defmodule Mix.Tasks.Deps.Update do
   use Mix.Task
 
   @shortdoc "Update the given dependencies"
-  @recursive :both
 
   @moduledoc """
   Update the given dependencies.
