@@ -67,11 +67,16 @@ defmodule Mix.Deps.Converger do
     cond do
       new_acc = overriden_deps(acc, upper_breadths, dep) ->
         all(t, new_acc, upper_breadths, current_breadths, config, callback, rest)
-      ({ diverged_acc, diverged } = diverged_deps(acc, dep)) && diverged ->
-        all(t, diverged_acc, upper_breadths, current_breadths, config, callback, rest)
+      new_acc = diverged_deps(acc, dep) ->
+        all(t, new_acc, upper_breadths, current_breadths, config, callback, rest)
       true ->
         { dep, rest } = callback.(dep, rest)
-        deps = Mix.Deps.Retriever.children(dep, config)
+
+        # After we invoke the callback (which may actually fetch the
+        # dependency) we get all direct childrens for the next one.
+        # Note that we need to reverse the deps, so the final order
+        # is as expected.
+        deps = Mix.Deps.Retriever.children(dep, config) |> Enum.reverse
         { acc, rest } = all(t, [dep.deps(deps)|acc], upper_breadths, current_breadths, config, callback, rest)
         all(deps, acc, current_breadths, deps ++ current_breadths, config, callback, rest)
     end
@@ -119,15 +124,21 @@ defmodule Mix.Deps.Converger do
   defp diverged_deps(list, dep) do
     Mix.Dep[app: app] = dep
 
-    Enum.map_reduce list, false, fn(other, diverged) ->
-      Mix.Dep[app: other_app] = other
+    { acc, match } =
+      Enum.map_reduce list, false, fn(other, match) ->
+        Mix.Dep[app: other_app] = other
 
-      if app != other_app || converge?(dep, other) do
-        { other, diverged }
-      else
-        { other.status({ :diverged, dep }), true }
+        cond do
+          app != other_app ->
+            { other, match }
+          converge?(dep, other) ->
+            { other, true }
+          true ->
+            { other.status({ :diverged, dep }), true }
+        end
       end
-    end
+
+    if match, do: acc
   end
 
   defp converge?(Mix.Dep[scm: scm, requirement: req, opts: opts1],

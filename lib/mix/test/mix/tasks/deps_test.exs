@@ -468,4 +468,32 @@ defmodule Mix.Tasks.DepsTest do
   after
     Mix.Project.pop
   end
+
+  defmodule DupDeps do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          # Simulate dependencies gathered together from umbrella
+          { :ok, "0.1.0", path: "deps/ok" },
+          { :ok, "0.1.0", path: "deps/ok" }
+        ]
+      ]
+    end
+  end
+
+  test "converts duplicated deps at the same level" do
+    Mix.Project.push DupDeps
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.run []
+
+      msg = "* ok (0.1.0) [path: \"deps/ok\"]"
+      assert_received { :mix_shell, :info, [^msg] }
+      refute_received { :mix_shell, :info, [^msg] }
+    end
+  after
+    Mix.Project.pop
+  end
 end
