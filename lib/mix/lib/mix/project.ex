@@ -246,31 +246,31 @@ defmodule Mix.Project do
   defp topsort_projects(projects, apps_path) do
     graph = :digraph.new
 
-    Enum.each projects, fn { app, app_path } ->
-      :digraph.add_vertex(graph, app, app_path)
-    end
+    try do
+      Enum.each projects, fn { app, app_path } ->
+        :digraph.add_vertex(graph, app, app_path)
+      end
 
-    Enum.each projects, fn { app, app_path } ->
-      in_project app, app_path, fn _ ->
-        Enum.each Mix.Deps.children, fn dep ->
-          if Mix.Deps.available?(dep) and Mix.Deps.in_umbrella?(dep, apps_path) do
-            :digraph.add_edge(graph, dep.app, app)
+      Enum.each projects, fn { app, app_path } ->
+        in_project app, app_path, fn _ ->
+          Enum.each Mix.Deps.children, fn dep ->
+            if Mix.Deps.available?(dep) and Mix.Deps.in_umbrella?(dep, apps_path) do
+              :digraph.add_edge(graph, dep.app, app)
+            end
           end
         end
       end
-    end
 
-    unless :digraph_utils.is_acyclic(graph) do
-      raise Mix.Error, message: "Could not dependency sort umbrella projects. " <>
-        "There are cycles in the dependency graph."
-    end
+      unless :digraph_utils.is_acyclic(graph) do
+        raise Mix.Error, message: "Could not dependency sort umbrella projects. " <>
+          "There are cycles in the dependency graph."
+      end
 
-    vertices = :digraph_utils.topsort(graph)
-    projects = Enum.map vertices, fn app ->
-      :digraph.vertex(graph, app)
+      vertices = :digraph_utils.topsort(graph)
+      Enum.map vertices, &:digraph.vertex(graph, &1)
+    after
+      :digraph.delete(graph)
     end
-    :digraph.delete(graph)
-    projects
   end
 
   defp default_config do

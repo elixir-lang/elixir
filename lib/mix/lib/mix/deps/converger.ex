@@ -40,7 +40,7 @@ defmodule Mix.Deps.Converger do
   #         6) f
   #           7) d
   #
-  # Notice that the `d` dependency exists as a child of `g`
+  # Notice that the `d` dependency exists as a child of `b`
   # and child of `f`. In case the dependency is the same,
   # we proceed. However, if there is a conflict, for instance
   # different git repositories is used as source in each, we

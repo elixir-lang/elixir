@@ -154,6 +154,9 @@ defmodule Mix.Deps do
   Run the given `fun` inside the given dependency project by
   changing the current working directory and loading the given
   project onto the project stack.
+
+  In case the project is a rebar dependency, a `Mix.Rebar` project
+  will be pushed into the stack to simulate the rebar configuration.
   """
   def in_dependency(dep, post_config // [], fun)
 
@@ -162,7 +165,7 @@ defmodule Mix.Deps do
     Mix.Project.post_config(post_config)
     Mix.Project.push(Mix.Rebar)
     try do
-      File.cd!(opts[:dest], fn -> fun.(nil) end)
+      File.cd!(opts[:dest], fn -> fun.(Mix.Rebar) end)
     after
       Mix.Project.pop
     end
@@ -246,7 +249,11 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Update the dependency inside the given project.
+  Updates the dependency.
+
+  This function is useful when the given dependency changes
+  (for example, it was just checked out) and you want to refetch
+  its information.
   """
   defdelegate update(dep), to: Mix.Deps.Retriever
 
@@ -272,7 +279,7 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Check if a dependency is out of date, considering its
+  Check if a dependency is out of date considering its
   lock status. Therefore, be sure to call `check_lock` before
   invoking this function.
   """
@@ -311,10 +318,9 @@ defmodule Mix.Deps do
   Return all load paths for the dependency.
   """
   def load_paths(Mix.Dep[manager: :mix, app: app, opts: opts]) do
-    paths = Mix.Project.in_project app, opts[:dest], fn _ ->
+    Mix.Project.in_project(app, opts[:dest], fn _ ->
       Mix.Project.load_paths
-    end
-    Enum.uniq paths
+    end) |> Enum.uniq
   end
 
   def load_paths(Mix.Dep[manager: :rebar, opts: opts, source: source]) do
