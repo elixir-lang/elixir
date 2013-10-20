@@ -2,24 +2,28 @@ defmodule Mix.Tasks.Test do
   defmodule Cover do
     @moduledoc false
 
-    def start(compile_path, opts) do
-      Mix.shell.info "Cover compiling modules ... "
+    def run(compile_path, opts, callback) do
+      Mix.shell.info "Cover compiling modules ...\n"
       :cover.start
       :cover.compile_beam_directory(compile_path |> to_char_list)
 
-      if :application.get_env(:ex_unit, :started) != { :ok, true } do
-        output = opts[:output]
+      output = opts[:output]
+      callback.()
 
-        System.at_exit fn(_) ->
-          Mix.shell.info "\nGenerating cover results ... "
-          File.mkdir_p!(output)
-          Enum.each :cover.modules, fn(mod) ->
-            :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
-          end
-        end
-
-        :application.set_env(:cover, :started, true)
+      Mix.shell.info "\nGenerating cover results ..."
+      File.mkdir_p!(output)
+      Enum.each :cover.modules, fn(mod) ->
+        :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
       end
+    end
+  end
+
+  defmodule Bare do
+    @moduledoc false
+
+    def run(_, _, fun) do
+      Mix.shell.info ""
+      fun.()
     end
   end
 
@@ -92,10 +96,7 @@ defmodule Mix.Tasks.Test do
 
     project = Mix.project
     cover   = Keyword.merge(@cover, project[:test_coverage] || [])
-
-    if opts[:cover] do
-      cover[:tool].start(project[:compile_path], cover)
-    end
+    wrapper = if opts[:cover], do: cover[:tool], else: Bare
 
     :application.load(:ex_unit)
     opts = Dict.take(opts, [:trace, :max_cases, :color])
@@ -108,9 +109,20 @@ defmodule Mix.Tasks.Test do
     test_paths   = if files == [], do: test_paths, else: files
     test_pattern = project[:test_pattern] || "*_test.exs"
 
+    wrapper.run project[:compile_path], cover, fn -> do_run(test_paths, test_pattern) end
+  end
+
+  defp do_run(test_paths, test_pattern) do
     files = Mix.Utils.extract_files(test_paths, test_pattern)
-    Kernel.ParallelRequire.files files
-    ExUnit.run
+    Kernel.ParallelRequire.files(files)
+
+    failures = ExUnit.run
+    System.at_exit fn
+      0 ->
+        if failures > 0, do: System.halt(1), else: System.halt(0)
+      _ ->
+        :ok
+    end
   end
 
   defp require_test_helper(dir) do
