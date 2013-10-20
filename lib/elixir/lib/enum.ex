@@ -1414,6 +1414,41 @@ defmodule Enum do
     :enum_slice -> []
   end
 
+  @doc """
+  Returns a subset list of the given collection. Dropping elements
+  until element position `range.first`, then taking elements until element
+  position `range.last` (inclusive).
+
+  Positions are calculated by adding the number of items in the collection to
+  negative positions (so position -3 in a collection with count 5 becomes
+  position 2).
+
+  The first position (after adding count to negative positions) must be smaller
+  or equal to the last position.
+
+  ## Examples
+
+      iex> Enum.slice(1..100, 5..10)
+      [6, 7, 8, 9, 10, 11]
+
+  """
+  def slice(coll, first..last) when first >= 0 and last >= 0 do
+    # Simple case, which works on infinite collections
+    if last - first >= 0 do
+      slice(coll, first, last - first + 1)
+    end
+  end
+
+  def slice(coll, first..last) do
+    { list, count } = iterate_and_count(coll, 0)
+    corr_first = if first >= 0, do: first, else: first + count
+    corr_last = if last >= 0, do: last, else: last + count
+    length = corr_last - corr_first + 1
+    if corr_first >= 0 and length > 0 do
+      slice(list, corr_first, length)
+    end
+  end
+
   ## Helpers
 
   @compile { :inline, chunks_n: 5, chunks_step: 4, to_string: 2 }
