@@ -7,7 +7,7 @@ defmodule Mix.SCM.Git do
   end
 
   def format_lock(lock) do
-    get_lock_rev lock
+    get_lock_rev(lock)
   end
 
   def accepts_options(_app, opts) do
@@ -25,10 +25,22 @@ defmodule Mix.SCM.Git do
     File.dir?(Path.join(opts[:dest], ".git"))
   end
 
-  def matches_lock?(opts) do
-    opts[:lock] && File.cd!(opts[:dest], fn ->
-      opts[:lock] == get_lock(opts, true)
-    end)
+  def lock_status(opts) do
+    case opts[:lock] do
+      { :git, lock_repo, lock_rev, lock_opts } ->
+        File.cd!(opts[:dest], fn ->
+          cond do
+            lock_repo != opts[:git] -> :outdated
+            lock_opts != get_lock_opts(opts) -> :outdated
+            lock_rev  != get_rev -> :mismatch
+            true -> :ok
+          end
+        end)
+      nil ->
+        :mismatch
+      _ ->
+        :outdated
+    end
   end
 
   def equal?(opts1, opts2) do
@@ -88,8 +100,6 @@ defmodule Mix.SCM.Git do
     { :git, opts[:git], lock, get_lock_opts(opts) }
   end
 
-  # We are supporting binaries for backwards compatibility
-  defp get_lock_rev(lock) when is_binary(lock), do: lock
   defp get_lock_rev({ :git, _repo, lock, _opts }) when is_binary(lock), do: lock
   defp get_lock_rev(_), do: nil
 

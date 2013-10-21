@@ -30,7 +30,7 @@ defmodule Mix.SCM do
       { :foo, "0.1.0", github: "foo/bar" }
 
   Each registered SCM will be asked if they consume this dependency,
-  receiving [github: "foo/bar"] as argument. Since this option makes
+  receiving `[github: "foo/bar"]` as argument. Since this option makes
   sense for the Git SCM, it will return an update list of options
   while other SCMs would simply return nil.
   """
@@ -49,6 +49,8 @@ defmodule Mix.SCM do
   and the repository must be check out at the lock. Otherwise,
   no lock is given and the repository can be checked out
   to the latest version.
+
+  It must return the current lock.
   """
   defcallback checkout(opts) :: any
 
@@ -65,15 +67,28 @@ defmodule Mix.SCM do
   defcallback update(opts) :: any
 
   @doc """
-  This behavior function checks if the dependency is locked and
-  the current repository version matches the lock. Note that some
-  SCMs do not require a lock, for such, this function can simply
-  return true.
+  This behavior function checks the status of the lock. In
+  particular, it checks if the revision stored in the lock
+  is the same as the repository is currently in. It may return:
+
+  * `:mismatch` - if the lock doesn't match and we need to
+    simply move to the latest lock
+  * `:outdated` - the repository options are out of dated in the
+    lock and we need to trigger a full update
+  * `:ok` - everything is fine
+
+  The lock is sent via `opts[:lock]` but it may not always be
+  available. In such cases, if the SCM requires a lock, it must
+  return `:lockmismatch`, otherwise simply `:ok`.
+
+  Note the lock may also belong to another SCM and as such, an
+  structural check is required. A structural mismatch should always
+  return `:outdated`.
   """
-  defcallback matches_lock?(opts) :: boolean
+  defcallback lock_status(opts) :: :mismatch | :outdated | :ok
 
   @doc """
-  Receives two options and must return true if the refer to the
+  Receives two options and must return true if they refer to the
   same repository. The options are guaranteed to belong to the
   same SCM.
   """

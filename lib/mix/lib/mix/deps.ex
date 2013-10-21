@@ -205,6 +205,9 @@ defmodule Mix.Deps do
   def format_status(Mix.Dep[status: { :lockmismatch, _ }]),
     do: "lock mismatch: the dependency is out of date"
 
+  def format_status(Mix.Dep[status: :lockoutdated]),
+    do: "lock outdated: the lock is outdated compared to the options in your mixfile"
+
   def format_status(Mix.Dep[status: :nolock]),
     do: "the dependency is not locked"
 
@@ -235,17 +238,20 @@ defmodule Mix.Deps do
   """
   def check_lock(Mix.Dep[scm: scm, app: app, opts: opts] = dep, lock) do
     if available?(dep) do
-      rev  = lock[app]
-      opts = Keyword.put(opts, :lock, rev)
+      if vsn = old_elixir_lock(dep) do
+        dep.status({ :elixirlock, vsn })
+      else
+        rev  = lock[app]
+        opts = Keyword.put(opts, :lock, rev)
 
-      cond do
-        vsn = old_elixir_lock(dep) ->
-          dep.status({ :elixirlock, vsn })
-        scm.matches_lock?(opts) ->
-          dep
-        true ->
-          status = if rev, do: { :lockmismatch, rev }, else: :nolock
-          dep.status(status)
+        case scm.lock_status(opts) do
+          :mismatch ->
+            dep.status(if rev, do: { :lockmismatch, rev }, else: :nolock)
+          :outdated ->
+            dep.status :lockoutdated
+          :ok ->
+            dep
+        end
       end
     else
       dep
@@ -281,6 +287,7 @@ defmodule Mix.Deps do
   invoking this function.
   """
   def out_of_date?(Mix.Dep[status: { :lockmismatch, _ }]), do: true
+  def out_of_date?(Mix.Dep[status: :lockoutdated]),        do: true
   def out_of_date?(Mix.Dep[status: :nolock]),              do: true
   def out_of_date?(Mix.Dep[status: { :elixirlock, _ }]),   do: true
   def out_of_date?(dep),                                   do: not available?(dep)

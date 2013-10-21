@@ -57,8 +57,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run []
 
       assert_received { :mix_shell, :info, ["* ok [git: \"git://github.com/elixir-lang/ok.git\"]"] }
-      assert_received { :mix_shell, :info, ["  locked at \"abcdef\""] }
-      assert_received { :mix_shell, :info, ["  lock mismatch: the dependency is out of date"] }
+      assert_received { :mix_shell, :info, ["  the dependency is not locked"] }
       assert_received { :mix_shell, :info, ["* invalidvsn [path: \"deps/invalidvsn\"]"] }
       assert_received { :mix_shell, :info, ["  the app file contains an invalid version: :ok"] }
       assert_received { :mix_shell, :info, ["* invalidapp [path: \"deps/invalidapp\"]"] }
@@ -84,6 +83,27 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* apppath [path: \"deps/noappfile\"]"] }
       refute_received { :mix_shell, :info, ["  could not find app file at deps/noappfile/ebin/apppath.app"] }
       refute_received { :mix_shell, :info, ["  could not find app file at deps/noappfile/ebin/noappfile.app"] }
+    end
+  after
+    Mix.Project.pop
+  end
+
+  test "prints list of dependencies and their lock status" do
+    Mix.Project.push DepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Deps.Lock.write [ok: { :git, "git://github.com/elixir-lang/ok.git", "abcdef", [] }]
+      Mix.Tasks.Deps.run []
+
+      assert_received { :mix_shell, :info, ["* ok [git: \"git://github.com/elixir-lang/ok.git\"]"] }
+      assert_received { :mix_shell, :info, ["  locked at \"abcdef\""] }
+      assert_received { :mix_shell, :info, ["  lock mismatch: the dependency is out of date"] }
+
+      Mix.Deps.Lock.write [ok: { :git, "git://github.com/elixir-lang/another.git", "abcdef", [] }]
+      Mix.Tasks.Deps.run []
+
+      assert_received { :mix_shell, :info, ["* ok [git: \"git://github.com/elixir-lang/ok.git\"]"] }
+      assert_received { :mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your mixfile"] }
     end
   after
     Mix.Project.pop
@@ -122,7 +142,7 @@ defmodule Mix.Tasks.DepsTest do
       end
 
       assert_received { :mix_shell, :error, ["* ok [git: \"git://github.com/elixir-lang/ok.git\"]"] }
-      assert_received { :mix_shell, :error, ["  lock mismatch: the dependency is out of date"] }
+      assert_received { :mix_shell, :error, ["  the dependency is not locked"] }
       assert_received { :mix_shell, :error, ["* invalidvsn [path: \"deps/invalidvsn\"]"] }
       assert_received { :mix_shell, :error, ["  the app file contains an invalid version: :ok"] }
       assert_received { :mix_shell, :error, ["* invalidapp [path: \"deps/invalidapp\"]"] }
