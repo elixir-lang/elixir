@@ -1,17 +1,19 @@
 # v0.10.4-dev
 
 * Enhancements
+  * [Enum] Add `Enum.slice/2` with a range
   * [IEx] Split `IEx.Evaluator` from `IEx.Server` to allow custom evaluators
   * [IEx] Add support for `IEx.pry` which halts a given process for inspection
   * [Kernel] Improve stacktraces on command line interfaces
+  * [Mix] Allow umbrella children to share dependencies in between them
   * [Protocol] Protocols now provide `impl_for/1` and `impl_for!/1` functions which receive a structure and returns its respective implementation, otherwise returns nil or an error
   * [String] Update to Unicode 6.3.0
+  * [String] Add `Enum.slice/2` with a range
 
 * Bug fixes
   * [Exception] Ensure `defexception` fields can be set dynamically
   * [Kernel] Guarantee aliases hygiene is respected when the current module name is not known upfront
   * [Kernel] `Kernel.access/2` no longer flattens lists
-  * [Process] `Process.group_leader/2` args have been reversed so the "subject" comes first
   * [String] Implement the extended grapheme cluster algorithm for `String` operations
 
 * Deprecations
@@ -25,7 +27,8 @@
 * Backwards incompatible changes
   * [CLI] Reading `.elixirrc` has been dropped in favor of setting env vars
   * [Kernel] `Kernel.access/2` now expects the second argument to be a compile time list
-  * [Process] `Process.group_leader/2` values were reversed in order to fix a previous bug
+  * [Mix] Umbrella apps now treat children apps as dependencies. This means all dependencies will be checked out in the umbrela `deps` directory. On upgrade, children apps need to point to the umbrella project by setting `deps_path: "../../deps_path", lockfile: "../../mix.lock"` in their project config
+  * [Process] `Process.group_leader/2` args have been reversed so the "subject" comes first
   * [Protocol] Protocol no longer dispatches to `Number`, but to `Integer` and `Float`
 
 # v0.10.3 (2013-10-02)
