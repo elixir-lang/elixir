@@ -29,7 +29,7 @@ defmodule Mix.Tasks.CleanTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Clean.run ["--all"]
-      assert_received { :mix_shell, :info, ["* Cleaning tidy [path: \"elixir-lang/tidy\"]"] }
+      assert_received { :mix_shell, :info, ["* Cleaning tidy (elixir-lang/tidy)"] }
     end
   after
     Mix.Project.pop

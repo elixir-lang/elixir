@@ -53,7 +53,7 @@ defmodule Mix.RebarTest do
 
     in_tmp "get and compile dependencies for rebar", fn ->
       Mix.Tasks.Deps.Get.run ["--no-compile"]
-      assert_received { :mix_shell, :info, ["* Getting git_rebar [git: \"../../test/fixtures/git_rebar\"]"] }
+      assert_received { :mix_shell, :info, ["* Getting git_rebar (../../test/fixtures/git_rebar)"] }
 
       Mix.Tasks.Deps.Compile.run []
       assert_received { :mix_shell, :info, ["* Compiling git_rebar"] }

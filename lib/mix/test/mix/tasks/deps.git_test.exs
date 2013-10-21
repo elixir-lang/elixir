@@ -46,7 +46,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
@@ -59,13 +59,13 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Task.clear
 
       Mix.Tasks.Deps.Update.run ["--all"]
-      message = "* Updating git_repo (0.1.0) [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Updating git_repo 0.1.0 (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
 
       Mix.Tasks.Deps.Clean.run ["--all"]
-      message = "* Cleaning git_repo (0.1.0) [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Cleaning git_repo 0.1.0 (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
       refute File.exists?("deps/git_repo/ebin/Elixir.Git.Repo.beam")
     end
@@ -79,12 +79,12 @@ defmodule Mix.Tasks.DepsGitTest do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
 
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
 
 
-      message = "* Getting deps_on_git_repo [git: #{inspect fixture_path("deps_on_git_repo")}]"
+      message = "* Getting deps_on_git_repo (#{fixture_path("deps_on_git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["* Compiling deps_on_git_repo"] }
 
@@ -101,7 +101,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
 
       # We can compile just fine
@@ -128,7 +128,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert File.exists?("ebin/.compile.lock")
       assert_received { :mix_shell, :info, [^message] }
 
@@ -156,7 +156,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert File.rm("ebin/.compile.lock") == :ok
       assert_received { :mix_shell, :info, [^message] }
 
@@ -175,7 +175,7 @@ defmodule Mix.Tasks.DepsGitTest do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
 
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
 
@@ -257,7 +257,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ last
 
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
 
       # Check we got no error
@@ -288,7 +288,7 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Tasks.Deps.Get.run []
       assert File.read!("mix.lock") =~ last
 
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
 
       # Check we got no error

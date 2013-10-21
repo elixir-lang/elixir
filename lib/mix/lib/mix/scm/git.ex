@@ -3,11 +3,11 @@ defmodule Mix.SCM.Git do
   @moduledoc false
 
   def format(opts) do
-    [git: opts[:git]]
+    opts[:git]
   end
 
   def format_lock(lock) do
-    get_lock_rev(lock)
+    String.slice(get_lock_rev(lock) || "", 0, 7)
   end
 
   def accepts_options(_app, opts) do
@@ -104,7 +104,7 @@ defmodule Mix.SCM.Git do
   defp get_lock_rev(_), do: nil
 
   defp get_lock_opts(opts) do
-    lock_opts = Enum.find_value [:branch, :ref, :tag], &Keyword.get(opts, &1)
+    lock_opts = Enum.find_value [:branch, :ref, :tag], &List.keyfind(opts, &1, 0)
     lock_opts = List.wrap(lock_opts)
     if opts[:submodules] do
       lock_opts ++ [submodules: true]

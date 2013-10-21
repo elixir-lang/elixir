@@ -3,7 +3,7 @@ defmodule Mix.SCM.Path do
   @moduledoc false
 
   def format(opts) do
-    [path: opts[:path]]
+    opts[:path]
   end
 
   def format_lock(_lock) do

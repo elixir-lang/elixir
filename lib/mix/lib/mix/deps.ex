@@ -213,13 +213,13 @@ defmodule Mix.Deps do
 
   def format_status(Mix.Dep[app: app, status: { :diverged, other }] = dep) do
     "different specs were given for the #{inspect app} app:\n" <>
-    "#{dep_info(dep)}#{dep_info(other)}" <>
+    "#{dep_status(dep)}#{dep_status(other)}" <>
     "\n  Ensure they match or specify one in your #{inspect Mix.Project.get} deps and set `override: true`"
   end
 
   def format_status(Mix.Dep[app: app, status: { :overriden, other }] = dep) do
     "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
-    "#{dep_info(dep)}#{dep_info(other)}" <>
+    "#{dep_status(dep)}#{dep_status(other)}" <>
     "\n  Specify one in your #{inspect Mix.Project.get} deps and set `override: true`"
   end
 
@@ -229,8 +229,9 @@ defmodule Mix.Deps do
   def format_status(Mix.Dep[status: { :elixirlock, _ }]),
     do: "the dependency is built with an out-of-date elixir version, run `mix deps.get`"
 
-  defp dep_info(dep) do
-    "\n  > In #{Path.relative_to_cwd(dep.from)}:\n    #{inspect Dict.drop(dep.opts, [:dest]), pretty: true}\n"
+  defp dep_status(Mix.Dep[app: app, requirement: req, opts: opts, from: from]) do
+    info = { app, req, Dict.drop(opts, [:dest, :lock, :env]) }
+    "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
   end
 
   @doc """
@@ -298,11 +299,11 @@ defmodule Mix.Deps do
   def format_dep(Mix.Dep[scm: scm, app: app, status: status, opts: opts]) do
     version =
       case status do
-        { :ok, vsn } when vsn != nil -> "(#{vsn}) "
+        { :ok, vsn } when vsn != nil -> "#{vsn} "
         _ -> ""
       end
 
-    "#{app} #{version}#{inspect scm.format(opts)}"
+    "#{app} #{version}(#{scm.format(opts)})"
   end
 
   @doc """
@@ -314,7 +315,7 @@ defmodule Mix.Deps do
         Mix.Project.compile_paths
       end
     else
-      [ Path.join(opts[:dest], "ebin") ]
+      [Path.join(opts[:dest], "ebin")]
     end
   end
 

@@ -56,15 +56,15 @@ defmodule Mix.Tasks.DepsTest do
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.run []
 
-      assert_received { :mix_shell, :info, ["* ok [git: \"git://github.com/elixir-lang/ok.git\"]"] }
+      assert_received { :mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"] }
       assert_received { :mix_shell, :info, ["  the dependency is not locked"] }
-      assert_received { :mix_shell, :info, ["* invalidvsn [path: \"deps/invalidvsn\"]"] }
+      assert_received { :mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"] }
       assert_received { :mix_shell, :info, ["  the app file contains an invalid version: :ok"] }
-      assert_received { :mix_shell, :info, ["* invalidapp [path: \"deps/invalidapp\"]"] }
+      assert_received { :mix_shell, :info, ["* invalidapp (deps/invalidapp)"] }
       assert_received { :mix_shell, :info, ["  the app file at deps/invalidapp/custom_ebin/invalidapp.app is invalid"] }
-      assert_received { :mix_shell, :info, ["* noappfile [path: \"deps/noappfile\"]"] }
+      assert_received { :mix_shell, :info, ["* noappfile (deps/noappfile)"] }
       assert_received { :mix_shell, :info, ["  could not find an app file at deps/noappfile/ebin/noappfile.app"] }
-      assert_received { :mix_shell, :info, ["* uncloned [git: \"https://github.com/elixir-lang/uncloned.git\"]"] }
+      assert_received { :mix_shell, :info, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
       assert_received { :mix_shell, :info, ["  the dependency is not available, run `mix deps.get`"] }
     end
   after
@@ -77,10 +77,10 @@ defmodule Mix.Tasks.DepsTest do
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.run []
 
-      assert_received { :mix_shell, :info, ["* ok [path: \"deps/ok\"]"] }
+      assert_received { :mix_shell, :info, ["* ok (deps/ok)"] }
       assert_received { :mix_shell, :info, ["  the dependency does not match the requirement >= 2.0, got 0.1.0"] }
-      assert_received { :mix_shell, :info, ["* noappfile [path: \"deps/noappfile\"]"] }
-      assert_received { :mix_shell, :info, ["* apppath [path: \"deps/noappfile\"]"] }
+      assert_received { :mix_shell, :info, ["* noappfile (deps/noappfile)"] }
+      assert_received { :mix_shell, :info, ["* apppath (deps/noappfile)"] }
       refute_received { :mix_shell, :info, ["  could not find app file at deps/noappfile/ebin/apppath.app"] }
       refute_received { :mix_shell, :info, ["  could not find app file at deps/noappfile/ebin/noappfile.app"] }
     end
@@ -92,17 +92,17 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->
-      Mix.Deps.Lock.write [ok: { :git, "git://github.com/elixir-lang/ok.git", "abcdef", [] }]
+      Mix.Deps.Lock.write [ok: { :git, "git://github.com/elixir-lang/ok.git", "abcdefghi", [] }]
       Mix.Tasks.Deps.run []
 
-      assert_received { :mix_shell, :info, ["* ok [git: \"git://github.com/elixir-lang/ok.git\"]"] }
-      assert_received { :mix_shell, :info, ["  locked at \"abcdef\""] }
+      assert_received { :mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"] }
+      assert_received { :mix_shell, :info, ["  locked at abcdefg"] }
       assert_received { :mix_shell, :info, ["  lock mismatch: the dependency is out of date"] }
 
-      Mix.Deps.Lock.write [ok: { :git, "git://github.com/elixir-lang/another.git", "abcdef", [] }]
+      Mix.Deps.Lock.write [ok: { :git, "git://github.com/elixir-lang/another.git", "abcdefghi", [] }]
       Mix.Tasks.Deps.run []
 
-      assert_received { :mix_shell, :info, ["* ok [git: \"git://github.com/elixir-lang/ok.git\"]"] }
+      assert_received { :mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"] }
       assert_received { :mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your mixfile"] }
     end
   after
@@ -127,7 +127,7 @@ defmodule Mix.Tasks.DepsTest do
         Mix.Tasks.Deps.Check.run []
       end
 
-      assert_received { :mix_shell, :error, ["* uncloned [git: \"https://github.com/elixir-lang/uncloned.git\"]"] }
+      assert_received { :mix_shell, :error, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
     end
   after
     Mix.Project.pop
@@ -141,15 +141,15 @@ defmodule Mix.Tasks.DepsTest do
         Mix.Tasks.Deps.Check.run []
       end
 
-      assert_received { :mix_shell, :error, ["* ok [git: \"git://github.com/elixir-lang/ok.git\"]"] }
+      assert_received { :mix_shell, :error, ["* ok (git://github.com/elixir-lang/ok.git)"] }
       assert_received { :mix_shell, :error, ["  the dependency is not locked"] }
-      assert_received { :mix_shell, :error, ["* invalidvsn [path: \"deps/invalidvsn\"]"] }
+      assert_received { :mix_shell, :error, ["* invalidvsn (deps/invalidvsn)"] }
       assert_received { :mix_shell, :error, ["  the app file contains an invalid version: :ok"] }
-      assert_received { :mix_shell, :error, ["* invalidapp [path: \"deps/invalidapp\"]"] }
+      assert_received { :mix_shell, :error, ["* invalidapp (deps/invalidapp)"] }
       assert_received { :mix_shell, :error, ["  the app file at deps/invalidapp/custom_ebin/invalidapp.app is invalid"] }
-      assert_received { :mix_shell, :error, ["* noappfile [path: \"deps/noappfile\"]"] }
+      assert_received { :mix_shell, :error, ["* noappfile (deps/noappfile)"] }
       assert_received { :mix_shell, :error, ["  could not find an app file at deps/noappfile/ebin/noappfile.app"] }
-      assert_received { :mix_shell, :error, ["* uncloned [git: \"https://github.com/elixir-lang/uncloned.git\"]"] }
+      assert_received { :mix_shell, :error, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
       assert_received { :mix_shell, :error, ["  the dependency is not available, run `mix deps.get`"] }
     end
   after
@@ -298,7 +298,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["* Compiling deps_repo"] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
@@ -306,7 +306,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Task.clear
 
       Mix.Tasks.Deps.Update.run ["--all"]
-      assert_received { :mix_shell, :info, ["* Updating deps_repo (0.1.0) [path: \"custom/deps_repo\"]"] }
+      assert_received { :mix_shell, :info, ["* Updating deps_repo 0.1.0 (custom/deps_repo)"] }
       assert_received { :mix_shell, :info, ["* Compiling deps_repo"] }
     end
   after
@@ -318,13 +318,13 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Get.run ["--quiet"]
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
       refute_received { :mix_shell, :info, ["* Compiling deps_repo"] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
 
       Mix.Tasks.Deps.Update.run ["--all"]
-      assert_received { :mix_shell, :info, ["* Updating deps_repo (0.1.0) [path: \"custom/deps_repo\"]"] }
+      assert_received { :mix_shell, :info, ["* Updating deps_repo 0.1.0 (custom/deps_repo)"] }
       refute_received { :mix_shell, :info, ["* Compiling deps_repo"] }
     end
   after
@@ -339,7 +339,13 @@ defmodule Mix.Tasks.DepsTest do
         Mix.Tasks.Deps.Check.run []
       end
 
-      assert_received { :mix_shell, :error, ["  different specs were given for the :git_repo app:" <> _] }
+      receive do
+        { :mix_shell, :error, ["  different specs were given for the :git_repo app:" <> _ = msg] } ->
+          assert msg =~ "In custom/deps_repo/mix.exs:"
+          assert msg =~ "{:git_repo, \"0.1.0\", [git: #{inspect fixture_path("git_repo")}]}"
+      after
+        0 -> flunk "expected diverged error message"
+      end
     end
   after
     Mix.Project.pop
@@ -350,7 +356,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
 
@@ -361,9 +367,9 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Task.clear
       Mix.Tasks.Deps.Update.run ["--all"]
 
-      message = "* Updating deps_repo (0.1.0) [path: \"custom/deps_repo\"]"
+      message = "* Updating deps_repo 0.1.0 (custom/deps_repo)"
       assert_received { :mix_shell, :info, [^message] }
-      message = "* Updating git_repo (0.1.0) [git: \"#{fixture_path("git_repo")}\"]"
+      message = "* Updating git_repo 0.1.0 (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
 
       Mix.Tasks.Deps.Check.run []
@@ -378,7 +384,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_repo [git: #{inspect fixture_path("git_repo")}]"
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
 
@@ -389,9 +395,9 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Task.clear
       Mix.Tasks.Deps.Update.run ["--all"]
 
-      message = "* Updating bad_deps_repo (0.1.0) [path: \"custom/bad_deps_repo\"]"
+      message = "* Updating bad_deps_repo 0.1.0 (custom/bad_deps_repo)"
       assert_received { :mix_shell, :info, [^message] }
-      message = "* Updating git_repo (0.1.0) [git: \"#{fixture_path("git_repo")}\"]"
+      message = "* Updating git_repo 0.1.0 (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
 
       Mix.Tasks.Deps.Check.run []
@@ -408,7 +414,14 @@ defmodule Mix.Tasks.DepsTest do
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Check.run []
       end
-      assert_received { :mix_shell, :error, ["  the dependency git_repo in mix.exs is overriding a child dependency:" <> _] }
+
+      receive do
+        { :mix_shell, :error, ["  the dependency git_repo in mix.exs" <> _ = msg] } ->
+          assert msg =~ "In mix.exs:"
+          assert msg =~ "{:git_repo, \"0.1.0\", [git: #{inspect fixture_path("git_repo")}]}"
+      after
+        0 -> flunk "expected overriding error message"
+      end
     end
   after
     purge [GitRepo, GitRepo.Mix]
@@ -435,9 +448,9 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Task.clear
       Mix.Tasks.Deps.Update.run ["git_repo"]
 
-      message = "* Updating git_repo (0.1.0) [git: \"#{fixture_path("git_repo")}\"]"
+      message = "* Updating git_repo 0.1.0 (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
-      assert_received { :mix_shell, :info, ["* Updating deps_repo (0.1.0) [path: \"custom/deps_repo\"]"] }
+      assert_received { :mix_shell, :info, ["* Updating deps_repo 0.1.0 (custom/deps_repo)"] }
     end
   after
     Mix.Project.pop
@@ -457,7 +470,7 @@ defmodule Mix.Tasks.DepsTest do
         Mix.Tasks.Deps.Check.run []
       end
 
-      assert_received { :mix_shell, :error, ["* ok [path: \"deps/ok\"]"] }
+      assert_received { :mix_shell, :error, ["* ok (deps/ok)"] }
       assert_received { :mix_shell, :error, ["  the dependency is built with an out-of-date elixir version, run `mix deps.get`"] }
     end
   after
@@ -509,7 +522,7 @@ defmodule Mix.Tasks.DepsTest do
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.run []
 
-      msg = "* ok (0.1.0) [path: \"deps/ok\"]"
+      msg = "* ok 0.1.0 (deps/ok)"
       assert_received { :mix_shell, :info, [^msg] }
       refute_received { :mix_shell, :info, [^msg] }
     end

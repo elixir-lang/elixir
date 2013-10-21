@@ -10,16 +10,22 @@ defmodule Mix.SCM do
   """
 
   @doc """
-  Returns an Elixir term that contains relevant SCM
-  information for printing.
+  Returns a string representing the SCM. This is used
+  when printing the dependency and not for inspection,
+  so the amount of information should be concise and
+  easy to spot.
   """
-  defcallback format(opts) :: term
+  defcallback format(opts) :: String.t
 
   @doc """
-  Returns an Elixir term that contains relevant SCM
-  lock information for printing.
+  Returns a string representing the SCM. This is used
+  when printing the dependency and not for inspection,
+  so the amount of information should be concise and
+  easy to spot.
+
+  If nil is returned, it means no lock information is available.
   """
-  defcallback format_lock(lock) :: term
+  defcallback format_lock(lock) :: String.t | nil
 
   @doc """
   This behavior function receives a keyword list of `opts`
