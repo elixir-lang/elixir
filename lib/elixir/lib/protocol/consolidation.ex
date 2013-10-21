@@ -155,43 +155,47 @@ defmodule Protocol.Consolidation do
     records = types -- Protocol.builtin
     builtin = Protocol.builtin -- (Protocol.builtin -- types)
     builtin = if records != [], do: [Record|builtin], else: builtin
-    change_impl_for(code, protocol, builtin, records, [])
+    change_impl_for(code, protocol, builtin, records, false, [])
   end
 
   defp change_debug_info(other, _types), do: other
 
-  defp change_impl_for([{ :attribute, line, :protocol, _ }|t], protocol, builtin, records, acc) do
+  defp change_impl_for([{ :attribute, line, :protocol, _ }|t], protocol, builtin, records, _, acc) do
     attr = [fallback_to_any: Any in builtin, consolidated: true]
-    change_impl_for(t, protocol, builtin, records,
+    change_impl_for(t, protocol, builtin, records, true,
                     [{ :attribute, line, :protocol, attr }|acc])
   end
 
-  defp change_impl_for([{ :function, line, :impl_for, 1, _ }|t], protocol, builtin, records, acc) do
+  defp change_impl_for([{ :function, line, :impl_for, 1, _ }|t], protocol, builtin, records, is_protocol, acc) do
     clauses = lc type inlist builtin, do: clause_for(type, protocol, line)
 
     unless Any in builtin do
       clauses = clauses ++ [fallback_clause_for(nil, protocol, line)]
     end
 
-    change_impl_for(t, protocol, builtin, records,
+    change_impl_for(t, protocol, builtin, records, is_protocol,
                     [{ :function, line, :impl_for, 1, clauses }|acc])
   end
 
-  defp change_impl_for([{ :function, line, :rec_impl_for, 1, _ }|t], protocol, builtin, records, acc) do
+  defp change_impl_for([{ :function, line, :rec_impl_for, 1, _ }|t], protocol, builtin, records, is_protocol, acc) do
     fallback = if Tuple in builtin, do: Module.concat(protocol, Tuple)
     clauses  = lc type inlist records, do: record_clause_for(type, protocol, line)
     clauses  = clauses ++ [fallback_clause_for(fallback, protocol, line)]
 
-    { :ok, protocol,
-      Enum.reverse(acc) ++ [{ :function, line, :rec_impl_for, 1, clauses }|t] }
+    change_impl_for(t, protocol, builtin, records, is_protocol,
+                    [{ :function, line, :rec_impl_for, 1, clauses }|acc])
   end
 
-  defp change_impl_for([h|t], protocol, info, types, acc) do
-    change_impl_for(t, protocol, info, types, [h|acc])
+  defp change_impl_for([h|t], protocol, info, types, is_protocol, acc) do
+    change_impl_for(t, protocol, info, types, is_protocol, [h|acc])
   end
 
-  defp change_impl_for([], _protocol, _info, _types, _acc) do
-    { :error, :not_a_protocol }
+  defp change_impl_for([], protocol, _info, _types, is_protocol, acc) do
+    if is_protocol do
+      { :ok, protocol, Enum.reverse(acc) }
+    else
+      { :error, :not_a_protocol }
+    end
   end
 
   defp clause_for(Tuple, protocol, line),     do: builtin_clause_for(Tuple, :is_tuple, protocol, line)
