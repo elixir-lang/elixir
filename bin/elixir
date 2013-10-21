@@ -73,8 +73,6 @@ done
 
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-
-if [ -f "$HOME/.elixirrc" ]; then . "$HOME/.elixirrc"; fi
 if [ "$ELIXIR_NO_CLI" != "1" ]; then ERL="$ERL -s elixir start_cli"; fi
 
 if [ -f "$SCRIPT_PATH/../releases/RELEASES" ] && [ -f "$SCRIPT_PATH/erl" ]

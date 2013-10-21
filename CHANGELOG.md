@@ -23,6 +23,7 @@
   * [String] `String.to_integer/1` and `String.to_float/1` are deprecated in favor of `Integer.parse/1` and `Float.parse/1`
 
 * Backwards incompatible changes
+  * [CLI] Reading `.elixirrc` has been dropped in favor of setting env vars
   * [Kernel] `Kernel.access/2` now expects the second argument to be a compile time list
   * [Process] `Process.group_leader/2` values were reversed in order to fix a previous bug
   * [Protocol] Protocol no longer dispatches to `Number`, but to `Integer` and `Float`
