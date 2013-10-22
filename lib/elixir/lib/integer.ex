@@ -38,10 +38,8 @@ defmodule Integer do
   """
   @spec parse(binary) :: { integer, binary } | :error
   def parse(<< ?-, char, rest :: binary >>) when char in ?0..?9 do
-    case parse(<< char, rest :: binary >>, 0) do
-      :error -> :error
-      { number, remainder } -> { -number, remainder }
-    end
+    { number, remainder } = parse(<< char, rest :: binary >>, 0)
+    { -number, remainder }
   end
 
   def parse(<< ?+, char, rest :: binary >>) when char in ?0..?9 do
