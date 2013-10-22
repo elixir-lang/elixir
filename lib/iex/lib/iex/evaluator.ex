@@ -127,12 +127,9 @@ defmodule IEx.Evaluator do
       { :ok, forms } ->
         { result, new_binding, scope } =
           :elixir.eval_forms(forms, config.binding, config.scope)
-
         unless result == IEx.dont_display_result, do: io_put result
-
-        config = config.cache(code).scope(nil).result(result)
-        update_history(config)
-        config.update_counter(&(&1+1)).cache('').binding(new_binding).scope(scope).result(nil)
+        update_history(line, code, result)
+        config.update_counter(&(&1+1)).cache('').binding(new_binding).scope(scope)
 
       { :error, { line, error, token } } ->
         if token == [] do
@@ -146,7 +143,7 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp update_history(Config[result: result, counter: counter, cache: cache]) do
+  defp update_history(counter, cache, result) do
     IEx.History.append({ counter, cache, result }, counter, IEx.Options.get(:history_size))
   end
 

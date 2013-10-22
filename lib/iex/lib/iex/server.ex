@@ -1,5 +1,4 @@
-defrecord IEx.Config, binding: nil, cache: '', counter: 1,
-                      prefix: "iex", scope: nil, result: nil
+defrecord IEx.Config, binding: nil, cache: '', counter: 1, prefix: "iex", scope: nil
 
 defmodule IEx.Server do
   @moduledoc false
