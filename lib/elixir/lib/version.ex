@@ -118,7 +118,7 @@ defmodule Version do
   @doc """
   Parse a version into a matchable value.
   """
-  @spec parse(String.t) :: { :ok, Schema.t } | { :error, term }
+  @spec parse(String.t) :: Schema.t
   def parse(string) when is_binary(string) do
     case Version.Parser.parse_version(string) do
       { :ok, matchable } -> from_matchable(matchable).source(string).build(get_build(string))
