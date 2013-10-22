@@ -1321,7 +1321,7 @@ defmodule Enum do
 
   """
   @spec chunks(t, non_neg_integer, non_neg_integer) :: [list]
-  @spec chunks(t, non_neg_integer, non_neg_integer, list) :: [list]
+  @spec chunks(t, non_neg_integer, non_neg_integer, list | nil) :: [list]
   def chunks(coll, n, step, pad // nil) when n > 0 and step > 0 do
     { acc, buffer, i } =
       Enumerable.reduce(coll, { [], [], 0 }, fn
