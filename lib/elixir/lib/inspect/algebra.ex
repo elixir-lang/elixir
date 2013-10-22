@@ -400,8 +400,8 @@ defmodule Inspect.Algebra do
   def format(w, k, [{_, :flat, doc_break(str: s)} | t]),       do: s_text(str: s, sdoc: format(w, (k + byte_size s), t))
   def format(w, k, [{i, :break, doc_break(str: s)} | t]) do
     k = k + byte_size(s)
-    w2 = if w == :infinity, do: :infinity, else: w - k
-    if fits?(w2, t) do
+
+    if w == :infinity or fits?(w - k, t) do
       s_text(str: s, sdoc: format(w, k, t))
     else
       s_line(indent: i, sdoc: format(w, i, t))

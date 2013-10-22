@@ -90,8 +90,8 @@ defmodule Macro do
       1
 
   """
-  @spec escape(Macro.t) :: Macro.t
-  @spec escape(Macro.t, Keyword.t) :: Macro.t
+  @spec escape(term) :: Macro.t
+  @spec escape(term, Keyword.t) :: Macro.t
   def escape(expr, opts // []) do
     :elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)) |> elem(0)
   end
