@@ -44,7 +44,7 @@ defmodule Regex do
   """
 
   defrecordp :regex, Regex, [:re_pattern, :source, :options, :groups]
-  @type t :: { Regex, term, binary, binary, [atom] }
+  @type t :: { Regex, term, binary, binary, [atom] | nil }
 
   defexception CompileError, message: "regex could not be compiled"
 
@@ -66,7 +66,7 @@ defmodule Regex do
       {:error, {'nothing to repeat', 0}}
 
   """
-  @spec compile(binary, binary | [term]) :: t
+  @spec compile(binary, binary | [term]) :: { :ok, t } | { :error, any }
   def compile(source, options // "")
 
   def compile(source, options) when is_binary(options) do
