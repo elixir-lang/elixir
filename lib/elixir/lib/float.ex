@@ -45,6 +45,10 @@ defmodule Float do
   defp parse(<< ?e, after_e :: binary >>, float, decimal, int) do
     case Integer.parse after_e do
       :error ->
+        # Note we rebuild the binary here instead of breaking it apart at
+        # the function clause because the current approach copies a binary
+        # just on this branch. If we broke it apart in the function clause,
+        # the copy would happen when calling Integer.parse/1.
         { floatify(int, float, decimal), << ?e, after_e :: binary >> }
       { exponential, after_exponential } ->
         { floatify(int, float, decimal, exponential), after_exponential }
