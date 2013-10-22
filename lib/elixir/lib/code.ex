@@ -169,7 +169,7 @@ defmodule Code do
     valid = is_list(requires) and Enum.all?(requires, &is_atom(&1))
 
     unless valid do
-      raise ArgumentError, "expected :#{kind} option given to eval in the format: [module]"
+      raise ArgumentError, message: "expected :#{kind} option given to eval in the format: [module]"
     end
   end
 
@@ -179,7 +179,7 @@ defmodule Code do
     end)
 
     unless valid do
-      raise ArgumentError, "expected :#{kind} option given to eval in the format: [{ module, module }]"
+      raise ArgumentError, message: "expected :#{kind} option given to eval in the format: [{ module, module }]"
     end
   end
 
@@ -191,7 +191,7 @@ defmodule Code do
     end)
 
     unless valid do
-      raise ArgumentError, "expected :#{kind} option given to eval in the format: [{ module, [{ name, arity }] }]"
+      raise ArgumentError, message: "expected :#{kind} option given to eval in the format: [{ module, [{ name, arity }] }]"
     end
   end
 
