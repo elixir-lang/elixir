@@ -3063,6 +3063,12 @@ defmodule Kernel do
     end
   end
 
+  defmacro raise({ tag, _, _ } = exception) when tag == :<<>> or tag == :<> do
+    quote do
+      :erlang.error RuntimeError.new(message: unquote(exception))
+    end
+  end
+
   @doc """
   Raises an error.
 
@@ -3081,7 +3087,27 @@ defmodule Kernel do
 
   """
   @spec raise(tuple | atom, list) :: no_return
-  defmacro raise(exception, args // []) do
+  defmacro raise(exception, args // [])
+
+  defmacro raise({ :{}, _, _ } = exception, args) do
+    quote do
+      :erlang.error unquote(exception).exception(unquote(args))
+    end
+  end
+
+  defmacro raise({ :__aliases__, _, _ } = exception, args) do
+    quote do
+      :erlang.error unquote(exception).exception(unquote(args))
+    end
+  end
+
+  defmacro raise(exception, args) when is_atom(exception) do
+    quote do
+      :erlang.error unquote(exception).exception(unquote(args))
+    end
+  end
+
+  defmacro raise(exception, args) do
     quote do
       exception = unquote(exception)
       case exception do
