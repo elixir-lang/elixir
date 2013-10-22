@@ -6,7 +6,7 @@ defmodule Macro do
   """
 
   @typedoc "Abstract Syntax Tree (AST) node"
-  @type t :: { t, t } | { t, Keyword.t, t } | atom | number | binary | list
+  @type t :: { t, t } | { t, Keyword.t, t } | atom | number | binary | list | Regex.t
 
   @doc false
   defmacro binary_ops do
