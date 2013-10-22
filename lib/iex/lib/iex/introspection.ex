@@ -269,9 +269,14 @@ defmodule IEx.Introspection do
   end
 
   defp beam_specs(module) do
-    specs = Enum.map(Kernel.Typespec.beam_specs(module), &{:spec, &1})
-    callbacks = Enum.map(Kernel.Typespec.beam_callbacks(module), &{:callback, &1})
+    specs = beam_specs_tag(Kernel.Typespec.beam_specs(module), :spec)
+    callbacks = beam_specs_tag(Kernel.Typespec.beam_callbacks(module), :callback)
     specs && callbacks && Enum.concat(specs, callbacks)
+  end
+
+  defp beam_specs_tag(nil, _), do: nil
+  defp beam_specs_tag(specs, tag) do
+    Enum.map(specs, &{ tag, &1 })
   end
 
   defp print_type({ kind, type }) do
