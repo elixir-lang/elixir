@@ -19,7 +19,7 @@ defmodule Record.Extractor do
   def retrieve(name, from_lib: file) when is_binary(file) do
     [app|path] = :filename.split(String.to_char_list!(file))
 
-    case :code.lib_dir(app) do
+    case :code.lib_dir(list_to_atom(app)) do
       { :error, _ } ->
         raise ArgumentError, message: "lib file #{file} could not be found"
       libpath ->
