@@ -75,8 +75,8 @@ defmodule Mix.Tasks.Test do
 
       test_coverage: [tool: CoverModule]
 
-  `CoverModule` can be any module that exports `start/2`, receiving the
-  compilation path and the `test_coverage` options as arguments.
+  `CoverModule` can be any module that exports `run/3`, receiving the
+  compilation path, `test_coverage` options and the callback function as arguments.
   """
 
   @switches [force: :boolean, color: :boolean, cover: :boolean,
