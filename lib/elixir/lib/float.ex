@@ -30,7 +30,7 @@ defmodule Float do
 
   # Dot followed by digit is required afterwards or we are done
   defp parse(<< ?., char, rest :: binary >>, int) when char in ?0..?9 do
-    parse(<< char, rest :: binary >>, 0, 0, int)
+    parse(rest, char - ?0, 1, int)
   end
 
   defp parse(rest, int) do
@@ -38,14 +38,14 @@ defmodule Float do
   end
 
   # Handle decimal points
-  defp parse(<< char :: utf8, rest :: binary >>, float, decimal, int) when char in ?0..?9 do
+  defp parse(<< char, rest :: binary >>, float, decimal, int) when char in ?0..?9 do
     parse rest, 10 * float + (char - ?0), decimal + 1, int
   end
 
-  defp parse(<< ?e :: utf8, after_e :: binary >> = bin, float, decimal, int) do
+  defp parse(<< ?e, after_e :: binary >>, float, decimal, int) do
     case Integer.parse after_e do
       :error ->
-        { floatify(int, float, decimal), bin }
+        { floatify(int, float, decimal), << ?e, after_e :: binary >> }
       { exponential, after_exponential } ->
         { floatify(int, float, decimal, exponential), after_exponential }
     end
