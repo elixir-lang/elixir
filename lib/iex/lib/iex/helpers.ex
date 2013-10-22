@@ -22,6 +22,7 @@ defmodule IEx.Helpers do
   * `ls/1`      — lists the contents of the specified directory
   * `m/0`       — prints loaded modules
   * `pwd/0`     — prints the current working directory
+  * `quit/0`    — quit iex
   * `r/1`       — recompiles and reloads the given module's source file
   * `respawn/0` — respawns the current shell
   * `s/1`       — prints spec information
@@ -352,6 +353,13 @@ defmodule IEx.Helpers do
   """
   def pwd do
     IO.puts IEx.color(:eval_info, System.cwd!)
+  end
+
+  @doc """
+  Quit iex.
+  """
+  def quit do
+    :erlang.halt()
   end
 
   @doc """
