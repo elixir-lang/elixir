@@ -273,7 +273,7 @@ defmodule Inspect.Algebra do
       "A!B"
 
   """
-  @spec folddoc([any], ((any, [t]) -> t)) :: t
+  @spec folddoc([t], ((t, t) -> t)) :: t
   def folddoc([], _), do: empty
   def folddoc([doc], _), do: doc
   def folddoc([d|ds], f), do: f.(d, folddoc(ds, f))
@@ -390,7 +390,7 @@ defmodule Inspect.Algebra do
   def fits?(w, [{i, _, doc_group(doc: x)} | t]),            do: fits?(w, [{i, :flat, x} | t])
 
   @doc false
-  @spec format(integer, integer, [{ integer, mode, t }]) :: atom | tuple
+  @spec format(integer | :infinity, integer, [{ integer, mode, t }]) :: atom | tuple
   def format(_, _, []),                                        do: :s_nil
   def format(w, k, [{_, _, :doc_nil} | t]),                    do: format(w, k, t)
   def format(w, k, [{i, m, doc_cons(left: x, right: y)} | t]), do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
@@ -400,7 +400,8 @@ defmodule Inspect.Algebra do
   def format(w, k, [{_, :flat, doc_break(str: s)} | t]),       do: s_text(str: s, sdoc: format(w, (k + byte_size s), t))
   def format(w, k, [{i, :break, doc_break(str: s)} | t]) do
     k = k + byte_size(s)
-    if fits?(w - k, t) do
+    w2 = if w == :infinity, do: :infinity, else: w - k
+    if fits?(w2, t) do
       s_text(str: s, sdoc: format(w, k, t))
     else
       s_line(indent: i, sdoc: format(w, i, t))
