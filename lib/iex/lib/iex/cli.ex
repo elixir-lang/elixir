@@ -65,7 +65,7 @@ defmodule IEx.CLI do
   # to do it just once.
   defp tty_works? do
     try do
-      port = Port.open { :spawn, :"tty_sl -c -e" }, [:eof]
+      port = Port.open { :spawn, 'tty_sl -c -e' }, [:eof]
       Port.close(port)
     catch
       _, _ -> false
