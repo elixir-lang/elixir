@@ -117,14 +117,14 @@ defmodule Protocol.Consolidation do
     { :error, :no_beam_info }
 
   def apply_to(protocol, types) when is_atom(protocol) do
-    { :ok, protocol }
+    protocol
     |> ensure_protocol
     |> change_debug_info(types)
     |> compile
   end
 
   # Ensure the given module is loaded and is a protocol.
-  defp ensure_protocol({ :ok, protocol }) do
+  defp ensure_protocol(protocol) do
     case :beam_lib.chunks(beam_file(protocol), [:abstract_code, :attributes]) do
       { :ok, { ^protocol, [abstract_code: { _raw, abstract_code },
                            attributes: attributes] } } ->
@@ -138,8 +138,6 @@ defmodule Protocol.Consolidation do
         { :error, :no_beam_info }
     end
   end
-
-  defp ensure_protocol(other), do: other
 
   defp beam_file(module) when is_atom(module) do
     case :code.which(module) do
