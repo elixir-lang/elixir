@@ -6,7 +6,9 @@ defmodule Integer do
   import Bitwise
 
   @doc """
-  Returns true if `n` is an odd number, otherwise false.
+  Determines if an integer is odd.
+
+  Returns `true` if `n` is an odd number, otherwise `false`.
   Implemented as a macro so it is allowed in guard clauses.
   """
   defmacro odd?(n) do
@@ -14,7 +16,9 @@ defmodule Integer do
   end
 
   @doc """
-  Returns true if `n` is an even number, otherwise false.
+  Determines if an integer is even.
+
+  Returns `true` if `n` is an even number, otherwise `false`.
   Implemented as a macro so it is allowed in guard clauses.
   """
   defmacro even?(n) do
@@ -22,8 +26,9 @@ defmodule Integer do
   end
 
   @doc """
-  Converts a binary to an integer. If successful, returns a
-  tuple of the form `{ integer, remainder_of_binary }`.
+  Converts a binary to an integer. 
+  
+  If successful, returns a tuple of the form `{ integer, remainder_of_binary }`.
   Otherwise `:error`.
 
   ## Examples

@@ -1,6 +1,12 @@
 defmodule Tuple do
+  @moduledoc """
+  Functions for working with tuples.
+  """
+
   @doc """
-  Creates a tuple with size `size` containing the
+  Create a new tuple.
+
+  Creates a tuple of size `size` containing the
   given `data` at every position.
 
   ## Examples
@@ -15,7 +21,11 @@ defmodule Tuple do
   end
 
   @doc """
+  Insert an element into a tuple.
+
   Inserts `value` into `tuple` at the given zero-based `index`.
+  Raises an `ArgumentError` if `index` is greater than the
+  length of `tuple`.
 
   ## Examples
 
@@ -30,7 +40,11 @@ defmodule Tuple do
   end
 
   @doc """
+  Remove an element from a tuple.
+
   Deletes the element at the zero-based `index` from `tuple`.
+  Raises an `ArgumentError` if `index` is greater than 
+  or equal to the length of `tuple`.
 
   ## Examples
 

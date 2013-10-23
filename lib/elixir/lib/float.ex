@@ -1,11 +1,12 @@
 defmodule Float do
   @moduledoc """
-  Functions for working with floats.
+  Functions for working with floating point numbers.
   """
 
   @doc """
-  Parses a binary into a float. If successful, returns a
-  tuple of the form `{ float, remainder_of_binary }`.
+  Parses a binary into a float. 
+  
+  If successful, returns a tuple of the form `{ float, remainder_of_binary }`.
   Otherwise `:error`.
 
   ## Examples

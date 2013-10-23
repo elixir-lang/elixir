@@ -5,7 +5,7 @@
   * [IEx] Split `IEx.Evaluator` from `IEx.Server` to allow custom evaluators
   * [IEx] Add support for `IEx.pry` which halts a given process for inspection
   * [Kernel] Improve stacktraces on command line interfaces
-  * [Mix] Allow umbrella children to share dependencies in between them
+  * [Mix] Allow umbrella children to share dependencies between them
   * [Protocol] Protocols now provide `impl_for/1` and `impl_for!/1` functions which receive a structure and returns its respective implementation, otherwise returns nil or an error
   * [String] Update to Unicode 6.3.0
   * [String] Add `Enum.slice/2` with a range
@@ -17,17 +17,17 @@
   * [String] Implement the extended grapheme cluster algorithm for `String` operations
 
 * Deprecations
-  * [Kernel] `pid_to_list/1`, `list_to_pid/1`, `binary_to_atom/2`, `binary_to_existing_atom/2` and `atom_to_binary/2` are deprecated in favor of their counterpars in the `:erlang` module
+  * [Kernel] `pid_to_list/1`, `list_to_pid/1`, `binary_to_atom/2`, `binary_to_existing_atom/2` and `atom_to_binary/2` are deprecated in favor of their counterparts in the `:erlang` module
   * [Kernel] `insert_elem/3` and `delete_elem/2` are deprecated in favor of `Tuple.insert_at/3` and `Tuple.delete_at/2`
   * [Macro] `Macro.expand_all/2` is deprecated
   * [Protocol] `@only` and `@except` in protocols are now deprecated
-  * [Protocol] Protocols no longer fallbacks to `Any` out of the box (this functionality needs to be explicitly enabled by setting `@fallback_to_any` to true)
+  * [Protocol] Protocols no longer fallback to `Any` out of the box (this functionality needs to be explicitly enabled by setting `@fallback_to_any` to true)
   * [String] `String.to_integer/1` and `String.to_float/1` are deprecated in favor of `Integer.parse/1` and `Float.parse/1`
 
 * Backwards incompatible changes
   * [CLI] Reading `.elixirrc` has been dropped in favor of setting env vars
   * [Kernel] `Kernel.access/2` now expects the second argument to be a compile time list
-  * [Mix] Umbrella apps now treat children apps as dependencies. This means all dependencies will be checked out in the umbrela `deps` directory. On upgrade, children apps need to point to the umbrella project by setting `deps_path: "../../deps_path", lockfile: "../../mix.lock"` in their project config
+  * [Mix] Umbrella apps now treat children apps as dependencies. This means all dependencies will be checked out in the umbrela `deps` directory. On upgrade, child apps need to point to the umbrella project by setting `deps_path: "../../deps_path", lockfile: "../../mix.lock"` in their project config
   * [Process] `Process.group_leader/2` args have been reversed so the "subject" comes first
   * [Protocol] Protocol no longer dispatches to `Number`, but to `Integer` and `Float`
 
