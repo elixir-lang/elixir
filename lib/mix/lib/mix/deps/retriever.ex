@@ -10,7 +10,7 @@ defmodule Mix.Deps.Retriever do
   are included as children.
   """
   def children do
-    to_deps(Mix.project[:deps]) ++ Mix.Deps.Umbrella.children
+    mix_children(Mix.project[:deps]) ++ Mix.Deps.Umbrella.children
   end
 
   @doc """
@@ -21,7 +21,7 @@ defmodule Mix.Deps.Retriever do
     cond do
       Mix.Deps.available?(dep) and mixfile?(dep) ->
         Mix.Deps.in_dependency(dep, config, fn _ ->
-          to_deps(Mix.project[:deps]) ++ Mix.Deps.Umbrella.children
+          mix_children(Mix.project[:deps]) ++ Mix.Deps.Umbrella.children
         end)
 
       Mix.Deps.available?(dep) and rebarconfig?(dep) ->
@@ -40,16 +40,13 @@ defmodule Mix.Deps.Retriever do
     update({ app, req, opts }, [scm], from, manager)
   end
 
-  @doc """
-  Converts the given list of raw deps to dependencies.
-  """
-  def to_deps(deps) do
+  ## Helpers
+
+  defp mix_children(deps) do
     scms = Mix.SCM.available
     from = current_source(:mix)
     Enum.map(deps || [], &update(&1, scms, from))
   end
-
-  ## Helpers
 
   defp rebar_children do
     scms = Mix.SCM.available

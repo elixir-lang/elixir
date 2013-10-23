@@ -49,7 +49,9 @@ defmodule Mix.Tasks.Deps.Update do
   end
 
   defp finalize_update({ apps, lock }, opts) do
+    apps = Enum.reverse(apps)
     Mix.Deps.Lock.write(lock)
+
     unless opts[:no_compile] do
       case opts[:quiet] do
         true ->

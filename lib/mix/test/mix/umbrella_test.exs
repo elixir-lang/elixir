@@ -6,7 +6,9 @@ defmodule Mix.UmbrellaTest do
   test "compile umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run "deps.get"
         Mix.Task.run "compile"
+
         assert_received { :mix_shell, :info, ["==> bar"] }
         assert_received { :mix_shell, :info, ["Compiled lib/bar.ex"] }
         assert_received { :mix_shell, :info, ["Generated bar.app"] }
@@ -30,14 +32,47 @@ defmodule Mix.UmbrellaTest do
     end
   end
 
-  test "loads umbrella dependencies" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
-      Mix.Project.in_project(:umbrella, ".", fn _ ->
-        File.mkdir_p!("deps/some_dep/ebin")
-        Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
-        assert Path.expand('deps/some_dep/ebin') in :code.get_path
-      end)
+  defmodule UmbrellaDeps do
+    use Mix.Project
+
+    def project do
+      [ apps_path: "apps",
+        deps: [{ :some_dep, path: "deps/some_dep" }] ]
     end
+  end
+
+  test "loads umbrella dependencies" do
+    Mix.Project.push UmbrellaDeps
+
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      File.mkdir_p!("deps/some_dep/ebin")
+      Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
+      assert Path.expand('deps/some_dep/ebin') in :code.get_path
+    end
+  after
+    Mix.Project.pop
+  end
+
+  defmodule CycleDeps do
+    use Mix.Project
+
+    def project do
+      [ app: :umbrella_dep,
+        deps: [
+          { :bar, path: "deps/umbrella/apps/bar" },
+          { :umbrella, path: "deps/umbrella" }
+        ] ]
+    end
+  end
+
+  test "handles dependencies with cycles" do
+    Mix.Project.push CycleDeps
+
+    in_fixture "umbrella_dep", fn ->
+      assert Enum.map(Mix.Deps.all, & &1.app) == [:foo, :bar, :umbrella]
+    end
+  after
+    Mix.Project.pop
   end
 
   test "list deps for umbrella as dependency" do
@@ -66,6 +101,7 @@ defmodule Mix.UmbrellaTest do
 
         assert Mix.Tasks.Compile.Elixir.run([]) == :ok
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+        assert_received { :mix_shell, :info, ["Compiled lib/foo.ex"] }
         purge [Bar]
 
         future = { { 2020, 4, 17 }, { 14, 0, 0 } }
@@ -75,7 +111,7 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
-  defmodule Selective.Mixfile do
+  defmodule Selective do
     def project do
       [ apps_path: "apps",
         apps: [:foo, :bar] ]
@@ -84,7 +120,7 @@ defmodule Mix.UmbrellaTest do
 
   test "can select which apps to use" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
-      Mix.Project.push Selective.Mixfile
+      Mix.Project.push Selective
 
       File.mkdir_p! "apps/errors/lib"
       File.write! "apps/errors/lib/always_fail.ex", "raise %s[oops]"

@@ -76,9 +76,9 @@ defmodule Mix.Deps.Converger do
         # dependency) we get all direct childrens for the next one.
         # Note that we need to reverse the deps, so the final order
         # is as expected.
-        deps = Mix.Deps.Retriever.children(dep, config) |> Enum.reverse
+        deps = Mix.Deps.Retriever.children(dep, config)
         { acc, rest } = all(t, [dep.deps(deps)|acc], upper_breadths, current_breadths, config, callback, rest)
-        all(deps, acc, current_breadths, deps ++ current_breadths, config, callback, rest)
+        all(Enum.reverse(deps), acc, current_breadths, deps ++ current_breadths, config, callback, rest)
     end
   end
 
@@ -113,7 +113,13 @@ defmodule Mix.Deps.Converger do
           end
         end)
 
-      [ overrider | Enum.reverse(acc) ]
+      if overrider.deps == [] do
+        [overrider | Enum.reverse(acc)]
+      else
+        dep = hd(overrider.deps).app
+        { before_dep, after_dep } = Enum.split_while(acc, &(&1.app != dep))
+        Enum.reverse(before_dep ++ [overrider] ++ after_dep)
+      end
     end
   end
 

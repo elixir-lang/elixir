@@ -36,6 +36,8 @@ defmodule Mix.Tasks.Deps.Get do
   end
 
   defp finalize_get({ apps, lock }, opts) do
+    apps = Enum.reverse(apps)
+
     if apps == [] do
       unless opts[:no_deps_check], do: Mix.Task.run("deps.check", [])
       unless opts[:quiet], do: Mix.shell.info "All dependencies up to date"
