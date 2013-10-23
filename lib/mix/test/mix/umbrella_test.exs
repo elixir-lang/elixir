@@ -33,8 +33,6 @@ defmodule Mix.UmbrellaTest do
   end
 
   defmodule UmbrellaDeps do
-    use Mix.Project
-
     def project do
       [ apps_path: "apps",
         deps: [{ :some_dep, path: "deps/some_dep" }] ]
@@ -54,8 +52,6 @@ defmodule Mix.UmbrellaTest do
   end
 
   defmodule CycleDeps do
-    use Mix.Project
-
     def project do
       [ app: :umbrella_dep,
         deps: [
