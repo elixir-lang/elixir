@@ -30,6 +30,16 @@ defmodule Mix.UmbrellaTest do
     end
   end
 
+  test "loads umbrella dependencies" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        File.mkdir_p!("deps/some_dep/ebin")
+        Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
+        assert Path.expand('deps/some_dep/ebin') in :code.get_path
+      end)
+    end
+  end
+
   test "list deps for umbrella as dependency" do
     in_fixture("umbrella_dep", fn ->
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->

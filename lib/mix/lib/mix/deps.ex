@@ -309,13 +309,13 @@ defmodule Mix.Deps do
   @doc """
   Returns all compile paths for the dependency.
   """
-  def compile_paths(Mix.Dep[app: app, opts: opts, manager: manager]) do
+  def compile_path(Mix.Dep[app: app, opts: opts, manager: manager]) do
     if manager == :mix do
       Mix.Project.in_project app, opts[:dest], fn _ ->
-        Mix.Project.compile_paths
+        Mix.Project.compile_path
       end
     else
-      [Path.join(opts[:dest], "ebin")]
+      Path.join(opts[:dest], "ebin")
     end
   end
 

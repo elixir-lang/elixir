@@ -131,28 +131,6 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Runs `fun` in the current project.
-
-  The goal of this function is to transparently abstract umbrella projects.
-  So if you want to gather data from a project, like beam files, you can
-  use this function to transparently go through the project, regardless
-  if it is an umbrella project or not.
-  """
-  def recur(post_config // [], fun) do
-    if umbrella? do
-      recur_deps(Mix.Deps.Umbrella.children, post_config, fun)
-    else
-      [fun.(get)]
-    end
-  end
-
-  defp recur_deps(deps, post_config, fun) do
-    lc Mix.Dep[app: app, opts: opts] inlist deps do
-      in_project(app, opts[:path], post_config, fun)
-    end
-  end
-
-  @doc """
   Runs the given `fun` inside the given project by changing
   the current working directory and loading the given project
   onto the project stack.
@@ -179,20 +157,20 @@ defmodule Mix.Project do
   Returns the paths this project compiles to,
   collecting all `:compile_path` in case of umbrella apps.
   """
-  def compile_paths do
-    recur(fn _ -> Path.expand config[:compile_path] end)
+  def compile_path do
+    Path.expand config[:compile_path]
   end
 
   @doc """
-  Returns all load paths for this project,
-  collecting all `:load_paths` in case of umbrella apps.
+  Returns all load paths for this project, collecting
+  all `:load_paths` in case of umbrella apps.
   """
   def load_paths do
-    paths =
-      recur(fn _ ->
-        Enum.map(config[:load_paths], &Path.expand(&1))
-      end) |> Enum.concat
-    paths ++ compile_paths
+    if umbrella? do
+      []
+    else
+      [compile_path]
+    end ++ Enum.map(config[:load_paths], &Path.expand(&1))
   end
 
   # Loads mix.exs in the current directory or loads the project from the

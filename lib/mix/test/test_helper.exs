@@ -2,7 +2,6 @@ Mix.start()
 Mix.shell(Mix.Shell.Process)
 
 ExUnit.start [trace: "--trace" in System.argv]
-System.put_env("EXUNIT_CONFIG", "none")
 
 defmodule MixTest.Case do
   use ExUnit.CaseTemplate

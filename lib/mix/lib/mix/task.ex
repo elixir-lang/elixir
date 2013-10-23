@@ -160,13 +160,20 @@ defmodule Mix.Task do
 
       if umbrella? && recursive && Mix.Server.call(:recursive_enabled?) do
         Mix.Server.cast({ :recursive_enabled?, false })
-        res = if recursive == :both, do: [module.run(args)], else: []
-        res = res ++ Mix.Project.recur(fn _ -> module.run(args) end)
+        res = if(recursive == :both, do: [module.run(args)], else: [])
+        res = res ++ recur_deps(fn _ -> module.run(args) end)
         Mix.Server.cast({ :recursive_enabled?, true })
         res
       else
         module.run(args)
       end
+    end
+  end
+
+  # Recur dependencies inside umbrella
+  defp recur_deps(fun) do
+    lc Mix.Dep[app: app, opts: opts] inlist Mix.Deps.Umbrella.children do
+      Mix.Project.in_project(app, opts[:path], fun)
     end
   end
 

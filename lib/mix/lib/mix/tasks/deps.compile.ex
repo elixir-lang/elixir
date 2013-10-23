@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   """
 
-  import Mix.Deps, only: [ all: 0, available?: 1, by_name: 2, compile_paths: 1,
+  import Mix.Deps, only: [ all: 0, available?: 1, by_name: 2, compile_path: 1,
                            with_depending: 2, format_dep: 1, make?: 1, mix?: 1,
                            rebar?: 1 ]
 
@@ -64,10 +64,9 @@ defmodule Mix.Tasks.Deps.Compile do
           root_lockfile: Path.expand(Mix.project[:lockfile])
         ]
 
-        ebins = Enum.map compile_paths(dep), &String.to_char_list!/1
-
         # Avoid compilation conflicts
-        Enum.each ebins, fn ebin -> :code.del_path(ebin |> Path.expand) end
+        ebin = compile_path(dep) |> String.to_char_list! |> Path.expand
+        :code.del_path(ebin)
 
         compiled = cond do
           not nil?(opts[:compile]) ->
@@ -83,7 +82,7 @@ defmodule Mix.Tasks.Deps.Compile do
               "(pass :compile as an option to customize compilation, set it to false to do nothing)"
         end
 
-        Enum.each ebins, &Code.prepend_path/1
+        Code.prepend_path(ebin)
         compiled
       end
 
