@@ -311,7 +311,7 @@ defmodule KernelTest do
       assert [1] |> (&hd(&1)).() == 1
 
       import CompileAssertion
-      assert_compile_fail ArgumentError, "unsupported expression in pipeline |> operator: 2", "1 |> 2"
+      assert_compile_fail ArgumentError, "cannot pipe 1 into 2", "1 |> 2"
     end
 
     defp twice(a), do: a * 2

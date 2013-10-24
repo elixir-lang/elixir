@@ -24,8 +24,7 @@ defmodule Macro do
     [:!, :@, :^, :not, :+, :-, :~~~, :&]
   end
 
-  @typep precedence :: integer # Higher means binds stronger
-  @spec binary_op_props(atom) :: { :left|:right, precedence }
+  @spec binary_op_props(atom) :: { :left | :right, precedence :: integer }
   defp binary_op_props(o) do
     case o do
       :::                                                       -> {:right, 30}
@@ -46,6 +45,39 @@ defmodule Macro do
       :^^^                                                      -> {:left, 250}
       :.                                                        -> {:left, 310}
     end
+  end
+
+  @doc """
+  Breaks a pipeline expression into a list. Raises if
+  the pipeline is ill-formed.
+  """
+  @spec unpipe(Macro.t) :: [Macro.t]
+  def unpipe({ :|> , _, [left, right] }) do
+    [left|unpipe(right)]
+  end
+
+  def unpipe(other) do
+    [other]
+  end
+
+  @doc """
+  Pipes the given `expr` in to the `call_expr` as the
+  argument in the given `position`.
+  """
+  @spec pipe(Macro.t, Macro.t, integer) :: Macro.t | no_return
+  def pipe(expr, call_args, integer // 0)
+
+  def pipe(expr, { call, line, atom }, integer) when is_atom(atom) do
+    { call, line, List.insert_at([], integer, expr) }
+  end
+
+  def pipe(expr, { call, line, args }, integer) when is_list(args) do
+    { call, line, List.insert_at(args, integer, expr) }
+  end
+
+  def pipe(expr, call_args, _integer) do
+    raise ArgumentError,
+      message: "cannot pipe #{to_string expr} into #{to_string call_args}"
   end
 
   @doc """
@@ -93,7 +125,7 @@ defmodule Macro do
   @spec escape(term) :: Macro.t
   @spec escape(term, Keyword.t) :: Macro.t
   def escape(expr, opts // []) do
-    :elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)) |> elem(0)
+    elem(:elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)), 0)
   end
 
   @doc %S"""
@@ -498,7 +530,7 @@ defmodule Macro do
 
   """
   def expand_once(ast, env) do
-    expand_once(ast, env, nil) |> elem(0)
+    elem(expand_once(ast, env, nil), 0)
   end
 
   defp expand_once({ :__aliases__, _, _ } = original, env, cache) do
@@ -507,7 +539,7 @@ defmodule Macro do
         :elixir_tracker.record_alias(receiver, env.module)
         { receiver, true, cache }
       aliases ->
-        aliases = lc alias inlist aliases, do: (expand_once(alias, env, cache) |> elem(0))
+        aliases = lc alias inlist aliases, do: elem(expand_once(alias, env, cache), 0)
 
         case :lists.all(&is_atom/1, aliases) do
           true ->
@@ -600,7 +632,7 @@ defmodule Macro do
   expansion works and `expand_all/2` for recursive expansion.
   """
   def expand(tree, env) do
-    expand(tree, env, nil) |> elem(0)
+    elem(expand(tree, env, nil), 0)
   end
 
   @doc false # Used internally by Elixir
@@ -619,7 +651,7 @@ defmodule Macro do
   @doc false
   def expand_all(tree, env) do
     IO.write "Macro.expand_all/2 is deprecated, please avoid recursive code expansion\n#{Exception.format_stacktrace}"
-    expand_all(tree, env, nil) |> elem(0)
+    elem(expand_all(tree, env, nil), 0)
   end
 
   @doc false # Used internally by Elixir

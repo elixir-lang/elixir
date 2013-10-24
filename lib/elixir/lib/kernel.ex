@@ -3016,23 +3016,7 @@ defmodule Kernel do
 
   """
   defmacro left |> right do
-    pipeline_op(left, right)
-  end
-
-  defp pipeline_op(left, { :|>, _, [middle, right] }) do
-    pipeline_op(pipeline_op(left, middle), right)
-  end
-
-  defp pipeline_op(left, { call, line, atom }) when is_atom(atom) do
-    { call, line, [left] }
-  end
-
-  defp pipeline_op(left, { call, line, args }) when is_list(args) do
-    { call, line, [left|args] }
-  end
-
-  defp pipeline_op(_, arg) do
-    :erlang.error ArgumentError.exception(message: "unsupported expression in pipeline |> operator: #{Macro.to_string arg}")
+    :lists.foldl fn x, acc -> Macro.pipe(acc, x) end, left, Macro.unpipe(right)
   end
 
   @doc """

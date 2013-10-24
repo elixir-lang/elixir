@@ -412,4 +412,23 @@ defmodule MacroTest do
     env = env.module(nil)
     assert env.stacktrace == [{ :elixir_compiler, :__FILE__, 2, [file: "foo", line: 12] }]
   end
+
+  ## pipe/unpipe
+
+  test :pipe do
+    assert Macro.pipe(1, quote(do: foo)) == quote(do: foo(1))
+    assert Macro.pipe(1, quote(do: foo(2))) == quote(do: foo(1, 2))
+    assert Macro.pipe(1, quote(do: foo), -1) == quote(do: foo(1))
+    assert Macro.pipe(2, quote(do: foo(1)), -1) == quote(do: foo(1, 2))
+
+    assert_raise ArgumentError, "cannot pipe 1 into 2", fn ->
+      Macro.pipe(1, 2)
+    end
+  end
+
+  test :unpipe do
+    assert Macro.unpipe(quote(do: foo)) == quote(do: [foo])
+    assert Macro.unpipe(quote(do: foo |> bar)) == quote(do: [foo, bar])
+    assert Macro.unpipe(quote(do: foo |> bar |> baz)) == quote(do: [foo, bar, baz])
+  end
 end
