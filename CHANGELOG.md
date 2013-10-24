@@ -5,7 +5,9 @@
   * [IEx] Split `IEx.Evaluator` from `IEx.Server` to allow custom evaluators
   * [IEx] Add support for `IEx.pry` which halts a given process for inspection
   * [Kernel] Improve stacktraces on command line interfaces
+  * [Macro] Add `Macro.pipe/3` and `Macro.unpipe/1` for building pipelines
   * [Mix] Allow umbrella children to share dependencies between them
+  * [Mix] Allow mix to be escriptize'd
   * [Protocol] Protocols now provide `impl_for/1` and `impl_for!/1` functions which receive a structure and returns its respective implementation, otherwise returns nil or an error
   * [String] Update to Unicode 6.3.0
   * [String] Add `Enum.slice/2` with a range
@@ -14,6 +16,7 @@
   * [Exception] Ensure `defexception` fields can be set dynamically
   * [Kernel] Guarantee aliases hygiene is respected when the current module name is not known upfront
   * [Kernel] `Kernel.access/2` no longer flattens lists
+  * [Mix] Ensure cyclic dependencies are properly handled
   * [String] Implement the extended grapheme cluster algorithm for `String` operations
 
 * Deprecations
