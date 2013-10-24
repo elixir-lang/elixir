@@ -30,6 +30,7 @@
 * Backwards incompatible changes
   * [CLI] Reading `.elixirrc` has been dropped in favor of setting env vars
   * [Kernel] `Kernel.access/2` now expects the second argument to be a compile time list
+  * [Kernel] `fn -> end` quoted epression is no longer wrapped in a `do` keyword
   * [Mix] Umbrella apps now treat children apps as dependencies. This means all dependencies will be checked out in the umbrela `deps` directory. On upgrade, child apps need to point to the umbrella project by setting `deps_path: "../../deps_path", lockfile: "../../mix.lock"` in their project config
   * [Process] `Process.group_leader/2` args have been reversed so the "subject" comes first
   * [Protocol] Protocol no longer dispatches to `Number`, but to `Integer` and `Float`

@@ -967,14 +967,11 @@ defmodule Kernel.SpecialForms do
   @doc """
   Defines an anonymous function.
 
-  ## AST representation
+  ## Examples
 
-  Historically, `fn...end` was seen as a shortcut for
-  `function do...end` and today this is reflected in
-  the AST:
-
-      iex> quote do: fn :ok -> :done end
-      {:fn, [], [[do: {:->, [], [{[:ok], [], :done}]}]]}
+      iex> add = fn a, b -> a + b end
+      iex> add.(1, 2)
+      3
 
   """
   name = :fn

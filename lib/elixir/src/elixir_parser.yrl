@@ -544,7 +544,7 @@ extract_identifier(Other) -> Other.
 %% Fn
 
 build_fn(Op, Stab) ->
-  { fn, [{line,?line(Op)}], [[{ do, Stab }]] }.
+  { fn, [{line,?line(Op)}], [Stab] }.
 
 %% Access
 

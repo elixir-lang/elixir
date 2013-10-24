@@ -287,7 +287,7 @@ translate_each({ '&', Meta, [Arg] }, S) ->
   assert_no_match_or_guard_scope(Meta, '&', S),
   elixir_fn:capture(Meta, Arg, S);
 
-translate_each({ fn, Meta, [[{do, { '->', _, Pairs }}]] }, S) ->
+translate_each({ fn, Meta, [{ '->', _, Pairs }] }, S) ->
   assert_no_match_or_guard_scope(Meta, 'fn', S),
   elixir_fn:fn(Meta, Pairs, S);
 

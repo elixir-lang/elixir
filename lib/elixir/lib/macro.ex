@@ -274,16 +274,16 @@ defmodule Macro do
   end
 
   # Fn keyword
-  def to_string({ :fn, _, [[do: { :->, _, [{_, _, tuple}] } = arrow]] } = ast, fun)
+  def to_string({ :fn, _, [{ :->, _, [{_, _, tuple}] } = arrow] } = ast, fun)
       when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
     fun.(ast, "fn " <> arrow_to_string(arrow, fun) <> " end")
   end
 
-  def to_string({ :fn, _, [[do: { :->, _, [_] } = block]] } = ast, fun) do
+  def to_string({ :fn, _, [{ :->, _, [_] } = block] } = ast, fun) do
     fun.(ast, "fn " <> block_to_string(block, fun) <> "\nend")
   end
 
-  def to_string({ :fn, _, [[do: block]] } = ast, fun) do
+  def to_string({ :fn, _, [block] } = ast, fun) do
     block = adjust_new_lines block_to_string(block, fun), "\n  "
     fun.(ast, "fn\n  " <> block <> "\nend")
   end
