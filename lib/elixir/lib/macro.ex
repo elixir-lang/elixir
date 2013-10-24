@@ -81,7 +81,7 @@ defmodule Macro do
   end
 
   @doc """
-  Receives an expresion representing a possible definition
+  Receives an expression representing a possible definition
   and extracts its arguments. It returns a tuple with the
   function name and the arguments list or `:error` if not
   a valid call syntax.
