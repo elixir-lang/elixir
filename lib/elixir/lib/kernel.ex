@@ -2247,13 +2247,17 @@ defmodule Kernel do
       catch
         value ->
           IO.puts "caught \#{value}"
+      else
+        value ->
+          IO.puts "Success! The result was \#{value}"
       after
         IO.puts "This is printed regardless if it failed or succeed"
       end
 
   The rescue clause is used to handle exceptions, while the catch
-  clause can be used to catch thrown values. Both catch and rescue
-  clauses work based on pattern matching.
+  clause can be used to catch thrown values. The else clause can
+  be used to control flow based on the result of the expression.
+  Catch, rescue and else clauses work based on pattern matching.
 
   Note that calls inside `try` are not tail recursive since the VM
   needs to keep the stacktrace in case an exception happens.
@@ -2311,6 +2315,83 @@ defmodule Kernel do
 
   Although the second form should be avoided in favor of raise/rescue
   control mechanisms.
+
+  ## Else clauses
+
+  Else clauses allow the result of the expression to be pattern
+  matched on:
+
+      x = 2
+      try do
+        1 / x
+      rescue
+        ArithmeticError ->
+          :infinity
+      else
+        y when y < 1 and y > -1 ->
+          :small
+        _ ->
+          :large
+      end
+
+  If an else clause is not present the result of the expression will
+  be return, if no exceptions are raised:
+
+      x = 1
+      ^x =
+        try do
+          1 / x
+        rescue
+          ArithmeticError ->
+            :infinity
+        end
+
+  However when an else clause is present but the result of the expression
+  does not match any of the patterns an exception will be raised. This
+  exception will not be caught by a catch or rescue in the same try:
+
+      x = 1
+      try do
+        try do
+          1 / x
+        rescue
+          # The TryClauseError can not be rescued here:
+          TryClauseError ->
+            :error_a
+        else
+          0 ->
+            :small
+        end
+      rescue
+        # The TryClauseError is rescued here:
+        TryClauseError ->
+          :error_b
+      end
+
+  Similarly an exception inside an else clause is not caught or rescued
+  inside the same try:
+
+      try do
+        try do
+          nil
+        catch
+          # The exit(1) call below can not be caught here:
+          :exit, _ ->
+            :exit_a
+        else
+          _ ->
+            exit(1)
+        end
+      catch
+        # The exit is caught here:
+        :exit, _ ->
+          :exit_b
+      end
+
+  This means the VM nolonger needs to keep the stacktrace once inside
+  an else clause and so tail recursion is possible when using a `try`
+  with a tail call as the final call inside an else clause. The same
+  is true for rescue and catch clauses.
 
   ## Variable visibility
 

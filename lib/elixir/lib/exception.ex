@@ -39,6 +39,12 @@ defexception CaseClauseError, [actual: nil] do
   end
 end
 
+defexception TryClauseError, [actual: nil] do
+  def message(exception) do
+    "no try clause matching: #{inspect(exception.actual)}"
+  end
+end
+
 defexception BadArityError, [function: nil, args: nil] do
   def message(exception) do
     "bad arity error: #{inspect(exception.function)} called with #{inspect(exception.args)}"
@@ -144,6 +150,10 @@ defmodule Exception do
 
   def normalize({ :case_clause, actual }) do
     CaseClauseError[actual: actual]
+  end
+
+  def normalize({ :try_clause, actual }) do
+    TryClauseError[actual: actual]
   end
 
   def normalize(:undef) do

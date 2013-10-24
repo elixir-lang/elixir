@@ -150,7 +150,8 @@ rescue_each_ref(Meta, Var, [H|T], Elixir, Erlang, _Safe, S) when
   H == 'Elixir.ArgumentError'; H == 'Elixir.ArithmeticError';
   H == 'Elixir.BadArityError'; H == 'Elixir.BadFunctionError';
   H == 'Elixir.MatchError'; H == 'Elixir.CaseClauseError';
-  H == 'Elixir.FunctionClauseError'; H == 'Elixir.SystemLimitError' ->
+  H == 'Elixir.TryClauseError'; H == 'Elixir.FunctionClauseError';
+  H == 'Elixir.SystemLimitError' ->
   Expr = { 'or', Meta, [
     erlang_rescue_guard_for(Meta, Var, H),
     exception_compare(Meta, Var, H)
@@ -176,8 +177,8 @@ rescue_each_ref(_, _, [], Elixir, Erlang, Safe, _) ->
 erlang_rescues() ->
   [
     'Elixir.UndefinedFunctionError', 'Elixir.ArgumentError', 'Elixir.ArithmeticError', 'Elixir.BadArityError',
-    'Elixir.BadFunctionError', 'Elixir.MatchError', 'Elixir.CaseClauseError', 'Elixir.FunctionClauseError',
-    'Elixir.SystemLimitError', 'Elixir.ErlangError'
+    'Elixir.BadFunctionError', 'Elixir.MatchError', 'Elixir.CaseClauseError', 'Elixir.TryClauseError',
+    'Elixir.FunctionClauseError', 'Elixir.SystemLimitError', 'Elixir.ErlangError'
   ].
 
 erlang_rescue_guard_for(Meta, Var, List) when is_list(List) ->
@@ -217,6 +218,12 @@ erlang_rescue_guard_for(Meta, Var, 'Elixir.CaseClauseError') ->
   { 'and', Meta, [
     { is_tuple, Meta, [Var] },
     exception_compare(Meta, Var, case_clause)
+  ] };
+
+erlang_rescue_guard_for(Meta, Var, 'Elixir.TryClauseError') ->
+  { 'and', Meta, [
+    { is_tuple, Meta, [Var] },
+    exception_compare(Meta, Var, try_clause)
   ] };
 
 erlang_rescue_guard_for(Meta, Var, 'Elixir.ArgumentError') ->
