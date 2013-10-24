@@ -9,8 +9,8 @@ defmodule System do
     message: "could not get a current working directory, the current location is not accessible"
 
   @moduledoc """
-  The System module provides access to some variables used or
-  maintained by the VM and to functions that interact strongly
+  The System module provides access to variables used or
+  maintained by the VM and to functions that interact directly
   with the VM or the host system.
   """
 
@@ -57,13 +57,17 @@ defmodule System do
   end
 
   @doc """
+  Elixir version information.
+
   Returns Elixir's version as binary.
   """
   @spec version() :: String.t
   def version, do: get_version
 
   @doc """
-  Returns a keywords list with version, git tag info and date.
+  Elixir build information.
+
+  Returns a keyword list with Elixir version, git tag info and compilation date.
   """
   @spec build_info() :: Keyword.t
   def build_info do
@@ -71,7 +75,9 @@ defmodule System do
   end
 
   @doc """
-  Returns the list of command-line arguments passed to the program.
+  List command line arguments.
+
+  Returns the list of command line arguments passed to the program.
   """
   @spec argv() :: [String.t]
   def argv do
@@ -79,15 +85,19 @@ defmodule System do
   end
 
   @doc """
-  Changes the list of command-line arguments. Use it with caution,
-  as it destory any previous argv information.
+  Modify command line arguments.
+
+  Changes the list of command line arguments. Use it with caution,
+  as it destroys any previous argv information.
   """
   @spec argv([String.t]) :: :ok
-  def argv(argv) do
-    :elixir_code_server.cast({ :argv, argv })
+  def argv(args) do
+    :elixir_code_server.cast({ :argv, args })
   end
 
   @doc """
+  Current working directory.
+
   Returns the current working directory or `nil` if one
   is not available.
   """
@@ -99,6 +109,8 @@ defmodule System do
   end
 
   @doc """
+  Current working directory, exception on error.
+
   Returns the current working directory or raises `System.NoAccessCwdError`.
   """
   def cwd! do
@@ -106,8 +118,10 @@ defmodule System do
   end
 
   @doc """
-  Returns the user home (platform independent).
-  It returns `nil` if no user home is set.
+  User home directory.
+
+  Returns the user home directory (platform independent).
+  Returns `nil` if no user home is set.
   """
   def user_home do
     case :os.type() do
@@ -117,6 +131,8 @@ defmodule System do
   end
 
   @doc """
+  User home directory, exception on error.
+
   Same as `user_home/0` but raises `System.NoHomeError`
   instead of returning `nil` if no user home is set.
   """
@@ -139,8 +155,10 @@ defmodule System do
   end
 
   @doc %S"""
+  Writable temporary directory.
+
   Returns a writable temporary directory.
-  It searches for directories in the following order:
+  Searches for directories in the following order:
 
   1. The directory named by the TMPDIR environment variable
   2. The directory named by the TEMP environment variable
@@ -159,7 +177,9 @@ defmodule System do
   end
 
   @doc """
-  Same as `tmp_dir` but raises `System.NoTmpDirError`
+  Writable temporary directory, exception on error.
+
+  Same as `tmp_dir/0` but raises `System.NoTmpDirError`
   instead of returning `nil` if no temp dir is set.
   """
   def tmp_dir! do
@@ -189,18 +209,22 @@ defmodule System do
   end
 
   @doc """
+  Register a program exit handler function.
+
   Registers a function that will be invoked
   at the end of program execution. Useful for
-  invoking a hook in a "script" mode.
+  invoking a hook in "script" mode.
 
-  The function must expect the exit status code
-  as argument.
+  The function must receive the exit status code
+  as an argument.
   """
   def at_exit(fun) when is_function(fun, 1) do
     :elixir_code_server.cast { :at_exit, fun }
   end
 
   @doc """
+  Execute a system command.
+
   Executes `command` in a command shell of the target OS,
   captures the standard output of the command and returns
   the result as a binary.
@@ -222,6 +246,8 @@ defmodule System do
   end
 
   @doc """
+  Locate an executable on the system.
+
   This function looks up an executable program given
   its name using the environment variable PATH on Unix
   and Windows. It also considers the proper executable
@@ -248,6 +274,8 @@ defmodule System do
   end
 
   @doc """
+  System environment variables.
+
   Returns a list of all environment variables. Each variable is given as a
   `{name, value}` tuple where both `name` and `value` are strings.
   """
@@ -261,6 +289,8 @@ defmodule System do
   end
 
   @doc """
+  Environment variable value.
+
   Returns the value of the environment variable
   `varname` as a binary, or `nil` if the environment
   variable is undefined.
@@ -274,6 +304,8 @@ defmodule System do
   end
 
   @doc """
+  Erlang VM process identifier.
+
   Returns the process identifier of the current Erlang emulator
   in the format most commonly used by the operating system environment.
 
@@ -283,6 +315,8 @@ defmodule System do
   def get_pid, do: iolist_to_binary(:os.getpid)
 
   @doc """
+  Set an environment variable value.
+
   Sets a new `value` for the environment variable `varname`.
   """
   @spec put_env(binary, binary) :: :ok
@@ -292,6 +326,8 @@ defmodule System do
   end
 
   @doc """
+  Set multiple environment variables.
+
   Sets a new value for each environment variable corresponding
   to each key in `dict`.
   """
@@ -301,9 +337,9 @@ defmodule System do
   end
 
   @doc """
-  Gets Elixir's stacktrace.
+  Last exception stacktrace.
 
-  Notice the Erlang VM (and therefore this function) does not
+  Note that the Erlang VM (and therefore this function) does not
   return the current stacktrace but rather the stacktrace of the
   latest exception.
   """
@@ -312,11 +348,13 @@ defmodule System do
   end
 
   @doc """
-  Halts the Erlang runtime system where the first argument status must be a
+  Halt the Erlang runtime system.
+
+  Halts the Erlang runtime system where the argument `status` must be a
   non-negative integer, the atom `:abort` or a binary.
 
   * If an integer, the runtime system exits with the integer value which
-    is returned to the Operating System;
+    is returned to the operating system;
 
   * If `:abort`, the runtime system aborts producing a core dump, if that is
     enabled in the operating system;
