@@ -40,14 +40,23 @@ extract(Line, File, true, [$}|Rest], Buffer, [$}], Output, Last) ->
 
 %% Check for available separators inside interpolation
 
-extract(Line, File, Interpol, [C|Rest], Buffer, [C|Search], Output, Last) when C == $); C == $]; C == $}; C == $>; C == $"; C == $' ->
+extract(Line, File, Interpol, [$\\,C|Rest], Buffer, [C|_] = Search, Output, Last) when C == $"; C == $' ->
+  extract(Line, File, Interpol, Rest, [C,$\\|Buffer], Search, Output, Last);
+
+extract(Line, File, Interpol, [D|Rest], Buffer, [C|_] = Search, Output, Last) when (C == $" orelse C == $') andalso C /= D ->
+  extract(Line, File, Interpol, Rest, [D|Buffer], Search, Output, Last);
+
+extract(Line, File, Interpol, [C|Rest], Buffer, [C|Search], Output, Last) when C == $); C == $]; C == $}; C == $"; C == $' ->
   extract(Line, File, Interpol, Rest, [C|Buffer], Search, Output, Last);
+
+extract(Line, File, Interpol, [$>,$>|Rest], Buffer, [$>,$>|Search], Output, Last) ->
+  extract(Line, File, Interpol, Rest, [$>,$>|Buffer], Search, Output, Last);
 
 extract(Line, File, Interpol, [C|Rest], Buffer, [_|_] = Search, Output, Last) when C == $"; C == $' ->
   extract(Line, File, Interpol, Rest, [C|Buffer], [C|Search], Output, Last);
 
-extract(Line, File, Interpol, [$<|Rest], Buffer, [_|_] = Search, Output, Last) ->
-  extract(Line, File, Interpol, Rest, [$<|Buffer], [$>|Search], Output, Last);
+extract(Line, File, Interpol, [$<,$<|Rest], Buffer, [_|_] = Search, Output, Last) ->
+  extract(Line, File, Interpol, Rest, [$<,$<|Buffer], [$>,$>|Search], Output, Last);
 
 extract(Line, File, Interpol, [${|Rest], Buffer, [_|_] = Search, Output, Last) ->
   extract(Line, File, Interpol, Rest, [${|Buffer], [$}|Search], Output, Last);
