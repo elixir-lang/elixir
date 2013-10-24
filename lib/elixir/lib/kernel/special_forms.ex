@@ -965,6 +965,22 @@ defmodule Kernel.SpecialForms do
   defmacro bc(args)
 
   @doc """
+  Defines an anonymous function.
+
+  ## AST representation
+
+  Historically, `fn...end` was seen as a shortcut for
+  `function do...end` and today this is reflected in
+  the AST:
+
+      iex> quote do: fn :ok -> :done end
+      {:fn, [], [[do: {:->, [], [{[:ok], [], :done}]}]]}
+
+  """
+  name = :fn
+  defmacro unquote(name)(clauses)
+
+  @doc """
   Internal special form for block expressions.
 
   This is the special form used whenever we have a block
