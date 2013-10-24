@@ -49,6 +49,24 @@ extract_interpolations_with_right_curly_inside_string_inside_interpolation_test(
   { binary, _ , _ }]},
   <<"o">>] = extract_interpolations("f#{\"f}o\"}o").
 
+extract_interpolations_with_left_curly_inside_string_inside_interpolation_test() ->
+  [<<"f">>,
+  {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Kernel',to_string]},[{line,1}],[<<"f{o">>]},
+  { binary, _ , _ }]},
+  <<"o">>] = extract_interpolations("f#{\"f{o\"}o").
+
+extract_interpolations_with_escaped_quote_inside_string_inside_interpolation_test() ->
+  [<<"f">>,
+  {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Kernel',to_string]},[{line,1}],[<<"f\"o">>]},
+  { binary, _ , _ }]},
+  <<"o">>] = extract_interpolations("f#{\"f\\\"o\"}o").
+
+extract_interpolations_with_less_than_operation_inside_interpolation_test() ->
+  [<<"f">>,
+  {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Kernel',to_string]},[{line,1}],[{'<',[{line,1}],[1,2]}]},
+  { binary, _ , _ }]},
+  <<"o">>] = extract_interpolations("f#{1<2}o").
+
 extract_interpolations_with_invalid_expression_inside_interpolation_test() ->
   ?assertThrow({interpolation_error, { 1, "invalid token: ", ":1" } }, extract_interpolations("f#{:1}o")).
 
