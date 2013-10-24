@@ -215,6 +215,22 @@ defmodule Kernel.RescueTest do
     assert result == "no case clause matching: :other"
   end
 
+  test :try_clause_error do
+    f = fn() -> :example end
+    result = try do
+      try do
+        f.()
+      else
+        :other ->
+          :ok
+      end
+    rescue
+      x in [TryClauseError] -> x.message
+    end
+
+    assert result == "no try clause matching: :example"
+  end
+
   test :undefined_function_error_from_expected_variable do
     expected = UndefinedFunctionError
     result = try do
