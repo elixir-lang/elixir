@@ -37,8 +37,7 @@ defmodule Mix.GeneratorTest do
       create_file "foo", "WORLD"
       assert File.read!("foo") == "WORLD"
 
-      msg = Path.expand("foo") <> " already exists, overwrite?"
-      assert_received { :mix_shell, :yes?, [^msg] }
+      assert_received { :mix_shell, :yes?, ["foo already exists, overwrite?"] }
     end
   end
 
@@ -50,8 +49,7 @@ defmodule Mix.GeneratorTest do
       create_file "foo", "WORLD"
       assert File.read!("foo") == "HELLO"
 
-      msg = Path.expand("foo") <> " already exists, overwrite?"
-      assert_received { :mix_shell, :yes?, [^msg] }
+      assert_received { :mix_shell, :yes?, ["foo already exists, overwrite?"] }
     end
   end
 end
