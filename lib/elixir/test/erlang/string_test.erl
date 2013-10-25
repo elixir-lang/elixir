@@ -7,7 +7,8 @@ eval(Content) ->
   { Value, Binding }.
 
 extract_interpolations(String) ->
-  element(2, elixir_interpolation:extract(1, <<"nofile">>, true, String ++ [$"], $")).
+  element(2, elixir_interpolation:extract(1,
+    #elixir_tokenizer{file = <<"nofile">>}, true, String ++ [$"], $")).
 
 % Interpolations
 
@@ -39,7 +40,7 @@ extract_interpolations_with_tuple_inside_interpolation_test() ->
 
 extract_interpolations_with_many_expressions_inside_interpolation_test() ->
   [<<"f">>,
-  {'::',[{line,2}],[{{'.',[{line,2}],['Elixir.Kernel',to_string]},[{line,2}],[{'__block__',[{line,2}],[1,2]}]},
+  {'::',[{line,1}],[{{'.',[{line,1}],['Elixir.Kernel',to_string]},[{line,1}],[{'__block__',[{line,1}],[1,2]}]},
   { binary, _ , _ }]},
   <<"o">>] = extract_interpolations("f#{1\n2}o").
 
@@ -68,7 +69,7 @@ extract_interpolations_with_less_than_operation_inside_interpolation_test() ->
   <<"o">>] = extract_interpolations("f#{1<2}o").
 
 extract_interpolations_with_invalid_expression_inside_interpolation_test() ->
-  ?assertThrow({interpolation_error, { 1, "invalid token: ", ":1" } }, extract_interpolations("f#{:1}o")).
+  {1,"invalid token: ",":1}o\""} = extract_interpolations("f#{:1}o").
 
 %% Bin strings
 

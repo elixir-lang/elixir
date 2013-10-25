@@ -3,11 +3,11 @@
 -include_lib("eunit/include/eunit.hrl").
 
 tokenize(String) ->
-  { ok, Result } = elixir_tokenizer:tokenize(String, 1, []),
+  { ok, _Line, Result } = elixir_tokenizer:tokenize(String, 1, []),
   Result.
 
 tokenize_error(String) ->
-  { error, Error } = elixir_tokenizer:tokenize(String, 1, []),
+  { error, Error, _, _ } = elixir_tokenizer:tokenize(String, 1, []),
   Error.
 
 type_test() ->

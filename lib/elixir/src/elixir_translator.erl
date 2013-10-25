@@ -13,16 +13,16 @@
 
 forms(String, StartLine, File, Opts) ->
   try elixir_tokenizer:tokenize(String, StartLine, [{ file, File }|Opts]) of
-    { ok, Tokens } ->
+    { ok, _Line, Tokens } ->
       try elixir_parser:parse(Tokens) of
         { ok, Forms } -> { ok, Forms };
         { error, { Line, _, [Error, Token] } } -> { error, { Line, Error, Token } }
       catch
         { error, { Line, _, [Error, Token] } } -> { error, { Line, Error, Token } }
       end;
-    { error, { _, _, _ } } = Else -> Else
+    { error, Reason, _Rest, _SoFar  } -> { error, Reason }
   catch
-    { interpolation_error, { _, _, _ } = Tuple} -> { error, Tuple }
+    { interpolation_error, { _, _, _ } = Tuple } -> { error, Tuple }
   end.
 
 'forms!'(String, StartLine, File, Opts) ->

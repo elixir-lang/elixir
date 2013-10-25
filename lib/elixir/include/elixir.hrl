@@ -45,6 +45,13 @@
   escape=false
 }).
 
+-record(elixir_tokenizer, {
+  file,
+  terminators=[],
+  check_terminators=true,
+  existing_atoms_only=false
+}).
+
 %% Introspection
 -define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
 
