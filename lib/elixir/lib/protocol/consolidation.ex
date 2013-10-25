@@ -92,6 +92,15 @@ defmodule Protocol.Consolidation do
     end
   end
 
+  defmacrop if_ok(expr, call) do
+    quote do
+      case unquote(expr) do
+        { :ok, var } -> unquote(Macro.pipe(quote(do: var), call))
+        other -> other
+      end
+    end
+  end
+
   @doc """
   Receives a protocol and a list of implementations and
   consolidates the given protocol. Consolidation happens
@@ -115,16 +124,6 @@ defmodule Protocol.Consolidation do
     { :ok, binary } |
     { :error, :not_a_protocol } |
     { :error, :no_beam_info }
-
-  defmacrop if_ok(expr, call) do
-    quote do
-      case unquote(expr) do
-        { :ok, var } -> unquote(Macro.pipe(quote(do: var), call))
-        other -> other
-      end
-    end
-  end
-
   def apply_to(protocol, types) when is_atom(protocol) do
     ensure_protocol(protocol)
     |> if_ok(change_debug_info types)
