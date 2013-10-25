@@ -1330,7 +1330,7 @@ defmodule Kernel do
       user = User[]
       #=> User[name: nil, age: 0]
 
-      User[user, name: "José", age: 25]
+      User[name: "José", age: 25]
       #=> User[name: "José", age: 25]
 
   And also a set of functions for working with the record
