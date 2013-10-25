@@ -166,47 +166,47 @@ tokenize([$%,S,H|T] = Original, Line, Scope, Tokens) when not(?is_identifier(H))
 % Char tokens
 
 tokenize([$?,$\\,P,${,A,B,C,D,E,F,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,P,${,A,B,C,D,E,F,$}]))),
+  Char = escape_char([$\\,P,${,A,B,C,D,E,F,$}]),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
 tokenize([$?,$\\,P,${,A,B,C,D,E,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,P,${,A,B,C,D,E,$}]))),
+  Char = escape_char([$\\,P,${,A,B,C,D,E,$}]),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
 tokenize([$?,$\\,P,${,A,B,C,D,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,P,${,A,B,C,D,$}]))),
+  Char = escape_char([$\\,P,${,A,B,C,D,$}]),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
 tokenize([$?,$\\,P,${,A,B,C,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,P,${,A,B,C,$}]))),
+  Char = escape_char([$\\,P,${,A,B,C,$}]),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
 tokenize([$?,$\\,P,${,A,B,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,P,${,A,B,$}]))),
+  Char = escape_char([$\\,P,${,A,B,$}]),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
 tokenize([$?,$\\,P,${,A,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,P,${,A,$}]))),
+  Char = escape_char([$\\,P,${,A,$}]),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
 tokenize([$?,$\\,P,A,B|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,P,A,B]))),
+  Char = escape_char([$\\,P,A,B]),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
 tokenize([$?,$\\,P,A|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,P,A]))),
+  Char = escape_char([$\\,P,A]),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
 tokenize([$?,$\\,A,B,C|T], Line, Scope, Tokens) when ?is_octal(A), A =< $3,?is_octal(B), ?is_octal(C) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,A,B,C]))),
+  Char = escape_char([$\\,A,B,C]),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
 tokenize([$?,$\\,A,B|T], Line, Scope, Tokens) when ?is_octal(A), ?is_octal(B) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,A,B]))),
+  Char = escape_char([$\\,A,B]),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
 tokenize([$?,$\\,A|T], Line, Scope, Tokens) when ?is_octal(A) ->
-  [Char] = unicode:characters_to_list(elixir_interpolation:unescape_chars(list_to_binary([$\\,A]))),
+  Char = escape_char([$\\,A]),
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
 tokenize([$?,$\\,H|T], Line, Scope, Tokens) ->
@@ -523,6 +523,10 @@ until_eol("\r\n" ++ _) -> [];
 until_eol("\n" ++ _)   -> [];
 until_eol([])          -> [];
 until_eol([H|T])       -> [H|until_eol(T)].
+
+escape_char(List) ->
+  << Char/utf8 >> = elixir_interpolation:unescape_chars(list_to_binary(List)),
+  Char.
 
 %% Handlers
 
