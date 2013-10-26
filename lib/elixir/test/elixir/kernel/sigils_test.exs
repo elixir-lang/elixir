@@ -95,4 +95,14 @@ defmodule Kernel.SigilsTest do
     assert %W(Foo #{Bar})a == [:"Foo", :"\#{Bar}"]
     assert %W(Foo.Bar.Baz)a == [:"Foo.Bar.Baz"]
   end
+
+  test :sigils_matching do
+    assert %s(f(o)o) == "f(o)o"
+    assert %s(f\(oo) == "f(oo"
+    assert %s(fo\)o) == "fo)o"
+    assert %s(f\(o\)o) == "f(o)o"
+
+    assert %s(f[oo) == "f[oo"
+    assert %s(fo]o) == "fo]o"
+  end
 end

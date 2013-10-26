@@ -5,6 +5,7 @@
   * [IEx] Split `IEx.Evaluator` from `IEx.Server` to allow custom evaluators
   * [IEx] Add support for `IEx.pry` which halts a given process for inspection
   * [Kernel] Improve stacktraces on command line interfaces
+  * [Kernel] Sigils can now handle balanced tokens as in `%s(f(o)o)`
   * [Macro] Add `Macro.pipe/3` and `Macro.unpipe/1` for building pipelines
   * [Mix] Allow umbrella children to share dependencies between them
   * [Mix] Allow mix to be escriptize'd
