@@ -1,15 +1,13 @@
 defmodule Version do
   @moduledoc %S"""
-  This module provides functions for parsing and matching
-  versions with requirements.
+  Functions for parsing and matching versions against requirements.
 
-  A version is a string or a `Version.Schema` generated
-  after parsing via `Version.parse/1`. A requirement is
-  a string that follows a specific format.
+  A version is a string in a specific format or a `Version.Schema` 
+  generated after parsing via `Version.parse/1`.
 
-  `Version` parsing and requirements follows
+  `Version` parsing and requirements follow
   [SemVer 2.0 schema](http://semver.org/) and you will get
-  the most of Mix' version system by following it. In order
+  the most of Mix's version system by following it. In order
   to support integration with projects that may
   follow different versioning schemas, Elixir won't choke
   on unknown versions, however you won't be able to use
@@ -33,7 +31,7 @@ defmodule Version do
 
   Requirements allow you to specify which versions of a given
   dependency you are willing to work against. It supports common
-  operators like `>=`, `<=`, `>`, `==` and friends that would
+  operators like `>=`, `<=`, `>`, `==` and friends that 
   work as one would expect:
 
       # Only version 2.0.0
@@ -79,7 +77,18 @@ defmodule Version do
   end
 
   @doc """
-  Checks if the given version matches the specification.
+  Check if the given version matches the specification.
+
+  Returns `true` if `version` satisfies `requirement`, `false` otherwise.
+  Raises a `Version.InvalidRequirement` exception if `requirement` is not parseable. 
+
+  ## Examples
+
+      iex> Version.match?("2.0", ">1.0")
+      true
+      iex> Version.match?("2.0", "==1.0")
+      false
+
   """
   @spec match?(t, requirement) :: boolean
   def match?(version, requirement) when is_binary(requirement) do
@@ -105,7 +114,15 @@ defmodule Version do
   end
 
   @doc """
-  Checks if a version string is compatible with [semver](http://semver.org/).
+  Check if a version string is compatible with [semver](http://semver.org/).
+
+  ## Examples
+
+      iex> Version.valid?("2.0")
+      true
+      iex> Version.valid?("invalid")
+      false
+
   """
   @spec valid?(String.t | Schema.t) :: boolean
   def valid?(string) when is_binary(string) do
@@ -116,7 +133,13 @@ defmodule Version do
   def valid?(Version.Schema[]),           do: true
 
   @doc """
-  Parse a version into a matchable value.
+  Parse a version string into a `Version.Schema`.
+
+  ## Examples
+
+      > Version.parse("2.0.1-alpha1")
+      #Version.Schema<2.0.1-alpha1>
+
   """
   @spec parse(String.t) :: Schema.t
   def parse(string) when is_binary(string) do
@@ -137,7 +160,13 @@ defmodule Version do
   end
 
   @doc """
-  Get the matchable representation.
+  Convert a version to a `Version.matchable`
+
+  ## Examples
+
+      iex> Version.to_matchable("2.0.1-alpha.1")
+      {2, 0, 1, ["alpha", 1]}
+
   """
   @spec to_matchable(String.t | Schema.t) :: Version.matchable
   def to_matchable(Schema[major: nil, source: source]) do
@@ -157,7 +186,13 @@ defmodule Version do
   end
 
   @doc """
-  Convert a matchable to a `Version`.
+  Convert a matchable to a `Version.Schema`.
+
+  ## Examples
+
+      > Version.from_matchable({2, 0, 1, ["alpha", 1]})
+      #Version.Schema<2.0.1-alpha.1>
+
   """
   @spec from_matchable(Version.matchable) :: Schema.t
   def from_matchable({ source, nil, nil, nil }) when is_binary(source) do
