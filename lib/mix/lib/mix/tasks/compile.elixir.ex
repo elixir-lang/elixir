@@ -5,73 +5,59 @@ defmodule Mix.Tasks.Compile.Elixir do
     use GenServer.Behaviour
     @moduledoc false
 
-    def files_to_path(manifest, stale, all, compile_path, on_start) do
+    def files_to_path(manifest, changed, all, compile_path, on_start) do
       all_entries = read_manifest(manifest)
 
-      # Each manifest entry that is not in all must be removed
-      entries = lc { beam, _m, source, _d } = entry inlist all_entries,
-                   is_in_list_or_remove(source, all, beam),
-                   do: entry
+      removed =
+        lc { _b, _m, source, _d } inlist all_entries, not(source in all), do: source
 
-      stale =
-        if Enum.any?(stale, &not(&1 in all)) do
-          # Any stale file not in all triggers whole compilation
-          # It means a file was removed
+      changed =
+        if Enum.any?(changed, &not(&1 in all)) do
+          # Any changed file not in all triggers whole compilation
+          # because it is an external file (like config)
           all
         else
-          # Otherwise compile only stale. Each entry in all
-          # that's not in the manifest is also considered stale
-          stale ++ lc i inlist all,
-                      not Enum.any?(entries, fn { _b, _m, s, _d } -> s == i end),
-                      do: i
+          # Otherwise compile changed plus each entry in all that's
+          # not in the manifest (i.e. new files)
+          (changed ++ lc i inlist all,
+                         not Enum.any?(all_entries, fn { _b, _m, s, _d } -> s == i end),
+                         do: i)
         end
+
+      { entries, changed } = remove_stale_entries(all_entries, removed ++ changed, [], [])
+
+      # Remove files are not going to be compiled
+      stale = changed -- removed
 
       cond do
         stale != [] ->
           on_start.()
+          cwd = File.cwd!
+
           # Starts a server responsible for keeping track which files
-          # were compiled and the dependencies in between them. For every
-          # module compiled, we check which dependencies were affected
-          # and which files should be compiled next until we reach no-op.
+          # were compiled and the dependencies in between them.
           { :ok, pid } = :gen_server.start_link(__MODULE__, entries, [])
 
           try do
-            do_files_to_path(pid, entries, stale, compile_path, System.cwd)
-            :gen_server.cast(pid, :merge)
+            Kernel.ParallelCompiler.files :lists.usort(stale),
+              each_module: &each_module(pid, compile_path, cwd, &1, &2, &3),
+              each_file: &each_file(&1)
           after
             :gen_server.call(pid, { :stop, manifest })
           end
 
           :ok
-        all_entries != entries ->
+        removed != [] ->
           :ok
         true ->
           :noop
       end
     end
 
-    defp is_in_list_or_remove(source, all, beam) do
-      if source in all do
-        true
-      else
-        File.rm(beam)
-        false
-      end
-    end
-
-    defp do_files_to_path(_pid, _entries, [], _compile_path, _cwd), do: :ok
-    defp do_files_to_path(pid, entries, files, compile_path, cwd) do
-      Kernel.ParallelCompiler.files :lists.usort(files),
-        each_module: &each_module(pid, compile_path, cwd, &1, &2, &3),
-        each_file: &each_file(&1),
-        each_waiting: &each_waiting(entries, &1)
-
-      do_files_to_path(pid, entries, :gen_server.call(pid, :next), compile_path, cwd)
-    end
-
     defp each_module(pid, compile_path, cwd, source, module, binary) do
       bin  = atom_to_binary(module)
       beam = Path.join(compile_path, bin <> ".beam")
+      File.write!(beam, binary)
 
       deps = Module.DispatchTracker.aliases(module) ++
              Module.DispatchTracker.remotes(module) ++
@@ -79,20 +65,48 @@ defmodule Mix.Tasks.Compile.Elixir do
       deps = deps |> :lists.usort |> Enum.map(&atom_to_binary(&1))
 
       relative = if cwd, do: Path.relative_to(source, cwd), else: source
-      :gen_server.cast(pid, { :store, beam, bin, relative, deps, binary })
+      :gen_server.cast(pid, { :store, beam, bin, relative, deps })
     end
 
     defp each_file(file) do
       Mix.shell.info "Compiled #{file}"
     end
 
-    defp each_waiting(entries, module) do
-      module = atom_to_binary(module)
-      Enum.find_value(entries, fn
-        { _b, m, s, _d } when m == module -> s
-        _ -> nil
-      end)
+    ## Resolution
+
+    # This function receives the manifest entries and some source
+    # files that have changed. It then, recursively, figures out
+    # all the files that changed (thanks to the dependencies) and
+    # return their sources as the remaining entries.
+    defp remove_stale_entries(all, []) do
+      { all, [] }
     end
+
+    defp remove_stale_entries(all, changed) do
+      remove_stale_entries(all, :lists.usort(changed), [], [])
+    end
+
+    defp remove_stale_entries([{ beam, module, source, _d } = entry|t], changed, removed, acc) do
+      if source in changed do
+        File.rm(beam)
+        remove_stale_entries(t, changed, [module|removed], acc)
+      else
+        remove_stale_entries(t, changed, removed, [entry|acc])
+      end
+    end
+
+    defp remove_stale_entries([], changed, removed, acc) do
+      # If any of the dependencies for the remaining entries
+      # were removed, get its source so we can removed them.
+      next_changed = lc { _b, _m, source, deps } inlist acc,
+                      Enum.any?(deps, &(&1 in removed)),
+                      do: source
+
+      { acc, next } = remove_stale_entries(Enum.reverse(acc), next_changed)
+      { acc, next ++ changed }
+    end
+
+    ## Manifest handling
 
     # Reads the manifest returning the results as tuples.
     # The beam files are read, removed and stored in memory.
@@ -108,68 +122,35 @@ defmodule Mix.Tasks.Compile.Elixir do
     end
 
     # Writes the manifest separating entries by tabs.
-    defp write_manifest(manifest, entries, modules) do
+    defp write_manifest(_manifest, []) do
+      :ok
+    end
+
+    defp write_manifest(manifest, entries) do
       lines = Enum.map(entries, fn
-        { beam, module, source, deps, binary } ->
-          File.write!(beam, binary)
-          deps = Enum.filter(deps, &(&1 in modules))
+        { beam, module, source, deps } ->
           [beam, module, source | deps] |> Enum.join("\t")
       end)
-
-      manifest && Mix.Utils.write_manifest(manifest, lines)
+      Mix.Utils.write_manifest(manifest, lines)
     end
 
     # Callbacks
 
     def init(entries) do
-      entries =
-        Enum.reduce entries, [], fn
-          { beam, module, source, deps }, acc ->
-            case File.read(beam) do
-              { :ok, binary } ->
-                File.rm(beam)
-                [{ beam, module, source, deps, binary }|acc]
-              { :error, _ } ->
-                acc
-            end
-        end
-
-      { :ok, { entries, [] } }
+      { :ok, entries }
     end
 
-    def handle_call(:next, _from, { old, new }) do
-      modules = lc { _b, module, _s, _d, _y } inlist new, do: module
-      sources = lc { _b, _m, source, _d, _y } inlist new, do: source
-
-      # For each previous entry in the manifest that
-      # had its dependency changed and it was not yet
-      # compiled, get its source as next
-      next = lc { _b, module, source, deps, _y } inlist old,
-                Enum.any?(modules, &(&1 in deps)),
-                not(module in modules),
-                not(source in sources),
-                do: source
-
-      { :reply, next, { old, new } }
-    end
-
-    def handle_call({ :stop, manifest }, _from, { old, new }) do
-      modules = lc { _b, m, _s, _d, _y } inlist old, do: m
-      write_manifest(new == [] && manifest, old, modules)
-      { :stop, :normal, :ok, { old, new } }
+    def handle_call({ :stop, manifest }, _from, entries) do
+      write_manifest(manifest, entries)
+      { :stop, :normal, :ok, entries }
     end
 
     def handle_call(msg, from, state) do
       super(msg, from, state)
     end
 
-    def handle_cast(:merge, { old, new }) do
-      merged = :lists.ukeymerge(1, :lists.sort(new), :lists.sort(old))
-      { :noreply, { merged, [] } }
-    end
-
-    def handle_cast({ :store, beam, module, source, deps, binary }, { old, new }) do
-      { :noreply, { old, :lists.keystore(beam, 1, new, { beam, module, source, deps, binary }) } }
+    def handle_cast({ :store, beam, module, source, deps }, entries) do
+      { :noreply, :lists.keystore(beam, 1, entries, { beam, module, source, deps }) }
     end
 
     def handle_cast(msg, state) do
