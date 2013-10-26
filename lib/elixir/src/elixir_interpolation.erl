@@ -151,18 +151,4 @@ build_string(_Line, Buffer, Output) ->
   [elixir_utils:characters_to_binary(lists:reverse(Buffer))|Output].
 
 build_interpol(Line, Buffer, Output) ->
-  [wrap_interpol(Line, forms(lists:reverse(Buffer), Line))| Output].
-
-wrap_interpol(Line, Form) ->
-  Meta = [{line,Line}],
-  { '::', Meta, [{ { '.', Meta, ['Elixir.Kernel', to_string] }, Meta, [Form]}, { binary, Meta, nil }]}.
-
-forms(Tokens, StartLine) ->
-  try elixir_parser:parse(Tokens) of
-    { ok, [] } -> nil;
-    { ok, [Forms] } when not is_list(Forms) -> Forms;
-    { ok, Forms } -> { '__block__', [{line,StartLine}], Forms };
-    { error, { Line, _, [Error, Token] } } -> throw({ interpolation_error, { Line, Error, Token } })
-  catch
-    { error, { Line, _, [Error, Token] } } -> throw({ interpolation_error, { Line, Error, Token } })
-  end.
+  [{ Line, lists:reverse(Buffer) }|Output].

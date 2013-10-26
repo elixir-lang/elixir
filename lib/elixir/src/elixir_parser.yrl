@@ -28,7 +28,7 @@ Terminals
   identifier kw_identifier bracket_identifier
   paren_identifier do_identifier block_identifier
   fn 'end' aliases
-  number signed_number atom bin_string list_string sigil
+  number signed_number atom atom_string bin_string list_string sigil
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op
   range_op in_op inc_op when_op than_op default_op tail_op
@@ -189,9 +189,9 @@ bracket_at_expr -> at_op_eol max_expr list :
 bracket_at_expr -> bracket_at_expr list :
                      build_access('$1', '$2').
 
+base_expr -> atom : ?exprs('$1').
 base_expr -> number : ?exprs('$1').
 base_expr -> signed_number : { element(4, '$1'), [{line,?line('$1')}], ?exprs('$1') }.
-base_expr -> atom : build_atom('$1').
 base_expr -> list : element(1, '$1').
 base_expr -> tuple : '$1'.
 base_expr -> 'true' : ?id('$1').
@@ -200,6 +200,7 @@ base_expr -> 'nil' : ?id('$1').
 base_expr -> aliases : { '__aliases__', [{line,?line('$1')}], ?exprs('$1') }.
 base_expr -> bin_string  : build_bin_string('$1').
 base_expr -> list_string : build_list_string('$1').
+base_expr -> atom_string : build_atom_string('$1').
 base_expr -> bit_string : '$1'.
 base_expr -> sigil : build_sigil('$1').
 base_expr -> '&' number : { '&', [{line,?line('$1')}], [?exprs('$2')] }.
@@ -556,20 +557,44 @@ build_access(Expr, { List, Line }) ->
 
 build_sigil({ sigil, Line, Sigil, Parts, Modifiers }) ->
   Meta = [{line,Line}],
-  { list_to_atom("sigil_" ++ [Sigil]), Meta, [ { '<<>>', Meta, Parts }, Modifiers ] }.
+  { list_to_atom("sigil_" ++ [Sigil]), Meta, [ { '<<>>', Meta, string_parts(Parts) }, Modifiers ] }.
 
-build_bin_string({ bin_string, _Line, [H] }) when is_binary(H) -> H;
-build_bin_string({ bin_string, Line, Args }) -> { '<<>>', [{line,Line}], Args }.
+build_bin_string({ bin_string, _Line, [H] }) when is_binary(H) ->
+  H;
+build_bin_string({ bin_string, Line, Args }) ->
+  { '<<>>', [{line,Line}], string_parts(Args) }.
 
-build_list_string({ list_string, _Line, [H] }) when is_binary(H) -> elixir_utils:characters_to_list(H);
+build_list_string({ list_string, _Line, [H] }) when is_binary(H) ->
+  elixir_utils:characters_to_list(H);
 build_list_string({ list_string, Line, Args }) ->
   Meta = [{line,Line}],
-  { { '.', Meta, ['Elixir.String', 'to_char_list!'] }, Meta, [{ '<<>>', Meta, Args}] }.
+  { { '.', Meta, ['Elixir.String', 'to_char_list!'] }, Meta, [{ '<<>>', Meta, string_parts(Args) }] }.
 
-build_atom({ atom, _Line, Atom }) when is_atom(Atom) -> Atom;
-build_atom({ atom, Line, Args }) ->
+build_atom_string({ atom_string, _Line, Safe, [H] }) when is_binary(H) ->
+  Op = binary_to_atom_op(Safe), erlang:Op(H, utf8);
+build_atom_string({ atom_string, Line, Safe, Args }) ->
   Meta = [{line,Line}],
-  { { '.', Meta, [erlang, binary_to_atom] }, Meta, [{ '<<>>', Meta, Args }, utf8] }.
+  { { '.', Meta, [erlang, binary_to_atom_op(Safe)] }, Meta, [{ '<<>>', Meta, string_parts(Args) }, utf8] }.
+
+binary_to_atom_op(true)  -> binary_to_existing_atom;
+binary_to_atom_op(false) -> binary_to_atom.
+
+string_parts(Parts) ->
+  [string_part(Part) || Part <- Parts].
+string_part(Binary) when is_binary(Binary) ->
+  Binary;
+string_part({ Line, Tokens }) ->
+  Form = string_tokens_parse(Line, Tokens),
+  Meta = [{line,Line}],
+  { '::', Meta, [{ { '.', Meta, ['Elixir.Kernel', to_string] }, Meta, [Form]}, { binary, Meta, nil }]}.
+
+string_tokens_parse(Line, Tokens) ->
+  case parse(Tokens) of
+    { ok, [] } -> nil;
+    { ok, [Forms] } when not is_list(Forms) -> Forms;
+    { ok, Forms } -> { '__block__', [{line, Line}], Forms };
+    { error, _ } = Error -> throw(Error)
+  end.
 
 %% Keywords
 

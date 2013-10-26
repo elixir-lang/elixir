@@ -12,7 +12,7 @@
 -include("elixir.hrl").
 
 forms(String, StartLine, File, Opts) ->
-  try elixir_tokenizer:tokenize(String, StartLine, [{ file, File }|Opts]) of
+  case elixir_tokenizer:tokenize(String, StartLine, [{ file, File }|Opts]) of
     { ok, _Line, Tokens } ->
       try elixir_parser:parse(Tokens) of
         { ok, Forms } -> { ok, Forms };
@@ -21,8 +21,6 @@ forms(String, StartLine, File, Opts) ->
         { error, { Line, _, [Error, Token] } } -> { error, { Line, Error, Token } }
       end;
     { error, Reason, _Rest, _SoFar  } -> { error, Reason }
-  catch
-    { interpolation_error, { _, _, _ } = Tuple } -> { error, Tuple }
   end.
 
 'forms!'(String, StartLine, File, Opts) ->

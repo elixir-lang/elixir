@@ -294,19 +294,9 @@ tokenize([$'|T], Line, Scope, Tokens) ->
 tokenize([$:,H|T] = Original, Line, Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, Scope, true, T, H) of
     { NewLine, Parts, Rest } ->
-      SafeAtom = case unescape_tokens(Parts) of
-        [Part] when is_list(Part) or is_binary(Part) ->
-          unsafe_to_atom(Part, Line, Scope);
-        Unescaped ->
-          { ok, Unescaped }
-      end,
-
-      case SafeAtom of
-        { ok, Atom } ->
-          tokenize(Rest, NewLine, Scope, [{ atom, Line, Atom }|Tokens]);
-        { error, Reason } ->
-          { error, Reason, Original, Tokens }
-      end;
+      Unescaped = unescape_tokens(Parts),
+      ExistingAtomsOnly = Scope#elixir_tokenizer.existing_atoms_only,
+      tokenize(Rest, NewLine, Scope, [{ atom_string, Line, ExistingAtomsOnly, Unescaped }|Tokens]);
     { error, Reason } ->
       interpolation_error(Reason, Original, Tokens, " (for atom starting at line ~B)", [Line])
   end;
