@@ -46,5 +46,6 @@ defmodule Mix.Tasks.RunTest do
     end
   after
     Mix.Project.pop
+    purge [GitRepo]
   end
 end
