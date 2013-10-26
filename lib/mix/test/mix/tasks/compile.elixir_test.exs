@@ -84,6 +84,46 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
+  test "compiles dependent changed files" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", "defmodule A, do: B.module_info")
+
+      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+      assert_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
+
+      Mix.shell.flush
+      purge [A, B, C]
+
+      future = { { 2020, 1, 1 }, { 0, 0, 0 } }
+      File.touch!("lib/b.ex", future)
+      Mix.Tasks.Compile.Elixir.run []
+
+      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+      assert_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
+    end
+  end
+
+  test "compiles dependent changed files even on removal" do
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", "defmodule A, do: B.module_info")
+
+      assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+      assert_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
+
+      Mix.shell.flush
+      purge [A, B, C]
+
+      File.rm("lib/b.ex")
+      File.write!("lib/a.ex", "defmodule A, do: nil")
+      Mix.Tasks.Compile.Elixir.run []
+
+      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+      refute_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
+    end
+  end
+
   test "compiles all when other watched exts change" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
