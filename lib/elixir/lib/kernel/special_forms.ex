@@ -9,8 +9,8 @@ defmodule Kernel.SpecialForms do
   to define data structures, respectively tuples, lists and binaries.
 
   This module also documents Elixir's pseudo variables (`__MODULE__`,
-  `__FILE__`, `__ENV__` and `__CALLER__`). Pseudo variables return
-  information about Elixir's compilation environment and can only
+  `__FILE__`, `__ENV__`, `__DIR__` and `__CALLER__`). Pseudo variables
+  return information about Elixir's compilation environment and can only
   be read, never assigned to.
 
   Finally, it also documents 3 special forms (`__block__`,
