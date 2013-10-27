@@ -16,9 +16,9 @@ end
 
 defmodule IO.ANSI do
   @moduledoc """
-  This module provides functionality to render ANSI escape sequences
+  Functionality to render ANSI escape sequences
   (http://en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
-  in the text used to control formatting, color, and other output options
+  in text used to control formatting, color, and other output options
   on video text terminals.
   """
 
@@ -28,7 +28,7 @@ defmodule IO.ANSI do
   Checks whether the default I/O device is a terminal or a file.
 
   Used to identify whether printing ANSI escape sequences will likely
-  be printed as intended.
+  be displayed as intended.
   """
   @spec terminal? :: boolean
   @spec terminal?(:io.device) :: boolean
@@ -144,15 +144,15 @@ defmodule IO.ANSI do
   The format for referring to sequences is `%{red}` and `%{red,bright}` (for
   multiple sequences).
 
-  It will also append a %{reset} to the string. If you don't want this
-  behaviour, use `escape_fragment/1` and `escape_fragment/2`.
+  It will also append a `%{reset}` to the string. If you don't want this
+  behaviour, use `escape_fragment/2`.
 
   An optional boolean parameter can be passed to enable or disable
-  emitting actual ANSI codes. When false, no ANSI codes will emitted.
+  emitting actual ANSI codes. When `false`, no ANSI codes will emitted.
   By default, standard output will be checked if it is a terminal capable
-  of handling these sequences (using `terminal?/0` function)
+  of handling these sequences (using `terminal?/1` function)
 
-  ## Example
+  ## Examples
 
       iex> IO.ANSI.escape("Hello %{red,bright,green}yes", true)
       "Hello \e[31m\e[1m\e[32myes\e[0m"
@@ -175,16 +175,16 @@ defmodule IO.ANSI do
   multiple sequences).
 
   An optional boolean parameter can be passed to enable or disable
-  emitting actual ANSI codes. When false, no ANSI codes will emitted.
+  emitting actual ANSI codes. When `false`, no ANSI codes will emitted.
   By default, standard output will be checked if it is a terminal capable
-  of handling these sequences (using `terminal?/0` function)
+  of handling these sequences (using `terminal?/1` function)
 
-  ## Example
+  ## Examples
 
-    iex> IO.ANSI.escape_fragment("Hello %{red,bright,green}yes", true)
-    "Hello \e[31m\e[1m\e[32myes"
-    iex> IO.ANSI.escape_fragment("%{reset}bye", true)
-    "\e[0mbye"
+      iex> IO.ANSI.escape_fragment("Hello %{red,bright,green}yes", true)
+      "Hello \e[31m\e[1m\e[32myes"
+      iex> IO.ANSI.escape_fragment("%{reset}bye", true)
+      "\e[0mbye"
 
   """
   @spec escape_fragment(String.t, emit :: boolean) :: String.t
