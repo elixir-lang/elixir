@@ -148,8 +148,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Boolean or. Arguments must be booleans.
-  Allowed in guard clauses.
+  Boolean or. Requires the first argument to be a boolean
+  and also short-circuits. Allowed in guard clauses.
 
   ## Examples
 
@@ -160,8 +160,8 @@ defmodule Kernel do
   defmacro left or right
 
   @doc """
-  Boolean and. Arguments must be booleans.
-  Allowed in guard clauses.
+  Boolean and. Requires the first argument to be a boolean
+  and also short-circuits. Allowed in guard clauses.
 
   ## Examples
 
@@ -172,8 +172,8 @@ defmodule Kernel do
   defmacro left and right
 
   @doc """
-  Boolean exclusive-or. Arguments must be booleans. Returns `true` if and only if
-  both arguments are different.
+  Boolean exclusive-or. Arguments must be booleans.
+  Returns `true` if and only if both arguments are different.
   Allowed in guard clauses.
 
   ## Examples
