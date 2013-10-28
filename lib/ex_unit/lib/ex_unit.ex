@@ -24,49 +24,48 @@ defmodule ExUnit do
 
       # File: assertion_test.exs
 
-      # 1) Start ExUnit. You can pass some options
-      #    (see `configure/1` for the list of options)
+      # 1) Start ExUnit.
       ExUnit.start
 
-      # 2) Create a new test module (test case) and use ExUnit.Case
+      # 2) Create a new test module (test case) and use `ExUnit.Case`.
       defmodule AssertionTest do
-        # 3) Notice we pass async: true, this runs the test case
+        # 3) Notice we pass `async: true`, this runs the test case
         #    concurrently with other test cases
         use ExUnit.Case, async: true
 
         # 4) A test is a function whose name starts with
-        #    test and receives a context
+        #    `test` and receives a context.
         def test_always_pass(_) do
           assert true
         end
 
-        # 5) It is recommended to use the "test" macro instead of def
+        # 5) Use the `test` macro instead of `def` for clarity.
         test "the truth" do
           assert true
         end
       end
 
-  To run the test above, all you need to do is to run the file
-  using `elixir` from the command line. Assuming you named your file
+  To run the tests above, run the file
+  using `elixir` from the command line. Assuming you named the file
   `assertion_test.exs`, you can run it as:
 
       bin/elixir assertion_test.exs
 
-  ## Case, callbacks and assertions
+  ## Case, Callbacks and Assertions
 
-  See `ExUnit.Case` and `ExUnit.Callbacks` for more information about
+  See [`ExUnit.Case`](ExUnit.Case.html) and [`ExUnit.Callbacks`](ExUnit.Callbacks.html) for more information about
   defining test cases.
 
-  The `ExUnit.Assertions` module contains a set of macros to easily
+  The [`ExUnit.Assertions`](ExUnit.Assertions.html) module contains a set of macros to easily
   generate assertions with appropriate error messages.
 
   ## Integration with Mix
 
   Mix is the project management and build tool for Elixir. Invoking `mix test`
-  from the command line will run tests in each file matching the pattern
+  from the command line will run the tests in each file matching the pattern
   `*_test.exs` found in the `test` directory of your project.
 
-  By convention, you could also create a `test_helper.exs` file inside the
+  You must create a `test_helper.exs` file inside the
   `test` directory and put the code common to all tests there.
 
   The minimum example of a `test_helper.exs` file would be:
@@ -74,13 +73,9 @@ defmodule ExUnit do
       # test/test_helper.exs
       ExUnit.start
 
-  Then, in each test file, require `test_helper.exs` before defining test modules
-  (or cases):
-
-      # test/myproject_test.exs
-      Code.require_file "test_helper.exs", __DIR__
-
-      # ... test cases follow
+  Mix will load the `test_helper.exs` file before executing the tests. 
+  It is not necessary to `require` the `test_helper.exs` file in your test files.
+  See [`Mix.Tasks.Test`](Mix.Tasks.Test.html) for more information.
 
   """
 
@@ -98,7 +93,7 @@ defmodule ExUnit do
   VM terminates. It accepts a set of options to configure `ExUnit`
   (the same ones accepted by `configure/1`).
 
-  If you want to run tests manually, you can set :autorun to false.
+  If you want to run tests manually, you can set `:autorun` to `false`.
   """
   def start(options // []) do
     :application.start(:elixir)
@@ -129,7 +124,7 @@ defmodule ExUnit do
   ExUnit supports the following options:
 
   * `:color` - When color should be used by specific formatters.
-               Defaults to the result of `IO.ANSI.terminal?`;
+               Defaults to the result of `IO.ANSI.terminal?/1`;
 
   * `:formatter` - The formatter that will print results.
                    Defaults to `ExUnit.CLIFormatter`;
@@ -137,10 +132,10 @@ defmodule ExUnit do
   * `:max_cases` - Maximum number of cases to run in parallel.
                    Defaults to `:erlang.system_info(:schedulers_online)`;
 
-  * `:trace` - Set ExUnit into trace mode, this sets `:max_cases` to 1
+  * `:trace` - Set ExUnit into trace mode, this sets `:max_cases` to `1`
                and prints each test case and test while running;
 
-  * `:autorun` - If ExUnit should run by default on exit, defaults to true;
+  * `:autorun` - If ExUnit should run by default on exit, defaults to `true`;
   """
   def configure(options) do
     Enum.each options, fn { k, v } ->
@@ -157,7 +152,7 @@ defmodule ExUnit do
 
   @doc """
   API used to run the tests. It is invoked automatically
-  if ExUnit is started via `ExUnit.start`.
+  if ExUnit is started via `ExUnit.start/1`.
 
   Returns the number of failures.
   """
