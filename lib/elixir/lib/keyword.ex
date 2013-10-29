@@ -432,15 +432,14 @@ defmodule Keyword do
   def split(dict, keys) do
     acc = { [], [] }
 
-    {take, drop} = Enum.reduce dict, acc, fn({ k, v }, { take, drop }) ->
-      if :lists.member(k, keys) do
-        { [{k, v}|take], drop }
-      else
-        { take, [{k, v}|drop] }
+    { take, drop } = Enum.reduce dict, acc, fn({ k, v }, { take, drop }) ->
+      case :lists.member(k, keys) do
+        true  -> { [{k, v}|take], drop }
+        false -> { take, [{k, v}|drop] }
       end
     end
 
-    {Enum.reverse(take), Enum.reverse(drop)}
+    { Enum.reverse(take), Enum.reverse(drop) }
   end
 
   @doc """
