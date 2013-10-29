@@ -10,11 +10,13 @@ If you want to contribute to Elixir or run it from source, clone this repository
 
     $ git clone https://github.com/elixir-lang/elixir.git
     $ cd elixir
-    $ make test
+    $ make clean test
+
+If Elixir fails to build (specifically when pulling in a new version via git), be sure to remove any previous build artifacts by running `make clean`, then `make test`.
 
 If tests pass, you are ready to move on to the [Getting Started guide][1] or to try Interactive Elixir by running: `bin/iex` in your terminal.
 
-However, if tests fail, it is likely you have an outdated Erlang version (Elixir requires Erlang R16B or later). You can check your Erlang version by calling `erl` in the command line. You will see some information as follow:
+However, if tests fail, it is likely you have an outdated Erlang version (Elixir requires Erlang R16B or later). You can check your Erlang version by calling `erl` in the command line. You will see some information as follows:
 
     Erlang R16B (erts-5.10.1) [source] [64-bit] [smp:2:2] [rq:2] [async-threads:0] [hipe] [kernel-poll:false]
 
