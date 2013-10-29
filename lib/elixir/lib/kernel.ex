@@ -148,8 +148,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Boolean or. Requires the first argument to be a boolean
-  and also short-circuits. Allowed in guard clauses.
+  Boolean or. Requires only the first argument to be a
+  boolean since it short-circuits. Allowed in guard clauses.
 
   ## Examples
 
@@ -160,8 +160,8 @@ defmodule Kernel do
   defmacro left or right
 
   @doc """
-  Boolean and. Requires the first argument to be a boolean
-  and also short-circuits. Allowed in guard clauses.
+  Boolean and. Requires only the first argument to be a
+  boolean since it short-circuits. Allowed in guard clauses.
 
   ## Examples
 
