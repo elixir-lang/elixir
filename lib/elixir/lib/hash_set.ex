@@ -38,7 +38,8 @@ defmodule HashSet do
   import Bitwise
 
   @compile :inline_list_funcs
-  @compile { :inline, bucket_hash: 1, bucket_index: 1, bucket_nth_index: 2, bucket_next: 1 }
+  @compile { :inline, bucket_hash: 1, bucket_index: 1, bucket_nth_index: 2,
+                      bucket_next: 1, bucket_member?: 2 }
 
   @doc """
   Creates a new empty set.
@@ -188,11 +189,11 @@ defmodule HashSet do
   end
 
   defp set_member?(ordered(bucket: bucket), member) do
-    :lists.member(member, bucket)
+    bucket_member?(member, bucket)
   end
 
   defp set_member?(trie(root: root, depth: depth), member) do
-    :lists.member(member, node_bucket(root, depth, bucket_hash(member)))
+    bucket_member?(member, node_bucket(root, depth, bucket_hash(member)))
   end
 
   defp set_delete(ordered(bucket: bucket, size: size) = set, member) do
@@ -259,6 +260,10 @@ defmodule HashSet do
   end
 
   ## Bucket helpers
+
+  defp bucket_member?(k, [k|_]), do: true
+  defp bucket_member?(k, [_|t]), do: bucket_member?(k, t)
+  defp bucket_member?(_k, []),   do: false
 
   defp bucket_filter([e|bucket], fun, acc, count) do
     case fun.(e) do
@@ -476,13 +481,6 @@ defmodule HashSet do
   defp each_contract(acc, [m|bucket]), do: [m|each_contract(acc, bucket)]
   defp each_contract([], bucket), do: bucket
   defp each_contract(acc, []), do: acc
-
-  @doc false
-  def inspect_depth(trie(depth: d)), do: d
-  @doc false
-  def inspect_contract(trie(contract_on: c)), do: c
-  @doc false
-  def inspect_expand(trie(expand_on: e)), do: e
 end
 
 defimpl Enumerable, for: HashSet do

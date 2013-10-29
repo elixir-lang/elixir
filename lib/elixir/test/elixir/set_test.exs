@@ -14,9 +14,19 @@ defmodule SetTest.Common do
         assert Set.equal?(result, new_set([1, 3]))
       end
 
+      test :delete_with_match do
+        refute Set.member?(Set.delete(int_set, 1), 1)
+        assert Set.member?(Set.delete(int_set, 1.0), 1)
+      end
+
       test :difference do
         result = Set.difference(new_set([1, 2, 3]), new_set([3]))
         assert Set.equal?(result, HashSet.new([1, 2]))
+      end
+
+      test :difference_with_match do
+        refute Set.member?(Set.difference(int_set, new_set([1])), 1)
+        assert Set.member?(Set.difference(int_set, new_set([1.0])), 1)
       end
 
       test :disjoint? do
@@ -30,7 +40,8 @@ defmodule SetTest.Common do
       end
 
       test :equal? do
-        assert Set.equal?(new_set([1, 2, 3]), new_set([3, 2, 1])) == true
+        assert Set.equal?(new_set([1, 2, 3]), new_set([3, 2, 1]))
+        refute Set.equal?(new_set([1, 2, 3]), new_set([3.0, 2.0, 1.0]))
       end
 
       test :intersection do
@@ -38,9 +49,15 @@ defmodule SetTest.Common do
         assert Set.equal?(result, new_set([2, 3]))
       end
 
+      test :intersection_with_match do
+        assert Set.member?(Set.intersection(int_set, new_set([1])), 1)
+        refute Set.member?(Set.intersection(int_set, new_set([1.0])), 1)
+      end
+
       test :member? do
-        assert Set.member?(new_set([1, 2, 3]), 2) == true
-        assert Set.member?(new_set([1, 2, 3]), 4) == false
+        assert Set.member?(new_set([1, 2, 3]), 2)
+        refute Set.member?(new_set([1, 2, 3]), 4)
+        refute Set.member?(new_set([1, 2, 3]), 1.0)
       end
 
       test :put do
@@ -48,13 +65,23 @@ defmodule SetTest.Common do
         assert Set.equal?(result, new_set([1, 2, 3]))
       end
 
+      test :put_with_match do
+        assert Set.size(Set.put(int_set, 1)) == 3
+        assert Set.size(Set.put(int_set, 1.0)) == 4
+      end
+
       test :size do
         assert Set.size(new_set([1, 2, 3])) == 3
       end
 
       test :subset? do
-        assert Set.subset?(new_set([1, 2]), new_set([1, 2, 3])) == true
-        assert Set.subset?(new_set([1, 2, 3]), new_set([1, 2])) == false
+        assert Set.subset?(new_set([1, 2]), new_set([1, 2, 3]))
+        refute Set.subset?(new_set([1, 2, 3]), new_set([1, 2]))
+      end
+
+      test :subset_with_match? do
+        assert Set.subset?(new_set([1]), int_set)
+        refute Set.subset?(new_set([1.0]), int_set)
       end
 
       test :to_list do
@@ -66,6 +93,11 @@ defmodule SetTest.Common do
         assert Set.equal?(result, new_set([1, 2, 3, 4]))
       end
 
+      test :union_with_match do
+        assert Set.size(Set.union(int_set, new_set([1]))) == 3
+        assert Set.size(Set.union(int_set, new_set([1.0]))) == 4
+      end
+
       test "unsupported set" do
         assert_raise ArgumentError, "unsupported set: :bad_set", fn ->
           Set.to_list :bad_set
@@ -74,6 +106,10 @@ defmodule SetTest.Common do
 
       defp new_set(list // []) do
         unquote(module).new(list)
+      end
+
+      defp int_set() do
+        unquote(module).new([1,2,3])
       end
     end
   end

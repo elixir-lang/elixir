@@ -15,6 +15,21 @@ defmodule Set do
   For simplicity's sake, in the examples below every time
   `new` is used, it implies one of the module-specific
   calls like above.
+
+  ## Protocols
+
+  Sets are required to implement the `Enumerable` protocol,
+  allowing one to write:
+
+      Enum.each(set, fn k ->
+        IO.inspect k
+      end)
+
+  ## Match
+
+  Sets are required to implement all operations
+  using the match (`===`) operator. Any deviation from
+  this behaviour should be avoided and explicitly documented.
   """
 
   use Behaviour

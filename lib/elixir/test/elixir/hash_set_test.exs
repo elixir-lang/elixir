@@ -40,10 +40,8 @@ defmodule HashSetTest do
     diff = HashSet.difference(filled_set(9000), filled_set(9000))
     assert HashSet.equal?(diff, HashSet.new([]))
 
-    #Ensure the trie has correctly resized
-    assert HashSet.inspect_depth(diff) == 0
-    assert HashSet.inspect_contract(diff) ==  2
-    assert HashSet.inspect_expand(diff) == 80
+    # Ensure the trie has correctly resized
+    assert { HashSet, 0, 0, 80, 2, _ } = diff
   end
 
   test "member? with ordered sets"  do
