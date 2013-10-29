@@ -1,19 +1,19 @@
 defmodule Record do
   @moduledoc %S"""
-  Convenience functions for working with Records.
+  Functions for working with Records.
 
   A record is a tagged tuple which contains one or more elements
   where the first element is an atom. We can manually create a record
   by simply defining such a tuple:
 
-      iex> record = { User, "josé", 25 }
+      iex> record = { User, "José", 25 }
       iex> is_record(record, User)
       true
 
   However, manually constructing tuples can be quite error prone.
-  In case we need to add a new field to our User, it would require
+  If we need to add a new field to our User, it would require
   us to carefully change all places where the tuple is used.
-  Furthermore, as more and more items are added to the tuple, they
+  Furthermore, as more items are added to the tuple, they
   lose semantic value.
 
   This module solves these problems by allowing us to name each
@@ -38,7 +38,7 @@ defmodule Record do
   In the example above, `defrecordp` is going to generate a set of
   macros named `user` that allows us to create, update and match
   on a record. Our record is going to have two fields, a `name` with
-  default value of "José" and `age` of 25.
+  default value of "José" and `age` with default value 25.
 
   Let's see some examples:
 
@@ -75,7 +75,7 @@ defmodule Record do
   As the name says, `defrecordp` is useful when you don't want to
   expose the record definition. The `user` macro used above, for
   example, is only available inside the `User` module and nowhere else.
-  You can find more information in `Kernel.defrecordp/2` docs.
+  You can find more information in `Kernel.defrecordp/3` docs.
 
   ## defrecord
 
@@ -124,8 +124,8 @@ defmodule Record do
   into a tuple at compile time.
 
   However, there are some situations where we want to set or update
-  fields dynamically. `defrecord` (and `defrecord` only) supports
-  it out of the box:
+  fields dynamically. `defrecord` (and not `defrecordp` ) supports
+  this behaviour out of the box:
 
       defrecord User, name: "José", age: 25
 
@@ -142,16 +142,16 @@ defmodule Record do
   The above calls (`new` and `update`) can accept both atom and string
   keys for field names, however not both at the same time. This feature
   allows to "sanitize" untrusted dictionaries and initialize/update
-  records without using `binary_to_existing_atom/1`.
+  records without using `Kernel.binary_to_existing_atom/1`.
 
   To sum up, `defrecordp` should be used when you don't want to expose
   the record information while `defrecord` should be used whenever you
   want to share a record within your code or with other libraries or
   whenever you need to dynamically set or update fields.
 
-  The standard library contains excellent examples about both use cases,
-  with `HashDict` being implemented with `defrecordp` and `Range` with
-  `defrecord`.
+  The standard library contains excellent examples of both use cases,
+  with [`HashDict`](HashDict.html) being implemented with `defrecordp` 
+  and [`Range`](Range.html) with `defrecord`.
 
   You can learn more about records in the `Kernel.defrecord/3` docs. Now
   let's discuss the usefulness of combining records with protocols.
@@ -176,22 +176,29 @@ defmodule Record do
         end
       end
 
-  Now we can explicitly convert our WeekDate:
+  Now we can explicitly convert our `WeekDate`:
 
       to_string WeekDate[year: 2013, week: 26, week_day: 4]
       "2013-W26-4"
 
-  A protocol can be implemented for any record, regardless if
+  A protocol can be implemented for any record, whether
   generated with `defrecordp` or `defrecord`.
   """
 
   @type t :: tuple
 
   @doc """
-  Extract record information from an Erlang file and
-  return the fields as a list of tuples.
+  Extract record information from an Erlang file. 
+  
+  Returns the fields as a list of tuples.
 
   ## Examples
+
+      > Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+      [size: :undefined, type: :undefined, access: :undefined, atime: :undefined,
+         mtime: :undefined, ctime: :undefined, mode: :undefined, links: :undefined,
+          major_device: :undefined, minor_device: :undefined, inode: :undefined,
+           uid: :undefined, gid: :undefined]
 
       defrecord FileInfo, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
 
@@ -201,8 +208,9 @@ defmodule Record do
   end
 
   @doc """
-  Imports a public record definition as a set of private macros,
-  as defined by `Kernel.defrecordp/2`. This is useful when one
+  Import a public record definition as a set of private macros.
+
+  Macros defined as in `Kernel.defrecordp/3`. This is useful when one
   desires to manipulate a record via a set of macros instead
   of the regular access syntax.
 
@@ -287,8 +295,9 @@ defmodule Record do
   end
 
   @doc """
-  Defines record functions skipping the module definition.
-  This is called directly by `defrecord`. It expects the record
+  Define record functions skipping the module definition.
+
+  This is called directly by `Kernel.defrecord/3`. It expects the record
   values, a set of options and the module environment.
 
   ## Examples
@@ -315,7 +324,7 @@ defmodule Record do
 
     contents = [quote(do: @record_fields unquote(escaped))|contents]
 
-    # Special case for bootstraping purposes
+    # Special case for bootstrapping purposes
     if env == Macro.Env do
       Module.eval_quoted(env, contents, [], [])
     else
@@ -324,7 +333,7 @@ defmodule Record do
   end
 
   @doc """
-  Defines types and specs for the record.
+  Define types and specs for the record.
   """
   def deftypes(values, types, env) do
     types  = types || []
@@ -346,8 +355,10 @@ defmodule Record do
   end
 
   @doc """
-  Defines macros for manipulating records. This is called
-  directly by `defrecordp`. It expects the macro name, the
+  Define macros for manipulating records. 
+  
+  This is called
+  directly by `Kernel.defrecordp/3`. It expects the macro name, the
   record values and the environment.
 
   ## Examples
@@ -905,6 +916,7 @@ defmodule Record.DSL do
 
   @doc """
   Defines the type for each field in the record.
+
   Expects a keyword list.
   """
   defmacro record_type(opts) when is_list(opts) do
