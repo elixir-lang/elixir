@@ -20,6 +20,7 @@ end
 defimpl Access, for: List do
   @doc """
   Access the given key in a tuple list.
+  The key is found via the `===` operator.
 
   ## Examples
 
@@ -32,14 +33,10 @@ defimpl Access, for: List do
       "★☆"
 
   """
+  def access(dict, key)
+  def access([{ key, value }|_], key), do: value
+  def access([{ _, _ }|t], key), do: access(t, key)
   def access([], _key), do: nil
-
-  def access(list, key) do
-    case :lists.keyfind(key, 1, list) do
-      { ^key, value } -> value
-      false -> nil
-    end
-  end
 end
 
 defimpl Access, for: Atom do

@@ -31,6 +31,11 @@ defmodule Dict do
         IO.puts "#{k}: #{v}"
       end)
 
+  ## Match
+
+  Dictionaries are required to implement all operations
+  using the match (`===`) operator. Any deviation from
+  this behaviour should be avoided and explicitly documented.
   """
 
   use Behaviour
@@ -420,7 +425,7 @@ defmodule Dict do
 
   @doc """
   Returns a new dict where only the keys in `keys` from `dict` are
-  included. 
+  included.
   Any non-member keys are ignored.
 
   ## Examples
@@ -458,8 +463,8 @@ defmodule Dict do
   end
 
   @doc """
-  Check if two dicts are equal. If the dicts are of different types, they are
-  first converted to lists.
+  Check if two dicts are equal using `===`. If the dicts are
+  of different types, they are first converted to lists.
 
   ## Examples
 

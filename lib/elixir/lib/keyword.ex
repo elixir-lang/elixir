@@ -4,13 +4,23 @@ defmodule Keyword do
   of the tuple is an atom and the second element can be
   any value.
 
-  A keyword may have duplicated keys, so it is not strictly
+  A keyword may have duplicated keys so it is not strictly
   a dictionary. However most of the functions in this module
-  allows it to behave exactly as a dictionary. For example,
-  `Keyword.get` will get the first entry matching the given
-  key, regardless if duplicated entries exist. Similarly,
-  `Keyword.put` and `Keyword.delete` ensure all duplicated
-  entries for a given key are removed when invoked.
+  behaves exactly as a dictionary and mimic the API defined
+  by the `Dict` behaviour.
+
+  For example, `Keyword.get` will get the first entry matching
+  the given key, regardless if duplicated entries exist.
+  Similarly, `Keyword.put` and `Keyword.delete` ensure all
+  duplicated entries for a given key are removed when invoked.
+  A handful of functions exist to handle duplicated keys, in
+  particular, `from_enum` allows creating a new keywords without
+  removing duplicated keys, `get_values` returns all values for
+  a given key and `delete_first` deletes just one of the existing
+  entries.
+
+  Since a keyword list is simply a list, all the operations defined
+  in `Enum` and `List` can also be applied.
   """
 
   @type key :: atom
@@ -23,16 +33,12 @@ defmodule Keyword do
   duplicated entries.
   """
   @spec from_enum(Enum.t) :: t
-  def from_enum(enum) when is_list(enum) do
-    enum
-  end
-
   def from_enum(enum) do
-    Enum.map(enum, fn(x) -> x end)
+    Enum.to_list(enum)
   end
 
   @doc """
-  Checks if the given argument is a keywords list or not
+  Checks if the given argument is a keywords list or not.
   """
   @spec keyword?(term) :: boolean
   def keyword?([{ key, _value } | rest]) when is_atom(key) do
@@ -406,5 +412,130 @@ defmodule Keyword do
 
   def update([], key, initial, _fun) when is_atom(key) do
     [{key, initial}]
+  end
+
+  @doc """
+  Splits the given keywords in two given the given keys.
+  Duplicated keys are preserved in the split keyword list.
+
+  ## Examples
+
+      iex> d = [a: 1, b: 2, c: 3, d: 4]
+      iex> Keyword.split(d, [:a, :c, :e])
+      { [a: 1, c: 3], [b: 2, d: 4] }
+
+      iex> d = [a: 1, b: 2, c: 3, d: 4, a: 5]
+      iex> Keyword.split(d, [:a, :c, :e])
+      { [a: 1, c: 3, a: 5], [b: 2, d: 4] }
+
+  """
+  def split(dict, keys) do
+    acc = { [], [] }
+
+    {take, drop} = Enum.reduce dict, acc, fn({ k, v }, { take, drop }) ->
+      if :lists.member(k, keys) do
+        { [{k, v}|take], drop }
+      else
+        { take, [{k, v}|drop] }
+      end
+    end
+
+    {Enum.reverse(take), Enum.reverse(drop)}
+  end
+
+  @doc """
+  Takes the given keys from the dict.
+  Duplicated keys are preserved in the new keyword list.
+
+  ## Examples
+
+      iex> d = [a: 1, b: 2, c: 3, d: 4]
+      iex> Keyword.take(d, [:a, :c, :e])
+      [a: 1, c: 3]
+
+      iex> d = [a: 1, b: 2, c: 3, d: 4, a: 5]
+      iex> Keyword.take(d, [:a, :c, :e])
+      [a: 1, c: 3, a: 5]
+
+  """
+  def take(dict, keys) do
+    lc { k, _ } = tuple inlist dict, :lists.member(k, keys), do: tuple
+  end
+
+  @doc """
+  Drops the given keys from the dict.
+  Duplicated keys are preserved in the new keyword list.
+
+  ## Examples
+
+      iex> d = [a: 1, b: 2, c: 3, d: 4]
+      iex> Keyword.drop(d, [:b, :d])
+      [a: 1, c: 3]
+
+      iex> d = [a: 1, b: 2, c: 3, d: 4, a: 5]
+      iex> Keyword.drop(d, [:b, :d])
+      [a: 1, c: 3, a: 5]
+
+  """
+  def drop(dict, keys) do
+    lc { k, _ } = tuple inlist dict, not :lists.member(k, keys), do: tuple
+  end
+
+  @doc """
+  Returns the first value associated with `key` in the keyword
+  list as well as the keyword list without `key`.
+
+  All duplicated entries are removed. See `pop_first/3` for
+  removing only the first entry.
+
+  ## Examples
+
+      iex> Keyword.pop [a: 1], :a
+      {1,[]}
+
+      iex> Keyword.pop [a: 1], :b
+      {nil,[a: 1]}
+
+      iex> Keyword.pop [a: 1], :b, 3
+      {3,[a: 1]}
+
+      iex> Keyword.pop [a: 1], :b, 3
+      {3,[a: 1]}
+
+      iex> Keyword.pop [a: 1, a: 2], :a
+      {1,[]}
+
+  """
+  def pop(dict, key, default // nil) do
+    { get(dict, key, default), delete(dict, key) }
+  end
+
+  @doc """
+  Returns the first value associated with `key` in the keyword
+  list as well as the keyword list without that particular ocurrence
+  of `key`.
+
+  Duplicated entries are not removed.
+
+  ## Examples
+
+      iex> Keyword.pop_first [a: 1], :a
+      {1,[]}
+
+      iex> Keyword.pop_first [a: 1], :b
+      {nil,[a: 1]}
+
+      iex> Keyword.pop_first [a: 1], :b, 3
+      {3,[a: 1]}
+
+      iex> Keyword.pop_first [a: 1], :b, 3
+      {3,[a: 1]}
+
+      iex> Keyword.pop_first [a: 1, a: 2], :a
+      {1,[a: 2]}
+
+  """
+  def pop_first(dict, key, default // nil) do
+    { get(dict, key, default), delete_first(dict, key) }
   end
 end
