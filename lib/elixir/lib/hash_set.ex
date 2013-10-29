@@ -38,8 +38,7 @@ defmodule HashSet do
   import Bitwise
 
   @compile :inline_list_funcs
-  @compile { :inline, bucket_hash: 1, bucket_index: 1, bucket_nth_index: 2,
-                      bucket_next: 1, bucket_member?: 2 }
+  @compile { :inline, bucket_hash: 1, bucket_index: 1, bucket_nth_index: 2, bucket_next: 1 }
 
   @doc """
   Creates a new empty set.
@@ -189,11 +188,11 @@ defmodule HashSet do
   end
 
   defp set_member?(ordered(bucket: bucket), member) do
-    bucket_member?(member, bucket)
+    :lists.member(member, bucket)
   end
 
   defp set_member?(trie(root: root, depth: depth), member) do
-    bucket_member?(member, node_bucket(root, depth, bucket_hash(member)))
+    :lists.member(member, node_bucket(root, depth, bucket_hash(member)))
   end
 
   defp set_delete(ordered(bucket: bucket, size: size) = set, member) do
@@ -260,10 +259,6 @@ defmodule HashSet do
   end
 
   ## Bucket helpers
-
-  defp bucket_member?(k, [k|_]), do: true
-  defp bucket_member?(k, [_|t]), do: bucket_member?(k, t)
-  defp bucket_member?(_k, []),   do: false
 
   defp bucket_filter([e|bucket], fun, acc, count) do
     case fun.(e) do
