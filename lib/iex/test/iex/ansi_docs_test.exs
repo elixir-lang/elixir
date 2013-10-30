@@ -194,4 +194,11 @@ defmodule IEx.AnsiDocsTest do
     result = format("(`hello world`)")
     assert result == "(\e[36mhello world\e[0m)\n\e[0m"
   end
+
+  test "escaping of underlines within links" do
+    result = format("(http://en.wikipedia.org/wiki/ANSI_escape_code)")
+    assert result == "(http://en.wikipedia.org/wiki/ANSI_escape_code)\n\e[0m"
+    result = format("[ANSI escape code](http://en.wikipedia.org/wiki/ANSI_escape_code)")
+    assert result == "ANSI escape code (http://en.wikipedia.org/wiki/ANSI_escape_code)\n\e[0m"
+  end
 end

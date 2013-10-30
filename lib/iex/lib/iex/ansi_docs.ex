@@ -253,6 +253,21 @@ defmodule IEx.ANSIDocs do
   end
 
   defp handle_links(text) do
+    text
+    |> remove_square_brackets_in_link
+    |> escape_underlines_in_link
+  end
+
+  defp escape_underlines_in_link(text) do
+    case Regex.match?(%r{.*(https?\S*)}, text) do
+      true ->
+        Regex.replace(%r{_}, text, "\\\\_")
+      _ ->
+        text
+    end
+  end
+
+  defp remove_square_brackets_in_link(text) do
     Regex.replace(%r{\[(.*?)\]\((.*?)\)}, text, "\\1 (\\2)")
   end
 
