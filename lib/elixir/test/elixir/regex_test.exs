@@ -42,11 +42,12 @@ defmodule Regex.BinaryTest do
   end
 
   test :opts do
-    assert Regex.opts(Regex.compile!("foo", "u")) == "u"
+    assert Regex.opts(Regex.compile!("foo", "i")) == "i"
   end
 
-  test :unicode do
-    assert ("josé" =~ %r"\p{Latin}$"u)
+  test :unicode_by_default do
+    assert ("josé" =~ %r"\p{Latin}$")
+    refute ("£" =~ %r/\p{Lu}/) 
   end
 
   test :groups do
@@ -168,7 +169,7 @@ defmodule Regex.BinaryTest do
   end
 
   defp matches_escaped?(string, match) do
-    Regex.match? %r/#{Regex.escape(string)}/usimx, match
+    Regex.match? %r/#{Regex.escape(string)}/simx, match
   end
 end
 
