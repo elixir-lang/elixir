@@ -2139,7 +2139,7 @@ defmodule Kernel do
   end
 
   defmacro match?(left, right) do
-    { left, _ } = falsify_var(left, [], &falsify_all/2)
+    { left, _ } = kernelfy_var(left, [], &kernelfy_all/2)
 
     quote do
       case unquote(right) do
@@ -2151,48 +2151,48 @@ defmodule Kernel do
     end
   end
 
-  defp falsify_all({ var, meta, scope }, acc) when is_atom(var) and is_atom(scope) do
-    { { var, meta, false }, [{ var, scope }|acc] }
+  defp kernelfy_all({ var, meta, scope }, acc) when is_atom(var) and is_atom(scope) do
+    { { var, meta, Kernel }, [{ var, scope }|acc] }
   end
 
-  defp falsify_selected({ var, meta, scope } = original, acc) when is_atom(var) and is_atom(scope) do
+  defp kernelfy_selected({ var, meta, scope } = original, acc) when is_atom(var) and is_atom(scope) do
     case :lists.member({ var, scope }, acc) do
-      true  -> { { var, meta, false }, acc }
+      true  -> { { var, meta, Kernel }, acc }
       false -> { original, acc }
     end
   end
 
-  defp falsify_var({ :^, _, [_] } = contents, acc, _fun) do
+  defp kernelfy_var({ :^, _, [_] } = contents, acc, _fun) do
     { contents, acc }
   end
 
-  defp falsify_var({ :when, meta, [left, right] }, acc, fun) do
-    { left, acc }  = falsify_var(left, acc, fun)
-    { right, acc } = falsify_var(right, acc, &falsify_selected/2)
+  defp kernelfy_var({ :when, meta, [left, right] }, acc, fun) do
+    { left, acc }  = kernelfy_var(left, acc, fun)
+    { right, acc } = kernelfy_var(right, acc, &kernelfy_selected/2)
     { { :when, meta, [left, right] }, acc }
   end
 
-  defp falsify_var({ var, _, scope } = original, acc, fun) when is_atom(var) and is_atom(scope) do
+  defp kernelfy_var({ var, _, scope } = original, acc, fun) when is_atom(var) and is_atom(scope) do
     fun.(original, acc)
   end
 
-  defp falsify_var({ left, meta, right }, acc, fun) do
-    { left, acc }  = falsify_var(left, acc, fun)
-    { right, acc } = falsify_var(right, acc, fun)
+  defp kernelfy_var({ left, meta, right }, acc, fun) do
+    { left, acc }  = kernelfy_var(left, acc, fun)
+    { right, acc } = kernelfy_var(right, acc, fun)
     { { left, meta, right }, acc }
   end
 
-  defp falsify_var({ left, right }, acc, fun) do
-    { left, acc }  = falsify_var(left, acc, fun)
-    { right, acc } = falsify_var(right, acc, fun)
+  defp kernelfy_var({ left, right }, acc, fun) do
+    { left, acc }  = kernelfy_var(left, acc, fun)
+    { right, acc } = kernelfy_var(right, acc, fun)
     { { left, right }, acc }
   end
 
-  defp falsify_var(list, acc, fun) when is_list(list) do
-    :lists.mapfoldl(&falsify_var(&1, &2, fun), acc, list)
+  defp kernelfy_var(list, acc, fun) when is_list(list) do
+    :lists.mapfoldl(&kernelfy_var(&1, &2, fun), acc, list)
   end
 
-  defp falsify_var(other, acc, _fun) do
+  defp kernelfy_var(other, acc, _fun) do
     { other, acc }
   end
 
