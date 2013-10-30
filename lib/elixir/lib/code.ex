@@ -56,7 +56,7 @@ defmodule Code do
   end
 
   @doc """
-  Evaluates the contents given by `string`. The second argument is 
+  Evaluates the contents given by `string`. The second argument is
   a keyword list of variable bindings, followed by a keyword list of
   environment options. Those options can be:
 
@@ -83,9 +83,13 @@ defmodule Code do
   etc.
 
   Returns a tuple of the form `{ value, binding }`,
-  where `value` is the the value returned from evaluating `string`; `binding`
-  is a keyword list with the value of all variable bindings after evaluating
-  `string`. If an error occurs while evaluating `string` an exception will be raised.
+  where `value` is the the value returned from evaluating `string`.
+  If an error occurs while evaluating `string` an exception will be raised.
+
+  `binding` is a keyword list with the value of all variable bindings
+  after evaluating `string`. The binding key is usually an atom, but it
+  may be a tuple for variables defined in another contexts that are not
+  the main one.
 
   ## Examples
 
@@ -95,7 +99,7 @@ defmodule Code do
       iex> Code.eval_string("c = a + b", [a: 1, b: 2], __ENV__)
       {3, [a: 1, b: 2, c: 3]}
 
-      iex> Code.eval_string("a = a + b", [a: 1, b: 2])          
+      iex> Code.eval_string("a = a + b", [a: 1, b: 2])
       {3, [a: 3, b: 2]}
 
   For convenience, you can pass `__ENV__` as the `opts` argument and
@@ -362,7 +366,7 @@ defmodule Code do
   modules need to be loaded upfront or explicitly.
 
   Therefore, this function is used to check if a module is loaded
-  before using it and allows one to react accordingly. For example, the `URI` 
+  before using it and allows one to react accordingly. For example, the `URI`
   module uses this function to check if a specific parser exists for a given
   URI scheme.
 
@@ -397,7 +401,7 @@ defmodule Code do
   @doc """
   Ensures the given module is compiled and loaded. If the module
   is already loaded, it works as no-op. If the module was not
-  loaded yet, it checks if it needs to be compiled first and 
+  loaded yet, it checks if it needs to be compiled first and
   then tries to load it.
 
   If it succeeds loading the module, it returns

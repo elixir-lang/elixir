@@ -8,7 +8,7 @@
 -define(persisted_attr, '__persisted_attributes').
 
 eval_quoted(Module, Quoted, RawBinding, Opts) ->
-  Binding = elixir_scope:binding_for_eval(RawBinding, Module),
+  Binding = orddict:store('_@MODULE', Module, RawBinding),
   Scope   = scope_for_eval(Module, Opts),
 
   elixir_def:reset_last(Module),
@@ -385,8 +385,7 @@ else_clause() ->
 % HELPERS
 
 eval_callbacks(Line, Module, Name, Args, RawS) ->
-  Binding   = elixir_scope:binding_for_eval([], Module),
-  S         = elixir_scope:vars_from_binding(RawS, Binding),
+  { Binding, S } = elixir_scope:load_binding([], RawS, Module),
   Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
   Meta      = [{line,Line},{require,false}],
 

@@ -2,9 +2,8 @@
 -behaviour(application).
 -export([main/1, start_cli/0,
   scope_for_eval/1, scope_for_eval/2,
-  eval/2, eval/3, eval/4,
-  eval_quoted/2, eval_quoted/3, eval_quoted/4,
-  eval_forms/3, translate_forms/3]).
+  eval/2, eval/3, eval/4, eval_forms/3,
+  eval_quoted/2, eval_quoted/3, eval_quoted/4]).
 -include("elixir.hrl").
 
 %% Top level types
@@ -124,17 +123,16 @@ eval_quoted(Tree, Binding, Line, #elixir_scope{} = S) when is_integer(Line) ->
 %% Handle forms evaluation internally, it is an
 %% internal API not meant for external usage.
 
-translate_forms(Tree, Binding, Opts) when is_list(Opts) ->
-  translate_forms(Tree, Binding, scope_for_eval(Opts));
-
-translate_forms(Tree, Binding, #elixir_scope{} = Scope) ->
-  elixir_translator:translate(Tree, elixir_scope:vars_from_binding(Scope, Binding)).
+eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
+  eval_forms(Tree, Binding, scope_for_eval(Opts));
 
 eval_forms(Tree, Binding, Scope) ->
-  { ParseTree, NewScope } = translate_forms(Tree, Binding, Scope),
-  case ParseTree of
-    [] -> { nil, Binding, NewScope };
+  { ParsedBinding, ParsedScope } = elixir_scope:load_binding(Binding, Scope, nil),
+  { Exprs, NewScope } = elixir_translator:translate(Tree, ParsedScope),
+  case Exprs of
+    [] ->
+      { nil, Binding, NewScope };
     _  ->
-      {value, Value, NewBinding} = erl_eval:exprs(ParseTree, elixir_scope:binding_for_eval(Binding, nil)),
-      {Value, elixir_scope:binding_from_vars(NewScope, NewBinding), NewScope }
+      { value, Value, NewBinding } = erl_eval:exprs(Exprs, ParsedBinding),
+      { Value, elixir_scope:dump_binding(NewBinding, NewScope), NewScope }
   end.

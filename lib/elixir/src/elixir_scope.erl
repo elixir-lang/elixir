@@ -5,7 +5,7 @@
   serialize/1, deserialize/1,
   serialize_with_vars/2, deserialize_with_vars/2,
   to_erl_env/1, to_ex_env/1,
-  vars_from_binding/2, binding_for_eval/2, binding_from_vars/2,
+  load_binding/3, dump_binding/2,
   umergev/2, umergec/2, umergea/2, merge_clause_vars/2
 ]).
 -include("elixir.hrl").
@@ -207,37 +207,40 @@ var_number([], Acc)      -> list_to_integer(lists:reverse(Acc)).
 
 %% Setup the vars in scope from binding
 
-vars_from_binding(Scope, Binding) ->
-  Scope#elixir_scope{
-    vars=binding_dict(Binding),
+load_binding(Binding, Scope, Module) ->
+  { NewBinding, NewVars, NewCounter } = load_binding(Binding, [], [], 0, Module),
+  { NewBinding, Scope#elixir_scope{
+    vars=NewVars,
     temp_vars=[],
     clause_vars=nil,
-    counter=[]
-  }.
+    counter=[{'',NewCounter}]
+  } }.
 
-binding_dict(List) -> binding_dict(List, orddict:new()).
-binding_dict([{{H,Kind},_}|T], Dict) -> binding_dict(T, orddict:store({ H, Kind }, H, Dict));
-binding_dict([{H,_}|T], Dict) -> binding_dict(T, orddict:store({ H, nil }, H, Dict));
-binding_dict([], Dict) -> Dict.
+load_binding([{'_@MODULE',Value}|T], Binding, Vars, Counter, _Module) ->
+  load_binding(T, Binding, Vars, Counter, Value);
+load_binding([{Key,Value}|T], Binding, Vars, Counter, Module) ->
+  Actual = case Key of
+    { _Name, _Kind } -> Key;
+    Name when is_atom(Name) -> { Name, nil }
+  end,
+  InternalName = ?atom_concat(["_@", Counter]),
+  load_binding(T,
+    [{InternalName,Value}|Binding],
+    orddict:store(Actual, InternalName, Vars),
+    Counter + 1, Module);
+load_binding([], Binding, Vars, Counter, Module) ->
+  { lists:reverse([{'_@MODULE',Module}|Binding]), Vars, Counter }.
 
-binding_for_eval(Binding, Module) ->
-  Keyword = orddict:from_list(Binding),
-  case orddict:find('_@MODULE', Keyword) of
-    { ok, _ } -> Keyword;
-    _ -> orddict:store('_@MODULE', Module, Keyword)
-  end.
+dump_binding(Binding, #elixir_scope{vars=Vars}) ->
+  dump_binding(Vars, Binding, []).
 
-binding_from_vars(#elixir_scope{vars=Vars}, Binding) ->
-  binding_from_vars(Binding, [], Binding, Vars).
-
-binding_from_vars([{Var,_}|T], Acc, Binding, Vars) ->
-  case lists:member($@, atom_to_list(Var)) of
-    true  ->
-      binding_from_vars(T, Acc, Binding, Vars);
-    false ->
-      RealName  = orddict:fetch({ Var, nil }, Vars),
-      RealValue = proplists:get_value(RealName, Binding, nil),
-      binding_from_vars(T, [{Var, RealValue}|Acc], Binding, Vars)
-  end;
-
-binding_from_vars([], Acc, _Binding, _Vars) -> lists:reverse(Acc).
+dump_binding([{{Var,Kind}=Key,InternalName}|T], Binding, Acc) when is_atom(Kind) ->
+  Actual = case Kind of
+    nil -> Var;
+    _   -> Key
+  end,
+  Value = proplists:get_value(InternalName, Binding, nil),
+  dump_binding(T, Binding, orddict:store(Actual, Value, Acc));
+dump_binding([_|T], Binding, Acc) ->
+  dump_binding(T, Binding, Acc);
+dump_binding([], _Binding, Acc) -> Acc.
