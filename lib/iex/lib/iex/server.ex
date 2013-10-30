@@ -34,13 +34,11 @@ defmodule IEx.Server do
   current process.
   """
   @spec take_over(binary, Keyword.t, pos_integer) ::
-        :ok | { :error, :self } | { :error, :no_iex } | { :error, :refused }
+        :ok | { :error, :no_iex } | { :error, :refused }
   def take_over(identifier, opts, timeout // 1000, server // whereis()) do
     cond do
       nil?(server) ->
         { :error, :no_iex }
-      whereis_evaluator(server) == self ->
-        { :error, :self }
       true ->
         ref = make_ref()
         server <- { :take?, self, ref }
@@ -60,13 +58,6 @@ defmodule IEx.Server do
           timeout ->
             { :error, :no_iex }
         end
-    end
-  end
-
-  defp whereis_evaluator(server) do
-    case server && Process.info(server, :dictionary) do
-      { :dictionary, dict } -> dict[:evaluator]
-      _ -> nil
     end
   end
 
@@ -126,15 +117,17 @@ defmodule IEx.Server do
   end
 
   defp reset_loop(opts, evaluator, evaluator_ref) do
-    exit_loop(evaluator, evaluator_ref)
+    exit_loop(evaluator, evaluator_ref, opts[:evaluator] != evaluator)
     IO.write [IO.ANSI.home, IO.ANSI.clear]
     run(opts)
   end
 
-  defp exit_loop(evaluator, evaluator_ref) do
+  defp exit_loop(evaluator, evaluator_ref, done? // true) do
     Process.delete(:evaluator)
     Process.demonitor(evaluator_ref)
-    evaluator <- { :done, self }
+    if done? do
+      evaluator <- { :done, self }
+    end
     :ok
   end
 
