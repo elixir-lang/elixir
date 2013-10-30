@@ -1,6 +1,7 @@
 # v0.10.4-dev
 
 * Enhancements
+  * [Dict] Document and enforce all dicts use the match operator (`===`) when checking for keys
   * [Enum] Add `Enum.slice/2` with a range
   * [IEx] Split `IEx.Evaluator` from `IEx.Server` to allow custom evaluators
   * [IEx] Add support for `IEx.pry` which halts a given process for inspection
@@ -9,7 +10,9 @@
   * [Macro] Add `Macro.pipe/3` and `Macro.unpipe/1` for building pipelines
   * [Mix] Allow umbrella children to share dependencies between them
   * [Mix] Allow mix to be escriptize'd
+  * [Mix] Speed mix projects compilation by relying on more manifests information
   * [Protocol] Protocols now provide `impl_for/1` and `impl_for!/1` functions which receive a structure and returns its respective implementation, otherwise returns nil or an error
+  * [Set] Document and enforce all sets use the match operator (`===`) when checking for keys
   * [String] Update to Unicode 6.3.0
   * [String] Add `Enum.slice/2` with a range
 
