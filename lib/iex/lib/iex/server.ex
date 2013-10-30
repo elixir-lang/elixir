@@ -153,10 +153,7 @@ defmodule IEx.Server do
       # Message either go back to the main loop or exit.
       { :input, ^input, code } when is_binary(code) ->
         evaluator <- { :eval, self, code, config }
-        receive do
-          { :evaled, ^evaluator, config } ->
-            loop(config, evaluator, evaluator_ref)
-        end
+        wait_eval(evaluator, evaluator_ref)
       { :input, ^input, { :error, :interrupted } } ->
         io_error "** (EXIT) interrupted"
         loop(config.cache(''), evaluator, evaluator_ref)
@@ -194,6 +191,24 @@ defmodule IEx.Server do
         io_error "** (EXIT from #{config.prefix} #{inspect evaluator}) #{inspect(reason)}"
         kill_input(input)
         exit_loop(evaluator, evaluator_ref)
+    end
+  end
+
+  defp wait_eval(evaluator, evaluator_ref) do
+    receive do
+      { :evaled, ^evaluator, config } ->
+        loop(config, evaluator, evaluator_ref)
+      { :take?, other, ref } ->
+        other <- ref
+        wait_eval(evaluator, evaluator_ref)
+      { :take, other, identifier, ref, opts } ->
+        if allow_take?(identifier) do
+          other <- { ref, Process.group_leader }
+          reset_loop(opts, evaluator, evaluator_ref)
+        else
+          other <- { ref, nil }
+          wait_eval(evaluator, evaluator_ref)
+        end
     end
   end
 
