@@ -44,11 +44,6 @@ defmodule IEx.ServerTest do
     assert IEx.Server.take_over("iex:13", [], 10) == { :error, :no_iex }
   end
 
-  test "take over fails when evaluator is requesting take over" do
-    Process.put(:evaluator, self)
-    assert IEx.Server.take_over("iex:13", [], 10, self) == { :error, :self }
-  end
-
   test "pry wraps around take over" do
     require IEx
     assert capture_io(fn ->
