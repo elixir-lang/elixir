@@ -21,7 +21,7 @@ defmodule IEx.AutocompleteTest do
   end
 
   test :erlang_module_multiple_values_completion do
-    {:yes, '', list} = expand(':user') 
+    {:yes, '', list} = expand(':user')
     assert length(list) > 1
   end
 
@@ -35,6 +35,7 @@ defmodule IEx.AutocompleteTest do
   end
 
   test :elixir_no_completion do
+    assert expand('.')   == {:no, '', []}
     assert expand('Xyz') == {:no, '', []}
   end
 
@@ -48,7 +49,7 @@ defmodule IEx.AutocompleteTest do
   end
 
   test :elixir_submodule_no_completion do
-    assert expand('IEx.Xyz') == {:no, '', []} 
+    assert expand('IEx.Xyz') == {:no, '', []}
   end
 
   test :elixir_function_completion do
