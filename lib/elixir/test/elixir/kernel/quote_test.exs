@@ -236,6 +236,22 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
     quote do: var!(a, __MODULE__)
   end
 
+  defmacrop nested(var, do: block) do
+    quote do
+      var = unquote(var)
+      unquote(block)
+      var
+    end
+  end
+
+  defmacrop hat do
+    quote do
+      var  = 1
+      ^var = 1
+      var
+    end
+  end
+
   test :no_interference do
     a = 10
     no_interference
@@ -245,12 +261,6 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
   test :no_hygiene do
     no_hygiene
     assert a == 1
-  end
-
-  test :cross_module_no_interference do
-    cross_module_no_interference
-    no_interference
-    assert read_cross_module == 10
   end
 
   test :cross_module_interference do
@@ -267,6 +277,18 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
   test :read_interference do
     a = 10
     read_interference
+  end
+
+  test :nested do
+    assert (nested 1 do
+      nested 2 do
+        :ok
+      end
+    end) == 1
+  end
+
+  test :hat do
+    assert hat == 1
   end
 end
 

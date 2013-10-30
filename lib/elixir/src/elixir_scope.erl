@@ -10,7 +10,7 @@
 ]).
 -include("elixir.hrl").
 
-translate_var(Meta, Name, Kind, S, Callback) ->
+translate_var(Meta, Name, Kind, S, Callback) when is_atom(Kind); is_integer(Kind) ->
   Line = ?line(Meta),
   Vars = S#elixir_scope.vars,
   Tuple = { Name, Kind },
@@ -95,7 +95,7 @@ to_ex_env({ Line, #elixir_scope{module=Module,file=File,
     Context, Requires, Functions, Macros, ContextModules, MacroAliases,
     list_vars(Vars) }.
 
-list_vars(Vars) -> [K || { K, _ } <- Vars].
+list_vars(Vars) -> [Pair || { { _, K } = Pair, _ } <- Vars, is_atom(K)].
 
 % Provides a tuple with only the scope information we want to serialize.
 
@@ -109,9 +109,14 @@ serialize(S) ->
 
 serialize_with_vars(Line, S) when is_integer(Line) ->
   { Vars, _ } = orddict:fold(fun({ Key, Kind }, Value, { Acc, Counter }) ->
+    KindKey = if
+      is_atom(Kind) -> atom;
+      is_integer(Kind) -> integer
+    end,
+
     { { cons, Line, { tuple, Line, [
       { atom, Line, Key },
-      { atom, Line, Kind },
+      { KindKey, Line, Kind },
       { atom, Line, ?atom_concat(["_@", Counter]) },
       { var,  Line, Value }
     ] }, Acc }, Counter + 1 }
@@ -157,6 +162,7 @@ umergev(S1, S2) ->
 umergec(S1, S2) ->
   S1#elixir_scope{
     counter=S2#elixir_scope.counter,
+    macro_counter=S2#elixir_scope.macro_counter,
     extra_guards=S2#elixir_scope.extra_guards,
     super=S2#elixir_scope.super,
     caller=S2#elixir_scope.caller

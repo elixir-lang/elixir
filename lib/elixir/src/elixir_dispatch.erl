@@ -89,8 +89,8 @@ dispatch_import(Meta, Name, Args, S, Callback) ->
         { error, internal } ->
           elixir_tracker:record_import(Tuple, ?builtin, Module, S#elixir_scope.function),
           elixir_macros:translate({ Name, Meta, Args }, S);
-        { ok, _Receiver, Tree } ->
-          translate_expansion(Meta, Tree, S)
+        { ok, Receiver, Tree } ->
+          translate_expansion(Meta, Receiver, Tree, S)
       end
   end.
 
@@ -111,8 +111,8 @@ dispatch_require(Meta, Receiver, Name, Args, S, Callback) ->
         { error, internal } ->
           elixir_tracker:record_remote(Tuple, ?builtin, S#elixir_scope.module, S#elixir_scope.function),
           elixir_macros:translate({ Name, Meta, Args }, S);
-        { ok, _Receiver, Tree } ->
-          translate_expansion(Meta, Tree, S)
+        { ok, Receiver, Tree } ->
+          translate_expansion(Meta, Receiver, Tree, S)
       end
   end.
 
@@ -222,13 +222,14 @@ expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) ->
   Fun         = fun Receiver:ProperName/ProperArity,
   expand_macro_fun(Meta, Fun, Receiver, Name, Args, Module, S).
 
-translate_expansion(Meta, Tree, S) ->
+translate_expansion(Meta, Receiver, Tree, S) ->
   Line = ?line(Meta),
+  New  = S#elixir_scope.macro_counter + 1,
 
   try
     elixir_translator:translate_each(
-      elixir_quote:linify(Line, Tree),
-      S
+      elixir_quote:linify(Line, { Receiver, New }, Tree),
+      S#elixir_scope{macro_counter=New}
     )
   catch
     Kind:Reason ->
