@@ -173,6 +173,33 @@ defmodule Kernel.QuoteTest do
   end
 end
 
+## DO NOT MOVE THIS LINE
+defmodule Kernel.QuoteTest.Errors do
+  defmacro defadd do
+    quote location: :keep do
+      def add(a, b), do: a + b
+    end
+  end
+end
+
+defmodule Kernel.QuoteTest.ErrorsTest do
+  use ExUnit.Case, async: true
+  import Kernel.QuoteTest.Errors
+
+  # Defines the add function
+  defadd
+
+  test :inside_function_error do
+    assert_raise ArithmeticError, fn ->
+      add(:a, :b)
+    end
+
+    mod  = Kernel.QuoteTest.ErrorsTest
+    file = String.to_char_list!(__FILE__)
+    assert [{ ^mod, :add, 2, [file: ^file, line: 180] }|_] = System.stacktrace
+  end
+end
+
 defmodule Kernel.QuoteTest.VarHygiene do
   defmacro no_interference do
     quote do: a = 1

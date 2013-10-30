@@ -503,7 +503,7 @@ defmodule Kernel.SpecialForms do
   * `:unquote` - When false, disables unquoting. Useful when you have a quote
                  inside another quote and want to control what quote is
                  able to unquote;
-  * `:location` - When set to `:keep`, keeps the current line and file on quotes.
+  * `:location` - When set to `:keep`, keeps the current line and file from quote.
                   Read the Stacktrace information section below for more information;
   * `:hygiene` - Allows a developer to disable hygiene selectively;
   * `:context` - Sets the resolution context;
@@ -721,35 +721,35 @@ defmodule Kernel.SpecialForms do
 
   ## Stacktrace information
 
-  One of Elixir's goals is to provide a proper stacktrace whenever there is an
-  exception. In order to work properly with macros, the default behavior
-  in quote is to not set a line. When a macro is invoked and the quoted
-  expressions is expanded, the call site line is inserted.
+  When defining functions via macros, developers have the option of
+  choosing if runtime errors will be reported from the caller or from
+  inside the quote. Let's see an example:
 
-  This is a good behavior for the majority of the cases, except if the macro
-  is defining new functions. Consider this example:
-
-      defmodule MyServer do
-        use GenServer.Behaviour
-      end
-
-  `GenServer.Behaviour` defines new functions in our `MyServer` module.
-  However, if there is an exception in any of these functions, we want
-  the stacktrace to point to the `GenServer.Behaviour` and not the line
-  that calls `use GenServer.Behaviour`. For this reason, there is an
-  option called `:location` that when set to `:keep` keeps the original
-  line and file lines instead of setting them to 0:
-
-      quote location: :keep do
-        def handle_call(request, _from, state) do
-          { :reply, :undef, state }
+      # adder.ex
+      defmodule Adder do
+        @doc "Defines a function that adds two numbers"
+        defmacro defadd do
+          quote location: :keep do
+            def add(a, b), do: a + b
+          end
         end
       end
 
-  It is important to warn though that `location: :keep` evaluates the
-  code as if it was defined inside `GenServer.Behaviour` file, in
-  particular, the macro `__FILE__` and exceptions happening inside
-  the quote will always point to `GenServer.Behaviour` file.
+      # sample.ex
+      defmodule Sample do
+        import Adder
+        defadd
+      end
+
+  When using `location: :keep` and invalid arguments are given to
+  `Sample.add/2`, the stacktrace information will point to the file
+  and line inside the quote. Without `location: :keep`, the error is
+  reported to where `defadd` was invoked.
+
+  Note that `location: :keep` evaluates the code as if it was defined
+  inside the `Adder` file, in particular, the macro `__FILE__` and
+  exceptions happening inside the quote will always point to the file
+  where `Added` was defined.
 
   ## Binding and unquote fragments
 
