@@ -10,13 +10,12 @@ defmodule Regex do
       # A simple regular expressions that matches foo anywhere in the string
       %r/foo/
 
-      # A regular expression with case insensitive options and handling for unicode chars
-      %r/foo/iu
+      # A regular expression with case insensitive options
+      %r/foo/i
 
   The `re` module provides several options, the ones available in Elixir, followed by
   their shortcut in parenthesis, are:
 
-  * `unicode` (u) - enables unicode specific patterns like \p
   * `caseless` (i) - add case insensitivity
   * `dotall` (s) - causes dot to match newlines and also set newline to anycrlf.
     The new line setting can be overridden by setting `(*CR)` or `(*LF)` or
@@ -75,7 +74,9 @@ defmodule Regex do
         { :error, { :invalid_option, rest } }
 
       translated_options ->
-        compile(source, translated_options, options)
+        # Always use the unicode option, we don't have a latin1 legacy like
+        # Erlang.
+        compile(source, [:unicode|translated_options], options)
     end
   end
 
@@ -367,7 +368,10 @@ defmodule Regex do
   defp return_for(element) when is_binary(element), do: :binary
   defp return_for(element) when is_list(element),   do: :list
 
-  defp translate_options(<<?u, t :: binary>>), do: [:unicode|translate_options(t)]
+  defp translate_options(<<?u, t :: binary>>) do
+    IO.write "The /u flag for regular expressions is no longer needed\n#{Exception.format_stacktrace}"
+    translate_options(t)
+  end
   defp translate_options(<<?i, t :: binary>>), do: [:caseless|translate_options(t)]
   defp translate_options(<<?x, t :: binary>>), do: [:extended|translate_options(t)]
   defp translate_options(<<?f, t :: binary>>), do: [:firstline|translate_options(t)]

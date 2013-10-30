@@ -222,7 +222,7 @@ defmodule String do
 
   def split("", _pattern, _options), do: [""]
 
-  def split(binary, "", options), do: split(binary, %r""u, options)
+  def split(binary, "", options), do: split(binary, %r"", options)
 
   def split(binary, pattern, options) when is_regex(pattern) do
     Regex.split(pattern, binary, options)
