@@ -91,7 +91,7 @@ defmodule Kernel.ExceptionTest do
     stacktrace =
     try do
       raise "a"
-    rescue _ -> 
+    rescue _ ->
       [top|_] = System.stacktrace
       top
     end
