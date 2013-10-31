@@ -54,6 +54,7 @@ defmodule Kernel.ExceptionTest do
     assert Exception.format_mfa(Foo, nil, 1) == "Foo.nil/1"
     assert Exception.format_mfa(Foo, :bar, 1) == "Foo.bar/1"
     assert Exception.format_mfa(Foo, :bar, []) == "Foo.bar()"
+    assert Exception.format_mfa(nil, :bar, []) == "nil.bar()"
     assert Exception.format_mfa(:foo, :bar, [1, 2]) == ":foo.bar(1, 2)"
     assert Exception.format_mfa(Foo, :"bar baz", 1) == "Foo.\"bar baz\"/1"
   end
@@ -76,6 +77,7 @@ defmodule Kernel.ExceptionTest do
   test :undefined_function_message do
     assert UndefinedFunctionError.new.message == "undefined function"
     assert UndefinedFunctionError.new(module: Foo, function: :bar, arity: 1).message == "undefined function: Foo.bar/1"
+    assert UndefinedFunctionError.new(module: nil, function: :bar, arity: 0).message == "undefined function: nil.bar/0"
   end
 
   test :function_clause_message do
@@ -97,7 +99,7 @@ defmodule Kernel.ExceptionTest do
     end
     file = to_char_list(__FILE__)
     assert {Kernel.ExceptionTest, :test_raise_preserves_the_stacktrace, _,
-           [file: ^file, line: 93]} = stacktrace # line is sensitive
+           [file: ^file, line: 95]} = stacktrace # line is sensitive
   end
 
   defp empty_tuple, do: {}
