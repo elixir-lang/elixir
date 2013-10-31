@@ -855,10 +855,6 @@ defmodule Kernel.SpecialForms do
 
   @doc """
   Defines a variable in the given context.
-
-  If the context is `false`, it is not stored in any particular
-  context and the variable is not shared in between clauses.
-
   Check `quote/2` for more information.
   """
   defmacro var!(var, context)

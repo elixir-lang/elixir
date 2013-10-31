@@ -44,6 +44,7 @@ translate({ in, Meta, [Left, Right] }, #elixir_scope{extra_guards=nil} = S) ->
   { TExpr, TS };
 
 translate({ in, Meta, [Left, Right] }, #elixir_scope{extra_guards=Extra} = S) ->
+  elixir_errors:deprecation(Meta, S#elixir_scope.file, "in operator inside matches is deprecated, please move it to a guard"),
   { TVar, TExpr, TS } = translate_in(Meta, Left, Right, S),
   { TVar, TS#elixir_scope{extra_guards=[TExpr|Extra]} };
 
@@ -281,8 +282,18 @@ decreasing_compare(Line, Var, Start, End) ->
     { op, Line, '=<', Var, Start },
     { op, Line, '>=', Var, End } }.
 
-rewrite_case_clauses([{do,Meta1,[{in,_,[{'_',_,_},[false,nil]]}],False},{do,Meta2,[{'_',_,_}],True}]) ->
-  [{do,Meta1,[false],False},{do,Meta2,[true],True}];
+%% TODO: Once we have elixir_exp, we can move this
+%% clause to Elixir code and out of case.
+rewrite_case_clauses([
+    {do,Meta1,[{'when',_,[{V,M,C},{in,_,[{V,M,C},[false,nil]]}]}],False},
+    {do,Meta2,[{'_',_,UC}],True}] = Clauses)
+    when is_atom(V), is_list(M), is_atom(C), is_atom(UC) ->
+  case lists:keyfind('cond', 1, M) of
+    { 'cond', true } ->
+      [{do,Meta1,[false],False},{do,Meta2,[true],True}];
+    _ ->
+      Clauses
+  end;
 
 rewrite_case_clauses(Clauses) ->
   Clauses.

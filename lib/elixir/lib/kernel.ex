@@ -2636,8 +2636,8 @@ defmodule Kernel do
 
     quote do
       case unquote(condition) do
-        _ in [false, nil] -> unquote(else_clause)
-        _                 -> unquote(do_clause)
+        unquote(cond_var) when unquote(cond_var) in [false, nil] -> unquote(else_clause)
+        _ -> unquote(do_clause)
       end
     end
   end
@@ -2987,8 +2987,8 @@ defmodule Kernel do
   defmacro left && right do
     quote do
       case unquote(left) do
-        var!(andand, false) in [false, nil] ->
-          var!(andand, false)
+        unquote(temp_var) when unquote(temp_var) in [false, nil] ->
+          unquote(temp_var)
         _ ->
           unquote(right)
       end
@@ -3018,10 +3018,10 @@ defmodule Kernel do
   defmacro left || right do
     quote do
       case unquote(left) do
-        var!(oror, false) in [false, nil] ->
+        unquote(temp_var) when unquote(temp_var) in [false, nil] ->
           unquote(right)
-        var!(oror, false) ->
-          var!(oror, false)
+        unquote(temp_var) ->
+          unquote(temp_var)
       end
     end
   end
@@ -3619,11 +3619,24 @@ defmodule Kernel do
   defp expand_compact([]),                      do: []
 
   defp falsy_clause(meta, acc) do
-    { [quote(do: _ in [false, nil])], meta, acc }
+    { [quote(do: unquote(cond_var) when unquote(cond_var) in [false, nil])], meta, acc }
   end
 
   defp truthy_clause(meta, clause) do
     { [quote(do: _)], meta, clause }
+  end
+
+  # Setting cond: true in metadata turns on a small optimization
+  # in Elixir compiler. In the long run, we want to bring this
+  # optimization to Elixir land, but not right now.
+  defp cond_var do
+    { :x, [cond: true, temp: true], Kernel }
+  end
+
+  # A temporary var only lasts its current clause, never leak
+  # into other clauses.
+  defp temp_var do
+    { :x, [temp: true], Kernel }
   end
 
   defp get_line(meta) do

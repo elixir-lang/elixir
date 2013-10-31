@@ -157,19 +157,21 @@ defmodule MacroTest do
   end
 
   test :expand_once_with_imported_macro do
+    temp_var = { :x, [temp: true], Kernel }
     assert Macro.expand_once(quote(do: 1 || false), __ENV__) == (quote context: Kernel do
       case 1 do
-        var!(oror, false) in [false, nil] -> false
-        var!(oror, false) -> var!(oror, false)
+        unquote(temp_var) when unquote(temp_var) in [false, nil] -> false
+        unquote(temp_var) -> unquote(temp_var)
       end
     end)
   end
 
   test :expand_once_with_require_macro do
+    temp_var = { :x, [temp: true], Kernel }
     assert Macro.expand_once(quote(do: Kernel.||(1, false)), __ENV__) == (quote context: Kernel do
       case 1 do
-        var!(oror, false) in [false, nil] -> false
-        var!(oror, false) -> var!(oror, false)
+        unquote(temp_var) when unquote(temp_var) in [false, nil] -> false
+        unquote(temp_var) -> unquote(temp_var)
       end
     end)
   end
@@ -187,10 +189,11 @@ defmodule MacroTest do
   end
 
   test :expand do
+    temp_var = { :x, [temp: true], Kernel }
     assert Macro.expand(quote(do: oror(1, false)), __ENV__) == (quote context: Kernel do
       case 1 do
-        var!(oror, false) in [false, nil] -> false
-        var!(oror, false) -> var!(oror, false)
+        unquote(temp_var) when unquote(temp_var) in [false, nil] -> false
+        unquote(temp_var) -> unquote(temp_var)
       end
     end)
   end

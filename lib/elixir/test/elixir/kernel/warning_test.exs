@@ -180,22 +180,8 @@ defmodule Kernel.WarningTest do
       end
       """
     end) =~ "nofile:6: this clause cannot match because a previous clause at line 5 always matches"
-
-    assert capture_err(fn ->
-      Code.eval_string """
-      defmodule Sample3 do
-        def is_binary_cond_case do
-          v = "bc"
-          case(is_binary(v)) do
-            _ in [false, nil] -> :ok
-            _ -> :bin
-          end
-        end
-      end
-      """
-    end) =~ "nofile:5: this clause cannot match because a previous clause at line 6 always matches"
   after
-    purge [Sample1, Sample2, Sample3]
+    purge [Sample1, Sample2]
   end
 
   test :unused_docs do

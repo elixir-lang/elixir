@@ -271,7 +271,7 @@ oror_test() ->
 optimized_if_test() ->
   [{ 'case', _, _,
     [{clause,_,[{atom,_,false}],[],[{atom,_,else}]},
-     {clause,_,[{atom,_,true}],[],[{atom,_,do}]} ]
+     {clause,_,[{atom,_,true}],[],[{atom,_,do}]}]
   }] = to_erl("if is_list([]), do: :do, else: :else").
 
 optimized_andand_test() ->

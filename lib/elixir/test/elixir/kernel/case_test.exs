@@ -30,31 +30,11 @@ defmodule Kernel.CaseTest do
     end) == :done
   end
 
-  test :match_with_in do
-    assert(case 3 do
-      x in [1, 2, 3] ->
-        true
-    end)
-
-    assert(case { 3, 3 } do
-      { x in [1, 2, 3], y } when y == 2 ->
-        false
-      { x in [1, 2, 3], y } when y == 1 when y == 3 ->
-        true
-    end)
-  end
-
   test :in_operator_outside_case do
     x = 1
     y = 4
     assert x in [1, 2, 3], "in assertion"
     assert not y in [1, 2, 3], "not in assertion"
-  end
-
-  test :in_operator_in_function_definition do
-    assert with_in(3, :it_works)  == :it_works
-    assert with_in(3, "it fails") == false
-    assert with_in(0, :it_fails)  == false
   end
 
   defp get_case do
@@ -93,7 +73,4 @@ defmodule Kernel.CaseTest do
     end
     {x, vx}
   end
-
-  defp with_in(x in [1, 2, 3], other) when is_atom(other), do: other
-  defp with_in(_, _), do: false
 end

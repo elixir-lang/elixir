@@ -481,7 +481,7 @@ defmodule File do
         case F.list_dir(src) do
           { :ok, files } ->
             case mkdir(dest) do
-              success in [:ok, { :error, :eexist }] ->
+              success when success in [:ok, { :error, :eexist }] ->
                 Enum.reduce(files, [dest|acc], fn(x, acc) ->
                   do_cp_r(FN.join(src, x), FN.join(dest, x), callback, acc)
                 end)
