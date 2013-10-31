@@ -39,6 +39,7 @@ defmodule RangeTest do
     refute Enum.empty?(1..1)
 
     assert Enum.member?(1..3, 2)
+
     refute Enum.member?(1..3, 0)
     refute Enum.member?(1..3, 4)
     refute Enum.member?(3..1, 0)

@@ -327,6 +327,13 @@ defmodule DictTest.Common do
         refute Dict.equal?(dict1, dict2)
       end
 
+      test :enum_member do
+        assert Enum.member?(new_dict([{1,1}]), { 1, 1 })
+        refute Enum.member?(new_dict([{1,1}]), { 1.0, 1 })
+        refute Enum.member?(new_dict([{1,1}]), { 1, 1.0 })
+        refute Enum.member?(new_dict([{1,1}]), { 1.0, 1.0 })
+      end
+
       test "unsupported dict" do
         assert_raise ArgumentError, "unsupported dict: :bad_dict", fn ->
           Dict.to_list :bad_dict

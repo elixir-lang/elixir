@@ -38,6 +38,7 @@ defprotocol Enumerable do
 
   @doc """
   The function is used to check if a value exists within the collection.
+  Membership should be tested with the match (`===`) operator.
   """
   def member?(collection, value)
 
@@ -86,6 +87,10 @@ defmodule Enum do
 
   @doc """
   Checks if `value` exists within the `collection`.
+
+  Membership is tested with the match (`===`) operator although
+  enumerables like ranges may include floats inside the given
+  range.
 
   ## Examples
 
@@ -1850,8 +1855,9 @@ defimpl Enumerable, for: Function do
   end
 
   def member?(function, value) do
-    function.(false, fn(entry, _) ->
-      if entry === value, do: throw(:function_member?), else: false
+    function.(false, fn
+      ^value, _ -> throw(:function_member?)
+      _, _ -> false
     end)
   catch
     :function_member? -> true

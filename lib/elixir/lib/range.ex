@@ -17,15 +17,15 @@ defprotocol Range.Iterator do
 end
 
 defimpl Enumerable, for: Range do
-  def reduce(Range[first: first] = range, acc, fun) do
+  def reduce(first .. _ = range, acc, fun) do
     Range.Iterator.reduce(first, range, acc, fun)
   end
 
-  def member?(Range[first: first, last: last], value) do
-    value in first..last
+  def member?(first .. last, value) do
+    first <= value and value <= last
   end
 
-  def count(Range[first: first] = range) do
+  def count(first .. _ = range) do
     Range.Iterator.count(first, range)
   end
 end

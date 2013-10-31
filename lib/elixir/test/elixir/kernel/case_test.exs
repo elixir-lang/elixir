@@ -37,6 +37,10 @@ defmodule Kernel.CaseTest do
     assert not y in [1, 2, 3], "not in assertion"
   end
 
+  test :in_with_match do
+    refute 1.0 in [1, 2, 3], "not in assertion"
+  end
+
   defp get_case do
     case internal do
       :invalid ->

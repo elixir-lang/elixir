@@ -98,6 +98,11 @@ defmodule SetTest.Common do
         assert Set.size(Set.union(int_set, new_set([1.0]))) == 4
       end
 
+      test :enum_member do
+        assert Enum.member?(int_set, 1)
+        refute Enum.member?(int_set, 1.0)
+      end
+
       test "unsupported set" do
         assert_raise ArgumentError, "unsupported set: :bad_set", fn ->
           Set.to_list :bad_set

@@ -233,13 +233,13 @@ translate_in(Meta, Left, Right, S) ->
     { cons, _, _, _ } ->
       [H|T] = elixir_utils:cons_to_list(TRight),
       Expr = lists:foldr(fun(X, Acc) ->
-        { op, Line, 'orelse', { op, Line, '==', Var, X }, Acc }
-      end, { op, Line, '==', Var, H }, T),
+        { op, Line, 'orelse', { op, Line, '=:=', Var, X }, Acc }
+      end, { op, Line, '=:=', Var, H }, T),
       { Cache, Expr };
     { string, _, [H|T] } ->
       Expr = lists:foldl(fun(X, Acc) ->
-        { op, Line, 'orelse', { op, Line, '==', Var, { integer, Line, X } }, Acc }
-      end, { op, Line, '==', Var, { integer, Line, H } }, T),
+        { op, Line, 'orelse', { op, Line, '=:=', Var, { integer, Line, X } }, Acc }
+      end, { op, Line, '=:=', Var, { integer, Line, H } }, T),
       { Cache, Expr };
     { tuple, _, [{ atom, _, 'Elixir.Range' }, Start, End] } ->
       Expr = case { Start, End } of
