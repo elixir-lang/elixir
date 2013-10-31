@@ -1,12 +1,12 @@
 defmodule Behaviour do
   @moduledoc """
-  A convenience module for defining behaviours.
+  Utilities for defining behaviour intefaces.
+
   Behaviours can be referenced by other modules
-  in order to ensure they implement the proper
-  callbacks.
+  to ensure they implement required callbacks.
 
   For example, you can specify the `URI.Parser`
-  behaviour as follow:
+  behaviour as follows:
 
       defmodule URI.Parser do
         use Behaviour
@@ -18,7 +18,7 @@ defmodule Behaviour do
         defcallback default_port() :: integer
       end
 
-  And then a specific module may use it as:
+  And then a module may use it as:
 
       defmodule URI.HTTP do
         @behaviour URI.Parser
@@ -26,24 +26,25 @@ defmodule Behaviour do
         def parse(info), do: info
       end
 
-  In case the behaviour changes or URI.HTTP does
+  If the behaviour changes or `URI.HTTP` does
   not implement one of the callbacks, a warning
   will be raised.
 
   ## Implementation
 
-  Behaviours since Erlang R15 must be defined via
+  Since Erlang R15, behaviours must be defined via
   `@callback` attributes. `defcallback` is a simple
   mechanism that defines the `@callback` attribute
-  according to the type specification and also allows
-  docs and defines a custom function signature.
+  according to the given type specification. `defcallback` allows
+  documentsion to be created for the callback and defines 
+  a custom function signature.
 
   The callbacks and their documentation can be retrieved
   via the `__behaviour__` callback function.
   """
 
   @doc """
-  Defines a callback according to the given type specification.
+  Define a function callback according to the given type specification.
   """
   defmacro defcallback({ :::, _, [fun, return] }) do
     do_defcallback(fun, return, __CALLER__)
@@ -54,7 +55,7 @@ defmodule Behaviour do
   end
 
   @doc """
-  Defines a macro callback according to the given type specification.
+  Define a macro callback according to the given type specification.
   """
   defmacro defmacrocallback({ :::, _, [fun, return] }) do
     do_defmacrocallback(fun, return, __CALLER__)
