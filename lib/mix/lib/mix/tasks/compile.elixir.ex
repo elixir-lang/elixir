@@ -59,10 +59,8 @@ defmodule Mix.Tasks.Compile.Elixir do
       beam = Path.join(compile_path, bin <> ".beam")
       File.write!(beam, binary)
 
-      deps = Module.DispatchTracker.aliases(module) ++
-             Module.DispatchTracker.remotes(module) ++
-             Module.DispatchTracker.imports(module)
-      deps = deps |> :lists.usort |> Enum.map(&atom_to_binary(&1))
+      deps = Kernel.LexicalTracker.remotes(module)
+             |> :lists.usort |> Enum.map(&atom_to_binary(&1))
 
       relative = if cwd, do: Path.relative_to(source, cwd), else: source
       :gen_server.cast(pid, { :store, beam, bin, relative, deps })

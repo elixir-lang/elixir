@@ -133,45 +133,12 @@ defmodule Module.DispatchTrackerTest do
     assert { :foo, 4 } in D.reachable(config[:pid])
   end
 
-  ## Aliases
-
-  test "can add alias", config do
-    D.add_alias(config[:pid], Module)
-  end
-
-  test "can retrieve aliases", config do
-    D.add_alias(config[:pid], Module)
-    assert Module in D.aliases(config[:pid])
-  end
-
   ## Imports
-
-  test "can add import", config do
-    D.add_import(config[:pid], nil, Module, { :concat, 1 })
-  end
-
-  test "can retrieve imports", config do
-    D.add_import(config[:pid], nil, Module, { :concat, 1 })
-    assert Module in D.imports(config[:pid])
-  end
 
   test "find imports from dispatch", config do
     D.add_import(config[:pid], nil, Module, { :concat, 1 })
     assert Module in D.imports_with_dispatch(config[:pid], { :concat, 1 })
     refute Module in D.imports_with_dispatch(config[:pid], { :unknown, 1 })
-  end
-
-  test "can add warnable", config do
-    D.add_warnable(config[:pid], Module, true, 15)
-    assert Module in D.imports(config[:pid])
-  end
-
-  test "find unused imports", config do
-    D.add_warnable(config[:pid], Module, true, 15)
-    assert { Module, 15 } in D.collect_unused_imports(config[:pid])
-
-    D.add_warnable(config[:pid], Module, false, 15)
-    refute { Module, 15 } in D.collect_unused_imports(config[:pid])
   end
 
   test "find import conflicts", config do
@@ -182,15 +149,6 @@ defmodule Module.DispatchTrackerTest do
   end
 
   ## Remotes
-
-  test "can add remote", config do
-    D.add_remote(config[:pid], nil, Module, { :concat, 1 })
-  end
-
-  test "can retrieve remotes", config do
-    D.add_remote(config[:pid], nil, Module, { :concat, 1 })
-    assert Module in D.remotes(config[:pid])
-  end
 
   test "find remotes from dispatch", config do
     D.add_remote(config[:pid], nil, Module, { :concat, 1 })

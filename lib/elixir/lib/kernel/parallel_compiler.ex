@@ -113,13 +113,13 @@ defmodule Kernel.ParallelCompiler do
         # list because someone invoked try/rescue UndefinedFunctionError
         new_waiting = List.keydelete(waiting, child, 0)
         spawn_compilers(files, original, output, callbacks, new_waiting, new_queued, schedulers, result)
-      { :module_available, child, file, module, binary } ->
+      { :module_available, child, ref, file, module, binary } ->
         if callback = Keyword.get(callbacks, :each_module) do
           callback.(file, module, binary)
         end
 
         # Release the module loader which is waiting for an ack
-        child <- { self, :ack }
+        child <- { ref, :ack }
 
         new_waiting = release_waiting_processes(module, waiting)
         new_result  = [module|result]

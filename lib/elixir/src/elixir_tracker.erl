@@ -1,14 +1,12 @@
-%% Module responsible for tracking invocations of locals,
-%% imports and requires.
+%% Module responsible for tracking invocations of module calls.
 -module(elixir_tracker).
 -export([
   setup/1, cleanup/1,
   record_local/2, record_local/3,
   record_import/4, record_remote/4,
-  record_warn/4, record_definition/3,
-  record_defaults/4, record_alias/2,
-  ensure_no_function_conflict/4, ensure_all_imports_used/3,
-  warn_unused_local/3, format_error/1
+  record_definition/3, record_defaults/4,
+  ensure_no_function_conflict/4, warn_unused_local/3,
+  format_error/1
 ]).
 -include("elixir.hrl").
 
@@ -18,9 +16,9 @@
 %% RECORD
 
 setup(Module) ->
-  case code:ensure_loaded(?tracker) of
-    { module, _ } -> ets:insert(Module, { ?attr, ?tracker:start_link() });
-    { error, _ }  -> ok
+  case code:is_loaded(?tracker) of
+    { file, _ } -> ets:insert(Module, { ?attr, ?tracker:start_link() });
+    false -> ok
   end.
 
 cleanup(Module) ->
@@ -39,40 +37,21 @@ record_local(Tuple, Module, Function) ->
     true
   end).
 
-record_warn(Ref, Warn, Line, Module) ->
-  if_tracker(Module, fun(Pid) ->
-    ?tracker:add_warnable(Pid, Ref, Warn, Line),
-    true
-  end).
-
 record_import(_Tuple, Receiver, Module, _Function)
   when Module == nil; Module == Receiver -> false;
 record_import(Tuple, Receiver, Module, Function) ->
-  try
-    Pid = ets:lookup_element(Module, ?attr, 2),
-    ?tracker:add_import(Pid, Function, Receiver, Tuple)
-  catch
-    error:badarg -> false
-  end.
+  if_tracker(Module, fun(Pid) ->
+    ?tracker:add_import(Pid, Function, Receiver, Tuple),
+    true
+  end).
 
 record_remote(_Tuple, Receiver, Module, _Function)
   when Module == nil; Module == Receiver -> false;
 record_remote(Tuple, Receiver, Module, Function) ->
-  try
-    Pid = ets:lookup_element(Module, ?attr, 2),
-    ?tracker:add_remote(Pid, Function, Receiver, Tuple)
-  catch
-    error:badarg -> false
-  end.
-
-record_alias(_Receiver, nil) -> false;
-record_alias(Receiver, Module) ->
-  try
-    Pid = ets:lookup_element(Module, ?attr, 2),
-    ?tracker:add_alias(Pid, Receiver)
-  catch
-    error:badarg -> false
-  end.
+  if_tracker(Module, fun(Pid) ->
+    ?tracker:add_remote(Pid, Function, Receiver, Tuple),
+    true
+  end).
 
 record_definition(Tuple, Kind, Module) ->
   if_tracker(Module, fun(Pid) ->
@@ -91,9 +70,10 @@ record_defaults(Tuple, Kind, Module, Defaults) ->
 %% HELPERS
 
 if_tracker(Module, Callback) ->
-  case ets:lookup(Module, ?attr) of
-    [{ ?attr, Pid }] -> Callback(Pid);
-    _ -> false
+  try ets:lookup_element(Module, ?attr, 2) of
+    Pid -> Callback(Pid)
+  catch
+    error:badarg -> false
   end.
 
 %% ERROR HANDLING
@@ -103,14 +83,6 @@ ensure_no_function_conflict(Meta, File, Module, AllDefined) ->
     [ begin
         elixir_errors:form_error(Meta, File, ?MODULE, { function_conflict, Error })
       end || Error <- ?tracker:collect_imports_conflicts(Pid, AllDefined) ]
-  end),
-  ok.
-
-ensure_all_imports_used(_Line, File, Module) ->
-  if_tracker(Module, fun(Pid) ->
-    [ begin
-        elixir_errors:handle_file_warning(File, { L, ?MODULE, { unused_import, M } })
-      end || { M, L } <- ?tracker:collect_unused_imports(Pid)]
   end),
   ok.
 
@@ -130,9 +102,6 @@ warn_unused_local(File, Module, Private) ->
 format_error({function_conflict,{Receivers, Name, Arity}}) ->
   io_lib:format("imported ~ts.~ts/~B conflicts with local function",
     [elixir_errors:inspect(hd(Receivers)), Name, Arity]);
-
-format_error({unused_import, Module}) ->
-  io_lib:format("unused import ~ts", [elixir_errors:inspect(Module)]);
 
 format_error({unused_args,{Name, Arity}}) ->
   io_lib:format("default arguments in ~ts/~B are never used", [Name, Arity]);

@@ -3,9 +3,11 @@
          eval_quoted/4, format_error/1, eval_callbacks/5]).
 -include("elixir.hrl").
 
--define(docs_attr, '__docs_table').
 -define(acc_attr, '__acc_attributes').
+-define(docs_attr, '__docs_table').
+-define(lexical_attr, '__lexical_tracker').
 -define(persisted_attr, '__persisted_attributes').
+-define(overridable_attr, '__overridable').
 
 eval_quoted(Module, Quoted, RawBinding, Opts) ->
   Binding = orddict:store('_@MODULE', Module, RawBinding),
@@ -80,7 +82,6 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
 
     AllFunctions = Def ++ [T || { T, defp, _, _, _ } <- Private],
     elixir_tracker:ensure_no_function_conflict(Line, File, Module, AllFunctions),
-    elixir_tracker:ensure_all_imports_used(Line, File, Module),
     elixir_tracker:warn_unused_local(File, Module, Private),
     warn_invalid_clauses(Line, File, Module, All),
     warn_unused_docs(Line, File, Module),
@@ -119,7 +120,6 @@ build(Line, File, Module) ->
   end,
 
   ets:new(DataTable, [set, named_table, public]),
-  ets:insert(DataTable, { '__overridable', [] }),
   ets:insert(DataTable, { before_compile, [] }),
   ets:insert(DataTable, { after_compile, [] }),
 
@@ -132,6 +132,8 @@ build(Line, File, Module) ->
   ets:insert(DataTable, { ?acc_attr, [before_compile, after_compile, on_definition|Attributes] }),
   ets:insert(DataTable, { ?persisted_attr, [vsn|Attributes] }),
   ets:insert(DataTable, { ?docs_attr, ets:new(DataTable, [ordered_set, public]) }),
+  ets:insert(DataTable, { ?lexical_attr, elixir_lexical:pid(File) }),
+  ets:insert(DataTable, { ?overridable_attr, [] }),
 
   %% Setup other modules
   elixir_def:setup(Module),
@@ -279,8 +281,9 @@ load_form(Line, Forms, Opts, #elixir_scope{file=File} = S) ->
         case get(elixir_compiler_pid) of
           undefined -> [];
           PID ->
-            PID ! { module_available, self(), File, Module, Binary },
-            receive { PID, ack } -> ok end
+            Ref = make_ref(),
+            PID ! { module_available, self(), Ref, File, Module, Binary },
+            receive { Ref, ack } -> ok end
         end;
       _ ->
         []

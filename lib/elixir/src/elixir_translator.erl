@@ -153,7 +153,7 @@ translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
 translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
   case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases) of
     Receiver when is_atom(Receiver) ->
-      elixir_tracker:record_alias(Receiver, S#elixir_scope.module),
+      elixir_lexical:record_alias(S#elixir_scope.file, Receiver),
       { { atom, ?line(Meta), Receiver }, S };
     Aliases ->
       { TAliases, SA } = translate_args(Aliases, S),
@@ -162,7 +162,7 @@ translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
         true ->
           Atoms = [Atom || { atom, _, Atom } <- TAliases],
           Receiver = elixir_aliases:concat(Atoms),
-          elixir_tracker:record_alias(Receiver, S#elixir_scope.module),
+          elixir_lexical:record_alias(S#elixir_scope.file, Receiver),
           { { atom, ?line(Meta), Receiver }, SA };
         false ->
           Args = [elixir_utils:list_to_cons(?line(Meta), TAliases)],
@@ -605,6 +605,7 @@ translate_apply(Meta, TLeft, TRight, Args, S, SL, SR) ->
       case TLeft of
         { atom, _, Receiver } ->
           Tuple = { element(3, TRight), length(Args) },
+          elixir_lexical:record_remote(S#elixir_scope.file, Receiver),
           elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function);
         _ ->
           ok

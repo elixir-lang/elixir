@@ -38,15 +38,14 @@ import_macros(Force, Meta, Ref, Opts, S) ->
     S#elixir_scope.macro_macros, Existing, S),
   S#elixir_scope{macros=Macros, macro_macros=Temp}.
 
-record_warn(_Meta, _Ref, _Opts, #elixir_scope{module=nil}) -> false;
-record_warn(Meta, Ref, Opts, #elixir_scope{module=Module}) ->
+record_warn(Meta, Ref, Opts, #elixir_scope{file=File}) ->
   Warn =
     case keyfind(warn, Opts) of
       { warn, false } -> false;
       { warn, true } -> true;
       false -> not lists:keymember(context, 1, Meta)
     end,
-  elixir_tracker:record_warn(Ref, Warn, ?line(Meta), Module).
+  elixir_lexical:record_import(File, Ref, ?line(Meta), Warn).
 
 %% Calculates the imports based on only and except
 

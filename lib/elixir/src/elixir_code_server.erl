@@ -4,14 +4,14 @@
   handle_info/2, terminate/2, code_change/3]).
 -behavior(gen_server).
 -record(elixir_code_server, {
-  argv=[],
   compilation_status=ok,
+  argv=[],
   loaded=[],
   at_exit=[],
-  pool=[],
-  counter=0,
+  pool={[],0},
   compiler_options=[{docs,true},{debug_info,true},{warnings_as_errors,false}],
-  waiting=[]
+  erl_compiler_options=nil,
+  lexical=[]
 }).
 
 call(Args) ->
@@ -28,7 +28,9 @@ get_timeout() ->
 start_link() ->
   { ok, _ } = gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-init(_args) ->
+init(_Args) ->
+  code:ensure_loaded('Elixir.Module.DispatchTracker'),
+  code:ensure_loaded('Elixir.Kernel.LexicalTracker'),
   { ok, #elixir_code_server{} }.
 
 handle_call({ acquire, Path }, From, Config) ->
@@ -64,12 +66,23 @@ handle_call(compilation_status, _From, Config) ->
 
 handle_call(retrieve_module_name, _From, Config) ->
   case Config#elixir_code_server.pool of
-    [H|T] ->
-      { reply, module_tuple(H), Config#elixir_code_server{pool=T} };
-    [] ->
-      Counter = Config#elixir_code_server.counter,
-      { reply, module_tuple(Counter), Config#elixir_code_server{counter=Counter+1} }
+    { [H|T], Counter } ->
+      { reply, module_tuple(H), Config#elixir_code_server{pool={T,Counter}} };
+    { [], Counter } ->
+      { reply, module_tuple(Counter), Config#elixir_code_server{pool={[],Counter+1}} }
   end;
+
+handle_call(erl_compiler_options, _From, Config) ->
+  case Config#elixir_code_server.erl_compiler_options of
+    nil ->
+      Opts = erl_compiler_options(),
+      { reply, Opts, Config#elixir_code_server{erl_compiler_options=Opts} };
+    Opts ->
+      { reply, Opts, Config }
+  end;
+
+handle_call({ lexical, File }, _From, #elixir_code_server{lexical=Lexical} = Config) ->
+  { reply, orddict:find(File, Lexical), Config };
 
 handle_call(_Request, _From, Config) ->
   { reply, undef, Config }.
@@ -112,8 +125,14 @@ handle_cast({ unload_files, Files }, Config) ->
   Unloaded = lists:foldl(fun(File, Acc) -> orddict:erase(File, Acc) end, Current, Files),
   { noreply, Config#elixir_code_server{loaded=Unloaded} };
 
-handle_cast({ return_module_name, I }, #elixir_code_server{pool=Pool} = Config) ->
-  { noreply, Config#elixir_code_server{pool=[I|Pool]} };
+handle_cast({ return_module_name, H }, #elixir_code_server{pool={T,Counter}} = Config) ->
+  { noreply, Config#elixir_code_server{pool={[H|T],Counter}} };
+
+handle_cast({ register_lexical, File, Pid }, #elixir_code_server{lexical=Lexical} = Config) ->
+  { noreply, Config#elixir_code_server{lexical=orddict:store(File, Pid, Lexical)} };
+
+handle_cast({ unregister_lexical, File }, #elixir_code_server{lexical=Lexical} = Config) ->
+  { noreply, Config#elixir_code_server{lexical=orddict:erase(File, Lexical)} };
 
 handle_cast(_Request, Config) ->
   { noreply, Config }.
@@ -128,3 +147,23 @@ code_change(_Old, Config, _Extra) ->
   { ok, Config }.
 
 module_tuple(I) -> { list_to_atom("elixir_compiler_" ++ integer_to_list(I)), I }.
+
+erl_compiler_options() ->
+  Key = "ERL_COMPILER_OPTIONS",
+  case os:getenv(Key) of
+    false -> [];
+    Str when is_list(Str) ->
+      case erl_scan:string(Str) of
+        {ok,Tokens,_} ->
+          case erl_parse:parse_term(Tokens ++ [{dot, 1}]) of
+            {ok,List} when is_list(List) -> List;
+            {ok,Term} -> [Term];
+            {error,_Reason} ->
+              io:format("Ignoring bad term in ~ts\n", [Key]),
+              []
+          end;
+        {error, {_,_,_Reason}, _} ->
+          io:format("Ignoring bad term in ~ts\n", [Key]),
+          []
+      end
+  end.

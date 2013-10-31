@@ -18,7 +18,7 @@ get_opt(Key, Dict) ->
 get_opts() ->
   elixir_code_server:call(compiler_options).
 
-%% Compiles the given string.
+%% Compilation entry points.
 
 string(Contents, File) when is_list(Contents), is_binary(File) ->
   Forms = elixir_translator:'forms!'(Contents, 1, File, []),
@@ -29,34 +29,32 @@ quoted(Forms, File) when is_binary(File) ->
 
   try
     put(elixir_compiled, []),
-    eval_forms(Forms, 1, [], elixir:scope_for_eval([{file,File}])),
+    elixir_lexical:run(File, fun
+      () -> eval_forms(Forms, 1, [], elixir:scope_for_eval([{file,File}]))
+    end),
     lists:reverse(get(elixir_compiled))
   after
     put(elixir_compiled, Previous)
   end.
-
-%% Compile a file, return a tuple of module names and binaries.
 
 file(Relative) when is_binary(Relative) ->
   File = filename:absname(Relative),
   { ok, Bin } = file:read_file(File),
   string(elixir_utils:characters_to_list(Bin), File).
 
-%% Compiles a file to the given path (directory).
-
 file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
   Lists = file(File),
   [binary_to_path(X, Path) || X <- Lists],
   Lists.
 
-%% Evaluates the contents/forms by compiling them to an Erlang module.
+%% Evaluation
 
 eval_forms(Forms, Line, Vars, S) ->
   { Module, I } = retrieve_module_name(),
   { Exprs, FS } = elixir_translator:translate(Forms, S),
 
-  Fun  = module_form_fun(S#elixir_scope.module),
-  Form = module_form(Fun, Exprs, Line, S#elixir_scope.file, Module, Vars),
+  Fun  = eval_fun(S#elixir_scope.module),
+  Form = eval_mod(Fun, Exprs, Line, S#elixir_scope.file, Module, Vars),
   Args = [X || { _, _, _, X } <- Vars],
 
   %% Pass { native, false } to speed up bootstrap
@@ -79,89 +77,10 @@ eval_forms(Forms, Line, Vars, S) ->
     Res
   end), FS }.
 
-%% Internal API
+eval_fun(nil) -> '__FILE__';
+eval_fun(_)   -> '__MODULE__'.
 
-%% Compile the module by forms based on the scope information
-%% executes the callback in case of success. This automatically
-%% handles errors and warnings. Used by this module and elixir_module.
-module(Forms, File, Opts, Callback) ->
-  DebugInfo = (get_opt(debug_info) == true) orelse lists:member(debug_info, Opts),
-  Final =
-    if DebugInfo -> [debug_info];
-       true -> []
-    end,
-  module(Forms, File, Final, false, Callback).
-
-module(Forms, File, RawOptions, Bootstrap, Callback) when
-    is_binary(File), is_list(Forms), is_list(RawOptions), is_boolean(Bootstrap), is_function(Callback) ->
-  { Options, SkipNative } = compile_opts(Forms, RawOptions),
-  Listname = elixir_utils:characters_to_list(File),
-
-  case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
-    {ok, ModuleName, Binary, RawWarnings} ->
-      Warnings = case SkipNative of
-        true  -> [{?MODULE,[{0,?MODULE,{skip_native,ModuleName}}]}|RawWarnings];
-        false -> RawWarnings
-      end,
-      format_warnings(Bootstrap, Warnings),
-      code:load_binary(ModuleName, Listname, Binary),
-      Callback(ModuleName, Binary);
-    {error, Errors, Warnings} ->
-      format_warnings(Bootstrap, Warnings),
-      format_errors(Errors)
-  end.
-
-%% Compile core files for bootstrap.
-%% Invoked from the Makefile.
-
-core() ->
-  application:start(elixir),
-  elixir_code_server:cast({ compiler_options, [{docs,false},{internal,true}] }),
-  [core_file(File) || File <- core_main()].
-
-%% HELPERS
-
-compile_opts(Forms, Options) ->
-  EnvOptions = env_default_opts(),
-  SkipNative = lists:member(native, EnvOptions) and contains_on_load(Forms),
-  case SkipNative or lists:member([{native,false}], Options) of
-    true  -> { Options ++ lists:delete(native, EnvOptions), SkipNative };
-    false -> { Options ++ EnvOptions, SkipNative }
-  end.
-
-env_default_opts() ->
-  Key = "ERL_COMPILER_OPTIONS",
-  case os:getenv(Key) of
-    false -> [];
-    Str when is_list(Str) ->
-      case erl_scan:string(Str) of
-        {ok,Tokens,_} ->
-          case erl_parse:parse_term(Tokens ++ [{dot, 1}]) of
-            {ok,List} when is_list(List) -> List;
-            {ok,Term} -> [Term];
-            {error,_Reason} ->
-              io:format("Ignoring bad term in ~ts\n", [Key]),
-              []
-          end;
-        {error, {_,_,_Reason}, _} ->
-          io:format("Ignoring bad term in ~ts\n", [Key]),
-          []
-      end
-  end.
-
-contains_on_load([{ attribute, _, on_load, _ }|_]) -> true;
-contains_on_load([_|T]) -> contains_on_load(T);
-contains_on_load([]) -> false.
-
-no_auto_import() ->
-  Bifs = [{ Name, Arity } || { Name, Arity } <- erlang:module_info(exports), erl_internal:bif(Name, Arity)],
-  { attribute, 0, compile, { no_auto_import, Bifs } }.
-
-module_form_fun(nil) -> '__FILE__';
-module_form_fun(_)   -> '__MODULE__'.
-
-module_form(Fun, Exprs, Line, File, Module, Vars) when
-    is_binary(File), is_integer(Line), is_list(Exprs), is_atom(Module) ->
+eval_mod(Fun, Exprs, Line, File, Module, Vars) when is_binary(File), is_integer(Line) ->
   Cons = lists:foldr(fun({ _, _, Var, _ }, Acc) ->
     { cons, Line, { var, Line, Var }, Acc }
   end, { nil, Line }, Vars),
@@ -181,22 +100,68 @@ module_form(Fun, Exprs, Line, File, Module, Vars) when
     ] }
   ].
 
-%% Generate module names from code server.
-
 retrieve_module_name() ->
   elixir_code_server:call(retrieve_module_name).
 
 return_module_name(I) ->
   elixir_code_server:cast({ return_module_name, I }).
 
-%% Receives a module Binary and outputs it in the given path.
+%% INTERNAL API
 
-binary_to_path({ModuleName, Binary}, CompilePath) ->
-  Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
-  ok = file:write_file(Path, Binary),
-  Path.
+%% Compile the module by forms based on the scope information
+%% executes the callback in case of success. This automatically
+%% handles errors and warnings. Used by this module and elixir_module.
+module(Forms, File, Opts, Callback) ->
+  Final =
+    case (get_opt(debug_info) == true) orelse
+         lists:member(debug_info, Opts) of
+      true  -> [debug_info];
+      false -> []
+    end,
+  module(Forms, File, Final, false, Callback).
 
-%% CORE FILES COMPILATION
+module(Forms, File, RawOptions, Bootstrap, Callback) when
+    is_binary(File), is_list(Forms), is_list(RawOptions), is_boolean(Bootstrap), is_function(Callback) ->
+  { Options, SkipNative } = compiler_options(Forms, RawOptions),
+  Listname = elixir_utils:characters_to_list(File),
+
+  case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
+    {ok, ModuleName, Binary, RawWarnings} ->
+      Warnings = case SkipNative of
+        true  -> [{?MODULE,[{0,?MODULE,{skip_native,ModuleName}}]}|RawWarnings];
+        false -> RawWarnings
+      end,
+      format_warnings(Bootstrap, Warnings),
+      code:load_binary(ModuleName, Listname, Binary),
+      Callback(ModuleName, Binary);
+    {error, Errors, Warnings} ->
+      format_warnings(Bootstrap, Warnings),
+      format_errors(Errors)
+  end.
+
+compiler_options(Forms, Options) ->
+  EnvOptions = elixir_code_server:call(erl_compiler_options),
+  SkipNative = lists:member(native, EnvOptions) and contains_on_load(Forms),
+  case SkipNative or lists:member([{native,false}], Options) of
+    true  -> { Options ++ lists:delete(native, EnvOptions), SkipNative };
+    false -> { Options ++ EnvOptions, SkipNative }
+  end.
+
+contains_on_load([{ attribute, _, on_load, _ }|_]) -> true;
+contains_on_load([_|T]) -> contains_on_load(T);
+contains_on_load([]) -> false.
+
+no_auto_import() ->
+  Bifs = [{ Name, Arity } || { Name, Arity } <- erlang:module_info(exports), erl_internal:bif(Name, Arity)],
+  { attribute, 0, compile, { no_auto_import, Bifs } }.
+
+
+%% CORE HANDLING
+
+core() ->
+  application:start(elixir),
+  elixir_code_server:cast({ compiler_options, [{docs,false},{internal,true}] }),
+  [core_file(File) || File <- core_main()].
 
 core_file(File) ->
   try
@@ -236,8 +201,14 @@ core_main() ->
     <<"lib/elixir/lib/kernel/error_handler.ex">>,
     <<"lib/elixir/lib/kernel/parallel_compiler.ex">>,
     <<"lib/elixir/lib/kernel/record_rewriter.ex">>,
+    <<"lib/elixir/lib/kernel/lexical_tracker.ex">>,
     <<"lib/elixir/lib/module/dispatch_tracker.ex">>
   ].
+
+binary_to_path({ModuleName, Binary}, CompilePath) ->
+  Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
+  ok = file:write_file(Path, Binary),
+  Path.
 
 %% ERROR HANDLING
 

@@ -24,9 +24,11 @@ find_import(Meta, Name, Arity, S) ->
 
   case find_dispatch(Meta, Tuple, S) of
     { function, Receiver } ->
+      elixir_lexical:record_import(S#elixir_scope.file, Receiver),
       elixir_tracker:record_import(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
       Receiver;
     { macro, Receiver } ->
+      elixir_lexical:record_import(S#elixir_scope.file, Receiver),
       elixir_tracker:record_import(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
       Receiver;
     _ ->
@@ -39,6 +41,7 @@ import_function(Meta, Name, Arity, S) ->
   Tuple = { Name, Arity },
   case find_dispatch(Meta, Tuple, S) of
     { function, Receiver } ->
+      elixir_lexical:record_import(S#elixir_scope.file, Receiver),
       elixir_tracker:record_import(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
       remote_function(Meta, Receiver, Name, Arity, S);
     { macro, _Receiver } ->
@@ -60,6 +63,7 @@ require_function(Meta, Receiver, Name, Arity, S) ->
   case is_element(Tuple, get_optional_macros(Receiver)) of
     true  -> false;
     false ->
+      elixir_lexical:record_remote(S#elixir_scope.file, Receiver),
       elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
       remote_function(Meta, Receiver, Name, Arity, S)
   end.
@@ -73,6 +77,7 @@ dispatch_import(Meta, Name, Args, S, Callback) ->
 
   case find_dispatch(Meta, Tuple, S) of
     { function, Receiver } ->
+      elixir_lexical:record_import(S#elixir_scope.file, Receiver),
       elixir_tracker:record_import(Tuple, Receiver, Module, S#elixir_scope.function),
       Endpoint = case (Receiver == ?builtin) andalso is_element(Tuple, in_erlang_functions()) of
         true  -> erlang;
@@ -80,6 +85,7 @@ dispatch_import(Meta, Name, Args, S, Callback) ->
       end,
       elixir_translator:translate_each({ { '.', Meta, [Endpoint, Name] }, Meta, Args }, S);
     { import, Receiver } ->
+      elixir_lexical:record_remote(S#elixir_scope.file, Receiver),
       elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
       elixir_translator:translate_each({ { '.', Meta, [Receiver, Name] }, [{require,false}|Meta], Args }, S);
     Result ->
@@ -87,6 +93,7 @@ dispatch_import(Meta, Name, Args, S, Callback) ->
         { error, noexpansion } ->
           Callback();
         { error, internal } ->
+          elixir_lexical:record_import(S#elixir_scope.file, ?builtin),
           elixir_tracker:record_import(Tuple, ?builtin, Module, S#elixir_scope.function),
           elixir_macros:translate({ Name, Meta, Args }, S);
         { ok, Receiver, Tree } ->
@@ -101,6 +108,7 @@ dispatch_require(Meta, Receiver, Name, Args, S, Callback) ->
 
   case (Receiver == ?builtin) andalso is_element(Tuple, in_erlang_functions()) of
     true ->
+      elixir_lexical:record_remote(S#elixir_scope.file, Receiver),
       elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
       { TArgs, SA } = elixir_translator:translate_args(Args, S),
       { ?wrap_call(?line(Meta), erlang, Name, TArgs), SA };
@@ -109,6 +117,7 @@ dispatch_require(Meta, Receiver, Name, Args, S, Callback) ->
         { error, noexpansion } ->
           Callback();
         { error, internal } ->
+          elixir_lexical:record_remote(S#elixir_scope.file, ?builtin),
           elixir_tracker:record_remote(Tuple, ?builtin, S#elixir_scope.module, S#elixir_scope.function),
           elixir_macros:translate({ Name, Meta, Args }, S);
         { ok, Receiver, Tree } ->
@@ -150,10 +159,12 @@ do_expand_import_no_local(Meta, { Name, Arity } = Tuple, Args, Module, S, Result
       case is_element(Tuple, in_erlang_macros()) of
         true  -> { error, internal };
         false ->
+          elixir_lexical:record_import(S#elixir_scope.file, ?builtin),
           elixir_tracker:record_import(Tuple, ?builtin, Module, S#elixir_scope.function),
           { ok, ?builtin, expand_macro_named(Meta, ?builtin, Name, Arity, Args, Module, S) }
       end;
     { macro, Receiver } ->
+      elixir_lexical:record_import(S#elixir_scope.file, Receiver),
       elixir_tracker:record_import(Tuple, Receiver, Module, S#elixir_scope.function),
       { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) };
     { import, Receiver } ->
@@ -168,6 +179,7 @@ expand_require(Meta, ?builtin, { Name, Arity } = Tuple, Args, Module, S) ->
     false ->
       case is_element(Tuple, in_elixir_macros()) of
         true  ->
+          elixir_lexical:record_remote(S#elixir_scope.file, ?builtin),
           elixir_tracker:record_remote(Tuple, ?builtin, S#elixir_scope.module, S#elixir_scope.function),
           { ok, ?builtin, expand_macro_named(Meta, ?builtin, Name, Arity, Args, Module, S) };
         false ->
@@ -185,6 +197,7 @@ expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, Module, S) ->
     false ->
       case is_element(Tuple, get_optional_macros(Receiver)) of
         true  ->
+          elixir_lexical:record_remote(S#elixir_scope.file, Receiver),
           elixir_tracker:record_remote(Tuple, Receiver, Module, Function),
           { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) };
         false -> { error, noexpansion }

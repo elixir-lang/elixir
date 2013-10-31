@@ -5,15 +5,11 @@
 # ## Implementation
 #
 # The implementation uses the digraph module to track
-# all dependencies. The graph starts with three main
-# vertices:
+# all dependencies. The graph starts with one main vertice:
 #
 # * `:local` - points to local functions
-# * `:import` - points to imported modules
-# * `:warn` - points to imported modules that should be warned
-# * `:remote` - points to remote modules
 #
-# Besides those, we have can the following vertices:
+# We also have can the following vertices:
 #
 # * `Module` - a module that was invoked via an import or remotely
 # * `{ name, arity }` - a local function/arity pair
@@ -24,9 +20,7 @@
 # as described below:
 #
 # * `Module`
-#   * in neighbours: `:import`, `:remote`, `:warn`,
-#     `{ :import, name, arity }` and `{ :remote, name arity }`
-#   * out neighbours: `:warn`
+#   * in neighbours:  `{ :import, name, arity }` and `{ :remote, name arity }`
 #
 # * `{ name, arity }`
 #   * in neighbours: `:local`, `{ name, arity }`
@@ -93,15 +87,6 @@ defmodule Module.DispatchTracker do
   end
 
   @doc """
-  Returns all the modules which were imported.
-  """
-  @spec imports(ref) :: [module]
-  def imports(ref) do
-    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
-    :digraph.out_neighbours(d, :import)
-  end
-
-  @doc """
   Returns all imported modules that had the given
   `{ name, arity }` invoked.
   """
@@ -109,24 +94,6 @@ defmodule Module.DispatchTracker do
   def imports_with_dispatch(ref, { name, arity }) do
     d = :gen_server.call(to_pid(ref), :digraph, @timeout)
     :digraph.out_neighbours(d, { :import, name, arity })
-  end
-
-  @doc """
-  Returns all the aliases defined in the given module.
-  """
-  @spec aliases(ref) :: [module]
-  def aliases(ref) do
-    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
-    :digraph.out_neighbours(d, :alias)
-  end
-
-  @doc """
-  Returns all the modules which were remotely dispatched to.
-  """
-  @spec remotes(ref) :: [module]
-  def remotes(ref) do
-    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
-    :digraph.out_neighbours(d, :remote)
   end
 
   @doc """
@@ -206,12 +173,6 @@ defmodule Module.DispatchTracker do
     :gen_server.cast(pid, { :add_local, from, to })
   end
 
-  # Adds an alias.
-  @doc false
-  def add_alias(pid, module) when is_atom(module) do
-    :gen_server.cast(pid, { :add_alias, module })
-  end
-
   # Adds a remote dispatch to the given target.
   @doc false
   def add_remote(pid, function, module, target) when is_atom(module) and is_tuple(target) do
@@ -224,40 +185,14 @@ defmodule Module.DispatchTracker do
     :gen_server.cast(pid, { :add_external, :import, function, module, target })
   end
 
-  # Associates a module with a warn. This adds the given
-  # module and associates it with the `:import` vertex
-  # permanently, even if warn is false.
-  @doc false
-  def add_warnable(pid, module, warn, line) when is_atom(module) and is_boolean(warn) do
-    :gen_server.cast(pid, { :add_warnable, module, warn, line })
-  end
-
-  # Collect all unused imports where warn has been set to true.
-  def collect_unused_imports(pid) do
-    d = :gen_server.call(pid, :digraph, @timeout)
-    warnable = :digraph.out_neighbours(d, :warn)
-
-    lc mod inlist warnable, not has_imports?(d, mod), line = get_warn_line(d, mod) do
-      { mod, line }
-    end
-  end
-
-  defp get_warn_line(d, mod) do
-    [edge] = :digraph.out_edges(d, mod)
-    { ^edge, ^mod, :warn, line } = :digraph.edge(d, edge)
-    line
-  end
-
-  defp has_imports?(d, mod) do
-    Enum.any?(:digraph.in_neighbours(d, mod), &match?({ :import, _, _ }, &1))
-  end
-
   # Yanks a local node. Returns its in and out vertices in a tuple.
   @doc false
   def yank(pid, local) do
     :gen_server.call(to_pid(pid), { :yank, local }, @timeout)
   end
 
+  # Reattach a previously yanked node
+  @doc false
   def reattach(pid, kind, tuple, neighbours) do
     pid = to_pid(pid)
     add_definition(pid, kind, tuple)
@@ -322,10 +257,6 @@ defmodule Module.DispatchTracker do
   def init([]) do
     d = :digraph.new([:protected])
     :digraph.add_vertex(d, :local)
-    :digraph.add_vertex(d, :alias)
-    :digraph.add_vertex(d, :import)
-    :digraph.add_vertex(d, :remote)
-    :digraph.add_vertex(d, :warn)
     { :ok, d }
   end
 
@@ -353,27 +284,8 @@ defmodule Module.DispatchTracker do
     { :noreply, d }
   end
 
-  def handle_cast({ :add_alias, module }, d) do
-    :digraph.add_vertex(d, module)
-    replace_edge!(d, :alias, module)
-    { :noreply, d }
-  end
-
   def handle_cast({ :add_external, kind, function, module, { name, arity } }, d) do
     handle_import_or_remote(d, kind, function, module, name, arity)
-    { :noreply, d }
-  end
-
-  def handle_cast({ :add_warnable, module, warn, line }, d) do
-    :digraph.add_vertex(d, module)
-    replace_edge!(d, :import, module)
-
-    if warn do
-      :digraph.add_edge(d, :warn, module, line)
-      :digraph.add_edge(d, module, :warn, line)
-    else
-      :digraph.del_path(d, :warn, module)
-    end
     { :noreply, d }
   end
 
@@ -414,7 +326,6 @@ defmodule Module.DispatchTracker do
 
   defp handle_import_or_remote(d, kind, function, module, name, arity) do
     :digraph.add_vertex(d, module)
-    replace_edge!(d, kind, module)
 
     tuple = { kind, name, arity }
     :digraph.add_vertex(d, tuple)

@@ -137,7 +137,7 @@ defmodule Kernel.WarningTest do
 
   test :unused_import do
     assert capture_err(fn ->
-      Code.eval_string """
+      Code.compile_string """
       defmodule Sample1 do
         def hello, do: nil
       end
