@@ -144,6 +144,12 @@ defmodule Kernel.WarningTest do
       end
       """
     end) =~ "unused import :lists"
+
+    assert capture_err(fn ->
+      Code.compile_string """
+      import :lists, only: [flatten: 1]
+      """
+    end) =~ "unused import :lists"
   after
     purge [Sample]
   end
