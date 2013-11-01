@@ -183,11 +183,20 @@ defmodule IEx.Evaluator do
   end
 
   defp normalize_exception(:undef, [{ IEx.Helpers, fun, arity, _ }|t]) do
-    { UndefinedFunctionError[function: fun, arity: arity], t }
+    { RuntimeError[message: "undefined function: #{format_function(fun, arity)}"], t }
   end
 
   defp normalize_exception(exception, stacktrace) do
     { Exception.normalize(:error, exception), stacktrace }
+  end
+
+  defp format_function(fun, arity) do
+    cond do
+      is_list(arity) ->
+        "#{fun}/#{Enum.count(arity)}"
+      true ->
+        "#{fun}/#{arity}"
+    end
   end
 
   defp print_stacktrace(trace, callback) do

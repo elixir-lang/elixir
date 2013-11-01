@@ -277,7 +277,7 @@ defmodule Exception do
       iex> Exception.format_mfa Foo, :bar, []
       "Foo.bar()"
       iex> Exception.format_mfa nil, :bar, []
-      "bar()"
+      "nil.bar()"
 
   """
   def format_mfa(module, fun, arity) do
@@ -295,7 +295,6 @@ defmodule Exception do
     end
   end
 
-  defp format_module(nil), do: ""
   defp format_module(mod), do: "#{inspect mod}."
 
   @doc """

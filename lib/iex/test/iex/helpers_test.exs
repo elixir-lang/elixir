@@ -152,9 +152,9 @@ defmodule IEx.HelpersTest do
 
   test "import_file helper" do
     with_file "dot-iex", "variable = :hello\nimport IO", fn ->
-      assert "** (UndefinedFunctionError) undefined function: variable()" <> _
+      assert "** (RuntimeError) undefined function: variable/0" <> _
              = capture_iex("variable")
-      assert "** (UndefinedFunctionError) undefined function: puts(\"hi\")" <> _
+      assert "** (RuntimeError) undefined function: puts/1" <> _
              = capture_iex("puts \"hi\"")
 
       assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"")
@@ -167,11 +167,11 @@ defmodule IEx.HelpersTest do
     dot_1 = "variable = :hello\nimport IO"
 
     with_file ["dot-iex", "dot-iex-1"], [dot, dot_1], fn ->
-      assert "** (UndefinedFunctionError) undefined function: parent()" <> _
+      assert "** (RuntimeError) undefined function: parent/0" <> _
              = capture_iex("parent")
-      assert "** (UndefinedFunctionError) undefined function: variable()" <> _
+      assert "** (RuntimeError) undefined function: variable/0" <> _
              = capture_iex("variable")
-      assert "** (UndefinedFunctionError) undefined function: puts(\"hi\")" <> _
+      assert "** (RuntimeError) undefined function: puts/1" <> _
              = capture_iex("puts \"hi\"")
 
       assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"\nparent")
