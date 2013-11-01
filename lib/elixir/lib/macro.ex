@@ -103,11 +103,9 @@ defmodule Macro do
   end
 
   @doc """
-  Decomposes a local or remote call. If a local call is provided,
-  it returns a tuple with the function name and the argument list.
-  If a remote call is provided, it returns a tuple with the
-  module alias, function name and the argument list. Returns
-  :error otherwise.
+  Splits a local or remote call into its module alias (when a remote
+  call is provided), function name and argument list. 
+  Returns :error when an invalid call syntax is provied.
 
   ## Examples
 
