@@ -111,16 +111,16 @@ defmodule Macro do
 
   ## Examples
 
-      decompose_call(quote do: foo) == { :foo, [] }
-      decompose_call(quote do: foo()) == { :foo, [] }
-      decompose_call(quote do: foo(1, 2, 3)) == { :foo, [1, 2, 3] }
-      decompose_call(quote do: M.N.foo(1, 2, 3)) ==
+      split_call(quote do: foo) == { :foo, [] }
+      split_call(quote do: foo()) == { :foo, [] }
+      split_call(quote do: foo(1, 2, 3)) == { :foo, [1, 2, 3] }
+      split_call(quote do: M.N.foo(1, 2, 3)) ==
         { { :__aliases__, [alias: false], [:M, :N] }, :foo, [1, 2, 3] }
-      decompose_call(quote do: 42) == :error
+      split_call(quote do: 42) == :error
 
   """
-  @spec decompose_call(Macro.t) :: { atom, [Macro.t] } | { Macro.t, atom, [Macro.t] } | :error
-  def decompose_call(expr) do
+  @spec split_call(Macro.t) :: { atom, [Macro.t] } | { Macro.t, atom, [Macro.t] } | :error
+  def split_call(expr) do
     case expr do
       { { :., _, [{ :__aliases__, meta, atoms }, f] }, _, args } ->
         { { :__aliases__, meta, atoms }, f, args }

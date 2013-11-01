@@ -405,17 +405,17 @@ defmodule MacroTest do
     assert Macro.extract_args(quote do: 1.(1, 2, 3))  == :error
   end
 
-  ## decompose_call
+  ## split_call
 
-  test :decompose_call do
-    assert Macro.decompose_call(quote do: foo)        == { :foo, [] }
-    assert Macro.decompose_call(quote do: foo())      == { :foo, [] }
-    assert Macro.decompose_call(quote do: :foo.())    == { :foo, [] }
-    assert Macro.decompose_call(quote do: foo(1, 2, 3)) == { :foo, [1, 2, 3] }
-    assert Macro.decompose_call(quote do: M.N.foo(1, 2, 3)) ==
+  test :split_call do
+    assert Macro.split_call(quote do: foo)        == { :foo, [] }
+    assert Macro.split_call(quote do: foo())      == { :foo, [] }
+    assert Macro.split_call(quote do: :foo.())    == { :foo, [] }
+    assert Macro.split_call(quote do: foo(1, 2, 3)) == { :foo, [1, 2, 3] }
+    assert Macro.split_call(quote do: M.N.foo(1, 2, 3)) ==
            { { :__aliases__, [alias: false], [:M, :N] }, :foo, [1, 2, 3] }
-    assert Macro.decompose_call(quote do: 1.(1, 2, 3))  == :error
-    assert Macro.decompose_call(quote do: "some string")  == :error
+    assert Macro.split_call(quote do: 1.(1, 2, 3))  == :error
+    assert Macro.split_call(quote do: "some string")  == :error
   end
 
   ## env
