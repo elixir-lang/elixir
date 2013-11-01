@@ -17,6 +17,23 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
+  test "does not write beam down on failures" do
+    import ExUnit.CaptureIO
+
+    in_fixture "only_mixfile", fn ->
+      File.mkdir_p!("lib")
+      File.write!("lib/a.ex", "raise %s(oops)")
+
+      capture_io fn ->
+        assert_raise RuntimeError, fn ->
+          Mix.Tasks.Compile.Elixir.run []
+        end
+      end
+
+      refute File.regular?("ebin/Elixir.A.beam")
+    end
+  end
+
   test "removes old artifact files" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok

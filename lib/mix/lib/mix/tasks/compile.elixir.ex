@@ -42,8 +42,9 @@ defmodule Mix.Tasks.Compile.Elixir do
             Kernel.ParallelCompiler.files :lists.usort(stale),
               each_module: &each_module(pid, compile_path, cwd, &1, &2, &3),
               each_file: &each_file(&1)
+            :gen_server.cast(pid, { :write, manifest })
           after
-            :gen_server.call(pid, { :stop, manifest })
+            :gen_server.call(pid, :stop)
           end
 
           :ok
@@ -57,13 +58,12 @@ defmodule Mix.Tasks.Compile.Elixir do
     defp each_module(pid, compile_path, cwd, source, module, binary) do
       bin  = atom_to_binary(module)
       beam = Path.join(compile_path, bin <> ".beam")
-      File.write!(beam, binary)
 
       deps = Kernel.LexicalTracker.remotes(module)
              |> :lists.usort |> Enum.map(&atom_to_binary(&1))
 
       relative = if cwd, do: Path.relative_to(source, cwd), else: source
-      :gen_server.cast(pid, { :store, beam, bin, relative, deps })
+      :gen_server.cast(pid, { :store, beam, bin, relative, deps, binary })
     end
 
     defp each_file(file) do
@@ -126,7 +126,8 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     defp write_manifest(manifest, entries) do
       lines = Enum.map(entries, fn
-        { beam, module, source, deps } ->
+        { beam, module, source, deps, binary } ->
+          if binary, do: File.write!(beam, binary)
           [beam, module, source | deps] |> Enum.join("\t")
       end)
       Mix.Utils.write_manifest(manifest, lines)
@@ -135,11 +136,10 @@ defmodule Mix.Tasks.Compile.Elixir do
     # Callbacks
 
     def init(entries) do
-      { :ok, entries }
+      { :ok, Enum.map(entries, &Tuple.insert_at(&1, 4, nil)) }
     end
 
-    def handle_call({ :stop, manifest }, _from, entries) do
-      write_manifest(manifest, entries)
+    def handle_call(:stop, _from, entries) do
       { :stop, :normal, :ok, entries }
     end
 
@@ -147,8 +147,13 @@ defmodule Mix.Tasks.Compile.Elixir do
       super(msg, from, state)
     end
 
-    def handle_cast({ :store, beam, module, source, deps }, entries) do
-      { :noreply, :lists.keystore(beam, 1, entries, { beam, module, source, deps }) }
+    def handle_cast({ :write, manifest }, entries) do
+      write_manifest(manifest, entries)
+      { :noreply, entries }
+    end
+
+    def handle_cast({ :store, beam, module, source, deps, binary }, entries) do
+      { :noreply, :lists.keystore(beam, 1, entries, { beam, module, source, deps, binary }) }
     end
 
     def handle_cast(msg, state) do

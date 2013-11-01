@@ -61,7 +61,7 @@ defmodule Mix.Shell do
         command = command
           |> String.replace("\"", "\\\"")
           |> :binary.bin_to_list
-        'sh -c ' ++ command
+        'sh -c "' ++ command ++ '"'
 
       { :win32, osname } ->
         command = :binary.bin_to_list(command)
