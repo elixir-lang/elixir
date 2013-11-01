@@ -1,6 +1,5 @@
 defmodule Mix.Task do
   use Behaviour
-  alias :ordsets, as: Ordset
 
   @moduledoc """
   A simple module that provides conveniences for creating,
