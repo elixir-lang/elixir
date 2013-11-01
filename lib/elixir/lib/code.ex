@@ -6,24 +6,24 @@ defmodule Code do
   end
 
   @moduledoc """
-  The Code module is responsible for managing code compilation,
-  code evaluation and code loading.
+  Utilities for managing code compilation, code evaluation and code loading.
 
-  It complements [Erlang's code module](http://www.erlang.org/doc/man/code.html)
+  This module complements [Erlang's code module](http://www.erlang.org/doc/man/code.html)
   to add behavior which is specific to Elixir.
 
   """
 
   @doc """
-  Returns all loaded files.
+  List all loaded files.
   """
   def loaded_files do
     :elixir_code_server.call :loaded
   end
 
   @doc """
-  Removes the given files from the loaded files list.
-  The modules defined in the file are not removed,
+  Remove files from the loaded files list.
+
+  The modules defined in the file are not removed;
   calling this function only removes them from the list,
   allowing them to be required again.
   """
@@ -32,7 +32,8 @@ defmodule Code do
   end
 
   @doc """
-  Appends a path to the Erlang VM code path.
+  Append a path to the Erlang VM code path.
+
   The path is expanded with `Path.expand/1` before being appended.
   """
   def append_path(path) do
@@ -40,7 +41,8 @@ defmodule Code do
   end
 
   @doc """
-  Prepends a path to the Erlang VM code path.
+  Prepend a path to the Erlang VM code path.
+
   The path is expanded with `Path.expand/1` before being prepended.
   """
   def prepend_path(path) do
@@ -48,7 +50,8 @@ defmodule Code do
   end
 
   @doc """
-  Deletes a path from the Erlang VM code path.
+  Delete a path from the Erlang VM code path.
+
   The path is expanded with `Path.expand/1` before being deleted.
   """
   def delete_path(path) do
@@ -56,9 +59,12 @@ defmodule Code do
   end
 
   @doc """
-  Evaluates the contents given by `string`. The second argument is
-  a keyword list of variable bindings, followed by a keyword list of
-  environment options. Those options can be:
+  Evaluate the contents given by `string`. 
+
+  The `binding` argument is a keyword list of variable bindings. 
+  The `opts` argument is a keyword list of environment options. 
+  
+  Those options can be:
 
   * `:file` - the file to be considered in the evaluation
   * `:line` - the line on which the script starts
@@ -88,8 +94,7 @@ defmodule Code do
 
   `binding` is a keyword list with the value of all variable bindings
   after evaluating `string`. The binding key is usually an atom, but it
-  may be a tuple for variables defined in another contexts that are not
-  the main one.
+  may be a tuple for variables defined in a different context.
 
   ## Examples
 
@@ -127,7 +132,7 @@ defmodule Code do
   end
 
   @doc """
-  Evaluates the quoted contents.
+  Evaluate the quoted contents.
 
   See `eval_string/3` for a description of arguments and return values.
 
@@ -200,7 +205,9 @@ defmodule Code do
   end
 
   @doc """
-  Converts the given string to its quoted form. Returns `{ :ok, quoted_form }`
+  Convert the given string to its quoted form. 
+  
+  Returns `{ :ok, quoted_form }`
   if it succeeds, `{ :error, { line, error, token } }` otherwise.
 
   ## Options
@@ -213,10 +220,10 @@ defmodule Code do
   * `:existing_atoms_only` - When `true`, raises an error
     when non-existing atoms are found by the tokenizer.
 
-  ## Macro.to_string/1
+  ## Macro.to_string/2
 
   The opposite of converting a string to its quoted form is
-  `Macro.to_string/1`, which converts a quoted form to a string/binary
+  `Macro.to_string/2`, which converts a quoted form to a string/binary
   representation.
   """
   def string_to_quoted(string, opts // []) when is_list(opts) do
@@ -231,7 +238,9 @@ defmodule Code do
   end
 
   @doc """
-  Converts the given string to its quoted form. It returns the ast if it succeeds,
+  Convert the given string to its quoted form. 
+  
+  It returns the ast if it succeeds,
   raises an exception otherwise. The exception is a `TokenMissingError`
   in case a token is missing (usually because the expression is incomplete),
   `SyntaxError` otherwise.
@@ -250,7 +259,9 @@ defmodule Code do
   defp unpack_quote(line, forms),                            do: { :__block__, [line: line], forms }
 
   @doc """
-  Loads the given `file`. Accepts `relative_to` as an argument to tell where
+  Load the given file. 
+  
+  Accepts `relative_to` as an argument to tell where
   the file is located. If the file was already required/loaded, loads it again.
   It returns a list of tuples `{ ModuleName, <<byte_code>> }`, one tuple for each
   module defined in the file.
@@ -270,9 +281,11 @@ defmodule Code do
   end
 
   @doc """
-  Requires the given `file`. Accepts `relative_to` as an argument to tell where
+  Require the given `file`. 
+  
+  Accepts `relative_to` as an argument to tell where
   the file is located. The return value is the same as that of `load_file/2`. If
-  the file was already required/loaded, doesn't do anything and returns nil.
+  the file was already required/loaded, doesn't do anything and returns `nil`.
 
   Notice that if `require_file` is invoked by different processes concurrently,
   the first process to invoke `require_file` acquires a lock and the remaining
@@ -298,7 +311,8 @@ defmodule Code do
   end
 
   @doc """
-  Loads the compilation options from the code server.
+  Load the compilation options from the code server.
+
   Check `compiler_options/1` for more information.
   """
   def compiler_options do
@@ -306,8 +320,9 @@ defmodule Code do
   end
 
   @doc """
-  Sets compilation options. These options are global
-  since they are stored by Elixir's Code Server.
+  Set compilation options. 
+
+  These options are global since they are stored by Elixir's Code Server.
 
   Available options are:
 
@@ -316,7 +331,7 @@ defmodule Code do
 
   * `:debug_info` - when `true`, retain debug information in the compiled module.
     This allows a developer to reconstruct the original source
-    code, for such reasons, `false` by default;
+    code, `false` by default;
 
   * `:ignore_module_conflict` - when `true`, override modules that were already defined
     without raising errors, `false` by default;
@@ -329,7 +344,9 @@ defmodule Code do
   end
 
   @doc """
-  Compiles the given string and returns a list of tuples where
+  Compile the given string. 
+
+  Returns a list of tuples where
   the first element is the module name and the second one is its
   binary.
 
@@ -340,7 +357,9 @@ defmodule Code do
   end
 
   @doc """
-  Compiles the quoted expression and returns a list of tuples where
+  Compile the quoted expression. 
+  
+  Returns a list of tuples where
   the first element is the module name and the second one is its
   binary.
   """
@@ -349,8 +368,10 @@ defmodule Code do
   end
 
   @doc """
-  Ensures the given module is loaded. If the module is already
-  loaded, it works as no-op. If the module was not yet loaded,
+  Ensure the given module is loaded. 
+  
+  If the module is already
+  loaded, this works as no-op. If the module was not yet loaded,
   it tries to load it.
 
   If it succeeds loading the module, it returns
@@ -391,15 +412,19 @@ defmodule Code do
   end
 
   @doc """
-  Similar to `ensure_loaded/1`, but returns a boolean in case
-  it could be ensured or not.
+  Ensure the given module is loaded.
+
+  Similar to `ensure_loaded/1`, but returns `true` if the module
+  is already loaded or was successfully loaded. Returns `false` otherwise.
   """
   def ensure_loaded?(module) do
     match?({ :module, ^module }, ensure_loaded(module))
   end
 
   @doc """
-  Ensures the given module is compiled and loaded. If the module
+  Ensure the given module is compiled and loaded. 
+  
+  If the module
   is already loaded, it works as no-op. If the module was not
   loaded yet, it checks if it needs to be compiled first and
   then tries to load it.
@@ -429,8 +454,11 @@ defmodule Code do
   end
 
   @doc """
-  Similar to `ensure_compiled/1`, but returns a boolean in case
-  it could be ensured or not.
+  Ensure the given module is compiled and loaded. 
+
+  Similar to `ensure_compiled/1`, but returns `true` if the module
+  is already loaded or was successfully loaded and compiled. 
+  Returns `false` otherwise.
   """
   def ensure_compiled?(module) do
     match?({ :module, ^module }, ensure_compiled(module))
