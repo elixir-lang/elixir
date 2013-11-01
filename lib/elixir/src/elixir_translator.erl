@@ -34,10 +34,6 @@ forms(String, StartLine, File, Opts) ->
 translate(Forms, S) ->
   lists:mapfoldl(fun translate_each/2, S, Forms).
 
-%% Those macros are "low-level". They are the basic mechanism
-%% that makes the language work and cannot be partially applied
-%% nor overwritten.
-
 %% Assignment operator
 
 translate_each({ '=', Meta, [Left, Right] }, S) ->
@@ -294,7 +290,7 @@ translate_each({ fn, Meta, [{ '->', _, Pairs }] }, S) ->
 translate_each({ Kind, Meta, Args }, S) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
   translate_comprehension(Meta, Kind, Args, S);
 
-%% Super (exceptionally supports partial application)
+%% Super
 
 translate_each({ super, Meta, Args }, S) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, super, S),

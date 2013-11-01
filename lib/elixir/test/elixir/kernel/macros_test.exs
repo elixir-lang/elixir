@@ -2,6 +2,10 @@ Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Kernel.MacrosTest.Nested do
   defmacro value, do: 1
+
+  defmacro do_identity!(do: x) do
+    x
+  end
 end
 
 defmodule Kernel.MacrosTest do
@@ -21,10 +25,6 @@ defmodule Kernel.MacrosTest do
     quote do: 1 + unquote(value)
   end
 
-  defmacro do_identity!(do: x) do
-    x
-  end
-
   test :require do
     assert Kernel.MacrosTest.Nested.value == 1
   end
@@ -42,10 +42,6 @@ defmodule Kernel.MacrosTest do
     assert result
   end
 
-  test :locals_macros do
-    assert __MODULE__.my_macro == 2
-  end
-
   test :local_but_private_macro do
     assert my_private_macro == 4
   end
@@ -60,7 +56,8 @@ defmodule Kernel.MacrosTest do
   end
 
   test :bang_do_block do
+    import Kernel.MacrosTest.Nested
     assert (do_identity! do 1 end) == 1
-    assert (__MODULE__.do_identity! do 1 end) == 1
+    assert (Kernel.MacrosTest.Nested.do_identity! do 1 end) == 1
   end
 end

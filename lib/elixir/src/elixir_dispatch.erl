@@ -190,21 +190,12 @@ expand_require(Meta, ?builtin, { Name, Arity } = Tuple, Args, Module, S) ->
 expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, Module, S) ->
   Function = S#elixir_scope.function,
 
-  Fun = (Module == Receiver) andalso (Function /= nil) andalso
-        (Function /= Tuple) andalso elixir_def_local:macro_for(Tuple, false, S),
-
-  case Fun of
-    false ->
-      case is_element(Tuple, get_optional_macros(Receiver)) of
-        true  ->
-          elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker),
-          elixir_tracker:record_remote(Tuple, Receiver, Module, Function),
-          { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) };
-        false -> { error, noexpansion }
-      end;
-    _ ->
-      elixir_tracker:record_local(Tuple, Module, Function),
-      { ok, Receiver, expand_macro_fun(Meta, Fun(), Receiver, Name, Args, Module, S) }
+  case is_element(Tuple, get_optional_macros(Receiver)) of
+    true  ->
+      elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker),
+      elixir_tracker:record_remote(Tuple, Receiver, Module, Function),
+      { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) };
+    false -> { error, noexpansion }
   end.
 
 %% Expansion helpers
