@@ -2,6 +2,7 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule IOTest do
   use ExUnit.Case, async: true
+  import ExUnit.CaptureIO
 
   test :read_with_count do
     { :ok, file } = File.open(Path.expand('../fixtures/file.txt', __FILE__), [:charlist])
@@ -76,5 +77,33 @@ defmodule IOTest do
     assert "Русский\n" == IO.binread(file, :line)
     assert "日\n" == IO.binread(file, :line)
     assert File.close(file) == :ok
+  end
+
+  test :puts_with_chardata do
+    assert capture_io(fn -> IO.puts("hello") end) == "hello\n"
+    assert capture_io(fn -> IO.puts('hello') end) == "hello\n"
+    assert capture_io(fn -> IO.puts(:hello) end) == "hello\n"
+    assert capture_io(fn -> IO.puts(13) end) == "13\n"
+  end
+
+  test :write_with_chardata do
+    assert capture_io(fn -> IO.write("hello") end) == "hello"
+    assert capture_io(fn -> IO.write('hello') end) == "hello"
+    assert capture_io(fn -> IO.write(:hello) end) == "hello"
+    assert capture_io(fn -> IO.write(13) end) == "13"
+  end
+
+  test :gets_with_chardata do
+    assert capture_io("foo\n", fn -> IO.gets("hello") end) == "hello"
+    assert capture_io("foo\n", fn -> IO.gets('hello') end) == "hello"
+    assert capture_io("foo\n", fn -> IO.gets(:hello) end) == "hello"
+    assert capture_io("foo\n", fn -> IO.gets(13) end) == "13"
+  end
+
+  test :getn_with_chardata do
+    assert capture_io("foo\n", fn -> IO.getn("hello", 3) end) == "hello"
+    assert capture_io("foo\n", fn -> IO.getn('hello', 3) end) == "hello"
+    assert capture_io("foo\n", fn -> IO.getn(:hello, 3) end) == "hello"
+    assert capture_io("foo\n", fn -> IO.getn(13, 3) end) == "13"
   end
 end

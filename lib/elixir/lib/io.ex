@@ -7,28 +7,25 @@ end
 
 defmodule IO do
   @moduledoc """
-  Module responsible for doing IO. Many functions in this
-  module expects an IO device and an io data encoded in UTF-8.
-  Use the bin* functions if the data is binary, useful when
-  working with raw bytes or when no unicode conversion should
-  be performed.
+  Functions handling IO.
 
+  Many functions in this module expects an IO device as argument.
   An IO device must be a pid or an atom representing a process.
   For convenience, Elixir provides `:stdio` and `:stderr` as
   shortcuts to Erlang's `:standard_io` and `:standard_error`.
 
-  An io data can be:
+  The majority of the functions expect data encoded in UTF-8
+  and will do a conversion to string, via the `String.Chars`
+  protocol (as shown in typespecs).
 
-  * A list of integers representing a string. Any unicode
-    character must be represented with one entry in the list,
-    this entry being an integer with the codepoint value;
-
-  * A binary in which unicode characters are represented
-    with many bytes (Elixir's default representation);
-
-  * A list of binaries or a list of char lists (as described above);
+  The functions starting with `bin*` expects iodata as arguments,
+  i.e. iolists or binaries with no particular encoding.
 
   """
+
+  @type device   :: atom | pid
+  @type chardata :: char_list | String.Chars.t
+  @type nodata :: { :error, term } | :eof
 
   import :erlang, only: [group_leader: 0]
 
@@ -50,6 +47,7 @@ defmodule IO do
     for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
+  @spec read(device, :line | non_neg_integer) :: chardata | nodata
   def read(device // group_leader, chars_or_line)
 
   def read(device, :line) do
@@ -72,6 +70,7 @@ defmodule IO do
     for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
+  @spec binread(device, :line | non_neg_integer) :: iodata | nodata
   def binread(device // group_leader, chars_or_line)
 
   def binread(device, :line) do
@@ -105,8 +104,9 @@ defmodule IO do
       #=> "error"
 
   """
-  def write(device // group_leader(), item) when is_iolist(item) do
-    :io.put_chars map_dev(device), item
+  @spec write(device, chardata) :: :ok
+  def write(device // group_leader(), item) do
+    :io.put_chars map_dev(device), to_chardata(item)
   end
 
   @doc """
@@ -115,6 +115,7 @@ defmodule IO do
 
   Check `write/2` for more information.
   """
+  @spec binwrite(device, iodata) :: :ok | { :error, term }
   def binwrite(device // group_leader(), item) when is_iolist(item) do
     :file.write map_dev(device), item
   end
@@ -124,9 +125,10 @@ defmodule IO do
   but adds a newline at the end. The argument is expected
   to be a chardata.
   """
-  def puts(device // group_leader(), item) when is_iolist(item) do
+  @spec puts(device, chardata) :: :ok
+  def puts(device // group_leader(), item) do
     erl_dev = map_dev(device)
-    :io.put_chars erl_dev, [item, ?\n]
+    :io.put_chars erl_dev, [to_chardata(item), ?\n]
   end
 
   @doc """
@@ -142,6 +144,7 @@ defmodule IO do
       IO.inspect Process.list
 
   """
+  @spec inspect(term, Keyword.t) :: term
   def inspect(item, opts // []) do
     inspect group_leader(), item, opts
   end
@@ -149,6 +152,7 @@ defmodule IO do
   @doc """
   Inspects the item with options using the given device.
   """
+  @spec inspect(device, term, Keyword.t) :: term
   def inspect(device, item, opts) when is_list(opts) do
     opts = Keyword.put_new(opts, :pretty, true)
 
@@ -178,6 +182,8 @@ defmodule IO do
     for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
+  @spec getn(chardata, pos_integer) :: chardata | nodata
+  @spec getn(device, chardata) :: chardata | nodata
   def getn(prompt, count // 1)
 
   def getn(prompt, count) when is_integer(count) do
@@ -194,8 +200,9 @@ defmodule IO do
   the number of unicode codepoints to be retrieved.
   Otherwise, `count` is the number of raw bytes to be retrieved.
   """
+  @spec getn(device, chardata, pos_integer) :: chardata | nodata
   def getn(device, prompt, count) do
-    :io.get_chars(map_dev(device), prompt, count)
+    :io.get_chars(map_dev(device), to_chardata(prompt), count)
   end
 
   @doc """
@@ -210,8 +217,9 @@ defmodule IO do
     for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
+  @spec gets(device, chardata) :: chardata | nodata
   def gets(device // group_leader(), prompt) do
-    :io.get_line(map_dev(device), prompt)
+    :io.get_line(map_dev(device), to_chardata(prompt))
   end
 
   @doc """
@@ -230,8 +238,9 @@ defmodule IO do
       Enum.each IO.stream(:stdio, :line), &IO.write(&1)
 
   """
-  def stream(device, line_or_bytes) do
-    fn(acc, f) -> stream(map_dev(device), line_or_bytes, acc, f) end
+  @spec stream(device, :line | pos_integer) :: Enumerable.t
+  def stream(device, line_or_codepoints) do
+    fn(acc, f) -> stream(map_dev(device), line_or_codepoints, acc, f) end
   end
 
   @doc """
@@ -240,6 +249,7 @@ defmodule IO do
 
   This reads the io as a raw binary.
   """
+  @spec binstream(device, :line | pos_integer) :: Enumerable.t
   def binstream(device, line_or_bytes) do
     fn(acc, f) -> binstream(map_dev(device), line_or_bytes, acc, f) end
   end
@@ -272,4 +282,7 @@ defmodule IO do
   defp map_dev(:stdio),  do: :standard_io
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other),   do: other
+
+  defp to_chardata(list) when is_list(list), do: list
+  defp to_chardata(other), do: to_string(other)
 end
