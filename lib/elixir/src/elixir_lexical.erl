@@ -17,6 +17,7 @@ run(File, Callback) ->
       try
         Callback(Pid)
       after
+        warn_unused_aliases(File, Pid),
         warn_unused_imports(File, Pid),
         unlink(Pid), ?tracker:stop(Pid)
       end;
@@ -68,5 +69,12 @@ warn_unused_imports(File, Pid) ->
       elixir_errors:handle_file_warning(File, { L, ?MODULE, { unused_import, M } })
     end || { M, L } <- ?tracker:collect_unused_imports(Pid)].
 
+warn_unused_aliases(File, Pid) ->
+  [ begin
+      elixir_errors:handle_file_warning(File, { L, ?MODULE, { unused_alias, M } })
+    end || { M, L } <- ?tracker:collect_unused_aliases(Pid)].
+
+format_error({unused_alias, Module}) ->
+  io_lib:format("unused alias ~ts", [elixir_errors:inspect(Module)]);
 format_error({unused_import, Module}) ->
   io_lib:format("unused import ~ts", [elixir_errors:inspect(Module)]).

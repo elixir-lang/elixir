@@ -327,13 +327,13 @@ defmodule Kernel.QuoteTest.AliasHygieneTest do
   end
 
   test :expand_aliases_with_macro_does_not_expand_source_alias do
-    alias HashDict, as: Dict
+    alias HashDict, as: Dict, warn: false
     require Kernel.QuoteTest.AliasHygiene
     assert Kernel.QuoteTest.AliasHygiene.dict == Elixir.Dict.Bar
   end
 
   test :expand_aliases_with_macro_has_higher_preference do
-    alias HashDict, as: SuperDict
+    alias HashDict, as: SuperDict, warn: false
     require Kernel.QuoteTest.AliasHygiene
     assert Kernel.QuoteTest.AliasHygiene.super_dict == Elixir.Dict.Bar
   end

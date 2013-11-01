@@ -68,7 +68,7 @@ defmodule RecordTest.Macros do
   # Ensure there is no conflict in a nested module
   # named record.
   defrecord Record, [a: 1, b: 2] do
-    alias Foo, as: Record
+    alias Foo, as: Record, warn: false
   end
 end
 

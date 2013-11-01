@@ -138,18 +138,27 @@ defmodule Kernel.WarningTest do
   test :unused_import do
     assert capture_err(fn ->
       Code.compile_string """
-      defmodule Sample1 do
-        def hello, do: nil
-      end
-
-      defmodule Sample2 do
-        import Sample1
+      defmodule Sample do
+        import :lists, only: [flatten: 1]
         def a, do: nil
       end
       """
-    end) =~ "unused import Sample1"
+    end) =~ "unused import :lists"
   after
-    purge [Sample1, Sample2]
+    purge [Sample]
+  end
+
+  test :unused_alias do
+    assert capture_err(fn ->
+      Code.compile_string """
+      defmodule Sample do
+        alias :lists, as: List
+        def a, do: nil
+      end
+      """
+    end) =~ "unused alias List"
+  after
+    purge [Sample]
   end
 
   test :unused_guard do

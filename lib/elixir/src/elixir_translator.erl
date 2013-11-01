@@ -87,7 +87,7 @@ translate_each({ alias, Meta, [Ref] }, S) ->
 translate_each({ alias, Meta, [Ref, KV] }, S) ->
   assert_no_match_or_guard_scope(Meta, alias, S),
   { TRef, SR } = translate_each(Ref, S),
-  { TKV, ST }  = translate_opts(Meta, alias, [as], no_alias_opts(KV), SR),
+  { TKV, ST }  = translate_opts(Meta, alias, [as, warn], no_alias_opts(KV), SR),
 
   case TRef of
     { atom, _, Old } ->
@@ -103,7 +103,7 @@ translate_each({ require, Meta, [Ref, KV] }, S) ->
   assert_no_match_or_guard_scope(Meta, require, S),
 
   { TRef, SR } = translate_each(Ref, S),
-  { TKV, ST }  = translate_opts(Meta, require, [as], no_alias_opts(KV), SR),
+  { TKV, ST }  = translate_opts(Meta, require, [as, warn], no_alias_opts(KV), SR),
 
   case TRef of
     { atom, _, Old } ->
@@ -151,9 +151,9 @@ translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
 %% Aliases
 
 translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
-  case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases) of
+  case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases, S#elixir_scope.lexical_tracker) of
     Receiver when is_atom(Receiver) ->
-      elixir_lexical:record_alias(Receiver, S#elixir_scope.lexical_tracker),
+      elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker),
       { { atom, ?line(Meta), Receiver }, S };
     Aliases ->
       { TAliases, SA } = translate_args(Aliases, S),
@@ -162,7 +162,7 @@ translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
         true ->
           Atoms = [Atom || { atom, _, Atom } <- TAliases],
           Receiver = elixir_aliases:concat(Atoms),
-          elixir_lexical:record_alias(Receiver, S#elixir_scope.lexical_tracker),
+          elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker),
           { { atom, ?line(Meta), Receiver }, SA };
         false ->
           Args = [elixir_utils:list_to_cons(?line(Meta), TAliases)],
@@ -523,7 +523,7 @@ translate_alias(Meta, IncludeByDefault, Old, TKV, S) ->
                "invalid :as for alias, nested alias ~s not allowed", [elixir_errors:inspect(New)])
   end,
 
-  { { atom, ?line(Meta), nil }, elixir_aliases:store(Meta, New, Old, S) }.
+  { { atom, ?line(Meta), nil }, elixir_aliases:store(Meta, New, Old, TKV, S) }.
 
 no_alias_opts(KV) when is_list(KV) ->
   case lists:keyfind(as, 1, KV) of

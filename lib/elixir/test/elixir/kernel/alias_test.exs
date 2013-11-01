@@ -29,9 +29,9 @@ defmodule Kernel.AliasTest do
 
   test :lexical do
     if true do
-      alias OMG, as: List
+      alias OMG, as: List, warn: false
     else
-      alias ABC, as: List
+      alias ABC, as: List, warn: false
     end
 
     assert List.flatten([1, [2], 3]) == [1, 2, 3]

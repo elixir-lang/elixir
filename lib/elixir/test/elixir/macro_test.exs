@@ -134,7 +134,7 @@ defmodule MacroTest do
   end
 
   test :expand_once_with_main_plus_custom_alias do
-    alias Foo, as: Bar
+    alias Foo, as: Bar, warn: false
     assert Macro.expand_once(quote(do: Elixir.Bar.Baz), __ENV__) == Elixir.Bar.Baz
   end
 

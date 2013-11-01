@@ -163,7 +163,7 @@ translate({defmodule, Meta, [Ref, KV]}, S) when is_list(KV) ->
       FullModule = expand_module(Ref, Module, S),
 
       RS = case elixir_aliases:nesting_alias(S#elixir_scope.module, FullModule) of
-        { New, Old } -> elixir_aliases:store(Meta, New, Old, S);
+        { New, Old } -> elixir_aliases:store(Meta, New, Old, [{warn,false}], S);
         false -> S
       end,
 
@@ -308,7 +308,8 @@ expand_module({ '__aliases__', _, [H] }, _Module, S) ->
 
 %% defmodule Hello.World
 expand_module({ '__aliases__', _, _ } = Alias, Module, S) ->
-  case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases) of
+  case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases,
+                             S#elixir_scope.lexical_tracker) of
     Atom when is_atom(Atom) ->
       Module;
     Aliases when is_list(Aliases) ->

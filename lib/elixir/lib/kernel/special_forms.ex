@@ -321,6 +321,18 @@ defmodule Kernel.SpecialForms do
   `import`, `require` and `alias` are called directives and all
   have lexical scope. This means you can set up aliases inside
   specific functions and it won't affect the overall scope.
+
+  ## Warnings
+
+  If you alias a module and you don't use the alias, Elixir is
+  going to issue a warning implying the alias is not being used.
+
+  In case the alias is generated automatically by a macro,
+  Elixir won't emit any warnings though, since the alias
+  was not explicitly defined.
+
+  Both warning behaviors could be changed by explicitily
+  setting the `:warn` option to true or false.
   """
   defmacro alias(module, opts)
 
