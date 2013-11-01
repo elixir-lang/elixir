@@ -103,6 +103,33 @@ defmodule Macro do
   end
 
   @doc """
+  Decomposes a local or remote call. If a local call is provided,
+  it returns a tuple with the function name and the argument list.
+  If a remote call is provided, it returns a tuple with the
+  module alias, function name and the argument list. Returns
+  :error otherwise.
+
+  ## Examples
+
+      decompose_call(quote do: foo) == { :foo, [] }
+      decompose_call(quote do: foo()) == { :foo, [] }
+      decompose_call(quote do: foo(1, 2, 3)) == { :foo, [1, 2, 3] }
+      decompose_call(quote do: M.N.foo(1, 2, 3)) ==
+        { { :__aliases__, [alias: false], [:M, :N] }, :foo, [1, 2, 3] }
+      decompose_call(quote do: 42) == :error
+
+  """
+  @spec decompose_call(Macro.t) :: { atom, [Macro.t] } | { Macro.t, atom, [Macro.t] } | :error
+  def decompose_call(expr) do
+    case expr do
+      { { :., _, [{ :__aliases__, meta, atoms }, f] }, _, args } ->
+        { { :__aliases__, meta, atoms }, f, args }
+      _local ->
+        :elixir_clauses.extract_args(expr)
+    end
+  end
+
+  @doc """
   Recursively escapes a value so it can be inserted
   into a syntax tree.
 
