@@ -7,8 +7,10 @@
   * [Enum] Document and enforce `Enum.member?/2` to use the match operator (`===`)
   * [IEx] Split `IEx.Evaluator` from `IEx.Server` to allow custom evaluators
   * [IEx] Add support for `IEx.pry` which halts a given process for inspection
+  * [IO] Add specs and allow some IO APIs to receive any data that implements `String.Chars`
   * [Kernel] Improve stacktraces on command line interfaces
   * [Kernel] Sigils can now handle balanced tokens as in `%s(f(o)o)`
+  * [Kernel] Emit warnings when an alias is not used
   * [Macro] Add `Macro.pipe/3` and `Macro.unpipe/1` for building pipelines
   * [Mix] Allow umbrella children to share dependencies between them
   * [Mix] Allow mix to be escriptize'd
