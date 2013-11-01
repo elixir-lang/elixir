@@ -1515,9 +1515,14 @@ defmodule Kernel do
      string;
 
   """
-  defmacro defexception(name, fields, opts // [], do_block // []) do
-    opts = Keyword.merge(opts, do_block)
-    opts = Keyword.put(opts, :do, quote do
+  defmacro defexception(name, fields, do_block // []) do
+    { fields, do_block } =
+      case is_list(fields) and Keyword.get(fields, :do, false) do
+        false -> { fields, do_block }
+        other -> { Keyword.delete(fields, :do), [do: other] }
+      end
+
+    do_block = Keyword.put(do_block, :do, quote do
       @moduledoc nil
       record_type message: binary
 
@@ -1527,11 +1532,11 @@ defmodule Kernel do
       @doc false
       def exception(args, self), do: update(args, self)
 
-      unquote(Keyword.get opts, :do)
+      unquote(Keyword.get do_block, :do)
     end)
 
     fields = quote do: [__exception__: :__exception__] ++ unquote(fields)
-    record = Record.defrecord(name, fields, opts)
+    record = Record.defrecord(name, fields, do_block)
 
     quote do
       { :module, name, _, _ } = unquote(record)

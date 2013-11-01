@@ -102,6 +102,13 @@ defmodule Kernel.ExceptionTest do
            [file: ^file, line: 95]} = stacktrace # line is sensitive
   end
 
+  test :defexception do
+    defexception SampleError, field: :ok do
+      # Check do block is properly inline
+      def message(_), do: "hello"
+    end
+  end
+
   defp empty_tuple, do: {}
   defp a_tuple, do: { :foo, :bar, :baz }
   defp a_list,  do: [ :foo, :bar, :baz ]
