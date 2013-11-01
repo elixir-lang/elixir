@@ -224,11 +224,14 @@ defmodule IO do
 
   @doc """
   Converts the io device into a Stream. The device is
-  iterated line by line if :line is given or by a given
+  iterated line by line if `:line` is given or by a given
   number of codepoints.
 
-  This reads the io as utf-8. Check out
+  This reads the IO as utf-8. Check out
   `IO.binstream/2` to handle the IO as a raw binary.
+
+  Note that an IO stream has side effects and every time
+  you go over the stream you may get different results.
 
   ## Examples
 
@@ -245,9 +248,11 @@ defmodule IO do
 
   @doc """
   Converts the io device into a Stream. The device is
-  iterated line by line.
+  iterated line by line or by a number of bytes. This
+  reads the IO as a raw binary.
 
-  This reads the io as a raw binary.
+  Note that an IO stream has side effects and every time
+  you go over the stream you may get different results.
   """
   @spec binstream(device, :line | pos_integer) :: Enumerable.t
   def binstream(device, line_or_bytes) do

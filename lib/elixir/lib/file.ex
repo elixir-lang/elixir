@@ -973,7 +973,7 @@ defmodule File do
   of bytes given by `line_or_bytes`.
 
   The returned stream will fail for the same reasons as `File.open!`.
-  Note that the file is opened only when streaming begins.
+  Note that the file is opened only and every time streaming begins.
   """
   def stream!(file, mode // [], line_or_bytes // :line) do
     fn(acc, fun) ->
@@ -992,7 +992,7 @@ defmodule File do
   of bytes given by `line_or_bytes`.
 
   The returned stream will fail for the same reasons as `File.open!`.
-  Note that the file is opened only when streaming begins.
+  Note that the file is opened only and every time streaming begins.
   """
   def binstream!(file, mode // [], line_or_bytes // :line) do
     fn(fun, acc) ->
