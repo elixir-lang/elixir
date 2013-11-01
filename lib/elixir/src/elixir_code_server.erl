@@ -10,8 +10,7 @@
   at_exit=[],
   pool={[],0},
   compiler_options=[{docs,true},{debug_info,true},{warnings_as_errors,false}],
-  erl_compiler_options=nil,
-  lexical=[]
+  erl_compiler_options=nil
 }).
 
 call(Args) ->
@@ -81,9 +80,6 @@ handle_call(erl_compiler_options, _From, Config) ->
       { reply, Opts, Config }
   end;
 
-handle_call({ lexical, File }, _From, #elixir_code_server{lexical=Lexical} = Config) ->
-  { reply, orddict:find(File, Lexical), Config };
-
 handle_call(_Request, _From, Config) ->
   { reply, undef, Config }.
 
@@ -127,12 +123,6 @@ handle_cast({ unload_files, Files }, Config) ->
 
 handle_cast({ return_module_name, H }, #elixir_code_server{pool={T,Counter}} = Config) ->
   { noreply, Config#elixir_code_server{pool={[H|T],Counter}} };
-
-handle_cast({ register_lexical, File, Pid }, #elixir_code_server{lexical=Lexical} = Config) ->
-  { noreply, Config#elixir_code_server{lexical=orddict:store(File, Pid, Lexical)} };
-
-handle_cast({ unregister_lexical, File }, #elixir_code_server{lexical=Lexical} = Config) ->
-  { noreply, Config#elixir_code_server{lexical=orddict:erase(File, Lexical)} };
 
 handle_cast(_Request, Config) ->
   { noreply, Config }.

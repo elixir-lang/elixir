@@ -26,6 +26,7 @@
   context_modules=[],      %% modules defined in the current context
   macro_aliases=[],        %% keep aliases defined inside a macro
   macro_counter=0,         %% macros expansions counter
+  lexical_tracker=nil,     %% holds the lexical tracker pid
   aliases,                 %% an orddict with aliases by new -> old names
   file,                    %% the current scope filename
   requires,                %% a set with modules required

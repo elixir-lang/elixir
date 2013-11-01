@@ -2,13 +2,15 @@
 -module(elixir_scope).
 -export([translate_var/5,
   build_erl_var/2, build_ex_var/2,
-  serialize/1, deserialize/1,
+  serialize/1, deserialize/1, to_erl/1,
   serialize_with_vars/2, deserialize_with_vars/2,
   to_erl_env/1, to_ex_env/1,
   load_binding/3, dump_binding/2,
   umergev/2, umergec/2, umergea/2, merge_clause_vars/2
 ]).
 -include("elixir.hrl").
+
+%% VAR HANDLING
 
 translate_var(Meta, Name, Kind, S, Callback) when is_atom(Kind); is_integer(Kind) ->
   Line = ?line(Meta),
@@ -79,34 +81,43 @@ build_ex_var(Line, Key, Name, S) when is_integer(Line) ->
   Var = { ?atom_concat([Name, "@", Counter]), [{line,Line}], Context },
   { Var, NS }.
 
-% Handle Macro.Env conversion
+%% Macro.Env <-> #elixir_scope conversion
 
 to_erl_env({ 'Elixir.Macro.Env', Module, File, _Line, Function, Aliases, Context,
-    Requires, Functions, Macros, ContextModules, MacroAliases, _Vars }) ->
+    Requires, Functions, Macros, ContextModules, MacroAliases, _Vars, Lexical }) ->
   #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros,functions=Functions,
-    context_modules=ContextModules,macro_aliases=MacroAliases}.
+    context_modules=ContextModules,macro_aliases=MacroAliases,
+    lexical_tracker=Lexical}.
 
 to_ex_env({ Line, #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros,functions=Functions,
-    context_modules=ContextModules,macro_aliases=MacroAliases,vars=Vars} }) when is_integer(Line) ->
+    context_modules=ContextModules,macro_aliases=MacroAliases,
+    vars=Vars,lexical_tracker=Lexical} }) when is_integer(Line) ->
   { 'Elixir.Macro.Env', Module, File, Line, Function, Aliases,
     Context, Requires, Functions, Macros, ContextModules, MacroAliases,
-    list_vars(Vars) }.
+    list_vars(Vars), Lexical }.
 
 list_vars(Vars) -> [Pair || { { _, K } = Pair, _ } <- Vars, is_atom(K)].
 
-% Provides a tuple with only the scope information we want to serialize.
+%% SERIALIZATION
+
+%% When serializing scopes, we support serialization of pids.
+to_erl(Structure) ->
+  elixir_utils:elixir_to_erl(Structure, fun
+    (X) when is_pid(X) ->
+      ?wrap_call(0, erlang, binary_to_term, [elixir_utils:elixir_to_erl(term_to_binary(X))]);
+    (Other) ->
+      error({ badarg, Other })
+  end).
 
 serialize(S) ->
-  elixir_utils:elixir_to_erl(
-    { S#elixir_scope.file, S#elixir_scope.functions,
-      S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases,
-      S#elixir_scope.macro_functions, S#elixir_scope.macro_macros, S#elixir_scope.macro_aliases,
-      S#elixir_scope.context_modules }
-  ).
+  to_erl({ S#elixir_scope.file, S#elixir_scope.functions,
+    S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases,
+    S#elixir_scope.macro_functions, S#elixir_scope.macro_macros, S#elixir_scope.macro_aliases,
+    S#elixir_scope.context_modules, S#elixir_scope.lexical_tracker }).
 
 serialize_with_vars(Line, S) when is_integer(Line) ->
   { Vars, _ } = orddict:fold(fun({ Key, Kind }, Value, { Acc, Counter }) ->
@@ -128,8 +139,8 @@ serialize_with_vars(Line, S) when is_integer(Line) ->
 
 deserialize(Tuple) -> deserialize_with_vars(Tuple, []).
 
-deserialize_with_vars({ File, Functions, Requires, Macros,
-                        Aliases, MacroFunctions, MacroMacros, MacroAliases, FileModules }, Vars) ->
+deserialize_with_vars({ File, Functions, Requires, Macros, Aliases, MacroFunctions,
+                        MacroMacros, MacroAliases, FileModules, LexicalTracker }, Vars) ->
   #elixir_scope{
     file=File,
     functions=Functions,
@@ -141,8 +152,11 @@ deserialize_with_vars({ File, Functions, Requires, Macros,
     macro_aliases=MacroAliases,
     context_modules=FileModules,
     vars=orddict:from_list(Vars),
+    lexical_tracker=LexicalTracker,
     counter=[{'',length(Vars)}]
   }.
+
+%% SCOPE MERGING
 
 %% Receives two scopes and return a new scope based on the second
 %% with their variables merged.
@@ -206,7 +220,7 @@ var_number([$@|T], _Acc) -> var_number(T, []);
 var_number([H|T], Acc)   -> var_number(T, [H|Acc]);
 var_number([], Acc)      -> list_to_integer(lists:reverse(Acc)).
 
-%% Setup the vars in scope from binding
+%% BINDINGS
 
 load_binding(Binding, Scope, Module) ->
   { NewBinding, NewVars, NewCounter } = load_binding(Binding, [], [], 0, Module),

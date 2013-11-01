@@ -1,8 +1,8 @@
 %% Convenience functions used throughout elixir source code
 %% for ast manipulation and querying.
 -module(elixir_utils).
--export([elixir_to_erl/1, elixir_to_erl/3,
-  get_line/1, split_last/1,
+-export([elixir_to_erl/1, elixir_to_erl/2,
+  get_line/1, split_last/1, elixir_to_erl/3,
   characters_to_list/1, characters_to_binary/1,
   cons_to_list/1, list_to_cons/2, list_to_cons/3,
   convert_to_boolean/5, returns_boolean/1,

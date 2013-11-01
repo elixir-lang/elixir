@@ -34,14 +34,15 @@ defmodule Macro.Env do
   @type macros :: [{ module, [name_arity] }]
   @type context_modules :: [module]
   @type vars :: [{ atom, atom }]
+  @type lexical_tracker :: pid
 
-  fields = [:module, :file, :line, :function, :aliases, :context, :requires,
-            :functions, :macros, :context_modules, :macro_aliases, :vars]
+  fields = [:module, :file, :line, :function, :aliases, :context, :requires, :functions,
+            :macros, :context_modules, :macro_aliases, :vars, :lexical_tracker]
 
   types  = quote do: [module: module, file: file, line: line,
     function: name_arity, aliases: aliases, requires: requires,
     functions: functions, macros: macros, context_modules: context_modules,
-    macro_aliases: aliases, vars: vars]
+    macro_aliases: aliases, vars: vars, lexical_tracker: lexical_tracker]
 
   Record.deffunctions(fields, __MODULE__)
   Record.deftypes(fields, types, __MODULE__)

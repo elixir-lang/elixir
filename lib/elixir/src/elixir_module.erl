@@ -63,7 +63,7 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
   FileList = elixir_utils:characters_to_list(File),
 
   check_module_availability(Line, File, Module, C),
-  build(Line, File, Module),
+  build(Line, File, Module, S#elixir_scope.lexical_tracker),
 
   try
     Result = eval_form(Line, Module, Block, Vars, S),
@@ -110,7 +110,7 @@ compile(Line, Module, Block, Vars, RawS) ->
 
 %% Hook that builds both attribute and functions and set up common hooks.
 
-build(Line, File, Module) ->
+build(Line, File, Module, Lexical) ->
   %% Table with meta information about the module.
   DataTable = data_table(Module),
 
@@ -132,7 +132,7 @@ build(Line, File, Module) ->
   ets:insert(DataTable, { ?acc_attr, [before_compile, after_compile, on_definition|Attributes] }),
   ets:insert(DataTable, { ?persisted_attr, [vsn|Attributes] }),
   ets:insert(DataTable, { ?docs_attr, ets:new(DataTable, [ordered_set, public]) }),
-  ets:insert(DataTable, { ?lexical_attr, elixir_lexical:pid(File) }),
+  ets:insert(DataTable, { ?lexical_attr, Lexical }),
   ets:insert(DataTable, { ?overridable_attr, [] }),
 
   %% Setup other modules

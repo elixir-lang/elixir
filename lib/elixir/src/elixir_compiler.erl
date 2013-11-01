@@ -30,7 +30,9 @@ quoted(Forms, File) when is_binary(File) ->
   try
     put(elixir_compiled, []),
     elixir_lexical:run(File, fun
-      () -> eval_forms(Forms, 1, [], elixir:scope_for_eval([{file,File}]))
+      (Pid) ->
+        Scope = elixir:scope_for_eval([{file,File}]),
+        eval_forms(Forms, 1, [], Scope#elixir_scope{lexical_tracker=Pid})
     end),
     lists:reverse(get(elixir_compiled))
   after

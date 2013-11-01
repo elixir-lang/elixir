@@ -143,7 +143,7 @@ translate_each({ '__DIR__', _Meta, Atom }, S) when is_atom(Atom) ->
 
 translate_each({ '__ENV__', Meta, Atom }, S) when is_atom(Atom) ->
   Env = elixir_scope:to_ex_env({ ?line(Meta), S }),
-  { elixir_utils:elixir_to_erl(Env), S };
+  { elixir_scope:to_erl(Env), S };
 
 translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
   { { var, ?line(Meta), '__CALLER__' }, S#elixir_scope{caller=true} };
@@ -153,7 +153,7 @@ translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
 translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
   case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases) of
     Receiver when is_atom(Receiver) ->
-      elixir_lexical:record_alias(S#elixir_scope.file, Receiver),
+      elixir_lexical:record_alias(Receiver, S#elixir_scope.lexical_tracker),
       { { atom, ?line(Meta), Receiver }, S };
     Aliases ->
       { TAliases, SA } = translate_args(Aliases, S),
@@ -162,7 +162,7 @@ translate_each({ '__aliases__', Meta, _ } = Alias, S) ->
         true ->
           Atoms = [Atom || { atom, _, Atom } <- TAliases],
           Receiver = elixir_aliases:concat(Atoms),
-          elixir_lexical:record_alias(S#elixir_scope.file, Receiver),
+          elixir_lexical:record_alias(Receiver, S#elixir_scope.lexical_tracker),
           { { atom, ?line(Meta), Receiver }, SA };
         false ->
           Args = [elixir_utils:list_to_cons(?line(Meta), TAliases)],
@@ -605,7 +605,7 @@ translate_apply(Meta, TLeft, TRight, Args, S, SL, SR) ->
       case TLeft of
         { atom, _, Receiver } ->
           Tuple = { element(3, TRight), length(Args) },
-          elixir_lexical:record_remote(S#elixir_scope.file, Receiver),
+          elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker),
           elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function);
         _ ->
           ok
