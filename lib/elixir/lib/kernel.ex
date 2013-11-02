@@ -1505,8 +1505,8 @@ defmodule Kernel do
   @doc """
   Defines an exception.
 
-  Exceptions are simply records and therefore `defexception/4` has
-  the same API and similar behavior to `defrecord/4` with two notable
+  Exceptions are simply records and therefore `defexception/3` has
+  the same API and similar behavior to `defrecord/3` with two notable
   differences:
 
   1) Unlike records, exceptions are documented by default;
