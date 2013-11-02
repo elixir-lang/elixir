@@ -1,4 +1,4 @@
-# v0.10.4-dev
+# v0.11.0 (2013-11-02)
 
 * Enhancements
   * [Code] Eval now returns variables from other contexts
