@@ -35,7 +35,7 @@ defmodule Mix.Deps.Umbrella do
   defp to_umbrella_dep(paths) do
     Enum.map paths, fn({ app, path }) ->
       Mix.Dep[scm: Mix.SCM.Path, app: app, requirement: nil, manager: :mix,
-              status: { :ok, nil }, opts: [path: path, dest: Path.expand(path)]]
+              status: { :ok, nil }, opts: [path: path, dest: Path.expand(path), env: Mix.env]]
     end
   end
 end
