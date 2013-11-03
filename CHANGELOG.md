@@ -3,11 +3,12 @@
 * Enhancements
 
 * Bug fixes
+  * [Mix] Ensure Mix does not load previous dependencies versions before `deps.get`/`deps.update`
 
 * Deprecations
 
 * Backwards incompatible changes
-
+  * [Mix] Setting `:load_paths` in your project configuration is deprecated
 
 # v0.11.0 (2013-11-02)
 

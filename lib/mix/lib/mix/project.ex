@@ -167,7 +167,7 @@ defmodule Mix.Project do
       []
     else
       [compile_path]
-    end ++ Enum.map(config[:load_paths], &Path.expand(&1))
+    end
   end
 
   # Loads mix.exs in the current directory or loads the project from the
@@ -208,7 +208,6 @@ defmodule Mix.Project do
       erlc_paths: ["src"],
       erlc_include_path: "include",
       erlc_options: [:debug_info],
-      load_paths: [],
       lockfile: "mix.lock",
       preferred_cli_env: [{ "test", :test }] ]
   end
@@ -218,10 +217,17 @@ defmodule Mix.Project do
   defp get_project_config(atom) do
     config = atom.project
 
-    if env = config[:env][Mix.env] do
-      config |> Keyword.delete(:env) |> Keyword.merge(env)
-    else
-      config
+    config =
+      if env = config[:env][Mix.env] do
+        config |> Keyword.delete(:env) |> Keyword.merge(env)
+      else
+        config
+      end
+
+    if config[:load_paths] do
+      IO.write "Setting :load_paths inside mix.exs is deprecated and has no effect\n#{Exception.format_stacktrace}"
     end
+
+    config
   end
 end
