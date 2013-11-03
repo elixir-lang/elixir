@@ -54,6 +54,10 @@ defmodule Mix.Tasks.Escriptize do
     # Require the project to be available
     Mix.Project.get!
 
+    if !Mix.project[:escript_main_module] do
+      raise Mix.Error, message: "This project does not have :escript_main_module set"
+    end
+
     unless opts[:no_compile] do
       Mix.Task.run :compile, args
     end
