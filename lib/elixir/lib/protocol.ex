@@ -208,13 +208,13 @@ defmodule Protocol do
   defp impl_with_fallback(mod, guard, current, arg) do
     quote do
       { unquote(guard)(unquote(arg)),
-        unquote(with_fallback(Module.concat(current, mod), current, arg)) }
+        unquote(with_fallback(Module.concat(current, mod))) }
     end
   end
 
   # Tries to dispatch to a given target, fallbacks to the
   # given `fallback` implementation if the target does not exist.
-  defp with_fallback(target, current, arg) when is_atom(target) do
+  defp with_fallback(target) when is_atom(target) do
     quote do
       try do
         unquote(target).__impl__(:name)
