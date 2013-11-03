@@ -189,38 +189,38 @@ defmodule Protocol do
     end
   end
 
-  defp impl_for(current, Tuple, arg),     do: impl_with_fallback(Tuple, :is_tuple, current, Any, arg)
-  defp impl_for(current, Atom, arg),      do: impl_with_fallback(Atom, :is_atom, current, Any, arg)
-  defp impl_for(current, List, arg),      do: impl_with_fallback(List, :is_list, current, Any, arg)
-  defp impl_for(current, BitString, arg), do: impl_with_fallback(BitString, :is_bitstring, current, Any, arg)
-  defp impl_for(current, Integer, arg),   do: impl_with_fallback(Integer, :is_integer, current, Any, arg)
-  defp impl_for(current, Float, arg),     do: impl_with_fallback(Float, :is_float, current, Any, arg)
-  defp impl_for(current, Function, arg),  do: impl_with_fallback(Function, :is_function, current, Any, arg)
-  defp impl_for(current, PID, arg),       do: impl_with_fallback(PID, :is_pid, current, Any, arg)
-  defp impl_for(current, Port, arg),      do: impl_with_fallback(Port, :is_port, current, Any, arg)
-  defp impl_for(current, Reference, arg), do: impl_with_fallback(Reference, :is_reference, current, Any, arg)
+  defp impl_for(current, Tuple, arg),     do: impl_with_fallback(Tuple, :is_tuple, current, arg)
+  defp impl_for(current, Atom, arg),      do: impl_with_fallback(Atom, :is_atom, current, arg)
+  defp impl_for(current, List, arg),      do: impl_with_fallback(List, :is_list, current, arg)
+  defp impl_for(current, BitString, arg), do: impl_with_fallback(BitString, :is_bitstring, current, arg)
+  defp impl_for(current, Integer, arg),   do: impl_with_fallback(Integer, :is_integer, current, arg)
+  defp impl_for(current, Float, arg),     do: impl_with_fallback(Float, :is_float, current, arg)
+  defp impl_for(current, Function, arg),  do: impl_with_fallback(Function, :is_function, current, arg)
+  defp impl_for(current, PID, arg),       do: impl_with_fallback(PID, :is_pid, current, arg)
+  defp impl_for(current, Port, arg),      do: impl_with_fallback(Port, :is_port, current, arg)
+  defp impl_for(current, Reference, arg), do: impl_with_fallback(Reference, :is_reference, current, arg)
 
   defp impl_for(_current, Any, _arg) do
     { true, quote(do: any_impl_for) }
   end
 
   # Defines an implementation with fallback to the given module.
-  defp impl_with_fallback(mod, guard, current, fallback, arg) do
+  defp impl_with_fallback(mod, guard, current, arg) do
     quote do
       { unquote(guard)(unquote(arg)),
-        unquote(with_fallback(Module.concat(current, mod), current, fallback, arg)) }
+        unquote(with_fallback(Module.concat(current, mod), current, arg)) }
     end
   end
 
   # Tries to dispatch to a given target, fallbacks to the
   # given `fallback` implementation if the target does not exist.
-  defp with_fallback(target, current, fallback, arg) when is_atom(target) do
+  defp with_fallback(target, current, arg) when is_atom(target) do
     quote do
       try do
         unquote(target).__impl__(:name)
       catch
         :error, :undef, [[{ unquote(target), :__impl__, [:name], _ }|_]|_] ->
-          unquote(impl_for(current, fallback, arg) |> elem(1))
+          any_impl_for
       end
     end
   end
