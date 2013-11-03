@@ -42,14 +42,15 @@ defmodule Kernel.ParallelCompiler do
 
   defp spawn_compilers(files, path, callbacks) do
     Code.ensure_loaded(Kernel.ErrorHandler)
-    :elixir_code_server.cast(:reset_warnings)
+    compiler_pid = self()
+    :elixir_code_server.cast({ :reset_warnings, compiler_pid })
     schedulers = max(:erlang.system_info(:schedulers_online), 2)
 
     result = spawn_compilers(files, files, path, callbacks, [], [], schedulers, [])
 
     # In case --warning-as-errors is enabled and there was a warning,
     # compilation status will be set to error and we fail with CompileError
-    case :elixir_code_server.call(:compilation_status) do
+    case :elixir_code_server.call({ :compilation_status, compiler_pid }) do
       :ok    -> result
       :error -> raise CompileError, [], []
     end
