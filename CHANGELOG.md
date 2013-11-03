@@ -29,7 +29,7 @@
   * [Protocol] Protocols now provide `impl_for/1` and `impl_for!/1` functions which receive a structure and returns its respective implementation, otherwise returns nil or an error
   * [Set] Document and enforce all sets use the match operator (`===`) when checking for keys
   * [String] Update to Unicode 6.3.0
-  * [String] Add `Enum.slice/2` with a range
+  * [String] Add `String.slice/2` with a range
 
 * Bug fixes
   * [Exception] Ensure `defexception` fields can be set dynamically
