@@ -26,7 +26,7 @@ defmodule Mix.Deps.Umbrella do
   def fetched do
     apps_path = Path.expand(Mix.project[:apps_path])
 
-    Enum.map(children, fn(umbrella_dep) ->
+    Enum.map(unfetched, fn(umbrella_dep) ->
       umbrella_dep = Mix.Deps.Retriever.fetch(umbrella_dep, [])
       umbrella_dep.update_deps(&Enum.filter(&1, fn dep ->
         Mix.Deps.available?(dep) and in_umbrella?(dep, apps_path)
