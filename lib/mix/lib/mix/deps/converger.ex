@@ -115,8 +115,8 @@ defmodule Mix.Deps.Converger do
       if overrider.deps == [] do
         [overrider | Enum.reverse(acc)]
       else
-        dep = hd(overrider.deps).app
-        { before_dep, after_dep } = Enum.split_while(acc, &(&1.app != dep))
+        deps = Enum.map(overrider.deps, &(&1.app))
+        { before_dep, after_dep } = Enum.split_while(acc, &(not &1.app in deps))
         Enum.reverse(before_dep ++ [overrider] ++ after_dep)
       end
     end
