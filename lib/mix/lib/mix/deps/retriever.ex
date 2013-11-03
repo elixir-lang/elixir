@@ -13,7 +13,7 @@ defmodule Mix.Deps.Retriever do
     scms = Mix.SCM.available
     from = current_source(:mix)
     Enum.map(Mix.project[:deps] || [], &to_dep(&1, scms, from)) ++
-             Mix.Deps.Umbrella.children
+             Mix.Deps.Umbrella.unfetched
   end
 
   @doc """

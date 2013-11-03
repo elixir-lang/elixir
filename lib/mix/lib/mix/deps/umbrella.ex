@@ -2,9 +2,9 @@ defmodule Mix.Deps.Umbrella do
   @moduledoc false
 
   @doc """
-  Extracts the current project umbrella apps as dependencies.
+  Gets all umbrella dependencies in unfetched format.
   """
-  def children do
+  def unfetched do
     config = Mix.project
 
     if apps_path = config[:apps_path] do
@@ -18,6 +18,24 @@ defmodule Mix.Deps.Umbrella do
     else
       []
     end
+  end
+
+  @doc """
+  Gets all umbrella dependencies in fetched format.
+  """
+  def fetched do
+    apps_path = Path.expand(Mix.project[:apps_path])
+
+    Enum.map(children, fn(umbrella_dep) ->
+      umbrella_dep = Mix.Deps.Retriever.fetch(umbrella_dep, [])
+      umbrella_dep.update_deps(&Enum.filter(&1, fn dep ->
+        Mix.Deps.available?(dep) and in_umbrella?(dep, apps_path)
+      end))
+    end)
+  end
+
+  defp in_umbrella?(Mix.Dep[opts: opts], apps_path) do
+    apps_path == Path.expand(Path.dirname(opts[:dest]))
   end
 
   defp extract_umbrella(paths) do

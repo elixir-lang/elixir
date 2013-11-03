@@ -6,7 +6,6 @@ defmodule Mix.UmbrellaTest do
   test "compile umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
-        Mix.Task.run "deps.get"
         Mix.Task.run "compile"
 
         assert_received { :mix_shell, :info, ["==> bar"] }
