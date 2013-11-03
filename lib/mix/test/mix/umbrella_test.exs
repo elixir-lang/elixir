@@ -71,6 +71,43 @@ defmodule Mix.UmbrellaTest do
     Mix.Project.pop
   end
 
+  test "handles dependencies with cycles and overriden deps" do
+    Mix.Project.push UmbrellaDeps
+
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project :umbrella, ".", fn _ ->
+        File.write!("apps/foo/mix.exs", """)
+        defmodule Foo.Mix do
+          use Mix.Project
+
+          def project do
+            [ app: :foo,
+              version: "0.1.0",
+              deps: [{ :bar, in_umbrella: true }] ]
+          end
+        end
+        """
+
+        File.write!("apps/bar/mix.exs", """)
+        defmodule Bar.Mix do
+          use Mix.Project
+
+          def project do
+            [ app: :foo,
+              version: "0.1.0",
+              deps: [{ :a, path: "deps/a" },
+                     { :b, path: "deps/b" }] ]
+          end
+        end
+        """
+
+        assert Enum.map(Mix.Deps.fetched, & &1.app) == [:a, :b, :bar, :foo]
+      end
+    end
+  after
+    Mix.Project.pop
+  end
+
   test "list deps for umbrella as dependency" do
     in_fixture("umbrella_dep", fn ->
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
