@@ -15,18 +15,18 @@ defmodule Mix.Tasks.Deps.Get do
 
   """
 
-  import Mix.Deps, only: [all: 2, by_name: 1, format_dep: 1, check_lock: 2, out_of_date?: 1]
+  import Mix.Deps, only: [unfetched: 2, unfetched_by_name: 3, format_dep: 1, check_lock: 2, out_of_date?: 1]
 
   def run(args) do
     Mix.Project.get! # Require the project to be available
-
     { opts, rest, _ } = OptionParser.parse(args, switches: [no_compile: :boolean, quiet: :boolean])
 
-    if rest != [] do
-      { _, acc } = Enum.map_reduce by_name(rest), init, &deps_getter/2
-    else
-      acc = all(init, &deps_getter/2)
-    end
+    acc =
+      if rest != [] do
+        unfetched_by_name(rest, init, &deps_getter/2)
+      else
+        unfetched(init, &deps_getter/2)
+      end
 
     finalize_get(acc, opts)
   end
@@ -45,13 +45,11 @@ defmodule Mix.Tasks.Deps.Get do
       Mix.Deps.Lock.write(lock)
 
       unless opts[:no_compile] do
-        case opts[:quiet] do
-          true ->
-            Mix.Task.run("deps.compile", ["--quiet"|apps])
-          _ ->
-            Mix.Task.run("deps.compile", apps)
+        args = if opts[:quiet], do: ["--quiet"|apps], else: apps
+        Mix.Task.run("deps.compile", args)
+        unless opts[:no_deps_check] do
+          Mix.Task.run("deps.check", [])
         end
-        unless opts[:no_deps_check], do: Mix.Task.run("deps.check", [])
       end
     end
   end
@@ -86,9 +84,7 @@ defmodule Mix.Tasks.Deps.Get do
           end
 
         if new do
-          # Update the dependency returned so it is now
-          # available and nested dependencies can be fetched
-          { Mix.Deps.update(dep), { [app|acc], Keyword.put(lock, app, new) } }
+          { dep, { [app|acc], Keyword.put(lock, app, new) } }
         else
           { dep, { acc, lock } }
         end

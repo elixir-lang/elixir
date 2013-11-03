@@ -70,24 +70,18 @@ defmodule Mix.Rebar do
   end
 
   @doc """
-  Runs `fun` inside the given directory and all specified `sub_dirs` in the
-  rebar config in the directory.
+  Runs `fun` for the given config and for each `sub_dirs` in the
+  given rebar config.
   """
-  def recur(dir, fun) do
-    config = load_config(dir)
+  def recur(config, fun) do
+    subs = (config[:sub_dirs] || [])
+     |> Enum.map(&Path.wildcard(&1))
+     |> Enum.concat
+     |> Enum.filter(&File.dir?(&1))
+     |> Enum.map(&recur(&1, fun))
+     |> Enum.concat
 
-    if sub_dirs = config[:sub_dirs] do
-      sub_dirs = sub_dirs
-       |> Enum.map(&Path.wildcard(&1))
-       |> Enum.concat
-       |> Enum.filter(&File.dir?(&1))
-
-      Enum.map(sub_dirs, fn(dir) ->
-        recur(dir, fun)
-      end) |> Enum.concat
-    end
-
-    [File.cd!(dir, fn -> fun.(config) end)]
+    [fun.(config)|subs]
   end
 
   defp parse_dep({ app, req }, deps_dir) do

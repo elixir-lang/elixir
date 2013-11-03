@@ -114,7 +114,7 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp deps_tuples do
-    Enum.reduce Mix.Deps.all || [], [], fn(dep, acc) ->
+    Enum.reduce Mix.Deps.fetched || [], [], fn(dep, acc) ->
       dep_tuples(dep.app) ++ acc
     end
   end

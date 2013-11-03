@@ -72,13 +72,12 @@ defmodule Mix.Deps.Converger do
       true ->
         { dep, rest } = callback.(dep, rest)
 
-        # After we invoke the callback (which may actually fetch the
-        # dependency) we get all direct childrens for the next one.
-        # Note that we need to reverse the deps, so the final order
-        # is as expected.
-        deps = Mix.Deps.Retriever.children(dep, config)
-        { acc, rest } = all(t, [dep.deps(deps)|acc], upper_breadths, current_breadths, config, callback, rest)
-        all(Enum.reverse(deps), acc, current_breadths, deps ++ current_breadths, config, callback, rest)
+        # After we invoke the callback (which may actually check out the
+        # dependency), we fetch the dependency including its latest info
+        # and children information.
+        dep = Mix.Deps.Retriever.fetch(dep, config)
+        { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, config, callback, rest)
+        all(Enum.reverse(dep.deps), acc, current_breadths, dep.deps ++ current_breadths, config, callback, rest)
     end
   end
 

@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Check do
   use Mix.Task
 
-  import Mix.Deps, only: [all: 0, format_dep: 1, format_status: 1, check_lock: 2, out_of_date?: 1]
+  import Mix.Deps, only: [fetched: 0, format_dep: 1, format_status: 1, check_lock: 2, out_of_date?: 1]
 
   @hidden true
   @shortdoc "Check if all dependencies are valid"
@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Deps.Check do
   """
   def run(_) do
     lock = Mix.Deps.Lock.read
-    all  = Enum.map all, &check_lock(&1, lock)
+    all  = Enum.map fetched, &check_lock(&1, lock)
 
     case Enum.partition all, &ok?/1 do
       { _, [] }     -> :ok

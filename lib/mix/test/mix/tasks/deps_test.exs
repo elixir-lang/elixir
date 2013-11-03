@@ -306,7 +306,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Task.clear
 
       Mix.Tasks.Deps.Update.run ["--all"]
-      assert_received { :mix_shell, :info, ["* Updating deps_repo 0.1.0 (custom/deps_repo)"] }
+      assert_received { :mix_shell, :info, ["* Updating deps_repo (custom/deps_repo)"] }
       assert_received { :mix_shell, :info, ["* Compiling deps_repo"] }
     end
   after
@@ -324,7 +324,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
 
       Mix.Tasks.Deps.Update.run ["--all"]
-      assert_received { :mix_shell, :info, ["* Updating deps_repo 0.1.0 (custom/deps_repo)"] }
+      assert_received { :mix_shell, :info, ["* Updating deps_repo (custom/deps_repo)"] }
       refute_received { :mix_shell, :info, ["* Compiling deps_repo"] }
     end
   after
@@ -367,9 +367,9 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Task.clear
       Mix.Tasks.Deps.Update.run ["--all"]
 
-      message = "* Updating deps_repo 0.1.0 (custom/deps_repo)"
+      message = "* Updating deps_repo (custom/deps_repo)"
       assert_received { :mix_shell, :info, [^message] }
-      message = "* Updating git_repo 0.1.0 (#{fixture_path("git_repo")})"
+      message = "* Updating git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
 
       Mix.Tasks.Deps.Check.run []
@@ -395,9 +395,9 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Task.clear
       Mix.Tasks.Deps.Update.run ["--all"]
 
-      message = "* Updating bad_deps_repo 0.1.0 (custom/bad_deps_repo)"
+      message = "* Updating bad_deps_repo (custom/bad_deps_repo)"
       assert_received { :mix_shell, :info, [^message] }
-      message = "* Updating git_repo 0.1.0 (#{fixture_path("git_repo")})"
+      message = "* Updating git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
 
       Mix.Tasks.Deps.Check.run []
@@ -434,7 +434,7 @@ defmodule Mix.Tasks.DepsTest do
     in_fixture "deps_status", fn ->
       # Nested dependencies need to come first. They are
       # listed first, compiled first, etc.
-      assert [Mix.Dep[app: :git_repo], Mix.Dep[app: :deps_repo]] = Mix.Deps.all
+      assert [Mix.Dep[app: :git_repo], Mix.Dep[app: :deps_repo]] = Mix.Deps.fetched
     end
   after
     Mix.Project.pop
@@ -448,9 +448,9 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Task.clear
       Mix.Tasks.Deps.Update.run ["git_repo"]
 
-      message = "* Updating git_repo 0.1.0 (#{fixture_path("git_repo")})"
+      message = "* Updating git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
-      assert_received { :mix_shell, :info, ["* Updating deps_repo 0.1.0 (custom/deps_repo)"] }
+      assert_received { :mix_shell, :info, ["* Compiling deps_repo"] }
     end
   after
     Mix.Project.pop

@@ -287,7 +287,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     manifest = Path.absname(manifest)
 
     deps = Enum.filter(Mix.Deps.children, fn(Mix.Dep[] = dep) ->
-      dep.scm == Mix.SCM.Path and dep.manager == :mix
+      dep.scm == Mix.SCM.Path
     end)
 
     Enum.any?(deps, fn(dep) ->

@@ -3,8 +3,6 @@ defmodule Mix.Project do
   A module that provides conveniences for defining and working
   with projects.
 
-  ## Examples
-
   In order to configure Mix, a developer needs to use
   `Mix.Project` in a module and define a function named
   `project` that returns a keyword list with configuration.
@@ -21,12 +19,12 @@ defmodule Mix.Project do
       end
 
   After being defined, the configuration for this project can be read
-  as `Mix.project/0`. Notice that `config/0` won't fail if a
+  as `Mix.project/0`. Notice that `Mix.project/0` won't fail if a
   project is not defined; this allows many mix tasks to work
   even without a project.
 
   In case the developer needs a project or wants to access a special
-  function in the project, he can call `Mix.Project.get!/0`
+  function in the project, he/she can call `Mix.Project.get!/0`
   which fails with `Mix.NoProjectError` in case a project is not
   defined.
   """
@@ -162,8 +160,7 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns all load paths for this project, collecting
-  all `:load_paths` in case of umbrella apps.
+  Returns all load paths for this project.
   """
   def load_paths do
     if umbrella? do

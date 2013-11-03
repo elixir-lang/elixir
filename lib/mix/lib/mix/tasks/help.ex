@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Help do
   end
 
   def run([task]) do
-    module = Mix.Task.get(task)
+    module = Mix.Task.get!(task)
     shell  = Mix.shell
     shell.info "%{bright}# mix help #{task}\n"
 

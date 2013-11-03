@@ -4,6 +4,32 @@ defmodule Mix.Task do
   @moduledoc """
   A simple module that provides conveniences for creating,
   loading and manipulating tasks.
+
+  A Mix task can be defined by simply using `Mix.Task`
+  in a module starting with `Mix.Tasks.` and defining
+  the `run/1` function:
+
+      defmodule Mix.Tasks.Hello do
+        use Mix.Task
+
+        def run(_) do
+          IO.puts "hello"
+        end
+      end
+
+  The `run/1` function will receive all arguments passed
+  to the command line.
+
+  ## Attributes
+
+  There are a couple attributes available in Mix tasks to
+  configure them in Mix:
+
+  * `@shortdoc` - shows a short description that appears
+    on `mix help`
+  * `@hidden` - do not show the task in `mix help`
+  * `@recursive` - run the task recursively in umbrella projects
+
   """
 
   @doc """
@@ -118,8 +144,9 @@ defmodule Mix.Task do
 
   * `Mix.NoTaskError` - raised if the task could not be found;
   * `Mix.InvalidTaskError` - raised if the task is not a valid `Mix.Task`
+
   """
-  def get(task) do
+  def get!(task) do
     case Mix.Utils.command_to_module(task, Mix.Tasks) do
       { :module, module } ->
         if is_task?(module) do
@@ -142,7 +169,7 @@ defmodule Mix.Task do
   again and simply aborts with `:noop`.
 
   It may raise an exception if the task was not found
-  or it is invalid. Check `get/1` for more information.
+  or it is invalid. Check `get!/1` for more information.
   """
   def run(task, args // []) do
     task = to_string(task)
@@ -151,7 +178,7 @@ defmodule Mix.Task do
     if Mix.Server.call({ :has_task?, task, app }) do
       :noop
     else
-      module = get(task)
+      module = get!(task)
       Mix.Server.cast({ :add_task, task, app })
 
       umbrella? = Mix.Project.umbrella?
@@ -169,16 +196,8 @@ defmodule Mix.Task do
     end
   end
 
-  # Recur dependencies inside umbrella
-  defp recur_deps(fun) do
-    lc Mix.Dep[app: app, opts: opts] inlist Mix.Deps.Umbrella.children do
-      Mix.Project.in_project(app, opts[:path], fun)
-    end
-  end
-
   @doc """
   Clears all invoked tasks, allowing them to be reinvoked.
-  Returns an ordset with all the tasks invoked thus far.
   """
   def clear do
     Mix.Server.call(:clear_tasks)
@@ -198,5 +217,11 @@ defmodule Mix.Task do
 
   defp is_task?(module) do
     function_exported?(module, :run, 1)
+  end
+
+  defp recur_deps(fun) do
+    lc Mix.Dep[app: app, opts: opts] inlist Mix.Deps.Umbrella.children do
+      Mix.Project.in_project(app, opts[:path], fun)
+    end
   end
 end

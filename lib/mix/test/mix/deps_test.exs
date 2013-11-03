@@ -33,7 +33,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->
-      deps = Mix.Deps.all
+      deps = Mix.Deps.fetched
       assert Enum.find deps, &match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
       assert Enum.find deps, &match?(Mix.Dep[app: :invalidvsn, status: { :invalidvsn, :ok }], &1)
       assert Enum.find deps, &match?(Mix.Dep[app: :invalidapp, status: { :invalidapp, _ }], &1)
@@ -48,7 +48,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push MixVersionApp
 
     in_fixture "deps_status", fn ->
-      deps = Mix.Deps.all
+      deps = Mix.Deps.fetched
       assert Enum.find deps, &match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
     end
   after
@@ -61,7 +61,7 @@ defmodule Mix.DepsTest do
     in_fixture "deps_status", fn ->
       msg = "Mix.DepsTest.NoSCMApp did not specify a supported scm for app :ok, " <>
             "expected one of :git, :path or :in_umbrella"
-      assert_raise Mix.Error, msg, fn -> Mix.Deps.all end
+      assert_raise Mix.Error, msg, fn -> Mix.Deps.fetched end
     end
   after
     Mix.Project.pop
@@ -84,7 +84,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push ConvergedDepsApp
 
     in_fixture "deps_status", fn ->
-      assert [:git_repo, :deps_repo] == Enum.map(Mix.Deps.all, &(&1.app))
+      assert [:git_repo, :deps_repo] == Enum.map(Mix.Deps.fetched, &(&1.app))
     end
   after
     Mix.Project.pop

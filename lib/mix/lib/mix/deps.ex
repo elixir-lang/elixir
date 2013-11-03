@@ -1,5 +1,5 @@
 defrecord Mix.Dep, [ scm: nil, app: nil, requirement: nil, status: nil, opts: nil,
-                     deps: [], source: nil, manager: nil, from: nil ] do
+                     deps: [], extra: nil, manager: nil, from: nil ] do
   @moduledoc """
   This is a record that keeps information about your project
   dependencies. It contains:
@@ -10,17 +10,17 @@ defrecord Mix.Dep, [ scm: nil, app: nil, requirement: nil, status: nil, opts: ni
   * `status` - the current status of the dependency, check `Mix.Deps.format_status/1` for more info;
   * `opts` - the options given by the developer
   * `deps` - dependencies of this dependency
-  * `source` - any possible configuration associated with the `manager` field,
-      `rebar.config` for rebar or the `Mix.Project` for Mix
   * `manager` - the project management, possible values: `:rebar` | `:mix` | `:make` | `nil`
   * `from` - path to the file where the dependency was defined
-
+  * `extra` - a slot for adding extra configuration based on the scm.
+              the information on this field is private to the scm and
+              should not be relied on.
   """
 end
 
 defmodule Mix.Deps do
   @moduledoc %S"""
-  A module with common functions to work with dependencies.
+  Common functions to work with dependencies.
 
   Dependencies must be specified in the Mix application in the
   following format:
@@ -32,6 +32,16 @@ defmodule Mix.Deps do
   be a string according to the specification outline in `Version`
   and opts is a keyword lists that may include options for the underlying
   SCM or options used by Mix. Each set of options is documented below.
+
+  Inside Mix, those dependencies are converted to a `Mix.Dep` record.
+  This module provides conveniences to work with those dependencies
+  and the dependencies are usually in two specific states: fetched and
+  unfetched.
+
+  When a dependency is unfetched, it means Mix only parsed its specification
+  and made no attempt to actually fetch the dependency or validate its
+  status. When the dependency is fetched, it means Mix attempted to fetch
+  and validate it, the status is set in the status field.
 
   ## Mix options
 
@@ -66,37 +76,10 @@ defmodule Mix.Deps do
   """
 
   @doc """
-  Returns all dependencies recursively as a `Mix.Dep` record.
-
-  ## Exceptions
-
-  This function raises an exception if any of the dependencies
-  provided in the project are in the wrong format.
-  """
-  def all do
-    { deps, _ } = Mix.Deps.Converger.all(nil, fn(dep, acc) -> { dep, acc } end)
-    deps
-  end
-
-  @doc """
-  Maps and reduces over all dependencies, one by one.
-
-  This is useful in case you want to retrieve the dependency
-  tree for a project but process and change them along the way.
-  For example, `mix deps.get` uses it to get all dependencies
-  by first fetching the parent and then updating the tree as it goes.
-
-  The callback expects the current dependency and the accumulator
-  as arguments. The accumulator is returned as result.
-  """
-  def all(acc, callback) do
-    { _deps, acc } = Mix.Deps.Converger.all(acc, callback)
-    acc
-  end
-
-  @doc """
-  Returns all children dependencies for the current project.
-  Umbrella projects have their apps treated as direct dependencies.
+  Returns all children dependencies for the current project,
+  as well as the defined apps in case of umbrella projects.
+  The children dependencies returned by this function were
+  not fetched yet.
 
   ## Exceptions
 
@@ -106,11 +89,97 @@ defmodule Mix.Deps do
   defdelegate children(), to: Mix.Deps.Retriever
 
   @doc """
-  Returns all given dependencies and their depending dependencies.
+  Returns fetched dependencies recursively as a `Mix.Dep` record.
+
+  ## Exceptions
+
+  This function raises an exception if any of the dependencies
+  provided in the project are in the wrong format.
   """
-  def with_depending(deps, all_deps // all) do
-    deps ++ do_with_depending(deps, all_deps)
-      |> Enum.uniq(&(&1.app))
+  def fetched do
+    { deps, _ } = Mix.Deps.Converger.all(nil, fn(dep, acc) -> { dep, acc } end)
+    deps
+  end
+
+  @doc """
+  Receives a list of  dependency names and returns fetched dependency
+  records. Logs a message if the dependency could not be found.
+
+  ## Exceptions
+
+  This function raises an exception if any of the dependencies
+  provided in the project are in the wrong format.
+  """
+  def fetched_by_name(given, all_deps // fetched) do
+    # Ensure all apps are atoms
+    apps = to_app_names(given)
+
+    # We need to keep the order of all, which properly orders deps
+    deps = Enum.filter all_deps, fn(dep) -> dep.app in apps end
+
+    # Now we validate the given atoms
+    index = Mix.Dep.__record__(:index, :app)
+    Enum.each apps, fn(app) ->
+      unless List.keyfind(deps, app, index) do
+        Mix.shell.info "unknown dependency #{app} for env #{Mix.env}"
+      end
+    end
+
+    deps
+  end
+
+  @doc """
+  Maps and reduces over all unfetched dependencies, one by one.
+
+  This is useful in case you want to retrieve the dependency
+  tree for a project but process and change them along the way.
+  For example, `mix deps.get` uses it to get all dependencies
+  by first fetching the parent and then updating the tree as it goes.
+
+  The callback expects the current dependency and the accumulator
+  as arguments. The accumulator is returned as result.
+
+  ## Exceptions
+
+  This function raises an exception if any of the dependencies
+  provided in the project are in the wrong format.
+  """
+  def unfetched(acc, callback) do
+    { _deps, acc } = Mix.Deps.Converger.all(acc, callback)
+    acc
+  end
+
+  @doc """
+  Receives a list of dependency names and maps and reduces over
+  them.
+
+  ## Exceptions
+
+  This function raises an exception if any of the dependencies
+  provided in the project are in the wrong format.
+  """
+  def unfetched_by_name(given, acc, callback) do
+    names = to_app_names(given)
+
+    unfetched(acc, fn(dep, acc) ->
+      if dep.app in names do
+        callback.(dep, acc)
+      else
+        { dep, acc }
+      end
+    end)
+  end
+
+  @doc """
+  Receives a list of dependencies and returns the given list
+  with their depending dependencies, recursively. It is expected
+  the given list of dependencies to contain only fetched dependencies
+  (since unfetched dependencies did not have their dependencies
+  retrieved yet).
+  """
+  def with_depending(deps, all_deps // fetched) do
+    (deps ++ do_with_depending(deps, all_deps))
+    |> Enum.uniq(&(&1.app))
   end
 
   defp do_with_depending([], _all_deps) do
@@ -128,36 +197,14 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Receives a list of dependency names and returns dependency records.
-  Logs a message if the dependency could not be found.
-  """
-  def by_name(given, all_deps // all) do
-    # Ensure all apps are atoms
-    apps = Enum.map given, fn(app) ->
-      if is_binary(app), do: binary_to_atom(app), else: app
-    end
-
-    # We need to keep the order of all, which properly orders deps
-    deps = Enum.filter all_deps, fn(dep) -> dep.app in apps end
-
-    # Now we validate the given atoms
-    index = Mix.Dep.__record__(:index, :app)
-    Enum.each apps, fn(app) ->
-      unless List.keyfind(deps, app, index) do
-        Mix.shell.info "unknown dependency #{app} for env #{Mix.env}"
-      end
-    end
-
-    deps
-  end
-
-  @doc """
-  Run the given `fun` inside the given dependency project by
+  Runs the given `fun` inside the given dependency project by
   changing the current working directory and loading the given
   project onto the project stack.
 
   In case the project is a rebar dependency, a `Mix.Rebar` project
   will be pushed into the stack to simulate the rebar configuration.
+
+  It is expected a fetched dependency as argument.
   """
   def in_dependency(dep, post_config // [], fun)
 
@@ -235,7 +282,7 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Check the lock for the given dependency and update its status accordingly.
+  Checks the lock for the given dependency and update its status accordingly.
   """
   def check_lock(Mix.Dep[scm: scm, app: app, opts: opts] = dep, lock) do
     if available?(dep) do
@@ -258,15 +305,6 @@ defmodule Mix.Deps do
       dep
     end
   end
-
-  @doc """
-  Updates the dependency.
-
-  This function is useful when the given dependency changes
-  (for example, it was just checked out) and you want to refetch
-  its information.
-  """
-  defdelegate update(dep), to: Mix.Deps.Retriever
 
   @doc """
   Check if a dependency is ok.
@@ -294,7 +332,7 @@ defmodule Mix.Deps do
   def out_of_date?(dep),                                   do: not available?(dep)
 
   @doc """
-  Format a dependency for printing.
+  Formats a dependency for printing.
   """
   def format_dep(Mix.Dep[scm: scm, app: app, status: status, opts: opts]) do
     version =
@@ -308,6 +346,7 @@ defmodule Mix.Deps do
 
   @doc """
   Returns all compile paths for the dependency.
+  Expects a fetched dependency.
   """
   def compile_path(Mix.Dep[app: app, opts: opts, manager: manager]) do
     if manager == :mix do
@@ -321,6 +360,7 @@ defmodule Mix.Deps do
 
   @doc """
   Returns all load paths for the dependency.
+  Expects a fetched dependency.
   """
   def load_paths(Mix.Dep[manager: :mix, app: app, opts: opts]) do
     Mix.Project.in_project(app, opts[:dest], fn _ ->
@@ -328,9 +368,9 @@ defmodule Mix.Deps do
     end) |> Enum.uniq
   end
 
-  def load_paths(Mix.Dep[manager: :rebar, opts: opts, source: source]) do
+  def load_paths(Mix.Dep[manager: :rebar, opts: opts, extra: extra]) do
     # Add root dir and all sub dirs with ebin/ directory
-    sub_dirs = Enum.map(source[:sub_dirs] || [], fn path ->
+    sub_dirs = Enum.map(extra[:sub_dirs] || [], fn path ->
       Path.join(opts[:dest], path)
     end)
 
@@ -376,5 +416,11 @@ defmodule Mix.Deps do
         old_vsn
       end
     end)
+  end
+
+  defp to_app_names(given) do
+    Enum.map given, fn(app) ->
+      if is_binary(app), do: binary_to_atom(app), else: app
+    end
   end
 end

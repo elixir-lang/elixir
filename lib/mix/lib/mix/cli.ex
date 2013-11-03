@@ -22,17 +22,14 @@ defmodule Mix.CLI do
     args = load_mixfile(args)
     { task, args } = get_task(args)
     change_env(task)
-
-    run_task task, args
+    run_task(task, args)
   end
 
   defp load_mixfile(args) do
     file = "mix.exs"
-
     if File.regular?(file) do
-      Code.load_file file
+      Code.load_file(file)
     end
-
     args
   end
 
@@ -52,7 +49,11 @@ defmodule Mix.CLI do
 
   defp run_task(name, args) do
     try do
-      if Mix.Project.get do
+      # We need to skip loading the paths for the project and
+      # its dependencies because the dependencies may be setting
+      # up or getting updated and we don't want to load their
+      # config until the process is done.
+      if not deps_task?(name) && Mix.Project.get do
         Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
         Mix.Task.reenable "loadpaths"
         Mix.Task.reenable "deps.loadpaths"
@@ -88,6 +89,9 @@ defmodule Mix.CLI do
   defp display_version() do
     IO.puts "Elixir #{System.version}"
   end
+
+  defp deps_task?("deps." <> _), do: true
+  defp deps_task?(_), do: false
 
   # Check for --help or --version in the args
   defp check_for_shortcuts([first_arg|_]) when first_arg in

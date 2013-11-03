@@ -59,7 +59,7 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Task.clear
 
       Mix.Tasks.Deps.Update.run ["--all"]
-      message = "* Updating git_repo 0.1.0 (#{fixture_path("git_repo")})"
+      message = "* Updating git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }

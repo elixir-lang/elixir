@@ -27,15 +27,15 @@ defmodule Mix.TaskTest do
     assert Mix.Task.run("hello") == "Hello, World!"
   end
 
-  test :get do
-    assert Mix.Task.get("hello") == Mix.Tasks.Hello
+  test :get! do
+    assert Mix.Task.get!("hello") == Mix.Tasks.Hello
 
     assert_raise Mix.NoTaskError, "The task unknown could not be found", fn ->
-      Mix.Task.get("unknown")
+      Mix.Task.get!("unknown")
     end
 
     assert_raise Mix.InvalidTaskError, "The task invalid does not respond to run/1", fn ->
-      Mix.Task.get("invalid")
+      Mix.Task.get!("invalid")
     end
   end
 

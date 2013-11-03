@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Deps.Clean do
   Clean does not unlock the repositories, unless `--unlock` is given.
   """
 
-  import Mix.Deps, only: [all: 0, by_name: 1, format_dep: 1]
+  import Mix.Deps, only: [fetched: 0, fetched_by_name: 1, format_dep: 1]
 
   def run(args) do
     Mix.Project.get! # Require the project to be available
@@ -21,9 +21,9 @@ defmodule Mix.Tasks.Deps.Clean do
 
     cond do
       opts[:all] ->
-        do_clean all, opts
+        do_clean fetched, opts
       args != [] ->
-        do_clean by_name(args), opts
+        do_clean fetched_by_name(args), opts
       true ->
         raise Mix.Error, message: "mix deps.clean expects dependencies as arguments or " <>
                                   "the --all option to clean all dependencies"
