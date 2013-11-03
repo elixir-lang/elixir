@@ -24,27 +24,25 @@ defmodule Mix.Deps.Retriever do
     Mix.Dep[manager: manager, scm: scm, opts: opts] = dep
     dep = dep.status(scm_status(scm, opts))
 
-    case dep.status do
-      { :ok, _ } ->
-        validate_app(cond do
-          manager == :rebar ->
-            rebar_dep(dep, config)
-
-          mixfile?(dep) ->
-            mix_dep(dep, config)
-
-          rebarconfig?(dep) or rebarexec?(dep) ->
-            rebar_dep(dep, config)
-
-          makefile?(dep) ->
-            make_dep(dep)
-
-          true ->
-            dep
-        end)
-      { :unavailable, _ } ->
+    validate_app(cond do
+      not ok?(dep.status) ->
         dep
-    end
+
+      manager == :rebar ->
+        rebar_dep(dep, config)
+
+      mixfile?(dep) ->
+        mix_dep(dep, config)
+
+      rebarconfig?(dep) or rebarexec?(dep) ->
+        rebar_dep(dep, config)
+
+      makefile?(dep) ->
+        make_dep(dep)
+
+      true ->
+        mix_dep(dep, config)
+    end)
   end
 
   ## Helpers
@@ -67,7 +65,7 @@ defmodule Mix.Deps.Retriever do
     dep
   end
 
-  defp mix_dep(Mix.Dep[opts: opts, app: app] = dep, config) do
+  defp mix_dep(Mix.Dep[opts: opts, app: app, status: status] = dep, config) do
     Mix.Deps.in_dependency(dep, config, fn _ ->
       default =
         if Mix.Project.umbrella? do
@@ -77,7 +75,8 @@ defmodule Mix.Deps.Retriever do
         end
 
       opts = Keyword.put_new(opts, :app, default)
-      dep.manager(:mix).opts(opts).deps(children)
+      stat = if vsn = old_elixir_lock(), do: { :elixirlock, vsn }, else: status
+      dep.manager(:mix).opts(opts).deps(children).status(stat)
     end)
   end
 
@@ -141,10 +140,10 @@ defmodule Mix.Deps.Retriever do
     end
   end
 
-  defp validate_app(Mix.Dep[opts: opts, requirement: req, app: app] = dep) do
+  defp validate_app(Mix.Dep[opts: opts, requirement: req, app: app, status: status] = dep) do
     opts_app = opts[:app]
 
-    if opts_app == false do
+    if not ok?(status) or opts_app == false do
       dep
     else
       path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
@@ -198,8 +197,18 @@ defmodule Mix.Deps.Retriever do
     File.regular? Path.join(dep.opts[:dest], "Makefile")
   end
 
+  defp ok?({ :ok, _ }), do: true
+  defp ok?(_), do: false
+
   defp invalid_dep_format(dep) do
     raise Mix.Error, message: %s(Dependency specified in the wrong format: #{inspect dep}, ) <>
       %s(expected { app :: atom, opts :: Keyword.t } | { app :: atom, requirement :: String.t, opts :: Keyword.t })
+  end
+
+  defp old_elixir_lock do
+    old_vsn = Mix.Deps.Lock.elixir_vsn
+    if old_vsn && old_vsn != System.version do
+      old_vsn
+    end
   end
 end

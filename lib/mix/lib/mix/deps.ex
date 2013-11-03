@@ -286,20 +286,16 @@ defmodule Mix.Deps do
   """
   def check_lock(Mix.Dep[scm: scm, app: app, opts: opts] = dep, lock) do
     if available?(dep) do
-      if vsn = old_elixir_lock(dep) do
-        dep.status({ :elixirlock, vsn })
-      else
-        rev  = lock[app]
-        opts = Keyword.put(opts, :lock, rev)
+      rev  = lock[app]
+      opts = Keyword.put(opts, :lock, rev)
 
-        case scm.lock_status(opts) do
-          :mismatch ->
-            dep.status(if rev, do: { :lockmismatch, rev }, else: :nolock)
-          :outdated ->
-            dep.status :lockoutdated
-          :ok ->
-            dep
-        end
+      case scm.lock_status(opts) do
+        :mismatch ->
+          dep.status(if rev, do: { :lockmismatch, rev }, else: :nolock)
+        :outdated ->
+          dep.status :lockoutdated
+        :ok ->
+          dep
       end
     else
       dep
@@ -407,16 +403,6 @@ defmodule Mix.Deps do
   end
 
   ## Helpers
-
-  # Returns the elixir lock version of the given dependency
-  defp old_elixir_lock(dep) do
-    in_dependency(dep, fn _ ->
-      old_vsn = Mix.Deps.Lock.elixir_vsn
-      if old_vsn && old_vsn != System.version do
-        old_vsn
-      end
-    end)
-  end
 
   defp to_app_names(given) do
     Enum.map given, fn(app) ->
