@@ -88,7 +88,7 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_cast({ :case_started, ExUnit.TestCase[name: name] }, config) do
     if config.trace do
-      IO.puts("\n#{name}")
+      IO.puts("\n#{inspect name}")
     end
 
     { :noreply, config }
