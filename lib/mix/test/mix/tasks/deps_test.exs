@@ -78,7 +78,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run []
 
       assert_received { :mix_shell, :info, ["* ok (deps/ok)"] }
-      assert_received { :mix_shell, :info, ["  the dependency does not match the requirement >= 2.0, got 0.1.0"] }
+      assert_received { :mix_shell, :info, ["  the dependency does not match the requirement \">= 2.0\", got \"0.1.0\""] }
       assert_received { :mix_shell, :info, ["* noappfile (deps/noappfile)"] }
       assert_received { :mix_shell, :info, ["* apppath (deps/noappfile)"] }
       refute_received { :mix_shell, :info, ["  could not find app file at deps/noappfile/ebin/apppath.app"] }
