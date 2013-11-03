@@ -12,7 +12,14 @@
 -include("elixir.hrl").
 
 warn(Warning) ->
-  elixir_code_server:cast(register_warning),
+  CompilerPid = get(elixir_compiler_pid),
+
+  if
+    CompilerPid =/= undefined ->
+      elixir_code_server:cast({ register_warning, CompilerPid });
+    true -> false
+  end,
+
   io:put_chars(standard_error, Warning).
 
 %% Handle inspecting for exceptions modules

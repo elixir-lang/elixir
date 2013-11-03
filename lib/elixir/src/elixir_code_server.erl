@@ -4,7 +4,7 @@
   handle_info/2, terminate/2, code_change/3]).
 -behavior(gen_server).
 -record(elixir_code_server, {
-  compilation_status=ok,
+  compilation_status=[],
   argv=[],
   loaded=[],
   at_exit=[],
@@ -60,8 +60,11 @@ handle_call(argv, _From, Config) ->
 handle_call(compiler_options, _From, Config) ->
   { reply, Config#elixir_code_server.compiler_options, Config };
 
-handle_call(compilation_status, _From, Config) ->
-  { reply, Config#elixir_code_server.compilation_status, Config };
+handle_call({ compilation_status, CompilerPid }, _From, Config) ->
+  CompilationStatusList    = Config#elixir_code_server.compilation_status,
+  CompilationStatusListNew = orddict:erase(CompilerPid, CompilationStatusList),
+  CompilationStatus        = orddict:fetch(CompilerPid, CompilationStatusList),
+  { reply, CompilationStatus, Config#elixir_code_server{compilation_status=CompilationStatusListNew} };
 
 handle_call(retrieve_module_name, _From, Config) ->
   case Config#elixir_code_server.pool of
@@ -93,14 +96,18 @@ handle_cast({ compiler_options, Options }, Config) ->
   Final = orddict:merge(fun(_,_,V) -> V end, Config#elixir_code_server.compiler_options, Options),
   { noreply, Config#elixir_code_server{compiler_options=Final} };
 
-handle_cast(register_warning, Config) ->
+handle_cast({ register_warning, CompilerPid }, Config) ->
+  CompilationStatusCurrent = Config#elixir_code_server.compilation_status,
+  CompilationStatusNew     = orddict:store(CompilerPid, error, CompilationStatusCurrent),
   case orddict:find(warnings_as_errors, Config#elixir_code_server.compiler_options) of
-    { ok, true } -> { noreply, Config#elixir_code_server{compilation_status=error} };
+    { ok, true } -> { noreply, Config#elixir_code_server{compilation_status=CompilationStatusNew} };
     _ -> { noreply, Config }
   end;
 
-handle_cast(reset_warnings, Config) ->
-  { noreply, Config#elixir_code_server{compilation_status=ok} };
+handle_cast({ reset_warnings, CompilerPid }, Config) ->
+  CompilationStatusCurrent = Config#elixir_code_server.compilation_status,
+  CompilationStatusNew     = orddict:store(CompilerPid, ok, CompilationStatusCurrent),
+  { noreply, Config#elixir_code_server{compilation_status=CompilationStatusNew} };
 
 handle_cast({ loaded, Path }, Config) ->
   Current = Config#elixir_code_server.loaded,
