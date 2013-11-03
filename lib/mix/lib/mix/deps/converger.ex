@@ -12,6 +12,35 @@ defmodule Mix.Deps.Converger do
   end
 
   @doc """
+  Topsorts the given dependencies.
+  """
+  def topsort(deps) do
+    graph = :digraph.new
+
+    try do
+      Enum.each deps, fn Mix.Dep[app: app] ->
+        :digraph.add_vertex(graph, app)
+      end
+
+      Enum.each deps, fn Mix.Dep[app: app, deps: deps] ->
+        Enum.each deps, fn Mix.Dep[app: other_app] ->
+          :digraph.add_edge(graph, other_app, app)
+        end
+      end
+
+      if apps = :digraph_utils.topsort(graph) do
+        Enum.map apps, fn(app) ->
+          Enum.find(deps, fn(Mix.Dep[app: other_app]) -> app == other_app end)
+        end
+      else
+        raise Mix.Error, message: "Could not sort dependencies. There are cycles in the dependency graph."
+      end
+    after
+      :digraph.delete(graph)
+    end
+  end
+
+  @doc """
   Returns all dependencies from the current project,
   including nested dependencies. There is a callback
   that is invoked for each dependency and must return
@@ -20,7 +49,7 @@ defmodule Mix.Deps.Converger do
   def all(rest, callback) do
     config = [ deps_path: Path.expand(Mix.project[:deps_path]),
                root_lockfile: Path.expand(Mix.project[:lockfile]) ]
-    main = Mix.Deps.Retriever.children |> Enum.reverse
+    main = Mix.Deps.Retriever.children
     all(main, [], [], main, config, callback, rest)
   end
 
@@ -77,7 +106,7 @@ defmodule Mix.Deps.Converger do
         # and children information.
         dep = Mix.Deps.Retriever.fetch(dep, config)
         { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, config, callback, rest)
-        all(Enum.reverse(dep.deps), acc, current_breadths, dep.deps ++ current_breadths, config, callback, rest)
+        all(dep.deps, acc, current_breadths, dep.deps ++ current_breadths, config, callback, rest)
     end
   end
 
@@ -112,13 +141,7 @@ defmodule Mix.Deps.Converger do
           end
         end)
 
-      if overrider.deps == [] do
-        [overrider | Enum.reverse(acc)]
-      else
-        deps = Enum.map(overrider.deps, &(&1.app))
-        { before_dep, after_dep } = Enum.split_while(acc, &(not &1.app in deps))
-        Enum.reverse(before_dep ++ [overrider] ++ after_dep)
-      end
+      [overrider | Enum.reverse(acc)]
     end
   end
 

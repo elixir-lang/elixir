@@ -98,7 +98,7 @@ defmodule Mix.Deps do
   """
   def fetched do
     { deps, _ } = Mix.Deps.Converger.all(nil, fn(dep, acc) -> { dep, acc } end)
-    deps
+    Mix.Deps.Converger.topsort(deps)
   end
 
   @doc """
