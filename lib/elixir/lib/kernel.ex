@@ -395,12 +395,6 @@ defmodule Kernel do
     :erlang.abs(number)
   end
 
-  @doc false
-  def atom_to_binary(atom, encoding) do
-    IO.write "atom_to_binary/2 is deprecated, please use :erlang.atom_to_binary/2 instead\n#{Exception.format_stacktrace}"
-    :erlang.atom_to_binary(atom, encoding)
-  end
-
   @doc """
   Returns a string which corresponds to the text representation of `atom`.
 
@@ -438,18 +432,6 @@ defmodule Kernel do
   @spec binary_part(binary, pos_integer, integer) :: binary
   def binary_part(binary, start, length) do
     :erlang.binary_part(binary, start, length)
-  end
-
-  @doc false
-  def binary_to_atom(binary, encoding) do
-    IO.write "binary_to_atom/2 is deprecated, please use :erlang.binary_to_atom/2 instead\n#{Exception.format_stacktrace}"
-    :erlang.binary_to_atom(binary, encoding)
-  end
-
-  @doc false
-  def binary_to_existing_atom(binary, encoding) do
-    IO.write "binary_to_existing_atom/2 is deprecated, please use :erlang.binary_to_existing_atom/2 instead\n#{Exception.format_stacktrace}"
-    :erlang.binary_to_existing_atom(binary, encoding)
   end
 
   @doc """
@@ -898,12 +880,6 @@ defmodule Kernel do
     :erlang.list_to_integer(list, base)
   end
 
-  @doc false
-  def list_to_pid(list) do
-    IO.write "list_to_pid/1 is deprecated, please use :erlang.list_to_pid/1 instead\n#{Exception.format_stacktrace}"
-    :erlang.list_to_pid(list)
-  end
-
   @doc """
   Returns a tuple which corresponds to `list`. `list` can contain any Erlang terms.
 
@@ -986,12 +962,6 @@ defmodule Kernel do
   @spec node(pid|reference|port) :: node
   def node(arg) do
     :erlang.node(arg)
-  end
-
-  @doc false
-  def pid_to_list(pid) do
-    IO.write "pid_to_list/1 is deprecated, please use :erlang.pid_to_list/1 instead\n#{Exception.format_stacktrace}"
-    :erlang.pid_to_list(pid)
   end
 
   @doc """
@@ -1583,18 +1553,6 @@ defmodule Kernel do
 
   defmacro set_elem(tuple, index, value) do
     quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
-  end
-
-  @doc false
-  def insert_elem(tuple, index, value) do
-    IO.write "insert_elem/3 is deprecated, please use Tuple.insert_at/3 instead\n#{Exception.format_stacktrace}"
-    :erlang.insert_element(index + 1, tuple, value)
-  end
-
-  @doc false
-  def delete_elem(tuple, index) do
-    IO.write "delete_elem/2 is deprecated, please use Tuple.delete_at/2 instead\n#{Exception.format_stacktrace}"
-    :erlang.delete_element(index + 1, tuple)
   end
 
   @doc """

@@ -945,18 +945,6 @@ defmodule String do
     end
   end
 
-  @doc false
-  def to_integer(string) do
-    IO.write "String.to_integer/1 is deprecated, please use Integer.parse/1 instead\n#{Exception.format_stacktrace}"
-    Integer.parse(string)
-  end
-
-  @doc false
-  def to_float(string) do
-    IO.write "String.to_float/1 is deprecated, please use Float.parse/1 instead\n#{Exception.format_stacktrace}"
-    Float.parse(string)
-  end
-
   @doc """
   Returns `true` if `string` starts with any of the prefixes given, otherwise
   `false`. `prefixes` can be either a single prefix or a list of prefixes.

@@ -40,13 +40,7 @@ translate({ '!', Meta, [Expr] }, S) ->
   elixir_utils:convert_to_boolean(?line(Meta), TExpr, false, S#elixir_scope.context == guard, SE);
 
 translate({ in, Meta, [Left, Right] }, #elixir_scope{extra_guards=nil} = S) ->
-  { _, TExpr, TS } = translate_in(Meta, Left, Right, S),
-  { TExpr, TS };
-
-translate({ in, Meta, [Left, Right] }, #elixir_scope{extra_guards=Extra} = S) ->
-  elixir_errors:deprecation(Meta, S#elixir_scope.file, "in operator inside matches is deprecated, please move it to a guard"),
-  { TVar, TExpr, TS } = translate_in(Meta, Left, Right, S),
-  { TVar, TS#elixir_scope{extra_guards=[TExpr|Extra]} };
+  translate_in(Meta, Left, Right, S);
 
 %% @
 
@@ -210,13 +204,7 @@ translate({ Name, Meta, Args }, S) ->
 translate_in(Meta, Left, Right, S) ->
   Line = ?line(Meta),
 
-  { TLeft, SL } = case Left of
-    { '_', _, Atom } when is_atom(Atom) ->
-      elixir_scope:build_erl_var(Line, S);
-    _ ->
-      translate_each(Left, S)
-  end,
-
+  { TLeft, SL }  = translate_each(Left, S),
   { TRight, SR } = translate_each(Right, SL),
 
   Cache = (S#elixir_scope.context == nil),
@@ -268,8 +256,8 @@ translate_in(Meta, Left, Right, S) ->
   end,
 
   case TCache of
-    true  -> { Var, { block, Line, [ { match, Line, Var, TLeft }, TExpr ] }, SV };
-    false -> { Var, TExpr, SV }
+    true  -> { { block, Line, [ { match, Line, Var, TLeft }, TExpr ] }, SV };
+    false -> { TExpr, SV }
   end.
 
 increasing_compare(Line, Var, Start, End) ->
