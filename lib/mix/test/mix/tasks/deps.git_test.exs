@@ -231,8 +231,6 @@ defmodule Mix.Tasks.DepsGitTest do
 
   test "updates the repo when the lock updates" do
     Mix.Project.push GitApp
-
-    # Get git repo first revision
     [last, first|_] = get_git_repo_revs
 
     in_fixture "no_mixfile", fn ->
@@ -270,8 +268,6 @@ defmodule Mix.Tasks.DepsGitTest do
 
   test "updates the repo and the lock when the mixfile updates" do
     Mix.Project.push GitApp
-
-    # Get git repo first revision
     [last, first|_] = get_git_repo_revs
 
     in_fixture "no_mixfile", fn ->
@@ -309,6 +305,40 @@ defmodule Mix.Tasks.DepsGitTest do
       assert exception.message =~ "Command `git clone"
     end
   after
+    Mix.Project.pop
+  end
+
+  test "does not load bad mix files on get" do
+    Mix.Project.push GitApp
+    [last, first, bad|_] = get_git_repo_revs
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), bad, [] }]
+      catch_error(Mix.Tasks.Deps.Get.run [])
+
+      Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), last, [] }]
+      Mix.Tasks.Deps.Get.run []
+      assert File.read!("mix.lock") =~ last
+    end
+  after
+    purge [GitRepo, GitRepo.Mix]
+    Mix.Project.pop
+  end
+
+  test "does not load bad mix files on update" do
+    Mix.Project.push GitApp
+    [last, first, bad|_] = get_git_repo_revs
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), bad, [] }]
+      catch_error(Mix.Tasks.Deps.Get.run [])
+
+      Mix.Tasks.Deps.Update.run ["git_repo"]
+      Mix.Tasks.Deps.Compile.run ["git_repo"]
+      assert File.read!("mix.lock") =~ last
+    end
+  after
+    purge [GitRepo, GitRepo.Mix]
     Mix.Project.pop
   end
 

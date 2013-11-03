@@ -125,6 +125,19 @@ unless File.dir?(target) do
 
   File.write!(Path.join(target, "mix.exs"), """)
   ## Auto-generated fixture
+  raise "I was not supposed to be loaded"
+  """
+
+  File.cd! target, fn ->
+    System.cmd("git init")
+    System.cmd("git config user.email \"mix@example.com\"")
+    System.cmd("git config user.name \"Mix Repo\"")
+    System.cmd("git add .")
+    System.cmd("git commit -m \"bad\"")
+  end
+
+  File.write!(Path.join(target, "mix.exs"), """)
+  ## Auto-generated fixture
   defmodule GitRepo.Mix do
     use Mix.Project
 
@@ -135,9 +148,6 @@ unless File.dir?(target) do
   """
 
   File.cd! target, fn ->
-    System.cmd("git init")
-    System.cmd("git config user.email \"mix@example.com\"")
-    System.cmd("git config user.name \"Mix Repo\"")
     System.cmd("git add .")
     System.cmd("git commit -m \"ok\"")
   end
