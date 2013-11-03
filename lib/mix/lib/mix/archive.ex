@@ -37,9 +37,12 @@ defmodule Mix.Archive do
   end
 
   @doc """
-  Creates an application archive from the current project.
-  The path will be the root of the project and must contain an ebin folder.
-  The archive file will be created in archive_path.
+  Creates an application archive.
+
+  It receives the archive file in the format
+  `path/to/archive/app-vsn.ez` and the path to the root of
+  the project to be archived. Everything in the `ebin` and
+  `priv` directories is archived.
   """
   def create(archive_file, project_path // ".") do
     project_path = Path.expand(project_path)
