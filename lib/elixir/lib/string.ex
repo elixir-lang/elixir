@@ -7,7 +7,7 @@ defmodule String do
   ## String and binary operations
 
   The functions in this module act according to the
-  Unicode Standard, version 6.2.0. For example,
+  Unicode Standard, version 6.3.0. For example,
   `capitalize/1`, `downcase/1`, `strip/1` are provided by this
   module.
 
