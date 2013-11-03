@@ -32,16 +32,16 @@ defmodule Mix.Deps.Retriever do
         rebar_dep(dep, config)
 
       mixfile?(dep) ->
-        mix_dep(dep, config)
+        mix_dep(dep.manager(:mix), config)
 
       rebarconfig?(dep) or rebarexec?(dep) ->
-        rebar_dep(dep, config)
+        rebar_dep(dep.manager(:rebar), config)
 
       makefile?(dep) ->
-        make_dep(dep)
+        dep.manager(:make)
 
       true ->
-        mix_dep(dep, config)
+        mix_dep(dep.manager(:mix), config)
     end)
   end
 
@@ -80,9 +80,9 @@ defmodule Mix.Deps.Retriever do
     end)
   end
 
-  defp rebar_dep(Mix.Dep[opts: opts] = dep, config) do
+  defp rebar_dep(Mix.Dep[] = dep, config) do
     Mix.Deps.in_dependency(dep, config, fn _ ->
-      config = Mix.Rebar.load_config(opts[:dest])
+      config = Mix.Rebar.load_config(".")
       extra  = Dict.take(config, [:sub_dirs])
       dep.manager(:rebar).extra(extra).deps(rebar_children(config))
     end)
@@ -94,10 +94,6 @@ defmodule Mix.Deps.Retriever do
     Mix.Rebar.recur(root_config, fn config ->
       Mix.Rebar.deps(config) |> Enum.map(&to_dep(&1, scms, from, :rebar))
     end) |> Enum.concat
-  end
-
-  defp make_dep(Mix.Dep[] = dep) do
-    dep.manager(:make)
   end
 
   defp with_scm_and_app({ app, opts }, scms) when is_atom(app) and is_list(opts) do
