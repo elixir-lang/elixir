@@ -37,19 +37,6 @@ defmodule Protocol do
 
   defp after_defprotocol do
     quote unquote: false do
-      msg = "is deprecated and should be removed. " <>
-            "Note if you want to fallback to Any, you have to set @fallback_to_any true"
-
-      if @only do
-        IO.puts "warning: @only in protocol #{inspect __MODULE__} " <> msg
-        @fallback_to_any @fallback_to_any || Any in @only
-      end
-
-      if @except do
-        IO.puts "warning: @except in protocol #{inspect __MODULE__} " <> msg
-        @fallback_to_any @fallback_to_any || not(Any in @except)
-      end
-
       { arg, bodies, rec } = Protocol.impl_for(__MODULE__)
 
       @spec impl_for(term) :: module | nil

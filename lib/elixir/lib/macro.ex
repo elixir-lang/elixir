@@ -648,12 +648,6 @@ defmodule Macro do
     { tree, cache }
   end
 
-  @doc false
-  def expand_all(tree, env) do
-    IO.write "Macro.expand_all/2 is deprecated, please avoid recursive code expansion\n#{Exception.format_stacktrace}"
-    elem(expand_all(tree, env, nil), 0)
-  end
-
   @doc false # Used internally by Elixir
   def expand_all(tree, env, cache) do
     expand_all_until(expand(tree, env, cache), env)
