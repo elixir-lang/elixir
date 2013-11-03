@@ -43,9 +43,14 @@ docs_table(Module) ->
 %% will be passed to the invoked function.
 
 translate(Meta, Ref, Block, S) ->
-  Line            = ?line(Meta),
-  MetaBlock       = elixir_utils:elixir_to_erl(Line, Block, S),
-  { MetaS, Vars } = elixir_scope:serialize_with_vars(Line, S),
+  Line = ?line(Meta),
+  LexS = case S#elixir_scope.function of
+    nil -> S;
+    _ -> S#elixir_scope{lexical_tracker=nil}
+  end,
+
+  MetaBlock       = elixir_utils:elixir_to_erl(Line, Block, LexS),
+  { MetaS, Vars } = elixir_scope:serialize_with_vars(Line, LexS),
 
   Args = [{integer, Line, Line}, Ref, MetaBlock, Vars, MetaS],
   ?wrap_call(Line, ?MODULE, compile, Args).

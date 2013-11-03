@@ -16,9 +16,15 @@ defmodule Kernel.LexicalTracker do
   @doc """
   Returns all remotes linked to in this lexical scope.
   """
-  def remotes(pid) do
-    ets = :gen_server.call(to_pid(pid), :ets, @timeout)
-    :ets.match(ets, { :"$1", :_, :_ }) |> List.flatten
+  def remotes(arg) do
+    # If the module is compiled from a function, its lexical
+    # scope may be long gone, so it has no associated PID.
+    if pid = to_pid(arg) do
+      ets = :gen_server.call(pid, :ets, @timeout)
+      :ets.match(ets, { :"$1", :_, :_ }) |> List.flatten
+    else
+      []
+    end
   end
 
   defp to_pid(pid) when is_pid(pid),  do: pid

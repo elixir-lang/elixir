@@ -5,6 +5,11 @@ defmodule CodeTest do
   import PathHelpers
 
   def one, do: 1
+  def genmodule(name) do
+    defmodule name do
+      Kernel.LexicalTracker.remotes(__MODULE__)
+    end
+  end
 
   contents = quote do
     defmodule CodeTest.Sample do
@@ -106,6 +111,13 @@ defmodule CodeTest do
   test :compile_info_returned_with_source_accessible_through_keyword_module do
     compile = __MODULE__.__info__(:compile)
     assert Keyword.get(compile, :source) != nil
+  end
+
+  test :compile_string_works_accross_lexical_scopes do
+    assert [{ CompileCrossSample, _ }] = Code.compile_string("CodeTest.genmodule CompileCrossSample")
+  after
+    :code.purge CompileCrossSample
+    :code.delete CompileCrossSample
   end
 
   test :compile_string do
