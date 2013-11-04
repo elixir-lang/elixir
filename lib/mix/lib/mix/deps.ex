@@ -269,7 +269,7 @@ defmodule Mix.Deps do
   def format_status(Mix.Dep[app: app, status: { :overriden, other }] = dep) do
     "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
     "#{dep_status(dep)}#{dep_status(other)}" <>
-    "\n  Specify one in your #{inspect Mix.Project.get} deps and set `override: true`"
+    "\n  Ensure they match or specify one in your #{inspect Mix.Project.get} deps and set `override: true`"
   end
 
   def format_status(Mix.Dep[status: { :unavailable, _ }]),
