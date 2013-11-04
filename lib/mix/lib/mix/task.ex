@@ -186,8 +186,7 @@ defmodule Mix.Task do
 
       if umbrella? && recursive && Mix.Server.call(:recursive_enabled?) do
         Mix.Server.cast({ :recursive_enabled?, false })
-        res = if(recursive == :both, do: [module.run(args)], else: [])
-        res = res ++ recur_deps(fn _ -> module.run(args) end)
+        res = recur_deps(fn _ -> module.run(args) end)
         Mix.Server.cast({ :recursive_enabled?, true })
         res
       else
