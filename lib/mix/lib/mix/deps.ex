@@ -415,6 +415,12 @@ defmodule Mix.Deps do
     Mix.Deps.Lock.write(lock)
 
     unless opts[:no_compile] do
+      # TODO: This is a temporary workaround to the fact
+      # we do not loadpaths for deps.get and deps.update tasks
+      # in the CLI.
+      Mix.Task.run("deps.loadpaths", ["--no-deps-check"])
+      Mix.Task.reenable("deps.loadpaths")
+
       args = if opts[:quiet], do: ["--quiet"|apps], else: apps
       Mix.Task.run("deps.compile", args)
       unless opts[:no_deps_check] do
