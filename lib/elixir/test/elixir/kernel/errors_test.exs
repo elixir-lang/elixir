@@ -202,10 +202,14 @@ defmodule Kernel.ErrorsTest do
       'quote 1'
   end
 
-  test :invalid_parens do
+  test :invalid_calls do
     assert_compile_fail SyntaxError,
-      "nofile:1: unexpected parenthesis after foo(1)",
+      "nofile:1: invalid call foo(1)(2)",
       'foo(1)(2)'
+
+    assert_compile_fail SyntaxError,
+      "nofile:1: invalid remote call on 1",
+      '1.foo'
   end
 
   test :unhandled_stab do

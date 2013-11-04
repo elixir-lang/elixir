@@ -425,8 +425,12 @@ translate_each({ { '.', _, [Expr] }, Meta, Args }, S) when is_list(Args) ->
 
 %% Invalid calls
 
-translate_each({ Invalid, Meta, Args }, S) when is_list(Meta) and is_list(Args) ->
-  syntax_error(Meta, S#elixir_scope.file, "unexpected parenthesis after ~ts",
+translate_each({ { '.', _, [Invalid, _] }, Meta, Args }, S) when is_list(Meta) and is_list(Args) ->
+  syntax_error(Meta, S#elixir_scope.file, "invalid remote call on ~ts",
+    ['Elixir.Macro':to_string(Invalid)]);
+
+translate_each({ _, Meta, Args } = Invalid, S) when is_list(Meta) and is_list(Args) ->
+  syntax_error(Meta, S#elixir_scope.file, "invalid call ~ts",
     ['Elixir.Macro':to_string(Invalid)]);
 
 translate_each({ _, _, _ } = Tuple, S) ->
