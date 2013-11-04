@@ -15,7 +15,8 @@ defmodule Mix.Tasks.Deps.Get do
 
   """
 
-  import Mix.Deps, only: [unfetched: 2, unfetched_by_name: 3, format_dep: 1, check_lock: 2, out_of_date?: 1]
+  import Mix.Deps, only: [unfetched: 2, unfetched_by_name: 3, format_dep: 1,
+                          check_lock: 2, out_of_date?: 1]
 
   def run(args) do
     Mix.Project.get! # Require the project to be available
@@ -35,22 +36,11 @@ defmodule Mix.Tasks.Deps.Get do
     { [], Mix.Deps.Lock.read }
   end
 
-  defp finalize_get({ apps, lock }, opts) do
-    apps = Enum.reverse(apps)
+  defp finalize_get({ all_deps, { apps, lock } }, opts) do
+    Mix.Deps.finalize(all_deps, apps, lock, opts)
 
-    if apps == [] do
-      unless opts[:no_deps_check], do: Mix.Task.run("deps.check", [])
-      unless opts[:quiet], do: Mix.shell.info "All dependencies up to date"
-    else
-      Mix.Deps.Lock.write(lock)
-
-      unless opts[:no_compile] do
-        args = if opts[:quiet], do: ["--quiet"|apps], else: apps
-        Mix.Task.run("deps.compile", args)
-        unless opts[:no_deps_check] do
-          Mix.Task.run("deps.check", [])
-        end
-      end
+    if apps == [] && !opts[:quiet] do
+      Mix.shell.info "All dependencies up to date"
     end
   end
 

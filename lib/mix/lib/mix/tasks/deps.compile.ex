@@ -27,9 +27,8 @@ defmodule Mix.Tasks.Deps.Compile do
 
   """
 
-  import Mix.Deps, only: [ fetched: 0, available?: 1, fetched_by_name: 2, compile_path: 1,
-                           with_depending: 2, format_dep: 1, make?: 1, mix?: 1,
-                           rebar?: 1 ]
+  import Mix.Deps, only: [fetched: 0, available?: 1, fetched_by_name: 1, compile_path: 1,
+                          format_dep: 1, make?: 1, mix?: 1, rebar?: 1]
 
   def run(args) do
     Mix.Project.get! # Require the project to be available
@@ -38,9 +37,7 @@ defmodule Mix.Tasks.Deps.Compile do
       { opts, [], _ } ->
         do_run(Enum.filter(fetched, &available?/1), opts)
       { opts, tail, _ } ->
-        all_deps = fetched
-        deps = fetched_by_name(tail, all_deps) |> with_depending(all_deps)
-        do_run(deps, opts)
+        do_run(fetched_by_name(tail), opts)
     end
   end
 
@@ -111,7 +108,8 @@ defmodule Mix.Tasks.Deps.Compile do
     catch
       kind, reason ->
         Mix.shell.error "could not compile dependency #{app}, mix compile failed. " <>
-          "If you want to recompile this dependency, please run: mix deps.compile #{app}"
+          "You can recompile this dependency with `mix deps.compile #{app}` or " <>
+          "update it with `mix deps.update #{app}`"
         :erlang.raise(kind, reason, System.stacktrace)
     after
       Mix.env(old_env)

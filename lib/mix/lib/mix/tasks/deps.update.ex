@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Deps.Update do
 
   """
 
-  import Mix.Deps, only: [ unfetched: 2, unfetched_by_name: 3, available?: 1, format_dep: 1 ]
+  import Mix.Deps, only: [unfetched: 2, unfetched_by_name: 3, updatable?: 1, format_dep: 1]
 
   def run(args) do
     Mix.Project.get! # Require the project to be available
@@ -43,21 +43,12 @@ defmodule Mix.Tasks.Deps.Update do
     { [], Mix.Deps.Lock.read }
   end
 
-  defp finalize_update({ apps, lock }, opts) do
-    apps = Enum.reverse(apps)
-    Mix.Deps.Lock.write(lock)
-
-    unless opts[:no_compile] do
-      args = if opts[:quiet], do: ["--quiet"|apps], else: apps
-      Mix.Task.run("deps.compile", args)
-      unless opts[:no_deps_check] do
-        Mix.Task.run("deps.check", [])
-      end
-    end
+  defp finalize_update({ all_deps, { apps, lock } }, opts) do
+    Mix.Deps.finalize(all_deps, apps, lock, opts)
   end
 
   defp deps_updater(dep, { acc, lock }) do
-    if available?(dep) do
+    if updatable?(dep) do
       Mix.Dep[app: app, scm: scm, opts: opts] = dep
       Mix.shell.info "* Updating #{format_dep(dep)}"
 

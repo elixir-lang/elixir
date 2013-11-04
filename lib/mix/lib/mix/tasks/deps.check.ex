@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Check do
   use Mix.Task
 
-  import Mix.Deps, only: [fetched: 0, format_dep: 1, format_status: 1, check_lock: 2, out_of_date?: 1]
+  import Mix.Deps, only: [fetched: 0, format_dep: 1, format_status: 1, check_lock: 2]
 
   @hidden true
   @shortdoc "Check if all dependencies are valid"

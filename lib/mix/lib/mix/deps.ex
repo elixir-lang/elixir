@@ -145,8 +145,8 @@ defmodule Mix.Deps do
   provided in the project are in the wrong format.
   """
   def unfetched(acc, callback) do
-    { _deps, acc } = Mix.Deps.Converger.all(acc, callback)
-    acc
+    { deps, acc } = Mix.Deps.Converger.all(acc, callback)
+    { Mix.Deps.Converger.topsort(deps), acc }
   end
 
   @doc """
@@ -168,32 +168,6 @@ defmodule Mix.Deps do
         { dep, acc }
       end
     end)
-  end
-
-  @doc """
-  Receives a list of dependencies and returns the given list
-  with their depending dependencies, recursively. It is expected
-  the given list of dependencies to contain only fetched dependencies
-  (since unfetched dependencies did not have their dependencies
-  retrieved yet).
-  """
-  def with_depending(deps, all_deps // fetched) do
-    (deps ++ do_with_depending(deps, all_deps))
-    |> Enum.uniq(&(&1.app))
-  end
-
-  defp do_with_depending([], _all_deps) do
-    []
-  end
-
-  defp do_with_depending(deps, all_deps) do
-    dep_names = Enum.map(deps, fn dep -> dep.app end)
-
-    parents = Enum.filter all_deps, fn dep ->
-      Enum.any?(dep.deps, fn child_dep -> child_dep.app in dep_names end)
-    end
-
-    do_with_depending(parents, all_deps) ++ parents
   end
 
   @doc """
@@ -240,7 +214,7 @@ defmodule Mix.Deps do
   def format_status(Mix.Dep[status: { :noappfile, path }]),
     do: "could not find an app file at #{Path.relative_to_cwd(path)}, " <>
         "this may happen when you specified the wrong application name in your deps " <>
-        "or if the dependency failed to compile (which can be amended with `mix deps.compile`)"
+        "or if the dependency did not compile (which can be amended with `mix deps.compile`)"
 
   def format_status(Mix.Dep[status: { :invalidapp, path }]),
     do: "the app file at #{Path.relative_to_cwd(path)} is invalid"
@@ -278,6 +252,9 @@ defmodule Mix.Deps do
   def format_status(Mix.Dep[status: { :elixirlock, _ }]),
     do: "the dependency is built with an out-of-date elixir version, run `mix deps.get`"
 
+  def format_status(Mix.Dep[status: { :elixirreq, req }]),
+    do: "the dependency requires Elixir #{req} but you are running on v#{System.version}"
+
   defp dep_status(Mix.Dep[app: app, requirement: req, opts: opts, from: from]) do
     info = { app, req, Dict.drop(opts, [:dest, :lock, :env]) }
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
@@ -308,26 +285,37 @@ defmodule Mix.Deps do
   Check if a dependency is ok.
   """
   def ok?(Mix.Dep[status: { :ok, _ }]), do: true
-  def ok?(_), do: false
+  def ok?(Mix.Dep[]), do: false
 
   @doc """
-  Check if a dependency is available.
+  Check if a dependency is available. Available dependencies
+  are the ones that can be compiled, loaded, etc.
   """
   def available?(Mix.Dep[status: { :overriden, _ }]),    do: false
   def available?(Mix.Dep[status: { :diverged, _ }]),     do: false
+  def available?(Mix.Dep[status: { :elixirreq, _ }]),    do: false
   def available?(Mix.Dep[status: { :unavailable, _ }]),  do: false
-  def available?(_), do: true
+  def available?(Mix.Dep[]), do: true
 
   @doc """
-  Check if a dependency is out of date considering its
+  Check if a dependency can be updated.
+  """
+  def updatable?(Mix.Dep[status: { :elixirreq, _ }]), do: true
+  def updatable?(dep), do: available?(dep)
+
+  @doc """
+  Check if a dependency is out of date, also considering its
   lock status. Therefore, be sure to call `check_lock` before
   invoking this function.
+
+  Out of date dependencies are fixed by simply running `deps.get`.
   """
   def out_of_date?(Mix.Dep[status: { :lockmismatch, _ }]), do: true
   def out_of_date?(Mix.Dep[status: :lockoutdated]),        do: true
   def out_of_date?(Mix.Dep[status: :nolock]),              do: true
   def out_of_date?(Mix.Dep[status: { :elixirlock, _ }]),   do: true
-  def out_of_date?(dep),                                   do: not available?(dep)
+  def out_of_date?(Mix.Dep[status: { :unavailable, _ }]),  do: true
+  def out_of_date?(Mix.Dep[]),                             do: false
 
   @doc """
   Formats a dependency for printing.
@@ -405,6 +393,53 @@ defmodule Mix.Deps do
   end
 
   ## Helpers
+
+  @doc false
+  # Called by deps.get and deps.update
+  def finalize(all_deps, apps, lock, opts) do
+    deps = fetched_by_name(apps, all_deps)
+
+    # Do not attempt to compile dependencies that are not available.
+    # mix deps.check at the end will emit proper status in case they failed.
+    deps = Enum.filter(deps, &available?/1)
+
+    # Note we only retrieve the parent dependencies of the updated
+    # deps if all dependencies are available. This is because if a
+    # dependency is missing, it could be a children of the parent
+    # (aka a sibling) which would make parent compilation fail.
+    if Enum.all?(all_deps, &available?/1) do
+      deps = with_depending(deps, all_deps)
+    end
+
+    apps = Enum.map(deps, &(&1.app))
+    Mix.Deps.Lock.write(lock)
+
+    unless opts[:no_compile] do
+      args = if opts[:quiet], do: ["--quiet"|apps], else: apps
+      Mix.Task.run("deps.compile", args)
+      unless opts[:no_deps_check] do
+        Mix.Task.run("deps.check", [])
+      end
+    end
+  end
+
+  defp with_depending(deps, all_deps) do
+    (deps ++ do_with_depending(deps, all_deps)) |> Enum.uniq(&(&1.app))
+  end
+
+  defp do_with_depending([], _all_deps) do
+    []
+  end
+
+  defp do_with_depending(deps, all_deps) do
+    dep_names = Enum.map(deps, fn dep -> dep.app end)
+
+    parents = Enum.filter all_deps, fn dep ->
+      Enum.any?(dep.deps, fn child_dep -> child_dep.app in dep_names end)
+    end
+
+    do_with_depending(parents, all_deps) ++ parents
+  end
 
   defp to_app_names(given) do
     Enum.map given, fn(app) ->

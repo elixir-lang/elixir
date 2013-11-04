@@ -88,6 +88,29 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.pop
   end
 
+  test "prints list of dependencies including elixir req mismatches" do
+    Mix.Project.push ReqDepsApp
+
+    in_fixture "deps_status", fn ->
+      File.write!("deps/ok/mix.exs", """)
+      defmodule Deps.OkApp do
+        use Mix.Project
+
+        def project do
+          [elixir: "~> 0.1.0", app: :ok, version: "2.0"]
+        end
+      end
+      """
+
+      Mix.Tasks.Deps.run []
+      assert_received { :mix_shell, :info, ["* ok (deps/ok)"] }
+      message = "  the dependency requires Elixir ~> 0.1.0 but you are running on v#{System.version}"
+      assert_received { :mix_shell, :info, [^message] }
+    end
+  after
+    Mix.Project.pop
+  end
+
   test "prints list of dependencies and their lock status" do
     Mix.Project.push DepsApp
 

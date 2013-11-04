@@ -128,15 +128,21 @@ defmodule Mix.Deps.Retriever do
 
   defp mix_dep(Mix.Dep[opts: opts, app: app, status: status] = dep, config) do
     Mix.Deps.in_dependency(dep, config, fn _ ->
+      config  = Mix.project
       default =
         if Mix.Project.umbrella? do
           false
         else
-          Path.join(Mix.project[:compile_path], "#{app}.app")
+          Path.join(config[:compile_path], "#{app}.app")
         end
 
       opts = Keyword.put_new(opts, :app, default)
-      stat = if vsn = old_elixir_lock(), do: { :elixirlock, vsn }, else: status
+      stat = cond do
+        vsn = old_elixir_lock() -> { :elixirlock, vsn }
+        req = old_elixir_req(config) -> { :elixirreq, req }
+        true -> status
+      end
+
       dep.manager(:mix).opts(opts).deps(children).status(stat)
     end)
   end
@@ -191,7 +197,7 @@ defmodule Mix.Deps.Retriever do
   end
 
   defp vsn_match?(nil, _actual), do: true
-  defp vsn_match?(req, actual) when is_regex(req),  do: actual =~ req
+  defp vsn_match?(req, actual) when is_regex(req), do: actual =~ req
   defp vsn_match?(req, actual) when is_binary(req) do
     Version.match?(actual, req)
   end
@@ -200,6 +206,13 @@ defmodule Mix.Deps.Retriever do
     old_vsn = Mix.Deps.Lock.elixir_vsn
     if old_vsn && old_vsn != System.version do
       old_vsn
+    end
+  end
+
+  defp old_elixir_req(config) do
+    req = config[:elixir]
+    if req && not Version.match?(System.version, req) do
+      req
     end
   end
 end
