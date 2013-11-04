@@ -3,7 +3,11 @@
 * Enhancements
 
 * Bug fixes
+  * [Kernel] Set compilation status per ParallelCompiler and not globally
   * [Mix] Ensure Mix does not load previous dependencies versions before `deps.get`/`deps.update`
+  * [Mix] Ensure umbrella apps are sorted before running recursive commands
+  * [Mix] Ensure umbrella apps run in the same environment as the parent project
+  * [Mix] Ensure dependency tree is topsorted before compiling
 
 * Deprecations
 
