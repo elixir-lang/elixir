@@ -11,7 +11,7 @@ defmodule Mix.Deps.Retriever do
   """
   def children do
     scms = Mix.SCM.available
-    from = current_source(:mix)
+    from = Path.absname("mix.exs")
     Enum.map(Mix.project[:deps] || [], &to_dep(&1, scms, from)) ++
              Mix.Deps.Umbrella.unfetched
   end
@@ -31,69 +31,25 @@ defmodule Mix.Deps.Retriever do
       manager == :rebar ->
         rebar_dep(dep, config)
 
-      mixfile?(dep) ->
-        mix_dep(dep.manager(:mix), config)
+      manager == :mix ->
+        mix_dep(dep, config)
 
-      rebarconfig?(dep) or rebarexec?(dep) ->
-        rebar_dep(dep.manager(:rebar), config)
-
-      makefile?(dep) ->
-        dep.manager(:make)
-
-      true ->
-        mix_dep(dep.manager(:mix), config)
+      manager == :make ->
+        dep
     end)
   end
 
   ## Helpers
 
-  defp current_source(manager) do
-    case manager do
-      :mix   -> "mix.exs"
-      :rebar -> "rebar.config"
-    end |> Path.absname
-  end
-
   defp to_dep(tuple, scms, from, manager // nil) do
-    dep = with_scm_and_app(tuple, scms).from(from).manager(manager)
+    dep = with_scm_and_app(tuple, scms).from(from)
 
     if match?({ _, req, _ } when is_regex(req), tuple) and
         not String.ends_with?(from, "rebar.config") do
       invalid_dep_format(tuple)
     end
 
-    dep
-  end
-
-  defp mix_dep(Mix.Dep[opts: opts, app: app, status: status] = dep, config) do
-    Mix.Deps.in_dependency(dep, config, fn _ ->
-      default =
-        if Mix.Project.umbrella? do
-          false
-        else
-          Path.join(Mix.project[:compile_path], "#{app}.app")
-        end
-
-      opts = Keyword.put_new(opts, :app, default)
-      stat = if vsn = old_elixir_lock(), do: { :elixirlock, vsn }, else: status
-      dep.manager(:mix).opts(opts).deps(children).status(stat)
-    end)
-  end
-
-  defp rebar_dep(Mix.Dep[] = dep, config) do
-    Mix.Deps.in_dependency(dep, config, fn _ ->
-      config = Mix.Rebar.load_config(".")
-      extra  = Dict.take(config, [:sub_dirs])
-      dep.manager(:rebar).extra(extra).deps(rebar_children(config))
-    end)
-  end
-
-  defp rebar_children(root_config) do
-    scms = Mix.SCM.available
-    from = current_source(:rebar)
-    Mix.Rebar.recur(root_config, fn config ->
-      Mix.Rebar.deps(config) |> Enum.map(&to_dep(&1, scms, from, :rebar))
-    end) |> Enum.concat
+    dep.manager(manager || detect_manager(dep))
   end
 
   defp with_scm_and_app({ app, opts }, scms) when is_atom(app) and is_list(opts) do
@@ -136,6 +92,71 @@ defmodule Mix.Deps.Retriever do
     end
   end
 
+  defp ok?({ :ok, _ }), do: true
+  defp ok?(_), do: false
+
+  defp detect_manager(dep) do
+    dest = dep.opts[:dest]
+    cond do
+      mix?(dest) -> :mix
+      rebar?(dest) -> :rebar
+      make?(dest) -> :make
+      true -> :mix
+    end
+  end
+
+  defp mix?(dest) do
+    File.regular?(Path.join(dest, "mix.exs"))
+  end
+
+  defp rebar?(dest) do
+    Enum.any?(["rebar.config", "rebar.config.script"], fn file ->
+      File.regular?(Path.join(dest, file))
+    end) or File.regular?(Path.join(dest, "rebar"))
+  end
+
+  defp make?(dest) do
+    File.regular? Path.join(dest, "Makefile")
+  end
+
+  defp invalid_dep_format(dep) do
+    raise Mix.Error, message: %s(Dependency specified in the wrong format: #{inspect dep}, ) <>
+      %s(expected { app :: atom, opts :: Keyword.t } | { app :: atom, requirement :: String.t, opts :: Keyword.t })
+  end
+
+  ## Fetching
+
+  defp mix_dep(Mix.Dep[opts: opts, app: app, status: status] = dep, config) do
+    Mix.Deps.in_dependency(dep, config, fn _ ->
+      default =
+        if Mix.Project.umbrella? do
+          false
+        else
+          Path.join(Mix.project[:compile_path], "#{app}.app")
+        end
+
+      opts = Keyword.put_new(opts, :app, default)
+      stat = if vsn = old_elixir_lock(), do: { :elixirlock, vsn }, else: status
+      dep.manager(:mix).opts(opts).deps(children).status(stat)
+    end)
+  end
+
+  defp rebar_dep(Mix.Dep[] = dep, config) do
+    Mix.Deps.in_dependency(dep, config, fn _ ->
+      config = Mix.Rebar.load_config(".")
+      extra  = Dict.take(config, [:sub_dirs])
+      dep.manager(:rebar).extra(extra).deps(rebar_children(config))
+    end)
+  end
+
+  defp rebar_children(root_config) do
+    scms = Mix.SCM.available
+    from = Path.absname("rebar.config")
+    Mix.Rebar.recur(root_config, fn config ->
+      Mix.Rebar.deps(config) |> Enum.map(&to_dep(&1, scms, from, :rebar))
+    end) |> Enum.concat
+  end
+
   defp validate_app(Mix.Dep[opts: opts, requirement: req, app: app, status: status] = dep) do
     opts_app = opts[:app]
 
@@ -173,32 +194,6 @@ defmodule Mix.Deps.Retriever do
   defp vsn_match?(req, actual) when is_regex(req),  do: actual =~ req
   defp vsn_match?(req, actual) when is_binary(req) do
     Version.match?(actual, req)
-  end
-
-  defp mixfile?(dep) do
-    File.regular?(Path.join(dep.opts[:dest], "mix.exs"))
-  end
-
-  defp rebarexec?(dep) do
-    File.regular?(Path.join(dep.opts[:dest], "rebar"))
-  end
-
-  defp rebarconfig?(dep) do
-    Enum.any?(["rebar.config", "rebar.config.script"], fn file ->
-      File.regular?(Path.join(dep.opts[:dest], file))
-    end)
-  end
-
-  defp makefile?(dep) do
-    File.regular? Path.join(dep.opts[:dest], "Makefile")
-  end
-
-  defp ok?({ :ok, _ }), do: true
-  defp ok?(_), do: false
-
-  defp invalid_dep_format(dep) do
-    raise Mix.Error, message: %s(Dependency specified in the wrong format: #{inspect dep}, ) <>
-      %s(expected { app :: atom, opts :: Keyword.t } | { app :: atom, requirement :: String.t, opts :: Keyword.t })
   end
 
   defp old_elixir_lock do

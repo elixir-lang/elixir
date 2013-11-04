@@ -379,7 +379,7 @@ defmodule Mix.Deps do
       |> Enum.filter(&File.dir?(&1))
   end
 
-  def load_paths(Mix.Dep[manager: manager, opts: opts]) when manager in [:make, nil] do
+  def load_paths(Mix.Dep[manager: manager, opts: opts]) when manager in [:make] do
     [ Path.join(opts[:dest], "ebin") ]
   end
 
