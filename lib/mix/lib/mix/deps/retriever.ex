@@ -22,7 +22,8 @@ defmodule Mix.Deps.Retriever do
   """
   def fetch(dep, config) do
     Mix.Dep[manager: manager, scm: scm, opts: opts] = dep
-    dep = dep.status(scm_status(scm, opts))
+    dep  = dep.status(scm_status(scm, opts))
+    dest = opts[:dest]
 
     validate_app(cond do
       not ok?(dep.status) ->
@@ -31,25 +32,31 @@ defmodule Mix.Deps.Retriever do
       manager == :rebar ->
         rebar_dep(dep, config)
 
-      manager == :mix ->
-        mix_dep(dep, config)
+      mix?(dest) ->
+        mix_dep(dep.manager(:mix), config)
 
-      manager == :make ->
-        dep
+      rebar?(dest) ->
+        rebar_dep(dep.manager(:rebar), config)
+
+      make?(dest) ->
+        dep.manager(:make)
+
+      true ->
+        mix_dep(dep.manager(:mix), config)
     end)
   end
 
   ## Helpers
 
   defp to_dep(tuple, scms, from, manager // nil) do
-    dep = with_scm_and_app(tuple, scms).from(from)
+    dep = with_scm_and_app(tuple, scms).from(from).manager(manager)
 
     if match?({ _, req, _ } when is_regex(req), tuple) and
         not String.ends_with?(from, "rebar.config") do
       invalid_dep_format(tuple)
     end
 
-    dep.manager(manager || detect_manager(dep))
+    dep
   end
 
   defp with_scm_and_app({ app, opts }, scms) when is_atom(app) and is_list(opts) do
@@ -94,16 +101,6 @@ defmodule Mix.Deps.Retriever do
 
   defp ok?({ :ok, _ }), do: true
   defp ok?(_), do: false
-
-  defp detect_manager(dep) do
-    dest = dep.opts[:dest]
-    cond do
-      mix?(dest) -> :mix
-      rebar?(dest) -> :rebar
-      make?(dest) -> :make
-      true -> :mix
-    end
-  end
 
   defp mix?(dest) do
     File.regular?(Path.join(dest, "mix.exs"))
