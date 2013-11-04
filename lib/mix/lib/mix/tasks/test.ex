@@ -2,28 +2,24 @@ defmodule Mix.Tasks.Test do
   defmodule Cover do
     @moduledoc false
 
-    def run(compile_path, opts, callback) do
-      Mix.shell.info "Cover compiling modules ...\n"
+    def start(compile_path, opts) do
+      Mix.shell.info "Cover compiling modules ... "
       :cover.start
       :cover.compile_beam_directory(compile_path |> to_char_list)
 
-      output = opts[:output]
-      callback.()
+      if :application.get_env(:cover, :started) != { :ok, true } do
+        output = opts[:output]
 
-      Mix.shell.info "\nGenerating cover results ..."
-      File.mkdir_p!(output)
-      Enum.each :cover.modules, fn(mod) ->
-        :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
+        System.at_exit fn(_) ->
+          Mix.shell.info "\nGenerating cover results ... "
+          File.mkdir_p!(output)
+          Enum.each :cover.modules, fn(mod) ->
+            :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
+          end
+        end
+
+        :application.set_env(:cover, :started, true)
       end
-    end
-  end
-
-  defmodule Bare do
-    @moduledoc false
-
-    def run(_, _, fun) do
-      Mix.shell.info ""
-      fun.()
     end
   end
 
@@ -75,8 +71,8 @@ defmodule Mix.Tasks.Test do
 
       test_coverage: [tool: CoverModule]
 
-  `CoverModule` can be any module that exports `run/3`, receiving the
-  compilation path, `test_coverage` options and the callback function as arguments.
+  `CoverModule` can be any module that exports `start/2`, receiving the
+  compilation path and the `test_coverage` options as arguments.
   """
 
   @switches [force: :boolean, color: :boolean, cover: :boolean,
@@ -96,11 +92,13 @@ defmodule Mix.Tasks.Test do
 
     project = Mix.project
     cover   = Keyword.merge(@cover, project[:test_coverage] || [])
-    wrapper = if opts[:cover], do: cover[:tool], else: Bare
+
+    if opts[:cover] do
+      cover[:tool].start(project[:compile_path], cover)
+    end
 
     :application.load(:ex_unit)
     opts = Dict.take(opts, [:trace, :max_cases, :color])
-    opts = Keyword.put(opts, :autorun, false)
     ExUnit.configure(opts)
 
     test_paths = project[:test_paths] || ["test"]
@@ -109,20 +107,8 @@ defmodule Mix.Tasks.Test do
     test_paths   = if files == [], do: test_paths, else: files
     test_pattern = project[:test_pattern] || "*_test.exs"
 
-    wrapper.run project[:compile_path], cover, fn -> do_run(test_paths, test_pattern) end
-  end
-
-  defp do_run(test_paths, test_pattern) do
     files = Mix.Utils.extract_files(test_paths, test_pattern)
-    Kernel.ParallelRequire.files(files)
-
-    failures = ExUnit.run
-    System.at_exit fn
-      0 ->
-        if failures > 0, do: System.halt(1), else: System.halt(0)
-      _ ->
-        :ok
-    end
+    Kernel.ParallelRequire.files files
   end
 
   defp require_test_helper(dir) do
