@@ -90,7 +90,8 @@ defmodule Mix.CLI do
     IO.puts "Elixir #{System.version}"
   end
 
-  defp deps_task?("deps." <> _), do: true
+  defp deps_task?("deps.update"), do: true
+  defp deps_task?("deps.get"), do: true
   defp deps_task?(_), do: false
 
   # Check for --help or --version in the args
