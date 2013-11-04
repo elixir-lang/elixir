@@ -220,8 +220,7 @@ defmodule Mix.Task do
   end
 
   defp recur_deps(fun) do
-    lc Mix.Dep[app: app, opts: opts] inlist
-       Mix.Deps.Converger.topsort(Mix.Deps.Umbrella.fetched) do
+    lc Mix.Dep[app: app, opts: opts] inlist Mix.Deps.Umbrella.fetched do
       Mix.Project.in_project(app, opts[:path], fun)
     end
   end

@@ -24,19 +24,17 @@ defmodule Mix.Deps.Umbrella do
   Gets all umbrella dependencies in fetched format.
   """
   def fetched do
-    apps_path = Path.expand(Mix.project[:apps_path])
+    deps = unfetched
+    apps = Enum.map(deps, &(&1.app))
 
-    Enum.map(unfetched, fn(umbrella_dep) ->
+    Enum.map(deps, fn(umbrella_dep) ->
       umbrella_dep = Mix.Deps.Retriever.fetch(umbrella_dep, [])
       umbrella_dep.update_deps(&Enum.filter(&1, fn dep ->
-        Mix.Deps.available?(dep) and in_umbrella?(dep, apps_path)
+        Mix.Deps.available?(dep) and dep.app in apps
       end))
-    end)
+    end) |> Mix.Deps.Converger.topsort
   end
 
-  defp in_umbrella?(Mix.Dep[opts: opts], apps_path) do
-    apps_path == Path.expand(Path.dirname(opts[:dest]))
-  end
 
   defp extract_umbrella(paths) do
     lc path inlist paths do
