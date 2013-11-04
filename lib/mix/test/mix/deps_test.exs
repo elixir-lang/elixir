@@ -67,6 +67,21 @@ defmodule Mix.DepsTest do
     Mix.Project.pop
   end
 
+  test "does not set the manager before the dependency was fetched" do
+    # It is important to not eagerly set the manager because the dependency
+    # needs to be fetched (i.e. available in the filesystem) in order to get
+    # the proper manager.
+    Mix.Project.push DepsApp
+
+    { _, true } =
+      Mix.Deps.unfetched(false, fn dep, acc ->
+        assert nil?(dep.manager)
+        { dep, acc or true }
+      end)
+  after
+    Mix.Project.pop
+  end
+
   defmodule ConvergedDepsApp do
     def project do
       [
