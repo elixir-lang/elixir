@@ -221,16 +221,24 @@ defmodule Mix.Deps do
   def format_status(Mix.Dep[status: :nolock]),
     do: "the dependency is not locked"
 
+  def format_status(Mix.Dep[app: app, status: { :divergedreq, other }] = dep) do
+    "the dependency #{app} defined\n" <>
+    "#{dep_status(dep)}" <>
+    "\n  does not match the requirement specified\n" <>
+    "#{dep_status(other)}" <>
+    "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
+  end
+
   def format_status(Mix.Dep[app: app, status: { :diverged, other }] = dep) do
     "different specs were given for the #{inspect app} app:\n" <>
     "#{dep_status(dep)}#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one in your #{inspect Mix.Project.get} deps and set `override: true`"
+    "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
   end
 
   def format_status(Mix.Dep[app: app, status: { :overriden, other }] = dep) do
     "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
     "#{dep_status(dep)}#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one in your #{inspect Mix.Project.get} deps and set `override: true`"
+    "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
   end
 
   def format_status(Mix.Dep[status: { :unavailable, _ }]),
@@ -280,6 +288,7 @@ defmodule Mix.Deps do
   """
   def available?(Mix.Dep[status: { :overriden, _ }]),    do: false
   def available?(Mix.Dep[status: { :diverged, _ }]),     do: false
+  def available?(Mix.Dep[status: { :divergedreq, _ }]),  do: false
   def available?(Mix.Dep[status: { :elixirreq, _ }]),    do: false
   def available?(Mix.Dep[status: { :unavailable, _ }]),  do: false
   def available?(Mix.Dep[]), do: true

@@ -142,7 +142,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.pop
   end
 
-  test "check list of dependencies and their status with failure" do
+  test "check slist of dependencies and their status with failure" do
     Mix.Project.push OutOfDateDepsApp
 
     in_fixture "deps_status", fn ->
@@ -156,7 +156,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.pop
   end
 
-  test "check list of dependencies and their status on failure" do
+  test "checks list of dependencies and their status on failure" do
     Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->
@@ -228,7 +228,7 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "by default sets deps env to prod" do
+  test "sets deps env to prod by default" do
     Mix.Project.push DepsEnvApp
 
     in_fixture "deps_status", fn ->
@@ -284,7 +284,7 @@ defmodule Mix.Tasks.DepsTest do
         version: "0.1.0",
         deps: [
           { :deps_repo, "0.1.0", path: "custom/deps_repo" },
-          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
+          { :git_repo, ">= 0.1", git: MixTest.Case.fixture_path("git_repo") }
         ]
       ]
     end
@@ -345,10 +345,6 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, [^message] }
       refute_received { :mix_shell, :info, ["* Compiling deps_repo"] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
-
-      Mix.Tasks.Deps.Update.run ["--all"]
-      assert_received { :mix_shell, :info, ["* Updating deps_repo (custom/deps_repo)"] }
-      refute_received { :mix_shell, :info, ["* Compiling deps_repo"] }
     end
   after
     Mix.Project.pop
@@ -368,6 +364,42 @@ defmodule Mix.Tasks.DepsTest do
           assert msg =~ "{:git_repo, \"0.1.0\", [git: #{inspect fixture_path("git_repo")}]}"
       after
         0 -> flunk "expected diverged error message"
+      end
+    end
+  after
+    Mix.Project.pop
+  end
+
+  test "fails on diverged dependencies by requirement" do
+    Mix.Project.push ConvergedDepsApp
+
+    in_fixture "deps_status", fn ->
+      File.write!("custom/deps_repo/mix.exs", """)
+      defmodule DepsRepo do
+        use Mix.Project
+
+        def project do
+          [
+            app: :deps_repo,
+            version: "0.1.0",
+            deps: [
+              { :git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo") }
+            ]
+          ]
+        end
+      end
+      """
+
+      assert_raise Mix.Error, fn ->
+        Mix.Tasks.Deps.Get.run []
+      end
+
+      receive do
+        { :mix_shell, :error, ["  the dependency git_repo defined" <> _ = msg] } ->
+          assert msg =~ "In custom/deps_repo/mix.exs:"
+          assert msg =~ "{:git_repo, \"0.2.0\", [git: #{inspect fixture_path("git_repo")}]}"
+      after
+        0 -> flunk "expected diverged req error message"
       end
     end
   after
@@ -430,7 +462,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.pop
   end
 
-  test "converged dependencies will error if not overriding" do
+  test "converged dependencies errors if not overriding" do
     Mix.Project.push NonOverridenDepsApp
 
     in_fixture "deps_status", fn ->
@@ -451,19 +483,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.pop
   end
 
-  test "converged dependencies are properly ordered" do
-    Mix.Project.push NestedDepsApp
-
-    in_fixture "deps_status", fn ->
-      # Nested dependencies need to come first. They are
-      # listed first, compiled first, etc.
-      assert [Mix.Dep[app: :git_repo], Mix.Dep[app: :deps_repo]] = Mix.Deps.fetched
-    end
-  after
-    Mix.Project.pop
-  end
-
-  test "update parent dependencies" do
+  test "updates parent dependencies" do
     Mix.Project.push NestedDepsApp
 
     in_fixture "deps_status", fn ->
@@ -479,7 +499,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.pop
   end
 
-  test "check if dependencies are using old elixir" do
+  test "checks if dependencies are using old elixir version" do
     Mix.Project.push SuccessfulDepsApp
 
     in_fixture "deps_status", fn ->
@@ -513,7 +533,7 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "dont compile deps" do
+  test "does not compile deps that have explicit flag" do
     Mix.Project.push NonCompilingDeps
 
     in_fixture "deps_status", fn ->
@@ -539,7 +559,7 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "converts duplicated deps at the same level" do
+  test "converges duplicated deps at the same level" do
     Mix.Project.push DupDeps
 
     in_fixture "deps_status", fn ->

@@ -46,6 +46,16 @@ defmodule Mix.Deps.Retriever do
     end)
   end
 
+  @doc """
+  Checks if a requirement from a dependency matches
+  the given version.
+  """
+  def vsn_match?(nil, _actual), do: true
+  def vsn_match?(req, actual) when is_regex(req), do: actual =~ req
+  def vsn_match?(req, actual) when is_binary(req) do
+    Version.match?(actual, req)
+  end
+
   ## Helpers
 
   defp to_dep(tuple, scms, from, manager // nil) do
@@ -191,12 +201,6 @@ defmodule Mix.Deps.Retriever do
       { :ok, _ } -> { :invalidapp, app_path }
       { :error, _ } -> { :noappfile, app_path }
     end
-  end
-
-  defp vsn_match?(nil, _actual), do: true
-  defp vsn_match?(req, actual) when is_regex(req), do: actual =~ req
-  defp vsn_match?(req, actual) when is_binary(req) do
-    Version.match?(actual, req)
   end
 
   defp old_elixir_lock do

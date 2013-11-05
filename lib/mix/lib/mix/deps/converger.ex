@@ -132,8 +132,8 @@ defmodule Mix.Deps.Converger do
           Mix.Dep[app: other_app, opts: other_opts] = other
 
           cond do
-            app == other_app && (other_opts[:override] || converge?(dep, other)) ->
-              { other, acc }
+            app == other_app && (other_opts[:override] || converge?(other, dep)) ->
+              { with_matching_req(other, dep), acc }
             app == other_app ->
               { other.status({ :overriden, dep }), acc }
             true ->
@@ -159,8 +159,8 @@ defmodule Mix.Deps.Converger do
         cond do
           app != other_app ->
             { other, match }
-          converge?(dep, other) ->
-            { other, true }
+          converge?(other, dep) ->
+            { with_matching_req(other, dep), true }
           true ->
             { other.status({ :diverged, dep }), true }
         end
@@ -169,10 +169,22 @@ defmodule Mix.Deps.Converger do
     if match, do: acc
   end
 
-  defp converge?(Mix.Dep[scm: scm, requirement: req, opts: opts1],
-                 Mix.Dep[scm: scm, requirement: req, opts: opts2]) do
+  defp converge?(Mix.Dep[scm: scm, opts: opts1], Mix.Dep[scm: scm, opts: opts2]) do
     scm.equal?(opts1, opts2)
   end
 
   defp converge?(_, _), do: false
+
+  def with_matching_req(Mix.Dep[] = other, Mix.Dep[] = dep) do
+    case other.status do
+      { :ok, vsn } when not nil?(vsn) ->
+        if Mix.Deps.Retriever.vsn_match?(dep.requirement, vsn) do
+          other
+        else
+          other.status({ :divergedreq, dep })
+        end
+      _ ->
+        other
+    end
+  end
 end

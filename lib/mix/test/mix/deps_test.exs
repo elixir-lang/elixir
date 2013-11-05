@@ -82,6 +82,28 @@ defmodule Mix.DepsTest do
     Mix.Project.pop
   end
 
+  defmodule NestedDepsApp do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          { :deps_repo, "0.1.0", path: "custom/deps_repo" }
+        ]
+      ]
+    end
+  end
+
+  test "nested deps come first" do
+    Mix.Project.push NestedDepsApp
+
+    in_fixture "deps_status", fn ->
+      assert Enum.map(Mix.Deps.fetched, &(&1.app)) == [:git_repo, :deps_repo]
+    end
+  after
+    Mix.Project.pop
+  end
+
   defmodule ConvergedDepsApp do
     def project do
       [
@@ -95,11 +117,11 @@ defmodule Mix.DepsTest do
     end
   end
 
-  test "correctly order overriden deps" do
+  test "correctly order converged deps" do
     Mix.Project.push ConvergedDepsApp
 
     in_fixture "deps_status", fn ->
-      assert [:git_repo, :deps_repo] == Enum.map(Mix.Deps.fetched, &(&1.app))
+      assert Enum.map(Mix.Deps.fetched, &(&1.app)) == [:git_repo, :deps_repo]
     end
   after
     Mix.Project.pop
