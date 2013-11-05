@@ -67,13 +67,13 @@ defmodule Mix.Tasks.Deps.Compile do
 
         compiled = cond do
           not nil?(opts[:compile]) ->
-            File.cd! deps_path, fn -> do_compile app, opts[:compile] end
+            do_compile app, deps_path, opts[:compile]
           mix?(dep) ->
-            File.cd! deps_path, fn -> do_mix dep, config end
+            do_mix dep, config
           rebar?(dep) ->
-            File.cd! deps_path, fn -> do_rebar app, root_path end
+            do_rebar app, deps_path, root_path
           make?(dep) ->
-            File.cd! deps_path, fn -> do_command app, "make" end
+            do_command app, deps_path, "make"
           true ->
             shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile " <>
               "(pass :compile as an option to customize compilation, set it to false to do nothing)"
@@ -95,29 +95,24 @@ defmodule Mix.Tasks.Deps.Compile do
     :ok
   end
 
-  defp do_mix(Mix.Dep[app: app, opts: opts], config) do
-    env     = opts[:env] || :prod
-    old_env = Mix.env
-
-    try do
-      Mix.env(env)
-      res = Mix.Project.in_project(app, ".", config, fn _ ->
-        Mix.Task.run "compile", ["--no-deps"]
-      end)
-      :ok in List.wrap(res)
-    catch
-      kind, reason ->
-        Mix.shell.error "could not compile dependency #{app}, mix compile failed. " <>
-          "You can recompile this dependency with `mix deps.compile #{app}` or " <>
-          "update it with `mix deps.update #{app}`"
-        :erlang.raise(kind, reason, System.stacktrace)
-    after
-      Mix.env(old_env)
+  defp do_mix(dep, config) do
+    Mix.Deps.in_dependency dep, config, fn _ ->
+      try do
+        res = Mix.Task.run("compile", ["--no-deps"])
+        :ok in List.wrap(res)
+      catch
+        kind, reason ->
+          app = dep.app
+          Mix.shell.error "could not compile dependency #{app}, mix compile failed. " <>
+            "You can recompile this dependency with `mix deps.compile #{app}` or " <>
+            "update it with `mix deps.update #{app}`"
+          :erlang.raise(kind, reason, System.stacktrace)
+      end
     end
   end
 
-  defp do_rebar(app, root_path) do
-    do_command app, rebar_cmd(app), "compile skip_deps=true deps_dir=#{inspect root_path}"
+  defp do_rebar(app, deps_path, root_path) do
+    do_command app, deps_path, rebar_cmd(app), "compile skip_deps=true deps_dir=#{inspect root_path}"
   end
 
   defp rebar_cmd(app) do
@@ -138,23 +133,21 @@ defmodule Mix.Tasks.Deps.Compile do
     Mix.Rebar.local_rebar_cmd || raise Mix.Error, message: "rebar instalation failed"
   end
 
-  defp do_command(app, command, extra // "") do
-    if Mix.shell.cmd("#{command} #{extra}") != 0 do
-      raise Mix.Error, message: "Could not compile dependency #{app}, #{command} command failed. " <>
-        "If you want to recompile this dependency, please run: mix deps.compile #{app}"
-    end
-    true
-  end
-
-  defp do_compile(_, false) do
+  defp do_compile(_, _deps_path, false) do
     false
   end
 
-  defp do_compile(app, command) when is_binary(command) do
+  defp do_compile(app, deps_path, command) when is_binary(command) do
     Mix.shell.info("#{app}: #{command}")
-    if Mix.shell.cmd(command) != 0 do
-      raise Mix.Error, message: "Could not compile dependency #{app}, custom #{command} command failed. " <>
-        "If you want to recompile this dependency, please run: mix deps.compile #{app}"
+    do_command(app, deps_path, command)
+  end
+
+  defp do_command(app, deps_path, command, extra // "") do
+    File.cd! deps_path, fn ->
+      if Mix.shell.cmd("#{command} #{extra}") != 0 do
+        raise Mix.Error, message: "Could not compile dependency #{app}, #{command} command failed. " <>
+          "If you want to recompile this dependency, please run: mix deps.compile #{app}"
+      end
     end
     true
   end

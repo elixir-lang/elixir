@@ -144,7 +144,7 @@ defmodule Mix.Deps.Retriever do
     end)
   end
 
-  defp rebar_dep(Mix.Dep[opts: opts] = dep, config) do
+  defp rebar_dep(Mix.Dep[opts: opts] = dep, _config) do
     File.cd!(opts[:dest], fn ->
       config = Mix.Rebar.load_config(".")
       extra  = Dict.take(config, [:sub_dirs])

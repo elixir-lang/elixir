@@ -175,6 +175,7 @@ defmodule Mix.Deps do
   changing the current working directory and loading the given
   project onto the project stack.
 
+  This function only works for mix dependencies.
   It is expected a fetched dependency as argument.
   """
   def in_dependency(dep, post_config // [], fun)
