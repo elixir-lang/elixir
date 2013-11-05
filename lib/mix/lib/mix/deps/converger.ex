@@ -50,7 +50,8 @@ defmodule Mix.Deps.Converger do
     config = [ deps_path: Path.expand(Mix.project[:deps_path]),
                root_lockfile: Path.expand(Mix.project[:lockfile]) ]
     main = Mix.Deps.Retriever.children
-    all(main, [], [], main, config, callback, rest)
+    apps = Enum.map(main, &(&1.app))
+    all(main, [], [], apps, config, callback, rest)
   end
 
   # We traverse the tree of dependencies in a breadth-
@@ -105,8 +106,11 @@ defmodule Mix.Deps.Converger do
         # dependency), we fetch the dependency including its latest info
         # and children information.
         { dep, children } = Mix.Deps.Retriever.fetch(dep, config)
+        children = reject_non_fullfilled_optional(children, current_breadths)
+        dep      = dep.deps(Enum.map(children, &(&1.app)))
+
         { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, config, callback, rest)
-        all(children, acc, current_breadths, children ++ current_breadths, config, callback, rest)
+        all(children, acc, current_breadths, dep.deps ++ current_breadths, config, callback, rest)
     end
   end
 
@@ -120,11 +124,7 @@ defmodule Mix.Deps.Converger do
   # overrider is moved to the front of the accumulator to
   # preserve the position of the removed dep.
   defp overriden_deps(acc, upper_breadths, dep) do
-    overriden = Enum.any?(upper_breadths, fn(other) ->
-      other.app == dep.app
-    end)
-
-    if overriden do
+    if dep.app in upper_breadths do
       Mix.Dep[app: app] = dep
 
       { overrider, acc } =
@@ -169,13 +169,23 @@ defmodule Mix.Deps.Converger do
     if match, do: acc
   end
 
+  defp converge?(_, Mix.Dep[scm: Mix.SCM.Optional]) do
+    true
+  end
+
   defp converge?(Mix.Dep[scm: scm, opts: opts1], Mix.Dep[scm: scm, opts: opts2]) do
     scm.equal?(opts1, opts2)
   end
 
   defp converge?(_, _), do: false
 
-  def with_matching_req(Mix.Dep[] = other, Mix.Dep[] = dep) do
+  defp reject_non_fullfilled_optional(children, upper_breadths) do
+    Enum.reject children, fn Mix.Dep[app: app, opts: opts] ->
+      opts[:optional] && not(app in upper_breadths)
+    end
+  end
+
+  defp with_matching_req(Mix.Dep[] = other, Mix.Dep[] = dep) do
     case other.status do
       { :ok, vsn } when not nil?(vsn) ->
         if Mix.Deps.Retriever.vsn_match?(dep.requirement, vsn) do

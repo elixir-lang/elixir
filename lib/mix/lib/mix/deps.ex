@@ -49,6 +49,7 @@ defmodule Mix.Deps do
   * `:env` - The environment to run the dependency on, defaults to :prod
   * `:compile` - A command to compile the dependency, defaults to a mix,
                  rebar or make command
+  * `:optional` - The dependency is optional and used only to specify requirements
 
   ## Git options (`:git`)
 
@@ -230,7 +231,7 @@ defmodule Mix.Deps do
   end
 
   def format_status(Mix.Dep[app: app, status: { :diverged, other }] = dep) do
-    "different specs were given for the #{inspect app} app:\n" <>
+    "different specs were given for the #{app} app:\n" <>
     "#{dep_status(dep)}#{dep_status(other)}" <>
     "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
   end
@@ -251,7 +252,7 @@ defmodule Mix.Deps do
     do: "the dependency requires Elixir #{req} but you are running on v#{System.version}"
 
   defp dep_status(Mix.Dep[app: app, requirement: req, opts: opts, from: from]) do
-    info = { app, req, Dict.drop(opts, [:dest, :lock, :env]) }
+    info = { app, req, Dict.drop(opts, [:dest, :lock, :env, :drop]) }
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
   end
 

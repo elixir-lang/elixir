@@ -8,12 +8,12 @@ defmodule Mix.Deps.Retriever do
   Gets all direct children of the current `Mix.Project`
   as a `Mix.Dep` record. Umbrella project dependencies
   are included as children.
+
+  Optional dependencies are filtered out as they only
+  matter as a dependency children.
   """
   def children do
-    scms = Mix.SCM.available
-    from = Path.absname("mix.exs")
-    Enum.map(Mix.project[:deps] || [], &to_dep(&1, scms, from)) ++
-             Mix.Deps.Umbrella.unfetched
+    mix_children |> Enum.reject(fn Mix.Dep[opts: opts] -> opts[:optional] end)
   end
 
   @doc """
@@ -46,7 +46,6 @@ defmodule Mix.Deps.Retriever do
           mix_dep(dep.manager(:mix), config)
       end
 
-    dep = dep.deps(Enum.map(children, &(&1.app)))
     { validate_app(dep), children }
   end
 
@@ -97,7 +96,7 @@ defmodule Mix.Deps.Retriever do
       ]
     else
       raise Mix.Error, message: "#{inspect Mix.Project.get} did not specify a supported scm " <>
-                                "for app #{inspect app}, expected one of :git, :path or :in_umbrella"
+                                "for app #{inspect app}, expected one of :git, :path, :in_umbrella or :optional"
     end
   end
 
@@ -154,8 +153,15 @@ defmodule Mix.Deps.Retriever do
         true -> status
       end
 
-      { dep.manager(:mix).opts(opts).status(stat), children }
+      { dep.manager(:mix).opts(opts).status(stat), mix_children }
     end)
+  end
+
+  defp mix_children do
+    scms = Mix.SCM.available
+    from = Path.absname("mix.exs")
+    Enum.map(Mix.project[:deps] || [], &to_dep(&1, scms, from)) ++
+             Mix.Deps.Umbrella.unfetched
   end
 
   defp rebar_dep(Mix.Dep[opts: opts] = dep, _config) do
