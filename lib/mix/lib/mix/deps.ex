@@ -175,23 +175,9 @@ defmodule Mix.Deps do
   changing the current working directory and loading the given
   project onto the project stack.
 
-  In case the project is a rebar dependency, a `Mix.Rebar` project
-  will be pushed into the stack to simulate the rebar configuration.
-
   It is expected a fetched dependency as argument.
   """
   def in_dependency(dep, post_config // [], fun)
-
-  def in_dependency(Mix.Dep[manager: :rebar, opts: opts], post_config, fun) do
-    # Use post_config for rebar deps
-    Mix.Project.post_config(post_config)
-    Mix.Project.push(Mix.Rebar)
-    try do
-      File.cd!(opts[:dest], fn -> fun.(Mix.Rebar) end)
-    after
-      Mix.Project.pop
-    end
-  end
 
   def in_dependency(Mix.Dep[app: app, opts: opts], post_config, fun) do
     env     = opts[:env] || :prod

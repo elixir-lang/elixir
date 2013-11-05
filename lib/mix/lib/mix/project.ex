@@ -41,16 +41,21 @@ defmodule Mix.Project do
   # Invoked after each Mix.Project is compiled.
   @doc false
   def __after_compile__(env, _binary) do
-    push env.module
+    push env.module, env.file
   end
 
   # Push a project onto the project stack. Only
   # the top of the stack can be accessed.
   @doc false
-  def push(atom) when is_atom(atom) do
+  def push(atom, file // "nofile") when is_atom(atom) do
     config = Keyword.merge default_config, get_project_config(atom)
-
-    Mix.Server.cast({ :push_project, atom, config })
+    case Mix.Server.call({ :push_project, atom, config, file }) do
+      :ok ->
+        :ok
+      { :error, other } when is_binary(other) ->
+        raise Mix.Error, message: "Trying to load #{inspect atom} from #{inspect file}" <>
+          " but another project with the same was already defined at #{inspect other}"
+    end
   end
 
   # Pops a project from the stack.

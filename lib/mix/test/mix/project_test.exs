@@ -18,14 +18,32 @@ defmodule Mix.ProjectTest do
 
   test "push and pop projects" do
     refute Mix.Project.get
-    Mix.Project.push(SampleProject)
+    Mix.Project.push(SampleProject, "sample")
 
     assert Mix.Project.get == SampleProject
 
-    assert Mix.Project.pop == SampleProject
+    assert Mix.Project.pop == { SampleProject, "sample" }
     assert Mix.Project.pop == nil
   after
     Mix.Project.pop
+  end
+
+  test "does not allow the same project to be pushed twice" do
+    Mix.Project.push(SampleProject, "sample")
+
+    assert_raise Mix.Error, %r/Mix.ProjectTest.SampleProject from "another"/, fn ->
+      Mix.Project.push(SampleProject, "another")
+    end
+  after
+    Mix.Project.pop
+  end
+
+  test "allows nil projects to be pushed twice" do
+    Mix.Project.push nil
+    Mix.Project.push nil
+    assert Mix.Project.pop == { nil, "nofile" }
+    assert Mix.Project.pop == { nil, "nofile" }
+    assert Mix.Project.pop == nil
   end
 
   test "retrieves configuration from projects" do

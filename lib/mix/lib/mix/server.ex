@@ -5,7 +5,7 @@ defmodule Mix.Server do
   defrecord Config, tasks: :ordsets.new, projects: [], mixfile: [],
     shell: Mix.Shell.IO, scm: :ordsets.new, env: nil, post_config: []
 
-  defrecord Project, name: nil, config: nil, rec_enabled?: true, io_done: false
+  defrecord Project, name: nil, config: nil, rec_enabled?: true, io_done: false, file: nil
 
   def start_link(env) do
     :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, env, [])
@@ -55,8 +55,8 @@ defmodule Mix.Server do
 
   def handle_call(:pop_project, _from, config) do
     case config.projects do
-      [ Project[name: project] | tail ] ->
-        { :reply, project, config.projects(tail) }
+      [ Project[name: name, file: file] | tail ] ->
+        { :reply, { name, file }, config.projects(tail) }
       _ ->
         { :reply, nil, config }
     end
@@ -87,8 +87,27 @@ defmodule Mix.Server do
     end
   end
 
+  def handle_call({ :push_project, name, config, file }, _from, state) do
+    config  = Keyword.merge(config, state.post_config)
+    project = Project[name: name, config: config, file: file]
+
+    cond do
+      file = has_project_named(name, state) ->
+        { :reply, { :error, file }, state }
+      true ->
+        { :reply, :ok, state.post_config([]).update_projects(&[project|&1]) }
+    end
+  end
+
   def handle_call(request, from, config) do
     super(request, from, config)
+  end
+
+  defp has_project_named(name, state) do
+    name && Enum.find_value(state.projects, fn
+      Project[name: ^name, file: file] -> file
+      Project[] -> nil
+    end)
   end
 
   def handle_cast({ :shell, name }, config) do
@@ -109,14 +128,6 @@ defmodule Mix.Server do
 
   def handle_cast({ :delete_task, task }, config) do
     { :noreply, config.update_tasks &:ordsets.filter(fn {t, _} -> t != task end, &1) }
-  end
-
-  def handle_cast({ :push_project, name, conf }, config) do
-    conf = Keyword.merge(conf, config.post_config)
-    project = Project[name: name, config: conf]
-    config = config.post_config([])
-                   .update_projects(&[project|&1])
-    { :noreply, config }
   end
 
   def handle_cast({ :post_config, value }, config) do

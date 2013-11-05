@@ -78,7 +78,8 @@ defmodule Mix.CLI do
   defp change_env(task) do
     if nil?(System.get_env("MIX_ENV")) && (env = Mix.project[:preferred_cli_env][task]) do
       Mix.env(env)
-      Mix.Project.push Mix.Project.pop
+      { project, file } = Mix.Project.pop
+      Mix.Project.push project, file
     end
   end
 

@@ -1,10 +1,6 @@
 defmodule Mix.Rebar do
   @moduledoc false
 
-  # Make Mix.Rebar work like a project so we can push it into the stack.
-  @doc false
-  def project, do: []
-
   @doc """
   Returns the path supposed to host the local copy of rebar.
   """
