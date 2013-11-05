@@ -12,8 +12,7 @@ defmodule Mix.DepsTest do
           { :invalidapp, "0.1.0", path: "deps/invalidapp" },
           { :noappfile,  "0.1.0", path: "deps/noappfile" },
           { :uncloned,            git: "https://github.com/elixir-lang/uncloned.git" },
-          { :optional,            optional: true },
-          { :optional_git,        optional: true, git: "https://github.com/elixir-lang/optinal.git" }
+          { :optional,            git: "https://github.com/elixir-lang/optional.git", optional: true }
         ]
       ]
     end
@@ -36,12 +35,13 @@ defmodule Mix.DepsTest do
 
     in_fixture "deps_status", fn ->
       deps = Mix.Deps.fetched
-      assert length(deps) == 5
+      assert length(deps) == 6
       assert Enum.find deps, &match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
       assert Enum.find deps, &match?(Mix.Dep[app: :invalidvsn, status: { :invalidvsn, :ok }], &1)
       assert Enum.find deps, &match?(Mix.Dep[app: :invalidapp, status: { :invalidapp, _ }], &1)
       assert Enum.find deps, &match?(Mix.Dep[app: :noappfile, status: { :noappfile, _ }], &1)
       assert Enum.find deps, &match?(Mix.Dep[app: :uncloned, status: { :unavailable, _ }], &1)
+      assert Enum.find deps, &match?(Mix.Dep[app: :optional, status: { :unavailable, _ }], &1)
     end
   after
     Mix.Project.pop
@@ -63,7 +63,7 @@ defmodule Mix.DepsTest do
 
     in_fixture "deps_status", fn ->
       msg = "Mix.DepsTest.NoSCMApp did not specify a supported scm for app :ok, " <>
-            "expected one of :git, :path, :in_umbrella or :optional"
+            "expected one of :git, :path or :in_umbrella"
       assert_raise Mix.Error, msg, fn -> Mix.Deps.fetched end
     end
   after
@@ -120,7 +120,7 @@ defmodule Mix.DepsTest do
             app: :deps_repo,
             version: "0.1.0",
             deps: [
-              { :git_repo, "0.2.0", optional: true }
+              { :git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), optional: true }
             ]
           ]
         end
@@ -169,7 +169,7 @@ defmodule Mix.DepsTest do
             app: :deps_repo,
             version: "0.1.0",
             deps: [
-              { :git_repo, "0.2.0", optional: true }
+              { :git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), optional: true }
             ]
           ]
         end

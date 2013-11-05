@@ -125,6 +125,5 @@ defmodule Mix.SCM do
   def register_builtin do
     register Mix.SCM.Git
     register Mix.SCM.Path
-    register Mix.SCM.Optional
   end
 end
