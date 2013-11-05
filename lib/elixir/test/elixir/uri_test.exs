@@ -155,7 +155,7 @@ defmodule URITest do
       port_uri = URI.parse("http://[#{addr}]:2222/")
       assert port_uri.host == addr
       assert port_uri.port == 2222
-      
+
       userinfo_port_uri = URI.parse("http://user:pass@[#{addr}]:2222/")
       assert userinfo_port_uri.host == addr
       assert userinfo_port_uri.userinfo == "user:pass"
@@ -175,5 +175,10 @@ defmodule URITest do
     assert to_string(URI.parse("http://google.com/elixir")) == "http://google.com/elixir"
     assert to_string(URI.parse("http://google.com?q=lol")) == "http://google.com?q=lol"
     assert to_string(URI.parse("http://google.com?q=lol#omg")) == "http://google.com?q=lol#omg"
+  end
+
+  test :escape do
+    assert URI.decode("%2f%41%4a%55") == "/AJU"
+    assert URI.decode("%2F%41%4A%55") == "/AJU"
   end
 end

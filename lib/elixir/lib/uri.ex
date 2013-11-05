@@ -137,6 +137,7 @@ defmodule URI do
   def decode(<<>>), do: <<>>
 
   defp hex2dec(n) when n in ?A..?F, do: n - ?A + 10
+  defp hex2dec(n) when n in ?a..?f, do: n - ?a + 10
   defp hex2dec(n) when n in ?0..?9, do: n - ?0
 
   defp check_plus(?+), do: 32
