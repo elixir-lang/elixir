@@ -28,13 +28,14 @@ defmodule Mix.Deps.Umbrella do
     apps = Enum.map(deps, &(&1.app))
 
     Enum.map(deps, fn(umbrella_dep) ->
-      umbrella_dep = Mix.Deps.Retriever.fetch(umbrella_dep, [])
-      umbrella_dep.update_deps(&Enum.filter(&1, fn dep ->
-        Mix.Deps.available?(dep) and dep.app in apps
-      end))
+      { umbrella_dep, deps } = Mix.Deps.Retriever.fetch(umbrella_dep, [])
+      deps = lc Mix.Dep[] = dep inlist deps,
+                Mix.Deps.available?(dep),
+                dep.app in apps,
+                do: dep.app
+      umbrella_dep.deps(deps)
     end) |> Mix.Deps.Converger.topsort
   end
-
 
   defp extract_umbrella(paths) do
     lc path inlist paths do

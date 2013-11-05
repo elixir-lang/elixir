@@ -25,25 +25,29 @@ defmodule Mix.Deps.Retriever do
     dep  = dep.status(scm_status(scm, opts))
     dest = opts[:dest]
 
-    validate_app(cond do
-      not ok?(dep.status) ->
-        dep
+    { dep, children } =
+      cond do
+        not ok?(dep.status) ->
+          { dep, [] }
 
-      manager == :rebar ->
-        rebar_dep(dep, config)
+        manager == :rebar ->
+          rebar_dep(dep, config)
 
-      mix?(dest) ->
-        mix_dep(dep.manager(:mix), config)
+        mix?(dest) ->
+          mix_dep(dep.manager(:mix), config)
 
-      rebar?(dest) ->
-        rebar_dep(dep.manager(:rebar), config)
+        rebar?(dest) ->
+          rebar_dep(dep.manager(:rebar), config)
 
-      make?(dest) ->
-        dep.manager(:make)
+        make?(dest) ->
+          { dep.manager(:make), [] }
 
-      true ->
-        mix_dep(dep.manager(:mix), config)
-    end)
+        true ->
+          mix_dep(dep.manager(:mix), config)
+      end
+
+    dep = dep.deps(Enum.map(children, &(&1.app)))
+    { validate_app(dep), children }
   end
 
   @doc """
@@ -150,7 +154,7 @@ defmodule Mix.Deps.Retriever do
         true -> status
       end
 
-      dep.manager(:mix).opts(opts).deps(children).status(stat)
+      { dep.manager(:mix).opts(opts).status(stat), children }
     end)
   end
 
@@ -158,7 +162,7 @@ defmodule Mix.Deps.Retriever do
     File.cd!(opts[:dest], fn ->
       config = Mix.Rebar.load_config(".")
       extra  = Dict.take(config, [:sub_dirs])
-      dep.manager(:rebar).extra(extra).deps(rebar_children(config))
+      { dep.manager(:rebar).extra(extra), rebar_children(config) }
     end)
   end
 

@@ -22,8 +22,8 @@ defmodule Mix.Deps.Converger do
         :digraph.add_vertex(graph, app)
       end
 
-      Enum.each deps, fn Mix.Dep[app: app, deps: deps] ->
-        Enum.each deps, fn Mix.Dep[app: other_app] ->
+      Enum.each deps, fn Mix.Dep[app: app, deps: other_apps] ->
+        Enum.each other_apps, fn other_app ->
           :digraph.add_edge(graph, other_app, app)
         end
       end
@@ -104,9 +104,9 @@ defmodule Mix.Deps.Converger do
         # After we invoke the callback (which may actually check out the
         # dependency), we fetch the dependency including its latest info
         # and children information.
-        dep = Mix.Deps.Retriever.fetch(dep, config)
+        { dep, children } = Mix.Deps.Retriever.fetch(dep, config)
         { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, config, callback, rest)
-        all(dep.deps, acc, current_breadths, dep.deps ++ current_breadths, config, callback, rest)
+        all(children, acc, current_breadths, children ++ current_breadths, config, callback, rest)
     end
   end
 
