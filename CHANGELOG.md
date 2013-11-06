@@ -11,7 +11,7 @@
   * [Mix] Ensure umbrella apps run in the same environment as the parent project
   * [Mix] Ensure dependency tree is topsorted before compiling
   * [Mix] Raise error when duplicated projects are pushed into the stack
-  * [URI] Allow lower case escapes in URI
+  * [URI] Allow lowercase escapes in URI
 
 * Deprecations
 
