@@ -927,8 +927,7 @@ defmodule Kernel.SpecialForms do
   @doc """
   When used inside quoting, marks that the variable should
   not be hygienized. The argument can be either a variable
-  node (i.e. a tuple with three elements where the last
-  one is an atom) or an atom representing the variable name.
+  unquoted or an atom representing the variable name.
   Check `quote/2` for more information.
   """
   defmacro var!(var)
