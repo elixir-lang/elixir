@@ -342,12 +342,13 @@ remote_function(Meta, Receiver, Name, Arity, S) ->
 %% ERROR HANDLING
 
 format_error({ unrequired_module, { Receiver, Name, Arity, Required }}) ->
-  String = 'Elixir.Enum':join([elixir_errors:inspect(R) || R <- Required], <<", ">>),
-  io_lib:format("tried to invoke macro ~ts.~ts/~B but module was not required. Required: ~ts",
-    [elixir_errors:inspect(Receiver), Name, Arity, String]);
+  Module = elixir_errors:inspect(Receiver),
+  io_lib:format("you must require ~ts before invoking the macro ~ts.~ts/~B",
+    [Module, Module, Name, Arity]);
 
 format_error({ macro_conflict, { Receiver, Name, Arity } }) ->
-  io_lib:format("call to local macro ~ts/~B conflicts with imported ~ts.~ts/~B",
+  io_lib:format("call to local macro ~ts/~B conflicts with imported ~ts.~ts/~B, "
+    "please rename the local macro or remove the conflicting import",
     [Name, Arity, elixir_errors:inspect(Receiver), Name, Arity]);
 
 format_error({ ambiguous_call, { Mod1, Mod2, Name, Arity }}) ->

@@ -249,7 +249,8 @@ defmodule Kernel.ErrorsTest do
 
   test :macro_local_conflict do
     assert_compile_fail CompileError,
-      "nofile:6: call to local macro &&/2 conflicts with imported Kernel.&&/2",
+      "nofile:6: call to local macro &&/2 conflicts with imported Kernel.&&/2, " <>
+      "please rename the local macro or remove the conflicting import",
       '''
       defmodule ErrorsTest do
         def hello, do: 1 || 2
@@ -314,9 +315,9 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :unrequired_macro do
-    assert_compile_fail CompileError,
-      "nofile:2: tried to invoke macro Kernel.ErrorsTest.UnproperMacro.unproper/1 " <>
-      "but module was not required. Required: Integer, Kernel, Kernel.Typespec, Record",
+    assert_compile_fail SyntaxError,
+      "nofile:2: you must require Kernel.ErrorsTest.UnproperMacro before invoking " <>
+      "the macro Kernel.ErrorsTest.UnproperMacro.unproper/1 "
       '''
       defmodule ErrorsTest do
         Kernel.ErrorsTest.UnproperMacro.unproper([])
