@@ -28,7 +28,7 @@ defmodule ExUnit.Case do
   """
 
   @doc false
-  defmacro __using__(opts // []) do
+  defmacro __using__(opts) do
     async = Keyword.get(opts, :async, false)
 
     unless Process.whereis(ExUnit.Server) do
