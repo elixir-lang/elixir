@@ -38,10 +38,17 @@ defmodule Mix.Shell.IO do
   """
   def yes?(message) do
     put_app
-    IO.gets(message <> IO.ANSI.escape(" [Yn] ")) =~ %r/^(Y(es)?)?$/i
+    got_yes? IO.gets(message <> IO.ANSI.escape(" [Yn] "))
   end
 
-  def put_app do
+  defp got_yes?(answer) when is_binary(answer) do
+    answer =~ %r/^(Y(es)?)?$/i
+  end
+
+  # The io server may return :eof or :error
+  defp got_yes?(_), do: false
+
+  defp put_app do
     if Mix.Shell.output_app? do
       IO.puts "==> #{Mix.project[:app]}"
     end
