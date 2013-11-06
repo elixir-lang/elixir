@@ -69,15 +69,6 @@ defmodule CodeTest do
     assert Code.require_file(fixture_path("code_sample.exs")) != nil
   end
 
-  test :path_manipulation do
-    path = __DIR__
-    Code.prepend_path path
-    assert to_char_list(path) in :code.get_path
-
-    Code.delete_path path
-    refute to_char_list(path) in :code.get_path
-  end
-
   test :file do
     assert :filename.absname(__FILE__) == __FILE__
   end
@@ -142,5 +133,18 @@ defmodule CodeTest do
   test :ensure_compiled? do
     assert Code.ensure_compiled?(__MODULE__)
     refute Code.ensure_compiled?(Unknown.Module)
+  end
+end
+
+defmodule Code.SyncTest do
+  use ExUnit.Case
+
+  test :path_manipulation do
+    path = Path.join(__DIR__, "fixtures")
+    Code.prepend_path path
+    assert to_char_list(path) in :code.get_path
+
+    Code.delete_path path
+    refute to_char_list(path) in :code.get_path
   end
 end
