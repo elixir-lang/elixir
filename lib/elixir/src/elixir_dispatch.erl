@@ -341,7 +341,7 @@ remote_function(Meta, Receiver, Name, Arity, S) ->
 
 %% ERROR HANDLING
 
-format_error({ unrequired_module, { Receiver, Name, Arity, Required }}) ->
+format_error({ unrequired_module, { Receiver, Name, Arity, _Required }}) ->
   Module = elixir_errors:inspect(Receiver),
   io_lib:format("you must require ~ts before invoking the macro ~ts.~ts/~B",
     [Module, Module, Name, Arity]);
