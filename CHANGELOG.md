@@ -1,6 +1,8 @@
 # v0.11.1-dev
 
 * Enhancements
+  * [Mix] Improve dependency convergence by explicitly checking each requirement instead of expecting all requirements to be equal
+  * [Mix] Support optional dependencies with `optional: true`. Optional dependencies are downloaded for the current project but they are automatically skipped when such project is used as a dependency
 
 * Bug fixes
   * [Kernel] Set compilation status per ParallelCompiler and not globally
@@ -8,6 +10,8 @@
   * [Mix] Ensure umbrella apps are sorted before running recursive commands
   * [Mix] Ensure umbrella apps run in the same environment as the parent project
   * [Mix] Ensure dependency tree is topsorted before compiling
+  * [Mix] Raise error when duplicated projects are pushed into the stack
+  * [URI] Allow lower case escapes in URI
 
 * Deprecations
 
