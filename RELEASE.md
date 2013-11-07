@@ -20,7 +20,7 @@ This document simply outlines the release process:
 
 9) Merge master into stable branch and push it
 
-10) After release, bump versions and add `-dev` back
+10) After release, bump versions, add `-dev` back and commit
 
 11) `make release_docs` once again and push `elixir-lang.github.com`
 
