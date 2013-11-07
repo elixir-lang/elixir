@@ -1,4 +1,4 @@
-# v0.11.1-dev
+# v0.11.1 (2013-11-07)
 
 * Enhancements
   * [Mix] Improve dependency convergence by explicitly checking each requirement instead of expecting all requirements to be equal
@@ -12,8 +12,6 @@
   * [Mix] Ensure dependency tree is topsorted before compiling
   * [Mix] Raise error when duplicated projects are pushed into the stack
   * [URI] Allow lowercase escapes in URI
-
-* Deprecations
 
 * Backwards incompatible changes
   * [Mix] Setting `:load_paths` in your project configuration is deprecated
