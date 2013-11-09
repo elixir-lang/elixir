@@ -310,7 +310,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
   test "does not load bad mix files on get" do
     Mix.Project.push GitApp
-    [last, first, bad|_] = get_git_repo_revs
+    [last, _, bad|_] = get_git_repo_revs
 
     in_fixture "no_mixfile", fn ->
       Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), bad, [] }]
@@ -327,7 +327,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
   test "does not load bad mix files on update" do
     Mix.Project.push GitApp
-    [last, first, bad|_] = get_git_repo_revs
+    [last, _, bad|_] = get_git_repo_revs
 
     in_fixture "no_mixfile", fn ->
       Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), bad, [] }]
