@@ -5,7 +5,6 @@ defmodule Mix.ProjectStack do
   use GenServer.Behaviour
   @timeout 30_000
 
-  @typep module  :: atom | nil
   @typep file    :: binary
   @typep config  :: Keyword.t
   @typep project :: { module, config, file }
