@@ -6,8 +6,9 @@ defmodule Mix.ShellTest do
   defp capture_io(somefunc) do
     ExUnit.CaptureIO.capture_io(somefunc) |> String.replace("\r\n","\n")
   end
-  defp capture_io(from,somefunc) do
-    ExUnit.CaptureIO.capture_io(from,somefunc) |> String.replace("\r\n","\n")
+
+  defp capture_io(from, somefunc) do
+    ExUnit.CaptureIO.capture_io(from, somefunc) |> String.replace("\r\n","\n")
   end
 
   test "shell process" do

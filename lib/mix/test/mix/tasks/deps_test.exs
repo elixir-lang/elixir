@@ -5,7 +5,7 @@ defmodule Mix.Tasks.DepsTest do
 
   defmodule DepsApp do
     def project do
-      [
+      [ app: :deos, version: "0.1.0",
         deps: [
           { :ok, "0.1.0",         github: "elixir-lang/ok" },
           { :invalidvsn, "0.2.0", path: "deps/invalidvsn" },
@@ -19,7 +19,7 @@ defmodule Mix.Tasks.DepsTest do
 
   defmodule SuccessfulDepsApp do
     def project do
-      [
+      [ app: :success, version: "0.1.0",
         deps: [
           { :ok, "0.1.0", path: "deps/ok" }
         ]
@@ -29,7 +29,7 @@ defmodule Mix.Tasks.DepsTest do
 
   defmodule ReqDepsApp do
     def project do
-      [
+      [ app: :req_deps, version: "0.1.0",
         deps: [
           { :ok, ">= 2.0",  path: "deps/ok" },
           { :noappfile,     path: "deps/noappfile", app: false },
@@ -509,6 +509,12 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Compile.run []
       Mix.Tasks.Deps.Check.run []
 
+      File.write!("deps/ok/mix.exs", """)
+      defmodule Ok.Mixfile do
+        use Mix.Project
+        def project, do: [app: :ok]
+      end
+      """
       File.write!("deps/ok/ebin/.compile.lock", "the_future")
       Mix.Task.clear
 

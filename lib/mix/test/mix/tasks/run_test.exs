@@ -3,13 +3,6 @@ Code.require_file "../../test_helper.exs", __DIR__
 defmodule Mix.Tasks.RunTest do
   use MixTest.Case
 
-  defmodule SimpleApp do
-    def project do
-      [ app: :simple_app,
-        version: "0.1.0" ]
-    end
-  end
-
   defmodule GetApp do
     def project do
       [ app: :get_app,
@@ -34,7 +27,7 @@ defmodule Mix.Tasks.RunTest do
   end
 
   test "run requires before commands" do
-    Mix.Project.push SimpleApp
+    Mix.Project.push MixTest.Case.Sample
     git_repo = fixture_path("git_repo/lib/git_repo.ex")
 
     in_fixture "no_mixfile", fn ->

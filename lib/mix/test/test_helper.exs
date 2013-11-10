@@ -6,6 +6,13 @@ ExUnit.start [trace: "--trace" in System.argv]
 defmodule MixTest.Case do
   use ExUnit.CaseTemplate
 
+  defmodule Sample do
+    def project do
+      [ app: :sample,
+        version: "0.1.0" ]
+    end
+  end
+
   using do
     quote do
       import MixTest.Case

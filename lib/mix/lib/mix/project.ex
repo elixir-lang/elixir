@@ -161,6 +161,11 @@ defmodule Mix.Project do
   collecting all `:compile_path` in case of umbrella apps.
   """
   def compile_path(config // config()) do
+    unless config[:app] do
+      raise Mix.Error, message: "Cannot access compilation path without an application name, " <>
+        "please ensure you are in a directory with a mix.exs file and it defines an :app " <>
+        "name under the project configuration"
+    end
     Path.expand "ebin"
   end
 

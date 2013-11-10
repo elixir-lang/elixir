@@ -43,7 +43,7 @@ defmodule Mix.Deps.Retriever do
           { dep.manager(:make), [] }
 
         true ->
-          mix_dep(dep, config)
+          { dep, [] }
       end
 
     { validate_app(dep), children }
@@ -138,22 +138,23 @@ defmodule Mix.Deps.Retriever do
 
   defp mix_dep(Mix.Dep[opts: opts, app: app, status: status] = dep, config) do
     Mix.Deps.in_dependency(dep, config, fn _ ->
-      config  = Mix.project
-      default =
-        if Mix.Project.umbrella? do
+      config    = Mix.project
+      umbrella? = Mix.Project.umbrella?
+      app_path  =
+        if umbrella? do
           false
         else
           Path.join(Mix.Project.compile_path(config), "#{app}.app")
         end
 
-      opts = Keyword.put_new(opts, :app, default)
       stat = cond do
         vsn = old_elixir_lock() -> { :elixirlock, vsn }
         req = old_elixir_req(config) -> { :elixirreq, req }
         true -> status
       end
 
-      { dep.manager(:mix).opts(opts).status(stat), children }
+      opts = Keyword.put_new(opts, :app, app_path)
+      { dep.manager(:mix).opts(opts).status(stat).extra(umbrella: umbrella?), children }
     end)
   end
 

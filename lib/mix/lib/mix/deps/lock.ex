@@ -26,9 +26,11 @@ defmodule Mix.Deps.Lock do
   Returns the elixir lock version.
   """
   def elixir_vsn do
-    case File.read(manifest) do
-      { :ok, contents } -> contents
-      { :error, _ } -> nil
+    unless Mix.Project.umbrella? do
+      case File.read(manifest) do
+        { :ok, contents } -> contents
+        { :error, _ } -> nil
+      end
     end
   end
 

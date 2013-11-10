@@ -278,14 +278,14 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Check if a dependency is ok.
+  Checks if a dependency is ok.
   """
   def ok?(Mix.Dep[status: { :ok, _ }]), do: true
   def ok?(Mix.Dep[]), do: false
 
   @doc """
-  Check if a dependency is available. Available dependencies
-  are the ones that can be compiled, loaded, etc.
+  Checks if a dependency is available. Available dependencies
+  are the ones that can be loaded.
   """
   def available?(Mix.Dep[status: { :overriden, _ }]),    do: false
   def available?(Mix.Dep[status: { :diverged, _ }]),     do: false
@@ -295,13 +295,23 @@ defmodule Mix.Deps do
   def available?(Mix.Dep[]), do: true
 
   @doc """
-  Check if a dependency can be updated.
+  Checks if a dependency can be compiled.
+
+  All available dependencies can be compiled except for
+  umbrella applications.
+  """
+  def compilable?(Mix.Dep[manager: manager, extra: extra] = dep) do
+    available?(dep) and (manager != :mix or !extra[:umbrella?])
+  end
+
+  @doc """
+  Checks if a dependency can be updated.
   """
   def updatable?(Mix.Dep[status: { :elixirreq, _ }]), do: true
   def updatable?(dep), do: available?(dep)
 
   @doc """
-  Check if a dependency is out of date, also considering its
+  Checks if a dependency is out of date, also considering its
   lock status. Therefore, be sure to call `check_lock` before
   invoking this function.
 
@@ -325,20 +335,6 @@ defmodule Mix.Deps do
       end
 
     "#{app} #{version}(#{scm.format(opts)})"
-  end
-
-  @doc """
-  Returns all compile paths for the dependency.
-  Expects a fetched dependency.
-  """
-  def compile_path(Mix.Dep[app: app, opts: opts, manager: manager]) do
-    if manager == :mix do
-      Mix.Project.in_project app, opts[:dest], fn _ ->
-        Mix.Project.compile_path
-      end
-    else
-      Path.join(opts[:dest], "ebin")
-    end
   end
 
   @doc """

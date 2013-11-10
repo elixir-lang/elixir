@@ -86,11 +86,8 @@ defmodule Mix.Tasks.Compile do
   end
 
   defp get_compilers do
-    Mix.project[:compilers] || if Mix.Project.get do
+    Mix.project[:compilers] ||
       [:yecc, :leex, :erlang, :elixir, :app]
-    else
-      [:yecc, :leex, :erlang, :elixir]
-    end
   end
 
   defp format(expression, args) do

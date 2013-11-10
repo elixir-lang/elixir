@@ -3,7 +3,7 @@ Code.require_file "../../test_helper.exs", __DIR__
 defmodule Mix.Tasks.App.StartTest do
   use MixTest.Case
 
-  defmodule CustomApp do
+  defmodule AppStartSample do
     def project do
       [app: :app_start_sample, version: "0.1.0"]
     end
@@ -16,6 +16,8 @@ defmodule Mix.Tasks.App.StartTest do
   end
 
   test "recompiles project if elixir version changed" do
+    Mix.Project.push MixTest.Case.Sample
+
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.run []
       purge [A, B, C]
@@ -31,10 +33,12 @@ defmodule Mix.Tasks.App.StartTest do
       assert System.version == Mix.Deps.Lock.elixir_vsn
       assert File.stat!("ebin/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
     end
+  after
+    Mix.Project.pop
   end
 
   test "compiles and starts the project" do
-    Mix.Project.push CustomApp
+    Mix.Project.push AppStartSample
 
     in_fixture "no_mixfile", fn ->
       assert_raise Mix.Error, fn ->

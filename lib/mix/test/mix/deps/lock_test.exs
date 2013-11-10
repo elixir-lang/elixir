@@ -3,6 +3,16 @@ Code.require_file "../../test_helper.exs", __DIR__
 defmodule Mix.Deps.LockTest do
   use MixTest.Case
 
+  setup do
+    Mix.Project.push MixTest.Case.Sample
+    :ok
+  end
+
+  teardown do
+    Mix.Project.pop
+    :ok
+  end
+
   test "creates new lock and manifest files" do
     in_fixture "no_mixfile", fn ->
       Mix.Deps.Lock.write [foo: :bar]

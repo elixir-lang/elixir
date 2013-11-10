@@ -21,7 +21,7 @@ defmodule Mix.CLITest do
       File.write! "mix.exs", """
       defmodule P do
         use Mix.Project
-        def project, do: []
+        def project, do: [app: :p]
       end
       """
       output = mix ""

@@ -3,6 +3,16 @@ Code.require_file "../../test_helper.exs", __DIR__
 defmodule Mix.Tasks.Compile.ElixirTest do
   use MixTest.Case
 
+  setup do
+    Mix.Project.push MixTest.Case.Sample
+    :ok
+  end
+
+  teardown do
+    Mix.Project.pop
+    :ok
+  end
+
   test "compile a project without mixfile" do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run []
@@ -43,24 +53,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       refute File.regular?("ebin/Elixir.A.beam")
     end
-  end
-
-  defmodule SourcePathsProject do
-    def project do
-      [elixirc_paths: ["unknown"]]
-    end
-  end
-
-  test "use custom source paths" do
-    Mix.Project.push SourcePathsProject
-
-    in_fixture "no_mixfile", fn ->
-      # Nothing to compile with the custom source paths
-      assert Mix.Tasks.Compile.Elixir.run([])
-      refute_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
-    end
-  after
-    Mix.Project.pop
   end
 
   test "compiles only changed files" do
@@ -151,5 +143,23 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run(["--force"]) == :ok
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
     end
+  end
+
+  defmodule SourcePathsProject do
+    def project do
+      [ app: :source_paths, elixirc_paths: ["unknown"]]
+    end
+  end
+
+  test "use custom source paths" do
+    Mix.Project.push SourcePathsProject
+
+    in_fixture "no_mixfile", fn ->
+      # Nothing to compile with the custom source paths
+      assert Mix.Tasks.Compile.Elixir.run([])
+      refute_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+    end
+  after
+    Mix.Project.pop
   end
 end

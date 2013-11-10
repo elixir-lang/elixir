@@ -5,16 +5,14 @@ defmodule Mix.DepsTest do
 
   defmodule DepsApp do
     def project do
-      [
-        deps: [
+      [ deps: [
           { :ok,         "0.1.0", github: "elixir-lang/ok" },
           { :invalidvsn, "0.2.0", path: "deps/invalidvsn" },
           { :invalidapp, "0.1.0", path: "deps/invalidapp" },
           { :noappfile,  "0.1.0", path: "deps/noappfile" },
           { :uncloned,            git: "https://github.com/elixir-lang/uncloned.git" },
           { :optional,            git: "https://github.com/elixir-lang/optional.git", optional: true }
-        ]
-      ]
+        ] ]
     end
   end
 

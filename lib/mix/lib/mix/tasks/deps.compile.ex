@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   """
 
-  import Mix.Deps, only: [fetched: 0, available?: 1, fetched_by_name: 1, compile_path: 1,
+  import Mix.Deps, only: [fetched: 0, compilable?: 1, fetched_by_name: 1,
                           format_dep: 1, make?: 1, mix?: 1, rebar?: 1]
 
   def run(args) do
@@ -35,7 +35,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
     case OptionParser.parse(args, switches: [quiet: :boolean]) do
       { opts, [], _ } ->
-        do_run(Enum.filter(fetched, &available?/1), opts)
+        do_run(Enum.filter(fetched, &compilable?/1), opts)
       { opts, tail, _ } ->
         do_run(fetched_by_name(tail), opts)
     end
@@ -61,10 +61,6 @@ defmodule Mix.Tasks.Deps.Compile do
           root_lockfile: Path.expand(Mix.project[:lockfile])
         ]
 
-        # Avoid compilation conflicts
-        ebin = compile_path(dep) |> String.to_char_list! |> Path.expand
-        :code.del_path(ebin)
-
         compiled = cond do
           not nil?(opts[:compile]) ->
             do_compile app, deps_path, opts[:compile]
@@ -79,7 +75,7 @@ defmodule Mix.Tasks.Deps.Compile do
               "(pass :compile as an option to customize compilation, set it to false to do nothing)"
         end
 
-        Code.prepend_path(ebin)
+        Enum.each(Mix.Deps.load_paths(dep), &Code.prepend_path/1)
         compiled
       end
 
