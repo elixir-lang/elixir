@@ -40,7 +40,7 @@ defmodule Mix.Tasks.CompileTest do
   end
 
   test "compile is no-op on empty project" do
-    in_fixture "beams", fn ->
+    in_fixture "deps_status", fn ->
       Mix.Tasks.Compile.run []
       refute File.exists?("ebin")
     end

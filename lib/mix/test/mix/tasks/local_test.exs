@@ -65,7 +65,7 @@ defmodule Mix.Tasks.LocalTest do
     Mix.Local.append_paths
 
     # Install on MIX_PATH manually
-    File.copy! fixture_path("beams/Elixir.Mix.Tasks.Local.Sample.beam"),
+    File.copy! fixture_path("archive/ebin/Elixir.Mix.Tasks.Local.Sample.beam"),
                tmp_path("mixpath/ebin/Elixir.Mix.Tasks.Local.Sample.beam")
 
     # Run it
