@@ -400,11 +400,16 @@ defmodule Mix.Deps do
     # deps if all dependencies are available. This is because if a
     # dependency is missing, it could be a children of the parent
     # (aka a sibling) which would make parent compilation fail.
+    #
+    # If there is any other dependency that is not ok, we include
+    # it for compilation too, this is our best to try to solve the
+    # maximum we can at each deps.get and deps.update.
     if Enum.all?(all_deps, &available?/1) do
-      deps = with_depending(deps, all_deps)
+      deps = with_depending(deps, all_deps) ++
+             Enum.filter(all_deps, fn dep -> not ok?(dep) end)
     end
 
-    apps = Enum.map(deps, &(&1.app))
+    apps = Enum.map(deps, &(&1.app)) |> Enum.uniq
     Mix.Deps.Lock.write(lock)
 
     unless opts[:no_compile] do
@@ -414,8 +419,11 @@ defmodule Mix.Deps do
       Mix.Task.run("deps.loadpaths", ["--no-deps-check"])
       Mix.Task.reenable("deps.loadpaths")
 
-      args = if opts[:quiet], do: ["--quiet"|apps], else: apps
-      Mix.Task.run("deps.compile", args)
+      if apps != [] do
+        args = if opts[:quiet], do: ["--quiet"|apps], else: apps
+        Mix.Task.run("deps.compile", args)
+      end
+
       unless opts[:no_deps_check] do
         Mix.Task.run("deps.check", [])
       end

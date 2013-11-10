@@ -512,7 +512,7 @@ defmodule Mix.Tasks.DepsTest do
       File.write!("deps/ok/mix.exs", """)
       defmodule Ok.Mixfile do
         use Mix.Project
-        def project, do: [app: :ok]
+        def project, do: [app: :ok, version: "1.0.0"]
       end
       """
       File.write!("deps/ok/ebin/.compile.lock", "the_future")
@@ -524,6 +524,9 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_received { :mix_shell, :error, ["* ok (deps/ok)"] }
       assert_received { :mix_shell, :error, ["  the dependency is built with an out-of-date elixir version, run `mix deps.get`"] }
+
+      Mix.Tasks.Deps.Get.run []
+      assert_received { :mix_shell, :info, ["* Compiling ok"] }
     end
   after
     Mix.Project.pop
