@@ -45,10 +45,27 @@ defmodule Mix.RebarTest do
     Mix.Project.pop
   end
 
+  test "recurs over sub dirs" do
+    path = MixTest.Case.fixture_path("rebar_dep")
+
+    File.cd! path, fn ->
+     config = Mix.Rebar.load_config(path)
+
+      Mix.Rebar.recur(config, fn config ->
+        if config[:sub_dirs] == ['from_apps_another'] do
+          Process.put(:inside_apps_another, true)
+        end
+      end)
+    end
+
+    unless Process.get(:inside_apps_another) do
+      flunk "Expected inside_apps_another to return true"
+    end
+  end
+
   test "get and compile dependencies for rebar" do
     # Use rebar from project root
     System.put_env("MIX_HOME", MixTest.Case.elixir_root)
-
     Mix.Project.push(RebarAsDep)
 
     in_tmp "get and compile dependencies for rebar", fn ->

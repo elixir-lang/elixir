@@ -69,6 +69,10 @@ defmodule Mix.Rebar do
   Runs `fun` for the given config and for each `sub_dirs` in the
   given rebar config.
   """
+  def recur([h|_] = config, fun) when is_integer(h) do
+    recur(load_config(config), fun)
+  end
+
   def recur(config, fun) do
     subs = (config[:sub_dirs] || [])
      |> Enum.map(&Path.wildcard(&1))
