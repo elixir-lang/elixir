@@ -67,9 +67,9 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     project      = Mix.project
     source_paths = project[:erlc_paths]
-    files        = Mix.Utils.extract_files(source_paths, [:erl])
-    compile_path = to_erl_file project[:compile_path]
     include_path = to_erl_file project[:erlc_include_path]
+    compile_path = to_erl_file Mix.Project.compile_path(project)
+    files        = Mix.Utils.extract_files(source_paths, [:erl])
 
     erlc_options = project[:erlc_options] || []
     erlc_options = erlc_options ++ [{:outdir, compile_path}, {:i, include_path}, :report]
@@ -96,7 +96,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   Returns Erlang manifests.
   """
   def manifests, do: [manifest]
-  defp manifest, do: Path.join(Mix.project[:compile_path], @manifest)
+  defp manifest, do: Path.join(Mix.Project.compile_path, @manifest)
 
   @doc """
   Extracts the extensions from the mappings, automatically
@@ -114,8 +114,8 @@ defmodule Mix.Tasks.Compile.Erlang do
                        [{ "src", "ebin" }],
                        :lfe, :beam, opts[:force], fn
         input, output ->
-          lfe_comp:file(to_erl_file(input),
-                        [output_dir: Path.dirname(output)])
+          :lfe_comp.file(to_erl_file(input),
+                         [output_dir: Path.dirname(output)])
       end
 
   The command above will:

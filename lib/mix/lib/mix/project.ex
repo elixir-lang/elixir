@@ -160,8 +160,8 @@ defmodule Mix.Project do
   Returns the paths this project compiles to,
   collecting all `:compile_path` in case of umbrella apps.
   """
-  def compile_path do
-    Path.expand config[:compile_path]
+  def compile_path(config // config()) do
+    Path.expand "ebin"
   end
 
   @doc """
@@ -203,8 +203,7 @@ defmodule Mix.Project do
   end
 
   defp default_config do
-    [ compile_path: "ebin",
-      default_task: "run",
+    [ default_task: "run",
       deps: [],
       deps_path: "deps",
       elixirc_exts: [:ex],
@@ -222,17 +221,10 @@ defmodule Mix.Project do
   defp get_project_config(atom) do
     config = atom.project
 
-    config =
-      if env = config[:env][Mix.env] do
-        config |> Keyword.delete(:env) |> Keyword.merge(env)
-      else
-        config
-      end
-
-    if config[:load_paths] do
-      IO.write "Setting :load_paths inside mix.exs is deprecated and has no effect\n#{Exception.format_stacktrace}"
+    if env = config[:env][Mix.env] do
+      config |> Keyword.delete(:env) |> Keyword.merge(env)
+    else
+      config
     end
-
-    config
   end
 end

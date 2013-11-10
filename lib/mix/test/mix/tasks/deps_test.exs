@@ -50,7 +50,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"] }
       assert_received { :mix_shell, :info, ["  the app file contains an invalid version: :ok"] }
       assert_received { :mix_shell, :info, ["* invalidapp (deps/invalidapp)"] }
-      assert_received { :mix_shell, :info, ["  the app file at deps/invalidapp/custom_ebin/invalidapp.app is invalid"] }
+      assert_received { :mix_shell, :info, ["  the app file at deps/invalidapp/ebin/invalidapp.app is invalid"] }
       assert_received { :mix_shell, :info, ["* noappfile (deps/noappfile)"] }
       assert_received { :mix_shell, :info, ["  could not find an app file at deps/noappfile/ebin/noappfile.app" <> _] }
       assert_received { :mix_shell, :info, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
@@ -144,7 +144,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :error, ["* invalidvsn (deps/invalidvsn)"] }
       assert_received { :mix_shell, :error, ["  the app file contains an invalid version: :ok"] }
       assert_received { :mix_shell, :error, ["* invalidapp (deps/invalidapp)"] }
-      assert_received { :mix_shell, :error, ["  the app file at deps/invalidapp/custom_ebin/invalidapp.app is invalid"] }
+      assert_received { :mix_shell, :error, ["  the app file at deps/invalidapp/ebin/invalidapp.app is invalid"] }
       assert_received { :mix_shell, :error, ["* noappfile (deps/noappfile)"] }
       assert_received { :mix_shell, :error, ["  could not find an app file at deps/noappfile/ebin/noappfile.app" <> _] }
       assert_received { :mix_shell, :error, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }

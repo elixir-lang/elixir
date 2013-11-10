@@ -10,14 +10,14 @@ defmodule Mix.Deps.Lock do
   Returns the manifest file for dependencies.
   """
   def manifest do
-    Path.join(Mix.project[:compile_path], @manifest)
+    Path.join(Mix.Project.compile_path, @manifest)
   end
 
   @doc """
   Touches the manifest timestamp and updates the elixir version.
   """
   def touch do
-    compile_path = Mix.project[:compile_path]
+    compile_path = Mix.Project.compile_path
     File.mkdir_p!(compile_path)
     File.write!(Path.join(compile_path, @manifest), System.version)
   end

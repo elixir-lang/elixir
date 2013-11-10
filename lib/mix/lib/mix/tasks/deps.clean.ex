@@ -14,6 +14,7 @@ defmodule Mix.Tasks.Deps.Clean do
 
   import Mix.Deps, only: [fetched: 0, fetched_by_name: 1, format_dep: 1]
 
+  # TODO: Needs to take build_path into account
   def run(args) do
     Mix.Project.get! # Require the project to be available
 

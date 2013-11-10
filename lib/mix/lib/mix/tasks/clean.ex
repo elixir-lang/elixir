@@ -12,6 +12,8 @@ defmodule Mix.Tasks.Clean do
   * `--all` - Clean everything, including dependencies
 
   """
+
+  # TODO: Needs to take build_path into account
   def run(args) do
     { opts, _, _ } = OptionParser.parse(args)
 
@@ -22,7 +24,7 @@ defmodule Mix.Tasks.Clean do
       File.rm(manifest)
     end)
 
-    File.rm_rf(Mix.project[:compile_path])
+    File.rm_rf(Mix.Project.compile_path)
 
     if opts[:all], do: Mix.Task.run("deps.clean", args)
   end

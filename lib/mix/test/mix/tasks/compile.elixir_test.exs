@@ -51,12 +51,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
-  defmodule CompilePathProject do
-    def project do
-      [compile_path: "custom"]
-    end
-  end
-
   test "use custom source paths" do
     Mix.Project.push SourcePathsProject
 
@@ -64,17 +58,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       # Nothing to compile with the custom source paths
       assert Mix.Tasks.Compile.Elixir.run([])
       refute_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
-    end
-  after
-    Mix.Project.pop
-  end
-
-  test "use custom compile path" do
-    Mix.Project.push CompilePathProject
-
-    in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Compile.Elixir.run([])
-      assert File.regular?("custom/Elixir.A.beam")
     end
   after
     Mix.Project.pop

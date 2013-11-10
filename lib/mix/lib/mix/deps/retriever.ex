@@ -43,7 +43,7 @@ defmodule Mix.Deps.Retriever do
           { dep.manager(:make), [] }
 
         true ->
-          mix_dep(dep.manager(:mix), config)
+          mix_dep(dep, config)
       end
 
     { validate_app(dep), children }
@@ -143,7 +143,7 @@ defmodule Mix.Deps.Retriever do
         if Mix.Project.umbrella? do
           false
         else
-          Path.join(config[:compile_path], "#{app}.app")
+          Path.join(Mix.Project.compile_path(config), "#{app}.app")
         end
 
       opts = Keyword.put_new(opts, :app, default)
