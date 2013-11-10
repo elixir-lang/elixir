@@ -7,7 +7,10 @@ defmodule Mix.Sup do
   end
 
   def init(env) do
-    tree = [worker(Mix.Server, [env])]
+    tree = [
+      worker(Mix.Server, [env]),
+      worker(Mix.ProjectStack, [])
+    ]
     supervise(tree, strategy: :one_for_one)
   end
 end

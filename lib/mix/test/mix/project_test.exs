@@ -19,11 +19,10 @@ defmodule Mix.ProjectTest do
   test "push and pop projects" do
     refute Mix.Project.get
     Mix.Project.push(SampleProject, "sample")
-
     assert Mix.Project.get == SampleProject
 
-    assert Mix.Project.pop == { SampleProject, "sample" }
-    assert Mix.Project.pop == nil
+    assert { SampleProject, _config, "sample" } = Mix.Project.pop
+    assert nil = Mix.Project.pop
   after
     Mix.Project.pop
   end
@@ -41,9 +40,9 @@ defmodule Mix.ProjectTest do
   test "allows nil projects to be pushed twice" do
     Mix.Project.push nil
     Mix.Project.push nil
-    assert Mix.Project.pop == { nil, "nofile" }
-    assert Mix.Project.pop == { nil, "nofile" }
-    assert Mix.Project.pop == nil
+    assert is_tuple Mix.Project.pop
+    assert is_tuple Mix.Project.pop
+    assert nil? Mix.Project.pop
   end
 
   test "retrieves configuration from projects" do

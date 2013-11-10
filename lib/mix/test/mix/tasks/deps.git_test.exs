@@ -343,8 +343,8 @@ defmodule Mix.Tasks.DepsGitTest do
   end
 
   defp refresh(post_config) do
-    { current, file } = Mix.Project.pop
-    Mix.Project.post_config(post_config)
+    { current, _config, file } = Mix.Project.pop
+    Mix.ProjectStack.post_config(post_config)
     Mix.Project.push(current, file)
   end
 

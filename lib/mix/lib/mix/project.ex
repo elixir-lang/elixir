@@ -29,8 +29,6 @@ defmodule Mix.Project do
   defined.
   """
 
-  alias Mix.Server.Project
-
   @doc false
   defmacro __using__(_) do
     quote do
@@ -49,7 +47,7 @@ defmodule Mix.Project do
   @doc false
   def push(atom, file // "nofile") when is_atom(atom) do
     config = Keyword.merge default_config, get_project_config(atom)
-    case Mix.Server.call({ :push_project, atom, config, file }) do
+    case Mix.ProjectStack.push(atom, config, file) do
       :ok ->
         :ok
       { :error, other } when is_binary(other) ->
@@ -61,13 +59,7 @@ defmodule Mix.Project do
   # Pops a project from the stack.
   @doc false
   def pop do
-    Mix.Server.call(:pop_project)
-  end
-
-  # Registers post config.
-  @doc false
-  def post_config(config) do
-    Mix.Server.cast({ :post_config, config })
+    Mix.ProjectStack.pop
   end
 
   @doc """
@@ -80,8 +72,8 @@ defmodule Mix.Project do
   `get!/0` instead.
   """
   def get do
-    case Mix.Server.call(:projects) do
-      [Project[name: project]|_] -> project
+    case Mix.ProjectStack.peek do
+      { name, _config, _file } -> name
       _ -> nil
     end
   end
@@ -103,8 +95,8 @@ defmodule Mix.Project do
   Returns the project configuration for the current environment.
   """
   def config do
-    case Mix.Server.call(:projects) do
-      [Project[name: name, config: config]|_] when name != nil -> config
+    case Mix.ProjectStack.peek do
+      { _name, config, _file } -> config
       _ -> default_config
     end
   end
@@ -207,6 +199,10 @@ defmodule Mix.Project do
     end
   end
 
+  defp post_config(config) do
+    Mix.ProjectStack.post_config(config)
+  end
+
   defp default_config do
     [ default_task: "run",
       deps: [],
@@ -222,7 +218,6 @@ defmodule Mix.Project do
   end
 
   defp get_project_config(nil), do: []
-
   defp get_project_config(atom) do
     config = atom.project
 
