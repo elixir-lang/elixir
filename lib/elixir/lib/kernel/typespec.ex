@@ -420,9 +420,12 @@ defmodule Kernel.Typespec do
   @doc false
   def defspec(type, {:::, _, [{ :when, _, [{ name, meta, args }, constraints_guard] }, return] }, caller) do
     if is_atom(args), do: args = []
-    constraints = guard_to_constraints(constraints_guard, caller)
-    spec = { :type, line(meta), :fun, fn_args(meta, args, return, Keyword.keys(constraints), caller) }
-    spec = { :type, line(meta), :bounded_fun, [spec, Keyword.values(constraints)] }
+    vars = guard_to_vars(constraints_guard)
+    constraints = guard_to_constraints(constraints_guard, vars, caller)
+    spec = { :type, line(meta), :fun, fn_args(meta, args, return, vars, caller) }
+    if constraints != [] do
+      spec = { :type, line(meta), :bounded_fun, [spec, constraints] }
+    end
     code = { { name, Kernel.length(args) }, spec }
     Module.compile_typespec(caller.module, type, code)
     code
@@ -441,14 +444,37 @@ defmodule Kernel.Typespec do
     compile_error caller, "invalid function type specification #{spec}"
   end
 
-  defp guard_to_constraints({ :is_subtype, meta, [{ name, _, _ }, type] }, caller) do
-    line = line(meta)
-    contraints = [{ :atom, line, :is_subtype }, [{:var, line, name}, typespec(type, [], caller)]]
-    [{ name, { :type, line, :constraint, contraints } }]
+  defp guard_to_vars({ :is_subtype, _, [{ name, _, _ }, _] }) do
+    [name]
   end
 
-  defp guard_to_constraints({ :and, _, [left, right] }, caller) do
-    guard_to_constraints(left, caller) ++ guard_to_constraints(right, caller)
+  defp guard_to_vars({ :is_var, _, [{ name, _, _ }] }) do
+    [name]
+  end
+
+  defp guard_to_vars({ :and, _, [left, right] }) do
+    guard_to_vars(left) ++ guard_to_vars(right)
+  end
+
+  defp guard_to_constraints({ :is_subtype, meta, [{ name, _, context }, type] }, vars, caller)
+      when is_atom(name) and is_atom(context) do
+    line = line(meta)
+    contraints = [{ :atom, line, :is_subtype }, [{:var, line, name}, typespec(type, vars, caller)]]
+    [{ :type, line, :constraint, contraints }]
+  end
+
+  defp guard_to_constraints({ :is_var, _, [{ name, _, context }] }, _, _)
+      when is_atom(name) and is_atom(context) do
+    []
+  end
+
+  defp guard_to_constraints({ :and, _, [left, right] }, vars, caller) do
+    guard_to_constraints(left, vars, caller) ++ guard_to_constraints(right, vars, caller)
+  end
+
+  defp guard_to_constraints(other, _vars, caller) do
+    guard = Macro.to_string(other)
+    compile_error caller, "invalid guard in function type specification #{guard}"
   end
 
   ## To AST conversion
