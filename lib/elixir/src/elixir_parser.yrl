@@ -46,8 +46,8 @@ Expect 2.
 Left       5 do.
 Right     10 stab_op_eol.     %% ->
 Left      20 ','.
-Right     30 type_op_eol.     %% ::
-Right     40 when_op_eol.     %% when
+Right     30 when_op_eol.     %% when
+Right     40 type_op_eol.     %% ::
 Left      50 inc_op_eol.      %% inlist, inbits
 Right     60 default_op_eol.  %% //
 Left      70 tail_op_eol.     %% |

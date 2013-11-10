@@ -18,17 +18,17 @@ defmodule Typespec.TypeTest do
   end
 
   test "invalid type specification" do
-    assert_raise CompileError, %r"invalid type specification mytype = 1", fn ->
+    assert_raise CompileError, %r"invalid type specification `mytype = 1`", fn ->
       test_module do
         @type mytype = 1
       end
     end
-    assert_raise CompileError, %r"invalid type specification mytype = 1", fn ->
+    assert_raise CompileError, %r"invalid type specification `mytype = 1`", fn ->
       test_module do
         @typep mytype = 1
       end
     end
-    assert_raise CompileError, %r"invalid type specification mytype = 1", fn ->
+    assert_raise CompileError, %r"invalid type specification `mytype = 1`", fn ->
       test_module do
         @opaque mytype = 1
       end
@@ -36,7 +36,7 @@ defmodule Typespec.TypeTest do
   end
 
   test "invalid function specification" do
-    assert_raise CompileError, %r"invalid function type specification myfun = 1", fn ->
+    assert_raise CompileError, %r"invalid function type specification `myfun = 1`", fn ->
       test_module do
         @spec myfun = 1
       end
@@ -309,18 +309,18 @@ defmodule Typespec.TypeTest do
   test "@spec(spec) with guards" do
     { spec1, spec2, spec3 } = test_module do
       def myfun1(x), do: x
-      spec1 = @spec myfun1(x) when is_subtype(x, integer) :: boolean
+      spec1 = @spec myfun1(x) :: boolean when is_subtype(x, integer)
 
       def myfun2(x), do: x
-      spec2 = @spec myfun2(x) when is_var(x) :: x
+      spec2 = @spec myfun2(x) :: x when is_var(x)
 
       def myfun3(_x, y), do: y
-      spec3 = @spec myfun3(x, y) when is_subtype(y, x) and is_var(x) :: y
+      spec3 = @spec myfun3(x, y) :: y when is_subtype(y, x) and is_var(x)
 
       { spec1, spec2, spec3 }
     end
     assert {{:myfun1, 1}, {:type, _, :bounded_fun, [{:type, _, :fun, [{:type, _, :product, [{:var, _, :x}]}, {:type, _, :boolean, []}]}, [{:type, _, :constraint, [{:atom, _, :is_subtype}, [{:var, _, :x}, {:type, _, :integer, []}]]}]]}} = spec1
-    assert {{:myfun2, 1}, {:type, _, :fun, [{:type, _, :product, [{:var, _, :x}]}, {:var, _, x}]}} = spec2
+    assert {{:myfun2, 1}, {:type, _, :fun, [{:type, _, :product, [{:var, _, :x}]}, {:var, _, :x}]}} = spec2
     assert {{:myfun3, 2}, {:type, _, :bounded_fun, [{:type, _, :fun, [{:type, _, :product, [{:var, _, :x}, {:var, _, :y}]}, {:var, _, :y}]}, [{:type, _, :constraint, [{:atom, _, :is_subtype}, [{:var, _, :y}, {:var, _, :x}]]}]]}} = spec3
   end
 
@@ -442,7 +442,7 @@ defmodule Typespec.TypeTest do
     specs = [
       (quote do: @spec a() :: integer()),
       (quote do: @spec a(atom()) :: integer()),
-      (quote do: @spec a(b) when is_subtype(b, integer()) :: integer()),
+      (quote do: @spec a(b) :: integer() when is_subtype(b, integer())),
     ]
 
     compiled = test_module do
