@@ -23,16 +23,22 @@ defmodule Mix do
   # Application behaviour callback
   @doc false
   def start(_, []) do
-    resp = Mix.Sup.start_link get_env
-    Mix.SCM.register_builtin
-    resp
+    res = Mix.Sup.start_link
+    if env = System.get_env("MIX_ENV") do
+      env(binary_to_atom env)
+    end
+    res
   end
 
   @doc """
   Returns the mix environment.
   """
   def env do
-    Mix.Server.call(:env)
+    # env is not available on bootstraping
+    case :application.get_env(:mix, :env) do
+      { :ok, env } -> env
+      :undefined -> :dev
+    end
   end
 
   @doc """
@@ -40,15 +46,7 @@ defmodule Mix do
   per environment will not be reloaded.
   """
   def env(env) when is_atom(env) do
-    Mix.Server.cast({ :env, env })
-  end
-
-  defp get_env do
-    if env = System.get_env("MIX_ENV") do
-      binary_to_atom env
-    else
-      :dev
-    end
+    :application.set_env(:mix, :env, env)
   end
 
   @doc """
@@ -69,14 +67,17 @@ defmodule Mix do
   messages to the current process.
   """
   def shell do
-    Mix.Server.call(:shell)
+    case :application.get_env(:mix, :shell) do
+      { :ok, shell } -> shell
+      :undefined -> Mix.Shell.IO
+    end
   end
 
   @doc """
   Sets the current shell.
   """
   def shell(shell) do
-    Mix.Server.cast({ :shell, shell })
+    :application.set_env(:mix, :shell, shell)
   end
 
   @doc """

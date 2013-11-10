@@ -20,7 +20,7 @@ define APP_TEMPLATE
 $(1): lib/$(1)/ebin/Elixir.$(2).beam lib/$(1)/ebin/$(1).app
 
 lib/$(1)/ebin/$(1).app: lib/$(1)/mix.exs
-	$(Q) cd lib/$(1) && ../../bin/elixir -e "Mix.Sup.start_link(:dev)" -r mix.exs -e "Mix.Task.run('compile.app')"
+	$(Q) cd lib/$(1) && ../../bin/elixir -e "Mix.Sup.start_link()" -r mix.exs -e "Mix.Task.run('compile.app')"
 
 lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex)
 	@ echo "==> $(1) (compile)"

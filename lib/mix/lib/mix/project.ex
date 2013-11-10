@@ -175,32 +175,31 @@ defmodule Mix.Project do
   # Loads mix.exs in the current directory or loads the project from the
   # mixfile cache and pushes the project to the project stack.
   defp load_project(app, post_config) do
-    if cached = Mix.Server.call({ :mixfile_cache, app }) do
-      post_config(post_config)
-      push(cached)
-      cached
+    Mix.ProjectStack.post_config(post_config)
+
+    if cached = Mix.ProjectStack.read_cache(app) do
+      { project, file } = cached
+      push(project, file)
+      project
     else
+      file = Path.expand("mix.exs")
       old_proj = get
 
-      if File.regular?("mix.exs") do
-        post_config(post_config)
-        Code.load_file "mix.exs"
+      if File.regular?(file) do
+        Code.load_file(file)
       end
 
       new_proj = get
 
       if old_proj == new_proj do
+        file = "nofile"
         new_proj = nil
-        push new_proj
+        push new_proj, file
       end
 
-      Mix.Server.cast({ :mixfile_cache, app, new_proj })
+      Mix.ProjectStack.write_cache(app, { new_proj, file })
       new_proj
     end
-  end
-
-  defp post_config(config) do
-    Mix.ProjectStack.post_config(config)
   end
 
   defp default_config do

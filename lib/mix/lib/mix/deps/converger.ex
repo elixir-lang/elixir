@@ -5,13 +5,6 @@ defmodule Mix.Deps.Converger do
   @moduledoc false
 
   @doc """
-  Clear up the mixfile cache.
-  """
-  def clear_cache do
-    Mix.Server.cast(:clear_mixfile_cache)
-  end
-
-  @doc """
   Topsorts the given dependencies.
   """
   def topsort(deps) do

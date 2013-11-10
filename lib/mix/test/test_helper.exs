@@ -23,7 +23,7 @@ defmodule MixTest.Case do
     Mix.env(:dev)
     Mix.Task.clear
     Mix.Shell.Process.flush
-    Mix.Deps.Converger.clear_cache
+    Mix.ProjectStack.clear_cache
     System.put_env("MIX_HOME", tmp_path(".mix"))
     delete_tmp_paths
     :ok

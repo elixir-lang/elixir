@@ -18,7 +18,7 @@ defmodule Mix.TaskTest do
 
   test :clear do
     Mix.Task.run("hello")
-    assert match?([ {"hello", _} ], Mix.Task.clear)
+    assert { "hello", nil } in Mix.Task.clear
   end
 
   test :reenable do

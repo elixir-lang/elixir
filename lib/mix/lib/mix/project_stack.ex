@@ -10,8 +10,9 @@ defmodule Mix.ProjectStack do
   @typep config  :: Keyword.t
   @typep project :: { module, config, file }
 
-  defrecord State, stack: [], post_config: []
-  defrecord Project, name: nil, config: nil, file: nil, recursing?: false, io_done: false
+  defrecord State, stack: [], post_config: [], cache: HashDict.new
+  defrecord Project, name: nil, config: nil, file: nil,
+                     recursing?: false, io_done: false, tasks: HashSet.new
 
   @spec start_link :: { :ok, pid }
   def start_link() do
@@ -61,6 +62,21 @@ defmodule Mix.ProjectStack do
   @spec disable_recursion :: boolean
   def disable_recursion do
     call :disable_recursion
+  end
+
+  @spec read_cache(term) :: term
+  def read_cache(key) do
+    call({ :read_cache, key })
+  end
+
+  @spec write_cache(term, term) :: :ok
+  def write_cache(key, value) do
+    cast({ :write_cache, key, value })
+  end
+
+  @spec clear_cache :: :ok
+  def clear_cache do
+    cast(:clear_cache)
   end
 
   defp call(arg) do
@@ -131,12 +147,24 @@ defmodule Mix.ProjectStack do
     end
   end
 
+  def handle_call({ :read_cache, key }, _from, State[cache: cache] = state) do
+    { :reply, cache[key], state }
+  end
+
   def handle_call(request, from, config) do
     super(request, from, config)
   end
 
-  def handle_cast({ :post_config, value }, State[post_config: post_config] = state) do
-    { :noreply, state.post_config(Keyword.merge(post_config, value)) }
+  def handle_cast({ :post_config, value }, State[] = state) do
+    { :noreply, state.update_post_config(&Keyword.merge(&1, value)) }
+  end
+
+  def handle_cast({ :write_cache, key, value }, State[] = state) do
+    { :noreply, state.update_cache(&Dict.put(&1, key, value)) }
+  end
+
+  def handle_cast(:clear_cache, State[] = state) do
+    { :noreply, state.update_cache(&Dict.empty/1) }
   end
 
   def handle_cast(request, state) do
