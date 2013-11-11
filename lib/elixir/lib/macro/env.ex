@@ -56,13 +56,13 @@ defmodule Macro.Env do
   end
 
   @doc """
-  Returns wether the compilation environment is currently
+  Returns whether the compilation environment is currently
   inside a guard.
   """
   def in_guard?(record), do: context(record) == :guard
 
   @doc """
-  Returns wether the compilation environment is currently
+  Returns whether the compilation environment is currently
   inside a match clause.
   """
   def in_match?(record), do: context(record) == :match
