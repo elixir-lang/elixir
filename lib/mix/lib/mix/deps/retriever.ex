@@ -139,7 +139,7 @@ defmodule Mix.Deps.Retriever do
 
   ## Fetching
 
-  defp mix_dep(Mix.Dep[opts: opts, app: app, status: status] = dep, config) do
+  defp mix_dep(Mix.Dep[opts: opts, app: app] = dep, config) do
     Mix.Deps.in_dependency(dep, config, fn _ ->
       config    = Mix.project
       umbrella? = Mix.Project.umbrella?
@@ -150,14 +150,12 @@ defmodule Mix.Deps.Retriever do
           Path.join(Mix.Project.compile_path(config), "#{app}.app")
         end
 
-      stat = cond do
-        vsn = old_elixir_lock() -> { :elixirlock, vsn }
-        req = old_elixir_req(config) -> { :elixirreq, req }
-        true -> status
+      if req = old_elixir_req(config) do
+        dep = dep.status({ :elixirreq, req })
       end
 
       opts = Keyword.put_new(opts, :app, app_path)
-      { dep.manager(:mix).opts(opts).status(stat).extra(umbrella: umbrella?), children }
+      { dep.manager(:mix).opts(opts).extra(umbrella: umbrella?), children }
     end)
   end
 
@@ -207,13 +205,6 @@ defmodule Mix.Deps.Retriever do
         end
       { :ok, _ } -> { :invalidapp, app_path }
       { :error, _ } -> { :noappfile, app_path }
-    end
-  end
-
-  defp old_elixir_lock do
-    old_vsn = Mix.Deps.Lock.elixir_vsn
-    if old_vsn && old_vsn != System.version do
-      old_vsn
     end
   end
 

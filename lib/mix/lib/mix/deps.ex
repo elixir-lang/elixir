@@ -270,7 +270,11 @@ defmodule Mix.Deps do
         :outdated ->
           dep.status :lockoutdated
         :ok ->
-          dep
+          if vsn = old_elixir_lock(dep) do
+            dep.status({ :elixirlock, vsn })
+          else
+            dep
+          end
       end
     else
       dep
@@ -449,6 +453,13 @@ defmodule Mix.Deps do
   defp to_app_names(given) do
     Enum.map given, fn(app) ->
       if is_binary(app), do: binary_to_atom(app), else: app
+    end
+  end
+
+  defp old_elixir_lock(Mix.Dep[opts: opts]) do
+    old_vsn = Mix.Deps.Lock.elixir_vsn(opts[:build])
+    if old_vsn && old_vsn != System.version do
+      old_vsn
     end
   end
 end

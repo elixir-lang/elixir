@@ -71,8 +71,7 @@ defmodule Mix.Project do
   @doc false
   def deps_config(config // config()) do
     [ build_path: build_path(config),
-      deps_path: deps_path(config),
-      lockfile: Path.expand(config[:lockfile]) ]
+      deps_path: deps_path(config) ]
   end
 
   @doc """
