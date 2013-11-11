@@ -24,8 +24,7 @@ defmodule Mix.Tasks.Clean do
       File.rm(manifest)
     end)
 
-    File.rm_rf(Mix.Project.compile_path)
-
+    File.rm_rf(Mix.Project.app_path)
     if opts[:all], do: Mix.Task.run("deps.clean", args)
   end
 end

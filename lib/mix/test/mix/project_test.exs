@@ -11,7 +11,7 @@ defmodule Mix.ProjectTest do
 
   defmodule EnvProject do
     def project do
-      [ hello: "world",
+      [ hello: "world", app_path: "this/is/private",
         env: [ prod: [hello: "new"] ] ]
     end
   end
@@ -48,6 +48,13 @@ defmodule Mix.ProjectTest do
   test "retrieves configuration from projects" do
     Mix.Project.push(SampleProject)
     assert Mix.project[:hello] == "world"
+  after
+    Mix.Project.pop
+  end
+
+  test "removes private configuration" do
+    Mix.Project.push(SampleProject)
+    assert nil? Mix.project[:app_path]
   after
     Mix.Project.pop
   end

@@ -193,6 +193,23 @@ defmodule Mix.Project do
   end
 
   @doc """
+  The path to store manifests. By default they are
+  stored in the same app path but it may be changed
+  in future releases.
+
+  The returned path will be expanded.
+
+  ## Examples
+
+      Mix.Project.manifest_path
+      #=> "/path/to/project/_build/lib/app"
+
+  """
+  def manifest_path(config // config()) do
+    app_path(config)
+  end
+
+  @doc """
   Returns the library path inside the build.
   The returned path will be expanded.
 

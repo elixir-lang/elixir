@@ -510,7 +510,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Check.run []
 
       File.mkdir_p!("_build/lib/ok/ebin")
-      File.write!("_build/lib/ok/ebin/.compile.lock", "the_future")
+      File.write!("_build/lib/ok/.compile.lock", "the_future")
       Mix.Task.clear
 
       assert_raise Mix.Error, "Can't continue due to errors on dependencies", fn ->

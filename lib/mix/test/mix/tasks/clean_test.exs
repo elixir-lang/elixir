@@ -9,7 +9,8 @@ defmodule Mix.Tasks.CleanTest do
         app: :sample,
         version: "0.1.0",
         deps: [
-          { :tidy, "0.1.0", path: "elixir-lang/tidy" }
+          { :ok, "0.1.0", path: "deps/ok" },
+          { :unknown, "0.1.0", git: "deps/unknown" }
         ]
       ]
     end
@@ -25,10 +26,24 @@ defmodule Mix.Tasks.CleanTest do
     :ok
   end
 
+  test "removes the build configuration" do
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Compile.run ["--no-deps"]
+      assert File.exists?("_build/lib/sample")
+
+      Mix.Tasks.Clean.run []
+      refute File.exists?("_build/lib/sample")
+    end
+  end
+
   test "cleans all repos" do
     in_fixture "deps_status", fn ->
+      assert File.exists?("_build/lib/ok")
       Mix.Tasks.Clean.run ["--all"]
-      assert_received { :mix_shell, :info, ["* Cleaning tidy (elixir-lang/tidy)"] }
+
+      refute File.exists?("_build/lib/ok")
+      # Assert we don't choke on unfetched deps
+      assert_received { :mix_shell, :info, ["* Cleaning unknown (deps/unknown)"] }
     end
   end
 end

@@ -261,7 +261,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   Returns Elixir manifests.
   """
   def manifests, do: [manifest]
-  defp manifest, do: Path.join(Mix.Project.compile_path, @manifest)
+  defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
 
   @doc """
   Compiles stale Elixir files.

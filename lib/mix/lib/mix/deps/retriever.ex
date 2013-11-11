@@ -13,14 +13,14 @@ defmodule Mix.Deps.Retriever do
     scms = Mix.SCM.available
     from = Path.absname("mix.exs")
     Enum.map(Mix.project[:deps] || [], &to_dep(&1, scms, from)) ++
-             Mix.Deps.Umbrella.unfetched
+             Mix.Deps.Umbrella.unloaded
   end
 
   @doc """
-  Fetches the given dependency information, including its
+  Loads the given dependency information, including its
   latest status and children.
   """
-  def fetch(dep, config) do
+  def load(dep, config) do
     Mix.Dep[manager: manager, scm: scm, opts: opts] = dep
     dep  = dep.status(scm_status(scm, opts))
     dest = opts[:dest]

@@ -12,19 +12,18 @@ defmodule Mix.Tasks.Deps.Clean do
   Clean does not unlock the repositories, unless `--unlock` is given.
   """
 
-  import Mix.Deps, only: [fetched: 0, fetched_by_name: 1, format_dep: 1]
+  import Mix.Deps, only: [loaded: 0, loaded_by_name: 1, format_dep: 1]
 
   # TODO: Needs to take build_path into account
   def run(args) do
     Mix.Project.get! # Require the project to be available
-
     { opts, args, _ } = OptionParser.parse(args, switches: [unlock: :boolean, all: :boolean])
 
     cond do
       opts[:all] ->
-        do_clean fetched, opts
+        do_clean loaded, opts
       args != [] ->
-        do_clean fetched_by_name(args), opts
+        do_clean loaded_by_name(args), opts
       true ->
         raise Mix.Error, message: "mix deps.clean expects dependencies as arguments or " <>
                                   "the --all option to clean all dependencies"
@@ -36,6 +35,7 @@ defmodule Mix.Tasks.Deps.Clean do
 
     apps = Enum.map deps, fn(Mix.Dep[scm: scm, opts: opts] = dep) ->
       shell.info "* Cleaning #{format_dep(dep)}"
+      File.rm_rf!(opts[:build])
       scm.clean opts
       dep.app
     end

@@ -65,7 +65,7 @@ defmodule Mix.UmbrellaTest do
     Mix.Project.push CycleDeps
 
     in_fixture "umbrella_dep", fn ->
-      assert Enum.map(Mix.Deps.fetched, & &1.app) == [:foo, :bar, :umbrella]
+      assert Enum.map(Mix.Deps.loaded, & &1.app) == [:foo, :bar, :umbrella]
     end
   after
     Mix.Project.pop
@@ -105,7 +105,7 @@ defmodule Mix.UmbrellaTest do
         end
         """
 
-        assert Enum.map(Mix.Deps.fetched, & &1.app) == [:a, :b, :bar, :foo]
+        assert Enum.map(Mix.Deps.loaded, & &1.app) == [:a, :b, :bar, :foo]
       end
     end
   end
@@ -140,7 +140,7 @@ defmodule Mix.UmbrellaTest do
         purge [Bar]
 
         future = { { 2020, 4, 17 }, { 14, 0, 0 } }
-        File.touch!("_build/lib/foo/ebin/.compile.elixir", future)
+        File.touch!("_build/lib/foo/.compile.elixir", future)
         assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       end)
     end)

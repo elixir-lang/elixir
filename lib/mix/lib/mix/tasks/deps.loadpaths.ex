@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Loadpaths do
   use Mix.Task
 
-  import Mix.Deps, only: [fetched: 0, available?: 1, load_paths: 1]
+  import Mix.Deps, only: [loaded: 0, available?: 1, load_paths: 1]
 
   @hidden true
   @shortdoc "Load all dependencies' paths"
@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
       Mix.Task.run "deps.check"
     end
 
-    lc dep inlist fetched, available?(dep) do
+    lc dep inlist loaded, available?(dep) do
       Enum.each(load_paths(dep), &Code.prepend_path/1)
     end
   end

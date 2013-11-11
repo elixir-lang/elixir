@@ -96,7 +96,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   Returns Erlang manifests.
   """
   def manifests, do: [manifest]
-  defp manifest, do: Path.join(Mix.Project.compile_path, @manifest)
+  defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
 
   @doc """
   Extracts the extensions from the mappings, automatically
@@ -110,7 +110,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   For example, a simple compiler for Lisp Flavored Erlang
   would be implemented like:
 
-      compile_mappings "ebin/.compile.lfe",
+      compile_mappings ".compile.lfe",
                        [{ "src", "ebin" }],
                        :lfe, :beam, opts[:force], fn
         input, output ->

@@ -26,12 +26,12 @@ defmodule Mix.Tasks.App.StartTest do
       assert System.version == Mix.Deps.Lock.elixir_vsn
 
       Mix.Task.clear
-      File.write!("_build/lib/sample/ebin/.compile.lock", "the_past")
-      File.touch!("_build/lib/sample/ebin/.compile.lock", { { 2010, 1, 1 }, { 0, 0, 0 } })
+      File.write!("_build/lib/sample/.compile.lock", "the_past")
+      File.touch!("_build/lib/sample/.compile.lock", { { 2010, 1, 1 }, { 0, 0, 0 } })
 
       Mix.Tasks.App.Start.run ["--no-start", "--no-compile"]
       assert System.version == Mix.Deps.Lock.elixir_vsn
-      assert File.stat!("_build/lib/sample/ebin/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
+      assert File.stat!("_build/lib/sample/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
     end
   after
     Mix.Project.pop

@@ -35,13 +35,13 @@ defmodule Mix.Deps do
 
   Inside Mix, those dependencies are converted to a `Mix.Dep` record.
   This module provides conveniences to work with those dependencies
-  and the dependencies are usually in two specific states: fetched and
-  unfetched.
+  and the dependencies are usually in two specific states: loaded and
+  unloaded.
 
-  When a dependency is unfetched, it means Mix only parsed its specification
-  and made no attempt to actually fetch the dependency or validate its
-  status. When the dependency is fetched, it means Mix attempted to fetch
-  and validate it, the status is set in the status field.
+  When a dependency is unloaded, it means Mix only parsed its specification
+  and made no attempt to actually load the dependency or validate its
+  status. When the dependency is loaded, it means Mix attempted to fetch,
+  load and validate it, the status is set in the status field.
 
   ## Mix options
 
@@ -80,7 +80,7 @@ defmodule Mix.Deps do
   Returns all children dependencies for the current project,
   as well as the defined apps in case of umbrella projects.
   The children dependencies returned by this function were
-  not fetched yet.
+  not loaded yet.
 
   ## Exceptions
 
@@ -90,20 +90,20 @@ defmodule Mix.Deps do
   defdelegate children(), to: Mix.Deps.Retriever
 
   @doc """
-  Returns fetched dependencies recursively as a `Mix.Dep` record.
+  Returns loaded dependencies recursively as a `Mix.Dep` record.
 
   ## Exceptions
 
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  def fetched do
+  def loaded do
     { deps, _ } = Mix.Deps.Converger.all(nil, fn(dep, acc) -> { dep, acc } end)
     Mix.Deps.Converger.topsort(deps)
   end
 
   @doc """
-  Receives a list of  dependency names and returns fetched dependency
+  Receives a list of  dependency names and returns loaded dependency
   records. Logs a message if the dependency could not be found.
 
   ## Exceptions
@@ -111,7 +111,7 @@ defmodule Mix.Deps do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  def fetched_by_name(given, all_deps // fetched) do
+  def loaded_by_name(given, all_deps // loaded) do
     # Ensure all apps are atoms
     apps = to_app_names(given)
 
@@ -130,7 +130,7 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Maps and reduces over all unfetched dependencies, one by one.
+  Maps and reduces over all unloaded dependencies, one by one.
 
   This is useful in case you want to retrieve the dependency
   tree for a project but process and change them along the way.
@@ -145,7 +145,7 @@ defmodule Mix.Deps do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  def unfetched(acc, callback) do
+  def unloaded(acc, callback) do
     { deps, acc } = Mix.Deps.Converger.all(acc, callback)
     { Mix.Deps.Converger.topsort(deps), acc }
   end
@@ -159,10 +159,10 @@ defmodule Mix.Deps do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  def unfetched_by_name(given, acc, callback) do
+  def unloaded_by_name(given, acc, callback) do
     names = to_app_names(given)
 
-    unfetched(acc, fn(dep, acc) ->
+    unloaded(acc, fn(dep, acc) ->
       if dep.app in names do
         callback.(dep, acc)
       else
@@ -177,7 +177,7 @@ defmodule Mix.Deps do
   project onto the project stack.
 
   This function only works for mix dependencies.
-  It is expected a fetched dependency as argument.
+  It is expected a loaded dependency as argument.
   """
   def in_dependency(dep, post_config // [], fun)
 
@@ -339,7 +339,7 @@ defmodule Mix.Deps do
 
   @doc """
   Returns all load paths for the dependency.
-  Expects a fetched dependency.
+  Expects a loaded dependency.
   """
   def load_paths(Mix.Dep[manager: :mix, opts: opts]) do
     [Path.join(opts[:build], "ebin")]
@@ -388,7 +388,7 @@ defmodule Mix.Deps do
   @doc false
   # Called by deps.get and deps.update
   def finalize(all_deps, apps, lock, opts) do
-    deps = fetched_by_name(apps, all_deps)
+    deps = loaded_by_name(apps, all_deps)
 
     # Do not attempt to compile dependencies that are not available.
     # mix deps.check at the end will emit proper status in case they failed.

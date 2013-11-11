@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
       refute_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
 
-      File.touch!("_build/lib/sample/ebin/.compile.elixir", future)
+      File.touch!("_build/lib/sample/.compile.elixir", future)
       assert Mix.Tasks.Compile.Elixir.run([]) == :noop
     end
   end

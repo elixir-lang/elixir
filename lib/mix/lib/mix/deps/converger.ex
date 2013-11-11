@@ -95,9 +95,9 @@ defmodule Mix.Deps.Converger do
         { dep, rest } = callback.(dep, rest)
 
         # After we invoke the callback (which may actually check out the
-        # dependency), we fetch the dependency including its latest info
+        # dependency), we load the dependency including its latest info
         # and children information.
-        { dep, children } = Mix.Deps.Retriever.fetch(dep, config)
+        { dep, children } = Mix.Deps.Retriever.load(dep, config)
         children = reject_non_fullfilled_optional(children, current_breadths)
         dep      = dep.deps(Enum.map(children, &(&1.app)))
 

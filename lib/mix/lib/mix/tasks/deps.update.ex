@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Deps.Update do
 
   """
 
-  import Mix.Deps, only: [unfetched: 2, unfetched_by_name: 3, updatable?: 1, format_dep: 1]
+  import Mix.Deps, only: [unloaded: 2, unloaded_by_name: 3, updatable?: 1, format_dep: 1]
 
   def run(args) do
     Mix.Project.get! # Require the project to be available
@@ -28,9 +28,9 @@ defmodule Mix.Tasks.Deps.Update do
 
     cond do
       opts[:all] ->
-        acc = unfetched(init, &deps_updater/2)
+        acc = unloaded(init, &deps_updater/2)
       rest != [] ->
-        acc = unfetched_by_name(rest, init, &deps_updater/2)
+        acc = unloaded_by_name(rest, init, &deps_updater/2)
       true ->
         raise Mix.Error, message: "mix deps.update expects dependencies as arguments or " <>
                                   "the --all option to update all dependencies"

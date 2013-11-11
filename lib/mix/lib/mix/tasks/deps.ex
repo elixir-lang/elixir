@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps do
   use Mix.Task
 
-  import Mix.Deps, only: [fetched: 0, format_dep: 1, format_status: 1, check_lock: 2]
+  import Mix.Deps, only: [loaded: 0, format_dep: 1, format_status: 1, check_lock: 2]
 
   @shortdoc "List dependencies and their status"
 
@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Deps do
     shell = Mix.shell
     lock  = Mix.Deps.Lock.read
 
-    Enum.each fetched, fn(Mix.Dep[app: app, scm: scm] = dep) ->
+    Enum.each loaded, fn(Mix.Dep[app: app, scm: scm] = dep) ->
       dep = check_lock(dep, lock)
       shell.info "* #{format_dep(dep)}"
       if (lock = lock[app]) && (formatted = scm.format_lock(lock)) do

@@ -2,9 +2,9 @@ defmodule Mix.Deps.Umbrella do
   @moduledoc false
 
   @doc """
-  Gets all umbrella dependencies in unfetched format.
+  Gets all umbrella dependencies in unloaded format.
   """
-  def unfetched do
+  def unloaded do
     config = Mix.project
 
     if apps_path = config[:apps_path] do
@@ -21,14 +21,14 @@ defmodule Mix.Deps.Umbrella do
   end
 
   @doc """
-  Gets all umbrella dependencies in fetched format.
+  Gets all umbrella dependencies in the loaded format.
   """
-  def fetched do
-    deps = unfetched
+  def loaded do
+    deps = unloaded
     apps = Enum.map(deps, &(&1.app))
 
     Enum.map(deps, fn(umbrella_dep) ->
-      { umbrella_dep, deps } = Mix.Deps.Retriever.fetch(umbrella_dep, [])
+      { umbrella_dep, deps } = Mix.Deps.Retriever.load(umbrella_dep, [])
       deps = lc Mix.Dep[] = dep inlist deps,
                 Mix.Deps.available?(dep),
                 dep.app in apps,
