@@ -71,7 +71,7 @@ unicode: $(UNICODE)
 $(UNICODE): lib/elixir/unicode/unicode.ex lib/elixir/unicode/UnicodeData.txt lib/elixir/unicode/GraphemeBreakProperty.txt
 	@ echo "==> unicode (compile)";
 	@ echo "This step can take up to a minute to compile in order to embed the Unicode database"
-	$(Q) $(ELIXIRC) lib/elixir/unicode/unicode.ex -o lib/elixir/ebin --no-debug-info;
+	$(Q) $(ELIXIRC) lib/elixir/unicode/unicode.ex -o lib/elixir/ebin;
 
 $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
 $(eval $(call APP_TEMPLATE,eex,EEx))
