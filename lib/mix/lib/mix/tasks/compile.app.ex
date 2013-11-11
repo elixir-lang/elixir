@@ -63,7 +63,7 @@ defmodule Mix.Tasks.Compile.App do
       properties = ensure_correct_properties(app, properties)
       contents   = { :application, app, properties }
 
-      File.mkdir_p!(Path.dirname(target))
+      Mix.Project.build_structure(config)
       File.open!(target, [:write], &:io.fwrite(&1, "~p.", [contents]))
 
       Mix.shell.info "Generated #{app}.app"

@@ -40,11 +40,10 @@ defmodule Mix.Deps.Converger do
   an updated depedency in case some processing is done.
   """
   def all(rest, callback) do
-    config = [ deps_path: Path.expand(Mix.project[:deps_path]),
-               root_lockfile: Path.expand(Mix.project[:lockfile]) ]
+    conf = Mix.Project.deps_config
     main = Mix.Deps.Retriever.children
     apps = Enum.map(main, &(&1.app))
-    all(main, [], [], apps, config, callback, rest)
+    all(main, [], [], apps, conf, callback, rest)
   end
 
   # We traverse the tree of dependencies in a breadth-

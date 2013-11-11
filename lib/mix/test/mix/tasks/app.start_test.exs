@@ -11,7 +11,7 @@ defmodule Mix.Tasks.App.StartTest do
 
   defmodule WrongElixirProject do
     def project do
-      [ app: :error, version: "0.1.0", elixir: "~> 0.8.1" ]
+      [app: :error, version: "0.1.0", elixir: "~> 0.8.1"]
     end
   end
 
@@ -26,12 +26,12 @@ defmodule Mix.Tasks.App.StartTest do
       assert System.version == Mix.Deps.Lock.elixir_vsn
 
       Mix.Task.clear
-      File.write!("ebin/.compile.lock", "the_past")
-      File.touch!("ebin/.compile.lock", { { 2010, 1, 1 }, { 0, 0, 0 } })
+      File.write!("_build/lib/sample/ebin/.compile.lock", "the_past")
+      File.touch!("_build/lib/sample/ebin/.compile.lock", { { 2010, 1, 1 }, { 0, 0, 0 } })
 
       Mix.Tasks.App.Start.run ["--no-start", "--no-compile"]
       assert System.version == Mix.Deps.Lock.elixir_vsn
-      assert File.stat!("ebin/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
+      assert File.stat!("_build/lib/sample/ebin/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
     end
   after
     Mix.Project.pop
@@ -46,8 +46,8 @@ defmodule Mix.Tasks.App.StartTest do
       end
 
       Mix.Tasks.App.Start.run ["--no-start"]
-      assert File.regular?("ebin/Elixir.A.beam")
-      assert File.regular?("ebin/app_start_sample.app")
+      assert File.regular?("_build/lib/app_start_sample/ebin/Elixir.A.beam")
+      assert File.regular?("_build/lib/app_start_sample/ebin/app_start_sample.app")
       refute List.keyfind(:application.loaded_applications, :app_start_sample, 0)
 
       Mix.Tasks.App.Start.run []

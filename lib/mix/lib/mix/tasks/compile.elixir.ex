@@ -245,7 +245,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     end
 
     result = files_to_path(manifest, stale, to_compile, compile_path, fn ->
-      File.mkdir_p!(compile_path)
+      Mix.Project.build_structure(project)
       Code.prepend_path(compile_path)
       set_compiler_opts(project, opts, [])
     end)

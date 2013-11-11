@@ -36,6 +36,8 @@ defmodule Mix.Project do
     end
   end
 
+  @private_config [:build_path, :app_path]
+
   # Invoked after each Mix.Project is compiled.
   @doc false
   def __after_compile__(env, _binary) do
@@ -46,7 +48,10 @@ defmodule Mix.Project do
   # the top of the stack can be accessed.
   @doc false
   def push(atom, file // "nofile") when is_atom(atom) do
-    config = Keyword.merge default_config, get_project_config(atom)
+    config = default_config
+             |> Keyword.merge(get_project_config(atom))
+             |> Keyword.drop(@private_config)
+
     case Mix.ProjectStack.push(atom, config, file) do
       :ok ->
         :ok
@@ -60,6 +65,14 @@ defmodule Mix.Project do
   @doc false
   def pop do
     Mix.ProjectStack.pop
+  end
+
+  # The configuration that is pushed down to dependencies.
+  @doc false
+  def deps_config(config // config()) do
+    [ build_path: build_path(config),
+      deps_path: deps_path(config),
+      lockfile: Path.expand(config[:lockfile]) ]
   end
 
   @doc """
@@ -93,6 +106,7 @@ defmodule Mix.Project do
 
   @doc """
   Returns the project configuration for the current environment.
+  This configuration is cached once the project is pushed into the stack.
   """
   def config do
     case Mix.ProjectStack.peek do
@@ -102,14 +116,16 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns a list of project configuration files, for example,
-  `mix.exs` and `mix.lock`. This function is usually used
-  in compilation tasks to trigger a full recompilation
-  whenever such configuration files change.
+  Returns a list of project configuration files as known by
+  this project. This function is usually used in compilation
+  tasks to trigger a full recompilation whenever such
+  configuration files change.
+
+  By default it includes the mix.exs file and the lock manifest.
   """
   def config_files do
-    project  = get
-    opts     = [Mix.Deps.Lock.manifest]
+    project = get
+    opts    = [Mix.Deps.Lock.manifest]
 
     if project && (source = project.__info__(:compile)[:source]) do
       opts = [String.from_char_list!(source)|opts]
@@ -149,16 +165,82 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns the paths this project compiles to,
-  collecting all `:compile_path` in case of umbrella apps.
+  Returns the path to store dependencies for this project.
+  The returned path will be expanded.
+
+  ## Examples
+
+      Mix.Project.deps_path
+      #=> "/path/to/project/deps"
+
+  """
+  def deps_path(config // config()) do
+    Path.expand config[:deps_path]
+  end
+
+  @doc """
+  Returns the build path for this project.
+  The returned path will be expanded.
+
+  ## Examples
+
+      Mix.Project.build_path
+      #=> "/path/to/project/_build"
+
+  """
+  def build_path(config // config()) do
+    config[:build_path] || Path.expand("_build")
+  end
+
+  @doc """
+  Returns the library path inside the build.
+  The returned path will be expanded.
+
+  ## Examples
+
+      Mix.Project.app_path
+      #=> "/path/to/project/_build/lib/app"
+
+  """
+  def app_path(config // config()) do
+    config[:app_path] || if app = config[:app] do
+      Path.join([build_path(config), "lib", app])
+    else
+      raise Mix.Error, message: "Cannot access build without an application name, " <>
+        "please ensure you are in a directory with a mix.exs file and it defines " <>
+        "an :app name under the project configuration"
+    end
+  end
+
+  @doc """
+  Returns the paths this project compiles to.
+  The returned path will be expanded.
+
+  ## Examples
+
+      Mix.Project.compile_path
+      #=> "/path/to/project/_build/lib/app/priv"
+
   """
   def compile_path(config // config()) do
-    unless config[:app] do
-      raise Mix.Error, message: "Cannot access compilation path without an application name, " <>
-        "please ensure you are in a directory with a mix.exs file and it defines an :app " <>
-        "name under the project configuration"
+    Path.join(app_path(config), "ebin")
+  end
+
+  @doc """
+  Builds the project structure for the current application.
+  """
+  def build_structure(config // config()) do
+    ebin = compile_path(config)
+    File.mkdir_p!(ebin)
+
+    lib = Path.dirname(ebin)
+    old = Path.expand("priv")
+
+    case :file.make_symlink(old, Path.join(lib, "priv")) do
+      :ok -> :ok
+      { :error, :eexist } -> :ok
+      { :error, _ } -> File.cp_r!(old, lib) |> IO.inspect
     end
-    Path.expand "ebin"
   end
 
   @doc """

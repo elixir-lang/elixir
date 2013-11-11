@@ -50,9 +50,9 @@ defmodule Mix.CLI do
   defp run_task(name, args) do
     try do
       # We need to skip loading the paths for the project and
-      # its dependencies because the dependencies may be setting
-      # up or getting updated and we don't want to load their
-      # config until the process is done.
+      # its dependencies on deps.get and deps.update to avoid
+      # having two versions of the same dep after get or update
+      # is done.
       if not deps_task?(name) && Mix.Project.get do
         Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
         Mix.Task.reenable "loadpaths"

@@ -79,8 +79,11 @@ defmodule Mix.Deps.Retriever do
   defp with_scm_and_app({ app, req, opts }, scms) when is_atom(app) and
       (is_binary(req) or is_regex(req) or req == nil) and is_list(opts) do
 
-    path = Path.join(Mix.project[:deps_path], app)
-    opts = Keyword.put(opts, :dest, path)
+    dest  = Path.join(Mix.Project.deps_path, app)
+    build = Path.join([Mix.Project.build_path, "lib", app])
+    opts  = opts
+            |> Keyword.put(:dest, dest)
+            |> Keyword.put(:build, build)
 
     { scm, opts } = Enum.find_value scms, { nil, [] }, fn(scm) ->
       (new = scm.accepts_options(app, opts)) && { scm, new }

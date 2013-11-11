@@ -140,7 +140,7 @@ defmodule Mix.UmbrellaTest do
         purge [Bar]
 
         future = { { 2020, 4, 17 }, { 14, 0, 0 } }
-        File.touch!("../foo/ebin/.compile.elixir", future)
+        File.touch!("_build/lib/foo/ebin/.compile.elixir", future)
         assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       end)
     end)

@@ -252,7 +252,7 @@ defmodule Mix.Deps do
     do: "the dependency requires Elixir #{req} but you are running on v#{System.version}"
 
   defp dep_status(Mix.Dep[app: app, requirement: req, opts: opts, from: from]) do
-    info = { app, req, Dict.drop(opts, [:dest, :lock, :env, :drop]) }
+    info = { app, req, Dict.drop(opts, [:dest, :lock, :env, :build]) }
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
   end
 
@@ -341,10 +341,8 @@ defmodule Mix.Deps do
   Returns all load paths for the dependency.
   Expects a fetched dependency.
   """
-  def load_paths(Mix.Dep[manager: :mix, app: app, opts: opts]) do
-    Mix.Project.in_project(app, opts[:dest], fn _ ->
-      Mix.Project.load_paths
-    end) |> Enum.uniq
+  def load_paths(Mix.Dep[manager: :mix, opts: opts]) do
+    [Path.join(opts[:build], "ebin")]
   end
 
   def load_paths(Mix.Dep[manager: :rebar, opts: opts, extra: extra]) do

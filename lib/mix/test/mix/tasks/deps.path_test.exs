@@ -23,7 +23,7 @@ defmodule Mix.Tasks.DepsPathTest do
       assert_received { :mix_shell, :info, ["* Updating raw_repo (custom/raw_repo)"] }
       assert_received { :mix_shell, :info, ["Compiled lib/raw_repo.ex"] }
       assert_received { :mix_shell, :info, ["Generated raw_repo.app"] }
-      assert File.exists?("custom/raw_repo/ebin/Elixir.RawRepo.beam")
+      assert File.exists?("_build/lib/raw_repo/ebin/Elixir.RawRepo.beam")
 
       Mix.Tasks.Deps.Clean.run ["--all"]
       assert_received { :mix_shell, :info, ["* Cleaning raw_repo 0.1.0 (custom/raw_repo)"] }

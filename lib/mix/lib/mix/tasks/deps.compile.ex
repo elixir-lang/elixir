@@ -42,24 +42,18 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_run(deps, run_opts) do
-    shell = Mix.shell
+    shell  = Mix.shell
+    config = Mix.Project.deps_config
 
     compiled =
       Enum.map deps, fn(dep) ->
         Mix.Dep[app: app, status: status, opts: opts] = dep
+        deps_path = opts[:dest]
 
         check_unavailable!(app, status)
         unless run_opts[:quiet] || opts[:compile] == false do
           shell.info "* Compiling #{app}"
         end
-
-        deps_path = opts[:dest]
-        root_path = Path.expand(Mix.project[:deps_path])
-
-        config = [
-          deps_path: root_path,
-          root_lockfile: Path.expand(Mix.project[:lockfile])
-        ]
 
         compiled = cond do
           not nil?(opts[:compile]) ->
@@ -67,7 +61,7 @@ defmodule Mix.Tasks.Deps.Compile do
           mix?(dep) ->
             do_mix dep, config
           rebar?(dep) ->
-            do_rebar app, deps_path, root_path
+            do_rebar app, deps_path, config[:deps_path]
           make?(dep) ->
             do_command app, deps_path, "make"
           true ->
@@ -91,7 +85,17 @@ defmodule Mix.Tasks.Deps.Compile do
     :ok
   end
 
+  defp app_path_for(Mix.Dep[opts: opts]) do
+    opts[:build]
+  end
+
   defp do_mix(dep, config) do
+    # Set the app_path to be the one stored in the dependency.
+    # This is important because the name of application in the
+    # mix.exs file can be different than the actual name and we
+    # choose to respect the one in the mix.exs.
+    config = Keyword.put(config, :app_path, app_path_for(dep))
+
     Mix.Deps.in_dependency dep, config, fn _ ->
       try do
         res = Mix.Task.run("compile", ["--no-deps"])

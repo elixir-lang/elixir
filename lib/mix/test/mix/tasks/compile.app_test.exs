@@ -39,7 +39,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       Mix.Tasks.Compile.Elixir.run([])
       assert Mix.Tasks.Compile.App.run([]) == :ok
 
-      contents = File.read!("ebin/sample.app")
+      contents = File.read!("_build/lib/sample/ebin/sample.app")
       assert contents =~ "{application,sample"
       assert contents =~ "0.1.0"
       assert contents =~ "'Elixir.A'"
@@ -57,7 +57,7 @@ defmodule Mix.Tasks.Compile.AppTest do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run([])
       Mix.Tasks.Compile.App.run([])
-      contents = File.read!("ebin/custom_project.app")
+      contents = File.read!("_build/lib/custom_project/ebin/custom_project.app")
       assert contents =~ "0.2.0"
       assert contents =~ "{maxT,infinity}"
     end
@@ -70,7 +70,7 @@ defmodule Mix.Tasks.Compile.AppTest do
 
     in_fixture "no_mixfile", fn ->
       lc error inlist [:modules, :maxT, :registered, :included_applications,
-                   :applications, :env, :mod, :start_phases] do
+                       :applications, :env, :mod, :start_phases] do
         Process.put(:error, error)
         e = catch_error(Mix.Tasks.Compile.App.run([]))
         assert Mix.Error[] = e
@@ -98,7 +98,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       Mix.Tasks.Compile.Elixir.run([])
       assert Mix.Tasks.Compile.App.run([]) == :ok
 
-      {:ok, [{_app, _, properties}]} = :file.consult("ebin/sample.app")
+      {:ok, [{_app, _, properties}]} = :file.consult("_build/lib/sample/ebin/sample.app")
       properties = Keyword.from_enum(properties)
       assert properties[:registered] == []
       assert properties[:description] == 'sample'

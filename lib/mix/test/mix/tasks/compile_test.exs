@@ -36,8 +36,8 @@ defmodule Mix.Tasks.CompileTest do
   test "compile a project with mixfile" do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.run []
-      assert File.regular?("ebin/Elixir.A.beam")
-      assert File.regular?("ebin/sample.app")
+      assert File.regular?("_build/lib/sample/ebin/Elixir.A.beam")
+      assert File.regular?("_build/lib/sample/ebin/sample.app")
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
       assert_received { :mix_shell, :info, ["Generated sample.app"] }
     end

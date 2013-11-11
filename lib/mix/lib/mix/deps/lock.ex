@@ -40,7 +40,7 @@ defmodule Mix.Deps.Lock do
   parent project lockfile.
   """
   def lockfile do
-    Mix.project[:root_lockfile] || Mix.project[:lockfile]
+    Mix.project[:lockfile]
   end
 
   @doc """

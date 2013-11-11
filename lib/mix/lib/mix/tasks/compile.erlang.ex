@@ -258,7 +258,8 @@ defmodule Mix.Tasks.Compile.Erlang do
     if stale == [] && removed == [] do
       :noop
     else
-      File.mkdir_p!(Path.dirname(manifest))
+      # Build the project structure so we can write down compiled files.
+      Mix.Project.build_structure
 
       # Remove manifest entries with no source
       Enum.each(removed, &File.rm/1)

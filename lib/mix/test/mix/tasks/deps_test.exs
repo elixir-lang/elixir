@@ -50,7 +50,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"] }
       assert_received { :mix_shell, :info, ["  the app file contains an invalid version: :ok"] }
       assert_received { :mix_shell, :info, ["* invalidapp (deps/invalidapp)"] }
-      assert_received { :mix_shell, :info, ["  the app file at deps/invalidapp/ebin/invalidapp.app is invalid"] }
+      assert_received { :mix_shell, :info, ["  the app file at _build/lib/invalidapp/ebin/invalidapp.app is invalid"] }
       assert_received { :mix_shell, :info, ["* noappfile (deps/noappfile)"] }
       assert_received { :mix_shell, :info, ["  could not find an app file at deps/noappfile/ebin/noappfile.app" <> _] }
       assert_received { :mix_shell, :info, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
@@ -70,8 +70,8 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["  the dependency does not match the requirement \">= 2.0\", got \"0.1.0\""] }
       assert_received { :mix_shell, :info, ["* noappfile (deps/noappfile)"] }
       assert_received { :mix_shell, :info, ["* apppath (deps/noappfile)"] }
-      refute_received { :mix_shell, :info, ["  could not find app file at deps/noappfile/ebin/apppath.app" <> _] }
-      refute_received { :mix_shell, :info, ["  could not find app file at deps/noappfile/ebin/noappfile.app" <> _] }
+      refute_received { :mix_shell, :info, ["  could not find app file at _build/lib/noappfile/ebin/apppath.app" <> _] }
+      refute_received { :mix_shell, :info, ["  could not find app file at _build/lib/noappfile/ebin/noappfile.app" <> _] }
     end
   after
     Mix.Project.pop
@@ -144,7 +144,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :error, ["* invalidvsn (deps/invalidvsn)"] }
       assert_received { :mix_shell, :error, ["  the app file contains an invalid version: :ok"] }
       assert_received { :mix_shell, :error, ["* invalidapp (deps/invalidapp)"] }
-      assert_received { :mix_shell, :error, ["  the app file at deps/invalidapp/ebin/invalidapp.app is invalid"] }
+      assert_received { :mix_shell, :error, ["  the app file at _build/lib/invalidapp/ebin/invalidapp.app is invalid"] }
       assert_received { :mix_shell, :error, ["* noappfile (deps/noappfile)"] }
       assert_received { :mix_shell, :error, ["  could not find an app file at deps/noappfile/ebin/noappfile.app" <> _] }
       assert_received { :mix_shell, :error, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
@@ -509,13 +509,8 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Compile.run []
       Mix.Tasks.Deps.Check.run []
 
-      File.write!("deps/ok/mix.exs", """)
-      defmodule Ok.Mixfile do
-        use Mix.Project
-        def project, do: [app: :ok, version: "1.0.0"]
-      end
-      """
-      File.write!("deps/ok/ebin/.compile.lock", "the_future")
+      File.mkdir_p!("_build/lib/ok/ebin")
+      File.write!("_build/lib/ok/ebin/.compile.lock", "the_future")
       Mix.Task.clear
 
       assert_raise Mix.Error, "Can't continue due to errors on dependencies", fn ->
