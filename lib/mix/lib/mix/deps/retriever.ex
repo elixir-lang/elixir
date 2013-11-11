@@ -156,11 +156,11 @@ defmodule Mix.Deps.Retriever do
     end)
   end
 
-  defp rebar_dep(Mix.Dep[opts: opts] = dep, _config) do
-    File.cd!(opts[:dest], fn ->
-      config = Mix.Rebar.load_config(".")
-      extra  = Dict.take(config, [:sub_dirs])
-      { dep.manager(:rebar).extra(extra), rebar_children(config) }
+  defp rebar_dep(Mix.Dep[] = dep, config) do
+    Mix.Deps.in_dependency(dep, config, fn _ ->
+      rebar = Mix.Rebar.load_config(".")
+      extra = Dict.take(rebar, [:sub_dirs])
+      { dep.manager(:rebar).extra(extra), rebar_children(rebar) }
     end)
   end
 

@@ -13,7 +13,6 @@ defmodule Mix.Tasks.Clean do
 
   """
 
-  # TODO: Needs to take build_path into account
   def run(args) do
     { opts, _, _ } = OptionParser.parse(args)
 

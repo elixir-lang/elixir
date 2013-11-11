@@ -9,12 +9,10 @@ defmodule Mix.Tasks.Deps.Clean do
   Since this is a destructive action, cleaning of all dependencies
   can only happen by passing the `--all` command line option.
 
-  Clean does not unlock the repositories, unless `--unlock` is given.
+  Clean does not unlock the dependencies, unless `--unlock` is given.
   """
-
   import Mix.Deps, only: [loaded: 0, loaded_by_name: 1, format_dep: 1]
 
-  # TODO: Needs to take build_path into account
   def run(args) do
     Mix.Project.get! # Require the project to be available
     { opts, args, _ } = OptionParser.parse(args, switches: [unlock: :boolean, all: :boolean])
