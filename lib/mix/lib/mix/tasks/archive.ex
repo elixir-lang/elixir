@@ -16,28 +16,51 @@ defmodule Mix.Tasks.Archive do
 
   ## Command line options
 
-  * `-o` - specify output file name
-  * `--no-compile` - skip compilation
+  * `-o` - specify output file name.
+           If there is a mix.exs, defaults to app-vsn.ez
+
+  * `-i` - specify the input directory to archive.
+           If there is a mix.exs, defaults to the current application build
+
+  * `--no-compile` - skip compilation.
+                     Only applies to projects.
 
   """
 
   def run(args) do
-    { opts, _, _ } = OptionParser.parse(args, switches: [force: :boolean, no_compile: :boolean])
+    { opts, _, _ } = OptionParser.parse(args, aliases: [o: :output, i: :input],
+                                        switches: [force: :boolean, no_compile: :boolean])
 
-    unless opts[:no_compile] do
+    project = Mix.Project.get
+
+    if project && !opts[:no_compile] do
       Mix.Task.run :compile, args
     end
 
-    archive_file = cond do
-      o = opts[:o] ->
-        o
+    source = cond do
+      input = opts[:input] ->
+        input
+      project ->
+        Mix.Project.app_path
+      true ->
+        raise Mix.Error, message: "Cannot create archive without input directory, " <>
+          "please pass -i as an option"
+    end
+
+    target = cond do
+      output = opts[:output] ->
+        output
       app = Mix.project[:app] ->
         Mix.Archive.name(app, Mix.project[:version])
       true ->
-        raise Mix.Error, message: "Could not create archive without a name, " <>
+        raise Mix.Error, message: "Canno create archive without a name, " <>
           "please pass -o as an option"
     end
 
-    Mix.Archive.create(archive_file)
+    unless File.dir?(source) do
+      raise Mix.Error, message: "Expected archive source #{inspect source} to be a directory"
+    end
+
+    Mix.Archive.create(target, source)
   end
 end

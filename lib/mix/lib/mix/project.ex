@@ -145,7 +145,7 @@ defmodule Mix.Project do
   the current working directory and loading the given project
   onto the project stack.
   """
-  def in_project(app, app_path, post_config // [], fun)
+  def in_project(app, path, post_config // [], fun)
 
   def in_project(app, ".", post_config, fun) do
     cached = load_project(app, post_config)
@@ -157,8 +157,8 @@ defmodule Mix.Project do
     result
   end
 
-  def in_project(app, app_path, post_config, fun) do
-    File.cd! app_path, fn ->
+  def in_project(app, path, post_config, fun) do
+    File.cd! path, fn ->
       in_project(app, ".", post_config, fun)
     end
   end
@@ -209,7 +209,7 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns the library path inside the build.
+  Returns the application path inside the build.
   The returned path will be expanded.
 
   ## Examples
