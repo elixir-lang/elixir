@@ -44,8 +44,14 @@ defmodule Mix.UmbrellaTest do
 
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       File.mkdir_p!("deps/some_dep/ebin")
+      File.mkdir_p!("_build/lib/some_dep/ebin")
+      File.mkdir_p!("_build/lib/foo/ebin")
+      File.mkdir_p!("_build/lib/bar/ebin")
+
       Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
-      assert Path.expand('deps/some_dep/ebin') in :code.get_path
+      assert Path.expand('_build/lib/some_dep/ebin') in :code.get_path
+      assert Path.expand('_build/lib/foo/ebin') in :code.get_path
+      assert Path.expand('_build/lib/bar/ebin') in :code.get_path
     end
   after
     Mix.Project.pop

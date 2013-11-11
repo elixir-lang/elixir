@@ -9,12 +9,13 @@ defmodule Mix.Deps.Umbrella do
 
     if apps_path = config[:apps_path] do
       paths = Path.wildcard(Path.join(apps_path, "*"))
+      build = Mix.Project.build_path
 
       paths
       |> Enum.filter(&File.dir?(&1))
       |> extract_umbrella
       |> filter_umbrella(config[:apps])
-      |> to_umbrella_dep()
+      |> to_umbrella_dep(build)
     else
       []
     end
@@ -49,10 +50,12 @@ defmodule Mix.Deps.Umbrella do
     lc { app, _ } = pair inlist pairs, app in apps, do: pair
   end
 
-  defp to_umbrella_dep(paths) do
+  defp to_umbrella_dep(paths, build) do
     Enum.map paths, fn({ app, path }) ->
+      opts = [path: path, dest: Path.expand(path),
+              env: Mix.env, build: Path.join([build, "lib", app])]
       Mix.Dep[scm: Mix.SCM.Path, app: app, requirement: nil, manager: :mix,
-              status: { :ok, nil }, opts: [path: path, dest: Path.expand(path), env: Mix.env]]
+              status: { :ok, nil }, opts: opts]
     end
   end
 end

@@ -52,7 +52,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* invalidapp (deps/invalidapp)"] }
       assert_received { :mix_shell, :info, ["  the app file at _build/lib/invalidapp/ebin/invalidapp.app is invalid"] }
       assert_received { :mix_shell, :info, ["* noappfile (deps/noappfile)"] }
-      assert_received { :mix_shell, :info, ["  could not find an app file at deps/noappfile/ebin/noappfile.app" <> _] }
+      assert_received { :mix_shell, :info, ["  could not find an app file at _build/lib/noappfile/ebin/noappfile.app" <> _] }
       assert_received { :mix_shell, :info, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
       assert_received { :mix_shell, :info, ["  the dependency is not available, run `mix deps.get`"] }
     end
@@ -146,7 +146,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :error, ["* invalidapp (deps/invalidapp)"] }
       assert_received { :mix_shell, :error, ["  the app file at _build/lib/invalidapp/ebin/invalidapp.app is invalid"] }
       assert_received { :mix_shell, :error, ["* noappfile (deps/noappfile)"] }
-      assert_received { :mix_shell, :error, ["  could not find an app file at deps/noappfile/ebin/noappfile.app" <> _] }
+      assert_received { :mix_shell, :error, ["  could not find an app file at _build/lib/noappfile/ebin/noappfile.app" <> _] }
       assert_received { :mix_shell, :error, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
       assert_received { :mix_shell, :error, ["  the dependency is not available, run `mix deps.get`"] }
     end

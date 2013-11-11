@@ -245,18 +245,26 @@ defmodule Mix.Project do
   @doc """
   Builds the project structure for the current application.
   """
-  def build_structure(config // config()) do
-    ebin = compile_path(config)
-    File.mkdir_p!(ebin)
+  def build_structure(config // config(), opts // []) do
+    app = app_path(config)
+    File.mkdir_p!(app)
 
-    lib = Path.dirname(ebin)
-    old = Path.expand("priv")
+    source = Path.expand("ebin")
+    target = Path.join(app, "ebin")
 
-    case :file.make_symlink(old, Path.join(lib, "priv")) do
-      :ok -> :ok
-      { :error, :eexist } -> :ok
-      { :error, _ } -> File.cp_r!(old, lib) |> IO.inspect
+    cond do
+      opts[:symlink_ebin?] ->
+        Mix.Utils.symlink_or_copy(source, target)
+      match?({ :ok, _ }, :file.read_link(target)) ->
+        File.rm_rf!(target)
+        File.mkdir_p!(target)
+      true ->
+        File.mkdir_p!(target)
     end
+
+    source = Path.expand("priv")
+    target = Path.join(app, "priv")
+    Mix.Utils.symlink_or_copy(source, target)
   end
 
   @doc """

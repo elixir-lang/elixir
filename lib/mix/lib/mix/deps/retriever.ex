@@ -139,22 +139,19 @@ defmodule Mix.Deps.Retriever do
 
   ## Fetching
 
-  defp mix_dep(Mix.Dep[opts: opts, app: app] = dep, config) do
+  defp mix_dep(Mix.Dep[opts: opts] = dep, config) do
     Mix.Deps.in_dependency(dep, config, fn _ ->
       config    = Mix.project
       umbrella? = Mix.Project.umbrella?
-      app_path  =
-        if umbrella? do
-          false
-        else
-          Path.join(Mix.Project.compile_path(config), "#{app}.app")
-        end
+
+      if umbrella? do
+        opts = Keyword.put_new(opts, :app, false)
+      end
 
       if req = old_elixir_req(config) do
         dep = dep.status({ :elixirreq, req })
       end
 
-      opts = Keyword.put_new(opts, :app, app_path)
       { dep.manager(:mix).opts(opts).extra(umbrella: umbrella?), children }
     end)
   end
@@ -182,7 +179,7 @@ defmodule Mix.Deps.Retriever do
       dep
     else
       path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
-      path = Path.expand(path, opts[:dest])
+      path = Path.expand(path, opts[:build])
       dep.status app_status(path, app, req)
     end
   end

@@ -342,28 +342,36 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Returns all load paths for the dependency.
-  Expects a loaded dependency.
+  Returns all load paths for the given dependency. Automatically
+  derived from source paths.
   """
-  def load_paths(Mix.Dep[manager: :mix, opts: opts]) do
-    [Path.join(opts[:build], "ebin")]
+  def load_paths(Mix.Dep[opts: opts] = dep) do
+    build_path = Path.dirname(opts[:build])
+    Enum.map source_paths(dep), fn path ->
+      Path.join [build_path, Path.basename(path), "ebin"]
+    end
   end
 
-  def load_paths(Mix.Dep[manager: :rebar, opts: opts, extra: extra]) do
+  @doc """
+  Returns all source paths.
+
+  Source paths are the directories that contains ebin files for a given
+  dependency. All managers, except rebar, have only one source path.
+  """
+  def source_paths(Mix.Dep[manager: :rebar, opts: opts, extra: extra]) do
     # Add root dir and all sub dirs with ebin/ directory
     sub_dirs = Enum.map(extra[:sub_dirs] || [], fn path ->
       Path.join(opts[:dest], path)
     end)
 
-    [ opts[:dest] | sub_dirs ]
-      |> Enum.map(&Path.wildcard(&1))
-      |> Enum.concat
-      |> Enum.map(&Path.join(&1, "ebin"))
-      |> Enum.filter(&File.dir?(&1))
+    [opts[:dest] | sub_dirs]
+    |> Enum.map(&Path.wildcard(&1))
+    |> Enum.concat
+    |> Enum.filter(fn p -> p |> Path.join("ebin") |> File.dir? end)
   end
 
-  def load_paths(Mix.Dep[manager: manager, opts: opts]) when manager in [:make, nil] do
-    [ Path.join(opts[:dest], "ebin") ]
+  def source_paths(Mix.Dep[opts: opts]) do
+    [opts[:dest]]
   end
 
   @doc """

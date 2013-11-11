@@ -48,28 +48,27 @@ defmodule Mix.Tasks.Deps.Compile do
     compiled =
       Enum.map deps, fn(dep) ->
         Mix.Dep[app: app, status: status, opts: opts] = dep
-        deps_path = opts[:dest]
-
         check_unavailable!(app, status)
+
         unless run_opts[:quiet] || opts[:compile] == false do
           shell.info "* Compiling #{app}"
         end
 
         compiled = cond do
           not nil?(opts[:compile]) ->
-            do_compile app, deps_path, opts[:compile]
+            do_compile dep
           mix?(dep) ->
             do_mix dep, config
           rebar?(dep) ->
-            do_rebar app, deps_path, config[:deps_path]
+            do_rebar dep, config
           make?(dep) ->
-            do_command app, deps_path, "make"
+            do_make dep
           true ->
             shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile " <>
               "(pass :compile as an option to customize compilation, set it to false to do nothing)"
         end
 
-        Enum.each(Mix.Deps.load_paths(dep), &Code.prepend_path/1)
+        unless mix?(dep), do: build_structure(dep, config)
         compiled
       end
 
@@ -85,16 +84,12 @@ defmodule Mix.Tasks.Deps.Compile do
     :ok
   end
 
-  defp app_path_for(Mix.Dep[opts: opts]) do
-    opts[:build]
-  end
-
-  defp do_mix(dep, config) do
+  defp do_mix(Mix.Dep[opts: opts] = dep, config) do
     # Set the app_path to be the one stored in the dependency.
     # This is important because the name of application in the
     # mix.exs file can be different than the actual name and we
     # choose to respect the one in the mix.exs.
-    config = Keyword.put(config, :app_path, app_path_for(dep))
+    config = Keyword.put(config, :app_path, opts[:build])
 
     Mix.Deps.in_dependency dep, config, fn _ ->
       try do
@@ -111,8 +106,8 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp do_rebar(app, deps_path, root_path) do
-    do_command app, deps_path, rebar_cmd(app), "compile skip_deps=true deps_dir=#{inspect root_path}"
+  defp do_rebar(Mix.Dep[app: app] = dep, config) do
+    do_command dep, rebar_cmd(app), "compile skip_deps=true deps_dir=#{inspect config[:deps_path]}"
   end
 
   defp rebar_cmd(app) do
@@ -133,22 +128,42 @@ defmodule Mix.Tasks.Deps.Compile do
     Mix.Rebar.local_rebar_cmd || raise Mix.Error, message: "rebar instalation failed"
   end
 
-  defp do_compile(_, _deps_path, false) do
-    false
+  defp do_make(dep) do
+    do_command(dep, "make")
   end
 
-  defp do_compile(app, deps_path, command) when is_binary(command) do
-    Mix.shell.info("#{app}: #{command}")
-    do_command(app, deps_path, command)
+  defp do_compile(Mix.Dep[app: app, opts: opts] = dep) do
+    if command = opts[:compile] do
+      Mix.shell.info("#{app}: #{command}")
+      do_command(dep, command)
+    else
+      false
+    end
   end
 
-  defp do_command(app, deps_path, command, extra // "") do
-    File.cd! deps_path, fn ->
+  defp do_command(Mix.Dep[app: app, opts: opts], command, extra // "") do
+    File.cd! opts[:dest], fn ->
       if Mix.shell.cmd("#{command} #{extra}") != 0 do
         raise Mix.Error, message: "Could not compile dependency #{app}, #{command} command failed. " <>
           "If you want to recompile this dependency, please run: mix deps.compile #{app}"
       end
     end
     true
+  end
+
+  defp build_structure(Mix.Dep[opts: opts] = dep, config) do
+    build_path = Path.dirname(opts[:build])
+    Enum.each Mix.Deps.source_paths(dep), fn source ->
+      app = Path.join(build_path, Path.basename(source))
+      build_structure(source, app, config)
+      Code.prepend_path(Path.join(app, "ebin"))
+    end
+  end
+
+  defp build_structure(dest, build, config) do
+    File.cd! dest, fn ->
+      config = Keyword.put(config, :app_path, build)
+      Mix.Project.build_structure(config, symlink_ebin?: true)
+    end
   end
 end
