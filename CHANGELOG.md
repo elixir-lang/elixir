@@ -1,13 +1,11 @@
 # v0.11.2-dev
 
 * Enhancements
-
-* Bug fixes
-
-* Deprecations
+  * [Mix] Add `mix iex` that redirects users to the proper `iex -S mix` command
+  * [Mix] Support `build_per_environment: true` in project configuration that manages a separete build per environment, useful when you have per-environment behaviour/compilation
 
 * Backwards incompatible changes
-
+  * [Mix] Mix now compiles files to `_build`. Projects should update just fine, however documentation and books may want to update to the latest information
 
 # v0.11.1 (2013-11-07)
 
