@@ -5,7 +5,7 @@ defmodule Mix.Tasks.DepsTest do
 
   defmodule DepsApp do
     def project do
-      [ app: :deos, version: "0.1.0",
+      [ app: :deps, version: "0.1.0",
         deps: [
           { :ok, "0.1.0",         github: "elixir-lang/ok" },
           { :invalidvsn, "0.2.0", path: "deps/invalidvsn" },
@@ -19,7 +19,7 @@ defmodule Mix.Tasks.DepsTest do
 
   defmodule SuccessfulDepsApp do
     def project do
-      [ app: :success, version: "0.1.0",
+      [ app: :sample, version: "0.1.0",
         deps: [
           { :ok, "0.1.0", path: "deps/ok" }
         ]
@@ -149,6 +149,29 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :error, ["  could not find an app file at _build/shared/lib/noappfile/ebin/noappfile.app" <> _] }
       assert_received { :mix_shell, :error, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
       assert_received { :mix_shell, :error, ["  the dependency is not available, run `mix deps.get`"] }
+    end
+  after
+    Mix.Project.pop
+  end
+
+  test "compiles and prunes builds per environment" do
+    Mix.ProjectStack.post_config [build_per_environment: true]
+    Mix.Project.push SuccessfulDepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Compile.run []
+      assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
+
+      Mix.Tasks.Compile.run []
+      assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
+
+      Mix.ProjectStack.post_config [build_per_environment: true, deps: []]
+      Mix.Project.pop
+      Mix.Project.push SuccessfulDepsApp
+
+      Mix.Tasks.Deps.Check.run []
+      refute File.exists?("_build/dev/lib/ok/ebin/ok.app")
+      assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
     end
   after
     Mix.Project.pop

@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles a project with per environment build" do
     Mix.Project.pop
-    Mix.ProjectStack.post_config [builds_per_environment: true]
+    Mix.ProjectStack.post_config [build_per_environment: true]
     Mix.Project.push MixTest.Case.Sample
 
     in_fixture "no_mixfile", fn ->
