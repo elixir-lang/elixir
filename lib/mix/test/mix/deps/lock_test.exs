@@ -30,4 +30,16 @@ defmodule Mix.Deps.LockTest do
       refute File.regular? "_build/shared/lib/sample/.compile.lock"
     end
   end
+
+  test "stores version and env in manifest" do
+    in_fixture "no_mixfile", fn ->
+      assert nil? Mix.Deps.Lock.elixir_vsn
+      assert nil? Mix.Deps.Lock.mix_env
+
+      Mix.Deps.Lock.touch
+
+      assert Mix.Deps.Lock.elixir_vsn == System.version
+      assert Mix.Deps.Lock.mix_env == "dev"
+    end
+  end
 end

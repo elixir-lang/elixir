@@ -18,16 +18,30 @@ defmodule Mix.Deps.Lock do
   """
   def touch(manifest_path // Mix.Project.manifest_path) do
     File.mkdir_p!(manifest_path)
-    File.write!(Path.join(manifest_path, @manifest), System.version)
+    File.write!(Path.join(manifest_path, @manifest), "#{System.version}\n#{Mix.env}")
   end
 
   @doc """
-  Returns the elixir lock version.
+  Returns the elixir version in the lock manifest.
   """
   def elixir_vsn(manifest_path // Mix.Project.manifest_path) do
+    read_manifest(manifest_path) |> elem(0)
+  end
+
+  @doc """
+  Returns the mix env version in the lock manifest.
+  """
+  def mix_env(manifest_path // Mix.Project.manifest_path) do
+    read_manifest(manifest_path) |> elem(1)
+  end
+
+  defp read_manifest(manifest_path) do
     case File.read(manifest(manifest_path)) do
-      { :ok, contents } -> contents
-      { :error, _ } -> nil
+      { :ok, contents } ->
+        destructure [vsn, env], String.split(contents, "\n")
+        { vsn, env }
+      { :error, _ } ->
+        { nil, nil }
     end
   end
 

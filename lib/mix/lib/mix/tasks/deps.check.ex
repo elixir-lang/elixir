@@ -41,15 +41,15 @@ defmodule Mix.Tasks.Deps.Check do
     config = Mix.project
     if config[:build_per_environment] do
       paths = Mix.Project.build_path(config)
-              |> Path.join("lib/*")
+              |> Path.join("lib/*/ebin")
               |> Path.wildcard
-              |> List.delete(Mix.Project.app_path(config))
+              |> List.delete(Mix.Project.compile_path(config))
 
-      to_prune = Enum.reduce(all, paths, &(&2 -- Mix.Deps.source_paths(&1)))
+      to_prune = Enum.reduce(all, paths, &(&2 -- Mix.Deps.load_paths(&1)))
 
       Enum.map(to_prune, fn path ->
         Code.delete_path(path)
-        File.rm_rf!(path)
+        File.rm_rf!(path |> Path.dirname)
       end)
     end
   end
