@@ -1,14 +1,13 @@
 defmodule Mix.Tasks.Deps.Loadpaths do
   use Mix.Task
 
-  import Mix.Deps, only: [loaded: 0, available?: 1, load_paths: 1]
-
   @hidden true
-  @shortdoc "Load all dependencies' paths"
+  @shortdoc "Load all dependencies build paths"
 
   @moduledoc """
-  Loads all dependencies. This is invoked directly
-  by `loadpaths` when the CLI boots.
+  Loads all dependencies for the current build.
+  This is invoked directly by `loadpaths` when
+  the CLI boots.
 
   ## Command line options
 
@@ -21,8 +20,12 @@ defmodule Mix.Tasks.Deps.Loadpaths do
       Mix.Task.run "deps.check"
     end
 
-    lc dep inlist loaded, available?(dep) do
-      Enum.each(load_paths(dep), &Code.prepend_path/1)
-    end
+    config = Mix.project
+
+    Mix.Project.build_path(config)
+    |> Path.join("lib/*/ebin")
+    |> Path.wildcard
+    |> List.delete(not Mix.Project.umbrella? && Mix.Project.compile_path(config))
+    |> Enum.each(&Code.prepend_path/1)
   end
 end
