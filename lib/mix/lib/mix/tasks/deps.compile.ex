@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Deps.Compile do
         compiled
       end
 
-    if Enum.any?(compiled), do: Mix.Deps.Lock.touch
+    if not Mix.Project.umbrella? && Enum.any?(compiled), do: Mix.Deps.Lock.touch
   end
 
   defp check_unavailable!(app, { :unavailable, _ }) do

@@ -3,7 +3,7 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Mix.UmbrellaTest do
   use MixTest.Case
 
-  test "compile umbrella" do
+  test "compiles umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run "compile"
@@ -22,12 +22,16 @@ defmodule Mix.UmbrellaTest do
     end
   end
 
-  test "dependency in umbrella" do
+  test "dependencies in umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run "deps"
         assert_received { :mix_shell, :info, ["* bar (apps/bar)"] }
         assert_received { :mix_shell, :info, ["* foo (apps/foo)"] }
+
+        # Ensure we can't compile and run checks
+        Mix.Task.run "deps.compile"
+        Mix.Task.run "deps.check"
       end)
     end
   end

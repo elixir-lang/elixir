@@ -232,12 +232,15 @@ defmodule Mix.Project do
 
   """
   def app_path(config // config()) do
-    config[:app_path] || if app = config[:app] do
-      Path.join([build_path(config), "lib", app])
-    else
-      raise Mix.Error, message: "Cannot access build without an application name, " <>
-        "please ensure you are in a directory with a mix.exs file and it defines " <>
-        "an :app name under the project configuration"
+    config[:app_path] || cond do
+      app = config[:app] ->
+        Path.join([build_path(config), "lib", app])
+      config[:apps_path] ->
+        raise "Trying to access app_path for an umbrella project but umbrellas have no app"
+      true ->
+        raise Mix.Error, message: "Cannot access build without an application name, " <>
+          "please ensure you are in a directory with a mix.exs file and it defines " <>
+          "an :app name under the project configuration"
     end
   end
 
