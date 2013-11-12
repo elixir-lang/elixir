@@ -17,9 +17,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run []
 
-      assert File.regular?("_build/lib/sample/ebin/Elixir.A.beam")
-      assert File.regular?("_build/lib/sample/ebin/Elixir.B.beam")
-      assert File.regular?("_build/lib/sample/ebin/Elixir.C.beam")
+      assert File.regular?("_build/shared/lib/sample/ebin/Elixir.A.beam")
+      assert File.regular?("_build/shared/lib/sample/ebin/Elixir.B.beam")
+      assert File.regular?("_build/shared/lib/sample/ebin/Elixir.C.beam")
 
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
       assert_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
@@ -40,18 +40,18 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         end
       end
 
-      refute File.regular?("_build/lib/sample/ebin/Elixir.A.beam")
+      refute File.regular?("_build/shared/lib/sample/ebin/Elixir.A.beam")
     end
   end
 
   test "removes old artifact files" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
-      assert File.regular?("_build/lib/sample/ebin/Elixir.A.beam")
+      assert File.regular?("_build/shared/lib/sample/ebin/Elixir.A.beam")
 
       File.rm!("lib/a.ex")
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
-      refute File.regular?("_build/lib/sample/ebin/Elixir.A.beam")
+      refute File.regular?("_build/shared/lib/sample/ebin/Elixir.A.beam")
     end
   end
 
@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
       refute_received { :mix_shell, :info, ["Compiled lib/b.ex"] }
 
-      File.touch!("_build/lib/sample/.compile.elixir", future)
+      File.touch!("_build/shared/lib/sample/.compile.elixir", future)
       assert Mix.Tasks.Compile.Elixir.run([]) == :noop
     end
   end

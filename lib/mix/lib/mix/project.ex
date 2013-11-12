@@ -184,11 +184,11 @@ defmodule Mix.Project do
   ## Examples
 
       Mix.Project.build_path
-      #=> "/path/to/project/_build"
+      #=> "/path/to/project/_build/shared"
 
   """
   def build_path(config // config()) do
-    config[:build_path] || Path.expand("_build")
+    config[:build_path] || Path.expand("_build/shared")
   end
 
   @doc """
@@ -201,7 +201,7 @@ defmodule Mix.Project do
   ## Examples
 
       Mix.Project.manifest_path
-      #=> "/path/to/project/_build/lib/app"
+      #=> "/path/to/project/_build/shared/lib/app"
 
   """
   def manifest_path(config // config()) do
@@ -215,7 +215,7 @@ defmodule Mix.Project do
   ## Examples
 
       Mix.Project.app_path
-      #=> "/path/to/project/_build/lib/app"
+      #=> "/path/to/project/_build/shared/lib/app"
 
   """
   def app_path(config // config()) do
@@ -235,7 +235,7 @@ defmodule Mix.Project do
   ## Examples
 
       Mix.Project.compile_path
-      #=> "/path/to/project/_build/lib/app/priv"
+      #=> "/path/to/project/_build/shared/lib/app/priv"
 
   """
   def compile_path(config // config()) do

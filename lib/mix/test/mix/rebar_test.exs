@@ -82,8 +82,8 @@ defmodule Mix.RebarTest do
         |> Enum.map(&Mix.Deps.load_paths(&1))
         |> Enum.concat
 
-      assert File.exists?("_build/lib/rebar_dep/ebin/rebar_dep.beam")
-      assert File.exists?("_build/lib/git_rebar/ebin/git_rebar.beam")
+      assert File.exists?("_build/shared/lib/rebar_dep/ebin/rebar_dep.beam")
+      assert File.exists?("_build/shared/lib/git_rebar/ebin/git_rebar.beam")
       assert Enum.any?(load_paths, &String.ends_with?(&1, "git_rebar/ebin"))
       assert Enum.any?(load_paths, &String.ends_with?(&1, "rebar_dep/ebin"))
     end

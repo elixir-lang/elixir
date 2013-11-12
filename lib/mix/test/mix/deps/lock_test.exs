@@ -17,17 +17,17 @@ defmodule Mix.Deps.LockTest do
     in_fixture "no_mixfile", fn ->
       Mix.Deps.Lock.write [foo: :bar]
       assert File.regular? "mix.lock"
-      assert File.regular? "_build/lib/sample/.compile.lock"
+      assert File.regular? "_build/shared/lib/sample/.compile.lock"
     end
   end
 
   test "does not touch manifest file there is no change" do
     in_fixture "no_mixfile", fn ->
       Mix.Deps.Lock.write [foo: :bar, bar: :bat]
-      File.rm! "_build/lib/sample/.compile.lock"
+      File.rm! "_build/shared/lib/sample/.compile.lock"
 
       Mix.Deps.Lock.write [bar: :bat, foo: :bar]
-      refute File.regular? "_build/lib/sample/.compile.lock"
+      refute File.regular? "_build/shared/lib/sample/.compile.lock"
     end
   end
 end

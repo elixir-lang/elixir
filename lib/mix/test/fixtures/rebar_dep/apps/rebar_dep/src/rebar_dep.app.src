@@ -1,0 +1,4 @@
+{application, rebar_dep,
+  [
+    {vsn, "0.1.0"}
+  ]}.

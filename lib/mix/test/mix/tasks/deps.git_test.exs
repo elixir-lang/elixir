@@ -51,11 +51,11 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
-      assert File.exists?("_build/lib/git_repo/ebin/Elixir.GitRepo.beam")
+      assert File.exists?("_build/shared/lib/git_repo/ebin/Elixir.GitRepo.beam")
       assert File.read!("mix.lock") =~ %r/"git_repo": {:git, #{inspect fixture_path("git_repo")}, "[a-f0-9]+", \[\]}/
 
       purge [GitRepo]
-      File.touch!("_build/lib/git_repo/.compile.elixir", { { 2010, 4, 17 }, { 14, 0, 0 } })
+      File.touch!("_build/shared/lib/git_repo/.compile.elixir", { { 2010, 4, 17 }, { 14, 0, 0 } })
       Mix.Task.clear
 
       Mix.Tasks.Deps.Update.run ["--all"]
@@ -67,7 +67,7 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Tasks.Deps.Clean.run ["--all"]
       message = "* Cleaning git_repo 0.1.0 (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
-      refute File.exists?("_build/lib/git_repo/ebin/Elixir.Git.Repo.beam")
+      refute File.exists?("_build/shared/lib/git_repo/ebin/Elixir.Git.Repo.beam")
     end
   after
     Mix.Project.pop
@@ -129,7 +129,7 @@ defmodule Mix.Tasks.DepsGitTest do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
       message = "* Getting git_repo (#{fixture_path("git_repo")})"
-      assert File.exists?("_build/lib/git_app/.compile.lock")
+      assert File.exists?("_build/shared/lib/git_app/.compile.lock")
       assert_received { :mix_shell, :info, [^message] }
 
       # We can compile just fine
@@ -138,7 +138,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
       # Notify a deps changed
       Mix.shell.flush
-      File.touch!("_build/lib/git_app/.compile.lock", { { 2020, 4, 17 }, { 14, 0, 0 } })
+      File.touch!("_build/shared/lib/git_app/.compile.lock", { { 2020, 4, 17 }, { 14, 0, 0 } })
 
       # We are forced to recompile
       purge [A, B, C]
@@ -157,12 +157,12 @@ defmodule Mix.Tasks.DepsGitTest do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
       message = "* Getting git_repo (#{fixture_path("git_repo")})"
-      assert File.rm("_build/lib/git_app/.compile.lock") == :ok
+      assert File.rm("_build/shared/lib/git_app/.compile.lock") == :ok
       assert_received { :mix_shell, :info, [^message] }
 
       Mix.Tasks.Deps.Compile.run ["git_repo"]
       refute_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
-      refute File.exists?("_build/lib/git_app/.compile.lock")
+      refute File.exists?("_build/shared/lib/git_app/.compile.lock")
     end
   after
     purge [GitRepo, GitRepo.Mix]

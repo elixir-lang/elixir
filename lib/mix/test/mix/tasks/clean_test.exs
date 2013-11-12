@@ -29,19 +29,19 @@ defmodule Mix.Tasks.CleanTest do
   test "removes the build configuration" do
     in_fixture "deps_status", fn ->
       Mix.Tasks.Compile.run ["--no-deps"]
-      assert File.exists?("_build/lib/sample")
+      assert File.exists?("_build/shared/lib/sample")
 
       Mix.Tasks.Clean.run []
-      refute File.exists?("_build/lib/sample")
+      refute File.exists?("_build/shared/lib/sample")
     end
   end
 
   test "cleans all repos" do
     in_fixture "deps_status", fn ->
-      assert File.exists?("_build/lib/ok")
+      assert File.exists?("_build/shared/lib/ok")
       Mix.Tasks.Clean.run ["--all"]
 
-      refute File.exists?("_build/lib/ok")
+      refute File.exists?("_build/shared/lib/ok")
       # Assert we don't choke on unfetched deps
       assert_received { :mix_shell, :info, ["* Cleaning unknown (deps/unknown)"] }
     end
