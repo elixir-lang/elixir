@@ -3,7 +3,7 @@ Code.require_file "../../test_helper.exs", __DIR__
 defmodule Mix.Tasks.App.StartTest do
   use MixTest.Case
 
-  defmodule CustomApp do
+  defmodule AppStartSample do
     def project do
       [app: :app_start_sample, version: "0.1.0"]
     end
@@ -11,11 +11,13 @@ defmodule Mix.Tasks.App.StartTest do
 
   defmodule WrongElixirProject do
     def project do
-      [ app: :error, version: "0.1.0", elixir: "~> 0.8.1" ]
+      [app: :error, version: "0.1.0", elixir: "~> 0.8.1"]
     end
   end
 
   test "recompiles project if elixir version changed" do
+    Mix.Project.push MixTest.Case.Sample
+
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.run []
       purge [A, B, C]
@@ -24,17 +26,19 @@ defmodule Mix.Tasks.App.StartTest do
       assert System.version == Mix.Deps.Lock.elixir_vsn
 
       Mix.Task.clear
-      File.write!("ebin/.compile.lock", "the_past")
-      File.touch!("ebin/.compile.lock", { { 2010, 1, 1 }, { 0, 0, 0 } })
+      File.write!("_build/shared/lib/sample/.compile.lock", "the_past")
+      File.touch!("_build/shared/lib/sample/.compile.lock", { { 2010, 1, 1 }, { 0, 0, 0 } })
 
       Mix.Tasks.App.Start.run ["--no-start", "--no-compile"]
       assert System.version == Mix.Deps.Lock.elixir_vsn
-      assert File.stat!("ebin/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
+      assert File.stat!("_build/shared/lib/sample/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
     end
+  after
+    Mix.Project.pop
   end
 
   test "compiles and starts the project" do
-    Mix.Project.push CustomApp
+    Mix.Project.push AppStartSample
 
     in_fixture "no_mixfile", fn ->
       assert_raise Mix.Error, fn ->
@@ -42,8 +46,8 @@ defmodule Mix.Tasks.App.StartTest do
       end
 
       Mix.Tasks.App.Start.run ["--no-start"]
-      assert File.regular?("ebin/Elixir.A.beam")
-      assert File.regular?("ebin/app_start_sample.app")
+      assert File.regular?("_build/shared/lib/app_start_sample/ebin/Elixir.A.beam")
+      assert File.regular?("_build/shared/lib/app_start_sample/ebin/app_start_sample.app")
       refute List.keyfind(:application.loaded_applications, :app_start_sample, 0)
 
       Mix.Tasks.App.Start.run []

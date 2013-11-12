@@ -44,8 +44,14 @@ defmodule Mix.UmbrellaTest do
 
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       File.mkdir_p!("deps/some_dep/ebin")
+      File.mkdir_p!("_build/shared/lib/some_dep/ebin")
+      File.mkdir_p!("_build/shared/lib/foo/ebin")
+      File.mkdir_p!("_build/shared/lib/bar/ebin")
+
       Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
-      assert Path.expand('deps/some_dep/ebin') in :code.get_path
+      assert Path.expand('_build/shared/lib/some_dep/ebin') in :code.get_path
+      assert Path.expand('_build/shared/lib/foo/ebin') in :code.get_path
+      assert Path.expand('_build/shared/lib/bar/ebin') in :code.get_path
     end
   after
     Mix.Project.pop
@@ -65,7 +71,7 @@ defmodule Mix.UmbrellaTest do
     Mix.Project.push CycleDeps
 
     in_fixture "umbrella_dep", fn ->
-      assert Enum.map(Mix.Deps.fetched, & &1.app) == [:foo, :bar, :umbrella]
+      assert Enum.map(Mix.Deps.loaded, & &1.app) == [:foo, :bar, :umbrella]
     end
   after
     Mix.Project.pop
@@ -105,7 +111,7 @@ defmodule Mix.UmbrellaTest do
         end
         """
 
-        assert Enum.map(Mix.Deps.fetched, & &1.app) == [:a, :b, :bar, :foo]
+        assert Enum.map(Mix.Deps.loaded, & &1.app) == [:a, :b, :bar, :foo]
       end
     end
   end
@@ -140,7 +146,10 @@ defmodule Mix.UmbrellaTest do
         purge [Bar]
 
         future = { { 2020, 4, 17 }, { 14, 0, 0 } }
-        File.touch!("../foo/ebin/.compile.elixir", future)
+
+        manifest = "../foo/_build/shared/lib/foo/.compile.elixir"
+        File.mkdir_p!(Path.dirname(manifest))
+        File.touch!(manifest, future)
         assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       end)
     end)

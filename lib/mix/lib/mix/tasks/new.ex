@@ -150,7 +150,7 @@ defmodule Mix.Tasks.New do
    """
 
    embed_text :gitignore, """
-   /ebin
+   /_build
    /deps
    erl_crash.dump
    *.ez

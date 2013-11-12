@@ -28,9 +28,11 @@ defmodule Mix.Shell do
 
   @doc """
   Returns if we should output application name to shell.
+  Calling this function automatically toggles its value
+  to false.
   """
   def output_app? do
-    Mix.Server.call(:output_app?)
+    Mix.ProjectStack.output_app?
   end
 
   @doc """

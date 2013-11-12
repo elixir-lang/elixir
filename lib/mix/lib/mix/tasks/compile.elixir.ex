@@ -228,7 +228,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     { opts, _, _ } = OptionParser.parse(args, switches: @switches)
 
     project       = Mix.project
-    compile_path  = project[:compile_path]
+    compile_path  = Mix.Project.compile_path(project)
     compile_exts  = project[:elixirc_exts]
     watch_exts    = project[:elixirc_watch_exts]
     elixirc_paths = project[:elixirc_paths]
@@ -245,7 +245,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     end
 
     result = files_to_path(manifest, stale, to_compile, compile_path, fn ->
-      File.mkdir_p!(compile_path)
+      Mix.Project.build_structure(project)
       Code.prepend_path(compile_path)
       set_compiler_opts(project, opts, [])
     end)
@@ -261,7 +261,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   Returns Elixir manifests.
   """
   def manifests, do: [manifest]
-  defp manifest, do: Path.join(Mix.project[:compile_path], @manifest)
+  defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
 
   @doc """
   Compiles stale Elixir files.

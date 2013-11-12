@@ -110,22 +110,18 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp project_files do
-    get_files(".")
+    get_files(Mix.Project.app_path)
   end
 
   defp deps_tuples do
-    Enum.reduce Mix.Deps.fetched || [], [], fn(dep, acc) ->
-      dep_tuples(dep.app) ++ acc
+    Enum.reduce Mix.Deps.loaded || [], [], fn(dep, acc) ->
+      get_tuples(dep.opts[:build]) ++ acc
     end
   end
 
   defp set_perms(filename) do
     stat = File.stat!(filename)
     :ok  = :file.change_mode(filename, stat.mode ||| 73)
-  end
-
-  defp dep_tuples(dep) do
-    get_tuples(Path.join("deps", atom_to_binary(dep)))
   end
 
   defp app_tuples(app) do

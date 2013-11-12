@@ -5,16 +5,14 @@ defmodule Mix.DepsTest do
 
   defmodule DepsApp do
     def project do
-      [
-        deps: [
+      [ deps: [
           { :ok,         "0.1.0", github: "elixir-lang/ok" },
           { :invalidvsn, "0.2.0", path: "deps/invalidvsn" },
           { :invalidapp, "0.1.0", path: "deps/invalidapp" },
           { :noappfile,  "0.1.0", path: "deps/noappfile" },
           { :uncloned,            git: "https://github.com/elixir-lang/uncloned.git" },
           { :optional,            git: "https://github.com/elixir-lang/optional.git", optional: true }
-        ]
-      ]
+        ] ]
     end
   end
 
@@ -34,7 +32,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->
-      deps = Mix.Deps.fetched
+      deps = Mix.Deps.loaded
       assert length(deps) == 6
       assert Enum.find deps, &match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
       assert Enum.find deps, &match?(Mix.Dep[app: :invalidvsn, status: { :invalidvsn, :ok }], &1)
@@ -51,7 +49,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push MixVersionApp
 
     in_fixture "deps_status", fn ->
-      deps = Mix.Deps.fetched
+      deps = Mix.Deps.loaded
       assert Enum.find deps, &match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
     end
   after
@@ -64,20 +62,20 @@ defmodule Mix.DepsTest do
     in_fixture "deps_status", fn ->
       msg = "Mix.DepsTest.NoSCMApp did not specify a supported scm for app :ok, " <>
             "expected one of :git, :path or :in_umbrella"
-      assert_raise Mix.Error, msg, fn -> Mix.Deps.fetched end
+      assert_raise Mix.Error, msg, fn -> Mix.Deps.loaded end
     end
   after
     Mix.Project.pop
   end
 
-  test "does not set the manager before the dependency was fetched" do
+  test "does not set the manager before the dependency was loaded" do
     # It is important to not eagerly set the manager because the dependency
-    # needs to be fetched (i.e. available in the filesystem) in order to get
+    # needs to be loaded (i.e. available in the filesystem) in order to get
     # the proper manager.
     Mix.Project.push DepsApp
 
     { _, true } =
-      Mix.Deps.unfetched(false, fn dep, acc ->
+      Mix.Deps.unloaded(false, fn dep, acc ->
         assert nil?(dep.manager)
         { dep, acc or true }
       end)
@@ -101,7 +99,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push NestedDepsApp
 
     in_fixture "deps_status", fn ->
-      assert Enum.map(Mix.Deps.fetched, &(&1.app)) == [:git_repo, :deps_repo]
+      assert Enum.map(Mix.Deps.loaded, &(&1.app)) == [:git_repo, :deps_repo]
     end
   after
     Mix.Project.pop
@@ -127,7 +125,7 @@ defmodule Mix.DepsTest do
       end
       """
 
-      assert Enum.map(Mix.Deps.fetched, &(&1.app)) == [:deps_repo]
+      assert Enum.map(Mix.Deps.loaded, &(&1.app)) == [:deps_repo]
     end
   after
     Mix.Project.pop
@@ -150,7 +148,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push ConvergedDepsApp
 
     in_fixture "deps_status", fn ->
-      assert Enum.map(Mix.Deps.fetched, &(&1.app)) == [:git_repo, :deps_repo]
+      assert Enum.map(Mix.Deps.loaded, &(&1.app)) == [:git_repo, :deps_repo]
     end
   after
     Mix.Project.pop
@@ -176,7 +174,7 @@ defmodule Mix.DepsTest do
       end
       """
 
-      assert Enum.map(Mix.Deps.fetched, &(&1.app)) == [:git_repo, :deps_repo]
+      assert Enum.map(Mix.Deps.loaded, &(&1.app)) == [:git_repo, :deps_repo]
     end
   after
     Mix.Project.pop

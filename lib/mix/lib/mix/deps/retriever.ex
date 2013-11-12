@@ -13,14 +13,14 @@ defmodule Mix.Deps.Retriever do
     scms = Mix.SCM.available
     from = Path.absname("mix.exs")
     Enum.map(Mix.project[:deps] || [], &to_dep(&1, scms, from)) ++
-             Mix.Deps.Umbrella.unfetched
+             Mix.Deps.Umbrella.unloaded
   end
 
   @doc """
-  Fetches the given dependency information, including its
+  Loads the given dependency information, including its
   latest status and children.
   """
-  def fetch(dep, config) do
+  def load(dep, config) do
     Mix.Dep[manager: manager, scm: scm, opts: opts] = dep
     dep  = dep.status(scm_status(scm, opts))
     dest = opts[:dest]
@@ -43,7 +43,7 @@ defmodule Mix.Deps.Retriever do
           { dep.manager(:make), [] }
 
         true ->
-          mix_dep(dep.manager(:mix), config)
+          { dep, [] }
       end
 
     { validate_app(dep), children }
@@ -79,8 +79,11 @@ defmodule Mix.Deps.Retriever do
   defp with_scm_and_app({ app, req, opts }, scms) when is_atom(app) and
       (is_binary(req) or is_regex(req) or req == nil) and is_list(opts) do
 
-    path = Path.join(Mix.project[:deps_path], app)
-    opts = Keyword.put(opts, :dest, path)
+    dest  = Path.join(Mix.Project.deps_path, app)
+    build = Path.join([Mix.Project.build_path, "lib", app])
+    opts  = opts
+            |> Keyword.put(:dest, dest)
+            |> Keyword.put(:build, build)
 
     { scm, opts } = Enum.find_value scms, { nil, [] }, fn(scm) ->
       (new = scm.accepts_options(app, opts)) && { scm, new }
@@ -136,32 +139,28 @@ defmodule Mix.Deps.Retriever do
 
   ## Fetching
 
-  defp mix_dep(Mix.Dep[opts: opts, app: app, status: status] = dep, config) do
+  defp mix_dep(Mix.Dep[opts: opts] = dep, config) do
     Mix.Deps.in_dependency(dep, config, fn _ ->
-      config  = Mix.project
-      default =
-        if Mix.Project.umbrella? do
-          false
-        else
-          Path.join(config[:compile_path], "#{app}.app")
-        end
+      config    = Mix.project
+      umbrella? = Mix.Project.umbrella?
 
-      opts = Keyword.put_new(opts, :app, default)
-      stat = cond do
-        vsn = old_elixir_lock() -> { :elixirlock, vsn }
-        req = old_elixir_req(config) -> { :elixirreq, req }
-        true -> status
+      if umbrella? do
+        opts = Keyword.put_new(opts, :app, false)
       end
 
-      { dep.manager(:mix).opts(opts).status(stat), children }
+      if req = old_elixir_req(config) do
+        dep = dep.status({ :elixirreq, req })
+      end
+
+      { dep.manager(:mix).opts(opts).extra(umbrella: umbrella?), children }
     end)
   end
 
-  defp rebar_dep(Mix.Dep[opts: opts] = dep, _config) do
-    File.cd!(opts[:dest], fn ->
-      config = Mix.Rebar.load_config(".")
-      extra  = Dict.take(config, [:sub_dirs])
-      { dep.manager(:rebar).extra(extra), rebar_children(config) }
+  defp rebar_dep(Mix.Dep[] = dep, config) do
+    Mix.Deps.in_dependency(dep, config, fn _ ->
+      rebar = Mix.Rebar.load_config(".")
+      extra = Dict.take(rebar, [:sub_dirs])
+      { dep.manager(:rebar).extra(extra), rebar_children(rebar) }
     end)
   end
 
@@ -180,7 +179,7 @@ defmodule Mix.Deps.Retriever do
       dep
     else
       path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
-      path = Path.expand(path, opts[:dest])
+      path = Path.expand(path, opts[:build])
       dep.status app_status(path, app, req)
     end
   end
@@ -203,13 +202,6 @@ defmodule Mix.Deps.Retriever do
         end
       { :ok, _ } -> { :invalidapp, app_path }
       { :error, _ } -> { :noappfile, app_path }
-    end
-  end
-
-  defp old_elixir_lock do
-    old_vsn = Mix.Deps.Lock.elixir_vsn
-    if old_vsn && old_vsn != System.version do
-      old_vsn
     end
   end
 

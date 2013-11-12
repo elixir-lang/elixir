@@ -21,11 +21,11 @@ defmodule Mix.CLITest do
       File.write! "mix.exs", """
       defmodule P do
         use Mix.Project
-        def project, do: []
+        def project, do: [app: :p]
       end
       """
       output = mix ""
-      assert File.regular?("ebin/Elixir.A.beam")
+      assert File.regular?("_build/shared/lib/p/ebin/Elixir.A.beam")
       assert output =~ "Compiled lib/a.ex"
     end
   end
@@ -58,7 +58,7 @@ defmodule Mix.CLITest do
       assert output =~ "* creating lib/new_with_tests/supervisor.ex"
 
       output = mix "test test/new_with_tests_test.exs --cover"
-      assert File.regular?("ebin/Elixir.NewWithTests.beam")
+      assert File.regular?("_build/shared/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")
       assert output =~ "1 tests, 0 failures"
       assert output =~ "Generating cover results ..."
       assert File.regular?("cover/Elixir.NewWithTests.html")
@@ -71,7 +71,7 @@ defmodule Mix.CLITest do
       assert output =~ "* creating lib/new_with_tests.ex"
 
       output = mix "test"
-      assert File.regular?("ebin/Elixir.NewWithTests.beam")
+      assert File.regular?("_build/shared/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")
       assert output =~ "1 tests, 0 failures"
     end
   end

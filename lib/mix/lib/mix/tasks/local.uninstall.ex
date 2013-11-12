@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Local.Uninstall do
   @moduledoc """
   Uninstall local tasks:
 
-      mix local.uninstall task_name | archive.ez
+      mix local.uninstall archive
 
   """
 
@@ -15,29 +15,17 @@ defmodule Mix.Tasks.Local.Uninstall do
     Enum.each argv, &do_uninstall(&1)
   end
 
-  defp do_uninstall(task) do
-    case Path.extname(task) do
-      ".ez" -> File.rm! Path.join(Mix.Local.archives_path, task)
-      _ ->
-        task_module = Mix.Task.get!(task)
-        archive = in_archive('#{task_module}.beam')
+  defp do_uninstall(name) do
+    archive = Mix.Local.archives_path
+              |> Path.join(name <> "-*.ez")
+              |> Path.wildcard
+              |> Enum.first
 
-        if archive && Mix.shell.yes?("The task #{task} is part of archive #{archive}. " <>
-             "Do you want to remove this archive?") do
-          do_uninstall(archive)
-        else
-          raise Mix.Error, message: "Cannot uninstall task #{task}"
-        end
+    unless archive do
+      raise Mix.Error, message: "Could not find a local archive named #{inspect name} "<>
+        "at #{inspect Mix.Local.archives_path}"
     end
-  end
 
-  defp in_archive(beam) do
-    case :code.where_is_file(beam) do
-      :non_existing -> []
-      found ->
-        String.from_char_list!(found)
-          |> Path.split
-          |> Enum.find(&String.ends_with?(&1, ".ez"))
-    end
+    File.rm!(archive)
   end
 end

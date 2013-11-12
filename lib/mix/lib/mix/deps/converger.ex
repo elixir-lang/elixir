@@ -5,13 +5,6 @@ defmodule Mix.Deps.Converger do
   @moduledoc false
 
   @doc """
-  Clear up the mixfile cache.
-  """
-  def clear_cache do
-    Mix.Server.cast(:clear_mixfile_cache)
-  end
-
-  @doc """
   Topsorts the given dependencies.
   """
   def topsort(deps) do
@@ -47,11 +40,10 @@ defmodule Mix.Deps.Converger do
   an updated depedency in case some processing is done.
   """
   def all(rest, callback) do
-    config = [ deps_path: Path.expand(Mix.project[:deps_path]),
-               root_lockfile: Path.expand(Mix.project[:lockfile]) ]
+    conf = Mix.Project.deps_config
     main = Mix.Deps.Retriever.children
     apps = Enum.map(main, &(&1.app))
-    all(main, [], [], apps, config, callback, rest)
+    all(main, [], [], apps, conf, callback, rest)
   end
 
   # We traverse the tree of dependencies in a breadth-
@@ -103,9 +95,9 @@ defmodule Mix.Deps.Converger do
         { dep, rest } = callback.(dep, rest)
 
         # After we invoke the callback (which may actually check out the
-        # dependency), we fetch the dependency including its latest info
+        # dependency), we load the dependency including its latest info
         # and children information.
-        { dep, children } = Mix.Deps.Retriever.fetch(dep, config)
+        { dep, children } = Mix.Deps.Retriever.load(dep, config)
         children = reject_non_fullfilled_optional(children, current_breadths)
         dep      = dep.deps(Enum.map(children, &(&1.app)))
 

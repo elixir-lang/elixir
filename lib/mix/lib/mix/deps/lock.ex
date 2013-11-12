@@ -9,36 +9,40 @@ defmodule Mix.Deps.Lock do
   @doc """
   Returns the manifest file for dependencies.
   """
-  def manifest do
-    Path.join(Mix.project[:compile_path], @manifest)
+  def manifest(manifest_path // Mix.Project.manifest_path) do
+    Path.join(manifest_path, @manifest)
   end
 
   @doc """
   Touches the manifest timestamp and updates the elixir version.
   """
-  def touch do
-    compile_path = Mix.project[:compile_path]
-    File.mkdir_p!(compile_path)
-    File.write!(Path.join(compile_path, @manifest), System.version)
+  def touch(manifest_path // Mix.Project.manifest_path) do
+    File.mkdir_p!(manifest_path)
+    File.write!(Path.join(manifest_path, @manifest), "#{System.version}\n#{Mix.env}")
   end
 
   @doc """
-  Returns the elixir lock version.
+  Returns the elixir version in the lock manifest.
   """
-  def elixir_vsn do
-    case File.read(manifest) do
-      { :ok, contents } -> contents
-      { :error, _ } -> nil
+  def elixir_vsn(manifest_path // Mix.Project.manifest_path) do
+    read_manifest(manifest_path) |> elem(0)
+  end
+
+  @doc """
+  Returns the mix env version in the lock manifest.
+  """
+  def mix_env(manifest_path // Mix.Project.manifest_path) do
+    read_manifest(manifest_path) |> elem(1)
+  end
+
+  defp read_manifest(manifest_path) do
+    case File.read(manifest(manifest_path)) do
+      { :ok, contents } ->
+        destructure [vsn, env], String.split(contents, "\n")
+        { vsn, env }
+      { :error, _ } ->
+        { nil, nil }
     end
-  end
-
-  @doc """
-  Returns the lockfile path. In case this is a nested
-  dependencies, the lockfile will always point to the
-  parent project lockfile.
-  """
-  def lockfile do
-    Mix.project[:root_lockfile] || Mix.project[:lockfile]
   end
 
   @doc """
@@ -69,5 +73,9 @@ defmodule Mix.Deps.Lock do
       File.write! lockfile, "[ " <> lines <> " ]\n"
       touch
     end
+  end
+
+  defp lockfile do
+    Mix.project[:lockfile]
   end
 end

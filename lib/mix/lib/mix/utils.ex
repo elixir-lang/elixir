@@ -315,6 +315,33 @@ defmodule Mix.Utils do
   defp to_lower_char(char), do: char
 
   @doc """
+  Symlink directory `source` to `target` or copy it recursively
+  in case symlink fails.
+  """
+  def symlink_or_copy(source, target) do
+    if File.exists?(source) do
+      source_list = String.to_char_list!(source)
+      case :file.read_link(target) do
+        { :ok, ^source_list } -> :ok
+        { :error, :enoent } ->
+          do_symlink_or_copy(source, target)
+        { :error, _ } ->
+          File.rm_rf!(target)
+          do_symlink_or_copy(source, target)
+      end
+    else
+      { :error, :enoent }
+    end
+  end
+
+  defp do_symlink_or_copy(source, target) do
+    case :file.make_symlink(source, target) do
+      :ok -> :ok
+      { :error, _ } -> File.cp_r!(source, Path.join(target, "."))
+    end
+  end
+
+  @doc """
   Opens and reads content from either a URL or a local filesystem path.
 
   Used by tasks like `local.install` and `local.rebar` that support

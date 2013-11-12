@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Deps.Get do
 
   """
 
-  import Mix.Deps, only: [unfetched: 2, unfetched_by_name: 3, format_dep: 1,
+  import Mix.Deps, only: [unloaded: 2, unloaded_by_name: 3, format_dep: 1,
                           check_lock: 2, out_of_date?: 1]
 
   def run(args) do
@@ -24,9 +24,9 @@ defmodule Mix.Tasks.Deps.Get do
 
     acc =
       if rest != [] do
-        unfetched_by_name(rest, init, &deps_getter/2)
+        unloaded_by_name(rest, init, &deps_getter/2)
       else
-        unfetched(init, &deps_getter/2)
+        unloaded(init, &deps_getter/2)
       end
 
     finalize_get(acc, opts)

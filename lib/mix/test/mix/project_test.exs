@@ -11,7 +11,7 @@ defmodule Mix.ProjectTest do
 
   defmodule EnvProject do
     def project do
-      [ hello: "world",
+      [ hello: "world", app_path: "this/is/private",
         env: [ prod: [hello: "new"] ] ]
     end
   end
@@ -19,11 +19,10 @@ defmodule Mix.ProjectTest do
   test "push and pop projects" do
     refute Mix.Project.get
     Mix.Project.push(SampleProject, "sample")
-
     assert Mix.Project.get == SampleProject
 
-    assert Mix.Project.pop == { SampleProject, "sample" }
-    assert Mix.Project.pop == nil
+    assert { SampleProject, _config, "sample" } = Mix.Project.pop
+    assert nil = Mix.Project.pop
   after
     Mix.Project.pop
   end
@@ -41,14 +40,21 @@ defmodule Mix.ProjectTest do
   test "allows nil projects to be pushed twice" do
     Mix.Project.push nil
     Mix.Project.push nil
-    assert Mix.Project.pop == { nil, "nofile" }
-    assert Mix.Project.pop == { nil, "nofile" }
-    assert Mix.Project.pop == nil
+    assert is_tuple Mix.Project.pop
+    assert is_tuple Mix.Project.pop
+    assert nil? Mix.Project.pop
   end
 
   test "retrieves configuration from projects" do
     Mix.Project.push(SampleProject)
     assert Mix.project[:hello] == "world"
+  after
+    Mix.Project.pop
+  end
+
+  test "removes private configuration" do
+    Mix.Project.push(SampleProject)
+    assert nil? Mix.project[:app_path]
   after
     Mix.Project.pop
   end
@@ -62,12 +68,34 @@ defmodule Mix.ProjectTest do
   end
 
   test "retrieves configuration even when a project is not set" do
-    assert Mix.project[:compile_path] == "ebin"
+    assert Mix.project[:default_task] == "run"
   end
 
   test "raises an error when trying to retrieve the current project but none is set" do
     assert_raise Mix.NoProjectError, fn ->
       Mix.Project.get!
+    end
+  end
+
+  test "builds the project structure" do
+    in_fixture "archive", fn ->
+      config = [app_path: "_build/archive"]
+      assert Mix.Project.build_structure(config) == :ok
+      assert File.dir?("_build/archive/ebin")
+      assert :file.read_link("_build/archive/priv") == { :ok, Path.expand('priv') }
+    end
+  end
+
+  test "builds the project structure with ebin symlink" do
+    in_fixture "archive", fn ->
+      config = [app_path: "_build/archive"]
+      assert Mix.Project.build_structure(config, symlink_ebin: true) == :ok
+      assert :file.read_link("_build/archive/ebin") == { :ok, Path.expand('ebin') }
+      assert :file.read_link("_build/archive/priv") == { :ok, Path.expand('priv') }
+
+      assert Mix.Project.build_structure(config) == :ok
+      assert File.dir?("_build/archive/ebin")
+      assert :file.read_link("_build/archive/priv") == { :ok, Path.expand('priv') }
     end
   end
 end

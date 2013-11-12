@@ -58,5 +58,5 @@ defmodule Mix.Tasks.Compile.Yecc do
   Returns Yecc manifests.
   """
   def manifests, do: [manifest]
-  defp manifest, do: Path.join(Mix.project[:compile_path], @manifest)
+  defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
 end

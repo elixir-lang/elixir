@@ -4,6 +4,16 @@ defmodule Mix.Tasks.Compile.LeexTest do
   use MixTest.Case
   import ExUnit.CaptureIO
 
+  setup do
+    Mix.Project.push MixTest.Case.Sample
+    :ok
+  end
+
+  teardown do
+    Mix.Project.pop
+    :ok
+  end
+
   test "compilation continues if one file fails to compile" do
     in_fixture "compile_leex", fn ->
       File.write!("src/zzz.xrl", """)

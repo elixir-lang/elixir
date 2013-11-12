@@ -67,9 +67,9 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     project      = Mix.project
     source_paths = project[:erlc_paths]
-    files        = Mix.Utils.extract_files(source_paths, [:erl])
-    compile_path = to_erl_file project[:compile_path]
     include_path = to_erl_file project[:erlc_include_path]
+    compile_path = to_erl_file Mix.Project.compile_path(project)
+    files        = Mix.Utils.extract_files(source_paths, [:erl])
 
     erlc_options = project[:erlc_options] || []
     erlc_options = erlc_options ++ [{:outdir, compile_path}, {:i, include_path}, :report]
@@ -96,7 +96,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   Returns Erlang manifests.
   """
   def manifests, do: [manifest]
-  defp manifest, do: Path.join(Mix.project[:compile_path], @manifest)
+  defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
 
   @doc """
   Extracts the extensions from the mappings, automatically
@@ -110,12 +110,12 @@ defmodule Mix.Tasks.Compile.Erlang do
   For example, a simple compiler for Lisp Flavored Erlang
   would be implemented like:
 
-      compile_mappings "ebin/.compile.lfe",
+      compile_mappings ".compile.lfe",
                        [{ "src", "ebin" }],
                        :lfe, :beam, opts[:force], fn
         input, output ->
-          lfe_comp:file(to_erl_file(input),
-                        [output_dir: Path.dirname(output)])
+          :lfe_comp.file(to_erl_file(input),
+                         [output_dir: Path.dirname(output)])
       end
 
   The command above will:
@@ -258,7 +258,8 @@ defmodule Mix.Tasks.Compile.Erlang do
     if stale == [] && removed == [] do
       :noop
     else
-      File.mkdir_p!(Path.dirname(manifest))
+      # Build the project structure so we can write down compiled files.
+      Mix.Project.build_structure
 
       # Remove manifest entries with no source
       Enum.each(removed, &File.rm/1)

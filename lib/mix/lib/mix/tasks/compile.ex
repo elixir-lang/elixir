@@ -29,17 +29,6 @@ defmodule Mix.Tasks.Compile do
 
   Remaining options are forwarded to underlying compilers.
 
-  ## Common configuration
-
-  The following options are usually shared by different compilers:
-
-  * `:compile_path` - directory to output compiled files.
-    Defaults to `"ebin"`, can be configured as:
-
-    ```
-    [compile_path: "ebin"]
-    ```
-
   """
   def run(["--list"]) do
     Mix.Task.load_all
@@ -78,7 +67,7 @@ defmodule Mix.Tasks.Compile do
         List.wrap Mix.Task.run("compile.#{compiler}", args)
       end)
 
-    Code.prepend_path Mix.project[:compile_path]
+    Code.prepend_path Mix.Project.compile_path
     if Enum.any?(res, &(:ok in &1)), do: :ok, else: :noop
   end
 
@@ -97,11 +86,8 @@ defmodule Mix.Tasks.Compile do
   end
 
   defp get_compilers do
-    Mix.project[:compilers] || if Mix.Project.get do
+    Mix.project[:compilers] ||
       [:yecc, :leex, :erlang, :elixir, :app]
-    else
-      [:yecc, :leex, :erlang, :elixir]
-    end
   end
 
   defp format(expression, args) do

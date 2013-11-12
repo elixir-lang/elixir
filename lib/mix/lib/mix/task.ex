@@ -173,25 +173,16 @@ defmodule Mix.Task do
   """
   def run(task, args // []) do
     task = to_string(task)
-    app = Mix.project[:app]
 
-    if Mix.Server.call({ :has_task?, task, app }) do
-      :noop
-    else
+    if Mix.TasksServer.call({ :run_task, task, Mix.Project.get }) do
       module = get!(task)
-      Mix.Server.cast({ :add_task, task, app })
 
-      umbrella? = Mix.Project.umbrella?
-      recursive = recursive(module)
-
-      if umbrella? && recursive && Mix.Server.call(:recursive_enabled?) do
-        Mix.Server.cast({ :recursive_enabled?, false })
-        res = recur_deps(fn _ -> module.run(args) end)
-        Mix.Server.cast({ :recursive_enabled?, true })
-        res
-      else
+      recur module, fn proj ->
+        Mix.TasksServer.cast({ :put_task, task, proj })
         module.run(args)
       end
+    else
+      :noop
     end
   end
 
@@ -199,7 +190,7 @@ defmodule Mix.Task do
   Clears all invoked tasks, allowing them to be reinvoked.
   """
   def clear do
-    Mix.Server.call(:clear_tasks)
+    Mix.TasksServer.call(:clear_tasks)
   end
 
   @doc """
@@ -207,20 +198,31 @@ defmodule Mix.Task do
   an umbrella project reenables a task it is reenabled for all sub projects.
   """
   def reenable(task) do
-    if Mix.Project.umbrella? do
-      Mix.Server.cast({ :delete_task, to_string(task) })
+    task   = to_string(task)
+    module = get!(task)
+
+    recur module, fn project ->
+      Mix.TasksServer.cast({ :delete_task, task, project })
+    end
+  end
+
+  defp recur(module, fun) do
+    umbrella? = Mix.Project.umbrella?
+    recursive = recursive(module)
+
+    if umbrella? && recursive && Mix.ProjectStack.enable_recursion do
+      config = [build_path: Mix.Project.build_path]
+      res = lc Mix.Dep[app: app, opts: opts] inlist Mix.Deps.Umbrella.loaded do
+        Mix.Project.in_project(app, opts[:path], config, fun)
+      end
+      Mix.ProjectStack.disable_recursion
+      res
     else
-      Mix.Server.cast({ :delete_task, to_string(task), Mix.project[:app] })
+      fun.(Mix.Project.get)
     end
   end
 
   defp is_task?(module) do
     function_exported?(module, :run, 1)
-  end
-
-  defp recur_deps(fun) do
-    lc Mix.Dep[app: app, opts: opts] inlist Mix.Deps.Umbrella.fetched do
-      Mix.Project.in_project(app, opts[:path], fun)
-    end
   end
 end

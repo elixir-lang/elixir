@@ -77,4 +77,20 @@ defmodule Mix.UtilsTest do
     time = { { 2000, 1, 1 }, { 0, 0, 0 } }
     assert Mix.Utils.extract_stale([{ "hello", time }], [__FILE__]) == []
   end
+
+  test :symlink_or_copy do
+    in_fixture "archive", fn ->
+      File.mkdir_p!("_build/archive")
+      assert Mix.Utils.symlink_or_copy(Path.expand("ebin"), "_build/archive/ebin") == :ok
+      assert :file.read_link("_build/archive/ebin") == { :ok, Path.expand('ebin') }
+    end
+  end
+
+  test :symlink_or_copy_removes_previous_directories do
+    in_fixture "archive", fn ->
+      File.mkdir_p!("_build/archive/ebin")
+      assert Mix.Utils.symlink_or_copy(Path.expand("ebin"), "_build/archive/ebin") == :ok
+      assert :file.read_link("_build/archive/ebin") == { :ok, Path.expand('ebin') }
+    end
+  end
 end

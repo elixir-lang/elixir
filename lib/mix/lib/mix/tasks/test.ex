@@ -94,7 +94,7 @@ defmodule Mix.Tasks.Test do
     cover   = Keyword.merge(@cover, project[:test_coverage] || [])
 
     if opts[:cover] do
-      cover[:tool].start(project[:compile_path], cover)
+      cover[:tool].start(Mix.Project.compile_path(project), cover)
     end
 
     :application.load(:ex_unit)

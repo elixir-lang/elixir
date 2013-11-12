@@ -30,7 +30,7 @@ defmodule Mix.RebarTest do
   test "parse rebar dependencies" do
     Mix.Project.push(RebarAsDep)
 
-    deps = Mix.Deps.fetched
+    deps = Mix.Deps.loaded
     assert Enum.find(deps, &match?(Mix.Dep[app: :rebar_dep], &1))
 
     assert Enum.find(deps, fn dep ->
@@ -76,11 +76,14 @@ defmodule Mix.RebarTest do
       assert_received { :mix_shell, :info, ["* Compiling git_rebar"] }
       assert_received { :mix_shell, :info, ["* Compiling rebar_dep"] }
       assert :git_rebar.any_function == :ok
+      assert :rebar_dep.any_function == :ok
 
-      load_paths = Mix.Deps.fetched
+      load_paths = Mix.Deps.loaded
         |> Enum.map(&Mix.Deps.load_paths(&1))
         |> Enum.concat
 
+      assert File.exists?("_build/shared/lib/rebar_dep/ebin/rebar_dep.beam")
+      assert File.exists?("_build/shared/lib/git_rebar/ebin/git_rebar.beam")
       assert Enum.any?(load_paths, &String.ends_with?(&1, "git_rebar/ebin"))
       assert Enum.any?(load_paths, &String.ends_with?(&1, "rebar_dep/ebin"))
     end
