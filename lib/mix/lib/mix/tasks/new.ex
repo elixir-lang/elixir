@@ -88,7 +88,7 @@ defmodule Mix.Tasks.New do
 
     Mix.shell.info """
 
-    Your mix project was created with success.
+    Your mix project was created successfully.
     You can use mix to compile it, test it, and more:
 
         cd #{path}
@@ -110,7 +110,7 @@ defmodule Mix.Tasks.New do
 
     Mix.shell.info """
 
-    Your umbrella project was created with success.
+    Your umbrella project was created successfully.
     Inside your project, you will find an apps/ directory
     where you can create and host many apps:
 
