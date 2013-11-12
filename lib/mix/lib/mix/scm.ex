@@ -101,11 +101,6 @@ defmodule Mix.SCM do
   defcallback equal?(opts1 :: opts, opts2 :: opts) :: boolean
 
   @doc """
-  This behavior function should clean the given dependency.
-  """
-  defcallback clean(opts) :: any
-
-  @doc """
   Returns all available SCM.
   """
   def available do

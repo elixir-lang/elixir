@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Clean do
 
   ## Command line options
 
-  * `--all` - Clean everything, including dependencies
+  * `--all` - Clean everything, including builds and dependencies
 
   """
 
@@ -23,7 +23,11 @@ defmodule Mix.Tasks.Clean do
       File.rm(manifest)
     end)
 
-    File.rm_rf(Mix.Project.app_path)
-    if opts[:all], do: Mix.Task.run("deps.clean", args)
+    if opts[:all] do
+      Mix.Task.run("deps.clean", args)
+      File.rm_rf(Path.dirname(Mix.Project.build_path))
+    else
+      File.rm_rf(Mix.Project.app_path)
+    end
   end
 end

@@ -11,31 +11,39 @@ defmodule Mix.Tasks.Deps.Clean do
 
   Clean does not unlock the dependencies, unless `--unlock` is given.
   """
-  import Mix.Deps, only: [loaded: 0, loaded_by_name: 1, format_dep: 1]
-
   def run(args) do
     Mix.Project.get! # Require the project to be available
+
     { opts, args, _ } = OptionParser.parse(args, switches: [unlock: :boolean, all: :boolean])
+    loaded = Mix.Deps.loaded
 
     cond do
       opts[:all] ->
-        do_clean loaded, opts
+        do_clean Enum.map(loaded, &(&1.app)), loaded, opts
       args != [] ->
-        do_clean loaded_by_name(args), opts
+        do_clean args, loaded, opts
       true ->
         raise Mix.Error, message: "mix deps.clean expects dependencies as arguments or " <>
                                   "the --all option to clean all dependencies"
     end
   end
 
-  defp do_clean(deps, opts) do
+  defp do_clean(apps, loaded, opts) do
     shell = Mix.shell
+    build = Mix.Project.build_path |> Path.join("lib")
+    deps  = Mix.Project.deps_path
 
-    apps = Enum.map deps, fn(Mix.Dep[scm: scm, opts: opts] = dep) ->
-      shell.info "* Cleaning #{format_dep(dep)}"
-      File.rm_rf!(opts[:build])
-      scm.clean opts
-      dep.app
+    Enum.each apps, fn(app) ->
+      shell.info "* Cleaning #{app}"
+      load_paths =
+        if dep = Enum.find(loaded, &(&1.app == app)) do
+          Mix.Deps.load_paths(dep)
+        else
+          [Path.join([build, app, "ebin"])]
+        end
+
+      Enum.each(load_paths, &(&1 |> Path.dirname |> File.rm_rf!))
+      File.rm_rf!(Path.join(deps, app))
     end
 
     if opts[:unlock] do

@@ -68,10 +68,6 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  def clean(opts) do
-    File.rm_rf opts[:dest]
-  end
-
   ## Helpers
 
   defp location("git://github.com/" <> rest) do

@@ -63,11 +63,6 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
-
-      Mix.Tasks.Deps.Clean.run ["--all"]
-      message = "* Cleaning git_repo 0.1.0 (#{fixture_path("git_repo")})"
-      assert_received { :mix_shell, :info, [^message] }
-      refute File.exists?("_build/shared/lib/git_repo/ebin/Elixir.Git.Repo.beam")
     end
   after
     Mix.Project.pop
