@@ -25,7 +25,7 @@ defmodule Mix.Tasks.Clean do
 
     if opts[:all] do
       Mix.Task.run("deps.clean", args)
-      File.rm_rf(Path.dirname(Mix.Project.build_path))
+      File.rm_rf(Path.dirname(Mix.Project.app_path))
     else
       File.rm_rf(Mix.Project.app_path)
     end
