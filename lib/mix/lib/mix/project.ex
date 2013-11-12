@@ -71,6 +71,7 @@ defmodule Mix.Project do
   @doc false
   def deps_config(config // config()) do
     [ build_path: build_path(config),
+      builds_per_environment: config[:builds_per_environment],
       deps_path: deps_path(config) ]
   end
 
@@ -186,9 +187,21 @@ defmodule Mix.Project do
       Mix.Project.build_path
       #=> "/path/to/project/_build/shared"
 
+  If :builds_per_environment is set to true, it
+  will create a new build per environment:
+
+      Mix.env
+      #=> :dev
+      Mix.Project.build_path
+      #=> "/path/to/project/_build/dev"
+
   """
   def build_path(config // config()) do
-    config[:build_path] || Path.expand("_build/shared")
+    config[:build_path] || if config[:builds_per_environment] do
+      Path.expand("_build/#{Mix.env}")
+    else
+      Path.expand("_build/shared")
+    end
   end
 
   @doc """
@@ -309,7 +322,8 @@ defmodule Mix.Project do
   end
 
   defp default_config do
-    [ default_task: "run",
+    [ builds_per_environment: false,
+      default_task: "run",
       deps: [],
       deps_path: "deps",
       elixirc_exts: [:ex],
