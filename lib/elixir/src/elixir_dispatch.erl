@@ -398,6 +398,8 @@ in_elixir_macros() ->
 in_erlang_functions() ->
   [
     { abs, 1 },
+    { apply, 2 },
+    { apply, 3 },
     { atom_to_list, 1 },
     { binary_part, 3 },
     { binary_to_float, 1 },
@@ -491,8 +493,6 @@ in_erlang_macros() ->
     {'>=',2},
     {'@',1},
     {'and',2},
-    {apply,2},
-    {apply,3},
     {'case',2},
     {def,1},
     {def,2},

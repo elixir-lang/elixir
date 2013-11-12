@@ -354,6 +354,7 @@ defmodule Kernel do
 
   @doc """
   Invokes the given `fun` with the array of arguments `args`.
+  Inlines to `:erlang.apply/2`.
 
   ## Examples
 
@@ -361,12 +362,15 @@ defmodule Kernel do
       4
 
   """
-  def apply(fun, args) do
-    :erlang.apply(fun, args)
+  defmacro apply(fun, args) do
+    quote do
+      :erlang.apply(unquote(fun), unquote(args))
+    end
   end
 
   @doc """
   Invokes the given `fun` from `module` with the array of arguments `args`.
+  Inlines to `:erlang.apply/3`.
 
   ## Examples
 
@@ -374,8 +378,10 @@ defmodule Kernel do
       [3,2,1]
 
   """
-  def apply(module, fun, args) do
-    :erlang.apply(module, fun, args)
+  defmacro apply(module, fun, args) do
+    quote do
+      :erlang.apply(unquote(module), unquote(fun), unquote(args))
+    end
   end
 
   @doc """

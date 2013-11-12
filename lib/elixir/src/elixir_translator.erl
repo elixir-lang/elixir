@@ -2,8 +2,7 @@
 %% overriden are defined in this file.
 -module(elixir_translator).
 -export([forms/4, 'forms!'/4]).
--export([translate/2, translate_each/2, translate_arg/2,
-         translate_args/2, translate_apply/7]).
+-export([translate/2, translate_each/2, translate_arg/2, translate_args/2]).
 -import(elixir_scope, [umergev/2, umergec/2, umergea/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4,
   compile_error/3, compile_error/4,
@@ -386,9 +385,22 @@ translate_each({ Atom, Meta, Args }, S) when is_atom(Atom), is_list(Meta), is_li
 translate_each({ { '.', _, [Left, Right] }, Meta, Args }, S)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   { TLeft,  SL } = translate_each(Left, S),
-
   { TRight, SR } = translate_each(Right, umergec(S, SL)),
-  Callback = fun() -> translate_apply(Meta, TLeft, TRight, Args, S, SL, SR) end,
+
+  Callback = fun() ->
+    case TLeft of
+      { atom, _, Receiver } ->
+        Tuple = { element(3, TRight), length(Args) },
+        elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker),
+        elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function);
+      _ ->
+        ok
+    end,
+
+    Line = ?line(Meta),
+    { TArgs, SA } = translate_args(Args, umergec(S, SR)),
+    { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, umergev(SL, umergev(SR, SA)) }
+  end,
 
   case TLeft of
     { atom, _, Receiver } ->
@@ -583,42 +595,6 @@ translate_args(Args, #elixir_scope{context=match} = S) ->
 translate_args(Args, S) ->
   { TArgs, { SC, SV } } = lists:mapfoldl(fun translate_arg/2, {S, S}, Args),
   { TArgs, umergea(SV, SC) }.
-
-%% Translate apply
-%% Used by both apply and external function invocation macros.
-
-translate_apply(Meta, TLeft, TRight, Args, S, SL, SR) ->
-  Line = ?line(Meta),
-
-  Optimize = case (Args == []) orelse lists:last(Args) of
-    { '|', _, _ } -> false;
-    _ ->
-      case TRight of
-        { atom, _, _ } -> true;
-        _ -> false
-      end
-  end,
-
-  case Optimize of
-    true ->
-      %% Register the remote
-      case TLeft of
-        { atom, _, Receiver } ->
-          Tuple = { element(3, TRight), length(Args) },
-          elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker),
-          elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function);
-        _ ->
-          ok
-      end,
-
-      { TArgs, SA } = translate_args(Args, umergec(S, SR)),
-      FS = umergev(SL, umergev(SR,SA)),
-      { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, FS };
-    false ->
-      { TArgs, SA } = translate_each(Args, umergec(S, SR)),
-      FS = umergev(SL, umergev(SR,SA)),
-      { ?wrap_call(Line, erlang, apply, [TLeft, TRight, TArgs]), FS }
-  end.
 
 %% __op__ helpers
 

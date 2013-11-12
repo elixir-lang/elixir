@@ -2,7 +2,7 @@
 %% but do not since they need to be implemented in Erlang.
 -module(elixir_macros).
 -export([translate/2]).
--import(elixir_translator, [translate_each/2, translate_args/2, translate_apply/7]).
+-import(elixir_translator, [translate_each/2]).
 -import(elixir_scope, [umergec/2, umergea/2]).
 -import(elixir_errors, [compile_error/3, syntax_error/3, syntax_error/4,
   assert_no_function_scope/3, assert_module_scope/3, assert_no_match_or_guard_scope/3]).
@@ -183,17 +183,6 @@ translate({Kind, Meta, [Call, Expr]}, S) when ?defs(Kind) ->
   CheckClauses = (not lists:keymember(context, 1, Meta)) andalso
                    (not QC#elixir_quote.unquoted) andalso (not QE#elixir_quote.unquoted),
   { elixir_def:wrap_definition(Kind, Meta, TCall, TExpr, CheckClauses, SE), SE };
-
-%% Apply - Optimize apply by checking what doesn't need to be dispatched dynamically
-
-translate({ apply, Meta, [Left, Right, Args] }, S) when is_list(Args) ->
-  { TLeft,  SL } = translate_each(Left, S),
-  { TRight, SR } = translate_each(Right, umergec(S, SL)),
-  translate_apply(Meta, TLeft, TRight, Args, S, SL, SR);
-
-translate({ apply, Meta, Args }, S) ->
-  { TArgs, NS } = translate_args(Args, S),
-  { ?wrap_call(?line(Meta), erlang, apply, TArgs), NS };
 
 translate({ Name, Meta, Args }, S) ->
   syntax_error(Meta, S#elixir_scope.file,
