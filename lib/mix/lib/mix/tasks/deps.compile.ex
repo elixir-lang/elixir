@@ -163,7 +163,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp build_structure(dest, build, config) do
     File.cd! dest, fn ->
       config = Keyword.put(config, :app_path, build)
-      Mix.Project.build_structure(config, symlink_ebin?: true)
+      Mix.Project.build_structure(config, symlink_ebin: true)
     end
   end
 end

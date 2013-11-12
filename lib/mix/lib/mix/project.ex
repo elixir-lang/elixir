@@ -253,7 +253,7 @@ defmodule Mix.Project do
     target = Path.join(app, "ebin")
 
     cond do
-      opts[:symlink_ebin?] ->
+      opts[:symlink_ebin] ->
         Mix.Utils.symlink_or_copy(source, target)
       match?({ :ok, _ }, :file.read_link(target)) ->
         File.rm_rf!(target)
