@@ -29,9 +29,35 @@ defmodule Mix.UmbrellaTest do
         assert_received { :mix_shell, :info, ["* bar (apps/bar)"] }
         assert_received { :mix_shell, :info, ["* foo (apps/foo)"] }
 
-        # Ensure we can't compile and run checks
+        # Ensure we can compile and run checks
         Mix.Task.run "deps.compile"
         Mix.Task.run "deps.check"
+      end)
+    end
+  end
+
+  test "dependencies in umbrella with build per environment" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", [build_per_environment: true], fn _ ->
+        File.write "apps/foo/mix.exs", """
+        defmodule Foo.Mix do
+          use Mix.Project
+
+          def project do
+            [ app: :foo, build_per_environment: true, version: "0.1.0" ]
+          end
+        end
+        """
+
+        Mix.Task.run "deps"
+        assert_received { :mix_shell, :info, ["* bar (apps/bar)"] }
+        assert_received { :mix_shell, :info, ["* foo (apps/foo)"] }
+
+        # Ensure we can also start each app and
+        # they won't remove each other build
+        Mix.Task.run "compile"
+        Mix.Task.clear
+        Mix.Task.run "app.start", ["--no-compile"]
       end)
     end
   end
