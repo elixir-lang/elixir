@@ -51,16 +51,22 @@ defmodule Module do
       When just a module is provided, the function/macro is assumed to be
       `__before_compile__/1`.
 
+      Note: differently from `@after_compile`, the callback function/macro must
+      be placed in a separate module (because when the callback is invoked,
+      the current module does not yet exist).
+
       ### Example
 
-          defmodule M do
-            @before_compile __MODULE__
-
+          defmodule A do
             defmacro __before_compile__(_env) do
               quote do
                 def hello, do: "world"
               end
             end
+          end
+
+          defmodule B do
+            @before_compile A
           end
 
   * `@behaviour`   (notice the british spelling)
