@@ -93,39 +93,32 @@ defmodule Stream do
   `Stream.cycle/1`.
   """
 
-  defrecord Lazy, [:enumerable, :fun, :acc]
+  defrecord Lazy, enum: nil, funs: [], accs: []
 
   defimpl Enumerable, for: Lazy do
-    def reduce(Lazy[] = lazy, acc, fun) do
-      do_reduce(lazy, acc, fun, 0)
+    def reduce(lazy, acc, fun) do
+      do_reduce(lazy, acc, fn x, [acc] -> [fun.(x, acc)] end)
     end
 
-    def count(Lazy[] = lazy) do
-      do_reduce(lazy, 0, fn _, acc -> acc + 1 end, 0)
+    def count(lazy) do
+      do_reduce(lazy, 0, fn _, [acc] -> [acc + 1] end)
     end
 
-    def member?(Lazy[] = lazy, value) do
+    def member?(lazy, value) do
       do_reduce(lazy, false, fn(entry, _) ->
-        if entry === value, do: throw({ :stream_lazy, 0, true }), else: false
-      end, 0)
+        if entry === value, do: throw({ :stream_lazy, true }), else: [false]
+      end)
     end
 
-    defp do_reduce(Lazy[enumerable: enumerable, fun: f1, acc: nil], acc, fun, nesting) do
-      do_reduce(enumerable, acc, f1.(fun), nesting)
-    end
+    defp do_reduce(Lazy[enum: enum, funs: funs, accs: accs], acc, fun) do
+      composed = :lists.foldl(fn fun, acc -> fun.(acc) end, fun, funs)
 
-    defp do_reduce(Lazy[enumerable: enumerable, fun: f1, acc: side], acc, fun, nesting) do
-      do_reduce(enumerable, { acc, side }, f1.(fun, nesting), nesting + 1)
+      try do
+        Enumerable.reduce(enum, [acc|accs], composed) |> hd
+      catch
+        { :stream_lazy, res } -> res
+      end
     end
-
-    defp do_reduce(enumerable, acc, fun, nesting) do
-      Enumerable.reduce(enumerable, acc, fun) |> remove_nesting(nesting)
-    catch
-      { :stream_lazy, nesting, res } -> remove_nesting(res, nesting)
-    end
-
-    defp remove_nesting(acc, 0),       do: acc
-    defp remove_nesting(acc, nesting), do: remove_nesting(elem(acc, 0), nesting - 1)
   end
 
   @type t :: Lazy.t | (acc, (element, acc -> acc) -> acc)
@@ -206,17 +199,16 @@ defmodule Stream do
 
   """
   @spec drop(Enumerable.t, non_neg_integer) :: t
-  def drop(enumerable, n) when n >= 0 do
-    Lazy[enumerable: enumerable,
-         fun: fn(f1, _) ->
-           fn
-             _entry, { acc, n } when n > 0 ->
-               { acc, n - 1 }
-             entry, { acc, n } ->
-               { f1.(entry, acc), n }
-           end
-         end,
-         acc: n]
+  def drop(enum, n) when n >= 0 do
+    lazy enum, n, fn(f1) ->
+      fn
+        _entry, [h,n|t] when n > 0 ->
+          [h,n-1|t]
+        entry, [h,n|t] ->
+          [h|t] = f1.(entry, [h|t])
+          [h,n|t]
+      end
+    end
   end
 
   @doc """
@@ -231,17 +223,21 @@ defmodule Stream do
 
   """
   @spec drop_while(Enumerable.t, (element -> as_boolean(term))) :: t
-  def drop_while(enumerable, f) do
-    Lazy[enumerable: enumerable,
-         fun: fn(f1, _) ->
-           fn
-             entry, { acc, true } ->
-               if f.(entry), do: { acc, true }, else: { f1.(entry, acc), false }
-             entry, { acc, false } ->
-               { f1.(entry, acc), false }
-           end
-         end,
-         acc: true]
+  def drop_while(enum, f) do
+    lazy enum, true, fn(f1) ->
+      fn
+        entry, [h,true|t] = orig ->
+          if f.(entry) do
+            orig
+          else
+            [h|t] = f1.(entry, [h|t])
+            [h,false|t]
+          end
+        entry, [h,false|t] ->
+          [h|t] = f1.(entry, [h|t])
+          [h,false|t]
+      end
+    end
   end
 
   @doc """
@@ -256,13 +252,12 @@ defmodule Stream do
 
   """
   @spec filter(Enumerable.t, (element -> as_boolean(term))) :: t
-  def filter(enumerable, f) do
-    Lazy[enumerable: enumerable,
-         fun: fn(f1) ->
-           fn(entry, acc) ->
-             if f.(entry), do: f1.(entry, acc), else: acc
-           end
-         end]
+  def filter(enum, f) do
+    lazy enum, fn(f1) ->
+      fn(entry, acc) ->
+        if f.(entry), do: f1.(entry, acc), else: acc
+      end
+    end
   end
 
   @doc """
@@ -300,13 +295,12 @@ defmodule Stream do
 
   """
   @spec map(Enumerable.t, (element -> any)) :: t
-  def map(enumerable, f) do
-    Lazy[enumerable: enumerable,
-         fun: fn(f1) ->
-           fn(entry, acc) ->
-             f1.(f.(entry), acc)
-           end
-         end]
+  def map(enum, f) do
+    lazy enum, fn(f1) ->
+      fn(entry, acc) ->
+        f1.(f.(entry), acc)
+      end
+    end
   end
 
   @doc """
@@ -322,11 +316,10 @@ defmodule Stream do
   """
 
   @spec flat_map(Enumerable.t, (element -> any)) :: t
-  def flat_map(enumerable, f) do
-    Lazy[enumerable: enumerable,
-         fun: fn(f1) ->
-           fn(entry, acc) -> do_flat_map(f.(entry), acc, f1) end
-         end]
+  def flat_map(enum, f) do
+    lazy enum, fn(f1) ->
+      fn(entry, acc) -> do_flat_map(f.(entry), acc, f1) end
+    end
   end
 
   defp do_flat_map(Lazy[] = lazy, acc, f1) do
@@ -335,13 +328,13 @@ defmodule Stream do
         try do
           f1.(x, y)
         catch
-          { :stream_lazy, nesting, rest } ->
-            throw({ :stream_flat_map, nesting, rest })
+          { :stream_lazy, rest } ->
+            throw({ :stream_flat_map, rest })
         end
       end)
     catch
-      { :stream_flat_map, nesting, rest } ->
-        throw({ :stream_lazy, nesting, rest })
+      { :stream_flat_map, rest } ->
+        throw({ :stream_lazy, rest })
     end
   end
 
@@ -361,13 +354,12 @@ defmodule Stream do
 
   """
   @spec reject(Enumerable.t, (element -> as_boolean(term))) :: t
-  def reject(enumerable, f) do
-    Lazy[enumerable: enumerable,
-         fun: fn(f1) ->
-           fn(entry, acc) ->
-             unless f.(entry), do: f1.(entry, acc), else: acc
-           end
-         end]
+  def reject(enum, f) do
+    lazy enum, fn(f1) ->
+      fn(entry, acc) ->
+        unless f.(entry), do: f1.(entry, acc), else: acc
+      end
+    end
   end
 
   @doc """
@@ -405,18 +397,16 @@ defmodule Stream do
 
   """
   @spec take(Enumerable.t, non_neg_integer) :: t
-  def take(_enumerable, 0), do: Lazy[enumerable: [], fun: &(&1)]
-
-  def take(enumerable, n) when n > 0 do
-    Lazy[enumerable: enumerable,
-         fun: fn(f1, nesting) ->
-           fn(entry, { acc, n }) ->
-             res = f1.(entry, acc)
-             if n > 1, do: { res, n-1 }, else: throw { :stream_lazy, nesting, res }
-           end
-         end,
-         acc: n]
+  def take(enum, n) when n > 0 do
+    lazy enum, n, fn(f1) ->
+      fn(entry, [h,n|t]) ->
+        [h|t] = f1.(entry, [h|t])
+        if n > 1, do: [h,n-1|t], else: throw { :stream_lazy, h }
+      end
+    end
   end
+
+  def take(_enum, 0), do: Lazy[enum: [], funs: [&(&1)]]
 
   @doc """
   Lazily takes elements of the enumerable while the given
@@ -430,18 +420,16 @@ defmodule Stream do
 
   """
   @spec take_while(Enumerable.t, (element -> as_boolean(term))) :: t
-  def take_while(enumerable, f) do
-    Lazy[enumerable: enumerable,
-         fun: fn(f1, nesting) ->
-           fn(entry, { acc, true }) ->
-             if f.(entry) do
-               { f1.(entry, acc), true }
-             else
-               throw { :stream_lazy, nesting, acc }
-             end
-           end
-         end,
-         acc: true]
+  def take_while(enum, f) do
+    lazy enum, fn(f1) ->
+      fn(entry, acc) ->
+        if f.(entry) do
+          f1.(entry, acc)
+        else
+          throw { :stream_lazy, hd(acc) }
+        end
+      end
+    end
   end
 
   @doc """
@@ -481,14 +469,32 @@ defmodule Stream do
 
   """
   @spec with_index(Enumerable.t) :: t
-  def with_index(enumerable) do
-    Lazy[enumerable: enumerable,
-         fun: fn(f1, _) ->
-           fn(entry, { acc, counter }) ->
-             acc = f1.({ entry, counter }, acc)
-             { acc, counter + 1 }
-           end
-         end,
-         acc: 0]
+  def with_index(enum) do
+    lazy enum, 0, fn(f1) ->
+      fn(entry, [h,counter|t]) ->
+        [h|t] = f1.({ entry, counter }, [h|t])
+        [h,counter+1|t]
+      end
+    end
+  end
+
+  @compile { :inline, lazy: 2, lazy: 3 }
+
+  defp lazy(enum, fun) do
+    case enum do
+      Lazy[funs: funs] = lazy ->
+        lazy.funs([fun|funs])
+      _ ->
+        Lazy[enum: enum, funs: [fun], accs: []]
+    end
+  end
+
+  defp lazy(enum, acc, fun) do
+    case enum do
+      Lazy[funs: funs, accs: accs] = lazy ->
+        lazy.funs([fun|funs]).accs([acc|accs])
+      _ ->
+        Lazy[enum: enum, funs: [fun], accs: [acc]]
+    end
   end
 end
