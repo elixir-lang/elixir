@@ -251,6 +251,23 @@ defmodule IEx.HelpersTest do
     cleanup_modules([:sample])
   end
 
+
+  test "c helper skips unknown files" do
+    assert_raise UndefinedFunctionError, "undefined function: :sample.hello/0", fn ->
+      :sample.hello
+    end
+
+   filenames = ["sample.erl", "not_found.ex", "sample2.ex"]
+   with_file filenames, [erlang_module_code, "", another_test_module], fn ->
+      assert c(filenames) |> Enum.sort == [Sample2, :sample]
+      assert :sample.hello == :world
+      assert Sample2.hello == :world
+    end
+  after
+    cleanup_modules([:sample, Sample2])
+  end
+
+
   test "l helper" do
     assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
       Sample.run
