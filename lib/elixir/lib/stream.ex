@@ -96,6 +96,8 @@ defmodule Stream do
   defrecord Lazy, enum: nil, funs: [], accs: []
 
   defimpl Enumerable, for: Lazy do
+    @compile :inline_list_funs
+
     def reduce(lazy, acc, fun) do
       do_reduce(lazy, acc, fn x, [acc] -> [fun.(x, acc)] end)
     end
@@ -114,7 +116,7 @@ defmodule Stream do
       composed = :lists.foldl(fn fun, acc -> fun.(acc) end, fun, funs)
 
       try do
-        Enumerable.reduce(enum, [acc|accs], composed) |> hd
+        Enumerable.reduce(enum, [acc|:lists.reverse(accs)], composed) |> hd
       catch
         { :stream_lazy, res } -> res
       end

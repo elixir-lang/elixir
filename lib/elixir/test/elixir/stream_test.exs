@@ -115,6 +115,7 @@ defmodule StreamTest do
 
     nats = Stream.iterate(1, &(&1 + 1))
     assert Stream.map(nats, &(&1 * 2)) |> Enum.take(5) == [2,4,6,8,10]
+    assert Stream.map(nats, &(&1 - 2)) |> Stream.map(&(&1 * 2)) |> Enum.take(3) == [-2, 0, 2]
   end
 
   test "flat_map" do
@@ -179,6 +180,9 @@ defmodule StreamTest do
 
     stream = 1..5 |> Stream.take(10) |> Stream.drop(15)
     assert { [], [] } = Enum.split(stream, 5)
+
+    stream = 1..20 |> Stream.take(10 + 5) |> Stream.drop(4)
+    assert Enum.to_list(stream) == [5,6,7,8,9,10,11,12,13,14,15]
   end
 
   test "take_while" do
