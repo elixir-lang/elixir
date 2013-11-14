@@ -135,7 +135,12 @@ defmodule ExUnit.Runner do
           { :ok, context } = case_name.__ex_unit__(:setup, Keyword.put(context, :test, test))
 
           test = try do
-            apply case_name, test.name, [context]
+            result = apply case_name, test.name, [context]
+
+            if(result == :skip) do
+              test = test.skipped true
+            end
+
             test
           catch
             kind1, error1 ->
@@ -150,10 +155,16 @@ defmodule ExUnit.Runner do
         end
       end)
 
-      self_pid <- { self, :test_finished, test.time(us) }
+      if test.skipped do
+        self_pid <- { self, :test_skipped, test.time(us) }
+      else
+        self_pid <- { self, :test_finished, test.time(us) }
+      end
     end
 
     receive do
+      { ^test_pid, :test_skipped, test } ->
+        config.formatter.test_skipped(config.formatter_id, test)
       { ^test_pid, :test_finished, test } ->
         config.formatter.test_finished(config.formatter_id, test)
       { :DOWN, ^test_ref, :process, ^test_pid, { error, stacktrace } } ->

@@ -23,6 +23,10 @@ defmodule ExUnit.NilFormatter do
     :ok
   end
 
+  def test_skipped(:ok, _test) do
+    :ok
+  end
+
   def test_finished(:ok, _test) do
     :ok
   end
