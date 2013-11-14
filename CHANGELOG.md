@@ -1,4 +1,4 @@
-# v0.11.2-dev
+# v0.11.2 (2013-11-14)
 
 * Enhancements
   * [Mix] Add `mix iex` that redirects users to the proper `iex -S mix` command
