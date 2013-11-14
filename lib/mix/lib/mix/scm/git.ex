@@ -1,3 +1,126 @@
+defmodule Mix.SCM.Git.Format do
+  @moduledoc false
+
+  # Helper module to encapsulate formatting functions
+
+  @doc false
+  def format(dep, { :git, _repo, rev, _opts }=lock) when is_binary(rev) do
+    String.slice(rev, 0, 7)
+    <> working_dir_mark(dep)
+    <> " "
+    <> get_lock_refs(dep, lock)
+  end
+
+  def format(_, _), do: ""
+
+  ###
+
+  # Returns "*" iff the working dir is dirty
+  defp working_dir_mark(dep) do
+    Mix.Deps.in_dependency(dep, fn _ ->
+      case System.cmd("git status -s") do
+        "" -> ""
+        _  -> "*"
+      end
+    end)
+  end
+
+  ###
+
+  # Returns a string with refs that point to `rev`
+  # For example: "(tags: 0.1, 0.2, 0.3)", "(origin/master)"
+  defp get_lock_refs(dep, { :git, _repo, rev, _opts }) do
+    import Enum
+
+    Mix.Deps.in_dependency(dep, fn _ ->
+      System.cmd("git show-ref")                               # print all refs with commit hashes
+      |> String.split("\n")
+      |> filter(&String.starts_with?(&1, rev))                 # leave those refs that point to our commit (rev)
+      |> map(fn s -> [_, ref] = String.split(s, " "); ref end) # strip the commit hash
+      |> refs_to_string
+    end)
+  end
+
+  # Helpers for get_lock_refs()
+
+  defrecordp :lock_refs, [tags: [], refs: []]
+
+  defp refs_to_string(refs) do
+    refs_to_string(refs, lock_refs())
+  end
+
+  # Collect
+
+  defp refs_to_string(["refs/heads/" <> name | t], lock_refs(refs: refs)=r) do
+    refs_to_string(t, lock_refs(r, refs: prepend_local(name, refs)))
+  end
+
+  defp refs_to_string(["refs/remotes/" <> name | t], lock_refs(refs: refs)=r) do
+    refs_to_string(t, lock_refs(r, refs: prepend_remote(name, refs)))
+  end
+
+  defp refs_to_string(["refs/tags/" <> name | t], lock_refs(tags: tags)=r) do
+    refs_to_string(t, lock_refs(r, tags: [name | tags]))
+  end
+
+  # Format
+
+  defp refs_to_string([], lock_refs(tags: [], refs: [])) do
+    ""
+  end
+
+  defp refs_to_string([], lock_refs(tags: [], refs: refs)) do
+    "(" <> Enum.join(refs, ", ") <> ")"
+  end
+
+  defp refs_to_string([], lock_refs(tags: tags)) do
+    "(" <> map_tags(tags) <> ")"
+  end
+
+  ###
+
+  defp prepend_local(name, list) do
+    cond do
+      # HEAD is not useful
+      String.ends_with?(name, "HEAD") ->
+        list
+
+      # If there is a remote with the same name, throw the local name away
+      Enum.any?(list, fn ref -> String.ends_with?(ref, name) end) ->
+        list
+
+      true ->
+        [name | list]
+    end
+  end
+
+  defp prepend_remote(name, list) do
+    if String.ends_with?(name, "HEAD") do
+      list
+    else
+      filter_remote(name, list)
+    end
+  end
+
+  defp filter_remote(name, list) do
+    [_, localname] = String.split(name, "/")
+    case Enum.find_index(list, &(&1 == localname)) do
+      nil -> [name | list]
+      n   -> [name | List.delete_at(list, n)]
+    end
+  end
+
+  ###
+
+  defp map_tags([tag]) do
+    "tag: " <> tag
+  end
+
+  defp map_tags(tags) do
+    "tags: " <> Enum.join(tags, ", ")
+  end
+end
+
 defmodule Mix.SCM.Git do
   @behavior Mix.SCM
   @moduledoc false
@@ -6,8 +129,8 @@ defmodule Mix.SCM.Git do
     opts[:git]
   end
 
-  def format_lock(lock) do
-    String.slice(get_lock_rev(lock) || "", 0, 7)
+  def format_lock(dep, lock) do
+    Mix.SCM.Git.Format.format(dep, lock)
   end
 
   def accepts_options(_app, opts) do

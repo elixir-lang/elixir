@@ -118,7 +118,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run []
 
       assert_received { :mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"] }
-      assert_received { :mix_shell, :info, ["  locked at abcdefg"] }
+      assert_received { :mix_shell, :info, ["  locked at abcdefg "] }
       assert_received { :mix_shell, :info, ["  lock mismatch: the dependency is out of date"] }
 
       Mix.Deps.Lock.write [ok: { :git, "git://github.com/elixir-lang/another.git", "abcdefghi", [] }]

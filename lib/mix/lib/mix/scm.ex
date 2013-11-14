@@ -2,6 +2,7 @@ defmodule Mix.SCM do
   use Behaviour
 
   @typep opts :: [{ atom, any }]
+  @typep dep
   @typep lock
 
   @moduledoc """
@@ -25,7 +26,7 @@ defmodule Mix.SCM do
 
   If nil is returned, it means no lock information is available.
   """
-  defcallback format_lock(lock) :: String.t | nil
+  defcallback format_lock(dep, lock) :: String.t | nil
 
   @doc """
   This behavior function receives a keyword list of `opts`
