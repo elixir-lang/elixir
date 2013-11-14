@@ -41,21 +41,21 @@ defmodule Mix.Tasks.Compile.App do
     validate_app(app)
     validate_version(version)
 
-    path    = Mix.Project.compile_path
-    beams   = Path.wildcard('#{path}/*.beam')
+    path = Mix.Project.compile_path
+    mods = modules_from(Path.wildcard('#{path}/*.beam')) |> Enum.sort
 
     target  = Path.join(path, "#{app}.app")
-    sources = Mix.Project.config_files ++ beams
+    sources = Mix.Project.config_files
 
-    if opts[:force] || Mix.Utils.stale?(sources, [target]) do
+    if opts[:force] || Mix.Utils.stale?(sources, [target]) || modules_changed?(mods, target) do
       best_guess = [
         vsn: to_char_list(version),
-        modules: modules_from(beams),
+        modules: mods,
         applications: [:kernel, :stdlib, :elixir]
       ]
 
       properties = if function_exported?(project, :application, 0) do
-        Mix.Utils.config_merge(best_guess, project.application)
+        Keyword.merge(best_guess, project.application)
       else
         best_guess
       end
@@ -73,6 +73,15 @@ defmodule Mix.Tasks.Compile.App do
     end
   end
 
+  defp modules_changed?(mods, target) do
+    case :file.consult(target) do
+      { :ok, { :application, _app, properties } } ->
+        properties[:registered] == mods
+      _ ->
+        false
+    end
+  end
+
   defp validate_app(app) when is_atom(app), do: :ok
   defp validate_app(_), do: raise(Mix.Error, message: "Expected :app to be an atom")
 
@@ -84,12 +93,10 @@ defmodule Mix.Tasks.Compile.App do
   end
 
   defp ensure_correct_properties(app, properties) do
-    properties = Keyword.from_enum(properties)
-    properties = Keyword.put properties, :description,
-                             to_char_list(properties[:description] || app)
-    properties = Keyword.put properties, :registered, (properties[:registered] || [])
-    validate_properties(properties)
     properties
+    |> Keyword.put_new(:description, to_char_list(app))
+    |> Keyword.put_new(:registered, [])
+    |> validate_properties
   end
 
   defp validate_properties(properties) do
@@ -133,6 +140,8 @@ defmodule Mix.Tasks.Compile.App do
       _ ->
         :ok
     end
+
+    properties
   end
 
   defp invalid(message) do
