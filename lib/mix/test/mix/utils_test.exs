@@ -93,4 +93,13 @@ defmodule Mix.UtilsTest do
       assert :file.read_link("_build/archive/ebin") == { :ok, Path.expand('ebin') }
     end
   end
+
+  test :symlink_or_copy_erases_wrong_symblinks do
+    in_fixture "archive", fn ->
+      File.mkdir_p!("_build/archive")
+      Mix.Utils.symlink_or_copy(Path.expand("priv"), "_build/archive/ebin")
+      Mix.Utils.symlink_or_copy(Path.expand("ebin"), "_build/archive/ebin")
+      assert :file.read_link("_build/archive/ebin") == { :ok, Path.expand('ebin') }
+    end
+  end
 end
