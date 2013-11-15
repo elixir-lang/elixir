@@ -89,9 +89,12 @@ defmodule Mix.ProjectTest do
   test "builds the project structure with ebin symlink" do
     in_fixture "archive", fn ->
       config = [app_path: "_build/archive"]
+      File.mkdir_p!("include")
+
       assert Mix.Project.build_structure(config, symlink_ebin: true) == :ok
       assert :file.read_link("_build/archive/ebin") == { :ok, Path.expand('ebin') }
       assert :file.read_link("_build/archive/priv") == { :ok, Path.expand('priv') }
+      assert :file.read_link("_build/archive/include") == { :ok, Path.expand('include') }
 
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")

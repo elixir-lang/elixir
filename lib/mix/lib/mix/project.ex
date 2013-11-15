@@ -260,6 +260,11 @@ defmodule Mix.Project do
 
   @doc """
   Builds the project structure for the current application.
+
+  ## Options
+
+  * `:symlink_ebin` - Symlink ebin instead of copying it
+
   """
   def build_structure(config // config(), opts // []) do
     app = app_path(config)
@@ -278,9 +283,8 @@ defmodule Mix.Project do
         File.mkdir_p!(target)
     end
 
-    source = Path.expand("priv")
-    target = Path.join(app, "priv")
-    Mix.Utils.symlink_or_copy(source, target)
+    Mix.Utils.symlink_or_copy(Path.expand("include"), Path.join(app, "include"))
+    Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.join(app, "priv"))
   end
 
   @doc """
