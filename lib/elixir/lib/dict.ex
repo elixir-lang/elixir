@@ -102,7 +102,7 @@ defmodule Dict do
   end
 
   @doc """
-  Returns a list of all values in `dict`
+  Returns a list of all values in `dict`.
   The values are not guaranteed to be in any order.
 
   ## Examples
