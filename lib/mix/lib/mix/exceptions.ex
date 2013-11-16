@@ -18,6 +18,6 @@ defexception Mix.Error, mix_error: true, message: nil
 defexception Mix.ElixirVersionError, mix_error: true, target: nil, expected: nil, actual: nil do
   def message(exception) do
     "You're trying to run #{inspect exception.target} on Elixir v#{exception.actual} " <>
-    "but it's supposed to run on Elixir #{exception.expected}"
+    "but it has declared in its mix.exs file it supports only Elixir #{exception.expected}"
   end
 end
