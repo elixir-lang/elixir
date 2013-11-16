@@ -260,7 +260,7 @@ defmodule Kernel.Typespec do
     args = lc arg inlist args, do: typespec_to_ast(arg)
     guards = Enum.reduce t, h, fn(x, acc) -> { :and, line, [acc, x] } end
 
-    { :::, [line: line], [{ :when, [line: line], [{ name, [line: line], args }, guards] }, typespec_to_ast(result)] }
+    { :when, [line: line], [{ :::, [line: line], [{ name, [line: line], args }, typespec_to_ast(result)] }, guards] }
   end
 
   @doc """
@@ -397,7 +397,7 @@ defmodule Kernel.Typespec do
 
   def deftype(_kind, other, caller) do
     type_spec = Macro.to_string(other)
-    compile_error caller, "invalid type specification #{type_spec}"
+    compile_error caller, "invalid type specification `#{type_spec}`"
   end
 
   defp do_deftype(kind, { name, _, args }, definition, caller) do
@@ -418,17 +418,29 @@ defmodule Kernel.Typespec do
   end
 
   @doc false
-  def defspec(type, {:::, _, [{ :when, _, [{ name, meta, args }, constraints_guard] }, return] }, caller) do
+  def defspec(type, { :when, _, [{ :::, _, [{ name, meta, args }, return] }, constraints_guard] }, caller) do
     if is_atom(args), do: args = []
-    constraints = guard_to_constraints(constraints_guard, caller)
-    spec = { :type, line(meta), :fun, fn_args(meta, args, return, Keyword.keys(constraints), caller) }
-    spec = { :type, line(meta), :bounded_fun, [spec, Keyword.values(constraints)] }
+    vars = guard_to_vars(constraints_guard)
+    constraints = guard_to_constraints(constraints_guard, vars, caller)
+    spec = { :type, line(meta), :fun, fn_args(meta, args, return, vars, caller) }
+    if constraints != [] do
+      spec = { :type, line(meta), :bounded_fun, [spec, constraints] }
+    end
     code = { { name, Kernel.length(args) }, spec }
     Module.compile_typespec(caller.module, type, code)
     code
   end
 
-  def defspec(type, {:::, _, [{ name, meta, args }, return]}, caller) do
+  def defspec(type, { :when, _, [fun, { :::, _, [guards, return] }] } = spec, caller) do
+    new_spec = { :when, [], [{ :::, [], [fun, return] }, guards] }
+    IO.write "typespec format is deprecated `#{Macro.to_string(spec)}`\n" <>
+      "new format is: `#{Macro.to_string(new_spec)}`\n" <>
+      Exception.format_stacktrace
+
+    defspec(type, new_spec, caller)
+  end
+
+  def defspec(type, { :::, _, [{ name, meta, args }, return] }, caller) do
     if is_atom(args), do: args = []
     spec = { :type, line(meta), :fun, fn_args(meta, args, return, [], caller) }
     code = { { name, Kernel.length(args) }, spec }
@@ -438,17 +450,40 @@ defmodule Kernel.Typespec do
 
   def defspec(_type, other, caller) do
     spec = Macro.to_string(other)
-    compile_error caller, "invalid function type specification #{spec}"
+    compile_error caller, "invalid function type specification `#{spec}`"
   end
 
-  defp guard_to_constraints({ :is_subtype, meta, [{ name, _, _ }, type] }, caller) do
+  defp guard_to_vars({ :is_subtype, _, [{ name, _, _ }, _] }) do
+    [name]
+  end
+
+  defp guard_to_vars({ :is_var, _, [{ name, _, _ }] }) do
+    [name]
+  end
+
+  defp guard_to_vars({ :and, _, [left, right] }) do
+    guard_to_vars(left) ++ guard_to_vars(right)
+  end
+
+  defp guard_to_constraints({ :is_subtype, meta, [{ name, _, context }, type] }, vars, caller)
+      when is_atom(name) and is_atom(context) do
     line = line(meta)
-    contraints = [{ :atom, line, :is_subtype }, [{:var, line, name}, typespec(type, [], caller)]]
-    [{ name, { :type, line, :constraint, contraints } }]
+    contraints = [{ :atom, line, :is_subtype }, [{:var, line, name}, typespec(type, vars, caller)]]
+    [{ :type, line, :constraint, contraints }]
   end
 
-  defp guard_to_constraints({ :and, _, [left, right] }, caller) do
-    guard_to_constraints(left, caller) ++ guard_to_constraints(right, caller)
+  defp guard_to_constraints({ :is_var, _, [{ name, _, context }] }, _, _)
+      when is_atom(name) and is_atom(context) do
+    []
+  end
+
+  defp guard_to_constraints({ :and, _, [left, right] }, vars, caller) do
+    guard_to_constraints(left, vars, caller) ++ guard_to_constraints(right, vars, caller)
+  end
+
+  defp guard_to_constraints(other, _vars, caller) do
+    guard = Macro.to_string(other)
+    compile_error caller, "invalid guard in function type specification `#{guard}`"
   end
 
   ## To AST conversion
@@ -743,7 +778,7 @@ defmodule Kernel.Typespec do
 
   defp validate_kw({ key, _ } = t, _, _caller) when is_atom(key), do: t
   defp validate_kw(_, original, caller) do
-    compile_error(caller, "unexpected list #{Macro.to_string original} in typespec")
+    compile_error(caller, "unexpected list `#{Macro.to_string original}` in typespec")
   end
 
   defp fn_args(meta, args, return, vars, caller) do

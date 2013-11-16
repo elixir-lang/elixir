@@ -27,8 +27,8 @@ defmodule Macro do
   @spec binary_op_props(atom) :: { :left | :right, precedence :: integer }
   defp binary_op_props(o) do
     case o do
-      :::                                                       -> {:right, 30}
-      :when                                                     -> {:right, 40}
+      :when                                                     -> {:right, 30}
+      :::                                                       -> {:right, 40}
       o when o in [:inlist, :inbits]                            -> {:left, 50}
       ://                                                       -> {:right, 60}
       :|                                                        -> {:left, 70}
