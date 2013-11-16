@@ -97,7 +97,9 @@ defmodule EnumTest.List do
     assert Enum.drop([1, 2, 3], 2) == [3]
     assert Enum.drop([1, 2, 3], 3) == []
     assert Enum.drop([1, 2, 3], 4) == []
-    assert Enum.drop([1, 2, 3], -1) == [3]
+    assert Enum.drop([1, 2, 3], -1) == [1, 2]
+    assert Enum.drop([1, 2, 3], -2) == [1]
+    assert Enum.drop([1, 2, 3], -4) == []
     assert Enum.drop([], 3) == []
   end
 
@@ -260,7 +262,9 @@ defmodule EnumTest.List do
     assert Enum.take([1, 2, 3], 2) == [1, 2]
     assert Enum.take([1, 2, 3], 3) == [1, 2, 3]
     assert Enum.take([1, 2, 3], 4) == [1, 2, 3]
-    assert Enum.take([1, 2, 3], -1) == [1, 2]
+    assert Enum.take([1, 2, 3], -1) == [3]
+    assert Enum.take([1, 2, 3], -2) == [2, 3]
+    assert Enum.take([1, 2, 3], -4) == [1, 2, 3]
     assert Enum.take([], 3) == []
   end
 
@@ -371,14 +375,14 @@ defmodule EnumTest.List do
     assert Enum.slice([1,2,3,4,5], 0..1) == [1, 2]
     assert Enum.slice([1,2,3,4,5], 0..2) == [1, 2, 3]
     assert Enum.slice([1,2,3,4,5], 1..2) == [2, 3]
-    assert Enum.slice([1,2,3,4,5], 1..0) == nil 
+    assert Enum.slice([1,2,3,4,5], 1..0) == nil
     assert Enum.slice([1,2,3,4,5], 2..5) == [3, 4, 5]
     assert Enum.slice([1,2,3,4,5], 4..4) == [5]
     assert Enum.slice([1,2,3,4,5], 5..5) == []
-    assert Enum.slice([1,2,3,4,5], 6..5) == nil 
-    assert Enum.slice([1,2,3,4,5], 6..0) == nil 
-    assert Enum.slice([1,2,3,4,5], -6..0) == nil 
-    assert Enum.slice([1,2,3,4,5], -6..5) == nil 
+    assert Enum.slice([1,2,3,4,5], 6..5) == nil
+    assert Enum.slice([1,2,3,4,5], 6..0) == nil
+    assert Enum.slice([1,2,3,4,5], -6..0) == nil
+    assert Enum.slice([1,2,3,4,5], -6..5) == nil
     assert Enum.slice([1,2,3,4,5], -5..-1) == [1, 2, 3, 4, 5]
     assert Enum.slice([1,2,3,4,5], -5..-3) == [1, 2, 3]
     assert Enum.slice([1,2,3,4,5], -6..-1) == nil
@@ -454,6 +458,9 @@ defmodule EnumTest.Range do
     assert Enum.drop(range, 2) == [3]
     assert Enum.drop(range, 3) == []
     assert Enum.drop(range, 4) == []
+    assert Enum.drop(range, -1) == [1, 2]
+    assert Enum.drop(range, -2) == [1]
+    assert Enum.drop(range, -4) == []
 
     range = Range.new(first: 1, last: 0)
     assert Enum.drop(range, 3) == []
@@ -663,6 +670,9 @@ defmodule EnumTest.Range do
     assert Enum.take(range, 2) == [1, 2]
     assert Enum.take(range, 3) == [1, 2, 3]
     assert Enum.take(range, 4) == [1, 2, 3]
+    assert Enum.take(range, -1) == [3]
+    assert Enum.take(range, -2) == [2, 3]
+    assert Enum.take(range, -4) == [1, 2, 3]
 
     range = Range.new(first: 1, last: 0)
     assert Enum.take(range, 3) == [1, 0]
@@ -756,20 +766,20 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..5, -2, 5) == [4, 5]
     assert Enum.slice(1..5, -3, 1) == [3]
   end
-  
+
   test :slice_range do
     assert Enum.slice(1..5, 0..0) == [1]
     assert Enum.slice(1..5, 0..1) == [1, 2]
     assert Enum.slice(1..5, 0..2) == [1, 2, 3]
     assert Enum.slice(1..5, 1..2) == [2, 3]
-    assert Enum.slice(1..5, 1..0) == nil 
+    assert Enum.slice(1..5, 1..0) == nil
     assert Enum.slice(1..5, 2..5) == [3, 4, 5]
     assert Enum.slice(1..5, 4..4) == [5]
     assert Enum.slice(1..5, 5..5) == []
-    assert Enum.slice(1..5, 6..5) == nil 
-    assert Enum.slice(1..5, 6..0) == nil 
-    assert Enum.slice(1..5, -6..0) == nil 
-    assert Enum.slice(1..5, -6..5) == nil 
+    assert Enum.slice(1..5, 6..5) == nil
+    assert Enum.slice(1..5, 6..0) == nil
+    assert Enum.slice(1..5, -6..0) == nil
+    assert Enum.slice(1..5, -6..5) == nil
     assert Enum.slice(1..5, -5..-1) == [1, 2, 3, 4, 5]
     assert Enum.slice(1..5, -5..-3) == [1, 2, 3]
     assert Enum.slice(1..5, -6..-1) == nil

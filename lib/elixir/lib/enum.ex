@@ -285,10 +285,10 @@ defmodule Enum do
   @doc """
   Drops the first `count` items from `collection`.
 
-  A negative value `count` can be given, which means
-  the collection is enumerated once to retrieve the
-  proper index and the remaining of the calculation
-  is done from the end.
+  If a negative value `count` is given the last `count`
+  values will be dropped. The collection is enumerated
+  once to retrieve the proper index and the remaining
+  calculation is performed from the end.
 
   ## Examples
 
@@ -298,6 +298,8 @@ defmodule Enum do
       []
       iex> Enum.drop([1, 2, 3], 0)
       [1,2,3]
+      iex> Enum.drop([1, 2, 3], -1)
+      [1,2]
 
   """
   @spec drop(t, integer) :: list
@@ -314,7 +316,7 @@ defmodule Enum do
   end
 
   def drop(collection, count) when count < 0 do
-    do_take_reverse(reverse(collection), abs(count), [])
+    do_drop(reverse(collection), abs(count)) |> :lists.reverse
   end
 
   @doc """
@@ -991,10 +993,10 @@ defmodule Enum do
   @doc """
   Takes the first `count` items from the collection.
 
-  A negative value `count` can be passed, which means
-  the collection is enumerated once to retrieve the
-  proper index and the remaining of the calculation
-  is done from the end.
+  If a negative value `count` is given the last `count`
+  values will be taken. The collection is enumerated
+  once to retrieve the proper index and the remaining
+  calculation is performed from the end.
 
   ## Examples
 
@@ -1005,7 +1007,7 @@ defmodule Enum do
       iex> Enum.take([1, 2, 3], 0)
       []
       iex> Enum.take([1, 2, 3], -1)
-      [1,2]
+      [3]
 
   """
   @spec take(t, integer) :: list
@@ -1032,7 +1034,7 @@ defmodule Enum do
   end
 
   def take(collection, count) when count < 0 do
-    do_drop(reverse(collection), abs(count)) |> :lists.reverse
+    do_take_reverse(reverse(collection), abs(count), [])
   end
 
   @doc """

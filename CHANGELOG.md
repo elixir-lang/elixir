@@ -7,6 +7,7 @@
 * Deprecations
 
 * Backwards incompatible changes
+  * [Kernel] Behaviour of `Enum.drop/2` and `Enum.take/2` has been switched when given negative counts
 
 
 # v0.11.2 (2013-11-14)
