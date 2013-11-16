@@ -390,7 +390,7 @@ defmodule Enum do
   Returns `{ :ok, element }` if found, otherwise `:error`.
 
   A negative index can be passed, which means the collection is
-  iterated once and the index is counted from the end (i.e.
+  enumerated once and the index is counted from the end (i.e.
   `-1` fetches the last element).
 
   ## Examples
@@ -925,7 +925,7 @@ defmodule Enum do
   collection.
 
   Be aware that a negative `count` implies the collection
-  will be iterated twice. Once to calculate the position and
+  will be enumerated twice. Once to calculate the position and
   a second time to do the actual splitting.
 
   ## Examples
@@ -1387,7 +1387,7 @@ defmodule Enum do
   @spec slice(t, integer, non_neg_integer) :: list
 
   def slice(coll, start, count) when start < 0 do
-    { list, new_start } = iterate_and_count(coll, start)
+    { list, new_start } = enumerate_and_count(coll, start)
     if new_start >= 0, do: slice(list, new_start, count)
   end
 
@@ -1445,7 +1445,7 @@ defmodule Enum do
   end
 
   def slice(coll, first..last) do
-    { list, count } = iterate_and_count(coll, 0)
+    { list, count } = enumerate_and_count(coll, 0)
     corr_first = if first >= 0, do: first, else: first + count
     corr_last = if last >= 0, do: last, else: last + count
     length = corr_last - corr_first + 1
@@ -1476,11 +1476,11 @@ defmodule Enum do
     { acc, buffer, i }
   end
 
-  defp iterate_and_count(collection, count) when is_list(collection) do
+  defp enumerate_and_count(collection, count) when is_list(collection) do
     { collection, length(collection) - abs(count) }
   end
 
-  defp iterate_and_count(collection, count) do
+  defp enumerate_and_count(collection, count) do
     map_reduce(collection, -abs(count), fn(x, acc) -> { x, acc + 1 } end)
   end
 
