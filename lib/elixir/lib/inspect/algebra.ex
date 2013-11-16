@@ -314,32 +314,38 @@ defmodule Inspect.Algebra do
       iex> Inspect.Algebra.pretty(doc, 20)
       "[1, 2, 3, ...]"
 
+      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", 3, &integer_to_binary(&1), "!")
+      iex> Inspect.Algebra.pretty(doc, 20)
+      "[1! 2! 3! ...]"
+
   """
-  @spec surround_many(binary, [any], binary, integer | :infinity, (term -> t)) :: t
-  def surround_many(left, [], right, _, _fun) do
+  @spec surround_many(binary, [any], binary, integer | :infinity, (term -> t), binary) :: t
+  def surround_many(left, docs, right, limit, fun, separator // @surround_separator)
+
+  def surround_many(left, [], right, _, _fun, _) do
     concat(left, right)
   end
 
-  def surround_many(left, docs, right, limit, fun) do
-    surround(left, surround_many(docs, limit, fun), right)
+  def surround_many(left, docs, right, limit, fun, sep) do
+    surround(left, surround_many(docs, limit, fun, sep), right)
   end
 
-  defp surround_many(_, 0, _fun) do
+  defp surround_many(_, 0, _fun, _sep) do
     "..."
   end
 
-  defp surround_many([h], _limit, fun) do
+  defp surround_many([h], _limit, fun, _sep) do
     fun.(h)
   end
 
-  defp surround_many([h|t], limit, fun) when is_list(t) do
+  defp surround_many([h|t], limit, fun, sep) when is_list(t) do
     glue(
-      concat(fun.(h), @surround_separator),
-      surround_many(t, decrement(limit), fun)
+      concat(fun.(h), sep),
+      surround_many(t, decrement(limit), fun, sep)
     )
   end
 
-  defp surround_many([h|t], _limit, fun) do
+  defp surround_many([h|t], _limit, fun, _sep) do
     glue(
       concat(fun.(h), @tail_separator),
       fun.(t)
