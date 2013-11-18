@@ -176,7 +176,7 @@ defmodule Mix.Tasks.New do
     # { :foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1" }
     #
     # To specify particular versions, regardless of the tag, do:
-    # { :barbat, "~> 0.1", github: "elixir-lang/barbat.git" }
+    # { :barbat, "~> 0.1", github: "elixir-lang/barbat" }
     defp deps do
       []
     end
@@ -205,7 +205,7 @@ defmodule Mix.Tasks.New do
     # { :foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1" }
     #
     # To specify particular versions, regardless of the tag, do:
-    # { :barbat, "~> 0.1", github: "elixir-lang/barbat.git" }
+    # { :barbat, "~> 0.1", github: "elixir-lang/barbat" }
     #
     # You can depend on another app in the same umbrella with:
     # { :other, in_umbrella: true }
@@ -228,7 +228,7 @@ defmodule Mix.Tasks.New do
     # { :foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1" }
     #
     # To specify particular versions, regardless of the tag, do:
-    # { :barbat, "~> 0.1", github: "elixir-lang/barbat.git" }
+    # { :barbat, "~> 0.1", github: "elixir-lang/barbat" }
     #
     # These dependencies are not accessible from child applications
     defp deps do

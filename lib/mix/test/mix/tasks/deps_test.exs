@@ -8,6 +8,7 @@ defmodule Mix.Tasks.DepsTest do
       [ app: :deps, version: "0.1.0",
         deps: [
           { :ok, "0.1.0",         github: "elixir-lang/ok" },
+          { :oksuffix, "0.1.1",   github: "elixir-lang/oksuffix.git" },
           { :invalidvsn, "0.2.0", path: "deps/invalidvsn" },
           { :invalidapp, "0.1.0", path: "deps/invalidapp" },
           { :noappfile, "0.1.0",  path: "deps/noappfile" },
@@ -21,7 +22,8 @@ defmodule Mix.Tasks.DepsTest do
     def project do
       [ app: :sample, version: "0.1.0",
         deps: [
-          { :ok, "0.1.0", path: "deps/ok" }
+          { :ok, "0.1.0", path: "deps/ok" },
+          { :oksuffix, "0.1.1", path: "deps/oksuffix" }
         ]
       ]
     end
@@ -57,6 +59,7 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_received { :mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"] }
       assert_received { :mix_shell, :info, ["  the dependency is not locked"] }
+      assert_received { :mix_shell, :info, ["* oksuffix (git://github.com/elixir-lang/oksuffix.git)"] }
       assert_received { :mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"] }
       assert_received { :mix_shell, :info, ["  the app file contains an invalid version: :ok"] }
       assert_received { :mix_shell, :info, ["* invalidapp (deps/invalidapp)"] }
