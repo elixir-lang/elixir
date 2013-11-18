@@ -354,6 +354,31 @@ defmodule List do
     end
   end
 
+  @doc """
+  Produces a new list by removing the value at the specified `index`. Negative
+  indices indicate an offset from the end of the list. If `index` is out of
+  bounds, the original `list` is returned.
+
+  ## Examples
+
+      iex> List.delete_at([1, 2, 3], 0)
+      [2, 3]
+
+      iex List.delete_at([1, 2, 3], 10)
+      [1, 2, 3]
+
+      iex> List.delete_at([1, 2, 3], -1)
+      [1, 2]
+
+  """
+  def delete_at(list, index) do
+    if index < 0 do
+      do_delete_at(list, length(list) + index)
+    else
+      do_delete_at(list, index)
+    end
+  end
+
   ## Helpers
 
   # replace_at
@@ -386,6 +411,24 @@ defmodule List do
 
   defp do_insert_at([h|t], index, value) do
     [ h | do_insert_at(t, index - 1, value) ]
+  end
+
+  # delete_at
+
+  defp do_delete_at([], _index) do
+    []
+  end
+
+  defp do_delete_at([_|t], 0) do
+    t
+  end
+
+  defp do_delete_at(list, index) when index < 0 do
+    list
+  end
+
+  defp do_delete_at([h|t], index) do
+    [h | do_delete_at(t, index-1)]
   end
 
   # zip
