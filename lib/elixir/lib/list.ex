@@ -4,6 +4,12 @@ defmodule List do
   and cannot be part of the Enum protocol. In general,
   favor using the Enum API instead of List.
 
+  Some functions in this module expect an index. Index
+  access for list is linear. Negative indexes are also
+  supported but they imply the list will be iterated twice,
+  one to calculate the proper index and another to the
+  operation.
+
   A decision was taken to delegate most functions to
   Erlang's standard library but follow Elixir's convention
   of receiving the target (in this case, a list) as the
@@ -13,9 +19,9 @@ defmodule List do
   @compile :inline_list_funcs
 
   @doc """
-  Deletes the given item from the list. Returns a list without the item.
-  If the item occurs more than once in the list, just the first occurrence
-  is removed.
+  Deletes the given item from the list. Returns a list without
+  the item. If the item occurs more than once in the list, just
+  the first occurrence is removed.
 
   ## Examples
 
@@ -299,9 +305,9 @@ defmodule List do
   end
 
   @doc """
-  Returns a list with `value` inserted at the specified `index`. Note that `index`
-  is capped at the list length. Negative indices indicate an offset from the
-  end of the list.
+  Returns a list with `value` inserted at the specified `index`.
+  Note that `index` is capped at the list length. Negative indices
+  indicate an offset from the end of the list.
 
   ## Examples
 
@@ -327,9 +333,9 @@ defmodule List do
   end
 
   @doc """
-  Returns a list with a replaced value at the specified `index`. Negative indices
-  indicate an offset from the end of the list. If `index` is out of bounds, the
-  original `list` is returned.
+  Returns a list with a replaced value at the specified `index`.
+  Negative indices indicate an offset from the end of the list.
+  If `index` is out of bounds, the original `list` is returned.
 
   ## Examples
 
@@ -355,9 +361,9 @@ defmodule List do
   end
 
   @doc """
-  Produces a new list by removing the value at the specified `index`. Negative
-  indices indicate an offset from the end of the list. If `index` is out of
-  bounds, the original `list` is returned.
+  Produces a new list by removing the value at the specified `index`.
+  Negative indices indicate an offset from the end of the list.
+  If `index` is out of bounds, the original `list` is returned.
 
   ## Examples
 
