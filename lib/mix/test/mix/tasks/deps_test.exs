@@ -60,7 +60,6 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"] }
       assert_received { :mix_shell, :info, ["  the dependency is not locked"] }
       assert_received { :mix_shell, :info, ["* oksuffix (git://github.com/elixir-lang/oksuffix.git)"] }
-      assert_received { :mix_shell, :info, ["  the dependency is not locked"] }
       assert_received { :mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"] }
       assert_received { :mix_shell, :info, ["  the app file contains an invalid version: :ok"] }
       assert_received { :mix_shell, :info, ["* invalidapp (deps/invalidapp)"] }
