@@ -1,14 +1,18 @@
 # v0.11.3-dev
 
 * Enhancements
+  * [Kernel] Add `List.delete_at/2`
+  * [Typespec] Support `is_var/1` in typespecs
 
 * Bug fixes
+  * [Mix] Also symlink `include` directories in dependencies
 
 * Deprecations
+  * [Typespec] `when` clauses in typespecs were moved to the outer part of the spec
 
 * Backwards incompatible changes
   * [Kernel] Behaviour of `Enum.drop/2` and `Enum.take/2` has been switched when given negative counts
-
+  * [Stream] The `Stream.Lazy` structure has changed to accumulate functions and accumulators as we go (its inspected representation has also changed)
 
 # v0.11.2 (2013-11-14)
 
