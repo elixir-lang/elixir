@@ -27,6 +27,19 @@ defmodule EEx do
      above and is available to you if you want to provide your own
      ways of handling the compiled template.
 
+  ## Options
+
+  All functions in this module accepts EEx-related options.
+  They are:
+  
+  * `:line` - the line to be used as the template start.
+              Defaults to 1;
+  * `:file` - the file to be used in the template.
+              Defaults to the given file the template is read from
+              or to "nofile" when compiling from a string;
+  * `:engine` - the EEx engine to be used for compilation.
+                Defaults to `EEx.Engine`;
+
   ## Engine
 
   EEx has the concept of engines which allows you to modify or
