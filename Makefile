@@ -114,7 +114,7 @@ docs: compile ../ex_doc/bin/ex_doc
 	mkdir -p ebin
 	rm -rf docs
 	cp -R -f lib/*/ebin/*.beam ./ebin
-	bin/elixir ../ex_doc/bin/ex_doc "Elixir" "$(VERSION)" -m Kernel -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)"
+	bin/elixir ../ex_doc/bin/ex_doc "Elixir" "$(VERSION)" "./ebin" -m Kernel -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)"
 	rm -rf ebin
 
 ../ex_doc/bin/ex_doc:
