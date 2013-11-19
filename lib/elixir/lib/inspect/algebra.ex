@@ -374,19 +374,18 @@ defmodule Inspect.Algebra do
 
   @doc false
   @spec fits?(integer, [{ integer, mode, t }]) :: boolean
-  def fits?(:infinity, _),                                  do: true # no pretty printing
   def fits?(w, _) when w < 0,                               do: false
   def fits?(_, []),                                         do: true
   def fits?(w, [{_, _, :doc_nil} | t]),                     do: fits?(w, t)
   def fits?(w, [{i, m, doc_cons(left: x, right: y)} | t]),  do: fits?(w, [{i, m, x} | [{i, m, y} | t]])
   def fits?(w, [{i, m, doc_nest(indent: j, doc: x)} | t]),  do: fits?(w, [{i + j, m, x} | t])
+  def fits?(w, [{i, _, doc_group(doc: x)} | t]),            do: fits?(w, [{i, :flat, x} | t])
   def fits?(w, [{_, _, s} | t]) when is_binary(s),          do: fits?((w - byte_size s), t)
   def fits?(w, [{_, :flat, doc_break(str: s)} | t]),        do: fits?((w - byte_size s), t)
   def fits?(_, [{_, :break, doc_break(str: _)} | _]),       do: true
-  def fits?(w, [{i, _, doc_group(doc: x)} | t]),            do: fits?(w, [{i, :flat, x} | t])
 
   @doc false
-  @spec format(integer | :infinity, integer, [{ integer, mode, t }]) :: atom | tuple
+  @spec format(integer | :infinity, integer, [{ integer, mode, t }]) :: [binary]
   def format(_, _, []),                                        do: []
   def format(w, k, [{_, _, :doc_nil} | t]),                    do: format(w, k, t)
   def format(w, k, [{i, m, doc_cons(left: x, right: y)} | t]), do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
