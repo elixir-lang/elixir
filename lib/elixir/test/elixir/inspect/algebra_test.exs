@@ -21,7 +21,7 @@ defmodule Inspect.AlgebraTest do
     # Consistence with definitions
     assert empty == :doc_nil
     # Consistence of corresponding sdoc
-    assert factor(empty, 80) == :s_nil
+    assert factor(empty, 80) == []
     # Consistent formatting
     assert pretty(empty, 80) == ""
   end
@@ -35,7 +35,7 @@ defmodule Inspect.AlgebraTest do
     ## ong argument type
     assert_raise FunctionClauseError, fn -> break(42) end
     # Consistence of corresponding sdoc
-    assert factor(break("_"), 80) == { :s_text, "_", :s_nil }
+    assert factor(break("_"), 80) == ["_"]
     # Consistent formatting
     assert pretty(break("_"), 80) == "_"
   end
@@ -53,7 +53,7 @@ defmodule Inspect.AlgebraTest do
 
   test :text do
     # Consistence of corresponding docfactor
-    assert factor("_", 80) == { :s_text, "_", :s_nil }
+    assert factor("_", 80) == ["_"]
     # Consistent formatting
     assert pretty("_", 80) == "_"
   end
@@ -78,14 +78,13 @@ defmodule Inspect.AlgebraTest do
     alb1 = fn -> nest(glue("a", "b"), 1) end
     # Consistence of corresponding sdoc
     ## Trivial case
-    assert factor(a1.(), 80)  == { :s_text, "a", :s_nil }
+    assert factor(a1.(), 80)  == ["a"]
     ## Correctly indenting line forcing linebreak
-    assert format(2, 0, [{0, :break, alb1.()}]) ==
-      { :s_text, "a", { :s_line, 1, { :s_text, "b", :s_nil }}}
+    assert format(2, 0, [{0, :break, alb1.()}]) == ["a", "\n", " ", "b"]
 
     # Consistent formatting
     ## Trivial case
-    assert pretty(a1.(), 80)   == "a"
+    assert pretty(a1.(), 80) == "a"
     ## Correctly indenting line
     assert render(format 2, 0, [{0, :break, alb1.()}]) == "a\n b"
   end
@@ -109,11 +108,8 @@ defmodule Inspect.AlgebraTest do
     assert group(empty) == { :doc_group, empty }
 
     # Consistence of corresponding sdoc
-    assert factor(glue("a", "b"), 1) ==
-      { :s_text, "a", { :s_text, " ", { :s_text, "b", :s_nil }}}
-
-    assert factor(glue("a", "b"), 9) ==
-      { :s_text, "a", { :s_text, " ", { :s_text, "b", :s_nil }}}
+    assert factor(glue("a", "b"), 1) == ["a", " ", "b"]
+    assert factor(glue("a", "b"), 9) == ["a", " ", "b"]
 
     # Consistent formatting
     assert pretty(helloabcd, 5) == "hello\na b\ncd"

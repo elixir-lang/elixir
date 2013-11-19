@@ -71,9 +71,6 @@ defmodule Inspect.Algebra do
   @nesting 1
   @break " "
 
-  defp repeat(_, 0), do: ""
-  defp repeat(s, i), do: :lists.duplicate(i, s)
-
   # Functional interface to `doc` records
 
   @type t :: :doc_nil | doc_cons_t | doc_nest_t | doc_break_t | doc_group_t | binary
@@ -96,10 +93,9 @@ defmodule Inspect.Algebra do
 
   defp do_is_doc(doc) do
     quote do
-      unquote(doc) |> is_binary or
-      unquote(doc) |> is_integer or
+      is_binary(unquote(doc)) or
       unquote(doc) == :doc_nil or
-      (unquote(doc) |> is_tuple and
+      (is_tuple(unquote(doc)) and
        elem(unquote(doc), 0) in [:doc_cons, :doc_nest, :doc_break, :doc_group])
     end
   end
@@ -296,7 +292,7 @@ defmodule Inspect.Algebra do
   """
   @spec surround(binary, t, binary) :: t
   def surround(left, doc, right) do
-    group concat [left, nest(doc, @nesting), right]
+    group concat left, concat(nest(doc, @nesting), right)
   end
 
   @doc %S"""
@@ -373,12 +369,6 @@ defmodule Inspect.Algebra do
 
   # Rendering and internal helpers
 
-  # Records representing __simple__ documents, already on a fixed layout
-  # Those are generalized by `sdoc` type.
-  @type sdoc :: :s_nil | s_text_t | s_line_t
-  defrecordp :s_text, str: "" :: binary, sdoc: :s_nil :: sdoc
-  defrecordp :s_line, indent: 1 :: non_neg_integer, sdoc: :s_nil :: sdoc
-
   # Record representing the document mode to be rendered: flat or broken
   @typep mode :: :flat | :break
 
@@ -397,34 +387,27 @@ defmodule Inspect.Algebra do
 
   @doc false
   @spec format(integer | :infinity, integer, [{ integer, mode, t }]) :: atom | tuple
-  def format(_, _, []),                                        do: :s_nil
+  def format(_, _, []),                                        do: []
   def format(w, k, [{_, _, :doc_nil} | t]),                    do: format(w, k, t)
   def format(w, k, [{i, m, doc_cons(left: x, right: y)} | t]), do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
   def format(w, k, [{i, m, doc_nest(indent: j, doc: x)} | t]), do: format(w, k, [{i + j, m, x} | t])
-  def format(w, k, [{_, _, s} | t]) when is_binary(s),         do: s_text(str: s, sdoc: format(w, (k + byte_size s), t))
   def format(w, k, [{i, m, doc_group(doc: x)} | t]),           do: format(w, k, [{i, m, x} | t])
-  def format(w, k, [{_, :flat, doc_break(str: s)} | t]),       do: s_text(str: s, sdoc: format(w, (k + byte_size s), t))
+  def format(w, k, [{_, _, s} | t]) when is_binary(s),         do: [s | format(w, (k + byte_size s), t)]
+  def format(w, k, [{_, :flat, doc_break(str: s)} | t]),       do: [s | format(w, (k + byte_size s), t)]
   def format(w, k, [{i, :break, doc_break(str: s)} | t]) do
     k = k + byte_size(s)
 
     if w == :infinity or fits?(w - k, t) do
-      s_text(str: s, sdoc: format(w, k, t))
+      [s | format(w, k, t)]
     else
-      s_line(indent: i, sdoc: format(w, i, t))
+      prefix = :binary.copy(" ", i)
+      [@newline, prefix | format(w, i, t)]
     end
   end
 
   @doc false
-  @spec render(sdoc) :: binary
+  @spec render([binary]) :: binary
   def render(sdoc) do
-    iolist_to_binary do_render sdoc
-  end
-
-  @spec do_render(sdoc) :: [binary]
-  defp do_render(:s_nil), do: [""]
-  defp do_render(s_text(str: s, sdoc: d)), do: [s | do_render(d)]
-  defp do_render(s_line(indent: i, sdoc: d)) do
-    prefix = repeat " ", i
-    [@newline | [prefix | do_render d]]
+    iolist_to_binary sdoc
   end
 end

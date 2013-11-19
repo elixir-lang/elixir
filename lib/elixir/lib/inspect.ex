@@ -326,11 +326,7 @@ defimpl Inspect, for: Tuple do
     [name|tail] = tuple_to_list(record)
 
     if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
-      if Enum.first(tail) == :__exception__ do
-        surround_record(name, tl(fields), tl(tail), opts)
-      else
-        surround_record(name, fields, tail, opts)
-      end
+      surround_record(name, fields, tail, opts)
     end || surround_many("{", [name|tail], "}", opts.limit, &Kernel.inspect(&1, opts))
   end
 
@@ -347,19 +343,25 @@ defimpl Inspect, for: Tuple do
   end
 
   defp surround_record(name, fields, tail, opts) do
-    fields = lc { field, _ } inlist fields, do: field
-
     concat(
       Inspect.Atom.inspect(name, opts),
-      surround_many("[", Enum.zip(fields, tail), "]", opts.limit, &keyword(&1, opts))
+      surround_many("[", zip_fields(fields, tail), "]", opts.limit, &keyword(&1, opts))
     )
   end
 
+  defp zip_fields([{ key, _ }|tk], [value|tv]) do
+    case atom_to_binary(key) do
+      "_" <> _ -> zip_fields(tk, tv)
+      key -> [{ key, value }|zip_fields(tk, tv)]
+    end
+  end
+
+  defp zip_fields([], []) do
+    []
+  end
+
   defp keyword({ k, v }, opts) do
-    concat(
-      atom_to_binary(k) <> ": ",
-      Kernel.inspect(v, opts)
-    )
+    concat(k <> ": ", Kernel.inspect(v, opts))
   end
 end
 

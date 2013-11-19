@@ -397,7 +397,6 @@ defmodule Module do
 
   @doc """
   Concatenates the list of aliases and returns a new alias.
-  It handles char lists, binaries and atoms.
 
   ## Examples
 
@@ -405,17 +404,15 @@ defmodule Module do
       Foo.Bar
       iex> Module.concat([Foo, "Bar"])
       Foo.Bar
-      iex> Module.concat([Foo, 'Bar'])
-      Foo.Bar
 
   """
+  @spec concat([binary | atom]) :: atom
   def concat(list) when is_list(list) do
     :elixir_aliases.concat(list)
   end
 
   @doc """
   Concatenates the two given aliases and returns a new alias.
-  It handles char lists, binaries and atoms.
 
   ## Examples
 
@@ -423,10 +420,9 @@ defmodule Module do
       Foo.Bar
       iex> Module.concat(Foo, "Bar")
       Foo.Bar
-      iex> Module.concat(Foo, 'Bar')
-      Foo.Bar
 
   """
+  @spec concat(binary | atom, binary | atom) :: atom
   def concat(left, right) do
     :elixir_aliases.concat([left, right])
   end
@@ -446,6 +442,7 @@ defmodule Module do
       List.Chars
 
   """
+  @spec safe_concat([binary | atom]) :: atom | no_return
   def safe_concat(list) when is_list(list) do
     :elixir_aliases.safe_concat(list)
   end
@@ -465,6 +462,7 @@ defmodule Module do
       List.Chars
 
   """
+  @spec safe_concat(binary | atom, binary | atom) :: atom | no_return
   def safe_concat(left, right) do
     :elixir_aliases.safe_concat([left, right])
   end

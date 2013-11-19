@@ -130,35 +130,43 @@ nesting_alias(Prefix, Full) ->
 do_nesting([X|PreTail], [X|Tail], Acc) ->
   do_nesting(PreTail, Tail, [X|Acc]);
 do_nesting([], [H|_], Acc) ->
-  { list_to_atom("Elixir." ++ H), concat(lists:reverse([H|Acc])) };
+  { binary_to_atom(<<"Elixir.", H/binary>>, utf8), concat(lists:reverse([H|Acc])) };
 do_nesting(_, _, _Acc) ->
   false.
 
 list_nesting(Atom) ->
-  case string:tokens(atom_to_list(Atom), ".") of
-    ["Elixir"|T] -> T;
+  case binary:split(atom_to_binary(Atom, utf8), <<".">>, [global]) of
+    [<<"Elixir">>|T] -> T;
     _ -> []
   end.
 
 %% Receives a list of atoms, binaries or lists
 %% representing modules and concatenates them.
 
-concat(Args) -> list_to_atom(raw_concat(Args)).
-safe_concat(Args) -> list_to_existing_atom(raw_concat(Args)).
+concat(Args)      -> binary_to_atom(do_concat(Args), utf8).
+safe_concat(Args) -> binary_to_existing_atom(do_concat(Args), utf8).
 
-raw_concat(['Elixir'|Args]) -> do_concat(Args);
-raw_concat([nil|Args])      -> do_concat(Args);
-raw_concat(Args)            -> do_concat(Args).
+do_concat([H|T]) when is_atom(H), H /= nil ->
+  do_concat([atom_to_binary(H, utf8)|T]);
+do_concat([<<"Elixir.", _/binary>>=H|T]) ->
+  do_concat(T, H);
+do_concat([<<"Elixir">>=H|T]) ->
+  do_concat(T, H);
+do_concat(T) ->
+  do_concat(T, <<"Elixir">>).
 
-do_concat(Args) ->
-  Aliases = [to_partial(Arg) || Arg <- Args],
-  "Elixir" ++ lists:concat(Aliases).
+do_concat([nil|T], Acc) ->
+  do_concat(T, Acc);
+do_concat([H|T], Acc) when is_atom(H) ->
+  do_concat(T, <<Acc/binary, $., (to_partial(atom_to_binary(H, utf8)))/binary>>);
+do_concat([H|T], Acc) when is_binary(H) ->
+  do_concat(T, <<Acc/binary, $., (to_partial(H))/binary>>);
+do_concat([], Acc) ->
+  Acc.
 
-to_partial(Arg) when is_binary(Arg) -> to_partial(binary_to_list(Arg));
-to_partial(Arg) when is_atom(Arg)   -> to_partial(atom_to_list(Arg));
-to_partial("Elixir." ++ Arg)        -> [$.|Arg];
-to_partial([$.|_] = Arg)            -> Arg;
-to_partial(Arg) when is_list(Arg)   -> [$.|Arg].
+to_partial(<<"Elixir.", Arg/binary>>) -> Arg;
+to_partial(<<".", Arg/binary>>)       -> Arg;
+to_partial(Arg) when is_binary(Arg)   -> Arg.
 
 %% Lookup an alias in the current scope.
 
