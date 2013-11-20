@@ -221,6 +221,7 @@ defmodule EnumTest.List do
   test :reverse do
     assert Enum.reverse([]) == []
     assert Enum.reverse([1, 2, 3]) == [3, 2, 1]
+    assert Enum.reverse([1, 2, 3], [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
   end
 
   test :shuffle do
@@ -784,6 +785,18 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..5, -5..-3) == [1, 2, 3]
     assert Enum.slice(1..5, -6..-1) == nil
     assert Enum.slice(1..5, -6..-3) == nil
+  end
+
+  test :reverse_range do
+    assert Enum.reverse([]) == []
+    assert Enum.reverse([1, 2, 3]) == [3, 2, 1]
+    assert Enum.reverse([1, 2, 3], [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
+
+    assert Enum.reverse(0..0) == [0]
+    assert Enum.reverse(1..3) == [3, 2, 1]
+    assert Enum.reverse(1..3, 4..6) == [3, 2, 1, 4, 5, 6]
+    assert Enum.reverse([1, 2, 3], 4..6) == [3, 2, 1, 4, 5, 6]
+    assert Enum.reverse(1..3, [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
   end
 end
 

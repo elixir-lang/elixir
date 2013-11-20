@@ -855,6 +855,27 @@ defmodule Enum do
   end
 
   @doc """
+  Reverses the collection and appends the tail.
+  This is an optimization for
+  `Enum.concat(Enum.reverse(collection), tail)`.
+
+  ## Examples
+
+      iex> Enum.reverse([1, 2, 3], [4, 5, 6])
+      [3, 2, 1, 4, 5, 6]
+  """
+  @spec reverse(t, t) :: list
+  def reverse(collection, tail) when is_list(collection) and is_list(tail) do
+    :lists.reverse(collection, tail)
+  end
+
+  def reverse(collection, tail) do
+    Enumerable.reduce(collection, to_list(tail), fn(entry, acc) ->
+      [entry|acc]
+    end)
+  end
+
+  @doc """
   Returns a list of collection elements shuffled.
 
   Notice you need to explicitly call `:random.seed/1` and
