@@ -560,6 +560,8 @@ defmodule File do
   * :enospc - There is a no space left on the device.
   * :eacces - Missing permission for writing the file or searching one of the parent directories.
   * :eisdir - The named file is a directory.
+
+  Check `File.open/2` for existing modes.
   """
   def write(path, content, modes // []) do
     F.write_file(path, content, modes)
