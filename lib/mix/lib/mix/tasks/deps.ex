@@ -10,8 +10,16 @@ defmodule Mix.Tasks.Deps do
   The output is given as follows:
 
     * APP VERSION (SCM)
-      [locked at REF]
+      locked at REF* <optional list of refs>
       STATUS
+
+  The star after `REF` indicates that the working dir for the dep is dirty.
+
+  Examples of the optional list of refs:
+
+    (origin/master)
+    (tag: v0.1)
+    (tags: 1.0, 2.0)
 
   """
   def run(_) do
