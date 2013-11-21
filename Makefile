@@ -126,9 +126,9 @@ release_zip: compile
 	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md rel VERSION
 
 release_docs: docs
-	cd ../elixir-lang.github.com
-	rm -rf ../elixir-lang.github.com/docs/master
-	mv docs ../elixir-lang.github.com/docs/master
+	cd ../docs
+	rm -rf ../docs/master
+	mv docs ../docs/master
 
 release_erl: compile
 	$(Q) rm -rf rel/elixir
