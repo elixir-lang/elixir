@@ -177,6 +177,12 @@ defmodule EnumTest.List do
     end
   end
 
+  test :intersperse do
+    assert Enum.intersperse([], true) == []
+    assert Enum.intersperse([1], true) == [1]
+    assert Enum.intersperse([1,2,3], true) == [1, true, 2, true, 3]
+  end
+
   test :join do
     assert Enum.join([], " = ") == ""
     assert Enum.join([1, 2, 3], " = ") == "1 = 2 = 3"
@@ -571,6 +577,14 @@ defmodule EnumTest.Range do
 
     range = Range.new(first: 1, last: 6)
     assert Enum.reject(range, fn(x) -> rem(x, 2) == 0 end) == [1, 3, 5]
+  end
+
+  test :intersperse do
+    range = Range.new(first: 1, last: 0)
+    assert Enum.intersperse(range, true) == [1, true, 0]
+
+    range = Range.new(first: 1, last: 3)
+    assert Enum.intersperse(range, false) == [1, false, 2, false, 3]
   end
 
   test :join do

@@ -632,6 +632,31 @@ defmodule Enum do
   end
 
   @doc """
+  Intersperses the `element` between each element of the enumeration.
+
+  Complexity: O(n)
+
+  ## Examples
+
+      iex> Enum.intersperse([1, 2, 3], 0)
+      [1, 0, 2, 0, 3]
+      iex> Enum.intersperse([1], 0)
+      [1]
+      iex> Enum.intersperse([], 0)
+      []
+
+  """
+  @spec intersperse(t, element) :: list 
+  def intersperse(collection, element) do
+    l = Enumerable.reduce(collection, [], fn(x, acc) -> [x | [element | acc]] end)
+        |> :lists.reverse()
+    case l do
+      []      -> []
+      [_ | t] -> t  # Head is a superfluous intersperser element
+    end
+  end
+  
+  @doc """
   Joins the given `collection` according to `joiner`.
   `joiner` can be either a binary or a list and the
   result will be of the same type as `joiner`. If
