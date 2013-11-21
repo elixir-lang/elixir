@@ -8,14 +8,14 @@ defmodule Mix.RebarTest do
       [ app: :rebar_as_dep,
         version: "0.1.0",
         deps: [
-          { :rebar_dep, path: MixTest.Case.fixture_path("rebar_dep"), app: false }
+          { :rebar_dep, path: MixTest.Case.tmp_path("rebar_dep"), app: false }
         ]
       ]
     end
   end
 
   test "load rebar config" do
-    path = MixTest.Case.fixture_path("rebar_dep")
+    path = MixTest.Case.tmp_path("rebar_dep")
     config = Mix.Rebar.load_config(path)
     assert config[:sub_dirs] == ['apps/*']
     assert config[:SCRIPT] == 'rebar.config.script'
@@ -46,7 +46,7 @@ defmodule Mix.RebarTest do
   end
 
   test "recurs over sub dirs" do
-    path = MixTest.Case.fixture_path("rebar_dep")
+    path = MixTest.Case.tmp_path("rebar_dep")
 
     File.cd! path, fn ->
      config = Mix.Rebar.load_config(path)

@@ -9,7 +9,6 @@
 /lib/elixir/src/*_lexer.erl
 /lib/elixir/src/*_parser.erl
 /lib/elixir/test/ebin
-/lib/mix/test/fixtures/rebar_dep/apps/rebar_dep/ebin
 /rel/elixir
 erl_crash.dump
 .dialyzer_plt

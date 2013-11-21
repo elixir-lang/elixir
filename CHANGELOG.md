@@ -2,6 +2,7 @@
 
 * Enhancements
   * [Kernel] Add `List.delete_at/2`
+  * [Kernel] Add `Enum.reverse/2`
   * [Typespec] Support `is_var/1` in typespecs
 
 * Bug fixes

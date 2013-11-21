@@ -122,6 +122,13 @@ end
 defmodule Mix.Tasks.Invalid do
 end
 
+## Copy fixtures to tmp
+
+source = MixTest.Case.fixture_path("rebar_dep")
+dest = MixTest.Case.tmp_path
+File.cp_r!(source, dest)
+
+
 ## Generate git repo fixtures
 
 # Git repo
