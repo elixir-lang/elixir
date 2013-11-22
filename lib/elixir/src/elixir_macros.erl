@@ -12,15 +12,6 @@
 
 %% Operators
 
-translate({ Op, Meta, Exprs }, S) when is_list(Exprs),
-    Op == '<-' orelse Op == '--' ->
-  assert_no_match_or_guard_scope(Meta, Op, S),
-  translate_each({ '__op__', Meta, [Op|Exprs] }, S);
-
-translate({ Op, Meta, Exprs }, S) when is_list(Exprs),
-    Op == '++'  orelse Op == 'not' orelse Op == 'and' orelse Op == 'or' ->
-  translate_each({ '__op__', Meta, [Op|Exprs] }, S);
-
 translate({ '!', Meta, [{ '!', _, [Expr] }] }, S) ->
   { TExpr, SE } = translate_each(Expr, S),
   elixir_utils:convert_to_boolean(?line(Meta), TExpr, true, S#elixir_scope.context == guard, SE);

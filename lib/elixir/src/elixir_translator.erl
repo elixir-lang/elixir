@@ -67,12 +67,11 @@ translate_each({ '__scope__', _Meta, [[{file,File}],[{do,Expr}]] }, S) ->
 
 translate_each({ '__op__', Meta, [Op, Expr] }, S) when is_atom(Op) ->
   { TExpr, NS } = translate_each(Expr, S),
-  { { op, ?line(Meta), convert_op(Op), TExpr }, NS };
+  { { op, ?line(Meta), Op, TExpr }, NS };
 
 translate_each({ '__op__', Meta, [Op, Left, Right] }, S) when is_atom(Op) ->
-  assert_no_match_scope_for_bin_op(Meta, Op, S),
   { [TLeft, TRight], NS }  = translate_args([Left, Right], S),
-  { { op, ?line(Meta), convert_op(Op), TLeft, TRight }, NS };
+  { { op, ?line(Meta), Op, TLeft, TRight }, NS };
 
 %% Lexical
 
@@ -597,20 +596,6 @@ translate_args(Args, S) ->
   { TArgs, umergea(SV, SC) }.
 
 %% __op__ helpers
-
-assert_no_match_scope_for_bin_op(Meta, Op, S)
-    when Op == 'and'; Op == 'or' ->
-  elixir_errors:assert_no_match_scope(Meta, Op, S);
-assert_no_match_scope_for_bin_op(_Meta, _Op, _S) -> ok.
-
-convert_op('and')  -> 'andalso';
-convert_op('or')   -> 'orelse';
-convert_op('!==')  -> '=/=';
-convert_op('===')  -> '=:=';
-convert_op('!=')   ->  '/=';
-convert_op('<=')   ->  '=<';
-convert_op('<-')   ->  '!';
-convert_op(Else)   ->  Else.
 
 assert_no_ambiguous_op(Name, Meta, [Arg], S) ->
   case lists:keyfind(ambiguous_op, 1, Meta) of

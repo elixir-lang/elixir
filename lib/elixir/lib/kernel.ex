@@ -1127,8 +1127,8 @@ defmodule Kernel do
       process <- { :ok, "Sending myself a message" }
 
   """
-  def pid <- msg do
-    :erlang.!(pid, msg)
+  defmacro pid <- msg do
+    quote do: :erlang.!(unquote(pid), unquote(msg))
   end
 
   @doc """
@@ -1143,8 +1143,10 @@ defmodule Kernel do
       'foobar'
 
   """
-  def left ++ right do
-    :erlang.++(left, right)
+  # We compile down to the operator because it is
+  # automatically expanded when the left side is known.
+  defmacro left ++ right do
+    quote do: __op__(:++, unquote(left), unquote(right))
   end
 
   @doc """
@@ -1160,8 +1162,8 @@ defmodule Kernel do
       [3,1]
 
   """
-  def left -- right do
-    :erlang.--(left, right)
+  defmacro left -- right do
+    quote do: :erlang.--(unquote(left), unquote(right))
   end
 
   @doc """
@@ -1174,7 +1176,9 @@ defmodule Kernel do
       true
 
   """
-  defmacro left or right
+  defmacro left or right do
+    quote do: __op__(:orelse, unquote(left), unquote(right))
+  end
 
   @doc """
   Boolean and. Requires only the first argument to be a
@@ -1186,7 +1190,9 @@ defmodule Kernel do
       false
 
   """
-  defmacro left and right
+  defmacro left and right do
+    quote do: __op__(:andalso, unquote(left), unquote(right))
+  end
 
   @doc """
   Boolean exclusive-or. Arguments must be booleans.
@@ -1215,8 +1221,8 @@ defmodule Kernel do
       true
 
   """
-  def not(arg) do
-    :erlang.not(arg)
+  defmacro not(arg) do
+    quote do: :erlang.not(unquote(arg))
   end
 
   @doc """

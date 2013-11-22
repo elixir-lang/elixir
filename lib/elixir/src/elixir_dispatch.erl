@@ -474,27 +474,17 @@ in_erlang_functions() ->
 in_erlang_macros() ->
   [
     {'!',1},
-    {'++',2},
-    {'--',2},
-    {'<-',2},
-    {'and',2},
     {'case',2},
     {def,1},
     {def,2},
-    {def,4},
     {defmacro,1},
     {defmacro,2},
-    {defmacro,4},
     {defmacrop,1},
     {defmacrop,2},
-    {defmacrop,4},
     {defmodule,2},
     {defp,1},
     {defp,2},
-    {defp,4},
     {in,2},
-    {'not',1},
-    {'or',2},
     {'receive',1},
     {'try',1}
   ].

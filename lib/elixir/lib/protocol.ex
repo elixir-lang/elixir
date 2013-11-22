@@ -22,10 +22,6 @@ defmodule Protocol do
         @functions []
         @fallback_to_any false
 
-        # Deprecated
-        @only nil
-        @except nil
-
         # Invoke the user given block
         unquote(block)
 
@@ -208,7 +204,7 @@ defmodule Protocol do
   # Defines an implementation with fallback to the given module.
   defp impl_with_fallback(mod, guard, current, arg) do
     quote do
-      { unquote(guard)(unquote(arg)),
+      { :erlang.unquote(guard)(unquote(arg)),
         unquote(with_fallback(Module.concat(current, mod))) }
     end
   end
