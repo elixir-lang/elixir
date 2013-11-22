@@ -83,11 +83,13 @@ build_ex_var(Line, Key, Name, S) when is_integer(Line) ->
 
 %% Macro.Env <-> #elixir_scope conversion
 
-to_erl_env({ 'Elixir.Macro.Env', Module, File, _Line, Function, Aliases, Context,
-    Requires, Functions, Macros, ContextModules, MacroAliases, _Vars, Lexical }) ->
+to_erl_env({ 'Elixir.Macro.Env', Module, File, _Line, Function, Context, Requires,
+    Aliases, Functions, Macros, MacroAliases, MacroFunctions, MacroMacros,
+    ContextModules, _Vars, Lexical }) ->
   #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros,functions=Functions,
+    macro_functions=MacroFunctions, macro_macros=MacroMacros,
     context_modules=ContextModules,macro_aliases=MacroAliases,
     lexical_tracker=Lexical}.
 
@@ -95,9 +97,10 @@ to_ex_env({ Line, #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros,functions=Functions,
     context_modules=ContextModules,macro_aliases=MacroAliases,
+    macro_functions=MacroFunctions, macro_macros=MacroMacros,
     vars=Vars,lexical_tracker=Lexical} }) when is_integer(Line) ->
-  { 'Elixir.Macro.Env', Module, File, Line, Function, Aliases,
-    Context, Requires, Functions, Macros, ContextModules, MacroAliases,
+  { 'Elixir.Macro.Env', Module, File, Line, Function, Context, Requires, Aliases,
+    Functions, Macros, MacroAliases, MacroFunctions, MacroMacros, ContextModules,
     list_vars(Vars), Lexical }.
 
 list_vars(Vars) -> [Pair || { { _, K } = Pair, _ } <- Vars, is_atom(K)].
