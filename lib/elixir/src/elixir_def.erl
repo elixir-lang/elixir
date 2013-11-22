@@ -69,13 +69,16 @@ delete_definition(Module, Tuple) ->
 %% If we just analyzed the compiled structure (i.e. the function availables
 %% before evaluating the function body), we would see both definitions.
 
+% wrap_definition(Kind, Call, Expr, CheckClauses, Env) ->
+%   Args = [Kind, CheckClauses, ]
+
 wrap_definition(Kind, Meta, Call, Expr, CheckClauses, S) ->
   Line = ?line(Meta),
   ?wrap_call(Line, ?MODULE, store_definition, [
     {atom, Line, Kind},
     {integer, Line, Line},
     {atom, Line, CheckClauses},
-    {var, Line, '_@MODULE'},
+    {atom, Line, S#elixir_scope.module},
     Call,
     Expr,
     elixir_scope:serialize(S)

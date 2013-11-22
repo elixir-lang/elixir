@@ -88,15 +88,15 @@ translate({defmodule, Meta, [Ref, KV]}, S) when is_list(KV) ->
       end,
 
       {
-        { atom, Meta, FullModule },
+        FullModule,
         RS#elixir_scope{context_modules=[FullModule|S#elixir_scope.context_modules]}
       };
     _ ->
-      { TRef, S }
+      { Ref, S }
   end,
 
   Env = elixir_scope:to_ex_env({ ?line(Meta), FS }),
-  translate_each(elixir_module:translate(Ref, Block, Env), FS);
+  translate_each(elixir_module:translate(FRef, Block, Env), FS);
 
 translate({Kind, Meta, [Call]}, S) when ?defs(Kind) ->
   translate({Kind, Meta, [Call, nil]}, S);

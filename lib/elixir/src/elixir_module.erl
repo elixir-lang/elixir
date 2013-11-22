@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([translate/3, compile/4, data_table/1, docs_table/1,
+-export([translate/3, compile/4, compile/5, data_table/1, docs_table/1,
          eval_quoted/4, format_error/1, eval_callbacks/5]).
 -include("elixir.hrl").
 
@@ -9,10 +9,8 @@
 -define(persisted_attr, '__persisted_attributes').
 -define(overridable_attr, '__overridable').
 
-eval_quoted(Module, Quoted, RawBinding, Opts) ->
-  Binding = orddict:store('_@MODULE', Module, RawBinding),
-  Scope   = scope_for_eval(Module, Opts),
-
+eval_quoted(Module, Quoted, Binding, Opts) ->
+  Scope = scope_for_eval(Module, Opts),
   elixir_def:reset_last(Module),
 
   case lists:keyfind(line, 1, Opts) of
@@ -50,7 +48,7 @@ translate(Ref, Block, ExEnv) ->
   %% point, the lexical tracker process is long gone.
   LexEnv = case Env#elixir_env.function of
     nil -> Env;
-    _   -> Env#elixir_env{lexical_tracker=nil}
+    _   -> Env#elixir_env{lexical_tracker=nil, function=nil}
   end,
 
   { Escaped, _ } = elixir_quote:escape(Block, false),
@@ -68,8 +66,8 @@ compile(Module, Block, Vars, #elixir_env{line=Line} = Env) ->
 compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = RawS) when is_atom(Module) ->
   C = elixir_compiler:get_opts(),
   S = case lists:member(Module, FileModules) of
-    true  -> RawS;
-    false -> RawS#elixir_scope{context_modules=[Module|FileModules]}
+    true  -> RawS#elixir_scope{module=Module};
+    false -> RawS#elixir_scope{module=Module,context_modules=[Module|FileModules]}
   end,
 
   File = S#elixir_scope.file,
@@ -149,9 +147,9 @@ build(Line, File, Module, Lexical) ->
 
 %% Receives the module representation and evaluates it.
 
-eval_form(Line, Module, Block, Vars, RawS) ->
-  S = scope_for_eval(Module, RawS),
-  { Value, NewS } = elixir_compiler:eval_forms([Block], Line, Vars, S),
+eval_form(Line, Module, Block, Vars, S) ->
+  KV = [{ K, V } || { _, _, K, V } <- Vars],
+  { Value, NewS } = elixir_compiler:eval_forms([Block], Line, KV, S),
   elixir_def_overridable:store_pending(Module),
   Env = elixir_scope:to_ex_env({ Line, S }),
   eval_callbacks(Line, Module, before_compile, [Env], NewS),
@@ -397,7 +395,7 @@ else_clause() ->
 % HELPERS
 
 eval_callbacks(Line, Module, Name, Args, RawS) ->
-  { Binding, S } = elixir_scope:load_binding([], RawS, Module),
+  { Binding, S } = elixir_scope:load_binding([], RawS),
   Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
   Meta      = [{line,Line},{require,false}],
 

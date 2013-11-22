@@ -75,7 +75,7 @@ defmodule Macro.Env do
   def stacktrace(record) do
     cond do
       nil?(record.module) ->
-        [{ :elixir_compiler, :__FILE__, 2, location(record) }]
+        [{ :elixir_compiler, :__FILE__, 1, location(record) }]
       nil?(record.function) ->
         [{ module(record), :__MODULE__, 0, location(record) }]
       true ->

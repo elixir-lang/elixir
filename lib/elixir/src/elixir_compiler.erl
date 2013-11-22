@@ -57,12 +57,12 @@ eval_forms(Forms, Line, Vars, S) ->
 
   Fun  = eval_fun(S#elixir_scope.module),
   Form = eval_mod(Fun, Exprs, Line, S#elixir_scope.file, Module, Vars),
-  Args = [X || { _, _, _, X } <- Vars],
+  Args = list_to_tuple([V || { _, V } <- Vars]),
 
   %% Pass { native, false } to speed up bootstrap
   %% process when native is set to true
   { module(Form, S#elixir_scope.file, [{native,false}], true, fun(_, Binary) ->
-    Res = Module:Fun(S#elixir_scope.module, Args),
+    Res = Module:Fun(Args),
     code:delete(Module),
 
     %% If we have labeled locals, anonymous functions
@@ -83,19 +83,15 @@ eval_fun(nil) -> '__FILE__';
 eval_fun(_)   -> '__MODULE__'.
 
 eval_mod(Fun, Exprs, Line, File, Module, Vars) when is_binary(File), is_integer(Line) ->
-  Cons = lists:foldr(fun({ _, _, Var, _ }, Acc) ->
-    { cons, Line, { var, Line, Var }, Acc }
-  end, { nil, Line }, Vars),
-
-  Args = [{ var, Line, '_@MODULE'}, Cons],
+  Tuple    = { tuple, Line, [{ var, Line, K } || { K, _ } <- Vars] },
   Relative = elixir_utils:relative_to_cwd(File),
 
   [
     { attribute, Line, file, { elixir_utils:characters_to_list(File), 1 } },
     { attribute, Line, module, Module },
-    { attribute, Line, export, [{ Fun, 2 }, { '__RELATIVE__', 0 }] },
-    { function, Line, Fun, length(Args), [
-      { clause, Line, Args, [], Exprs }
+    { attribute, Line, export, [{ Fun, 1 }, { '__RELATIVE__', 0 }] },
+    { function, Line, Fun, 1, [
+      { clause, Line, [Tuple], [], Exprs }
     ] },
     { function, Line, '__RELATIVE__', 0, [
       { clause, Line, [], [], [elixir_utils:elixir_to_erl(Relative)] }

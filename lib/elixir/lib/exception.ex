@@ -188,12 +188,12 @@ defmodule Exception do
   end
 
   # From :elixir_compiler_*
-  def format_stacktrace_entry({ _module, :__MODULE__, 2, file_line }, cwd) do
+  def format_stacktrace_entry({ _module, :__MODULE__, 1, file_line }, cwd) do
     "#{format_location(file_line, cwd)}(module)"
   end
 
   # From :elixir_compiler_*
-  def format_stacktrace_entry({ _module, :__FILE__, 2, file_line }, cwd) do
+  def format_stacktrace_entry({ _module, :__FILE__, 1, file_line }, cwd) do
     "#{format_location(file_line, cwd)}(file)"
   end
 

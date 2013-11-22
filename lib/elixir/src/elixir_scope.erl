@@ -5,7 +5,7 @@
   serialize/1, deserialize/1, to_erl/1,
   serialize_with_vars/2, deserialize_with_vars/2,
   to_erl_env/1, to_ex_env/1,
-  load_binding/3, dump_binding/2,
+  load_binding/2, dump_binding/2,
   umergev/2, umergec/2, umergea/2, merge_clause_vars/2
 ]).
 -include("elixir.hrl").
@@ -225,8 +225,8 @@ var_number([], Acc)      -> list_to_integer(lists:reverse(Acc)).
 
 %% BINDINGS
 
-load_binding(Binding, Scope, Module) ->
-  { NewBinding, NewVars, NewCounter } = load_binding(Binding, [], [], 0, Module),
+load_binding(Binding, Scope) ->
+  { NewBinding, NewVars, NewCounter } = load_binding(Binding, [], [], 0),
   { NewBinding, Scope#elixir_scope{
     vars=NewVars,
     temp_vars=[],
@@ -234,9 +234,7 @@ load_binding(Binding, Scope, Module) ->
     counter=[{'',NewCounter}]
   } }.
 
-load_binding([{'_@MODULE',Value}|T], Binding, Vars, Counter, _Module) ->
-  load_binding(T, Binding, Vars, Counter, Value);
-load_binding([{Key,Value}|T], Binding, Vars, Counter, Module) ->
+load_binding([{Key,Value}|T], Binding, Vars, Counter) ->
   Actual = case Key of
     { _Name, _Kind } -> Key;
     Name when is_atom(Name) -> { Name, nil }
@@ -244,10 +242,9 @@ load_binding([{Key,Value}|T], Binding, Vars, Counter, Module) ->
   InternalName = ?atom_concat(["_@", Counter]),
   load_binding(T,
     [{InternalName,Value}|Binding],
-    orddict:store(Actual, InternalName, Vars),
-    Counter + 1, Module);
-load_binding([], Binding, Vars, Counter, Module) ->
-  { lists:reverse([{'_@MODULE',Module}|Binding]), Vars, Counter }.
+    orddict:store(Actual, InternalName, Vars), Counter + 1);
+load_binding([], Binding, Vars, Counter) ->
+  { lists:reverse(Binding), Vars, Counter }.
 
 dump_binding(Binding, #elixir_scope{vars=Vars}) ->
   dump_binding(Vars, Binding, []).
