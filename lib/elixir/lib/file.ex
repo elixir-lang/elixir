@@ -63,9 +63,9 @@ defmodule File do
   in the `IO` module. By default, a file is opened in binary mode
   which requires the functions `IO.binread/2` and `IO.binwrite/2`
   to interact with the file. A developer may pass `:utf8` as an
-  option when opening the file and then all other functions
-  from `IO` are available, since they work directly with Unicode
-  data.
+  option when opening the file, then the slower `IO.read/2` and
+  `IO.write/2` functions must be used as they are responsible for
+  doing the proper conversions and data guarantees.
 
   Most of the functions in this module return `:ok` or
   `{ :ok, result }` in case of success, `{ :error, reason }`
@@ -974,29 +974,40 @@ defmodule File do
   a stream for each `:line` (default) or for a given number
   of bytes given by `line_or_bytes`.
 
-  The returned stream will fail for the same reasons as `File.open!`.
-  Note that the file is opened only and every time streaming begins.
+  The returned stream will fail for the same reasons as
+  `File.open!`. Note that the file is opened only and every time
+  streaming begins.
+
+  Note that stream by default uses `IO.binread/2` unless
+  the file is opened with an encoding, then the slower `IO.read/2`
+  is used to do the proper data conversion and guarantees.
   """
-  def stream!(file, mode // [], line_or_bytes // :line) do
+  def stream!(path, modes // [], line_or_bytes // :line) do
+    modes = open_defaults(modes, true)
+    bin   = nil? List.keyfind(modes, :encoding, 0)
+
     fn(acc, fun) ->
-      device = open!(file, mode)
+      case F.open(path, modes) do
+        { :ok, device }    -> device
+        { :error, reason } ->
+          raise File.Error, reason: reason, action: "stream", path: to_string(path)
+      end
+
       try do
-        IO.stream(device, line_or_bytes, acc, fun)
+        case bin do
+          true  -> IO.binstream(device, line_or_bytes, acc, fun)
+          false -> IO.stream(device, line_or_bytes, acc, fun)
+        end
       after
         F.close(device)
       end
     end
   end
 
-  @doc """
-  Opens the given `file` with the given `mode` and returns
-  a binstream for each `:line` (default) or for a given number
-  of bytes given by `line_or_bytes`.
-
-  The returned stream will fail for the same reasons as `File.open!`.
-  Note that the file is opened only and every time streaming begins.
-  """
+  @doc false
   def binstream!(file, mode // [], line_or_bytes // :line) do
+    IO.write "File.binstream! is deprecated, simply use File.stream! instead\n" <>
+             Exception.format_stacktrace
     fn(fun, acc) ->
       device = open!(file, mode)
       try do
