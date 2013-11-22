@@ -104,11 +104,9 @@ translate({Kind, Meta, [Call]}, S) when ?defs(Kind) ->
 translate({Kind, Meta, [Call, Expr]}, S) when ?defs(Kind) ->
   assert_module_scope(Meta, Kind, S),
   assert_no_function_scope(Meta, Kind, S),
-  { TCall, QC, SC } = elixir_quote:erl_escape(Call, true, S),
-  { TExpr, QE, SE } = elixir_quote:erl_escape(Expr, true, SC),
-  CheckClauses = (not lists:keymember(context, 1, Meta)) andalso
-                   (not QC#elixir_quote.unquoted) andalso (not QE#elixir_quote.unquoted),
-  { elixir_def:wrap_definition(Kind, Meta, TCall, TExpr, CheckClauses, SE), SE };
+  Env = elixir_scope:to_ex_env({ ?line(Meta), S }),
+  Ctx = lists:keymember(context, 1, Meta),
+  translate_each(elixir_def:wrap_definition(Kind, Call, Expr, Ctx, Env), S);
 
 translate({ Name, Meta, Args }, S) ->
   syntax_error(Meta, S#elixir_scope.file,

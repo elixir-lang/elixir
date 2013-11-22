@@ -1,6 +1,6 @@
 %% Implements Elixir quote.
 -module(elixir_quote).
--export([escape/2, erl_escape/3, erl_quote/4,
+-export([escape/2, erl_quote/4,
          linify/2, linify/3, unquote/4, tail_join/3, join/2]).
 -include("elixir.hrl").
 
@@ -102,11 +102,6 @@ escape(Expr, Unquote) ->
     unquote=Unquote,
     escape=true
   }, nil).
-
-erl_escape(Expr, Unquote, S) ->
-  { QExpr, TQ } = escape(Expr, Unquote),
-  { TExpr, TS } = elixir_translator:translate_each(QExpr, S),
-  { TExpr, TQ, TS }.
 
 %% Quotes an expression and return its quoted Elixir AST.
 

@@ -7,8 +7,8 @@
   reset_last/1,
   lookup_definition/2,
   delete_definition/2,
-  wrap_definition/6,
-  store_definition/7,
+  wrap_definition/5,
+  store_definition/5,
   store_each/8,
   unwrap_stored_definitions/2,
   format_error/1]).
@@ -69,26 +69,23 @@ delete_definition(Module, Tuple) ->
 %% If we just analyzed the compiled structure (i.e. the function availables
 %% before evaluating the function body), we would see both definitions.
 
-% wrap_definition(Kind, Call, Expr, CheckClauses, Env) ->
-%   Args = [Kind, CheckClauses, ]
+wrap_definition(Kind, Call, Expr, Context, ExEnv) ->
+  Env = elixir_env:from_ex(ExEnv),
 
-wrap_definition(Kind, Meta, Call, Expr, CheckClauses, S) ->
-  Line = ?line(Meta),
-  ?wrap_call(Line, ?MODULE, store_definition, [
-    {atom, Line, Kind},
-    {integer, Line, Line},
-    {atom, Line, CheckClauses},
-    {atom, Line, S#elixir_scope.module},
-    Call,
-    Expr,
-    elixir_scope:serialize(S)
-  ]).
+  { EscapedCall, QC } = elixir_quote:escape(Call, true),
+  { EscapedExpr, QE } = elixir_quote:escape(Expr, true),
+  CheckClauses = (not Context) andalso
+                   (not QC#elixir_quote.unquoted) andalso
+                   (not QE#elixir_quote.unquoted),
+
+  Args = [Kind, CheckClauses, EscapedCall, EscapedExpr, elixir_env:to_quote(Env)],
+  { { '.', [], [elixir_def, store_definition] }, [], Args }.
 
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
-store_definition(Kind, Line, CheckClauses, Module, Call, Body, RawS) ->
-  S = elixir_scope:deserialize(RawS),
+store_definition(Kind, CheckClauses, Call, Body, #elixir_env{line=Line} = Env) ->
+  S = elixir_env:to_scope(Env),
   { NameAndArgs, Guards } = elixir_clauses:extract_guards(Call),
 
   { Name, Args } = case elixir_clauses:extract_args(NameAndArgs) of
@@ -100,15 +97,12 @@ store_definition(Kind, Line, CheckClauses, Module, Call, Body, RawS) ->
   end,
 
   assert_no_aliases_name(Line, Name, Args, S),
-  store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, S).
+  store_definition(Kind, Line, CheckClauses, Name, Args, Guards, Body, S).
 
-store_definition(Kind, Line, _CheckClauses, nil, _Name, _Args, _Guards, _Body, #elixir_scope{file=File}) ->
-  elixir_errors:form_error(Line, File, ?MODULE, { no_module, Kind });
-
-store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, #elixir_scope{} = DS) ->
+store_definition(Kind, Line, CheckClauses, Name, Args, Guards, Body, #elixir_scope{module=Module} = DS) ->
   Arity = length(Args),
   Tuple = { Name, Arity },
-  S = DS#elixir_scope{module=Module, function=Tuple},
+  S     = DS#elixir_scope{function=Tuple},
   elixir_tracker:record_definition(Tuple, Kind, Module),
 
   CO = elixir_compiler:get_opts(),
