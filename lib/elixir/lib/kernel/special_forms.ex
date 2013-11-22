@@ -227,7 +227,7 @@ defmodule Kernel.SpecialForms do
   In case the right-side is also dynamic, `.`'s behaviour can be reproduced
   at runtime via `apply/3` and `Module.concat/2`:
 
-      iex> apply(Kernel, :+, [1,2])
+      iex> apply(:erlang, :+, [1,2])
       3
       iex> Module.concat(Kernel, Sample)
       Kernel.Sample

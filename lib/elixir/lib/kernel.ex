@@ -1201,7 +1201,9 @@ defmodule Kernel do
       false
 
   """
-  defmacro left xor right
+  defmacro left xor right do
+    quote do: :erlang.xor(unquote(left), unquote(right))
+  end
 
   @doc """
   Boolean not. Argument must be a boolean.
@@ -1215,6 +1217,137 @@ defmodule Kernel do
   """
   def not(arg) do
     :erlang.not(arg)
+  end
+
+  @doc """
+  Returns `true` if left is less than right.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 < 2
+      true
+
+  """
+  defmacro left < right do
+    quote do: :erlang.<(unquote(left), unquote(right))
+  end
+
+  @doc """
+  Returns `true` if left is more than right.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 > 2
+      false
+
+  """
+  defmacro left > right do
+    quote do: :erlang.>(unquote(left), unquote(right))
+  end
+
+  @doc """
+  Returns `true` if left is less than or equal to right.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 <= 2
+      true
+
+  """
+  defmacro left <= right do
+    quote do: :erlang."=<"(unquote(left), unquote(right))
+  end
+
+  @doc """
+  Returns `true` if left is more than or equal to right.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 >= 2
+      false
+
+  """
+  defmacro left >= right do
+    quote do: :erlang.>=(unquote(left), unquote(right))
+  end
+
+  @doc """
+  Returns `true` if the two items are equal.
+
+  This operator considers 1 and 1.0 to be equal. For strict
+  comparison, use `===` instead.
+
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 == 2
+      false
+
+      iex> 1 == 1.0
+      true
+
+  """
+  defmacro left == right do
+    quote do: :erlang.==(unquote(left), unquote(right))
+  end
+
+  @doc """
+  Returns `true` if the two items are not equal.
+
+  This operator considers 1 and 1.0 to be equal. For strict
+  comparison, use `!==` instead.
+
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 != 2
+      true
+      iex> 1 != 1.0
+      false
+
+  """
+  defmacro left != right do
+    quote do: :erlang."/="(unquote(left), unquote(right))
+  end
+
+  @doc """
+  Returns `true` if the two items are strictly equal.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 === 2
+      false
+
+      iex> 1 === 1.0
+      false
+
+  """
+  defmacro left === right do
+    quote do: :erlang."=:="(unquote(left), unquote(right))
+  end
+
+  @doc """
+  Returns `true` if the two items are strictly not equal.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 !== 2
+      true
+
+      iex> 1 !== 1.0
+      true
+
+  """
+  defmacro left !== right do
+    quote do: :erlang."=/="(unquote(left), unquote(right))
   end
 
   @doc """
@@ -1236,137 +1369,6 @@ defmodule Kernel do
   """
   def !(arg) do
     arg == nil or arg == false
-  end
-
-  @doc """
-  Returns `true` if left is less than right.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 < 2
-      true
-
-  """
-  def left < right do
-    :erlang.<(left, right)
-  end
-
-  @doc """
-  Returns `true` if left is more than right.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 > 2
-      false
-
-  """
-  def left > right do
-    :erlang.>(left, right)
-  end
-
-  @doc """
-  Returns `true` if left is less than or equal to right.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 <= 2
-      true
-
-  """
-  def left <= right do
-    :erlang."=<"(left, right)
-  end
-
-  @doc """
-  Returns `true` if left is more than or equal to right.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 >= 2
-      false
-
-  """
-  def left >= right do
-    :erlang.>=(left, right)
-  end
-
-  @doc """
-  Returns `true` if the two items are equal.
-
-  This operator considers 1 and 1.0 to be equal. For strict
-  comparison, use `===` instead.
-
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 == 2
-      false
-
-      iex> 1 == 1.0
-      true
-
-  """
-  def left == right do
-    :erlang.==(left, right)
-  end
-
-  @doc """
-  Returns `true` if the two items are not equal.
-
-  This operator considers 1 and 1.0 to be equal. For strict
-  comparison, use `!==` instead.
-
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 != 2
-      true
-      iex> 1 != 1.0
-      false
-
-  """
-  def left != right do
-    :erlang."/="(left, right)
-  end
-
-  @doc """
-  Returns `true` if the two items are strictly equal.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 === 2
-      false
-
-      iex> 1 === 1.0
-      false
-
-  """
-  def left === right do
-    :erlang."=:="(left, right)
-  end
-
-  @doc """
-  Returns `true` if the two items are strictly not equal.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 !== 2
-      true
-
-      iex> 1 !== 1.0
-      true
-
-  """
-  def left !== right do
-    :erlang."=/="(left, right)
   end
 
   ## Pending to be implemented in Elixir

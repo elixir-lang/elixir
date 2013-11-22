@@ -106,9 +106,9 @@ rescue_guards(Meta, Var, Guards, S) ->
   Final = case Elixir == [] of
     true  -> Erlang;
     false ->
-      IsTuple     = { is_tuple, Meta, [Var] },
-      IsException = { '==', Meta, [
-        { { '.', Meta, [erlang, element] }, Meta, [2, Var] }, '__exception__'
+      IsTuple     = { erl(Meta, is_tuple), Meta, [Var] },
+      IsException = { erl(Meta, '=='), Meta, [
+        { erl(Meta, element), Meta, [2, Var] }, '__exception__'
       ] },
       OrElse = join(Meta, 'or', Elixir),
       [join(Meta, 'and', [IsTuple, IsException, OrElse])|Erlang]
@@ -128,7 +128,7 @@ rescue_each_var(Meta, ClauseVar, Guards) ->
     false ->
       Elixir = [exception_compare(Meta, ClauseVar, Var) || Var <- Vars],
       Erlang = lists:map(fun(Rescue) ->
-        Compares = [{ '==', Meta, [Rescue, Var] } || Var <- Vars],
+        Compares = [{ erl(Meta, '=='), Meta, [Rescue, Var] } || Var <- Vars],
         { 'and', Meta, [
           erlang_rescue_guard_for(Meta, ClauseVar, Rescue),
           join(Meta, 'or', Compares)
@@ -185,60 +185,60 @@ erlang_rescue_guard_for(Meta, Var, List) when is_list(List) ->
   join(Meta, 'or', [erlang_rescue_guard_for(Meta, Var, X) || X <- List]);
 
 erlang_rescue_guard_for(Meta, Var, 'Elixir.UndefinedFunctionError') ->
-  { '==', Meta, [Var, undef] };
+  { erl(Meta, '=='), Meta, [Var, undef] };
 
 erlang_rescue_guard_for(Meta, Var, 'Elixir.FunctionClauseError') ->
-  { '==', Meta, [Var, function_clause] };
+  { erl(Meta, '=='), Meta, [Var, function_clause] };
 
 erlang_rescue_guard_for(Meta, Var, 'Elixir.SystemLimitError') ->
-  { '==', Meta, [Var, system_limit] };
+  { erl(Meta, '=='), Meta, [Var, system_limit] };
 
 erlang_rescue_guard_for(Meta, Var, 'Elixir.ArithmeticError') ->
-  { '==', Meta, [Var, badarith] };
+  { erl(Meta, '=='), Meta, [Var, badarith] };
 
 erlang_rescue_guard_for(Meta, Var, 'Elixir.BadArityError') ->
   { 'and', Meta, [
-    { is_tuple, Meta, [Var] },
+    { erl(Meta, is_tuple), Meta, [Var] },
     exception_compare(Meta, Var, badarity)
   ] };
 
 erlang_rescue_guard_for(Meta, Var, 'Elixir.BadFunctionError') ->
   { 'and', Meta, [
-    { is_tuple, Meta, [Var] },
+    { erl(Meta, is_tuple), Meta, [Var] },
     exception_compare(Meta, Var, badfun)
   ] };
 
 erlang_rescue_guard_for(Meta, Var, 'Elixir.MatchError') ->
   { 'and', Meta, [
-    { is_tuple, Meta, [Var] },
+    { erl(Meta, is_tuple), Meta, [Var] },
     exception_compare(Meta, Var, badmatch)
   ] };
 
 erlang_rescue_guard_for(Meta, Var, 'Elixir.CaseClauseError') ->
   { 'and', Meta, [
-    { is_tuple, Meta, [Var] },
+    { erl(Meta, is_tuple), Meta, [Var] },
     exception_compare(Meta, Var, case_clause)
   ] };
 
 erlang_rescue_guard_for(Meta, Var, 'Elixir.TryClauseError') ->
   { 'and', Meta, [
-    { is_tuple, Meta, [Var] },
+    { erl(Meta, is_tuple), Meta, [Var] },
     exception_compare(Meta, Var, try_clause)
   ] };
 
 erlang_rescue_guard_for(Meta, Var, 'Elixir.ArgumentError') ->
   { 'or', Meta, [
-    { '==', Meta, [Var, badarg] },
+    { erl(Meta, '=='), Meta, [Var, badarg] },
     { 'and', Meta, [
-      { is_tuple, Meta, [Var] },
+      { erl(Meta, is_tuple), Meta, [Var] },
       exception_compare(Meta, Var, badarg)
     ] }
   ] };
 
 erlang_rescue_guard_for(Meta, Var, 'Elixir.ErlangError') ->
-  IsNotTuple  = { 'not', Meta, [{ is_tuple, Meta, [Var] }] },
-  IsException = { '!=', Meta, [
-    { { '.', Meta, [ erlang, element ] }, Meta, [2, Var] }, '__exception__'
+  IsNotTuple  = { 'not', Meta, [{ erl(Meta, is_tuple), Meta, [Var] }] },
+  IsException = { erl(Meta, '/='), Meta, [
+    { erl(Meta, element), Meta, [2, Var] }, '__exception__'
   ] },
   { 'or', Meta, [IsNotTuple, IsException] }.
 
@@ -261,8 +261,8 @@ is_valid_rescue_list(Right, S) when is_list(Right) ->
   lists:all(fun is_erl_var_or_atom/1, TRight).
 
 exception_compare(Meta, Var, Expr) ->
-  { '==', Meta, [
-    { { '.', Meta, [ erlang, element ] }, Meta, [1, Var] },
+  { erl(Meta, '=='), Meta, [
+    { erl(Meta, element), Meta, [1, Var] },
     Expr
   ] }.
 
@@ -277,3 +277,5 @@ prepend_to_block(_Meta, Expr, { '__block__', Meta, Args }) ->
 
 prepend_to_block(Meta, Expr, Args) ->
   { '__block__', Meta, [Expr, Args] }.
+
+erl(Meta, Op) -> { '.', Meta, [erlang, Op] }.

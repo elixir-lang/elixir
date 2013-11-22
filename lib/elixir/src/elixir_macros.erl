@@ -18,10 +18,7 @@ translate({ Op, Meta, Exprs }, S) when is_list(Exprs),
   translate_each({ '__op__', Meta, [Op|Exprs] }, S);
 
 translate({ Op, Meta, Exprs }, S) when is_list(Exprs),
-    Op == '++'  orelse Op == 'not' orelse Op == 'and' orelse Op == 'or' orelse
-    Op == 'xor' orelse Op == '<'   orelse Op == '>'   orelse Op == '<=' orelse
-    Op == '>='  orelse Op == '=='  orelse Op == '!='  orelse Op == '===' orelse
-    Op == '!==' ->
+    Op == '++'  orelse Op == 'not' orelse Op == 'and' orelse Op == 'or' ->
   translate_each({ '__op__', Meta, [Op|Exprs] }, S);
 
 translate({ '!', Meta, [{ '!', _, [Expr] }] }, S) ->
