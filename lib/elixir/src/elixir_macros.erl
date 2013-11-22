@@ -42,53 +42,6 @@ translate({ '!', Meta, [Expr] }, S) ->
 translate({ in, Meta, [Left, Right] }, #elixir_scope{extra_guards=nil} = S) ->
   translate_in(Meta, Left, Right, S);
 
-%% @
-
-translate({'@', Meta, [{ Name, _, [Arg] }]}, S) when Name == typep; Name == type; Name == spec; Name == callback; Name == opaque ->
-  case elixir_compiler:get_opt(internal) of
-    true  -> { { nil, ?line(Meta) }, S };
-    false ->
-      Call = { { '.', Meta, ['Elixir.Kernel.Typespec', spec_to_macro(Name)] }, Meta, [Arg] },
-      translate_each(Call, S)
-  end;
-
-translate({'@', Meta, [{ Name, _, Args }]}, S) ->
-  assert_module_scope(Meta, '@', S),
-
-  case is_reserved_data(Name) andalso elixir_compiler:get_opt(internal) of
-    true ->
-      { { nil, ?line(Meta) }, S };
-    _ ->
-      case Args of
-        [Arg] ->
-          case S#elixir_scope.function of
-            nil ->
-              translate_each({
-                { '.', Meta, ['Elixir.Module', put_attribute] },
-                  Meta,
-                  [ { '__MODULE__', Meta, false }, Name, Arg ]
-              }, S);
-            _  ->
-              syntax_error(Meta, S#elixir_scope.file,
-                "cannot dynamically set attribute @~ts inside a function", [Name])
-          end;
-        _ when is_atom(Args) or (Args == []) ->
-          case S#elixir_scope.function of
-            nil ->
-              translate_each({
-                { '.', Meta, ['Elixir.Module', get_attribute] },
-                Meta,
-                [ { '__MODULE__', Meta, false }, Name, true ]
-              }, S);
-            _ ->
-              Contents = 'Elixir.Module':get_attribute(S#elixir_scope.module, Name),
-              { elixir_utils:elixir_to_erl(?line(Meta), Contents, S), S }
-          end;
-        _ ->
-          syntax_error(Meta, S#elixir_scope.file, "expected 0 or 1 argument for @~ts, got: ~p", [Name, length(Args)])
-      end
-  end;
-
 %% Case
 
 translate({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
@@ -296,17 +249,6 @@ expand_module({ '__aliases__', _, _ } = Alias, Module, S) ->
 %% defmodule Elixir.Hello.World
 expand_module(_Raw, Module, S) ->
   elixir_aliases:concat([S#elixir_scope.module, Module]).
-
-is_reserved_data(moduledoc) -> true;
-is_reserved_data(typedoc)   -> true;
-is_reserved_data(doc)       -> true;
-is_reserved_data(_)         -> false.
-
-spec_to_macro(type)     -> deftype;
-spec_to_macro(typep)    -> deftypep;
-spec_to_macro(opaque)   -> defopaque;
-spec_to_macro(spec)     -> defspec;
-spec_to_macro(callback) -> defcallback.
 
 % Pack a list of expressions from a block.
 pack({ 'block', _, Exprs }) -> Exprs;

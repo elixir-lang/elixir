@@ -71,7 +71,8 @@ defmodule Protocol do
       # Inline both helpers
       @compile { :inline, any_impl_for: 0, rec_impl_for: 1 }
 
-      unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
+      if :code.ensure_loaded(Kernel.Typespec) == { :module, Kernel.Typespec } and
+         not Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
         @type t :: term
       end
 
@@ -261,7 +262,7 @@ defmodule Protocol.DSL do
 
       # Convert the spec to callback if possible,
       # otherwise generate a dummy callback
-      Protocol.DSL.callback_from_spec(__MODULE__, name, arity) ||
+      Protocol.DSL.__spec__?(__MODULE__, name, arity) ||
         @callback unquote(name)(unquote_splicing(type_args)) :: term
     end
   end
@@ -271,15 +272,20 @@ defmodule Protocol.DSL do
   end
 
   @doc false
-  def callback_from_spec(module, name, arity) do
-    tuple = { name, arity }
-    specs = Module.get_attribute(module, :spec)
+  def __spec__?(module, name, arity) do
+    case :code.ensure_loaded(Kernel.Typespec) do
+      { :module, Kernel.Typespec } ->
+        tuple = { name, arity }
+        specs = Module.get_attribute(module, :spec)
 
-    found = lc { k, v } inlist specs, k == tuple do
-      Kernel.Typespec.define_callback(module, tuple, v)
-      true
+        found = lc { k, v } inlist specs, k == tuple do
+          Kernel.Typespec.define_callback(module, tuple, v)
+          true
+        end
+
+        found != []
+      { :error, _ } ->
+        true
     end
-
-    found != []
   end
 end

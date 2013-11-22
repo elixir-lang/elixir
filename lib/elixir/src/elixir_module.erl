@@ -75,7 +75,7 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
     { Base, Export, Private, Def, Defmacro, Functions } = elixir_def:unwrap_stored_definitions(FileList, Module),
 
     { All, Forms0 } = functions_form(Line, File, Module, Base, Export, Def, Defmacro, Functions, C),
-    Forms1          = specs_form(Module, Private, Defmacro, Forms0, C),
+    Forms1          = specs_form(Module, Private, Defmacro, Forms0),
     Forms2          = attributes_form(Line, File, Module, Forms1),
     Forms3          = typedocs_form(Module, Forms2),
 
@@ -220,11 +220,10 @@ typedocs_form(Module, Current) ->
 
 %% Specs
 
-specs_form(Module, Private, Defmacro, Forms, C) ->
+specs_form(Module, Private, Defmacro, Forms) ->
   Defmacrop = [Tuple || { Tuple, defmacrop, _, _, _ } <- Private],
-  case elixir_compiler:get_opt(internal, C) of
-    true -> Forms;
-    _    ->
+  case code:ensure_loaded('Elixir.Kernel.Typespec') of
+    { module, 'Elixir.Kernel.Typespec' } ->
       Callbacks = 'Elixir.Module':get_attribute(Module, callback),
       Specs     = [translate_spec(Spec, Defmacro, Defmacrop) ||
                     Spec <- 'Elixir.Module':get_attribute(Module, spec)],
@@ -233,7 +232,9 @@ specs_form(Module, Private, Defmacro, Forms, C) ->
       'Elixir.Module':delete_attribute(Module, callback),
 
       Temp = specs_attributes(spec, Forms, Specs),
-      specs_attributes(callback, Temp, Callbacks)
+      specs_attributes(callback, Temp, Callbacks);
+    { error, _ } ->
+      Forms
   end.
 
 specs_attributes(Type, Forms, Specs) ->

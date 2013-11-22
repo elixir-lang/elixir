@@ -1,3 +1,6 @@
+import Kernel, except: [@: 1]
+import :elixir_bootstrap, only: [@: 1]
+
 defmodule Kernel do
   @moduledoc """
   `Kernel` provides the default macros and functions
@@ -16,6 +19,8 @@ defmodule Kernel do
   here for convenience, you can access their original documentation
   at http://www.erlang.org/doc/man/erlang.html.
   """
+
+  ## Delegations to Erlang with inlining (macros)
 
   @doc """
   Arithmetic plus. Allowed in guard clauses.
@@ -353,6 +358,23 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns an integer or float which is the arithmetical absolute value of `number`.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      iex> abs(-3.33)
+      3.33
+      iex> abs(-3)
+      3
+  """
+  @spec abs(number) :: number
+  def abs(number) do
+    :erlang.abs(number)
+  end
+
+  @doc """
   Invokes the given `fun` with the array of arguments `args`.
   Inlines to `:erlang.apply/2`.
 
@@ -385,20 +407,19 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns an integer or float which is the arithmetical absolute value of `number`.
-
-  Allowed in guard tests.
+  Returns a binary which corresponds to the text representation
+  of `some_atom` in UTF8 encoding.
 
   ## Examples
 
-      iex> abs(-3.33)
-      3.33
-      iex> abs(-3)
-      3
+      iex> atom_to_binary(:my_atom)
+      "my_atom"
+
   """
-  @spec abs(number) :: number
-  def abs(number) do
-    :erlang.abs(number)
+  defmacro atom_to_binary(some_atom) do
+    quote do
+      :erlang.atom_to_binary(unquote(some_atom), :utf8)
+    end
   end
 
   @doc """
@@ -438,6 +459,88 @@ defmodule Kernel do
   @spec binary_part(binary, pos_integer, integer) :: binary
   def binary_part(binary, start, length) do
     :erlang.binary_part(binary, start, length)
+  end
+
+
+  @doc """
+  Returns the atom whose text representation is `some_binary` in
+  UTF8 encoding.
+
+  Currently Elixir does not support conversions for binaries which
+  contains Unicode characters greater than 16#FF.
+
+  ## Examples
+
+      iex> binary_to_atom("my_atom")
+      :my_atom
+
+  """
+  defmacro binary_to_atom(some_binary) do
+    quote do
+      :erlang.binary_to_atom(unquote(some_binary), :utf8)
+    end
+  end
+
+  @doc """
+  Works like `binary_to_atom/1` but the atom must exist.
+
+  Currently Elixir does not support conversions for binaries which
+  contains Unicode characters greater than 16#FF.
+
+  ## Examples
+
+      iex> :my_atom
+      ...> binary_to_existing_atom("my_atom")
+      :my_atom
+
+      iex> binary_to_existing_atom("this_atom_will_never_exist")
+      ** (ArgumentError) argument error
+
+  """
+  defmacro binary_to_existing_atom(some_binary) do
+    quote do
+      :erlang.binary_to_existing_atom(unquote(some_binary), :utf8)
+    end
+  end
+
+  @doc """
+  Returns a integer whose text representation is `some_binary`.
+
+  ## Examples
+
+      iex> binary_to_integer("123")
+      123
+
+  """
+  def binary_to_integer(some_binary) do
+    :erlang.binary_to_integer(some_binary)
+  end
+
+  @doc """
+  Returns an integer whose text representation in base `base`
+  is `some_binary`.
+
+  ## Examples
+
+      iex> binary_to_integer("3FF", 16)
+      1023
+
+  """
+  def binary_to_integer(some_binary, base) do
+    :erlang.binary_to_integer(some_binary, base)
+  end
+
+  @doc """
+  Returns a float whose text representation is `some_binary`.
+
+  ## Examples
+
+      iex> binary_to_float("2.2017764e+0")
+      2.2017764
+
+  """
+  def binary_to_float(some_binary) do
+    :erlang.binary_to_float(some_binary)
   end
 
   @doc """
@@ -530,6 +633,21 @@ defmodule Kernel do
   end
 
   @doc """
+  Provides an integer division macro according to Erlang semantics.
+  Raises an error if one of the arguments is not an integer.
+  Can be used in guard tests.
+
+  ## Examples
+
+      iex> div(5, 2)
+      2
+
+  """
+  defmacro div(left, right) do
+    quote do: __op__(:div, unquote(left), unquote(right))
+  end
+
+  @doc """
   Stops the execution of the calling process with the given reason.
   Since evaluating this function causes the process to terminate,
   it has no return value.
@@ -559,12 +677,93 @@ defmodule Kernel do
     :erlang.float_to_list(number)
   end
 
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `some_float`.
+
+  ## Examples
+
+      iex> float_to_binary(7.0)
+      "7.00000000000000000000e+00"
+
+  """
+  def float_to_binary(some_float) do
+    :erlang.float_to_binary(some_float)
+  end
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `float`.
+
+  ## Options
+
+  * `:decimals` — number of decimal points to show
+  * `:scientific` — number of decimal points to show, in scientific format
+  * `:compact` — If true, use the most compact representation (ignored with the `scientific` option)
+
+  ## Examples
+
+      float_to_binary 7.1, [decimals: 2, compact: true] #=> "7.1"
+
+  """
+  def float_to_binary(float, options) do
+    :erlang.float_to_binary(float, expand_compact(options))
+  end
+
+  @doc """
+  Returns a list which corresponds to the text representation
+  of `float`.
+
+  ## Options
+
+  * `:decimals` — number of decimal points to show
+  * `:scientific` — number of decimal points to show, in scientific format
+  * `:compact` — If true, use the most compact representation (ignored with the `scientific` option)
+
+  ## Examples
+
+      float_to_list 7.1, [decimals: 2, compact: true] #=> '7.1'
+
+  """
+  def float_to_list(float, options) do
+    :erlang.float_to_list(float, expand_compact(options))
+  end
+
   @doc """
   Returns the head of a list, raises `badarg` if the list is empty.
   """
   @spec hd(list) :: term
   def hd(list) do
     :erlang.hd(list)
+  end
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `some_integer`.
+
+  ## Examples
+
+      iex> integer_to_binary(123)
+      "123"
+
+  """
+  def integer_to_binary(some_integer) do
+    :erlang.integer_to_binary(some_integer)
+  end
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `some_integer` in base `base`.
+
+  ## Examples
+
+      iex> integer_to_binary(100, 16)
+      "64"
+
+  """
+  def integer_to_binary(some_integer, base) do
+    :erlang.integer_to_binary(some_integer, base)
   end
 
   @doc """
@@ -971,6 +1170,21 @@ defmodule Kernel do
   end
 
   @doc """
+  Provides an integer remainder macro according to Erlang semantics.
+  Raises an error if one of the arguments is not an integer.
+  Can be used in guard tests.
+
+  ## Examples
+
+      iex> rem(5, 2)
+      1
+
+  """
+  defmacro rem(left, right) do
+    quote do: __op__(:rem, unquote(left), unquote(right))
+  end
+
+  @doc """
   Returns an integer by rounding the given number.
   Allowed in guard tests.
 
@@ -1153,6 +1367,8 @@ defmodule Kernel do
     :erlang.tuple_to_list(tuple)
   end
 
+  ## Pending to be implemented in Elixir
+
   @doc """
   Defines a module given by name with the given contents.
 
@@ -1225,9 +1441,6 @@ defmodule Kernel do
   """
   defmacro def(name, do: contents)
 
-  @doc false
-  defmacro def(name, args, guards, do: contents)
-
   @doc """
   Defines a function that is private. Private functions are
   only accessible from within the module in which they are defined.
@@ -1248,9 +1461,6 @@ defmodule Kernel do
   through `Foo.sum` will raise an error.
   """
   defmacro defp(name, do: contents)
-
-  @doc false
-  defmacro defp(name, args, guards, do: contents)
 
   @doc """
   Defines a macro with the given name and contents.
@@ -1273,9 +1483,6 @@ defmodule Kernel do
   """
   defmacro defmacro(name, do: contents)
 
-  @doc false
-  defmacro defmacro(name, args, guards, do: contents)
-
   @doc """
   Defines a macro that is private. Private macros are
   only accessible from the same module in which they are defined.
@@ -1284,886 +1491,6 @@ defmodule Kernel do
   """
   defmacro defmacrop(name, do: contents)
 
-  @doc false
-  defmacro defmacrop(name, args, guards, do: contents)
-
-  @doc %S"""
-  Exports a module with a record definition and runtime operations.
-
-  Please see the `Record` module's documentation for an introduction
-  to records in Elixir. The following sections are going into details
-  specific to `defrecord`.
-
-  ## Examples
-
-      defrecord User, name: nil, age: 0
-
-  The following line defines a module that exports information
-  about a record. The definition above provides a shortcut
-  syntax for creating and updating the record at compilation
-  time:
-
-      user = User[]
-      #=> User[name: nil, age: 0]
-
-      User[name: "José", age: 25]
-      #=> User[name: "José", age: 25]
-
-  And also a set of functions for working with the record
-  at runtime:
-
-      user = User.new(age: 25)
-      user.name          #=> Returns the value of name
-      user.name("José")  #=> Updates the value of name
-
-      # Update multiple attributes at once:
-      user.update(name: "Other", age: 25)
-
-      # Obtain the keywords representation of a record:
-      user.to_keywords #=> [name: "José", age: 25]
-
-  Since a record is simply a tuple where the first element is
-  the record name, we can get the raw record representation as
-  follows:
-
-      inspect User.new, raw: true
-      #=> { User, nil, 0 }
-
-  In addition to defining readers and writers for each attribute, Elixir also
-  defines an `update_#{attribute}` function to update the value. Such
-  functions expect a function as an argument that receives the current
-  value and must return the new one. For example, every time the file
-  is accessed, the accesses counter can be incremented with:
-
-      user.update_age(fn(old) -> old + 1 end)
-
-  ## Types
-
-  Every record defines a type named `t` that can be accessed in typespecs.
-  Those types can be specified inside the record definition:
-
-      defrecord User do
-        record_type name: string, age: integer
-      end
-
-  All fields without a specified type are assumed to have type `term`.
-
-  Assuming the `User` record defined above, it could be used in typespecs
-  as follow:
-
-      @spec handle_user(User.t) :: boolean()
-
-  ## Runtime introspection
-
-  At runtime, developers can use `__record__` to get information
-  about the given record:
-
-      User.__record__(:name)
-      #=> User
-
-      User.__record__(:fields)
-      #=> [name: nil, age: 0]
-
-  In order to quickly access the index of a field, one can use
-  the `__record__` function with `:index` as the first argument:
-
-      User.__record__(:index, :age)
-      #=> 2
-
-      User.__record__(:index, :unknown)
-      #=> nil
-
-  ## Compile-time introspection
-
-  At compile time, one can access the following information about the record
-  from within the record module:
-
-  * `@record_fields` — a keyword list of record fields with defaults
-  * `@record_types` — a keyword list of record fields with types
-
-  For example:
-
-      defrecord Foo, bar: nil do
-        record_type bar: nil | integer
-        IO.inspect @record_fields
-        IO.inspect @record_types
-      end
-
-  Prints out:
-
-       [bar: nil]
-       [bar: {:|,[line: ...],[nil,{:integer,[line: ...],nil}]}]
-
-  Where the last line is a quoted representation of
-
-       [bar: nil | integer]
-
-  """
-  defmacro defrecord(name, fields, do_block // [])
-
-  defmacro defrecord(name, fields, do_block) do
-    case is_list(fields) and Keyword.get(fields, :do, false) do
-      false -> Record.defrecord(name, fields, do_block)
-      other -> Record.defrecord(name, Keyword.delete(fields, :do), do: other)
-    end
-  end
-
-  @doc %S"""
-  Defines a set of private macros to manipulate a record definition.
-
-  This macro defines a set of macros private to the current module to
-  manipulate the record exclusively at compilation time.
-
-  Please see the `Record` module's documentation for an introduction
-  to records in Elixir.
-
-  ## Examples
-
-      defmodule User do
-        defrecordp :user, [name: "José", age: "25"]
-      end
-
-  In the example above, a set of macros named `user` but with different
-  arities will be defined to manipulate the underlying record:
-
-      # To create records
-      user()        #=> { :user, "José", 25 }
-      user(age: 26) #=> { :user, "José", 26 }
-
-      # To get a field from the record
-      user(record, :name) #=> "José"
-
-      # To get many fields from the record
-      user(record, [:name, :age]) #=> ["José", 25]
-
-      # To update the record
-      user(record, age: 26) #=> { :user, "José", 26 }
-
-      # To convert the record to keywords
-      user(record) #=> [name: "José", age: 25]
-
-      # To match against the record
-      user(name: name) = record
-      name #=> "José"
-
-  By default, Elixir uses the record name as the first element of the tuple.
-  In some cases though, this might be undesirable and one can explicitly
-  define what the first element of the record should be:
-
-      defmodule MyServer do
-        defrecordp :state, MyServer, data: nil
-      end
-
-  This way, the record created will have `MyServer` as the first element,
-  not `:state`:
-
-      state() #=> { MyServer, nil }
-
-  ## Types
-
-  `defrecordp` allows a developer to generate a type
-  automatically by simply providing a type to its fields.
-  The following definition:
-
-      defrecordp :user,
-        name: "José" :: binary,
-        age: 25 :: integer
-
-  Will generate the following type:
-
-      @typep user_t :: { :user, binary, integer }
-
-  """
-  defmacro defrecordp(name, tag // nil, fields) when is_atom(name) do
-    Record.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
-  end
-
-  @doc """
-  Defines an exception.
-
-  Exceptions are simply records and therefore `defexception/3` has
-  the same API and similar behavior to `defrecord/3` with two notable
-  differences:
-
-  1) Unlike records, exceptions are documented by default;
-
-  2) Exceptions **must** implement `message/1` -- a function that returns a
-     string;
-
-  """
-  defmacro defexception(name, fields, do_block // []) do
-    { fields, do_block } =
-      case is_list(fields) and Keyword.get(fields, :do, false) do
-        false -> { fields, do_block }
-        other -> { Keyword.delete(fields, :do), [do: other] }
-      end
-
-    do_block = Keyword.put(do_block, :do, quote do
-      @moduledoc nil
-      record_type message: binary
-
-      @doc false
-      def exception(args), do: new(args)
-
-      @doc false
-      def exception(args, self), do: update(args, self)
-
-      unquote(Keyword.get do_block, :do)
-    end)
-
-    fields = quote do: [__exception__: :__exception__] ++ unquote(fields)
-    record = Record.defrecord(name, fields, do_block)
-
-    quote do
-      { :module, name, _, _ } = unquote(record)
-
-      unless :erlang.function_exported(name, :message, 1) do
-        raise "expected exception #{inspect name} to implement message/1"
-      end
-    end
-  end
-
-  @doc """
-  Get the element at the zero-based `index` in `tuple`.
-
-  Implemented as a macro so it can be used in guards.
-
-  ## Example
-
-      iex> tuple = { :foo, :bar, 3 }
-      ...> elem(tuple, 1)
-      :bar
-
-  """
-  defmacro elem(tuple, index) when is_integer(index) do
-    quote do: :erlang.element(unquote(index + 1), unquote(tuple))
-  end
-
-  defmacro elem(tuple, index) do
-    quote do: :erlang.element(unquote(index) + 1, unquote(tuple))
-  end
-
-  @doc """
-  Sets the element in `tuple` at the zero-based `index` to the given `value`.
-
-  ## Example
-
-      iex> tuple = { :foo, :bar, 3 }
-      ...> set_elem(tuple, 0, :baz)
-      { :baz, :bar, 3 }
-
-  """
-  defmacro set_elem(tuple, index, value) when is_integer(index) do
-    quote do: :erlang.setelement(unquote(index + 1), unquote(tuple), unquote(value))
-  end
-
-  defmacro set_elem(tuple, index, value) do
-    quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
-  end
-
-  @doc """
-  Checks if the given structure is an exception.
-
-  ## Examples
-
-      iex> is_exception((fn -> ArithmeticError.new end).())
-      true
-      iex> is_exception((fn -> 1 end).())
-      false
-
-  """
-  defmacro is_exception(thing) do
-    case __CALLER__.in_guard? do
-      true ->
-        quote do
-          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 1 and
-            :erlang.element(2, unquote(thing)) == :__exception__
-        end
-      false ->
-        quote do
-          result = unquote(thing)
-          is_tuple(result) and tuple_size(result) > 1 and
-            :erlang.element(2, result) == :__exception__
-        end
-    end
-  end
-
-  @doc """
-  Checks if the given structure is a record. It is basically
-  a convenient macro that checks the structure is a tuple and
-  the first element matches the given kind.
-
-  ## Examples
-
-      defrecord Config, sample: nil
-
-      is_record(Config.new, Config) #=> true
-      is_record(Config.new, List)   #=> false
-
-  """
-  defmacro is_record(thing, kind) do
-    case __CALLER__.in_guard? do
-      true ->
-        quote do
-          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 0
-            and :erlang.element(1, unquote(thing)) == unquote(kind)
-        end
-      false ->
-        quote do
-          result = unquote(thing)
-          is_tuple(result) and tuple_size(result) > 0
-            and :erlang.element(1, result) == unquote(kind)
-        end
-    end
-  end
-
-  @doc """
-  Checks if the given argument is a record.
-  """
-  defmacro is_record(thing) do
-    case __CALLER__.in_guard? do
-      true ->
-        quote do
-          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 0
-            and is_atom(:erlang.element(1, unquote(thing)))
-        end
-      false ->
-        quote do
-          result = unquote(thing)
-          is_tuple(result) and tuple_size(result) > 0
-            and is_atom(:erlang.element(1, result))
-        end
-    end
-  end
-
-  @doc """
-  Checks if the given argument is a regex.
-  """
-  defmacro is_regex(thing) do
-    quote do
-      is_record(unquote(thing), Regex)
-    end
-  end
-
-  @doc """
-  Checks if the given argument is a range.
-  """
-  defmacro is_range(thing) do
-    quote do
-      is_record(unquote(thing), Range)
-    end
-  end
-
-  @doc """
-  Matches the term on the left against the regular expression or string on the
-  right. Returns true if `left` matches `right` (if it's a regular expression)
-  or contains `right` (if it's a string).
-
-  ## Examples
-
-      iex> "abcd" =~ %r/c(d)/
-      true
-
-      iex> "abcd" =~ %r/e/
-      false
-
-      iex> "abcd" =~ "bc"
-      true
-
-      iex> "abcd" =~ "ad"
-      false
-
-  """
-  def left =~ right when is_binary(left) and is_binary(right) do
-    :binary.match(left, right) != :nomatch
-  end
-
-  def left =~ right when is_binary(left) and is_tuple(right) and
-      tuple_size(right) > 0 and elem(right, 0) == Regex do
-    Regex.match?(right, left)
-  end
-
-  @doc """
-  Defines a module as a protocol and specifies the API that
-  should be defined by its implementations.
-
-  ## Examples
-
-  In Elixir, only `false` and `nil` are considered falsy values.
-  Everything else evaluates to true in `if` clauses. Depending
-  on the application, it may be important to specify a `blank?`
-  protocol that returns a boolean for other data types that should
-  be considered `blank?`. For instance, an empty list or an empty
-  binary could be considered blanks.
-
-  We could implement this protocol as follow:
-
-      defprotocol Blank do
-        @doc "Returns true if data is considered blank/empty"
-        def blank?(data)
-      end
-
-  Now that the protocol is defined, we can implement it. We need
-  to implement the protocol for each Elixir type. For example:
-
-      # Integers are never blank
-      defimpl Blank, for: Integer do
-        def blank?(number), do: false
-      end
-
-      # Just empty list is blank
-      defimpl Blank, for: List do
-        def blank?([]), do: true
-        def blank?(_),  do: false
-      end
-
-      # Just the atoms false and nil are blank
-      defimpl Blank, for: Atom do
-        def blank?(false), do: true
-        def blank?(nil),   do: true
-        def blank?(_),     do: false
-      end
-
-  And we would have to define the implementation for all types.
-  The supported types available are:
-
-  * Record (see below)
-  * Tuple
-  * Atom
-  * List
-  * BitString
-  * Integer
-  * Float
-  * Function
-  * PID
-  * Port
-  * Reference
-  * Any (see below)
-
-  ## Protocols + Records
-
-  The real benefit of protocols comes when mixed with records.
-  For instance, Elixir ships with many data types implemented as
-  records, like `HashDict` and `HashSet`. We can implement the
-  `Blank` protocol for those types as well:
-
-      defimpl Blank, for: HashDict do
-        def blank?(dict), do: Dict.empty?(dict)
-      end
-
-  Since records are tuples, if a protocol is not found a given
-  type, it will fallback to `Tuple`.
-
-  ## Fallback to any
-
-  In some cases, it may be convenient to provide a default
-  implementation for all types. This can be achieved by
-  setting `@fallback_to_any` to `true` in the protocol
-  definition:
-
-      defprotocol Blank do
-        @fallback_to_any true
-        def blank?(data)
-      end
-
-  Which can now be implemented as:
-
-      defimpl Blank, for: Any do
-        def blank?(_), do: true
-      end
-
-  One may wonder why such fallback is not true by default.
-
-  It is two-fold: first, the majority of protocols cannot
-  implement an action in a generic way for all types. In fact,
-  providing a default implementation may be harmful, because users
-  may rely on the default implementation instead of providing a
-  specialized one.
-
-  Second, falling back to `Any` adds an extra lookup to all types,
-  which is unecessary overhead unless an implementation for Any is
-  required.
-
-  ## Types
-
-  As in records, defining a protocol automatically defines a type
-  named `t`, which can be used as:
-
-      @spec present?(Blank.t) :: boolean
-      def present?(blank) do
-        not Blank.blank?(blank)
-      end
-
-  The `@spec` above expresses that all types allowed to implement the
-  given protocol are valid argument types for the given function.
-
-  ## Reflection
-
-  Any protocol module contains three extra functions:
-
-
-  * `__protocol__/1` - returns the protocol name when :name is given,
-                       and a keyword list with the protocol functions
-                       when :functions is given;
-
-  * `impl_for/1` - receives a structure and returns the module that implements
-                   the protocol for the structure, nil otherwise;
-
-  * `impl_for!/1` - same as above but raises an error if an implementation is not found
-
-  ## Consolidation
-
-  In order to cope with code loading in development, protocols in
-  Elixir provide a slow implementation of protocol dispatching in
-  development.
-
-  In order to speed up dispatching in production environments, where
-  all implementations are now up-front, Elixir provides a feature
-  called protocol consolidation. For this reason, all protocols are
-  compiled with `debug_info` set to true, regardless of the option
-  set by `elixirc` compiler.
-
-  For more information on how to apply protocol consolidation to
-  a given project, please check the `mix compile.protocols` task.
-  """
-  defmacro defprotocol(name, do: block) do
-    Protocol.defprotocol(name, do: block)
-  end
-
-  @doc """
-  Defines an implementation for the given protocol. See
-  `defprotocol/2` for examples.
-
-  Inside an implementation, the name of the protocol can be accessed
-  via `@protocol` and the current target as `@for`.
-  """
-  defmacro defimpl(name, opts, do_block // []) do
-    merged = Keyword.merge(opts, do_block)
-    merged = Keyword.put_new(merged, :for, __CALLER__.module)
-    Protocol.defimpl(name, merged)
-  end
-
-  @doc """
-  Makes the given functions in the current module overridable. An overridable
-  function is lazily defined, allowing a developer to customize it.
-
-  ## Example
-
-      defmodule DefaultMod do
-        defmacro __using__(_opts) do
-          quote do
-            def test(x, y) do
-              x + y
-            end
-
-            defoverridable [test: 2]
-          end
-        end
-      end
-
-      defmodule InheritMod do
-        use DefaultMod
-
-        def test(x, y) do
-          x * y + super(x, y)
-        end
-      end
-
-  As seen as in the example `super` can be used to call the default
-  implementation.
-  """
-  defmacro defoverridable(tuples) do
-    quote do
-      Module.make_overridable(__MODULE__, unquote(tuples))
-    end
-  end
-
-  @doc """
-  `use` is a simple mechanism for using a given module into
-  the current context.
-
-  ## Examples
-
-  For example, in order to write tests using the ExUnit framework,
-  a developer should use the `ExUnit.Case` module:
-
-      defmodule AssertionTest do
-        use ExUnit.Case, async: true
-
-        def test_always_pass do
-          true = true
-        end
-      end
-
-  By calling `use`, a hook called `__using__` will be invoked in
-  `ExUnit.Case` which will then do the proper setup.
-
-  Simply put, `use` is simply a translation to:
-
-      defmodule AssertionTest do
-        require ExUnit.Case
-        ExUnit.Case.__using__([async: true])
-
-        def test_always_pass do
-          true = true
-        end
-      end
-
-  """
-  defmacro use(module, args // []) do
-    expanded = Macro.expand(module, __CALLER__)
-
-    case is_atom(expanded) do
-      false ->
-        :erlang.error ArgumentError.exception(message: "invalid arguments for use, expected an atom or alias as argument")
-      true ->
-        quote do
-          require unquote(expanded)
-          unquote(expanded).__using__(unquote(args))
-        end
-    end
-  end
-
-  @doc %S"""
-  Inspect the given argument according to the `Inspect` protocol.
-  The second argument is a keywords list with options to control
-  inspection.
-
-  The second argument may also be an instance of the `Inspect.Opts`
-  record and, in such cases, instead of returning a string, it
-  returns an algebra document which can be converted to a string
-  via `Inspect.Algebra`.
-
-  ## Options
-
-  The following options are supported:
-
-  * `:raw`   - when true, record tuples are not formatted by the inspect protocol,
-               but are printed as just tuples, defaults to false;
-
-  * `:limit` - limits the number of items that are printed for tuples, bitstrings,
-               and lists, does not apply to strings nor char lists, defaults to 50;
-
-  * `:pretty` - if set to true enables pretty printing, defaults to false;
-
-  * `:width` - the width avaliable for inspect to lay out the data structure
-               representation. Defaults to the least of 80 and terminal width;
-
-  ## Examples
-
-      iex> inspect(:foo)
-      ":foo"
-
-      iex> inspect [1, 2, 3, 4, 5], limit: 3
-      "[1, 2, 3, ...]"
-
-      iex> inspect(ArgumentError[])
-      "ArgumentError[message: \"argument error\"]"
-
-      iex> inspect(ArgumentError[], raw: true)
-      "{ArgumentError, :__exception__, \"argument error\"}"
-
-  Note that the inspect protocol does not necessarily return a valid
-  representation of an Elixir term. In such cases, the inspected result
-  must start with `#`. For example, inspecting a function will return:
-
-      inspect &(&1 + &2)
-      #=> #Function<...>
-
-  """
-  @spec inspect(Inspect.t, Inspect.Opts.t) :: Inspect.Algebra.t
-  @spec inspect(Inspect.t, Keyword.t) :: String.t
-  def inspect(arg, opts // [])
-
-  def inspect(arg, opts) when is_tuple(opts) and tuple_size(opts) > 0 and
-      elem(opts, 0) == Inspect.Opts do
-    case is_tuple(arg) and elem(opts, 1) do
-      true  -> Inspect.Tuple.inspect(arg, opts)
-      false -> Inspect.inspect(arg, opts)
-    end
-  end
-
-  def inspect(arg, opts) when is_list(opts) do
-    opts = Inspect.Opts.new(opts)
-
-    case opts.pretty do
-      true  -> Inspect.Algebra.pretty(inspect(arg, opts), opts.width)
-      false -> Inspect.Algebra.pretty(inspect(arg, opts), :infinity)
-    end
-  end
-
-  @doc """
-  Converts the argument to a string according to the String.Chars protocol.
-  This is the function invoked when there is string interpolation.
-
-  ## Examples
-
-      iex> to_string(:foo)
-      "foo"
-
-  """
-  # If it is a binary at compilation time, simply return it.
-  defmacro to_string(arg) when is_binary(arg), do: arg
-
-  defmacro to_string(arg) do
-    quote do: String.Chars.to_string(unquote(arg))
-  end
-
-  @doc """
-  Convert the argument to a list according to the List.Chars protocol.
-
-  ## Examples
-
-      iex> to_char_list(:foo)
-      'foo'
-
-  """
-  defmacro to_char_list(arg) do
-    quote do: List.Chars.to_char_list(unquote(arg))
-  end
-
-  @doc """
-  Provides an integer division macro according to Erlang semantics.
-  Raises an error if one of the arguments is not an integer.
-  Can be used in guard tests.
-
-  ## Examples
-
-      iex> div(5, 2)
-      2
-
-  """
-  defmacro div(left, right) do
-    quote do: __op__(:div, unquote(left), unquote(right))
-  end
-
-  @doc """
-  Provides an integer remainder macro according to Erlang semantics.
-  Raises an error if one of the arguments is not an integer.
-  Can be used in guard tests.
-
-  ## Examples
-
-      iex> rem(5, 2)
-      1
-
-  """
-  defmacro rem(left, right) do
-    quote do: __op__(:rem, unquote(left), unquote(right))
-  end
-
-  @doc """
-  Checks if the given argument is nil or not.
-  Allowed in guard clauses.
-
-  ## Examples
-
-      iex> nil?(1)
-      false
-      iex> nil?(nil)
-      true
-
-  """
-  defmacro nil?(x) do
-    quote do: unquote(x) == nil
-  end
-
-  @doc """
-  A convenient macro that checks if the right side matches
-  the left side. The left side is allowed to be a match pattern.
-
-  ## Examples
-
-      iex> match?(1, 1)
-      true
-      iex> match?(1, 2)
-      false
-      iex> match?({1, _}, {1, 2})
-      true
-
-  Match can also be used to filter or find a value in an enumerable:
-
-      list = [{:a, 1}, {:b, 2}, {:a, 3}]
-      Enum.filter list, &match?({:a, _}, &1)
-
-  Guard clauses can also be given to the match:
-
-      list = [{:a, 1}, {:b, 2}, {:a, 3}]
-      Enum.filter list, &match?({:a, x } when x < 2, &1)
-
-  However, variables assigned in the match will not be available
-  outside of the function call:
-
-      iex> match?(x, 1)
-      true
-      iex> binding([:x]) == []
-      true
-
-  """
-  defmacro match?(pattern, expr)
-
-  # Special case underscore since it always matches
-  defmacro match?({ :_, _, atom }, _right) when is_atom(atom) do
-    true
-  end
-
-  defmacro match?(left, right) do
-    { left, _ } = kernelfy_var(left, [], &kernelfy_all/2)
-
-    quote do
-      case unquote(right) do
-        unquote(left) ->
-          true
-        _ ->
-          false
-      end
-    end
-  end
-
-  defp kernelfy_all({ var, meta, scope }, acc) when is_atom(var) and is_atom(scope) do
-    { { var, meta, Kernel }, [{ var, scope }|acc] }
-  end
-
-  defp kernelfy_selected({ var, meta, scope } = original, acc) when is_atom(var) and is_atom(scope) do
-    case :lists.member({ var, scope }, acc) do
-      true  -> { { var, meta, Kernel }, acc }
-      false -> { original, acc }
-    end
-  end
-
-  defp kernelfy_var({ :^, _, [_] } = contents, acc, _fun) do
-    { contents, acc }
-  end
-
-  defp kernelfy_var({ :when, meta, [left, right] }, acc, fun) do
-    { left, acc }  = kernelfy_var(left, acc, fun)
-    { right, acc } = kernelfy_var(right, acc, &kernelfy_selected/2)
-    { { :when, meta, [left, right] }, acc }
-  end
-
-  defp kernelfy_var({ var, _, scope } = original, acc, fun) when is_atom(var) and is_atom(scope) do
-    fun.(original, acc)
-  end
-
-  defp kernelfy_var({ left, meta, right }, acc, fun) do
-    { left, acc }  = kernelfy_var(left, acc, fun)
-    { right, acc } = kernelfy_var(right, acc, fun)
-    { { left, meta, right }, acc }
-  end
-
-  defp kernelfy_var({ left, right }, acc, fun) do
-    { left, acc }  = kernelfy_var(left, acc, fun)
-    { right, acc } = kernelfy_var(right, acc, fun)
-    { { left, right }, acc }
-  end
-
-  defp kernelfy_var(list, acc, fun) when is_list(list) do
-    :lists.mapfoldl(&kernelfy_var(&1, &2, fun), acc, list)
-  end
-
-  defp kernelfy_var(other, acc, _fun) do
-    { other, acc }
-  end
 
   @doc """
   Matches the given expression against the match clauses.
@@ -2438,6 +1765,574 @@ defmodule Kernel do
   defmacro receive(args)
 
   @doc """
+  Returns `true` if the element on the left is equal (==) to
+  any of the items on the right.
+
+  ## Examples
+
+      iex> x = 1
+      ...> x in [1, 2, 3]
+      true
+
+  This macro simply translates the expression above to:
+
+      x == 1 or x == 2 or x == 3
+
+  with the exception that the expression on the left of `in`
+  is evaluated only once.
+
+  ## Clauses
+
+  Whenever used inside a function or a case clause, you can
+  optionally omit the variable declaration, for example:
+
+      case 3 do
+        x when x in [1, 2] -> x * 2
+        _ -> 0
+      end
+
+  Could be rewritten as:
+
+      case 3 do
+        x in [1, 2] -> x * 2
+        _ -> 0
+      end
+
+  In this case, Elixir will automatically expand it and define
+  the variable for us.
+  """
+  defmacro left in right
+
+  ## Others implemented in Elixir
+
+  @doc """
+  Concatenates two binaries.
+
+  ## Examples
+
+      iex> "foo" <> "bar"
+      "foobar"
+
+  The `<>` operator can also be used in guard clauses as
+  long as the first part is a literal binary:
+
+      iex> "foo" <> x = "foobar"
+      ...> x
+      "bar"
+
+  """
+  defmacro left <> right do
+    concats = extract_concatenations({ :<>, [], [left, right] })
+    quote do: << unquote_splicing(concats) >>
+  end
+
+  # Extracts concatenations in order to optimize many
+  # concatenations into one single clause.
+  defp extract_concatenations({ :<>, _, [left, right] }) do
+    wrap_concatenation(left) ++ extract_concatenations(right)
+  end
+
+  defp extract_concatenations(other) do
+    wrap_concatenation(other)
+  end
+
+  # If it is a binary, we don't need to add the binary
+  # tag. This allows us to use <> on pattern matching.
+  defp wrap_concatenation(binary) when is_binary(binary) do
+    [binary]
+  end
+
+  defp wrap_concatenation({ :<<>>, _, parts }) do
+    parts
+  end
+
+  defp wrap_concatenation(other) do
+    [{ :::, [], [other, { :binary, [], nil }] }]
+  end
+
+  @doc """
+  Raises an error.
+
+  If the argument is a binary, it raises `RuntimeError`
+  using the given argument as message.
+
+  If anything else, becomes a call to `raise(argument, [])`.
+
+  ## Examples
+
+      raise "Given values do not match"
+
+      try do
+        1 + :foo
+      rescue
+        x in [ArithmeticError] ->
+          IO.puts "that was expected"
+          raise x
+      end
+
+  """
+  @spec raise(binary | atom | tuple) :: no_return
+  defmacro raise(msg) when is_binary(msg) do
+    quote do
+      :erlang.error RuntimeError.exception(message: unquote(msg))
+    end
+  end
+
+  defmacro raise({ tag, _, _ } = exception) when tag == :<<>> or tag == :<> do
+    quote do
+      :erlang.error RuntimeError.exception(message: unquote(exception))
+    end
+  end
+
+  @doc """
+  Raises an error.
+
+  It calls `.exception` on the given argument passing
+  the args in order to retrieve the appropriate exception
+  structure.
+
+  Any module defined via `defexception` automatically
+  defines both `exception(args)` and `exception(args, current)`
+  that creates a new and updates the given exception.
+
+  ## Examples
+
+      iex> raise(ArgumentError, message: "Sample")
+      ** (ArgumentError) Sample
+
+  """
+  @spec raise(tuple | atom, list) :: no_return
+  defmacro raise(exception, args // [])
+
+  defmacro raise({ :{}, _, _ } = exception, args) do
+    quote do
+      :erlang.error unquote(exception).exception(unquote(args))
+    end
+  end
+
+  defmacro raise({ :__aliases__, _, _ } = exception, args) do
+    quote do
+      :erlang.error unquote(exception).exception(unquote(args))
+    end
+  end
+
+  defmacro raise(exception, args) when is_atom(exception) do
+    quote do
+      :erlang.error unquote(exception).exception(unquote(args))
+    end
+  end
+
+  defmacro raise(exception, args) do
+    quote do
+      exception = unquote(exception)
+      case exception do
+        e when is_binary(e) ->
+          :erlang.error RuntimeError.exception(message: exception)
+        _ ->
+          :erlang.error exception.exception(unquote(args))
+      end
+    end
+  end
+
+  @doc """
+  Re-raises an exception with the given stacktrace.
+
+  ## Examples
+
+      try do
+        raise "Oops"
+      rescue
+        exception ->
+          stacktrace = System.stacktrace
+          if exception.message == "Oops" do
+            raise exception, [], stacktrace
+          end
+      end
+
+  Notice that `System.stacktrace` returns the stacktrace
+  of the last exception. That said, it is common to assign
+  the stacktrace as the first expression inside a `rescue`
+  clause as any other exception potentially raised (and
+  rescued) in between the rescue clause and the raise call
+  may change the `System.stacktrace` value.
+  """
+  @spec raise(tuple | atom, list, list) :: no_return
+  def raise(exception, args, stacktrace) do
+    :erlang.raise :error, exception.exception(args), stacktrace
+  end
+
+  @doc """
+  Get the element at the zero-based `index` in `tuple`.
+
+  Implemented as a macro so it can be used in guards.
+
+  ## Example
+
+      iex> tuple = { :foo, :bar, 3 }
+      ...> elem(tuple, 1)
+      :bar
+
+  """
+  defmacro elem(tuple, index) when is_integer(index) do
+    quote do: :erlang.element(unquote(index + 1), unquote(tuple))
+  end
+
+  defmacro elem(tuple, index) do
+    quote do: :erlang.element(unquote(index) + 1, unquote(tuple))
+  end
+
+  @doc """
+  Sets the element in `tuple` at the zero-based `index` to the given `value`.
+
+  ## Example
+
+      iex> tuple = { :foo, :bar, 3 }
+      ...> set_elem(tuple, 0, :baz)
+      { :baz, :bar, 3 }
+
+  """
+  defmacro set_elem(tuple, index, value) when is_integer(index) do
+    quote do: :erlang.setelement(unquote(index + 1), unquote(tuple), unquote(value))
+  end
+
+  defmacro set_elem(tuple, index, value) do
+    quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
+  end
+
+  @doc """
+  Checks if the given structure is an exception.
+
+  ## Examples
+
+      iex> is_exception((fn -> ArithmeticError.new end).())
+      true
+      iex> is_exception((fn -> 1 end).())
+      false
+
+  """
+  defmacro is_exception(thing) do
+    case __CALLER__.in_guard? do
+      true ->
+        quote do
+          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 1 and
+            :erlang.element(2, unquote(thing)) == :__exception__
+        end
+      false ->
+        quote do
+          result = unquote(thing)
+          is_tuple(result) and tuple_size(result) > 1 and
+            :erlang.element(2, result) == :__exception__
+        end
+    end
+  end
+
+  @doc """
+  Checks if the given structure is a record. It is basically
+  a convenient macro that checks the structure is a tuple and
+  the first element matches the given kind.
+
+  ## Examples
+
+      defrecord Config, sample: nil
+
+      is_record(Config.new, Config) #=> true
+      is_record(Config.new, List)   #=> false
+
+  """
+  defmacro is_record(thing, kind) do
+    case __CALLER__.in_guard? do
+      true ->
+        quote do
+          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 0
+            and :erlang.element(1, unquote(thing)) == unquote(kind)
+        end
+      false ->
+        quote do
+          result = unquote(thing)
+          is_tuple(result) and tuple_size(result) > 0
+            and :erlang.element(1, result) == unquote(kind)
+        end
+    end
+  end
+
+  @doc """
+  Checks if the given argument is a record.
+  """
+  defmacro is_record(thing) do
+    case __CALLER__.in_guard? do
+      true ->
+        quote do
+          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 0
+            and is_atom(:erlang.element(1, unquote(thing)))
+        end
+      false ->
+        quote do
+          result = unquote(thing)
+          is_tuple(result) and tuple_size(result) > 0
+            and is_atom(:erlang.element(1, result))
+        end
+    end
+  end
+
+  @doc """
+  Checks if the given argument is a regex.
+  """
+  defmacro is_regex(thing) do
+    quote do
+      is_record(unquote(thing), Regex)
+    end
+  end
+
+  @doc """
+  Checks if the given argument is a range.
+  """
+  defmacro is_range(thing) do
+    quote do
+      is_record(unquote(thing), Range)
+    end
+  end
+
+  @doc """
+  Matches the term on the left against the regular expression or string on the
+  right. Returns true if `left` matches `right` (if it's a regular expression)
+  or contains `right` (if it's a string).
+
+  ## Examples
+
+      iex> "abcd" =~ %r/c(d)/
+      true
+
+      iex> "abcd" =~ %r/e/
+      false
+
+      iex> "abcd" =~ "bc"
+      true
+
+      iex> "abcd" =~ "ad"
+      false
+
+  """
+  def left =~ right when is_binary(left) and is_binary(right) do
+    :binary.match(left, right) != :nomatch
+  end
+
+  def left =~ right when is_binary(left) and is_tuple(right) and
+      tuple_size(right) > 0 and elem(right, 0) == Regex do
+    Regex.match?(right, left)
+  end
+
+  @doc %S"""
+  Inspect the given argument according to the `Inspect` protocol.
+  The second argument is a keywords list with options to control
+  inspection.
+
+  The second argument may also be an instance of the `Inspect.Opts`
+  record and, in such cases, instead of returning a string, it
+  returns an algebra document which can be converted to a string
+  via `Inspect.Algebra`.
+
+  ## Options
+
+  The following options are supported:
+
+  * `:raw`   - when true, record tuples are not formatted by the inspect protocol,
+               but are printed as just tuples, defaults to false;
+
+  * `:limit` - limits the number of items that are printed for tuples, bitstrings,
+               and lists, does not apply to strings nor char lists, defaults to 50;
+
+  * `:pretty` - if set to true enables pretty printing, defaults to false;
+
+  * `:width` - the width avaliable for inspect to lay out the data structure
+               representation. Defaults to the least of 80 and terminal width;
+
+  ## Examples
+
+      iex> inspect(:foo)
+      ":foo"
+
+      iex> inspect [1, 2, 3, 4, 5], limit: 3
+      "[1, 2, 3, ...]"
+
+      iex> inspect(ArgumentError[])
+      "ArgumentError[message: \"argument error\"]"
+
+      iex> inspect(ArgumentError[], raw: true)
+      "{ArgumentError, :__exception__, \"argument error\"}"
+
+  Note that the inspect protocol does not necessarily return a valid
+  representation of an Elixir term. In such cases, the inspected result
+  must start with `#`. For example, inspecting a function will return:
+
+      inspect &(&1 + &2)
+      #=> #Function<...>
+
+  """
+  @spec inspect(Inspect.t, Inspect.Opts.t) :: Inspect.Algebra.t
+  @spec inspect(Inspect.t, Keyword.t) :: String.t
+  def inspect(arg, opts // [])
+
+  def inspect(arg, opts) when is_tuple(opts) and tuple_size(opts) > 0 and
+      elem(opts, 0) == Inspect.Opts do
+    case is_tuple(arg) and elem(opts, 1) do
+      true  -> Inspect.Tuple.inspect(arg, opts)
+      false -> Inspect.inspect(arg, opts)
+    end
+  end
+
+  def inspect(arg, opts) when is_list(opts) do
+    opts = Inspect.Opts.new(opts)
+
+    case opts.pretty do
+      true  -> Inspect.Algebra.pretty(inspect(arg, opts), opts.width)
+      false -> Inspect.Algebra.pretty(inspect(arg, opts), :infinity)
+    end
+  end
+
+  @doc """
+  Converts the argument to a string according to the String.Chars protocol.
+  This is the function invoked when there is string interpolation.
+
+  ## Examples
+
+      iex> to_string(:foo)
+      "foo"
+
+  """
+  # If it is a binary at compilation time, simply return it.
+  defmacro to_string(arg) when is_binary(arg), do: arg
+
+  defmacro to_string(arg) do
+    quote do: String.Chars.to_string(unquote(arg))
+  end
+
+  @doc """
+  Convert the argument to a list according to the List.Chars protocol.
+
+  ## Examples
+
+      iex> to_char_list(:foo)
+      'foo'
+
+  """
+  defmacro to_char_list(arg) do
+    quote do: List.Chars.to_char_list(unquote(arg))
+  end
+
+  @doc """
+  Checks if the given argument is nil or not.
+  Allowed in guard clauses.
+
+  ## Examples
+
+      iex> nil?(1)
+      false
+      iex> nil?(nil)
+      true
+
+  """
+  defmacro nil?(x) do
+    quote do: unquote(x) == nil
+  end
+
+  @doc """
+  A convenient macro that checks if the right side matches
+  the left side. The left side is allowed to be a match pattern.
+
+  ## Examples
+
+      iex> match?(1, 1)
+      true
+      iex> match?(1, 2)
+      false
+      iex> match?({1, _}, {1, 2})
+      true
+
+  Match can also be used to filter or find a value in an enumerable:
+
+      list = [{:a, 1}, {:b, 2}, {:a, 3}]
+      Enum.filter list, &match?({:a, _}, &1)
+
+  Guard clauses can also be given to the match:
+
+      list = [{:a, 1}, {:b, 2}, {:a, 3}]
+      Enum.filter list, &match?({:a, x } when x < 2, &1)
+
+  However, variables assigned in the match will not be available
+  outside of the function call:
+
+      iex> match?(x, 1)
+      true
+      iex> binding([:x]) == []
+      true
+
+  """
+  defmacro match?(pattern, expr)
+
+  # Special case underscore since it always matches
+  defmacro match?({ :_, _, atom }, _right) when is_atom(atom) do
+    true
+  end
+
+  defmacro match?(left, right) do
+    { left, _ } = kernelfy_var(left, [], &kernelfy_all/2)
+
+    quote do
+      case unquote(right) do
+        unquote(left) ->
+          true
+        _ ->
+          false
+      end
+    end
+  end
+
+  defp kernelfy_all({ var, meta, scope }, acc) when is_atom(var) and is_atom(scope) do
+    { { var, meta, Kernel }, [{ var, scope }|acc] }
+  end
+
+  defp kernelfy_selected({ var, meta, scope } = original, acc) when is_atom(var) and is_atom(scope) do
+    case :lists.member({ var, scope }, acc) do
+      true  -> { { var, meta, Kernel }, acc }
+      false -> { original, acc }
+    end
+  end
+
+  defp kernelfy_var({ :^, _, [_] } = contents, acc, _fun) do
+    { contents, acc }
+  end
+
+  defp kernelfy_var({ :when, meta, [left, right] }, acc, fun) do
+    { left, acc }  = kernelfy_var(left, acc, fun)
+    { right, acc } = kernelfy_var(right, acc, &kernelfy_selected/2)
+    { { :when, meta, [left, right] }, acc }
+  end
+
+  defp kernelfy_var({ var, _, scope } = original, acc, fun) when is_atom(var) and is_atom(scope) do
+    fun.(original, acc)
+  end
+
+  defp kernelfy_var({ left, meta, right }, acc, fun) do
+    { left, acc }  = kernelfy_var(left, acc, fun)
+    { right, acc } = kernelfy_var(right, acc, fun)
+    { { left, meta, right }, acc }
+  end
+
+  defp kernelfy_var({ left, right }, acc, fun) do
+    { left, acc }  = kernelfy_var(left, acc, fun)
+    { right, acc } = kernelfy_var(right, acc, fun)
+    { { left, right }, acc }
+  end
+
+  defp kernelfy_var(list, acc, fun) when is_list(list) do
+    :lists.mapfoldl(&kernelfy_var(&1, &2, fun), acc, list)
+  end
+
+  defp kernelfy_var(other, acc, _fun) do
+    { other, acc }
+  end
+
+  @doc """
   This macro is a shortcut to read and add attributes to the module
   being compiled. Elixir module attributes are similar to Erlang's with
   some differences. The canonical example for attributes is annotating
@@ -2479,6 +2374,52 @@ defmodule Kernel do
   to manipulate module attributes.
   """
   defmacro @(expr)
+
+  # Typespecs attributes are special cased by the compiler so far
+  defmacro @({ name, _, args }) do
+    # Check for Macro as it is compiled later than Module
+    case bootstraped?(Macro) do
+      false -> nil
+      true  ->
+        assert_module_scope(__CALLER__, :@, 1)
+        function? = env_function(__CALLER__) != nil
+
+        case is_list(args) and length(args) == 1 and typespec(name) do
+          false ->
+            case args do
+              [arg] ->
+                case function? do
+                  true ->
+                    raise ArgumentError, message: "cannot dynamically set attribute @#{name} inside function"
+                  false ->
+                    quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg))
+                end
+              _ when is_atom(args) when args == [] ->
+                case function? do
+                  true ->
+                    Macro.escape Module.get_attribute(env_module(__CALLER__), name)
+                  false ->
+                    quote do: Module.get_attribute(__MODULE__, unquote(name), true)
+                end
+              _ ->
+                raise ArgumentError, message: "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
+            end
+          macro ->
+            # Do not compile typespecs until Macro.Env is done
+            case bootstraped?(Kernel.Typespec) do
+              true  -> quote do: Kernel.Typespec.unquote(macro)(unquote(hd(args)))
+              false -> nil
+            end
+        end
+    end
+  end
+
+  defp typespec(:type),     do: :deftype
+  defp typespec(:typep),    do: :deftypep
+  defp typespec(:opaque),   do: :defopaque
+  defp typespec(:spec),     do: :defspec
+  defp typespec(:callback), do: :defcallback
+  defp typespec(_),         do: false
 
   @doc """
   Returns the binding as a keyword list where the variable name
@@ -2633,8 +2574,8 @@ defmodule Kernel do
     new_acc =
       case condition do
         { :_, _, atom } when is_atom(atom) ->
-          :erlang.error ArgumentError.exception(message: <<"unbound variable _ inside cond. ",
-            "If you want the last clause to match, you probably meant to use true ->">>)
+          raise ArgumentError, message: <<"unbound variable _ inside cond. ",
+            "If you want the last clause to match, you probably meant to use true ->">>
         x when is_atom(x) and not x in [false, nil] ->
           clause
         _ ->
@@ -2646,6 +2587,55 @@ defmodule Kernel do
       end
 
     build_cond_clauses(t, new_acc, meta)
+  end
+
+  # Builds cond clauses by nesting them recursively.
+  #
+  #     case !foo do
+  #       false -> 1
+  #       true ->
+  #         case !bar do
+  #           false -> 2
+  #           true -> 3
+  #         end
+  #     end
+  #
+  defp build_cond_clauses([{ [condition], new, clause }|t], acc, old) do
+    stab = { :->, [], [falsy_clause(old, acc), truthy_clause(new, clause)] }
+    acc  = quote do
+      case unquote(condition), do: unquote(stab)
+    end
+    build_cond_clauses(t, acc, new)
+  end
+
+  defp build_cond_clauses([], acc, _), do: acc
+
+  defp falsy_clause(meta, acc) do
+    { [quote(do: unquote(cond_var) when unquote(cond_var) in [false, nil])], meta, acc }
+  end
+
+  defp truthy_clause(meta, clause) do
+    { [quote(do: _)], meta, clause }
+  end
+
+  # Setting cond: true in metadata turns on a small optimization
+  # in Elixir compiler. In the long run, we want to bring this
+  # optimization to Elixir land, but not right now.
+  defp cond_var do
+    { :x, [cond: true, temp: true], Kernel }
+  end
+
+  # A temporary var only lasts its current clause, never leak
+  # into other clauses.
+  defp temp_var do
+    { :x, [temp: true], Kernel }
+  end
+
+  defp get_line(meta) do
+    case :lists.keyfind(:line, 1, meta) do
+      { :line, line } -> line
+      false -> 0
+    end
   end
 
   @doc """
@@ -2712,204 +2702,6 @@ defmodule Kernel do
         end
       end
     end
-  end
-
-  @doc """
-  Returns a integer whose text representation is `some_binary`.
-
-  ## Examples
-
-      iex> binary_to_integer("123")
-      123
-
-  """
-  def binary_to_integer(some_binary) do
-    :erlang.binary_to_integer(some_binary)
-  end
-
-  @doc """
-  Returns an integer whose text representation in base `base`
-  is `some_binary`.
-
-  ## Examples
-
-      iex> binary_to_integer("3FF", 16)
-      1023
-
-  """
-  def binary_to_integer(some_binary, base) do
-    :erlang.binary_to_integer(some_binary, base)
-  end
-
-  @doc """
-  Returns a float whose text representation is `some_binary`.
-
-  ## Examples
-
-      iex> binary_to_float("2.2017764e+0")
-      2.2017764
-
-  """
-  def binary_to_float(some_binary) do
-    :erlang.binary_to_float(some_binary)
-  end
-
-  @doc """
-  Returns a binary which corresponds to the text representation
-  of `some_integer`.
-
-  ## Examples
-
-      iex> integer_to_binary(123)
-      "123"
-
-  """
-  def integer_to_binary(some_integer) do
-    :erlang.integer_to_binary(some_integer)
-  end
-
-  @doc """
-  Returns a binary which corresponds to the text representation
-  of `some_integer` in base `base`.
-
-  ## Examples
-
-      iex> integer_to_binary(100, 16)
-      "64"
-
-  """
-  def integer_to_binary(some_integer, base) do
-    :erlang.integer_to_binary(some_integer, base)
-  end
-
-  @doc """
-  Returns a binary which corresponds to the text representation
-  of `some_float`.
-
-  ## Examples
-
-      iex> float_to_binary(7.0)
-      "7.00000000000000000000e+00"
-
-  """
-  def float_to_binary(some_float) do
-    :erlang.float_to_binary(some_float)
-  end
-
-  @doc """
-  Returns a binary which corresponds to the text representation
-  of `float`.
-
-  ## Options
-
-  * `:decimals` — number of decimal points to show
-  * `:scientific` — number of decimal points to show, in scientific format
-  * `:compact` — If true, use the most compact representation (ignored with the `scientific` option)
-
-  ## Examples
-
-      float_to_binary 7.1, [decimals: 2, compact: true] #=> "7.1"
-
-  """
-  def float_to_binary(float, options) do
-    :erlang.float_to_binary(float, expand_compact(options))
-  end
-
-  @doc """
-  Returns a list which corresponds to the text representation
-  of `float`.
-
-  ## Options
-
-  * `:decimals` — number of decimal points to show
-  * `:scientific` — number of decimal points to show, in scientific format
-  * `:compact` — If true, use the most compact representation (ignored with the `scientific` option)
-
-  ## Examples
-
-      float_to_list 7.1, [decimals: 2, compact: true] #=> '7.1'
-
-  """
-  def float_to_list(float, options) do
-    :erlang.float_to_list(float, expand_compact(options))
-  end
-
-  @doc """
-  Returns the atom whose text representation is `some_binary` in
-  UTF8 encoding.
-
-  Currently Elixir does not support conversions for binaries which
-  contains Unicode characters greater than 16#FF.
-
-  ## Examples
-
-      iex> binary_to_atom("my_atom")
-      :my_atom
-
-  """
-  defmacro binary_to_atom(some_binary) do
-    quote do
-      :erlang.binary_to_atom(unquote(some_binary), :utf8)
-    end
-  end
-
-  @doc """
-  Works like `binary_to_atom/1` but the atom must exist.
-
-  Currently Elixir does not support conversions for binaries which
-  contains Unicode characters greater than 16#FF.
-
-  ## Examples
-
-      iex> :my_atom
-      ...> binary_to_existing_atom("my_atom")
-      :my_atom
-
-      iex> binary_to_existing_atom("this_atom_will_never_exist")
-      ** (ArgumentError) argument error
-
-  """
-  defmacro binary_to_existing_atom(some_binary) do
-    quote do
-      :erlang.binary_to_existing_atom(unquote(some_binary), :utf8)
-    end
-  end
-
-  @doc """
-  Returns a binary which corresponds to the text representation
-  of `some_atom` in UTF8 encoding.
-
-  ## Examples
-
-      iex> atom_to_binary(:my_atom)
-      "my_atom"
-
-  """
-  defmacro atom_to_binary(some_atom) do
-    quote do
-      :erlang.atom_to_binary(unquote(some_atom), :utf8)
-    end
-  end
-
-  @doc """
-  Concatenates two binaries.
-
-  ## Examples
-
-      iex> "foo" <> "bar"
-      "foobar"
-
-  The `<>` operator can also be used in guard clauses as
-  long as the first part is a literal binary:
-
-      iex> "foo" <> x = "foobar"
-      ...> x
-      "bar"
-
-  """
-  defmacro left <> right do
-    concats = extract_concatenations({ :<>, [], [left, right] })
-    quote do: << unquote_splicing(concats) >>
   end
 
   @doc """
@@ -2996,45 +2788,6 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if the element on the left is equal (==) to
-  any of the items on the right.
-
-  ## Examples
-
-      iex> x = 1
-      ...> x in [1, 2, 3]
-      true
-
-  This macro simply translates the expression above to:
-
-      x == 1 or x == 2 or x == 3
-
-  with the exception that the expression on the left of `in`
-  is evaluated only once.
-
-  ## Clauses
-
-  Whenever used inside a function or a case clause, you can
-  optionally omit the variable declaration, for example:
-
-      case 3 do
-        x when x in [1, 2] -> x * 2
-        _ -> 0
-      end
-
-  Could be rewritten as:
-
-      case 3 do
-        x in [1, 2] -> x * 2
-        _ -> 0
-      end
-
-  In this case, Elixir will automatically expand it and define
-  the variable for us.
-  """
-  defmacro left in right
-
-  @doc """
   `|>` is called the pipeline operator as it is useful
   to write pipeline style expressions. This operator
   introduces the expression on the left as the first
@@ -3067,117 +2820,6 @@ defmodule Kernel do
   """
   defmacro left |> right do
     :lists.foldl fn x, acc -> Macro.pipe(acc, x) end, left, Macro.unpipe(right)
-  end
-
-  @doc """
-  Raises an error.
-
-  If the argument is a binary, it raises `RuntimeError`
-  using the given argument as message.
-
-  If anything else, becomes a call to `raise(argument, [])`.
-
-  ## Examples
-
-      raise "Given values do not match"
-
-      try do
-        1 + :foo
-      rescue
-        x in [ArithmeticError] ->
-          IO.puts "that was expected"
-          raise x
-      end
-
-  """
-  @spec raise(binary | atom | tuple) :: no_return
-  defmacro raise(msg) when is_binary(msg) do
-    quote do
-      :erlang.error RuntimeError[message: unquote(msg)]
-    end
-  end
-
-  defmacro raise({ tag, _, _ } = exception) when tag == :<<>> or tag == :<> do
-    quote do
-      :erlang.error RuntimeError.new(message: unquote(exception))
-    end
-  end
-
-  @doc """
-  Raises an error.
-
-  It calls `.exception` on the given argument passing
-  the args in order to retrieve the appropriate exception
-  structure.
-
-  Any module defined via `defexception` automatically
-  defines both `exception(args)` and `exception(args, current)`
-  that creates a new and updates the given exception.
-
-  ## Examples
-
-      iex> raise(ArgumentError, message: "Sample")
-      ** (ArgumentError) Sample
-
-  """
-  @spec raise(tuple | atom, list) :: no_return
-  defmacro raise(exception, args // [])
-
-  defmacro raise({ :{}, _, _ } = exception, args) do
-    quote do
-      :erlang.error unquote(exception).exception(unquote(args))
-    end
-  end
-
-  defmacro raise({ :__aliases__, _, _ } = exception, args) do
-    quote do
-      :erlang.error unquote(exception).exception(unquote(args))
-    end
-  end
-
-  defmacro raise(exception, args) when is_atom(exception) do
-    quote do
-      :erlang.error unquote(exception).exception(unquote(args))
-    end
-  end
-
-  defmacro raise(exception, args) do
-    quote do
-      exception = unquote(exception)
-      case exception do
-        e when is_binary(e) ->
-          :erlang.error RuntimeError.new(message: exception)
-        _ ->
-          :erlang.error exception.exception(unquote(args))
-      end
-    end
-  end
-
-  @doc """
-  Re-raises an exception with the given stacktrace.
-
-  ## Examples
-
-      try do
-        raise "Oops"
-      rescue
-        exception ->
-          stacktrace = System.stacktrace
-          if exception.message == "Oops" do
-            raise exception, [], stacktrace
-          end
-      end
-
-  Notice that `System.stacktrace` returns the stacktrace
-  of the last exception. That said, it is common to assign
-  the stacktrace as the first expression inside a `rescue`
-  clause as any other exception potentially raised (and
-  rescued) in between the rescue clause and the raise call
-  may change the `System.stacktrace` value.
-  """
-  @spec raise(tuple | atom, list, list) :: no_return
-  def raise(exception, args, stacktrace) do
-    :erlang.raise :error, exception.exception(args), stacktrace
   end
 
   @doc """
@@ -3291,20 +2933,499 @@ defmodule Kernel do
                 { :error, _ } ->
                   :elixir_aliases.ensure_loaded(caller.line, caller.file, atom, caller.context_modules)
                 _ ->
-                  :erlang.error ArgumentError.exception(message: "cannot use module #{inspect atom} in access protocol because it does not export __record__/1")
+                  raise ArgumentError, message: "cannot use module #{inspect atom} in access protocol because it does not export __record__/1"
               end
           end
 
         Record.access(atom, fields, args, caller)
       false ->
         case caller.in_match? or caller.in_guard? do
-          true  -> :erlang.error ArgumentError.exception(message: "dynamic access cannot be invoked inside match and guard clauses")
+          true  -> raise ArgumentError, message: "dynamic access cannot be invoked inside match and guard clauses"
           false -> :ok
         end
 
         case args do
           [h] -> quote do: Access.access(unquote(element), unquote(h))
-          _   -> :erlang.error ArgumentError.exception(message: "expected at least one argument in access")
+          _   -> raise ArgumentError, message: "expected at least one argument in access"
+        end
+    end
+  end
+
+  ## Definitions implemented in Elixir
+
+  @doc %S"""
+  Exports a module with a record definition and runtime operations.
+
+  Please see the `Record` module's documentation for an introduction
+  to records in Elixir. The following sections are going into details
+  specific to `defrecord`.
+
+  ## Examples
+
+      defrecord User, name: nil, age: 0
+
+  The following line defines a module that exports information
+  about a record. The definition above provides a shortcut
+  syntax for creating and updating the record at compilation
+  time:
+
+      user = User[]
+      #=> User[name: nil, age: 0]
+
+      User[name: "José", age: 25]
+      #=> User[name: "José", age: 25]
+
+  And also a set of functions for working with the record
+  at runtime:
+
+      user = User.new(age: 25)
+      user.name          #=> Returns the value of name
+      user.name("José")  #=> Updates the value of name
+
+      # Update multiple attributes at once:
+      user.update(name: "Other", age: 25)
+
+      # Obtain the keywords representation of a record:
+      user.to_keywords #=> [name: "José", age: 25]
+
+  Since a record is simply a tuple where the first element is
+  the record name, we can get the raw record representation as
+  follows:
+
+      inspect User.new, raw: true
+      #=> { User, nil, 0 }
+
+  In addition to defining readers and writers for each attribute, Elixir also
+  defines an `update_#{attribute}` function to update the value. Such
+  functions expect a function as an argument that receives the current
+  value and must return the new one. For example, every time the file
+  is accessed, the accesses counter can be incremented with:
+
+      user.update_age(fn(old) -> old + 1 end)
+
+  ## Types
+
+  Every record defines a type named `t` that can be accessed in typespecs.
+  Those types can be specified inside the record definition:
+
+      defrecord User do
+        record_type name: string, age: integer
+      end
+
+  All fields without a specified type are assumed to have type `term`.
+
+  Assuming the `User` record defined above, it could be used in typespecs
+  as follow:
+
+      @spec handle_user(User.t) :: boolean()
+
+  ## Runtime introspection
+
+  At runtime, developers can use `__record__` to get information
+  about the given record:
+
+      User.__record__(:name)
+      #=> User
+
+      User.__record__(:fields)
+      #=> [name: nil, age: 0]
+
+  In order to quickly access the index of a field, one can use
+  the `__record__` function with `:index` as the first argument:
+
+      User.__record__(:index, :age)
+      #=> 2
+
+      User.__record__(:index, :unknown)
+      #=> nil
+
+  ## Compile-time introspection
+
+  At compile time, one can access the following information about the record
+  from within the record module:
+
+  * `@record_fields` — a keyword list of record fields with defaults
+  * `@record_types` — a keyword list of record fields with types
+
+  For example:
+
+      defrecord Foo, bar: nil do
+        record_type bar: nil | integer
+        IO.inspect @record_fields
+        IO.inspect @record_types
+      end
+
+  Prints out:
+
+       [bar: nil]
+       [bar: {:|,[line: ...],[nil,{:integer,[line: ...],nil}]}]
+
+  Where the last line is a quoted representation of
+
+       [bar: nil | integer]
+
+  """
+  defmacro defrecord(name, fields, do_block // [])
+
+  defmacro defrecord(name, fields, do_block) do
+    case is_list(fields) and Keyword.get(fields, :do, false) do
+      false -> Record.defrecord(name, fields, do_block)
+      other -> Record.defrecord(name, Keyword.delete(fields, :do), do: other)
+    end
+  end
+
+  @doc %S"""
+  Defines a set of private macros to manipulate a record definition.
+
+  This macro defines a set of macros private to the current module to
+  manipulate the record exclusively at compilation time.
+
+  Please see the `Record` module's documentation for an introduction
+  to records in Elixir.
+
+  ## Examples
+
+      defmodule User do
+        defrecordp :user, [name: "José", age: "25"]
+      end
+
+  In the example above, a set of macros named `user` but with different
+  arities will be defined to manipulate the underlying record:
+
+      # To create records
+      user()        #=> { :user, "José", 25 }
+      user(age: 26) #=> { :user, "José", 26 }
+
+      # To get a field from the record
+      user(record, :name) #=> "José"
+
+      # To get many fields from the record
+      user(record, [:name, :age]) #=> ["José", 25]
+
+      # To update the record
+      user(record, age: 26) #=> { :user, "José", 26 }
+
+      # To convert the record to keywords
+      user(record) #=> [name: "José", age: 25]
+
+      # To match against the record
+      user(name: name) = record
+      name #=> "José"
+
+  By default, Elixir uses the record name as the first element of the tuple.
+  In some cases though, this might be undesirable and one can explicitly
+  define what the first element of the record should be:
+
+      defmodule MyServer do
+        defrecordp :state, MyServer, data: nil
+      end
+
+  This way, the record created will have `MyServer` as the first element,
+  not `:state`:
+
+      state() #=> { MyServer, nil }
+
+  ## Types
+
+  `defrecordp` allows a developer to generate a type
+  automatically by simply providing a type to its fields.
+  The following definition:
+
+      defrecordp :user,
+        name: "José" :: binary,
+        age: 25 :: integer
+
+  Will generate the following type:
+
+      @typep user_t :: { :user, binary, integer }
+
+  """
+  defmacro defrecordp(name, tag // nil, fields) when is_atom(name) do
+    Record.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
+  end
+
+  @doc """
+  Defines an exception.
+
+  Exceptions are simply records and therefore `defexception/3` has
+  the same API and similar behavior to `defrecord/3` with two notable
+  differences:
+
+  1) Unlike records, exceptions are documented by default;
+
+  2) Exceptions **must** implement `message/1` -- a function that returns a
+     string;
+
+  """
+  defmacro defexception(name, fields, do_block // []) do
+    { fields, do_block } =
+      case is_list(fields) and Keyword.get(fields, :do, false) do
+        false -> { fields, do_block }
+        other -> { Keyword.delete(fields, :do), [do: other] }
+      end
+
+    do_block = Keyword.put(do_block, :do, quote do
+      @moduledoc nil
+      record_type message: binary
+
+      @doc false
+      def exception(args), do: new(args)
+
+      @doc false
+      def exception(args, self), do: update(args, self)
+
+      unquote(Keyword.get do_block, :do)
+    end)
+
+    fields = quote do: [__exception__: :__exception__] ++ unquote(fields)
+    record = Record.defrecord(name, fields, do_block)
+
+    quote do
+      { :module, name, _, _ } = unquote(record)
+
+      unless :erlang.function_exported(name, :message, 1) do
+        Kernel.raise "expected exception #{inspect name} to implement message/1"
+      end
+    end
+  end
+
+  @doc """
+  Defines a module as a protocol and specifies the API that
+  should be defined by its implementations.
+
+  ## Examples
+
+  In Elixir, only `false` and `nil` are considered falsy values.
+  Everything else evaluates to true in `if` clauses. Depending
+  on the application, it may be important to specify a `blank?`
+  protocol that returns a boolean for other data types that should
+  be considered `blank?`. For instance, an empty list or an empty
+  binary could be considered blanks.
+
+  We could implement this protocol as follow:
+
+      defprotocol Blank do
+        @doc "Returns true if data is considered blank/empty"
+        def blank?(data)
+      end
+
+  Now that the protocol is defined, we can implement it. We need
+  to implement the protocol for each Elixir type. For example:
+
+      # Integers are never blank
+      defimpl Blank, for: Integer do
+        def blank?(number), do: false
+      end
+
+      # Just empty list is blank
+      defimpl Blank, for: List do
+        def blank?([]), do: true
+        def blank?(_),  do: false
+      end
+
+      # Just the atoms false and nil are blank
+      defimpl Blank, for: Atom do
+        def blank?(false), do: true
+        def blank?(nil),   do: true
+        def blank?(_),     do: false
+      end
+
+  And we would have to define the implementation for all types.
+  The supported types available are:
+
+  * Record (see below)
+  * Tuple
+  * Atom
+  * List
+  * BitString
+  * Integer
+  * Float
+  * Function
+  * PID
+  * Port
+  * Reference
+  * Any (see below)
+
+  ## Protocols + Records
+
+  The real benefit of protocols comes when mixed with records.
+  For instance, Elixir ships with many data types implemented as
+  records, like `HashDict` and `HashSet`. We can implement the
+  `Blank` protocol for those types as well:
+
+      defimpl Blank, for: HashDict do
+        def blank?(dict), do: Dict.empty?(dict)
+      end
+
+  Since records are tuples, if a protocol is not found a given
+  type, it will fallback to `Tuple`.
+
+  ## Fallback to any
+
+  In some cases, it may be convenient to provide a default
+  implementation for all types. This can be achieved by
+  setting `@fallback_to_any` to `true` in the protocol
+  definition:
+
+      defprotocol Blank do
+        @fallback_to_any true
+        def blank?(data)
+      end
+
+  Which can now be implemented as:
+
+      defimpl Blank, for: Any do
+        def blank?(_), do: true
+      end
+
+  One may wonder why such fallback is not true by default.
+
+  It is two-fold: first, the majority of protocols cannot
+  implement an action in a generic way for all types. In fact,
+  providing a default implementation may be harmful, because users
+  may rely on the default implementation instead of providing a
+  specialized one.
+
+  Second, falling back to `Any` adds an extra lookup to all types,
+  which is unecessary overhead unless an implementation for Any is
+  required.
+
+  ## Types
+
+  As in records, defining a protocol automatically defines a type
+  named `t`, which can be used as:
+
+      @spec present?(Blank.t) :: boolean
+      def present?(blank) do
+        not Blank.blank?(blank)
+      end
+
+  The `@spec` above expresses that all types allowed to implement the
+  given protocol are valid argument types for the given function.
+
+  ## Reflection
+
+  Any protocol module contains three extra functions:
+
+
+  * `__protocol__/1` - returns the protocol name when :name is given,
+                       and a keyword list with the protocol functions
+                       when :functions is given;
+
+  * `impl_for/1` - receives a structure and returns the module that implements
+                   the protocol for the structure, nil otherwise;
+
+  * `impl_for!/1` - same as above but raises an error if an implementation is not found
+
+  ## Consolidation
+
+  In order to cope with code loading in development, protocols in
+  Elixir provide a slow implementation of protocol dispatching in
+  development.
+
+  In order to speed up dispatching in production environments, where
+  all implementations are now up-front, Elixir provides a feature
+  called protocol consolidation. For this reason, all protocols are
+  compiled with `debug_info` set to true, regardless of the option
+  set by `elixirc` compiler.
+
+  For more information on how to apply protocol consolidation to
+  a given project, please check the `mix compile.protocols` task.
+  """
+  defmacro defprotocol(name, do: block) do
+    Protocol.defprotocol(name, do: block)
+  end
+
+  @doc """
+  Defines an implementation for the given protocol. See
+  `defprotocol/2` for examples.
+
+  Inside an implementation, the name of the protocol can be accessed
+  via `@protocol` and the current target as `@for`.
+  """
+  defmacro defimpl(name, opts, do_block // []) do
+    merged = Keyword.merge(opts, do_block)
+    merged = Keyword.put_new(merged, :for, __CALLER__.module)
+    Protocol.defimpl(name, merged)
+  end
+
+  @doc """
+  Makes the given functions in the current module overridable. An overridable
+  function is lazily defined, allowing a developer to customize it.
+
+  ## Example
+
+      defmodule DefaultMod do
+        defmacro __using__(_opts) do
+          quote do
+            def test(x, y) do
+              x + y
+            end
+
+            defoverridable [test: 2]
+          end
+        end
+      end
+
+      defmodule InheritMod do
+        use DefaultMod
+
+        def test(x, y) do
+          x * y + super(x, y)
+        end
+      end
+
+  As seen as in the example `super` can be used to call the default
+  implementation.
+  """
+  defmacro defoverridable(tuples) do
+    quote do
+      Module.make_overridable(__MODULE__, unquote(tuples))
+    end
+  end
+
+  @doc """
+  `use` is a simple mechanism for using a given module into
+  the current context.
+
+  ## Examples
+
+  For example, in order to write tests using the ExUnit framework,
+  a developer should use the `ExUnit.Case` module:
+
+      defmodule AssertionTest do
+        use ExUnit.Case, async: true
+
+        def test_always_pass do
+          true = true
+        end
+      end
+
+  By calling `use`, a hook called `__using__` will be invoked in
+  `ExUnit.Case` which will then do the proper setup.
+
+  Simply put, `use` is simply a translation to:
+
+      defmodule AssertionTest do
+        require ExUnit.Case
+        ExUnit.Case.__using__([async: true])
+
+        def test_always_pass do
+          true = true
+        end
+      end
+
+  """
+  defmacro use(module, args // []) do
+    expanded = Macro.expand(module, __CALLER__)
+
+    case is_atom(expanded) do
+      false ->
+        raise ArgumentError, message: "invalid arguments for use, expected an atom or alias as argument"
+      true ->
+        quote do
+          require unquote(expanded)
+          unquote(expanded).__using__(unquote(args))
         end
     end
   end
@@ -3354,14 +3475,14 @@ defmodule Kernel do
     funs = Macro.escape(funs, unquote: true)
     quote bind_quoted: [funs: funs, opts: opts] do
       target = Keyword.get(opts, :to) ||
-        :erlang.error ArgumentError.exception(message: "Expected to: to be given as argument")
+        raise ArgumentError, message: "Expected to: to be given as argument"
 
       append_first = Keyword.get(opts, :append_first, false)
 
       lc fun inlist List.wrap(funs) do
         case Macro.extract_args(fun) do
           { name, args } -> :ok
-          :error -> :erlang.error ArgumentError.exception(message: "invalid syntax in defdelegate #{Macro.to_string(fun)}")
+          :error -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_string(fun)}"
         end
 
         actual_args =
@@ -3378,6 +3499,8 @@ defmodule Kernel do
       end
     end
   end
+
+  ## Sigils
 
   @doc """
   Handles the sigil %S. It simples returns a string
@@ -3535,93 +3658,13 @@ defmodule Kernel do
     split_words(string, modifiers)
   end
 
-  ## Private functions
-
-  # Extracts concatenations in order to optimize many
-  # concatenations into one single clause.
-  defp extract_concatenations({ :<>, _, [left, right] }) do
-    wrap_concatenation(left) ++ extract_concatenations(right)
-  end
-
-  defp extract_concatenations(other) do
-    wrap_concatenation(other)
-  end
-
-  # If it is a binary, we don't need to add the binary
-  # tag. This allows us to use <> on pattern matching.
-  defp wrap_concatenation(binary) when is_binary(binary) do
-    [binary]
-  end
-
-  defp wrap_concatenation({ :<<>>, _, parts }) do
-    parts
-  end
-
-  defp wrap_concatenation(other) do
-    [{ :::, [], [other, { :binary, [], nil }] }]
-  end
-
-  # Builds cond clauses by nesting them recursively.
-  #
-  #     case !foo do
-  #       false -> 1
-  #       true ->
-  #         case !bar do
-  #           false -> 2
-  #           true -> 3
-  #         end
-  #     end
-  #
-  defp build_cond_clauses([{ [condition], new, clause }|t], acc, old) do
-    stab = { :->, [], [falsy_clause(old, acc), truthy_clause(new, clause)] }
-    acc  = quote do
-      case unquote(condition), do: unquote(stab)
-    end
-    build_cond_clauses(t, acc, new)
-  end
-
-  defp build_cond_clauses([], acc, _), do: acc
-
-  defp expand_compact([{ :compact, false }|t]), do: expand_compact(t)
-  defp expand_compact([{ :compact, true }|t]),  do: [:compact|expand_compact(t)]
-  defp expand_compact([h|t]),                   do: [h|expand_compact(t)]
-  defp expand_compact([]),                      do: []
-
-  defp falsy_clause(meta, acc) do
-    { [quote(do: unquote(cond_var) when unquote(cond_var) in [false, nil])], meta, acc }
-  end
-
-  defp truthy_clause(meta, clause) do
-    { [quote(do: _)], meta, clause }
-  end
-
-  # Setting cond: true in metadata turns on a small optimization
-  # in Elixir compiler. In the long run, we want to bring this
-  # optimization to Elixir land, but not right now.
-  defp cond_var do
-    { :x, [cond: true, temp: true], Kernel }
-  end
-
-  # A temporary var only lasts its current clause, never leak
-  # into other clauses.
-  defp temp_var do
-    { :x, [temp: true], Kernel }
-  end
-
-  defp get_line(meta) do
-    case :lists.keyfind(:line, 1, meta) do
-      { :line, line } -> line
-      false -> 0
-    end
-  end
-
   defp split_words("", _modifiers), do: []
 
   defp split_words(string, modifiers) do
     mod = case modifiers do
       [] -> ?s
       [mod] when mod in [?s, ?a, ?c] -> mod
-      _else -> :erlang.error ArgumentError.exception(message: "modifier must be one of: s, a, c")
+      _else -> raise ArgumentError, message: "modifier must be one of: s, a, c"
     end
 
     case is_binary(string) do
@@ -3639,4 +3682,30 @@ defmodule Kernel do
         end
     end
   end
+
+  ## Shared functions
+
+  # We need this check only for bootstrap purposes.
+  # Once Kernel is loaded and we recompile, it is a no-op.
+  case :code.ensure_loaded(Kernel) do
+    { :module, _ } ->
+      defp bootstraped?(_), do: true
+    { :error, _ } ->
+      defp bootstraped?(module), do: :code.ensure_loaded(module) == { :module, module }
+  end
+
+  defp assert_module_scope(env, fun, arity) do
+    case env_module(env) do
+      nil -> raise ArgumentError, message: "cannot invoke #{fun}/#{arity} outside module"
+      _   -> :ok
+    end
+  end
+
+  defp env_module(env),   do: :erlang.element(2, env)
+  defp env_function(env), do: :erlang.element(5, env)
+
+  defp expand_compact([{ :compact, false }|t]), do: expand_compact(t)
+  defp expand_compact([{ :compact, true }|t]),  do: [:compact|expand_compact(t)]
+  defp expand_compact([h|t]),                   do: [h|expand_compact(t)]
+  defp expand_compact([]),                      do: []
 end
