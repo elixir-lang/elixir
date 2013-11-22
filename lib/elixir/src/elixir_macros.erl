@@ -12,19 +12,12 @@
 
 %% Operators
 
-translate({ '+', _Meta, [Expr] }, S) when is_number(Expr) ->
-  translate_each(Expr, S);
-
-translate({ '-', _Meta, [Expr] }, S) when is_number(Expr) ->
-  translate_each(-1 * Expr, S);
-
 translate({ Op, Meta, Exprs }, S) when is_list(Exprs),
     Op == '<-' orelse Op == '--' ->
   assert_no_match_or_guard_scope(Meta, Op, S),
   translate_each({ '__op__', Meta, [Op|Exprs] }, S);
 
 translate({ Op, Meta, Exprs }, S) when is_list(Exprs),
-    Op == '+'   orelse Op == '-'   orelse Op == '*'   orelse Op == '/' orelse
     Op == '++'  orelse Op == 'not' orelse Op == 'and' orelse Op == 'or' orelse
     Op == 'xor' orelse Op == '<'   orelse Op == '>'   orelse Op == '<=' orelse
     Op == '>='  orelse Op == '=='  orelse Op == '!='  orelse Op == '===' orelse

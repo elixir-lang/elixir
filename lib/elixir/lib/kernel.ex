@@ -23,341 +23,6 @@ defmodule Kernel do
   ## Delegations to Erlang with inlining (macros)
 
   @doc """
-  Arithmetic plus. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 + 2
-      3
-
-  """
-  def left + right do
-    :erlang.+(left, right)
-  end
-
-  @doc """
-  Arithmetic minus. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 - 2
-      -1
-
-  """
-  def left - right do
-    :erlang.-(left, right)
-  end
-
-  @doc """
-  Arithmetic unary plus. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> +1
-      1
-
-  """
-  def (+value) do
-    :erlang.+(value)
-  end
-
-  @doc """
-  Arithmetic unary minus. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> -2
-      -2
-
-  """
-  def (-value) do
-    :erlang.-(value)
-  end
-
-  @doc """
-  Arithmetic multiplication. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 * 2
-      2
-
-  """
-  def left * right do
-    :erlang.*(left, right)
-  end
-
-  @doc """
-  Arithmetic division. Unlike other languages,
-  the result is always a float. Use `div` and `rem` if you want
-  a natural division or the remainder. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 / 2
-      0.5
-      iex> 2 / 1
-      2.0
-
-  """
-  def left / right do
-    :erlang./(left, right)
-  end
-
-  @doc """
-  Sends a message to the process identified on the left.
-  A process can be identified by its PID or, if it is registered,
-  by an atom.
-
-  ## Examples
-
-      process = Kernel.self
-      process <- { :ok, "Sending myself a message" }
-
-  """
-  def pid <- msg do
-    :erlang.!(pid, msg)
-  end
-
-  @doc """
-  Concatenates two lists. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> [1] ++ [2, 3]
-      [1,2,3]
-
-      iex> 'foo' ++ 'bar'
-      'foobar'
-
-  """
-  def left ++ right do
-    :erlang.++(left, right)
-  end
-
-  @doc """
-  Removes the first occurrence of an item on the left
-  for each item on the right. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> [1, 2, 3] -- [1, 2]
-      [3]
-
-      iex> [1, 2, 3, 2, 1] -- [1, 2, 2]
-      [3,1]
-
-  """
-  def left -- right do
-    :erlang.--(left, right)
-  end
-
-  @doc """
-  Boolean or. Requires only the first argument to be a
-  boolean since it short-circuits. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> true or false
-      true
-
-  """
-  defmacro left or right
-
-  @doc """
-  Boolean and. Requires only the first argument to be a
-  boolean since it short-circuits. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> true and false
-      false
-
-  """
-  defmacro left and right
-
-  @doc """
-  Boolean exclusive-or. Arguments must be booleans.
-  Returns `true` if and only if both arguments are different.
-  Allowed in guard clauses.
-
-  ## Examples
-
-      iex> true xor false
-      true
-      iex> true xor true
-      false
-
-  """
-  defmacro left xor right
-
-  @doc """
-  Boolean not. Argument must be a boolean.
-  Allowed in guard clauses.
-
-  ## Examples
-
-      iex> not false
-      true
-
-  """
-  def not(arg) do
-    :erlang.not(arg)
-  end
-
-  @doc """
-  Receives any argument and returns `true` if it is `false`
-  or `nil`. Returns `false` otherwise. Not allowed in guard
-  clauses.
-
-  ## Examples
-
-      iex> !1
-      false
-      iex> ![1, 2, 3]
-      false
-      iex> !false
-      true
-      iex> !nil
-      true
-
-  """
-  def !(arg) do
-    arg == nil or arg == false
-  end
-
-  @doc """
-  Returns `true` if left is less than right.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 < 2
-      true
-
-  """
-  def left < right do
-    :erlang.<(left, right)
-  end
-
-  @doc """
-  Returns `true` if left is more than right.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 > 2
-      false
-
-  """
-  def left > right do
-    :erlang.>(left, right)
-  end
-
-  @doc """
-  Returns `true` if left is less than or equal to right.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 <= 2
-      true
-
-  """
-  def left <= right do
-    :erlang."=<"(left, right)
-  end
-
-  @doc """
-  Returns `true` if left is more than or equal to right.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 >= 2
-      false
-
-  """
-  def left >= right do
-    :erlang.>=(left, right)
-  end
-
-  @doc """
-  Returns `true` if the two items are equal.
-
-  This operator considers 1 and 1.0 to be equal. For strict
-  comparison, use `===` instead.
-
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 == 2
-      false
-
-      iex> 1 == 1.0
-      true
-
-  """
-  def left == right do
-    :erlang.==(left, right)
-  end
-
-  @doc """
-  Returns `true` if the two items are not equal.
-
-  This operator considers 1 and 1.0 to be equal. For strict
-  comparison, use `!==` instead.
-
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 != 2
-      true
-      iex> 1 != 1.0
-      false
-
-  """
-  def left != right do
-    :erlang."/="(left, right)
-  end
-
-  @doc """
-  Returns `true` if the two items are strictly equal.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 === 2
-      false
-
-      iex> 1 === 1.0
-      false
-
-  """
-  def left === right do
-    :erlang."=:="(left, right)
-  end
-
-  @doc """
-  Returns `true` if the two items are strictly not equal.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 !== 2
-      true
-
-      iex> 1 !== 1.0
-      true
-
-  """
-  def left !== right do
-    :erlang."=/="(left, right)
-  end
-
-  @doc """
   Returns an integer or float which is the arithmetical absolute value of `number`.
 
   Allowed in guard tests.
@@ -1365,6 +1030,343 @@ defmodule Kernel do
   @spec tuple_to_list(tuple) :: list
   def tuple_to_list(tuple) do
     :erlang.tuple_to_list(tuple)
+  end
+
+  @doc """
+  Arithmetic plus. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 + 2
+      3
+
+  """
+  defmacro left + right do
+    quote do: :erlang.+(unquote(left), unquote(right))
+  end
+
+  @doc """
+  Arithmetic minus. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 - 2
+      -1
+
+  """
+  defmacro left - right do
+    quote do: :erlang.-(unquote(left), unquote(right))
+  end
+
+  @doc """
+  Arithmetic unary plus. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> +1
+      1
+
+  """
+  defmacro (+value) when is_number(value), do: value
+  defmacro (+value) do
+    quote do: :erlang.+(unquote(value))
+  end
+
+  @doc """
+  Arithmetic unary minus. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> -2
+      -2
+
+  """
+  defmacro (-value) when is_number(value), do: :erlang.-(value)
+  defmacro (-value) do
+    quote do: :erlang.-(unquote(value))
+  end
+
+  @doc """
+  Arithmetic multiplication. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 * 2
+      2
+
+  """
+  defmacro left * right do
+    quote do: :erlang.*(unquote(left), unquote(right))
+  end
+
+  @doc """
+  Arithmetic division. Unlike other languages,
+  the result is always a float. Use `div` and `rem` if you want
+  a natural division or the remainder. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 / 2
+      0.5
+      iex> 2 / 1
+      2.0
+
+  """
+  defmacro left / right do
+    quote do: :erlang./(unquote(left), unquote(right))
+  end
+
+  @doc """
+  Sends a message to the process identified on the left.
+  A process can be identified by its PID or, if it is registered,
+  by an atom.
+
+  ## Examples
+
+      process = Kernel.self
+      process <- { :ok, "Sending myself a message" }
+
+  """
+  def pid <- msg do
+    :erlang.!(pid, msg)
+  end
+
+  @doc """
+  Concatenates two lists. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> [1] ++ [2, 3]
+      [1,2,3]
+
+      iex> 'foo' ++ 'bar'
+      'foobar'
+
+  """
+  def left ++ right do
+    :erlang.++(left, right)
+  end
+
+  @doc """
+  Removes the first occurrence of an item on the left
+  for each item on the right. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> [1, 2, 3] -- [1, 2]
+      [3]
+
+      iex> [1, 2, 3, 2, 1] -- [1, 2, 2]
+      [3,1]
+
+  """
+  def left -- right do
+    :erlang.--(left, right)
+  end
+
+  @doc """
+  Boolean or. Requires only the first argument to be a
+  boolean since it short-circuits. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> true or false
+      true
+
+  """
+  defmacro left or right
+
+  @doc """
+  Boolean and. Requires only the first argument to be a
+  boolean since it short-circuits. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> true and false
+      false
+
+  """
+  defmacro left and right
+
+  @doc """
+  Boolean exclusive-or. Arguments must be booleans.
+  Returns `true` if and only if both arguments are different.
+  Allowed in guard clauses.
+
+  ## Examples
+
+      iex> true xor false
+      true
+      iex> true xor true
+      false
+
+  """
+  defmacro left xor right
+
+  @doc """
+  Boolean not. Argument must be a boolean.
+  Allowed in guard clauses.
+
+  ## Examples
+
+      iex> not false
+      true
+
+  """
+  def not(arg) do
+    :erlang.not(arg)
+  end
+
+  @doc """
+  Receives any argument and returns `true` if it is `false`
+  or `nil`. Returns `false` otherwise. Not allowed in guard
+  clauses.
+
+  ## Examples
+
+      iex> !1
+      false
+      iex> ![1, 2, 3]
+      false
+      iex> !false
+      true
+      iex> !nil
+      true
+
+  """
+  def !(arg) do
+    arg == nil or arg == false
+  end
+
+  @doc """
+  Returns `true` if left is less than right.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 < 2
+      true
+
+  """
+  def left < right do
+    :erlang.<(left, right)
+  end
+
+  @doc """
+  Returns `true` if left is more than right.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 > 2
+      false
+
+  """
+  def left > right do
+    :erlang.>(left, right)
+  end
+
+  @doc """
+  Returns `true` if left is less than or equal to right.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 <= 2
+      true
+
+  """
+  def left <= right do
+    :erlang."=<"(left, right)
+  end
+
+  @doc """
+  Returns `true` if left is more than or equal to right.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 >= 2
+      false
+
+  """
+  def left >= right do
+    :erlang.>=(left, right)
+  end
+
+  @doc """
+  Returns `true` if the two items are equal.
+
+  This operator considers 1 and 1.0 to be equal. For strict
+  comparison, use `===` instead.
+
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 == 2
+      false
+
+      iex> 1 == 1.0
+      true
+
+  """
+  def left == right do
+    :erlang.==(left, right)
+  end
+
+  @doc """
+  Returns `true` if the two items are not equal.
+
+  This operator considers 1 and 1.0 to be equal. For strict
+  comparison, use `!==` instead.
+
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 != 2
+      true
+      iex> 1 != 1.0
+      false
+
+  """
+  def left != right do
+    :erlang."/="(left, right)
+  end
+
+  @doc """
+  Returns `true` if the two items are strictly equal.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 === 2
+      false
+
+      iex> 1 === 1.0
+      false
+
+  """
+  def left === right do
+    :erlang."=:="(left, right)
+  end
+
+  @doc """
+  Returns `true` if the two items are strictly not equal.
+  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
+
+  ## Examples
+
+      iex> 1 !== 2
+      true
+
+      iex> 1 !== 1.0
+      true
+
+  """
+  def left !== right do
+    :erlang."=/="(left, right)
   end
 
   ## Pending to be implemented in Elixir
