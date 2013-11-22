@@ -256,30 +256,6 @@ defmodule KernelTest do
     end
   end
 
-  defmodule Bang do
-    use ExUnit.Case, async: true
-
-    test :bang do
-      assert bang(1)     == :truthy
-      assert bang(true)  == :truthy
-      assert bang(nil)   == :falsy
-      assert bang(false) == :falsy
-    end
-
-    test :bangbang do
-      assert bangbang(1)     == :truthy
-      assert bangbang(true)  == :truthy
-      assert bangbang(nil)   == :falsy
-      assert bangbang(false) == :falsy
-    end
-
-    defp bangbang(value) when !!value, do: :truthy
-    defp bangbang(_), do: :falsy
-
-    defp bang(value) when !value, do: :falsy
-    defp bang(_), do: :truthy
-  end
-
   defmodule IfScope do
     use ExUnit.Case, async: true
 

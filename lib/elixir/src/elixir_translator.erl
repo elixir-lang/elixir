@@ -649,5 +649,5 @@ translate_comprehension_clause(_Meta, {inlist, Meta, [Left, Right]}, S) ->
 translate_comprehension_clause(Meta, X, S) ->
   Line = ?line(Meta),
   { TX, TS } = translate_each(X, S),
-  { BX, BS } = elixir_utils:convert_to_boolean(Line, TX, true, false, TS),
+  { BX, BS } = elixir_utils:convert_to_boolean(Line, TX, true, TS),
   { { match, Line, { var, Line, '_' }, BX }, BS }.

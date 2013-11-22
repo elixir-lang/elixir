@@ -1163,7 +1163,7 @@ defmodule Kernel do
 
   """
   defmacro left -- right do
-    quote do: :erlang.--(unquote(left), unquote(right))
+    quote do: __op__(:--, unquote(left), unquote(right))
   end
 
   @doc """
@@ -1208,7 +1208,7 @@ defmodule Kernel do
 
   """
   defmacro left xor right do
-    quote do: :erlang.xor(unquote(left), unquote(right))
+    quote do: __op__(:xor, unquote(left), unquote(right))
   end
 
   @doc """
@@ -1222,7 +1222,7 @@ defmodule Kernel do
 
   """
   defmacro not(arg) do
-    quote do: :erlang.not(unquote(arg))
+    quote do: __op__(:not, unquote(arg))
   end
 
   @doc """
@@ -1236,7 +1236,7 @@ defmodule Kernel do
 
   """
   defmacro left < right do
-    quote do: :erlang.<(unquote(left), unquote(right))
+    quote do: __op__(:<, unquote(left), unquote(right))
   end
 
   @doc """
@@ -1250,7 +1250,7 @@ defmodule Kernel do
 
   """
   defmacro left > right do
-    quote do: :erlang.>(unquote(left), unquote(right))
+    quote do: __op__(:>, unquote(left), unquote(right))
   end
 
   @doc """
@@ -1264,7 +1264,7 @@ defmodule Kernel do
 
   """
   defmacro left <= right do
-    quote do: :erlang."=<"(unquote(left), unquote(right))
+    quote do: __op__(:"=<", unquote(left), unquote(right))
   end
 
   @doc """
@@ -1278,7 +1278,7 @@ defmodule Kernel do
 
   """
   defmacro left >= right do
-    quote do: :erlang.>=(unquote(left), unquote(right))
+    quote do: __op__(:>=, unquote(left), unquote(right))
   end
 
   @doc """
@@ -1299,7 +1299,7 @@ defmodule Kernel do
 
   """
   defmacro left == right do
-    quote do: :erlang.==(unquote(left), unquote(right))
+    quote do: __op__(:==, unquote(left), unquote(right))
   end
 
   @doc """
@@ -1319,7 +1319,7 @@ defmodule Kernel do
 
   """
   defmacro left != right do
-    quote do: :erlang."/="(unquote(left), unquote(right))
+    quote do: __op__(:"/=", unquote(left), unquote(right))
   end
 
   @doc """
@@ -1336,7 +1336,7 @@ defmodule Kernel do
 
   """
   defmacro left === right do
-    quote do: :erlang."=:="(unquote(left), unquote(right))
+    quote do: __op__(:"=:=", unquote(left), unquote(right))
   end
 
   @doc """
@@ -1353,7 +1353,7 @@ defmodule Kernel do
 
   """
   defmacro left !== right do
-    quote do: :erlang."=/="(unquote(left), unquote(right))
+    quote do: __op__(:"=/=", unquote(left), unquote(right))
   end
 
   @doc """
@@ -1373,8 +1373,24 @@ defmodule Kernel do
       true
 
   """
-  def !(arg) do
-    arg == nil or arg == false
+  defmacro !(arg)
+
+  defmacro !({ :!, _, [arg] }) do
+    quote do
+      case unquote(arg) do
+        unquote(cond_var) when unquote(cond_var) in [false, nil] -> false
+        _ -> true
+      end
+    end
+  end
+
+  defmacro !(arg) do
+    quote do
+      case unquote(arg) do
+        unquote(cond_var) when unquote(cond_var) in [false, nil] -> true
+        _ -> false
+      end
+    end
   end
 
   ## Pending to be implemented in Elixir

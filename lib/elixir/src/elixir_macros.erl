@@ -12,14 +12,6 @@
 
 %% Operators
 
-translate({ '!', Meta, [{ '!', _, [Expr] }] }, S) ->
-  { TExpr, SE } = translate_each(Expr, S),
-  elixir_utils:convert_to_boolean(?line(Meta), TExpr, true, S#elixir_scope.context == guard, SE);
-
-translate({ '!', Meta, [Expr] }, S) ->
-  { TExpr, SE } = translate_each(Expr, S),
-  elixir_utils:convert_to_boolean(?line(Meta), TExpr, false, S#elixir_scope.context == guard, SE);
-
 translate({ in, Meta, [Left, Right] }, #elixir_scope{extra_guards=nil} = S) ->
   translate_in(Meta, Left, Right, S);
 
