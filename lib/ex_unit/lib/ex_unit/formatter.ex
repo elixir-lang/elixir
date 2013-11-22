@@ -90,11 +90,57 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_kind_reason(:error, ExUnit.ExpectationError[] = record, color) do
+    format_expectation_error_inner(record, color)
+  end
+
+  # Pretty printing code is often ugly. This is no exception.
+  defp format_kind_reason(:error, ExUnit.Prop.PropertyError[] = record, color) do
+    printer = fn max ->
+      shrinks_label = "after shrinks"
+      input_label   = "generated input"
+      max           = max(max, size(input_label))
+      
+      output = 
+        error_info("  #{pad(shrinks_label, max)}: #{maybe_multiline(inspect(record.shrinks), max)}", color) <>
+        error_info("  #{pad(input_label, max)}: #{maybe_multiline(inspect(record.input), max)}", color)
+      { output, max }
+    end
+    case record.wrapped do
+      { :error, ExUnit.ExpectationError[] = inner } ->
+        error_info("** (ExUnit.ExpectationError in ExUnit.Prop.PropertyError)", color) <>
+        format_expectation_error_inner(inner, color, printer)
+      { :error, e } when is_exception(e) ->
+        string          = "(#{inspect e.__record__(:name)}) #{e.message}"
+        exc_label       = "exception"
+        { output, max } = printer.(0) 
+        error_info("** (ExUnit.Prop.PropertyError)", color) <> output <>
+        error_info("  #{pad(exc_label, max)}: #{maybe_multiline(string, max)}", color)
+      { kind, reason } ->
+        string          = "(#{kind}) #{reason}"
+        caught_label    = "caught"
+        { output, max } = printer.(0) 
+        error_info("** (ExUnit.Prop.PropertyError)", color) <> output <>
+        error_info("  #{pad(caught_label, max)}: #{maybe_multiline(string, max)}", color)
+    end
+  end
+
+  defp format_kind_reason(:error, exception, color) do
+    error_info "** (#{inspect exception.__record__(:name)}) #{exception.message}", color
+  end
+
+  defp format_kind_reason(kind, reason, color) do
+    error_info "** (#{kind}) #{inspect(reason)}", color
+  end
+  
+  defp format_expectation_error_inner(ExUnit.ExpectationError[] = record, color, 
+                                      header // &{nil, &1}) do
     prelude   = String.downcase record.prelude
     assertion = record.full_assertion
     max       = max(size(prelude), size(assertion))
 
-    error_info("** (ExUnit.ExpectationError)", color) <>
+    { header_output, max } = header.(max)
+
+    (if header_output, do: header_output, else: error_info("** (ExUnit.ExpectationError)", color)) <>
       if desc = record.expr do
         max = max(max, size("instead got"))
         error_info("  #{pad(prelude, max)}: #{maybe_multiline(desc, max)}", color) <>
@@ -104,14 +150,6 @@ defmodule ExUnit.Formatter do
         error_info("  #{pad(prelude, max)}: #{maybe_multiline(record.expected, max)}", color) <>
         error_info("  #{pad(assertion, max)}: #{maybe_multiline(record.actual, max)}", color)
       end
-  end
-
-  defp format_kind_reason(:error, exception, color) do
-    error_info "** (#{inspect exception.__record__(:name)}) #{exception.message}", color
-  end
-
-  defp format_kind_reason(kind, reason, color) do
-    error_info "** (#{kind}) #{inspect(reason)}", color
   end
 
   defp format_stacktrace([{ test_case, test, _, [ file: file, line: line ] }|_], test_case, test, color) do
