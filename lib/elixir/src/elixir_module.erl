@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([translate/4, compile/5, data_table/1, docs_table/1,
+-export([translate/3, compile/4, data_table/1, docs_table/1,
          eval_quoted/4, format_error/1, eval_callbacks/5]).
 -include("elixir.hrl").
 
@@ -42,20 +42,28 @@ docs_table(Module) ->
 %% The abstract form for extra arguments may be given and they
 %% will be passed to the invoked function.
 
-translate(Meta, Ref, Block, S) ->
-  Line = ?line(Meta),
-  LexS = case S#elixir_scope.function of
-    nil -> S;
-    _ -> S#elixir_scope{lexical_tracker=nil}
+translate(Ref, Block, ExEnv) ->
+  Env = elixir_env:from_ex(ExEnv),
+
+  %% In case we are generating a module from inside a function,
+  %% we get rid of the lexical tracker information as, at this
+  %% point, the lexical tracker process is long gone.
+  LexEnv = case Env#elixir_env.function of
+    nil -> Env;
+    _   -> Env#elixir_env{lexical_tracker=nil}
   end,
 
-  MetaBlock       = elixir_utils:elixir_to_erl(Line, Block, LexS),
-  { MetaS, Vars } = elixir_scope:serialize_with_vars(Line, LexS),
+  { Escaped, _ } = elixir_quote:escape(Block, false),
+  { QuotedEnv, QuotedVars } = elixir_env:to_quote_with_vars(LexEnv),
 
-  Args = [{integer, Line, Line}, Ref, MetaBlock, Vars, MetaS],
-  ?wrap_call(Line, ?MODULE, compile, Args).
+  Args = [Ref, Escaped, QuotedVars, QuotedEnv],
+  { { '.', [], [elixir_module, compile] }, [], Args }.
 
 %% The compilation hook.
+
+compile(Module, Block, Vars, #elixir_env{line=Line} = Env) ->
+  Dict = [{ { Name, Kind }, Value } || { Name, Kind, Value, _ } <- Vars],
+  compile(Line, Module, Block, Vars, elixir_env:to_scope_with_vars(Env, Dict)).
 
 compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = RawS) when is_atom(Module) ->
   C = elixir_compiler:get_opts(),
@@ -106,12 +114,7 @@ compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = 
   end;
 
 compile(Line, Other, _Block, _Vars, #elixir_scope{file=File}) ->
-  elixir_errors:form_error(Line, File, ?MODULE, { invalid_module, Other });
-
-compile(Line, Module, Block, Vars, RawS) ->
-  Dict = [{ { Name, Kind }, Value } || { Name, Kind, Value, _ } <- Vars],
-  S = elixir_scope:deserialize_with_vars(RawS, Dict),
-  compile(Line, Module, Block, Vars, S).
+  elixir_errors:form_error(Line, File, ?MODULE, { invalid_module, Other }).
 
 %% Hook that builds both attribute and functions and set up common hooks.
 
