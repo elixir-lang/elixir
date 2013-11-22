@@ -7,7 +7,7 @@
   reset_last/1,
   lookup_definition/2,
   delete_definition/2,
-  wrap_definition/5,
+  wrap_definition/4,
   store_definition/5,
   store_each/8,
   unwrap_stored_definitions/2,
@@ -69,22 +69,20 @@ delete_definition(Module, Tuple) ->
 %% If we just analyzed the compiled structure (i.e. the function availables
 %% before evaluating the function body), we would see both definitions.
 
-wrap_definition(Kind, Call, Expr, Context, ExEnv) ->
+wrap_definition(Kind, Call, Expr, ExEnv) ->
   Env = elixir_env:ex_to_env(ExEnv),
 
   { EscapedCall, QC } = elixir_quote:escape(Call, true),
   { EscapedExpr, QE } = elixir_quote:escape(Expr, true),
-  CheckClauses = (not Context) andalso
-                   (not QC#elixir_quote.unquoted) andalso
-                   (not QE#elixir_quote.unquoted),
+  Unquoted = QC#elixir_quote.unquoted orelse QE#elixir_quote.unquoted,
 
-  Args = [Kind, CheckClauses, EscapedCall, EscapedExpr, elixir_env:serialize(Env)],
+  Args = [Kind, Unquoted, EscapedCall, EscapedExpr, elixir_env:serialize(Env)],
   { { '.', [], [elixir_def, store_definition] }, [], Args }.
 
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
-store_definition(Kind, CheckClauses, Call, Body, #elixir_env{line=Line} = Env) ->
+store_definition(Kind, Unquoted, Call, Body, #elixir_env{line=Line} = Env) ->
   S = elixir_env:env_to_scope(Env),
   { NameAndArgs, Guards } = elixir_clauses:extract_guards(Call),
 
@@ -95,6 +93,11 @@ store_definition(Kind, CheckClauses, Call, Body, #elixir_env{line=Line} = Env) -
     Tuple ->
       Tuple
   end,
+
+  %% Now that we have verified the call format, extract
+  %% meta information and check for context.
+  { _, Meta, _ } = Call,
+  CheckClauses = (not lists:keymember(context, 1, Meta)) andalso (not Unquoted),
 
   assert_no_aliases_name(Line, Name, Args, S),
   store_definition(Kind, Line, CheckClauses, Name, Args, Guards, Body, S).

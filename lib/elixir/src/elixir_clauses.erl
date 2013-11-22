@@ -67,11 +67,11 @@ assigns_block(Line, Fun, Args, Exprs, Guards, S) when is_integer(Line) ->
 translate_guard(Line, Guard, Extra, S) ->
   [element(1, elixir_translator:translate_each(elixir_quote:linify(Line, Guard), S))|Extra].
 
-extract_guards({ 'when', _, [Left, Right] }) -> { Left, extract_or_clauses(Right, []) };
+extract_guards({ 'when', _, [Left, Right] }) -> { Left, extract_or_clauses(Right) };
 extract_guards(Else) -> { Else, [] }.
 
-extract_or_clauses({ 'when', _, [Left, Right] }, Acc) -> extract_or_clauses(Right, [Left|Acc]);
-extract_or_clauses(Term, Acc) -> [Term|Acc].
+extract_or_clauses({ 'when', _, [Left, Right] }) -> [Left|extract_or_clauses(Right)];
+extract_or_clauses(Term) -> [Term].
 
 % Extract name and args from the given expression.
 
@@ -84,7 +84,7 @@ extract_args(_) -> error.
 
 extract_splat_guards([{ 'when', _, [_,_|_] = Args }]) ->
   { Left, Right } = elixir_utils:split_last(Args),
-  { Left, extract_or_clauses(Right, []) };
+  { Left, extract_or_clauses(Right) };
 extract_splat_guards(Else) ->
   { Else, [] }.
 

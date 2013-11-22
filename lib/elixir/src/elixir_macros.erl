@@ -105,8 +105,7 @@ translate({Kind, Meta, [Call, Expr]}, S) when ?defs(Kind) ->
   assert_module_scope(Meta, Kind, S),
   assert_no_function_scope(Meta, Kind, S),
   Env = elixir_env:scope_to_ex({ ?line(Meta), S }),
-  Ctx = lists:keymember(context, 1, Meta),
-  translate_each(elixir_def:wrap_definition(Kind, Call, Expr, Ctx, Env), S);
+  translate_each(elixir_def:wrap_definition(Kind, Call, Expr, Env), S);
 
 translate({ Name, Meta, Args }, S) ->
   syntax_error(Meta, S#elixir_scope.file,

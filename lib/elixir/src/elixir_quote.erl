@@ -154,11 +154,19 @@ do_quote({ defmodule, Meta, [_|_] = Args }, #elixir_quote{escape=false} = Q, S) 
 
   do_quote_tuple({ defmodule, NewMeta, Args }, Q, S);
 
-do_quote({ Def, Meta, [_|_] = Args }, #elixir_quote{escape=false} = Q, S) when ?defs(Def); Def == alias; Def == import ->
+%% Store the context information in the first element of the
+%% definition tuple so we can access it later on.
+do_quote({ Def, Meta, [{ H, M, A }|T] }, #elixir_quote{escape=false} = Q, S) when ?defs(Def) ->
+  MM = keystore(context, M, Q#elixir_quote.context),
+  do_quote_tuple({ Def, Meta, [{ H, MM, A }|T] }, Q, S);
+do_quote({ { '.', _, [_, Def] } = Target, Meta, [{ H, M, A }|T] }, #elixir_quote{escape=false} = Q, S) when ?defs(Def) ->
+  MM = keystore(context, M, Q#elixir_quote.context),
+  do_quote_tuple({ Target, Meta, [{ H, MM, A }|T] }, Q, S);
+
+do_quote({ Def, Meta, [_|_] = Args }, #elixir_quote{escape=false} = Q, S) when Def == alias; Def == import ->
   NewMeta = keystore(context, Meta, Q#elixir_quote.context),
   do_quote_tuple({ Def, NewMeta, Args }, Q, S);
-
-do_quote({ { '.', _, [_, Def] } = Target, Meta, Args }, #elixir_quote{escape=false} = Q, S) when ?defs(Def); Def == defmodule; Def == alias; Def == import ->
+do_quote({ { '.', _, [_, Def] } = Target, Meta, Args }, #elixir_quote{escape=false} = Q, S) when Def == defmodule; Def == alias; Def == import ->
   NewMeta = keystore(context, Meta, Q#elixir_quote.context),
   do_quote_tuple({ Target, NewMeta, Args }, Q, S);
 
