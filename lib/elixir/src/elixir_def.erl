@@ -70,7 +70,7 @@ delete_definition(Module, Tuple) ->
 %% before evaluating the function body), we would see both definitions.
 
 wrap_definition(Kind, Call, Expr, Context, ExEnv) ->
-  Env = elixir_env:from_ex(ExEnv),
+  Env = elixir_env:ex_to_env(ExEnv),
 
   { EscapedCall, QC } = elixir_quote:escape(Call, true),
   { EscapedExpr, QE } = elixir_quote:escape(Expr, true),
@@ -78,14 +78,14 @@ wrap_definition(Kind, Call, Expr, Context, ExEnv) ->
                    (not QC#elixir_quote.unquoted) andalso
                    (not QE#elixir_quote.unquoted),
 
-  Args = [Kind, CheckClauses, EscapedCall, EscapedExpr, elixir_env:to_quote(Env)],
+  Args = [Kind, CheckClauses, EscapedCall, EscapedExpr, elixir_env:serialize(Env)],
   { { '.', [], [elixir_def, store_definition] }, [], Args }.
 
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
 store_definition(Kind, CheckClauses, Call, Body, #elixir_env{line=Line} = Env) ->
-  S = elixir_env:to_scope(Env),
+  S = elixir_env:env_to_scope(Env),
   { NameAndArgs, Guards } = elixir_clauses:extract_guards(Call),
 
   { Name, Args } = case elixir_clauses:extract_args(NameAndArgs) of
@@ -135,7 +135,7 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO)
     true ->
       ok;
     _ ->
-      Env = elixir_scope:to_ex_env({ Line, S }),
+      Env = elixir_env:scope_to_ex({ Line, S }),
       Callbacks = 'Elixir.Module':get_attribute(Module, on_definition),
       [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || { Mod, Fun } <- Callbacks]
   end.
@@ -201,7 +201,7 @@ translate_clause(Line, Kind, Unpacked, Guards, Body, S) ->
     true  ->
       FBody = { 'match', Line,
         { 'var', Line, '__CALLER__' },
-        ?wrap_call(Line, elixir_scope, to_ex_env, [{ var, Line, '_@CALLER' }])
+        ?wrap_call(Line, elixir_env, scope_to_ex, [{ var, Line, '_@CALLER' }])
       },
       setelement(5, TClause, [FBody|element(5, TClause)]);
     false -> TClause

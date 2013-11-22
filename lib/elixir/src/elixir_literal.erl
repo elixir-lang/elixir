@@ -145,7 +145,7 @@ extract_bit_values(Meta, [Size|T], default, Types, S) when is_integer(Size) anda
   extract_bit_values(Meta, T, {integer, Meta, Size}, Types, S);
 
 extract_bit_values(Meta, [{ '|', _, [Left, Right] }], Size, Types, S) ->
-  { Expanded, ES } = 'Elixir.Macro':expand_all(Right, elixir_scope:to_ex_env({ ?line(Meta), S }), S),
+  { Expanded, ES } = 'Elixir.Macro':expand_all(Right, elixir_env:scope_to_ex({ ?line(Meta), S }), S),
   extract_bit_values(Meta, [Left|join_expansion(Expanded,[])], Size, Types, ES);
 
 extract_bit_values(Meta, [_|_] = All, Size, Types, S) ->
@@ -187,7 +187,7 @@ extract_bit_type_or_size(_Value, _Args, _Other, _Types) ->
   { error, unknown }.
 
 handle_unknown_specifier(Meta, [H|T], Size, Types, S) ->
-  case 'Elixir.Macro':expand_all(H, elixir_scope:to_ex_env({ ?line(Meta), S }), S) of
+  case 'Elixir.Macro':expand_all(H, elixir_env:scope_to_ex({ ?line(Meta), S }), S) of
     { H, ES } ->
       elixir_errors:syntax_error(Meta, ES#elixir_scope.file, "unknown bitstring specifier ~ts", ['Elixir.Macro':to_string(H)]);
     { E, ES } ->

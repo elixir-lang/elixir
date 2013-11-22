@@ -41,7 +41,7 @@ docs_table(Module) ->
 %% will be passed to the invoked function.
 
 translate(Ref, Block, ExEnv) ->
-  Env = elixir_env:from_ex(ExEnv),
+  Env = elixir_env:ex_to_env(ExEnv),
 
   %% In case we are generating a module from inside a function,
   %% we get rid of the lexical tracker information as, at this
@@ -52,7 +52,7 @@ translate(Ref, Block, ExEnv) ->
   end,
 
   { Escaped, _ } = elixir_quote:escape(Block, false),
-  { QuotedEnv, QuotedVars } = elixir_env:to_quote_with_vars(LexEnv),
+  { QuotedEnv, QuotedVars } = elixir_env:serialize_with_vars(LexEnv),
 
   Args = [Ref, Escaped, QuotedVars, QuotedEnv],
   { { '.', [], [elixir_module, compile] }, [], Args }.
@@ -61,7 +61,7 @@ translate(Ref, Block, ExEnv) ->
 
 compile(Module, Block, Vars, #elixir_env{line=Line} = Env) ->
   Dict = [{ { Name, Kind }, Value } || { Name, Kind, Value, _ } <- Vars],
-  compile(Line, Module, Block, Vars, elixir_env:to_scope_with_vars(Env, Dict)).
+  compile(Line, Module, Block, Vars, elixir_env:env_to_scope_with_vars(Env, Dict)).
 
 compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = RawS) when is_atom(Module) ->
   C = elixir_compiler:get_opts(),
@@ -151,7 +151,7 @@ eval_form(Line, Module, Block, Vars, S) ->
   KV = [{ K, V } || { _, _, K, V } <- Vars],
   { Value, NewS } = elixir_compiler:eval_forms([Block], Line, KV, S),
   elixir_def_overridable:store_pending(Module),
-  Env = elixir_scope:to_ex_env({ Line, S }),
+  Env = elixir_env:scope_to_ex({ Line, S }),
   eval_callbacks(Line, Module, before_compile, [Env], NewS),
   elixir_def_overridable:store_pending(Module),
   Value.
@@ -278,7 +278,7 @@ compile_opts(Module) ->
 load_form(Line, Forms, Opts, #elixir_scope{file=File} = S) ->
   elixir_compiler:module(Forms, File, Opts, fun(Module, Binary) ->
     EvalS = scope_for_eval(Module, S),
-    Env = elixir_scope:to_ex_env({ Line, EvalS }),
+    Env = elixir_env:scope_to_ex({ Line, EvalS }),
     eval_callbacks(Line, Module, after_compile, [Env, Binary], EvalS),
 
     case get(elixir_compiled) of

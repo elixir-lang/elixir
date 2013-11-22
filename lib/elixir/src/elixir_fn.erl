@@ -80,7 +80,7 @@ capture_import(Meta, { Atom, ImportMeta, Args } = Expr, S, Sequential) ->
   end.
 
 capture_require(Meta, { { '.', _, [Left, Right] }, RequireMeta, Args } = Expr, S, Sequential) ->
-  { Mod, SE } = 'Elixir.Macro':expand_all(Left, elixir_scope:to_ex_env({ ?line(Meta), S }), S),
+  { Mod, SE } = 'Elixir.Macro':expand_all(Left, elixir_env:scope_to_ex({ ?line(Meta), S }), S),
 
   case Sequential andalso is_atom(Mod) andalso
        elixir_dispatch:require_function(RequireMeta, Mod, Right, length(Args), SE) of

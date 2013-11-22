@@ -79,7 +79,7 @@ normalize_rescue(_, { in, Meta, [Left, Right] }, S) ->
     _ when is_list(Right) ->
       is_valid_rescue_list(Right, S) andalso { Left, Right };
     _ ->
-      { Expanded, ES } = 'Elixir.Macro':expand_all(Right, elixir_scope:to_ex_env({ ?line(Meta), S }), S),
+      { Expanded, ES } = 'Elixir.Macro':expand_all(Right, elixir_env:scope_to_ex({ ?line(Meta), S }), S),
       case is_valid_rescue_list(Expanded, ES) of
         true  -> { Left, Expanded };
         false ->

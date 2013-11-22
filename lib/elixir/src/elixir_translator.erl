@@ -136,8 +136,8 @@ translate_each({ '__DIR__', _Meta, Atom }, S) when is_atom(Atom) ->
   translate_each(filename:dirname(S#elixir_scope.file), S);
 
 translate_each({ '__ENV__', Meta, Atom }, S) when is_atom(Atom) ->
-  Env = elixir_scope:to_ex_env({ ?line(Meta), S }),
-  { elixir_scope:to_erl(Env), S };
+  Env = elixir_env:scope_to_ex({ ?line(Meta), S }),
+  { ex_env_to_erl(Env), S };
 
 translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
   { { var, ?line(Meta), '__CALLER__' }, S#elixir_scope{caller=true} };
@@ -461,12 +461,20 @@ var_kind(Meta, Kind) ->
     false -> Kind
   end.
 
+ex_env_to_erl(Structure) ->
+  elixir_utils:elixir_to_erl(Structure, fun
+    (X) when is_pid(X) ->
+      ?wrap_call(0, erlang, binary_to_term, [elixir_utils:elixir_to_erl(term_to_binary(X))]);
+    (Other) ->
+      error({ badarg, Other })
+  end).
+
 %% Opts
 
 translate_opts(Meta, Kind, Allowed, Opts, S) ->
   { Expanded, TS } = case literal_opts(Opts) orelse skip_expansion(S#elixir_scope.module) of
     true  -> { Opts, S };
-    false -> 'Elixir.Macro':expand_all(Opts, elixir_scope:to_ex_env({ ?line(Meta), S }), S)
+    false -> 'Elixir.Macro':expand_all(Opts, elixir_env:scope_to_ex({ ?line(Meta), S }), S)
   end,
   validate_opts(Meta, Kind, Allowed, Expanded, TS),
   { Expanded, TS }.

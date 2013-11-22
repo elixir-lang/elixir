@@ -620,7 +620,7 @@ defmodule Macro do
   # Anything else is just returned
   defp expand_once(other, _env, cache), do: { other, false, cache }
 
-  defp to_erl_env(env, nil),    do: :elixir_scope.to_erl_env(env)
+  defp to_erl_env(env, nil),    do: :elixir_env.ex_to_scope(env)
   defp to_erl_env(_env, cache), do: cache
 
   defp is_partial?(args) do

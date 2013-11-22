@@ -95,7 +95,7 @@ translate({defmodule, Meta, [Ref, KV]}, S) when is_list(KV) ->
       { Ref, S }
   end,
 
-  Env = elixir_scope:to_ex_env({ ?line(Meta), FS }),
+  Env = elixir_env:scope_to_ex({ ?line(Meta), FS }),
   translate_each(elixir_module:translate(FRef, Block, Env), FS);
 
 translate({Kind, Meta, [Call]}, S) when ?defs(Kind) ->
@@ -104,7 +104,7 @@ translate({Kind, Meta, [Call]}, S) when ?defs(Kind) ->
 translate({Kind, Meta, [Call, Expr]}, S) when ?defs(Kind) ->
   assert_module_scope(Meta, Kind, S),
   assert_no_function_scope(Meta, Kind, S),
-  Env = elixir_scope:to_ex_env({ ?line(Meta), S }),
+  Env = elixir_env:scope_to_ex({ ?line(Meta), S }),
   Ctx = lists:keymember(context, 1, Meta),
   translate_each(elixir_def:wrap_definition(Kind, Call, Expr, Ctx, Env), S);
 
