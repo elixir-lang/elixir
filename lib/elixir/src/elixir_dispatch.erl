@@ -475,10 +475,5 @@ in_erlang_functions() ->
 
 %% Macros implemented in Erlang. MUST BE SORTED.
 in_erlang_macros() ->
-  [
-    {'case',2},
-    {defmodule,2},
-    {in,2},
-    {'receive',1},
-    {'try',1}
-  ].
+  [ {defmodule,2},
+    {in,2} ].

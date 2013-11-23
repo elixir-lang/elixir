@@ -3,9 +3,7 @@
 -module(elixir_macros).
 -export([translate/2]).
 -import(elixir_translator, [translate_each/2]).
--import(elixir_scope, [umergec/2, umergea/2]).
--import(elixir_errors, [compile_error/3, syntax_error/3, syntax_error/4,
-  assert_no_match_or_guard_scope/3]).
+-import(elixir_errors, [compile_error/3, syntax_error/3, syntax_error/4]).
 
 -include("elixir.hrl").
 -define(opt_in_types(Kind), Kind == atom orelse Kind == integer orelse Kind == float).
@@ -14,59 +12,6 @@
 
 translate({ in, Meta, [Left, Right] }, #elixir_scope{extra_guards=nil} = S) ->
   translate_in(Meta, Left, Right, S);
-
-%% Case
-
-translate({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
-  assert_no_match_or_guard_scope(Meta, 'case', S),
-  Clauses = elixir_clauses:get_pairs(Meta, do, KV, S),
-  { TExpr, NS } = translate_each(Expr, S),
-
-  RClauses = case elixir_utils:returns_boolean(TExpr) of
-    true  -> rewrite_case_clauses(Clauses);
-    false -> Clauses
-  end,
-
-  { TClauses, TS } = elixir_clauses:match(Meta, RClauses, NS),
-  { { 'case', ?line(Meta), TExpr, TClauses }, TS };
-
-%% Try
-
-translate({'try', Meta, [Clauses]}, S) when is_list(Clauses) ->
-  assert_no_match_or_guard_scope(Meta, 'try', S),
-
-  Do = proplists:get_value('do', Clauses, nil),
-  { TDo, SB } = elixir_translator:translate_each(Do, S#elixir_scope{noname=true}),
-
-  Catch = [Tuple || { X, _ } = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
-  { TCatch, SC } = elixir_try:clauses(Meta, Catch, umergea(S, SB)),
-
-  After = proplists:get_value('after', Clauses, nil),
-  { TAfter, SA } = elixir_translator:translate_each(After, umergea(S, SC)),
-
-  Else = elixir_clauses:get_pairs(Meta, else, Clauses, S),
-  { TElse, SE } = elixir_clauses:match(Meta, Else, umergea(S, SA)),
-
-  SF = (umergec(S, SE))#elixir_scope{noname=S#elixir_scope.noname},
-  { { 'try', ?line(Meta), pack(TDo), TElse, TCatch, pack(TAfter) }, SF };
-
-%% Receive
-
-translate({'receive', Meta, [KV] }, S) when is_list(KV) ->
-  assert_no_match_or_guard_scope(Meta, 'receive', S),
-  Do = elixir_clauses:get_pairs(Meta, do, KV, S, true),
-
-  case lists:keyfind('after', 1, KV) of
-    false ->
-      { TClauses, SC } = elixir_clauses:match(Meta, Do, S),
-      { { 'receive', ?line(Meta), TClauses }, SC };
-    _ ->
-      After = elixir_clauses:get_pairs(Meta, 'after', KV, S),
-      { TClauses, SC } = elixir_clauses:match(Meta, Do ++ After, S),
-      { FClauses, TAfter } = elixir_utils:split_last(TClauses),
-      { _, _, [FExpr], _, FAfter } = TAfter,
-      { { 'receive', ?line(Meta), FClauses, FExpr, FAfter }, SC }
-  end;
 
 %% Definitions
 
@@ -173,22 +118,6 @@ decreasing_compare(Line, Var, Start, End) ->
     { op, Line, '=<', Var, Start },
     { op, Line, '>=', Var, End } }.
 
-%% TODO: Once we have elixir_exp, we can move this
-%% clause to Elixir code and out of case.
-rewrite_case_clauses([
-    {do,Meta1,[{'when',_,[{V,M,C},{in,_,[{V,M,C},[false,nil]]}]}],False},
-    {do,Meta2,[{'_',_,UC}],True}] = Clauses)
-    when is_atom(V), is_list(M), is_atom(C), is_atom(UC) ->
-  case lists:keyfind('cond', 1, M) of
-    { 'cond', true } ->
-      [{do,Meta1,[false],False},{do,Meta2,[true],True}];
-    _ ->
-      Clauses
-  end;
-
-rewrite_case_clauses(Clauses) ->
-  Clauses.
-
 %% defmodule :foo
 expand_module(Raw, _Module, _S) when is_atom(Raw) ->
   Raw;
@@ -211,6 +140,4 @@ expand_module({ '__aliases__', _, _ } = Alias, Module, S) ->
 expand_module(_Raw, Module, S) ->
   elixir_aliases:concat([S#elixir_scope.module, Module]).
 
-% Pack a list of expressions from a block.
-pack({ 'block', _, Exprs }) -> Exprs;
-pack(Expr)                  -> [Expr].
+

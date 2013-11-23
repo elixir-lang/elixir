@@ -283,6 +283,58 @@ translate_each({ fn, Meta, [{ '->', _, Pairs }] }, S) ->
   assert_no_match_or_guard_scope(Meta, 'fn', S),
   elixir_fn:fn(Meta, Pairs, S);
 
+%% Case
+
+translate_each({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
+  assert_no_match_or_guard_scope(Meta, 'case', S),
+  Clauses = elixir_clauses:get_pairs(Meta, do, KV, S),
+  { TExpr, NS } = translate_each(Expr, S),
+
+  RClauses = case elixir_utils:returns_boolean(TExpr) of
+    true  -> rewrite_case_clauses(Clauses);
+    false -> Clauses
+  end,
+
+  { TClauses, TS } = elixir_clauses:match(Meta, RClauses, NS),
+  { { 'case', ?line(Meta), TExpr, TClauses }, TS };
+
+%% Try
+
+translate_each({'try', Meta, [Clauses]}, S) when is_list(Clauses) ->
+  assert_no_match_or_guard_scope(Meta, 'try', S),
+  Do = proplists:get_value('do', Clauses, nil),
+  { TDo, SB } = elixir_translator:translate_each(Do, S#elixir_scope{noname=true}),
+
+  Catch = [Tuple || { X, _ } = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
+  { TCatch, SC } = elixir_try:clauses(Meta, Catch, umergea(S, SB)),
+
+  After = proplists:get_value('after', Clauses, nil),
+  { TAfter, SA } = translate_each(After, umergea(S, SC)),
+
+  Else = elixir_clauses:get_pairs(Meta, else, Clauses, S),
+  { TElse, SE } = elixir_clauses:match(Meta, Else, umergea(S, SA)),
+
+  SF = (umergec(S, SE))#elixir_scope{noname=S#elixir_scope.noname},
+  { { 'try', ?line(Meta), pack(TDo), TElse, TCatch, pack(TAfter) }, SF };
+
+%% Receive
+
+translate_each({'receive', Meta, [KV] }, S) when is_list(KV) ->
+  assert_no_match_or_guard_scope(Meta, 'receive', S),
+  Do = elixir_clauses:get_pairs(Meta, do, KV, S, true),
+
+  case lists:keyfind('after', 1, KV) of
+    false ->
+      { TClauses, SC } = elixir_clauses:match(Meta, Do, S),
+      { { 'receive', ?line(Meta), TClauses }, SC };
+    _ ->
+      After = elixir_clauses:get_pairs(Meta, 'after', KV, S),
+      { TClauses, SC } = elixir_clauses:match(Meta, Do ++ After, S),
+      { FClauses, TAfter } = elixir_utils:split_last(TClauses),
+      { _, _, [FExpr], _, FAfter } = TAfter,
+      { { 'receive', ?line(Meta), FClauses, FExpr, FAfter }, SC }
+  end;
+
 %% Comprehensions
 
 translate_each({ Kind, Meta, Args }, S) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
@@ -468,6 +520,27 @@ ex_env_to_erl(Structure) ->
     (Other) ->
       error({ badarg, Other })
   end).
+
+%% Case
+
+%% TODO: Once we have elixir_exp, we can move this
+%% clause to Elixir code and out of case.
+rewrite_case_clauses([
+    {do,Meta1,[{'when',_,[{V,M,C},{in,_,[{V,M,C},[false,nil]]}]}],False},
+    {do,Meta2,[{'_',_,UC}],True}] = Clauses)
+    when is_atom(V), is_list(M), is_atom(C), is_atom(UC) ->
+  case lists:keyfind('cond', 1, M) of
+    { 'cond', true } ->
+      [{do,Meta1,[false],False},{do,Meta2,[true],True}];
+    _ ->
+      Clauses
+  end;
+rewrite_case_clauses(Clauses) ->
+  Clauses.
+
+% Pack a list of expressions from a block.
+pack({ 'block', _, Exprs }) -> Exprs;
+pack(Expr)                  -> [Expr].
 
 %% Opts
 
