@@ -342,12 +342,6 @@ translate_each({ super, Meta, Args }, S) when is_list(Args) ->
   Super = elixir_def_overridable:name(Module, Function),
   { { call, ?line(Meta), { atom, ?line(Meta), Super }, TArgs }, TS#elixir_scope{super=true} };
 
-translate_each({ 'super?', Meta, [] }, S) ->
-  Module = assert_module_scope(Meta, 'super?', S),
-  Function = assert_function_scope(Meta, 'super?', S),
-  Bool = elixir_def_overridable:is_defined(Module, Function),
-  { { atom, ?line(Meta), Bool }, S };
-
 %% Variables
 
 translate_each({ '^', Meta, [ { Name, VarMeta, Kind } = Var ] },

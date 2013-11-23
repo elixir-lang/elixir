@@ -1,6 +1,6 @@
 % Holds the logic responsible for defining overridable functions and handling super.
 -module(elixir_def_overridable).
--export([store_pending/1, is_defined/2, ensure_defined/4,
+-export([store_pending/1, ensure_defined/4,
   name/2, store/3, format_error/1]).
 -include("elixir.hrl").
 
@@ -12,17 +12,11 @@ overridable(Module, Value) ->
 
 %% Check if an overridable function is defined.
 
-is_defined(Module, Tuple) ->
+ensure_defined(Meta, Module, Tuple, S) ->
   Overridable = overridable(Module),
   case orddict:find(Tuple, Overridable) of
-    { ok, { _, _, _, _ } } -> true;
-    _ -> false
-  end.
-
-ensure_defined(Meta, Module, Tuple, S) ->
-  case is_defined(Module, Tuple) of
-    true -> ok;
-    _    -> elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, { no_super, Module, Tuple })
+    { ok, { _, _, _, _ } } -> ok;
+    _ -> elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, { no_super, Module, Tuple })
   end.
 
 %% Gets the name based on the function and stored overridables
