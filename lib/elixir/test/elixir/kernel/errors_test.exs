@@ -181,15 +181,6 @@ defmodule Kernel.ErrorsTest do
       'defmodule 1 + 2, do: 3'
   end
 
-  test :invalid_scope_for_function do
-    assert_compile_fail SyntaxError,
-      "nofile:1: cannot invoke def outside module",
-      'def Foo, do: 2'
-    assert_compile_fail SyntaxError,
-      "nofile:3: cannot invoke defmacro outside module",
-      '\n\ndefmacro Foo, do: 2'
-  end
-
   test :invalid_unquote do
     assert_compile_fail CompileError,
       "nofile:1: unquote called outside quote",

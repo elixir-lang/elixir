@@ -5,7 +5,7 @@
 -import(elixir_translator, [translate_each/2]).
 -import(elixir_scope, [umergec/2, umergea/2]).
 -import(elixir_errors, [compile_error/3, syntax_error/3, syntax_error/4,
-  assert_no_function_scope/3, assert_module_scope/3, assert_no_match_or_guard_scope/3]).
+  assert_no_match_or_guard_scope/3]).
 
 -include("elixir.hrl").
 -define(opt_in_types(Kind), Kind == atom orelse Kind == integer orelse Kind == float).
@@ -97,15 +97,6 @@ translate({defmodule, Meta, [Ref, KV]}, S) when is_list(KV) ->
 
   Env = elixir_env:scope_to_ex({ ?line(Meta), FS }),
   translate_each(elixir_module:translate(FRef, Block, Env), FS);
-
-translate({Kind, Meta, [Call]}, S) when ?defs(Kind) ->
-  translate({Kind, Meta, [Call, nil]}, S);
-
-translate({Kind, Meta, [Call, Expr]}, S) when ?defs(Kind) ->
-  assert_module_scope(Meta, Kind, S),
-  assert_no_function_scope(Meta, Kind, S),
-  Env = elixir_env:scope_to_ex({ ?line(Meta), S }),
-  translate_each(elixir_def:wrap_definition(Kind, Call, Expr, Env), S);
 
 translate({ Name, Meta, Args }, S) ->
   syntax_error(Meta, S#elixir_scope.file,

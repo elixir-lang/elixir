@@ -1,5 +1,9 @@
-import Kernel, except: [@: 1]
-import :elixir_bootstrap, only: [@: 1]
+# Use elixir_bootstrap module to be able to bootstrap Kernel.
+# The bootstrap module provides simpler implementations of the
+# functions removed, simple enough to bootstrap.
+import Kernel, except: [@: 1, def: 1, def: 2, defp: 2,
+                        defmacro: 1, defmacro: 2, defmacrop: 2]
+import :elixir_bootstrap
 
 defmodule Kernel do
   @moduledoc """
@@ -1465,7 +1469,9 @@ defmodule Kernel do
   two arguments and sums them.
 
   """
-  defmacro def(name, do: contents)
+  defmacro def(call, expr // nil) do
+    define(:def, call, expr, __CALLER__)
+  end
 
   @doc """
   Defines a function that is private. Private functions are
@@ -1486,7 +1492,9 @@ defmodule Kernel do
   In the example above, `sum` is private and accessing it
   through `Foo.sum` will raise an error.
   """
-  defmacro defp(name, do: contents)
+  defmacro defp(call, expr // nil) do
+    define(:defp, call, expr, __CALLER__)
+  end
 
   @doc """
   Defines a macro with the given name and contents.
@@ -1507,7 +1515,9 @@ defmodule Kernel do
       end
 
   """
-  defmacro defmacro(name, do: contents)
+  defmacro defmacro(call, expr // nil) do
+    define(:defmacro, call, expr, __CALLER__)
+  end
 
   @doc """
   Defines a macro that is private. Private macros are
@@ -1515,8 +1525,15 @@ defmodule Kernel do
 
   Check `defmacro/2` for more information
   """
-  defmacro defmacrop(name, do: contents)
+  defmacro defmacrop(call, expr // nil) do
+    define(:defmacrop, call, expr, __CALLER__)
+  end
 
+  defp define(kind, call, expr, env) do
+    assert_module_scope(env, kind, 2)
+    assert_no_function_scope(env, kind, 2)
+    :elixir_def.wrap_definition(kind, call, expr, env)
+  end
 
   @doc """
   Matches the given expression against the match clauses.
@@ -3724,6 +3741,13 @@ defmodule Kernel do
     case env_module(env) do
       nil -> raise ArgumentError, message: "cannot invoke #{fun}/#{arity} outside module"
       _   -> :ok
+    end
+  end
+
+  defp assert_no_function_scope(env, fun, arity) do
+    case env_function(env) do
+      nil -> :ok
+      _   -> raise ArgumentError, message: "cannot invoke #{fun}/#{arity} inside function/macro"
     end
   end
 

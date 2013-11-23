@@ -395,6 +395,7 @@ in_elixir_macros() ->
   end.
 
 %% Functions imported from Erlang module. MUST BE SORTED.
+%% TODO: Inline operators here as well once bug in erl_eval is fixed.
 in_erlang_functions() ->
   [
     { abs, 1 },
@@ -415,7 +416,9 @@ in_erlang_functions() ->
     { exit, 1 },
     % { float, 1 },
     { float_to_binary, 1 },
+    % { float_to_binary, 2 },
     { float_to_list, 1 },
+    % { float_to_list, 2 },
     { hd, 1 },
     { integer_to_binary, 1 },
     { integer_to_binary, 2 },
@@ -474,15 +477,7 @@ in_erlang_functions() ->
 in_erlang_macros() ->
   [
     {'case',2},
-    {def,1},
-    {def,2},
-    {defmacro,1},
-    {defmacro,2},
-    {defmacrop,1},
-    {defmacrop,2},
     {defmodule,2},
-    {defp,1},
-    {defp,2},
     {in,2},
     {'receive',1},
     {'try',1}
