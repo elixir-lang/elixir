@@ -254,25 +254,6 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
 translate_each({ quote, Meta, [_, _] }, S) ->
   syntax_error(Meta, S#elixir_scope.file, "invalid args for quote");
 
-translate_each({ 'alias!', _Meta, [Arg] }, S) ->
-  translate_each(Arg, S);
-
-translate_each({ 'var!', Meta, [Arg] }, S) ->
-  translate_each({ 'var!', Meta, [Arg, nil] }, S);
-
-translate_each({ 'var!', Meta, [{Name, _, Atom}, Kind] }, S) when is_atom(Name), is_atom(Atom) ->
-  translate_each({ 'var!', Meta, [Name, Kind] }, S);
-
-translate_each({ 'var!', Meta, [Name, Kind] }, S) when is_atom(Name) ->
-  Expanded = expand_quote_context(Meta, Kind, "invalid second argument for var!", S),
-  elixir_scope:translate_var(Meta, Name, Expanded, S, fun() ->
-    compile_error(Meta, S#elixir_scope.file, "expected var!(~ts) to expand to an existing "
-                  "variable or be a part of a match", [Name])
-  end);
-
-translate_each({ 'var!', Meta, [_, _] }, S) ->
-  syntax_error(Meta, S#elixir_scope.file, "invalid first argument for var!, expected a var or an atom");
-
 %% Functions
 
 translate_each({ '&', Meta, [Arg] }, S) ->
@@ -399,7 +380,13 @@ translate_each({ '^', Meta, [ Expr ] }, S) ->
 
 translate_each({ Name, Meta, Kind }, S) when is_atom(Name), is_atom(Kind) ->
   elixir_scope:translate_var(Meta, Name, var_kind(Meta, Kind), S, fun() ->
-    translate_each({ Name, Meta, [] }, S)
+    case lists:keyfind(var, 1, Meta) of
+      { var, true } ->
+        compile_error(Meta, S#elixir_scope.file, "expected var ~ts to expand to an existing "
+                      "variable or be a part of a match", [Name]);
+      _ ->
+        translate_each({ Name, Meta, [] }, S)
+    end
   end);
 
 %% Local calls
@@ -569,17 +556,6 @@ validate_opts(Meta, Kind, Allowed, Opts, S) when is_list(Opts) ->
 
 validate_opts(Meta, Kind, _Allowed, _Opts, S) ->
   compile_error(Meta, S#elixir_scope.file, "invalid options for ~s, expected a keyword list", [Kind]).
-
-%% Quote
-
-expand_quote_context(_Meta, Atom, _Msg, _S) when is_atom(Atom) -> Atom;
-expand_quote_context(Meta, Alias, Msg, S) ->
-  case translate_each(Alias, S) of
-    { { atom, _, Atom }, _ } ->
-      Atom;
-    _ ->
-      compile_error(Meta, S#elixir_scope.file, "~ts, expected a compile time available alias or an atom", [Msg])
-  end.
 
 %% Require
 

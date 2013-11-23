@@ -436,7 +436,7 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_var! do
     assert_compile_fail CompileError,
-      "nofile:1: expected var!(x) to expand to an existing variable or be a part of a match",
+      "nofile:1: expected var x to expand to an existing variable or be a part of a match",
       'var!(x)'
   end
 

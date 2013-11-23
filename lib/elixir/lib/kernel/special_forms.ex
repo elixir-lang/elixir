@@ -925,27 +925,6 @@ defmodule Kernel.SpecialForms do
   defmacro quote(opts, block)
 
   @doc """
-  When used inside quoting, marks that the variable should
-  not be hygienized. The argument can be either a variable
-  unquoted or an atom representing the variable name.
-  Check `quote/2` for more information.
-  """
-  defmacro var!(var)
-
-  @doc """
-  Defines a variable in the given context.
-  Check `quote/2` for more information.
-  """
-  defmacro var!(var, context)
-
-  @doc """
-  When used inside quoting, marks that the alias should not
-  be hygienezed. This means the alias will be expanded when
-  the macro is expanded.
-  """
-  defmacro alias!(alias)
-
-  @doc """
   Unquotes the given expression from inside a macro.
 
   ## Examples

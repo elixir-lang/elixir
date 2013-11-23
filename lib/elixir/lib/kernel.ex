@@ -3202,6 +3202,59 @@ defmodule Kernel do
   end
 
   @doc """
+  When used inside quoting, marks that the variable should
+  not be hygienized. The argument can be either a variable
+  unquoted or an atom representing the variable name.
+
+  Check `Kernel.SpecialForms.quote/2` for more information.
+  """
+  defmacro var!(var, context // nil)
+
+  defmacro var!(var, context) when is_atom(var) do
+    do_var!(var, [], context, __CALLER__)
+  end
+
+  defmacro var!({ name, meta, atom }, context) when is_atom(name) and is_atom(atom) do
+    do_var!(name, meta, context, __CALLER__)
+  end
+
+  defmacro var!(x, _context) do
+    raise ArgumentError, message: "expected a var to be given to var!, got: #{Macro.to_string(x)}"
+  end
+
+  defp do_var!(name, meta, context, env) do
+    # Remove counter and force them to be vars
+    meta = :lists.keydelete(:counter, 1, meta)
+    meta = :lists.keystore(:var, 1, meta, { :var, true })
+
+    case Macro.expand(context, env) do
+      x when is_atom(x) ->
+        { name, meta, x }
+      x ->
+        raise ArgumentError, message: "expected var! context to expand to an atom, got: #{Macro.to_string(x)}"
+    end
+  end
+
+  @doc """
+  When used inside quoting, marks that the alias should not
+  be hygienezed. This means the alias will be expanded when
+  the macro is expanded.
+
+  Check `Kernel.SpecialForms.quote/2` for more information.
+  """
+  defmacro alias!(alias)
+
+  defmacro alias!(alias) when is_atom(alias) do
+    alias
+  end
+
+  defmacro alias!({ :__aliases__, meta, args }) do
+    # Simply remove the alias metadata from the node
+    # so it does not affect expansion.
+    { :__aliases__, :lists.keydelete(:alias, 1, meta), args }
+  end
+
+  @doc """
   Defines the given functions in the current module that will
   delegate to the given `target`. Functions defined with
   `defdelegate` are public and are allowed to be invoked
