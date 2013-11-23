@@ -1,4 +1,4 @@
-defmodule Mix.SCM.Git.Format do
+defmodule Mix.SCM.Git.Formatter do
   @moduledoc false
 
   # Helper module to encapsulate formatting functions
@@ -30,50 +30,57 @@ defmodule Mix.SCM.Git.Format do
   # Returns a string with refs that point to `rev`
   # For example: "(tags: 0.1, 0.2, 0.3)", "(origin/master)"
   defp get_lock_refs(dep, { :git, _repo, rev, _opts }) do
-    import Enum
-
     Mix.Deps.in_dependency(dep, fn _ ->
-      System.cmd("git show-ref")                               # print all refs with commit hashes
-      |> String.split("\n")
-      |> filter(&String.starts_with?(&1, rev))                 # leave those refs that point to our commit (rev)
-      |> map(fn s -> [_, ref] = String.split(s, " "); ref end) # strip the commit hash
-      |> refs_to_string
+      System.cmd("git show-ref") # print all refs with commit hashes
+      |> format_refs(rev)
     end)
   end
 
   # Helpers for get_lock_refs()
 
+  @doc false
+  def format_refs(show_ref_output, rev) do
+    import Enum
+
+    show_ref_output
+    |> String.split("\n")
+    |> filter(&String.starts_with?(&1, rev))                 # leave those refs that point to our commit (rev)
+    |> map(fn s -> [_, ref] = String.split(s, " "); ref end) # strip the commit hash
+    |> refs_to_string
+  end
+
   defrecordp :lock_refs, [tags: [], refs: []]
 
-  defp refs_to_string(refs) do
+  @doc false
+  def refs_to_string(refs) do
     refs_to_string(refs, lock_refs())
   end
 
   # Collect
 
-  defp refs_to_string(["refs/heads/" <> name | t], lock_refs(refs: refs)=r) do
+  def refs_to_string(["refs/heads/" <> name | t], lock_refs(refs: refs)=r) do
     refs_to_string(t, lock_refs(r, refs: prepend_local(name, refs)))
   end
 
-  defp refs_to_string(["refs/remotes/" <> name | t], lock_refs(refs: refs)=r) do
+  def refs_to_string(["refs/remotes/" <> name | t], lock_refs(refs: refs)=r) do
     refs_to_string(t, lock_refs(r, refs: prepend_remote(name, refs)))
   end
 
-  defp refs_to_string(["refs/tags/" <> name | t], lock_refs(tags: tags)=r) do
+  def refs_to_string(["refs/tags/" <> name | t], lock_refs(tags: tags)=r) do
     refs_to_string(t, lock_refs(r, tags: [name | tags]))
   end
 
   # Format
 
-  defp refs_to_string([], lock_refs(tags: [], refs: [])) do
+  def refs_to_string([], lock_refs(tags: [], refs: [])) do
     ""
   end
 
-  defp refs_to_string([], lock_refs(tags: [], refs: refs)) do
+  def refs_to_string([], lock_refs(tags: [], refs: refs)) do
     "(" <> Enum.join(refs, ", ") <> ")"
   end
 
-  defp refs_to_string([], lock_refs(tags: tags)) do
+  def refs_to_string([], lock_refs(tags: tags)) do
     "(" <> map_tags(tags) <> ")"
   end
 
@@ -130,7 +137,7 @@ defmodule Mix.SCM.Git do
   end
 
   def format_lock(dep, lock) do
-    Mix.SCM.Git.Format.format(dep, lock)
+    Mix.SCM.Git.Formatter.format(dep, lock)
   end
 
   def accepts_options(_app, opts) do
