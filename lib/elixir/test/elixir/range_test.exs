@@ -21,13 +21,20 @@ defmodule RangeTest do
     assert (1..3).last  == 3
   end
 
+  defmacrop case_in(x, y) do
+    quote do
+      case 0 do
+        _ when unquote(x) in unquote(y) -> true
+        _ -> false
+      end
+    end
+  end
+
   test :in do
-    refute 0 in 1..3, "in range assertion"
-    assert 1 in 1..3, "in range assertion"
-    assert 2 in 1..3, "in range assertion"
-    assert 3 in 1..3, "in range assertion"
-    refute 4 in 1..3, "in range assertion"
-    assert -3 in -1..-3, "in range assertion"
+    assert case_in 1, 1..3
+    assert case_in 2, 1..3
+    assert case_in 3, 1..3
+    assert case_in -3, -1..-3
   end
 
   test :is_range do
@@ -39,7 +46,6 @@ defmodule RangeTest do
     refute Enum.empty?(1..1)
 
     assert Enum.member?(1..3, 2)
-
     refute Enum.member?(1..3, 0)
     refute Enum.member?(1..3, 4)
     refute Enum.member?(3..1, 0)

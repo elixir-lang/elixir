@@ -8,21 +8,21 @@ defmodule Macro do
   @typedoc "Abstract Syntax Tree (AST) node"
   @type t :: { t, t } | { t, Keyword.t, t } | atom | number | binary | list
 
-  @doc false
-  defmacro binary_ops do
-    [ :===, :!==,
-      :==, :!=, :<=, :>=,
-      :&&, :||, :<>, :++, :--, :**, ://, :::, :<-, :.., :|>, :=~,
-      :<, :>, :->,
-      :+, :-, :*, :/, :=, :|, :.,
-      :and, :or, :xor, :when, :in, :inlist, :inbits,
-      :<<<, :>>>, :|||, :&&&, :^^^, :~~~ ]
-  end
+  @binary_ops [ :===, :!==,
+    :==, :!=, :<=, :>=,
+    :&&, :||, :<>, :++, :--, :**, ://, :::, :<-, :.., :|>, :=~,
+    :<, :>, :->,
+    :+, :-, :*, :/, :=, :|, :.,
+    :and, :or, :xor, :when, :in, :inlist, :inbits,
+    :<<<, :>>>, :|||, :&&&, :^^^, :~~~ ]
 
   @doc false
-  defmacro unary_ops do
-    [:!, :@, :^, :not, :+, :-, :~~~, :&]
-  end
+  defmacro binary_ops, do: @binary_ops
+
+  @unary_ops [:!, :@, :^, :not, :+, :-, :~~~, :&]
+
+  @doc false
+  defmacro unary_ops, do: @unary_ops
 
   @spec binary_op_props(atom) :: { :left | :right, precedence :: integer }
   defp binary_op_props(o) do
@@ -295,7 +295,7 @@ defmodule Macro do
   end
 
   # Binary ops
-  def to_string({ op, _, [left, right] } = ast, fun) when op in binary_ops do
+  def to_string({ op, _, [left, right] } = ast, fun) when op in @binary_ops do
     fun.(ast, op_to_string(left, fun, op, :left) <> " #{op} " <> op_to_string(right, fun, op, :right))
   end
 
@@ -310,7 +310,7 @@ defmodule Macro do
     fun.(ast, "not " <> to_string(arg, fun))
   end
 
-  def to_string({ op, _, [arg] } = ast, fun) when op in unary_ops do
+  def to_string({ op, _, [arg] } = ast, fun) when op in @unary_ops do
     fun.(ast, atom_to_binary(op) <> to_string(arg, fun))
   end
 
@@ -346,10 +346,10 @@ defmodule Macro do
   def to_string(other, fun), do: fun.(other, inspect(other, raw: true))
 
   # Block keywords
-  defmacrop kw_keywords, do: [:do, :catch, :rescue, :after, :else]
+  @kw_keywords [:do, :catch, :rescue, :after, :else]
 
   defp is_kw_blocks?([_|_] = kw) do
-    Enum.all?(kw, &match?({x, _} when x in kw_keywords, &1))
+    Enum.all?(kw, &match?({x, _} when x in @kw_keywords, &1))
   end
   defp is_kw_blocks?(_), do: false
 
@@ -378,7 +378,7 @@ defmodule Macro do
   end
 
   defp kw_blocks_to_string(kw, fun) do
-    Enum.reduce(kw_keywords, " ", fn(x, acc) ->
+    Enum.reduce(@kw_keywords, " ", fn(x, acc) ->
       case Keyword.has_key?(kw, x) do
         true  -> acc <> kw_block_to_string(x, Keyword.get(kw, x), fun)
         false -> acc
@@ -414,7 +414,7 @@ defmodule Macro do
     "(" <> to_string(expr, fun) <> ")"
   end
 
-  defp op_to_string({ op, _, [_, _] } = expr, fun, parent_op, side) when op in binary_ops do
+  defp op_to_string({ op, _, [_, _] } = expr, fun, parent_op, side) when op in @binary_ops do
     { parent_assoc, parent_prec } = binary_op_props(parent_op)
     { _, prec }                   = binary_op_props(op)
     cond do

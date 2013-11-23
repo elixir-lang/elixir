@@ -475,5 +475,4 @@ in_erlang_functions() ->
 
 %% Macros implemented in Erlang. MUST BE SORTED.
 in_erlang_macros() ->
-  [ {defmodule,2},
-    {in,2} ].
+  [ {defmodule,2} ].

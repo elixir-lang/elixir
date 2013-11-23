@@ -1397,184 +1397,7 @@ defmodule Kernel do
     end
   end
 
-  ## Pending to be implemented in Elixir
-
-  @doc """
-  Defines a module given by name with the given contents.
-
-  It returns the module name, the module binary and the
-  block contents result.
-
-  ## Examples
-
-      defmodule Foo do
-        def bar, do: :baz
-      end
-
-      Foo.bar #=> :baz
-
-  ## Nesting
-
-  Nesting a module inside another module affects its name:
-
-      defmodule Foo do
-        defmodule Bar do
-        end
-      end
-
-  In the example above, two modules `Foo` and `Foo.Bar` are created.
-  When nesting, Elixir automatically creates an alias, allowing the
-  second module `Foo.Bar` to be accessed as `Bar` in the same lexical
-  scope.
-
-  This means that, if the module `Bar` is moved to another file,
-  the references to `Bar` needs to be updated or an alias needs to
-  be explicitly set with the help of `Kernel.SpecialForms.alias/2`.
-
-  ## Dynamic names
-
-  Elixir module names can be dynamically generated. This is very
-  useful for macros. For instance, one could write:
-
-      defmodule binary_to_atom("Foo\#{1}") do
-        # contents ...
-      end
-
-  Elixir will accept any module name as long as the expression
-  returns an atom. Note that, when a dynamic name is used, an
-  alias is not automatically created, even when nested.
-  """
-  defmacro defmodule(name, do: contents)
-
-  @doc """
-  Defines a function with the given name and contents.
-
-  ## Examples
-
-      defmodule Foo do
-        def bar, do: :baz
-      end
-
-      Foo.bar #=> :baz
-
-  A function that expects arguments can be defined as follow:
-
-      defmodule Foo do
-        def sum(a, b) do
-          a + b
-        end
-      end
-
-  In the example above, we defined a function `sum` that receives
-  two arguments and sums them.
-
-  """
-  defmacro def(call, expr // nil) do
-    define(:def, call, expr, __CALLER__)
-  end
-
-  @doc """
-  Defines a function that is private. Private functions are
-  only accessible from within the module in which they are defined.
-
-  Check `def/2` for more information
-
-  ## Examples
-
-      defmodule Foo do
-        def bar do
-          sum(1, 2)
-        end
-
-        defp sum(a, b), do: a + b
-      end
-
-  In the example above, `sum` is private and accessing it
-  through `Foo.sum` will raise an error.
-  """
-  defmacro defp(call, expr // nil) do
-    define(:defp, call, expr, __CALLER__)
-  end
-
-  @doc """
-  Defines a macro with the given name and contents.
-
-  ## Examples
-
-      defmodule MyLogic do
-        defmacro unless(expr, opts) do
-          quote do
-            if !unquote(expr), unquote(opts)
-          end
-        end
-      end
-
-      require MyLogic
-      MyLogic.unless false do
-        IO.puts "It works"
-      end
-
-  """
-  defmacro defmacro(call, expr // nil) do
-    define(:defmacro, call, expr, __CALLER__)
-  end
-
-  @doc """
-  Defines a macro that is private. Private macros are
-  only accessible from the same module in which they are defined.
-
-  Check `defmacro/2` for more information
-  """
-  defmacro defmacrop(call, expr // nil) do
-    define(:defmacrop, call, expr, __CALLER__)
-  end
-
-  defp define(kind, call, expr, env) do
-    assert_module_scope(env, kind, 2)
-    assert_no_function_scope(env, kind, 2)
-    :elixir_def.wrap_definition(kind, call, expr, env)
-  end
-
-  @doc """
-  Returns `true` if the element on the left is equal (==) to
-  any of the items on the right.
-
-  ## Examples
-
-      iex> x = 1
-      ...> x in [1, 2, 3]
-      true
-
-  This macro simply translates the expression above to:
-
-      x == 1 or x == 2 or x == 3
-
-  with the exception that the expression on the left of `in`
-  is evaluated only once.
-
-  ## Clauses
-
-  Whenever used inside a function or a case clause, you can
-  optionally omit the variable declaration, for example:
-
-      case 3 do
-        x when x in [1, 2] -> x * 2
-        _ -> 0
-      end
-
-  Could be rewritten as:
-
-      case 3 do
-        x in [1, 2] -> x * 2
-        _ -> 0
-      end
-
-  In this case, Elixir will automatically expand it and define
-  the variable for us.
-  """
-  defmacro left in right
-
-  ## Others implemented in Elixir
+  ## Implemented in Elixir
 
   @doc """
   Concatenates two binaries.
@@ -2149,7 +1972,7 @@ defmodule Kernel do
   # Typespecs attributes are special cased by the compiler so far
   defmacro @({ name, _, args }) do
     # Check for Macro as it is compiled later than Module
-    case bootstraped?(Macro) do
+    case bootstraped?(Module) do
       false -> nil
       true  ->
         assert_module_scope(__CALLER__, :@, 1)
@@ -2157,23 +1980,9 @@ defmodule Kernel do
 
         case is_list(args) and length(args) == 1 and typespec(name) do
           false ->
-            case args do
-              [arg] ->
-                case function? do
-                  true ->
-                    raise ArgumentError, message: "cannot dynamically set attribute @#{name} inside function"
-                  false ->
-                    quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg))
-                end
-              _ when is_atom(args) when args == [] ->
-                case function? do
-                  true ->
-                    Macro.escape Module.get_attribute(env_module(__CALLER__), name)
-                  false ->
-                    quote do: Module.get_attribute(__MODULE__, unquote(name), true)
-                end
-              _ ->
-                raise ArgumentError, message: "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
+            case name == :typedoc and not bootstraped?(Kernel.Typespec) do
+              true  -> nil
+              false -> do_at(args, name, function?, __CALLER__)
             end
           macro ->
             # Do not compile typespecs until Macro.Env is done
@@ -2183,6 +1992,32 @@ defmodule Kernel do
             end
         end
     end
+  end
+
+  # @attribute value
+  defp do_at([arg], name, function?, _env) do
+    case function? do
+      true ->
+        raise ArgumentError, message: "cannot dynamically set attribute @#{name} inside function"
+      false ->
+        quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg))
+    end
+  end
+
+  # @attribute or @attribute()
+  defp do_at(args, name, function?, env) when is_atom(args) or args == [] do
+    case function? do
+      true ->
+        attr = Module.get_attribute(env_module(env), name, true)
+        :erlang.element(1, :elixir_quote.escape(attr, false))
+      false ->
+        quote do: Module.get_attribute(__MODULE__, unquote(name), true)
+    end
+  end
+
+  # All other cases
+  defp do_at(args, name, _function?, _env) do
+    raise ArgumentError, message: "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
   end
 
   defp typespec(:type),     do: :deftype
@@ -2347,7 +2182,7 @@ defmodule Kernel do
         { :_, _, atom } when is_atom(atom) ->
           raise ArgumentError, message: <<"unbound variable _ inside cond. ",
             "If you want the last clause to match, you probably meant to use true ->">>
-        x when is_atom(x) and not x in [false, nil] ->
+        x when is_atom(x) and x != false and x != nil ->
           clause
         _ ->
           quote line: get_line(meta) do
@@ -2722,7 +2557,302 @@ defmodule Kernel do
     end
   end
 
+  @doc """
+  Checks if the element on the left side is member of the
+  collection on the right side.
+
+  ## Examples
+
+      iex> x = 1
+      ...> x in [1, 2, 3]
+      true
+
+  This macro simply translates the expression above to:
+
+      Enum.member?([1,2,3], x)
+
+  ## Guards
+
+  The in operator can be used on guard clauses as long as the
+  right side is a range or a list. Elixir will then expand the
+  operator to a valid guard expression. For example:
+
+      when x in [1,2,3]
+
+  Translates to:
+
+      when x === 1 or x === 2 or x === 3
+
+  When using ranges:
+
+      when x in 1..3
+
+  Translates to:
+
+      when x >= 1 and x <= 3
+
+  """
+  defmacro left in right do
+    cache = (env_context(__CALLER__) == nil)
+
+    right = case bootstraped?(Macro.Env) do
+      true  -> Macro.expand(right, __CALLER__)
+      false ->
+        case right do
+          # For bootstrapping we special case @attributes
+          { :@, _, [{ name, _, atom }] } when is_atom(name) and is_atom(atom) ->
+            Module.get_attribute(env_module(__CALLER__), name, true)
+          _ ->
+            right
+        end
+    end
+
+    case right do
+      _ when cache ->
+        quote do: Elixir.Enum.member?(unquote(right), unquote(left))
+      [] ->
+        false
+      [h|t] ->
+        :lists.foldr(fn x, acc ->
+          quote do
+            unquote(comp(left, x)) or unquote(acc)
+          end
+        end, comp(left, h), t)
+      { :{}, _, [Elixir.Range, first, last] } ->
+        first = Macro.expand(first, __CALLER__)
+        last  = Macro.expand(last, __CALLER__)
+        case opt_in?(first) and opt_in?(last) do
+          true  ->
+            case first <= last do
+              true  -> increasing_compare(left, first, last)
+              false -> decreasing_compare(left, first, last)
+            end
+          false ->
+            quote do
+              (:erlang."=<"(unquote(first), unquote(last)) and
+               unquote(increasing_compare(left, first, last)))
+              or
+              (:erlang."<"(unquote(last), unquote(first)) and
+               unquote(decreasing_compare(left, first, last)))
+            end
+        end
+      _ ->
+        raise ArgumentError, message: <<"invalid args for operator in, it expects a compile time list ",
+                                        "or range on the right side when used in guard expressions">>
+    end
+  end
+
+  defp opt_in?(x), do: is_integer(x) or is_float(x) or is_atom(x)
+
+  defp comp(left, right) do
+    quote(do: :erlang."=:="(unquote(left), unquote(right)))
+  end
+
+  defp increasing_compare(var, first, last) do
+    quote do
+      :erlang.">="(unquote(var), unquote(first)) and
+      :erlang."=<"(unquote(var), unquote(last))
+    end
+  end
+
+  defp decreasing_compare(var, first, last) do
+    quote do
+      :erlang."=<"(unquote(var), unquote(first)) and
+      :erlang.">="(unquote(var), unquote(last))
+    end
+  end
+
+  @doc """
+  When used inside quoting, marks that the variable should
+  not be hygienized. The argument can be either a variable
+  unquoted or an atom representing the variable name.
+
+  Check `Kernel.SpecialForms.quote/2` for more information.
+  """
+  defmacro var!(var, context // nil)
+
+  defmacro var!(var, context) when is_atom(var) do
+    do_var!(var, [], context, __CALLER__)
+  end
+
+  defmacro var!({ name, meta, atom }, context) when is_atom(name) and is_atom(atom) do
+    do_var!(name, meta, context, __CALLER__)
+  end
+
+  defmacro var!(x, _context) do
+    raise ArgumentError, message: "expected a var to be given to var!, got: #{Macro.to_string(x)}"
+  end
+
+  defp do_var!(name, meta, context, env) do
+    # Remove counter and force them to be vars
+    meta = :lists.keydelete(:counter, 1, meta)
+    meta = :lists.keystore(:var, 1, meta, { :var, true })
+
+    case Macro.expand(context, env) do
+      x when is_atom(x) ->
+        { name, meta, x }
+      x ->
+        raise ArgumentError, message: "expected var! context to expand to an atom, got: #{Macro.to_string(x)}"
+    end
+  end
+
+  @doc """
+  When used inside quoting, marks that the alias should not
+  be hygienezed. This means the alias will be expanded when
+  the macro is expanded.
+
+  Check `Kernel.SpecialForms.quote/2` for more information.
+  """
+  defmacro alias!(alias)
+
+  defmacro alias!(alias) when is_atom(alias) do
+    alias
+  end
+
+  defmacro alias!({ :__aliases__, meta, args }) do
+    # Simply remove the alias metadata from the node
+    # so it does not affect expansion.
+    { :__aliases__, :lists.keydelete(:alias, 1, meta), args }
+  end
+
   ## Definitions implemented in Elixir
+
+
+  @doc """
+  Defines a module given by name with the given contents.
+
+  It returns the module name, the module binary and the
+  block contents result.
+
+  ## Examples
+
+      defmodule Foo do
+        def bar, do: :baz
+      end
+
+      Foo.bar #=> :baz
+
+  ## Nesting
+
+  Nesting a module inside another module affects its name:
+
+      defmodule Foo do
+        defmodule Bar do
+        end
+      end
+
+  In the example above, two modules `Foo` and `Foo.Bar` are created.
+  When nesting, Elixir automatically creates an alias, allowing the
+  second module `Foo.Bar` to be accessed as `Bar` in the same lexical
+  scope.
+
+  This means that, if the module `Bar` is moved to another file,
+  the references to `Bar` needs to be updated or an alias needs to
+  be explicitly set with the help of `Kernel.SpecialForms.alias/2`.
+
+  ## Dynamic names
+
+  Elixir module names can be dynamically generated. This is very
+  useful for macros. For instance, one could write:
+
+      defmodule binary_to_atom("Foo\#{1}") do
+        # contents ...
+      end
+
+  Elixir will accept any module name as long as the expression
+  returns an atom. Note that, when a dynamic name is used, an
+  alias is not automatically created, even when nested.
+  """
+  defmacro defmodule(name, do: contents)
+
+  @doc """
+  Defines a function with the given name and contents.
+
+  ## Examples
+
+      defmodule Foo do
+        def bar, do: :baz
+      end
+
+      Foo.bar #=> :baz
+
+  A function that expects arguments can be defined as follow:
+
+      defmodule Foo do
+        def sum(a, b) do
+          a + b
+        end
+      end
+
+  In the example above, we defined a function `sum` that receives
+  two arguments and sums them.
+
+  """
+  defmacro def(call, expr // nil) do
+    define(:def, call, expr, __CALLER__)
+  end
+
+  @doc """
+  Defines a function that is private. Private functions are
+  only accessible from within the module in which they are defined.
+
+  Check `def/2` for more information
+
+  ## Examples
+
+      defmodule Foo do
+        def bar do
+          sum(1, 2)
+        end
+
+        defp sum(a, b), do: a + b
+      end
+
+  In the example above, `sum` is private and accessing it
+  through `Foo.sum` will raise an error.
+  """
+  defmacro defp(call, expr // nil) do
+    define(:defp, call, expr, __CALLER__)
+  end
+
+  @doc """
+  Defines a macro with the given name and contents.
+
+  ## Examples
+
+      defmodule MyLogic do
+        defmacro unless(expr, opts) do
+          quote do
+            if !unquote(expr), unquote(opts)
+          end
+        end
+      end
+
+      require MyLogic
+      MyLogic.unless false do
+        IO.puts "It works"
+      end
+
+  """
+  defmacro defmacro(call, expr // nil) do
+    define(:defmacro, call, expr, __CALLER__)
+  end
+
+  @doc """
+  Defines a macro that is private. Private macros are
+  only accessible from the same module in which they are defined.
+
+  Check `defmacro/2` for more information
+  """
+  defmacro defmacrop(call, expr // nil) do
+    define(:defmacrop, call, expr, __CALLER__)
+  end
+
+  defp define(kind, call, expr, env) do
+    assert_module_scope(env, kind, 2)
+    assert_no_function_scope(env, kind, 2)
+    :elixir_def.wrap_definition(kind, call, expr, env)
+  end
 
   @doc %S"""
   Exports a module with a record definition and runtime operations.
@@ -3202,59 +3332,6 @@ defmodule Kernel do
   end
 
   @doc """
-  When used inside quoting, marks that the variable should
-  not be hygienized. The argument can be either a variable
-  unquoted or an atom representing the variable name.
-
-  Check `Kernel.SpecialForms.quote/2` for more information.
-  """
-  defmacro var!(var, context // nil)
-
-  defmacro var!(var, context) when is_atom(var) do
-    do_var!(var, [], context, __CALLER__)
-  end
-
-  defmacro var!({ name, meta, atom }, context) when is_atom(name) and is_atom(atom) do
-    do_var!(name, meta, context, __CALLER__)
-  end
-
-  defmacro var!(x, _context) do
-    raise ArgumentError, message: "expected a var to be given to var!, got: #{Macro.to_string(x)}"
-  end
-
-  defp do_var!(name, meta, context, env) do
-    # Remove counter and force them to be vars
-    meta = :lists.keydelete(:counter, 1, meta)
-    meta = :lists.keystore(:var, 1, meta, { :var, true })
-
-    case Macro.expand(context, env) do
-      x when is_atom(x) ->
-        { name, meta, x }
-      x ->
-        raise ArgumentError, message: "expected var! context to expand to an atom, got: #{Macro.to_string(x)}"
-    end
-  end
-
-  @doc """
-  When used inside quoting, marks that the alias should not
-  be hygienezed. This means the alias will be expanded when
-  the macro is expanded.
-
-  Check `Kernel.SpecialForms.quote/2` for more information.
-  """
-  defmacro alias!(alias)
-
-  defmacro alias!(alias) when is_atom(alias) do
-    alias
-  end
-
-  defmacro alias!({ :__aliases__, meta, args }) do
-    # Simply remove the alias metadata from the node
-    # so it does not affect expansion.
-    { :__aliases__, :lists.keydelete(:alias, 1, meta), args }
-  end
-
-  @doc """
   Defines the given functions in the current module that will
   delegate to the given `target`. Functions defined with
   `defdelegate` are public and are allowed to be invoked
@@ -3487,7 +3564,7 @@ defmodule Kernel do
   defp split_words(string, modifiers) do
     mod = case modifiers do
       [] -> ?s
-      [mod] when mod in [?s, ?a, ?c] -> mod
+      [mod] when mod == ?s or mod == ?a or mod == ?c -> mod
       _else -> raise ArgumentError, message: "modifier must be one of: s, a, c"
     end
 
@@ -3534,6 +3611,7 @@ defmodule Kernel do
 
   defp env_module(env),   do: :erlang.element(2, env)
   defp env_function(env), do: :erlang.element(5, env)
+  defp env_context(env),  do: :erlang.element(6, env)
 
   defp expand_compact([{ :compact, false }|t]), do: expand_compact(t)
   defp expand_compact([{ :compact, true }|t]),  do: [:compact|expand_compact(t)]
