@@ -9,6 +9,10 @@ defmodule HashDictTest do
     assert @dict == HashDict.new(foo: :bar)
   end
 
+  test :access_the_serialized_as_attribute do
+    assert @dict[:foo] == :bar
+  end
+
   test :smoke_small_range_test do
     smoke_test(1..8)
     smoke_test(8..1)

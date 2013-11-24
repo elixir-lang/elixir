@@ -3304,7 +3304,7 @@ defmodule Kernel do
 
         case args do
           [h] -> quote do: Access.access(unquote(element), unquote(h))
-          _   -> :erlang.error ArgumentError.exception(message: "expected at least one argument in access")
+          _   -> :erlang.error ArgumentError.exception(message: "expected one argument in access")
         end
     end
   end
