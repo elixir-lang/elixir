@@ -2760,8 +2760,9 @@ defmodule Kernel do
       end
 
   Elixir will accept any module name as long as the expression
-  returns an atom. Note that, when a dynamic name is used, an
-  alias is not automatically created, even when nested.
+  returns an atom. Note that, when a dynamic name is used, Elixir
+  won't nest the name under the current module nor automatically
+  set up an alias.
   """
   defmacro defmodule(name, do: contents)
 

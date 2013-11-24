@@ -585,7 +585,10 @@ translate_alias(Meta, IncludeByDefault, Old, TKV, S) ->
                "invalid :as for alias, nested alias ~s not allowed", [elixir_errors:inspect(New)])
   end,
 
-  { { atom, ?line(Meta), nil }, elixir_aliases:store(Meta, New, Old, TKV, S) }.
+  { Aliases, MacroAliases } = elixir_aliases:store(Meta, New, Old, TKV,
+                                S#elixir_scope.aliases, S#elixir_scope.macro_aliases, S#elixir_scope.lexical_tracker),
+
+  { { atom, ?line(Meta), nil }, S#elixir_scope{aliases=Aliases, macro_aliases=MacroAliases} }.
 
 no_alias_opts(KV) when is_list(KV) ->
   case lists:keyfind(as, 1, KV) of

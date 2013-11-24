@@ -1,34 +1,28 @@
 -module(elixir_aliases).
 -export([nesting_alias/2, last/1, concat/1, safe_concat/1,
-  format_error/1, ensure_loaded/3, ensure_loaded/4, expand/4, store/5]).
+  format_error/1, ensure_loaded/3, ensure_loaded/4, expand/4, store/7]).
 -include("elixir.hrl").
 
 %% Store an alias in the given scope
-store(_Meta, New, New, _TKV, S) -> S;
-store(Meta, New, Old, TKV, S) ->
-  record_warn(Meta, New, TKV, S),
-
-  SA = S#elixir_scope{
-    aliases=orddict:store(New, Old, S#elixir_scope.aliases)
-  },
+store(_Meta, New, New, _TKV, Aliases, MacroAliases, _Lexical) ->
+  { Aliases, MacroAliases };
+store(Meta, New, Old, TKV, Aliases, MacroAliases, Lexical) ->
+  record_warn(Meta, New, TKV, Lexical),
+  NewAliases = orddict:store(New, Old, Aliases),
 
   case lists:keymember(context, 1, Meta) of
-    true ->
-      SA#elixir_scope{
-        macro_aliases=orddict:store(New, Old, S#elixir_scope.macro_aliases)
-      };
-    false ->
-      SA
+    true  -> { NewAliases, orddict:store(New, Old, MacroAliases) };
+    false -> { NewAliases, MacroAliases }
   end.
 
-record_warn(Meta, Ref, Opts, S) ->
+record_warn(Meta, Ref, Opts, Lexical) ->
   Warn =
     case lists:keyfind(warn, 1, Opts) of
       { warn, false } -> false;
       { warn, true } -> true;
       false -> not lists:keymember(context, 1, Meta)
     end,
-  elixir_lexical:record_alias(Ref, ?line(Meta), Warn, S#elixir_scope.lexical_tracker).
+  elixir_lexical:record_alias(Ref, ?line(Meta), Warn, Lexical).
 
 %% Expand an alias. It returns an atom (meaning that there
 %% was an expansion) or a list of atoms.

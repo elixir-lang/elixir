@@ -21,14 +21,14 @@ translate({defmodule, Meta, [Ref, KV]}, S) when is_list(KV) ->
       FullModule = expand_module(Ref, Module, S),
 
       RS = case elixir_aliases:nesting_alias(S#elixir_scope.module, FullModule) of
-        { New, Old } -> elixir_aliases:store(Meta, New, Old, [{warn,false}], S);
+        { New, Old } ->
+          { Aliases, MacroAliases } = elixir_aliases:store(ref_meta(Ref), New, Old, [{warn,false}],
+                                        S#elixir_scope.aliases, S#elixir_scope.macro_aliases, S#elixir_scope.lexical_tracker),
+           S#elixir_scope{aliases=Aliases, macro_aliases=MacroAliases};
         false -> S
       end,
 
-      {
-        FullModule,
-        RS#elixir_scope{context_modules=[FullModule|S#elixir_scope.context_modules]}
-      };
+      { FullModule, RS#elixir_scope{context_modules=[FullModule|S#elixir_scope.context_modules]} };
     _ ->
       { Ref, S }
   end,
@@ -41,6 +41,9 @@ translate({ Name, Meta, Args }, S) ->
                "invalid arguments for macro ~ts/~B", [Name, length(Args)]).
 
 %% Helpers
+
+ref_meta({ '__aliases__', Meta, _ }) -> Meta;
+ref_meta(_) -> [].
 
 %% defmodule :foo
 expand_module(Raw, _Module, _S) when is_atom(Raw) ->

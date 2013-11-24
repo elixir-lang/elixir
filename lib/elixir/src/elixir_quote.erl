@@ -137,22 +137,18 @@ do_quote({ unquote, _Meta, [Expr] }, #elixir_quote{unquote=true} = Q, _) ->
 
 %% Context mark
 
-do_quote({ defmodule, Meta, [_|_] = Args }, #elixir_quote{escape=false} = Q, S) ->
+do_quote({ defmodule, Meta, [{ '__aliases__', AliasMeta, Atoms } = H|T] }, #elixir_quote{escape=false} = Q, S) ->
   %% Only store the context if we actually have a full alias as
   %% argument, otherwise the expression is being automatically
   %% generated and we don't want the alias to count.
-  NewMeta =
-    case hd(Args) of
-      { '__aliases__', _, Atoms } ->
-        case lists:all(fun is_atom/1, Atoms) of
-          true  -> keystore(context, Meta, Q#elixir_quote.context);
-          false -> Meta
-        end;
-      _ ->
-        Meta
+  NewH =
+    case lists:all(fun is_atom/1, Atoms) of
+      true  ->
+        { '__aliases__', keystore(context, AliasMeta, Q#elixir_quote.context), Atoms };
+      false ->
+        H
     end,
-
-  do_quote_tuple({ defmodule, NewMeta, Args }, Q, S);
+  do_quote_tuple({ defmodule, Meta, [NewH|T] }, Q, S);
 
 %% Store the context information in the first element of the
 %% definition tuple so we can access it later on.
@@ -166,7 +162,7 @@ do_quote({ { '.', _, [_, Def] } = Target, Meta, [{ H, M, A }|T] }, #elixir_quote
 do_quote({ Def, Meta, [_|_] = Args }, #elixir_quote{escape=false} = Q, S) when Def == alias; Def == import ->
   NewMeta = keystore(context, Meta, Q#elixir_quote.context),
   do_quote_tuple({ Def, NewMeta, Args }, Q, S);
-do_quote({ { '.', _, [_, Def] } = Target, Meta, Args }, #elixir_quote{escape=false} = Q, S) when Def == defmodule; Def == alias; Def == import ->
+do_quote({ { '.', _, [_, Def] } = Target, Meta, Args }, #elixir_quote{escape=false} = Q, S) when Def == alias; Def == import ->
   NewMeta = keystore(context, Meta, Q#elixir_quote.context),
   do_quote_tuple({ Target, NewMeta, Args }, Q, S);
 
