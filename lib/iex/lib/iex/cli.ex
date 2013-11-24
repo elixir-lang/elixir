@@ -28,7 +28,7 @@
 #
 #    And verify that the local node name is printed.
 #
-# 4. Finally, in some other circunstances, printing messages may become
+# 4. Finally, in some other circumstances, printing messages may become
 #    borked. This can be verified with:
 #
 #      $ iex -e ":error_logger.info_msg("foo~nbar", [])"
