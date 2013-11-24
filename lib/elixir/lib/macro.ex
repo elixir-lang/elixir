@@ -571,7 +571,7 @@ defmodule Macro do
     do: { env, true, cache }
 
   # Expand possible macro import invocation
-  defp expand_once({ atom, line, args } = original, env, cache) when is_atom(atom) do
+  defp expand_once({ atom, meta, args } = original, env, cache) when is_atom(atom) and is_list(meta) do
     args = case is_atom(args) do
       true  -> []
       false -> args
@@ -589,7 +589,7 @@ defmodule Macro do
         end
 
         cache  = to_erl_env(env, cache)
-        expand = :elixir_dispatch.expand_import(line, { atom, length(args) }, args,
+        expand = :elixir_dispatch.expand_import(meta, { atom, length(args) }, args,
           env.module, extra, cache)
 
         case expand do
