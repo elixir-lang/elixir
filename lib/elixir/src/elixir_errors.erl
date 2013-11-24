@@ -24,7 +24,10 @@ warn(Warning) ->
 %% Handle inspecting for exceptions modules
 
 inspect(Atom) when is_atom(Atom) ->
-  'Elixir.Inspect.Atom':inspect(Atom).
+  case elixir_compiler:get_opt(internal) of
+    true -> atom_to_binary(Atom, utf8);
+    false -> 'Elixir.Inspect.Atom':inspect(Atom)
+  end.
 
 %% Raised during macros translation.
 

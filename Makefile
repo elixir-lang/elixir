@@ -64,6 +64,7 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
 		$(ERL) -s elixir_compiler core -s erlang halt;  \
 	fi
 	@ echo "==> kernel (compile)";
+	$(Q) $(ELIXIRC) "lib/elixir/lib/kernel.ex" -o lib/elixir/ebin;
 	$(Q) $(ELIXIRC) "lib/elixir/lib/**/*.ex" -o lib/elixir/ebin;
 	$(Q) $(MAKE) unicode
 	$(Q) rm -rf lib/elixir/ebin/elixir.app

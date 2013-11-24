@@ -1980,15 +1980,15 @@ defmodule Kernel do
 
         case is_list(args) and length(args) == 1 and typespec(name) do
           false ->
-            case name == :typedoc and not bootstraped?(Kernel.Typespec) do
+            case name == :typedoc and internal? do
               true  -> nil
               false -> do_at(args, name, function?, __CALLER__)
             end
           macro ->
-            # Do not compile typespecs until Macro.Env is done
-            case bootstraped?(Kernel.Typespec) do
-              true  -> quote do: Kernel.Typespec.unquote(macro)(unquote(hd(args)))
-              false -> nil
+            # Do not compile typespecs during internal compilation
+            case internal? do
+              true  -> nil
+              false -> quote do: Kernel.Typespec.unquote(macro)(unquote(hd(args)))
             end
         end
     end
@@ -2765,16 +2765,17 @@ defmodule Kernel do
   set up an alias.
   """
   defmacro defmodule(alias, do: block) do
-    env = __CALLER__
+    env   = __CALLER__
+    boot? = bootstraped?(Macro.Env)
 
     expanded =
-      case bootstraped?(Macro.Env) do
+      case boot? do
         true  -> Macro.expand(alias, env)
         false -> alias
       end
 
     { expanded, with_alias } =
-      case bootstraped?(Macro.Env) and is_atom(expanded) do
+      case boot? and is_atom(expanded) do
         true ->
           # Expand the module considering the current environment/nesting
           full = expand_module(alias, expanded, env)
@@ -3716,8 +3717,10 @@ defmodule Kernel do
   case :code.ensure_loaded(Kernel) do
     { :module, _ } ->
       defp bootstraped?(_), do: true
+      defp internal?, do: false
     { :error, _ } ->
       defp bootstraped?(module), do: :code.ensure_loaded(module) == { :module, module }
+      defp internal?, do: :elixir_compiler.get_opt(:internal)
   end
 
   defp assert_module_scope(env, fun, arity) do

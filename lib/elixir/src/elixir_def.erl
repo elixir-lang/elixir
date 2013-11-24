@@ -75,9 +75,8 @@ store_definition(Kind, Line, CheckClauses, Name, Args, Guards, Body, #elixir_sco
   S     = DS#elixir_scope{function=Tuple},
   elixir_tracker:record_definition(Tuple, Kind, Module),
 
-  CO = elixir_compiler:get_opts(),
-  Location = retrieve_file(Line, Module, S, CO),
-  run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Body, S, CO),
+  Location = retrieve_file(Line, Module, S),
+  run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Body, S),
 
   { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Body, S),
 
@@ -100,8 +99,8 @@ store_definition(Kind, Line, CheckClauses, Name, Args, Guards, Body, #elixir_sco
 
 %% @on_definition
 
-run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO) ->
-  case elixir_compiler:get_opt(internal, CO) of
+run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S) ->
+  case elixir_compiler:get_opt(internal) of
     true ->
       ok;
     _ ->
@@ -112,8 +111,8 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO)
 
 %% Retrieve @file or fallback to default
 
-retrieve_file(Line, Module, S, CO) ->
-  case elixir_compiler:get_opt(internal, CO) of
+retrieve_file(Line, Module, S) ->
+  case elixir_compiler:get_opt(internal) of
     true -> { elixir_utils:characters_to_list(S#elixir_scope.file), Line };
     _ ->
       case 'Elixir.Module':get_attribute(Module, file) of

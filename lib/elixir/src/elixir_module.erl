@@ -51,20 +51,18 @@ compile(Module, Block, Vars, ExEnv) ->
   compile(Line, Module, Block, Vars, elixir_env:env_to_scope_with_vars(LexEnv, Dict)).
 
 compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
-  C = elixir_compiler:get_opts(),
   S = RawS#elixir_scope{module=Module},
-
   File = S#elixir_scope.file,
   FileList = elixir_utils:characters_to_list(File),
 
-  check_module_availability(Line, File, Module, C),
+  check_module_availability(Line, File, Module),
   build(Line, File, Module, S#elixir_scope.lexical_tracker),
 
   try
     Result = eval_form(Line, Module, Block, Vars, S),
     { Base, Export, Private, Def, Defmacro, Functions } = elixir_def:unwrap_definitions(FileList, Module),
 
-    { All, Forms0 } = functions_form(Line, File, Module, Base, Export, Def, Defmacro, Functions, C),
+    { All, Forms0 } = functions_form(Line, File, Module, Base, Export, Def, Defmacro, Functions),
     Forms1          = specs_form(Module, Private, Defmacro, Forms0),
     Forms2          = attributes_form(Line, File, Module, Forms1),
     Forms3          = typedocs_form(Module, Forms2),
@@ -142,13 +140,13 @@ eval_form(Line, Module, Block, Vars, S) ->
 
 %% Return the form with exports and function declarations.
 
-functions_form(Line, File, Module, BaseAll, BaseExport, Def, Defmacro, RawFunctions, C) ->
-  BaseFunctions = case elixir_compiler:get_opt(internal, C) of
+functions_form(Line, File, Module, BaseAll, BaseExport, Def, Defmacro, RawFunctions) ->
+  BaseFunctions = case elixir_compiler:get_opt(internal) of
     true  -> RawFunctions;
     false -> record_rewrite_functions(Module, RawFunctions)
   end,
 
-  Info = add_info_function(Line, File, Module, BaseExport, Def, Defmacro, C),
+  Info = add_info_function(Line, File, Module, BaseExport, Def, Defmacro),
 
   All       = [{ '__info__', 1 }|BaseAll],
   Export    = [{ '__info__', 1 }|BaseExport],
@@ -282,8 +280,8 @@ load_form(Line, Forms, Opts, #elixir_scope{file=File} = S) ->
     Binary
   end).
 
-check_module_availability(Line, File, Module, Compiler) ->
-  case elixir_compiler:get_opt(ignore_module_conflict, Compiler) of
+check_module_availability(Line, File, Module) ->
+  case elixir_compiler:get_opt(ignore_module_conflict) of
     false ->
       case code:ensure_loaded(Module) of
         { module, _ } ->
@@ -321,13 +319,13 @@ warn_unused_docs(Line, File, Module) ->
 
 % EXTRA FUNCTIONS
 
-add_info_function(Line, File, Module, Export, Def, Defmacro, C) ->
+add_info_function(Line, File, Module, Export, Def, Defmacro) ->
   Pair = { '__info__', 1 },
   case lists:member(Pair, Export) of
     true  ->
       elixir_errors:form_error(Line, File, ?MODULE, {internal_function_overridden, Pair});
     false ->
-      Docs = elixir_compiler:get_opt(docs, C),
+      Docs = elixir_compiler:get_opt(docs),
       { function, 0, '__info__', 1, [
         functions_clause(Def),
         macros_clause(Defmacro),
