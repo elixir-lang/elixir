@@ -2853,7 +2853,7 @@ defmodule Kernel do
   # In case there is no nesting/no module:
   #
   #     module_nesting(nil, 'Elixir.Foo.Bar.Baz.Bat')
-  #     { false, 'Elixir.Foo.Bar.Baz' }
+  #     { false, 'Elixir.Foo.Bar.Baz.Bat' }
   #
   defp module_nesting(nil, full),
     do: { false, full }
