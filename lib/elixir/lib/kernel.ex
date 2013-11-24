@@ -2552,7 +2552,7 @@ defmodule Kernel do
 
         case args do
           [h] -> quote do: Access.access(unquote(element), unquote(h))
-          _   -> raise ArgumentError, message: "expected at least one argument in access"
+          _   -> raise ArgumentError, message: "expected one argument in access"
         end
     end
   end
