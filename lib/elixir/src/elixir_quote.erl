@@ -1,7 +1,6 @@
 %% Implements Elixir quote.
 -module(elixir_quote).
--export([escape/2, erl_quote/4,
-         linify/2, linify/3, unquote/4, tail_join/3, join/2]).
+-export([escape/2, linify/2, linify/3, quote/4, unquote/4, tail_join/3, join/2]).
 -include("elixir.hrl").
 
 %% Apply the line from site call on quoted contents.
@@ -94,14 +93,15 @@ argument_error(Message) ->
 %% Escapes the given expression. It is similar to quote, but
 %% lines are kept and hygiene mechanisms are disabled.
 escape(Expr, Unquote) ->
-  quote(Expr, nil, #elixir_quote{
+  { Res, Q } = quote(Expr, nil, #elixir_quote{
     line=keep,
     vars_hygiene=false,
     aliases_hygiene=false,
     imports_hygiene=false,
     unquote=Unquote,
     escape=true
-  }, nil).
+  }, nil),
+  { Res, Q#elixir_quote.unquoted }.
 
 %% Quotes an expression and return its quoted Elixir AST.
 
@@ -120,11 +120,6 @@ quote(Expr, Binding, Q, S) ->
 
   { TExprs, TQ } = do_quote(Expr, Q, S),
   { { '{}',[], ['__block__',[], Vars ++ [TExprs] ] }, TQ }.
-
-erl_quote(Expr, Binding, Q, S) ->
-  { QExpr, TQ } = quote(Expr, Binding, Q, S),
-  { TExpr, TS } = elixir_translator:translate_each(QExpr, S),
-  { TExpr, TQ, TS }.
 
 %% Actual quoting and helpers
 

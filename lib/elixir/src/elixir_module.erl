@@ -36,7 +36,8 @@ docs_table(Module) ->
 
 %% Compilation hook
 
-compile(Module, Block, Vars, #elixir_env{line=Line} = Env) ->
+compile(Module, Block, Vars, ExEnv) ->
+  #elixir_env{line=Line} = Env = elixir_env:ex_to_env(ExEnv),
   Dict = [{ { Name, Kind }, Value } || { Name, Kind, Value, _ } <- Vars],
 
   %% In case we are generating a module from inside a function,
@@ -61,7 +62,7 @@ compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
 
   try
     Result = eval_form(Line, Module, Block, Vars, S),
-    { Base, Export, Private, Def, Defmacro, Functions } = elixir_def:unwrap_stored_definitions(FileList, Module),
+    { Base, Export, Private, Def, Defmacro, Functions } = elixir_def:unwrap_definitions(FileList, Module),
 
     { All, Forms0 } = functions_form(Line, File, Module, Base, Export, Def, Defmacro, Functions, C),
     Forms1          = specs_form(Module, Private, Defmacro, Forms0),
@@ -294,7 +295,6 @@ check_module_availability(Line, File, Module, Compiler) ->
       []
   end.
 
-warn_invalid_clauses(_Line, _File, 'Elixir.Kernel', _All) -> ok;
 warn_invalid_clauses(_Line, _File, 'Elixir.Kernel.SpecialForms', _All) -> ok;
 warn_invalid_clauses(_Line, File, Module, All) ->
   ets:foldl(fun

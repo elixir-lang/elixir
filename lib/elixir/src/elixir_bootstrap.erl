@@ -20,14 +20,9 @@
 'MACRO-defmacro'(Caller, Call, Expr) -> definition(Caller, defmacro, Call, Expr).
 'MACRO-defmacrop'(Caller, Call, Expr) -> definition(Caller, defmacrop, Call, Expr).
 
-'MACRO-defmodule'(Caller, Alias, [{do,Block}]) ->
-  ExEnv = elixir_env:scope_to_ex(Caller),
-  Env = elixir_env:ex_to_env(ExEnv),
-
+'MACRO-defmodule'(_Caller, Alias, [{do,Block}]) ->
   { Escaped, _ } = elixir_quote:escape(Block, false),
-  QuotedEnv = elixir_env:serialize(Env),
-
-  Args = [Alias, Escaped, [], QuotedEnv],
+  Args = [Alias, Escaped, [], env()],
   { { '.', [], [elixir_module, compile] }, [], Args }.
 
 '__info__'(functions) ->
@@ -38,18 +33,21 @@
    {def,2},
    {defmacro,1},
    {defmacro,2},
-   {defmacrop,1},
    {defmacrop,2},
    {defmodule,2},
-   {defp,1},
    {defp,2}].
 
-definition(Caller, Kind, Call, Expr) ->
-  Env = elixir_env:scope_to_ex(Caller),
-  elixir_def:wrap_definition(Kind, Call, Expr, Env).
+definition(_Caller, Kind, Call, Expr) ->
+  { EscapedCall, UC } = elixir_quote:escape(Call, true),
+  { EscapedExpr, UE } = elixir_quote:escape(Expr, true),
+  Args = [Kind, not(UC or UE), EscapedCall, EscapedExpr, env()],
+  { { '.', [], [elixir_def, store_definition] }, [], Args }.
 
 unless_loaded(Fun, Args, Callback) ->
   case code:is_loaded(?kernel) of
     { _, _} -> apply(?kernel, Fun, Args);
     false   -> Callback()
   end.
+
+env() ->
+  { '__ENV__', [], nil }.

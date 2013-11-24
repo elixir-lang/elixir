@@ -1,7 +1,7 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([ex_to_env/1, env_to_scope/1, env_to_scope_with_vars/2,
-         ex_to_scope/1, scope_to_ex/1, serialize/1, serialize_with_vars/1]).
+         ex_to_scope/1, scope_to_ex/1]).
 
 %% Conversion in between #elixir_env, #elixir_scope and Macro.Env
 
@@ -39,22 +39,3 @@ scope_to_ex({ Line, #elixir_scope{module=Module,file=File,
 
 ex_to_scope(Env) ->
   env_to_scope(ex_to_env(Env)).
-
-%% Serialization
-
-serialize(#elixir_env{lexical_tracker=nil} = Env) ->
-  { '{}', [], tuple_to_list(Env) };
-serialize(#elixir_env{lexical_tracker=Lexical} = Env) ->
-  Expr = { { '.', [], [erlang, binary_to_term] }, [], [term_to_binary(Lexical)] },
-  { '{}', [], tuple_to_list(Env#elixir_env{lexical_tracker=Expr}) }.
-
-serialize_with_vars(#elixir_env{} = Env) ->
-  { Vars, _ } = lists:mapfoldl(fun var_to_tuple/2, 0, Env#elixir_env.vars),
-  { serialize(Env), Vars }.
-
-var_to_tuple({ Key, Kind }, Counter) ->
-  Var = if is_atom(Kind) -> { Key, [], Kind };
-           is_integer(Kind) -> { Key, [{ counter, Kind }], nil }
-        end,
-  Args = [Key, Kind, ?atom_concat(["_@", Counter]), Var],
-  { { '{}', [], Args }, Counter + 1 }.

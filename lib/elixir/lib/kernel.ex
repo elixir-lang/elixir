@@ -2793,9 +2793,8 @@ defmodule Kernel do
 
     quote do
       unquote(with_alias)
-
       :elixir_module.compile(unquote(expanded), unquote(escaped),
-                             unquote(quoted_vars), :elixir_env.ex_to_env(__ENV__))
+                             unquote(quoted_vars), __ENV__)
     end
   end
 
@@ -2927,7 +2926,17 @@ defmodule Kernel do
   defp define(kind, call, expr, env) do
     assert_module_scope(env, kind, 2)
     assert_no_function_scope(env, kind, 2)
-    :elixir_def.wrap_definition(kind, call, expr, env)
+
+    { call, uc } = :elixir_quote.escape(call, true)
+    { expr, ue } = :elixir_quote.escape(expr, true)
+
+    # Do not check clauses if any expression was unquoted
+    check_clauses = not(ue or uc)
+
+    quote do
+      :elixir_def.store_definition(unquote(kind), unquote(check_clauses),
+                                   unquote(call), unquote(expr), __ENV__)
+    end
   end
 
   @doc %S"""

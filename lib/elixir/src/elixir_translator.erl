@@ -248,8 +248,8 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
   Q = #elixir_quote{vars_hygiene=Vars, line=Line, unquote=Unquote,
         aliases_hygiene=Aliases, imports_hygiene=Imports, context=Context},
 
-  { TExprs, _TQ, TS } = elixir_quote:erl_quote(QExprs, Binding, Q, ST),
-  { TExprs, TS };
+  { TQuoted, _Q } = elixir_quote:quote(QExprs, Binding, Q, ST),
+  translate_each(TQuoted, ST);
 
 translate_each({ quote, Meta, [_, _] }, S) ->
   syntax_error(Meta, S#elixir_scope.file, "invalid args for quote");
