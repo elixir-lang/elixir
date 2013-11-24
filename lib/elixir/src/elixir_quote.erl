@@ -1,6 +1,6 @@
-%% Implements Elixir quote.
 -module(elixir_quote).
--export([escape/2, linify/2, linify/3, quote/4, unquote/4, tail_join/3, join/2]).
+-export([escape/2, linify/2, linify/3, quote/4]). %% Exposed API
+-export([unquote/4, tail_join/3, join/2]).        %% Quote callbacks
 -include("elixir.hrl").
 -define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
 
@@ -169,7 +169,8 @@ do_quote({ 'alias!', _Meta, [Expr] }, #elixir_quote{aliases_hygiene=true} = Q, S
   { TExpr, TQ#elixir_quote{aliases_hygiene=true} };
 
 do_quote({ '__aliases__', Meta, [H|T] } = Alias, #elixir_quote{aliases_hygiene=true} = Q, S) when is_atom(H) and (H /= 'Elixir') ->
-  Annotation = case elixir_aliases:expand(Alias, S#elixir_scope.aliases, S#elixir_scope.macro_aliases, S#elixir_scope.lexical_tracker) of
+  Annotation = case elixir_aliases:expand(Alias, S#elixir_scope.aliases,
+                      S#elixir_scope.macro_aliases, S#elixir_scope.lexical_tracker) of
     Atom when is_atom(Atom) -> Atom;
     Aliases when is_list(Aliases) -> false
   end,

@@ -40,8 +40,6 @@ import_function(Meta, Name, Arity, S) ->
   Tuple = { Name, Arity },
   case find_dispatch(Meta, Tuple, S) of
     { function, Receiver } ->
-      elixir_lexical:record_import(Receiver, S#elixir_scope.lexical_tracker),
-      elixir_tracker:record_import(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
       remote_function(Meta, Receiver, Name, Arity, S);
     { macro, _Receiver } ->
       false;
@@ -57,15 +55,29 @@ import_function(Meta, Name, Arity, S) ->
   end.
 
 require_function(Meta, Receiver, Name, Arity, S) ->
-  Tuple = { Name, Arity },
-
-  case is_element(Tuple, get_optional_macros(Receiver)) of
+  case is_element({ Name, Arity }, get_optional_macros(Receiver)) of
     true  -> false;
-    false ->
-      elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker),
-      elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
-      remote_function(Meta, Receiver, Name, Arity, S)
+    false -> remote_function(Meta, Receiver, Name, Arity, S)
   end.
+
+remote_function(Meta, Receiver, Name, Arity, S) ->
+  Tuple = { Name, Arity },
+  elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker),
+  elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
+
+  Final =
+    case (Receiver == ?builtin) andalso is_element(Tuple, in_erlang_functions()) of
+      true  -> erlang;
+      false -> Receiver
+    end,
+
+  Line = ?line(Meta),
+
+  { { 'fun', Line, { function,
+    { atom, Line, Final },
+    { atom, Line, Name },
+    { integer, Line, Arity}
+  } }, S }.
 
 %% Function dispatch
 
@@ -133,11 +145,17 @@ do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
       do_expand_import_no_local(Meta, Tuple, Args, Module, S, Result);
     _ ->
       case Result of
+        %% In case it is an import or the receive is the same as the
+        %% current module (happens in bootstraping/conflicts), resolve it.
         { Kind, Receiver } when Kind == import; Receiver == Module ->
           do_expand_import_no_local(Meta, Tuple, Args, Module, S, Result);
+
+        %% There is a function and a match. This is a conflict.
         { _, Receiver } ->
           Error = { macro_conflict, { Receiver, Name, Arity } },
           elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, Error);
+
+        %% There is a function and no match, invoke the local function.
         false ->
           elixir_tracker:record_local(Tuple, Module, S#elixir_scope.function),
           { ok, Module, expand_macro_fun(Meta, Fun(), Module, Name, Args, Module, S) }
@@ -146,10 +164,6 @@ do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
 
 do_expand_import_no_local(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
   case Result of
-    { macro, ?builtin } ->
-      elixir_lexical:record_import(?builtin, S#elixir_scope.lexical_tracker),
-      elixir_tracker:record_import(Tuple, ?builtin, Module, S#elixir_scope.function),
-      { ok, ?builtin, expand_macro_named(Meta, ?builtin, Name, Arity, Args, Module, S) };
     { macro, Receiver } ->
       elixir_lexical:record_import(Receiver, S#elixir_scope.lexical_tracker),
       elixir_tracker:record_import(Tuple, Receiver, Module, S#elixir_scope.function),
@@ -159,16 +173,6 @@ do_expand_import_no_local(Meta, { Name, Arity } = Tuple, Args, Module, S, Result
     _ ->
       { error, noexpansion }
   end.
-
-expand_require(Meta, ?builtin, { Name, Arity } = Tuple, Args, Module, S) ->
-  case is_element(Tuple, in_elixir_macros()) of
-    true  ->
-      elixir_lexical:record_remote(?builtin, S#elixir_scope.lexical_tracker),
-      elixir_tracker:record_remote(Tuple, ?builtin, S#elixir_scope.module, S#elixir_scope.function),
-      { ok, ?builtin, expand_macro_named(Meta, ?builtin, Name, Arity, Args, Module, S) };
-    false ->
-      { error, noexpansion }
-  end;
 
 expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, Module, S) ->
   Function = S#elixir_scope.function,
@@ -306,22 +310,6 @@ prune_stacktrace(Info, [H|T], S) ->
 prune_stacktrace(Info, [], _) ->
   [Info].
 
-remote_function(Meta, Receiver, Name, Arity, S) ->
-  Line  = ?line(Meta),
-
-  Final =
-    case (Receiver == ?builtin) andalso is_element({ Name, Arity }, in_erlang_functions()) of
-      true  -> erlang;
-      false -> Receiver
-    end,
-
-  { { 'fun', Line, { function,
-    { atom, Line, Final },
-    { atom, Line, Name },
-    { integer, Line, Arity}
-  } }, S }.
-
-
 %% ERROR HANDLING
 
 format_error({ unrequired_module, { Receiver, Name, Arity, _Required }}) ->
@@ -362,15 +350,6 @@ elixir_imported_functions() ->
   end.
 
 elixir_imported_macros() ->
-  try
-    ?builtin:'__info__'(macros)
-  catch
-    error:undef -> []
-  end.
-
-%% Macros imported from Kernel module. Sorted on compilation.
-
-in_elixir_macros() ->
   try
     ?builtin:'__info__'(macros)
   catch

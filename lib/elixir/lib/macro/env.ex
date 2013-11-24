@@ -33,7 +33,7 @@ defmodule Macro.Env do
   @type functions :: [{ module, [name_arity] }]
   @type macros :: [{ module, [name_arity] }]
   @type context_modules :: [module]
-  @type vars :: [{ atom, atom }]
+  @type vars :: [{ atom, atom | non_neg_integer }]
   @type lexical_tracker :: pid
 
   fields = [:module, :file, :line, :function, :context, :requires, :aliases, :functions,
