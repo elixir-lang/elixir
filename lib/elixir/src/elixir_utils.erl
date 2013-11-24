@@ -5,7 +5,7 @@
   get_line/1, split_last/1, elixir_to_erl/3,
   characters_to_list/1, characters_to_binary/1,
   cons_to_list/1, list_to_cons/2, list_to_cons/3,
-  convert_to_boolean/5, returns_boolean/1,
+  convert_to_boolean/4, returns_boolean/1,
   file_type/1, file_type/2, relative_to_cwd/1]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
@@ -164,17 +164,17 @@ returns_boolean({ 'case', _, _, Clauses }) ->
 
 returns_boolean(_) -> false.
 
-convert_to_boolean(Line, Expr, Bool, InGuard, S) when is_integer(Line) ->
+convert_to_boolean(Line, Expr, Bool, S) when is_integer(Line) ->
   case { returns_boolean(Expr), Bool } of
     { true, true }  -> { Expr, S };
     { true, false } -> { { op, Line, 'not', Expr }, S };
-    _               -> do_convert_to_boolean(Line, Expr, Bool, InGuard, S)
+    _               -> do_convert_to_boolean(Line, Expr, Bool, S)
   end.
 
 %% Notice we use a temporary var and bundle nil
 %% and false checks in the same clause since
 %% it makes dialyzer happy.
-do_convert_to_boolean(Line, Expr, Bool, false, S) ->
+do_convert_to_boolean(Line, Expr, Bool, S) ->
   Any         = { var, Line, '_' },
   { Var, TS } = elixir_scope:build_erl_var(Line, S),
   OrElse      = do_guarded_convert_to_boolean(Line, Var, 'orelse', '=='),
@@ -185,13 +185,7 @@ do_convert_to_boolean(Line, Expr, Bool, false, S) ->
   { { 'case', Line, Expr, [
     { clause, Line, [Var], [[OrElse]], [FalseResult] },
     { clause, Line, [Any], [], [TrueResult] }
-  ] }, TS };
-
-do_convert_to_boolean(Line, Expr, true, true, S) ->
-  { do_guarded_convert_to_boolean(Line, Expr, 'andalso', '/='), S };
-
-do_convert_to_boolean(Line, Expr, false, true, S) ->
-  { do_guarded_convert_to_boolean(Line, Expr, 'orelse', '=='), S }.
+  ] }, TS }.
 
 do_guarded_convert_to_boolean(Line, Expr, Op, Comp) ->
   Left  = { op, Line, Comp, Expr, { atom, Line, false } },

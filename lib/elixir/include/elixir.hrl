@@ -36,6 +36,24 @@
   functions                %% a list with functions imported from module
 }).
 
+-record(elixir_env, {
+  module=nil,
+  file=nil,
+  line=nil,
+  function=nil,
+  context=nil,
+  requires,
+  aliases,
+  functions,
+  macros,
+  macro_aliases=[],
+  macro_functions=[],
+  macro_macros=[],
+  context_modules=[],
+  vars=[],
+  lexical_tracker=nil
+}).
+
 -record(elixir_quote, {
   line=nil,
   context=nil,
@@ -53,9 +71,6 @@
   check_terminators=true,
   existing_atoms_only=false
 }).
-
-%% Introspection
--define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
 
 %% Used in tokenization and interpolation
 

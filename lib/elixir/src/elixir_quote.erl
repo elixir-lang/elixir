@@ -1,8 +1,8 @@
 %% Implements Elixir quote.
 -module(elixir_quote).
--export([escape/2, erl_escape/3, erl_quote/4,
-         linify/2, linify/3, unquote/4, tail_join/3, join/2]).
+-export([escape/2, linify/2, linify/3, quote/4, unquote/4, tail_join/3, join/2]).
 -include("elixir.hrl").
+-define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
 
 %% Apply the line from site call on quoted contents.
 linify(Line, Exprs) when is_integer(Line) ->
@@ -94,19 +94,15 @@ argument_error(Message) ->
 %% Escapes the given expression. It is similar to quote, but
 %% lines are kept and hygiene mechanisms are disabled.
 escape(Expr, Unquote) ->
-  quote(Expr, nil, #elixir_quote{
+  { Res, Q } = quote(Expr, nil, #elixir_quote{
     line=keep,
     vars_hygiene=false,
     aliases_hygiene=false,
     imports_hygiene=false,
     unquote=Unquote,
     escape=true
-  }, nil).
-
-erl_escape(Expr, Unquote, S) ->
-  { QExpr, TQ } = escape(Expr, Unquote),
-  { TExpr, TS } = elixir_translator:translate_each(QExpr, S),
-  { TExpr, TQ, TS }.
+  }, nil),
+  { Res, Q#elixir_quote.unquoted }.
 
 %% Quotes an expression and return its quoted Elixir AST.
 
@@ -126,11 +122,6 @@ quote(Expr, Binding, Q, S) ->
   { TExprs, TQ } = do_quote(Expr, Q, S),
   { { '{}',[], ['__block__',[], Vars ++ [TExprs] ] }, TQ }.
 
-erl_quote(Expr, Binding, Q, S) ->
-  { QExpr, TQ } = quote(Expr, Binding, Q, S),
-  { TExpr, TS } = elixir_translator:translate_each(QExpr, S),
-  { TExpr, TQ, TS }.
-
 %% Actual quoting and helpers
 
 do_quote({ quote, _, Args } = Tuple, #elixir_quote{unquote=true} = Q, S) when length(Args) == 1; length(Args) == 2 ->
@@ -142,28 +133,32 @@ do_quote({ unquote, _Meta, [Expr] }, #elixir_quote{unquote=true} = Q, _) ->
 
 %% Context mark
 
-do_quote({ defmodule, Meta, [_|_] = Args }, #elixir_quote{escape=false} = Q, S) ->
+do_quote({ defmodule, Meta, [{ '__aliases__', AliasMeta, Atoms } = H|T] }, #elixir_quote{escape=false} = Q, S) ->
   %% Only store the context if we actually have a full alias as
   %% argument, otherwise the expression is being automatically
   %% generated and we don't want the alias to count.
-  NewMeta =
-    case hd(Args) of
-      { '__aliases__', _, Atoms } ->
-        case lists:all(fun is_atom/1, Atoms) of
-          true  -> keystore(context, Meta, Q#elixir_quote.context);
-          false -> Meta
-        end;
-      _ ->
-        Meta
+  NewH =
+    case lists:all(fun is_atom/1, Atoms) of
+      true  ->
+        { '__aliases__', keystore(context, AliasMeta, Q#elixir_quote.context), Atoms };
+      false ->
+        H
     end,
+  do_quote_tuple({ defmodule, Meta, [NewH|T] }, Q, S);
 
-  do_quote_tuple({ defmodule, NewMeta, Args }, Q, S);
+%% Store the context information in the first element of the
+%% definition tuple so we can access it later on.
+do_quote({ Def, Meta, [{ H, M, A }|T] }, #elixir_quote{escape=false} = Q, S) when ?defs(Def) ->
+  MM = keystore(context, M, Q#elixir_quote.context),
+  do_quote_tuple({ Def, Meta, [{ H, MM, A }|T] }, Q, S);
+do_quote({ { '.', _, [_, Def] } = Target, Meta, [{ H, M, A }|T] }, #elixir_quote{escape=false} = Q, S) when ?defs(Def) ->
+  MM = keystore(context, M, Q#elixir_quote.context),
+  do_quote_tuple({ Target, Meta, [{ H, MM, A }|T] }, Q, S);
 
-do_quote({ Def, Meta, [_|_] = Args }, #elixir_quote{escape=false} = Q, S) when ?defs(Def); Def == alias; Def == import ->
+do_quote({ Def, Meta, [_|_] = Args }, #elixir_quote{escape=false} = Q, S) when Def == alias; Def == import ->
   NewMeta = keystore(context, Meta, Q#elixir_quote.context),
   do_quote_tuple({ Def, NewMeta, Args }, Q, S);
-
-do_quote({ { '.', _, [_, Def] } = Target, Meta, Args }, #elixir_quote{escape=false} = Q, S) when ?defs(Def); Def == defmodule; Def == alias; Def == import ->
+do_quote({ { '.', _, [_, Def] } = Target, Meta, Args }, #elixir_quote{escape=false} = Q, S) when Def == alias; Def == import ->
   NewMeta = keystore(context, Meta, Q#elixir_quote.context),
   do_quote_tuple({ Target, NewMeta, Args }, Q, S);
 

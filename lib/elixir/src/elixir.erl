@@ -127,7 +127,7 @@ eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
   eval_forms(Tree, Binding, scope_for_eval(Opts));
 
 eval_forms(Tree, Binding, Scope) ->
-  { ParsedBinding, ParsedScope } = elixir_scope:load_binding(Binding, Scope, nil),
+  { ParsedBinding, ParsedScope } = elixir_scope:load_binding(Binding, Scope),
   { Exprs, NewScope } = elixir_translator:translate(Tree, ParsedScope),
   case Exprs of
     [] ->

@@ -99,7 +99,6 @@ defmodule KernelTest do
     assert macro_exported?(Kernel, :def, 1) == true
     assert macro_exported?(Kernel, :def, 2) == true
     assert macro_exported?(Kernel, :def, 3) == false
-    assert macro_exported?(Kernel, :def, 4) == true
     assert macro_exported?(Kernel, :no_such_macro, 2) == false
   end
 
@@ -201,70 +200,6 @@ defmodule KernelTest do
     end
   end
 
-  defmodule Runtime do
-    use ExUnit.Case, async: true
-    defp kernel, do: Kernel
-
-    test :not do
-      assert kernel.not(true) == false
-      assert kernel.not(false) == true
-    end
-
-    test :! do
-      assert kernel.!(true) == false
-      assert kernel.!(nil) == true
-      assert kernel.!(false) == true
-    end
-
-    test :list do
-      assert kernel.++([1], [2]) == [1, 2]
-      assert kernel.--([1], [1]) == []
-    end
-
-    test :math do
-      assert kernel.+(1, 2) == 3
-      assert kernel.-(2, 2) == 0
-      assert kernel.*(2, 2) == 4
-      assert kernel./(2, 2) == 1.0
-    end
-
-    test :unary do
-      assert kernel.+(1) == 1
-      assert kernel.-(1) == -1
-    end
-
-    test :send do
-      kernel.<-(self, :hello)
-      assert_received :hello
-    end
-
-    test :comp do
-      assert kernel.==(1, 1)
-      refute kernel.==(1, 2)
-
-      assert kernel.!=(1, 2)
-      refute kernel.!=(1, 1)
-
-      assert kernel.===(1, 1)
-      refute kernel.===(1, 2)
-
-      assert kernel.!==(1, 2)
-      refute kernel.!==(1, 1)
-
-      assert kernel.>(1, 0)
-      refute kernel.>(1, 2)
-
-      assert kernel.<(0, 1)
-      refute kernel.<(2, 1)
-
-      assert kernel.>=(1, 0)
-      refute kernel.>=(1, 2)
-
-      assert kernel.<=(0, 1)
-      refute kernel.<=(2, 1)
-    end
-  end
-
   defmodule DefDelegate do
     use ExUnit.Case, async: true
 
@@ -319,30 +254,6 @@ defmodule KernelTest do
     defp local(list) do
       Enum.map(list, &(&1 * 2))
     end
-  end
-
-  defmodule Bang do
-    use ExUnit.Case, async: true
-
-    test :bang do
-      assert bang(1)     == :truthy
-      assert bang(true)  == :truthy
-      assert bang(nil)   == :falsy
-      assert bang(false) == :falsy
-    end
-
-    test :bangbang do
-      assert bangbang(1)     == :truthy
-      assert bangbang(true)  == :truthy
-      assert bangbang(nil)   == :falsy
-      assert bangbang(false) == :falsy
-    end
-
-    defp bangbang(value) when !!value, do: :truthy
-    defp bangbang(_), do: :falsy
-
-    defp bang(value) when !value, do: :falsy
-    defp bang(_), do: :truthy
   end
 
   defmodule IfScope do

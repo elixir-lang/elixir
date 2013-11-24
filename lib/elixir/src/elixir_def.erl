@@ -7,10 +7,9 @@
   reset_last/1,
   lookup_definition/2,
   delete_definition/2,
-  wrap_definition/6,
-  store_definition/7,
+  store_definition/5,
+  unwrap_definitions/2,
   store_each/8,
-  unwrap_stored_definitions/2,
   format_error/1]).
 -include("elixir.hrl").
 
@@ -53,39 +52,12 @@ delete_definition(Module, Tuple) ->
   ets:delete(table(Module), Tuple),
   ets:delete(clauses_table(Module), Tuple).
 
-%% Wraps the function into a call to store_definition once the function
-%% definition is read. The function is compiled into a meta tree to ensure
-%% we will receive the full function.
-%%
-%% We need to wrap functions instead of eagerly defining them to ensure
-%% functions inside branches won't propagate, for example:
-%%
-%%   if false do
-%%     def bar, do: 1
-%%   else
-%%     def bar, do: 2
-%%   end
-%%
-%% If we just analyzed the compiled structure (i.e. the function availables
-%% before evaluating the function body), we would see both definitions.
-
-wrap_definition(Kind, Meta, Call, Expr, CheckClauses, S) ->
-  Line = ?line(Meta),
-  ?wrap_call(Line, ?MODULE, store_definition, [
-    {atom, Line, Kind},
-    {integer, Line, Line},
-    {atom, Line, CheckClauses},
-    {var, Line, '_@MODULE'},
-    Call,
-    Expr,
-    elixir_scope:serialize(S)
-  ]).
-
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
-store_definition(Kind, Line, CheckClauses, Module, Call, Body, RawS) ->
-  S = elixir_scope:deserialize(RawS),
+store_definition(Kind, CheckClauses, Call, Body, ExEnv) ->
+  #elixir_env{line=Line} = Env = elixir_env:ex_to_env(ExEnv),
+  S = elixir_env:env_to_scope(Env),
   { NameAndArgs, Guards } = elixir_clauses:extract_guards(Call),
 
   { Name, Args } = case elixir_clauses:extract_args(NameAndArgs) of
@@ -96,16 +68,18 @@ store_definition(Kind, Line, CheckClauses, Module, Call, Body, RawS) ->
       Tuple
   end,
 
+  %% Now that we have verified the call format, extract
+  %% meta information and check for context.
+  { _, Meta, _ } = Call,
+  DoCheckClauses = (not lists:keymember(context, 1, Meta)) andalso (CheckClauses),
+
   assert_no_aliases_name(Line, Name, Args, S),
-  store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, S).
+  store_definition(Kind, Line, DoCheckClauses, Name, Args, Guards, Body, S).
 
-store_definition(Kind, Line, _CheckClauses, nil, _Name, _Args, _Guards, _Body, #elixir_scope{file=File}) ->
-  elixir_errors:form_error(Line, File, ?MODULE, { no_module, Kind });
-
-store_definition(Kind, Line, CheckClauses, Module, Name, Args, Guards, Body, #elixir_scope{} = DS) ->
+store_definition(Kind, Line, CheckClauses, Name, Args, Guards, Body, #elixir_scope{module=Module} = DS) ->
   Arity = length(Args),
   Tuple = { Name, Arity },
-  S = DS#elixir_scope{module=Module, function=Tuple},
+  S     = DS#elixir_scope{function=Tuple},
   elixir_tracker:record_definition(Tuple, Kind, Module),
 
   CO = elixir_compiler:get_opts(),
@@ -138,7 +112,7 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S, CO)
     true ->
       ok;
     _ ->
-      Env = elixir_scope:to_ex_env({ Line, S }),
+      Env = elixir_env:scope_to_ex({ Line, S }),
       Callbacks = 'Elixir.Module':get_attribute(Module, on_definition),
       [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || { Mod, Fun } <- Callbacks]
   end.
@@ -204,7 +178,7 @@ translate_clause(Line, Kind, Unpacked, Guards, Body, S) ->
     true  ->
       FBody = { 'match', Line,
         { 'var', Line, '__CALLER__' },
-        ?wrap_call(Line, elixir_scope, to_ex_env, [{ var, Line, '_@CALLER' }])
+        ?wrap_call(Line, elixir_env, scope_to_ex, [{ var, Line, '_@CALLER' }])
       },
       setelement(5, TClause, [FBody|element(5, TClause)]);
     false -> TClause
@@ -222,20 +196,20 @@ is_macro(_)         -> false.
 % Unwrap the functions stored in the functions table.
 % It returns a list of all functions to be exported, plus the macros,
 % and the body of all functions.
-unwrap_stored_definitions(File, Module) ->
+unwrap_definitions(File, Module) ->
   Table = table(Module),
   CTable = clauses_table(Module),
   ets:delete(Table, last),
-  unwrap_stored_definition(ets:tab2list(Table), CTable, File, [], [], [], [], [], [], []).
+  unwrap_definition(ets:tab2list(Table), CTable, File, [], [], [], [], [], [], []).
 
-unwrap_stored_definition([Fun|T], CTable, File, All, Exports, Private, Def, Defmacro, Functions, Tail) ->
+unwrap_definition([Fun|T], CTable, File, All, Exports, Private, Def, Defmacro, Functions, Tail) ->
   Tuple   = element(1, Fun),
   Clauses = [Clause || { _, Clause } <- ets:lookup(CTable, Tuple)],
 
   { NewFun, NewExports, NewPrivate, NewDef, NewDefmacro } =
     case Clauses of
       [] -> { false, Exports, Private, Def, Defmacro };
-      _  -> unwrap_stored_definition(element(2, Fun), Tuple, Fun, Exports, Private, Def, Defmacro)
+      _  -> unwrap_definition(element(2, Fun), Tuple, Fun, Exports, Private, Def, Defmacro)
     end,
 
   { NewFunctions, NewTail } = case NewFun of
@@ -247,26 +221,26 @@ unwrap_stored_definition([Fun|T], CTable, File, All, Exports, Private, Def, Defm
       function_for_stored_definition(NewFun, Clauses, File, Functions, Tail)
   end,
 
-  unwrap_stored_definition(T, CTable, File, NewAll, NewExports, NewPrivate,
+  unwrap_definition(T, CTable, File, NewAll, NewExports, NewPrivate,
     NewDef, NewDefmacro, NewFunctions, NewTail);
 
-unwrap_stored_definition([], _CTable, _File, All, Exports, Private, Def, Defmacro, Functions, Tail) ->
+unwrap_definition([], _CTable, _File, All, Exports, Private, Def, Defmacro, Functions, Tail) ->
   { All, Exports, Private, ordsets:from_list(Def),
     ordsets:from_list(Defmacro), lists:reverse(Tail ++ Functions) }.
 
-unwrap_stored_definition(def, Tuple, Fun, Exports, Private, Def, Defmacro) ->
+unwrap_definition(def, Tuple, Fun, Exports, Private, Def, Defmacro) ->
   { Fun, [Tuple|Exports], Private, [Tuple|Def], Defmacro };
 
-unwrap_stored_definition(defmacro, { Name, Arity } = Tuple, Fun, Exports, Private, Def, Defmacro) ->
+unwrap_definition(defmacro, { Name, Arity } = Tuple, Fun, Exports, Private, Def, Defmacro) ->
   Macro = { ?elixir_macro(Name), Arity + 1 },
   { setelement(1, Fun, Macro), [Macro|Exports], Private, Def, [Tuple|Defmacro] };
 
-unwrap_stored_definition(defp, Tuple, Fun, Exports, Private, Def, Defmacro) ->
+unwrap_definition(defp, Tuple, Fun, Exports, Private, Def, Defmacro) ->
   %% { Name, Arity }, Kind, Line, Check, Defaults
   Info = { Tuple, defp, element(3, Fun), element(5, Fun), element(7, Fun) },
   { Fun, Exports, [Info|Private], Def, Defmacro };
 
-unwrap_stored_definition(defmacrop, Tuple, Fun, Exports, Private, Def, Defmacro) ->
+unwrap_definition(defmacrop, Tuple, Fun, Exports, Private, Def, Defmacro) ->
   %% { Name, Arity }, Kind, Line, Check, Defaults
   Info  = { Tuple, defmacrop, element(3, Fun), element(5, Fun), element(7, Fun) },
   { false, Exports, [Info|Private], Def, Defmacro }.

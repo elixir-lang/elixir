@@ -4,8 +4,7 @@
 -export([syntax_error/3, syntax_error/4,
   compile_error/3, compile_error/4, inspect/1,
   form_error/4, parse_error/4, assert_module_scope/3,
-  assert_no_function_scope/3, assert_function_scope/3,
-  assert_no_match_scope/3, assert_no_guard_scope/3,
+  assert_function_scope/3, assert_no_match_scope/3, assert_no_guard_scope/3,
   assert_no_match_or_guard_scope/3, warn/1,
   handle_file_warning/2, handle_file_warning/3, handle_file_error/2,
   deprecation/3, deprecation/4]).
@@ -184,10 +183,6 @@ handle_file_error(File, {Line,Module,Desc}) ->
   form_error(Line, File, Module, Desc).
 
 %% Assertions
-
-assert_no_function_scope(_Meta, _Kind, #elixir_scope{function=nil}) -> [];
-assert_no_function_scope(Meta, Kind, S) ->
-  syntax_error(Meta, S#elixir_scope.file, "cannot invoke ~ts inside a function", [Kind]).
 
 assert_module_scope(Meta, Kind, #elixir_scope{module=nil,file=File}) ->
   syntax_error(Meta, File, "cannot invoke ~ts outside module", [Kind]);

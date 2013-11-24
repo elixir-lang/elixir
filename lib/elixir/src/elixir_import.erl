@@ -219,10 +219,9 @@ special_form('unquote',1) -> true;
 special_form('unquote_splicing',1) -> true;
 special_form('fn',_) -> true;
 special_form('super',_) -> true;
-special_form('super?',0) -> true;
 special_form('bc',_) -> true;
 special_form('lc',_) -> true;
-special_form('var!',1) -> true;
-special_form('var!',2) -> true;
-special_form('alias!',1) -> true;
+special_form('case',2) -> true;
+special_form('try',2) -> true;
+special_form('receive',1) -> true;
 special_form(_, _) -> false.

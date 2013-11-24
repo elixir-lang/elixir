@@ -217,8 +217,8 @@ defmodule Kernel.Typespec do
   """
   def defines_type?(module, name, arity) do
     finder = &match?({ ^name, _, vars } when length(vars) == arity, &1)
-    :lists.any(finder, Module.get_attribute(module, :type)) or
-      :lists.any(finder, Module.get_attribute(module, :opaque))
+    Enum.any?(Module.get_attribute(module, :type), finder) or
+      Enum.any?(Module.get_attribute(module, :opaque), finder)
   end
 
   @doc """
@@ -227,7 +227,7 @@ defmodule Kernel.Typespec do
   """
   def defines_spec?(module, name, arity) do
     tuple = { name, arity }
-    :lists.any(&match?(^tuple, &1), Module.get_attribute(module, :spec))
+    Enum.any?(Module.get_attribute(module, :spec), &match?(^tuple, &1))
   end
 
   @doc """
@@ -236,7 +236,7 @@ defmodule Kernel.Typespec do
   """
   def defines_callback?(module, name, arity) do
     tuple = { name, arity }
-    :lists.any(&match?(^tuple, &1), Module.get_attribute(module, :callback))
+    Enum.any?(Module.get_attribute(module, :callback), &match?(^tuple, &1))
   end
 
   @doc """
@@ -317,7 +317,7 @@ defmodule Kernel.Typespec do
         lc { :attribute, _, kind, { name, _, args } = type } inlist abstract_code, kind in [:opaque, :type] do
           cond do
             kind == :opaque -> { :opaque, type }
-            :lists.member({ name, length(args) }, exported_types) -> { :type, type }
+            { name, length(args) } in exported_types -> { :type, type }
             true -> { :typep, type }
           end
         end
@@ -701,7 +701,7 @@ defmodule Kernel.Typespec do
 
   # Handle variables or local calls
   defp typespec({name, meta, atom}, vars, caller) when is_atom(atom) do
-    if :lists.member(name, vars) do
+    if name in vars do
       { :var, line(meta), name }
     else
       typespec({name, meta, []}, vars, caller)

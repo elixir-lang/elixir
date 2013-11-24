@@ -2,10 +2,7 @@
 -module(elixir_scope).
 -export([translate_var/5,
   build_erl_var/2, build_ex_var/2,
-  serialize/1, deserialize/1, to_erl/1,
-  serialize_with_vars/2, deserialize_with_vars/2,
-  to_erl_env/1, to_ex_env/1,
-  load_binding/3, dump_binding/2,
+  load_binding/2, dump_binding/2,
   umergev/2, umergec/2, umergea/2, merge_clause_vars/2
 ]).
 -include("elixir.hrl").
@@ -81,81 +78,6 @@ build_ex_var(Line, Key, Name, S) when is_integer(Line) ->
   Var = { ?atom_concat([Name, "@", Counter]), [{line,Line}], Context },
   { Var, NS }.
 
-%% Macro.Env <-> #elixir_scope conversion
-
-to_erl_env({ 'Elixir.Macro.Env', Module, File, _Line, Function, Aliases, Context,
-    Requires, Functions, Macros, ContextModules, MacroAliases, _Vars, Lexical }) ->
-  #elixir_scope{module=Module,file=File,
-    function=Function,aliases=Aliases,context=Context,
-    requires=Requires,macros=Macros,functions=Functions,
-    context_modules=ContextModules,macro_aliases=MacroAliases,
-    lexical_tracker=Lexical}.
-
-to_ex_env({ Line, #elixir_scope{module=Module,file=File,
-    function=Function,aliases=Aliases,context=Context,
-    requires=Requires,macros=Macros,functions=Functions,
-    context_modules=ContextModules,macro_aliases=MacroAliases,
-    vars=Vars,lexical_tracker=Lexical} }) when is_integer(Line) ->
-  { 'Elixir.Macro.Env', Module, File, Line, Function, Aliases,
-    Context, Requires, Functions, Macros, ContextModules, MacroAliases,
-    list_vars(Vars), Lexical }.
-
-list_vars(Vars) -> [Pair || { { _, K } = Pair, _ } <- Vars, is_atom(K)].
-
-%% SERIALIZATION
-
-%% When serializing scopes, we support serialization of pids.
-to_erl(Structure) ->
-  elixir_utils:elixir_to_erl(Structure, fun
-    (X) when is_pid(X) ->
-      ?wrap_call(0, erlang, binary_to_term, [elixir_utils:elixir_to_erl(term_to_binary(X))]);
-    (Other) ->
-      error({ badarg, Other })
-  end).
-
-serialize(S) ->
-  to_erl({ S#elixir_scope.file, S#elixir_scope.functions,
-    S#elixir_scope.requires, S#elixir_scope.macros, S#elixir_scope.aliases,
-    S#elixir_scope.macro_functions, S#elixir_scope.macro_macros, S#elixir_scope.macro_aliases,
-    S#elixir_scope.context_modules, S#elixir_scope.lexical_tracker }).
-
-serialize_with_vars(Line, S) when is_integer(Line) ->
-  { Vars, _ } = orddict:fold(fun({ Key, Kind }, Value, { Acc, Counter }) ->
-    KindKey = if
-      is_atom(Kind) -> atom;
-      is_integer(Kind) -> integer
-    end,
-
-    { { cons, Line, { tuple, Line, [
-      { atom, Line, Key },
-      { KindKey, Line, Kind },
-      { atom, Line, ?atom_concat(["_@", Counter]) },
-      { var,  Line, Value }
-    ] }, Acc }, Counter + 1 }
-  end, { { nil, Line }, 0 }, S#elixir_scope.vars),
-  { serialize(S), Vars }.
-
-% Fill in the scope with the variables serialization set in serialize_scope.
-
-deserialize(Tuple) -> deserialize_with_vars(Tuple, []).
-
-deserialize_with_vars({ File, Functions, Requires, Macros, Aliases, MacroFunctions,
-                        MacroMacros, MacroAliases, FileModules, LexicalTracker }, Vars) ->
-  #elixir_scope{
-    file=File,
-    functions=Functions,
-    requires=Requires,
-    macros=Macros,
-    aliases=Aliases,
-    macro_functions=MacroFunctions,
-    macro_macros=MacroMacros,
-    macro_aliases=MacroAliases,
-    context_modules=FileModules,
-    vars=orddict:from_list(Vars),
-    lexical_tracker=LexicalTracker,
-    counter=[{'',length(Vars)}]
-  }.
-
 %% SCOPE MERGING
 
 %% Receives two scopes and return a new scope based on the second
@@ -222,8 +144,8 @@ var_number([], Acc)      -> list_to_integer(lists:reverse(Acc)).
 
 %% BINDINGS
 
-load_binding(Binding, Scope, Module) ->
-  { NewBinding, NewVars, NewCounter } = load_binding(Binding, [], [], 0, Module),
+load_binding(Binding, Scope) ->
+  { NewBinding, NewVars, NewCounter } = load_binding(Binding, [], [], 0),
   { NewBinding, Scope#elixir_scope{
     vars=NewVars,
     temp_vars=[],
@@ -231,9 +153,7 @@ load_binding(Binding, Scope, Module) ->
     counter=[{'',NewCounter}]
   } }.
 
-load_binding([{'_@MODULE',Value}|T], Binding, Vars, Counter, _Module) ->
-  load_binding(T, Binding, Vars, Counter, Value);
-load_binding([{Key,Value}|T], Binding, Vars, Counter, Module) ->
+load_binding([{Key,Value}|T], Binding, Vars, Counter) ->
   Actual = case Key of
     { _Name, _Kind } -> Key;
     Name when is_atom(Name) -> { Name, nil }
@@ -241,10 +161,9 @@ load_binding([{Key,Value}|T], Binding, Vars, Counter, Module) ->
   InternalName = ?atom_concat(["_@", Counter]),
   load_binding(T,
     [{InternalName,Value}|Binding],
-    orddict:store(Actual, InternalName, Vars),
-    Counter + 1, Module);
-load_binding([], Binding, Vars, Counter, Module) ->
-  { lists:reverse([{'_@MODULE',Module}|Binding]), Vars, Counter }.
+    orddict:store(Actual, InternalName, Vars), Counter + 1);
+load_binding([], Binding, Vars, Counter) ->
+  { lists:reverse(Binding), Vars, Counter }.
 
 dump_binding(Binding, #elixir_scope{vars=Vars}) ->
   dump_binding(Vars, Binding, []).

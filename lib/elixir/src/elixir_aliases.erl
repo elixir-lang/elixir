@@ -1,34 +1,28 @@
 -module(elixir_aliases).
--export([nesting_alias/2, last/1, concat/1, safe_concat/1,
-  format_error/1, ensure_loaded/3, ensure_loaded/4, expand/4, store/5]).
+-export([last/1, concat/1, safe_concat/1, format_error/1,
+         ensure_loaded/3, ensure_loaded/4, expand/4, store/7]).
 -include("elixir.hrl").
 
 %% Store an alias in the given scope
-store(_Meta, New, New, _TKV, S) -> S;
-store(Meta, New, Old, TKV, S) ->
-  record_warn(Meta, New, TKV, S),
-
-  SA = S#elixir_scope{
-    aliases=orddict:store(New, Old, S#elixir_scope.aliases)
-  },
+store(_Meta, New, New, _TKV, Aliases, MacroAliases, _Lexical) ->
+  { Aliases, MacroAliases };
+store(Meta, New, Old, TKV, Aliases, MacroAliases, Lexical) ->
+  record_warn(Meta, New, TKV, Lexical),
+  NewAliases = orddict:store(New, Old, Aliases),
 
   case lists:keymember(context, 1, Meta) of
-    true ->
-      SA#elixir_scope{
-        macro_aliases=orddict:store(New, Old, S#elixir_scope.macro_aliases)
-      };
-    false ->
-      SA
+    true  -> { NewAliases, orddict:store(New, Old, MacroAliases) };
+    false -> { NewAliases, MacroAliases }
   end.
 
-record_warn(Meta, Ref, Opts, S) ->
+record_warn(Meta, Ref, Opts, Lexical) ->
   Warn =
     case lists:keyfind(warn, 1, Opts) of
       { warn, false } -> false;
       { warn, true } -> true;
       false -> not lists:keymember(context, 1, Meta)
     end,
-  elixir_lexical:record_alias(Ref, ?line(Meta), Warn, S#elixir_scope.lexical_tracker).
+  elixir_lexical:record_alias(Ref, ?line(Meta), Warn, Lexical).
 
 %% Expand an alias. It returns an atom (meaning that there
 %% was an expansion) or a list of atoms.
@@ -104,41 +98,6 @@ last(Atom) ->
 last([$.|_], Acc) -> Acc;
 last([H|T], Acc) -> last(T, [H|Acc]);
 last([], Acc) -> Acc.
-
-%% Gets two modules names and return an alias
-%% which can be passed down to the alias directive
-%% and it will create a proper shortcut representing
-%% the given nesting.
-%%
-%% Examples:
-%%
-%%     nesting_alias('Elixir.Foo.Bar', 'Elixir.Foo.Bar.Baz.Bat')
-%%     { 'Elixir.Baz', 'Elixir.Foo.Bar.Baz' }
-%%
-%% When passed to alias, the example above will generate an
-%% alias like:
-%%
-%%     'Elixir.Baz' => 'Elixir.Foo.Bar.Baz'
-%%
-nesting_alias(nil, _Full) -> false;
-
-nesting_alias(Prefix, Full) ->
-  PrefixList = list_nesting(Prefix),
-  FullList   = list_nesting(Full),
-  (PrefixList /= []) andalso do_nesting(PrefixList, FullList, []).
-
-do_nesting([X|PreTail], [X|Tail], Acc) ->
-  do_nesting(PreTail, Tail, [X|Acc]);
-do_nesting([], [H|_], Acc) ->
-  { binary_to_atom(<<"Elixir.", H/binary>>, utf8), concat(lists:reverse([H|Acc])) };
-do_nesting(_, _, _Acc) ->
-  false.
-
-list_nesting(Atom) ->
-  case binary:split(atom_to_binary(Atom, utf8), <<".">>, [global]) of
-    [<<"Elixir">>|T] -> T;
-    _ -> []
-  end.
 
 %% Receives a list of atoms, binaries or lists
 %% representing modules and concatenates them.

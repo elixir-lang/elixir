@@ -33,15 +33,6 @@ defmodule Kernel.MacrosTest do
     assert Nested.value == 1
   end
 
-  test :default_required do
-    result = Kernel.case 1 do
-      1 -> true
-      _ -> false
-    end
-
-    assert result
-  end
-
   test :local_but_private_macro do
     assert my_private_macro == 4
   end

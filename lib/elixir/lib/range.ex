@@ -21,8 +21,12 @@ defimpl Enumerable, for: Range do
     Range.Iterator.reduce(first, range, acc, fun)
   end
 
-  def member?(first .. last, value) do
+  def member?(first .. last, value) when first <= last do
     first <= value and value <= last
+  end
+
+  def member?(first .. last, value) when last < first do
+    last <= value and value <= first
   end
 
   def count(first .. _ = range) do

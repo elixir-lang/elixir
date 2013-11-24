@@ -1,6 +1,10 @@
 Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Kernel.Overridable do
+  defmacrop super? do
+    Module.overridable?(__CALLER__.module, __CALLER__.function)
+  end
+
   def sample do
     1
   end

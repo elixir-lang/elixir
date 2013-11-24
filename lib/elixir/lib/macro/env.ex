@@ -36,13 +36,15 @@ defmodule Macro.Env do
   @type vars :: [{ atom, atom }]
   @type lexical_tracker :: pid
 
-  fields = [:module, :file, :line, :function, :aliases, :context, :requires, :functions,
-            :macros, :context_modules, :macro_aliases, :vars, :lexical_tracker]
+  fields = [:module, :file, :line, :function, :context, :requires, :aliases, :functions,
+            :macros, :macro_aliases, :macro_functions, :macro_macros, :context_modules,
+            :vars, :lexical_tracker]
 
   types  = quote do: [module: module, file: file, line: line,
-    function: name_arity, aliases: aliases, requires: requires,
-    functions: functions, macros: macros, context_modules: context_modules,
-    macro_aliases: aliases, vars: vars, lexical_tracker: lexical_tracker]
+    function: name_arity, context: context, requires: requires, aliases: aliases,
+    functions: functions, macros: macros,  macro_aliases: aliases,
+    macro_functions: functions, macro_macros: macros,
+    context_modules: context_modules, vars: vars, lexical_tracker: lexical_tracker]
 
   Record.deffunctions(fields, __MODULE__)
   Record.deftypes(fields, types, __MODULE__)
@@ -73,7 +75,7 @@ defmodule Macro.Env do
   def stacktrace(record) do
     cond do
       nil?(record.module) ->
-        [{ :elixir_compiler, :__FILE__, 2, location(record) }]
+        [{ :elixir_compiler, :__FILE__, 1, location(record) }]
       nil?(record.function) ->
         [{ module(record), :__MODULE__, 0, location(record) }]
       true ->

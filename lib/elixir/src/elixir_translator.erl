@@ -67,12 +67,11 @@ translate_each({ '__scope__', _Meta, [[{file,File}],[{do,Expr}]] }, S) ->
 
 translate_each({ '__op__', Meta, [Op, Expr] }, S) when is_atom(Op) ->
   { TExpr, NS } = translate_each(Expr, S),
-  { { op, ?line(Meta), convert_op(Op), TExpr }, NS };
+  { { op, ?line(Meta), Op, TExpr }, NS };
 
 translate_each({ '__op__', Meta, [Op, Left, Right] }, S) when is_atom(Op) ->
-  assert_no_match_scope_for_bin_op(Meta, Op, S),
   { [TLeft, TRight], NS }  = translate_args([Left, Right], S),
-  { { op, ?line(Meta), convert_op(Op), TLeft, TRight }, NS };
+  { { op, ?line(Meta), Op, TLeft, TRight }, NS };
 
 %% Lexical
 
@@ -137,8 +136,8 @@ translate_each({ '__DIR__', _Meta, Atom }, S) when is_atom(Atom) ->
   translate_each(filename:dirname(S#elixir_scope.file), S);
 
 translate_each({ '__ENV__', Meta, Atom }, S) when is_atom(Atom) ->
-  Env = elixir_scope:to_ex_env({ ?line(Meta), S }),
-  { elixir_scope:to_erl(Env), S };
+  Env = elixir_env:scope_to_ex({ ?line(Meta), S }),
+  { ex_env_to_erl(Env), S };
 
 translate_each({ '__CALLER__', Meta, Atom }, S) when is_atom(Atom) ->
   { { var, ?line(Meta), '__CALLER__' }, S#elixir_scope{caller=true} };
@@ -249,30 +248,11 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
   Q = #elixir_quote{vars_hygiene=Vars, line=Line, unquote=Unquote,
         aliases_hygiene=Aliases, imports_hygiene=Imports, context=Context},
 
-  { TExprs, _TQ, TS } = elixir_quote:erl_quote(QExprs, Binding, Q, ST),
-  { TExprs, TS };
+  { TQuoted, _Q } = elixir_quote:quote(QExprs, Binding, Q, ST),
+  translate_each(TQuoted, ST);
 
 translate_each({ quote, Meta, [_, _] }, S) ->
   syntax_error(Meta, S#elixir_scope.file, "invalid args for quote");
-
-translate_each({ 'alias!', _Meta, [Arg] }, S) ->
-  translate_each(Arg, S);
-
-translate_each({ 'var!', Meta, [Arg] }, S) ->
-  translate_each({ 'var!', Meta, [Arg, nil] }, S);
-
-translate_each({ 'var!', Meta, [{Name, _, Atom}, Kind] }, S) when is_atom(Name), is_atom(Atom) ->
-  translate_each({ 'var!', Meta, [Name, Kind] }, S);
-
-translate_each({ 'var!', Meta, [Name, Kind] }, S) when is_atom(Name) ->
-  Expanded = expand_quote_context(Meta, Kind, "invalid second argument for var!", S),
-  elixir_scope:translate_var(Meta, Name, Expanded, S, fun() ->
-    compile_error(Meta, S#elixir_scope.file, "expected var!(~ts) to expand to an existing "
-                  "variable or be a part of a match", [Name])
-  end);
-
-translate_each({ 'var!', Meta, [_, _] }, S) ->
-  syntax_error(Meta, S#elixir_scope.file, "invalid first argument for var!, expected a var or an atom");
 
 %% Functions
 
@@ -283,6 +263,58 @@ translate_each({ '&', Meta, [Arg] }, S) ->
 translate_each({ fn, Meta, [{ '->', _, Pairs }] }, S) ->
   assert_no_match_or_guard_scope(Meta, 'fn', S),
   elixir_fn:fn(Meta, Pairs, S);
+
+%% Case
+
+translate_each({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
+  assert_no_match_or_guard_scope(Meta, 'case', S),
+  Clauses = elixir_clauses:get_pairs(Meta, do, KV, S),
+  { TExpr, NS } = translate_each(Expr, S),
+
+  RClauses = case elixir_utils:returns_boolean(TExpr) of
+    true  -> rewrite_case_clauses(Clauses);
+    false -> Clauses
+  end,
+
+  { TClauses, TS } = elixir_clauses:match(Meta, RClauses, NS),
+  { { 'case', ?line(Meta), TExpr, TClauses }, TS };
+
+%% Try
+
+translate_each({'try', Meta, [Clauses]}, S) when is_list(Clauses) ->
+  assert_no_match_or_guard_scope(Meta, 'try', S),
+  Do = proplists:get_value('do', Clauses, nil),
+  { TDo, SB } = elixir_translator:translate_each(Do, S#elixir_scope{noname=true}),
+
+  Catch = [Tuple || { X, _ } = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
+  { TCatch, SC } = elixir_try:clauses(Meta, Catch, umergea(S, SB)),
+
+  After = proplists:get_value('after', Clauses, nil),
+  { TAfter, SA } = translate_each(After, umergea(S, SC)),
+
+  Else = elixir_clauses:get_pairs(Meta, else, Clauses, S),
+  { TElse, SE } = elixir_clauses:match(Meta, Else, umergea(S, SA)),
+
+  SF = (umergec(S, SE))#elixir_scope{noname=S#elixir_scope.noname},
+  { { 'try', ?line(Meta), pack(TDo), TElse, TCatch, pack(TAfter) }, SF };
+
+%% Receive
+
+translate_each({'receive', Meta, [KV] }, S) when is_list(KV) ->
+  assert_no_match_or_guard_scope(Meta, 'receive', S),
+  Do = elixir_clauses:get_pairs(Meta, do, KV, S, true),
+
+  case lists:keyfind('after', 1, KV) of
+    false ->
+      { TClauses, SC } = elixir_clauses:match(Meta, Do, S),
+      { { 'receive', ?line(Meta), TClauses }, SC };
+    _ ->
+      After = elixir_clauses:get_pairs(Meta, 'after', KV, S),
+      { TClauses, SC } = elixir_clauses:match(Meta, Do ++ After, S),
+      { FClauses, TAfter } = elixir_utils:split_last(TClauses),
+      { _, _, [FExpr], _, FAfter } = TAfter,
+      { { 'receive', ?line(Meta), FClauses, FExpr, FAfter }, SC }
+  end;
 
 %% Comprehensions
 
@@ -309,12 +341,6 @@ translate_each({ super, Meta, Args }, S) when is_list(Args) ->
 
   Super = elixir_def_overridable:name(Module, Function),
   { { call, ?line(Meta), { atom, ?line(Meta), Super }, TArgs }, TS#elixir_scope{super=true} };
-
-translate_each({ 'super?', Meta, [] }, S) ->
-  Module = assert_module_scope(Meta, 'super?', S),
-  Function = assert_function_scope(Meta, 'super?', S),
-  Bool = elixir_def_overridable:is_defined(Module, Function),
-  { { atom, ?line(Meta), Bool }, S };
 
 %% Variables
 
@@ -348,7 +374,13 @@ translate_each({ '^', Meta, [ Expr ] }, S) ->
 
 translate_each({ Name, Meta, Kind }, S) when is_atom(Name), is_atom(Kind) ->
   elixir_scope:translate_var(Meta, Name, var_kind(Meta, Kind), S, fun() ->
-    translate_each({ Name, Meta, [] }, S)
+    case lists:keyfind(var, 1, Meta) of
+      { var, true } ->
+        compile_error(Meta, S#elixir_scope.file, "expected var ~ts to expand to an existing "
+                      "variable or be a part of a match", [Name]);
+      _ ->
+        translate_each({ Name, Meta, [] }, S)
+    end
   end);
 
 %% Local calls
@@ -462,12 +494,41 @@ var_kind(Meta, Kind) ->
     false -> Kind
   end.
 
+ex_env_to_erl(Structure) ->
+  elixir_utils:elixir_to_erl(Structure, fun
+    (X) when is_pid(X) ->
+      ?wrap_call(0, erlang, binary_to_term, [elixir_utils:elixir_to_erl(term_to_binary(X))]);
+    (Other) ->
+      error({ badarg, Other })
+  end).
+
+%% Case
+
+%% TODO: Once we have elixir_exp, we can move this
+%% clause to Elixir code and out of case.
+rewrite_case_clauses([
+    {do,Meta1,[{'when',_,[{V,M,C},{in,_,[{V,M,C},[false,nil]]}]}],False},
+    {do,Meta2,[{'_',_,UC}],True}] = Clauses)
+    when is_atom(V), is_list(M), is_atom(C), is_atom(UC) ->
+  case lists:keyfind('cond', 1, M) of
+    { 'cond', true } ->
+      [{do,Meta1,[false],False},{do,Meta2,[true],True}];
+    _ ->
+      Clauses
+  end;
+rewrite_case_clauses(Clauses) ->
+  Clauses.
+
+% Pack a list of expressions from a block.
+pack({ 'block', _, Exprs }) -> Exprs;
+pack(Expr)                  -> [Expr].
+
 %% Opts
 
 translate_opts(Meta, Kind, Allowed, Opts, S) ->
   { Expanded, TS } = case literal_opts(Opts) orelse skip_expansion(S#elixir_scope.module) of
     true  -> { Opts, S };
-    false -> 'Elixir.Macro':expand_all(Opts, elixir_scope:to_ex_env({ ?line(Meta), S }), S)
+    false -> 'Elixir.Macro':expand_all(Opts, elixir_env:scope_to_ex({ ?line(Meta), S }), S)
   end,
   validate_opts(Meta, Kind, Allowed, Expanded, TS),
   { Expanded, TS }.
@@ -490,17 +551,6 @@ validate_opts(Meta, Kind, Allowed, Opts, S) when is_list(Opts) ->
 validate_opts(Meta, Kind, _Allowed, _Opts, S) ->
   compile_error(Meta, S#elixir_scope.file, "invalid options for ~s, expected a keyword list", [Kind]).
 
-%% Quote
-
-expand_quote_context(_Meta, Atom, _Msg, _S) when is_atom(Atom) -> Atom;
-expand_quote_context(Meta, Alias, Msg, S) ->
-  case translate_each(Alias, S) of
-    { { atom, _, Atom }, _ } ->
-      Atom;
-    _ ->
-      compile_error(Meta, S#elixir_scope.file, "~ts, expected a compile time available alias or an atom", [Msg])
-  end.
-
 %% Require
 
 translate_require(Meta, Old, TKV, S) ->
@@ -511,7 +561,7 @@ translate_require(Meta, Old, TKV, S) ->
 
 %% Aliases
 
-translate_alias(Meta, IncludeByDefault, Old, TKV, S) ->
+translate_alias(Meta, IncludeByDefault, Old, TKV, #elixir_scope{context_modules=Context} = S) ->
   New = case lists:keyfind(as, 1, TKV) of
     { as, true } ->
       elixir_aliases:last(Old);
@@ -535,7 +585,20 @@ translate_alias(Meta, IncludeByDefault, Old, TKV, S) ->
                "invalid :as for alias, nested alias ~s not allowed", [elixir_errors:inspect(New)])
   end,
 
-  { { atom, ?line(Meta), nil }, elixir_aliases:store(Meta, New, Old, TKV, S) }.
+  { Aliases, MacroAliases } = elixir_aliases:store(Meta, New, Old, TKV,
+                                S#elixir_scope.aliases, S#elixir_scope.macro_aliases, S#elixir_scope.lexical_tracker),
+
+  %% Add the alias to context_modules if defined is true.
+  %% This is used by defmodule.
+  NewContext =
+    case (lists:keyfind(defined, 1, Meta) == { defined, true }) andalso
+         not lists:member(Old, Context) of
+      true  -> [Old|Context];
+      false -> Context
+    end,
+
+  { { atom, ?line(Meta), nil },
+    S#elixir_scope{aliases=Aliases, macro_aliases=MacroAliases, context_modules=NewContext} }.
 
 no_alias_opts(KV) when is_list(KV) ->
   case lists:keyfind(as, 1, KV) of
@@ -598,20 +661,6 @@ translate_args(Args, S) ->
 
 %% __op__ helpers
 
-assert_no_match_scope_for_bin_op(Meta, Op, S)
-    when Op == 'and'; Op == 'or' ->
-  elixir_errors:assert_no_match_scope(Meta, Op, S);
-assert_no_match_scope_for_bin_op(_Meta, _Op, _S) -> ok.
-
-convert_op('and')  -> 'andalso';
-convert_op('or')   -> 'orelse';
-convert_op('!==')  -> '=/=';
-convert_op('===')  -> '=:=';
-convert_op('!=')   ->  '/=';
-convert_op('<=')   ->  '=<';
-convert_op('<-')   ->  '!';
-convert_op(Else)   ->  Else.
-
 assert_no_ambiguous_op(Name, Meta, [Arg], S) ->
   case lists:keyfind(ambiguous_op, 1, Meta) of
     { ambiguous_op, Kind } ->
@@ -664,5 +713,5 @@ translate_comprehension_clause(_Meta, {inlist, Meta, [Left, Right]}, S) ->
 translate_comprehension_clause(Meta, X, S) ->
   Line = ?line(Meta),
   { TX, TS } = translate_each(X, S),
-  { BX, BS } = elixir_utils:convert_to_boolean(Line, TX, true, false, TS),
+  { BX, BS } = elixir_utils:convert_to_boolean(Line, TX, true, TS),
   { { match, Line, { var, Line, '_' }, BX }, BS }.

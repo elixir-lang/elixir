@@ -150,7 +150,7 @@ defmodule Record do
   whenever you need to dynamically set or update fields.
 
   The standard library contains excellent examples of both use cases,
-  with [`HashDict`](HashDict.html) being implemented with `defrecordp` 
+  with [`HashDict`](HashDict.html) being implemented with `defrecordp`
   and [`Range`](Range.html) with `defrecord`.
 
   You can learn more about records in the `Kernel.defrecord/3` docs. Now
@@ -188,8 +188,8 @@ defmodule Record do
   @type t :: tuple
 
   @doc """
-  Extract record information from an Erlang file. 
-  
+  Extract record information from an Erlang file.
+
   Returns the fields as a list of tuples.
 
   ## Examples
@@ -347,16 +347,20 @@ defmodule Record do
       accessor_specs(values, 1, [])
     ]
 
-    if env == Macro.Env do
-      Module.eval_quoted(env, contents, [], [])
-    else
-      Module.eval_quoted(env.module, contents, [], env.location)
+    # We need to handle bootstraping
+    cond do
+      :code.ensure_loaded(Kernel.Typespec) != { :module, Kernel.Typespec } ->
+        nil
+      env == Macro.Env ->
+        Module.eval_quoted(env, contents, [], [])
+      true ->
+        Module.eval_quoted(env.module, contents, [], env.location)
     end
   end
 
   @doc """
-  Define macros for manipulating records. 
-  
+  Define macros for manipulating records.
+
   This is called
   directly by `Kernel.defrecordp/3`. It expects the macro name, the
   record values and the environment.
