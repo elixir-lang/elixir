@@ -2,6 +2,7 @@
 -module(elixir_quote).
 -export([escape/2, linify/2, linify/3, quote/4, unquote/4, tail_join/3, join/2]).
 -include("elixir.hrl").
+-define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
 
 %% Apply the line from site call on quoted contents.
 linify(Line, Exprs) when is_integer(Line) ->

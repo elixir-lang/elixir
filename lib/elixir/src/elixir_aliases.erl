@@ -1,6 +1,6 @@
 -module(elixir_aliases).
--export([nesting_alias/2, last/1, concat/1, safe_concat/1,
-  format_error/1, ensure_loaded/3, ensure_loaded/4, expand/4, store/7]).
+-export([last/1, concat/1, safe_concat/1, format_error/1,
+         ensure_loaded/3, ensure_loaded/4, expand/4, store/7]).
 -include("elixir.hrl").
 
 %% Store an alias in the given scope
@@ -98,42 +98,6 @@ last(Atom) ->
 last([$.|_], Acc) -> Acc;
 last([H|T], Acc) -> last(T, [H|Acc]);
 last([], Acc) -> Acc.
-
-%% Gets two modules names and return an alias
-%% which can be passed down to the alias directive
-%% and it will create a proper shortcut representing
-%% the given nesting.
-%%
-%% Examples:
-%%
-%%     nesting_alias('Elixir.Foo.Bar', 'Elixir.Foo.Bar.Baz.Bat')
-%%     { 'Elixir.Baz', 'Elixir.Foo.Bar.Baz' }
-%%
-%% In case there is no nesting:
-%%
-%%     nesting_alias(nil, 'Elixir.Foo.Bar.Baz.Bat')
-%%     { false, 'Elixir.Foo.Bar.Baz' }
-%%
-nesting_alias(nil, Full) -> { false, Full };
-
-nesting_alias(Prefix, Full) ->
-  case list_nesting(Prefix) of
-    [] -> { false, Full };
-    PrefixList -> do_nesting(PrefixList, list_nesting(Full), [], Full)
-  end.
-
-do_nesting([X|PreTail], [X|Tail], Acc, Full) ->
-  do_nesting(PreTail, Tail, [X|Acc], Full);
-do_nesting([], [H|_], Acc, _Full) ->
-  { binary_to_atom(<<"Elixir.", H/binary>>, utf8), concat(lists:reverse([H|Acc])) };
-do_nesting(_, _, _Acc, Full) ->
-  { false, Full }.
-
-list_nesting(Atom) ->
-  case binary:split(atom_to_binary(Atom, utf8), <<".">>, [global]) of
-    [<<"Elixir">>|T] -> T;
-    _ -> []
-  end.
 
 %% Receives a list of atoms, binaries or lists
 %% representing modules and concatenates them.

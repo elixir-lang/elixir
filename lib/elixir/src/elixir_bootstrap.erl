@@ -8,9 +8,7 @@
 
 %% Mock out @ to be a no-op unless Kernel is defined.
 'MACRO-@'(Caller, Tree) ->
-  unless_loaded('MACRO-@', [Caller, Tree], fun
-    () -> nil
-  end).
+  unless_loaded('MACRO-@', [Caller, Tree], fun() -> nil end).
 
 'MACRO-def'(Caller, Call) -> 'MACRO-def'(Caller, Call, nil).
 'MACRO-def'(Caller, Call, Expr) -> definition(Caller, def, Call, Expr).

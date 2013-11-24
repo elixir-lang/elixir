@@ -2779,8 +2779,8 @@ defmodule Kernel do
           # Expand the module considering the current environment/nesting
           full = expand_module(alias, expanded, env)
 
-          # Generate an alias to be used
-          { new, old } = :elixir_aliases.nesting_alias(env_module(env), full)
+          # Generate the alias for this module definition
+          { new, old } = module_nesting(env_module(env), full)
           meta = [defined: true] ++ alias_meta(alias)
 
           { full, { :alias, meta, [old, [as: new, warn: false]] } }
@@ -2789,12 +2789,12 @@ defmodule Kernel do
       end
 
     { escaped, _ } = :elixir_quote.escape(block, false)
-    quoted_vars    = quote_vars(env_vars(env))
+    module_vars    = module_vars(env_vars(env))
 
     quote do
       unquote(with_alias)
       :elixir_module.compile(unquote(expanded), unquote(escaped),
-                             unquote(quoted_vars), __ENV__)
+                             unquote(module_vars), __ENV__)
     end
   end
 
@@ -2824,12 +2824,12 @@ defmodule Kernel do
     do: :elixir_aliases.concat([env.module, module])
 
   # quote vars to be injected into the module definition
-  defp quote_vars(vars) do
-    { vars, _ } = :lists.mapfoldl(&var_to_tuple/2, 0, vars)
+  defp module_vars(vars) do
+    { vars, _ } = :lists.mapfoldl(&module_var_to_tuple/2, 0, vars)
     vars
   end
 
-  defp var_to_tuple({ key, kind }, counter) do
+  defp module_var_to_tuple({ key, kind }, counter) do
     var =
       case is_atom(kind) do
         true  -> { key, [], kind }
@@ -2838,6 +2838,46 @@ defmodule Kernel do
 
     args = [key, kind, binary_to_atom(<<"_@", integer_to_binary(counter)::binary>>), var]
     { { :{}, [], args }, counter + 1 }
+  end
+
+  # Gets two modules names and return an alias
+  # which can be passed down to the alias directive
+  # and it will create a proper shortcut representing
+  # the given nesting.
+  #
+  # Examples:
+  #
+  #     module_nesting('Elixir.Foo.Bar', 'Elixir.Foo.Bar.Baz.Bat')
+  #     { 'Elixir.Baz', 'Elixir.Foo.Bar.Baz' }
+  #
+  # In case there is no nesting/no module:
+  #
+  #     module_nesting(nil, 'Elixir.Foo.Bar.Baz.Bat')
+  #     { false, 'Elixir.Foo.Bar.Baz' }
+  #
+  defp module_nesting(nil, full),
+    do: { false, full }
+
+  defp module_nesting(prefix, full) do
+    case split_module(prefix) do
+      [] -> { false, full }
+      prefix -> module_nesting(prefix, split_module(full), [], full)
+    end
+  end
+
+  defp module_nesting([x|t1], [x|t2], acc, full),
+    do: module_nesting(t1, t2, [x|acc], full)
+  defp module_nesting([], [h|_], acc, _full),
+    do: { binary_to_atom(<<"Elixir.", h::binary>>),
+          :elixir_aliases.concat(:lists.reverse([h|acc])) }
+  defp module_nesting(_, _, _acc, full),
+    do: { false, full }
+
+  defp split_module(atom) do
+    case :binary.split(atom_to_binary(atom), ".", [:global]) do
+      ["Elixir"|t] -> t
+      _ -> []
+    end
   end
 
   @doc """
