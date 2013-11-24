@@ -14,7 +14,7 @@ This document simply outlines the release process:
 
 6) Release new docs with `make release_docs`, move docs to `docs/stable`
 
-7) Release new zip with `make release_zip`, push new zip to Github Releases
+7) Release new zip with `make release_zip`, push new zip to GitHub Releases
 
 8) Push package to expm with `expm publish package.exs`
 

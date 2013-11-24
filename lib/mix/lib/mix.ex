@@ -34,7 +34,7 @@ defmodule Mix do
   Returns the mix environment.
   """
   def env do
-    # env is not available on bootstraping
+    # env is not available on bootstrapping
     case :application.get_env(:mix, :env) do
       { :ok, env } -> env
       :undefined -> :dev
