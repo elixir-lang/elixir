@@ -40,35 +40,117 @@ defmodule ExUnit.Prop do
   While generating input data the process store will be used to hold some key
   values, such as the size parameter (key `:eu_prop_test_size`) and the state of
   the random number generator (key determined by Erlang).
+
+  ## Example 1: Testing Enum.reverse
+  
+  A very simple example of property testing is testing the `Enum.reverse`
+  function for lists. Because `Enum.reverse` is defined in terms of
+  `Enumerable.reduce` and not in terms of `:lists.reverse` it makes sense to
+  test it against `:lists.reverse`.
+
+  The first step will be to define a generator of random lists. Let's say a
+  random list of integers between 1 and 1000.
+
+      import ExUnit.Prop
+      gen = fn -> list_of(fn -> :random.uniform(1000) end) end
+
+  Next the test function is needed. The test function uses assertions like any
+  unit test. Note how the test function takes one input argument, that's the
+  value the test function generates.
+
+      f = fn l -> assert Enum.reverse(l) == :lists.reverse(l) end
+
+  This is run in a normal unit test using the prop function.
+
+      test "Enum.reverse gives the same result as :lists.reverse for lists" do
+        prop gen, f
+      end
+
+  If the test fails for some input the bad input will be printed.
+
+  ## Example 2: Testing a bad reverse function with shrinking
+  
+  Generated inputs can be quite long, to use an understatement. Often only a
+  small part of it is actually needed to demonstrate the error. To show only
+  that part a shrink function can be given.
+
+  Let's test a reverse function that secretly filters out the 1.
+
+      def bad_reverse(l), do: do_bad_reverse(l, [])
+      
+      defp do_bad_reverse([], acc), do: acc
+      defp do_bad_reverse([1|t], acc), do: do_bad_reverse(t, acc)
+      defp do_bad_reverse([h|t], acc), do: do_bad_reverse(t, [h|acc])
+
+      test "Enum.reverse gives the same result as :lists.reverse for lists" do
+        import ExUnit.Prop
+        gen = fn -> list_of(fn -> :random.uniform(10) end) end
+        f = fn l -> assert bad_reverse(l) == :lists.reverse(l) end
+        prop gen, f
+      end
+
+  The error is likely to be pretty long. So let's define a simple shrink
+  function, this one cuts up lists in two halves. The test function will be run
+  on each of the halves and will report the smallest input it can find using a
+  pretty simple algorithm (for details see above) for which the error still
+  occurs.
+
+      def halves(l) do
+        middle = div(length(l), 2)
+        [Enum.take(l, middle), Enum.drop(l, middle)]
+      end
+
+  To use the shrink function pass a tuple of generator and shrink function to
+  `prop`.
+
+      test "Enum.reverse gives the same result as :lists.reverse for lists" do
+        import ExUnit.Prop
+        gen = fn -> list_of(fn -> :random.uniform(10) end) end
+        f = fn l -> assert bad_reverse(l) == :lists.reverse(l) end
+        prop { gen,  &halves/1 }, f
+      end
+
+  Now the generated test data should be smaller (on average).
   """
 
-  defrecord Config, max_successes: 100,
-                    max_discards: 100,
-                    max_size: 1000,
-                    initial_seed: nil do
-    @moduledoc """
-    Configuration for property tests.
+  @typedoc """
+  Configuration for property tests.
 
-    ## Fields
-    
-    `max_successes`: Number of times to run the function at most. If this number is
-                     10 if the test function has run 10 times without exceptions or
-                     assertions failing the test has passed.
-    `max_discards`:  How many times the generator may return an empty list before
-                     the test is declared a failure because of a bad generator. This
-                     is per invocation of the test function, so the generator can be
-                     invoked quite a lot of times.
-    `max_size`:      This influences the maximum length of lists using `list_of/1`
-                     and other generators. The larger `max_size` the bigger (on
-                     average) test input will be.
-    `initial_seed`:  If set this is passed to `:random.seed/1` to initialize the
-                     random number generator for the test.
-    """
-    record_type max_successes: pos_integer,
-                max_discards: pos_integer,
-                initial_seed: :random.ran | nil
+  ## Options
+  
+  `max_successes`: Number of times to run the function at most. If this number is
+                   10 if the test function has run 10 times without exceptions or
+                   assertions failing the test has passed.
+  `max_discards`:  How many times the generator may return an empty list before
+                   the test is declared a failure because of a bad generator. This
+                   is per invocation of the test function, so the generator can be
+                   invoked quite a lot of times.
+  `max_size`:      This influences the maximum length of lists using `list_of/1`
+                   and other generators. The larger `max_size` the bigger (on
+                   average) test input will be.
+  `initial_seed`:  If set this is passed to `:random.seed/1` to initialize the
+                   random number generator for the test.
+  """
+  @type config :: [
+    max_succeses: pos_integer,
+    max_discards: pos_integer,
+    max_size:     pos_integer,
+    initial_seed: :random.ran | nil
+  ]
+
+  @doc """
+  Defaults for the property test configuration.
+
+  This is mostly provided to make the test defaults easier to inspect from an
+  iex session.
+  """
+  def default_config do
+    [ max_successes: 100,
+      max_discards: 100,
+      max_size: 1000,
+      initial_seed: nil ]
   end
- 
+
   defexception BadGenerator, message: nil do
     @moduledoc """
     Thrown when a generator function didn't generate a value after a
@@ -100,10 +182,11 @@ defmodule ExUnit.Prop do
   Run function `f` with data produced by the generator.
   """
   @spec prop((() -> any), ((any) -> none)) :: :ok
-  @spec prop(Config.t, (() -> any), ((any) -> none)) :: :ok
-  def prop(config // Config[], generator, f) do
-    if config.initial_seed do
-      :random.seed(config.initial_seed)
+  @spec prop(config, (() -> any), ((any) -> none)) :: :ok
+  def prop(cfg // [], generator, f) do
+    cfg = Keyword.merge(default_config, cfg) 
+    if cfg[:initial_seed] do
+      :random.seed(cfg[:initial_seed])
     else
       # This prevents test from unduly influencing eachother in non-async mode.
       :random.seed(:erlang.now)
@@ -111,16 +194,16 @@ defmodule ExUnit.Prop do
     { gen, shrink } = if is_function(generator),
                         do: { generator, fn _ -> [] end },
                         else: generator
-    with_size(config.max_size, fn ->
-      Enum.each(1..config.max_successes, fn _ ->
-        v = gen_input_value(gen, config.max_discards, config.max_discards)
-        prop_rec(config, gen, shrink, f, 0, v)
+    with_size(cfg[:max_size], fn ->
+      Enum.each(1..cfg[:max_successes], fn _ ->
+        v = gen_input_value(gen, cfg[:max_discards], cfg[:max_discards])
+        prop_rec(gen, shrink, f, 0, v)
       end)
     end)
   end
 
   # Run the test function, handling shrinks.
-  defp prop_rec(config, gen, shrink, f, shrinks, v) do
+  defp prop_rec(gen, shrink, f, shrinks, v) do
     try do
       f.(v)
     catch
@@ -132,7 +215,7 @@ defmodule ExUnit.Prop do
         case alts do
           [] -> nil # Fall to the raise statement below 
           _  ->
-            Enum.each(alts, &prop_rec(config, gen, shrink, f, shrinks+1, &1))
+            Enum.each(alts, &prop_rec(gen, shrink, f, shrinks+1, &1))
             # If we reach this point none of the shrinked values have
             # caused the function to fail. Which means that this is the most
             # failing case.
