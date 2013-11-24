@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([translate/3, compile/4, compile/5, data_table/1, docs_table/1,
+-export([compile/4, compile/5, data_table/1, docs_table/1,
          eval_quoted/4, format_error/1, eval_callbacks/5]).
 -include("elixir.hrl").
 
@@ -34,14 +34,10 @@ data_table(Module) ->
 docs_table(Module) ->
   ets:lookup_element(Module, ?docs_attr, 2).
 
-%% TRANSFORMATION FUNCTIONS
+%% Compilation hook
 
-%% Transformation of args and scope into a compiled erlang call.
-%% The abstract form for extra arguments may be given and they
-%% will be passed to the invoked function.
-
-translate(Ref, Block, ExEnv) ->
-  Env = elixir_env:ex_to_env(ExEnv),
+compile(Module, Block, Vars, #elixir_env{line=Line} = Env) ->
+  Dict = [{ { Name, Kind }, Value } || { Name, Kind, Value, _ } <- Vars],
 
   %% In case we are generating a module from inside a function,
   %% we get rid of the lexical tracker information as, at this
@@ -51,24 +47,11 @@ translate(Ref, Block, ExEnv) ->
     _   -> Env#elixir_env{lexical_tracker=nil, function=nil}
   end,
 
-  { Escaped, _ } = elixir_quote:escape(Block, false),
-  { QuotedEnv, QuotedVars } = elixir_env:serialize_with_vars(LexEnv),
+  compile(Line, Module, Block, Vars, elixir_env:env_to_scope_with_vars(LexEnv, Dict)).
 
-  Args = [Ref, Escaped, QuotedVars, QuotedEnv],
-  { { '.', [], [elixir_module, compile] }, [], Args }.
-
-%% The compilation hook.
-
-compile(Module, Block, Vars, #elixir_env{line=Line} = Env) ->
-  Dict = [{ { Name, Kind }, Value } || { Name, Kind, Value, _ } <- Vars],
-  compile(Line, Module, Block, Vars, elixir_env:env_to_scope_with_vars(Env, Dict)).
-
-compile(Line, Module, Block, Vars, #elixir_scope{context_modules=FileModules} = RawS) when is_atom(Module) ->
+compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
   C = elixir_compiler:get_opts(),
-  S = case lists:member(Module, FileModules) of
-    true  -> RawS#elixir_scope{module=Module};
-    false -> RawS#elixir_scope{module=Module,context_modules=[Module|FileModules]}
-  end,
+  S = RawS#elixir_scope{module=Module},
 
   File = S#elixir_scope.file,
   FileList = elixir_utils:characters_to_list(File),
@@ -277,9 +260,8 @@ compile_opts(Module) ->
 
 load_form(Line, Forms, Opts, #elixir_scope{file=File} = S) ->
   elixir_compiler:module(Forms, File, Opts, fun(Module, Binary) ->
-    EvalS = scope_for_eval(Module, S),
-    Env = elixir_env:scope_to_ex({ Line, EvalS }),
-    eval_callbacks(Line, Module, after_compile, [Env, Binary], EvalS),
+    Env = elixir_env:scope_to_ex({ Line, S }),
+    eval_callbacks(Line, Module, after_compile, [Env, Binary], S),
 
     case get(elixir_compiled) of
       Current when is_list(Current) ->
@@ -348,7 +330,7 @@ add_info_function(Line, File, Module, Export, Def, Defmacro, C) ->
       Docs = elixir_compiler:get_opt(docs, C),
       { function, 0, '__info__', 1, [
         functions_clause(Def),
-        macros_clause(Module, Def, Defmacro),
+        macros_clause(Defmacro),
         docs_clause(Module, Docs),
         moduledoc_clause(Line, Module, Docs),
         module_clause(Module),
@@ -359,14 +341,8 @@ add_info_function(Line, File, Module, Export, Def, Defmacro, C) ->
 functions_clause(Def) ->
   { clause, 0, [{ atom, 0, functions }], [], [elixir_utils:elixir_to_erl(Def)] }.
 
-macros_clause(Module, Def, Defmacro) ->
-  All = handle_builtin_macros(Module, Def, Defmacro),
-  { clause, 0, [{ atom, 0, macros }], [], [elixir_utils:elixir_to_erl(All)] }.
-
-handle_builtin_macros('Elixir.Kernel', Def, Defmacro) ->
-  ordsets:subtract(ordsets:union(Defmacro,
-    elixir_dispatch:in_erlang_macros()), Def);
-handle_builtin_macros(_, _Def, Defmacro) -> Defmacro.
+macros_clause(Defmacro) ->
+  { clause, 0, [{ atom, 0, macros }], [], [elixir_utils:elixir_to_erl(Defmacro)] }.
 
 module_clause(Module) ->
   { clause, 0, [{ atom, 0, module }], [], [{ atom, 0, Module }] }.

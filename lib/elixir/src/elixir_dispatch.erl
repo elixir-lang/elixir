@@ -5,8 +5,7 @@
 -export([default_macros/0, default_functions/0, default_requires/0,
   dispatch_require/6, dispatch_import/5,
   require_function/5, import_function/4,
-  expand_import/6, expand_require/6, find_import/4,
-  format_error/1, in_erlang_functions/0, in_erlang_macros/0]).
+  expand_import/6, expand_require/6, find_import/4, format_error/1]).
 -include("elixir.hrl").
 
 -import(ordsets, [is_element/2]).
@@ -92,10 +91,6 @@ dispatch_import(Meta, Name, Args, S, Callback) ->
       case do_expand_import(Meta, Tuple, Args, Module, S, Result) of
         { error, noexpansion } ->
           Callback();
-        { error, internal } ->
-          elixir_lexical:record_import(?builtin, S#elixir_scope.lexical_tracker),
-          elixir_tracker:record_import(Tuple, ?builtin, Module, S#elixir_scope.function),
-          elixir_macros:translate({ Name, Meta, Args }, S);
         { ok, Receiver, Tree } ->
           translate_expansion(Meta, Receiver, Tree, S)
       end
@@ -116,10 +111,6 @@ dispatch_require(Meta, Receiver, Name, Args, S, Callback) ->
       case expand_require(Meta, Receiver, Tuple, Args, Module, S) of
         { error, noexpansion } ->
           Callback();
-        { error, internal } ->
-          elixir_lexical:record_remote(?builtin, S#elixir_scope.lexical_tracker),
-          elixir_tracker:record_remote(Tuple, ?builtin, S#elixir_scope.module, S#elixir_scope.function),
-          elixir_macros:translate({ Name, Meta, Args }, S);
         { ok, Receiver, Tree } ->
           translate_expansion(Meta, Receiver, Tree, S)
       end
@@ -156,13 +147,9 @@ do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
 do_expand_import_no_local(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
   case Result of
     { macro, ?builtin } ->
-      case is_element(Tuple, in_erlang_macros()) of
-        true  -> { error, internal };
-        false ->
-          elixir_lexical:record_import(?builtin, S#elixir_scope.lexical_tracker),
-          elixir_tracker:record_import(Tuple, ?builtin, Module, S#elixir_scope.function),
-          { ok, ?builtin, expand_macro_named(Meta, ?builtin, Name, Arity, Args, Module, S) }
-      end;
+      elixir_lexical:record_import(?builtin, S#elixir_scope.lexical_tracker),
+      elixir_tracker:record_import(Tuple, ?builtin, Module, S#elixir_scope.function),
+      { ok, ?builtin, expand_macro_named(Meta, ?builtin, Name, Arity, Args, Module, S) };
     { macro, Receiver } ->
       elixir_lexical:record_import(Receiver, S#elixir_scope.lexical_tracker),
       elixir_tracker:record_import(Tuple, Receiver, Module, S#elixir_scope.function),
@@ -174,17 +161,13 @@ do_expand_import_no_local(Meta, { Name, Arity } = Tuple, Args, Module, S, Result
   end.
 
 expand_require(Meta, ?builtin, { Name, Arity } = Tuple, Args, Module, S) ->
-  case is_element(Tuple, in_erlang_macros()) of
-    true  -> { error, internal };
+  case is_element(Tuple, in_elixir_macros()) of
+    true  ->
+      elixir_lexical:record_remote(?builtin, S#elixir_scope.lexical_tracker),
+      elixir_tracker:record_remote(Tuple, ?builtin, S#elixir_scope.module, S#elixir_scope.function),
+      { ok, ?builtin, expand_macro_named(Meta, ?builtin, Name, Arity, Args, Module, S) };
     false ->
-      case is_element(Tuple, in_elixir_macros()) of
-        true  ->
-          elixir_lexical:record_remote(?builtin, S#elixir_scope.lexical_tracker),
-          elixir_tracker:record_remote(Tuple, ?builtin, S#elixir_scope.module, S#elixir_scope.function),
-          { ok, ?builtin, expand_macro_named(Meta, ?builtin, Name, Arity, Args, Module, S) };
-        false ->
-          { error, noexpansion }
-      end
+      { error, noexpansion }
   end;
 
 expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, Module, S) ->
@@ -382,7 +365,7 @@ elixir_imported_macros() ->
   try
     ?builtin:'__info__'(macros)
   catch
-    error:undef -> in_erlang_macros()
+    error:undef -> []
   end.
 
 %% Macros imported from Kernel module. Sorted on compilation.
@@ -472,7 +455,3 @@ in_erlang_functions() ->
     { tuple_size, 1 },
     { tuple_to_list, 1 }
   ].
-
-%% Macros implemented in Erlang. MUST BE SORTED.
-in_erlang_macros() ->
-  [ {defmodule,2} ].

@@ -1,7 +1,7 @@
 # Use elixir_bootstrap module to be able to bootstrap Kernel.
 # The bootstrap module provides simpler implementations of the
 # functions removed, simple enough to bootstrap.
-import Kernel, except: [@: 1, def: 1, def: 2, defp: 2,
+import Kernel, except: [@: 1, defmodule: 2, def: 1, def: 2, defp: 2,
                         defmacro: 1, defmacro: 2, defmacrop: 2]
 import :elixir_bootstrap
 
@@ -2764,7 +2764,82 @@ defmodule Kernel do
   won't nest the name under the current module nor automatically
   set up an alias.
   """
-  defmacro defmodule(name, do: contents)
+  defmacro defmodule(alias, do: block) do
+    env = __CALLER__
+
+    expanded =
+      case bootstraped?(Macro.Env) do
+        true  -> Macro.expand(alias, env)
+        false -> alias
+      end
+
+    { expanded, with_alias } =
+      case bootstraped?(Macro.Env) and is_atom(expanded) do
+        true ->
+          # Expand the module considering the current environment/nesting
+          full = expand_module(alias, expanded, env)
+
+          # Generate an alias to be used
+          { new, old } = :elixir_aliases.nesting_alias(env_module(env), full)
+          meta = [defined: true] ++ alias_meta(alias)
+
+          { full, { :alias, meta, [old, [as: new, warn: false]] } }
+        false ->
+          { expanded, nil }
+      end
+
+    { escaped, _ } = :elixir_quote.escape(block, false)
+    quoted_vars    = quote_vars(env_vars(env))
+
+    quote do
+      unquote(with_alias)
+
+      :elixir_module.compile(unquote(expanded), unquote(escaped),
+                             unquote(quoted_vars), :elixir_env.ex_to_env(__ENV__))
+    end
+  end
+
+  defp alias_meta({ :__aliases__, meta, _ }), do: meta
+  defp alias_meta(_), do: []
+
+  # defmodule :foo
+  defp expand_module(raw, _module, _env) when is_atom(raw),
+    do: raw
+
+  # defmodule Hello
+  defp expand_module({ :__aliases__, _, [h] }, _module, env),
+    do: :elixir_aliases.concat([env.module, h])
+
+  # defmodule Hello.World
+  defp expand_module({ :__aliases__, _, _ } = alias, module, env) do
+    case :elixir_aliases.expand(alias, env.aliases, env.macro_aliases, env.lexical_tracker) do
+      atom when is_atom(atom) ->
+        module
+      aliases when is_list(aliases) ->
+        :elixir_aliases.concat([env.module, module])
+    end
+  end
+
+  # defmodule Elixir.Hello.World
+  defp expand_module(_raw, module, env),
+    do: :elixir_aliases.concat([env.module, module])
+
+  # quote vars to be injected into the module definition
+  defp quote_vars(vars) do
+    { vars, _ } = :lists.mapfoldl(&var_to_tuple/2, 0, vars)
+    vars
+  end
+
+  defp var_to_tuple({ key, kind }, counter) do
+    var =
+      case is_atom(kind) do
+        true  -> { key, [], kind }
+        false -> { key, [counter: kind], nil }
+      end
+
+    args = [key, kind, binary_to_atom(<<"_@", integer_to_binary(counter)::binary>>), var]
+    { { :{}, [], args }, counter + 1 }
+  end
 
   @doc """
   Defines a function with the given name and contents.
@@ -3613,6 +3688,7 @@ defmodule Kernel do
   defp env_module(env),   do: :erlang.element(2, env)
   defp env_function(env), do: :erlang.element(5, env)
   defp env_context(env),  do: :erlang.element(6, env)
+  defp env_vars(env),     do: :erlang.element(15, env)
 
   defp expand_compact([{ :compact, false }|t]), do: expand_compact(t)
   defp expand_compact([{ :compact, true }|t]),  do: [:compact|expand_compact(t)]

@@ -109,24 +109,25 @@ last([], Acc) -> Acc.
 %%     nesting_alias('Elixir.Foo.Bar', 'Elixir.Foo.Bar.Baz.Bat')
 %%     { 'Elixir.Baz', 'Elixir.Foo.Bar.Baz' }
 %%
-%% When passed to alias, the example above will generate an
-%% alias like:
+%% In case there is no nesting:
 %%
-%%     'Elixir.Baz' => 'Elixir.Foo.Bar.Baz'
+%%     nesting_alias(nil, 'Elixir.Foo.Bar.Baz.Bat')
+%%     { false, 'Elixir.Foo.Bar.Baz' }
 %%
-nesting_alias(nil, _Full) -> false;
+nesting_alias(nil, Full) -> { false, Full };
 
 nesting_alias(Prefix, Full) ->
-  PrefixList = list_nesting(Prefix),
-  FullList   = list_nesting(Full),
-  (PrefixList /= []) andalso do_nesting(PrefixList, FullList, []).
+  case list_nesting(Prefix) of
+    [] -> { false, Full };
+    PrefixList -> do_nesting(PrefixList, list_nesting(Full), [], Full)
+  end.
 
-do_nesting([X|PreTail], [X|Tail], Acc) ->
-  do_nesting(PreTail, Tail, [X|Acc]);
-do_nesting([], [H|_], Acc) ->
+do_nesting([X|PreTail], [X|Tail], Acc, Full) ->
+  do_nesting(PreTail, Tail, [X|Acc], Full);
+do_nesting([], [H|_], Acc, _Full) ->
   { binary_to_atom(<<"Elixir.", H/binary>>, utf8), concat(lists:reverse([H|Acc])) };
-do_nesting(_, _, _Acc) ->
-  false.
+do_nesting(_, _, _Acc, Full) ->
+  { false, Full }.
 
 list_nesting(Atom) ->
   case binary:split(atom_to_binary(Atom, utf8), <<".">>, [global]) of

@@ -561,7 +561,7 @@ translate_require(Meta, Old, TKV, S) ->
 
 %% Aliases
 
-translate_alias(Meta, IncludeByDefault, Old, TKV, S) ->
+translate_alias(Meta, IncludeByDefault, Old, TKV, #elixir_scope{context_modules=Context} = S) ->
   New = case lists:keyfind(as, 1, TKV) of
     { as, true } ->
       elixir_aliases:last(Old);
@@ -588,7 +588,17 @@ translate_alias(Meta, IncludeByDefault, Old, TKV, S) ->
   { Aliases, MacroAliases } = elixir_aliases:store(Meta, New, Old, TKV,
                                 S#elixir_scope.aliases, S#elixir_scope.macro_aliases, S#elixir_scope.lexical_tracker),
 
-  { { atom, ?line(Meta), nil }, S#elixir_scope{aliases=Aliases, macro_aliases=MacroAliases} }.
+  %% Add the alias to context_modules if defined is true.
+  %% This is used by defmodule.
+  NewContext =
+    case (lists:keyfind(defined, 1, Meta) == { defined, true }) andalso
+         not lists:member(Old, Context) of
+      true  -> [Old|Context];
+      false -> Context
+    end,
+
+  { { atom, ?line(Meta), nil },
+    S#elixir_scope{aliases=Aliases, macro_aliases=MacroAliases, context_modules=NewContext} }.
 
 no_alias_opts(KV) when is_list(KV) ->
   case lists:keyfind(as, 1, KV) of
