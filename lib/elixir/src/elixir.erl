@@ -85,8 +85,13 @@ scope_for_eval(Scope, Opts) ->
     false -> Scope#elixir_scope.macros
   end,
 
+  Module = case lists:keyfind(module, 1, Opts) of
+    { module, ModuleOpt } when is_atom(ModuleOpt) -> ModuleOpt;
+    false -> nil
+  end,
+
   Scope#elixir_scope{
-    file=File, local=Local,
+    file=File, local=Local, module=Module,
     macros=Macros, functions=Functions,
     requires=Requires, aliases=Aliases }.
 

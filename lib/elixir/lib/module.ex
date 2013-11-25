@@ -352,7 +352,10 @@ defmodule Module do
 
   def eval_quoted(module, quoted, binding, opts) do
     assert_not_compiled!(:eval_quoted, module)
-    :elixir_module.eval_quoted(module, quoted, binding, opts)
+    :elixir_def.reset_last(module)
+    { value, binding, _scope } =
+      :elixir.eval_quoted [quoted], binding, Keyword.put(opts, :module, module)
+    { value, binding }
   end
 
   @doc """

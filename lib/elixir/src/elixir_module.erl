@@ -1,6 +1,6 @@
 -module(elixir_module).
 -export([compile/4, compile/5, data_table/1, docs_table/1,
-         eval_quoted/4, format_error/1, eval_callbacks/5]).
+         format_error/1, eval_callbacks/5]).
 -include("elixir.hrl").
 
 -define(acc_attr, '__acc_attributes').
@@ -8,23 +8,6 @@
 -define(lexical_attr, '__lexical_tracker').
 -define(persisted_attr, '__persisted_attributes').
 -define(overridable_attr, '__overridable').
-
-eval_quoted(Module, Quoted, Binding, Opts) ->
-  Scope = scope_for_eval(Module, Opts),
-  elixir_def:reset_last(Module),
-
-  case lists:keyfind(line, 1, Opts) of
-    { line, Line } -> Line;
-    false -> Line = 1
-  end,
-
-  { Value, FinalBinding, _Scope } = elixir:eval_quoted([Quoted], Binding, Line, Scope),
-  { Value, FinalBinding }.
-
-scope_for_eval(Module, #elixir_scope{} = S) ->
-  S#elixir_scope{module=Module};
-scope_for_eval(Module, Opts) ->
-  scope_for_eval(Module, elixir:scope_for_eval(Opts)).
 
 %% TABLE METHODS
 
