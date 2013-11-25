@@ -1,6 +1,6 @@
 -module(elixir_quote).
 -export([escape/2, linify/2, linify/3, quote/4]). %% Exposed API
--export([unquote/4, tail_join/3, join/2]).        %% Quote callbacks
+-export([dot/5, tail_list/3, list/2]).            %% Quote callbacks
 -include("elixir.hrl").
 -define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
 
@@ -38,10 +38,13 @@ do_tuple_linify(Line, Var, Meta, Left, Right) ->
 
 %% Some expressions cannot be unquoted at compilation time.
 %% This function is responsible for doing runtime unquoting.
-unquote(Meta, Left, { '__aliases__', _, Args }, nil) ->
+dot(Meta, Left, Right, Args, Context) ->
+  annotate(dot(Meta, Left, Right, Args), Context).
+
+dot(Meta, Left, { '__aliases__', _, Args }, nil) ->
   { '__aliases__', Meta, [Left|Args] };
 
-unquote(Meta, Left, Right, nil) when is_atom(Right) ->
+dot(Meta, Left, Right, nil) when is_atom(Right) ->
   case atom_to_list(Right) of
     "Elixir." ++ _ ->
       { '__aliases__', Meta, [Left, Right] };
@@ -49,47 +52,80 @@ unquote(Meta, Left, Right, nil) when is_atom(Right) ->
       { { '.', Meta, [Left, Right] }, Meta, [] }
   end;
 
-unquote(Meta, Left, { Right, _, Context }, nil) when is_atom(Right), is_atom(Context) ->
+dot(Meta, Left, { Right, _, Context }, nil) when is_atom(Right), is_atom(Context) ->
   { { '.', Meta, [Left, Right] }, Meta, [] };
 
-unquote(Meta, Left, { Right, _, Args }, nil) when is_atom(Right) ->
+dot(Meta, Left, { Right, _, Args }, nil) when is_atom(Right) ->
   { { '.', Meta, [Left, Right] }, Meta, Args };
 
-unquote(_Meta, _Left, Right, nil) ->
+dot(_Meta, _Left, Right, nil) ->
   argument_error(<<"expected unquote after dot to return an atom, an alias or a quoted call, got: ",
                    ('Elixir.Macro':to_string(Right))/binary>>);
 
-unquote(Meta, Left, Right, Args) when is_atom(Right) ->
+dot(Meta, Left, Right, Args) when is_atom(Right) ->
   { { '.', Meta, [Left, Right] }, Meta, Args };
 
-unquote(Meta, Left, { Right, _, Context }, Args) when is_atom(Right), is_atom(Context) ->
+dot(Meta, Left, { Right, _, Context }, Args) when is_atom(Right), is_atom(Context) ->
   { { '.', Meta, [Left, Right] }, Meta, Args };
 
-unquote(_Meta, _Left, Right, _Args) ->
+dot(_Meta, _Left, Right, _Args) ->
   argument_error(<<"expected unquote after dot with args to return an atom or a quoted call, got: ",
                    ('Elixir.Macro':to_string(Right))/binary>>).
 
-join(Left, Right) when is_list(Right) ->
-  validate_join(Left),
+list(Left, Right) when is_list(Right) ->
+  validate_list(Left),
   Left ++ Right.
 
-tail_join(Left, Right, Tail) when is_list(Right), is_list(Tail) ->
-  validate_join(Left),
+tail_list(Left, Right, Tail) when is_list(Right), is_list(Tail) ->
+  validate_list(Left),
   Tail ++ Left ++ Right;
 
-tail_join(Left, Right, Tail) when is_list(Left) ->
-  validate_join(Left),
+tail_list(Left, Right, Tail) when is_list(Left) ->
+  validate_list(Left),
   [H|T] = lists:reverse(Tail ++ Left),
   lists:reverse([{ '|', [], [H, Right] }|T]).
 
-validate_join(List) when is_list(List) ->
+validate_list(List) when is_list(List) ->
   ok;
-validate_join(List) when not is_list(List) ->
+validate_list(List) when not is_list(List) ->
   argument_error(<<"expected a list with quoted expressions in unquote_splicing/1, got: ",
                    ('Elixir.Kernel':inspect(List))/binary>>).
 
 argument_error(Message) ->
   error('Elixir.ArgumentError':exception([{message,Message}])).
+
+%% Annotates the AST with context and other info
+
+annotate({ defmodule, Meta, [{ '__aliases__', AliasMeta, Atoms } = H|T] }, Context) ->
+  %% Only store the context if we actually have a full alias as
+  %% argument, otherwise the expression is being automatically
+  %% generated and we don't want the alias to count.
+  NewH =
+    case lists:all(fun is_atom/1, Atoms) of
+      true  ->
+        { '__aliases__', keystore(context, AliasMeta, Context), Atoms };
+      false ->
+        H
+    end,
+  { defmodule, Meta, [NewH|T] };
+
+annotate({ Def, Meta, [{ H, M, A }|T] }, Context) when ?defs(Def) ->
+  %% Store the context information in the first element of the
+  %% definition tuple so we can access it later on.
+  MM = keystore(context, M, Context),
+  { Def, Meta, [{ H, MM, A }|T] };
+annotate({ { '.', _, [_, Def] } = Target, Meta, [{ H, M, A }|T] }, Context) when ?defs(Def) ->
+  MM = keystore(context, M, Context),
+  { Target, Meta, [{ H, MM, A }|T] };
+
+annotate({ Def, Meta, [_|_] = Args }, Context) when Def == alias; Def == import ->
+  NewMeta = keystore(context, Meta, Context),
+  { Def, NewMeta, Args };
+annotate({ { '.', _, [_, Def] } = Target, Meta, Args }, Context) when Def == alias; Def == import ->
+  NewMeta = keystore(context, Meta, Context),
+  { Target, NewMeta, Args };
+
+annotate(Tree, _Context) -> Tree.
 
 %% Escapes the given expression. It is similar to quote, but
 %% lines are kept and hygiene mechanisms are disabled.
@@ -131,37 +167,6 @@ do_quote({ quote, _, Args } = Tuple, #elixir_quote{unquote=true} = Q, S) when le
 do_quote({ unquote, _Meta, [Expr] }, #elixir_quote{unquote=true} = Q, _) ->
   { Expr, Q#elixir_quote{unquoted=true} };
 
-%% Context mark
-
-do_quote({ defmodule, Meta, [{ '__aliases__', AliasMeta, Atoms } = H|T] }, #elixir_quote{escape=false} = Q, S) ->
-  %% Only store the context if we actually have a full alias as
-  %% argument, otherwise the expression is being automatically
-  %% generated and we don't want the alias to count.
-  NewH =
-    case lists:all(fun is_atom/1, Atoms) of
-      true  ->
-        { '__aliases__', keystore(context, AliasMeta, Q#elixir_quote.context), Atoms };
-      false ->
-        H
-    end,
-  do_quote_tuple({ defmodule, Meta, [NewH|T] }, Q, S);
-
-%% Store the context information in the first element of the
-%% definition tuple so we can access it later on.
-do_quote({ Def, Meta, [{ H, M, A }|T] }, #elixir_quote{escape=false} = Q, S) when ?defs(Def) ->
-  MM = keystore(context, M, Q#elixir_quote.context),
-  do_quote_tuple({ Def, Meta, [{ H, MM, A }|T] }, Q, S);
-do_quote({ { '.', _, [_, Def] } = Target, Meta, [{ H, M, A }|T] }, #elixir_quote{escape=false} = Q, S) when ?defs(Def) ->
-  MM = keystore(context, M, Q#elixir_quote.context),
-  do_quote_tuple({ Target, Meta, [{ H, MM, A }|T] }, Q, S);
-
-do_quote({ Def, Meta, [_|_] = Args }, #elixir_quote{escape=false} = Q, S) when Def == alias; Def == import ->
-  NewMeta = keystore(context, Meta, Q#elixir_quote.context),
-  do_quote_tuple({ Def, NewMeta, Args }, Q, S);
-do_quote({ { '.', _, [_, Def] } = Target, Meta, Args }, #elixir_quote{escape=false} = Q, S) when Def == alias; Def == import ->
-  NewMeta = keystore(context, Meta, Q#elixir_quote.context),
-  do_quote_tuple({ Target, NewMeta, Args }, Q, S);
-
 %% Aliases
 
 do_quote({ 'alias!', _Meta, [Expr] }, #elixir_quote{aliases_hygiene=true} = Q, S) ->
@@ -202,24 +207,22 @@ do_quote({ Name, Meta, ArgsOrAtom }, #elixir_quote{imports_hygiene=true} = Q, S)
     false -> length(ArgsOrAtom)
   end,
 
-  case (keyfind(import, Meta) == false) andalso
+  NewMeta = case (keyfind(import, Meta) == false) andalso
       elixir_dispatch:find_import(Meta, Name, Arity, S) of
     false ->
-      AmbMeta =
-        case (Arity == 1) andalso keyfind(ambiguous_op, Meta) of
-          { ambiguous_op, nil } -> keystore(ambiguous_op, Meta, Q#elixir_quote.context);
-          _ -> Meta
-        end,
-      do_quote_tuple({ Name, AmbMeta, ArgsOrAtom }, Q, S);
+      case (Arity == 1) andalso keyfind(ambiguous_op, Meta) of
+        { ambiguous_op, nil } -> keystore(ambiguous_op, Meta, Q#elixir_quote.context);
+        _ -> Meta
+      end;
     Receiver ->
-      ImportMeta = keystore(import,
-        keystore(context, Meta, Q#elixir_quote.context),
-        Receiver),
-      do_quote_tuple({ Name, ImportMeta, ArgsOrAtom }, Q, S)
-  end;
+      keystore(import, keystore(context, Meta, Q#elixir_quote.context), Receiver)
+  end,
+
+  Annotated = annotate({ Name, NewMeta, ArgsOrAtom }, Q#elixir_quote.context),
+  do_quote_tuple(Annotated, Q, S);
 
 do_quote({ _, _, _ } = Tuple, #elixir_quote{escape=false} = Q, S) ->
-  do_quote_tuple(Tuple, Q, S);
+  do_quote_tuple(annotate(Tuple, Q#elixir_quote.context), Q, S);
 
 %% Literals
 
@@ -256,9 +259,9 @@ do_quote(Other, Q, _) ->
 %% Quote helpers
 
 do_quote_call(Left, Meta, Expr, Args, Q, S) ->
-  All  = [meta(Meta, Q), Left, { unquote, Meta, [Expr] }, Args],
+  All  = [meta(Meta, Q), Left, { unquote, Meta, [Expr] }, Args, Q#elixir_quote.context],
   { TAll, TQ } = lists:mapfoldl(fun(X, Acc) -> do_quote(X, Acc, S) end, Q, All),
-  { { { '.', Meta, [elixir_quote, unquote] }, Meta, TAll }, TQ }.
+  { { { '.', Meta, [elixir_quote, dot] }, Meta, TAll }, TQ }.
 
 do_quote_fa(Target, Meta, Args, F, A, Q, S) ->
   NewMeta =
@@ -306,13 +309,13 @@ do_splice([{ '|', Meta, [{ unquote_splicing, _, [Left] }, Right] }|T], #elixir_q
   %% 1, 2 and 3, which could even be unquotes.
   { TT, QT } = do_splice(T, Q, S, [], []),
   { TR, QR } = do_quote(Right, QT, S),
-  { do_runtime_join(Meta, tail_join, [Left, TR, TT]), QR#elixir_quote{unquoted=true} };
+  { do_runtime_list(Meta, tail_list, [Left, TR, TT]), QR#elixir_quote{unquoted=true} };
 
 do_splice(List, Q, S) ->
   do_splice(List, Q, S, [], []).
 
 do_splice([{ unquote_splicing, Meta, [Expr] }|T], #elixir_quote{unquote=true} = Q, S, Buffer, Acc) ->
-  do_splice(T, Q#elixir_quote{unquoted=true}, S, [], do_runtime_join(Meta, join, [Expr, do_join(Buffer, Acc)]));
+  do_splice(T, Q#elixir_quote{unquoted=true}, S, [], do_runtime_list(Meta, list, [Expr, do_join(Buffer, Acc)]));
 
 do_splice([H|T], Q, S, Buffer, Acc) ->
   { TH, TQ } = do_quote(H, Q, S),
@@ -325,5 +328,5 @@ do_join(Left, [])    -> Left;
 do_join([], Right)   -> Right;
 do_join(Left, Right) -> { { '.', [], ['Elixir.Kernel', '++'] }, [], [Left, Right] }.
 
-do_runtime_join(Meta, Fun, Args) ->
+do_runtime_list(Meta, Fun, Args) ->
   { { '.', Meta, [elixir_quote, Fun] }, Meta, Args }.
