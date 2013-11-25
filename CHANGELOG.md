@@ -8,11 +8,11 @@
 
 * Bug fixes
   * [HashDict] Ensure a `HashDict` stored in an attribute can be accessed via the attribute
-  * [Kernel] `quote location: :keep` now only affects definitions in order to keep the proper trace in out of definitions exceptions
+  * [Kernel] `quote location: :keep` now only affects definitions in order to keep the proper trace in definition exceptions
   * [Mix] Also symlink `include` directories in _build dependencies
 
 * Deprecations
-  * [File] `File.binsteram!/3` is deprecated. Simply use `File.stream!/3` which is able to figure out if `stream` or `binstream` operations should be used
+  * [File] `File.binstream!/3` is deprecated. Simply use `File.stream!/3` which is able to figure out if `stream` or `binstream` operations should be used
   * [Typespec] `when` clauses in typespecs were moved to the outer part of the spec
 
 * Backwards incompatible changes
@@ -319,7 +319,7 @@
   * [Bitwise] Precedence of operators used by the Bitwise module were changed, check `elixir_parser.yrl` for more information
   * [File] `rm_rf` and `cp_r` now returns a tuple with three elements on failures
   * [Kernel] The quoted representation for `->` clauses changed from a tuple with two elements to a tuple with three elements to support metadata
-  * [Kernel] Sigils now dispatch to `sigil_$` instead of `__$__` where `$` is the sigil caracter
+  * [Kernel] Sigils now dispatch to `sigil_$` instead of `__$__` where `$` is the sigil character
   * [Macro] `Macro.expand/2` now expands until final form. Although this is backwards incompatible, it is very likely you do not need to change your code, since expansion until its final form is recommended, particularly if you are expecting an atom out of it
   * [Mix] No longer support beam files on `mix local`
 
