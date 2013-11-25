@@ -219,7 +219,7 @@ translate_expansion(Meta, Receiver, Tree, S) ->
 
   try
     elixir_translator:translate_each(
-      elixir_quote:linify(Line, { Receiver, New }, Tree),
+      elixir_quote:linify_with_context_counter(Line, { Receiver, New }, Tree),
       S#elixir_scope{macro_counter=New}
     )
   catch

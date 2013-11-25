@@ -187,7 +187,7 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
       false -> syntax_error(Meta, S#elixir_scope.file, "missing do keyword in quote")
     end,
 
-  ValidOpts   = [hygiene, context, var_context, location, line, file, unquote, bind_quoted],
+  ValidOpts   = [hygiene, context, var_context, location, line, unquote, bind_quoted],
   { TKV, ST } = translate_opts(Meta, quote, ValidOpts, KV, S),
 
   Hygiene = case lists:keyfind(hygiene, 1, TKV) of
@@ -209,31 +209,12 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
       end
   end,
 
-  Vars    = lists:keyfind(vars, 1, Hygiene) /= { vars, false },
-  Aliases = lists:keyfind(aliases, 1, Hygiene) /= { aliases, false },
-  Imports = lists:keyfind(imports, 1, Hygiene) /= { imports, false },
+  Vars     = lists:keyfind(vars, 1, Hygiene) /= { vars, false },
+  Aliases  = lists:keyfind(aliases, 1, Hygiene) /= { aliases, false },
+  Imports  = lists:keyfind(imports, 1, Hygiene) /= { imports, false },
 
-  { DefaultLine, DefaultFile } = case lists:keyfind(location, 1, TKV) of
-    { location, keep } -> { keep, keep };
-    false -> { nil, nil }
-  end,
-
-  Line = proplists:get_value(line, TKV, DefaultLine),
-  File = proplists:get_value(file, TKV, DefaultFile),
-
-  Scope = case File of
-    keep -> S#elixir_scope.file;
-    _    -> File
-  end,
-
-  QExprs = if
-    is_binary(Scope) ->
-      { '__scope__', Meta, [[{file,Scope}],[{do,Exprs}]] };
-    File == nil ->
-      Exprs;
-    true ->
-      compile_error(Meta, S#elixir_scope.file, "invalid :file for quote, expected a compile time binary")
-  end,
+  Keep = lists:keyfind(location, 1, TKV) == { location, keep },
+  Line = proplists:get_value(line, TKV, false),
 
   { Binding, DefaultUnquote } = case lists:keyfind(bind_quoted, 1, TKV) of
     { bind_quoted, BQ } -> { BQ, false };
@@ -245,11 +226,11 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
     false -> DefaultUnquote
   end,
 
-  Q = #elixir_quote{vars_hygiene=Vars, line=Line, unquote=Unquote,
+  Q = #elixir_quote{vars_hygiene=Vars, line=Line, keep=Keep, unquote=Unquote,
         aliases_hygiene=Aliases, imports_hygiene=Imports, context=Context},
 
-  { TQuoted, _Q } = elixir_quote:quote(QExprs, Binding, Q, ST),
-  translate_each(TQuoted, ST);
+  { Quoted, _Q } = elixir_quote:quote(Exprs, Binding, Q, ST),
+  translate_each(Quoted, ST);
 
 translate_each({ quote, Meta, [_, _] }, S) ->
   syntax_error(Meta, S#elixir_scope.file, "invalid args for quote");

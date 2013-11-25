@@ -55,7 +55,8 @@
 }).
 
 -record(elixir_quote, {
-  line=nil,
+  line=false,
+  keep=false,
   context=nil,
   vars_hygiene=true,
   aliases_hygiene=true,

@@ -13,10 +13,10 @@ defmodule Kernel.SpecialForms do
   return information about Elixir's compilation environment and can only
   be read, never assigned to.
 
-  Finally, it also documents 3 special forms (`__block__`,
-  `__scope__` and `__aliases__`), which are not intended to be
-  called directly by the developer but they appear in quoted
-  contents since they are essential in Elixir's constructs.
+  Finally, it also documents 2 special forms, `__block__` and
+  `__aliases__`, which are not intended to be called directly by the
+  developer but they appear in quoted contents since they are essential
+  in Elixir's constructs.
   """
 
   @doc """
@@ -842,12 +842,8 @@ defmodule Kernel.SpecialForms do
   When using `location: :keep` and invalid arguments are given to
   `Sample.add/2`, the stacktrace information will point to the file
   and line inside the quote. Without `location: :keep`, the error is
-  reported to where `defadd` was invoked.
-
-  Note that `location: :keep` evaluates the code as if it was defined
-  inside the `Adder` file, in particular, the macro `__FILE__` and
-  exceptions happening inside the quote will always point to the file
-  where `Added` was defined.
+  reported to where `defadd` was invoked. Note `location: :keep` affects
+  only definitions inside the quote.
 
   ## Binding and unquote fragments
 
@@ -1139,19 +1135,6 @@ defmodule Kernel.SpecialForms do
   """
   name = :&
   defmacro unquote(name)(expr)
-
-  @doc """
-  Internal special form for modifying scope information.
-
-  Used when `quote` is invoked with `location: :keep` to execute
-  a given block as if it belonged to another file.
-
-      quote location: :keep, do: 1
-      #=> { :__scope__, [line: 1], [[file: "iex"],[do: 1]] }
-
-  Check `quote/2` for more information.
-  """
-  defmacro __scope__(opts, args)
 
   @doc """
   Internal special form to hold aliases information.

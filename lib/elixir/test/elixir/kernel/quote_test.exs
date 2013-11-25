@@ -3,14 +3,6 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.QuoteTest do
   use ExUnit.Case, async: true
 
-  defmacrop custom_file do
-    quote file: "HELLO", do: __FILE__
-  end
-
-  test :file do
-    assert custom_file == "HELLO"
-  end
-
   test :list do
     assert quote(do: [1, 2, 3]) == [1, 2, 3]
   end
@@ -21,29 +13,17 @@ defmodule Kernel.QuoteTest do
 
   test :keep_line do
     ## DO NOT MOVE THIS LINE
-    assert quote(line: :keep, do: bar(1, 2, 3)) == { :bar, [line: 24], [1, 2, 3] }
+    assert quote(location: :keep, do: bar(1, 2, 3)) == { :bar, [keep: 16], [1, 2, 3] }
   end
 
   test :fixed_line do
     assert quote(line: 3, do: bar(1, 2, 3)) == { :bar, [line: 3], [1, 2, 3] }
   end
 
-  test :keep_location do
-    ## DO NOT MOVE THIS LINE
-    assert quote(location: :keep, do: bar(1, 2, 3)) == {
-      :__scope__,
-      [line: 33],
-      [
-        [file: __FILE__],
-        [do: { :bar, [line: 33], [1, 2, 3] }]
-      ]
-    }
-  end
-
   test :quote_line_var do
     ## DO NOT MOVE THIS LINE
     line = __ENV__.line
-    assert quote(line: line, do: bar(1, 2, 3)) == { :bar, [line: 45], [1, 2, 3] }
+    assert quote(line: line, do: bar(1, 2, 3)) == { :bar, [line: 25], [1, 2, 3] }
   end
 
   test :unquote_call do
@@ -180,6 +160,10 @@ defmodule Kernel.QuoteTest.Errors do
       def add(a, b), do: a + b
     end
   end
+
+  defmacro will_raise do
+    quote do: raise "omg"
+  end
 end
 
 defmodule Kernel.QuoteTest.ErrorsTest do
@@ -196,7 +180,17 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = String.to_char_list!(__FILE__)
-    assert [{ ^mod, :add, 2, [file: ^file, line: 180] }|_] = System.stacktrace
+    assert [{ ^mod, :add, 2, [file: ^file, line: 160] }|_] = System.stacktrace
+  end
+
+  test :outside_function_error do
+    assert_raise RuntimeError, fn ->
+      will_raise
+    end
+
+    mod  = Kernel.QuoteTest.ErrorsTest
+    file = String.to_char_list!(__FILE__)
+    assert [{ ^mod, _, _, [file: ^file, line: 188] }|_] = System.stacktrace
   end
 end
 

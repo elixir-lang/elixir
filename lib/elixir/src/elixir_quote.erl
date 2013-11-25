@@ -1,45 +1,63 @@
 -module(elixir_quote).
--export([escape/2, linify/2, linify/3, quote/4]). %% Exposed API
--export([dot/5, tail_list/3, list/2]).            %% Quote callbacks
+-export([escape/2, linify/2, linify/3, linify_with_context_counter/3, quote/4]).
+-export([dot/6, tail_list/3, list/2]). %% Quote callbacks
+
 -include("elixir.hrl").
 -define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
+-compile({ inline, [keyfind/2, keystore/3, keydelete/2, keyreplace/3] }).
 
 %% Apply the line from site call on quoted contents.
+%% Receives a Key to look for the default line as argument.
 linify(Line, Exprs) when is_integer(Line) ->
-  do_linify(Line, nil, Exprs).
+  do_linify(Line, line, nil, Exprs).
 
-linify(Line, Var, Exprs) when is_integer(Line) ->
-  do_linify(Line, Var, Exprs).
+linify(Line, Key, Exprs) when is_integer(Line) ->
+  do_linify(Line, Key, nil, Exprs).
 
-do_linify(Line, { Receiver, Counter } = Var, { Left, Meta, Receiver }) when is_atom(Left), is_list(Meta) ->
+%% Same as linify but also considers the context counter.
+linify_with_context_counter(Line, Var, Exprs) when is_integer(Line) ->
+  do_linify(Line, line, Var, Exprs).
+
+do_linify(Line, Key, { Receiver, Counter } = Var, { Left, Meta, Receiver }) when is_atom(Left), is_list(Meta) ->
   NewMeta = case keyfind(counter, Meta) of
     { counter, _ } -> Meta;
     _ -> keystore(counter, Meta, Counter)
   end,
-  do_tuple_linify(Line, Var, NewMeta, Left, Receiver);
+  do_tuple_linify(Line, Key, Var, NewMeta, Left, Receiver);
 
-do_linify(Line, Var, { Left, Meta, Right }) when is_list(Meta) ->
-  do_tuple_linify(Line, Var, Meta, Left, Right);
+do_linify(Line, Key, Var, { Left, Meta, Right }) when is_list(Meta) ->
+  do_tuple_linify(Line, Key, Var, Meta, Left, Right);
 
-do_linify(Line, Var, { Left, Right }) ->
-  { do_linify(Line, Var, Left), do_linify(Line, Var, Right) };
+do_linify(Line, Key, Var, { Left, Right }) ->
+  { do_linify(Line, Key, Var, Left), do_linify(Line, Key, Var, Right) };
 
-do_linify(Line, Var, List) when is_list(List) ->
-  [do_linify(Line, Var, X) || X <- List];
+do_linify(Line, Key, Var, List) when is_list(List) ->
+  [do_linify(Line, Key, Var, X) || X <- List];
 
-do_linify(_, _, Else) -> Else.
+do_linify(_, _, _, Else) -> Else.
 
-do_tuple_linify(Line, Var, Meta, Left, Right) ->
-  NewMeta = case ?line(Meta) of
-    0 -> keystore(line, Meta, Line);
-    _ -> Meta
-  end,
-  { do_linify(Line, Var, Left), NewMeta, do_linify(Line, Var, Right) }.
+do_tuple_linify(Line, Key, Var, Meta, Left, Right) ->
+  { do_linify(Line, Key, Var, Left),
+    do_linify_meta(Line, Key, Meta),
+    do_linify(Line, Key, Var, Right) }.
+
+do_linify_meta(Line, Key, Meta) ->
+  case keyfind(Key, Meta) of
+    { Key, Int } when is_integer(Int), Int /= 0 ->
+      keyreplace(Key, Meta, { line, Int });
+    _ when Key == line ->
+      keystore(line, Meta, Line);
+    _ ->
+      case ?line(Meta) of
+        0 -> keystore(line, Meta, Line);
+        _ -> Meta
+      end
+  end.
 
 %% Some expressions cannot be unquoted at compilation time.
 %% This function is responsible for doing runtime unquoting.
-dot(Meta, Left, Right, Args, Context) ->
-  annotate(dot(Meta, Left, Right, Args), Context).
+dot(Meta, Left, Right, Args, Context, File) ->
+  annotate(dot(Meta, Left, Right, Args), Context, File).
 
 dot(Meta, Left, { '__aliases__', _, Args }, nil) ->
   { '__aliases__', Meta, [Left|Args] };
@@ -96,7 +114,7 @@ argument_error(Message) ->
 
 %% Annotates the AST with context and other info
 
-annotate({ defmodule, Meta, [{ '__aliases__', AliasMeta, Atoms } = H|T] }, Context) ->
+annotate({ defmodule, Meta, [{ '__aliases__', AliasMeta, Atoms } = H|T] }, Context, _File) ->
   %% Only store the context if we actually have a full alias as
   %% argument, otherwise the expression is being automatically
   %% generated and we don't want the alias to count.
@@ -109,29 +127,30 @@ annotate({ defmodule, Meta, [{ '__aliases__', AliasMeta, Atoms } = H|T] }, Conte
     end,
   { defmodule, Meta, [NewH|T] };
 
-annotate({ Def, Meta, [{ H, M, A }|T] }, Context) when ?defs(Def) ->
+annotate({ Def, Meta, [{ H, M, A }|T] }, Context, File) when ?defs(Def) ->
   %% Store the context information in the first element of the
   %% definition tuple so we can access it later on.
-  MM = keystore(context, M, Context),
+  MM = keystore(context, keystore(file, M, File), Context),
   { Def, Meta, [{ H, MM, A }|T] };
-annotate({ { '.', _, [_, Def] } = Target, Meta, [{ H, M, A }|T] }, Context) when ?defs(Def) ->
-  MM = keystore(context, M, Context),
+annotate({ { '.', _, [_, Def] } = Target, Meta, [{ H, M, A }|T] }, Context, File) when ?defs(Def) ->
+  MM = keystore(context, keystore(file, M, File), Context),
   { Target, Meta, [{ H, MM, A }|T] };
 
-annotate({ Def, Meta, [_|_] = Args }, Context) when Def == alias; Def == import ->
+annotate({ Def, Meta, [_|_] = Args }, Context, _File) when Def == alias; Def == import ->
   NewMeta = keystore(context, Meta, Context),
   { Def, NewMeta, Args };
-annotate({ { '.', _, [_, Def] } = Target, Meta, Args }, Context) when Def == alias; Def == import ->
+annotate({ { '.', _, [_, Def] } = Target, Meta, Args }, Context, _File) when Def == alias; Def == import ->
   NewMeta = keystore(context, Meta, Context),
   { Target, NewMeta, Args };
 
-annotate(Tree, _Context) -> Tree.
+annotate(Tree, _Context, _File) -> Tree.
 
 %% Escapes the given expression. It is similar to quote, but
 %% lines are kept and hygiene mechanisms are disabled.
 escape(Expr, Unquote) ->
   { Res, Q } = quote(Expr, nil, #elixir_quote{
-    line=keep,
+    line=true,
+    keep=false,
     vars_hygiene=false,
     aliases_hygiene=false,
     imports_hygiene=false,
@@ -218,11 +237,12 @@ do_quote({ Name, Meta, ArgsOrAtom }, #elixir_quote{imports_hygiene=true} = Q, S)
       keystore(import, keystore(context, Meta, Q#elixir_quote.context), Receiver)
   end,
 
-  Annotated = annotate({ Name, NewMeta, ArgsOrAtom }, Q#elixir_quote.context),
+  Annotated = annotate({ Name, NewMeta, ArgsOrAtom }, Q#elixir_quote.context, file(S, Q)),
   do_quote_tuple(Annotated, Q, S);
 
 do_quote({ _, _, _ } = Tuple, #elixir_quote{escape=false} = Q, S) ->
-  do_quote_tuple(annotate(Tuple, Q#elixir_quote.context), Q, S);
+  Annotated = annotate(Tuple, Q#elixir_quote.context, file(S, Q)),
+  do_quote_tuple(Annotated, Q, S);
 
 %% Literals
 
@@ -259,7 +279,8 @@ do_quote(Other, Q, _) ->
 %% Quote helpers
 
 do_quote_call(Left, Meta, Expr, Args, Q, S) ->
-  All  = [meta(Meta, Q), Left, { unquote, Meta, [Expr] }, Args, Q#elixir_quote.context],
+  All  = [meta(Meta, Q), Left, { unquote, Meta, [Expr] }, Args,
+          Q#elixir_quote.context, file(S, Q)],
   { TAll, TQ } = lists:mapfoldl(fun(X, Acc) -> do_quote(X, Acc, S) end, Q, All),
   { { { '.', Meta, [elixir_quote, dot] }, Meta, TAll }, TQ }.
 
@@ -277,15 +298,19 @@ do_quote_tuple({ Left, Meta, Right }, Q, S) ->
   { TRight, RQ } = do_quote(Right, LQ, S),
   { { '{}', [], [TLeft, meta(Meta, Q), TRight] }, RQ }.
 
-meta(Meta, #elixir_quote{line=keep}) ->
+file(#elixir_scope{file=File}, #elixir_quote{keep=true}) -> File;
+file(_, _) -> nil.
+
+meta(Meta, #elixir_quote{keep=true}) ->
+  [case KV of { line, V } -> { keep, V }; _ -> KV end || KV <- Meta];
+meta(Meta, #elixir_quote{line=true}) ->
   Meta;
-meta(Meta, #elixir_quote{line=nil}) ->
+meta(Meta, #elixir_quote{line=false}) ->
   keydelete(line, Meta);
 meta(Meta, #elixir_quote{line=Line}) ->
   keystore(line, Meta, Line).
 
 reverse_improper(L) -> reverse_improper(L, []).
-
 reverse_improper([], Acc) -> { Acc };
 reverse_improper([H|T], Acc) when is_list(T) -> reverse_improper(T, [H|Acc]);
 reverse_improper([H|T], Acc) -> { [H|Acc], T }.
@@ -298,8 +323,14 @@ keyfind(Key, Meta) ->
   lists:keyfind(Key, 1, Meta).
 keydelete(Key, Meta) ->
   lists:keydelete(Key, 1, Meta).
+keystore(_Key, Meta, nil) ->
+  Meta;
 keystore(Key, Meta, Value) ->
   lists:keystore(Key, 1, Meta, { Key, Value }).
+keyreplace(Key, Meta, { Key, _V }) ->
+  Meta;
+keyreplace(Key, Meta, Tuple) ->
+  lists:keyreplace(Key, 1, Meta, Tuple).
 
 %% Quote splicing
 

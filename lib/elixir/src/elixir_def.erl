@@ -61,30 +61,42 @@ store_definition(Kind, CheckClauses, Call, Body, ExEnv) ->
       Tuple
   end,
 
-  %% Now that we have verified the call format, extract
-  %% meta information and check for context.
+  %% Now that we have verified the call format,
+  %% extract meta information like file and context.
   { _, Meta, _ } = Call,
   DoCheckClauses = (not lists:keymember(context, 1, Meta)) andalso (CheckClauses),
 
-  assert_no_aliases_name(Line, Name, Args, S),
-  store_definition(Kind, Line, DoCheckClauses, Name, Args, Guards, Body, S).
+  %% Check if there is a file information in the definition.
+  %% If so, we assume this come from another source and we need
+  %% to linify taking into account keep line numbers.
+  { File, Key }  = case lists:keyfind(file, 1, Meta) of
+    { file, Bin } when is_binary(Bin) -> { Bin, keep };
+    _ -> { nil, line }
+  end,
 
-store_definition(Kind, Line, CheckClauses, Name, Args, Guards, Body, #elixir_scope{module=Module} = DS) ->
+  LinifyArgs   = elixir_quote:linify(Line, Key, Args),
+  LinifyGuards = elixir_quote:linify(Line, Key, Guards),
+  LinifyBody   = elixir_quote:linify(Line, Key, Body),
+
+  assert_no_aliases_name(Line, Name, Args, S),
+  store_definition(Kind, Line, DoCheckClauses, Name,
+                   LinifyArgs, LinifyGuards, LinifyBody, File, S).
+
+store_definition(Kind, Line, CheckClauses, Name, Args, Guards, Body, MetaFile, #elixir_scope{module=Module} = DS) ->
   Arity = length(Args),
   Tuple = { Name, Arity },
   S     = DS#elixir_scope{function=Tuple},
   elixir_tracker:record_definition(Tuple, Kind, Module),
 
-  Location = retrieve_file(Line, Module, S),
+  Location = retrieve_file(Line, MetaFile, Module, S),
   run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Body, S),
-
   { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Body, S),
 
   DefaultsLength = length(Defaults),
   elixir_tracker:record_defaults(Tuple, Kind, Module, DefaultsLength),
 
-  File  = TS#elixir_scope.file,
-  Table = table(Module),
+  File   = TS#elixir_scope.file,
+  Table  = table(Module),
   CTable = clauses_table(Module),
 
   compile_super(Module, TS),
@@ -109,19 +121,20 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S) ->
       [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || { Mod, Fun } <- Callbacks]
   end.
 
-%% Retrieve @file or fallback to default
+%% Retrieve meta file, @file or fallback to default
 
-retrieve_file(Line, Module, S) ->
-  case elixir_compiler:get_opt(internal) of
-    true -> { elixir_utils:characters_to_list(S#elixir_scope.file), Line };
-    _ ->
-      case 'Elixir.Module':get_attribute(Module, file) of
-        nil  -> { elixir_utils:characters_to_list(S#elixir_scope.file), Line };
-        Else ->
-          'Elixir.Module':delete_attribute(Module, file),
-          { Else, 0 }
-      end
+retrieve_file(Line, File, Module, S) ->
+  case not(elixir_compiler:get_opt(internal)) andalso
+       'Elixir.Module':get_attribute(Module, file) of
+    X when X == nil; X == false ->
+      { elixir_utils:characters_to_list(retrieve_file(File, S)), Line };
+    X ->
+      'Elixir.Module':delete_attribute(Module, file),
+      { X, 0 }
   end.
+
+retrieve_file(nil, S)   -> S#elixir_scope.file;
+retrieve_file(File, _S) -> File.
 
 %% Compile super
 
@@ -133,11 +146,8 @@ compile_super(_Module, _S) -> ok.
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Kind, Line, Name, RawArgs, RawGuards, RawBody, S) when is_integer(Line) ->
-  Args    = elixir_quote:linify(Line, RawArgs),
-  Guards  = elixir_quote:linify(Line, RawGuards),
-  Body    = elixir_quote:linify(Line, RawBody),
-  Arity   = length(Args),
+translate_definition(Kind, Line, Name, Args, Guards, Body, S) when is_integer(Line) ->
+  Arity = length(Args),
 
   %% Macros receive a special argument on invocation. Notice it does
   %% not affect the arity of the stored function, but the clause

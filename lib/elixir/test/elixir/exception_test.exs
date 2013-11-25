@@ -91,12 +91,12 @@ defmodule Kernel.ExceptionTest do
 
   test :raise_preserves_the_stacktrace do
     stacktrace =
-    try do
-      raise "a"
-    rescue _ ->
-      [top|_] = System.stacktrace
-      top
-    end
+      try do
+        raise "a"
+      rescue _ ->
+        [top|_] = System.stacktrace
+        top
+      end
     file = to_char_list(__FILE__)
     assert {Kernel.ExceptionTest, :test_raise_preserves_the_stacktrace, _,
            [file: ^file, line: 95]} = stacktrace # line is sensitive
