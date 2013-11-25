@@ -3,12 +3,16 @@
 * Enhancements
   * [Kernel] Add `List.delete_at/2`
   * [Kernel] Add `Enum.reverse/2`
+  * [Kernel] Implement `defmodule/2`, `@/1`, `def/2` and friends in Elixir itself. `case/2`, `try/2` and `receive/1` have been made special forms. `var!/1`, `var!/2` and `alias!/1` have also been implemented in Elixir and demoted from special forms
   * [Typespec] Support `is_var/1` in typespecs
 
 * Bug fixes
-  * [Mix] Also symlink `include` directories in dependencies
+  * [HashDict] Ensure a `HashDict` stored in an attribute can be accessed via the attribute
+  * [Kernel] `quote location: :keep` now only affects definitions in order to keep the proper trace in out of definitions exceptions
+  * [Mix] Also symlink `include` directories in _build dependencies
 
 * Deprecations
+  * [File] `File.binsteram!/3` is deprecated. Simply use `File.stream!/3` which is able to figure out if `stream` or `binstream` operations should be used
   * [Typespec] `when` clauses in typespecs were moved to the outer part of the spec
 
 * Backwards incompatible changes

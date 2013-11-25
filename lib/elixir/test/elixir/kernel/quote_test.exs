@@ -162,7 +162,7 @@ defmodule Kernel.QuoteTest.Errors do
   end
 
   defmacro will_raise do
-    quote do: raise "omg"
+    quote location: :keep, do: raise "omg"
   end
 end
 
