@@ -1371,6 +1371,8 @@ defmodule Enum do
       [[1, 2, 3], [3, 4, 5]]
       iex> Enum.chunks([1, 2, 3, 4, 5, 6], 3, 2, [7])
       [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
+      iex> Enum.chunks([1, 2, 3, 4, 5, 6], 3, 3, [])
+      [[1, 2, 3], [4, 5, 6]]
 
   """
   @spec chunks(t, non_neg_integer, non_neg_integer) :: [list]
@@ -1384,7 +1386,7 @@ defmodule Enum do
           chunks_step(acc, [x|buffer], i + 1, step)
       end)
 
-    if nil?(pad) do
+    if nil?(pad) || i == 0 do
       :lists.reverse(acc)
     else
       buffer = :lists.reverse(buffer) ++ take(pad, n - i)
