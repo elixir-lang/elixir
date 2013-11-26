@@ -32,6 +32,7 @@ defmodule List do
       [1, 2, 3]
 
   """
+  @spec delete(list, any) :: list
   def delete(list, item) do
     :lists.delete(item, list)
   end
@@ -47,6 +48,7 @@ defmodule List do
       iex> List.duplicate([1, 2], 2)
       [[1,2],[1,2]]
   """
+  @spec duplicate(elem, non_neg_integer) :: [elem] when is_var(elem)
   def duplicate(elem, n) do
     :lists.duplicate(n, elem)
   end
@@ -60,6 +62,7 @@ defmodule List do
       [1,2,3]
 
   """
+  @spec flatten(deep_list) :: list when is_subtype(deep_list, [any | deep_list])
   def flatten(list) do
     :lists.flatten(list)
   end
@@ -75,6 +78,7 @@ defmodule List do
       [1,2,3,4,5]
 
   """
+  @spec flatten(deep_list, [elem]) :: [elem] when is_subtype(deep_list, [elem | deep_list]) and is_var(elem)
   def flatten(list, tail) do
     :lists.flatten(list, tail)
   end
@@ -92,6 +96,7 @@ defmodule List do
       2
 
   """
+  @spec foldl([elem], acc, (elem, acc -> acc)) :: acc when is_var(elem) and is_var(acc)
   def foldl(list, acc, function) when is_list(list) and is_function(function) do
     :lists.foldl(function, acc, list)
   end
@@ -106,6 +111,7 @@ defmodule List do
       -2
 
   """
+  @spec foldr([elem], acc, (elem, acc -> acc)) :: acc when is_var(elem) and is_var(acc)
   def foldr(list, acc, function) when is_list(list) and is_function(function) do
     :lists.foldr(function, acc, list)
   end
@@ -123,6 +129,8 @@ defmodule List do
       3
 
   """
+  @spec last([elem]) :: nil | elem when is_var(elem)
+
   def last([]), do: nil
 
   def last(list) do
@@ -146,6 +154,7 @@ defmodule List do
       nil
 
   """
+  @spec keyfind([tuple], any, non_neg_integer, any) :: any
   def keyfind(list, key, position, default // nil) do
     :lists.keyfind(key, position + 1, list) || default
   end
@@ -167,6 +176,7 @@ defmodule List do
       false
 
   """
+  @spec keymember?([tuple], any, non_neg_integer) :: any
   def keymember?(list, key, position) do
     :lists.keymember(key, position + 1, list)
   end
@@ -181,6 +191,7 @@ defmodule List do
       [a: 3, b: 2]
 
   """
+  @spec keyreplace([tuple], any, non_neg_integer, tuple) :: [tuple]
   def keyreplace(list, key, position, new_tuple) do
     :lists.keyreplace(key, position + 1, list, new_tuple)
   end
@@ -198,6 +209,7 @@ defmodule List do
       [a: 5, b: 3, c: 1]
 
   """
+  @spec keysort([tuple], non_neg_integer) :: [tuple]
   def keysort(list, position) do
     :lists.keysort(position + 1, list)
   end
@@ -216,6 +228,7 @@ defmodule List do
       [a: 1, b: 2, c: 3]
 
   """
+  @spec keystore([tuple], any, non_neg_integer, tuple) :: [tuple]
   def keystore(list, key, position, new_tuple) do
     :lists.keystore(key, position + 1, list, new_tuple)
   end
@@ -228,15 +241,16 @@ defmodule List do
   ## Examples
 
       iex> List.keydelete([a: 1, b: 2], :a, 0)
-      [{ :b, 2 }]
+      [b: 2]
 
       iex> List.keydelete([a: 1, b: 2], 2, 1)
-      [{ :a, 1 }]
+      [a: 1]
 
       iex> List.keydelete([a: 1, b: 2], :c, 0)
-      [{ :a, 1 }, { :b, 2 }]
+      [a: 1, b: 2]
 
   """
+  @spec keydelete([tuple], any, non_neg_integer) :: [tuple]
   def keydelete(list, key, position) do
     :lists.keydelete(key, position + 1, list)
   end
@@ -258,6 +272,7 @@ defmodule List do
       []
 
   """
+  @spec wrap(list | any) :: list
   def wrap(list) when is_list(list) do
     list
   end
@@ -282,6 +297,7 @@ defmodule List do
       [{1, 3, 5}]
 
   """
+  @spec zip([list]) :: [tuple]
   def zip([]), do: []
   def zip(list_of_lists) when is_list(list_of_lists) do
     do_zip(list_of_lists, [])
@@ -300,6 +316,7 @@ defmodule List do
       [[1, 2, 3], [:a, :b, :c]]
 
   """
+  @spec unzip([tuple]) :: [list]
   def unzip(list) when is_list(list) do
     :lists.map &tuple_to_list/1, zip(list)
   end
@@ -324,6 +341,7 @@ defmodule List do
       [0, 1, 2, 3]
 
   """
+  @spec insert_at(list, integer, any) :: list
   def insert_at(list, index, value) do
     if index < 0 do
       do_insert_at(list, length(list) + index + 1, value)
@@ -352,6 +370,7 @@ defmodule List do
       [1, 2, 3]
 
   """
+  @spec replace_at(list, integer, any) :: list
   def replace_at(list, index, value) do
     if index < 0 do
       do_replace_at(list, length(list) + index, value)
@@ -380,6 +399,7 @@ defmodule List do
       [1, 2, 3]
 
   """
+  @spec update_at([elem], integer, (elem -> any)) :: list when is_var(elem)
   def update_at(list, index, fun) do
     if index < 0 do
       do_update_at(list, length(list) + index, fun)
@@ -405,6 +425,7 @@ defmodule List do
       [1, 2]
 
   """
+  @spec delete_at(list, integer) :: list
   def delete_at(list, index) do
     if index < 0 do
       do_delete_at(list, length(list) + index)
