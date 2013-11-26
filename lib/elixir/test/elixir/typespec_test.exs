@@ -211,11 +211,12 @@ defmodule Typespec.TypeTest do
 
   test "@type with keywords" do
     spec = test_module do
-      @type mytype :: [first: integer, last: integer]
+      @type mytype :: [first: integer, step: integer, last: integer]
     end
     assert {:mytype, {:type, _, :list, [
       {:type, _, :union, [
         {:type, _, :tuple, [{:atom, _, :first}, {:type, _, :integer, []}]},
+        {:type, _, :tuple, [{:atom, _, :step}, {:type, _, :integer, []}]},
         {:type, _, :tuple, [{:atom, _, :last}, {:type, _, :integer, []}]}
       ]}
     ]}, []} = spec
@@ -389,7 +390,7 @@ defmodule Typespec.TypeTest do
       (quote do: @type ab() :: as_boolean(term())),
       (quote do: @type vaf() :: (... -> any())),
       (quote do: @type rng() :: 1 .. 10),
-      (quote do: @type opts() :: [first: integer(), last: integer()]),
+      (quote do: @type opts() :: [first: integer(), step: integer(), last: integer()]),
     ]
 
     types = test_module do

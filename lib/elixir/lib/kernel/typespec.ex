@@ -497,8 +497,8 @@ defmodule Kernel.Typespec do
     { :{}, [line: line], args }
   end
 
-  defp typespec_to_ast({ :type, _line, :list, [arg] }) do
-    case unpack_typespec_kw(arg, []) do
+  defp typespec_to_ast({ :type, _line, :list, [{ :type, _, :union, unions } = arg] }) do
+    case unpack_typespec_kw(unions, []) do
       { :ok, ast } -> ast
       :error -> [typespec_to_ast(arg)]
     end
@@ -801,15 +801,12 @@ defmodule Kernel.Typespec do
     {:var, line(meta), name}
   end
 
-  defp unpack_typespec_kw({ :type, _, :union, [
-         next,
-         { :type, _, :tuple, [{ :atom, _, atom }, type] }
-       ] }, acc) do
-    unpack_typespec_kw(next, [{atom, typespec_to_ast(type)}|acc])
+  defp unpack_typespec_kw([{ :type, _, :tuple, [{ :atom, _, atom }, type] }|t], acc) do
+    unpack_typespec_kw(t, [{atom, typespec_to_ast(type)}|acc])
   end
 
-  defp unpack_typespec_kw({ :type, _, :tuple, [{ :atom, _, atom }, type] }, acc) do
-    { :ok, [{atom, typespec_to_ast(type)}|acc] }
+  defp unpack_typespec_kw([], acc) do
+    { :ok, :lists.reverse(acc) }
   end
 
   defp unpack_typespec_kw(_, _acc) do

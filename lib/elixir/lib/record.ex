@@ -811,8 +811,7 @@ defmodule Record do
 
   defp core_specs(values) do
     types   = lc { _, _, spec } inlist values, do: spec
-    options = if values == [], do: [], else: [options_specs(values)]
-    values_specs = if values == [], do: [], else: values_specs(values)
+    options = lc { k, _, v } inlist values, do: { k, v }
 
     quote do
       unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
@@ -820,7 +819,7 @@ defmodule Record do
       end
 
       unless Kernel.Typespec.defines_type?(__MODULE__, :options, 0) do
-        @type options :: unquote(options) | [{String.t, unquote(values_specs)}]
+        @type options :: unquote(options) | [{String.t, term}]
       end
 
       @spec new :: t
@@ -831,17 +830,6 @@ defmodule Record do
       @spec __record__(:fields) :: [{atom, any}]
       @spec __record__(:index, atom) :: non_neg_integer | nil
     end
-  end
-
-  defp options_specs([{ k, _, v }|t]) do
-    :lists.foldl fn { k, _, v }, acc ->
-      { :|, [], [{ k, v }, acc] }
-    end, { k, v }, t
-  end
-  defp values_specs([{ _, _, v }|t]) do
-    :lists.foldl fn { _, _, v }, acc ->
-      { :|, [], [v, acc] }
-    end, v, t
   end
 
   defp accessor_specs([{ :__exception__, _, _ }|t], 1, acc) do
