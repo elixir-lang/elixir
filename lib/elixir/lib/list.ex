@@ -65,7 +65,7 @@ defmodule List do
   end
 
   @doc """
-  Flattens the given `list` of nested lists. 
+  Flattens the given `list` of nested lists.
   The list `tail` will be added at the end of
   the flattened list.
 
@@ -361,6 +361,34 @@ defmodule List do
   end
 
   @doc """
+  Returns a list with an updated value at the specified `index`.
+  Negative indices indicate an offset from the end of the list.
+  If `index` is out of bounds, the original `list` is returned.
+
+  ## Examples
+
+      iex> List.update_at([1, 2, 3], 0, &(&1 + 10))
+      [11, 2, 3]
+
+      iex> List.update_at([1, 2, 3], 10, &(&1 + 10))
+      [1, 2, 3]
+
+      iex> List.update_at([1, 2, 3], -1, &(&1 + 10))
+      [1, 2, 13]
+
+      iex> List.update_at([1, 2, 3], -10, &(&1 + 10))
+      [1, 2, 3]
+
+  """
+  def update_at(list, index, fun) do
+    if index < 0 do
+      do_update_at(list, length(list) + index, fun)
+    else
+      do_update_at(list, index, fun)
+    end
+  end
+
+  @doc """
   Produces a new list by removing the value at the specified `index`.
   Negative indices indicate an offset from the end of the list.
   If `index` is out of bounds, the original `list` is returned.
@@ -417,6 +445,24 @@ defmodule List do
 
   defp do_insert_at([h|t], index, value) do
     [ h | do_insert_at(t, index - 1, value) ]
+  end
+
+  # update_at
+
+  defp do_update_at([value|list], 0, fun) do
+    [ fun.(value) | list ]
+  end
+
+  defp do_update_at(list, index, _fun) when index < 0 do
+    list
+  end
+
+  defp do_update_at([h|t], index, fun) do
+    [ h | do_update_at(t, index - 1, fun) ]
+  end
+
+  defp do_update_at([], _index, _fun) do
+    []
   end
 
   # delete_at
