@@ -1,20 +1,4 @@
 defmodule ExUnit do
-  defrecord Test, [:name, :case, :failure, :time, :tags] do
-    @moduledoc """
-    A record that keeps information about the test.
-    It is received by formatters and also accessible
-    in the metadata under the key `:test`.
-    """
-  end
-
-  defrecord TestCase, [:name, :failure, :tests] do
-    @moduledoc """
-    A record that keeps information about the test case.
-    It is received by formatters and also accessible
-    in the metadata under the key `:case`.
-    """
-  end
-
   @moduledoc """
   Basic unit testing framework for Elixir.
 
@@ -76,8 +60,31 @@ defmodule ExUnit do
   Mix will load the `test_helper.exs` file before executing the tests. 
   It is not necessary to `require` the `test_helper.exs` file in your test files.
   See [`Mix.Tasks.Test`](Mix.Tasks.Test.html) for more information.
-
   """
+
+  @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase"
+  @type state   :: nil | :passed | { :failed, failed } | { :invalid, invalid }
+  @type failed  :: { :error | :exit | :throw | :EXIT, reason :: term, stacktrace :: [tuple] }
+  @type invalid :: module
+
+  defrecord Test, [:name, :case, :state, :time, :tags] do
+    @moduledoc """
+    A record that keeps information about the test.
+    It is received by formatters and also accessible
+    in the metadata under the key `:test`.
+    """
+    record_type name: atom, case: module, state: ExUnit.state,
+                time: non_neg_integer, tags: Keyword.t
+  end
+
+  defrecord TestCase, [:name, :state, :tests] do
+    @moduledoc """
+    A record that keeps information about the test case.
+    It is received by formatters and also accessible
+    in the metadata under the key `:case`.
+    """
+    record_type name: module, state: ExUnit.state, tests: [ExUnit.Test.t]
+  end
 
   use Application.Behaviour
 

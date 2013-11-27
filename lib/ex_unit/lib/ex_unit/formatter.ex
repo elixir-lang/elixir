@@ -70,9 +70,7 @@ defmodule ExUnit.Formatter do
   @doc %S"""
   Receives a test and formats its failure.
   """
-  def format_test_failure(ExUnit.Test[] = test, counter, color) do
-    ExUnit.Test[case: test_case, name: test, failure: { kind, reason, stacktrace }] = test
-
+  def format_test_failure(test_case, test, { kind, reason, stacktrace }, counter, color) do
     test_info("#{counter}) #{test} (#{inspect test_case})", color) <>
       format_kind_reason(kind, reason, color) <>
       format_stacktrace(stacktrace, test_case, test, color)
@@ -81,9 +79,7 @@ defmodule ExUnit.Formatter do
   @doc """
   Receives a test case and formats its failure.
   """
-  def format_test_case_failure(ExUnit.TestCase[] = test_case, counter, color) do
-    ExUnit.TestCase[name: test_case, failure: { kind, reason, stacktrace }] = test_case
-
+  def format_test_case_failure(test_case, { kind, reason, stacktrace }, counter, color) do
     test_case_info("#{counter}) #{inspect test_case}: ", color) <>
       format_kind_reason(kind, reason, color) <>
       format_stacktrace(stacktrace, test_case, nil, color)

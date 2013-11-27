@@ -5,7 +5,7 @@ defmodule ExUnit.CLIFormatter do
 
   use GenServer.Behaviour
 
-  import ExUnit.Formatter, only: [format_time: 2, format_test_failure: 3, format_test_case_failure: 3]
+  import ExUnit.Formatter, only: [format_time: 2, format_test_failure: 5, format_test_case_failure: 4]
 
   defrecord Config, tests_counter: 0, invalids_counter: 0, failures_counter: 0,
                     trace: false, color: true, previous: nil
@@ -57,16 +57,16 @@ defmodule ExUnit.CLIFormatter do
     { :noreply, config }
   end
 
-  def handle_cast({ :test_finished, ExUnit.Test[failure: nil] = test }, config = Config[]) do
+  def handle_cast({ :test_finished, ExUnit.Test[state: :passed] = test }, config = Config[]) do
     if config.trace do
       IO.puts success(trace_test_result(test), config)
     else
       IO.write success(".", config)
     end
-    { :noreply, config.previous(:ok).update_tests_counter(&(&1 + 1)) }
+    { :noreply, config.previous(:passed).update_tests_counter(&(&1 + 1)) }
   end
 
-  def handle_cast({ :test_finished, ExUnit.Test[failure: { :invalid, _ }] = test }, config = Config[]) do
+  def handle_cast({ :test_finished, ExUnit.Test[state: { :invalid, _ }] = test }, config = Config[]) do
     if config.trace do
       IO.puts invalid(trace_test_result(test), config)
     else
@@ -95,7 +95,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({ :case_finished, test_case }, config) do
-    if test_case.failure do
+    if test_case.state != :passed do
       config = print_test_case_failure(test_case, config)
       { :noreply, config }
     else
@@ -150,24 +150,24 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
-  defp print_test_failure(test, config) do
-    formatted = format_test_failure(test, config.failures_counter + 1, &formatter(&1, &2, config))
+  defp print_test_failure(ExUnit.Test[name: name, case: mod, state: { :failed, tuple }], config) do
+    formatted = format_test_failure(mod, name, tuple, config.failures_counter + 1, &formatter(&1, &2, config))
     print_any_failure formatted, config
   end
 
-  defp print_test_case_failure(test_case, config) do
-    formatted = format_test_case_failure(test_case, config.failures_counter + 1, &formatter(&1, &2, config))
+  defp print_test_case_failure(ExUnit.TestCase[name: name, state: { :failed, tuple }], config) do
+    formatted = format_test_case_failure(name, tuple, config.failures_counter + 1, &formatter(&1, &2, config))
     print_any_failure formatted, config
   end
 
   defp print_any_failure(formatted, config = Config[]) do
     cond do
       config.trace -> IO.puts ""
-      config.previous != :failure -> IO.puts "\n"
+      config.previous != :failed -> IO.puts "\n"
       true -> :ok
     end
     IO.puts formatted
-    config.update_failures_counter(&(&1 + 1)).previous(:failure)
+    config.update_failures_counter(&(&1 + 1)).previous(:failed)
   end
 
   # Color styles

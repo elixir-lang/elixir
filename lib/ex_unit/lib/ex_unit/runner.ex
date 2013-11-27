@@ -85,29 +85,30 @@ defmodule ExUnit.Runner do
     { case_pid, case_ref } = Process.spawn_monitor fn ->
       { test_case, context } = try do
         { :ok, context } = case_name.__ex_unit__(:setup_all, [case: test_case])
-        { test_case, context }
+        { test_case.state(:passed), context }
       catch
         kind, error ->
-          { test_case.failure({ kind, Exception.normalize(kind, error), pruned_stacktrace }), nil }
+          { test_case.state({ :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }), nil }
       end
 
       tests = test_case.tests
 
-      if test_case.failure do
-        tests = Enum.map tests, fn test -> test.failure({ :invalid, test_case }) end
-        self_pid <- { self, :case_finished, test_case, tests }
-      else
-        Enum.each tests, &run_test(config, &1, context)
+      case test_case.state do
+        :passed ->
+          Enum.each tests, &run_test(config, &1, context)
 
-        test_case = try do
-          case_name.__ex_unit__(:teardown_all, context)
-          test_case
-        catch
-          kind, error ->
-            test_case.failure { kind, Exception.normalize(kind, error), pruned_stacktrace }
-        end
+          test_case = try do
+            case_name.__ex_unit__(:teardown_all, context)
+            test_case
+          catch
+            kind, error ->
+              test_case.state { :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }
+          end
 
-        self_pid <- { self, :case_finished, test_case, [] }
+          self_pid <- { self, :case_finished, test_case, [] }
+        { :failed, _ } ->
+          tests = Enum.map tests, fn test -> test.state({ :invalid, test_case }) end
+          self_pid <- { self, :case_finished, test_case, tests }
       end
     end
 
@@ -117,7 +118,7 @@ defmodule ExUnit.Runner do
         config.formatter.case_finished(config.formatter_id, test_case)
         pid <- { case_pid, :case_finished, test_case }
       { :DOWN, ^case_ref, :process, ^case_pid, { error, stacktrace } } ->
-        test_case = test_case.failure { :EXIT, error, prune_stacktrace(stacktrace) }
+        test_case = test_case.state { :failed, { :EXIT, error, prune_stacktrace(stacktrace) } }
         config.formatter.case_finished(config.formatter_id, test_case)
         pid <- { case_pid, :case_finished, test_case }
     end
@@ -136,17 +137,17 @@ defmodule ExUnit.Runner do
 
           test = try do
             apply case_name, test.name, [context]
-            test
+            test.state(:passed)
           catch
             kind1, error1 ->
-              test.failure { kind1, Exception.normalize(kind1, error1), pruned_stacktrace }
+              test.state { :failed, { kind1, Exception.normalize(kind1, error1), pruned_stacktrace } }
           end
 
           case_name.__ex_unit__(:teardown, Keyword.put(context, :test, test))
           test
         catch
           kind2, error2 ->
-            test.failure { kind2, Exception.normalize(kind2, error2), pruned_stacktrace }
+            test.state { :failed, { kind2, Exception.normalize(kind2, error2), pruned_stacktrace } }
         end
       end)
 
@@ -157,7 +158,7 @@ defmodule ExUnit.Runner do
       { ^test_pid, :test_finished, test } ->
         config.formatter.test_finished(config.formatter_id, test)
       { :DOWN, ^test_ref, :process, ^test_pid, { error, stacktrace } } ->
-        test = test.failure { :EXIT, error, prune_stacktrace(stacktrace) }
+        test = test.state { :failed, { :EXIT, error, prune_stacktrace(stacktrace) } }
         config.formatter.test_finished(config.formatter_id, test)
     end
   end
