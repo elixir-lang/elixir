@@ -37,11 +37,12 @@ defmodule ExUnit do
 
   ## Case, Callbacks and Assertions
 
-  See [`ExUnit.Case`](ExUnit.Case.html) and [`ExUnit.Callbacks`](ExUnit.Callbacks.html) for more information about
-  defining test cases.
+  See [`ExUnit.Case`](ExUnit.Case.html) and [`ExUnit.Callbacks`](ExUnit.Callbacks.html)
+  for more information about defining test cases.
 
-  The [`ExUnit.Assertions`](ExUnit.Assertions.html) module contains a set of macros to easily
-  generate assertions with appropriate error messages.
+  The [`ExUnit.Assertions`](ExUnit.Assertions.html) module contains
+  a set of macros to easily generate assertions with appropriate
+  error messages.
 
   ## Integration with Mix
 
@@ -67,7 +68,7 @@ defmodule ExUnit do
   @type failed  :: { :error | :exit | :throw | :EXIT, reason :: term, stacktrace :: [tuple] }
   @type invalid :: module
 
-  defrecord Test, [:name, :case, :state, :time, :tags] do
+  defrecord Test, [:name, :case, :state, :time, :tags, :line] do
     @moduledoc """
     A record that keeps information about the test.
     It is received by formatters and also accessible

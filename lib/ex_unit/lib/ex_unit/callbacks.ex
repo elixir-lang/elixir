@@ -9,11 +9,6 @@ defmodule ExUnit.Callbacks do
   keyword list with metadata, usually referred to as `context`. The callback
   may optionally put extra data into `context` to be used in the tests.
 
-  **Note**: `setup` and `teardown` callbacks share the same context, it
-  provides an `ExUnit.Test` record associated with the `:test` key. `setup_all`
-  and `teardown_all` share their own context in a similar way, but this one
-  provides an `ExUnit.TestCase` record associated with the `:case` key.
-
   If you return `{ :ok, <keyword list> }` from `setup` or `teardown`, the keyword
   list will get merged into the context that will be available in all
   subsequent `setup`, `test`, or `teardown` calls.
@@ -57,7 +52,7 @@ defmodule ExUnit.Callbacks do
 
         # Same as `setup`, but receives the context for the current test
         setup context do
-          # We can access the test record in the context
+          # We can access the currenttest in the context
           IO.puts "Setting up: #{context[:test]}"
 
           # We can also access the data returned from `setup/0`

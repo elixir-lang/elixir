@@ -84,7 +84,7 @@ defmodule ExUnit.Runner do
     self_pid = self
     { case_pid, case_ref } = Process.spawn_monitor fn ->
       { test_case, context } = try do
-        { :ok, context } = case_name.__ex_unit__(:setup_all, [case: test_case])
+        { :ok, context } = case_name.__ex_unit__(:setup_all, [case: case_name])
         { test_case.state(:passed), context }
       catch
         kind, error ->
@@ -132,8 +132,9 @@ defmodule ExUnit.Runner do
     self_pid = self
     { test_pid, test_ref } = Process.spawn_monitor fn ->
       { us, test } = :timer.tc(fn ->
-          try do
-          { :ok, context } = case_name.__ex_unit__(:setup, Keyword.put(context, :test, test))
+        try do
+          context = context |> Keyword.merge(test.tags) |> Keyword.put(:test, test.name)
+          { :ok, context } = case_name.__ex_unit__(:setup, context)
 
           test = try do
             apply case_name, test.name, [context]
@@ -143,7 +144,7 @@ defmodule ExUnit.Runner do
               test.state { :failed, { kind1, Exception.normalize(kind1, error1), pruned_stacktrace } }
           end
 
-          case_name.__ex_unit__(:teardown, Keyword.put(context, :test, test))
+          case_name.__ex_unit__(:teardown, context)
           test
         catch
           kind2, error2 ->

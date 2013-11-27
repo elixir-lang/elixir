@@ -27,27 +27,53 @@ defmodule ExUnit.Case do
          end
        end
 
+  ## Context
+
+  All tests receive a context as argument. The context is particularly
+  useful for sharing information in between callbacks and tests:
+
+      defmodule KVTest do
+        use ExUnit.Case
+
+        setup do
+          { :ok, pid } = KV.start_link
+          { :ok, [pid: pid] }
+        end
+
+        test "stores key-values", context do
+          assert KV.put(context[:pid], :hello, :world) == :ok
+          assert KV.get(context[:pid], :hello) == :world
+        end
+      end
+
   ## Tags
 
-  This module also supports test tags. A tag allows developers to mark
-  tests so they can be customized in callbacks. Let's see an example:
+  The context is used to pass information from the callbacks to
+  the test. In order to pass information from the test to the
+  callback, ExUnit provides tags.
+
+  By tagging a test, the tag value can be accessed in the context,
+  allowing the developer to customize the test. Let's see an
+  example:
 
       defmodule FileTest do
         # Changing directory cannot be async
         use ExUnit.Case, async: false
 
-        setup config do
-          if cd = config[:test].tags[:cd] do
+        setup context do
+          # Read the :cd tag value
+          if cd = context[:cd] do
             prev_cwd = File.cwd!
             File.cd!(cd)
-            { :ok, [prev_cwd: prev_cwd] }
+            { :ok, [prev_cd: prev_cd] }
           else
             :ok
           end
         end
 
-        teardown config do
-          if cd = config[:prev_cwd] do
+        teardown context do
+          # Revert to the previous working directory
+          if cd = context[:prev_cd] do
             File.cd!(cd)
           end
         end
@@ -60,19 +86,30 @@ defmodule ExUnit.Case do
 
   In the example above, we have defined a tag called `:cd` that is
   read in callbacks to configure the working directory the test is
-  going to run on. We use then the test context to store the previous
-  working directory that will be reverted to after the test.
+  going to run on. We then use the same context to store the
+  previous working directory that is reverted to after the test
+  in a teardown callback.
 
-  Tags provide an excellent mechanism to avoid duplication in tests
-  or extract common functionality in a test suite with the help of
-  case templates (`ExUnit.CaseTemplate`).
+  Tags are also very effective when used with case templates
+  (`ExUnit.CaseTemplate`) allowing callbacks in the case template
+  to customize the test behaviour.
 
   Note a tag can be set in two different ways:
 
       @tag key: value
       @tag :key       # equivalent to setting @tag key: true
 
-  If a tag is given more than once, the last value win.
+  If a tag is given more than once, the last value wins.
+
+  ### Reserved tags
+
+  The following tags are set automatically by ExUnit and are
+  therefore reserved:
+
+  * `:case` - the test case module
+  * `:test` - the test name
+  * `:line` - the line the test was defined
+
   """
 
   @doc false
@@ -165,8 +202,10 @@ defmodule ExUnit.Case do
   def __on_definition__(env, kind, name, args, _guards, _body) do
     if kind == :def and is_test?(atom_to_list(name)) and length(args) == 1 do
       tags = Module.get_attribute(env.module, :tag)
+             |> normalize_tags()
+             |> Keyword.put(:line, env.line)
       Module.put_attribute(env.module, :ex_unit_tests,
-        ExUnit.Test[name: name, case: env.module, tags: normalize_tags(tags)])
+        ExUnit.Test[name: name, case: env.module, tags: tags])
     end
   end
 
