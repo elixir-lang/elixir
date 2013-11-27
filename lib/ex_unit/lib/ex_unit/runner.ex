@@ -78,7 +78,7 @@ defmodule ExUnit.Runner do
   end
 
   defp run_test_case(config, pid, case_name) do
-    test_case = ExUnit.TestCase[name: case_name]
+    ExUnit.TestCase[] = test_case = case_name.__ex_unit__(:case)
     config.formatter.case_started(config.formatter_id, test_case)
 
     self_pid = self
@@ -91,7 +91,7 @@ defmodule ExUnit.Runner do
           { test_case.failure({ kind, Exception.normalize(kind, error), pruned_stacktrace }), nil }
       end
 
-      tests = tests_for(case_name)
+      tests = test_case.tests
 
       if test_case.failure do
         tests = Enum.map tests, fn test -> test.failure({ :invalid, test_case }) end
@@ -179,18 +179,6 @@ defmodule ExUnit.Runner do
       []    -> nil
     end
   end
-
-  defp tests_for(case_name) do
-    exports = case_name.__info__(:functions)
-
-    lc { function, 1 } inlist exports, is_test?(atom_to_list(function)) do
-      ExUnit.Test[name: function, case: case_name]
-    end
-  end
-
-  defp is_test?('test_' ++ _), do: true
-  defp is_test?('test ' ++ _), do: true
-  defp is_test?(_)           , do: false
 
   defp pruned_stacktrace, do: prune_stacktrace(System.stacktrace)
 

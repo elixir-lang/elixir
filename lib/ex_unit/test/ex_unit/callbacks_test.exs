@@ -1,7 +1,7 @@
 Code.require_file "../test_helper.exs", __DIR__
 
 defmodule ExUnit.CallbacksTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   setup_all do
     { :ok, [context: :setup_all] }

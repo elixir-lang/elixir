@@ -142,7 +142,7 @@ defmodule ExUnit.DocTestTest.IndentationNotEnough do
 end
 
 defmodule ExUnit.DocTestTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   # This is intentional. The doctests in DocTest's docs fail
   # for demonstration purposes.
