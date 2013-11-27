@@ -70,7 +70,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "t helper" do
-    assert capture_io(fn -> t ExUnit end) == "No type information for ExUnit was found\n"
+    assert capture_io(fn -> t IEx end) == "No type information for IEx was found\n"
 
     # Test that it shows at least two types
     assert Enum.count(capture_io(fn -> t Enum end) |> String.split("\n"), fn line ->
