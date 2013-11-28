@@ -15,6 +15,19 @@ defmodule StringTest do
     assert String.next_codepoint("") == :no_codepoint
   end
 
+  %% test cases described in http://mortoray.com/2013/11/27/the-string-type-is-broken/
+  test :unicode do
+    assert String.reverse("noël") == "lëon"
+    assert String.slice("noël", 0..2) == "noë"
+    assert String.length("noël") == 4
+
+    assert String.length("😸😾") == 2
+    assert String.slice("😸😾", 1..1) == "😾"
+    assert String.reverse("😸😾") == "😾😸"
+
+    assert String.upcase("baﬄe") == "BAFFLE"
+  end
+
   test :split do
     assert String.split("") == [""]
     assert String.split("foo bar") == ["foo", "bar"]
