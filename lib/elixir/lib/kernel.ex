@@ -2008,7 +2008,12 @@ defmodule Kernel do
   defp do_at(args, name, function?, env) when is_atom(args) or args == [] do
     case function? do
       true ->
-        attr = Module.get_attribute(env_module(env), name, true)
+        stack =
+          case bootstraped?(Macro.Env) do
+            true  -> env.stacktrace
+            false -> []
+          end
+        attr = Module.get_attribute(env_module(env), name, stack)
         :erlang.element(1, :elixir_quote.escape(attr, false))
       false ->
         quote do: Module.get_attribute(__MODULE__, unquote(name), true)
@@ -2619,26 +2624,32 @@ defmodule Kernel do
           end
         end, comp(left, h), t)
       { :{}, _, [Elixir.Range, first, last] } ->
-        first = Macro.expand(first, __CALLER__)
-        last  = Macro.expand(last, __CALLER__)
-        case opt_in?(first) and opt_in?(last) do
-          true  ->
-            case first <= last do
-              true  -> increasing_compare(left, first, last)
-              false -> decreasing_compare(left, first, last)
-            end
-          false ->
-            quote do
-              (:erlang."=<"(unquote(first), unquote(last)) and
-               unquote(increasing_compare(left, first, last)))
-              or
-              (:erlang."<"(unquote(last), unquote(first)) and
-               unquote(decreasing_compare(left, first, last)))
-            end
-        end
+        in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
+      first .. last ->
+        # This range came from a module attribute, so it is a
+        # literal value and we need to escape it.
+        in_range(left, Macro.escape(first), Macro.escape(last))
       _ ->
         raise ArgumentError, message: <<"invalid args for operator in, it expects a compile time list ",
                                         "or range on the right side when used in guard expressions">>
+    end
+  end
+
+  defp in_range(left, first, last) do
+    case opt_in?(first) and opt_in?(last) do
+      true  ->
+        case first <= last do
+          true  -> increasing_compare(left, first, last)
+          false -> decreasing_compare(left, first, last)
+        end
+      false ->
+        quote do
+          (:erlang."=<"(unquote(first), unquote(last)) and
+           unquote(increasing_compare(left, first, last)))
+          or
+          (:erlang."<"(unquote(last), unquote(first)) and
+           unquote(decreasing_compare(left, first, last)))
+        end
     end
   end
 

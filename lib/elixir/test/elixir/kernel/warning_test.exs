@@ -300,6 +300,20 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
+  test :undefined_module_attribute_in_function do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        def hello do
+          @foo
+        end
+      end
+      """
+    end) =~ "undefined module attribute @foo, please remove access to @foo or explicitly set it to nil before access"
+  after
+    purge Sample
+  end
+
   test :in_guard_empty_list do
     assert capture_err(fn ->
       Code.eval_string """

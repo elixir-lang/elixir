@@ -743,7 +743,10 @@ defmodule Module do
 
   Notice the third argument is used to indicate if a warning
   should be emitted when the attribute was not previously defined.
-  This is true for `@foo` attributes but false for direct calls.
+  `warn` may also be a stacktrace, which will be used in the
+  warning. The default value for `warn` is false for direct calls
+  but the `@foo` macro sets it to the proper stacktrace automatically,
+  warning every time `@foo` is used but not set previously.
 
   ## Examples
 
@@ -757,6 +760,7 @@ defmodule Module do
       end
 
   """
+  @spec get_attribute(module, atom, warn :: boolean | [tuple]) :: term
   def get_attribute(module, key, warn // false) when is_atom(key) do
     assert_not_compiled!(:get_attribute, module)
     table = data_table_for(module)
@@ -766,12 +770,16 @@ defmodule Module do
       [] ->
         acc = :ets.lookup_element(table, :__acc_attributes, 2)
 
-        if :lists.member(key, acc) do
-          []
-        else
-          warn && :elixir_errors.warn "#{Exception.format_caller} undefined module attribute @#{key}, " <>
-            "please remove access to @#{key} or explicitly set it to nil before access\n"
-          nil
+        cond do
+          :lists.member(key, acc) ->
+            []
+          warn ->
+            stack = is_list(warn) and warn
+            :elixir_errors.warn "#{Exception.format_caller(stack)} undefined module attribute @#{key}, " <>
+              "please remove access to @#{key} or explicitly set it to nil before access\n"
+            nil
+          true ->
+            nil
         end
     end
   end

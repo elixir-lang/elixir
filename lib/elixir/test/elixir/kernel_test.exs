@@ -56,10 +56,6 @@ defmodule KernelTest do
   end
 
   test :in do
-    assert x(1)
-    refute x(4)
-    refute x([])
-
     assert 2 in [1, 2, 3]
     assert 2 in 1..3
     refute 4 in [1, 2, 3]
@@ -68,6 +64,37 @@ defmodule KernelTest do
     list = [1, 2, 3]
     assert 2 in list
     refute 4 in list
+  end
+
+  @at_list  [4,5]
+  @at_range [6,7,8]
+  def fun_in(x) when x in [0],       do: :list
+  def fun_in(x) when x in 1..3,      do: :range
+  def fun_in(x) when x in @at_list,  do: :at_list
+  def fun_in(x) when x in @at_range, do: :at_range
+
+  test :in_in_function_guards do
+    assert fun_in(0) == :list
+    assert fun_in(2) == :range
+    assert fun_in(5) == :at_list
+    assert fun_in(8) == :at_range
+  end
+
+  defmacrop case_in(x, y) do
+    quote do
+      case 0 do
+        _ when unquote(x) in unquote(y) -> true
+        _ -> false
+      end
+    end
+  end
+
+  test :in_in_case_guards do
+    assert case_in 1, [1,2,3]
+    assert case_in 1, 1..3
+    assert case_in 2, 1..3
+    assert case_in 3, 1..3
+    assert case_in -3, -1..-3
   end
 
   test :paren do
@@ -141,9 +168,6 @@ defmodule KernelTest do
     assert binding() = [x: 1]
     refute binding() = [x: 2]
   end
-
-  defp x(value) when value in [1, 2, 3], do: true
-  defp x(_),                             do: false
 
   defmodule Conversions do
     use ExUnit.Case, async: true

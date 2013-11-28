@@ -21,22 +21,6 @@ defmodule RangeTest do
     assert (1..3).last  == 3
   end
 
-  defmacrop case_in(x, y) do
-    quote do
-      case 0 do
-        _ when unquote(x) in unquote(y) -> true
-        _ -> false
-      end
-    end
-  end
-
-  test :in do
-    assert case_in 1, 1..3
-    assert case_in 2, 1..3
-    assert case_in 3, 1..3
-    assert case_in -3, -1..-3
-  end
-
   test :is_range do
     assert is_range(1..3)
     refute is_range(not_range)

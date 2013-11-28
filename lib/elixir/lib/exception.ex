@@ -102,23 +102,38 @@ defexception Enum.EmptyError, message: "empty error"
 
 defmodule Exception do
   @moduledoc """
-  Several convenience functions to work with and pretty print
+  Convenience functions to work with and pretty print
   exceptions and stacktraces.
+
+  Notice that stacktraces in Elixir are updated on errors.
+  For example, at any given moement, `System.stacktrace`
+  will return the stacktrace for the last error that ocurred
+  in the current process.
+
+  That said, many of the functions in this module will
+  automatically calculate the stacktrace based on the caller,
+  when invoked without arguments, changing the value of
+  `System.stacktrace`. If instead you want to format the
+  stacktrace of the latest error, you should instead explicitly
+  pass the `System.stacktrace` as argument.
   """
 
   @doc """
   Normalizes an exception, converting Erlang exceptions
-  to Elixir exceptions. It takes the kind spilled by
-  `catch` as an argument as a convenience for converting only
-  `:errors`, ignorning the others.
+  to Elixir exceptions.
+
+  It takes the `kind` spilled by `catch` as an argument and
+  normalizes only `:error`, returning the untouched payload
+  for others.
   """
   def normalize(:error, exception), do: normalize(exception)
   def normalize(_kind, other), do: other
 
   @doc """
   Normalizes an exception, converting Erlang exceptions
-  to Elixir exceptions. Useful when interfacing Erlang
-  code with Elixir code.
+  to Elixir exceptions.
+
+  Useful when interfacing Erlang code with Elixir code.
   """
   def normalize(exception) when is_exception(exception) do
     exception
@@ -209,8 +224,8 @@ defmodule Exception do
   Formats the stacktrace.
 
   A stacktrace must be given as an argument. If not, this function
-  calculates the current stacktrace and formats it. As a consequence,
-  the value of `System.stacktrace` is changed.
+  calculates a new stacktrace based on the caller and formats it. As
+  a consequence, the value of `System.stacktrace` is changed.
   """
   def format_stacktrace(trace // nil) do
     trace = trace || try do
@@ -229,6 +244,11 @@ defmodule Exception do
 
   @doc """
   Formats the caller, i.e. the first entry in the stacktrace.
+
+  A stacktrace must be given as an argument. If not, this function
+  calculates a new stacktrace based on the caller and formats it. As
+  a consequence, the value of `System.stacktrace` is changed.
+
   Notice that due to tail call optimization, the stacktrace
   may not report the direct caller of the function.
   """
