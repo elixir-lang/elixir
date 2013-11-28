@@ -15,7 +15,7 @@ defmodule StringTest do
     assert String.next_codepoint("") == :no_codepoint
   end
 
-  %% test cases described in http://mortoray.com/2013/11/27/the-string-type-is-broken/
+  # test cases described in http://mortoray.com/2013/11/27/the-string-type-is-broken/
   test :unicode do
     assert String.reverse("noël") == "lëon"
     assert String.slice("noël", 0..2) == "noë"
