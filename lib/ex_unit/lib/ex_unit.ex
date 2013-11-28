@@ -97,7 +97,7 @@ defmodule ExUnit do
   end
 
   @doc """
-  Starts up ExUnit and automatically runs tests right before the
+  Starts ExUnit and automatically runs tests right before the
   VM terminates. It accepts a set of options to configure `ExUnit`
   (the same ones accepted by `configure/1`).
 

@@ -1,6 +1,6 @@
 defmodule ExUnit.Case do
   @moduledoc """
-  Sets up an ExUnit case.
+  Sets up an ExUnit test case.
 
   This module must be used in other modules as a way to configure
   and prepare them for testing.
@@ -12,7 +12,7 @@ defmodule ExUnit.Case do
              when your test cases do not change any global state;
 
   This module automatically includes all callbacks defined in
-  `ExUnit.Callbacks`. See that module's documentation for more
+  [`ExUnit.Callbacks`](ExUnit.Callbacks.html). See that module's documentation for more
   information.
 
   ## Examples
@@ -29,8 +29,8 @@ defmodule ExUnit.Case do
 
   ## Context
 
-  All tests receive a context as argument. The context is particularly
-  useful for sharing information in between callbacks and tests:
+  All tests receive a context as an argument. The context is particularly
+  useful for sharing information between callbacks and tests:
 
       defmodule KVTest do
         use ExUnit.Case
@@ -91,7 +91,7 @@ defmodule ExUnit.Case do
   in a teardown callback.
 
   Tags are also very effective when used with case templates
-  (`ExUnit.CaseTemplate`) allowing callbacks in the case template
+  ([`ExUnit.CaseTemplate`](ExUnit.CaseTemplate.html)) allowing callbacks in the case template
   to customize the test behaviour.
 
   Note a tag can be set in two different ways:
@@ -146,12 +146,14 @@ defmodule ExUnit.Case do
   end
 
   @doc """
+  Define a test with a string.
+
   Provides a convenient macro that allows a test to be
   defined with a string. This macro automatically inserts
-  the atom :ok as the last line of the test. That said,
-  a passing test always returns :ok, but, more important,
+  the atom `:ok` as the last line of the test. That said,
+  a passing test always returns `:ok`, but, more important,
   it forces Elixir to not tail call optimize the test and
-  therefore avoiding hiding lines from the backtrace.
+  therefore avoids hiding lines from the backtrace.
 
   ## Examples
 

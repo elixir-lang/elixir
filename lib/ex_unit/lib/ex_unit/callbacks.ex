@@ -5,13 +5,13 @@ defmodule ExUnit.Callbacks do
   This module defines four callbacks: `setup_all`, `teardown_all`,
   `setup` and `teardown`.
 
-  Those callbacks are defined via macros and each one can optionally receive a
+  These callbacks are defined via macros and each one can optionally receive a
   keyword list with metadata, usually referred to as `context`. The callback
   may optionally put extra data into `context` to be used in the tests.
 
   If you return `{ :ok, <keyword list> }` from `setup` or `teardown`, the keyword
-  list will get merged into the context that will be available in all
-  subsequent `setup`, `test`, or `teardown` calls.
+  list will be merged into the context that will be available in all
+  subsequent `setup`, `test` or `teardown` calls.
 
   Similarly, returning `{ :ok, <keyword list> }` from `setup_all` or
   `teardown_all` will merge the keyword list into the context that will be
@@ -20,13 +20,13 @@ defmodule ExUnit.Callbacks do
   Returning `:ok` leaves the context unchanged in both cases.
 
   Returning anything else from `setup` or `teardown` will force the current
-  test to fail, and subsequent `setup`, `test`, and `teardown` callbacks won't
+  test to fail, and subsequent `setup`, `test` and `teardown` callbacks won't
   be called for it.
 
   Returning anything else from `setup_all` or `teardown_all` will force the
   whole case to fail, and no other callback will be called.
 
-  It is allowed to define multiple `setup` or `teardown` callbacks, they will
+  It is possible to define multiple `setup` or `teardown` callbacks, they will
   be called sequentially in the order of definition before each test. The
   returned keyword list from the last `setup` will be merged into the context passed to
   the `test` and `teardown` (if defined) callbacks.
@@ -52,7 +52,7 @@ defmodule ExUnit.Callbacks do
 
         # Same as `setup`, but receives the context for the current test
         setup context do
-          # We can access the currenttest in the context
+          # We can access the current test in the context
           IO.puts "Setting up: #{context[:test]}"
 
           # We can also access the data returned from `setup/0`
@@ -112,7 +112,9 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc """
-  Called after the finish of each test. Note that if the test crashed with an :exit
+  Called after the completion of each test. 
+  
+  Note that if the test crashed with an `:exit`
   message, `teardown` will not be run.
   """
   defmacro teardown(var // quote(do: _), block) do
@@ -136,7 +138,7 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc """
-  Called once after the last test finishes without emitting an :exit message.
+  Called once after the last test finishes without emitting an `:exit` message.
   """
   defmacro teardown_all(var // quote(do: _), block) do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
