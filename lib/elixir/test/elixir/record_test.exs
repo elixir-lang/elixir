@@ -83,7 +83,7 @@ defmodule RecordTest do
   RecordTest.Macros.gen
 
   test :basic_functions do
-    record   = RecordTest.FileInfo.new(type: :regular)
+    record = RecordTest.FileInfo.new(type: :regular)
     assert record.type == :regular
     assert record.access == :undefined
   end
@@ -190,6 +190,21 @@ defmodule RecordTest do
     assert record.type == :regular
     assert record.access == 100
     assert record.update([{"access", 101}]).access == 101
+  end
+
+  test :custom_record do
+    { :module, _, binary, _ } =
+      defmodule CustomRecord do
+        Record.deffunctions [:name, :age], __ENV__
+        Record.deftypes [:name, :age], [name: :binary, age: :integer], __ENV__
+      end
+
+    assert is_record(CustomRecord.new, CustomRecord)
+
+    record = CustomRecord.new
+    assert CustomRecord.__record__(:index, :name) == record.__record__(:index, :name)
+
+    assert Enum.any?(Kernel.Typespec.beam_types(binary), &match?({ :type,{ :t, _, _ } }, &1))
   end
 
   defp empty_tuple, do: {}

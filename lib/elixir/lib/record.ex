@@ -268,30 +268,52 @@ defmodule Record do
   defp record_check!(_), do: :ok
 
   @doc false
-  def defrecordp(name, tag, fields) when is_atom(name) and is_atom(tag) and is_list(fields) do
-    { fields, types, def_type } = recordp_split(fields, [], [], false)
-    type = binary_to_atom(atom_to_binary(name) <> "_t")
-    tag  = tag || name
+  def defrecordp(name, tag, fields) do
+    case recordp_split(fields, [], [], false) do
+      { :ok, fields, types, def_type } ->
+        types = Macro.escape(types)
 
-    quote do
-      Record.defmacros(unquote(name), unquote(fields), __ENV__, unquote(tag))
+        # bind_quoted isn't available when bootstrapping record
+        quoted = quote [unquote: false] do
+          Record.defmacros(name, fields, __ENV__, tag)
 
-      if unquote(def_type) do
-        @typep unquote(type)() :: { unquote(tag), unquote_splicing(types) }
-      end
+          if def_type do
+            type = binary_to_atom(atom_to_binary(name) <> "_t")
+            @typep unquote(type)() :: { unquote(tag || name), unquote_splicing(types) }
+          end
+        end
+
+        quote do
+          def_type = unquote(def_type)
+          fields = unquote(fields)
+          types = unquote(types)
+          tag = unquote(tag)
+          name = unquote(name)
+          unquote(quoted)
+        end
+
+      :error ->
+        quote do
+          name = unquote(name)
+          Record.defmacros(name, unquote(fields), __ENV__, unquote(tag))
+        end
     end
   end
 
   defp recordp_split([{ field, { :::, _, [default, type] }}|t], defaults, types, _) do
-    recordp_split t, [{ field, default }|defaults], [type|types], true
+    recordp_split(t, [{ field, default }|defaults], [type|types], true)
   end
 
   defp recordp_split([other|t], defaults, types, def_type) do
-    recordp_split t, [other|defaults], [quote(do: term)|types], def_type
+    recordp_split(t, [other|defaults], [quote(do: term)|types], def_type)
   end
 
   defp recordp_split([], defaults, types, def_type) do
-    { :lists.reverse(defaults), :lists.reverse(types), def_type }
+    { :ok, :lists.reverse(defaults), :lists.reverse(types), def_type }
+  end
+
+  defp recordp_split(_, _, _, _) do
+    :error
   end
 
   @doc """
@@ -372,7 +394,9 @@ defmodule Record do
       end
 
   """
-  def defmacros(name, values, env, tag // nil) do
+  def defmacros(name, values, env, tag // nil)
+      when is_atom(name) and is_list(values) and is_atom(tag) do
+
     escaped = lc value inlist values do
       { key, value } = convert_value(value)
       { key, Macro.escape(value) }

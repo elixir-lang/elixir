@@ -1,5 +1,7 @@
 ExUnit.start [trace: "--trace" in System.argv]
 
+Code.compiler_options debug_info: true
+
 defmodule PathHelpers do
   def fixture_path() do
     Path.expand("../fixtures", __FILE__)
@@ -20,7 +22,7 @@ defmodule PathHelpers do
   def elixir(args) do
     runcmd(elixir_executable, args)
   end
-  
+
   def elixir_executable do
     executable_path("elixir")
   end
@@ -28,19 +30,19 @@ defmodule PathHelpers do
   def elixirc(args) do
     runcmd(elixirc_executable, args)
   end
-  
+
   def elixirc_executable do
     executable_path("elixirc")
   end
 
-  defp runcmd(executable,args) do 
+  defp runcmd(executable,args) do
     :os.cmd :binary.bin_to_list("#{executable} #{String.from_char_list!(args)}#{redirect_std_err_on_win}")
-  end 
-  
+  end
+
   defp executable_path(name) do
     Path.expand("../../../../../bin/#{name}#{executable_extension}", __FILE__)
   end
-  
+
   if match? { :win32, _ }, :os.type do
     def is_win?, do: true
     def executable_extension, do: ".bat"

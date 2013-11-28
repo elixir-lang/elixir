@@ -3167,7 +3167,7 @@ defmodule Kernel do
       @typep user_t :: { :user, binary, integer }
 
   """
-  defmacro defrecordp(name, tag // nil, fields) when is_atom(name) do
+  defmacro defrecordp(name, tag // nil, fields) do
     Record.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
   end
 
