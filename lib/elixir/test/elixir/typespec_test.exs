@@ -282,6 +282,18 @@ defmodule Typespec.TypeTest do
              [{:atom, _, ^module}, {:type, _, :term, []}, {:type, _, :integer, []}]}, []}] = types
   end
 
+  test "@type unquote fragment" do
+    spec = test_module do
+      quoted = quote unquote: false do
+        name = :mytype
+        type = :atom
+        @type unquote(name)() :: unquote(type)
+      end
+      Module.eval_quoted(__MODULE__, quoted) |> elem(0)
+    end
+    assert {:mytype, {:atom, _, :atom}, []} = spec
+  end
+
   test "defines_type?" do
     test_module do
       @type mytype :: tuple
