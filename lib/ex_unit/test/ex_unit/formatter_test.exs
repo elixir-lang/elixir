@@ -67,6 +67,49 @@ defmodule ExUnit.FormatterTest do
          stacktrace:
     """
   end
+  
+  test "formats test expectations inside property test" do
+    test = test { :error, ExUnit.Prop.PropertyError[shrinks: 5, input: "blaat",
+                            wrapped: { :error, catch_expectation(assert 1 == 2) }],
+                  [] }
+    assert format_test_failure(test, 1, nil) =~ """
+      1) world (Hello)
+         ** (ExUnit.ExpectationError in ExUnit.Prop.PropertyError)
+                 after shrinks: 5
+               generated input: "blaat"
+                      expected: 1
+           to be equal to (==): 2
+         stacktrace:
+    """
+  end
+  
+  test "formats exceptions inside property test" do
+    test = test { :error, ExUnit.Prop.PropertyError[shrinks: 5, input: "blaat",
+                            wrapped: { :error, CaseClauseError[actual: "moo"] }],
+                  [] }
+    assert format_test_failure(test, 1, nil) =~ """
+      1) world (Hello)
+         ** (ExUnit.Prop.PropertyError)
+             after shrinks: 5
+           generated input: "blaat"
+                 exception: (CaseClauseError) no case clause matching: "moo"
+         stacktrace:
+    """
+  end
+  
+  test "formats Erlang errors inside property test" do
+    test = test { :error, ExUnit.Prop.PropertyError[shrinks: 5, input: "blaat",
+                            wrapped: { :error, :moo }],
+                  [] }
+    assert format_test_failure(test, 1, nil) =~ """
+      1) world (Hello)
+         ** (ExUnit.Prop.PropertyError)
+             after shrinks: 5
+           generated input: "blaat"
+                    caught: (error) moo
+         stacktrace:
+    """
+  end
 
   test "formats stacktraces with test location" do
     failure = { :error, catch_error(raise "oops"), [{ Hello, :world, 1, [file: __FILE__, line: 1]}] }
