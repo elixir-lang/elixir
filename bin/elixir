@@ -75,9 +75,12 @@ SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
 if [ "$ELIXIR_NO_CLI" != "1" ]; then ERL="$ERL -s elixir start_cli"; fi
 
-if [ -f "$SCRIPT_PATH/../releases/RELEASES" ] && [ -f "$SCRIPT_PATH/erl" ]
+BEAM_CMD=erl
+if [ "jelixir" = `basename $0` ]; then BEAM_CMD=jerl; fi
+
+if [ -f "$SCRIPT_PATH/../releases/RELEASES" ] && [ -f "$SCRIPT_PATH/$BEAM_CMD" ]
 then
-  exec "$SCRIPT_PATH"/erl -pa "$SCRIPT_PATH"/../lib/*/ebin -noshell $ELIXIR_ERL_OPTS $ERL -boot start -extra "$@"
+  exec "$SCRIPT_PATH/$BEAM_CMD" -pa "$SCRIPT_PATH"/../lib/*/ebin -noshell $ELIXIR_ERL_OPTS $ERL -boot start -extra "$@"
 else
-  exec erl -pa "$SCRIPT_PATH"/../lib/*/ebin -noshell $ELIXIR_ERL_OPTS $ERL -extra "$@"
+  exec $BEAM_CMD -pa "$SCRIPT_PATH"/../lib/*/ebin -noshell $ELIXIR_ERL_OPTS $ERL -extra "$@"
 fi
