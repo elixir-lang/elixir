@@ -12,7 +12,7 @@ defmodule ExUnit.Case do
              when your test cases do not change any global state;
 
   This module automatically includes all callbacks defined in
-  [`ExUnit.Callbacks`](ExUnit.Callbacks.html). See that module's documentation for more
+  `ExUnit.Callbacks`. See that module's documentation for more
   information.
 
   ## Examples
@@ -91,7 +91,7 @@ defmodule ExUnit.Case do
   in a teardown callback.
 
   Tags are also very effective when used with case templates
-  ([`ExUnit.CaseTemplate`](ExUnit.CaseTemplate.html)) allowing callbacks in the case template
+  (`ExUnit.CaseTemplate`) allowing callbacks in the case template
   to customize the test behaviour.
 
   Note a tag can be set in two different ways:
