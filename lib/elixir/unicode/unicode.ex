@@ -217,42 +217,42 @@ defmodule String.Graphemes do
 
   # Break on control
   lc codepoint inlist cluster["CR"] ++ cluster["LF"] ++ cluster["Control"] do
-    def next_grapheme(<< unquote(codepoint), rest :: binary >>) do
-      { << unquote(codepoint) >>, rest }
+    def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
+      { :binary.part(string, 0, unquote(size(codepoint))), rest }
     end
   end
 
   # Break on Prepend*
   # lc codepoint inlist cluster["Prepend"] do
-  #   def next_grapheme(<< unquote(codepoint), rest :: binary >>) do
-  #     next_prepend(<< unquote(codepoint) >>, rest)
+  #   def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
+  #     next_prepend(rest, string, unquote(size(codepoint)))
   #   end
   # end
 
   # Handle Hangul L
   lc codepoint inlist cluster["L"] do
-    def next_grapheme(<< unquote(codepoint), rest :: binary >>) do
-      next_hangul_l(<< unquote(codepoint) >>, rest)
+    def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
+      next_hangul_l(rest, string, unquote(size(codepoint)))
     end
   end
 
   # Handle Hangul T
   lc codepoint inlist cluster["T"] do
-    def next_grapheme(<< unquote(codepoint), rest :: binary >>) do
-      next_hangul_t(<< unquote(codepoint) >>, rest)
+    def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
+      next_hangul_t(rest, string, unquote(size(codepoint)))
     end
   end
 
   # Handle Regional
   lc codepoint inlist cluster["Regional_Indicator"] do
-    def next_grapheme(<< unquote(codepoint), rest :: binary >>) do
-      next_regional(<< unquote(codepoint) >>, rest)
+    def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
+      next_regional(rest, string, unquote(size(codepoint)))
     end
   end
 
   # Handle extended entries
-  def next_grapheme(<< cp :: utf8, rest :: binary >>) do
-    next_extend(<< cp :: utf8 >>, rest)
+  def next_grapheme(<< cp :: utf8, rest :: binary >> = string) do
+    next_extend(rest, string, byte_size(<< cp :: utf8 >>))
   end
 
   def next_grapheme(<< cp, rest :: binary >>) do
@@ -265,80 +265,80 @@ defmodule String.Graphemes do
 
   # Handle Hangul L
   lc codepoint inlist cluster["L"] do
-    defp next_hangul_l(head, << unquote(codepoint), rest :: binary >>) do
-      next_hangul_l(head <> unquote(codepoint), rest)
+    defp next_hangul_l(<< unquote(codepoint), rest :: binary >>, string, size) do
+      next_hangul_l(rest, string, size + unquote(size(codepoint)))
     end
   end
 
   lc codepoint inlist cluster["LV"] do
-    defp next_hangul_l(head, << unquote(codepoint), rest :: binary >>) do
-      next_hangul_v(head <> unquote(codepoint), rest)
+    defp next_hangul_l(<< unquote(codepoint), rest :: binary >>, string, size) do
+      next_hangul_v(rest, string, size + unquote(size(codepoint)))
     end
   end
 
   lc codepoint inlist cluster["LVT"] do
-    defp next_hangul_l(head, << unquote(codepoint), rest :: binary >>) do
-      next_hangul_t(head <> unquote(codepoint), rest)
+    defp next_hangul_l(<< unquote(codepoint), rest :: binary >>, string, size) do
+      next_hangul_t(rest, string, size + unquote(size(codepoint)))
     end
   end
 
-  defp next_hangul_l(head, tail) do
-    next_hangul_v(head, tail)
+  defp next_hangul_l(rest, string, size) do
+    next_hangul_v(rest, string, size)
   end
 
   # Handle Hangul V
   lc codepoint inlist cluster["V"] do
-    defp next_hangul_v(head, << unquote(codepoint), rest :: binary >>) do
-      next_hangul_v(head <> unquote(codepoint), rest)
+    defp next_hangul_v(<< unquote(codepoint), rest :: binary >>, string, size) do
+      next_hangul_v(rest, string, size + unquote(size(codepoint)))
     end
   end
 
-  defp next_hangul_v(head, tail) do
-    next_hangul_t(head, tail)
+  defp next_hangul_v(rest, string, size) do
+    next_hangul_t(rest, string, size)
   end
 
   # Handle Hangul T
   lc codepoint inlist cluster["T"] do
-    defp next_hangul_t(head, << unquote(codepoint), rest :: binary >>) do
-      next_hangul_t(head <> unquote(codepoint), rest)
+    defp next_hangul_t(<< unquote(codepoint), rest :: binary >>, string, size) do
+      next_hangul_t(rest, string, size + unquote(size(codepoint)))
     end
   end
 
-  defp next_hangul_t(head, tail) do
-    next_extend(head, tail)
+  defp next_hangul_t(rest, string, size) do
+    next_extend(rest, string, size)
   end
 
   # Handle regional
   lc codepoint inlist cluster["Regional_Indicator"] do
-    defp next_regional(head, << unquote(codepoint), rest :: binary >>) do
-      next_regional(head <> unquote(codepoint), rest)
+    defp next_regional(<< unquote(codepoint), rest :: binary >>, string, size) do
+      next_regional(rest, string, size + unquote(size(codepoint)))
     end
   end
 
-  defp next_regional(head, tail) do
-    next_extend(head, tail)
+  defp next_regional(rest, string, size) do
+    next_extend(rest, string, size)
   end
 
   # Handle Extend+SpacingMark
   lc codepoint inlist cluster["Extend"] ++ cluster["SpacingMark"]  do
-    defp next_extend(head, << unquote(codepoint), rest :: binary >>) do
-      next_extend(head <> unquote(codepoint), rest)
+    defp next_extend(<< unquote(codepoint), rest :: binary >>, string, size) do
+      next_extend(rest, string, size + unquote(size(codepoint)))
     end
   end
 
-  defp next_extend(head, tail) do
-    { head, tail }
+  defp next_extend(rest, string, size) do
+    { :binary.part(string, 0, size), rest }
   end
 
   # Handle Prepend
   # lc codepoint inlist cluster["Prepend"] do
-  #   defp next_prepend(<< unquote(codepoint), rest :: binary >>) do
-  #     next_prepend(head <> unquote(codepoint), rest)
+  #   defp next_prepend(<< unquote(codepoint), rest :: binary >>, string, size) do
+  #     next_prepend(rest, string, size + unquote(size(codepoint)))
   #   end
   # end
   #
-  # defp next_prepend(head, tail) do
-  #   { head, tail }
+  # defp next_prepend(rest, string, size) do
+  #   { :binary.part(string, 0, size), rest }
   # end
 
   def graphemes(binary) when is_binary(binary) do
