@@ -3,7 +3,7 @@
 -module(elixir_clauses).
 -export([
   assigns/3, assigns_block/5, assigns_block/6, extract_splat_guards/1,
-  get_pairs/4, get_pairs/5, match/3, extract_args/1, extract_guards/1]).
+  get_pairs/4, get_pairs/5, match/3, extract_guards/1]).
 -include("elixir.hrl").
 
 %% Get pairs from a clause.
@@ -72,13 +72,6 @@ extract_guards(Else) -> { Else, [] }.
 
 extract_or_clauses({ 'when', _, [Left, Right] }) -> [Left|extract_or_clauses(Right)];
 extract_or_clauses(Term) -> [Term].
-
-% Extract name and args from the given expression.
-
-extract_args({ { '.', _, [Name] }, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args };
-extract_args({ Name, _, Args }) when is_atom(Name), is_atom(Args) -> { Name, [] };
-extract_args({ Name, _, Args }) when is_atom(Name), is_list(Args) -> { Name, Args };
-extract_args(_) -> error.
 
 % Extract guards when multiple left side args are allowed.
 

@@ -34,7 +34,7 @@ defmodule Kernel.SpecialForms do
       { :{}, [], [1,2,3] }
 
   """
-  defmacro :{}.(args)
+  defmacro unquote(:{})(args)
 
   @doc """
   Defines a new bitstring.
@@ -171,7 +171,7 @@ defmodule Kernel.SpecialForms do
   For floats, unit * size must result in 32 or 64, corresponding
   to binary32 and binary64, respectively.
   """
-  defmacro :<<>>.(args)
+  defmacro unquote(:<<>>)(args)
 
   @doc """
   Defines a remote call or an alias.
@@ -284,7 +284,7 @@ defmodule Kernel.SpecialForms do
        [{:__aliases__, [alias: false], [:String]}, Sample]}
 
   """
-  defmacro (:.).(left, right)
+  defmacro unquote(:.)(left, right)
 
   @doc """
   `alias` is used to setup aliases, often useful with modules names.
@@ -943,8 +943,7 @@ defmodule Kernel.SpecialForms do
       #=> { :sum, [], [1, 13, 3] }
 
   """
-  name = :unquote
-  defmacro unquote(name)(expr)
+  defmacro unquote(:unquote)(expr)
 
   @doc """
   Unquotes the given list expanding its arguments. Similar
@@ -957,8 +956,7 @@ defmodule Kernel.SpecialForms do
       #=> { :sum, [], [1, 2, 3, 4, 5] }
 
   """
-  name = :unquote_splicing
-  defmacro unquote(name)(expr)
+  defmacro unquote(:unquote_splicing)(expr)
 
   @doc """
   List comprehensions allow you to quickly build a list from another list:
@@ -1042,8 +1040,7 @@ defmodule Kernel.SpecialForms do
       3
 
   """
-  name = :fn
-  defmacro unquote(name)(clauses)
+  defmacro unquote(:fn)(clauses)
 
   @doc """
   Internal special form for block expressions.
@@ -1133,8 +1130,7 @@ defmodule Kernel.SpecialForms do
       &(foo(&1, &2); &3 + &4)
 
   """
-  name = :&
-  defmacro unquote(name)(expr)
+  defmacro unquote(:&)(expr)
 
   @doc """
   Internal special form to hold aliases information.

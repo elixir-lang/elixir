@@ -24,13 +24,6 @@ function_test() ->
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo.Bar.Baz']).
 
-dynamic_function_test() ->
-  F = fun() ->
-    eval("defmodule Foo.Bar.Baz do\ndef :sum.(a, b) do\na + b\nend\nend"),
-    3 = 'Elixir.Foo.Bar.Baz':sum(1, 2)
-  end,
-  test_helper:run_and_remove(F, ['Elixir.Foo.Bar.Baz']).
-
 quote_unquote_splicing_test() ->
   { { '{}', [], [1,2,3,4,5] }, _ } = eval("x = [2,3,4]\nquote do: { 1, unquote_splicing(x), 5}").
 

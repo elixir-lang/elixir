@@ -66,19 +66,19 @@ defmodule Behaviour do
   end
 
   defp do_defcallback(fun, spec, caller) do
-    case Macro.extract_args(fun) do
+    case Macro.decompose_call(fun) do
       { name, args } ->
         do_callback(:def, name, args, name, length(args), spec, caller)
-      :error ->
+      _ ->
         raise ArgumentError, message: "invalid syntax in defcallback #{Macro.to_string(fun)}"
     end
   end
 
   defp do_defmacrocallback(fun, spec, caller) do
-    case Macro.extract_args(fun) do
+    case Macro.decompose_call(fun) do
       { name, args } ->
         do_callback(:defmacro, :"MACRO-#{name}", [quote(do: env :: Macro.Env.t)|args], name, length(args), spec, caller)
-      :error ->
+      _ ->
         raise ArgumentError, message: "invalid syntax in defmacrocallback #{Macro.to_string(fun)}"
     end
   end

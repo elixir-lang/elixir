@@ -81,52 +81,44 @@ defmodule Macro do
       message: "cannot pipe #{to_string expr} into #{to_string call_args}"
   end
 
-  @doc """
-  Receives an expression representing a possible definition
-  and extracts its arguments. It returns a tuple with the
-  function name and the arguments list or `:error` if not
-  a valid call syntax.
-
-  This is useful for macros that want to provide the same
-  argument syntax available in def/defp/defmacro and friends.
-
-  ## Examples
-
-      extract_args(quote do: foo)        == { :foo, [] }
-      extract_args(quote do: foo())      == { :foo, [] }
-      extract_args(quote do: foo(1, 2, 3)) == { :foo, [1, 2, 3] }
-      extract_args(quote do: 1.(1, 2, 3))  == :error
-
-  """
-  @spec extract_args(Macro.t) :: { atom, [Macro.t] } | :error
+  @doc false
   def extract_args(expr) do
-    :elixir_clauses.extract_args(expr)
+    IO.write "Macro.extract_args/1 is deprecated, use Macro.decompose_call/1 instead\n#{Exception.format_stacktrace}"
+    decompose_call(expr)
   end
 
   @doc """
-  Decomposes a local or remote call into its module alias (when a remote
-  call is provided), function name and argument list. 
-  Returns :error when an invalid call syntax is provied.
+  Decomposes a local or remote call into its remote part (when provided),
+  function name and argument list.
+
+  Returns `:error` when an invalid call syntax is provided.
 
   ## Examples
 
-      decompose_call(quote do: foo) == { :foo, [] }
-      decompose_call(quote do: foo()) == { :foo, [] }
-      decompose_call(quote do: foo(1, 2, 3)) == { :foo, [1, 2, 3] }
-      decompose_call(quote do: M.N.foo(1, 2, 3)) ==
-        { { :__aliases__, [alias: false], [:M, :N] }, :foo, [1, 2, 3] }
-      decompose_call(quote do: 42) == :error
+      iex> Macro.decompose_call(quote do: foo)
+      { :foo, [] }
+      iex> Macro.decompose_call(quote do: foo())
+      { :foo, [] }
+      iex> Macro.decompose_call(quote do: foo(1, 2, 3))
+      { :foo, [1, 2, 3] }
+      iex> Macro.decompose_call(quote do: M.N.foo(1, 2, 3))
+      { { :__aliases__, [alias: false], [:M, :N] }, :foo, [1, 2, 3] }
+      iex> Macro.decompose_call(quote do: 42)
+      :error
 
   """
   @spec decompose_call(Macro.t) :: { atom, [Macro.t] } | { Macro.t, atom, [Macro.t] } | :error
-  def decompose_call(expr) do
-    case expr do
-      { { :., _, [{ :__aliases__, meta, atoms }, f] }, _, args } ->
-        { { :__aliases__, meta, atoms }, f, args }
-      _local ->
-        :elixir_clauses.extract_args(expr)
-    end
-  end
+  def decompose_call({ { :., _, [remote, function] }, _, args }) when is_tuple(remote) or is_atom(remote),
+    do: { remote, function, args }
+
+  def decompose_call({ name, _, args }) when is_atom(name) and is_atom(args),
+    do: { name, [] }
+
+  def decompose_call({ name, _, args }) when is_atom(name) and is_list(args),
+    do: { name, args }
+
+  def decompose_call(_),
+    do: :error
 
   @doc """
   Recursively escapes a value so it can be inserted

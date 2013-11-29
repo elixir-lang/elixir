@@ -53,12 +53,12 @@ store_definition(Kind, CheckClauses, Call, Body, ExEnv) ->
   S = elixir_env:env_to_scope(Env),
   { NameAndArgs, Guards } = elixir_clauses:extract_guards(Call),
 
-  { Name, Args } = case elixir_clauses:extract_args(NameAndArgs) of
-    error ->
+  { Name, Args } = case NameAndArgs of
+    { N, _, A } when is_atom(N), is_atom(A) -> { N, [] };
+    { N, _, A } when is_atom(N), is_list(A) -> { N, A };
+    _ ->
       Format = [Kind, 'Elixir.Macro':to_string(NameAndArgs)],
-      elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid syntax in ~ts ~ts", Format);
-    Tuple ->
-      Tuple
+      elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid syntax in ~ts ~ts", Format)
   end,
 
   %% Now that we have verified the call format,

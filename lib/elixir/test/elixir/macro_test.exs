@@ -396,25 +396,16 @@ defmodule MacroTest do
    assert Macro.safe_term(quote do: {1+1}) == { :unsafe, quote do: 1 + 1 }
   end
 
-  ## extract_args
-
-  test :extract_args do
-    assert Macro.extract_args(quote do: foo)        == { :foo, [] }
-    assert Macro.extract_args(quote do: foo())      == { :foo, [] }
-    assert Macro.extract_args(quote do: :foo.())    == { :foo, [] }
-    assert Macro.extract_args(quote do: foo(1, 2, 3)) == { :foo, [1, 2, 3] }
-    assert Macro.extract_args(quote do: 1.(1, 2, 3))  == :error
-  end
-
   ## decompose_call
 
   test :decompose_call do
     assert Macro.decompose_call(quote do: foo)        == { :foo, [] }
     assert Macro.decompose_call(quote do: foo())      == { :foo, [] }
-    assert Macro.decompose_call(quote do: :foo.())    == { :foo, [] }
     assert Macro.decompose_call(quote do: foo(1, 2, 3)) == { :foo, [1, 2, 3] }
     assert Macro.decompose_call(quote do: M.N.foo(1, 2, 3)) ==
            { { :__aliases__, [alias: false], [:M, :N] }, :foo, [1, 2, 3] }
+    assert Macro.decompose_call(quote do: :foo.foo(1, 2, 3)) ==
+           { :foo, :foo, [1, 2, 3] }
     assert Macro.decompose_call(quote do: 1.(1, 2, 3))  == :error
     assert Macro.decompose_call(quote do: "some string")  == :error
   end

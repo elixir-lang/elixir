@@ -3518,9 +3518,9 @@ defmodule Kernel do
       append_first = Keyword.get(opts, :append_first, false)
 
       lc fun inlist List.wrap(funs) do
-        case Macro.extract_args(fun) do
+        case Macro.decompose_call(fun) do
           { name, args } -> :ok
-          :error -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_string(fun)}"
+          _ -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_string(fun)}"
         end
 
         actual_args =
