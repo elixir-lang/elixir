@@ -132,6 +132,7 @@ defmodule ExUnit.DocTest do
   defmacro doctest(mod, opts // []) do
     quote bind_quoted: binding do
       lc { name, test } inlist ExUnit.DocTest.__doctests__(mod, opts) do
+        @file '(for doctest at) ' ++ Path.relative_to_cwd(mod.__info__(:compile)[:source])
         def unquote(name)(_), do: unquote(test)
       end
     end
@@ -139,18 +140,24 @@ defmodule ExUnit.DocTest do
 
   @doc false
   def __doctests__(module, opts) do
-    only   = opts[:only] || []
-    except = opts[:except] || []
     do_import = Keyword.get(opts, :import, false)
 
-    tests = Enum.filter(extract(module), fn(test) ->
+    extract(module)
+    |> filter_by_opts(opts)
+    |> Stream.with_index
+    |> Enum.map(fn { test, acc } ->
+      compile_test(test, module, do_import, acc + 1)
+    end)
+  end
+
+  defp filter_by_opts(tests, opts) do
+    only   = opts[:only] || []
+    except = opts[:except] || []
+
+    Stream.filter(tests, fn(test) ->
       fa = test.fun_arity
       Enum.all?(except, &(&1 != fa)) and Enum.all?(only, &(&1 == fa))
     end)
-
-    Enum.map_reduce(tests, 1, fn(test, acc) ->
-      { compile_test(test, module, do_import, acc), acc + 1 }
-    end) |> elem(0)
   end
 
   ## Compilation of extracted tests
@@ -172,35 +179,40 @@ defmodule ExUnit.DocTest do
     location = [line: line, file: Path.relative_to_cwd(file)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
 
-    exc_filter_fn = fn
-      { _, {:error, _, _} } -> true
-      _ -> false
-    end
-
-    exceptions_num = Enum.count exprs, exc_filter_fn
-    if exceptions_num > 1 do
-      # Format the info about error location as if it were a part of the stacktrace
+    if multiple_exceptions?(exprs) do
       { fun, arity } = fun_arity
-      error_info = "    #{file}:#{line}: #{inspect module}.#{fun}/#{arity}"
-      raise Error, message: "multiple exceptions in one doctest case are not supported.\n#{error_info}"
+      raise Error, message: "multiple exceptions in one doctest case are not supported. "
+                            "Invalid doctest for #{inspect module}.#{fun}/#{arity}"
     end
 
-    { tests, whole_expr } = Enum.map_reduce exprs, "", fn {expr, expected}, acc ->
-      { test_case_content(expr, expected, module, line, file, stack), acc <> expr <> "\n" }
-    end
-    whole_expr = String.strip(whole_expr)
-
-    exception = case Enum.find(exprs, exc_filter_fn) do
-      { _, {:error, exception, message} } ->
-        inspect(exception) <> " with message " <> message
-      nil ->
-        "nothing"
+    tests = Enum.map exprs, fn { expr, expected } ->
+      test_case_content(expr, expected, module, line, file, stack)
     end
 
     quote do
       unquote_splicing(test_import(module, do_import))
-      unquote(gen_code_for_tests(tests, whole_expr, exception, stack))
+      unquote(gen_code_for_tests(tests, whole_expr(exprs), exception_expr(exprs), stack))
     end
+  end
+
+  defp whole_expr(exprs) do
+    Enum.map_join(exprs, "\n", &elem(&1, 0))
+  end
+
+  defp exception_expr(exprs) do
+    Enum.find_value(exprs, "nothing", fn
+      { _, {:error, exception, message} } ->
+        inspect(exception) <> " with message " <> message
+      _ ->
+        nil
+    end)
+  end
+
+  defp multiple_exceptions?(exprs) do
+    Enum.count(exprs, fn
+      { _, {:error, _, _} } -> true
+      _ -> false
+    end) > 1
   end
 
   defp gen_code_for_tests(tests, whole_expr, exception, stack) do
@@ -316,13 +328,13 @@ defmodule ExUnit.DocTest do
     moduledocs ++ docs
   end
 
-  defp extract_from_moduledoc({_, negative}) when negative in [false, nil], do: []
+  defp extract_from_moduledoc({_, doc}) when doc in [false, nil], do: []
 
   defp extract_from_moduledoc({line, doc}) do
     extract_tests(line, doc)
   end
 
-  defp extract_from_doc({_, _, _, _, negative}) when negative in [false, nil], do: []
+  defp extract_from_doc({_, _, _, _, doc}) when doc in [false, nil], do: []
 
   defp extract_from_doc({ fa, line, _, _, doc}) do
     lc test inlist extract_tests(line, doc) do
