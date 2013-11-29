@@ -20,7 +20,7 @@ defmodule Regex.BinaryTest do
     assert is_record(Regex.compile!("foo"), Regex)
     assert is_regex(Regex.compile!("foo"))
 
-    assert_raise Regex.CompileError, "nothing to repeat at position 0", fn ->
+    assert_raise Regex.CompileError, %r/position 0$/, fn ->
       Regex.compile!("*foo")
     end
   end
