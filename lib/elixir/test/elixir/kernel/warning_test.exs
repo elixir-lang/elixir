@@ -1,8 +1,7 @@
 Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Kernel.WarningTest do
-  use ExUnit.Case, async: true
-
+  use ExUnit.Case
   import ExUnit.CaptureIO
 
   defp capture_err(fun) do

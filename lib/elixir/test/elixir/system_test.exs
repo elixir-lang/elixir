@@ -43,11 +43,6 @@ defmodule SystemTest do
     assert args == ["-o", "opt", "arg1", "arg2", "--long-opt", "10"]
   end
 
-  test :at_exit do
-    output = elixir('-e "System.at_exit(fn x -> IO.inspect x end)"')
-    assert output == '0\n'
-  end
-
   test :env do
     assert System.get_env("SYSTEM_ELIXIR_ENV_TEST_VAR") == nil
     System.put_env("SYSTEM_ELIXIR_ENV_TEST_VAR", "SAMPLE")
