@@ -20,12 +20,8 @@ defmodule Regex.BinaryTest do
     assert is_record(Regex.compile!("foo"), Regex)
     assert is_regex(Regex.compile!("foo"))
 
-    try do
+    assert_raise Regex.CompileError, %r/position 0$/, fn ->
       Regex.compile!("*foo")
-      raise "expected exception here"
-    rescue
-      x in [Regex.CompileError] ->
-        assert Regex.match?(%r/position 0$/, x.message)
     end
   end
 
