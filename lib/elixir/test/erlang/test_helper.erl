@@ -11,7 +11,6 @@ test() ->
     match_test,
     module_test,
     operators_test,
-    record_test,
     string_test,
     tokenizer_test
   ]).

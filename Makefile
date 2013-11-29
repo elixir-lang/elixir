@@ -98,6 +98,7 @@ clean:
 	cd lib/elixir && $(REBAR) clean
 	rm -rf ebin
 	rm -rf lib/*/ebin
+	rm -rf lib/elixir/test/ebin
 	rm -rf lib/*/tmp
 	rm -rf lib/mix/test/fixtures/git_repo
 	rm -rf lib/mix/test/fixtures/deps_on_git_repo
