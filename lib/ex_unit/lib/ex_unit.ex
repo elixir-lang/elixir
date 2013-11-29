@@ -37,10 +37,10 @@ defmodule ExUnit do
 
   ## Case, Callbacks and Assertions
 
-  See [`ExUnit.Case`](ExUnit.Case.html) and [`ExUnit.Callbacks`](ExUnit.Callbacks.html)
+  See `ExUnit.Case` and `ExUnit.Callbacks`
   for more information about defining test cases.
 
-  The [`ExUnit.Assertions`](ExUnit.Assertions.html) module contains
+  The `ExUnit.Assertions` module contains
   a set of macros to easily generate assertions with appropriate
   error messages.
 
@@ -60,7 +60,7 @@ defmodule ExUnit do
 
   Mix will load the `test_helper.exs` file before executing the tests. 
   It is not necessary to `require` the `test_helper.exs` file in your test files.
-  See [`Mix.Tasks.Test`](Mix.Tasks.Test.html) for more information.
+  See `Mix.Tasks.Test` for more information.
   """
 
   @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase"
@@ -97,7 +97,7 @@ defmodule ExUnit do
   end
 
   @doc """
-  Starts up ExUnit and automatically runs tests right before the
+  Starts ExUnit and automatically runs tests right before the
   VM terminates. It accepts a set of options to configure `ExUnit`
   (the same ones accepted by `configure/1`).
 
