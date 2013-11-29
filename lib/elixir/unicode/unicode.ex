@@ -221,52 +221,52 @@ defmodule String.Graphemes do
   end
 
   # Don't break CRLF
-  def next_grapheme_length(<< ?\n, ?\r, _rest :: binary >>) do
+  defp next_grapheme_length(<< ?\n, ?\r, _rest :: binary >>) do
     2
   end
 
   # Break on control
   lc codepoint inlist cluster["CR"] ++ cluster["LF"] ++ cluster["Control"] do
-    def next_grapheme_length(<< unquote(codepoint), _rest :: binary >>) do
+    defp next_grapheme_length(<< unquote(codepoint), _rest :: binary >>) do
       unquote( size(codepoint) )
     end
   end
 
   # Break on Prepend*
   # lc codepoint inlist cluster["Prepend"] do
-  #   def next_grapheme_length(<< unquote(codepoint), rest :: binary >>) do
+  #   defp next_grapheme_length(<< unquote(codepoint), rest :: binary >>) do
   #     next_prepend(<< unquote(codepoint) >>, rest)
   #   end
   # end
 
   # Handle Hangul L
   lc codepoint inlist cluster["L"] do
-    def next_grapheme_length(<< unquote(codepoint), rest :: binary >>) do
+    defp next_grapheme_length(<< unquote(codepoint), rest :: binary >>) do
       next_hangul_l_length(unquote(size(codepoint)), rest)
     end
   end
 
   # Handle Hangul T
   lc codepoint inlist cluster["T"] do
-    def next_grapheme_length(<< unquote(codepoint), rest :: binary >>) do
+    defp next_grapheme_length(<< unquote(codepoint), rest :: binary >>) do
       next_hangul_t_length(unquote(size(codepoint)), rest)
     end
   end
 
   # Handle Regional
   lc codepoint inlist cluster["Regional_Indicator"] do
-    def next_grapheme_length(<< unquote(codepoint), rest :: binary >>) do
+    defp next_grapheme_length(<< unquote(codepoint), rest :: binary >>) do
       next_regional_length(unquote(size(codepoint)), rest)
     end
   end
 
   # Handle extended entries
-  def next_grapheme_length(<< _cp :: utf8, rest :: binary >> = string) do
+  defp next_grapheme_length(<< _cp :: utf8, rest :: binary >> = string) do
     next_extend_length(size(string)-size(rest), rest)
   end
 
-  def next_grapheme_length(<< _cp, _rest :: binary >>), do: 1
-  def next_grapheme_length(<<>>), do: 0
+  defp next_grapheme_length(<< _cp, _rest :: binary >>), do: 1
+  defp next_grapheme_length(<<>>), do: 0
 
   # Handle Hangul L
   lc codepoint inlist cluster["L"] do
