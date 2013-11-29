@@ -90,7 +90,7 @@ defmodule Kernel.Typespec do
   """
   defmacro deftype(type) do
     quote do
-      Kernel.Typespec.deftype(:type, unquote(Macro.escape type), __ENV__)
+      Kernel.Typespec.deftype(:type, unquote(Macro.escape(type, unquote: true)), __ENV__)
     end
   end
 
@@ -105,7 +105,7 @@ defmodule Kernel.Typespec do
   """
   defmacro defopaque(type) do
     quote do
-      Kernel.Typespec.deftype(:opaque, unquote(Macro.escape type), __ENV__)
+      Kernel.Typespec.deftype(:opaque, unquote(Macro.escape(type, unquote: true)), __ENV__)
     end
   end
 
@@ -120,7 +120,7 @@ defmodule Kernel.Typespec do
   """
   defmacro deftypep(type) do
     quote do
-      Kernel.Typespec.deftype(:typep, unquote(Macro.escape type), __ENV__)
+      Kernel.Typespec.deftype(:typep, unquote(Macro.escape(type, unquote: true)), __ENV__)
     end
   end
 
@@ -135,7 +135,7 @@ defmodule Kernel.Typespec do
   """
   defmacro defspec(spec) do
     quote do
-      Kernel.Typespec.defspec(:spec, unquote(Macro.escape spec), __ENV__)
+      Kernel.Typespec.defspec(:spec, unquote(Macro.escape(spec, unquote: true)), __ENV__)
     end
   end
 
@@ -150,7 +150,7 @@ defmodule Kernel.Typespec do
   """
   defmacro defcallback(spec) do
     quote do
-      Kernel.Typespec.defspec(:callback, unquote(Macro.escape spec), __ENV__)
+      Kernel.Typespec.defspec(:callback, unquote(Macro.escape(spec, unquote: true)), __ENV__)
     end
   end
 

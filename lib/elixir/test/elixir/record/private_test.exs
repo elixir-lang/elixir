@@ -7,6 +7,12 @@ defmodule Record.PrivateTest do
     defrecordp :_user, __MODULE__, name: "José", age: 25
     defrecordp :_my_user, :my_user, name: "José", age: 25
 
+    defrecordp :_file_info, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+    name = :_dynamic
+    defrecordp name, [:field]
+
+    Record.defmacros(:_macro, [c: 2, d: 3], __ENV__)
+
     def new() do
       _user()
     end
@@ -70,6 +76,18 @@ defmodule Record.PrivateTest do
     def my_age_and_name(user) do
       _my_user(user, [:age, :name])
     end
+
+    def file_info() do
+      _file_info()
+    end
+
+    def dynamic() do
+      _dynamic()
+    end
+
+    def macro() do
+      _macro()
+    end
   end
 
   test "defrecordp generates macros that generates tuples" do
@@ -108,5 +126,20 @@ defmodule Record.PrivateTest do
     assert record.age_and_name == [record.age, record.name]
 
     assert elem(record, 0) == Macros
+  end
+
+  test "defrecordp with dynamic arguments" do
+    assert [:_file_info|_] = Macros.file_info() |> tuple_to_list
+    assert { :_dynamic, nil } = Macros.dynamic()
+  end
+
+  test "defmacros" do
+    assert { :_macro, 2, 3 } = Macros.macro()
+  end
+
+  defrecordp :match, [:name]
+
+  test "defrecordp generates macros that are matchable" do
+    assert match(name: 42) = match(name: 42)
   end
 end

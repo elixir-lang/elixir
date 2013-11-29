@@ -282,6 +282,18 @@ defmodule Typespec.TypeTest do
              [{:atom, _, ^module}, {:type, _, :term, []}, {:type, _, :integer, []}]}, []}] = types
   end
 
+  test "@type unquote fragment" do
+    spec = test_module do
+      quoted = quote unquote: false do
+        name = :mytype
+        type = :atom
+        @type unquote(name)() :: unquote(type)
+      end
+      Module.eval_quoted(__MODULE__, quoted) |> elem(0)
+    end
+    assert {:mytype, {:atom, _, :atom}, []} = spec
+  end
+
   test "defines_type?" do
     test_module do
       @type mytype :: tuple
@@ -462,8 +474,6 @@ defmodule Typespec.TypeTest do
   # types/specs retrieval
 
   test "specs retrieval" do
-    Code.compiler_options debug_info: true
-
     { :module, T, binary, _ } = defmodule T do
       @spec a :: any
       def a, do: nil
@@ -474,13 +484,9 @@ defmodule Typespec.TypeTest do
 
     assert [{{:a, _}, [{:type, _, :fun, [{:type, _, :product, []}, {:type, _, :any, []}]}]}] =
            Kernel.Typespec.beam_specs(binary)
-  after
-    Code.compiler_options debug_info: false
   end
 
   test "types retrieval" do
-    Code.compiler_options debug_info: true
-
     { :module, T, binary, _ } = defmodule T do
       @type a :: any
       @typep b :: any
@@ -497,13 +503,9 @@ defmodule Typespec.TypeTest do
       {:type, {:a, {:type, _, :any, []}, []}},
       {:typep, {:b, {:type, _, :any, []}, []}},
     ] = Kernel.Typespec.beam_types(binary)
-  after
-    Code.compiler_options debug_info: false
   end
 
   test "typedoc retrieval" do
-    Code.compiler_options debug_info: true
-
     { :module, T, binary, _ } = defmodule T do
       @typedoc "A"
       @type a :: any
@@ -522,8 +524,6 @@ defmodule Typespec.TypeTest do
       {{:c, 2}, "C"},
       {{:a, 0}, "A"}
     ] = Kernel.Typespec.beam_typedocs(binary)
-  after
-    Code.compiler_options debug_info: false
   end
 
   test "retrieval invalid data" do
