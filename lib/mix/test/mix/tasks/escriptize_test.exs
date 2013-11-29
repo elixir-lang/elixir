@@ -7,6 +7,7 @@ defmodule Mix.Tasks.EscriptizeTest do
     def project do
       [ app: :escripttest,
         version: "0.0.1",
+        escript_main_module: Escripttest,
         escript_embed_elixir: true ]
     end
   end
