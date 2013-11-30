@@ -677,7 +677,12 @@ defmodule Module do
           raise "Cannot make function #{name}/#{arity} overridable because it was not defined"
         clause ->
           :elixir_def.delete_definition(module, tuple)
-          neighbours = Module.DispatchTracker.yank(module, tuple)
+
+          neighbours = if loaded?(Module.DispatchTracker) do
+            Module.DispatchTracker.yank(module, tuple)
+          else
+            []
+          end
 
           old    = get_attribute(module, :__overridable)
           merged = :orddict.update(tuple, fn({ count, _, _, _ }) ->
@@ -942,4 +947,6 @@ defmodule Module do
       raise ArgumentError,
         message: "could not call #{fun} on module #{inspect module} because it was already compiled"
   end
+
+  defp loaded?(module), do: is_tuple :code.is_loaded(module)
 end

@@ -1,6 +1,7 @@
 # v0.11.3-dev
 
 * Enhancements
+  * [Exception] Allow `exception/1` to be overriden and promote it as the main mechanism to customize exceptions
   * [Kernel] Add `List.delete_at/2` and `List.updated_at/3`
   * [Kernel] Add `Enum.reverse/2`
   * [Kernel] Implement `defmodule/2`, `@/1`, `def/2` and friends in Elixir itself. `case/2`, `try/2` and `receive/1` have been made special forms. `var!/1`, `var!/2` and `alias!/1` have also been implemented in Elixir and demoted from special forms

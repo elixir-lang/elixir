@@ -1,7 +1,8 @@
-defexception IO.StreamError, reason: nil do
-  def message(exception) do
-    formatted = iolist_to_binary(:file.format_error(reason exception))
-    "error during streaming: #{formatted}"
+defexception IO.StreamError, [:reason, :message] do
+  def exception(opts) do
+    reason    = opts[:reason]
+    formatted = iolist_to_binary(:file.format_error(reason))
+    IO.StreamError[message: "error during streaming: #{formatted}", reason: reason]
   end
 end
 

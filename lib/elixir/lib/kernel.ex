@@ -1466,15 +1466,34 @@ defmodule Kernel do
 
   """
   @spec raise(binary | atom | tuple) :: no_return
-  defmacro raise(msg) when is_binary(msg) do
-    quote do
-      :erlang.error RuntimeError.exception(message: unquote(msg))
+  defmacro raise(msg) do
+    # Try to figure out the type at compilation time
+    # to avoid dead code and make dialyzer happy.
+    msg = case not is_binary(msg) and bootstraped?(Macro.Env) do
+      true  -> Macro.expand(msg, __CALLER__)
+      false -> msg
     end
-  end
 
-  defmacro raise({ tag, _, _ } = exception) when tag == :<<>> or tag == :<> do
-    quote do
-      :erlang.error RuntimeError.exception(message: unquote(exception))
+    case msg do
+      msg when is_binary(msg) ->
+        quote do
+          :erlang.error RuntimeError.exception(message: unquote(msg))
+        end
+      { :<<>>, _, _ } = msg ->
+        quote do
+          :erlang.error RuntimeError.exception(message: unquote(msg))
+        end
+      alias when is_atom(alias) ->
+        quote do
+          :erlang.error unquote(alias).exception([])
+        end
+      _ ->
+        quote do
+          case unquote(msg) do
+            msg when is_binary(msg) -> :erlang.error RuntimeError.exception(message: msg)
+            msg -> :erlang.error msg.exception([])
+          end
+        end
     end
   end
 
@@ -1486,8 +1505,7 @@ defmodule Kernel do
   structure.
 
   Any module defined via `defexception` automatically
-  defines both `exception(args)` and `exception(args, current)`
-  that creates a new and updates the given exception.
+  implements `exception(args)` callback expected by `raise/2`.
 
   ## Examples
 
@@ -1496,35 +1514,9 @@ defmodule Kernel do
 
   """
   @spec raise(tuple | atom, list) :: no_return
-  defmacro raise(exception, args // [])
-
-  defmacro raise({ :{}, _, _ } = exception, args) do
-    quote do
-      :erlang.error unquote(exception).exception(unquote(args))
-    end
-  end
-
-  defmacro raise({ :__aliases__, _, _ } = exception, args) do
-    quote do
-      :erlang.error unquote(exception).exception(unquote(args))
-    end
-  end
-
-  defmacro raise(exception, args) when is_atom(exception) do
-    quote do
-      :erlang.error unquote(exception).exception(unquote(args))
-    end
-  end
-
   defmacro raise(exception, args) do
     quote do
-      exception = unquote(exception)
-      case exception do
-        e when is_binary(e) ->
-          :erlang.error RuntimeError.exception(message: exception)
-        _ ->
-          :erlang.error exception.exception(unquote(args))
-      end
+      :erlang.error unquote(exception).exception(unquote(args))
     end
   end
 
@@ -1551,8 +1543,10 @@ defmodule Kernel do
   may change the `System.stacktrace` value.
   """
   @spec raise(tuple | atom, list, list) :: no_return
-  def raise(exception, args, stacktrace) do
-    :erlang.raise :error, exception.exception(args), stacktrace
+  defmacro raise(exception, args, stacktrace) do
+    quote do
+      :erlang.raise :error, unquote(exception).exception(unquote(args)), unquote(stacktrace)
+    end
   end
 
   @doc """
@@ -3182,18 +3176,47 @@ defmodule Kernel do
     Record.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
   end
 
-  @doc """
+  @doc %S"""
   Defines an exception.
 
-  Exceptions are simply records and therefore `defexception/3` has
-  the same API and similar behavior to `defrecord/3` with two notable
-  differences:
+  Exceptions are simply records with three differences:
 
-  1) Unlike records, exceptions are documented by default;
+  1. Exceptions are required to defined a function `exception/1`
+     that receives keyword arguments and returns the exception.
+     This function is a callback usually invoked by `raise/2`;
 
-  2) Exceptions **must** implement `message/1` -- a function that returns a
-     string;
+  2. Exceptions are required to provide a `message` field.
+     This field must return a String with a formatted error message;
 
+  3. Unlike records, exceptions are documented by default.
+
+  Since exceptions are records, `defexception/3` has exactly
+  the same API as `defrecord/3`.
+
+  ## Raising exceptions
+
+  The most common way to raise an exception is via the raise
+  function:
+
+      defexception MyException, [:message]
+      raise MyException,
+        message: "did not get what expected, got: #{inspect value}"
+
+  In many cases though, it is more convenient to just pass the
+  expected value to raise and generate the message in the `exception/1`
+  callback:
+
+      defexception MyException, [:message] do
+        def exception(opts) do
+          msg = "did not get what expected, got: #{inspect opts[:actual]}"
+          MyException[message: msg]
+        end
+      end
+
+      raise MyException, actual: value
+
+  The example above is the preferred mechanism for customizing
+  exception messages.
   """
   defmacro defexception(name, fields, do_block // []) do
     { fields, do_block } =
@@ -3204,7 +3227,7 @@ defmodule Kernel do
 
     do_block = Keyword.put(do_block, :do, quote do
       @moduledoc nil
-      record_type message: binary
+      record_type message: String.t
 
       @doc false
       def exception(args), do: new(args)
@@ -3212,6 +3235,7 @@ defmodule Kernel do
       @doc false
       def exception(args, self), do: update(args, self)
 
+      defoverridable exception: 1, exception: 2
       unquote(Keyword.get do_block, :do)
     end)
 

@@ -1,3 +1,7 @@
+# Some exceptions implement `message/1` instead of `exception/1` mostly
+# for bootstrap reasons. It is recommended for applications to implement
+# `exception/1` instead of `message/1` as described in `defexception/3` docs.
+
 defexception RuntimeError,      message: "runtime error"
 defexception ArgumentError,     message: "argument error"
 defexception ArithmeticError,   message: "bad argument in arithmetic expression"
@@ -99,6 +103,22 @@ end
 defexception Enum.OutOfBoundsError, message: "out of bounds error"
 
 defexception Enum.EmptyError, message: "empty error"
+
+defexception File.Error, [reason: nil, action: "", path: nil] do
+  def message(exception) do
+    formatted = iolist_to_binary(:file.format_error(reason exception))
+    "could not #{action exception} #{path exception}: #{formatted}"
+  end
+end
+
+defexception File.CopyError, [reason: nil, action: "", source: nil, destination: nil, on: nil] do
+  def message(exception) do
+    formatted = iolist_to_binary(:file.format_error(reason exception))
+    location  = if on = on(exception), do: ". #{on}", else: ""
+    "could not #{action exception} from #{source exception} to " <>
+      "#{destination exception}#{location}: #{formatted}"
+  end
+end
 
 defmodule Exception do
   @moduledoc """

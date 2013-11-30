@@ -2,7 +2,7 @@ defmodule Version do
   @moduledoc %S"""
   Functions for parsing and matching versions against requirements.
 
-  A version is a string in a specific format or a `Version.Schema` 
+  A version is a string in a specific format or a `Version.Schema`
   generated after parsing via `Version.parse/1`.
 
   `Version` parsing and requirements follow
@@ -31,7 +31,7 @@ defmodule Version do
 
   Requirements allow you to specify which versions of a given
   dependency you are willing to work against. It supports common
-  operators like `>=`, `<=`, `>`, `==` and friends that 
+  operators like `>=`, `<=`, `>`, `==` and friends that
   work as one would expect:
 
       # Only version 2.0.0
@@ -65,14 +65,17 @@ defmodule Version do
   defrecord Schema, major: 0, minor: 0, patch: 0, pre: nil, build: nil, source: nil
   defrecord Requirement, source: nil, matchspec: nil
 
-  defexception InvalidRequirement, reason: :invalid_requirement do
-    def message(InvalidRequirement[reason: reason]) when is_binary(reason) do
-      { first, rest } = String.next_grapheme(reason)
-      String.downcase(first) <> rest
-    end
+  defexception InvalidRequirement, [:message] do
+    def exception(opts) do
+      message =
+        if is_binary opts[:reason] do
+          { first, rest } = String.next_grapheme(opts[:reason])
+          String.downcase(first) <> rest
+        else
+          "invalid version specification"
+        end
 
-    def message(InvalidRequirement[]) do
-      "invalid version specification"
+      InvalidRequirement[message: message]
     end
   end
 
@@ -80,7 +83,7 @@ defmodule Version do
   Check if the given version matches the specification.
 
   Returns `true` if `version` satisfies `requirement`, `false` otherwise.
-  Raises a `Version.InvalidRequirement` exception if `requirement` is not parseable. 
+  Raises a `Version.InvalidRequirement` exception if `requirement` is not parseable.
 
   ## Examples
 

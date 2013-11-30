@@ -43,7 +43,12 @@ store(Module, Function, GenerateName) ->
         false -> { Kind, Name }
       end,
 
-      'Elixir.Module.DispatchTracker':reattach(Module, Kind, { Name, Arity }, Neighbours),
+      case code:is_loaded('Elixir.Module.DispatchTracker') of
+        { _, _ } ->
+          'Elixir.Module.DispatchTracker':reattach(Module, Kind, { Name, Arity }, Neighbours);
+        _ ->
+          ok
+      end,
 
       Def = { function, Line, FinalName, Arity, Clauses },
       elixir_def:store_each(false, FinalKind, File, Location,

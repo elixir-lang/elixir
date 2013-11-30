@@ -1056,9 +1056,12 @@ defmodule String do
     raise ArgumentError
   end
 
-  defexception UnicodeConversionError, encoded: nil, rest: nil, kind: nil do
-    def message(exception) do
-      "#{exception.kind} #{detail(exception.rest)}"
+  defexception UnicodeConversionError, [:encoded, :message] do
+    def exception(opts) do
+      UnicodeConversionError[
+        encoded: opts[:encoded],
+        message: "#{opts[:kind]} #{detail(opts[:rest])}"
+      ]
     end
 
     defp detail(rest) when is_binary(rest) do

@@ -11,7 +11,7 @@ defmodule Mix.TaskTest do
       Mix.Task.run("unknown")
     end
 
-    assert_raise Mix.InvalidTaskError, "The task invalid does not respond to run/1", fn ->
+    assert_raise Mix.InvalidTaskError, "The task invalid does not export run/1", fn ->
       Mix.Task.run("invalid")
     end
   end
@@ -34,7 +34,7 @@ defmodule Mix.TaskTest do
       Mix.Task.get!("unknown")
     end
 
-    assert_raise Mix.InvalidTaskError, "The task invalid does not respond to run/1", fn ->
+    assert_raise Mix.InvalidTaskError, "The task invalid does not export run/1", fn ->
       Mix.Task.get!("invalid")
     end
   end

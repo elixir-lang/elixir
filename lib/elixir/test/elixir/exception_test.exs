@@ -103,9 +103,9 @@ defmodule Kernel.ExceptionTest do
   end
 
   test :defexception do
-    defexception SampleError, field: :ok do
+    defexception SampleError, message: nil do
       # Check do block is properly inline
-      def message(_), do: "hello"
+      def exception(_), do: SampleError[message: "hello"]
     end
   end
 

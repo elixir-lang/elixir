@@ -1,7 +1,8 @@
 defmodule Code do
-  defexception LoadError, file: nil do
-    def message(exception) do
-      "could not load #{exception.file}"
+  defexception LoadError, [:file, :message] do
+    def exception(opts) do
+      file = opts[:file]
+      LoadError[message: "could not load #{file}", file: file]
     end
   end
 
@@ -10,7 +11,6 @@ defmodule Code do
 
   This module complements [Erlang's code module](http://www.erlang.org/doc/man/code.html)
   to add behavior which is specific to Elixir.
-
   """
 
   @doc """
