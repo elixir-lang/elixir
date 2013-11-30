@@ -1,22 +1,26 @@
 # v0.11.3-dev
 
 * Enhancements
-  * [Kernel] Add `List.delete_at/2`
+  * [Kernel] Add `List.delete_at/2` and `List.updated_at/3`
   * [Kernel] Add `Enum.reverse/2`
   * [Kernel] Implement `defmodule/2`, `@/1`, `def/2` and friends in Elixir itself. `case/2`, `try/2` and `receive/1` have been made special forms. `var!/1`, `var!/2` and `alias!/1` have also been implemented in Elixir and demoted from special forms
+  * [Record] Support dynamic fields in `defrecordp`
   * [Typespec] Support `is_var/1` in typespecs
 
 * Bug fixes
   * [HashDict] Ensure a `HashDict` stored in an attribute can be accessed via the attribute
+  * [Enum] Fix bug in `Enum.chunks/4` where you'd get an extra element when there enumerable was a multiple of the counter and a pad was given
   * [Kernel] `quote location: :keep` now only affects definitions in order to keep the proper trace in definition exceptions
   * [Mix] Also symlink `include` directories in _build dependencies
 
 * Deprecations
   * [File] `File.binstream!/3` is deprecated. Simply use `File.stream!/3` which is able to figure out if `stream` or `binstream` operations should be used
+  * [Macro] `Macro.extract_args/1` is deprecated in favor of `Macro.decompose_call/1`
   * [Typespec] `when` clauses in typespecs were moved to the outer part of the spec
 
 * Backwards incompatible changes
   * [Kernel] Behaviour of `Enum.drop/2` and `Enum.take/2` has been switched when given negative counts
+  * [Mix] Require `:escript_main_module` to be set before generating escripts
   * [Stream] The `Stream.Lazy` structure has changed to accumulate functions and accumulators as we go (its inspected representation has also changed)
 
 # v0.11.2 (2013-11-14)
