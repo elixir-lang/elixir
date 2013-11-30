@@ -1500,7 +1500,7 @@ defmodule Kernel do
   @doc """
   Raises an error.
 
-  It calls `.exception` on the given argument passing
+  Calls `.exception` on the given argument passing
   the args in order to retrieve the appropriate exception
   structure.
 
@@ -1731,8 +1731,8 @@ defmodule Kernel do
 
   * `:pretty` - if set to true enables pretty printing, defaults to false;
 
-  * `:width` - the width avaliable for inspect to lay out the data structure
-               representation. Defaults to the least of 80 and terminal width;
+  * `:width` - the width available for inspect to layout the data structure
+               representation. Defaults to the smaller of 80 or the terminal width;
 
   ## Examples
 
@@ -3181,7 +3181,7 @@ defmodule Kernel do
 
   Exceptions are simply records with three differences:
 
-  1. Exceptions are required to defined a function `exception/1`
+  1. Exceptions are required to define a function `exception/1`
      that receives keyword arguments and returns the exception.
      This function is a callback usually invoked by `raise/2`;
 
@@ -3195,20 +3195,20 @@ defmodule Kernel do
 
   ## Raising exceptions
 
-  The most common way to raise an exception is via the raise
+  The most common way to raise an exception is via the `raise/2`
   function:
 
       defexception MyException, [:message]
       raise MyException,
-        message: "did not get what expected, got: #{inspect value}"
+        message: "did not get what was expected, got: #{inspect value}"
 
-  In many cases though, it is more convenient to just pass the
-  expected value to raise and generate the message in the `exception/1`
+  In many cases it is more convenient to pass the
+  expected value to `raise` and generate the message in the `exception/1`
   callback:
 
       defexception MyException, [:message] do
         def exception(opts) do
-          msg = "did not get what expected, got: #{inspect opts[:actual]}"
+          msg = "did not get what was expected, got: #{inspect opts[:actual]}"
           MyException[message: msg]
         end
       end
@@ -3349,7 +3349,7 @@ defmodule Kernel do
   specialized one.
 
   Second, falling back to `Any` adds an extra lookup to all types,
-  which is unecessary overhead unless an implementation for Any is
+  which is unnecessary overhead unless an implementation for Any is
   required.
 
   ## Types
