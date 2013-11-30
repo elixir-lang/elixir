@@ -84,13 +84,7 @@ defmodule Mix.Tasks.Deps.Compile do
     :ok
   end
 
-  defp do_mix(Mix.Dep[app: app, opts: opts] = dep, config) do
-    # Set the app_path to be the one stored in the dependency.
-    # This is important because the name of application in the
-    # mix.exs file can be different than the actual name and we
-    # choose to respect the one in the mix.exs.
-    config = Keyword.put(config, :app_path, opts[:build])
-
+  defp do_mix(Mix.Dep[app: app] = dep, config) do
     Mix.Deps.in_dependency dep, config, fn _ ->
       case dev_compilation(app, config) do
         { source, target } ->
@@ -122,7 +116,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp dev_compilation(app, config) do
     if config[:build_per_environment] do
       source = config[:build_path] |> Path.dirname |> Path.join("dev/lib/#{app}")
-      target = Mix.Project.manifest_path(config)
+      target = Mix.Project.manifest_path
       source != target && Mix.Deps.Lock.mix_env(source) == to_string(Mix.env) &&
         not Mix.Utils.stale?([target], [source]) && { source, target }
     else

@@ -177,7 +177,7 @@ defmodule Mix.UmbrellaTest do
 
         future = { { 2020, 4, 17 }, { 14, 0, 0 } }
 
-        manifest = "../foo/_build/shared/lib/foo/.compile.elixir"
+        manifest = "_build/shared/lib/foo/.compile.elixir"
         File.mkdir_p!(Path.dirname(manifest))
         File.touch!(manifest, future)
         assert Mix.Tasks.Compile.Elixir.run([]) == :ok

@@ -180,13 +180,18 @@ defmodule Mix.Deps do
   """
   def in_dependency(dep, post_config // [], fun)
 
-  def in_dependency(Mix.Dep[app: app, opts: opts], post_config, fun) do
+  def in_dependency(Mix.Dep[app: app, opts: opts], config, fun) do
+    # Set the app_path to be the one stored in the dependency.
+    # This is important because the name of application in the
+    # mix.exs file can be different than the actual name and we
+    # choose to respect the one in the mix.exs.
+    config  = Keyword.put(config, :app_path, opts[:build])
     env     = opts[:env] || :prod
     old_env = Mix.env
 
     try do
       Mix.env(env)
-      Mix.Project.in_project(app, opts[:dest], post_config, fun)
+      Mix.Project.in_project(app, opts[:dest], config, fun)
     after
       Mix.env(old_env)
     end
