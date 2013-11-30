@@ -93,3 +93,40 @@ defmodule Kernel.AliasMacroNestingTest do
     assert Parent.Child.b.message == "ok"
   end
 end
+
+# Test case extracted from using records with aliases
+# and @before_compile. We are basically testing that
+# macro aliases are not leaking from the macro.
+
+defmodule Macro.AliasTest.Definer do
+  defmacro __using__(_options) do
+    quote do
+      @before_compile unquote(__MODULE__)
+    end
+  end
+
+  defmacro __before_compile__(_env) do
+    quote do
+      defrecord Record, [foo: :bar]
+    end
+  end
+end
+
+defmodule Macro.AliasTest.Aliaser do
+  defmacro __using__(_options) do
+    quote do
+      alias Some.Record
+    end
+  end
+end
+
+defmodule Macro.AliasTest.User do
+  use ExUnit.Case, async: true
+
+  use Macro.AliasTest.Definer
+  use Macro.AliasTest.Aliaser
+
+  test "has a record defined from after compile" do
+    assert is_tuple Macro.AliasTest.User.Record.new
+  end
+end
