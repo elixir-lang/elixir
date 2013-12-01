@@ -18,6 +18,11 @@ defmodule ExUnit.FormatterTest do
     end
   end
 
+  test "formats test case filters" do
+    filters = [run: true, slow: false]
+    assert format_filters(filters) =~ "Using filters: [run: true, slow: false]"
+  end
+
   test "formats test errors" do
     failure = { :error, catch_error(raise "oops"), [] }
     assert format_test_failure(Hello, :world, failure, 1, nil) =~ """

@@ -67,6 +67,20 @@ defmodule ExUnit.Formatter do
     end
   end
 
+  @doc """
+  Formats filters used to constain cases to be run.
+
+  ## Examples
+
+    iex> format_filters([run: true, slow: false])
+    "Using filters: [run: true, slow: false]"
+
+  """
+  @spec format_filters(Keyword.t) :: String.t
+  def format_filters(filters) do
+    "Using filters: #{inspect filters}"
+  end
+
   @doc %S"""
   Receives a test and formats its failure.
   """
