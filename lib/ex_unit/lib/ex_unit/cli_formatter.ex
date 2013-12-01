@@ -5,10 +5,10 @@ defmodule ExUnit.CLIFormatter do
 
   use GenServer.Behaviour
 
-  import ExUnit.Formatter, only: [format_time: 2, format_test_failure: 5, format_test_case_failure: 4]
+  import ExUnit.Formatter, only: [format_time: 2, format_filters: 1, format_test_failure: 5, format_test_case_failure: 4]
 
   defrecord Config, tests_counter: 0, invalids_counter: 0, failures_counter: 0,
-                    trace: false, color: true, previous: nil
+                    trace: false, color: true, previous: nil, filter: nil
 
   ## Behaviour
 
@@ -40,7 +40,9 @@ defmodule ExUnit.CLIFormatter do
   ## Callbacks
 
   def init(opts) do
-    { :ok, Config.new(opts) }
+    config = Config.new(opts)
+    print_filters(config)
+    { :ok, config }
   end
 
   def handle_call({ :suite_finished, run_us, load_us }, _from, config = Config[]) do
@@ -147,6 +149,12 @@ defmodule ExUnit.CLIFormatter do
       config.failures_counter > 0 -> IO.puts failure(message, config)
       config.invalids_counter > 0 -> IO.puts invalid(message, config)
       true                        -> IO.puts success(message, config)
+    end
+  end
+
+  defp print_filters(config) do
+    if config.filter do
+      IO.puts format_filters(config.filter)
     end
   end
 

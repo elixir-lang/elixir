@@ -144,6 +144,8 @@ defmodule ExUnit do
                and prints each test case and test while running;
 
   * `:autorun` - If ExUnit should run by default on exit, defaults to `true`;
+
+  * `:filter` - Constrain which cases are run by passing in a list of metadata to match against;
   """
   def configure(options) do
     Enum.each options, fn { k, v } ->
