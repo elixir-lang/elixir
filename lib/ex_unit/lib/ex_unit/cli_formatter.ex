@@ -8,7 +8,8 @@ defmodule ExUnit.CLIFormatter do
   import ExUnit.Formatter, only: [format_time: 2, format_filters: 1, format_test_failure: 5, format_test_case_failure: 4]
 
   defrecord Config, tests_counter: 0, invalids_counter: 0, failures_counter: 0,
-                    trace: false, color: true, previous: nil, filter: nil
+                    skips_counter: 0, trace: false, color: true, previous: nil,
+                    filter: nil
 
   ## Behaviour
 
@@ -77,6 +78,11 @@ defmodule ExUnit.CLIFormatter do
 
     { :noreply, config.previous(:invalid).update_tests_counter(&(&1 + 1))
                       .update_invalids_counter(&(&1 + 1)) }
+  end
+
+  def handle_cast({ :test_finished, ExUnit.Test[state: { :skip, _ }] }, config = Config[]) do
+    { :noreply, config.previous(:skip).update_tests_counter(&(&1 + 1))
+                      .update_skips_counter(&(&1 + 1)) }
   end
 
   def handle_cast({ :test_finished, test }, config) do

@@ -2,7 +2,8 @@ defmodule ExUnit.Runner do
   @moduledoc false
 
   defrecord Config, formatter: ExUnit.CLIFormatter, formatter_id: nil,
-                    max_cases: 4, taken_cases: 0, async_cases: [], sync_cases: []
+                    max_cases: 4, taken_cases: 0, async_cases: [],
+                    sync_cases: [], filter: nil
 
   def run(async, sync, opts, load_us) do
     opts = normalize_opts(opts)
@@ -125,8 +126,21 @@ defmodule ExUnit.Runner do
   end
 
   defp run_test(config, test, context) do
-    case_name = test.case
     config.formatter.test_started(config.formatter_id, test)
+
+    mismatch = filter_mismatch(test, config)
+
+    if nil?(mismatch) do
+      test = spawn_test(config, test, context)
+    else
+      test = skip_test(test, mismatch)
+    end
+
+    config.formatter.test_finished(config.formatter_id, test)
+  end
+
+  defp spawn_test(config, test, context) do
+    case_name = test.case
 
     # Run test in a new process so that we can trap exits for a single test
     self_pid = self
@@ -157,11 +171,14 @@ defmodule ExUnit.Runner do
 
     receive do
       { ^test_pid, :test_finished, test } ->
-        config.formatter.test_finished(config.formatter_id, test)
+        test
       { :DOWN, ^test_ref, :process, ^test_pid, { error, stacktrace } } ->
-        test = test.state { :failed, { :EXIT, error, prune_stacktrace(stacktrace) } }
-        config.formatter.test_finished(config.formatter_id, test)
+        test.state { :failed, { :EXIT, error, prune_stacktrace(stacktrace) } }
     end
+  end
+
+  defp skip_test(test, mismatch) do
+    test.state { :skip, "due to #{mismatch} filter" }
   end
 
   ## Helpers
@@ -179,6 +196,17 @@ defmodule ExUnit.Runner do
     case config.sync_cases do
       [h|t] -> { config.sync_cases(t), [h] }
       []    -> nil
+    end
+  end
+
+  defp filter_mismatch(ExUnit.Test[tags: tags], Config[filter: filter])
+      when nil?(tags) or nil?(filter) do
+    nil
+  end
+
+  defp filter_mismatch(ExUnit.Test[tags: tags], Config[filter: filter]) do
+    Enum.find_value filter, fn { k, v } ->
+      Keyword.get(tags, k, v) != v && k
     end
   end
 
