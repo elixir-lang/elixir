@@ -99,12 +99,18 @@ defmodule Mix.Tasks.Test do
     end
 
     :application.load(:ex_unit)
-    opts = Dict.take(opts, [:trace, :max_cases, :color, :filter])
-    opts = Keyword.put(opts, :filter, parse_filters(Dict.take(opts, [:filter])))
-    ExUnit.configure(opts)
 
     test_paths = project[:test_paths] || ["test"]
     Enum.each(test_paths, &require_test_helper(&1))
+
+    opts = Dict.take(opts, [:trace, :max_cases, :color, :filter])
+
+    filters = Keyword.get_values(opts, :filter)
+    unless Enum.empty?(filters) do
+      opts = Keyword.put(opts, :filter, parse_filters(filters))
+    end
+
+    ExUnit.configure(opts)
 
     test_paths   = if files == [], do: test_paths, else: files
     test_pattern = project[:test_pattern] || "*_test.exs"
@@ -114,7 +120,7 @@ defmodule Mix.Tasks.Test do
   end
 
   defp parse_filters(filters) do
-    Enum.map filters, fn { :filter, filter } ->
+    Enum.map filters, fn filter ->
       value = true
 
       if String.contains?(filter, [":"]) do
