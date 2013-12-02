@@ -49,6 +49,7 @@ defmodule Mix.Tasks.Test do
   * `--no-compile` - do not compile, even if files require compilation
   * `--no-start` - do not start applications after compilation
   * `--no-color` - disable color in the output
+  * `--filter` - skip tests that don't have matching tags
 
   ## Configuration
 
@@ -76,7 +77,7 @@ defmodule Mix.Tasks.Test do
   """
 
   @switches [force: :boolean, color: :boolean, cover: :boolean,
-             trace: :boolean, max_cases: :integer]
+             trace: :boolean, max_cases: :integer, filter: :keep]
 
   @cover [output: "cover", tool: Cover]
 
@@ -98,7 +99,8 @@ defmodule Mix.Tasks.Test do
     end
 
     :application.load(:ex_unit)
-    opts = Dict.take(opts, [:trace, :max_cases, :color])
+    opts = Dict.take(opts, [:trace, :max_cases, :color, :filter])
+    opts = Keyword.put(opts, :filter, parse_filters(Dict.take(opts, [:filter])))
     ExUnit.configure(opts)
 
     test_paths = project[:test_paths] || ["test"]
@@ -109,6 +111,28 @@ defmodule Mix.Tasks.Test do
 
     files = Mix.Utils.extract_files(test_paths, test_pattern)
     Kernel.ParallelRequire.files files
+  end
+
+  defp parse_filters(filters) do
+    Enum.map filters, fn { :filter, filter } ->
+      value = true
+
+      if String.contains?(filter, [":"]) do
+        [filter|[value]] = String.split(filter, ":", global: false)
+
+        if String.ends_with?(value, ":") do
+          value = String.rstrip(value, ?:)
+        else
+          value = case value do
+            "true"  -> true
+            "false" -> false
+            v       -> v
+          end
+        end
+      end
+
+      { Kernel.binary_to_atom(filter), value }
+    end
   end
 
   defp require_test_helper(dir) do
