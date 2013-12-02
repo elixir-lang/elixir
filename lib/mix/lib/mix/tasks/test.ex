@@ -121,23 +121,17 @@ defmodule Mix.Tasks.Test do
 
   defp parse_filters(filters) do
     Enum.map filters, fn filter ->
-      value = true
+      [key|value] = String.split(filter, ":")
 
-      if String.contains?(filter, [":"]) do
-        [filter|[value]] = String.split(filter, ":", global: false)
-
-        if String.ends_with?(value, ":") do
-          value = String.rstrip(value, ?:)
-        else
-          value = case value do
-            "true"  -> true
-            "false" -> false
-            v       -> v
-          end
-        end
+      value = case value do
+        [value, ""] -> value
+        ["true"]    -> true
+        ["false"]   -> false
+        [value]     -> value
+        []          -> true
       end
 
-      { Kernel.binary_to_atom(filter), value }
+      { Kernel.binary_to_atom(key), value }
     end
   end
 
