@@ -145,7 +145,7 @@ defmodule ExUnit do
 
   * `:autorun` - If ExUnit should run by default on exit, defaults to `true`;
 
-  * `:filter` - Constrain which cases are run by passing in a list of metadata to match against;
+  * `:filter` - Constrain which tests are run by matching against a keyword list of tags;
   """
   def configure(options) do
     Enum.each options, fn { k, v } ->
