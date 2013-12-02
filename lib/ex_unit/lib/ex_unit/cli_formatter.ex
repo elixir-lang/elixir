@@ -81,8 +81,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({ :test_finished, ExUnit.Test[state: { :skip, _ }] }, config = Config[]) do
-    { :noreply, config.previous(:skip).update_tests_counter(&(&1 + 1))
-                      .update_skips_counter(&(&1 + 1)) }
+    { :noreply, config.previous(:skip).update_skips_counter(&(&1 + 1)) }
   end
 
   def handle_cast({ :test_finished, test }, config) do
