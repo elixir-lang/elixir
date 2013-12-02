@@ -737,10 +737,24 @@ defmodule Kernel.SpecialForms do
   in the context the macro is expanded, the code above works
   because `D` still expands to `HashDict`.
 
+  Similarly, even if we defined an alias with the same name
+  before invoking a macro, it won't affect the macro result:
+
+      defmodule Hygiene do
+        alias HashDict, as: D
+
+        defmacro no_interference do
+          quote do: D.new
+        end
+      end
+
+      require Hygiene
+      alias SomethingElse, as: D
+      Hygiene.no_interference #=> #HashDict<[]>
+
   In some particular cases you may want to access an alias
   or a module defined in the caller. In such scenarios, you
-  can access it by disabling hygiene with `hygiene: [aliases: false]`
-  or by using the `alias!` macro inside the quote:
+  can access it by using the `alias!` macro inside the quote:
 
       defmodule Hygiene do
         # This will expand to Elixir.Nested.hello
@@ -789,7 +803,16 @@ defmodule Kernel.SpecialForms do
       Hygiene.return_size #=> 5
 
   Notice how `return_size` returns 5 even though the `size/1`
-  function is not imported.
+  function is not imported. In fact, even if `return_size` imported
+  a function from another module, it wouldn't affect the function
+  result:
+
+      def return_size do
+        import Dict, only: [size: 1]
+        get_size
+      end
+
+  Calling this new `return_size` will still return 5 as result.
 
   Elixir is smart enough to delay the resolution to the latest
   moment possible. So, if you call `size("hello")` inside quote,
