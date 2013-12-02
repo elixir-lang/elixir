@@ -139,7 +139,7 @@ defmodule ExUnit.Runner do
     config.formatter.test_finished(config.formatter_id, test)
   end
 
-  defp spawn_test(config, test, context) do
+  defp spawn_test(_config, test, context) do
     case_name = test.case
 
     # Run test in a new process so that we can trap exits for a single test
