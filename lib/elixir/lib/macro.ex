@@ -588,12 +588,20 @@ defmodule Macro do
     do: { env, true, cache }
 
   # Expand possible macro import invocation
-  defp expand_once({ atom, meta, args } = original, env, cache) when is_atom(atom) and is_list(meta) do
-    args = case is_atom(args) do
-      true  -> []
-      false -> args
+  defp expand_once({ atom, meta, context } = original, env, cache)
+      when is_atom(atom) and is_list(meta) and is_atom(context) do
+    if :lists.member({ atom, Keyword.get(meta, :counter, context) }, env.vars) do
+      { original, false, cache }
+    else
+      case expand_once({ atom, meta, [] }, env, cache) do
+        { _, true, _ } = exp -> exp
+        { _, false, cache }  -> { original, false, cache }
+      end
     end
+  end
 
+  defp expand_once({ atom, meta, args } = original, env, cache)
+      when is_atom(atom) and is_list(args) and is_list(meta) do
     case not is_partial?(args) do
       false -> { original, false, cache }
       true  ->

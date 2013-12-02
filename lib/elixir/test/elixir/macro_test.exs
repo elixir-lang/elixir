@@ -156,6 +156,13 @@ defmodule MacroTest do
     assert Macro.expand_once(quote(do: local_macro), __ENV__) == :local_macro
   end
 
+  test :expand_once_checks_vars do
+    local_macro = 1
+    assert local_macro == 1
+    quote = quote(hygiene: [vars: false], do: local_macro)
+    assert Macro.expand_once(quote, __ENV__) == quote
+  end
+
   test :expand_once_with_imported_macro do
     temp_var = { :x, [temp: true], Kernel }
     assert Macro.expand_once(quote(do: 1 || false), __ENV__) == (quote context: Kernel do
