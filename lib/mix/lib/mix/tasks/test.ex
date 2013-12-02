@@ -104,12 +104,7 @@ defmodule Mix.Tasks.Test do
     Enum.each(test_paths, &require_test_helper(&1))
 
     opts = Dict.take(opts, [:trace, :max_cases, :color, :filter])
-
-    filters = Keyword.get_values(opts, :filter)
-    unless Enum.empty?(filters) do
-      opts = Keyword.put(opts, :filter, parse_filters(filters))
-    end
-
+    if opts[:filter], do: opts = Keyword.put(opts, :filter, parse_filters(opts[:filter]))
     ExUnit.configure(opts)
 
     test_paths   = if files == [], do: test_paths, else: files
@@ -120,7 +115,7 @@ defmodule Mix.Tasks.Test do
   end
 
   defp parse_filters(filters) do
-    Enum.map filters, fn filter ->
+    Enum.map List.wrap(filters), fn filter ->
       [key|value] = String.split(filter, ":")
 
       value = case value do
