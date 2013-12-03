@@ -98,33 +98,42 @@ defmodule ExUnitTest do
   end
 
   test "filtering cases with tags" do
-    ExUnit.configure(filter: [run: true], formatter: ExUnit.TestsCounterFormatter)
+    ExUnit.configure(formatter: ExUnit.TestsCounterFormatter)
 
-    defmodule FilteredTest do
+    defmodule ParityTest do
       use ExUnit.Case, async: false
 
-      test "without any tags" do
-        assert false
-      end
+      test "zero", do: assert true
 
-      @tag run: true
-      test "with matching tag" do
-        assert false
-      end
+      @tag even: false
+      test "one", do: assert true
 
-      @tag run: false
-      test "without matching tag" do
-        assert false
-      end
+      @tag even: true
+      test "two", do: assert true
+
+      @tag even: false
+      test "three", do: assert true
     end
 
-    assert ExUnit.run == 2
+    test_cases = ExUnit.Server.start_run
+
+    assert run_with_filter([{ :even, true,  false }], test_cases) == 1
+    assert run_with_filter([{ :even, true,  true  }], test_cases) == 3
+    assert run_with_filter([{ :even, false, true  }], test_cases) == 2
+    assert run_with_filter([{ :even, false, false }], test_cases) == 2
   end
 
   test "parsing filters" do
-    assert ExUnit.parse_filters(["run"]) == [run: true]
-    assert ExUnit.parse_filters(["run:true", "slow:false"]) == [run: true, slow: false]
-    assert ExUnit.parse_filters(["run:true:"]) == [run: "true"]
-    assert ExUnit.parse_filters(["run:test"]) == [run: "test"]
+    assert ExUnit.parse_filters(["run"]) == [{ :run, true, false }]
+    assert ExUnit.parse_filters(["~run"]) == [{ :run, true, true }]
+    assert ExUnit.parse_filters(["run:true"]) == [{ :run, true, false }]
+    assert ExUnit.parse_filters(["~run:true"]) == [{ :run, true, true }]
+    assert ExUnit.parse_filters(["run:test"]) == [{ :run, "test", false }]
+    assert ExUnit.parse_filters(["~run:test"]) == [{ :run, "test", true }]
+  end
+
+  defp run_with_filter(filter, { async, sync, load_us }) do
+    opts = Keyword.merge(ExUnit.configuration, [filter: filter])
+    ExUnit.Runner.run(async, sync, opts, load_us)
   end
 end

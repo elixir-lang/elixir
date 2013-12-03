@@ -130,10 +130,11 @@ defmodule ExUnit.Runner do
 
     mismatch = filter_mismatch(config, test)
 
-    if nil?(mismatch) do
+    if match?(:error, mismatch) do
       test = spawn_test(config, test, context)
     else
-      test = skip_test(test, mismatch)
+      { :ok, mismatched_tag } = mismatch
+      test = skip_test(test, mismatched_tag)
     end
 
     config.formatter.test_finished(config.formatter_id, test)
@@ -200,9 +201,14 @@ defmodule ExUnit.Runner do
   end
 
   defp filter_mismatch(config, test) do
-    Enum.find_value config.filter, fn { k, v } ->
-      Keyword.get(test.tags, k, v) != v && k
+    mismatch = Enum.find_value config.filter, fn { tag, value, exclude } ->
+      case Keyword.fetch(test.tags, tag) do
+        { :ok, ^value } -> exclude && tag
+        _               -> !exclude && tag
+      end
     end
+
+    if mismatch, do: { :ok, mismatch }, else: :error
   end
 
   defp pruned_stacktrace, do: prune_stacktrace(System.stacktrace)

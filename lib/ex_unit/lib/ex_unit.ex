@@ -175,17 +175,27 @@ defmodule ExUnit do
   @doc false
   def parse_filters(filters) do
     Enum.map List.wrap(filters), fn filter ->
-      [key|value] = String.split(filter, ":")
-
-      value = case value do
-        [value, ""] -> value
-        ["true"]    -> true
-        ["false"]   -> false
-        [value]     -> value
-        []          -> true
+      if String.starts_with?(filter, "~") do
+        <<"~", filter :: binary>> = filter
+        exclude = true
+      else
+        exclude = false
       end
 
-      { Kernel.binary_to_atom(key), value }
+      if String.contains?(filter, ":") do
+        [key, value] = String.split(filter, ":", global: false)
+      else
+        key = filter
+        value = true
+      end
+
+      value = case value do
+        "true"  -> true
+        "false" -> false
+        value   -> value
+      end
+
+      { Kernel.binary_to_atom(key), value, exclude }
     end
   end
 end
