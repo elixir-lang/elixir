@@ -22,6 +22,12 @@ defmodule IEx.ServerTest do
     end) =~ "[:bar, :foo]"
   end
 
+  test "env option" do
+    assert capture_io("__ENV__.file", fn ->
+      boot([env: __ENV__])
+    end) =~ "server_test.exs"
+  end
+
   # Take over
 
   test "allows take over of the shell during boot" do

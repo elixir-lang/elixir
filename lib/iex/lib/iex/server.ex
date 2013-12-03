@@ -221,7 +221,7 @@ defmodule IEx.Server do
 
     scope =
       if env = opts[:env] do
-        scope = :elixir_scope.to_erl_env(env)
+        scope = :elixir_env.ex_to_scope(env)
         :elixir.scope_for_eval(scope, delegate_locals_to: locals)
       else
         :elixir.scope_for_eval(file: "iex", delegate_locals_to: locals)
