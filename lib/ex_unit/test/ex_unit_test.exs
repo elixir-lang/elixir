@@ -117,10 +117,10 @@ defmodule ExUnitTest do
 
     test_cases = ExUnit.Server.start_run
 
-    assert run_with_filter([{ :even, true,  false }], test_cases) == 1
+    assert run_with_filter([{ :even, true,  false }], test_cases) == 2
     assert run_with_filter([{ :even, true,  true  }], test_cases) == 3
+    assert run_with_filter([{ :even, false, false }], test_cases) == 3
     assert run_with_filter([{ :even, false, true  }], test_cases) == 2
-    assert run_with_filter([{ :even, false, false }], test_cases) == 2
   end
 
   test "parsing filters" do

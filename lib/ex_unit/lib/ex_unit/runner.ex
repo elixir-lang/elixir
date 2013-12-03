@@ -204,7 +204,8 @@ defmodule ExUnit.Runner do
     mismatch = Enum.find_value config.filter, fn { tag, value, exclude } ->
       case Keyword.fetch(test.tags, tag) do
         { :ok, ^value } -> exclude && tag
-        _               -> !exclude && tag
+        { :ok, _ }      -> !exclude && tag
+        :error          -> nil
       end
     end
 
