@@ -8,8 +8,7 @@ defmodule ExUnit.CLIFormatter do
   import ExUnit.Formatter, only: [format_time: 2, format_filters: 1, format_test_failure: 5, format_test_case_failure: 4]
 
   defrecord Config, tests_counter: 0, invalids_counter: 0, failures_counter: 0,
-                    skips_counter: 0, trace: false, color: true, previous: nil,
-                    filter: nil
+                    skips_counter: 0, trace: false, color: true, previous: nil
 
   ## Behaviour
 
@@ -41,9 +40,8 @@ defmodule ExUnit.CLIFormatter do
   ## Callbacks
 
   def init(opts) do
-    config = Config.new(opts)
-    print_filters(config)
-    { :ok, config }
+    print_filters(opts[:filter])
+    { :ok, Config.new(opts) }
   end
 
   def handle_call({ :suite_finished, run_us, load_us }, _from, config = Config[]) do
@@ -157,10 +155,8 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
-  defp print_filters(config) do
-    if config.filter do
-      IO.puts format_filters(config.filter)
-    end
+  defp print_filters(filters) do
+    if filters, do: IO.puts format_filters(filters)
   end
 
   defp print_test_failure(ExUnit.Test[name: name, case: mod, state: { :failed, tuple }], config) do
