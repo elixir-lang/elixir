@@ -128,7 +128,7 @@ defmodule ExUnit.Runner do
   defp run_test(config, test, context) do
     config.formatter.test_started(config.formatter_id, test)
 
-    mismatch = filter_mismatch(test, config)
+    mismatch = filter_mismatch(config, test)
 
     if nil?(mismatch) do
       test = spawn_test(config, test, context)
@@ -199,14 +199,9 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp filter_mismatch(ExUnit.Test[tags: tags], Config[filter: filter])
-      when nil?(tags) or nil?(filter) do
-    nil
-  end
-
-  defp filter_mismatch(ExUnit.Test[tags: tags], Config[filter: filter]) do
-    Enum.find_value filter, fn { k, v } ->
-      Keyword.get(tags, k, v) != v && k
+  defp filter_mismatch(config, test) do
+    Enum.find_value config.filter, fn { k, v } ->
+      Keyword.get(test.tags, k, v) != v && k
     end
   end
 

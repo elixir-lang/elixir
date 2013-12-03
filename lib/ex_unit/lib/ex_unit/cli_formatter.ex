@@ -156,7 +156,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp print_filters(filters) do
-    if filters, do: IO.puts format_filters(filters)
+    unless Enum.empty?(filters), do: IO.puts format_filters(filters)
   end
 
   defp print_test_failure(ExUnit.Test[name: name, case: mod, state: { :failed, tuple }], config) do
