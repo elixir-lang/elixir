@@ -2,7 +2,7 @@ import Kernel, except: [to_string: 1]
 
 defmodule Macro do
   @moduledoc """
-  This module provides conveniences for working with macros.
+  Conveniences for working with macros.
   """
 
   @typedoc "Abstract Syntax Tree (AST) node"
@@ -49,8 +49,9 @@ defmodule Macro do
   end
 
   @doc """
-  Breaks a pipeline expression into a list. Raises if
-  the pipeline is ill-formed.
+  Breaks a pipeline expression into a list. 
+  
+  Raises if the pipeline is ill-formed.
   """
   @spec unpipe(Macro.t) :: [Macro.t]
   def unpipe({ :|> , _, [left, right] }) do
@@ -62,7 +63,7 @@ defmodule Macro do
   end
 
   @doc """
-  Pipes the given `expr` in to the `call_expr` as the
+  Pipes `expr` into the `call_expr` as the
   argument in the given `position`.
   """
   @spec pipe(Macro.t, Macro.t, integer) :: Macro.t | no_return
@@ -125,7 +126,7 @@ defmodule Macro do
   into a syntax tree.
 
   One may pass `unquote: true` to `escape/2`
-  which leaves unquote statements unescaped, effectively
+  which leaves `unquote` statements unescaped, effectively
   unquoting the contents on escape.
 
   ## Examples
@@ -147,7 +148,9 @@ defmodule Macro do
   end
 
   @doc %S"""
-  Unescape the given chars. This is the unescaping behavior
+  Unescape the given chars. 
+  
+  This is the unescaping behavior
   used by default in Elixir single- and double-quoted strings.
   Check `unescape_string/2` for information on how to customize
   the escaping map.
@@ -157,7 +160,7 @@ defmodule Macro do
   also escaped according to the latin1 set they represent.
 
   This function is commonly used on sigil implementations
-  (like `%r`, `%b` and others) which receive a raw, unescaped
+  (like `%r`, `%s` and others) which receive a raw, unescaped
   string.
 
   ## Examples
@@ -166,7 +169,7 @@ defmodule Macro do
       "example\n"
 
   In the example above, we pass a string with `\n` escaped
-  and we return a version with it unescaped.
+  and return a version with it unescaped.
   """
   @spec unescape_string(String.t) :: String.t
   def unescape_string(chars) do
@@ -175,13 +178,14 @@ defmodule Macro do
 
   @doc %S"""
   Unescape the given chars according to the map given.
+
   Check `unescape_string/1` if you want to use the same map
   as Elixir single- and double-quoted strings.
 
   ## Map
 
   The map must be a function. The function receives an integer
-  representing the number of the characters it wants to unescape.
+  representing the codepoint of the character it wants to unescape.
   Here is the default mapping function implemented by Elixir:
 
       def unescape_map(?a), do: ?\a
@@ -202,16 +206,16 @@ defmodule Macro do
   ## Octals
 
   Octals will by default be escaped unless the map function
-  returns false for ?0.
+  returns `false` for `?0`.
 
   ## Hex
 
   Hexadecimals will by default be escaped unless the map function
-  returns false for ?x.
+  returns `false` for `?x`.
 
   ## Examples
 
-  Using the unescape_map defined above is easy:
+  Using the `unescape_map` function defined above is easy:
 
       Macro.unescape_string "example\\n", &unescape_map(&1)
 
@@ -223,12 +227,13 @@ defmodule Macro do
 
   @doc """
   Unescape the given tokens according to the default map.
+
   Check `unescape_string/1` and `unescape_string/2` for more
   information about unescaping.
 
   Only tokens that are binaries are unescaped, all others are
   ignored. This function is useful when implementing your own
-  sigils. Check the implementation of `Kernel.sigil_b`
+  sigils. Check the implementation of `Kernel.sigil_s/2`
   for examples.
   """
   @spec unescape_tokens([Macro.t]) :: [Macro.t]
@@ -238,6 +243,7 @@ defmodule Macro do
 
   @doc """
   Unescape the given tokens according to the given map.
+
   Check `unescape_tokens/1` and `unescape_string/2` for more information.
   """
   @spec unescape_tokens([Macro.t], (non_neg_integer -> non_neg_integer | false)) :: [Macro.t]
@@ -473,18 +479,19 @@ defmodule Macro do
   end
 
   @doc """
-  Receives a AST node and expands it once. The following contents are expanded:
+  Receives an AST node and expands it once. 
+  
+  The following contents are expanded:
 
   * Macros (local or remote);
   * Aliases are expanded (if possible) and return atoms;
   * All pseudo-variables (`__FILE__`, `__MODULE__`, etc);
   * Module attributes reader (`@foo`);
 
-  In case the expression cannot be expanded, it returns the expression
+  If the expression cannot be expanded, it returns the expression
   itself. Notice that `expand_once/2` performs the expansion just
   once and it is not recursive. Check `expand/2` for expansion
-  until the node no longer represents a macro and `expand_all/2`
-  for recursive expansion.
+  until the node no longer represents a macro.
 
   ## Examples
 
@@ -529,7 +536,7 @@ defmodule Macro do
       end
 
   The final module name will be `MyHelpers.Module` and not
-  `My.Module`. With `Macro.expand`, such aliases are taken
+  `My.Module`. With `Macro.expand/2`, such aliases are taken
   into consideration. Local and remote macros are also
   expanded. We could rewrite our macro above to use this
   function as:
@@ -653,9 +660,11 @@ defmodule Macro do
   end
 
   @doc """
-  Receives a AST node and expands it until it no longer represents
-  a macro. Check `expand_once/2` for more information on how
-  expansion works and `expand_all/2` for recursive expansion.
+  Receives an AST node and expands it until it no longer represents
+  a macro. 
+  
+  Check `expand_once/2` for more information on how
+  expansion works.
   """
   def expand(tree, env) do
     elem(expand(tree, env, nil), 0)
@@ -700,9 +709,11 @@ defmodule Macro do
   end
 
   @doc """
-  Recurs the quoted expression checking if all sub-terms are
-  safe (i.e. they represent data structures and don't actually
-  evaluate code) and returns `:ok` unless a given term is unsafe,
+  Recursively traverses the quoted expression checking if all sub-terms are
+  safe.
+ 
+  Terms are considered safe if they represent data structures and don't actually
+  evaluate code. Returns `:ok` unless a given term is unsafe,
   which is returned as `{ :unsafe, term }`.
   """
   def safe_term(terms) do
