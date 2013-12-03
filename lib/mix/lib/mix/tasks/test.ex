@@ -104,7 +104,9 @@ defmodule Mix.Tasks.Test do
     Enum.each(test_paths, &require_test_helper(&1))
 
     opts = Dict.take(opts, [:trace, :max_cases, :color, :filter])
-    if opts[:filter], do: opts = Keyword.put(opts, :filter, parse_filters(opts[:filter]))
+    if opts[:filter] do
+      opts = Keyword.put(opts, :filter, ExUnit.parse_filters(opts[:filter]))
+    end
     ExUnit.configure(opts)
 
     test_paths   = if files == [], do: test_paths, else: files
@@ -112,22 +114,6 @@ defmodule Mix.Tasks.Test do
 
     files = Mix.Utils.extract_files(test_paths, test_pattern)
     Kernel.ParallelRequire.files files
-  end
-
-  defp parse_filters(filters) do
-    Enum.map List.wrap(filters), fn filter ->
-      [key|value] = String.split(filter, ":")
-
-      value = case value do
-        [value, ""] -> value
-        ["true"]    -> true
-        ["false"]   -> false
-        [value]     -> value
-        []          -> true
-      end
-
-      { Kernel.binary_to_atom(key), value }
-    end
   end
 
   defp require_test_helper(dir) do

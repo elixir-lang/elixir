@@ -120,4 +120,11 @@ defmodule ExUnitTest do
 
     assert ExUnit.run == 2
   end
+
+  test "parsing filters" do
+    assert ExUnit.parse_filters(["run"]) == [run: true]
+    assert ExUnit.parse_filters(["run:true", "slow:false"]) == [run: true, slow: false]
+    assert ExUnit.parse_filters(["run:true:"]) == [run: "true"]
+    assert ExUnit.parse_filters(["run:test"]) == [run: "test"]
+  end
 end
