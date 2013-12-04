@@ -147,6 +147,55 @@ defmodule StreamTest do
            |> Enum.to_list == [1, 2, 2, 3, 3, 4]
   end
 
+  test "pmap" do
+    # The sleep should prevent processes from completing before new ones can be
+    # started.
+    f = fn ms -> fn x -> :timer.sleep(ms); x * 2 end end
+   
+    f_bad_mw = fn mw -> fn -> Stream.pmap([], [max_workers: mw], f.(10)) end end
+    assert_raise ArgumentError, f_bad_mw.(nil)
+    assert_raise ArgumentError, f_bad_mw.(0)
+    assert_raise ArgumentError, f_bad_mw.(-1)
+    
+    stream = Stream.pmap([], f.(10))
+    assert is_function(stream)
+    assert Enum.to_list(stream) == [] 
+
+    stream = Stream.pmap(1..5, [max_workers: 1], f.(10))
+    assert is_function(stream)
+    assert Enum.to_list(stream) == [2,4,6,8,10]
+
+    # Less workers than elements, but more than one.
+    stream = Stream.pmap(1..5, [max_workers: 2], f.(10))
+    assert is_function(stream)
+    assert Enum.to_list(stream) == [2,4,6,8,10]
+    
+    # Default max_workers, which are more than five.
+    stream = Stream.pmap(1..5, f.(10))
+    assert is_function(stream)
+    assert Enum.to_list(stream) == [2,4,6,8,10]
+   
+    # Very high chance of only one process at a time here because the process
+    # will complete very quickly.
+    stream = Stream.pmap(1..5, &(&1*2))
+    assert is_function(stream)
+    assert Enum.to_list(stream) == [2,4,6,8,10]
+  end
+  
+  test "pmap fails if a worker fails" do
+    old_te = Process.flag(:trap_exit, true)
+    assert (catch_throw (Stream.pmap([1], fn _, _ -> throw :foo end |> Enum.to_list())))
+           == :foo
+    assert (catch_error (Stream.pmap([1], 
+                            fn _, _ -> raise ArgumentError, message: "foo" end |> Enum.to_list())))
+           == ArgumentError[message: "foo"]
+    assert (catch_exit (Stream.pmap([1], fn _, _ -> exit(:foo) end |> Enum.to_list())))
+           == :foo
+    # Ensure no leftover messages
+    assert :erlang.process_info(self(), :messages) == {:messages, []}
+    Process.flag(:trap_exit, old_te)
+  end
+
   test "reject" do
     stream = Stream.reject([1,2,3], fn(x) -> rem(x, 2) == 0 end)
     assert is_lazy(stream)
@@ -213,6 +262,58 @@ defmodule StreamTest do
 
     stream = Stream.unfold(5, fn x -> if x > 0, do: {x, x-1}, else: nil end)
     assert Enum.to_list(Stream.take(stream, 2)) == [5, 4]
+  end
+  
+  test "upmap" do
+    # The sleep should prevent processes from completing before new ones can be
+    # started.
+    f = fn ms -> fn k, x -> :timer.sleep(ms); x * 10 + k end end
+    
+    f_bad_mw = fn mw -> fn -> Stream.upmap([], [max_workers: mw], f.(10)) end end
+    assert_raise ArgumentError, f_bad_mw.(nil)
+    assert_raise ArgumentError, f_bad_mw.(0)
+    assert_raise ArgumentError, f_bad_mw.(-1)
+    
+    input = Enum.zip(1..5, 6..10) |> Stream.map(&(&1)) # Turn into Stream.Lazy
+    output = [{1, 61}, {2, 72}, {3, 83}, {4, 94}, {5, 105}] 
+    
+    stream = Stream.upmap([], f.(10))
+    assert is_function(stream)
+    assert Enum.to_list(stream) == [] 
+
+    stream = Stream.upmap(input, [max_workers: 1], f.(10))
+    assert is_function(stream)
+    assert Enum.sort(stream) == output
+
+    # Less workers than elements, but more than one.
+    stream = Stream.upmap(input, [max_workers: 2], f.(10))
+    assert is_function(stream)
+    assert Enum.sort(stream) == output
+    
+    # Default max_workers, which are more than five.
+    stream = Stream.upmap(input, f.(10))
+    assert is_function(stream)
+    assert Enum.sort(stream) == output
+   
+    # Very high chance of only one process at a time here because the process
+    # will complete very quickly.
+    stream = Stream.upmap(input, f.(10))
+    assert is_function(stream)
+    assert Enum.sort(stream) == output
+  end
+
+  test "upmap fails if a worker fails" do
+    old_te = Process.flag(:trap_exit, true)
+    assert (catch_throw (Stream.upmap([{1,1}], fn _, _ -> throw :foo end |> Enum.to_list())))
+           == :foo
+    assert (catch_error (Stream.upmap([{1,1}], 
+                            fn _, _ -> raise ArgumentError, message: "foo" end |> Enum.to_list())))
+           == ArgumentError[message: "foo"]
+    assert (catch_exit (Stream.upmap([{1,1}], fn _, _ -> exit(:foo) end |> Enum.to_list())))
+           == :foo
+    # Ensure no leftover messages
+    assert :erlang.process_info(self(), :messages) == {:messages, []}
+    Process.flag(:trap_exit, old_te)
   end
 
   test "with_index" do

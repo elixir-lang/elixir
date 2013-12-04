@@ -344,6 +344,66 @@ defmodule Stream do
     Enumerable.reduce(enum, acc, f1)
   end
 
+  @default_max_workers 16
+  
+  @doc """
+  Parallel map. Run the computation in parallel while preserving order.
+
+  Expects an enumerable of `{ key, input }` tuples and a function that accepts a
+  key and an input value and returns an output value. The result is a stream of
+  `{ key, output}` tuples.
+
+  Note that if one of the processes takes much longer than the others it will
+  eventually slow down the computation. If you need different behaviour consider
+  using `Stream.upmap` and manually ordering the results.
+
+  ## Options
+
+  `max_workers` - Maximum number of workers (default 16).
+
+  ## Example
+
+      iex> Stream.pmap(1..10, &(&1*&1)) |> Enum.to_list
+      [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+
+  """
+  def pmap(coll, opts // [], f) do
+    # The use of a reference with the sentinel element ensures that we know for
+    # sure when the collection is done.
+    sentinel = { :sentinel, make_ref() }
+    coll = concat(coll, [sentinel])
+    max_workers = Keyword.get(opts, :max_workers, @default_max_workers)
+    if not is_integer(max_workers) or max_workers < 1 do
+      raise ArgumentError, 
+              message: "Invalid or too low max_workers: #{max_workers}"
+    end
+    this = self()
+    map_with_acc(coll, [], fn
+        ^sentinel, pids ->
+          { results, _ } = collect_ordered(pids, :infinity, :infinity)
+          { results, nil } # Accumulator not needed after this
+        input, pids ->
+          first_timeout = if length(pids) >= max_workers, do: :infinity, else: 0
+          { results, pids1 } = collect_ordered(pids, first_timeout)
+          pid = spawn_link(fn -> this <- { :result, self(), f.(input) } end)
+          { results, pids1 ++ [pid] } 
+    end) |> concat()
+  end
+  
+  defp collect_ordered(pids, timeout, next_timeout // 0) do
+    do_collect_ordered([], pids, timeout, next_timeout)
+  end
+
+  defp do_collect_ordered(results, [], _, _), do: { :lists.reverse(results), [] }
+  defp do_collect_ordered(results, pids = [pid | pids_rest], timeout, next_timeout) do
+    receive do
+      { :result, ^pid, v } ->
+        do_collect_ordered([v | results], pids_rest, next_timeout, next_timeout) 
+    after
+      timeout -> { results, pids }
+    end
+  end
+
   @doc """
   Creates a stream that will reject elements according to
   the given function on enumeration.
@@ -458,6 +518,63 @@ defmodule Stream do
       { v, new_gen_acc } -> do_unfold(new_gen_acc, gen_fun, fun.(v, acc), fun)
     end
   end
+  
+  @doc """
+  Unordered parallel map. Run the computation in parallel without preserving order.
+
+  Expects an enumerable of `{ key, input }` tuples and a function that accepts a
+  key and an input value and returns an output value. The result is a stream of
+  `{ key, output}` tuples. There is explicitly no guarantee that the keys in the
+  output stream will be in the same order as the keys in the input stream.
+
+  ## Options
+
+  `max_workers` - Maximum number of workers (default 16).
+
+  ## Example
+
+      iex> Enum.zip(1..5, 5..1) |> Stream.upmap(&(&1-&2)) |> Enum.sort
+      [{1, -4}, {2, -2}, {3, 0}, {4, 2}, {5, 4}]
+
+  """
+  def upmap(coll, opts // [], f) do
+    # The use of a reference with the sentinel element ensures that we know for
+    # sure when the collection is done.
+    sentinel = { :sentinel, make_ref() }
+    coll = concat(coll, [sentinel])
+    max_workers = Keyword.get(opts, :max_workers, @default_max_workers)
+    if not is_integer(max_workers) or max_workers < 1 do
+      raise ArgumentError, 
+              message: "Invalid or too low max_workers: #{max_workers}"
+    end
+    this = self()
+    map_with_acc(coll, 0, fn
+        ^sentinel, busy ->
+          { results, _ } = collect_unordered(busy, :infinity, :infinity)
+          { results, nil } # Accumulator not needed after this
+        { key, input }, busy ->
+          first_timeout = if busy >= max_workers, do: :infinity, else: 0
+          { results, busy1 } = collect_unordered(busy, first_timeout)
+          spawn_link(fn -> this <- { :result, { key, f.(key, input) } } end)
+          { results, busy1 + 1 } 
+    end) |> concat()
+  end
+  
+  # Order doesn't matter, which is nice and efficient.
+  defp collect_unordered(busy, timeout, next_timeout // 0) do
+    do_collect_unordered([], busy, timeout, next_timeout)
+  end
+
+  defp do_collect_unordered(results, 0, _, _), do: { results, 0 }
+  defp do_collect_unordered(results, busy, timeout, next_timeout) do
+    receive do
+      { :result, kv } ->
+        do_collect_unordered([kv | results], busy - 1, next_timeout, next_timeout) 
+    after
+      timeout -> { results, busy }
+    end
+  end
+
 
   @doc """
   Creates a stream where each item in the enumerable will
@@ -497,6 +614,18 @@ defmodule Stream do
         lazy.funs([fun|funs]).accs([acc|accs])
       _ ->
         Lazy[enum: enum, funs: [fun], accs: [acc]]
+    end
+  end
+  
+  # José is not sure about the public API of the _with_acc kind of functions,
+  # leave it as private for now.
+  defp map_with_acc(coll, acc, f) do
+    lazy coll, acc, fn f1 ->
+      fn entry, [h,acc|t] ->
+        { entry_, acc_ } = f.(entry, acc)
+        [h_|t_] = f1.(entry_, [h|t])
+        [h_,acc_|t_]
+      end
     end
   end
 end
