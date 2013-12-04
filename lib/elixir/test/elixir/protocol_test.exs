@@ -159,6 +159,7 @@ end
 
 ## Those protocols needs to be the same as above.
 path = Path.expand("../ebin", __DIR__)
+File.mkdir_p!(path)
 
 compile = fn { :module, module, binary, _ } ->
   :code.purge(module)
