@@ -37,13 +37,13 @@ defprotocol Enumerable do
   def reduce(collection, acc, fun)
 
   @doc """
-  The function is used to check if a value exists within the collection.
+  This function is used to check if a value exists within the collection.
   Membership should be tested with the match (`===`) operator.
   """
   def member?(collection, value)
 
   @doc """
-  The function is used to retrieve the collection's size.
+  This function is used to retrieve the collection's size.
   """
   def count(collection)
 end
@@ -67,12 +67,12 @@ defmodule Enum do
 
   Note the functions in the `Enum` module are eager: they always start
   the enumeration of the given collection. The `Stream` module allows
-  lazy enumeration of collections and also provides infinite streams.
+  lazy enumeration of collections and provides infinite streams.
 
   Since the majority of the functions in `Enum` enumerate the whole
   collection and return a list as result, infinite streams need to
   be carefully used with such functions, as they can potentially run
-  forever, for example:
+  forever. For example:
 
       Enum.each Stream.cycle([1,2,3]), &IO.puts(&1)
 
@@ -88,7 +88,7 @@ defmodule Enum do
   @doc """
   Checks if `value` exists within the `collection`.
 
-  Membership is tested with the match (`===`) operator although
+  Membership is tested with the match (`===`) operator, although
   enumerables like ranges may include floats inside the given
   range.
 
@@ -256,7 +256,7 @@ defmodule Enum do
   @doc """
   Concatenates the enumerable on the right with the enumerable on the left.
 
-  This function produces the same result the `++` operator for lists.
+  This function produces the same result as the `++` operator for lists.
 
   ## Examples
 
@@ -285,7 +285,7 @@ defmodule Enum do
   @doc """
   Drops the first `count` items from `collection`.
 
-  If a negative value `count` is given the last `count`
+  If a negative value `count` is given, the last `count`
   values will be dropped. The collection is enumerated
   once to retrieve the proper index and the remaining
   calculation is performed from the end.
@@ -906,7 +906,7 @@ defmodule Enum do
   Notice you need to explicitly call `:random.seed/1` and
   set a seed value for the random algorithm. Otherwise, the
   default seed will be set which will always return the same
-  result. For example, one could the following to set a seed
+  result. For example, one could do the following to set a seed
   dynamically:
 
       :random.seed(:erlang.now)
@@ -973,7 +973,7 @@ defmodule Enum do
   collection.
 
   Be aware that a negative `count` implies the collection
-  will be enumerated twice. Once to calculate the position and
+  will be enumerated twice: once to calculate the position, and
   a second time to do the actual splitting.
 
   ## Examples
@@ -1039,9 +1039,9 @@ defmodule Enum do
   @doc """
   Takes the first `count` items from the collection.
 
-  If a negative value `count` is given the last `count`
+  If a negative value `count` is given, the last `count`
   values will be taken. The collection is enumerated
-  once to retrieve the proper index and the remaining
+  once to retrieve the proper index. The remaining
   calculation is performed from the end.
 
   ## Examples
@@ -1155,7 +1155,7 @@ defmodule Enum do
   end
 
   @doc """
-  Iterates the enumerable removing all duplicated items.
+  Iterates the enumerable, removing all duplicated items.
 
   ## Examples
 
@@ -1330,7 +1330,7 @@ defmodule Enum do
 
   @doc """
   Returns the collection with each element wrapped in a tuple
-  along side its index.
+  alongside its index.
 
   ## Examples
 
@@ -1354,7 +1354,7 @@ defmodule Enum do
   @doc """
   Returns a collection of lists containing `n` items each, where
   each new chunk starts `step` elements into the collection.
-  `step` is optional and if not passed, defaults to `n`, i.e.
+  `step` is optional and, if not passed, defaults to `n`, i.e.
   chunks do not overlap. If the final chunk does not have `n`
   elements to fill the chunk, elements are taken as necessary
   from `pad` if it was passed. If `pad` is passed and does not
@@ -1425,8 +1425,8 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a subset list of the given collection. Dropping elements
-  until element position `start`, then taking `count` elements.
+  Returns a subset list of the given collection. Drops elements
+  until element position `start`, then takes `count` elements.
 
   ## Examples
 
@@ -1470,8 +1470,8 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a subset list of the given collection. Dropping elements
-  until element position `range.first`, then taking elements until element
+  Returns a subset list of the given collection. Drops elements
+  until element position `range.first`, then takes elements until element
   position `range.last` (inclusive).
 
   Positions are calculated by adding the number of items in the collection to
