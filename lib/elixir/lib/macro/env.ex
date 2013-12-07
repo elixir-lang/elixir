@@ -28,6 +28,7 @@ defmodule Macro.Env do
   @type file :: binary
   @type line :: non_neg_integer
   @type aliases :: [{ module, module }]
+  @type macro_aliases :: [{ module, { integer, module } }]
   @type context :: :match | :guard | nil
   @type requires :: [module]
   @type functions :: [{ module, [name_arity] }]
@@ -35,16 +36,17 @@ defmodule Macro.Env do
   @type context_modules :: [module]
   @type vars :: [{ atom, atom | non_neg_integer }]
   @type lexical_tracker :: pid
+  @type counter :: non_neg_integer
 
   fields = [:module, :file, :line, :function, :context, :requires, :aliases, :functions,
-            :macros, :macro_aliases, :macro_functions, :macro_macros, :context_modules,
-            :vars, :lexical_tracker]
+            :macros, :macro_aliases, :macro_counter,
+            :context_modules, :vars, :lexical_tracker]
 
   types  = quote do: [module: module, file: file, line: line,
     function: name_arity, context: context, requires: requires, aliases: aliases,
     functions: functions, macros: macros,  macro_aliases: aliases,
-    macro_functions: functions, macro_macros: macros,
-    context_modules: context_modules, vars: vars, lexical_tracker: lexical_tracker]
+    macro_counter: counter, context_modules: context_modules, vars: vars,
+    lexical_tracker: lexical_tracker]
 
   Record.deffunctions(fields, __MODULE__)
   Record.deftypes(fields, types, __MODULE__)

@@ -2787,7 +2787,7 @@ defmodule Kernel do
 
           # Generate the alias for this module definition
           { new, old } = module_nesting(env_module(env), full)
-          meta = [defined: true] ++ alias_meta(alias)
+          meta = [defined: true, context: true] ++ alias_meta(alias)
 
           { full, { :alias, meta, [old, [as: new, warn: false]] } }
         false ->
@@ -3775,7 +3775,7 @@ defmodule Kernel do
   defp env_module(env),   do: :erlang.element(2, env)
   defp env_function(env), do: :erlang.element(5, env)
   defp env_context(env),  do: :erlang.element(6, env)
-  defp env_vars(env),     do: :erlang.element(15, env)
+  defp env_vars(env),     do: :erlang.element(14, env)
 
   defp expand_compact([{ :compact, false }|t]), do: expand_compact(t)
   defp expand_compact([{ :compact, true }|t]),  do: [:compact|expand_compact(t)]

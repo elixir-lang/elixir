@@ -191,19 +191,19 @@ bracket_at_expr -> bracket_at_expr list :
 
 base_expr -> atom : ?exprs('$1').
 base_expr -> number : ?exprs('$1').
-base_expr -> signed_number : { element(4, '$1'), [{line,?line('$1')}], ?exprs('$1') }.
+base_expr -> signed_number : { element(4, '$1'), meta('$1'), ?exprs('$1') }.
 base_expr -> list : element(1, '$1').
 base_expr -> tuple : '$1'.
 base_expr -> 'true' : ?id('$1').
 base_expr -> 'false' : ?id('$1').
 base_expr -> 'nil' : ?id('$1').
-base_expr -> aliases : { '__aliases__', [{line,?line('$1')}], ?exprs('$1') }.
+base_expr -> aliases : { '__aliases__', meta('$1', 0), ?exprs('$1') }.
 base_expr -> bin_string  : build_bin_string('$1').
 base_expr -> list_string : build_list_string('$1').
 base_expr -> atom_string : build_atom_string('$1').
 base_expr -> bit_string : '$1'.
 base_expr -> sigil : build_sigil('$1').
-base_expr -> '&' number : { '&', [{line,?line('$1')}], [?exprs('$2')] }.
+base_expr -> '&' number : { '&', meta('$1'), [?exprs('$2')] }.
 
 %% Blocks
 
@@ -237,7 +237,7 @@ stab_expr -> call_args_no_parens_all stab_op_eol stab_maybe_expr :
 stab_expr -> stab_parens_many stab_op_eol stab_maybe_expr :
                build_op('$2', unwrap_splice('$1'), '$3').
 stab_expr -> stab_parens_many when_op expr stab_op_eol stab_maybe_expr :
-              build_op('$4', [{ 'when', [{line,?line('$2')}], unwrap_splice('$1') ++ ['$3'] }], '$5').
+              build_op('$4', [{ 'when', meta('$2'), unwrap_splice('$1') ++ ['$3'] }], '$5').
 
 stab_maybe_expr -> 'expr' : '$1'.
 stab_maybe_expr -> '$empty' : nil.
@@ -363,7 +363,7 @@ dot_paren_identifier -> paren_identifier : '$1'.
 dot_paren_identifier -> matched_expr dot_op paren_identifier : build_dot('$2', '$1', '$3').
 
 parens_call -> dot_paren_identifier : '$1'.
-parens_call -> matched_expr dot_call_op : { '.', [{line,?line('$2')}], ['$1'] }. % Fun/local calls
+parens_call -> matched_expr dot_call_op : { '.', meta('$2'), ['$1'] }. % Fun/local calls
 
 % Function calls with no parentheses
 
@@ -455,14 +455,15 @@ tuple -> open_curly container_expr ',' container_args close_curly :  build_tuple
 
 % Bitstrings
 
-bit_string -> open_bit '>>' : { '<<>>', [{line,?line('$1')}], [] }.
-bit_string -> open_bit container_args close_bit : { '<<>>', [{line,?line('$1')}], '$2' }.
+bit_string -> open_bit '>>' : { '<<>>', meta('$1'), [] }.
+bit_string -> open_bit container_args close_bit : { '<<>>', meta('$1'), '$2' }.
 
 Erlang code.
 
 -define(id(Node), element(1, Node)).
 -define(line(Node), element(2, Node)).
 -define(exprs(Node), element(3, Node)).
+-define(lexical(Kind), Kind == import; Kind == alias; Kind == '__aliases__').
 
 -define(rearrange_uop(Op), Op == 'not' orelse Op == '!').
 -define(rearrange_bop(Op), Op == 'in' orelse Op == 'inlist' orelse Op == 'inbits').
@@ -471,28 +472,32 @@ Erlang code.
 %% compilation of the generated .erl file by the HiPE compiler
 -compile([{hipe,[{regalloc,linear_scan}]}]).
 
+meta(Line, Counter) -> [{counter,Counter}|meta(Line)].
+meta(Line) when is_integer(Line) -> [{line,Line}];
+meta(Node) -> meta(?line(Node)).
+
 %% Operators
 
 build_op({ _Kind, Line, '/' }, { '&', _, [{ Kind, _, Atom } = Left] }, Right) when is_number(Right), is_atom(Atom), is_atom(Kind) ->
-  { '&', [{line,Line}], [{ '/', [{line,Line}], [Left, Right] }] };
+  { '&', meta(Line), [{ '/', meta(Line), [Left, Right] }] };
 
 build_op({ _Kind, Line, '/' }, { '&', _, [{ { '.', _, [_, _] }, _, [] } = Left] }, Right) when is_number(Right) ->
-  { '&', [{line,Line}], [{ '/', [{line,Line}], [Left, Right] }] };
+  { '&', meta(Line), [{ '/', meta(Line), [Left, Right] }] };
 
 build_op({ _Kind, Line, BOp }, { UOp, _, [Left] }, Right) when ?rearrange_bop(BOp), ?rearrange_uop(UOp) ->
-  { UOp, [{line,Line}], [{ BOp, [{line,Line}], [Left, Right] }] };
+  { UOp, meta(Line), [{ BOp, meta(Line), [Left, Right] }] };
 
 build_op({ _Kind, Line, Op }, Left, Right) ->
-  { Op, [{line,Line}], [Left, Right] }.
+  { Op, meta(Line), [Left, Right] }.
 
 build_unary_op({ _Kind, Line, Op }, Expr) ->
-  { Op, [{line,Line}], [Expr] }.
+  { Op, meta(Line), [Expr] }.
 
 build_tuple(_Marker, [Left, Right]) ->
   { Left, Right };
 
 build_tuple(Marker, Args) ->
-  { '{}', [{line,?line(Marker)}], Args }.
+  { '{}', meta(Marker), Args }.
 
 %% Blocks
 
@@ -505,13 +510,13 @@ build_block(Exprs)                                      -> { '__block__', [], Ex
 %% Dots
 
 build_dot_alias(Dot, { '__aliases__', _, Left }, { 'aliases', _, Right }) ->
-  { '__aliases__', [{line,?line(Dot)}], Left ++ Right };
+  { '__aliases__', meta(Dot), Left ++ Right };
 
 build_dot_alias(Dot, Other, { 'aliases', _, Right }) ->
-  { '__aliases__', [{line,?line(Dot)}], [Other|Right] }.
+  { '__aliases__', meta(Dot), [Other|Right] }.
 
 build_dot(Dot, Left, Right) ->
-  { '.', [{line,?line(Dot)}], [Left, extract_identifier(Right)] }.
+  { '.', meta(Dot), [Left, extract_identifier(Right)] }.
 
 %% Identifiers
 
@@ -527,13 +532,16 @@ build_identifier({ '.', Meta, _ } = Dot, Args) ->
   { Dot, Meta, FArgs };
 
 build_identifier({ Keyword, Line }, Args) when Keyword == fn ->
-  { fn, [{line,Line}], Args };
+  { fn, meta(Line), Args };
 
 build_identifier({ op_identifier, Line, Identifier }, [Arg]) ->
-  { Identifier, [{ambiguous_op,nil},{line,Line}], [Arg] };
+  { Identifier, [{ambiguous_op,nil}|meta(Line)], [Arg] };
+
+build_identifier({ _, Line, Identifier }, Args) when ?lexical(Identifier) ->
+  { Identifier, meta(Line, 0), Args };
 
 build_identifier({ _, Line, Identifier }, Args) ->
-  { Identifier, [{line,Line}], Args }.
+  { Identifier, meta(Line), Args }.
 
 extract_identifier({ Kind, _, Identifier }) when
     Kind == identifier; Kind == bracket_identifier; Kind == paren_identifier;
@@ -545,35 +553,35 @@ extract_identifier(Other) -> Other.
 %% Fn
 
 build_fn(Op, Stab) ->
-  { fn, [{line,?line(Op)}], [Stab] }.
+  { fn, meta(Op), [Stab] }.
 
 %% Access
 
 build_access(Expr, { List, Line }) ->
-  Meta = [{line,Line}],
+  Meta = meta(Line),
   { { '.', Meta, ['Elixir.Kernel', access] }, Meta, [Expr, List] }.
 
 %% Interpolation aware
 
 build_sigil({ sigil, Line, Sigil, Parts, Modifiers }) ->
-  Meta = [{line,Line}],
+  Meta = meta(Line),
   { list_to_atom("sigil_" ++ [Sigil]), Meta, [ { '<<>>', Meta, string_parts(Parts) }, Modifiers ] }.
 
 build_bin_string({ bin_string, _Line, [H] }) when is_binary(H) ->
   H;
 build_bin_string({ bin_string, Line, Args }) ->
-  { '<<>>', [{line,Line}], string_parts(Args) }.
+  { '<<>>', meta(Line), string_parts(Args) }.
 
 build_list_string({ list_string, _Line, [H] }) when is_binary(H) ->
   elixir_utils:characters_to_list(H);
 build_list_string({ list_string, Line, Args }) ->
-  Meta = [{line,Line}],
+  Meta = meta(Line),
   { { '.', Meta, ['Elixir.String', 'to_char_list!'] }, Meta, [{ '<<>>', Meta, string_parts(Args) }] }.
 
 build_atom_string({ atom_string, _Line, Safe, [H] }) when is_binary(H) ->
   Op = binary_to_atom_op(Safe), erlang:Op(H, utf8);
 build_atom_string({ atom_string, Line, Safe, Args }) ->
-  Meta = [{line,Line}],
+  Meta = meta(Line),
   { { '.', Meta, [erlang, binary_to_atom_op(Safe)] }, Meta, [{ '<<>>', Meta, string_parts(Args) }, utf8] }.
 
 binary_to_atom_op(true)  -> binary_to_existing_atom;
@@ -585,14 +593,14 @@ string_part(Binary) when is_binary(Binary) ->
   Binary;
 string_part({ Line, Tokens }) ->
   Form = string_tokens_parse(Line, Tokens),
-  Meta = [{line,Line}],
+  Meta = meta(Line),
   { '::', Meta, [{ { '.', Meta, ['Elixir.Kernel', to_string] }, Meta, [Form]}, { binary, Meta, nil }]}.
 
 string_tokens_parse(Line, Tokens) ->
   case parse(Tokens) of
     { ok, [] } -> nil;
     { ok, [Forms] } when not is_list(Forms) -> Forms;
-    { ok, Forms } -> { '__block__', [{line, Line}], Forms };
+    { ok, Forms } -> { '__block__', meta(Line), Forms };
     { error, _ } = Error -> throw(Error)
   end.
 

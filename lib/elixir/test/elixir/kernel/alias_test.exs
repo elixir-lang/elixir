@@ -108,6 +108,7 @@ defmodule Macro.AliasTest.Definer do
   defmacro __before_compile__(_env) do
     quote do
       defrecord Record, [foo: :bar]
+      defrecord Another, baz: Record.new
     end
   end
 end

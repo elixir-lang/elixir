@@ -304,10 +304,12 @@ defmodule Kernel.QuoteTest.AliasHygieneTest do
   alias Dict, as: SuperDict
 
   test :annotate_aliases do
-    assert quote(do: Foo.Bar) == { :__aliases__, [alias: false], [:Foo, :Bar] }
-    assert quote(do: Dict.Bar) == { :__aliases__, [alias: false], [:Dict, :Bar] }
-    assert quote(do: SuperDict.Bar) == { :__aliases__, [alias: Dict.Bar], [:SuperDict, :Bar] }
-    assert quote(do: alias!(SuperDict.Bar)) == { :__aliases__, [], [:SuperDict, :Bar] }
+    assert { :__aliases__, [alias: false], [:Foo, :Bar] } =
+           quote(do: Foo.Bar)
+    assert { :__aliases__, [alias: false], [:Dict, :Bar] } =
+           quote(do: Dict.Bar)
+    assert { :__aliases__, [alias: Dict.Bar], [:SuperDict, :Bar] } =
+           quote(do: SuperDict.Bar)
   end
 
   test :expand_aliases do
@@ -388,18 +390,11 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
     quote do
       import Kernel, except: [size: 1]
       import Dict, only: [size: 1]
-      size([a: 1, b: 2])
-    end
-  end
-
-  defmacrop with_nested_size do
-    quote do
-      with_size
+      size("foo")
     end
   end
 
   test :explicitly_overriden_imports do
-    assert with_size == 2
-    assert with_nested_size == 2
+    assert with_size == 3
   end
 end

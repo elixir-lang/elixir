@@ -218,28 +218,14 @@ translate_expansion(Meta, Receiver, Tree, S) ->
   New  = S#elixir_scope.macro_counter + 1,
 
   try
-    { TE, TS } = elixir_translator:translate_each(
+    elixir_translator:translate_each(
       elixir_quote:linify_with_context_counter(Line, { Receiver, New }, Tree),
       S#elixir_scope{macro_counter=New}
-    ),
-    { TE,
-      TS#elixir_scope{
-        macro_macros=S#elixir_scope.macro_macros,
-        macro_aliases=merge_aliases(TS, S),
-        macro_functions=S#elixir_scope.macro_functions
-      } }
+    )
   catch
     Kind:Reason ->
       erlang:raise(Kind, Reason, prune_stacktrace(mfa(Line, S), erlang:get_stacktrace(), nil))
   end.
-
-%% We only keep aliases from module definitions.
-%% All others are discarded straight-away.
-merge_aliases(#elixir_scope{context_modules=Context, macro_aliases=New},
-              #elixir_scope{macro_aliases=Old}) ->
-  ContextAliases = [{ N, O } || { N, O } <- New, lists:member(O, Context)],
-  lists:foldl(fun({ N, O }, Acc) -> orddict:store(N, O, Acc) end,
-              ContextAliases, Old).
 
 mfa(Line, #elixir_scope{module=nil} = S) ->
   { elixir_compiler, '__FILE__', 2, location(Line, S) };
@@ -262,7 +248,7 @@ find_dispatch(Meta, Tuple, S) ->
   find_dispatch(Meta, Tuple, [], S).
 
 find_dispatch(Meta, Tuple, Extra, S) ->
-  case is_import(Meta, Tuple, S) of
+  case is_import(Meta) of
     { import, _ } = Import ->
       Import;
     false ->
@@ -287,27 +273,16 @@ find_dispatch(Meta, Tuple, Extra, S) ->
 find_dispatch(Tuple, List) ->
   [Receiver || { Receiver, Set } <- List, is_element(Tuple, Set)].
 
-is_import(Meta, Tuple, S) ->
+is_import(Meta) ->
   case lists:keyfind(import, 1, Meta) of
     { import, _ } = Import ->
       case lists:keyfind(context, 1, Meta) of
-        { context, Context } ->
-          not_an_import(Tuple, Context, S#elixir_scope.macro_functions)
-            andalso not_an_import(Tuple, Context, S#elixir_scope.macro_macros)
-            andalso Import;
+        { context, _ } -> Import;
         false ->
           false
       end;
     false ->
       false
-  end.
-
-not_an_import(Tuple, Context, Dict) ->
-  case orddict:find(Context, Dict) of
-    { ok, Pairs } ->
-      not lists:any(fun({ _, List }) -> lists:member(Tuple, List) end, Pairs);
-    error ->
-      true
   end.
 
 %% We've reached the invoked macro, skip it with the rest

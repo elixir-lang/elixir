@@ -752,9 +752,8 @@ defmodule Kernel.SpecialForms do
       alias SomethingElse, as: D
       Hygiene.no_interference #=> #HashDict<[]>
 
-  In some particular cases you may want to access an alias
-  or a module defined in the caller. In such scenarios, you
-  can access it by using the `alias!` macro inside the quote:
+  In some cases, you want to access an alias or a module defined
+  in the caller. For such, you can use the `alias!` macro:
 
       defmodule Hygiene do
         # This will expand to Elixir.Nested.hello

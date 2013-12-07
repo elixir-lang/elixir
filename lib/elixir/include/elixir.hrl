@@ -30,9 +30,7 @@
   aliases,                 %% an orddict with aliases by new -> old names
   file,                    %% the current scope filename
   requires,                %% a set with modules required
-  macro_macros=[],         %% a list with macros imported from module inside a macro
   macros,                  %% a list with macros imported from module
-  macro_functions=[],      %% a list with functions imported from module inside a macro
   functions                %% a list with functions imported from module
 }).
 
@@ -47,8 +45,7 @@
   functions,
   macros,
   macro_aliases=[],
-  macro_functions=[],
-  macro_macros=[],
+  macro_counter=0,
   context_modules=[],
   vars=[],
   lexical_tracker=nil

@@ -23,9 +23,9 @@ import(Meta, Ref, Opts, S) ->
   SI.
 
 import_functions(Meta, Ref, Opts, S) ->
-  { Functions, Temp } = calculate(Meta, Ref, Opts, S#elixir_scope.functions,
-    S#elixir_scope.macro_functions, fun() -> get_functions(Ref) end, S),
-  S#elixir_scope{functions=Functions, macro_functions=Temp}.
+  Functions = calculate(Meta, Ref, Opts, S#elixir_scope.functions,
+                        fun() -> get_functions(Ref) end, S),
+  S#elixir_scope{functions=Functions}.
 
 import_macros(Force, Meta, Ref, Opts, S) ->
   Existing = fun() ->
@@ -34,9 +34,8 @@ import_macros(Force, Meta, Ref, Opts, S) ->
       false -> get_optional_macros(Ref)
     end
   end,
-  { Macros, Temp } = calculate(Meta, Ref, Opts, S#elixir_scope.macros,
-    S#elixir_scope.macro_macros, Existing, S),
-  S#elixir_scope{macros=Macros, macro_macros=Temp}.
+  Macros = calculate(Meta, Ref, Opts, S#elixir_scope.macros, Existing, S),
+  S#elixir_scope{macros=Macros}.
 
 record_warn(Meta, Ref, Opts, S) ->
   Warn =
@@ -49,7 +48,7 @@ record_warn(Meta, Ref, Opts, S) ->
 
 %% Calculates the imports based on only and except
 
-calculate(Meta, Key, Opts, Old, Temp, Existing, S) ->
+calculate(Meta, Key, Opts, Old, Existing, S) ->
   New = case keyfind(only, Opts) of
     { only, Only } when is_list(Only) ->
       case Only -- get_exports(Key) of
@@ -77,24 +76,10 @@ calculate(Meta, Key, Opts, Old, Temp, Existing, S) ->
 
   case Final of
     [] ->
-      { keydelete(Key, Old),
-        if_quoted(Meta, Temp, fun(Value) -> keydelete(Key, Value) end) };
+      keydelete(Key, Old);
     _  ->
       ensure_no_special_form_conflict(Meta, S#elixir_scope.file, Key, Final),
-      { [{ Key, Final }|keydelete(Key, Old)],
-        if_quoted(Meta, Temp, fun(Value) -> [{ Key, Final }|keydelete(Key, Value)] end) }
-  end.
-
-if_quoted(Meta, Temp, Callback) ->
-  case lists:keyfind(context, 1, Meta) of
-    { context, Context } ->
-      Current = case orddict:find(Context, Temp) of
-        { ok, Value } -> Value;
-        error -> []
-      end,
-      orddict:store(Context, Callback(Current), Temp);
-    _ ->
-      Temp
+      [{ Key, Final }|keydelete(Key, Old)]
   end.
 
 %% Retrieve functions and macros from modules

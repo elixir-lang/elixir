@@ -4,7 +4,8 @@
 
 -include("elixir.hrl").
 -define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop).
--compile({ inline, [keyfind/2, keystore/3, keydelete/2, keyreplace/3] }).
+-define(lexical(Kind), Kind == import; Kind == alias; Kind == '__aliases__').
+-compile({ inline, [keyfind/2, keystore/3, keydelete/2, keyreplace/3, keynew/3] }).
 
 %% Apply the line from site call on quoted contents.
 %% Receives a Key to look for the default line as argument.
@@ -18,12 +19,12 @@ linify(Line, Key, Exprs) when is_integer(Line) ->
 linify_with_context_counter(Line, Var, Exprs) when is_integer(Line) ->
   do_linify(Line, line, Var, Exprs).
 
-do_linify(Line, Key, { Receiver, Counter } = Var, { Left, Meta, Receiver }) when is_atom(Left), is_list(Meta) ->
-  NewMeta = case keyfind(counter, Meta) of
-    { counter, _ } -> Meta;
-    _ -> keystore(counter, Meta, Counter)
-  end,
-  do_tuple_linify(Line, Key, Var, NewMeta, Left, Receiver);
+do_linify(Line, Key, { Receiver, Counter } = Var, { Left, Meta, Receiver })
+    when is_atom(Left), is_list(Meta) ->
+  do_tuple_linify(Line, Key, Var, keynew(counter, Meta, Counter), Left, Receiver);
+
+do_linify(Line, Key, { _, Counter } = Var, { Lexical, [_|_] = Meta, [_|_] = Args }) when ?lexical(Lexical) ->
+  do_tuple_linify(Line, Key, Var, keynew(counter, Meta, Counter), Lexical, Args);
 
 do_linify(Line, Key, Var, { Left, Meta, Right }) when is_list(Meta) ->
   do_tuple_linify(Line, Key, Var, Meta, Left, Right);
@@ -114,19 +115,6 @@ argument_error(Message) ->
 
 %% Annotates the AST with context and other info
 
-annotate({ defmodule, Meta, [{ '__aliases__', AliasMeta, Atoms } = H|T] }, Context, _File) ->
-  %% Only store the context if we actually have a full alias as
-  %% argument, otherwise the expression is being automatically
-  %% generated and we don't want the alias to count.
-  NewH =
-    case lists:all(fun is_atom/1, Atoms) of
-      true  ->
-        { '__aliases__', keystore(context, AliasMeta, Context), Atoms };
-      false ->
-        H
-    end,
-  { defmodule, Meta, [NewH|T] };
-
 annotate({ Def, Meta, [{ H, M, A }|T] }, Context, File) when ?defs(Def) ->
   %% Store the context information in the first element of the
   %% definition tuple so we can access it later on.
@@ -136,13 +124,9 @@ annotate({ { '.', _, [_, Def] } = Target, Meta, [{ H, M, A }|T] }, Context, File
   MM = keystore(context, keystore(file, M, File), Context),
   { Target, Meta, [{ H, MM, A }|T] };
 
-annotate({ Def, Meta, [_|_] = Args }, Context, _File) when Def == alias; Def == import ->
-  NewMeta = keystore(context, Meta, Context),
-  { Def, NewMeta, Args };
-annotate({ { '.', _, [_, Def] } = Target, Meta, Args }, Context, _File) when Def == alias; Def == import ->
-  NewMeta = keystore(context, Meta, Context),
-  { Target, NewMeta, Args };
-
+annotate({ Lexical, Meta, [_|_] = Args }, Context, _File) when Lexical == import; Lexical == alias ->
+  NewMeta = keystore(context, keydelete(counter, Meta), Context),
+  { Lexical, NewMeta, Args };
 annotate(Tree, _Context, _File) -> Tree.
 
 %% Escapes the given expression. It is similar to quote, but
@@ -188,17 +172,13 @@ do_quote({ unquote, _Meta, [Expr] }, #elixir_quote{unquote=true} = Q, _) ->
 
 %% Aliases
 
-do_quote({ 'alias!', _Meta, [Expr] }, #elixir_quote{aliases_hygiene=true} = Q, S) ->
-  { TExpr, TQ } = do_quote(Expr, Q#elixir_quote{aliases_hygiene=false}, S),
-  { TExpr, TQ#elixir_quote{aliases_hygiene=true} };
-
 do_quote({ '__aliases__', Meta, [H|T] } = Alias, #elixir_quote{aliases_hygiene=true} = Q, S) when is_atom(H) and (H /= 'Elixir') ->
   Annotation = case elixir_aliases:expand(Alias, S#elixir_scope.aliases,
                       S#elixir_scope.macro_aliases, S#elixir_scope.lexical_tracker) of
     Atom when is_atom(Atom) -> Atom;
     Aliases when is_list(Aliases) -> false
   end,
-  AliasMeta = keystore(alias, Meta, Annotation),
+  AliasMeta = keystore(alias, keydelete(counter, Meta), Annotation),
   do_quote_tuple({ '__aliases__', AliasMeta, [H|T] }, Q, S);
 
 %% Vars
@@ -331,6 +311,11 @@ keyreplace(Key, Meta, { Key, _V }) ->
   Meta;
 keyreplace(Key, Meta, Tuple) ->
   lists:keyreplace(Key, 1, Meta, Tuple).
+keynew(Key, Meta, Value) ->
+  case keyfind(Key, Meta) of
+    { Key, _ } -> Meta;
+    _ -> keystore(Key, Meta, Value)
+  end.
 
 %% Quote splicing
 

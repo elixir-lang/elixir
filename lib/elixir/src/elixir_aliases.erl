@@ -8,11 +8,18 @@ store(_Meta, New, New, _TKV, Aliases, MacroAliases, _Lexical) ->
   { Aliases, MacroAliases };
 store(Meta, New, Old, TKV, Aliases, MacroAliases, Lexical) ->
   record_warn(Meta, New, TKV, Lexical),
-  NewAliases = orddict:store(New, Old, Aliases),
+  { store_alias(New, Old, Aliases),
+    store_macro_alias(Meta, New, Old, MacroAliases) }.
 
-  case lists:keymember(context, 1, Meta) of
-    true  -> { NewAliases, orddict:store(New, Old, MacroAliases) };
-    false -> { NewAliases, MacroAliases }
+store_alias(New, Old, Aliases) ->
+  lists:keystore(New, 1, Aliases, { New, Old }).
+store_macro_alias(Meta, New, Old, Aliases) ->
+  case lists:keymember(context, 1, Meta) andalso
+       lists:keyfind(counter, 1, Meta) of
+    { counter, Counter } when is_integer(Counter) ->
+      lists:keystore(New, 1, Aliases, { New, { Counter, Old } });
+    _ ->
+      Aliases
   end.
 
 record_warn(Meta, Ref, Opts, Lexical) ->
@@ -27,47 +34,37 @@ record_warn(Meta, Ref, Opts, Lexical) ->
 %% Expand an alias. It returns an atom (meaning that there
 %% was an expansion) or a list of atoms.
 
+expand({ '__aliases__', _Meta, ['Elixir'|_] = List }, _Aliases, _MacroAliases, _LexicalTracker) ->
+  concat(List);
+
 expand({ '__aliases__', Meta, _ } = Alias, Aliases, MacroAliases, LexicalTracker) ->
   case lists:keyfind(alias, 1, Meta) of
     { alias, false } ->
       expand(Alias, MacroAliases, LexicalTracker);
     { alias, Atom } when is_atom(Atom) ->
-      case expand(Alias, MacroAliases, LexicalTracker) of
-        OtherAtom when is_atom(OtherAtom) -> OtherAtom;
-        OtherAliases when is_list(OtherAliases) -> Atom
-      end;
+      Atom;
     false ->
       expand(Alias, Aliases, LexicalTracker)
   end.
 
-expand({ '__aliases__', _Meta, [H] }, Aliases, LexicalTracker) when H /= 'Elixir' ->
-  case expand_one(H, Aliases, LexicalTracker) of
-    false -> [H];
-    Atom  -> Atom
-  end;
-
-expand({ '__aliases__', _Meta, [H|T] }, Aliases, LexicalTracker) when is_atom(H) ->
-  case H of
-    'Elixir' ->
-      concat(T);
-    _ ->
-      case expand_one(H, Aliases, LexicalTracker) of
-        false -> [H|T];
-        Atom  -> concat([Atom|T])
+expand({ '__aliases__', Meta, [H|T] }, Aliases, LexicalTracker) when is_atom(H) ->
+  Lookup  = list_to_atom("Elixir." ++ atom_to_list(H)),
+  Counter = case lists:keyfind(counter, 1, Meta) of
+    { counter, C } -> C;
+    _ -> nil
+  end,
+  case lookup(Lookup, Aliases, Counter) of
+    Lookup -> [H|T];
+    Atom ->
+      elixir_lexical:record_alias(Lookup, LexicalTracker),
+      case T of
+        [] -> Atom;
+        _  -> concat([Atom|T])
       end
   end;
 
 expand({ '__aliases__', _Meta, List }, _Aliases, _LexicalTracker) ->
   List.
-
-expand_one(H, Aliases, LexicalTracker) ->
-  Lookup = list_to_atom("Elixir." ++ atom_to_list(H)),
-  case lookup(Lookup, Aliases) of
-    Lookup -> false;
-    Else ->
-      elixir_lexical:record_alias(Lookup, LexicalTracker),
-      Else
-  end.
 
 %% Ensure a module is loaded before its usage.
 
@@ -129,9 +126,10 @@ to_partial(Arg) when is_binary(Arg)   -> Arg.
 
 %% Lookup an alias in the current scope.
 
-lookup(Else, Dict) ->
-  case orddict:find(Else, Dict) of
-    { ok, Value } when Value /= Else -> lookup(Value, Dict);
+lookup(Else, Dict, Counter) ->
+  case lists:keyfind(Else, 1, Dict) of
+    { Else, { Counter, Value } } -> lookup(Value, Dict, Counter);
+    { Else, Value } when is_atom(Value) -> lookup(Value, Dict, Counter);
     _ -> Else
   end.
 

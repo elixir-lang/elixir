@@ -98,12 +98,16 @@ defmodule Macro do
 
       iex> Macro.decompose_call(quote do: foo)
       { :foo, [] }
+
       iex> Macro.decompose_call(quote do: foo())
       { :foo, [] }
+
       iex> Macro.decompose_call(quote do: foo(1, 2, 3))
       { :foo, [1, 2, 3] }
-      iex> Macro.decompose_call(quote do: M.N.foo(1, 2, 3))
-      { { :__aliases__, [alias: false], [:M, :N] }, :foo, [1, 2, 3] }
+
+      iex> Macro.decompose_call(quote do: Elixir.M.foo(1, 2, 3))
+      { { :__aliases__, [], [:Elixir, :M] }, :foo, [1, 2, 3] }
+
       iex> Macro.decompose_call(quote do: 42)
       :error
 

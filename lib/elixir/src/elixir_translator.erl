@@ -566,9 +566,6 @@ translate_alias(Meta, IncludeByDefault, Old, TKV, #elixir_scope{context_modules=
                "invalid :as for alias, nested alias ~s not allowed", [elixir_errors:inspect(New)])
   end,
 
-  { Aliases, MacroAliases } = elixir_aliases:store(Meta, New, Old, TKV,
-                                S#elixir_scope.aliases, S#elixir_scope.macro_aliases, S#elixir_scope.lexical_tracker),
-
   %% Add the alias to context_modules if defined is true.
   %% This is used by defmodule.
   NewContext =
@@ -578,6 +575,9 @@ translate_alias(Meta, IncludeByDefault, Old, TKV, #elixir_scope{context_modules=
       false -> Context
     end,
 
+  { Aliases, MacroAliases } = elixir_aliases:store(Meta, New, Old, TKV, S#elixir_scope.aliases,
+                                S#elixir_scope.macro_aliases, S#elixir_scope.lexical_tracker),
+
   { { atom, ?line(Meta), nil },
     S#elixir_scope{aliases=Aliases, macro_aliases=MacroAliases, context_modules=NewContext} }.
 
@@ -586,12 +586,11 @@ no_alias_opts(KV) when is_list(KV) ->
     { as, As } -> lists:keystore(as, 1, KV, { as, no_alias_expansion(As) });
     false -> KV
   end;
-
 no_alias_opts(KV) -> KV.
 
+%% Do not allow expansion of the alias itself.
 no_alias_expansion({ '__aliases__', Meta, [H|T] }) when (H /= 'Elixir') and is_atom(H) ->
   { '__aliases__', Meta, ['Elixir',H|T] };
-
 no_alias_expansion(Other) ->
   Other.
 
