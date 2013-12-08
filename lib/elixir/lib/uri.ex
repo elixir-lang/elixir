@@ -53,6 +53,14 @@ defmodule URI do
   URL encoded as per `encode/1`. Keys and values can be any term
   that implements the `String.Chars` protocol (i.e. can be converted
   to a binary).
+  
+  ## Examples
+
+      iex> hd = HashDict.new([{"foo", 1}, {"bar", "2"}])
+      #HashDict<[{"bar", "2"}, {"foo", 1}]>
+      iex> URI.encode_query(hd)
+      "bar=2&foo=1"
+
   """
   def encode_query(l), do: Enum.map_join(l, "&", &pair/1)
 
@@ -62,6 +70,19 @@ defmodule URI do
   binary. It also does percent-unescaping of both keys and values.
 
   Use `query_decoder/1` if you want to iterate over each value manually.
+
+  ## Examples
+  
+      iex> URI.decode_query("foo=1&bar=2")
+      #HashDict<[{"bar", "2"}, {"foo", "1"}]>
+
+      iex> hd = HashDict.new()
+      #HashDict<[]>
+      iex> URI.decode_query("foo=1&bar=2", hd) |> HashDict.keys
+      ["bar", "foo"]
+      iex> URI.decode_query("foo=1&bar=2", hd) |> HashDict.values
+      ["2", "1"]
+
   """
   def decode_query(q, dict // HashDict.new) when is_binary(q) do
     Enum.reduce query_decoder(q), dict, fn({ k, v }, acc) -> Dict.put(acc, k, v) end
@@ -70,6 +91,12 @@ defmodule URI do
   @doc """
   Returns an iterator function over the query string that decodes
   the query string in steps.
+    
+  ## Examples
+  
+      iex> URI.query_decoder("foo=1&bar=2") |> Enum.map &(&1)
+      [{"foo", "1"}, {"bar", "2"}]
+    
   """
   def query_decoder(q) when is_binary(q) do
     fn(acc, fun) ->
@@ -103,6 +130,12 @@ defmodule URI do
 
   @doc """
   Percent-escape a URI.
+  
+  ## Example
+  
+      iex> URI.encode("http://elixir-lang.com/getting_started/2.html")
+      "http%3A%2F%2Felixir-lang.com%2Fgetting_started%2F2.html"
+      
   """
   def encode(s), do: bc(<<c>> inbits s, do: <<percent(c) :: binary>>)
 
@@ -125,6 +158,12 @@ defmodule URI do
 
   @doc """
   Percent-unescape a URI.
+  
+  ## Examples
+  
+      iex> URI.decode("http%3A%2F%2Felixir-lang.com")
+      "http://elixir-lang.com"
+  
   """
   def decode(<<?%, hex1, hex2, tail :: binary >>) do
     << bsl(hex2dec(hex1), 4) + hex2dec(hex2) >> <> decode(tail)
@@ -160,6 +199,12 @@ defmodule URI do
   which takes no arguments and returns the default port
   for that particular scheme. Take a look at `URI.HTTPS` for an
   example of one of these extension modules.
+  
+  ## Examples
+  
+      iex> URI.parse("http://elixir-lang.org/")
+      URI.Info[scheme: "http", path: "/", query: nil, fragment: nil, authority: "elixir-lang.org", userinfo: nil, host: "elixir-lang.org", port: 80]
+
   """
   def parse(s) when is_binary(s) do
     # From http://tools.ietf.org/html/rfc3986#appendix-B
