@@ -73,7 +73,7 @@ defmodule URI do
 
   ## Examples
   
-      iex(23)> URI.decode_query("foo=1&bar=2")
+      iex> URI.decode_query("foo=1&bar=2")
       #HashDict<[{"bar", "2"}, {"foo", "1"}]>
 
       iex> hd = HashDict.new()
