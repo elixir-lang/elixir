@@ -50,21 +50,25 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro assert(expected) do
-    translate_assertion(expected, fn ->
-      quote do
-        value = unquote(expected)
+    case translate_assertion(expected) do
+      nil ->
+        # Default message in case no transform was performed
+        quote do
+          value = unquote(expected)
 
-        unless value do
-          raise ExUnit.ExpectationError,
-            expr: unquote(Macro.to_string(expected)),
-            assertion: "be",
-            expected: "true",
-            actual: inspect(value)
+          unless value do
+            raise ExUnit.ExpectationError,
+              expr: unquote(Macro.to_string(expected)),
+              assertion: "be",
+              expected: "true",
+              actual: inspect(value)
+          end
+
+          value
         end
 
-        value
-      end
-    end)
+      value -> value
+    end
   end
 
   @doc """
@@ -79,28 +83,32 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro refute(expected) do
-    contents = translate_assertion({ :!, [], [expected] }, fn ->
-      quote do
-        value = unquote(expected)
+    contents = case translate_assertion({ :!, [], [expected] }) do
+      nil ->
+        # Default message in case no transform was performed
+        quote do
+          value = unquote(expected)
 
-        if value do
-          raise ExUnit.ExpectationError,
-            expr: unquote(Macro.to_string(expected)),
-            assertion: "be",
-            expected: "false",
-            actual: inspect(value)
+          if value do
+            raise ExUnit.ExpectationError,
+              expr: unquote(Macro.to_string(expected)),
+              assertion: "be",
+              expected: "false",
+              actual: inspect(value)
+          end
+
+          true
         end
 
-        true
-      end
-    end)
+      value -> value
+    end
 
     { :!, [], [contents] }
   end
 
   ## START HELPERS
 
-  defp translate_assertion({ :=, _, [left, right] }, _else) do
+  defp translate_assertion({ :=, _, [left, right] }) do
     quote do
       right = unquote(right)
       case right do
@@ -115,43 +123,43 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion({ :==, _, [left, right] }, _else) do
+  defp translate_assertion({ :==, _, [left, right] }) do
     assert_operator :==, left, right, "be equal to (==)"
   end
 
-  defp translate_assertion({ :<, _, [left, right] }, _else) do
+  defp translate_assertion({ :<, _, [left, right] }) do
     assert_operator :<, left, right, "be less than"
   end
 
-  defp translate_assertion({ :>, _, [left, right] }, _else) do
+  defp translate_assertion({ :>, _, [left, right] }) do
     assert_operator :>, left, right, "be more than"
   end
 
-  defp translate_assertion({ :<=, _, [left, right] }, _else) do
+  defp translate_assertion({ :<=, _, [left, right] }) do
     assert_operator :<=, left, right, "be less than or equal to"
   end
 
-  defp translate_assertion({ :>=, _, [left, right] }, _else) do
+  defp translate_assertion({ :>=, _, [left, right] }) do
     assert_operator :>=, left, right, "be more than or equal to"
   end
 
-  defp translate_assertion({ :===, _, [left, right] }, _else) do
+  defp translate_assertion({ :===, _, [left, right] }) do
     assert_operator :===, left, right, "be equal to (===)"
   end
 
-  defp translate_assertion({ :!==, _, [left, right] }, _else) do
+  defp translate_assertion({ :!==, _, [left, right] }) do
     assert_operator :!==, left, right, "be not equal to (!==)"
   end
 
-  defp translate_assertion({ :!=, _, [left, right] }, _else) do
+  defp translate_assertion({ :!=, _, [left, right] }) do
     assert_operator :!=, left, right, "be not equal to (!=)"
   end
 
-  defp translate_assertion({ :=~, _, [left, right] }, _else) do
+  defp translate_assertion({ :=~, _, [left, right] }) do
     assert_operator :=~, left, right, "match (=~)"
   end
 
-  defp translate_assertion({ :in, _, [left, right] }, _else) do
+  defp translate_assertion({ :in, _, [left, right] }) do
     quote do
       left  = unquote(left)
       right = unquote(right)
@@ -161,7 +169,7 @@ defmodule ExUnit.Assertions do
 
   ## Negative versions
 
-  defp translate_assertion({ :!, _, [{ :=, _, [left, right] }] }, _else) do
+  defp translate_assertion({ :!, _, [{ :=, _, [left, right] }] }) do
     quote do
       right = unquote(right)
       case right do
@@ -177,7 +185,7 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion({ :!, _, [{ :=~, _, [left, right] }] }, _else) do
+  defp translate_assertion({ :!, _, [{ :=~, _, [left, right] }] }) do
     quote do
       left  = unquote(left)
       right = unquote(right)
@@ -185,7 +193,7 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion({ negation, _, [{ :in, _, [left, right] }] }, _else) when negation in [:!, :not] do
+  defp translate_assertion({ negation, _, [{ :in, _, [left, right] }] }) when negation in [:!, :not] do
     quote do
       left  = unquote(left)
       right = unquote(right)
@@ -195,8 +203,8 @@ defmodule ExUnit.Assertions do
 
   ## Fallback
 
-  defp translate_assertion(_expected, fallback) do
-    fallback.()
+  defp translate_assertion(_expected) do
+    nil
   end
 
   defp assert_operator(operator, expected, actual, text) do
