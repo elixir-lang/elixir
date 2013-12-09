@@ -48,37 +48,31 @@ defmodule Dict.Behaviour do
           :error -> default
         end
       end
-      defoverridable get: 2, get: 3
 
       def fetch!(dict, key) do
         case fetch(dict, key) do
           { :ok, value } -> value
-          :error -> raise(KeyError, key: key)
+          :error -> raise KeyError, key: key
         end
       end
-      defoverridable fetch!: 2
 
       def has_key?(dict, key) do
         match? { :ok, _ }, fetch(dict, key)
       end
-      defoverridable has_key?: 2
 
       def put_new(dict, key, value) do
         update(dict, key, value, fn(v) -> v end)
       end
-      defoverridable put_new: 3
 
       def drop(dict, []), do: dict
 
       def drop(dict, [key|keys]) do
         drop(delete(dict, key), keys)
       end
-      defoverridable drop: 2
 
       def take(dict, keys) do
         take(dict, keys, new)
       end
-      defoverridable take: 2
 
       defp take(_dict, [], acc), do: acc
       defp take(dict, [key|keys], acc) do
@@ -88,38 +82,48 @@ defmodule Dict.Behaviour do
         end
       end
 
-      def to_list(dict), do: reduce(dict, [], &[&1|&2]) |> Enum.reverse
-      defoverridable to_list: 1
+      def to_list(dict) do
+        reduce(dict, { :cont, [] }, fn
+          kv, acc -> { :cont, [kv|acc] }
+        end) |> elem(1) |> :lists.reverse
+      end
 
-      def keys(dict), do: reduce(dict, [], fn({k, _}, acc) -> [k | acc] end) |> Enum.reverse
-      defoverridable keys: 1
+      def keys(dict) do
+        reduce(dict, { :cont, [] }, fn
+          {k, _}, acc -> { :cont, [k|acc] }
+        end) |> elem(1) |> :lists.reverse
+      end
 
-      def values(dict), do: reduce(dict, [], fn({_, v}, acc) -> [v | acc] end) |> Enum.reverse
-      defoverridable values: 1
+      def values(dict) do
+        reduce(dict, { :cont, [] }, fn
+          {_, v}, acc -> { :cont, [v|acc] }
+        end) |> elem(1) |> :lists.reverse
+      end
 
       def equal?(dict1, dict2) do
         import Kernel, except: [size: 1]
         case size(dict1) == size(dict2) do
           false -> false
-          true ->
-            try do
-              reduce(dict1, nil, fn({ k, v }, _acc) ->
-                unless fetch(dict2, k) == { :ok, v }, do: throw(:error)
-              end)
-              true
-            catch
-              :error -> false
-            end
+          true  ->
+            reduce(dict1, { :cont, true }, fn({ k, v }, _acc) ->
+              unless fetch(dict2, k) == { :ok, v } do
+                { :halt, false }
+              else
+                { :cont, true }
+              end
+            end) |> elem(1)
         end
       end
-      defoverridable equal?: 2
 
       def merge(dict, enumerable, callback // fn(_k, _v1, v2) -> v2 end) do
         Enum.reduce(enumerable, dict, fn({key, value}, acc) ->
           update(acc, key, value, fn(v1) -> callback.(key, v1, value) end)
         end)
       end
-      defoverridable merge: 2, merge: 3
+
+      defoverridable merge: 2, merge: 3, equal?: 2, to_list: 1, keys: 1,
+                     values: 1, take: 2, drop: 2, get: 2, get: 3, fetch!: 2,
+                     has_key?: 2, put_new: 3
     end
   end
 end

@@ -25,7 +25,7 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [3,5,7]
   end
 
-  test "concat_1" do
+  test "concat/1" do
     stream = Stream.concat([1..3, [], [4, 5, 6], [], 7..9])
     assert is_function(stream)
 
@@ -38,7 +38,7 @@ defmodule StreamTest do
     assert Enum.take(stream, 13) == [1,2,3,4,5,6,7,8,9,10,11,12,13]
   end
 
-  test "concat_2" do
+  test "concat/2" do
     stream = Stream.concat(1..3, 4..6)
     assert is_function(stream)
     assert Stream.cycle(stream) |> Enum.take(16) == [1,2,3,4,5,6,1,2,3,4,5,6,1,2,3,4]
@@ -54,6 +54,18 @@ defmodule StreamTest do
     stream = Stream.concat(Stream.cycle(1..3), Stream.cycle(4..6))
     assert is_function(stream)
     assert Enum.take(stream, 13) == [1,2,3,1,2,3,1,2,3,1,2,3,1]
+  end
+
+  test "concat/2 does not intercept wrapped lazy enumeration" do
+    # concat returns a lazy enumeration that does not halt
+    assert Stream.concat([[0], Stream.map([1, 2, 3], & &1), [4]])
+           |> Stream.take_while(fn x -> x <= 3 end)
+           |> Enum.to_list == [0, 1, 2, 3]
+
+    # concat returns a lazy enumeration that does halts
+    assert Stream.concat([[0], Stream.take_while(1..6, &(&1 <= 3)), [4]])
+           |> Stream.take_while(fn x -> x <= 3 end)
+           |> Enum.to_list == [0, 1, 2, 3]
   end
 
   test "cycle" do
@@ -128,19 +140,19 @@ defmodule StreamTest do
   end
 
   test "flat_map does not intercept wrapped lazy enumeration" do
-    # flat_map returns a lazy enumeration that does not throw
+    # flat_map returns a lazy enumeration that does not halt
     assert [1, 2, 3, -1, -2]
            |> Stream.flat_map(fn x -> Stream.map([x, x+1], & &1) end)
            |> Stream.take_while(fn x -> x >= 0 end)
            |> Enum.to_list == [1, 2, 2, 3, 3, 4]
 
-    # flat_map returns a lazy enumeration that does throws
+    # flat_map returns a lazy enumeration that does halts
     assert [1, 2, 3, -1, -2]
            |> Stream.flat_map(fn x -> Stream.take_while([x, x+1, x+2], &(&1 <= x + 1)) end)
            |> Stream.take_while(fn x -> x >= 0 end)
            |> Enum.to_list == [1, 2, 2, 3, 3, 4]
 
-    # flat_map returns a lazy enumeration that does throws wrapped in an enumerable
+    # flat_map returns a lazy enumeration that does halts wrapped in an enumerable
     assert [1, 2, 3, -1, -2]
            |> Stream.flat_map(fn x -> Stream.concat([x], Stream.take_while([x+1, x+2], &(&1 <= x + 1))) end)
            |> Stream.take_while(fn x -> x >= 0 end)

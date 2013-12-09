@@ -188,7 +188,8 @@ defmodule HashDict do
   end
 
   def reduce(trie(root: root, depth: depth), acc, fun) do
-    node_reduce(root, depth, acc, fun, @node_size)
+    node_reduce(root, depth, acc, fun, @node_size,
+                fn { :cont, acc }, _f -> { :done, acc } end)
   end
 
   ## Dict-wide functions
@@ -328,13 +329,10 @@ defmodule HashDict do
   end
 
   # Reduces the bucket
-  defp bucket_reduce([[k|v]|t], acc, fun) do
-    bucket_reduce(t, fun.({ k, v }, acc), fun)
-  end
-
-  defp bucket_reduce([], acc, _fun) do
-    acc
-  end
+  defp bucket_reduce(_, { :halt, acc }, _fun),        do: { :halted, acc }
+  defp bucket_reduce(list, { :suspend, acc }, _fun),  do: { :suspended, acc, &bucket_reduce(list, &1, &2) }
+  defp bucket_reduce([[k|v]|t], { :cont, acc }, fun), do: bucket_reduce(t, fun.({ k, v }, acc), fun)
+  defp bucket_reduce([], { :cont, acc }, _fun),       do: { :done, acc }
 
   defp bucket_fold(bucket, acc, fun) do
     :lists.foldl(fun, acc, bucket)
@@ -399,17 +397,29 @@ defmodule HashDict do
   end
 
   # Reduces a node recursively
-  defp node_reduce(bucket, -1, acc, fun, _) do
-    bucket_reduce(bucket, acc, fun)
+  defp node_reduce(_, -1, { :halt, acc }, _fun, _count, _next) do
+    { :halted, acc }
   end
 
-  defp node_reduce(node, depth, acc, fun, count) when count >= 1 do
-    acc = node_reduce(:erlang.element(count, node), depth - 1, acc, fun, @node_size)
-    node_reduce(node, depth, acc, fun, count - 1)
+  defp node_reduce(list, -1, { :suspend, acc }, _fun, count, next) do
+    { :suspended, acc, &node_reduce(list, -1, &1, &2, count, next) }
   end
 
-  defp node_reduce(_node, _, acc, _fun, 0) do
-    acc
+  defp node_reduce([[k|v]|t], -1, { :cont, acc }, fun, _count, next) do
+    node_reduce(t, -1, fun.({ k, v }, acc), fun, _count, next)
+  end
+
+  defp node_reduce([], -1, { :cont, _ } = acc, fun, _count, next) do
+    next.(acc, fun)
+  end
+
+  defp node_reduce(node, depth, acc, fun, count, next) when count >= 1 do
+    node_reduce(:erlang.element(count, node), depth - 1, acc, fun, @node_size,
+                &node_reduce(node, depth, &1, &2, count - 1, next))
+  end
+
+  defp node_reduce(_node, _, acc, fun, 0, next) do
+    next.(acc, fun)
   end
 
   # Folds a node recursively
