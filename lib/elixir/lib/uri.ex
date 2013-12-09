@@ -99,16 +99,14 @@ defmodule URI do
     
   """
   def query_decoder(q) when is_binary(q) do
-    fn(acc, fun) ->
-      do_decoder(q, acc, fun)
-    end
+    Stream.unfold(q, &do_decoder/1)
   end
 
-  defp do_decoder("", acc, _fun) do
-    acc
+  defp do_decoder("") do
+    nil
   end
 
-  defp do_decoder(q, acc, fun) do
+  defp do_decoder(q) do
     next =
       case :binary.split(q, "&") do
         [first, rest] -> rest
@@ -121,7 +119,7 @@ defmodule URI do
         [ key ]        -> { decode(key), nil }
       end
 
-    do_decoder(next, fun.(current, acc), fun)
+    { current, next }
   end
 
   defp pair({k, v}) do

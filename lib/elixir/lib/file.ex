@@ -970,36 +970,31 @@ defmodule File do
     modes = open_defaults(modes, true)
     bin   = nil? List.keyfind(modes, :encoding, 0)
 
-    fn(acc, fun) ->
-      case F.open(path, modes) do
-        { :ok, device }    -> device
-        { :error, reason } ->
-          raise File.Error, reason: reason, action: "stream", path: to_string(path)
+    start_fun =
+      fn ->
+        case F.open(path, modes) do
+          { :ok, device }    -> device
+          { :error, reason } ->
+            raise File.Error, reason: reason, action: "stream", path: to_string(path)
+        end
       end
 
-      try do
-        case bin do
-          true  -> IO.binstream(device, line_or_bytes, acc, fun)
-          false -> IO.stream(device, line_or_bytes, acc, fun)
-        end
-      after
-        F.close(device)
+    next_fun =
+      case bin do
+        true  -> &IO.do_binstream(&1, line_or_bytes)
+        false -> &IO.do_stream(&1, line_or_bytes)
       end
-    end
+
+    Stream.resource(start_fun, next_fun, &F.close/1)
   end
 
   @doc false
   def binstream!(file, mode // [], line_or_bytes // :line) do
     IO.write "File.binstream! is deprecated, simply use File.stream! instead\n" <>
              Exception.format_stacktrace
-    fn(fun, acc) ->
-      device = open!(file, mode)
-      try do
-        IO.binstream(device, line_or_bytes, fun, acc)
-      after
-        F.close(device)
-      end
-    end
+    Stream.resource(fn -> open!(file, mode) end,
+                    &IO.do_binstream(&1, line_or_bytes),
+                    &F.close/1)
   end
 
   @doc """

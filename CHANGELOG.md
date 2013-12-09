@@ -6,6 +6,7 @@
   * [Kernel] Add `Enum.reverse/2`
   * [Kernel] Implement `defmodule/2`, `@/1`, `def/2` and friends in Elixir itself. `case/2`, `try/2` and `receive/1` have been made special forms. `var!/1`, `var!/2` and `alias!/1` have also been implemented in Elixir and demoted from special forms
   * [Record] Support dynamic fields in `defrecordp`
+  * [Stream] Add `Stream.resource/3`
   * [Typespec] Support `is_var/1` in typespecs
 
 * Bug fixes

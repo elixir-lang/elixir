@@ -244,7 +244,7 @@ defmodule IO do
   """
   @spec stream(device, :line | pos_integer) :: Enumerable.t
   def stream(device, line_or_codepoints) do
-    fn(acc, f) -> stream(map_dev(device), line_or_codepoints, acc, f) end
+    Stream.unfold(map_dev(device), &do_stream(&1, line_or_codepoints))
   end
 
   @doc """
@@ -257,30 +257,30 @@ defmodule IO do
   """
   @spec binstream(device, :line | pos_integer) :: Enumerable.t
   def binstream(device, line_or_bytes) do
-    fn(acc, f) -> binstream(map_dev(device), line_or_bytes, acc, f) end
+    Stream.unfold(map_dev(device), &do_binstream(&1, line_or_bytes))
   end
 
   @doc false
-  def stream(device, what, acc, fun) do
+  def do_stream(device, what) do
     case read(device, what) do
       :eof ->
-        acc
+        nil
       { :error, reason } ->
         raise IO.StreamError, reason: reason
       data ->
-        stream(device, what, fun.(data, acc), fun)
+        { data, device }
     end
   end
 
   @doc false
-  def binstream(device, what, acc, fun) do
+  def do_binstream(device, what) do
     case binread(device, what) do
       :eof ->
-        acc
+        nil
       { :error, reason } ->
         raise IO.StreamError, reason: reason
       data ->
-        binstream(device, what, fun.(data, acc), fun)
+        { data, device }
     end
   end
 
