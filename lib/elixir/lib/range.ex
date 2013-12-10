@@ -25,8 +25,8 @@ defimpl Enumerable, for: Range do
     { :halted, acc }
   end
 
-  defp reduce(x, y, { :suspend, acc }, _fun, next, up) do
-    { :suspended, acc, &reduce(x, y, &1, &2, next, up) }
+  defp reduce(x, y, { :suspend, acc }, fun, next, up) do
+    { :suspended, acc, &reduce(x, y, &1, fun, next, up) }
   end
 
   defp reduce(x, y, { :cont, acc }, fun, next, true) when x <= y do

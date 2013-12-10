@@ -304,10 +304,10 @@ defmodule HashSet do
     { [], 0 }
   end
 
-  defp bucket_reduce(_, { :halt, acc }, _fun),       do: { :halted, acc }
-  defp bucket_reduce(list, { :suspend, acc }, _fun), do: { :suspended, acc, &bucket_reduce(list, &1, &2) }
-  defp bucket_reduce([h|t], { :cont, acc }, fun),    do: bucket_reduce(t, fun.(h, acc), fun)
-  defp bucket_reduce([], { :cont, acc }, _fun),      do: { :done, acc }
+  defp bucket_reduce(_, { :halt, acc }, _fun),      do: { :halted, acc }
+  defp bucket_reduce(list, { :suspend, acc }, fun), do: { :suspended, acc, &bucket_reduce(list, &1, fun) }
+  defp bucket_reduce([h|t], { :cont, acc }, fun),   do: bucket_reduce(t, fun.(h, acc), fun)
+  defp bucket_reduce([], { :cont, acc }, _fun),     do: { :done, acc }
 
   defp bucket_fold(bucket, acc, fun) do
     :lists.foldl(fun, acc, bucket)
@@ -399,8 +399,8 @@ defmodule HashSet do
     { :halted, acc }
   end
 
-  defp node_reduce(list, -1, { :suspend, acc }, _fun, count, next) do
-    { :suspended, acc, &node_reduce(list, -1, &1, &2, count, next) }
+  defp node_reduce(list, -1, { :suspend, acc }, fun, count, next) do
+    { :suspended, acc, &node_reduce(list, -1, &1, fun, count, next) }
   end
 
   defp node_reduce([h|t], -1, { :cont, acc }, fun, _count, next) do

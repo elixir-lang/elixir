@@ -330,7 +330,7 @@ defmodule HashDict do
 
   # Reduces the bucket
   defp bucket_reduce(_, { :halt, acc }, _fun),        do: { :halted, acc }
-  defp bucket_reduce(list, { :suspend, acc }, _fun),  do: { :suspended, acc, &bucket_reduce(list, &1, &2) }
+  defp bucket_reduce(list, { :suspend, acc }, fun),   do: { :suspended, acc, &bucket_reduce(list, &1, fun) }
   defp bucket_reduce([[k|v]|t], { :cont, acc }, fun), do: bucket_reduce(t, fun.({ k, v }, acc), fun)
   defp bucket_reduce([], { :cont, acc }, _fun),       do: { :done, acc }
 
@@ -401,8 +401,8 @@ defmodule HashDict do
     { :halted, acc }
   end
 
-  defp node_reduce(list, -1, { :suspend, acc }, _fun, count, next) do
-    { :suspended, acc, &node_reduce(list, -1, &1, &2, count, next) }
+  defp node_reduce(list, -1, { :suspend, acc }, fun, count, next) do
+    { :suspend, acc, &node_reduce(list, -1, &1, fun, count, next) }
   end
 
   defp node_reduce([[k|v]|t], -1, { :cont, acc }, fun, _count, next) do

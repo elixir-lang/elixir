@@ -80,10 +80,9 @@ defprotocol Enumerable do
 
   The continuation is the closure returned as result when
   the enumeration is suspended. When invoked, it expects
-  an accumulator and a reducer function as argument, it returns
-  the result.
+  a new accumulator and it returns the result.
   """
-  @type continuation :: (acc, reducer -> result)
+  @type continuation :: (acc -> result)
 
   @doc """
   The reduce function.
@@ -94,10 +93,10 @@ defprotocol Enumerable do
 
   As an example, here is the implementation of `reduce` for lists:
 
-      def reduce(_,     { :halt, acc }, _fun),    do: { :halted, acc }
-      def reduce(list,  { :suspend, acc }, _fun), do: { :suspended, acc, &reduce(list, &1, &2) }
-      def reduce([],    { :cont, acc }, _fun),    do: { :done, acc }
-      def reduce([h|t], { :cont, acc }, fun),     do: reduce(t, fun.(h, acc), fun)
+      def reduce(_,     { :halt, acc }, _fun),   do: { :halted, acc }
+      def reduce(list,  { :suspend, acc }, fun), do: { :suspended, acc, &reduce(list, &1, fun) }
+      def reduce([],    { :cont, acc }, _fun),   do: { :done, acc }
+      def reduce([h|t], { :cont, acc }, fun),    do: reduce(t, fun.(h, acc), fun)
 
   """
   @spec reduce(t, acc, reducer) :: result
@@ -905,17 +904,16 @@ defmodule Enum do
 
   def reduce(collection, fun) do
     result =
-      Enumerable.reduce(collection, { :cont, nil }, fn x, _ ->
-        { :suspend, x }
-      end)
+      Enumerable.reduce(collection, { :cont, :first }, fn
+        x, :first ->
+          { :cont, { :acc, x } }
+        x, { :acc, acc } ->
+          { :cont, { :acc, fun.(x, acc) } }
+      end) |> elem(1)
 
     case result do
-      { :suspended, x, continuation } ->
-        continuation.({ :cont, x }, fn x, acc ->
-          { :cont, fun.(x, acc) }
-        end) |> elem(1)
-      { _, _ } ->
-        raise Enum.EmptyError
+      :first        -> raise Enum.EmptyError
+      { :acc, acc } -> acc
     end
   end
 
@@ -1957,10 +1955,10 @@ defmodule Enum do
 end
 
 defimpl Enumerable, for: List do
-  def reduce(_,     { :halt, acc }, _fun),    do: { :halted, acc }
-  def reduce(list,  { :suspend, acc }, _fun), do: { :suspended, acc, &reduce(list, &1, &2) }
-  def reduce([],    { :cont, acc }, _fun),    do: { :done, acc }
-  def reduce([h|t], { :cont, acc }, fun),     do: reduce(t, fun.(h, acc), fun)
+  def reduce(_,     { :halt, acc }, _fun),   do: { :halted, acc }
+  def reduce(list,  { :suspend, acc }, fun), do: { :suspended, acc, &reduce(list, &1, fun) }
+  def reduce([],    { :cont, acc }, _fun),   do: { :done, acc }
+  def reduce([h|t], { :cont, acc }, fun),    do: reduce(t, fun.(h, acc), fun)
 
   def member?([], _),       do: false
   def member?(list, value), do: :lists.member(value, list)

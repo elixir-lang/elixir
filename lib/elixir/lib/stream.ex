@@ -106,25 +106,24 @@ defmodule Stream do
     end
 
     defp do_reduce(Lazy[enum: enum, funs: funs, accs: accs], acc, fun) do
-      do_reduce(&Enumerable.reduce(enum, &1, &2), :lists.reverse(accs), funs, acc, fun)
+      composed = :lists.foldl(fn fun, acc -> fun.(acc) end, fun, funs)
+      do_each(&Enumerable.reduce(enum, &1, composed), :lists.reverse(accs), acc)
     end
 
-    defp do_reduce(_reduce, _accs, _funs, { :halt, acc }, _fun) do
+    defp do_each(_reduce, _accs, { :halt, acc }) do
       { :halted, acc }
     end
 
-    defp do_reduce(reduce, accs, funs, { :suspend, acc }, _fun) do
-      { :suspended, acc, &do_reduce(reduce, accs, funs, &1, &2) }
+    defp do_each(reduce, accs, { :suspend, acc }) do
+      { :suspended, acc, &do_each(reduce, accs, &1) }
     end
 
-    defp do_reduce(reduce, accs, funs, { :cont, acc }, fun) do
-      composed = :lists.foldl(fn fun, acc -> fun.(acc) end, fun, funs)
-
-      case reduce.({ :cont, [acc|accs] }, composed) do
+    defp do_each(reduce, accs, { :cont, acc }) do
+      case reduce.({ :cont, [acc|accs] }) do
         { reason, [acc|_] } ->
           { reason, acc }
         { :suspended, [acc|accs], continuation } ->
-          { :suspended, acc, &do_reduce(continuation, accs, funs, &1, &2) }
+          { :suspended, acc, &do_each(continuation, accs, &1) }
       end
     end
   end
@@ -241,20 +240,21 @@ defmodule Stream do
     lazy enum, fn(f1) ->
       fn(entry, acc) ->
         enum = f.(entry)
-        do_flat_map(&Enumerable.reduce(enum, &1, &2), { :cont, acc }, f1)
+        fun  = &do_flat_map_each(f1, &1, &2)
+        do_flat_map(&Enumerable.reduce(enum, &1, fun), { :cont, acc })
       end
     end
   end
 
-  defp do_flat_map(reduce, acc, f1) do
+  defp do_flat_map(reduce, acc) do
     try do
-      reduce.(acc, &do_flat_map_each(f1, &1, &2))
+      reduce.(acc)
     catch
       { :stream_flat_map, acc } -> acc
     else
       { :done, acc }         -> { :cont, acc }
       { :halted, acc }       -> { :cont, acc }
-      { :suspended, acc, c } -> { :suspend, acc, &do_flat_map(c, &1, &2) }
+      { :suspended, acc, c } -> { :suspend, acc, &do_flat_map(c, &1) }
     end
   end
 
@@ -400,20 +400,21 @@ defmodule Stream do
   end
 
   defp do_concat(enumerables, acc, fun) do
+    fun = &do_concat_each(fun, &1, &2)
     Enumerable.reduce(enumerables, acc, fn x, acc ->
-      do_concat_reduce(&Enumerable.reduce(x, &1, &2), { :cont, acc }, fun)
+      do_concat_reduce(&Enumerable.reduce(x, &1, fun), { :cont, acc })
     end)
   end
 
-  defp do_concat_reduce(reduce, acc, fun) do
+  defp do_concat_reduce(reduce, acc) do
     try do
-      reduce.(acc, &do_concat_each(fun, &1, &2))
+      reduce.(acc)
     catch
       { :stream_concat, acc } -> acc
     else
       { :done, acc }         -> { :cont, acc }
       { :halted, acc }       -> { :cont, acc }
-      { :suspended, acc, c } -> { :suspend, acc, &do_concat_reduce(c, &1, &2) }
+      { :suspended, acc, c } -> { :suspend, acc, &do_concat_reduce(c, &1) }
     end
   end
 
@@ -439,26 +440,28 @@ defmodule Stream do
   """
   @spec cycle(Enumerable.t) :: t
   def cycle(enumerable) do
-    reduce = &Enumerable.reduce(enumerable, &1, &2)
-    &do_cycle(reduce, reduce, &1, &2)
+    fn acc, fun ->
+      reduce = &Enumerable.reduce(enumerable, &1, fun)
+      do_cycle(reduce, reduce, acc)
+    end
   end
 
-  defp do_cycle(_reduce, _cycle, { :halt, acc }, _fun) do
+  defp do_cycle(_reduce, _cycle, { :halt, acc }) do
     { :halted, acc }
   end
 
-  defp do_cycle(reduce, cycle, { :suspend, acc }, _fun) do
-    { :suspended, acc, &do_cycle(reduce, cycle, &1, &2) }
+  defp do_cycle(reduce, cycle, { :suspend, acc }) do
+    { :suspended, acc, &do_cycle(reduce, cycle, &1) }
   end
 
-  defp do_cycle(reduce, cycle, acc, fun) do
-    case reduce.(acc, fun) do
+  defp do_cycle(reduce, cycle, acc) do
+    case reduce.(acc) do
       { :done, acc } ->
-        do_cycle(cycle, cycle, { :cont, acc }, fun)
+        do_cycle(cycle, cycle, { :cont, acc })
       { :halted, acc } ->
         { :halted, acc }
       { :suspended, acc, continuation } ->
-        { :suspended, acc, &do_cycle(continuation, cycle, &1, &2) }
+        { :suspended, acc, &do_cycle(continuation, cycle, &1) }
     end
   end
 
@@ -494,7 +497,19 @@ defmodule Stream do
   """
   @spec repeatedly((() -> element)) :: t
   def repeatedly(generator_fun) when is_function(generator_fun, 0) do
-    unfold(:repeat, fn :repeat -> { generator_fun.(), :repeat } end)
+    &do_repeatedly(generator_fun, &1, &2)
+  end
+
+  defp do_repeatedly(generator_fun, { :suspend, acc }, fun) do
+    { :suspended, acc, &do_repeatedly(generator_fun, &1, fun) }
+  end
+
+  defp do_repeatedly(_generator_fun, { :halt, acc }, _fun) do
+    { :halted, acc }
+  end
+
+  defp do_repeatedly(generator_fun, { :cont, acc }, fun) do
+    do_repeatedly(generator_fun, fun.(generator_fun.(), acc), fun)
   end
 
   @doc """
@@ -553,8 +568,8 @@ defmodule Stream do
     &do_unfold(next_acc, next_fun, &1, &2)
   end
 
-  defp do_unfold(next_acc, next_fun, { :suspend, acc }, _fun) do
-    { :suspended, acc, &do_unfold(next_acc, next_fun, &1, &2) }
+  defp do_unfold(next_acc, next_fun, { :suspend, acc }, fun) do
+    { :suspended, acc, &do_unfold(next_acc, next_fun, &1, fun) }
   end
 
   defp do_unfold(_next_acc, _next_fun, { :halt, acc }, _fun) do
