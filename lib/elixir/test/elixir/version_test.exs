@@ -114,6 +114,8 @@ defmodule VersionTest do
 
     assert V.match?("0.9.3", "~> 0.9.3-dev")
     refute V.match?("0.10.0", "~> 0.9.3-dev")
+
+    refute V.match?("0.3.0-dev", "~> 0.2.0")
   end
 
   test :and do
