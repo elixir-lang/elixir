@@ -402,7 +402,7 @@ defmodule HashDict do
   end
 
   defp node_reduce(list, -1, { :suspend, acc }, fun, count, next) do
-    { :suspend, acc, &node_reduce(list, -1, &1, fun, count, next) }
+    { :suspended, acc, &node_reduce(list, -1, &1, fun, count, next) }
   end
 
   defp node_reduce([[k|v]|t], -1, { :cont, acc }, fun, _count, next) do

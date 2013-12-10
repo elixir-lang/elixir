@@ -235,33 +235,47 @@ defmodule Stream do
 
   """
   @spec flat_map(Enumerable.t, (element -> any)) :: Enumerable.t
-  def flat_map(enum, f) do
-    lazy enum, fn(f1) ->
-      fn(entry, acc) ->
-        enum = f.(entry)
-        fun  = &do_flat_map_each(f1, &1, &2)
-        do_flat_map(&Enumerable.reduce(enum, &1, fun), { :cont, acc })
-      end
+  def flat_map(enum, mapper) do
+    &do_flat_map(enum, mapper, &1, &2)
+  end
+
+  defp do_flat_map(enumerables, mapper, acc, fun) do
+    fun  = &do_flat_map_each(fun, &1, &2)
+    step = &do_flat_map_step/2
+    next = &Enumerable.reduce(enumerables, &1, step)
+    do_flat_map([], next, mapper, acc, fun)
+  end
+
+  defp do_flat_map(next_acc, next, mapper, acc, fun) do
+    case next.({ :cont, next_acc }) do
+      { :suspended, [val|next_acc], next } ->
+        enum = mapper.(val)
+        do_flat_map(next_acc, next, mapper, acc, fun, &Enumerable.reduce(enum, &1, fun))
+      { reason, _ } ->
+        { reason, elem(acc, 1) }
     end
   end
 
-  defp do_flat_map(reduce, acc) do
+  defp do_flat_map(next_acc, next, mapper, acc, fun, reduce) do
     try do
       reduce.(acc)
     catch
-      { :stream_flat_map, acc } -> acc
+      { :stream_flat_map, h } -> { :halted, h }
     else
-      { :done, acc }         -> { :cont, acc }
-      { :halted, acc }       -> { :cont, acc }
-      { :suspended, acc, c } -> { :suspend, acc, &do_flat_map(c, &1) }
+      { _, acc }              -> do_flat_map(next_acc, next, mapper, { :cont, acc }, fun)
+      { :suspended, acc, c }  -> { :suspended, acc, &do_flat_map(next_acc, next, mapper, &1, fun, c) }
     end
   end
 
-  defp do_flat_map_each(f1, x, acc) do
-    case f1.(x, acc) do
-      { :halt, _ } = h -> throw({ :stream_flat_map, h })
-      { _, _ }     = o -> o
+  defp do_flat_map_each(f, x, acc) do
+    case f.(x, acc) do
+      { :halt, h } -> throw({ :stream_flat_map, h })
+      { _, _ } = o -> o
     end
+  end
+
+  defp do_flat_map_step(x, acc) do
+    { :suspend, [x|acc] }
   end
 
   @doc """
@@ -374,7 +388,7 @@ defmodule Stream do
   """
   @spec concat(Enumerable.t) :: Enumerable.t
   def concat(enumerables) do
-    &do_concat(enumerables, &1, &2)
+    flat_map(enumerables, &(&1))
   end
 
   @doc """
@@ -395,34 +409,7 @@ defmodule Stream do
   """
   @spec concat(Enumerable.t, Enumerable.t) :: Enumerable.t
   def concat(first, second) do
-    &do_concat([first, second], &1, &2)
-  end
-
-  defp do_concat(enumerables, acc, fun) do
-    step = &do_concat_step/2
-    next = &Enumerable.reduce(enumerables, &1, step)
-    do_concat([], next, acc, fun)
-  end
-
-  defp do_concat(next_acc, next, acc, fun) do
-    case next.({ :cont, next_acc }) do
-      { :suspended, [enum|next_acc], next } ->
-        do_concat(next_acc, next, acc, fun, &Enumerable.reduce(enum, &1, fun))
-      { reason, _ } ->
-        { reason, elem(acc, 1) }
-    end
-  end
-
-  defp do_concat(next_acc, next, acc, fun, reduce) do
-    case reduce.(acc) do
-      { :done, acc }         -> do_concat(next_acc, next, { :cont, acc }, fun)
-      { :halted, acc } = h   -> h
-      { :suspended, acc, c } -> { :suspended, acc, &do_concat(next_acc, next, &1, fun, c) }
-    end
-  end
-
-  defp do_concat_step(x, acc) do
-    { :suspend, [x|acc] }
+    flat_map([first, second], &(&1))
   end
 
   @doc """
