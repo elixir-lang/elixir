@@ -131,6 +131,24 @@ defmodule Stream do
   @type index :: non_neg_integer
   @type default :: any
 
+  # Require Stream.Reducers and its callbacks
+  require Stream.Reducers, as: R
+
+  defmacrop cont(f, entry, acc) do
+    quote do: unquote(f).(unquote(entry), unquote(acc))
+  end
+
+  defmacrop acc(h, n, t) do
+    quote do: [unquote(h),unquote(n)|unquote(t)]
+  end
+
+  defmacrop cont_with_acc(f, entry, h, n, t) do
+    quote do
+      { reason, [h|t] } = unquote(f).(unquote(entry), [unquote(h)|unquote(t)])
+      { reason, [h,unquote(n)|t] }
+    end
+  end
+
   ## Transformers
 
   @doc """
@@ -145,15 +163,7 @@ defmodule Stream do
   """
   @spec drop(Enumerable.t, non_neg_integer) :: Enumerable.t
   def drop(enum, n) when n >= 0 do
-    lazy enum, n, fn(f1) ->
-      fn
-        _entry, [h,n|t] when n > 0 ->
-          { :cont, [h,n-1|t] }
-        entry, [h,n|t] ->
-          { reason, [h|t] } = f1.(entry, [h|t])
-          { reason, [h,n|t] }
-      end
-    end
+    lazy enum, n, fn(f1) -> R.drop(f1) end
   end
 
   @doc """
@@ -168,17 +178,8 @@ defmodule Stream do
 
   """
   @spec drop_while(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
-  def drop_while(enum, f) do
-    lazy enum, true, fn(f1) ->
-      fn entry, [h,bool|t] = orig ->
-        if bool and f.(entry) do
-          { :cont, orig }
-        else
-          { reason, [h|t] } = f1.(entry, [h|t])
-          { reason, [h,false|t] }
-        end
-      end
-    end
+  def drop_while(enum, fun) do
+    lazy enum, true, fn(f1) -> R.drop_while(fun, f1) end
   end
 
   @doc """
@@ -193,12 +194,8 @@ defmodule Stream do
 
   """
   @spec filter(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
-  def filter(enum, f) do
-    lazy enum, fn(f1) ->
-      fn(entry, acc) ->
-        if f.(entry), do: f1.(entry, acc), else: { :cont, acc }
-      end
-    end
+  def filter(enum, fun) do
+    lazy enum, fn(f1) -> R.filter(fun, f1) end
   end
 
   @doc """
@@ -213,12 +210,8 @@ defmodule Stream do
 
   """
   @spec map(Enumerable.t, (element -> any)) :: Enumerable.t
-  def map(enum, f) do
-    lazy enum, fn(f1) ->
-      fn(entry, acc) ->
-        f1.(f.(entry), acc)
-      end
-    end
+  def map(enum, fun) do
+    lazy enum, fn(f1) -> R.map(fun, f1) end
   end
 
   @doc """
@@ -288,12 +281,8 @@ defmodule Stream do
 
   """
   @spec reject(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
-  def reject(enum, f) do
-    lazy enum, fn(f1) ->
-      fn(entry, acc) ->
-        unless f.(entry), do: f1.(entry, acc), else: { :cont, acc }
-      end
-    end
+  def reject(enum, fun) do
+    lazy enum, fn(f1) -> R.reject(fun, f1) end
   end
 
   @doc """
@@ -313,16 +302,7 @@ defmodule Stream do
   """
   @spec take(Enumerable.t, non_neg_integer) :: Enumerable.t
   def take(enum, n) when n > 0 do
-    lazy enum, n, fn(f1) ->
-      fn(entry, [h,n|t] = orig) ->
-        if n >= 1 do
-          { reason, [h|t] } = f1.(entry, [h|t])
-          { reason, [h,n-1|t] }
-        else
-          { :halt, orig }
-        end
-      end
-    end
+    lazy enum, n, fn(f1) -> R.take(f1) end
   end
 
   def take(_enum, 0), do: Lazy[enum: [], funs: [&(&1)]]
@@ -339,16 +319,8 @@ defmodule Stream do
 
   """
   @spec take_while(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
-  def take_while(enum, f) do
-    lazy enum, fn(f1) ->
-      fn(entry, acc) ->
-        if f.(entry) do
-          f1.(entry, acc)
-        else
-          { :halt, acc }
-        end
-      end
-    end
+  def take_while(enum, fun) do
+    lazy enum, fn(f1) -> R.take_while(fun, f1) end
   end
 
   @doc """
@@ -364,12 +336,7 @@ defmodule Stream do
   """
   @spec with_index(Enumerable.t) :: Enumerable.t
   def with_index(enum) do
-    lazy enum, 0, fn(f1) ->
-      fn(entry, [h,counter|t]) ->
-        { reason, [h|t] } = f1.({ entry, counter }, [h|t])
-        { reason, [h,counter+1|t] }
-      end
-    end
+    lazy enum, 0, fn(f1) -> R.with_index(f1) end
   end
 
   ## Combiners
