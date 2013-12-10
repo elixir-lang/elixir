@@ -428,6 +428,12 @@ defmodule MacroTest do
     assert env.stacktrace == [{ :elixir_compiler, :__FILE__, 1, [file: "foo", line: 12] }]
   end
 
+  test :context_modules do
+    defmodule Foo.Bar do
+      assert __MODULE__ in __ENV__.context_modules
+    end
+  end
+
   ## pipe/unpipe
 
   test :pipe do

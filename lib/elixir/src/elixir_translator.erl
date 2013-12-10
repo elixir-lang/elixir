@@ -569,9 +569,8 @@ translate_alias(Meta, IncludeByDefault, Old, TKV, #elixir_scope{context_modules=
   %% Add the alias to context_modules if defined is true.
   %% This is used by defmodule.
   NewContext =
-    case (lists:keyfind(defined, 1, Meta) == { defined, true }) andalso
-         not lists:member(Old, Context) of
-      true  -> [Old|Context];
+    case lists:keyfind(defined, 1, Meta) of
+      { defined, Mod } when is_atom(Mod) -> [Mod|Context];
       false -> Context
     end,
 
