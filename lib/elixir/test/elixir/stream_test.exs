@@ -105,6 +105,18 @@ defmodule StreamTest do
     assert Stream.drop_while(nats, &(&1 <= 5)) |> Enum.take(5) == [6,7,8,9,10]
   end
 
+  test "each" do
+    Process.put(:stream_each, [])
+
+    stream = Stream.each([1,2,3], fn x ->
+      Process.put(:stream_each, [x|Process.get(:stream_each)])
+    end)
+
+    assert is_lazy(stream)
+    assert Enum.to_list(stream) == [1,2,3]
+    assert Process.get(:stream_each) == [3,2,1]
+  end
+
   test "filter" do
     stream = Stream.filter([1,2,3], fn(x) -> rem(x, 2) == 0 end)
     assert is_lazy(stream)

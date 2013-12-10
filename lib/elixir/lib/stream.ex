@@ -183,6 +183,31 @@ defmodule Stream do
   end
 
   @doc """
+  Execute the given function for each item.
+
+  Useful for adding side effects (like printing) to a stream.
+
+  ## Examples
+
+      iex> stream = Stream.each([1, 2, 3], fn(x) -> IO.puts x end)
+      iex> Enum.to_list(stream)
+      1
+      2
+      3
+      [1,2,3]
+
+  """
+  @spec each(Enumerable.t, (element -> term)) :: Enumerable.t
+  def each(enum, fun) do
+    lazy enum, fn(f1) ->
+      fn(x, acc) ->
+        fun.(x)
+        f1.(x, acc)
+      end
+    end
+  end
+
+  @doc """
   Creates a stream that will filter elements according to
   the given function on enumeration.
 
