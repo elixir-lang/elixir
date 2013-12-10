@@ -404,16 +404,16 @@ defmodule Version do
     defp approximate(version) do
       Version.from_matchable(case Regex.run(@version_regex, version) do
         [_, major] ->
-          { binary_to_integer(major) + 1, 0, 0, [] }
+          { binary_to_integer(major) + 1, 0, 0, [0] }
 
         [_, major, _] ->
-          { binary_to_integer(major) + 1, 0, 0, [] }
+          { binary_to_integer(major) + 1, 0, 0, [0] }
 
         [_, major, minor, _] ->
-          { binary_to_integer(major), binary_to_integer(minor) + 1, 0, [] }
+          { binary_to_integer(major), binary_to_integer(minor) + 1, 0, [0] }
 
         [_, major, minor, _, _] ->
-          { binary_to_integer(major), binary_to_integer(minor) + 1, 0, [] }
+          { binary_to_integer(major), binary_to_integer(minor) + 1, 0, [0] }
       end)
     end
 
