@@ -37,6 +37,18 @@ defmodule Stream.Reducers do
     end
   end
 
+  defmacro filter_map(filter, mapper, f // nil) do
+    quote do
+      fn(entry, acc) ->
+        if unquote(filter).(entry) do
+          cont(unquote(f), unquote(mapper).(entry), acc)
+        else
+          { :cont, acc }
+        end
+      end
+    end
+  end
+
   defmacro map(callback, f // nil) do
     quote do
       fn(entry, acc) ->
@@ -65,6 +77,18 @@ defmodule Stream.Reducers do
         else
           { :halt, orig }
         end
+      end
+    end
+  end
+
+  defmacro take_every(nth, f // nil) do
+    quote do
+      fn
+        entry, acc(h, n, t) when n === :first
+                            when n === unquote(nth) ->
+          cont_with_acc(unquote(f), entry, h, 1, t)
+        entry, acc(h, n, t) ->
+          { :cont, acc(h, n+1, t) }
       end
     end
   end

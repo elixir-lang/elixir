@@ -208,7 +208,7 @@ defmodule Stream do
   end
 
   @doc """
-  Creates a stream that will filter elements according to
+  Creates a stream that filters elements according to
   the given function on enumeration.
 
   ## Examples
@@ -221,6 +221,24 @@ defmodule Stream do
   @spec filter(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
   def filter(enum, fun) do
     lazy enum, fn(f1) -> R.filter(fun, f1) end
+  end
+
+  @doc """
+  Creates a stream that filters and then map elements according
+  to given funtions.
+
+  It exists for simmetry with Enum.filter_map/3.
+
+  ## Examples
+
+      iex> stream = Stream.filter_map([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
+      iex> Enum.to_list(stream)
+      [2]
+
+  """
+  @spec filter_map(Enumerable.t, (element -> as_boolean(term)), (element -> any)) :: Enumerable.t
+  def filter_map(enum, filter, mapper) do
+    lazy enum, fn(f1) -> R.filter_map(filter, mapper, f1) end
   end
 
   @doc """
@@ -330,7 +348,26 @@ defmodule Stream do
     lazy enum, n, fn(f1) -> R.take(f1) end
   end
 
-  def take(_enum, 0), do: Lazy[enum: [], funs: [&(&1)]]
+  def take(_enum, 0), do: Lazy[enum: []]
+
+  @doc """
+  Creates a stream that takes every `n` item from the enumerable.
+
+  The first item is always included, unless n is 0.
+
+  ## Examples
+
+      iex> stream = Stream.take_every(1..10, 2)
+      iex> Enum.to_list(stream)
+      [1,3,5,7,9]
+
+  """
+  @spec take(Enumerable.t, non_neg_integer) :: Enumerable.t
+  def take_every(enum, n) when n > 0 do
+    lazy enum, n, fn(f1) -> R.take_every(n, f1) end
+  end
+
+  def take_every(_enum, 0), do: Lazy[enum: []]
 
   @doc """
   Lazily takes elements of the enumerable while the given

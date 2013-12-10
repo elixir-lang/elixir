@@ -659,9 +659,8 @@ defmodule Enum do
   end
 
   def filter_map(collection, filter, mapper) do
-    reduce(collection, [], fn(entry, acc) ->
-      if filter.(entry), do: [mapper.(entry)|acc], else: acc
-    end) |> :lists.reverse
+    Enumerable.reduce(collection, { :cont, [] }, R.filter_map(filter, mapper))
+    |> elem(1) |> :lists.reverse
   end
 
   @doc """
@@ -1490,17 +1489,9 @@ defmodule Enum do
   @spec take_every(t, integer) :: list
   def take_every(_collection, 0), do: []
   def take_every(collection, nth) do
-    res =
-      reduce(collection, nil, fn
-        x, { acc, ^nth }  -> { [x | acc], 1 }
-        _, { acc, count } -> { acc, count + 1 }
-        x, nil            -> { [x], 1 }
-      end)
-
-    case res do
-      nil -> []
-      { list, _ } -> :lists.reverse(list)
-    end
+    { _, { res, _ } } =
+      Enumerable.reduce(collection, { :cont, { [], :first } }, R.take_every(nth))
+    :lists.reverse(res)
   end
 
   @doc """
