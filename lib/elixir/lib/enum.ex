@@ -85,10 +85,10 @@ defprotocol Enumerable do
   @type continuation :: (acc -> result)
 
   @doc """
-  The reduce function.
+  Reduces the collection into a value.
 
   Most of the operations in `Enum` are implemented in terms of reduce.
-  This function shuold simply apply the given `reducer` function to each
+  This function should simply apply the given `reducer` function to each
   item in the collection and proceed as expected by the returned accumulator.
 
   As an example, here is the implementation of `reduce` for lists:
@@ -103,7 +103,7 @@ defprotocol Enumerable do
   def reduce(collection, acc, fun)
 
   @doc """
-  Check if a value exists within the collection.
+  Checks if a value exists within the collection.
 
   Membership should be tested with the match (`===`) operator.
   """
@@ -111,7 +111,7 @@ defprotocol Enumerable do
   def member?(collection, value)
 
   @doc """
-  Retrieve the collection' size.
+  Retrieves the collection's size.
   """
   @spec count(t) :: non_neg_integer
   def count(collection)
