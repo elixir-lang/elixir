@@ -159,6 +159,13 @@ defmodule StreamTest do
            |> Enum.to_list == [1, 2, 2, 3, 3, 4]
   end
 
+  test "zip/2" do
+    concat = Stream.concat(1..3, 4..6)
+    cycle  = Stream.cycle([:a, :b, :c])
+    assert Stream.zip(concat, cycle) |> Enum.to_list ==
+           [{1,:a},{2,:b},{3,:c},{4,:a},{5,:b},{6,:c}]
+  end
+
   test "reject" do
     stream = Stream.reject([1,2,3], fn(x) -> rem(x, 2) == 0 end)
     assert is_lazy(stream)

@@ -303,10 +303,10 @@ defmodule EnumTest.List do
   test :zip do
     assert Enum.zip([:a, :b], [1, 2]) == [{:a, 1}, {:b, 2}]
     assert Enum.zip([:a, :b], [1, 2, 3, 4]) == [{:a, 1}, {:b, 2}]
-    assert Enum.zip([:a, :b, :c, :d], [1, 2]) == [{:a, 1}, {:b, 2}, {:c, nil}, {:d, nil}]
+    assert Enum.zip([:a, :b, :c, :d], [1, 2]) == [{:a, 1}, {:b, 2}]
     assert Enum.zip([], [1]) == []
-    assert Enum.zip([1], []) == [{ 1, nil }]
-    assert Enum.zip([], []) == []
+    assert Enum.zip([1], []) == []
+    assert Enum.zip([], [])  == []
   end
 
   test :with_index do
@@ -717,14 +717,14 @@ defmodule EnumTest.Range do
   test :zip do
     assert Enum.zip([:a, :b], 1..2) == [{:a, 1}, {:b, 2}]
     assert Enum.zip([:a, :b], 1..4) == [{:a, 1}, {:b, 2}]
-    assert Enum.zip([:a, :b, :c, :d], 1..2) == [{:a, 1}, {:b, 2}, {:c, nil}, {:d, nil}]
+    assert Enum.zip([:a, :b, :c, :d], 1..2) == [{:a, 1}, {:b, 2}]
 
     assert Enum.zip(1..2, [:a, :b]) == [{1, :a}, {2, :b}]
-    assert Enum.zip(1..4, [:a, :b]) == [{1, :a}, {2, :b}, {3, nil}, {4, nil}]
+    assert Enum.zip(1..4, [:a, :b]) == [{1, :a}, {2, :b}]
     assert Enum.zip(1..2, [:a, :b, :c, :d]) == [{1, :a}, {2, :b}]
 
     assert Enum.zip(1..2, 1..2) == [{1, 1}, {2, 2}]
-    assert Enum.zip(1..4, 1..2) == [{1, 1}, {2, 2}, {3, nil}, {4, nil}]
+    assert Enum.zip(1..4, 1..2) == [{1, 1}, {2, 2}]
     assert Enum.zip(1..2, 1..4) == [{1, 1}, {2, 2}]
   end
 

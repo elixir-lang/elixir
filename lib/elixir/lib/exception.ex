@@ -51,7 +51,8 @@ end
 
 defexception BadArityError, [function: nil, args: nil] do
   def message(exception) do
-    "bad arity error: #{inspect(exception.function)} called with #{inspect(exception.args)}"
+    args = Enum.map_join(exception.args, ", ", &inspect/1)
+    "bad arity error: #{inspect(exception.function)} called with (#{args})"
   end
 end
 

@@ -128,7 +128,6 @@ defmodule Stream do
     end
   end
 
-  @type t :: Lazy.t | (acc, (element, acc -> acc) -> acc)
   @type acc :: any
   @type element :: any
   @type index :: non_neg_integer
@@ -146,7 +145,7 @@ defmodule Stream do
       [6,7,8,9,10]
 
   """
-  @spec drop(Enumerable.t, non_neg_integer) :: t
+  @spec drop(Enumerable.t, non_neg_integer) :: Enumerable.t
   def drop(enum, n) when n >= 0 do
     lazy enum, n, fn(f1) ->
       fn
@@ -170,7 +169,7 @@ defmodule Stream do
       [6,7,8,9,10]
 
   """
-  @spec drop_while(Enumerable.t, (element -> as_boolean(term))) :: t
+  @spec drop_while(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
   def drop_while(enum, f) do
     lazy enum, true, fn(f1) ->
       fn entry, [h,bool|t] = orig ->
@@ -195,7 +194,7 @@ defmodule Stream do
       [2]
 
   """
-  @spec filter(Enumerable.t, (element -> as_boolean(term))) :: t
+  @spec filter(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
   def filter(enum, f) do
     lazy enum, fn(f1) ->
       fn(entry, acc) ->
@@ -215,7 +214,7 @@ defmodule Stream do
       [2,4,6]
 
   """
-  @spec map(Enumerable.t, (element -> any)) :: t
+  @spec map(Enumerable.t, (element -> any)) :: Enumerable.t
   def map(enum, f) do
     lazy enum, fn(f1) ->
       fn(entry, acc) ->
@@ -235,7 +234,7 @@ defmodule Stream do
       [1, 2, 2, 4, 3, 6]
 
   """
-  @spec flat_map(Enumerable.t, (element -> any)) :: t
+  @spec flat_map(Enumerable.t, (element -> any)) :: Enumerable.t
   def flat_map(enum, f) do
     lazy enum, fn(f1) ->
       fn(entry, acc) ->
@@ -276,7 +275,7 @@ defmodule Stream do
       [1,3]
 
   """
-  @spec reject(Enumerable.t, (element -> as_boolean(term))) :: t
+  @spec reject(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
   def reject(enum, f) do
     lazy enum, fn(f1) ->
       fn(entry, acc) ->
@@ -300,7 +299,7 @@ defmodule Stream do
       [1,2,3,1,2]
 
   """
-  @spec take(Enumerable.t, non_neg_integer) :: t
+  @spec take(Enumerable.t, non_neg_integer) :: Enumerable.t
   def take(enum, n) when n > 0 do
     lazy enum, n, fn(f1) ->
       fn(entry, [h,n|t] = orig) ->
@@ -327,7 +326,7 @@ defmodule Stream do
       [1,2,3,4,5]
 
   """
-  @spec take_while(Enumerable.t, (element -> as_boolean(term))) :: t
+  @spec take_while(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
   def take_while(enum, f) do
     lazy enum, fn(f1) ->
       fn(entry, acc) ->
@@ -351,7 +350,7 @@ defmodule Stream do
       [{1,0},{2,1},{3,2}]
 
   """
-  @spec with_index(Enumerable.t) :: t
+  @spec with_index(Enumerable.t) :: Enumerable.t
   def with_index(enum) do
     lazy enum, 0, fn(f1) ->
       fn(entry, [h,counter|t]) ->
@@ -373,7 +372,7 @@ defmodule Stream do
       [1,2,3,4,5,6,7,8,9]
 
   """
-  @spec concat(Enumerable.t) :: t
+  @spec concat(Enumerable.t) :: Enumerable.t
   def concat(enumerables) do
     &do_concat(enumerables, &1, &2)
   end
@@ -394,35 +393,85 @@ defmodule Stream do
       [1,2,3,1,2,3]
 
   """
-  @spec concat(Enumerable.t, Enumerable.t) :: t
+  @spec concat(Enumerable.t, Enumerable.t) :: Enumerable.t
   def concat(first, second) do
     &do_concat([first, second], &1, &2)
   end
 
   defp do_concat(enumerables, acc, fun) do
-    fun = &do_concat_each(fun, &1, &2)
-    Enumerable.reduce(enumerables, acc, fn x, acc ->
-      do_concat_reduce(&Enumerable.reduce(x, &1, fun), { :cont, acc })
-    end)
+    step = &do_concat_step/2
+    next = &Enumerable.reduce(enumerables, &1, step)
+    do_concat([], next, acc, fun)
   end
 
-  defp do_concat_reduce(reduce, acc) do
-    try do
-      reduce.(acc)
-    catch
-      { :stream_concat, acc } -> acc
-    else
-      { :done, acc }         -> { :cont, acc }
-      { :halted, acc }       -> { :cont, acc }
-      { :suspended, acc, c } -> { :suspend, acc, &do_concat_reduce(c, &1) }
+  defp do_concat(next_acc, next, acc, fun) do
+    case next.({ :cont, next_acc }) do
+      { :suspended, [enum|next_acc], next } ->
+        do_concat(next_acc, next, acc, fun, &Enumerable.reduce(enum, &1, fun))
+      { reason, _ } ->
+        { reason, elem(acc, 1) }
     end
   end
 
-  defp do_concat_each(fun, x, acc) do
-    case fun.(x, acc) do
-      { :halt, _ } = h -> throw({ :stream_concat, h })
-      { _, _ }     = o -> o
+  defp do_concat(next_acc, next, acc, fun, reduce) do
+    case reduce.(acc) do
+      { :done, acc }         -> do_concat(next_acc, next, { :cont, acc }, fun)
+      { :halted, acc } = h   -> h
+      { :suspended, acc, c } -> { :suspended, acc, &do_concat(next_acc, next, &1, fun, c) }
     end
+  end
+
+  defp do_concat_step(x, acc) do
+    { :suspend, [x|acc] }
+  end
+
+  @doc """
+  Zips two collections together, lazily.
+
+  The zipping finishes as soon as any enumerable completes.
+
+  ## Examples
+
+      iex> concat = Stream.concat(1..3, 4..6)
+      iex> cycle  = Stream.cycle([:a, :b, :c])
+      iex> Stream.zip(concat, cycle) |> Enum.to_list
+      [{1,:a},{2,:b},{3,:c},{4,:a},{5,:b},{6,:c}]
+
+  """
+  @spec zip(Enumerable.t, Enumerable.t) :: Enumerable.t
+  def zip(left, right) do
+    step      = &do_zip_step(&1, &2)
+    left_fun  = &Enumerable.reduce(left, &1, step)
+    right_fun = &Enumerable.reduce(right, &1, step)
+
+    # Return a function as a lazy enumerator.
+    &do_zip(left_fun, [], right_fun, [], &1, &2)
+  end
+
+  defp do_zip(_left_fun, _left_acc, _right_fun, _right_acc, { :halt, acc }, _fun) do
+    { :halted, acc }
+  end
+
+  defp do_zip(left_fun, left_acc, right_fun, right_acc, { :suspend, acc }, fun) do
+    { :suspended, acc, &do_zip(left_fun, left_acc, right_fun, right_acc, &1, fun) }
+  end
+
+  defp do_zip(left_fun, left_acc, right_fun, right_acc, { :cont, acc }, callback) do
+    case left_fun.({ :cont, left_acc }) do
+      { :suspended, [x|left_acc], left_fun } ->
+        case right_fun.({ :cont, right_acc }) do
+          { :suspended, [y|right_acc], right_fun } ->
+            do_zip(left_fun, left_acc, right_fun, right_acc, callback.({ x, y }, acc), callback)
+          { reason, _ } ->
+            { reason, acc }
+        end
+      { reason, _ } ->
+        { reason, acc }
+    end
+  end
+
+  defp do_zip_step(x, acc) do
+    { :suspend, [x|acc] }
   end
 
   ## Sources
@@ -438,7 +487,7 @@ defmodule Stream do
       [1,2,3,1,2]
 
   """
-  @spec cycle(Enumerable.t) :: t
+  @spec cycle(Enumerable.t) :: Enumerable.t
   def cycle(enumerable) do
     fn acc, fun ->
       reduce = &Enumerable.reduce(enumerable, &1, fun)
@@ -475,7 +524,7 @@ defmodule Stream do
       [0,1,2,3,4]
 
   """
-  @spec iterate(element, (element -> element)) :: t
+  @spec iterate(element, (element -> element)) :: Enumerable.t
   def iterate(start_value, next_fun) do
     unfold({ :ok, start_value}, fn
       { :ok, value } ->
@@ -495,7 +544,7 @@ defmodule Stream do
       [0.4435846174457203, 0.7230402056221108, 0.94581636451987]
 
   """
-  @spec repeatedly((() -> element)) :: t
+  @spec repeatedly((() -> element)) :: Enumerable.t
   def repeatedly(generator_fun) when is_function(generator_fun, 0) do
     &do_repeatedly(generator_fun, &1, &2)
   end
@@ -539,7 +588,7 @@ defmodule Stream do
                       fn file -> File.close!(file) end)
 
   """
-  @spec resource((() -> acc), (acc -> { element, acc } | nil), (acc -> term)) :: t
+  @spec resource((() -> acc), (acc -> { element, acc } | nil), (acc -> term)) :: Enumerable.t
   def resource(start_fun, next_fun, after_fun) do
     fn acc, fun ->
       next_acc = start_fun.()
@@ -563,7 +612,7 @@ defmodule Stream do
       iex> Stream.unfold(5, fn 0 -> nil; n -> {n, n-1} end) |> Enum.to_list()
       [5, 4, 3, 2, 1]
   """
-  @spec unfold(acc, (acc -> { element, acc } | nil)) :: t
+  @spec unfold(acc, (acc -> { element, acc } | nil)) :: Enumerable.t
   def unfold(next_acc, next_fun) do
     &do_unfold(next_acc, next_fun, &1, &2)
   end

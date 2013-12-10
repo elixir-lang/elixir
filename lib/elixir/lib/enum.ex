@@ -81,6 +81,12 @@ defprotocol Enumerable do
   The continuation is the closure returned as result when
   the enumeration is suspended. When invoked, it expects
   a new accumulator and it returns the result.
+
+  A continuation is easily implemented as long as the reduce
+  function is defined in a tail recursive fashion. If the function
+  is tail recursive, all the state is passed as arguments, so
+  the continuation would simply be the reducing function partially
+  applied.
   """
   @type continuation :: (acc -> result)
 
@@ -1261,9 +1267,9 @@ defmodule Enum do
 
   @doc """
   Zips corresponding elements from two collections into one list
-  of tuples. The number of elements in the resulting list is
-  dictated by the first enum. If the second list is shorter,
-  values are filled with `nil`.
+  of tuples.
+
+  The zipping finishes as soon as any enumerable completes.
 
   ## Examples
 
@@ -1271,7 +1277,7 @@ defmodule Enum do
       [{1,:a},{2,:b},{3,:c}]
 
       iex> Enum.zip([1,2,3,4,5], [:a, :b, :c])
-      [{1,:a},{2,:b},{3,:c},{4,nil},{5,nil}]
+      [{1,:a},{2,:b},{3,:c}]
 
   """
   @spec zip(t, t) :: [{any, any}]
@@ -1280,16 +1286,7 @@ defmodule Enum do
   end
 
   def zip(coll1, coll2) do
-    list = to_list(coll1)
-    { zipped, rest } = Enumerable.reduce(coll2, { :cont, { [], list } }, fn
-      entry, { acc, [h|t] } -> { :cont, { [{h, entry}|acc], t } }
-      _,     { acc, [] }    -> throw { :enum_zip, acc }
-    end) |> elem(1)
-
-    list = :lists.foldl(fn(x, acc) -> [{ x, nil }|acc] end, zipped, rest)
-    :lists.reverse(list)
-  catch
-    { :enum_zip, rest } -> :lists.reverse(rest)
+    Stream.zip(coll1, coll2).({ :cont, [] }, &{ :cont, [&1|&2] }) |> elem(1) |> :lists.reverse
   end
 
   @doc """
@@ -1923,17 +1920,12 @@ defmodule Enum do
 
   ## zip
 
-  defp do_zip([h1|next1], other) do
-    { h2, next2 } = do_zip_next(other)
+  defp do_zip([h1|next1], [h2|next2]) do
     [{ h1, h2 }|do_zip(next1, next2)]
   end
 
-  defp do_zip([], _) do
-    []
-  end
-
-  defp do_zip_next([h|t]), do: { h, t }
-  defp do_zip_next([]),    do: { nil, [] }
+  defp do_zip(_, []), do: []
+  defp do_zip([], _), do: []
 
   ## slice
 
