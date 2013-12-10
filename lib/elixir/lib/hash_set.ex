@@ -505,6 +505,6 @@ end
 
 defimpl Enumerable, for: HashSet do
   def reduce(set, acc, fun), do: HashSet.reduce(set, acc, fun)
-  def member?(set, v),       do: HashSet.member?(set, v)
-  def count(set),            do: HashSet.size(set)
+  def member?(set, v),       do: { :ok, HashSet.member?(set, v) }
+  def count(set),            do: { :ok, HashSet.size(set) }
 end

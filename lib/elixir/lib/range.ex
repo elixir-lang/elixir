@@ -43,14 +43,14 @@ defimpl Enumerable, for: Range do
 
   def member?(first .. last, value) do
     if first <= last do
-      first <= value and value <= last
+      { :ok, first <= value and value <= last }
     else
-      last <= value and value <= first
+      { :ok, last <= value and value <= first }
     end
   end
 
   def count(first .. _ = range) do
-    Range.Iterator.count(first, range)
+    { :ok, Range.Iterator.count(first, range) }
   end
 end
 

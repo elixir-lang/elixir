@@ -95,14 +95,12 @@ defmodule Stream do
       end)
     end
 
-    def count(lazy) do
-      do_reduce(lazy, { :cont, 0 }, fn _, [acc] -> { :cont, [acc + 1] } end) |> elem(1)
+    def count(_lazy) do
+      { :error, __MODULE__ }
     end
 
-    def member?(lazy, value) do
-      do_reduce(lazy, { :cont, false }, fn(entry, _) ->
-        if entry === value, do: { :halt, [true] }, else: { :cont, [false] }
-      end) |> elem(1)
+    def member?(_lazy, _value) do
+      { :error, __MODULE__ }
     end
 
     defp do_reduce(Lazy[enum: enum, funs: funs, accs: accs], acc, fun) do

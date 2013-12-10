@@ -111,15 +111,20 @@ defprotocol Enumerable do
   @doc """
   Checks if a value exists within the collection.
 
-  Membership should be tested with the match (`===`) operator.
+  It should return `{ :ok, boolean }` if membership can be tested
+  faster than linear time with the match (`===`) operator, otherwise
+  should return `{ :error, __MODULE__ }`.
   """
-  @spec member?(t, term) :: boolean
+  @spec member?(t, term) :: { :ok, boolean } | { :error, module }
   def member?(collection, value)
 
   @doc """
   Retrieves the collection's size.
+
+  Should return `{ :ok, size }` if the size is pre-calculated,
+  `{ :error, __MODULE__ }` otherwise.
   """
-  @spec count(t) :: non_neg_integer
+  @spec count(t) :: { :ok, non_neg_integer } | { :error, module }
   def count(collection)
 end
 
@@ -159,56 +164,6 @@ defmodule Enum do
   @type element :: any
   @type index :: non_neg_integer
   @type default :: any
-
-  @doc """
-  Checks if `value` exists within the `collection`.
-
-  Membership is tested with the match (`===`) operator, although
-  enumerables like ranges may include floats inside the given
-  range.
-
-  ## Examples
-
-      iex> Enum.member?(1..10, 5)
-      true
-      iex> Enum.member?([:a, :b, :c], :d)
-      false
-
-  """
-  @spec member?(t, element) :: boolean
-  def member?(collection, value) do
-    Enumerable.member?(collection, value)
-  end
-
-  @doc """
-  Returns the collection's size.
-
-  ## Examples
-
-      iex> Enum.count([1, 2, 3])
-      3
-
-  """
-  @spec count(t) :: non_neg_integer
-  def count(collection) do
-    Enumerable.count(collection)
-  end
-
-  @doc """
-  Returns the count of items in the collection for which
-  `fun` returns `true`.
-
-  ## Examples
-      iex> Enum.count([1, 2, 3, 4, 5], fn(x) -> rem(x, 2) == 0 end)
-      2
-
-  """
-  @spec count(t, (element -> as_boolean(term))) :: non_neg_integer
-  def count(collection, fun) do
-    Enumerable.reduce(collection, { :cont, 0 }, fn(entry, acc) ->
-      { :cont, if(fun.(entry), do: acc + 1, else: acc) }
-    end) |> elem(1)
-  end
 
   @doc """
   Invokes the given `fun` for each item in the `collection` and returns `false`
@@ -350,6 +305,52 @@ defmodule Enum do
   defp do_concat(enumerable) do
     fun = &[&1|&2]
     reduce(enumerable, [], &reduce(&1, &2, fun)) |> :lists.reverse
+  end
+
+  @doc """
+  Returns the collection's size.
+
+  ## Examples
+
+      iex> Enum.count([1, 2, 3])
+      3
+
+  """
+  @spec count(t) :: non_neg_integer
+  def count(collection) when is_list(collection) do
+    :erlang.length(collection)
+  end
+
+  def count(collection) do
+    case Enumerable.count(collection) do
+      value when is_integer(value) ->
+        IO.write "Expected #{inspect Enumerable.impl_for(collection)}.count/1 to return " <>
+                 "{ :ok, boolean } if pre-calculated, otherwise { :error, module }, got " <>
+                 "an integer\n#{Exception.format_stacktrace}"
+        value
+      { :ok, value } when is_integer(value) ->
+        value
+      { :error, module } ->
+        module.reduce(collection, { :cont, 0 }, fn
+          _, acc -> { :cont, acc + 1 }
+        end) |> elem(1)
+    end
+  end
+
+  @doc """
+  Returns the count of items in the collection for which
+  `fun` returns `true`.
+
+  ## Examples
+      iex> Enum.count([1, 2, 3, 4, 5], fn(x) -> rem(x, 2) == 0 end)
+      2
+
+  """
+  @spec count(t, (element -> as_boolean(term))) :: non_neg_integer
+  def count(collection, fun) do
+    Enumerable.reduce(collection, { :cont, 0 }, fn(entry, acc) ->
+      { :cont, if(fun.(entry), do: acc + 1, else: acc) }
+    end) |> elem(1)
   end
 
   @doc """
@@ -839,6 +840,43 @@ defmodule Enum do
       { [new_entry|list], acc }
     end)
     { :lists.reverse(list), acc }
+  end
+
+  @doc """
+  Checks if `value` exists within the `collection`.
+
+  Membership is tested with the match (`===`) operator, although
+  enumerables like ranges may include floats inside the given
+  range.
+
+  ## Examples
+
+      iex> Enum.member?(1..10, 5)
+      true
+      iex> Enum.member?([:a, :b, :c], :d)
+      false
+
+  """
+  @spec member?(t, element) :: boolean
+  def member?(collection, value) when is_list(collection) do
+    :lists.member(value, collection)
+  end
+
+  def member?(collection, value) do
+    case Enumerable.member?(collection, value) do
+      value when is_boolean(value) ->
+        IO.write "Expected #{inspect Enumerable.impl_for(collection)}.member?/2 to return " <>
+                 "{ :ok, boolean } if faster than linear, otherwise { :error, __MODULE__ }, " <>
+                 "got a boolean\n#{Exception.format_stacktrace}"
+        value
+      { :ok, value } when is_boolean(value) ->
+        value
+      { :error, module } ->
+        module.reduce(collection, { :cont, false }, fn
+          ^value, _ -> { :halt, true }
+          _, _      -> { :cont, false }
+        end) |> elem(1)
+    end
   end
 
   @doc """
@@ -1952,25 +1990,17 @@ defimpl Enumerable, for: List do
   def reduce([],    { :cont, acc }, _fun),   do: { :done, acc }
   def reduce([h|t], { :cont, acc }, fun),    do: reduce(t, fun.(h, acc), fun)
 
-  def member?([], _),       do: false
-  def member?(list, value), do: :lists.member(value, list)
-
-  def count(list), do: length(list)
+  def member?(_list, _value),
+    do: { :error, __MODULE__ }
+  def count(_list),
+    do: { :error, __MODULE__ }
 end
 
 defimpl Enumerable, for: Function do
-  def reduce(function, acc, fun) do
-    function.(acc, fun)
-  end
-
-  def member?(function, value) do
-    function.({ :cont, false }, fn
-      ^value, _ -> { :halt, true }
-      _, _      -> { :cont, false }
-    end) |> elem(1)
-  end
-
-  def count(function) do
-    function.({ :cont, 0 }, fn(_, acc) -> { :cont, acc + 1 } end) |> elem(1)
-  end
+  def reduce(function, acc, fun),
+    do: function.(acc, fun)
+  def member?(_function, _value),
+    do: { :error, __MODULE__ }
+  def count(_function),
+    do: { :error, __MODULE__ }
 end
