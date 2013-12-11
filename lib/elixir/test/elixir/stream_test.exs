@@ -25,6 +25,22 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [3,5,7]
   end
 
+  test "chunks_by" do
+    stream = Stream.chunks_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
+
+    assert is_lazy(stream)
+    assert Enum.to_list(stream) ==
+           [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
+    assert stream |> Stream.take(3) |> Enum.to_list ==
+           [[1], [2, 2], [3]]
+  end
+
+  test "chunks_by is zippable" do
+    stream = Stream.chunks_by([1, 2, 2, 3], &(rem(&1, 2) == 1))
+    list   = Enum.to_list(stream)
+    assert Enum.zip(list, list) == Enum.zip(stream, stream)
+  end
+
   test "concat/1" do
     stream = Stream.concat([1..3, [], [4, 5, 6], [], 7..9])
     assert is_function(stream)

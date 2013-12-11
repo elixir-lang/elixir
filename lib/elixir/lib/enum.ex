@@ -340,24 +340,14 @@ defmodule Enum do
   """
   @spec chunks_by(t, (element -> any)) :: [list]
   def chunks_by(coll, fun) do
-    res =
-      reduce(coll, nil, fn
-        x, {acc, buffer, value} ->
-          new_value = fun.(x)
-          if new_value == value do
-            { acc, [x | buffer], value }
-          else
-            { [:lists.reverse(buffer) | acc], [x], new_value }
-          end
-        x, nil ->
-          { [], [x], fun.(x) }
-      end)
+    { _, { acc, res } } =
+      Enumerable.reduce(coll, { :cont, { [], nil } }, R.chunks_by(fun))
 
-    if nil?(res) do
-      []
-    else
-      { acc, buffer, _ } = res
-      :lists.reverse([:lists.reverse(buffer) | acc])
+    case res do
+      { buffer, _ } ->
+        :lists.reverse([:lists.reverse(buffer) | acc])
+      nil ->
+        []
     end
   end
 

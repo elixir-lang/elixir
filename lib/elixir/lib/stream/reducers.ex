@@ -2,6 +2,22 @@ defmodule Stream.Reducers do
   # Collection of reducers shared by Enum and Stream.
   @moduledoc false
 
+  defmacro chunks_by(fun, f // nil) do
+    quote do
+      fn
+        entry, acc(h, { buffer, value }, t) ->
+          new_value = unquote(fun).(entry)
+          if new_value == value do
+            { :cont, acc(h, { [entry|buffer], value }, t) }
+          else
+            cont_with_acc(unquote(f), :lists.reverse(buffer), h, { [entry], new_value }, t)
+          end
+        entry, acc(h, nil, t) ->
+          { :cont, acc(h, { [entry], unquote(fun).(entry) }, t) }
+      end
+    end
+  end
+
   defmacro drop(f // nil) do
     quote do
       fn

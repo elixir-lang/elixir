@@ -83,7 +83,7 @@ defmodule Stream do
   like `Stream.cycle/1`, `Stream.unfold/2`, `Stream.resource/3` and more.
   """
 
-  defrecord Lazy, enum: nil, funs: [], accs: []
+  defrecord Lazy, enum: nil, funs: [], accs: [], done: nil
 
   defimpl Enumerable, for: Lazy do
     @compile :inline_list_funs
@@ -103,25 +103,36 @@ defmodule Stream do
       { :error, __MODULE__ }
     end
 
-    defp do_reduce(Lazy[enum: enum, funs: funs, accs: accs], acc, fun) do
+    defp do_reduce(Lazy[enum: enum, funs: funs, accs: accs, done: done], acc, fun) do
       composed = :lists.foldl(fn fun, acc -> fun.(acc) end, fun, funs)
-      do_each(&Enumerable.reduce(enum, &1, composed), :lists.reverse(accs), acc)
+      do_each(&Enumerable.reduce(enum, &1, composed), done && { done, fun }, :lists.reverse(accs), acc)
     end
 
-    defp do_each(_reduce, _accs, { :halt, acc }) do
+    defp do_each(_reduce, _done, _accs, { :halt, acc }) do
       { :halted, acc }
     end
 
-    defp do_each(reduce, accs, { :suspend, acc }) do
-      { :suspended, acc, &do_each(reduce, accs, &1) }
+    defp do_each(reduce, done, accs, { :suspend, acc }) do
+      { :suspended, acc, &do_each(reduce, done, accs, &1) }
     end
 
-    defp do_each(reduce, accs, { :cont, acc }) do
+    defp do_each(reduce, done, accs, { :cont, acc }) do
       case reduce.({ :cont, [acc|accs] }) do
-        { reason, [acc|_] } ->
-          { reason, acc }
         { :suspended, [acc|accs], continuation } ->
-          { :suspended, acc, &do_each(continuation, accs, &1) }
+          { :suspended, acc, &do_each(continuation, done, accs, &1) }
+        { :halted, [acc|_] } ->
+          { :halted, acc }
+        { :done, [acc|_] = accs } ->
+          case done do
+            nil ->
+              { :done, acc }
+            { done, fun } ->
+              case done.(fun).(accs) do
+                { :cont, [acc|_] }    -> { :done, acc }
+                { :halt, [acc|_] }    -> { :halted, acc }
+                { :suspend, [acc|_] } -> { :suspended, acc, &({ :done, &1 |> elem(1) }) }
+              end
+          end
       end
     end
   end
@@ -150,6 +161,33 @@ defmodule Stream do
   end
 
   ## Transformers
+
+  @doc """
+  Chunk the `enum` by buffering elements for which `fun` returns
+  the same value and only emit them when `fun` returns a new value
+  or the `enum` finishes,
+
+  ## Examples
+
+      iex> stream = Stream.chunks_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
+      iex> Enum.to_list(stream)
+      [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
+
+  """
+  @spec chunks_by(Enumerable.t, (element -> any)) :: Enumerable.t
+  def chunks_by(enum, fun) do
+    lazy enum, nil,
+         fn(f1) -> R.chunks_by(fun, f1) end,
+         fn(f1) -> &do_chunks_by(&1, f1) end
+  end
+
+  defp do_chunks_by(acc(_, nil, _) = acc, _f1) do
+    { :cont, acc }
+  end
+
+  defp do_chunks_by(acc(h, { buffer, _ }, t), f1) do
+    cont_with_acc(f1, :lists.reverse(buffer), h, nil, t)
+  end
 
   @doc """
   Lazily drops the next `n` items from the enumerable.
@@ -720,23 +758,20 @@ defmodule Stream do
 
   ## Helpers
 
-  @compile { :inline, lazy: 2, lazy: 3 }
+  @compile { :inline, lazy: 2, lazy: 3, lazy: 4 }
 
-  defp lazy(enum, fun) do
-    case enum do
-      Lazy[funs: funs] = lazy ->
-        lazy.funs([fun|funs])
-      _ ->
-        Lazy[enum: enum, funs: [fun], accs: []]
-    end
-  end
+  defp lazy(Lazy[funs: funs] = lazy, fun),
+    do: lazy.funs([fun|funs])
+  defp lazy(enum, fun),
+    do: Lazy[enum: enum, funs: [fun]]
 
-  defp lazy(enum, acc, fun) do
-    case enum do
-      Lazy[funs: funs, accs: accs] = lazy ->
-        lazy.funs([fun|funs]).accs([acc|accs])
-      _ ->
-        Lazy[enum: enum, funs: [fun], accs: [acc]]
-    end
-  end
+  defp lazy(Lazy[funs: funs, accs: accs] = lazy, acc, fun),
+    do: lazy.funs([fun|funs]).accs([acc|accs])
+  defp lazy(enum, acc, fun),
+    do: Lazy[enum: enum, funs: [fun], accs: [acc]]
+
+  defp lazy(Lazy[done: nil, funs: funs, accs: accs] = lazy, acc, fun, done),
+    do: lazy.funs([fun|funs]).accs([acc|accs]).done(done)
+  defp lazy(enum, acc, fun, done),
+    do: Lazy[enum: enum, funs: [fun], accs: [acc], done: done]
 end
