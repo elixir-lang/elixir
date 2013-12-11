@@ -231,9 +231,9 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.filter_map([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
+      iex> stream = Stream.filter_map(1..6, fn(x) -> rem(x, 2) == 0 end, &(&1 * 2))
       iex> Enum.to_list(stream)
-      [2]
+      [4,8,12]
 
   """
   @spec filter_map(Enumerable.t, (element -> as_boolean(term)), (element -> any)) :: Enumerable.t
@@ -332,11 +332,21 @@ defmodule Stream do
   Lazily takes the next `n` items from the enumerable and stops
   enumeration.
 
+  If a negative `n` is given, the last `n` values will be taken.
+  For such, the collection is fully enumerated keeping up to `2 * n`
+  elements in memory. Once the end of the collection is reached,
+  the last `count` elements will be executed. Therefore, using
+  a negative `n` in an infinite collection will never return.
+
   ## Examples
 
       iex> stream = Stream.take(1..100, 5)
       iex> Enum.to_list(stream)
       [1,2,3,4,5]
+
+      iex> stream = Stream.take(1..100, -5)
+      iex> Enum.to_list(stream)
+      [96,97,98,99,100]
 
       iex> stream = Stream.cycle([1, 2, 3]) |> Stream.take(5)
       iex> Enum.to_list(stream)
@@ -344,11 +354,40 @@ defmodule Stream do
 
   """
   @spec take(Enumerable.t, non_neg_integer) :: Enumerable.t
+  def take(_enum, 0), do: Lazy[enum: []]
+
   def take(enum, n) when n > 0 do
     lazy enum, n, fn(f1) -> R.take(f1) end
   end
 
-  def take(_enum, 0), do: Lazy[enum: []]
+  def take(enum, n) when n < 0 do
+    &do_take(enum, abs(n), &1, &2)
+  end
+
+  def do_take(enum, n, acc, f) do
+    { _, { _count, buf1, buf2 } } =
+      Enumerable.reduce(enum, { :cont, { 0, [], [] } }, fn
+        entry, { count, buf1, buf2 } ->
+          buf1  = [entry|buf1]
+          count = count + 1
+          if count == n do
+            { :cont, { 0, [], buf1 } }
+          else
+            { :cont, { count, buf1, buf2} }
+          end
+      end)
+
+    Enumerable.reduce(do_take_last(buf1, buf2, n, []), acc, f)
+  end
+
+  defp do_take_last(_buf1, _buf2, 0, acc),
+    do: acc
+  defp do_take_last([], [], _, acc),
+    do: acc
+  defp do_take_last([], [h|t], n, acc),
+    do: do_take_last([], t, n-1, [h|acc])
+  defp do_take_last([h|t], buf2, n, acc),
+    do: do_take_last(t, buf2, n-1, [h|acc])
 
   @doc """
   Creates a stream that takes every `n` item from the enumerable.

@@ -232,6 +232,17 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [5,6,7,8,9,10,11,12,13,14,15]
   end
 
+  test "take with negative count" do
+    Process.put(:stream_each, [])
+
+    stream = Stream.take(1..100, -5)
+    assert is_lazy(stream)
+
+    stream = Stream.each(stream, &Process.put(:stream_each, [&1|Process.get(:stream_each)]))
+    assert Enum.to_list(stream) == [96,97,98,99,100]
+    assert Process.get(:stream_each) == [100,99,98,97,96]
+  end
+
   test "take is zippable" do
     stream = Stream.take(1..1000, 5)
     list   = Enum.to_list(stream)

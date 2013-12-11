@@ -1433,10 +1433,10 @@ defmodule Enum do
   @doc """
   Takes the first `count` items from the collection.
 
-  If a negative value `count` is given, the last `count`
-  values will be taken. The collection is enumerated
-  once to retrieve the proper index. The remaining
-  calculation is performed from the end.
+  If a negative `count` is given, the last `count` values will
+  be taken. For such, the collection is fully enumerated keeping up
+  to `2 * count` elements in memory. Once the end of the collection is
+  reached, the last `count` elements are returned.
 
   ## Examples
 
@@ -1473,7 +1473,8 @@ defmodule Enum do
   end
 
   def take(collection, count) when count < 0 do
-    do_take_reverse(reverse(collection), abs(count), [])
+    Stream.take(collection, count).({ :cont, [] }, &{ :cont, [&1|&2] })
+    |> elem(1) |> :lists.reverse
   end
 
   @doc """
@@ -1911,18 +1912,6 @@ defmodule Enum do
 
   defp do_take([], _) do
     []
-  end
-
-  defp do_take_reverse([h|t], counter, acc) when counter > 0 do
-    do_take_reverse(t, counter - 1, [h|acc])
-  end
-
-  defp do_take_reverse(_list, 0, acc) do
-    acc
-  end
-
-  defp do_take_reverse([], _, acc) do
-    acc
   end
 
   ## take_while
