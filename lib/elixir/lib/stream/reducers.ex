@@ -25,18 +25,18 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro chunks_by(fun, f // nil) do
+  defmacro chunks_by(callback, f // nil) do
     quote do
       fn
         entry, acc(h, { buffer, value }, t) ->
-          new_value = unquote(fun).(entry)
+          new_value = unquote(callback).(entry)
           if new_value == value do
             { :cont, acc(h, { [entry|buffer], value }, t) }
           else
             cont_with_acc(unquote(f), :lists.reverse(buffer), h, { [entry], new_value }, t)
           end
         entry, acc(h, nil, t) ->
-          { :cont, acc(h, { [entry], unquote(fun).(entry) }, t) }
+          { :cont, acc(h, { [entry], unquote(callback).(entry) }, t) }
       end
     end
   end
@@ -139,6 +139,19 @@ defmodule Stream.Reducers do
           cont(unquote(f), entry, acc)
         else
           { :halt, acc }
+        end
+      end
+    end
+  end
+
+  defmacro uniq(callback, f // nil) do
+    quote do
+      fn(entry, acc(h, prev, t) = acc) ->
+        value = unquote(callback).(entry)
+        if :lists.member(value, prev) do
+          { :cont, acc }
+        else
+          cont_with_acc(unquote(f), entry, h, [value|prev], t)
         end
       end
     end

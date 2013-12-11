@@ -545,6 +545,29 @@ defmodule Stream do
   end
 
   @doc """
+  Creates a stream that only emits elements if they are uniq.
+
+  Keep in mind that, in order to know if an element is unique
+  or not, this function needs to store all uniq values emitted
+  by the stream. Therefore, if the stream is infinite, the number
+  of items stored will grow infinitely, never being garbage collected.
+
+  ## Examples
+
+      iex> Stream.uniq([1, 2, 3, 2, 1]) |> Enum.to_list
+      [1, 2, 3]
+
+      iex> Stream.uniq([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end) |> Enum.to_list
+      [{1,:x}, {2,:y}]
+
+  """
+  @spec uniq(Enumerable.t) :: Enumerable.t
+  @spec uniq(Enumerable.t, (element -> term)) :: Enumerable.t
+  def uniq(enum, fun // fn x -> x end) do
+    lazy enum, [], fn f1 -> R.uniq(fun, f1) end
+  end
+
+  @doc """
   Creates a stream where each item in the enumerable will
   be accompanied by its index.
 

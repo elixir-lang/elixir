@@ -1520,7 +1520,7 @@ defmodule Enum do
   end
 
   @doc """
-  Iterates the enumerable, removing all duplicated items.
+  Enumerates the collection, removing all duplicated items.
 
   ## Examples
 
@@ -1540,16 +1540,8 @@ defmodule Enum do
   end
 
   def uniq(collection, fun) do
-    { list, _ } =
-      reduce(collection, { [], [] }, fn(entry, { acc, fun_acc }) ->
-        fun_entry = fun.(entry)
-        if :lists.member(fun_entry, fun_acc) do
-          { acc, fun_acc }
-        else
-          { [entry|acc], [fun_entry|fun_acc] }
-        end
-      end)
-
+    { _, { list, _ } } =
+      Enumerable.reduce(collection, { :cont, { [], [] } }, R.uniq(fun))
     :lists.reverse(list)
   end
 

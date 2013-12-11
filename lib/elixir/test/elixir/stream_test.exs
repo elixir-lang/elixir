@@ -366,6 +366,14 @@ defmodule StreamTest do
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end
 
+  test "uniq" do
+    assert Stream.uniq([1, 2, 3, 2, 1]) |> Enum.to_list ==
+           [1, 2, 3]
+
+    assert Stream.uniq([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end) |> Enum.to_list ==
+           [{1,:x}, {2,:y}]
+  end
+
   test "zip/2" do
     concat = Stream.concat(1..3, 4..6)
     cycle  = Stream.cycle([:a, :b, :c])
