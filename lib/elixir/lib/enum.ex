@@ -1011,7 +1011,6 @@ defmodule Enum do
     end
   end
 
-
   @doc """
   Returns the minimum value.
   Raises `EmptyError` if the collection is empty.
@@ -1203,6 +1202,42 @@ defmodule Enum do
     reduce(collection, to_list(tail), fn(entry, acc) ->
       [entry|acc]
     end)
+  end
+
+  @doc """
+  Applies the given function to each element in the collection,
+  storing the result in a list and passing it as accumulator
+  for the next computation.
+
+  ## Examples
+
+      iex> Enum.scan(1..5, &(&1 + &2))
+      [1,3,6,10,15]
+
+  """
+  @spec scan(t, (element, any -> any)) :: list
+  def scan(enum, fun) do
+    { _, { res, _ } } =
+      Enumerable.reduce(enum, { :cont, { [], :first } }, R.scan_2(fun))
+    :lists.reverse(res)
+  end
+
+  @doc """
+  Applies the given function to each element in the collection,
+  storing the result in a list and passing it as accumulator
+  for the next computation. Uses the given `acc` as starting value.
+
+  ## Examples
+
+      iex> Enum.scan(1..5, 0, &(&1 + &2))
+      [1,3,6,10,15]
+
+  """
+  @spec scan(t, any, (element, any -> any)) :: list
+  def scan(enum, acc, fun) do
+    { _, { res, _ } } =
+      Enumerable.reduce(enum, { :cont, { [], acc } }, R.scan_3(fun))
+    :lists.reverse(res)
   end
 
   @doc """

@@ -378,6 +378,40 @@ defmodule Stream do
   end
 
   @doc """
+  Creates a stream that applies the given function to each
+  element, emits the result and uses the same result as accumulator
+  for the next computation.
+
+  ## Examples
+
+      iex> stream = Stream.scan(1..5, &(&1 + &2))
+      iex> Enum.to_list(stream)
+      [1,3,6,10,15]
+
+  """
+  @spec scan(Enumerable.t, (element, acc -> any)) :: Enumerable.t
+  def scan(enum, fun) do
+    lazy enum, :first, fn(f1) -> R.scan_2(fun, f1) end
+  end
+
+  @doc """
+  Creates a stream that applies the given function to each
+  element, emits the result and uses the same result as accumulator
+  for the next computation. Uses the given `acc` as starting value.
+
+  ## Examples
+
+      iex> stream = Stream.scan(1..5, 0, &(&1 + &2))
+      iex> Enum.to_list(stream)
+      [1,3,6,10,15]
+
+  """
+  @spec scan(Enumerable.t, acc, (element, acc -> any)) :: Enumerable.t
+  def scan(enum, acc, fun) do
+    lazy enum, acc, fn(f1) -> R.scan_3(fun, f1) end
+  end
+
+  @doc """
   Creates a stream that will apply the given function on enumeration and
   flatten the result.
 

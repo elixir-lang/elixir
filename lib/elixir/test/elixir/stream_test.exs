@@ -280,6 +280,20 @@ defmodule StreamTest do
     assert r1 != r2
   end
 
+  test "scan/2" do
+    stream = Stream.scan(1..5, &(&1 + &2))
+    assert is_lazy(stream)
+    assert Enum.to_list(stream) == [1,3,6,10,15]
+    assert Stream.scan([], &(&1 + &2)) |> Enum.to_list == []
+  end
+
+  test "scan/3" do
+    stream = Stream.scan(1..5, 0, &(&1 + &2))
+    assert is_lazy(stream)
+    assert Enum.to_list(stream) == [1,3,6,10,15]
+    assert Stream.scan([], 0, &(&1 + &2)) |> Enum.to_list == []
+  end
+
   test "take" do
     stream = Stream.take(1..1000, 5)
     assert is_lazy(stream)

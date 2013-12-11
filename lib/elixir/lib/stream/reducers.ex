@@ -108,6 +108,27 @@ defmodule Stream.Reducers do
     end
   end
 
+  defmacro scan_2(callback, f // nil) do
+    quote do
+      fn
+        entry, acc(h, :first, t) ->
+          cont_with_acc(unquote(f), entry, h, { :ok, entry }, t)
+        entry, acc(h, { :ok, acc }, t) ->
+          value = unquote(callback).(entry, acc)
+          cont_with_acc(unquote(f), value, h, { :ok, value }, t)
+      end
+    end
+  end
+
+  defmacro scan_3(callback, f // nil) do
+    quote do
+      fn(entry, acc(h, acc, t)) ->
+        value = unquote(callback).(entry, acc)
+        cont_with_acc(unquote(f), value, h, value, t)
+      end
+    end
+  end
+
   defmacro take(f // nil) do
     quote do
       fn(entry, acc(h, n, t) = orig) ->
