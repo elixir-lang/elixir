@@ -311,15 +311,12 @@ defmodule Enum do
 
   """
   @spec chunks(t, non_neg_integer, non_neg_integer) :: [list]
-  @spec chunks(t, non_neg_integer, non_neg_integer, list | nil) :: [list]
+  @spec chunks(t, non_neg_integer, non_neg_integer, t | nil) :: [list]
   def chunks(coll, n, step, pad // nil) when n > 0 and step > 0 do
-    { acc, buffer, i } =
-      reduce(coll, { [], [], 0 }, fn
-        x, { acc, buffer, i } when i < n ->
-          chunks_n(acc, [x|buffer], i + 1, n, step)
-        x, { acc, buffer, i } when i < step ->
-          chunks_step(acc, [x|buffer], i + 1, step)
-      end)
+    limit = :erlang.max(n, step)
+
+    { _, { acc, { buffer, i } } } =
+      Enumerable.reduce(coll, { :cont, { [], { [], 0 } } }, R.chunks(n, step, limit))
 
     if nil?(pad) || i == 0 do
       :lists.reverse(acc)
@@ -1599,25 +1596,7 @@ defmodule Enum do
 
   ## Helpers
 
-  @compile { :inline, chunks_n: 5, chunks_step: 4, to_string: 2 }
-
-  defp chunks_n(acc, buffer, i, n, step) when i == n do
-    acc = [:lists.reverse(buffer)|acc]
-    chunks_step(acc, buffer, i, step)
-  end
-
-  defp chunks_n(acc, buffer, i, _n, _step) do
-    { acc, buffer, i }
-  end
-
-  defp chunks_step(acc, buffer, i, step) when i >= step do
-    left = i - step
-    { acc, take(buffer, left), left }
-  end
-
-  defp chunks_step(acc, buffer, i, _step) do
-    { acc, buffer, i }
-  end
+  @compile { :inline, to_string: 2 }
 
   defp enumerate_and_count(collection, count) when is_list(collection) do
     { collection, length(collection) - abs(count) }

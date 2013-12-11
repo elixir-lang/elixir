@@ -163,7 +163,56 @@ defmodule Stream do
   ## Transformers
 
   @doc """
-  Chunk the `enum` by buffering elements for which `fun` returns
+  Shortcut to `chunks(coll, n, n)`.
+  """
+  @spec chunks(Enumerable.t, non_neg_integer) :: Enumerable.t
+  def chunks(coll, n), do: chunks(coll, n, n, nil)
+
+  @doc """
+  Streams the enumerable in chunks, containing `n` items each, where
+  each new chunk starts `step` elements into the enumerable.
+
+  `step` is optional and, if not passed, defaults to `n`, i.e.
+  chunks do not overlap. If the final chunk does not have `n`
+  elements to fill the chunk, elements are taken as necessary
+  from `pad` if it was passed. If `pad` is passed and does not
+  have enough elements to fill the chunk, then the chunk is
+  returned anyway with less than `n` elements. If `pad` is not
+  passed at all or is nil, then the partial chunk is discarded
+  from the result.
+
+  ## Examples
+
+      iex> Stream.chunks([1, 2, 3, 4, 5, 6], 2) |> Enum.to_list
+      [[1, 2], [3, 4], [5, 6]]
+      iex> Stream.chunks([1, 2, 3, 4, 5, 6], 3, 2) |> Enum.to_list
+      [[1, 2, 3], [3, 4, 5]]
+      iex> Stream.chunks([1, 2, 3, 4, 5, 6], 3, 2, [7]) |> Enum.to_list
+      [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
+      iex> Stream.chunks([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list
+      [[1, 2, 3], [4, 5, 6]]
+
+  """
+  @spec chunks(Enumerable.t, non_neg_integer, non_neg_integer) :: Enumerable.t
+  @spec chunks(Enumerable.t, non_neg_integer, non_neg_integer, Enumerable.t | nil) :: Enumerable.t
+  def chunks(enum, n, step, pad // nil) when n > 0 and step > 0 do
+    limit = :erlang.max(n, step)
+    lazy enum, { [], 0 },
+         fn(f1) -> R.chunks(n, step, limit, f1) end,
+         fn(f1) -> &do_chunks(&1, n, pad, f1) end
+  end
+
+  defp do_chunks(acc(h, { buffer, count } = old, t) = acc, n, pad, f1) do
+    if nil?(pad) || count == 0 do
+      { :cont, acc }
+    else
+      buffer = :lists.reverse(buffer) ++ Enum.take(pad, n - count)
+      cont_with_acc(f1, buffer, h, old, t)
+    end
+  end
+
+  @doc """
+  Chunks the `enum` by buffering elements for which `fun` returns
   the same value and only emit them when `fun` returns a new value
   or the `enum` finishes,
 

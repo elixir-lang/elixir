@@ -25,6 +25,29 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [3,5,7]
   end
 
+  test "chunks" do
+    assert Stream.chunks([1, 2, 3, 4, 5], 2) |> Enum.to_list ==
+           [[1, 2], [3, 4]]
+    assert Stream.chunks([1, 2, 3, 4, 5], 2, 2, [6]) |> Enum.to_list ==
+           [[1, 2], [3, 4], [5, 6]]
+    assert Stream.chunks([1, 2, 3, 4, 5, 6], 3, 2) |> Enum.to_list ==
+           [[1, 2, 3], [3, 4, 5]]
+    assert Stream.chunks([1, 2, 3, 4, 5, 6], 2, 3) |> Enum.to_list ==
+           [[1, 2], [4, 5]]
+    assert Stream.chunks([1, 2, 3, 4, 5, 6], 3, 2, []) |> Enum.to_list ==
+           [[1, 2, 3], [3, 4, 5], [5, 6]]
+    assert Stream.chunks([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list ==
+           [[1, 2, 3], [4, 5, 6]]
+    assert Stream.chunks([1, 2, 3, 4, 5], 4, 4, 6..10) |> Enum.to_list ==
+           [[1, 2, 3, 4], [5, 6, 7, 8]]
+  end
+
+  test "chunks is zippable" do
+    stream = Stream.chunks([1, 2, 3, 4, 5, 6], 3, 2, [])
+    list   = Enum.to_list(stream)
+    assert Enum.zip(list, list) == Enum.zip(stream, stream)
+  end
+
   test "chunks_by" do
     stream = Stream.chunks_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
 
