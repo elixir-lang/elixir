@@ -93,6 +93,36 @@ defmodule StreamTest do
     assert Stream.drop(nats, 2) |> Enum.take(5) == [3,4,5,6,7]
   end
 
+  test "drop with negative count" do
+    stream = Stream.drop(1..10, -5)
+    assert is_lazy(stream)
+    assert Enum.to_list(stream) == [1,2,3,4,5]
+
+    stream = Stream.drop(1..10, -5)
+    list   = Enum.to_list(stream)
+    assert Enum.zip(list, list) == Enum.zip(stream, stream)
+  end
+
+  test "drop with negative count stream entries" do
+    par = self
+    pid = spawn_link fn ->
+      Enum.each Stream.drop(&inbox_stream/2, -3),
+                fn x -> par <- { :stream, x } end
+    end
+
+    pid <- { :stream, 1 }
+    pid <- { :stream, 2 }
+    pid <- { :stream, 3 }
+    refute_receive { :stream, 1 }
+
+    pid <- { :stream, 4 }
+    assert_receive { :stream, 1 }
+
+    pid <- { :stream, 5 }
+    assert_receive { :stream, 2 }
+    refute_receive { :stream, 3 }
+  end
+
   test "drop_while" do
     stream = Stream.drop_while(1..10, &(&1 <= 5))
     assert is_lazy(stream)
@@ -315,5 +345,20 @@ defmodule StreamTest do
 
   defp is_lazy(stream) do
     is_record(stream, Stream.Lazy) or is_function(stream, 2)
+  end
+
+  defp inbox_stream({ :suspend, acc }, f) do
+    { :suspended, acc, &inbox_stream(&1, f) }
+  end
+
+  defp inbox_stream({ :halt, acc }, _f) do
+    { :halted, acc }
+  end
+
+  defp inbox_stream({ :cont, acc }, f) do
+    receive do
+      { :stream, item } ->
+        inbox_stream(f.(item, acc), f)
+    end
   end
 end

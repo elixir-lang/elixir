@@ -154,16 +154,49 @@ defmodule Stream do
   @doc """
   Lazily drops the next `n` items from the enumerable.
 
+  If a negative `n` is given, it will drop the last `n` items from
+  the collection. Note that the mechanism by which this is implemented
+  will delay the emission of any item until `n` additional items have
+  been emitted by the enum.
+
   ## Examples
 
       iex> stream = Stream.drop(1..10, 5)
       iex> Enum.to_list(stream)
       [6,7,8,9,10]
 
+      iex> stream = Stream.drop(1..10, -5)
+      iex> Enum.to_list(stream)
+      [1,2,3,4,5]
+
   """
   @spec drop(Enumerable.t, non_neg_integer) :: Enumerable.t
   def drop(enum, n) when n >= 0 do
     lazy enum, n, fn(f1) -> R.drop(f1) end
+  end
+
+  def drop(enum, n) when n < 0 do
+    n = abs(n)
+
+    lazy enum, { 0, [], [] }, fn(f1) ->
+      fn
+        entry, [h, { count, buf1, [] } | t] ->
+          do_drop(:cont, n, entry, h, count, buf1, [], t)
+        entry, [h, { count, buf1, [next|buf2] } | t] ->
+          { reason, [h|t] } = f1.(next, [h|t])
+          do_drop(reason, n, entry, h, count, buf1, buf2, t)
+      end
+    end
+  end
+
+  defp do_drop(reason, n, entry, h, count, buf1, buf2, t) do
+    buf1  = [entry|buf1]
+    count = count + 1
+    if count == n do
+      { reason, [h, { 0, [], :lists.reverse(buf1) }|t] }
+    else
+      { reason, [h, { count, buf1, buf2 }|t] }
+    end
   end
 
   @doc """
@@ -364,7 +397,7 @@ defmodule Stream do
     &do_take(enum, abs(n), &1, &2)
   end
 
-  def do_take(enum, n, acc, f) do
+  defp do_take(enum, n, acc, f) do
     { _, { _count, buf1, buf2 } } =
       Enumerable.reduce(enum, { :cont, { 0, [], [] } }, fn
         entry, { count, buf1, buf2 } ->
@@ -373,7 +406,7 @@ defmodule Stream do
           if count == n do
             { :cont, { 0, [], buf1 } }
           else
-            { :cont, { count, buf1, buf2} }
+            { :cont, { count, buf1, buf2 } }
           end
       end)
 
