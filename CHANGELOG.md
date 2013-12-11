@@ -7,6 +7,8 @@
   * [Kernel] Implement `defmodule/2`, `@/1`, `def/2` and friends in Elixir itself. `case/2`, `try/2` and `receive/1` have been made special forms. `var!/1`, `var!/2` and `alias!/1` have also been implemented in Elixir and demoted from special forms
   * [Record] Support dynamic fields in `defrecordp`
   * [Stream] Add `Stream.resource/3`
+  * [Stream] Add `Stream.zip/2`, `Stream.filter_map/3`, `Stream.each/2`, `Stream.take_every/2`, `Stream.chunks/2`, `Stream.chunks/3`, `Stream.chunks/4`, `Stream.chunks_by/2`, `Stream.scan/2`, `Stream.scan/3` and `Stream.uniq/2`
+  * [Stream] Support `Stream.take/2` and `Stream.drop/2` with negative counts
   * [Typespec] Support `is_var/1` in typespecs
 
 * Bug fixes
@@ -16,13 +18,17 @@
   * [Mix] Also symlink `include` directories in _build dependencies
 
 * Deprecations
+  * [Enum] `Enumerable.count/1` and `Enumerable.member?/2` should now return tagged tuples. Please see `Enumerable` docs for more info
   * [File] `File.binstream!/3` is deprecated. Simply use `File.stream!/3` which is able to figure out if `stream` or `binstream` operations should be used
   * [Macro] `Macro.extract_args/1` is deprecated in favor of `Macro.decompose_call/1`
   * [Typespec] `when` clauses in typespecs were moved to the outer part of the spec
 
 * Backwards incompatible changes
-  * [Kernel] Behaviour of `Enum.drop/2` and `Enum.take/2` has been switched when given negative counts
+  * [Enum] Behaviour of `Enum.drop/2` and `Enum.take/2` has been switched when given negative counts
+  * [Enum] Behaviour of `Enum.zip/2` has been changed to stop as soon as the first enumerable finishes
+  * [Enum] `Enumerable.reduce/3` protocol has changed to support suspension. Please see `Enumerable` docs for more info
   * [Mix] Require `:escript_main_module` to be set before generating escripts
+  * [Range] `Range.Iterator` protocol has changed in order to work with the new `Enumerable.reduce/3`. Please see `Range.Iterator` docs for more info
   * [Stream] The `Stream.Lazy` structure has changed to accumulate functions and accumulators as we go (its inspected representation has also changed)
 
 # v0.11.2 (2013-11-14)
