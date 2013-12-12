@@ -57,7 +57,7 @@ defmodule HashSetTest do
     refute HashSet.member?(filled_set(120), 200)
   end
 
-  test :subset? do
+  test "subset?" do
     assert HashSet.subset?(HashSet.new, HashSet.new)
     assert HashSet.subset?(filled_set(6), filled_set(10))
     assert HashSet.subset?(filled_set(6), filled_set(120))
@@ -65,19 +65,19 @@ defmodule HashSetTest do
     refute HashSet.subset?(filled_set(120), filled_set(6))
   end
 
-  test :equal? do
+  test "equal?" do
     assert HashSet.equal?(HashSet.new, HashSet.new)
     assert HashSet.equal?(filled_set(20), HashSet.delete(filled_set(21), 21))
     assert HashSet.equal?(filled_set(120), filled_set(120))
   end
 
-  test :empty do
+  test "empty" do
     assert HashSet.empty filled_set(8)   == HashSet.new
     assert HashSet.empty filled_set(20)  == HashSet.new
     assert HashSet.empty filled_set(120) == HashSet.new
   end
 
-  test :to_list do
+  test "to_list" do
     set = filled_set(8)
     list = set |> HashSet.to_list
     assert length(list) == 8
@@ -97,7 +97,7 @@ defmodule HashSetTest do
     assert list == Enum.to_list(set)
   end
 
-  test :delete do
+  test "delete" do
     assert HashSet.delete(filled_set(8), 8) == filled_set(7)
     assert HashSet.delete(filled_set(8), 9) == filled_set(8)
     assert HashSet.delete(HashSet.new, 10) == HashSet.new
@@ -105,6 +105,16 @@ defmodule HashSetTest do
     assert HashSet.delete(filled_set(21), 21) == filled_set(20)
 
     assert HashSet.delete(filled_set(121), 121) == filled_set(120)
+  end
+
+  test "is zippable" do
+    set  = filled_set(8)
+    list = Dict.to_list(set)
+    assert Enum.zip(list, list) == Enum.zip(set, set)
+
+    set  = filled_set(120)
+    list = Dict.to_list(set)
+    assert Enum.zip(list, list) == Enum.zip(set, set)
   end
 
   defp filled_set(range) do

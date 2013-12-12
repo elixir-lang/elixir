@@ -70,7 +70,6 @@ defmodule Dict do
   defcallback update(t, key, value, (value -> value)) :: t
   defcallback update!(t, key, (value -> value)) :: t | no_return
   defcallback values(t) :: list(value)
-  defcallback reduce(t, any, ({key, value}, any -> any)) :: any
 
   defmacrop target(dict) do
     quote do

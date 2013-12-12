@@ -6,9 +6,9 @@ end
 
 defprotocol Range.Iterator do
   @doc """
-  Reduces the range based on the type of the first argument.
+  Returns the function that calculates the next item.
   """
-  def reduce(first, range, acc, fun)
+  def next(first, range)
 
   @doc """
   Count how many items are in the range.
@@ -17,55 +17,58 @@ defprotocol Range.Iterator do
 end
 
 defimpl Enumerable, for: Range do
-  def reduce(first .. _ = range, acc, fun) do
-    Range.Iterator.reduce(first, range, acc, fun)
+  def reduce(first .. last = range, acc, fun) do
+    reduce(first, last, acc, fun, Range.Iterator.next(first, range), last >= first)
   end
 
-  def member?(first .. last, value) when first <= last do
-    first <= value and value <= last
+  defp reduce(_x, _y, { :halt, acc }, _fun, _next, _up) do
+    { :halted, acc }
   end
 
-  def member?(first .. last, value) when last < first do
-    last <= value and value <= first
+  defp reduce(x, y, { :suspend, acc }, fun, next, up) do
+    { :suspended, acc, &reduce(x, y, &1, fun, next, up) }
+  end
+
+  defp reduce(x, y, { :cont, acc }, fun, next, true) when x <= y do
+    reduce(next.(x), y, fun.(x, acc), fun, next, true)
+  end
+
+  defp reduce(x, y, { :cont, acc }, fun, next, false) when x >= y do
+    reduce(next.(x), y, fun.(x, acc), fun, next, false)
+  end
+
+  defp reduce(_, _, { :cont, acc }, _fun, _next, _up) do
+    { :done, acc }
+  end
+
+  def member?(first .. last, value) do
+    if first <= last do
+      { :ok, first <= value and value <= last }
+    else
+      { :ok, last <= value and value <= first }
+    end
   end
 
   def count(first .. _ = range) do
-    Range.Iterator.count(first, range)
+    { :ok, Range.Iterator.count(first, range) }
   end
 end
 
 defimpl Range.Iterator, for: Integer do
-  def reduce(first, Range[last: last], acc, fun) when is_integer(last) do
-    reducer = if last >= first do
-      fn(acc, fun) -> do_reducer_up(first, last, acc, fun) end
+  def next(first, Range[last: last]) when is_integer(last) do
+    if last >= first do
+      &(&1 + 1)
     else
-      fn(acc, fun) -> do_reducer_down(first, last, acc, fun) end
+      &(&1 - 1)
     end
-    Enumerable.Function.reduce(reducer, acc, fun)
-  end
-
-  defp do_reducer_up(counter, last, acc, _fun) when counter > last do
-    acc
-  end
-
-  defp do_reducer_up(counter, last, acc, fun) do
-    do_reducer_up(counter + 1, last, fun.(counter, acc), fun)
-  end
-
-  defp do_reducer_down(counter, last, acc, _fun) when counter < last do
-    acc
-  end
-
-  defp do_reducer_down(counter, last, acc, fun) do
-    do_reducer_down(counter - 1, last, fun.(counter, acc), fun)
-  end
-
-  def count(first, Range[last: last]) when is_integer(last) and last >= first do
-    last - first + 1
   end
 
   def count(first, Range[last: last]) when is_integer(last) do
-    first - last + 1
+    if last >= first do
+      last - first + 1
+    else
+      first - last + 1
+    end
   end
 end
 

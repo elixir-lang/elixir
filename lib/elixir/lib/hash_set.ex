@@ -136,11 +136,12 @@ defmodule HashSet do
 
   @doc false
   def reduce(ordered(bucket: bucket), acc, fun) do
-    :lists.foldl(fun, acc, bucket)
+    bucket_reduce(bucket, acc, fun)
   end
 
-  def reduce(trie() = set, acc, fun) do
-    set_fold(set, acc, fun)
+  def reduce(trie(root: root, depth: depth), acc, fun) do
+    node_reduce(root, depth, acc, fun, @node_size,
+                fn { :cont, acc }, _f -> { :done, acc } end)
   end
 
   ## HashSet-wide functions
@@ -225,29 +226,21 @@ defmodule HashSet do
   end
 
   defp set_equal?(set1, set2) do
-    try do
-      reduce(set1, true, fn member, acc ->
-        case member?(set2, member) do
-          true -> acc
-          _    -> throw(:error)
-        end
-      end)
-    catch
-      :error -> false
-    end
+    reduce(set1, { :cont, true }, fn member, acc ->
+      case member?(set2, member) do
+        true -> { :cont, acc }
+        _    -> { :halt, false }
+      end
+    end) |> elem(1)
   end
 
   defp set_disjoint?(set1, set2) do
-    try do
-      reduce(set1, true, fn member, acc ->
-        case member?(set2, member) do
-          false -> acc
-          _     -> throw(:error)
-        end
-      end)
-    catch
-      :error -> false
-    end
+    reduce(set1, { :cont, true }, fn member, acc ->
+      case member?(set2, member) do
+        false -> { :cont, acc }
+        _     -> { :halt, false }
+      end
+    end) |> elem(1)
   end
 
   defp set_fold(ordered(bucket: bucket), acc, fun) do
@@ -310,6 +303,11 @@ defmodule HashSet do
   defp bucket_delete([], _member) do
     { [], 0 }
   end
+
+  defp bucket_reduce(_, { :halt, acc }, _fun),      do: { :halted, acc }
+  defp bucket_reduce(list, { :suspend, acc }, fun), do: { :suspended, acc, &bucket_reduce(list, &1, fun) }
+  defp bucket_reduce([h|t], { :cont, acc }, fun),   do: bucket_reduce(t, fun.(h, acc), fun)
+  defp bucket_reduce([], { :cont, acc }, _fun),     do: { :done, acc }
 
   defp bucket_fold(bucket, acc, fun) do
     :lists.foldl(fun, acc, bucket)
@@ -396,6 +394,33 @@ defmodule HashSet do
     end
   end
 
+  # Reduces a node recursively
+  defp node_reduce(_, -1, { :halt, acc }, _fun, _count, _next) do
+    { :halted, acc }
+  end
+
+  defp node_reduce(list, -1, { :suspend, acc }, fun, count, next) do
+    { :suspended, acc, &node_reduce(list, -1, &1, fun, count, next) }
+  end
+
+  defp node_reduce([h|t], -1, { :cont, acc }, fun, _count, next) do
+    node_reduce(t, -1, fun.(h, acc), fun, _count, next)
+  end
+
+  defp node_reduce([], -1, { :cont, _ } = acc, fun, _count, next) do
+    next.(acc, fun)
+  end
+
+  defp node_reduce(node, depth, acc, fun, count, next) when count >= 1 do
+    node_reduce(:erlang.element(count, node), depth - 1, acc, fun, @node_size,
+                &node_reduce(node, depth, &1, &2, count - 1, next))
+  end
+
+  defp node_reduce(_node, _, acc, fun, 0, next) do
+    next.(acc, fun)
+  end
+
+  # Folds a node recursively
   defp node_fold(bucket, -1, acc, fun, _) do
     bucket_fold(bucket, acc, fun)
   end
@@ -480,6 +505,6 @@ end
 
 defimpl Enumerable, for: HashSet do
   def reduce(set, acc, fun), do: HashSet.reduce(set, acc, fun)
-  def member?(set, v),       do: HashSet.member?(set, v)
-  def count(set),            do: HashSet.size(set)
+  def member?(set, v),       do: { :ok, HashSet.member?(set, v) }
+  def count(set),            do: { :ok, HashSet.size(set) }
 end

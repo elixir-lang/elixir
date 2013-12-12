@@ -5,30 +5,30 @@ defmodule HashDictTest do
 
   @dict HashDict.new(foo: :bar)
 
-  test :is_serializable_as_attribute do
+  test "is serializable as attribute" do
     assert @dict == HashDict.new(foo: :bar)
   end
 
-  test :access_the_serialized_as_attribute do
+  test "is accessible as attribute" do
     assert @dict[:foo] == :bar
   end
 
-  test :smoke_small_range_test do
+  test "small dict smoke test" do
     smoke_test(1..8)
     smoke_test(8..1)
   end
 
-  test :smoke_medium_range_test do
+  test "medium dict smoke test" do
     smoke_test(1..80)
     smoke_test(80..1)
   end
 
-  test :smoke_large_range_test do
+  test "large dict smoke test" do
     smoke_test(1..1200)
     smoke_test(1200..1)
   end
 
-  test :fetch! do
+  test "fetch!/2" do
     dict = filled_dict(8)
     assert HashDict.fetch!(dict, 1) == 1
     assert_raise KeyError, fn ->
@@ -36,26 +36,26 @@ defmodule HashDictTest do
     end
   end
 
-  test :empty do
+  test "empty/1" do
     assert HashDict.empty filled_dict(8)   == HashDict.new
     assert HashDict.empty filled_dict(20)  == HashDict.new
     assert HashDict.empty filled_dict(120) == HashDict.new
   end
 
-  test :fetch do
+  test "fetch/2" do
     dict = filled_dict(8)
     assert HashDict.fetch(dict, 4)  == { :ok, 4 }
     assert HashDict.fetch(dict, 16) == :error
   end
 
-  test :equal? do
+  test "equal?/2" do
     assert HashDict.equal?(filled_dict(3), filled_dict(3)) == true
 
     assert HashDict.equal?(HashDict.new([{:a, 1}, {:b, 2}]),
                            HashDict.new([{:a, 2}, {:b, 3}])) == false
   end
 
-  test :has_key? do
+  test "has_key?/2" do
     dict = filled_dict(8)
     assert HashDict.has_key? dict, 4
     refute HashDict.has_key? dict, 16
@@ -69,7 +69,7 @@ defmodule HashDictTest do
     refute HashDict.has_key? dict, 240
   end
 
-  test :put_new do
+  test "put_new/3" do
     dict = filled_dict(8)
 
     dict = HashDict.put_new(dict, 1, 11)
@@ -86,7 +86,7 @@ defmodule HashDictTest do
     assert HashDict.size(dict) == 10
   end
 
-  test :update do
+  test "update/3" do
     dict = filled_dict(8)
 
     dict = HashDict.update!(dict, 1, &(&1 * 2))
@@ -119,7 +119,7 @@ defmodule HashDictTest do
     assert HashDict.size(dict) == 10
   end
 
-  test :to_list do
+  test "to_list/1" do
     dict = filled_dict(8)
     list = dict |> HashDict.to_list
     assert length(list) == 8
@@ -139,7 +139,7 @@ defmodule HashDictTest do
     assert list == Enum.to_list(dict)
   end
 
-  test :keys do
+  test "keys/1" do
     list = filled_dict(8) |> HashDict.keys
     assert length(list) == 8
     assert 1 in list
@@ -153,7 +153,7 @@ defmodule HashDictTest do
     assert 1 in list
   end
 
-  test :values do
+  test "values/1" do
     list = filled_dict(8) |> HashDict.values
     assert length(list) == 8
     assert 1 in list
@@ -167,7 +167,7 @@ defmodule HashDictTest do
     assert 1 in list
   end
 
-  test :enum do
+  test "implements Enumerable" do
     dict = filled_dict(10)
     assert Enum.empty?(HashDict.new)
     refute Enum.empty?(dict)
@@ -177,17 +177,17 @@ defmodule HashDictTest do
     assert Enum.map(filled_dict(3), fn({ k, v }) -> k + v end) == [2, 4, 6]
   end
 
-  test :access do
+  test "access" do
     assert filled_dict(8)[1] == 1
     assert filled_dict(8)[5] == 5
     assert filled_dict(8)[9] == nil
   end
 
-  test :inspect do
+  test "inspect" do
     assert inspect(filled_dict(8)) =~ "#HashDict<"
   end
 
-  test :small_range_merge do
+  test "small dict merge" do
     dict1 = filled_dict(8)
     dict2 = Enum.reduce 6..10, HashDict.new, fn(i, d) -> HashDict.put(d, i, i * 2) end
 
@@ -217,7 +217,7 @@ defmodule HashDictTest do
     assert HashDict.size(dict) == 10
   end
 
-  test :medium_range_merge do
+  test "medium dict merge" do
     dict1 = filled_dict(20)
     dict2 = Enum.reduce 18..22, HashDict.new, fn(i, d) -> HashDict.put(d, i, i * 2) end
 
@@ -247,7 +247,7 @@ defmodule HashDictTest do
     assert HashDict.size(dict) == 22
   end
 
-  test :large_range_merge do
+  test "large dict merge" do
     dict1 = filled_dict(120)
     dict2 = Enum.reduce 118..122, HashDict.new, fn(i, d) -> HashDict.put(d, i, i * 2) end
 
@@ -277,10 +277,20 @@ defmodule HashDictTest do
     assert HashDict.size(dict) == 122
   end
 
-  test :trie_contract do
+  test "trie contraction" do
     dict = filled_dict(120)
     dict = Enum.reduce 16..120, dict, fn(x, acc) -> HashDict.delete(acc, x) end
     assert (Enum.filter 1..120, fn(x) -> HashDict.get(dict, x) == x end) == (Enum.sort 1..15)
+  end
+
+  test "is zippable" do
+    dict = filled_dict(8)
+    list = Dict.to_list(dict)
+    assert Enum.zip(list, list) == Enum.zip(dict, dict)
+
+    dict = filled_dict(120)
+    list = Dict.to_list(dict)
+    assert Enum.zip(list, list) == Enum.zip(dict, dict)
   end
 
   defp smoke_test(range) do
