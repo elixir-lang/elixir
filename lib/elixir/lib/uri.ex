@@ -36,7 +36,7 @@ defmodule URI do
   Any scheme may be registered via `default_port/2`.
 
   ## Examples
-  
+
       iex> URI.default_port("ftp")
       21
 
@@ -61,11 +61,11 @@ defmodule URI do
   Encodes an enumerable into a query string.
 
   Takes an enumerable (containing a sequence of two-item tuples)
-  and returns a string of the form "key1=value1&key2=value2..." where 
-  keys and values are URL encoded as per `encode/1`. Keys and values can 
+  and returns a string of the form "key1=value1&key2=value2..." where
+  keys and values are URL encoded as per `encode/1`. Keys and values can
   be any term that implements the `String.Chars` protocol (i.e. can be converted
   to a binary).
-  
+
   ## Examples
 
       iex> hd = HashDict.new([{"foo", 1}, {"bar", "2"}])
@@ -85,15 +85,14 @@ defmodule URI do
   Use `query_decoder/1` if you want to iterate over each value manually.
 
   ## Examples
-  
+
       iex> URI.decode_query("foo=1&bar=2") |> Dict.to_list
       [{"bar", "2"}, {"foo", "1"}]
 
-      > hd = HashDict.new()
-      #HashDict<[]>
-      > URI.decode_query("foo=1&bar=2", hd) |> HashDict.keys
+      iex> hd = HashDict.new()
+      iex> URI.decode_query("foo=1&bar=2", hd) |> HashDict.keys
       ["bar", "foo"]
-      > URI.decode_query("foo=1&bar=2", hd) |> HashDict.values
+      iex> URI.decode_query("foo=1&bar=2", hd) |> HashDict.values
       ["2", "1"]
 
   """
@@ -104,12 +103,12 @@ defmodule URI do
   @doc """
   Returns an iterator function over the query string that decodes
   the query string in steps.
-    
+
   ## Examples
-  
+
       iex> URI.query_decoder("foo=1&bar=2") |> Enum.map &(&1)
       [{"foo", "1"}, {"bar", "2"}]
-    
+
   """
   def query_decoder(q) when is_binary(q) do
     Stream.unfold(q, &do_decoder/1)
@@ -141,12 +140,12 @@ defmodule URI do
 
   @doc """
   Percent-escape a URI.
-  
+
   ## Example
-  
+
       iex> URI.encode("http://elixir-lang.com/getting_started/2.html")
       "http%3A%2F%2Felixir-lang.com%2Fgetting_started%2F2.html"
-      
+
   """
   def encode(s), do: bc(<<c>> inbits s, do: <<percent(c) :: binary>>)
 
@@ -169,12 +168,12 @@ defmodule URI do
 
   @doc """
   Percent-unescape a URI.
-  
+
   ## Examples
-  
+
       iex> URI.decode("http%3A%2F%2Felixir-lang.com")
       "http://elixir-lang.com"
-  
+
   """
   def decode(<<?%, hex1, hex2, tail :: binary >>) do
     << bsl(hex2dec(hex1), 4) + hex2dec(hex2) >> <> decode(tail)
@@ -196,26 +195,16 @@ defmodule URI do
   @doc """
   Parses a URI into components.
 
-  URIs have portions that are handled specially for the
-  particular scheme of the URI. For example, http and https
-  have different default ports. Sometimes the parsing
-  of portions themselves are different. This parser
-  is extensible via behavior modules. If you have a
-  module named `URI.MYSCHEME` with a function called
-  `parse` that takes a single argument, the generically
-  parsed URI, that function will be called when this
-  parse function is passed a URI of that scheme. This
-  allows you to build on top of what the URI library
-  currently offers. You also need to define `default_port`
-  which takes no arguments and returns the default port
-  for that particular scheme. Take a look at `URI.HTTPS` for an
-  example of one of these extension modules.
-  
+  URIs have portions that are handled specially for the particular
+  scheme of the URI. For example, http and https have different
+  default ports. Such values can be accessed and registered via
+  `URI.default_port/1` and `URI.default_port/2`.
+
   ## Examples
-  
+
       iex> URI.parse("http://elixir-lang.org/")
-      URI.Info[scheme: "http", path: "/", query: nil, fragment: nil, 
-               authority: "elixir-lang.org", userinfo: nil, 
+      URI.Info[scheme: "http", path: "/", query: nil, fragment: nil,
+               authority: "elixir-lang.org", userinfo: nil,
                host: "elixir-lang.org", port: 80]
 
   """

@@ -309,12 +309,14 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.each([1, 2, 3], fn(x) -> IO.puts x end)
+      iex> stream = Stream.each([1, 2, 3], fn(x) -> self <- x end)
       iex> Enum.to_list(stream)
+      iex> receive do: (x when is_integer(x) -> x)
       1
+      iex> receive do: (x when is_integer(x) -> x)
       2
+      iex> receive do: (x when is_integer(x) -> x)
       3
-      [1,2,3]
 
   """
   @spec each(Enumerable.t, (element -> term)) :: Enumerable.t
