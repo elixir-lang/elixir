@@ -194,10 +194,10 @@ defmodule Record do
 
   ## Examples
 
-      > Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
-      [size: :undefined, type: :undefined, access: :undefined, atime: :undefined,
-         mtime: :undefined, ctime: :undefined, mode: :undefined, links: :undefined,
-          major_device: :undefined, minor_device: :undefined, inode: :undefined,
+      Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+      #=> [size: :undefined, type: :undefined, access: :undefined, atime: :undefined,
+           mtime: :undefined, ctime: :undefined, mode: :undefined, links: :undefined,
+           major_device: :undefined, minor_device: :undefined, inode: :undefined,
            uid: :undefined, gid: :undefined]
 
       defrecord FileInfo, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")

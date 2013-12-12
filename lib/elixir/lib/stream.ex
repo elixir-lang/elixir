@@ -810,8 +810,8 @@ defmodule Stream do
 
       Stream.resource(fn -> File.open("sample") end,
                       fn file ->
-                        case IO.readline(file) do
-                          data when is_binary(file) -> { data, file }
+                        case IO.read(file, :line) do
+                          data when is_binary(data) -> { data, file }
                           _ -> nil
                         end
                       end,
