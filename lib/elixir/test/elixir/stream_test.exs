@@ -242,6 +242,28 @@ defmodule StreamTest do
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end
 
+  test "flat_map does not leave stream suspended" do
+    stream = Stream.flat_map [1,2,3],
+      fn i ->
+        Stream.resource(fn -> i end,
+                        fn acc -> { acc, acc + 1 } end,
+                        fn _ -> Process.put(:stream_flat_map, true) end)
+      end
+
+    Process.put(:stream_flat_map, false)
+    assert stream |> Enum.take(3) == [1,2,3]
+    assert Process.get(:stream_flat_map)
+
+    stream = Stream.resource(fn -> 1 end,
+                             fn acc -> { acc, acc + 1 } end,
+                             fn _ -> Process.put(:stream_flat_map, true) end)
+    stream = Stream.flat_map(stream, fn i -> [i, i + 1, i + 2] end)
+
+    Process.put(:stream_flat_map, false)
+    assert stream |> Enum.take(3) == [1,2,3]
+    assert Process.get(:stream_flat_map)
+  end
+
   test "iterate" do
     stream = Stream.iterate(0, &(&1+2))
     assert Enum.take(stream, 5) == [0,2,4,6,8]
@@ -400,6 +422,31 @@ defmodule StreamTest do
     cycle  = Stream.cycle([:a, :b, :c])
     assert Stream.zip(concat, cycle) |> Enum.to_list ==
            [{1,:a},{2,:b},{3,:c},{4,:a},{5,:b},{6,:c}]
+  end
+
+  test "zip/2 does not leave streams suspended" do
+    stream = Stream.resource(fn -> 1 end,
+                             fn acc -> { acc, acc + 1 } end,
+                             fn _ -> Process.put(:stream_zip, true) end)
+
+    Process.put(:stream_zip, false)
+    assert Stream.zip([:a, :b, :c], stream) |> Enum.to_list == [a: 1, b: 2, c: 3]
+    assert Process.get(:stream_zip)
+
+    Process.put(:stream_zip, false)
+    assert Stream.zip(stream, [:a, :b, :c]) |> Enum.to_list == [{ 1, :a }, { 2, :b }, { 3, :c }]
+    assert Process.get(:stream_zip)
+  end
+
+  test "zip/2 does not leave streams suspended on halt" do
+    stream = Stream.resource(fn -> 1 end,
+                             fn acc -> { acc, acc + 1 } end,
+                             fn _ -> Process.put(:stream_zip, :done) end)
+
+    assert Stream.zip([:a, :b, :c, :d, :e], stream) |> Enum.take(3) ==
+           [a: 1, b: 2, c: 3]
+
+    assert Process.get(:stream_zip) == :done
   end
 
   test "with_index" do

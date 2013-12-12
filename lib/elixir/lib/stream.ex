@@ -450,10 +450,13 @@ defmodule Stream do
     try do
       reduce.(acc)
     catch
-      { :stream_flat_map, h } -> { :halted, h }
+      { :stream_flat_map, h } ->
+        reduce.({ :halt, elem(acc, 1) })
+        next.({ :halt, next_acc })
+        { :halted, h }
     else
-      { _, acc }              -> do_flat_map(next_acc, next, mapper, { :cont, acc }, fun)
-      { :suspended, acc, c }  -> { :suspended, acc, &do_flat_map(next_acc, next, mapper, &1, fun, c) }
+      { _, acc }             -> do_flat_map(next_acc, next, mapper, { :cont, acc }, fun)
+      { :suspended, acc, c } -> { :suspended, acc, &do_flat_map(next_acc, next, mapper, &1, fun, c) }
     end
   end
 
@@ -677,29 +680,41 @@ defmodule Stream do
     right_fun = &Enumerable.reduce(right, &1, step)
 
     # Return a function as a lazy enumerator.
-    &do_zip(left_fun, [], right_fun, [], &1, &2)
+    &do_zip([{ left_fun, [] }, { right_fun, [] }], &1, &2)
   end
 
-  defp do_zip(_left_fun, _left_acc, _right_fun, _right_acc, { :halt, acc }, _fun) do
+  defp do_zip(zips, { :halt, acc }, _fun) do
+    do_zip_close(zips)
     { :halted, acc }
   end
 
-  defp do_zip(left_fun, left_acc, right_fun, right_acc, { :suspend, acc }, fun) do
-    { :suspended, acc, &do_zip(left_fun, left_acc, right_fun, right_acc, &1, fun) }
+  defp do_zip(zips, { :suspend, acc }, fun) do
+    { :suspended, acc, &do_zip(zips, &1, fun) }
   end
 
-  defp do_zip(left_fun, left_acc, right_fun, right_acc, { :cont, acc }, callback) do
-    case left_fun.({ :cont, left_acc }) do
-      { :suspended, [x|left_acc], left_fun } ->
-        case right_fun.({ :cont, right_acc }) do
-          { :suspended, [y|right_acc], right_fun } ->
-            do_zip(left_fun, left_acc, right_fun, right_acc, callback.({ x, y }, acc), callback)
-          { reason, _ } ->
-            { reason, acc }
-        end
-      { reason, _ } ->
-        { reason, acc }
+  defp do_zip(zips, { :cont, acc }, callback) do
+    do_zip(zips, acc, callback, [], [])
+  end
+
+  defp do_zip([{ fun, fun_acc }|t], acc, callback, list, buffer) do
+    case fun.({ :cont, fun_acc }) do
+      { :suspended, [i|fun_acc], fun } ->
+        do_zip(t, acc, callback, [i|list], [{ fun, fun_acc }|buffer])
+      { _, _ } ->
+        do_zip_close(:lists.reverse(buffer) ++ t)
+        { :done, acc }
     end
+  end
+
+  defp do_zip([], acc, callback, list, buffer) do
+    zipped = list_to_tuple(:lists.reverse(list))
+    do_zip(:lists.reverse(buffer), callback.(zipped, acc), callback)
+  end
+
+  defp do_zip_close([]), do: :ok
+  defp do_zip_close([{ fun, acc }|t]) do
+    fun.({ :halt, acc })
+    do_zip_close(t)
   end
 
   defp do_zip_step(x, acc) do
@@ -829,7 +844,8 @@ defmodule Stream do
     { :suspended, acc, &do_resource(next_acc, next_fun, &1, fun, after_fun) }
   end
 
-  defp do_resource(_next_acc, _next_fun, { :halt, acc }, _fun, _after_fun) do
+  defp do_resource(next_acc, _next_fun, { :halt, acc }, _fun, after_fun) do
+    after_fun.(next_acc)
     { :halted, acc }
   end
 
@@ -841,8 +857,11 @@ defmodule Stream do
         after_fun.(next_acc)
         :erlang.raise(kind, reason, :erlang.get_stacktrace)
     else
-      nil             -> { :done, acc }
-      { v, next_acc } -> do_resource(next_acc, next_fun, fun.(v, acc), fun, after_fun)
+      nil ->
+        after_fun.(next_acc)
+        { :done, acc }
+      { v, next_acc } ->
+        do_resource(next_acc, next_fun, fun.(v, acc), fun, after_fun)
     end
   end
 

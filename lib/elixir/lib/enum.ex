@@ -72,6 +72,9 @@ defprotocol Enumerable do
   `:suspended` tuple must be explicitly handled by the caller and
   never leak. In practice, this means regular enumeration functions
   just need to concern about `:done` and `:halted` results.
+
+  Furthermore, a `:suspend` call must always be followed by another call,
+  eventually halting or continuing until the end.
   """
   @type result :: { :done, term } | { :halted, term } | { :suspended, term, continuation }
 
