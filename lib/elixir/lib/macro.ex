@@ -49,8 +49,8 @@ defmodule Macro do
   end
 
   @doc """
-  Breaks a pipeline expression into a list. 
-  
+  Breaks a pipeline expression into a list.
+
   Raises if the pipeline is ill-formed.
   """
   @spec unpipe(Macro.t) :: [Macro.t]
@@ -152,8 +152,8 @@ defmodule Macro do
   end
 
   @doc %S"""
-  Unescape the given chars. 
-  
+  Unescape the given chars.
+
   This is the unescaping behavior
   used by default in Elixir single- and double-quoted strings.
   Check `unescape_string/2` for information on how to customize
@@ -298,7 +298,14 @@ defmodule Macro do
 
   # Tuple containers
   def to_string({ :{}, _, args } = ast, fun) do
-    fun.(ast, "{" <> Enum.map_join(args, ", ", &to_string(&1, fun)) <> "}")
+    if match?([_], args) do
+      tuple = "{" <> Enum.map_join(args, ", ", &to_string(&1, fun)) <> "}"
+    else
+      args = args_to_string(args, fun)
+      tuple = "{" <> args <> "}"
+    end
+
+    fun.(ast, tuple)
   end
 
   # Fn keyword
@@ -319,6 +326,17 @@ defmodule Macro do
   # left -> right
   def to_string({ :->, _, _ } = ast, fun) do
     fun.(ast, "(" <> arrow_to_string(ast, fun, true) <> ")")
+  end
+
+  # left when right
+  def to_string({ :when, _, [left, right] } = ast, fun) do
+    if right != [] and Keyword.keyword?(right) do
+      right = kw_list_to_string(right, fun)
+    else
+      right = fun.(ast, op_to_string(right, fun, :when, :right))
+    end
+
+    fun.(ast, op_to_string(left, fun, :when, :left) <> " when " <> right)
   end
 
   # Binary ops
@@ -362,11 +380,15 @@ defmodule Macro do
 
   # Lists
   def to_string(list, fun) when is_list(list) do
-    if Keyword.keyword?(list) do
-      fun.(list, "[" <> kw_list_to_string(list, fun) <> "]")
-    else
-      fun.(list, "[" <> Enum.map_join(list, ", ", &to_string(&1, fun)) <> "]")
-    end
+    fun.(list, cond do
+      Keyword.keyword?(list) ->
+        "[" <> kw_list_to_string(list, fun) <> "]"
+      not match?([_], list) ->
+        args = args_to_string(list, fun)
+        "[" <> args <> "]"
+      true ->
+        "[" <> Enum.map_join(list, ", ", &to_string(&1, fun)) <> "]"
+    end)
   end
 
   # All other structures
@@ -389,18 +411,20 @@ defmodule Macro do
   defp call_to_string(other, fun),                    do: to_string(other, fun)
 
   defp call_to_string_with_args(target, args, fun) do
-    { list, last } = :elixir_utils.split_last(args)
     target = call_to_string(target, fun)
+    args = args_to_string(args, fun)
+    target <> "(" <> args <> ")"
+  end
 
-    case last != [] and Keyword.keyword?(last) do
-      true  ->
-        args = Enum.map_join(list, ", ", &to_string(&1, fun))
-        if list != [], do: args = args <> ", "
-        args = args <> kw_list_to_string(last, fun)
-        target <> "(" <> args <> ")"
-      false ->
-        args = Enum.map_join(args, ", ", &to_string(&1, fun))
-        target <> "(" <> args <> ")"
+  defp args_to_string(args, fun) do
+    { list, last } = :elixir_utils.split_last(args)
+
+    if last != [] and Keyword.keyword?(last) do
+      args = Enum.map_join(list, ", ", &to_string(&1, fun))
+      if list != [], do: args = args <> ", "
+      args <> kw_list_to_string(last, fun)
+    else
+      Enum.map_join(args, ", ", &to_string(&1, fun))
     end
   end
 
@@ -483,8 +507,8 @@ defmodule Macro do
   end
 
   @doc """
-  Receives an AST node and expands it once. 
-  
+  Receives an AST node and expands it once.
+
   The following contents are expanded:
 
   * Macros (local or remote);
@@ -665,8 +689,8 @@ defmodule Macro do
 
   @doc """
   Receives an AST node and expands it until it no longer represents
-  a macro. 
-  
+  a macro.
+
   Check `expand_once/2` for more information on how
   expansion works.
   """
@@ -715,7 +739,7 @@ defmodule Macro do
   @doc """
   Recursively traverses the quoted expression checking if all sub-terms are
   safe.
- 
+
   Terms are considered safe if they represent data structures and don't actually
   evaluate code. Returns `:ok` unless a given term is unsafe,
   which is returned as `{ :unsafe, term }`.
