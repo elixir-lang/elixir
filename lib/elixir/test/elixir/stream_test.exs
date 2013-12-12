@@ -366,6 +366,13 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [5, 4, 3, 2, 1]
   end
 
+  test "resource is zippable" do
+    # File.stream! uses Stream.resource underneath
+    stream = File.stream!(__FILE__)
+    list   = Enum.to_list(stream)
+    assert Enum.zip(list, list) == Enum.zip(stream, stream)
+  end
+
   test "unfold only calculate values if needed" do
     stream = Stream.unfold(1, fn x -> if x > 0, do: {x, x-1}, else: throw(:boom) end)
     assert Enum.take(stream, 1) == [1]

@@ -822,13 +822,27 @@ defmodule Stream do
   """
   @spec resource((() -> acc), (acc -> { element, acc } | nil), (acc -> term)) :: Enumerable.t
   def resource(start_fun, next_fun, after_fun) do
-    fn acc, fun ->
-      next_acc = start_fun.()
-      try do
-        do_unfold(next_acc, next_fun, acc, fun)
-      after
+    &do_resource(start_fun.(), next_fun, &1, &2, after_fun)
+  end
+
+  defp do_resource(next_acc, next_fun, { :suspend, acc }, fun, after_fun) do
+    { :suspended, acc, &do_resource(next_acc, next_fun, &1, fun, after_fun) }
+  end
+
+  defp do_resource(_next_acc, _next_fun, { :halt, acc }, _fun, _after_fun) do
+    { :halted, acc }
+  end
+
+  defp do_resource(next_acc, next_fun, { :cont, acc }, fun, after_fun) do
+    try do
+      next_fun.(next_acc)
+    catch
+      kind, reason ->
         after_fun.(next_acc)
-      end
+        :erlang.raise(kind, reason, :erlang.get_stacktrace)
+    else
+      nil             -> { :done, acc }
+      { v, next_acc } -> do_resource(next_acc, next_fun, fun.(v, acc), fun, after_fun)
     end
   end
 
