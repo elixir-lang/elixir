@@ -83,7 +83,7 @@ defmodule Stream do
   like `Stream.cycle/1`, `Stream.unfold/2`, `Stream.resource/3` and more.
   """
 
-  defrecord Lazy, enum: nil, funs: [], accs: [], done: nil
+  defrecord Lazy, enum: nil, funs: [], accs: [], after: [], last: nil
 
   defimpl Enumerable, for: Lazy do
     @compile :inline_list_funs
@@ -103,35 +103,32 @@ defmodule Stream do
       { :error, __MODULE__ }
     end
 
-    defp do_reduce(Lazy[enum: enum, funs: funs, accs: accs, done: done], acc, fun) do
+    defp do_reduce(Lazy[enum: enum, funs: funs, accs: accs, last: last, after: after_funs], acc, fun) do
       composed = :lists.foldl(fn fun, acc -> fun.(acc) end, fun, funs)
-      do_each(&Enumerable.reduce(enum, &1, composed), done && { done, fun }, :lists.reverse(accs), acc)
+      do_each(&Enumerable.reduce(enum, &1, composed), after_funs,
+              last && { last, fun }, :lists.reverse(accs), acc)
     end
 
-    defp do_each(_reduce, _done, _accs, { :halt, acc }) do
-      { :halted, acc }
-    end
-
-    defp do_each(reduce, done, accs, { :suspend, acc }) do
-      { :suspended, acc, &do_each(reduce, done, accs, &1) }
-    end
-
-    defp do_each(reduce, done, accs, { :cont, acc }) do
-      case reduce.({ :cont, [acc|accs] }) do
+    defp do_each(reduce, after_funs, last, accs, { command, acc }) do
+      case reduce.({ command, [acc|accs] }) do
         { :suspended, [acc|accs], continuation } ->
-          { :suspended, acc, &do_each(continuation, done, accs, &1) }
+          { :suspended, acc, &do_each(continuation, after_funs, last, accs, &1) }
         { :halted, [acc|_] } ->
+          lc fun inlist after_funs, do: fun.()
           { :halted, acc }
         { :done, [acc|_] = accs } ->
-          case done do
+          case last do
             nil ->
+              lc fun inlist after_funs, do: fun.()
               { :done, acc }
-            { done, fun } ->
-              case done.(fun).(accs) do
+            { last, fun } ->
+              res = case last.(fun).(accs) do
                 { :cont, [acc|_] }    -> { :done, acc }
                 { :halt, [acc|_] }    -> { :halted, acc }
                 { :suspend, [acc|_] } -> { :suspended, acc, &({ :done, &1 |> elem(1) }) }
               end
+              lc fun inlist after_funs, do: fun.()
+              res
           end
       end
     end
@@ -163,10 +160,30 @@ defmodule Stream do
   ## Transformers
 
   @doc """
-  Shortcut to `chunks(coll, n, n)`.
+  Executes the given function when the stream is done, halted
+  or an error happened during streaming. Useful for resource
+  clean up.
+
+  Callbacks registered later will be executed earlier.
+
+  ## Examples
+
+      iex> stream = Stream.after [1,2,3], fn -> Process.put(:done, true) end
+      iex> Enum.to_list(stream)
+      [1,2,3]
+      iex> Process.get(:done)
+      true
+
+  """
+  @spec unquote(:after)(Enumerable.t, (() -> term)) :: Enumerable.t
+  def unquote(:after)(Lazy[after: funs] = lazy, fun), do: lazy.after([fun|funs])
+  def unquote(:after)(enum, fun), do: Lazy[enum: enum, after: [fun]]
+
+  @doc """
+  Shortcut to `chunks(enum, n, n)`.
   """
   @spec chunks(Enumerable.t, non_neg_integer) :: Enumerable.t
-  def chunks(coll, n), do: chunks(coll, n, n, nil)
+  def chunks(enum, n), do: chunks(enum, n, n, nil)
 
   @doc """
   Streams the enumerable in chunks, containing `n` items each, where
@@ -485,6 +502,30 @@ defmodule Stream do
   @spec reject(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
   def reject(enum, fun) do
     lazy enum, fn(f1) -> R.reject(fun, f1) end
+  end
+
+  @doc """
+  Runs the given stream.
+
+  This is useful when a stream needs to be run, for side effects,
+  and there is no interest in its return result.
+
+  ## Examples
+
+  Open up a file, replace all # by % and stream to another file
+  without loading the whole file in memory:
+
+      stream = File.stream!("code")
+      |> Stream.map(&String.replace(&1, "#", "%"))
+      |> File.stream_to!("new")
+
+  No computation will be done until we call one of the Enum functions
+  or `Stream.run/1`.
+  """
+  @spec run(Enumerable.t) :: :ok
+  def run(stream) do
+    Enumerable.reduce(stream, { :cont, nil }, fn(_, _) -> { :cont, nil } end)
+    :ok
   end
 
   @doc """
@@ -911,8 +952,8 @@ defmodule Stream do
   defp lazy(enum, acc, fun),
     do: Lazy[enum: enum, funs: [fun], accs: [acc]]
 
-  defp lazy(Lazy[done: nil, funs: funs, accs: accs] = lazy, acc, fun, done),
-    do: lazy.funs([fun|funs]).accs([acc|accs]).done(done)
-  defp lazy(enum, acc, fun, done),
-    do: Lazy[enum: enum, funs: [fun], accs: [acc], done: done]
+  defp lazy(Lazy[last: nil, funs: funs, accs: accs] = lazy, acc, fun, last),
+    do: lazy.funs([fun|funs]).accs([acc|accs]).last(last)
+  defp lazy(enum, acc, fun, last),
+    do: Lazy[enum: enum, funs: [fun], accs: [acc], last: last]
 end

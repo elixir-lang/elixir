@@ -954,12 +954,12 @@ defmodule File do
   end
 
   @doc """
-  Opens the given `file` with the given `mode` and returns
-  a stream for each `:line` (default) or for a given number
+  Opens the file at the given `path` with the given `modes` and
+  returns a stream for each `:line` (default) or for a given number
   of bytes given by `line_or_bytes`.
 
   The returned stream will fail for the same reasons as
-  `File.open!`. Note that the file is opened only and every time
+  `File.open!/2`. Note that the file is opened only and every time
   streaming begins.
 
   Note that stream by default uses `IO.binread/2` unless
@@ -986,6 +986,42 @@ defmodule File do
       end
 
     Stream.resource(start_fun, next_fun, &F.close/1)
+  end
+
+  @doc """
+  Receives a stream and returns a new stream that will open the file
+  at the given `path` for write  with the extra `modes` and write
+  each value to the file.
+
+  The returned stream will fail for the same reasons as
+  `File.open!/2`. Note that the file is opened only and every time
+  streaming begins.
+
+  Note that stream by default uses `IO.binwrite/2` unless
+  the file is opened with an encoding, then the slower `IO.write/2`
+  is used to do the proper data conversion and guarantees.
+  """
+  def stream_to!(stream, path, modes // []) do
+    modes = open_defaults([:write|List.delete(modes, :write)], true)
+    bin   = nil? List.keyfind(modes, :encoding, 0)
+
+    fn acc, f ->
+      case F.open(path, modes) do
+        { :ok, device } ->
+          each =
+            case bin do
+              true  -> &IO.binwrite(device, &1)
+              false -> &IO.write(device, &1)
+            end
+
+          stream
+          |> Stream.each(each)
+          |> Stream.after(fn -> F.close(device) end)
+          |> Enumerable.Stream.Lazy.reduce(acc, f)
+        { :error, reason } ->
+          raise File.Error, reason: reason, action: "stream_to", path: to_string(path)
+      end
+    end
   end
 
   @doc false

@@ -25,6 +25,20 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [3,5,7]
   end
 
+  test "after" do
+    stream = Stream.after([1,2,3], fn -> Process.put(:after, true) end)
+
+    # Done
+    Process.put(:after, false)
+    assert Enum.to_list(stream) == [1,2,3]
+    assert Process.get(:after)
+
+    # Halted
+    Process.put(:after, false)
+    assert Enum.take(stream, 1) == [1]
+    assert Process.get(:after)
+  end
+
   test "chunks" do
     assert Stream.chunks([1, 2, 3, 4, 5], 2) |> Enum.to_list ==
            [[1, 2], [3, 4]]
@@ -393,6 +407,22 @@ defmodule StreamTest do
     stream = File.stream!(__FILE__)
     list   = Enum.to_list(stream)
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
+  end
+
+  test "run" do
+    Process.put(:stream_each, [])
+    Process.put(:stream_after, false)
+
+    stream = [1,2,3]
+    |> Stream.after(fn -> Process.put(:stream_after, true) end)
+    |> Stream.each(fn x ->
+         Process.put(:stream_each, [x|Process.get(:stream_each)])
+       end)
+
+    assert is_lazy(stream)
+    assert Stream.run(stream) == :ok
+    assert Process.get(:stream_after)
+    assert Process.get(:stream_each) == [3,2,1]
   end
 
   test "unfold only calculate values if needed" do

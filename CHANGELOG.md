@@ -2,12 +2,13 @@
 
 * Enhancements
   * [Exception] Allow `exception/1` to be overriden and promote it as the main mechanism to customize exceptions
+  * [File] Add `File.stream_to/3`
   * [Kernel] Add `List.delete_at/2` and `List.updated_at/3`
   * [Kernel] Add `Enum.reverse/2`
   * [Kernel] Implement `defmodule/2`, `@/1`, `def/2` and friends in Elixir itself. `case/2`, `try/2` and `receive/1` have been made special forms. `var!/1`, `var!/2` and `alias!/1` have also been implemented in Elixir and demoted from special forms
   * [Record] Support dynamic fields in `defrecordp`
   * [Stream] Add `Stream.resource/3`
-  * [Stream] Add `Stream.zip/2`, `Stream.filter_map/3`, `Stream.each/2`, `Stream.take_every/2`, `Stream.chunks/2`, `Stream.chunks/3`, `Stream.chunks/4`, `Stream.chunks_by/2`, `Stream.scan/2`, `Stream.scan/3` and `Stream.uniq/2`
+  * [Stream] Add `Stream.zip/2`, `Stream.filter_map/3`, `Stream.each/2`, `Stream.take_every/2`, `Stream.chunks/2`, `Stream.chunks/3`, `Stream.chunks/4`, `Stream.chunks_by/2`, `Stream.scan/2`, `Stream.scan/3`, `Stream.uniq/2`, `Stream.after/2` and `Stream.run/1`
   * [Stream] Support `Stream.take/2` and `Stream.drop/2` with negative counts
   * [Typespec] Support `is_var/1` in typespecs
 
