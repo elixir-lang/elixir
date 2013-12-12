@@ -25,4 +25,36 @@ defmodule FloatTest do
     assert Float.parse("++1.2") === :error
     assert Float.parse("pi") === :error
   end
+
+  test :floor do
+    assert Float.floor(12) === 12
+    assert Float.floor(-12) === -12
+    assert Float.floor(12.524235) === 12
+    assert Float.floor(-12.5) === -13
+    assert Float.floor(-12.524235) === -13
+    assert Float.floor(7.5e3) === 7500
+    assert Float.floor(7.5432e3) === 7543
+    assert Float.floor(7.5e-3) === 0
+    assert Float.floor(-12.32453e4) === -123246
+    assert Float.floor(-12.32453e-10) === -1
+    assert Float.floor(0.32453e-10) === 0
+    assert Float.floor(-0.32453e-10) === -1
+    assert Float.floor(1.32453e-10) === 0
+  end
+
+  test :ceil do
+    assert Float.ceil(12) === 12
+    assert Float.ceil(-12) === -12
+    assert Float.ceil(12.524235) === 13
+    assert Float.ceil(-12.5) === -12
+    assert Float.ceil(-12.524235) === -12
+    assert Float.ceil(7.5e3) === 7500
+    assert Float.ceil(7.5432e3) === 7544
+    assert Float.ceil(7.5e-3) === 1
+    assert Float.ceil(-12.32453e4) === -123245
+    assert Float.ceil(-12.32453e-10) === 0
+    assert Float.ceil(0.32453e-10) === 1
+    assert Float.ceil(-0.32453e-10) === 0
+    assert Float.ceil(1.32453e-10) === 1
+  end
 end
