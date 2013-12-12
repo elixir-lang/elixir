@@ -14,7 +14,7 @@
 
 * Bug fixes
   * [HashDict] Ensure a `HashDict` stored in an attribute can be accessed via the attribute
-  * [Enum] Fix bug in `Enum.chunk/4` where you'd get an extra element when there enumerable was a multiple of the counter and a pad was given
+  * [Enum] Fix bug in `Enum.chunk/4` where you'd get an extra element when the enumerable was a multiple of the counter and a pad was given
   * [Kernel] `quote location: :keep` now only affects definitions in order to keep the proper trace in definition exceptions
   * [Mix] Also symlink `include` directories in _build dependencies
 
