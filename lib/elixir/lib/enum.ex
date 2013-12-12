@@ -27,8 +27,8 @@ defprotocol Enumerable do
   The reason the accumulator requires a tagged tuple is to allow the
   reducer function to communicate to the underlying enumerable the end
   of enumeration, allowing any open resource to be properly closed. It
-  also allows suspension of the enumeration, which is useful in case
-  interleaving in between many enumerables are required (as in zip).
+  also allows suspension of the enumeration, which is useful when
+  interleaving between many enumerables is required (as in zip).
 
   Finally, `Enumerable.reduce/3` will return another tagged tuple,
   as represented by the `result/0` type.
@@ -55,8 +55,8 @@ defprotocol Enumerable do
   @typedoc """
   The reducer function.
 
-  Should be called with the collection element, the
-  accumulator contents and returns the accumulator for
+  Should be called with the collection element and the
+  accumulator contents. Returns the accumulator for
   the next enumeration step.
   """
   @type reducer :: (term, term -> acc)
@@ -68,10 +68,10 @@ defprotocol Enumerable do
   its end, or *halted*/*suspended* when the enumeration was halted
   or suspended by the reducer function.
 
-  In case a reducer function returns `:suspend` accumulator, the
+  In case a reducer function returns the `:suspend` accumulator, the
   `:suspended` tuple must be explicitly handled by the caller and
   never leak. In practice, this means regular enumeration functions
-  just need to concern about `:done` and `:halted` results.
+  just need to be concerned about `:done` and `:halted` results.
 
   Furthermore, a `:suspend` call must always be followed by another call,
   eventually halting or continuing until the end.
@@ -81,7 +81,7 @@ defprotocol Enumerable do
   @typedoc """
   A partially applied reduce function.
 
-  The continuation is the closure returned as result when
+  The continuation is the closure returned as a result when
   the enumeration is suspended. When invoked, it expects
   a new accumulator and it returns the result.
 
@@ -97,7 +97,7 @@ defprotocol Enumerable do
   Reduces the collection into a value.
 
   Most of the operations in `Enum` are implemented in terms of reduce.
-  This function should simply apply the given `reducer` function to each
+  This function should apply the given `reducer` function to each
   item in the collection and proceed as expected by the returned accumulator.
 
   As an example, here is the implementation of `reduce` for lists:
@@ -148,7 +148,7 @@ defmodule Enum do
       iex> Enum.map(dict, fn { k, v } -> { k, v * 2 } end)
       [a: 2, b: 4]
 
-  Note the functions in the `Enum` module are eager: they always start
+  Note that the functions in the `Enum` module are eager: they always start
   the enumeration of the given collection. The `Stream` module allows
   lazy enumeration of collections and provides infinite streams.
 
@@ -316,7 +316,7 @@ defmodule Enum do
   from `pad` if it was passed. If `pad` is passed and does not
   have enough elements to fill the chunk, then the chunk is
   returned anyway with less than `n` elements. If `pad` is not
-  passed at all or is nil, then the partial chunk is discarded
+  passed at all or is `nil`, then the partial chunk is discarded
   from the result.
 
   ## Examples
@@ -389,7 +389,7 @@ defmodule Enum do
   @doc """
   Concatenates the enumerable on the right with the enumerable on the left.
 
-  This function produces the same result as the `++` operator for lists.
+  This function produces the same result as the `Kernel.++/2` operator for lists.
 
   ## Examples
 
@@ -760,7 +760,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the first item in the collection or `nil` otherwise.
+  Returns the first item in the collection or `nil` if the collection is empty.
 
   ## Examples
 
@@ -784,7 +784,7 @@ defmodule Enum do
   Returns a new collection appending the result of invoking `fun`
   on each corresponding item of `collection`.
 
-  Given function should return a list.
+  The given function should return a list.
 
   ## Examples
 
@@ -805,7 +805,7 @@ defmodule Enum do
   end
 
   @doc """
-  Intersperses the `element` between each element of the enumeration.
+  Intersperses `element` between each element of the enumeration.
 
   Complexity: O(n)
 
@@ -865,7 +865,7 @@ defmodule Enum do
   Returns a new collection, where each item is the result
   of invoking `fun` on each corresponding item of `collection`.
 
-  For dicts, the function accepts a key-value tuple.
+  For dicts, the function expects a key-value tuple.
 
   ## Examples
 
@@ -1227,7 +1227,7 @@ defmodule Enum do
 
   @doc """
   Applies the given function to each element in the collection,
-  storing the result in a list and passing it as accumulator
+  storing the result in a list and passing it as the accumulator
   for the next computation.
 
   ## Examples
@@ -1245,8 +1245,8 @@ defmodule Enum do
 
   @doc """
   Applies the given function to each element in the collection,
-  storing the result in a list and passing it as accumulator
-  for the next computation. Uses the given `acc` as starting value.
+  storing the result in a list and passing it as the accumulator
+  for the next computation. Uses the given `acc` as the starting value.
 
   ## Examples
 
@@ -1264,7 +1264,7 @@ defmodule Enum do
   @doc """
   Returns a list of collection elements shuffled.
 
-  Notice you need to explicitly call `:random.seed/1` and
+  Notice that you need to explicitly call `:random.seed/1` and
   set a seed value for the random algorithm. Otherwise, the
   default seed will be set which will always return the same
   result. For example, one could do the following to set a seed
@@ -1385,7 +1385,9 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a sorted list of collection elements. Uses the merge sort algorithm.
+  Returns a list of collection elements sorted by the given function.
+
+  Uses the merge sort algorithm.
 
   ## Examples
 
@@ -1521,8 +1523,8 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a collection of every `nth` items in the collection,
-  starting with the first.
+  Returns a collection of every `nth` item in the collection,
+  starting with the first element.
 
   ## Examples
 
