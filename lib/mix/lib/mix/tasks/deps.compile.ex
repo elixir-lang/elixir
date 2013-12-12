@@ -85,7 +85,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_mix(Mix.Dep[app: app] = dep, config) do
-    Mix.Deps.in_dependency dep, config, fn _ ->
+    Mix.Deps.in_dependency dep, fn _ ->
       case dev_compilation(app, config) do
         { source, target } ->
           File.rm_rf!(target)

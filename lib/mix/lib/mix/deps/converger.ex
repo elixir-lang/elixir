@@ -40,10 +40,9 @@ defmodule Mix.Deps.Converger do
   an updated depedency in case some processing is done.
   """
   def all(rest, callback) do
-    conf = Mix.Project.deps_config
     main = Mix.Deps.Retriever.children
     apps = Enum.map(main, &(&1.app))
-    all(main, [], [], apps, conf, callback, rest)
+    all(main, [], [], apps, callback, rest)
   end
 
   # We traverse the tree of dependencies in a breadth-
@@ -85,28 +84,28 @@ defmodule Mix.Deps.Converger do
   # Now, since `d` was specified in a parent project, no
   # exception is going to be raised since d is considered
   # to be the authorative source.
-  defp all([dep|t], acc, upper_breadths, current_breadths, config, callback, rest) do
+  defp all([dep|t], acc, upper_breadths, current_breadths, callback, rest) do
     cond do
       new_acc = overriden_deps(acc, upper_breadths, dep) ->
-        all(t, new_acc, upper_breadths, current_breadths, config, callback, rest)
+        all(t, new_acc, upper_breadths, current_breadths, callback, rest)
       new_acc = diverged_deps(acc, dep) ->
-        all(t, new_acc, upper_breadths, current_breadths, config, callback, rest)
+        all(t, new_acc, upper_breadths, current_breadths, callback, rest)
       true ->
         { dep, rest } = callback.(dep, rest)
 
         # After we invoke the callback (which may actually check out the
         # dependency), we load the dependency including its latest info
         # and children information.
-        { dep, children } = Mix.Deps.Retriever.load(dep, config)
+        { dep, children } = Mix.Deps.Retriever.load(dep)
         children = reject_non_fullfilled_optional(children, current_breadths)
         dep      = dep.deps(Enum.map(children, &(&1.app)))
 
-        { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, config, callback, rest)
-        all(children, acc, current_breadths, dep.deps ++ current_breadths, config, callback, rest)
+        { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, callback, rest)
+        all(children, acc, current_breadths, dep.deps ++ current_breadths, callback, rest)
     end
   end
 
-  defp all([], acc, _upper, _current, _config, _callback, rest) do
+  defp all([], acc, _upper, _current, _callback, rest) do
     { acc, rest }
   end
 

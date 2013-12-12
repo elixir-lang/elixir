@@ -185,8 +185,10 @@ defmodule Mix.Deps do
     # This is important because the name of application in the
     # mix.exs file can be different than the actual name and we
     # choose to respect the one in the mix.exs.
-    config  = Keyword.put(config, :app_path, opts[:build])
-    env     = opts[:env] || :prod
+    config = Keyword.merge(Mix.Project.deps_config, config)
+    config = Keyword.put(config, :app_path, opts[:build])
+
+    env = opts[:env] || :prod
     old_env = Mix.env
 
     try do

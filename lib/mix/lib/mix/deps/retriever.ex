@@ -20,7 +20,7 @@ defmodule Mix.Deps.Retriever do
   Loads the given dependency information, including its
   latest status and children.
   """
-  def load(dep, config) do
+  def load(dep) do
     Mix.Dep[manager: manager, scm: scm, opts: opts] = dep
     dep  = dep.status(scm_status(scm, opts))
     dest = opts[:dest]
@@ -31,13 +31,13 @@ defmodule Mix.Deps.Retriever do
           { dep, [] }
 
         manager == :rebar ->
-          rebar_dep(dep, config)
+          rebar_dep(dep)
 
         mix?(dest) ->
-          mix_dep(dep.manager(:mix), config)
+          mix_dep(dep.manager(:mix))
 
         rebar?(dest) ->
-          rebar_dep(dep.manager(:rebar), config)
+          rebar_dep(dep.manager(:rebar))
 
         make?(dest) ->
           { dep.manager(:make), [] }
@@ -139,8 +139,8 @@ defmodule Mix.Deps.Retriever do
 
   ## Fetching
 
-  defp mix_dep(Mix.Dep[opts: opts] = dep, config) do
-    Mix.Deps.in_dependency(dep, config, fn _ ->
+  defp mix_dep(Mix.Dep[opts: opts] = dep) do
+    Mix.Deps.in_dependency(dep, fn _ ->
       config    = Mix.project
       umbrella? = Mix.Project.umbrella?
 
@@ -156,8 +156,8 @@ defmodule Mix.Deps.Retriever do
     end)
   end
 
-  defp rebar_dep(Mix.Dep[] = dep, config) do
-    Mix.Deps.in_dependency(dep, config, fn _ ->
+  defp rebar_dep(Mix.Dep[] = dep) do
+    Mix.Deps.in_dependency(dep, fn _ ->
       rebar = Mix.Rebar.load_config(".")
       extra = Dict.take(rebar, [:sub_dirs])
       { dep.manager(:rebar).extra(extra), rebar_children(rebar) }
