@@ -2,7 +2,7 @@ defmodule Stream.Reducers do
   # Collection of reducers shared by Enum and Stream.
   @moduledoc false
 
-  defmacro chunks(n, step, limit, f // nil) do
+  defmacro chunk(n, step, limit, f // nil) do
     quote do
       fn entry, acc(h, { buffer, count }, t) ->
         buffer = [entry|buffer]
@@ -25,7 +25,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro chunks_by(callback, f // nil) do
+  defmacro chunk_by(callback, f // nil) do
     quote do
       fn
         entry, acc(h, { buffer, value }, t) ->

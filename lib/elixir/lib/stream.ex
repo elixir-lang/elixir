@@ -180,10 +180,10 @@ defmodule Stream do
   def unquote(:after)(enum, fun), do: Lazy[enum: enum, after: [fun]]
 
   @doc """
-  Shortcut to `chunks(enum, n, n)`.
+  Shortcut to `chunk(enum, n, n)`.
   """
-  @spec chunks(Enumerable.t, non_neg_integer) :: Enumerable.t
-  def chunks(enum, n), do: chunks(enum, n, n, nil)
+  @spec chunk(Enumerable.t, non_neg_integer) :: Enumerable.t
+  def chunk(enum, n), do: chunk(enum, n, n, nil)
 
   @doc """
   Streams the enumerable in chunks, containing `n` items each, where
@@ -200,26 +200,26 @@ defmodule Stream do
 
   ## Examples
 
-      iex> Stream.chunks([1, 2, 3, 4, 5, 6], 2) |> Enum.to_list
+      iex> Stream.chunk([1, 2, 3, 4, 5, 6], 2) |> Enum.to_list
       [[1, 2], [3, 4], [5, 6]]
-      iex> Stream.chunks([1, 2, 3, 4, 5, 6], 3, 2) |> Enum.to_list
+      iex> Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2) |> Enum.to_list
       [[1, 2, 3], [3, 4, 5]]
-      iex> Stream.chunks([1, 2, 3, 4, 5, 6], 3, 2, [7]) |> Enum.to_list
+      iex> Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2, [7]) |> Enum.to_list
       [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
-      iex> Stream.chunks([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list
+      iex> Stream.chunk([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list
       [[1, 2, 3], [4, 5, 6]]
 
   """
-  @spec chunks(Enumerable.t, non_neg_integer, non_neg_integer) :: Enumerable.t
-  @spec chunks(Enumerable.t, non_neg_integer, non_neg_integer, Enumerable.t | nil) :: Enumerable.t
-  def chunks(enum, n, step, pad // nil) when n > 0 and step > 0 do
+  @spec chunk(Enumerable.t, non_neg_integer, non_neg_integer) :: Enumerable.t
+  @spec chunk(Enumerable.t, non_neg_integer, non_neg_integer, Enumerable.t | nil) :: Enumerable.t
+  def chunk(enum, n, step, pad // nil) when n > 0 and step > 0 do
     limit = :erlang.max(n, step)
     lazy enum, { [], 0 },
-         fn(f1) -> R.chunks(n, step, limit, f1) end,
-         fn(f1) -> &do_chunks(&1, n, pad, f1) end
+         fn(f1) -> R.chunk(n, step, limit, f1) end,
+         fn(f1) -> &do_chunk(&1, n, pad, f1) end
   end
 
-  defp do_chunks(acc(h, { buffer, count } = old, t) = acc, n, pad, f1) do
+  defp do_chunk(acc(h, { buffer, count } = old, t) = acc, n, pad, f1) do
     if nil?(pad) || count == 0 do
       { :cont, acc }
     else
@@ -235,23 +235,23 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.chunks_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
+      iex> stream = Stream.chunk_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
       iex> Enum.to_list(stream)
       [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
 
   """
-  @spec chunks_by(Enumerable.t, (element -> any)) :: Enumerable.t
-  def chunks_by(enum, fun) do
+  @spec chunk_by(Enumerable.t, (element -> any)) :: Enumerable.t
+  def chunk_by(enum, fun) do
     lazy enum, nil,
-         fn(f1) -> R.chunks_by(fun, f1) end,
-         fn(f1) -> &do_chunks_by(&1, f1) end
+         fn(f1) -> R.chunk_by(fun, f1) end,
+         fn(f1) -> &do_chunk_by(&1, f1) end
   end
 
-  defp do_chunks_by(acc(_, nil, _) = acc, _f1) do
+  defp do_chunk_by(acc(_, nil, _) = acc, _f1) do
     { :cont, acc }
   end
 
-  defp do_chunks_by(acc(h, { buffer, _ }, t), f1) do
+  defp do_chunk_by(acc(h, { buffer, _ }, t), f1) do
     cont_with_acc(f1, :lists.reverse(buffer), h, nil, t)
   end
 

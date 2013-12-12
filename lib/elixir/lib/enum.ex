@@ -282,11 +282,29 @@ defmodule Enum do
     end
   end
 
+  @doc false
+  def chunks(coll, n) do
+    IO.write "Enum.chunks/2 is deprecated, please use Enum.chunk/2 instead\n#{Exception.format_stacktrace}"
+    chunk(coll, n)
+  end
+
+  @doc false
+  def chunks(coll, n, step, pad) do
+    IO.write "Enum.chunks/4 is deprecated, please use Enum.chunk/4 instead\n#{Exception.format_stacktrace}"
+    chunk(coll, n, step, pad)
+  end
+
+  @doc false
+  def chunks_by(coll, fun) do
+    IO.write "Enum.chunks_by/2 is deprecated, please use Enum.chunk_by/2 instead\n#{Exception.format_stacktrace}"
+    chunk_by(coll, fun)
+  end
+
   @doc """
-  Shortcut to `chunks(coll, n, n)`.
+  Shortcut to `chunk(coll, n, n)`.
   """
-  @spec chunks(t, non_neg_integer) :: [list]
-  def chunks(coll, n), do: chunks(coll, n, n, nil)
+  @spec chunk(t, non_neg_integer) :: [list]
+  def chunk(coll, n), do: chunk(coll, n, n, nil)
 
   @doc """
   Returns a collection of lists containing `n` items each, where
@@ -303,23 +321,23 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.chunks([1, 2, 3, 4, 5, 6], 2)
+      iex> Enum.chunk([1, 2, 3, 4, 5, 6], 2)
       [[1, 2], [3, 4], [5, 6]]
-      iex> Enum.chunks([1, 2, 3, 4, 5, 6], 3, 2)
+      iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2)
       [[1, 2, 3], [3, 4, 5]]
-      iex> Enum.chunks([1, 2, 3, 4, 5, 6], 3, 2, [7])
+      iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2, [7])
       [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
-      iex> Enum.chunks([1, 2, 3, 4, 5, 6], 3, 3, [])
+      iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 3, [])
       [[1, 2, 3], [4, 5, 6]]
 
   """
-  @spec chunks(t, non_neg_integer, non_neg_integer) :: [list]
-  @spec chunks(t, non_neg_integer, non_neg_integer, t | nil) :: [list]
-  def chunks(coll, n, step, pad // nil) when n > 0 and step > 0 do
+  @spec chunk(t, non_neg_integer, non_neg_integer) :: [list]
+  @spec chunk(t, non_neg_integer, non_neg_integer, t | nil) :: [list]
+  def chunk(coll, n, step, pad // nil) when n > 0 and step > 0 do
     limit = :erlang.max(n, step)
 
     { _, { acc, { buffer, i } } } =
-      Enumerable.reduce(coll, { :cont, { [], { [], 0 } } }, R.chunks(n, step, limit))
+      Enumerable.reduce(coll, { :cont, { [], { [], 0 } } }, R.chunk(n, step, limit))
 
     if nil?(pad) || i == 0 do
       :lists.reverse(acc)
@@ -334,14 +352,14 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.chunks_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
+      iex> Enum.chunk_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
       [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
 
   """
-  @spec chunks_by(t, (element -> any)) :: [list]
-  def chunks_by(coll, fun) do
+  @spec chunk_by(t, (element -> any)) :: [list]
+  def chunk_by(coll, fun) do
     { _, { acc, res } } =
-      Enumerable.reduce(coll, { :cont, { [], nil } }, R.chunks_by(fun))
+      Enumerable.reduce(coll, { :cont, { [], nil } }, R.chunk_by(fun))
 
     case res do
       { buffer, _ } ->

@@ -8,18 +8,19 @@
   * [Kernel] Implement `defmodule/2`, `@/1`, `def/2` and friends in Elixir itself. `case/2`, `try/2` and `receive/1` have been made special forms. `var!/1`, `var!/2` and `alias!/1` have also been implemented in Elixir and demoted from special forms
   * [Record] Support dynamic fields in `defrecordp`
   * [Stream] Add `Stream.resource/3`
-  * [Stream] Add `Stream.zip/2`, `Stream.filter_map/3`, `Stream.each/2`, `Stream.take_every/2`, `Stream.chunks/2`, `Stream.chunks/3`, `Stream.chunks/4`, `Stream.chunks_by/2`, `Stream.scan/2`, `Stream.scan/3`, `Stream.uniq/2`, `Stream.after/2` and `Stream.run/1`
+  * [Stream] Add `Stream.zip/2`, `Stream.filter_map/3`, `Stream.each/2`, `Stream.take_every/2`, `Stream.chunk/2`, `Stream.chunk/3`, `Stream.chunk/4`, `Stream.chunk_by/2`, `Stream.scan/2`, `Stream.scan/3`, `Stream.uniq/2`, `Stream.after/2` and `Stream.run/1`
   * [Stream] Support `Stream.take/2` and `Stream.drop/2` with negative counts
   * [Typespec] Support `is_var/1` in typespecs
 
 * Bug fixes
   * [HashDict] Ensure a `HashDict` stored in an attribute can be accessed via the attribute
-  * [Enum] Fix bug in `Enum.chunks/4` where you'd get an extra element when there enumerable was a multiple of the counter and a pad was given
+  * [Enum] Fix bug in `Enum.chunk/4` where you'd get an extra element when there enumerable was a multiple of the counter and a pad was given
   * [Kernel] `quote location: :keep` now only affects definitions in order to keep the proper trace in definition exceptions
   * [Mix] Also symlink `include` directories in _build dependencies
 
 * Deprecations
   * [Enum] `Enumerable.count/1` and `Enumerable.member?/2` should now return tagged tuples. Please see `Enumerable` docs for more info
+  * [Enum] Deprecate `Enum.chunks/2`, `Enum.chunks/4` and `Enum.chunks_by/2` in favor of `Enum.chunk/2`, `Enum.chunk/4` and `Enum.chunk_by/2`
   * [File] `File.binstream!/3` is deprecated. Simply use `File.stream!/3` which is able to figure out if `stream` or `binstream` operations should be used
   * [Macro] `Macro.extract_args/1` is deprecated in favor of `Macro.decompose_call/1`
   * [Typespec] `when` clauses in typespecs were moved to the outer part of the spec
@@ -146,7 +147,7 @@
 * Enhancements
   * [CLI] Add `--verbose` to elixirc, which now is non-verbose by default
   * [Dict] Add `Dict.Behaviour` as a convenience to create your own dictionaries
-  * [Enum] Add `Enum.split/2`, `Enum.reduce/2`, `Enum.flat_map/2`, `Enum.chunks/2`, `Enum.chunks/4`, `Enum.chunks_by/2`, `Enum.concat/1` and `Enum.concat/2`
+  * [Enum] Add `Enum.split/2`, `Enum.reduce/2`, `Enum.flat_map/2`, `Enum.chunk/2`, `Enum.chunk/4`, `Enum.chunk_by/2`, `Enum.concat/1` and `Enum.concat/2`
   * [Enum] Support negative indices in `Enum.at/fetch/fetch!`
   * [ExUnit] Show failures on CLIFormatter as soon as they pop up
   * [IEx] Allow for strings in `h` helper

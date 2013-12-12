@@ -39,31 +39,31 @@ defmodule StreamTest do
     assert Process.get(:after)
   end
 
-  test "chunks" do
-    assert Stream.chunks([1, 2, 3, 4, 5], 2) |> Enum.to_list ==
+  test "chunk" do
+    assert Stream.chunk([1, 2, 3, 4, 5], 2) |> Enum.to_list ==
            [[1, 2], [3, 4]]
-    assert Stream.chunks([1, 2, 3, 4, 5], 2, 2, [6]) |> Enum.to_list ==
+    assert Stream.chunk([1, 2, 3, 4, 5], 2, 2, [6]) |> Enum.to_list ==
            [[1, 2], [3, 4], [5, 6]]
-    assert Stream.chunks([1, 2, 3, 4, 5, 6], 3, 2) |> Enum.to_list ==
+    assert Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2) |> Enum.to_list ==
            [[1, 2, 3], [3, 4, 5]]
-    assert Stream.chunks([1, 2, 3, 4, 5, 6], 2, 3) |> Enum.to_list ==
+    assert Stream.chunk([1, 2, 3, 4, 5, 6], 2, 3) |> Enum.to_list ==
            [[1, 2], [4, 5]]
-    assert Stream.chunks([1, 2, 3, 4, 5, 6], 3, 2, []) |> Enum.to_list ==
+    assert Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2, []) |> Enum.to_list ==
            [[1, 2, 3], [3, 4, 5], [5, 6]]
-    assert Stream.chunks([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list ==
+    assert Stream.chunk([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list ==
            [[1, 2, 3], [4, 5, 6]]
-    assert Stream.chunks([1, 2, 3, 4, 5], 4, 4, 6..10) |> Enum.to_list ==
+    assert Stream.chunk([1, 2, 3, 4, 5], 4, 4, 6..10) |> Enum.to_list ==
            [[1, 2, 3, 4], [5, 6, 7, 8]]
   end
 
-  test "chunks is zippable" do
-    stream = Stream.chunks([1, 2, 3, 4, 5, 6], 3, 2, [])
+  test "chunk is zippable" do
+    stream = Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2, [])
     list   = Enum.to_list(stream)
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end
 
-  test "chunks_by" do
-    stream = Stream.chunks_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
+  test "chunk_by" do
+    stream = Stream.chunk_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
 
     assert is_lazy(stream)
     assert Enum.to_list(stream) ==
@@ -72,8 +72,8 @@ defmodule StreamTest do
            [[1], [2, 2], [3]]
   end
 
-  test "chunks_by is zippable" do
-    stream = Stream.chunks_by([1, 2, 2, 3], &(rem(&1, 2) == 1))
+  test "chunk_by is zippable" do
+    stream = Stream.chunk_by([1, 2, 2, 3], &(rem(&1, 2) == 1))
     list   = Enum.to_list(stream)
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end
