@@ -31,8 +31,18 @@ defmodule URI do
 
   @doc """
   Returns the default port for a given scheme.
+
   If the scheme is unknown to URI, returns `nil`.
   Any scheme may be registered via `default_port/2`.
+
+  ## Examples
+  
+      iex> URI.default_port("ftp")
+      21
+
+      iex> URI.default_port("ponzi")
+      nil
+
   """
   def default_port(scheme) when is_binary(scheme) do
     { :ok, dict } = :application.get_env(:elixir, :uri)
@@ -48,16 +58,17 @@ defmodule URI do
   end
 
   @doc """
+  Encodes an enumerable into a query string.
+
   Takes an enumerable (containing a sequence of two-item tuples)
-  and returns a string of the form "k=v&k2=v2..." where keys and values are
-  URL encoded as per `encode/1`. Keys and values can be any term
-  that implements the `String.Chars` protocol (i.e. can be converted
+  and returns a string of the form "key1=value1&key2=value2..." where 
+  keys and values are URL encoded as per `encode/1`. Keys and values can 
+  be any term that implements the `String.Chars` protocol (i.e. can be converted
   to a binary).
   
   ## Examples
 
       iex> hd = HashDict.new([{"foo", 1}, {"bar", "2"}])
-      #HashDict<[{"bar", "2"}, {"foo", 1}]>
       iex> URI.encode_query(hd)
       "bar=2&foo=1"
 
@@ -65,22 +76,24 @@ defmodule URI do
   def encode_query(l), do: Enum.map_join(l, "&", &pair/1)
 
   @doc """
-  Given a query string of the form "key1=value1&key=value2...", produces an
+  Decodes a query string into an orddict.
+
+  Given a query string of the form "key1=value1&key2=value2...", produces an
   orddict with one entry for each key-value pair. Each key and value will be a
-  binary. It also does percent-unescaping of both keys and values.
+  binary. Keys and values will be percent-unescaped.
 
   Use `query_decoder/1` if you want to iterate over each value manually.
 
   ## Examples
   
-      iex> URI.decode_query("foo=1&bar=2")
-      #HashDict<[{"bar", "2"}, {"foo", "1"}]>
+      iex> URI.decode_query("foo=1&bar=2") |> Dict.to_list
+      [{"bar", "2"}, {"foo", "1"}]
 
-      iex> hd = HashDict.new()
+      > hd = HashDict.new()
       #HashDict<[]>
-      iex> URI.decode_query("foo=1&bar=2", hd) |> HashDict.keys
+      > URI.decode_query("foo=1&bar=2", hd) |> HashDict.keys
       ["bar", "foo"]
-      iex> URI.decode_query("foo=1&bar=2", hd) |> HashDict.values
+      > URI.decode_query("foo=1&bar=2", hd) |> HashDict.values
       ["2", "1"]
 
   """
@@ -201,7 +214,9 @@ defmodule URI do
   ## Examples
   
       iex> URI.parse("http://elixir-lang.org/")
-      URI.Info[scheme: "http", path: "/", query: nil, fragment: nil, authority: "elixir-lang.org", userinfo: nil, host: "elixir-lang.org", port: 80]
+      URI.Info[scheme: "http", path: "/", query: nil, fragment: nil, 
+               authority: "elixir-lang.org", userinfo: nil, 
+               host: "elixir-lang.org", port: 80]
 
   """
   def parse(s) when is_binary(s) do
