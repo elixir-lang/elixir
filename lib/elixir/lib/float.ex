@@ -80,4 +80,49 @@ defmodule Float do
       result
     end
   end
+
+  @doc """
+  Round a float to the largest integer less than or equal to `num`
+
+  ## Examples
+      iex> Float.floor(34)
+      34
+      iex> Float.floor(34.25)
+      34
+      iex> Float.floor(-56.5)
+      -57
+
+  """
+  @spec floor(float | integer) :: integer
+  def floor(num) when is_integer(num), do: num
+  def floor(num) when is_float(num) do
+    truncated = :erlang.trunc(num)
+    case :erlang.abs(num - truncated) do
+      x when x > 0 and num < 0 -> truncated - 1
+      x -> truncated
+    end
+  end
+
+  @doc """
+  Round a float to the largest integer greater than or equal to `num`
+
+  ## Examples
+      iex> Float.ceil(34)
+      34
+      iex> Float.ceil(34.25)
+      35
+      iex> Float.ceil(-56.5)
+      -56
+
+  """
+  @spec ceil(float | integer) :: integer
+  def ceil(num) when is_integer(num), do: num
+  def ceil(num) when is_float(num) do
+    truncated = :erlang.trunc(num)
+    case :erlang.abs(num - truncated) do
+      x when x > 0 and num > 0 -> truncated + 1
+      x -> truncated
+    end
+  end
+
 end
