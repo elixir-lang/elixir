@@ -322,13 +322,13 @@ defmodule Typespec.TypeTest do
   test "@spec(spec) with guards" do
     { spec1, spec2, spec3 } = test_module do
       def myfun1(x), do: x
-      spec1 = @spec myfun1(x) :: boolean when is_subtype(x, integer)
+      spec1 = @spec myfun1(x) :: boolean when [x: integer]
 
       def myfun2(x), do: x
-      spec2 = @spec myfun2(x) :: x when is_var(x)
+      spec2 = @spec myfun2(x) :: x when [x: var]
 
       def myfun3(_x, y), do: y
-      spec3 = @spec myfun3(x, y) :: y when is_subtype(y, x) and is_var(x)
+      spec3 = @spec myfun3(x, y) :: y when [y: x, x: var]
 
       { spec1, spec2, spec3 }
     end
@@ -455,7 +455,8 @@ defmodule Typespec.TypeTest do
     specs = [
       (quote do: @spec a() :: integer()),
       (quote do: @spec a(atom()) :: integer()),
-      (quote do: @spec a(b) :: integer() when is_subtype(b, integer())),
+      (quote do: @spec a(b) :: integer() when [b: integer()]),
+      (quote do: @spec a(b) :: b when [b: var])
     ]
 
     compiled = test_module do

@@ -243,8 +243,19 @@ defmodule Kernel.Typespec do
   Converts a spec clause back to Elixir AST.
   """
   def spec_to_ast(name, { :type, line, :fun, [{:type, _, :product, args}, result] }) do
-    args = lc arg inlist args, do: typespec_to_ast(arg)
-    { :::, [line: line], [{ name, [line: line], args }, typespec_to_ast(result)] }
+    ast_args = lc arg inlist args, do: typespec_to_ast(arg)
+    ast = { :::, [line: line], [{ name, [line: line], ast_args }, typespec_to_ast(result)] }
+
+    vars = args ++ [result]
+      |> Enum.flat_map(&collect_vars/1)
+      |> Enum.uniq
+      |> Enum.map(&{ &1, { :var, [line: line], nil } })
+
+    unless vars == [] do
+      ast = { :when, [line: line], [ast, vars] }
+    end
+
+    ast
   end
 
   def spec_to_ast(name, { :type, line, :fun, [] }) do
@@ -252,15 +263,21 @@ defmodule Kernel.Typespec do
   end
 
   def spec_to_ast(name, { :type, line, :bounded_fun, [{ :type, _, :fun, [{ :type, _, :product, args }, result] }, constraints] }) do
-    [h|t] =
-      lc {:type, line, :constraint, [{:atom, _, :is_subtype}, [var, type]]} inlist constraints do
-        { :is_subtype, [line: line], [typespec_to_ast(var), typespec_to_ast(type)] }
+    guards =
+      lc {:type, _, :constraint, [{:atom, _, :is_subtype}, [{ :var, _, var }, type]]} inlist constraints do
+        { var, typespec_to_ast(type) }
       end
 
-    args = lc arg inlist args, do: typespec_to_ast(arg)
-    guards = Enum.reduce t, h, fn(x, acc) -> { :and, line, [acc, x] } end
+    ast_args = lc arg inlist args, do: typespec_to_ast(arg)
 
-    { :when, [line: line], [{ :::, [line: line], [{ name, [line: line], args }, typespec_to_ast(result)] }, guards] }
+    vars = args ++ [result]
+      |> Enum.flat_map(&collect_vars/1)
+      |> Enum.uniq
+
+    vars = vars -- Keyword.keys(guards)
+      |> Enum.map(&{ &1, { :var, [line: line], nil } })
+
+    { :when, [line: line], [{ :::, [line: line], [{ name, [line: line], ast_args }, typespec_to_ast(result)] }, guards ++ vars] }
   end
 
   @doc """
@@ -418,26 +435,25 @@ defmodule Kernel.Typespec do
   end
 
   @doc false
-  def defspec(type, { :when, _, [{ :::, _, [{ name, meta, args }, return] }, constraints_guard] }, caller) do
+  def defspec(type, { :when, meta2, [{ :::, _, [{ name, meta, args }, return] }, guard] }, caller) do
     if is_atom(args), do: args = []
-    vars = guard_to_vars(constraints_guard)
-    constraints = guard_to_constraints(constraints_guard, vars, caller)
+
+    unless Keyword.keyword?(guard) do
+      guard = Macro.to_string(guard)
+      compile_error caller, "invalid guard in function type specification `#{guard}`"
+    end
+
+    vars = Keyword.keys(guard)
+    constraints = guard_to_constraints(guard, vars, meta2, caller)
+
     spec = { :type, line(meta), :fun, fn_args(meta, args, return, vars, caller) }
     if constraints != [] do
       spec = { :type, line(meta), :bounded_fun, [spec, constraints] }
     end
+
     code = { { name, Kernel.length(args) }, spec }
     Module.compile_typespec(caller.module, type, code)
     code
-  end
-
-  def defspec(type, { :when, _, [fun, { :::, _, [guards, return] }] } = spec, caller) do
-    new_spec = { :when, [], [{ :::, [], [fun, return] }, guards] }
-    IO.write "typespec format is deprecated `#{Macro.to_string(spec)}`\n" <>
-      "new format is: `#{Macro.to_string(new_spec)}`\n" <>
-      Exception.format_stacktrace
-
-    defspec(type, new_spec, caller)
   end
 
   def defspec(type, { :::, _, [{ name, meta, args }, return] }, caller) do
@@ -453,40 +469,48 @@ defmodule Kernel.Typespec do
     compile_error caller, "invalid function type specification `#{spec}`"
   end
 
-  defp guard_to_vars({ :is_subtype, _, [{ name, _, _ }, _] }) do
-    [name]
-  end
-
-  defp guard_to_vars({ :is_var, _, [{ name, _, _ }] }) do
-    [name]
-  end
-
-  defp guard_to_vars({ :and, _, [left, right] }) do
-    guard_to_vars(left) ++ guard_to_vars(right)
-  end
-
-  defp guard_to_constraints({ :is_subtype, meta, [{ name, _, context }, type] }, vars, caller)
-      when is_atom(name) and is_atom(context) do
+  defp guard_to_constraints(guard, vars, meta, caller) do
     line = line(meta)
-    contraints = [{ :atom, line, :is_subtype }, [{:var, line, name}, typespec(type, vars, caller)]]
-    [{ :type, line, :constraint, contraints }]
-  end
 
-  defp guard_to_constraints({ :is_var, _, [{ name, _, context }] }, _, _)
-      when is_atom(name) and is_atom(context) do
-    []
-  end
-
-  defp guard_to_constraints({ :and, _, [left, right] }, vars, caller) do
-    guard_to_constraints(left, vars, caller) ++ guard_to_constraints(right, vars, caller)
-  end
-
-  defp guard_to_constraints(other, _vars, caller) do
-    guard = Macro.to_string(other)
-    compile_error caller, "invalid guard in function type specification `#{guard}`"
+    Enum.reduce(guard, [], fn
+      { _name, { :var, _, context } }, acc when is_atom(context) ->
+        acc
+      { name, type }, acc ->
+        constraint = [{ :atom, line, :is_subtype }, [{:var, line, name}, typespec(type, vars, caller)]]
+        type = { :type, line, :constraint, constraint }
+        [type|acc]
+    end) |> Enum.reverse
   end
 
   ## To AST conversion
+
+  defp collect_vars({ :ann_type, _line, args }) do
+    Enum.flat_map(args, &collect_vars/1)
+  end
+
+  defp collect_vars({ :type, _line, _kind, args }) do
+    Enum.flat_map(args, &collect_vars/1)
+  end
+
+  defp collect_vars({ :remote_type, _line, args }) do
+    Enum.flat_map(args, &collect_vars/1)
+  end
+
+  defp collect_vars({ :typed_record_field, _line, type }) do
+    collect_vars(type)
+  end
+
+  defp collect_vars({:paren_type, _line, [type]}) do
+    collect_vars(type)
+  end
+
+  defp collect_vars({:var, _line, var}) do
+    [erl_to_ex_var(var)]
+  end
+
+  defp collect_vars(_) do
+    []
+  end
 
   defp typespec_to_ast({ :type, line, :tuple, :any }) do
     typespec_to_ast({:type, line, :tuple, []})
@@ -549,14 +573,7 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec_to_ast({ :var, line, var }) do
-    var =
-      case atom_to_binary(var) do
-        <<"_", c :: [binary, size(1)], rest :: binary>> ->
-          binary_to_atom("_#{String.downcase(c)}#{rest}")
-        <<c :: [binary, size(1)], rest :: binary>> ->
-          binary_to_atom("#{String.downcase(c)}#{rest}")
-      end
-    { var, line, nil }
+    { erl_to_ex_var(var), line, nil }
   end
 
   # Special shortcut(s)
@@ -597,6 +614,15 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec_to_ast(other), do: other
+
+  defp erl_to_ex_var(var) do
+    case atom_to_binary(var) do
+      <<"_", c :: [binary, size(1)], rest :: binary>> ->
+        binary_to_atom("_#{String.downcase(c)}#{rest}")
+      <<c :: [binary, size(1)], rest :: binary>> ->
+        binary_to_atom("#{String.downcase(c)}#{rest}")
+    end
+  end
 
   ## From AST conversion
 
