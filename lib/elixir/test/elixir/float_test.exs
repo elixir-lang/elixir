@@ -57,4 +57,17 @@ defmodule FloatTest do
     assert Float.ceil(-0.32453e-10) === 0
     assert Float.ceil(1.32453e-10) === 1
   end
+
+  test :round do
+    assert Float.round(5.5675, 3) === 5.568
+    assert Float.round(5.5675, 3, :down) === 5.567
+    assert Float.round(5.5, 3) === 5.5
+    assert Float.round(5.5e-10, 10) === 6.0e-10
+    assert Float.round(5.5e-10, 10, :down) === 5.0e-10
+    assert Float.round(5.5e-10, 8) === 1.0e-8
+    assert Float.round(5.5e-10, 8, :down) === 0.0
+    assert Float.round(5.0, 0) === 5.0
+    assert Float.round(-1.3456, 3) === -1.345
+    assert Float.round(-1.3456, 3, :down) === -1.346
+  end
 end
