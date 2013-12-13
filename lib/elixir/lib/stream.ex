@@ -109,8 +109,22 @@ defmodule Stream do
               last && { last, fun }, :lists.reverse(accs), acc)
     end
 
+    defp do_each(reduce, [], last, accs, { command, acc }) do
+      handle_reduce reduce.({ command, [acc|accs] }), [], last
+    end
+
     defp do_each(reduce, after_funs, last, accs, { command, acc }) do
-      case reduce.({ command, [acc|accs] }) do
+      try do
+        handle_reduce reduce.({ command, [acc|accs] }), after_funs, last
+      catch
+        kind, reason ->
+          lc fun inlist after_funs, do: fun.()
+          :erlang.raise(kind, reason, :erlang.get_stacktrace)
+      end
+    end
+
+    defp handle_reduce(res, after_funs, last) do
+      case res do
         { :suspended, [acc|accs], continuation } ->
           { :suspended, acc, &do_each(continuation, after_funs, last, accs, &1) }
         { :halted, [acc|_] } ->
@@ -456,8 +470,7 @@ defmodule Stream do
   defp do_flat_map(next_acc, next, mapper, acc, fun) do
     case next.({ :cont, next_acc }) do
       { :suspended, [val|next_acc], next } ->
-        enum = mapper.(val)
-        do_flat_map(next_acc, next, mapper, acc, fun, &Enumerable.reduce(enum, &1, fun))
+        do_flat_map(next_acc, next, mapper, acc, fun, &Enumerable.reduce(mapper.(val), &1, fun))
       { reason, _ } ->
         { reason, elem(acc, 1) }
     end
@@ -468,9 +481,11 @@ defmodule Stream do
       reduce.(acc)
     catch
       { :stream_flat_map, h } ->
-        reduce.({ :halt, elem(acc, 1) })
         next.({ :halt, next_acc })
         { :halted, h }
+      kind, reason ->
+        next.({ :halt, next_acc })
+        :erlang.raise(kind, reason, :erlang.get_stacktrace)
     else
       { _, acc }             -> do_flat_map(next_acc, next, mapper, { :cont, acc }, fun)
       { :suspended, acc, c } -> { :suspended, acc, &do_flat_map(next_acc, next, mapper, &1, fun, c) }
@@ -734,7 +749,18 @@ defmodule Stream do
   end
 
   defp do_zip(zips, { :cont, acc }, callback) do
-    do_zip(zips, acc, callback, [], [])
+    try do
+      do_zip(zips, acc, callback, [], [])
+    catch
+      kind, reason ->
+        do_zip_close(zips)
+        :erlang.raise(kind, reason, :erlang.get_stacktrace)
+    else
+      { :next, buffer, acc } ->
+        do_zip(buffer, acc, callback)
+      { :done, _ } = o ->
+        o
+    end
   end
 
   defp do_zip([{ fun, fun_acc }|t], acc, callback, list, buffer) do
@@ -749,7 +775,7 @@ defmodule Stream do
 
   defp do_zip([], acc, callback, list, buffer) do
     zipped = list_to_tuple(:lists.reverse(list))
-    do_zip(:lists.reverse(buffer), callback.(zipped, acc), callback)
+    { :next, :lists.reverse(buffer), callback.(zipped, acc) }
   end
 
   defp do_zip_close([]), do: :ok
@@ -892,7 +918,10 @@ defmodule Stream do
 
   defp do_resource(next_acc, next_fun, { :cont, acc }, fun, after_fun) do
     try do
-      next_fun.(next_acc)
+      case next_fun.(next_acc) do
+        nil -> nil
+        { v, next_acc } -> { fun.(v, acc), next_acc }
+      end
     catch
       kind, reason ->
         after_fun.(next_acc)
@@ -901,8 +930,8 @@ defmodule Stream do
       nil ->
         after_fun.(next_acc)
         { :done, acc }
-      { v, next_acc } ->
-        do_resource(next_acc, next_fun, fun.(v, acc), fun, after_fun)
+      { acc, next_acc } ->
+        do_resource(next_acc, next_fun, acc, fun, after_fun)
     end
   end
 

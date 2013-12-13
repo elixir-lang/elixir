@@ -26,17 +26,26 @@ defmodule StreamTest do
   end
 
   test "after" do
-    stream = Stream.after([1,2,3], fn -> Process.put(:after, true) end)
+    stream = Stream.after([1,2,3], fn -> Process.put(:stream_after, true) end)
 
     # Done
-    Process.put(:after, false)
+    Process.put(:stream_after, false)
     assert Enum.to_list(stream) == [1,2,3]
-    assert Process.get(:after)
+    assert Process.get(:stream_after)
 
     # Halted
-    Process.put(:after, false)
+    Process.put(:stream_after, false)
     assert Enum.take(stream, 1) == [1]
-    assert Process.get(:after)
+    assert Process.get(:stream_after)
+  end
+
+  test "after closes on errors" do
+    stream = Stream.after([1,2,3], fn -> Process.put(:stream_after, true) end)
+
+    Process.put(:stream_after, false)
+    stream = Stream.map(stream, fn x -> if x > 2, do: throw(:error), else: x end)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_after)
   end
 
   test "chunk" do
@@ -256,7 +265,7 @@ defmodule StreamTest do
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end
 
-  test "flat_map does not leave stream suspended" do
+  test "flat_map does not leave inner stream suspended" do
     stream = Stream.flat_map [1,2,3],
       fn i ->
         Stream.resource(fn -> i end,
@@ -267,7 +276,9 @@ defmodule StreamTest do
     Process.put(:stream_flat_map, false)
     assert stream |> Enum.take(3) == [1,2,3]
     assert Process.get(:stream_flat_map)
+  end
 
+  test "flat_map does not leave outer stream suspended" do
     stream = Stream.resource(fn -> 1 end,
                              fn acc -> { acc, acc + 1 } end,
                              fn _ -> Process.put(:stream_flat_map, true) end)
@@ -275,6 +286,17 @@ defmodule StreamTest do
 
     Process.put(:stream_flat_map, false)
     assert stream |> Enum.take(3) == [1,2,3]
+    assert Process.get(:stream_flat_map)
+  end
+
+  test "flat_map closes on error" do
+    stream = Stream.resource(fn -> 1 end,
+                             fn acc -> { acc, acc + 1 } end,
+                             fn _ -> Process.put(:stream_flat_map, true) end)
+    stream = Stream.flat_map(stream, fn _ -> throw(:error) end)
+
+    Process.put(:stream_flat_map, false)
+    assert catch_throw(Enum.to_list(stream)) == :error
     assert Process.get(:stream_flat_map)
   end
 
@@ -402,6 +424,17 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [5, 4, 3, 2, 1]
   end
 
+  test "resource closes on errors" do
+    stream = Stream.resource(fn -> 1 end,
+                             fn acc -> { acc, acc + 1 } end,
+                             fn _ -> Process.put(:stream_resource, true) end)
+
+    Process.put(:stream_resource, false)
+    stream = Stream.map(stream, fn x -> if x > 2, do: throw(:error), else: x end)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_resource)
+  end
+
   test "resource is zippable" do
     # File.stream! uses Stream.resource underneath
     stream = File.stream!(__FILE__)
@@ -477,6 +510,25 @@ defmodule StreamTest do
            [a: 1, b: 2, c: 3]
 
     assert Process.get(:stream_zip) == :done
+  end
+
+  test "zip/2 closes on inner error" do
+    stream = Stream.after([1, 2, 3], fn -> Process.put(:stream_zip, true) end)
+    stream = Stream.zip(stream, Stream.map([:a, :b, :c], fn _ -> throw(:error) end))
+
+    Process.put(:stream_zip, false)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_zip)
+  end
+
+  test "zip/2 closes on outer error" do
+    stream = Stream.after([1, 2, 3], fn -> Process.put(:stream_zip, true) end)
+             |> Stream.zip([:a, :b, :c])
+             |> Stream.map(fn _ -> throw(:error) end)
+
+    Process.put(:stream_zip, false)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_zip)
   end
 
   test "with_index" do
