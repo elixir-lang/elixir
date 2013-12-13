@@ -69,7 +69,7 @@ defmodule IEx.Helpers do
       raise ArgumentError, message: "expected a binary or a list of binaries as argument"
     end
 
-    { found, not_found } = Enum.map(files, &Path.join(path, &1)) |> Enum.partition(&File.exists?/1)
+    { found, not_found } = Enum.map(files, &Path.expand(&1, path)) |> Enum.partition(&File.exists?/1)
 
     unless Enum.empty?(not_found) do
       IO.puts IEx.color(:eval_error, %s[Cannot find #{Enum.join(not_found, ", ")}])
@@ -82,7 +82,8 @@ defmodule IEx.Helpers do
 
     modules = Enum.map(erls, fn(source) ->
       { module, binary } = compile_erlang(source)
-      File.write!(Path.join(path, source), binary)
+      base = source |> Path.basename |> Path.rootname
+      File.write!(Path.join(path, base <> ".beam"), binary)
       module
     end)
 

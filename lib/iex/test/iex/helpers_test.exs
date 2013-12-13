@@ -207,6 +207,16 @@ defmodule IEx.HelpersTest do
     cleanup_modules([Sample])
   end
 
+  test "c helper with full path" do
+    filename = "sample.ex"
+    with_file filename, test_module_code, fn ->
+      assert c(Path.expand(filename)) == [Sample]
+      assert Sample.run == :run
+    end
+  after
+    cleanup_modules([Sample])
+  end
+
   test "c helper multiple modules" do
     assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
       Sample.run
