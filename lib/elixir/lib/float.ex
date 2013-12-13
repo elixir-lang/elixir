@@ -4,8 +4,8 @@ defmodule Float do
   """
 
   @doc """
-  Parses a binary into a float. 
-  
+  Parses a binary into a float.
+
   If successful, returns a tuple of the form `{ float, remainder_of_binary }`.
   Otherwise `:error`.
 
@@ -85,6 +85,7 @@ defmodule Float do
   Round a float to the largest integer less than or equal to `num`
 
   ## Examples
+
       iex> Float.floor(34)
       34
       iex> Float.floor(34.25)
@@ -99,7 +100,7 @@ defmodule Float do
     truncated = :erlang.trunc(num)
     case :erlang.abs(num - truncated) do
       x when x > 0 and num < 0 -> truncated - 1
-      x -> truncated
+      _ -> truncated
     end
   end
 
@@ -107,6 +108,7 @@ defmodule Float do
   Round a float to the largest integer greater than or equal to `num`
 
   ## Examples
+
       iex> Float.ceil(34)
       34
       iex> Float.ceil(34.25)
@@ -121,7 +123,7 @@ defmodule Float do
     truncated = :erlang.trunc(num)
     case :erlang.abs(num - truncated) do
       x when x > 0 and num > 0 -> truncated + 1
-      x -> truncated
+      _ -> truncated
     end
   end
 

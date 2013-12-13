@@ -3,6 +3,7 @@
 * Enhancements
   * [Exception] Allow `exception/1` to be overriden and promote it as the main mechanism to customize exceptions
   * [File] Add `File.stream_to!/3`
+  * [Float] Add `Float.floor/1` and `Float.ceil/1`
   * [Kernel] Add `List.delete_at/2` and `List.updated_at/3`
   * [Kernel] Add `Enum.reverse/2`
   * [Kernel] Implement `defmodule/2`, `@/1`, `def/2` and friends in Elixir itself. `case/2`, `try/2` and `receive/1` have been made special forms. `var!/1`, `var!/2` and `alias!/1` have also been implemented in Elixir and demoted from special forms
@@ -15,8 +16,10 @@
 * Bug fixes
   * [HashDict] Ensure a `HashDict` stored in an attribute can be accessed via the attribute
   * [Enum] Fix bug in `Enum.chunk/4` where you'd get an extra element when the enumerable was a multiple of the counter and a pad was given
+  * [IEx] Ensure `c/2` helper works with full paths
   * [Kernel] `quote location: :keep` now only affects definitions in order to keep the proper trace in definition exceptions
   * [Mix] Also symlink `include` directories in _build dependencies
+  * [Version] Fix `Version.match?/2` with `~>` and versions with alphanumeric build info (like `-dev`)
 
 * Deprecations
   * [Enum] `Enumerable.count/1` and `Enumerable.member?/2` should now return tagged tuples. Please see `Enumerable` docs for more info
