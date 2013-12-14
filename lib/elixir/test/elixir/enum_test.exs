@@ -220,6 +220,15 @@ defmodule EnumTest.List do
     assert Enum.partition([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == { [2, 4, 6], [] }
   end
 
+  test :categorize do
+    assert Enum.categorize([], fn -> nil end) == HashDict.new
+    result = Enum.categorize(1..10, &rem(&1,3))
+    Enum.each 0..2, &(assert HashDict.has_key?(result, &1))
+    assert Enum.sort(result[0]) == [3,6,9]
+    assert Enum.sort(result[1]) == [1,4,7,10]
+    assert Enum.sort(result[2]) == [2,5,8]
+  end
+
   test :reject do
     assert Enum.reject([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == [1, 3]
     assert Enum.reject([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == []

@@ -1111,6 +1111,25 @@ defmodule Enum do
   end
 
   @doc """
+  Splits `collection` into categories based on the value returned by `fun`.
+  The result is a `HashDict` where each key is a category and each value
+  is a list of elements from `collection` for which `fun` returned that
+  category. Ordering is not necessarily preserved
+
+  ## Examples
+
+      iex> Enum.categorize(%w{ant buffalo cat dingo}, &String.length/1)
+      [ 3: ["cat" "ant"], 7: ["buffalo"] 5: ["dingo"] ]
+
+  """
+  @spec categorize(t, (element -> any)) :: HashDict
+  def categorize(collection, fun) do
+    reduce(collection, HashDict.new, fn(entry, categories) ->
+      Dict.update(categories, fun.(entry), [ entry ], &[entry|&1])
+    end)                                         
+  end
+
+  @doc """
   Invokes `fun` for each element in the collection passing that element and the
   accumulator `acc` as arguments. `fun`'s return value is stored in `acc`.
   Returns the accumulator.
