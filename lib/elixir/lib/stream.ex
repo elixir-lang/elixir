@@ -616,7 +616,7 @@ defmodule Stream do
       [1,3,5,7,9]
 
   """
-  @spec take(Enumerable.t, non_neg_integer) :: Enumerable.t
+  @spec take_every(Enumerable.t, non_neg_integer) :: Enumerable.t
   def take_every(enum, n) when n > 0 do
     lazy enum, n, fn(f1) -> R.take_every(n, f1) end
   end
