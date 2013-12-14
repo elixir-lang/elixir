@@ -128,7 +128,7 @@ defmodule ExUnit.Runner do
   defp run_test(config, test, context) do
     config.formatter.test_started(config.formatter_id, test)
 
-    match = filter_match(config, test)
+    match = filter_match(config.filter, test.tags)
 
     if match?(:ok, match) do
       test = spawn_test(config, test, context)
@@ -200,17 +200,22 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp filter_match(config, test) do
-    mismatch = Enum.find_value config.filter, fn { tag, value, exclude } ->
-      case Keyword.fetch(test.tags, tag) do
-        { :ok, ^value } -> exclude && tag
-        { :ok, _ }      -> !exclude && tag
-        :error          -> nil
-      end
+  def filter_match(filters, tags) do
+    matches = Enum.reduce tags, HashDict.new, fn { tag_name, _ } = tag, matches ->
+      match = Enum.empty?(filters) || Enum.any?(filters, &accepted_by_filter(tag, &1))
+      Dict.update(matches, tag_name, match, &(match || &1))
     end
 
-    if mismatch, do: { :error, mismatch }, else: :ok
+    mismatch = Enum.find(Dict.to_list(matches), &(!elem(&1, 1)))
+
+    if mismatch, do: { :error, elem(mismatch, 0) }, else: :ok
   end
+
+  def accepted_by_filter({ tag, value }, { tag, value, :include }), do: true
+  def accepted_by_filter({ tag, value }, { tag, value, :exclude }), do: false
+  def accepted_by_filter({ tag, _ }, { tag, _, :exclude }), do: true
+  def accepted_by_filter({ tag, _ }, { tag, _, :include }), do: false
+  def accepted_by_filter(_, _), do: false
 
   defp pruned_stacktrace, do: prune_stacktrace(System.stacktrace)
 
