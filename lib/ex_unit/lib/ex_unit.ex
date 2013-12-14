@@ -175,11 +175,11 @@ defmodule ExUnit do
   @doc false
   def parse_filters(filters) do
     Enum.map List.wrap(filters), fn filter ->
-      if String.starts_with?(filter, "~") do
-        <<"~", filter :: binary>> = filter
-        exclude = true
-      else
-        exclude = false
+      case filter do
+        "~" <> filter ->
+          exclude = true
+        _ ->
+          exclude = false
       end
 
       if String.contains?(filter, ":") do
