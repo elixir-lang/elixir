@@ -1118,12 +1118,12 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.categorize(%w{ant buffalo cat dingo}, &String.length/1)
+      iex> Enum.group_by(%w{ant buffalo cat dingo}, &String.length/1)
       [ 3: ["cat" "ant"], 7: ["buffalo"] 5: ["dingo"] ]
 
   """
-  @spec categorize(t, (element -> any)) :: HashDict
-  def categorize(collection, fun) do
+  @spec group_by(t, (element -> any)) :: HashDict
+  def group_by(collection, fun) do
     reduce(collection, HashDict.new, fn(entry, categories) ->
       Dict.update(categories, fun.(entry), [ entry ], &[entry|&1])
     end)                                         
