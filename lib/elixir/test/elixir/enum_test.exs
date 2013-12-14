@@ -224,6 +224,17 @@ defmodule EnumTest.List do
     assert Enum.partition([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == { [2, 4, 6], [] }
   end
 
+  test :group_by do
+    assert Enum.group_by([], fn -> nil end) == %{}
+    assert Enum.group_by(1..6, &rem(&1, 3)) ==
+           %{ 0 => [6, 3], 1 => [4, 1], 2 => [5, 2] }
+
+    result = Enum.group_by(1..6, [], &rem(&1, 3))
+    assert result[0] == [6, 3]
+    assert result[1] == [4, 1]
+    assert result[2] == [5, 2]
+  end
+
   test :reject do
     assert Enum.reject([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == [1, 3]
     assert Enum.reject([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == []

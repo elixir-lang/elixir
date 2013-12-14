@@ -1105,6 +1105,27 @@ defmodule Enum do
   end
 
   @doc """
+  Splits `collection` into groups based on `fun`.
+
+  The result is a dict (by default a map) where each key is
+  a group and each value is a list of elements from `collection`
+  for which `fun` returned that group. Ordering is not necessarily
+  preserved.
+
+  ## Examples
+
+      iex> Enum.group_by(~w{ant buffalo cat dingo}, &String.length/1)
+      %{ 3 => ["cat", "ant"], 7 => ["buffalo"], 5 => ["dingo"] }
+
+  """
+  @spec group_by(t, (element -> any)) :: HashDict
+  def group_by(collection, dict \\ %{}, fun) do
+    reduce(collection, dict, fn(entry, categories) ->
+      Dict.update(categories, fun.(entry), [entry], &[entry|&1])
+    end)
+  end
+
+  @doc """
   Invokes `fun` for each element in the collection passing that element and the
   accumulator `acc` as arguments. `fun`'s return value is stored in `acc`.
   Returns the accumulator.

@@ -1,6 +1,7 @@
 # v0.13.0-dev
 
 * Enhancements
+  * [Enum] Add `Enum.group_by/2`
   * [ExUnit] Randomize cases and tests suite runs, allows seed option
   * [IEx] Allow prompt configuration with the `:prompt` option
   * [Kernel] Support `ERL_PATH` in `bin/elixir`
