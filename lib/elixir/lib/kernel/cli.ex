@@ -339,19 +339,44 @@ defmodule Kernel.CLI do
   defp process_command({:compile, patterns}, config) do
     :filelib.ensure_dir(:filename.join(config.output, "."))
 
-    files = Enum.map patterns, &Path.wildcard(&1)
-    files = Enum.uniq(Enum.concat(files))
-    files = Enum.filter files, &:filelib.is_regular(&1)
-
-    if files != [] do
-      wrapper fn ->
-        Code.compiler_options(config.compiler_options)
-        Kernel.ParallelCompiler.files_to_path(files, config.output,
-          each_file: fn file -> if config.verbose_compile do IO.puts "Compiled #{file}" end end)
-      end
-    else
-      { :error, "--compile : No files matched patterns #{Enum.join(patterns, ",")}" }
+    case match_regular_files(patterns) do 
+      { :ok, [] } ->
+        { :error, "--compile : No files matched provided patterns." }
+      { :ok, files } -> 
+        wrapper fn ->
+          Code.compiler_options(config.compiler_options)
+          Kernel.ParallelCompiler.files_to_path(files, config.output,
+            each_file: fn file -> if config.verbose_compile do IO.puts "Compiled #{file}" end end)
+        end
+      { :missing, missing } ->
+        { :error, "--compile : No files matched pattern(s) #{Enum.join(missing, ",")}" }
     end
+  end
+
+  defp match_regular_files(patterns) do 
+    
+    matched_files = Enum.map patterns, fn(pattern) ->
+       case Path.wildcard(pattern) do 
+             [] -> {:missing, pattern }
+          files -> {:ok, files }
+       end 
+    end 
+
+    files = Enum.filter_map matched_files,
+       fn(match) -> elem(match, 0) == :ok end, 
+       &elem(&1, 1)
+
+    missing_patterns = Enum.filter_map matched_files,
+       fn(match) -> elem(match, 0) == :missing end, 
+       &elem(&1, 1)
+
+    if missing_patterns == [] do 
+      files = Enum.uniq(Enum.concat(files))
+      files = Enum.filter files, &:filelib.is_regular(&1)
+      { :ok, files }
+    else 
+      { :missing,  Enum.uniq(missing_patterns) }
+    end 
   end
 
   defp wrapper(fun) do
