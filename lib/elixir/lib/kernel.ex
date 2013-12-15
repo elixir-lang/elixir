@@ -1046,7 +1046,7 @@ defmodule Kernel do
 
   """
   defmacro left + right do
-    quote do: :erlang.+(unquote(left), unquote(right))
+    quote do: __op__(:+, unquote(left), unquote(right))
   end
 
   @doc """
@@ -1059,7 +1059,7 @@ defmodule Kernel do
 
   """
   defmacro left - right do
-    quote do: :erlang.-(unquote(left), unquote(right))
+    quote do: __op__(:-, unquote(left), unquote(right))
   end
 
   @doc """
@@ -1100,7 +1100,7 @@ defmodule Kernel do
 
   """
   defmacro left * right do
-    quote do: :erlang.*(unquote(left), unquote(right))
+    quote do: __op__(:*, unquote(left), unquote(right))
   end
 
   @doc """
@@ -1117,7 +1117,7 @@ defmodule Kernel do
 
   """
   defmacro left / right do
-    quote do: :erlang./(unquote(left), unquote(right))
+    quote do: __op__(:/, unquote(left), unquote(right))
   end
 
   @doc """

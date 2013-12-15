@@ -4,6 +4,13 @@ defmodule Kernel.FnTest do
   use ExUnit.Case, async: true
   import CompileAssertion
 
+  test "arithmetic constants on match" do
+    assert (fn 1 + 2 -> :ok end).(3)  == :ok
+    assert (fn 1 - 2 -> :ok end).(-1) == :ok
+    assert (fn -1 -> :ok end).(-1) == :ok
+    assert (fn +1 -> :ok end).(1)  == :ok
+  end
+
   test "clause with ^" do
     x = 1
     assert (fn ^x -> :ok; _ -> :error end).(1) == :ok
