@@ -87,6 +87,28 @@ expr -> matched_expr : '$1'.
 expr -> no_parens_expr : '$1'.
 expr -> unmatched_expr : '$1'.
 
+%% In Elixir we have three main call syntaxes: with parentheses,
+%% without parentheses and with do blocks. They are represented
+%% in the AST as matched, no_parens and unmatched.
+%%
+%% The distinction is required because we can't, for example, have
+%% a function call with a do block as argument inside another do
+%% block call, unless there are parentheses:
+%%
+%%   if if true do true else false end do  #=> invalid
+%%   if(if true do true else false end) do #=> valid
+%%
+%% Similarly, it is not possible to nest calls without parentheses
+%% if their arity is more than 1:
+%%
+%%   foo a, bar b, c  #=> invalid
+%%   foo(a, bar b, c) #=> invalid
+%%   foo a, bar b     #=> valid
+%%   foo a, bar(b, c) #=> valid
+%%
+%% So the different grammar rules need to take into account
+%% if calls without parentheses are do blocks in particular
+%% segments and act accordingly.
 matched_expr -> matched_expr matched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 matched_expr -> matched_expr no_parens_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
@@ -140,12 +162,15 @@ no_parens_op_expr -> tail_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> than_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> in_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> inc_op_eol no_parens_expr : { '$1', '$2' }.
-no_parens_op_expr -> when_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> range_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> default_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> type_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> comp_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> arrow_op_eol no_parens_expr : { '$1', '$2' }.
+
+%% Allow when (and only when) with keywords
+no_parens_op_expr -> when_op_eol no_parens_expr : { '$1', '$2' }.
+no_parens_op_expr -> when_op_eol call_args_no_parens_kw : { '$1', '$2' }.
 
 matched_op_expr -> match_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> add_op_eol matched_expr : { '$1', '$2' }.

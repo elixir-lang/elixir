@@ -39,7 +39,7 @@ defmodule MacroTest do
   test :escape_works_recursively do
     assert [1,{:{}, [], [:a,:b,:c]}, 3] == Macro.escape([1, { :a, :b, :c }, 3])
   end
-  
+
   test :escape_improper do
     assert [{:|, [], [1,2]}] == Macro.escape([1|2])
     assert [1,{:|, [], [2,3]}] == Macro.escape([1,2|3])
@@ -330,6 +330,8 @@ defmodule MacroTest do
   end
 
   test :containers_to_string do
+    assert Macro.to_string(quote do: {})   == "{}"
+    assert Macro.to_string(quote do: [])   == "[]"
     assert Macro.to_string(quote do: { 1, 2, 3 })   == "{1, 2, 3}"
     assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
     assert Macro.to_string(quote do: << 1, 2, 3 >>) == "<<1, 2, 3>>"
@@ -366,10 +368,20 @@ defmodule MacroTest do
   end
 
   test :last_arg_kw_list do
+    assert Macro.to_string(quote do: foo([])) == "foo([])"
     assert Macro.to_string(quote do: foo(x: y)) == "foo(x: y)"
     assert Macro.to_string(quote do: foo(x: 1 + 2)) == "foo(x: 1 + 2)"
     assert Macro.to_string(quote do: foo(x: y, p: q)) == "foo(x: y, p: q)"
     assert Macro.to_string(quote do: foo(a, x: y, p: q)) == "foo(a, x: y, p: q)"
+
+
+    assert Macro.to_string(quote do: { [] }) == "{[]}"
+    assert Macro.to_string(quote do: { [a: b] }) == "{[a: b]}"
+    assert Macro.to_string(quote do: { x, a: b }) == "{x, a: b}"
+    assert Macro.to_string(quote do: []) == "[]"
+    assert Macro.to_string(quote do: [a: b]) == "[a: b]"
+    assert Macro.to_string(quote do: [[a: b]]) == "[[a: b]]"
+    assert Macro.to_string(quote do: [x, a: b]) == "[x, a: b]"
   end
 
   test :to_string_with_fun do
