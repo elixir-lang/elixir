@@ -3,7 +3,7 @@
 * Enhancements
   * [Exception] Allow `exception/1` to be overriden and promote it as the main mechanism to customize exceptions
   * [File] Add `File.stream_to!/3`
-  * [Float] Add `Float.floor/1` and `Float.ceil/1`
+  * [Float] Add `Float.floor/1`, `Float.ceil/1` and `Float.round/3`
   * [Kernel] Add `List.delete_at/2` and `List.updated_at/3`
   * [Kernel] Add `Enum.reverse/2`
   * [Kernel] Implement `defmodule/2`, `@/1`, `def/2` and friends in Elixir itself. `case/2`, `try/2` and `receive/1` have been made special forms. `var!/1`, `var!/2` and `alias!/1` have also been implemented in Elixir and demoted from special forms
@@ -11,7 +11,6 @@
   * [Stream] Add `Stream.resource/3`
   * [Stream] Add `Stream.zip/2`, `Stream.filter_map/3`, `Stream.each/2`, `Stream.take_every/2`, `Stream.chunk/2`, `Stream.chunk/3`, `Stream.chunk/4`, `Stream.chunk_by/2`, `Stream.scan/2`, `Stream.scan/3`, `Stream.uniq/2`, `Stream.after/2` and `Stream.run/1`
   * [Stream] Support `Stream.take/2` and `Stream.drop/2` with negative counts
-  * [Typespec] Support `is_var/1` in typespecs
 
 * Bug fixes
   * [HashDict] Ensure a `HashDict` stored in an attribute can be accessed via the attribute
@@ -26,7 +25,6 @@
   * [Enum] Deprecate `Enum.chunks/2`, `Enum.chunks/4` and `Enum.chunks_by/2` in favor of `Enum.chunk/2`, `Enum.chunk/4` and `Enum.chunk_by/2`
   * [File] `File.binstream!/3` is deprecated. Simply use `File.stream!/3` which is able to figure out if `stream` or `binstream` operations should be used
   * [Macro] `Macro.extract_args/1` is deprecated in favor of `Macro.decompose_call/1`
-  * [Typespec] `when` clauses in typespecs were moved to the outer part of the spec
 
 * Backwards incompatible changes
   * [Enum] Behaviour of `Enum.drop/2` and `Enum.take/2` has been switched when given negative counts
@@ -35,6 +33,7 @@
   * [Mix] Require `:escript_main_module` to be set before generating escripts
   * [Range] `Range.Iterator` protocol has changed in order to work with the new `Enumerable.reduce/3`. Please see `Range.Iterator` docs for more info
   * [Stream] The `Stream.Lazy` structure has changed to accumulate functions and accumulators as we go (its inspected representation has also changed)
+  * [Typespec] `when` clauses were moved to the outer part of the spec and should be in the keywords format. So `add(a, b) when is_subtype(a, integer) and is_subtype(b, integer) :: integer` should now be written as `add(a, b) :: integer when a: integer, b: integer`
 
 # v0.11.2 (2013-11-14)
 
