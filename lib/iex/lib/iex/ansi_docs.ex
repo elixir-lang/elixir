@@ -1,6 +1,8 @@
 defmodule IEx.ANSIDocs do
   @moduledoc false
 
+  @bullets [?*, ?-]
+
   @doc """
   Prints the head of the documentation (i.e. the function signature)
   """
@@ -64,7 +66,7 @@ defmodule IEx.ANSIDocs do
   defp process([line | rest], indent) do
     { stripped, count } = strip_spaces(line, 0)
     case stripped do
-      "* " <> item ->
+      <<bullet, ?\s, item :: binary >> when bullet in @bullets ->
         process_list(item, rest, count, indent)
       _ ->
         process_text(rest, [line], indent, false)
@@ -117,7 +119,7 @@ defmodule IEx.ANSIDocs do
     end
   end
 
-  defp process_list_next(["* " <> _ | _] = rest, _count, _done, acc) do
+  defp process_list_next([<<bullet, ?\s, _ :: binary>> | _] = rest, _count, _done, acc) when bullet in @bullets do
     { Enum.reverse(acc), rest, false }
   end
 
@@ -129,7 +131,7 @@ defmodule IEx.ANSIDocs do
     { Enum.reverse(acc), rest, done }
   end
 
-  defp list_next("* " <> _, 0),     do: :done
+  defp list_next(<<bullet, ?\s, _ :: binary>>, 0) when bullet in @bullets, do: :done
   defp list_next(line, 0),          do: chop(line, 2)
   defp list_next(" " <> line, acc), do: list_next(line, acc - 1)
   defp list_next(line, _acc),       do: line
@@ -151,7 +153,7 @@ defmodule IEx.ANSIDocs do
   defp process_text([line | rest], para, indent, true) do
     { stripped, count } = strip_spaces(line, 0)
     case stripped do
-      "* " <> item ->
+      <<bullet, ?\s, item :: binary>> when bullet in @bullets ->
         write_text(Enum.reverse(para), indent, true)
         process_list(item, rest, count, indent)
       _ ->

@@ -49,28 +49,53 @@ defmodule IEx.AnsiDocsTest do
     assert result == "line\n\e[0m\n\e[36m\e[1m┃ code\n┃ code2\e[0m\n\e[0m\nline2\n\e[0m"
   end
 
-  test "list is converted" do
+  test "* list is converted" do
     result = format("* one\n* two\n* three\n")
     assert result == "• one\n• two\n• three\n\e[0m"
   end
 
-  test "list surrounded by text is converted" do
+  test "* list surrounded by text is converted" do
     result = format("Count:\n\n* one\n* two\n* three\n\nDone")
     assert result == "Count:\n\e[0m\n• one\n• two\n• three\n\e[0m\nDone\n\e[0m"
   end
 
-  test "list with continuation is converted" do
+  test "* list with continuation is converted" do
     result = format("* one\n  two\n  three\n* four")
     assert result == "• one two three\n• four"
   end
 
-  test "nested lists are converted" do
+  test "* nested lists are converted" do
     result = format("* one\n  * one.one\n  * one.two\n* two")
     assert result == "• one\n  • one.one\n  • one.two\n• two"
   end
 
-  test "lists with spaces are converted" do
+  test "* lists with spaces are converted" do
     result = format("  * one\n  * two\n  * three")
+    assert result == "• one\n• two\n• three"
+  end
+
+  test "- list is converted" do
+    result = format("- one\n- two\n- three\n")
+    assert result == "• one\n• two\n• three\n\e[0m"
+  end
+
+  test "- list surrounded by text is converted" do
+    result = format("Count:\n\n- one\n- two\n- three\n\nDone")
+    assert result == "Count:\n\e[0m\n• one\n• two\n• three\n\e[0m\nDone\n\e[0m"
+  end
+
+  test "- list with continuation is converted" do
+    result = format("- one\n  two\n  three\n- four")
+    assert result == "• one two three\n• four"
+  end
+
+  test "- nested lists are converted" do
+    result = format("- one\n  - one.one\n  - one.two\n- two")
+    assert result == "• one\n  • one.one\n  • one.two\n• two"
+  end
+
+  test "- lists with spaces are converted" do
+    result = format("  - one\n  - two\n  - three")
     assert result == "• one\n• two\n• three"
   end
 
