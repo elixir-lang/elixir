@@ -89,14 +89,14 @@ defmodule IEx.AnsiDocsTest do
     assert result == "• one two three\n• four"
   end
 
-  test "- nested lists are converted" do
-    result = format("- one\n  - one.one\n  - one.two\n- two")
-    assert result == "• one\n  • one.one\n  • one.two\n• two"
+  test "+ list is converted" do
+    result = format("+ one\n+ two\n+ three\n")
+    assert result == "• one\n• two\n• three\n\e[0m"
   end
 
-  test "- lists with spaces are converted" do
-    result = format("  - one\n  - two\n  - three")
-    assert result == "• one\n• two\n• three"
+  test "+ and - nested lists are converted" do
+    result = format("- one\n  + one.one\n  + one.two\n- two")
+    assert result == "• one\n  • one.one\n  • one.two\n• two"
   end
 
   test "paragraphs are split" do

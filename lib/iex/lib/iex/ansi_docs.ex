@@ -1,7 +1,7 @@
 defmodule IEx.ANSIDocs do
   @moduledoc false
 
-  @bullets [?*, ?-]
+  @bullets [?*, ?-, ?+]
 
   @doc """
   Prints the head of the documentation (i.e. the function signature)
