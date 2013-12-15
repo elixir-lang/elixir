@@ -454,7 +454,7 @@ defmodule Typespec.TypeTest do
   test "spec_to_ast" do
     specs = [
       (quote do: @spec a() :: integer()),
-      (quote do: @spec a(atom()) :: integer()),
+      (quote do: @spec a(atom()) :: integer() | [{}]),
       (quote do: @spec a(b) :: integer() when [b: integer()]),
       (quote do: @spec a(b) :: b when [b: var])
     ]

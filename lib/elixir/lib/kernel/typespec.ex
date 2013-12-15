@@ -484,15 +484,15 @@ defmodule Kernel.Typespec do
 
   ## To AST conversion
 
-  defp collect_vars({ :ann_type, _line, args }) do
+  defp collect_vars({ :ann_type, _line, args }) when is_list(args) do
     Enum.flat_map(args, &collect_vars/1)
   end
 
-  defp collect_vars({ :type, _line, _kind, args }) do
+  defp collect_vars({ :type, _line, _kind, args }) when is_list(args) do
     Enum.flat_map(args, &collect_vars/1)
   end
 
-  defp collect_vars({ :remote_type, _line, args }) do
+  defp collect_vars({ :remote_type, _line, args }) when is_list(args) do
     Enum.flat_map(args, &collect_vars/1)
   end
 

@@ -1,4 +1,4 @@
-# v0.11.3-dev
+# v0.12.0 (2013-12-15)
 
 * Enhancements
   * [Exception] Allow `exception/1` to be overriden and promote it as the main mechanism to customize exceptions
