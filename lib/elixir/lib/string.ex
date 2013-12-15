@@ -497,7 +497,7 @@ defmodule String do
       "a-b,c"
 
   The pattern can also be a regex. In those cases, one can give `\N`
-  in the `replacement` string to access a specific catpure in the regex:
+  in the `replacement` string to access a specific capture in the regex:
 
       iex> String.replace("a,b,c", %r/,(.)/, ",\\1\\1")
       "a,bb,cc"
