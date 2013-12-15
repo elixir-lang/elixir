@@ -4,8 +4,8 @@ defmodule Regex do
   in the Erlang Standard Library. More information can be found
   in the [`re` documentation](http://www.erlang.org/doc/man/re.html).
 
-  Regular expressions in Elixir can be created using `Regex.compile!`
-  or using the special form with `%r`:
+  Regular expressions in Elixir can be created using `Regex.compile!/2`
+  or using the special form with [`%r`](Kernel.html#sigil_r/2):
 
       # A simple regular expressions that matches foo anywhere in the string
       %r/foo/
