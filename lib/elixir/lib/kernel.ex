@@ -2407,7 +2407,7 @@ defmodule Kernel do
 
       Enum.map(List.flatten([1, [2], 3]), &(&1 * 2))
 
-  Be aware of operator precendence when using this operator.
+  Be aware of operator precedence when using this operator.
   For example, the following expression:
 
       String.graphemes "Hello" |> Enum.reverse
@@ -3565,7 +3565,7 @@ defmodule Kernel do
   ## Sigils
 
   @doc """
-  Handles the sigil %S. It simples returns a string
+  Handles the sigil %S. It simply returns a string
   without escaping characters and without interpolations.
 
   ## Examples
@@ -3613,7 +3613,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil %c. It returns a char list as if it was a single
+  Handles the sigil %c. It returns a char list as if it were a single
   quoted string, unescaping characters and replacing interpolations.
 
   ## Examples
