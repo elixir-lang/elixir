@@ -6,6 +6,7 @@ notifications:
     - jose.valim@plataformatec.com.br
     - yrashk@gmail.com
 otp_release:
+  - R16B03
   - R16B02
   - R16B01
   - R16B
