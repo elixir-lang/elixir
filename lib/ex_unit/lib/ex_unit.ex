@@ -174,7 +174,7 @@ defmodule ExUnit do
 
   @doc false
   def parse_filters(filters) do
-    Enum.map List.wrap(filters), fn filter ->
+    Enum.map filters, fn filter ->
       [key, value] = case String.split(filter, ":", global: false) do
         [key, value] -> [key, value]
         [key] -> [key, true]

@@ -12,6 +12,7 @@ defmodule ExUnit.Mixfile do
         autorun: true,
         trace: false,
         formatter: ExUnit.CLIFormatter,
-        filter: [] ] ]
+        include: [],
+        exclude: [] ] ]
   end
 end

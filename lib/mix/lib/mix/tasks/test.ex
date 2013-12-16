@@ -77,7 +77,8 @@ defmodule Mix.Tasks.Test do
   """
 
   @switches [force: :boolean, color: :boolean, cover: :boolean,
-             trace: :boolean, max_cases: :integer, filter: :keep]
+             trace: :boolean, max_cases: :integer, include: :keep,
+             exclude: :keep]
 
   @cover [output: "cover", tool: Cover]
 
@@ -103,13 +104,17 @@ defmodule Mix.Tasks.Test do
     test_paths = project[:test_paths] || ["test"]
     Enum.each(test_paths, &require_test_helper(&1))
 
+    if opts[:include] do
+      inclusions = ExUnit.parse_filters(Keyword.get_values(opts, :include))
+      opts = Dict.put(opts, :include, inclusions)
+    end
+
+    if opts[:exclude] do
+      exclusions = ExUnit.parse_filters(Keyword.get_values(opts, :exclude))
+      opts = Dict.put(opts, :exclude, exclusions)
+    end
+
     opts = Dict.take(opts, [:trace, :max_cases, :color, :include, :exclude])
-
-    inclusions = ExUnit.parse_filters(opts[:include], :include)
-    Keyword.put(opts, :include, inclusions)
-
-    exclusions = ExUnit.parse_filters(opts[:exclude], :exclude)
-    Keyword.put(opts, :exclude, exclusions)
 
     ExUnit.configure(opts)
 

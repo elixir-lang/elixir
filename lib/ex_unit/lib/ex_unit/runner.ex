@@ -3,7 +3,7 @@ defmodule ExUnit.Runner do
 
   defrecord Config, formatter: ExUnit.CLIFormatter, formatter_id: nil,
                     max_cases: 4, taken_cases: 0, async_cases: [],
-                    sync_cases: [], include: [], exclude: []
+                    sync_cases: [], include: nil, exclude: nil
 
   def run(async, sync, opts, load_us) do
     opts = normalize_opts(opts)

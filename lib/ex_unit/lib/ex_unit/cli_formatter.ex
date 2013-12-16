@@ -40,7 +40,7 @@ defmodule ExUnit.CLIFormatter do
   ## Callbacks
 
   def init(opts) do
-    print_filters(opts[:filter])
+    print_filters(Keyword.take(opts, [:include, :exclude]))
     { :ok, Config.new(opts) }
   end
 
@@ -156,6 +156,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp print_filters(filters) do
+    filters = Enum.reject filters, &Enum.empty?(elem(&1, 1))
     unless Enum.empty?(filters), do: IO.puts format_filters(filters)
   end
 
