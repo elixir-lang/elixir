@@ -175,18 +175,9 @@ defmodule ExUnit do
   @doc false
   def parse_filters(filters) do
     Enum.map List.wrap(filters), fn filter ->
-      case filter do
-        "~" <> filter ->
-          exclude = true
-        _ ->
-          exclude = false
-      end
-
-      if String.contains?(filter, ":") do
-        [key, value] = String.split(filter, ":", global: false)
-      else
-        key = filter
-        value = true
+      [key, value] = case String.split(filter, ":", global: false) do
+        [key, value] -> [key, value]
+        [key] -> [key, true]
       end
 
       value = case value do
@@ -195,7 +186,7 @@ defmodule ExUnit do
         value   -> value
       end
 
-      { Kernel.binary_to_atom(key), value, exclude }
+      { Kernel.binary_to_atom(key), value }
     end
   end
 end

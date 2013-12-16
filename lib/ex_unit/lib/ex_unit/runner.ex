@@ -3,7 +3,7 @@ defmodule ExUnit.Runner do
 
   defrecord Config, formatter: ExUnit.CLIFormatter, formatter_id: nil,
                     max_cases: 4, taken_cases: 0, async_cases: [],
-                    sync_cases: [], filter: nil
+                    sync_cases: [], include: [], exclude: []
 
   def run(async, sync, opts, load_us) do
     opts = normalize_opts(opts)
@@ -128,13 +128,12 @@ defmodule ExUnit.Runner do
   defp run_test(config, test, context) do
     config.formatter.test_started(config.formatter_id, test)
 
-    match = filter_match(config.filter, test.tags)
+    filters = combine_filters(config.include, config.exclude)
+    result = evaluate_filters(filters, test.tags)
 
-    if match?(:ok, match) do
-      test = spawn_test(config, test, context)
-    else
-      { :error, mismatched_tag } = match
-      test = skip_test(test, mismatched_tag)
+    test = case result do
+      { :error, tag } -> skip_test(test, tag)
+      :ok -> spawn_test(config, test, context)
     end
 
     config.formatter.test_finished(config.formatter_id, test)
@@ -200,22 +199,36 @@ defmodule ExUnit.Runner do
     end
   end
 
-  def filter_match(filters, tags) do
-    matches = Enum.reduce tags, HashDict.new, fn { tag_name, _ } = tag, matches ->
-      match = Enum.empty?(filters) || Enum.any?(filters, &accepted_by_filter(tag, &1))
-      Dict.update(matches, tag_name, match, &(match || &1))
+  def evaluate_filters(filters, tags) do
+    results = Enum.flat_map tags, fn tag ->
+      Enum.map filters, fn filter ->
+        { { elem(filter, 0), elem(tag, 0) }, evaluate_filter(filter, tag) }
+      end
     end
 
-    mismatch = Enum.find(Dict.to_list(matches), &(!elem(&1, 1)))
+    results = Enum.reduce results, HashDict.new, fn { key, evaluation }, dict ->
+      Dict.update dict, key, evaluation, &(evaluation || &1)
+    end
 
-    if mismatch, do: { :error, elem(mismatch, 0) }, else: :ok
+    mismatch = Enum.find Dict.to_list(results), &match?({ _, false }, &1)
+
+    case mismatch do
+      { { _, tag }, _ } -> { :error, tag }
+      _ -> :ok
+    end
   end
 
-  def accepted_by_filter({ tag, value }, { tag, value, :include }), do: true
-  def accepted_by_filter({ tag, value }, { tag, value, :exclude }), do: false
-  def accepted_by_filter({ tag, _ }, { tag, _, :exclude }), do: true
-  def accepted_by_filter({ tag, _ }, { tag, _, :include }), do: false
-  def accepted_by_filter(_, _), do: false
+  def evaluate_filter({ tag, value, :include }, { tag, value }), do: true
+  def evaluate_filter({ tag, value, :exclude }, { tag, value }), do: false
+  def evaluate_filter({ tag, _, :include }, { tag, _ }), do: false
+  def evaluate_filter({ tag, _, :exclude }, { tag, _ }), do: true
+  def evaluate_filter(_, _), do: true
+
+  defp combine_filters(include, exclude) do
+    include = Enum.map(include, fn { tag, value } -> { tag, value, :include } end)
+    exclude = Enum.map(exclude, fn { tag, value } -> { tag, value, :exclude } end)
+    Enum.concat(include, exclude)
+  end
 
   defp pruned_stacktrace, do: prune_stacktrace(System.stacktrace)
 

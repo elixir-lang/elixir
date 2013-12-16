@@ -117,23 +117,20 @@ defmodule ExUnitTest do
 
     test_cases = ExUnit.Server.start_run
 
-    assert run_with_filter([{ :even, true,  false }], test_cases) == 2
-    assert run_with_filter([{ :even, true,  true  }], test_cases) == 3
-    assert run_with_filter([{ :even, false, false }], test_cases) == 3
-    assert run_with_filter([{ :even, false, true  }], test_cases) == 2
+    assert run_with_filter([include: [even: true]], test_cases) == 2
+    assert run_with_filter([exclude: [even: true]], test_cases) == 3
+    assert run_with_filter([include: [even: false]], test_cases) == 3
+    assert run_with_filter([exclude: [even: false]], test_cases) == 2
   end
 
   test "parsing filters" do
-    assert ExUnit.parse_filters(["run"]) == [{ :run, true, false }]
-    assert ExUnit.parse_filters(["~run"]) == [{ :run, true, true }]
-    assert ExUnit.parse_filters(["run:true"]) == [{ :run, true, false }]
-    assert ExUnit.parse_filters(["~run:true"]) == [{ :run, true, true }]
-    assert ExUnit.parse_filters(["run:test"]) == [{ :run, "test", false }]
-    assert ExUnit.parse_filters(["~run:test"]) == [{ :run, "test", true }]
+    assert ExUnit.parse_filters(["run"]) == [run: true]
+    assert ExUnit.parse_filters(["run:true"]) == [run: true]
+    assert ExUnit.parse_filters(["run:test"]) == [run: "test"]
   end
 
-  defp run_with_filter(filter, { async, sync, load_us }) do
-    opts = Keyword.merge(ExUnit.configuration, [filter: filter])
+  defp run_with_filter(filters, { async, sync, load_us }) do
+    opts = Keyword.merge(ExUnit.configuration, filters)
     ExUnit.Runner.run(async, sync, opts, load_us)
   end
 end

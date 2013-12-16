@@ -103,10 +103,14 @@ defmodule Mix.Tasks.Test do
     test_paths = project[:test_paths] || ["test"]
     Enum.each(test_paths, &require_test_helper(&1))
 
-    opts = Dict.take(opts, [:trace, :max_cases, :color, :filter])
-    if opts[:filter] do
-      opts = Keyword.put(opts, :filter, ExUnit.parse_filters(opts[:filter]))
-    end
+    opts = Dict.take(opts, [:trace, :max_cases, :color, :include, :exclude])
+
+    inclusions = ExUnit.parse_filters(opts[:include], :include)
+    Keyword.put(opts, :include, inclusions)
+
+    exclusions = ExUnit.parse_filters(opts[:exclude], :exclude)
+    Keyword.put(opts, :exclude, exclusions)
+
     ExUnit.configure(opts)
 
     test_paths   = if files == [], do: test_paths, else: files
