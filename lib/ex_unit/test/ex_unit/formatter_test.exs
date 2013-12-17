@@ -20,7 +20,8 @@ defmodule ExUnit.FormatterTest do
 
   test "formats test case filters" do
     filters = [run: true, slow: false]
-    assert format_filters(filters) =~ "Using filters: [run: true, slow: false]"
+    assert format_filters(filters, :include) =~ "Including tags: [run: true, slow: false]"
+    assert format_filters(filters, :exclude) =~ "Excluding tags: [run: true, slow: false]"
   end
 
   test "formats test errors" do

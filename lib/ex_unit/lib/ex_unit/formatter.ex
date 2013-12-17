@@ -72,13 +72,16 @@ defmodule ExUnit.Formatter do
 
   ## Examples
 
-    iex> format_filters([run: true, slow: false])
-    "Using filters: [run: true, slow: false]"
+    iex> format_filters([run: true, slow: false], :include)
+    "Including tags: [run: true, slow: false]"
 
   """
-  @spec format_filters(Keyword.t) :: String.t
-  def format_filters(filters) do
-    "Using filters: #{inspect filters}"
+  @spec format_filters(Keyword.t, atom) :: String.t
+  def format_filters(filters, type) do
+    case type do
+      :include -> "Including tags: #{inspect filters}"
+      :exclude -> "Excluding tags: #{inspect filters}"
+    end
   end
 
   @doc %S"""
