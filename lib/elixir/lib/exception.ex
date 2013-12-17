@@ -108,16 +108,16 @@ defexception Enum.EmptyError, message: "empty error"
 defexception File.Error, [reason: nil, action: "", path: nil] do
   def message(exception) do
     formatted = iolist_to_binary(:file.format_error(reason exception))
-    "could not #{action exception} #{path exception}: #{formatted}"
+    "could not #{action exception} #{Exception.format_path(path exception)}: #{formatted}"
   end
 end
 
 defexception File.CopyError, [reason: nil, action: "", source: nil, destination: nil, on: nil] do
   def message(exception) do
     formatted = iolist_to_binary(:file.format_error(reason exception))
-    location  = if on = on(exception), do: ". #{on}", else: ""
-    "could not #{action exception} from #{source exception} to " <>
-      "#{destination exception}#{location}: #{formatted}"
+    location  = if on = on(exception), do: ". #{Exception.format_path(on)}", else: ""
+    "could not #{action exception} from #{Exception.format_path(source exception)} to " <>
+      "#{Exception.format_path(destination exception)}#{location}: #{formatted}"
   end
 end
 
@@ -147,6 +147,7 @@ defmodule Exception do
   normalizes only `:error`, returning the untouched payload
   for others.
   """
+  @spec normalize(:error | :exit | :throw, term) :: term
   def normalize(:error, exception), do: normalize(exception)
   def normalize(_kind, other), do: other
 
@@ -156,6 +157,7 @@ defmodule Exception do
 
   Useful when interfacing Erlang code with Elixir code.
   """
+  @spec normalize(term) :: tuple
   def normalize(exception) when is_exception(exception) do
     exception
   end
@@ -216,6 +218,7 @@ defmodule Exception do
   The current working directory may be given as an argument,
   otherwise one is automatically retrieved.
   """
+  @spec format_stacktrace_entry(System.stacktrace_entry) :: String.t
   def format_stacktrace_entry(entry, cwd // nil)
 
   # From Macro.Env.stacktrace
@@ -248,6 +251,8 @@ defmodule Exception do
   calculates a new stacktrace based on the caller and formats it. As
   a consequence, the value of `System.stacktrace` is changed.
   """
+  @spec format_stacktrace() :: String.t
+  @spec format_stacktrace([System.stacktrace_entry] | nil) :: String.t
   def format_stacktrace(trace // nil) do
     trace = trace || try do
       throw(:stacktrace)
@@ -273,6 +278,8 @@ defmodule Exception do
   Notice that due to tail call optimization, the stacktrace
   may not report the direct caller of the function.
   """
+  @spec format_caller() :: String.t
+  @spec format_caller([System.stacktrace_entry] | nil) :: String.t
   def format_caller(trace // nil) do
     trace = trace || try do
       throw(:stacktrace)
@@ -297,6 +304,7 @@ defmodule Exception do
       #=> "#Function<...>/1"
 
   """
+  @spec format_fa(fun, arity | list) :: String.t
   def format_fa(fun, arity) do
     if is_list(arity) do
       inspected = lc x inlist arity, do: inspect(x)
@@ -321,6 +329,7 @@ defmodule Exception do
       "nil.bar()"
 
   """
+  @spec format_mfa(module, atom, arity | list) :: String.t
   def format_mfa(module, fun, arity) do
     fun =
       case inspect(fun) do
@@ -357,18 +366,45 @@ defmodule Exception do
       ""
 
   """
+  @spec format_file_line(Path.t | nil, non_neg_integer | nil) ::
+    String.t
   def format_file_line(file, line, cwd // nil) do
     if file do
-      file = to_string(file)
       file = if cwd, do: Path.relative_to(file, cwd), else: Path.relative_to_cwd(file)
 
       if line && line != 0 do
-        "#{file}:#{line}: "
+        "#{format_path file}:#{line}: "
       else
-        "#{file}: "
+        "#{format_path file}: "
       end
     else
       ""
+    end
+  end
+
+  @doc """
+  Formats the given path to a string. Returns an empty string if the path is
+  `nil`. Returns the UTF-8 string value of the path if it can be correctly
+  encoded. Otherwise inspects the path.
+
+  The conversion of non-binary paths depends on the native path encoding, see
+  `Path.native_encoding/0`.
+  """
+  @spec format_path(Path.t | nil) :: String.t
+  def format_path(nil) do
+    ""
+  end
+
+  def format_path(path) do
+    case Path.to_binary(path) do
+      { :ok, binary } ->
+        if String.printable?(binary) do
+          binary
+        else
+          "#{inspect path}"
+        end
+      _ ->
+        "#{inspect path}"
     end
   end
 
