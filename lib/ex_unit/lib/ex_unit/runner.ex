@@ -128,7 +128,7 @@ defmodule ExUnit.Runner do
   defp run_test(config, test, context) do
     config.formatter.test_started(config.formatter_id, test)
 
-    filters = combine_filters(config.include, config.exclude)
+    filters = combine_filters([include: config.include, exclude: config.exclude])
     result = evaluate_filters(filters, test.tags)
 
     test = case result do
@@ -200,34 +200,39 @@ defmodule ExUnit.Runner do
   end
 
   def evaluate_filters(filters, tags) do
-    results = Enum.flat_map tags, fn tag ->
-      Enum.map filters, fn filter ->
-        { { elem(filter, 0), elem(tag, 0) }, evaluate_filter(filter, tag) }
-      end
-    end
-
-    results = Enum.reduce results, HashDict.new, fn { key, evaluation }, dict ->
-      Dict.update dict, key, evaluation, &(evaluation || &1)
-    end
-
-    mismatch = Enum.find Dict.to_list(results), &match?({ _, false }, &1)
-
-    case mismatch do
-      { { _, tag }, _ } -> { :error, tag }
-      _ -> :ok
+    Enum.find_value tags, :ok, fn { tag_key, _ } = tag ->
+      unless tag_accepted?(filters, tag), do: { :error, tag_key }
     end
   end
 
-  def evaluate_filter({ tag, value, :include }, { tag, value }), do: true
-  def evaluate_filter({ tag, value, :exclude }, { tag, value }), do: false
-  def evaluate_filter({ tag, _, :include }, { tag, _ }), do: false
-  def evaluate_filter({ tag, _, :exclude }, { tag, _ }), do: true
-  def evaluate_filter(_, _), do: true
+  defp tag_accepted?([include: include, exclude: exclude], tag) do
+    tag_included?(include, tag) and not tag_excluded?(exclude, tag)
+  end
 
-  defp combine_filters(include, exclude) do
-    include = Enum.map(include, fn { tag, value } -> { tag, value, :include } end)
-    exclude = Enum.map(exclude, fn { tag, value } -> { tag, value, :exclude } end)
-    Enum.concat(include, exclude)
+  defp tag_included?(include, { tag_key, tag_value }) do
+    case Dict.fetch(include, tag_key) do
+      { :ok, allowed } -> tag_value in allowed
+      :error -> true
+    end
+  end
+
+  defp tag_excluded?(exclude, { tag_key, tag_value })  do
+    case Dict.fetch(exclude, tag_key) do
+      { :ok, forbidden } -> tag_value in forbidden
+      :error -> false
+    end
+  end
+
+  defp combine_filters([include: include, exclude: exclude]) do
+    include = group_by_key(include)
+    exclude = group_by_key(exclude)
+    [include: include, exclude: exclude]
+  end
+
+  defp group_by_key(dict) do
+    Enum.reduce dict, HashDict.new, fn { key, value }, acc ->
+      Dict.update acc, key, [value], &[value|&1]
+    end
   end
 
   defp pruned_stacktrace, do: prune_stacktrace(System.stacktrace)
