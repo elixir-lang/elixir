@@ -32,6 +32,19 @@ defmodule ExUnit.DocTestTest.GoodModule do
   ** (ArithmeticError) bad argument in arithmetic expression
   """
   def exception_test, do: :ok
+
+  @doc """
+  iex> HashDict.new a: 0, b: 1, c: 2
+  #HashDict<[a: 0, b: 1, c: 2]>
+  """
+  def inspect1_test, do: :ok
+
+  @doc """
+  iex> x = HashDict.new a: 0, b: 1, c: 2
+  ...> x
+  #HashDict<[a: 0, b: 1, c: 2]>
+  """
+  def inspect2_test, do: :ok
 end
 
 defmodule ExUnit.DocTestTest.ExceptionModule do

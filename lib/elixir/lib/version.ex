@@ -140,7 +140,7 @@ defmodule Version do
 
   ## Examples
 
-      > Version.parse("2.0.1-alpha1")
+      iex> Version.parse("2.0.1-alpha1")
       #Version.Schema<2.0.1-alpha1>
 
   """
@@ -193,7 +193,7 @@ defmodule Version do
 
   ## Examples
 
-      > Version.from_matchable({2, 0, 1, ["alpha", 1]})
+      iex> Version.from_matchable({2, 0, 1, ["alpha", 1]})
       #Version.Schema<2.0.1-alpha.1>
 
   """

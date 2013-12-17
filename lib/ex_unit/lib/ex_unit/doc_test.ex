@@ -74,6 +74,19 @@ defmodule ExUnit.DocTest do
   We also allow you to select or skip some functions when calling
   `doctest`. See the documentation for more info.
 
+  ## Opaque types
+
+  Some types internal structure are kept hidden and instead show a
+  user-friendly structure when inspecting the value. The idiom in
+  Elixir is to print those data types as `#Name<...>`. Doctest will
+  test these values by doing a string compare.
+
+      iex> HashDict.new(a: 10, b: 20)
+      #HashDict<[a: 10, b: 20]>
+
+  The above example will be tested with the following match:
+  `"#HashDict<[a: 10, b: 20]>" = inspect (HashDict.new(a: 10, b: 20))`.
+
   ## Exceptions
 
   You can also showcase expressions raising an exception, for example:
@@ -254,6 +267,27 @@ defmodule ExUnit.DocTest do
               expr: unquote(expr),
               expected: inspect(v),
               assertion: "evaluate to",
+              actual: inspect(actual) ],
+            unquote(stack)
+      end
+    end
+  end
+
+  defp test_case_content(expr, { :inspect, expected }, module, line, file, stack) do
+    expr_ast     = string_to_quoted(module, line, file, expr)
+    expr_ast     = quote do: inspect(unquote(expr_ast))
+    expected_ast = string_to_quoted(module, line, file, expected)
+
+    quote do
+      v = unquote(expected_ast)
+      case unquote(expr_ast) do
+        ^v -> :ok
+        actual ->
+          raise ExUnit.ExpectationError,
+            [ prelude: "Expected doctest",
+              expr: unquote(expr),
+              expected: inspect(v),
+              assertion: "inspect as",
               actual: inspect(actual) ],
             unquote(stack)
       end
@@ -468,8 +502,14 @@ defmodule ExUnit.DocTest do
   end
 
   # Finally, parse expected_acc.
-  defp extract_tests([expected|lines], line, expr_acc, expected_acc, acc, newtest) do
-    extract_tests(lines, line, expr_acc, expected_acc <> "\n" <> expected, acc, newtest)
+  defp extract_tests([expected|lines], line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t]=acc, newtest) do
+    if expected =~ %r/^#[A-Z][\w\.]*<.*>$/ do
+      expected = expected_acc <> "\n" <> Inspect.BitString.inspect(expected, [])
+      test = test.exprs([{ expr_acc, { :inspect, expected } } | exprs])
+      extract_tests(lines, line,  "", "", [test|t], newtest)
+    else
+      extract_tests(lines, line, expr_acc, expected_acc <> "\n" <> expected, acc, newtest)
+    end
   end
 
   defp extract_error(<< ")", t :: binary >>, acc) do
