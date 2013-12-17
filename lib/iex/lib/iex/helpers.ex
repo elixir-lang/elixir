@@ -353,7 +353,7 @@ defmodule IEx.Helpers do
 
     case source do
       nil -> nil
-      source -> String.from_char_list!(source)
+      source -> Path.from_char_list!(source)
     end
   end
 
@@ -480,7 +480,7 @@ defmodule IEx.Helpers do
 
   # Compiles and loads an erlang source file, returns { module, binary }
   defp compile_erlang(source) do
-    source = Path.relative_to_cwd(source) |> String.to_char_list!
+    source = Path.relative_to_cwd(source) |> Path.to_char_list!
     case :compile.file(source, [:binary, :report]) do
       { :ok, module, binary } ->
         :code.purge(module)

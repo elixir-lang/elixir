@@ -1,3 +1,5 @@
+import Kernel, except: [to_char_list: 1]
+
 defmodule Path do
   @moduledoc """
   This module provides conveniences for manipulating or
@@ -14,8 +16,9 @@ defmodule Path do
 
   alias :filename, as: FN
 
-  @type t :: char_list | atom | binary
-  @type r :: char_list | binary
+  @typep deep_list :: [char | atom | deep_list]
+  @type t :: char_list | atom | binary | deep_list
+  @type encoding :: :utf8 | :latin1
 
   @doc """
   Converts the given path to an absolute one. Unlike
@@ -37,6 +40,7 @@ defmodule Path do
       "D:/usr/local/../x"
 
   """
+  @spec absname(t) :: t
   def absname(path) do
     FN.absname(path, get_cwd(path))
   end
@@ -57,6 +61,7 @@ defmodule Path do
       "bar/../x"
 
   """
+  @spec absname(t) :: t
   def absname(path, relative_to) do
     FN.absname(path, relative_to)
   end
@@ -71,6 +76,7 @@ defmodule Path do
       "/foo/bar"
 
   """
+  @spec expand(t) :: t
   def expand(path) do
     normalize FN.absname(expand_home(path), get_cwd(path))
   end
@@ -97,6 +103,7 @@ defmodule Path do
       "/foo/bar"
 
   """
+  @spec expand(t, t) :: t
   def expand(path, relative_to) do
     normalize FN.absname(FN.absname(expand_home(path), expand_home(relative_to)), get_cwd(path))
   end
@@ -119,7 +126,8 @@ defmodule Path do
       Path.type("/bar/foo.ex")      #=> :volumerelative
 
   """
-  def type(name) when is_list(name) or is_binary(name) do
+  @spec type(t) :: :absolute | :relative
+  def type(name) do
     case :os.type() do
       { :win32, _ } -> win32_pathtype(name)
       _             -> unix_pathtype(name)
@@ -143,6 +151,7 @@ defmodule Path do
       Path.relative("/bar/foo.ex")      #=> "bar/foo.ex"
 
   """
+  @spec relative(t) :: t
   def relative(name) do
     case :os.type() do
       { :win32, _ } -> win32_pathtype(name)
@@ -211,13 +220,14 @@ defmodule Path do
       "/usr/local/foo"
 
   """
+  @spec relative_to(t, t) :: t
   def relative_to(path, from) when is_list(path) and is_binary(from) do
-    path = filename_string_to_binary(path)
+    path = to_binary!(path)
     relative_to(FN.split(path), FN.split(from), path)
   end
 
   def relative_to(path, from) when is_binary(path) and is_list(from) do
-    relative_to(FN.split(path), FN.split(filename_string_to_binary(from)), path)
+    relative_to(FN.split(path), FN.split(to_binary!(from)), path)
   end
 
   def relative_to(path, from) do
@@ -241,6 +251,7 @@ defmodule Path do
   directory. If, for some reason, the current working directory
   cannot be retrieved, returns the full path.
   """
+  @spec relative_to_cwd(t) :: t
   def relative_to_cwd(path) do
     case :file.get_cwd do
       { :ok, base } -> relative_to(path, base)
@@ -264,6 +275,7 @@ defmodule Path do
       ""
 
   """
+  @spec basename(t) :: t
   def basename(path) do
     FN.basename(path)
   end
@@ -283,6 +295,7 @@ defmodule Path do
       "bar.old"
 
   """
+  @spec basename(t, t) :: t
   def basename(path, extension) do
     FN.basename(path, extension)
   end
@@ -298,6 +311,7 @@ defmodule Path do
       #=> "/foo/bar"
 
   """
+  @spec dirname(t) :: t
   def dirname(path) do
     FN.dirname(path)
   end
@@ -313,6 +327,7 @@ defmodule Path do
       ""
 
   """
+  @spec extname(t) :: t
   def extname(path) do
     FN.extension(path)
   end
@@ -328,6 +343,7 @@ defmodule Path do
       "/foo/bar"
 
   """
+  @spec rootname(t) :: t
   def rootname(path) do
     FN.rootname(path)
   end
@@ -344,6 +360,7 @@ defmodule Path do
       "/foo/bar.erl"
 
   """
+  @spec rootname(t, t) :: t
   def rootname(path, extension) do
     FN.rootname(path, extension)
   end
@@ -362,12 +379,18 @@ defmodule Path do
       "/foo/bar"
 
   """
+  @spec join([t]) :: t
   def join([name1, name2|rest]), do:
     join([join(name1, name2)|rest])
-  def join([name]) when is_list(name), do:
-    binary_to_filename_string(do_join(filename_string_to_binary(name), <<>>, [], major_os_type()))
+
   def join([name]) when is_binary(name), do:
     do_join(name, <<>>, [], major_os_type())
+
+  def join([name]) do
+    encoding = native_encoding()
+    do_join(to_binary!(name, encoding), <<>>, [], major_os_type())
+    |> to_char_list!(encoding)
+  end
 
   @doc """
   Joins two paths.
@@ -378,23 +401,27 @@ defmodule Path do
       "foo/bar"
 
   """
+  @spec join(t, t) :: t
   def join(left, right) when is_binary(left) and is_binary(right), do:
     do_join(left, Path.relative(right), [], major_os_type())
 
   def join(left, right) when is_binary(left) and is_list(right), do:
-    join(left, filename_string_to_binary(right))
+    join(left, to_binary!(right))
 
   def join(left, right) when is_list(left) and is_binary(right), do:
-    join(filename_string_to_binary(left), right)
+    join(to_binary!(left), right)
 
-  def join(left, right) when is_list(left) and is_list(right), do:
-    binary_to_filename_string join(filename_string_to_binary(left), filename_string_to_binary(right))
+  def join(left, right) when is_list(left) and is_list(right) do
+    encoding = native_encoding()
+    join(to_binary!(left, encoding), to_binary!(right, encoding))
+    |> to_char_list!(encoding)
+  end
 
   def join(left, right) when is_atom(left), do:
-    join(atom_to_binary(left), right)
+    join(atom_to_list(left), right)
 
   def join(left, right) when is_atom(right), do:
-    join(left, atom_to_binary(right))
+    join(left, atom_to_list(right))
 
   defp major_os_type do
     :os.type |> elem(0)
@@ -443,6 +470,7 @@ defmodule Path do
 
   """
   # Work around a bug in Erlang on UNIX
+  @spec split(t) :: [t]
   def split(""), do: []
 
   def split(path) do
@@ -482,54 +510,373 @@ defmodule Path do
       Path.wildcard("projects/*/ebin/**/*.{beam,app}")
 
   """
+  @spec wildcard(t) :: [t]
   def wildcard(glob) when is_binary(glob) do
-    paths = :filelib.wildcard binary_to_filename_string(glob)
-    encoding = :file.native_name_encoding()
-    Enum.map paths, &flatten_filename_to_binary(&1, encoding)
+    encoding = native_encoding()
+    to_char_list!(glob, encoding)
+    |> :filelib.wildcard
+    |> Enum.map(&( from_char_list!(&1, encoding) ))
   end
 
-  def wildcard(glob) when is_list(glob) do
+  def wildcard(glob) when is_list(glob) or is_atom(glob) do
     :filelib.wildcard glob
+  end
+
+  @doc """
+  Returns the VMs configured path encoding when using `char_list`'s and
+  `atom`'s.
+
+  The encoding used can be configured with the `--erl` VM flags `+fnl`, `+fnu`,
+  `+fnuw`, `+fnue` and `+fnui`. `+fnl` will translate `char_list` and `atom`
+  paths to latin-1. The other flags will translate `char_list` and `atom` paths
+  to utf8. `+fnuw` (and `+fnu`) will send a warning to the error logger and skip
+  files containing incorrectly encoded names when listing a directory. `+fnui`
+  will silently ignore incorrectily encoded names. `+fnue` will return an error
+  when an incorrectly encoded file or directory name is encountered.
+
+  The default encoding is OS dependent. Mac and Windows will default to `:utf8`
+  as their filesystems enforce unicode file and directory names.
+
+  However most other OS's have a transparent filesystem which means that each
+  file or directory is a list of bytes. It is left to the user/program to
+  determine the encoding for themselves. On these platforms the default encoding
+  is `:latin1`. UTF-8 encoded filenames can be accessed by using a raw binary
+  string, but `char_list`'s and `atoms`'s will be treated as bytes lists so that
+  every file on the system is accessible using each type. If all file and
+  directory names are UTF-8 encoded then using one of the unicode flags will
+  allow `char_list`'s and `atom`'s to represent code points instead of bytes.
+  """
+  @spec native_encoding() :: encoding
+  defdelegate native_encoding(), to: :file, as: :native_name_encoding
+
+  defexception ConversionError, encoded: nil, rest: nil, kind: nil, encoding: nil do
+    def message(exception) do
+      if exception.encoding do
+        "#{exception.kind} #{exception.encoding} #{detail(exception.rest)}"
+      else
+        "#{exception.kind} #{detail(exception.rest)}"
+      end
+    end
+
+    defp detail(rest) when is_binary(rest) do
+      "encoding starting at #{inspect rest}"
+    end
+
+    defp detail([h|_]) when is_list(h) do
+      detail(h)
+    end
+
+    defp detail([h|_]) do
+      "code point #{h}"
+    end
+  end
+
+  @doc """
+  Converts a path into a `char_list`. If the path is a raw binary path its
+  conversion uses the VM configured encoding.
+
+  This and the other to/from functions in this module should be used when
+  interacting with paths instead of `String.to_char_list/1` and the other
+  string conversion functions.
+
+  ## Examples
+
+      iex> Path.to_char_list("raw/path")
+      { :ok, 'raw/path' }
+      iex> Path.to_char_list(['deep/', [[:nested], ['/path']]])
+      { :ok, 'deep/nested/path' }
+      iex> Path.to_char_list(:"atom/path")
+      { :ok, 'atom/path' }
+  """
+  @spec to_char_list(t) ::
+    { :ok, char_list } | { :error, list, binary } |
+    { :incomplete, list, binary }
+  def to_char_list(path) when is_binary(path) do
+    to_char_list(path, native_encoding())
+  end
+  def to_char_list(path) when is_list(path) do
+    { :ok, FN.flatten(path) }
+  end
+  def to_char_list(path) when is_atom(path) do
+    { :ok, atom_to_list(path) }
+  end
+
+  @doc """
+  Converts a path into a `char_list`. If the path is a raw binary path its
+  conversion uses the supplied encoding.
+
+  ## Examples
+
+      iex> Path.to_char_list("raw/path", :latin1)
+      { :ok, 'raw/path' }
+      iex> Path.to_char_list(<<"invalid/utf8/path", 255>>, :utf8)
+      { :error, 'invalid/utf8/path', <<255>> }
+
+  """
+  @spec to_char_list(t, encoding) ::
+    { :ok, char_list } | { :error, list, binary } |
+    { :incomplete, list, binary }
+  def to_char_list(path, encoding) when is_binary(path) do
+    case :unicode.characters_to_list(path, encoding) do
+      char_list when is_list(char_list) ->
+        { :ok, char_list }
+      { :error, _, _ } = error ->
+        error
+      { :incomplete, _, _ } = incomplete ->
+        incomplete
+    end
+  end
+
+  def to_char_list(path, _encoding) do
+    to_char_list(path)
+  end
+
+  @doc """
+  Converts a path into a `char_list`. If the path is a raw binary path its
+  conversion uses the VM configured encoding. A `Path.ConversionError` is raised
+  when a conversion is not possible.
+
+  ## Examples
+
+      iex> Path.to_char_list!("raw/path")
+      'raw/path'
+      iex> Path.to_char_list!(:"atom/path")
+      'atom/path'
+
+  """
+  @spec to_char_list!(t) :: char_list
+  def to_char_list!(path) when is_binary(path) do
+    to_char_list!(path, native_encoding())
+  end
+
+  def to_char_list!(path) do
+    { :ok, char_list } = to_char_list(path)
+    char_list
+  end
+
+  @doc """
+  Converts a path to a `char_list`. If the path is a raw binary path its
+  conversion the supplied encoding. A `Path.ConversionError` is raised when a
+  conversion is not possible.
+
+  ## Examples
+
+      iex> Path.to_char_list!("raw/path", :latin1)
+      'raw/path'
+      iex> Path.to_char_list!(<<"invalid/utf8/path", 255>>, :utf8)
+      ** (Path.ConversionError) invalid utf8 encoding starting at <<255>>
+
+  """
+  @spec to_char_list!(t, encoding) :: char_list
+  def to_char_list!(path, encoding) do
+    case to_char_list(path, encoding) do
+      { :ok, char_list } ->
+        char_list
+      { :error, encoded, rest } ->
+        raise ConversionError, encoded: encoded, rest: rest, kind: :invalid,
+          encoding: encoding
+      { :incomplete, encoded, rest } ->
+        raise ConversionError, encoded: encoded, rest: rest, kind: :incomplete,
+          encoding: encoding
+    end
+  end
+
+  @doc """
+  Converts a `char_list` into a raw binary path using the supplied encoding. If
+  no encoding is supplied the VM configured encoding is used.
+
+  ## Examples
+
+      iex> Path.from_char_list('char/list/path')
+      { :ok, "char/list/path" }
+      iex> Path.from_char_list('path/with/invalid/code/point' ++ [256], :latin1)
+      { :error, "path/with/invalid/code/point", [[256]] }
+
+  """
+
+  @spec from_char_list(char_list) ::
+    { :ok, t } | { :error, binary, list } | { :incomplete, binary, list }
+  @spec from_char_list(char_list, encoding) ::
+    { :ok, t } | { :error, binary, list } | { :incomplete, binary, list }
+  def from_char_list(char_list, encoding // native_encoding()) do
+    case :unicode.characters_to_binary(char_list, encoding, encoding) do
+      path when is_binary(path) ->
+        { :ok, path }
+      { :error, _, _ } = error ->
+        error
+      { :incomplete, _, _ } = incomplete ->
+        incomplete
+    end
+  end
+
+  @doc """
+  Converts a `char_list` into a raw binary path using the supplied encoding. If
+  no encoding is supplied the VM configured encoding is used. A
+  `Path.ConversionError` is raised if the conversion fails.
+
+  ## Examples
+
+      iex> Path.from_char_list!('char/list/path')
+      "char/list/path"
+      iex> Path.from_char_list!('path/with/invalid/code/point' ++ [256], :latin1)
+      ** (Path.ConversionError) invalid latin1 code point 256
+
+  """
+
+  @spec from_char_list!(char_list) :: t
+  @spec from_char_list!(char_list, encoding) :: t
+  def from_char_list!(char_list, encoding // native_encoding()) do
+    case from_char_list(char_list, encoding) do
+      { :ok, path } ->
+        path
+      { :error, encoded, rest } ->
+        raise ConversionError, encoded: encoded, rest: rest, kind: :invalid,
+          encoding: encoding
+      { :incomplete, encoded, rest } ->
+        raise ConversionError, encoded: encoded, rest: rest, kind: :incomplete,
+          encoding: encoding
+    end
+  end
+
+  @doc """
+  Converts a path to a raw binary path. If the path is not a binary the
+  conversion uses the VM configured encoding.
+
+  ## Examples
+
+      iex> Path.to_binary("raw/path")
+      { :ok, "raw/path" }
+      iex> Path.to_binary(:"atom/path")
+      { :ok, "atom/path"}
+
+  """
+  @spec to_binary(t) ::
+    { :ok, binary } | { :error, binary, list } | { :incomplete, binary, list }
+  def to_binary(path) when is_binary(path) do
+    { :ok, path }
+  end
+
+  def to_binary(path) when is_list(path) do
+    FN.flatten(path)
+    |> from_char_list
+  end
+
+  def to_binary(path) when is_atom(path) do
+    atom_to_list(path)
+    |> from_char_list
+  end
+
+  @doc """
+  Converts a path to a raw binary path. If the path is not a binary the
+  conversion uses the supplied encoding.
+
+  ## Examples
+
+      iex> Path.to_binary("raw/path", :utf8)
+      { :ok, "raw/path" }
+      iex> Path.to_binary('path/with/invalid/code/point' ++ [256], :latin1)
+      { :error, "path/with/invalid/code/point", [[256]] }
+
+  """
+  @spec to_binary(t, encoding) ::
+    { :ok, binary } | { :error, binary, list } | { :incomplete, binary, list }
+  def to_binary(path, _encoding) when is_binary(path) do
+    {:ok, path }
+  end
+
+  def to_binary(path, encoding) when is_list(path) do
+    FN.flatten(path)
+    |> from_char_list(encoding)
+  end
+
+  def to_binary(path, encoding) when is_atom(path) do
+    atom_to_list(path)
+    |> from_char_list(encoding)
+  end
+
+  @doc """
+  Converts a path to a raw binary path. If the path is not a binary the
+  conversion uses the VM configured encoding. A `Path.ConversionError` is raised
+  if the conversion fails.
+
+  ## Examples
+
+      iex> Path.to_binary!("raw/path")
+      "raw/path"
+      iex> Path.to_binary!(:"atom/path")
+      "atom/path"
+
+  """
+  @spec to_binary!(t) :: binary
+  def to_binary!(path) when is_binary(path), do: path
+
+  def to_binary!(path) do
+    encoding = native_encoding()
+    case to_binary(path, encoding) do
+      { :ok, binary } ->
+        binary
+      { :error, encoded, rest } ->
+        raise ConversionError, encoded: encoded, rest: rest, kind: :invalid,
+          encoding: encoding
+      { :incomplete, encoded, rest } ->
+        raise ConversionError, encoded: encoded, rest: rest, kind: :incomplete,
+          encoding: encoding
+    end
+  end
+
+  @doc """
+  Converts a path to a raw binary path. If the path is not a binary the
+  conversion uses the supplied encoding. A `Path.ConversionError` is raised if
+  the conversion fails.
+
+  ## Examples
+
+      iex> Path.to_binary!('char/list/path', :utf8)
+      "char/list/path"
+      iex> Path.to_binary!('path/with/invalid/code/point' ++ [256], :latin1)
+      ** (Path.ConversionError) invalid latin1 code point 256
+
+  """
+  @spec to_binary!(t, encoding) :: binary
+  def to_binary!(path, encoding) do
+    case to_binary(path, encoding) do
+      { :ok, binary } ->
+        binary
+      { :error, encoded, rest } ->
+        raise ConversionError, encoded: encoded, rest: rest, kind: :invalid,
+          encoding: encoding
+      { :incomplete, encoded, rest } ->
+        raise ConversionError, encoded: encoded, rest: rest, kind: :incomplete,
+          encoding: encoding
+    end
   end
 
   ## Helpers
 
-  defp get_cwd(path) when is_list(path), do: System.cwd! |> binary_to_filename_string
-  defp get_cwd(_), do: System.cwd!
-
-  defp binary_to_filename_string(binary) do
-    case :unicode.characters_to_list(binary) do
-      { :error, _, _ } ->
-        :erlang.error(:badarg)
-      list when is_list(list) ->
-        list
-    end
-  end
-
-  defp filename_string_to_binary(list) do
-    flatten_filename_to_binary(:filename.flatten(list), :file.native_name_encoding())
-  end
-
-  defp flatten_filename_to_binary(list, encoding) do
-    case :unicode.characters_to_binary(list, :unicode, encoding) do
-      { :error, _, _ } ->
-        :erlang.error(:badarg)
-      bin when is_binary(bin) ->
-        bin
-    end
-  end
+  defp get_cwd(path) when is_binary(path), do: System.cwd!
+  defp get_cwd(_), do: System.cwd! |> to_char_list!
 
   # Normalize the given path by expanding "..", "." and "~".
 
-  defp expand_home(<<?~, rest :: binary>>) do
+  defp expand_home(path), do: FN.flatten(path) |> do_expand_home
+
+  defp do_expand_home(<<?~, rest :: binary>>) do
     System.user_home! <> rest
   end
 
-  defp expand_home('~' ++ rest) do
-    (System.user_home! |> binary_to_filename_string) ++ rest
+  defp do_expand_home('~' ++ rest) do
+    home = System.user_home!
+    case to_char_list(home) do
+      { :ok, home } ->
+        home ++ rest
+      { :error, _, _ } ->
+        home <> to_binary!(rest)
+      { :incomplete, _, _ } ->
+        home <> to_binary!(rest)
+    end
   end
 
-  defp expand_home(other), do: other
+  defp do_expand_home(other), do: other
 
   defp normalize(path), do: normalize(FN.split(path), [])
 

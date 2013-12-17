@@ -14,6 +14,9 @@ defmodule System do
   with the VM or the host system.
   """
 
+  @type stacktrace_entry ::
+    { module, atom, arity | list, Keyword.t } | { fun, arity | list, Keyword.t }
+
   defp strip_re(iodata, pattern) do
     :re.replace(iodata, pattern, "", [return: :binary])
   end
@@ -79,7 +82,7 @@ defmodule System do
 
   Returns the list of command line arguments passed to the program.
   """
-  @spec argv() :: [String.t]
+  @spec argv() :: [Path.t]
   def argv do
     :elixir_code_server.call :argv
   end
@@ -90,8 +93,9 @@ defmodule System do
   Changes the list of command line arguments. Use it with caution,
   as it destroys any previous argv information.
   """
-  @spec argv([String.t]) :: :ok
+  @spec argv([Path.t]) :: :ok
   def argv(args) do
+    args = lc arg inlist args, do: Path.to_binary!(arg)
     :elixir_code_server.cast({ :argv, args })
   end
 
@@ -101,9 +105,10 @@ defmodule System do
   Returns the current working directory or `nil` if one
   is not available.
   """
+  @spec cwd :: Path.t | nil
   def cwd do
     case :file.get_cwd do
-      { :ok, base } -> String.from_char_list!(base)
+      { :ok, base } -> Path.from_char_list!(base)
       _ -> nil
     end
   end
@@ -113,6 +118,7 @@ defmodule System do
 
   Returns the current working directory or raises `System.NoAccessCwdError`.
   """
+  @spec cwd!() :: Path.t
   def cwd! do
     cwd || raise NoAccessCwdError
   end
@@ -123,6 +129,7 @@ defmodule System do
   Returns the user home directory (platform independent).
   Returns `nil` if no user home is set.
   """
+  @spec user_home() :: Path.t | nil
   def user_home do
     case :os.type() do
       { :win32, _ } -> get_windows_home
@@ -136,6 +143,7 @@ defmodule System do
   Same as `user_home/0` but raises `System.NoHomeError`
   instead of returning `nil` if no user home is set.
   """
+  @spec user_home!() :: Path.t
   def user_home! do
     user_home || raise NoHomeError
   end
@@ -168,6 +176,7 @@ defmodule System do
 
   Returns `nil` if none of the above are writable.
   """
+  @spec tmp_dir() :: Path.t | nil
   def tmp_dir do
     write_env_tmp_dir('TMPDIR') ||
       write_env_tmp_dir('TEMP') ||
@@ -182,6 +191,7 @@ defmodule System do
   Same as `tmp_dir/0` but raises `System.NoTmpDirError`
   instead of returning `nil` if no temp dir is set.
   """
+  @spec tmp_dir!() :: Path.t
   def tmp_dir! do
     tmp_dir || raise NoTmpDirError
   end
@@ -200,7 +210,7 @@ defmodule System do
         access_index = File.Stat.__record__(:index, :access)
         case { elem(info, type_index), elem(info, access_index) } do
           { :directory, access } when access in [:read_write, :write] ->
-            String.from_char_list!(dir)
+            Path.from_char_list!(dir)
           _ ->
             nil
         end
@@ -218,6 +228,8 @@ defmodule System do
   The function must receive the exit status code
   as an argument.
   """
+  @spec at_exit(( (non_neg_integer | binary | :abort) -> term | no_return )) ::
+    :ok
   def at_exit(fun) when is_function(fun, 1) do
     :elixir_code_server.cast { :at_exit, fun }
   end
@@ -277,12 +289,13 @@ defmodule System do
   System environment variables.
 
   Returns a list of all environment variables. Each variable is given as a
-  `{name, value}` tuple where both `name` and `value` are strings.
+  `{name, value}` tuple where both `name` and `value` are binaries.
   """
-  @spec get_env() :: [{String.t, String.t}]
+  @spec get_env() :: [{Path.t, Path.t}]
   def get_env do
+    encoding = Path.native_encoding()
     Enum.map(:os.getenv, fn var ->
-        var = String.from_char_list! var
+        var = Path.from_char_list! var, encoding
         [k, v] = String.split var, "=", global: false
         {k, v}
     end)
@@ -295,11 +308,11 @@ defmodule System do
   `varname` as a binary, or `nil` if the environment
   variable is undefined.
   """
-  @spec get_env(binary) :: binary | nil
-  def get_env(varname) when is_binary(varname) do
-    case :os.getenv(String.to_char_list!(varname)) do
+  @spec get_env(Path.t) :: Path.t | nil
+  def get_env(varname) do
+    case :os.getenv(Path.to_char_list!(varname)) do
       false -> nil
-      other -> String.from_char_list!(other)
+      other -> Path.from_char_list!(other)
     end
   end
 
@@ -319,10 +332,10 @@ defmodule System do
 
   Sets a new `value` for the environment variable `varname`.
   """
-  @spec put_env(binary, binary) :: :ok
-  def put_env(varname, value) when is_binary(varname) and is_binary(value) do
-   :os.putenv :binary.bin_to_list(varname), String.to_char_list!(value)
-   :ok
+  @spec put_env(Path.t, Path.t) :: :ok
+  def put_env(varname, value) do
+    :os.putenv Path.to_char_list!(varname), Path.to_char_list!(value)
+    :ok
   end
 
   @doc """
@@ -343,6 +356,7 @@ defmodule System do
   return the current stacktrace but rather the stacktrace of the
   latest exception.
   """
+  @spec stacktrace :: [stacktrace_entry]
   def stacktrace do
     :erlang.get_stacktrace
   end
@@ -359,7 +373,7 @@ defmodule System do
   * If `:abort`, the runtime system aborts producing a core dump, if that is
     enabled in the operating system;
 
-  * If a char list, an erlang crash dump is produced with status as slogan,
+  * If a binary, an erlang crash dump is produced with status as slogan,
     and then the runtime system exits with status code 1;
 
   Note that on many platforms, only the status codes 0-255 are supported

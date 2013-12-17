@@ -112,7 +112,7 @@ defmodule PathTest do
     assert home == Path.expand("~")
     assert is_binary Path.expand("~/foo")
 
-    assert (home |> String.to_char_list!) == Path.expand('~')
+    assert (home |> Path.to_char_list!) == Path.expand('~')
     assert is_list Path.expand('~/foo')
 
     assert Path.expand("~/file") == Path.join(home, "file")
@@ -256,6 +256,78 @@ defmodule PathTest do
     assert Path.split('') == []
     assert Path.split('foo') == ['foo']
     assert Path.split('/foo/bar') == ['/', 'foo', 'bar']
+  end
+
+  test :from_char_list do
+    assert Path.from_char_list('simple/path') == { :ok, "simple/path" }
+    assert Path.from_char_list!('simple/path') == "simple/path"
+    assert Path.from_char_list('hêllõ', :latin1) == { :ok, list_to_bitstring('hêllõ') }
+    assert Path.from_char_list!('hêllõ', :utf8) == "hêllõ"
+    assert match?({ :error,  _, _ }, Path.from_char_list([256], :latin1))
+    assert_raise Path.ConversionError, fn -> Path.from_char_list!([256], :latin1) end
+  end
+
+  test :to_char_list_with_list do
+    assert Path.to_char_list('simple/path') == { :ok, 'simple/path' }
+    assert Path.to_char_list!('simple/path') == 'simple/path'
+    assert Path.to_char_list('hêllõ', :latin1) == { :ok, 'hêllõ' }
+    assert Path.to_char_list!('hêllõ', :utf8) == 'hêllõ'
+  end
+
+  test :to_char_list_with_binary do
+    assert Path.to_char_list("simple/path") == { :ok, 'simple/path' }
+    assert Path.to_char_list!("simple/path") == 'simple/path'
+    assert Path.to_char_list("hêllõ", :latin1) == { :ok, bitstring_to_list("hêllõ") }
+    assert Path.to_char_list!("hêllõ", :utf8) == 'hêllõ'
+    assert match?({ :error, _, _ }, Path.to_char_list(<<129>>, :utf8))
+    assert_raise Path.ConversionError, fn -> Path.to_char_list!(<<129>>, :utf8) end
+    assert match?({ :incomplete, _, _}, Path.to_char_list(<<195>>, :utf8))
+    assert_raise Path.ConversionError, fn -> Path.to_char_list!(<<195>>, :utf8) end
+  end
+
+  test :to_char_list_with_atom do
+    assert Path.to_char_list(:"simple/path") == { :ok, 'simple/path' }
+    assert Path.to_char_list!(:"simple/path") == 'simple/path'
+    assert Path.to_char_list(:"hêllõ", :latin1) == { :ok, 'hêllõ' }
+    assert Path.to_char_list!(:"hêllõ", :utf8) == 'hêllõ'
+  end
+
+  test :to_char_list_with_deep do
+    assert Path.to_char_list(['simple', [:"/", ['pat']], 'h']) == { :ok, 'simple/path' }
+    assert Path.to_char_list!(['simple', [:"/", ['pat']], 'h']) == 'simple/path'
+    assert Path.to_char_list(['h', [:"ê", ['l', :l, ['õ']]]], :latin1) == { :ok, 'hêllõ' }
+    assert Path.to_char_list!(['h', [:"ê", ['l', :l, ['õ']]]], :utf8) == 'hêllõ'
+  end
+
+  test :to_binary_with_list do
+    assert Path.to_binary('simple/path') == { :ok, "simple/path" }
+    assert Path.to_binary!('simple/path') == "simple/path"
+    assert Path.to_binary('hêllõ', :latin1) == { :ok, list_to_bitstring('hêllõ') }
+    assert Path.to_binary!('hêllõ', :utf8) == "hêllõ"
+    assert match?({ :error,  _, _ }, Path.to_binary([256], :latin1))
+    assert_raise Path.ConversionError, fn -> Path.to_binary!([256], :latin1) end
+  end
+
+  test :to_binary_with_binary do
+    assert Path.to_binary("simple/path") == { :ok, "simple/path" }
+    assert Path.to_binary!("simple/path") == "simple/path"
+    assert Path.to_binary("hêllõ", :latin1) == { :ok, "hêllõ" }
+    assert Path.to_binary!("hêllõ", :utf8) == "hêllõ"
+    assert Path.to_binary!(<<129>>, :utf8) == <<129>>
+  end
+
+  test :to_binary_with_atom do
+    assert Path.to_binary(:"simple/path") == { :ok, "simple/path" }
+    assert Path.to_binary!(:"simple/path") == "simple/path"
+    assert Path.to_binary(:"hêllõ", :latin1) == { :ok, list_to_bitstring('hêllõ') }
+    assert Path.to_binary!(:"hêllõ", :utf8) == "hêllõ"
+  end
+
+  test :to_binary_with_deep do
+    assert Path.to_binary(['simple', [:"/", ['pat']], 'h']) == { :ok, "simple/path" }
+    assert Path.to_binary!(['simple', [:"/", ['pat']], 'h']) == "simple/path"
+    assert Path.to_binary(['h', [:"ê", ['l', :l, ['õ']]]], :latin1) == { :ok, list_to_bitstring('hêllõ') }
+    assert Path.to_binary!(['h', [:"ê", ['l', :l, ['õ']]]], :utf8) == "hêllõ"
   end
 
   if is_win? do

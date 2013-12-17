@@ -24,7 +24,7 @@ defmodule Mix.RebarTest do
   test "execute rebar.config.script on dependecy directory" do
     path = MixTest.Case.fixture_path("rebar_dep_script")
     config = Mix.Rebar.load_config(path)
-    assert config[:dir] == {:ok, String.to_char_list!(path)}
+    assert config[:dir] == {:ok, Path.to_char_list!(path)}
   end
 
   test "parse rebar dependencies" do

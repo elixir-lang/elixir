@@ -9,7 +9,7 @@ defmodule Kernel.CLI do
   This is the API invoked by Elixir boot process.
   """
   def main(argv) do
-    argv = lc arg inlist argv, do: String.from_char_list!(arg)
+    argv = parse_argv(argv)
 
     { config, argv } = process_argv(argv, Kernel.CLI.Config.new)
     System.argv(argv)
@@ -166,6 +166,23 @@ defmodule Kernel.CLI do
   end
 
   # Process init options
+
+  @doc false
+  def parse_argv(argv // :init.get_plain_arguments) do
+     lc arg inlist argv, do: arg_to_binary(arg)
+  end
+
+  defp arg_to_binary({ :error, sofar, rest }) do
+    Path.from_char_list!(sofar) <> rest
+  end
+
+  defp arg_to_binary({ :incomplete, sofar, rest }) do
+    Path.from_char_list!(sofar) <> rest
+  end
+
+  defp arg_to_binary(arg) do
+    Path.from_char_list!(arg)
+  end
 
   defp process_argv(["--"|t], config) do
     { config, t }

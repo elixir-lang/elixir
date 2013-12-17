@@ -73,7 +73,7 @@ defmodule IEx.CLI do
   end
 
   defp tty_args do
-    if remote = get_remsh(:init.get_plain_arguments) do
+    if remote = get_remsh(Kernel.CLI.parse_argv) do
       if is_alive do
         case :rpc.call remote, :code, :ensure_loaded, [IEx] do
           { :badrpc, reason } ->
@@ -120,7 +120,7 @@ defmodule IEx.CLI do
   end
 
   defp config do
-    [dot_iex_path: find_dot_iex(:init.get_plain_arguments)]
+    [dot_iex_path: find_dot_iex(Kernel.CLI.parse_argv)]
   end
 
   defp abort(msg) do
@@ -131,11 +131,11 @@ defmodule IEx.CLI do
     { :erlang, :apply, [function, []] }
   end
 
-  defp find_dot_iex(['--dot-iex', h|_]), do: String.from_char_list!(h)
+  defp find_dot_iex(["--dot-iex", h|_]), do: h
   defp find_dot_iex([_|t]), do: find_dot_iex(t)
   defp find_dot_iex([]), do: nil
 
-  defp get_remsh(['--remsh', h|_]), do: list_to_atom(h)
+  defp get_remsh(["--remsh", h|_]), do: Path.to_char_list!(h) |> list_to_atom
   defp get_remsh([_|t]), do: get_remsh(t)
   defp get_remsh([]), do: nil
 end
