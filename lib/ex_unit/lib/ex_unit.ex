@@ -145,7 +145,9 @@ defmodule ExUnit do
 
   * `:autorun` - If ExUnit should run by default on exit, defaults to `true`;
 
-  * `:filter` - Constrain which tests are run by matching against a keyword list of tags;
+  * `:include` - Specify which tests are run by skipping tests that do not match the filter
+
+  * `:exclude` - Specify which tests are run by skipping tests that match the filter
   """
   def configure(options) do
     Enum.each options, fn { k, v } ->

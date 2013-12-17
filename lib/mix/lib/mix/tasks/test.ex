@@ -49,7 +49,8 @@ defmodule Mix.Tasks.Test do
   * `--no-compile` - do not compile, even if files require compilation
   * `--no-start` - do not start applications after compilation
   * `--no-color` - disable color in the output
-  * `--filter` - skip tests that don't have matching tags
+  * `--include` - skip tests that do not match the filter
+  * `--exclude` - skip tests that match the filter
 
   ## Configuration
 
