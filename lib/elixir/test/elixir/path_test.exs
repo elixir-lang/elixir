@@ -112,7 +112,7 @@ defmodule PathTest do
     assert home == Path.expand("~")
     assert is_binary Path.expand("~/foo")
 
-    assert (home |> String.to_char_list!) == Path.expand('~')
+    assert (home |> Path.to_char_list!) == Path.expand('~')
     assert is_list Path.expand('~/foo')
 
     assert Path.expand("~/file") == Path.join(home, "file")

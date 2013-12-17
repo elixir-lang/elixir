@@ -96,7 +96,7 @@ defmodule CodeTest do
   end
 
   test :compile_source do
-    assert __MODULE__.__info__(:compile)[:source] == String.to_char_list!(__FILE__)
+    assert __MODULE__.__info__(:compile)[:source] == Path.to_char_list!(__FILE__)
   end
 
   test :compile_info_returned_with_source_accessible_through_keyword_module do
