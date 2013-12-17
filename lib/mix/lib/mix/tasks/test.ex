@@ -106,12 +106,12 @@ defmodule Mix.Tasks.Test do
 
     if opts[:include] do
       inclusions = ExUnit.parse_filters(Keyword.get_values(opts, :include))
-      opts = Dict.put(opts, :include, inclusions)
+      opts = Keyword.put(opts, :include, inclusions)
     end
 
     if opts[:exclude] do
       exclusions = ExUnit.parse_filters(Keyword.get_values(opts, :exclude))
-      opts = Dict.put(opts, :exclude, exclusions)
+      opts = Keyword.put(opts, :exclude, exclusions)
     end
 
     opts = Dict.take(opts, [:trace, :max_cases, :color, :include, :exclude])
