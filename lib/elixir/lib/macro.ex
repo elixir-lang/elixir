@@ -586,6 +586,7 @@ defmodule Macro do
     elem(expand_once(ast, env, nil), 0)
   end
 
+  # TODO: Get rid of this duplication
   defp expand_once({ :__aliases__, _, _ } = original, env, cache) do
     case :elixir_aliases.expand(original, env.aliases, env.macro_aliases, env.lexical_tracker) do
       receiver when is_atom(receiver) ->
@@ -637,25 +638,24 @@ defmodule Macro do
 
   defp expand_once({ atom, meta, args } = original, env, cache)
       when is_atom(atom) and is_list(args) and is_list(meta) do
-    case not is_partial?(args) do
-      false -> { original, false, cache }
-      true  ->
-        module = env.module
+    module = env.module
 
-        extra  = if function_exported?(module, :__info__, 1) do
-          [{ module, module.__info__(:macros) }]
-        else
-          []
-        end
+    extra  = if function_exported?(module, :__info__, 1) do
+      [{ module, module.__info__(:macros) }]
+    else
+      []
+    end
 
-        cache  = to_erl_env(env, cache)
-        expand = :elixir_dispatch.expand_import(meta, { atom, length(args) }, args,
-          env.module, extra, cache)
+    cache  = to_erl_env(env, cache)
+    expand = :elixir_dispatch.expand_import(meta, { atom, length(args) }, args, cache, extra)
 
-        case expand do
-          { :ok, _, expanded } -> { expanded, true, cache }
-          { :error, _ }        -> { original, false, cache }
-        end
+    # TODO: Return the receiver in the expanded result
+    # TODO: The expanded tree does not have the counters nor lines set
+    #       and this can break hygiene. This needs to be fixed.
+    case expand do
+      { :ok, _, expanded } -> { expanded, true, cache }
+      { :ok, _receiver }   -> { original, false, cache }
+      :error               -> { original, false, cache }
     end
   end
 
@@ -663,16 +663,16 @@ defmodule Macro do
   defp expand_once({ { :., _, [left, right] }, line, args } = original, env, cache) when is_atom(right) do
     { receiver, _, _ } = expand_once(left, env, cache)
 
-    case is_atom(receiver) and not is_partial?(args) do
+    case is_atom(receiver) do
       false -> { original, false, cache }
       true  ->
         cache  = to_erl_env(env, cache)
         expand = :elixir_dispatch.expand_require(line, receiver, { right, length(args) },
-          args, env.module, cache)
+          args, cache)
 
         case expand do
           { :ok, _receiver, expanded } -> { expanded, true, cache }
-          { :error, _ }                -> { original, false, cache }
+          :error                       -> { original, false, cache }
         end
     end
   end
@@ -682,10 +682,6 @@ defmodule Macro do
 
   defp to_erl_env(env, nil),    do: :elixir_env.ex_to_scope(env)
   defp to_erl_env(_env, cache), do: cache
-
-  defp is_partial?(args) do
-    :lists.any(&match?({ :&, _, [_] }, &1), args)
-  end
 
   @doc """
   Receives an AST node and expands it until it no longer represents
