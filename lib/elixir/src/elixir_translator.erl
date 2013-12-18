@@ -58,11 +58,6 @@ translate_each({ '__block__', Meta, Args }, S) when is_list(Args) ->
   { TArgs, NS } = translate(Args, S),
   { { block, ?line(Meta), TArgs }, NS };
 
-translate_each({ '__scope__', _Meta, [[{file,File}],[{do,Expr}]] }, S) ->
-  Old = S#elixir_scope.file,
-  { TExpr, TS } = translate_each(Expr, S#elixir_scope{file=File}),
-  { TExpr, TS#elixir_scope{file=Old} };
-
 %% Erlang op
 
 translate_each({ '__op__', Meta, [Op, Expr] }, S) when is_atom(Op) ->

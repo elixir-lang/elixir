@@ -23,6 +23,7 @@ warn(Warning) ->
 
 %% Handle inspecting for exceptions modules
 
+%% TODO: Use elixir_aliases:inspect instead
 inspect(Atom) when is_atom(Atom) ->
   case elixir_compiler:get_opt(internal) of
     true -> atom_to_binary(Atom, utf8);

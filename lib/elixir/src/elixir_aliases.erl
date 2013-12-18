@@ -1,7 +1,13 @@
 -module(elixir_aliases).
--export([last/1, concat/1, safe_concat/1, format_error/1,
+-export([inspect/1, last/1, concat/1, safe_concat/1, format_error/1,
          ensure_loaded/3, ensure_loaded/4, expand/4, store/7]).
 -include("elixir.hrl").
+
+inspect(Atom) when is_atom(Atom) ->
+  case elixir_compiler:get_opt(internal) of
+    true -> atom_to_binary(Atom, utf8);
+    false -> 'Elixir.Inspect.Atom':inspect(Atom)
+  end.
 
 %% Store an alias in the given scope
 store(_Meta, New, New, _TKV, Aliases, MacroAliases, _Lexical) ->
