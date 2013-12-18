@@ -110,6 +110,37 @@ defmodule ExUnit.Case do
   * `:test` - the test name
   * `:line` - the line the test was defined
 
+  ## Filters
+
+  Tags can also be used to identify specific tests, which can then be included
+  or excluded using filters. Filters are defined as key-value pairs, similar to
+  tags, and are used to match against the tags given for each test. For example
+  the following command will skip any test that contains the `:os` tag but has
+  a value other than `"unix"`.
+
+      mix test --include os:unix
+
+  If your tags are defined using boolean values, you can use the shorthand
+  version by only specifying the tag name. The value will be automatically set
+  to `true`. To skip all tests with a tag of `slow: true` run the following
+  command:
+
+      mix test --exclude slow
+
+  Filters can also be combined to further limit the tests to be run. When
+  defining filters with the same tag name, tests that match either filter will
+  be run. The following command will skip any test that contains the `:os` tag
+  but has a value other than `"unix"` or `"win32"`:
+
+      mix test --include os:unix --include os:win32
+
+  However, if multiple filters with different tag names are given, only tests
+  that match the filter defined for each unique tag name will be run. This
+  command will only run tests that have both `os: "unix"` and `type: "unit"`
+  tags.
+
+      mix test --include os:unix --include type:unit
+
   """
 
   @doc false
