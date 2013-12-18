@@ -26,7 +26,7 @@ defmodule Kernel.ExpansionTest do
     { output, env } = expand_env(input, __ENV__)
 
     assert output == quote do: (alias :hello, as: :"Elixir.World", warn: true)
-    assert env.aliases == [{:"Elixir.True", true},{:"Elixir.World", :hello}]
+    assert env.aliases == [{:"Elixir.True", true}, {:"Elixir.World", :hello}]
   end
 
   ## __aliases__
@@ -45,6 +45,65 @@ defmodule Kernel.ExpansionTest do
     alias Source, as: Hello
     alias Hello, as: World
     assert expand_env(quote(do: World), __ENV__) |> elem(0) == :"Elixir.Source"
+  end
+
+  ## =
+
+  test "=: sets context to match" do
+    # TODO
+  end
+
+  test "=: defines vars" do
+    { output, env } = expand_env(quote(do: a = 1), __ENV__)
+    assert output == quote(do: a = 1)
+    assert { :a, __MODULE__ } in env.vars
+  end
+
+  ## Pseudo vars
+
+  test "__MODULE__" do
+    assert expand(quote do: __MODULE__) == __MODULE__
+  end
+
+  test "__FILE__" do
+    assert expand(quote do: __FILE__) == __FILE__
+  end
+
+  test "__DIR__" do
+    assert expand(quote do: __DIR__) == __DIR__
+  end
+
+  test "__CALLER__" do
+    assert expand(quote do: __CALLER__) == quote do: __CALLER__
+  end
+
+  test "__ENV__" do
+    env = __ENV__
+    assert expand_env(quote(do: __ENV__), env) == { env, env }
+  end
+
+  test "__ENV__.accessor" do
+    assert expand(quote(do: __ENV__.file)) == __FILE__
+  end
+
+  ## Vars
+
+  test "vars: expand to local call" do
+    { output, env } = expand_env(quote(do: a), __ENV__)
+    assert output == quote(do: a())
+    assert env.vars == []
+  end
+
+  test "vars: considers hygiene" do
+    # TODO
+  end
+
+  test "vars: forces variable on exist" do
+    # TODO
+  end
+
+  test "vars: considers var scope" do
+    # TODO
   end
 
   ## Helpers

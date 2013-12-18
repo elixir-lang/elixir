@@ -1,9 +1,12 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([ex_to_env/1, env_to_scope/1, env_to_scope_with_vars/2,
-         ex_to_scope/1, scope_to_ex/1]).
+         ex_to_scope/1, scope_to_ex/1, env_to_ex/1]).
 
 %% Conversion in between #elixir_env, #elixir_scope and Macro.Env
+
+env_to_ex(#elixir_env{} = Env) ->
+  erlang:setelement(1, Env, 'Elixir.Macro.Env').
 
 ex_to_env(Env) when element(1, Env) == 'Elixir.Macro.Env' ->
   erlang:setelement(1, Env, elixir_env).

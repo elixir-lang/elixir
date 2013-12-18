@@ -4,6 +4,13 @@
 -include("elixir.hrl").
 
 %% =
+
+expand({ '=', Meta, [Left, Right] }, E) ->
+  % assert_no_guard_scope(Meta, '=', S),
+  { ERight, ER } = expand(Right, E),
+  { ELeft, EL }  = match(fun expand/2, Left, ER),
+  { { '=', Meta, [ELeft, ERight] }, EL };
+
 %% {}, <<>>, __op__
 
 %% __block__
@@ -54,6 +61,39 @@ expand({ alias, Meta, [Ref, KV] }, E) ->
         "invalid args for alias, expected a compile time atom or alias as argument")
   end;
 
+%% Pseudo vars
+
+expand({ '__MODULE__', _, Atom }, E) when is_atom(Atom) ->
+  { E#elixir_env.module, E };
+expand({ '__FILE__', _, Atom }, E) when is_atom(Atom) ->
+  { E#elixir_env.file, E };
+expand({ '__DIR__', _, Atom }, E) when is_atom(Atom) ->
+  { filename:dirname(E#elixir_env.file), E };
+expand({ '__CALLER__', _, Atom } = Caller, E) when is_atom(Atom) ->
+  { Caller, E };
+expand({ '__ENV__', _, Atom }, E) when is_atom(Atom) ->
+  { elixir_env:env_to_ex(E), E };
+expand({ { '.', _, [{ '__ENV__', _, Atom }, Field] }, _, [] }, E) when is_atom(Atom), is_atom(Field) ->
+  { (elixir_env:env_to_ex(E)):Field(), E };
+
+%% Vars
+
+expand({ Name, Meta, Kind } = Var, #elixir_env{context=match,vars=Vars} = E) when is_atom(Name), is_atom(Kind) ->
+  { Var, E#elixir_env{vars=ordsets:add_element({ Name, var_kind(Meta, Kind) }, Vars)} };
+expand({ Name, Meta, Kind } = Var, #elixir_env{vars=Vars} = E) when is_atom(Name), is_atom(Kind) ->
+  case lists:member({ Name, var_kind(Meta, Kind) }, Vars) of
+    true ->
+      { Var, E };
+    false ->
+      case lists:keyfind(var, 1, Meta) of
+        { var, true } ->
+          compile_error(Meta, E#elixir_env.file, "expected var ~ts to expand to an existing "
+                        "variable or be a part of a match", [Name]);
+        _ ->
+          expand({ Name, Meta, [] }, E)
+      end
+  end;
+
 %% Literals
 
 expand({ Left, Right }, E) ->
@@ -73,6 +113,18 @@ expand_many(Args, E) ->
 
 expand_args(Args, E) ->
   lists:mapfoldl(fun expand/2, E, Args).
+
+%% Match/var helpers
+
+match(Fun, Expr, #elixir_env{context=Context} = E) ->
+  { EExpr, EE } = Fun(Expr, E#elixir_env{context=match}),
+  { EExpr, EE#elixir_env{context=Context} }.
+
+var_kind(Meta, Kind) ->
+  case lists:keyfind(counter, 1, Meta) of
+    { counter, Counter } -> Counter;
+    false -> Kind
+  end.
 
 %% Lexical helpers
 
