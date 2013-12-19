@@ -138,6 +138,12 @@ defmodule Kernel.ExpansionTest do
     assert expand(quote(do: { b, a = 1, a })) == quote do: { b(), a = 1, a() }
   end
 
+  ## quote
+
+  test "quote: expanded to raw forms" do
+    assert expand(quote do: (quote do: hello)) == { :{}, [], [:hello, [], __MODULE__] }
+  end
+
   ## Helpers
 
   defp expand(expr) do

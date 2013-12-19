@@ -2,10 +2,28 @@
 %% This module access the information stored on the scope
 %% by elixir_import and therefore assumes it is normalized (ordsets)
 -module(elixir_exp_dispatch).
--export([dispatch_import/5, format_error/1]).
+-export([find_import/4, dispatch_import/5, format_error/1]).
 -include("elixir.hrl").
 -import(ordsets, [is_element/2]).
 -define(builtin, 'Elixir.Kernel').
+
+find_import(Meta, Name, Arity, E) ->
+  Tuple = { Name, Arity },
+
+  case find_dispatch(Meta, Tuple, [], E) of
+    { function, Receiver } ->
+      elixir_lexical:record_import(Receiver, E#elixir_env.lexical_tracker),
+      elixir_tracker:record_import(Tuple, Receiver, E#elixir_env.module, E#elixir_env.function),
+      Receiver;
+    { macro, Receiver } ->
+      elixir_lexical:record_import(Receiver, E#elixir_env.lexical_tracker),
+      elixir_tracker:record_import(Tuple, Receiver, E#elixir_env.module, E#elixir_env.function),
+      Receiver;
+    _ ->
+      false
+  end.
+
+%% Dispatches
 
 dispatch_import(Meta, Name, Args, E, Callback) ->
   case expand_import(Meta, { Name, length(Args) }, Args, E, []) of

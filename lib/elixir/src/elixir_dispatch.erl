@@ -5,7 +5,7 @@
 -export([default_macros/0, default_functions/0, default_requires/0,
   dispatch_require/6, dispatch_import/5,
   require_function/5, import_function/4,
-  expand_import/5, expand_require/5, find_import/4, format_error/1]).
+  expand_import/5, expand_require/5, format_error/1]).
 -include("elixir.hrl").
 
 -import(ordsets, [is_element/2]).
@@ -17,22 +17,6 @@ default_macros() ->
   [ { ?builtin, elixir_imported_macros() } ].
 default_requires() ->
   [ 'Elixir.Integer', 'Elixir.Kernel', 'Elixir.Kernel.Typespec', 'Elixir.Record' ].
-
-find_import(Meta, Name, Arity, S) ->
-  Tuple = { Name, Arity },
-
-  case find_dispatch(Meta, Tuple, S) of
-    { function, Receiver } ->
-      elixir_lexical:record_import(Receiver, S#elixir_scope.lexical_tracker),
-      elixir_tracker:record_import(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
-      Receiver;
-    { macro, Receiver } ->
-      elixir_lexical:record_import(Receiver, S#elixir_scope.lexical_tracker),
-      elixir_tracker:record_import(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
-      Receiver;
-    _ ->
-      false
-  end.
 
 %% Function retrieval
 

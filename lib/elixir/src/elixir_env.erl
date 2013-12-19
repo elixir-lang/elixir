@@ -1,7 +1,7 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([ex_to_env/1, env_to_scope/1, env_to_scope_with_vars/2,
-         ex_to_scope/1, scope_to_ex/1, env_to_ex/1]).
+         ex_to_scope/1, scope_to_ex/1, env_to_ex/1, scope_to_env/1]).
 -export([mergea/2, mergev/2]).
 
 %% Conversion in between #elixir_env, #elixir_scope and Macro.Env
@@ -29,6 +29,8 @@ env_to_scope_with_vars(#elixir_env{} = Env, Vars) ->
     counter=[{'',length(Vars)}]
   }.
 
+scope_to_ex(#elixir_env{} = E) ->
+  env_to_ex(E);
 scope_to_ex({ Line, #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros,functions=Functions,
@@ -41,6 +43,9 @@ scope_to_ex({ Line, #elixir_scope{module=Module,file=File,
 
 ex_to_scope(Env) ->
   env_to_scope(ex_to_env(Env)).
+
+scope_to_env(#elixir_scope{} = S) ->
+  ex_to_env(scope_to_ex({ 0, S })).
 
 %% SCOPE MERGING
 

@@ -93,6 +93,77 @@ expand({ '__ENV__', _, Atom }, E) when is_atom(Atom) ->
 expand({ { '.', _, [{ '__ENV__', _, Atom }, Field] }, _, [] }, E) when is_atom(Atom), is_atom(Field) ->
   { (elixir_env:env_to_ex(E)):Field(), E };
 
+%% Quote
+
+expand({ Unquote, Meta, [_] }, E) when Unquote == unquote; Unquote == unquote_splicing ->
+  compile_error(Meta, E#elixir_env.file, "~p called outside quote", [Unquote]);
+
+expand({ quote, Meta, [Opts] }, E) when is_list(Opts) ->
+  case lists:keyfind(do, 1, Opts) of
+    { do, Do } ->
+      expand({ quote, Meta, [lists:keydelete(do, 1, Opts), [{do,Do}]] }, E);
+    false ->
+      compile_error(Meta, E#elixir_env.file, "missing do keyword in quote")
+  end;
+
+expand({ quote, Meta, [_] }, E) ->
+  compile_error(Meta, E#elixir_env.file, "invalid args for quote");
+
+expand({ quote, Meta, [KV, Do] }, E) when is_list(Do) ->
+  Exprs =
+    case lists:keyfind(do, 1, Do) of
+      { do, Expr } -> Expr;
+      false -> compile_error(Meta, E#elixir_scope.file, "missing do keyword in quote")
+    end,
+
+  ValidOpts   = [hygiene, context, var_context, location, line, unquote, bind_quoted],
+  { EKV, ET } = expand_opts(Meta, quote, ValidOpts, KV, E),
+
+  Hygiene = case lists:keyfind(hygiene, 1, EKV) of
+    { hygiene, List } when is_list(List) ->
+      List;
+    false ->
+      []
+  end,
+
+  Context = case lists:keyfind(context, 1, EKV) of
+    { context, Atom } when is_atom(Atom) ->
+      Atom;
+    { context, _ } ->
+      compile_error(Meta, E#elixir_env.file, "invalid :context for quote, expected a compile time atom or an alias");
+    false ->
+      case E#elixir_env.module of
+        nil -> 'Elixir';
+        Mod -> Mod
+      end
+  end,
+
+  Vars    = lists:keyfind(vars, 1, Hygiene) /= { vars, false },
+  Aliases = lists:keyfind(aliases, 1, Hygiene) /= { aliases, false },
+  Imports = lists:keyfind(imports, 1, Hygiene) /= { imports, false },
+
+  Keep = lists:keyfind(location, 1, EKV) == { location, keep },
+  Line = proplists:get_value(line, EKV, false),
+
+  { Binding, DefaultUnquote } = case lists:keyfind(bind_quoted, 1, EKV) of
+    { bind_quoted, BQ } -> { BQ, false };
+    false -> { nil, true }
+  end,
+
+  Unquote = case lists:keyfind(unquote, 1, EKV) of
+    { unquote, Bool } when is_boolean(Bool) -> Bool;
+    false -> DefaultUnquote
+  end,
+
+  Q = #elixir_quote{vars_hygiene=Vars, line=Line, keep=Keep, unquote=Unquote,
+        aliases_hygiene=Aliases, imports_hygiene=Imports, context=Context},
+
+  { Quoted, _Q } = elixir_quote:quote(Exprs, Binding, Q, ET),
+  expand(Quoted, ET);
+
+expand({ quote, Meta, [_, _] }, E) ->
+  compile_error(Meta, E#elixir_env.file, "invalid args for quote");
+
 %% Vars
 
 expand({ Name, Meta, Kind } = Var, #elixir_env{context=match,vars=Vars} = E) when is_atom(Name), is_atom(Kind) ->

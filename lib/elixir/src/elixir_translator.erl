@@ -224,7 +224,7 @@ translate_each({ quote, Meta, [KV, Do] }, S) when is_list(Do) ->
   Q = #elixir_quote{vars_hygiene=Vars, line=Line, keep=Keep, unquote=Unquote,
         aliases_hygiene=Aliases, imports_hygiene=Imports, context=Context},
 
-  { Quoted, _Q } = elixir_quote:quote(Exprs, Binding, Q, ST),
+  { Quoted, _Q } = elixir_quote:quote(Exprs, Binding, Q, elixir_env:scope_to_env(ST)),
   translate_each(Quoted, ST);
 
 translate_each({ quote, Meta, [_, _] }, S) ->
