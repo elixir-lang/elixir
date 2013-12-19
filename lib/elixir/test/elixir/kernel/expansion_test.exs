@@ -17,6 +17,10 @@ defmodule Kernel.ExpansionTest do
     assert expand(quote do: __block__(1, __block__(2))) == quote do: __block__(1, 2)
   end
 
+  test "__block__: accumulates vars" do
+    assert expand(quote(do: (a = 1; a))) == quote do: (a = 1; a)
+  end
+
   ## alias
 
   test "alias: expand args, defines alias and returns itself" do
@@ -109,12 +113,12 @@ defmodule Kernel.ExpansionTest do
   ## Locals
 
   test "locals: expands to remote calls" do
-    assert expand(quote do: a =~ b) == quote do: Kernel.=~(a(), b())
+    assert expand(quote do: a =~ b) == quote do: :"Elixir.Kernel".=~(a(), b())
   end
 
   test "locals: raises on match" do
-    assert_raise CompilationError, fn ->
-      expand(quote do: (a =~ b) = c)
+    assert_raise CompileError, fn ->
+      expand(quote do: a(b) = c)
     end
   end
 
@@ -124,7 +128,14 @@ defmodule Kernel.ExpansionTest do
 
   test "locals: expands to configured local" do
     assert expand_env(quote(do: a), __ENV__.local(Hello)) |> elem(0) ==
-           quote do: Hello.a())
+           quote(do: :"Elixir.Hello".a())
+  end
+
+  ## Tuples
+
+  test "tuples: expanded as arguments" do
+    assert expand(quote(do: { a = 1, a })) == quote do: { a = 1, a() }
+    assert expand(quote(do: { b, a = 1, a })) == quote do: { b(), a = 1, a() }
   end
 
   ## Helpers

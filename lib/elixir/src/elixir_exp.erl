@@ -11,7 +11,24 @@ expand({ '=', Meta, [Left, Right] }, E) ->
   { ELeft, EL }  = match(fun expand/2, Left, ER),
   { { '=', Meta, [ELeft, ERight] }, EL };
 
-%% {}, <<>>, __op__, ->
+%% Literal operators
+
+expand({ '{}', Meta, Args }, E) ->
+  { EArgs, EA } = expand_args(Args, E),
+  { { '{}', Meta, EArgs }, EA };
+
+%% Other operators
+
+expand({ '__op__', Meta, [_, _] = Args }, E) ->
+  { EArgs, EA } = expand_args(Args, E),
+  { { '__op__', Meta, EArgs }, EA };
+
+expand({ '__op__', Meta, [_, _, _] = Args }, E) ->
+  { EArgs, EA } = expand_args(Args, E),
+  { { '__op__', Meta, EArgs }, EA };
+
+expand({ '->', Meta, _Args }, E) ->
+  compile_error(Meta, E#elixir_env.file, "unhandled operator ->");
 
 %% __block__
 
@@ -100,9 +117,6 @@ expand({ Name, Meta, Kind } = Var, #elixir_env{vars=Vars} = E) when is_atom(Name
 
 %% Local calls
 
-expand({ '->', Meta, _Args }, E) ->
-  compile_error(Meta, E#elixir_env.file, "unhandled operator ->");
-
 expand({ Atom, Meta, Args }, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
   % assert_no_ambiguous_op(Atom, Meta, Args, S),
 
@@ -127,8 +141,29 @@ expand(Other, E) ->
 expand_many(Args, E) ->
   lists:mapfoldl(fun expand/2, E, Args).
 
+%% Variables in arguments are not propagated from one
+%% argument to the other. For instance:
+%%
+%%   x = 1
+%%   foo(x = x + 2, x)
+%%   x
+%%
+%% Should be the same as:
+%%
+%%   foo(3, 1)
+%%   3
+%%
+%% However, notice that if we are doing an assignment,
+%% it behaves as regular expansion.
+expand_arg(Arg, { Acc, E }) ->
+  { TArg, TAcc } = expand(Arg, Acc),
+  { TArg, { elixir_env:mergea(Acc, TAcc), elixir_env:mergev(E, TAcc) } }.
+
+expand_args(Args, #elixir_env{context=match} = E) ->
+  lists:mapfoldl(fun expand/2, E, Args);
 expand_args(Args, E) ->
-  lists:mapfoldl(fun expand/2, E, Args).
+  { TArgs, { EC, EV } } = lists:mapfoldl(fun expand_arg/2, {E, E}, Args),
+  { TArgs, elixir_env:mergea(EV, EC) }.
 
 %% Match/var helpers
 
