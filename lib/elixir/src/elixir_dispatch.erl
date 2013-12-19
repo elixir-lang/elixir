@@ -119,7 +119,7 @@ expand_import(Meta, { Name, Arity } = Tuple, Args, S, Extra) ->
   Dispatch = find_dispatch(Meta, Tuple, Extra, S),
   Function = S#elixir_scope.function,
   Local    = (Function /= nil) andalso (Function /= Tuple) andalso
-              elixir_def_local:macro_for(Tuple, true, S),
+              elixir_def_local:macro_for(S#elixir_scope.module, Name, Arity),
 
   case Dispatch of
     %% In case it is an import, or the receive is the same as the

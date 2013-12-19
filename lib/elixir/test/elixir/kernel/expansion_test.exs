@@ -106,6 +106,27 @@ defmodule Kernel.ExpansionTest do
     # TODO
   end
 
+  ## Locals
+
+  test "locals: expands to remote calls" do
+    assert expand(quote do: a =~ b) == quote do: Kernel.=~(a(), b())
+  end
+
+  test "locals: raises on match" do
+    assert_raise CompilationError, fn ->
+      expand(quote do: (a =~ b) = c)
+    end
+  end
+
+  test "locals: raises on guards" do
+    # TODO
+  end
+
+  test "locals: expands to configured local" do
+    assert expand_env(quote(do: a), __ENV__.local(Hello)) |> elem(0) ==
+           quote do: Hello.a())
+  end
+
   ## Helpers
 
   defp expand(expr) do

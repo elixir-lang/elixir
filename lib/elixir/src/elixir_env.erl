@@ -15,12 +15,12 @@ env_to_scope(#elixir_env{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros,functions=Functions,
     context_modules=ContextModules,macro_aliases=MacroAliases,
-    macro_counter=MacroCounter,lexical_tracker=Lexical}) ->
+    macro_counter=MacroCounter,lexical_tracker=Lexical,local=Local}) ->
   #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros,functions=Functions,
     context_modules=ContextModules,macro_aliases=MacroAliases,
-    macro_counter=MacroCounter,lexical_tracker=Lexical}.
+    macro_counter=MacroCounter,lexical_tracker=Lexical,local=Local}.
 
 env_to_scope_with_vars(#elixir_env{} = Env, Vars) ->
   (env_to_scope(Env))#elixir_scope{
@@ -32,10 +32,11 @@ scope_to_ex({ Line, #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros,functions=Functions,
     context_modules=ContextModules,macro_aliases=MacroAliases,
-    macro_counter=MacroCounter,vars=Vars,lexical_tracker=Lexical} }) when is_integer(Line) ->
+    macro_counter=MacroCounter,vars=Vars,lexical_tracker=Lexical,
+    local=Local} }) when is_integer(Line) ->
   { 'Elixir.Macro.Env', Module, File, Line, Function, Context, Requires, Aliases,
     Functions, Macros, MacroAliases, MacroCounter, ContextModules,
-    [Pair || { Pair, _ } <- Vars], Lexical }.
+    [Pair || { Pair, _ } <- Vars], Lexical, Local }.
 
 ex_to_scope(Env) ->
   env_to_scope(ex_to_env(Env)).

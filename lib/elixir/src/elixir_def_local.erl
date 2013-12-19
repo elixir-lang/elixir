@@ -3,12 +3,13 @@
 -export([macro_for/3, function_for/3]).
 -include("elixir.hrl").
 
-macro_for(_Tuple, _All, #elixir_scope{module=nil}) -> false;
+macro_for(nil, _Name, _Arity) -> false;
 
-macro_for(Tuple, All, #elixir_scope{module=Module}) ->
+macro_for(Module, Name, Arity) ->
+  Tuple = { Name, Arity },
   try elixir_def:lookup_definition(Module, Tuple) of
-    { { Tuple, Kind, Line, _, _, _, _ }, Clauses } when Kind == defmacro, Clauses /= [];
-                                                        All, Kind == defmacrop, Clauses /= [] ->
+    { { Tuple, Kind, Line, _, _, _, _ }, [_|_] = Clauses }
+        when Kind == defmacro; Kind == defmacrop ->
       fun() -> get_function(Line, Module, Clauses) end;
     _ ->
       false

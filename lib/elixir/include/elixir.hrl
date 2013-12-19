@@ -48,7 +48,8 @@
   macro_counter=0,
   context_modules=[],
   vars=[],
-  lexical_tracker=nil
+  lexical_tracker=nil,
+  local=nil
 }).
 
 -record(elixir_quote, {

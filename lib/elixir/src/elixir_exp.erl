@@ -11,7 +11,7 @@ expand({ '=', Meta, [Left, Right] }, E) ->
   { ELeft, EL }  = match(fun expand/2, Left, ER),
   { { '=', Meta, [ELeft, ERight] }, EL };
 
-%% {}, <<>>, __op__
+%% {}, <<>>, __op__, ->
 
 %% __block__
 
@@ -85,14 +85,30 @@ expand({ Name, Meta, Kind } = Var, #elixir_env{vars=Vars} = E) when is_atom(Name
     true ->
       { Var, E };
     false ->
-      case lists:keyfind(var, 1, Meta) of
-        { var, true } ->
+      VarMeta = lists:keyfind(var, 1, Meta),
+      if
+        VarMeta == { var, true } ->
           compile_error(Meta, E#elixir_env.file, "expected var ~ts to expand to an existing "
                         "variable or be a part of a match", [Name]);
-        _ ->
+        E#elixir_env.context == guard ->
+          compile_error(Meta, E#elixir_env.file, "unknown variable ~ts or cannot invoke "
+                        "function ~ts/0 inside guard", [Name, Name]);
+        true ->
           expand({ Name, Meta, [] }, E)
       end
   end;
+
+%% Local calls
+
+expand({ '->', Meta, _Args }, E) ->
+  compile_error(Meta, E#elixir_env.file, "unhandled operator ->");
+
+expand({ Atom, Meta, Args }, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
+  % assert_no_ambiguous_op(Atom, Meta, Args, S),
+
+  elixir_exp_dispatch:dispatch_import(Meta, Atom, Args, E, fun() ->
+    expand_local(Meta, Atom, Args, E)
+  end);
 
 %% Literals
 
@@ -125,6 +141,23 @@ var_kind(Meta, Kind) ->
     { counter, Counter } -> Counter;
     false -> Kind
   end.
+
+%% Locals
+
+expand_local(Meta, Name, Args, #elixir_env{context=Context, file=File}) when
+    Context == guard; Context == match ->
+  compile_error(Meta, File, "cannot invoke local ~ts/~B inside ~ts",
+                [Name, length(Args), Context]);
+
+expand_local(Meta, Name, Args, #elixir_env{local=nil, function=nil, file=File}) ->
+  compile_error(Meta, File, "function ~ts/~B undefined", [Name, length(Args)]);
+
+expand_local(Meta, Name, Args, #elixir_env{local=nil, module=Module, function=Function} = E) ->
+  elixir_tracker:record_local({ Name, length(Args) }, Module, Function),
+  { { Name, Meta, Args }, E };
+
+expand_local(Meta, Name, Args, E) ->
+  expand({ { '.', Meta, [E#elixir_env.local, Name] }, Meta, Args }, E).
 
 %% Lexical helpers
 
