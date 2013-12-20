@@ -403,6 +403,7 @@ defmodule Typespec.TypeTest do
       (quote do: @type vaf() :: (... -> any())),
       (quote do: @type rng() :: 1 .. 10),
       (quote do: @type opts() :: [first: integer(), step: integer(), last: integer()]),
+      (quote do: @type ops() :: {+1,-1}),
     ]
 
     types = test_module do

@@ -576,6 +576,10 @@ defmodule Kernel.Typespec do
     { erl_to_ex_var(var), line, nil }
   end
 
+  defp typespec_to_ast({ :op, line, op, arg }) do
+    { op, [line: line], [typespec_to_ast(arg)] }
+  end
+
   # Special shortcut(s)
   defp typespec_to_ast({ :remote_type, line, [{:atom, _, :elixir}, {:atom, _, :char_list}, []] }) do
     typespec_to_ast({:type, line, :char_list, []})

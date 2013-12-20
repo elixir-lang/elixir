@@ -1,8 +1,12 @@
 # v0.12.1-dev
 
 * Enhancements
+
 * Bug fixes
+  * [Typespec] - Fix conversion of unary ops from typespec format to ast
+
 * Deprecations
+
 * Backwards incompatible changes
 
 # v0.12.0 (2013-12-15)
