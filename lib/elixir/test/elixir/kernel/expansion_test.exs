@@ -90,6 +90,12 @@ defmodule Kernel.ExpansionTest do
     assert expand(quote(do: __ENV__.file)) == __FILE__
   end
 
+  ## Super
+
+  test "super: expand args" do
+    assert expand(quote do: super(a, b)) == quote do: super(a(), b())
+  end
+
   ## Vars
 
   test "vars: expand to local call" do

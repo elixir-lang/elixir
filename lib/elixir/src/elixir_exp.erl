@@ -164,6 +164,13 @@ expand({ quote, Meta, [KV, Do] }, E) when is_list(Do) ->
 expand({ quote, Meta, [_, _] }, E) ->
   compile_error(Meta, E#elixir_env.file, "invalid args for quote");
 
+%% Super
+
+expand({ super, Meta, Args }, E) when is_list(Args) ->
+  % assert_no_match_or_guard_scope(Meta, super, S),
+  { EArgs, EA } = expand_args(Args, E),
+  { { super, Meta, EArgs }, EA };
+
 %% Vars
 
 expand({ '^', Meta, [ { Name, _, Kind } ] = Args }, #elixir_env{context=match} = E) when is_atom(Name), is_atom(Kind) ->
