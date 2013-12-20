@@ -8,6 +8,11 @@
 * Deprecations
 
 * Backwards incompatible changes
+  * [Mix] In the past, if the Elixir version specified by a dependency didn't
+    match the version of Elixir used to install it, the installation was
+    aborted. It now gives a warning instead and continues. If you see the warning,
+    you should probably ask the writer of the dependency to verify it works
+    with your version of Elixir and then update the requirement in their app.
 
 # v0.12.0 (2013-12-15)
 

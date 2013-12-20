@@ -24,6 +24,14 @@ defmodule Mix.Shell.IO do
   end
 
   @doc """
+  Write a warning message, followed by a newline.
+  """
+  def warning(message) do
+    put_app
+    IO.puts :stderr, IO.ANSI.escape "%{yellow,bright}#{message}"
+  end
+
+  @doc """
   Writes an error message to the shell followed by new line.
   """
   def error(message) do

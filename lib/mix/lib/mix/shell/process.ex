@@ -53,17 +53,21 @@ defmodule Mix.Shell.Process do
   @doc """
   Forwards the message to the current process.
   """
-  def info(message) do
-    put_app
-    self <- { :mix_shell, :info, [IO.ANSI.escape(message, false)] }
-  end
+  def info(message),   do: send_message(message, :info)
 
   @doc """
   Forwards the message to the current process.
   """
-  def error(message) do
+  def warning(message), do: send_message(message, :warning)
+
+  @doc """
+  Forwards the message to the current process.
+  """
+  def error(message),   do: send_message(message, :error)
+
+  defp send_message(message, code) do
     put_app
-    self <- { :mix_shell, :error, [IO.ANSI.escape(message, false)] }
+    self <- { :mix_shell, code, [IO.ANSI.escape(message, false)] }
   end
 
   @doc """
