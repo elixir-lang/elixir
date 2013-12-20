@@ -166,6 +166,15 @@ expand({ quote, Meta, [_, _] }, E) ->
 
 %% Vars
 
+expand({ '^', Meta, [ { Name, _, Kind } ] = Args }, #elixir_env{context=match} = E) when is_atom(Name), is_atom(Kind) ->
+  { { '^', Meta, Args }, E };
+expand({ '^', Meta, [ { Name, _, Kind } ] }, E) when is_atom(Name), is_atom(Kind) ->
+  compile_error(Meta, E#elixir_env.file,
+    "cannot use ^~ts outside of match clauses", [Name]);
+expand({ '^', Meta, [Expr] }, E) ->
+  compile_error(Meta, E#elixir_env.file,
+    "the unary operator ^ can only be used with variables, invalid expression ^~ts", ['Elixir.Macro':to_string(Expr)]);
+
 expand({ Name, Meta, Kind } = Var, #elixir_env{context=match,vars=Vars} = E) when is_atom(Name), is_atom(Kind) ->
   { Var, E#elixir_env{vars=ordsets:add_element({ Name, var_kind(Meta, Kind) }, Vars)} };
 expand({ Name, Meta, Kind } = Var, #elixir_env{vars=Vars} = E) when is_atom(Name), is_atom(Kind) ->

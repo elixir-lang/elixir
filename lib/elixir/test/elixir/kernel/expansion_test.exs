@@ -101,11 +101,27 @@ defmodule Kernel.ExpansionTest do
   test "vars: forces variable to exist" do
     assert expand(quote do: (var!(a) = 1; var!(a)))
 
-    message = %r/expected var a to expand to an existing variable or be a part of a match/
+    message = %r"expected var a to expand to an existing variable or be a part of a match"
     assert_raise CompileError, message, fn -> expand(quote do: var!(a)) end
 
-    message = %r/expected var a \(context Unknown\) to expand to an existing variable or be a part of a match/
+    message = %r"expected var a \(context Unknown\) to expand to an existing variable or be a part of a match"
     assert_raise CompileError, message, fn -> expand(quote do: var!(a, Unknown)) end
+  end
+
+  test "^: is invalid inside match" do
+    assert expand(quote do: ^a = 1) == quote do: ^a = 1
+  end
+
+  test "^: raises outside match" do
+    assert_raise CompileError, %r"cannot use \^a outside of match clauses", fn ->
+      expand(quote do: ^a)
+    end
+  end
+
+  test "^: raises without var" do
+    assert_raise CompileError, %r"the unary operator \^ can only be used with variables, invalid expression \^1", fn ->
+      expand(quote do: ^1)
+    end
   end
 
   ## Locals
@@ -170,7 +186,7 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "remote calls: raises on match" do
-    assert_raise CompileError, %r/cannot invoke remote function a.is_atom\/1 inside match/, fn ->
+    assert_raise CompileError, %r"cannot invoke remote function a.is_atom/1 inside match", fn ->
       expand(quote do: a.is_atom(b) = true)
     end
   end
@@ -178,15 +194,15 @@ defmodule Kernel.ExpansionTest do
   ## Invalid calls
 
   test "handles invalid calls" do
-    assert_raise CompileError, %r/invalid remote call on 1/, fn ->
+    assert_raise CompileError, %r"invalid remote call on 1", fn ->
       expand(quote do: 1.foo(1, 2, 3))
     end
 
-    assert_raise CompileError, %r/invalid call 1\(1, 2, 3\)/, fn ->
+    assert_raise CompileError, %r"invalid call 1\(1, 2, 3\)", fn ->
       expand(quote do: unquote(1)(1, 2, 3))
     end
 
-    assert_raise CompileError, %r/expected a valid quoted expression, got: {1, 2, 3}/, fn ->
+    assert_raise CompileError, %r"expected a valid quoted expression, got: {1, 2, 3}", fn ->
       expand(quote do: unquote({ 1, 2, 3 }))
     end
   end
