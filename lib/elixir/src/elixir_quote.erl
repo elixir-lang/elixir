@@ -342,7 +342,7 @@ do_splice([], Q, _E, Buffer, Acc) ->
 
 do_join(Left, [])    -> Left;
 do_join([], Right)   -> Right;
-do_join(Left, Right) -> { { '.', [], ['Elixir.Kernel', '++'] }, [], [Left, Right] }.
+do_join(Left, Right) -> { { '.', [], [erlang, '++'] }, [], [Left, Right] }.
 
 do_runtime_list(Meta, Fun, Args) ->
   { { '.', Meta, [elixir_quote, Fun] }, Meta, Args }.

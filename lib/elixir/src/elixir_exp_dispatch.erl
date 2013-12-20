@@ -2,7 +2,7 @@
 %% This module access the information stored on the scope
 %% by elixir_import and therefore assumes it is normalized (ordsets)
 -module(elixir_exp_dispatch).
--export([find_import/4, dispatch_import/5, format_error/1]).
+-export([find_import/4, dispatch_import/5, dispatch_require/6, format_error/1]).
 -include("elixir.hrl").
 -import(ordsets, [is_element/2]).
 -define(builtin, 'Elixir.Kernel').
@@ -30,10 +30,26 @@ dispatch_import(Meta, Name, Args, E, Callback) ->
     { ok, Receiver, Tree } ->
       translate_expansion(Meta, Receiver, Tree, E);
     { ok, Receiver } ->
-      elixir_exp:expand({ { '.', Meta, [Receiver, Name] }, Meta, Args }, E);
+      elixir_exp:expand({ { '.', [], [Receiver, Name] }, Meta, Args }, E);
     error ->
       Callback()
   end.
+
+dispatch_require(Meta, Receiver, Name, Args, E, Callback) when is_atom(Receiver) ->
+  Arity = length(Args),
+  Tuple = { Name, Arity },
+
+  case (Receiver == ?builtin) andalso is_element(Tuple, in_erlang_functions()) of
+    true  -> Callback(erlang);
+    false ->
+      case expand_require(Meta, Receiver, Tuple, Args, E) of
+        { ok, Receiver, Tree } -> translate_expansion(Meta, Receiver, Tree, E);
+        error -> Callback(Receiver)
+      end
+  end;
+
+dispatch_require(_Meta, Receiver, _Name, _Args, _E, Callback) ->
+  Callback(Receiver).
 
 %% Macros expansion
 

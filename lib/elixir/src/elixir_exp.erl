@@ -195,6 +195,42 @@ expand({ Atom, Meta, Args }, E) when is_atom(Atom), is_list(Meta), is_list(Args)
     expand_local(Meta, Atom, Args, E)
   end);
 
+%% Remote calls
+
+expand({ { '.', DotMeta, [Left, Right] }, Meta, Args }, E)
+    when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
+  { ELeft, EL } = expand(Left, E),
+
+  elixir_exp_dispatch:dispatch_require(Meta, ELeft, Right, Args, EL, fun(Receiver) ->
+    expand_remote(Receiver, DotMeta, Right, Meta, Args, E, EL)
+  end);
+
+%% Anonymous calls
+
+expand({ { '.', DotMeta, [Expr] }, Meta, Args }, E) when is_list(Args) ->
+  { EExpr, EE } = expand(Expr, E),
+  if
+    is_atom(EExpr) ->
+      compile_error(Meta, E#elixir_env.file, "invalid function call :~ts.()", [EExpr]);
+    true ->
+      { EArgs, EA } = expand_args(Args, elixir_env:mergea(E, EE)),
+      { { { '.', DotMeta, [EExpr] }, Meta, EArgs }, elixir_env:mergev(EE, EA) }
+  end;
+
+%% Invalid calls
+
+expand({ { '.', _, [Invalid, _] }, Meta, Args }, E) when is_list(Meta) and is_list(Args) ->
+  compile_error(Meta, E#elixir_env.file, "invalid remote call on ~ts",
+    ['Elixir.Macro':to_string(Invalid)]);
+
+expand({ _, Meta, Args } = Invalid, E) when is_list(Meta) and is_list(Args) ->
+  compile_error(Meta, E#elixir_env.file, "invalid call ~ts",
+    ['Elixir.Macro':to_string(Invalid)]);
+
+expand({ _, _, _ } = Tuple, E) ->
+  compile_error([{line,0}], E#elixir_env.file, "expected a valid quoted expression, got: ~ts",
+    ['Elixir.Kernel':inspect(Tuple, [{raw,true}])]);
+
 %% Literals
 
 expand({ Left, Right }, E) ->
@@ -265,6 +301,26 @@ expand_local(Meta, Name, Args, #elixir_env{local=nil, module=Module, function=Fu
 expand_local(Meta, Name, Args, E) ->
   expand({ { '.', Meta, [E#elixir_env.local, Name] }, Meta, Args }, E).
 
+%% Remote
+
+expand_remote(Receiver, _DotMeta, Right, Meta, Args, _E, #elixir_env{context=Context, file=File})
+    when Receiver /= erlang andalso (Context == match) orelse (Context == guard) ->
+  compile_error(Meta, File, "cannot invoke remote function ~ts.~ts/~B inside ~ts",
+    ['Elixir.Macro':to_string(Receiver), Right, length(Args), Context]);
+
+expand_remote(Receiver, DotMeta, Right, Meta, Args, E, EL) ->
+  if
+    is_atom(Receiver) ->
+      Tuple = { Right, length(Args) },
+      elixir_lexical:record_remote(Receiver, E#elixir_env.lexical_tracker),
+      elixir_tracker:record_remote(Tuple, Receiver, E#elixir_env.module, E#elixir_env.function);
+    true ->
+      ok
+  end,
+
+  { EArgs, EA } = expand_args(Args, elixir_env:mergea(E, EL)),
+  { { { '.', DotMeta, [Receiver, Right] }, Meta, EArgs }, elixir_env:mergev(EL, EA) }.
+
 %% Lexical helpers
 
 expand_opts(Meta, Kind, Allowed, Opts, E) ->
@@ -311,7 +367,6 @@ expand_alias(Meta, IncludeByDefault, Ref, KV, #elixir_env{context_modules=Contex
   { { 'alias', Meta, [Ref, KV] },
     E#elixir_env{aliases=Aliases, macro_aliases=MacroAliases, context_modules=NewContext} }.
 
-%% TODO: Move to elixir_aliases
 expand_as({ as, true }, _Meta, _IncludeByDefault, Ref, _E) ->
   elixir_aliases:last(Ref);
 expand_as({ as, false }, _Meta, _IncludeByDefault, Ref, _E) ->

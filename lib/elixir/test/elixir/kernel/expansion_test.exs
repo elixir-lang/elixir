@@ -113,11 +113,12 @@ defmodule Kernel.ExpansionTest do
   ## Locals
 
   test "locals: expands to remote calls" do
-    assert expand(quote do: a =~ b) == quote do: :"Elixir.Kernel".=~(a(), b())
+    assert { {:., _, [Kernel, :=~] }, _, [{:a, _, []}, {:b, _, []}] } =
+          expand(quote do: a =~ b)
   end
 
   test "locals: raises on match" do
-    assert_raise CompileError, fn ->
+    assert_raise CompileError, %r"cannot invoke local a/1 inside match", fn ->
       expand(quote do: a(b) = c)
     end
   end
@@ -144,7 +145,59 @@ defmodule Kernel.ExpansionTest do
     assert expand(quote do: (quote do: hello)) == { :{}, [], [:hello, [], __MODULE__] }
   end
 
+  ## Anonymous calls
+
+  test "anonymous calls: expands base and args" do
+    assert expand(quote do: a.(b)) == quote do: a().(b())
+  end
+
+  test "anonymous calls: raises on atom base" do
+    assert_raise CompileError, %r"invalid function call :foo.()", fn ->
+      expand(quote do: :foo.(a))
+    end
+  end
+
+  ## Remote calls
+
+  test "remote calls: expands to erlang" do
+    assert expand(quote do: Kernel.is_atom(a)) == quote do: :erlang.is_atom(a())
+  end
+
+  test "remote calls: expands macros" do
+    assert expand(quote do: Kernel.ExpansionTest.thirteen) == 13
+  end
+
+  test "remote calls: expands receiver and args" do
+    assert expand(quote do: a.is_atom(b)) == quote do: a().is_atom(b())
+  end
+
+  test "remote calls: raises on match" do
+    assert_raise CompileError, %r/cannot invoke remote function a.is_atom\/1 inside match/, fn ->
+      expand(quote do: a.is_atom(b) = true)
+    end
+  end
+
+  ## Invalid calls
+
+  test "handles invalid calls" do
+    assert_raise CompileError, %r/invalid remote call on 1/, fn ->
+      expand(quote do: 1.foo(1, 2, 3))
+    end
+
+    assert_raise CompileError, %r/invalid call 1\(1, 2, 3\)/, fn ->
+      expand(quote do: unquote(1)(1, 2, 3))
+    end
+
+    assert_raise CompileError, %r/expected a valid quoted expression, got: {1, 2, 3}/, fn ->
+      expand(quote do: unquote({ 1, 2, 3 }))
+    end
+  end
+
   ## Helpers
+
+  defmacro thirteen do
+    13
+  end
 
   defp expand(expr) do
     expand_env(expr, __ENV__) |> elem(0)
