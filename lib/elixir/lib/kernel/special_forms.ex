@@ -532,14 +532,14 @@ defmodule Kernel.SpecialForms do
       2.0          #=> Floats
       [1, 2]       #=> Lists
       "strings"    #=> Strings
-      {key, value} #=> Tuple with two elements
+      {key, value} #=> Tuples with two elements
 
   ## Quote and macros
 
   `quote` is commonly used with macros for code generation. As an exercise,
   let's define a macro that multiplies a number by itself (squared). Note
   there is no reason to define such as a macro (and it would actually be
-  seen as a bad practice), but it is simple enough that allows us to focus
+  seen as a bad practice), but it is simple enough that it allows us to focus
   on the important aspects of quotes and macros:
 
       defmodule Math do
@@ -557,8 +557,9 @@ defmodule Kernel.SpecialForms do
 
   At first, there is nothing in this example that actually reveals it is a
   macro. But what is happening is that, at compilation time, `squared(5)`
-  becomes `5 * 5`. We can see this behaviour in practice though
-  because our macro actually has a bug:
+  becomes `5 * 5`. The argument `5` is duplicated in the produced code, we
+  can see this behaviour in practice though because our macro actually has
+  a bug:
 
       import Math
       my_number = fn ->
@@ -613,11 +614,11 @@ defmodule Kernel.SpecialForms do
         end
       end
 
-  `:bind_quoted` will translate to the same example as above. `:bind_quoted`
-  can be used in many cases and is seen as good practice, not only because
-  it helps us from running into common mistakes but also because it allows
-  us to leverage other tools exposed by macros, as unquote fragments discussed
-  in some sections below.
+  `:bind_quoted` will translate to the same code as the example above.
+  `:bind_quoted` can be used in many cases and is seen as good practice,
+  not only because it helps us from running into common mistakes but also
+  because it allows us to leverage other tools exposed by macros, such as
+  unquote fragments discussed in some sections below.
 
   Before we finish this brief introduction, you will notice that, even though
   we defined a variable `x` inside our quote:
@@ -637,7 +638,7 @@ defmodule Kernel.SpecialForms do
   because Elixir macros are hygienic, a topic we will discuss at length
   in the next sections as well.
 
-  ### Hygiene in variables
+  ## Hygiene in variables
 
   Consider the following example:
 
@@ -655,8 +656,8 @@ defmodule Kernel.SpecialForms do
 
   In the example above, `a` returns 10 even if the macro
   is apparently setting it to 1 because variables defined
-  in the macro does not affect the context the macro is executed.
-  If you want to set or get a variable in the user context, you
+  in the macro does not affect the context the macro is executed in.
+  If you want to set or get a variable in the caller's context, you
   can do it with the help of the `var!` macro:
 
       defmodule NoHygiene do
@@ -671,7 +672,7 @@ defmodule Kernel.SpecialForms do
       NoHygiene.interference
       a #=> 1
 
-  Note that you cannot even access variables defined by the same
+  Note that you cannot even access variables defined in the same
   module unless you explicitly give it a context:
 
       defmodule Hygiene do
@@ -717,7 +718,7 @@ defmodule Kernel.SpecialForms do
 
       quote hygiene: [vars: false], do: x
 
-  ### Hygiene in aliases
+  ## Hygiene in aliases
 
   Aliases inside quote are hygienic by default.
   Consider the following example:
@@ -738,7 +739,7 @@ defmodule Kernel.SpecialForms do
   because `D` still expands to `HashDict`.
 
   Similarly, even if we defined an alias with the same name
-  before invoking a macro, it won't affect the macro result:
+  before invoking a macro, it won't affect the macro's result:
 
       defmodule Hygiene do
         alias HashDict, as: D
@@ -878,12 +879,12 @@ defmodule Kernel.SpecialForms do
         def unquote(k)(), do: unquote(v)
       end
 
-  In the example above, we have generated the function `foo/0` and
+  In the example above, we have generated the functions `foo/0` and
   `bar/0` dynamically. Now, imagine that, we want to convert this
   functionality into a macro:
 
       defmacro defkv(kv) do
-        Enum.each kv, fn { k, v } ->
+        Enum.map kv, fn { k, v } ->
           quote do
             def unquote(k)(), do: unquote(v)
           end
@@ -900,13 +901,13 @@ defmodule Kernel.SpecialForms do
       defkv kv
 
   This is because the macro is expecting its arguments to be a
-  key-value at **compilation** time. Since in the example above
+  keyword list at **compilation** time. Since in the example above
   we are passing the representation of the variable `kv`, our
   code fails.
 
   This is actually a common pitfall when developing macros. In
   practice, we want to avoid doing work at compilation time as
-  much as we can. That said, let's attempt to improve our macro:
+  much as possible. That said, let's attempt to improve our macro:
 
       defmacro defkv(kv) do
         quote do
@@ -918,12 +919,12 @@ defmodule Kernel.SpecialForms do
 
   If you try to run our new macro, you will notice it won't
   even compile, complaining that the variables `k` and `v`
-  do not exist. This is because of the ambiguity: `unquote(k)`
+  does not exist. This is because of the ambiguity: `unquote(k)`
   can either be an unquote fragment, as previously, or a regular
   unquote as in `unquote(kv)`.
 
-  One solution for this problem is to disable unquoting in the
-  macro, however, doing that would make it impossible to inject
+  One solution to this problem is to disable unquoting in the
+  macro, however, doing that would make it impossible to inject the
   `kv` representation into the tree. That's when the `:bind_quoted`
   option comes to the rescue (again!). By using `:bind_quoted`, we
   can automatically disable unquoting while still injecting the
