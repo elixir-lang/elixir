@@ -54,7 +54,7 @@ defmodule Kernel.ExpansionTest do
   ## =
 
   test "=: sets context to match" do
-    # TODO
+    assert expand(quote do: __ENV__.context = :match) == quote do: :match = :match
   end
 
   test "=: defines vars" do
@@ -98,16 +98,14 @@ defmodule Kernel.ExpansionTest do
     assert env.vars == []
   end
 
-  test "vars: considers hygiene" do
-    # TODO
-  end
+  test "vars: forces variable to exist" do
+    assert expand(quote do: (var!(a) = 1; var!(a)))
 
-  test "vars: forces variable on exist" do
-    # TODO
-  end
+    message = %r/expected var a to expand to an existing variable or be a part of a match/
+    assert_raise CompileError, message, fn -> expand(quote do: var!(a)) end
 
-  test "vars: considers var scope" do
-    # TODO
+    message = %r/expected var a \(context Unknown\) to expand to an existing variable or be a part of a match/
+    assert_raise CompileError, message, fn -> expand(quote do: var!(a, Unknown)) end
   end
 
   ## Locals

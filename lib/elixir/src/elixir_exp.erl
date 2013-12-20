@@ -176,8 +176,13 @@ expand({ Name, Meta, Kind } = Var, #elixir_env{vars=Vars} = E) when is_atom(Name
       VarMeta = lists:keyfind(var, 1, Meta),
       if
         VarMeta == { var, true } ->
-          compile_error(Meta, E#elixir_env.file, "expected var ~ts to expand to an existing "
-                        "variable or be a part of a match", [Name]);
+          Extra = case Kind of
+            nil -> "";
+            _   -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)])
+          end,
+
+          compile_error(Meta, E#elixir_env.file, "expected var ~ts~ts to expand to an existing "
+                        "variable or be a part of a match", [Name, Extra]);
         E#elixir_env.context == guard ->
           compile_error(Meta, E#elixir_env.file, "unknown variable ~ts or cannot invoke "
                         "function ~ts/0 inside guard", [Name, Name]);
