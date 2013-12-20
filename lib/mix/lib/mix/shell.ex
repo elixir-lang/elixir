@@ -11,6 +11,11 @@ defmodule Mix.Shell do
   defcallback info(message :: binary) :: any
 
   @doc """
+  Emits a warning message
+  """
+  defcallback warning(message :: binary) :: any
+
+  @doc """
   Warns about the given error message.
   """
   defcallback error(message :: binary) :: any

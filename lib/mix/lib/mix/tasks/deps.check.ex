@@ -1,7 +1,8 @@
 defmodule Mix.Tasks.Deps.Check do
   use Mix.Task
 
-  import Mix.Deps, only: [loaded: 0, format_dep: 1, format_status: 1, check_lock: 2, ok?: 1]
+  import Mix.Deps, only: [loaded: 0,    format_dep: 1, format_status: 1,
+                          check_lock: 2, ok?: 1,       fatal_status?: 1 ]
 
   @hidden true
   @shortdoc "Check if all dependencies are valid"
@@ -23,14 +24,23 @@ defmodule Mix.Tasks.Deps.Check do
       { _, [] }     -> :ok
       { _, not_ok } ->
         shell = Mix.shell
-        shell.error "Unchecked dependencies for environment #{Mix.env}:"
+        shell.error "The following dependencies had problems in environment `#{Mix.env}`:"
 
-        Enum.each not_ok, fn(dep) ->
-          shell.error "* #{format_dep(dep)}"
-          shell.error "  #{format_status dep}"
+        abort = Enum.reduce not_ok, false, fn(dep, abort) ->
+          if fatal_status?(dep) do                              
+            shell.error "* #{format_dep(dep)}"
+            shell.error "  #{format_status dep}"
+            true
+          else
+            shell.warning "* #{format_dep(dep)}"
+            shell.warning "  #{format_status dep}"
+            abort
+          end
         end
 
-        raise Mix.Error, message: "Can't continue due to errors on dependencies"
+        if abort do
+          raise Mix.Error, message: cant_continue_message
+        end
     end
   end
 
@@ -58,4 +68,8 @@ defmodule Mix.Tasks.Deps.Check do
       end)
     end
   end
+
+  # DRY up tests
+  def cant_continue_message, 
+  do: "Can't continue: there were errors in the dependencies"
 end

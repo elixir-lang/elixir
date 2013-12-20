@@ -103,7 +103,7 @@ defmodule Mix.Tasks.DepsTest do
 
       Mix.Tasks.Deps.run []
       assert_received { :mix_shell, :info, ["* ok (deps/ok)"] }
-      message = "  the dependency requires Elixir ~> 0.1.0 but you are running on v#{System.version}"
+      message = "  warning: requires Elixir ~> 0.1.0 but you are running on v#{System.version}"
       assert_received { :mix_shell, :info, [^message] }
     end
   after
@@ -617,7 +617,7 @@ defmodule Mix.Tasks.DepsTest do
       File.write!("_build/shared/lib/ok/.compile.lock", "the_future")
       Mix.Task.clear
 
-      assert_raise Mix.Error, "Can't continue due to errors on dependencies", fn ->
+      assert_raise Mix.Error,  Mix.Tasks.Deps.Check.cant_continue_message, fn ->
         Mix.Tasks.Deps.Check.run []
       end
 

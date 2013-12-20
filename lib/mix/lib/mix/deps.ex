@@ -255,11 +255,21 @@ defmodule Mix.Deps do
     do: "the dependency is built with an out-of-date elixir version, run `mix deps.get`"
 
   def format_status(Mix.Dep[status: { :elixirreq, req }]),
-    do: "the dependency requires Elixir #{req} but you are running on v#{System.version}"
+    do: "warning: requires Elixir #{req} but you are running on v#{System.version}"
 
   defp dep_status(Mix.Dep[app: app, requirement: req, opts: opts, from: from]) do
     info = { app, req, Dict.drop(opts, [:dest, :lock, :env, :build]) }
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
+  end
+
+  @doc """
+  Return true iff the corresponding status corresponds with a fatal error.
+  These are errors that cause (for example) dep.get to exit
+  """
+  def fatal_status?(Mix.Dep[status: {:ok , _ }]),      do: false
+  def fatal_status?(Mix.Dep[status: {:elixirreq, _}]), do: false
+  def fatal_status?(Mix.Dep[status: status]) do
+    true
   end
 
   @doc """
@@ -300,7 +310,7 @@ defmodule Mix.Deps do
   def available?(Mix.Dep[status: { :overriden, _ }]),    do: false
   def available?(Mix.Dep[status: { :diverged, _ }]),     do: false
   def available?(Mix.Dep[status: { :divergedreq, _ }]),  do: false
-  def available?(Mix.Dep[status: { :elixirreq, _ }]),    do: false
+  def available?(Mix.Dep[status: { :elixirreq, _ }]),    do: true
   def available?(Mix.Dep[status: { :unavailable, _ }]),  do: false
   def available?(Mix.Dep[]), do: true
 

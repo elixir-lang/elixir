@@ -41,6 +41,8 @@ defmodule Mix.Tasks.Deps.Get do
 
     if apps == [] && !opts[:quiet] do
       Mix.shell.info "All dependencies up to date"
+    else
+      Mix.shell.info %s{Successfully fetched: #{Enum.join(apps, ", ")}}
     end
   end
 
