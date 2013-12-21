@@ -82,7 +82,7 @@ defmodule Mix.ProjectTest do
       config = [app_path: "_build/archive"]
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")
-      assert :file.read_link("_build/archive/priv") == { :ok, Path.expand('priv') }
+      assert :file.read_link("_build/archive/priv") == { :ok, '../../priv' }
     end
   end
 
@@ -92,13 +92,13 @@ defmodule Mix.ProjectTest do
       File.mkdir_p!("include")
 
       assert Mix.Project.build_structure(config, symlink_ebin: true) == :ok
-      assert :file.read_link("_build/archive/ebin") == { :ok, Path.expand('ebin') }
-      assert :file.read_link("_build/archive/priv") == { :ok, Path.expand('priv') }
-      assert :file.read_link("_build/archive/include") == { :ok, Path.expand('include') }
+      assert :file.read_link("_build/archive/ebin") == { :ok, '../../ebin' }
+      assert :file.read_link("_build/archive/priv") == { :ok, '../../priv' }
+      assert :file.read_link("_build/archive/include") == { :ok, '../../include' }
 
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")
-      assert :file.read_link("_build/archive/priv") == { :ok, Path.expand('priv') }
+      assert :file.read_link("_build/archive/priv") == { :ok, '../../priv' }
     end
   end
 end
