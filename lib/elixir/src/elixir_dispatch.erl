@@ -123,7 +123,7 @@ expand_import(Meta, { Name, Arity } = Tuple, Args, S, Extra) ->
     %% Dispatch to the local.
     _ ->
       elixir_tracker:record_local(Tuple, Module, Function),
-      { ok, Module, expand_macro_fun(Meta, Local(), Module, Name, Args, Module, S) }
+      { ok, Module, expand_macro_fun(Meta, Local(), Module, Name, Args, S) }
   end.
 
 do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
@@ -139,7 +139,7 @@ do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, S, Result) ->
     { macro, Receiver } ->
       elixir_lexical:record_import(Receiver, S#elixir_scope.lexical_tracker),
       elixir_tracker:record_import(Tuple, Receiver, Module, S#elixir_scope.function),
-      { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) };
+      { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, S) };
     { import, Receiver } ->
       case expand_require([{require,false}|Meta], Receiver, Tuple, Args, S) of
         { ok, _, _ } = Response -> Response;
@@ -155,23 +155,23 @@ expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, S) ->
 
   case is_element(Tuple, get_optional_macros(Receiver)) of
     true  ->
-      elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker),
-      elixir_tracker:record_remote(Tuple, Receiver, Module, Function),
-      { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) };
-    false -> error
+      Requires = S#elixir_scope.requires,
+      case (Receiver == Module) orelse is_element(Receiver, Requires) orelse skip_require(Meta) of
+        true  ->
+          elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker),
+          elixir_tracker:record_remote(Tuple, Receiver, Module, Function),
+          { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, S) };
+        false ->
+          Tuple = { unrequired_module, { Receiver, Name, length(Args), Requires } },
+          elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, Tuple)
+      end;
+    false ->
+      error
   end.
 
 %% Expansion helpers
 
-expand_macro_fun(Meta, Fun, Receiver, Name, Args, Module, S) ->
-  Requires = S#elixir_scope.requires,
-  case (Receiver == Module) or is_element(Receiver, Requires) or skip_require(Meta) of
-    true  -> ok;
-    false ->
-      Tuple = { unrequired_module, { Receiver, Name, length(Args), Requires } },
-      elixir_errors:form_error(Meta, S#elixir_scope.file, ?MODULE, Tuple)
-  end,
-
+expand_macro_fun(Meta, Fun, Receiver, Name, Args, S) ->
   Line = ?line(Meta),
   SArg = {Line,S},
 
@@ -183,11 +183,11 @@ expand_macro_fun(Meta, Fun, Receiver, Name, Args, Module, S) ->
       erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace(), SArg))
   end.
 
-expand_macro_named(Meta, Receiver, Name, Arity, Args, Module, S) ->
+expand_macro_named(Meta, Receiver, Name, Arity, Args, S) ->
   ProperName  = ?elixir_macro(Name),
   ProperArity = Arity + 1,
   Fun         = fun Receiver:ProperName/ProperArity,
-  expand_macro_fun(Meta, Fun, Receiver, Name, Args, Module, S).
+  expand_macro_fun(Meta, Fun, Receiver, Name, Args, S).
 
 translate_expansion(Meta, Receiver, Tree, S) ->
   Line = ?line(Meta),
