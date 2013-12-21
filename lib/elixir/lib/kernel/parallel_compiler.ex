@@ -62,6 +62,13 @@ defmodule Kernel.ParallelCompiler do
     wait_for_messages(files, original, output, callbacks, waiting, queued, schedulers, result)
   end
 
+  # Release waiting processes
+  defp spawn_compilers([h|t], original, output, callbacks, waiting, queued, schedulers, result) when is_pid(h) do
+    h <- { :release, self() }
+    waiting = List.keydelete(waiting, h, 0)
+    spawn_compilers(t, original, output, callbacks, waiting, queued, schedulers, result)
+  end
+
   # Spawn a compiler for each file in the list until we reach the limit
   defp spawn_compilers([h|t], original, output, callbacks, waiting, queued, schedulers, result) do
     parent = self()
@@ -108,11 +115,11 @@ defmodule Kernel.ParallelCompiler do
         if callback = Keyword.get(callbacks, :each_file) do
           callback.(file)
         end
-        new_queued  = List.keydelete(queued, child, 0)
 
         # Sometimes we may have spurious entries in the waiting
         # list because someone invoked try/rescue UndefinedFunctionError
         new_waiting = List.keydelete(waiting, child, 0)
+        new_queued  = List.keydelete(queued, child, 0)
         spawn_compilers(files, original, output, callbacks, new_waiting, new_queued, schedulers, result)
       { :module_available, child, ref, file, module, binary } ->
         if callback = Keyword.get(callbacks, :each_module) do
@@ -122,9 +129,12 @@ defmodule Kernel.ParallelCompiler do
         # Release the module loader which is waiting for an ack
         child <- { ref, :ack }
 
-        new_waiting = release_waiting_processes(module, waiting)
-        new_result  = [module|result]
-        wait_for_messages(files, original, output, callbacks, new_waiting, queued, schedulers, new_result)
+        available  = lc { child, waiting_module } inlist waiting,
+                        waiting_module == module,
+                        do: child
+
+        spawn_compilers(available ++ files, original, output, callbacks,
+                        waiting, queued, schedulers, [module|result])
       { :waiting, child, on } ->
         new_waiting = :orddict.store(child, on, waiting)
         spawn_compilers(files, original, output, callbacks, new_waiting, queued, schedulers, result)
@@ -155,17 +165,5 @@ defmodule Kernel.ParallelCompiler do
     match?({ ^child, _ }, List.keyfind(waiting, child, 0)) and
       waiting_length > 1 and files == [] and
       waiting_length == length(queued)
-  end
-
-  # Release waiting processes that are waiting for the given module
-  defp release_waiting_processes(module, waiting) do
-    Enum.filter waiting, fn { child, waiting_module } ->
-      if waiting_module == module do
-        child <- { :release, self() }
-        false
-      else
-        true
-      end
-    end
   end
 end

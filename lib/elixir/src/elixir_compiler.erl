@@ -46,37 +46,52 @@ file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
 %% Evaluation
 
 eval_forms(Forms, Line, Vars, S) ->
+  case (S#elixir_scope.module == nil) andalso allows_fast_compilation(Forms) of
+    true  -> eval_compilation(Forms, Vars, S);
+    false -> code_loading_compilation(Forms, Line, Vars, S)
+  end.
+
+eval_compilation(Forms, Vars, S) ->
+  { Result, _Binding, FS } = elixir:eval_forms(Forms, Vars, S),
+  { Result, FS }.
+
+code_loading_compilation(Forms, Line, Vars, S) ->
   { Module, I } = retrieve_module_name(),
   { Exprs, FS } = elixir_translator:translate(Forms, S),
 
-  Fun  = eval_fun(S#elixir_scope.module),
-  Form = eval_mod(Fun, Exprs, Line, S#elixir_scope.file, Module, Vars),
+  Fun  = code_fun(S#elixir_scope.module),
+  Form = code_mod(Fun, Exprs, Line, S#elixir_scope.file, Module, Vars),
   Args = list_to_tuple([V || { _, V } <- Vars]),
 
   %% Pass { native, false } to speed up bootstrap
   %% process when native is set to true
-  { module(Form, S#elixir_scope.file, [{native,false}], true, fun(_, Binary) ->
-    Res = Module:Fun(Args),
-    code:delete(Module),
-
+  module(Form, S#elixir_scope.file, [{native,false}], true, fun(_, Binary) ->
     %% If we have labeled locals, anonymous functions
     %% were created and therefore we cannot ditch the
     %% module
-    case beam_lib:chunks(Binary, [labeled_locals]) of
-      { ok, { _, [{ labeled_locals, []}] } } ->
-        code:purge(Module),
-        return_module_name(I);
-      _ ->
-        ok
-    end,
+    Purgeable =
+      case beam_lib:chunks(Binary, [labeled_locals]) of
+        { ok, { _, [{ labeled_locals, []}] } } -> true;
+        _ -> false
+      end,
+    dispatch_loaded(Module, Fun, Args, Purgeable, I, FS)
+  end).
 
-    Res
-  end), FS }.
+dispatch_loaded(Module, Fun, Args, Purgeable, I, S) ->
+  Res = Module:Fun(Args),
+  code:delete(Module),
+  if Purgeable ->
+      code:purge(Module),
+      return_module_name(I);
+     true ->
+       ok
+  end,
+  { Res, S }.
 
-eval_fun(nil) -> '__FILE__';
-eval_fun(_)   -> '__MODULE__'.
+code_fun(nil) -> '__FILE__';
+code_fun(_)   -> '__MODULE__'.
 
-eval_mod(Fun, Exprs, Line, File, Module, Vars) when is_binary(File), is_integer(Line) ->
+code_mod(Fun, Exprs, Line, File, Module, Vars) when is_binary(File), is_integer(Line) ->
   Tuple    = { tuple, Line, [{ var, Line, K } || { K, _ } <- Vars] },
   Relative = elixir_utils:relative_to_cwd(File),
 
@@ -97,6 +112,10 @@ retrieve_module_name() ->
 
 return_module_name(I) ->
   elixir_code_server:cast({ return_module_name, I }).
+
+allows_fast_compilation([{defmodule,_,_}|T]) -> allows_fast_compilation(T);
+allows_fast_compilation([]) -> true;
+allows_fast_compilation(_) -> false.
 
 %% INTERNAL API
 

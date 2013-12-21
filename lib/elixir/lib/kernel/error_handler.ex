@@ -19,6 +19,7 @@ defmodule Kernel.ErrorHandler do
       { :error, _ } ->
         parent = :erlang.get(:elixir_compiler_pid)
         parent <- { :waiting, self(), module }
+        :erlang.garbage_collect(self)
         receive do
           { :release, ^parent } -> :ok
         end
