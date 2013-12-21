@@ -110,7 +110,7 @@ clean_exbeam:
 
 #==> Release tasks
 
-SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --points-at $$head | tail -1)" ; echo "$${tag:-$$head}\c")
+SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --contains $$head | tail -1)" ; echo "$${tag:-$$head}\c")
 
 docs: compile ../ex_doc/bin/ex_doc
 	mkdir -p ebin
