@@ -172,9 +172,17 @@ expand({ super, Meta, Args }, E) when is_list(Args) ->
 
 %% Vars
 
+expand({ '^', Meta, [Arg] }, #elixir_env{context=match} = E) ->
+  case expand(Arg, E) of
+    { { Name, _, Kind } = EArg, EA } when is_atom(Name), is_atom(Kind) ->
+      { { '^', Meta, [EArg] }, EA };
+    _ ->
+    Msg = "invalid args for unary operator ^, expected an existing variable, got ^~ts",
+    compile_error(Meta, E#elixir_env.file, Msg, ['Elixir.Macro':to_string(Arg)])
+  end;
 expand({ '^', Meta, [Arg] }, E) ->
-  { EArg, EA } = expand(Arg, E),
-  { { '^', Meta, EArg }, EA };
+  compile_error(Meta, E#elixir_env.file,
+    "cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
 
 expand({ Name, Meta, Kind } = Var, #elixir_env{context=match,vars=Vars} = E) when is_atom(Name), is_atom(Kind) ->
   { Var, E#elixir_env{vars=ordsets:add_element({ Name, var_kind(Meta, Kind) }, Vars)} };
@@ -233,11 +241,6 @@ expand({ { '.', DotMeta, [Expr] }, Meta, Args }, E) when is_list(Args) ->
   end;
 
 %% Invalid calls
-
-%% TODO: Move this back to translator
-expand({ { '.', _, [Invalid, _] }, Meta, Args }, E) when is_list(Meta) and is_list(Args) ->
-  compile_error(Meta, E#elixir_env.file, "invalid remote call on ~ts",
-    ['Elixir.Macro':to_string(Invalid)]);
 
 expand({ _, Meta, Args } = Invalid, E) when is_list(Meta) and is_list(Args) ->
   compile_error(Meta, E#elixir_env.file, "invalid call ~ts",
@@ -302,33 +305,15 @@ var_kind(Meta, Kind) ->
 
 %% Locals
 
-%% TODO: Move this back to translator
-expand_local(Meta, Name, Args, #elixir_env{context=Context, file=File}) when
-    Context == guard; Context == match ->
-  compile_error(Meta, File, "cannot invoke local ~ts/~B inside ~ts",
-                [Name, length(Args), Context]);
-
-%% TODO: Move this back to translator
-expand_local(Meta, Name, Args, #elixir_env{local=nil, function=nil, file=File}) ->
-  compile_error(Meta, File, "function ~ts/~B undefined", [Name, length(Args)]);
-
+expand_local(Meta, Name, Args, #elixir_env{local=nil, function=nil} = E) ->
+  { { Name, Meta, Args }, E };
 expand_local(Meta, Name, Args, #elixir_env{local=nil, module=Module, function=Function} = E) ->
   elixir_locals:record_local({ Name, length(Args) }, Module, Function),
   { { Name, Meta, Args }, E };
-
-expand_local(Meta, Name, Args, #elixir_env{local=nil} = E) ->
-  { { Name, Meta, Args }, E };
-
 expand_local(Meta, Name, Args, E) ->
   expand({ { '.', Meta, [E#elixir_env.local, Name] }, Meta, Args }, E).
 
 %% Remote
-
-%% TODO: Move this back to translator
-expand_remote(Receiver, _DotMeta, Right, Meta, Args, _E, #elixir_env{context=Context, file=File})
-    when Receiver /= erlang andalso (Context == match) orelse (Context == guard) ->
-  compile_error(Meta, File, "cannot invoke remote function ~ts.~ts/~B inside ~ts",
-    ['Elixir.Macro':to_string(Receiver), Right, length(Args), Context]);
 
 expand_remote(Receiver, DotMeta, Right, Meta, Args, E, EL) ->
   if
@@ -404,4 +389,3 @@ expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
 expand_as({ as, Other }, Meta, _IncludeByDefault, _Ref, E) ->
   compile_error(Meta, E#elixir_env.file,
     "invalid :as, expected an alias, got: ~ts", ['Elixir.Macro':to_string(Other)]).
-

@@ -114,7 +114,7 @@ defmodule Kernel.ExpansionTest do
     assert_raise CompileError, message, fn -> expand(quote do: var!(a, Unknown)) end
   end
 
-  test "^: is invalid inside match" do
+  test "^: expands args" do
     assert expand(quote do: ^a = 1) == quote do: ^a = 1
   end
 
@@ -125,8 +125,8 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "^: raises without var" do
-    assert_raise CompileError, %r"the unary operator \^ can only be used with variables, invalid expression \^1", fn ->
-      expand(quote do: ^1)
+    assert_raise CompileError, %r"invalid args for unary operator \^, expected an existing variable, got \^1", fn ->
+      expand(quote do: ^1 = 1)
     end
   end
 
@@ -135,12 +135,6 @@ defmodule Kernel.ExpansionTest do
   test "locals: expands to remote calls" do
     assert { {:., _, [Kernel, :=~] }, _, [{:a, _, []}, {:b, _, []}] } =
           expand(quote do: a =~ b)
-  end
-
-  test "locals: raises on match" do
-    assert_raise CompileError, %r"cannot invoke local a/1 inside match", fn ->
-      expand(quote do: a(b) = c)
-    end
   end
 
   test "locals: raises on guards" do
@@ -191,24 +185,10 @@ defmodule Kernel.ExpansionTest do
     assert expand(quote do: a.is_atom(b)) == quote do: a().is_atom(b())
   end
 
-  test "remote calls: raises on match" do
-    assert_raise CompileError, %r"cannot invoke remote function a.is_atom/1 inside match", fn ->
-      expand(quote do: a.is_atom(b) = true)
-    end
-  end
+  ## Invalid
 
-  ## Invalid calls
-
-  test "handles invalid calls" do
-    assert_raise CompileError, %r"invalid remote call on 1", fn ->
-      expand(quote do: 1.foo(1, 2, 3))
-    end
-
-    assert_raise CompileError, %r"invalid call 1\(1, 2, 3\)", fn ->
-      expand(quote do: unquote(1)(1, 2, 3))
-    end
-
-    assert_raise CompileError, %r"expected a valid quoted expression, got: {1, 2, 3}", fn ->
+  test "handles invalid expressions" do
+    assert_raise CompileError, %r"invalid quoted expression: {1, 2, 3}", fn ->
       expand(quote do: unquote({ 1, 2, 3 }))
     end
   end
