@@ -302,7 +302,7 @@ defmodule IEx.Helpers do
   """
   def r(module) when is_atom(module) do
     case do_r(module) do
-      mods when is_list(mods) -> { module, mods }
+      mods when is_list(mods) -> { :reloaded, module, mods }
       other -> other
     end
   end

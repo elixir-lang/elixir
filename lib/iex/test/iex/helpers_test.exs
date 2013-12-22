@@ -322,7 +322,7 @@ defmodule IEx.HelpersTest do
         assert Sample.run == :run
 
         File.write! filename, "defmodule Sample do end"
-        assert {Sample, [Sample]} = r(Sample)
+        assert { :reloaded, Sample, [Sample] } = r(Sample)
         assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
           Sample.run
         end
@@ -346,7 +346,7 @@ defmodule IEx.HelpersTest do
       assert :sample.hello == :world
 
       File.write!(filename, other_erlang_module_code)
-      assert { :sample, [:sample] } = r(:sample)
+      assert { :reloaded, :sample, [:sample] } = r(:sample)
       assert :sample.hello == :bye
     end
   after
