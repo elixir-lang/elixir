@@ -8,7 +8,7 @@
 expand({ '=', Meta, [Left, Right] }, E) ->
   % assert_no_guard_scope(Meta, '=', S),
   { ERight, ER } = expand(Right, E),
-  { ELeft, EL }  = match(fun expand/2, Left, ER),
+  { ELeft, EL }  = match(fun expand/2, Left, E, ER),
   { { '=', Meta, [ELeft, ERight] }, EL };
 
 %% Literal operators
@@ -164,6 +164,11 @@ expand({ quote, Meta, [KV, Do] }, E) when is_list(Do) ->
 expand({ quote, Meta, [_, _] }, E) ->
   compile_error(Meta, E#elixir_env.file, "invalid args for quote");
 
+%% Comprehensions
+
+expand({ Kind, Meta, Args }, E) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
+  expand_comprehension(Meta, Kind, Args, E);
+
 %% Super
 
 expand({ super, Meta, Args }, E) when is_list(Args) ->
@@ -293,9 +298,10 @@ expand_args(Args, E) ->
 
 %% Match/var helpers
 
-match(Fun, Expr, #elixir_env{context=Context} = E) ->
-  { EExpr, EE } = Fun(Expr, E#elixir_env{context=match}),
-  { EExpr, EE#elixir_env{context=Context} }.
+%% TODO: Merge this var mangling into #elixir_scope
+match(Fun, Expr, #elixir_env{context=Context} = E, NE) ->
+  { EExpr, EE } = Fun(Expr, (elixir_env:mergec(E, NE))#elixir_env{context=match}),
+  { EExpr, (elixir_env:mergev(EE, NE))#elixir_env{context=Context} }.
 
 var_kind(Meta, Kind) ->
   case lists:keyfind(counter, 1, Meta) of
@@ -389,3 +395,22 @@ expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
 expand_as({ as, Other }, Meta, _IncludeByDefault, _Ref, E) ->
   compile_error(Meta, E#elixir_env.file,
     "invalid :as, expected an alias, got: ~ts", ['Elixir.Macro':to_string(Other)]).
+
+%% Comprehensions
+
+expand_comprehension(Meta, Kind, Args, E) ->
+  case elixir_utils:split_last(Args) of
+    { Cases, [{do,Expr}] } ->
+      { ECases, EC } = lists:mapfoldl(fun expand_comprehension_clause/2, E, Cases),
+      { EExpr, EE }  = expand(Expr, EC),
+      { { Kind, Meta, ECases ++ [[{do,EExpr}]] }, elixir_env:mergec(E, EE) };
+    _ ->
+      compile_error(Meta, E#elixir_env.file, "missing do keyword in comprehension ~ts", [Kind])
+  end.
+
+expand_comprehension_clause({Gen, Meta, [Left, Right]}, E) when Gen == inbits; Gen == inlist ->
+  { ERight, ER } = expand(Right, E),
+  { ELeft, EL }  = match(fun expand/2, Left, E, ER),
+  { { Gen, Meta, [ELeft, ERight] }, EL };
+expand_comprehension_clause(X, E) ->
+  expand(X, E).

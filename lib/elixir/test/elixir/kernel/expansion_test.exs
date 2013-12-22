@@ -185,6 +185,18 @@ defmodule Kernel.ExpansionTest do
     assert expand(quote do: a.is_atom(b)) == quote do: a().is_atom(b())
   end
 
+  ## Comprehensions
+
+  test "lc: variables inside comprehensions do not leak" do
+    assert expand(quote do: (lc(a inlist b, do: c = 1); c)) ==
+           quote do: (lc(a inlist b(), do: c = 1); c())
+  end
+
+  test "bc: variables inside comprehensions do not leak" do
+    assert expand(quote do: (bc(a inbits b, do: c = 1); c)) ==
+           quote do: (bc(a inbits b(), do: c = 1); c())
+  end
+
   ## Invalid
 
   test "handles invalid expressions" do
