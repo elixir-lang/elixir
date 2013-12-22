@@ -9,7 +9,6 @@ defmodule Kernel.ImportTest do
     end
   end
 
-
   test "import all" do
     import :lists
     assert flatten([1, [2], 3]) == [1, 2, 3]
@@ -132,8 +131,11 @@ defmodule Kernel.ImportTest do
     try do
       import :lists
       flatten([1, [2], 3])
+      flunk
     catch
-      _ -> flatten([:a, [:b], :c])
+      _, _ ->
+        # Buggy local duplicate is untouched
+        assert duplicate([1], 2) == [1]
     end
 
     # Buggy local duplicate is untouched

@@ -257,21 +257,22 @@ translate_each({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
 
 %% Try
 
-translate_each({'try', Meta, [Clauses]}, S) when is_list(Clauses) ->
-  assert_no_match_or_guard_scope(Meta, 'try', S),
+translate_each({'try', Meta, [Clauses]}, RS) when is_list(Clauses) ->
+  assert_no_match_or_guard_scope(Meta, 'try', RS),
+  S  = RS#elixir_scope{noname=true},
   Do = proplists:get_value('do', Clauses, nil),
-  { TDo, SB } = elixir_translator:translate_each(Do, S#elixir_scope{noname=true}),
+  { TDo, SB } = elixir_translator:translate_each(Do, S),
 
   Catch = [Tuple || { X, _ } = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
-  { TCatch, SC } = elixir_try:clauses(Meta, Catch, umergea(S, SB)),
+  { TCatch, SC } = elixir_try:clauses(Meta, Catch, umergec(S, SB)),
 
   After = proplists:get_value('after', Clauses, nil),
-  { TAfter, SA } = translate_each(After, umergea(S, SC)),
+  { TAfter, SA } = translate_each(After, umergec(S, SC)),
 
   Else = elixir_clauses:get_pairs(Meta, else, Clauses, S),
-  { TElse, SE } = elixir_clauses:match(Meta, Else, umergea(S, SA)),
+  { TElse, SE } = elixir_clauses:match(Meta, Else, umergec(S, SA)),
 
-  SF = (umergec(S, SE))#elixir_scope{noname=S#elixir_scope.noname},
+  SF = (umergec(S, SE))#elixir_scope{noname=RS#elixir_scope.noname},
   { { 'try', ?line(Meta), pack(TDo), TElse, TCatch, pack(TAfter) }, SF };
 
 %% Receive
