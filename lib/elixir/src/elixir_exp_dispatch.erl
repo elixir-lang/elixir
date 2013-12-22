@@ -13,11 +13,11 @@ find_import(Meta, Name, Arity, E) ->
   case find_dispatch(Meta, Tuple, [], E) of
     { function, Receiver } ->
       elixir_lexical:record_import(Receiver, E#elixir_env.lexical_tracker),
-      elixir_tracker:record_import(Tuple, Receiver, E#elixir_env.module, E#elixir_env.function),
+      elixir_locals:record_import(Tuple, Receiver, E#elixir_env.module, E#elixir_env.function),
       Receiver;
     { macro, Receiver } ->
       elixir_lexical:record_import(Receiver, E#elixir_env.lexical_tracker),
-      elixir_tracker:record_import(Tuple, Receiver, E#elixir_env.module, E#elixir_env.function),
+      elixir_locals:record_import(Tuple, Receiver, E#elixir_env.module, E#elixir_env.function),
       Receiver;
     _ ->
       false
@@ -58,7 +58,7 @@ expand_import(Meta, { Name, Arity } = Tuple, Args, E, Extra) ->
   Dispatch = find_dispatch(Meta, Tuple, Extra, E),
   Function = E#elixir_env.function,
   Local    = (Function /= nil) andalso (Function /= Tuple) andalso
-              elixir_def_local:macro_for(Module, Name, Arity),
+              elixir_locals:macro_for(Module, Name, Arity),
 
   case Dispatch of
     %% In case it is an import, or the receive is the same as the
@@ -77,7 +77,7 @@ expand_import(Meta, { Name, Arity } = Tuple, Args, E, Extra) ->
 
     %% Dispatch to the local.
     _ ->
-      elixir_tracker:record_local(Tuple, Module, Function),
+      elixir_locals:record_local(Tuple, Module, Function),
       { ok, Module, expand_macro_fun(Meta, Local(), Module, Name, Args, E) }
   end.
 
@@ -85,7 +85,7 @@ do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, E, Result) ->
   case Result of
     { function, Receiver } ->
       elixir_lexical:record_import(Receiver, E#elixir_env.lexical_tracker),
-      elixir_tracker:record_import(Tuple, Receiver, Module, E#elixir_env.function),
+      elixir_locals:record_import(Tuple, Receiver, Module, E#elixir_env.function),
       Endpoint = case (Receiver == ?builtin) andalso is_element(Tuple, in_erlang_functions()) of
         true  -> erlang;
         false -> Receiver
@@ -93,7 +93,7 @@ do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, E, Result) ->
       { ok, Endpoint };
     { macro, Receiver } ->
       elixir_lexical:record_import(Receiver, E#elixir_env.lexical_tracker),
-      elixir_tracker:record_import(Tuple, Receiver, Module, E#elixir_env.function),
+      elixir_locals:record_import(Tuple, Receiver, Module, E#elixir_env.function),
       { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E) };
     { import, Receiver } ->
       case expand_require([{require,false}|Meta], Receiver, Tuple, Args, E) of
@@ -105,8 +105,7 @@ do_expand_import(Meta, { Name, Arity } = Tuple, Args, Module, E, Result) ->
   end.
 
 expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, E) ->
-  Module   = E#elixir_env.module,
-  Function = E#elixir_env.function,
+  Module = E#elixir_env.module,
 
   case is_element(Tuple, get_optional_macros(Receiver)) of
     true ->
@@ -114,7 +113,6 @@ expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, E) ->
       case (Receiver == Module) orelse is_element(Receiver, Requires) orelse skip_require(Meta) of
         true  ->
           elixir_lexical:record_remote(Receiver, E#elixir_env.lexical_tracker),
-          elixir_tracker:record_remote(Tuple, Receiver, Module, Function),
           { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E) };
         false ->
           Tuple = { unrequired_module, { Receiver, Name, length(Args), Requires } },

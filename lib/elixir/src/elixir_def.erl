@@ -86,14 +86,14 @@ store_definition(Kind, Line, CheckClauses, Name, Args, Guards, Body, MetaFile, #
   Arity = length(Args),
   Tuple = { Name, Arity },
   S     = DS#elixir_scope{function=Tuple},
-  elixir_tracker:record_definition(Tuple, Kind, Module),
+  elixir_locals:record_definition(Tuple, Kind, Module),
 
   Location = retrieve_file(Line, MetaFile, Module, S),
   run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Body, S),
   { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Body, S),
 
   DefaultsLength = length(Defaults),
-  elixir_tracker:record_defaults(Tuple, Kind, Module, DefaultsLength),
+  elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
 
   File   = TS#elixir_scope.file,
   Table  = table(Module),

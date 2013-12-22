@@ -43,9 +43,9 @@ store(Module, Function, GenerateName) ->
         false -> { Kind, Name }
       end,
 
-      case code:is_loaded('Elixir.Module.DispatchTracker') of
+      case code:is_loaded('Elixir.Module.LocalsTracker') of
         { _, _ } ->
-          'Elixir.Module.DispatchTracker':reattach(Module, Kind, { Name, Arity }, Neighbours);
+          'Elixir.Module.LocalsTracker':reattach(Module, Kind, { Name, Arity }, Neighbours);
         _ ->
           ok
       end,

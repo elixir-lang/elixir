@@ -397,12 +397,8 @@ translate_each({ { '.', _, [Left, Right] }, Meta, Args }, S)
 
   Callback = fun() ->
     case TLeft of
-      { atom, _, Receiver } ->
-        Tuple = { element(3, TRight), length(Args) },
-        elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker),
-        elixir_tracker:record_remote(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function);
-      _ ->
-        ok
+      { atom, _, Receiver } -> elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker);
+      _ -> ok
     end,
 
     Line = ?line(Meta),
@@ -597,7 +593,7 @@ translate_local(Meta, Name, Args, #elixir_scope{local=nil,function=nil} = S) ->
   compile_error(Meta, S#elixir_scope.file, "function ~ts/~B undefined", [Name, length(Args)]);
 
 translate_local(Meta, Name, Args, #elixir_scope{local=nil,module=Module,function=Function} = S) ->
-  elixir_tracker:record_local({ Name, length(Args) }, Module, Function),
+  elixir_locals:record_local({ Name, length(Args) }, Module, Function),
   Line = ?line(Meta),
   { TArgs, NS } = translate_args(Args, S),
   { { call, Line, { atom, Line, Name }, TArgs }, NS };

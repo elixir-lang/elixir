@@ -11,32 +11,27 @@
 #
 # We also have can the following vertices:
 #
-# * `Module` - a module that was invoked via an import or remotely
+# * `Module` - a module that was invoked via an import
 # * `{ name, arity }` - a local function/arity pair
 # * `{ :import, name, arity }` - an invoked function/arity import
-# * `{ :remote, name, arity }` - an remotely invoked function/arity
 #
 # Each of those vertices can associate to other vertices
 # as described below:
 #
 # * `Module`
-#   * in neighbours:  `{ :import, name, arity }` and `{ :remote, name arity }`
+#   * in neighbours:  `{ :import, name, arity }`
 #
 # * `{ name, arity }`
 #   * in neighbours: `:local`, `{ name, arity }`
-#   * out neighbours: `{ :import, name, arity }` and `{ :remote, name arity }`
+#   * out neighbours: `{ :import, name, arity }`
 #
 # * `{ :import, name, arity }`
 #   * in neighbours: `{ name, arity }`
 #   * out neighbours: `Module`
 #
-# * `{ :remote, name, arity }`
-#   * in neighbours: `{ name, arity }`
-#   * out neighbours: `Module`
-#
 # Note that since this is required for bootstrap, we can't use
 # any of the `GenServer.Behaviour` conveniences.
-defmodule Module.DispatchTracker do
+defmodule Module.LocalsTracker do
   @moduledoc false
 
   @timeout  30_000
@@ -48,43 +43,8 @@ defmodule Module.DispatchTracker do
 
   @type local :: { name, arity }
   @type import :: { :import, name, arity }
-  @type remote :: { :remote, name, arity }
 
   # Public API
-
-  @doc """
-  Receives a dispatch or a module and returns all dispatches
-  that calls it.
-
-  In case the argument is a module, the response will be
-  made by import and remote dispatches.
-
-  In case the argument is another dispatch, the response
-  will be made by local dispatches.
-
-  This function is not recursive, so if A dispatches to
-  B which dispatches to C, A does not appear in the result,
-  only B.
-  """
-  @spec dispatches_to(ref, module) :: [import | remote]
-  @spec dispatches_to(ref, local | import | remote) :: [local]
-  def dispatches_to(ref, dispatch) do
-    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
-    :digraph.in_neighbours(d, dispatch) |> only_tuples
-  end
-
-  @doc """
-  Receives a local and returns all dispatches from that local.
-
-  This function is not recursive, so if A dispatches to
-  B which dispatches to C, C does not appear in the result,
-  only B.
-  """
-  @spec dispatches_from(ref, local) :: [local | import | remote]
-  def dispatches_from(ref, { name, arity }) do
-    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
-    :digraph.out_neighbours(d, { name, arity }) |> only_tuples
-  end
 
   @doc """
   Returns all imported modules that had the given
@@ -94,16 +54,6 @@ defmodule Module.DispatchTracker do
   def imports_with_dispatch(ref, { name, arity }) do
     d = :gen_server.call(to_pid(ref), :digraph, @timeout)
     :digraph.out_neighbours(d, { :import, name, arity })
-  end
-
-  @doc """
-  Returns all modules that had the given `{ name, arity }`
-  invoked remotely.
-  """
-  @spec remotes_with_dispatch(ref, name_arity) :: [module]
-  def remotes_with_dispatch(ref, { name, arity }) do
-    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
-    :digraph.out_neighbours(d, { :remote, name, arity })
   end
 
   @doc """
@@ -130,7 +80,7 @@ defmodule Module.DispatchTracker do
   defp to_pid(pid) when is_pid(pid),  do: pid
   defp to_pid(mod) when is_atom(mod) do
     table = :elixir_module.data_table(mod)
-    [{ _, val }] = :ets.lookup(table, :__dispatch_tracker)
+    [{ _, val }] = :ets.lookup(table, :__locals_tracker)
     val
   end
 
@@ -173,16 +123,10 @@ defmodule Module.DispatchTracker do
     :gen_server.cast(pid, { :add_local, from, to })
   end
 
-  # Adds a remote dispatch to the given target.
-  @doc false
-  def add_remote(pid, function, module, target) when is_atom(module) and is_tuple(target) do
-    :gen_server.cast(pid, { :add_external, :remote, function, module, target })
-  end
-
   # Adds a import dispatch to the given target.
   @doc false
   def add_import(pid, function, module, target) when is_atom(module) and is_tuple(target) do
-    :gen_server.cast(pid, { :add_external, :import, function, module, target })
+    :gen_server.cast(pid, { :add_import, function, module, target })
   end
 
   # Yanks a local node. Returns its in and out vertices in a tuple.
@@ -284,8 +228,8 @@ defmodule Module.DispatchTracker do
     { :noreply, d }
   end
 
-  def handle_cast({ :add_external, kind, function, module, { name, arity } }, d) do
-    handle_import_or_remote(d, kind, function, module, name, arity)
+  def handle_cast({ :add_import, function, module, { name, arity } }, d) do
+    handle_import(d, function, module, name, arity)
     { :noreply, d }
   end
 
@@ -324,10 +268,10 @@ defmodule Module.DispatchTracker do
     { :ok, d }
   end
 
-  defp handle_import_or_remote(d, kind, function, module, name, arity) do
+  defp handle_import(d, function, module, name, arity) do
     :digraph.add_vertex(d, module)
 
-    tuple = { kind, name, arity }
+    tuple = { :import, name, arity }
     :digraph.add_vertex(d, tuple)
     replace_edge!(d, tuple, module)
 

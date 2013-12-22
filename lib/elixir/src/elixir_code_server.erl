@@ -28,7 +28,7 @@ start_link() ->
   { ok, _ } = gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init(_Args) ->
-  code:ensure_loaded('Elixir.Module.DispatchTracker'),
+  code:ensure_loaded('Elixir.Module.LocalsTracker'),
   code:ensure_loaded('Elixir.Kernel.LexicalTracker'),
   { ok, #elixir_code_server{} }.
 

@@ -53,12 +53,12 @@ compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
     case ets:lookup(data_table(Module), 'on_load') of
       [] -> ok;
       [{on_load,OnLoad}] ->
-        [elixir_tracker:record_local(Tuple, Module) || Tuple <- OnLoad]
+        [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad]
     end,
 
     AllFunctions = Def ++ [T || { T, defp, _, _, _ } <- Private],
-    elixir_tracker:ensure_no_function_conflict(Line, File, Module, AllFunctions),
-    elixir_tracker:warn_unused_local(File, Module, Private),
+    elixir_locals:ensure_no_function_conflict(Line, File, Module, AllFunctions),
+    elixir_locals:warn_unused_local(File, Module, Private),
     warn_invalid_clauses(Line, File, Module, All),
     warn_unused_docs(Line, File, Module),
 
@@ -70,7 +70,7 @@ compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
     Binary = load_form(Line, Final, compile_opts(Module), S),
     { module, Module, Binary, Result }
   after
-    elixir_tracker:cleanup(Module),
+    elixir_locals:cleanup(Module),
     elixir_def:cleanup(Module),
     ets:delete(docs_table(Module)),
     ets:delete(data_table(Module))
@@ -108,7 +108,7 @@ build(Line, File, Module, Lexical) ->
 
   %% Setup other modules
   elixir_def:setup(Module),
-  elixir_tracker:setup(Module).
+  elixir_locals:setup(Module).
 
 %% Receives the module representation and evaluates it.
 

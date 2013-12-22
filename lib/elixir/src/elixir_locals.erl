@@ -1,19 +1,76 @@
 %% Module responsible for tracking invocations of module calls.
--module(elixir_tracker).
+-module(elixir_locals).
 -export([
   setup/1, cleanup/1,
-  record_local/2, record_local/3,
-  record_import/4, record_remote/4,
+  record_local/2, record_local/3, record_import/4,
   record_definition/3, record_defaults/4,
-  ensure_no_function_conflict/4, warn_unused_local/3,
-  format_error/1
+  ensure_no_function_conflict/4, warn_unused_local/3, format_error/1
 ]).
+-export([macro_for/3, function_for/3]).
+
 -include("elixir.hrl").
+-define(attr, '__locals_tracker').
+-define(tracker, 'Elixir.Module.LocalsTracker').
 
--define(attr, '__dispatch_tracker').
--define(tracker, 'Elixir.Module.DispatchTracker').
+macro_for(nil, _Name, _Arity) -> false;
+macro_for(Module, Name, Arity) ->
+  Tuple = { Name, Arity },
+  try elixir_def:lookup_definition(Module, Tuple) of
+    { { Tuple, Kind, Line, _, _, _, _ }, [_|_] = Clauses }
+        when Kind == defmacro; Kind == defmacrop ->
+      fun() -> get_function(Line, Module, Clauses) end;
+    _ ->
+      false
+  catch
+    error:badarg -> false
+  end.
 
-%% RECORD
+function_for(Module, Name, Arity) ->
+  Tuple = { Name, Arity },
+  case elixir_def:lookup_definition(Module, Tuple) of
+    { { Tuple, _, Line, _, _, _, _ }, Clauses } when Clauses /= [] ->
+      %% There is no need to record such calls
+      %% since they come from funtions that were
+      %% already analyzed at compilation time.
+      get_function(Line, Module, Clauses);
+    _ ->
+      [_|T] = erlang:get_stacktrace(),
+      erlang:raise(error, undef, [{Module,Name,Arity,[]}|T])
+  end.
+
+get_function(Line, Module, Clauses) ->
+  RewrittenClauses = [rewrite_clause(Clause, Module) || Clause <- Clauses],
+  Fun = { 'fun', Line, {clauses, RewrittenClauses } },
+  { value, Result, _Binding } = erl_eval:exprs([Fun], []),
+  Result.
+
+rewrite_clause({ call, Line, { atom, Line, RawName }, Args }, Module) ->
+  Remote = { remote, Line,
+    { atom, Line, ?MODULE },
+    { atom, Line, function_for }
+  },
+
+  %% If we have a macro, its arity in the table is
+  %% actually one less than in the function call
+  { Name, Arity } = case atom_to_list(RawName) of
+    "MACRO-" ++ Rest -> { list_to_atom(Rest), length(Args) - 1 };
+    _ -> { RawName, length(Args) }
+  end,
+
+  FunCall = { call, Line, Remote, [
+    { atom, Line, Module }, { atom, Line, Name }, { integer, Line, Arity }
+  ] },
+  { call, Line, FunCall, Args };
+
+rewrite_clause(Tuple, Module) when is_tuple(Tuple) ->
+  list_to_tuple(rewrite_clause(tuple_to_list(Tuple), Module));
+
+rewrite_clause(List, Module) when is_list(List) ->
+  [rewrite_clause(Item, Module) || Item <- List];
+
+rewrite_clause(Else, _) -> Else.
+
+%% TRACKING
 
 setup(Module) ->
   case code:is_loaded(?tracker) of
@@ -45,14 +102,6 @@ record_import(Tuple, Receiver, Module, Function) ->
     true
   end).
 
-record_remote(_Tuple, Receiver, Module, _Function)
-  when Module == nil; Module == Receiver -> false;
-record_remote(Tuple, Receiver, Module, Function) ->
-  if_tracker(Module, fun(Pid) ->
-    ?tracker:add_remote(Pid, Function, Receiver, Tuple),
-    true
-  end).
-
 record_definition(Tuple, Kind, Module) ->
   if_tracker(Module, fun(Pid) ->
     ?tracker:add_definition(Pid, Kind, Tuple),
@@ -66,8 +115,6 @@ record_defaults(Tuple, Kind, Module, Defaults) ->
     ?tracker:add_defaults(Pid, Kind, Tuple, Defaults),
     true
   end).
-
-%% HELPERS
 
 if_tracker(Module, Callback) ->
   try ets:lookup_element(Module, ?attr, 2) of

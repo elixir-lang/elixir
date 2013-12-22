@@ -214,7 +214,7 @@ core_main() ->
     <<"lib/elixir/lib/kernel/parallel_compiler.ex">>,
     <<"lib/elixir/lib/kernel/record_rewriter.ex">>,
     <<"lib/elixir/lib/kernel/lexical_tracker.ex">>,
-    <<"lib/elixir/lib/module/dispatch_tracker.ex">>
+    <<"lib/elixir/lib/module/locals_tracker.ex">>
   ].
 
 binary_to_path({ModuleName, Binary}, CompilePath) ->

@@ -1,9 +1,9 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule Module.DispatchTrackerTest do
+defmodule Module.LocalsTrackerTest do
   use ExUnit.Case, async: true
 
-  alias Module.DispatchTracker, as: D
+  alias Module.LocalsTracker, as: D
 
   setup do
     { :ok, [pid: D.start_link] }
@@ -146,39 +146,5 @@ defmodule Module.DispatchTrackerTest do
 
     D.add_import(config[:pid], nil, Module, { :conflict, 1 })
     assert { [Module], :conflict, 1 } in D.collect_imports_conflicts(config[:pid], [conflict: 1])
-  end
-
-  ## Remotes
-
-  test "find remotes from dispatch", config do
-    D.add_remote(config[:pid], nil, Module, { :concat, 1 })
-    assert Module in D.remotes_with_dispatch(config[:pid], { :concat, 1 })
-    refute Module in D.remotes_with_dispatch(config[:pid], { :unknown, 1 })
-  end
-
-  test "remotes are not reachable", config do
-    D.add_definition(config[:pid], :def, { :public, 1 })
-    D.add_remote(config[:pid], { :public, 1 }, Module, { :concat, 1 })
-    assert D.reachable(config[:pid]) == [{ :public, 1 }]
-  end
-
-  ## All
-
-  test "can query dispatches", config do
-    D.add_definition(config[:pid], :def, { :public, 1 })
-    D.add_definition(config[:pid], :def, { :caller, 1 })
-    D.add_local(config[:pid], { :caller, 1 }, { :public, 1 })
-    D.add_remote(config[:pid], { :public, 1 }, Module, { :concat, 1 })
-    D.add_import(config[:pid], { :public, 1 }, Kernel, { :if, 2 })
-
-    assert D.dispatches_to(config[:pid], { :public, 1 }) == [{ :caller, 1 }]
-    assert D.dispatches_to(config[:pid], { :import, :if, 2 }) == [{ :public, 1 }]
-    assert D.dispatches_to(config[:pid], { :remote, :concat, 1 }) == [{ :public, 1 }]
-    assert D.dispatches_to(config[:pid], Module) == [{ :remote, :concat, 1 }]
-    assert D.dispatches_to(config[:pid], Kernel) == [{ :import, :if, 2 }]
-
-    assert { :public, 1 } in D.dispatches_from(config[:pid], { :caller, 1 })
-    assert { :remote, :concat, 1 } in D.dispatches_from(config[:pid], { :public, 1 })
-    assert { :import, :if, 2 } in D.dispatches_from(config[:pid], { :public, 1 })
   end
 end

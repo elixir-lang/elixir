@@ -678,8 +678,8 @@ defmodule Module do
         clause ->
           :elixir_def.delete_definition(module, tuple)
 
-          neighbours = if loaded?(Module.DispatchTracker) do
-            Module.DispatchTracker.yank(module, tuple)
+          neighbours = if loaded?(Module.LocalsTracker) do
+            Module.LocalsTracker.yank(module, tuple)
           else
             []
           end

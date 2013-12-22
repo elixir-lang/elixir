@@ -167,20 +167,14 @@ expand({ quote, Meta, [_, _] }, E) ->
 %% Super
 
 expand({ super, Meta, Args }, E) when is_list(Args) ->
-  % assert_no_match_or_guard_scope(Meta, super, S),
   { EArgs, EA } = expand_args(Args, E),
   { { super, Meta, EArgs }, EA };
 
 %% Vars
 
-expand({ '^', Meta, [ { Name, _, Kind } ] = Args }, #elixir_env{context=match} = E) when is_atom(Name), is_atom(Kind) ->
-  { { '^', Meta, Args }, E };
-expand({ '^', Meta, [ { Name, _, Kind } ] }, E) when is_atom(Name), is_atom(Kind) ->
-  compile_error(Meta, E#elixir_env.file,
-    "cannot use ^~ts outside of match clauses", [Name]);
-expand({ '^', Meta, [Expr] }, E) ->
-  compile_error(Meta, E#elixir_env.file,
-    "the unary operator ^ can only be used with variables, invalid expression ^~ts", ['Elixir.Macro':to_string(Expr)]);
+expand({ '^', Meta, [Arg] }, E) ->
+  { EArg, EA } = expand(Arg, E),
+  { { '^', Meta, EArg }, EA };
 
 expand({ Name, Meta, Kind } = Var, #elixir_env{context=match,vars=Vars} = E) when is_atom(Name), is_atom(Kind) ->
   { Var, E#elixir_env{vars=ordsets:add_element({ Name, var_kind(Meta, Kind) }, Vars)} };
@@ -240,6 +234,7 @@ expand({ { '.', DotMeta, [Expr] }, Meta, Args }, E) when is_list(Args) ->
 
 %% Invalid calls
 
+%% TODO: Move this back to translator
 expand({ { '.', _, [Invalid, _] }, Meta, Args }, E) when is_list(Meta) and is_list(Args) ->
   compile_error(Meta, E#elixir_env.file, "invalid remote call on ~ts",
     ['Elixir.Macro':to_string(Invalid)]);
@@ -249,7 +244,7 @@ expand({ _, Meta, Args } = Invalid, E) when is_list(Meta) and is_list(Args) ->
     ['Elixir.Macro':to_string(Invalid)]);
 
 expand({ _, _, _ } = Tuple, E) ->
-  compile_error([{line,0}], E#elixir_env.file, "expected a valid quoted expression, got: ~ts",
+  compile_error([{line,0}], E#elixir_env.file, "invalid quoted expression: ~ts",
     ['Elixir.Kernel':inspect(Tuple, [{raw,true}])]);
 
 %% Literals
@@ -307,16 +302,21 @@ var_kind(Meta, Kind) ->
 
 %% Locals
 
+%% TODO: Move this back to translator
 expand_local(Meta, Name, Args, #elixir_env{context=Context, file=File}) when
     Context == guard; Context == match ->
   compile_error(Meta, File, "cannot invoke local ~ts/~B inside ~ts",
                 [Name, length(Args), Context]);
 
+%% TODO: Move this back to translator
 expand_local(Meta, Name, Args, #elixir_env{local=nil, function=nil, file=File}) ->
   compile_error(Meta, File, "function ~ts/~B undefined", [Name, length(Args)]);
 
 expand_local(Meta, Name, Args, #elixir_env{local=nil, module=Module, function=Function} = E) ->
-  elixir_tracker:record_local({ Name, length(Args) }, Module, Function),
+  elixir_locals:record_local({ Name, length(Args) }, Module, Function),
+  { { Name, Meta, Args }, E };
+
+expand_local(Meta, Name, Args, #elixir_env{local=nil} = E) ->
   { { Name, Meta, Args }, E };
 
 expand_local(Meta, Name, Args, E) ->
@@ -324,6 +324,7 @@ expand_local(Meta, Name, Args, E) ->
 
 %% Remote
 
+%% TODO: Move this back to translator
 expand_remote(Receiver, _DotMeta, Right, Meta, Args, _E, #elixir_env{context=Context, file=File})
     when Receiver /= erlang andalso (Context == match) orelse (Context == guard) ->
   compile_error(Meta, File, "cannot invoke remote function ~ts.~ts/~B inside ~ts",
@@ -331,12 +332,8 @@ expand_remote(Receiver, _DotMeta, Right, Meta, Args, _E, #elixir_env{context=Con
 
 expand_remote(Receiver, DotMeta, Right, Meta, Args, E, EL) ->
   if
-    is_atom(Receiver) ->
-      Tuple = { Right, length(Args) },
-      elixir_lexical:record_remote(Receiver, E#elixir_env.lexical_tracker),
-      elixir_tracker:record_remote(Tuple, Receiver, E#elixir_env.module, E#elixir_env.function);
-    true ->
-      ok
+    is_atom(Receiver) -> elixir_lexical:record_remote(Receiver, E#elixir_env.lexical_tracker);
+    true -> ok
   end,
 
   { EArgs, EA } = expand_args(Args, elixir_env:mergea(E, EL)),
@@ -407,3 +404,4 @@ expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
 expand_as({ as, Other }, Meta, _IncludeByDefault, _Ref, E) ->
   compile_error(Meta, E#elixir_env.file,
     "invalid :as, expected an alias, got: ~ts", ['Elixir.Macro':to_string(Other)]).
+
