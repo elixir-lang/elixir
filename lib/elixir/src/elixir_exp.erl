@@ -66,16 +66,53 @@ expand({ '__aliases__', Meta, _ } = Alias, E) ->
 expand({ alias, Meta, [Ref] }, E) ->
   expand({ alias, Meta, [Ref,[]] }, E);
 expand({ alias, Meta, [Ref, KV] }, E) ->
-  % assert_no_match_or_guard_scope(Meta, alias, S),
+  % assert_no_match_or_guard_scope(Meta, alias, E),
   { ERef, ER } = expand(Ref, E),
-  { EKV, EO }  = expand_opts(Meta, alias, [as, warn], no_alias_opts(KV), ER),
+  { EKV, ET }  = expand_opts(Meta, alias, [as, warn], no_alias_opts(KV), ER),
 
   if
     is_atom(ERef) ->
-      expand_alias(Meta, true, ERef, EKV, EO);
+      { { alias, Meta, [ERef, EKV] },
+        expand_alias(Meta, true, ERef, EKV, ET) };
     true ->
       compile_error(Meta, E#elixir_env.file,
         "invalid args for alias, expected a compile time atom or alias as argument")
+  end;
+
+expand({ require, Meta, [Ref] }, E) ->
+  expand({ require, Meta, [Ref, []] }, E);
+expand({ require, Meta, [Ref, KV] }, E) ->
+  % assert_no_match_or_guard_scope(Meta, require, E),
+
+  { ERef, ER } = expand(Ref, E),
+  { EKV, ET }  = expand_opts(Meta, require, [as, warn], no_alias_opts(KV), ER),
+
+  if
+    is_atom(ERef) ->
+      elixir_aliases:ensure_loaded(Meta, ERef, ET),
+      { { require, Meta, [ERef, EKV] },
+        expand_require(Meta, ERef, EKV, ET) };
+    true ->
+      compile_error(Meta, E#elixir_env.file,
+        "invalid args for require, expected a compile time atom or alias as argument")
+  end;
+
+expand({ import, Meta, [Left] }, E) ->
+  expand({ import, Meta, [Left, []]}, E);
+
+expand({ import, Meta, [Ref, KV] }, E) ->
+  % assert_no_match_or_guard_scope(Meta, import, E),
+  { ERef, ER } = expand(Ref, E),
+  { EKV, ET }  = expand_opts(Meta, import, [only, except, warn], KV, ER),
+
+  if
+    is_atom(ERef) ->
+      elixir_aliases:ensure_loaded(Meta, ERef, ET),
+      { Functions, Macros } = elixir_import:import(Meta, ERef, EKV, ET),
+      { { import, Meta, [ERef, EKV] },
+        expand_require(Meta, ERef, EKV, ET#elixir_env{functions=Functions, macros=Macros}) };
+    true ->
+      compile_error(Meta, E#elixir_env.file, "invalid name for import, expected a compile time atom or alias")
   end;
 
 %% Pseudo vars
@@ -358,6 +395,10 @@ no_alias_expansion({ '__aliases__', Meta, [H|T] }) when (H /= 'Elixir') and is_a
 no_alias_expansion(Other) ->
   Other.
 
+expand_require(Meta, Ref, KV, E) ->
+  RE = E#elixir_env{requires=ordsets:add_element(Ref, E#elixir_env.requires)},
+  expand_alias(Meta, false, Ref, KV, RE).
+
 expand_alias(Meta, IncludeByDefault, Ref, KV, #elixir_env{context_modules=Context} = E) ->
   New = expand_as(lists:keyfind(as, 1, KV), Meta, IncludeByDefault, Ref, E),
 
@@ -373,8 +414,7 @@ expand_alias(Meta, IncludeByDefault, Ref, KV, #elixir_env{context_modules=Contex
   { Aliases, MacroAliases } = elixir_aliases:store(Meta, New, Ref, KV, E#elixir_env.aliases,
                                 E#elixir_env.macro_aliases, E#elixir_env.lexical_tracker),
 
-  { { 'alias', Meta, [Ref, KV] },
-    E#elixir_env{aliases=Aliases, macro_aliases=MacroAliases, context_modules=NewContext} }.
+  E#elixir_env{aliases=Aliases, macro_aliases=MacroAliases, context_modules=NewContext}.
 
 expand_as({ as, true }, _Meta, _IncludeByDefault, Ref, _E) ->
   elixir_aliases:last(Ref);

@@ -1,5 +1,9 @@
 Code.require_file "../test_helper.exs", __DIR__
 
+defmodule Kernel.ExpansionTarget do
+  defmacro seventeen, do: 17
+end
+
 defmodule Kernel.ExpansionTest do
   use ExUnit.Case, async: true
 
@@ -146,6 +150,11 @@ defmodule Kernel.ExpansionTest do
            quote(do: :"Elixir.Hello".a())
   end
 
+  test "locals: custom imports" do
+    assert expand(quote do: (import Kernel.ExpansionTarget; seventeen)) ==
+           quote do: (import :"Elixir.Kernel.ExpansionTarget", []; 17)
+  end
+
   ## Tuples
 
   test "tuples: expanded as arguments" do
@@ -183,6 +192,18 @@ defmodule Kernel.ExpansionTest do
 
   test "remote calls: expands receiver and args" do
     assert expand(quote do: a.is_atom(b)) == quote do: a().is_atom(b())
+  end
+
+  test "remote calls: modules must be required for macros" do
+    assert expand(quote do: (require Kernel.ExpansionTarget; Kernel.ExpansionTarget.seventeen)) ==
+           quote do: (require :"Elixir.Kernel.ExpansionTarget", []; 17)
+  end
+
+  test "remote calls: raises when not required" do
+    msg = %r"you must require Kernel\.ExpansionTarget before invoking the macro Kernel\.ExpansionTarget\.seventeen/0"
+    assert_raise CompileError, msg, fn ->
+      expand(quote do: Kernel.ExpansionTarget.seventeen)
+    end
   end
 
   ## Comprehensions

@@ -96,7 +96,7 @@ translate_each({ require, Meta, [Ref, KV] }, S) ->
 
   case TRef of
     { atom, _, Old } ->
-      elixir_aliases:ensure_loaded(Meta, Old, ST),
+      elixir_aliases:ensure_loaded(Meta, Old, elixir_env:scope_to_env(ST)),
       translate_require(Meta, Old, TKV, ST);
     _ ->
       compile_error(Meta, S#elixir_scope.file, "invalid args for require, expected a compile time atom or alias as argument")
@@ -112,9 +112,9 @@ translate_each({ import, Meta, [Ref, KV] }, S) ->
 
   case TRef of
     { atom, _, Atom } ->
-      elixir_aliases:ensure_loaded(Meta, Atom, ST),
-      SF = elixir_import:import(Meta, Atom, TKV, ST),
-      translate_require(Meta, Atom, TKV, SF);
+      elixir_aliases:ensure_loaded(Meta, Atom, elixir_env:scope_to_env(ST)),
+      { Functions, Macros } = elixir_import:import(Meta, Atom, TKV, elixir_env:scope_to_env(ST)),
+      translate_require(Meta, Atom, TKV, ST#elixir_scope{functions=Functions, macros=Macros});
     _ ->
       compile_error(Meta, S#elixir_scope.file, "invalid name for import, expected a compile time atom or alias")
   end;

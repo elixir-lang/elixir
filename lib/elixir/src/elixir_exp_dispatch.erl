@@ -115,8 +115,8 @@ expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, E) ->
           elixir_lexical:record_remote(Receiver, E#elixir_env.lexical_tracker),
           { ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E) };
         false ->
-          Tuple = { unrequired_module, { Receiver, Name, length(Args), Requires } },
-          elixir_errors:form_error(Meta, E#elixir_env.file, ?MODULE, Tuple)
+          Info = { unrequired_module, { Receiver, Name, length(Args), Requires } },
+          elixir_errors:form_error(Meta, E#elixir_env.file, ?MODULE, Info)
       end;
     false -> error
   end.
