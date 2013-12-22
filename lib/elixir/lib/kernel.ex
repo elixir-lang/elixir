@@ -2531,14 +2531,14 @@ defmodule Kernel do
             end
           rescue
             UndefinedFunctionError ->
-              # We first try to call __access__ and just then check if
+              # We first try to call __record__ and just then check if
               # it is loaded so we allow the ParallelCompiler to solve
               # conflicts.
               case :code.ensure_loaded(atom) do
                 { :error, _ } ->
-                  :elixir_aliases.ensure_loaded(caller.line, caller.file, atom, caller.context_modules)
+                  :elixir_aliases.ensure_loaded(caller.line, atom, :elixir_env.ex_to_env(caller))
                 _ ->
-                  raise ArgumentError, message: "cannot use module #{inspect atom} in access protocol because it does not export __record__/1"
+                  raise ArgumentError, message: "cannot access module #{inspect atom} because it is not a record"
               end
           end
 

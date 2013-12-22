@@ -471,7 +471,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_access_protocol_not_record do
-    assert_raise ArgumentError, "cannot use module Kernel.ErrorsTest in access protocol because it does not export __record__/1", fn ->
+    assert_raise ArgumentError, "cannot access module Kernel.ErrorsTest because it is not a record", fn ->
       defmodule ErrorsTest do
         def sample(Kernel.ErrorsTest[integer: 0]), do: true
       end
