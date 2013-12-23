@@ -76,10 +76,10 @@ defmodule URI do
   def encode_query(l), do: Enum.map_join(l, "&", &pair/1)
 
   @doc """
-  Decodes a query string into an orddict.
+  Decodes a query string into a `HashDict`.
 
-  Given a query string of the form "key1=value1&key2=value2...", produces an
-  orddict with one entry for each key-value pair. Each key and value will be a
+  Given a query string of the form "key1=value1&key2=value2...", produces a
+  `HashDict` with one entry for each key-value pair. Each key and value will be a
   binary. Keys and values will be percent-unescaped.
 
   Use `query_decoder/1` if you want to iterate over each value manually.
