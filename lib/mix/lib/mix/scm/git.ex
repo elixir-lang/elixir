@@ -31,6 +31,7 @@ defmodule Mix.SCM.Git do
         File.cd!(opts[:dest], fn ->
           cond do
             lock_repo != opts[:git] -> :outdated
+            lock_repo != get_origin -> :outdated
             lock_opts != get_lock_opts(opts) -> :outdated
             lock_rev  != get_rev -> :mismatch
             true -> :ok
@@ -134,6 +135,12 @@ defmodule Mix.SCM.Git do
 
   defp check_rev(_, _) do
     nil
+  end
+
+  defp get_origin do
+    System.cmd('git config remote.origin.url')
+    |> :string.strip(:right, ?\n)
+    |> iolist_to_binary
   end
 
   defp run_cmd_or_raise(command) do
