@@ -31,9 +31,9 @@ defmodule Mix.SCM.Git do
         File.cd!(opts[:dest], fn ->
           cond do
             lock_repo != opts[:git] -> :outdated
-            lock_repo != get_origin -> :outdated
             lock_opts != get_lock_opts(opts) -> :outdated
             lock_rev  != get_rev -> :mismatch
+            lock_repo != get_origin -> :outdated
             true -> :ok
           end
         end)
