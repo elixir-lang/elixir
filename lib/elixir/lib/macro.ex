@@ -5,8 +5,11 @@ defmodule Macro do
   Conveniences for working with macros.
   """
 
-  @typedoc "Abstract Syntax Tree (AST) node"
-  @type t :: { t, t } | { t, Keyword.t, t } | atom | number | binary | list
+  @typedoc "Abstract Syntax Tree (AST)"
+  @type t :: node | { t, t } | atom | number | binary | [t]
+
+  @typedoc "The AST node (remaining ones are literals)"
+  @type node :: { node | atom, Keyword.t, atom | [t] }
 
   @binary_ops [ :===, :!==,
     :==, :!=, :<=, :>=,
@@ -309,22 +312,22 @@ defmodule Macro do
   end
 
   # Fn keyword
-  def to_string({ :fn, _, [{ :->, _, [{_, _, tuple}] } = arrow] } = ast, fun)
+  def to_string({ :fn, _, [{ :->, _, [_, tuple] }] = arrow } = ast, fun)
       when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
     fun.(ast, "fn " <> arrow_to_string(arrow, fun) <> " end")
   end
 
-  def to_string({ :fn, _, [{ :->, _, [_] } = block] } = ast, fun) do
+  def to_string({ :fn, _, [{ :->, _, _ }] = block } = ast, fun) do
     fun.(ast, "fn " <> block_to_string(block, fun) <> "\nend")
   end
 
-  def to_string({ :fn, _, [block] } = ast, fun) do
+  def to_string({ :fn, _, block } = ast, fun) do
     block = adjust_new_lines block_to_string(block, fun), "\n  "
     fun.(ast, "fn\n  " <> block <> "\nend")
   end
 
   # left -> right
-  def to_string({ :->, _, _ } = ast, fun) do
+  def to_string([{ :->, _, _ }|_] = ast, fun) do
     fun.(ast, "(" <> arrow_to_string(ast, fun, true) <> ")")
   end
 
@@ -442,8 +445,8 @@ defmodule Macro do
     atom_to_binary(key) <> "\n  " <> block <> "\n"
   end
 
-  defp block_to_string({ :->, _, exprs }, fun) do
-    Enum.map_join(exprs, "\n", fn({ left, _, right }) ->
+  defp block_to_string([{ :->, _, _ }|_] = block, fun) do
+    Enum.map_join(block, "\n", fn({ :->, _, [left, right] }) ->
       left = comma_join_or_empty_paren(left, fun, false)
       left <> "->\n  " <> adjust_new_lines block_to_string(right, fun), "\n  "
     end)
@@ -483,8 +486,8 @@ defmodule Macro do
 
   defp op_to_string(expr, fun, _, _), do: to_string(expr, fun)
 
-  defp arrow_to_string({ :->, _, pairs }, fun, paren // false) do
-    Enum.map_join(pairs, "; ", fn({ left, _, right }) ->
+  defp arrow_to_string(pairs, fun, paren // false) do
+    Enum.map_join(pairs, "; ", fn({ :->, _, [left, right] }) ->
       left = comma_join_or_empty_paren(left, fun, paren)
       left <> "-> " <> to_string(right, fun)
     end)
@@ -707,7 +710,9 @@ defmodule Macro do
     { tree, cache }
   end
 
-  @doc false # Used internally by Elixir
+  # TODO: Rewrite this function to use elixir_exp
+  # For such, there is no need for a cache.
+  @doc false
   def expand_all(tree, env, cache) do
     expand_all_until(expand(tree, env, cache), env)
   end

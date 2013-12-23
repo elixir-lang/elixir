@@ -13,15 +13,23 @@ get_pairs(Meta, Key, Clauses, S) ->
 
 get_pairs(Meta, Key, Clauses, S, AllowNil) ->
   case lists:keyfind(Key, 1, Clauses) of
-    { Key, { '->', _, Pairs } } ->
-      [{ Key, PMeta, Left, Right } || { Left, PMeta, Right } <- Pairs];
+    { Key, Pairs } when is_list(Pairs) ->
+      [get_pair(Meta, Key, Pair, S) || Pair <- Pairs];
     { Key, nil } when AllowNil ->
       [];
     { Key, _ } ->
-      elixir_errors:syntax_error(Meta, S#elixir_scope.file, "expected pairs with -> for key ~ts", [Key]);
+      get_pairs_error(Meta, Key, S);
     _ ->
       []
   end.
+
+get_pair(_Meta, Key, { '->', Meta, [Left, Right] }, _S) ->
+  { Key, Meta, Left, Right };
+get_pair(Meta, Key, _Other, S) ->
+  get_pairs_error(Meta, Key, S).
+
+get_pairs_error(Meta, Key, S) ->
+  elixir_errors:compile_error(Meta, S#elixir_scope.file, "expected -> clauses for key ~ts", [Key]).
 
 % Function for translating assigns.
 

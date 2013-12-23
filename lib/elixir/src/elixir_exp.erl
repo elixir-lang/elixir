@@ -203,6 +203,10 @@ expand({ quote, Meta, [_, _] }, E) ->
 
 %% Functions
 
+%% TODO: Remove me. Temporary during refactoring.
+expand({ '&', _, [Arg] } = Original, E) when is_integer(Arg) ->
+  { Original, E };
+
 expand({ '&', Meta, [Arg] }, E) ->
   % assert_no_match_or_guard_scope(Meta, '&', S),
   case elixir_fn:capture(Meta, Arg, E) of

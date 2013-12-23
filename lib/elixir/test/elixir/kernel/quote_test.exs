@@ -112,22 +112,22 @@ defmodule Kernel.QuoteTest do
   end
 
   test :when do
-    assert {:->,_,[{[{:when,_,[1,2,3,4]}],_,5}]} = quote(do: (1, 2, 3 when 4 -> 5))
-    assert {:->,_,[{[{:when,_,[1,2,3,4]}],_,5}]} = quote(do: ((1, 2, 3) when 4 -> 5))
+    assert [{:->,_,[[{:when,_,[1,2,3,4]}],5]}] = quote(do: (1, 2, 3 when 4 -> 5))
+    assert [{:->,_,[[{:when,_,[1,2,3,4]}],5]}] = quote(do: ((1, 2, 3) when 4 -> 5))
 
-    assert {:->,_,[{[{:when,_,[1,2,3,{:when,_,[4,5]}]}],_,6}]} =
+    assert [{:->,_,[[{:when,_,[1,2,3,{:when,_,[4,5]}]}],6]}] =
              quote(do: ((1, 2, 3) when 4 when 5 -> 6))
   end
 
   test :stab do
-    assert { :->, _, [{[], _, _}] } = (quote do -> end)
-    assert { :->, _, [{[], _, _}] } = (quote do: (->))
+    assert [{ :->, _, [[], nil] }] = (quote do -> end)
+    assert [{ :->, _, [[], nil] }] = (quote do: (->))
 
-    assert { :->, _, [{[1], _, _}] } = (quote do 1 -> end)
-    assert { :->, _, [{[1], _, _}] } = (quote do: (1 ->))
+    assert [{ :->, _, [[1], nil] }] = (quote do 1 -> end)
+    assert [{ :->, _, [[1], nil] }] = (quote do: (1 ->))
 
-    assert { :->, _, [{[], _, 1}] } = (quote do -> 1 end)
-    assert { :->, _, [{[], _, 1}] } = (quote do: (-> 1))
+    assert [{ :->, _, [[], 1] }] = (quote do -> 1 end)
+    assert [{ :->, _, [[], 1] }] = (quote do: (-> 1))
   end
 
   test :bind_quoted do

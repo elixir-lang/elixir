@@ -5,7 +5,7 @@
 -include("elixir.hrl").
 
 fn(Meta, Clauses, S) ->
-  Transformer = fun({ ArgsWithGuards, CMeta, Expr }, Acc) ->
+  Transformer = fun({ '->', CMeta, [ArgsWithGuards, Expr] }, Acc) ->
     { Args, Guards } = elixir_clauses:extract_splat_guards(ArgsWithGuards),
     elixir_clauses:assigns_block(?line(CMeta), fun translate_fn_match/2, Args, [Expr], Guards, umergec(S, Acc))
   end,
@@ -24,6 +24,8 @@ fn(Meta, Clauses, S) ->
 translate_fn_match(Arg, S) ->
   { TArg, TS } = elixir_translator:translate(Arg, S#elixir_scope{extra=fn_match}),
   { TArg, TS#elixir_scope{extra=S#elixir_scope.extra} }.
+
+%% Capture
 
 capture(Meta, { '/', _, [{ { '.', _, [_, F] } = Dot, RequireMeta , [] }, A] }, E) when is_atom(F), is_integer(A) ->
   Args = [{ '&', [], [X] } || X <- lists:seq(1, A)],
@@ -97,7 +99,7 @@ do_capture(Meta, Expr, E, Sequential) ->
       invalid_capture(Meta, Expr, E);
     { EExpr, EDict } ->
       EVars = validate(Meta, EDict, 1, E),
-      Fn = { fn, Meta, [{ '->', [], [{ EVars, Meta, EExpr }]}]},
+      Fn = { fn, Meta, [{ '->', Meta, [EVars, EExpr]}]},
       { expanded, Fn, E#elixir_env{macro_counter=E#elixir_env.macro_counter+1} }
   end.
 

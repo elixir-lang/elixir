@@ -243,9 +243,9 @@ translate_each({ '&', Meta, [Arg] }, S) ->
       translate_each(TE, S#elixir_scope{macro_counter=MacroCounter})
   end;
 
-translate_each({ fn, Meta, [{ '->', _, Pairs }] }, S) ->
+translate_each({ fn, Meta, Clauses }, S) ->
   assert_no_match_or_guard_scope(Meta, 'fn', S),
-  elixir_fn:fn(Meta, Pairs, S);
+  elixir_fn:fn(Meta, Clauses, S);
 
 %% Case
 

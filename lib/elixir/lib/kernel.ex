@@ -2173,8 +2173,8 @@ defmodule Kernel do
           "This will"
       end
   """
-  defmacro cond([do: { :->, _, pairs }]) do
-    [{ [condition], meta, clause }|t] = :lists.reverse pairs
+  defmacro cond([do: pairs]) do
+    [{ :->, meta, [[condition], clause] }|t] = :lists.reverse pairs
 
     new_acc =
       case condition do
@@ -2205,22 +2205,20 @@ defmodule Kernel do
   #         end
   #     end
   #
-  defp build_cond_clauses([{ [condition], new, clause }|t], acc, old) do
-    stab = { :->, [], [falsy_clause(old, acc), truthy_clause(new, clause)] }
-    acc  = quote do
-      case unquote(condition), do: unquote(stab)
-    end
+  defp build_cond_clauses([{ :->, new, [[condition], clause] }|t], acc, old) do
+    clauses = [falsy_clause(old, acc), truthy_clause(new, clause)]
+    acc = quote do: (case unquote(condition), do: unquote(clauses))
     build_cond_clauses(t, acc, new)
   end
 
   defp build_cond_clauses([], acc, _), do: acc
 
   defp falsy_clause(meta, acc) do
-    { [quote(do: unquote(cond_var) when unquote(cond_var) in [false, nil])], meta, acc }
+    { :->, meta, [[quote(do: unquote(cond_var) when unquote(cond_var) in [false, nil])], acc] }
   end
 
   defp truthy_clause(meta, clause) do
-    { [quote(do: _)], meta, clause }
+    { :->, meta, [[quote(do: _)], clause] }
   end
 
   # Setting cond: true in metadata turns on a small optimization
