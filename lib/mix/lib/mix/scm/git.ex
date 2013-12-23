@@ -29,11 +29,12 @@ defmodule Mix.SCM.Git do
     case opts[:lock] do
       { :git, lock_repo, lock_rev, lock_opts } ->
         File.cd!(opts[:dest], fn ->
+          rev_info = get_rev_info
           cond do
-            lock_repo != opts[:git] -> :outdated
+            lock_repo != opts[:git]          -> :outdated
             lock_opts != get_lock_opts(opts) -> :outdated
-            lock_rev  != get_rev -> :mismatch
-            lock_repo != get_origin -> :outdated
+            lock_rev  != rev_info[:rev]      -> :mismatch
+            lock_repo != rev_info[:origin]   -> :outdated
             true -> :ok
           end
         end)
@@ -97,7 +98,12 @@ defmodule Mix.SCM.Git do
   end
 
   defp get_lock(opts, fresh) do
-    lock = if fresh, do: get_rev, else: get_lock_rev(opts[:lock])
+    lock = if fresh do
+             rev_info = get_rev_info
+             rev_info[:rev]
+           else
+             get_lock_rev(opts[:lock])
+           end
     { :git, opts[:git], lock, get_lock_opts(opts) }
   end
 
@@ -122,29 +128,11 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  defp get_rev do
-    check_rev System.cmd('git rev-parse --verify --quiet HEAD')
-  end
-
-  defp check_rev([]),   do: nil
-  defp check_rev(list), do: check_rev(list, [])
-
-  defp check_rev([h|t], acc) when h in ?a..?f or h in ?0..?9 do
-    check_rev(t, [h|acc])
-  end
-
-  defp check_rev(fin, acc) when fin == [?\n] or fin == [] do
-    Enum.reverse(acc) |> iolist_to_binary
-  end
-
-  defp check_rev(_, _) do
-    nil
-  end
-
-  defp get_origin do
-    System.cmd('git config remote.origin.url')
-    |> :string.strip(:right, ?\n)
-    |> iolist_to_binary
+  defp get_rev_info do
+    [origin, rev] = System.cmd('git config remote.origin.url && git rev-parse --verify --quiet HEAD')
+                    |> iolist_to_binary
+                    |> String.split("\n", trim: true)
+    [ origin: origin, rev: rev ]
   end
 
   defp update_origin(location) do
