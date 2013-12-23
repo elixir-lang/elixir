@@ -892,14 +892,14 @@ defmodule Stream do
 
   ## Examples
 
-      Stream.resource(fn -> File.open("sample") end,
+      Stream.resource(fn -> File.open!("sample") end,
                       fn file ->
                         case IO.read(file, :line) do
                           data when is_binary(data) -> { data, file }
                           _ -> nil
                         end
                       end,
-                      fn file -> File.close!(file) end)
+                      fn file -> File.close(file) end)
 
   """
   @spec resource((() -> acc), (acc -> { element, acc } | nil), (acc -> term)) :: Enumerable.t
