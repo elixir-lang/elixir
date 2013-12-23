@@ -59,6 +59,10 @@ defmodule Mix.SCM.Git do
 
   def update(opts) do
     File.cd! opts[:dest], fn ->
+      # Ensures origin is set the lock repo
+      location = location(opts[:git])
+      update_origin(location)
+
       command = "git fetch --force --progress"
       if opts[:tag] do
         command = command <> " --tags"
@@ -141,6 +145,10 @@ defmodule Mix.SCM.Git do
     System.cmd('git config remote.origin.url')
     |> :string.strip(:right, ?\n)
     |> iolist_to_binary
+  end
+
+  defp update_origin(location) do
+    System.cmd('git config remote.origin.url #{location}')
   end
 
   defp run_cmd_or_raise(command) do
