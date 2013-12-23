@@ -110,21 +110,21 @@ defmodule Kernel.FnTest do
   end
 
   test "failure on block" do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: invalid args for &, block expressions " <>
       "are not allowed, got: (\n  1\n  2\n)",
       "&(1;2)"
   end
 
   test "failure on other types" do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: invalid args for &, expected an expression in the format of &Mod.fun/arity, " <>
       "&local/arity or a capture containing at least one argument as &1, got: :foo",
       "&:foo"
   end
 
   test "failure when no captures" do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: invalid args for &, expected an expression in the format of &Mod.fun/arity, " <>
       "&local/arity or a capture containing at least one argument as &1, got: foo()",
       "&foo()"

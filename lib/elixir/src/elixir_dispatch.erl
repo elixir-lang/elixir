@@ -4,7 +4,6 @@
 -module(elixir_dispatch).
 -export([default_macros/0, default_functions/0, default_requires/0,
   dispatch_require/6, dispatch_import/5,
-  require_function/5, import_function/4,
   expand_import/5, expand_require/5, format_error/1]).
 -include("elixir.hrl").
 
@@ -17,52 +16,6 @@ default_macros() ->
   [ { ?builtin, elixir_imported_macros() } ].
 default_requires() ->
   [ 'Elixir.Integer', 'Elixir.Kernel', 'Elixir.Kernel.Typespec', 'Elixir.Record' ].
-
-%% Function retrieval
-
-import_function(Meta, Name, Arity, S) ->
-  Tuple = { Name, Arity },
-  case find_dispatch(Meta, Tuple, S) of
-    { function, Receiver } ->
-      elixir_lexical:record_import(Receiver, S#elixir_scope.lexical_tracker),
-      elixir_locals:record_import(Tuple, Receiver, S#elixir_scope.module, S#elixir_scope.function),
-      remote_function(Meta, Receiver, Name, Arity, S);
-    { macro, _Receiver } ->
-      false;
-    { import, Receiver } ->
-      elixir_lexical:record_remote(Receiver, S#elixir_scope.lexical_tracker),
-      require_function(Meta, Receiver, Name, Arity, S);
-    false ->
-      case elixir_import:special_form(Name, Arity) of
-        true  -> false;
-        false ->
-          elixir_locals:record_local(Tuple, S#elixir_scope.module, S#elixir_scope.function),
-          { { 'fun', ?line(Meta), { function, Name, Arity } }, S }
-      end
-  end.
-
-require_function(Meta, Receiver, Name, Arity, S) ->
-  case is_element({ Name, Arity }, get_optional_macros(Receiver)) of
-    true  -> false;
-    false -> remote_function(Meta, Receiver, Name, Arity, S)
-  end.
-
-remote_function(Meta, Receiver, Name, Arity, S) ->
-  Tuple = { Name, Arity },
-
-  Final =
-    case (Receiver == ?builtin) andalso is_element(Tuple, in_erlang_functions()) of
-      true  -> erlang;
-      false -> Receiver
-    end,
-
-  Line = ?line(Meta),
-
-  { { 'fun', Line, { function,
-    { atom, Line, Final },
-    { atom, Line, Name },
-    { integer, Line, Arity}
-  } }, S }.
 
 %% Function dispatch
 
@@ -215,9 +168,6 @@ location(Line, S) ->
 
 skip_require(Meta) ->
   lists:keyfind(require, 1, Meta) == { require, false }.
-
-find_dispatch(Meta, Tuple, S) ->
-  find_dispatch(Meta, Tuple, [], S).
 
 find_dispatch(Meta, Tuple, Extra, S) ->
   case is_import(Meta) of

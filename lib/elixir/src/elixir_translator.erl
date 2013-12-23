@@ -236,7 +236,12 @@ translate_each({ quote, Meta, [_, _] }, S) ->
 
 translate_each({ '&', Meta, [Arg] }, S) ->
   assert_no_match_or_guard_scope(Meta, '&', S),
-  elixir_fn:capture(Meta, Arg, S);
+  case elixir_fn:capture(Meta, Arg, elixir_env:scope_to_env(S)) of
+    { local, Fun, Arity } ->
+      { { 'fun', ?line(Meta), { function, Fun, Arity } }, S };
+    { expanded, TE, #elixir_env{macro_counter=MacroCounter} } ->
+      translate_each(TE, S#elixir_scope{macro_counter=MacroCounter})
+  end;
 
 translate_each({ fn, Meta, [{ '->', _, Pairs }] }, S) ->
   assert_no_match_or_guard_scope(Meta, 'fn', S),

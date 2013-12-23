@@ -201,6 +201,17 @@ expand({ quote, Meta, [KV, Do] }, E) when is_list(Do) ->
 expand({ quote, Meta, [_, _] }, E) ->
   compile_error(Meta, E#elixir_env.file, "invalid args for quote");
 
+%% Functions
+
+expand({ '&', Meta, [Arg] }, E) ->
+  % assert_no_match_or_guard_scope(Meta, '&', S),
+  case elixir_fn:capture(Meta, Arg, E) of
+    { local, Fun, Arity } ->
+      { { '&', Meta, [{ '/', [], [{ Fun, [], nil }, Arity] }] }, E };
+    { expanded, Expr, EE } ->
+      expand(Expr, EE)
+  end;
+
 %% Comprehensions
 
 expand({ Kind, Meta, Args }, E) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
@@ -335,6 +346,7 @@ expand_args(Args, E) ->
 
 %% Match/var helpers
 
+%% TODO: Make the counter the context
 var_kind(Meta, Kind) ->
   case lists:keyfind(counter, 1, Meta) of
     { counter, Counter } -> Counter;

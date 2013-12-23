@@ -2,7 +2,10 @@
 %% This module access the information stored on the scope
 %% by elixir_import and therefore assumes it is normalized (ordsets)
 -module(elixir_exp_dispatch).
--export([find_import/4, dispatch_import/5, dispatch_require/6, format_error/1]).
+-export([find_import/4,
+  dispatch_import/5, dispatch_require/6,
+  require_function/5, import_function/4,
+  format_error/1]).
 -include("elixir.hrl").
 -import(ordsets, [is_element/2]).
 -define(builtin, 'Elixir.Kernel').
@@ -22,6 +25,44 @@ find_import(Meta, Name, Arity, E) ->
     _ ->
       false
   end.
+
+%% Function retrieval
+
+import_function(Meta, Name, Arity, E) ->
+  Tuple = { Name, Arity },
+  case find_dispatch(Meta, Tuple, [], E) of
+    { function, Receiver } ->
+      elixir_lexical:record_import(Receiver, E#elixir_env.lexical_tracker),
+      elixir_locals:record_import(Tuple, Receiver, E#elixir_env.module, E#elixir_env.function),
+      remote_function(Receiver, Name, Arity, E);
+    { macro, _Receiver } ->
+      false;
+    { import, Receiver } ->
+      require_function(Meta, Receiver, Name, Arity, E);
+    false ->
+      case elixir_import:special_form(Name, Arity) of
+        true  -> false;
+        false ->
+          elixir_locals:record_local(Tuple, E#elixir_env.module, E#elixir_env.function),
+          { local, Name, Arity }
+      end
+  end.
+
+require_function(_Meta, Receiver, Name, Arity, E) ->
+  case is_element({ Name, Arity }, get_optional_macros(Receiver)) of
+    true  -> false;
+    false -> remote_function(Receiver, Name, Arity, E)
+  end.
+
+remote_function(Receiver, Name, Arity, E) ->
+  elixir_lexical:record_remote(Receiver, E#elixir_env.lexical_tracker),
+  Tuple = { Name, Arity },
+  Final =
+    case (Receiver == ?builtin) andalso is_element(Tuple, in_erlang_functions()) of
+      true  -> erlang;
+      false -> Receiver
+    end,
+  { remote, Final, Name, Arity }.
 
 %% Dispatches
 

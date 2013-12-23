@@ -223,6 +223,28 @@ defmodule Kernel.ExpansionTest do
            quote do: (bc(a inbits b(), do: c = 1); c())
   end
 
+  ## Capture
+
+  test "&: keeps locals" do
+    assert expand(quote do: &unknown/2) ==
+           {:&, [], [{:/, [], [{:unknown,[],nil}, 2]}]}
+    assert expand(quote do: &unknown(&1, &2)) ==
+           {:&, [], [{:/, [], [{:unknown,[],nil}, 2]}]}
+  end
+
+  test "&: expands remotes" do
+    assert expand(quote do: &List.flatten/2) ==
+           quote do: :erlang.make_fun(:"Elixir.List", :flatten, 2)
+
+    assert expand(quote do: &Kernel.is_atom/1) ==
+           quote do: :erlang.make_fun(:erlang, :is_atom, 1)
+  end
+
+  test "&: expands macros" do
+    assert expand(quote do: &Kernel.ExpansionTarget.seventeen/0) ==
+           quote do: fn -> Kernel.ExpansionTarget.seventeen() end
+  end
+
   ## Invalid
 
   test "handles invalid expressions" do
