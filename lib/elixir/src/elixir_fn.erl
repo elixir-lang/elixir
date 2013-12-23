@@ -1,5 +1,5 @@
 -module(elixir_fn).
--export([fn/3, capture/3]).
+-export([fn/3, capture/3, expand/3]).
 -import(elixir_scope, [umergec/2]).
 -import(elixir_errors, [syntax_error/3, compile_error/4]).
 -include("elixir.hrl").
@@ -24,6 +24,16 @@ fn(Meta, Clauses, S) ->
 translate_fn_match(Arg, S) ->
   { TArg, TS } = elixir_translator:translate(Arg, S#elixir_scope{extra=fn_match}),
   { TArg, TS#elixir_scope{extra=S#elixir_scope.extra} }.
+
+%% Expansion
+
+expand(Meta, Clauses, E) ->
+  Transformer = fun(Clause, Acc) ->
+    { EClause, EC } = elixir_exp_clauses:expand_clause(fun elixir_exp:expand_many/2, Clause, Acc),
+    { EClause, elixir_env:mergec(E, EC) }
+  end,
+  { EClauses, _ } = lists:mapfoldl(Transformer, E, Clauses),
+  { { fn, Meta, EClauses }, E }.
 
 %% Capture
 
@@ -71,8 +81,6 @@ capture(Meta, Arg, E) when is_integer(Arg) ->
 
 capture(Meta, Arg, E) ->
   invalid_capture(Meta, Arg, E).
-
-%% Helpers
 
 capture_import(Meta, { Atom, ImportMeta, Args } = Expr, E, Sequential) ->
   Res = Sequential andalso

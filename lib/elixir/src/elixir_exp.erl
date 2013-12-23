@@ -1,5 +1,5 @@
 -module(elixir_exp).
--export([expand/2]).
+-export([expand/2, expand_many/2]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
 
@@ -206,7 +206,6 @@ expand({ quote, Meta, [_, _] }, E) ->
 %% TODO: Remove me. Temporary during refactoring.
 expand({ '&', _, [Arg] } = Original, E) when is_integer(Arg) ->
   { Original, E };
-
 expand({ '&', Meta, [Arg] }, E) ->
   % assert_no_match_or_guard_scope(Meta, '&', S),
   case elixir_fn:capture(Meta, Arg, E) of
@@ -215,6 +214,10 @@ expand({ '&', Meta, [Arg] }, E) ->
     { expanded, Expr, EE } ->
       expand(Expr, EE)
   end;
+
+expand({ fn, Meta, Pairs }, E) ->
+  % assert_no_match_or_guard_scope(Meta, 'fn', S),
+  elixir_fn:expand(Meta, Pairs, E);
 
 %% Comprehensions
 

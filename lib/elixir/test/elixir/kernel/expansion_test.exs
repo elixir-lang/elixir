@@ -146,10 +146,6 @@ defmodule Kernel.ExpansionTest do
           expand(quote do: a =~ b)
   end
 
-  test "locals: raises on guards" do
-    # TODO
-  end
-
   test "locals: expands to configured local" do
     assert expand_env(quote(do: a), __ENV__.local(Hello)) |> elem(0) ==
            quote(do: :"Elixir.Hello".a())
@@ -241,8 +237,26 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "&: expands macros" do
-    assert expand(quote do: &Kernel.ExpansionTarget.seventeen/0) ==
-           quote do: fn -> Kernel.ExpansionTarget.seventeen() end
+
+    assert expand(quote do: (require Kernel.ExpansionTarget; &Kernel.ExpansionTarget.seventeen/0)) ==
+           quote do: (require :"Elixir.Kernel.ExpansionTarget", []; fn -> 17 end)
+  end
+
+  ## fn
+
+  test "fn: expands each clause" do
+    assert expand(quote do: fn x -> x; _ -> x end) ==
+           quote do: fn x -> x; _ -> x() end
+  end
+
+  test "fn: does not share lexical in between clauses" do
+    assert expand(quote do: fn 1 -> import List; 2 -> flatten([1,2,3]) end) ==
+           quote do: fn 1 -> import :"Elixir.List", []; 2 -> flatten([1,2,3]) end
+  end
+
+  test "fn: expands guards" do
+    assert expand(quote do: fn x when x when __ENV__.context -> true end) ==
+           quote do: fn x when x when :guard -> true end
   end
 
   ## Invalid
