@@ -67,6 +67,11 @@ defmodule Kernel.ExpansionTest do
     assert { :a, __MODULE__ } in env.vars
   end
 
+  test "=: does not carry rhs imports" do
+    assert expand(quote(do: flatten([1,2,3]) = import List)) ==
+           quote(do: flatten([1,2,3]) = import :"Elixir.List", [])
+  end
+
   ## Pseudo vars
 
   test "__MODULE__" do

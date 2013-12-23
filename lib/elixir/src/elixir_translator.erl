@@ -35,6 +35,8 @@ translate(Forms, S) ->
 
 %% Assignment operator
 
+%% TODO: Ensure flatten() = import List does not expand the call
+%% here and in comprehensions
 translate_each({ '=', Meta, [Left, Right] }, S) ->
   assert_no_guard_scope(Meta, '=', S),
   { TRight, SR } = translate_each(Right, S),

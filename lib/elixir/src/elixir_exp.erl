@@ -7,9 +7,9 @@
 
 expand({ '=', Meta, [Left, Right] }, E) ->
   % assert_no_guard_scope(Meta, '=', S),
-  { ERight, ER } = expand(Right, E),
-  { ELeft, EL }  = match(fun expand/2, Left, E, ER),
-  { { '=', Meta, [ELeft, ERight] }, EL };
+  { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, E),
+  { ERight, ER } = expand(Right, EL),
+  { { '=', Meta, [ELeft, ERight] }, ER };
 
 %% Literal operators
 
@@ -335,11 +335,6 @@ expand_args(Args, E) ->
 
 %% Match/var helpers
 
-%% TODO: Merge this var mangling into #elixir_scope
-match(Fun, Expr, #elixir_env{context=Context} = E, NE) ->
-  { EExpr, EE } = Fun(Expr, (elixir_env:mergec(E, NE))#elixir_env{context=match}),
-  { EExpr, (elixir_env:mergev(EE, NE))#elixir_env{context=Context} }.
-
 var_kind(Meta, Kind) ->
   case lists:keyfind(counter, 1, Meta) of
     { counter, Counter } -> Counter;
@@ -449,8 +444,8 @@ expand_comprehension(Meta, Kind, Args, E) ->
   end.
 
 expand_comprehension_clause({Gen, Meta, [Left, Right]}, E) when Gen == inbits; Gen == inlist ->
-  { ERight, ER } = expand(Right, E),
-  { ELeft, EL }  = match(fun expand/2, Left, E, ER),
-  { { Gen, Meta, [ELeft, ERight] }, EL };
+  { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, E),
+  { ERight, ER } = expand(Right, EL),
+  { { Gen, Meta, [ELeft, ERight] }, ER };
 expand_comprehension_clause(X, E) ->
   expand(X, E).

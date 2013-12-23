@@ -84,10 +84,6 @@ defmodule Module.LocalsTracker do
     val
   end
 
-  defp only_tuples(list) do
-    lc x inlist list, is_tuple(x), do: x
-  end
-
   # Internal API
 
   # Starts the tracker and returns its pid.
