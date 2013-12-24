@@ -370,7 +370,7 @@ defmodule Macro do
   # All other calls
   def to_string({ target, _, args } = ast, fun) when is_list(args) do
     { list, last } = :elixir_utils.split_last(args)
-    fun.(ast, case is_kw_blocks?(last) do
+    fun.(ast, case kw_blocks?(last) do
       true  -> call_to_string_with_args(target, list, fun) <> kw_blocks_to_string(last, fun)
       false -> call_to_string_with_args(target, args, fun)
     end)
@@ -400,10 +400,10 @@ defmodule Macro do
   # Block keywords
   @kw_keywords [:do, :catch, :rescue, :after, :else]
 
-  defp is_kw_blocks?([_|_] = kw) do
+  defp kw_blocks?([_|_] = kw) do
     Enum.all?(kw, &match?({x, _} when x in @kw_keywords, &1))
   end
-  defp is_kw_blocks?(_), do: false
+  defp kw_blocks?(_), do: false
 
   defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, raw: true)
   defp module_to_string(other, fun), do: call_to_string(other, fun)

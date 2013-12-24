@@ -63,7 +63,7 @@ defmodule EEx.Compiler do
   defp wrap_expr(current, line, buffer, chars, state) do
     new_lines = List.duplicate(?\n, line - state.line)
 
-    if state.dict == [] and is_empty?(buffer) do
+    if state.dict == [] and empty?(buffer) do
       { current ++ new_lines ++ chars, state }
     else
       key = length(state.dict)
@@ -74,15 +74,15 @@ defmodule EEx.Compiler do
 
   # Check if the syntax node represents an empty string
 
-  defp is_empty?(bin) when is_binary(bin) do
+  defp empty?(bin) when is_binary(bin) do
     bc(<<c>> inbits bin, not c in [?\s, ?\t, ?\r, ?\n], do: <<c>>) == ""
   end
 
-  defp is_empty?({ :<>, _, [left, right] }) do
-    is_empty?(left) and is_empty?(right)
+  defp empty?({ :<>, _, [left, right] }) do
+    empty?(left) and empty?(right)
   end
 
-  defp is_empty?(_) do
+  defp empty?(_) do
     false
   end
 

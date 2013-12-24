@@ -202,7 +202,7 @@ defmodule ExUnit.Case do
 
   @doc false
   def __on_definition__(env, kind, name, args, _guards, _body) do
-    if kind == :def and is_test?(atom_to_list(name)) and length(args) == 1 do
+    if kind == :def and test?(atom_to_list(name)) and length(args) == 1 do
       tags = Module.get_attribute(env.module, :tag)
              |> normalize_tags()
              |> Keyword.put(:line, env.line)
@@ -211,9 +211,9 @@ defmodule ExUnit.Case do
     end
   end
 
-  defp is_test?('test ' ++ _), do: true
-  defp is_test?('test_' ++ _), do: true
-  defp is_test?(_), do: false
+  defp test?('test ' ++ _), do: true
+  defp test?('test_' ++ _), do: true
+  defp test?(_), do: false
 
   defp normalize_tags(tags) do
     Enum.reduce tags, [], fn

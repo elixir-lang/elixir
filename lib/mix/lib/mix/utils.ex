@@ -356,9 +356,9 @@ defmodule Mix.Utils do
   """
   def read_path!(path) do
     cond do
-      is_url?(path)  -> read_url(path)
-      is_file?(path) -> read_file(path)
-      :else          -> raise Mix.Error, message: "Expected #{path} to be a url or a local file path"
+      url?(path)  -> read_url(path)
+      file?(path) -> read_file(path)
+      :else       -> raise Mix.Error, message: "Expected #{path} to be a url or a local file path"
     end
   end
 
@@ -383,11 +383,11 @@ defmodule Mix.Utils do
     end
   end
 
-  defp is_file?(path) do
+  defp file?(path) do
     File.regular?(path)
   end
 
-  defp is_url?(path) do
+  defp url?(path) do
     URI.parse(path).scheme in ["http", "https"]
   end
 end
