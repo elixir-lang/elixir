@@ -76,7 +76,7 @@ expand({ alias, Meta, [Ref, KV] }, E) ->
         expand_alias(Meta, true, ERef, EKV, ET) };
     true ->
       compile_error(Meta, E#elixir_env.file,
-        "invalid args for alias, expected a compile time atom or alias as argument")
+        "invalid arguments for alias, expected a compile time atom or alias as argument")
   end;
 
 expand({ require, Meta, [Ref] }, E) ->
@@ -94,7 +94,7 @@ expand({ require, Meta, [Ref, KV] }, E) ->
         expand_require(Meta, ERef, EKV, ET) };
     true ->
       compile_error(Meta, E#elixir_env.file,
-        "invalid args for require, expected a compile time atom or alias as argument")
+        "invalid arguments for require, expected a compile time atom or alias as argument")
   end;
 
 expand({ import, Meta, [Left] }, E) ->
@@ -144,7 +144,7 @@ expand({ quote, Meta, [Opts] }, E) when is_list(Opts) ->
   end;
 
 expand({ quote, Meta, [_] }, E) ->
-  compile_error(Meta, E#elixir_env.file, "invalid args for quote");
+  compile_error(Meta, E#elixir_env.file, "invalid arguments for quote");
 
 expand({ quote, Meta, [KV, Do] }, E) when is_list(Do) ->
   Exprs =
@@ -199,7 +199,7 @@ expand({ quote, Meta, [KV, Do] }, E) when is_list(Do) ->
   expand(Quoted, ET);
 
 expand({ quote, Meta, [_, _] }, E) ->
-  compile_error(Meta, E#elixir_env.file, "invalid args for quote");
+  compile_error(Meta, E#elixir_env.file, "invalid arguments for quote");
 
 %% Functions
 
@@ -216,8 +216,16 @@ expand({ '&', Meta, [Arg] }, E) ->
   end;
 
 expand({ fn, Meta, Pairs }, E) ->
-  % assert_no_match_or_guard_scope(Meta, 'fn', S),
+  % assert_no_match_or_guard_scope(Meta, fn, S),
   elixir_fn:expand(Meta, Pairs, E);
+
+%% Case
+
+expand({'case', Meta, [Expr, KV]}, E) when is_list(KV) ->
+  % assert_no_match_or_guard_scope(Meta, 'case', E),
+  { EExpr, EE } = expand(Expr, E),
+  { EClauses, EC } = elixir_exp_clauses:expand_case(Meta, KV, EE),
+  { { 'case', Meta, [EExpr, EClauses] }, EC };
 
 %% Comprehensions
 
@@ -237,7 +245,7 @@ expand({ '^', Meta, [Arg] }, #elixir_env{context=match} = E) ->
     { { Name, _, Kind } = EArg, EA } when is_atom(Name), is_atom(Kind) ->
       { { '^', Meta, [EArg] }, EA };
     _ ->
-    Msg = "invalid args for unary operator ^, expected an existing variable, got ^~ts",
+    Msg = "invalid argument for unary operator ^, expected an existing variable, got ^~ts",
     compile_error(Meta, E#elixir_env.file, Msg, ['Elixir.Macro':to_string(Arg)])
   end;
 expand({ '^', Meta, [Arg] }, E) ->

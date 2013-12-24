@@ -134,7 +134,7 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "^: raises without var" do
-    assert_raise CompileError, %r"invalid args for unary operator \^, expected an existing variable, got \^1", fn ->
+    assert_raise CompileError, %r"invalid argument for unary operator \^, expected an existing variable, got \^1", fn ->
       expand(quote do: ^1 = 1)
     end
   end
@@ -257,6 +257,33 @@ defmodule Kernel.ExpansionTest do
   test "fn: expands guards" do
     assert expand(quote do: fn x when x when __ENV__.context -> true end) ==
            quote do: fn x when x when :guard -> true end
+  end
+
+  test "fn: does not leak vars" do
+    assert expand(quote do: (fn x -> x end; x)) ==
+           quote do: (fn x -> x end; x())
+  end
+
+  ## Case
+
+  test "case: expands each clause" do
+    assert expand(quote do: (case w do x -> x; _ -> x end)) ==
+           quote do: (case w() do x -> x; _ -> x() end)
+  end
+
+  test "case: does not share lexical in between clauses" do
+    assert expand(quote do: (case w do 1 -> import List; 2 -> flatten([1,2,3]) end)) ==
+           quote do: (case w() do 1 -> import :"Elixir.List", []; 2 -> flatten([1,2,3]) end)
+  end
+
+  test "case: expands guards" do
+    assert expand(quote do: (case w do x when x when __ENV__.context -> true end)) ==
+           quote do: (case w() do x when x when :guard -> true end)
+  end
+
+  test "case: leaks vars" do
+    assert expand(quote do: (case w do x -> x; y -> y end; :erlang.+(x, y))) ==
+           quote do: (case w() do x -> x; y -> y end; :erlang.+(x, y))
   end
 
   ## Invalid
