@@ -286,6 +286,33 @@ defmodule Kernel.ExpansionTest do
            quote do: (case w() do x -> x; y -> y end; :erlang.+(x, y))
   end
 
+  ## Receive
+
+  test "receive: expands each clause" do
+    assert expand(quote do: (receive do x -> x; _ -> x end)) ==
+           quote do: (receive do x -> x; _ -> x() end)
+  end
+
+  test "receive: does not share lexical in between clauses" do
+    assert expand(quote do: (receive do 1 -> import List; 2 -> flatten([1,2,3]) end)) ==
+           quote do: (receive do 1 -> import :"Elixir.List", []; 2 -> flatten([1,2,3]) end)
+  end
+
+  test "receive: expands guards" do
+    assert expand(quote do: (receive do x when x when __ENV__.context -> true end)) ==
+           quote do: (receive do x when x when :guard -> true end)
+  end
+
+  test "receive: leaks vars" do
+    assert expand(quote do: (receive do x -> x; y -> y end; :erlang.+(x, y))) ==
+           quote do: (receive do x -> x; y -> y end; :erlang.+(x, y))
+  end
+
+  test "receive: does not leak var on after" do
+    assert expand(quote do: (receive do x -> x after y -> y; w = y end; :erlang.+(x, w))) ==
+           quote do: (receive do x -> x after y() -> y(); w = y() end; :erlang.+(x, w))
+  end
+
   ## Invalid
 
   test "handles invalid expressions" do

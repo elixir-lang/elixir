@@ -219,13 +219,18 @@ expand({ fn, Meta, Pairs }, E) ->
   % assert_no_match_or_guard_scope(Meta, fn, S),
   elixir_fn:expand(Meta, Pairs, E);
 
-%% Case
+%% Case/Receive/Try
 
-expand({'case', Meta, [Expr, KV]}, E) when is_list(KV) ->
+expand({'case', Meta, [Expr, KV]}, E) ->
   % assert_no_match_or_guard_scope(Meta, 'case', E),
   { EExpr, EE } = expand(Expr, E),
-  { EClauses, EC } = elixir_exp_clauses:expand_case(Meta, KV, EE),
+  { EClauses, EC } = elixir_exp_clauses:'case'(Meta, KV, EE),
   { { 'case', Meta, [EExpr, EClauses] }, EC };
+
+expand({'receive', Meta, [KV]}, E) ->
+  % assert_no_match_or_guard_scope(Meta, 'receive', E),
+  { EClauses, EC } = elixir_exp_clauses:'receive'(Meta, KV, E),
+  { { 'receive', Meta, [EClauses] }, EC };
 
 %% Comprehensions
 

@@ -30,7 +30,7 @@ translate_fn_match(Arg, S) ->
 expand(Meta, Clauses, E) when is_list(Clauses) ->
   Transformer = fun(Clause, Acc) ->
     { EClause, EC } =
-      elixir_exp_clauses:expand_clause(Meta, fn, fun elixir_exp:expand_many/2, Clause, Acc),
+      elixir_exp_clauses:clause(Meta, fn, fun elixir_exp:expand_many/2, Clause, Acc),
     { EClause, elixir_env:mergec(E, EC) }
   end,
   { EClauses, _ } = lists:mapfoldl(Transformer, E, Clauses),
