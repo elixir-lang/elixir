@@ -313,6 +313,33 @@ defmodule Kernel.ExpansionTest do
            quote do: (receive do x -> x after y() -> y(); w = y() end; :erlang.+(x, w))
   end
 
+  ## Try
+
+  test "try: expands do" do
+    assert expand(quote do: (try do x = y end; x)) ==
+           quote do: (try do x = y() end; x())
+  end
+
+  test "try: expands catch" do
+    assert expand(quote do: (try do x catch x, y -> z = :erlang.+(x, y) end; z)) ==
+           quote do: (try do x() catch x, y -> z = :erlang.+(x, y) end; z())
+  end
+
+  test "try: expands after" do
+    assert expand(quote do: (try do x after z = y end; z)) ==
+           quote do: (try do x() after z = y() end; z())
+  end
+
+  test "try: expands else" do
+    assert expand(quote do: (try do x else z -> z end; z)) ==
+           quote do: (try do x() else z -> z end; z())
+  end
+
+  test "try: expands rescue" do
+    assert expand(quote do: (try do x rescue x -> x; Error -> x end; x)) ==
+           quote do: (try do x() rescue unquote(:in)(x, _) -> x; unquote(:in)(_, [:"Elixir.Error"]) -> x() end; x())
+  end
+
   ## Invalid
 
   test "handles invalid expressions" do

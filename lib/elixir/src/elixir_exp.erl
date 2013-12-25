@@ -232,6 +232,11 @@ expand({'receive', Meta, [KV]}, E) ->
   { EClauses, EC } = elixir_exp_clauses:'receive'(Meta, KV, E),
   { { 'receive', Meta, [EClauses] }, EC };
 
+expand({'try', Meta, [KV]}, E) ->
+  % assert_no_match_or_guard_scope(Meta, 'try', E),
+  { EClauses, EC } = elixir_exp_clauses:'try'(Meta, KV, E),
+  { { 'try', Meta, [EClauses] }, EC };
+
 %% Comprehensions
 
 expand({ Kind, Meta, Args }, E) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
