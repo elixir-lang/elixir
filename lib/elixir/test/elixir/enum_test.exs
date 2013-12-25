@@ -176,7 +176,7 @@ defmodule EnumTest.List do
 
     assert Enum.reduce([1, 2, 3], fn(x, acc) -> x + acc end) == 6
     assert_raise Enum.EmptyError, fn ->
-      assert Enum.reduce([], fn(x, acc) -> x + acc end)
+      Enum.reduce([], fn(x, acc) -> x + acc end)
     end
   end
 
@@ -327,7 +327,7 @@ defmodule EnumTest.List do
     assert Enum.max([1, 2, 3]) == 3
     assert Enum.max([1, [], :a, {}]) == []
     assert_raise Enum.EmptyError, fn ->
-      assert Enum.max([])
+      Enum.max([])
     end
   end
 
@@ -343,7 +343,7 @@ defmodule EnumTest.List do
     assert Enum.min([1, 2, 3]) == 1
     assert Enum.min([[], :a, {}]) == :a
     assert_raise Enum.EmptyError, fn ->
-      assert Enum.min([])
+      Enum.min([])
     end
   end
 
@@ -442,15 +442,15 @@ defmodule EnumTest.Range do
     assert Enum.fetch!(-2..-6, 4) == -6
 
     assert_raise Enum.OutOfBoundsError, fn ->
-      assert Enum.fetch!(2..6, 8)
+      Enum.fetch!(2..6, 8)
     end
 
     assert_raise Enum.OutOfBoundsError, fn ->
-      assert Enum.fetch!(-2..-6, 8)
+      Enum.fetch!(-2..-6, 8)
     end
 
     assert_raise Enum.OutOfBoundsError, fn ->
-      assert Enum.fetch!(2..6, -8)
+      Enum.fetch!(2..6, -8)
     end
   end
 

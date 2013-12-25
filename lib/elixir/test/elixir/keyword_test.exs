@@ -113,7 +113,7 @@ defmodule KeywordTest do
   test :update do
     assert Keyword.update!([a: 1], :a, &(&1 * 2)) == [a: 2]
     assert_raise KeyError, fn ->
-      assert Keyword.update!([a: 1], :b, &(&1 * 2))
+      Keyword.update!([a: 1], :b, &(&1 * 2))
     end
   end
 
