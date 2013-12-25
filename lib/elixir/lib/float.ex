@@ -22,6 +22,15 @@ defmodule Float do
 
   """
   @spec parse(binary) :: { float, binary } | :error
+
+  # Integer.parse will parse "-0" as 0, so it needs to be handled separately
+  def parse(<< "-0.", rest :: binary >>) do
+    case parse(<< ?., rest :: binary >>, 0) do
+      :error -> :error
+      { parsed, remainder } -> { -parsed, remainder }
+    end
+  end
+
   def parse(binary) when is_binary(binary) do
     case Integer.parse binary do
       :error -> :error

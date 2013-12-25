@@ -6,6 +6,7 @@ defmodule FloatTest do
   test :parse do
     assert Float.parse("12") === {12.0, ""}
     assert Float.parse("-12") === {-12.0, ""}
+    assert Float.parse("-0.1") === {-0.1, ""}
     assert Float.parse("123456789") === {123456789.0, ""}
     assert Float.parse("12.5") === {12.5, ""}
     assert Float.parse("12.524235") === {12.524235, ""}
