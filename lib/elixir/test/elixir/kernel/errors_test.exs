@@ -17,6 +17,12 @@ defmodule Kernel.ErrorsTest do
       '\end\nlol\nbarbecue'
   end
 
+  test :invalid_or_reserved_codepoint do
+    assert_compile_fail ArgumentError,
+      "invalid or reserved unicode codepoint 55296",
+      '?\\x{D800}'
+  end
+
   test :sigil_terminator do
     assert_compile_fail TokenMissingError,
       "nofile:3: missing terminator: \" (for sigil %r\" starting at line 1)",
