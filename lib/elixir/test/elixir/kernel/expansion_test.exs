@@ -92,7 +92,7 @@ defmodule Kernel.ExpansionTest do
 
   test "__ENV__" do
     env = __ENV__
-    assert expand_env(quote(do: __ENV__), env) == { env, env }
+    assert expand_env(quote(do: __ENV__), env) == { env.line(0), env }
   end
 
   test "__ENV__.accessor" do
@@ -338,6 +338,17 @@ defmodule Kernel.ExpansionTest do
   test "try: expands rescue" do
     assert expand(quote do: (try do x rescue x -> x; Error -> x end; x)) ==
            quote do: (try do x() rescue unquote(:in)(x, _) -> x; unquote(:in)(_, [:"Elixir.Error"]) -> x() end; x())
+  end
+
+  ## Binaries
+
+  test "bitstrings: expands modifiers" do
+    assert expand(quote do: (import Kernel.ExpansionTarget; << x :: seventeen >>)) ==
+           quote do: (import :"Elixir.Kernel.ExpansionTarget", []; << x() :: [unquote(:size)(17)] >>)
+
+    assert expand(quote do: (import Kernel.ExpansionTarget; << seventeen :: seventeen, x :: size(seventeen) >> = 1)) ==
+           quote do: (import :"Elixir.Kernel.ExpansionTarget", [];
+                      << seventeen :: [unquote(:size)(17)], x :: [unquote(:size)(seventeen)] >> = 1)
   end
 
   ## Invalid

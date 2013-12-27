@@ -166,7 +166,7 @@ expand_require(Meta, Receiver, { Name, Arity } = Tuple, Args, E) ->
 
 expand_macro_fun(Meta, Fun, Receiver, Name, Args, E) ->
   Line = ?line(Meta),
-  EArg = #elixir_env{line=Line},
+  EArg = E#elixir_env{line=Line},
 
   try
     apply(Fun, [EArg|Args])

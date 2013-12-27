@@ -1,5 +1,5 @@
 -module(elixir_exp).
--export([expand/2, expand_many/2]).
+-export([expand/2, expand_many/2, expand_args/2, expand_arg/2]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
 
@@ -16,6 +16,9 @@ expand({ '=', Meta, [Left, Right] }, E) ->
 expand({ '{}', Meta, Args }, E) ->
   { EArgs, EA } = expand_args(Args, E),
   { { '{}', Meta, EArgs }, EA };
+
+expand({ '<<>>', Meta, Args }, E) ->
+  elixir_literal:expand_bitstr(Meta, Args, E);
 
 %% Other operators
 
@@ -125,10 +128,10 @@ expand({ '__DIR__', _, Atom }, E) when is_atom(Atom) ->
   { filename:dirname(E#elixir_env.file), E };
 expand({ '__CALLER__', _, Atom } = Caller, E) when is_atom(Atom) ->
   { Caller, E };
-expand({ '__ENV__', _, Atom }, E) when is_atom(Atom) ->
-  { elixir_env:env_to_ex(E), E };
-expand({ { '.', _, [{ '__ENV__', _, Atom }, Field] }, _, [] }, E) when is_atom(Atom), is_atom(Field) ->
-  { (elixir_env:env_to_ex(E)):Field(), E };
+expand({ '__ENV__', Meta, Atom }, E) when is_atom(Atom) ->
+  { elixir_env:env_to_ex(Meta, E), E };
+expand({ { '.', _, [{ '__ENV__', Meta, Atom }, Field] }, _, [] }, E) when is_atom(Atom), is_atom(Field) ->
+  { (elixir_env:env_to_ex(Meta, E)):Field(), E };
 
 %% Quote
 
@@ -335,12 +338,25 @@ expand({ Left, Right }, E) ->
   { { ELeft, ERight }, EE };
 
 expand(List, E) when is_list(List) ->
-  expand_args(List, E);
+  expand_list(List, E, E, []);
+
+expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
+  { Other, E };
 
 expand(Other, E) ->
-  { Other, E }.
+  elixir_errors:compile_error([{line,0}], E#elixir_env.file,
+    "invalid quoted expression ~ts", ['Elixir.Kernel':inspect(Other)]).
 
 %% Helpers
+
+expand_list([{ '|', Meta, [_, _] = Args }], Acc1, Acc2, List) ->
+  { EArgs, { EAcc1, EAcc2 } } = lists:mapfoldl(fun expand_arg/2, { Acc1, Acc2 }, Args),
+  expand_list([], EAcc1, EAcc2, [{ '|', Meta, EArgs }|List]);
+expand_list([H|T], Acc1, Acc2, List) ->
+  { EArg, EAcc } = expand(H, Acc1),
+  expand_list(T, elixir_env:mergea(Acc1, EAcc), elixir_env:mergev(Acc2, EAcc), [EArg|List]);
+expand_list([], EC, EV, List) ->
+  { lists:reverse(List), elixir_env:mergea(EV, EC) }.
 
 expand_many(Args, E) ->
   lists:mapfoldl(fun expand/2, E, Args).
@@ -359,9 +375,9 @@ expand_many(Args, E) ->
 %%
 %% However, notice that if we are doing an assignment,
 %% it behaves as regular expansion.
-expand_arg(Arg, { Acc, E }) ->
-  { TArg, TAcc } = expand(Arg, Acc),
-  { TArg, { elixir_env:mergea(Acc, TAcc), elixir_env:mergev(E, TAcc) } }.
+expand_arg(Arg, { Acc1, Acc2 }) ->
+  { EArg, EAcc } = expand(Arg, Acc1),
+  { EArg, { elixir_env:mergea(Acc1, EAcc), elixir_env:mergev(Acc2, EAcc) } }.
 
 expand_args(Args, #elixir_env{context=match} = E) ->
   lists:mapfoldl(fun expand/2, E, Args);

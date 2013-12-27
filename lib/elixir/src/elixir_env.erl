@@ -1,13 +1,13 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([ex_to_env/1, env_to_scope/1, env_to_scope_with_vars/2,
-         ex_to_scope/1, scope_to_ex/1, env_to_ex/1, scope_to_env/1]).
+         ex_to_scope/1, scope_to_ex/1, env_to_ex/2, scope_to_env/1]).
 -export([mergea/2, mergev/2, mergec/2]).
 
 %% Conversion in between #elixir_env, #elixir_scope and Macro.Env
 
-env_to_ex(#elixir_env{} = Env) ->
-  erlang:setelement(1, Env, 'Elixir.Macro.Env').
+env_to_ex(Meta, #elixir_env{} = Env) ->
+  erlang:setelement(1, Env#elixir_env{line=?line(Meta)}, 'Elixir.Macro.Env').
 
 ex_to_env(Env) when element(1, Env) == 'Elixir.Macro.Env' ->
   erlang:setelement(1, Env, elixir_env).
@@ -30,7 +30,7 @@ env_to_scope_with_vars(#elixir_env{} = Env, Vars) ->
   }.
 
 scope_to_ex(#elixir_env{} = E) ->
-  env_to_ex(E);
+  erlang:setelement(1, E, 'Elixir.Macro.Env');
 scope_to_ex({ Line, #elixir_scope{module=Module,file=File,
     function=Function,aliases=Aliases,context=Context,
     requires=Requires,macros=Macros,functions=Functions,
