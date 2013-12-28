@@ -6,21 +6,21 @@ defmodule IEx.ANSIDocs do
   @doc """
   Prints the head of the documentation (i.e. the function signature)
   """
-  def print_heading(string, use_ansi // IO.ANSI.terminal?) do
+  def print_heading(string, use_ansi // IO.ANSI.terminal?, colors // IEx.Options.get(:colors)) do
     if use_ansi do
-      write_doc_heading(string)
+      write_doc_heading(string, colors)
     else
       IO.puts "* #{string}\n"
     end
     IEx.dont_display_result
   end
 
-  defp write_doc_heading(heading) do
+  defp write_doc_heading(heading, colors) do
     IO.puts IO.ANSI.reset
     width   = column_width()
     padding = div(width + String.length(heading), 2)
     heading = heading |> String.rjust(padding) |> String.ljust(width)
-    write(:doc_title, heading)
+    write(:doc_title, heading, colors)
   end
 
   @doc """
@@ -202,9 +202,13 @@ defmodule IEx.ANSIDocs do
 
   ## Helpers
 
-  defp write(style, string) do
-    IO.puts IEx.color(style, string)
-    IO.puts IO.ANSI.reset
+  defp write(style, string, colors // IEx.Options.get(:colors)) do
+    color =  colors[style]
+    enabled = colors[:enabled]
+    seq_color = IO.ANSI.escape_fragment("%{#{color}}", enabled)
+    seq_reset = IO.ANSI.escape_fragment("%{reset}", enabled)
+    IO.puts seq_color <> string <> seq_reset
+    IO.puts seq_reset
   end
 
   defp write_with_wrap([], _available, _indent, _first) do
