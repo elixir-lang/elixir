@@ -41,17 +41,17 @@ defmodule IEx.ANSIDocs do
   defp process([], _indent, _colors), do: nil
 
   defp process(["# " <> heading | rest], _indent, colors) do
-    write_h1(String.strip(heading))
+    write_h1(String.strip(heading), colors)
     process(rest, "", colors)
   end
 
   defp process(["## " <> heading | rest], _indent, colors) do
-    write_h2(String.strip(heading))
+    write_h2(String.strip(heading), colors)
     process(rest, "", colors)
   end
 
   defp process(["### " <> heading | rest], indent, colors) do
-    write_h3(String.strip(heading), indent)
+    write_h3(String.strip(heading), indent, colors)
     process(rest, indent, colors)
   end
 
@@ -83,17 +83,17 @@ defmodule IEx.ANSIDocs do
 
   ## Headings
 
-  defp write_h1(heading) do
-    write_h2(String.upcase(heading))
+  defp write_h1(heading, colors) do
+    write_h2(String.upcase(heading), colors)
   end
 
-  defp write_h2(heading) do
-    write(:doc_headings, heading)
+  defp write_h2(heading, colors) do
+    write(:doc_headings, heading, colors)
   end
 
-  defp write_h3(heading, indent) do
+  defp write_h3(heading, indent, colors) do
     IO.write(indent)
-    write(:doc_headings, heading)
+    write(:doc_headings, heading, colors)
   end
 
   ## Lists
