@@ -26,50 +26,50 @@ defmodule IEx.ANSIDocs do
   @doc """
   Prints the documentation body.
   """
-  def print(doc, use_ansi // IO.ANSI.terminal?) do
+  def print(doc, use_ansi // IO.ANSI.terminal?, colors // IEx.Options.get(:colors)) do
     if use_ansi do
       doc
       |> String.split(["\r\n","\n"], trim: false)
       |> Enum.map(&String.rstrip/1)
-      |> process("")
+      |> process("", colors)
     else
       IO.puts doc
     end
     IEx.dont_display_result
   end
 
-  defp process([], _indent), do: nil
+  defp process([], _indent, _colors), do: nil
 
-  defp process(["# " <> heading | rest], _indent) do
+  defp process(["# " <> heading | rest], _indent, colors) do
     write_h1(String.strip(heading))
-    process(rest, "")
+    process(rest, "", colors)
   end
 
-  defp process(["## " <> heading | rest], _indent) do
+  defp process(["## " <> heading | rest], _indent, colors) do
     write_h2(String.strip(heading))
-    process(rest, "")
+    process(rest, "", colors)
   end
 
-  defp process(["### " <> heading | rest], indent) do
+  defp process(["### " <> heading | rest], indent, colors) do
     write_h3(String.strip(heading), indent)
-    process(rest, indent)
+    process(rest, indent, colors)
   end
 
-  defp process(["" | rest], indent) do
-    process(rest, indent)
+  defp process(["" | rest], indent, colors) do
+    process(rest, indent, colors)
   end
 
-  defp process(["    " <> line | rest], indent) do
-    process_code(rest, [line], indent)
+  defp process(["    " <> line | rest], indent, colors) do
+    process_code(rest, [line], indent, colors)
   end
 
-  defp process([line | rest], indent) do
+  defp process([line | rest], indent, colors) do
     { stripped, count } = strip_spaces(line, 0)
     case stripped do
       <<bullet, ?\s, item :: binary >> when bullet in @bullets ->
-        process_list(item, rest, count, indent)
+        process_list(item, rest, count, indent, colors)
       _ ->
-        process_text(rest, [line], indent, false)
+        process_text(rest, [line], indent, false, colors)
     end
   end
 
@@ -98,12 +98,12 @@ defmodule IEx.ANSIDocs do
 
   ## Lists
 
-  defp process_list(line, rest, count, indent) do
+  defp process_list(line, rest, count, indent, colors) do
     IO.write indent <> "• "
     { contents, rest, done } = process_list_next(rest, count, false, [])
-    process_text(contents, [line], indent <> "  ", true)
+    process_text(contents, [line], indent <> "  ", true, colors)
     if done, do: IO.puts(IO.ANSI.reset)
-    process(rest, indent)
+    process(rest, indent, colors)
   end
 
   # Process the thing after a list item entry. It can be either:
@@ -141,28 +141,28 @@ defmodule IEx.ANSIDocs do
 
   ## Text (paragraphs / lists)
 
-  defp process_text(doc=["" | _], para, indent, from_list) do
+  defp process_text(doc=["" | _], para, indent, from_list, colors) do
     write_text(Enum.reverse(para), indent, from_list)
-    process(doc, indent)
+    process(doc, indent, colors)
   end
 
-  defp process_text([], para, indent, from_list) do
+  defp process_text([], para, indent, from_list, _colors) do
     write_text(Enum.reverse(para), indent, from_list)
   end
 
-  defp process_text([line | rest], para, indent, true) do
+  defp process_text([line | rest], para, indent, true, colors) do
     { stripped, count } = strip_spaces(line, 0)
     case stripped do
       <<bullet, ?\s, item :: binary>> when bullet in @bullets ->
         write_text(Enum.reverse(para), indent, true)
-        process_list(item, rest, count, indent)
+        process_list(item, rest, count, indent, colors)
       _ ->
-        process_text(rest, [line | para], indent, true)
+        process_text(rest, [line | para], indent, true, colors)
     end
   end
 
-  defp process_text([line | rest], para, indent, from_list) do
-    process_text(rest, [line | para], indent, from_list)
+  defp process_text([line | rest], para, indent, from_list, colors) do
+    process_text(rest, [line | para], indent, from_list, colors)
   end
 
   defp write_text(lines, indent, from_list) do
@@ -178,22 +178,22 @@ defmodule IEx.ANSIDocs do
 
   ## Code blocks
 
-  defp process_code([], code, indent) do
+  defp process_code([], code, indent, _colors) do
     write_code(code, indent)
   end
 
   # Blank line between code blocks
-  defp process_code([ "", "    " <> line | rest ], code, indent) do
-    process_code(rest, [line, "" | code], indent)
+  defp process_code([ "", "    " <> line | rest ], code, indent, colors) do
+    process_code(rest, [line, "" | code], indent, colors)
   end
 
-  defp process_code([ "    " <> line | rest ], code, indent) do
-    process_code(rest, [line|code], indent)
+  defp process_code([ "    " <> line | rest ], code, indent, colors) do
+    process_code(rest, [line|code], indent, colors)
   end
 
-  defp process_code(rest, code, indent) do
+  defp process_code(rest, code, indent, colors) do
     write_code(code, indent)
-    process(rest, indent)
+    process(rest, indent, colors)
   end
 
   defp write_code(code, indent) do
