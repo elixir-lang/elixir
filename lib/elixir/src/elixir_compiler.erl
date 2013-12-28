@@ -1,6 +1,6 @@
 -module(elixir_compiler).
 -export([get_opt/1, string/2, quoted/2, file/1, file_to_path/2]).
--export([core/0, module/4, eval_forms/4, format_error/1]).
+-export([core/0, module/4, eval_forms/3, format_error/1]).
 -include("elixir.hrl").
 
 %% Public API
@@ -25,8 +25,8 @@ quoted(Forms, File) when is_binary(File) ->
     put(elixir_compiled, []),
     elixir_lexical:run(File, fun
       (Pid) ->
-        Scope = elixir:scope_for_eval([{file,File}]),
-        eval_forms(Forms, 1, [], Scope#elixir_scope{lexical_tracker=Pid})
+        Env = elixir:env_for_eval([{line,1},{file,File}]),
+        eval_forms(Forms, [], Env#elixir_env{lexical_tracker=Pid})
     end),
     lists:reverse(get(elixir_compiled))
   after
@@ -45,23 +45,28 @@ file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
 
 %% Evaluation
 
-eval_forms(Forms, Line, Vars, S) ->
-  case (S#elixir_scope.module == nil) andalso allows_fast_compilation(Forms) of
-    true  -> eval_compilation(Forms, Vars, S);
-    false -> code_loading_compilation(Forms, Line, Vars, S)
+eval_forms(Forms, Vars, E) ->
+  case (E#elixir_env.module == nil) andalso allows_fast_compilation(Forms) of
+    true  -> eval_compilation(Forms, Vars, E);
+    false -> code_loading_compilation(Forms, Vars, E)
   end.
 
-eval_compilation(Forms, Vars, S) ->
-  { Result, _Binding, FS } = elixir:eval_forms(Forms, Vars, S),
+eval_compilation(Forms, Vars, E) ->
+  Binding = [{ Key, Value } || { _Name, _Kind, Key, Value } <- Vars],
+  S = elixir_env:env_to_scope_with_vars(E, []),
+  { Result, _Binding, FS } = elixir:eval_forms(Forms, Binding, S),
   { Result, FS }.
 
-code_loading_compilation(Forms, Line, Vars, S) ->
+code_loading_compilation(Forms, Vars, #elixir_env{line=Line} = E) ->
+  Dict = [{ { Name, Kind }, Value } || { Name, Kind, Value, _ } <- Vars],
+  S = elixir_env:env_to_scope_with_vars(E, Dict),
+
   { Module, I } = retrieve_module_name(),
-  { Expr, FS }  = elixir_translator:translate_each(Forms, S),
+  { Expr, _ }  = elixir_translator:translate_each(Forms, S),
 
   Fun  = code_fun(S#elixir_scope.module),
   Form = code_mod(Fun, Expr, Line, S#elixir_scope.file, Module, Vars),
-  Args = list_to_tuple([V || { _, V } <- Vars]),
+  Args = list_to_tuple([V || { _, _, _, V } <- Vars]),
 
   %% Pass { native, false } to speed up bootstrap
   %% process when native is set to true
@@ -74,10 +79,10 @@ code_loading_compilation(Forms, Line, Vars, S) ->
         { ok, { _, [{ labeled_locals, []}] } } -> true;
         _ -> false
       end,
-    dispatch_loaded(Module, Fun, Args, Purgeable, I, FS)
+    dispatch_loaded(Module, Fun, Args, Purgeable, I, E)
   end).
 
-dispatch_loaded(Module, Fun, Args, Purgeable, I, S) ->
+dispatch_loaded(Module, Fun, Args, Purgeable, I, E) ->
   Res = Module:Fun(Args),
   code:delete(Module),
   if Purgeable ->
@@ -86,13 +91,13 @@ dispatch_loaded(Module, Fun, Args, Purgeable, I, S) ->
      true ->
        ok
   end,
-  { Res, S }.
+  { Res, E }.
 
 code_fun(nil) -> '__FILE__';
 code_fun(_)   -> '__MODULE__'.
 
 code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(Line) ->
-  Tuple    = { tuple, Line, [{ var, Line, K } || { K, _ } <- Vars] },
+  Tuple    = { tuple, Line, [{ var, Line, K } || { _, _, K, _ } <- Vars] },
   Relative = elixir_utils:relative_to_cwd(File),
 
   [

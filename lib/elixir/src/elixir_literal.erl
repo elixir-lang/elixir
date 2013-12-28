@@ -5,6 +5,8 @@
 -import(elixir_scope, [umergec/2]).
 -include("elixir.hrl").
 
+%% TODO: Move most of those contents to translation
+
 translate({ '<<>>', Meta, Args }, S) when is_list(Args) ->
   { { '<<>>', _, EArgs }, _ } = expand_bitstr(Meta, Args, elixir_env:scope_to_env(S)),
   case S#elixir_scope.context of
@@ -73,7 +75,7 @@ expand_bitstr(Fun, [{'::',Meta,[Left,Right]}|T], Acc, E) ->
     _ -> ER = E#elixir_env{context=nil} %% expand_each, revert assigns
   end,
 
-  ERight = expand_bit_info(Right, ER),
+  ERight = expand_bit_info(Meta, Right, ER),
   expand_bitstr(Fun, T, [{'::',Meta,[ELeft,ERight]}|Acc], EL);
 
 expand_bitstr(Fun, [H|T], Acc, E) ->
@@ -82,31 +84,35 @@ expand_bitstr(Fun, [H|T], Acc, E) ->
 
 %% Expand bit info
 
-expand_bit_info(Info, E) when is_list(Info) ->
-  expand_bit_info(Info, default, [], E);
+expand_bit_info(Meta, Info, E) when is_list(Info) ->
+  expand_bit_info(Meta, Info, default, [], E);
 
-expand_bit_info(Info, E) ->
-  expand_bit_info([Info], E).
+expand_bit_info(Meta, Info, E) ->
+  expand_bit_info(Meta, [Info], E).
 
-expand_bit_info([{ Value, Meta, Args }|T], Size, Types, E) when is_atom(Value) ->
+expand_bit_info(Meta, [{ Expr, ExprMeta, Args }|T], Size, Types, E) when is_atom(Expr) ->
   EArgs = if is_atom(Args) -> []; is_list(Args) -> Args end,
-  case expand_bit_type_or_size(Value, EArgs) of
+  case expand_bit_type_or_size(Expr, EArgs) of
     type ->
-      expand_bit_info(T, Size, [{ Value, [], EArgs }|Types], E);
+      expand_bit_info(Meta, T, Size, [{ Expr, [], EArgs }|Types], E);
     size ->
       case Size of
         default -> ok;
         _ -> elixir_errors:compile_error(Meta, E#elixir_env.file, "duplicated size definition in bitstring")
       end,
-      expand_bit_info(T, { Value, [], EArgs }, Types, E);
+      expand_bit_info(Meta, T, { Expr, [], EArgs }, Types, E);
     none ->
-      handle_unknown_bit_info(Meta, { Value, Meta, EArgs }, T, Size, Types, E)
+      handle_unknown_bit_info(Meta, { Expr, ExprMeta, EArgs }, T, Size, Types, E)
   end;
 
-expand_bit_info([Int|T], Size, Types, E) when is_integer(Int) ->
-  expand_bit_info([{ size, [], [Int] }|T], Size, Types, E);
+expand_bit_info(Meta, [Int|T], Size, Types, E) when is_integer(Int) ->
+  expand_bit_info(Meta, [{ size, [], [Int] }|T], Size, Types, E);
 
-expand_bit_info([], Size, Types, _) ->
+expand_bit_info(Meta, [Expr|_], _Size, _Types, E) ->
+  elixir_errors:compile_error(Meta, E#elixir_env.file,
+    "unknown bitstring specifier ~ts", ['Elixir.Kernel':inspect(Expr)]);
+
+expand_bit_info(_Meta, [], Size, Types, _) ->
   case Size of
     default -> lists:reverse(Types);
     _ -> [Size|lists:reverse(Types)]
@@ -130,14 +136,14 @@ expand_bit_type_or_size(unit, [_])     -> type;
 expand_bit_type_or_size(size, [_])     -> size;
 expand_bit_type_or_size(_, _)          -> none.
 
-handle_unknown_bit_info(Meta, Expr, T, Size, Types, E) ->
-  case 'Elixir.Macro':expand(Expr, elixir_env:env_to_ex(Meta, E)) of
+handle_unknown_bit_info(Meta, { _, ExprMeta, _ } = Expr, T, Size, Types, E) ->
+  case 'Elixir.Macro':expand(Expr, elixir_env:env_to_ex({ ?line(ExprMeta), E })) of
     Expr ->
-      elixir_errors:compile_error(Meta, E#elixir_env.file,
+      elixir_errors:compile_error(ExprMeta, E#elixir_env.file,
         "unknown bitstring specifier ~ts", ['Elixir.Macro':to_string(Expr)]);
     Other ->
       List = case is_list(Other) of true -> Other; false -> [Other] end,
-      expand_bit_info(List ++ T, Size, Types, E)
+      expand_bit_info(Meta, List ++ T, Size, Types, E)
   end.
 
 %% Helpers

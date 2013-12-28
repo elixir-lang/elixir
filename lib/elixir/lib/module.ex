@@ -394,8 +394,7 @@ defmodule Module do
   end
 
   def create(module, quoted, opts) when is_atom(module) do
-    line = Keyword.get(opts, :line, 1)
-    :elixir_module.compile(line, module, quoted, [], :elixir.scope_for_eval(opts))
+    :elixir_module.compile(module, quoted, [], :elixir.env_for_eval(opts))
   end
 
   @doc """

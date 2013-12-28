@@ -6,10 +6,10 @@ defmodule Macro do
   """
 
   @typedoc "Abstract Syntax Tree (AST)"
-  @type t :: node | { t, t } | atom | number | binary | [t]
+  @type t :: expr | { t, t } | atom | number | binary | pid | [t]
 
-  @typedoc "The AST node (remaining ones are literals)"
-  @type node :: { node | atom, Keyword.t, atom | [t] }
+  @typedoc "Expr node (remaining ones are literals)"
+  @type expr :: { expr | atom, Keyword.t, atom | [t] }
 
   @binary_ops [ :===, :!==,
     :==, :!=, :<=, :>=,
@@ -623,6 +623,8 @@ defmodule Macro do
     do: { env.file, true, cache }
   defp expand_once({ :__DIR__, _, atom }, env, cache)    when is_atom(atom),
     do: { :filename.dirname(env.file), true, cache }
+
+  # TODO: Expand __ENV__ as a tuple and __ENV__.call
   defp expand_once({ :__ENV__, _, atom }, env, cache)    when is_atom(atom),
     do: { env, true, cache }
 

@@ -129,9 +129,10 @@ expand({ '__DIR__', _, Atom }, E) when is_atom(Atom) ->
 expand({ '__CALLER__', _, Atom } = Caller, E) when is_atom(Atom) ->
   { Caller, E };
 expand({ '__ENV__', Meta, Atom }, E) when is_atom(Atom) ->
-  { elixir_env:env_to_ex(Meta, E), E };
+  Env = elixir_env:env_to_ex({ ?line(Meta), E }),
+  { { '{}', [], tuple_to_list(Env) }, E };
 expand({ { '.', _, [{ '__ENV__', Meta, Atom }, Field] }, _, [] }, E) when is_atom(Atom), is_atom(Field) ->
-  { (elixir_env:env_to_ex(Meta, E)):Field(), E };
+  { (elixir_env:env_to_ex({ ?line(Meta), E })):Field(), E };
 
 %% Quote
 
@@ -340,7 +341,7 @@ expand({ Left, Right }, E) ->
 expand(List, E) when is_list(List) ->
   expand_list(List, E, E, []);
 
-expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
+expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other); is_pid(Other) ->
   { Other, E };
 
 expand(Other, E) ->

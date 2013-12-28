@@ -67,6 +67,7 @@ list_to_cons(Line, List, Tail) ->
 
 %% erl <-> elixir
 
+%% TODO: Clean this up
 elixir_to_erl(Tree) ->
   elixir_to_erl(Tree, fun(X) -> error({ badarg, X }) end).
 
@@ -118,6 +119,9 @@ elixir_to_erl(Function, Fun) when is_function(Function) ->
     false ->
       Fun(Function)
   end;
+
+elixir_to_erl(Pid, _Fun) when is_pid(Pid) ->
+  ?wrap_call(0, erlang, binary_to_term, [elixir_utils:elixir_to_erl(term_to_binary(Pid))]);
 
 elixir_to_erl(Other, Fun) ->
   Fun(Other).

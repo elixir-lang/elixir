@@ -424,7 +424,7 @@ defmodule Kernel.ErrorsTest do
       '<<1 :: :atom>>'
 
     assert_compile_fail CompileError,
-      "nofile:1: unknown bitstring specifier unknown",
+      "nofile:1: unknown bitstring specifier unknown()",
       '<<1 :: unknown>>'
 
     assert_compile_fail CompileError,
@@ -432,11 +432,11 @@ defmodule Kernel.ErrorsTest do
       '<<1 :: another(12)>>'
 
     assert_compile_fail CompileError,
-      "nofile:1: size in bitstring expects an integer or a variable as argument",
+      "nofile:1: size in bitstring expects an integer or a variable as argument, got: :a",
       '<<1 :: size(:a)>>'
 
     assert_compile_fail CompileError,
-      "nofile:1: unit in bitstring expects an integer as argument",
+      "nofile:1: unit in bitstring expects an integer as argument, got: :x",
       '<<1 :: unit(:x)>>'
   end
 

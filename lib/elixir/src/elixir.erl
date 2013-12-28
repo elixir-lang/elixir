@@ -4,6 +4,7 @@
 -behaviour(application).
 -export([main/1, start_cli/0,
   string_to_quoted/4, 'string_to_quoted!'/4,
+  scopes_for_eval/1, env_for_eval/1, env_for_eval/2,
   scope_for_eval/1, scope_for_eval/2,
   eval/2, eval/3, eval/4, eval_forms/3,
   eval_quoted/2, eval_quoted/3, eval_quoted/4]).
@@ -46,6 +47,67 @@ start_cli() ->
   'Elixir.Kernel.CLI':main(init:get_plain_arguments()).
 
 %% EVAL HOOKS
+
+scopes_for_eval(Opts) ->
+  { env_for_eval(Opts), scope_for_eval(Opts) }.
+
+env_for_eval(Opts) ->
+  env_for_eval(#elixir_env{
+    file = <<"nofile">>,
+    local = nil,
+    line = 0,
+    aliases = [],
+    requires = elixir_dispatch:default_requires(),
+    functions = elixir_dispatch:default_functions(),
+    macros = elixir_dispatch:default_macros()
+  }, Opts).
+
+env_for_eval(Env, Opts) ->
+  Line = case lists:keyfind(line, 1, Opts) of
+    { line, RawLine } when is_integer(RawLine) -> RawLine;
+    false -> Env#elixir_env.line
+  end,
+
+  File = case lists:keyfind(file, 1, Opts) of
+    { file, RawFile } when is_binary(RawFile) -> RawFile;
+    false -> Env#elixir_env.file
+  end,
+
+  Local = case lists:keyfind(delegate_locals_to, 1, Opts) of
+    { delegate_locals_to, LocalOpt } -> LocalOpt;
+    false -> Env#elixir_env.local
+  end,
+
+  Aliases = case lists:keyfind(aliases, 1, Opts) of
+    { aliases, AliasesOpt } -> AliasesOpt;
+    false -> Env#elixir_env.aliases
+  end,
+
+  Requires = case lists:keyfind(requires, 1, Opts) of
+    { requires, List } -> ordsets:from_list(List);
+    false -> Env#elixir_env.requires
+  end,
+
+  Functions = case lists:keyfind(functions, 1, Opts) of
+    { functions, FunctionsOpt } -> FunctionsOpt;
+    false -> Env#elixir_env.functions
+  end,
+
+  Macros = case lists:keyfind(macros, 1, Opts) of
+    { macros, MacrosOpt } -> MacrosOpt;
+    false -> Env#elixir_env.macros
+  end,
+
+  Module = case lists:keyfind(module, 1, Opts) of
+    { module, ModuleOpt } when is_atom(ModuleOpt) -> ModuleOpt;
+    false -> nil
+  end,
+
+  Env#elixir_env{
+    file=File, local=Local, module=Module,
+    macros=Macros, functions=Functions,
+    requires=Requires, aliases=Aliases, line=Line
+  }.
 
 scope_for_eval(Opts) ->
   scope_for_eval(#elixir_scope{
@@ -130,6 +192,12 @@ eval_quoted(Tree, Binding, Line, #elixir_scope{} = S) when is_integer(Line) ->
 
 %% Handle forms evaluation internally, it is an
 %% internal API not meant for external usage.
+
+eval_forms(Tree, Binding, #elixir_env{} = E) ->
+  %% TODO: Load binding
+  { ETree, EE } = elixir_exp:expand(Tree, E),
+  { Value, NewBinding, NewScope } = eval_forms(ETree, Binding, elixir_env:env_to_scope(E)),
+  { Value, NewBinding, EE, NewScope };
 
 eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
   eval_forms(Tree, Binding, scope_for_eval(Opts));

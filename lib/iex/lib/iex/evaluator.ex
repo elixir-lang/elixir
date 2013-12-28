@@ -123,7 +123,7 @@ defmodule IEx.Evaluator do
     code = config.cache ++ latest_input
     line = config.counter
 
-    case :elixir_translator.forms(code, line, "iex", []) do
+    case Code.string_to_quoted(code, [line: line, file: "iex"]) do
       { :ok, forms } ->
         { result, new_binding, scope } =
           :elixir.eval_forms(forms, config.binding, config.scope)
