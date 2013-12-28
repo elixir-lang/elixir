@@ -203,12 +203,8 @@ defmodule IEx.ANSIDocs do
   ## Helpers
 
   defp write(style, string, colors) do
-    color =  colors[style]
-    enabled = colors[:enabled]
-    seq_color = IO.ANSI.escape_fragment("%{#{color}}", enabled)
-    seq_reset = IO.ANSI.escape_fragment("%{reset}", enabled)
-    IO.puts seq_color <> string <> seq_reset
-    IO.puts seq_reset
+    IO.puts color(style, colors) <> string <> IO.ANSI.reset
+    IO.puts IO.ANSI.reset
   end
 
   defp write_with_wrap([], _available, _indent, _first) do
