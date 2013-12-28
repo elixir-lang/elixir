@@ -341,24 +341,20 @@ defmodule IEx.ANSIDocs do
     iolist_to_binary Enum.reverse([Enum.reverse(buffer)|acc])
   end
 
-  defp inline_buffer(buffer, _colors) do
+  defp inline_buffer(buffer, colors) do
     [h|t] = Enum.reverse([IO.ANSI.reset|buffer])
-    [color_for(h)|t]
+    [color_for(h, colors)|t]
   end
 
-  defp color_for("`"),  do: color(:doc_inline_code)
-  defp color_for("_"),  do: color(:doc_underline)
-  defp color_for("*"),  do: color(:doc_bold)
-  defp color_for("**"), do: color(:doc_bold)
+  defp color_for("`", colors),  do: color(:doc_inline_code, colors)
+  defp color_for("_", colors),  do: color(:doc_underline, colors)
+  defp color_for("*", colors),  do: color(:doc_bold, colors)
+  defp color_for("**", colors), do: color(:doc_bold, colors)
 
-  defp color(color_name) do
-    colors = IEx.Options.get(:colors)
-
-    if colors[:enabled] do
-      IO.ANSI.escape_fragment("%{#{colors[color_name]}}", true)
-    else
-      ""
-    end
+  defp color(style, colors) do
+    color = colors[style]
+    enabled = colors[:enabled]
+    IO.ANSI.escape_fragment("%{#{color}}", enabled)
   end
 
   defp column_width() do
