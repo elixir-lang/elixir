@@ -142,19 +142,19 @@ defmodule IEx.ANSIDocs do
   ## Text (paragraphs / lists)
 
   defp process_text(doc=["" | _], para, indent, from_list, colors) do
-    write_text(Enum.reverse(para), indent, from_list)
+    write_text(Enum.reverse(para), indent, from_list, colors)
     process(doc, indent, colors)
   end
 
-  defp process_text([], para, indent, from_list, _colors) do
-    write_text(Enum.reverse(para), indent, from_list)
+  defp process_text([], para, indent, from_list, colors) do
+    write_text(Enum.reverse(para), indent, from_list, colors)
   end
 
   defp process_text([line | rest], para, indent, true, colors) do
     { stripped, count } = strip_spaces(line, 0)
     case stripped do
       <<bullet, ?\s, item :: binary>> when bullet in @bullets ->
-        write_text(Enum.reverse(para), indent, true)
+        write_text(Enum.reverse(para), indent, true, colors)
         process_list(item, rest, count, indent, colors)
       _ ->
         process_text(rest, [line | para], indent, true, colors)
@@ -165,11 +165,11 @@ defmodule IEx.ANSIDocs do
     process_text(rest, [line | para], indent, from_list, colors)
   end
 
-  defp write_text(lines, indent, from_list) do
+  defp write_text(lines, indent, from_list, colors) do
     lines
     |> Enum.join(" ")
     |> handle_links
-    |> handle_inline(nil, [], [])
+    |> handle_inline(nil, [], [], colors)
     |> String.split(%r{\s})
     |> write_with_wrap(column_width() - size(indent), indent, from_list)
 
@@ -202,7 +202,7 @@ defmodule IEx.ANSIDocs do
 
   ## Helpers
 
-  defp write(style, string, colors // IEx.Options.get(:colors)) do
+  defp write(style, string, colors) do
     color =  colors[style]
     enabled = colors[:enabled]
     seq_color = IO.ANSI.escape_fragment("%{#{color}}", enabled)
@@ -284,64 +284,64 @@ defmodule IEx.ANSIDocs do
   @spaced [?_, ?*]
 
   # Clauses for handling spaces
-  defp handle_inline(<<?*, ?*, ?\s, rest :: binary>>, nil, buffer, acc) do
-    handle_inline(rest, nil, [?\s, ?*, ?*|buffer], acc)
+  defp handle_inline(<<?*, ?*, ?\s, rest :: binary>>, nil, buffer, acc, colors) do
+    handle_inline(rest, nil, [?\s, ?*, ?*|buffer], acc, colors)
   end
 
-  defp handle_inline(<<mark, ?\s, rest :: binary>>, nil, buffer, acc) when mark in @spaced do
-    handle_inline(rest, nil, [?\s, mark|buffer], acc)
+  defp handle_inline(<<mark, ?\s, rest :: binary>>, nil, buffer, acc, colors) when mark in @spaced do
+    handle_inline(rest, nil, [?\s, mark|buffer], acc, colors)
   end
 
-  defp handle_inline(<<?\s, ?*, ?*, rest :: binary>>, limit, buffer, acc) do
-    handle_inline(rest, limit, [?*, ?*, ?\s|buffer], acc)
+  defp handle_inline(<<?\s, ?*, ?*, rest :: binary>>, limit, buffer, acc, colors) do
+    handle_inline(rest, limit, [?*, ?*, ?\s|buffer], acc, colors)
   end
 
-  defp handle_inline(<<?\s, mark, rest :: binary>>, limit, buffer, acc) when mark in @spaced do
-    handle_inline(rest, limit, [mark, ?\s|buffer], acc)
+  defp handle_inline(<<?\s, mark, rest :: binary>>, limit, buffer, acc, colors) when mark in @spaced do
+    handle_inline(rest, limit, [mark, ?\s|buffer], acc, colors)
   end
 
   # Clauses for handling escape
-  defp handle_inline(<<?\\, ?\\, rest :: binary>>, limit, buffer, acc) do
-    handle_inline(rest, limit, [?\\|buffer], acc)
+  defp handle_inline(<<?\\, ?\\, rest :: binary>>, limit, buffer, acc, colors) do
+    handle_inline(rest, limit, [?\\|buffer], acc, colors)
   end
 
-  defp handle_inline(<<?\\, ?*, ?*, rest :: binary>>, limit, buffer, acc) do
-    handle_inline(rest, limit, [?*, ?*|buffer], acc)
+  defp handle_inline(<<?\\, ?*, ?*, rest :: binary>>, limit, buffer, acc, colors) do
+    handle_inline(rest, limit, [?*, ?*|buffer], acc, colors)
   end
 
   # A escape is not valid inside `
-  defp handle_inline(<<?\\, mark, rest :: binary>>, limit, buffer, acc)
+  defp handle_inline(<<?\\, mark, rest :: binary>>, limit, buffer, acc, colors)
       when mark in [?_, ?*, ?`] and not(mark == limit and mark == ?`) do
-    handle_inline(rest, limit, [mark|buffer], acc)
+    handle_inline(rest, limit, [mark|buffer], acc, colors)
   end
 
   # Inline start
-  defp handle_inline(<<?*, ?*, rest :: binary>>, nil, buffer, acc) when rest != "" do
-    handle_inline(rest, ?d, ["**"], [Enum.reverse(buffer)|acc])
+  defp handle_inline(<<?*, ?*, rest :: binary>>, nil, buffer, acc, colors) when rest != "" do
+    handle_inline(rest, ?d, ["**"], [Enum.reverse(buffer)|acc], colors)
   end
 
-  defp handle_inline(<<mark, rest :: binary>>, nil, buffer, acc) when rest != "" and mark in @single do
-    handle_inline(rest, mark, [<<mark>>], [Enum.reverse(buffer)|acc])
+  defp handle_inline(<<mark, rest :: binary>>, nil, buffer, acc, colors) when rest != "" and mark in @single do
+    handle_inline(rest, mark, [<<mark>>], [Enum.reverse(buffer)|acc], colors)
   end
 
   # Inline end
-  defp handle_inline(<<?*, ?*, rest :: binary>>, ?d, buffer, acc) do
-    handle_inline(rest, nil, [], [inline_buffer(buffer)|acc])
+  defp handle_inline(<<?*, ?*, rest :: binary>>, ?d, buffer, acc, colors) do
+    handle_inline(rest, nil, [], [inline_buffer(buffer, colors)|acc], colors)
   end
 
-  defp handle_inline(<<mark, rest :: binary>>, mark, buffer, acc) when mark in @single do
-    handle_inline(rest, nil, [], [inline_buffer(buffer)|acc])
+  defp handle_inline(<<mark, rest :: binary>>, mark, buffer, acc, colors) when mark in @single do
+    handle_inline(rest, nil, [], [inline_buffer(buffer, colors)|acc], colors)
   end
 
-  defp handle_inline(<<char, rest :: binary>>, mark, buffer, acc) do
-    handle_inline(rest, mark, [char|buffer], acc)
+  defp handle_inline(<<char, rest :: binary>>, mark, buffer, acc, colors) do
+    handle_inline(rest, mark, [char|buffer], acc, colors)
   end
 
-  defp handle_inline(<<>>, _mark, buffer, acc) do
+  defp handle_inline(<<>>, _mark, buffer, acc, _colors) do
     iolist_to_binary Enum.reverse([Enum.reverse(buffer)|acc])
   end
 
-  defp inline_buffer(buffer) do
+  defp inline_buffer(buffer, _colors) do
     [h|t] = Enum.reverse([IO.ANSI.reset|buffer])
     [color_for(h)|t]
   end
