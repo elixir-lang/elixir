@@ -178,8 +178,8 @@ defmodule IEx.ANSIDocs do
 
   ## Code blocks
 
-  defp process_code([], code, indent, _colors) do
-    write_code(code, indent)
+  defp process_code([], code, indent, colors) do
+    write_code(code, indent, colors)
   end
 
   # Blank line between code blocks
@@ -192,12 +192,12 @@ defmodule IEx.ANSIDocs do
   end
 
   defp process_code(rest, code, indent, colors) do
-    write_code(code, indent)
+    write_code(code, indent, colors)
     process(rest, indent, colors)
   end
 
-  defp write_code(code, indent) do
-    write(:doc_code, "#{indent}┃ #{Enum.join(Enum.reverse(code), "\n#{indent}┃ ")}")
+  defp write_code(code, indent, colors) do
+    write(:doc_code, "#{indent}┃ #{Enum.join(Enum.reverse(code), "\n#{indent}┃ ")}", colors)
   end
 
   ## Helpers
