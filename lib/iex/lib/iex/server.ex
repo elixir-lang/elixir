@@ -1,4 +1,4 @@
-defrecord IEx.Config, binding: nil, cache: '', counter: 1, prefix: "iex", scope: nil
+defrecord IEx.Config, binding: nil, cache: '', counter: 1, prefix: "iex", scope: nil, env: nil
 
 defmodule IEx.Server do
   @moduledoc false
@@ -219,19 +219,18 @@ defmodule IEx.Server do
   defp run_config(opts) do
     locals = Keyword.get(opts, :delegate_locals_to, IEx.Helpers)
 
-    scope =
+    env =
       if env = opts[:env] do
-        scope = :elixir_env.ex_to_scope(env)
-        :elixir.scope_for_eval(scope, delegate_locals_to: locals)
+        :elixir.env_for_eval(:elixir_env.ex_to_env(env), delegate_locals_to: locals)
       else
-        :elixir.scope_for_eval(file: "iex", delegate_locals_to: locals)
+        :elixir.env_for_eval(file: "iex", delegate_locals_to: locals)
       end
 
-    { _, _, scope } = :elixir.eval('require IEx.Helpers', [], 0, scope)
+    { _, _, env, scope } = :elixir.eval('require IEx.Helpers', [], env)
 
     binding = Keyword.get(opts, :binding, [])
     prefix  = Keyword.get(opts, :prefix, "iex")
-    config  = Config[binding: binding, scope: scope, prefix: prefix]
+    config  = Config[binding: binding, scope: scope, prefix: prefix, env: env]
 
     case opts[:dot_iex_path] do
       ""   -> config

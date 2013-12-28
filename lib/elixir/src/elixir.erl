@@ -4,10 +4,8 @@
 -behaviour(application).
 -export([main/1, start_cli/0,
   string_to_quoted/4, 'string_to_quoted!'/4,
-  scopes_for_eval/1, env_for_eval/1, env_for_eval/2,
-  scope_for_eval/1, scope_for_eval/2,
-  eval/2, eval/3, eval/4, eval_forms/3,
-  eval_quoted/2, eval_quoted/3, eval_quoted/4]).
+  env_for_eval/1, env_for_eval/2, quoted_to_erl/3,
+  eval/2, eval/3, eval_forms/3, eval_forms/4, eval_quoted/3]).
 -include("elixir.hrl").
 
 %% Top level types
@@ -48,15 +46,9 @@ start_cli() ->
 
 %% EVAL HOOKS
 
-scopes_for_eval(Opts) ->
-  { env_for_eval(Opts), scope_for_eval(Opts) }.
-
 env_for_eval(Opts) ->
   env_for_eval(#elixir_env{
-    file = <<"nofile">>,
     local = nil,
-    line = 0,
-    aliases = [],
     requires = elixir_dispatch:default_requires(),
     functions = elixir_dispatch:default_functions(),
     macros = elixir_dispatch:default_macros()
@@ -109,113 +101,58 @@ env_for_eval(Env, Opts) ->
     requires=Requires, aliases=Aliases, line=Line
   }.
 
-scope_for_eval(Opts) ->
-  scope_for_eval(#elixir_scope{
-    file = <<"nofile">>,
-    local = nil,
-    aliases = [],
-    requires = elixir_dispatch:default_requires(),
-    functions = elixir_dispatch:default_functions(),
-    macros = elixir_dispatch:default_macros()
-  }, Opts).
-
-scope_for_eval(Scope, Opts) ->
-  File = case lists:keyfind(file, 1, Opts) of
-    { file, RawFile } when is_binary(RawFile) -> RawFile;
-    false -> Scope#elixir_scope.file
-  end,
-
-  Local = case lists:keyfind(delegate_locals_to, 1, Opts) of
-    { delegate_locals_to, LocalOpt } -> LocalOpt;
-    false -> Scope#elixir_scope.local
-  end,
-
-  Aliases = case lists:keyfind(aliases, 1, Opts) of
-    { aliases, AliasesOpt } -> AliasesOpt;
-    false -> Scope#elixir_scope.aliases
-  end,
-
-  Requires = case lists:keyfind(requires, 1, Opts) of
-    { requires, List } -> ordsets:from_list(List);
-    false -> Scope#elixir_scope.requires
-  end,
-
-  Functions = case lists:keyfind(functions, 1, Opts) of
-    { functions, FunctionsOpt } -> FunctionsOpt;
-    false -> Scope#elixir_scope.functions
-  end,
-
-  Macros = case lists:keyfind(macros, 1, Opts) of
-    { macros, MacrosOpt } -> MacrosOpt;
-    false -> Scope#elixir_scope.macros
-  end,
-
-  Module = case lists:keyfind(module, 1, Opts) of
-    { module, ModuleOpt } when is_atom(ModuleOpt) -> ModuleOpt;
-    false -> nil
-  end,
-
-  Scope#elixir_scope{
-    file=File, local=Local, module=Module,
-    macros=Macros, functions=Functions,
-    requires=Requires, aliases=Aliases }.
-
 %% String evaluation
 
-eval(String, Binding) -> eval(String, Binding, []).
+eval(String, Binding) ->
+  eval(String, Binding, []).
 
-eval(String, Binding, Opts) ->
-  case lists:keyfind(line, 1, Opts) of
-    false -> Line = 1;
-    { line, Line } -> []
-  end,
-  eval(String, Binding, Line, scope_for_eval(Opts)).
-
-eval(String, Binding, Line, #elixir_scope{file=File} = S) when
+eval(String, Binding, Opts) when is_list(Opts) ->
+  eval(String, Binding, env_for_eval(Opts));
+eval(String, Binding, #elixir_env{line=Line,file=File} = E) when
     is_list(String), is_list(Binding), is_integer(Line), is_binary(File) ->
   Forms = 'string_to_quoted!'(String, Line, File, []),
-  eval_forms(Forms, Binding, S).
+  eval_forms(Forms, Binding, E).
 
 %% Quoted evaluation
 
-eval_quoted(Tree, Binding) -> eval_quoted(Tree, Binding, []).
+eval_quoted(Tree, Binding, Opts) when is_list(Opts) ->
+  eval_quoted(Tree, Binding, env_for_eval(Opts));
+eval_quoted(Tree, Binding, #elixir_env{line=Line} = E) ->
+  eval_forms(elixir_quote:linify(Line, Tree), Binding, E).
 
-eval_quoted(Tree, Binding, Opts) ->
-  case lists:keyfind(line, 1, Opts) of
-    { line, Line } -> [];
-    false -> Line = 1
-  end,
-  eval_quoted(Tree, Binding, Line, scope_for_eval(Opts)).
+%% Handle forms evaluation. The main difference to
+%% to eval_quoted is that it does not linefy the given
+%% args.
 
-eval_quoted(Tree, Binding, Line, #elixir_scope{} = S) when is_integer(Line) ->
-  eval_forms(elixir_quote:linify(Line, Tree), Binding, S).
-
-%% Handle forms evaluation internally, it is an
-%% internal API not meant for external usage.
+%% TODO: Get rid of eval forms once linify is moved to elixir_exp.
 
 eval_forms(Tree, Binding, #elixir_env{} = E) ->
-  %% TODO: Load binding
-  { ETree, EE } = elixir_exp:expand(Tree, E),
-  { Value, NewBinding, NewScope } = eval_forms(ETree, Binding, elixir_env:env_to_scope(E)),
-  { Value, NewBinding, EE, NewScope };
-
+  eval_forms(Tree, Binding, E, elixir_env:env_to_scope(E));
 eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
-  eval_forms(Tree, Binding, scope_for_eval(Opts));
-
-eval_forms(Tree, Binding, Scope) ->
+  eval_forms(Tree, Binding, env_for_eval(Opts)).
+eval_forms(Tree, Binding, Env, Scope) ->
   { ParsedBinding, ParsedScope } = elixir_scope:load_binding(Binding, Scope),
-  { Expr, NewScope } = elixir_translator:translate_each(Tree, ParsedScope),
-  case Expr of
+  ParsedEnv = Env#elixir_env{vars=[K || {K,_} <- ParsedScope#elixir_scope.vars]},
+  { Erl, NewEnv, NewScope } = quoted_to_erl(Tree, ParsedEnv, ParsedScope),
+
+  case Erl of
     { atom, _, Atom } ->
-      { Atom, Binding, NewScope };
+      { Atom, Binding, NewEnv, NewScope };
     _  ->
-      { value, Value, NewBinding } = erl_eval:expr(Expr, ParsedBinding),
-      { Value, elixir_scope:dump_binding(NewBinding, NewScope), NewScope }
+      { value, Value, NewBinding } = erl_eval:expr(Erl, ParsedBinding),
+      { Value, elixir_scope:dump_binding(NewBinding, NewScope), NewEnv, NewScope }
   end.
+
+%% Converts a quoted expression to erlang abstract format
+
+quoted_to_erl(Quoted, Env, Scope) ->
+  { Expanded, NewEnv } = elixir_exp:expand(Quoted, Env),
+  { Erl, NewScope }    = elixir_translator:translate_each(Expanded, Scope),
+  { Erl, NewEnv, NewScope }.
 
 %% Converts a given string (char list) into quote expression
 
-string_to_quoted(String, StartLine, File, Opts) ->
+string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, [{ file, File }|Opts]) of
     { ok, _Line, Tokens } ->
       try elixir_parser:parse(Tokens) of

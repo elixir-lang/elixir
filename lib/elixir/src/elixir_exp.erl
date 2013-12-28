@@ -7,9 +7,9 @@
 
 expand({ '=', Meta, [Left, Right] }, E) ->
   % assert_no_guard_scope(Meta, '=', S),
-  { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, E),
-  { ERight, ER } = expand(Right, EL),
-  { { '=', Meta, [ELeft, ERight] }, ER };
+  { ERight, ER } = expand(Right, E),
+  { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, elixir_env:mergec(E, ER)),
+  { { '=', Meta, [ELeft, ERight] }, elixir_env:mergec(elixir_env:mergev(EL, ER), EL) };
 
 %% Literal operators
 
@@ -259,13 +259,16 @@ expand({ '^', Meta, [Arg] }, #elixir_env{context=match} = E) ->
     { { Name, _, Kind } = EArg, EA } when is_atom(Name), is_atom(Kind) ->
       { { '^', Meta, [EArg] }, EA };
     _ ->
-    Msg = "invalid argument for unary operator ^, expected an existing variable, got ^~ts",
+    Msg = "invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
     compile_error(Meta, E#elixir_env.file, Msg, ['Elixir.Macro':to_string(Arg)])
   end;
 expand({ '^', Meta, [Arg] }, E) ->
   compile_error(Meta, E#elixir_env.file,
     "cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
 
+%% TODO: Test _ is not added and properly errors out of match
+expand({ '_', _, Kind } = Var, E) when is_atom(Kind) ->
+  { Var, E };
 expand({ Name, Meta, Kind } = Var, #elixir_env{context=match,vars=Vars} = E) when is_atom(Name), is_atom(Kind) ->
   { Var, E#elixir_env{vars=ordsets:add_element({ Name, var_kind(Meta, Kind) }, Vars)} };
 expand({ Name, Meta, Kind } = Var, #elixir_env{vars=Vars} = E) when is_atom(Name), is_atom(Kind) ->
@@ -341,11 +344,21 @@ expand({ Left, Right }, E) ->
 expand(List, E) when is_list(List) ->
   expand_list(List, E, E, []);
 
+expand(Function, E) when is_function(Function) ->
+  case (erlang:fun_info(Function, type) == { type, external }) andalso
+       (erlang:fun_info(Function, env) == { env, [] }) of
+    true ->
+      { Function, E };
+    false ->
+      compile_error([{line,0}], E#elixir_env.file,
+        "invalid quoted expression ~ts", ['Elixir.Kernel':inspect(Function)])
+  end;
+
 expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other); is_pid(Other) ->
   { Other, E };
 
 expand(Other, E) ->
-  elixir_errors:compile_error([{line,0}], E#elixir_env.file,
+  compile_error([{line,0}], E#elixir_env.file,
     "invalid quoted expression ~ts", ['Elixir.Kernel':inspect(Other)]).
 
 %% Helpers
@@ -472,10 +485,10 @@ expand_as({ as, false }, _Meta, _IncludeByDefault, Ref, _E) ->
 expand_as({ as, Atom }, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom) ->
   case length(string:tokens(atom_to_list(Atom), ".")) of
     1 -> compile_error(Meta, E#elixir_env.file,
-           "invalid :as, expected an alias, got atom: ~ts", [elixir_aliases:inspect(Atom)]);
+           "invalid value for keyword :as, expected an alias, got atom: ~ts", [elixir_aliases:inspect(Atom)]);
     2 -> Atom;
     _ -> compile_error(Meta, E#elixir_env.file,
-           "invalid :as, expected an alias, got nested alias: ~ts", [elixir_aliases:inspect(Atom)])
+           "invalid value for keyword :as, expected an alias, got nested alias: ~ts", [elixir_aliases:inspect(Atom)])
   end;
 expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
   if IncludeByDefault -> elixir_aliases:last(Ref);
@@ -483,7 +496,7 @@ expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
   end;
 expand_as({ as, Other }, Meta, _IncludeByDefault, _Ref, E) ->
   compile_error(Meta, E#elixir_env.file,
-    "invalid :as, expected an alias, got: ~ts", ['Elixir.Macro':to_string(Other)]).
+    "invalid value for keyword :as, expected an alias, got: ~ts", ['Elixir.Macro':to_string(Other)]).
 
 %% Comprehensions
 
@@ -498,8 +511,8 @@ expand_comprehension(Meta, Kind, Args, E) ->
   end.
 
 expand_comprehension_clause({Gen, Meta, [Left, Right]}, E) when Gen == inbits; Gen == inlist ->
-  { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, E),
-  { ERight, ER } = expand(Right, EL),
-  { { Gen, Meta, [ELeft, ERight] }, ER };
+  { ERight, ER } = expand(Right, E),
+  { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, elixir_env:mergec(E, ER)),
+  { { Gen, Meta, [ELeft, ERight] }, elixir_env:mergec(elixir_env:mergev(EL, ER), EL) };
 expand_comprehension_clause(X, E) ->
   expand(X, E).

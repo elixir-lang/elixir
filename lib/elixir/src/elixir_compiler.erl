@@ -53,24 +53,22 @@ eval_forms(Forms, Vars, E) ->
 
 eval_compilation(Forms, Vars, E) ->
   Binding = [{ Key, Value } || { _Name, _Kind, Key, Value } <- Vars],
-  S = elixir_env:env_to_scope_with_vars(E, []),
-  { Result, _Binding, FS } = elixir:eval_forms(Forms, Binding, S),
-  { Result, FS }.
+  { Result, _Binding, EE, _S } = elixir:eval_forms(Forms, Binding, E),
+  { Result, EE }.
 
 code_loading_compilation(Forms, Vars, #elixir_env{line=Line} = E) ->
   Dict = [{ { Name, Kind }, Value } || { Name, Kind, Value, _ } <- Vars],
   S = elixir_env:env_to_scope_with_vars(E, Dict),
+  { Expr, EE, _S } = elixir:quoted_to_erl(Forms, E, S),
 
   { Module, I } = retrieve_module_name(),
-  { Expr, _ }  = elixir_translator:translate_each(Forms, S),
-
-  Fun  = code_fun(S#elixir_scope.module),
-  Form = code_mod(Fun, Expr, Line, S#elixir_scope.file, Module, Vars),
+  Fun  = code_fun(E#elixir_env.module),
+  Form = code_mod(Fun, Expr, Line, E#elixir_env.file, Module, Vars),
   Args = list_to_tuple([V || { _, _, _, V } <- Vars]),
 
   %% Pass { native, false } to speed up bootstrap
   %% process when native is set to true
-  module(Form, S#elixir_scope.file, [{native,false}], true, fun(_, Binary) ->
+  module(Form, E#elixir_env.file, [{native,false}], true, fun(_, Binary) ->
     %% If we have labeled locals, anonymous functions
     %% were created and therefore we cannot ditch the
     %% module
@@ -79,7 +77,7 @@ code_loading_compilation(Forms, Vars, #elixir_env{line=Line} = E) ->
         { ok, { _, [{ labeled_locals, []}] } } -> true;
         _ -> false
       end,
-    dispatch_loaded(Module, Fun, Args, Purgeable, I, E)
+    dispatch_loaded(Module, Fun, Args, Purgeable, I, EE)
   end).
 
 dispatch_loaded(Module, Fun, Args, Purgeable, I, E) ->

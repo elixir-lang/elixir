@@ -12,7 +12,6 @@
 translate_var(Meta, Name, Kind, S, Callback) when is_atom(Kind); is_integer(Kind) ->
   Line = ?line(Meta),
   Vars = S#elixir_scope.vars,
-  Temp = lists:keyfind(temp, 1, Meta) == { temp, true },
   Tuple = { Name, Kind },
 
   case Name of
@@ -41,7 +40,7 @@ translate_var(Meta, Name, Kind, S, Callback) when is_atom(Kind); is_integer(Kind
                   true -> ordsets:add_element(Tuple, TempVars)
                 end,
                 clause_vars=if
-                  ClauseVars == nil; Temp == true -> ClauseVars;
+                  ClauseVars == nil -> ClauseVars;
                   true -> orddict:store(Tuple, RealName, ClauseVars)
                 end
               } }

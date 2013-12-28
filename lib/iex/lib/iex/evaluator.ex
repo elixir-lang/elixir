@@ -66,18 +66,14 @@ defmodule IEx.Evaluator do
 
   defp eval_dot_iex(config, path) do
     try do
-      code  = File.read!(path)
-      scope = :elixir.scope_for_eval(config.scope, file: path)
+      code = File.read!(path)
+      env  = :elixir.env_for_eval(config.env, file: path)
 
       # Evaluate the contents in the same environment server_loop will run in
-      { _result, binding, scope } =
-        :elixir.eval(String.to_char_list!(code),
-                     config.binding,
-                     0,
-                     scope)
+      { _result, binding, env, _scope } =
+        :elixir.eval(String.to_char_list!(code), config.binding, env)
 
-      scope = :elixir.scope_for_eval(scope, file: "iex")
-      config.binding(binding).scope(scope)
+      config.binding(binding).env(:elixir.env_for_eval(env, file: "iex"))
     catch
       kind, error ->
         print_error(kind, error, System.stacktrace)
@@ -125,11 +121,11 @@ defmodule IEx.Evaluator do
 
     case Code.string_to_quoted(code, [line: line, file: "iex"]) do
       { :ok, forms } ->
-        { result, new_binding, scope } =
-          :elixir.eval_forms(forms, config.binding, config.scope)
+        { result, new_binding, env, scope } =
+          :elixir.eval_forms(forms, config.binding, config.env, config.scope)
         unless result == IEx.dont_display_result, do: io_put result
         update_history(line, code, result)
-        config.update_counter(&(&1+1)).cache('').binding(new_binding).scope(scope)
+        config.update_counter(&(&1+1)).cache('').binding(new_binding).scope(scope).env(env)
 
       { :error, { line, error, token } } ->
         if token == [] do

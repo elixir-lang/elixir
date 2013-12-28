@@ -26,9 +26,11 @@ run_and_remove(Fun, Modules) ->
 
 % Throws an error with the Erlang Abstract Form from the Elixir string
 throw_elixir(String) ->
-  Forms = elixir_translator:'forms!'(String, 1, "nofile", []),
-  Tree = elixir_translator:translate(Forms, elixir:scope_for_eval([])),
-  erlang:error(io:format("~p~n", [Tree])).
+  Env = elixir:env_for_eval([]),
+  Forms = elixir:'string_to_quoted!'(String, 1, <<"nofile">>, []),
+  { Expr, _, _ } =
+    elixir:quoted_to_erl(Forms, Env, elixir_env:env_to_scope(Env)),
+  erlang:error(io:format("~p~n", [Expr])).
 
 % Throws an error with the Erlang Abstract Form from the Erlang string
 throw_erlang(String) ->

@@ -6,7 +6,7 @@ defmodule Macro do
   """
 
   @typedoc "Abstract Syntax Tree (AST)"
-  @type t :: expr | { t, t } | atom | number | binary | pid | [t]
+  @type t :: expr | { t, t } | atom | number | binary | pid | fun | [t]
 
   @typedoc "Expr node (remaining ones are literals)"
   @type expr :: { expr | atom, Keyword.t, atom | [t] }

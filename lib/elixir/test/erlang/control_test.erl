@@ -3,13 +3,15 @@
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->
-  { Value, Binding, _ } = elixir:eval(Content, []),
+  { Value, Binding, _, _ } = elixir:eval(Content, []),
   { Value, Binding }.
 
 to_erl(String) ->
-  Forms = elixir:'string_to_quoted!'(String, 1, "nofile", []),
-  { Tree, _ } = elixir_translator:translate_each(Forms, elixir:scope_for_eval([])),
-  Tree.
+  Env = elixir:env_for_eval([]),
+  Forms = elixir:'string_to_quoted!'(String, 1, <<"nofile">>, []),
+  { Expr, _, _ } =
+    elixir:quoted_to_erl(Forms, Env, elixir_env:env_to_scope(Env)),
+  Expr.
 
 % Booleans
 

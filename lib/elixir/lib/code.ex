@@ -127,7 +127,7 @@ defmodule Code do
   end
 
   defp do_eval_string(string, binding, opts) when is_list(binding) do
-    { value, binding, _scope } = :elixir.eval to_char_list(string), binding, opts
+    { value, binding, _env, _scope } = :elixir.eval to_char_list(string), binding, opts
     { value, binding }
   end
 
@@ -162,7 +162,7 @@ defmodule Code do
   end
 
   defp do_eval_quoted(quoted, binding, opts) when is_list(binding) do
-    { value, binding, _scope } = :elixir.eval_quoted quoted, binding, opts
+    { value, binding, _env, _scope } = :elixir.eval_quoted quoted, binding, opts
     { value, binding }
   end
 

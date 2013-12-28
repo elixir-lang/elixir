@@ -1762,9 +1762,19 @@ defmodule Kernel do
 
   def inspect(arg, opts) when is_tuple(opts) and tuple_size(opts) > 0 and
       elem(opts, 0) == Inspect.Opts do
-    case is_tuple(arg) and elem(opts, 1) do
-      true  -> Inspect.Tuple.inspect(arg, opts)
-      false -> Inspect.inspect(arg, opts)
+    case is_tuple(arg) do
+      true ->
+        case elem(opts, 1) do
+          true  -> Inspect.Tuple.inspect(arg, opts)
+          false ->
+            try do
+              Inspect.inspect(arg, opts)
+            catch
+              _, _ -> Inspect.Tuple.inspect(arg, opts)
+            end
+        end
+      false ->
+        Inspect.inspect(arg, opts)
     end
   end
 
@@ -2793,7 +2803,7 @@ defmodule Kernel do
       end
 
     { escaped, _ } = :elixir_quote.escape(block, false)
-    module_vars    = module_vars(env_vars(env))
+    module_vars    = module_vars(env_vars(env), 0)
 
     quote do
       unquote(with_alias)
@@ -2828,12 +2838,7 @@ defmodule Kernel do
     do: :elixir_aliases.concat([env.module, module])
 
   # quote vars to be injected into the module definition
-  defp module_vars(vars) do
-    { vars, _ } = :lists.mapfoldl(&module_var_to_tuple/2, 0, vars)
-    vars
-  end
-
-  defp module_var_to_tuple({ key, kind }, counter) do
+  defp module_vars([{ key, kind }|vars], counter) do
     var =
       case is_atom(kind) do
         true  -> { key, [], kind }
@@ -2841,7 +2846,11 @@ defmodule Kernel do
       end
 
     args = [key, kind, binary_to_atom(<<"_@", integer_to_binary(counter)::binary>>), var]
-    { { :{}, [], args }, counter + 1 }
+    [{ :{}, [], args }|module_vars(vars, counter+1)]
+  end
+
+  defp module_vars([], _counter) do
+    []
   end
 
   # Gets two modules names and return an alias

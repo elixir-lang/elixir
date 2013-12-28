@@ -20,7 +20,7 @@ linify_with_context_counter(Line, Var, Exprs) when is_integer(Line) ->
   do_linify(Line, line, Var, Exprs).
 
 do_linify(Line, Key, { Receiver, Counter } = Var, { Left, Meta, Receiver })
-    when is_atom(Left), is_list(Meta) ->
+    when is_atom(Left), is_list(Meta), Left /= '_' ->
   do_tuple_linify(Line, Key, Var, keynew(counter, Meta, Counter), Left, Receiver);
 
 do_linify(Line, Key, { _, Counter } = Var, { Lexical, [_|_] = Meta, [_|_] = Args }) when ?lexical(Lexical) ->

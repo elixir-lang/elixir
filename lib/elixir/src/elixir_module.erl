@@ -366,13 +366,16 @@ eval_callbacks(Line, Module, Name, Args, E) ->
           EE
         catch
           Kind:Reason ->
-            Info = { M, F, length(Args), [{ file, elixir_utils:characters_to_list(E#elixir_env.file) }, { line, Line }] },
+            Info = { M, F, length(Args), location(Line, E) },
             erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace()))
         end
     end
   end, E, Callbacks).
 
-%% We've reached the elixir_module or erl_eval internals, skip it with the rest
+location(Line, E) ->
+  [{ file, elixir_utils:characters_to_list(E#elixir_env.file) }, { line, Line }].
+
+%% We've reached the elixir_module or eval internals, skip it with the rest
 prune_stacktrace(Info, [{ elixir, eval_forms, _, _ }|_]) ->
   [Info];
 prune_stacktrace(Info, [{ elixir_module, _, _, _ }|_]) ->

@@ -206,7 +206,7 @@ mfa(Line, #elixir_env{module=Module, function={ Name, Arity }} = E) ->
   { Module, Name, Arity, location(Line, E) }.
 
 location(Line, E) ->
-  [{ file, E#elixir_env.file }, { line, Line }].
+  [{ file, elixir_utils:characters_to_list(E#elixir_env.file) }, { line, Line }].
 
 %% Helpers
 

@@ -233,12 +233,12 @@ translate_each({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
   Clauses = elixir_clauses:get_pairs(Meta, do, KV, S),
   { TExpr, NS } = translate_each(Expr, S),
 
-  RClauses = case elixir_utils:returns_boolean(TExpr) of
-    true  -> rewrite_case_clauses(Clauses);
-    false -> Clauses
-  end,
+  % RClauses = case elixir_utils:returns_boolean(TExpr) of
+  %   true  -> rewrite_case_clauses(Clauses);
+  %   false -> Clauses
+  % end,
 
-  { TClauses, TS } = elixir_clauses:match(Meta, RClauses, NS),
+  { TClauses, TS } = elixir_clauses:match(Meta, Clauses, NS),
   { { 'case', ?line(Meta), TExpr, TClauses }, TS };
 
 %% Try

@@ -176,9 +176,9 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :unbound_expr do
-    assert_compile_fail SyntaxError,
-      "nofile:1: the unary operator ^ can only be used with variables, invalid expression ^x(1)",
-      '^x(1)'
+    assert_compile_fail CompileError,
+      "nofile:1: invalid argument for unary operator ^, expected an existing variable, got: ^x(1)",
+      '^x(1) = 1'
   end
 
   test :name_for_defmodule do
@@ -194,18 +194,18 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_quote_args do
-    assert_compile_fail SyntaxError,
-      "nofile:1: invalid args for quote",
+    assert_compile_fail CompileError,
+      "nofile:1: invalid arguments for quote",
       'quote 1'
   end
 
   test :invalid_calls do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: invalid call foo(1)(2)",
       'foo(1)(2)'
 
-    assert_compile_fail SyntaxError,
-      "nofile:1: invalid remote call on 1",
+    assert_compile_fail CompileError,
+      "nofile:1: invalid call 1.foo()",
       '1.foo'
   end
 
@@ -448,7 +448,7 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_alias do
     assert_compile_fail CompileError,
-      "nofile:1: invalid :as for alias, nested alias Sample.Lists not allowed",
+      "nofile:1: invalid value for keyword :as, expected an alias, got nested alias: Sample.Lists",
       'alias :lists, as: Sample.Lists'
   end
 
@@ -507,7 +507,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_rescue_clause do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:4: invalid rescue clause. The clause should match on an alias, a variable or be in the `var in [alias]` format",
       'try do\n1\nrescue\nUndefinedFunctionError[arity: 1] -> false\nend'
   end

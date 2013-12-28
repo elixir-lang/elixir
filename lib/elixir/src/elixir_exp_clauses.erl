@@ -9,6 +9,8 @@ match(Fun, Expr, #elixir_env{context=Context} = E) ->
   { EExpr, EE } = Fun(Expr, E#elixir_env{context=match}),
   { EExpr, EE#elixir_env{context=Context} }.
 
+clause(Meta, Kind, Fun, { '->', ClauseMeta, [_, _] } = Clause, E) when is_function(Fun, 3) ->
+  clause(Meta, Kind, fun(X, Acc) -> Fun(ClauseMeta, X, Acc) end, Clause, E);
 clause(_Meta, _Kind, Fun, { '->', Meta, [Left, Right] }, E) ->
   { ELeft, EL }  = head(Fun, Left, E),
   { ERight, ER } = elixir_exp:expand(Right, EL),
@@ -58,6 +60,8 @@ do_case(Meta, { Key, _ }, { E, _ }) ->
     lists:mapfoldl(fun(X, Acc) -> do_receive(Meta, X, Acc) end, { E, E }, KV),
   { EClauses, EV }.
 
+do_receive(_Meta, { 'do', nil } = Do, Acc) ->
+  { Do, Acc };
 do_receive(Meta, { 'do', _ } = Do, Acc) ->
   expand_with_vars(Meta, 'receive', expand_arg(Meta, 'receive', 'do'), Do, Acc);
 do_receive(_Meta, { 'after', [{ '->', Meta, [[Left], Right] }] }, { Acc1, Acc2 }) ->
@@ -90,7 +94,7 @@ do_try(Meta, { 'else', _ } = Else, E) ->
 do_try(Meta, { 'catch', _ } = Catch, E) ->
   expand_without_vars(Meta, 'try', fun elixir_exp:expand_many/2, Catch, E);
 do_try(Meta, { 'rescue', _ } = Rescue, E) ->
-  expand_without_vars(Meta, 'try', fun(X, Acc) -> expand_rescue(Meta, X, Acc) end, Rescue, E);
+  expand_without_vars(Meta, 'try', fun expand_rescue/3, Rescue, E);
 do_try(Meta, { Key, _ }, E) ->
   compile_error(Meta, E#elixir_env.file, "unexpected keyword ~ts in try", [Key]).
 

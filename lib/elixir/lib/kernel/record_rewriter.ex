@@ -111,7 +111,7 @@ defmodule Kernel.RecordRewriter do
 
   defp optimize_record_other_call(line, record, res, function, left, args) do
     call = { :call, line,
-      { :remote, line, { :atom, line, record }, { :atom, 0, function } },
+      { :remote, line, { :atom, 0, record }, { :atom, 0, function } },
       args ++ [left]
     }
     { call, res }

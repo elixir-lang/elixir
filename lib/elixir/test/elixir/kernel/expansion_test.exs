@@ -135,7 +135,7 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "^: raises without var" do
-    assert_raise CompileError, %r"invalid argument for unary operator \^, expected an existing variable, got \^1", fn ->
+    assert_raise CompileError, %r"invalid argument for unary operator \^, expected an existing variable, got: \^1", fn ->
       expand(quote do: ^1 = 1)
     end
   end
