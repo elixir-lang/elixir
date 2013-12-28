@@ -71,12 +71,12 @@ Nonassoc 330 var.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
-grammar -> eol : [nil].
-grammar -> expr_list : lists:reverse('$1').
-grammar -> eol expr_list : lists:reverse('$2').
-grammar -> expr_list eol : lists:reverse('$1').
-grammar -> eol expr_list eol : lists:reverse('$2').
-grammar -> '$empty' : [nil].
+grammar -> eol : nil.
+grammar -> expr_list : to_block('$1').
+grammar -> eol expr_list : to_block('$2').
+grammar -> expr_list eol : to_block('$1').
+grammar -> eol expr_list eol : to_block('$2').
+grammar -> '$empty' : nil.
 
 % Note expressions are on reverse order
 expr_list -> expr : ['$1'].
@@ -617,15 +617,13 @@ string_parts(Parts) ->
 string_part(Binary) when is_binary(Binary) ->
   Binary;
 string_part({ Line, Tokens }) ->
-  Form = string_tokens_parse(Line, Tokens),
+  Form = string_tokens_parse(Tokens),
   Meta = meta(Line),
   { '::', Meta, [{ { '.', Meta, ['Elixir.Kernel', to_string] }, Meta, [Form]}, { binary, Meta, nil }]}.
 
-string_tokens_parse(Line, Tokens) ->
+string_tokens_parse(Tokens) ->
   case parse(Tokens) of
-    { ok, [] } -> nil;
-    { ok, [Forms] } when not is_list(Forms) -> Forms;
-    { ok, Forms } -> { '__block__', meta(Line), Forms };
+    { ok, Forms } -> Forms;
     { error, _ } = Error -> throw(Error)
   end.
 
@@ -667,6 +665,9 @@ unwrap_when(Args) ->
     { _, _ } ->
       Args
   end.
+
+to_block([One]) when not is_list(One) -> One;
+to_block(Other) -> { '__block__', [], lists:reverse(Other) }.
 
 %% Errors
 

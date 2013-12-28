@@ -13,7 +13,6 @@ run(File, Callback) ->
   case code:is_loaded(?tracker) of
     { file, _ } ->
       Pid = ?tracker:start_link(),
-
       try
         Callback(Pid)
       after

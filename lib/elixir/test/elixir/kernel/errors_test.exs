@@ -413,29 +413,29 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :duplicated_bitstring_size do
-    assert_compile_fail SyntaxError,
-      "nofile:1: duplicated size definition for bitstring",
+    assert_compile_fail CompileError,
+      "nofile:1: duplicated size definition in bitstring",
       '<<1 :: [size(12), size(13)]>>'
   end
 
   test :invalid_bitstring_specified do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: unknown bitstring specifier :atom",
       '<<1 :: :atom>>'
 
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: unknown bitstring specifier unknown",
       '<<1 :: unknown>>'
 
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: unknown bitstring specifier another(12)",
       '<<1 :: another(12)>>'
 
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: size in bitstring expects an integer or a variable as argument",
       '<<1 :: size(:a)>>'
 
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: unit in bitstring expects an integer as argument",
       '<<1 :: unit(:x)>>'
   end

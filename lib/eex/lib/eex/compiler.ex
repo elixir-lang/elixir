@@ -23,7 +23,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{ :expr, line, mark, chars }|t], buffer, scope, state) do
-    expr = maybe_block :elixir_translator.forms!(chars, line, state.file, [])
+    expr = Code.string_to_quoted!(chars, [line: line, file: state.file])
     buffer = state.engine.handle_expr(buffer, mark, expr)
     generate_buffer(t, buffer, scope, state)
   end
@@ -41,7 +41,7 @@ defmodule EEx.Compiler do
 
   defp generate_buffer([{ :end_expr, line, _, chars }|t], buffer, [current|_], state) do
     { wrapped, state } = wrap_expr(current, line, buffer, chars, state)
-    tuples = maybe_block :elixir_translator.forms!(wrapped, state.start_line, state.file, [])
+    tuples = Code.string_to_quoted!(wrapped, [line: state.start_line, file: state.file])
     buffer = insert_quotes(tuples, state.dict)
     { buffer, t }
   end
@@ -85,12 +85,6 @@ defmodule EEx.Compiler do
   defp empty?(_) do
     false
   end
-
-  # Block wrapping
-
-  defp maybe_block([]),    do: nil
-  defp maybe_block([h]),   do: h
-  defp maybe_block(other), do: { :__block__, [], other }
 
   # Changes placeholder to real expression
 

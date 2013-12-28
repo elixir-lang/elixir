@@ -15,7 +15,7 @@ get_opt(Key) ->
 %% Compilation entry points.
 
 string(Contents, File) when is_list(Contents), is_binary(File) ->
-  Forms = elixir_translator:'forms!'(Contents, 1, File, []),
+  Forms = elixir:'string_to_quoted!'(Contents, 1, File, []),
   quoted(Forms, File).
 
 quoted(Forms, File) when is_binary(File) ->
@@ -57,10 +57,10 @@ eval_compilation(Forms, Vars, S) ->
 
 code_loading_compilation(Forms, Line, Vars, S) ->
   { Module, I } = retrieve_module_name(),
-  { Exprs, FS } = elixir_translator:translate(Forms, S),
+  { Expr, FS }  = elixir_translator:translate_each(Forms, S),
 
   Fun  = code_fun(S#elixir_scope.module),
-  Form = code_mod(Fun, Exprs, Line, S#elixir_scope.file, Module, Vars),
+  Form = code_mod(Fun, Expr, Line, S#elixir_scope.file, Module, Vars),
   Args = list_to_tuple([V || { _, V } <- Vars]),
 
   %% Pass { native, false } to speed up bootstrap
@@ -91,7 +91,7 @@ dispatch_loaded(Module, Fun, Args, Purgeable, I, S) ->
 code_fun(nil) -> '__FILE__';
 code_fun(_)   -> '__MODULE__'.
 
-code_mod(Fun, Exprs, Line, File, Module, Vars) when is_binary(File), is_integer(Line) ->
+code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(Line) ->
   Tuple    = { tuple, Line, [{ var, Line, K } || { K, _ } <- Vars] },
   Relative = elixir_utils:relative_to_cwd(File),
 
@@ -100,7 +100,7 @@ code_mod(Fun, Exprs, Line, File, Module, Vars) when is_binary(File), is_integer(
     { attribute, Line, module, Module },
     { attribute, Line, export, [{ Fun, 1 }, { '__RELATIVE__', 0 }] },
     { function, Line, Fun, 1, [
-      { clause, Line, [Tuple], [], Exprs }
+      { clause, Line, [Tuple], [], [Expr] }
     ] },
     { function, Line, '__RELATIVE__', 0, [
       { clause, Line, [], [], [elixir_utils:elixir_to_erl(Relative)] }
@@ -113,8 +113,9 @@ retrieve_module_name() ->
 return_module_name(I) ->
   elixir_code_server:cast({ return_module_name, I }).
 
-allows_fast_compilation([{defmodule,_,_}|T]) -> allows_fast_compilation(T);
-allows_fast_compilation([]) -> true;
+allows_fast_compilation({ '__block__', _, Exprs }) ->
+  lists:all(fun allows_fast_compilation/1, Exprs);
+allows_fast_compilation({defmodule,_,_}) -> true;
 allows_fast_compilation(_) -> false.
 
 %% INTERNAL API

@@ -1,7 +1,6 @@
 %% Main entry point for translations. All macros that cannot be
 %% overriden are defined in this file.
 -module(elixir_translator).
--export([forms/4, 'forms!'/4]).
 -export([translate/2, translate_each/2, translate_arg/2, translate_args/2]).
 -import(elixir_scope, [umergev/2, umergec/2, umergea/2]).
 -import(elixir_errors, [syntax_error/3, syntax_error/4,
@@ -9,26 +8,6 @@
   assert_function_scope/3, assert_module_scope/3,
   assert_no_guard_scope/3, assert_no_match_or_guard_scope/3]).
 -include("elixir.hrl").
-
-forms(String, StartLine, File, Opts) ->
-  case elixir_tokenizer:tokenize(String, StartLine, [{ file, File }|Opts]) of
-    { ok, _Line, Tokens } ->
-      try elixir_parser:parse(Tokens) of
-        { ok, Forms } -> { ok, Forms };
-        { error, { Line, _, [Error, Token] } } -> { error, { Line, Error, Token } }
-      catch
-        { error, { Line, _, [Error, Token] } } -> { error, { Line, Error, Token } }
-      end;
-    { error, Reason, _Rest, _SoFar  } -> { error, Reason }
-  end.
-
-'forms!'(String, StartLine, File, Opts) ->
-  case forms(String, StartLine, File, Opts) of
-    { ok, Forms } ->
-      Forms;
-    { error, { Line, Error, Token } } ->
-      elixir_errors:parse_error(Line, File, Error, Token)
-  end.
 
 translate(Forms, S) ->
   lists:mapfoldl(fun translate_each/2, S, Forms).

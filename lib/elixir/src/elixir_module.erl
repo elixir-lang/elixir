@@ -114,7 +114,7 @@ build(Line, File, Module, Lexical) ->
 
 eval_form(Line, Module, Block, Vars, S) ->
   KV = [{ K, V } || { _, _, K, V } <- Vars],
-  { Value, NewS } = elixir_compiler:eval_forms([Block], Line, KV, S),
+  { Value, NewS } = elixir_compiler:eval_forms(Block, Line, KV, S),
   elixir_def_overridable:store_pending(Module),
   Env = elixir_env:scope_to_ex({ Line, S }),
   eval_callbacks(Line, Module, before_compile, [Env], NewS),
@@ -367,7 +367,7 @@ eval_callbacks(Line, Module, Name, Args, RawS) ->
         Atom;
       _ ->
         try
-          erl_eval:exprs([Tree], Binding)
+          erl_eval:expr(Tree, Binding)
         catch
           Kind:Reason ->
             Info = { M, F, length(Args), [{ file, elixir_utils:characters_to_list(S#elixir_scope.file) }, { line, Line }] },

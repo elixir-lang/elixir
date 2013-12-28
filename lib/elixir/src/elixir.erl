@@ -1,6 +1,9 @@
+%% Main entry point for Elixir functions. All of those functions are
+%% private to the Elixir compiler and reserved to be used by Elixir only.
 -module(elixir).
 -behaviour(application).
 -export([main/1, start_cli/0,
+  string_to_quoted/4, 'string_to_quoted!'/4,
   scope_for_eval/1, scope_for_eval/2,
   eval/2, eval/3, eval/4, eval_forms/3,
   eval_quoted/2, eval_quoted/3, eval_quoted/4]).
@@ -11,7 +14,7 @@
 -type char_list() :: string().
 -type as_boolean(T) :: T.
 
-% OTP APPLICATION API
+%% OTP Application API
 
 -export([start/2, stop/1, config_change/3]).
 
@@ -108,7 +111,7 @@ eval(String, Binding, Opts) ->
 
 eval(String, Binding, Line, #elixir_scope{file=File} = S) when
     is_list(String), is_list(Binding), is_integer(Line), is_binary(File) ->
-  Forms = elixir_translator:'forms!'(String, Line, File, []),
+  Forms = 'string_to_quoted!'(String, Line, File, []),
   eval_forms(Forms, Binding, S).
 
 %% Quoted evaluation
@@ -133,11 +136,33 @@ eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
 
 eval_forms(Tree, Binding, Scope) ->
   { ParsedBinding, ParsedScope } = elixir_scope:load_binding(Binding, Scope),
-  { Exprs, NewScope } = elixir_translator:translate(Tree, ParsedScope),
-  case Exprs of
-    [] ->
-      { nil, Binding, NewScope };
+  { Expr, NewScope } = elixir_translator:translate_each(Tree, ParsedScope),
+  case Expr of
+    { atom, _, Atom } ->
+      { Atom, Binding, NewScope };
     _  ->
-      { value, Value, NewBinding } = erl_eval:exprs(Exprs, ParsedBinding),
+      { value, Value, NewBinding } = erl_eval:expr(Expr, ParsedBinding),
       { Value, elixir_scope:dump_binding(NewBinding, NewScope), NewScope }
+  end.
+
+%% Converts a given string (char list) into quote expression
+
+string_to_quoted(String, StartLine, File, Opts) ->
+  case elixir_tokenizer:tokenize(String, StartLine, [{ file, File }|Opts]) of
+    { ok, _Line, Tokens } ->
+      try elixir_parser:parse(Tokens) of
+        { ok, Forms } -> { ok, Forms };
+        { error, { Line, _, [Error, Token] } } -> { error, { Line, Error, Token } }
+      catch
+        { error, { Line, _, [Error, Token] } } -> { error, { Line, Error, Token } }
+      end;
+    { error, Reason, _Rest, _SoFar  } -> { error, Reason }
+  end.
+
+'string_to_quoted!'(String, StartLine, File, Opts) ->
+  case string_to_quoted(String, StartLine, File, Opts) of
+    { ok, Forms } ->
+      Forms;
+    { error, { Line, Error, Token } } ->
+      elixir_errors:parse_error(Line, File, Error, Token)
   end.
