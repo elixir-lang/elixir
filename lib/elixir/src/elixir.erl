@@ -150,7 +150,7 @@ quoted_to_erl(Quoted, Env) ->
 
 quoted_to_erl(Quoted, Env, Scope) ->
   { Expanded, NewEnv } = elixir_exp:expand(Quoted, Env),
-  { Erl, NewScope }    = elixir_translator:translate_each(Expanded, Scope),
+  { Erl, NewScope }    = elixir_translator:translate(Expanded, Scope),
   { Erl, NewEnv, NewScope }.
 
 %% Converts a given string (char list) into quote expression

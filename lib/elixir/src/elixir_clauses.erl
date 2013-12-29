@@ -32,19 +32,19 @@ get_pairs_error(Meta, Key, S) ->
 
 %% Translate matches
 
-match(Fun, Args, #elixir_scope{context=Context, temp_vars=TempVars,
+match(Fun, Args, #elixir_scope{context=Context, match_vars=MatchVars,
     backup_vars=BackupVars, vars=Vars} = S) when Context /= match ->
   { Result, NewS } = match(Fun, Args, S#elixir_scope{context=match,
-                       temp_vars=ordsets:new(), backup_vars=Vars}),
+                       match_vars=ordsets:new(), backup_vars=Vars}),
   { Result, NewS#elixir_scope{context=Context,
-      temp_vars=TempVars, backup_vars=BackupVars} };
+      match_vars=MatchVars, backup_vars=BackupVars} };
 match(Fun, Args, S) -> Fun(Args, S).
 
 %% Translate clauses with args, guards and expressions
 
 clause(Line, Fun, Args, Expr, Guards, S) when is_integer(Line) ->
   { TArgs, SA } = match(Fun, Args, S#elixir_scope{extra_guards=[]}),
-  { TExpr, SE } = elixir_translator:translate_each(Expr, SA#elixir_scope{extra_guards=nil}),
+  { TExpr, SE } = elixir_translator:translate(Expr, SA#elixir_scope{extra_guards=nil}),
 
   SG    = SA#elixir_scope{context=guard, extra_guards=nil},
   Extra = SA#elixir_scope.extra_guards,
@@ -59,7 +59,7 @@ clause(Line, Fun, Args, Expr, Guards, S) when is_integer(Line) ->
 % Translate/Extract guards from the given expression.
 
 translate_guard(Line, Guard, Extra, S) ->
-  [element(1, elixir_translator:translate_each(elixir_quote:linify(Line, Guard), S))|Extra].
+  [element(1, elixir_translator:translate(elixir_quote:linify(Line, Guard), S))|Extra].
 
 extract_guards({ 'when', _, [Left, Right] }) -> { Left, extract_or_guards(Right) };
 extract_guards(Else) -> { Else, [] }.
@@ -155,15 +155,15 @@ expand_clauses(_Line, [], [], _FinalVars, Acc, S) ->
 
 each_clause({ do, Meta, [Condition], Expr }, S) ->
   { Arg, Guards } = extract_guards(Condition),
-  clause(?line(Meta), fun elixir_translator:translate/2, [Arg], Expr, Guards, S);
+  clause(?line(Meta), fun elixir_translator:translate_many/2, [Arg], Expr, Guards, S);
 
 each_clause({ else, Meta, [Condition], Expr }, S) ->
   { Arg, Guards } = extract_guards(Condition),
-  clause(?line(Meta), fun elixir_translator:translate/2, [Arg], Expr, Guards, S);
+  clause(?line(Meta), fun elixir_translator:translate_many/2, [Arg], Expr, Guards, S);
 
 each_clause({ 'after', Meta, [Condition], Expr }, S) ->
-  { TCondition, SC } = elixir_translator:translate_each(Condition, S),
-  { TExpr, SB } = elixir_translator:translate_each(Expr, SC),
+  { TCondition, SC } = elixir_translator:translate(Condition, S),
+  { TExpr, SB } = elixir_translator:translate(Expr, SC),
   { { clause, ?line(Meta), [TCondition], [], unblock(TExpr) }, SB }.
 
 % Check if the given expression is a match tuple.

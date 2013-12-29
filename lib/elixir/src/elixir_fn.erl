@@ -22,7 +22,7 @@ translate(Meta, Clauses, S) ->
   end.
 
 translate_fn_match(Arg, S) ->
-  { TArg, TS } = elixir_translator:translate(Arg, S#elixir_scope{extra=fn_match}),
+  { TArg, TS } = elixir_translator:translate_many(Arg, S#elixir_scope{extra=fn_match}),
   { TArg, TS#elixir_scope{extra=S#elixir_scope.extra} }.
 
 %% Expansion

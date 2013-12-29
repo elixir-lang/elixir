@@ -16,8 +16,8 @@ translate_var(Meta, Name, Kind, S, Callback) when is_atom(Kind); is_integer(Kind
 
   case S#elixir_scope.context of
     match ->
-      TempVars = S#elixir_scope.temp_vars,
-      case { orddict:is_key(Tuple, Vars), is_list(TempVars) andalso ordsets:is_element(Tuple, TempVars) } of
+      MatchVars = S#elixir_scope.match_vars,
+      case { orddict:is_key(Tuple, Vars), is_list(MatchVars) andalso ordsets:is_element(Tuple, MatchVars) } of
         { true, true } ->
           { { var, Line, orddict:fetch(Tuple, Vars) }, S };
         { Else, _ } ->
@@ -31,9 +31,9 @@ translate_var(Meta, Name, Kind, S, Callback) when is_atom(Kind); is_integer(Kind
           ClauseVars = S#elixir_scope.clause_vars,
           { NewVar, NS#elixir_scope{
             vars=orddict:store(Tuple, RealName, Vars),
-            temp_vars=if
-              TempVars == nil -> TempVars;
-              true -> ordsets:add_element(Tuple, TempVars)
+            match_vars=if
+              MatchVars == nil -> MatchVars;
+              true -> ordsets:add_element(Tuple, MatchVars)
             end,
             clause_vars=if
               ClauseVars == nil -> ClauseVars;
@@ -125,7 +125,7 @@ load_binding(Binding, Scope) ->
   { NewBinding, NewVars, NewCounter } = load_binding(Binding, [], [], 0),
   { NewBinding, Scope#elixir_scope{
     vars=NewVars,
-    temp_vars=[],
+    match_vars=[],
     clause_vars=nil,
     counter=[{'',NewCounter}]
   } }.

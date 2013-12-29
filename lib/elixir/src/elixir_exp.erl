@@ -340,8 +340,12 @@ expand({ Left, Right }, E) ->
   { [ELeft, ERight], EE } = expand_args([Left, Right], E),
   { { ELeft, ERight }, EE };
 
+expand(List, #elixir_env{context=match} = E) when is_list(List) ->
+  expand_list(List, fun expand/2, E, []);
+
 expand(List, E) when is_list(List) ->
-  expand_list(List, E, E, []);
+  { EArgs, { EC, EV } } = expand_list(List, fun expand_arg/2, {E, E}, []),
+  { EArgs, elixir_env:mergea(EV, EC) };
 
 expand(Function, E) when is_function(Function) ->
   case (erlang:fun_info(Function, type) == { type, external }) andalso
@@ -362,14 +366,14 @@ expand(Other, E) ->
 
 %% Helpers
 
-expand_list([{ '|', Meta, [_, _] = Args }], Acc1, Acc2, List) ->
-  { EArgs, { EAcc1, EAcc2 } } = lists:mapfoldl(fun expand_arg/2, { Acc1, Acc2 }, Args),
-  expand_list([], EAcc1, EAcc2, [{ '|', Meta, EArgs }|List]);
-expand_list([H|T], Acc1, Acc2, List) ->
-  { EArg, EAcc } = expand(H, Acc1),
-  expand_list(T, elixir_env:mergea(Acc1, EAcc), elixir_env:mergev(Acc2, EAcc), [EArg|List]);
-expand_list([], EC, EV, List) ->
-  { lists:reverse(List), elixir_env:mergea(EV, EC) }.
+expand_list([{ '|', Meta, [_, _] = Args }], Fun, Acc, List) ->
+  { EArgs, EAcc } = lists:mapfoldl(Fun, Acc, Args),
+  expand_list([], Fun, EAcc, [{ '|', Meta, EArgs }|List]);
+expand_list([H|T], Fun, Acc, List) ->
+  { EArg, EAcc } = Fun(H, Acc),
+  expand_list(T, Fun, EAcc, [EArg|List]);
+expand_list([], _Fun, Acc, List) ->
+  { lists:reverse(List), Acc }.
 
 expand_many(Args, E) ->
   lists:mapfoldl(fun expand/2, E, Args).
@@ -394,8 +398,8 @@ expand_arg(Arg, { Acc1, Acc2 }) ->
 expand_args(Args, #elixir_env{context=match} = E) ->
   lists:mapfoldl(fun expand/2, E, Args);
 expand_args(Args, E) ->
-  { TArgs, { EC, EV } } = lists:mapfoldl(fun expand_arg/2, {E, E}, Args),
-  { TArgs, elixir_env:mergea(EV, EC) }.
+  { EArgs, { EC, EV } } = lists:mapfoldl(fun expand_arg/2, {E, E}, Args),
+  { EArgs, elixir_env:mergea(EV, EC) }.
 
 %% Match/var helpers
 

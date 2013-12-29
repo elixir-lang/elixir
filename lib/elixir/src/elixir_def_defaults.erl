@@ -25,7 +25,7 @@ unpack_each(Kind, Name, [{'//', Line, [Expr, _]}|T] = List, Acc, Clauses, S) ->
   Base = build_match(Acc, Line, []),
   { Args, Invoke } = extract_defaults(List, Line, length(Base), [], []),
 
-  { DefArgs, SA }  = elixir_clauses:match(fun elixir_translator:translate/2, Base ++ Args, S),
+  { DefArgs, SA }  = elixir_clauses:match(fun elixir_translator:translate_many/2, Base ++ Args, S),
   { DefInvoke, _ } = elixir_translator:translate_args(Base ++ Invoke, SA),
 
   Call = { call, Line,

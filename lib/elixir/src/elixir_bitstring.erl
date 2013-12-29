@@ -103,7 +103,7 @@ handle_unknown_bit_info(Meta, { _, ExprMeta, _ } = Expr, T, Size, Types, E) ->
 translate(Meta, Args, S) ->
   case S#elixir_scope.context of
     match ->
-      build_bitstr(fun elixir_translator:translate_each/2, Args, Meta, S);
+      build_bitstr(fun elixir_translator:translate/2, Args, Meta, S);
     _ ->
       build_bitstr(fun(X, Acc) -> elixir_translator:translate_arg(X, Acc, S) end, Args, Meta, S)
   end.
@@ -161,7 +161,7 @@ types_allow_splice(_) -> false.
 %% Extra bitstring specifiers
 
 extract_bit_info(Meta, [{ size, _, [Arg] }|T], S) ->
-  case elixir_translator:translate_each(Arg, S) of
+  case elixir_translator:translate(Arg, S) of
     { { Kind, _, _ } = Size, _ } when Kind == integer; Kind == var ->
       { Size, extract_bit_type(Meta, T, S) };
     _ ->

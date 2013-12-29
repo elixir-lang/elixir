@@ -21,7 +21,7 @@ each_clause({ 'catch', Meta, Raw, Expr }, S) ->
   end,
 
   Condition = [{ '{}', Meta, Final }],
-  elixir_clauses:clause(?line(Meta), fun elixir_translator:translate/2, Condition, Expr, Guards, S);
+  elixir_clauses:clause(?line(Meta), fun elixir_translator:translate_many/2, Condition, Expr, Guards, S);
 
 each_clause({ rescue, Meta, [{ in, _, [Left, Right]}], Expr }, S) ->
   case Left of
@@ -118,7 +118,7 @@ rescue_each_ref(Meta, Var, [H|T], Elixir, Erlang, Safe, S) when is_atom(H) ->
   rescue_each_ref(Meta, Var, T, [exception_compare(Meta, Var, H)|Elixir], Erlang, Safe, S);
 
 rescue_each_ref(Meta, Var, [H|T], Elixir, Erlang, Safe, S) ->
-  case elixir_translator:translate_each(H, S) of
+  case elixir_translator:translate(H, S) of
     { { atom, _, Atom }, _ } ->
       rescue_each_ref(Meta, Var, [Atom|T], Elixir, Erlang, Safe, S);
     _ ->
