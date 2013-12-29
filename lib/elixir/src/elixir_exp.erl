@@ -18,7 +18,7 @@ expand({ '{}', Meta, Args }, E) ->
   { { '{}', Meta, EArgs }, EA };
 
 expand({ '<<>>', Meta, Args }, E) ->
-  elixir_literal:expand_bitstr(Meta, Args, E);
+  elixir_bitstring:expand(Meta, Args, E);
 
 %% Other operators
 
@@ -386,8 +386,7 @@ expand_many(Args, E) ->
 %%   foo(3, 1)
 %%   3
 %%
-%% However, notice that if we are doing an assignment,
-%% it behaves as regular expansion.
+%% However, lexical information is.
 expand_arg(Arg, { Acc1, Acc2 }) ->
   { EArg, EAcc } = expand(Arg, Acc1),
   { EArg, { elixir_env:mergea(Acc1, EAcc), elixir_env:mergev(Acc2, EAcc) } }.

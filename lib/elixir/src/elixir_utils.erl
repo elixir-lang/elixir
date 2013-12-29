@@ -1,10 +1,8 @@
 %% Convenience functions used throughout elixir source code
 %% for ast manipulation and querying.
 -module(elixir_utils).
--export([elixir_to_erl/1, elixir_to_erl/2,
-  get_line/1, split_last/1, elixir_to_erl/3,
+-export([elixir_to_erl/1, get_line/1, split_last/1,
   characters_to_list/1, characters_to_binary/1,
-  cons_to_list/1, list_to_cons/2, list_to_cons/3,
   convert_to_boolean/4, returns_boolean/1,
   file_type/1, file_type/2, relative_to_cwd/1]).
 -include("elixir.hrl").
@@ -52,59 +50,30 @@ characters_to_binary(Data) ->
     false -> 'Elixir.String':'from_char_list!'(Data)
   end.
 
-%% List conversion
-
-cons_to_list({ nil, _ }) -> [];
-cons_to_list({ cons, _, Left, Right }) -> [Left|cons_to_list(Right)].
-
-list_to_cons(Line, List) ->
-  list_to_cons(Line, List, { nil, Line }).
-
-list_to_cons(Line, List, Tail) ->
-  lists:foldr(fun(X, Acc) ->
-    { cons, Line, X, Acc }
-  end, Tail, List).
-
 %% erl <-> elixir
 
-%% TODO: Clean this up
-elixir_to_erl(Tree) ->
-  elixir_to_erl(Tree, fun(X) -> error({ badarg, X }) end).
+elixir_to_erl(Tree) when is_tuple(Tree) ->
+  { tuple, 0, [elixir_to_erl(X) || X <- tuple_to_list(Tree)] };
 
-elixir_to_erl(Line, Tree, S) ->
-  elixir_to_erl(Tree, fun
-    (X) when is_function(X) ->
-      elixir_errors:compile_error(Line, S#elixir_scope.file,
-        "anonymous functions cannot be translated into a quoted expression, got: ~ts",
-        ['Elixir.Kernel':inspect(X)]);
-    (X) ->
-      elixir_errors:compile_error(Line, S#elixir_scope.file,
-        "cannot translate ~ts into a quoted expression",
-        ['Elixir.Kernel':inspect(X)])
-  end).
-
-elixir_to_erl(Tree, Fun) when is_tuple(Tree) ->
-  { tuple, 0, [elixir_to_erl(X, Fun) || X <- tuple_to_list(Tree)] };
-
-elixir_to_erl([], _Fun) ->
+elixir_to_erl([]) ->
   { nil, 0 };
 
-elixir_to_erl(Tree, Fun) when is_list(Tree) ->
-  elixir_to_erl_cons_1(Tree, [], Fun);
+elixir_to_erl(Tree) when is_list(Tree) ->
+  elixir_to_erl_cons_1(Tree, []);
 
-elixir_to_erl(Tree, _Fun) when is_atom(Tree) ->
+elixir_to_erl(Tree) when is_atom(Tree) ->
   { atom, 0, Tree };
 
-elixir_to_erl(Tree, _Fun) when is_integer(Tree) ->
+elixir_to_erl(Tree) when is_integer(Tree) ->
   { integer, 0, Tree };
 
-elixir_to_erl(Tree, _Fun) when is_float(Tree) ->
+elixir_to_erl(Tree) when is_float(Tree) ->
   { float, 0, Tree };
 
-elixir_to_erl(Tree, _Fun) when is_binary(Tree) ->
+elixir_to_erl(Tree) when is_binary(Tree) ->
   { bin, 0, [{ bin_element, 0, { string, 0, binary_to_list(Tree) }, default, default }] };
 
-elixir_to_erl(Function, Fun) when is_function(Function) ->
+elixir_to_erl(Function) when is_function(Function) ->
   case (erlang:fun_info(Function, type) == { type, external }) andalso
        (erlang:fun_info(Function, env) == { env, [] }) of
     true ->
@@ -117,21 +86,21 @@ elixir_to_erl(Function, Fun) when is_function(Function) ->
         { atom, 0, Name },
         { integer, 0, Arity } } };
     false ->
-      Fun(Function)
+      error(badarg)
   end;
 
-elixir_to_erl(Pid, _Fun) when is_pid(Pid) ->
+elixir_to_erl(Pid) when is_pid(Pid) ->
   ?wrap_call(0, erlang, binary_to_term, [elixir_utils:elixir_to_erl(term_to_binary(Pid))]);
 
-elixir_to_erl(Other, Fun) ->
-  Fun(Other).
+elixir_to_erl(_Other) ->
+  error(badarg).
 
-elixir_to_erl_cons_1([H|T], Acc, Fun) -> elixir_to_erl_cons_1(T, [H|Acc], Fun);
-elixir_to_erl_cons_1(Other, Acc, Fun) -> elixir_to_erl_cons_2(Acc, elixir_to_erl(Other, Fun), Fun).
+elixir_to_erl_cons_1([H|T], Acc) -> elixir_to_erl_cons_1(T, [H|Acc]);
+elixir_to_erl_cons_1(Other, Acc) -> elixir_to_erl_cons_2(Acc, elixir_to_erl(Other)).
 
-elixir_to_erl_cons_2([H|T], Acc, Fun) ->
-  elixir_to_erl_cons_2(T, { cons, 0, elixir_to_erl(H, Fun), Acc }, Fun);
-elixir_to_erl_cons_2([], Acc, _Fun) ->
+elixir_to_erl_cons_2([H|T], Acc) ->
+  elixir_to_erl_cons_2(T, { cons, 0, elixir_to_erl(H), Acc });
+elixir_to_erl_cons_2([], Acc) ->
   Acc.
 
 %% Boolean checks

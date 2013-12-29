@@ -18,8 +18,12 @@ translate_each({ '=', Meta, [Left, Right] }, S) ->
 
 %% Containers
 
-translate_each({ C, _, _ } = Original, S) when C == '{}'; C == '<<>>' ->
-  elixir_literal:translate(Original, S);
+translate_each({ '{}', Meta, Args }, S) when is_list(Args) ->
+  { TArgs, SE } = translate_args(Args, S),
+  { { tuple, ?line(Meta), TArgs }, SE };
+
+translate_each({ '<<>>', Meta, Args }, S) when is_list(Args) ->
+  elixir_bitstring:translate(Meta, Args, S);
 
 %% Blocks and scope rewriters
 
@@ -244,10 +248,31 @@ translate_each({ _, _, _ } = Tuple, S) ->
 
 %% Literals
 
-translate_each(Literal, S) ->
-  elixir_literal:translate(Literal, S).
+translate_each(List, S) when is_list(List) ->
+  translate_list(List, S, S, []);
+
+translate_each({ Left, Right }, S) ->
+  { TArgs, SE } = translate_args([Left, Right], S),
+  { { tuple, 0, TArgs }, SE };
+
+translate_each(Other, S) ->
+  { elixir_utils:elixir_to_erl(Other), S }.
 
 %% Helpers
+
+translate_list([{ '|', _, [_, _]=Args}], Acc, S, List) ->
+  { [TLeft,TRight], TAcc } = lists:mapfoldl(fun(X, XA) -> translate_arg(X, XA, S) end, Acc, Args),
+  { build_list([TLeft|List], TRight), TAcc };
+translate_list([H|T], Acc, S, List) ->
+  { TH, TAcc } = translate_arg(H, Acc, S),
+  translate_list(T, TAcc, S, [TH|List]);
+translate_list([], Acc, _S, List) ->
+  { build_list(List, { nil, 0 }), Acc }.
+
+build_list([H|T], Acc) ->
+  build_list(T, { cons, 0, H, Acc });
+build_list([], Acc) ->
+  Acc.
 
 var_kind(Meta, Kind) ->
   case lists:keyfind(counter, 1, Meta) of
@@ -277,21 +302,6 @@ unblock({ 'block', _, Exprs }) -> Exprs;
 unblock(Expr)                  -> [Expr].
 
 %% Translate args
-
-%% Variables in arguments are not propagated from one
-%% argument to the other. For instance:
-%%
-%%   x = 1
-%%   foo(x = x + 2, x)
-%%   x
-%%
-%% Should be the same as:
-%%
-%%   foo(3, 1)
-%%   3
-%%
-%% However, notice that if we are doing an assignment,
-%% it behaves the same as translate.
 
 translate_arg(Arg, Acc, S) ->
   { TArg, TAcc } = translate_each(Arg, mergec(S, Acc)),
