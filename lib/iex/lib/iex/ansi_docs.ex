@@ -6,7 +6,7 @@ defmodule IEx.ANSIDocs do
   @doc """
   Prints the head of the documentation (i.e. the function signature)
   """
-  def print_heading(string, use_ansi // IO.ANSI.terminal?, colors // IEx.Options.get(:colors)) do
+  def print_heading(string, use_ansi // IO.ANSI.terminal?, colors // []) do
     if use_ansi do
       write_doc_heading(string, colors)
     else
@@ -26,7 +26,7 @@ defmodule IEx.ANSIDocs do
   @doc """
   Prints the documentation body.
   """
-  def print(doc, use_ansi // IO.ANSI.terminal?, colors // IEx.Options.get(:colors)) do
+  def print(doc, use_ansi // IO.ANSI.terminal?, colors // []) do
     if use_ansi do
       doc
       |> String.split(["\r\n","\n"], trim: false)

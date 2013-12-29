@@ -14,7 +14,7 @@ defmodule IEx.AnsiDocsTest do
   @opts [colors: @colors]
 
   def format(str, use_ansi // true) do
-    cmd = "IEx.ANSIDocs.print(#{inspect str}, #{inspect use_ansi})"
+    cmd = "IEx.ANSIDocs.print(#{inspect str}, #{inspect use_ansi}, #{inspect @colors})"
     capture_iex(cmd, @opts)
   end
 
@@ -23,7 +23,7 @@ defmodule IEx.AnsiDocsTest do
   end
 
   test "ansi heading is formatted" do
-    result = capture_iex("IEx.ANSIDocs.print_heading(\"wibble\", true)", @opts)
+    result = capture_iex("IEx.ANSIDocs.print_heading(\"wibble\", true, #{inspect @colors})", @opts)
     assert String.starts_with?(result, "\e[0m\n\e[7m\e[33m\e[1m")
     assert String.ends_with?(result, "\e[0m\n\e[0m")
     assert String.contains?(result, " wibble ")
