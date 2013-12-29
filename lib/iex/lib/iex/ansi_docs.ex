@@ -11,8 +11,31 @@ defmodule IEx.ANSIDocs do
                     doc_bold: "bright",
                     doc_underline: "underline" ]
 
+  @shared_print_doc """
+  In addition to the priting string, takes a truth value for whether to use ANSI
+  escape codes, and a keyword list for the printing color settings. Supported
+  keys for the color settings are:
+
+    * `:enabled`         - toggles coloring on and off (true)
+    * `:doc_code`        - code blocks (cyan, bright)
+    * `:doc_inline_code` - inline code (cyan)
+    * `:doc_headings`    - h1 and h2 headings (yellow, bright)
+    * `:doc_title`       - top level heading (reverse, yellow, bright)
+    * `:doc_bold`        - bold text (bright)
+    * `:doc_underline`   - underlined text (underline)
+
+  Values for the color settings are strings with comma-separated attributes.
+  Supported attributes are:
+
+    * Colors:     `black  red  green  yellow  blue  magenta  cyan  white`
+    * Intensity:  `normal  bright`
+    * Decoration: `underline  reverse`
+  """
+
   @doc """
-  Prints the head of the documentation (i.e. the function signature)
+  Prints the head of the documentation (i.e. the function signature).
+
+  #{@shared_print_doc}
   """
   def print_heading(string, use_ansi // IO.ANSI.terminal?, colors // @default_colors) do
     if use_ansi do
@@ -33,6 +56,8 @@ defmodule IEx.ANSIDocs do
 
   @doc """
   Prints the documentation body.
+
+  #{@shared_print_doc}
   """
   def print(doc, use_ansi // IO.ANSI.terminal?, colors // @default_colors) do
     if use_ansi do
