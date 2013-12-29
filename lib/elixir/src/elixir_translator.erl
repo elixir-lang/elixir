@@ -51,54 +51,8 @@ translate_each({ '__op__', Meta, [Op, Left, Right] }, S) when is_atom(Op) ->
 
 %% Lexical
 
-translate_each({ alias, Meta, [Ref] }, S) ->
-  translate_each({ alias, Meta, [Ref,[]] }, S);
-
-translate_each({ alias, Meta, [Ref, KV] }, S) ->
-  assert_no_match_or_guard_scope(Meta, alias, S),
-  { TRef, SR } = translate_each(Ref, S),
-  { TKV, ST }  = translate_opts(Meta, alias, [as, warn], no_alias_opts(KV), SR),
-
-  case TRef of
-    { atom, _, Old } ->
-      translate_alias(Meta, true, Old, TKV, ST);
-    _ ->
-      compile_error(Meta, S#elixir_scope.file, "invalid args for alias, expected a compile time atom or alias as argument")
-  end;
-
-translate_each({ require, Meta, [Ref] }, S) ->
-  translate_each({ require, Meta, [Ref, []] }, S);
-
-translate_each({ require, Meta, [Ref, KV] }, S) ->
-  assert_no_match_or_guard_scope(Meta, require, S),
-
-  { TRef, SR } = translate_each(Ref, S),
-  { TKV, ST }  = translate_opts(Meta, require, [as, warn], no_alias_opts(KV), SR),
-
-  case TRef of
-    { atom, _, Old } ->
-      elixir_aliases:ensure_loaded(Meta, Old, elixir_env:scope_to_env(ST)),
-      translate_require(Meta, Old, TKV, ST);
-    _ ->
-      compile_error(Meta, S#elixir_scope.file, "invalid args for require, expected a compile time atom or alias as argument")
-  end;
-
-translate_each({ import, Meta, [Left] }, S) ->
-  translate_each({ import, Meta, [Left, []]}, S);
-
-translate_each({ import, Meta, [Ref, KV] }, S) ->
-  assert_no_match_or_guard_scope(Meta, import, S),
-  { TRef, SR } = translate_each(Ref, S),
-  { TKV, ST }  = translate_opts(Meta, import, [only, except, warn], KV, SR),
-
-  case TRef of
-    { atom, _, Atom } ->
-      elixir_aliases:ensure_loaded(Meta, Atom, elixir_env:scope_to_env(ST)),
-      { Functions, Macros } = elixir_import:import(Meta, Atom, TKV, elixir_env:scope_to_env(ST)),
-      translate_require(Meta, Atom, TKV, ST#elixir_scope{functions=Functions, macros=Macros});
-    _ ->
-      compile_error(Meta, S#elixir_scope.file, "invalid name for import, expected a compile time atom or alias")
-  end;
+translate_each({ Lexical, _, [_, _] }, S) when Lexical == import; Lexical == alias; Lexical == require ->
+  { { atom, 0, nil }, S };
 
 %% Pseudo variables
 

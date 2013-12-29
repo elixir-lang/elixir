@@ -1,13 +1,19 @@
 %% Handle code related to args, guard and -> matching for case,
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_exp_clauses).
--export([match/3, clause/5, 'case'/3, 'receive'/3, 'try'/3]).
+-export([match/3, clause/5, 'case'/3, 'receive'/3, 'try'/3, def/5]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
 
 match(Fun, Expr, #elixir_env{context=Context} = E) ->
   { EExpr, EE } = Fun(Expr, E#elixir_env{context=match}),
   { EExpr, EE#elixir_env{context=Context} }.
+
+def(Fun, Args, Guards, Body, E) ->
+  { EArgs, EA }   = match(Fun, Args, E),
+  { EGuards, EG } = guard(Guards, EA#elixir_env{context=guard}),
+  { EBody, EB }   = elixir_exp:expand(Body, EG#elixir_env{context=E#elixir_env.context}),
+  { EArgs, EGuards, EBody, EB }.
 
 clause(Meta, Kind, Fun, { '->', ClauseMeta, [_, _] } = Clause, E) when is_function(Fun, 3) ->
   clause(Meta, Kind, fun(X, Acc) -> Fun(ClauseMeta, X, Acc) end, Clause, E);
@@ -115,14 +121,14 @@ expand_rescue({ Name, _, Atom } = Var, E) when is_atom(Name), is_atom(Atom) ->
 
 %% rescue var in [Exprs]
 expand_rescue({ in, Meta, [Left, Right] }, E) ->
-  { ERight, ER } = elixir_exp:expand(Right, E),
+  { ERight, ER } = elixir_exp:expand(Right, E#elixir_env{context=nil}),
   { ELeft, EL }  = elixir_exp:expand(Left, ER#elixir_env{context=match}),
 
   case ELeft of
     { Name, _, Atom } when is_atom(Name), is_atom(Atom) ->
       case normalize_rescue(ERight) of
         false -> false;
-        Other -> { { in, Meta, [ELeft, Other] }, EL#elixir_env{context=E#elixir_env.context} }
+        Other -> { { in, Meta, [ELeft, Other] }, EL }
       end;
     _ ->
       false
@@ -136,7 +142,7 @@ normalize_rescue({ '_', _, Atom } = N) when is_atom(Atom) -> N;
 normalize_rescue(Atom) when is_atom(Atom) -> [Atom];
 normalize_rescue(Other) ->
   is_list(Other)
-    andalso lists:all(Other, fun is_var_or_atom/1)
+    andalso lists:all(fun is_var_or_atom/1, Other)
     andalso Other.
 
 is_var_or_atom({ Name, _, Atom }) when is_atom(Name), is_atom(Atom) -> true;

@@ -49,8 +49,7 @@ delete_definition(Module, Tuple) ->
 % Each function is then added to the function table.
 
 store_definition(Kind, CheckClauses, Call, Body, ExEnv) ->
-  #elixir_env{line=Line} = Env = elixir_env:ex_to_env(ExEnv),
-  S = elixir_env:env_to_scope(Env),
+  #elixir_env{line=Line} = E = elixir_env:ex_to_env(ExEnv),
   { NameAndArgs, Guards } = elixir_clauses:extract_guards(Call),
 
   { Name, Args } = case NameAndArgs of
@@ -58,7 +57,7 @@ store_definition(Kind, CheckClauses, Call, Body, ExEnv) ->
     { N, _, A } when is_atom(N), is_list(A) -> { N, A };
     _ ->
       Format = [Kind, 'Elixir.Macro':to_string(NameAndArgs)],
-      elixir_errors:syntax_error(Line, S#elixir_scope.file, "invalid syntax in ~ts ~ts", Format)
+      elixir_errors:syntax_error(Line, E#elixir_env.file, "invalid syntax in ~ts ~ts", Format)
   end,
 
   %% Now that we have verified the call format,
@@ -78,29 +77,29 @@ store_definition(Kind, CheckClauses, Call, Body, ExEnv) ->
   LinifyGuards = elixir_quote:linify(Line, Key, Guards),
   LinifyBody   = elixir_quote:linify(Line, Key, Body),
 
-  assert_no_aliases_name(Line, Name, Args, S),
+  assert_no_aliases_name(Line, Name, Args, E),
   store_definition(Kind, Line, DoCheckClauses, Name,
-                   LinifyArgs, LinifyGuards, LinifyBody, File, S).
+                   LinifyArgs, LinifyGuards, LinifyBody, File, E).
 
-store_definition(Kind, Line, CheckClauses, Name, Args, Guards, Body, MetaFile, #elixir_scope{module=Module} = DS) ->
+store_definition(Kind, Line, CheckClauses, Name, Args, Guards, Body, MetaFile, #elixir_env{module=Module} = ER) ->
   Arity = length(Args),
   Tuple = { Name, Arity },
-  S     = DS#elixir_scope{function=Tuple},
+  E = ER#elixir_env{function=Tuple,vars=[]},
   elixir_locals:record_definition(Tuple, Kind, Module),
 
-  Location = retrieve_file(Line, MetaFile, Module, S),
-  run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Body, S),
-  { Function, Defaults, TS } = translate_definition(Kind, Line, Name, Args, Guards, Body, S),
+  Location = retrieve_file(Line, MetaFile, Module, E),
+  run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Body, E),
+  { Function, Defaults, Super } = translate_definition(Kind, Line, Name, Args, Guards, Body, E),
 
   DefaultsLength = length(Defaults),
   elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
 
-  File   = TS#elixir_scope.file,
+  File   = E#elixir_env.file,
   Table  = table(Module),
   CTable = clauses_table(Module),
 
-  compile_super(Module, TS),
-  check_previous_defaults(Table, Line, Name, Arity, Kind, DefaultsLength, S),
+  compile_super(Module, Super, E),
+  check_previous_defaults(Table, Line, Name, Arity, Kind, DefaultsLength, E),
 
   store_each(CheckClauses, Kind, File, Location,
     Table, CTable, DefaultsLength, Function),
@@ -111,69 +110,68 @@ store_definition(Kind, Line, CheckClauses, Name, Args, Guards, Body, MetaFile, #
 
 %% @on_definition
 
-run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, S) ->
+run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, E) ->
   case elixir_compiler:get_opt(internal) of
     true ->
       ok;
     _ ->
-      Env = elixir_env:scope_to_ex({ Line, S }),
+      Env = elixir_env:env_to_ex({ Line, E }),
       Callbacks = 'Elixir.Module':get_attribute(Module, on_definition),
       [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || { Mod, Fun } <- Callbacks]
   end.
 
 %% Retrieve meta file, @file or fallback to default
 
-retrieve_file(Line, File, Module, S) ->
+retrieve_file(Line, File, Module, E) ->
   case not(elixir_compiler:get_opt(internal)) andalso
        'Elixir.Module':get_attribute(Module, file) of
     X when X == nil; X == false ->
-      { elixir_utils:characters_to_list(retrieve_file(File, S)), Line };
+      { elixir_utils:characters_to_list(retrieve_file(File, E)), Line };
     X ->
       'Elixir.Module':delete_attribute(Module, file),
       { X, 0 }
   end.
 
-retrieve_file(nil, S)   -> S#elixir_scope.file;
-retrieve_file(File, _S) -> File.
+retrieve_file(nil, E)   -> E#elixir_env.file;
+retrieve_file(File, _E) -> File.
 
 %% Compile super
 
-compile_super(Module, #elixir_scope{function=Function, super=true}) ->
+compile_super(Module, true, #elixir_env{function=Function}) ->
   elixir_def_overridable:store(Module, Function, true);
-
-compile_super(_Module, _S) -> ok.
+compile_super(_Module, _, _E) -> ok.
 
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Kind, Line, Name, Args, Guards, Body, S) when is_integer(Line) ->
+translate_definition(Kind, Line, Name, Args, Guards, Body, E) when is_integer(Line) ->
   Arity = length(Args),
 
   %% Macros receive a special argument on invocation. Notice it does
   %% not affect the arity of the stored function, but the clause
   %% already contains it.
-  ExtendedArgs = case is_macro(Kind) of
+  AllArgs = case is_macro(Kind) of
     true  -> [{ '_@CALLER', [{line,Line}], nil }|Args];
     false -> Args
   end,
 
-  { Unpacked, Defaults } = elixir_def_defaults:unpack(Kind, Name, ExtendedArgs, S),
-  { Clauses, TS } = translate_clause(Line, Kind, Unpacked, Guards, Body, S),
+  { EArgs, EGuards, EBody, _ } = elixir_exp_clauses:def(fun elixir_def_defaults:expand/2,
+                                   AllArgs, Guards, expr_from_body(Line, Body), E),
+
+  S = elixir_env:env_to_scope(E),
+  { Unpacked, Defaults } = elixir_def_defaults:unpack(Kind, Name, EArgs, S),
+  { Clauses, Super } = translate_clause(Body, Line, Kind, Unpacked, EGuards, EBody, S),
 
   Function = { function, Line, Name, Arity, Clauses },
-  { Function, Defaults, TS }.
+  { Function, Defaults, Super }.
 
-translate_clause(_Line, _Kind, _Unpacked, [], nil, S) ->
-  { [], S };
-
-translate_clause(Line, Kind, _Unpacked, _Guards, nil, #elixir_scope{file=File}) ->
-  elixir_errors:syntax_error(Line, File, "missing do keyword in ~ts", [Kind]);
-
-translate_clause(Line, Kind, Unpacked, Guards, Body, S) ->
-  Expr = expr_from_body(Line, Body),
-
+translate_clause(nil, _Line, _Kind, _Args, [], _Body, _S) ->
+  { [], false };
+translate_clause(nil, Line, Kind, _Args, _Guards, _Body, #elixir_scope{file=File}) ->
+  elixir_errors:compile_error(Line, File, "missing do keyword in ~ts", [Kind]);
+translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
   { TClause, TS } = elixir_clauses:assigns_block(Line,
-    fun elixir_translator:translate/2, Unpacked, [Expr], Guards, S),
+    fun elixir_translator:translate/2, Args, [Body], Guards, S),
 
   %% Set __CALLER__ if used
   FClause = case is_macro(Kind) andalso TS#elixir_scope.caller of
@@ -186,8 +184,9 @@ translate_clause(Line, Kind, Unpacked, Guards, Body, S) ->
     false -> TClause
   end,
 
-  { [FClause], TS }.
+  { [FClause], TS#elixir_scope.super }.
 
+expr_from_body(_Line, nil)            -> nil;
 expr_from_body(_Line, [{ do, Expr }]) -> Expr;
 expr_from_body(Line, Else)            -> { 'try', [{line,Line}], [Else] }.
 
@@ -312,10 +311,10 @@ check_valid_defaults(Line, File, Name, Arity, Kind, _, 0) ->
 check_valid_defaults(Line, File, Name, Arity, Kind, _, _) ->
   elixir_errors:form_error(Line, File, ?MODULE, { clauses_with_defaults, { Kind, Name, Arity } }).
 
-check_previous_defaults(Table, Line, Name, Arity, Kind, Defaults, S) ->
+check_previous_defaults(Table, Line, Name, Arity, Kind, Defaults, E) ->
   Matches = ets:match(Table, { { Name, '$2' }, '$1', '_', '_', '_', '_', '$3' }),
   [ begin
-      elixir_errors:form_error(Line, S#elixir_scope.file, ?MODULE,
+      elixir_errors:form_error(Line, E#elixir_env.file, ?MODULE,
         { defs_with_defaults, Name, { Kind, Arity }, { K, A } })
     end || [K, A, D] <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
 
@@ -323,9 +322,9 @@ defaults_conflict(A, D, Arity, Defaults) ->
   ((Arity >= (A - D)) andalso (Arity < A)) orelse
     ((A >= (Arity - Defaults)) andalso (A < Arity)).
 
-assert_no_aliases_name(Line, '__aliases__', [Atom], #elixir_scope{file=File}) when is_atom(Atom) ->
+assert_no_aliases_name(Line, '__aliases__', [Atom], #elixir_env{file=File}) when is_atom(Atom) ->
   Message = "function names should start with lowercase characters or underscore, invalid name ~ts",
-  elixir_errors:syntax_error(Line, File, Message, [Atom]);
+  elixir_errors:compile_error(Line, File, Message, [Atom]);
 
 assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
   ok.

@@ -7,10 +7,8 @@ eval(Content) ->
   { Value, Binding }.
 
 to_erl(String) ->
-  Env = elixir:env_for_eval([]),
   Forms = elixir:'string_to_quoted!'(String, 1, <<"nofile">>, []),
-  { Expr, _, _ } =
-    elixir:quoted_to_erl(Forms, Env, elixir_env:env_to_scope(Env)),
+  { Expr, _, _ } = elixir:quoted_to_erl(Forms, elixir:env_for_eval([])),
   Expr.
 
 % Booleans

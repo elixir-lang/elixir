@@ -8,7 +8,7 @@ defmodule Typespec.TypeTest do
   # module
   defmacrop test_module([{:do, block}]) do
     quote do
-      { :module, T, _binary, result } = defmodule T do
+      { :module, _, _binary, result } = defmodule T do
         unquote(block)
       end
       :code.delete(T)
@@ -475,7 +475,7 @@ defmodule Typespec.TypeTest do
   # types/specs retrieval
 
   test "specs retrieval" do
-    { :module, T, binary, _ } = defmodule T do
+    { :module, _, binary, _ } = defmodule T do
       @spec a :: any
       def a, do: nil
     end
@@ -488,7 +488,7 @@ defmodule Typespec.TypeTest do
   end
 
   test "types retrieval" do
-    { :module, T, binary, _ } = defmodule T do
+    { :module, _, binary, _ } = defmodule T do
       @type a :: any
       @typep b :: any
       @spec t(b) :: b
@@ -507,7 +507,7 @@ defmodule Typespec.TypeTest do
   end
 
   test "typedoc retrieval" do
-    { :module, T, binary, _ } = defmodule T do
+    { :module, _, binary, _ } = defmodule T do
       @typedoc "A"
       @type a :: any
       @typep b :: any
