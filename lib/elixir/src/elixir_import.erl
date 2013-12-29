@@ -133,14 +133,14 @@ ensure_no_special_form_conflict(_Meta, _File, _Key, []) -> ok.
 
 format_error({invalid_import,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it doesn't exist",
-    [elixir_errors:inspect(Receiver), Name, Arity]);
+    [elixir_aliases:inspect(Receiver), Name, Arity]);
 
 format_error({special_form_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
-    [elixir_errors:inspect(Receiver), Name, Arity]);
+    [elixir_aliases:inspect(Receiver), Name, Arity]);
 
 format_error({ no_macros, Module }) ->
-  io_lib:format("could not load macros from module ~ts", [elixir_errors:inspect(Module)]).
+  io_lib:format("could not load macros from module ~ts", [elixir_aliases:inspect(Module)]).
 
 %% LIST HELPERS
 

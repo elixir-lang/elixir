@@ -2,7 +2,6 @@
 -module(elixir_literal).
 -export([translate/2, expand_bitstr/3]).
 -import(elixir_translator, [translate_each/2, translate_args/2]).
--import(elixir_scope, [umergec/2]).
 -include("elixir.hrl").
 
 %% TODO: Move most of those contents to translation
@@ -12,8 +11,7 @@ translate({ '<<>>', Meta, Args }, S) when is_list(Args) ->
     match ->
       build_bitstr(fun elixir_translator:translate_each/2, Args, Meta, S);
     _ ->
-      { TArgs, { SC, SV } } = build_bitstr(fun elixir_translator:translate_arg/2, Args, Meta, { S, S }),
-      { TArgs, umergec(SV, SC) }
+      build_bitstr(fun(X, Acc) -> elixir_translator:translate_arg(X, Acc, S) end, Args, Meta, S)
   end;
 
 translate({ '{}', Meta, Args }, S) when is_list(Args) ->
@@ -41,11 +39,6 @@ translate([_|_] = Args, S) ->
   { Exprs, SE } = translate_args(lists:reverse(RExprs), S),
   { Tail, ST }  = TailFun(SE),
   { elixir_utils:list_to_cons(0, Exprs, Tail), ST };
-
-translate(Tuple, S) when is_tuple(Tuple) ->
-  elixir_errors:compile_error(0, S#elixir_scope.file,
-    "tuples in quoted expressions must have 2 or 3 items, invalid quoted expression: ~ts",
-    ['Elixir.Kernel':inspect(Tuple)]);
 
 translate(Other, S) ->
   { elixir_utils:elixir_to_erl(0, Other, S), S }.
@@ -155,14 +148,7 @@ build_bitstr_each(_Fun, [], _Meta, S, Acc) ->
   { Acc, S };
 
 build_bitstr_each(Fun, [{'::',_,[H,V]}|T], Meta, S, Acc) ->
-  %% Variables defined outside the binary can be accounted
-  %% on subparts, however we can't assign new variables.
-  case S of
-    { ES, _ } -> ok;                      %% translate_arg,  no assigns
-    _ -> ES = S#elixir_scope{context=nil} %% translate_each, revert assigns
-  end,
-
-  { Size, Types } = extract_bit_info(Meta, V, ES),
+  { Size, Types } = extract_bit_info(Meta, V, S#elixir_scope{context=nil}),
   build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types);
 
 build_bitstr_each(Fun, [H|T], Meta, S, Acc) ->

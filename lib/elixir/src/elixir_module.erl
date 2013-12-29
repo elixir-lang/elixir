@@ -398,7 +398,7 @@ format_error({ internal_function_overridden, { Name, Arity } }) ->
 format_error({ invalid_module, Module}) ->
   io_lib:format("invalid module name: ~p", [Module]);
 format_error({ module_defined, Module }) ->
-  io_lib:format("redefining module ~ts", [elixir_errors:inspect(Module)]);
+  io_lib:format("redefining module ~ts", [elixir_aliases:inspect(Module)]);
 format_error({ module_in_definition, Module }) ->
   io_lib:format("cannot define module ~ts because it is currently being defined",
-    [elixir_errors:inspect(Module)]).
+    [elixir_aliases:inspect(Module)]).

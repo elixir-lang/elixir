@@ -67,10 +67,10 @@ defmodule Kernel.ErrorsTest do
       '+.foo'
   end
 
-  test :syntax_error_on_op_ambiguity do
+  test :compile_error_on_op_ambiguity do
     msg = "nofile:1: \"a -1\" looks like a function call but there is a variable named \"a\", " <>
           "please use explicit parenthesis or even spaces"
-    assert_compile_fail SyntaxError, msg, 'a = 1; a -1'
+    assert_compile_fail CompileError, msg, 'a = 1; a -1'
 
     max = 1
     assert max == 1
@@ -210,7 +210,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :unhandled_stab do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:3: unhandled operator ->",
       '''
       defmodule Mod do
@@ -223,8 +223,8 @@ defmodule Kernel.ErrorsTest do
 
   test :undefined_non_local_function do
     assert_compile_fail CompileError,
-      "nofile:1: function casea/2 undefined",
-      'casea foo, do: (bar -> baz)'
+      "nofile:1: undefined function casea/2",
+      'casea foo, do: 1'
   end
 
   test :invalid_fn_args do
@@ -283,7 +283,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :function_definition_with_alias do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:2: function names should start with lowercase characters or underscore, invalid name Bar",
       '''
       defmodule ErrorsTest do
@@ -355,7 +355,7 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_macro do
     assert_compile_fail CompileError,
-      "nofile: tuples in quoted expressions must have 2 or 3 items, invalid quoted expression: {:foo, :bar, :baz, :bat}",
+      "nofile: invalid quoted expression: {:foo, :bar, :baz, :bat}",
       '''
       defmodule ErrorsTest do
         defmacrop oops do
@@ -407,7 +407,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_definition do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: invalid syntax in def 1.(hello)",
       'defmodule ErrorsTest, do: (def 1.(hello), do: true)'
   end
@@ -513,13 +513,13 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_bc_return do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: a bit comprehension expects a bit string << >> to be returned",
       'bc x inlist [1, 2, 3], do: x'
   end
 
   test :invalid_bc_inbits_gen do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: a bit comprehension expects a bit string << >> to be used in inbits generators",
       'bc x inbits "123", do: <<x>>'
   end
@@ -531,7 +531,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :fun_different_arities do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: cannot mix clauses with different arities in function definition",
       'fn x -> x; x, y -> x + y end'
   end
@@ -554,7 +554,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :bodyless_function_with_guard do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:2: missing do keyword in def",
       '''
       defmodule ErrorsTest do
@@ -600,8 +600,8 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :bad_unquoting do
-    assert_compile_fail SyntaxError,
-      "nofile: expected a valid quoted expression, got: {Range, 1, 3}",
+    assert_compile_fail CompileError,
+      "nofile: invalid quoted expression: {Range, 1, 3}",
       '''
       defmodule ErrorsTest do
         def range(unquote(1..3)), do: :ok

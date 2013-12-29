@@ -1,12 +1,9 @@
 %% Main entry point for translations. All macros that cannot be
 %% overriden are defined in this file.
 -module(elixir_translator).
--export([translate/2, translate_each/2, translate_arg/2, translate_args/2]).
--import(elixir_scope, [umergev/2, umergec/2, umergea/2]).
--import(elixir_errors, [syntax_error/3, syntax_error/4,
-  compile_error/3, compile_error/4,
-  assert_function_scope/3, assert_module_scope/3,
-  assert_no_guard_scope/3, assert_no_match_or_guard_scope/3]).
+-export([translate/2, translate_each/2, translate_arg/3, translate_args/2]).
+-import(elixir_scope, [mergev/2, mergec/2]).
+-import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
 
 translate(Forms, S) ->
@@ -14,12 +11,9 @@ translate(Forms, S) ->
 
 %% Assignment operator
 
-%% TODO: Ensure flatten() = import List does not expand the call
-%% here and in comprehensions
 translate_each({ '=', Meta, [Left, Right] }, S) ->
-  assert_no_guard_scope(Meta, '=', S),
   { TRight, SR } = translate_each(Right, S),
-  { TLeft, SL } = elixir_clauses:assigns(fun translate_each/2, Left, SR),
+  { TLeft, SL } = elixir_clauses:match(fun translate_each/2, Left, SR),
   { { match, ?line(Meta), TLeft, TRight }, SL };
 
 %% Containers
@@ -62,13 +56,11 @@ translate_each({ '&', Meta, [Arg] }, S) when is_integer(Arg) ->
   compile_error(Meta, S#elixir_scope.file, "unhandled &~B outside of a capture", [Arg]);
 
 translate_each({ fn, Meta, Clauses }, S) ->
-  assert_no_match_or_guard_scope(Meta, 'fn', S),
   elixir_fn:translate(Meta, Clauses, S);
 
 %% Case
 
 translate_each({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
-  assert_no_match_or_guard_scope(Meta, 'case', S),
   Clauses = elixir_clauses:get_pairs(Meta, do, KV, S),
   { TExpr, NS } = translate_each(Expr, S),
 
@@ -77,42 +69,40 @@ translate_each({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
   %   false -> Clauses
   % end,
 
-  { TClauses, TS } = elixir_clauses:match(Meta, Clauses, NS),
+  { TClauses, TS } = elixir_clauses:clauses(Meta, Clauses, NS),
   { { 'case', ?line(Meta), TExpr, TClauses }, TS };
 
 %% Try
 
 translate_each({'try', Meta, [Clauses]}, RS) when is_list(Clauses) ->
-  assert_no_match_or_guard_scope(Meta, 'try', RS),
   S  = RS#elixir_scope{noname=true},
   Do = proplists:get_value('do', Clauses, nil),
   { TDo, SB } = elixir_translator:translate_each(Do, S),
 
   Catch = [Tuple || { X, _ } = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
-  { TCatch, SC } = elixir_try:clauses(Meta, Catch, umergec(S, SB)),
+  { TCatch, SC } = elixir_try:clauses(Meta, Catch, mergec(S, SB)),
 
   After = proplists:get_value('after', Clauses, nil),
-  { TAfter, SA } = translate_each(After, umergec(S, SC)),
+  { TAfter, SA } = translate_each(After, mergec(S, SC)),
 
   Else = elixir_clauses:get_pairs(Meta, else, Clauses, S),
-  { TElse, SE } = elixir_clauses:match(Meta, Else, umergec(S, SA)),
+  { TElse, SE } = elixir_clauses:clauses(Meta, Else, mergec(S, SA)),
 
-  SF = (umergec(S, SE))#elixir_scope{noname=RS#elixir_scope.noname},
-  { { 'try', ?line(Meta), pack(TDo), TElse, TCatch, pack(TAfter) }, SF };
+  SF = (mergec(S, SE))#elixir_scope{noname=RS#elixir_scope.noname},
+  { { 'try', ?line(Meta), unblock(TDo), TElse, TCatch, unblock(TAfter) }, SF };
 
 %% Receive
 
 translate_each({'receive', Meta, [KV] }, S) when is_list(KV) ->
-  assert_no_match_or_guard_scope(Meta, 'receive', S),
   Do = elixir_clauses:get_pairs(Meta, do, KV, S, true),
 
   case lists:keyfind('after', 1, KV) of
     false ->
-      { TClauses, SC } = elixir_clauses:match(Meta, Do, S),
+      { TClauses, SC } = elixir_clauses:clauses(Meta, Do, S),
       { { 'receive', ?line(Meta), TClauses }, SC };
     _ ->
       After = elixir_clauses:get_pairs(Meta, 'after', KV, S),
-      { TClauses, SC } = elixir_clauses:match(Meta, Do ++ After, S),
+      { TClauses, SC } = elixir_clauses:clauses(Meta, Do ++ After, S),
       { FClauses, TAfter } = elixir_utils:split_last(TClauses),
       { _, _, [FExpr], _, FAfter } = TAfter,
       { { 'receive', ?line(Meta), FClauses, FExpr, FAfter }, SC }
@@ -126,7 +116,6 @@ translate_each({ Kind, Meta, Args }, S) when is_list(Args), (Kind == lc) orelse 
 %% Super
 
 translate_each({ super, Meta, Args }, S) when is_list(Args) ->
-  assert_no_match_or_guard_scope(Meta, super, S),
   Module = assert_module_scope(Meta, super, S),
   Function = assert_function_scope(Meta, super, S),
   elixir_def_overridable:ensure_defined(Meta, Module, Function, S),
@@ -137,8 +126,8 @@ translate_each({ super, Meta, Args }, S) when is_list(Args) ->
     length(Args) == Arity ->
       translate_args(Args, S);
     true ->
-      syntax_error(Meta, S#elixir_scope.file, "super must be called with the same number of "
-                   "arguments as the current function")
+      compile_error(Meta, S#elixir_scope.file, "super must be called with the same number of "
+                    "arguments as the current function")
   end,
 
   Super = elixir_def_overridable:name(Module, Function),
@@ -171,8 +160,14 @@ translate_each({ '^', Meta, [ { Name, _, Kind } ] }, S) when is_atom(Name), is_a
     "cannot use ^~ts outside of match clauses", [Name]);
 
 translate_each({ '^', Meta, [ Expr ] }, S) ->
-  syntax_error(Meta, S#elixir_scope.file,
-    "the unary operator ^ can only be used with variables, invalid expression ^~ts", ['Elixir.Macro':to_string(Expr)]);
+  compile_error(Meta, S#elixir_scope.file,
+                "the unary operator ^ can only be used with variables, invalid expression ^~ts", ['Elixir.Macro':to_string(Expr)]);
+
+translate_each({ '_', Meta, Kind }, #elixir_scope{context=match} = S) when is_atom(Kind) ->
+  { { var, ?line(Meta), '_' }, S };
+
+translate_each({ '_', Meta, Kind }, S) when is_atom(Kind) ->
+  compile_error(Meta, S#elixir_scope.file, "unbound variable _");
 
 translate_each({ Name, Meta, Kind }, S) when is_atom(Name), is_atom(Kind) ->
   elixir_scope:translate_var(Meta, Name, var_kind(Meta, Kind), S, fun() ->
@@ -214,7 +209,7 @@ translate_each({ Name, Meta, Args }, S) when is_atom(Name), is_list(Meta), is_li
 translate_each({ { '.', _, [Left, Right] }, Meta, Args }, S)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   { TLeft,  SL } = translate_each(Left, S),
-  { TRight, SR } = translate_each(Right, umergec(S, SL)),
+  { TRight, SR } = translate_each(Right, mergec(S, SL)),
 
   case S#elixir_scope.context of
     Context when Left /= erlang, (Context == match) orelse (Context == guard) ->
@@ -222,29 +217,29 @@ translate_each({ { '.', _, [Left, Right] }, Meta, Args }, S)
         ['Elixir.Macro':to_string(Left), Right, length(Args), Context]);
     _ ->
       Line = ?line(Meta),
-      { TArgs, SA } = translate_args(Args, umergec(S, SR)),
-      { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, umergev(SL, umergev(SR, SA)) }
+      { TArgs, SA } = translate_args(Args, mergec(S, SR)),
+      { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, mergev(SL, mergev(SR, SA)) }
   end;
 
 %% Anonymous function calls
 
 translate_each({ { '.', _, [Expr] }, Meta, Args }, S) when is_list(Args) ->
   { TExpr, SE } = translate_each(Expr, S),
-  { TArgs, SA } = translate_args(Args, umergec(S, SE)),
-  { { call, ?line(Meta), TExpr, TArgs }, umergev(SE, SA) };
+  { TArgs, SA } = translate_args(Args, mergec(S, SE)),
+  { { call, ?line(Meta), TExpr, TArgs }, mergev(SE, SA) };
 
 %% Invalid calls
 
 translate_each({ { '.', _, [Invalid, _] }, Meta, Args }, S) when is_list(Meta) and is_list(Args) ->
-  syntax_error(Meta, S#elixir_scope.file, "invalid remote call on ~ts",
+  compile_error(Meta, S#elixir_scope.file, "invalid remote call on ~ts",
     ['Elixir.Macro':to_string(Invalid)]);
 
 translate_each({ _, Meta, Args } = Invalid, S) when is_list(Meta) and is_list(Args) ->
-  syntax_error(Meta, S#elixir_scope.file, "invalid call ~ts",
+  compile_error(Meta, S#elixir_scope.file, "invalid call ~ts",
     ['Elixir.Macro':to_string(Invalid)]);
 
 translate_each({ _, _, _ } = Tuple, S) ->
-  syntax_error([{line,0}], S#elixir_scope.file, "expected a valid quoted expression, got: ~ts",
+  compile_error([{line,0}], S#elixir_scope.file, "expected a valid quoted expression, got: ~ts",
     ['Elixir.Kernel':inspect(Tuple, [{raw,true}])]);
 
 %% Literals
@@ -278,8 +273,8 @@ rewrite_case_clauses(Clauses) ->
   Clauses.
 
 % Pack a list of expressions from a block.
-pack({ 'block', _, Exprs }) -> Exprs;
-pack(Expr)                  -> [Expr].
+unblock({ 'block', _, Exprs }) -> Exprs;
+unblock(Expr)                  -> [Expr].
 
 %% Translate args
 
@@ -298,16 +293,15 @@ pack(Expr)                  -> [Expr].
 %% However, notice that if we are doing an assignment,
 %% it behaves the same as translate.
 
-translate_arg(Arg, { Acc, S }) ->
-  { TArg, TAcc } = translate_each(Arg, Acc),
-  { TArg, { umergea(Acc, TAcc), umergev(S, TAcc) } }.
+translate_arg(Arg, Acc, S) ->
+  { TArg, TAcc } = translate_each(Arg, mergec(S, Acc)),
+  { TArg, mergev(Acc, TAcc) }.
 
 translate_args(Args, #elixir_scope{context=match} = S) ->
   translate(Args, S);
 
 translate_args(Args, S) ->
-  { TArgs, { SC, SV } } = lists:mapfoldl(fun translate_arg/2, {S, S}, Args),
-  { TArgs, umergea(SV, SC) }.
+  lists:mapfoldl(fun(X, Acc) -> translate_arg(X, Acc, S) end, S, Args).
 
 %% Comprehensions
 
@@ -316,31 +310,31 @@ translate_comprehension(Meta, Kind, Args, S) ->
     { Cases, [{do,Expr}] } ->
       { TCases, SC } = lists:mapfoldl(fun(C, Acc) -> translate_comprehension_clause(Meta, C, Acc) end, S, Cases),
       { TExpr, SE }  = translate_comprehension_do(Meta, Kind, Expr, SC),
-      { { Kind, ?line(Meta), TExpr, TCases }, umergec(S, SE) };
+      { { Kind, ?line(Meta), TExpr, TCases }, mergec(S, SE) };
     _ ->
-      syntax_error(Meta, S#elixir_scope.file, "missing do keyword in comprehension ~s", [Kind])
+      compile_error(Meta, S#elixir_scope.file, "missing do keyword in comprehension ~s", [Kind])
   end.
 
 translate_comprehension_do(_Meta, bc, { '<<>>', _, _ } = Expr, S) ->
   translate_each(Expr, S);
 
 translate_comprehension_do(Meta, bc, _Expr, S) ->
-  syntax_error(Meta, S#elixir_scope.file, "a bit comprehension expects a bit string << >> to be returned");
+  compile_error(Meta, S#elixir_scope.file, "a bit comprehension expects a bit string << >> to be returned");
 
 translate_comprehension_do(_Meta, _Kind, Expr, S) ->
   translate_each(Expr, S).
 
 translate_comprehension_clause(_Meta, {inbits, Meta, [{ '<<>>', _, _} = Left, Right]}, S) ->
   { TRight, SR } = translate_each(Right, S),
-  { TLeft, SL  } = elixir_clauses:assigns(fun elixir_translator:translate_each/2, Left, SR),
+  { TLeft, SL  } = elixir_clauses:match(fun elixir_translator:translate_each/2, Left, SR),
   { { b_generate, ?line(Meta), TLeft, TRight }, SL };
 
 translate_comprehension_clause(_Meta, {inbits, Meta, [_Left, _Right]}, S) ->
-  syntax_error(Meta, S#elixir_scope.file, "a bit comprehension expects a bit string << >> to be used in inbits generators");
+  compile_error(Meta, S#elixir_scope.file, "a bit comprehension expects a bit string << >> to be used in inbits generators");
 
 translate_comprehension_clause(_Meta, {inlist, Meta, [Left, Right]}, S) ->
   { TRight, SR } = translate_each(Right, S),
-  { TLeft, SL  } = elixir_clauses:assigns(fun elixir_translator:translate_each/2, Left, SR),
+  { TLeft, SL  } = elixir_clauses:match(fun elixir_translator:translate_each/2, Left, SR),
   { { generate, ?line(Meta), TLeft, TRight }, SL };
 
 translate_comprehension_clause(Meta, X, S) ->
@@ -348,3 +342,13 @@ translate_comprehension_clause(Meta, X, S) ->
   { TX, TS } = translate_each(X, S),
   { BX, BS } = elixir_utils:convert_to_boolean(Line, TX, true, TS),
   { { match, Line, { var, Line, '_' }, BX }, BS }.
+
+%% Assertions
+
+assert_module_scope(Meta, Kind, #elixir_scope{module=nil,file=File}) ->
+  compile_error(Meta, File, "cannot invoke ~ts outside module", [Kind]);
+assert_module_scope(_Meta, _Kind, #elixir_scope{module=Module}) -> Module.
+
+assert_function_scope(Meta, Kind, #elixir_scope{function=nil,file=File}) ->
+  compile_error(Meta, File, "cannot invoke ~ts outside function", [Kind]);
+assert_function_scope(_Meta, _Kind, #elixir_scope{function=Function}) -> Function.

@@ -22,34 +22,25 @@
   clause_vars=nil,         %% a dict of all variables defined in a particular clause
   extra_guards=nil,        %% extra guards from args expansion
   counter=[],              %% a counter for the variables defined
-  local=nil,               %% the scope to evaluate local functions against
-  context_modules=[],      %% modules defined in the current context
-  macro_aliases=[],        %% keep aliases defined inside a macro
-  macro_counter=0,         %% macros expansions counter
-  lexical_tracker=nil,     %% holds the lexical tracker pid
-  aliases,                 %% an orddict with aliases by new -> old names
-  file,                    %% the current scope filename
-  requires,                %% a set with modules required
-  macros,                  %% a list with macros imported from module
-  functions                %% a list with functions imported from module
+  file=(<<"nofile">>)      %% the current scope filename
 }).
 
 -record(elixir_env, {
-  module=nil,
-  file=(<<"nofile">>),
-  line=1,
-  function=nil,
-  context=nil,
-  requires=[],
-  aliases=[],
-  functions=[],
-  macros=[],
-  macro_aliases=[],
-  macro_counter=0,
-  context_modules=[],
-  vars=[],
-  lexical_tracker=nil,
-  local=nil
+  module=nil,              %% the current module
+  file=(<<"nofile">>),     %% the current filename
+  line=1,                  %% the current line
+  function=nil,            %% the current function
+  context=nil,             %% can be assign, guards or nil
+  requires=[],             %% a set with modules required
+  aliases=[],              %% an orddict with aliases by new -> old names
+  functions=[],            %% a list with functions imported from module
+  macros=[],               %% a list with macros imported from module
+  macro_aliases=[],        %% keep aliases defined inside a macro
+  macro_counter=0,         %% macros expansions counter
+  context_modules=[],      %% modules defined in the current context
+  vars=[],                 %% a set of defined variables
+  lexical_tracker=nil,     %% holds the lexical tracker pid
+  local=nil                %% the module to delegate local functions to
 }).
 
 -record(elixir_quote, {

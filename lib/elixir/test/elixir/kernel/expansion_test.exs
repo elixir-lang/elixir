@@ -72,6 +72,12 @@ defmodule Kernel.ExpansionTest do
            quote(do: flatten([1,2,3]) = import :"Elixir.List", [])
   end
 
+  test "=: does not define _" do
+    { output, env } = expand_env(quote(do: _ = 1), __ENV__)
+    assert output == quote(do: _ = 1)
+    assert env.vars == []
+  end
+
   ## Pseudo vars
 
   test "__MODULE__" do

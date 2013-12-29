@@ -48,7 +48,7 @@ guard(Other, E) ->
 'case'(Meta, KV, E) ->
   { EClauses, { _, EV } } =
     lists:mapfoldl(fun(X, Acc) -> do_case(Meta, X, Acc) end, { E, E }, KV),
-  { EClauses, EV }.
+  { EClauses, elixir_env:mergecv(E, EV) }.
 
 do_case(Meta, { 'do', _ } = Do, Acc) ->
   expand_with_vars(Meta, 'case', expand_arg(Meta, 'case', 'do'), Do, Acc);

@@ -230,7 +230,7 @@ binary_to_path({ModuleName, Binary}, CompilePath) ->
 
 format_error({ skip_native, Module }) ->
   io_lib:format("skipping native compilation for ~ts because it contains on_load attribute",
-    [elixir_errors:inspect(Module)]).
+    [elixir_aliases:inspect(Module)]).
 
 format_errors([]) ->
   exit({ nocompile, "compilation failed but no error was raised" });

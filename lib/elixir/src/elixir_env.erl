@@ -1,7 +1,7 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([ex_to_env/1, env_to_scope/1, env_to_scope_with_vars/2, env_to_ex/1]).
--export([mergea/2, mergev/2, mergec/2]).
+-export([mergea/2, mergev/2, mergec/2, mergecv/2]).
 
 %% Conversion in between #elixir_env, #elixir_scope and Macro.Env
 
@@ -11,16 +11,8 @@ env_to_ex({ Line, #elixir_env{} = Env }) ->
 ex_to_env(Env) when element(1, Env) == 'Elixir.Macro.Env' ->
   erlang:setelement(1, Env, elixir_env).
 
-env_to_scope(#elixir_env{module=Module,file=File,
-    function=Function,aliases=Aliases,context=Context,
-    requires=Requires,macros=Macros,functions=Functions,
-    context_modules=ContextModules,macro_aliases=MacroAliases,
-    macro_counter=MacroCounter,lexical_tracker=Lexical,local=Local}) ->
-  #elixir_scope{module=Module,file=File,
-    function=Function,aliases=Aliases,context=Context,
-    requires=Requires,macros=Macros,functions=Functions,
-    context_modules=ContextModules,macro_aliases=MacroAliases,
-    macro_counter=MacroCounter,lexical_tracker=Lexical,local=Local}.
+env_to_scope(#elixir_env{module=Module,file=File,function=Function,context=Context}) ->
+  #elixir_scope{module=Module,file=File,function=Function,context=Context}.
 
 env_to_scope_with_vars(#elixir_env{} = Env, Vars) ->
   (env_to_scope(Env))#elixir_scope{
@@ -51,4 +43,12 @@ mergea(E1, E2) ->
 mergec(E1, E2) ->
   E1#elixir_env{
     macro_counter=E2#elixir_env.macro_counter
+  }.
+
+%% Merges variables and counters, nothing lexical though.
+
+mergecv(E1, E2) ->
+  E1#elixir_env{
+    macro_counter=E2#elixir_env.macro_counter,
+    vars=ordsets:union(E1#elixir_env.vars, E2#elixir_env.vars)
   }.

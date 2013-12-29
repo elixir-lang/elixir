@@ -55,9 +55,7 @@ store_definition(Kind, CheckClauses, Call, Body, ExEnv) ->
   { Name, Args } = case NameAndArgs of
     { N, _, A } when is_atom(N), is_atom(A) -> { N, [] };
     { N, _, A } when is_atom(N), is_list(A) -> { N, A };
-    _ ->
-      Format = [Kind, 'Elixir.Macro':to_string(NameAndArgs)],
-      elixir_errors:syntax_error(Line, E#elixir_env.file, "invalid syntax in ~ts ~ts", Format)
+    _ -> elixir_errors:form_error(Line, E#elixir_env.file, ?MODULE, { invalid_def, Kind, NameAndArgs })
   end,
 
   %% Now that we have verified the call format,
@@ -168,10 +166,10 @@ translate_definition(Kind, Line, Name, Args, Guards, Body, E) when is_integer(Li
 translate_clause(nil, _Line, _Kind, _Args, [], _Body, _S) ->
   { [], false };
 translate_clause(nil, Line, Kind, _Args, _Guards, _Body, #elixir_scope{file=File}) ->
-  elixir_errors:compile_error(Line, File, "missing do keyword in ~ts", [Kind]);
+  elixir_errors:form_error(Line, File, ?MODULE, { missing_do, Kind });
 translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
-  { TClause, TS } = elixir_clauses:assigns_block(Line,
-    fun elixir_translator:translate/2, Args, [Body], Guards, S),
+  { TClause, TS } = elixir_clauses:clause(Line,
+    fun elixir_translator:translate/2, Args, Body, Guards, S),
 
   %% Set __CALLER__ if used
   FClause = case is_macro(Kind) andalso TS#elixir_scope.caller of
@@ -323,8 +321,7 @@ defaults_conflict(A, D, Arity, Defaults) ->
     ((A >= (Arity - Defaults)) andalso (A < Arity)).
 
 assert_no_aliases_name(Line, '__aliases__', [Atom], #elixir_env{file=File}) when is_atom(Atom) ->
-  Message = "function names should start with lowercase characters or underscore, invalid name ~ts",
-  elixir_errors:compile_error(Line, File, Message, [Atom]);
+  elixir_errors:form_error(Line, File, ?MODULE, { no_alias, Atom });
 
 assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
   ok.
@@ -354,4 +351,13 @@ format_error({ungrouped_clause,{Kind,Name,Arity,OrigLine,OrigFile}}) ->
     [Kind, Kind, Name, Arity, OrigFile, OrigLine]);
 
 format_error({changed_kind,{Name,Arity,Previous,Current}}) ->
-  io_lib:format("~ts ~ts/~B already defined as ~ts", [Current, Name, Arity, Previous]).
+  io_lib:format("~ts ~ts/~B already defined as ~ts", [Current, Name, Arity, Previous]);
+
+format_error({no_alias, Atom}) ->
+  io_lib:format("function names should start with lowercase characters or underscore, invalid name ~ts", [Atom]);
+
+format_error({invalid_def, Kind, NameAndArgs}) ->
+  io_lib:format("invalid syntax in ~ts ~ts", [Kind, 'Elixir.Macro':to_string(NameAndArgs)]);
+
+format_error({missing_do, Kind}) ->
+  io_lib:format("missing do keyword in ~ts", [Kind]).

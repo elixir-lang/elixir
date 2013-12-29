@@ -148,7 +148,7 @@ warn_unused_local(File, Module, Private) ->
 
 format_error({function_conflict,{Receivers, Name, Arity}}) ->
   io_lib:format("imported ~ts.~ts/~B conflicts with local function",
-    [elixir_errors:inspect(hd(Receivers)), Name, Arity]);
+    [elixir_aliases:inspect(hd(Receivers)), Name, Arity]);
 
 format_error({unused_args,{Name, Arity}}) ->
   io_lib:format("default arguments in ~ts/~B are never used", [Name, Arity]);

@@ -3,7 +3,7 @@
 -export([translate_var/5,
   build_erl_var/2, build_ex_var/2,
   load_binding/2, dump_binding/2,
-  umergev/2, umergec/2, umergea/2, merge_clause_vars/2
+  mergev/2, mergec/2, merge_clause_vars/2
 ]).
 -include("elixir.hrl").
 
@@ -14,42 +14,37 @@ translate_var(Meta, Name, Kind, S, Callback) when is_atom(Kind); is_integer(Kind
   Vars = S#elixir_scope.vars,
   Tuple = { Name, Kind },
 
-  case Name of
-    '_' ->
-      { { var, Line, Name }, S };
+  case S#elixir_scope.context of
+    match ->
+      TempVars = S#elixir_scope.temp_vars,
+      case { orddict:is_key(Tuple, Vars), is_list(TempVars) andalso ordsets:is_element(Tuple, TempVars) } of
+        { true, true } ->
+          { { var, Line, orddict:fetch(Tuple, Vars) }, S };
+        { Else, _ } ->
+          { NewVar, NS } = if
+            Kind /= nil -> build_erl_var(Line, S);
+            Else -> build_erl_var(Line, Name, Name, S);
+            S#elixir_scope.noname -> build_erl_var(Line, Name, Name, S);
+            true -> { { var, Line, Name }, S }
+          end,
+          RealName = element(3, NewVar),
+          ClauseVars = S#elixir_scope.clause_vars,
+          { NewVar, NS#elixir_scope{
+            vars=orddict:store(Tuple, RealName, Vars),
+            temp_vars=if
+              TempVars == nil -> TempVars;
+              true -> ordsets:add_element(Tuple, TempVars)
+            end,
+            clause_vars=if
+              ClauseVars == nil -> ClauseVars;
+              true -> orddict:store(Tuple, RealName, ClauseVars)
+            end
+          } }
+      end;
     _ ->
-      case S#elixir_scope.context of
-        match ->
-          TempVars = S#elixir_scope.temp_vars,
-          case { orddict:is_key(Tuple, Vars), is_list(TempVars) andalso ordsets:is_element(Tuple, TempVars) } of
-            { true, true } ->
-              { { var, Line, orddict:fetch(Tuple, Vars) }, S };
-            { Else, _ } ->
-              { NewVar, NS } = if
-                Kind /= nil -> build_erl_var(Line, S);
-                Else -> build_erl_var(Line, Name, Name, S);
-                S#elixir_scope.noname -> build_erl_var(Line, Name, Name, S);
-                true -> { { var, Line, Name }, S }
-              end,
-              RealName = element(3, NewVar),
-              ClauseVars = S#elixir_scope.clause_vars,
-              { NewVar, NS#elixir_scope{
-                vars=orddict:store(Tuple, RealName, Vars),
-                temp_vars=if
-                  TempVars == nil -> TempVars;
-                  true -> ordsets:add_element(Tuple, TempVars)
-                end,
-                clause_vars=if
-                  ClauseVars == nil -> ClauseVars;
-                  true -> orddict:store(Tuple, RealName, ClauseVars)
-                end
-              } }
-          end;
-        _ ->
-          case orddict:find({ Name, Kind }, Vars) of
-            { ok, VarName } -> { { var, Line, VarName }, S };
-            error -> Callback()
-          end
+      case orddict:find({ Name, Kind }, Vars) of
+        { ok, VarName } -> { { var, Line, VarName }, S };
+        error -> Callback()
       end
   end.
 
@@ -68,13 +63,8 @@ build_erl_var(Line, Key, Name, S) when is_integer(Line) ->
   { Var, NS }.
 
 build_ex_var(Line, Key, Name, S) when is_integer(Line) ->
-  Context = case S#elixir_scope.module of
-    nil -> 'Elixir';
-    Mod -> Mod
-  end,
-
   { Counter, NS } = build_var_counter(Key, S),
-  Var = { ?atom_concat([Name, "@", Counter]), [{line,Line}], Context },
+  Var = { ?atom_concat([Name, "@", Counter]), [{line,Line}], nil },
   { Var, NS }.
 
 %% SCOPE MERGING
@@ -82,7 +72,7 @@ build_ex_var(Line, Key, Name, S) when is_integer(Line) ->
 %% Receives two scopes and return a new scope based on the second
 %% with their variables merged.
 
-umergev(S1, S2) ->
+mergev(S1, S2) ->
   V1 = S1#elixir_scope.vars,
   V2 = S2#elixir_scope.vars,
   C1 = S1#elixir_scope.clause_vars,
@@ -95,24 +85,12 @@ umergev(S1, S2) ->
 %% Receives two scopes and return the first scope with
 %% counters and flags from the later.
 
-umergec(S1, S2) ->
+mergec(S1, S2) ->
   S1#elixir_scope{
     counter=S2#elixir_scope.counter,
-    macro_counter=S2#elixir_scope.macro_counter,
     extra_guards=S2#elixir_scope.extra_guards,
     super=S2#elixir_scope.super,
     caller=S2#elixir_scope.caller
-  }.
-
-%% Receives two scopes and return the later scope
-%% keeping the variables from the first (counters,
-%% imports and everything else are passed forward).
-
-umergea(S1, S2) ->
-  S2#elixir_scope{
-    vars=S1#elixir_scope.vars,
-    temp_vars=S1#elixir_scope.temp_vars,
-    clause_vars=S1#elixir_scope.clause_vars
   }.
 
 % Merge variables trying to find the most recently created.

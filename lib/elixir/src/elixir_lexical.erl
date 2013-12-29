@@ -74,6 +74,6 @@ warn_unused_aliases(File, Pid) ->
     end || { M, L } <- ?tracker:collect_unused_aliases(Pid)].
 
 format_error({unused_alias, Module}) ->
-  io_lib:format("unused alias ~ts", [elixir_errors:inspect(Module)]);
+  io_lib:format("unused alias ~ts", [elixir_aliases:inspect(Module)]);
 format_error({unused_import, Module}) ->
-  io_lib:format("unused import ~ts", [elixir_errors:inspect(Module)]).
+  io_lib:format("unused import ~ts", [elixir_aliases:inspect(Module)]).

@@ -1,59 +1,36 @@
 % A bunch of helpers to help to deal with errors in Elixir source code.
 % This is not exposed in the Elixir language.
 -module(elixir_errors).
--export([syntax_error/3, syntax_error/4,
-  compile_error/3, compile_error/4, inspect/1,
-  form_error/4, parse_error/4, assert_module_scope/3,
-  assert_function_scope/3, assert_no_match_scope/3, assert_no_guard_scope/3,
-  assert_no_match_or_guard_scope/3, warn/1,
+-export([compile_error/3, compile_error/4,
+  form_error/4, parse_error/4, warn/1,
   handle_file_warning/2, handle_file_warning/3, handle_file_error/2,
   deprecation/3, deprecation/4]).
 -include("elixir.hrl").
 
 warn(Warning) ->
   CompilerPid = get(elixir_compiler_pid),
-
   if
     CompilerPid =/= undefined ->
       elixir_code_server:cast({ register_warning, CompilerPid });
     true -> false
   end,
-
   io:put_chars(standard_error, Warning).
 
-%% Handle inspecting for exceptions modules
+%% Raised during expansion/translation/compilation.
 
-%% TODO: Use elixir_aliases:inspect instead
-inspect(Atom) when is_atom(Atom) ->
-  case elixir_compiler:get_opt(internal) of
-    true -> atom_to_binary(Atom, utf8);
-    false -> 'Elixir.Inspect.Atom':inspect(Atom)
-  end.
+-spec form_error(list(), binary(), module(), any()) -> no_return().
 
-%% Raised during macros translation.
+form_error(Meta, File, Module, Desc) ->
+  compile_error(Meta, File, format_error(Module, Desc)).
 
--spec syntax_error(non_neg_integer() | list(), file:filename_all(), binary() | string()) -> no_return().
--spec syntax_error(non_neg_integer() | list(), file:filename_all(), binary() | string(), list()) -> no_return().
-
-syntax_error(Meta, File, Message) when is_list(Message) ->
-  syntax_error(Meta, File, iolist_to_binary(Message));
-
-syntax_error(Meta, File, Message) when is_binary(Message) ->
-  raise(Meta, File, 'Elixir.SyntaxError', Message).
-
-syntax_error(Meta, File, Format, Args)  ->
-  Message = io_lib:format(Format, Args),
-  raise(Meta, File, 'Elixir.SyntaxError', elixir_utils:characters_to_binary(Message)).
+-spec compile_error(list(), binary(), iolist()) -> no_return().
+-spec compile_error(list(), binary(), iolist(), list()) -> no_return().
 
 compile_error(Meta, File, Message) when is_list(Message) ->
-  compile_error(Meta, File, iolist_to_binary(Message));
-
-compile_error(Meta, File, Message) when is_binary(Message) ->
-  raise(Meta, File, 'Elixir.CompileError', Message).
-
-compile_error(Meta, File, Format, Args)  ->
-  Message = io_lib:format(Format, Args),
   raise(Meta, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message)).
+
+compile_error(Meta, File, Format, Args) when is_list(Format)  ->
+  compile_error(Meta, File, io_lib:format(Format, Args)).
 
 %% Raised on tokenizing/parsing
 
@@ -82,14 +59,6 @@ parse_error(Meta, File, Error, Token) ->
 
   Message = <<BinError / binary, BinToken / binary >>,
   raise(Meta, File, 'Elixir.SyntaxError', Message).
-
-%% Raised during compilation
-
--spec form_error(non_neg_integer() | list(), file:filename_all(), module(), any()) -> no_return().
-
-form_error(Meta, File, Module, Desc) ->
-  Message = iolist_to_binary(format_error(Module, Desc)),
-  raise(Meta, File, 'Elixir.CompileError', Message).
 
 %% Shows a deprecation message
 
@@ -136,14 +105,14 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity
 
   Kind    = protocol_or_behaviour(Module),
   Raw     = "undefined ~ts ~ts ~ts/~B (for ~ts ~ts)",
-  Message = io_lib:format(Raw, [Kind, DefKind, Def, DefArity, Kind, inspect(Module)]),
+  Message = io_lib:format(Raw, [Kind, DefKind, Def, DefArity, Kind, elixir_aliases:inspect(Module)]),
   warn(file_format(Line, File, Message));
 
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
   case elixir_compiler:get_opt(internal) of
     true  -> [];
     false ->
-      Message = io_lib:format("behaviour ~ts undefined", [inspect(Module)]),
+      Message = io_lib:format("behaviour ~ts undefined", [elixir_aliases:inspect(Module)]),
       warn(file_format(Line, File, Message))
   end;
 
@@ -180,33 +149,11 @@ handle_file_error(File, {Line,erl_lint,{unsafe_var,Var,{In,_Where}}}) ->
   raise(Line, File, 'Elixir.CompileError', iolist_to_binary(Message));
 
 handle_file_error(File, {Line,erl_lint,{spec_fun_undefined,{M,F,A}}}) ->
-  Message = io_lib:format("spec for undefined function ~ts.~ts/~B", [inspect(M), F, A]),
+  Message = io_lib:format("spec for undefined function ~ts.~ts/~B", [elixir_aliases:inspect(M), F, A]),
   raise(Line, File, 'Elixir.CompileError', iolist_to_binary(Message));
 
 handle_file_error(File, {Line,Module,Desc}) ->
   form_error(Line, File, Module, Desc).
-
-%% Assertions
-
-assert_module_scope(Meta, Kind, #elixir_scope{module=nil,file=File}) ->
-  syntax_error(Meta, File, "cannot invoke ~ts outside module", [Kind]);
-assert_module_scope(_Meta, _Kind, #elixir_scope{module=Module}) -> Module.
-
-assert_function_scope(Meta, Kind, #elixir_scope{function=nil,file=File}) ->
-  syntax_error(Meta, File, "cannot invoke ~ts outside function", [Kind]);
-assert_function_scope(_Meta, _Kind, #elixir_scope{function=Function}) -> Function.
-
-assert_no_match_or_guard_scope(Meta, Kind, S) ->
-  assert_no_match_scope(Meta, Kind, S),
-  assert_no_guard_scope(Meta, Kind, S).
-
-assert_no_match_scope(Meta, _Kind, #elixir_scope{context=match} = S) ->
-  compile_error(Meta, S#elixir_scope.file, "invalid pattern in match clause", []);
-assert_no_match_scope(_Meta, _Kind, _S) -> [].
-
-assert_no_guard_scope(Meta, _Kind, #elixir_scope{context=guard} = S) ->
-  compile_error(Meta, S#elixir_scope.file, "invalid pattern in guard", []);
-assert_no_guard_scope(_Meta, _Kind, _S) -> [].
 
 %% Helpers
 

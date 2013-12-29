@@ -272,16 +272,16 @@ prune_stacktrace(Info, [], _) ->
 %% ERROR HANDLING
 
 format_error({ unrequired_module, { Receiver, Name, Arity, _Required }}) ->
-  Module = elixir_errors:inspect(Receiver),
+  Module = elixir_aliases:inspect(Receiver),
   io_lib:format("you must require ~ts before invoking the macro ~ts.~ts/~B",
     [Module, Module, Name, Arity]);
 format_error({ macro_conflict, { Receiver, Name, Arity } }) ->
   io_lib:format("call to local macro ~ts/~B conflicts with imported ~ts.~ts/~B, "
     "please rename the local macro or remove the conflicting import",
-    [Name, Arity, elixir_errors:inspect(Receiver), Name, Arity]);
+    [Name, Arity, elixir_aliases:inspect(Receiver), Name, Arity]);
 format_error({ ambiguous_call, { Mod1, Mod2, Name, Arity }}) ->
   io_lib:format("function ~ts/~B imported from both ~ts and ~ts, call is ambiguous",
-    [Name, Arity, elixir_errors:inspect(Mod1), elixir_errors:inspect(Mod2)]).
+    [Name, Arity, elixir_aliases:inspect(Mod1), elixir_aliases:inspect(Mod2)]).
 
 %% INTROSPECTION
 

@@ -6,10 +6,10 @@
 %% =
 
 expand({ '=', Meta, [Left, Right] }, E) ->
-  % assert_no_guard_scope(Meta, '=', S),
+  assert_no_guard_scope(Meta, '=', E),
   { ERight, ER } = expand(Right, E),
   { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, elixir_env:mergec(E, ER)),
-  { { '=', Meta, [ELeft, ERight] }, elixir_env:mergec(elixir_env:mergev(EL, ER), EL) };
+  { { '=', Meta, [ELeft, ERight] }, elixir_env:mergecv(ER, EL) };
 
 %% Literal operators
 
@@ -69,7 +69,7 @@ expand({ '__aliases__', _, _ } = Alias, E) ->
 expand({ alias, Meta, [Ref] }, E) ->
   expand({ alias, Meta, [Ref,[]] }, E);
 expand({ alias, Meta, [Ref, KV] }, E) ->
-  % assert_no_match_or_guard_scope(Meta, alias, E),
+  assert_no_match_or_guard_scope(Meta, alias, E),
   { ERef, ER } = expand(Ref, E),
   { EKV, ET }  = expand_opts(Meta, alias, [as, warn], no_alias_opts(KV), ER),
 
@@ -85,7 +85,7 @@ expand({ alias, Meta, [Ref, KV] }, E) ->
 expand({ require, Meta, [Ref] }, E) ->
   expand({ require, Meta, [Ref, []] }, E);
 expand({ require, Meta, [Ref, KV] }, E) ->
-  % assert_no_match_or_guard_scope(Meta, require, E),
+  assert_no_match_or_guard_scope(Meta, require, E),
 
   { ERef, ER } = expand(Ref, E),
   { EKV, ET }  = expand_opts(Meta, require, [as, warn], no_alias_opts(KV), ER),
@@ -104,7 +104,7 @@ expand({ import, Meta, [Left] }, E) ->
   expand({ import, Meta, [Left, []]}, E);
 
 expand({ import, Meta, [Ref, KV] }, E) ->
-  % assert_no_match_or_guard_scope(Meta, import, E),
+  assert_no_match_or_guard_scope(Meta, import, E),
   { ERef, ER } = expand(Ref, E),
   { EKV, ET }  = expand_opts(Meta, import, [only, except, warn], KV, ER),
 
@@ -207,11 +207,10 @@ expand({ quote, Meta, [_, _] }, E) ->
 
 %% Functions
 
-%% TODO: Remove me. Temporary during refactoring.
 expand({ '&', _, [Arg] } = Original, E) when is_integer(Arg) ->
   { Original, E };
 expand({ '&', Meta, [Arg] }, E) ->
-  % assert_no_match_or_guard_scope(Meta, '&', S),
+  assert_no_match_or_guard_scope(Meta, '&', E),
   case elixir_fn:capture(Meta, Arg, E) of
     { local, Fun, Arity } ->
       { { '&', Meta, [{ '/', [], [{ Fun, [], nil }, Arity] }] }, E };
@@ -220,24 +219,24 @@ expand({ '&', Meta, [Arg] }, E) ->
   end;
 
 expand({ fn, Meta, Pairs }, E) ->
-  % assert_no_match_or_guard_scope(Meta, fn, S),
+  assert_no_match_or_guard_scope(Meta, fn, E),
   elixir_fn:expand(Meta, Pairs, E);
 
 %% Case/Receive/Try
 
 expand({'case', Meta, [Expr, KV]}, E) ->
-  % assert_no_match_or_guard_scope(Meta, 'case', E),
+  assert_no_match_or_guard_scope(Meta, 'case', E),
   { EExpr, EE } = expand(Expr, E),
   { EClauses, EC } = elixir_exp_clauses:'case'(Meta, KV, EE),
   { { 'case', Meta, [EExpr, EClauses] }, EC };
 
 expand({'receive', Meta, [KV]}, E) ->
-  % assert_no_match_or_guard_scope(Meta, 'receive', E),
+  assert_no_match_or_guard_scope(Meta, 'receive', E),
   { EClauses, EC } = elixir_exp_clauses:'receive'(Meta, KV, E),
   { { 'receive', Meta, [EClauses] }, EC };
 
 expand({'try', Meta, [KV]}, E) ->
-  % assert_no_match_or_guard_scope(Meta, 'try', E),
+  assert_no_match_or_guard_scope(Meta, 'try', E),
   { EClauses, EC } = elixir_exp_clauses:'try'(Meta, KV, E),
   { { 'try', Meta, [EClauses] }, EC };
 
@@ -249,6 +248,7 @@ expand({ Kind, Meta, Args }, E) when is_list(Args), (Kind == lc) orelse (Kind ==
 %% Super
 
 expand({ super, Meta, Args }, E) when is_list(Args) ->
+  assert_no_match_or_guard_scope(Meta, super, E),
   { EArgs, EA } = expand_args(Args, E),
   { { super, Meta, EArgs }, EA };
 
@@ -266,7 +266,6 @@ expand({ '^', Meta, [Arg] }, E) ->
   compile_error(Meta, E#elixir_env.file,
     "cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
 
-%% TODO: Test _ is not added and properly errors out of match
 expand({ '_', _, Kind } = Var, E) when is_atom(Kind) ->
   { Var, E };
 expand({ Name, Meta, Kind } = Var, #elixir_env{context=match,vars=Vars} = E) when is_atom(Name), is_atom(Kind) ->
@@ -351,7 +350,7 @@ expand(Function, E) when is_function(Function) ->
       { Function, E };
     false ->
       compile_error([{line,0}], E#elixir_env.file,
-        "invalid quoted expression ~ts", ['Elixir.Kernel':inspect(Function)])
+        "invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Function)])
   end;
 
 expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other); is_pid(Other) ->
@@ -359,7 +358,7 @@ expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other); is_pid
 
 expand(Other, E) ->
   compile_error([{line,0}], E#elixir_env.file,
-    "invalid quoted expression ~ts", ['Elixir.Kernel':inspect(Other)]).
+    "invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Other)]).
 
 %% Helpers
 
@@ -401,7 +400,6 @@ expand_args(Args, E) ->
 
 %% Match/var helpers
 
-%% TODO: Make the counter the context
 var_kind(Meta, Kind) ->
   case lists:keyfind(counter, 1, Meta) of
     { counter, Counter } -> Counter;
@@ -531,6 +529,18 @@ expand_comprehension(Meta, Kind, Args, E) ->
 expand_comprehension_clause({Gen, Meta, [Left, Right]}, E) when Gen == inbits; Gen == inlist ->
   { ERight, ER } = expand(Right, E),
   { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, elixir_env:mergec(E, ER)),
-  { { Gen, Meta, [ELeft, ERight] }, elixir_env:mergec(elixir_env:mergev(EL, ER), EL) };
+  { { Gen, Meta, [ELeft, ERight] }, elixir_env:mergecv(ER, EL) };
 expand_comprehension_clause(X, E) ->
   expand(X, E).
+
+%% Assertions
+
+assert_no_match_or_guard_scope(Meta, Kind, E) ->
+  assert_no_match_scope(Meta, Kind, E),
+  assert_no_guard_scope(Meta, Kind, E).
+assert_no_match_scope(Meta, _Kind, #elixir_env{context=match,file=File}) ->
+  compile_error(Meta, File, "invalid pattern in match clause");
+assert_no_match_scope(_Meta, _Kind, _E) -> [].
+assert_no_guard_scope(Meta, _Kind, #elixir_env{context=guard,file=File}) ->
+  compile_error(Meta, File, "invalid pattern in guard");
+assert_no_guard_scope(_Meta, _Kind, _E) -> [].
