@@ -353,7 +353,7 @@ eval_callbacks(Line, Module, Name, Args, E) ->
   Meta      = [{line,Line},{require,false}],
 
   lists:foldl(fun({M,F}, Acc) ->
-    { Expr, ET } = elixir_exp_dispatch:dispatch_require(Meta, M, F, Args, Acc, fun(_) ->
+    { Expr, ET } = elixir_dispatch:dispatch_require(Meta, M, F, Args, Acc, fun(_) ->
       apply(M, F, Args),
       { nil, Acc }
     end),

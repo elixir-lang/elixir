@@ -45,7 +45,7 @@ expand({ '__block__', Meta, Args }, E) when is_list(Args) ->
 
 %% __aliases__
 
-expand({ '__aliases__', Meta, _ } = Alias, E) ->
+expand({ '__aliases__', _, _ } = Alias, E) ->
   case elixir_aliases:expand(Alias, E#elixir_env.aliases,
                              E#elixir_env.macro_aliases, E#elixir_env.lexical_tracker) of
     Receiver when is_atom(Receiver) ->
@@ -60,7 +60,7 @@ expand({ '__aliases__', Meta, _ } = Alias, E) ->
           elixir_lexical:record_remote(Receiver, E#elixir_env.lexical_tracker),
           { Receiver, EA };
         false ->
-          { { '__aliases__', Meta, EAliases }, EA }
+          { { { '.', [], [elixir_aliases, concat] }, [], EAliases }, EA }
       end
   end;
 
@@ -297,9 +297,9 @@ expand({ Name, Meta, Kind } = Var, #elixir_env{vars=Vars} = E) when is_atom(Name
 %% Local calls
 
 expand({ Atom, Meta, Args }, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
-  % assert_no_ambiguous_op(Atom, Meta, Args, S),
+  assert_no_ambiguous_op(Atom, Meta, Args, E),
 
-  elixir_exp_dispatch:dispatch_import(Meta, Atom, Args, E, fun() ->
+  elixir_dispatch:dispatch_import(Meta, Atom, Args, E, fun() ->
     expand_local(Meta, Atom, Args, E)
   end);
 
@@ -309,7 +309,7 @@ expand({ { '.', DotMeta, [Left, Right] }, Meta, Args }, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   { ELeft, EL } = expand(Left, E),
 
-  elixir_exp_dispatch:dispatch_require(Meta, ELeft, Right, Args, EL, fun(Receiver) ->
+  elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, EL, fun(Receiver) ->
     expand_remote(Receiver, DotMeta, Right, Meta, Args, E, EL)
   end);
 
@@ -410,11 +410,30 @@ var_kind(Meta, Kind) ->
 
 %% Locals
 
+assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
+  case lists:keyfind(ambiguous_op, 1, Meta) of
+    { ambiguous_op, Kind } ->
+      case lists:member({ Name, Kind }, E#elixir_env.vars) of
+        true ->
+          compile_error(Meta, E#elixir_env.file, "\"~ts ~ts\" looks like a function call but "
+                        "there is a variable named \"~ts\", please use explicit parenthesis or even spaces",
+                        [Name, 'Elixir.Macro':to_string(Arg), Name]);
+        false ->
+          ok
+      end;
+    _ ->
+      ok
+  end;
+assert_no_ambiguous_op(_Atom, _Meta, _Args, _E) ->
+  ok.
+
 expand_local(Meta, Name, Args, #elixir_env{local=nil, function=nil} = E) ->
-  { { Name, Meta, Args }, E };
+  { EArgs, EA } = expand_args(Args, E),
+  { { Name, Meta, EArgs }, EA };
 expand_local(Meta, Name, Args, #elixir_env{local=nil, module=Module, function=Function} = E) ->
   elixir_locals:record_local({ Name, length(Args) }, Module, Function),
-  { { Name, Meta, Args }, E };
+  { EArgs, EA } = expand_args(Args, E),
+  { { Name, Meta, EArgs }, EA };
 expand_local(Meta, Name, Args, E) ->
   expand({ { '.', Meta, [E#elixir_env.local, Name] }, Meta, Args }, E).
 
@@ -425,7 +444,6 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, E, EL) ->
     is_atom(Receiver) -> elixir_lexical:record_remote(Receiver, E#elixir_env.lexical_tracker);
     true -> ok
   end,
-
   { EArgs, EA } = expand_args(Args, elixir_env:mergea(E, EL)),
   { { { '.', DotMeta, [Receiver, Right] }, Meta, EArgs }, elixir_env:mergev(EL, EA) }.
 

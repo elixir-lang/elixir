@@ -207,7 +207,7 @@ do_quote({ Name, Meta, ArgsOrAtom }, #elixir_quote{imports_hygiene=true} = Q, E)
   end,
 
   NewMeta = case (keyfind(import, Meta) == false) andalso
-      elixir_exp_dispatch:find_import(Meta, Name, Arity, E) of
+      elixir_dispatch:find_import(Meta, Name, Arity, E) of
     false ->
       case (Arity == 1) andalso keyfind(ambiguous_op, Meta) of
         { ambiguous_op, nil } -> keystore(ambiguous_op, Meta, Q#elixir_quote.context);
@@ -267,7 +267,7 @@ do_quote_call(Left, Meta, Expr, Args, Q, E) ->
 do_quote_fa(Target, Meta, Args, F, A, Q, E) ->
   NewMeta =
     case (keyfind(import_fa, Meta) == false) andalso
-         elixir_exp_dispatch:find_import(Meta, F, A, E) of
+         elixir_dispatch:find_import(Meta, F, A, E) of
       false    -> Meta;
       Receiver -> keystore(import_fa, Meta, { Receiver, Q#elixir_quote.context })
     end,

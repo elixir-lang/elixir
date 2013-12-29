@@ -8,12 +8,11 @@
 %% TODO: Move most of those contents to translation
 
 translate({ '<<>>', Meta, Args }, S) when is_list(Args) ->
-  { { '<<>>', _, EArgs }, _ } = expand_bitstr(Meta, Args, elixir_env:scope_to_env(S)),
   case S#elixir_scope.context of
     match ->
-      build_bitstr(fun elixir_translator:translate_each/2, EArgs, Meta, S);
+      build_bitstr(fun elixir_translator:translate_each/2, Args, Meta, S);
     _ ->
-      { TArgs, { SC, SV } } = build_bitstr(fun elixir_translator:translate_arg/2, EArgs, Meta, { S, S }),
+      { TArgs, { SC, SV } } = build_bitstr(fun elixir_translator:translate_arg/2, Args, Meta, { S, S }),
       { TArgs, umergec(SV, SC) }
   end;
 

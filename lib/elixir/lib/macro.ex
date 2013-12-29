@@ -11,13 +11,13 @@ defmodule Macro do
   @typedoc "Expr node (remaining ones are literals)"
   @type expr :: { expr | atom, Keyword.t, atom | [t] }
 
-  @binary_ops [ :===, :!==,
+  @binary_ops [:===, :!==,
     :==, :!=, :<=, :>=,
     :&&, :||, :<>, :++, :--, :**, ://, :::, :<-, :.., :|>, :=~,
     :<, :>, :->,
     :+, :-, :*, :/, :=, :|, :.,
     :and, :or, :xor, :when, :in, :inlist, :inbits,
-    :<<<, :>>>, :|||, :&&&, :^^^, :~~~ ]
+    :<<<, :>>>, :|||, :&&&, :^^^, :~~~]
 
   @doc false
   defmacro binary_ops, do: @binary_ops
@@ -522,7 +522,7 @@ defmodule Macro do
   If the expression cannot be expanded, it returns the expression
   itself. Notice that `expand_once/2` performs the expansion just
   once and it is not recursive. Check `expand/2` for expansion
-  until the node no longer represents a macro.
+  until the node can no longer be expanded.
 
   ## Examples
 
@@ -586,62 +586,63 @@ defmodule Macro do
 
   """
   def expand_once(ast, env) do
-    elem(expand_once(ast, env, nil), 0)
+    elem(do_expand_once(ast, env), 0)
   end
 
-  # TODO: Get rid of this duplication
-  defp expand_once({ :__aliases__, _, _ } = original, env, cache) do
+  defp do_expand_once({ :__aliases__, _, _ } = original, env) do
     case :elixir_aliases.expand(original, env.aliases, env.macro_aliases, env.lexical_tracker) do
       receiver when is_atom(receiver) ->
         :elixir_lexical.record_remote(receiver, env.lexical_tracker)
-        { receiver, true, cache }
+        { receiver, true }
       aliases ->
-        aliases = lc alias inlist aliases, do: elem(expand_once(alias, env, cache), 0)
+        aliases = lc alias inlist aliases, do: elem(do_expand_once(alias, env), 0)
 
         case :lists.all(&is_atom/1, aliases) do
           true ->
             receiver = :elixir_aliases.concat(aliases)
             :elixir_lexical.record_remote(receiver, env.lexical_tracker)
-            { receiver, true, cache }
-          false -> { original, false, cache }
+            { receiver, true }
+          false ->
+            { original, false }
         end
     end
   end
 
   # Expand @ calls
-  defp expand_once({ :@, _, [{ name, _, args }] } = original, env, cache) when is_atom(args) or args == [] do
+  defp do_expand_once({ :@, _, [{ name, _, args }] } = original, env) when is_atom(args) or args == [] do
     case (module = env.module) && Module.open?(module) do
-      true  -> { Module.get_attribute(module, name), true, cache }
-      false -> { original, false, cache }
+      true  -> { Module.get_attribute(module, name), true }
+      false -> { original, false }
     end
   end
 
   # Expand pseudo-variables
-  defp expand_once({ :__MODULE__, _, atom }, env, cache) when is_atom(atom),
-    do: { env.module, true, cache }
-  defp expand_once({ :__FILE__, _, atom }, env, cache)   when is_atom(atom),
-    do: { env.file, true, cache }
-  defp expand_once({ :__DIR__, _, atom }, env, cache)    when is_atom(atom),
-    do: { :filename.dirname(env.file), true, cache }
+  defp do_expand_once({ :__MODULE__, _, atom }, env) when is_atom(atom),
+    do: { env.module, true }
+  defp do_expand_once({ :__FILE__, _, atom }, env)   when is_atom(atom),
+    do: { env.file, true }
+  defp do_expand_once({ :__DIR__, _, atom }, env)    when is_atom(atom),
+    do: { :filename.dirname(env.file), true }
 
-  # TODO: Expand __ENV__ as a tuple and __ENV__.call
-  defp expand_once({ :__ENV__, _, atom }, env, cache)    when is_atom(atom),
-    do: { env, true, cache }
+  defp do_expand_once({ :__ENV__, _, atom }, env)    when is_atom(atom),
+    do: { { :{}, [], tuple_to_list(env) }, true }
+  defp do_expand_once({ { :., _, [{ :__ENV__, _, atom }, field] }, _, [] }, env) when is_atom(atom) and is_atom(field),
+    do: { apply(env, field, []), true }
 
   # Expand possible macro import invocation
-  defp expand_once({ atom, meta, context } = original, env, cache)
+  defp do_expand_once({ atom, meta, context } = original, env)
       when is_atom(atom) and is_list(meta) and is_atom(context) do
     if :lists.member({ atom, Keyword.get(meta, :counter, context) }, env.vars) do
-      { original, false, cache }
+      { original, false }
     else
-      case expand_once({ atom, meta, [] }, env, cache) do
-        { _, true, _ } = exp -> exp
-        { _, false, cache }  -> { original, false, cache }
+      case do_expand_once({ atom, meta, [] }, env) do
+        { _, true } = exp -> exp
+        { _, false }      -> { original, false }
       end
     end
   end
 
-  defp expand_once({ atom, meta, args } = original, env, cache)
+  defp do_expand_once({ atom, meta, args } = original, env)
       when is_atom(atom) and is_list(args) and is_list(meta) do
     module = env.module
 
@@ -651,42 +652,43 @@ defmodule Macro do
       []
     end
 
-    cache  = to_erl_env(env, cache)
-    expand = :elixir_dispatch.expand_import(meta, { atom, length(args) }, args, cache, extra)
+    arity = length(args)
 
-    # TODO: Return the receiver in the expanded result
-    # TODO: The expanded tree does not have the counters nor lines set
-    #       and this can break hygiene. This needs to be fixed.
-    case expand do
-      { :ok, _, expanded } -> { expanded, true, cache }
-      { :ok, _receiver }   -> { original, false, cache }
-      :error               -> { original, false, cache }
+    if :elixir_import.special_form(atom, arity) do
+      { original, false }
+    else
+      expand = :elixir_dispatch.expand_import(meta, { atom, length(args) }, args,
+                                              :elixir_env.ex_to_env(env), extra)
+
+      # TODO: The expanded tree does not have the counters nor lines set
+      #       and this can break hygiene. This needs to be fixed.
+      case expand do
+        { :ok, _, expanded } -> { expanded, true }
+        { :ok, _receiver }   -> { original, false }
+        :error               -> { original, false }
+      end
     end
   end
 
   # Expand possible macro require invocation
-  defp expand_once({ { :., _, [left, right] }, line, args } = original, env, cache) when is_atom(right) do
-    { receiver, _, _ } = expand_once(left, env, cache)
+  defp do_expand_once({ { :., _, [left, right] }, meta, args } = original, env) when is_atom(right) do
+    { receiver, _ } = do_expand_once(left, env)
 
     case is_atom(receiver) do
-      false -> { original, false, cache }
+      false -> { original, false }
       true  ->
-        cache  = to_erl_env(env, cache)
-        expand = :elixir_dispatch.expand_require(line, receiver, { right, length(args) },
-          args, cache)
+        expand = :elixir_dispatch.expand_require(meta, receiver, { right, length(args) },
+          args, :elixir_env.ex_to_env(env))
 
         case expand do
-          { :ok, _receiver, expanded } -> { expanded, true, cache }
-          :error                       -> { original, false, cache }
+          { :ok, _receiver, expanded } -> { expanded, true }
+          :error                       -> { original, false }
         end
     end
   end
 
   # Anything else is just returned
-  defp expand_once(other, _env, cache), do: { other, false, cache }
-
-  defp to_erl_env(env, nil),    do: :elixir_env.ex_to_scope(env)
-  defp to_erl_env(_env, cache), do: cache
+  defp do_expand_once(other, _env), do: { other, false }
 
   @doc """
   Receives an AST node and expands it until it no longer represents
@@ -696,47 +698,15 @@ defmodule Macro do
   expansion works.
   """
   def expand(tree, env) do
-    elem(expand(tree, env, nil), 0)
+    expand_until({ tree, true }, env)
   end
 
-  @doc false # Used internally by Elixir
-  def expand(tree, env, cache) do
-    expand_until({ tree, true, cache }, env)
+  defp expand_until({ tree, true }, env) do
+    expand_until(do_expand_once(tree, env), env)
   end
 
-  defp expand_until({ tree, true, cache }, env) do
-    expand_until(expand_once(tree, env, cache), env)
-  end
-
-  defp expand_until({ tree, false, cache }, _env) do
-    { tree, cache }
-  end
-
-  # TODO: Rewrite this function to use elixir_exp
-  # For such, there is no need for a cache.
-  @doc false
-  def expand_all(tree, env, cache) do
-    expand_all_until(expand(tree, env, cache), env)
-  end
-
-  defp expand_all_until({ { left, meta, right }, cache }, env) do
-    { left, cache }  = expand_all(left, env, cache)
-    { right, cache } = expand_all(right, env, cache)
-    { { left, meta, right }, cache }
-  end
-
-  defp expand_all_until({ { left, right }, cache }, env) do
-    { left, cache }  = expand_all(left, env, cache)
-    { right, cache } = expand_all(right, env, cache)
-    { { left, right }, cache }
-  end
-
-  defp expand_all_until({ list, cache }, env) when is_list(list) do
-    :lists.mapfoldl(&expand_all(&1, env, &2), cache, list)
-  end
-
-  defp expand_all_until({ other, cache }, _env) do
-    { other, cache }
+  defp expand_until({ tree, false }, _env) do
+    tree
   end
 
   @doc """

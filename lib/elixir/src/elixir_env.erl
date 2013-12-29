@@ -1,7 +1,6 @@
 -module(elixir_env).
 -include("elixir.hrl").
--export([ex_to_env/1, env_to_scope/1, env_to_scope_with_vars/2,
-         ex_to_scope/1, scope_to_ex/1, env_to_ex/1, scope_to_env/1]).
+-export([ex_to_env/1, env_to_scope/1, env_to_scope_with_vars/2, env_to_ex/1]).
 -export([mergea/2, mergev/2, mergec/2]).
 
 %% Conversion in between #elixir_env, #elixir_scope and Macro.Env
@@ -28,24 +27,6 @@ env_to_scope_with_vars(#elixir_env{} = Env, Vars) ->
     vars=orddict:from_list(Vars),
     counter=[{'',length(Vars)}]
   }.
-
-scope_to_ex(#elixir_env{} = E) ->
-  erlang:setelement(1, E, 'Elixir.Macro.Env');
-scope_to_ex({ Line, #elixir_scope{module=Module,file=File,
-    function=Function,aliases=Aliases,context=Context,
-    requires=Requires,macros=Macros,functions=Functions,
-    context_modules=ContextModules,macro_aliases=MacroAliases,
-    macro_counter=MacroCounter,vars=Vars,lexical_tracker=Lexical,
-    local=Local} }) when is_integer(Line) ->
-  { 'Elixir.Macro.Env', Module, File, Line, Function, Context, Requires, Aliases,
-    Functions, Macros, MacroAliases, MacroCounter, ContextModules,
-    [Pair || { Pair, _ } <- Vars], Lexical, Local }.
-
-ex_to_scope(Env) ->
-  env_to_scope(ex_to_env(Env)).
-
-scope_to_env(#elixir_scope{} = S) ->
-  ex_to_env(scope_to_ex({ 0, S })).
 
 %% SCOPE MERGING
 

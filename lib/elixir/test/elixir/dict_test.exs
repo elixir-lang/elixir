@@ -1,7 +1,7 @@
 Code.require_file "test_helper.exs", __DIR__
 
 defmodule DictTest.Common do
-  defmacro __using__(module) do
+  defmacro __using__(_) do
     quote location: :keep do
       # Most underlying Dict implementations have no key
       # order guarantees, sort them before we compare:
@@ -12,18 +12,18 @@ defmodule DictTest.Common do
         end
       end
 
-      defp empty_dict, do: unquote(module).new
+      defp empty_dict, do: dict_impl.new
 
       defp new_dict(list // [{"first_key", 1}, {"second_key", 2}]) do
-        unquote(module).new list
+        dict_impl.new list
       end
 
       defp new_dict(list, transform) do
-        unquote(module).new list, transform
+        dict_impl.new list, transform
       end
 
       defp int_dict do
-        unquote(module).new [{1,1}]
+        dict_impl.new [{1,1}]
       end
 
       test :access do
@@ -333,19 +333,13 @@ defmodule DictTest.Common do
         refute Enum.member?(new_dict([{1,1}]), { 1, 1.0 })
         refute Enum.member?(new_dict([{1,1}]), { 1.0, 1.0 })
       end
-
-      test "unsupported dict" do
-        assert_raise ArgumentError, "unsupported dict: :bad_dict", fn ->
-          Dict.to_list :bad_dict
-        end
-      end
     end
   end
 end
 
 defmodule Dict.HashDictTest do
   use ExUnit.Case, async: true
-  use DictTest.Common, HashDict
+  use DictTest.Common
 
   doctest Dict
   defp dict_impl, do: HashDict
@@ -353,7 +347,7 @@ end
 
 defmodule Dict.ListDictTest do
   use ExUnit.Case, async: true
-  use DictTest.Common, ListDict
+  use DictTest.Common
 
   doctest Dict
   defp dict_impl, do: ListDict

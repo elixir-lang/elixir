@@ -178,7 +178,7 @@ translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
     true  ->
       FBody = { 'match', Line,
         { 'var', Line, '__CALLER__' },
-        ?wrap_call(Line, elixir_env, scope_to_ex, [{ var, Line, '_@CALLER' }])
+        ?wrap_call(Line, elixir_env, env_to_ex, [{ var, Line, '_@CALLER' }])
       },
       setelement(5, TClause, [FBody|element(5, TClause)]);
     false -> TClause

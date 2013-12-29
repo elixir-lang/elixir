@@ -1,10 +1,10 @@
 -module(elixir_fn).
--export([fn/3, capture/3, expand/3]).
+-export([translate/3, capture/3, expand/3]).
 -import(elixir_scope, [umergec/2]).
 -import(elixir_errors, [syntax_error/3, compile_error/4]).
 -include("elixir.hrl").
 
-fn(Meta, Clauses, S) ->
+translate(Meta, Clauses, S) ->
   Transformer = fun({ '->', CMeta, [ArgsWithGuards, Expr] }, Acc) ->
     { Args, Guards } = elixir_clauses:extract_splat_guards(ArgsWithGuards),
     elixir_clauses:assigns_block(?line(CMeta), fun translate_fn_match/2, Args, [Expr], Guards, umergec(S, Acc))
@@ -85,13 +85,13 @@ capture(Meta, Arg, E) ->
 
 capture_import(Meta, { Atom, ImportMeta, Args } = Expr, E, Sequential) ->
   Res = Sequential andalso
-        elixir_exp_dispatch:import_function(ImportMeta, Atom, length(Args), E),
+        elixir_dispatch:import_function(ImportMeta, Atom, length(Args), E),
   handle_capture(Res, Meta, Expr, E, Sequential).
 
 capture_require(Meta, { { '.', _, [Left, Right] }, RequireMeta, Args } = Expr, E, Sequential) ->
   { Mod, EE } = elixir_exp:expand(Left, E),
   Res = Sequential andalso is_atom(Mod) andalso
-        elixir_exp_dispatch:require_function(RequireMeta, Mod, Right, length(Args), EE),
+        elixir_dispatch:require_function(RequireMeta, Mod, Right, length(Args), EE),
   handle_capture(Res, Meta, Expr, EE, Sequential).
 
 handle_capture({ local, Fun, Arity }, _Meta, _Expr, _E, _Sequential) ->
