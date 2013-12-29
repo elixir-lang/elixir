@@ -3,10 +3,18 @@ defmodule IEx.ANSIDocs do
 
   @bullets [?*, ?-, ?+]
 
+  @default_colors [ enabled: true,
+                    doc_code: "cyan,bright",
+                    doc_inline_code: "cyan",
+                    doc_headings: "yellow,bright",
+                    doc_title: "reverse,yellow,bright",
+                    doc_bold: "bright",
+                    doc_underline: "underline" ]
+
   @doc """
   Prints the head of the documentation (i.e. the function signature)
   """
-  def print_heading(string, use_ansi // IO.ANSI.terminal?, colors // []) do
+  def print_heading(string, use_ansi // IO.ANSI.terminal?, colors // @default_colors) do
     if use_ansi do
       write_doc_heading(string, colors)
     else
@@ -26,7 +34,7 @@ defmodule IEx.ANSIDocs do
   @doc """
   Prints the documentation body.
   """
-  def print(doc, use_ansi // IO.ANSI.terminal?, colors // []) do
+  def print(doc, use_ansi // IO.ANSI.terminal?, colors // @default_colors) do
     if use_ansi do
       doc
       |> String.split(["\r\n","\n"], trim: false)
