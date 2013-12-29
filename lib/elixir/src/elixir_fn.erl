@@ -77,9 +77,6 @@ capture(Meta, { Left, Right }, E) ->
 capture(Meta, List, E) when is_list(List) ->
   do_capture(Meta, List, E, is_sequential_and_not_empty(List));
 
-capture(Meta, Arg, E) when is_integer(Arg) ->
-  compile_error(Meta, E#elixir_env.file, "unhandled &~B outside of a capture", [Arg]);
-
 capture(Meta, Arg, E) ->
   invalid_capture(Meta, Arg, E).
 

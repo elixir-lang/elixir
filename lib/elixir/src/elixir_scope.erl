@@ -1,6 +1,6 @@
 %% Convenience functions used to manipulate scope and its variables.
 -module(elixir_scope).
--export([translate_var/5,
+-export([translate_var/4,
   build_erl_var/2, build_ex_var/2,
   load_binding/2, dump_binding/2,
   mergev/2, mergec/2, merge_clause_vars/2
@@ -9,7 +9,7 @@
 
 %% VAR HANDLING
 
-translate_var(Meta, Name, Kind, S, Callback) when is_atom(Kind); is_integer(Kind) ->
+translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
   Line = ?line(Meta),
   Vars = S#elixir_scope.vars,
   Tuple = { Name, Kind },
@@ -42,10 +42,8 @@ translate_var(Meta, Name, Kind, S, Callback) when is_atom(Kind); is_integer(Kind
           } }
       end;
     _ ->
-      case orddict:find({ Name, Kind }, Vars) of
-        { ok, VarName } -> { { var, Line, VarName }, S };
-        error -> Callback()
-      end
+      { ok, VarName } = orddict:find({ Name, Kind }, Vars),
+      { { var, Line, VarName }, S }
   end.
 
 % Handle variables translation

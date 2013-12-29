@@ -124,8 +124,6 @@ eval_quoted(Tree, Binding, #elixir_env{line=Line} = E) ->
 %% to eval_quoted is that it does not linefy the given
 %% args.
 
-%% TODO: Get rid of eval forms once linify is moved to elixir_exp.
-
 eval_forms(Tree, Binding, #elixir_env{} = E) ->
   eval_forms(Tree, Binding, E, elixir_env:env_to_scope(E));
 eval_forms(Tree, Binding, Opts) when is_list(Opts) ->

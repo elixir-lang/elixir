@@ -4,8 +4,8 @@
 -include("elixir.hrl").
 
 clauses(Meta, Clauses, S) ->
-  Catch  = elixir_clauses:get_pairs(Meta, 'catch', Clauses, S),
-  Rescue = elixir_clauses:get_pairs(Meta, rescue, Clauses, S),
+  Catch  = elixir_clauses:get_pairs('catch', Clauses),
+  Rescue = elixir_clauses:get_pairs(rescue, Clauses),
   Transformer = fun(X, Acc) -> each_clause(X, mergec(S, Acc)) end,
   lists:mapfoldl(Transformer, S, Rescue ++ Catch).
 

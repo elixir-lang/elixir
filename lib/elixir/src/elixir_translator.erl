@@ -9,7 +9,7 @@
 translate_many(Forms, S) ->
   lists:mapfoldl(fun translate/2, S, Forms).
 
-%% Assignment operator
+%% =
 
 translate({ '=', Meta, [Left, Right] }, S) ->
   { TRight, SR } = translate(Right, S),
@@ -65,7 +65,7 @@ translate({ fn, Meta, Clauses }, S) ->
 %% Case
 
 translate({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
-  Clauses = elixir_clauses:get_pairs(Meta, do, KV, S),
+  Clauses = elixir_clauses:get_pairs(do, KV),
   { TExpr, NS } = translate(Expr, S),
 
   % RClauses = case elixir_utils:returns_boolean(TExpr) of
@@ -89,7 +89,7 @@ translate({'try', Meta, [Clauses]}, RS) when is_list(Clauses) ->
   After = proplists:get_value('after', Clauses, nil),
   { TAfter, SA } = translate(After, mergec(S, SC)),
 
-  Else = elixir_clauses:get_pairs(Meta, else, Clauses, S),
+  Else = elixir_clauses:get_pairs(else, Clauses),
   { TElse, SE } = elixir_clauses:clauses(Meta, Else, mergec(S, SA)),
 
   SF = (mergec(S, SE))#elixir_scope{noname=RS#elixir_scope.noname},
@@ -98,14 +98,14 @@ translate({'try', Meta, [Clauses]}, RS) when is_list(Clauses) ->
 %% Receive
 
 translate({'receive', Meta, [KV] }, S) when is_list(KV) ->
-  Do = elixir_clauses:get_pairs(Meta, do, KV, S, true),
+  Do = elixir_clauses:get_pairs(do, KV, true),
 
   case lists:keyfind('after', 1, KV) of
     false ->
       { TClauses, SC } = elixir_clauses:clauses(Meta, Do, S),
       { { 'receive', ?line(Meta), TClauses }, SC };
     _ ->
-      After = elixir_clauses:get_pairs(Meta, 'after', KV, S),
+      After = elixir_clauses:get_pairs('after', KV),
       { TClauses, SC } = elixir_clauses:clauses(Meta, Do ++ After, S),
       { FClauses, TAfter } = elixir_utils:split_last(TClauses),
       { _, _, [FExpr], _, FAfter } = TAfter,
@@ -159,14 +159,6 @@ translate({ '^', Meta, [ { Name, VarMeta, Kind } ] }, #elixir_scope{context=matc
       compile_error(Meta, S#elixir_scope.file, "unbound variable ^~ts", [Name])
   end;
 
-translate({ '^', Meta, [ { Name, _, Kind } ] }, S) when is_atom(Name), is_atom(Kind) ->
-  compile_error(Meta, S#elixir_scope.file,
-    "cannot use ^~ts outside of match clauses", [Name]);
-
-translate({ '^', Meta, [ Expr ] }, S) ->
-  compile_error(Meta, S#elixir_scope.file,
-                "the unary operator ^ can only be used with variables, invalid expression ^~ts", ['Elixir.Macro':to_string(Expr)]);
-
 translate({ '_', Meta, Kind }, #elixir_scope{context=match} = S) when is_atom(Kind) ->
   { { var, ?line(Meta), '_' }, S };
 
@@ -174,15 +166,7 @@ translate({ '_', Meta, Kind }, S) when is_atom(Kind) ->
   compile_error(Meta, S#elixir_scope.file, "unbound variable _");
 
 translate({ Name, Meta, Kind }, S) when is_atom(Name), is_atom(Kind) ->
-  elixir_scope:translate_var(Meta, Name, var_kind(Meta, Kind), S, fun() ->
-    case lists:keyfind(var, 1, Meta) of
-      { var, true } ->
-        compile_error(Meta, S#elixir_scope.file, "expected var ~ts to expand to an existing "
-                      "variable or be a part of a match", [Name]);
-      _ ->
-        translate({ Name, Meta, [] }, S)
-    end
-  end);
+  elixir_scope:translate_var(Meta, Name, var_kind(Meta, Kind), S);
 
 %% Local calls
 
@@ -231,20 +215,6 @@ translate({ { '.', _, [Expr] }, Meta, Args }, S) when is_list(Args) ->
   { TExpr, SE } = translate(Expr, S),
   { TArgs, SA } = translate_args(Args, mergec(S, SE)),
   { { call, ?line(Meta), TExpr, TArgs }, mergev(SE, SA) };
-
-%% Invalid calls
-
-translate({ { '.', _, [Invalid, _] }, Meta, Args }, S) when is_list(Meta) and is_list(Args) ->
-  compile_error(Meta, S#elixir_scope.file, "invalid remote call on ~ts",
-    ['Elixir.Macro':to_string(Invalid)]);
-
-translate({ _, Meta, Args } = Invalid, S) when is_list(Meta) and is_list(Args) ->
-  compile_error(Meta, S#elixir_scope.file, "invalid call ~ts",
-    ['Elixir.Macro':to_string(Invalid)]);
-
-translate({ _, _, _ } = Tuple, S) ->
-  compile_error([{line,0}], S#elixir_scope.file, "expected a valid quoted expression, got: ~ts",
-    ['Elixir.Kernel':inspect(Tuple, [{raw,true}])]);
 
 %% Literals
 
@@ -320,14 +290,10 @@ translate_args(Args, S) ->
 %% Comprehensions
 
 translate_comprehension(Meta, Kind, Args, S) ->
-  case elixir_utils:split_last(Args) of
-    { Cases, [{do,Expr}] } ->
-      { TCases, SC } = lists:mapfoldl(fun(C, Acc) -> translate_comprehension_clause(Meta, C, Acc) end, S, Cases),
-      { TExpr, SE }  = translate_comprehension_do(Meta, Kind, Expr, SC),
-      { { Kind, ?line(Meta), TExpr, TCases }, mergec(S, SE) };
-    _ ->
-      compile_error(Meta, S#elixir_scope.file, "missing do keyword in comprehension ~s", [Kind])
-  end.
+  { Cases, [{do,Expr}] } = elixir_utils:split_last(Args),
+  { TCases, SC } = lists:mapfoldl(fun(C, Acc) -> translate_comprehension_clause(Meta, C, Acc) end, S, Cases),
+  { TExpr, SE }  = translate_comprehension_do(Meta, Kind, Expr, SC),
+  { { Kind, ?line(Meta), TExpr, TCases }, mergec(S, SE) }.
 
 translate_comprehension_do(_Meta, bc, { '<<>>', _, _ } = Expr, S) ->
   translate(Expr, S);

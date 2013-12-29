@@ -1,34 +1,23 @@
 %% Handle code related to args, guard and -> matching for case,
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
--export([match/3, clause/6, clauses/3, get_pairs/4, get_pairs/5,
+-export([match/3, clause/6, clauses/3, get_pairs/2, get_pairs/3,
   extract_splat_guards/1, extract_guards/1]).
 -include("elixir.hrl").
 
 %% Get pairs from a clause.
 
-get_pairs(Meta, Key, Clauses, S) ->
-  get_pairs(Meta, Key, Clauses, S, false).
-
-get_pairs(Meta, Key, Clauses, S, AllowNil) ->
+get_pairs(Key, Clauses) ->
+  get_pairs(Key, Clauses, false).
+get_pairs(Key, Clauses, AllowNil) ->
   case lists:keyfind(Key, 1, Clauses) of
     { Key, Pairs } when is_list(Pairs) ->
-      [get_pair(Meta, Key, Pair, S) || Pair <- Pairs];
+      [{ Key, Meta, Left, Right } || { '->', Meta, [Left, Right] } <- Pairs];
     { Key, nil } when AllowNil ->
       [];
-    { Key, _ } ->
-      get_pairs_error(Meta, Key, S);
-    _ ->
+    false ->
       []
   end.
-
-get_pair(_Meta, Key, { '->', Meta, [Left, Right] }, _S) ->
-  { Key, Meta, Left, Right };
-get_pair(Meta, Key, _Other, S) ->
-  get_pairs_error(Meta, Key, S).
-
-get_pairs_error(Meta, Key, S) ->
-  elixir_errors:compile_error(Meta, S#elixir_scope.file, "expected -> clauses for key ~ts", [Key]).
 
 %% Translate matches
 
