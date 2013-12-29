@@ -94,8 +94,8 @@ defmodule GenServer.Behaviour do
       end
 
       @doc false
-      def handle_call(_request, _from, state) do
-        { :noreply, state }
+      def handle_call(request, _from, state) do
+        { :stop, { :bad_call, request }, state }
       end
 
       @doc false
@@ -104,8 +104,8 @@ defmodule GenServer.Behaviour do
       end
 
       @doc false
-      def handle_cast(_msg, state) do
-        { :noreply, state }
+      def handle_cast(msg, state) do
+        { :stop, { :bad_call, msg }, state }
       end
 
       @doc false
