@@ -2,6 +2,10 @@ defmodule GenServer.Behaviour do
   @moduledoc """
   This module is a convenience for defining GenServer callbacks in Elixir.
 
+  The default callback provided for handle_call will timeout if you call
+  with an unknown request. The default callback provided for handle_cast
+  will silently swallow any unknown requests.
+
   A server is responsible for reacting to messages received from a client.
   A GenServer is an OTP behaviour that encapsulates common server
   functionalities.
