@@ -119,10 +119,10 @@ defmodule URI do
   end
 
   defp do_decoder(q) do
-    next =
+    { first, next } =
       case :binary.split(q, "&") do
-        [first, rest] -> rest
-        [first]       -> ""
+        [first, rest] -> { first, rest }
+        [first]       -> { first, "" }
       end
 
     current =

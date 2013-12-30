@@ -2305,15 +2305,17 @@ defmodule Kernel do
   it will raise a CaseClauseError.
   """
   defmacro destructure(left, right) when is_list(left) do
-    List.foldl left, right, fn item, acc ->
-      quote do
-        case unquote(acc) do
-          [unquote(item)|t] ->
-            t
-          other when other == [] or other == nil ->
-            unquote(item) = nil
+    Enum.reduce left, right, fn item, acc ->
+      { :case, meta, args } =
+        quote do
+          case unquote(acc) do
+            [unquote(item)|t] ->
+              t
+            other when other == [] or other == nil ->
+              unquote(item) = nil
+          end
         end
-      end
+      { :case, [{:unsafe,true}|meta], args }
     end
   end
 
@@ -2840,9 +2842,10 @@ defmodule Kernel do
   # quote vars to be injected into the module definition
   defp module_vars([{ key, kind }|vars], counter) do
     var =
+      # TODO: Remove unsafe: false once we remove unsafe warning
       case is_atom(kind) do
-        true  -> { key, [], kind }
-        false -> { key, [counter: kind], nil }
+        true  -> { key, [unsafe: false], kind }
+        false -> { key, [unsafe: false, counter: kind], nil }
       end
 
     args = [key, kind, binary_to_atom(<<"_@", integer_to_binary(counter)::binary>>), var]
@@ -3549,10 +3552,11 @@ defmodule Kernel do
       append_first = Keyword.get(opts, :append_first, false)
 
       lc fun inlist List.wrap(funs) do
-        case Macro.decompose_call(fun) do
-          { name, args } -> :ok
-          _ -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_string(fun)}"
-        end
+        { name, args } =
+          case Macro.decompose_call(fun) do
+            { _, _ } = pair -> pair
+            _ -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_string(fun)}"
+          end
 
         actual_args =
           case append_first and args != [] do

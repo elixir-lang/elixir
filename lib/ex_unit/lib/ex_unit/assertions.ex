@@ -109,17 +109,22 @@ defmodule ExUnit.Assertions do
   ## START HELPERS
 
   defp translate_assertion({ :=, _, [left, right] }) do
+    { :case, meta, args } =
+      quote do
+        case right do
+          unquote(left) ->
+            right
+          _ ->
+            raise ExUnit.ExpectationError,
+              expected: inspect(right),
+              actual: unquote(Macro.to_string(left)),
+              assertion: "match pattern (=)"
+        end
+      end
+
     quote do
       right = unquote(right)
-      case right do
-        unquote(left) ->
-          right
-        _ ->
-          raise ExUnit.ExpectationError,
-            expected: inspect(right),
-            actual: unquote(Macro.to_string(left)),
-            assertion: "match pattern (=)"
-      end
+      unquote({ :case, [{:unsafe,true}|meta], args })
     end
   end
 

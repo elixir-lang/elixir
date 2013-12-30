@@ -66,33 +66,39 @@ extract_splat_guards(Else) ->
 
 % Function for translating macros with match style like case and receive.
 
-clauses(Meta, Clauses, #elixir_scope{clause_vars=C1} = S) ->
-  { TC, TS } = do_clauses(Meta, Clauses, S#elixir_scope{clause_vars=orddict:new()}),
-  C2 = TS#elixir_scope.clause_vars,
-  { TC, TS#elixir_scope{clause_vars=elixir_scope:merge_clause_vars(C1, C2)} }.
+clauses(Meta, Clauses, #elixir_scope{clause_vars=CV, temp_vars=TV} = S) ->
+  { TC, TS } = do_clauses(Meta, Clauses, S#elixir_scope{clause_vars=[], temp_vars=[]}),
+  { TC, TS#elixir_scope{
+          clause_vars=elixir_scope:merge_opt_vars(CV, TS#elixir_scope.clause_vars),
+          temp_vars=elixir_scope:merge_opt_vars(TV, TS#elixir_scope.temp_vars)} }.
 
 do_clauses(_Meta, [], S) ->
   { [], S };
 
-do_clauses(_Meta, [DecoupledClause], S) ->
-  { TDecoupledClause, TS } = each_clause(DecoupledClause, S),
-  { [TDecoupledClause], TS };
+% do_clauses(_Meta, [DecoupledClause], S) ->
+%   { TDecoupledClause, TS } = each_clause(DecoupledClause, S),
+%   { [TDecoupledClause], TS };
 
 do_clauses(Meta, DecoupledClauses, S) ->
   % Transform tree just passing the variables counter forward
   % and storing variables defined inside each clause.
-  Transformer = fun(X, {Acc, CV}) ->
-    { TX, TAcc } = each_clause(X, Acc),
-    { TX, { elixir_scope:mergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV] } }
+  Transformer = fun(X, {Acc, CV, TV}) ->
+    { TX, TAcc } = each_clause(Meta, X, Acc),
+    { TX, { elixir_scope:mergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV], [TAcc#elixir_scope.temp_vars|TV] } }
   end,
 
-  { TClauses, { TS, ReverseCV } } = lists:mapfoldl(Transformer, {S, []}, DecoupledClauses),
+  { TClauses, { TS, ReverseCV, ReverseTV } } = lists:mapfoldl(Transformer, {S, [], []}, DecoupledClauses),
 
   % Now get all the variables defined inside each clause
   CV = lists:reverse(ReverseCV),
   AllVars = lists:foldl(fun(KV, Acc) ->
-    elixir_scope:merge_clause_vars(Acc, KV)
-  end, orddict:new(), CV),
+    elixir_scope:merge_vars(Acc, KV)
+  end, [], CV),
+
+  % Now get all unsafe vars
+  UV = lists:foldr(fun(KV, Acc) ->
+    elixir_scope:merge_vars(Acc, KV)
+  end, TS#elixir_scope.unsafe_vars, ReverseTV),
 
   % Create a new scope that contains a list of all variables
   % defined inside all the clauses. It returns this new scope and
@@ -105,7 +111,7 @@ do_clauses(Meta, DecoupledClauses, S) ->
 
   % Expand all clauses by adding a match operation at the end
   % that defines variables missing in one clause to the others.
-  expand_clauses(?line(Meta), TClauses, CV, FinalVars, [], FS).
+  expand_clauses(?line(Meta), TClauses, CV, FinalVars, [], FS#elixir_scope{unsafe_vars=UV}).
 
 expand_clauses(Line, [Clause|T], [ClauseVars|V], FinalVars, Acc, S) ->
   case generate_match_vars(FinalVars, ClauseVars, [], []) of
@@ -143,15 +149,23 @@ expand_clauses(_Line, [], [], _FinalVars, Acc, S) ->
 
 % Handle each key/value clause pair and translate them accordingly.
 
-each_clause({ do, Meta, [Condition], Expr }, S) ->
+translate_do_match(Arg, S) ->
+  { TArg, TS } = elixir_translator:translate_many(Arg, S#elixir_scope{extra=do_match}),
+  { TArg, TS#elixir_scope{extra=S#elixir_scope.extra} }.
+
+each_clause(PMeta, { do, Meta, [Condition], Expr }, S) ->
+  Fun = case lists:keyfind(unsafe, 1, PMeta) of
+    { unsafe, true } -> fun elixir_translator:translate_many/2;
+    _ -> fun translate_do_match/2
+  end,
+  { Arg, Guards } = extract_guards(Condition),
+  clause(?line(Meta), Fun, [Arg], Expr, Guards, S);
+
+each_clause(_PMeta, { else, Meta, [Condition], Expr }, S) ->
   { Arg, Guards } = extract_guards(Condition),
   clause(?line(Meta), fun elixir_translator:translate_many/2, [Arg], Expr, Guards, S);
 
-each_clause({ else, Meta, [Condition], Expr }, S) ->
-  { Arg, Guards } = extract_guards(Condition),
-  clause(?line(Meta), fun elixir_translator:translate_many/2, [Arg], Expr, Guards, S);
-
-each_clause({ 'after', Meta, [Condition], Expr }, S) ->
+each_clause(_PMeta, { 'after', Meta, [Condition], Expr }, S) ->
   { TCondition, SC } = elixir_translator:translate(Condition, S),
   { TExpr, SB } = elixir_translator:translate(Expr, SC),
   { { clause, ?line(Meta), [TCondition], [], unblock(TExpr) }, SB }.

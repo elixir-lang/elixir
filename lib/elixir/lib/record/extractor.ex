@@ -6,10 +6,11 @@ defmodule Record.Extractor do
   def retrieve(name, from: file) when is_binary(file) do
     file = String.to_char_list!(file)
 
-    case :code.where_is_file(file) do
-      :non_existing -> realfile = file
-      realfile -> :ok
-    end
+    realfile =
+      case :code.where_is_file(file) do
+        :non_existing -> file
+        realfile -> realfile
+      end
 
     retrieve_record(name, realfile)
   end

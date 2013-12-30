@@ -6,6 +6,7 @@
   * [Typespec] Fix conversion of unary ops from typespec format to ast
 
 * Deprecations
+  * [Kernel] Do not leak clause heads. Previously, a variable defined in a case/receive head clauses would leak to the outer scope. This behaviour is deprecated and will be removed in the next release.
 
 * Backwards incompatible changes
   * [Kernel] Change how `->` is represented in AST. Now each clause is represented by its own AST node which makes composition easier. See commit 51aef55 for more information.

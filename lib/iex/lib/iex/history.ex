@@ -147,9 +147,9 @@
   """
   def nth(n) do
     entry = case n do
-      n when n >= 0 ->
+      x when x >= 0 ->
         Process.get({:iex_history, n})
-      n when n < 0 ->
+      x when x < 0 ->
         counter = Process.get(:iex_history_counter)
         Process.get({:iex_history, counter + n})
     end

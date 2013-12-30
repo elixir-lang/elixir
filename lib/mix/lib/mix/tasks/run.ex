@@ -60,7 +60,7 @@ defmodule Mix.Tasks.Run do
       end
     end
 
-    if file, do: Code.require_file(h)
+    if file, do: Code.require_file(file)
     if opts[:no_halt], do: :timer.sleep(:infinity)
   end
 

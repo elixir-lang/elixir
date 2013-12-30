@@ -141,7 +141,9 @@ translate({ super, Meta, Args }, S) when is_list(Args) ->
 
 translate({ '^', Meta, [ { Name, VarMeta, Kind } = Var ] },
                #elixir_scope{extra=fn_match, extra_guards=Extra} = S) when is_atom(Name), is_atom(Kind) ->
-  case orddict:find({ Name, var_kind(VarMeta, Kind) }, S#elixir_scope.backup_vars) of
+  Tuple = { Name, var_kind(VarMeta, Kind) },
+  elixir_scope:warn_unsafe(VarMeta, Tuple, S),
+  case orddict:find(Tuple, S#elixir_scope.backup_vars) of
     { ok, { Value, _Counter } } ->
       Line = ?line(Meta),
       { TVar, TS } = translate(Var, S),
@@ -152,7 +154,9 @@ translate({ '^', Meta, [ { Name, VarMeta, Kind } = Var ] },
   end;
 
 translate({ '^', Meta, [ { Name, VarMeta, Kind } ] }, #elixir_scope{context=match} = S) when is_atom(Name), is_atom(Kind) ->
-  case orddict:find({ Name, var_kind(VarMeta, Kind) }, S#elixir_scope.backup_vars) of
+  Tuple = { Name, var_kind(VarMeta, Kind) },
+  elixir_scope:warn_unsafe(VarMeta, Tuple, S),
+  case orddict:find(Tuple, S#elixir_scope.backup_vars) of
     { ok, { Value, _Counter } } ->
       { { var, ?line(Meta), Value }, S };
     error ->

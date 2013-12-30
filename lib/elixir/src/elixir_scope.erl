@@ -2,16 +2,33 @@
 -module(elixir_scope).
 -export([translate_var/4, build_var/2,
   load_binding/2, dump_binding/2,
-  mergev/2, mergec/2, merge_clause_vars/2
+  format_error/1, warn_unsafe/3,
+  mergev/2, mergec/2, merge_vars/2, merge_opt_vars/2
 ]).
 -include("elixir.hrl").
 
 %% VAR HANDLING
 
-translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
+translate_var(Meta, Name, Kind, RS) when is_atom(Kind); is_integer(Kind) ->
   Line  = ?line(Meta),
   Tuple = { Name, Kind },
-  Vars  = S#elixir_scope.vars,
+
+  BS = if
+    RS#elixir_scope.extra == do_match ->
+      RS#elixir_scope{temp_vars=ordsets:add_element(Tuple, RS#elixir_scope.temp_vars)};
+    (RS#elixir_scope.context == match) andalso (RS#elixir_scope.temp_vars /= nil) ->
+      RS#elixir_scope{temp_vars=ordsets:del_element(Tuple, RS#elixir_scope.temp_vars)};
+    true ->
+      RS
+  end,
+
+  S = case BS#elixir_scope.context of
+    match -> BS#elixir_scope{unsafe_vars=ordsets:del_element(Tuple, BS#elixir_scope.unsafe_vars)};
+    _     -> BS
+  end,
+
+  warn_unsafe(Meta, Tuple, S),
+  Vars = S#elixir_scope.vars,
 
   case orddict:find({ Name, Kind }, Vars) of
     { ok, { Current, _ } } -> Exists = true;
@@ -22,16 +39,14 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
     match ->
       MatchVars = S#elixir_scope.match_vars,
 
-      case { Exists, ordsets:is_element(Tuple, MatchVars) } of
-        { true, true } ->
+      case Exists andalso ordsets:is_element(Tuple, MatchVars) of
+        true ->
           { { var, Line, Current }, S };
-        { Else, _ } ->
+        false ->
           { NewVar, Counter, NS } =
             if
               Kind /= nil -> build_var('_', S);
-              Else -> build_var(Name, S);
-              S#elixir_scope.noname -> build_var(Name, S);
-              true -> { Name, 0, S }
+              true -> build_var(Name, S)
             end,
 
           FS = NS#elixir_scope{
@@ -50,9 +65,26 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
   end.
 
 build_var(Key, #elixir_scope{counter=Dict} = S) ->
-  New     = orddict:update_counter(Key, 1, Dict),
-  Counter = orddict:fetch(Key, New),
-  { ?atom_concat([Key, "@", Counter]), Counter, S#elixir_scope{counter=New} }.
+  New = orddict:update(Key, fun(Old) -> Old + 1 end, 0, Dict),
+  Cnt = orddict:fetch(Key, New),
+  Var =
+    case Cnt of
+      0 when Key /= '_' -> Key;
+      _ -> ?atom_concat([Key, "@", Cnt])
+    end,
+  { Var, Cnt, S#elixir_scope{counter=New} }.
+
+warn_unsafe(Meta, Tuple, S) ->
+  case ordsets:is_element(Tuple, S#elixir_scope.unsafe_vars) andalso
+       (lists:keyfind(unsafe, 1, Meta) /= { unsafe, false }) of
+    true  -> elixir_errors:handle_file_warning(S#elixir_scope.file, { ?line(Meta), ?MODULE, { unsafe_var, Tuple } });
+    false -> ok
+  end.
+
+format_error({ unsafe_var, { Var, nil } }) ->
+  io_lib:format("variable ~ts is defined in a case clause and is unsafe, please assign it explicitly", [Var]);
+format_error({ unsafe_var, { Var, Ctx } }) ->
+  io_lib:format("variable ~ts (context ~p) is defined in a case clause and is unsafe, please assign it explicitly", [Var, Ctx]).
 
 %% SCOPE MERGING
 
@@ -64,9 +96,15 @@ mergev(S1, S2) ->
   V2 = S2#elixir_scope.vars,
   C1 = S1#elixir_scope.clause_vars,
   C2 = S2#elixir_scope.clause_vars,
+  T1 = S1#elixir_scope.temp_vars,
+  T2 = S2#elixir_scope.temp_vars,
+  U1 = S1#elixir_scope.unsafe_vars,
+  U2 = S2#elixir_scope.unsafe_vars,
   S2#elixir_scope{
     vars=merge_vars(V1, V2),
-    clause_vars=merge_clause_vars(C1, C2)
+    unsafe_vars=merge_vars(U1, U2),
+    clause_vars=merge_opt_vars(C1, C2),
+    temp_vars=merge_opt_vars(T1, T2)
   }.
 
 %% Receives two scopes and return the first scope with
@@ -75,7 +113,6 @@ mergev(S1, S2) ->
 mergec(S1, S2) ->
   S1#elixir_scope{
     counter=S2#elixir_scope.counter,
-    extra_guards=S2#elixir_scope.extra_guards,
     super=S2#elixir_scope.super,
     caller=S2#elixir_scope.caller
   }.
@@ -86,10 +123,10 @@ merge_vars(V, V) -> V;
 merge_vars(V1, V2) ->
   orddict:merge(fun var_merger/3, V1, V2).
 
-merge_clause_vars(nil, _C2) -> nil;
-merge_clause_vars(_C1, nil) -> nil;
-merge_clause_vars(C, C)     -> C;
-merge_clause_vars(C1, C2)   ->
+merge_opt_vars(nil, _C2) -> nil;
+merge_opt_vars(_C1, nil) -> nil;
+merge_opt_vars(C, C)     -> C;
+merge_opt_vars(C1, C2)   ->
   orddict:merge(fun var_merger/3, C1, C2).
 
 var_merger(_Var, { _, V1 } = K1, { _, V2 }) when V1 > V2 -> K1;
