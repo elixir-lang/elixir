@@ -3,7 +3,7 @@
 -import(elixir_scope, [mergec/2]).
 -include("elixir.hrl").
 
-clauses(Meta, Clauses, S) ->
+clauses(_Meta, Clauses, S) ->
   Catch  = elixir_clauses:get_pairs('catch', Clauses),
   Rescue = elixir_clauses:get_pairs(rescue, Clauses),
   Transformer = fun(X, Acc) -> each_clause(X, mergec(S, Acc)) end,

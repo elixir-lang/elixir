@@ -3,11 +3,12 @@
 * Enhancements
 
 * Bug fixes
-  * [Typespec] - Fix conversion of unary ops from typespec format to ast
+  * [Typespec] Fix conversion of unary ops from typespec format to ast
 
 * Deprecations
 
 * Backwards incompatible changes
+  * [Kernel] Change how `->` is represented in AST. Now each clause is represented by its own AST node which makes composition easier. See commit 51aef55 for more information.
 
 # v0.12.0 (2013-12-15)
 
