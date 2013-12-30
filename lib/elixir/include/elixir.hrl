@@ -36,7 +36,6 @@
   functions=[],            %% a list with functions imported from module
   macros=[],               %% a list with macros imported from module
   macro_aliases=[],        %% keep aliases defined inside a macro
-  macro_counter=0,         %% macros expansions counter
   context_modules=[],      %% modules defined in the current context
   vars=[],                 %% a set of defined variables
   lexical_tracker=nil,     %% holds the lexical tracker pid

@@ -100,13 +100,13 @@ handle_capture(false, Meta, Expr, E, Sequential) ->
   do_capture(Meta, Expr, E, Sequential).
 
 do_capture(Meta, Expr, E, Sequential) ->
-  case do_escape(Expr, E, []) of
+  case do_escape(Expr, elixir_counter:next(), E, []) of
     { _, [] } when not Sequential ->
       invalid_capture(Meta, Expr, E);
     { EExpr, EDict } ->
       EVars = validate(Meta, EDict, 1, E),
       Fn = { fn, Meta, [{ '->', Meta, [EVars, EExpr]}]},
-      { expanded, Fn, E#elixir_env{macro_counter=E#elixir_env.macro_counter+1} }
+      { expanded, Fn, E }
   end.
 
 invalid_capture(Meta, Arg, E) ->
@@ -123,39 +123,32 @@ validate(Meta, [{ Pos, _ }|_], Expected, E) ->
 validate(_Meta, [], _Pos, _E) ->
   [].
 
-do_escape({ '&', _, [Pos] }, #elixir_env{macro_counter=Counter}, Dict) when is_integer(Pos), Pos > 0 ->
+do_escape({ '&', _, [Pos] }, Counter, _E, Dict) when is_integer(Pos), Pos > 0 ->
   Var = { list_to_atom([$x, $@+Pos]), [{ counter, Counter }], elixir_fn },
   { Var, orddict:store(Pos, Var, Dict) };
 
-do_escape({ '&', Meta, [Pos] }, E, _Dict) when is_integer(Pos) ->
+do_escape({ '&', Meta, [Pos] }, _Counter, E, _Dict) when is_integer(Pos) ->
   compile_error(Meta, E#elixir_env.file, "capture &~B is not allowed", [Pos]);
 
-do_escape({ '&', Meta, _ } = Arg, E, _Dict) ->
+do_escape({ '&', Meta, _ } = Arg, _Counter, E, _Dict) ->
   Message = "nested captures via & are not allowed: ~ts",
   compile_error(Meta, E#elixir_env.file, Message, ['Elixir.Macro':to_string(Arg)]);
 
-do_escape({ Left, Meta, Right }, E, Dict0) ->
-  { TLeft, Dict1 }  = do_escape(Left, E, Dict0),
-  { TRight, Dict2 } = do_escape(Right, E, Dict1),
+do_escape({ Left, Meta, Right }, Counter, E, Dict0) ->
+  { TLeft, Dict1 }  = do_escape(Left, Counter, E, Dict0),
+  { TRight, Dict2 } = do_escape(Right, Counter, E, Dict1),
   { { TLeft, Meta, TRight }, Dict2 };
 
-do_escape({ Left, Right }, E, Dict0) ->
-  { TLeft, Dict1 }  = do_escape(Left, E, Dict0),
-  { TRight, Dict2 } = do_escape(Right, E, Dict1),
+do_escape({ Left, Right }, Counter, E, Dict0) ->
+  { TLeft, Dict1 }  = do_escape(Left, Counter, E, Dict0),
+  { TRight, Dict2 } = do_escape(Right, Counter, E, Dict1),
   { { TLeft, TRight }, Dict2 };
 
-do_escape(List, E, Dict) when is_list(List) ->
-  do_escape_list(List, E, Dict, []);
+do_escape(List, Counter, E, Dict) when is_list(List) ->
+  lists:mapfoldl(fun(X, Acc) -> do_escape(X, Counter, E, Acc) end, Dict, List);
 
-do_escape(Other, _E, Dict) ->
+do_escape(Other, _Counter, _E, Dict) ->
   { Other, Dict }.
-
-do_escape_list([H|T], E, Dict, Acc) ->
-  { TH, TDict } = do_escape(H, E, Dict),
-  do_escape_list(T, E, TDict, [TH|Acc]);
-
-do_escape_list([], _E, Dict, Acc) ->
-  { lists:reverse(Acc), Dict }.
 
 is_sequential_and_not_empty([])   -> false;
 is_sequential_and_not_empty(List) -> is_sequential(List, 1).

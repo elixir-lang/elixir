@@ -92,6 +92,41 @@ defmodule Macro do
   end
 
   @doc """
+  Recurs the quoted expression applying the given function to
+  each metadata node.
+
+  This is often useful to remove information like lines and
+  hygienic counters from the expression for either storage or
+  comparison.
+
+  ## Examples
+
+      iex> quoted = quote line: 10, do: sample()
+      {:sample, [line: 10], []}
+      iex> Macro.update_meta(quoted, &Keyword.delete(&1, :line))
+      {:sample, [], []}
+
+  """
+  @spec update_meta(t, (Keyword.t -> Keyword.t)) :: t
+  def update_meta(quoted, fun)
+
+  def update_meta({ left, meta, right }, fun) when is_list(meta) do
+    { update_meta(left, fun), fun.(meta), update_meta(right, fun) }
+  end
+
+  def update_meta({ left, right }, fun) do
+    { update_meta(left, fun), update_meta(right, fun) }
+  end
+
+  def update_meta(list, fun) when is_list(list) do
+    lc x inlist list, do: update_meta(x, fun)
+  end
+
+  def update_meta(other, _fun) do
+    other
+  end
+
+  @doc """
   Decomposes a local or remote call into its remote part (when provided),
   function name and argument list.
 
@@ -660,12 +695,14 @@ defmodule Macro do
       expand = :elixir_dispatch.expand_import(meta, { atom, length(args) }, args,
                                               :elixir_env.ex_to_env(env), extra)
 
-      # TODO: The expanded tree does not have the counters nor lines set
-      #       and this can break hygiene. This needs to be fixed.
       case expand do
-        { :ok, _, expanded } -> { expanded, true }
-        { :ok, _receiver }   -> { original, false }
-        :error               -> { original, false }
+        { :ok, receiver, quoted } ->
+          next = :elixir_counter.next
+          { :elixir_quote.linify_with_context_counter(0, { receiver, next }, quoted), true }
+        { :ok, _receiver } ->
+          { original, false }
+        :error ->
+          { original, false }
       end
     end
   end
@@ -681,8 +718,11 @@ defmodule Macro do
           args, :elixir_env.ex_to_env(env))
 
         case expand do
-          { :ok, _receiver, expanded } -> { expanded, true }
-          :error                       -> { original, false }
+          { :ok, receiver, quoted } ->
+            next = :elixir_counter.next
+            { :elixir_quote.linify_with_context_counter(0, { receiver, next }, quoted), true }
+          :error ->
+            { original, false }
         end
     end
   end

@@ -42,17 +42,21 @@ do_tuple_linify(Line, Key, Var, Meta, Left, Right) ->
     do_linify_meta(Line, Key, Meta),
     do_linify(Line, Key, Var, Right) }.
 
+do_linify_meta(0, line, Meta) ->
+  Meta;
+do_linify_meta(Line, line, Meta) ->
+  case keyfind(line, Meta) of
+    { line, Int } when is_integer(Int), Int /= 0 ->
+      Meta;
+    _ ->
+      keystore(line, Meta, Line)
+  end;
 do_linify_meta(Line, Key, Meta) ->
   case keyfind(Key, Meta) of
     { Key, Int } when is_integer(Int), Int /= 0 ->
       keyreplace(Key, Meta, { line, Int });
-    _ when Key == line ->
-      keystore(line, Meta, Line);
     _ ->
-      case ?line(Meta) of
-        0 -> keystore(line, Meta, Line);
-        _ -> Meta
-      end
+      do_linify_meta(Line, line, Meta)
   end.
 
 %% Some expressions cannot be unquoted at compilation time.

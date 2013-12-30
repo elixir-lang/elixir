@@ -2235,13 +2235,13 @@ defmodule Kernel do
   # in Elixir compiler. In the long run, we want to bring this
   # optimization to Elixir land, but not right now.
   defp cond_var do
-    { :x, [cond: true, temp: true], Kernel }
+    { :x, [cond: true], Kernel }
   end
 
   # A temporary var only lasts its current clause, never leak
   # into other clauses.
   defp temp_var do
-    { :x, [temp: true], Kernel }
+    { :x, [], Kernel }
   end
 
   defp get_line(meta) do
@@ -3782,7 +3782,7 @@ defmodule Kernel do
   defp env_module(env),   do: :erlang.element(2, env)
   defp env_function(env), do: :erlang.element(5, env)
   defp env_context(env),  do: :erlang.element(6, env)
-  defp env_vars(env),     do: :erlang.element(14, env)
+  defp env_vars(env),     do: :erlang.element(13, env)
 
   defp expand_compact([{ :compact, false }|t]), do: expand_compact(t)
   defp expand_compact([{ :compact, true }|t]),  do: [:compact|expand_compact(t)]

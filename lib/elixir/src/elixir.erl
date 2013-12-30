@@ -24,7 +24,7 @@ start(_Type, _Args) ->
     io:setopts(standard_io, [binary,{encoding,unicode}]),
     io:setopts(standard_error, [binary,{encoding,unicode}])
   end),
-  elixir_sup:start_link([]).
+  elixir_sup:start_link().
 
 stop(_S) ->
   ok.
@@ -162,7 +162,7 @@ string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_b
       catch
         { error, { Line, _, [Error, Token] } } -> { error, { Line, Error, Token } }
       end;
-    { error, Reason, _Rest, _SoFar  } -> { error, Reason }
+    { error, Reason, _Rest, _SoFar } -> { error, Reason }
   end.
 
 'string_to_quoted!'(String, StartLine, File, Opts) ->

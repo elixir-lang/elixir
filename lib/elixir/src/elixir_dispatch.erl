@@ -2,12 +2,11 @@
 %% This module access the information stored on the scope
 %% by elixir_import and therefore assumes it is normalized (ordsets)
 -module(elixir_dispatch).
--export([find_import/4,
-  dispatch_import/5, dispatch_require/6,
+-export([dispatch_import/5, dispatch_require/6,
   require_function/5, import_function/4,
   expand_import/5, expand_require/5,
   default_functions/0, default_macros/0, default_requires/0,
-  format_error/1]).
+  find_import/4, format_error/1]).
 -include("elixir.hrl").
 -import(ordsets, [is_element/2]).
 -define(kernel, 'Elixir.Kernel').
@@ -77,8 +76,8 @@ remote_function(Receiver, Name, Arity, E) ->
 
 dispatch_import(Meta, Name, Args, E, Callback) ->
   case expand_import(Meta, { Name, length(Args) }, Args, E, []) of
-    { ok, Receiver, Tree } ->
-      translate_expansion(Meta, Receiver, Tree, E);
+    { ok, Receiver, Quoted } ->
+      expand_quoted(Meta, Receiver, Quoted, E);
     { ok, Receiver } ->
       elixir_exp:expand({ { '.', [], [Receiver, Name] }, Meta, Args }, E);
     error ->
@@ -93,7 +92,7 @@ dispatch_require(Meta, Receiver, Name, Args, E, Callback) when is_atom(Receiver)
     true  -> Callback(erlang);
     false ->
       case expand_require(Meta, Receiver, Tuple, Args, E) of
-        { ok, Receiver, Tree } -> translate_expansion(Meta, Receiver, Tree, E);
+        { ok, Receiver, Quoted } -> expand_quoted(Meta, Receiver, Quoted, E);
         error -> Callback(Receiver)
       end
   end;
@@ -192,15 +191,14 @@ expand_macro_named(Meta, Receiver, Name, Arity, Args, E) ->
   Fun         = fun Receiver:ProperName/ProperArity,
   expand_macro_fun(Meta, Fun, Receiver, Name, Args, E).
 
-translate_expansion(Meta, Receiver, Tree, E) ->
+expand_quoted(Meta, Receiver, Quoted, E) ->
   Line = ?line(Meta),
-  New  = E#elixir_env.macro_counter + 1,
+  Next = elixir_counter:next(),
 
   try
     elixir_exp:expand(
-      elixir_quote:linify_with_context_counter(Line, { Receiver, New }, Tree),
-      E#elixir_env{macro_counter=New}
-    )
+      elixir_quote:linify_with_context_counter(Line, { Receiver, Next }, Quoted),
+      E)
   catch
     Kind:Reason ->
       erlang:raise(Kind, Reason, prune_stacktrace(mfa(Line, E), erlang:get_stacktrace(), nil))

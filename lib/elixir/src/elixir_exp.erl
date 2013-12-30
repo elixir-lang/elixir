@@ -9,7 +9,7 @@ expand({ '=', Meta, [Left, Right] }, E) ->
   assert_no_guard_scope(Meta, '=', E),
   { ERight, ER } = expand(Right, E),
   { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, elixir_env:mergec(E, ER)),
-  { { '=', Meta, [ELeft, ERight] }, elixir_env:mergecv(ER, EL) };
+  { { '=', Meta, [ELeft, ERight] }, elixir_env:mergevc(EL, ER) };
 
 %% Literal operators
 
@@ -532,7 +532,7 @@ expand_comprehension(Meta, Kind, Args, E) ->
 expand_comprehension_clause({Gen, Meta, [Left, Right]}, E) when Gen == inbits; Gen == inlist ->
   { ERight, ER } = expand(Right, E),
   { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, elixir_env:mergec(E, ER)),
-  { { Gen, Meta, [ELeft, ERight] }, elixir_env:mergecv(ER, EL) };
+  { { Gen, Meta, [ELeft, ERight] }, elixir_env:mergevc(EL, ER) };
 expand_comprehension_clause(X, E) ->
   expand(X, E).
 

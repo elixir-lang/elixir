@@ -36,17 +36,15 @@ defmodule Macro.Env do
   @type context_modules :: [module]
   @type vars :: [{ atom, atom | non_neg_integer }]
   @type lexical_tracker :: pid
-  @type counter :: non_neg_integer
   @type local :: module | nil
 
   fields = [:module, :file, :line, :function, :context, :requires, :aliases, :functions,
-            :macros, :macro_aliases, :macro_counter,
-            :context_modules, :vars, :lexical_tracker, :local]
+            :macros, :macro_aliases, :context_modules, :vars, :lexical_tracker, :local]
 
   types  = quote do: [module: module, file: file, line: line,
     function: name_arity, context: context, requires: requires, aliases: aliases,
     functions: functions, macros: macros,  macro_aliases: aliases,
-    macro_counter: counter, context_modules: context_modules, vars: vars,
+    context_modules: context_modules, vars: vars,
     lexical_tracker: lexical_tracker, local: local]
 
   Record.deffunctions(fields, __MODULE__)
