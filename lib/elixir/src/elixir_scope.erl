@@ -14,7 +14,7 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
   Vars  = S#elixir_scope.vars,
 
   case orddict:find({ Name, Kind }, Vars) of
-    { ok, Current } -> Exists = true;
+    { ok, { Current, _ } } -> Exists = true;
     error -> Current = nil, Exists = false
   end,
 
@@ -26,7 +26,7 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
         { true, true } ->
           { { var, Line, Current }, S };
         { Else, _ } ->
-          { NewVar, _Counter, NS } =
+          { NewVar, Counter, NS } =
             if
               Kind /= nil -> build_var('_', S);
               Else -> build_var(Name, S);
@@ -35,11 +35,11 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
             end,
 
           FS = NS#elixir_scope{
-            vars=orddict:store(Tuple, NewVar, Vars),
+            vars=orddict:store(Tuple, { NewVar, Counter }, Vars),
             match_vars=ordsets:add_element(Tuple, MatchVars),
             clause_vars=case S#elixir_scope.clause_vars of
               nil -> nil;
-              CV  -> orddict:store(Tuple, NewVar, CV)
+              CV  -> orddict:store(Tuple, { NewVar, Counter }, CV)
             end
           },
 
@@ -92,19 +92,8 @@ merge_clause_vars(C, C)     -> C;
 merge_clause_vars(C1, C2)   ->
   orddict:merge(fun var_merger/3, C1, C2).
 
-var_merger({ Var, _ }, Var, K2) -> K2;
-var_merger({ Var, _ }, K1, Var) -> K1;
-var_merger(_Var, K1, K2) ->
-  V1 = var_number(atom_to_list(K1), []),
-  V2 = var_number(atom_to_list(K2), []),
-  case V1 > V2 of
-    true  -> K1;
-    false -> K2
-  end.
-
-var_number([$@|T], _Acc) -> var_number(T, []);
-var_number([H|T], Acc)   -> var_number(T, [H|Acc]);
-var_number([], Acc)      -> list_to_integer(lists:reverse(Acc)).
+var_merger(_Var, { _, V1 } = K1, { _, V2 }) when V1 > V2 -> K1;
+var_merger(_Var, _K1, K2) -> K2.
 
 %% BINDINGS
 
@@ -125,14 +114,14 @@ load_binding([{Key,Value}|T], Binding, Vars, Counter) ->
   InternalName = ?atom_concat(["_@", Counter]),
   load_binding(T,
     [{InternalName,Value}|Binding],
-    orddict:store(Actual, InternalName, Vars), Counter + 1);
+    orddict:store(Actual, { InternalName, 0 }, Vars), Counter + 1);
 load_binding([], Binding, Vars, Counter) ->
   { lists:reverse(Binding), Vars, Counter }.
 
 dump_binding(Binding, #elixir_scope{vars=Vars}) ->
   dump_binding(Vars, Binding, []).
 
-dump_binding([{{Var,Kind}=Key,InternalName}|T], Binding, Acc) when is_atom(Kind) ->
+dump_binding([{{ Var, Kind } = Key, { InternalName,_ }}|T], Binding, Acc) when is_atom(Kind) ->
   Actual = case Kind of
     nil -> Var;
     _   -> Key

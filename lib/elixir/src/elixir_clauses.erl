@@ -99,8 +99,8 @@ do_clauses(Meta, DecoupledClauses, S) ->
   % a list of tuples where the first element is the variable name,
   % the second one is the new pointer to the variable and the third
   % is the old pointer.
-  { FinalVars, FS } = lists:mapfoldl(fun({ Key, Ref }, Acc) ->
-    normalize_vars(Key, Ref, Acc)
+  { FinalVars, FS } = lists:mapfoldl(fun({ Key, Val }, Acc) ->
+    normalize_vars(Key, Val, Acc)
   end, TS, AllVars),
 
   % Expand all clauses by adding a match operation at the end
@@ -194,7 +194,7 @@ normalize_vars(Key, Value, #elixir_scope{vars=Vars,clause_vars=ClauseVars} = S) 
   },
 
   Expr = case orddict:find(Key, Vars) of
-    { ok, OldValue } -> { var, 0, OldValue };
+    { ok, { OldValue, _ } } -> { var, 0, OldValue };
     error -> { atom, 0, nil }
   end,
 
@@ -203,14 +203,17 @@ normalize_vars(Key, Value, #elixir_scope{vars=Vars,clause_vars=ClauseVars} = S) 
 % Generate match vars by checking if they were updated
 % or not and assigning the previous value.
 
-generate_match_vars([{ Key, NewValue, OldValue }|T], ClauseVars, Left, Right) ->
+generate_match_vars([{ Key, Value, Expr }|T], ClauseVars, Left, Right) ->
   case orddict:find(Key, ClauseVars) of
-    { ok, NewValue } ->
+    { ok, Value } ->
       generate_match_vars(T, ClauseVars, Left, Right);
-    { ok, ClauseValue } ->
-      generate_match_vars(T, ClauseVars, [{ var, 0, NewValue }|Left], [{ var, 0, ClauseValue }|Right]);
+    { ok, Clause } ->
+      generate_match_vars(T, ClauseVars,
+        [{ var, 0, element(1, Value) }|Left],
+        [{ var, 0, element(1, Clause) }|Right]);
     error ->
-      generate_match_vars(T, ClauseVars, [{ var, 0, NewValue }|Left], [OldValue|Right])
+      generate_match_vars(T, ClauseVars,
+        [{ var, 0, element(1, Value) }|Left], [Expr|Right])
   end;
 
 generate_match_vars([], _ClauseVars, Left, Right) ->
