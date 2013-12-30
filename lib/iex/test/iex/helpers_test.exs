@@ -305,7 +305,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "r helper unavailable" do
-    assert_raise ArgumentError, "The module is not loaded and it could not be found", fn ->
+    assert_raise ArgumentError, "could not load nor find module: :non_existent_module", fn ->
       r :non_existent_module
     end
   end

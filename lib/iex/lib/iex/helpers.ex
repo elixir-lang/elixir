@@ -309,7 +309,7 @@ defmodule IEx.Helpers do
 
   defp do_r(module) do
     unless Code.ensure_loaded?(module) do
-      raise ArgumentError, message: "The module is not loaded and it could not be found"
+      raise ArgumentError, message: "could not load nor find module: #{inspect module}"
     end
 
     source = source(module)
