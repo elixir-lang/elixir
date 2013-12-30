@@ -1,4 +1,4 @@
-defrecord EEx.State, engine: EEx.SmartEngine, dict: [], file: 'nofile', line: 1, start_line: 1
+defrecord EEx.State, engine: EEx.SmartEngine, dict: [], file: "nofile", line: 1, start_line: 1
 
 defmodule EEx.Compiler do
   @moduledoc false

@@ -60,7 +60,7 @@ expand({ '__aliases__', _, _ } = Alias, E) ->
           elixir_lexical:record_remote(Receiver, E#elixir_env.lexical_tracker),
           { Receiver, EA };
         false ->
-          { { { '.', [], [elixir_aliases, concat] }, [], EAliases }, EA }
+          { { { '.', [], [elixir_aliases, concat] }, [], [EAliases] }, EA }
       end
   end;
 
