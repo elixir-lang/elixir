@@ -148,9 +148,10 @@ convert_to_boolean(Line, Expr, Bool, S) when is_integer(Line) ->
 %% and false checks in the same clause since
 %% it makes dialyzer happy.
 do_convert_to_boolean(Line, Expr, Bool, S) ->
-  Any         = { var, Line, '_' },
-  { Var, TS } = elixir_scope:build_erl_var(Line, S),
-  OrElse      = do_guarded_convert_to_boolean(Line, Var, 'orelse', '=='),
+  { Name, _, TS } = elixir_scope:build_var('_', S),
+  Var = { var, Line, Name },
+  Any = { var, Line, '_' },
+  OrElse = do_guarded_convert_to_boolean(Line, Var, 'orelse', '=='),
 
   FalseResult = { atom,Line,not Bool },
   TrueResult  = { atom,Line,Bool },

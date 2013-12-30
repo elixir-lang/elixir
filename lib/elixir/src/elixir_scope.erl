@@ -1,7 +1,6 @@
 %% Convenience functions used to manipulate scope and its variables.
 -module(elixir_scope).
--export([translate_var/4,
-  build_erl_var/2, build_ex_var/2,
+-export([translate_var/4, build_var/2,
   load_binding/2, dump_binding/2,
   mergev/2, mergec/2, merge_clause_vars/2
 ]).
@@ -10,60 +9,50 @@
 %% VAR HANDLING
 
 translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
-  Line = ?line(Meta),
-  Vars = S#elixir_scope.vars,
+  Line  = ?line(Meta),
   Tuple = { Name, Kind },
+  Vars  = S#elixir_scope.vars,
+
+  case orddict:find({ Name, Kind }, Vars) of
+    { ok, Current } -> Exists = true;
+    error -> Current = nil, Exists = false
+  end,
 
   case S#elixir_scope.context of
     match ->
       MatchVars = S#elixir_scope.match_vars,
-      case { orddict:is_key(Tuple, Vars), is_list(MatchVars) andalso ordsets:is_element(Tuple, MatchVars) } of
+
+      case { Exists, ordsets:is_element(Tuple, MatchVars) } of
         { true, true } ->
-          { { var, Line, orddict:fetch(Tuple, Vars) }, S };
+          { { var, Line, Current }, S };
         { Else, _ } ->
-          { NewVar, NS } = if
-            Kind /= nil -> build_erl_var(Line, S);
-            Else -> build_erl_var(Line, Name, Name, S);
-            S#elixir_scope.noname -> build_erl_var(Line, Name, Name, S);
-            true -> { { var, Line, Name }, S }
-          end,
-          RealName = element(3, NewVar),
-          ClauseVars = S#elixir_scope.clause_vars,
-          { NewVar, NS#elixir_scope{
-            vars=orddict:store(Tuple, RealName, Vars),
-            match_vars=if
-              MatchVars == nil -> MatchVars;
-              true -> ordsets:add_element(Tuple, MatchVars)
+          { NewVar, _Counter, NS } =
+            if
+              Kind /= nil -> build_var('_', S);
+              Else -> build_var(Name, S);
+              S#elixir_scope.noname -> build_var(Name, S);
+              true -> { Name, 0, S }
             end,
-            clause_vars=if
-              ClauseVars == nil -> ClauseVars;
-              true -> orddict:store(Tuple, RealName, ClauseVars)
+
+          FS = NS#elixir_scope{
+            vars=orddict:store(Tuple, NewVar, Vars),
+            match_vars=ordsets:add_element(Tuple, MatchVars),
+            clause_vars=case S#elixir_scope.clause_vars of
+              nil -> nil;
+              CV  -> orddict:store(Tuple, NewVar, CV)
             end
-          } }
+          },
+
+          { { var, Line, NewVar }, FS }
       end;
-    _ ->
-      { ok, VarName } = orddict:find({ Name, Kind }, Vars),
-      { { var, Line, VarName }, S }
+    _  when Exists ->
+      { { var, Line, Current }, S }
   end.
 
-% Handle variables translation
-
-build_ex_var(Line, S)  -> build_ex_var(Line, '', "_", S).
-build_erl_var(Line, S) -> build_erl_var(Line, '', "_", S).
-
-build_var_counter(Key, #elixir_scope{counter=Counter} = S) ->
-  New = orddict:update_counter(Key, 1, Counter),
-  { orddict:fetch(Key, New), S#elixir_scope{counter=New} }.
-
-build_erl_var(Line, Key, Name, S) when is_integer(Line) ->
-  { Counter, NS } = build_var_counter(Key, S),
-  Var = { var, Line, ?atom_concat([Name, "@", Counter]) },
-  { Var, NS }.
-
-build_ex_var(Line, Key, Name, S) when is_integer(Line) ->
-  { Counter, NS } = build_var_counter(Key, S),
-  Var = { ?atom_concat([Name, "@", Counter]), [{line,Line}], nil },
-  { Var, NS }.
+build_var(Key, #elixir_scope{counter=Dict} = S) ->
+  New     = orddict:update_counter(Key, 1, Dict),
+  Counter = orddict:fetch(Key, New),
+  { ?atom_concat([Key, "@", Counter]), Counter, S#elixir_scope{counter=New} }.
 
 %% SCOPE MERGING
 
@@ -125,7 +114,7 @@ load_binding(Binding, Scope) ->
     vars=NewVars,
     match_vars=[],
     clause_vars=nil,
-    counter=[{'',NewCounter}]
+    counter=[{'_',NewCounter}]
   } }.
 
 load_binding([{Key,Value}|T], Binding, Vars, Counter) ->

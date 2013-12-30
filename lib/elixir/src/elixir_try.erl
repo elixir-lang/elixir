@@ -26,8 +26,8 @@ each_clause({ 'catch', Meta, Raw, Expr }, S) ->
 each_clause({ rescue, Meta, [{ in, _, [Left, Right]}], Expr }, S) ->
   case Left of
     { '_', _, LAtom } when is_atom(LAtom) ->
-      { ClauseVar, CS } = elixir_scope:build_ex_var(?line(Meta), S),
-      { Clause, _ } = rescue_guards(Meta, ClauseVar, Right, S),
+      { VarName, _, CS } = elixir_scope:build_var('_', S),
+      { Clause, _ } = rescue_guards(Meta, { VarName, Meta, nil }, Right, S),
       each_clause({ 'catch', Meta, Clause, Expr }, CS);
     _ ->
       { Clause, Safe } = rescue_guards(Meta, Left, Right, S),
@@ -35,7 +35,8 @@ each_clause({ rescue, Meta, [{ in, _, [Left, Right]}], Expr }, S) ->
         true ->
           each_clause({ 'catch', Meta, Clause, Expr }, S);
         false ->
-          { ClauseVar, CS }  = elixir_scope:build_ex_var(?line(Meta), S),
+          { VarName, _, CS } = elixir_scope:build_var('_', S),
+          ClauseVar          = { VarName, Meta, nil },
           { FinalClause, _ } = rescue_guards(Meta, ClauseVar, Right, S),
           Match = { '=', Meta, [
             Left,

@@ -125,7 +125,8 @@ expand_clauses(Line, [Clause|T], [ClauseVars|V], FinalVars, Acc, S) ->
             { match, _, { var, _, UserVarName } = UserVar, _ } when UserVarName /= '_' ->
               { [UserVar,MatchExpr,Final|RawClauseExprs], S };
             _ ->
-              { StorageVar, SS } = elixir_scope:build_erl_var(Line, S),
+              { VarName, _, SS } = elixir_scope:build_var('_', S),
+              StorageVar  = { var, Line, VarName },
               StorageExpr = { match, Line, StorageVar, Final },
               { [StorageVar,MatchExpr,StorageExpr|RawClauseExprs], SS }
           end;
