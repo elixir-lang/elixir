@@ -366,7 +366,8 @@ eval_callbacks(Line, Module, Name, Args, E) ->
     end),
 
     if
-      is_atom(Expr) -> Expr;
+      is_atom(Expr) ->
+        ET;
       true ->
         try
           { _Value, _Binding, EE, _S } = elixir:eval_forms(Expr, [], ET),
