@@ -256,20 +256,19 @@ var_kind(Meta, Kind) ->
 
 %% Case
 
-%% TODO: Once we have elixir_exp, we can move this
-%% clause to Elixir code and out of case.
-rewrite_case_clauses([
-    {do,Meta1,[{'when',_,[{V,M,C},{in,_,[{V,M,C},[false,nil]]}]}],False},
-    {do,Meta2,[{'_',_,UC}],True}] = Clauses)
-    when is_atom(V), is_list(M), is_atom(C), is_atom(UC) ->
-  case lists:keyfind('cond', 1, M) of
-    { 'cond', true } ->
-      [{do,Meta1,[false],False},{do,Meta2,[true],True}];
-    _ ->
-      Clauses
-  end;
-rewrite_case_clauses(Clauses) ->
-  Clauses.
+%% TODO: Bring this back once we change how case clauses are handled
+% rewrite_case_clauses([
+%     {do,Meta1,[{'when',_,[{V,M,C},{in,_,[{V,M,C},[false,nil]]}]}],False},
+%     {do,Meta2,[{'_',_,UC}],True}] = Clauses)
+%     when is_atom(V), is_list(M), is_atom(C), is_atom(UC) ->
+%   case lists:keyfind('cond', 1, M) of
+%     { 'cond', true } ->
+%       [{do,Meta1,[false],False},{do,Meta2,[true],True}];
+%     _ ->
+%       Clauses
+%   end;
+% rewrite_case_clauses(Clauses) ->
+%   Clauses.
 
 %% Pack a list of expressions from a block.
 unblock({ 'block', _, Exprs }) -> Exprs;
