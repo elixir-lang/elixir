@@ -8,22 +8,24 @@
 %% IMPORT
 
 import(Meta, Ref, Opts, E) ->
-  record_warn(Meta, Ref, Opts, E),
+  Res =
+    case keyfind(only, Opts) of
+      { only, functions } ->
+        { import_functions(Meta, Ref, Opts, E),
+          E#elixir_env.macros };
+      { only, macros } ->
+        { E#elixir_env.functions,
+          import_macros(true, Meta, Ref, Opts, E) };
+      { only, List } when is_list(List) ->
+        { import_functions(Meta, Ref, Opts, E),
+          import_macros(false, Meta, Ref, Opts, E) };
+      false ->
+        { import_functions(Meta, Ref, Opts, E),
+          import_macros(false, Meta, Ref, Opts, E) }
+    end,
 
-  case keyfind(only, Opts) of
-    { only, functions } ->
-      { import_functions(Meta, Ref, Opts, E),
-        E#elixir_env.macros };
-    { only, macros } ->
-      { E#elixir_env.functions,
-        import_macros(true, Meta, Ref, Opts, E) };
-    { only, List } when is_list(List) ->
-      { import_functions(Meta, Ref, Opts, E),
-        import_macros(false, Meta, Ref, Opts, E) };
-    false ->
-      { import_functions(Meta, Ref, Opts, E),
-        import_macros(false, Meta, Ref, Opts, E) }
-  end.
+  record_warn(Meta, Ref, Opts, E),
+  Res.
 
 import_functions(Meta, Ref, Opts, E) ->
   calculate(Meta, Ref, Opts, E#elixir_env.functions, E, fun() -> get_functions(Ref) end).

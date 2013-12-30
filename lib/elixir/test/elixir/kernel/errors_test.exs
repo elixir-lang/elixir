@@ -299,7 +299,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:3: function exit/1 imported from both :erlang and Kernel, call is ambiguous",
       '''
       defmodule ErrorsTest do
-        import :erlang
+        import :erlang, warn: false
         def foo, do: exit(:test)
       end
       '''
