@@ -275,7 +275,9 @@ unblock({ 'block', _, Exprs }) -> Exprs;
 unblock(Expr)                  -> [Expr].
 
 %% Translate args
-
+translate_arg(Arg, Acc, S) when is_number(Arg); is_atom(Arg); is_binary(Arg); is_pid(Arg); is_function(Arg) ->
+  { TArg, _ } = translate(Arg, S),
+  { TArg, Acc };
 translate_arg(Arg, Acc, S) ->
   { TArg, TAcc } = translate(Arg, mergec(S, Acc)),
   { TArg, mergev(Acc, TAcc) }.

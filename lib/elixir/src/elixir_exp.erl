@@ -391,6 +391,8 @@ expand_many(Args, E) ->
 %%   3
 %%
 %% However, lexical information is.
+expand_arg(Arg, Acc) when is_number(Arg); is_atom(Arg); is_binary(Arg); is_pid(Arg); is_function(Arg) ->
+  { Arg, Acc };
 expand_arg(Arg, { Acc1, Acc2 }) ->
   { EArg, EAcc } = expand(Arg, Acc1),
   { EArg, { elixir_env:mergea(Acc1, EAcc), elixir_env:mergev(Acc2, EAcc) } }.
