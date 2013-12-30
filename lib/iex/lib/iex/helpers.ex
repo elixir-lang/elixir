@@ -308,6 +308,10 @@ defmodule IEx.Helpers do
   end
 
   defp do_r(module) do
+    unless :code.is_loaded(module) do
+      raise ArgumentError, message: "Unloaded module #{module}. Try loading the module's beam file with `IEx.Helpers.l\\1`"
+    end
+
     source = source(module)
     cond do
       source == nil ->
