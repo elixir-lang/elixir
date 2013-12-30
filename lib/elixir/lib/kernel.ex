@@ -1762,9 +1762,19 @@ defmodule Kernel do
 
   def inspect(arg, opts) when is_tuple(opts) and tuple_size(opts) > 0 and
       elem(opts, 0) == Inspect.Opts do
-    case is_tuple(arg) and elem(opts, 1) do
-      true  -> Inspect.Tuple.inspect(arg, opts)
-      false -> Inspect.inspect(arg, opts)
+    case is_tuple(arg) do
+      true ->
+        case elem(opts, 1) do
+          true  -> Inspect.Tuple.inspect(arg, opts)
+          false ->
+            try do
+              Inspect.inspect(arg, opts)
+            catch
+              _, _ -> Inspect.Tuple.inspect(arg, opts)
+            end
+        end
+      false ->
+        Inspect.inspect(arg, opts)
     end
   end
 
@@ -2173,8 +2183,8 @@ defmodule Kernel do
           "This will"
       end
   """
-  defmacro cond([do: { :->, _, pairs }]) do
-    [{ [condition], meta, clause }|t] = :lists.reverse pairs
+  defmacro cond([do: pairs]) do
+    [{ :->, meta, [[condition], clause] }|t] = :lists.reverse pairs
 
     new_acc =
       case condition do
@@ -2205,35 +2215,33 @@ defmodule Kernel do
   #         end
   #     end
   #
-  defp build_cond_clauses([{ [condition], new, clause }|t], acc, old) do
-    stab = { :->, [], [falsy_clause(old, acc), truthy_clause(new, clause)] }
-    acc  = quote do
-      case unquote(condition), do: unquote(stab)
-    end
+  defp build_cond_clauses([{ :->, new, [[condition], clause] }|t], acc, old) do
+    clauses = [falsy_clause(old, acc), truthy_clause(new, clause)]
+    acc = quote do: (case unquote(condition), do: unquote(clauses))
     build_cond_clauses(t, acc, new)
   end
 
   defp build_cond_clauses([], acc, _), do: acc
 
   defp falsy_clause(meta, acc) do
-    { [quote(do: unquote(cond_var) when unquote(cond_var) in [false, nil])], meta, acc }
+    { :->, meta, [[quote(do: unquote(cond_var) when unquote(cond_var) in [false, nil])], acc] }
   end
 
   defp truthy_clause(meta, clause) do
-    { [quote(do: _)], meta, clause }
+    { :->, meta, [[quote(do: _)], clause] }
   end
 
   # Setting cond: true in metadata turns on a small optimization
   # in Elixir compiler. In the long run, we want to bring this
   # optimization to Elixir land, but not right now.
   defp cond_var do
-    { :x, [cond: true, temp: true], Kernel }
+    { :x, [cond: true], Kernel }
   end
 
   # A temporary var only lasts its current clause, never leak
   # into other clauses.
   defp temp_var do
-    { :x, [temp: true], Kernel }
+    { :x, [], Kernel }
   end
 
   defp get_line(meta) do
@@ -2531,14 +2539,14 @@ defmodule Kernel do
             end
           rescue
             UndefinedFunctionError ->
-              # We first try to call __access__ and just then check if
+              # We first try to call __record__ and just then check if
               # it is loaded so we allow the ParallelCompiler to solve
               # conflicts.
               case :code.ensure_loaded(atom) do
                 { :error, _ } ->
-                  :elixir_aliases.ensure_loaded(caller.line, caller.file, atom, caller.context_modules)
+                  :elixir_aliases.ensure_loaded(caller.line, atom, :elixir_env.ex_to_env(caller))
                 _ ->
-                  raise ArgumentError, message: "cannot use module #{inspect atom} in access protocol because it does not export __record__/1"
+                  raise ArgumentError, message: "cannot access module #{inspect atom} because it is not a record"
               end
           end
 
@@ -2795,7 +2803,7 @@ defmodule Kernel do
       end
 
     { escaped, _ } = :elixir_quote.escape(block, false)
-    module_vars    = module_vars(env_vars(env))
+    module_vars    = module_vars(env_vars(env), 0)
 
     quote do
       unquote(with_alias)
@@ -2830,12 +2838,7 @@ defmodule Kernel do
     do: :elixir_aliases.concat([env.module, module])
 
   # quote vars to be injected into the module definition
-  defp module_vars(vars) do
-    { vars, _ } = :lists.mapfoldl(&module_var_to_tuple/2, 0, vars)
-    vars
-  end
-
-  defp module_var_to_tuple({ key, kind }, counter) do
+  defp module_vars([{ key, kind }|vars], counter) do
     var =
       case is_atom(kind) do
         true  -> { key, [], kind }
@@ -2843,7 +2846,11 @@ defmodule Kernel do
       end
 
     args = [key, kind, binary_to_atom(<<"_@", integer_to_binary(counter)::binary>>), var]
-    { { :{}, [], args }, counter + 1 }
+    [{ :{}, [], args }|module_vars(vars, counter+1)]
+  end
+
+  defp module_vars([], _counter) do
+    []
   end
 
   # Gets two modules names and return an alias
@@ -3775,7 +3782,7 @@ defmodule Kernel do
   defp env_module(env),   do: :erlang.element(2, env)
   defp env_function(env), do: :erlang.element(5, env)
   defp env_context(env),  do: :erlang.element(6, env)
-  defp env_vars(env),     do: :erlang.element(14, env)
+  defp env_vars(env),     do: :erlang.element(13, env)
 
   defp expand_compact([{ :compact, false }|t]), do: expand_compact(t)
   defp expand_compact([{ :compact, true }|t]),  do: [:compact|expand_compact(t)]

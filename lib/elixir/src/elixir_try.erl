@@ -1,12 +1,12 @@
 -module(elixir_try).
 -export([clauses/3, format_error/1]).
--import(elixir_scope, [umergec/2]).
+-import(elixir_scope, [mergec/2]).
 -include("elixir.hrl").
 
 clauses(Meta, Clauses, S) ->
-  Catch  = elixir_clauses:get_pairs(Meta, 'catch', Clauses, S),
-  Rescue = elixir_clauses:get_pairs(Meta, rescue, Clauses, S),
-  Transformer = fun(X, Acc) -> each_clause(X, umergec(S, Acc)) end,
+  Catch  = elixir_clauses:get_pairs('catch', Clauses),
+  Rescue = elixir_clauses:get_pairs(rescue, Clauses),
+  Transformer = fun(X, Acc) -> each_clause(X, mergec(S, Acc)) end,
   lists:mapfoldl(Transformer, S, Rescue ++ Catch).
 
 each_clause({ 'catch', Meta, Raw, Expr }, S) ->
@@ -17,87 +17,45 @@ each_clause({ 'catch', Meta, Raw, Expr }, S) ->
     [X,Y]   -> [X, Y, { '_', Meta, nil }];
     [_,_,_] -> Args;
     _       ->
-      elixir_errors:syntax_error(Meta, S#elixir_scope.file, "too many arguments given for catch")
+      elixir_errors:compile_error(Meta, S#elixir_scope.file, "too many arguments given for catch")
   end,
 
-  Condition = { '{}', Meta, Final },
-  elixir_clauses:assigns_block(?line(Meta), fun elixir_translator:translate_each/2, Condition, [Expr], Guards, S);
+  Condition = [{ '{}', Meta, Final }],
+  elixir_clauses:clause(?line(Meta), fun elixir_translator:translate_many/2, Condition, Expr, Guards, S);
 
-each_clause({ rescue, Meta, [Condition], Expr }, S) ->
-  case normalize_rescue(Meta, Condition, S) of
-    { Left, Right } ->
-      case Left of
-        { '_', _, _ } ->
-          { ClauseVar, CS } = elixir_scope:build_ex_var(?line(Meta), S),
-          { Clause, _ } = rescue_guards(Meta, ClauseVar, Right, S),
-          each_clause({ 'catch', Meta, Clause, Expr }, CS);
-        _ ->
-          { Clause, Safe } = rescue_guards(Meta, Left, Right, S),
-          case Safe of
-            true ->
-              each_clause({ 'catch', Meta, Clause, Expr }, S);
-            false ->
-              { ClauseVar, CS }  = elixir_scope:build_ex_var(?line(Meta), S),
-              { FinalClause, _ } = rescue_guards(Meta, ClauseVar, Right, S),
-              Match = { '=', Meta, [
-                Left,
-                { { '.', Meta, ['Elixir.Exception', normalize] }, Meta, [ClauseVar] }
-              ] },
-              FinalExpr = prepend_to_block(Meta, Match, Expr),
-              each_clause({ 'catch', Meta, FinalClause, FinalExpr }, CS)
-          end
-      end;
+each_clause({ rescue, Meta, [{ in, _, [Left, Right]}], Expr }, S) ->
+  case Left of
+    { '_', _, LAtom } when is_atom(LAtom) ->
+      { ClauseVar, CS } = elixir_scope:build_ex_var(?line(Meta), S),
+      { Clause, _ } = rescue_guards(Meta, ClauseVar, Right, S),
+      each_clause({ 'catch', Meta, Clause, Expr }, CS);
     _ ->
-      each_clause({ 'catch', Meta, [error, Condition], Expr }, S)
-  end;
-
-each_clause({rescue,Meta,_,_}, S) ->
-  elixir_errors:syntax_error(Meta, S#elixir_scope.file, "too many arguments given for rescue");
-
-each_clause({Key,Meta,_,_}, S) ->
-  elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid key ~ts in try", [Key]).
-
-%% Helpers
-
-%% rescue [Error] -> _ in [Error]
-normalize_rescue(Meta, List, S) when is_list(List) ->
-  normalize_rescue(Meta, { in, Meta, [{ '_', Meta, nil }, List] }, S);
-
-%% rescue _
-normalize_rescue(_, { '_', _, Atom }, _S) when is_atom(Atom) ->
-  false;
-
-%% rescue var -> var in _
-normalize_rescue(_, { Name, Meta, Atom } = Rescue, S) when is_atom(Name), is_atom(Atom) ->
-  normalize_rescue(Meta, { in, Meta, [Rescue, { '_', Meta, nil }] }, S);
-
-%% rescue var in [Exprs]
-normalize_rescue(_, { in, Meta, [Left, Right] }, S) ->
-  case Right of
-    { '_', _, _ } ->
-      { Left, nil };
-    _ when is_list(Right) ->
-      is_valid_rescue_list(Right, S) andalso { Left, Right };
-    _ ->
-      { Expanded, ES } = 'Elixir.Macro':expand_all(Right, elixir_env:scope_to_ex({ ?line(Meta), S }), S),
-      case is_valid_rescue_list(Expanded, ES) of
-        true  -> { Left, Expanded };
+      { Clause, Safe } = rescue_guards(Meta, Left, Right, S),
+      case Safe of
+        true ->
+          each_clause({ 'catch', Meta, Clause, Expr }, S);
         false ->
-          elixir_errors:syntax_error(Meta, ES#elixir_scope.file, "invalid use of operator \"in\" in rescue inside try")
+          { ClauseVar, CS }  = elixir_scope:build_ex_var(?line(Meta), S),
+          { FinalClause, _ } = rescue_guards(Meta, ClauseVar, Right, S),
+          Match = { '=', Meta, [
+            Left,
+            { { '.', Meta, ['Elixir.Exception', normalize] }, Meta, [ClauseVar] }
+          ] },
+          FinalExpr = prepend_to_block(Meta, Match, Expr),
+          each_clause({ 'catch', Meta, FinalClause, FinalExpr }, CS)
       end
   end;
 
-normalize_rescue(Meta, Condition, S) ->
-  case elixir_translator:translate_each(Condition, S#elixir_scope{context=match}) of
-    { { atom, _, Atom }, _ } ->
-      normalize_rescue(Meta, { in, Meta, [{ '_', Meta, nil }, [Atom]] }, S);
-    _ ->
-      elixir_errors:syntax_error(Meta, S#elixir_scope.file, "invalid rescue clause. The clause should "
-                                 "match on an alias, a variable or be in the `var in [alias]` format")
-  end.
+each_clause({rescue,Meta,_,_}, S) ->
+  elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid arguments for rescue in try");
+
+each_clause({Key,Meta,_,_}, S) ->
+  elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid key ~ts in try", [Key]).
+
+%% Helpers
 
 %% Convert rescue clauses into guards.
-rescue_guards(_, Var, nil, _) -> { [error, Var], false };
+rescue_guards(_, Var, { '_', _, _ }, _) -> { [error, Var], false };
 
 rescue_guards(Meta, Var, Guards, S) ->
   { RawElixir, RawErlang } = rescue_each_var(Meta, Var, Guards),
@@ -160,7 +118,7 @@ rescue_each_ref(Meta, Var, [H|T], Elixir, Erlang, Safe, S) when is_atom(H) ->
   rescue_each_ref(Meta, Var, T, [exception_compare(Meta, Var, H)|Elixir], Erlang, Safe, S);
 
 rescue_each_ref(Meta, Var, [H|T], Elixir, Erlang, Safe, S) ->
-  case elixir_translator:translate_each(H, S) of
+  case elixir_translator:translate(H, S) of
     { { atom, _, Atom }, _ } ->
       rescue_each_ref(Meta, Var, [Atom|T], Elixir, Erlang, Safe, S);
     _ ->
@@ -243,13 +201,6 @@ format_error({ rescue_no_match, Var, Alias }) ->
 
 is_var({ Name, _, Atom }) when is_atom(Name), is_atom(Atom) -> true;
 is_var(_) -> false.
-
-is_erl_var_or_atom({ Kind, Line, Name }) when Kind == var orelse Kind == atom, is_integer(Line), is_atom(Name) -> true;
-is_erl_var_or_atom(_) -> false.
-
-is_valid_rescue_list(Right, S) when is_list(Right) ->
-  { TRight, _ } = elixir_translator:translate(Right, S),
-  lists:all(fun is_erl_var_or_atom/1, TRight).
 
 exception_compare(Meta, Var, Expr) ->
   { erl(Meta, '=='), Meta, [

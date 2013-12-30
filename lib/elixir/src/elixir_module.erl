@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([compile/4, compile/5, data_table/1, docs_table/1,
+-export([compile/4, data_table/1, docs_table/1,
          format_error/1, eval_callbacks/5]).
 -include("elixir.hrl").
 
@@ -19,30 +19,39 @@ docs_table(Module) ->
 
 %% Compilation hook
 
-compile(Module, Block, Vars, ExEnv) ->
-  #elixir_env{line=Line} = Env = elixir_env:ex_to_env(ExEnv),
-  Dict = [{ { Name, Kind }, Value } || { Name, Kind, Value, _ } <- Vars],
-
+compile(Module, Block, Vars, #elixir_env{line=Line} = Env) when is_atom(Module) ->
   %% In case we are generating a module from inside a function,
   %% we get rid of the lexical tracker information as, at this
   %% point, the lexical tracker process is long gone.
   LexEnv = case Env#elixir_env.function of
-    nil -> Env;
-    _   -> Env#elixir_env{lexical_tracker=nil, function=nil}
+    nil -> Env#elixir_env{module=Module};
+    _   -> Env#elixir_env{lexical_tracker=nil, function=nil, module=Module}
   end,
 
-  compile(Line, Module, Block, Vars, elixir_env:env_to_scope_with_vars(LexEnv, Dict)).
+  case LexEnv#elixir_env.lexical_tracker of
+    nil ->
+      elixir_lexical:run(LexEnv#elixir_env.file, fun(Pid) ->
+        do_compile(Line, Module, Block, Vars, LexEnv#elixir_env{lexical_tracker=Pid})
+      end);
+    _ ->
+      do_compile(Line, Module, Block, Vars, LexEnv)
+  end;
 
-compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
-  S = RawS#elixir_scope{module=Module},
-  File = S#elixir_scope.file,
+compile(Module, _Block, _Vars, #elixir_env{line=Line,file=File}) ->
+  elixir_errors:form_error(Line, File, ?MODULE, { invalid_module, Module });
+
+compile(Module, Block, Vars, ExEnv) ->
+  compile(Module, Block, Vars, elixir_env:ex_to_env(ExEnv)).
+
+do_compile(Line, Module, Block, Vars, E) ->
+  File = E#elixir_env.file,
   FileList = elixir_utils:characters_to_list(File),
 
   check_module_availability(Line, File, Module),
-  build(Line, File, Module, S#elixir_scope.lexical_tracker),
+  build(Line, File, Module, E#elixir_env.lexical_tracker),
 
   try
-    Result = eval_form(Line, Module, Block, Vars, S),
+    { Result, NE } = eval_form(Line, Module, Block, Vars, E),
     { Base, Export, Private, Def, Defmacro, Functions } = elixir_def:unwrap_definitions(FileList, Module),
 
     { All, Forms0 } = functions_form(Line, File, Module, Base, Export, Def, Defmacro, Functions),
@@ -53,12 +62,12 @@ compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
     case ets:lookup(data_table(Module), 'on_load') of
       [] -> ok;
       [{on_load,OnLoad}] ->
-        [elixir_tracker:record_local(Tuple, Module) || Tuple <- OnLoad]
+        [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad]
     end,
 
     AllFunctions = Def ++ [T || { T, defp, _, _, _ } <- Private],
-    elixir_tracker:ensure_no_function_conflict(Line, File, Module, AllFunctions),
-    elixir_tracker:warn_unused_local(File, Module, Private),
+    elixir_locals:ensure_no_function_conflict(Line, File, Module, AllFunctions),
+    elixir_locals:warn_unused_local(File, Module, Private),
     warn_invalid_clauses(Line, File, Module, All),
     warn_unused_docs(Line, File, Module),
 
@@ -67,17 +76,14 @@ compile(Line, Module, Block, Vars, RawS) when is_atom(Module) ->
       { attribute, Line, module, Module } | Forms3
     ],
 
-    Binary = load_form(Line, Final, compile_opts(Module), S),
+    Binary = load_form(Line, Final, compile_opts(Module), NE),
     { module, Module, Binary, Result }
   after
-    elixir_tracker:cleanup(Module),
+    elixir_locals:cleanup(Module),
     elixir_def:cleanup(Module),
     ets:delete(docs_table(Module)),
     ets:delete(data_table(Module))
-  end;
-
-compile(Line, Other, _Block, _Vars, #elixir_scope{file=File}) ->
-  elixir_errors:form_error(Line, File, ?MODULE, { invalid_module, Other }).
+  end.
 
 %% Hook that builds both attribute and functions and set up common hooks.
 
@@ -108,18 +114,16 @@ build(Line, File, Module, Lexical) ->
 
   %% Setup other modules
   elixir_def:setup(Module),
-  elixir_tracker:setup(Module).
+  elixir_locals:setup(Module).
 
 %% Receives the module representation and evaluates it.
 
-eval_form(Line, Module, Block, Vars, S) ->
-  KV = [{ K, V } || { _, _, K, V } <- Vars],
-  { Value, NewS } = elixir_compiler:eval_forms([Block], Line, KV, S),
+eval_form(Line, Module, Block, Vars, E) ->
+  { Value, EE } = elixir_compiler:eval_forms(Block, Vars, E),
   elixir_def_overridable:store_pending(Module),
-  Env = elixir_env:scope_to_ex({ Line, S }),
-  eval_callbacks(Line, Module, before_compile, [Env], NewS),
+  EC = eval_callbacks(Line, Module, before_compile, [elixir_env:env_to_ex({ Line, EE })], EE),
   elixir_def_overridable:store_pending(Module),
-  Value.
+  { Value, EC }.
 
 %% Return the form with exports and function declarations.
 
@@ -240,10 +244,10 @@ compile_opts(Module) ->
     [] -> []
   end.
 
-load_form(Line, Forms, Opts, #elixir_scope{file=File} = S) ->
+load_form(Line, Forms, Opts, #elixir_env{file=File} = E) ->
   elixir_compiler:module(Forms, File, Opts, fun(Module, Binary) ->
-    Env = elixir_env:scope_to_ex({ Line, S }),
-    eval_callbacks(Line, Module, after_compile, [Env, Binary], S),
+    Env = elixir_env:env_to_ex({ Line, E }),
+    eval_callbacks(Line, Module, after_compile, [Env, Binary], E),
 
     case get(elixir_compiled) of
       Current when is_list(Current) ->
@@ -351,41 +355,40 @@ else_clause() ->
 
 % HELPERS
 
-eval_callbacks(Line, Module, Name, Args, RawS) ->
-  { Binding, S } = elixir_scope:load_binding([], RawS),
+eval_callbacks(Line, Module, Name, Args, E) ->
   Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
   Meta      = [{line,Line},{require,false}],
 
-  lists:foreach(fun({M,F}) ->
-    { Tree, _ } = elixir_dispatch:dispatch_require(Meta, M, F, Args, S, fun() ->
+  lists:foldl(fun({M,F}, Acc) ->
+    { Expr, ET } = elixir_dispatch:dispatch_require(Meta, M, F, Args, Acc, fun(_) ->
       apply(M, F, Args),
-      { { atom, 0, nil }, S }
+      { nil, Acc }
     end),
 
-    case Tree of
-      { atom, _, Atom } ->
-        Atom;
-      _ ->
+    if
+      is_atom(Expr) -> Expr;
+      true ->
         try
-          erl_eval:exprs([Tree], Binding)
+          { _Value, _Binding, EE, _S } = elixir:eval_forms(Expr, [], ET),
+          EE
         catch
           Kind:Reason ->
-            Info = { M, F, length(Args), [{ file, elixir_utils:characters_to_list(S#elixir_scope.file) }, { line, Line }] },
+            Info = { M, F, length(Args), location(Line, E) },
             erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace()))
         end
     end
-  end, Callbacks).
+  end, E, Callbacks).
 
-%% We've reached the elixir_module or erl_eval internals, skip it with the rest
-prune_stacktrace(Info, [{ erl_eval, _, _, _ }|_]) ->
+location(Line, E) ->
+  [{ file, elixir_utils:characters_to_list(E#elixir_env.file) }, { line, Line }].
+
+%% We've reached the elixir_module or eval internals, skip it with the rest
+prune_stacktrace(Info, [{ elixir, eval_forms, _, _ }|_]) ->
   [Info];
-
 prune_stacktrace(Info, [{ elixir_module, _, _, _ }|_]) ->
   [Info];
-
 prune_stacktrace(Info, [H|T]) ->
   [H|prune_stacktrace(Info, T)];
-
 prune_stacktrace(Info, []) ->
   [Info].
 
@@ -393,22 +396,16 @@ prune_stacktrace(Info, []) ->
 
 format_error({ invalid_clause, { Name, Arity } }) ->
   io_lib:format("empty clause provided for nonexistent function or macro ~ts/~B", [Name, Arity]);
-
 format_error({ unused_doc, typedoc }) ->
   "@typedoc provided but no type follows it";
-
 format_error({ unused_doc, doc }) ->
   "@doc provided but no definition follows it";
-
 format_error({ internal_function_overridden, { Name, Arity } }) ->
   io_lib:format("function ~ts/~B is internal and should not be overridden", [Name, Arity]);
-
 format_error({ invalid_module, Module}) ->
   io_lib:format("invalid module name: ~p", [Module]);
-
 format_error({ module_defined, Module }) ->
-  io_lib:format("redefining module ~ts", [elixir_errors:inspect(Module)]);
-
+  io_lib:format("redefining module ~ts", [elixir_aliases:inspect(Module)]);
 format_error({ module_in_definition, Module }) ->
   io_lib:format("cannot define module ~ts because it is currently being defined",
-    [elixir_errors:inspect(Module)]).
+    [elixir_aliases:inspect(Module)]).

@@ -98,7 +98,7 @@ defmodule MacroTest do
     assert eval_escaped(contents) == [1, 2, 3, 4, 5]
   end
 
-  ## Expand aliases
+  ## Expansion
 
   test :expand_once do
     assert { :||, _, _ } = Macro.expand_once(quote(do: oror(1, false)), __ENV__)
@@ -163,9 +163,13 @@ defmodule MacroTest do
     assert Macro.expand_once(quote, __ENV__) == quote
   end
 
+  defp expand_once_and_clean(quoted, env) do
+    Macro.expand_once(quoted, env) |> Macro.update_meta(&Keyword.drop(&1, [:counter]))
+  end
+
   test :expand_once_with_imported_macro do
-    temp_var = { :x, [temp: true], Kernel }
-    assert Macro.expand_once(quote(do: 1 || false), __ENV__) == (quote context: Kernel do
+    temp_var = { :x, [], Kernel }
+    assert expand_once_and_clean(quote(do: 1 || false), __ENV__) == (quote context: Kernel do
       case 1 do
         unquote(temp_var) when unquote(temp_var) in [false, nil] -> false
         unquote(temp_var) -> unquote(temp_var)
@@ -174,8 +178,8 @@ defmodule MacroTest do
   end
 
   test :expand_once_with_require_macro do
-    temp_var = { :x, [temp: true], Kernel }
-    assert Macro.expand_once(quote(do: Kernel.||(1, false)), __ENV__) == (quote context: Kernel do
+    temp_var = { :x, [], Kernel }
+    assert expand_once_and_clean(quote(do: Kernel.||(1, false)), __ENV__) == (quote context: Kernel do
       case 1 do
         unquote(temp_var) when unquote(temp_var) in [false, nil] -> false
         unquote(temp_var) -> unquote(temp_var)
@@ -195,9 +199,13 @@ defmodule MacroTest do
     assert @bar == 1
   end
 
+  defp expand_and_clean(quoted, env) do
+    Macro.expand(quoted, env) |> Macro.update_meta(&Keyword.drop(&1, [:counter]))
+  end
+
   test :expand do
-    temp_var = { :x, [temp: true], Kernel }
-    assert Macro.expand(quote(do: oror(1, false)), __ENV__) == (quote context: Kernel do
+    temp_var = { :x, [], Kernel }
+    assert expand_and_clean(quote(do: oror(1, false)), __ENV__) == (quote context: Kernel do
       case 1 do
         unquote(temp_var) when unquote(temp_var) in [false, nil] -> false
         unquote(temp_var) -> unquote(temp_var)

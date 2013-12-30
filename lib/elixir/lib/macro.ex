@@ -5,16 +5,19 @@ defmodule Macro do
   Conveniences for working with macros.
   """
 
-  @typedoc "Abstract Syntax Tree (AST) node"
-  @type t :: { t, t } | { t, Keyword.t, t } | atom | number | binary | list
+  @typedoc "Abstract Syntax Tree (AST)"
+  @type t :: expr | { t, t } | atom | number | binary | pid | fun | [t]
 
-  @binary_ops [ :===, :!==,
+  @typedoc "Expr node (remaining ones are literals)"
+  @type expr :: { expr | atom, Keyword.t, atom | [t] }
+
+  @binary_ops [:===, :!==,
     :==, :!=, :<=, :>=,
     :&&, :||, :<>, :++, :--, :**, ://, :::, :<-, :.., :|>, :=~,
     :<, :>, :->,
     :+, :-, :*, :/, :=, :|, :.,
     :and, :or, :xor, :when, :in, :inlist, :inbits,
-    :<<<, :>>>, :|||, :&&&, :^^^, :~~~ ]
+    :<<<, :>>>, :|||, :&&&, :^^^, :~~~]
 
   @doc false
   defmacro binary_ops, do: @binary_ops
@@ -86,6 +89,41 @@ defmodule Macro do
   def extract_args(expr) do
     IO.write "Macro.extract_args/1 is deprecated, use Macro.decompose_call/1 instead\n#{Exception.format_stacktrace}"
     decompose_call(expr)
+  end
+
+  @doc """
+  Recurs the quoted expression applying the given function to
+  each metadata node.
+
+  This is often useful to remove information like lines and
+  hygienic counters from the expression for either storage or
+  comparison.
+
+  ## Examples
+
+      iex> quoted = quote line: 10, do: sample()
+      {:sample, [line: 10], []}
+      iex> Macro.update_meta(quoted, &Keyword.delete(&1, :line))
+      {:sample, [], []}
+
+  """
+  @spec update_meta(t, (Keyword.t -> Keyword.t)) :: t
+  def update_meta(quoted, fun)
+
+  def update_meta({ left, meta, right }, fun) when is_list(meta) do
+    { update_meta(left, fun), fun.(meta), update_meta(right, fun) }
+  end
+
+  def update_meta({ left, right }, fun) do
+    { update_meta(left, fun), update_meta(right, fun) }
+  end
+
+  def update_meta(list, fun) when is_list(list) do
+    lc x inlist list, do: update_meta(x, fun)
+  end
+
+  def update_meta(other, _fun) do
+    other
   end
 
   @doc """
@@ -309,22 +347,22 @@ defmodule Macro do
   end
 
   # Fn keyword
-  def to_string({ :fn, _, [{ :->, _, [{_, _, tuple}] } = arrow] } = ast, fun)
+  def to_string({ :fn, _, [{ :->, _, [_, tuple] }] = arrow } = ast, fun)
       when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
     fun.(ast, "fn " <> arrow_to_string(arrow, fun) <> " end")
   end
 
-  def to_string({ :fn, _, [{ :->, _, [_] } = block] } = ast, fun) do
+  def to_string({ :fn, _, [{ :->, _, _ }] = block } = ast, fun) do
     fun.(ast, "fn " <> block_to_string(block, fun) <> "\nend")
   end
 
-  def to_string({ :fn, _, [block] } = ast, fun) do
+  def to_string({ :fn, _, block } = ast, fun) do
     block = adjust_new_lines block_to_string(block, fun), "\n  "
     fun.(ast, "fn\n  " <> block <> "\nend")
   end
 
   # left -> right
-  def to_string({ :->, _, _ } = ast, fun) do
+  def to_string([{ :->, _, _ }|_] = ast, fun) do
     fun.(ast, "(" <> arrow_to_string(ast, fun, true) <> ")")
   end
 
@@ -367,7 +405,7 @@ defmodule Macro do
   # All other calls
   def to_string({ target, _, args } = ast, fun) when is_list(args) do
     { list, last } = :elixir_utils.split_last(args)
-    fun.(ast, case is_kw_blocks?(last) do
+    fun.(ast, case kw_blocks?(last) do
       true  -> call_to_string_with_args(target, list, fun) <> kw_blocks_to_string(last, fun)
       false -> call_to_string_with_args(target, args, fun)
     end)
@@ -397,10 +435,10 @@ defmodule Macro do
   # Block keywords
   @kw_keywords [:do, :catch, :rescue, :after, :else]
 
-  defp is_kw_blocks?([_|_] = kw) do
+  defp kw_blocks?([_|_] = kw) do
     Enum.all?(kw, &match?({x, _} when x in @kw_keywords, &1))
   end
-  defp is_kw_blocks?(_), do: false
+  defp kw_blocks?(_), do: false
 
   defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, raw: true)
   defp module_to_string(other, fun), do: call_to_string(other, fun)
@@ -442,8 +480,8 @@ defmodule Macro do
     atom_to_binary(key) <> "\n  " <> block <> "\n"
   end
 
-  defp block_to_string({ :->, _, exprs }, fun) do
-    Enum.map_join(exprs, "\n", fn({ left, _, right }) ->
+  defp block_to_string([{ :->, _, _ }|_] = block, fun) do
+    Enum.map_join(block, "\n", fn({ :->, _, [left, right] }) ->
       left = comma_join_or_empty_paren(left, fun, false)
       left <> "->\n  " <> adjust_new_lines block_to_string(right, fun), "\n  "
     end)
@@ -483,8 +521,8 @@ defmodule Macro do
 
   defp op_to_string(expr, fun, _, _), do: to_string(expr, fun)
 
-  defp arrow_to_string({ :->, _, pairs }, fun, paren // false) do
-    Enum.map_join(pairs, "; ", fn({ left, _, right }) ->
+  defp arrow_to_string(pairs, fun, paren // false) do
+    Enum.map_join(pairs, "; ", fn({ :->, _, [left, right] }) ->
       left = comma_join_or_empty_paren(left, fun, paren)
       left <> "-> " <> to_string(right, fun)
     end)
@@ -519,7 +557,7 @@ defmodule Macro do
   If the expression cannot be expanded, it returns the expression
   itself. Notice that `expand_once/2` performs the expansion just
   once and it is not recursive. Check `expand/2` for expansion
-  until the node no longer represents a macro.
+  until the node can no longer be expanded.
 
   ## Examples
 
@@ -583,109 +621,114 @@ defmodule Macro do
 
   """
   def expand_once(ast, env) do
-    elem(expand_once(ast, env, nil), 0)
+    elem(do_expand_once(ast, env), 0)
   end
 
-  defp expand_once({ :__aliases__, _, _ } = original, env, cache) do
+  defp do_expand_once({ :__aliases__, _, _ } = original, env) do
     case :elixir_aliases.expand(original, env.aliases, env.macro_aliases, env.lexical_tracker) do
       receiver when is_atom(receiver) ->
         :elixir_lexical.record_remote(receiver, env.lexical_tracker)
-        { receiver, true, cache }
+        { receiver, true }
       aliases ->
-        aliases = lc alias inlist aliases, do: elem(expand_once(alias, env, cache), 0)
+        aliases = lc alias inlist aliases, do: elem(do_expand_once(alias, env), 0)
 
         case :lists.all(&is_atom/1, aliases) do
           true ->
             receiver = :elixir_aliases.concat(aliases)
             :elixir_lexical.record_remote(receiver, env.lexical_tracker)
-            { receiver, true, cache }
-          false -> { original, false, cache }
+            { receiver, true }
+          false ->
+            { original, false }
         end
     end
   end
 
   # Expand @ calls
-  defp expand_once({ :@, _, [{ name, _, args }] } = original, env, cache) when is_atom(args) or args == [] do
+  defp do_expand_once({ :@, _, [{ name, _, args }] } = original, env) when is_atom(args) or args == [] do
     case (module = env.module) && Module.open?(module) do
-      true  -> { Module.get_attribute(module, name), true, cache }
-      false -> { original, false, cache }
+      true  -> { Module.get_attribute(module, name), true }
+      false -> { original, false }
     end
   end
 
   # Expand pseudo-variables
-  defp expand_once({ :__MODULE__, _, atom }, env, cache) when is_atom(atom),
-    do: { env.module, true, cache }
-  defp expand_once({ :__FILE__, _, atom }, env, cache)   when is_atom(atom),
-    do: { env.file, true, cache }
-  defp expand_once({ :__DIR__, _, atom }, env, cache)    when is_atom(atom),
-    do: { :filename.dirname(env.file), true, cache }
-  defp expand_once({ :__ENV__, _, atom }, env, cache)    when is_atom(atom),
-    do: { env, true, cache }
+  defp do_expand_once({ :__MODULE__, _, atom }, env) when is_atom(atom),
+    do: { env.module, true }
+  defp do_expand_once({ :__FILE__, _, atom }, env)   when is_atom(atom),
+    do: { env.file, true }
+  defp do_expand_once({ :__DIR__, _, atom }, env)    when is_atom(atom),
+    do: { :filename.dirname(env.file), true }
+
+  defp do_expand_once({ :__ENV__, _, atom }, env)    when is_atom(atom),
+    do: { { :{}, [], tuple_to_list(env) }, true }
+  defp do_expand_once({ { :., _, [{ :__ENV__, _, atom }, field] }, _, [] }, env) when is_atom(atom) and is_atom(field),
+    do: { apply(env, field, []), true }
 
   # Expand possible macro import invocation
-  defp expand_once({ atom, meta, context } = original, env, cache)
+  defp do_expand_once({ atom, meta, context } = original, env)
       when is_atom(atom) and is_list(meta) and is_atom(context) do
     if :lists.member({ atom, Keyword.get(meta, :counter, context) }, env.vars) do
-      { original, false, cache }
+      { original, false }
     else
-      case expand_once({ atom, meta, [] }, env, cache) do
-        { _, true, _ } = exp -> exp
-        { _, false, cache }  -> { original, false, cache }
+      case do_expand_once({ atom, meta, [] }, env) do
+        { _, true } = exp -> exp
+        { _, false }      -> { original, false }
       end
     end
   end
 
-  defp expand_once({ atom, meta, args } = original, env, cache)
+  defp do_expand_once({ atom, meta, args } = original, env)
       when is_atom(atom) and is_list(args) and is_list(meta) do
-    case not is_partial?(args) do
-      false -> { original, false, cache }
-      true  ->
-        module = env.module
+    module = env.module
 
-        extra  = if function_exported?(module, :__info__, 1) do
-          [{ module, module.__info__(:macros) }]
-        else
-          []
-        end
+    extra  = if function_exported?(module, :__info__, 1) do
+      [{ module, module.__info__(:macros) }]
+    else
+      []
+    end
 
-        cache  = to_erl_env(env, cache)
-        expand = :elixir_dispatch.expand_import(meta, { atom, length(args) }, args,
-          env.module, extra, cache)
+    arity = length(args)
 
-        case expand do
-          { :ok, _, expanded } -> { expanded, true, cache }
-          { :error, _ }        -> { original, false, cache }
-        end
+    if :elixir_import.special_form(atom, arity) do
+      { original, false }
+    else
+      expand = :elixir_dispatch.expand_import(meta, { atom, length(args) }, args,
+                                              :elixir_env.ex_to_env(env), extra)
+
+      case expand do
+        { :ok, receiver, quoted } ->
+          next = :elixir_counter.next
+          { :elixir_quote.linify_with_context_counter(0, { receiver, next }, quoted), true }
+        { :ok, _receiver } ->
+          { original, false }
+        :error ->
+          { original, false }
+      end
     end
   end
 
   # Expand possible macro require invocation
-  defp expand_once({ { :., _, [left, right] }, line, args } = original, env, cache) when is_atom(right) do
-    { receiver, _, _ } = expand_once(left, env, cache)
+  defp do_expand_once({ { :., _, [left, right] }, meta, args } = original, env) when is_atom(right) do
+    { receiver, _ } = do_expand_once(left, env)
 
-    case is_atom(receiver) and not is_partial?(args) do
-      false -> { original, false, cache }
+    case is_atom(receiver) do
+      false -> { original, false }
       true  ->
-        cache  = to_erl_env(env, cache)
-        expand = :elixir_dispatch.expand_require(line, receiver, { right, length(args) },
-          args, env.module, cache)
+        expand = :elixir_dispatch.expand_require(meta, receiver, { right, length(args) },
+          args, :elixir_env.ex_to_env(env))
 
         case expand do
-          { :ok, _receiver, expanded } -> { expanded, true, cache }
-          { :error, _ }                -> { original, false, cache }
+          { :ok, receiver, quoted } ->
+            next = :elixir_counter.next
+            { :elixir_quote.linify_with_context_counter(0, { receiver, next }, quoted), true }
+          :error ->
+            { original, false }
         end
     end
   end
 
   # Anything else is just returned
-  defp expand_once(other, _env, cache), do: { other, false, cache }
-
-  defp to_erl_env(env, nil),    do: :elixir_env.ex_to_scope(env)
-  defp to_erl_env(_env, cache), do: cache
-
-  defp is_partial?(args) do
-    :lists.any(&match?({ :&, _, [_] }, &1), args)
-  end
+  defp do_expand_once(other, _env), do: { other, false }
 
   @doc """
   Receives an AST node and expands it until it no longer represents
@@ -695,45 +738,15 @@ defmodule Macro do
   expansion works.
   """
   def expand(tree, env) do
-    elem(expand(tree, env, nil), 0)
+    expand_until({ tree, true }, env)
   end
 
-  @doc false # Used internally by Elixir
-  def expand(tree, env, cache) do
-    expand_until({ tree, true, cache }, env)
+  defp expand_until({ tree, true }, env) do
+    expand_until(do_expand_once(tree, env), env)
   end
 
-  defp expand_until({ tree, true, cache }, env) do
-    expand_until(expand_once(tree, env, cache), env)
-  end
-
-  defp expand_until({ tree, false, cache }, _env) do
-    { tree, cache }
-  end
-
-  @doc false # Used internally by Elixir
-  def expand_all(tree, env, cache) do
-    expand_all_until(expand(tree, env, cache), env)
-  end
-
-  defp expand_all_until({ { left, meta, right }, cache }, env) do
-    { left, cache }  = expand_all(left, env, cache)
-    { right, cache } = expand_all(right, env, cache)
-    { { left, meta, right }, cache }
-  end
-
-  defp expand_all_until({ { left, right }, cache }, env) do
-    { left, cache }  = expand_all(left, env, cache)
-    { right, cache } = expand_all(right, env, cache)
-    { { left, right }, cache }
-  end
-
-  defp expand_all_until({ list, cache }, env) when is_list(list) do
-    :lists.mapfoldl(&expand_all(&1, env, &2), cache, list)
-  end
-
-  defp expand_all_until({ other, cache }, _env) do
-    { other, cache }
+  defp expand_until({ tree, false }, _env) do
+    tree
   end
 
   @doc """

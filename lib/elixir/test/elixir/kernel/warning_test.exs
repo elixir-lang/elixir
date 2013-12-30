@@ -166,6 +166,22 @@ defmodule Kernel.WarningTest do
     purge [Sample]
   end
 
+  test :unused_inside_dynamic_module do
+    import List, only: [flatten: 1], warn: false
+
+    assert capture_err(fn ->
+      defmodule Sample do
+        import String, only: [downcase: 1]
+
+        def world do
+          flatten([1,2,3])
+        end
+      end
+    end) =~ "unused import String"
+  after
+    purge [Sample]
+  end
+
   test :unused_guard do
     assert capture_err(fn ->
       Code.eval_string """
@@ -181,19 +197,19 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "nofile:5: the guard for this clause evaluates to 'false'"
 
-    assert capture_err(fn ->
-      Code.eval_string """
-      defmodule Sample2 do
-        def is_binary_cond do
-          v = "bc"
-          cond do
-            is_binary(v) -> :bin
-            true -> :ok
-          end
-        end
-      end
-      """
-    end) =~ "nofile:6: this clause cannot match because a previous clause at line 5 always matches"
+    # assert capture_err(fn ->
+    #   Code.eval_string """
+    #   defmodule Sample2 do
+    #     def is_binary_cond do
+    #       v = "bc"
+    #       cond do
+    #         is_binary(v) -> :bin
+    #         true -> :ok
+    #       end
+    #     end
+    #   end
+    #   """
+    # end) =~ "nofile:6: this clause cannot match because a previous clause at line 5 always matches"
   after
     purge [Sample1, Sample2]
   end

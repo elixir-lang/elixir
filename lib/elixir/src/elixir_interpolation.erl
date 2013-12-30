@@ -138,7 +138,13 @@ unescape_chars(<<>>, _Map, _Octals, _Hex, Acc) -> Acc.
 
 append_escaped(Rest, Map, List, Octal, Hex, Acc, Base) ->
   Codepoint = list_to_integer(List, Base),
-  unescape_chars(Rest, Map, Octal, Hex, <<Acc/binary, Codepoint/utf8>>).
+  try <<Acc/binary, Codepoint/utf8>> of
+    Binary -> unescape_chars(Rest, Map, Octal, Hex, Binary)
+  catch
+    error:badarg ->
+      Msg = <<"invalid or reserved unicode codepoint ", (integer_to_binary(Codepoint))/binary>>,
+      error('Elixir.ArgumentError':exception([{message,Msg}]))
+  end.
 
 % Unescape Helpers
 

@@ -178,7 +178,7 @@ bar
     sec_data = "another"
     << size(refb) :: refb_spec,
        refb :: binary,
-       size(sec_data) :: [size(1) | signed_16],
+       size(sec_data) :: [size(1), signed_16],
        sec_data :: binary >>
   end
 end

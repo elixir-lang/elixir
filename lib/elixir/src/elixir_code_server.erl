@@ -3,6 +3,8 @@
 -export([start_link/0, init/1, handle_call/3, handle_cast/2,
   handle_info/2, terminate/2, code_change/3]).
 -behavior(gen_server).
+
+-define(timeout, 30000).
 -record(elixir_code_server, {
   compilation_status=[],
   argv=[],
@@ -14,21 +16,18 @@
 }).
 
 call(Args) ->
-  gen_server:call(?MODULE, Args, get_timeout()).
+  gen_server:call(?MODULE, Args, ?timeout).
 
 cast(Args) ->
   gen_server:cast(?MODULE, Args).
 
-get_timeout() ->
-  30000.
-
 %% Callbacks
 
 start_link() ->
-  { ok, _ } = gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+  gen_server:start_link({local, ?MODULE}, ?MODULE, ok, []).
 
-init(_Args) ->
-  code:ensure_loaded('Elixir.Module.DispatchTracker'),
+init(ok) ->
+  code:ensure_loaded('Elixir.Module.LocalsTracker'),
   code:ensure_loaded('Elixir.Kernel.LexicalTracker'),
   { ok, #elixir_code_server{} }.
 
@@ -83,8 +82,8 @@ handle_call(erl_compiler_options, _From, Config) ->
       { reply, Opts, Config }
   end;
 
-handle_call(_Request, _From, Config) ->
-  { reply, undef, Config }.
+handle_call(Request, _From, Config) ->
+  { stop, { badcall, Request }, Config }.
 
 handle_cast({ at_exit, AtExit }, Config) ->
   { noreply, Config#elixir_code_server{at_exit=[AtExit|Config#elixir_code_server.at_exit]} };
@@ -131,8 +130,8 @@ handle_cast({ unload_files, Files }, Config) ->
 handle_cast({ return_module_name, H }, #elixir_code_server{pool={T,Counter}} = Config) ->
   { noreply, Config#elixir_code_server{pool={[H|T],Counter}} };
 
-handle_cast(_Request, Config) ->
-  { noreply, Config }.
+handle_cast(Request, Config) ->
+  { stop, { badcast, Request }, Config }.
 
 handle_info(_Request, Config) ->
   { noreply, Config }.
@@ -143,7 +142,8 @@ terminate(_Reason, _Config) ->
 code_change(_Old, Config, _Extra) ->
   { ok, Config }.
 
-module_tuple(I) -> { list_to_atom("elixir_compiler_" ++ integer_to_list(I)), I }.
+module_tuple(I) ->
+  { list_to_atom("elixir_compiler_" ++ integer_to_list(I)), I }.
 
 erl_compiler_options() ->
   Key = "ERL_COMPILER_OPTIONS",

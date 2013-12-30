@@ -2,7 +2,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->
-  { Value, Binding, _ } = elixir:eval(Content, []),
+  { Value, Binding, _, _ } = elixir:eval(Content, []),
   { Value, Binding }.
 
 definition_test() ->

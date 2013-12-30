@@ -17,6 +17,12 @@ defmodule Kernel.ErrorsTest do
       '\end\nlol\nbarbecue'
   end
 
+  test :invalid_or_reserved_codepoint do
+    assert_compile_fail ArgumentError,
+      "invalid or reserved unicode codepoint 55296",
+      '?\\x{D800}'
+  end
+
   test :sigil_terminator do
     assert_compile_fail TokenMissingError,
       "nofile:3: missing terminator: \" (for sigil %r\" starting at line 1)",
@@ -61,10 +67,10 @@ defmodule Kernel.ErrorsTest do
       '+.foo'
   end
 
-  test :syntax_error_on_op_ambiguity do
+  test :compile_error_on_op_ambiguity do
     msg = "nofile:1: \"a -1\" looks like a function call but there is a variable named \"a\", " <>
           "please use explicit parenthesis or even spaces"
-    assert_compile_fail SyntaxError, msg, 'a = 1; a -1'
+    assert_compile_fail CompileError, msg, 'a = 1; a -1'
 
     max = 1
     assert max == 1
@@ -170,9 +176,9 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :unbound_expr do
-    assert_compile_fail SyntaxError,
-      "nofile:1: the unary operator ^ can only be used with variables, invalid expression ^x(1)",
-      '^x(1)'
+    assert_compile_fail CompileError,
+      "nofile:1: invalid argument for unary operator ^, expected an existing variable, got: ^x(1)",
+      '^x(1) = 1'
   end
 
   test :name_for_defmodule do
@@ -188,23 +194,23 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_quote_args do
-    assert_compile_fail SyntaxError,
-      "nofile:1: invalid args for quote",
+    assert_compile_fail CompileError,
+      "nofile:1: invalid arguments for quote",
       'quote 1'
   end
 
   test :invalid_calls do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: invalid call foo(1)(2)",
       'foo(1)(2)'
 
-    assert_compile_fail SyntaxError,
-      "nofile:1: invalid remote call on 1",
+    assert_compile_fail CompileError,
+      "nofile:1: invalid call 1.foo()",
       '1.foo'
   end
 
   test :unhandled_stab do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:3: unhandled operator ->",
       '''
       defmodule Mod do
@@ -217,8 +223,8 @@ defmodule Kernel.ErrorsTest do
 
   test :undefined_non_local_function do
     assert_compile_fail CompileError,
-      "nofile:1: function casea/2 undefined",
-      'casea foo, do: (bar -> baz)'
+      "nofile:1: undefined function casea/2",
+      'casea foo, do: 1'
   end
 
   test :invalid_fn_args do
@@ -277,7 +283,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :function_definition_with_alias do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:2: function names should start with lowercase characters or underscore, invalid name Bar",
       '''
       defmodule ErrorsTest do
@@ -293,7 +299,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:3: function exit/1 imported from both :erlang and Kernel, call is ambiguous",
       '''
       defmodule ErrorsTest do
-        import :erlang
+        import :erlang, warn: false
         def foo, do: exit(:test)
       end
       '''
@@ -349,7 +355,7 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_macro do
     assert_compile_fail CompileError,
-      "nofile: tuples in quoted expressions must have 2 or 3 items, invalid quoted expression: {:foo, :bar, :baz, :bat}",
+      "nofile: invalid quoted expression: {:foo, :bar, :baz, :bat}",
       '''
       defmodule ErrorsTest do
         defmacrop oops do
@@ -401,36 +407,36 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_definition do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: invalid syntax in def 1.(hello)",
       'defmodule ErrorsTest, do: (def 1.(hello), do: true)'
   end
 
   test :duplicated_bitstring_size do
-    assert_compile_fail SyntaxError,
-      "nofile:1: duplicated size definition for bitstring",
+    assert_compile_fail CompileError,
+      "nofile:1: duplicated size definition in bitstring",
       '<<1 :: [size(12), size(13)]>>'
   end
 
   test :invalid_bitstring_specified do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: unknown bitstring specifier :atom",
       '<<1 :: :atom>>'
 
-    assert_compile_fail SyntaxError,
-      "nofile:1: unknown bitstring specifier unknown",
+    assert_compile_fail CompileError,
+      "nofile:1: unknown bitstring specifier unknown()",
       '<<1 :: unknown>>'
 
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: unknown bitstring specifier another(12)",
       '<<1 :: another(12)>>'
 
-    assert_compile_fail SyntaxError,
-      "nofile:1: size in bitstring expects an integer or a variable as argument",
+    assert_compile_fail CompileError,
+      "nofile:1: size in bitstring expects an integer or a variable as argument, got: :a",
       '<<1 :: size(:a)>>'
 
-    assert_compile_fail SyntaxError,
-      "nofile:1: unit in bitstring expects an integer as argument",
+    assert_compile_fail CompileError,
+      "nofile:1: unit in bitstring expects an integer as argument, got: :x",
       '<<1 :: unit(:x)>>'
   end
 
@@ -442,7 +448,7 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_alias do
     assert_compile_fail CompileError,
-      "nofile:1: invalid :as for alias, nested alias Sample.Lists not allowed",
+      "nofile:1: invalid value for keyword :as, expected an alias, got nested alias: Sample.Lists",
       'alias :lists, as: Sample.Lists'
   end
 
@@ -471,7 +477,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_access_protocol_not_record do
-    assert_raise ArgumentError, "cannot use module Kernel.ErrorsTest in access protocol because it does not export __record__/1", fn ->
+    assert_raise ArgumentError, "cannot access module Kernel.ErrorsTest because it is not a record", fn ->
       defmodule ErrorsTest do
         def sample(Kernel.ErrorsTest[integer: 0]), do: true
       end
@@ -501,19 +507,19 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_rescue_clause do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:4: invalid rescue clause. The clause should match on an alias, a variable or be in the `var in [alias]` format",
       'try do\n1\nrescue\nUndefinedFunctionError[arity: 1] -> false\nend'
   end
 
   test :invalid_bc_return do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: a bit comprehension expects a bit string << >> to be returned",
       'bc x inlist [1, 2, 3], do: x'
   end
 
   test :invalid_bc_inbits_gen do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: a bit comprehension expects a bit string << >> to be used in inbits generators",
       'bc x inbits "123", do: <<x>>'
   end
@@ -525,7 +531,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :fun_different_arities do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:1: cannot mix clauses with different arities in function definition",
       'fn x -> x; x, y -> x + y end'
   end
@@ -548,7 +554,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :bodyless_function_with_guard do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:2: missing do keyword in def",
       '''
       defmodule ErrorsTest do
@@ -594,8 +600,8 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :bad_unquoting do
-    assert_compile_fail SyntaxError,
-      "nofile: expected a valid quoted expression, got: {Range, 1, 3}",
+    assert_compile_fail CompileError,
+      "nofile: invalid quoted expression: {Range, 1, 3}",
       '''
       defmodule ErrorsTest do
         def range(unquote(1..3)), do: :ok

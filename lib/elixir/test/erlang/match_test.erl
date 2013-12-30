@@ -4,7 +4,7 @@
 eval(Content) -> eval(Content, []).
 
 eval(Content, Initial) ->
-  { Value, Binding, _ } = elixir:eval(Content, Initial),
+  { Value, Binding, _, _ } = elixir:eval(Content, Initial),
   { Value, Binding }.
 
 no_assignment_test() ->

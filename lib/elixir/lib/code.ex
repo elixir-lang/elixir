@@ -127,7 +127,7 @@ defmodule Code do
   end
 
   defp do_eval_string(string, binding, opts) when is_list(binding) do
-    { value, binding, _scope } = :elixir.eval to_char_list(string), binding, opts
+    { value, binding, _env, _scope } = :elixir.eval to_char_list(string), binding, opts
     { value, binding }
   end
 
@@ -162,8 +162,7 @@ defmodule Code do
   end
 
   defp do_eval_quoted(quoted, binding, opts) when is_list(binding) do
-    { value, binding, _scope } =
-      :elixir.eval_quoted [quoted], binding, opts
+    { value, binding, _env, _scope } = :elixir.eval_quoted quoted, binding, opts
     { value, binding }
   end
 
@@ -229,10 +228,10 @@ defmodule Code do
   def string_to_quoted(string, opts // []) when is_list(opts) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    res  = :elixir_translator.forms(to_char_list(string), line, file, opts)
+    res  = :elixir.string_to_quoted(to_char_list(string), line, file, opts)
 
     case res do
-      { :ok, forms } -> { :ok, unpack_quote(line, forms) }
+      { :ok, forms } -> { :ok, forms }
       _ -> res
     end
   end
@@ -250,13 +249,8 @@ defmodule Code do
   def string_to_quoted!(string, opts // []) when is_list(opts) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    res  = :elixir_translator.forms!(to_char_list(string), line, file, opts)
-    unpack_quote(line, res)
+    :elixir.string_to_quoted!(to_char_list(string), line, file, opts)
   end
-
-  defp unpack_quote(_line, []),                              do: nil
-  defp unpack_quote(_line, [forms]) when not is_list(forms), do: forms
-  defp unpack_quote(line, forms),                            do: { :__block__, [line: line], forms }
 
   @doc """
   Load the given file. 
@@ -353,7 +347,7 @@ defmodule Code do
   For compiling many files at once, check `Kernel.ParallelCompiler.files/2`.
   """
   def compile_string(string, file // "nofile") when is_binary(file) do
-    :elixir_compiler.string String.to_char_list!(string), file
+    :elixir_compiler.string to_char_list(string), file
   end
 
   @doc """
@@ -364,7 +358,7 @@ defmodule Code do
   binary.
   """
   def compile_quoted(quoted, file // "nofile") when is_binary(file) do
-    :elixir_compiler.quoted [quoted], file
+    :elixir_compiler.quoted quoted, file
   end
 
   @doc """

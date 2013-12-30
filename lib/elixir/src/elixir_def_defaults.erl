@@ -1,7 +1,17 @@
 % Handle default clauses for function definitions.
 -module(elixir_def_defaults).
--export([unpack/4]).
+-export([expand/2, unpack/4]).
 -include("elixir.hrl").
+
+expand(Args, E) ->
+  lists:mapfoldl(fun
+    ({ '//', Meta, [Left, Right] }, Acc) ->
+      { ELeft, EL } = elixir_exp:expand(Left, Acc),
+      { ERight, _ } = elixir_exp:expand(Right, Acc#elixir_env{context=nil}),
+      { { '//', Meta, [ELeft, ERight] }, EL };
+    (Left, Acc) ->
+      elixir_exp:expand(Left, Acc)
+  end, E, Args).
 
 unpack(Kind, Name, Args, S) ->
   unpack_each(Kind, Name, Args, [], [], S).
@@ -15,12 +25,12 @@ unpack_each(Kind, Name, [{'//', Line, [Expr, _]}|T] = List, Acc, Clauses, S) ->
   Base = build_match(Acc, Line, []),
   { Args, Invoke } = extract_defaults(List, Line, length(Base), [], []),
 
-  { DefArgs, SA }   = elixir_clauses:assigns(fun elixir_translator:translate/2, Base ++ Args, S),
-  { InvokeArgs, _ } = elixir_translator:translate_args(Base ++ Invoke, SA),
+  { DefArgs, SA }  = elixir_clauses:match(fun elixir_translator:translate_many/2, Base ++ Args, S),
+  { DefInvoke, _ } = elixir_translator:translate_args(Base ++ Invoke, SA),
 
   Call = { call, Line,
     { atom, Line, name_for_kind(Kind, Name) },
-    InvokeArgs
+    DefInvoke
   },
 
   Clause = { clause, Line, DefArgs, [], [Call] },

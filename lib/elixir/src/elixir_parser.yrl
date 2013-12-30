@@ -71,12 +71,12 @@ Nonassoc 330 var.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
-grammar -> eol : [nil].
-grammar -> expr_list : lists:reverse('$1').
-grammar -> eol expr_list : lists:reverse('$2').
-grammar -> expr_list eol : lists:reverse('$1').
-grammar -> eol expr_list eol : lists:reverse('$2').
-grammar -> '$empty' : [nil].
+grammar -> eol : nil.
+grammar -> expr_list : to_block('$1').
+grammar -> eol expr_list : to_block('$2').
+grammar -> expr_list eol : to_block('$1').
+grammar -> eol expr_list eol : to_block('$2').
+grammar -> '$empty' : nil.
 
 % Note expressions are on reverse order
 expr_list -> expr : ['$1'].
@@ -578,7 +578,7 @@ extract_identifier(Other) -> Other.
 %% Fn
 
 build_fn(Op, Stab) ->
-  { fn, meta(Op), [Stab] }.
+  { fn, meta(Op), Stab }.
 
 %% Access
 
@@ -617,35 +617,33 @@ string_parts(Parts) ->
 string_part(Binary) when is_binary(Binary) ->
   Binary;
 string_part({ Line, Tokens }) ->
-  Form = string_tokens_parse(Line, Tokens),
+  Form = string_tokens_parse(Tokens),
   Meta = meta(Line),
   { '::', Meta, [{ { '.', Meta, ['Elixir.Kernel', to_string] }, Meta, [Form]}, { binary, Meta, nil }]}.
 
-string_tokens_parse(Line, Tokens) ->
+string_tokens_parse(Tokens) ->
   case parse(Tokens) of
-    { ok, [] } -> nil;
-    { ok, [Forms] } when not is_list(Forms) -> Forms;
-    { ok, Forms } -> { '__block__', meta(Line), Forms };
+    { ok, Forms } -> Forms;
     { error, _ } = Error -> throw(Error)
   end.
 
 %% Keywords
 
 build_stab([{ '->', Meta, [Left, Right] }|T]) ->
-  { '->', Meta, build_stab(Meta, T, Left, [Right], []) };
+  build_stab(Meta, T, Left, [Right], []);
 
 build_stab(Else) ->
   build_block(Else).
 
 build_stab(Old, [{ '->', New, [Left, Right] }|T], Marker, Temp, Acc) ->
-  H = { Marker, Old, build_block(lists:reverse(Temp)) },
+  H = { '->', Old, [Marker, build_block(lists:reverse(Temp))] },
   build_stab(New, T, Left, [Right], [H|Acc]);
 
 build_stab(Meta, [H|T], Marker, Temp, Acc) ->
   build_stab(Meta, T, Marker, [H|Temp], Acc);
 
 build_stab(Meta, [], Marker, Temp, Acc) ->
-  H = { Marker, Meta, build_block(lists:reverse(Temp)) },
+  H = { '->', Meta, [Marker, build_block(lists:reverse(Temp))] },
   lists:reverse([H|Acc]).
 
 %% Every time the parser sees a (unquote_splicing())
@@ -667,6 +665,9 @@ unwrap_when(Args) ->
     { _, _ } ->
       Args
   end.
+
+to_block([One]) when not is_list(One) -> One;
+to_block(Other) -> { '__block__', [], lists:reverse(Other) }.
 
 %% Errors
 

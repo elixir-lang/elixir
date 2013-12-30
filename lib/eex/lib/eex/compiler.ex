@@ -1,4 +1,4 @@
-defrecord EEx.State, engine: EEx.SmartEngine, dict: [], file: 'nofile', line: 1, start_line: 1
+defrecord EEx.State, engine: EEx.SmartEngine, dict: [], file: "nofile", line: 1, start_line: 1
 
 defmodule EEx.Compiler do
   @moduledoc false
@@ -23,7 +23,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{ :expr, line, mark, chars }|t], buffer, scope, state) do
-    expr = maybe_block :elixir_translator.forms!(chars, line, state.file, [])
+    expr = Code.string_to_quoted!(chars, [line: line, file: state.file])
     buffer = state.engine.handle_expr(buffer, mark, expr)
     generate_buffer(t, buffer, scope, state)
   end
@@ -41,7 +41,7 @@ defmodule EEx.Compiler do
 
   defp generate_buffer([{ :end_expr, line, _, chars }|t], buffer, [current|_], state) do
     { wrapped, state } = wrap_expr(current, line, buffer, chars, state)
-    tuples = maybe_block :elixir_translator.forms!(wrapped, state.start_line, state.file, [])
+    tuples = Code.string_to_quoted!(wrapped, [line: state.start_line, file: state.file])
     buffer = insert_quotes(tuples, state.dict)
     { buffer, t }
   end
@@ -63,7 +63,7 @@ defmodule EEx.Compiler do
   defp wrap_expr(current, line, buffer, chars, state) do
     new_lines = List.duplicate(?\n, line - state.line)
 
-    if state.dict == [] and is_empty?(buffer) do
+    if state.dict == [] and empty?(buffer) do
       { current ++ new_lines ++ chars, state }
     else
       key = length(state.dict)
@@ -74,23 +74,17 @@ defmodule EEx.Compiler do
 
   # Check if the syntax node represents an empty string
 
-  defp is_empty?(bin) when is_binary(bin) do
+  defp empty?(bin) when is_binary(bin) do
     bc(<<c>> inbits bin, not c in [?\s, ?\t, ?\r, ?\n], do: <<c>>) == ""
   end
 
-  defp is_empty?({ :<>, _, [left, right] }) do
-    is_empty?(left) and is_empty?(right)
+  defp empty?({ :<>, _, [left, right] }) do
+    empty?(left) and empty?(right)
   end
 
-  defp is_empty?(_) do
+  defp empty?(_) do
     false
   end
-
-  # Block wrapping
-
-  defp maybe_block([]),    do: nil
-  defp maybe_block([h]),   do: h
-  defp maybe_block(other), do: { :__block__, [], other }
 
   # Changes placeholder to real expression
 

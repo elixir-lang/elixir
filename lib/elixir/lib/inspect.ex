@@ -19,6 +19,8 @@ defprotocol Inspect do
   receives an `Inspect.Opts` record as the second argument, it returns
   the underlying algebra document instead of the formatted string.
 
+  ## Examples
+
   Many times, inspecting a structure can be implemented in function
   of existing entities. For example, here is `HashSet`'s `inspect`
   implementation:
@@ -41,8 +43,18 @@ defprotocol Inspect do
   Since regular strings are valid entities in an algebra document,
   an implementation of inspect may simply return a string,
   although that will devoid it of any pretty-printing.
-  """
 
+  ## Error handling
+
+  In case there is an error while your structure is being inspected,
+  Elixir will automatically default to the raw inspecting. You can
+  however access the underlying error by invoking the Inspect
+  implementation directly. For example, to test Inspect.HashSet above,
+  you just need to do:
+
+      Inspect.HashSet.inspect(HashSet.new, Inspect.Opts.new)
+
+  """
   def inspect(thing, opts)
 end
 

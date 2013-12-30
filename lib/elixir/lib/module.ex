@@ -353,8 +353,8 @@ defmodule Module do
   def eval_quoted(module, quoted, binding, opts) do
     assert_not_compiled!(:eval_quoted, module)
     :elixir_def.reset_last(module)
-    { value, binding, _scope } =
-      :elixir.eval_quoted [quoted], binding, Keyword.put(opts, :module, module)
+    { value, binding, _env, _scope } =
+      :elixir.eval_quoted quoted, binding, Keyword.put(opts, :module, module)
     { value, binding }
   end
 
@@ -394,8 +394,7 @@ defmodule Module do
   end
 
   def create(module, quoted, opts) when is_atom(module) do
-    line = Keyword.get(opts, :line, 1)
-    :elixir_module.compile(line, module, quoted, [], :elixir.scope_for_eval(opts))
+    :elixir_module.compile(module, quoted, [], :elixir.env_for_eval(opts))
   end
 
   @doc """
@@ -678,8 +677,8 @@ defmodule Module do
         clause ->
           :elixir_def.delete_definition(module, tuple)
 
-          neighbours = if loaded?(Module.DispatchTracker) do
-            Module.DispatchTracker.yank(module, tuple)
+          neighbours = if loaded?(Module.LocalsTracker) do
+            Module.LocalsTracker.yank(module, tuple)
           else
             []
           end

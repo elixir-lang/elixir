@@ -1,6 +1,6 @@
 -module(elixir_compiler).
 -export([get_opt/1, string/2, quoted/2, file/1, file_to_path/2]).
--export([core/0, module/4, eval_forms/4, format_error/1]).
+-export([core/0, module/4, eval_forms/3, format_error/1]).
 -include("elixir.hrl").
 
 %% Public API
@@ -15,7 +15,7 @@ get_opt(Key) ->
 %% Compilation entry points.
 
 string(Contents, File) when is_list(Contents), is_binary(File) ->
-  Forms = elixir_translator:'forms!'(Contents, 1, File, []),
+  Forms = elixir:'string_to_quoted!'(Contents, 1, File, []),
   quoted(Forms, File).
 
 quoted(Forms, File) when is_binary(File) ->
@@ -25,8 +25,8 @@ quoted(Forms, File) when is_binary(File) ->
     put(elixir_compiled, []),
     elixir_lexical:run(File, fun
       (Pid) ->
-        Scope = elixir:scope_for_eval([{file,File}]),
-        eval_forms(Forms, 1, [], Scope#elixir_scope{lexical_tracker=Pid})
+        Env = elixir:env_for_eval([{line,1},{file,File}]),
+        eval_forms(Forms, [], Env#elixir_env{lexical_tracker=Pid})
     end),
     lists:reverse(get(elixir_compiled))
   after
@@ -45,39 +45,57 @@ file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
 
 %% Evaluation
 
-eval_forms(Forms, Line, Vars, S) ->
-  { Module, I } = retrieve_module_name(),
-  { Exprs, FS } = elixir_translator:translate(Forms, S),
+eval_forms(Forms, Vars, E) ->
+  case (E#elixir_env.module == nil) andalso allows_fast_compilation(Forms) of
+    true  -> eval_compilation(Forms, Vars, E);
+    false -> code_loading_compilation(Forms, Vars, E)
+  end.
 
-  Fun  = eval_fun(S#elixir_scope.module),
-  Form = eval_mod(Fun, Exprs, Line, S#elixir_scope.file, Module, Vars),
-  Args = list_to_tuple([V || { _, V } <- Vars]),
+eval_compilation(Forms, Vars, E) ->
+  Binding = [{ Key, Value } || { _Name, _Kind, Key, Value } <- Vars],
+  { Result, _Binding, EE, _S } = elixir:eval_forms(Forms, Binding, E),
+  { Result, EE }.
+
+code_loading_compilation(Forms, Vars, #elixir_env{line=Line} = E) ->
+  Dict = [{ { Name, Kind }, Value } || { Name, Kind, Value, _ } <- Vars],
+  S = elixir_env:env_to_scope_with_vars(E, Dict),
+  { Expr, EE, _S } = elixir:quoted_to_erl(Forms, E, S),
+
+  { Module, I } = retrieve_module_name(),
+  Fun  = code_fun(E#elixir_env.module),
+  Form = code_mod(Fun, Expr, Line, E#elixir_env.file, Module, Vars),
+  Args = list_to_tuple([V || { _, _, _, V } <- Vars]),
 
   %% Pass { native, false } to speed up bootstrap
   %% process when native is set to true
-  { module(Form, S#elixir_scope.file, [{native,false}], true, fun(_, Binary) ->
-    Res = Module:Fun(Args),
-    code:delete(Module),
-
+  module(Form, E#elixir_env.file, [{native,false}], true, fun(_, Binary) ->
     %% If we have labeled locals, anonymous functions
     %% were created and therefore we cannot ditch the
     %% module
-    case beam_lib:chunks(Binary, [labeled_locals]) of
-      { ok, { _, [{ labeled_locals, []}] } } ->
-        code:purge(Module),
-        return_module_name(I);
-      _ ->
-        ok
-    end,
+    Purgeable =
+      case beam_lib:chunks(Binary, [labeled_locals]) of
+        { ok, { _, [{ labeled_locals, []}] } } -> true;
+        _ -> false
+      end,
+    dispatch_loaded(Module, Fun, Args, Purgeable, I, EE)
+  end).
 
-    Res
-  end), FS }.
+dispatch_loaded(Module, Fun, Args, Purgeable, I, E) ->
+  Res = Module:Fun(Args),
+  code:delete(Module),
+  if Purgeable ->
+      code:purge(Module),
+      return_module_name(I);
+     true ->
+       ok
+  end,
+  { Res, E }.
 
-eval_fun(nil) -> '__FILE__';
-eval_fun(_)   -> '__MODULE__'.
+code_fun(nil) -> '__FILE__';
+code_fun(_)   -> '__MODULE__'.
 
-eval_mod(Fun, Exprs, Line, File, Module, Vars) when is_binary(File), is_integer(Line) ->
-  Tuple    = { tuple, Line, [{ var, Line, K } || { K, _ } <- Vars] },
+code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(Line) ->
+  Tuple    = { tuple, Line, [{ var, Line, K } || { _, _, K, _ } <- Vars] },
   Relative = elixir_utils:relative_to_cwd(File),
 
   [
@@ -85,7 +103,7 @@ eval_mod(Fun, Exprs, Line, File, Module, Vars) when is_binary(File), is_integer(
     { attribute, Line, module, Module },
     { attribute, Line, export, [{ Fun, 1 }, { '__RELATIVE__', 0 }] },
     { function, Line, Fun, 1, [
-      { clause, Line, [Tuple], [], Exprs }
+      { clause, Line, [Tuple], [], [Expr] }
     ] },
     { function, Line, '__RELATIVE__', 0, [
       { clause, Line, [], [], [elixir_utils:elixir_to_erl(Relative)] }
@@ -97,6 +115,11 @@ retrieve_module_name() ->
 
 return_module_name(I) ->
   elixir_code_server:cast({ return_module_name, I }).
+
+allows_fast_compilation({ '__block__', _, Exprs }) ->
+  lists:all(fun allows_fast_compilation/1, Exprs);
+allows_fast_compilation({defmodule,_,_}) -> true;
+allows_fast_compilation(_) -> false.
 
 %% INTERNAL API
 
@@ -195,7 +218,7 @@ core_main() ->
     <<"lib/elixir/lib/kernel/parallel_compiler.ex">>,
     <<"lib/elixir/lib/kernel/record_rewriter.ex">>,
     <<"lib/elixir/lib/kernel/lexical_tracker.ex">>,
-    <<"lib/elixir/lib/module/dispatch_tracker.ex">>
+    <<"lib/elixir/lib/module/locals_tracker.ex">>
   ].
 
 binary_to_path({ModuleName, Binary}, CompilePath) ->
@@ -207,7 +230,7 @@ binary_to_path({ModuleName, Binary}, CompilePath) ->
 
 format_error({ skip_native, Module }) ->
   io_lib:format("skipping native compilation for ~ts because it contains on_load attribute",
-    [elixir_errors:inspect(Module)]).
+    [elixir_aliases:inspect(Module)]).
 
 format_errors([]) ->
   exit({ nocompile, "compilation failed but no error was raised" });
