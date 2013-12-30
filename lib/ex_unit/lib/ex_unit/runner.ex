@@ -153,30 +153,18 @@ defmodule ExUnit.Runner do
 
     # Run test in a new process so that we can trap exits for a single test
     self_pid = self
-    { test_pid, test_ref } = Process.spawn_monitor fn ->
+    { test_pid, test_ref } = Process.spawn_monitor(fn ->
+
       { us, test } = :timer.tc(fn ->
-        try do
-          context = context |> Keyword.merge(test.tags) |> Keyword.put(:test, test.name)
-          { :ok, context } = case_name.__ex_unit__(:setup, context)
-
-          test = try do
-            apply case_name, test.name, [context]
-            test.state(:passed)
-          catch
-            kind1, error1 ->
-              test.state { :failed, { kind1, Exception.normalize(kind1, error1), pruned_stacktrace } }
-          end
-
-          case_name.__ex_unit__(:teardown, context)
-          test
-        catch
-          kind2, error2 ->
-            test.state { :failed, { kind2, Exception.normalize(kind2, error2), pruned_stacktrace } }
+        { test, context } = exec_setup(test, context)
+        if nil?(test.state) do
+          test = exec_test(test, context)
         end
+        exec_teardown(test, context)
       end)
 
       self_pid <- { self, :test_finished, test.time(us) }
-    end
+    end)
 
     receive do
       { ^test_pid, :test_finished, test } ->
@@ -188,6 +176,35 @@ defmodule ExUnit.Runner do
 
   defp skip_test(test, mismatch) do
     test.state { :skip, "due to #{mismatch} filter" }
+  end
+
+  defp exec_setup(ExUnit.Test[] = test, context) do
+    context = context |> Keyword.merge(test.tags) |> Keyword.put(:test, test.name)
+    { :ok, context } = test.case.__ex_unit__(:setup, context)
+    { test, context }
+  catch
+    kind2, error2 ->
+      { test.state({ :failed, { kind2, Exception.normalize(kind2, error2), pruned_stacktrace } }), context }
+  end
+
+  defp exec_test(ExUnit.Test[] = test, context) do
+    apply(test.case, test.name, [context])
+    test.state(:passed)
+  catch
+    kind, error ->
+      test.state { :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }
+  end
+
+  defp exec_teardown(ExUnit.Test[] = test, context) do
+    { :ok, _context } = test.case.__ex_unit__(:teardown, context)
+    test
+  catch
+    kind, error ->
+      if nil?(test.state) do
+        test.state { :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }
+      else
+        test
+      end
   end
 
   ## Helpers
