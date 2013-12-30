@@ -166,6 +166,22 @@ defmodule Kernel.WarningTest do
     purge [Sample]
   end
 
+  test :unused_inside_dynamic_module do
+    import List, only: [flatten: 1], warn: false
+
+    assert capture_err(fn ->
+      defmodule Sample do
+        import String, only: [downcase: 1]
+
+        def world do
+          flatten([1,2,3])
+        end
+      end
+    end) =~ "unused import String"
+  after
+    purge [Sample]
+  end
+
   test :unused_guard do
     assert capture_err(fn ->
       Code.eval_string """

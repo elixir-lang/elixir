@@ -28,7 +28,14 @@ compile(Module, Block, Vars, #elixir_env{line=Line} = Env) when is_atom(Module) 
     _   -> Env#elixir_env{lexical_tracker=nil, function=nil, module=Module}
   end,
 
-  do_compile(Line, Module, Block, Vars, LexEnv);
+  case LexEnv#elixir_env.lexical_tracker of
+    nil ->
+      elixir_lexical:run(LexEnv#elixir_env.file, fun(Pid) ->
+        do_compile(Line, Module, Block, Vars, LexEnv#elixir_env{lexical_tracker=Pid})
+      end);
+    _ ->
+      do_compile(Line, Module, Block, Vars, LexEnv)
+  end;
 
 compile(Module, _Block, _Vars, #elixir_env{line=Line,file=File}) ->
   elixir_errors:form_error(Line, File, ?MODULE, { invalid_module, Module });
