@@ -67,6 +67,23 @@ defmodule ExUnit.Formatter do
     end
   end
 
+  @doc """
+  Formats filters used to constain cases to be run.
+
+  ## Examples
+
+    iex> format_filters([run: true, slow: false], :include)
+    "Including tags: [run: true, slow: false]"
+
+  """
+  @spec format_filters(Keyword.t, atom) :: String.t
+  def format_filters(filters, type) do
+    case type do
+      :include -> "Including tags: #{inspect filters}"
+      :exclude -> "Excluding tags: #{inspect filters}"
+    end
+  end
+
   @doc %S"""
   Receives a test and formats its failure.
   """

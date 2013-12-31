@@ -144,6 +144,10 @@ defmodule ExUnit do
                and prints each test case and test while running;
 
   * `:autorun` - If ExUnit should run by default on exit, defaults to `true`;
+
+  * `:include` - Specify which tests are run by skipping tests that do not match the filter
+
+  * `:exclude` - Specify which tests are run by skipping tests that match the filter
   """
   def configure(options) do
     Enum.each options, fn { k, v } ->
@@ -168,5 +172,23 @@ defmodule ExUnit do
     { async, sync, load_us } = ExUnit.Server.start_run
     opts = Keyword.put_new(configuration, :color, IO.ANSI.terminal?)
     ExUnit.Runner.run async, sync, opts, load_us
+  end
+
+  @doc false
+  def parse_filters(filters) do
+    Enum.map filters, fn filter ->
+      [key, value] = case String.split(filter, ":", global: false) do
+        [key, value] -> [key, value]
+        [key] -> [key, true]
+      end
+
+      value = case value do
+        "true"  -> true
+        "false" -> false
+        value   -> value
+      end
+
+      { Kernel.binary_to_atom(key), value }
+    end
   end
 end

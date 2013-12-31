@@ -5,10 +5,10 @@ defmodule ExUnit.CLIFormatter do
 
   use GenServer.Behaviour
 
-  import ExUnit.Formatter, only: [format_time: 2, format_test_failure: 5, format_test_case_failure: 4]
+  import ExUnit.Formatter, only: [format_time: 2, format_filters: 2, format_test_failure: 5, format_test_case_failure: 4]
 
   defrecord Config, tests_counter: 0, invalids_counter: 0, failures_counter: 0,
-                    trace: false, color: true, previous: nil
+                    skips_counter: 0, trace: false, color: true, previous: nil
 
   ## Behaviour
 
@@ -40,6 +40,7 @@ defmodule ExUnit.CLIFormatter do
   ## Callbacks
 
   def init(opts) do
+    print_filters(Keyword.take(opts, [:include, :exclude]))
     { :ok, Config.new(opts) }
   end
 
@@ -75,6 +76,10 @@ defmodule ExUnit.CLIFormatter do
 
     { :noreply, config.previous(:invalid).update_tests_counter(&(&1 + 1))
                       .update_invalids_counter(&(&1 + 1)) }
+  end
+
+  def handle_cast({ :test_finished, ExUnit.Test[state: { :skip, _ }] }, config = Config[]) do
+    { :noreply, config.previous(:skip).update_skips_counter(&(&1 + 1)) }
   end
 
   def handle_cast({ :test_finished, test }, config) do
@@ -148,6 +153,11 @@ defmodule ExUnit.CLIFormatter do
       config.invalids_counter > 0 -> IO.puts invalid(message, config)
       true                        -> IO.puts success(message, config)
     end
+  end
+
+  defp print_filters([include: include, exclude: exclude]) do
+    unless Enum.empty?(include), do: IO.puts format_filters(include, :include)
+    unless Enum.empty?(exclude), do: IO.puts format_filters(exclude, :exclude)
   end
 
   defp print_test_failure(ExUnit.Test[name: name, case: mod, state: { :failed, tuple }], config) do
