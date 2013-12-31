@@ -1,4 +1,4 @@
-defmodule IEx.ANSIDocs do
+defmodule IO.ANSI.Docs do
   @moduledoc false
 
   @bullets [?*, ?-, ?+]
