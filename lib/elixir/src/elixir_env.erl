@@ -1,7 +1,7 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([ex_to_env/1, env_to_scope/1, env_to_scope_with_vars/2, env_to_ex/1]).
--export([mergea/2, mergev/2, mergec/2, mergevc/2]).
+-export([mergea/2, mergev/2]).
 
 %% Conversion in between #elixir_env, #elixir_scope and Macro.Env
 
@@ -36,16 +36,3 @@ mergev(E1, E2) ->
 
 mergea(E1, E2) ->
   E2#elixir_env{vars=E1#elixir_env.vars}.
-
-%% Receives two scopes and return the first scope with
-%% counters and flags from the later.
-
-mergec(E1, _E2) ->
-  E1.
-
-%% Merges variables and counters, nothing lexical though.
-
-mergevc(E1, E2) ->
-  E2#elixir_env{
-    vars=ordsets:union(E1#elixir_env.vars, E2#elixir_env.vars)
-  }.

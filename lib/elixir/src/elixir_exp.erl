@@ -8,8 +8,8 @@
 expand({ '=', Meta, [Left, Right] }, E) ->
   assert_no_guard_scope(Meta, '=', E),
   { ERight, ER } = expand(Right, E),
-  { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, elixir_env:mergec(E, ER)),
-  { { '=', Meta, [ELeft, ERight] }, elixir_env:mergevc(EL, ER) };
+  { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, E),
+  { { '=', Meta, [ELeft, ERight] }, elixir_env:mergev(EL, ER) };
 
 %% Literal operators
 
@@ -526,15 +526,15 @@ expand_comprehension(Meta, Kind, Args, E) ->
     { Cases, [{do,Expr}] } ->
       { ECases, EC } = lists:mapfoldl(fun expand_comprehension_clause/2, E, Cases),
       { EExpr, EE }  = expand(Expr, EC),
-      { { Kind, Meta, ECases ++ [[{do,EExpr}]] }, elixir_env:mergec(E, EE) };
+      { { Kind, Meta, ECases ++ [[{do,EExpr}]] }, E };
     _ ->
       compile_error(Meta, E#elixir_env.file, "missing do keyword in comprehension ~ts", [Kind])
   end.
 
 expand_comprehension_clause({Gen, Meta, [Left, Right]}, E) when Gen == inbits; Gen == inlist ->
   { ERight, ER } = expand(Right, E),
-  { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, elixir_env:mergec(E, ER)),
-  { { Gen, Meta, [ELeft, ERight] }, elixir_env:mergevc(EL, ER) };
+  { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, E),
+  { { Gen, Meta, [ELeft, ERight] }, elixir_env:mergev(EL, ER) };
 expand_comprehension_clause(X, E) ->
   expand(X, E).
 
