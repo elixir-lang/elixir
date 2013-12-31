@@ -11,7 +11,6 @@
 -record(elixir_scope, {
   context=nil,             %% can be assign, guards or nil
   extra=nil,               %% extra information about the context, like fn_match and do_match
-  noname=false,            %% when true, don't add new names (used by try)
   super=false,             %% when true, it means super was invoked
   caller=false,            %% when true, it means caller was invoked
   module=nil,              %% the current module
@@ -24,6 +23,7 @@
   clause_vars=nil,         %% a dict of all variables defined in a particular clause
   extra_guards=nil,        %% extra guards from args expansion
   counter=[],              %% a dict counting the variables defined
+  hygiene_counter=1,       %% a counter for the hygienic vars (start with underscore)
   file=(<<"nofile">>)      %% the current scope filename
 }).
 

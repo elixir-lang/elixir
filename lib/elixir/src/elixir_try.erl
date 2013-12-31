@@ -6,9 +6,9 @@ clauses(_Meta, Clauses, S) ->
   Catch  = elixir_clauses:get_pairs('catch', Clauses),
   Rescue = elixir_clauses:get_pairs(rescue, Clauses),
   Transformer = fun(X, { SAcc, CAcc }) ->
-    { TX, TS } = each_clause(X, S),
+    { TX, TS } = each_clause(X, SAcc),
     { TX,
-      { elixir_scope:mergef(SAcc, TS),
+      { elixir_scope:mergef(S, TS),
         elixir_scope:merge_counters(CAcc, TS#elixir_scope.counter) } }
   end,
   { TClauses, { TS, TC } } =

@@ -65,15 +65,19 @@ translate_var(Meta, Name, Kind, RS) when is_atom(Kind); is_integer(Kind) ->
       { { var, Line, Current }, S }
   end.
 
-build_var(Key, #elixir_scope{counter=Dict} = S) ->
-  New = orddict:update(Key, fun(Old) -> Old + 1 end, 0, Dict),
-  Cnt = orddict:fetch(Key, New),
+build_var('_', #elixir_scope{hygiene_counter=Cnt} = S) ->
+  build_var('_', Cnt, S#elixir_scope{hygiene_counter=Cnt+1});
+build_var(Key, S) ->
+  New = orddict:update(Key, fun(Old) -> Old + 1 end, 0, S#elixir_scope.counter),
+  build_var(Key, orddict:fetch(Key, New), S#elixir_scope{counter=New}).
+
+build_var(Key, Cnt, S) ->
   Var =
     case Cnt of
-      0 when Key /= '_' -> Key;
+      0 -> Key;
       _ -> ?atom_concat([Key, "@", Cnt])
     end,
-  { Var, Cnt, S#elixir_scope{counter=New} }.
+  { Var, Cnt, S }.
 
 warn_unsafe(Meta, Tuple, S) ->
   case ordsets:is_element(Tuple, S#elixir_scope.unsafe_vars) andalso
@@ -108,14 +112,6 @@ mergev(S1, S2) ->
     temp_vars=merge_opt_vars(T1, T2)
   }.
 
-%% Receives two scopes and keeps the first with all
-%% the flags from the second.
-mergef(S1, S2) ->
-  S1#elixir_scope{
-    super=S2#elixir_scope.super,
-    caller=S2#elixir_scope.caller
-  }.
-
 %% Receives two scopes and return the first scope with
 %% counters and flags from the later.
 
@@ -123,7 +119,17 @@ mergec(S1, S2) ->
   S1#elixir_scope{
     counter=S2#elixir_scope.counter,
     super=S2#elixir_scope.super,
-    caller=S2#elixir_scope.caller
+    caller=S2#elixir_scope.caller,
+    hygiene_counter=S2#elixir_scope.hygiene_counter
+  }.
+
+%% Similar to mergec but does not merge the user vars counter.
+
+mergef(S1, S2) ->
+  S1#elixir_scope{
+    super=S2#elixir_scope.super,
+    caller=S2#elixir_scope.caller,
+    hygiene_counter=S2#elixir_scope.hygiene_counter
   }.
 
 %% Mergers.
@@ -148,12 +154,10 @@ var_merger(_Var, _K1, K2) -> K2.
 %% BINDINGS
 
 load_binding(Binding, Scope) ->
-  { NewBinding, NewVars, NewCounter } = load_binding(Binding, [], [], 0),
+  { NewBinding, NewVars, NewCounter } = load_binding(Binding, [], [], 1),
   { NewBinding, Scope#elixir_scope{
     vars=NewVars,
-    match_vars=[],
-    clause_vars=nil,
-    counter=[{'_',NewCounter}]
+    hygiene_counter=NewCounter
   } }.
 
 load_binding([{Key,Value}|T], Binding, Vars, Counter) ->

@@ -83,9 +83,9 @@ do_clauses(Meta, DecoupledClauses, S) ->
   % Transform tree just passing the variables counter forward
   % and storing variables defined inside each clause.
   Transformer = fun(X, {SAcc, CAcc, UAcc, VAcc}) ->
-    { TX, TS } = each_clause(Meta, X, S),
+    { TX, TS } = each_clause(Meta, X, SAcc),
     { TX,
-      { elixir_scope:mergef(SAcc, TS),
+      { elixir_scope:mergef(S, TS),
         elixir_scope:merge_counters(CAcc, TS#elixir_scope.counter),
         ordsets:union(UAcc, TS#elixir_scope.temp_vars),
         [TS#elixir_scope.clause_vars|VAcc] } }

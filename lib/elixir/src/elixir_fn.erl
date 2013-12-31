@@ -6,8 +6,8 @@
 translate(Meta, Clauses, S) ->
   Transformer = fun({ '->', CMeta, [ArgsWithGuards, Expr] }, Acc) ->
     { Args, Guards } = elixir_clauses:extract_splat_guards(ArgsWithGuards),
-    elixir_clauses:clause(?line(CMeta), fun translate_fn_match/2, Args,
-                          Expr, Guards, elixir_scope:mergef(S, Acc))
+    { TClause, TS  } = elixir_clauses:clause(?line(CMeta), fun translate_fn_match/2, Args, Expr, Guards, Acc),
+    { TClause, elixir_scope:mergef(S, TS) }
   end,
 
   { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
