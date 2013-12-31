@@ -14,8 +14,8 @@ defmodule IEx.Introspection do
             { _, binary } when is_binary(binary) ->
               use_ansi = IO.ANSI.terminal?
               colors = IEx.Options.get(:colors)
-              IEx.ANSIDocs.print_heading(inspect(module), use_ansi, colors)
-              IEx.ANSIDocs.print(binary, use_ansi, colors)
+              IO.ANSI.Docs.print_heading(inspect(module), use_ansi, colors)
+              IO.ANSI.Docs.print(binary, use_ansi, colors)
             { _, _ } ->
               nodocs(inspect module)
             _ ->
@@ -162,8 +162,8 @@ defmodule IEx.Introspection do
     args = Enum.map_join(args, ", ", &print_doc_arg(&1))
     use_ansi = IO.ANSI.terminal?
     colors = IEx.Options.get(:colors)
-    IEx.ANSIDocs.print_heading("#{kind} #{fun}(#{args})", use_ansi, colors)
-    if doc, do: IEx.ANSIDocs.print(doc, use_ansi, colors)
+    IO.ANSI.Docs.print_heading("#{kind} #{fun}(#{args})", use_ansi, colors)
+    if doc, do: IO.ANSI.Docs.print(doc, use_ansi, colors)
   end
 
   defp print_doc_arg({ ://, _, [left, right] }) do
