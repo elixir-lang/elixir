@@ -94,6 +94,14 @@ defmodule Kernel.CLI.CompileTest do
     assert :string.str(output, bar) > 0, "expected bar.ex to miss module Foo"
     assert :string.str(output, 'elixir_compiler') == 0, "expected elixir_compiler to not be in output"
   end
+
+  test :compile_missing_patterns do
+    fixture = fixture_path "compile_sample.ex"
+    output = elixirc('#{fixture} non_existing.ex -o #{tmp_path}')
+    assert :string.str(output, 'non_existing.ex') > 0, "expected non_existing.ex to be mentionned"
+    assert :string.str(output, 'compile_sample.ex') == 0, "expected compile_sample.ex to not be mentionned"
+    refute File.exists?(tmp_path("Elixir.CompileSample.beam")) , "expected the sample to not be compiled"
+  end
 end
 
 defmodule Kernel.CLI.ParallelCompilerTest do
