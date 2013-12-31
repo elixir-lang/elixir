@@ -484,6 +484,30 @@ defmodule Kernel.SpecialForms do
   """
   defmacro __DIR__
 
+  @doc """
+  Access an already bound variable in match clauses.
+
+  ## Examples
+
+  Elixir allows variables to be rebound via static single assignment:
+
+      iex> x = 1
+      iex> x = 2
+      iex> x
+      2
+
+  However, in some situations, it is useful to match against an existing
+  value, instead of rebinding. This can be done with the `^` special form:
+
+      iex> x = 1
+      iex> ^x = 1
+      iex> ^x = 2
+      ** (MatchError) no match of right hand side value: 2
+
+  Note the `^` special form is only useful in matches.
+  """
+  defmacro ^(var)
+
   @doc %S"""
   Gets the representation of any expression.
 
@@ -1201,44 +1225,54 @@ defmodule Kernel.SpecialForms do
   defmacro super(args)
 
   @doc """
-  Matches the given expression against the match clauses.
+  Matches the given expression against the given clauses.
 
   ## Examples
 
       case thing do
         { :selector, i, value } when is_integer(i) ->
           value
-        value -> value
+        value ->
+          value
       end
 
-  In the example above, we compare `thing` with each given match
-  clause and evaluate the expression corresponding to the first clause
+  In the example above, we match `thing` against each clause "head"
+  and execute the clause "body" corresponding to the first clause
   that matches. If no clause matches, an error is raised.
 
-  Since Elixir variables can be assigned more than once, variables
-  in a match clause will always be assigned instead of matching with
-  its previous values. For example:
+  ## Variables handling
 
-      i = 1
-      case 10 do
-        i -> i * 2
+  Notice that variables bound in a clause "head" do not leak to the
+  outer context:
+
+      case data do
+        { :ok, value } -> value
+        :error -> nil
       end
 
-  The example above will return 20, because `i` is assigned to 10
-  and then multiplied by 2. If you desire to match the value of `i`
-  against the given condition, you need to use the `^` operator:
+      value #=> unbound variable value
 
-      i = 1
-      case 10 do
-        ^i -> i * 2
+  However, variables explicitly bound in the clause "body" are
+  accessible from the outer context:
+
+      value = 7
+
+      case lucky? do
+        false -> value = 13
+        true  -> true
       end
 
-  The example above will actually fail because 10 does not match 1.
+      value #=> 7 or 13
+
+  In the example above, value is going to be `7` or `13` depending on
+  the value of `lucky?`. In case `value` has no previous value before
+  case, clauses that do not explicitly bind a value have the variable
+  bound to nil.
   """
   defmacro case(condition, blocks)
 
   @doc """
-  Evaluate the given expressions and catch any error, exit
+  Evaluate the given expressions and handle any error, exit
   or throw that may have happened.
 
   ## Examples
@@ -1285,14 +1319,14 @@ defmodule Kernel.SpecialForms do
         [UndefinedFunctionError] -> nil
       end
 
-      # rescue and assign to x
+      # rescue and bind to x
       try do
         UndefinedModule.undefined_function
       rescue
         x in [UndefinedFunctionError] -> nil
       end
 
-      # rescue all and assign to x
+      # rescue all and bind to x
       try do
         UndefinedModule.undefined_function
       rescue
@@ -1397,7 +1431,7 @@ defmodule Kernel.SpecialForms do
   with a tail call as the final call inside an else clause. The same
   is true for rescue and catch clauses.
 
-  ## Variable visibility
+  ## Variable handling
 
   Since an expression inside `try` may not have been evaluated
   due to an exception, any variable created inside `try` cannot
@@ -1411,7 +1445,7 @@ defmodule Kernel.SpecialForms do
         _, _ -> :failed
       end
 
-      x #=> Cannot access `x`
+      x #=> unbound variable `x`
 
   In the example above, `x` cannot be accessed since it was defined
   inside the `try` clause. A common practice to address this issue
@@ -1430,8 +1464,11 @@ defmodule Kernel.SpecialForms do
   defmacro try(args)
 
   @doc """
-  The current process will hang until it receives a message
-  from other processes that matches the given clauses.
+  Checks if there is a message matching the given clauses
+  in the current process mailbox.
+
+  In case there is no such message, the current process hangs
+  until a message arrives or waits until a given timeout value.
 
   ## Examples
 
@@ -1443,8 +1480,6 @@ defmodule Kernel.SpecialForms do
         _ ->
           IO.puts :stderr, "Unexpected message received"
       end
-
-  The match clauses above follows the same rules as `case/2`.
 
   An optional after clause can be given in case the message was not
   received after the specified period of time:
@@ -1469,6 +1504,11 @@ defmodule Kernel.SpecialForms do
 
   * 0 - if there is no matching message in the mailbox, the timeout
   will occur immediately.
+
+  ## Variables handling
+
+  The `receive` special form handles variables exactly as the `case`
+  special macro. For more information, check the docs for `case/2`.
   """
   defmacro receive(args)
 end
