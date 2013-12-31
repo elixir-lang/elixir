@@ -43,7 +43,7 @@ defmodule IO.ANSI.Docs do
     else
       IO.puts "* #{string}\n"
     end
-    IEx.dont_display_result
+    dont_display_result
   end
 
   defp write_doc_heading(heading, colors) do
@@ -68,8 +68,10 @@ defmodule IO.ANSI.Docs do
     else
       IO.puts doc
     end
-    IEx.dont_display_result
+    dont_display_result
   end
+
+  defp dont_display_result, do: :"do not show this result in output"
 
   defp process([], _indent, _colors), do: nil
 
