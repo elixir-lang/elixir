@@ -12,23 +12,16 @@ defmodule IO.ANSI.DocsTest do
             doc_headings: "yellow,bright",
             doc_title: "reverse,yellow,bright" ]
 
-  def format_heading(str, use_ansi // true) do
-    capture_io(fn -> IO.ANSI.Docs.print_heading(str, use_ansi, @colors) end)
-    |> String.strip
+  def format_heading(str) do
+    capture_io(fn -> IO.ANSI.Docs.print_heading(str, @colors) end) |> String.strip
   end
 
-  def format(str, use_ansi // true) do
-    capture_io(fn -> IO.ANSI.Docs.print(str, use_ansi, @colors) end)
-    |> String.strip
+  def format(str) do
+    capture_io(fn -> IO.ANSI.Docs.print(str, @colors) end) |> String.strip
   end
 
-  test "non-ansi heading just uses an asterisk" do
-    result = format_heading("wibble", false)
-    assert result == "* wibble"
-  end
-
-  test "ansi heading is formatted" do
-    result = format_heading("wibble", true)
+  test "heading is formatted" do
+    result = format_heading("wibble")
     assert String.starts_with?(result, "\e[0m\n\e[7m\e[33m\e[1m")
     assert String.ends_with?(result, "\e[0m\n\e[0m")
     assert String.contains?(result, " wibble ")

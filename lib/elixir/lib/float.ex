@@ -33,7 +33,7 @@ defmodule Float do
     parse_unsign(binary)
   end
 
-  defp parse_unsign("-" <> binary), do: :error
+  defp parse_unsign("-" <> _), do: :error
   defp parse_unsign(binary) when is_binary(binary) do
     case Integer.parse binary do
       :error -> :error
