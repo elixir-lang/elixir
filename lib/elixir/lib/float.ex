@@ -22,28 +22,40 @@ defmodule Float do
 
   """
   @spec parse(binary) :: { float, binary } | :error
-  def parse(binary) when is_binary(binary) do
+  def parse("-" <> binary) do
+    case parse_unsign(binary) do
+      :error -> :error
+      { number, remainder } -> { -number, remainder }
+    end
+  end
+
+  def parse(binary) do
+    parse_unsign(binary)
+  end
+
+  defp parse_unsign("-" <> binary), do: :error
+  defp parse_unsign(binary) when is_binary(binary) do
     case Integer.parse binary do
       :error -> :error
-      { integer_part, after_integer } -> parse after_integer, integer_part
+      { integer_part, after_integer } -> parse_unsign after_integer, integer_part
     end
   end
 
   # Dot followed by digit is required afterwards or we are done
-  defp parse(<< ?., char, rest :: binary >>, int) when char in ?0..?9 do
-    parse(rest, char - ?0, 1, int)
+  defp parse_unsign(<< ?., char, rest :: binary >>, int) when char in ?0..?9 do
+    parse_unsign(rest, char - ?0, 1, int)
   end
 
-  defp parse(rest, int) do
+  defp parse_unsign(rest, int) do
     { :erlang.float(int), rest }
   end
 
   # Handle decimal points
-  defp parse(<< char, rest :: binary >>, float, decimal, int) when char in ?0..?9 do
-    parse rest, 10 * float + (char - ?0), decimal + 1, int
+  defp parse_unsign(<< char, rest :: binary >>, float, decimal, int) when char in ?0..?9 do
+    parse_unsign rest, 10 * float + (char - ?0), decimal + 1, int
   end
 
-  defp parse(<< ?e, after_e :: binary >>, float, decimal, int) do
+  defp parse_unsign(<< ?e, after_e :: binary >>, float, decimal, int) do
     case Integer.parse after_e do
       :error ->
         # Note we rebuild the binary here instead of breaking it apart at
@@ -56,7 +68,7 @@ defmodule Float do
     end
   end
 
-  defp parse(bitstring, float, decimal, int) do
+  defp parse_unsign(bitstring, float, decimal, int) do
     { floatify(int, float, decimal), bitstring }
   end
 
