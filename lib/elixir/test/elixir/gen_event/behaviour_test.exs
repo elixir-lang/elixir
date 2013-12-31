@@ -19,10 +19,9 @@ defmodule GenEvent.BehaviourTest do
     def handle_call(:notifications, notifications) do
       {:ok, Enum.reverse(notifications), []}
     end
-
   end
 
-  test :using do
+  test "using defines callbacks" do
     { :ok, pid } = :gen_event.start_link
     :gen_event.add_handler(pid, MyEventHandler, [])
 
@@ -32,5 +31,4 @@ defmodule GenEvent.BehaviourTest do
     assert :gen_event.call(pid, MyEventHandler, :notifications) == [1, 2]
     assert :gen_event.call(pid, MyEventHandler, :notifications) == []
   end
-
 end

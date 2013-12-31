@@ -21,78 +21,67 @@ defmodule GenFSM.Behaviour do
   works - we hereby declare a full disclaimer for any lawsuits that the
   behaviour of the CVM in its original state might encur.
 
-
       defmodule MyFsm do
         use GenFSM.Behaviour
 
-          # keeping track of what is going on inside the CVM.
-          # 3 is the target price for a cup of coffee
-          defrecord StateData, coins: 0, price: 3
+        # keeping track of what is going on inside the CVM.
+        # 3 is the target price for a cup of coffee
+        defrecord StateData, coins: 0, price: 3
 
-          #
-          # API functions
-          #
+        # API functions
 
-          def start_link() do
-            :gen_fsm.start_link({:local, :cvm}, __MODULE__, [], [])
-          end
-
-          def insert_coin() do
-            :gen_fsm.send_event(:cvm, :coin)
-          end
-
-          def request_coffee() do
-            :gen_fsm.send_event(:cvm, :request_coffee)
-          end
-
-          #
-          # Callbacks
-          #
-
-          def init(_args) do
-            { :ok, :short_paid, StateData.new }
-          end
-
-
-          def short_paid(:coin, state_data = StateData[coins: c, price: p]) 
-           when c + 1 < p do
-            { :next_state, :short_paid, state_data.coins(c + 1) }
-          end
-
-          def short_paid(:coin, state_data) do
-            { :next_state, :paid_in_full, &state_data.update_coins(&1 + 1) }
-          end
-
-          def short_paid(:request_coffee, state_data) do
-            { :next_state, :requested_short_paid, state_data }
-          end
-
-
-          def requested_short_paid(:request_coffee, state_data) do
-            {:next_state, :requested_short_paid, state_data }
-          end
-
-          def requested_short_paid(:coin, state_data=StateData[coins: c, price: p]) 
-           when c+1 < p do
-            { :next_state, :requested_short_paid, state_data.coins(c + 1) }
-          end
-
-          def requested_short_paid(:coin, _state_data) do
-            IO.puts "Here's your coffee!"
-            { :next_state, :short_paid, StateData.new }
-          end
-
-
-          def paid_in_full(:coin, state_data) do
-            { :next_state, :paid_in_full, &state_data.update_coins(&1 + 1) }
-          end
-
-          def paid_in_full(:request_coffee, _state_data) do
-            IO.puts "Here's your coffee!"
-            { :next_state, :short_paid, StateData.new }
-          end
+        def start_link() do
+          :gen_fsm.start_link({:local, :cvm}, __MODULE__, [], [])
         end
 
+        def insert_coin() do
+          :gen_fsm.send_event(:cvm, :coin)
+        end
+
+        def request_coffee() do
+          :gen_fsm.send_event(:cvm, :request_coffee)
+        end
+
+        # Callbacks
+
+        def init(_args) do
+          { :ok, :short_paid, StateData.new }
+        end
+
+        def short_paid(:coin, state_data = StateData[coins: c, price: p]) when c + 1 < p do
+          { :next_state, :short_paid, state_data.coins(c + 1) }
+        end
+
+        def short_paid(:coin, state_data) do
+          { :next_state, :paid_in_full, &state_data.update_coins(&1 + 1) }
+        end
+
+        def short_paid(:request_coffee, state_data) do
+          { :next_state, :requested_short_paid, state_data }
+        end
+
+        def requested_short_paid(:request_coffee, state_data) do
+          { :next_state, :requested_short_paid, state_data }
+        end
+
+        def requested_short_paid(:coin, state_data=StateData[coins: c, price: p]) when c+1 < p do
+          { :next_state, :requested_short_paid, state_data.coins(c + 1) }
+        end
+
+        def requested_short_paid(:coin, _state_data) do
+          IO.puts "Here's your coffee!"
+          { :next_state, :short_paid, StateData.new }
+        end
+
+        def paid_in_full(:coin, state_data) do
+          { :next_state, :paid_in_full, &state_data.update_coins(&1 + 1) }
+        end
+
+        def paid_in_full(:request_coffee, _state_data) do
+          IO.puts "Here's your coffee!"
+          { :next_state, :short_paid, StateData.new }
+        end
+      end
 
       { :ok, _pid } = MyFsm.start_link()
 
@@ -138,15 +127,15 @@ defmodule GenFSM.Behaviour do
   for you. The list of callbacks are:
 
   * `init(args)` - invoked when the FSM is started;
-  * `handle_sync_event(event, from, state_name, state_data)` - invoked to 
+  * `handle_sync_event(event, from, state_name, state_data)` - invoked to
   handle `sync_send_all_state_event` messages;
-  * `handle_event(event, state_name, state_data)` - invoked to handle 
+  * `handle_event(event, state_name, state_data)` - invoked to handle
   `send_all_state_event` messages;
-  * `handle_info(msg, state_name, state_data)` - handle all other 
+  * `handle_info(msg, state_name, state_data)` - handle all other
   messages which are normally received by processes;
-  * `terminate(reason, state_name, state_data)` - called when the FSM 
+  * `terminate(reason, state_name, state_data)` - called when the FSM
   is about to terminate, useful for cleaning up;
-  * `code_change(old_vsn, state, extra)` - called when the application 
+  * `code_change(old_vsn, state, extra)` - called when the application
   code is being upgraded live (hot code swap);
 
   Unlike `GenServer` and `GenEvent`, the callback `init/1` is not
@@ -154,9 +143,9 @@ defmodule GenFSM.Behaviour do
 
   For each state you need to define either or both of these:
 
-  * `state_name(event, state_data)` - invoked to handle 
+  * `state_name(event, state_data)` - invoked to handle
   `send_event` messages;
-  * `state_name(event, from, state_data)`- invoked to handle 
+  * `state_name(event, from, state_data)`- invoked to handle
   `sync_send_event` messages;
 
   If you send asynchronous events you only need to implement the
@@ -180,13 +169,13 @@ defmodule GenFSM.Behaviour do
       @behavior :gen_fsm
 
       @doc false
-      def handle_event(_event, state_name, state_data) do
-        { :next_state, state_name, state_data }
+      def handle_event(event, state_name, state_data) do
+        { :stop, {:bad_event, state_name, event}, state_data }
       end
 
       @doc false
-      def handle_sync_event(_event, from, state_name, state_data) do
-        { :reply, :ok, state_name, state_data }
+      def handle_sync_event(event, from, state_name, state_data) do
+        { :stop, {:bad_sync_event, state_name, event}, state_data }
       end
 
       @doc false

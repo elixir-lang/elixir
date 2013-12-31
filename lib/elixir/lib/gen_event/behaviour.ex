@@ -25,7 +25,6 @@ defmodule GenEvent.Behaviour do
         def handle_call(:notifications, notifications) do
           {:ok, Enum.reverse(notifications), []}
         end
-
       end
 
       { :ok, pid } = :gen_event.start_link

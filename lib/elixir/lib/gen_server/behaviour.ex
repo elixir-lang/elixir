@@ -105,7 +105,7 @@ defmodule GenServer.Behaviour do
 
       @doc false
       def handle_cast(msg, state) do
-        { :stop, { :bad_call, msg }, state }
+        { :stop, { :bad_cast, msg }, state }
       end
 
       @doc false
