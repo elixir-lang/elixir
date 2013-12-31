@@ -1,13 +1,19 @@
 -module(elixir_try).
 -export([clauses/3, format_error/1]).
--import(elixir_scope, [mergec/2]).
 -include("elixir.hrl").
 
 clauses(_Meta, Clauses, S) ->
   Catch  = elixir_clauses:get_pairs('catch', Clauses),
   Rescue = elixir_clauses:get_pairs(rescue, Clauses),
-  Transformer = fun(X, Acc) -> each_clause(X, mergec(S, Acc)) end,
-  lists:mapfoldl(Transformer, S, Rescue ++ Catch).
+  Transformer = fun(X, { SAcc, CAcc }) ->
+    { TX, TS } = each_clause(X, S),
+    { TX,
+      { elixir_scope:mergef(SAcc, TS),
+        elixir_scope:merge_counters(CAcc, TS#elixir_scope.counter) } }
+  end,
+  { TClauses, { TS, TC } } =
+    lists:mapfoldl(Transformer, { S, S#elixir_scope.counter }, Rescue ++ Catch),
+  { TClauses, TS#elixir_scope{counter=TC} }.
 
 each_clause({ 'catch', Meta, Raw, Expr }, S) ->
   { Args, Guards } = elixir_clauses:extract_splat_guards(Raw),

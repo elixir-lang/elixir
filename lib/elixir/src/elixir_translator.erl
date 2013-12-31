@@ -2,7 +2,7 @@
 %% overriden are defined in this file.
 -module(elixir_translator).
 -export([translate_many/2, translate/2, translate_arg/3, translate_args/2]).
--import(elixir_scope, [mergev/2, mergec/2]).
+-import(elixir_scope, [mergev/2, mergec/2, mergef/2]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
 
@@ -78,8 +78,7 @@ translate({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
 
 %% Try
 
-translate({'try', Meta, [Clauses]}, RS) when is_list(Clauses) ->
-  S  = RS#elixir_scope{noname=true},
+translate({'try', Meta, [Clauses]}, S) when is_list(Clauses) ->
   Do = proplists:get_value('do', Clauses, nil),
   { TDo, SB } = elixir_translator:translate(Do, S),
 
@@ -92,8 +91,7 @@ translate({'try', Meta, [Clauses]}, RS) when is_list(Clauses) ->
   Else = elixir_clauses:get_pairs(else, Clauses),
   { TElse, SE } = elixir_clauses:clauses(Meta, Else, mergec(S, SA)),
 
-  SF = (mergec(S, SE))#elixir_scope{noname=RS#elixir_scope.noname},
-  { { 'try', ?line(Meta), unblock(TDo), TElse, TCatch, unblock(TAfter) }, SF };
+  { { 'try', ?line(Meta), unblock(TDo), TElse, TCatch, unblock(TAfter) }, mergec(S, SE) };
 
 %% Receive
 
@@ -298,7 +296,7 @@ translate_comprehension(Meta, Kind, Args, S) ->
   { Cases, [{do,Expr}] } = elixir_utils:split_last(Args),
   { TCases, SC } = lists:mapfoldl(fun(C, Acc) -> translate_comprehension_clause(Meta, C, Acc) end, S, Cases),
   { TExpr, SE }  = translate_comprehension_do(Meta, Kind, Expr, SC),
-  { { Kind, ?line(Meta), TExpr, TCases }, mergec(S, SE) }.
+  { { Kind, ?line(Meta), TExpr, TCases }, mergef(S, SE) }.
 
 translate_comprehension_do(_Meta, bc, { '<<>>', _, _ } = Expr, S) ->
   translate(Expr, S);

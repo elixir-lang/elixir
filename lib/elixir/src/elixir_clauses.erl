@@ -82,23 +82,21 @@ do_clauses(_Meta, [], S) ->
 do_clauses(Meta, DecoupledClauses, S) ->
   % Transform tree just passing the variables counter forward
   % and storing variables defined inside each clause.
-  Transformer = fun(X, {Acc, CV, TV}) ->
-    { TX, TAcc } = each_clause(Meta, X, Acc),
-    { TX, { elixir_scope:mergec(S, TAcc), [TAcc#elixir_scope.clause_vars|CV], [TAcc#elixir_scope.temp_vars|TV] } }
+  Transformer = fun(X, {SAcc, CAcc, UAcc, VAcc}) ->
+    { TX, TS } = each_clause(Meta, X, S),
+    { TX,
+      { elixir_scope:mergef(SAcc, TS),
+        elixir_scope:merge_counters(CAcc, TS#elixir_scope.counter),
+        ordsets:union(UAcc, TS#elixir_scope.temp_vars),
+        [TS#elixir_scope.clause_vars|VAcc] } }
   end,
 
-  { TClauses, { TS, ReverseCV, ReverseTV } } = lists:mapfoldl(Transformer, {S, [], []}, DecoupledClauses),
+  { TClauses, { TS, Counter, Unsafe, ReverseCV } } =
+    lists:mapfoldl(Transformer, {S, S#elixir_scope.counter, S#elixir_scope.unsafe_vars, []}, DecoupledClauses),
 
   % Now get all the variables defined inside each clause
   CV = lists:reverse(ReverseCV),
-  AllVars = lists:foldl(fun(KV, Acc) ->
-    elixir_scope:merge_vars(Acc, KV)
-  end, [], CV),
-
-  % Now get all unsafe vars
-  UV = lists:foldr(fun(KV, Acc) ->
-    elixir_scope:merge_vars(Acc, KV)
-  end, TS#elixir_scope.unsafe_vars, ReverseTV),
+  AllVars = lists:foldl(fun elixir_scope:merge_vars/2, [], CV),
 
   % Create a new scope that contains a list of all variables
   % defined inside all the clauses. It returns this new scope and
@@ -107,11 +105,11 @@ do_clauses(Meta, DecoupledClauses, S) ->
   % is the old pointer.
   { FinalVars, FS } = lists:mapfoldl(fun({ Key, Val }, Acc) ->
     normalize_vars(Key, Val, Acc)
-  end, TS, AllVars),
+  end, TS#elixir_scope{unsafe_vars=Unsafe, counter=Counter}, AllVars),
 
   % Expand all clauses by adding a match operation at the end
   % that defines variables missing in one clause to the others.
-  expand_clauses(?line(Meta), TClauses, CV, FinalVars, [], FS#elixir_scope{unsafe_vars=UV}).
+  expand_clauses(?line(Meta), TClauses, CV, FinalVars, [], FS).
 
 expand_clauses(Line, [Clause|T], [ClauseVars|V], FinalVars, Acc, S) ->
   case generate_match_vars(FinalVars, ClauseVars, [], []) of
@@ -200,19 +198,30 @@ has_match_tuple(_) -> false.
 % Normalize the given var in between clauses
 % by picking one value as reference and retriving
 % its previous value.
+%
+% If the variable starts with _, we cannot reuse it
+% since those shared variables will likely clash.
 
-normalize_vars(Key, Value, #elixir_scope{vars=Vars,clause_vars=ClauseVars} = S) ->
-  FS = S#elixir_scope{
-    vars=orddict:store(Key, Value, Vars),
-    clause_vars=orddict:store(Key, Value, ClauseVars)
+normalize_vars(Key, { OldValue, OldCounter }, #elixir_scope{vars=Vars,clause_vars=ClauseVars} = S) ->
+  { Value, Counter, CS } =
+    case atom_to_list(OldValue) of
+      "_" ++ _ -> elixir_scope:build_var('_', S);
+      _        -> { OldValue, OldCounter, S }
+    end,
+
+  Tuple = { Value, Counter },
+
+  VS = CS#elixir_scope{
+    vars=orddict:store(Key, Tuple, Vars),
+    clause_vars=orddict:store(Key, Tuple, ClauseVars)
   },
 
   Expr = case orddict:find(Key, Vars) of
-    { ok, { OldValue, _ } } -> { var, 0, OldValue };
+    { ok, { PreValue, _ } } -> { var, 0, PreValue };
     error -> { atom, 0, nil }
   end,
 
-  { { Key, Value, Expr }, FS }.
+  { { Key, Tuple, Expr }, VS }.
 
 % Generate match vars by checking if they were updated
 % or not and assigning the previous value.

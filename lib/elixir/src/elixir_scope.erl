@@ -3,7 +3,8 @@
 -export([translate_var/4, build_var/2,
   load_binding/2, dump_binding/2,
   format_error/1, warn_unsafe/3,
-  mergev/2, mergec/2, merge_vars/2, merge_opt_vars/2
+  mergev/2, mergec/2, mergef/2,
+  merge_vars/2, merge_opt_vars/2, merge_counters/2
 ]).
 -include("elixir.hrl").
 
@@ -88,8 +89,8 @@ format_error({ unsafe_var, { Var, Ctx } }) ->
 
 %% SCOPE MERGING
 
-%% Receives two scopes and return a new scope based on the second
-%% with their variables merged.
+%% Receives two scopes and return a new scope based on
+%% the second with their variables merged.
 
 mergev(S1, S2) ->
   V1 = S1#elixir_scope.vars,
@@ -107,6 +108,14 @@ mergev(S1, S2) ->
     temp_vars=merge_opt_vars(T1, T2)
   }.
 
+%% Receives two scopes and keeps the first with all
+%% the flags from the second.
+mergef(S1, S2) ->
+  S1#elixir_scope{
+    super=S2#elixir_scope.super,
+    caller=S2#elixir_scope.caller
+  }.
+
 %% Receives two scopes and return the first scope with
 %% counters and flags from the later.
 
@@ -117,7 +126,11 @@ mergec(S1, S2) ->
     caller=S2#elixir_scope.caller
   }.
 
-% Merge variables trying to find the most recently created.
+%% Mergers.
+
+merge_counters(C, C) -> C;
+merge_counters(C1, C2) ->
+  orddict:merge(fun(_K, V1, V2) -> max(V1, V2) end, C1, C2).
 
 merge_vars(V, V) -> V;
 merge_vars(V1, V2) ->

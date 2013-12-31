@@ -7,7 +7,7 @@ translate(Meta, Clauses, S) ->
   Transformer = fun({ '->', CMeta, [ArgsWithGuards, Expr] }, Acc) ->
     { Args, Guards } = elixir_clauses:extract_splat_guards(ArgsWithGuards),
     elixir_clauses:clause(?line(CMeta), fun translate_fn_match/2, Args,
-                          Expr, Guards, elixir_scope:mergec(S, Acc))
+                          Expr, Guards, elixir_scope:mergef(S, Acc))
   end,
 
   { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
@@ -15,7 +15,7 @@ translate(Meta, Clauses, S) ->
 
   case length(lists:usort(Arities)) of
     1 ->
-      { { 'fun', ?line(Meta), { clauses, TClauses } }, elixir_scope:mergec(S, NS) };
+      { { 'fun', ?line(Meta), { clauses, TClauses } }, NS };
     _ ->
       compile_error(Meta, S#elixir_scope.file,
                     "cannot mix clauses with different arities in function definition")
