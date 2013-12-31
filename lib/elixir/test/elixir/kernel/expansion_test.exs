@@ -205,6 +205,7 @@ defmodule Kernel.ExpansionTest do
 
   test "remote calls: expands receiver and args" do
     assert expand(quote do: a.is_atom(b)) == quote do: a().is_atom(b())
+    assert expand(quote do: (a = :foo).is_atom(a)) == quote do: (a = :foo).is_atom(a())
   end
 
   test "remote calls: modules must be required for macros" do

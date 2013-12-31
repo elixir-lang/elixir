@@ -447,7 +447,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, E, EL) ->
     is_atom(Receiver) -> elixir_lexical:record_remote(Receiver, E#elixir_env.lexical_tracker);
     true -> ok
   end,
-  { EArgs, EA } = expand_args(Args, elixir_env:mergea(E, EL)),
+  { EArgs, EA } = expand_args(Args, E),
   { { { '.', DotMeta, [Receiver, Right] }, Meta, EArgs }, elixir_env:mergev(EL, EA) }.
 
 %% Lexical helpers
@@ -525,7 +525,7 @@ expand_comprehension(Meta, Kind, Args, E) ->
   case elixir_utils:split_last(Args) of
     { Cases, [{do,Expr}] } ->
       { ECases, EC } = lists:mapfoldl(fun expand_comprehension_clause/2, E, Cases),
-      { EExpr, EE }  = expand(Expr, EC),
+      { EExpr, _ }   = expand(Expr, EC),
       { { Kind, Meta, ECases ++ [[{do,EExpr}]] }, E };
     _ ->
       compile_error(Meta, E#elixir_env.file, "missing do keyword in comprehension ~ts", [Kind])
