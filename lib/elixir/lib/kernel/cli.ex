@@ -221,7 +221,7 @@ defmodule Kernel.CLI do
   defp process_compiler(["--warnings-as-errors"|t], config) do
     process_compiler t, config.update_compiler_options(&[{:warnings_as_errors, true}|&1])
   end
-  
+
   defp process_compiler(["--verbose"|t], config) do
     process_compiler t, config.verbose_compile(true)
   end
@@ -339,44 +339,43 @@ defmodule Kernel.CLI do
   defp process_command({:compile, patterns}, config) do
     :filelib.ensure_dir(:filename.join(config.output, "."))
 
-    case match_regular_files(patterns) do 
+    case match_regular_files(patterns) do
       { :ok, [] } ->
-        { :error, "--compile : No files matched provided patterns." }
-      { :ok, files } -> 
+        { :error, "No files matched provided patterns" }
+      { :ok, files } ->
         wrapper fn ->
           Code.compiler_options(config.compiler_options)
           Kernel.ParallelCompiler.files_to_path(files, config.output,
             each_file: fn file -> if config.verbose_compile do IO.puts "Compiled #{file}" end end)
         end
       { :missing, missing } ->
-        { :error, "--compile : No files matched pattern(s) #{Enum.join(missing, ",")}" }
+        { :error, "No files matched pattern(s) #{Enum.join(missing, ",")}" }
     end
   end
 
-  defp match_regular_files(patterns) do 
-    
+  defp match_regular_files(patterns) do
     matched_files = Enum.map patterns, fn(pattern) ->
-       case Path.wildcard(pattern) do 
-             [] -> {:missing, pattern }
-          files -> {:ok, files }
-       end 
-    end 
+      case Path.wildcard(pattern) do
+        []    -> { :missing, pattern }
+        files -> { :ok, files }
+      end
+    end
 
     files = Enum.filter_map matched_files,
-       fn(match) -> elem(match, 0) == :ok end, 
+       fn(match) -> elem(match, 0) == :ok end,
        &elem(&1, 1)
 
     missing_patterns = Enum.filter_map matched_files,
-       fn(match) -> elem(match, 0) == :missing end, 
+       fn(match) -> elem(match, 0) == :missing end,
        &elem(&1, 1)
 
-    if missing_patterns == [] do 
+    if missing_patterns == [] do
       files = Enum.uniq(Enum.concat(files))
       files = Enum.filter files, &:filelib.is_regular(&1)
       { :ok, files }
-    else 
+    else
       { :missing,  Enum.uniq(missing_patterns) }
-    end 
+    end
   end
 
   defp wrapper(fun) do
