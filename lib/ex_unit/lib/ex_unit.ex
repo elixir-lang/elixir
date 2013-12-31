@@ -173,22 +173,4 @@ defmodule ExUnit do
     opts = Keyword.put_new(configuration, :color, IO.ANSI.terminal?)
     ExUnit.Runner.run async, sync, opts, load_us
   end
-
-  @doc false
-  def parse_filters(filters) do
-    Enum.map filters, fn filter ->
-      [key, value] = case String.split(filter, ":", global: false) do
-        [key, value] -> [key, value]
-        [key] -> [key, true]
-      end
-
-      value = case value do
-        "true"  -> true
-        "false" -> false
-        value   -> value
-      end
-
-      { Kernel.binary_to_atom(key), value }
-    end
-  end
 end

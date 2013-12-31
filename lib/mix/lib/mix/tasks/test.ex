@@ -106,17 +106,16 @@ defmodule Mix.Tasks.Test do
     Enum.each(test_paths, &require_test_helper(&1))
 
     if opts[:include] do
-      inclusions = ExUnit.parse_filters(Keyword.get_values(opts, :include))
+      inclusions = ExUnit.Filters.parse(Keyword.get_values(opts, :include))
       opts = Keyword.put(opts, :include, inclusions)
     end
 
     if opts[:exclude] do
-      exclusions = ExUnit.parse_filters(Keyword.get_values(opts, :exclude))
+      exclusions = ExUnit.Filters.parse(Keyword.get_values(opts, :exclude))
       opts = Keyword.put(opts, :exclude, exclusions)
     end
 
     opts = Dict.take(opts, [:trace, :max_cases, :color, :include, :exclude])
-
     ExUnit.configure(opts)
 
     test_paths   = if files == [], do: test_paths, else: files

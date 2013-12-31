@@ -123,12 +123,6 @@ defmodule ExUnitTest do
     assert run_with_filter([exclude: [even: false]], test_cases) == 2
   end
 
-  test "parsing filters" do
-    assert ExUnit.parse_filters(["run"]) == [run: true]
-    assert ExUnit.parse_filters(["run:true"]) == [run: true]
-    assert ExUnit.parse_filters(["run:test"]) == [run: "test"]
-  end
-
   defp run_with_filter(filters, { async, sync, load_us }) do
     opts = Keyword.merge(ExUnit.configuration, filters)
     ExUnit.Runner.run(async, sync, opts, load_us)

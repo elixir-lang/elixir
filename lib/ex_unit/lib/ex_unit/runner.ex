@@ -3,13 +3,12 @@ defmodule ExUnit.Runner do
 
   defrecord Config, formatter: ExUnit.CLIFormatter, formatter_id: nil,
                     max_cases: 4, taken_cases: 0, async_cases: [],
-                    sync_cases: [], include: nil, exclude: nil
+                    sync_cases: [], include: [], exclude: []
 
   def run(async, sync, opts, load_us) do
-    opts = normalize_opts(opts)
-
+    opts   = normalize_opts(opts)
     config = Config[max_cases: :erlang.system_info(:schedulers_online)]
-    config = config.update(opts)
+    config = combine_filters(config.update(opts))
 
     { run_us, config } =
       :timer.tc fn ->
@@ -25,6 +24,16 @@ defmodule ExUnit.Runner do
       Keyword.put_new(opts, :max_cases, 1)
     else
       Keyword.put(opts, :trace, false)
+    end
+  end
+
+  defp combine_filters(config) do
+    config.update_include(&group_by_key/1).update_exclude(&group_by_key/1)
+  end
+
+  defp group_by_key(dict) do
+    Enum.reduce dict, [], fn { key, value }, acc ->
+      Dict.update acc, key, [value], &[value|&1]
     end
   end
 
@@ -128,13 +137,13 @@ defmodule ExUnit.Runner do
   defp run_test(config, test, context) do
     config.formatter.test_started(config.formatter_id, test)
 
-    filters = combine_filters([include: config.include, exclude: config.exclude])
-    result = evaluate_filters(filters, test.tags)
-
-    test = case result do
-      { :error, tag } -> skip_test(test, tag)
-      :ok -> spawn_test(config, test, context)
-    end
+    test =
+      case ExUnit.Filters.eval(config.include, config.exclude, test.tags) do
+        :ok ->
+          spawn_test(config, test, context)
+        { :error, tag } ->
+          skip_test(test, tag)
+      end
 
     config.formatter.test_finished(config.formatter_id, test)
   end
@@ -196,42 +205,6 @@ defmodule ExUnit.Runner do
     case config.sync_cases do
       [h|t] -> { config.sync_cases(t), [h] }
       []    -> nil
-    end
-  end
-
-  def evaluate_filters(filters, tags) do
-    Enum.find_value tags, :ok, fn { tag_key, _ } = tag ->
-      unless tag_accepted?(filters, tag), do: { :error, tag_key }
-    end
-  end
-
-  defp tag_accepted?([include: include, exclude: exclude], tag) do
-    tag_included?(include, tag) and not tag_excluded?(exclude, tag)
-  end
-
-  defp tag_included?(include, { tag_key, tag_value }) do
-    case Dict.fetch(include, tag_key) do
-      { :ok, allowed } -> tag_value in allowed
-      :error -> true
-    end
-  end
-
-  defp tag_excluded?(exclude, { tag_key, tag_value })  do
-    case Dict.fetch(exclude, tag_key) do
-      { :ok, forbidden } -> tag_value in forbidden
-      :error -> false
-    end
-  end
-
-  defp combine_filters([include: include, exclude: exclude]) do
-    include = group_by_key(include)
-    exclude = group_by_key(exclude)
-    [include: include, exclude: exclude]
-  end
-
-  defp group_by_key(dict) do
-    Enum.reduce dict, HashDict.new, fn { key, value }, acc ->
-      Dict.update acc, key, [value], &[value|&1]
     end
   end
 

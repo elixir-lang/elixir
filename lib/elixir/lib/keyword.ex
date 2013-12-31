@@ -25,7 +25,9 @@ defmodule Keyword do
 
   @type key :: atom
   @type value :: any
+
   @type t :: [{key, value}]
+  @type t(value) :: [{ key, value }]
 
   @doc """
   Creates a Keyword from an enum. Unlike `Keyword.new`

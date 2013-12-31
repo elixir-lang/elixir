@@ -114,9 +114,15 @@ defmodule ExUnit.Case do
 
   Tags can also be used to identify specific tests, which can then be included
   or excluded using filters. Filters are defined as key-value pairs, similar to
-  tags, and are used to match against the tags given for each test. For example
-  the following command will skip any test that contains the `:os` tag but has
-  a value other than `"unix"`.
+  tags, and are used to match against the tags given for each test.
+
+  Filters can be customized with `ExUnit.configure/1`:
+
+      ExUnit.configure include: [os: :win32]
+
+  However, tools like mix also allow those values to be given through the command
+  line. For example the following command will skip any test that contains the
+  `:os` tag but has a value other than `"unix"`.
 
       mix test --include os:unix
 
