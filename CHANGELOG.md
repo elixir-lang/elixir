@@ -1,14 +1,22 @@
 # v0.12.1-dev
 
 * Enhancements
+  * [ExUnit] Support `:include` and `:exclude` configuration options to filter which tests should run based on their tags. Those options are also supported via `mix test` as `--include` and `--exclude`
+  * [ExUnit] Allow doctests to match against `#MyModule<>`
 
 * Bug fixes
+  * [CLI] Abort when a pattern given to elixirc does not match any file
+  * [Float] Fix `Float.parse/1` to handle numbers of the form "-0.x"
+  * [IEx] Improve error message for `IEx.Helpers.r` when module does not exist
+  * [Mix] Ensure `deps.get` updates origin if lock origin and dep origin do not match
   * [Typespec] Fix conversion of unary ops from typespec format to ast
 
 * Deprecations
   * [Kernel] Do not leak clause heads. Previously, a variable defined in a case/receive head clauses would leak to the outer scope. This behaviour is deprecated and will be removed in the next release.
 
 * Backwards incompatible changes
+  * [GenFSM] GenServer now stops on unknown event/sync_event requests
+  * [GenServer] GenServer now stops on unknown call/cast requests
   * [Kernel] Change how `->` is represented in AST. Now each clause is represented by its own AST node which makes composition easier. See commit 51aef55 for more information.
 
 # v0.12.0 (2013-12-15)

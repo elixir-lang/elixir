@@ -69,13 +69,13 @@ defmodule IEx.Helpers do
       raise ArgumentError, message: "expected a binary or a list of binaries as argument"
     end
 
-    { found, not_found } = Enum.map(files, &Path.expand(&1, path)) |> Enum.partition(&File.exists?/1)
+    { found, not_found } =
+      files
+      |> Enum.map(&Path.expand(&1, path))
+      |> Enum.partition(&File.exists?/1)
 
     unless Enum.empty?(not_found) do
-      IO.puts IEx.color(:eval_error, %s[Cannot find #{Enum.join(not_found, ", ")}])
-      unless Enum.empty?(found) do
-        IO.puts IEx.color(:eval_info, "(remaining file(s) will be compiled)")
-      end
+      raise ArgumentError, message: "could not find files #{Enum.join(not_found, ", ")}"
     end
 
     { erls, exs } = Enum.partition(found, &String.ends_with?(&1, ".erl"))
@@ -315,7 +315,10 @@ defmodule IEx.Helpers do
     source = source(module)
     cond do
       source == nil ->
-        :nosource
+        raise ArgumentError, message: "could not find source for module: #{inspect module}"
+
+      not File.exists?(source) ->
+        raise ArgumentError, message: "could not find source (#{source}) for module: #{inspect module}"
 
       String.ends_with?(source, ".erl") ->
         [compile_erlang(source) |> elem(0)]
