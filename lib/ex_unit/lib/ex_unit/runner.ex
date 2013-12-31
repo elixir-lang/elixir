@@ -149,8 +149,6 @@ defmodule ExUnit.Runner do
   end
 
   defp spawn_test(_config, test, context) do
-    case_name = test.case
-
     # Run test in a new process so that we can trap exits for a single test
     self_pid = self
     { test_pid, test_ref } = Process.spawn_monitor(fn ->

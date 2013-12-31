@@ -20,4 +20,9 @@ defmodule ExUnit.CaseTest do
     assert context[:hello] == true
     assert context[:world] == :good
   end
+
+  test "reset tags", context do
+    assert nil?(context[:hello])
+    assert nil?(context[:world])
+  end
 end

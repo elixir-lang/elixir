@@ -245,6 +245,7 @@ defmodule ExUnit.Case do
              |> Keyword.put(:line, env.line)
       Module.put_attribute(env.module, :ex_unit_tests,
         ExUnit.Test[name: name, case: env.module, tags: tags])
+      Module.delete_attribute(env.module, :tag)
     end
   end
 
