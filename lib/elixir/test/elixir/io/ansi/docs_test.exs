@@ -1,7 +1,8 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file "../../test_helper.exs", __DIR__
 
-defmodule IEx.AnsiDocsTest do
-  use IEx.Case
+defmodule IO.ANSI.DocsTest do
+  use ExUnit.Case, async: true
+  import ExUnit.CaptureIO
 
   @colors [ enabled: true,
             doc_code: "cyan,bright",
@@ -11,19 +12,23 @@ defmodule IEx.AnsiDocsTest do
             doc_headings: "yellow,bright",
             doc_title: "reverse,yellow,bright" ]
 
-  @opts [colors: @colors]
+  def format_heading(str, use_ansi // true) do
+    capture_io(fn -> IO.ANSI.Docs.print_heading(str, use_ansi, @colors) end)
+    |> String.strip
+  end
 
   def format(str, use_ansi // true) do
-    cmd = "IEx.ANSIDocs.print(#{inspect str}, #{inspect use_ansi})"
-    capture_iex(cmd, @opts)
+    capture_io(fn -> IO.ANSI.Docs.print(str, use_ansi, @colors) end)
+    |> String.strip
   end
 
   test "non-ansi heading just uses an asterisk" do
-    assert capture_iex("IEx.ANSIDocs.print_heading(\"wibble\", false)", []) == "* wibble"
+    result = format_heading("wibble", false)
+    assert result == "* wibble"
   end
 
   test "ansi heading is formatted" do
-    result = capture_iex("IEx.ANSIDocs.print_heading(\"wibble\", true)", @opts)
+    result = format_heading("wibble", true)
     assert String.starts_with?(result, "\e[0m\n\e[7m\e[33m\e[1m")
     assert String.ends_with?(result, "\e[0m\n\e[0m")
     assert String.contains?(result, " wibble ")

@@ -167,7 +167,7 @@ defmodule IEx.Options do
   Same as `help/1` but instead of returning a string, prints it.
   """
   def print_help(name) do
-    IEx.ANSIDocs.print help(name)
+    IO.ANSI.Docs.print help(name)
   end
 
   @doc """

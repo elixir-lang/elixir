@@ -343,7 +343,7 @@ defmodule IEx do
   end
 
   @doc false
-  def dont_display_result, do: :"do not show this result in iex"
+  def dont_display_result, do: :"do not show this result in output"
 
   ## Helpers
 
