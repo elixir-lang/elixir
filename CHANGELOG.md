@@ -11,6 +11,7 @@
   * [Mix] Ensure `deps.get` updates origin if lock origin and dep origin do not match
   * [Mix] Use relative symlinks in _build
   * [Typespec] Fix conversion of unary ops from typespec format to ast
+  * [Typespec] Fix handling of `tuple()` and `{}`
 
 * Deprecations
   * [Kernel] Do not leak clause heads. Previously, a variable defined in a case/receive head clauses would leak to the outer scope. This behaviour is deprecated and will be removed in the next release.

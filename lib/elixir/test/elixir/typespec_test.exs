@@ -138,13 +138,15 @@ defmodule Typespec.TypeTest do
   end
 
   test "@type with a tuple" do
-    {spec1, spec2} = test_module do
+    {spec1, spec2, spec3} = test_module do
       t1 = @type mytype :: tuple
       t2 = @type mytype1 :: {}
-      {t1, t2}
+      t3 = @type mytype2 :: {1, 2}
+      {t1, t2, t3}
     end
     assert {:mytype, {:type, _, :tuple, :any}, []} = spec1
-    assert {:mytype1, {:type, _, :tuple, :any}, []} = spec2
+    assert {:mytype1, {:type, _, :tuple, []}, []} = spec2
+    assert {:mytype2, {:type, _, :tuple, [{:integer, _, 1}, {:integer, _, 2}]}, []} = spec3
   end
 
   test "@type with list shortcuts" do

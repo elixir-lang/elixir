@@ -513,7 +513,7 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec_to_ast({ :type, line, :tuple, :any }) do
-    typespec_to_ast({:type, line, :tuple, []})
+    { :tuple, [line: line], [] }
   end
 
   defp typespec_to_ast({ :type, line, :tuple, args }) do
@@ -707,17 +707,17 @@ defmodule Kernel.Typespec do
   end
 
   # Handle tuples
-  defp typespec({:tuple, meta, atom}, vars, caller) when is_atom(atom) do
-    typespec({:{}, meta, []}, vars, caller)
-  end
-
-  defp typespec({:{}, meta, []}, _, _) do
+  defp typespec({:tuple, meta, args}, _vars, _caller) when args == [] or is_atom(args) do
     { :type, line(meta), :tuple, :any }
   end
 
   defp typespec({:{}, meta, t}, vars, caller) when is_list(t) do
     args = lc e inlist t, do: typespec(e, vars, caller)
     { :type, line(meta), :tuple, args }
+  end
+
+  defp typespec({ left, right }, vars, caller) do
+    typespec({ :{}, [], [left, right] }, vars, caller)
   end
 
   # Handle blocks
@@ -781,11 +781,6 @@ defmodule Kernel.Typespec do
       { :|, [], [acc, validate_kw(x, l, caller)] }
     end)
     typespec({ :list, [], [union] }, vars, caller)
-  end
-
-  defp typespec(t, vars, caller) when is_tuple(t) do
-    args = lc e inlist tuple_to_list(t), do: typespec(e, vars, caller)
-    { :type, 0, :tuple, args }
   end
 
   ## Helpers
