@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Mix.UtilsTest do
   use MixTest.Case
 
+  doctest Mix.Utils, only: [make_relative_path: 2]
+
   test :command_to_module do
     assert Mix.Utils.command_to_module("hello", Mix.Tasks)   == { :module, Mix.Tasks.Hello }
     assert Mix.Utils.command_to_module("unknown", Mix.Tasks) == { :error, :nofile }
@@ -102,4 +104,5 @@ defmodule Mix.UtilsTest do
       assert :file.read_link("_build/archive/ebin") == { :ok, Path.expand('ebin') }
     end
   end
+
 end
