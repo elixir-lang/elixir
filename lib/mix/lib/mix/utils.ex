@@ -316,13 +316,10 @@ defmodule Mix.Utils do
 
   @doc """
   Symlink directory `source` to `target` or copy it recursively
-  in case symlink fails.
-  
-  ## Options
-
-  * `:relative_symlink` - If making a symlink, make it relative.
+  in case symlink fails. Expect source and target to be absolute
+  paths as it generates a relative symlink.
   """
-  def symlink_or_copy(source, target, opts // []) do
+  def symlink_or_copy(source, target) do
     if File.exists?(source) do
       source_list = String.to_char_list!(source)
       case :file.read_link(target) do
@@ -330,24 +327,39 @@ defmodule Mix.Utils do
           :ok
         { :ok, _ } ->
           File.rm!(target)
-          do_symlink_or_copy(source, target, opts)
+          do_symlink_or_copy(source, target)
         { :error, :enoent } ->
-          do_symlink_or_copy(source, target, opts)
+          do_symlink_or_copy(source, target)
         { :error, _ } ->
           File.rm_rf!(target)
-          do_symlink_or_copy(source, target, opts)
+          do_symlink_or_copy(source, target)
       end
     else
       { :error, :enoent }
     end
   end
 
-  defp do_symlink_or_copy(source, target, opts) do
-    symlink_source = if opts[:relative_symlink], do: make_relative_path(source, Path.expand(target)), else: source
+  defp do_symlink_or_copy(source, target) do
+    symlink_source = make_relative_path(source, target)
     case :file.make_symlink(symlink_source, target) do
       :ok -> :ok
       { :error, _ } -> File.cp_r!(source, Path.join(target, "."))
     end
+  end
+
+  # Make a relative path in between two paths.
+  # Expects both paths to be fully expanded.
+  defp make_relative_path(source, target) do
+    do_make_relative_path(Path.split(source), Path.split(target))
+  end
+
+  defp do_make_relative_path([h|t1], [h|t2]) do
+    do_make_relative_path(t1, t2)
+  end
+
+  defp do_make_relative_path(source, target) do
+    base = List.duplicate("..", max(length(target) - 1, 0))
+    Path.join(base ++ source)
   end
 
   @doc """
@@ -395,39 +407,4 @@ defmodule Mix.Utils do
   defp url?(path) do
     URI.parse(path).scheme in ["http", "https"]
   end
-
-  @doc """
-  Returns the relative path you would need to go from target to source. 
-  Useful to make relative symlinks.
-
-  ## Examples
-
-    iex> Mix.Utils.make_relative_path("/a/b/c", "/a/b/d")
-    "c"
-
-    iex> Mix.Utils.make_relative_path("/a/b/c/d", "/a/b/d/e")
-    "../c/d"
-
-    iex> Mix.Utils.make_relative_path("a/b", "y/z")
-    "../a/b"
-
-    iex> Mix.Utils.make_relative_path("a/b/c/d", "a/e/f/g")
-    "../../b/c/d"
-  """
-  def make_relative_path(source, target) do
-    do_make_relative_path(source, target)
-  end
-
-  defp do_make_relative_path(source, target) do
-    <<source_start :: utf8, source_rest :: binary>> = source
-    <<target_start :: utf8, target_rest :: binary>> = target
-
-    if source_start == target_start do
-      do_make_relative_path(source_rest, target_rest)
-    else
-      back_path = Enum.reduce Path.split(target) |> List.delete_at(-1), "", fn(_, acc) -> Path.join("..", acc) end
-      [back_path, source] |> Path.join |> Path.relative
-    end
-  end
-    
 end

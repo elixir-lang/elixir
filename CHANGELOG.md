@@ -9,6 +9,7 @@
   * [Float] Fix `Float.parse/1` to handle numbers of the form "-0.x"
   * [IEx] Improve error message for `IEx.Helpers.r` when module does not exist
   * [Mix] Ensure `deps.get` updates origin if lock origin and dep origin do not match
+  * [Mix] Use relative symlinks in _build
   * [Typespec] Fix conversion of unary ops from typespec format to ast
 
 * Deprecations

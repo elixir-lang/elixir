@@ -2,8 +2,7 @@ Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Mix.UtilsTest do
   use MixTest.Case
-
-  doctest Mix.Utils, only: [make_relative_path: 2]
+  doctest Mix.Utils
 
   test :command_to_module do
     assert Mix.Utils.command_to_module("hello", Mix.Tasks)   == { :module, Mix.Tasks.Hello }
@@ -83,25 +82,25 @@ defmodule Mix.UtilsTest do
   test :symlink_or_copy do
     in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive")
-      assert Mix.Utils.symlink_or_copy(Path.expand("ebin"), "_build/archive/ebin") == :ok
-      assert :file.read_link("_build/archive/ebin") == { :ok, Path.expand('ebin') }
+      assert Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin")) == :ok
+      assert :file.read_link("_build/archive/ebin") == { :ok, '../../ebin' }
     end
   end
 
   test :symlink_or_copy_removes_previous_directories do
     in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive/ebin")
-      assert Mix.Utils.symlink_or_copy(Path.expand("ebin"), "_build/archive/ebin") == :ok
-      assert :file.read_link("_build/archive/ebin") == { :ok, Path.expand('ebin') }
+      assert Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin")) == :ok
+      assert :file.read_link("_build/archive/ebin") == { :ok, '../../ebin' }
     end
   end
 
   test :symlink_or_copy_erases_wrong_symblinks do
     in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive")
-      Mix.Utils.symlink_or_copy(Path.expand("priv"), "_build/archive/ebin")
-      Mix.Utils.symlink_or_copy(Path.expand("ebin"), "_build/archive/ebin")
-      assert :file.read_link("_build/archive/ebin") == { :ok, Path.expand('ebin') }
+      Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.expand("_build/archive/ebin"))
+      Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
+      assert :file.read_link("_build/archive/ebin") == { :ok, '../../ebin' }
     end
   end
 
