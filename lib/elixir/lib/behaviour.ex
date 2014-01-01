@@ -36,7 +36,7 @@ defmodule Behaviour do
   `@callback` attributes. `defcallback` is a simple
   mechanism that defines the `@callback` attribute
   according to the given type specification. `defcallback` allows
-  documentsion to be created for the callback and defines 
+  documentation to be created for the callback and defines
   a custom function signature.
 
   The callbacks and their documentation can be retrieved

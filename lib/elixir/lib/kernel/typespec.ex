@@ -2,56 +2,95 @@ defmodule Kernel.Typespec do
   @moduledoc """
   Provides macros and functions for working with typespecs.
 
-  The attributes `@type`, `@opaque`, `@typep`, `@spec` and
-  `@callback` available in modules are handled by the equivalent
-  macros defined by this module.
+  Elixir comes with a notation for declaring types and specifications. Elixir is
+  dynamically typed, as such typespecs are never used by the compiler to
+  optimize or modify code. Still, using typespecs is useful as documentation and
+  tools such as [Dialyzer](http://www.erlang.org/doc/man/dialyzer.html) can
+  analyze the code with typespecs to find bugs.
 
-  ## Defining a type
+  The attributes `@type`, `@opaque`, `@typep`, `@spec` and `@callback` available
+  in modules are handled by the equivalent macros defined by this module. See
+  sub-sections "Defining a type" and "Defining a specification" below.
 
-      @type type_name :: type
-      @typep type_name :: type
-      @opaque type_name :: type
+  ## Types and their syntax
 
-  For more details, see documentation for `deftype`, `deftypep` and `defopaque`
-  below.
+  The type syntax provided by Elixir is fairly similar to the one in
+  [Erlang](http://www.erlang.org/doc/reference_manual/typespec.html).
 
-  ## Defining a specification
+  Most of the built-in types provided in Erlang (for example, `pid()`) are
+  expressed the same way: `pid()` or simply `pid`. Parametrized types are also
+  supported (`list(integer`) and so are remote types (`Enum.t`).
 
-      @spec function_name(type, type) :: type
-      @callback function_name(type, type) :: type
+  For integers and atoms literals are allowed as types (ex. `1`, `:atom` or
+  `false`). All other types are built up of unions of predefined types. Certain
+  shorthands are allowed, such as `[...]`, `<<>>` and `{...}`).
 
-  For more details, see documentation for `defspec` and `defcallback` below.
+  ### Predefined types
 
-  ## Types
+      Type :: any         # the top type, the set of all terms
+            | none        # the bottom type, contains no terms
+            | pid
+            | port
+            | reference
+            | Atom
+            | Bitstring
+            | float
+            | Fun
+            | Integer
+            | List
+            | Tuple
+            | Union
+            | UserDefined # Described in section "Defining a type"
 
-  The type syntax provided by Elixir is fairly similar to the one
-  in Erlang.
+      Atom :: atom
+            | ElixirAtom # `:foo`, `:bar`, ...
 
-  Most of the built-in types provided in Erlang (for example, `pid()`)
-  are expressed the same way: `pid()` or simply `pid`. Parametrized types
-  are also supported (`list(integer())`) and so are remote types (`Enum.t`).
+      Bitstring :: <<>>
+                 | << _ :: M >>             # M is a positive integer
+                 | << _ :: _ * N >>         # N is a positive integer
+                 | << _ :: M, _ :: _ * N >>
 
-  Certain data type shortcuts (`[...]`, `<<>>` and `{...}`) are supported as
-  well.
+      Fun :: (... -> any)    # any function
+           | (... -> Type)   # any arity, returning Type
+           | (() -> Type))
+           | (TList -> Type)
 
-  Main differences lie in how bit strings and functions are defined:
+      Integer :: integer
+               | ElixirInteger                # ..., -1, 0, 1, ... 42 ...
+               | ElixirInteger..ElixirInteger # specifies an integer range
 
-  ### Bit Strings
+      List :: list(Type)                        # proper list ([]-terminated)
+            | improper_list(Type1, Type2)       # Type1=contents, Type2=termination
+            | maybe_improper_list(Type1, Type2) # Type1 and Type2 as above
+            | nonempty_list(Type)               # proper non-empty list
+            | []                                # empty list
+            | [Type]                            # shorthand for list(Type)
+            | [Type, ...]                       # sharthand for nonempty_list(Type)
+
+      Tuple :: tuple     # stands for a tuple of any size
+             | {}        # empty tuple
+             | { TList }
+
+      TList :: Type
+             | Type, TList
+
+      Union :: Type1 | Type2
+
+  ### Bit strings
 
   Bit string with a base size of 3:
 
-      <<_ :: 3>>
+      << _ :: 3 >>
 
   Bit string with a unit size of 8:
 
-      <<_ :: _ * 8>>
+      << _ :: _ * 8 >>
 
   ### Anonymous functions
 
   Any anonymous function:
 
       ((...) -> any)
-      or
       (... -> any)
 
   Anonymous function with arity of zero:
@@ -61,22 +100,92 @@ defmodule Kernel.Typespec do
   Anonymous function with some arity:
 
       ((type, type) -> type)
-      or
       (type, type -> type)
+
+  ## Built-in types
+
+  Built-in type         | Defined as
+  :-------------------- | :---------
+  `term`                | `any`
+  `binary`              | `<< _ :: _ * 8 >>`
+  `bitstring`           | `<< _ :: _ * 1 >>`
+  `boolean`             | `false` &#124; `true`
+  `byte`                | `0..255`
+  `char`                | `0..0xffff`
+  `number`              | `integer` &#124; `float`
+  `list`                | `[any]`
+  `maybe_improper_list` | `maybe_improper_list(any, any)`
+  `nonempty_list`       | `nonempty_list(any)`
+  `iodata`              | `iolist` &#124; `binary`
+  `iolist`              | `maybe_improper_list(byte` &#124; `binary` &#124; `iolist, binary` &#124; `[])`
+  `module`              | `atom`
+  `mfa`                 | `{ atom, atom, arity }`
+  `arity`               | `0..255`
+  `node`                | `atom`
+  `timeout`             | `:infinity` &#124; `non_neg_integer`
+  `no_return`           | `none`
+
+  Some built-in types cannot be expressed with valid syntax according to the
+  language defined above.
+
+  Built-in type     | Can be interpreted as
+  :---------------- | :--------------------
+  `non_neg_integer` | `0..`
+  `pos_integer`     | `1..`
+  `neg_integer`     | `..-1`
+
+  Types defined in other modules are referred to as "remote types", they are
+  referenced as `Module.type_name` (ex. `Enum.t` or `String.t`).
+
+  ## Defining a type
+
+      @type type_name :: type
+      @typep type_name :: type
+      @opaque type_name :: type
+
+  A type defined with `@typep` is private. An opaque type, defined with
+  `@opaque` is a type where the internal structure of the type will not be
+  visible, but the type is still public.
+
+  Types can be parametrised by defining variables as parameters, these variables
+  can then be used to define the type.
+
+      @type dict(key, value) :: [{ key, value }]
+
+  Types can also be defined for records, see `defrecord/3`.
+
+  ## Defining a specification
+
+      @spec function_name(type1, type2) :: return_type
+      @callback function_name(type1, type2) :: return_type
+
+  Callbacks are used to define the callbacks functions of behaviours (see
+  `Behaviour`).
+
+  Guards can be used to restrict type variables given as arguments to the
+  function.
+
+      @spec function(arg) :: [arg] when arg: atom
+
+  Type variables with no restriction can also be defined.
+
+      @spec function(arg) :: [arg] when arg: var
+
+  Specifications can be overloaded just like ordinary functions.
+
+      @spec function(integer) :: atom
+      @spec function(atom)    :: integer
 
   ## Notes
 
-  Elixir discourages the use of type `string()` as it might be confused
-  with binaries which are referred to as "strings" in Elixir (as opposed to
-  character lists). In order to use the type that is called `string()` in Erlang,
-  one has to use the `char_list()` type which is a synonym for `string()`. If you
-  use `string()`, you'll get a warning from the compiler.
+  Elixir discourages the use of type `string` as it might be confused with
+  binaries which are referred to as "strings" in Elixir (as opposed to character
+  lists). In order to use the type that is called `string` in Erlang, one has to
+  use the `char_list` type which is a synonym for `string`. If you use `string`,
+  you'll get a warning from the compiler.
 
-  If you want to refer to the "string" type (the one operated by functions in the
-  String module), use `String.t()` type instead.
-
-  See http://www.erlang.org/doc/reference_manual/typespec.html
-  for more information.
+  If you want to refer to the "string" type (the one operated by functions in
+  the String module), use `String.t` type instead.
   """
 
   @doc """
@@ -736,7 +845,7 @@ defmodule Kernel.Typespec do
 
   # Handle local calls
   defp typespec({:string, meta, arguments}, vars, caller) do
-    IO.write "warning: string() type use is discouraged. For character lists, use " <>
+    :elixir_errors.warn "warning: string() type use is discouraged. For character lists, use " <>
       "char_list() type, for strings, String.t()\n#{Exception.format_stacktrace(caller.stacktrace)}"
     arguments = lc arg inlist arguments, do: typespec(arg, vars, caller)
     { :type, line(meta), :string, arguments }
