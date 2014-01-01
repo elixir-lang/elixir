@@ -82,17 +82,16 @@ do_clauses(_Meta, [], S) ->
 do_clauses(Meta, DecoupledClauses, S) ->
   % Transform tree just passing the variables counter forward
   % and storing variables defined inside each clause.
-  Transformer = fun(X, {SAcc, CAcc, UAcc, VAcc}) ->
+  Transformer = fun(X, {SAcc, UAcc, VAcc}) ->
     { TX, TS } = each_clause(Meta, X, SAcc),
     { TX,
-      { elixir_scope:mergef(S, TS),
-        elixir_scope:merge_counters(CAcc, TS#elixir_scope.counter),
+      { elixir_scope:mergec(S, TS),
         ordsets:union(UAcc, TS#elixir_scope.temp_vars),
         [TS#elixir_scope.clause_vars|VAcc] } }
   end,
 
-  { TClauses, { TS, Counter, Unsafe, ReverseCV } } =
-    lists:mapfoldl(Transformer, {S, S#elixir_scope.counter, S#elixir_scope.unsafe_vars, []}, DecoupledClauses),
+  { TClauses, { TS, Unsafe, ReverseCV } } =
+    lists:mapfoldl(Transformer, {S, S#elixir_scope.unsafe_vars, []}, DecoupledClauses),
 
   % Now get all the variables defined inside each clause
   CV = lists:reverse(ReverseCV),
@@ -105,7 +104,7 @@ do_clauses(Meta, DecoupledClauses, S) ->
   % is the old pointer.
   { FinalVars, FS } = lists:mapfoldl(fun({ Key, Val }, Acc) ->
     normalize_vars(Key, Val, Acc)
-  end, TS#elixir_scope{unsafe_vars=Unsafe, counter=Counter}, AllVars),
+  end, TS#elixir_scope{unsafe_vars=Unsafe}, AllVars),
 
   % Expand all clauses by adding a match operation at the end
   % that defines variables missing in one clause to the others.
@@ -174,46 +173,28 @@ each_clause(_PMeta, { 'after', Meta, [Condition], Expr }, S) ->
 
 has_match_tuple({'receive', _, _, _, _}) ->
   true;
-
 has_match_tuple({'receive', _, _}) ->
   true;
-
 has_match_tuple({'case', _, _, _}) ->
   true;
-
 has_match_tuple({match, _, _, _}) ->
   true;
-
 has_match_tuple({'fun', _, { clauses, _ }}) ->
   false;
-
 has_match_tuple(H) when is_tuple(H) ->
   has_match_tuple(tuple_to_list(H));
-
 has_match_tuple(H) when is_list(H) ->
   lists:any(fun has_match_tuple/1, H);
-
 has_match_tuple(_) -> false.
 
 % Normalize the given var in between clauses
 % by picking one value as reference and retriving
 % its previous value.
-%
-% If the variable starts with _, we cannot reuse it
-% since those shared variables will likely clash.
 
-normalize_vars(Key, { OldValue, OldCounter }, #elixir_scope{vars=Vars,clause_vars=ClauseVars} = S) ->
-  { Value, Counter, CS } =
-    case atom_to_list(OldValue) of
-      "_" ++ _ -> elixir_scope:build_var('_', S);
-      _        -> { OldValue, OldCounter, S }
-    end,
-
-  Tuple = { Value, Counter },
-
-  VS = CS#elixir_scope{
-    vars=orddict:store(Key, Tuple, Vars),
-    clause_vars=orddict:store(Key, Tuple, ClauseVars)
+normalize_vars(Key, Value, #elixir_scope{vars=Vars,clause_vars=ClauseVars} = S) ->
+  VS = S#elixir_scope{
+    vars=orddict:store(Key, Value, Vars),
+    clause_vars=orddict:store(Key, Value, ClauseVars)
   },
 
   Expr = case orddict:find(Key, Vars) of
@@ -221,7 +202,7 @@ normalize_vars(Key, { OldValue, OldCounter }, #elixir_scope{vars=Vars,clause_var
     error -> { atom, 0, nil }
   end,
 
-  { { Key, Tuple, Expr }, VS }.
+  { { Key, Value, Expr }, VS }.
 
 % Generate match vars by checking if they were updated
 % or not and assigning the previous value.

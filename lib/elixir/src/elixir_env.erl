@@ -17,7 +17,7 @@ env_to_scope(#elixir_env{module=Module,file=File,function=Function,context=Conte
 env_to_scope_with_vars(#elixir_env{} = Env, Vars) ->
   (env_to_scope(Env))#elixir_scope{
     vars=orddict:from_list(Vars),
-    hygiene_counter=length(Vars)+1
+    counter=[{'_',length(Vars)}]
   }.
 
 %% SCOPE MERGING

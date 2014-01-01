@@ -5,15 +5,11 @@
 clauses(_Meta, Clauses, S) ->
   Catch  = elixir_clauses:get_pairs('catch', Clauses),
   Rescue = elixir_clauses:get_pairs(rescue, Clauses),
-  Transformer = fun(X, { SAcc, CAcc }) ->
+  Transformer = fun(X, SAcc) ->
     { TX, TS } = each_clause(X, SAcc),
-    { TX,
-      { elixir_scope:mergef(S, TS),
-        elixir_scope:merge_counters(CAcc, TS#elixir_scope.counter) } }
+    { TX, elixir_scope:mergec(S, TS) }
   end,
-  { TClauses, { TS, TC } } =
-    lists:mapfoldl(Transformer, { S, S#elixir_scope.counter }, Rescue ++ Catch),
-  { TClauses, TS#elixir_scope{counter=TC} }.
+  lists:mapfoldl(Transformer, S, Rescue ++ Catch).
 
 each_clause({ 'catch', Meta, Raw, Expr }, S) ->
   { Args, Guards } = elixir_clauses:extract_splat_guards(Raw),

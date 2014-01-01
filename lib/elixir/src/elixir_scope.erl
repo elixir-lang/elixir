@@ -4,7 +4,7 @@
   load_binding/2, dump_binding/2,
   format_error/1, warn_unsafe/3,
   mergev/2, mergec/2, mergef/2,
-  merge_vars/2, merge_opt_vars/2, merge_counters/2
+  merge_vars/2, merge_opt_vars/2
 ]).
 -include("elixir.hrl").
 
@@ -47,7 +47,8 @@ translate_var(Meta, Name, Kind, RS) when is_atom(Kind); is_integer(Kind) ->
           { NewVar, Counter, NS } =
             if
               Kind /= nil -> build_var('_', S);
-              true -> build_var(Name, S)
+              Exists orelse S#elixir_scope.noname -> build_var(Name, S);
+              true -> { Name, 0, S }
             end,
 
           FS = NS#elixir_scope{
@@ -65,19 +66,10 @@ translate_var(Meta, Name, Kind, RS) when is_atom(Kind); is_integer(Kind) ->
       { { var, Line, Current }, S }
   end.
 
-build_var('_', #elixir_scope{hygiene_counter=Cnt} = S) ->
-  build_var('_', Cnt, S#elixir_scope{hygiene_counter=Cnt+1});
 build_var(Key, S) ->
-  New = orddict:update(Key, fun(Old) -> Old + 1 end, 0, S#elixir_scope.counter),
-  build_var(Key, orddict:fetch(Key, New), S#elixir_scope{counter=New}).
-
-build_var(Key, Cnt, S) ->
-  Var =
-    case Cnt of
-      0 -> Key;
-      _ -> ?atom_concat([Key, "@", Cnt])
-    end,
-  { Var, Cnt, S }.
+  New = orddict:update_counter(Key, 1, S#elixir_scope.counter),
+  Cnt = orddict:fetch(Key, New),
+  { ?atom_concat([Key, "@", Cnt]), Cnt, S#elixir_scope{counter=New} }.
 
 warn_unsafe(Meta, Tuple, S) ->
   case ordsets:is_element(Tuple, S#elixir_scope.unsafe_vars) andalso
@@ -119,8 +111,7 @@ mergec(S1, S2) ->
   S1#elixir_scope{
     counter=S2#elixir_scope.counter,
     super=S2#elixir_scope.super,
-    caller=S2#elixir_scope.caller,
-    hygiene_counter=S2#elixir_scope.hygiene_counter
+    caller=S2#elixir_scope.caller
   }.
 
 %% Similar to mergec but does not merge the user vars counter.
@@ -128,15 +119,10 @@ mergec(S1, S2) ->
 mergef(S1, S2) ->
   S1#elixir_scope{
     super=S2#elixir_scope.super,
-    caller=S2#elixir_scope.caller,
-    hygiene_counter=S2#elixir_scope.hygiene_counter
+    caller=S2#elixir_scope.caller
   }.
 
 %% Mergers.
-
-merge_counters(C, C) -> C;
-merge_counters(C1, C2) ->
-  orddict:merge(fun(_K, V1, V2) -> max(V1, V2) end, C1, C2).
 
 merge_vars(V, V) -> V;
 merge_vars(V1, V2) ->
@@ -154,10 +140,10 @@ var_merger(_Var, _K1, K2) -> K2.
 %% BINDINGS
 
 load_binding(Binding, Scope) ->
-  { NewBinding, NewVars, NewCounter } = load_binding(Binding, [], [], 1),
+  { NewBinding, NewVars, NewCounter } = load_binding(Binding, [], [], 0),
   { NewBinding, Scope#elixir_scope{
     vars=NewVars,
-    hygiene_counter=NewCounter
+    counter=[{'_',NewCounter}]
   } }.
 
 load_binding([{Key,Value}|T], Binding, Vars, Counter) ->

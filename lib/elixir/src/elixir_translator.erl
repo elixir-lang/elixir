@@ -78,7 +78,8 @@ translate({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
 
 %% Try
 
-translate({'try', Meta, [Clauses]}, S) when is_list(Clauses) ->
+translate({'try', Meta, [Clauses]}, RS) when is_list(Clauses) ->
+  S  = RS#elixir_scope{noname=true},
   Do = proplists:get_value('do', Clauses, nil),
   { TDo, SB } = elixir_translator:translate(Do, S),
 
@@ -91,7 +92,8 @@ translate({'try', Meta, [Clauses]}, S) when is_list(Clauses) ->
   Else = elixir_clauses:get_pairs(else, Clauses),
   { TElse, SE } = elixir_clauses:clauses(Meta, Else, mergec(S, SA)),
 
-  { { 'try', ?line(Meta), unblock(TDo), TElse, TCatch, unblock(TAfter) }, mergec(S, SE) };
+  SF = (mergec(S, SE))#elixir_scope{noname=RS#elixir_scope.noname},
+  { { 'try', ?line(Meta), unblock(TDo), TElse, TCatch, unblock(TAfter) }, SF };
 
 %% Receive
 
