@@ -16,7 +16,7 @@ defmodule EEx.SmartEngineTest do
   end
 
   defp assert_eval(expected, actual, binding // []) do
-    result = EEx.eval_string(actual, binding, file: __FILE__)
+    result = EEx.eval_string(actual, binding, file: __ENV__.file)
     assert result == expected
   end
 end

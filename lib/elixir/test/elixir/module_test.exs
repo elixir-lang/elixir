@@ -41,7 +41,7 @@ defmodule ModuleTest do
   @register_example :it_works
   @register_example :still_works
 
-  contents = quote do: (def eval_quoted_info, do: { __MODULE__, __FILE__, __ENV__.line })
+  contents = quote do: (def eval_quoted_info, do: { __MODULE__, __ENV__.file, __ENV__.line })
   Module.eval_quoted __MODULE__, contents, [], file: "sample.ex", line: 13
 
   defmacrop in_module(block) do

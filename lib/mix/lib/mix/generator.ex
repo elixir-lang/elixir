@@ -46,7 +46,7 @@ defmodule Mix.Generator do
   """
   defmacro from_file(path) do
     quote do
-      File.read! Path.expand(unquote(path), __FILE__)
+      File.read! Path.expand(unquote(path), __ENV__.file)
     end
   end
 

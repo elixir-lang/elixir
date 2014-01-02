@@ -437,7 +437,7 @@ defmodule StreamTest do
 
   test "resource is zippable" do
     # File.stream! uses Stream.resource underneath
-    stream = File.stream!(__FILE__)
+    stream = File.stream!(__ENV__.file)
     list   = Enum.to_list(stream)
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end

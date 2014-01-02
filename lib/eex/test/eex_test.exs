@@ -321,7 +321,7 @@ foo
         { EExText.Compiled,
           :before_compile,
           0,
-          [file: to_char_list(__FILE__), line: 7]
+          [file: to_char_list(__ENV__.file), line: 7]
         }
       }
 
@@ -330,7 +330,7 @@ foo
         { EExText.Compiled,
           :after_compile,
           0,
-          [file: to_char_list(__FILE__), line: 18]
+          [file: to_char_list(__ENV__.file), line: 18]
         }
       }
 
@@ -345,7 +345,7 @@ foo
   end
 
   defp assert_eval(expected, actual) do
-    result = EEx.eval_string(actual, [], file: __FILE__, engine: EEx.Engine)
+    result = EEx.eval_string(actual, [], file: __ENV__.file, engine: EEx.Engine)
     assert result == expected
   end
 end

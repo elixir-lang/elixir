@@ -545,7 +545,7 @@ defmodule Macro do
 
   * Macros (local or remote);
   * Aliases are expanded (if possible) and return atoms;
-  * All pseudo-variables (`__FILE__`, `__MODULE__`, etc);
+  * Pseudo-variables (`__ENV__`, `__MODULE__` and `__DIR__`);
   * Module attributes reader (`@foo`);
 
   If the expression cannot be expanded, it returns the expression
@@ -648,10 +648,13 @@ defmodule Macro do
   # Expand pseudo-variables
   defp do_expand_once({ :__MODULE__, _, atom }, env) when is_atom(atom),
     do: { env.module, true }
-  defp do_expand_once({ :__FILE__, _, atom }, env)   when is_atom(atom),
-    do: { env.file, true }
   defp do_expand_once({ :__DIR__, _, atom }, env)    when is_atom(atom),
     do: { :filename.dirname(env.file), true }
+
+  defp do_expand_once({ :__FILE__, _, atom }, env) when is_atom(atom) do
+    IO.write "__FILE__ is deprecated, please use __DIR__ or __ENV__.file instead\n#{Exception.format_stacktrace}"
+    { env.file, true }
+  end
 
   defp do_expand_once({ :__ENV__, _, atom }, env)    when is_atom(atom),
     do: { { :{}, [], tuple_to_list(env) }, true }

@@ -85,7 +85,7 @@ defmodule File do
 
   ## Examples
 
-      File.regular? __FILE__ #=> true
+      File.regular? __ENV__.file #=> true
 
   """
   def regular?(path) do

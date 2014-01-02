@@ -47,13 +47,6 @@ macro_line_test() ->
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo']).
 
-macro_file_test() ->
-  F = fun() ->
-    ?assertMatch({<<"nofile">>, []}, eval("defmodule Foo do\ndef line, do: __FILE__\nend\nFoo.line")),
-    ?assertMatch({<<"nofile">>, []}, eval("__FILE__"))
-  end,
-  test_helper:run_and_remove(F, ['Elixir.Foo']).
-
 def_default_test() ->
   F = fun() ->
     eval("defmodule Foo do\ndef version(x // 1), do: x\nend"),

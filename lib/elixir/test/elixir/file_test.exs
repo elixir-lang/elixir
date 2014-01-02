@@ -391,13 +391,13 @@ defmodule FileTest do
     use ExUnit.Case
 
     test :regular do
-      assert File.regular?(__FILE__)
-      assert File.regular?(String.to_char_list!(__FILE__))
-      refute File.regular?("#{__FILE__}.unknown")
+      assert File.regular?(__ENV__.file)
+      assert File.regular?(String.to_char_list!(__ENV__.file))
+      refute File.regular?("#{__ENV__.file}.unknown")
     end
 
     test :exists do
-      assert File.exists?(__FILE__)
+      assert File.exists?(__ENV__.file)
       assert File.exists?(fixture_path)
       assert File.exists?(fixture_path("file.txt"))
 
@@ -433,12 +433,12 @@ defmodule FileTest do
     end
 
     test :read_with_list do
-      assert { :ok, "FOO\n" } = File.read(Path.expand('../fixtures/file.txt', __FILE__))
-      assert { :error, :enoent } = File.read(Path.expand('../fixtures/missing.txt', __FILE__))
+      assert { :ok, "FOO\n" } = File.read(Path.expand('fixtures/file.txt', __DIR__))
+      assert { :error, :enoent } = File.read(Path.expand('fixtures/missing.txt', __DIR__))
     end
 
     test :read_with_utf8 do
-      assert { :ok, "Русский\n日\n" } = File.read(Path.expand('../fixtures/utf8.txt', __FILE__))
+      assert { :ok, "Русский\n日\n" } = File.read(Path.expand('fixtures/utf8.txt', __DIR__))
     end
 
     test :read! do
@@ -875,12 +875,12 @@ defmodule FileTest do
   end
 
   test :stat do
-    {:ok, info} = File.stat(__FILE__)
+    {:ok, info} = File.stat(__ENV__.file)
     assert info.mtime
   end
 
   test :stat! do
-    assert File.stat!(__FILE__).mtime
+    assert File.stat!(__ENV__.file).mtime
   end
 
   test :stat_with_invalid_file do

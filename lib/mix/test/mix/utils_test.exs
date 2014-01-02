@@ -73,10 +73,10 @@ defmodule Mix.UtilsTest do
 
   test :extract_stale do
     time = { { 2030, 1, 1 }, { 0, 0, 0 } }
-    assert Mix.Utils.extract_stale([{ "hello", time }], [__FILE__]) == [{ "hello", time }]
+    assert Mix.Utils.extract_stale([{ "hello", time }], [__ENV__.file]) == [{ "hello", time }]
 
     time = { { 2000, 1, 1 }, { 0, 0, 0 } }
-    assert Mix.Utils.extract_stale([{ "hello", time }], [__FILE__]) == []
+    assert Mix.Utils.extract_stale([{ "hello", time }], [__ENV__.file]) == []
   end
 
   test :symlink_or_copy do

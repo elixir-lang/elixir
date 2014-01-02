@@ -122,7 +122,8 @@ expand({ import, Meta, [Ref, KV] }, E) ->
 
 expand({ '__MODULE__', _, Atom }, E) when is_atom(Atom) ->
   { E#elixir_env.module, E };
-expand({ '__FILE__', _, Atom }, E) when is_atom(Atom) ->
+expand({ '__FILE__', Meta, Atom }, E) when is_atom(Atom) ->
+  elixir_errors:deprecation(Meta, E#elixir_env.file, "__FILE__ is deprecated, please use __DIR__ or __ENV__.file instead"),
   { E#elixir_env.file, E };
 expand({ '__DIR__', _, Atom }, E) when is_atom(Atom) ->
   { filename:dirname(E#elixir_env.file), E };

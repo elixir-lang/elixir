@@ -89,10 +89,6 @@ defmodule Kernel.ExpansionTest do
     assert expand(quote do: __MODULE__) == __MODULE__
   end
 
-  test "__FILE__" do
-    assert expand(quote do: __FILE__) == __FILE__
-  end
-
   test "__DIR__" do
     assert expand(quote do: __DIR__) == __DIR__
   end
@@ -108,7 +104,7 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "__ENV__.accessor" do
-    assert expand(quote(do: __ENV__.file)) == __FILE__
+    assert expand(quote(do: __ENV__.file)) == __ENV__.file
   end
 
   ## Super

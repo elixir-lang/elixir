@@ -2,7 +2,7 @@
 -module(elixir_scope).
 -export([translate_var/4, build_var/2,
   load_binding/2, dump_binding/2,
-  format_error/1, warn_unsafe/3,
+  warn_unsafe/3,
   mergev/2, mergec/2, mergef/2,
   merge_vars/2, merge_opt_vars/2
 ]).
@@ -74,14 +74,18 @@ build_var(Key, S) ->
 warn_unsafe(Meta, Tuple, S) ->
   case ordsets:is_element(Tuple, S#elixir_scope.unsafe_vars) andalso
        (lists:keyfind(unsafe, 1, Meta) /= { unsafe, false }) of
-    true  -> elixir_errors:handle_file_warning(S#elixir_scope.file, { ?line(Meta), ?MODULE, { unsafe_var, Tuple } });
-    false -> ok
+    true  ->
+      case Tuple of
+        { Var, nil } ->
+          elixir_errors:deprecation(Meta, S#elixir_scope.file,
+            "variable ~ts is defined in a case clause and is unsafe, please assign it explicitly", [Var]);
+        { Var, Ctx } ->
+          elixir_errors:deprecation(Meta, S#elixir_scope.file,
+            "variable ~ts (context ~p) is defined in a case clause and is unsafe, please assign it explicitly", [Var, Ctx])
+      end;
+    false ->
+      ok
   end.
-
-format_error({ unsafe_var, { Var, nil } }) ->
-  io_lib:format("variable ~ts is defined in a case clause and is unsafe, please assign it explicitly", [Var]);
-format_error({ unsafe_var, { Var, Ctx } }) ->
-  io_lib:format("variable ~ts (context ~p) is defined in a case clause and is unsafe, please assign it explicitly", [Var, Ctx]).
 
 %% SCOPE MERGING
 

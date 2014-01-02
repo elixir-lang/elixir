@@ -75,7 +75,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats stacktraces with test location" do
-    failure = { :error, catch_error(raise "oops"), [{ Hello, :world, 1, [file: __FILE__, line: 1]}] }
+    failure = { :error, catch_error(raise "oops"), [{ Hello, :world, 1, [file: __ENV__.file, line: 1]}] }
     assert format_test_failure(Hello, :world, failure, 1, nil) =~ """
       1) world (Hello)
          ** (RuntimeError) oops
@@ -84,7 +84,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats stacktraces without test location" do
-    failure = { :error, catch_error(raise "oops"), [{ Oops, :wrong, 1, [file: __FILE__, line: 1]}] }
+    failure = { :error, catch_error(raise "oops"), [{ Oops, :wrong, 1, [file: __ENV__.file, line: 1]}] }
     assert format_test_failure(Hello, :world, failure, 1, nil) =~ """
       1) world (Hello)
          ** (RuntimeError) oops

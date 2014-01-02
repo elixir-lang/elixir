@@ -97,7 +97,7 @@ defmodule Kernel.ExceptionTest do
         [top|_] = System.stacktrace
         top
       end
-    file = to_char_list(__FILE__)
+    file = to_char_list(__ENV__.file)
     assert {Kernel.ExceptionTest, :test_raise_preserves_the_stacktrace, _,
            [file: ^file, line: 95]} = stacktrace # line is sensitive
   end

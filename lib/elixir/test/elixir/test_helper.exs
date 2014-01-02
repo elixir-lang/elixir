@@ -4,11 +4,11 @@ Code.compiler_options debug_info: true
 
 defmodule PathHelpers do
   def fixture_path() do
-    Path.expand("../fixtures", __FILE__)
+    Path.expand("fixtures", __DIR__)
   end
 
   def tmp_path() do
-    Path.expand("../../../tmp", __FILE__)
+    Path.expand("../../tmp", __DIR__)
   end
 
   def fixture_path(extra) do
@@ -40,7 +40,7 @@ defmodule PathHelpers do
   end
 
   defp executable_path(name) do
-    Path.expand("../../../../../bin/#{name}#{executable_extension}", __FILE__)
+    Path.expand("../../../../bin/#{name}#{executable_extension}", __DIR__)
   end
 
   if match? { :win32, _ }, :os.type do

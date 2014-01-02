@@ -13,7 +13,7 @@ defmodule CodeTest do
 
   contents = quote do
     defmodule CodeTest.Sample do
-      def eval_quoted_info, do: { __MODULE__, __FILE__, __ENV__.line }
+      def eval_quoted_info, do: { __MODULE__, __ENV__.file, __ENV__.line }
     end
   end
 
@@ -69,10 +69,6 @@ defmodule CodeTest do
     assert Code.require_file(fixture_path("code_sample.exs")) != nil
   end
 
-  test :file do
-    assert :filename.absname(__FILE__) == __FILE__
-  end
-
   test :string_to_quoted do
     assert Code.string_to_quoted("1 + 2") == { :ok, { :+, [line: 1], [1, 2] } }
     assert { :error, _ } = Code.string_to_quoted("a.1")
@@ -96,7 +92,7 @@ defmodule CodeTest do
   end
 
   test :compile_source do
-    assert __MODULE__.__info__(:compile)[:source] == String.to_char_list!(__FILE__)
+    assert __MODULE__.__info__(:compile)[:source] == String.to_char_list!(__ENV__.file)
   end
 
   test :compile_info_returned_with_source_accessible_through_keyword_module do

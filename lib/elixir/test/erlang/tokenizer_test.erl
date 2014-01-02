@@ -83,9 +83,6 @@ identifier_test() ->
 module_macro_test() ->
     [{identifier,1,'__MODULE__'}] = tokenize("__MODULE__").
 
-file_macro_test() ->
-    [{identifier,1,'__FILE__'}] = tokenize("__FILE__").
-
 dot_test() ->
   [{identifier,1,foo},
    {'.',1},

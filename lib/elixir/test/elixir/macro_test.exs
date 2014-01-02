@@ -2,10 +2,12 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule Macro.ExternalTest do
   defmacro external do
-    18 = __CALLER__.line
-    __FILE__ = __CALLER__.file
-    18 = __CALLER__.location[:line]
-    __FILE__ = __CALLER__.location[:file]
+    line = 18
+    file = __ENV__.file
+    ^line = __CALLER__.line
+    ^file = __CALLER__.file
+    ^line = __CALLER__.location[:line]
+    ^file = __CALLER__.location[:file]
   end
 
   defmacro oror(left, right) do

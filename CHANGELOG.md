@@ -15,6 +15,7 @@
 
 * Deprecations
   * [Kernel] Do not leak clause heads. Previously, a variable defined in a case/receive head clauses would leak to the outer scope. This behaviour is deprecated and will be removed in the next release.
+  * [Kernel] Deprecate `__FILE__` in favor of `__DIR__` or `__ENV__.file`
 
 * Backwards incompatible changes
   * [GenFSM] GenServer now stops on unknown event/sync_event requests

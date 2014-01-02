@@ -8,9 +8,9 @@ defmodule Kernel.SpecialForms do
   The macros `{}` and `<<>>` are also special forms used to define
   tuple and binary data structures respectively.
 
-  This module also documents Elixir's pseudo variables (`__MODULE__`,
-  `__FILE__`, `__ENV__`, `__DIR__` and `__CALLER__`). Pseudo variables
-  return information about Elixir's compilation environment and can only
+  This module also documents Elixir's pseudo variables (`__ENV__`,
+  `__MODULE__`, `__DIR__` and `__CALLER__`). Pseudo variables return
+  information about Elixir's compilation environment and can only
   be read, never assigned to.
 
   Finally, it also documents 2 special forms, `__block__` and
@@ -472,15 +472,10 @@ defmodule Kernel.SpecialForms do
   defmacro __MODULE__
 
   @doc """
-  Returns the current file name as a binary.
-
-  Although the file can be accessed in the `__ENV__`, this macro
-  is a convenient shortcut.
-  """
-  defmacro __FILE__
-
-  @doc """
   Returns the current directory as a binary.
+
+  Although the directory can be accessed as `Path.dirname(__ENV__.file)`,
+  this macro is a convenient shortcut.
   """
   defmacro __DIR__
 
