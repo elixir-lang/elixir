@@ -85,12 +85,6 @@ defmodule Macro do
       message: "cannot pipe #{to_string expr} into #{to_string call_args}"
   end
 
-  @doc false
-  def extract_args(expr) do
-    IO.write "Macro.extract_args/1 is deprecated, use Macro.decompose_call/1 instead\n#{Exception.format_stacktrace}"
-    decompose_call(expr)
-  end
-
   @doc """
   Recurs the quoted expression applying the given function to
   each metadata node.

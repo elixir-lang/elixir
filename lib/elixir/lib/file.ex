@@ -1024,15 +1024,6 @@ defmodule File do
     end
   end
 
-  @doc false
-  def binstream!(file, mode // [], line_or_bytes // :line) do
-    IO.write "File.binstream! is deprecated, simply use File.stream! instead\n" <>
-             Exception.format_stacktrace
-    Stream.resource(fn -> open!(file, mode) end,
-                    &IO.do_binstream(&1, line_or_bytes),
-                    &F.close/1)
-  end
-
   @doc """
   Changes the unix file `mode` for a given `file`.
   Returns `:ok` on success, or `{:error, reason}`

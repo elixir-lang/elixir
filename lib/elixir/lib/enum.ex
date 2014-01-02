@@ -282,24 +282,6 @@ defmodule Enum do
     end
   end
 
-  @doc false
-  def chunks(coll, n) do
-    IO.write "Enum.chunks/2 is deprecated, please use Enum.chunk/2 instead\n#{Exception.format_stacktrace}"
-    chunk(coll, n)
-  end
-
-  @doc false
-  def chunks(coll, n, step, pad) do
-    IO.write "Enum.chunks/4 is deprecated, please use Enum.chunk/4 instead\n#{Exception.format_stacktrace}"
-    chunk(coll, n, step, pad)
-  end
-
-  @doc false
-  def chunks_by(coll, fun) do
-    IO.write "Enum.chunks_by/2 is deprecated, please use Enum.chunk_by/2 instead\n#{Exception.format_stacktrace}"
-    chunk_by(coll, fun)
-  end
-
   @doc """
   Shortcut to `chunk(coll, n, n)`.
   """
