@@ -1,7 +1,7 @@
 %% Module responsible for tracking invocations of module calls.
 -module(elixir_locals).
 -export([
-  setup/1, cleanup/1,
+  setup/1, cleanup/1, cache_env/1, get_cached_env/1,
   record_local/2, record_local/3, record_import/4,
   record_definition/3, record_defaults/4,
   ensure_no_function_conflict/4, warn_unused_local/3, format_error/1
@@ -122,6 +122,24 @@ if_tracker(Module, Callback) ->
   catch
     error:badarg -> false
   end.
+
+%% CACHING
+
+cache_env(#elixir_env{module=Module} = RE) ->
+  E = RE#elixir_env{line=nil,vars=[]},
+  try ets:lookup_element(Module, ?attr, 2) of
+    Pid ->
+      { Pid, ?tracker:cache_env(Pid, E) }
+  catch
+    error:badarg ->
+      { Escaped, _ } = elixir_quote:escape(E, false),
+      Escaped
+  end;
+cache_env(ExEnv) ->
+  cache_env(elixir_env:ex_to_env(ExEnv)).
+
+get_cached_env({Pid,Ref}) -> ?tracker:get_cached_env(Pid, Ref);
+get_cached_env(Env) -> Env.
 
 %% ERROR HANDLING
 

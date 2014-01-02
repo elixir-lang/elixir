@@ -49,7 +49,7 @@ delete_definition(Module, Tuple) ->
 % Each function is then added to the function table.
 
 store_definition(Line, Kind, CheckClauses, Call, Body, Pos) ->
-  E = (elixir_env:get_cached(Pos))#elixir_env{line=Line},
+  E = (elixir_locals:get_cached_env(Pos))#elixir_env{line=Line},
   { NameAndArgs, Guards } = elixir_clauses:extract_guards(Call),
 
   { Name, Args } = case NameAndArgs of

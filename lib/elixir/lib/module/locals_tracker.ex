@@ -186,6 +186,16 @@ defmodule Module.LocalsTracker do
     end
   end
 
+  @doc false
+  def cache_env(pid, env) do
+    :gen_server.call(pid, { :cache_env, env }, @timeout)
+  end
+
+  @doc false
+  def get_cached_env(pid, ref) do
+    :gen_server.call(pid, { :get_cached_env, ref }, @timeout)
+  end
+
   # Stops the gen server
   @doc false
   def stop(pid) do
@@ -197,71 +207,86 @@ defmodule Module.LocalsTracker do
   def init([]) do
     d = :digraph.new([:protected])
     :digraph.add_vertex(d, :local)
-    { :ok, d }
+    { :ok, { d, [] } }
   end
 
-  def handle_call({ :yank, local }, _from, d) do
+  def handle_call({ :cache_env, env }, _from, { d, cache }) do
+    case cache do
+      [{i,^env}|_] ->
+        { :reply, i, { d, cache } }
+      t ->
+        i = length(t)
+        { :reply, i, { d, [{i,env}|t] } }
+    end
+  end
+
+  def handle_call({ :get_cached_env, ref }, _from, { _, cache } = state) do
+    { ^ref, env } = :lists.keyfind(ref, 1, cache)
+    { :reply, env, state }
+  end
+
+  def handle_call({ :yank, local }, _from, { d, _ } = state) do
     in_vertices  = :digraph.in_neighbours(d, local)
     out_vertices = :digraph.out_neighbours(d, local)
     :digraph.del_vertex(d, local)
-    { :reply, { in_vertices, out_vertices }, d }
+    { :reply, { in_vertices, out_vertices }, state }
   end
 
-  def handle_call(:digraph, _from, d) do
-    { :reply, d, d }
+  def handle_call(:digraph, _from, { d, _ } = state) do
+    { :reply, d, state }
   end
 
-  def handle_call(_request, _from, d) do
-    { :noreply, d }
+  def handle_call(request, _from, state) do
+    { :stop, { :bad_call, request }, state }
   end
 
-  def handle_info(_msg, d) do
-    { :noreply, d }
+  def handle_info(_msg, state) do
+    { :noreply, state }
   end
 
-  def handle_cast({ :add_local, from, to }, d) do
+  def handle_cast({ :add_local, from, to }, { d, _ } = state) do
     handle_add_local(d, from, to)
-    { :noreply, d }
+    { :noreply, state }
   end
 
-  def handle_cast({ :add_import, function, module, { name, arity } }, d) do
+  def handle_cast({ :add_import, function, module, { name, arity } }, { d, _ } = state) do
     handle_import(d, function, module, name, arity)
-    { :noreply, d }
+    { :noreply, state }
   end
 
-  def handle_cast({ :add_definition, kind, tuple }, d) do
+  def handle_cast({ :add_definition, kind, tuple }, { d, _ } = state) do
     handle_add_definition(d, kind, tuple)
-    { :noreply, d }
+    { :noreply, state }
   end
 
-  def handle_cast({ :add_defaults, kind, { name, arity }, defaults }, d) do
+  def handle_cast({ :add_defaults, kind, { name, arity }, defaults }, { d, _ } = state) do
     lc i inlist :lists.seq(arity - defaults, arity - 1) do
       handle_add_definition(d, kind, { name, i })
       handle_add_local(d, { name, i }, { name, i + 1 })
     end
-    { :noreply, d }
+    { :noreply, state }
   end
 
-  def handle_cast({ :reattach, tuple, { in_neigh, out_neigh } }, d) do
+  def handle_cast({ :reattach, tuple, { in_neigh, out_neigh } }, { d, _ } = state) do
     lc from inlist in_neigh, do: replace_edge(d, from, tuple)
     lc to inlist out_neigh,  do: replace_edge(d, tuple, to)
-    { :noreply, d }
+    { :noreply, state }
   end
 
-  def handle_cast(:stop, d) do
-    { :stop, :normal, d }
+  def handle_cast(:stop, state) do
+    { :stop, :normal, state }
   end
 
-  def handle_cast(_msg, d) do
-    { :noreply, d }
+  def handle_cast(msg, state) do
+    { :stop, { :bad_cast, msg }, state }
   end
 
-  def terminate(_reason, _d) do
+  def terminate(_reason, _state) do
     :ok
   end
 
-  def code_change(_old, d, _extra) do
-    { :ok, d }
+  def code_change(_old, state, _extra) do
+    { :ok, state }
   end
 
   defp handle_import(d, function, module, name, arity) do

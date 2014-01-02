@@ -1,9 +1,7 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([ex_to_env/1, env_to_scope/1, env_to_scope_with_vars/2, env_to_ex/1]).
--export([cache/1, get_cached/1]).
 -export([mergea/2, mergev/2]).
--define(tracker, 'Elixir.Kernel.LexicalTracker').
 
 %% Conversion in between #elixir_env, #elixir_scope and Macro.Env
 
@@ -38,20 +36,3 @@ mergev(E1, E2) ->
 
 mergea(E1, E2) ->
   E2#elixir_env{vars=E1#elixir_env.vars}.
-
-%% Caching
-
-cache(#elixir_env{} = RE) ->
-  E = RE#elixir_env{line=nil,vars=[]},
-  case E#elixir_env.lexical_tracker of
-    nil -> escape(E);
-    Pid -> { Pid, ?tracker:cache(Pid, E) }
-  end;
-cache(ExEnv) ->
-  cache(ex_to_env(ExEnv)).
-
-get_cached({Pid,Ref}) -> ?tracker:get_cached(Pid, Ref);
-get_cached(Env) -> Env.
-
-escape(E) ->
-  { Escaped, _ } = elixir_quote:escape(E, false), Escaped.

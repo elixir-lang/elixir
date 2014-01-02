@@ -83,16 +83,6 @@ defmodule Kernel.LexicalTracker do
     unused(pid, @alias)
   end
 
-  @doc false
-  def cache(pid, env) do
-    :gen_server.call(pid, { :cache, env }, @timeout)
-  end
-
-  @doc false
-  def get_cached(pid, ref) do
-    :gen_server.call(pid, { :get_cached, ref }, @timeout)
-  end
-
   defp unused(pid, pos) do
     ets = :gen_server.call(pid, :ets, @timeout)
     :ets.foldl(fn
@@ -107,75 +97,60 @@ defmodule Kernel.LexicalTracker do
 
 
   def init([]) do
-    { :ok, { :ets.new(:lexical, [:protected]), [] } }
+    { :ok, :ets.new(:lexical, [:protected]) }
   end
 
-  def handle_call({ :cache, env }, _from, { d, cache }) do
-    case cache do
-      [{i,^env}|_] ->
-        { :reply, i, { d, cache } }
-      t ->
-        i = length(t)
-        { :reply, i, { d, [{i,env}|t] } }
-    end
+  def handle_call(:ets, _from, d) do
+    { :reply, d, d }
   end
 
-  def handle_call({ :get_cached, ref }, _from, { _, cache } = state) do
-    { ^ref, env } = :lists.keyfind(ref, 1, cache)
-    { :reply, env, state }
+  def handle_call(request, _from, d) do
+    { :stop, { :bad_call, request }, d }
   end
 
-  def handle_call(:ets, _from, { d, _ } = state) do
-    { :reply, d, state }
-  end
-
-  def handle_call(_request, _from, state) do
-    { :noreply, state }
-  end
-
-  def handle_cast({ :remote_dispatch, module }, { d, _ } = state) do
+  def handle_cast({ :remote_dispatch, module }, d) do
     add_module(d, module)
-    { :noreply, state }
+    { :noreply, d }
   end
 
-  def handle_cast({ :import_dispatch, module }, { d, _ } = state) do
+  def handle_cast({ :import_dispatch, module }, d) do
     add_dispatch(d, module, @import)
-    { :noreply, state }
+    { :noreply, d }
   end
 
-  def handle_cast({ :alias_dispatch, module }, { d, _ } = state) do
+  def handle_cast({ :alias_dispatch, module }, d) do
     add_dispatch(d, module, @alias)
-    { :noreply, state }
+    { :noreply, d }
   end
 
-  def handle_cast({ :add_import, module, line, warn }, { d, _ } = state) do
+  def handle_cast({ :add_import, module, line, warn }, d) do
     add_directive(d, module, line, warn, @import)
-    { :noreply, state }
+    { :noreply, d }
   end
 
-  def handle_cast({ :add_alias, module, line, warn }, { d, _ } = state) do
+  def handle_cast({ :add_alias, module, line, warn }, d) do
     add_directive(d, module, line, warn, @alias)
-    { :noreply, state }
+    { :noreply, d }
   end
 
-  def handle_cast(:stop, state) do
-    { :stop, :normal, state }
+  def handle_cast(:stop, d) do
+    { :stop, :normal, d }
   end
 
-  def handle_cast(_msg, state) do
-    { :noreply, state }
+  def handle_cast(msg, d) do
+    { :stop, { :bad_cast, msg }, d }
   end
 
-  def handle_info(_msg, state) do
-    { :noreply, state }
+  def handle_info(_msg, d) do
+    { :noreply, d }
   end
 
-  def terminate(_reason, _state) do
+  def terminate(_reason, _d) do
     :ok
   end
 
-  def code_change(_old, state, _extra) do
-    { :ok, state }
+  def code_change(_old, d, _extra) do
+    { :ok, d }
   end
 
   # Callbacks helpers

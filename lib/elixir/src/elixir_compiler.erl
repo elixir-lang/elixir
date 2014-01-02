@@ -200,6 +200,7 @@ core_main() ->
     <<"lib/elixir/lib/macro/env.ex">>,
     <<"lib/elixir/lib/exception.ex">>,
     <<"lib/elixir/lib/code.ex">>,
+    <<"lib/elixir/lib/module/locals_tracker.ex">>,
     <<"lib/elixir/lib/protocol.ex">>,
     <<"lib/elixir/lib/stream/reducers.ex">>,
     <<"lib/elixir/lib/enum.ex">>,
@@ -217,8 +218,7 @@ core_main() ->
     <<"lib/elixir/lib/kernel/error_handler.ex">>,
     <<"lib/elixir/lib/kernel/parallel_compiler.ex">>,
     <<"lib/elixir/lib/kernel/record_rewriter.ex">>,
-    <<"lib/elixir/lib/kernel/lexical_tracker.ex">>,
-    <<"lib/elixir/lib/module/locals_tracker.ex">>
+    <<"lib/elixir/lib/kernel/lexical_tracker.ex">>
   ].
 
 binary_to_path({ModuleName, Binary}, CompilePath) ->
