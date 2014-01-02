@@ -1074,7 +1074,7 @@ defmodule File do
   end
 
   @doc """
-  Changes the owner given by the user id `gid`
+  Changes the owner given by the user id `uid`
   for a given `file`. Returns `:ok` on success,
   or `{:error, reason}` on failure.
   """
@@ -1085,8 +1085,8 @@ defmodule File do
   @doc """
   Same as `chown/2`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  def chown!(file, gid) do
-    case chown(file, gid) do
+  def chown!(file, uid) do
+    case chown(file, uid) do
       :ok -> :ok
       { :error, reason } ->
         raise File.Error, reason: reason, action: "change owner for", path: to_string(file)
