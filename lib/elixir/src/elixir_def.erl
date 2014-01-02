@@ -2,7 +2,7 @@
 -module(elixir_def).
 -export([table/1, clauses_table/1, setup/1,
   cleanup/1, reset_last/1, lookup_definition/2,
-  delete_definition/2, store_definition/5, unwrap_definitions/2,
+  delete_definition/2, store_definition/6, unwrap_definitions/2,
   store_each/8, format_error/1]).
 -include("elixir.hrl").
 
@@ -48,8 +48,8 @@ delete_definition(Module, Tuple) ->
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
-store_definition(Kind, CheckClauses, Call, Body, ExEnv) ->
-  #elixir_env{line=Line} = E = elixir_env:ex_to_env(ExEnv),
+store_definition(Line, Kind, CheckClauses, Call, Body, Pos) ->
+  E = (elixir_env:get_cached(Pos))#elixir_env{line=Line},
   { NameAndArgs, Guards } = elixir_clauses:extract_guards(Call),
 
   { Name, Args } = case NameAndArgs of
@@ -76,13 +76,13 @@ store_definition(Kind, CheckClauses, Call, Body, ExEnv) ->
   LinifyBody   = elixir_quote:linify(Line, Key, Body),
 
   assert_no_aliases_name(Line, Name, Args, E),
-  store_definition(Kind, Line, DoCheckClauses, Name,
+  store_definition(Line, Kind, DoCheckClauses, Name,
                    LinifyArgs, LinifyGuards, LinifyBody, File, E).
 
-store_definition(Kind, Line, CheckClauses, Name, Args, Guards, Body, MetaFile, #elixir_env{module=Module} = ER) ->
+store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, MetaFile, #elixir_env{module=Module} = ER) ->
   Arity = length(Args),
   Tuple = { Name, Arity },
-  E = ER#elixir_env{function=Tuple,vars=[]},
+  E = ER#elixir_env{function=Tuple},
   elixir_locals:record_definition(Tuple, Kind, Module),
 
   Location = retrieve_file(Line, MetaFile, Module, E),

@@ -11,12 +11,12 @@
   unless_loaded('MACRO-@', [Caller, Tree], fun() -> nil end).
 
 'MACRO-def'(Caller, Call) -> 'MACRO-def'(Caller, Call, nil).
-'MACRO-def'(Caller, Call, Expr) -> definition(Caller, def, Call, Expr).
-'MACRO-defp'(Caller, Call, Expr) -> definition(Caller, defp, Call, Expr).
+'MACRO-def'(Caller, Call, Expr) -> define(Caller, def, Call, Expr).
+'MACRO-defp'(Caller, Call, Expr) -> define(Caller, defp, Call, Expr).
 
 'MACRO-defmacro'(Caller, Call) -> 'MACRO-defmacro'(Caller, Call, nil).
-'MACRO-defmacro'(Caller, Call, Expr) -> definition(Caller, defmacro, Call, Expr).
-'MACRO-defmacrop'(Caller, Call, Expr) -> definition(Caller, defmacrop, Call, Expr).
+'MACRO-defmacro'(Caller, Call, Expr) -> define(Caller, defmacro, Call, Expr).
+'MACRO-defmacrop'(Caller, Call, Expr) -> define(Caller, defmacrop, Call, Expr).
 
 'MACRO-defmodule'(_Caller, Alias, [{do,Block}]) ->
   { Escaped, _ } = elixir_quote:escape(Block, false),
@@ -35,10 +35,10 @@
    {defmodule,2},
    {defp,2}].
 
-definition(_Caller, Kind, Call, Expr) ->
+define({Line,E}, Kind, Call, Expr) ->
   { EscapedCall, UC } = elixir_quote:escape(Call, true),
   { EscapedExpr, UE } = elixir_quote:escape(Expr, true),
-  Args = [Kind, not(UC or UE), EscapedCall, EscapedExpr, env()],
+  Args = [Line, Kind, not(UC or UE), EscapedCall, EscapedExpr, elixir_env:cache(E)],
   { { '.', [], [elixir_def, store_definition] }, [], Args }.
 
 unless_loaded(Fun, Args, Callback) ->

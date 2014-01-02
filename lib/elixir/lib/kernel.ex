@@ -2982,16 +2982,18 @@ defmodule Kernel do
   defp define(kind, call, expr, env) do
     assert_module_scope(env, kind, 2)
     assert_no_function_scope(env, kind, 2)
+    line = env_line(env)
 
     { call, uc } = :elixir_quote.escape(call, true)
     { expr, ue } = :elixir_quote.escape(expr, true)
 
     # Do not check clauses if any expression was unquoted
     check_clauses = not(ue or uc)
+    pos = :elixir_env.cache(env)
 
     quote do
-      :elixir_def.store_definition(unquote(kind), unquote(check_clauses),
-                                   unquote(call), unquote(expr), __ENV__)
+      :elixir_def.store_definition(unquote(line), unquote(kind), unquote(check_clauses),
+                                   unquote(call), unquote(expr), unquote(pos))
     end
   end
 
@@ -3784,6 +3786,7 @@ defmodule Kernel do
   end
 
   defp env_module(env),   do: :erlang.element(2, env)
+  defp env_line(env),     do: :erlang.element(4, env)
   defp env_function(env), do: :erlang.element(5, env)
   defp env_context(env),  do: :erlang.element(6, env)
   defp env_vars(env),     do: :erlang.element(13, env)
