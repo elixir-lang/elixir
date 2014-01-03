@@ -104,7 +104,10 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "__ENV__.accessor" do
-    assert expand(quote(do: __ENV__.file)) == __ENV__.file
+    env = __ENV__
+    assert expand_env(quote(do: __ENV__.file), env) == { __ENV__.file, env }
+    assert expand_env(quote(do: __ENV__.unknown), env) ==
+           { quote(do: unquote({ :{}, [], tuple_to_list(env.line(0)) }).unknown), env }
   end
 
   ## Super

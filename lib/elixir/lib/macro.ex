@@ -658,8 +658,13 @@ defmodule Macro do
 
   defp do_expand_once({ :__ENV__, _, atom }, env)    when is_atom(atom),
     do: { { :{}, [], tuple_to_list(env) }, true }
-  defp do_expand_once({ { :., _, [{ :__ENV__, _, atom }, field] }, _, [] }, env) when is_atom(atom) and is_atom(field),
-    do: { apply(env, field, []), true }
+  defp do_expand_once({ { :., _, [{ :__ENV__, _, atom }, field] }, _, [] } = original, env) when
+      is_atom(atom) and is_atom(field) do
+    case :erlang.function_exported(Macro.Env, field, 1) do
+      true  -> { apply(env, field, []), true }
+      false -> { original, false }
+    end
+  end
 
   # Expand possible macro import invocation
   defp do_expand_once({ atom, meta, context } = original, env)

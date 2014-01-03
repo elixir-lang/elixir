@@ -150,6 +150,13 @@ defmodule MacroTest do
     assert Macro.expand_once(quote(do: :foo), __ENV__) == :foo
   end
 
+  test :expand_once_env do
+    env = __ENV__
+    assert Macro.expand_once(quote(do: __ENV__), env) == { :{}, [], tuple_to_list(env) }
+    assert Macro.expand_once(quote(do: __ENV__.file), env) == env.file
+    assert Macro.expand_once(quote(do: __ENV__.unkown), env) == quote(do: __ENV__.unkown)
+  end
+
   defmacro local_macro do
     :local_macro
   end
