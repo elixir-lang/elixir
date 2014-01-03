@@ -9,7 +9,7 @@
 -define(line(Opts), elixir_utils:get_line(Opts)).
 
 -record(elixir_scope, {
-  context=nil,             %% can be assign, guards or nil
+  context=nil,             %% can be match, guards or nil
   extra=nil,               %% extra information about the context, like fn_match and do_match
   noname=false,            %% when true, don't add new names (used by try)
   super=false,             %% when true, it means super was invoked
@@ -32,7 +32,7 @@
   file=(<<"nofile">>),     %% the current filename
   line=1,                  %% the current line
   function=nil,            %% the current function
-  context=nil,             %% can be assign, guards or nil
+  context=nil,             %% can be match_vars, guards or nil
   requires=[],             %% a set with modules required
   aliases=[],              %% an orddict with aliases by new -> old names
   functions=[],            %% a list with functions imported from module

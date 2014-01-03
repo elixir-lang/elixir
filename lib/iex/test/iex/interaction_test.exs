@@ -66,6 +66,19 @@ defmodule IEx.InteractionTest do
     assert "** (RuntimeError) undefined function: many/3"     <> _ = capture_iex("many(:ok, 22, \"hi\")")
   end
 
+  test "module definition" do
+    input = """
+    defmodule Sample do
+      def foo, do: bar
+      def bar, do: 13
+    end && Sample.foo
+    """
+    assert capture_iex(input) =~ "13"
+  after
+    :code.purge(Sample)
+    :code.delete(Sample)
+  end
+
   ## .iex file loading
 
   test "no .iex" do

@@ -24,8 +24,8 @@ compile(Module, Block, Vars, #elixir_env{line=Line} = Env) when is_atom(Module) 
   %% we get rid of the lexical tracker information as, at this
   %% point, the lexical tracker process is long gone.
   LexEnv = case Env#elixir_env.function of
-    nil -> Env#elixir_env{module=Module};
-    _   -> Env#elixir_env{lexical_tracker=nil, function=nil, module=Module}
+    nil -> Env#elixir_env{module=Module, local=nil};
+    _   -> Env#elixir_env{lexical_tracker=nil, function=nil, module=Module, local=nil}
   end,
 
   case LexEnv#elixir_env.lexical_tracker of
