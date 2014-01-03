@@ -17,11 +17,9 @@
   module=nil,              %% the current module
   function=nil,            %% the current function
   vars=[],                 %% a dict of defined variables and their alias
-  unsafe_vars=[],          %% a set keeping all unsafe vars
-  temp_vars=nil,           %% a set keeping all temporary unsafe vars
   backup_vars=nil,         %% a copy of vars to be used on ^var
   match_vars=nil,          %% a set of all variables defined in a particular match
-  clause_vars=nil,         %% a dict of all variables defined in a particular clause
+  export_vars=nil,         %% a dict of all variables defined in a particular clause
   extra_guards=nil,        %% extra guards from args expansion
   counter=[],              %% a dict counting the variables defined
   file=(<<"nofile">>)      %% the current scope filename
@@ -40,6 +38,7 @@
   macro_aliases=[],        %% keep aliases defined inside a macro
   context_modules=[],      %% modules defined in the current context
   vars=[],                 %% a set of defined variables
+  export_vars=nil,         %% a set of variables to be exported in certain constructs, may be nil
   lexical_tracker=nil,     %% holds the lexical tracker pid
   local=nil                %% the module to delegate local functions to
 }).

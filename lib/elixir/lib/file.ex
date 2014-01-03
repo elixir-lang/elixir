@@ -649,7 +649,7 @@ defmodule File do
     do_rm_rf(path, { :ok, [] })
   end
 
-  defp do_rm_rf(path, { :ok, acc } = entry) do
+  defp do_rm_rf(path, { :ok, _ } = entry) do
     case safe_list_dir(path) do
       { :ok, files } when is_list(files) ->
         res =

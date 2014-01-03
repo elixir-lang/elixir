@@ -7,10 +7,6 @@ defmodule Kernel.CaseTest do
     assert (case 1, do: (1 -> :ok; 2 -> :wrong)) == :ok
   end
 
-  test :nested_case do
-    assert get_case == 2
-  end
-
   test :nested_variables do
     assert vars_case(400, 1) == { 400, 1 }
     assert vars_case(401, 1) == { 400, -1 }
@@ -39,27 +35,6 @@ defmodule Kernel.CaseTest do
 
   test :in_with_match do
     refute 1.0 in [1, 2, 3], "not in assertion"
-  end
-
-  defp get_case do
-    case internal do
-      :invalid ->
-        status = :fail
-      1 ->
-        case other_internal do
-          status ->
-            status
-        end
-    end
-    status
-  end
-
-  defp internal do
-    1
-  end
-
-  defp other_internal do
-    2
   end
 
   defp vars_case(x, vx) do

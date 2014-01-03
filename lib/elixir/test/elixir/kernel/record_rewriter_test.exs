@@ -155,9 +155,6 @@ defmodule Kernel.RecordRewriterTest do
     clause = clause(fn -> case x = Macro.Env[] do _ -> x end end)
     assert optimize_clause(clause) == { clause, [x: Macro.Env], { Macro.Env, nil } }
 
-    clause = clause(fn -> case something do x = Macro.Env[] -> x; Macro.Env[] = x -> x end end)
-    assert optimize_clause(clause) == { clause, [x: Macro.Env], { Macro.Env, nil } }
-
     clause = clause(fn -> case something do x = Macro.Env[] -> x; Macro.Env[] = y -> y end end)
     assert optimize_clause(clause) == { clause, [], { Macro.Env, nil } }
 
@@ -168,15 +165,15 @@ defmodule Kernel.RecordRewriterTest do
     assert optimize_clause(clause) == { clause, [x: nil], nil }
 
     clause = clause(fn -> case something do x = Macro.Env[] -> x; x = Range[] -> x; _ -> :ok end end)
-    assert optimize_clause(clause) == { clause, [x: nil], nil }
+    assert optimize_clause(clause) == { clause, [], nil }
   end
 
   test "inside case with nested tuple" do
-    clause = clause(fn -> case something do x = Range[first: { :foo, 2 }] -> x; Range[] = x -> x end end)
-    assert optimize_clause(clause) == { clause, [x: Range], { Range, nil } }
+    clause = clause(fn -> case something do x = Range[first: { :foo, 2 }] -> x = x; Range[] = x -> x = x end end)
+    assert optimize_clause(clause) == { clause, ["x@4": Range], { Range, nil } }
 
-    clause = clause(fn -> case something do x = Range[first: { :foo, 2 }] -> x; Range[first: { :foo, 2 }] = x -> x end end)
-    assert optimize_clause(clause) == { clause, [x: Range], { Range, [nil, { :foo, nil }, nil] } }
+    clause = clause(fn -> case something do x = Range[first: { :foo, 2 }] -> x = x; Range[first: { :foo, 2 }] = x -> x = x end end)
+    assert optimize_clause(clause) == { clause, ["x@4": Range], { Range, [nil, { :foo, nil }, nil] } }
   end
 
   test "empty receive" do
@@ -185,9 +182,6 @@ defmodule Kernel.RecordRewriterTest do
   end
 
   test "inside receive" do
-    clause = clause(fn -> receive do x = Macro.Env[] -> x; Macro.Env[] = x -> x end end)
-    assert optimize_clause(clause) == { clause, [x: Macro.Env], { Macro.Env, nil } }
-
     clause = clause(fn -> receive do x = Macro.Env[] -> x; Macro.Env[] = y -> y end end)
     assert optimize_clause(clause) == { clause, [], { Macro.Env, nil } }
 

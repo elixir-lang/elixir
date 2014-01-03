@@ -279,50 +279,60 @@ defmodule Kernel.ExpansionTest do
   ## Case
 
   test "case: expands each clause" do
-    assert expand(quote do: (case w do x -> x; _ -> x end)) ==
+    assert expand_and_clean(quote do: (case w do x -> x; _ -> x end)) ==
            quote do: (case w() do x -> x; _ -> x() end)
   end
 
   test "case: does not share lexical in between clauses" do
-    assert expand(quote do: (case w do 1 -> import List; 2 -> flatten([1,2,3]) end)) ==
+    assert expand_and_clean(quote do: (case w do 1 -> import List; 2 -> flatten([1,2,3]) end)) ==
            quote do: (case w() do 1 -> import :"Elixir.List", []; 2 -> flatten([1,2,3]) end)
   end
 
   test "case: expands guards" do
-    assert expand(quote do: (case w do x when x when __ENV__.context -> true end)) ==
+    assert expand_and_clean(quote do: (case w do x when x when __ENV__.context -> true end)) ==
            quote do: (case w() do x when x when :guard -> true end)
   end
 
+  test "case: does not leaks vars on head" do
+    assert expand_and_clean(quote do: (case w do x -> x; y -> y end; :erlang.+(x, y))) ==
+           quote do: (case w() do x -> x; y -> y end; :erlang.+(x(), y()))
+  end
+
   test "case: leaks vars" do
-    assert expand(quote do: (case w do x -> x; y -> y end; :erlang.+(x, y))) ==
-           quote do: (case w() do x -> x; y -> y end; :erlang.+(x, y))
+    assert expand_and_clean(quote do: (case w do x -> x = x; y -> y = y end; :erlang.+(x, y))) ==
+           quote do: (case w() do x -> x = x; y -> y = y end; :erlang.+(x, y))
   end
 
   ## Receive
 
   test "receive: expands each clause" do
-    assert expand(quote do: (receive do x -> x; _ -> x end)) ==
+    assert expand_and_clean(quote do: (receive do x -> x; _ -> x end)) ==
            quote do: (receive do x -> x; _ -> x() end)
   end
 
   test "receive: does not share lexical in between clauses" do
-    assert expand(quote do: (receive do 1 -> import List; 2 -> flatten([1,2,3]) end)) ==
+    assert expand_and_clean(quote do: (receive do 1 -> import List; 2 -> flatten([1,2,3]) end)) ==
            quote do: (receive do 1 -> import :"Elixir.List", []; 2 -> flatten([1,2,3]) end)
   end
 
   test "receive: expands guards" do
-    assert expand(quote do: (receive do x when x when __ENV__.context -> true end)) ==
+    assert expand_and_clean(quote do: (receive do x when x when __ENV__.context -> true end)) ==
            quote do: (receive do x when x when :guard -> true end)
   end
 
-  test "receive: leaks vars" do
-    assert expand(quote do: (receive do x -> x; y -> y end; :erlang.+(x, y))) ==
-           quote do: (receive do x -> x; y -> y end; :erlang.+(x, y))
+  test "receive: does not leaks clause vars" do
+    assert expand_and_clean(quote do: (receive do x -> x; y -> y end; :erlang.+(x, y))) ==
+           quote do: (receive do x -> x; y -> y end; :erlang.+(x(), y()))
   end
 
-  test "receive: does not leak var on after" do
-    assert expand(quote do: (receive do x -> x after y -> y; w = y end; :erlang.+(x, w))) ==
-           quote do: (receive do x -> x after y() -> y(); w = y() end; :erlang.+(x, w))
+  test "receive: leaks vars" do
+    assert expand_and_clean(quote do: (receive do x -> x = x; y -> y = y end; :erlang.+(x, y))) ==
+           quote do: (receive do x -> x = x; y -> y = y end; :erlang.+(x, y))
+  end
+
+  test "receive: leaks vars on after" do
+    assert expand_and_clean(quote do: (receive do x -> x = x after y -> y; w = y end; :erlang.+(x, w))) ==
+           quote do: (receive do x -> x = x after y() -> y(); w = y() end; :erlang.+(x, w))
   end
 
   ## Try
@@ -375,6 +385,10 @@ defmodule Kernel.ExpansionTest do
 
   defmacro thirteen do
     13
+  end
+
+  defp expand_and_clean(expr) do
+    expand_env(expr, __ENV__) |> elem(0) |> Macro.update_meta(&Keyword.drop(&1, [:export]))
   end
 
   defp expand(expr) do

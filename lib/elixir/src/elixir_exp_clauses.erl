@@ -46,10 +46,12 @@ guard(Other, E) ->
 'case'(Meta, KV, E) when not is_list(KV) ->
   compile_error(Meta, E#elixir_env.file, "invalid arguments for case");
 'case'(Meta, KV, E) ->
-  lists:mapfoldl(fun(X, Acc) -> do_case(Meta, X, Acc, E) end, E, KV).
+  EE = E#elixir_env{export_vars=[]},
+  { EClauses, EVars } = lists:mapfoldl(fun(X, Acc) -> do_case(Meta, X, Acc, EE) end, [], KV),
+  { EClauses, elixir_env:mergev(EVars, E) }.
 
 do_case(Meta, { 'do', _ } = Do, Acc, E) ->
-  expand_with_vars(Meta, 'case', expand_arg(Meta, 'case', 'do'), Do, Acc, E);
+  expand_with_export(Meta, 'case', expand_arg(Meta, 'case', 'do'), Do, Acc, E);
 do_case(Meta, { Key, _ }, _Acc, E) ->
   compile_error(Meta, E#elixir_env.file, "unexpected keyword ~ts in case", [Key]).
 
@@ -60,17 +62,19 @@ do_case(Meta, { Key, _ }, _Acc, E) ->
 'receive'(Meta, KV, E) when not is_list(KV) ->
   compile_error(Meta, E#elixir_env.file, "invalid arguments for receive");
 'receive'(Meta, KV, E) ->
-  lists:mapfoldl(fun(X, Acc) -> do_receive(Meta, X, Acc, E) end, E, KV).
+  EE = E#elixir_env{export_vars=[]},
+  { EClauses, EVars } = lists:mapfoldl(fun(X, Acc) -> do_receive(Meta, X, Acc, EE) end, [], KV),
+  { EClauses, elixir_env:mergev(EVars, E) }.
 
 do_receive(_Meta, { 'do', nil } = Do, Acc, _E) ->
   { Do, Acc };
 do_receive(Meta, { 'do', _ } = Do, Acc, E) ->
-  expand_with_vars(Meta, 'receive', expand_arg(Meta, 'receive', 'do'), Do, Acc, E);
+  expand_with_export(Meta, 'receive', expand_arg(Meta, 'receive', 'do'), Do, Acc, E);
 do_receive(_Meta, { 'after', [{ '->', Meta, [[Left], Right] }] }, Acc, E) ->
   { ELeft, EL }  = elixir_exp:expand(Left, E),
   { ERight, ER } = elixir_exp:expand(Right, EL),
   EClause = { 'after', [{ '->', Meta, [[ELeft], ERight] }] },
-  { EClause, elixir_env:mergev(ER, Acc) };
+  { EClause, elixir_env:merge_vars(Acc, ER#elixir_env.export_vars) };
 do_receive(Meta, { 'after', _ }, _Acc, E) ->
   compile_error(Meta, E#elixir_env.file, "expected a single -> clause for after in receive");
 do_receive(Meta, { Key, _ }, _Acc, E) ->
@@ -92,11 +96,11 @@ do_try(_Meta, { 'after', Expr }, E) ->
   { EExpr, _ } = elixir_exp:expand(Expr, E),
   { 'after', EExpr };
 do_try(Meta, { 'else', _ } = Else, E) ->
-  expand_without_vars(Meta, 'try', expand_arg(Meta, 'try', 'else'), Else, E);
+  expand_without_export(Meta, 'try', expand_arg(Meta, 'try', 'else'), Else, E);
 do_try(Meta, { 'catch', _ } = Catch, E) ->
-  expand_without_vars(Meta, 'try', fun elixir_exp:expand_many/2, Catch, E);
+  expand_without_export(Meta, 'try', fun elixir_exp:expand_many/2, Catch, E);
 do_try(Meta, { 'rescue', _ } = Rescue, E) ->
-  expand_without_vars(Meta, 'try', fun expand_rescue/3, Rescue, E);
+  expand_without_export(Meta, 'try', fun expand_rescue/3, Rescue, E);
 do_try(Meta, { Key, _ }, E) ->
   compile_error(Meta, E#elixir_env.file, "unexpected keyword ~ts in try", [Key]).
 
@@ -147,6 +151,17 @@ is_var_or_atom(_) -> false.
 
 %% Expansion helpers
 
+export_vars({ Left, Meta, Right }) when is_atom(Left), is_list(Meta), is_atom(Right) ->
+  { Left, [{export,false}|Meta], Right };
+export_vars({ Left, Meta, Right }) ->
+  { export_vars(Left), Meta, export_vars(Right) };
+export_vars({ Left, Right }) ->
+  { export_vars(Left), export_vars(Right) };
+export_vars(List) when is_list(List) ->
+  [export_vars(X) || X <- List];
+export_vars(Other) ->
+  Other.
+
 %% Returns a function that expands arguments
 %% considering we have at maximum one entry.
 expand_arg(Meta, Kind, Key) ->
@@ -159,22 +174,27 @@ expand_arg(Meta, Kind, Key) ->
   end.
 
 %% Expands all -> pairs in a given key keeping the overall vars.
-expand_with_vars(Meta, Kind, Fun, { Key, Clauses }, Acc, E) when is_list(Clauses) ->
-  Transformer = fun(Clause, FunAcc) ->
-    { EClause, EC } = clause(Meta, Kind, Fun, Clause, E),
-    { EClause, elixir_env:mergev(EC, FunAcc) }
+expand_with_export(Meta, Kind, Fun, { Key, Clauses }, Acc, E) when is_list(Clauses) ->
+  EFun =
+    case lists:keyfind(export_all, 1, Meta) of
+      { export_all, true } -> Fun;
+      _ -> fun(ExportArgs, ExportE) -> Fun(export_vars(ExportArgs), ExportE) end
+    end,
+  Transformer = fun(Clause, Vars) ->
+    { EClause, EC } = clause(Meta, Kind, EFun, Clause, E),
+    { EClause, elixir_env:merge_vars(Vars, EC#elixir_env.export_vars) }
   end,
-  { EClauses, EAcc } = lists:mapfoldl(Transformer, Acc, Clauses),
-  { { Key, EClauses }, EAcc };
-expand_with_vars(Meta, Kind, _Fun, { Key, _ }, _Acc, E) ->
+  { EClauses, EVars } = lists:mapfoldl(Transformer, Acc, Clauses),
+  { { Key, EClauses }, EVars };
+expand_with_export(Meta, Kind, _Fun, { Key, _ }, _Acc, E) ->
   compile_error(Meta, E#elixir_env.file, "expected -> clauses for ~ts in ~ts", [Key, Kind]).
 
 %% Expands all -> pairs in a given key but do not keep the overall vars.
-expand_without_vars(Meta, Kind, Fun, { Key, Clauses }, E) when is_list(Clauses) ->
+expand_without_export(Meta, Kind, Fun, { Key, Clauses }, E) when is_list(Clauses) ->
   Transformer = fun(Clause) ->
     { EClause, _ } = clause(Meta, Kind, Fun, Clause, E),
     EClause
   end,
   { Key, lists:map(Transformer, Clauses) };
-expand_without_vars(Meta, Kind, _Fun, { Key, _ }, E) ->
+expand_without_export(Meta, Kind, _Fun, { Key, _ }, E) ->
   compile_error(Meta, E#elixir_env.file, "expected -> clauses for ~ts in ~ts", [Key, Kind]).

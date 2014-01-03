@@ -12,16 +12,19 @@ defmodule Macro.Env do
   * `function` - a tuple as `{ atom, integer` }, where the first
     element is the function name and the seconds its arity. Returns
     `nil` if not inside a function
-  * `aliases` -  a list of two item tuples, where the first
-    item is the aliased name and the second the actual name
   * `context` - the context of the environment. It can be nil
     (default context), inside a guard or inside an assign
+  * `aliases` -  a list of two item tuples, where the first
+    item is the aliased name and the second the actual name
   * `requires` - the list of required modules
   * `functions` - a list of functions imported from each module
   * `macros` - a list of macros imported from each module
-  * `context_modules` - a list of modules defined in the current context
   * `macro_aliases` - a list of aliases defined inside the current macro
-  * `vars` - a list keeping all defined varaibles as { var, context }
+  * `context_modules` - a list of modules defined in the current context
+  * `vars` - a list keeping all defined variables as { var, context }
+  * `export_vars` - a list keeping all variables to be exported in a construct (may be nil)
+  * `lexical_tracker` - PID to the lexical tracker which is responsible to keep user info
+  * `local` - the module to expand local functions to
   """
 
   @type name_arity :: { atom, non_neg_integer }
@@ -35,16 +38,18 @@ defmodule Macro.Env do
   @type macros :: [{ module, [name_arity] }]
   @type context_modules :: [module]
   @type vars :: [{ atom, atom | non_neg_integer }]
+  @type export_vars :: vars | nil
   @type lexical_tracker :: pid
   @type local :: module | nil
 
   fields = [:module, :file, :line, :function, :context, :requires, :aliases, :functions,
-            :macros, :macro_aliases, :context_modules, :vars, :lexical_tracker, :local]
+            :macros, :macro_aliases, :context_modules, :vars, :export_vars, :lexical_tracker,
+            :local]
 
   types  = quote do: [module: module, file: file, line: line,
     function: name_arity, context: context, requires: requires, aliases: aliases,
     functions: functions, macros: macros,  macro_aliases: aliases,
-    context_modules: context_modules, vars: vars,
+    context_modules: context_modules, vars: vars, export_vars: export_vars,
     lexical_tracker: lexical_tracker, local: local]
 
   Record.deffunctions(fields, __MODULE__)

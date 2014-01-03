@@ -66,11 +66,9 @@ extract_splat_guards(Else) ->
 
 % Function for translating macros with match style like case and receive.
 
-clauses(Meta, Clauses, #elixir_scope{clause_vars=CV, temp_vars=TV} = S) ->
-  { TC, TS } = do_clauses(Meta, Clauses, S#elixir_scope{clause_vars=[], temp_vars=[]}),
-  { TC, TS#elixir_scope{
-          clause_vars=elixir_scope:merge_opt_vars(CV, TS#elixir_scope.clause_vars),
-          temp_vars=elixir_scope:merge_opt_vars(TV, TS#elixir_scope.temp_vars)} }.
+clauses(Meta, Clauses, #elixir_scope{export_vars=CV} = S) ->
+  { TC, TS } = do_clauses(Meta, Clauses, S#elixir_scope{export_vars=[]}),
+  { TC, TS#elixir_scope{export_vars=elixir_scope:merge_opt_vars(CV, TS#elixir_scope.export_vars)} }.
 
 do_clauses(_Meta, [], S) ->
   { [], S };
@@ -82,16 +80,14 @@ do_clauses(_Meta, [], S) ->
 do_clauses(Meta, DecoupledClauses, S) ->
   % Transform tree just passing the variables counter forward
   % and storing variables defined inside each clause.
-  Transformer = fun(X, {SAcc, UAcc, VAcc}) ->
-    { TX, TS } = each_clause(Meta, X, SAcc),
+  Transformer = fun(X, {SAcc, VAcc}) ->
+    { TX, TS } = each_clause(X, SAcc),
     { TX,
-      { elixir_scope:mergec(S, TS),
-        ordsets:union(UAcc, TS#elixir_scope.temp_vars),
-        [TS#elixir_scope.clause_vars|VAcc] } }
+      { elixir_scope:mergec(S, TS), [TS#elixir_scope.export_vars|VAcc] } }
   end,
 
-  { TClauses, { TS, Unsafe, ReverseCV } } =
-    lists:mapfoldl(Transformer, {S, S#elixir_scope.unsafe_vars, []}, DecoupledClauses),
+  { TClauses, { TS, ReverseCV } } =
+    lists:mapfoldl(Transformer, {S, []}, DecoupledClauses),
 
   % Now get all the variables defined inside each clause
   CV = lists:reverse(ReverseCV),
@@ -104,7 +100,7 @@ do_clauses(Meta, DecoupledClauses, S) ->
   % is the old pointer.
   { FinalVars, FS } = lists:mapfoldl(fun({ Key, Val }, Acc) ->
     normalize_vars(Key, Val, Acc)
-  end, TS#elixir_scope{unsafe_vars=Unsafe}, AllVars),
+  end, TS, AllVars),
 
   % Expand all clauses by adding a match operation at the end
   % that defines variables missing in one clause to the others.
@@ -146,23 +142,15 @@ expand_clauses(_Line, [], [], _FinalVars, Acc, S) ->
 
 % Handle each key/value clause pair and translate them accordingly.
 
-translate_do_match(Arg, S) ->
-  { TArg, TS } = elixir_translator:translate_many(Arg, S#elixir_scope{extra=do_match}),
-  { TArg, TS#elixir_scope{extra=S#elixir_scope.extra} }.
-
-each_clause(PMeta, { do, Meta, [Condition], Expr }, S) ->
-  Fun = case lists:keyfind(unsafe, 1, PMeta) of
-    { unsafe, true } -> fun elixir_translator:translate_many/2;
-    _ -> fun translate_do_match/2
-  end,
-  { Arg, Guards } = extract_guards(Condition),
-  clause(?line(Meta), Fun, [Arg], Expr, Guards, S);
-
-each_clause(_PMeta, { else, Meta, [Condition], Expr }, S) ->
+each_clause({ do, Meta, [Condition], Expr }, S) ->
   { Arg, Guards } = extract_guards(Condition),
   clause(?line(Meta), fun elixir_translator:translate_many/2, [Arg], Expr, Guards, S);
 
-each_clause(_PMeta, { 'after', Meta, [Condition], Expr }, S) ->
+each_clause({ else, Meta, [Condition], Expr }, S) ->
+  { Arg, Guards } = extract_guards(Condition),
+  clause(?line(Meta), fun elixir_translator:translate_many/2, [Arg], Expr, Guards, S);
+
+each_clause({ 'after', Meta, [Condition], Expr }, S) ->
   { TCondition, SC } = elixir_translator:translate(Condition, S),
   { TExpr, SB } = elixir_translator:translate(Expr, SC),
   { { clause, ?line(Meta), [TCondition], [], unblock(TExpr) }, SB }.
@@ -191,10 +179,10 @@ has_match_tuple(_) -> false.
 % by picking one value as reference and retriving
 % its previous value.
 
-normalize_vars(Key, Value, #elixir_scope{vars=Vars,clause_vars=ClauseVars} = S) ->
+normalize_vars(Key, Value, #elixir_scope{vars=Vars,export_vars=ClauseVars} = S) ->
   VS = S#elixir_scope{
     vars=orddict:store(Key, Value, Vars),
-    clause_vars=orddict:store(Key, Value, ClauseVars)
+    export_vars=orddict:store(Key, Value, ClauseVars)
   },
 
   Expr = case orddict:find(Key, Vars) of

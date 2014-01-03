@@ -124,7 +124,7 @@ defmodule ExUnit.Assertions do
 
     quote do
       right = unquote(right)
-      unquote({ :case, [{:unsafe,true}|meta], args })
+      unquote({ :case, [{:export_all,true}|meta], args })
     end
   end
 

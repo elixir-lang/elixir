@@ -273,8 +273,14 @@ expand({ '^', Meta, [Arg] }, E) ->
 
 expand({ '_', _, Kind } = Var, E) when is_atom(Kind) ->
   { Var, E };
-expand({ Name, Meta, Kind } = Var, #elixir_env{context=match,vars=Vars} = E) when is_atom(Name), is_atom(Kind) ->
-  { Var, E#elixir_env{vars=ordsets:add_element({ Name, var_kind(Meta, Kind) }, Vars)} };
+expand({ Name, Meta, Kind } = Var, #elixir_env{context=match, export_vars=Export} = E) when is_atom(Name), is_atom(Kind) ->
+  Pair      = { Name, var_kind(Meta, Kind) },
+  NewVars   = ordsets:add_element(Pair, E#elixir_env.vars),
+  NewExport = case (Export /= nil) andalso (lists:keyfind(export, 1, Meta) /= { export, false }) of
+    true  -> ordsets:add_element(Pair, Export);
+    false -> Export
+  end,
+  { Var, E#elixir_env{vars=NewVars, export_vars=NewExport} };
 expand({ Name, Meta, Kind } = Var, #elixir_env{vars=Vars} = E) when is_atom(Name), is_atom(Kind) ->
   case lists:member({ Name, var_kind(Meta, Kind) }, Vars) of
     true ->

@@ -1873,8 +1873,6 @@ defmodule Kernel do
   end
 
   defmacro match?(left, right) do
-    { left, _ } = kernelfy_var(left, [], &kernelfy_all/2)
-
     quote do
       case unquote(right) do
         unquote(left) ->
@@ -1883,51 +1881,6 @@ defmodule Kernel do
           false
       end
     end
-  end
-
-  defp kernelfy_all({ var, meta, scope }, acc) when is_atom(var) and is_atom(scope) do
-    { { var, meta, Kernel }, [{ var, scope }|acc] }
-  end
-
-  defp kernelfy_selected({ var, meta, scope } = original, acc) when is_atom(var) and is_atom(scope) do
-    case :lists.member({ var, scope }, acc) do
-      true  -> { { var, meta, Kernel }, acc }
-      false -> { original, acc }
-    end
-  end
-
-  defp kernelfy_var({ :^, _, [_] } = contents, acc, _fun) do
-    { contents, acc }
-  end
-
-  defp kernelfy_var({ :when, meta, [left, right] }, acc, fun) do
-    { left, acc }  = kernelfy_var(left, acc, fun)
-    { right, acc } = kernelfy_var(right, acc, &kernelfy_selected/2)
-    { { :when, meta, [left, right] }, acc }
-  end
-
-  defp kernelfy_var({ var, _, scope } = original, acc, fun) when is_atom(var) and is_atom(scope) do
-    fun.(original, acc)
-  end
-
-  defp kernelfy_var({ left, meta, right }, acc, fun) do
-    { left, acc }  = kernelfy_var(left, acc, fun)
-    { right, acc } = kernelfy_var(right, acc, fun)
-    { { left, meta, right }, acc }
-  end
-
-  defp kernelfy_var({ left, right }, acc, fun) do
-    { left, acc }  = kernelfy_var(left, acc, fun)
-    { right, acc } = kernelfy_var(right, acc, fun)
-    { { left, right }, acc }
-  end
-
-  defp kernelfy_var(list, acc, fun) when is_list(list) do
-    :lists.mapfoldl(&kernelfy_var(&1, &2, fun), acc, list)
-  end
-
-  defp kernelfy_var(other, acc, _fun) do
-    { other, acc }
   end
 
   @doc """
@@ -2238,12 +2191,6 @@ defmodule Kernel do
     { :x, [cond: true], Kernel }
   end
 
-  # A temporary var only lasts its current clause, never leak
-  # into other clauses.
-  defp temp_var do
-    { :x, [], Kernel }
-  end
-
   defp get_line(meta) do
     case :lists.keyfind(:line, 1, meta) do
       { :line, line } -> line
@@ -2315,7 +2262,7 @@ defmodule Kernel do
               unquote(item) = nil
           end
         end
-      { :case, [{:unsafe,true}|meta], args }
+      { :case, [{:export_all,true}|meta], args }
     end
   end
 
@@ -2363,8 +2310,8 @@ defmodule Kernel do
   defmacro left && right do
     quote do
       case unquote(left) do
-        unquote(temp_var) when unquote(temp_var) in [false, nil] ->
-          unquote(temp_var)
+        x when x in [false, nil] ->
+          x
         _ ->
           unquote(right)
       end
@@ -2394,10 +2341,10 @@ defmodule Kernel do
   defmacro left || right do
     quote do
       case unquote(left) do
-        unquote(temp_var) when unquote(temp_var) in [false, nil] ->
+        x when x in [false, nil] ->
           unquote(right)
-        unquote(temp_var) ->
-          unquote(temp_var)
+        x ->
+          x
       end
     end
   end
@@ -2842,10 +2789,9 @@ defmodule Kernel do
   # quote vars to be injected into the module definition
   defp module_vars([{ key, kind }|vars], counter) do
     var =
-      # TODO: Remove unsafe: false once we remove unsafe warning
       case is_atom(kind) do
-        true  -> { key, [unsafe: false], kind }
-        false -> { key, [unsafe: false, counter: kind], nil }
+        true  -> { key, [], kind }
+        false -> { key, [counter: kind], nil }
       end
 
     args = [key, kind, binary_to_atom(<<"_@", integer_to_binary(counter)::binary>>), var]
@@ -3736,11 +3682,12 @@ defmodule Kernel do
   defp split_words("", _modifiers), do: []
 
   defp split_words(string, modifiers) do
-    mod = case modifiers do
-      [] -> ?s
-      [mod] when mod == ?s or mod == ?a or mod == ?c -> mod
-      _else -> raise ArgumentError, message: "modifier must be one of: s, a, c"
-    end
+    mod =
+      case modifiers do
+        [] -> ?s
+        [mod] when mod == ?s or mod == ?a or mod == ?c -> mod
+        _else -> raise ArgumentError, message: "modifier must be one of: s, a, c"
+      end
 
     case is_binary(string) do
       true ->

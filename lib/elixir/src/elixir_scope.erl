@@ -2,7 +2,6 @@
 -module(elixir_scope).
 -export([translate_var/4, build_var/2,
   load_binding/2, dump_binding/2,
-  warn_unsafe/3,
   mergev/2, mergec/2, mergef/2,
   merge_vars/2, merge_opt_vars/2
 ]).
@@ -10,26 +9,10 @@
 
 %% VAR HANDLING
 
-translate_var(Meta, Name, Kind, RS) when is_atom(Kind); is_integer(Kind) ->
+translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
   Line  = ?line(Meta),
   Tuple = { Name, Kind },
-
-  BS = if
-    RS#elixir_scope.extra == do_match ->
-      RS#elixir_scope{temp_vars=ordsets:add_element(Tuple, RS#elixir_scope.temp_vars)};
-    (RS#elixir_scope.context == match) andalso (RS#elixir_scope.temp_vars /= nil) ->
-      RS#elixir_scope{temp_vars=ordsets:del_element(Tuple, RS#elixir_scope.temp_vars)};
-    true ->
-      RS
-  end,
-
-  S = case BS#elixir_scope.context of
-    match -> BS#elixir_scope{unsafe_vars=ordsets:del_element(Tuple, BS#elixir_scope.unsafe_vars)};
-    _     -> BS
-  end,
-
-  warn_unsafe(Meta, Tuple, S),
-  Vars = S#elixir_scope.vars,
+  Vars  = S#elixir_scope.vars,
 
   case orddict:find({ Name, Kind }, Vars) of
     { ok, { Current, _ } } -> Exists = true;
@@ -44,19 +27,27 @@ translate_var(Meta, Name, Kind, RS) when is_atom(Kind); is_integer(Kind) ->
         true ->
           { { var, Line, Current }, S };
         false ->
+          %% If the variable is not exported, we use a counter name.
+          %% The same if the variable already exists or we are in a
+          %% noname context.
+          Private = (lists:keyfind(export, 1, Meta) == { export, false }),
+
           { NewVar, Counter, NS } =
             if
-              Kind /= nil -> build_var('_', S);
-              Exists orelse S#elixir_scope.noname -> build_var(Name, S);
-              true -> { Name, 0, S }
+              Kind /= nil ->
+                build_var('_', S);
+              Private orelse Exists orelse S#elixir_scope.noname ->
+                build_var(Name, S);
+              true ->
+                { Name, 0, S }
             end,
 
           FS = NS#elixir_scope{
             vars=orddict:store(Tuple, { NewVar, Counter }, Vars),
             match_vars=ordsets:add_element(Tuple, MatchVars),
-            clause_vars=case S#elixir_scope.clause_vars of
-              nil -> nil;
-              CV  -> orddict:store(Tuple, { NewVar, Counter }, CV)
+            export_vars=case S#elixir_scope.export_vars of
+              EV when Private; EV == nil -> EV;
+              EV -> orddict:store(Tuple, { NewVar, Counter }, EV)
             end
           },
 
@@ -71,41 +62,15 @@ build_var(Key, S) ->
   Cnt = orddict:fetch(Key, New),
   { ?atom_concat([Key, "@", Cnt]), Cnt, S#elixir_scope{counter=New} }.
 
-warn_unsafe(Meta, Tuple, S) ->
-  case ordsets:is_element(Tuple, S#elixir_scope.unsafe_vars) andalso
-       (lists:keyfind(unsafe, 1, Meta) /= { unsafe, false }) of
-    true  ->
-      case Tuple of
-        { Var, nil } ->
-          elixir_errors:deprecation(Meta, S#elixir_scope.file,
-            "variable ~ts is defined in a case clause and is unsafe, please assign it explicitly", [Var]);
-        { Var, Ctx } ->
-          elixir_errors:deprecation(Meta, S#elixir_scope.file,
-            "variable ~ts (context ~p) is defined in a case clause and is unsafe, please assign it explicitly", [Var, Ctx])
-      end;
-    false ->
-      ok
-  end.
-
 %% SCOPE MERGING
 
 %% Receives two scopes and return a new scope based on
 %% the second with their variables merged.
 
 mergev(S1, S2) ->
-  V1 = S1#elixir_scope.vars,
-  V2 = S2#elixir_scope.vars,
-  C1 = S1#elixir_scope.clause_vars,
-  C2 = S2#elixir_scope.clause_vars,
-  T1 = S1#elixir_scope.temp_vars,
-  T2 = S2#elixir_scope.temp_vars,
-  U1 = S1#elixir_scope.unsafe_vars,
-  U2 = S2#elixir_scope.unsafe_vars,
   S2#elixir_scope{
-    vars=merge_vars(V1, V2),
-    unsafe_vars=merge_vars(U1, U2),
-    clause_vars=merge_opt_vars(C1, C2),
-    temp_vars=merge_opt_vars(T1, T2)
+    vars=merge_vars(S1#elixir_scope.vars, S2#elixir_scope.vars),
+    export_vars=merge_opt_vars(S1#elixir_scope.export_vars, S2#elixir_scope.export_vars)
   }.
 
 %% Receives two scopes and return the first scope with

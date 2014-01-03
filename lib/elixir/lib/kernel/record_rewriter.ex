@@ -128,7 +128,7 @@ defmodule Kernel.RecordRewriter do
     { { :call, call_line, remote, [integer, tuple, value] }, dict, res }
   end
 
-  defp optimize_expr({ :call, call_line, { :remote, line, left, right }, args } = call, module, dict) do
+  defp optimize_expr({ :call, call_line, { :remote, line, left, right }, args }, module, dict) do
     { left, dict, res } = optimize_expr(left, module, dict)
     { right, dict, _ } = optimize_expr(right, module, dict)
     { args, dict } = optimize_args(args, module, dict)

@@ -1,7 +1,7 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([ex_to_env/1, env_to_scope/1, env_to_scope_with_vars/2, env_to_ex/1]).
--export([mergea/2, mergev/2]).
+-export([mergea/2, mergev/2, merge_vars/2, merge_opt_vars/2]).
 
 %% Conversion in between #elixir_env, #elixir_scope and Macro.Env
 
@@ -24,10 +24,15 @@ env_to_scope_with_vars(#elixir_env{} = Env, Vars) ->
 
 %% Receives two scopes and return a new scope based on the second
 %% with their variables merged.
-
+mergev(E1, E2) when is_list(E1) ->
+  E2#elixir_env{
+    vars=merge_vars(E1, E2#elixir_env.vars),
+    export_vars=merge_opt_vars(E1, E2#elixir_env.export_vars)
+  };
 mergev(E1, E2) ->
   E2#elixir_env{
-    vars=ordsets:union(E1#elixir_env.vars, E2#elixir_env.vars)
+    vars=merge_vars(E1#elixir_env.vars, E2#elixir_env.vars),
+    export_vars=merge_opt_vars(E1#elixir_env.export_vars, E2#elixir_env.export_vars)
   }.
 
 %% Receives two scopes and return the later scope
@@ -36,3 +41,9 @@ mergev(E1, E2) ->
 
 mergea(E1, E2) ->
   E2#elixir_env{vars=E1#elixir_env.vars}.
+
+merge_vars(V1, V2) -> ordsets:union(V1, V2).
+
+merge_opt_vars(_V1, nil) -> nil;
+merge_opt_vars(nil, _V2) -> nil;
+merge_opt_vars(V1, V2)   -> ordsets:union(V1, V2).
