@@ -197,19 +197,19 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "nofile:5: the guard for this clause evaluates to 'false'"
 
-    # assert capture_err(fn ->
-    #   Code.eval_string """
-    #   defmodule Sample2 do
-    #     def is_binary_cond do
-    #       v = "bc"
-    #       cond do
-    #         is_binary(v) -> :bin
-    #         true -> :ok
-    #       end
-    #     end
-    #   end
-    #   """
-    # end) =~ "nofile:6: this clause cannot match because a previous clause at line 5 always matches"
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample2 do
+        def is_binary_cond do
+          v = "bc"
+          cond do
+            is_binary(v) -> :bin
+            true -> :ok
+          end
+        end
+      end
+      """
+    end) =~ "nofile:6: this clause cannot match because a previous clause at line 5 always matches"
   after
     purge [Sample1, Sample2]
   end

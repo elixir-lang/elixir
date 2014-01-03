@@ -38,7 +38,7 @@ defmodule KernelTest do
   end
 
   test :match? do
-    assert match?(x, 1)
+    assert match?(_, 1)
     assert binding([:x]) == []
 
     a = 0

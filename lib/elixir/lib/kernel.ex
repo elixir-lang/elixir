@@ -2123,7 +2123,7 @@ defmodule Kernel do
   @doc """
   Evaluates the expression corresponding to the first clause that
   evaluates to true. Raises an error if all conditions evaluate to
-  to falsy values (nil or false).
+  to nil or false.
 
   ## Examples
 
@@ -2135,6 +2135,7 @@ defmodule Kernel do
         true ->
           "This will"
       end
+
   """
   defmacro cond([do: pairs]) do
     [{ :->, meta, [[condition], clause] }|t] = :lists.reverse pairs
@@ -3635,9 +3636,9 @@ defmodule Kernel do
 
   ## Modifiers
 
-  - `b`: binaries (default)
-  - `a`: atoms
-  - `c`: char lists
+  * `s`: strings (default)
+  * `a`: atoms
+  * `c`: char lists
 
   ## Examples
 
@@ -3665,9 +3666,9 @@ defmodule Kernel do
 
   ## Modifiers
 
-  - `b`: binaries (default)
-  - `a`: atoms
-  - `c`: char lists
+  * `s`: strings (default)
+  * `a`: atoms
+  * `c`: char lists
 
   ## Examples
 

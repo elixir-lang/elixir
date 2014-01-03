@@ -68,12 +68,12 @@ translate({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
   Clauses = elixir_clauses:get_pairs(do, KV),
   { TExpr, NS } = translate(Expr, S),
 
-  % RClauses = case elixir_utils:returns_boolean(TExpr) of
-  %   true  -> rewrite_case_clauses(Clauses);
-  %   false -> Clauses
-  % end,
+  RClauses = case elixir_utils:returns_boolean(TExpr) of
+    true  -> rewrite_case_clauses(Clauses);
+    false -> Clauses
+  end,
 
-  { TClauses, TS } = elixir_clauses:clauses(Meta, Clauses, NS),
+  { TClauses, TS } = elixir_clauses:clauses(Meta, RClauses, NS),
   { { 'case', ?line(Meta), TExpr, TClauses }, TS };
 
 %% Try
@@ -258,19 +258,18 @@ var_kind(Meta, Kind) ->
 
 %% Case
 
-%% TODO: Bring this back once we change how case clauses are handled
-% rewrite_case_clauses([
-%     {do,Meta1,[{'when',_,[{V,M,C},{in,_,[{V,M,C},[false,nil]]}]}],False},
-%     {do,Meta2,[{'_',_,UC}],True}] = Clauses)
-%     when is_atom(V), is_list(M), is_atom(C), is_atom(UC) ->
-%   case lists:keyfind('cond', 1, M) of
-%     { 'cond', true } ->
-%       [{do,Meta1,[false],False},{do,Meta2,[true],True}];
-%     _ ->
-%       Clauses
-%   end;
-% rewrite_case_clauses(Clauses) ->
-%   Clauses.
+rewrite_case_clauses([
+    {do,Meta1,[{'when',_,[{V,M,C},{'__op__',_,['orelse',_,_]}]}],False},
+    {do,Meta2,[{'_',_,UC}],True}] = Clauses)
+    when is_atom(V), is_list(M), is_atom(C), is_atom(UC) ->
+  case lists:keyfind('cond', 1, M) of
+    {'cond',true} ->
+      [{do,Meta1,[false],False},{do,Meta2,[true],True}];
+    _ ->
+      Clauses
+  end;
+rewrite_case_clauses(Clauses) ->
+  Clauses.
 
 %% Pack a list of expressions from a block.
 unblock({ 'block', _, Exprs }) -> Exprs;
