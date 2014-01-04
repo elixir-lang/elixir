@@ -43,18 +43,20 @@ expand_bit_info(Meta, Info, E) ->
   expand_bit_info(Meta, [Info], E).
 
 expand_bit_info(Meta, [{ Expr, ExprMeta, Args }|T], Size, Types, E) when is_atom(Expr) ->
-  EArgs = if is_atom(Args) -> []; is_list(Args) -> Args end,
-  case expand_bit_type_or_size(Expr, EArgs) of
+  ListArgs = if is_atom(Args) -> []; is_list(Args) -> Args end,
+  case expand_bit_type_or_size(Expr, ListArgs) of
     type ->
-      expand_bit_info(Meta, T, Size, [{ Expr, [], EArgs }|Types], E);
+      { EArgs, EE } = elixir_exp:expand_args(ListArgs, E),
+      expand_bit_info(Meta, T, Size, [{ Expr, [], EArgs }|Types], EE);
     size ->
       case Size of
         default -> ok;
         _ -> elixir_errors:compile_error(Meta, E#elixir_env.file, "duplicated size definition in bitstring")
       end,
-      expand_bit_info(Meta, T, { Expr, [], EArgs }, Types, E);
+      { EArgs, EE } = elixir_exp:expand_args(ListArgs, E),
+      expand_bit_info(Meta, T, { Expr, [], EArgs }, Types, EE);
     none ->
-      handle_unknown_bit_info(Meta, { Expr, ExprMeta, EArgs }, T, Size, Types, E)
+      handle_unknown_bit_info(Meta, { Expr, ExprMeta, ListArgs }, T, Size, Types, E)
   end;
 
 expand_bit_info(Meta, [Int|T], Size, Types, E) when is_integer(Int) ->

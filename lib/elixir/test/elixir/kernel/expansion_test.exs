@@ -373,6 +373,11 @@ defmodule Kernel.ExpansionTest do
                       << seventeen :: [unquote(:size)(17)], x :: [unquote(:size)(seventeen)] >> = 1)
   end
 
+  test "bitstrings: expands modifiers args" do
+    assert expand(quote do: (require Kernel.ExpansionTarget; << x :: size(Kernel.ExpansionTarget.seventeen) >>)) ==
+           quote do: (require :"Elixir.Kernel.ExpansionTarget", []; << x() :: [unquote(:size)(17)] >>)
+  end
+
   ## Invalid
 
   test "handles invalid expressions" do
