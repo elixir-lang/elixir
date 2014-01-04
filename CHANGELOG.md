@@ -1,4 +1,4 @@
-# v0.12.1-dev
+# v0.12.1 (2014-01-04)
 
 * Enhancements
   * [ExUnit] Support `:include` and `:exclude` configuration options to filter which tests should run based on their tags. Those options are also supported via `mix test` as `--include` and `--exclude`
