@@ -101,6 +101,15 @@ defmodule ExUnit.Case do
 
   If a tag is given more than once, the last value wins.
 
+  ### Module tags
+
+  A tag can be set for all tests in a module by setting `@moduletag`:
+
+      @moduletag :external
+
+  If the same key is set via `@tag`, the `@tag` value has higher
+  preference.
+
   ### Reserved tags
 
   The following tags are set automatically by ExUnit and are
@@ -155,8 +164,8 @@ defmodule ExUnit.Case do
           ExUnit.Server.add_sync_case(__MODULE__)
         end
 
-        Module.register_attribute(__MODULE__, :ex_unit_tests, accumulate: true)
-        Module.register_attribute(__MODULE__, :tag, accumulate: true)
+        Enum.each [:ex_unit_tests, :tag, :moduletag],
+          &Module.register_attribute(__MODULE__, &1, accumulate: true)
 
         @before_compile ExUnit.Case
         @on_definition ExUnit.Case
@@ -229,12 +238,15 @@ defmodule ExUnit.Case do
   @doc false
   def __on_definition__(env, kind, name, args, _guards, _body) do
     if kind == :def and test?(atom_to_list(name)) and length(args) == 1 do
-      tags = Module.get_attribute(env.module, :tag)
+      mod  = env.module
+      tags = (Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag))
              |> normalize_tags()
              |> Keyword.put(:line, env.line)
-      Module.put_attribute(env.module, :ex_unit_tests,
-        ExUnit.Test[name: name, case: env.module, tags: tags])
-      Module.delete_attribute(env.module, :tag)
+
+      Module.put_attribute(mod, :ex_unit_tests,
+        ExUnit.Test[name: name, case: mod, tags: tags])
+
+      Module.delete_attribute(mod, :tag)
     end
   end
 

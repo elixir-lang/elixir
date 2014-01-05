@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule ExUnit.CaseTest do
   use ExUnit.Case, async: true
 
+  @moduletag :moduletag
+
   test "defines test case info" do
     assert ExUnit.TestCase[name: __MODULE__, tests: tests] = __ex_unit__(:case)
     assert length(tests) > 0
@@ -24,5 +26,14 @@ defmodule ExUnit.CaseTest do
   test "reset tags", context do
     assert nil?(context[:hello])
     assert nil?(context[:world])
+  end
+
+  test "module tags", context do
+    assert context[:moduletag] == true
+  end
+
+  @tag moduletag: :overridden
+  test "module tags can be overridden", context do
+    assert context[:moduletag] == :overridden
   end
 end
