@@ -1,9 +1,17 @@
 # v0.12.2-dev
 
 * Enhancements
+  * [ExUnit] Support @moduletag in ExUnit cases
+
 * Bug fixes
+  * [ExUnit] `:include` in ExUnit only has effect if a test was previously excluded with `:exclude`
+  * [ExUnit] Only run `setup_all` and `teardown_all` if there are tests in the case
+  * [Kernel] Ensure bitstring modifier arguments are expanded
+
 * Deprecations
+
 * Backwards incompatible changes
+
 
 # v0.12.1 (2014-01-04)
 
