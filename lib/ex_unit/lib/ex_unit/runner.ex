@@ -131,7 +131,7 @@ defmodule ExUnit.Runner do
           Enum.map tests, &(&1.state({ :invalid, test_case }))
         end
 
-      exec_case_teardown(test_case, context)
+      test_case = exec_case_teardown(test_case, context)
       self_pid <- { self, :case_finished, test_case, tests }
     end
 
