@@ -8,7 +8,7 @@ defmodule ExUnit.Runner do
   def run(async, sync, opts, load_us) do
     opts   = normalize_opts(opts)
     config = Config[max_cases: :erlang.system_info(:schedulers_online)]
-    config = combine_filters(config.update(opts))
+    config = wrap_filters(config.update(opts))
 
     { run_us, config } =
       :timer.tc fn ->
@@ -27,14 +27,8 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp combine_filters(config) do
-    config.update_include(&group_by_key/1).update_exclude(&group_by_key/1)
-  end
-
-  defp group_by_key(dict) do
-    Enum.reduce dict, [], fn { key, value }, acc ->
-      Dict.update acc, key, [value], &[value|&1]
-    end
+  defp wrap_filters(config) do
+    config.update_include(&List.wrap/1).update_exclude(&List.wrap/1)
   end
 
   defp loop(Config[] = config) do
@@ -136,9 +130,10 @@ defmodule ExUnit.Runner do
 
   defp run_test(config, test, context) do
     config.formatter.test_started(config.formatter_id, test)
+    context = Keyword.merge(test.tags, context) |> Keyword.put(:test, test.name)
 
     test =
-      case ExUnit.Filters.eval(config.include, config.exclude, test.tags) do
+      case ExUnit.Filters.eval(config.include, config.exclude, context) do
         :ok ->
           spawn_test(config, test, context)
         { :error, tag } ->
@@ -152,7 +147,6 @@ defmodule ExUnit.Runner do
     # Run test in a new process so that we can trap exits for a single test
     self_pid = self
     { test_pid, test_ref } = Process.spawn_monitor(fn ->
-
       { us, test } = :timer.tc(fn ->
         { test, context } = exec_setup(test, context)
         if nil?(test.state) do
@@ -177,7 +171,6 @@ defmodule ExUnit.Runner do
   end
 
   defp exec_setup(ExUnit.Test[] = test, context) do
-    context = context |> Keyword.merge(test.tags) |> Keyword.put(:test, test.name)
     { :ok, context } = test.case.__ex_unit__(:setup, context)
     { test, context }
   catch

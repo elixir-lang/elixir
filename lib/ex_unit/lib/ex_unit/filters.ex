@@ -9,7 +9,7 @@ defmodule ExUnit.Filters do
   ## Examples
 
       iex> ExUnit.Filters.parse(["foo:bar", "baz"])
-      [foo: "bar", baz: true]
+      [{:foo, "bar"}, :baz]
 
   """
   @spec parse([String.t]) :: Keyword.t
@@ -17,7 +17,7 @@ defmodule ExUnit.Filters do
     Enum.map filters, fn filter ->
       case String.split(filter, ":", global: false) do
         [key, value] -> { binary_to_atom(key), parse_value(value) }
-        [key] -> { binary_to_atom(key), true }
+        [key] -> binary_to_atom(key)
       end
     end
   end
@@ -33,36 +33,25 @@ defmodule ExUnit.Filters do
 
   ## Examples
 
-      iex> ExUnit.Filters.eval([foo: ["bar"]], [], [foo: "bar"])
+      iex> ExUnit.Filters.eval([foo: "bar"], [:foo], [foo: "bar"])
       :ok
 
-      iex> ExUnit.Filters.eval([foo: ["bar"]], [], [foo: "baz"])
+      iex> ExUnit.Filters.eval([foo: "bar"], [:foo], [foo: "baz"])
       { :error, :foo }
 
   """
   @spec eval(Keyword.t(list), Keyword.t(list), Keyword.t) :: :ok | { :error, atom }
   def eval(include, exclude, tags) do
-    Enum.find_value tags, :ok, fn { tag_key, _ } = tag ->
-      unless tag_accepted?(include, exclude, tag), do: { :error, tag_key }
+    excluded = Enum.find_value exclude, &has_tag(&1, tags)
+    if !excluded or Enum.any?(include, &has_tag(&1, tags)) do
+      :ok
+    else
+      { :error, excluded }
     end
   end
 
-  defp tag_accepted?(include, exclude, tag) do
-    tag_include?(include, tag) and not tag_exclude?(exclude, tag)
-  end
-
-  defp tag_include?(dict, { tag_key, tag_value }) do
-    case Dict.fetch(dict, tag_key) do
-      { :ok, list } -> tag_value in list
-      :error -> true
-    end
-  end
-
-  defp tag_exclude?(dict, { tag_key, tag_value }) do
-    case Dict.fetch(dict, tag_key) do
-      { :ok, list } -> tag_value in list
-      :error -> false
-    end
-  end
+  defp has_tag({ key, value }, tags) when is_atom(key),
+    do: Keyword.fetch(tags, key) == { :ok, value } and key
+  defp has_tag(key, tags) when is_atom(key),
+    do: Keyword.has_key?(tags, key) and key
 end
-  

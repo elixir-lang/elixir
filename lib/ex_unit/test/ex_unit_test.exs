@@ -117,10 +117,11 @@ defmodule ExUnitTest do
 
     test_cases = ExUnit.Server.start_run
 
-    assert run_with_filter([include: [even: true]], test_cases) == 2
+    assert run_with_filter([], test_cases) == 4
     assert run_with_filter([exclude: [even: true]], test_cases) == 3
-    assert run_with_filter([include: [even: false]], test_cases) == 3
-    assert run_with_filter([exclude: [even: false]], test_cases) == 2
+    assert run_with_filter([exclude: :even], test_cases) == 1
+    assert run_with_filter([exclude: :even, include: [even: true]], test_cases) == 2
+    assert run_with_filter([exclude: :test, include: [even: true]], test_cases) == 1
   end
 
   defp run_with_filter(filters, { async, sync, load_us }) do

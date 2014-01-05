@@ -6,20 +6,21 @@ defmodule ExUnit.FiltersTest do
   doctest ExUnit.Filters
 
   test "evaluating filters" do
-    include = [os: [:unix, :win32], type: [:unit]]
-    exclude = []
+    assert ExUnit.Filters.eval([], [:os], [])                == :ok
+    assert ExUnit.Filters.eval([], [os: :win], [os: :unix])  == :ok
+    assert ExUnit.Filters.eval([], [:os], [os: :unix])       == { :error, :os }
+    assert ExUnit.Filters.eval([], [os: :unix], [os: :unix]) == { :error, :os }
 
-    assert :ok = ExUnit.Filters.eval(include, exclude, [os: :unix])
-    assert :ok = ExUnit.Filters.eval(include, exclude, [os: :unix, type: :unit])
-    refute :ok = ExUnit.Filters.eval(include, exclude, [os: :unix, type: :integration])
-    assert :ok = ExUnit.Filters.eval(include, exclude, [os: :win32])
-    assert :ok = ExUnit.Filters.eval(include, exclude, [os: :win32, type: :unit])
-    refute :ok = ExUnit.Filters.eval(include, exclude, [os: :win32, type: :integration])
-    assert :ok = ExUnit.Filters.eval(include, exclude, [os: :unix, os: :win32])
+    assert ExUnit.Filters.eval([os: :win], [], [])            == :ok
+    assert ExUnit.Filters.eval([os: :win], [], [os: :unix])   == :ok
+    assert ExUnit.Filters.eval([os: :win], [:os], [])         == :ok
+    assert ExUnit.Filters.eval([os: :win], [:os], [os: :win]) == :ok
+
+    assert ExUnit.Filters.eval([os: :win, os: :unix], [:os], [os: :win]) == :ok
   end
 
   test "parsing filters" do
-    assert ExUnit.Filters.parse(["run"]) == [run: true]
+    assert ExUnit.Filters.parse(["run"]) == [:run]
     assert ExUnit.Filters.parse(["run:true"]) == [run: true]
     assert ExUnit.Filters.parse(["run:test"]) == [run: "test"]
   end

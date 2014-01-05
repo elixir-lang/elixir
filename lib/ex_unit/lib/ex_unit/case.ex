@@ -113,40 +113,29 @@ defmodule ExUnit.Case do
   ## Filters
 
   Tags can also be used to identify specific tests, which can then be included
-  or excluded using filters. Filters are defined as key-value pairs, similar to
-  tags, and are used to match against the tags given for each test.
+  or excluded using filters. The most common functionality is to exclude some
+  particular tests from running, which can be done via `ExUnit.configure/1`:
 
-  Filters can be customized with `ExUnit.configure/1`:
+      # Exclude all external tests from running
+      ExUnit.configure exclude: [external: true]
 
-      ExUnit.configure include: [os: :win32]
+  From now on, ExUnit will not run any test that has the external flag set to true.
+  This behaviour can be reversed with the `:include` option which is usually passed
+  through the command line:
 
-  However, tools like mix also allow those values to be given through the command
-  line. For example the following command will skip any test that contains the
-  `:os` tag but has a value other than `"unix"`.
+      mix test --include external:true
 
-      mix test --include os:unix
+  The command above will have override exclude configuration, running all tests,
+  including the ones that have the external flag set to true.
 
-  If your tags are defined using boolean values, you can use the shorthand
-  version by only specifying the tag name. The value will be automatically set
-  to `true`. To skip all tests with a tag of `slow: true` run the following
-  command:
+  Another use case for using tags and filters is to exclude all tests that have
+  a particular tag by default, regardless of its value, and include only a certain
+  subset:
 
-      mix test --exclude slow
+      ExUnit.configure exclude: :os, include: [os: :unix]
 
-  Filters can also be combined to further limit the tests to be run. When
-  defining filters with the same tag name, tests that match either filter will
-  be run. The following command will skip any test that contains the `:os` tag
-  but has a value other than `"unix"` or `"win32"`:
-
-      mix test --include os:unix --include os:win32
-
-  However, if multiple filters with different tag names are given, only tests
-  that match the filter defined for each unique tag name will be run. This
-  command will only run tests that have both `os: "unix"` and `type: "unit"`
-  tags.
-
-      mix test --include os:unix --include type:unit
-
+  Keep in mind that all tests are included by default, so unless they are
+  excluded first, the include option has no effect.
   """
 
   @doc false
