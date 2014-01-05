@@ -26,16 +26,11 @@ defmodule ExUnit.Callbacks do
   Returning anything else from `setup_all` or `teardown_all` will force the
   whole case to fail, and no other callback will be called.
 
-  It is possible to define multiple `setup` or `teardown` callbacks, they will
-  be called sequentially in the order of definition before each test. The
-  returned keyword list from the last `setup` will be merged into the context passed to
-  the `test` and `teardown` (if defined) callbacks.
-
-  In the case of `setup_all` and `teardown_all` callbacks, each `setup_all`
-  will be called only once before the first test's `setup` and each
-  `teardown_all` will be called once after the last test. The returned keyword
-  list from the last `setup_all` will get merged into the context passed to the
-  `teardown_all` callbacks.
+  It is possible to define multiple `setup` and `teardown` callbacks and they will
+  be called sequentially. In the case of `setup_all` and `teardown_all` callbacks,
+  each `setup_all` will be called only once before the first test's `setup` and each
+  `teardown_all` will be called once after the last test. No callback runs if the
+  test case has no tests or all tests were fltered out via include/exclude.
 
   ## Examples
 

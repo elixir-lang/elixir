@@ -101,7 +101,7 @@ defmodule ExUnitTest do
     ExUnit.configure(formatter: ExUnit.TestsCounterFormatter)
 
     defmodule ParityTest do
-      use ExUnit.Case, async: false
+      use ExUnit.Case
 
       test "zero", do: assert true
 

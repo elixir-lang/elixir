@@ -70,89 +70,115 @@ defmodule ExUnit.Runner do
   end
 
   defp spawn_cases(config, cases) do
-    Enum.each cases, &spawn_case(config, &1)
+    pid = self()
+
+    Enum.each cases, fn case_name ->
+      spawn_link fn ->
+        run_case(config, pid, case_name)
+      end
+    end
+
     loop config.update_taken_cases(&(&1+length(cases)))
   end
 
-  defp spawn_case(config, test_case) do
-    pid = self()
-    spawn_link fn ->
-      run_test_case(config, pid, test_case)
-    end
-  end
-
-  defp run_test_case(config, pid, case_name) do
+  defp run_case(config, pid, case_name) do
     ExUnit.TestCase[] = test_case = case_name.__ex_unit__(:case)
     config.formatter.case_started(config.formatter_id, test_case)
 
+    # Prepare tests, selecting which ones should
+    # run and which ones were skipped.
+    tests = prepare_tests(config, test_case.tests)
+
+    { test_case, failed } =
+      if Enum.all?(tests, &(&1.state)) do
+        { test_case.state(:passed), tests }
+      else
+        spawn_case(config, test_case, tests)
+      end
+
+    # Run the failed tests. We don't actually spawn those tests
+    # but we do send the notifications to formatter and other
+    # entities involved.
+    Enum.each failed, &run_test(config, &1, [])
+    config.formatter.case_finished(config.formatter_id, test_case)
+    pid <- { self, :case_finished, test_case }
+  end
+
+  defp prepare_tests(config, tests) do
+    include = config.include
+    exclude = config.exclude
+
+    lc test inlist tests do
+      tags = Keyword.put(test.tags, :test, test.name)
+      case ExUnit.Filters.eval(include, exclude, tags) do
+        :ok             -> test.tags(tags)
+        { :error, tag } -> test.state({ :skip, "due to #{tag} filter" })
+      end
+    end
+  end
+
+  defp spawn_case(config, test_case, tests) do
     self_pid = self
+
     { case_pid, case_ref } = Process.spawn_monitor fn ->
-      { test_case, context } = try do
-        { :ok, context } = case_name.__ex_unit__(:setup_all, [case: case_name])
-        { test_case.state(:passed), context }
-      catch
-        kind, error ->
-          { test_case.state({ :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }), nil }
-      end
+      { test_case, context } = exec_case_setup(test_case)
 
-      tests = test_case.tests
-
-      case test_case.state do
-        :passed ->
+      tests =
+        if test_case.state == :passed do
           Enum.each tests, &run_test(config, &1, context)
+          []
+        else
+          Enum.map tests, &(&1.state({ :invalid, test_case }))
+        end
 
-          test_case = try do
-            case_name.__ex_unit__(:teardown_all, context)
-            test_case
-          catch
-            kind, error ->
-              test_case.state { :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }
-          end
-
-          self_pid <- { self, :case_finished, test_case, [] }
-        { :failed, _ } ->
-          tests = Enum.map tests, fn test -> test.state({ :invalid, test_case }) end
-          self_pid <- { self, :case_finished, test_case, tests }
-      end
+      exec_case_teardown(test_case, context)
+      self_pid <- { self, :case_finished, test_case, tests }
     end
 
     receive do
       { ^case_pid, :case_finished, test_case, tests } ->
-        Enum.map tests, &config.formatter.test_finished(config.formatter_id, &1)
-        config.formatter.case_finished(config.formatter_id, test_case)
-        pid <- { case_pid, :case_finished, test_case }
+        { test_case, tests }
       { :DOWN, ^case_ref, :process, ^case_pid, { error, stacktrace } } ->
-        test_case = test_case.state { :failed, { :EXIT, error, prune_stacktrace(stacktrace) } }
-        config.formatter.case_finished(config.formatter_id, test_case)
-        pid <- { case_pid, :case_finished, test_case }
+        { test_case.state({ :failed, { :EXIT, error, prune_stacktrace(stacktrace) } }), [] }
     end
+  end
+
+  defp exec_case_setup(ExUnit.TestCase[name: case_name] = test_case) do
+    { :ok, context } = case_name.__ex_unit__(:setup_all, [case: case_name])
+    { test_case.state(:passed), context }
+  catch
+    kind, error ->
+      { test_case.state({ :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }), nil }
+  end
+
+  defp exec_case_teardown(ExUnit.TestCase[name: case_name] = test_case, context) do
+    case_name.__ex_unit__(:teardown_all, context)
+    test_case
+  catch
+    kind, error ->
+      test_case.state { :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }
   end
 
   defp run_test(config, test, context) do
     config.formatter.test_started(config.formatter_id, test)
-    context = Keyword.merge(test.tags, context) |> Keyword.put(:test, test.name)
 
-    test =
-      case ExUnit.Filters.eval(config.include, config.exclude, context) do
-        :ok ->
-          spawn_test(config, test, context)
-        { :error, tag } ->
-          skip_test(test, tag)
-      end
+    if nil?(test.state) do
+      test = spawn_test(config, test, Keyword.merge(test.tags, context))
+    end
 
     config.formatter.test_finished(config.formatter_id, test)
   end
 
   defp spawn_test(_config, test, context) do
-    # Run test in a new process so that we can trap exits for a single test
     self_pid = self
+
     { test_pid, test_ref } = Process.spawn_monitor(fn ->
       { us, test } = :timer.tc(fn ->
-        { test, context } = exec_setup(test, context)
+        { test, context } = exec_test_setup(test, context)
         if nil?(test.state) do
           test = exec_test(test, context)
         end
-        exec_teardown(test, context)
+        exec_test_teardown(test, context)
       end)
 
       self_pid <- { self, :test_finished, test.time(us) }
@@ -166,11 +192,7 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp skip_test(test, mismatch) do
-    test.state { :skip, "due to #{mismatch} filter" }
-  end
-
-  defp exec_setup(ExUnit.Test[] = test, context) do
+  defp exec_test_setup(ExUnit.Test[] = test, context) do
     { :ok, context } = test.case.__ex_unit__(:setup, context)
     { test, context }
   catch
@@ -186,7 +208,7 @@ defmodule ExUnit.Runner do
       test.state { :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }
   end
 
-  defp exec_teardown(ExUnit.Test[] = test, context) do
+  defp exec_test_teardown(ExUnit.Test[] = test, context) do
     { :ok, _context } = test.case.__ex_unit__(:teardown, context)
     test
   catch

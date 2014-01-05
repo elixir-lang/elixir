@@ -28,12 +28,13 @@ defmodule ExUnit.CallbacksTest do
 
   teardown context do
     assert context[:context] == :setup
-    :ok
+    { :ok, context: :teardown }
   end
 
   teardown context do
     assert Process.get(:ex_unit_callback) == context[:test]
     Process.delete(:ex_unit_callback)
+    assert context[:context] == :teardown
     :ok
   end
 
@@ -48,5 +49,25 @@ defmodule ExUnit.CallbacksTest do
 
   test "receives context from callback", context do
     assert context[:context] == :setup
+  end
+end
+
+defmodule ExUnit.CallbacksNoTests do
+  use ExUnit.Case, async: true
+
+  setup_all do
+    raise "Never run"
+  end
+
+  setup do
+    raise "Never run"
+  end
+
+  teardown do
+    raise "Never run"
+  end
+
+  teardown_all do
+    raise "Never run"
   end
 end

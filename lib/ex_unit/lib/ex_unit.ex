@@ -64,7 +64,7 @@ defmodule ExUnit do
   """
 
   @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase"
-  @type state   :: nil | :passed | { :failed, failed } | { :invalid, invalid }
+  @type state   :: nil | :passed | { :failed, failed } | { :skip, binary } | { :invalid, invalid }
   @type failed  :: { :error | :exit | :throw | :EXIT, reason :: term, stacktrace :: [tuple] }
   @type invalid :: module
 
