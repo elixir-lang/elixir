@@ -107,7 +107,7 @@ defmodule Mix.UmbrellaTest do
     Mix.Project.pop
   end
 
-  test "handles dependencies with cycles and overriden deps" do
+  test "handles dependencies with cycles and overridden deps" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project :umbrella, ".", fn _ ->
         File.write!("apps/foo/mix.exs", """)

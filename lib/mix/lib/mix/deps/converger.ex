@@ -86,7 +86,7 @@ defmodule Mix.Deps.Converger do
   # to be the authorative source.
   defp all([dep|t], acc, upper_breadths, current_breadths, callback, rest) do
     cond do
-      new_acc = overriden_deps(acc, upper_breadths, dep) ->
+      new_acc = overridden_deps(acc, upper_breadths, dep) ->
         all(t, new_acc, upper_breadths, current_breadths, callback, rest)
       new_acc = diverged_deps(acc, dep) ->
         all(t, new_acc, upper_breadths, current_breadths, callback, rest)
@@ -110,11 +110,11 @@ defmodule Mix.Deps.Converger do
   end
 
   # Look for an overriding dep in the upper breadths, if
-  # found return a new acc without the overriden dep and
+  # found return a new acc without the overridden dep and
   # with the proper status set on the overrider. The
   # overrider is moved to the front of the accumulator to
   # preserve the position of the removed dep.
-  defp overriden_deps(acc, upper_breadths, dep) do
+  defp overridden_deps(acc, upper_breadths, dep) do
     if dep.app in upper_breadths do
       Mix.Dep[app: app] = dep
 
@@ -126,7 +126,7 @@ defmodule Mix.Deps.Converger do
             app == other_app && (other_opts[:override] || converge?(other, dep)) ->
               { with_matching_req(other, dep), acc }
             app == other_app ->
-              { other.status({ :overriden, dep }), acc }
+              { other.status({ :overridden, dep }), acc }
             true ->
               { overrider, [other|acc] }
           end

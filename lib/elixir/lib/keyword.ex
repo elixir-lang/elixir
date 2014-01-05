@@ -256,7 +256,7 @@ defmodule Keyword do
   Puts the given `value` under `key`.
 
   If a previous value is already stored, all entries are
-  removed and the value is overriden.
+  removed and the value is overridden.
 
   ## Examples
 

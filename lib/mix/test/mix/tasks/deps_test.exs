@@ -543,7 +543,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.pop
   end
 
-  test "works with overriden dependencies" do
+  test "works with overridden dependencies" do
     Mix.Project.push OverridenDepsApp
 
     in_fixture "deps_status", fn ->

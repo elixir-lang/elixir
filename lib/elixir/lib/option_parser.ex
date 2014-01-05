@@ -33,7 +33,7 @@ defmodule OptionParser do
 
   Extra information about switches can be given as arguments, too.
   This is useful when a switch must behave as a boolean
-  or if duplicated switches should be kept, overriden or accumulated.
+  or if duplicated switches should be kept, overridden or accumulated.
 
   The following types are supported:
 

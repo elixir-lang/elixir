@@ -111,11 +111,11 @@ defmodule Kernel.OverridableTest do
     assert Overridable.without_super == :without_super
   end
 
-  test "overridable overriden with nested super" do
+  test "overridable overridden with nested super" do
     assert Overridable.explicit_nested_super == { { { false, 2 }, true, 1 }, true, 0 }
   end
 
-  test "overridable node overriden with nested super" do
+  test "overridable node overridden with nested super" do
     assert Overridable.implicit_nested_super == { { false, 1 }, true, 0 }
   end
 

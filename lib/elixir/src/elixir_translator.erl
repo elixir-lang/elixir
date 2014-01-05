@@ -1,5 +1,5 @@
-%% Main entry point for translations. All macros that cannot be
-%% overriden are defined in this file.
+%% Translate Elixir quoted expressions to Erlang Abstract Format.
+%% Expects the tree to be expanded.
 -module(elixir_translator).
 -export([translate_many/2, translate/2, translate_arg/3, translate_args/2]).
 -import(elixir_scope, [mergev/2, mergec/2, mergef/2]).

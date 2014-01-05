@@ -419,7 +419,7 @@ defmodule Kernel.WarningTest do
     purge [Sample]
   end
 
-  test :warning_with_overriden_file do
+  test :warning_with_overridden_file do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do

@@ -1,7 +1,7 @@
 defmodule Kernel.SpecialForms do
   @moduledoc """
   In this module we define Elixir special forms. Special forms
-  cannot be overriden by the developer and are the basic
+  cannot be overridden by the developer and are the basic
   building blocks of Elixir code.
 
   Some of those forms are lexical (like `alias`, `case`, etc).

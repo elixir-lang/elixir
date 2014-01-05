@@ -69,7 +69,7 @@ defmodule Mix.Tasks.Test do
   * `:tool`   - the coverage tool
 
   By default, a very simple wrapper around OTP's `cover` is used as a tool,
-  but it can be overriden as follows:
+  but it can be overridden as follows:
 
       test_coverage: [tool: CoverModule]
 

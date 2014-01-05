@@ -32,7 +32,7 @@
 # v0.12.0 (2013-12-15)
 
 * Enhancements
-  * [Exception] Allow `exception/1` to be overriden and promote it as the main mechanism to customize exceptions
+  * [Exception] Allow `exception/1` to be overridden and promote it as the main mechanism to customize exceptions
   * [File] Add `File.stream_to!/3`
   * [Float] Add `Float.floor/1`, `Float.ceil/1` and `Float.round/3`
   * [Kernel] Add `List.delete_at/2` and `List.updated_at/3`

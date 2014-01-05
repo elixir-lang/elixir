@@ -69,7 +69,7 @@ defmodule Mix.Deps do
   ## Internal options
 
   Those options are set internally by Mix and they can't be
-  overriden from the Mixfile:
+  overridden from the Mixfile:
 
   * `:dest` - The destination path for the dependency
   * `:lock` - The lock information retrieved from mix.lock
@@ -242,7 +242,7 @@ defmodule Mix.Deps do
     "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
   end
 
-  def format_status(Mix.Dep[app: app, status: { :overriden, other }] = dep) do
+  def format_status(Mix.Dep[app: app, status: { :overridden, other }] = dep) do
     "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
     "#{dep_status(dep)}#{dep_status(other)}" <>
     "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
@@ -297,7 +297,7 @@ defmodule Mix.Deps do
   Checks if a dependency is available. Available dependencies
   are the ones that can be loaded.
   """
-  def available?(Mix.Dep[status: { :overriden, _ }]),    do: false
+  def available?(Mix.Dep[status: { :overridden, _ }]),   do: false
   def available?(Mix.Dep[status: { :diverged, _ }]),     do: false
   def available?(Mix.Dep[status: { :divergedreq, _ }]),  do: false
   def available?(Mix.Dep[status: { :elixirreq, _ }]),    do: false

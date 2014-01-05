@@ -394,7 +394,7 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
     end
   end
 
-  test :explicitly_overriden_imports do
+  test :explicitly_overridden_imports do
     assert with_size == 3
   end
 end

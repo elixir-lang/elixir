@@ -436,7 +436,7 @@ defmodule Record do
   end
 
   # Store fields that can be optimized and that cannot be
-  # optimized as they are overriden
+  # optimized as they are overridden
   @doc false
   def __on_definition__(env, kind, name, args, _guards, _body) do
     tuple     = { name, length(args) }
