@@ -6,7 +6,7 @@ defmodule Mix.SCM.Path do
     opts[:path]
   end
 
-  def format_lock(_lock) do
+  def format_lock(_dep, _lock) do
     nil
   end
 

@@ -176,7 +176,7 @@ defmodule Mix.Deps do
   changing the current working directory and loading the given
   project onto the project stack.
 
-  It is expected a loaded dependency as argument.
+  It expects a loaded dependency as the first argument.
   """
   def in_dependency(dep, post_config // [], fun)
 
