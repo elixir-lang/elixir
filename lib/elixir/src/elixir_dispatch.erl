@@ -75,9 +75,10 @@ remote_function(Receiver, Name, Arity, E) ->
 %% Dispatches
 
 dispatch_import(Meta, Name, Args, E, Callback) ->
-  case expand_import(Meta, { Name, length(Args) }, Args, E, []) of
+  Arity = length(Args),
+  case expand_import(Meta, { Name, Arity }, Args, E, []) of
     { ok, Receiver, Quoted } ->
-      expand_quoted(Meta, Receiver, Quoted, E);
+      expand_quoted(Meta, Receiver, Name, Arity, Quoted, E);
     { ok, Receiver } ->
       elixir_exp:expand({ { '.', [], [Receiver, Name] }, Meta, Args }, E);
     error ->
@@ -92,7 +93,7 @@ dispatch_require(Meta, Receiver, Name, Args, E, Callback) when is_atom(Receiver)
     true  -> Callback(erlang);
     false ->
       case expand_require(Meta, Receiver, Tuple, Args, E) of
-        { ok, Receiver, Quoted } -> expand_quoted(Meta, Receiver, Quoted, E);
+        { ok, Receiver, Quoted } -> expand_quoted(Meta, Receiver, Name, Arity, Quoted, E);
         error -> Callback(Receiver)
       end
   end;
@@ -181,7 +182,7 @@ expand_macro_fun(Meta, Fun, Receiver, Name, Args, E) ->
     apply(Fun, [EArg|Args])
   catch
     Kind:Reason ->
-      Info = { Receiver, Name, length(Args), location(Line, E) },
+      Info = [{ Receiver, Name, length(Args), location(Line, E) }, mfa(Line, E)],
       erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace(), EArg))
   end.
 
@@ -191,7 +192,7 @@ expand_macro_named(Meta, Receiver, Name, Arity, Args, E) ->
   Fun         = fun Receiver:ProperName/ProperArity,
   expand_macro_fun(Meta, Fun, Receiver, Name, Args, E).
 
-expand_quoted(Meta, Receiver, Quoted, E) ->
+expand_quoted(Meta, Receiver, Name, Arity, Quoted, E) ->
   Line = ?line(Meta),
   Next = elixir_counter:next(),
 
@@ -201,7 +202,8 @@ expand_quoted(Meta, Receiver, Quoted, E) ->
       E)
   catch
     Kind:Reason ->
-      erlang:raise(Kind, Reason, prune_stacktrace(mfa(Line, E), erlang:get_stacktrace(), nil))
+      Info = [{ Receiver, Name, Arity, location(Line, E) }, mfa(Line, E)],
+      erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace(), nil))
   end.
 
 mfa(Line, #elixir_env{module=nil} = E) ->
@@ -258,14 +260,14 @@ is_import(Meta) ->
 
 %% We've reached the invoked macro, skip it with the rest
 prune_stacktrace(Info, [{ _, _, [E|_], _ }|_], E) ->
-  [Info];
+  Info;
 %% We've reached the elixir_dispatch internals, skip it with the rest
-prune_stacktrace(Info, [{ elixir_dispatch, _, _, _ }|_], _) ->
-  [Info];
+prune_stacktrace(Info, [{ Mod, _, _, _ }|_], _) when Mod == elixir_dispatch; Mod == elixir_exp ->
+  Info;
 prune_stacktrace(Info, [H|T], E) ->
   [H|prune_stacktrace(Info, T, E)];
 prune_stacktrace(Info, [], _) ->
-  [Info].
+  Info.
 
 %% ERROR HANDLING
 

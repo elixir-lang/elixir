@@ -555,8 +555,8 @@ assert_no_match_or_guard_scope(Meta, Kind, E) ->
   assert_no_match_scope(Meta, Kind, E),
   assert_no_guard_scope(Meta, Kind, E).
 assert_no_match_scope(Meta, _Kind, #elixir_env{context=match,file=File}) ->
-  compile_error(Meta, File, "invalid pattern in match clause");
+  compile_error(Meta, File, "invalid expression in match");
 assert_no_match_scope(_Meta, _Kind, _E) -> [].
 assert_no_guard_scope(Meta, _Kind, #elixir_env{context=guard,file=File}) ->
-  compile_error(Meta, File, "invalid pattern in guard");
+  compile_error(Meta, File, "invalid expression in guard");
 assert_no_guard_scope(_Meta, _Kind, _E) -> [].

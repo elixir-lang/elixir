@@ -125,7 +125,7 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_match_pattern do
     assert_compile_fail CompileError,
-    "nofile:2: invalid pattern in match clause",
+    "nofile:2: invalid expression in match",
     '''
     case true do
       true && true -> true
