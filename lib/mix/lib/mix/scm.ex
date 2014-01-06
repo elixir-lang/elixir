@@ -1,8 +1,7 @@
 defmodule Mix.SCM do
   use Behaviour
 
-  @typep opts :: [{ atom, any }]
-  @typep lock
+  @type opts :: Keyword.t
 
   @moduledoc """
   This module provides helper functions and defines the
@@ -25,7 +24,7 @@ defmodule Mix.SCM do
 
   If nil is returned, it means no lock information is available.
   """
-  defcallback format_lock(lock) :: String.t | nil
+  defcallback format_lock(opts) :: String.t | nil
 
   @doc """
   This behavior function receives a keyword list of `opts`
@@ -101,7 +100,8 @@ defmodule Mix.SCM do
   defcallback equal?(opts1 :: opts, opts2 :: opts) :: boolean
 
   @doc """
-  Returns all available SCM.
+  Returns all available SCM. Each SCM is tried in order
+  until a matching one is found.
   """
   def available do
     { :ok, scm } = :application.get_env(:mix, :scm)
@@ -109,9 +109,16 @@ defmodule Mix.SCM do
   end
 
   @doc """
-  Register the scm repository with the given `key` and `mod`.
+  Prepend the given SCM module to the list of available SCMs.
   """
-  def register(mod) when is_atom(mod) do
+  def prepend(mod) when is_atom(mod) do
     :application.set_env(:mix, :scm, [mod|available])
+  end
+
+  @doc """
+  Aopend the given SCM module to the list of available SCMs.
+  """
+  def append(mod) when is_atom(mod) do
+    :application.set_env(:mix, :scm, available ++ [mod])
   end
 end

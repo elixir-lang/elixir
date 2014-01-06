@@ -6,8 +6,18 @@ defmodule Mix.SCM.Git do
     opts[:git]
   end
 
-  def format_lock(lock) do
-    String.slice(get_lock_rev(lock) || "", 0, 7)
+  def format_lock(opts) do
+    case opts[:lock] do
+      { :git, _, lock_rev, lock_opts } ->
+        lock = String.slice(lock_rev, 0, 7)
+        case Enum.find_value [:branch, :ref, :tag], &List.keyfind(lock_opts, &1, 0) do
+          { :ref, _ }  -> lock <> " (ref)"
+          { key, val } -> lock <> " (#{key}: #{val})"
+          nil          -> lock
+        end
+      _ ->
+        nil
+    end
   end
 
   def accepts_options(_app, opts) do

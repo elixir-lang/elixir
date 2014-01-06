@@ -20,10 +20,10 @@ defmodule Mix.Tasks.Deps do
     shell = Mix.shell
     lock  = Mix.Deps.Lock.read
 
-    Enum.each loaded, fn(Mix.Dep[app: app, scm: scm] = dep) ->
+    Enum.each loaded, fn(Mix.Dep[scm: scm] = dep) ->
       dep = check_lock(dep, lock)
       shell.info "* #{format_dep(dep)}"
-      if (lock = lock[app]) && (formatted = scm.format_lock(lock)) do
+      if formatted = scm.format_lock(dep.opts) do
         shell.info "  locked at #{formatted}"
       end
       shell.info "  #{format_status dep}"

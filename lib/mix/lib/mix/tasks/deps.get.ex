@@ -46,7 +46,7 @@ defmodule Mix.Tasks.Deps.Get do
 
   defp deps_getter(dep, { acc, lock }) do
     shell = Mix.shell
-    Mix.Dep[app: app, scm: scm] = dep = check_lock(dep, lock)
+    Mix.Dep[app: app, scm: scm, opts: opts] = dep = check_lock(dep, lock)
 
     cond do
       # Path dependencies are specially handled because they cannot
@@ -57,14 +57,6 @@ defmodule Mix.Tasks.Deps.Get do
       # If the dependency is not available or we have a lock mismatch
       out_of_date?(dep) ->
         shell.info "* Getting #{format_dep(dep)}"
-
-        # If the lock is outdated, don't dare including it in the opts
-        opts =
-          if dep.status == :lockoutdated do
-            dep.opts
-          else
-            Keyword.put(dep.opts, :lock, lock[app])
-          end
 
         new =
           if scm.checked_out?(opts) do
