@@ -46,44 +46,53 @@ defmodule Behaviour do
   @doc """
   Define a function callback according to the given type specification.
   """
+  defmacro defcallback({ :when, _, [{ :::, _, [fun, return] }, guards] }) do
+    do_defcallback(fun, return, guards, __CALLER__)
+  end
+
   defmacro defcallback({ :::, _, [fun, return] }) do
-    do_defcallback(fun, return, __CALLER__)
+    do_defcallback(fun, return, [], __CALLER__)
   end
 
   defmacro defcallback(fun) do
-    do_defcallback(fun, quote(do: term), __CALLER__)
+    do_defcallback(fun, quote(do: term), [], __CALLER__)
   end
 
   @doc """
   Define a macro callback according to the given type specification.
   """
+  defmacro defmacrocallback({ :when, _, [{ :::, _, [fun, return] }, guards] }) do
+    do_defcallback(fun, return, guards, __CALLER__)
+  end
+
   defmacro defmacrocallback({ :::, _, [fun, return] }) do
-    do_defmacrocallback(fun, return, __CALLER__)
+    do_defmacrocallback(fun, return, [], __CALLER__)
   end
 
   defmacro defmacrocallback(fun) do
-    do_defmacrocallback(fun, quote(do: Macro.t), __CALLER__)
+    do_defmacrocallback(fun, quote(do: Macro.t), [], __CALLER__)
   end
 
-  defp do_defcallback(fun, spec, caller) do
+  defp do_defcallback(fun, return, guards, caller) do
     case Macro.decompose_call(fun) do
       { name, args } ->
-        do_callback(:def, name, args, name, length(args), spec, caller)
+        do_callback(:def, name, args, name, length(args), args, return, guards, caller)
       _ ->
         raise ArgumentError, message: "invalid syntax in defcallback #{Macro.to_string(fun)}"
     end
   end
 
-  defp do_defmacrocallback(fun, spec, caller) do
+  defp do_defmacrocallback(fun, return, guards, caller) do
     case Macro.decompose_call(fun) do
       { name, args } ->
-        do_callback(:defmacro, :"MACRO-#{name}", [quote(do: env :: Macro.Env.t)|args], name, length(args), spec, caller)
+        do_callback(:defmacro, :"MACRO-#{name}", [quote(do: env :: Macro.Env.t)|args],
+                    name, length(args), args, return, guards, caller)
       _ ->
         raise ArgumentError, message: "invalid syntax in defmacrocallback #{Macro.to_string(fun)}"
     end
   end
 
-  defp do_callback(kind, name, args, docs_name, docs_arity, return, caller) do
+  defp do_callback(kind, name, args, docs_name, docs_arity, docs_args, return, guards, caller) do
     Enum.each args, fn
       { :::, _, [left, right] } ->
         ensure_not_default(left)
@@ -95,8 +104,10 @@ defmodule Behaviour do
     end
 
     quote do
-      @callback unquote(name)(unquote_splicing(args)) :: unquote(return)
-      Behaviour.store_docs __MODULE__, unquote(caller.line), unquote(kind), unquote(docs_name), unquote(docs_arity)
+      docs_args = unquote(Macro.escape(docs_args))
+      @callback unquote(name)(unquote_splicing(args)) :: unquote(return) when unquote(guards)
+      Behaviour.store_docs(__MODULE__, unquote(caller.line), unquote(kind),
+                           unquote(docs_name), docs_args, unquote(docs_arity))
     end
   end
 
@@ -107,11 +118,60 @@ defmodule Behaviour do
   defp ensure_not_default(_), do: :ok
 
   @doc false
-  def store_docs(module, line, kind, name, arity) do
+  def store_docs(module, line, kind, name, args, arity) do
     doc = Module.get_attribute module, :doc
     Module.delete_attribute module, :doc
-    Module.put_attribute module, :behaviour_docs, { { name, arity }, line, kind, doc }
+
+    signature = Enum.map(Stream.with_index(args), fn { arg, ix } ->
+      { simplify_signature(arg, ix + 1), [line: line], nil }
+    end)
+
+    Module.put_attribute module, :behaviour_docs, { { name, arity }, line, kind, signature, doc }
   end
+
+  defp simplify_signature({ :::, _, [var, _] }, i) do
+    simplify_signature(var, i)
+  end
+
+  defp simplify_signature({ :|, _, [first, _] }, i) do
+    simplify_signature(first, i)
+  end
+
+  defp simplify_signature({ :., _, [_, name] }, _i) do
+    name
+  end
+
+  defp simplify_signature({ :->, _, list }, i) when is_list(list) do
+    :"fun#{i}"
+  end
+
+  defp simplify_signature({ :.., _, list }, i) when is_list(list) do
+    :"range#{i}"
+  end
+
+  defp simplify_signature({ :<<>>, _, list }, i) when is_list(list) do
+    :"bitstring#{i}"
+  end
+
+  defp simplify_signature({ :{}, _, list }, i) when is_list(list) do
+    :"tuple#{i}"
+  end
+
+  defp simplify_signature({ name, _, args }, _i)
+      when is_atom(name) and (is_atom(args) or is_list(args)) do
+    name
+  end
+
+  defp simplify_signature({ ast, _, list }, i) when is_list(list) do
+    simplify_signature(ast, i)
+  end
+
+  defp simplify_signature(other, i) when is_integer(other), do: :"int#{i}"
+  defp simplify_signature(other, i) when is_boolean(other), do: :"bool#{i}"
+  defp simplify_signature(other, i) when is_atom(other),    do: :"atom#{i}"
+  defp simplify_signature(other, i) when is_list(other),    do: :"list#{i}"
+  defp simplify_signature(other, i) when is_tuple(other),   do: :"tuple#{i}"
+  defp simplify_signature(_, i), do: :"arg#{i}"
 
   @doc false
   defmacro __using__(_) do
