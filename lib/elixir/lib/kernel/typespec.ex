@@ -124,6 +124,7 @@ defmodule Kernel.Typespec do
   `node`                | `atom`
   `timeout`             | `:infinity` &#124; `non_neg_integer`
   `no_return`           | `none`
+  `fun`                 | `(... -> any)`
 
   Some built-in types cannot be expressed with valid syntax according to the
   language defined above.
@@ -594,7 +595,7 @@ defmodule Kernel.Typespec do
   ## To AST conversion
 
   defp collect_vars({ :ann_type, _line, args }) when is_list(args) do
-    Enum.flat_map(args, &collect_vars/1)
+    []
   end
 
   defp collect_vars({ :type, _line, _kind, args }) when is_list(args) do

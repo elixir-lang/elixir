@@ -307,18 +307,21 @@ defmodule Typespec.TypeTest do
   end
 
   test "@spec(spec)" do
-    {spec1, spec2, spec3} = test_module do
-      def myfun(x), do: x
-      def myfun(), do: :ok
-      def myfun(x, y), do: {x, y}
-      t1 = @spec myfun(integer) :: integer
-      t2 = @spec myfun() :: integer
-      t3 = @spec myfun(integer, integer) :: {integer, integer}
-      {t1, t2, t3}
+    {spec1, spec2, spec3, spec4} = test_module do
+      def myfun1(x), do: x
+      def myfun2(), do: :ok
+      def myfun3(x, y), do: {x, y}
+      def myfun4(x), do: x
+      t1 = @spec myfun1(integer) :: integer
+      t2 = @spec myfun2() :: integer
+      t3 = @spec myfun3(integer, integer) :: {integer, integer}
+      t4 = @spec myfun4(x :: integer) :: integer
+      {t1, t2, t3, t4}
     end
-    assert {{:myfun, 1}, {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]}} = spec1
-    assert {{:myfun, 0}, {:type, _, :fun, [{:type, _, :product, []}, {:type, _, :integer, []}]}} = spec2
-    assert {{:myfun, 2}, {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}, {:type, _, :integer, []}]}, {:type, _, :tuple, [{:type, _, :integer, []}, {:type, _, :integer, []}]}]}} = spec3
+    assert {{:myfun1, 1}, {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]}} = spec1
+    assert {{:myfun2, 0}, {:type, _, :fun, [{:type, _, :product, []}, {:type, _, :integer, []}]}} = spec2
+    assert {{:myfun3, 2}, {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}, {:type, _, :integer, []}]}, {:type, _, :tuple, [{:type, _, :integer, []}, {:type, _, :integer, []}]}]}} = spec3
+    assert {{:myfun4, 1}, {:type, _, :fun, [{:type, _, :product, [{:ann_type, _, [{:var, _, :x}, {:type, _, :integer, []}]}]}, {:type, _, :integer, []}]}} = spec4
   end
 
   test "@spec(spec) with guards" do
@@ -459,7 +462,8 @@ defmodule Typespec.TypeTest do
       (quote do: @spec a() :: integer()),
       (quote do: @spec a(atom()) :: integer() | [{}]),
       (quote do: @spec a(b) :: integer() when [b: integer()]),
-      (quote do: @spec a(b) :: b when [b: var])
+      (quote do: @spec a(b) :: b when [b: var]),
+      (quote do: @spec a(c :: atom()) :: atom()),
     ]
 
     compiled = test_module do
