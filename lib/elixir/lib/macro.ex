@@ -330,13 +330,7 @@ defmodule Macro do
 
   # Tuple containers
   def to_string({ :{}, _, args } = ast, fun) do
-    if match?([_], args) do
-      tuple = "{" <> Enum.map_join(args, ", ", &to_string(&1, fun)) <> "}"
-    else
-      args = args_to_string(args, fun)
-      tuple = "{" <> args <> "}"
-    end
-
+    tuple = "{" <> Enum.map_join(args, ", ", &to_string(&1, fun)) <> "}"
     fun.(ast, tuple)
   end
 
@@ -413,11 +407,12 @@ defmodule Macro do
   # Lists
   def to_string(list, fun) when is_list(list) do
     fun.(list, cond do
+      list == [] ->
+        "[]"
+      :io_lib.printable_list(list) ->
+        "'" <> Inspect.BitString.escape(String.from_char_list!(list), ?') <> "'"
       Keyword.keyword?(list) ->
         "[" <> kw_list_to_string(list, fun) <> "]"
-      not match?([_], list) ->
-        args = args_to_string(list, fun)
-        "[" <> args <> "]"
       true ->
         "[" <> Enum.map_join(list, ", ", &to_string(&1, fun)) <> "]"
     end)

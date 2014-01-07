@@ -34,10 +34,6 @@ defmodule Kernel.ExceptionTest do
     assert Exception.format_stacktrace_entry({Foo, :bar, 1, [file: 'file.ex', line: 10]}) == "file.ex:10: Foo.bar/1"
   end
 
-  test :format_stacktrace_entry_with_file_and_line_and_cwd do
-    assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: '/foo/file.ex', line: 10]}, "/foo") == "file.ex:10: Foo.bar()"
-  end
-
   test :format_stacktrace_entry_with_file_no_line do
     assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex']}) == "file.ex: Foo.bar()"
     assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex', line: 0]}) == "file.ex: Foo.bar()"
@@ -97,9 +93,10 @@ defmodule Kernel.ExceptionTest do
         [top|_] = System.stacktrace
         top
       end
-    file = to_char_list(__ENV__.file)
+
+    file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list!
     assert {Kernel.ExceptionTest, :test_raise_preserves_the_stacktrace, _,
-           [file: ^file, line: 95]} = stacktrace # line is sensitive
+           [file: ^file, line: 91]} = stacktrace
   end
 
   test :defexception do

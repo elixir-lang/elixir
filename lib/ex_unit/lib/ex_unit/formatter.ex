@@ -21,7 +21,7 @@ defmodule ExUnit.Formatter do
   defcallback test_started(id, test) :: any
   defcallback test_finished(id, test) :: any
 
-  import Exception, only: [format_stacktrace_entry: 2]
+  import Exception, only: [format_stacktrace_entry: 1]
 
   @doc """
   Formats time taken running the test suite.
@@ -127,14 +127,13 @@ defmodule ExUnit.Formatter do
     error_info "** (#{kind}) #{inspect(reason)}", color
   end
 
-  defp format_stacktrace([{ test_case, test, _, [ file: file, line: line ] }|_], test_case, test, color) do
-    location_info("at #{Path.relative_to_cwd(file)}:#{line}", color)
+  defp format_stacktrace([{ test_case, test, _, location }|_], test_case, test, color) do
+    location_info("at #{location[:file]}:#{location[:line]}", color)
   end
 
   defp format_stacktrace(stacktrace, _case, _test, color) do
-    cwd = System.cwd
     location_info("stacktrace:", color) <>
-      Enum.map_join(stacktrace, fn(s) -> stacktrace_info format_stacktrace_entry(s, cwd), color end)
+      Enum.map_join(stacktrace, fn(s) -> stacktrace_info format_stacktrace_entry(s), color end)
   end
 
   defp pad(binary, max) do

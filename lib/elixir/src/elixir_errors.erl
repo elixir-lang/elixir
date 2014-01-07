@@ -163,7 +163,7 @@ raise(Meta, File, Kind, Message) when is_list(Meta) ->
 raise(none, File, Kind, Message) ->
   raise(0, File, Kind, Message);
 
-raise(Line, File, Kind, Message) when is_integer(Line) ->
+raise(Line, File, Kind, Message) when is_integer(Line), is_binary(File) ->
   %% Populate the stacktrace so we can raise it
   try
     throw(ok)
@@ -171,13 +171,13 @@ raise(Line, File, Kind, Message) when is_integer(Line) ->
     ok -> ok
   end,
   Stacktrace = erlang:get_stacktrace(),
-  Exception = Kind:new([{description, Message}, {file, iolist_to_binary(File)}, {line, Line}]),
+  Exception = Kind:new([{description, Message}, {file, File}, {line, Line}]),
   erlang:raise(error, Exception, tl(Stacktrace)).
 
-file_format(0, File, Message) ->
+file_format(0, File, Message) when is_binary(File) ->
   io_lib:format("~ts: ~ts~n", [elixir_utils:relative_to_cwd(File), Message]);
 
-file_format(Line, File, Message) ->
+file_format(Line, File, Message) when is_binary(File) ->
   io_lib:format("~ts:~w: ~ts~n", [elixir_utils:relative_to_cwd(File), Line, Message]).
 
 format_var(Var) ->

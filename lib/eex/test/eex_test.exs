@@ -321,7 +321,7 @@ foo
         { EExText.Compiled,
           :before_compile,
           0,
-          [file: to_char_list(__ENV__.file), line: 7]
+          [file: to_char_list(Path.relative_to_cwd(__ENV__.file)), line: 7]
         }
       }
 
@@ -330,7 +330,7 @@ foo
         { EExText.Compiled,
           :after_compile,
           0,
-          [file: to_char_list(__ENV__.file), line: 18]
+          [file: to_char_list(Path.relative_to_cwd(__ENV__.file)), line: 18]
         }
       }
 

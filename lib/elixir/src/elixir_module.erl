@@ -45,14 +45,12 @@ compile(Module, Block, Vars, ExEnv) ->
 
 do_compile(Line, Module, Block, Vars, E) ->
   File = E#elixir_env.file,
-  FileList = elixir_utils:characters_to_list(File),
-
   check_module_availability(Line, File, Module),
   build(Line, File, Module, E#elixir_env.lexical_tracker),
 
   try
     { Result, NE } = eval_form(Line, Module, Block, Vars, E),
-    { Base, Export, Private, Def, Defmacro, Functions } = elixir_def:unwrap_definitions(FileList, Module),
+    { Base, Export, Private, Def, Defmacro, Functions } = elixir_def:unwrap_definitions(Module),
 
     { All, Forms0 } = functions_form(Line, File, Module, Base, Export, Def, Defmacro, Functions),
     Forms1          = specs_form(Module, Private, Defmacro, Forms0),
@@ -71,8 +69,10 @@ do_compile(Line, Module, Block, Vars, E) ->
     warn_invalid_clauses(Line, File, Module, All),
     warn_unused_docs(Line, File, Module),
 
+    Location = { elixir_utils:relative_to_cwd(elixir_utils:characters_to_list(File)), Line },
+
     Final = [
-      { attribute, Line, file, { FileList, Line } },
+      { attribute, Line, file, Location },
       { attribute, Line, module, Module } | Forms3
     ],
 

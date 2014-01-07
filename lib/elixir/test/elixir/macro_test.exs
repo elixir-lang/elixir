@@ -384,6 +384,11 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: [a: 1, b: 1 + 2]) == "[a: 1, b: 1 + 2]"
   end
 
+  test :string_list do
+    assert Macro.to_string(quote do: []) == "[]"
+    assert Macro.to_string(quote do: 'abc') == "'abc'"
+  end
+
   test :last_arg_kw_list do
     assert Macro.to_string(quote do: foo([])) == "foo([])"
     assert Macro.to_string(quote do: foo(x: y)) == "foo(x: y)"
@@ -391,14 +396,9 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: foo(x: y, p: q)) == "foo(x: y, p: q)"
     assert Macro.to_string(quote do: foo(a, x: y, p: q)) == "foo(a, x: y, p: q)"
 
-
     assert Macro.to_string(quote do: { [] }) == "{[]}"
     assert Macro.to_string(quote do: { [a: b] }) == "{[a: b]}"
-    assert Macro.to_string(quote do: { x, a: b }) == "{x, a: b}"
-    assert Macro.to_string(quote do: []) == "[]"
-    assert Macro.to_string(quote do: [a: b]) == "[a: b]"
-    assert Macro.to_string(quote do: [[a: b]]) == "[[a: b]]"
-    assert Macro.to_string(quote do: [x, a: b]) == "[x, a: b]"
+    assert Macro.to_string(quote do: { x, a: b }) == "{x, [a: b]}"
   end
 
   test :to_string_with_fun do

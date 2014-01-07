@@ -2,7 +2,7 @@
 -module(elixir_def).
 -export([table/1, clauses_table/1, setup/1,
   cleanup/1, reset_last/1, lookup_definition/2,
-  delete_definition/2, store_definition/6, unwrap_definitions/2,
+  delete_definition/2, store_definition/6, unwrap_definitions/1,
   store_each/8, format_error/1]).
 -include("elixir.hrl").
 
@@ -85,7 +85,7 @@ store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, MetaFile, #
   E = ER#elixir_env{function=Tuple},
   elixir_locals:record_definition(Tuple, Kind, Module),
 
-  Location = retrieve_file(Line, MetaFile, Module, E),
+  Location = retrieve_location(Line, MetaFile, Module),
   run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Body, E),
   { Function, Defaults, Super } = translate_definition(Kind, Line, Name, Args, Guards, Body, E),
 
@@ -118,20 +118,22 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, E) ->
       [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || { Mod, Fun } <- Callbacks]
   end.
 
-%% Retrieve meta file, @file or fallback to default
+%% Retrieve location from meta file or @file, otherwise nil
 
-retrieve_file(Line, File, Module, E) ->
+retrieve_location(Line, File, Module) ->
   case not(elixir_compiler:get_opt(internal)) andalso
        'Elixir.Module':get_attribute(Module, file) of
     X when X == nil; X == false ->
-      { elixir_utils:characters_to_list(retrieve_file(File, E)), Line };
+      if
+        is_binary(File) ->
+          { elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line };
+        true ->
+          nil
+      end;
     X ->
       'Elixir.Module':delete_attribute(Module, file),
       { X, 0 }
   end.
-
-retrieve_file(nil, E)   -> E#elixir_env.file;
-retrieve_file(File, _E) -> File.
 
 %% Compile super
 
@@ -195,13 +197,13 @@ is_macro(_)         -> false.
 % Unwrap the functions stored in the functions table.
 % It returns a list of all functions to be exported, plus the macros,
 % and the body of all functions.
-unwrap_definitions(File, Module) ->
+unwrap_definitions(Module) ->
   Table = table(Module),
   CTable = clauses_table(Module),
   ets:delete(Table, last),
-  unwrap_definition(ets:tab2list(Table), CTable, File, [], [], [], [], [], [], []).
+  unwrap_definition(ets:tab2list(Table), CTable, [], [], [], [], [], [], []).
 
-unwrap_definition([Fun|T], CTable, File, All, Exports, Private, Def, Defmacro, Functions, Tail) ->
+unwrap_definition([Fun|T], CTable, All, Exports, Private, Def, Defmacro, Functions, Tail) ->
   Tuple   = element(1, Fun),
   Clauses = [Clause || { _, Clause } <- ets:lookup(CTable, Tuple)],
 
@@ -217,28 +219,24 @@ unwrap_definition([Fun|T], CTable, File, All, Exports, Private, Def, Defmacro, F
       { Functions, Tail };
     _ ->
       NewAll = [Tuple|All],
-      function_for_stored_definition(NewFun, Clauses, File, Functions, Tail)
+      function_for_stored_definition(NewFun, Clauses, Functions, Tail)
   end,
 
-  unwrap_definition(T, CTable, File, NewAll, NewExports, NewPrivate,
+  unwrap_definition(T, CTable, NewAll, NewExports, NewPrivate,
     NewDef, NewDefmacro, NewFunctions, NewTail);
-
-unwrap_definition([], _CTable, _File, All, Exports, Private, Def, Defmacro, Functions, Tail) ->
+unwrap_definition([], _CTable, All, Exports, Private, Def, Defmacro, Functions, Tail) ->
   { All, Exports, Private, ordsets:from_list(Def),
     ordsets:from_list(Defmacro), lists:reverse(Tail ++ Functions) }.
 
 unwrap_definition(def, Tuple, Fun, Exports, Private, Def, Defmacro) ->
   { Fun, [Tuple|Exports], Private, [Tuple|Def], Defmacro };
-
 unwrap_definition(defmacro, { Name, Arity } = Tuple, Fun, Exports, Private, Def, Defmacro) ->
   Macro = { ?elixir_macro(Name), Arity + 1 },
   { setelement(1, Fun, Macro), [Macro|Exports], Private, Def, [Tuple|Defmacro] };
-
 unwrap_definition(defp, Tuple, Fun, Exports, Private, Def, Defmacro) ->
   %% { Name, Arity }, Kind, Line, Check, Defaults
   Info = { Tuple, defp, element(3, Fun), element(5, Fun), element(7, Fun) },
   { Fun, Exports, [Info|Private], Def, Defmacro };
-
 unwrap_definition(defmacrop, Tuple, Fun, Exports, Private, Def, Defmacro) ->
   %% { Name, Arity }, Kind, Line, Check, Defaults
   Info  = { Tuple, defmacrop, element(3, Fun), element(5, Fun), element(7, Fun) },
@@ -246,10 +244,10 @@ unwrap_definition(defmacrop, Tuple, Fun, Exports, Private, Def, Defmacro) ->
 
 %% Helpers
 
-function_for_stored_definition({{Name,Arity}, _, Line, _, _, {File, _}, _}, Clauses, File, Functions, Tail) ->
+function_for_stored_definition({{Name,Arity}, _, Line, _, _, nil, _}, Clauses, Functions, Tail) ->
   { [{ function, Line, Name, Arity, Clauses }|Functions], Tail };
 
-function_for_stored_definition({{Name,Arity}, _, Line, _, _, Location, _}, Clauses, _File, Functions, Tail) ->
+function_for_stored_definition({{Name,Arity}, _, Line, _, _, Location, _}, Clauses, Functions, Tail) ->
   { Functions, [
     { function, Line, Name, Arity, Clauses },
     { attribute, Line, file, Location } | Tail

@@ -237,10 +237,12 @@ format_errors([]) ->
 
 format_errors(Errors) ->
   lists:foreach(fun ({File, Each}) ->
-    lists:foreach(fun (Error) -> elixir_errors:handle_file_error(File, Error) end, Each)
+    BinFile = elixir_utils:characters_to_binary(File),
+    lists:foreach(fun (Error) -> elixir_errors:handle_file_error(BinFile, Error) end, Each)
   end, Errors).
 
 format_warnings(Bootstrap, Warnings) ->
   lists:foreach(fun ({File, Each}) ->
-    lists:foreach(fun (Warning) -> elixir_errors:handle_file_warning(Bootstrap, File, Warning) end, Each)
+    BinFile = elixir_utils:characters_to_binary(File),
+    lists:foreach(fun (Warning) -> elixir_errors:handle_file_warning(Bootstrap, BinFile, Warning) end, Each)
   end, Warnings).

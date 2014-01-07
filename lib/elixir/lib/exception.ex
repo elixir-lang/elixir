@@ -9,19 +9,22 @@ defexception SystemLimitError,  message: "a system limit has been reached"
 
 defexception SyntaxError, [file: nil, line: nil, description: "syntax error"] do
   def message(exception) do
-    "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
+    Exception.format_file_line(Path.relative_to_cwd(exception.file), exception.line) <>
+      exception.description
   end
 end
 
 defexception TokenMissingError, [file: nil, line: nil, description: "expression is incomplete"] do
   def message(exception) do
-    "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
+    Exception.format_file_line(Path.relative_to_cwd(exception.file), exception.line) <>
+      exception.description
   end
 end
 
 defexception CompileError, [file: nil, line: nil, description: "compile error"] do
   def message(exception) do
-    "#{Exception.format_file_line(exception.file, exception.line)}#{exception.description}"
+    Exception.format_file_line(Path.relative_to_cwd(exception.file), exception.line) <>
+      exception.description
   end
 end
 
@@ -212,33 +215,65 @@ defmodule Exception do
 
   @doc """
   Receives a tuple representing a stacktrace entry and formats it.
-
-  The current working directory may be given as an argument,
-  otherwise one is automatically retrieved.
   """
-  def format_stacktrace_entry(entry, cwd // nil)
+  def format_stacktrace_entry(entry)
 
   # From Macro.Env.stacktrace
-  def format_stacktrace_entry({ module, :__MODULE__, 0, file_line }, cwd) do
-    "#{format_location(file_line, cwd)}#{inspect module} (module)"
+  def format_stacktrace_entry({ module, :__MODULE__, 0, location }) do
+    format_location(location) <> inspect(module) <> " (module)"
   end
 
   # From :elixir_compiler_*
-  def format_stacktrace_entry({ _module, :__MODULE__, 1, file_line }, cwd) do
-    "#{format_location(file_line, cwd)}(module)"
+  def format_stacktrace_entry({ _module, :__MODULE__, 1, location }) do
+    format_location(location) <> "(module)"
   end
 
   # From :elixir_compiler_*
-  def format_stacktrace_entry({ _module, :__FILE__, 1, file_line }, cwd) do
-    "#{format_location(file_line, cwd)}(file)"
+  def format_stacktrace_entry({ _module, :__FILE__, 1, location }) do
+    format_location(location) <> "(file)"
   end
 
-  def format_stacktrace_entry({module, fun, arity, file_line}, cwd) do
-    "#{format_location(file_line, cwd)}#{format_mfa(module, fun, arity)}"
+  def format_stacktrace_entry({module, fun, arity, location}) do
+    format_application(module) <> format_location(location) <> format_mfa(module, fun, arity)
   end
 
-  def format_stacktrace_entry({fun, arity, file_line}, cwd) do
-    "#{format_location(file_line, cwd)}#{format_fa(fun, arity)}"
+  def format_stacktrace_entry({fun, arity, location}) do
+    format_location(location) <> format_fa(fun, arity)
+  end
+
+  defp format_application(module) do
+    case :code.which(module) do
+      file when is_list(file) -> format_application(:lists.reverse(file), :beam)
+      _ -> ""
+    end
+  end
+
+  defp format_application([h|t], :beam) when h in [?/, ?\\] do
+    format_application(t, :ebin)
+  end
+
+  defp format_application([_|t], :beam) do
+    format_application(t, :beam)
+  end
+
+  defp format_application('nibe' ++ [h|t], :ebin) when h in [?/, ?\\] do
+    format_application_file(t, [])
+  end
+
+  defp format_application(_, _) do
+    ""
+  end
+
+  defp format_application_file([h|t], buffer) when not h in [?/, ?\\] do
+    format_application_file(t, [h|buffer])
+  end
+
+  defp format_application_file(_, buffer) do
+    if buffer in ['.', '..', ''] do
+      ""
+    else
+      "(" <> to_string(buffer) <> ") "
+    end
   end
 
   @doc """
@@ -255,11 +290,9 @@ defmodule Exception do
       :stacktrace -> Enum.drop(:erlang.get_stacktrace, 1)
     end
 
-    cwd = System.cwd
-
     case trace do
       [] -> "\n"
-      s  -> "    " <> Enum.map_join(s, "\n    ", &format_stacktrace_entry(&1, cwd)) <> "\n"
+      s  -> "    " <> Enum.map_join(s, "\n    ", &format_stacktrace_entry(&1)) <> "\n"
     end
   end
 
@@ -330,20 +363,15 @@ defmodule Exception do
 
     if is_list(arity) do
       inspected = lc x inlist arity, do: inspect(x)
-      "#{format_module module}#{fun}(#{Enum.join(inspected, ", ")})"
+      "#{inspect module}.#{fun}(#{Enum.join(inspected, ", ")})"
     else
-      "#{format_module module}#{fun}/#{arity}"
+      "#{inspect module}.#{fun}/#{arity}"
     end
   end
-
-  defp format_module(mod), do: "#{inspect mod}."
 
   @doc """
   Formats the given file and line as shown in stacktraces.
   If any of the values are nil, they are omitted.
-
-  The current working directory may be given as an argument,
-  otherwise one is automatically retrieved.
 
   ## Examples
 
@@ -357,11 +385,8 @@ defmodule Exception do
       ""
 
   """
-  def format_file_line(file, line, cwd // nil) do
+  def format_file_line(file, line) do
     if file do
-      file = to_string(file)
-      file = if cwd, do: Path.relative_to(file, cwd), else: Path.relative_to_cwd(file)
-
       if line && line != 0 do
         "#{file}:#{line}: "
       else
@@ -372,8 +397,8 @@ defmodule Exception do
     end
   end
 
-  defp format_location(opts, cwd) do
-    format_file_line Keyword.get(opts, :file), Keyword.get(opts, :line), cwd
+  defp format_location(opts) do
+    format_file_line Keyword.get(opts, :file), Keyword.get(opts, :line)
   end
 
   defp from_stacktrace([{ module, function, args, _ }|_]) when is_list(args) do
