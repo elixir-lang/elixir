@@ -242,37 +242,9 @@ defmodule Exception do
   end
 
   defp format_application(module) do
-    case :code.which(module) do
-      file when is_list(file) -> format_application(:lists.reverse(file), :beam)
-      _ -> ""
-    end
-  end
-
-  defp format_application([h|t], :beam) when h in [?/, ?\\] do
-    format_application(t, :ebin)
-  end
-
-  defp format_application([_|t], :beam) do
-    format_application(t, :beam)
-  end
-
-  defp format_application('nibe' ++ [h|t], :ebin) when h in [?/, ?\\] do
-    format_application_file(t, [])
-  end
-
-  defp format_application(_, _) do
-    ""
-  end
-
-  defp format_application_file([h|t], buffer) when not h in [?/, ?\\] do
-    format_application_file(t, [h|buffer])
-  end
-
-  defp format_application_file(_, buffer) do
-    if buffer in ['.', '..', ''] do
-      ""
-    else
-      "(" <> to_string(buffer) <> ") "
+    case :application.get_application(module) do
+      { :ok, app } -> "(" <> atom_to_binary(app) <> ") "
+      :undefined   -> ""
     end
   end
 
