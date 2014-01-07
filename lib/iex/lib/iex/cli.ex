@@ -74,7 +74,7 @@ defmodule IEx.CLI do
 
   defp tty_args do
     if remote = get_remsh(:init.get_plain_arguments) do
-      if is_alive do
+      if Node.alive? do
         case :rpc.call remote, :code, :ensure_loaded, [IEx] do
           { :badrpc, reason } ->
             abort "Could not contact remote node #{remote}, reason: #{inspect reason}. Aborting..."

@@ -242,7 +242,7 @@ defmodule IEx.Server do
 
   defp io_get(pid, prefix, counter) do
     prompt =
-      if is_alive do
+      if Node.alive? do
         "#{prefix || remote_prefix}(#{node})#{counter}> "
       else
         "#{prefix || "iex"}(#{counter})> "

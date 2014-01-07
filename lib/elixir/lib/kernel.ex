@@ -506,12 +506,10 @@ defmodule Kernel do
     :erlang.iolist_to_binary(item)
   end
 
-  @doc """
-  Returns `true` if the local node is alive; that is,
-  if the node can be part of a distributed system.
-  """
+  @doc false
   @spec is_alive :: boolean
   def is_alive do
+    IO.write "is_alive/0 is deprecated, please use Node.alive?/0 instead\n#{Exception.format_stacktrace}"
     :erlang.is_alive
   end
 

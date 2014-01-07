@@ -9,6 +9,7 @@
   * [Kernel] Ensure bitstring modifier arguments are expanded
 
 * Deprecations
+  * [Kernel] `is_alive/0` is deprecated in favor of `Node.alive?`
 
 * Backwards incompatible changes
 

@@ -73,7 +73,7 @@ defmodule IEx do
 
       iex(foo@HOST)1> node()
       :"foo@HOST"
-      iex(foo@HOST)2> is_alive()
+      iex(foo@HOST)2> Node.alive?()
       true
 
   For fun, let's define a simple module in this shell too:
