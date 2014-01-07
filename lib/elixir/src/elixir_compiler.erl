@@ -99,7 +99,7 @@ code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(L
   Relative = elixir_utils:relative_to_cwd(File),
 
   [
-    { attribute, Line, file, { elixir_utils:characters_to_list(File), 1 } },
+    { attribute, Line, file, { elixir_utils:characters_to_list(Relative), 1 } },
     { attribute, Line, module, Module },
     { attribute, Line, export, [{ Fun, 1 }, { '__RELATIVE__', 0 }] },
     { function, Line, Fun, 1, [

@@ -28,8 +28,8 @@ defmodule System do
 
   # Read and strip the version from the `VERSION` file.
   defmacrop get_version do
-    case read_stripped("VERSION") do
-      ""   -> raise CompileError, message: "could not read the version number from VERSION"
+    case read_stripped(:filename.join(__DIR__, "../../../VERSION")) do
+      ""   -> raise ArgumentError, message: "could not read the version number from VERSION"
       data -> data
     end
   end
@@ -38,7 +38,7 @@ defmodule System do
   # the most recent tag. If that is not available, tries to read the commit hash
   # from .git/HEAD. If that fails, returns an empty string.
   defmacrop get_describe do
-    dirpath = ".git"
+    dirpath = :filename.join(__DIR__, "../../../.git")
     case :file.read_file_info(dirpath) do
       { :ok, _ } ->
         if :os.find_executable('git') do

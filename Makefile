@@ -1,4 +1,4 @@
-REBAR := "$(shell echo `pwd`/rebar)"
+REBAR := rebar
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
@@ -27,7 +27,7 @@ lib/$(1)/ebin/$(1).app: lib/$(1)/mix.exs
 lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1)/lib/*/*.ex) $(wildcard lib/$(1)/lib/*/*/*.ex)
 	@ echo "==> $(1) (compile)"
 	@ rm -rf lib/$(1)/ebin
-	$(Q) $$(ELIXIRC) "lib/$(1)/lib/**/*.ex" -o lib/$(1)/ebin
+	$(Q) cd lib/$(1) && ../../$$(ELIXIRC) "lib/**/*.ex" -o ebin
 
 test_$(1): $(1)
 	@ echo "==> $(1) (exunit)"
@@ -50,7 +50,7 @@ lib/elixir/src/elixir.app.src: src/elixir.app.src
 	$(Q) cat src/elixir.app.src >>lib/elixir/src/elixir.app.src
 
 erlang:
-	$(Q) cd lib/elixir && $(REBAR) compile
+	$(Q) cd lib/elixir && ../../$(REBAR) compile
 
 # Since Mix depends on EEx and EEx depends on
 # Mix, we first compile EEx without the .app
@@ -63,18 +63,18 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
 		echo "==> bootstrap (compile)";                 \
 		$(ERL) -s elixir_compiler core -s erlang halt;  \
 	fi
-	@ echo "==> kernel (compile)";
-	$(Q) $(ELIXIRC) "lib/elixir/lib/kernel.ex" -o lib/elixir/ebin;
-	$(Q) $(ELIXIRC) "lib/elixir/lib/**/*.ex" -o lib/elixir/ebin;
+	@ echo "==> elixir (compile)";
+	$(Q) cd lib/elixir && ../../$(ELIXIRC) "lib/kernel.ex" -o ebin;
+	$(Q) cd lib/elixir && ../../$(ELIXIRC) "lib/**/*.ex" -o ebin;
 	$(Q) $(MAKE) unicode
 	$(Q) rm -rf lib/elixir/ebin/elixir.app
-	$(Q) cd lib/elixir && $(REBAR) compile
+	$(Q) cd lib/elixir && ../../$(REBAR) compile
 
 unicode: $(UNICODE)
 $(UNICODE): lib/elixir/unicode/unicode.ex lib/elixir/unicode/UnicodeData.txt lib/elixir/unicode/GraphemeBreakProperty.txt
 	@ echo "==> unicode (compile)";
 	@ echo "This step can take up to a minute to compile in order to embed the Unicode database"
-	$(Q) $(ELIXIRC) lib/elixir/unicode/unicode.ex -o lib/elixir/ebin;
+	$(Q) cd lib/elixir && ../../$(ELIXIRC) unicode/unicode.ex -o ebin;
 
 $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
 $(eval $(call APP_TEMPLATE,eex,EEx))
@@ -95,7 +95,7 @@ install: compile
 	done
 
 clean:
-	cd lib/elixir && $(REBAR) clean
+	cd lib/elixir && ../../$(REBAR) clean
 	rm -rf ebin
 	rm -rf lib/*/ebin
 	rm -rf lib/elixir/test/ebin
@@ -154,7 +154,7 @@ test_doc_test: compile
 	$(Q) cd lib/elixir && ../../bin/elixir -r "test/doc_test.exs";
 
 test_kernel: compile
-	@ echo "==> kernel (exunit)"
+	@ echo "==> elixir (exunit)"
 	$(Q) cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs";
 
 .dialyzer.base_plt:
