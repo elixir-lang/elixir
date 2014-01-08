@@ -21,6 +21,15 @@ defmodule IEx.InteractionTest do
     assert capture_iex("1 + 2") == "3"
   end
 
+  test "multiple vars" do
+    code = """
+    << a, b, c, d, e, f, g, h, i, j :: binary >> = <<1, 2, 3, 4, 5, 6, 7, 8, 9, 10>>
+    << a, b, c, d, e, f, g, h, i, x :: binary >> = <<1, 2, 3, 4, 5, 6, 7, 8, 9, 10>>
+    x
+    """
+    assert capture_iex(code) =~ "10"
+  end
+
   test "exception" do
     exception = Regex.escape("** (ArithmeticError) bad argument in arithmetic expression")
     assert capture_iex("1 + :atom\n:this_is_still_working")
