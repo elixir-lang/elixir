@@ -21,9 +21,9 @@ defmodule Kernel.Typespec do
   expressed the same way: `pid()` or simply `pid`. Parametrized types are also
   supported (`list(integer`) and so are remote types (`Enum.t`).
 
-  For integers and atoms literals are allowed as types (ex. `1`, `:atom` or
-  `false`). All other types are built up of unions of predefined types. Certain
-  shorthands are allowed, such as `[...]`, `<<>>` and `{...}`).
+  Integers and atom literals are allowed as types (ex. `1`, `:atom` or
+  `false`). All other types are built of unions of predefined types. Certain
+  shorthands are allowed, such as `[...]`, `<<>>` and `{...}`.
 
   ### Predefined types
 
@@ -57,7 +57,7 @@ defmodule Kernel.Typespec do
 
       Integer :: integer
                | ElixirInteger                # ..., -1, 0, 1, ... 42 ...
-               | ElixirInteger..ElixirInteger # specifies an integer range
+               | ElixirInteger..ElixirInteger # an integer range
 
       List :: list(Type)                        # proper list ([]-terminated)
             | improper_list(Type1, Type2)       # Type1=contents, Type2=termination
@@ -65,9 +65,9 @@ defmodule Kernel.Typespec do
             | nonempty_list(Type)               # proper non-empty list
             | []                                # empty list
             | [Type]                            # shorthand for list(Type)
-            | [Type, ...]                       # sharthand for nonempty_list(Type)
+            | [Type, ...]                       # shorthand for nonempty_list(Type)
 
-      Tuple :: tuple     # stands for a tuple of any size
+      Tuple :: tuple     # a tuple of any size
              | {}        # empty tuple
              | { TList }
 
@@ -185,13 +185,13 @@ defmodule Kernel.Typespec do
   use the `char_list` type which is a synonym for `string`. If you use `string`,
   you'll get a warning from the compiler.
 
-  If you want to refer to the "string" type (the one operated by functions in
-  the String module), use `String.t` type instead.
+  If you want to refer to the "string" type (the one operated on by functions in
+  the `String` module), use `String.t` type instead.
   """
 
   @doc """
   Defines a type.
-  This macro is the one responsible for handling the attribute `@type`.
+  This macro is responsible for handling the attribute `@type`.
 
   ## Examples
 
@@ -206,7 +206,7 @@ defmodule Kernel.Typespec do
 
   @doc """
   Defines an opaque type.
-  This macro is the one responsible for handling the attribute `@opaque`.
+  This macro is responsible for handling the attribute `@opaque`.
 
   ## Examples
 
@@ -221,7 +221,7 @@ defmodule Kernel.Typespec do
 
   @doc """
   Defines a private type.
-  This macro is the one responsible for handling the attribute `@typep`.
+  This macro is responsible for handling the attribute `@typep`.
 
   ## Examples
 
@@ -236,7 +236,7 @@ defmodule Kernel.Typespec do
 
   @doc """
   Defines a spec.
-  This macro is the one responsible for handling the attribute `@spec`.
+  This macro is responsible for handling the attribute `@spec`.
 
   ## Examples
 
@@ -251,7 +251,7 @@ defmodule Kernel.Typespec do
 
   @doc """
   Defines a callback.
-  This macro is the one responsible for handling the attribute `@callback`.
+  This macro is responsible for handling the attribute `@callback`.
 
   ## Examples
 
@@ -408,10 +408,10 @@ defmodule Kernel.Typespec do
   @doc """
   Returns all type docs available from the module's beam code.
 
-  It is returned as a list of tuples where the first element is the pair of type
+  The result is returned as a list of tuples where the first element is the pair of type
   name and arity and the second element is the documentation.
 
-  The module has to have a corresponding beam file on the disk which can be
+  The module must have a corresponding beam file which can be
   located by the runtime system.
   """
   @spec beam_typedocs(module | binary) :: [tuple] | nil
@@ -428,10 +428,10 @@ defmodule Kernel.Typespec do
   @doc """
   Returns all types available from the module's beam code.
 
-  It is returned as a list of tuples where the first
+  The result is returned as a list of tuples where the first
   element is the type (`:typep`, `:type` and `:opaque`).
 
-  The module has to have a corresponding beam file on the disk which can be
+  The module must have a corresponding beam file which can be
   located by the runtime system.
   """
   @spec beam_types(module | binary) :: [tuple] | nil
@@ -456,10 +456,10 @@ defmodule Kernel.Typespec do
   @doc """
   Returns all specs available from the module's beam code.
 
-  It is returned as a list of tuples where the first
+  The result is returned as a list of tuples where the first
   element is spec name and arity and the second is the spec.
 
-  The module has to have a corresponding beam file on the disk which can be
+  The module must have a corresponding beam file which can be
   located by the runtime system.
   """
   @spec beam_specs(module | binary) :: [tuple] | nil
@@ -470,10 +470,10 @@ defmodule Kernel.Typespec do
   @doc """
   Returns all callbacks available from the module's beam code.
 
-  It is returned as a list of tuples where the first
+  The result is returned as a list of tuples where the first
   element is spec name and arity and the second is the spec.
 
-  The module has to have a corresponding beam file on the disk
+  The module must have a corresponding beam file 
   which can be located by the runtime system.
   """
   @spec beam_callbacks(module | binary) :: [tuple] | nil
