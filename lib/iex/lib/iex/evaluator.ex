@@ -189,7 +189,7 @@ defmodule IEx.Evaluator do
   defp format_function(fun, arity) do
     cond do
       is_list(arity) ->
-        "#{fun}/#{Enum.count(arity)}"
+        "#{fun}/#{length(arity)}"
       true ->
         "#{fun}/#{arity}"
     end

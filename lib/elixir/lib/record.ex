@@ -487,10 +487,10 @@ defmodule Record do
 
     case remaining do
       [] ->
-        quote do: { unquote_splicing([atom|match]) }
+        { :{}, [], [atom|match] }
       _  ->
         keys = lc { key, _ } inlist remaining, do: key
-        raise ArgumentError, message: "record #{inspect atom} does not have the keys: #{inspect keys}"
+        raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect hd(keys)}"
     end
   end
 
@@ -713,7 +713,7 @@ defmodule Record do
     quote do
       @doc false
       def to_keywords(record) do
-        unquote(:orddict.from_list(sorted))
+        unquote(sorted)
       end
     end
   end
@@ -808,11 +808,11 @@ defmodule Record do
   end
 
   defp updater_lookup(k, key, values) do
-    v = find_index(values, key, 1)
+    index = find_index(values, key, 0)
 
     quote do
       case :lists.keyfind(unquote(k), 1, keywords) do
-        false -> elem(record, unquote(v))
+        false -> :erlang.element(unquote(index + 2), record)
         {_, value} -> value
       end
     end

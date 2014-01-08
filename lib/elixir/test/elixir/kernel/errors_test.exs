@@ -493,17 +493,11 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_access_protocol_invalid_keywords do
-    assert_raise ArgumentError, "record Kernel.ErrorsTest.Config does not have the keys: [:foo]", fn ->
+    assert_raise ArgumentError, "record Kernel.ErrorsTest.Config does not have the key: :foo", fn ->
       defmodule ErrorsTest do
         def sample(Kernel.ErrorsTest.Config[foo: :bar]), do: true
       end
     end
-  end
-
-  test :invalid_access_protocol_invalid_keywords_outside_match do
-    assert_compile_fail ArgumentError,
-      "record Kernel.ErrorsTest.Config does not have the keys: [:foo]",
-      'Kernel.ErrorsTest.Config[foo: :bar]'
   end
 
   test :invalid_rescue_clause do

@@ -149,7 +149,7 @@ defmodule String do
   def printable?(<<?\a, t :: binary>>), do: printable?(t)
 
   def printable?(<<>>), do: true
-  def printable?(_),    do: false
+  def printable?(b) when is_binary(b), do: false
 
   @doc """
   Divides a string into substrings at each Unicode whitespace
