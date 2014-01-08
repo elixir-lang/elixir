@@ -85,10 +85,10 @@ defmodule ExUnit.Case do
       end
 
   In the example above, we have defined a tag called `:cd` that is
-  read in callbacks to configure the working directory the test is
+  read in the setup callback to configure the working directory the test is
   going to run on. We then use the same context to store the
   previous working directory that is reverted to after the test
-  in a teardown callback.
+  in the teardown callback.
 
   Tags are also very effective when used with case templates
   (`ExUnit.CaseTemplate`) allowing callbacks in the case template
@@ -108,7 +108,7 @@ defmodule ExUnit.Case do
       @moduletag :external
 
   If the same key is set via `@tag`, the `@tag` value has higher
-  preference.
+  precedence.
 
   ### Reserved tags
 
@@ -117,7 +117,7 @@ defmodule ExUnit.Case do
 
   * `:case` - the test case module
   * `:test` - the test name
-  * `:line` - the line the test was defined
+  * `:line` - the line on which the test was defined
 
   ## Filters
 
@@ -128,23 +128,23 @@ defmodule ExUnit.Case do
       # Exclude all external tests from running
       ExUnit.configure exclude: [external: true]
 
-  From now on, ExUnit will not run any test that has the external flag set to true.
+  From now on, ExUnit will not run any test that has the `external` flag set to true.
   This behaviour can be reversed with the `:include` option which is usually passed
   through the command line:
 
       mix test --include external:true
 
-  The command above will have override exclude configuration, running all tests,
-  including the ones that have the external flag set to true.
+  The command above will override the excluded configuration, running all tests,
+  including the ones that have the `external` flag set to true.
 
-  Another use case for using tags and filters is to exclude all tests that have
+  Another use case for tags and filters is to exclude all tests that have
   a particular tag by default, regardless of its value, and include only a certain
   subset:
 
       ExUnit.configure exclude: :os, include: [os: :unix]
 
   Keep in mind that all tests are included by default, so unless they are
-  excluded first, the include option has no effect.
+  excluded first, the `include` option has no effect.
   """
 
   @doc false
@@ -152,7 +152,7 @@ defmodule ExUnit.Case do
     async = Keyword.get(opts, :async, false)
 
     unless Process.whereis(ExUnit.Server) do
-      raise "cannot use ExUnit.Case without starting ExUnit application, " <>
+      raise "cannot use ExUnit.Case without starting the ExUnit application, " <>
             "please call ExUnit.start() or explicitly start the :ex_unit app"
     end
 
@@ -186,7 +186,7 @@ defmodule ExUnit.Case do
   Provides a convenient macro that allows a test to be
   defined with a string. This macro automatically inserts
   the atom `:ok` as the last line of the test. That said,
-  a passing test always returns `:ok`, but, more important,
+  a passing test always returns `:ok`, but, more importantly,
   it forces Elixir to not tail call optimize the test and
   therefore avoids hiding lines from the backtrace.
 
