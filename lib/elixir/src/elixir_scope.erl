@@ -122,10 +122,10 @@ load_binding([{Key,Value}|T], Binding, Vars, Counter) ->
   end,
   InternalName = ?atom_concat(["_@", Counter]),
   load_binding(T,
-    [{InternalName,Value}|Binding],
+    orddict:store(InternalName, Value, Binding),
     orddict:store(Actual, { InternalName, 0 }, Vars), Counter + 1);
 load_binding([], Binding, Vars, Counter) ->
-  { lists:reverse(Binding), Vars, Counter }.
+  { Binding, Vars, Counter }.
 
 dump_binding(Binding, #elixir_scope{vars=Vars}) ->
   dump_binding(Vars, Binding, []).
