@@ -30,7 +30,7 @@ defmodule ExUnit.Callbacks do
   be called sequentially. In the case of `setup_all` and `teardown_all` callbacks,
   each `setup_all` will be called only once before the first test's `setup` and each
   `teardown_all` will be called once after the last test. No callback runs if the
-  test case has no tests or all tests were fltered out via include/exclude.
+  test case has no tests or all tests were filtered out via `include`/`exclude`.
 
   ## Examples
 
@@ -41,7 +41,7 @@ defmodule ExUnit.Callbacks do
         setup do
           IO.puts "This is a setup callback"
 
-          # Return extra metadata, it has to be a keyword list
+          # Return extra metadata, it must be a keyword list
           { :ok, [hello: "world"] }
         end
 
