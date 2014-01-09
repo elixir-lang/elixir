@@ -22,7 +22,15 @@ defmodule Kernel.ErrorHandler do
         parent <- { :waiting, self(), ref, module }
         :erlang.garbage_collect(self)
         receive do
-          { ^ref, :release } -> :ok
+          { ^ref, :ready } ->
+            :ok
+          { ^ref, :release } ->
+            # On release, get rid of the compiler pid,
+            # no further allow elixir_ensure_compiled directives
+            # and revert to the original error handler.
+            :erlang.erase(:elixir_compiler_pid)
+            :erlang.erase(:elixir_ensure_compiled)
+            :erlang.process_flag(:error_handler, :error_handler)
         end
     end
   end

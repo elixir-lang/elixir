@@ -65,7 +65,7 @@ defmodule Kernel.ParallelCompiler do
   # Release waiting processes
   defp spawn_compilers([h|t], original, output, callbacks, waiting, queued, schedulers, result) when is_pid(h) do
     { ^h, ref, _ } = List.keyfind(waiting, h, 0)
-    h <- { ref, :release }
+    h <- { ref, :ready }
     waiting = List.keydelete(waiting, h, 0)
     spawn_compilers(t, original, output, callbacks, waiting, queued, schedulers, result)
   end
@@ -76,8 +76,12 @@ defmodule Kernel.ParallelCompiler do
 
     { pid, ref } =
       :erlang.spawn_monitor fn ->
-        :erlang.put(:elixir_compiler_pid, parent)
+        # Notify Code.ensure_compiled/2 that we should
+        # attempt to compile the module by doing a dispatch.
         :erlang.put(:elixir_ensure_compiled, true)
+
+        # Set the elixir_compiler_pid used by our custom Kernel.ErrorHandler.
+        :erlang.put(:elixir_compiler_pid, parent)
         :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
 
         exit(try do

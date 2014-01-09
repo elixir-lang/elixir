@@ -10,6 +10,7 @@
   * [ExUnit] `:include` in ExUnit only has effect if a test was previously excluded with `:exclude`
   * [ExUnit] Only run `setup_all` and `teardown_all` if there are tests in the case
   * [Kernel] Ensure bitstring modifier arguments are expanded
+  * [Kernel] Ensure compiler does not block on missing modules
 
 * Deprecations
   * [Kernel] `is_alive/0` is deprecated in favor of `Node.alive?`
