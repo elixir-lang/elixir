@@ -2,6 +2,10 @@ defmodule Mix.SCM.Git do
   @behavior Mix.SCM
   @moduledoc false
 
+  def fetchable? do
+    true
+  end
+
   def format(opts) do
     opts[:git]
   end

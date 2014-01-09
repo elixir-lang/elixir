@@ -2,6 +2,10 @@ defmodule Mix.SCM.Path do
   @behavior Mix.SCM
   @moduledoc false
 
+  def fetchable? do
+    false
+  end
+
   def format(opts) do
     opts[:path]
   end

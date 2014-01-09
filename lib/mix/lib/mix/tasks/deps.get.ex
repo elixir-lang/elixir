@@ -49,9 +49,8 @@ defmodule Mix.Tasks.Deps.Get do
     Mix.Dep[app: app, scm: scm, opts: opts] = dep = check_lock(dep, lock)
 
     cond do
-      # Path dependencies are specially handled because they cannot
-      # be fetched although they are always compiled afterwards
-      scm == Mix.SCM.Path ->
+      # Dependencies that cannot be fetched are always compiled afterwards
+      not scm.fetchable? ->
         { dep, { [app|acc], lock } }
 
       # If the dependency is not available or we have a lock mismatch

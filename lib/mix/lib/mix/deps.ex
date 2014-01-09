@@ -248,8 +248,13 @@ defmodule Mix.Deps do
     "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
   end
 
-  def format_status(Mix.Dep[status: { :unavailable, _ }]),
-    do: "the dependency is not available, run `mix deps.get`"
+  def format_status(Mix.Dep[status: { :unavailable, _ }, scm: scm]) do
+    if scm.fetchable? do
+      "the dependency is not available, run `mix deps.get`"
+    else
+      "the dependency is not available"
+    end
+  end
 
   def format_status(Mix.Dep[status: { :elixirlock, _ }]),
     do: "the dependency is built with an out-of-date elixir version, run `mix deps.get`"

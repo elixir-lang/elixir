@@ -9,6 +9,12 @@ defmodule Mix.SCM do
   """
 
   @doc """
+  Returns a boolean if the dependency can be fetched
+  or it is meant to be previously available in the filesystem.
+  """
+  defcallback fetchable? :: boolean
+
+  @doc """
   Returns a string representing the SCM. This is used
   when printing the dependency and not for inspection,
   so the amount of information should be concise and
