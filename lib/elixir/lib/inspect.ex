@@ -13,11 +13,7 @@ defprotocol Inspect do
   followed by the inspecting options, represented by the record
   `Inspect.Opts`.
 
-  Inspection is done using the functions available in
-  `Inspect.Algebra` and by calling `Kernel.inspect/2` recursively
-  passing the `Inspect.Opts` as an argument. When `Kernel.inspect/2`
-  receives an `Inspect.Opts` record as the second argument, it returns
-  the underlying algebra document instead of the formatted string.
+  Inspection is done using the functions available in `Inspect.Algebra`.
 
   ## Examples
 
@@ -29,7 +25,7 @@ defprotocol Inspect do
         import Inspect.Algebra
 
         def inspect(dict, opts) do
-          concat ["#HashSet<", Kernel.inspect(HashSet.to_list(dict), opts), ">"]
+          concat ["#HashSet<", to_doc(HashSet.to_list(dict), opts), ">"]
         end
       end
 
@@ -37,7 +33,7 @@ defprotocol Inspect do
   concatenates algebra documents together. In the example above,
   it is concatenating the string `"HashSet<"` (all strings are
   valid algebra documents that keep their formatting when pretty
-  printed), the document returned by `Kernel.inspect/2` and the
+  printed), the document returned by `Inspect.Algebra.to_doc/2` and the
   other string `">"`.
 
   Since regular strings are valid entities in an algebra document,
@@ -281,14 +277,14 @@ defimpl Inspect, for: List do
       keyword?(thing) && not opts.raw ->
         surround_many("[", thing, "]", opts.limit, &keyword(&1, opts))
       true ->
-        surround_many("[", thing, "]", opts.limit, &Kernel.inspect(&1, opts))
+        surround_many("[", thing, "]", opts.limit, &to_doc(&1, opts))
     end
   end
 
   defp keyword({key, value}, opts) do
     concat(
       key_to_binary(key) <> ": ",
-      Kernel.inspect(value, opts)
+      to_doc(value, opts)
     )
   end
 
@@ -329,7 +325,7 @@ defimpl Inspect, for: Tuple do
   def inspect(tuple, opts) do
     unless opts.raw do
       record_inspect(tuple, opts)
-    end || surround_many("{", tuple_to_list(tuple), "}", opts.limit, &Kernel.inspect(&1, opts))
+    end || surround_many("{", tuple_to_list(tuple), "}", opts.limit, &to_doc(&1, opts))
   end
 
   ## Helpers
@@ -339,7 +335,7 @@ defimpl Inspect, for: Tuple do
 
     if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
       surround_record(name, fields, tail, opts)
-    end || surround_many("{", [name|tail], "}", opts.limit, &Kernel.inspect(&1, opts))
+    end || surround_many("{", [name|tail], "}", opts.limit, &to_doc(&1, opts))
   end
 
   defp record_fields(name) do
@@ -373,7 +369,7 @@ defimpl Inspect, for: Tuple do
   end
 
   defp keyword({ k, v }, opts) do
-    concat(k <> ": ", Kernel.inspect(v, opts))
+    concat(k <> ": ", to_doc(v, opts))
   end
 end
 
@@ -422,11 +418,11 @@ defimpl Inspect, for: Regex do
 
   """
   def inspect(regex, opts) when size(regex) == 5 do
-    concat ["%r", Kernel.inspect(Regex.source(regex), opts), Regex.opts(regex)]
+    concat ["%r", to_doc(Regex.source(regex), opts), Regex.opts(regex)]
   end
 
   def inspect(other, opts) do
-    Kernel.inspect(other, opts.raw(true))
+    to_doc(other, opts.raw(true))
   end
 end
 

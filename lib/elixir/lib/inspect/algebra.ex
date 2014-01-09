@@ -101,6 +101,28 @@ defmodule Inspect.Algebra do
   end
 
   @doc """
+  Converts an Elixir structure to an algebra document
+  according to the inspect protocol.
+  """
+  @spec to_doc(any, Inspect.Opts.t) :: t
+  def to_doc(arg, opts) when is_record(opts, Inspect.Opts) do
+    case is_tuple(arg) do
+      true ->
+        case elem(opts, 1) do
+          true  -> Inspect.Tuple.inspect(arg, opts)
+          false ->
+            try do
+              Inspect.inspect(arg, opts)
+            catch
+              _, _ -> Inspect.Tuple.inspect(arg, opts)
+            end
+        end
+      false ->
+        Inspect.inspect(arg, opts)
+    end
+  end
+
+  @doc """
   Returns `:doc_nil` which is a document entity used to represent
   nothingness. Takes no arguments.
 

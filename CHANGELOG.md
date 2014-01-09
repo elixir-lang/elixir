@@ -14,6 +14,7 @@
 
 * Deprecations
   * [Kernel] `is_alive/0` is deprecated in favor of `Node.alive?`
+  * [Kernel] `Kernel.inspect/2` with `Inspect.Opts[]` is deprecated in favor of `Inspect.Algebra.to_doc/2`
 
 * Backwards incompatible changes
 

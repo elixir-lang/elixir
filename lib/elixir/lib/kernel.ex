@@ -1712,11 +1712,6 @@ defmodule Kernel do
   The second argument is a keywords list with options to control
   inspection.
 
-  The second argument may also be an instance of the `Inspect.Opts`
-  record and, in such cases, instead of returning a string, it
-  returns an algebra document which can be converted to a string
-  via `Inspect.Algebra`.
-
   ## Options
 
   The following options are supported:
@@ -1754,35 +1749,21 @@ defmodule Kernel do
       #=> #Function<...>
 
   """
-  @spec inspect(Inspect.t, Inspect.Opts.t) :: Inspect.Algebra.t
   @spec inspect(Inspect.t, Keyword.t) :: String.t
   def inspect(arg, opts // [])
 
-  def inspect(arg, opts) when is_tuple(opts) and tuple_size(opts) > 0 and
-      elem(opts, 0) == Inspect.Opts do
-    case is_tuple(arg) do
-      true ->
-        case elem(opts, 1) do
-          true  -> Inspect.Tuple.inspect(arg, opts)
-          false ->
-            try do
-              Inspect.inspect(arg, opts)
-            catch
-              _, _ -> Inspect.Tuple.inspect(arg, opts)
-            end
-        end
-      false ->
-        Inspect.inspect(arg, opts)
-    end
+  def inspect(arg, opts) when is_tuple(opts) and tuple_size(opts) > 0 and elem(opts, 0) == Inspect.Opts do
+    IO.write "Kernel.inspect/2 with Inspect.Opts is deprecated, please use Inspect.Algebra.to_doc/2 instead\n#{Exception.format_stacktrace}"
+    Inspect.Algebra.to_doc(arg, opts)
   end
 
   def inspect(arg, opts) when is_list(opts) do
-    opts = Inspect.Opts.new(opts)
-
-    case opts.pretty do
-      true  -> Inspect.Algebra.pretty(inspect(arg, opts), opts.width)
-      false -> Inspect.Algebra.pretty(inspect(arg, opts), :infinity)
+    opts  = Inspect.Opts.new(opts)
+    limit = case opts.pretty do
+      true  -> opts.width
+      false -> :infinity
     end
+    Inspect.Algebra.pretty(Inspect.Algebra.to_doc(arg, opts), limit)
   end
 
   @doc """

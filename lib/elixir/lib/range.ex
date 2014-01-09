@@ -73,7 +73,9 @@ defimpl Range.Iterator, for: Integer do
 end
 
 defimpl Inspect, for: Range do
+  import Inspect.Algebra
+
   def inspect(Range[first: first, last: last], opts) do
-    Inspect.Algebra.concat [Kernel.inspect(first, opts), "..", Kernel.inspect(last, opts)]
+    concat [to_doc(first, opts), "..", to_doc(last, opts)]
   end
 end
