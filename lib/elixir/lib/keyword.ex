@@ -212,6 +212,27 @@ defmodule Keyword do
   end
 
   @doc """
+  Deletes the entry in the keyword list for a `key` with `value`.
+  If no `key` with `value` exists, returns the keyword list unchanged.
+
+  ## Examples
+
+      iex> Keyword.delete([a: 1, b: 2], :a, 1)
+      [b: 2]
+
+      iex> Keyword.delete([a: 1, b: 2, a: 3], :a, 3)
+      [a: 1, b: 2]
+
+      iex> Keyword.delete([b: 2], :a, 5)
+      [b: 2]
+
+  """
+  @spec delete(t, key, value) :: t
+  def delete(keywords, key, value) when is_atom(key) do
+    lc { k, v } = tuple inlist keywords, key != k or value != v, do: tuple
+  end
+
+  @doc """
   Deletes all entries in the keyword list for a specific `key`.
   If the `key` does not exist, returns the keyword list unchanged.
   Use `delete_first` to delete just the first entry in case of
