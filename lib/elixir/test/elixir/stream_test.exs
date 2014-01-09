@@ -300,6 +300,26 @@ defmodule StreamTest do
     assert Process.get(:stream_flat_map)
   end
 
+  test "transform" do
+    stream = Stream.transform([1, 2, 3], 0, &{ [&1, &2], &1 + &2 })
+    assert is_lazy(stream)
+    assert Enum.to_list(stream) == [1, 0, 2, 1, 3, 3]
+
+    nats = Stream.iterate(1, &(&1 + 1))
+    assert Stream.transform(nats, 0, &{ [&1, &2], &1 + &2 }) |> Enum.take(6) == [1, 0, 2, 1, 3, 3]
+  end
+
+  test "transform with halt" do
+    stream = Stream.resource(fn -> 1 end,
+                             fn acc -> { acc, acc + 1 } end,
+                             fn _ -> Process.put(:stream_transform, true) end)
+    stream = Stream.transform(stream, 0, fn i, acc -> if acc < 3, do: { [i], acc + 1 }, else: :halt end)
+
+    Process.put(:stream_transform, false)
+    assert Enum.to_list(stream) == [1,2,3]
+    assert Process.get(:stream_transform)
+  end
+
   test "iterate" do
     stream = Stream.iterate(0, &(&1+2))
     assert Enum.take(stream, 5) == [0,2,4,6,8]

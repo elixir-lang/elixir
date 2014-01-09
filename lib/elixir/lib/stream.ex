@@ -361,6 +361,22 @@ defmodule Stream do
   end
 
   @doc """
+  Creates a stream that will apply the given function on enumeration and
+  flatten the result.
+
+  ## Examples
+
+      iex> stream = Stream.flat_map([1, 2, 3], fn(x) -> [x, x * 2] end)
+      iex> Enum.to_list(stream)
+      [1, 2, 2, 4, 3, 6]
+
+  """
+  @spec flat_map(Enumerable.t, (element -> Enumerable.t)) :: Enumerable.t
+  def flat_map(enum, mapper) do
+    transform(enum, nil, fn val, nil -> { mapper.(val), nil } end)
+  end
+
+  @doc """
   Creates a stream that filters elements according to
   the given function on enumeration.
 
@@ -411,99 +427,6 @@ defmodule Stream do
   end
 
   @doc """
-  Creates a stream that applies the given function to each
-  element, emits the result and uses the same result as the accumulator
-  for the next computation.
-
-  ## Examples
-
-      iex> stream = Stream.scan(1..5, &(&1 + &2))
-      iex> Enum.to_list(stream)
-      [1,3,6,10,15]
-
-  """
-  @spec scan(Enumerable.t, (element, acc -> any)) :: Enumerable.t
-  def scan(enum, fun) do
-    lazy enum, :first, fn(f1) -> R.scan_2(fun, f1) end
-  end
-
-  @doc """
-  Creates a stream that applies the given function to each
-  element, emits the result and uses the same result as the accumulator
-  for the next computation. Uses the given `acc` as the starting value.
-
-  ## Examples
-
-      iex> stream = Stream.scan(1..5, 0, &(&1 + &2))
-      iex> Enum.to_list(stream)
-      [1,3,6,10,15]
-
-  """
-  @spec scan(Enumerable.t, acc, (element, acc -> any)) :: Enumerable.t
-  def scan(enum, acc, fun) do
-    lazy enum, acc, fn(f1) -> R.scan_3(fun, f1) end
-  end
-
-  @doc """
-  Creates a stream that will apply the given function on enumeration and
-  flatten the result.
-
-  ## Examples
-
-      iex> stream = Stream.flat_map([1, 2, 3], fn(x) -> [x, x * 2] end)
-      iex> Enum.to_list(stream)
-      [1, 2, 2, 4, 3, 6]
-
-  """
-  @spec flat_map(Enumerable.t, (element -> any)) :: Enumerable.t
-  def flat_map(enum, mapper) do
-    &do_flat_map(enum, mapper, &1, &2)
-  end
-
-  defp do_flat_map(enumerables, mapper, acc, fun) do
-    fun  = &do_flat_map_each(fun, &1, &2)
-    step = &do_flat_map_step/2
-    next = &Enumerable.reduce(enumerables, &1, step)
-    do_flat_map([], next, mapper, acc, fun)
-  end
-
-  defp do_flat_map(next_acc, next, mapper, acc, fun) do
-    case next.({ :cont, next_acc }) do
-      { :suspended, [val|next_acc], next } ->
-        do_flat_map(next_acc, next, mapper, acc, fun, &Enumerable.reduce(mapper.(val), &1, fun))
-      { reason, _ } ->
-        { reason, elem(acc, 1) }
-    end
-  end
-
-  defp do_flat_map(next_acc, next, mapper, acc, fun, reduce) do
-    try do
-      reduce.(acc)
-    catch
-      { :stream_flat_map, h } ->
-        next.({ :halt, next_acc })
-        { :halted, h }
-      kind, reason ->
-        next.({ :halt, next_acc })
-        :erlang.raise(kind, reason, :erlang.get_stacktrace)
-    else
-      { _, acc }             -> do_flat_map(next_acc, next, mapper, { :cont, acc }, fun)
-      { :suspended, acc, c } -> { :suspended, acc, &do_flat_map(next_acc, next, mapper, &1, fun, c) }
-    end
-  end
-
-  defp do_flat_map_each(f, x, acc) do
-    case f.(x, acc) do
-      { :halt, h } -> throw({ :stream_flat_map, h })
-      { _, _ } = o -> o
-    end
-  end
-
-  defp do_flat_map_step(x, acc) do
-    { :suspend, [x|acc] }
-  end
-
-  @doc """
   Creates a stream that will reject elements according to
   the given function on enumeration.
 
@@ -541,6 +464,40 @@ defmodule Stream do
   def run(stream) do
     Enumerable.reduce(stream, { :cont, nil }, fn(_, _) -> { :cont, nil } end)
     :ok
+  end
+
+  @doc """
+  Creates a stream that applies the given function to each
+  element, emits the result and uses the same result as the accumulator
+  for the next computation.
+
+  ## Examples
+
+      iex> stream = Stream.scan(1..5, &(&1 + &2))
+      iex> Enum.to_list(stream)
+      [1,3,6,10,15]
+
+  """
+  @spec scan(Enumerable.t, (element, acc -> any)) :: Enumerable.t
+  def scan(enum, fun) do
+    lazy enum, :first, fn(f1) -> R.scan_2(fun, f1) end
+  end
+
+  @doc """
+  Creates a stream that applies the given function to each
+  element, emits the result and uses the same result as the accumulator
+  for the next computation. Uses the given `acc` as the starting value.
+
+  ## Examples
+
+      iex> stream = Stream.scan(1..5, 0, &(&1 + &2))
+      iex> Enum.to_list(stream)
+      [1,3,6,10,15]
+
+  """
+  @spec scan(Enumerable.t, acc, (element, acc -> any)) :: Enumerable.t
+  def scan(enum, acc, fun) do
+    lazy enum, acc, fn(f1) -> R.scan_3(fun, f1) end
   end
 
   @doc """
@@ -637,6 +594,115 @@ defmodule Stream do
   @spec take_while(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
   def take_while(enum, fun) do
     lazy enum, fn(f1) -> R.take_while(fun, f1) end
+  end
+
+
+  @doc """
+  Transforms an existing stream.
+
+  It expects an accumulator and a function that receives each stream item
+  and an accumulator, and must return a tuple containing a new stream
+  (often a list) with the new accumulator or simply return the atom `:halt`.
+
+  ## Examples
+
+  `Stream.transform/3` is a useful as it can be used as basis to implement
+  many of the functions defined in this module. For example, we can implement
+  `Stream.take(enum, n)` as follows:
+
+      iex> enum = 1..100
+      iex> n = 3
+      iex> stream = Stream.transform(enum, 0, fn i, acc ->
+      ...>   if acc < n, do: { [i], acc + 1 }, else: :halt
+      ...> end)
+      iex> Enum.to_list(stream)
+      [1,2,3]
+
+  """
+  @spec transform(Enumerable.t, acc, fun) :: Enumerable.t when
+        fun: (element, acc -> { Enumerable.t, acc } | :halt),
+        acc: any
+  def transform(enum, acc, reducer) do
+    &do_transform(enum, acc, reducer, &1, &2)
+  end
+
+  defp do_transform(enumerables, user_acc, user, inner_acc, fun) do
+    inner = &do_transform_each(&1, &2, fun)
+    step  = &do_transform_step(&1, &2)
+    next  = &Enumerable.reduce(enumerables, &1, step)
+    do_transform(user_acc, user, fun, [], next, inner_acc, inner)
+  end
+
+  defp do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner) do
+    case next.({ :cont, next_acc }) do
+      { :suspended, [val|next_acc], next } ->
+        try do
+          user.(val, user_acc)
+        catch
+          kind, reason ->
+            next.({ :halt, next_acc })
+            :erlang.raise(kind, reason, :erlang.get_stacktrace)
+        else
+          { [], user_acc } ->
+            do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner)
+          { list, user_acc } when is_list(list) ->
+            do_list_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, &Enumerable.List.reduce(list, &1, fun))
+          { other, user_acc } ->
+            do_other_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, &Enumerable.reduce(other, &1, inner))
+          :halt ->
+            next.({ :halt, next_acc })
+            { :halted, elem(inner_acc, 1) }
+        end
+      { reason, _ } ->
+        { reason, elem(inner_acc, 1) }
+    end
+  end
+
+  defp do_list_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, reduce) do
+    try do
+      reduce.(inner_acc)
+    catch
+      kind, reason ->
+        next.({ :halt, next_acc })
+        :erlang.raise(kind, reason, :erlang.get_stacktrace)
+    else
+      { :done, acc } ->
+        do_transform(user_acc, user, fun, next_acc, next, { :cont, acc }, inner)
+      { :halted, acc } ->
+        next.({ :halt, next_acc })
+        { :halted, acc }
+      { :suspended, acc, c } ->
+        { :suspended, acc, &do_list_transform(user_acc, user, fun, next_acc, next, &1, inner, c) }
+    end
+  end
+
+  defp do_other_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, reduce) do
+    try do
+      reduce.(inner_acc)
+    catch
+      { :stream_transform, h } ->
+        next.({ :halt, next_acc })
+        { :halted, h }
+      kind, reason ->
+        next.({ :halt, next_acc })
+        :erlang.raise(kind, reason, :erlang.get_stacktrace)
+    else
+      { _, acc } ->
+        do_transform(user_acc, user, fun, next_acc, next, { :cont, acc }, inner)
+      { :suspended, acc, c } ->
+        { :suspended, acc, &do_other_transform(user_acc, user, fun, next_acc, next, &1, inner, c) }
+    end
+  end
+
+  defp do_transform_each(x, acc, f) do
+    case f.(x, acc) do
+      { :halt, h } -> throw({ :stream_transform, h })
+      { _, _ } = o -> o
+    end
+  end
+
+  defp do_transform_step(x, acc) do
+    { :suspend, [x|acc] }
   end
 
   @doc """
