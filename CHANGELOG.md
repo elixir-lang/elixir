@@ -2,6 +2,8 @@
 
 * Enhancements
   * [ExUnit] Support @moduletag in ExUnit cases
+  * [Kernel] Improve stacktraces to be relative to the compilation path and include the related application
+  * [Stream] Add `Stream.transform/3`
 
 * Bug fixes
   * [ExUnit] `:include` in ExUnit only has effect if a test was previously excluded with `:exclude`
