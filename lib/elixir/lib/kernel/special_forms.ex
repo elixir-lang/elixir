@@ -480,7 +480,7 @@ defmodule Kernel.SpecialForms do
   defmacro __DIR__
 
   @doc """
-  Access an already bound variable in match clauses.
+  Accesses an already bound variable in match clauses.
 
   ## Examples
 
@@ -499,7 +499,14 @@ defmodule Kernel.SpecialForms do
       iex> ^x = 2
       ** (MatchError) no match of right hand side value: 2
 
-  Note the `^` special form is only useful in matches.
+  Note that `^` always refers to the value of x prior to the match. The
+  following example will match:
+
+      iex> x = 0
+      iex> { x, ^x } = { 1, 0 }
+      iex> x
+      1
+
   """
   defmacro ^(var)
 
