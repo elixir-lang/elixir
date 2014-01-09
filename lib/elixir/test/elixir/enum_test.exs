@@ -170,6 +170,15 @@ defmodule EnumTest.List do
     assert Enum.flat_map([1, 2, 3], fn(x) -> x..x+1 end) == [1, 2, 2, 3, 3, 4]
   end
 
+  test :flat_map_reduce do
+    assert Enum.flat_map_reduce([1, 2, 3], 0, &{ [&1, &2], &1 + &2 }) ==
+           { [1, 0, 2, 1, 3, 3], 6 }
+
+    assert Enum.flat_map_reduce(1..100, 0, fn i, acc ->
+      if acc < 3, do: { [i], acc + 1 }, else: { :halt, acc }
+    end) == { [1,2,3], 3 }
+  end
+
   test :reduce do
     assert Enum.reduce([], 1, fn(x, acc) -> x + acc end) == 1
     assert Enum.reduce([1, 2, 3], 1, fn(x, acc) -> x + acc end) == 7

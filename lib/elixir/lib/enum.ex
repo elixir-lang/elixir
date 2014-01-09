@@ -766,7 +766,7 @@ defmodule Enum do
   Returns a new collection appending the result of invoking `fun`
   on each corresponding item of `collection`.
 
-  The given function should return a list.
+  The given function should return an enumerable.
 
   ## Examples
 
@@ -777,13 +777,46 @@ defmodule Enum do
       [1, 2, 3, 4, 5, 6]
 
   """
-  @spec flat_map(t, (element -> any)) :: list
-  def flat_map([], _fun), do: []
-
+  @spec flat_map(t, (element -> t)) :: list
   def flat_map(collection, fun) do
     reduce(collection, [], fn(entry, acc) ->
       reduce(fun.(entry), acc, &[&1|&2])
     end) |> :lists.reverse
+  end
+
+  @doc """
+  Maps and reduces a collection, flattening the given results.
+
+  It expects an accumulator and a function that receives each stream item
+  and an accumulator, and must return a tuple containing a new stream
+  (often a list) with the new accumulator or a tuple with `:halt` as first
+  element and the accumulator as second.
+
+  ## Examples
+
+      iex> enum = 1..100
+      iex> n = 3
+      iex> Enum.flat_map_reduce(enum, 0, fn i, acc ->
+      ...>   if acc < n, do: { [i], acc + 1 }, else: { :halt, acc }
+      ...> end)
+      { [1,2,3], 3 }
+
+  """
+  @spec flat_map_reduce(t, acc, fun) :: list when
+        fun: (element, acc -> { t, acc } | { :halt, acc }),
+        acc: any
+  def flat_map_reduce(collection, acc, fun) do
+    { _, { list, acc } } =
+      Enumerable.reduce(collection, { :cont, { [], acc } }, fn(entry, { list, acc }) ->
+        case fun.(entry, acc) do
+          { :halt, acc } ->
+            { :halt, { list, acc } }
+          { entries, acc } ->
+            { :cont, { reduce(entries, list, &[&1|&2]), acc } }
+        end
+      end)
+
+    { :lists.reverse(list), acc }
   end
 
   @doc """

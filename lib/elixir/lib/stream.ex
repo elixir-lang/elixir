@@ -602,7 +602,12 @@ defmodule Stream do
 
   It expects an accumulator and a function that receives each stream item
   and an accumulator, and must return a tuple containing a new stream
-  (often a list) with the new accumulator or simply return the atom `:halt`.
+  (often a list) with the new accumulator or a tuple with `:halt` as first
+  element and the accumulator as second.
+
+  Note: this function is similar to `Enum.flat_map_reduce/3` except the
+  latter returns both the flat list and accumulator, while this one returns
+  only the stream.
 
   ## Examples
 
@@ -613,14 +618,14 @@ defmodule Stream do
       iex> enum = 1..100
       iex> n = 3
       iex> stream = Stream.transform(enum, 0, fn i, acc ->
-      ...>   if acc < n, do: { [i], acc + 1 }, else: :halt
+      ...>   if acc < n, do: { [i], acc + 1 }, else: { :halt, acc }
       ...> end)
       iex> Enum.to_list(stream)
       [1,2,3]
 
   """
   @spec transform(Enumerable.t, acc, fun) :: Enumerable.t when
-        fun: (element, acc -> { Enumerable.t, acc } | :halt),
+        fun: (element, acc -> { Enumerable.t, acc } | { :halt, acc }),
         acc: any
   def transform(enum, acc, reducer) do
     &do_transform(enum, acc, reducer, &1, &2)
@@ -647,11 +652,11 @@ defmodule Stream do
             do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner)
           { list, user_acc } when is_list(list) ->
             do_list_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, &Enumerable.List.reduce(list, &1, fun))
-          { other, user_acc } ->
-            do_other_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, &Enumerable.reduce(other, &1, inner))
-          :halt ->
+          { :halt, _user_acc } ->
             next.({ :halt, next_acc })
             { :halted, elem(inner_acc, 1) }
+          { other, user_acc } ->
+            do_other_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, &Enumerable.reduce(other, &1, inner))
         end
       { reason, _ } ->
         { reason, elem(inner_acc, 1) }

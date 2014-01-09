@@ -313,7 +313,7 @@ defmodule StreamTest do
     stream = Stream.resource(fn -> 1 end,
                              fn acc -> { acc, acc + 1 } end,
                              fn _ -> Process.put(:stream_transform, true) end)
-    stream = Stream.transform(stream, 0, fn i, acc -> if acc < 3, do: { [i], acc + 1 }, else: :halt end)
+    stream = Stream.transform(stream, 0, fn i, acc -> if acc < 3, do: { [i], acc + 1 }, else: { :halt, acc } end)
 
     Process.put(:stream_transform, false)
     assert Enum.to_list(stream) == [1,2,3]
