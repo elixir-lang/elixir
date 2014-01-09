@@ -41,11 +41,9 @@ defmodule Macro do
       o when o in [:==, :!=, :<, :<=, :>=, :>, :=~, :===, :!==] -> {:left, 150}
       o when o in [:<-, :|>, :<<<, :>>>]                        -> {:right, 160}
       :in                                                       -> {:left, 170}
-      :..                                                       -> {:left, 200}
+      o when o in [:++, :--, :**, :.., :<>]                     -> {:right, 200}
       o when o in [:+, :-]                                      -> {:left, 210}
       o when o in [:*, :/]                                      -> {:left, 220}
-      o when o in [:<>]                                         -> {:right, 230}
-      o when o in [:++, :--, :**]                               -> {:right, 240}
       :^^^                                                      -> {:left, 250}
       :.                                                        -> {:left, 310}
     end

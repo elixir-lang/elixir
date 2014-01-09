@@ -25,19 +25,15 @@
 -define(two_op(T1, T2),
   T1 == $+, T2 == $+;
   T1 == $-, T2 == $-;
-  T1 == $*, T2 == $*).
-
--define(than_op(T1, T2),
-  T1 == $<, T2 == $>).
+  T1 == $*, T2 == $*;
+  T1 == $<, T2 == $>;
+  T1 == $., T2 == $.).
 
 -define(mult_op(T),
   T == $* orelse T == $/).
 
 -define(dual_op(T),
   T == $+ orelse T == $-).
-
--define(range_op(T1, T2),
-  T1 == $., T2 == $.).
 
 -define(arrow_op3(T1, T2, T3),
   T1 == $<, T2 == $<, T3 == $<;
@@ -244,8 +240,7 @@ tokenize([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when
 % ## Two Token Operators
 tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when
     ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?range_op(T1, T2); ?than_op(T1, T2); ?default_op(T1, T2); ?two_op(T1, T2);
-    ?stab_op(T1, T2); ?type_op(T1, T2) ->
+    ?default_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2); ?type_op(T1, T2) ->
   handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators
@@ -331,8 +326,7 @@ tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when
 % ## Two Token Operators
 tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when
     ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?range_op(T1, T2); ?than_op(T1, T2); ?default_op(T1, T2); ?two_op(T1, T2);
-    ?stab_op(T1, T2); ?type_op(T1, T2) ->
+    ?default_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2); ?type_op(T1, T2) ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2]) }|Tokens]);
 
 % ## Single Token Operators
@@ -395,12 +389,6 @@ tokenize([T|Rest], Line, Scope, Tokens) when T == $(;
 % ## Two Token Operators
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?two_op(T1, T2) ->
   handle_op(Rest, Line, two_op, list_to_atom([T1, T2]), Scope, Tokens);
-
-tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?than_op(T1, T2) ->
-  handle_op(Rest, Line, than_op, list_to_atom([T1, T2]), Scope, Tokens);
-
-tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?range_op(T1, T2) ->
-  handle_op(Rest, Line, range_op, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?arrow_op(T1, T2) ->
   handle_op(Rest, Line, arrow_op, list_to_atom([T1, T2]), Scope, Tokens);

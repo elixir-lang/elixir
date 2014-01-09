@@ -5,7 +5,7 @@ Nonterminals
   op_expr matched_op_expr no_parens_op_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol tail_op_eol
   add_op_eol mult_op_eol exp_op_eol two_op_eol type_op_eol stab_op_eol
-  arrow_op_eol range_op_eol than_op_eol default_op_eol match_op_eol
+  arrow_op_eol default_op_eol match_op_eol
   when_op_eol in_op_eol inc_op_eol
   open_paren close_paren empty_paren
   open_bracket close_bracket
@@ -31,7 +31,7 @@ Terminals
   number signed_number atom atom_string bin_string list_string sigil
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op
-  range_op in_op inc_op when_op than_op default_op tail_op
+  in_op inc_op when_op default_op tail_op
   dual_op add_op mult_op exp_op two_op type_op stab_op
   'true' 'false' 'nil' 'do' eol ',' '.' '&'
   '(' ')' '[' ']' '{' '}' '<<' '>>'
@@ -57,11 +57,9 @@ Left     140 and_op_eol.      %% &&, &&&, and
 Left     150 comp_op_eol.     %% <, >, <=, >=, ==, !=, =~, ===, !==
 Right    160 arrow_op_eol.    %% < (op), (op) > (e.g <-, |>, <<<, >>>)
 Left     170 in_op_eol.       %% in
-Left     200 range_op_eol.    %% ..
+Right    200 two_op_eol.      %% ++, --, **, .., <>
 Left     210 add_op_eol.      %% + (op), - (op)
 Left     220 mult_op_eol.     %% * (op), / (op)
-Right    230 than_op_eol.     %% < (op) > (e.g <>)
-Right    240 two_op_eol.      %% ++, --, **
 Left     250 exp_op_eol.      %% ^ (op) (e.g ^^^)
 Nonassoc 300 unary_op_eol.    %% +, -, !, ^, not, &, ~~~
 Left     310 dot_call_op.
@@ -141,11 +139,9 @@ op_expr -> two_op_eol expr : { '$1', '$2' }.
 op_expr -> and_op_eol expr : { '$1', '$2' }.
 op_expr -> or_op_eol expr : { '$1', '$2' }.
 op_expr -> tail_op_eol expr : { '$1', '$2' }.
-op_expr -> than_op_eol expr : { '$1', '$2' }.
 op_expr -> in_op_eol expr : { '$1', '$2' }.
 op_expr -> inc_op_eol expr : { '$1', '$2' }.
 op_expr -> when_op_eol expr : { '$1', '$2' }.
-op_expr -> range_op_eol expr : { '$1', '$2' }.
 op_expr -> default_op_eol expr : { '$1', '$2' }.
 op_expr -> type_op_eol expr : { '$1', '$2' }.
 op_expr -> comp_op_eol expr : { '$1', '$2' }.
@@ -159,10 +155,8 @@ no_parens_op_expr -> two_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> and_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> or_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> tail_op_eol no_parens_expr : { '$1', '$2' }.
-no_parens_op_expr -> than_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> in_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> inc_op_eol no_parens_expr : { '$1', '$2' }.
-no_parens_op_expr -> range_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> default_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> type_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> comp_op_eol no_parens_expr : { '$1', '$2' }.
@@ -180,11 +174,9 @@ matched_op_expr -> two_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> and_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> or_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> tail_op_eol matched_expr : { '$1', '$2' }.
-matched_op_expr -> than_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> in_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> inc_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> when_op_eol matched_expr : { '$1', '$2' }.
-matched_op_expr -> range_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> default_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> type_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> comp_op_eol matched_expr : { '$1', '$2' }.
@@ -338,9 +330,6 @@ or_op_eol -> or_op eol : '$1'.
 tail_op_eol -> tail_op : '$1'.
 tail_op_eol -> tail_op eol : '$1'.
 
-than_op_eol -> than_op : '$1'.
-than_op_eol -> than_op eol : '$1'.
-
 in_op_eol -> in_op : '$1'.
 in_op_eol -> in_op eol : '$1'.
 
@@ -352,9 +341,6 @@ when_op_eol -> when_op eol : '$1'.
 
 stab_op_eol -> stab_op : '$1'.
 stab_op_eol -> stab_op eol : '$1'.
-
-range_op_eol -> range_op : '$1'.
-range_op_eol -> range_op eol : '$1'.
 
 at_op_eol -> at_op : '$1'.
 at_op_eol -> at_op eol : '$1'.
