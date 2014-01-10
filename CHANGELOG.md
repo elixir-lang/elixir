@@ -11,6 +11,9 @@
   * [ExUnit] Only run `setup_all` and `teardown_all` if there are tests in the case
   * [Kernel] Ensure bitstring modifier arguments are expanded
   * [Kernel] Ensure compiler does not block on missing modules
+  * [Kernel] Ensure `<>/2` works only with binaries
+  * [Kernel] Fix usage of string literals inside `<<>>` when `utf8`/`utf16`/`utf32` is used as specifier
+  * [Mix] Ensure mix properly copies _build dependencies on Windows
 
 * Deprecations
   * [Kernel] `is_alive/0` is deprecated in favor of `Node.alive?`
