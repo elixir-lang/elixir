@@ -35,11 +35,11 @@ defmodule IEx.OptionsTest do
   end
 
   test "inspect opts" do
-    opts = [inspect: [limit: 3, raw: true]]
+    opts = [inspect: [limit: 3, records: false]]
     assert capture_iex("[1,2,3,4,5]\nArgumentError[]", opts) ==
               "[1, 2, 3, ...]\n{ArgumentError, :__exception__, \"argument error\"}"
 
-    opts = [inspect: [raw: false]]
+    opts = [inspect: [records: true]]
     assert capture_iex("ArgumentError[]", opts) == "ArgumentError[message: \"argument error\"]"
   end
 

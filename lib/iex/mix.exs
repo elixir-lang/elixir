@@ -9,7 +9,7 @@ defmodule IEx.Mixfile do
     [ env: [
         after_spawn: [],
         colors: colors,
-        inspect: [limit: 50, raw: false, pretty: true],
+        inspect: [limit: 50, records: true, pretty: true],
         history_size: 20 ] ]
   end
 

@@ -1710,8 +1710,20 @@ defmodule Kernel do
 
   The following options are supported:
 
-  * `:raw`   - when true, record tuples are not formatted by the inspect protocol,
-               but are printed as just tuples, defaults to false;
+  * `:records` - when false, records are not formatted by the inspect protocol,
+                 they are instead printed as just tuples, defaults to true;
+
+  * `:binaries` - when `:as_strings` all binaries will be printed as strings,
+                  non-printable bytes will be escaped; when `:as_binaries` all
+                  binaries will be printed in bit syntax; when the default
+                  `:infer`, the binary will be printed as a string if it is
+                  printable, otherwise in bit syntax;
+
+  * `:char_lists` - when `:as_char_lists` all lists will be printed as char lists,
+                    non-printable elements will be escaped; when `:as_lists` all
+                    lists will be printed as lists; when the default `:infer`, the
+                    list will be printed as a char list if it is printable,
+                    otherwise as list;
 
   * `:limit` - limits the number of items that are printed for tuples, bitstrings,
                and lists, does not apply to strings nor char lists, defaults to 50;
@@ -1732,8 +1744,17 @@ defmodule Kernel do
       iex> inspect(ArgumentError[])
       "ArgumentError[message: \"argument error\"]"
 
-      iex> inspect(ArgumentError[], raw: true)
+      iex> inspect(ArgumentError[], records: false)
       "{ArgumentError, :__exception__, \"argument error\"}"
+
+      iex> inspect("josé" <> <<0>>)
+      "<<106, 111, 115, 195, 169, 0>>"
+
+      iex> inspect("josé" <> <<0>>, binaries: :as_strings)
+      "\"josé\\000\""
+
+      iex> inspect("josé", binaries: :as_binaries)
+      "<<106, 111, 115, 195, 169>>"
 
   Note that the inspect protocol does not necessarily return a valid
   representation of an Elixir term. In such cases, the inspected result
@@ -1752,6 +1773,11 @@ defmodule Kernel do
   end
 
   def inspect(arg, opts) when is_list(opts) do
+    unless nil?(raw = opts[:raw]) do
+      IO.write "Kernel.inspect/2 with :raw option is deprecated, please use :records instead\n#{Exception.format_stacktrace}"
+      opts = opts ++ [records: !raw]
+    end
+
     opts  = Inspect.Opts.new(opts)
     limit = case opts.pretty do
       true  -> opts.width
@@ -2956,7 +2982,7 @@ defmodule Kernel do
   the record name, we can get the raw record representation as
   follows:
 
-      inspect User.new, raw: true
+      inspect User.new, records: false
       #=> { User, nil, 0 }
 
   In addition to defining readers and writers for each attribute, Elixir also

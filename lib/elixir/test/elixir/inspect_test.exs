@@ -71,8 +71,22 @@ defmodule Inspect.BitStringTest do
     assert inspect(" ゆんゆん") == "\" ゆんゆん\""
   end
 
-  test :unprintable do
-    assert inspect(<<193>>) == "<<193>>"
+  test :opt_infer do
+    assert inspect(<<"eric", 193, "mj">>, binaries: :infer) == %s(<<101, 114, 105, 99, 193, 109, 106>>)
+    assert inspect(<<"eric">>, binaries: :infer) == %s("eric")
+    assert inspect(<<193>>, binaries: :infer) == %s(<<193>>)
+  end
+
+  test :opt_as_strings do
+    assert inspect(<<"eric", 193, "mj">>, binaries: :as_strings) == %s("eric\\301mj")
+    assert inspect(<<"eric">>, binaries: :as_strings) == %s("eric")
+    assert inspect(<<193>>, binaries: :as_strings) == %s("\\301")
+  end
+
+  test :opt_as_binaries do
+    assert inspect(<<"eric", 193, "mj">>, binaries: :as_binaries) == "<<101, 114, 105, 99, 193, 109, 106>>"
+    assert inspect(<<"eric">>, binaries: :as_binaries) == "<<101, 114, 105, 99>>"
+    assert inspect(<<193>>, binaries: :as_binaries) == "<<193>>"
   end
 
   test :unprintable_with_opts do
@@ -154,8 +168,8 @@ defmodule Inspect.TupleTest do
     assert inspect({ 1, 2, 3, 4 }, limit: 3) == "{1, 2, 3, ...}"
   end
 
-  test :with_raw do
-    assert inspect(Config.new, raw: true) == "{Inspect.TupleTest.Config, 1, []}"
+  test :with_records_false do
+    assert inspect(Config.new, records: false) == "{Inspect.TupleTest.Config, 1, []}"
   end
 end
 
@@ -181,14 +195,26 @@ defmodule Inspect.ListTest do
            "[foo: [1, 2, 3, :bar],\n bazzz: :bat]"
   end
 
-  test :keyword_with_raw do
-    assert inspect([a: 1], raw: true) == "[{:a, 1}]"
-    assert inspect([a: 1, b: 2], raw: true) == "[{:a, 1}, {:b, 2}]"
-    assert inspect([a: 1, a: 2, b: 2], raw: true) == "[{:a, 1}, {:a, 2}, {:b, 2}]"
-  end
-
   test :non_keyword do
     assert inspect([{ Regex, 1 }]) == "[{Regex, 1}]"
+  end
+
+  test :opt_infer do
+    assert inspect('eric' ++ [0] ++ 'mj', char_lists: :infer) == "[101, 114, 105, 99, 0, 109, 106]"
+    assert inspect('eric', char_lists: :infer) == "'eric'"
+    assert inspect([0], char_lists: :infer) == "[0]"
+  end
+
+  test :opt_as_strings do
+    assert inspect('eric' ++ [0] ++ 'mj', char_lists: :as_char_lists) == "'eric\\000mj'"
+    assert inspect('eric', char_lists: :as_char_lists) == "'eric'"
+    assert inspect([0], char_lists: :as_char_lists) == "'\\000'"
+  end
+
+  test :opt_as_lists do
+    assert inspect('eric' ++ [0] ++ 'mj', char_lists: :as_lists) == "[101, 114, 105, 99, 0, 109, 106]"
+    assert inspect('eric', char_lists: :as_lists) == "[101, 114, 105, 99]"
+    assert inspect([0], char_lists: :as_lists) == "[0]"
   end
 
   test :non_printable do

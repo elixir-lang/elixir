@@ -96,9 +96,9 @@ defmodule Record do
 
   Notice that now since the record definition is accessible, Elixir
   shows the record nicely formatted, no longer as a simple tuple. We
-  can get the raw formatting by passing `raw: true` to `inspect`:
+  can get the raw formatting by passing `records: false` to `inspect`:
 
-      inspect user(), raw: true
+      inspect user(), records: false
       { User, "José", 25 }
 
   Since working with external records is common, Elixir allows

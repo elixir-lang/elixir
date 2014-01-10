@@ -1,7 +1,13 @@
 import Kernel, except: [inspect: 1]
 import Inspect.Algebra
 
-defrecord Inspect.Opts, raw: false, limit: 50, pretty: false, width: 80
+defrecord Inspect.Opts,
+  records: true,
+  binaries: :infer,
+  char_lists: :infer,
+  limit: 50,
+  pretty: false,
+  width: 80
 
 defprotocol Inspect do
   @moduledoc """
@@ -43,8 +49,8 @@ defprotocol Inspect do
   ## Error handling
 
   In case there is an error while your structure is being inspected,
-  Elixir will automatically default to the raw inspecting. You can
-  however access the underlying error by invoking the Inspect
+  Elixir will automatically fall back to tuple inspection for records.
+  You can however access the underlying error by invoking the Inspect
   implementation directly. For example, to test Inspect.HashSet above,
   you just need to do:
 
@@ -158,8 +164,8 @@ defimpl Inspect, for: BitString do
       "<<0, 1, 2>>"
 
   """
-  def inspect(thing, opts) when is_binary(thing) do
-    if String.printable?(thing) do
+  def inspect(thing, Inspect.Opts[binaries: bins] = opts) when is_binary(thing) do
+    if bins == :as_strings or (bins == :infer and String.printable?(thing)) do
       << ?", escape(thing, ?") :: binary, ?" >>
     else
       inspect_bitstring(thing, opts)
@@ -213,10 +219,28 @@ defimpl Inspect, for: BitString do
   defp escape(<<?\v, t :: binary>>, char, binary) do
     escape(t, char, << binary :: binary, ?\\, ?v >>)
   end
+  defp escape(<<h :: utf8, t :: binary>>, char, binary) do
+    head = << h :: utf8 >>
+    if String.printable?(head) do
+      escape(t, char, append(head, binary))
+    else
+      << byte :: size(8), h :: binary >> = head
+      t = << h :: binary, t :: binary >>
+      escape(t, char, << binary :: binary, octify(byte) :: binary >>)
+    end
+  end
   defp escape(<<h, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, h >>)
+    escape(t, char, << binary :: binary, octify(h) :: binary >>)
   end
   defp escape(<<>>, _char, binary), do: binary
+
+  defp octify(byte) do
+    << hi :: size(2), mi :: size(3), lo :: size(3) >> = << byte >>
+    << ?\\, ?0 + hi, ?0 + mi, ?0 + lo >>
+  end
+
+  defp append(<<h, t :: binary>>, binary), do: append(t, << binary :: binary, h >>)
+  defp append(<<>>, binary), do: binary
 
   ## Bitstrings
 
@@ -270,11 +294,11 @@ defimpl Inspect, for: List do
 
   def inspect([], _opts), do: "[]"
 
-  def inspect(thing, Inspect.Opts[] = opts) do
+  def inspect(thing, Inspect.Opts[char_lists: lists] = opts) do
     cond do
-      :io_lib.printable_list(thing) ->
+      lists == :as_char_lists or (lists == :infer and :io_lib.printable_list(thing)) ->
         << ?', Inspect.BitString.escape(String.from_char_list!(thing), ?') :: binary, ?' >>
-      keyword?(thing) && not opts.raw ->
+      keyword?(thing) ->
         surround_many("[", thing, "]", opts.limit, &keyword(&1, opts))
       true ->
         surround_many("[", thing, "]", opts.limit, &to_doc(&1, opts))
@@ -322,20 +346,24 @@ defimpl Inspect, for: Tuple do
 
   def inspect({}, _opts), do: "{}"
 
-  def inspect(tuple, opts) do
-    unless opts.raw do
+  def inspect(tuple, Inspect.Opts[] = opts) do
+    if opts.records do
       record_inspect(tuple, opts)
-    end || surround_many("{", tuple_to_list(tuple), "}", opts.limit, &to_doc(&1, opts))
+    else
+      surround_many("{", tuple_to_list(tuple), "}", opts.limit, &to_doc(&1, opts))
+    end
   end
 
   ## Helpers
 
-  defp record_inspect(record, opts) do
+  defp record_inspect(record, Inspect.Opts[] = opts) do
     [name|tail] = tuple_to_list(record)
 
     if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
       surround_record(name, fields, tail, opts)
-    end || surround_many("{", [name|tail], "}", opts.limit, &to_doc(&1, opts))
+    else
+      surround_many("{", [name|tail], "}", opts.limit, &to_doc(&1, opts))
+    end
   end
 
   defp record_fields(name) do
@@ -350,7 +378,7 @@ defimpl Inspect, for: Tuple do
     end
   end
 
-  defp surround_record(name, fields, tail, opts) do
+  defp surround_record(name, fields, tail, Inspect.Opts[] = opts) do
     concat(
       Inspect.Atom.inspect(name, opts),
       surround_many("[", zip_fields(fields, tail), "]", opts.limit, &keyword(&1, opts))
@@ -421,8 +449,8 @@ defimpl Inspect, for: Regex do
     concat ["%r", to_doc(Regex.source(regex), opts), Regex.opts(regex)]
   end
 
-  def inspect(other, opts) do
-    to_doc(other, opts.raw(true))
+  def inspect(other, Inspect.Opts[] = opts) do
+    to_doc(other, opts.records(false))
   end
 end
 

@@ -106,19 +106,18 @@ defmodule Inspect.Algebra do
   """
   @spec to_doc(any, Inspect.Opts.t) :: t
   def to_doc(arg, opts) when is_record(opts, Inspect.Opts) do
-    case is_tuple(arg) do
-      true ->
-        case elem(opts, 1) do
-          true  -> Inspect.Tuple.inspect(arg, opts)
-          false ->
-            try do
-              Inspect.inspect(arg, opts)
-            catch
-              _, _ -> Inspect.Tuple.inspect(arg, opts)
-            end
+    if is_tuple(arg) do
+      if elem(opts, Inspect.Opts.__record__(:index, :records)) do
+        try do
+          Inspect.inspect(arg, opts)
+        catch
+          _, _ -> Inspect.Tuple.inspect(arg, opts)
         end
-      false ->
-        Inspect.inspect(arg, opts)
+      else
+        Inspect.Tuple.inspect(arg, opts)
+      end
+    else
+      Inspect.inspect(arg, opts)
     end
   end
 
