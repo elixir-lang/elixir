@@ -1773,9 +1773,12 @@ defmodule Kernel do
   end
 
   def inspect(arg, opts) when is_list(opts) do
-    unless nil?(raw = opts[:raw]) do
-      IO.write "Kernel.inspect/2 with :raw option is deprecated, please use :records instead\n#{Exception.format_stacktrace}"
-      opts = opts ++ [records: !raw]
+    case opts[:raw] do
+      nil ->
+        :ok
+      raw ->
+        IO.write "Kernel.inspect/2 with :raw option is deprecated, please use :records instead\n#{Exception.format_stacktrace}"
+        opts = opts ++ [records: not raw]
     end
 
     opts  = Inspect.Opts.new(opts)
