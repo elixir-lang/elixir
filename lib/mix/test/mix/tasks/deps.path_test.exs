@@ -57,5 +57,7 @@ defmodule Mix.Tasks.DepsPathTest do
     assert_raise Mix.Error, %r/:path option can only be used with mix projects/, fn ->
       Mix.Tasks.Deps.Get.run []
     end
+  after
+    Mix.Project.pop
   end
 end
