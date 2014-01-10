@@ -3,7 +3,7 @@ defmodule Dict.Behaviour do
   This module makes it easier to create your own `Dict` compliant
   module, by providing default implementations for some required functions.
 
-  Usage:
+  ## Example
 
       defmodule MyDict do
         use Dict.Behaviour
@@ -13,17 +13,39 @@ defmodule Dict.Behaviour do
         # override default implementations if needed
       end
 
-  The client module must contain following functions: `size/1`, `fetch/2`,
-  `put/3`, `update/4`, `delete/2` and `reduce/3`. All of them are part of
-  the Dict behaviour, so no extra functions are actually required.
+  The client module must contain following functions:
+
+  * `delete/2`
+  * `fetch/2`,
+  * `put/3`
+  * `reduce/3`
+  * `size/1`
+  * `update/4`
+
+  All of them are part of the Dict behaviour, so no extra functions are
+  actually required.
 
   Based on these functions, `Dict.Behaviour` generates default implementations
-  for other functions such as `drop`, `take`, etc. All of the functions are
-  defined as overridable, so you can provide your own implementation if
-  needed.
+  for the following functions:
 
-  If you implement `new/0` and `new/1` functions, you can also test your custom
-  module via `Dict` doctests:
+  * `drop/2`
+  * `equal?/2`
+  * `fetch!/2`
+  * `get/2`
+  * `get/3`
+  * `has_key?/2`
+  * `keys/1`
+  * `merge/2`
+  * `merge/3`
+  * `put_new/3`
+  * `take/2`
+  * `to_list/1`
+  * `values/1`
+
+  All of the functions are defined as overridable, so you can provide your own
+  implementation if needed.
+
+  Note you can also test your custom module via `Dict`'s doctests:
 
       defmodule MyDict do
         def new(keywords // []) do
