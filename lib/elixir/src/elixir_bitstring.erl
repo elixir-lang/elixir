@@ -124,41 +124,59 @@ build_bitstr_each(Fun, [{'::',_,[H,V]}|T], Meta, S, Acc) ->
 build_bitstr_each(Fun, [H|T], Meta, S, Acc) ->
   build_bitstr_each(Fun, T, Meta, S, Acc, H, default, default).
 
+build_bitstr_each(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
+  Element =
+    case types_allow_splice(Types, []) of
+      true ->
+        %% See explanation in elixir_utils:elixir_to_erl/1 to know
+        %% why we can simply convert the binary to a list.
+        { bin_element, ?line(Meta), { string, 0, binary_to_list(H) }, default, default };
+      false ->
+        case types_require_conversion(Types) of
+          true ->
+            { bin_element, ?line(Meta), { string, 0, elixir_utils:characters_to_list(H) }, default, Types };
+          false ->
+            elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid types for literal string in <<>>. "
+              "Accepted types are: little, big, utf8, utf16, utf32, bits, bytes, binary, bitstring")
+        end
+    end,
+
+  build_bitstr_each(Fun, T, Meta, S, [Element|Acc]);
+
+build_bitstr_each(_Fun, _T, Meta, S, _Acc, H, _Size, _Types) when is_binary(H) ->
+  elixir_errors:compile_error(Meta, S#elixir_scope.file, "size is not supported for literal string in <<>>");
+
+build_bitstr_each(_Fun, _T, Meta, S, _Acc, H, _Size, _Types) when is_list(H); is_atom(H) ->
+  elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid literal ~ts in <<>>",
+    ['Elixir.Macro':to_string(H)]);
+
 build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
   { Expr, NS } = Fun(H, S),
 
-  AllowString = types_allow_string(Types),
-  AllowSplice = types_allow_splice(Types),
-  AllowAny    = (AllowString orelse AllowSplice) andalso (Size == default),
-
-  case AllowAny andalso Expr of
-    { bin, _, [{ bin_element, 0, { string, 0, String }, default, default }] } when AllowString ->
-      build_bitstr_each(Fun, T, Meta, NS, [{ bin_element, ?line(Meta), { string, 0, String }, Size, Types }|Acc]);
-    { bin, _, Elements } when AllowSplice ->
-      build_bitstr_each(Fun, T, Meta, NS, lists:reverse(Elements) ++ Acc);
-    { cons, _, _, _ } = Cons ->
-      build_bitstr_each(Fun, T, Meta, NS, rehash_cons(Cons, Size, Types, []) ++ Acc);
-    { nil, _ } ->
-      build_bitstr_each(Fun, T, Meta, NS, Acc);
+  case Expr of
+    { bin, _, Elements } ->
+      case (Size == default) andalso types_allow_splice(Types, Elements) of
+        true  -> build_bitstr_each(Fun, T, Meta, NS, lists:reverse(Elements) ++ Acc);
+        false -> build_bitstr_each(Fun, T, Meta, NS, [{ bin_element, ?line(Meta), Expr, Size, Types }|Acc])
+      end;
     _ ->
       build_bitstr_each(Fun, T, Meta, NS, [{ bin_element, ?line(Meta), Expr, Size, Types }|Acc])
   end.
 
-rehash_cons({ nil, _ }, _Size, _Types, Acc) -> Acc;
-rehash_cons({ cons, Line, Left, Right }, Size, Types, Acc) ->
-  rehash_cons(Right, Size, Types, [{ bin_element, Line, Left, Size, Types }|Acc]).
+types_require_conversion([End|T]) when End == little; End == big -> types_require_conversion(T);
+types_require_conversion([UTF|T]) when UTF == utf8; UTF == utf16; UTF == utf32 -> types_require_conversion(T);
+types_require_conversion([]) -> true;
+types_require_conversion(_) -> false.
 
-types_allow_string([End|T]) when End == little; End == big -> types_allow_string(T);
-types_allow_string([UTF|T]) when UTF == utf8; UTF == utf16; UTF == utf32 -> types_allow_string(T);
-types_allow_string([]) -> true;
-types_allow_string(_) -> false.
+types_allow_splice([bytes], Elements)  -> lists:all(fun has_default_size/1, Elements);
+types_allow_splice([binary], Elements) -> lists:all(fun has_default_size/1, Elements);
+types_allow_splice([bits], _)          -> true;
+types_allow_splice([bitstring], _)     -> true;
+types_allow_splice(default, _)         -> true;
+types_allow_splice(_, _)               -> false.
 
-types_allow_splice(default) -> true;
-types_allow_splice([bytes]) -> true;
-types_allow_splice([binary]) -> true;
-types_allow_splice([bits]) -> true;
-types_allow_splice([bitstring]) -> true;
-types_allow_splice(_) -> false.
+has_default_size({ bin_element, _, _, default, _ }) -> true;
+has_default_size({ bin_element, _, _, _, _ })       -> false.
 
 %% Extra bitstring specifiers
 

@@ -107,44 +107,39 @@ bar
   end
 
   test :literal do
-    assert <<106, 111, 115, 101>> == << "jose" :: binary >>
-    assert <<106, 111, 115, 101>> == << "jose" :: bits >>
-    assert <<106, 111, 115, 101>> == << "jose" :: bitstring >>
-    assert <<106, 111, 115, 101>> == << "jose" :: bytes >>
+    assert <<106,111,115,195,169>> == << "josé" :: binary >>
+    assert <<106,111,115,195,169>> == << "josé" :: bits >>
+    assert <<106,111,115,195,169>> == << "josé" :: bitstring >>
+    assert <<106,111,115,195,169>> == << "josé" :: bytes >>
 
-    assert <<106, 111, 115, 101>> == << "jose" :: utf8 >>
-    assert <<106, 111, 115, 101>> == << 'jose' :: utf8 >>
-
-    assert <<0, 106, 0, 111, 0, 115, 0, 101>> == << "jose" :: utf16 >>
-    assert <<0, 106, 0, 111, 0, 115, 0, 101>> == << 'jose' :: utf16 >>
-
-    assert <<106, 0, 111, 0, 115, 0, 101, 0>> == << "jose" :: [utf16, little] >>
-    assert <<106, 0, 111, 0, 115, 0, 101, 0>> == << 'jose' :: [utf16, little] >>
-
-    assert <<0, 0, 0, 106, 0, 0, 0, 111, 0, 0, 0, 115, 0, 0, 0, 101>> == << "jose" :: utf32 >>
-    assert <<0, 0, 0, 106, 0, 0, 0, 111, 0, 0, 0, 115, 0, 0, 0, 101>> == << 'jose' :: utf32 >>
+    assert <<106,111,115,195,169>> == << "josé" :: utf8 >>
+    assert <<0,106,0,111,0,115,0,233>> == << "josé" :: utf16 >>
+    assert <<106,0,111,0,115,0,233,0>> == << "josé" :: [utf16, little] >>
+    assert <<0,0,0,106,0,0,0,111,0,0,0,115,0,0,0,233>> == << "josé" :: utf32 >>
   end
 
   test :literal_errors do
-    assert_raise ArgumentError, fn ->
+    assert_raise CompileError, fn ->
       Code.eval_string(%s[<< "foo" :: integer >>])
     end
 
-    assert_raise ArgumentError, fn ->
+    assert_raise CompileError, fn ->
       Code.eval_string(%s[<< "foo" :: float >>])
     end
 
-    assert_raise ArgumentError, fn ->
+    assert_raise CompileError, fn ->
       Code.eval_string(%s[<< 'foo' :: binary >>])
+    end
+
+    assert_raise ArgumentError, fn ->
+      Code.eval_string(%s[<<1::size(4)>> <> "foo"])
     end
   end
 
-  @binary   "new "
-  @charlist 'old '
+  @binary "new "
 
   test :bitsyntax_with_expansion do
     assert <<@binary, "world">> == "new world"
-    assert <<@charlist, "world">> == "old world"
   end
 
   test :bitsyntax_translation do
