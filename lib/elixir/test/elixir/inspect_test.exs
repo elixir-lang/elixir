@@ -44,7 +44,6 @@ defmodule Inspect.AtomTest do
 
   test :container do
     assert inspect(:<<>>) == ":<<>>"
-    assert inspect(:[])   == ":[]"
     assert inspect(:{})   == ":{}"
   end
 end

@@ -100,7 +100,7 @@ defimpl Inspect, for: Atom do
       valid_ref_identifier?(binary) ->
         "Elixir." <> rest = binary
         rest
-      atom in [:{}, :[], :<<>>] ->
+      atom in [:{}, :<<>>] ->
         ":" <> binary
       atom in Macro.binary_ops or atom in Macro.unary_ops ->
         ":" <> binary

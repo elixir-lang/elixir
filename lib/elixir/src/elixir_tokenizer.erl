@@ -4,8 +4,7 @@
 -import(elixir_interpolation, [unescape_chars/1, unescape_tokens/1]).
 
 -define(container(T1, T2),
-  T1 == ${, T2 == $};
-  T1 == $[, T2 == $]
+  T1 == ${, T2 == $}
 ).
 
 -define(at_op(T),
@@ -223,13 +222,6 @@ tokenize([$.,T|Tail], Line, Scope, Tokens) when ?is_space(T) ->
     [$\n|Rest]     -> tokenize([$.|Rest], Line + 1, Scope, Tokens);
     [_|Rest]       -> tokenize([$.|Rest], Line, Scope, Tokens)
   end;
-
-% ## Containers
-tokenize(".<<>>" ++ Rest, Line, Scope, Tokens) ->
-  handle_call_identifier(Rest, Line, '<<>>', Scope, Tokens);
-
-tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when ?container(T1, T2) ->
-  handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Three Token Operators
 tokenize([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when
