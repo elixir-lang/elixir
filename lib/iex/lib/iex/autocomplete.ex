@@ -4,45 +4,6 @@ defmodule IEx.Autocomplete do
   defrecord Mod, name: nil, type: nil
   defrecord Fun, name: nil, arities: []
 
-  defprotocol Entry do
-    @moduledoc false
-    def to_entries(entry)
-    def to_uniq_entries(entry)
-    def to_hint(entry, hint)
-  end
-
-  defimpl Entry, for: Mod do
-    @moduledoc false
-
-    def to_entries(mod) do
-      [mod.name]
-    end
-
-    def to_uniq_entries(_fun) do
-      []
-    end
-
-    def to_hint(Mod[name: name], hint) do
-      :binary.part(name, size(hint), size(name)-size(hint)) <> "."
-    end
-  end
-
-  defimpl Entry, for: Fun do
-    @moduledoc false
-
-    def to_entries(fun) do
-      lc a inlist fun.arities, do: "#{fun.name}/#{a}"
-    end
-
-    def to_uniq_entries(fun) do
-      to_entries(fun)
-    end
-
-    def to_hint(Fun[name: name], hint) do
-      :binary.part(name, size(hint), size(name)-size(hint))
-    end
-  end
-
   def expand([]) do
     funs = module_funs(IEx.Helpers) ++ module_funs(Kernel)
     mods = [Mod[name: "Elixir", type: :elixir]]
@@ -129,8 +90,8 @@ defmodule IEx.Autocomplete do
   end
 
   defp format_expansion([uniq], hint) do
-    hint = Entry.to_hint(uniq, hint)
-    uniq = if hint == "", do: Entry.to_uniq_entries(uniq), else: []
+    hint = to_hint(uniq, hint)
+    uniq = if hint == "", do: to_uniq_entries(uniq), else: []
     yes(hint, uniq)
   end
 
@@ -139,7 +100,7 @@ defmodule IEx.Autocomplete do
     length = byte_size(hint)
     prefix = :binary.longest_common_prefix(binary)
     if prefix in [0, length] do
-      entries = Enum.reduce(entries, [], fn e, acc -> Entry.to_entries(e) ++ acc end)
+      entries = Enum.reduce(entries, [], fn e, acc -> to_entries(e) ++ acc end)
       yes("", entries)
     else
       yes(:binary.part(first.name, prefix, length-prefix), [])
@@ -270,4 +231,30 @@ defmodule IEx.Autocomplete do
 
   defp ensure_loaded(Elixir), do: { :error, :nofile }
   defp ensure_loaded(mod),    do: Code.ensure_compiled(mod)
+
+  ## Ad-hoc conversions
+
+  defp to_entries(Mod[name: name]) do
+    [name]
+  end
+
+  defp to_entries(Fun[name: name, arities: arities]) do
+    lc a inlist arities, do: "#{name}/#{a}"
+  end
+
+  defp to_uniq_entries(Mod[]) do
+    []
+  end
+
+  defp to_uniq_entries(Fun[] = fun) do
+    to_entries(fun)
+  end
+
+  defp to_hint(Mod[name: name], hint) do
+    :binary.part(name, size(hint), size(name)-size(hint)) <> "."
+  end
+
+  defp to_hint(Fun[name: name], hint) do
+    :binary.part(name, size(hint), size(name)-size(hint))
+  end
 end
