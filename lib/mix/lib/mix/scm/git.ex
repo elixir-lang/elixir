@@ -143,9 +143,10 @@ defmodule Mix.SCM.Git do
   end
 
   defp get_rev_info do
-    [origin, rev] = System.cmd('git config remote.origin.url && git rev-parse --verify --quiet HEAD')
-                    |> iolist_to_binary
-                    |> String.split("\n", trim: true)
+    destructure [origin, rev],
+      System.cmd('git config remote.origin.url && git rev-parse --verify --quiet HEAD')
+      |> iolist_to_binary
+      |> String.split("\n", trim: true)
     [ origin: origin, rev: rev ]
   end
 
