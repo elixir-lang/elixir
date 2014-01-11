@@ -73,10 +73,10 @@
 -define(match_op(T),
   T == $=).
 
--define(tail_op(T),
+-define(in_match_op(T),
   T == $|).
 
--define(default_op(T1, T2),
+-define(in_match_op2(T1, T2),
   T1 == $/, T2 == $/).
 
 -define(stab_op(T1, T2),
@@ -240,13 +240,13 @@ tokenize([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when
 % ## Two Token Operators
 tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when
     ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?default_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2); ?type_op(T1, T2) ->
+    ?in_match_op2(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2); ?type_op(T1, T2) ->
   handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators
 tokenize([$.,T|Rest], Line, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
-    ?match_op(T); ?tail_op(T) ->
+    ?match_op(T); ?in_match_op(T) ->
   handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
 
 % Dot call
@@ -326,13 +326,13 @@ tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when
 % ## Two Token Operators
 tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when
     ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?default_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2); ?type_op(T1, T2) ->
+    ?in_match_op2(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2); ?type_op(T1, T2) ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2]) }|Tokens]);
 
 % ## Single Token Operators
 tokenize([$:,T|Rest], Line, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
-    ?match_op(T); ?tail_op(T); T == $. ->
+    ?match_op(T); ?in_match_op(T); T == $. ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T]) }|Tokens]);
 
 % End of line
@@ -402,8 +402,8 @@ tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?and_op(T1, T2) ->
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?or_op(T1, T2) ->
   handle_op(Rest, Line, or_op, list_to_atom([T1, T2]), Scope, Tokens);
 
-tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?default_op(T1, T2) ->
-  handle_op(Rest, Line, default_op, list_to_atom([T1, T2]), Scope, Tokens);
+tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?in_match_op2(T1, T2) ->
+  handle_op(Rest, Line, in_match_op, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?stab_op(T1, T2) ->
   handle_op(Rest, Line, stab_op, list_to_atom([T1, T2]), Scope, Tokens);
@@ -435,8 +435,8 @@ tokenize([T|Rest], Line, Scope, Tokens) when ?mult_op(T) ->
 tokenize([T|Rest], Line, Scope, Tokens) when ?match_op(T) ->
   handle_op(Rest, Line, match_op, list_to_atom([T]), Scope, Tokens);
 
-tokenize([T|Rest], Line, Scope, Tokens) when ?tail_op(T) ->
-  handle_op(Rest, Line, tail_op, list_to_atom([T]), Scope, Tokens);
+tokenize([T|Rest], Line, Scope, Tokens) when ?in_match_op(T) ->
+  handle_op(Rest, Line, in_match_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([$.|Rest], Line, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, add_token_with_nl({ '.', Line }, Tokens));
@@ -940,8 +940,8 @@ keyword('or')     -> or_op;
 keyword('xor')    -> or_op;
 keyword('when')   -> when_op;
 keyword('in')     -> in_op;
-keyword('inlist') -> inc_op;
-keyword('inbits') -> inc_op;
+keyword('inlist') -> in_match_op;
+keyword('inbits') -> in_match_op;
 
 % Block keywords
 keyword('after')  -> block;

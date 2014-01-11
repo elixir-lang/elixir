@@ -120,7 +120,7 @@ empty_string_test() ->
   [{list_string,1,[<<>>]}] = tokenize("''").
 
 default_test() ->
-  [{identifier,1,x},{default_op,1,'//'},{number,1,1}] = tokenize("x // 1").
+  [{identifier,1,x},{in_match_op,1,'//'},{number,1,1}] = tokenize("x // 1").
 
 addadd_test() ->
   [{identifier,1,x},{two_op,1,'++'},{identifier,1,y}] = tokenize("x ++ y").

@@ -19,7 +19,7 @@ defmodule Kernel.Typespec do
 
   Most of the built-in types provided in Erlang (for example, `pid()`) are
   expressed the same way: `pid()` or simply `pid`. Parametrized types are also
-  supported (`list(integer`) and so are remote types (`Enum.t`).
+  supported (`list(integer)`) and so are remote types (`Enum.t`).
 
   Integers and atom literals are allowed as types (ex. `1`, `:atom` or
   `false`). All other types are built of unions of predefined types. Certain
@@ -353,19 +353,21 @@ defmodule Kernel.Typespec do
   Converts a spec clause back to Elixir AST.
   """
   def spec_to_ast(name, { :type, line, :fun, [{:type, _, :product, args}, result] }) do
-    ast_args = lc arg inlist args, do: typespec_to_ast(arg)
-    ast = { :::, [line: line], [{ name, [line: line], ast_args }, typespec_to_ast(result)] }
+    meta = [line: line]
+    body = { name, meta, Enum.map(args, &typespec_to_ast/1) }
 
     vars = args ++ [result]
       |> Enum.flat_map(&collect_vars/1)
       |> Enum.uniq
-      |> Enum.map(&{ &1, { :var, [line: line], nil } })
+      |> Enum.map(&{ &1, { :var, meta, nil } })
 
-    unless vars == [] do
-      ast = { :when, [line: line], [ast, vars] }
+    result = if vars == [] do
+      typespec_to_ast(result)
+    else
+      { :when, meta, [typespec_to_ast(result), vars] }
     end
 
-    ast
+    { :::, meta, [body, result] }
   end
 
   def spec_to_ast(name, { :type, line, :fun, [] }) do
@@ -378,16 +380,20 @@ defmodule Kernel.Typespec do
         { var, typespec_to_ast(type) }
       end
 
-    ast_args = lc arg inlist args, do: typespec_to_ast(arg)
+    meta = [line: line]
 
     vars = args ++ [result]
       |> Enum.flat_map(&collect_vars/1)
       |> Enum.uniq
+      |> Kernel.--(Keyword.keys(guards))
+      |> Enum.map(&{ &1, { :var, meta, nil } })
 
-    vars = vars -- Keyword.keys(guards)
-      |> Enum.map(&{ &1, { :var, [line: line], nil } })
+    args = lc arg inlist args, do: typespec_to_ast(arg)
 
-    { :when, [line: line], [{ :::, [line: line], [{ name, [line: line], ast_args }, typespec_to_ast(result)] }, guards ++ vars] }
+    { :::, meta, [
+      { name, [line: line], args },
+      { :when, meta, [typespec_to_ast(result), guards ++ vars] }
+    ] }
   end
 
   @doc """
@@ -473,7 +479,7 @@ defmodule Kernel.Typespec do
   The result is returned as a list of tuples where the first
   element is spec name and arity and the second is the spec.
 
-  The module must have a corresponding beam file 
+  The module must have a corresponding beam file
   which can be located by the runtime system.
   """
   @spec beam_callbacks(module | binary) :: [tuple] | nil
@@ -524,7 +530,7 @@ defmodule Kernel.Typespec do
 
   def deftype(_kind, other, caller) do
     type_spec = Macro.to_string(other)
-    compile_error caller, "invalid type specification `#{type_spec}`"
+    compile_error caller, "invalid type specification: #{type_spec}"
   end
 
   defp do_deftype(kind, { name, _, args }, definition, caller) do
@@ -545,16 +551,17 @@ defmodule Kernel.Typespec do
   end
 
   @doc false
-  def defspec(type, { :when, meta2, [{ :::, _, [{ name, meta, args }, return] }, guard] }, caller) do
+  def defspec(type, { :::, meta, [{ name, _, args }, return_and_guard] }, caller) do
     if is_atom(args), do: args = []
+    { return, guard } = split_return_and_guard(return_and_guard)
 
     unless Keyword.keyword?(guard) do
       guard = Macro.to_string(guard)
-      compile_error caller, "invalid guard in function type specification `#{guard}`"
+      compile_error caller, "expected keywords as guard in function type specification, got: #{guard}"
     end
 
     vars = Keyword.keys(guard)
-    constraints = guard_to_constraints(guard, vars, meta2, caller)
+    constraints = guard_to_constraints(guard, vars, meta, caller)
 
     spec = { :type, line(meta), :fun, fn_args(meta, args, return, vars, caller) }
     if constraints != [] do
@@ -566,17 +573,22 @@ defmodule Kernel.Typespec do
     code
   end
 
-  def defspec(type, { :::, _, [{ name, meta, args }, return] }, caller) do
-    if is_atom(args), do: args = []
-    spec = { :type, line(meta), :fun, fn_args(meta, args, return, [], caller) }
-    code = { { name, Kernel.length(args) }, spec }
-    Module.compile_typespec(caller.module, type, code)
-    code
-  end
-
   def defspec(_type, other, caller) do
     spec = Macro.to_string(other)
-    compile_error caller, "invalid function type specification `#{spec}`"
+    compile_error caller, "invalid function type specification: #{spec}"
+  end
+
+  defp split_return_and_guard({ :when, _, [return, guard] }) do
+    { return, guard }
+  end
+
+  defp split_return_and_guard({ :|, meta, [left, right] }) do
+    { return, guard } = split_return_and_guard(right)
+    { { :|, meta, [left, return] }, guard }
+  end
+
+  defp split_return_and_guard(other) do
+    { other, [] }
   end
 
   defp guard_to_constraints(guard, vars, meta, caller) do
@@ -656,8 +668,7 @@ defmodule Kernel.Typespec do
 
   defp typespec_to_ast({ :type, line, :union, args }) do
     args = lc arg inlist args, do: typespec_to_ast(arg)
-    Enum.reduce tl(args), hd(args),
-      fn(arg, expr) -> { :|, [line: line], [expr, arg] } end
+    Enum.reduce Enum.reverse(args), fn(arg, expr) -> { :|, [line: line], [arg, expr] } end
   end
 
   defp typespec_to_ast({ :type, line, :fun, [{:type, _, :product, args}, result] }) do
@@ -749,7 +760,7 @@ defmodule Kernel.Typespec do
 
   # Handle unions
   defp typespec({ :|, meta, [_, _] } = exprs, vars, caller) do
-    exprs = Enum.reverse(collect_union(exprs))
+    exprs = collect_union(exprs)
     union = lc e inlist exprs, do: typespec(e, vars, caller)
     { :type, line(meta), :union, union }
   end
@@ -886,9 +897,10 @@ defmodule Kernel.Typespec do
     typespec({ :nonempty_list, [], [spec] }, vars, caller)
   end
 
-  defp typespec([h|t] = l, vars, caller) do
-    union = Enum.reduce(t, validate_kw(h, l, caller), fn(x, acc) ->
-      { :|, [], [acc, validate_kw(x, l, caller)] }
+  defp typespec(list, vars, caller) do
+    [h|t] = Enum.reverse(list)
+    union = Enum.reduce(t, validate_kw(h, list, caller), fn(x, acc) ->
+      { :|, [], [validate_kw(x, list, caller), acc] }
     end)
     typespec({ :list, [], [union] }, vars, caller)
   end
@@ -904,12 +916,12 @@ defmodule Kernel.Typespec do
     { :remote_type, line(meta), [ remote, name, arguments ] }
   end
 
-  defp collect_union({ :|, _, [a, b] }), do: [b|collect_union(a)]
+  defp collect_union({ :|, _, [a, b] }), do: [a|collect_union(b)]
   defp collect_union(v), do: [v]
 
   defp validate_kw({ key, _ } = t, _, _caller) when is_atom(key), do: t
   defp validate_kw(_, original, caller) do
-    compile_error(caller, "unexpected list `#{Macro.to_string original}` in typespec")
+    compile_error(caller, "unexpected list in typespec: #{Macro.to_string original}")
   end
 
   defp fn_args(meta, args, return, vars, caller) do

@@ -46,12 +46,9 @@ defmodule Behaviour do
   @doc """
   Define a function callback according to the given type specification.
   """
-  defmacro defcallback({ :when, _, [{ :::, _, [fun, return] }, guards] }) do
-    do_defcallback(fun, return, guards, __CALLER__)
-  end
-
-  defmacro defcallback({ :::, _, [fun, return] }) do
-    do_defcallback(fun, return, [], __CALLER__)
+  defmacro defcallback({ :::, _, [fun, return_and_guard] }) do
+    { return, guard } = split_return_and_guard(return_and_guard)
+    do_defcallback(fun, return, guard, __CALLER__)
   end
 
   defmacro defcallback(fun) do
@@ -61,16 +58,26 @@ defmodule Behaviour do
   @doc """
   Define a macro callback according to the given type specification.
   """
-  defmacro defmacrocallback({ :when, _, [{ :::, _, [fun, return] }, guards] }) do
-    do_defcallback(fun, return, guards, __CALLER__)
-  end
-
-  defmacro defmacrocallback({ :::, _, [fun, return] }) do
-    do_defmacrocallback(fun, return, [], __CALLER__)
+  defmacro defmacrocallback({ :::, _, [fun, return_and_guard] }) do
+    { return, guard } = split_return_and_guard(return_and_guard)
+    do_defmacrocallback(fun, return, guard, __CALLER__)
   end
 
   defmacro defmacrocallback(fun) do
     do_defmacrocallback(fun, quote(do: Macro.t), [], __CALLER__)
+  end
+
+  defp split_return_and_guard({ :when, _, [return, guard] }) do
+    { return, guard }
+  end
+
+  defp split_return_and_guard({ :|, meta, [left, right] }) do
+    { return, guard } = split_return_and_guard(right)
+    { { :|, meta, [left, return] }, guard }
+  end
+
+  defp split_return_and_guard(other) do
+    { other, [] }
   end
 
   defp do_defcallback(fun, return, guards, caller) do
@@ -112,7 +119,7 @@ defmodule Behaviour do
   end
 
   defp ensure_not_default({ ://, _, [_, _] }) do
-    raise ArgumentError, message: "default arguments // not supported in defcallback"
+    raise ArgumentError, message: "default arguments // not supported in defcallback/defmacrocallback"
   end
 
   defp ensure_not_default(_), do: :ok
