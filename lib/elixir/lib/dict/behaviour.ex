@@ -1,5 +1,7 @@
 defmodule Dict.Behaviour do
   @moduledoc """
+  Default implementations for some required functions in the `Dict` module.
+
   This module makes it easier to create your own `Dict` compliant
   module, by providing default implementations for some required functions.
 
@@ -13,16 +15,16 @@ defmodule Dict.Behaviour do
         # override default implementations if needed
       end
 
-  The client module must contain following functions:
+  The client module must contain the following functions:
 
   * `delete/2`
-  * `fetch/2`,
+  * `fetch/2`
   * `put/3`
   * `reduce/3`
   * `size/1`
   * `update/4`
 
-  All of them are part of the Dict behaviour, so no extra functions are
+  All of which are part of the `Dict` behaviour, so no extra functions are
   actually required.
 
   Based on these functions, `Dict.Behaviour` generates default implementations
@@ -42,7 +44,7 @@ defmodule Dict.Behaviour do
   * `to_list/1`
   * `values/1`
 
-  All of the functions are defined as overridable, so you can provide your own
+  All of these functions are defined as overridable, so you can provide your own
   implementation if needed.
 
   Note you can also test your custom module via `Dict`'s doctests:
