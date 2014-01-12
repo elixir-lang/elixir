@@ -141,27 +141,22 @@ defmodule Float do
 
   @doc """
   Rounds a floating point value to an arbitrary number of fractional digits
-  (between 0 and 15) with an optional midpoint rounding mode (:up or :down, 
-  defaults to :up).
+  (between 0 and 15).
 
   ## Examples
 
+      iex> Float.round(5.5674, 3)
+      5.567
       iex> Float.round(5.5675, 3)
       5.568
-      iex> Float.round(5.5675, 3, :down)
-      5.567
-      iex> Float.round(-5.5675, 3)
+      iex> Float.round(-5.5674, 3)
       -5.567
-      iex> Float.round(-5.5675, 3, :down)
+      iex> Float.round(-5.5675, 3)
       -5.568
   """
-  @spec round(float, integer, atom | nil) :: float
-  def round(number, precision, midpoint_rounding // :up) when is_float(number) and is_integer(precision) and precision in 0..15 do
-    # Default to :up if anything but :down is provided for midpoint rounding mode
-    case midpoint_rounding do
-      :down -> Kernel.round(Float.floor(number * :math.pow(10, precision))) / :math.pow(10, precision)
-      _     -> Kernel.round(Float.ceil(number * :math.pow(10, precision))) / :math.pow(10, precision)
-    end
+  @spec round(float, integer) :: float
+  def round(number, precision) when is_float(number) and is_integer(precision) and precision in 0..15 do
+    Kernel.round(number * :math.pow(10, precision)) / :math.pow(10, precision)
   end
 
 end
