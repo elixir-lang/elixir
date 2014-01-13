@@ -174,7 +174,7 @@ defmodule Set do
   @spec intersection([t]) :: t
   def intersection(sets)
 
-  def intersection([set | []]) do
+  def intersection([set]) do
     set
   end
 
@@ -289,7 +289,7 @@ defmodule Set do
   @spec union([t]) :: t
   def union(sets)
 
-  def union([set | []]) do
+  def union([set]) do
     set
   end
 
