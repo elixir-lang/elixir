@@ -642,7 +642,7 @@ defmodule Module do
   end
 
   @doc """
-  Returns all functions defined in te given module according
+  Returns all functions defined in the given module according
   to its kind.
 
   ## Examples
