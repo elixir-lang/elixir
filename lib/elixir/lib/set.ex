@@ -124,7 +124,7 @@ defmodule Set do
 
       iex> Set.equal?(HashSet.new([1, 2]), HashSet.new([2, 1, 1]))
       true
-      
+
       iex> Set.equal?(HashSet.new([1, 2]), HashSet.new([3, 4]))
       false
 
@@ -142,13 +142,44 @@ defmodule Set do
       iex> Set.intersection(HashSet.new([1,2]), HashSet.new([2,3,4])) |> HashSet.to_list
       [2]
 
-      iex> Set.intersection(HashSet.new([1,2]), HashSet.new([3,4])) |> HashSet.to_list  
+      iex> Set.intersection(HashSet.new([1,2]), HashSet.new([3,4])) |> HashSet.to_list
       []
 
   """
   @spec intersection(t, t) :: t
   def intersection(set1, set2) do
     target(set1).intersection(set1, set2)
+  end
+
+  @doc """
+  Returns a set containing only members in common between supplied `sets`.
+
+  ## Examples
+
+      iex> Set.intersection([
+      ...>   HashSet.new([1,2,3]),
+      ...>   HashSet.new([2,3,4]),
+      ...>   HashSet.new([3,4,5])
+      ...> ]) |> HashSet.to_list
+      [3]
+
+      iex> Set.intersection([
+      ...>   HashSet.new([1,2]),
+      ...>   HashSet.new([3,4]),
+      ...>   HashSet.new([5,6])
+      ...> ]) |> HashSet.to_list
+      []
+
+  """
+  @spec intersection([t]) :: t
+  def intersection(sets)
+
+  def intersection([set]) do
+    set
+  end
+
+  def intersection([h | t]) do
+    intersection(h, intersection(t))
   end
 
   @doc """
@@ -159,7 +190,7 @@ defmodule Set do
       iex> Set.member?(HashSet.new([1, 2, 3]), 2)
       true
 
-      iex> Set.member?(HashSet.new([1, 2, 3]), 4) 
+      iex> Set.member?(HashSet.new([1, 2, 3]), 4)
       false
 
   """
@@ -240,6 +271,30 @@ defmodule Set do
   @spec union(t, t) :: t
   def union(set1, set2) do
     target(set1).union(set1, set2)
+  end
+
+  @doc """
+  Returns a set containing all members of `sets`.
+
+  ## Examples
+
+      iex> Set.union([
+      ...>   HashSet.new([1,2,3]),
+      ...>   HashSet.new([2,3,4]),
+      ...>   HashSet.new([3,4,5])
+      ...> ]) |> HashSet.to_list
+      [1,2,3,4,5]
+
+  """
+  @spec union([t]) :: t
+  def union(sets)
+
+  def union([set]) do
+    set
+  end
+
+  def union([h | t]) do
+    union(h, union(t))
   end
 
   defp unsupported_set(set) do
