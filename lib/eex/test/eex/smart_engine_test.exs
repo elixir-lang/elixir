@@ -7,8 +7,13 @@ defmodule EEx.SmartEngineTest do
     assert_eval "foo bar", "foo bar"
   end
 
-  test "evaluates with assigns" do
+  test "evaluates with assigns as a ListDict" do
     assert_eval "1", "<%= @foo %>", assigns: [foo: 1]
+  end
+
+  test "evaluates with assigns as a HashDict" do
+    assigns = HashDict.new [foo: 1]
+    assert_eval "1", "<%= @foo %>", assigns: assigns
   end
 
   test "evaluates with loops" do
