@@ -60,7 +60,8 @@ defmodule Mix.SCM.Git do
   end
 
   def equal?(opts1, opts2) do
-    get_lock(opts1, false) == get_lock(opts2, false)
+    opts1[:git] == opts2[:git] &&
+      get_lock_opts(opts1) == get_lock_opts(opts2)
   end
 
   def checkout(opts) do
@@ -108,17 +109,12 @@ defmodule Mix.SCM.Git do
       run_cmd_or_raise "git submodule update --init --recursive"
     end
 
-    get_lock(opts, true)
+    get_lock(opts)
   end
 
-  defp get_lock(opts, fresh) do
-    lock = if fresh do
-             rev_info = get_rev_info
-             rev_info[:rev]
-           else
-             get_lock_rev(opts[:lock])
-           end
-    { :git, opts[:git], lock, get_lock_opts(opts) }
+  defp get_lock(opts) do
+    rev_info = get_rev_info
+    { :git, opts[:git], rev_info[:rev], get_lock_opts(opts) }
   end
 
   defp get_lock_rev({ :git, _repo, lock, _opts }) when is_binary(lock), do: lock
