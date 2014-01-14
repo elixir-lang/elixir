@@ -159,7 +159,7 @@ defmodule String.Unicode do
   end
 
   def next_codepoint(<<>>) do
-    :no_codepoint
+    nil
   end
 
   def codepoints(binary) when is_binary(binary) do
@@ -170,7 +170,7 @@ defmodule String.Unicode do
     [c|do_codepoints(next_codepoint(rest))]
   end
 
-  defp do_codepoints(:no_codepoint) do
+  defp do_codepoints(nil) do
     []
   end
 end

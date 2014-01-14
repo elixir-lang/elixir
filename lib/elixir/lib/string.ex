@@ -562,7 +562,7 @@ defmodule String do
     do_reverse(next_grapheme(rest), [grapheme|acc])
   end
 
-  defp do_reverse(:no_grapheme, acc), do: iolist_to_binary(acc)
+  defp do_reverse(nil, acc), do: iolist_to_binary(acc)
 
   @doc """
   Returns a binary `subject` duplicated `n` times.
@@ -602,7 +602,7 @@ defmodule String do
   Returns the next codepoint in a String.
 
   The result is a tuple with the codepoint and the
-  remaining of the string or `:no_codepoint` in case
+  remaining of the string or `nil` in case
   the string reached its end.
 
   As with other functions in the String module, this
@@ -617,7 +617,7 @@ defmodule String do
 
   """
   @compile { :inline, next_codepoint: 1 }
-  @spec next_codepoint(t) :: {codepoint, t} | :no_codepoint
+  @spec next_codepoint(t) :: {codepoint, t} | nil
   defdelegate next_codepoint(string), to: String.Unicode
 
   @doc %S"""
@@ -693,7 +693,7 @@ defmodule String do
   Returns the next grapheme in a String.
 
   The result is a tuple with the grapheme and the
-  remaining of the string or `:no_grapheme` in case
+  remaining of the string or `nil` in case
   the String reached its end.
 
   ## Examples
@@ -703,7 +703,7 @@ defmodule String do
 
   """
   @compile { :inline, next_grapheme: 1 }
-  @spec next_grapheme(t) :: { grapheme, t } | :no_grapheme
+  @spec next_grapheme(t) :: { grapheme, t } | nil
   defdelegate next_grapheme(string), to: String.Graphemes
 
   @doc """
@@ -722,7 +722,7 @@ defmodule String do
   def first(string) do
     case next_grapheme(string) do
       { char, _ } -> char
-      :no_grapheme -> nil
+      nil -> nil
     end
   end
 
@@ -747,7 +747,7 @@ defmodule String do
     do_last(next_grapheme(rest), char)
   end
 
-  defp do_last(:no_grapheme, last_char), do: last_char
+  defp do_last(nil, last_char), do: last_char
 
   @doc """
   Returns the number of unicode graphemes in an utf8 string.
@@ -769,7 +769,7 @@ defmodule String do
     1 + do_length(next_grapheme(rest))
   end
 
-  defp do_length(:no_grapheme), do: 0
+  defp do_length(nil), do: 0
 
   @doc """
   Returns the grapheme in the `position` of the given utf8 `string`.
@@ -811,7 +811,7 @@ defmodule String do
     char
   end
 
-  defp do_at(:no_grapheme, _, _), do: nil
+  defp do_at(nil, _, _), do: nil
 
   @doc """
   Returns a substring starting at the offset given by the first, and
@@ -934,11 +934,11 @@ defmodule String do
     acc <> char
   end
 
-  defp do_slice(:no_grapheme, start_pos, _, current_pos, acc) when start_pos == current_pos do
+  defp do_slice(nil, start_pos, _, current_pos, acc) when start_pos == current_pos do
     acc
   end
 
-  defp do_slice(:no_grapheme, _, _, _, acc) do
+  defp do_slice(nil, _, _, _, acc) do
     case acc do
       "" -> nil
       _ -> acc

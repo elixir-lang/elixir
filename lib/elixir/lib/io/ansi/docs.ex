@@ -264,8 +264,8 @@ defmodule IO.ANSI.Docs do
 
   defp length_without_escape(rest, count) do
     case String.next_grapheme(rest) do
-      :no_grapheme -> count
       { _, rest }  -> length_without_escape(rest, count + 1)
+      nil -> count
     end
   end
 

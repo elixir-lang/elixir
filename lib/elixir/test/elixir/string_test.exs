@@ -12,7 +12,7 @@ defmodule StringTest do
   test :next_codepoint do
     assert String.next_codepoint("ésoj") == { "é", "soj" }
     assert String.next_codepoint(<<255>>) == { <<255>>, "" }
-    assert String.next_codepoint("") == :no_codepoint
+    assert String.next_codepoint("") == nil
   end
 
   # test cases described in http://mortoray.com/2013/11/27/the-string-type-is-broken/
@@ -229,7 +229,7 @@ defmodule StringTest do
 
   test :next_grapheme do
     assert String.next_grapheme("Ā̀stute") == {"Ā̀", "stute"}
-    assert String.next_grapheme("") == :no_grapheme
+    assert String.next_grapheme("") == nil
   end
 
   test :first do

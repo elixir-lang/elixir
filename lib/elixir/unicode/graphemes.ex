@@ -80,7 +80,7 @@ defmodule String.Graphemes do
   end
 
   def next_grapheme(<<>>) do
-    :no_grapheme
+    nil
   end
 
   # Handle Hangul L
@@ -169,7 +169,7 @@ defmodule String.Graphemes do
     [c|do_graphemes(next_grapheme(rest))]
   end
 
-  defp do_graphemes(:no_grapheme) do
+  defp do_graphemes(nil) do
     []
   end
 end
