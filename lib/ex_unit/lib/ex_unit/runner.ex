@@ -101,7 +101,7 @@ defmodule ExUnit.Runner do
     # entities involved.
     Enum.each failed, &run_test(config, &1, [])
     config.formatter.case_finished(config.formatter_id, test_case)
-    pid <- { self, :case_finished, test_case }
+    send pid, { self, :case_finished, test_case }
   end
 
   defp prepare_tests(config, tests) do
@@ -132,7 +132,7 @@ defmodule ExUnit.Runner do
         end
 
       test_case = exec_case_teardown(test_case, context)
-      self_pid <- { self, :case_finished, test_case, tests }
+      send self_pid, { self, :case_finished, test_case, tests }
     end
 
     receive do
@@ -181,7 +181,7 @@ defmodule ExUnit.Runner do
         exec_test_teardown(test, context)
       end)
 
-      self_pid <- { self, :test_finished, test.time(us) }
+      send self_pid, { self, :test_finished, test.time(us) }
     end)
 
     receive do

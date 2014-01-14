@@ -22,6 +22,7 @@
   * [Kernel] `is_alive/0` is deprecated in favor of `Node.alive?`
   * [Kernel] `Kernel.inspect/2` with `Inspect.Opts[]` is deprecated in favor of `Inspect.Algebra.to_doc/2`
   * [Kernel] `Kernel.inspect/2` with `:raw` option is deprecated, use `:records` option instead
+  * [Kernel] Deprecate `<-/2` in favor of `send/2`
 
 * Backwards incompatible changes
   * [String] Change `String.next_grapheme/1` and `String.next_codepoint/1` to return `nil` on string end

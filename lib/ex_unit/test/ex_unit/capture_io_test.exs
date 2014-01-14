@@ -21,7 +21,7 @@ defmodule ExUnit.CaptureIOTest.GetUntil do
   end
 
   def get_line(device // Process.group_leader) do
-    device <- { :io_request, self, device, { :get_until, :unicode, "", __MODULE__, :until_new_line, [?\n] } }
+    send device, { :io_request, self, device, { :get_until, :unicode, "", __MODULE__, :until_new_line, [?\n] } }
     receive do
       { :io_reply, _, data } -> data
     end
@@ -289,7 +289,7 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   defp send_and_receive_io(req) do
-    :erlang.group_leader <- { :io_request, self, self, req }
+    send :erlang.group_leader, { :io_request, self, self, req }
     s = self
     receive do
       { :io_reply, ^s, res} -> res

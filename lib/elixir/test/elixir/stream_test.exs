@@ -169,18 +169,18 @@ defmodule StreamTest do
     par = self
     pid = spawn_link fn ->
       Enum.each Stream.drop(&inbox_stream/2, -3),
-                fn x -> par <- { :stream, x } end
+                fn x -> send par, { :stream, x } end
     end
 
-    pid <- { :stream, 1 }
-    pid <- { :stream, 2 }
-    pid <- { :stream, 3 }
+    send pid, { :stream, 1 }
+    send pid, { :stream, 2 }
+    send pid, { :stream, 3 }
     refute_receive { :stream, 1 }
 
-    pid <- { :stream, 4 }
+    send pid, { :stream, 4 }
     assert_receive { :stream, 1 }
 
-    pid <- { :stream, 5 }
+    send pid, { :stream, 5 }
     assert_receive { :stream, 2 }
     refute_receive { :stream, 3 }
   end

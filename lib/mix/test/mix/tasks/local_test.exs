@@ -25,7 +25,7 @@ defmodule Mix.Tasks.LocalTest do
       Mix.Tasks.Archive.run []
       assert File.regular? "archive-0.1.0.ez"
 
-      self <- { :mix_shell_input, :yes?, true }
+      send self, { :mix_shell_input, :yes?, true }
       Mix.Tasks.Local.Install.run []
       assert File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
 
@@ -43,14 +43,14 @@ defmodule Mix.Tasks.LocalTest do
       Mix.Tasks.Archive.run ["--no_compile"]
       assert File.regular? "archive-0.2.0.ez"
 
-      self <- { :mix_shell_input, :yes?, true }
+      send self, { :mix_shell_input, :yes?, true }
       Mix.Tasks.Local.Install.run []
       assert File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
       refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
       Mix.Local.append_archives
 
       # Remove it!
-      self <- { :mix_shell_input, :yes?, true }
+      send self, { :mix_shell_input, :yes?, true }
       Mix.Tasks.Local.Uninstall.run ["archive"]
       refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
       Mix.Project.pop

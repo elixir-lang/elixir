@@ -107,13 +107,13 @@ defmodule IEx.CLI do
       receive do
         { :begin, ^ref, other } ->
           :elixir.start_cli
-          other <- { :done, ref }
+          send other, { :done, ref }
       end
     end
 
     fn ->
       IEx.start(config, fn ->
-        parent <- { :begin, ref, self }
+        send parent, { :begin, ref, self }
         receive do: ({ :done, ^ref } -> :ok)
       end)
     end

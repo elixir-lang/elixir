@@ -65,7 +65,7 @@ defmodule Kernel.ParallelCompiler do
   # Release waiting processes
   defp spawn_compilers([h|t], original, output, callbacks, waiting, queued, schedulers, result) when is_pid(h) do
     { ^h, ref, _ } = List.keyfind(waiting, h, 0)
-    h <- { ref, :ready }
+    send h, { ref, :ready }
     waiting = List.keydelete(waiting, h, 0)
     spawn_compilers(t, original, output, callbacks, waiting, queued, schedulers, result)
   end
@@ -107,7 +107,7 @@ defmodule Kernel.ParallelCompiler do
   defp spawn_compilers([], original, output, callbacks, waiting, queued, schedulers, result) when length(waiting) == length(queued) do
     Enum.each queued, fn { child, _, _ } ->
       { ^child, ref, _ } = List.keyfind(waiting, child, 0)
-      child <- { ref, :release }
+      send child, { ref, :release }
     end
     wait_for_messages([], original, output, callbacks, waiting, queued, schedulers, result)
   end
@@ -126,7 +126,7 @@ defmodule Kernel.ParallelCompiler do
         end
 
         # Release the module loader which is waiting for an ack
-        child <- { ref, :ack }
+        send child, { ref, :ack }
 
         available  = lc { pid, _, waiting_module } inlist waiting,
                         waiting_module == module,
@@ -138,7 +138,7 @@ defmodule Kernel.ParallelCompiler do
       { :waiting, child, ref, on } ->
         # Oops, we already got this module. Do not put it on waiting.
         if :lists.member(on, result) do
-          child <- { :release, ref }
+          send child, { :release, ref }
         else
           waiting = [{ child, ref, on }|waiting]
         end

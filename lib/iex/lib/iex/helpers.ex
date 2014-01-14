@@ -452,7 +452,7 @@ defmodule IEx.Helpers do
   """
   def respawn do
     if whereis = IEx.Server.whereis do
-      whereis <- { :respawn, self }
+      send whereis, { :respawn, self }
       true
     else
       false

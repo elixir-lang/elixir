@@ -41,12 +41,12 @@ defmodule IEx.Server do
         { :error, :no_iex }
       true ->
         ref = make_ref()
-        server <- { :take?, self, ref }
+        send server, { :take?, self, ref }
 
         receive do
           ^ref ->
             opts = Keyword.put(opts, :evaluator, self)
-            server <- { :take, self, identifier, ref, opts }
+            send server, { :take, self, identifier, ref, opts }
 
             receive do
               { ^ref, nil } ->
@@ -84,15 +84,15 @@ defmodule IEx.Server do
   defp start_loop(opts, pid, ref) do
     receive do
       { :take?, other, ref } ->
-        other <- ref
+        send other, ref
         start_loop(opts, pid, ref)
 
       { :take, other, identifier, ref, opts } ->
         if allow_take?(identifier) do
-          other <- { ref, Process.group_leader }
+          send other, { ref, Process.group_leader }
           run(opts)
         else
-          other <- { ref, nil }
+          send other, { ref, nil }
           start_loop(opts, pid, ref)
         end
 
@@ -126,7 +126,7 @@ defmodule IEx.Server do
     Process.delete(:evaluator)
     Process.demonitor(evaluator_ref)
     if done? do
-      evaluator <- { :done, self }
+      send evaluator, { :done, self }
     end
     :ok
   end
@@ -145,7 +145,7 @@ defmodule IEx.Server do
       # Input handling.
       # Message either go back to the main loop or exit.
       { :input, ^input, code } when is_binary(code) ->
-        evaluator <- { :eval, self, code, config }
+        send evaluator, { :eval, self, code, config }
         wait_eval(evaluator, evaluator_ref)
       { :input, ^input, { :error, :interrupted } } ->
         io_error "** (EXIT) interrupted"
@@ -161,16 +161,16 @@ defmodule IEx.Server do
       # needs to take hold of the IO, so it kills the input,
       # re-runs the server OR goes back to the main loop.
       { :take?, other, ref } ->
-        other <- ref
+        send other, ref
         wait_input(config, evaluator, evaluator_ref, input)
       { :take, other, identifier, ref, opts } ->
         kill_input(input)
 
         if allow_take?(identifier) do
-          other <- { ref, Process.group_leader }
+          send other, { ref, Process.group_leader }
           reset_loop(opts, evaluator, evaluator_ref)
         else
-          other <- { ref, nil }
+          send other, { ref, nil }
           loop(config, evaluator, evaluator_ref)
         end
 
@@ -192,14 +192,14 @@ defmodule IEx.Server do
       { :evaled, ^evaluator, config } ->
         loop(config, evaluator, evaluator_ref)
       { :take?, other, ref } ->
-        other <- ref
+        send other, ref
         wait_eval(evaluator, evaluator_ref)
       { :take, other, identifier, ref, opts } ->
         if allow_take?(identifier) do
-          other <- { ref, Process.group_leader }
+          send other, { ref, Process.group_leader }
           reset_loop(opts, evaluator, evaluator_ref)
         else
-          other <- { ref, nil }
+          send other, { ref, nil }
           wait_eval(evaluator, evaluator_ref)
         end
     end
@@ -248,7 +248,7 @@ defmodule IEx.Server do
         "#{prefix || "iex"}(#{counter})> "
       end
 
-    pid <- { :input, self, IO.gets(:stdio, prompt) }
+    send pid, { :input, self, IO.gets(:stdio, prompt) }
   end
 
   defp io_error(result) do

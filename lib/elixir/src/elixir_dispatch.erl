@@ -375,6 +375,7 @@ in_erlang_functions() ->
     % { now, 0 },
     { round, 1 },
     { self, 0 },
+    { send, 2 },
     { size, 1 },
     { spawn, 1 },
     { spawn, 3 },

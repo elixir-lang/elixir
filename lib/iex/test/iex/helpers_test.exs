@@ -130,7 +130,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "flush helper" do
-    assert capture_io(fn -> self() <- :hello; flush end) == ":hello\n"
+    assert capture_io(fn -> send self(), :hello; flush end) == ":hello\n"
   end
 
   test "pwd helper" do

@@ -93,7 +93,7 @@ defmodule ExUnit.CaptureIO do
       fun.()
     after
       :erlang.group_leader(original_gl, self)
-      capture_gl <- :stop
+      send capture_gl, :stop
     end
 
     receive do
@@ -117,7 +117,7 @@ defmodule ExUnit.CaptureIO do
     after
       Process.unregister(device)
       Process.register(original_io, device)
-      capture_io <- :stop
+      send capture_io, :stop
     end
 
     receive do
@@ -178,7 +178,7 @@ defmodule ExUnit.CaptureIO do
         group_leader_loop(runner, 0, buf)
     after wait ->
       :erlang.process_flag(:priority, :normal)
-      runner <- { self, buffer_to_result(buf) }
+      send runner, { self, buffer_to_result(buf) }
     end
   end
 
@@ -189,7 +189,7 @@ defmodule ExUnit.CaptureIO do
   end
 
   defp io_reply(from, reply_as, reply) do
-    from <- { :io_reply, reply_as, reply }
+    send from, { :io_reply, reply_as, reply }
   end
 
   defp io_request({ :put_chars, chars }, buf) do

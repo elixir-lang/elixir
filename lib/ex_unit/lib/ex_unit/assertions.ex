@@ -292,12 +292,12 @@ defmodule ExUnit.Assertions do
 
   ## Examples
 
-      self <- :hello
+      send self, :hello
       assert_received :hello
 
   You can also match against specific patterns:
 
-      self <- { :hello, "world" }
+      send self, { :hello, "world" }
       assert_received { :hello, _ }
 
   """
@@ -478,7 +478,7 @@ defmodule ExUnit.Assertions do
 
   ## Examples
 
-      self <- :hello
+      send self, :hello
       refute_received :bye
 
   """

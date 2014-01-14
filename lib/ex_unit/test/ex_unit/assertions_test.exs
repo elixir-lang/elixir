@@ -88,12 +88,12 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert receive waits" do
     parent = self
-    spawn fn -> parent <- :hello end
+    spawn fn -> send parent, :hello end
     :hello = assert_receive :hello
   end
 
   test "assert received does not wait" do
-    self <- :hello
+    send self, :hello
     :hello = assert_received :hello
   end
 
@@ -115,7 +115,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "refute received when equal" do
-    self <- :hello
+    send self, :hello
     try do
       "This should never be tested" = refute_received :hello
     rescue

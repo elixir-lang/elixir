@@ -867,6 +867,24 @@ defmodule Kernel do
   end
 
   @doc """
+  Sends a message to the given `dest` and returns the message.
+
+  `dest` may be a remote or local pid, a (local) port, a locally
+  registered name, or a tuple `{registed_name, node}` for a registered
+  name at another node.
+
+  ## Examples
+
+      iex> send self(), :hello
+      :hello
+
+  """
+  @spec send(dest :: pid | port | atom | { atom, node }, msg) :: msg when msg: any
+  def send(dest, msg) do
+    :erlang.send(dest, msg)
+  end
+
+  @doc """
   Returns the pid (process identifier) of the calling process.
   Allowed in guard clauses.
   """
@@ -893,7 +911,7 @@ defmodule Kernel do
   ## Examples
 
       current = Kernel.self
-      child   = spawn(fn -> current <- { Kernel.self, 1 + 2 } end)
+      child   = spawn(fn -> send current, { Kernel.self, 1 + 2 } end)
 
       receive do
         { ^child, 3 } -> IO.puts "Received 3 back"
@@ -931,7 +949,7 @@ defmodule Kernel do
   ## Examples
 
       current = Kernel.self
-      child   = spawn_link(fn -> current <- { Kernel.self, 1 + 2 } end)
+      child   = spawn_link(fn -> send current, { Kernel.self, 1 + 2 } end)
 
       receive do
         { ^child, 3 } -> IO.puts "Received 3 back"
@@ -1118,19 +1136,10 @@ defmodule Kernel do
     quote do: __op__(:/, unquote(left), unquote(right))
   end
 
-  @doc """
-  Sends a message to the process identified on the left.
-  A process can be identified by its PID or, if it is registered,
-  by an atom.
-
-  ## Examples
-
-      process = Kernel.self
-      process <- { :ok, "Sending myself a message" }
-
-  """
-  defmacro pid <- msg do
-    quote do: :erlang.!(unquote(pid), unquote(msg))
+  @doc false
+  def pid <- msg do
+    IO.write "<-/2 is deprecated, please use send/2 instead\n#{Exception.format_stacktrace}"
+    :erlang.!(pid, msg)
   end
 
   @doc """
@@ -1773,7 +1782,7 @@ defmodule Kernel do
   end
 
   def inspect(arg, opts) when is_list(opts) do
-    case opts[:raw] do
+    case Keyword.get(opts, :raw) do
       nil ->
         :ok
       raw ->

@@ -30,7 +30,7 @@ defmodule IEx.Evaluator do
   defp loop(server) do
     receive do
       { :eval, ^server, code, config } ->
-        server <- { :evaled, self, eval(code, config) }
+        send server, { :evaled, self, eval(code, config) }
         loop(server)
       { :done, ^server } ->
         IEx.History.reset

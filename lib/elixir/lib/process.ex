@@ -264,8 +264,8 @@ defmodule Process do
 
   @doc """
   Associates the name with a pid or a port identifier. name, which must
-  be an atom, can be used instead of the pid / port identifier in the
-  send operator (name <- message).
+  be an atom, can be used instead of the pid / port identifier with the
+  `Kernel.send/2` function.
 
   See http://www.erlang.org/doc/man/erlang.html#register-2 for more info.
   """

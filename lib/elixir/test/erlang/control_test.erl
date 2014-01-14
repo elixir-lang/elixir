@@ -60,13 +60,13 @@ try_else_test() ->
 % Receive
 
 receive_test() ->
-  {10, _} = eval("self() <- :foo\nreceive do\n:foo -> 10\nend"),
-  {20, _} = eval("self() <- :bar\nreceive do\n:foo -> 10\n_ -> 20\nend"),
+  {10, _} = eval("send self(), :foo\nreceive do\n:foo -> 10\nend"),
+  {20, _} = eval("send self(), :bar\nreceive do\n:foo -> 10\n_ -> 20\nend"),
   {30, _} = eval("receive do\nafter 1 -> 30\nend").
 
 vars_receive_test() ->
-  {10, _} = eval("self() <- :foo\nreceive do\n:foo ->\na = 10\n:bar -> nil\nend\na"),
-  {nil, _} = eval("self() <- :bar\nreceive do\n:foo ->\nb = 10\n_ -> 20\nend\nb"),
+  {10, _} = eval("send self(), :foo\nreceive do\n:foo ->\na = 10\n:bar -> nil\nend\na"),
+  {nil, _} = eval("send self(), :bar\nreceive do\n:foo ->\nb = 10\n_ -> 20\nend\nb"),
   {30, _} = eval("receive do\n:foo -> nil\nafter\n1 -> c = 30\nend\nc"),
   {30, _} = eval("x = 1\nreceive do\n:foo -> nil\nafter\nx -> c = 30\nend\nc").
 

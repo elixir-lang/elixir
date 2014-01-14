@@ -17,7 +17,7 @@ defmodule Mix.ShellTest do
     assert_received { :mix_shell, :info, ["abc"] }
     assert_received { :mix_shell, :error, ["def"] }
 
-    self <- { :mix_shell_input, :yes?, true }
+    send self, { :mix_shell_input, :yes?, true }
     assert Mix.shell.yes?("hello?")
     assert_received { :mix_shell, :yes?, ["hello?"] }
 
