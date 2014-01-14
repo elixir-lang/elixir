@@ -1,6 +1,7 @@
 # v0.12.2-dev
 
 * Enhancements
+  * [EEx] Allow `EEx.AssignsEngine` to accept any Dict
   * [Enum] Add `Enum.flat_map_reduce/3`
   * [ExUnit] Support @moduletag in ExUnit cases
   * [Kernel] Improve stacktraces to be relative to the compilation path and include the related application
@@ -16,12 +17,14 @@
   * [Mix] Ensure mix properly copies _build dependencies on Windows
 
 * Deprecations
+  * [Enum] Deprecate `Enum.first/1` in favor of `Enum.at/2` and `List.first/1`
+  * [Kernel] Deprecate continuable heredocs. In previous versions, Elixir would continue parsing on the same line the heredoc started, this behavior has been deprecated
   * [Kernel] `is_alive/0` is deprecated in favor of `Node.alive?`
   * [Kernel] `Kernel.inspect/2` with `Inspect.Opts[]` is deprecated in favor of `Inspect.Algebra.to_doc/2`
   * [Kernel] `Kernel.inspect/2` with `:raw` option is deprecated, use `:records` option instead
 
 * Backwards incompatible changes
-
+  * [String] Change `String.next_grapheme/1` and `String.next_codepoint/1` to return `nil` on string end
 
 # v0.12.1 (2014-01-04)
 
