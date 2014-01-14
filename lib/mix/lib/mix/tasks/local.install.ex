@@ -32,7 +32,7 @@ defmodule Mix.Tasks.Local.Install do
   def run(argv) do
     { opts, argv, _ } = OptionParser.parse(argv, switches: [force: :boolean])
 
-    unless path = Enum.first(argv) do
+    unless path = List.first(argv) do
       path = Mix.Archive.name(Mix.project[:app], Mix.project[:version])
 
       unless File.exists?(path) do
@@ -66,8 +66,8 @@ defmodule Mix.Tasks.Local.Install do
   end
 
   defp previous_version_filename(src) do
-    app = Mix.Archive.dir(src) |> String.split("-") |> Enum.first
-    Path.join(Mix.Local.archives_path, app <> "-*.ez") |> Path.wildcard |> Enum.first
+    app = Mix.Archive.dir(src) |> String.split("-") |> List.first
+    Path.join(Mix.Local.archives_path, app <> "-*.ez") |> Path.wildcard |> List.first
   end
 
   defp remove_previous_version(_previous=nil) do

@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Local.Uninstall do
     archive = Mix.Local.archives_path
               |> Path.join(name <> "-*.ez")
               |> Path.wildcard
-              |> Enum.first
+              |> List.first
 
     unless archive do
       raise Mix.Error, message: "Could not find a local archive named #{inspect name} "<>

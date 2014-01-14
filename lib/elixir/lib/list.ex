@@ -117,6 +117,23 @@ defmodule List do
   end
 
   @doc """
+  Returns the first element in `list` or `nil` if `list` is empty.
+
+  ## Examples
+
+      iex> List.first([])
+      nil
+      iex> List.first([1])
+      1
+      iex> List.first([1, 2, 3])
+      1
+
+  """
+  @spec first([elem]) :: nil | elem when elem: var
+  def first([]),    do: nil
+  def first([h|_]), do: h
+
+  @doc """
   Returns the last element in `list` or `nil` if `list` is empty.
 
   ## Examples
@@ -130,12 +147,9 @@ defmodule List do
 
   """
   @spec last([elem]) :: nil | elem when elem: var
-
-  def last([]), do: nil
-
-  def last(list) do
-    :lists.last(list)
-  end
+  def last([]),    do: nil
+  def last([h]),   do: h
+  def last([_|t]), do: last(t)
 
   @doc """
   Receives a list of tuples and returns the first tuple

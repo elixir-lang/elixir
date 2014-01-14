@@ -143,11 +143,6 @@ defmodule EnumTest.List do
     assert Enum.fetch([2, 4, 6], -4) == :error
   end
 
-  test :first do
-    assert Enum.first([]) == nil
-    assert Enum.first([1, 2, 3]) == 1
-  end
-
   test :filter do
     assert Enum.filter([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == [2]
     assert Enum.filter([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == [2, 4, 6]
@@ -528,14 +523,6 @@ defmodule EnumTest.Range do
 
     range = 1..2
     refute Enum.empty?(range)
-  end
-
-  test :first do
-    range = 1..0
-    assert Enum.first(range) == 1
-
-    range = 1..2
-    assert Enum.first(range) == 1
   end
 
   test :each do
