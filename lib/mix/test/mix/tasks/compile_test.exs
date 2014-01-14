@@ -47,8 +47,8 @@ defmodule Mix.Tasks.CompileTest do
     in_fixture "no_mixfile", fn ->
       import ExUnit.CaptureIO
 
-      File.mkdir!("src")
-      File.write!("src/a.erl", """)
+      File.mkdir! "src"
+      File.write! "src/a.erl", """
       -module(b).
       def b(), do: b
       """

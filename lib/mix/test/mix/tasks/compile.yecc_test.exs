@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
 
   test "compilation continues if one file fails to compile" do
     in_fixture "compile_yecc", fn ->
-      File.write!("src/zzz.yrl", """)
+      File.write! "src/zzz.yrl", """
       oops.
       """
 

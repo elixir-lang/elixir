@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
   test "compilation continues if one file fails to compile" do
     in_fixture "compile_erlang", fn ->
-      File.write!("src/zzz.erl", """)
+      File.write! "src/zzz.erl", """
       -module(zzz).
       def zzz(), do: b
       """

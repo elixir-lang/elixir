@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Compile.LeexTest do
 
   test "compilation continues if one file fails to compile" do
     in_fixture "compile_leex", fn ->
-      File.write!("src/zzz.xrl", """)
+      File.write! "src/zzz.xrl", """
       oops.
       """
 

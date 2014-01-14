@@ -91,7 +91,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push ReqDepsApp
 
     in_fixture "deps_status", fn ->
-      File.write!("deps/ok/mix.exs", """)
+      File.write! "deps/ok/mix.exs", """
       defmodule Deps.OkApp do
         use Mix.Project
 
@@ -453,7 +453,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push ConvergedDepsApp
 
     in_fixture "deps_status", fn ->
-      File.write!("custom/deps_repo/mix.exs", """)
+      File.write! "custom/deps_repo/mix.exs", """
       defmodule DepsRepo do
         use Mix.Project
 
@@ -489,7 +489,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push ConvergedDepsApp
 
     in_fixture "deps_status", fn ->
-      File.write!("custom/deps_repo/mix.exs", """)
+      File.write! "custom/deps_repo/mix.exs", """
       defmodule DepsRepo do
         use Mix.Project
 

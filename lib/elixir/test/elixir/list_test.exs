@@ -154,19 +154,4 @@ defmodule ListTest do
     assert List.delete_at([1, 2, 3], -3) == [2, 3]
     assert List.delete_at([1, 2, 3], -4) == [1, 2, 3]
   end
-
-  test :heredoc do
-    assert [ "a\n" ] == [ """ ]
-      a
-      """
-
-    assert [ "a\n", "b\n", "c\n", 1 ] == [ """, """, """, 1 ]
-      a
-      """
-      b
-      """
-      c
-      """
-
-  end
 end

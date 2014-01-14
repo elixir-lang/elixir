@@ -605,41 +605,41 @@ defmodule Kernel.ErrorsTest do
 
   test :macros_error_stacktrace do
     assert [{:erlang, :+, [1, :foo], _}, {ErrorsTest, :sample, 1, _}|_] =
-      rescue_stacktrace(""")
+      rescue_stacktrace("""
       defmodule ErrorsTest do
         defmacro sample(num), do: num + :foo
         def other, do: sample(1)
       end
-      """
+      """)
   end
 
   test :macros_function_clause_stacktrace do
     assert [{__MODULE__, :sample, 1, _}|_] =
-      rescue_stacktrace(""")
+      rescue_stacktrace("""
       defmodule ErrorsTest do
         import Kernel.ErrorsTest
         sample(1)
       end
-      """
+      """)
   end
 
   test :macros_interpreted_function_clause_stacktrace do
     assert [{ErrorsTest, :sample, 1, _}|_] =
-      rescue_stacktrace(""")
+      rescue_stacktrace("""
       defmodule ErrorsTest do
         defmacro sample(0), do: 0
         def other, do: sample(1)
       end
-      """
+      """)
   end
 
   test :macros_compiled_callback do
     assert [{Kernel.ErrorsTest, :__before_compile__, [Macro.Env[module: ErrorsTest]], _}|_] =
-      rescue_stacktrace(""")
+      rescue_stacktrace("""
       defmodule ErrorsTest do
         Module.put_attribute(__MODULE__, :before_compile, Kernel.ErrorsTest)
       end
-      """
+      """)
   end
 
   defmacro sample(0), do: 0

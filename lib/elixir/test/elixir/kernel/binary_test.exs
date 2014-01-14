@@ -17,27 +17,19 @@ bar """
 """
   end
 
-  test :heredoc_with_extra do
-    assert 21 == __ENV__.line
-    assert "foo\nbar\nbar\n" == """ <> "bar\n"
-foo
-bar
-"""
-  end
-
   test :aligned_heredoc do
-    assert "foo\nbar\nbar\n" == """ <> "bar\n"
+    assert "foo\nbar\n" == """
     foo
     bar
     """
   end
 
   test :heredoc_with_interpolation do
-    assert "37\n" == """
+    assert "29\n" == """
     #{__ENV__.line}
     """
 
-    assert "\n42\n" == """
+    assert "\n34\n" == """
 
     #{__ENV__.line}
     """

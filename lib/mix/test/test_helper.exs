@@ -128,7 +128,6 @@ source = MixTest.Case.fixture_path("rebar_dep")
 dest = MixTest.Case.tmp_path
 File.cp_r!(source, dest)
 
-
 ## Generate git repo fixtures
 
 # Git repo
@@ -137,7 +136,7 @@ target = Path.expand("fixtures/git_repo", __DIR__)
 unless File.dir?(target) do
   File.mkdir_p!(Path.join(target, "lib"))
 
-  File.write!(Path.join(target, "mix.exs"), """)
+  File.write! Path.join(target, "mix.exs"), """
   ## Auto-generated fixture
   raise "I was not supposed to be loaded"
   """
@@ -150,7 +149,7 @@ unless File.dir?(target) do
     System.cmd("git commit -m \"bad\"")
   end
 
-  File.write!(Path.join(target, "mix.exs"), """)
+  File.write! Path.join(target, "mix.exs"), """
   ## Auto-generated fixture
   defmodule GitRepo.Mix do
     use Mix.Project
@@ -166,7 +165,7 @@ unless File.dir?(target) do
     System.cmd("git commit -m \"ok\"")
   end
 
-  File.write!(Path.join(target, "lib/git_repo.ex"), """)
+  File.write! Path.join(target, "lib/git_repo.ex"), """
   ## Auto-generated fixture
   defmodule GitRepo do
     def hello do
@@ -187,7 +186,7 @@ target = Path.expand("fixtures/deps_on_git_repo", __DIR__)
 unless File.dir?(target) do
   File.mkdir_p!(Path.join(target, "lib"))
 
-  File.write!(Path.join(target, "mix.exs"), """)
+  File.write! Path.join(target, "mix.exs"), """
   ## Auto-generated fixture
   defmodule DepsOnGitRepo.Mix do
     use Mix.Project
@@ -215,14 +214,14 @@ target = Path.expand("fixtures/git_rebar", __DIR__)
 unless File.dir?(target) do
   File.mkdir_p!(Path.join(target, "src"))
 
-  File.write!(Path.join([target, "src", "git_rebar.app.src"]), """)
+  File.write! Path.join([target, "src", "git_rebar.app.src"]), """
   {application, git_rebar,
     [
       {vsn, "0.1.0"}
     ]}.
   """
 
-  File.write!(Path.join([target, "src", "git_rebar.erl"]), """)
+  File.write! Path.join([target, "src", "git_rebar.erl"]), """
   -module(git_rebar).
 
   -export ([any_function/0]).

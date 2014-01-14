@@ -483,6 +483,7 @@ tokenize([Space, Sign, NotMarker|T], Line, Scope, [{ Identifier, _, _ } = H|Toke
 tokenize([T|Rest], Line, Scope, Tokens) when ?is_horizontal_space(T) ->
   tokenize(Rest, Line, Scope, Tokens);
 
+%% TODO: This token is deprecated once continuable heredocs are removed
 tokenize([{line,Line}|Rest], _Line, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, Tokens);
 
@@ -574,7 +575,7 @@ collect_modifiers(Rest, Buffer) ->
 %% Heredocs
 
 extract_heredoc_with_interpolation(Line, Scope, Interpol, T, H) ->
-  case extract_heredoc(Line, T, H) of
+  case extract_heredoc(Line, T, H, Scope) of
     { error, _ } = Error ->
       Error;
     { Body, Rest } ->
@@ -586,8 +587,8 @@ extract_heredoc_with_interpolation(Line, Scope, Interpol, T, H) ->
       end
   end.
 
-extract_heredoc(Line0, Rest0, Marker) ->
-  case extract_heredoc_line(Rest0, []) of
+extract_heredoc(Line0, Rest0, Marker, Scope) ->
+  case extract_heredoc_header(Rest0, [], {Line0,Scope#elixir_tokenizer.file}) of
     { ok, Extra, Rest1 } ->
       %% We prepend a new line so we can transparently remove
       %% spaces later. This new line is removed by calling `tl`
@@ -595,42 +596,52 @@ extract_heredoc(Line0, Rest0, Marker) ->
       case extract_heredoc_body(Line0, Marker, [$\n|Rest1], []) of
         { Line1, Body, Rest2, Spaces } ->
           { tl(remove_heredoc_spaces(Body, Spaces)), merge_heredoc_extra(Line1, Extra, Rest2) };
-        { error, Line1 } ->
-          heredoc_error(Line1, Line0, Marker)
+        { error, ErrorLine } ->
+          Terminator = [Marker, Marker, Marker],
+          Message = "missing terminator: ~ts (for heredoc starting at line ~B)",
+          { error, { ErrorLine, io_lib:format(Message, [Terminator, Line0]), [] } }
       end;
-    { error, eof } ->
-      heredoc_error(Line0, Line0, Marker)
+    error ->
+      %% TODO: Test me once the deprecated continuable heredocs are removed
+      Terminator = [Marker, Marker, Marker],
+      Message = "heredoc start ~ts must be followed by a new line",
+      { error, { Line0, io_lib:format(Message, [Terminator]), [] } }
   end.
-
-heredoc_error(ErrorLine, StartLine, Marker) ->
-  Terminator = [Marker, Marker, Marker],
-  Message    = io_lib:format("missing terminator: ~ts (for heredoc starting at line ~B)", [Terminator, StartLine]),
-  { error, { ErrorLine, Message, [] } }.
 
 %% Remove spaces from heredoc based on the position of the final quotes.
 
 remove_heredoc_spaces(Body, 0) ->
   lists:reverse([0|Body]);
-
 remove_heredoc_spaces(Body, Spaces) ->
   remove_heredoc_spaces([0|Body], [], Spaces, Spaces).
-
 remove_heredoc_spaces([H,$\n|T], [Backtrack|Buffer], Spaces, Original) when Spaces > 0, ?is_horizontal_space(H) ->
   remove_heredoc_spaces([Backtrack,$\n|T], Buffer, Spaces - 1, Original);
-
 remove_heredoc_spaces([$\n=H|T], Buffer, _Spaces, Original) ->
   remove_heredoc_spaces(T, [H|Buffer], Original, Original);
-
 remove_heredoc_spaces([H|T], Buffer, Spaces, Original) ->
   remove_heredoc_spaces(T, [H|Buffer], Spaces, Original);
-
 remove_heredoc_spaces([], Buffer, _Spaces, _Original) ->
   Buffer.
+
+%% Extract the heredoc header.
+
+extract_heredoc_header("\r\n" ++ Rest, Buffer, _Scope) ->
+  { ok, [$\n|Buffer], Rest };
+extract_heredoc_header("\n" ++ Rest, Buffer, _Scope) ->
+  { ok, [$\n|Buffer], Rest };
+extract_heredoc_header([H|T], Buffer, {Line,File}) when not ?is_horizontal_space(H) ->
+  elixir_errors:deprecation([{line,Line}], File, "continuable heredocs are deprecated, parsing will no longer continue on the same line as the heredoc starts"),
+  extract_heredoc_header(T, [H|Buffer], nil);
+extract_heredoc_header([H|T], Buffer, _Scope) ->
+  extract_heredoc_header(T, [H|Buffer], _Scope);
+extract_heredoc_header(_, _, _Scope) ->
+  error.
 
 %% Extract heredoc body. It returns the heredoc body (in reverse order),
 %% the remaining of the document and the number of spaces the heredoc
 %% is aligned.
 
+%% TODO: This token is deprecated once continuable heredocs are removed
 extract_heredoc_body(_Line, Marker, [{line,NewLine}|Rest], Buffer) ->
   extract_heredoc_body(NewLine, Marker, Rest, Buffer);
 
@@ -639,7 +650,7 @@ extract_heredoc_body(Line, Marker, Rest, Buffer) ->
     { ok, NewBuffer, NewRest } ->
       extract_heredoc_body(Line + 1, Marker, NewRest, NewBuffer);
     { ok, NewBuffer, NewRest, Spaces } ->
-      { Line + 1, NewBuffer, NewRest, Spaces };
+      { Line, NewBuffer, NewRest, Spaces };
     { error, eof } ->
       { error, Line }
   end.
@@ -648,13 +659,10 @@ extract_heredoc_body(Line, Marker, Rest, Buffer) ->
 
 extract_heredoc_line("\r\n" ++ Rest, Buffer) ->
   { ok, [$\n|Buffer], Rest };
-
 extract_heredoc_line("\n" ++ Rest, Buffer) ->
   { ok, [$\n|Buffer], Rest };
-
 extract_heredoc_line([H|T], Buffer) ->
   extract_heredoc_line(T, [H|Buffer]);
-
 extract_heredoc_line(_, _) ->
   { error, eof }.
 
@@ -662,31 +670,19 @@ extract_heredoc_line(_, _) ->
 
 extract_heredoc_line(Marker, [H|T], Buffer, Counter) when ?is_horizontal_space(H) ->
   extract_heredoc_line(Marker, T, [H|Buffer], Counter + 1);
-
-extract_heredoc_line(Marker, [Marker,Marker,Marker|T] = Rest, Buffer, Counter) ->
-  case next_is_break(T) of
-    false -> extract_heredoc_line(Rest, Buffer);
-    Final -> { ok, Buffer, Final, Counter }
-  end;
-
+extract_heredoc_line(Marker, [Marker,Marker,Marker|T], Buffer, Counter) ->
+  { ok, Buffer, T, Counter };
 extract_heredoc_line(_Marker, Rest, Buffer, _Counter) ->
   extract_heredoc_line(Rest, Buffer).
-
-next_is_break([H|T]) when ?is_horizontal_space(H) -> next_is_break(T);
-next_is_break("\r\n" ++ T) -> T;
-next_is_break("\n" ++ T) -> T;
-next_is_break([]) -> [];
-next_is_break(_) -> false.
 
 %% Merge heredoc extra by replying it on the buffer. It also adds
 %% a special { line, Line } token to force a line change along the way.
 
+%% TODO: This token is deprecated once continuable heredocs are removed
 merge_heredoc_extra(Line, Extra, Buffer) ->
   merge_heredoc_extra(Extra, [{line,Line}|Buffer]).
-
 merge_heredoc_extra([H|T], Buffer) ->
   merge_heredoc_extra(T, [H|Buffer]);
-
 merge_heredoc_extra([], Buffer) ->
   Buffer.
 

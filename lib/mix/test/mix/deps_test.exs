@@ -109,7 +109,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push NestedDepsApp
 
     in_fixture "deps_status", fn ->
-      File.write!("custom/deps_repo/mix.exs", """)
+      File.write! "custom/deps_repo/mix.exs", """
       defmodule DepsRepo do
         use Mix.Project
 
@@ -158,7 +158,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push ConvergedDepsApp
 
     in_fixture "deps_status", fn ->
-      File.write!("custom/deps_repo/mix.exs", """)
+      File.write! "custom/deps_repo/mix.exs", """
       defmodule DepsRepo do
         use Mix.Project
 
