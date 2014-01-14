@@ -69,7 +69,7 @@ defmodule Module do
             @before_compile A
           end
 
-  * `@behaviour`   (notice the british spelling)
+  * `@behaviour`   (notice the British spelling)
 
       Specify an OTP or user-defined behaviour.
 
@@ -183,7 +183,7 @@ defmodule Module do
       When just a module is provided, the function is assumed to be
       `__on_definition__/6`.
 
-      Note that you can\'t provide the current module to `@on_definition`
+      Note that you can't provide the current module to `@on_definition`
       because the hook function will not be defined in time. Finally, since
       the `on_definition` hook is executed inside the context of the defined
       function (i.e. `env.function` returns the current function), the hook
@@ -298,7 +298,7 @@ defmodule Module do
 
   In addition to the above, you may also pass to `__info__/1` any atom supported
   by Erlang's `module_info` function which also gets defined for each compiled
-  module. See http://erlang.org/doc/reference_manual/modules.html#id74571 for
+  module. See http://erlang.org/doc/reference_manual/modules.html#id69430 for
   more information.
   """
   def __info__(kind)
@@ -359,9 +359,9 @@ defmodule Module do
   end
 
   @doc """
-  Creates a module with the given name and given by
+  Creates a module with the given name and defined by
   the given quoted expressions. The line where the module
-  is defined and its file can be given as options.
+  is defined and its file can be passed as options.
 
   ## Examples
 
@@ -374,7 +374,7 @@ defmodule Module do
 
       Hello.world #=> true
 
-  ## Differences with `defmodule`
+  ## Differences from `defmodule`
 
   `Module.create` works similarly to `defmodule` and
   return the same results. While one could also use
@@ -398,7 +398,7 @@ defmodule Module do
   end
 
   @doc """
-  Concatenates the list of aliases and returns a new alias.
+  Concatenates a list of aliases and returns a new alias.
 
   ## Examples
 
@@ -414,7 +414,7 @@ defmodule Module do
   end
 
   @doc """
-  Concatenates the two given aliases and returns a new alias.
+  Concatenates two aliases and returns a new alias.
 
   ## Examples
 
@@ -430,9 +430,9 @@ defmodule Module do
   end
 
   @doc """
-  Concatenates the list aliases and returns a new alias only
+  Concatenates a list of aliases and returns a new alias only
   if the alias was already referenced. If the alias was not
-  referenced yet, fails with ArgumentError.
+  referenced yet, fails with `ArgumentError`.
   It handles char lists, binaries and atoms.
 
   ## Examples
@@ -450,9 +450,9 @@ defmodule Module do
   end
 
   @doc """
-  Concatenates the two aliases and returns a new alias only
+  Concatenates two aliases and returns a new alias only
   if the alias was already referenced. If the alias was not
-  referenced yet, fails with ArgumentError.
+  referenced yet, fails with `ArgumentError`.
   It handles char lists, binaries and atoms.
 
   ## Examples
@@ -485,7 +485,7 @@ defmodule Module do
   @doc """
   Attaches documentation to a given function or type. It expects
   the module the function/type belongs to, the line (a non negative
-  integer), the kind (def or defmacro), a tuple representing
+  integer), the kind (`def` or `defmacro`), a tuple representing
   the function and its arity, the function signature (the signature
   should be omitted for types) and the documentation, which should
   be either a binary or a boolean.
@@ -584,7 +584,7 @@ defmodule Module do
 
   @doc """
   Checks if the module defines the given function or macro.
-  Use `defines?/3` to assert for an specific type.
+  Use `defines?/3` to assert for a specific type.
 
   ## Examples
 
@@ -602,8 +602,8 @@ defmodule Module do
   end
 
   @doc """
-  Checks if the module defines a function or macro with the
-  given `kind`. `kind` can be either `:def`, `:defp`,
+  Checks if the module defines a function or macro of the
+  given `kind`. `kind` can be any of `:def`, `:defp`,
   `:defmacro` or `:defmacrop`.
 
   ## Examples
@@ -625,7 +625,7 @@ defmodule Module do
   end
 
   @doc """
-  Return all functions defined in the given module.
+  Return all functions defined in `module`.
 
   ## Examples
 
@@ -642,7 +642,7 @@ defmodule Module do
   end
 
   @doc """
-  Returns all functions defined in the given module according
+  Returns all functions defined in `module`, according
   to its kind.
 
   ## Examples
@@ -661,7 +661,7 @@ defmodule Module do
   end
 
   @doc """
-  Makes the given functions in the given module overridable.
+  Makes the given functions in `module` overridable.
   An overridable function is lazily defined, allowing a
   developer to customize it. See `Kernel.defoverridable` for
   more information and documentation.
@@ -694,7 +694,7 @@ defmodule Module do
   end
 
   @doc """
-  Returns true if the given tuple in module is marked as overridable.
+  Returns `true` if `tuple` in `module` is marked as overridable.
   """
   def overridable?(module, tuple) do
     !!List.keyfind(get_attribute(module, :__overridable), tuple, 0)
@@ -789,7 +789,7 @@ defmodule Module do
   end
 
   @doc """
-  Deletes all attributes that matches the given key.
+  Deletes all attributes that match the given key.
 
   ## Examples
 
@@ -821,7 +821,7 @@ defmodule Module do
   * `:persist` - The attribute will be persisted in the Erlang
     Abstract Format. Useful when interfacing with Erlang libraries.
 
-  By default, both options are false.
+  By default, both options are `false`.
 
   ## Examples
 
