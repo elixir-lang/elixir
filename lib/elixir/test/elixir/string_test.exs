@@ -213,6 +213,25 @@ defmodule StringTest do
     assert String.codepoints("ϖͲϥЫݎߟΈټϘለДШव׆ש؇؊صلټܗݎޥޘ߉ऌ૫ሏᶆ℆ℙℱ ⅚Ⅷ↠∈⌘①ﬃ") ==
            ["ϖ", "Ͳ", "ϥ", "Ы", "ݎ", "ߟ", "Έ", "ټ", "Ϙ", "ለ", "Д", "Ш", "व", "׆", "ש", "؇", "؊", "ص", "ل", "ټ", "ܗ", "ݎ", "ޥ", "ޘ", "߉", "ऌ", "૫", "ሏ", "ᶆ", "℆", "ℙ", "ℱ", " ", "⅚", "Ⅷ", "↠", "∈", "⌘", "①", "ﬃ"]
   end
+  
+  test :codepoints_stream do
+    assert String.codepoints_stream("elixir") |> Enum.to_list() == ["e", "l", "i", "x", "i", "r"]
+    assert String.codepoints_stream("elixír") |> Enum.to_list() == ["e", "l", "i", "x", "í", "r"] # slovak
+    assert String.codepoints_stream("ոգելից ըմպելիք") |> Enum.to_list() == ["ո", "գ", "ե", "լ", "ի", "ց", " ", "ը", "մ", "պ", "ե", "լ", "ի", "ք"] # armenian
+    assert String.codepoints_stream("эліксір") |> Enum.to_list() == ["э", "л", "і", "к", "с", "і", "р"] # belarussian
+    assert String.codepoints_stream("ελιξήριο") |> Enum.to_list() == ["ε", "λ", "ι", "ξ", "ή", "ρ", "ι", "ο"] # greek
+    assert String.codepoints_stream("סם חיים") |> Enum.to_list() == ["ס", "ם", " ", "ח", "י", "י", "ם"] # hebraic
+    assert String.codepoints_stream("अमृत") |> Enum.to_list() == ["अ", "म", "ृ", "त"] # hindi
+    assert String.codepoints_stream("স্পর্শমণি") |> Enum.to_list() == ["স", "্", "প", "র", "্", "শ", "ম", "ণ", "ি"] # bengali
+    assert String.codepoints_stream("સર્વશ્રેષ્ઠ ઇલાજ") |> Enum.to_list() == ["સ", "ર", "્", "વ", "શ", "્", "ર", "ે", "ષ", "્", "ઠ", " ", "ઇ", "લ", "ા", "જ"] # gujarati
+    assert String.codepoints_stream("世界中の一番") |> Enum.to_list() == ["世", "界", "中", "の", "一", "番"] # japanese
+    assert String.codepoints_stream("がガちゃ") |> Enum.to_list() == ["が", "ガ", "ち", "ゃ"]
+    assert String.codepoints_stream("") |> Enum.to_list() == []
+  end
+
+  test :mixed_codepoints_stream do
+    assert String.codepoints_stream("ϖͲϥЫݎߟΈټϘለДШव׆ש؇؊صلټܗݎޥޘ߉ऌ૫ሏᶆ℆ℙℱ ⅚Ⅷ↠∈⌘①ﬃ") |> Enum.to_list() == ["ϖ", "Ͳ", "ϥ", "Ы", "ݎ", "ߟ", "Έ", "ټ", "Ϙ", "ለ", "Д", "Ш", "व", "׆", "ש", "؇", "؊", "ص", "ل", "ټ", "ܗ", "ݎ", "ޥ", "ޘ", "߉", "ऌ", "૫", "ሏ", "ᶆ", "℆", "ℙ", "ℱ", " ", "⅚", "Ⅷ", "↠", "∈", "⌘", "①", "ﬃ"]
+  end
 
   test :graphemes do
     # Extended
@@ -225,6 +244,10 @@ defmodule StringTest do
     assert String.graphemes("\x{1100}\x{115D}\x{B4A4}") == ["ᄀᅝ뒤"]
     # Special Marking with Extended
     assert String.graphemes("a\x{0300}\x{0903}") == ["a\x{0300}\x{0903}"]
+  end
+  
+  test :graphemes_stream do
+    assert String.graphemes_stream("Ā̀stute") |> Enum.to_list() == ["Ā̀", "s", "t", "u", "t", "e"]
   end
 
   test :next_grapheme do

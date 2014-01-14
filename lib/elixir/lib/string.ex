@@ -597,6 +597,29 @@ defmodule String do
   """
   @spec codepoints(t) :: [codepoint]
   defdelegate codepoints(string), to: String.Unicode
+  
+  @doc """
+  Returns all codepoints in the string as a stream.
+
+  ## Examples
+
+      iex> String.codepoints_stream("josé") |> Enum.to_list()
+      ["j", "o", "s", "é"]
+      iex> String.codepoints_stream("оптими зации") |> Enum.to_list()
+      ["о","п","т","и","м","и"," ","з","а","ц","и","и"]
+      iex> String.codepoints_stream("ἅἪῼ") |> Enum.to_list()
+      ["ἅ","Ἢ","ῼ"]
+
+  """
+  @spec codepoints_stream(t) :: Stream.t 
+  def codepoints_stream(binary) when is_binary(binary) do
+    Stream.unfold(binary, fn bin ->
+        case String.Unicode.next_codepoint(bin) do
+          { c, rest }  -> { c, rest }
+          :no_codepoint -> nil
+        end
+      end)
+  end
 
   @doc """
   Returns the next codepoint in a String.
@@ -688,6 +711,26 @@ defmodule String do
   """
   @spec graphemes(t) :: [grapheme]
   defdelegate graphemes(string), to: String.Graphemes
+
+  @doc """
+  Returns unicode graphemes in the string as a stream.
+
+  ## Examples
+
+      iex> String.graphemes_stream("Ā̀stute") |> Enum.to_list()
+      ["Ā̀","s","t","u","t","e"]
+
+  """
+  @spec graphemes_stream(t) :: Stream.t
+  def graphemes_stream(binary) when is_binary(binary) do
+    Stream.unfold(binary, fn bin ->
+        case String.Unicode.next_grapheme(bin) do
+          { c, rest }  -> { c, rest }
+          :no_grapheme -> nil
+        end
+      end)
+  end
+
 
   @doc """
   Returns the next grapheme in a String.
