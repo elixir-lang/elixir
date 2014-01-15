@@ -1,3 +1,13 @@
+# v0.12.3-dev
+
+* Enhancements
+
+* Bug fixes
+
+* Deprecations
+
+* Backwards incompatible changes
+
 # v0.12.2 (2014-01-15)
 
 * Enhancements
