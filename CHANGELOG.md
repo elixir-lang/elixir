@@ -1,4 +1,4 @@
-# v0.12.2-dev
+# v0.12.2 (2014-01-15)
 
 * Enhancements
   * [EEx] Allow `EEx.AssignsEngine` to accept any Dict
