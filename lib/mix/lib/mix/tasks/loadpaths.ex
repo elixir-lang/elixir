@@ -1,9 +1,6 @@
 defmodule Mix.Tasks.Loadpaths do
   use Mix.Task
 
-  @hidden true
-  @shortdoc "Load the application and its dependencies paths"
-
   @moduledoc """
   Load the application and its dependencies paths.
 

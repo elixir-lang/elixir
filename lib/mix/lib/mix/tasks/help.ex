@@ -22,7 +22,6 @@ defmodule Mix.Tasks.Help do
     modules = Mix.Task.all_modules
 
     docs = lc module inlist modules,
-        not Mix.Task.hidden?(module),
         doc = Mix.Task.shortdoc(module) do
       { Mix.Task.task_name(module), doc }
     end

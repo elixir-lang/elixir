@@ -3,13 +3,11 @@ defmodule Mix.Tasks.Compile.Yecc do
 
   use Mix.Task
 
-  @hidden true
-  @shortdoc "Compile Yecc source files"
   @recursive true
   @manifest ".compile.yecc"
 
   @moduledoc """
-  A task to compile Yecc source files.
+  Compile Yecc source files.
 
   When this task runs, it will check the modification time of every file, and
   if it has changed, the file will be compiled. Files will be

@@ -3,9 +3,6 @@ defmodule Mix.Tasks.Deps.Check do
 
   import Mix.Deps, only: [loaded: 0, format_dep: 1, format_status: 1, check_lock: 2, ok?: 1]
 
-  @hidden true
-  @shortdoc "Check if all dependencies are valid"
-
   @moduledoc """
   Checks if all dependencies are valid and if not, abort.
   Prints the invalid dependencies' status before aborting.

@@ -25,9 +25,7 @@ defmodule Mix.Task do
   There are a couple attributes available in Mix tasks to
   configure them in Mix:
 
-  * `@shortdoc` - shows a short description that appears
-    on `mix help`
-  * `@hidden` - do not show the task in `mix help`
+  * `@shortdoc` - makes the task public with a short description that appears on `mix help`
   * `@recursive` - run the task recursively in umbrella projects
 
   """
@@ -41,7 +39,7 @@ defmodule Mix.Task do
   @doc false
   defmacro __using__(_opts) do
     quote do
-      Enum.each [:shortdoc, :hidden, :recursive],
+      Enum.each [:shortdoc, :recursive],
         &Module.register_attribute(__MODULE__, &1, persist: true)
 
       @behaviour Mix.Task
@@ -106,16 +104,6 @@ defmodule Mix.Task do
     case List.keyfind module.__info__(:attributes), :shortdoc, 0 do
       { :shortdoc, [shortdoc] } -> shortdoc
       _ -> nil
-    end
-  end
-
-  @doc """
-  Checks if the task is hidden or not. Returns a boolean.
-  """
-  def hidden?(module) when is_atom(module) do
-    case List.keyfind module.__info__(:attributes), :hidden, 0 do
-      { :hidden, [bool] } -> bool
-      _ -> false
     end
   end
 

@@ -1,9 +1,6 @@
 defmodule Mix.Tasks.Deps.Loadpaths do
   use Mix.Task
 
-  @hidden true
-  @shortdoc "Load all dependencies build paths"
-
   @moduledoc """
   Loads all dependencies for the current build.
   This is invoked directly by `loadpaths` when
