@@ -453,14 +453,24 @@ defmodule Record do
     Module.put_attribute(module, :record_optimizable, functions)
   end
 
+  @doc false
+  # Implements the access macro used by records.
+  # It returns the index of the given field.
+  def access(atom, fields, arg, _caller) when is_atom(arg) do
+    if index = find_index(fields, arg, 0) do
+      index + 1
+    else
+      raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect arg}"
+    end
+  end
+
   # Implements the access macro used by records.
   # It returns a quoted expression that defines
   # a record or a match in case the record is
   # inside a match.
-  @doc false
   def access(atom, fields, keyword, caller) do
     unless is_keyword(keyword) do
-      raise ArgumentError, message: "expected contents inside brackets to be a keyword list, got: #{inspect keyword}"
+      raise ArgumentError, message: "expected contents inside brackets to be a keyword list or an atom, got: #{inspect keyword}"
     end
 
     in_match = caller.in_match?

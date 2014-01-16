@@ -45,6 +45,14 @@ defmodule Record.PrivateTest do
       _user(user, [:age, :name])
     end
 
+    def name_ix() do
+      _user(:name)
+    end
+
+    def age_ix() do
+      _user(:age)
+    end
+
     def my_new() do
       _my_user()
     end
@@ -75,6 +83,14 @@ defmodule Record.PrivateTest do
 
     def my_age_and_name(user) do
       _my_user(user, [:age, :name])
+    end
+
+    def my_name_ix() do
+      _my_user(:name)
+    end
+
+    def my_age_ix() do
+      _my_user(:age)
     end
 
     def file_info() do
@@ -126,6 +142,13 @@ defmodule Record.PrivateTest do
     assert record.age_and_name == [record.age, record.name]
 
     assert elem(record, 0) == Macros
+  end
+
+  test "defrecordp access index" do
+    assert Macros.name_ix == 1
+    assert Macros.age_ix == 2
+    assert Macros.my_name_ix == 1
+    assert Macros.my_age_ix == 2
   end
 
   test "defrecordp with dynamic arguments" do

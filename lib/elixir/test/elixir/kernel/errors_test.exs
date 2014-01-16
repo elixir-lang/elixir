@@ -491,7 +491,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_access_protocol_not_keywords do
-    assert_raise ArgumentError, "expected contents inside brackets to be a keyword list, got: [0]", fn ->
+    assert_raise ArgumentError, "expected contents inside brackets to be a keyword list or an atom, got: [0]", fn ->
       defmodule ErrorsTest do
         def sample(Kernel.ErrorsTest.Config[0]), do: true
       end
