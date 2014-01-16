@@ -626,9 +626,9 @@ remove_heredoc_spaces([], Buffer, _Spaces, _Original) ->
 %% Extract the heredoc header.
 
 extract_heredoc_header("\r\n" ++ Rest, Buffer, _Scope) ->
-  { ok, [$\n|Buffer], Rest };
+  { ok, Buffer, Rest };
 extract_heredoc_header("\n" ++ Rest, Buffer, _Scope) ->
-  { ok, [$\n|Buffer], Rest };
+  { ok, Buffer, Rest };
 extract_heredoc_header([H|T], Buffer, {Line,File}) when not ?is_horizontal_space(H) ->
   elixir_errors:deprecation([{line,Line}], File, "continuable heredocs are deprecated, parsing will no longer continue on the same line as the heredoc starts"),
   extract_heredoc_header(T, [H|Buffer], nil);

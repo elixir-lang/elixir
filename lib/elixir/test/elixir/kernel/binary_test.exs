@@ -35,6 +35,12 @@ bar """
     """
   end
 
+  test :heredoc_in_call do
+    assert "foo\nbar" == Kernel.<>("""
+    foo
+    """, "bar")
+  end
+
   test :utf8 do
     assert size(" ゆんゆん") == 13
   end
