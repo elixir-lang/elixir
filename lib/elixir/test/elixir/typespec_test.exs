@@ -43,13 +43,6 @@ defmodule Typespec.TypeTest do
     end
   end
 
-  test "@type with no body (defaults to 'term')" do
-    spec = test_module do
-      @type mytype
-    end
-    assert {:mytype, {:type, _, :term, []}, []} = spec
-  end
-
   test "@type with a single type" do
     spec = test_module do
       @type mytype :: term
@@ -238,7 +231,7 @@ defmodule Typespec.TypeTest do
 
   test "@type with annotations" do
     {spec1, spec2} = test_module do
-      t1 = @type mytype :: named :: integer
+      t1 = @type mytype :: (named :: integer)
       t2 = @type mytype1 :: (a :: integer -> integer)
       {t1, t2}
     end

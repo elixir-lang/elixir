@@ -39,7 +39,6 @@
   T1 == $>, T2 == $>, T3 == $>).
 
 -define(arrow_op(T1, T2),
-  T1 == $<, T2 == $-;
   T1 == $|, T2 == $>).
 
 -define(comp_op(T),
@@ -72,17 +71,16 @@
 -define(match_op(T),
   T == $=).
 
--define(in_match_op(T),
-  T == $|).
-
--define(in_match_op2(T1, T2),
-  T1 == $/, T2 == $/).
+-define(in_match_op(T1, T2),
+  T1 == $<, T2 == $-;
+  T1 == $/, T2 == $/;
+  T1 == $:, T2 == $:).
 
 -define(stab_op(T1, T2),
   T1 == $-, T2 == $>).
 
--define(type_op(T1, T2),
-  T1 == $:, T2 == $:).
+-define(pipe_op(T1),
+  T == $|).
 
 tokenize(String, Line, #elixir_tokenizer{} = Scope) ->
   tokenize(String, Line, Scope, []);
@@ -232,13 +230,13 @@ tokenize([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when
 % ## Two Token Operators
 tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when
     ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?in_match_op2(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2); ?type_op(T1, T2) ->
+    ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2) ->
   handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators
 tokenize([$.,T|Rest], Line, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
-    ?match_op(T); ?in_match_op(T) ->
+    ?match_op(T); ?pipe_op(T) ->
   handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
 
 % Dot call
@@ -318,13 +316,13 @@ tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when
 % ## Two Token Operators
 tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when
     ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?in_match_op2(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2); ?type_op(T1, T2) ->
+    ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2) ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2]) }|Tokens]);
 
 % ## Single Token Operators
 tokenize([$:,T|Rest], Line, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
-    ?match_op(T); ?in_match_op(T); T == $. ->
+    ?match_op(T); ?pipe_op(T); T == $. ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T]) }|Tokens]);
 
 % End of line
@@ -394,14 +392,11 @@ tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?and_op(T1, T2) ->
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?or_op(T1, T2) ->
   handle_op(Rest, Line, or_op, list_to_atom([T1, T2]), Scope, Tokens);
 
-tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?in_match_op2(T1, T2) ->
+tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?in_match_op(T1, T2) ->
   handle_op(Rest, Line, in_match_op, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?stab_op(T1, T2) ->
   handle_op(Rest, Line, stab_op, list_to_atom([T1, T2]), Scope, Tokens);
-
-tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?type_op(T1, T2) ->
-  handle_op(Rest, Line, type_op, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators
 
@@ -427,8 +422,8 @@ tokenize([T|Rest], Line, Scope, Tokens) when ?mult_op(T) ->
 tokenize([T|Rest], Line, Scope, Tokens) when ?match_op(T) ->
   handle_op(Rest, Line, match_op, list_to_atom([T]), Scope, Tokens);
 
-tokenize([T|Rest], Line, Scope, Tokens) when ?in_match_op(T) ->
-  handle_op(Rest, Line, in_match_op, list_to_atom([T]), Scope, Tokens);
+tokenize([T|Rest], Line, Scope, Tokens) when ?pipe_op(T) ->
+  handle_op(Rest, Line, pipe_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([$.|Rest], Line, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, add_token_with_nl({ '.', Line }, Tokens));

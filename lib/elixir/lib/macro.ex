@@ -30,14 +30,14 @@ defmodule Macro do
   @spec binary_op_props(atom) :: { :left | :right, precedence :: integer }
   defp binary_op_props(o) do
     case o do
-      :::                                                       -> {:right, 40}
-      o when o in [:inlist, :inbits, ://, :|]                   -> {:right, 50}
+      o when o in [:<-, :inlist, :inbits, ://, :::]             -> {:left,  40}
+      :|                                                        -> {:right, 50}
       :when                                                     -> {:right, 70}
       :=                                                        -> {:right, 80}
       o when o in [:||, :|||, :or, :xor]                        -> {:left, 130}
       o when o in [:&&, :&&&, :and]                             -> {:left, 140}
       o when o in [:==, :!=, :<, :<=, :>=, :>, :=~, :===, :!==] -> {:left, 150}
-      o when o in [:<-, :|>, :<<<, :>>>]                        -> {:right, 160}
+      o when o in [:|>, :<<<, :>>>]                             -> {:right, 160}
       :in                                                       -> {:left, 170}
       o when o in [:++, :--, :**, :.., :<>]                     -> {:right, 200}
       o when o in [:+, :-]                                      -> {:left, 210}
