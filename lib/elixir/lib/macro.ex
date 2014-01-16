@@ -672,19 +672,18 @@ defmodule Macro do
 
   defp do_expand_once({ atom, meta, args } = original, env)
       when is_atom(atom) and is_list(args) and is_list(meta) do
-    module = env.module
-
-    extra  = if function_exported?(module, :__info__, 1) do
-      [{ module, module.__info__(:macros) }]
-    else
-      []
-    end
-
     arity = length(args)
 
     if :elixir_import.special_form(atom, arity) do
       { original, false }
     else
+      module = env.module
+      extra  = if function_exported?(module, :__info__, 1) do
+        [{ module, module.__info__(:macros) }]
+      else
+        []
+      end
+
       expand = :elixir_dispatch.expand_import(meta, { atom, length(args) }, args,
                                               :elixir_env.ex_to_env(env), extra)
 

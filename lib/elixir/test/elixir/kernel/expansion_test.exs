@@ -162,6 +162,11 @@ defmodule Kernel.ExpansionTest do
            quote(do: :"Elixir.Hello".a())
   end
 
+  test "locals: in guards" do
+    assert expand(quote(do: fn pid when pid == self -> pid end)) ==
+           quote(do: fn pid when __op__(:==, pid, :erlang.self()) -> pid end)
+  end
+
   test "locals: custom imports" do
     assert expand(quote do: (import Kernel.ExpansionTarget; seventeen)) ==
            quote do: (import :"Elixir.Kernel.ExpansionTarget", []; 17)
