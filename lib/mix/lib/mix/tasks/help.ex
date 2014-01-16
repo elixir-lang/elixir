@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Help do
 
     docs = lc module inlist modules,
         doc = Mix.Task.shortdoc(module) do
-      { Mix.Task.task_name(module), doc }
+      { "mix " <> Mix.Task.task_name(module), doc }
     end
 
     max = Enum.reduce docs, 0, fn({ task, _ }, acc) ->
@@ -32,11 +32,11 @@ defmodule Mix.Tasks.Help do
 
     display_default_task_doc(max)
 
-    sorted = Enum.sort(docs)
-
-    Enum.each sorted, fn({ task, doc }) ->
+    Enum.each Enum.sort(docs), fn({ task, doc }) ->
       shell.info format_task(task, max, doc)
     end
+
+    display_iex_task_doc(max)
   end
 
   def run([task]) do
@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Help do
   end
 
   defp format_task(task, max, doc) do
-    "mix " <> String.ljust(task, max) <> " # " <> doc
+    String.ljust(task, max) <> " # " <> doc
   end
 
   defp where_is_file(module) do
@@ -65,7 +65,12 @@ defmodule Mix.Tasks.Help do
   end
 
   defp display_default_task_doc(max) do
-    Mix.shell.info format_task("", max,
+    Mix.shell.info format_task("mix", max,
                     "Run the default task (current: mix #{Mix.project[:default_task]})")
+  end
+
+  defp display_iex_task_doc(max) do
+    Mix.shell.info format_task("iex -S mix", max,
+                    "Start IEx and run the default task")
   end
 end
