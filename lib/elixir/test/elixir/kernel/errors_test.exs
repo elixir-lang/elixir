@@ -49,6 +49,12 @@ defmodule Kernel.ErrorsTest do
       '"bar'
   end
 
+  test :heredoc_start do
+    assert_compile_fail TokenMissingError,
+      "nofile:1: heredoc start \"\"\" must be followed by a new line",
+      '"""bar'
+  end
+
   test :heredoc_terminator do
     assert_compile_fail TokenMissingError,
       "nofile:2: missing terminator: \"\"\" (for heredoc starting at line 1)",

@@ -506,13 +506,6 @@ defmodule Kernel do
     :erlang.iolist_to_binary(item)
   end
 
-  @doc false
-  @spec is_alive :: boolean
-  def is_alive do
-    IO.write "is_alive/0 is deprecated, please use Node.alive?/0 instead\n#{Exception.format_stacktrace}"
-    :erlang.is_alive
-  end
-
   @doc """
   Returns `true` if `term` is an atom; otherwise returns `false`.
 
@@ -1134,12 +1127,6 @@ defmodule Kernel do
   """
   defmacro left / right do
     quote do: __op__(:/, unquote(left), unquote(right))
-  end
-
-  @doc false
-  def pid <- msg do
-    IO.write "<-/2 is deprecated, please use send/2 instead\n#{Exception.format_stacktrace}"
-    :erlang.!(pid, msg)
   end
 
   @doc """
@@ -1774,22 +1761,7 @@ defmodule Kernel do
 
   """
   @spec inspect(Inspect.t, Keyword.t) :: String.t
-  def inspect(arg, opts // [])
-
-  def inspect(arg, opts) when is_tuple(opts) and tuple_size(opts) > 0 and elem(opts, 0) == Inspect.Opts do
-    IO.write "Kernel.inspect/2 with Inspect.Opts is deprecated, please use Inspect.Algebra.to_doc/2 instead\n#{Exception.format_stacktrace}"
-    Inspect.Algebra.to_doc(arg, opts)
-  end
-
-  def inspect(arg, opts) when is_list(opts) do
-    case Keyword.get(opts, :raw) do
-      nil ->
-        :ok
-      raw ->
-        IO.write "Kernel.inspect/2 with :raw option is deprecated, please use :records instead\n#{Exception.format_stacktrace}"
-        opts = opts ++ [records: not raw]
-    end
-
+  def inspect(arg, opts // []) when is_list(opts) do
     opts  = Inspect.Opts.new(opts)
     limit = case opts.pretty do
       true  -> opts.width

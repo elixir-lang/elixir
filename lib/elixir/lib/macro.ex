@@ -641,12 +641,6 @@ defmodule Macro do
     do: { env.module, true }
   defp do_expand_once({ :__DIR__, _, atom }, env)    when is_atom(atom),
     do: { :filename.dirname(env.file), true }
-
-  defp do_expand_once({ :__FILE__, _, atom }, env) when is_atom(atom) do
-    IO.write "__FILE__ is deprecated, please use __DIR__ or __ENV__.file instead\n#{Exception.format_stacktrace}"
-    { env.file, true }
-  end
-
   defp do_expand_once({ :__ENV__, _, atom }, env)    when is_atom(atom),
     do: { { :{}, [], tuple_to_list(env) }, true }
   defp do_expand_once({ { :., _, [{ :__ENV__, _, atom }, field] }, _, [] } = original, env) when

@@ -741,20 +741,6 @@ defmodule Enum do
     end
   end
 
-  @doc false
-  @spec first(t) :: :nil | element
-  def first(list) when is_list(list) do
-    IO.write "Enum.first/1 is deprecated, please use Enum.at/2 or List.first/1 instead\n#{Exception.format_stacktrace}"
-    List.first(list)
-  end
-
-  def first(collection) do
-    IO.write "Enum.first/1 is deprecated, please use Enum.at/2 instead\n#{Exception.format_stacktrace}"
-    Enumerable.reduce(collection, { :cont, nil }, fn(entry, _) ->
-      { :halt, entry }
-    end) |> elem(1)
-  end
-
   @doc """
   Returns a new collection appending the result of invoking `fun`
   on each corresponding item of `collection`.

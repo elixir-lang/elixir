@@ -141,11 +141,11 @@ tokenize([$#|String], Line, Scope, Tokens) ->
 
 tokenize([$%,S,H,H,H|T] = Original, Line, Scope, Tokens) when ?is_quote(H), ?is_upcase(S) orelse ?is_downcase(S) ->
   case extract_heredoc_with_interpolation(Line, Scope, ?is_downcase(S), T, H) of
-    { error, Reason } ->
-      { error, Reason, Original, Tokens };
-    { Parts, Rest } ->
+    { ok, NewLine, Parts, Rest } ->
       { Final, Modifiers } = collect_modifiers(Rest, []),
-      tokenize(Final, Line, Scope, [{ sigil, Line, S, Parts, Modifiers }|Tokens])
+      tokenize(Final, NewLine, Scope, [{ sigil, Line, S, Parts, Modifiers }|Tokens]);
+    { error, Reason } ->
+      { error, Reason, Original, Tokens }
   end;
 
 tokenize([$%,S,H|T] = Original, Line, Scope, Tokens) when not(?is_identifier(H)), not(?is_terminator(H)), ?is_upcase(S) orelse ?is_downcase(S) ->
@@ -482,11 +482,6 @@ tokenize([Space, Sign, NotMarker|T], Line, Scope, [{ Identifier, _, _ } = H|Toke
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?is_horizontal_space(T) ->
   tokenize(Rest, Line, Scope, Tokens);
-
-%% TODO: This token is deprecated once continuable heredocs are removed
-tokenize([{line,Line}|Rest], _Line, Scope, Tokens) ->
-  tokenize(Rest, Line, Scope, Tokens);
-
 tokenize(T, Line, _Scope, Tokens) ->
   { error, { Line, "invalid token: ", until_eol(T) }, T, Tokens }.
 
@@ -503,11 +498,11 @@ escape_char(List) ->
 
 handle_heredocs(T, Line, H, Scope, Tokens) ->
   case extract_heredoc_with_interpolation(Line, Scope, true, T, H) of
-    { error, Reason } ->
-      { error, Reason, [H, H, H] ++ T, Tokens };
-    { Parts, Rest } ->
+    { ok, NewLine, Parts, Rest } ->
       Token = { string_type(H), Line, unescape_tokens(Parts) },
-      tokenize(Rest, Line, Scope, [Token|Tokens])
+      tokenize(Rest, NewLine, Scope, [Token|Tokens]);
+    { error, Reason } ->
+      { error, Reason, [H, H, H] ++ T, Tokens }
   end.
 
 handle_strings(T, Line, H, Scope, Tokens) ->
@@ -575,34 +570,33 @@ collect_modifiers(Rest, Buffer) ->
 %% Heredocs
 
 extract_heredoc_with_interpolation(Line, Scope, Interpol, T, H) ->
-  case extract_heredoc(Line, T, H, Scope) of
-    { error, _ } = Error ->
-      Error;
-    { Body, Rest } ->
+  case extract_heredoc(Line, T, H) of
+    { ok, NewLine, Body, Rest } ->
       case elixir_interpolation:extract(Line + 1, Scope, Interpol, Body, 0) of
         { error, Reason } ->
           { error, interpolation_format(Reason, " (for heredoc starting at line ~B)", [Line]) };
         { _, Parts, [] } ->
-          { Parts, Rest }
-      end
+          { ok, NewLine, Parts, Rest }
+      end;
+    { error, _ } = Error ->
+      Error
   end.
 
-extract_heredoc(Line0, Rest0, Marker, Scope) ->
-  case extract_heredoc_header(Rest0, [], {Line0,Scope#elixir_tokenizer.file}) of
-    { ok, Extra, Rest1 } ->
+extract_heredoc(Line0, Rest0, Marker) ->
+  case extract_heredoc_header(Rest0) of
+    { ok, Rest1 } ->
       %% We prepend a new line so we can transparently remove
       %% spaces later. This new line is removed by calling `tl`
       %% in the final heredoc body three lines below.
       case extract_heredoc_body(Line0, Marker, [$\n|Rest1], []) of
-        { Line1, Body, Rest2, Spaces } ->
-          { tl(remove_heredoc_spaces(Body, Spaces)), merge_heredoc_extra(Line1, Extra, Rest2) };
+        { ok, Line1, Body, Rest2, Spaces } ->
+          { ok, Line1, tl(remove_heredoc_spaces(Body, Spaces)), Rest2 };
         { error, ErrorLine } ->
           Terminator = [Marker, Marker, Marker],
           Message = "missing terminator: ~ts (for heredoc starting at line ~B)",
           { error, { ErrorLine, io_lib:format(Message, [Terminator, Line0]), [] } }
       end;
     error ->
-      %% TODO: Test me once the deprecated continuable heredocs are removed
       Terminator = [Marker, Marker, Marker],
       Message = "heredoc start ~ts must be followed by a new line",
       { error, { Line0, io_lib:format(Message, [Terminator]), [] } }
@@ -625,32 +619,25 @@ remove_heredoc_spaces([], Buffer, _Spaces, _Original) ->
 
 %% Extract the heredoc header.
 
-extract_heredoc_header("\r\n" ++ Rest, Buffer, _Scope) ->
-  { ok, Buffer, Rest };
-extract_heredoc_header("\n" ++ Rest, Buffer, _Scope) ->
-  { ok, Buffer, Rest };
-extract_heredoc_header([H|T], Buffer, {Line,File}) when not ?is_horizontal_space(H) ->
-  elixir_errors:deprecation([{line,Line}], File, "continuable heredocs are deprecated, parsing will no longer continue on the same line as the heredoc starts"),
-  extract_heredoc_header(T, [H|Buffer], nil);
-extract_heredoc_header([H|T], Buffer, _Scope) ->
-  extract_heredoc_header(T, [H|Buffer], _Scope);
-extract_heredoc_header(_, _, _Scope) ->
+extract_heredoc_header("\r\n" ++ Rest) ->
+  { ok, Rest };
+extract_heredoc_header("\n" ++ Rest) ->
+  { ok, Rest };
+extract_heredoc_header([_|T]) ->
+  extract_heredoc_header(T);
+extract_heredoc_header(_) ->
   error.
 
 %% Extract heredoc body. It returns the heredoc body (in reverse order),
 %% the remaining of the document and the number of spaces the heredoc
 %% is aligned.
 
-%% TODO: This token is deprecated once continuable heredocs are removed
-extract_heredoc_body(_Line, Marker, [{line,NewLine}|Rest], Buffer) ->
-  extract_heredoc_body(NewLine, Marker, Rest, Buffer);
-
 extract_heredoc_body(Line, Marker, Rest, Buffer) ->
   case extract_heredoc_line(Marker, Rest, Buffer, 0) of
     { ok, NewBuffer, NewRest } ->
       extract_heredoc_body(Line + 1, Marker, NewRest, NewBuffer);
     { ok, NewBuffer, NewRest, Spaces } ->
-      { Line, NewBuffer, NewRest, Spaces };
+      { ok, Line, NewBuffer, NewRest, Spaces };
     { error, eof } ->
       { error, Line }
   end.
@@ -674,17 +661,6 @@ extract_heredoc_line(Marker, [Marker,Marker,Marker|T], Buffer, Counter) ->
   { ok, Buffer, T, Counter };
 extract_heredoc_line(_Marker, Rest, Buffer, _Counter) ->
   extract_heredoc_line(Rest, Buffer).
-
-%% Merge heredoc extra by replying it on the buffer. It also adds
-%% a special { line, Line } token to force a line change along the way.
-
-%% TODO: This token is deprecated once continuable heredocs are removed
-merge_heredoc_extra(Line, Extra, Buffer) ->
-  merge_heredoc_extra(Extra, [{line,Line}|Buffer]).
-merge_heredoc_extra([H|T], Buffer) ->
-  merge_heredoc_extra(T, [H|Buffer]);
-merge_heredoc_extra([], Buffer) ->
-  Buffer.
 
 %% Integers and floats
 %% At this point, we are at least sure the first digit is a number.

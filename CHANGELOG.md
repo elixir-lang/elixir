@@ -13,7 +13,7 @@
 * Enhancements
   * [EEx] Allow `EEx.AssignsEngine` to accept any Dict
   * [Enum] Add `Enum.flat_map_reduce/3`
-  * [ExUnit] Support @moduletag in ExUnit cases
+  * [ExUnit] Support `@moduletag` in ExUnit cases
   * [Kernel] Improve stacktraces to be relative to the compilation path and include the related application
   * [Stream] Add `Stream.transform/3`
 
