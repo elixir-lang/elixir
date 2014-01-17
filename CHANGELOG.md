@@ -5,6 +5,7 @@
 * Bug fixes
 
 * Deprecations
+  * [Kernel] `binary_to_term/1`, `binary_to_term/2`, `term_to_binary/1` and `term_to_binary/2` are deprecated in favor of their counterparts in the `:erlang` module
 
 * Backwards incompatible changes
 
