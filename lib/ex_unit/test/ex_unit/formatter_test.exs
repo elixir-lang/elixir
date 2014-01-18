@@ -29,7 +29,6 @@ defmodule ExUnit.FormatterTest do
     assert format_test_failure(Hello, :world, failure, 1, nil) =~ """
       1) world (Hello)
          ** (RuntimeError) oops
-         stacktrace:
     """
   end
 
@@ -38,7 +37,6 @@ defmodule ExUnit.FormatterTest do
     assert format_test_failure(Hello, :world, failure, 1, nil) == """
       1) world (Hello)
          ** (exit) 1
-         stacktrace:
     """
   end
 
@@ -47,7 +45,6 @@ defmodule ExUnit.FormatterTest do
     assert format_test_failure(Hello, :world, failure, 1, nil) == """
       1) world (Hello)
          ** (throw) 1
-         stacktrace:
     """
   end
 
@@ -58,7 +55,6 @@ defmodule ExUnit.FormatterTest do
          ** (ExUnit.ExpectationError)
                       expected: 1
            to be equal to (==): 2
-         stacktrace:
     """
   end
 
@@ -70,7 +66,6 @@ defmodule ExUnit.FormatterTest do
               expected: ExUnit.FormatterTest.falsy()
                  to be: true
            instead got: false
-         stacktrace:
     """
   end
 
@@ -98,7 +93,6 @@ defmodule ExUnit.FormatterTest do
     assert format_test_case_failure(Hello, failure, 1, nil) =~ """
       1) Hello: failure on setup_all/teardown_all callback, tests invalidated
          ** (RuntimeError) oops
-         stacktrace:
     """
   end
 end

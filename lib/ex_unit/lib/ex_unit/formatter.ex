@@ -131,6 +131,10 @@ defmodule ExUnit.Formatter do
     location_info("at #{location[:file]}:#{location[:line]}", color)
   end
 
+  defp format_stacktrace([], _case, _test, _color) do
+    ""
+  end
+
   defp format_stacktrace(stacktrace, _case, _test, color) do
     location_info("stacktrace:", color) <>
       Enum.map_join(stacktrace, fn(s) -> stacktrace_info format_stacktrace_entry(s), color end)
