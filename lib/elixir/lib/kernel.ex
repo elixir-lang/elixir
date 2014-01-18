@@ -212,44 +212,15 @@ defmodule Kernel do
     :erlang.binary_to_float(some_binary)
   end
 
-  @doc """
-  Returns an Erlang term which is the result of decoding the binary
-  object `binary`, which must be encoded according to the Erlang external
-  term format.
-
-  ## Examples
-
-      iex> binary_to_term(term_to_binary("foo"))
-      "foo"
-
-  """
-  @spec binary_to_term(binary) :: term
+  @doc false
   def binary_to_term(binary) do
+    IO.write "binary_to_term/1 is deprecated, please use :erlang.binary_to_term/1 instead\n#{Exception.format_stacktrace}"
     :erlang.binary_to_term(binary)
   end
 
-  @doc """
-  As `binary_to_term/1`, but accepts a safe option useful when receiving
-  binaries from an untrusted source.
-
-  When enabled, it prevents decoding data that may be used to attack the
-  Erlang system. In the event of receiving unsafe data, decoding fails
-  with a badarg error.
-
-  Currently, this prevents creation of new atoms directly, creation of
-  new atoms indirectly (as they are embedded in certain structures like pids,
-  refs, funs, etc), and creation of new external function references. None
-  of those resources are currently garbage collected, so unchecked creation
-  of them can exhaust available memory.
-
-  ## Examples
-
-      iex> binary_to_term(term_to_binary("foo"), [:safe])
-      "foo"
-
-  """
-  @spec binary_to_term(binary, [] | [:safe]) :: term
+  @doc false
   def binary_to_term(binary, options) do
+    IO.write "binary_to_term/2 is deprecated, please use :erlang.binary_to_term/2 instead\n#{Exception.format_stacktrace}"
     :erlang.binary_to_term(binary, options)
   end
 
@@ -971,30 +942,15 @@ defmodule Kernel do
     :erlang.spawn_link(module, fun, args)
   end
 
-  @doc """
-  Returns a binary which is the result of encoding the given `term`
-  according to the Erlang external term format.
-
-  This can be used for a variety of purposes, for example, writing a term
-  to a file in an efficient way, or sending an Erlang term to some type
-  of communications channel not supported by distributed.
-  """
-  @spec term_to_binary(term) :: binary
+  @doc false
   def term_to_binary(term) do
+    IO.write "term_to_binary/1 is deprecated, please use :erlang.term_to_binary/1 instead\n#{Exception.format_stacktrace}"
     :erlang.term_to_binary(term)
   end
 
-  @doc """
-  The same as `term_to_binary/1` but also supports two options:
-
-  * `compressed`: the level of compression to be used from 0 to 9;
-  * `minor_version`: used to control the details of encoding. Can be 0 or 1,
-    please read http://www.erlang.org/doc/man/erlang.html#term_to_binary-2
-    for more details
-
-  """
-  @spec term_to_binary(term, list({:compressed, 0..9}|{:minor_version, 0}|{:minor_version, 1})) :: binary
+  @doc false
   def term_to_binary(term, opts) do
+    IO.write "term_to_binary/2 is deprecated, please use :erlang.term_to_binary/2 instead\n#{Exception.format_stacktrace}"
     :erlang.term_to_binary(term, opts)
   end
 
