@@ -52,26 +52,6 @@ defmodule HashDictTest do
     assert inspect(filled_dict(8)) =~ "#HashDict<"
   end
 
-  test "implements Enumerable" do
-    dict = filled_dict(10)
-    assert Enum.empty?(HashDict.new)
-    refute Enum.empty?(dict)
-    assert Enum.member?(dict, { 5, 5 })
-    refute Enum.member?(dict, { 5, 8 })
-    assert Enum.count(dict) == 10
-    assert Enum.reduce(filled_dict(3), 0, fn({ k, v }, acc) -> k + v + acc end) == 12
-  end
-
-  test "is zippable" do
-    dict = filled_dict(8)
-    list = Dict.to_list(dict)
-    assert Enum.zip(list, list) == Enum.zip(dict, dict)
-
-    dict = filled_dict(120)
-    list = Dict.to_list(dict)
-    assert Enum.zip(list, list) == Enum.zip(dict, dict)
-  end
-
   defp smoke_test(range) do
     { dict, _ } = Enum.reduce range, { HashDict.new, 1 }, fn(x, { acc, i }) ->
       acc = HashDict.put(acc, x, x)
