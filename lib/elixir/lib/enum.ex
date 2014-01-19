@@ -145,7 +145,7 @@ defmodule Enum do
   enumeration. For dicts, the argument is always a `{ key, value }` tuple:
 
       iex> dict = HashDict.new [a: 1, b: 2]
-      iex> Enum.map(dict, fn { k, v } -> { k, v * 2 } end)
+      iex> Enum.map(dict, fn { k, v } -> { k, v * 2 } end) |> Enum.sort
       [a: 2, b: 4]
 
   Note that the functions in the `Enum` module are eager: they always start
