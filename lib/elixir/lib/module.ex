@@ -631,7 +631,7 @@ defmodule Module do
 
       defmodule Example do
         def version, do: 1
-        Module.definitions_in __MODULE__ #=> [{:version,1}]
+        Module.definitions_in __MODULE__ #=> [{:version,0}]
       end
 
   """
@@ -649,7 +649,7 @@ defmodule Module do
 
       defmodule Example do
         def version, do: 1
-        Module.definitions_in __MODULE__, :def  #=> [{:version,1}]
+        Module.definitions_in __MODULE__, :def  #=> [{:version,0}]
         Module.definitions_in __MODULE__, :defp #=> []
       end
 
