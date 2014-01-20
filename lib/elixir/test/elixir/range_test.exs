@@ -9,11 +9,11 @@ defmodule RangeTest do
   end
 
   test :first do
-    assert Range.new(first: 1, last: 3).first == 1
+    assert Range.first(1..3) == 1
   end
 
   test :last do
-    assert Range.new(first: 1, last: 3).last == 3
+    assert Range.last(1..3) == 3
   end
 
   test :op do
@@ -45,8 +45,6 @@ defmodule RangeTest do
   test :inspect do
     assert inspect(1..3) == "1..3"
     assert inspect(3..1) == "3..1"
-
-    # False positive
     assert inspect({ Range, nil }) == "{Range, nil}"
   end
 

@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule Typespec.TypeTest do
   use ExUnit.Case, async: true
 
+  defrecord Rec, [:first, :last]
+
   # This macro allows us to focus on the result of the
   # definition and not on the hassles of handling test
   # module
@@ -188,8 +190,7 @@ defmodule Typespec.TypeTest do
 
   test "@type with a union" do
     spec = test_module do
-      @type mytype :: integer | char_list
-                    | atom
+      @type mytype :: integer | char_list | atom
     end
     assert {:mytype, {:type, _, :union, [{:type, _, :integer, []},
              {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :char_list}, []]},
@@ -198,10 +199,10 @@ defmodule Typespec.TypeTest do
 
   test "@type with an access macro" do
     spec = test_module do
-      @type mytype :: Range[first: integer]
+      @type mytype :: Rec[first: integer]
     end
     assert {:mytype, {:type, _, :tuple,
-             [{:atom, _, Range}, {:type, _, :integer, []}, {:type, _, :any, []}]}, []} = spec
+             [{:atom, _, Rec}, {:type, _, :integer, []}, {:type, _, :any, []}]}, []} = spec
   end
 
   test "@type with keywords" do

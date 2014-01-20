@@ -64,7 +64,7 @@ defmodule ProtocolTest do
     assert nil? Sample.impl_for(self)
     assert nil? Sample.impl_for(hd(:erlang.ports))
     assert nil? Sample.impl_for(make_ref)
-    assert nil? Sample.impl_for(Range[])
+    assert nil? Sample.impl_for(Macro.Env[])
 
     assert Sample.impl_for(Foo[]) ==
            Sample.ProtocolTest.Foo
@@ -73,10 +73,10 @@ defmodule ProtocolTest do
   end
 
   test :protocol_priority_does_not_override_records do
-    assert WithAny.impl_for(Foo[])    == WithAny.ProtocolTest.Foo
-    assert WithAny.impl_for(Range[])  == WithAny.Tuple
-    assert WithAny.impl_for({ :foo }) == WithAny.Tuple
-    assert WithAny.impl_for({})       == WithAny.Tuple
+    assert WithAny.impl_for(Foo[])       == WithAny.ProtocolTest.Foo
+    assert WithAny.impl_for(Macro.Env[]) == WithAny.Tuple
+    assert WithAny.impl_for({ :foo })    == WithAny.Tuple
+    assert WithAny.impl_for({})          == WithAny.Tuple
   end
 
   test :protocol_with_fallback do
@@ -214,7 +214,7 @@ defmodule Protocol.ConsolidationTest do
     assert nil? Sample.impl_for(self)
     assert nil? Sample.impl_for(hd(:erlang.ports))
     assert nil? Sample.impl_for(make_ref)
-    assert nil? Sample.impl_for(Range[])
+    assert nil? Sample.impl_for(Macro.Env[])
 
     assert Sample.impl_for(Foo[]) ==
            Sample.Protocol.ConsolidationTest.Foo
@@ -223,10 +223,10 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test :consolidated_impl_for_prioritized do
-    assert WithAny.impl_for(Foo[])    == WithAny.Protocol.ConsolidationTest.Foo
-    assert WithAny.impl_for(Range[])  == WithAny.Tuple
-    assert WithAny.impl_for({ :foo }) == WithAny.Tuple
-    assert WithAny.impl_for({})       == WithAny.Tuple
+    assert WithAny.impl_for(Foo[])       == WithAny.Protocol.ConsolidationTest.Foo
+    assert WithAny.impl_for(Macro.Env[]) == WithAny.Tuple
+    assert WithAny.impl_for({ :foo })    == WithAny.Tuple
+    assert WithAny.impl_for({})          == WithAny.Tuple
   end
 
   test :consolidated_fallback do
