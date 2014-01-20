@@ -1,3 +1,16 @@
+# v0.12.3-dev
+
+* Enhancements
+  * [Elixir] Exception.stracktraces now format anonymous functions more readably.
+    Previous: -some_func/2-fun-0-, now: first anonymous fn/4 in Foo.func/2
+
+* Bug fixes
+
+* Deprecations
+
+* Backwards incompatible changes
+
+
 # v0.12.2 (2014-01-15)
 
 * Enhancements
