@@ -38,6 +38,9 @@ defmodule Set do
   @type values :: [ value ]
   @type t :: tuple
 
+  defcallback new :: t
+  defcallback new(Enum.t) :: t
+  defcallback new(Enum.t, (any -> any)) :: t
   defcallback delete(t, value) :: t
   defcallback difference(t, t) :: t
   defcallback disjoint?(t, t) :: boolean
@@ -67,11 +70,11 @@ defmodule Set do
   ## Examples
 
       iex> s = HashSet.new([1, 2, 3])
-      ...> Set.delete(s, 4) |> HashSet.to_list
+      ...> Set.delete(s, 4) |> Enum.sort
       [1, 2, 3]
 
       iex> s = HashSet.new([1, 2, 3])
-      ...> Set.delete(s, 2) |> HashSet.to_list
+      ...> Set.delete(s, 2) |> Enum.sort
       [1, 3]
   """
   @spec delete(t, value) :: t
@@ -84,7 +87,7 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.difference(HashSet.new([1,2]), HashSet.new([2,3,4])) |> HashSet.to_list
+      iex> Set.difference(HashSet.new([1,2]), HashSet.new([2,3,4])) |> Enum.sort
       [1]
 
   """
@@ -139,10 +142,10 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.intersection(HashSet.new([1,2]), HashSet.new([2,3,4])) |> HashSet.to_list
+      iex> Set.intersection(HashSet.new([1,2]), HashSet.new([2,3,4])) |> Enum.sort
       [2]
 
-      iex> Set.intersection(HashSet.new([1,2]), HashSet.new([3,4])) |> HashSet.to_list  
+      iex> Set.intersection(HashSet.new([1,2]), HashSet.new([3,4])) |> Enum.sort
       []
 
   """
@@ -173,10 +176,10 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.put(HashSet.new([1, 2, 3]), 3) |> Set.to_list
+      iex> Set.put(HashSet.new([1, 2, 3]), 3) |> Enum.sort
       [1, 2, 3]
 
-      iex> Set.put(HashSet.new([1, 2, 3]), 4) |> Set.to_list
+      iex> Set.put(HashSet.new([1, 2, 3]), 4) |> Enum.sort
       [1, 2, 3, 4]
 
   """
@@ -219,7 +222,7 @@ defmodule Set do
 
   ## Examples
 
-      iex> HashSet.to_list(HashSet.new([1, 2, 3]))
+      iex> HashSet.to_list(HashSet.new([1, 2, 3])) |> Enum.sort
       [1,2,3]
 
   """
@@ -233,7 +236,7 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.union(HashSet.new([1,2]), HashSet.new([2,3,4])) |> HashSet.to_list
+      iex> Set.union(HashSet.new([1,2]), HashSet.new([2,3,4])) |> Enum.sort
       [1,2,3,4]
 
   """

@@ -45,8 +45,8 @@ defmodule Dict do
   @type t :: tuple | list
 
   defcallback new :: t
-  defcallback new(Keyword.t) :: t
-  defcallback new(Keyword.t, (any -> { key, value })) :: t
+  defcallback new(Enum.t) :: t
+  defcallback new(Enum.t, (any -> { key, value })) :: t
   defcallback delete(t, key) :: t
   defcallback drop(t, [key]) :: t
   defcallback empty(t) :: t

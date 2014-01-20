@@ -40,9 +40,9 @@ defmodule HashDict do
       #=> #HashDict<[a: 2, b: 1]>
 
   """
-  @spec new(list({key :: term, value :: term})) :: Dict.t
-  def new(pairs) do
-    Enum.reduce pairs, trie(), fn { k, v }, dict ->
+  @spec new(Enum.t) :: Dict.t
+  def new(enum) do
+    Enum.reduce enum, trie(), fn { k, v }, dict ->
       put(dict, k, v)
     end
   end
@@ -57,9 +57,9 @@ defmodule HashDict do
       #=> #HashDict<[{"a","a"},{"b","b"}]>
 
   """
-  @spec new(list, (term -> {key :: term, value ::term})) :: Dict.t
-  def new(list, transform) when is_function(transform) do
-    Enum.reduce list, trie(), fn i, dict ->
+  @spec new(Enum.t, (term -> {key :: term, value ::term})) :: Dict.t
+  def new(enum, transform) when is_function(transform) do
+    Enum.reduce enum, trie(), fn i, dict ->
       { k, v } = transform.(i)
       put(dict, k, v)
     end
