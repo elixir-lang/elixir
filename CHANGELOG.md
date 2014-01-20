@@ -20,6 +20,12 @@
   * [Kernel] Remove `**` from the list of allowed operators
   * [Range] `Range` is no longer a record, instead use `first .. last` if you need pattern matching
 
+* Bug fixes
+
+* Deprecations
+
+* Backwards incompatible changes
+
 # v0.12.2 (2014-01-15)
 
 * Enhancements

@@ -261,7 +261,6 @@ defmodule Exception do
     catch
       :stacktrace -> Enum.drop(:erlang.get_stacktrace, 1)
     end
-
     case trace do
       [] -> "\n"
       s  -> "    " <> Enum.map_join(s, "\n    ", &format_stacktrace_entry(&1)) <> "\n"
@@ -303,12 +302,7 @@ defmodule Exception do
 
   """
   def format_fa(fun, arity) do
-    if is_list(arity) do
-      inspected = lc x inlist arity, do: inspect(x)
-      "#{inspect fun}(#{Enum.join(inspected, ", ")})"
-    else
-      "#{inspect fun}/#{arity}"
-    end
+    "#{inspect fun}#{format_arity(arity)}"
   end
 
   @doc """
@@ -326,20 +320,47 @@ defmodule Exception do
       "nil.bar()"
 
   """
-  def format_mfa(module, fun, arity) do
-    fun =
-      case inspect(fun) do
-        << ?:, erl :: binary >> -> erl
-        elixir -> elixir
-      end
+  def format_mfa(module, nil, arity), 
+  do: format_mfa(module, "nil", arity) 
 
-    if is_list(arity) do
-      inspected = lc x inlist arity, do: inspect(x)
-      "#{inspect module}.#{fun}(#{Enum.join(inspected, ", ")})"
-    else
-      "#{inspect module}.#{fun}/#{arity}"
-    end
+  def format_mfa(module, fun, arity) when is_atom(fun),
+  do: format_mfa(module, to_string(fun), arity) 
+
+  def format_mfa(module, fun, arity) when not(is_binary(fun)),
+  do: format_mfa(module, inspect(fun), arity) 
+
+
+
+  @doc """
+  Anonymous functions are reported as -func/arity-anonfn-count-,
+  where func is the name of the enclosing function. Convert to
+  "nth fn in func/arity"
+  """
+  def format_mfa(module, "-" <> fun, arity) do
+    [ outer_fun, "fun", count, "" ] = String.split(fun, %r/-/)
+    "#{format_nth(count)} anonymous fn#{format_arity(arity)} in #{inspect module}.#{outer_fun}"
   end
+
+  # Erlang internal
+  def format_mfa(module, ":" <> fun, arity),  
+  do: format_mfa(module, fun, arity)
+
+  def format_mfa(module, fun, arity) do
+    "#{inspect module}.#{fun}#{format_arity(arity)}"
+  end
+
+  def format_arity(arity) when is_list(arity) do
+    inspected = lc x inlist arity, do: inspect(x)
+    "(#{Enum.join(inspected, ", ")})"
+  end
+
+  def format_arity(arity),  do: "/#{arity}"
+
+  defp format_nth("0"), do: "first"
+  defp format_nth("1"), do: "second"
+  defp format_nth("2"), do: "third"
+  defp format_nth(n),   do:  "#{binary_to_integer(n)+1}th"
+
 
   @doc """
   Formats the given file and line as shown in stacktraces.
