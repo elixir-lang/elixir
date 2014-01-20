@@ -53,7 +53,7 @@ Left     140 and_op_eol.      %% &&, &&&, and
 Left     150 comp_op_eol.     %% <, >, <=, >=, ==, !=, =~, ===, !==
 Right    160 arrow_op_eol.    %% < (op), (op) > (e.g |>, <<<, >>>)
 Left     170 in_op_eol.       %% in
-Right    200 two_op_eol.      %% ++, --, **, .., <>
+Right    200 two_op_eol.      %% ++, --, .., <>
 Left     210 add_op_eol.      %% + (op), - (op)
 Left     220 mult_op_eol.     %% * (op), / (op)
 Left     250 exp_op_eol.      %% ^ (op) (e.g ^^^)
