@@ -37,9 +37,20 @@ defmodule Inspect.AtomTest do
   end
 
   test :op do
-    assert inspect(:@)   == ":@"
+    assert inspect(:+)   == ":+"
     assert inspect(:&&&) == ":&&&"
     assert inspect(:~~~) == ":~~~"
+  end
+
+  test :... do
+    assert inspect(:...) == ":..."
+  end
+
+  test :@ do
+    assert inspect(:@) == ":@"
+    assert inspect(:foo@bar) == ":foo@bar"
+    assert inspect(:foo@bar@) == ":foo@bar@"
+    assert inspect(:foo@bar@baz) == ":foo@bar@baz"
   end
 
   test :container do
