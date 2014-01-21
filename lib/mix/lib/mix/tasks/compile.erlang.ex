@@ -5,13 +5,11 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   use Mix.Task
 
-  @hidden true
-  @shortdoc "Compile Erlang source files"
   @recursive true
   @manifest ".compile.erlang"
 
   @moduledoc """
-  A task to compile Erlang source files.
+  Compile Erlang source files.
 
   When this task runs, it will first check the modification times of
   all files to be compiled and if they haven't been

@@ -8,11 +8,6 @@ defmodule Mix.Deps.LockTest do
     :ok
   end
 
-  teardown do
-    Mix.Project.pop
-    :ok
-  end
-
   test "creates new lock and manifest files" do
     in_fixture "no_mixfile", fn ->
       Mix.Deps.Lock.write [foo: :bar]

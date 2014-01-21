@@ -1,22 +1,21 @@
-# v0.12.3-dev
-
-* Enhancements
-  * [Elixir] Exception.stracktraces now format anonymous functions more readably.
-    Previous: -some_func/2-fun-0-, now: first anonymous fn/4 in Foo.func/2
-
 * Bug fixes
+  * [Atom] Inspect `:...` and `:foo@bar` without quoting
+  * [Kernel] Guarantee nullary funs/macros are allowed in guards
 
 * Deprecations
+  * [Kernel] `binary_to_term/1`, `binary_to_term/2`, `term_to_binary/1` and `term_to_binary/2` are deprecated in favor of their counterparts in the `:erlang` module
+  * [Record] Deprecate `to_keywords`, `getter` and `list getter` funtionalities in `defrecordp`
 
 * Backwards incompatible changes
-
+  * [Kernel] Remove `**` from the list of allowed operators
+  * [Range] `Range` is no longer a record, instead use `first .. last` if you need pattern matching
 
 # v0.12.2 (2014-01-15)
 
 * Enhancements
   * [EEx] Allow `EEx.AssignsEngine` to accept any Dict
   * [Enum] Add `Enum.flat_map_reduce/3`
-  * [ExUnit] Support @moduletag in ExUnit cases
+  * [ExUnit] Support `@moduletag` in ExUnit cases
   * [Kernel] Improve stacktraces to be relative to the compilation path and include the related application
   * [Stream] Add `Stream.transform/3`
 

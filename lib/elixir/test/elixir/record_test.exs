@@ -3,7 +3,7 @@ Code.require_file "test_helper.exs", __DIR__
 defrecord RecordTest.FileInfo,
   Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
 
-defrecord RecordTest.SomeRecord, a: 0, b: 1
+defrecord RecordTest.SomeRecord, a: 0, b: &Dict.get/2
 defrecord RecordTest.WithNoField, []
 
 ## Record import
@@ -128,6 +128,11 @@ defmodule RecordTest do
 
   test :compile_time_composition do
     assert compose_dynamic(a: "a") == RecordTest.DynamicName[a: "a", b: "b"]
+  end
+
+  test :default_functions do
+    record = RecordTest.SomeRecord.new
+    assert is_function(record.b, 2)
   end
 
   test :to_keywords do

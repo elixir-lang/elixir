@@ -1,7 +1,31 @@
-defrecord Range, [:first, :last] do
+defmodule Range do
   @moduledoc """
   Defines a Range.
   """
+
+  @type t :: { Range, any, any }
+  @type t(first, last) :: { Range, first, last }
+
+  @doc """
+  Creates a new range.
+  """
+  def new(first, last) do
+    { Range, first, last }
+  end
+
+  @doc """
+  Returns the first item of the range.
+  """
+  def first({ Range, first, _ }) do
+    first
+  end
+
+  @doc """
+  Returns the last item of the range.
+  """
+  def last({ Range, _, last }) do
+    last
+  end
 end
 
 defprotocol Range.Iterator do
@@ -55,7 +79,7 @@ defimpl Enumerable, for: Range do
 end
 
 defimpl Range.Iterator, for: Integer do
-  def next(first, Range[last: last]) when is_integer(last) do
+  def next(first, _ .. last) when is_integer(last) do
     if last >= first do
       &(&1 + 1)
     else
@@ -63,7 +87,7 @@ defimpl Range.Iterator, for: Integer do
     end
   end
 
-  def count(first, Range[last: last]) when is_integer(last) do
+  def count(first, _ .. last) when is_integer(last) do
     if last >= first do
       last - first + 1
     else
@@ -75,7 +99,7 @@ end
 defimpl Inspect, for: Range do
   import Inspect.Algebra
 
-  def inspect(Range[first: first, last: last], opts) do
+  def inspect(first .. last, opts) do
     concat [to_doc(first, opts), "..", to_doc(last, opts)]
   end
 end

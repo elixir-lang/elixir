@@ -1,8 +1,6 @@
 defmodule Mix.Tasks.Compile.App do
   use Mix.Task
 
-  @hidden true
-  @shortdoc "Write .app file"
   @recursive true
 
   @moduledoc """

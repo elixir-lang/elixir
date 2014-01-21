@@ -519,21 +519,7 @@ defmodule Kernel.Typespec do
   ## Macro callbacks
 
   @doc false
-  def deftype(kind, { :::, _, [type, definition] }, caller) do
-    do_deftype(kind, type, definition, caller)
-  end
-
-  def deftype(kind, {name, _meta, args} = type, caller)
-      when is_atom(name) and not is_list(args) do
-    do_deftype(kind, type, { :term, [line: caller.line], nil }, caller)
-  end
-
-  def deftype(_kind, other, caller) do
-    type_spec = Macro.to_string(other)
-    compile_error caller, "invalid type specification: #{type_spec}"
-  end
-
-  defp do_deftype(kind, { name, _, args }, definition, caller) do
+  def deftype(kind, { :::, _, [{ name, _, args }, definition] }, caller) when is_atom(name) and name != ::: do
     args =
       if is_atom(args) do
         []
@@ -550,8 +536,13 @@ defmodule Kernel.Typespec do
     define_type(caller, kind, type)
   end
 
+  def deftype(_kind, other, caller) do
+    type_spec = Macro.to_string(other)
+    compile_error caller, "invalid type specification: #{type_spec}"
+  end
+
   @doc false
-  def defspec(type, { :::, meta, [{ name, _, args }, return_and_guard] }, caller) do
+  def defspec(type, { :::, meta, [{ name, _, args }, return_and_guard] }, caller) when is_atom(name) and name != ::: do
     if is_atom(args), do: args = []
     { return, guard } = split_return_and_guard(return_and_guard)
 
@@ -622,11 +613,11 @@ defmodule Kernel.Typespec do
     collect_vars(type)
   end
 
-  defp collect_vars({:paren_type, _line, [type]}) do
+  defp collect_vars({ :paren_type, _line, [type] }) do
     collect_vars(type)
   end
 
-  defp collect_vars({:var, _line, var}) do
+  defp collect_vars({ :var, _line, var }) do
     [erl_to_ex_var(var)]
   end
 
@@ -721,16 +712,16 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec_to_ast({ :typed_record_field,
-                         { :record_field, line, { :atom, line1, name }},
+                         { :record_field, line, { :atom, line1, name } },
                          type }) do
     typespec_to_ast({ :ann_type, line, [{ :var, line1, name }, type] })
   end
 
-  defp typespec_to_ast({:type, _, :any}) do
+  defp typespec_to_ast({ :type, _, :any }) do
     quote do: ...
   end
 
-  defp typespec_to_ast({:paren_type, _, [type]}) do
+  defp typespec_to_ast({ :paren_type, _, [type] }) do
     typespec_to_ast(type)
   end
 
@@ -779,7 +770,7 @@ defmodule Kernel.Typespec do
   end
 
   # Handle ranges
-  defp typespec({:"..", meta, args}, vars, caller) do
+  defp typespec({:.., meta, args}, vars, caller) do
     typespec({:range, meta, args}, vars, caller)
   end
 
@@ -800,7 +791,7 @@ defmodule Kernel.Typespec do
   end
 
   # Handle type operator
-  defp typespec({:"::", meta, [var, expr] }, vars, caller) do
+  defp typespec({:::, meta, [var, expr] }, vars, caller) do
     left  = typespec(var, [elem(var, 0)|vars], caller)
     right = typespec(expr, vars, caller)
     { :ann_type, line(meta), [left, right] }

@@ -83,8 +83,6 @@ defmodule Mix.UmbrellaTest do
       assert Path.expand('_build/shared/lib/foo/ebin') in :code.get_path
       assert Path.expand('_build/shared/lib/bar/ebin') in :code.get_path
     end
-  after
-    Mix.Project.pop
   end
 
   defmodule CycleDeps do
@@ -103,8 +101,6 @@ defmodule Mix.UmbrellaTest do
     in_fixture "umbrella_dep", fn ->
       assert Enum.map(Mix.Deps.loaded, & &1.app) == [:foo, :bar, :umbrella]
     end
-  after
-    Mix.Project.pop
   end
 
   test "handles dependencies with cycles and overridden deps" do
@@ -203,7 +199,5 @@ defmodule Mix.UmbrellaTest do
       assert_received { :mix_shell, :info, ["Compiled lib/bar.ex"] }
       assert_received { :mix_shell, :info, ["Compiled lib/foo.ex"] }
     end)
-  after
-    Mix.Project.pop
   end
 end

@@ -13,7 +13,7 @@ defmodule Macro do
 
   @binary_ops [:===, :!==,
     :==, :!=, :<=, :>=,
-    :&&, :||, :<>, :++, :--, :**, ://, :::, :<-, :.., :|>, :=~,
+    :&&, :||, :<>, :++, :--, ://, :::, :<-, :.., :|>, :=~,
     :<, :>, :->,
     :+, :-, :*, :/, :=, :|, :.,
     :and, :or, :xor, :when, :in, :inlist, :inbits,
@@ -30,16 +30,16 @@ defmodule Macro do
   @spec binary_op_props(atom) :: { :left | :right, precedence :: integer }
   defp binary_op_props(o) do
     case o do
-      :::                                                       -> {:right, 40}
-      o when o in [:inlist, :inbits, ://, :|]                   -> {:right, 50}
+      o when o in [:<-, :inlist, :inbits, ://, :::]             -> {:left,  40}
+      :|                                                        -> {:right, 50}
       :when                                                     -> {:right, 70}
       :=                                                        -> {:right, 80}
       o when o in [:||, :|||, :or, :xor]                        -> {:left, 130}
       o when o in [:&&, :&&&, :and]                             -> {:left, 140}
       o when o in [:==, :!=, :<, :<=, :>=, :>, :=~, :===, :!==] -> {:left, 150}
-      o when o in [:<-, :|>, :<<<, :>>>]                        -> {:right, 160}
+      o when o in [:|>, :<<<, :>>>]                             -> {:right, 160}
       :in                                                       -> {:left, 170}
-      o when o in [:++, :--, :**, :.., :<>]                     -> {:right, 200}
+      o when o in [:++, :--, :.., :<>]                          -> {:right, 200}
       o when o in [:+, :-]                                      -> {:left, 210}
       o when o in [:*, :/]                                      -> {:left, 220}
       :^^^                                                      -> {:left, 250}
@@ -641,12 +641,6 @@ defmodule Macro do
     do: { env.module, true }
   defp do_expand_once({ :__DIR__, _, atom }, env)    when is_atom(atom),
     do: { :filename.dirname(env.file), true }
-
-  defp do_expand_once({ :__FILE__, _, atom }, env) when is_atom(atom) do
-    IO.write "__FILE__ is deprecated, please use __DIR__ or __ENV__.file instead\n#{Exception.format_stacktrace}"
-    { env.file, true }
-  end
-
   defp do_expand_once({ :__ENV__, _, atom }, env)    when is_atom(atom),
     do: { { :{}, [], tuple_to_list(env) }, true }
   defp do_expand_once({ { :., _, [{ :__ENV__, _, atom }, field] }, _, [] } = original, env) when
@@ -672,19 +666,18 @@ defmodule Macro do
 
   defp do_expand_once({ atom, meta, args } = original, env)
       when is_atom(atom) and is_list(args) and is_list(meta) do
-    module = env.module
-
-    extra  = if function_exported?(module, :__info__, 1) do
-      [{ module, module.__info__(:macros) }]
-    else
-      []
-    end
-
     arity = length(args)
 
     if :elixir_import.special_form(atom, arity) do
       { original, false }
     else
+      module = env.module
+      extra  = if function_exported?(module, :__info__, 1) do
+        [{ module, module.__info__(:macros) }]
+      else
+        []
+      end
+
       expand = :elixir_dispatch.expand_import(meta, { atom, length(args) }, args,
                                               :elixir_env.ex_to_env(env), extra)
 

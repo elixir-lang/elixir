@@ -100,7 +100,7 @@ defimpl Inspect, for: Atom do
       valid_ref_identifier?(binary) ->
         "Elixir." <> rest = binary
         rest
-      atom in [:{}, :<<>>] ->
+      atom in [:{}, :<<>>, :...] ->
         ":" <> binary
       atom in Macro.binary_ops or atom in Macro.unary_ops ->
         ":" <> binary
@@ -127,15 +127,20 @@ defimpl Inspect, for: Atom do
   # Detect if atom
 
   defp valid_atom_identifier?(<<h, t :: binary>>) when h in ?a..?z or h in ?A..?Z or h == ?_ do
-    case valid_identifier?(t) do
-      <<>>   -> true
-      <<??>> -> true
-      <<?!>> -> true
-      _      -> false
-    end
+    valid_atom_piece?(t)
   end
 
   defp valid_atom_identifier?(_), do: false
+
+  defp valid_atom_piece?(t) do
+    case valid_identifier?(t) do
+      <<>>              -> true
+      <<??>>            -> true
+      <<?!>>            -> true
+      <<?@, t::binary>> -> valid_atom_piece?(t)
+      _                 -> false
+    end
+  end
 
   defp valid_identifier?(<<h, t :: binary>>)
       when h in ?a..?z

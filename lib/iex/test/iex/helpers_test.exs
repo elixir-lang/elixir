@@ -300,7 +300,6 @@ defmodule IEx.HelpersTest do
     end
   after
     # Clean up the old version left over after l()
-    :code.purge(Sample)
     cleanup_modules([Sample])
   end
 
@@ -331,7 +330,6 @@ defmodule IEx.HelpersTest do
     end
   after
     # Clean up old version produced by the r helper
-    :code.purge(Sample)
     cleanup_modules([Sample])
   end
 
@@ -350,7 +348,6 @@ defmodule IEx.HelpersTest do
       assert :sample.hello == :bye
     end
   after
-    :code.purge(:sample)
     cleanup_modules([:sample])
   end
 
@@ -393,8 +390,8 @@ defmodule IEx.HelpersTest do
   defp cleanup_modules(mods) do
     Enum.each mods, fn mod ->
       File.rm("#{mod}.beam")
+      :code.purge(mod)
       true = :code.delete(mod)
-      :code.purge mod
     end
   end
 

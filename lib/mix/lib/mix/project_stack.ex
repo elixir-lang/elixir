@@ -43,6 +43,11 @@ defmodule Mix.ProjectStack do
     call :output_app?
   end
 
+  @spec clear_stack() :: :ok
+  def clear_stack do
+    cast :clear_stack
+  end
+
   @doc """
   Enables the recursion for the project at the top of the stack.
   Returns true if recursion was enabled or false if the project
@@ -156,6 +161,10 @@ defmodule Mix.ProjectStack do
 
   def handle_cast({ :post_config, value }, State[] = state) do
     { :noreply, state.update_post_config(&Keyword.merge(&1, value)) }
+  end
+
+  def handle_cast(:clear_stack, State[] = state) do
+    { :noreply, state.stack([]).post_config([]) }
   end
 
   def handle_cast({ :write_cache, key, value }, State[] = state) do

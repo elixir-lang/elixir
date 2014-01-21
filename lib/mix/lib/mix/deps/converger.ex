@@ -86,9 +86,7 @@ defmodule Mix.Deps.Converger do
   # to be the authorative source.
   defp all([dep|t], acc, upper_breadths, current_breadths, callback, rest) do
     cond do
-      new_acc = overridden_deps(acc, upper_breadths, dep) ->
-        all(t, new_acc, upper_breadths, current_breadths, callback, rest)
-      new_acc = diverged_deps(acc, dep) ->
+      new_acc = diverged_deps(acc, upper_breadths, dep) ->
         all(t, new_acc, upper_breadths, current_breadths, callback, rest)
       true ->
         { dep, rest } = callback.(dep, rest)
@@ -109,66 +107,41 @@ defmodule Mix.Deps.Converger do
     { acc, rest }
   end
 
-  # Look for an overriding dep in the upper breadths, if
-  # found return a new acc without the overridden dep and
-  # with the proper status set on the overrider. The
-  # overrider is moved to the front of the accumulator to
-  # preserve the position of the removed dep.
-  defp overridden_deps(acc, upper_breadths, dep) do
-    if dep.app in upper_breadths do
-      Mix.Dep[app: app] = dep
-
-      { overrider, acc } =
-        Enum.reduce(acc, { nil , [] }, fn other, { overrider, acc } ->
-          Mix.Dep[app: other_app, opts: other_opts] = other
-
-          cond do
-            app == other_app && (other_opts[:override] || converge?(other, dep)) ->
-              { with_matching_req(other, dep), acc }
-            app == other_app ->
-              { other.status({ :overridden, dep }), acc }
-            true ->
-              { overrider, [other|acc] }
-          end
-        end)
-
-      [overrider | Enum.reverse(acc)]
-    end
-  end
-
-  # Check the list for matching dependencies.
-  # In case dependencies are found, check if their
-  # scm info match. If not, mark the dependencies
-  # as diverged.
-  defp diverged_deps(list, dep) do
+  # Look for divergence in dependencies.
+  #
+  # If the same dependency is specified more than once,
+  # we need to guarantee they converge. If they don't
+  # converge, we mark them as diverged.
+  #
+  # The only exception is when the dependency that
+  # diverges is in the upper breadth, in those cases we
+  # also check for the override option and mark the dependency
+  # as overridden instead of diverged.
+  defp diverged_deps(list, upper_breadths, dep) do
     Mix.Dep[app: app] = dep
+    in_upper? = app in upper_breadths
 
     { acc, match } =
       Enum.map_reduce list, false, fn(other, match) ->
-        Mix.Dep[app: other_app] = other
+        Mix.Dep[app: other_app, opts: other_opts] = other
 
         cond do
           app != other_app ->
             { other, match }
-          converge?(other, dep) ->
+          (in_upper? && other_opts[:override]) || converge?(other, dep) ->
             { with_matching_req(other, dep), true }
           true ->
-            { other.status({ :diverged, dep }), true }
+            tag = if in_upper?, do: :overridden, else: :diverged
+            { other.status({ tag, dep }), true }
         end
       end
 
     if match, do: acc
   end
 
-  defp converge?(_, Mix.Dep[scm: Mix.SCM.Optional]) do
-    true
+  defp converge?(Mix.Dep[scm: scm1, opts: opts1], Mix.Dep[scm: scm2, opts: opts2]) do
+    scm1 == scm2 and scm1.equal?(opts1, opts2)
   end
-
-  defp converge?(Mix.Dep[scm: scm, opts: opts1], Mix.Dep[scm: scm, opts: opts2]) do
-    scm.equal?(opts1, opts2)
-  end
-
-  defp converge?(_, _), do: false
 
   defp reject_non_fullfilled_optional(children, upper_breadths) do
     Enum.reject children, fn Mix.Dep[app: app, opts: opts] ->

@@ -1,34 +1,6 @@
 Code.require_file "test_helper.exs", __DIR__
 
-defmodule ExUnit.NilFormatter do
-  @behaviour ExUnit.Formatter
-
-  def suite_started(_opts) do
-    :ok
-  end
-
-  def suite_finished(:ok, _run_us, _load_us) do
-    1
-  end
-
-  def case_started(:ok, _test_case) do
-    :ok
-  end
-
-  def case_finished(:ok, _test_case) do
-    :ok
-  end
-
-  def test_started(:ok, _test) do
-    :ok
-  end
-
-  def test_finished(:ok, _test) do
-    :ok
-  end
-end
-
-defmodule ExUnit.TestsCounterFormatter do
+defmodule ExUnit.CounterFormatter do
   @timeout 30_000
   @behaviour ExUnit.Formatter
 
@@ -79,9 +51,17 @@ end
 defmodule ExUnitTest do
   use ExUnit.Case, async: false
 
-  test "it supports many runs" do
-    ExUnit.configure(formatter: ExUnit.NilFormatter)
+  setup do
+    ExUnit.configure(formatter: ExUnit.CounterFormatter)
+    :ok
+  end
 
+  teardown do
+    ExUnit.configure(formatter: ExUnit.CLIFormatter)
+    :ok
+  end
+
+  test "it supports many runs" do
     defmodule SampleTest do
       use ExUnit.Case, async: false
 
@@ -94,12 +74,25 @@ defmodule ExUnitTest do
       end
     end
 
+    assert ExUnit.run == 2
+  end
+
+  test "it doesn't hang on exists" do
+    defmodule EventServerTest do
+      use ExUnit.Case, async: false
+
+      test "spawn and crash" do
+        Process.spawn_link(fn ->
+          exit :foo
+        end)
+        receive after: (1000 -> :ok)
+      end
+    end
+
     assert ExUnit.run == 1
   end
 
   test "filtering cases with tags" do
-    ExUnit.configure(formatter: ExUnit.TestsCounterFormatter)
-
     defmodule ParityTest do
       use ExUnit.Case
 

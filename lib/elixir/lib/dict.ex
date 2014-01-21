@@ -42,13 +42,13 @@ defmodule Dict do
 
   @type key :: any
   @type value :: any
-  @type keys :: [ key ]
   @type t :: tuple | list
 
   defcallback new :: t
-  defcallback new(Keyword.t) :: t
+  defcallback new(Enum.t) :: t
+  defcallback new(Enum.t, (any -> { key, value })) :: t
   defcallback delete(t, key) :: t
-  defcallback drop(t, keys) :: t
+  defcallback drop(t, [key]) :: t
   defcallback empty(t) :: t
   defcallback equal?(t, t) :: boolean
   defcallback get(t, key) :: value
@@ -56,7 +56,7 @@ defmodule Dict do
   defcallback fetch(t, key) :: { :ok, value } | :error
   defcallback fetch!(t, key) :: value | no_return
   defcallback has_key?(t, key) :: boolean
-  defcallback keys(t) :: list(key)
+  defcallback keys(t) :: [key]
   defcallback merge(t, t) :: t
   defcallback merge(t, t, (key, value, value -> value)) :: t
   defcallback pop(t, key) :: {value, t}
@@ -64,8 +64,8 @@ defmodule Dict do
   defcallback put(t, key, value) :: t
   defcallback put_new(t, key, value) :: t
   defcallback size(t) :: non_neg_integer()
-  defcallback split(t, keys) :: {t, t}
-  defcallback take(t, keys) :: t
+  defcallback split(t, [key]) :: {t, t}
+  defcallback take(t, [key]) :: t
   defcallback to_list(t) :: list()
   defcallback update(t, key, value, (value -> value)) :: t
   defcallback update!(t, key, (value -> value)) :: t | no_return
@@ -381,7 +381,7 @@ defmodule Dict do
 
       iex> d = dict_impl.new([a: 1, b: 2, c: 3, d: 4])
       ...> { d1, d2 } = Dict.split(d, [:a, :c, :e])
-      ...> { Dict.to_list(d1), Dict.to_list(d2) }
+      ...> { Dict.to_list(d1) |> Enum.sort, Dict.to_list(d2) |> Enum.sort }
       { [a: 1, c: 3], [b: 2, d: 4] }
 
       iex> d = dict_impl.new([])
@@ -391,11 +391,11 @@ defmodule Dict do
 
       iex> d = dict_impl.new([a: 1, b: 2])
       ...> { d1, d2 } = Dict.split(d, [:a, :b, :c])
-      ...> { Dict.to_list(d1), Dict.to_list(d2) }
+      ...> { Dict.to_list(d1) |> Enum.sort, Dict.to_list(d2) }
       { [a: 1, b: 2], [] }
 
   """
-  @spec split(t, keys) :: {t, t}
+  @spec split(t, [key]) :: {t, t}
   def split(dict, keys) do
     target(dict).split(dict, keys)
   end
@@ -413,11 +413,11 @@ defmodule Dict do
 
       iex> d = dict_impl.new([a: 1, b: 2])
       ...> d = Dict.drop(d, [:c, :d])
-      ...> Dict.to_list(d)
+      ...> Dict.to_list(d) |> Enum.sort
       [a: 1, b: 2]
 
   """
-  @spec drop(t, keys) :: t
+  @spec drop(t, [key]) :: t
   def drop(dict, keys) do
     target(dict).drop(dict, keys)
   end
@@ -440,7 +440,7 @@ defmodule Dict do
       []
 
   """
-  @spec take(t, keys) :: t
+  @spec take(t, [key]) :: t
   def take(dict, keys) do
     target(dict).take(dict, keys)
   end

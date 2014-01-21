@@ -138,8 +138,8 @@ defmodule ExUnit.Runner do
     receive do
       { ^case_pid, :case_finished, test_case, tests } ->
         { test_case, tests }
-      { :DOWN, ^case_ref, :process, ^case_pid, { error, stacktrace } } ->
-        { test_case.state({ :failed, { :EXIT, error, prune_stacktrace(stacktrace) } }), [] }
+      { :DOWN, ^case_ref, :process, ^case_pid, error } ->
+        { test_case.state({ :failed, { :EXIT, error, [] } }), [] }
     end
   end
 
@@ -187,8 +187,8 @@ defmodule ExUnit.Runner do
     receive do
       { ^test_pid, :test_finished, test } ->
         test
-      { :DOWN, ^test_ref, :process, ^test_pid, { error, stacktrace } } ->
-        test.state { :failed, { :EXIT, error, prune_stacktrace(stacktrace) } }
+      { :DOWN, ^test_ref, :process, ^test_pid, error } ->
+        test.state { :failed, { :EXIT, error, [] } }
     end
   end
 

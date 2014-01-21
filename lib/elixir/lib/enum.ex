@@ -145,7 +145,7 @@ defmodule Enum do
   enumeration. For dicts, the argument is always a `{ key, value }` tuple:
 
       iex> dict = HashDict.new [a: 1, b: 2]
-      iex> Enum.map(dict, fn { k, v } -> { k, v * 2 } end)
+      iex> Enum.map(dict, fn { k, v } -> { k, v * 2 } end) |> Enum.sort
       [a: 2, b: 4]
 
   Note that the functions in the `Enum` module are eager: they always start
@@ -739,20 +739,6 @@ defmodule Enum do
       { :halted, entry } -> entry
       { :done, _ } -> nil
     end
-  end
-
-  @doc false
-  @spec first(t) :: :nil | element
-  def first(list) when is_list(list) do
-    IO.write "Enum.first/1 is deprecated, please use Enum.at/2 or List.first/1 instead\n#{Exception.format_stacktrace}"
-    List.first(list)
-  end
-
-  def first(collection) do
-    IO.write "Enum.first/1 is deprecated, please use Enum.at/2 instead\n#{Exception.format_stacktrace}"
-    Enumerable.reduce(collection, { :cont, nil }, fn(entry, _) ->
-      { :halt, entry }
-    end) |> elem(1)
   end
 
   @doc """

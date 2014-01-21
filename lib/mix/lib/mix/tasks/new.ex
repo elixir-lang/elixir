@@ -4,7 +4,7 @@ defmodule Mix.Tasks.New do
   import Mix.Generator
   import Mix.Utils, only: [camelize: 1, underscore: 1]
 
-  @shortdoc "Creates a new Elixir project"
+  @shortdoc "Create a new Elixir project"
 
   @moduledoc """
   Creates a new Elixir project.

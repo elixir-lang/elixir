@@ -41,8 +41,6 @@ defmodule Mix.DepsTest do
       assert Enum.find deps, &match?(Mix.Dep[app: :uncloned, status: { :unavailable, _ }], &1)
       assert Enum.find deps, &match?(Mix.Dep[app: :optional, status: { :unavailable, _ }], &1)
     end
-  after
-    Mix.Project.pop
   end
 
   test "use mix version for dependencies" do
@@ -52,8 +50,6 @@ defmodule Mix.DepsTest do
       deps = Mix.Deps.loaded
       assert Enum.find deps, &match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
     end
-  after
-    Mix.Project.pop
   end
 
   test "raises when no SCM is specified" do
@@ -64,8 +60,6 @@ defmodule Mix.DepsTest do
             "expected one of :git, :path or :in_umbrella"
       assert_raise Mix.Error, msg, fn -> Mix.Deps.loaded end
     end
-  after
-    Mix.Project.pop
   end
 
   test "does not set the manager before the dependency was loaded" do
@@ -79,8 +73,6 @@ defmodule Mix.DepsTest do
         assert nil?(dep.manager)
         { dep, acc or true }
       end)
-  after
-    Mix.Project.pop
   end
 
   defmodule NestedDepsApp do
@@ -101,8 +93,6 @@ defmodule Mix.DepsTest do
     in_fixture "deps_status", fn ->
       assert Enum.map(Mix.Deps.loaded, &(&1.app)) == [:git_repo, :deps_repo]
     end
-  after
-    Mix.Project.pop
   end
 
   test "nested optional deps are never added" do
@@ -127,8 +117,6 @@ defmodule Mix.DepsTest do
 
       assert Enum.map(Mix.Deps.loaded, &(&1.app)) == [:deps_repo]
     end
-  after
-    Mix.Project.pop
   end
 
   defmodule ConvergedDepsApp do
@@ -150,8 +138,6 @@ defmodule Mix.DepsTest do
     in_fixture "deps_status", fn ->
       assert Enum.map(Mix.Deps.loaded, &(&1.app)) == [:git_repo, :deps_repo]
     end
-  after
-    Mix.Project.pop
   end
 
   test "correctly order converged deps even with optional dependencies" do
@@ -176,7 +162,5 @@ defmodule Mix.DepsTest do
 
       assert Enum.map(Mix.Deps.loaded, &(&1.app)) == [:git_repo, :deps_repo]
     end
-  after
-    Mix.Project.pop
   end
 end

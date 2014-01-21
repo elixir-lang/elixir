@@ -65,8 +65,6 @@ defmodule Mix.RebarTest do
         true
       end
     end)
-  after
-    Mix.Project.pop
   end
 
   test "recurs over sub dirs" do
@@ -111,7 +109,5 @@ defmodule Mix.RebarTest do
       assert Enum.any?(load_paths, &String.ends_with?(&1, "git_rebar/ebin"))
       assert Enum.any?(load_paths, &String.ends_with?(&1, "rebar_dep/ebin"))
     end
-  after
-    Mix.Project.pop
   end
 end

@@ -164,13 +164,11 @@ defmodule Mix.Tasks.Compile.Elixir do
   use Mix.Task
   alias Mix.Tasks.Compile.Erlang
 
-  @hidden true
-  @shortdoc "Compile Elixir source files"
   @recursive true
   @manifest ".compile.elixir"
 
   @moduledoc """
-  A task to compile Elixir source files.
+  Compiles Elixir source files.
 
   Elixir is smart enough to recompile only files that changed
   and their dependencies. This means if `lib/a.ex` is invoking

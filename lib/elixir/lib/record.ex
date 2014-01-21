@@ -410,7 +410,7 @@ defmodule Record do
       end
 
       defmacrop unquote(name)(record) when is_tuple(record) do
-        Record.to_keywords(unquote(tag), unquote(escaped), record)
+        Record.to_keywords(unquote(name), unquote(tag), unquote(escaped), record, __CALLER__)
       end
 
       defmacrop unquote(name)(args) do
@@ -418,7 +418,7 @@ defmodule Record do
       end
 
       defmacrop unquote(name)(record, args) do
-        Record.dispatch(unquote(tag), unquote(escaped), record, args, __CALLER__)
+        Record.dispatch(unquote(name), unquote(tag), unquote(escaped), record, args, __CALLER__)
       end
     end
 
@@ -453,14 +453,24 @@ defmodule Record do
     Module.put_attribute(module, :record_optimizable, functions)
   end
 
+  @doc false
+  # Implements the access macro used by records.
+  # It returns the index of the given field.
+  def access(atom, fields, arg, _caller) when is_atom(arg) do
+    if index = find_index(fields, arg, 0) do
+      index + 1
+    else
+      raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect arg}"
+    end
+  end
+
   # Implements the access macro used by records.
   # It returns a quoted expression that defines
   # a record or a match in case the record is
   # inside a match.
-  @doc false
   def access(atom, fields, keyword, caller) do
     unless is_keyword(keyword) do
-      raise ArgumentError, message: "expected contents inside brackets to be a keyword list, got: #{inspect keyword}"
+      raise ArgumentError, message: "expected contents inside brackets to be a keyword list or an atom, got: #{inspect keyword}"
     end
 
     in_match = caller.in_match?
@@ -498,7 +508,8 @@ defmodule Record do
   # It returns a quoted expression that represents
   # converting record to keywords list.
   @doc false
-  def to_keywords(_atom, fields, record) do
+  def to_keywords(name, _atom, fields, record, caller) do
+    IO.write "#{name}(record) for private records returning a keyword list is deprecated\n#{Exception.format_stacktrace(caller.stacktrace)}"
     { var, extra } = cache_var(record)
 
     keywords = Enum.map fields,
@@ -517,13 +528,15 @@ defmodule Record do
 
   # Dispatch the call to either get, update or to_list depending on the args given.
   @doc false
-  def dispatch(atom, fields, record, args, caller) do
+  def dispatch(name, atom, fields, record, args, caller) do
     cond do
       is_atom(args) ->
+        IO.write "#{name}(record, field) for private records for retrieving a field is deprecated, please use pattern match instead\n#{Exception.format_stacktrace(caller.stacktrace)}"
         get(atom, fields, record, args)
       is_keyword(args) ->
         update(atom, fields, record, args, caller)
       is_list(args) ->
+        IO.write "#{name}(record, fields) for private records for retrieving a list of fields is deprecated, please use pattern match instead\n#{Exception.format_stacktrace(caller.stacktrace)}"
         to_list(atom, fields, record, args)
       true ->
         raise ArgumentError, message: "expected arguments to be a compile time atom, list or keywords"
@@ -906,6 +919,7 @@ defmodule Record do
       raise ArgumentError, message: "record field default value #{inspect atom} can only contain " <>
                                     "functions that point to an existing &Mod.fun/arity"
     end
+    other
   end
 
   defp check_value(atom, other) when is_reference(other) or is_pid(other) or is_port(other) do

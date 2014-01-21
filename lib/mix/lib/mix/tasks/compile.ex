@@ -39,8 +39,8 @@ defmodule Mix.Tasks.Compile do
     docs = lc module inlist modules,
               task = Mix.Task.task_name(module),
               match?("compile." <> _, task),
-              doc = Mix.Task.shortdoc(module) do
-      { task, doc }
+              doc = Mix.Task.moduledoc(module) do
+      { task, first_line(doc) }
     end
 
     max = Enum.reduce docs, 0, fn({ task, _ }, acc) ->
@@ -92,5 +92,9 @@ defmodule Mix.Tasks.Compile do
 
   defp format(expression, args) do
     :io_lib.format(expression, args) |> iolist_to_binary
+  end
+
+  defp first_line(doc) do
+    String.split(doc, "\n", global: false) |> hd |> String.strip |> String.rstrip(?.)
   end
 end

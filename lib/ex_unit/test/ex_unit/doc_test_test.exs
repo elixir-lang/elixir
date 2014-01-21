@@ -35,14 +35,14 @@ defmodule ExUnit.DocTestTest.GoodModule do
 
   @doc """
   iex> HashDict.new a: 0, b: 1, c: 2
-  #HashDict<[a: 0, b: 1, c: 2]>
+  #HashDict<[c: 2, b: 1, a: 0]>
   """
   def inspect1_test, do: :ok
 
   @doc """
   iex> x = HashDict.new a: 0, b: 1, c: 2
   ...> x
-  #HashDict<[a: 0, b: 1, c: 2]>
+  #HashDict<[c: 2, b: 1, a: 0]>
   """
   def inspect2_test, do: :ok
 end

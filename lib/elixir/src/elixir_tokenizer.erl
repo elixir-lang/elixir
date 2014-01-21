@@ -24,7 +24,6 @@
 -define(two_op(T1, T2),
   T1 == $+, T2 == $+;
   T1 == $-, T2 == $-;
-  T1 == $*, T2 == $*;
   T1 == $<, T2 == $>;
   T1 == $., T2 == $.).
 
@@ -39,7 +38,6 @@
   T1 == $>, T2 == $>, T3 == $>).
 
 -define(arrow_op(T1, T2),
-  T1 == $<, T2 == $-;
   T1 == $|, T2 == $>).
 
 -define(comp_op(T),
@@ -72,17 +70,16 @@
 -define(match_op(T),
   T == $=).
 
--define(in_match_op(T),
-  T == $|).
-
--define(in_match_op2(T1, T2),
-  T1 == $/, T2 == $/).
+-define(in_match_op(T1, T2),
+  T1 == $<, T2 == $-;
+  T1 == $/, T2 == $/;
+  T1 == $:, T2 == $:).
 
 -define(stab_op(T1, T2),
   T1 == $-, T2 == $>).
 
--define(type_op(T1, T2),
-  T1 == $:, T2 == $:).
+-define(pipe_op(T1),
+  T == $|).
 
 tokenize(String, Line, #elixir_tokenizer{} = Scope) ->
   tokenize(String, Line, Scope, []);
@@ -141,11 +138,11 @@ tokenize([$#|String], Line, Scope, Tokens) ->
 
 tokenize([$%,S,H,H,H|T] = Original, Line, Scope, Tokens) when ?is_quote(H), ?is_upcase(S) orelse ?is_downcase(S) ->
   case extract_heredoc_with_interpolation(Line, Scope, ?is_downcase(S), T, H) of
-    { error, Reason } ->
-      { error, Reason, Original, Tokens };
-    { Parts, Rest } ->
+    { ok, NewLine, Parts, Rest } ->
       { Final, Modifiers } = collect_modifiers(Rest, []),
-      tokenize(Final, Line, Scope, [{ sigil, Line, S, Parts, Modifiers }|Tokens])
+      tokenize(Final, NewLine, Scope, [{ sigil, Line, S, Parts, Modifiers }|Tokens]);
+    { error, Reason } ->
+      { error, Reason, Original, Tokens }
   end;
 
 tokenize([$%,S,H|T] = Original, Line, Scope, Tokens) when not(?is_identifier(H)), not(?is_terminator(H)), ?is_upcase(S) orelse ?is_downcase(S) ->
@@ -211,56 +208,6 @@ tokenize([$?,$\\,H|T], Line, Scope, Tokens) ->
 tokenize([$?,Char|T], Line, Scope, Tokens) ->
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
-% Dot identifier/operators
-tokenize("..." ++ Rest, Line, Scope, Tokens) ->
-  Token = check_call_identifier(identifier, Line, '...', Rest),
-  tokenize(Rest, Line, Scope, [Token|Tokens]);
-
-tokenize([$.,T|Tail], Line, Scope, Tokens) when ?is_space(T) ->
-  case [T|Tail] of
-    [$\r,$\n|Rest] -> tokenize([$.|Rest], Line + 1, Scope, Tokens);
-    [$\n|Rest]     -> tokenize([$.|Rest], Line + 1, Scope, Tokens);
-    [_|Rest]       -> tokenize([$.|Rest], Line, Scope, Tokens)
-  end;
-
-% ## Three Token Operators
-tokenize([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when
-    ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?exp_op3(T1, T2, T3) ->
-  handle_call_identifier(Rest, Line, list_to_atom([T1, T2, T3]), Scope, Tokens);
-
-% ## Two Token Operators
-tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when
-    ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?in_match_op2(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2); ?type_op(T1, T2) ->
-  handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
-
-% ## Single Token Operators
-tokenize([$.,T|Rest], Line, Scope, Tokens) when
-    ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
-    ?match_op(T); ?in_match_op(T) ->
-  handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
-
-% Dot call
-
-% ## Exception for .( as it needs to be treated specially in the parser
-tokenize([$.,$(|Rest], Line, Scope, Tokens) ->
-  tokenize([$(|Rest], Line, Scope, add_token_with_nl({ dot_call_op, Line, '.' }, Tokens));
-
-tokenize([$.,H|T] = Original, Line, Scope, Tokens) when ?is_quote(H) ->
-  case elixir_interpolation:extract(Line, Scope, true, T, H) of
-    { NewLine, [Part], Rest } when is_binary(Part) ->
-      case unsafe_to_atom(Part, Line, Scope) of
-        { ok, Atom } ->
-          Token = check_call_identifier(identifier, Line, Atom, Rest),
-          tokenize(Rest, NewLine, Scope, [Token|add_token_with_nl({ '.', Line }, Tokens)]);
-        { error, Reason } ->
-          { error, Reason, Original, Tokens }
-      end;
-    { error, Reason } ->
-      interpolation_error(Reason, Original, Tokens, " (for function name starting at line ~B)", [Line])
-  end;
-
 % Heredocs
 
 tokenize("\"\"\"" ++ T, Line, Scope, Tokens) ->
@@ -318,13 +265,13 @@ tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when
 % ## Two Token Operators
 tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when
     ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?in_match_op2(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2); ?type_op(T1, T2) ->
+    ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2) ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2]) }|Tokens]);
 
 % ## Single Token Operators
 tokenize([$:,T|Rest], Line, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
-    ?match_op(T); ?in_match_op(T); T == $. ->
+    ?match_op(T); ?pipe_op(T); T == $. ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T]) }|Tokens]);
 
 % End of line
@@ -349,9 +296,13 @@ tokenize("\r\n" ++ Rest, Line, Scope, Tokens) ->
 
 % Stand-alone tokens
 
+tokenize("..." ++ Rest, Line, Scope, Tokens) ->
+  Token = check_call_identifier(identifier, Line, '...', Rest),
+  tokenize(Rest, Line, Scope, [Token|Tokens]);
+
 % ## Three token operators
 tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
-  handle_nonl_op(Rest, Line, unary_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
+  handle_unary_op(Rest, Line, unary_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
 
 tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?comp_op3(T1, T2, T3) ->
   handle_op(Rest, Line, comp_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
@@ -394,14 +345,11 @@ tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?and_op(T1, T2) ->
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?or_op(T1, T2) ->
   handle_op(Rest, Line, or_op, list_to_atom([T1, T2]), Scope, Tokens);
 
-tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?in_match_op2(T1, T2) ->
+tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?in_match_op(T1, T2) ->
   handle_op(Rest, Line, in_match_op, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?stab_op(T1, T2) ->
   handle_op(Rest, Line, stab_op, list_to_atom([T1, T2]), Scope, Tokens);
-
-tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?type_op(T1, T2) ->
-  handle_op(Rest, Line, type_op, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators
 
@@ -410,16 +358,16 @@ tokenize([$&,D|Rest], Line, Scope, Tokens) when ?is_digit(D) ->
   tokenize([D|Rest], Line, Scope, [{ '&', Line }|Tokens]);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?at_op(T) ->
-  handle_nonl_op(Rest, Line, at_op, list_to_atom([T]), Scope, Tokens);
+  handle_unary_op(Rest, Line, at_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?unary_op(T) ->
-  handle_nonl_op(Rest, Line, unary_op, list_to_atom([T]), Scope, Tokens);
+  handle_unary_op(Rest, Line, unary_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?comp_op(T) ->
   handle_op(Rest, Line, comp_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?dual_op(T) ->
-  handle_nonl_op(Rest, Line, dual_op, list_to_atom([T]), Scope, Tokens);
+  handle_unary_op(Rest, Line, dual_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?mult_op(T) ->
   handle_op(Rest, Line, mult_op, list_to_atom([T]), Scope, Tokens);
@@ -427,11 +375,14 @@ tokenize([T|Rest], Line, Scope, Tokens) when ?mult_op(T) ->
 tokenize([T|Rest], Line, Scope, Tokens) when ?match_op(T) ->
   handle_op(Rest, Line, match_op, list_to_atom([T]), Scope, Tokens);
 
-tokenize([T|Rest], Line, Scope, Tokens) when ?in_match_op(T) ->
-  handle_op(Rest, Line, in_match_op, list_to_atom([T]), Scope, Tokens);
+tokenize([T|Rest], Line, Scope, Tokens) when ?pipe_op(T) ->
+  handle_op(Rest, Line, pipe_op, list_to_atom([T]), Scope, Tokens);
 
-tokenize([$.|Rest], Line, Scope, Tokens) ->
-  tokenize(Rest, Line, Scope, add_token_with_nl({ '.', Line }, Tokens));
+% Dot
+
+tokenize([$.|T], Line, Scope, Tokens) ->
+  { Rest, Counter } = strip_space(T, 0),
+  handle_dot([$.|Rest], Line + Counter, Scope, Tokens);
 
 % Integers and floats
 
@@ -481,14 +432,21 @@ tokenize([Space, Sign, NotMarker|T], Line, Scope, [{ Identifier, _, _ } = H|Toke
 % Spaces
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?is_horizontal_space(T) ->
-  tokenize(Rest, Line, Scope, Tokens);
-
-%% TODO: This token is deprecated once continuable heredocs are removed
-tokenize([{line,Line}|Rest], _Line, Scope, Tokens) ->
-  tokenize(Rest, Line, Scope, Tokens);
-
+  tokenize(strip_horizontal_space(Rest), Line, Scope, Tokens);
 tokenize(T, Line, _Scope, Tokens) ->
   { error, { Line, "invalid token: ", until_eol(T) }, T, Tokens }.
+
+strip_horizontal_space([H|T]) when ?is_horizontal_space(H) ->
+  strip_horizontal_space(T);
+strip_horizontal_space(T) ->
+  T.
+
+strip_space(T, Counter) ->
+  case strip_horizontal_space(T) of
+    "\r\n" ++ Rest -> strip_space(Rest, Counter + 1);
+    "\n" ++ Rest   -> strip_space(Rest, Counter + 1);
+    Rest           -> { Rest, Counter }
+  end.
 
 until_eol("\r\n" ++ _) -> [];
 until_eol("\n" ++ _)   -> [];
@@ -503,11 +461,11 @@ escape_char(List) ->
 
 handle_heredocs(T, Line, H, Scope, Tokens) ->
   case extract_heredoc_with_interpolation(Line, Scope, true, T, H) of
-    { error, Reason } ->
-      { error, Reason, [H, H, H] ++ T, Tokens };
-    { Parts, Rest } ->
+    { ok, NewLine, Parts, Rest } ->
       Token = { string_type(H), Line, unescape_tokens(Parts) },
-      tokenize(Rest, Line, Scope, [Token|Tokens])
+      tokenize(Rest, NewLine, Scope, [Token|Tokens]);
+    { error, Reason } ->
+      { error, Reason, [H, H, H] ++ T, Tokens }
   end.
 
 handle_strings(T, Line, H, Scope, Tokens) ->
@@ -531,10 +489,10 @@ handle_strings(T, Line, H, Scope, Tokens) ->
       tokenize(Rest, NewLine, Scope, [Token|Tokens])
   end.
 
-handle_nonl_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
+handle_unary_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Scope, [{ kw_identifier, Line, Op }|Tokens]);
 
-handle_nonl_op(Rest, Line, Kind, Op, Scope, Tokens) ->
+handle_unary_op(Rest, Line, Kind, Op, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, [{ Kind, Line, Op }|Tokens]).
 
 handle_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
@@ -542,6 +500,45 @@ handle_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
 
 handle_op(Rest, Line, Kind, Op, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, add_token_with_nl({ Kind, Line, Op }, Tokens)).
+
+% ## Three Token Operators
+handle_dot([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when
+    ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
+    ?arrow_op3(T1, T2, T3); ?exp_op3(T1, T2, T3) ->
+  handle_call_identifier(Rest, Line, list_to_atom([T1, T2, T3]), Scope, Tokens);
+
+% ## Two Token Operators
+handle_dot([$.,T1,T2|Rest], Line, Scope, Tokens) when
+    ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
+    ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2) ->
+  handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
+
+% ## Single Token Operators
+handle_dot([$.,T|Rest], Line, Scope, Tokens) when
+    ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
+    ?match_op(T); ?pipe_op(T) ->
+  handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
+
+% ## Exception for .( as it needs to be treated specially in the parser
+handle_dot([$.,$(|Rest], Line, Scope, Tokens) ->
+  tokenize([$(|Rest], Line, Scope, add_token_with_nl({ dot_call_op, Line, '.' }, Tokens));
+
+handle_dot([$.,H|T] = Original, Line, Scope, Tokens) when ?is_quote(H) ->
+  case elixir_interpolation:extract(Line, Scope, true, T, H) of
+    { NewLine, [Part], Rest } when is_binary(Part) ->
+      case unsafe_to_atom(Part, Line, Scope) of
+        { ok, Atom } ->
+          Token = check_call_identifier(identifier, Line, Atom, Rest),
+          tokenize(Rest, NewLine, Scope, [Token|add_token_with_nl({ '.', Line }, Tokens)]);
+        { error, Reason } ->
+          { error, Reason, Original, Tokens }
+      end;
+    { error, Reason } ->
+      interpolation_error(Reason, Original, Tokens, " (for function name starting at line ~B)", [Line])
+  end;
+
+handle_dot([$.|Rest], Line, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, add_token_with_nl({ '.', Line }, Tokens)).
 
 handle_call_identifier(Rest, Line, Op, Scope, Tokens) ->
   Token = check_call_identifier(identifier, Line, Op, Rest),
@@ -575,34 +572,33 @@ collect_modifiers(Rest, Buffer) ->
 %% Heredocs
 
 extract_heredoc_with_interpolation(Line, Scope, Interpol, T, H) ->
-  case extract_heredoc(Line, T, H, Scope) of
-    { error, _ } = Error ->
-      Error;
-    { Body, Rest } ->
+  case extract_heredoc(Line, T, H) of
+    { ok, NewLine, Body, Rest } ->
       case elixir_interpolation:extract(Line + 1, Scope, Interpol, Body, 0) of
         { error, Reason } ->
           { error, interpolation_format(Reason, " (for heredoc starting at line ~B)", [Line]) };
         { _, Parts, [] } ->
-          { Parts, Rest }
-      end
+          { ok, NewLine, Parts, Rest }
+      end;
+    { error, _ } = Error ->
+      Error
   end.
 
-extract_heredoc(Line0, Rest0, Marker, Scope) ->
-  case extract_heredoc_header(Rest0, [], {Line0,Scope#elixir_tokenizer.file}) of
-    { ok, Extra, Rest1 } ->
+extract_heredoc(Line0, Rest0, Marker) ->
+  case extract_heredoc_header(Rest0) of
+    { ok, Rest1 } ->
       %% We prepend a new line so we can transparently remove
       %% spaces later. This new line is removed by calling `tl`
       %% in the final heredoc body three lines below.
       case extract_heredoc_body(Line0, Marker, [$\n|Rest1], []) of
-        { Line1, Body, Rest2, Spaces } ->
-          { tl(remove_heredoc_spaces(Body, Spaces)), merge_heredoc_extra(Line1, Extra, Rest2) };
+        { ok, Line1, Body, Rest2, Spaces } ->
+          { ok, Line1, tl(remove_heredoc_spaces(Body, Spaces)), Rest2 };
         { error, ErrorLine } ->
           Terminator = [Marker, Marker, Marker],
           Message = "missing terminator: ~ts (for heredoc starting at line ~B)",
           { error, { ErrorLine, io_lib:format(Message, [Terminator, Line0]), [] } }
       end;
     error ->
-      %% TODO: Test me once the deprecated continuable heredocs are removed
       Terminator = [Marker, Marker, Marker],
       Message = "heredoc start ~ts must be followed by a new line",
       { error, { Line0, io_lib:format(Message, [Terminator]), [] } }
@@ -625,32 +621,25 @@ remove_heredoc_spaces([], Buffer, _Spaces, _Original) ->
 
 %% Extract the heredoc header.
 
-extract_heredoc_header("\r\n" ++ Rest, Buffer, _Scope) ->
-  { ok, [$\n|Buffer], Rest };
-extract_heredoc_header("\n" ++ Rest, Buffer, _Scope) ->
-  { ok, [$\n|Buffer], Rest };
-extract_heredoc_header([H|T], Buffer, {Line,File}) when not ?is_horizontal_space(H) ->
-  elixir_errors:deprecation([{line,Line}], File, "continuable heredocs are deprecated, parsing will no longer continue on the same line as the heredoc starts"),
-  extract_heredoc_header(T, [H|Buffer], nil);
-extract_heredoc_header([H|T], Buffer, _Scope) ->
-  extract_heredoc_header(T, [H|Buffer], _Scope);
-extract_heredoc_header(_, _, _Scope) ->
+extract_heredoc_header("\r\n" ++ Rest) ->
+  { ok, Rest };
+extract_heredoc_header("\n" ++ Rest) ->
+  { ok, Rest };
+extract_heredoc_header([_|T]) ->
+  extract_heredoc_header(T);
+extract_heredoc_header(_) ->
   error.
 
 %% Extract heredoc body. It returns the heredoc body (in reverse order),
 %% the remaining of the document and the number of spaces the heredoc
 %% is aligned.
 
-%% TODO: This token is deprecated once continuable heredocs are removed
-extract_heredoc_body(_Line, Marker, [{line,NewLine}|Rest], Buffer) ->
-  extract_heredoc_body(NewLine, Marker, Rest, Buffer);
-
 extract_heredoc_body(Line, Marker, Rest, Buffer) ->
   case extract_heredoc_line(Marker, Rest, Buffer, 0) of
     { ok, NewBuffer, NewRest } ->
       extract_heredoc_body(Line + 1, Marker, NewRest, NewBuffer);
     { ok, NewBuffer, NewRest, Spaces } ->
-      { Line, NewBuffer, NewRest, Spaces };
+      { ok, Line, NewBuffer, NewRest, Spaces };
     { error, eof } ->
       { error, Line }
   end.
@@ -674,17 +663,6 @@ extract_heredoc_line(Marker, [Marker,Marker,Marker|T], Buffer, Counter) ->
   { ok, Buffer, T, Counter };
 extract_heredoc_line(_Marker, Rest, Buffer, _Counter) ->
   extract_heredoc_line(Rest, Buffer).
-
-%% Merge heredoc extra by replying it on the buffer. It also adds
-%% a special { line, Line } token to force a line change along the way.
-
-%% TODO: This token is deprecated once continuable heredocs are removed
-merge_heredoc_extra(Line, Extra, Buffer) ->
-  merge_heredoc_extra(Extra, [{line,Line}|Buffer]).
-merge_heredoc_extra([H|T], Buffer) ->
-  merge_heredoc_extra(T, [H|Buffer]);
-merge_heredoc_extra([], Buffer) ->
-  Buffer.
 
 %% Integers and floats
 %% At this point, we are at least sure the first digit is a number.

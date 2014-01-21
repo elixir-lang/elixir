@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule Typespec.TypeTest do
   use ExUnit.Case, async: true
 
+  defrecord Rec, [:first, :last]
+
   # This macro allows us to focus on the result of the
   # definition and not on the hassles of handling test
   # module
@@ -23,16 +25,6 @@ defmodule Typespec.TypeTest do
         @type mytype = 1
       end
     end
-    assert_raise CompileError, %r"invalid type specification: mytype = 1", fn ->
-      test_module do
-        @typep mytype = 1
-      end
-    end
-    assert_raise CompileError, %r"invalid type specification: mytype = 1", fn ->
-      test_module do
-        @opaque mytype = 1
-      end
-    end
   end
 
   test "invalid function specification" do
@@ -41,13 +33,6 @@ defmodule Typespec.TypeTest do
         @spec myfun = 1
       end
     end
-  end
-
-  test "@type with no body (defaults to 'term')" do
-    spec = test_module do
-      @type mytype
-    end
-    assert {:mytype, {:type, _, :term, []}, []} = spec
   end
 
   test "@type with a single type" do
@@ -195,8 +180,7 @@ defmodule Typespec.TypeTest do
 
   test "@type with a union" do
     spec = test_module do
-      @type mytype :: integer | char_list
-                    | atom
+      @type mytype :: integer | char_list | atom
     end
     assert {:mytype, {:type, _, :union, [{:type, _, :integer, []},
              {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :char_list}, []]},
@@ -205,10 +189,10 @@ defmodule Typespec.TypeTest do
 
   test "@type with an access macro" do
     spec = test_module do
-      @type mytype :: Range[first: integer]
+      @type mytype :: Rec[first: integer]
     end
     assert {:mytype, {:type, _, :tuple,
-             [{:atom, _, Range}, {:type, _, :integer, []}, {:type, _, :any, []}]}, []} = spec
+             [{:atom, _, Rec}, {:type, _, :integer, []}, {:type, _, :any, []}]}, []} = spec
   end
 
   test "@type with keywords" do
@@ -238,7 +222,7 @@ defmodule Typespec.TypeTest do
 
   test "@type with annotations" do
     {spec1, spec2} = test_module do
-      t1 = @type mytype :: named :: integer
+      t1 = @type mytype :: (named :: integer)
       t2 = @type mytype1 :: (a :: integer -> integer)
       {t1, t2}
     end

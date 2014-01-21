@@ -830,31 +830,27 @@ defmodule EnumTest.Others do
 
   import ExUnit.CaptureIO
 
-  test :reverse do
+  test "reverse custom enumerable" do
     assert Enum.reverse(URI.query_decoder("foo=bar&baz=bat")) ==
       [{ "baz", "bat" }, { "foo", "bar" }]
   end
 
-  test :count do
-    assert Enum.count(URI.query_decoder("foo=bar&baz=bat")) == 2
-  end
-
-  test :sort do
-    d = HashDict.new [a: 1, another: 1, some: 1, multi_word: 1,
-                      this: 2, punctuation: 1, is: 2, sentence: 2, with: 1]
+  test "sort with custom enumerable" do
+    d = HashDict.new [a: 7, another: 4, some: 2, multi_word: 3,
+                      this: 9, punctuation: 1, is: 8, sentence: 6, with: 5]
     assert Enum.sort(d, fn({_, v1}, {_, v2}) -> v1 > v2 end) ==
-           [this: 2, is: 2, sentence: 2, with: 1, a: 1, another: 1,
-           multi_word: 1, some: 1, punctuation: 1]
+           [this: 9, is: 8, a: 7, sentence: 6, with: 5,
+            another: 4, multi_word: 3, some: 2, punctuation: 1]
   end
 
-  test :take_with_side_effects do
+  test "take with side effects" do
     stream = Stream.unfold(1, fn x -> IO.puts x; { x, x + 1 } end)
     assert capture_io(fn ->
       Enum.take(stream, 1)
     end) == "1\n"
   end
 
-  test :take_does_not_consume_next_without_a_need do
+  test "takes does not consume next without a need" do
     import PathHelpers
     File.open!(fixture_path("one-liner.txt"), [], fn file ->
       iterator = IO.stream(file, :line)
@@ -863,7 +859,7 @@ defmodule EnumTest.Others do
     end)
   end
 
-  test :take_with_no_item_works_as_no_op do
+  test "take with no item works as no-op" do
     import PathHelpers
     iterator = File.stream!(fixture_path("unknown.txt"))
 

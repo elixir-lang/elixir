@@ -21,11 +21,6 @@ defmodule Mix.Tasks.CleanTest do
     :ok
   end
 
-  teardown do
-    Mix.Project.pop
-    :ok
-  end
-
   test "removes the build application" do
     in_fixture "deps_status", fn ->
       Mix.Tasks.Compile.run ["--no-deps"]

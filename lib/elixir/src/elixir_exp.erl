@@ -122,9 +122,6 @@ expand({ import, Meta, [Ref, KV] }, E) ->
 
 expand({ '__MODULE__', _, Atom }, E) when is_atom(Atom) ->
   { E#elixir_env.module, E };
-expand({ '__FILE__', Meta, Atom }, E) when is_atom(Atom) ->
-  elixir_errors:deprecation(Meta, E#elixir_env.file, "__FILE__ is deprecated, please use __DIR__ or __ENV__.file instead"),
-  { E#elixir_env.file, E };
 expand({ '__DIR__', _, Atom }, E) when is_atom(Atom) ->
   { filename:dirname(E#elixir_env.file), E };
 expand({ '__CALLER__', _, Atom } = Caller, E) when is_atom(Atom) ->
@@ -296,9 +293,6 @@ expand({ Name, Meta, Kind } = Var, #elixir_env{vars=Vars} = E) when is_atom(Name
 
           compile_error(Meta, E#elixir_env.file, "expected var ~ts~ts to expand to an existing "
                         "variable or be a part of a match", [Name, Extra]);
-        E#elixir_env.context == guard ->
-          compile_error(Meta, E#elixir_env.file, "unknown variable ~ts or cannot invoke "
-                        "function ~ts/0 inside guard", [Name, Name]);
         true ->
           expand({ Name, Meta, [] }, E)
       end

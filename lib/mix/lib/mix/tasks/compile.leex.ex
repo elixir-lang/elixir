@@ -3,13 +3,11 @@ defmodule Mix.Tasks.Compile.Leex do
 
   use Mix.Task
 
-  @hidden true
-  @shortdoc "Compile Leex source files"
   @recursive true
   @manifest ".compile.leex"
 
   @moduledoc """
-  A task to compile Leex source files.
+  Compile Leex source files.
 
   When this task runs, it will check the modification time of every file, and
   if it has changed, the file will be compiled. Files will be

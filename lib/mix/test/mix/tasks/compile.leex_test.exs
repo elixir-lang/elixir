@@ -9,11 +9,6 @@ defmodule Mix.Tasks.Compile.LeexTest do
     :ok
   end
 
-  teardown do
-    Mix.Project.pop
-    :ok
-  end
-
   test "compilation continues if one file fails to compile" do
     in_fixture "compile_leex", fn ->
       File.write! "src/zzz.xrl", """

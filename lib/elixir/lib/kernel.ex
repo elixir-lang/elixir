@@ -212,44 +212,15 @@ defmodule Kernel do
     :erlang.binary_to_float(some_binary)
   end
 
-  @doc """
-  Returns an Erlang term which is the result of decoding the binary
-  object `binary`, which must be encoded according to the Erlang external
-  term format.
-
-  ## Examples
-
-      iex> binary_to_term(term_to_binary("foo"))
-      "foo"
-
-  """
-  @spec binary_to_term(binary) :: term
+  @doc false
   def binary_to_term(binary) do
+    IO.write "binary_to_term/1 is deprecated, please use :erlang.binary_to_term/1 instead\n#{Exception.format_stacktrace}"
     :erlang.binary_to_term(binary)
   end
 
-  @doc """
-  As `binary_to_term/1`, but accepts a safe option useful when receiving
-  binaries from an untrusted source.
-
-  When enabled, it prevents decoding data that may be used to attack the
-  Erlang system. In the event of receiving unsafe data, decoding fails
-  with a badarg error.
-
-  Currently, this prevents creation of new atoms directly, creation of
-  new atoms indirectly (as they are embedded in certain structures like pids,
-  refs, funs, etc), and creation of new external function references. None
-  of those resources are currently garbage collected, so unchecked creation
-  of them can exhaust available memory.
-
-  ## Examples
-
-      iex> binary_to_term(term_to_binary("foo"), [:safe])
-      "foo"
-
-  """
-  @spec binary_to_term(binary, [] | [:safe]) :: term
+  @doc false
   def binary_to_term(binary, options) do
+    IO.write "binary_to_term/2 is deprecated, please use :erlang.binary_to_term/2 instead\n#{Exception.format_stacktrace}"
     :erlang.binary_to_term(binary, options)
   end
 
@@ -504,13 +475,6 @@ defmodule Kernel do
   @spec iolist_to_binary(iolist | binary) :: binary
   def iolist_to_binary(item) do
     :erlang.iolist_to_binary(item)
-  end
-
-  @doc false
-  @spec is_alive :: boolean
-  def is_alive do
-    IO.write "is_alive/0 is deprecated, please use Node.alive?/0 instead\n#{Exception.format_stacktrace}"
-    :erlang.is_alive
   end
 
   @doc """
@@ -978,30 +942,15 @@ defmodule Kernel do
     :erlang.spawn_link(module, fun, args)
   end
 
-  @doc """
-  Returns a binary which is the result of encoding the given `term`
-  according to the Erlang external term format.
-
-  This can be used for a variety of purposes, for example, writing a term
-  to a file in an efficient way, or sending an Erlang term to some type
-  of communications channel not supported by distributed.
-  """
-  @spec term_to_binary(term) :: binary
+  @doc false
   def term_to_binary(term) do
+    IO.write "term_to_binary/1 is deprecated, please use :erlang.term_to_binary/1 instead\n#{Exception.format_stacktrace}"
     :erlang.term_to_binary(term)
   end
 
-  @doc """
-  The same as `term_to_binary/1` but also supports two options:
-
-  * `compressed`: the level of compression to be used from 0 to 9;
-  * `minor_version`: used to control the details of encoding. Can be 0 or 1,
-    please read http://www.erlang.org/doc/man/erlang.html#term_to_binary-2
-    for more details
-
-  """
-  @spec term_to_binary(term, list({:compressed, 0..9}|{:minor_version, 0}|{:minor_version, 1})) :: binary
+  @doc false
   def term_to_binary(term, opts) do
+    IO.write "term_to_binary/2 is deprecated, please use :erlang.term_to_binary/2 instead\n#{Exception.format_stacktrace}"
     :erlang.term_to_binary(term, opts)
   end
 
@@ -1134,12 +1083,6 @@ defmodule Kernel do
   """
   defmacro left / right do
     quote do: __op__(:/, unquote(left), unquote(right))
-  end
-
-  @doc false
-  def pid <- msg do
-    IO.write "<-/2 is deprecated, please use send/2 instead\n#{Exception.format_stacktrace}"
-    :erlang.!(pid, msg)
   end
 
   @doc """
@@ -1774,22 +1717,7 @@ defmodule Kernel do
 
   """
   @spec inspect(Inspect.t, Keyword.t) :: String.t
-  def inspect(arg, opts // [])
-
-  def inspect(arg, opts) when is_tuple(opts) and tuple_size(opts) > 0 and elem(opts, 0) == Inspect.Opts do
-    IO.write "Kernel.inspect/2 with Inspect.Opts is deprecated, please use Inspect.Algebra.to_doc/2 instead\n#{Exception.format_stacktrace}"
-    Inspect.Algebra.to_doc(arg, opts)
-  end
-
-  def inspect(arg, opts) when is_list(opts) do
-    case Keyword.get(opts, :raw) do
-      nil ->
-        :ok
-      raw ->
-        IO.write "Kernel.inspect/2 with :raw option is deprecated, please use :records instead\n#{Exception.format_stacktrace}"
-        opts = opts ++ [records: not raw]
-    end
-
+  def inspect(arg, opts // []) when is_list(opts) do
     opts  = Inspect.Opts.new(opts)
     limit = case opts.pretty do
       true  -> opts.width
@@ -1977,7 +1905,7 @@ defmodule Kernel do
     case function? do
       true ->
         stack =
-          case bootstraped?(Macro.Env) do
+          case bootstraped?(Path) do
             true  -> env.stacktrace
             false -> []
           end
@@ -3098,21 +3026,12 @@ defmodule Kernel do
       user()        #=> { :user, "José", 25 }
       user(age: 26) #=> { :user, "José", 26 }
 
-      # To get a field from the record
-      user(record, :name) #=> "José"
-
-      # To get many fields from the record
-      user(record, [:name, :age]) #=> ["José", 25]
+      # To get a field from the record use pattern matching
+      user(name: name) = user
+      name #=> "José"
 
       # To update the record
       user(record, age: 26) #=> { :user, "José", 26 }
-
-      # To convert the record to keywords
-      user(record) #=> [name: "José", age: 25]
-
-      # To match against the record
-      user(name: name) = record
-      name #=> "José"
 
   By default, Elixir uses the record name as the first element of the tuple.
   In some cases though, this might be undesirable and one can explicitly
