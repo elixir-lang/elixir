@@ -81,12 +81,16 @@ defmodule Macro.Env do
   def stacktrace(record) do
     cond do
       nil?(record.module) ->
-        [{ :elixir_compiler, :__FILE__, 1, location(record) }]
+        [{ :elixir_compiler, :__FILE__, 1, relative_location(record) }]
       nil?(record.function) ->
-        [{ module(record), :__MODULE__, 0, location(record) }]
+        [{ module(record), :__MODULE__, 0, relative_location(record) }]
       true ->
         { name, arity } = record.function
-        [{ module(record), name, arity, location(record) }]
+        [{ module(record), name, arity, relative_location(record) }]
     end
+  end
+
+  defp relative_location(record) do
+    [file: Path.relative_to_cwd(file(record)), line: line(record)]
   end
 end

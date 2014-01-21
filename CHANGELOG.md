@@ -8,11 +8,11 @@
 
 * Deprecations
   * [Kernel] `binary_to_term/1`, `binary_to_term/2`, `term_to_binary/1` and `term_to_binary/2` are deprecated in favor of their counterparts in the `:erlang` module
+  * [Record] Deprecate `to_keywords`, `getter` and `list getter` funtionalities in `defrecordp`
 
 * Backwards incompatible changes
   * [Kernel] Remove `**` from the list of allowed operators
   * [Range] `Range` is no longer a record, instead use `first .. last` if you need pattern matching
-
 
 # v0.12.2 (2014-01-15)
 

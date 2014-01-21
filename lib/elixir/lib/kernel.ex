@@ -3026,21 +3026,12 @@ defmodule Kernel do
       user()        #=> { :user, "José", 25 }
       user(age: 26) #=> { :user, "José", 26 }
 
-      # To get a field from the record
-      user(record, :name) #=> "José"
-
-      # To get many fields from the record
-      user(record, [:name, :age]) #=> ["José", 25]
+      # To get a field from the record use pattern matching
+      user(name: name) = user
+      name #=> "José"
 
       # To update the record
       user(record, age: 26) #=> { :user, "José", 26 }
-
-      # To convert the record to keywords
-      user(record) #=> [name: "José", age: 25]
-
-      # To match against the record
-      user(name: name) = record
-      name #=> "José"
 
   By default, Elixir uses the record name as the first element of the tuple.
   In some cases though, this might be undesirable and one can explicitly
