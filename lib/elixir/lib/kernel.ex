@@ -1905,7 +1905,7 @@ defmodule Kernel do
     case function? do
       true ->
         stack =
-          case bootstraped?(Macro.Env) do
+          case bootstraped?(Path) do
             true  -> env.stacktrace
             false -> []
           end
