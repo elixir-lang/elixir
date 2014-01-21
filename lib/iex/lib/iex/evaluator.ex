@@ -200,12 +200,52 @@ defmodule IEx.Evaluator do
       io_error callback.()
       case prune_stacktrace(trace) do
         []    -> :ok
-        other -> io_error Exception.format_stacktrace(other)
+        other -> pretty_print_stacktrace(other)
       end
     catch
-      _, _ ->
-        io_error "** (IEx.Error) error when printing exception message and stacktrace"
+      type, detail ->
+        io_error "** (IEx.Error) #{type} (#{detail}) when printing exception message and stacktrace"
     end
+  end
+
+  # at this point, the trace if nonempty
+  defp pretty_print_stacktrace(trace) do
+    frames = (lc frame inlist trace do
+                Exception.format_stacktrace_entry_into_fields(frame)
+              end)
+    col_0_width = calculate_width(frames, 0)
+    col_1_width = calculate_width(frames, 1)
+    lines = (lc frame inlist frames, do: pretty_print_frame(frame, col_0_width, col_1_width))
+    IO.puts  :stdio, "  " <> Enum.join(lines, "\n  ")
+  end
+
+  defp pretty_print_frame({app, location, detail}, c1_width, c2_width) do
+    s_app = String.rjust(app||"", c1_width)
+    s_loc = String.ljust(location, c2_width)
+      
+    "#{IEx.color(:eval_error, s_app)} #{IEx.color(:eval_error, s_loc)} #{IEx.color(:eval_result, detail)}"
+  end
+
+  # Look trough all the entries in a particular column. If the
+  # longest differs from the smallest by less than 8, return
+  # the longest, so that smaller entries will be padded
+  # and all entries for that column will be the same length. 
+  # If the difference is greater, return 0, and no padding
+  # will be done
+  defp calculate_width([ head | rest_of_lists ], column) do
+    first_line_length = length_for(head, column)
+    {min, max} = Enum.reduce(rest_of_lists, 
+                              {first_line_length,first_line_length}, 
+                              fn (line, {min, max}) ->
+                                   length = length_for(line, column)
+                                   {min(min, length), max(max, length)}
+                              end)
+    if max - min < 8, do: max, else: 0
+  end
+
+  defp length_for(line, column) do
+    string = elem line, column
+    if string, do: String.length(string), else: 0
   end
 
   defp prune_stacktrace([{ :erl_eval, _, _, _ }|_]),  do: []
