@@ -216,35 +216,46 @@ defmodule Exception do
   @doc """
   Receives a tuple representing a stacktrace entry and formats it.
   """
-  def format_stacktrace_entry(entry)
+  def format_stacktrace_entry(entry) do
+    format_stacktrace_entry_into_fields(entry)
+    |> Enum.filter(&(&1))
+    |> tuple_to_list
+    |> Enum.join(" ")
+  end
+
+  @doc """
+  Returns the fields from a single frame in a stack trace as a list of 
+  `[ app, location, mfa/module/file ]` where all but location can be nil. 
+  Intended for use inside the Elixir libraries and iex only
+  """
 
   # From Macro.Env.stacktrace
-  def format_stacktrace_entry({ module, :__MODULE__, 0, location }) do
-    format_location(location) <> inspect(module) <> " (module)"
+  def format_stacktrace_entry_into_fields({ module, :__MODULE__, 0, location }) do
+    { nil, format_location(location), inspect(module) <> " (module)" }
   end
 
   # From :elixir_compiler_*
-  def format_stacktrace_entry({ _module, :__MODULE__, 1, location }) do
-    format_location(location) <> "(module)"
+  def format_stacktrace_entry_into_fields({ _module, :__MODULE__, 1, location }) do
+    { nil, format_location(location), "(module)" }
   end
 
   # From :elixir_compiler_*
-  def format_stacktrace_entry({ _module, :__FILE__, 1, location }) do
-    format_location(location) <> "(file)"
+  def format_stacktrace_entry_into_fields({ _module, :__FILE__, 1, location }) do
+    { nil, format_location(location),  "(file)" }
   end
 
-  def format_stacktrace_entry({module, fun, arity, location}) do
-    format_application(module) <> format_location(location) <> format_mfa(module, fun, arity)
+  def format_stacktrace_entry_into_fields({module, fun, arity, location}) do
+    { format_application(module), format_location(location), format_mfa(module, fun, arity) }
   end
 
-  def format_stacktrace_entry({fun, arity, location}) do
-    format_location(location) <> format_fa(fun, arity)
+  def format_stacktrace_entry_into_fields({fun, arity, location}) do
+    { nil, format_location(location), format_fa(fun, arity) }
   end
 
   defp format_application(module) do
     case :application.get_application(module) do
-      { :ok, app } -> "(" <> atom_to_binary(app) <> ") "
-      :undefined   -> ""
+      { :ok, app } -> "(" <> atom_to_binary(app) <> ")"
+      :undefined   -> nil
     end
   end
 
@@ -369,10 +380,10 @@ defmodule Exception do
   ## Examples
 
       iex> Exception.format_file_line("foo", 1)
-      "foo:1: "
+      "foo:1:"
 
       iex> Exception.format_file_line("foo", nil)
-      "foo: "
+      "foo:"
 
       iex> Exception.format_file_line(nil, nil)
       ""
@@ -381,9 +392,9 @@ defmodule Exception do
   def format_file_line(file, line) do
     if file do
       if line && line != 0 do
-        "#{file}:#{line}: "
+        "#{file}:#{line}:"
       else
-        "#{file}: "
+        "#{file}:"
       end
     else
       ""
