@@ -25,16 +25,6 @@ defmodule Typespec.TypeTest do
         @type mytype = 1
       end
     end
-    assert_raise CompileError, %r"invalid type specification: mytype = 1", fn ->
-      test_module do
-        @typep mytype = 1
-      end
-    end
-    assert_raise CompileError, %r"invalid type specification: mytype = 1", fn ->
-      test_module do
-        @opaque mytype = 1
-      end
-    end
   end
 
   test "invalid function specification" do
