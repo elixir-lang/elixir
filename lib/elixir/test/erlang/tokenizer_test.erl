@@ -81,7 +81,11 @@ identifier_test() ->
   [{paren_identifier,1,'a0c!'},{'(',1},{')',1}] = tokenize("a0c!()").
 
 module_macro_test() ->
-    [{identifier,1,'__MODULE__'}] = tokenize("__MODULE__").
+  [{identifier,1,'__MODULE__'}] = tokenize("__MODULE__").
+
+triple_dot_test() ->
+  [{identifier,1,'...'}] = tokenize("..."),
+  [{'.',1},{identifier,1,'..'}] = tokenize(". ..").
 
 dot_test() ->
   [{identifier,1,foo},

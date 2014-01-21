@@ -208,56 +208,6 @@ tokenize([$?,$\\,H|T], Line, Scope, Tokens) ->
 tokenize([$?,Char|T], Line, Scope, Tokens) ->
   tokenize(T, Line, Scope, [{ number, Line, Char }|Tokens]);
 
-% Dot identifier/operators
-tokenize("..." ++ Rest, Line, Scope, Tokens) ->
-  Token = check_call_identifier(identifier, Line, '...', Rest),
-  tokenize(Rest, Line, Scope, [Token|Tokens]);
-
-tokenize([$.,T|Tail], Line, Scope, Tokens) when ?is_space(T) ->
-  case [T|Tail] of
-    [$\r,$\n|Rest] -> tokenize([$.|Rest], Line + 1, Scope, Tokens);
-    [$\n|Rest]     -> tokenize([$.|Rest], Line + 1, Scope, Tokens);
-    [_|Rest]       -> tokenize([$.|Rest], Line, Scope, Tokens)
-  end;
-
-% ## Three Token Operators
-tokenize([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when
-    ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?exp_op3(T1, T2, T3) ->
-  handle_call_identifier(Rest, Line, list_to_atom([T1, T2, T3]), Scope, Tokens);
-
-% ## Two Token Operators
-tokenize([$.,T1,T2|Rest], Line, Scope, Tokens) when
-    ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2) ->
-  handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
-
-% ## Single Token Operators
-tokenize([$.,T|Rest], Line, Scope, Tokens) when
-    ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
-    ?match_op(T); ?pipe_op(T) ->
-  handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
-
-% Dot call
-
-% ## Exception for .( as it needs to be treated specially in the parser
-tokenize([$.,$(|Rest], Line, Scope, Tokens) ->
-  tokenize([$(|Rest], Line, Scope, add_token_with_nl({ dot_call_op, Line, '.' }, Tokens));
-
-tokenize([$.,H|T] = Original, Line, Scope, Tokens) when ?is_quote(H) ->
-  case elixir_interpolation:extract(Line, Scope, true, T, H) of
-    { NewLine, [Part], Rest } when is_binary(Part) ->
-      case unsafe_to_atom(Part, Line, Scope) of
-        { ok, Atom } ->
-          Token = check_call_identifier(identifier, Line, Atom, Rest),
-          tokenize(Rest, NewLine, Scope, [Token|add_token_with_nl({ '.', Line }, Tokens)]);
-        { error, Reason } ->
-          { error, Reason, Original, Tokens }
-      end;
-    { error, Reason } ->
-      interpolation_error(Reason, Original, Tokens, " (for function name starting at line ~B)", [Line])
-  end;
-
 % Heredocs
 
 tokenize("\"\"\"" ++ T, Line, Scope, Tokens) ->
@@ -346,9 +296,13 @@ tokenize("\r\n" ++ Rest, Line, Scope, Tokens) ->
 
 % Stand-alone tokens
 
+tokenize("..." ++ Rest, Line, Scope, Tokens) ->
+  Token = check_call_identifier(identifier, Line, '...', Rest),
+  tokenize(Rest, Line, Scope, [Token|Tokens]);
+
 % ## Three token operators
 tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
-  handle_nonl_op(Rest, Line, unary_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
+  handle_unary_op(Rest, Line, unary_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
 
 tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?comp_op3(T1, T2, T3) ->
   handle_op(Rest, Line, comp_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
@@ -404,16 +358,16 @@ tokenize([$&,D|Rest], Line, Scope, Tokens) when ?is_digit(D) ->
   tokenize([D|Rest], Line, Scope, [{ '&', Line }|Tokens]);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?at_op(T) ->
-  handle_nonl_op(Rest, Line, at_op, list_to_atom([T]), Scope, Tokens);
+  handle_unary_op(Rest, Line, at_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?unary_op(T) ->
-  handle_nonl_op(Rest, Line, unary_op, list_to_atom([T]), Scope, Tokens);
+  handle_unary_op(Rest, Line, unary_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?comp_op(T) ->
   handle_op(Rest, Line, comp_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?dual_op(T) ->
-  handle_nonl_op(Rest, Line, dual_op, list_to_atom([T]), Scope, Tokens);
+  handle_unary_op(Rest, Line, dual_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?mult_op(T) ->
   handle_op(Rest, Line, mult_op, list_to_atom([T]), Scope, Tokens);
@@ -424,8 +378,11 @@ tokenize([T|Rest], Line, Scope, Tokens) when ?match_op(T) ->
 tokenize([T|Rest], Line, Scope, Tokens) when ?pipe_op(T) ->
   handle_op(Rest, Line, pipe_op, list_to_atom([T]), Scope, Tokens);
 
-tokenize([$.|Rest], Line, Scope, Tokens) ->
-  tokenize(Rest, Line, Scope, add_token_with_nl({ '.', Line }, Tokens));
+% Dot
+
+tokenize([$.|T], Line, Scope, Tokens) ->
+  { Rest, Counter } = strip_space(T, 0),
+  handle_dot([$.|Rest], Line + Counter, Scope, Tokens);
 
 % Integers and floats
 
@@ -475,9 +432,21 @@ tokenize([Space, Sign, NotMarker|T], Line, Scope, [{ Identifier, _, _ } = H|Toke
 % Spaces
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?is_horizontal_space(T) ->
-  tokenize(Rest, Line, Scope, Tokens);
+  tokenize(strip_horizontal_space(Rest), Line, Scope, Tokens);
 tokenize(T, Line, _Scope, Tokens) ->
   { error, { Line, "invalid token: ", until_eol(T) }, T, Tokens }.
+
+strip_horizontal_space([H|T]) when ?is_horizontal_space(H) ->
+  strip_horizontal_space(T);
+strip_horizontal_space(T) ->
+  T.
+
+strip_space(T, Counter) ->
+  case strip_horizontal_space(T) of
+    "\r\n" ++ Rest -> strip_space(Rest, Counter + 1);
+    "\n" ++ Rest   -> strip_space(Rest, Counter + 1);
+    Rest           -> { Rest, Counter }
+  end.
 
 until_eol("\r\n" ++ _) -> [];
 until_eol("\n" ++ _)   -> [];
@@ -520,10 +489,10 @@ handle_strings(T, Line, H, Scope, Tokens) ->
       tokenize(Rest, NewLine, Scope, [Token|Tokens])
   end.
 
-handle_nonl_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
+handle_unary_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Scope, [{ kw_identifier, Line, Op }|Tokens]);
 
-handle_nonl_op(Rest, Line, Kind, Op, Scope, Tokens) ->
+handle_unary_op(Rest, Line, Kind, Op, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, [{ Kind, Line, Op }|Tokens]).
 
 handle_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
@@ -531,6 +500,45 @@ handle_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
 
 handle_op(Rest, Line, Kind, Op, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, add_token_with_nl({ Kind, Line, Op }, Tokens)).
+
+% ## Three Token Operators
+handle_dot([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when
+    ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
+    ?arrow_op3(T1, T2, T3); ?exp_op3(T1, T2, T3) ->
+  handle_call_identifier(Rest, Line, list_to_atom([T1, T2, T3]), Scope, Tokens);
+
+% ## Two Token Operators
+handle_dot([$.,T1,T2|Rest], Line, Scope, Tokens) when
+    ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
+    ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2) ->
+  handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
+
+% ## Single Token Operators
+handle_dot([$.,T|Rest], Line, Scope, Tokens) when
+    ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
+    ?match_op(T); ?pipe_op(T) ->
+  handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
+
+% ## Exception for .( as it needs to be treated specially in the parser
+handle_dot([$.,$(|Rest], Line, Scope, Tokens) ->
+  tokenize([$(|Rest], Line, Scope, add_token_with_nl({ dot_call_op, Line, '.' }, Tokens));
+
+handle_dot([$.,H|T] = Original, Line, Scope, Tokens) when ?is_quote(H) ->
+  case elixir_interpolation:extract(Line, Scope, true, T, H) of
+    { NewLine, [Part], Rest } when is_binary(Part) ->
+      case unsafe_to_atom(Part, Line, Scope) of
+        { ok, Atom } ->
+          Token = check_call_identifier(identifier, Line, Atom, Rest),
+          tokenize(Rest, NewLine, Scope, [Token|add_token_with_nl({ '.', Line }, Tokens)]);
+        { error, Reason } ->
+          { error, Reason, Original, Tokens }
+      end;
+    { error, Reason } ->
+      interpolation_error(Reason, Original, Tokens, " (for function name starting at line ~B)", [Line])
+  end;
+
+handle_dot([$.|Rest], Line, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, add_token_with_nl({ '.', Line }, Tokens)).
 
 handle_call_identifier(Rest, Line, Op, Scope, Tokens) ->
   Token = check_call_identifier(identifier, Line, Op, Rest),
