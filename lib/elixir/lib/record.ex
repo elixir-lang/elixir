@@ -916,6 +916,7 @@ defmodule Record do
       raise ArgumentError, message: "record field default value #{inspect atom} can only contain " <>
                                     "functions that point to an existing &Mod.fun/arity"
     end
+    other
   end
 
   defp check_value(atom, other) when is_reference(other) or is_pid(other) or is_port(other) do
