@@ -64,8 +64,6 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received { :mix_shell, :info, ["* Compiling git_repo"] }
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
     end
-  after
-    Mix.Project.pop
   end
 
   test "gets many levels deep dependencies" do
@@ -88,7 +86,6 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "checks if repo information changes" do
@@ -115,7 +112,6 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "recompiles the project when a deps change" do
@@ -143,7 +139,6 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "does not recompiles dependencies if nothing changed" do
@@ -161,7 +156,6 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "all up to date dependencies" do
@@ -179,7 +173,6 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "requires dependencies before compilation" do
@@ -192,7 +185,6 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "updates the lock when the repo updates" do
@@ -221,7 +213,6 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "updates the repo when the lock updates" do
@@ -258,7 +249,6 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "updates the repo and the lock when the mixfile updates" do
@@ -287,7 +277,6 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "does not attempt to compile projects that could not be retrieved" do
@@ -299,8 +288,6 @@ defmodule Mix.Tasks.DepsGitTest do
       end
       assert exception.message =~ "Command `git clone"
     end
-  after
-    Mix.Project.pop
   end
 
   test "does not load bad mix files on get" do
@@ -317,7 +304,6 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "does not load bad mix files on update" do
@@ -334,7 +320,6 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   defp refresh(post_config) do

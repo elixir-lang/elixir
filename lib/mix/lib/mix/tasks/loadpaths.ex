@@ -4,11 +4,6 @@ defmodule Mix.Tasks.Loadpaths do
   @moduledoc """
   Load the application and its dependencies paths.
 
-  ## Configuration
-
-  * `:load_paths` extra load paths to be added.
-    They are added with lower priority than the app ones.
-
   ## Command line options
 
   * `--no-deps` - do not load dependencies

@@ -66,8 +66,6 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
       assert_received { :mix_shell, :info, ["  the dependency is not available, run `mix deps.get`"] }
     end
-  after
-    Mix.Project.pop
   end
 
   test "prints list of dependencies and their status, including req mismatches and custom apps" do
@@ -83,8 +81,6 @@ defmodule Mix.Tasks.DepsTest do
       refute_received { :mix_shell, :info, ["  could not find app file at _build/shared/lib/noappfile/ebin/apppath.app" <> _] }
       refute_received { :mix_shell, :info, ["  could not find app file at _build/shared/lib/noappfile/ebin/noappfile.app" <> _] }
     end
-  after
-    Mix.Project.pop
   end
 
   test "prints list of dependencies including elixir req mismatches" do
@@ -106,8 +102,6 @@ defmodule Mix.Tasks.DepsTest do
       message = "  the dependency requires Elixir ~> 0.1.0 but you are running on v#{System.version}"
       assert_received { :mix_shell, :info, [^message] }
     end
-  after
-    Mix.Project.pop
   end
 
   test "prints list of dependencies and their lock status" do
@@ -127,8 +121,6 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"] }
       assert_received { :mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your mixfile"] }
     end
-  after
-    Mix.Project.pop
   end
 
   test "checks list of dependencies and their status with success" do
@@ -137,8 +129,6 @@ defmodule Mix.Tasks.DepsTest do
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Check.run []
     end
-  after
-    Mix.Project.pop
   end
 
   test "checks list of dependencies and their status on failure" do
@@ -160,8 +150,6 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :error, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
       assert_received { :mix_shell, :error, ["  the dependency is not available, run `mix deps.get`"] }
     end
-  after
-    Mix.Project.pop
   end
 
   test "compiles and prunes builds per environment" do
@@ -184,8 +172,6 @@ defmodule Mix.Tasks.DepsTest do
       refute File.exists?("_build/dev/lib/ok/ebin/ok.app")
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
     end
-  after
-    Mix.Project.pop
   end
 
   test "copies dev dependency when building per environment" do
@@ -210,9 +196,6 @@ defmodule Mix.Tasks.DepsTest do
       # We don't get a message becaused we copied the contents over
       refute_received { :mix_shell, :info, ["Generated ok.app"] }
     end
-  after
-    Mix.env(:dev)
-    Mix.Project.pop
   end
 
   test "does not choke when another environment is compiled first than dep" do
@@ -228,9 +211,6 @@ defmodule Mix.Tasks.DepsTest do
       assert File.read!("_build/test/lib/ok/priv/sample") == "SAMPLE"
       assert_received { :mix_shell, :info, ["Generated ok.app"] }
     end
-  after
-    Mix.env(:dev)
-    Mix.Project.pop
   end
 
   test "does not copy if environments do not match" do
@@ -253,9 +233,6 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Compile.run []
       assert_received { :mix_shell, :info, ["Generated ok.app"] }
     end
-  after
-    Mix.env(:dev)
-    Mix.Project.pop
   end
 
   test "unlocks all deps" do
@@ -266,8 +243,6 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Unlock.run ["--all"]
       assert Mix.Deps.Lock.read == []
     end
-  after
-    Mix.Project.pop
   end
 
   test "unlocks specific deps" do
@@ -277,8 +252,6 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Unlock.run ["git_repo", "unknown"]
       assert Mix.Deps.Lock.read == [another: "hash"]
     end
-  after
-    Mix.Project.pop
   end
 
   ## Deps environment
@@ -314,8 +287,6 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Update.run ["--all"]
       assert_received { :mix_shell, :info, [":raw_repo env is prod"] }
     end
-  after
-    Mix.Project.pop
   end
 
   test "can customize environment" do
@@ -325,8 +296,6 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Update.run ["--all"]
       assert_received { :mix_shell, :info, [":raw_repo env is dev"] }
     end
-  after
-    Mix.Project.pop
   end
 
   ## Nested dependencies
@@ -411,8 +380,6 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* Updating deps_repo (custom/deps_repo)"] }
       assert_received { :mix_shell, :info, ["* Compiling deps_repo"] }
     end
-  after
-    Mix.Project.pop
   end
 
   test "respects --quiet in deps.compile" do
@@ -425,8 +392,6 @@ defmodule Mix.Tasks.DepsTest do
       refute_received { :mix_shell, :info, ["* Compiling deps_repo"] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
     end
-  after
-    Mix.Project.pop
   end
 
   test "fails on diverged dependencies" do
@@ -445,8 +410,6 @@ defmodule Mix.Tasks.DepsTest do
         0 -> flunk "expected diverged error message"
       end
     end
-  after
-    Mix.Project.pop
   end
 
   test "fails on diverged dependencies by requirement" do
@@ -481,8 +444,6 @@ defmodule Mix.Tasks.DepsTest do
         0 -> flunk "expected diverged req error message"
       end
     end
-  after
-    Mix.Project.pop
   end
 
   test "fails on diverged dependencies even when optional" do
@@ -511,8 +472,6 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_received { :mix_shell, :error, ["  the dependency git_repo in mix.exs is overriding" <> _] }
     end
-  after
-    Mix.Project.pop
   end
 
   test "works with converged dependencies" do
@@ -540,7 +499,6 @@ defmodule Mix.Tasks.DepsTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "works with overridden dependencies" do
@@ -566,7 +524,6 @@ defmodule Mix.Tasks.DepsTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "converged dependencies errors if not overriding" do
@@ -587,7 +544,6 @@ defmodule Mix.Tasks.DepsTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "updates parent dependencies" do
@@ -602,8 +558,6 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, [^message] }
       assert_received { :mix_shell, :info, ["* Compiling deps_repo"] }
     end
-  after
-    Mix.Project.pop
   end
 
   test "checks if dependencies are using old elixir version" do
@@ -627,8 +581,6 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Get.run []
       assert_received { :mix_shell, :info, ["* Compiling ok"] }
     end
-  after
-    Mix.Project.pop
   end
 
   defmodule NonCompilingDeps do
@@ -652,8 +604,6 @@ defmodule Mix.Tasks.DepsTest do
       refute_received { :mix_shell, :info, ["* Compiling deps_repo"] }
       refute_received { :mix_shell, :info, ["* Compiling git_repo"] }
     end
-  after
-    Mix.Project.pop
   end
 
   defmodule DupDeps do
@@ -680,7 +630,5 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, [^msg] }
       refute_received { :mix_shell, :info, [^msg] }
     end
-  after
-    Mix.Project.pop
   end
 end

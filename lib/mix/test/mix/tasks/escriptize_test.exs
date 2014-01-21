@@ -35,8 +35,6 @@ defmodule Mix.Tasks.EscriptizeTest do
       Mix.Tasks.Escriptize.run []
       refute_received { :mix_shell, :info, ["Generated escript escripttest"] }
     end
-  after
-    Mix.Project.pop
   end
 
   test "generate simple escript with path" do
@@ -47,7 +45,5 @@ defmodule Mix.Tasks.EscriptizeTest do
       assert_received { :mix_shell, :info, ["Generated escript ebin/escripttestwithpath"] }
       assert System.cmd("escript ebin/escripttestwithpath") == "TEST\n"
     end
-  after
-    Mix.Project.pop
   end
 end

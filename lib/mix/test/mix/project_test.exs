@@ -23,8 +23,6 @@ defmodule Mix.ProjectTest do
 
     assert { SampleProject, _config, "sample" } = Mix.Project.pop
     assert nil = Mix.Project.pop
-  after
-    Mix.Project.pop
   end
 
   test "does not allow the same project to be pushed twice" do
@@ -33,8 +31,6 @@ defmodule Mix.ProjectTest do
     assert_raise Mix.Error, %r/Mix.ProjectTest.SampleProject from "another"/, fn ->
       Mix.Project.push(SampleProject, "another")
     end
-  after
-    Mix.Project.pop
   end
 
   test "allows nil projects to be pushed twice" do
@@ -48,23 +44,17 @@ defmodule Mix.ProjectTest do
   test "retrieves configuration from projects" do
     Mix.Project.push(SampleProject)
     assert Mix.project[:hello] == "world"
-  after
-    Mix.Project.pop
   end
 
   test "removes private configuration" do
     Mix.Project.push(SampleProject)
     assert nil? Mix.project[:app_path]
-  after
-    Mix.Project.pop
   end
 
   test "reads environment info when a project is set" do
     Mix.env(:prod)
     Mix.Project.push(EnvProject)
     assert Mix.project[:hello] == "new"
-  after
-    Mix.Project.pop
   end
 
   test "retrieves configuration even when a project is not set" do

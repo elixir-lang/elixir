@@ -53,9 +53,7 @@ defmodule Mix.Tasks.LocalTest do
       send self, { :mix_shell_input, :yes?, true }
       Mix.Tasks.Local.Uninstall.run ["archive"]
       refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
-      Mix.Project.pop
     end
-     Mix.Project.pop
   end
 
   test "MIX_PATH" do

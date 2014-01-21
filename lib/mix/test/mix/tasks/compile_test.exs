@@ -14,11 +14,6 @@ defmodule Mix.Tasks.CompileTest do
     :ok
   end
 
-  teardown do
-    Mix.Project.pop
-    :ok
-  end
-
   test "mix compile --list with mixfile" do
     Mix.Tasks.Compile.run ["--list"]
     assert_received { :mix_shell, :info, ["\nEnabled compilers: yecc, leex, erlang, elixir, app"] }
@@ -29,8 +24,6 @@ defmodule Mix.Tasks.CompileTest do
     Mix.Project.push CustomCompilers
     Mix.Tasks.Compile.run ["--list"]
     assert_received { :mix_shell, :info, ["\nEnabled compilers: elixir, app, custom"] }
-  after
-    Mix.Project.pop
   end
 
   test "compile a project with mixfile" do

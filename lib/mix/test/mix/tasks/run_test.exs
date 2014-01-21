@@ -23,7 +23,6 @@ defmodule Mix.Tasks.RunTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-    Mix.Project.pop
   end
 
   test "run requires before commands" do
@@ -38,7 +37,6 @@ defmodule Mix.Tasks.RunTest do
       assert_received { :mix_shell, :info, ["World"] }
     end
   after
-    Mix.Project.pop
     purge [GitRepo]
   end
 end

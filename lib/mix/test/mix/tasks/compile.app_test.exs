@@ -47,8 +47,6 @@ defmodule Mix.Tasks.Compile.AppTest do
 
       assert Mix.Tasks.Compile.App.run([]) == :noop
     end
-  after
-    Mix.Project.pop
   end
 
   test "use custom application settings" do
@@ -61,8 +59,6 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert contents =~ "0.2.0"
       assert contents =~ "{maxT,infinity}"
     end
-  after
-    Mix.Project.pop
   end
 
   test "application properties validation" do
@@ -87,8 +83,6 @@ defmodule Mix.Tasks.Compile.AppTest do
       end
       Process.delete(:error)
     end
-  after
-    Mix.Project.pop
   end
 
   test ".app contains description and registered (as required by systools)" do
@@ -105,7 +99,5 @@ defmodule Mix.Tasks.Compile.AppTest do
 
       assert Mix.Tasks.Compile.App.run([]) == :noop
     end
-  after
-    Mix.Project.pop
   end
 end

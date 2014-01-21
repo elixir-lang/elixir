@@ -25,8 +25,6 @@ defmodule Mix.Tasks.DepsPathTest do
       assert_received { :mix_shell, :info, ["Generated raw_repo.app"] }
       assert File.exists?("_build/shared/lib/raw_repo/ebin/Elixir.RawRepo.beam")
     end
-  after
-    Mix.Project.pop
   end
 
   test "runs even if lock does not match" do
@@ -38,8 +36,6 @@ defmodule Mix.Tasks.DepsPathTest do
       Mix.Tasks.Run.run ["-e", "Mix.shell.info RawRepo.hello"]
       assert_received { :mix_shell, :info, ["world"] }
     end
-  after
-    Mix.Project.pop
   end
 
   defmodule InvalidPathDepsApp do
@@ -57,7 +53,5 @@ defmodule Mix.Tasks.DepsPathTest do
     assert_raise Mix.Error, %r/:path option can only be used with mix projects/, fn ->
       Mix.Tasks.Deps.Get.run []
     end
-  after
-    Mix.Project.pop
   end
 end

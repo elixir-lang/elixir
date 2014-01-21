@@ -8,11 +8,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     :ok
   end
 
-  teardown do
-    Mix.Project.pop
-    :ok
-  end
-
   test "compiles a project" do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run []
@@ -177,7 +172,5 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run([])
       refute_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
     end
-  after
-    Mix.Project.pop
   end
 end
