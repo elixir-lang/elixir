@@ -149,7 +149,8 @@ defmodule Mix.Deps.Retriever do
       end
 
       if req = old_elixir_req(config) do
-        dep = dep.status({ :elixirreq, req })
+        Mix.shell.error "warning: the dependency #{dep.app} requires Elixir #{inspect req} but you " <>
+                        "are running on v#{System.version}, please run mix deps.update #{dep.app} to update it"
       end
 
       { dep.manager(:mix).opts(opts).extra(umbrella: umbrella?), children }

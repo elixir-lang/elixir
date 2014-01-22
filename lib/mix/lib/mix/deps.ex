@@ -259,9 +259,6 @@ defmodule Mix.Deps do
   def format_status(Mix.Dep[status: { :elixirlock, _ }]),
     do: "the dependency is built with an out-of-date elixir version, run `mix deps.get`"
 
-  def format_status(Mix.Dep[status: { :elixirreq, req }]),
-    do: "the dependency requires Elixir #{req} but you are running on v#{System.version}"
-
   defp dep_status(Mix.Dep[app: app, requirement: req, opts: opts, from: from]) do
     info = { app, req, Dict.drop(opts, [:dest, :lock, :env, :build]) }
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
@@ -307,7 +304,6 @@ defmodule Mix.Deps do
   def available?(Mix.Dep[status: { :overridden, _ }]),   do: false
   def available?(Mix.Dep[status: { :diverged, _ }]),     do: false
   def available?(Mix.Dep[status: { :divergedreq, _ }]),  do: false
-  def available?(Mix.Dep[status: { :elixirreq, _ }]),    do: false
   def available?(Mix.Dep[status: { :unavailable, _ }]),  do: false
   def available?(Mix.Dep[]), do: true
 
@@ -320,12 +316,6 @@ defmodule Mix.Deps do
   def compilable?(Mix.Dep[manager: manager, extra: extra] = dep) do
     available?(dep) and (manager != :mix or !extra[:umbrella?])
   end
-
-  @doc """
-  Checks if a dependency can be updated.
-  """
-  def updatable?(Mix.Dep[status: { :elixirreq, _ }]), do: true
-  def updatable?(dep), do: available?(dep)
 
   @doc """
   Checks if a dependency is out of date, also considering its

@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Deps.Update do
 
   """
 
-  import Mix.Deps, only: [unloaded: 2, unloaded_by_name: 3, updatable?: 1, format_dep: 1]
+  import Mix.Deps, only: [unloaded: 2, unloaded_by_name: 3, available?: 1, format_dep: 1]
 
   def run(args) do
     Mix.Project.get! # Require the project to be available
@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Deps.Update do
   end
 
   defp deps_updater(dep, { acc, lock }) do
-    if updatable?(dep) do
+    if available?(dep) do
       Mix.Dep[app: app, scm: scm, opts: opts] = dep
       Mix.shell.info "* Updating #{format_dep(dep)}"
 
