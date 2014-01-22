@@ -33,8 +33,6 @@ defmodule Mix.Tasks.App.StartTest do
       assert System.version == Mix.Deps.Lock.elixir_vsn
       assert File.stat!("_build/shared/lib/sample/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
     end
-  after
-    Mix.Project.pop
   end
 
   test "compiles and starts the project" do
@@ -53,8 +51,6 @@ defmodule Mix.Tasks.App.StartTest do
       Mix.Tasks.App.Start.run []
       assert List.keyfind(:application.loaded_applications, :app_start_sample, 0)
     end
-  after
-    Mix.Project.pop
   end
 
   test "validates the Elixir version requirement" do
@@ -69,7 +65,6 @@ defmodule Mix.Tasks.App.StartTest do
     end
   after
     purge [A, B, C]
-    Mix.Project.pop
   end
 
   test "does not validate the Elixir version requirement when disabled" do
@@ -80,6 +75,5 @@ defmodule Mix.Tasks.App.StartTest do
     end
   after
     purge [A, B, C]
-    Mix.Project.pop
   end
 end

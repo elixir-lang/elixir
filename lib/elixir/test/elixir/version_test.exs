@@ -5,6 +5,32 @@ defmodule VersionTest do
   alias Version.Parser, as: P
   alias Version, as: V
 
+  test "compare" do
+    assert :gt == V.compare("1.0.1",     "1.0.0")
+    assert :gt == V.compare("1.1.0",     "1.0.1")
+    assert :gt == V.compare("2.1.1",     "1.2.2")
+    assert :gt == V.compare("1.0.0",     "1.0.0-dev")
+    assert :gt == V.compare("1.2.3-dev", "0.1.2")
+    assert :gt == V.compare("1.0.0-a.b", "1.0.0-a")
+    assert :gt == V.compare("1.0.0-b",   "1.0.0-a.b")
+    assert :gt == V.compare("1.0.0-a",   "1.0.0-0")
+    assert :gt == V.compare("1.0.0-a.b", "1.0.0-a.a")
+
+    assert :lt == V.compare("1.0.0",     "1.0.1")
+    assert :lt == V.compare("1.0.1",     "1.1.0")
+    assert :lt == V.compare("1.2.2",     "2.1.1")
+    assert :lt == V.compare("1.0.0-dev", "1.0.0")
+    assert :lt == V.compare("0.1.2",     "1.2.3-dev")
+    assert :lt == V.compare("1.0.0-a",   "1.0.0-a.b")
+    assert :lt == V.compare("1.0.0-a.b", "1.0.0-b")
+    assert :lt == V.compare("1.0.0-0",   "1.0.0-a")
+    assert :lt == V.compare("1.0.0-a.a", "1.0.0-a.b")
+
+    assert :eq == V.compare("1.0.0", "1.0.0")
+    assert :eq == V.compare("1.0.0-dev", "1.0.0-dev")
+    assert :eq == V.compare("1.0.0-a", "1.0.0-a")
+  end
+
   test "lexes specifications properly" do
     assert P.lexer("== != > >= < <= ~>", []) == [:'==', :'!=', :'>', :'>=', :'<', :'<=', :'~>']
     assert P.lexer("2.3", []) == [:'==', "2.3"]
@@ -66,6 +92,9 @@ defmodule VersionTest do
     assert V.match?("1.2.3-alpha.beta.sigma", "> 1.2.3-alpha.beta")
     refute V.match?("1.2.3-alpha.10", "< 1.2.3-alpha.1")
     refute V.match?("0.10.2-dev", "> 0.10.2")
+
+    refute V.match?("1.0.0-dev", "> 1.0.0")
+    refute V.match?("0.1.2", "> 1.2.3-dev")
   end
 
   test :>= do
@@ -83,6 +112,9 @@ defmodule VersionTest do
     refute V.match?("2.3", "< 2.3")
 
     assert V.match?("0.10.2-dev", "< 0.10.2")
+
+    refute V.match?("1.0.0", "< 1.0.0-dev")
+    refute V.match?("1.2.3-dev", "< 0.1.2")
   end
 
   test :<= do

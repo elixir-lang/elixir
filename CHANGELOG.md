@@ -2,6 +2,7 @@
 
 * Enhancements
   * [Mix] Do not fail if a Mix dependency relies on an outdated Elixir version
+  * [Version] Add `Version.compare/2`
 
 * Bug fixes
   * [Atom] Inspect `:...` and `:foo@bar` without quoting

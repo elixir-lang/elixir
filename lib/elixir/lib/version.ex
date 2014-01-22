@@ -225,6 +225,22 @@ defmodule Version do
     Version.Schema[major: major, minor: minor, patch: patch, pre: pre, source: source]
   end
 
+  @spec compare(String.t | Schema.t, String.t | Schema.t) :: :gt | :eq | :lt
+  def compare(vsn1, vsn2) do
+    { major1, minor1, patch1, pre1 } = to_matchable(vsn1)
+    { major2, minor2, patch2, pre2 } = to_matchable(vsn2)
+
+    cond do
+      { major1, minor1, patch1 } > { major2, minor2, patch2 } -> :gt
+      { major1, minor1, patch1 } < { major2, minor2, patch2 } -> :lt
+      pre1 == [] and pre2 != [] -> :gt
+      pre1 != [] and pre2 == [] -> :lt
+      pre1 > pre2 -> :gt
+      pre1 < pre2 -> :lt
+      true -> :eq
+    end
+  end
+
   defmodule Parser.DSL do
     @moduledoc false
 
