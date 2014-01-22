@@ -27,14 +27,16 @@ defmodule Mix.Tasks.App.Start do
     end
 
     unless opts[:no_start] do
-      start_app(project)
+      start(project)
     end
   end
 
-  defp start_app(project) do
+  def start(project) do
     if app = project[:app] do
       case Application.Behaviour.start(app) do
         :ok -> :ok
+        { :error, {:bad_return, err}} ->
+          raise Exception.normalize(err)
         { :error, reason } ->
           raise Mix.Error, message: "Could not start application #{app}: #{inspect reason}"
       end
