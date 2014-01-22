@@ -211,6 +211,28 @@ defmodule FileTest do
       File.mkdir(dest)
 
       try do
+        refute File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
+        refute File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
+        refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
+
+        { :ok, files } = File.cp_r(src, dest)
+        assert length(files) == 7
+
+        assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
+        assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
+        assert File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
+      after
+        File.rm_rf dest
+      end
+    end
+
+    test :cp_r_with_src_dir_slash_and_dest_dir do
+      src  = fixture_path("cp_r") <> "/"
+      dest = tmp_path("tmp")
+
+      File.mkdir(dest)
+
+      try do
         refute File.exists?(tmp_path("tmp/a/1.txt"))
         refute File.exists?(tmp_path("tmp/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/b/3.txt"))
@@ -265,7 +287,7 @@ defmodule FileTest do
     end
 
     test :cp_r_with_dir_and_file_conflict do
-      src  = fixture_path("cp_r/.")
+      src  = fixture_path("cp_r") <> "/"
       dest = tmp_path("tmp")
 
       try do
@@ -278,7 +300,7 @@ defmodule FileTest do
     end
 
     test :cp_r_with_src_dir_and_dest_dir_using_lists do
-      src  = fixture_path("cp_r/.") |> to_char_list
+      src  = (fixture_path("cp_r") <> "/") |> to_char_list
       dest = tmp_path("tmp") |> to_char_list
 
       File.mkdir(dest)
@@ -301,7 +323,7 @@ defmodule FileTest do
     end
 
     test :cp_r_with_src_with_file_conflict do
-      src  = fixture_path("cp_r/.")
+      src  = fixture_path("cp_r") <> "/"
       dest = tmp_path("tmp")
 
       File.mkdir_p tmp_path("tmp/a")
@@ -317,7 +339,7 @@ defmodule FileTest do
     end
 
     test :cp_r_with_src_with_file_conflict_callback do
-      src  = fixture_path("cp_r/.")
+      src  = fixture_path("cp_r") <> "/"
       dest = tmp_path("tmp")
 
       File.mkdir_p tmp_path("tmp/a")
@@ -337,7 +359,7 @@ defmodule FileTest do
     end
 
     test :cp_r! do
-      src  = fixture_path("cp_r/.")
+      src  = fixture_path("cp_r") <> "/"
       dest = tmp_path("tmp")
 
       File.mkdir(dest)
@@ -770,7 +792,7 @@ defmodule FileTest do
     test :rm_rf do
       fixture = tmp_path("tmp")
       File.mkdir(fixture)
-      File.cp_r!(fixture_path("cp_r/."), fixture)
+      File.cp_r!(fixture_path("cp_r") <> "/", fixture)
 
       assert File.exists?(tmp_path("tmp/a/1.txt"))
       assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -811,7 +833,7 @@ defmodule FileTest do
     test :rm_rf_with_char_list do
       fixture = tmp_path("tmp") |> to_char_list
       File.mkdir(fixture)
-      File.cp_r!(fixture_path("cp_r/."), fixture)
+      File.cp_r!(fixture_path("cp_r") <> "/", fixture)
 
       assert File.exists?(tmp_path("tmp/a/1.txt"))
       assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -847,7 +869,7 @@ defmodule FileTest do
     test :rm_rf! do
       fixture = tmp_path("tmp")
       File.mkdir(fixture)
-      File.cp_r!(fixture_path("cp_r/."), fixture)
+      File.cp_r!(fixture_path("cp_r") <> "/", fixture)
 
       assert File.exists?(tmp_path("tmp/a/1.txt"))
       assert File.exists?(tmp_path("tmp/a/a/2.txt"))

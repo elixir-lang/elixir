@@ -349,7 +349,7 @@ defmodule File do
     output =
       if dir?(destination) do
         mkdir(destination)
-        FN.join(destination, FN.basename(source))
+        do_cp_join(destination, source)
       else
         destination
       end
@@ -376,9 +376,10 @@ defmodule File do
 
   @doc %S"""
   Copies the contents in source to destination.
+
   Similar to the command `cp -r` in Unix systems,
   this function behaves differently depending
-  if `source` and `destination` are a file or a directory.
+  if `source` and `destination` are files or directories.
 
   If both are files, it simply copies `source` to
   `destination`. However, if `destination` is a directory,
@@ -412,10 +413,10 @@ defmodule File do
       File.cp_r "samples", "tmp"
 
       # Copies all files in "samples" to "tmp"
-      File.cp_r "samples/.", "tmp"
+      File.cp_r "samples/", "tmp"
 
       # Same as before, but asks the user how to proceed in case of conflicts
-      File.cp_r "samples/.", "tmp", fn(source, destination) ->
+      File.cp_r "samples/", "tmp", fn(source, destination) ->
         IO.gets("Overwriting #{destination} by #{source}. Type y to confirm.") == "y"
       end
 
@@ -424,7 +425,10 @@ defmodule File do
     output =
       if dir?(destination) || dir?(source) do
         mkdir(destination)
-        FN.join(destination, FN.basename(source))
+        case do_cp_last(source) do
+          ?/ -> destination
+          _  -> do_cp_join(destination, source)
+        end
       else
         destination
       end
@@ -447,6 +451,23 @@ defmodule File do
           source: to_string(source),
           destination: to_string(destination),
           on: file
+    end
+  end
+
+  defp do_cp_last(source) when is_atom(source),    do: :lists.last(atom_to_list(source))
+  defp do_cp_last(source) when is_list(source),    do: do_cp_last(:lists.last(source))
+  defp do_cp_last(source) when is_binary(source),  do: :binary.last(source)
+  defp do_cp_last(source) when is_integer(source), do: source
+
+  defp do_cp_join(destination, source) when source in [".", '.'] do
+    destination
+  end
+
+  defp do_cp_join(destination, source) do
+    case FN.basename(source) do
+      dot when dot in ["..", '..'] -> do_cp_join(destination, FN.dirname(FN.dirname(source)))
+      dot when dot in [".", '.'] -> do_cp_join(destination, FN.dirname(source))
+      base -> FN.join(destination, base)
     end
   end
 

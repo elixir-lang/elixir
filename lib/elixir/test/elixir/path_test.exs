@@ -223,6 +223,7 @@ defmodule PathTest do
     assert Path.join(["foo"]) == "foo"
     assert Path.join(["/", "foo", "bar"]) == "/foo/bar"
     assert Path.join(["~", "foo", "bar"]) == "~/foo/bar"
+    assert Path.join(["/foo/", "/bar/"]) == "/foo/bar/"
   end
 
   test :join_with_list do
@@ -230,6 +231,7 @@ defmodule PathTest do
     assert Path.join(['foo']) == 'foo'
     assert Path.join(['/', 'foo', 'bar']) == '/foo/bar'
     assert Path.join(['~', 'foo', 'bar']) == '~/foo/bar'
+    assert Path.join(['/foo/', '/bar/']) == '/foo/bar/'
   end
 
   test :join_two_with_binary do

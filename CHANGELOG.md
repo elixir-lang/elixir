@@ -8,6 +8,7 @@
 
 * Bug fixes
   * [Atom] Inspect `:...` and `:foo@bar` without quoting
+  * [File] Respect source directories terminating with "/" in `File.cp_r/3` with the same semantics as Unix
   * [Kernel] Guarantee nullary funs/macros are allowed in guards
   * [Process] Ensure monitoring functions are inlined by the compiler
 
