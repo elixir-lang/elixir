@@ -378,7 +378,6 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Task.clear
 
       Mix.Tasks.Deps.Update.run ["--all"]
-      assert_received { :mix_shell, :info, ["* Updating deps_repo (custom/deps_repo)"] }
       assert_received { :mix_shell, :info, ["* Compiling deps_repo"] }
     end
   end
@@ -491,8 +490,6 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Task.clear
       Mix.Tasks.Deps.Update.run ["--all"]
 
-      message = "* Updating deps_repo (custom/deps_repo)"
-      assert_received { :mix_shell, :info, [^message] }
       message = "* Updating git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
 
@@ -518,8 +515,6 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Task.clear
       Mix.Tasks.Deps.Update.run ["--all"]
 
-      message = "* Updating bad_deps_repo (custom/bad_deps_repo)"
-      assert_received { :mix_shell, :info, [^message] }
       message = "* Updating git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
     end

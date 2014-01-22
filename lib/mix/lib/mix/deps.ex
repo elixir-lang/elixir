@@ -400,61 +400,6 @@ defmodule Mix.Deps do
 
   ## Helpers
 
-  @doc false
-  # Called by deps.get and deps.update
-  def finalize(all_deps, apps, lock, opts) do
-    deps = loaded_by_name(apps, all_deps)
-
-    # Do not attempt to compile dependencies that are not available.
-    # mix deps.check at the end will emit proper status in case they failed.
-    deps = Enum.filter(deps, &available?/1)
-
-    # Note we only retrieve the parent dependencies of the updated
-    # deps if all dependencies are available. This is because if a
-    # dependency is missing, it could be a children of the parent
-    # (aka a sibling) which would make parent compilation fail.
-    #
-    # If there is any other dependency that is not ok, we include
-    # it for compilation too, this is our best to try to solve the
-    # maximum we can at each deps.get and deps.update.
-    if Enum.all?(all_deps, &available?/1) do
-      deps = with_depending(deps, all_deps) ++
-             Enum.filter(all_deps, fn dep -> not ok?(dep) end)
-    end
-
-    apps = Enum.map(deps, &(&1.app)) |> Enum.uniq
-    Mix.Deps.Lock.write(lock)
-
-    unless opts[:no_compile] do
-      if apps != [] do
-        args = if opts[:quiet], do: ["--quiet"|apps], else: apps
-        Mix.Task.run("deps.compile", args)
-      end
-
-      unless opts[:no_deps_check] do
-        Mix.Task.run("deps.check", [])
-      end
-    end
-  end
-
-  defp with_depending(deps, all_deps) do
-    (deps ++ do_with_depending(deps, all_deps)) |> Enum.uniq(&(&1.app))
-  end
-
-  defp do_with_depending([], _all_deps) do
-    []
-  end
-
-  defp do_with_depending(deps, all_deps) do
-    dep_names = Enum.map(deps, fn dep -> dep.app end)
-
-    parents = Enum.filter all_deps, fn dep ->
-      Enum.any?(dep.deps, &(&1 in dep_names))
-    end
-
-    do_with_depending(parents, all_deps) ++ parents
-  end
-
   defp to_app_names(given) do
     Enum.map given, fn(app) ->
       if is_binary(app), do: binary_to_atom(app), else: app

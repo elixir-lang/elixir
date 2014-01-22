@@ -22,9 +22,9 @@ defmodule Mix.SCM.Path do
         path = "../#{app}"
 
         opts
-          |> Keyword.put(:dest, Path.expand(path))
-          |> Keyword.put_new(:path, path)
-          |> Keyword.put_new(:env, Mix.env)
+        |> Keyword.put(:dest, Path.expand(path))
+        |> Keyword.put_new(:path, path)
+        |> Keyword.put_new(:env, Mix.env)
       true ->
         nil
     end
