@@ -55,7 +55,5 @@ defmodule Mix.Tasks.CompileTest do
       refute File.regular?("ebin/Elixir.B.beam")
       refute File.regular?("ebin/Elixir.C.beam")
     end
-  after
-    purge [A, B, C]
   end
 end

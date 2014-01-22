@@ -160,7 +160,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   defmodule SourcePathsProject do
     def project do
-      [ app: :source_paths, elixirc_paths: ["unknown"]]
+      [app: :source_paths, elixirc_paths: ["unknown"]]
     end
   end
 

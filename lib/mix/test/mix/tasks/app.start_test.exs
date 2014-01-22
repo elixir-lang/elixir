@@ -29,7 +29,7 @@ defmodule Mix.Tasks.App.StartTest do
       File.write!("_build/shared/lib/sample/.compile.lock", "the_past")
       File.touch!("_build/shared/lib/sample/.compile.lock", { { 2010, 1, 1 }, { 0, 0, 0 } })
 
-      Mix.Tasks.App.Start.run ["--no-start", "--no-compile"]
+      Mix.Tasks.App.Start.run ["--no-start"]
       assert System.version == Mix.Deps.Lock.elixir_vsn
       assert File.stat!("_build/shared/lib/sample/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
     end
@@ -57,14 +57,10 @@ defmodule Mix.Tasks.App.StartTest do
     Mix.Project.push WrongElixirProject
 
     in_fixture "no_mixfile", fn ->
-      error = assert_raise Mix.ElixirVersionError, fn ->
+      assert_raise Mix.ElixirVersionError, %r/You're trying to run :error on Elixir/, fn ->
         Mix.Tasks.App.Start.run ["--no-start"]
       end
-
-      assert error.message =~ %r/ to run :error /
     end
-  after
-    purge [A, B, C]
   end
 
   test "does not validate the Elixir version requirement when disabled" do
@@ -73,7 +69,5 @@ defmodule Mix.Tasks.App.StartTest do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.App.Start.run ["--no-start", "--no-elixir-version-check"]
     end
-  after
-    purge [A, B, C]
   end
 end
