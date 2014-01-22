@@ -1,15 +1,15 @@
 # v0.12.3-dev
 
 * Enhancements
+  * [Mix] Do not fail if a Mix dependency relies on an outdated Elixir version
 
 * Bug fixes
   * [Atom] Inspect `:...` and `:foo@bar` without quoting
   * [Kernel] Guarantee nullary funs/macros are allowed in guards
-  * [Mix] Do not fail if a Mix dependency relies on an outdated Elixir version
 
 * Deprecations
   * [Kernel] `binary_to_term/1`, `binary_to_term/2`, `term_to_binary/1` and `term_to_binary/2` are deprecated in favor of their counterparts in the `:erlang` module
-  * [Record] Deprecate `to_keywords`, `getter` and `list getter` funtionalities in `defrecordp`
+  * [Record] Deprecate `to_keywords`, `getter` and `list getter` functionalities in `defrecordp`
 
 * Backwards incompatible changes
   * [Kernel] Remove `**` from the list of allowed operators
