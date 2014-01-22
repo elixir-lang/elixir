@@ -199,7 +199,7 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "does not choke when another environment is compiled first than dep" do
+  test "does not choke when another environment is compiled first than dev" do
     Mix.Project.push PerEnvironemtDepsApp
     Mix.env(:test)
 
@@ -362,6 +362,16 @@ defmodule Mix.Tasks.DepsTest do
           { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
         ]
       ]
+    end
+  end
+
+  test "fails on missing dependencies" do
+    Mix.Project.push SuccessfulDepsApp
+
+    in_fixture "deps_status", fn ->
+      assert_raise Mix.Error, %r/unknown dependency invalid for environment dev/, fn ->
+        Mix.Tasks.Deps.Get.run ["invalid"]
+      end
     end
   end
 

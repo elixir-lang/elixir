@@ -120,9 +120,10 @@ defmodule Mix.Deps do
 
     # Now we validate the given atoms
     index = Mix.Dep.__record__(:index, :app)
+
     Enum.each apps, fn(app) ->
-      unless List.keyfind(deps, app, index) do
-        Mix.shell.info "unknown dependency #{app} for env #{Mix.env}"
+      unless List.keyfind(all_deps, app, index) do
+        raise Mix.Error, message: "unknown dependency #{app} for environment #{Mix.env}"
       end
     end
 

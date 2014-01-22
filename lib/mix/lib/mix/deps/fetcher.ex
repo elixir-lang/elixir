@@ -13,14 +13,17 @@ defmodule Mix.Deps.Fetcher do
   Fetches all dependencies.
   """
   def all(old_lock, new_lock, opts) do
-    do_finalize Mix.Deps.unloaded({ [], new_lock }, &do_fetch/2), old_lock, opts
+    { apps, _deps } = do_finalize Mix.Deps.unloaded({ [], new_lock }, &do_fetch/2), old_lock, opts
+    apps
   end
 
   @doc """
   Fetches the dependencies with the given names and their children recursively.
   """
   def by_name(names, old_lock, new_lock, opts) do
-    do_finalize Mix.Deps.unloaded_by_name(names, { [], new_lock }, &do_fetch/2), old_lock, opts
+    { apps, deps } = do_finalize Mix.Deps.unloaded_by_name(names, { [], new_lock }, &do_fetch/2), old_lock, opts
+    Mix.Deps.loaded_by_name(names, deps) # Check all given dependencies are loaded or fail
+    apps
   end
 
   defp do_fetch(dep, { acc, lock }) do
@@ -81,7 +84,7 @@ defmodule Mix.Deps.Fetcher do
     Mix.Deps.Lock.write(lock)
 
     do_compile(deps, opts)
-    apps
+    { apps, all_deps }
   end
 
   defp do_compile(deps, opts) do
