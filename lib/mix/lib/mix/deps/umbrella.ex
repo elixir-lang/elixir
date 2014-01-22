@@ -29,7 +29,7 @@ defmodule Mix.Deps.Umbrella do
     apps = Enum.map(deps, &(&1.app))
 
     Enum.map(deps, fn(umbrella_dep) ->
-      { umbrella_dep, deps } = Mix.Deps.Retriever.load(umbrella_dep)
+      { umbrella_dep, deps } = Mix.Deps.Loader.load(umbrella_dep)
       deps = lc Mix.Dep[] = dep inlist deps,
                 Mix.Deps.available?(dep),
                 dep.app in apps,

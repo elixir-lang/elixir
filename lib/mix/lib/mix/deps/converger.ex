@@ -40,7 +40,7 @@ defmodule Mix.Deps.Converger do
   an updated depedency in case some processing is done.
   """
   def all(rest, callback) do
-    main = Mix.Deps.Retriever.children
+    main = Mix.Deps.Loader.children
     apps = Enum.map(main, &(&1.app))
     all(main, [], [], apps, callback, rest)
   end
@@ -94,7 +94,7 @@ defmodule Mix.Deps.Converger do
         # After we invoke the callback (which may actually check out the
         # dependency), we load the dependency including its latest info
         # and children information.
-        { dep, children } = Mix.Deps.Retriever.load(dep)
+        { dep, children } = Mix.Deps.Loader.load(dep)
         children = reject_non_fullfilled_optional(children, current_breadths)
         dep      = dep.deps(Enum.map(children, &(&1.app)))
 
@@ -152,7 +152,7 @@ defmodule Mix.Deps.Converger do
   defp with_matching_req(Mix.Dep[] = other, Mix.Dep[] = dep) do
     case other.status do
       { :ok, vsn } when not nil?(vsn) ->
-        if Mix.Deps.Retriever.vsn_match?(dep.requirement, vsn) do
+        if Mix.Deps.Loader.vsn_match?(dep.requirement, vsn) do
           other
         else
           other.status({ :divergedreq, dep })

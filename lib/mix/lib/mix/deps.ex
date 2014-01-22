@@ -87,7 +87,7 @@ defmodule Mix.Deps do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  defdelegate children(), to: Mix.Deps.Retriever
+  defdelegate children(), to: Mix.Deps.Loader
 
   @doc """
   Returns loaded dependencies recursively as a `Mix.Dep` record.

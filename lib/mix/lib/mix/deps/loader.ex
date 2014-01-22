@@ -1,7 +1,7 @@
-# This module is responsible for retrieving
-# dependencies of a given project. This
-# module and its functions are private to Mix.
-defmodule Mix.Deps.Retriever do
+# This module is responsible for loading dependencies
+# of the current project. This module and its functions
+# are private to Mix.
+defmodule Mix.Deps.Loader do
   @moduledoc false
 
   @doc """
