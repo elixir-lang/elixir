@@ -111,6 +111,46 @@ defmodule Process do
   end
 
   @doc """
+  Sends a message to the given process.
+
+  It does the same as `Kernel.send/2`.
+  """
+  @spec send(dest, msg) :: msg when
+        dest: pid | port | atom | { atom, node },
+        msg: any
+  def send(dest, msg) do
+    :erlang.send(dest, msg)
+  end
+
+  @doc """
+  Sends `msg` to `dest` after `time` millisecons.
+
+  If `dest` is a pid, it has to be a pid of a local process, dead or alive.
+  If `dest` is an atom, it is supposed to be the name of a registered process
+  which is looked up at the time of delivery. No error is given if the name does
+  not refer to a process.
+
+  This function returns a timer reference, which can be read or canceled with
+  `:erlang.read_timer/1`, `:erlang.start_timer/3` and `:erlang.cancel_timer/1`.
+  Note `time` cannot be greater than `4294967295`.
+
+  Finally, the timer will be automatically canceled if the given `dest` is a pid
+  which is not alive or when the given pid exits. Note that timers will not be
+  automatically canceled when `dest` is an atom (as the atom resolution is done
+  on delivery).
+  """
+  @spec send_after(pid | atom, term, non_neg_integer) :: reference
+  def send_after(dest, msg, time) do
+    :erlang.send_after(time, dest, msg)
+  end
+
+  @type spawn_opt  :: :link | :monitor | {:priority, :low | :normal | :high} |
+                      {:fullsweep_after, non_neg_integer} |
+                      {:min_heap_size, non_neg_integer} |
+                      {:min_bin_vheap_size, non_neg_integer}
+  @type spawn_opts :: [spawn_opt]
+
+  @doc """
   Returns the pid of a new process started by the application of `fun`.
   It behaves exactly the same as `Kernel.spawn/1`.
 
@@ -120,12 +160,6 @@ defmodule Process do
   def spawn(fun) do
     :erlang.spawn(fun)
   end
-
-  @type spawn_opt  :: :link | :monitor | {:priority, :low | :normal | :high} |
-                      {:fullsweep_after, non_neg_integer} |
-                      {:min_heap_size, non_neg_integer} |
-                      {:min_bin_vheap_size, non_neg_integer}
-  @type spawn_opts :: [spawn_opt]
 
   @doc """
   Returns the pid of a new process started by the application of `fun`.

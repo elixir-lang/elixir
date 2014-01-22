@@ -1,12 +1,15 @@
 # v0.12.3-dev
 
 * Enhancements
+  * [Kernel] Explicit functions inlined by the compiler, including operators. This means that `Kernel.+/2` will now expand to `:erlang.+/2` and so on
   * [Mix] Do not fail if a Mix dependency relies on an outdated Elixir version
+  * [Process] Add `Process.send/2` and `Process.send_after/3`
   * [Version] Add `Version.compare/2`
 
 * Bug fixes
   * [Atom] Inspect `:...` and `:foo@bar` without quoting
   * [Kernel] Guarantee nullary funs/macros are allowed in guards
+  * [Process] Ensure monitoring functions are inlined by the compiler
 
 * Deprecations
   * [Kernel] `binary_to_term/1`, `binary_to_term/2`, `term_to_binary/1` and `term_to_binary/2` are deprecated in favor of their counterparts in the `:erlang` module
