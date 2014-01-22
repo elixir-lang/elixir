@@ -163,8 +163,8 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "locals: in guards" do
-    assert expand(quote(do: fn pid when pid == self -> pid end)) ==
-           quote(do: fn pid when __op__(:==, pid, :erlang.self()) -> pid end)
+    assert expand(quote(do: fn pid when :erlang.==(pid, self) -> pid end)) ==
+           quote(do: fn pid when :erlang.==(pid, :erlang.self()) -> pid end)
   end
 
   test "locals: custom imports" do

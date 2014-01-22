@@ -313,8 +313,8 @@ expand({ { '.', DotMeta, [Left, Right] }, Meta, Args }, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   { ELeft, EL } = expand(Left, E),
 
-  elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, EL, fun(Receiver) ->
-    expand_remote(Receiver, DotMeta, Right, Meta, Args, E, EL)
+  elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, EL, fun(AR, AF, AA) ->
+    expand_remote(AR, DotMeta, AF, Meta, AA, E, EL)
   end);
 
 %% Anonymous calls

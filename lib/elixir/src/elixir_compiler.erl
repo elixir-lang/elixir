@@ -186,7 +186,7 @@ core_file(File) ->
   catch
     Kind:Reason ->
       io:format("~p: ~p~nstacktrace: ~p~n", [Kind, Reason, erlang:get_stacktrace()]),
-      exit(1)
+      erlang:halt(1)
   end.
 
 core_main() ->

@@ -198,17 +198,23 @@ translate({ Name, Meta, Args }, S) when is_atom(Name), is_list(Meta), is_list(Ar
 
 translate({ { '.', _, [Left, Right] }, Meta, Args }, S)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
-  { TLeft,  SL } = translate(Left, S),
-  { TRight, SR } = translate(Right, mergec(S, SL)),
+  { TLeft, SL } = translate(Left, S),
+  { TArgs, SA } = translate_args(Args, mergec(S, SL)),
 
-  case S#elixir_scope.context of
-    Context when Left /= erlang, (Context == match) orelse (Context == guard) ->
-      compile_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts.~ts/~B inside ~ts",
-        ['Elixir.Macro':to_string(Left), Right, length(Args), Context]);
-    _ ->
-      Line = ?line(Meta),
-      { TArgs, SA } = translate_args(Args, mergec(S, SR)),
-      { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, mergev(SL, mergev(SR, SA)) }
+  Line  = ?line(Meta),
+  Arity = length(Args),
+
+  %% We need to rewrite erlang function calls as operators
+  %% because erl_eval chokes on them. We can remove this
+  %% once a fix is merged into Erlang, keeping only the
+  %% list operators one (since it is required for inlining
+  %% [1,2,3] ++ Right in matches).
+  case (Left == erlang) andalso erl_op(Right, Arity) of
+    true ->
+      { list_to_tuple([op, Line, Right] ++ TArgs), mergev(SL, SA) };
+    false ->
+      assert_allowed_in_context(Meta, Left, Right, Arity, S),
+      { { call, Line, { remote, Line, TLeft, { atom, 0, Right } }, TArgs }, mergev(SL, SA) }
   end;
 
 %% Anonymous function calls
@@ -235,6 +241,12 @@ translate(Other, S) ->
   { elixir_utils:elixir_to_erl(Other), S }.
 
 %% Helpers
+
+erl_op(Op, Arity) ->
+  erl_internal:list_op(Op, Arity) orelse
+    erl_internal:comp_op(Op, Arity) orelse
+    erl_internal:bool_op(Op, Arity) orelse
+    erl_internal:arith_op(Op, Arity).
 
 translate_list([{ '|', _, [_, _]=Args}], Fun, Acc, List) ->
   { [TLeft,TRight], TAcc } = lists:mapfoldl(Fun, Acc, Args),
@@ -334,3 +346,14 @@ assert_module_scope(_Meta, _Kind, #elixir_scope{module=Module}) -> Module.
 assert_function_scope(Meta, Kind, #elixir_scope{function=nil,file=File}) ->
   compile_error(Meta, File, "cannot invoke ~ts outside function", [Kind]);
 assert_function_scope(_Meta, _Kind, #elixir_scope{function=Function}) -> Function.
+
+assert_allowed_in_context(Meta, Left, Right, Arity, #elixir_scope{context=Context} = S)
+    when (Context == match) orelse (Context == guard) ->
+  case (Left == erlang) andalso erl_internal:guard_bif(Right, Arity) of
+    true  -> ok;
+    false ->
+      compile_error(Meta, S#elixir_scope.file, "cannot invoke remote function ~ts.~ts/~B inside ~ts",
+        ['Elixir.Macro':to_string(Left), Right, Arity, Context])
+  end;
+assert_allowed_in_context(_, _, _, _, _) ->
+  ok.

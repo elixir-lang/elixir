@@ -10,18 +10,24 @@ defmodule Kernel do
   `Kernel` provides the default macros and functions
   Elixir imports into your environment. These macros and functions
   can be skipped or cherry-picked via the `import` macro. For
-  instance, if you want to tell Elixir not to import the `case`
+  instance, if you want to tell Elixir not to import the `if`
   macro, you can do:
 
-      import Kernel, except: [case: 2]
+      import Kernel, except: [if: 2]
 
   Elixir also has special forms that are always imported and
   cannot be skipped. These are described in `Kernel.SpecialForms`.
 
-  Some of the functions described in this module are simply
-  a proxy to their Erlang counterpart. Although they are documented
-  here for convenience, you can access their original documentation
-  at http://www.erlang.org/doc/man/erlang.html.
+  Some of the functions described in this module are inlined by
+  the Elixir compiler into their Erlang counterparts in the `:erlang`
+  module. You can usually see this in effect when capturing the
+  function:
+
+      iex> &Kernel.is_atom/1
+      &:erlang.is_atom/1
+
+  Those functions will be explicitly marked in their docs as
+  "inlined by the compiler".
   """
 
   ## Delegations to Erlang with inlining (macros)
@@ -29,7 +35,7 @@ defmodule Kernel do
   @doc """
   Returns an integer or float which is the arithmetical absolute value of `number`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -45,7 +51,8 @@ defmodule Kernel do
 
   @doc """
   Invokes the given `fun` with the array of arguments `args`.
-  Inlines to `:erlang.apply/2`.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -53,15 +60,15 @@ defmodule Kernel do
       4
 
   """
-  defmacro apply(fun, args) do
-    quote do
-      :erlang.apply(unquote(fun), unquote(args))
-    end
+  @spec apply(fun, [any]) :: any
+  def apply(fun, args) do
+    :erlang.apply(fun, args)
   end
 
   @doc """
   Invokes the given `fun` from `module` with the array of arguments `args`.
-  Inlines to `:erlang.apply/3`.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -69,15 +76,16 @@ defmodule Kernel do
       [3,2,1]
 
   """
-  defmacro apply(module, fun, args) do
-    quote do
-      :erlang.apply(unquote(module), unquote(fun), unquote(args))
-    end
+  @spec apply(module, atom, [any]) :: any
+  def apply(module, fun, args) do
+    :erlang.apply(module, fun, args)
   end
 
   @doc """
   Returns a binary which corresponds to the text representation
   of `some_atom` in UTF8 encoding.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -85,14 +93,15 @@ defmodule Kernel do
       "my_atom"
 
   """
-  defmacro atom_to_binary(some_atom) do
-    quote do
-      :erlang.atom_to_binary(unquote(some_atom), :utf8)
-    end
+  @spec atom_to_binary(atom) :: binary
+  def atom_to_binary(some_atom) do
+    :erlang.atom_to_binary(some_atom, :utf8)
   end
 
   @doc """
   Returns a string which corresponds to the text representation of `atom`.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -100,7 +109,7 @@ defmodule Kernel do
       'elixir'
 
   """
-  @spec atom_to_list(atom) :: list
+  @spec atom_to_list(atom) :: char_list
   def atom_to_list(atom) do
     :erlang.atom_to_list(atom)
   end
@@ -112,7 +121,7 @@ defmodule Kernel do
   If start or length references in any way outside the binary, an
   `ArgumentError` exception is raised.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -130,7 +139,6 @@ defmodule Kernel do
     :erlang.binary_part(binary, start, length)
   end
 
-
   @doc """
   Returns the atom whose text representation is `some_binary` in
   UTF8 encoding.
@@ -138,16 +146,17 @@ defmodule Kernel do
   Currently Elixir does not support conversions for binaries which
   contains Unicode characters greater than 16#FF.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> binary_to_atom("my_atom")
       :my_atom
 
   """
-  defmacro binary_to_atom(some_binary) do
-    quote do
-      :erlang.binary_to_atom(unquote(some_binary), :utf8)
-    end
+  @spec binary_to_atom(binary) :: atom
+  def binary_to_atom(some_binary) do
+    :erlang.binary_to_atom(some_binary, :utf8)
   end
 
   @doc """
@@ -155,6 +164,8 @@ defmodule Kernel do
 
   Currently Elixir does not support conversions for binaries which
   contains Unicode characters greater than 16#FF.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -166,14 +177,15 @@ defmodule Kernel do
       ** (ArgumentError) argument error
 
   """
-  defmacro binary_to_existing_atom(some_binary) do
-    quote do
-      :erlang.binary_to_existing_atom(unquote(some_binary), :utf8)
-    end
+  @spec binary_to_existing_atom(binary) :: atom
+  def binary_to_existing_atom(some_binary) do
+    :erlang.binary_to_existing_atom(some_binary, :utf8)
   end
 
   @doc """
   Returns a integer whose text representation is `some_binary`.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -181,6 +193,7 @@ defmodule Kernel do
       123
 
   """
+  @spec binary_to_integer(binary) :: integer
   def binary_to_integer(some_binary) do
     :erlang.binary_to_integer(some_binary)
   end
@@ -189,12 +202,15 @@ defmodule Kernel do
   Returns an integer whose text representation in base `base`
   is `some_binary`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> binary_to_integer("3FF", 16)
       1023
 
   """
+  @spec binary_to_integer(binary, pos_integer) :: integer
   def binary_to_integer(some_binary, base) do
     :erlang.binary_to_integer(some_binary, base)
   end
@@ -202,12 +218,15 @@ defmodule Kernel do
   @doc """
   Returns a float whose text representation is `some_binary`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> binary_to_float("2.2017764e+0")
       2.2017764
 
   """
+  @spec binary_to_float(binary) :: float
   def binary_to_float(some_binary) do
     :erlang.binary_to_float(some_binary)
   end
@@ -227,7 +246,7 @@ defmodule Kernel do
   @doc """
   Returns an integer which is the size in bits of `bitstring`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -243,9 +262,12 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns a list of integers which correspond to the bytes of `bitstring`. If the
-  number of bits in the binary is not divisible by 8, the last element of the list will
-  be a bitstring containing the remaining bits (1 up to 7 bits).
+  Returns a list of integers which correspond to the bytes of `bitstring`.
+
+  If the number of bits in the binary is not divisible by 8, the last element
+  of the list will be a bitstring containing the remaining bits (1 up to 7 bits).
+
+  Inlined by the compiler.
   """
   @spec bitstring_to_list(bitstring) :: list
   def bitstring_to_list(bitstring) do
@@ -257,7 +279,7 @@ defmodule Kernel do
   (That is, if the number of bits in `bitstring` is not divisible by 8, the resulting
   number of bytes will be rounded up.)
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -273,9 +295,11 @@ defmodule Kernel do
   end
 
   @doc """
-  Provides an integer division macro according to Erlang semantics.
+  Performs an integer division.
+
   Raises an error if one of the arguments is not an integer.
-  Can be used in guard tests.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -283,14 +307,18 @@ defmodule Kernel do
       2
 
   """
-  defmacro div(left, right) do
-    quote do: __op__(:div, unquote(left), unquote(right))
+  @spec div(integer, integer) :: integer
+  def div(left, right) do
+    :erlang.div(left, right)
   end
 
   @doc """
   Stops the execution of the calling process with the given reason.
+
   Since evaluating this function causes the process to terminate,
   it has no return value.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -306,21 +334,24 @@ defmodule Kernel do
   @doc """
   Returns a char list which corresponds to the text representation of the given float.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> float_to_list(7.0)
       '7.00000000000000000000e+00'
 
   """
-  @spec float_to_list(number) :: list
+  @spec float_to_list(float) :: char_list
   def float_to_list(number) do
     :erlang.float_to_list(number)
   end
 
-
   @doc """
   Returns a binary which corresponds to the text representation
   of `some_float`.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -328,6 +359,7 @@ defmodule Kernel do
       "7.00000000000000000000e+00"
 
   """
+  @spec float_to_binary(float) :: binary
   def float_to_binary(some_float) do
     :erlang.float_to_binary(some_float)
   end
@@ -347,6 +379,7 @@ defmodule Kernel do
       float_to_binary 7.1, [decimals: 2, compact: true] #=> "7.1"
 
   """
+  @spec float_to_binary(float, list) :: binary
   def float_to_binary(float, options) do
     :erlang.float_to_binary(float, expand_compact(options))
   end
@@ -366,12 +399,15 @@ defmodule Kernel do
       float_to_list 7.1, [decimals: 2, compact: true] #=> '7.1'
 
   """
+  @spec float_to_list(float, list) :: char_list
   def float_to_list(float, options) do
     :erlang.float_to_list(float, expand_compact(options))
   end
 
   @doc """
   Returns the head of a list, raises `badarg` if the list is empty.
+
+  Inlined by the compiler.
   """
   @spec hd(list) :: term
   def hd(list) do
@@ -382,12 +418,15 @@ defmodule Kernel do
   Returns a binary which corresponds to the text representation
   of `some_integer`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> integer_to_binary(123)
       "123"
 
   """
+  @spec integer_to_binary(integer) :: binary
   def integer_to_binary(some_integer) do
     :erlang.integer_to_binary(some_integer)
   end
@@ -396,18 +435,23 @@ defmodule Kernel do
   Returns a binary which corresponds to the text representation
   of `some_integer` in base `base`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> integer_to_binary(100, 16)
       "64"
 
   """
+  @spec integer_to_binary(integer, pos_integer) :: binary
   def integer_to_binary(some_integer, base) do
     :erlang.integer_to_binary(some_integer, base)
   end
 
   @doc """
   Returns a char list which corresponds to the text representation of the given integer.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -424,6 +468,8 @@ defmodule Kernel do
   Returns a char list which corresponds to the text representation of the
   given integer in the given case.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> integer_to_list(1023, 16)
@@ -437,6 +483,8 @@ defmodule Kernel do
 
   @doc """
   Returns the size of an iolist.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -459,6 +507,8 @@ defmodule Kernel do
 
   If this function receives a binary, the same binary is returned.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> bin1 = <<1, 2, 3>>
@@ -480,7 +530,7 @@ defmodule Kernel do
   @doc """
   Returns `true` if `term` is an atom; otherwise returns `false`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_atom(term) :: boolean
   def is_atom(term) do
@@ -492,7 +542,7 @@ defmodule Kernel do
 
   A binary always contains a complete number of bytes.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_binary(term) :: boolean
   def is_binary(term) do
@@ -502,7 +552,7 @@ defmodule Kernel do
   @doc """
   Returns `true` if `term` is a bitstring (including a binary); otherwise returns `false`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_bitstring(term) :: boolean
   def is_bitstring(term) do
@@ -513,7 +563,7 @@ defmodule Kernel do
   Returns `true` if `term` is either the atom `true` or the atom `false` (i.e. a boolean);
   otherwise returns false.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_boolean(term) :: boolean
   def is_boolean(term) do
@@ -523,7 +573,7 @@ defmodule Kernel do
   @doc """
   Returns `true` if `term` is a floating point number; otherwise returns `false`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_float(term) :: boolean
   def is_float(term) do
@@ -533,7 +583,7 @@ defmodule Kernel do
   @doc """
   Returns `true` if `term` is a function; otherwise returns `false`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_function(term) :: boolean
   def is_function(term) do
@@ -544,7 +594,7 @@ defmodule Kernel do
   Returns `true` if `term` is a function that can be applied with `arity` number of arguments;
   otherwise returns `false`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_function(term, non_neg_integer) :: boolean
   def is_function(term, arity) do
@@ -554,7 +604,7 @@ defmodule Kernel do
   @doc """
   Returns `true` if `term` is an integer; otherwise returns `false`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_integer(term) :: boolean
   def is_integer(term) do
@@ -564,7 +614,7 @@ defmodule Kernel do
   @doc """
   Returns `true` if `term` is a list with zero or more elements; otherwise returns `false`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_list(term) :: boolean
   def is_list(term) do
@@ -575,7 +625,7 @@ defmodule Kernel do
   Returns `true` if `term` is either an integer or a floating point number;
   otherwise returns `false`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_number(term) :: boolean
   def is_number(term) do
@@ -585,7 +635,7 @@ defmodule Kernel do
   @doc """
   Returns `true` if `term` is a pid (process identifier); otherwise returns `false`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_pid(term) :: boolean
   def is_pid(term) do
@@ -595,7 +645,7 @@ defmodule Kernel do
   @doc """
   Returns `true` if `term` is a port identifier; otherwise returns `false`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_port(term) :: boolean
   def is_port(term) do
@@ -605,7 +655,7 @@ defmodule Kernel do
   @doc """
   Returns `true` if `term` is a reference; otherwise returns `false`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_reference(term) :: boolean
   def is_reference(term) do
@@ -615,7 +665,7 @@ defmodule Kernel do
   @doc """
   Returns `true` if `term` is a tuple; otherwise returns `false`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec is_tuple(term) :: boolean
   def is_tuple(term) do
@@ -625,7 +675,7 @@ defmodule Kernel do
   @doc """
   Returns the length of `list`.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -640,12 +690,14 @@ defmodule Kernel do
   @doc """
   Returns the atom whose text representation is `list`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> list_to_atom('elixir')
       :elixir
   """
-  @spec list_to_atom(list) :: atom
+  @spec list_to_atom(char_list) :: atom
   def list_to_atom(list) do
     :erlang.list_to_atom(list)
   end
@@ -653,6 +705,8 @@ defmodule Kernel do
   @doc """
   Returns a bitstring which is made from the integers and bitstrings in `bitstring_list`.
   (the last tail in `bitstring_list` is allowed to be a bitstring.)
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -671,6 +725,8 @@ defmodule Kernel do
   @doc """
   Returns the atom whose text representation is `list`,
   but only if there already exists such atom.
+
+  Inlined by the compiler.
   """
   @spec list_to_existing_atom(list) :: atom
   def list_to_existing_atom(list) do
@@ -679,6 +735,8 @@ defmodule Kernel do
 
   @doc """
   Returns the float whose text representation is `list`.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -693,6 +751,8 @@ defmodule Kernel do
   @doc """
   Returns an integer whose text representation is `list`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> list_to_integer('123')
@@ -706,6 +766,8 @@ defmodule Kernel do
   @doc """
   Returns an integer whose text representation in base `base` is `list`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> list_to_integer('3FF', 16)
@@ -718,6 +780,8 @@ defmodule Kernel do
 
   @doc """
   Returns a tuple which corresponds to `list`. `list` can contain any Erlang terms.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -735,6 +799,8 @@ defmodule Kernel do
   The returned reference will re-occur after approximately 2^82 calls;
   therefore it is unique enough for practical purposes.
 
+  Inlined by the compiler.
+
   ## Examples
 
       make_ref() #=> #Reference<0.0.0.135>
@@ -749,6 +815,8 @@ defmodule Kernel do
   Return the biggest of the two given terms according to
   Erlang's term ordering. If the terms compare equal, the
   first one is returned.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -766,6 +834,8 @@ defmodule Kernel do
   Erlang's term ordering. If the terms compare equal, the
   first one is returned.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> min(1, 2)
@@ -779,9 +849,9 @@ defmodule Kernel do
 
   @doc """
   Returns an atom representing the name of the local node.
-  If the node is not alive, `nonode@nohost` is returned instead.
+  If the node is not alive, `:nonode@nohost` is returned instead.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec node() :: node
   def node do
@@ -793,7 +863,7 @@ defmodule Kernel do
   The argument can be a pid, a reference, or a port.
   If the local node is not alive, `nonode@nohost` is returned.
 
-  Allowed in guard tests.
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec node(pid|reference|port) :: node
   def node(arg) do
@@ -801,9 +871,11 @@ defmodule Kernel do
   end
 
   @doc """
-  Provides an integer remainder macro according to Erlang semantics.
+  Calculates the remainder of an integer division.
+
   Raises an error if one of the arguments is not an integer.
-  Can be used in guard tests.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -811,13 +883,15 @@ defmodule Kernel do
       1
 
   """
-  defmacro rem(left, right) do
-    quote do: __op__(:rem, unquote(left), unquote(right))
+  @spec rem(integer, integer) :: integer
+  def rem(left, right) do
+    :erlang.rem(left, right)
   end
 
   @doc """
   Returns an integer by rounding the given number.
-  Allowed in guard tests.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -837,6 +911,8 @@ defmodule Kernel do
   registered name, or a tuple `{registed_name, node}` for a registered
   name at another node.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> send self(), :hello
@@ -850,7 +926,8 @@ defmodule Kernel do
 
   @doc """
   Returns the pid (process identifier) of the calling process.
-  Allowed in guard clauses.
+
+  Allowed in guard clauses. Inlined by the compiler.
   """
   @spec self() :: pid
   def self() do
@@ -858,8 +935,11 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the size of the given argument, which must be a tuple
-  or a binary. If possible, please use `tuple_size` or `byte_size`.
+  Returns the size of the given argument, which must be a tuple or a binary.
+
+  Prefer using `tuple_size` or `byte_size` insted.
+
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec size(tuple|binary) :: non_neg_integer
   def size(arg) do
@@ -871,6 +951,8 @@ defmodule Kernel do
 
   Check the modules `Process` and `Node` for other functions
   to handle processes, including spawning functions in nodes.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -894,6 +976,8 @@ defmodule Kernel do
   Check the modules `Process` and `Node` for other functions
   to handle processes, including spawning functions in nodes.
 
+  Inlined by the compiler.
+
   ## Examples
 
       spawn(SomeModule, :function, [1, 2, 3])
@@ -909,6 +993,8 @@ defmodule Kernel do
 
   Check the modules `Process` and `Node` for other functions
   to handle processes, including spawning functions in nodes.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -931,6 +1017,8 @@ defmodule Kernel do
 
   Check the modules `Process` and `Node` for other functions
   to handle processes, including spawning functions in nodes.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -956,6 +1044,8 @@ defmodule Kernel do
 
   @doc """
   A non-local return from a function. Check `try/2` for more information.
+
+  Inlined by the compiler.
   """
   @spec throw(term) :: no_return
   def throw(term) do
@@ -964,6 +1054,8 @@ defmodule Kernel do
 
   @doc """
   Returns the tail of a list. Raises `ArgumentError` if the list is empty.
+
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec tl(maybe_improper_list) :: maybe_improper_list
   def tl(list) do
@@ -972,7 +1064,8 @@ defmodule Kernel do
 
   @doc """
   Returns an integer by truncating the given number.
-  Allowed in guard clauses.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -987,6 +1080,8 @@ defmodule Kernel do
 
   @doc """
   Returns the size of a tuple.
+
+  Allowed in guard tests. Inlined by the compiler.
   """
   @spec tuple_size(tuple) :: non_neg_integer
   def tuple_size(tuple) do
@@ -995,6 +1090,8 @@ defmodule Kernel do
 
   @doc """
   Converts a tuple to a list.
+
+  Inlined by the compiler.
   """
   @spec tuple_to_list(tuple) :: list
   def tuple_to_list(tuple) do
@@ -1002,7 +1099,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Arithmetic plus. Allowed in guard clauses.
+  Arithmetic plus.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -1010,12 +1109,15 @@ defmodule Kernel do
       3
 
   """
-  defmacro left + right do
-    quote do: __op__(:+, unquote(left), unquote(right))
+  @spec (number + number) :: number
+  def left + right do
+    :erlang.+(left, right)
   end
 
   @doc """
-  Arithmetic minus. Allowed in guard clauses.
+  Arithmetic minus.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -1023,12 +1125,15 @@ defmodule Kernel do
       -1
 
   """
-  defmacro left - right do
-    quote do: __op__(:-, unquote(left), unquote(right))
+  @spec (number - number) :: number
+  def left - right do
+    :erlang.-(left, right)
   end
 
   @doc """
-  Arithmetic unary plus. Allowed in guard clauses.
+  Arithmetic unary plus.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -1036,13 +1141,15 @@ defmodule Kernel do
       1
 
   """
-  defmacro (+value) when is_number(value), do: value
-  defmacro (+value) do
-    quote do: :erlang.+(unquote(value))
+  @spec (+number) :: number
+  def (+value) do
+    :erlang.+(value)
   end
 
   @doc """
-  Arithmetic unary minus. Allowed in guard clauses.
+  Arithmetic unary minus.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -1050,13 +1157,15 @@ defmodule Kernel do
       -2
 
   """
-  defmacro (-value) when is_number(value), do: :erlang.-(value)
-  defmacro (-value) do
-    quote do: :erlang.-(unquote(value))
+  @spec (-number) :: number
+  def (-value) do
+    :erlang.-(value)
   end
 
   @doc """
-  Arithmetic multiplication. Allowed in guard clauses.
+  Arithmetic multiplication.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -1064,14 +1173,18 @@ defmodule Kernel do
       2
 
   """
-  defmacro left * right do
-    quote do: __op__(:*, unquote(left), unquote(right))
+  @spec (number * number) :: number
+  def left * right do
+    :erlang.*(left, right)
   end
 
   @doc """
-  Arithmetic division. Unlike other languages,
-  the result is always a float. Use `div` and `rem` if you want
-  a natural division or the remainder. Allowed in guard clauses.
+  Arithmetic division.
+
+  The result is always a float. Use `div` and `rem` if you want
+  a natural division or the remainder.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -1081,12 +1194,15 @@ defmodule Kernel do
       2.0
 
   """
-  defmacro left / right do
-    quote do: __op__(:/, unquote(left), unquote(right))
+  @spec (number / number) :: float
+  def left / right do
+    :erlang./(left, right)
   end
 
   @doc """
-  Concatenates two lists. Allowed in guard clauses.
+  Concatenates two lists.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -1097,15 +1213,16 @@ defmodule Kernel do
       'foobar'
 
   """
-  # We compile down to the operator because it is
-  # automatically expanded when the left side is known.
-  defmacro left ++ right do
-    quote do: __op__(:++, unquote(left), unquote(right))
+  @spec (list ++ term) :: maybe_improper_list
+  def left ++ right do
+    :erlang.++(left, right)
   end
 
   @doc """
   Removes the first occurrence of an item on the left
-  for each item on the right. Allowed in guard clauses.
+  for each item on the right.
+
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -1116,13 +1233,252 @@ defmodule Kernel do
       [3,1]
 
   """
-  defmacro left -- right do
-    quote do: __op__(:--, unquote(left), unquote(right))
+  @spec (list -- list) :: list
+  def left -- right do
+    :erlang.--(left, right)
   end
 
   @doc """
+  Boolean exclusive-or. Arguments must be booleans.
+  Returns `true` if and only if both arguments are different.
+
+  Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> true xor false
+      true
+      iex> true xor true
+      false
+
+  """
+  @spec (boolean xor boolean) :: boolean
+  def left xor right do
+    :erlang.xor(left, right)
+  end
+
+  @doc """
+  Boolean not. Argument must be a boolean.
+
+  Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> not false
+      true
+
+  """
+  @spec not(boolean) :: boolean
+  def not(arg) do
+    :erlang.not(arg)
+  end
+
+  @doc """
+  Returns `true` if left is less than right.
+
+  All terms in Elixir can be compared with each other.
+
+  Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> 1 < 2
+      true
+
+  """
+  @spec (term < term) :: boolean
+  def left < right do
+    :erlang.<(left, right)
+  end
+
+  @doc """
+  Returns `true` if left is more than right.
+
+  All terms in Elixir can be compared with each other.
+
+  Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> 1 > 2
+      false
+
+  """
+  @spec (term > term) :: boolean
+  def left > right do
+    :erlang.>(left, right)
+  end
+
+  @doc """
+  Returns `true` if left is less than or equal to right.
+
+  All terms in Elixir can be compared with each other.
+
+  Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> 1 <= 2
+      true
+
+  """
+  @spec (term <= term) :: boolean
+  def left <= right do
+    :erlang."=<"(left, right)
+  end
+
+  @doc """
+  Returns `true` if left is more than or equal to right.
+
+  All terms in Elixir can be compared with each other.
+
+  Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> 1 >= 2
+      false
+
+  """
+  @spec (term >= term) :: boolean
+  def left >= right do
+    :erlang.>=(left, right)
+  end
+
+  @doc """
+  Returns `true` if the two items are equal.
+
+  This operator considers 1 and 1.0 to be equal. For match
+  semantics, use `===` instead.
+
+  All terms in Elixir can be compared with each other.
+
+  Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> 1 == 2
+      false
+
+      iex> 1 == 1.0
+      true
+
+  """
+  @spec (term == term) :: boolean
+  def left == right do
+    :erlang.==(left, right)
+  end
+
+  @doc """
+  Returns `true` if the two items are not equal.
+
+  This operator considers 1 and 1.0 to be equal. For match
+  comparison, use `!==` instead.
+
+  All terms in Elixir can be compared with each other.
+
+  Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> 1 != 2
+      true
+      iex> 1 != 1.0
+      false
+
+  """
+  @spec (term != term) :: boolean
+  def left != right do
+    :erlang."/="(left, right)
+  end
+
+  @doc """
+  Returns `true` if the two items are match.
+
+  This operator gives the same semantics as the one existing in
+  pattern matching, i.e., `1` and `1.0` are equal, but they do
+  not match.
+
+  All terms in Elixir can be compared with each other.
+
+  Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> 1 === 2
+      false
+
+      iex> 1 === 1.0
+      false
+
+  """
+  @spec (term === term) :: boolean
+  def left === right do
+    :erlang."=:="(left, right)
+  end
+
+  @doc """
+  Returns `true` if the two items do not match.
+
+  All terms in Elixir can be compared with each other.
+
+  Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> 1 !== 2
+      true
+
+      iex> 1 !== 1.0
+      true
+
+  """
+  @spec (term !== term) :: boolean
+  def left !== right do
+    :erlang."=/="(left, right)
+  end
+
+  @doc """
+  Get the element at the zero-based `index` in `tuple`.
+
+  Allowed in guard tests. Inlined by the compiler.
+
+  ## Example
+
+      iex> tuple = { :foo, :bar, 3 }
+      ...> elem(tuple, 1)
+      :bar
+
+  """
+  @spec elem(tuple, non_neg_integer) :: term
+  def elem(tuple, index) do
+    :erlang.element(index + 1, tuple)
+  end
+
+  @doc """
+  Sets the element in `tuple` at the zero-based `index` to the given `value`.
+
+  Inlined by the compiler.
+
+  ## Example
+
+      iex> tuple = { :foo, :bar, 3 }
+      ...> set_elem(tuple, 0, :baz)
+      { :baz, :bar, 3 }
+
+  """
+  @spec set_elem(tuple, non_neg_integer, term) :: tuple
+  def set_elem(tuple, index, value) do
+    :erlang.setelement(index + 1, tuple, value)
+  end
+
+  ## Implemented in Elixir
+
+  @doc """
   Boolean or. Requires only the first argument to be a
-  boolean since it short-circuits. Allowed in guard clauses.
+  boolean since it short-circuits.
+
+  Allowed in guard tests.
 
   ## Examples
 
@@ -1136,7 +1492,9 @@ defmodule Kernel do
 
   @doc """
   Boolean and. Requires only the first argument to be a
-  boolean since it short-circuits. Allowed in guard clauses.
+  boolean since it short-circuits.
+
+  Allowed in guard tests.
 
   ## Examples
 
@@ -1146,168 +1504,6 @@ defmodule Kernel do
   """
   defmacro left and right do
     quote do: __op__(:andalso, unquote(left), unquote(right))
-  end
-
-  @doc """
-  Boolean exclusive-or. Arguments must be booleans.
-  Returns `true` if and only if both arguments are different.
-  Allowed in guard clauses.
-
-  ## Examples
-
-      iex> true xor false
-      true
-      iex> true xor true
-      false
-
-  """
-  defmacro left xor right do
-    quote do: __op__(:xor, unquote(left), unquote(right))
-  end
-
-  @doc """
-  Boolean not. Argument must be a boolean.
-  Allowed in guard clauses.
-
-  ## Examples
-
-      iex> not false
-      true
-
-  """
-  defmacro not(arg) do
-    quote do: __op__(:not, unquote(arg))
-  end
-
-  @doc """
-  Returns `true` if left is less than right.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 < 2
-      true
-
-  """
-  defmacro left < right do
-    quote do: __op__(:<, unquote(left), unquote(right))
-  end
-
-  @doc """
-  Returns `true` if left is more than right.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 > 2
-      false
-
-  """
-  defmacro left > right do
-    quote do: __op__(:>, unquote(left), unquote(right))
-  end
-
-  @doc """
-  Returns `true` if left is less than or equal to right.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 <= 2
-      true
-
-  """
-  defmacro left <= right do
-    quote do: __op__(:"=<", unquote(left), unquote(right))
-  end
-
-  @doc """
-  Returns `true` if left is more than or equal to right.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 >= 2
-      false
-
-  """
-  defmacro left >= right do
-    quote do: __op__(:>=, unquote(left), unquote(right))
-  end
-
-  @doc """
-  Returns `true` if the two items are equal.
-
-  This operator considers 1 and 1.0 to be equal. For strict
-  comparison, use `===` instead.
-
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 == 2
-      false
-
-      iex> 1 == 1.0
-      true
-
-  """
-  defmacro left == right do
-    quote do: __op__(:==, unquote(left), unquote(right))
-  end
-
-  @doc """
-  Returns `true` if the two items are not equal.
-
-  This operator considers 1 and 1.0 to be equal. For strict
-  comparison, use `!==` instead.
-
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 != 2
-      true
-      iex> 1 != 1.0
-      false
-
-  """
-  defmacro left != right do
-    quote do: __op__(:"/=", unquote(left), unquote(right))
-  end
-
-  @doc """
-  Returns `true` if the two items are strictly equal.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 === 2
-      false
-
-      iex> 1 === 1.0
-      false
-
-  """
-  defmacro left === right do
-    quote do: __op__(:"=:=", unquote(left), unquote(right))
-  end
-
-  @doc """
-  Returns `true` if the two items are strictly not equal.
-  Like Erlang, Elixir can compare any term. Allowed in guard clauses.
-
-  ## Examples
-
-      iex> 1 !== 2
-      true
-
-      iex> 1 !== 1.0
-      true
-
-  """
-  defmacro left !== right do
-    quote do: __op__(:"=/=", unquote(left), unquote(right))
   end
 
   @doc """
@@ -1346,8 +1542,6 @@ defmodule Kernel do
       end
     end
   end
-
-  ## Implemented in Elixir
 
   @doc """
   Concatenates two binaries.
@@ -1491,44 +1685,6 @@ defmodule Kernel do
     quote do
       :erlang.raise :error, unquote(exception).exception(unquote(args)), unquote(stacktrace)
     end
-  end
-
-  @doc """
-  Get the element at the zero-based `index` in `tuple`.
-
-  Implemented as a macro so it can be used in guards.
-
-  ## Example
-
-      iex> tuple = { :foo, :bar, 3 }
-      ...> elem(tuple, 1)
-      :bar
-
-  """
-  defmacro elem(tuple, index) when is_integer(index) do
-    quote do: :erlang.element(unquote(index + 1), unquote(tuple))
-  end
-
-  defmacro elem(tuple, index) do
-    quote do: :erlang.element(unquote(index) + 1, unquote(tuple))
-  end
-
-  @doc """
-  Sets the element in `tuple` at the zero-based `index` to the given `value`.
-
-  ## Example
-
-      iex> tuple = { :foo, :bar, 3 }
-      ...> set_elem(tuple, 0, :baz)
-      { :baz, :bar, 3 }
-
-  """
-  defmacro set_elem(tuple, index, value) when is_integer(index) do
-    quote do: :erlang.setelement(unquote(index + 1), unquote(tuple), unquote(value))
-  end
-
-  defmacro set_elem(tuple, index, value) do
-    quote do: :erlang.setelement(unquote(index) + 1, unquote(tuple), unquote(value))
   end
 
   @doc """
