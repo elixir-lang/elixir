@@ -9,7 +9,7 @@ defrecord Mix.Dep, [ scm: nil, app: nil, requirement: nil, status: nil, opts: ni
   * `requirement` - a binary or regex with the dependency's requirement
   * `status` - the current status of the dependency, check `Mix.Deps.format_status/1` for more info;
   * `opts` - the options given by the developer
-  * `deps` - the app names of the dependencies of this dependency
+  * `deps` - dependencies of this dependency
   * `manager` - the project management, possible values: `:rebar` | `:mix` | `:make` | `nil`
   * `from` - path to the file where the dependency was defined
   * `extra` - a slot for adding extra configuration based on the scm.

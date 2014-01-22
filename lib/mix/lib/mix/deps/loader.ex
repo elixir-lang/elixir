@@ -46,7 +46,7 @@ defmodule Mix.Deps.Loader do
           { dep, [] }
       end
 
-    { validate_path(validate_app(dep)), children }
+    validate_path(validate_app(dep)).deps(children)
   end
 
   @doc """

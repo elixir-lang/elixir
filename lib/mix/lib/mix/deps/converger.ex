@@ -15,8 +15,8 @@ defmodule Mix.Deps.Converger do
         :digraph.add_vertex(graph, app)
       end
 
-      Enum.each deps, fn Mix.Dep[app: app, deps: other_apps] ->
-        Enum.each other_apps, fn other_app ->
+      Enum.each deps, fn Mix.Dep[app: app, deps: other_deps] ->
+        Enum.each other_deps, fn Mix.Dep[app: other_app] ->
           :digraph.add_edge(graph, other_app, app)
         end
       end
@@ -37,7 +37,7 @@ defmodule Mix.Deps.Converger do
   Returns all dependencies from the current project,
   including nested dependencies. There is a callback
   that is invoked for each dependency and must return
-  an updated depedency in case some processing is done.
+  an updated dependency in case some processing is done.
   """
   def all(rest, callback) do
     main = Mix.Deps.Loader.children
@@ -94,12 +94,11 @@ defmodule Mix.Deps.Converger do
         # After we invoke the callback (which may actually check out the
         # dependency), we load the dependency including its latest info
         # and children information.
-        { dep, children } = Mix.Deps.Loader.load(dep)
-        children = reject_non_fullfilled_optional(children, current_breadths)
-        dep      = dep.deps(Enum.map(children, &(&1.app)))
+        dep = Mix.Deps.Loader.load(dep)
+        dep = dep.update_deps(&reject_non_fullfilled_optional(&1, current_breadths))
 
         { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, callback, rest)
-        all(children, acc, current_breadths, dep.deps ++ current_breadths, callback, rest)
+        all(dep.deps, acc, current_breadths, Enum.map(dep.deps, &(&1.app)) ++ current_breadths, callback, rest)
     end
   end
 

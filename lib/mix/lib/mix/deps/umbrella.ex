@@ -28,12 +28,11 @@ defmodule Mix.Deps.Umbrella do
     deps = unloaded
     apps = Enum.map(deps, &(&1.app))
 
-    Enum.map(deps, fn(umbrella_dep) ->
-      { umbrella_dep, deps } = Mix.Deps.Loader.load(umbrella_dep)
-      deps = lc Mix.Dep[] = dep inlist deps,
-                Mix.Deps.available?(dep),
-                dep.app in apps,
-                do: dep.app
+    Enum.map(deps, fn umbrella_dep ->
+      umbrella_dep = Mix.Deps.Loader.load(umbrella_dep)
+      deps = Enum.filter(umbrella_dep.deps, fn Mix.Dep[] = dep ->
+        Mix.Deps.available?(dep) and dep.app in apps
+      end)
       umbrella_dep.deps(deps)
     end) |> Mix.Deps.Converger.topsort
   end
