@@ -9,7 +9,11 @@
   find_import/4, format_error/1]).
 -include("elixir.hrl").
 -import(ordsets, [is_element/2]).
+
+%% Module macros
 -define(kernel, 'Elixir.Kernel').
+-define(node, 'Elixir.Node').
+-define(process, 'Elixir.Process').
 
 default_functions() ->
   [ { ?kernel, elixir_imported_functions() } ].
@@ -328,6 +332,8 @@ rewrite(?kernel, elem, [Tuple, Index], 2) ->
   { ok, erlang, element, [increment(Index), Tuple] };
 rewrite(?kernel, set_elem, [Tuple, Index, Value], 2) ->
   { ok, erlang, setelement, [increment(Index), Tuple, Value] };
+rewrite(?process, monitor, [Arg], 1) ->
+  { ok, erlang, monitor, [process, Arg] };
 rewrite(Receiver, Name, Args, Arity) ->
   case inline(Receiver, Name, Arity) of
     { AR, AN } -> { ok, AR, AN, Args };
@@ -421,4 +427,28 @@ inline(?kernel, tl, 1) -> { erlang, tl };
 inline(?kernel, trunc, 1) -> { erlang, trunc };
 inline(?kernel, tuple_size, 1) -> { erlang, tuple_size };
 inline(?kernel, tuple_to_list, 1) -> { erlang, tuple_to_list };
+
+inline(?process, exit, 2) -> { erlang, exit };
+inline(?process, spawn, 1) -> { erlang, spawn };
+inline(?process, spawn, 2) -> { erlang, spawn_opt };
+inline(?process, spawn, 3) -> { erlang, spawn };
+inline(?process, spawn, 4) -> { erlang, spawn_opt };
+inline(?process, spawn_link, 1) -> { erlang, spawn_link };
+inline(?process, spawn_link, 3) -> { erlang, spawn_link };
+inline(?process, spawn_monitor, 1) -> { erlang, spawn_monitor };
+inline(?process, spawn_monitor, 3) -> { erlang, spawn_monitor };
+inline(?process, demonitor, 1) -> { erlang, demonitor };
+inline(?process, demonitor, 2) -> { erlang, demonitor };
+inline(?process, link, 1) -> { erlang, link };
+inline(?process, unlink, 1) -> { erlang, unlink };
+
+inline(?node, spawn, 2) -> { erlang, spawn };
+inline(?node, spawn, 3) -> { erlang, spawn_opt };
+inline(?node, spawn, 4) -> { erlang, spawn };
+inline(?node, spawn, 5) -> { erlang, spawn_opt };
+inline(?node, spawn_link, 2) -> { erlang, spawn_link };
+inline(?node, spawn_link, 4) -> { erlang, spawn_link };
+inline(?node, spawn_monitor, 2) -> { erlang, spawn_monitor };
+inline(?node, spawn_monitor, 4) -> { erlang, spawn_monitor };
+
 inline(_, _, _) -> false.

@@ -1,6 +1,10 @@
 defmodule Node do
   @moduledoc """
-  Functions related to Erlang nodes.
+  Functions related to VM nodes.
+
+  Some of the functions in this module are inlined by the compiler,
+  similar to functions in the `Kernel` module. When such happens,
+  they are explicitly tagged as so.
   """
 
   @type t :: atom
@@ -97,6 +101,8 @@ defmodule Node do
 
   Check http://www.erlang.org/doc/man/erlang.html#spawn-2 for
   the list of available options.
+
+  Inlined by the compiler.
   """
   @spec spawn(t, (() -> any)) :: pid
   def spawn(node, fun) do
@@ -109,6 +115,8 @@ defmodule Node do
 
   Check http://www.erlang.org/doc/man/erlang.html#spawn_opt-3 for
   the list of available options.
+
+  Inlined by the compiler.
   """
   @spec spawn(t, (() -> any), Process.spawn_opts) :: pid | {pid, reference}
   def spawn(node, fun, opts) do
@@ -122,6 +130,8 @@ defmodule Node do
 
   Check http://www.erlang.org/doc/man/erlang.html#spawn-4 for
   the list of available options.
+
+  Inlined by the compiler.
   """
   @spec spawn(t, module, atom, [any]) :: pid
   def spawn(node, module, fun, args) do
@@ -135,6 +145,8 @@ defmodule Node do
 
   Check http://www.erlang.org/doc/man/erlang.html#spawn_opt-5 for
   the list of available options.
+
+  Inlined by the compiler.
   """
   @spec spawn(t, module, atom, [any], Process.spawn_opts) :: pid | {pid, reference}
   def spawn(node, module, fun, args, opts) do
@@ -147,6 +159,8 @@ defmodule Node do
   new process, atomically. If `node` does not exist, a useless pid is returned
   (and due to the link, an exit signal with exit reason `:noconnection` will be
   received).
+
+  Inlined by the compiler.
   """
   @spec spawn_link(t, (() -> any)) :: pid
   def spawn_link(node, fun) do
@@ -159,6 +173,8 @@ defmodule Node do
   process and the new process, atomically. If `node` does not exist, a useless
   pid is returned (and due to the link, an exit signal with exit reason
   `:noconnection` will be received).
+
+  Inlined by the compiler.
   """
   @spec spawn_link(t, module, atom, [any]) :: pid
   def spawn_link(node, module, fun, args) do

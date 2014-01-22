@@ -1,11 +1,10 @@
 defmodule Process do
   @moduledoc """
-  This module provides convenience functions around processes and
-  the process dictionary. In Erlang, most of these functions are
-  auto-imported, but in Elixir they are grouped in a module for
-  convenience. Notice that these functions, different from Erlang's,
-  always return nil instead of undefined. You can use their Erlang
-  version if you want the undefined value.
+  Conveniences for working with processes and the process dictionary.
+
+  Some of the functions in this module are inlined by the compiler,
+  similar to functions in the `Kernel` module. When such happens,
+  they are explicitly tagged as so.
   """
 
   @doc """
@@ -81,15 +80,17 @@ defmodule Process do
   1) If pid is not trapping exits, pid will exit with the given reason;
 
   2) If pid is trapping exits, the exit signal is transformed into a message
-     {'EXIT', from, reason} and delivered to the message queue of pid;
+     {:EXIT, from, reason} and delivered to the message queue of pid;
 
   3) If reason is the atom `:normal`, pid will not exit. If it is trapping exits,
-     the exit signal is transformed into a message {'EXIT', from, :normal} and
+     the exit signal is transformed into a message {:EXIT, from, :normal} and
      delivered to its message queue;
 
   4) If reason is the atom `:kill`, that is if `exit(pid, :kill)` is called, an
      untrappable exit signal is sent to pid which will unconditionally exit with
      exit reason `:killed`.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -112,6 +113,8 @@ defmodule Process do
   @doc """
   Returns the pid of a new process started by the application of `fun`.
   It behaves exactly the same as `Kernel.spawn/1`.
+
+  Inlined by the compiler.
   """
   @spec spawn((() -> any)) :: pid
   def spawn(fun) do
@@ -129,6 +132,8 @@ defmodule Process do
 
   It also accepts extra options, for the list of available options
   check http://www.erlang.org/doc/man/erlang.html#spawn_opt-2
+
+  Inlined by the compiler.
   """
   @spec spawn((() -> any), spawn_opts) :: pid | {pid, reference}
   def spawn(fun, opts) do
@@ -141,6 +146,8 @@ defmodule Process do
   scheduler queue and be run some time later.
 
   It behaves exactly the same as the `Kernel.spawn/3` function.
+
+  Inlined by the compiler.
   """
   @spec spawn(module, atom, [any]) :: pid
   def spawn(mod, fun, args) do
@@ -155,6 +162,7 @@ defmodule Process do
   It also accepts extra options, for the list of available options
   check http://www.erlang.org/doc/man/erlang.html#spawn_opt-4
 
+  Inlined by the compiler.
   """
   @spec spawn(module, atom, [any], spawn_opts) :: pid | {pid, reference}
   def spawn(mod, fun, args, opts) do
@@ -165,6 +173,8 @@ defmodule Process do
   Returns the pid of a new process started by the application of `fun`.
   A link is created between the calling process and the new
   process, atomically.
+
+  Inlined by the compiler.
   """
   @spec spawn_link((() -> any)) :: pid
   def spawn_link(fun) do
@@ -175,6 +185,8 @@ defmodule Process do
   Returns the pid of a new process started by the application of
   `module.function(args)`. A link is created between the calling process
   and the new process, atomically. Otherwise works like spawn/3.
+
+  Inlined by the compiler.
   """
   @spec spawn_link(module, atom, [any]) :: pid
   def spawn_link(mod, fun, args) do
@@ -184,6 +196,8 @@ defmodule Process do
   @doc """
   Returns the pid of a new process started by the application of `fun`
   and reference for a monitor created to the new process.
+
+  Inlined by the compiler.
   """
   @spec spawn_monitor((() -> any)) :: {pid, reference}
   def spawn_monitor(fun) do
@@ -194,6 +208,8 @@ defmodule Process do
   A new process is started by the application of `module.function(args)`
   and the process is monitored at the same time. Returns the pid and a
   reference for the monitor. Otherwise works like spawn/3.
+
+  Inlined by the compiler.
   """
   @spec spawn_monitor(module, atom, [any]) :: {pid, reference}
   def spawn_monitor(mod, fun, args) do
@@ -205,6 +221,8 @@ defmodule Process do
   It returns the monitor reference.
 
   See http://www.erlang.org/doc/man/erlang.html#monitor-2 for more info.
+
+  Inlined by the compiler.
   """
   @spec monitor(pid | {reg_name :: atom, node :: atom} | reg_name :: atom) :: reference
   def monitor(item) do
@@ -217,6 +235,8 @@ defmodule Process do
   If the monitoring is already turned off, nothing happens.
 
   See http://www.erlang.org/doc/man/erlang.html#demonitor-2 for more info.
+
+  Inlined by the compiler.
   """
   @spec demonitor(reference) :: true
   @spec demonitor(reference, options :: [:flush | :info]) :: boolean
@@ -244,6 +264,8 @@ defmodule Process do
   (or port) `pid`, if there is not such a link already.
 
   See http://www.erlang.org/doc/man/erlang.html#link-1 for more info.
+
+  Inlined by the compiler.
   """
   @spec link(pid | port) :: true
   def link(pid) do
@@ -256,6 +278,8 @@ defmodule Process do
   fail, even if there is no link or `id` does not exist
 
   See http://www.erlang.org/doc/man/erlang.html#unlink-1 for more info.
+
+  Inlined by the compiler.
   """
   @spec unlink(pid | port) :: true
   def unlink(pid) do
