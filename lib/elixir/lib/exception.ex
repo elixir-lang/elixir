@@ -419,8 +419,10 @@ defmodule Exception do
   end
 
 
-  def function_name_pattern do
-    %r{
+  # have to use :re here because exceptions may be triggered before Regexp
+  # module is compiled.
+  @function_name_re :re.compile(
+    %S{
        \A(                                       
             [\w]+[?!]?         
           | ->
@@ -449,15 +451,14 @@ defmodule Exception do
           | & 
           | ~~~
           | @
-    )\z}x
-  end
+    )\z}, [:extended] )
 
   defp maybe_quote_name(fun) do
     name = to_string(fun)
-    if Regex.match?(function_name_pattern, name) do
-      name
-    else
-      inspect name
+    {:ok, re} = @function_name_re
+    case :re.run(name, re) do
+      { :match, _} -> name
+      _            -> inspect name
     end
   end
 
