@@ -104,7 +104,7 @@ defmodule Kernel.ExceptionTest do
       end
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list!
     assert {Kernel.ExceptionTest, :"test raise preserves the stacktrace", _,
-           [file: ^file, line: _line]} = stacktrace
+           [file: ^file, line: 100]} = stacktrace
   end
 
   test "defexception" do

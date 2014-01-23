@@ -29,7 +29,6 @@ defmodule IEx.EvaluatorTest do
       { String, :second, 2, [file: "loc2",   line: 102] },
       { IEx,    :three,  3, [file: "longer", line: 1234] },
       { List,   :four,   4, [file: "loc",    line: 1] },
-
     ]
     IEx.Options.set :colors, enabled: false
 
@@ -49,7 +48,6 @@ defmodule IEx.EvaluatorTest do
       { String, :second, 2, [file: "loc2",   line: 102] },
       { IEx,    :three,  3, [file: "longerandlonger", line: 1234] },
       { List,   :four,   4, [file: "loc",    line: 1] },
-
     ]
     IEx.Options.set :colors, enabled: false
 
