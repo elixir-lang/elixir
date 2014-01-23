@@ -218,8 +218,8 @@ defmodule Exception do
   """
   def format_stacktrace_entry(entry) do
     format_stacktrace_entry_into_fields(entry)
-    |> Enum.filter(&(&1))
     |> tuple_to_list
+    |> Enum.filter(&(&1))
     |> Enum.join(" ")
   end
 
@@ -316,56 +316,52 @@ defmodule Exception do
     "#{inspect fun}#{format_arity(arity)}"
   end
 
-  @doc """
-  Receives a module, fun and arity and formats it
-  as shown in stacktraces. The arity may also be a list
-  of arguments.
 
-  ## Examples
+  # Receives a module, fun and arity and formats it
+  # as shown in stacktraces. The arity may also be a list
+  # of arguments.
 
-      iex> Exception.format_mfa Foo, :bar, 1
-      "Foo.bar/1"
-      iex> Exception.format_mfa Foo, :bar, []
-      "Foo.bar()"
-      iex> Exception.format_mfa nil, :bar, []
-      "nil.bar()"
+  # ## Examples
 
-  """
-  def format_mfa(module, nil, arity), 
+  #     iex> Exception.format_mfa Foo, :bar, 1
+  #     "Foo.bar/1"
+  #     iex> Exception.format_mfa Foo, :bar, []
+  #     "Foo.bar()"
+  #     iex> Exception.format_mfa nil, :bar, []
+  #     "nil.bar()"
+
+  # Anonymous functions are reported as -func/arity-anonfn-count-,
+  # where func is the name of the enclosing function. Convert to
+  # "nth fn in func/arity"
+
+  defp format_mfa(module, nil, arity), 
   do: format_mfa(module, "nil", arity) 
 
-  def format_mfa(module, fun, arity) when is_atom(fun),
+  defp format_mfa(module, fun, arity) when is_atom(fun),
   do: format_mfa(module, to_string(fun), arity) 
 
-  def format_mfa(module, fun, arity) when not(is_binary(fun)),
+  defp format_mfa(module, fun, arity) when not(is_binary(fun)),
   do: format_mfa(module, inspect(fun), arity) 
 
-
-
-  @doc """
-  Anonymous functions are reported as -func/arity-anonfn-count-,
-  where func is the name of the enclosing function. Convert to
-  "nth fn in func/arity"
-  """
-  def format_mfa(module, "-" <> fun, arity) do
-    [ outer_fun, "fun", count, "" ] = String.split(fun, %r/-/)
+  defp format_mfa(module, "-" <> fun, arity) do
+    [ outer_fun, "fun", count, "" ] = String.split(fun, "-")
     "#{format_nth(count)} anonymous fn#{format_arity(arity)} in #{inspect module}.#{outer_fun}"
   end
 
   # Erlang internal
-  def format_mfa(module, ":" <> fun, arity),  
+  defp format_mfa(module, ":" <> fun, arity),  
   do: format_mfa(module, fun, arity)
 
-  def format_mfa(module, fun, arity) do
+  defp format_mfa(module, fun, arity) do
     "#{inspect module}.#{fun}#{format_arity(arity)}"
   end
 
-  def format_arity(arity) when is_list(arity) do
+  defp format_arity(arity) when is_list(arity) do
     inspected = lc x inlist arity, do: inspect(x)
     "(#{Enum.join(inspected, ", ")})"
   end
 
-  def format_arity(arity),  do: "/#{arity}"
+  defp format_arity(arity),  do: "/#{arity}"
 
   defp format_nth("0"), do: "first"
   defp format_nth("1"), do: "second"

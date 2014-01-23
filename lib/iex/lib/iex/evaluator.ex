@@ -200,39 +200,47 @@ defmodule IEx.Evaluator do
       io_error callback.()
       case prune_stacktrace(trace) do
         []    -> :ok
-        other -> pretty_print_stacktrace(other)
+        other -> IO.puts(pretty_stacktrace(other))
       end
     catch
       type, detail ->
-        io_error "** (IEx.Error) #{type} (#{detail}) when printing exception message and stacktrace"
+        io_error "** (IEx.Error) #{str(type)} (#{str(detail)}) when printing exception message and stacktrace"
     end
   end
 
-  # at this point, the trace if nonempty
-  defp pretty_print_stacktrace(trace) do
+  defp str(thing) when is_binary(thing), do: thing
+  defp str(thing) do
+    try do: to_string(thing), rescue: (_ -> inspect(thing))
+  end
+    
+
+
+  # at this point, the trace is nonempty
+  def pretty_stacktrace(trace) do
     frames = (lc frame inlist trace do
                 Exception.format_stacktrace_entry_into_fields(frame)
               end)
     col_0_width = calculate_width(frames, 0)
     col_1_width = calculate_width(frames, 1)
     lines = (lc frame inlist frames, do: pretty_print_frame(frame, col_0_width, col_1_width))
-    IO.puts  :stdio, "  " <> Enum.join(lines, "\n  ")
+    "  " <> Enum.join(lines, "\n  ")
   end
 
   defp pretty_print_frame({app, location, detail}, c1_width, c2_width) do
     s_app = String.rjust(app||"", c1_width)
     s_loc = String.ljust(location, c2_width)
       
-    "#{IEx.color(:eval_error, s_app)} #{IEx.color(:eval_error, s_loc)} #{IEx.color(:eval_result, detail)}"
+    "#{IEx.color(:eval_error, s_app)} #{IEx.color(:stack_loc, s_loc)} #{IEx.color(:stack_mfa, detail)}"
   end
 
-  # Look trough all the entries in a particular column. If the
+  # Look through all the entries in a particular column. If the
   # longest differs from the smallest by less than 8, return
   # the longest, so that smaller entries will be padded
   # and all entries for that column will be the same length. 
   # If the difference is greater, return 0, and no padding
-  # will be done
-  defp calculate_width([ head | rest_of_lists ], column) do
+  # will be done. Public to allow testing
+  @doc nil
+  def calculate_width([ head | rest_of_lists ], column) do
     first_line_length = length_for(head, column)
     {min, max} = Enum.reduce(rest_of_lists, 
                               {first_line_length,first_line_length}, 
