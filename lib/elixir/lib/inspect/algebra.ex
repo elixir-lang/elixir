@@ -73,7 +73,7 @@ defmodule Inspect.Algebra do
 
   # Functional interface to `doc` records
 
-  @type t :: :doc_nil | doc_cons_t | doc_nest_t | doc_break_t | doc_group_t | binary
+  @type t :: :doc_nil | :doc_line | doc_cons_t | doc_nest_t | doc_break_t | doc_group_t | binary
   defrecordp :doc_cons, left: :doc_nil :: t, right: :doc_nil :: t
   defrecordp :doc_nest, indent: 1 :: non_neg_integer, doc: :doc_nil :: t
   defrecordp :doc_break, str: " " :: binary
@@ -94,7 +94,7 @@ defmodule Inspect.Algebra do
   defp do_is_doc(doc) do
     quote do
       is_binary(unquote(doc)) or
-      unquote(doc) == :doc_nil or
+      unquote(doc) in [:doc_nil, :doc_line] or
       (is_tuple(unquote(doc)) and
        elem(unquote(doc), 0) in [:doc_cons, :doc_nest, :doc_break, :doc_group])
     end
@@ -274,7 +274,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec line(t, t) :: doc_cons_t
-  def line(x, y), do: concat(x, concat(@newline, y))
+  def line(x, y), do: concat(x, concat(:doc_line, y))
 
   @doc """
   Folds a list of document entities into a document entity
@@ -397,6 +397,7 @@ defmodule Inspect.Algebra do
   @spec fits?(integer, [{ integer, mode, t }]) :: boolean
   def fits?(w, _) when w < 0,                               do: false
   def fits?(_, []),                                         do: true
+  def fits?(_, [{_, _, :doc_line} | _]),                    do: true
   def fits?(w, [{_, _, :doc_nil} | t]),                     do: fits?(w, t)
   def fits?(w, [{i, m, doc_cons(left: x, right: y)} | t]),  do: fits?(w, [{i, m, x} | [{i, m, y} | t]])
   def fits?(w, [{i, m, doc_nest(indent: j, doc: x)} | t]),  do: fits?(w, [{i + j, m, x} | t])
@@ -408,6 +409,7 @@ defmodule Inspect.Algebra do
   @doc false
   @spec format(integer | :infinity, integer, [{ integer, mode, t }]) :: [binary]
   def format(_, _, []),                                        do: []
+  def format(w, _, [{i, _, :doc_line} | t]),                   do: [indent(i) | format(w, i, t)]
   def format(w, k, [{_, _, :doc_nil} | t]),                    do: format(w, k, t)
   def format(w, k, [{i, m, doc_cons(left: x, right: y)} | t]), do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
   def format(w, k, [{i, m, doc_nest(indent: j, doc: x)} | t]), do: format(w, k, [{i + j, m, x} | t])
@@ -420,10 +422,12 @@ defmodule Inspect.Algebra do
     if w == :infinity or fits?(w - k, t) do
       [s | format(w, k, t)]
     else
-      prefix = :binary.copy(" ", i)
-      [@newline, prefix | format(w, i, t)]
+      [indent(i) | format(w, i, t)]
     end
   end
+
+  defp indent(0), do: @newline
+  defp indent(i), do: @newline <> :binary.copy(" ", i)
 
   @doc false
   @spec render([binary]) :: binary
