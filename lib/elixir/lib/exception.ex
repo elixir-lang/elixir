@@ -320,9 +320,8 @@ defmodule Exception do
   # Receives a module, fun and arity and formats it
   # as shown in stacktraces. The arity may also be a list
   # of arguments.
-
+  #
   # ## Examples
-
   #     iex> Exception.format_mfa Foo, :bar, 1
   #     "Foo.bar/1"
   #     iex> Exception.format_mfa Foo, :bar, []
