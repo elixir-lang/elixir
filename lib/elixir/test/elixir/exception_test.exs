@@ -42,9 +42,13 @@ defmodule Kernel.ExceptionTest do
   end
 
   test "format_stacktrace_entry with application" do
-    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex']}) == "(elixir) file.ex: Exception.bar()"
-    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex', line: 10]}) == "(elixir) file.ex:10: Exception.bar()"
-    assert Exception.format_stacktrace_entry({:lists, :bar, [1, 2, 3], []}) == "(stdlib) :lists.bar(1, 2, 3)"  end
+    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex']}) == 
+                       "(elixir) file.ex: Exception.bar()"
+    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex', line: 10]}) ==
+                       "(elixir) file.ex:10: Exception.bar()"
+    assert Exception.format_stacktrace_entry({:lists, :bar, [1, 2, 3], []}) == 
+                       "(stdlib) :lists.bar(1, 2, 3)"  
+  end
 
   test "format_stacktrace_entry with fun" do
     assert Exception.format_stacktrace_entry({fn(x) -> x end, [1], []}) =~ %r/#Function<.+>\(1\)/
@@ -98,10 +102,9 @@ defmodule Kernel.ExceptionTest do
         [top|_] = System.stacktrace
         top
       end
-
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list!
     assert {Kernel.ExceptionTest, :"test raise preserves the stacktrace", _,
-           [file: ^file, line: 96]} = stacktrace
+           [file: ^file, line: _line]} = stacktrace
   end
 
   test "defexception" do

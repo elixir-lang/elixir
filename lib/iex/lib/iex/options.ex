@@ -123,10 +123,12 @@ defmodule IEx.Options do
 
     * `:enabled`      - boolean value that allows for switching the coloring on and off
     * `:eval_result`  - color for an expression's resulting value
-    * `:eval_error`   - color for error messages
-    * `:eval_info`    - color for various informational messages
-    * `:ls_directory` - color for directory entries (ls helper)
-    * `:ls_device`    - color for device entries (ls helper)
+    * `:eval_error`   - … error messages
+    * `:stack_loc`    - … the location in a stack trace
+    * `:error_mfa`    - … the function name in a stack trace
+    * `:eval_info`    - … various informational messages
+    * `:ls_directory` - … for directory entries (ls helper)
+    * `:ls_device`    - … device entries (ls helper)
 
   When printing documentation, IEx will convert the markdown
   documentation to ANSI as well. Those can be configured via:
