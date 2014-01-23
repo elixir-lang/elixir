@@ -34,8 +34,8 @@
 defmodule Module.LocalsTracker do
   @moduledoc false
 
-  @timeout  30_000
-  @behavior :gen_server
+  @timeout   30_000
+  @behaviour :gen_server
 
   @type ref :: pid | module
   @type name :: atom

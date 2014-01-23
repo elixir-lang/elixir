@@ -27,7 +27,7 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  defmodule PerEnvironemtDepsApp do
+  defmodule PerEnvironmentDepsApp do
     def project do
       [ app: :sample, version: "0.1.0", build_per_environment: true,
         deps: [
@@ -154,7 +154,7 @@ defmodule Mix.Tasks.DepsTest do
   end
 
   test "compiles and prunes builds per environment" do
-    Mix.Project.push PerEnvironemtDepsApp
+    Mix.Project.push PerEnvironmentDepsApp
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Compile.run []
@@ -167,72 +167,11 @@ defmodule Mix.Tasks.DepsTest do
 
       Mix.ProjectStack.post_config [deps: []]
       Mix.Project.pop
-      Mix.Project.push PerEnvironemtDepsApp
+      Mix.Project.push PerEnvironmentDepsApp
 
       Mix.Tasks.Deps.Check.run []
       refute File.exists?("_build/dev/lib/ok/ebin/ok.app")
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
-    end
-  end
-
-  test "copies dev dependency when building per environment" do
-    Mix.Project.push PerEnvironemtDepsApp
-
-    in_fixture "deps_status", fn ->
-      File.mkdir_p!("deps/ok/lib")
-      File.write!("deps/ok/lib/empty.ex", "")
-
-      Mix.Tasks.Deps.Compile.run []
-      assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
-      assert_received { :mix_shell, :info, ["Generated ok.app"] }
-
-      Mix.Task.clear
-      Mix.env(:test)
-      Mix.Project.pop
-      Mix.Project.push PerEnvironemtDepsApp
-
-      Mix.Tasks.Deps.Compile.run []
-      assert File.exists?("_build/test/lib/ok/ebin/ok.app")
-      assert File.read!("_build/test/lib/ok/priv/sample") == "SAMPLE"
-      # We don't get a message becaused we copied the contents over
-      refute_received { :mix_shell, :info, ["Generated ok.app"] }
-    end
-  end
-
-  test "does not choke when another environment is compiled first than dev" do
-    Mix.Project.push PerEnvironemtDepsApp
-    Mix.env(:test)
-
-    in_fixture "deps_status", fn ->
-      File.mkdir_p!("deps/ok/lib")
-      File.write!("deps/ok/lib/empty.ex", "")
-
-      Mix.Tasks.Deps.Compile.run []
-      assert File.exists?("_build/test/lib/ok/ebin/ok.app")
-      assert File.read!("_build/test/lib/ok/priv/sample") == "SAMPLE"
-      assert_received { :mix_shell, :info, ["Generated ok.app"] }
-    end
-  end
-
-  test "does not copy if environments do not match" do
-    Mix.ProjectStack.post_config(deps: [{ :ok, "0.1.0", path: "deps/ok", env: Mix.env }])
-    Mix.Project.push PerEnvironemtDepsApp
-
-    in_fixture "deps_status", fn ->
-      File.mkdir_p!("deps/ok/lib")
-      File.write!("deps/ok/lib/empty.ex", "")
-
-      Mix.Tasks.Deps.Compile.run []
-      assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
-      assert_received { :mix_shell, :info, ["Generated ok.app"] }
-
-      Mix.Task.clear
-      Mix.env(:test)
-      Mix.Project.pop
-      Mix.Project.push PerEnvironemtDepsApp
-
-      Mix.Tasks.Deps.Compile.run []
-      assert_received { :mix_shell, :info, ["Generated ok.app"] }
     end
   end
 

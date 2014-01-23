@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Deps.Compile do
           not nil?(opts[:compile]) ->
             do_compile dep
           mix?(dep) ->
-            do_mix dep, config
+            do_mix dep
           rebar?(dep) ->
             do_rebar dep, config
           make?(dep) ->
@@ -84,17 +84,8 @@ defmodule Mix.Tasks.Deps.Compile do
     :ok
   end
 
-  defp do_mix(Mix.Dep[app: app] = dep, config) do
+  defp do_mix(dep) do
     Mix.Deps.in_dependency dep, fn _ ->
-      case dev_compilation(app, config) do
-        { source, target } ->
-          File.rm_rf!(target)
-          File.mkdir_p!(target)
-          File.cp_r!(source, Path.dirname(target))
-        false ->
-          :ok
-      end
-
       try do
         res = Mix.Task.run("compile", ["--no-deps"])
         :ok in List.wrap(res)
@@ -106,21 +97,6 @@ defmodule Mix.Tasks.Deps.Compile do
             "update it with `mix deps.update #{app}`"
           :erlang.raise(kind, reason, System.stacktrace)
       end
-    end
-  end
-
-  # In case we have build per environments and the dependency was already
-  # compiled for development and the target is stale compared to the
-  # development (source) one, we simply copy the source to target and do
-  # the compilation on top of it.
-  defp dev_compilation(app, config) do
-    if config[:build_per_environment] do
-      source = config[:build_path] |> Path.dirname |> Path.join("dev/lib/#{app}")
-      target = Mix.Project.manifest_path
-      source != target && Mix.Deps.Lock.mix_env(source) == to_string(Mix.env) &&
-        not Mix.Utils.stale?([target], [source]) && { source, target }
-    else
-      false
     end
   end
 
@@ -143,7 +119,7 @@ defmodule Mix.Tasks.Deps.Compile do
     end
 
     Mix.Task.run "local.rebar", []
-    Mix.Rebar.local_rebar_cmd || raise Mix.Error, message: "rebar instalation failed"
+    Mix.Rebar.local_rebar_cmd || raise Mix.Error, message: "rebar installation failed"
   end
 
   defp do_make(dep) do
