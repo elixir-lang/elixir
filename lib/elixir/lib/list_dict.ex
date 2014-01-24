@@ -94,7 +94,7 @@ defmodule ListDict do
     acc = { [], [] }
 
     {take, drop} = Enum.reduce dict, acc, fn({ k, v }, { take, drop }) ->
-      if :lists.member(k, keys) do
+      if k in keys do
         { [{k, v}|take], drop }
       else
         { take, [{k, v}|drop] }
@@ -105,11 +105,11 @@ defmodule ListDict do
   end
 
   def take(dict, keys) do
-    lc { k, _ } = tuple inlist dict, :lists.member(k, keys), do: tuple
+    lc { k, _ } = tuple inlist dict, k in keys, do: tuple
   end
 
   def drop(dict, keys) do
-    lc { k, _ } = tuple inlist dict, not :lists.member(k, keys), do: tuple
+    lc { k, _ } = tuple inlist dict, not k in keys, do: tuple
   end
 
   def update!([{key, value}|dict], key, fun) do
@@ -141,6 +141,11 @@ defmodule ListDict do
   def equal?(dict, other) do
     :lists.keysort(1, dict) === :lists.keysort(1, other)
   end
+
+  def reduce(_,           { :halt, acc }, _fun),   do: { :halted, acc }
+  def reduce(list,        { :suspend, acc }, fun), do: { :suspended, acc, &reduce(list, &1, fun) }
+  def reduce([],          { :cont, acc }, _fun),   do: { :done, acc }
+  def reduce([{_,_}=h|t], { :cont, acc }, fun),    do: reduce(t, fun.(h, acc), fun)
 
   def to_list(dict), do: dict
 end

@@ -88,21 +88,16 @@ defmodule Dict.Behaviour do
         update(dict, key, value, fn(v) -> v end)
       end
 
-      def drop(dict, []), do: dict
-
-      def drop(dict, [key|keys]) do
-        drop(delete(dict, key), keys)
+      def drop(dict, keys) do
+        Enum.reduce keys, dict, &delete(&2, &1)
       end
 
       def take(dict, keys) do
-        take(dict, keys, new)
-      end
-
-      defp take(_dict, [], acc), do: acc
-      defp take(dict, [key|keys], acc) do
-        case fetch(dict, key) do
-          { :ok, value } -> take(dict, keys, put(acc, key, value))
-          :error -> take(dict, keys, acc)
+        Enum.reduce keys, new, fn key, acc ->
+          case fetch(dict, key) do
+            { :ok, value } -> put(acc, key, value)
+            :error -> acc
+          end
         end
       end
 
@@ -130,19 +125,18 @@ defmodule Dict.Behaviour do
           false -> false
           true  ->
             reduce(dict1, { :cont, true }, fn({ k, v }, _acc) ->
-              unless fetch(dict2, k) == { :ok, v } do
-                { :halt, false }
-              else
-                { :cont, true }
+              case fetch(dict2, k) do
+                { :ok, ^v } -> { :cont, true }
+                _ -> { :halt, false }
               end
             end) |> elem(1)
         end
       end
 
-      def merge(dict, enumerable, callback // fn(_k, _v1, v2) -> v2 end) do
-        Enum.reduce(enumerable, dict, fn({key, value}, acc) ->
-          update(acc, key, value, fn(v1) -> callback.(key, v1, value) end)
-        end)
+      def merge(dict1, dict2, fun // fn(_k, _v1, v2) -> v2 end) do
+        reduce(dict1, { :cont, dict2 }, fn { k, v1 }, acc ->
+          { :cont, update(acc, k, v1, &fun.(k, v1, &1)) }
+        end) |> elem(1)
       end
 
       defoverridable merge: 2, merge: 3, equal?: 2, to_list: 1, keys: 1,

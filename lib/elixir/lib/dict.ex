@@ -34,8 +34,7 @@ defmodule Dict do
   ## Match
 
   Dictionaries are required to implement all operations
-  using the match (`===`) operator. Any deviation from
-  this behaviour should be avoided and explicitly documented.
+  using the match (`===`) operator.
   """
 
   use Behaviour
@@ -48,7 +47,7 @@ defmodule Dict do
   defcallback new(Enum.t) :: t
   defcallback new(Enum.t, (any -> { key, value })) :: t
   defcallback delete(t, key) :: t
-  defcallback drop(t, [key]) :: t
+  defcallback drop(t, Enum.t) :: t
   defcallback empty(t) :: t
   defcallback equal?(t, t) :: boolean
   defcallback get(t, key) :: value
@@ -63,9 +62,10 @@ defmodule Dict do
   defcallback pop(t, key, value) :: {value, t}
   defcallback put(t, key, value) :: t
   defcallback put_new(t, key, value) :: t
+  defcallback reduce(t, Enumerable.acc, Enumerable.reducer) :: Enumerable.result
   defcallback size(t) :: non_neg_integer()
-  defcallback split(t, [key]) :: {t, t}
-  defcallback take(t, [key]) :: t
+  defcallback split(t, Enum.t) :: {t, t}
+  defcallback take(t, Enum.t) :: t
   defcallback to_list(t) :: list()
   defcallback update(t, key, value, (value -> value)) :: t
   defcallback update!(t, key, (value -> value)) :: t | no_return
@@ -258,12 +258,15 @@ defmodule Dict do
   end
 
   @doc """
-  Merges the given `enum` into `dict`. If one of the `enum` keys
-  already exists in `dict`, the `dict` value is replaced by the `enum`
-  value.
+  Merges the dict `b` into dict `a`.
 
-  The `enum` must yield tuples with two elements on enumeration,
-  where the first element represents the key and the second the value.
+  If one of the dict `b` entries already exists in the `dict`,
+  the functions in entries in `b` have higher precedence unless a
+  function is given to resolve conflicts.
+
+  Notice this function is polymorphic as it can merge dicts of any
+  type. Each dict implementation also provides a `merge` function,
+  but they can only merge dicts of the same type.
 
   ## Examples
 
@@ -272,22 +275,6 @@ defmodule Dict do
       ...> d = Dict.merge(d1, d2)
       ...> [a: Dict.get(d, :a), b: Dict.get(d, :b), d: Dict.get(d, :d)]
       [a: 3, b: 2, d: 4]
-
-  """
-  @spec merge(t, t) :: t
-  def merge(dict, enum) do
-    merge(dict, enum, fn(_k, _v1, v2) -> v2 end)
-  end
-
-  @doc """
-  Merges the given `enum` into `dict`. If one of the `enum` entries
-  already exists in `dict`, the given function is invoked to resolve
-  the conflict.
-
-  The `enum` must yield tuples with two elements on enumeration,
-  where the first element represents the key and the second the value.
-
-  ## Examples
 
       iex> d1 = dict_impl.new([a: 1, b: 2])
       ...> d2 = dict_impl.new([a: 3, d: 4])
@@ -299,8 +286,17 @@ defmodule Dict do
 
   """
   @spec merge(t, t, (key, value, value -> value)) :: t
-  def merge(dict, enum, fun) do
-    target(dict).merge(dict, enum, fun)
+  def merge(a, b, fun // fn(_k, _v1, v2) -> v2 end) do
+    a_target = target(a)
+    b_target = target(b)
+
+    if a_target == b_target do
+      a_target.merge(a, b, fun)
+    else
+      b_target.reduce(b, { :cont, a }, fn({ k, v }, acc) ->
+        { :cont, a_target.update(acc, k, v, fn(other) -> fun.(k, other, v) end) }
+      end) |> elem(1)
+    end
   end
 
   @doc """
@@ -345,11 +341,6 @@ defmodule Dict do
   @spec update!(t, key, (value -> value)) :: t
   def update!(dict, key, fun) do
     target(dict).update!(dict, key, fun)
-  end
-
-  @doc false
-  def update(dict, key, fun) do
-    target(dict).update(dict, key, fun)
   end
 
   @doc """
@@ -423,8 +414,8 @@ defmodule Dict do
   end
 
   @doc """
-  Returns a new dict where only the keys in `keys` from `dict` are
-  included.
+  Returns a new dict where only the keys in `keys` from `dict` are included.
+
   Any non-member keys are ignored.
 
   ## Examples
@@ -462,13 +453,16 @@ defmodule Dict do
   end
 
   @doc """
-  Check if two dicts are equal using `===`. If the dicts are
-  of different types, they are first converted to lists.
+  Check if two dicts are equal using `===`.
+
+  Notice this function is polymorphic as it can merge dicts of any
+  type. Each dict implementation also provides an `equal?` function,
+  but they can only compare dicts of the same type.
 
   ## Examples
 
       iex> a = dict_impl.new(a: 2, b: 3, f: 5, c: 123)
-      ...> b = ListDict.new(a: 2, b: 3, f: 5, c: 123)
+      ...> b = [a: 2, b: 3, f: 5, c: 123]
       ...> Dict.equal?(a, b)
       true
 
@@ -488,7 +482,12 @@ defmodule Dict do
         a_target.equal?(a, b)
 
       a_target.size(a) == b_target.size(b) ->
-        ListDict.equal?(a_target.to_list(a), b_target.to_list(b))
+        a_target.reduce(a, { :cont, true }, fn({ k, v }, _acc) ->
+          case b_target.fetch(b, k) do
+            { :ok, ^v } -> { :cont, true }
+            _           -> { :halt, false }
+          end
+        end) |> elem(1)
 
       true ->
         false

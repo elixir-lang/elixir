@@ -324,7 +324,7 @@ defmodule Keyword do
 
   """
   @spec equal?(t, t) :: boolean
-  def equal?(left, right) do
+  def equal?(left, right) when is_list(left) and is_list(right) do
     :lists.sort(left) == :lists.sort(right)
   end
 
@@ -339,7 +339,7 @@ defmodule Keyword do
 
   """
   @spec merge(t, t) :: t
-  def merge(d1, d2) do
+  def merge(d1, d2) when is_list(d1) and is_list(d2) do
     d2 ++ lc({ k, _ } = tuple inlist d1, not has_key?(d2, k), do: tuple)
   end
 
@@ -356,7 +356,7 @@ defmodule Keyword do
 
   """
   @spec merge(t, t, (key, value, value -> value)) :: t
-  def merge(d1, d2, fun) do
+  def merge(d1, d2, fun) when is_list(d1) and is_list(d2) do
     do_merge(d2, d1, fun)
   end
 
@@ -456,7 +456,7 @@ defmodule Keyword do
     acc = { [], [] }
 
     { take, drop } = Enum.reduce dict, acc, fn({ k, v }, { take, drop }) ->
-      case :lists.member(k, keys) do
+      case k in keys do
         true  -> { [{k, v}|take], drop }
         false -> { take, [{k, v}|drop] }
       end
@@ -481,7 +481,7 @@ defmodule Keyword do
 
   """
   def take(dict, keys) do
-    lc { k, _ } = tuple inlist dict, :lists.member(k, keys), do: tuple
+    lc { k, _ } = tuple inlist dict, k in keys, do: tuple
   end
 
   @doc """
@@ -500,7 +500,7 @@ defmodule Keyword do
 
   """
   def drop(dict, keys) do
-    lc { k, _ } = tuple inlist dict, not :lists.member(k, keys), do: tuple
+    lc { k, _ } = tuple inlist dict, not k in keys, do: tuple
   end
 
   @doc """

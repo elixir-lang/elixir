@@ -263,6 +263,13 @@ defmodule DictTest.Common do
         assert drop == dict
       end
 
+      test "split/2 with enum" do
+        dict = int_dict()
+        { take, drop } = Dict.split(dict, 1..3)
+        assert take == dict
+        assert drop == new_dict([])
+      end
+
       test "take/2" do
         dict = new_dict()
         take = Dict.take(dict, ["unknown_key"])
@@ -278,6 +285,11 @@ defmodule DictTest.Common do
         assert Dict.take(dict, [1.0]) == new_dict([])
       end
 
+      test "take/2 with enum" do
+        dict = int_dict()
+        assert Dict.take(dict, 1..3) == dict
+      end
+
       test "drop/2" do
         dict = new_dict()
         drop = Dict.drop(dict, ["unknown_key"])
@@ -291,6 +303,11 @@ defmodule DictTest.Common do
         dict = int_dict()
         assert Dict.drop(dict, [1]) == new_dict([])
         assert Dict.drop(dict, [1.0]) == dict
+      end
+
+      test "drop/2 with enum" do
+        dict = int_dict()
+        assert Dict.drop(dict, 1..3) == new_dict([])
       end
 
       test "empty" do

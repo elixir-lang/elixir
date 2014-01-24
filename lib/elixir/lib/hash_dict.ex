@@ -115,17 +115,11 @@ defmodule HashDict do
   end
 
   def split(dict, keys) do
-    split(keys, new, dict)
-  end
-
-  defp split([], including, excluding) do
-    { including, excluding }
-  end
-
-  defp split([key|keys], including, excluding) do
-    case dict_delete(excluding, key) do
-      { excluding, value } -> split(keys, put(including, key, value), excluding)
-      :error -> split(keys, including, excluding)
+    Enum.reduce keys, { new, dict }, fn key, { inc, exc } = acc ->
+      case dict_delete(exc, key) do
+        { exc, value } -> { put(inc, key, value), exc }
+        :error -> acc
+      end
     end
   end
 
@@ -139,10 +133,6 @@ defmodule HashDict do
     reduce(dict2, { :cont, dict1 }, fn { k, v2 }, acc ->
       { :cont, update(acc, k, v2, &callback.(k, &1, v2)) }
     end) |> elem(1)
-  end
-
-  def merge(trie() = dict, enumerable, callback) do
-    super(dict, enumerable, callback)
   end
 
   ## General helpers
