@@ -2,8 +2,10 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule IntegerTest do
   use ExUnit.Case, async: true
+  require Integer
 
   test :odd? do
+    assert Integer.odd?(0) == false
     assert Integer.odd?(1) == true
     assert Integer.odd?(2) == false
     assert Integer.odd?(3) == true
@@ -13,6 +15,7 @@ defmodule IntegerTest do
   end
 
   test :even? do
+    assert Integer.even?(0) == true
     assert Integer.even?(1) == false
     assert Integer.even?(2) == true
     assert Integer.even?(3) == false

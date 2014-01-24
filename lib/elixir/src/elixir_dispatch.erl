@@ -20,7 +20,7 @@ default_functions() ->
 default_macros() ->
   [ { ?kernel, elixir_imported_macros() } ].
 default_requires() ->
-  [ 'Elixir.Integer', 'Elixir.Kernel', 'Elixir.Kernel.Typespec', 'Elixir.Record' ].
+  [ 'Elixir.Kernel', 'Elixir.Kernel.Typespec', 'Elixir.Record' ].
 
 find_import(Meta, Name, Arity, E) ->
   Tuple = { Name, Arity },

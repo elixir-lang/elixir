@@ -3,8 +3,9 @@ defmodule Process do
   Conveniences for working with processes and the process dictionary.
 
   Some of the functions in this module are inlined by the compiler,
-  similar to functions in the `Kernel` module. When such happens,
-  they are explicitly tagged as so.
+  similar to functions in the `Kernel` module and they are explicitly
+  marked in their docs as "inlined by the compiler". For more information
+  about inlined functions, check out the `Kernel` module.
   """
 
   @doc """
