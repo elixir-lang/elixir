@@ -1,5 +1,24 @@
 Code.require_file "test_helper.exs", __DIR__
 
+# A TestSet implementation used only for testing.
+defmodule TestSet do
+  def new(list // []) when is_list(list) do
+    { TestSet, list }
+  end
+
+  def reduce({ TestSet, list }, acc, fun) do
+    Enumerable.reduce(list, acc, fun)
+  end
+
+  def member?({ TestSet, list }, v) do
+    v in list
+  end
+
+  def size({ TestSet, list }) do
+    length(list)
+  end
+end
+
 defmodule SetTest.Common do
   defmacro __using__(module) do
     quote location: :keep do
@@ -37,7 +56,7 @@ defmodule SetTest.Common do
 
       test "difference/2" do
         result = Set.difference(new_set([1, 2, 3]), new_set([3]))
-        assert Set.equal?(result, HashSet.new([1, 2]))
+        assert Set.equal?(result, new_set([1, 2]))
       end
 
       test "difference/2 with match" do
@@ -45,9 +64,19 @@ defmodule SetTest.Common do
         assert Set.member?(Set.difference(int_set, new_set([1.0])), 1)
       end
 
+      test "difference/2 with other set" do
+        result = Set.difference(new_set([1, 2, 3]), TestSet.new([3]))
+        assert Set.equal?(result, new_set([1, 2]))
+      end
+
       test "disjoint?/2" do
-        assert Set.disjoint?(new_set([1, 2, 3]), new_set([4, 5 ,6])) == true
-        assert Set.disjoint?(new_set([1, 2, 3]), new_set([3, 4 ,5])) == false
+        assert Set.disjoint?(new_set([1, 2, 3]), new_set([4, 5 ,6]))
+        refute Set.disjoint?(new_set([1, 2, 3]), new_set([3, 4 ,5]))
+      end
+
+      test "disjoint/2 with other set" do
+        assert Set.disjoint?(new_set([1, 2, 3]), TestSet.new([4, 5 ,6]))
+        refute Set.disjoint?(new_set([1, 2, 3]), TestSet.new([3, 4 ,5]))
       end
 
       test "empty/1" do
@@ -60,6 +89,11 @@ defmodule SetTest.Common do
         refute Set.equal?(new_set([1, 2, 3]), new_set([3.0, 2.0, 1.0]))
       end
 
+      test "equal?/2 with other set" do
+        assert Set.equal?(new_set([1, 2, 3]), TestSet.new([3, 2, 1]))
+        refute Set.equal?(new_set([1, 2, 3]), TestSet.new([3.0, 2.0, 1.0]))
+      end
+
       test "intersection/2" do
         result = Set.intersection(new_set([1, 2, 3]), new_set([2, 3, 4]))
         assert Set.equal?(result, new_set([2, 3]))
@@ -68,6 +102,11 @@ defmodule SetTest.Common do
       test "intersection/2 with match" do
         assert Set.member?(Set.intersection(int_set, new_set([1])), 1)
         refute Set.member?(Set.intersection(int_set, new_set([1.0])), 1)
+      end
+
+      test "intersection/2 with other set" do
+        result = Set.intersection(new_set([1, 2, 3]), TestSet.new([2, 3, 4]))
+        assert Set.equal?(result, new_set([2, 3]))
       end
 
       test "member?/2" do
@@ -100,6 +139,11 @@ defmodule SetTest.Common do
         refute Set.subset?(new_set([1.0]), int_set)
       end
 
+      test "subset?/2 with other set" do
+        assert Set.subset?(new_set([1, 2]), TestSet.new([1, 2, 3]))
+        refute Set.subset?(new_set([1, 2, 3]), TestSet.new([1, 2]))
+      end
+
       test "to_list/1" do
         assert Set.to_list(new_set([1, 2, 3])) |> Enum.sort == [1, 2, 3]
       end
@@ -112,6 +156,11 @@ defmodule SetTest.Common do
       test "union/2 with match" do
         assert Set.size(Set.union(int_set, new_set([1]))) == 3
         assert Set.size(Set.union(int_set, new_set([1.0]))) == 4
+      end
+
+      test "union/2 with other set" do
+        result = Set.union(new_set([1, 2, 3]), TestSet.new([2, 3, 4]))
+        assert Set.equal?(result, new_set([1, 2, 3, 4]))
       end
 
       test "implements Enum" do

@@ -104,9 +104,9 @@ defmodule Set do
     if target1 == target2 do
       target1.difference(set1, set2)
     else
-      target2.reduce set2, { :cont, set1 }, fn v, acc ->
+      target2.reduce(set2, { :cont, set1 }, fn v, acc ->
         { :cont, target1.delete(acc, v) }
-      end |> elem(1)
+      end) |> elem(1)
     end
   end
 
@@ -207,9 +207,9 @@ defmodule Set do
     if target1 == target2 do
       target1.intersection(set1, set2)
     else
-      target1.reduce set1, { :cont, target1.empty(set1) }, fn v, acc ->
+      target1.reduce(set1, { :cont, target1.empty(set1) }, fn v, acc ->
         { :cont, if(target2.member?(set2, v), do: target1.put(acc, v), else: acc) }
-      end |> elem(1)
+      end) |> elem(1)
     end
   end
 
@@ -322,9 +322,9 @@ defmodule Set do
     if target1 == target2 do
       target1.union(set1, set2)
     else
-      target2.reduce set2, { :cont, set1 }, fn v, acc ->
+      target2.reduce(set2, { :cont, set1 }, fn v, acc ->
         { :cont, target1.put(acc, v) }
-      end |> elem(1)
+      end) |> elem(1)
     end
   end
 

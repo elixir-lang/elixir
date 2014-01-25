@@ -482,8 +482,8 @@ defmodule Dict do
         target1.equal?(dict1, dict2)
 
       target1.size(dict1) == target2.size(dict2) ->
-        target1.reduce(dict1, { :cont, true }, fn({ k, v }, _acc) ->
-          case target2.fetch(dict2, k) do
+        target2.reduce(dict2, { :cont, true }, fn({ k, v }, _acc) ->
+          case target1.fetch(dict1, k) do
             { :ok, ^v } -> { :cont, true }
             _           -> { :halt, false }
           end

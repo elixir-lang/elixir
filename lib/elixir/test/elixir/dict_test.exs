@@ -1,5 +1,20 @@
 Code.require_file "test_helper.exs", __DIR__
 
+# A TestDict implementation used only for testing.
+defmodule TestDict do
+  def new(list // []) when is_list(list) do
+    { TestDict, list }
+  end
+
+  def reduce({ TestDict, list }, acc, fun) do
+    Enumerable.reduce(list, acc, fun)
+  end
+
+  def size({ TestDict, list }) do
+    length(list)
+  end
+end
+
 defmodule DictTest.Common do
   defmacro __using__(_) do
     quote location: :keep do
@@ -140,9 +155,9 @@ defmodule DictTest.Common do
                [{"a", 3}, {"b", 2}, {"c", :a}, {"d", 0}]
       end
 
-      test "merge/2 with enum" do
+      test "merge/2 with other dict" do
         dict1 = new_dict [{"a", 1}, {"b", 2}, {"c", 3}]
-        dict2 = Enum.zip ["a", "c", "d"], [3, :a, 0]
+        dict2 = TestDict.new [{"a",3}, {"c",:a}, {"d",0}]
         actual = Dict.merge(dict1, dict2)
         assert Dict.merge(dict1, dict2) |> Enum.sort ==
                [{"a", 3}, {"b", 2}, {"c", :a}, {"d", 0}]
@@ -329,13 +344,17 @@ defmodule DictTest.Common do
         refute Dict.equal?(dict3, dict1)
       end
 
-      test "equal?/2 with_match" do
+      test "equal?/2 with match" do
         dict1 = new_dict([{1,1}])
         dict2 = new_dict([{1.0,1}])
-        assert dict_impl.equal?(dict1, dict1)
-        refute dict_impl.equal?(dict1, dict2)
         assert Dict.equal?(dict1, dict1)
         refute Dict.equal?(dict1, dict2)
+      end
+
+      test "equal?/2 with other dict" do
+        dict = new_dict([{1,1}])
+        assert Dict.equal?(dict, TestDict.new([{1,1}]))
+        refute Dict.equal?(dict, TestDict.new([{1.0,1}]))
       end
 
       test "implements Enumerable" do
