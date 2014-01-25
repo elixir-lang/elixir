@@ -9,6 +9,7 @@
 * Bug fixes
   * [Atom] Inspect `:...` and `:foo@bar` without quoting
   * [File] Respect source directories terminating with "/" in `File.cp_r/3` with the same semantics as Unix
+  * [Kernel] Ensure undefined `@attributes` shows proper stacktrace in warnings
   * [Kernel] Guarantee nullary funs/macros are allowed in guards
   * [Process] Ensure monitoring functions are inlined by the compiler
 
@@ -17,8 +18,10 @@
   * [Record] Deprecate `to_keywords`, `getter` and `list getter` functionalities in `defrecordp`
 
 * Backwards incompatible changes
+  * [Dict] Implementations of `equal?/2` and `merge/2` in `HashDict` and `ListDict` are no longer polymorphic. To get polymorphism, use the functions in `Dict` instead
   * [Kernel] Remove `**` from the list of allowed operators
   * [Range] `Range` is no longer a record, instead use `first .. last` if you need pattern matching
+  * [Set] Implementations of `difference/2`, `disjoint?/2`, `equal?/2`, `intersection/2`, `subset?/2` and `union/2` in `HashSet` are no longer polymorphic. To get polymorphism, use the functions in `Set` instead
 
 # v0.12.2 (2014-01-15)
 
