@@ -4,6 +4,8 @@ defmodule Kernel.WarningTest do
   use ExUnit.Case
   import ExUnit.CaptureIO
 
+  import PathHelpers
+
   defp capture_err(fun) do
     capture_io(:stderr, fun)
   end
@@ -327,6 +329,14 @@ defmodule Kernel.WarningTest do
     end) =~ "undefined module attribute @foo, please remove access to @foo or explicitly set it to nil before access"
   after
     purge Sample
+  end
+
+  test :undefined_module_attribute_with_file do
+    assert capture_err(fn ->
+      Code.load_file(fixture_path("attribute_warning.ex"))
+    end) =~ "attribute_warning.ex:2: AttributeWarning (module) undefined module attribute @foo, please remove access to @foo or explicitly set it to nil before access"
+  after
+    purge AttributeWarning
   end
 
   test :in_guard_empty_list do

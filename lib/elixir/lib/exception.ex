@@ -282,12 +282,13 @@ defmodule Exception do
     trace = trace || try do
       throw(:stacktrace)
     catch
-      :stacktrace -> Enum.drop(:erlang.get_stacktrace, 1)
+      :stacktrace -> Enum.drop(:erlang.get_stacktrace, 2)
     end
 
-    if entry = Enum.at(trace, 1) do
-      format_stacktrace_entry(entry)
-    else
+    case trace do
+      [entry|_] ->
+        format_stacktrace_entry(entry)
+      _ ->
       "nofile:0: "
     end
   end
