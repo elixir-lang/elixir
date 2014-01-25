@@ -2063,17 +2063,18 @@ defmodule Kernel do
 
   # @attribute or @attribute()
   defp do_at(args, name, function?, env) when is_atom(args) or args == [] do
+    stack =
+      case bootstraped?(Path) do
+        true  -> env.stacktrace
+        false -> []
+      end
+
     case function? do
       true ->
-        stack =
-          case bootstraped?(Path) do
-            true  -> env.stacktrace
-            false -> []
-          end
         attr = Module.get_attribute(env_module(env), name, stack)
         :erlang.element(1, :elixir_quote.escape(attr, false))
       false ->
-        quote do: Module.get_attribute(__MODULE__, unquote(name), true)
+        quote do: Module.get_attribute(__MODULE__, unquote(name), unquote(Macro.escape(stack)))
     end
   end
 
