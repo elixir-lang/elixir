@@ -362,7 +362,7 @@ defmodule Macro do
   end
 
   # Binary ops
-  def to_string({ op, _, [left, right] } = ast, fun) when op in @binary_ops do
+  def to_string({ op, _, [left, right] } = ast, fun) when op in unquote(@binary_ops) do
     fun.(ast, op_to_string(left, fun, op, :left) <> " #{op} " <> op_to_string(right, fun, op, :right))
   end
 
@@ -377,7 +377,7 @@ defmodule Macro do
     fun.(ast, "not " <> to_string(arg, fun))
   end
 
-  def to_string({ op, _, [arg] } = ast, fun) when op in @unary_ops do
+  def to_string({ op, _, [arg] } = ast, fun) when op in unquote(@unary_ops) do
     fun.(ast, atom_to_binary(op) <> to_string(arg, fun))
   end
 
@@ -421,7 +421,7 @@ defmodule Macro do
   @kw_keywords [:do, :catch, :rescue, :after, :else]
 
   defp kw_blocks?([_|_] = kw) do
-    Enum.all?(kw, &match?({x, _} when x in @kw_keywords, &1))
+    Enum.all?(kw, &match?({x, _} when x in unquote(@kw_keywords), &1))
   end
   defp kw_blocks?(_), do: false
 
@@ -488,7 +488,7 @@ defmodule Macro do
     "(" <> to_string(expr, fun) <> ")"
   end
 
-  defp op_to_string({ op, _, [_, _] } = expr, fun, parent_op, side) when op in @binary_ops do
+  defp op_to_string({ op, _, [_, _] } = expr, fun, parent_op, side) when op in unquote(@binary_ops) do
     { parent_assoc, parent_prec } = binary_op_props(parent_op)
     { _, prec }                   = binary_op_props(op)
     cond do

@@ -2074,7 +2074,11 @@ defmodule Kernel do
         attr = Module.get_attribute(env_module(env), name, stack)
         :erlang.element(1, :elixir_quote.escape(attr, false))
       false ->
-        quote do: Module.get_attribute(__MODULE__, unquote(name), unquote(Macro.escape(stack)))
+        escaped = case stack do
+          [] -> []
+          _  -> Macro.escape(stack)
+        end
+        quote do: Module.get_attribute(__MODULE__, unquote(name), unquote(escaped))
     end
   end
 
@@ -2655,14 +2659,7 @@ defmodule Kernel do
 
     right = case bootstraped?(Macro.Env) do
       true  -> Macro.expand(right, __CALLER__)
-      false ->
-        case right do
-          # For bootstrapping we special case @attributes
-          { :@, _, [{ name, _, atom }] } when is_atom(name) and is_atom(atom) ->
-            Module.get_attribute(env_module(__CALLER__), name, true)
-          _ ->
-            right
-        end
+      false -> right
     end
 
     case right do
@@ -2684,7 +2681,8 @@ defmodule Kernel do
         in_range(left, Macro.escape(first), Macro.escape(last))
       _ ->
         raise ArgumentError, message: <<"invalid args for operator in, it expects a compile time list ",
-                                        "or range on the right side when used in guard expressions">>
+                                        "or range on the right side when used in guard expressions, got: ",
+                                        Macro.to_string(right) :: binary>>
     end
   end
 
