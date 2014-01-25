@@ -745,12 +745,11 @@ defmodule Module do
 
       Module.get_attribute(__MODULE__, :foo, true)
 
-  Notice the third argument is used to indicate if a warning
-  should be emitted when the attribute was not previously defined.
-  `warn` may also be a stacktrace, which will be used in the
-  warning. The default value for `warn` is false for direct calls
-  but the `@foo` macro sets it to the proper stacktrace automatically,
-  warning every time `@foo` is used but not set previously.
+  Notice the third argument may be given to indicate a stacktrace
+  to be emitted when the attribute was not previously defined.
+  The default value for `warn` is nil for direct calls but the `@foo`
+  macro sets it to the proper stacktrace automatically, warning
+  every time `@foo` is used but not set previously.
 
   ## Examples
 
@@ -764,8 +763,9 @@ defmodule Module do
       end
 
   """
-  @spec get_attribute(module, atom, warn :: boolean | [tuple]) :: term
-  def get_attribute(module, key, warn // false) when is_atom(key) do
+  @spec get_attribute(module, atom, warn :: nil | [tuple]) :: term
+  def get_attribute(module, key, warn // nil) when
+      is_atom(key) and (is_list(warn) or nil?(warn)) do
     assert_not_compiled!(:get_attribute, module)
     table = data_table_for(module)
 
@@ -777,9 +777,8 @@ defmodule Module do
         cond do
           :lists.member(key, acc) ->
             []
-          warn ->
-            stack = is_list(warn) and warn
-            :elixir_errors.warn "#{Exception.format_caller(stack)} undefined module attribute @#{key}, " <>
+          is_list(warn) ->
+            :elixir_errors.warn "#{Exception.format_caller(warn)} undefined module attribute @#{key}, " <>
               "please remove access to @#{key} or explicitly set it to nil before access\n"
             nil
           true ->

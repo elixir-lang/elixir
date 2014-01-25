@@ -286,10 +286,8 @@ defmodule Exception do
     end
 
     case trace do
-      [entry|_] ->
-        format_stacktrace_entry(entry)
-      _ ->
-      "nofile:0: "
+      [entry|_] -> format_stacktrace_entry(entry)
+      _ -> "nofile:0: "
     end
   end
 
