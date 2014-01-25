@@ -264,7 +264,7 @@ defmodule Dict do
   the functions in entries in `b` have higher precedence unless a
   function is given to resolve conflicts.
 
-  Notice this function is polymorphic as it can merge dicts of any
+  Notice this function is polymorphic as it merges dicts of any
   type. Each dict implementation also provides a `merge` function,
   but they can only merge dicts of the same type.
 
@@ -286,15 +286,15 @@ defmodule Dict do
 
   """
   @spec merge(t, t, (key, value, value -> value)) :: t
-  def merge(a, b, fun // fn(_k, _v1, v2) -> v2 end) do
-    a_target = target(a)
-    b_target = target(b)
+  def merge(dict1, dict2, fun // fn(_k, _v1, v2) -> v2 end) do
+    target1 = target(dict1)
+    target2 = target(dict2)
 
-    if a_target == b_target do
-      a_target.merge(a, b, fun)
+    if target1 == target2 do
+      target1.merge(dict1, dict2, fun)
     else
-      b_target.reduce(b, { :cont, a }, fn({ k, v }, acc) ->
-        { :cont, a_target.update(acc, k, v, fn(other) -> fun.(k, other, v) end) }
+      target2.reduce(dict2, { :cont, dict1 }, fn({ k, v }, acc) ->
+        { :cont, target1.update(acc, k, v, fn(other) -> fun.(k, other, v) end) }
       end) |> elem(1)
     end
   end
@@ -455,7 +455,7 @@ defmodule Dict do
   @doc """
   Check if two dicts are equal using `===`.
 
-  Notice this function is polymorphic as it can merge dicts of any
+  Notice this function is polymorphic as it compares dicts of any
   type. Each dict implementation also provides an `equal?` function,
   but they can only compare dicts of the same type.
 
@@ -473,17 +473,17 @@ defmodule Dict do
 
   """
   @spec equal?(t, t) :: boolean
-  def equal?(a, b) do
-    a_target = target(a)
-    b_target = target(b)
+  def equal?(dict1, dict2) do
+    target1 = target(dict1)
+    target2 = target(dict2)
 
     cond do
-      a_target == b_target ->
-        a_target.equal?(a, b)
+      target1 == target2 ->
+        target1.equal?(dict1, dict2)
 
-      a_target.size(a) == b_target.size(b) ->
-        a_target.reduce(a, { :cont, true }, fn({ k, v }, _acc) ->
-          case b_target.fetch(b, k) do
+      target1.size(dict1) == target2.size(dict2) ->
+        target1.reduce(dict1, { :cont, true }, fn({ k, v }, _acc) ->
+          case target2.fetch(dict2, k) do
             { :ok, ^v } -> { :cont, true }
             _           -> { :halt, false }
           end

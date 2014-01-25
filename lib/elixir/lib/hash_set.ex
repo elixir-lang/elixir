@@ -72,32 +72,14 @@ defmodule HashSet do
     set_fold set2, set1, fn v, acc -> put(acc, v) end
   end
 
-  def union(trie() = set1, set2) do
-    set_fold set1, set2, fn v, acc -> put(acc, v) end
-  end
-
   def intersection(trie() = set1, trie() = set2) do
     set_fold set1, trie(), fn v, acc ->
       if member?(set2, v), do: put(acc, v), else: acc
     end
   end
 
-  def intersection(trie() = set1, set2) do
-    set_fold set1, trie(), fn v, acc ->
-      if Set.member?(set2, v), do: put(acc, v), else: acc
-    end
-  end
-
   def difference(trie() = set1, trie() = set2) do
-    set_fold set1, trie(), fn v, acc ->
-      if member?(set2, v), do: acc, else: put(acc, v)
-    end
-  end
-
-  def difference(trie() = set1, set2) do
-    set_fold set1, trie(), fn v, acc ->
-      if Set.member?(set2, v), do: acc, else: put(acc, v)
-    end
+    set_fold set2, set1, fn v, acc -> delete(acc, v) end
   end
 
   def to_list(set) do
@@ -120,16 +102,7 @@ defmodule HashSet do
     end) |> elem(1)
   end
 
-  def subset?(trie() = set1, set2) do
-    reduce(set1, { :cont, true }, fn member, acc ->
-      case Set.member?(set2, member) do
-        true -> { :cont, acc }
-        _    -> { :halt, false }
-      end
-    end) |> elem(1)
-  end
-
-  def disjoint?(set1, set2) do
+  def disjoint?(trie() = set1, trie() = set2) do
     reduce(set2, { :cont, true }, fn member, acc ->
       case member?(set1, member) do
         false -> { :cont, acc }
@@ -147,14 +120,14 @@ defmodule HashSet do
   end
 
   def put(trie(root: root, size: size), term) do
-    { root, counter } = do_put(root, term, key_hash(term))
+    {root, counter} = do_put(root, term, key_hash(term))
     trie(root: root, size: size + counter)
   end
 
   def delete(trie(root: root, size: size) = set, term) do
     case do_delete(root, term, key_hash(term)) do
-      { :ok, root } -> trie(root: root, size: size - 1)
-      :error        -> set
+      {:ok, root} -> trie(root: root, size: size - 1)
+      :error      -> set
     end
   end
 
