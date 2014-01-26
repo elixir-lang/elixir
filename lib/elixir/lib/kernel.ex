@@ -1769,19 +1769,23 @@ defmodule Kernel do
 
   @doc """
   Checks if the given argument is a regex.
+
+  Works in guard clauses.
   """
   defmacro is_regex(thing) do
     quote do
-      is_record(unquote(thing), Regex)
+      Kernel.is_record(unquote(thing), Regex)
     end
   end
 
   @doc """
   Checks if the given argument is a range.
+
+  Works in guard clauses.
   """
   defmacro is_range(thing) do
     quote do
-      is_record(unquote(thing), Range)
+      Kernel.is_record(unquote(thing), Range)
     end
   end
 
