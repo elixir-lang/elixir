@@ -52,6 +52,11 @@ defmodule Kernel.FnTest do
     assert (&Kernel.to_string(&1)).(:a) == "a"
   end
 
+  test "capture operator" do
+    assert is_function &+/2
+    assert is_function &(&&/2)
+  end
+
   test "local partial application" do
     assert (&atb(&1, :utf8)).(:a) == "a"
     assert (&atb(list_to_atom(&1), :utf8)).('a') == "a"

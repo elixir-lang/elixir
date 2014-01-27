@@ -493,13 +493,19 @@ handle_unary_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Res
   tokenize(Rest, Line, Scope, [{ kw_identifier, Line, Op }|Tokens]);
 
 handle_unary_op(Rest, Line, Kind, Op, Scope, Tokens) ->
-  tokenize(Rest, Line, Scope, [{ Kind, Line, Op }|Tokens]).
+  case strip_space(Rest, 0) of
+    { [$/|_], _ } -> tokenize(Rest, Line, Scope, [{ identifier, Line, Op }|Tokens]);
+    _ -> tokenize(Rest, Line, Scope, [{ Kind, Line, Op }|Tokens])
+  end.
 
 handle_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Scope, [{ kw_identifier, Line, Op }|Tokens]);
 
 handle_op(Rest, Line, Kind, Op, Scope, Tokens) ->
-  tokenize(Rest, Line, Scope, add_token_with_nl({ Kind, Line, Op }, Tokens)).
+  case strip_space(Rest, 0) of
+    { [$/|_], _ } -> tokenize(Rest, Line, Scope, [{ identifier, Line, Op }|Tokens]);
+    _ -> tokenize(Rest, Line, Scope, add_token_with_nl({ Kind, Line, Op }, Tokens))
+  end.
 
 % ## Three Token Operators
 handle_dot([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when
