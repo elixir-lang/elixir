@@ -48,7 +48,7 @@ defmodule IEx.Evaluator do
   Locates and loads an .iex file from one of predefined locations.
   Returns the new config.
   """
-  def load_dot_iex(config, path // nil) do
+  def load_dot_iex(config, path \\ nil) do
     candidates = if path do
       [path]
     else

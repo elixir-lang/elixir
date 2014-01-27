@@ -49,7 +49,7 @@ macro_line_test() ->
 
 def_default_test() ->
   F = fun() ->
-    eval("defmodule Foo do\ndef version(x // 1), do: x\nend"),
+    eval("defmodule Foo do\ndef version(x \\\\ 1), do: x\nend"),
     ?assertEqual({1, []}, eval("Foo.version")),
     ?assertEqual({2, []}, eval("Foo.version(2)"))
   end,
@@ -57,7 +57,7 @@ def_default_test() ->
 
 def_left_default_test() ->
   F = fun() ->
-    eval("defmodule Foo do\ndef version(x // 1, y), do: x + y\nend"),
+    eval("defmodule Foo do\ndef version(x \\\\ 1, y), do: x + y\nend"),
     ?assertEqual({4, []}, eval("Foo.version(3)")),
     ?assertEqual({5, []}, eval("Foo.version(2, 3)"))
   end,

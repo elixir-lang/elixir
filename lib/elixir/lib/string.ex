@@ -218,7 +218,7 @@ defmodule String do
   """
   @spec split(t, t | [t] | Regex.t) :: [t]
   @spec split(t, t | [t] | Regex.t, Keyword.t) :: [t]
-  def split(binary, pattern, options // [])
+  def split(binary, pattern, options \\ [])
 
   def split("", _pattern, _options), do: [""]
 
@@ -519,7 +519,7 @@ defmodule String do
   @spec replace(t, t, t) :: t
   @spec replace(t, t, t, Keyword.t) :: t
 
-  def replace(subject, pattern, replacement, options // [])
+  def replace(subject, pattern, replacement, options \\ [])
 
   def replace(subject, pattern, replacement, options) when is_regex(pattern) do
     Regex.replace(pattern, subject, replacement, global: options[:global])

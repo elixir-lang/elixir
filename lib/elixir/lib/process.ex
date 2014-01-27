@@ -32,7 +32,7 @@ defmodule Process do
   """
   @spec get(term) :: term
   @spec get(term, default :: term) :: term
-  def get(key, default // nil) do
+  def get(key, default \\ nil) do
     case :erlang.get(key) do
       :undefined ->
         default
@@ -275,7 +275,7 @@ defmodule Process do
   """
   @spec demonitor(reference) :: true
   @spec demonitor(reference, options :: [:flush | :info]) :: boolean
-  def demonitor(monitor_ref, options // []) do
+  def demonitor(monitor_ref, options \\ []) do
     :erlang.demonitor(monitor_ref, options)
   end
 

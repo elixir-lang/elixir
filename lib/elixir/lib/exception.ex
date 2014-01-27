@@ -255,7 +255,7 @@ defmodule Exception do
   calculates a new stacktrace based on the caller and formats it. As
   a consequence, the value of `System.stacktrace` is changed.
   """
-  def format_stacktrace(trace // nil) do
+  def format_stacktrace(trace \\ nil) do
     trace = trace || try do
       throw(:stacktrace)
     catch
@@ -278,7 +278,7 @@ defmodule Exception do
   Notice that due to tail call optimization, the stacktrace
   may not report the direct caller of the function.
   """
-  def format_caller(trace // nil) do
+  def format_caller(trace \\ nil) do
     trace = trace || try do
       throw(:stacktrace)
     catch

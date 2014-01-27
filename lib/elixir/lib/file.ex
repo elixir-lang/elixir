@@ -220,7 +220,7 @@ defmodule File do
     Default is `:local`.
 
   """
-  def stat(path, opts // []) do
+  def stat(path, opts \\ []) do
     case F.read_file_info(path, opts) do
       {:ok, fileinfo} ->
         {:ok, set_elem(fileinfo, 0, File.Stat) }
@@ -233,7 +233,7 @@ defmodule File do
   Same as `stat/2` but returns the `File.Stat` directly and
   throws `File.Error` if an error is returned.
   """
-  def stat!(path, opts // []) do
+  def stat!(path, opts \\ []) do
     case stat(path, opts) do
       {:ok, info}      -> info
       {:error, reason} ->
@@ -245,7 +245,7 @@ defmodule File do
   Writes the given `File.Stat` back to the filesystem at the given
   path. Returns `:ok` or `{ :error, reason }`.
   """
-  def write_stat(path, File.Stat[] = stat, opts // []) do
+  def write_stat(path, File.Stat[] = stat, opts \\ []) do
     F.write_file_info(path, set_elem(stat, 0, :file_info), opts)
   end
 
@@ -253,7 +253,7 @@ defmodule File do
   Same as `write_stat/3` but raises an exception if it fails.
   Returns `:ok` otherwise.
   """
-  def write_stat!(path, File.Stat[] = stat, opts // []) do
+  def write_stat!(path, File.Stat[] = stat, opts \\ []) do
     case write_stat(path, stat, opts) do
       :ok -> :ok
       { :error, reason } ->
@@ -265,7 +265,7 @@ defmodule File do
   Updates modification time (mtime) and access time (atime) of
   the given file. File is created if it doesn’t exist.
   """
-  def touch(path, time // :calendar.local_time) do
+  def touch(path, time \\ :calendar.local_time) do
     case F.change_time(path, time) do
       { :error, :enoent } ->
         write(path, "")
@@ -279,7 +279,7 @@ defmodule File do
   Same as `touch/2` but raises an exception if it fails.
   Returns `:ok` otherwise.
   """
-  def touch!(path, time // :calendar.local_time) do
+  def touch!(path, time \\ :calendar.local_time) do
     case touch(path, time) do
       :ok -> :ok
       { :error, reason } ->
@@ -309,7 +309,7 @@ defmodule File do
   Typical error reasons are the same as in `open/2`,
   `read/1` and `write/3`.
   """
-  def copy(source, destination, bytes_count // :infinity) do
+  def copy(source, destination, bytes_count \\ :infinity) do
     F.copy(source, destination, bytes_count)
   end
 
@@ -317,7 +317,7 @@ defmodule File do
   The same as `copy/3` but raises an `File.CopyError` if it fails.
   Returns the `bytes_copied` otherwise.
   """
-  def copy!(source, destination, bytes_count // :infinity) do
+  def copy!(source, destination, bytes_count \\ :infinity) do
     case copy(source, destination, bytes_count) do
       { :ok, bytes_count } -> bytes_count
       { :error, reason } ->
@@ -345,7 +345,7 @@ defmodule File do
   or do a straight copy from a source to a destination without
   preserving modes, check `copy/3` instead.
   """
-  def cp(source, destination, callback // fn(_, _) -> true end) do
+  def cp(source, destination, callback \\ fn(_, _) -> true end) do
     output =
       if dir?(destination) do
         mkdir(destination)
@@ -364,7 +364,7 @@ defmodule File do
   The same as `cp/3`, but raises `File.CopyError` if it fails.
   Returns the list of copied files otherwise.
   """
-  def cp!(source, destination, callback // fn(_, _) -> true end) do
+  def cp!(source, destination, callback \\ fn(_, _) -> true end) do
     case cp(source, destination, callback) do
       :ok -> :ok
       { :error, reason } ->
@@ -421,7 +421,7 @@ defmodule File do
       end
 
   """
-  def cp_r(source, destination, callback // fn(_, _) -> true end) when is_function(callback) do
+  def cp_r(source, destination, callback \\ fn(_, _) -> true end) when is_function(callback) do
     output =
       if dir?(destination) || dir?(source) do
         mkdir(destination)
@@ -443,7 +443,7 @@ defmodule File do
   The same as `cp_r/3`, but raises `File.CopyError` if it fails.
   Returns the list of copied files otherwise.
   """
-  def cp_r!(source, destination, callback // fn(_, _) -> true end) do
+  def cp_r!(source, destination, callback \\ fn(_, _) -> true end) do
     case cp_r(source, destination, callback) do
       { :ok, files } -> files
       { :error, reason, file } ->
@@ -568,14 +568,14 @@ defmodule File do
 
   Check `File.open/2` for existing modes.
   """
-  def write(path, content, modes // []) do
+  def write(path, content, modes \\ []) do
     F.write_file(path, content, modes)
   end
 
   @doc """
   Same as `write/3` but raises an exception if it fails, returns `:ok` otherwise.
   """
-  def write!(path, content, modes // []) do
+  def write!(path, content, modes \\ []) do
     case F.write_file(path, content, modes) do
       :ok -> :ok
       { :error, reason } ->
@@ -788,7 +788,7 @@ defmodule File do
 
   If a function is given two modes (instead of a list), it dispatches to `open/3`.
 
-  Check http://www.erlang.org/doc/man/file.html#open-2 for more information about
+  Check http:\\www.erlang.org/doc/man/file.html#open-2 for more information about
   other options like `read_ahead` and `delayed_write`.
 
   This function returns:
@@ -809,7 +809,7 @@ defmodule File do
       File.close(file)
 
   """
-  def open(path, modes // [])
+  def open(path, modes \\ [])
 
   def open(path, modes) when is_list(modes) do
     F.open(path, open_defaults(modes, true))
@@ -856,7 +856,7 @@ defmodule File do
   Same as `open/2` but raises an error if file could not be opened.
   Returns the `io_device` otherwise.
   """
-  def open!(path, modes // []) do
+  def open!(path, modes \\ []) do
     case open(path, modes) do
       { :ok, device }    -> device
       { :error, reason } ->
@@ -943,7 +943,7 @@ defmodule File do
   It returns `{ :ok, [files] }` in case of success,
   `{ :error, reason }` otherwise.
   """
-  def ls(path // ".") do
+  def ls(path \\ ".") do
     case F.list_dir(path) do
       { :ok, file_list } -> { :ok, Enum.map(file_list, &to_string(&1)) }
       { :error, _ } = error -> error
@@ -954,7 +954,7 @@ defmodule File do
   The same as `ls/1` but raises `File.Error`
   in case of an error.
   """
-  def ls!(dir // ".") do
+  def ls!(dir \\ ".") do
     case ls(dir) do
       { :ok, value } -> value
       { :error, reason } ->
@@ -987,7 +987,7 @@ defmodule File do
   the file is opened with an encoding, then the slower `IO.read/2`
   is used to do the proper data conversion and guarantees.
   """
-  def stream!(path, modes // [], line_or_bytes // :line) do
+  def stream!(path, modes \\ [], line_or_bytes \\ :line) do
     modes = open_defaults(modes, true)
     bin   = nil? List.keyfind(modes, :encoding, 0)
 
@@ -1022,7 +1022,7 @@ defmodule File do
   the file is opened with an encoding, then the slower `IO.write/2`
   is used to do the proper data conversion and guarantees.
   """
-  def stream_to!(stream, path, modes // []) do
+  def stream_to!(stream, path, modes \\ []) do
     modes = open_defaults([:write|List.delete(modes, :write)], true)
     bin   = nil? List.keyfind(modes, :encoding, 0)
 

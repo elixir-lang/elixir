@@ -98,7 +98,7 @@ defmodule ExUnit.Callbacks do
   @doc """
   Called before the start of each test.
   """
-  defmacro setup(var // quote(do: _), block) do
+  defmacro setup(var \\ quote(do: _), block) do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_setup_#{length(@ex_unit_setup)}"
       defp unquote(name)(unquote(var)), unquote(block)
@@ -112,7 +112,7 @@ defmodule ExUnit.Callbacks do
   Note that if the test crashed with an `:exit`
   message, `teardown` will not be run.
   """
-  defmacro teardown(var // quote(do: _), block) do
+  defmacro teardown(var \\ quote(do: _), block) do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_teardown_#{length(@ex_unit_teardown)}"
       defp unquote(name)(unquote(var)), unquote(block)
@@ -124,7 +124,7 @@ defmodule ExUnit.Callbacks do
   Called before the start of a case, i.e. called once before the first test in
   the current module and before any `setup` callbacks.
   """
-  defmacro setup_all(var // quote(do: _), block) do
+  defmacro setup_all(var \\ quote(do: _), block) do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_setup_all_#{length(@ex_unit_setup_all)}"
       defp unquote(name)(unquote(var)), unquote(block)
@@ -135,7 +135,7 @@ defmodule ExUnit.Callbacks do
   @doc """
   Called once after the last test finishes without emitting an `:exit` message.
   """
-  defmacro teardown_all(var // quote(do: _), block) do
+  defmacro teardown_all(var \\ quote(do: _), block) do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_teardown_all_#{length(@ex_unit_teardown_all)}"
       defp unquote(name)(unquote(var)), unquote(block)

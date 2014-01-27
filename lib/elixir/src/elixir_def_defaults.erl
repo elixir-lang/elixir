@@ -8,7 +8,11 @@ expand(Args, E) ->
     ({ '//', Meta, [Left, Right] }, Acc) ->
       { ELeft, EL } = elixir_exp:expand(Left, Acc),
       { ERight, _ } = elixir_exp:expand(Right, Acc#elixir_env{context=nil}),
-      { { '//', Meta, [ELeft, ERight] }, EL };
+      { { '\\\\', Meta, [ELeft, ERight] }, EL };
+    ({ '\\\\', Meta, [Left, Right] }, Acc) ->
+      { ELeft, EL } = elixir_exp:expand(Left, Acc),
+      { ERight, _ } = elixir_exp:expand(Right, Acc#elixir_env{context=nil}),
+      { { '\\\\', Meta, [ELeft, ERight] }, EL };
     (Left, Acc) ->
       elixir_exp:expand(Left, Acc)
   end, E, Args).
@@ -21,7 +25,7 @@ unpack(Kind, Name, Args, S) ->
 %% Unpack default from given args.
 %% Returns the given arguments without their default
 %% clauses and a list of clauses for the default calls.
-unpack_each(Kind, Name, [{'//', Line, [Expr, _]}|T] = List, Acc, Clauses, S) ->
+unpack_each(Kind, Name, [{'\\\\', Line, [Expr, _]}|T] = List, Acc, Clauses, S) ->
   Base = build_match(Acc, Line, []),
   { Args, Invoke } = extract_defaults(List, Line, length(Base), [], []),
 
@@ -44,7 +48,7 @@ unpack_each(_Kind, _Name, [], Acc, Clauses, _S) ->
 
 % Extract default values from args following the current default clause.
 
-extract_defaults([{'//', _, [_Expr, Default]}|T], Line, Counter, NewArgs, NewInvoke) ->
+extract_defaults([{'\\\\', _, [_Expr, Default]}|T], Line, Counter, NewArgs, NewInvoke) ->
   extract_defaults(T, Line, Counter, NewArgs, [Default|NewInvoke]);
 
 extract_defaults([_|T], Line, Counter, NewArgs, NewInvoke) ->

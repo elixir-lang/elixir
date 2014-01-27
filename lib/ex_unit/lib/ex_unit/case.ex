@@ -197,7 +197,7 @@ defmodule ExUnit.Case do
       end
 
   """
-  defmacro test(message, var // quote(do: _), contents) do
+  defmacro test(message, var \\ quote(do: _), contents) do
     contents =
       case contents do
         [do: _] ->

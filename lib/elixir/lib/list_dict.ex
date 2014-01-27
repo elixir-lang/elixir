@@ -47,7 +47,7 @@ defmodule ListDict do
   def has_key?([{ _, _ }|t], key), do: has_key?(t, key)
   def has_key?([], _key), do: false
 
-  def get(dict, key, default // nil)
+  def get(dict, key, default \\ nil)
   def get([{ key, value }|_], key, _default), do: value
   def get([{ _, _ }|t], key, default), do: get(t, key, default)
   def get([], _key, default), do: default
@@ -64,7 +64,7 @@ defmodule ListDict do
     end
   end
 
-  def pop(dict, key, default // nil) do
+  def pop(dict, key, default \\ nil) do
     { get(dict, key, default), delete(dict, key) }
   end
 
@@ -84,7 +84,7 @@ defmodule ListDict do
   def delete([{ _, _ } = h|t], key), do: [h|delete(t, key)]
   def delete([], _key), do: []
 
-  def merge(dict, enum, callback // fn(_k, _v1, v2) -> v2 end) do
+  def merge(dict, enum, callback \\ fn(_k, _v1, v2) -> v2 end) do
     Enum.reduce enum, dict, fn { k, v2 }, acc ->
       update(acc, k, v2, fn(v1) -> callback.(k, v1, v2) end)
     end

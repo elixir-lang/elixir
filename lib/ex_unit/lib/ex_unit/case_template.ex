@@ -71,7 +71,7 @@ defmodule ExUnit.CaseTemplate do
   Allows a developer to customize the using block
   when the case template is used.
   """
-  defmacro using(var // quote(do: _), do: block) do
+  defmacro using(var \\ quote(do: _), do: block) do
     quote location: :keep do
       defmacro __using__(unquote(var) = opts) do
         parent = unquote(__MODULE__).__proxy__(__MODULE__, opts)

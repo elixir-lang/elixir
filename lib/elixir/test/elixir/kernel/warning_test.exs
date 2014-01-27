@@ -41,11 +41,11 @@ defmodule Kernel.WarningTest do
     end) =~ "function hello/1 is unused"
 
     assert capture_err(fn ->
-      Code.eval_string """
+      Code.eval_string %S"""
       defmodule Sample3 do
         def a, do: nil
         def b, do: d(10)
-        defp c(x, y // 1), do: [x, y]
+        defp c(x, y \\ 1), do: [x, y]
         defp d(x), do: x
       end
       """
@@ -98,37 +98,37 @@ defmodule Kernel.WarningTest do
 
   test :unused_default_args do
     assert capture_err(fn ->
-      Code.eval_string """
+      Code.eval_string %S"""
       defmodule Sample1 do
         def a, do: b(1, 2, 3)
-        defp b(arg1 // 1, arg2 // 2, arg3 // 3), do: [arg1, arg2, arg3]
+        defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
       end
       """
     end) =~ "default arguments in b/3 are never used"
 
     assert capture_err(fn ->
-      Code.eval_string """
+      Code.eval_string %S"""
       defmodule Sample2 do
         def a, do: b(1, 2)
-        defp b(arg1 // 1, arg2 // 2, arg3 // 3), do: [arg1, arg2, arg3]
+        defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
       end
       """
     end) =~ "the first 2 default arguments in b/3 are never used"
 
     assert capture_err(fn ->
-      Code.eval_string """
+      Code.eval_string %S"""
       defmodule Sample3 do
         def a, do: b(1)
-        defp b(arg1 // 1, arg2 // 2, arg3 // 3), do: [arg1, arg2, arg3]
+        defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
       end
       """
     end) =~ "the first default argument in b/3 is never used"
 
     assert capture_err(fn ->
-      Code.eval_string """
+      Code.eval_string %S"""
       defmodule Sample4 do
         def a, do: b(1)
-        defp b(arg1 // 1, arg2, arg3 // 3), do: [arg1, arg2, arg3]
+        defp b(arg1 \\ 1, arg2, arg3 \\ 3), do: [arg1, arg2, arg3]
       end
       """
     end) == nil
@@ -265,10 +265,10 @@ defmodule Kernel.WarningTest do
 
   test :clause_with_defaults_should_be_first do
     assert capture_err(fn ->
-      Code.eval_string """
+      Code.eval_string %S"""
       defmodule Sample do
         def hello(arg), do: nil
-        def hello(arg // 0), do: nil
+        def hello(arg \\ 0), do: nil
       end
       """
     end) =~ "clause with defaults should be the first clause in def hello/1"

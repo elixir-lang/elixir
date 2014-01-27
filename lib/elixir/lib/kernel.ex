@@ -1882,7 +1882,7 @@ defmodule Kernel do
 
   """
   @spec inspect(Inspect.t, Keyword.t) :: String.t
-  def inspect(arg, opts // []) when is_list(opts) do
+  def inspect(arg, opts \\ []) when is_list(opts) do
     opts  = Inspect.Opts.new(opts)
     limit = case opts.pretty do
       true  -> opts.width
@@ -2735,7 +2735,7 @@ defmodule Kernel do
 
   Check `Kernel.SpecialForms.quote/2` for more information.
   """
-  defmacro var!(var, context // nil)
+  defmacro var!(var, context \\ nil)
 
   defmacro var!(var, context) when is_atom(var) do
     do_var!(var, [], context, __CALLER__)
@@ -2969,7 +2969,7 @@ defmodule Kernel do
   two arguments and sums them.
 
   """
-  defmacro def(call, expr // nil) do
+  defmacro def(call, expr \\ nil) do
     define(:def, call, expr, __CALLER__)
   end
 
@@ -2992,7 +2992,7 @@ defmodule Kernel do
   In the example above, `sum` is private and accessing it
   through `Foo.sum` will raise an error.
   """
-  defmacro defp(call, expr // nil) do
+  defmacro defp(call, expr \\ nil) do
     define(:defp, call, expr, __CALLER__)
   end
 
@@ -3015,7 +3015,7 @@ defmodule Kernel do
       end
 
   """
-  defmacro defmacro(call, expr // nil) do
+  defmacro defmacro(call, expr \\ nil) do
     define(:defmacro, call, expr, __CALLER__)
   end
 
@@ -3025,7 +3025,7 @@ defmodule Kernel do
 
   Check `defmacro/2` for more information
   """
-  defmacro defmacrop(call, expr // nil) do
+  defmacro defmacrop(call, expr \\ nil) do
     define(:defmacrop, call, expr, __CALLER__)
   end
 
@@ -3159,7 +3159,7 @@ defmodule Kernel do
        [bar: nil | integer]
 
   """
-  defmacro defrecord(name, fields, do_block // [])
+  defmacro defrecord(name, fields, do_block \\ [])
 
   defmacro defrecord(name, fields, do_block) do
     case is_list(fields) and Keyword.get(fields, :do, false) do
@@ -3225,7 +3225,7 @@ defmodule Kernel do
       @typep user_t :: { :user, binary, integer }
 
   """
-  defmacro defrecordp(name, tag // nil, fields) do
+  defmacro defrecordp(name, tag \\ nil, fields) do
     Record.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
   end
 
@@ -3271,7 +3271,7 @@ defmodule Kernel do
   The example above is the preferred mechanism for customizing
   exception messages.
   """
-  defmacro defexception(name, fields, do_block // []) do
+  defmacro defexception(name, fields, do_block \\ []) do
     { fields, do_block } =
       case is_list(fields) and Keyword.get(fields, :do, false) do
         false -> { fields, do_block }
@@ -3458,7 +3458,7 @@ defmodule Kernel do
   Inside an implementation, the name of the protocol can be accessed
   via `@protocol` and the current target as `@for`.
   """
-  defmacro defimpl(name, opts, do_block // []) do
+  defmacro defimpl(name, opts, do_block \\ []) do
     merged = Keyword.merge(opts, do_block)
     merged = Keyword.put_new(merged, :for, __CALLER__.module)
     Protocol.defimpl(name, merged)
@@ -3531,7 +3531,7 @@ defmodule Kernel do
       end
 
   """
-  defmacro use(module, args // []) do
+  defmacro use(module, args \\ []) do
     expanded = Macro.expand(module, __CALLER__)
 
     case is_atom(expanded) do

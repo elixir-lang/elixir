@@ -209,7 +209,7 @@ defmodule Enum do
   @spec all?(t) :: boolean
   @spec all?(t, (element -> as_boolean(term))) :: boolean
 
-  def all?(collection, fun // fn(x) -> x end)
+  def all?(collection, fun \\ fn(x) -> x end)
 
   def all?(collection, fun) when is_list(collection) do
     do_all?(collection, fun)
@@ -245,7 +245,7 @@ defmodule Enum do
   @spec any?(t) :: boolean
   @spec any?(t, (element -> as_boolean(term))) :: boolean
 
-  def any?(collection, fun // fn(x) -> x end)
+  def any?(collection, fun \\ fn(x) -> x end)
 
   def any?(collection, fun) when is_list(collection) do
     do_any?(collection, fun)
@@ -275,7 +275,7 @@ defmodule Enum do
   """
   @spec at(t, integer) :: element | nil
   @spec at(t, integer, default) :: element | default
-  def at(collection, n, default // nil) do
+  def at(collection, n, default \\ nil) do
     case fetch(collection, n) do
       { :ok, h } -> h
       :error     -> default
@@ -315,7 +315,7 @@ defmodule Enum do
   """
   @spec chunk(t, non_neg_integer, non_neg_integer) :: [list]
   @spec chunk(t, non_neg_integer, non_neg_integer, t | nil) :: [list]
-  def chunk(coll, n, step, pad // nil) when n > 0 and step > 0 do
+  def chunk(coll, n, step, pad \\ nil) when n > 0 and step > 0 do
     limit = :erlang.max(n, step)
 
     { _, { acc, { buffer, i } } } =
@@ -671,7 +671,7 @@ defmodule Enum do
   """
   @spec find(t, (element -> any)) :: element | nil
   @spec find(t, default, (element -> any)) :: element | default
-  def find(collection, ifnone // nil, fun)
+  def find(collection, ifnone \\ nil, fun)
 
   def find(collection, ifnone, fun) when is_list(collection) do
     do_find(collection, ifnone, fun)
@@ -698,7 +698,7 @@ defmodule Enum do
   """
   @spec find_value(t, (element -> any)) :: any | :nil
   @spec find_value(t, any, (element -> any)) :: any | :nil
-  def find_value(collection, ifnone // nil, fun)
+  def find_value(collection, ifnone \\ nil, fun)
 
   def find_value(collection, ifnone, fun) when is_list(collection) do
     do_find_value(collection, ifnone, fun)
@@ -846,7 +846,7 @@ defmodule Enum do
   """
   @spec join(t) :: String.t
   @spec join(t, String.t) :: String.t
-  def join(collection, joiner // "")
+  def join(collection, joiner \\ "")
 
   def join(collection, joiner) when is_binary(joiner) do
     reduce(collection, "", fn
@@ -899,7 +899,7 @@ defmodule Enum do
   """
   @spec map_join(t, (element -> any)) :: String.t
   @spec map_join(t, String.t, (element -> any)) :: String.t
-  def map_join(collection, joiner // "", mapper)
+  def map_join(collection, joiner \\ "", mapper)
 
   def map_join(collection, joiner, mapper) when is_binary(joiner) do
     reduce(collection, "", fn
@@ -1585,7 +1585,7 @@ defmodule Enum do
   """
   @spec uniq(t) :: list
   @spec uniq(t, (element -> term)) :: list
-  def uniq(collection, fun // fn x -> x end)
+  def uniq(collection, fun \\ fn x -> x end)
 
   def uniq(collection, fun) when is_list(collection) do
     do_uniq(collection, [], fun)

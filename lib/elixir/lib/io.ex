@@ -49,7 +49,7 @@ defmodule IO do
     NFS file system.
   """
   @spec read(device, :line | non_neg_integer) :: chardata | nodata
-  def read(device // group_leader, chars_or_line)
+  def read(device \\ group_leader, chars_or_line)
 
   def read(device, :line) do
     :io.get_line(map_dev(device), '')
@@ -72,7 +72,7 @@ defmodule IO do
     NFS file system.
   """
   @spec binread(device, :line | non_neg_integer) :: iodata | nodata
-  def binread(device // group_leader, chars_or_line)
+  def binread(device \\ group_leader, chars_or_line)
 
   def binread(device, :line) do
     case :file.read_line(map_dev(device)) do
@@ -106,7 +106,7 @@ defmodule IO do
 
   """
   @spec write(device, chardata) :: :ok
-  def write(device // group_leader(), item) do
+  def write(device \\ group_leader(), item) do
     :io.put_chars map_dev(device), to_chardata(item)
   end
 
@@ -117,7 +117,7 @@ defmodule IO do
   Check `write/2` for more information.
   """
   @spec binwrite(device, iodata) :: :ok | { :error, term }
-  def binwrite(device // group_leader(), item) when is_iolist(item) do
+  def binwrite(device \\ group_leader(), item) when is_iolist(item) do
     :file.write map_dev(device), item
   end
 
@@ -127,7 +127,7 @@ defmodule IO do
   to be a chardata.
   """
   @spec puts(device, chardata) :: :ok
-  def puts(device // group_leader(), item) do
+  def puts(device \\ group_leader(), item) do
     erl_dev = map_dev(device)
     :io.put_chars erl_dev, [to_chardata(item), ?\n]
   end
@@ -146,7 +146,7 @@ defmodule IO do
 
   """
   @spec inspect(term, Keyword.t) :: term
-  def inspect(item, opts // []) do
+  def inspect(item, opts \\ []) do
     inspect group_leader(), item, opts
   end
 
@@ -185,7 +185,7 @@ defmodule IO do
   """
   @spec getn(chardata, pos_integer) :: chardata | nodata
   @spec getn(device, chardata) :: chardata | nodata
-  def getn(prompt, count // 1)
+  def getn(prompt, count \\ 1)
 
   def getn(prompt, count) when is_integer(count) do
     getn(group_leader, prompt, count)
@@ -219,7 +219,7 @@ defmodule IO do
     NFS file system.
   """
   @spec gets(device, chardata) :: chardata | nodata
-  def gets(device // group_leader(), prompt) do
+  def gets(device \\ group_leader(), prompt) do
     :io.get_line(map_dev(device), to_chardata(prompt))
   end
 

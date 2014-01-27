@@ -11,7 +11,7 @@ defmodule Kernel.DocsTest do
 
       expected = [
         {{:example, 1}, 5, :def, [{:var, [line: 6], nil}], "Some example"},
-        {{:nodoc, 1}, 8, :def, [{:"//", [line: 8], [{:var, [line: 8], nil}, 0]}], nil}
+        {{:nodoc, 1}, 8, :def, [{:\\, [line: 8], [{:var, [line: 8], nil}, 0]}], nil}
       ]
 
       assert CompiledWithDocs.__info__(:docs) == expected

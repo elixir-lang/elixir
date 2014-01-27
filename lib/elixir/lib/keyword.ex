@@ -116,7 +116,7 @@ defmodule Keyword do
   """
   @spec get(t, key) :: value
   @spec get(t, key, value) :: value
-  def get(keywords, key, default // nil) when is_atom(key) do
+  def get(keywords, key, default \\ nil) when is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, value } -> value
       false -> default
@@ -528,7 +528,7 @@ defmodule Keyword do
       {1,[]}
 
   """
-  def pop(dict, key, default // nil) do
+  def pop(dict, key, default \\ nil) do
     { get(dict, key, default), delete(dict, key) }
   end
 
@@ -557,7 +557,7 @@ defmodule Keyword do
       {1,[a: 2]}
 
   """
-  def pop_first(dict, key, default // nil) do
+  def pop_first(dict, key, default \\ nil) do
     { get(dict, key, default), delete_first(dict, key) }
   end
 end

@@ -21,7 +21,7 @@ defmodule Kernel.MacrosTest do
     quote do: 1 + 3
   end
 
-  defmacro my_macro_with_default(value // 5) do
+  defmacro my_macro_with_default(value \\ 5) do
     quote do: 1 + unquote(value)
   end
 

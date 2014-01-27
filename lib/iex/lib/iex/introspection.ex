@@ -154,7 +154,7 @@ defmodule IEx.Introspection do
     Enum.find docs, fn(doc) ->
       case elem(doc, 0) do
         { ^function, max } when max > min ->
-          defaults = Enum.count elem(doc, 3), &match?({ ://, _, _ }, &1)
+          defaults = Enum.count elem(doc, 3), &match?({ :\\, _, _ }, &1)
           min + defaults >= max
         _ ->
           false
@@ -177,8 +177,8 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp print_doc_arg({ ://, _, [left, right] }) do
-    print_doc_arg(left) <> " // " <> Macro.to_string(right)
+  defp print_doc_arg({ :\\, _, [left, right] }) do
+    print_doc_arg(left) <> " \\ " <> Macro.to_string(right)
   end
 
   defp print_doc_arg({ var, _, _ }) do

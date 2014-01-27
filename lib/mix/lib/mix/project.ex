@@ -47,7 +47,7 @@ defmodule Mix.Project do
   # Push a project onto the project stack. Only
   # the top of the stack can be accessed.
   @doc false
-  def push(atom, file // "nofile") when is_atom(atom) do
+  def push(atom, file \\ "nofile") when is_atom(atom) do
     config = default_config
              |> Keyword.merge(get_project_config(atom))
              |> Keyword.drop(@private_config)
@@ -69,7 +69,7 @@ defmodule Mix.Project do
 
   # The configuration that is pushed down to dependencies.
   @doc false
-  def deps_config(config // config()) do
+  def deps_config(config \\ config()) do
     [ build_path: build_path(config),
       build_per_environment: config[:build_per_environment],
       deps_path: deps_path(config) ]
@@ -146,7 +146,7 @@ defmodule Mix.Project do
   the current working directory and loading the given project
   onto the project stack.
   """
-  def in_project(app, path, post_config // [], fun)
+  def in_project(app, path, post_config \\ [], fun)
 
   def in_project(app, ".", post_config, fun) do
     cached = load_project(app, post_config)
@@ -174,7 +174,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/deps"
 
   """
-  def deps_path(config // config()) do
+  def deps_path(config \\ config()) do
     Path.expand config[:deps_path]
   end
 
@@ -196,7 +196,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/dev"
 
   """
-  def build_path(config // config()) do
+  def build_path(config \\ config()) do
     config[:build_path] || if config[:build_per_environment] do
       Path.expand("_build/#{Mix.env}")
     else
@@ -217,7 +217,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/shared/lib/app"
 
   """
-  def manifest_path(config // config()) do
+  def manifest_path(config \\ config()) do
     app_path(config)
   end
 
@@ -231,7 +231,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/shared/lib/app"
 
   """
-  def app_path(config // config()) do
+  def app_path(config \\ config()) do
     config[:app_path] || cond do
       app = config[:app] ->
         Path.join([build_path(config), "lib", app])
@@ -254,7 +254,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/shared/lib/app/priv"
 
   """
-  def compile_path(config // config()) do
+  def compile_path(config \\ config()) do
     Path.join(app_path(config), "ebin")
   end
 
@@ -266,7 +266,7 @@ defmodule Mix.Project do
   * `:symlink_ebin` - Symlink ebin instead of copying it
 
   """
-  def build_structure(config // config(), opts // []) do
+  def build_structure(config \\ config(), opts \\ []) do
     app = app_path(config)
     File.mkdir_p!(app)
 

@@ -280,7 +280,7 @@ defmodule ExUnit.Assertions do
       assert_receive { :count, ^x }
 
   """
-  defmacro assert_receive(expected, timeout // 100, message // nil) do
+  defmacro assert_receive(expected, timeout \\ 100, message \\ nil) do
     do_assert_receive(expected, timeout, message)
   end
 
@@ -301,7 +301,7 @@ defmodule ExUnit.Assertions do
       assert_received { :hello, _ }
 
   """
-  defmacro assert_received(expected, message // nil) do
+  defmacro assert_received(expected, message \\ nil) do
     do_assert_receive(expected, 0, message)
   end
 
@@ -379,7 +379,7 @@ defmodule ExUnit.Assertions do
       assert_in_delta 10, 15, 4
 
   """
-  def assert_in_delta(expected, received, delta, message // nil) do
+  def assert_in_delta(expected, received, delta, message \\ nil) do
     diff = abs(expected - received)
     message = message ||
       "Expected |#{inspect expected} - #{inspect received}| (#{inspect diff}) to be < #{inspect delta}"
@@ -466,7 +466,7 @@ defmodule ExUnit.Assertions do
       refute_receive :bye, 1000
 
   """
-  defmacro refute_receive(not_expected, timeout // 100, message // nil) do
+  defmacro refute_receive(not_expected, timeout \\ 100, message \\ nil) do
     do_refute_receive(not_expected, timeout, message)
   end
 
@@ -482,7 +482,7 @@ defmodule ExUnit.Assertions do
       refute_received :bye
 
   """
-  defmacro refute_received(not_expected, message // nil) do
+  defmacro refute_received(not_expected, message \\ nil) do
     do_refute_receive(not_expected, 0, message)
   end
 
@@ -508,7 +508,7 @@ defmodule ExUnit.Assertions do
       refute_in_delta 10, 11, 2
 
   """
-  def refute_in_delta(expected, received, delta, message // nil) do
+  def refute_in_delta(expected, received, delta, message \\ nil) do
     diff = abs(expected - received)
     message = message ||
       "Expected |#{inspect expected} - #{inspect received}| (#{inspect diff}) to not be < #{inspect delta}"
@@ -525,7 +525,7 @@ defmodule ExUnit.Assertions do
   """
   @spec flunk :: no_return
   @spec flunk(String.t) :: no_return
-  def flunk(message // "Flunked!") do
+  def flunk(message \\ "Flunked!") do
     raise ExUnit.AssertionError, message: message
   end
 end

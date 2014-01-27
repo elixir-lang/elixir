@@ -2,7 +2,7 @@ Code.require_file "test_helper.exs", __DIR__
 
 # A TestDict implementation used only for testing.
 defmodule TestDict do
-  def new(list // []) when is_list(list) do
+  def new(list \\ []) when is_list(list) do
     { TestDict, list }
   end
 
@@ -20,7 +20,7 @@ defmodule DictTest.Common do
     quote location: :keep do
       import Enum, only: [sort: 1]
 
-      defp new_dict(list // [{"first_key", 1}, {"second_key", 2}]) do
+      defp new_dict(list \\ [{"first_key", 1}, {"second_key", 2}]) do
         dict_impl.new list
       end
 

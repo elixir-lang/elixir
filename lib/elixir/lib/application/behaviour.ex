@@ -75,7 +75,7 @@ defmodule Application.Behaviour do
   #     Application.Behaviour.start(:my_app)
   #
   @doc false
-  def start(app, type // :temporary) do
+  def start(app, type \\ :temporary) do
     case :application.start(app, type) do
       { :error, { :not_started, dep } } ->
         case start(dep) do

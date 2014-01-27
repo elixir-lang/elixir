@@ -62,7 +62,7 @@ defmodule IEx.Helpers do
       c "baz.ex"
       #=> [Baz]
   """
-  def c(files, path // ".") when is_binary(path) do
+  def c(files, path \\ ".") when is_binary(path) do
     files = List.wrap(files)
 
     unless Enum.all?(files, &is_binary/1) do
@@ -386,7 +386,7 @@ defmodule IEx.Helpers do
   Produces a simple list of a directory's contents.
   If `path` points to a file, prints its full path.
   """
-  def ls(path // ".") when is_binary(path) do
+  def ls(path \\ ".") when is_binary(path) do
     path = expand_home(path)
     case File.ls(path) do
       { :ok, items } ->

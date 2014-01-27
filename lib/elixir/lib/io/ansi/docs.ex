@@ -16,7 +16,7 @@ defmodule IO.ANSI.Docs do
 
   See `print/3` for docs on the supported options.
   """
-  def print_heading(heading, colors // @default_colors) do
+  def print_heading(heading, colors \\ @default_colors) do
     IO.puts IO.ANSI.reset
     width   = column_width()
     padding = div(width + String.length(heading), 2)
@@ -46,7 +46,7 @@ defmodule IO.ANSI.Docs do
   * Intensity:  `normal  bright`
   * Decoration: `underline  reverse`
   """
-  def print(doc, colors // @default_colors) do
+  def print(doc, colors \\ @default_colors) do
     doc
     |> String.split(["\r\n","\n"], trim: false)
     |> Enum.map(&String.rstrip/1)

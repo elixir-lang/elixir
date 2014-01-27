@@ -50,7 +50,7 @@ defmodule Dict.Behaviour do
   Note you can also test your custom module via `Dict`'s doctests:
 
       defmodule MyDict do
-        def new(keywords // []) do
+        def new(keywords \\ []) do
           ...
         end
       end
@@ -66,7 +66,7 @@ defmodule Dict.Behaviour do
     quote do
       @behaviour Dict
 
-      def get(dict, key, default // nil) do
+      def get(dict, key, default \\ nil) do
         case fetch(dict, key) do
           { :ok, value } -> value
           :error -> default
@@ -133,7 +133,7 @@ defmodule Dict.Behaviour do
         end
       end
 
-      def merge(dict1, dict2, fun // fn(_k, _v1, v2) -> v2 end) do
+      def merge(dict1, dict2, fun \\ fn(_k, _v1, v2) -> v2 end) do
         reduce(dict1, { :cont, dict2 }, fn { k, v1 }, acc ->
           { :cont, update(acc, k, v1, &fun.(k, v1, &1)) }
         end) |> elem(1)

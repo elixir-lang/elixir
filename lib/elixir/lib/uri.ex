@@ -96,7 +96,7 @@ defmodule URI do
       ["2", "1"]
 
   """
-  def decode_query(q, dict // HashDict.new) when is_binary(q) do
+  def decode_query(q, dict \\ HashDict.new) when is_binary(q) do
     Enum.reduce query_decoder(q), dict, fn({ k, v }, acc) -> Dict.put(acc, k, v) end
   end
 

@@ -302,7 +302,7 @@ defmodule IEx do
   Setting variables or importing modules in IEx does not
   affect the caller the environment (hence it is called `pry`).
   """
-  defmacro pry(timeout // 1000) do
+  defmacro pry(timeout \\ 1000) do
     quote do
       env  = __ENV__
       meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
@@ -328,7 +328,7 @@ defmodule IEx do
   # This is a callback invoked by Erlang shell utilities
   # when someone press Ctrl+G and adds 's Elixir.IEx'.
   @doc false
-  def start(opts // [], callback // fn -> end) do
+  def start(opts \\ [], callback \\ fn -> end) do
     spawn fn ->
       case :init.notify_when_started(self()) do
         :started -> :ok

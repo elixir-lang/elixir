@@ -58,14 +58,14 @@ defmodule BehaviourTest do
     assert_raise ArgumentError, fn ->
       defmodule WithDefault do
         use Behaviour
-        defcallback hello(num // 0 :: integer) :: integer
+        defcallback hello(num \\ 0 :: integer) :: integer
       end
     end
 
     assert_raise ArgumentError, fn ->
       defmodule WithDefault do
         use Behaviour
-        defcallback hello(num :: integer // 0) :: integer
+        defcallback hello(num :: integer \\ 0) :: integer
       end
     end
   end

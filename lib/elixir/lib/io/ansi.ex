@@ -1,7 +1,7 @@
 defmodule IO.ANSI.Sequence do
   @moduledoc false
 
-  defmacro defsequence(name, code // "", terminator // "m") do
+  defmacro defsequence(name, code \\ "", terminator \\ "m") do
     quote bind_quoted: [name: name, code: code, terminator: terminator] do
       def unquote(name)() do
         "\e[#{unquote(code)}#{unquote(terminator)}"
@@ -17,7 +17,7 @@ end
 defmodule IO.ANSI do
   @moduledoc """
   Functionality to render ANSI escape sequences
-  (http://en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
+  (http:\\en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
   in text used to control formatting, color, and other output options
   on video text terminals.
   """
@@ -32,7 +32,7 @@ defmodule IO.ANSI do
   """
   @spec terminal? :: boolean
   @spec terminal?(:io.device) :: boolean
-  def terminal?(device // :erlang.group_leader) do
+  def terminal?(device \\ :erlang.group_leader) do
     match?({:ok, _}, :io.columns(device))
   end
 
@@ -159,7 +159,7 @@ defmodule IO.ANSI do
 
   """
   @spec escape(String.t, emit :: boolean) :: String.t
-  def escape(string, emit // terminal?) do
+  def escape(string, emit \\ terminal?) do
     {rendered, emitted} = do_escape(string, false, emit, false, [])
     if emitted and emit do
       rendered <> reset
@@ -188,7 +188,7 @@ defmodule IO.ANSI do
 
   """
   @spec escape_fragment(String.t, emit :: boolean) :: String.t
-  def escape_fragment(string, emit // terminal?) do
+  def escape_fragment(string, emit \\ terminal?) do
     {rendered, _emitted} = do_escape(string, false, emit, false, [])
     rendered
   end

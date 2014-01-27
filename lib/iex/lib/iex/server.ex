@@ -35,7 +35,7 @@ defmodule IEx.Server do
   """
   @spec take_over(binary, Keyword.t, pos_integer) ::
         :ok | { :error, :no_iex } | { :error, :refused }
-  def take_over(identifier, opts, timeout // 1000, server // whereis()) do
+  def take_over(identifier, opts, timeout \\ 1000, server \\ whereis()) do
     cond do
       nil?(server) ->
         { :error, :no_iex }
@@ -122,7 +122,7 @@ defmodule IEx.Server do
     run(opts)
   end
 
-  defp exit_loop(evaluator, evaluator_ref, done? // true) do
+  defp exit_loop(evaluator, evaluator_ref, done? \\ true) do
     Process.delete(:evaluator)
     Process.demonitor(evaluator_ref)
     if done? do

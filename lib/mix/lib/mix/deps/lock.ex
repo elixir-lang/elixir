@@ -9,7 +9,7 @@ defmodule Mix.Deps.Lock do
   @doc """
   Returns the manifest file for dependencies.
   """
-  def manifest(manifest_path // Mix.Project.manifest_path) do
+  def manifest(manifest_path \\ Mix.Project.manifest_path) do
     Path.join(manifest_path, @manifest)
   end
 

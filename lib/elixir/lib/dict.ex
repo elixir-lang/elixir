@@ -163,7 +163,7 @@ defmodule Dict do
       3
   """
   @spec get(t, key, value) :: value
-  def get(dict, key, default // nil) do
+  def get(dict, key, default \\ nil) do
     target(dict).get(dict, key, default)
   end
 
@@ -286,7 +286,7 @@ defmodule Dict do
 
   """
   @spec merge(t, t, (key, value, value -> value)) :: t
-  def merge(dict1, dict2, fun // fn(_k, _v1, v2) -> v2 end) do
+  def merge(dict1, dict2, fun \\ fn(_k, _v1, v2) -> v2 end) do
     target1 = target(dict1)
     target2 = target(dict2)
 
@@ -322,7 +322,7 @@ defmodule Dict do
 
   """
   @spec pop(t, key, value) :: {value, t}
-  def pop(dict, key, default // nil) do
+  def pop(dict, key, default \\ nil) do
     target(dict).pop(dict, key, default)
   end
 

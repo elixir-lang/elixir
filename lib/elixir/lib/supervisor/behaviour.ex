@@ -152,7 +152,7 @@ defmodule Supervisor.Behaviour do
 
   #{@child_doc}
   """
-  def worker(module, args, options // []) do
+  def worker(module, args, options \\ []) do
     child(:worker, module, args, options)
   end
 
@@ -166,7 +166,7 @@ defmodule Supervisor.Behaviour do
 
   #{@child_doc}
   """
-  def supervisor(module, args, options // []) do
+  def supervisor(module, args, options \\ []) do
     options = Keyword.update(options, :shutdown, :infinity, fn(x) -> x end)
     child(:supervisor, module, args, options)
   end

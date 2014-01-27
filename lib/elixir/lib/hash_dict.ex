@@ -95,7 +95,7 @@ defmodule HashDict do
     end
   end
 
-  def pop(dict, key, default // nil) do
+  def pop(dict, key, default \\ nil) do
     case dict_delete(dict, key) do
       { dict, value } -> { value, dict }
       :error          -> { default, dict }

@@ -376,7 +376,7 @@ defmodule System do
   """
   @spec halt() :: no_return
   @spec halt(non_neg_integer | binary | :abort) :: no_return
-  def halt(status // 0)
+  def halt(status \\ 0)
 
   def halt(status) when is_integer(status) or status == :abort do
     :erlang.halt(status)

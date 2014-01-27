@@ -122,6 +122,10 @@ defmodule Behaviour do
     raise ArgumentError, message: "default arguments // not supported in defcallback/defmacrocallback"
   end
 
+  defp ensure_not_default({ :\\, _, [_, _] }) do
+    raise ArgumentError, message: "default arguments \\\\ not supported in defcallback/defmacrocallback"
+  end
+
   defp ensure_not_default(_), do: :ok
 
   @doc false

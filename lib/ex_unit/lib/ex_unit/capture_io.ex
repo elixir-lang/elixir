@@ -316,7 +316,7 @@ defmodule ExUnit.CaptureIO do
     do_get_until(input, mod, fun, args)
   end
 
-  defp do_get_until([], mod, fun, args, continuation // [], count // 0)
+  defp do_get_until([], mod, fun, args, continuation \\ [], count \\ 0)
 
   defp do_get_until([], mod, fun, args, continuation, count) do
     case apply(mod, fun, [continuation, :eof | args]) do

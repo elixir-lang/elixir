@@ -72,7 +72,7 @@ defmodule Float do
     { floatify(int, float, decimal), bitstring }
   end
 
-  defp floatify(int, float, decimal, exponential // 0) do
+  defp floatify(int, float, decimal, exponential \\ 0) do
     multiplier = if int < 0, do: -1.0, else: 1.0
 
     # Try to ensure the minimum amount of rounding errors
@@ -82,7 +82,7 @@ defmodule Float do
     # iex(1)> 0.0001 * 75
     # 0.007500000000000001
     # Due to IEEE 754 floating point standard
-    # http://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
+    # http:\\docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
 
     final_decimal_places = decimal - exponential
     if final_decimal_places > 0 do

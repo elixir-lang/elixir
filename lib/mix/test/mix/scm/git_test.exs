@@ -22,7 +22,7 @@ defmodule Mix.SCM.GitTest do
     assert Mix.SCM.Git.equal?([git: "foo", lock: 1], [git: "foo", lock: 2])
   end
 
-  defp lock(opts // []) do
+  defp lock(opts \\ []) do
     [lock: { :git, "/repo", "abcdef0123456789", opts }]
   end
 end

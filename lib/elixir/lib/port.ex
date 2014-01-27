@@ -20,7 +20,7 @@ defmodule Port do
   @doc """
   See http://www.erlang.org/doc/man/erlang.html#port_command-2.
   """
-  def command(port, data, options // []) do
+  def command(port, data, options \\ []) do
     :erlang.port_command(port, data, options)
   end
 

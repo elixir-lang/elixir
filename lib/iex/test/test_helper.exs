@@ -53,7 +53,7 @@ defmodule IEx.Case do
   If you provide server options, it will be passed to
   IEx.Server.start to be used in the normal .iex loading process.
   """
-  def capture_iex(input, options // [], server_options // []) do
+  def capture_iex(input, options \\ [], server_options \\ []) do
     Enum.each options, fn { opt, value } ->
       IEx.Options.set(opt, value)
     end

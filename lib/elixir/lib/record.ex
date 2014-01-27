@@ -394,7 +394,7 @@ defmodule Record do
       end
 
   """
-  def defmacros(name, values, env, tag // nil)
+  def defmacros(name, values, env, tag \\ nil)
       when is_atom(name) and is_list(values) and is_atom(tag) do
 
     escaped = lc value inlist values do

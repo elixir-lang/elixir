@@ -337,7 +337,7 @@ defmodule Inspect.Algebra do
 
   """
   @spec surround_many(binary, [any], binary, integer | :infinity, (term -> t), binary) :: t
-  def surround_many(left, docs, right, limit, fun, separator // @surround_separator)
+  def surround_many(left, docs, right, limit, fun, separator \\ @surround_separator)
 
   def surround_many(left, [], right, _, _fun, _) do
     concat(left, right)

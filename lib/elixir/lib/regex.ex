@@ -66,7 +66,7 @@ defmodule Regex do
 
   """
   @spec compile(binary, binary | [term]) :: { :ok, t } | { :error, any }
-  def compile(source, options // "")
+  def compile(source, options \\ "")
 
   def compile(source, options) when is_binary(options) do
     case translate_options(options) do
@@ -100,7 +100,7 @@ defmodule Regex do
   Compiles the regular expression according to the given options.
   Fails with `Regex.CompileError` if the regex cannot be compiled.
   """
-  def compile!(source, options // "") do
+  def compile!(source, options \\ "") do
     case compile(source, options) do
       { :ok, regex } -> regex
       { :error, { reason, at } } -> raise Regex.CompileError, message: "#{reason} at position #{at}"
@@ -139,7 +139,7 @@ defmodule Regex do
       [{2,2},{3,1}]
 
   """
-  def run(regex, string, options // [])
+  def run(regex, string, options \\ [])
 
   def run(regex(re_pattern: compiled, groups: groups), string, options) do
     return = Keyword.get(options, :return, return_for(string))
@@ -171,7 +171,7 @@ defmodule Regex do
       nil
 
   """
-  def named_captures(regex(groups: groups) = regex, string, options // []) do
+  def named_captures(regex(groups: groups) = regex, string, options \\ []) do
     options = Keyword.put_new(options, :capture, :groups)
     results = run(regex, string, options)
     if results, do: Enum.zip(groups, results)
@@ -245,7 +245,7 @@ defmodule Regex do
       []
 
   """
-  def scan(regex, string, options // [])
+  def scan(regex, string, options \\ [])
 
   def scan(regex(re_pattern: compiled, groups: groups), string, options) do
     return  = Keyword.get(options, :return, return_for(string))
@@ -281,7 +281,7 @@ defmodule Regex do
       ["a", "b", "c"]
   """
 
-  def split(regex, string, options // [])
+  def split(regex, string, options \\ [])
 
   def split(regex(re_pattern: compiled), string, options) do
     parts =
@@ -325,7 +325,7 @@ defmodule Regex do
       "a[b]c"
 
   """
-  def replace(regex(re_pattern: compiled), string, replacement, options // []) do
+  def replace(regex(re_pattern: compiled), string, replacement, options \\ []) do
     opts   = if Keyword.get(options, :global) != false, do: [:global], else: []
     return = Keyword.get(options, :return, return_for(string))
     opts   = [{ :return, return }|opts]

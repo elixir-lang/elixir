@@ -57,7 +57,7 @@ defmodule Mix.Utils do
       #=> { :module, Mix.Tasks.Compile }
 
   """
-  def command_to_module(command, at // Elixir) do
+  def command_to_module(command, at \\ Elixir) do
     module = Module.concat(at, command_to_module_name(command))
     Code.ensure_loaded(module)
   end
@@ -276,7 +276,7 @@ defmodule Mix.Utils do
       #=> "compile.elixir"
 
   """
-  def module_name_to_command(module, nesting // 0)
+  def module_name_to_command(module, nesting \\ 0)
 
   def module_name_to_command(module, nesting) when is_atom(module) do
     module_name_to_command(inspect(module), nesting)

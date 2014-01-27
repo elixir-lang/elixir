@@ -61,7 +61,7 @@ defmodule Mix.Deps.Loader do
 
   ## Helpers
 
-  defp to_dep(tuple, scms, from, manager // nil) do
+  defp to_dep(tuple, scms, from, manager \\ nil) do
     dep = with_scm_and_app(tuple, scms).from(from).manager(manager)
 
     if match?({ _, req, _ } when is_regex(req), tuple) and

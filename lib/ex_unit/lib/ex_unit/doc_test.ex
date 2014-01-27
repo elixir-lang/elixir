@@ -142,7 +142,7 @@ defmodule ExUnit.DocTest do
 
   This macro is auto-imported with every `ExUnit.Case`.
   """
-  defmacro doctest(mod, opts // []) do
+  defmacro doctest(mod, opts \\ []) do
     quote bind_quoted: binding do
       lc { name, test } inlist ExUnit.DocTest.__doctests__(mod, opts) do
         @file '(for doctest at) ' ++ Path.relative_to_cwd(mod.__info__(:compile)[:source])

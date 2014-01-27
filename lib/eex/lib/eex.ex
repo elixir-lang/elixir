@@ -105,7 +105,7 @@ defmodule EEx do
       Sample.sample(1, 2) #=> "3"
 
   """
-  defmacro function_from_string(kind, name, source, args // [], options // []) do
+  defmacro function_from_string(kind, name, source, args \\ [], options \\ []) do
     quote bind_quoted: binding do
       info = Keyword.merge [file: __ENV__.file, line: __ENV__.line], options
       args = Enum.map args, fn arg -> { arg, [line: info[:line]], nil } end
@@ -141,7 +141,7 @@ defmodule EEx do
       Sample.sample(1, 2) #=> "3"
 
   """
-  defmacro function_from_file(kind, name, file, args // [], options // []) do
+  defmacro function_from_file(kind, name, file, args \\ [], options \\ []) do
     quote bind_quoted: binding do
       info = Keyword.merge options, [file: file, line: 1]
       args = Enum.map args, fn arg -> { arg, [line: 1], nil } end
@@ -159,7 +159,7 @@ defmodule EEx do
   Get a string `source` and generate a quoted expression
   that can be evaluated by Elixir or compiled to a function.
   """
-  def compile_string(source, options // []) do
+  def compile_string(source, options \\ []) do
     EEx.Compiler.compile(source, options)
   end
 
@@ -167,7 +167,7 @@ defmodule EEx do
   Get a `filename` and generate a quoted expression
   that can be evaluated by Elixir or compiled to a function.
   """
-  def compile_file(filename, options // []) do
+  def compile_file(filename, options \\ []) do
     options = Keyword.merge options, [file: filename, line: 1]
     compile_string(File.read!(filename), options)
   end
@@ -181,7 +181,7 @@ defmodule EEx do
       #=> "foo baz"
 
   """
-  def eval_string(source, bindings // [], options // []) do
+  def eval_string(source, bindings \\ [], options \\ []) do
     compiled = compile_string(source, options)
     do_eval(compiled, bindings, options)
   end
@@ -199,7 +199,7 @@ defmodule EEx do
       #=> "foo baz"
 
   """
-  def eval_file(filename, bindings // [], options // []) do
+  def eval_file(filename, bindings \\ [], options \\ []) do
     options  = Keyword.put options, :file, filename
     compiled = compile_file(filename, options)
     do_eval(compiled, bindings, options)

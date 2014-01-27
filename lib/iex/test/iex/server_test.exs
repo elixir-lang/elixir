@@ -59,7 +59,7 @@ defmodule IEx.ServerTest do
 
   # Helpers
 
-  defp boot(opts, callback // fn -> end) do
+  defp boot(opts, callback \\ fn -> end) do
     IEx.Server.start(Keyword.merge([dot_iex_path: ""], opts), callback)
   end
 end

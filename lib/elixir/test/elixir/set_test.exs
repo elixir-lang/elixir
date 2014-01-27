@@ -2,7 +2,7 @@ Code.require_file "test_helper.exs", __DIR__
 
 # A TestSet implementation used only for testing.
 defmodule TestSet do
-  def new(list // []) when is_list(list) do
+  def new(list \\ []) when is_list(list) do
     { TestSet, list }
   end
 
@@ -24,7 +24,7 @@ defmodule SetTest.Common do
     quote location: :keep do
       use ExUnit.Case, async: true
 
-      defp new_set(list // []) do
+      defp new_set(list \\ []) do
         unquote(module).new(list)
       end
 

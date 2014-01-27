@@ -79,7 +79,7 @@ defmodule OptionParser do
       { [op: false], ["path/to/file"], [] }
 
   """
-  def parse(argv, opts // []) when is_list(argv) and is_list(opts) do
+  def parse(argv, opts \\ []) when is_list(argv) and is_list(opts) do
     parse(argv, opts, true)
   end
 
@@ -97,7 +97,7 @@ defmodule OptionParser do
       iex> OptionParser.parse_head(["--verbose", "--source", "lib", "test/enum_test.exs", "--unlock"])
       { [verbose: true, source: "lib"], ["test/enum_test.exs", "--unlock"], [] }
   """
-  def parse_head(argv, opts // []) when is_list(argv) and is_list(opts) do
+  def parse_head(argv, opts \\ []) when is_list(argv) and is_list(opts) do
     parse(argv, opts, false)
   end
 

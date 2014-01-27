@@ -169,7 +169,7 @@ defmodule List do
 
   """
   @spec keyfind([tuple], any, non_neg_integer, any) :: any
-  def keyfind(list, key, position, default // nil) do
+  def keyfind(list, key, position, default \\ nil) do
     :lists.keyfind(key, position + 1, list) || default
   end
 

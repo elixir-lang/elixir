@@ -226,7 +226,7 @@ defmodule Stream do
   """
   @spec chunk(Enumerable.t, non_neg_integer, non_neg_integer) :: Enumerable.t
   @spec chunk(Enumerable.t, non_neg_integer, non_neg_integer, Enumerable.t | nil) :: Enumerable.t
-  def chunk(enum, n, step, pad // nil) when n > 0 and step > 0 do
+  def chunk(enum, n, step, pad \\ nil) when n > 0 and step > 0 do
     limit = :erlang.max(n, step)
     lazy enum, { [], 0 },
          fn(f1) -> R.chunk(n, step, limit, f1) end,
@@ -729,7 +729,7 @@ defmodule Stream do
   """
   @spec uniq(Enumerable.t) :: Enumerable.t
   @spec uniq(Enumerable.t, (element -> term)) :: Enumerable.t
-  def uniq(enum, fun // fn x -> x end) do
+  def uniq(enum, fun \\ fn x -> x end) do
     lazy enum, [], fn f1 -> R.uniq(fun, f1) end
   end
 

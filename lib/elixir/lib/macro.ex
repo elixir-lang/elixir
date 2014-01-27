@@ -13,7 +13,7 @@ defmodule Macro do
 
   @binary_ops [:===, :!==,
     :==, :!=, :<=, :>=,
-    :&&, :||, :<>, :++, :--, ://, :::, :<-, :.., :|>, :=~,
+    :&&, :||, :<>, :++, :--, ://, :\\, :::, :<-, :.., :|>, :=~,
     :<, :>, :->,
     :+, :-, :*, :/, :=, :|, :.,
     :and, :or, :xor, :when, :in, :inlist, :inbits,
@@ -30,7 +30,7 @@ defmodule Macro do
   @spec binary_op_props(atom) :: { :left | :right, precedence :: integer }
   defp binary_op_props(o) do
     case o do
-      o when o in [:<-, :inlist, :inbits, ://, :::]             -> {:left,  40}
+      o when o in [:<-, :inlist, :inbits, ://, :\\, :::]        -> {:left,  40}
       :|                                                        -> {:right, 50}
       :when                                                     -> {:right, 70}
       :=                                                        -> {:right, 80}
@@ -66,7 +66,7 @@ defmodule Macro do
   argument in the given `position`.
   """
   @spec pipe(Macro.t, Macro.t, integer) :: Macro.t | no_return
-  def pipe(expr, call_args, integer // 0)
+  def pipe(expr, call_args, integer \\ 0)
 
   def pipe(expr, { call, line, atom }, integer) when is_atom(atom) do
     { call, line, List.insert_at([], integer, expr) }
@@ -175,7 +175,7 @@ defmodule Macro do
   """
   @spec escape(term) :: Macro.t
   @spec escape(term, Keyword.t) :: Macro.t
-  def escape(expr, opts // []) do
+  def escape(expr, opts \\ []) do
     elem(:elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)), 0)
   end
 
@@ -294,7 +294,7 @@ defmodule Macro do
   """
   @spec to_string(Macro.t) :: String.t
   @spec to_string(Macro.t, (Macro.t, String.t -> String.t)) :: String.t
-  def to_string(tree, fun // fn(_ast, string) -> string end)
+  def to_string(tree, fun \\ fn(_ast, string) -> string end)
 
   # Variables
   def to_string({ var, _, atom } = ast, fun) when is_atom(atom) do
@@ -506,7 +506,7 @@ defmodule Macro do
 
   defp op_to_string(expr, fun, _, _), do: to_string(expr, fun)
 
-  defp arrow_to_string(pairs, fun, paren // false) do
+  defp arrow_to_string(pairs, fun, paren \\ false) do
     Enum.map_join(pairs, "; ", fn({ :->, _, [left, right] }) ->
       left = comma_join_or_empty_paren(left, fun, paren)
       left <> "-> " <> to_string(right, fun)

@@ -340,7 +340,7 @@ defmodule Module do
       Foo.sum(1, 2) #=> 3
 
   """
-  def eval_quoted(module, quoted, binding // [], opts // [])
+  def eval_quoted(module, quoted, binding \\ [], opts \\ [])
 
   def eval_quoted(env, quoted, binding, opts) when is_env(env) do
     eval_quoted(env.module, quoted, binding, Keyword.merge(env.to_keywords, opts))
@@ -387,7 +387,7 @@ defmodule Module do
   when defining the module, while `defmodule` automatically
   shares the same environment.
   """
-  def create(module, quoted, opts // [])
+  def create(module, quoted, opts \\ [])
 
   def create(module, quoted, env) when is_env(env) do
     create(module, quoted, env.to_keywords)
@@ -498,7 +498,7 @@ defmodule Module do
       end
 
   """
-  def add_doc(module, line, kind, tuple, signature // [], doc)
+  def add_doc(module, line, kind, tuple, signature \\ [], doc)
 
   def add_doc(_module, _line, kind, _tuple, _signature, doc) when kind in [:defp, :defmacrop, :typep] do
     if doc, do: { :error, :private_doc }, else: :ok
@@ -531,8 +531,8 @@ defmodule Module do
 
   # Simplify signatures to be stored in docs
 
-  defp simplify_signature({ ://, defline, [left, right ] }, line, i) do
-    { ://, defline, [simplify_signature(left, line, i), right] }
+  defp simplify_signature({ :\\, defline, [left, right ] }, line, i) do
+    { :\\, defline, [simplify_signature(left, line, i), right] }
   end
 
   defp simplify_signature({ var, line, atom }, _, _i) when is_atom(atom) do
@@ -564,11 +564,11 @@ defmodule Module do
     []
   end
 
-  defp merge_signature({ ://, line, [left, right] }, newer, i) do
-    { ://, line, [merge_signature(left, newer, i), right] }
+  defp merge_signature({ :\\, line, [left, right] }, newer, i) do
+    { :\\, line, [merge_signature(left, newer, i), right] }
   end
 
-  defp merge_signature(older, { ://, _, [left, _] }, i) do
+  defp merge_signature(older, { :\\, _, [left, _] }, i) do
     merge_signature(older, left, i)
   end
 
@@ -764,7 +764,7 @@ defmodule Module do
 
   """
   @spec get_attribute(module, atom, warn :: nil | [tuple]) :: term
-  def get_attribute(module, key, warn // nil) when
+  def get_attribute(module, key, warn \\ nil) when
       is_atom(key) and (is_list(warn) or nil?(warn)) do
     assert_not_compiled!(:get_attribute, module)
     table = data_table_for(module)

@@ -159,7 +159,7 @@ defmodule Mix.Task do
   It may raise an exception if the task was not found
   or it is invalid. Check `get!/1` for more information.
   """
-  def run(task, args // []) do
+  def run(task, args \\ []) do
     task = to_string(task)
 
     if Mix.TasksServer.call({ :run_task, task, Mix.Project.get }) do

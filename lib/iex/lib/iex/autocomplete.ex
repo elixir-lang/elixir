@@ -83,7 +83,7 @@ defmodule IEx.Autocomplete do
 
   ## Formatting
 
-  defp format_expansion(list, hint // "")
+  defp format_expansion(list, hint \\ "")
 
   defp format_expansion([], _) do
     no()
@@ -148,7 +148,7 @@ defmodule IEx.Autocomplete do
 
   ## Erlang modules
 
-  defp expand_erlang_modules(hint // "") do
+  defp expand_erlang_modules(hint \\ "") do
     format_expansion match_erlang_modules(hint), hint
   end
 
@@ -162,7 +162,7 @@ defmodule IEx.Autocomplete do
 
   ## Elixir modules
 
-  defp expand_elixir_modules(list, hint // "") do
+  defp expand_elixir_modules(list, hint \\ "") do
     mod = Module.concat(list)
     format_expansion elixir_submodules(mod, hint, list == []) ++ module_funs(mod, hint), hint
   end
@@ -197,7 +197,7 @@ defmodule IEx.Autocomplete do
 
   ## Helpers
 
-  defp module_funs(mod, hint // "") do
+  defp module_funs(mod, hint \\ "") do
     case ensure_loaded(mod) do
       { :module, _ } ->
         falist = get_funs(mod)

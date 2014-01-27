@@ -111,7 +111,7 @@ defmodule Mix.Deps do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  def loaded_by_name(given, all_deps // loaded) do
+  def loaded_by_name(given, all_deps \\ loaded) do
     # Ensure all apps are atoms
     apps = to_app_names(given)
 
@@ -179,7 +179,7 @@ defmodule Mix.Deps do
 
   It is expected a loaded dependency as argument.
   """
-  def in_dependency(dep, post_config // [], fun)
+  def in_dependency(dep, post_config \\ [], fun)
 
   def in_dependency(Mix.Dep[app: app, opts: opts], config, fun) do
     # Set the app_path to be the one stored in the dependency.

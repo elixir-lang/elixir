@@ -2,7 +2,7 @@ defmodule Stream.Reducers do
   # Collection of reducers shared by Enum and Stream.
   @moduledoc false
 
-  defmacro chunk(n, step, limit, f // nil) do
+  defmacro chunk(n, step, limit, f \\ nil) do
     quote do
       fn entry, acc(h, { buffer, count }, t) ->
         buffer = [entry|buffer]
@@ -25,7 +25,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro chunk_by(callback, f // nil) do
+  defmacro chunk_by(callback, f \\ nil) do
     quote do
       fn
         entry, acc(h, { buffer, value }, t) ->
@@ -41,7 +41,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro drop(f // nil) do
+  defmacro drop(f \\ nil) do
     quote do
       fn
         _entry, acc(h, n, t) when n > 0 ->
@@ -52,7 +52,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro drop_while(callback, f // nil) do
+  defmacro drop_while(callback, f \\ nil) do
     quote do
       fn entry, acc(h, bool, t) = orig ->
         if bool and unquote(callback).(entry) do
@@ -64,7 +64,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro filter(callback, f // nil) do
+  defmacro filter(callback, f \\ nil) do
     quote do
       fn(entry, acc) ->
         if unquote(callback).(entry) do
@@ -76,7 +76,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro filter_map(filter, mapper, f // nil) do
+  defmacro filter_map(filter, mapper, f \\ nil) do
     quote do
       fn(entry, acc) ->
         if unquote(filter).(entry) do
@@ -88,7 +88,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro map(callback, f // nil) do
+  defmacro map(callback, f \\ nil) do
     quote do
       fn(entry, acc) ->
         cont(unquote(f), unquote(callback).(entry), acc)
@@ -96,7 +96,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro reject(callback, f // nil) do
+  defmacro reject(callback, f \\ nil) do
     quote do
       fn(entry, acc) ->
         unless unquote(callback).(entry) do
@@ -108,7 +108,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro scan_2(callback, f // nil) do
+  defmacro scan_2(callback, f \\ nil) do
     quote do
       fn
         entry, acc(h, :first, t) ->
@@ -120,7 +120,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro scan_3(callback, f // nil) do
+  defmacro scan_3(callback, f \\ nil) do
     quote do
       fn(entry, acc(h, acc, t)) ->
         value = unquote(callback).(entry, acc)
@@ -129,7 +129,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro take(f // nil) do
+  defmacro take(f \\ nil) do
     quote do
       fn(entry, acc(h, n, t) = orig) ->
         if n >= 1 do
@@ -141,7 +141,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro take_every(nth, f // nil) do
+  defmacro take_every(nth, f \\ nil) do
     quote do
       fn
         entry, acc(h, n, t) when n === :first
@@ -153,7 +153,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro take_while(callback, f // nil) do
+  defmacro take_while(callback, f \\ nil) do
     quote do
       fn(entry, acc) ->
         if unquote(callback).(entry) do
@@ -165,7 +165,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro uniq(callback, f // nil) do
+  defmacro uniq(callback, f \\ nil) do
     quote do
       fn(entry, acc(h, prev, t) = acc) ->
         value = unquote(callback).(entry)
@@ -178,7 +178,7 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro with_index(f // nil) do
+  defmacro with_index(f \\ nil) do
     quote do
       fn(entry, acc(h, counter, t)) ->
         cont_with_acc(unquote(f), { entry, counter }, h, counter + 1, t)

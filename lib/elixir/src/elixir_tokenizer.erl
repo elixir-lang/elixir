@@ -73,6 +73,7 @@
 -define(in_match_op(T1, T2),
   T1 == $<, T2 == $-;
   T1 == $/, T2 == $/;
+  T1 == $\\, T2 == $\\;
   T1 == $:, T2 == $:).
 
 -define(stab_op(T1, T2),

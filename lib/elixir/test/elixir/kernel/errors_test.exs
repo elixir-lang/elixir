@@ -121,10 +121,10 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:3: def hello/1 has default values and multiple clauses, " <>
       "use a separate clause for declaring defaults",
-      '''
+      %C'''
       defmodule ErrorsTest do
-        def hello(arg // 0), do: nil
-        def hello(arg // 1), do: nil
+        def hello(arg \\ 0), do: nil
+        def hello(arg \\ 1), do: nil
       end
       '''
   end
@@ -142,19 +142,19 @@ defmodule Kernel.ErrorsTest do
   test :different_defs_with_defaults do
     assert_compile_fail CompileError,
       "nofile:3: def hello/3 defaults conflicts with def hello/2",
-      '''
+      %C'''
       defmodule ErrorsTest do
-        def hello(a, b // nil), do: a + b
-        def hello(a, b // nil, c // nil), do: a + b + c
+        def hello(a, b \\ nil), do: a + b
+        def hello(a, b \\ nil, c \\ nil), do: a + b + c
       end
       '''
 
     assert_compile_fail CompileError,
       "nofile:3: def hello/2 conflicts with defaults from def hello/3",
-      '''
+      %C'''
       defmodule ErrorsTest do
-        def hello(a, b // nil, c // nil), do: a + b + c
-        def hello(a, b // nil), do: a + b
+        def hello(a, b \\ nil, c \\ nil), do: a + b + c
+        def hello(a, b \\ nil), do: a + b
       end
       '''
   end

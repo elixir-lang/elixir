@@ -44,7 +44,7 @@ defmodule Mix.Archive do
   the project to be archived. Everything in the `ebin` and
   `priv` directories is archived.
   """
-  def create(archive_file, project_path // ".") do
+  def create(archive_file, project_path \\ ".") do
     project_path = Path.expand(project_path)
     archive_file = Path.expand(archive_file)
     dir = dir(archive_file) |> String.to_char_list!

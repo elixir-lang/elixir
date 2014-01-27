@@ -20,7 +20,7 @@ defmodule ExUnit.CaptureIOTest.GetUntil do
     end
   end
 
-  def get_line(device // Process.group_leader) do
+  def get_line(device \\ Process.group_leader) do
     send device, { :io_request, self, device, { :get_until, :unicode, "", __MODULE__, :until_new_line, [?\n] } }
     receive do
       { :io_reply, _, data } -> data

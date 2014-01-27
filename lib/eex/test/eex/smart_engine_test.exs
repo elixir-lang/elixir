@@ -20,7 +20,7 @@ defmodule EEx.SmartEngineTest do
     assert_eval "1\n2\n3\n", "<%= lc x inlist [1, 2, 3] do %><%= x %>\n<% end %>"
   end
 
-  defp assert_eval(expected, actual, binding // []) do
+  defp assert_eval(expected, actual, binding \\ []) do
     result = EEx.eval_string(actual, binding, file: __ENV__.file)
     assert result == expected
   end

@@ -115,7 +115,7 @@ defmodule Code do
       {3, [a: 1, b: 2]}
 
   """
-  def eval_string(string, binding // [], opts // [])
+  def eval_string(string, binding \\ [], opts \\ [])
 
   def eval_string(string, binding, Macro.Env[] = env) do
     do_eval_string(string, binding, env.to_keywords)
@@ -150,7 +150,7 @@ defmodule Code do
       {3, [a: 1, b: 2]}
 
   """
-  def eval_quoted(quoted, binding // [], opts // [])
+  def eval_quoted(quoted, binding \\ [], opts \\ [])
 
   def eval_quoted(quoted, binding, Macro.Env[] = env) do
     do_eval_quoted(quoted, binding, env.to_keywords)
@@ -225,7 +225,7 @@ defmodule Code do
   `Macro.to_string/2`, which converts a quoted form to a string/binary
   representation.
   """
-  def string_to_quoted(string, opts // []) when is_list(opts) do
+  def string_to_quoted(string, opts \\ []) when is_list(opts) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
     res  = :elixir.string_to_quoted(to_char_list(string), line, file, opts)
@@ -246,7 +246,7 @@ defmodule Code do
 
   Check `string_to_quoted/2` for options information.
   """
-  def string_to_quoted!(string, opts // []) when is_list(opts) do
+  def string_to_quoted!(string, opts \\ []) when is_list(opts) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
     :elixir.string_to_quoted!(to_char_list(string), line, file, opts)
@@ -266,7 +266,7 @@ defmodule Code do
   a given file, the given file will be loaded N times. Check
   `require_file/2` if you don't want a file to be loaded concurrently.
   """
-  def load_file(file, relative_to // nil) when is_binary(file) do
+  def load_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
     :elixir_code_server.call { :acquire, file }
     loaded = :elixir_compiler.file file
@@ -289,7 +289,7 @@ defmodule Code do
 
   Check `load_file/2` if you want a file to be loaded concurrently.
   """
-  def require_file(file, relative_to // nil) when is_binary(file) do
+  def require_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
 
     case :elixir_code_server.call({ :acquire, file }) do
@@ -346,7 +346,7 @@ defmodule Code do
 
   For compiling many files at once, check `Kernel.ParallelCompiler.files/2`.
   """
-  def compile_string(string, file // "nofile") when is_binary(file) do
+  def compile_string(string, file \\ "nofile") when is_binary(file) do
     :elixir_compiler.string to_char_list(string), file
   end
 
@@ -357,7 +357,7 @@ defmodule Code do
   the first element is the module name and the second one is its
   binary.
   """
-  def compile_quoted(quoted, file // "nofile") when is_binary(file) do
+  def compile_quoted(quoted, file \\ "nofile") when is_binary(file) do
     :elixir_compiler.quoted quoted, file
   end
 
