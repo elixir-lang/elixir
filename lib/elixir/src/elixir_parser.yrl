@@ -10,8 +10,8 @@ Nonterminals
   open_bracket close_bracket
   open_curly close_curly
   open_bit close_bit
-  container_comma_expr_base container_comma_expr container_arg container_args
-  call_args_parens_comma_expr call_args_parens parens_call
+  container_args_base container_args
+  call_args_parens_base call_args_parens parens_call
   call_args_no_parens_one call_args_no_parens_expr call_args_no_parens_comma_expr
   call_args_no_parens_all call_args_no_parens_many call_args_no_parens_many_strict
   stab stab_eol stab_expr stab_maybe_expr stab_parens_many
@@ -19,7 +19,7 @@ Nonterminals
   call_args_no_parens_kw_expr call_args_no_parens_kw_comma call_args_no_parens_kw
   dot_op dot_alias dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_bracket_identifier
-  var list bit_string tuple
+  var list list_args bit_string tuple
   do_block fn_eol do_eol end_eol block_eol block_item block_list
   .
 
@@ -396,27 +396,22 @@ container_expr -> matched_expr : '$1'.
 container_expr -> unmatched_expr : '$1'.
 container_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
 
-container_comma_expr_base -> container_expr ',' : ['$1'].
-container_comma_expr_base -> container_comma_expr_base container_expr ',' : ['$2'|'$1'].
+container_args_base -> container_expr : ['$1'].
+container_args_base -> container_args_base ',' container_expr : ['$3'|'$1'].
 
-container_comma_expr -> container_expr : ['$1'].
-container_comma_expr -> kw : ['$1'].
-container_comma_expr -> container_comma_expr_base : '$1'.
-container_comma_expr -> container_comma_expr_base container_expr : ['$2'|'$1'].
-container_comma_expr -> container_comma_expr_base kw : ['$2'|'$1'].
+container_args -> kw : ['$1'].
+container_args -> container_args_base : lists:reverse('$1').
+container_args -> container_args_base ',' : lists:reverse('$1').
+container_args -> container_args_base ',' kw : lists:reverse(['$3'|'$1']).
 
-container_arg  -> container_expr : '$1'.
-container_arg  -> container_expr ',' : '$1'.
-container_args -> container_comma_expr : lists:reverse('$1').
-
-call_args_parens_comma_expr -> container_expr : ['$1'].
-call_args_parens_comma_expr -> call_args_parens_comma_expr ',' container_expr : ['$3'|'$1'].
+call_args_parens_base -> container_expr : ['$1'].
+call_args_parens_base -> call_args_parens_base ',' container_expr : ['$3'|'$1'].
 
 call_args_parens -> empty_paren : [].
 call_args_parens -> open_paren no_parens_expr close_paren : ['$2'].
 call_args_parens -> open_paren kw close_paren : ['$2'].
-call_args_parens -> open_paren call_args_parens_comma_expr close_paren : lists:reverse('$2').
-call_args_parens -> open_paren call_args_parens_comma_expr ',' kw close_paren : lists:reverse(['$4'|'$2']).
+call_args_parens -> open_paren call_args_parens_base close_paren : lists:reverse('$2').
+call_args_parens -> open_paren call_args_parens_base ',' kw close_paren : lists:reverse(['$4'|'$2']).
 
 % KV
 
@@ -426,6 +421,7 @@ kw_eol  -> kw_identifier eol : '$1'.
 kw_expr -> kw_eol container_expr : { ?exprs('$1'),'$2' }.
 kw_comma -> kw_expr ',' : ['$1'].
 kw_comma -> kw_comma kw_expr ',' : ['$2'|'$1'].
+
 kw -> kw_expr : ['$1'].
 kw -> kw_comma : lists:reverse('$1').
 kw -> kw_comma kw_expr : lists:reverse(['$2'|'$1']).
@@ -437,16 +433,18 @@ call_args_no_parens_kw -> call_args_no_parens_kw_comma : '$1'.
 
 % Lists
 
+list_args -> kw : '$1'.
+list_args -> container_args_base : lists:reverse('$1').
+list_args -> container_args_base ',' : lists:reverse('$1').
+list_args -> container_args_base ',' kw : lists:reverse('$1') ++ '$3'.
+
 list -> open_bracket ']' : { [], ?line('$1') }.
-list -> open_bracket kw close_bracket : { '$2', ?line('$1') }.
-list -> open_bracket container_arg close_bracket : { ['$2'], ?line('$1') }.
-list -> open_bracket container_expr ',' container_args close_bracket : { ['$2'|'$4'], ?line('$1') }.
+list -> open_bracket list_args close_bracket : { '$2', ?line('$1') }.
 
 % Tuple
 
 tuple -> open_curly '}' : build_tuple('$1', []).
-tuple -> open_curly container_arg close_curly : build_tuple('$1', ['$2']).
-tuple -> open_curly container_expr ',' container_args close_curly :  build_tuple('$1', ['$2'|'$4']).
+tuple -> open_curly container_args close_curly :  build_tuple('$1', '$2').
 
 % Bitstrings
 

@@ -11,6 +11,11 @@ defmodule TupleTest do
     assert set_elem({ :a, :b, :c }, 1, :d) == { :a, :d, :c }
   end
 
+  test :keywords do
+    assert { 1, 2, three: :four } == { 1, 2, [three: :four] }
+    assert { one: :two } == { [one: :two] }
+  end
+
   test :optional_comma do
     assert { 1 } == { 1, }
     assert { 1, 2, 3 } == { 1, 2, 3, }
