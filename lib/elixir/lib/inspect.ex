@@ -481,7 +481,7 @@ defimpl Inspect, for: Function do
   end
 
   defp default_inspect(mod, fun_info) do
-    "#Function<#{uniq(fun_info)} in #{Inspect.Atom.inspect(mod)}.#{extract_name(fun_info[:name])}>"
+    "#Function<#{uniq(fun_info)}/#{fun_info[:arity]} in #{Inspect.Atom.inspect(mod)}.#{extract_name(fun_info[:name])}>"
   end
 
   defp extract_name(name) do

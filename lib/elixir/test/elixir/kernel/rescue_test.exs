@@ -169,7 +169,7 @@ defmodule Kernel.RescueTest do
 
   test :badarity_error do
     fun    = fn(x) -> x end
-    string = "bad arity error: #{inspect(fun)} called with (1, 2)"
+    string = "#{inspect(fun)} with arity 1 called with 2 arguments (1, 2)"
 
     result = try do
       fun.(1, 2)

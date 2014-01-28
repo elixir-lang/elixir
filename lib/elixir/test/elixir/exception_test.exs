@@ -62,7 +62,7 @@ defmodule Kernel.ExceptionTest do
 
   test "format_fa" do
     assert Exception.format_fa(fn -> end, 1) =~
-           %r"#Function<\d\.\d+ in Kernel\.ExceptionTest\.test format_fa/1>/1"
+           %r"#Function<\d\.\d+/0 in Kernel\.ExceptionTest\.test format_fa/1>/1"
   end
 
   test "runtime error message" do
