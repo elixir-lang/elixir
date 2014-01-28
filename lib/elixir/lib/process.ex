@@ -76,7 +76,7 @@ defmodule Process do
   @doc """
   Sends an exit signal with the given reason to the pid.
 
-  The following behavior applies if reason is any term except `:normal` or `:kill`:
+  The following behaviour applies if reason is any term except `:normal` or `:kill`:
 
   1) If pid is not trapping exits, pid will exit with the given reason;
 

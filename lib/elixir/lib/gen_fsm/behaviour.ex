@@ -166,7 +166,7 @@ defmodule GenFSM.Behaviour do
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
-      @behavior :gen_fsm
+      @behaviour :gen_fsm
 
       @doc false
       def handle_event(event, state_name, state_data) do

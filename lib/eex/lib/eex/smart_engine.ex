@@ -2,7 +2,7 @@ defmodule EEx.TransformerEngine do
   @moduledoc """
   An abstract engine that is meant to be used and
   built upon in other modules. This engine implements
-  the `EEx.Engine` behavior and provides a `transform`
+  the `EEx.Engine` behaviour and provides a `transform`
   overridable directive that allows a developer to
   customize the expression returned by the engine.
 
@@ -13,7 +13,7 @@ defmodule EEx.TransformerEngine do
   @doc false
   defmacro __using__(_) do
     quote do
-      @behavior EEx.Engine
+      @behaviour EEx.Engine
 
       def handle_text(buffer, text) do
         EEx.Engine.handle_text(buffer, text)

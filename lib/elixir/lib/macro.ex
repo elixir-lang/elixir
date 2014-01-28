@@ -182,10 +182,9 @@ defmodule Macro do
   @doc %S"""
   Unescape the given chars.
 
-  This is the unescaping behavior
-  used by default in Elixir single- and double-quoted strings.
-  Check `unescape_string/2` for information on how to customize
-  the escaping map.
+  This is the unescaping behaviour used by default in Elixir
+  single- and double-quoted strings. Check `unescape_string/2`
+  for information on how to customize the escaping map.
 
   In this setup, Elixir will escape the following: `\a`, `\b`,
   `\d`, `\e`, `\f`, `\n`, `\r`, `\s`, `\t` and `\v`. Octals are

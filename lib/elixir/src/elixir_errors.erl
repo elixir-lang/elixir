@@ -129,7 +129,7 @@ handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
   Message = format_error(erl_lint, { unused_var, format_var(Var) }),
   warn(file_format(Line, File, Message));
 
-%% Default behavior
+%% Default behaviour
 handle_file_warning(_, File, {Line,Module,Desc}) ->
   Message = format_error(Module, Desc),
   warn(file_format(Line, File, Message)).

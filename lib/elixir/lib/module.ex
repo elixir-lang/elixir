@@ -257,7 +257,7 @@ defmodule Module do
   * `@typep`       - defines a private type to be used in `@spec`
   * `@opaque`      - defines an opaque type to be used in `@spec`
   * `@spec`        - provides a specification for a function
-  * `@callback`    - provides a specification for the behavior callback
+  * `@callback`    - provides a specification for the behaviour callback
 
   In addition to the built-in attributes outlined above, custom attributes may
   also be added. A custom attribute is any valid identifier prefixed with an
@@ -905,7 +905,7 @@ defmodule Module do
     { atom, 0 }
   end
 
-  defp normalize_attribute(kind, atom) when kind in [:behavior, :behaviour] and is_atom(atom) do
+  defp normalize_attribute(:behaviour, atom) when is_atom(atom) do
     Code.ensure_compiled(atom)
     atom
   end

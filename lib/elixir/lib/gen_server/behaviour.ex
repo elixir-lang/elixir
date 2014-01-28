@@ -86,7 +86,7 @@ defmodule GenServer.Behaviour do
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
-      @behavior :gen_server
+      @behaviour :gen_server
 
       @doc false
       def init(args) do

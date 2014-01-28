@@ -1,5 +1,5 @@
 defmodule Mix.SCM.Git do
-  @behavior Mix.SCM
+  @behaviour Mix.SCM
   @moduledoc false
 
   def fetchable? do

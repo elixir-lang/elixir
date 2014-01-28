@@ -331,7 +331,7 @@ defmodule Kernel.SpecialForms do
   Elixir won't emit any warnings though, since the alias
   was not explicitly defined.
 
-  Both warning behaviors could be changed by explicitily
+  Both warning behaviours could be changed by explicitily
   setting the `:warn` option to true or false.
   """
   defmacro alias(module, opts)
@@ -443,7 +443,7 @@ defmodule Kernel.SpecialForms do
   Elixir won't emit any warnings though, since the import
   was not explicitly defined.
 
-  Both warning behaviors could be changed by explicitily
+  Both warning behaviours could be changed by explicitily
   setting the `:warn` option to true or false.
 
   ## Ambiguous function/macro names

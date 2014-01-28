@@ -105,7 +105,7 @@ build(Line, File, Module, Lexical) ->
     _    -> ets:insert(DataTable, { on_definition, [] })
   end,
 
-  Attributes = [behavior, behaviour, on_load, spec, type, export_type, opaque, callback, compile],
+  Attributes = [behaviour, on_load, spec, type, export_type, opaque, callback, compile],
   ets:insert(DataTable, { ?acc_attr, [before_compile, after_compile, on_definition|Attributes] }),
   ets:insert(DataTable, { ?persisted_attr, [vsn|Attributes] }),
   ets:insert(DataTable, { ?docs_attr, ets:new(DataTable, [ordered_set, public]) }),

@@ -1,5 +1,5 @@
 defmodule Mix.SCM.Path do
-  @behavior Mix.SCM
+  @behaviour Mix.SCM
   @moduledoc false
 
   def fetchable? do

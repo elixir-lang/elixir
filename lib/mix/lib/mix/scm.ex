@@ -5,7 +5,7 @@ defmodule Mix.SCM do
 
   @moduledoc """
   This module provides helper functions and defines the
-  behavior required by any SCM used by mix.
+  behaviour required by any SCM used by mix.
   """
 
   @doc """
@@ -33,7 +33,7 @@ defmodule Mix.SCM do
   defcallback format_lock(opts) :: String.t | nil
 
   @doc """
-  This behavior function receives a keyword list of `opts`
+  This behaviour function receives a keyword list of `opts`
   and should return an updated list in case the SCM consumes
   the available options. For example, when a developer specifies
   a dependency:
@@ -48,13 +48,13 @@ defmodule Mix.SCM do
   defcallback accepts_options(app :: atom, opts) :: opts | nil
 
   @doc """
-  This behavior function returns a boolean if the
+  This behaviour function returns a boolean if the
   dependency is available.
   """
   defcallback checked_out?(opts) :: boolean
 
   @doc """
-  This behavior function checks out dependencies.
+  This behaviour function checks out dependencies.
 
   If the dependency is locked, a lock is received in `opts`
   and the repository must be check out at the lock. Otherwise,
@@ -66,7 +66,7 @@ defmodule Mix.SCM do
   defcallback checkout(opts) :: any
 
   @doc """
-  This behavior function updates dependencies. It may be
+  This behaviour function updates dependencies. It may be
   called by `deps.get` or `deps.update`.
 
   In the first scenario, a lock is received in `opts` and
@@ -78,7 +78,7 @@ defmodule Mix.SCM do
   defcallback update(opts) :: any
 
   @doc """
-  This behavior function checks the status of the lock. In
+  This behaviour function checks the status of the lock. In
   particular, it checks if the revision stored in the lock
   is the same as the repository is currently in. It may return:
 

@@ -92,7 +92,7 @@ defmodule Application.Behaviour do
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
-      @behavior :application
+      @behaviour :application
 
       @doc false
       def stop(_state) do

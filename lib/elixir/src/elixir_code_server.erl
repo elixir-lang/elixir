@@ -2,7 +2,7 @@
 -export([call/1, cast/1]).
 -export([start_link/0, init/1, handle_call/3, handle_cast/2,
   handle_info/2, terminate/2, code_change/3]).
--behavior(gen_server).
+-behaviour(gen_server).
 
 -define(timeout, 30000).
 -record(elixir_code_server, {

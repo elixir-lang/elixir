@@ -16,6 +16,7 @@
 * Deprecations
   * [Kernel] `binary_to_term/1`, `binary_to_term/2`, `term_to_binary/1` and `term_to_binary/2` are deprecated in favor of their counterparts in the `:erlang` module
   * [Kernel] `//` for default arguments is deprecated in favor of `\\`. This is a soft deprecation, no warnings will be emitted for it in this release
+  * [Kernel] Deprecate `@behavior` in favor of `@behaviour`
   * [Record] Deprecate `to_keywords`, `getter` and `list getter` functionalities in `defrecordp`
 
 * Backwards incompatible changes
@@ -45,7 +46,7 @@
 
 * Deprecations
   * [Enum] Deprecate `Enum.first/1` in favor of `Enum.at/2` and `List.first/1`
-  * [Kernel] Deprecate continuable heredocs. In previous versions, Elixir would continue parsing on the same line the heredoc started, this behavior has been deprecated
+  * [Kernel] Deprecate continuable heredocs. In previous versions, Elixir would continue parsing on the same line the heredoc started, this behaviour has been deprecated
   * [Kernel] `is_alive/0` is deprecated in favor of `Node.alive?`
   * [Kernel] `Kernel.inspect/2` with `Inspect.Opts[]` is deprecated in favor of `Inspect.Algebra.to_doc/2`
   * [Kernel] `Kernel.inspect/2` with `:raw` option is deprecated, use `:records` option instead
@@ -745,7 +746,7 @@
 * Backwards incompatible changes
   * [Kernel] Compile files now follow `Elixir-ModuleName` convention to solve issues with Erlang embedded mode. This removes the `__MAIN__` pseudo-variable as modules are now located inside `Elixir` namespace
   * [Kernel] `__using__` callback triggered by `use` now receives just one argument. Caller information can be accessed via macros using `__CALLER__`
-  * [Kernel] Comprehensions syntax changed to be more compatible with Erlang behavior
+  * [Kernel] Comprehensions syntax changed to be more compatible with Erlang behaviour
   * [Kernel] loop and recur are removed in favor of recursion with named functions
   * [Module] Removed data functions in favor of unifying the attributes API
 

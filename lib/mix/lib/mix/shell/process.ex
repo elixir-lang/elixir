@@ -15,7 +15,7 @@ defmodule Mix.Shell.Process do
   `:mix_shell` related messages from the process inbox.
   """
 
-  @behavior Mix.Shell
+  @behaviour Mix.Shell
 
   @doc """
   Flush all `:mix_shell` and `:mix_shell_input` messages from the current process.

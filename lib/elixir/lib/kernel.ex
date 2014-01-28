@@ -238,13 +238,13 @@ defmodule Kernel do
 
   @doc false
   def binary_to_term(binary) do
-    IO.write "binary_to_term/1 is deprecated, please use :erlang.binary_to_term/1 instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "binary_to_term/1 is deprecated, please use :erlang.binary_to_term/1 instead\n#{Exception.format_stacktrace}"
     :erlang.binary_to_term(binary)
   end
 
   @doc false
   def binary_to_term(binary, options) do
-    IO.write "binary_to_term/2 is deprecated, please use :erlang.binary_to_term/2 instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "binary_to_term/2 is deprecated, please use :erlang.binary_to_term/2 instead\n#{Exception.format_stacktrace}"
     :erlang.binary_to_term(binary, options)
   end
 
@@ -1037,13 +1037,13 @@ defmodule Kernel do
 
   @doc false
   def term_to_binary(term) do
-    IO.write "term_to_binary/1 is deprecated, please use :erlang.term_to_binary/1 instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "term_to_binary/1 is deprecated, please use :erlang.term_to_binary/1 instead\n#{Exception.format_stacktrace}"
     :erlang.term_to_binary(term)
   end
 
   @doc false
   def term_to_binary(term, opts) do
-    IO.write "term_to_binary/2 is deprecated, please use :erlang.term_to_binary/2 instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "term_to_binary/2 is deprecated, please use :erlang.term_to_binary/2 instead\n#{Exception.format_stacktrace}"
     :erlang.term_to_binary(term, opts)
   end
 
@@ -1991,10 +1991,10 @@ defmodule Kernel do
   This macro is a shortcut to read and add attributes to the module
   being compiled. Elixir module attributes are similar to Erlang's with
   some differences. The canonical example for attributes is annotating
-  that a module implements the OTP behavior called `gen_server`:
+  that a module implements the OTP behaviour called `gen_server`:
 
       defmodule MyServer do
-        @behavior :gen_server
+        @behaviour :gen_server
         # ... callbacks ...
       end
 
@@ -2056,22 +2056,22 @@ defmodule Kernel do
   end
 
   # @attribute value
-  defp do_at([arg], name, function?, _env) do
+  defp do_at([arg], name, function?, env) do
     case function? do
       true ->
         raise ArgumentError, message: "cannot dynamically set attribute @#{name} inside function"
       false ->
+        if name == :behavior do
+          IO.write :stderr, "warning: @behavior attribute is not supported, please use @behaviour instead\n" <>
+                            Exception.format_stacktrace(env_stacktrace(env))
+        end
         quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg))
     end
   end
 
   # @attribute or @attribute()
   defp do_at(args, name, function?, env) when is_atom(args) or args == [] do
-    stack =
-      case bootstraped?(Path) do
-        true  -> env.stacktrace
-        false -> []
-      end
+    stack = env_stacktrace(env)
 
     case function? do
       true ->
@@ -3832,6 +3832,13 @@ defmodule Kernel do
   defp env_function(env), do: :erlang.element(5, env)
   defp env_context(env),  do: :erlang.element(6, env)
   defp env_vars(env),     do: :erlang.element(13, env)
+
+  defp env_stacktrace(env) do
+    case bootstraped?(Path) do
+      true  -> env.stacktrace
+      false -> []
+    end
+  end
 
   defp expand_compact([{ :compact, false }|t]), do: expand_compact(t)
   defp expand_compact([{ :compact, true }|t]),  do: [:compact|expand_compact(t)]
