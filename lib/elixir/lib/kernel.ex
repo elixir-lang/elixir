@@ -2061,10 +2061,14 @@ defmodule Kernel do
       true ->
         raise ArgumentError, message: "cannot dynamically set attribute @#{name} inside function"
       false ->
-        if name == :behavior do
-          IO.write :stderr, "warning: @behavior attribute is not supported, please use @behaviour instead\n" <>
-                            Exception.format_stacktrace(env_stacktrace(env))
+        case name do
+          :behavior ->
+            IO.write :stderr, "warning: @behavior attribute is not supported, please use @behaviour instead\n" <>
+                              Exception.format_stacktrace(env_stacktrace(env))
+          _ ->
+            :ok
         end
+
         quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg))
     end
   end
