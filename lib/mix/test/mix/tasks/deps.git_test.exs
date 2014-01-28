@@ -52,7 +52,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
       assert File.exists?("_build/shared/lib/git_repo/ebin/Elixir.GitRepo.beam")
-      assert File.read!("mix.lock") =~ %r/"git_repo": {:git, #{inspect fixture_path("git_repo")}, "[a-f0-9]+", \[\]}/
+      assert String.match? File.read!("mix.lock"), %r/"git_repo": {:git, #{inspect fixture_path("git_repo")}, "[a-f0-9]+", \[\]}/
 
       purge [GitRepo]
       File.touch!("_build/shared/lib/git_repo/.compile.elixir", { { 2010, 4, 17 }, { 14, 0, 0 } })
@@ -198,18 +198,18 @@ defmodule Mix.Tasks.DepsGitTest do
 
       Mix.Tasks.Deps.Get.run []
       refute File.exists?("deps/git_repo/lib/git_repo.ex")
-      assert File.read!("mix.lock") =~ first
+      assert String.contains? File.read!("mix.lock"), first
 
       Mix.Tasks.Deps.Update.run ["git_repo"]
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
-      assert File.read!("mix.lock") =~ last
+      assert String.contains? File.read!("mix.lock"), last
 
       Mix.Tasks.Deps.Clean.run ["--all"]
       refute File.exists?("deps/git_repo/ebin/Elixir.Git.Repo.beam")
-      assert File.read!("mix.lock") =~ last
+      assert String.contains? File.read!("mix.lock"), last
 
       Mix.Tasks.Deps.Clean.run ["--unlock", "--all"]
-      refute File.read!("mix.lock") =~ last
+      refute String.contains? File.read!("mix.lock"), last
     end
   after
     purge [GitRepo, GitRepo.Mix]
@@ -224,7 +224,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
       Mix.Tasks.Deps.Get.run []
       refute File.exists?("deps/git_repo/lib/git_repo.ex")
-      assert File.read!("mix.lock") =~ first
+      assert String.contains? File.read!("mix.lock"), first
 
       # Update the lock and now we should get an error
       Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), last, [] }]
@@ -239,7 +239,7 @@ defmodule Mix.Tasks.DepsGitTest do
       # Calling get should update the dependency
       Mix.Tasks.Deps.Get.run []
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
-      assert File.read!("mix.lock") =~ last
+      assert String.contains? File.read!("mix.lock"), last
 
       message = "* Updating git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
@@ -260,14 +260,14 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), first, [] }]
 
       Mix.Tasks.Deps.Get.run []
-      assert File.read!("mix.lock") =~ first
+      assert String.contains? File.read!("mix.lock"), first
 
       # Update the project configuration. It should force an update.
       refresh deps: [{ :git_repo, "0.1.0", git: fixture_path("git_repo"), ref: last }]
 
       # Check an update was triggered
       Mix.Tasks.Deps.Get.run []
-      assert File.read!("mix.lock") =~ last
+      assert String.contains? File.read!("mix.lock"), last
 
       message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
@@ -286,7 +286,7 @@ defmodule Mix.Tasks.DepsGitTest do
       exception = assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Get.run []
       end
-      assert exception.message =~ "Command `git clone"
+      assert String.contains? exception.message, "Command `git clone"
     end
   end
 
@@ -300,7 +300,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
       Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), last, [] }]
       Mix.Tasks.Deps.Get.run []
-      assert File.read!("mix.lock") =~ last
+      assert String.contains? File.read!("mix.lock"), last
     end
   after
     purge [GitRepo, GitRepo.Mix]
@@ -316,7 +316,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
       Mix.Tasks.Deps.Update.run ["git_repo"]
       Mix.Tasks.Deps.Compile.run ["git_repo"]
-      assert File.read!("mix.lock") =~ last
+      assert String.contains? File.read!("mix.lock"), last
     end
   after
     purge [GitRepo, GitRepo.Mix]

@@ -353,7 +353,7 @@ defmodule Version do
     @doc false
     def parse_pre(pre) do
       String.split(pre, ".") |> Enum.map fn piece ->
-        if piece =~ %r/^(0|[1-9][0-9]*)$/ do
+        if Regex.match?(%r/^(0|[1-9][0-9]*)$/, piece) do
           binary_to_integer(piece)
         else
           piece

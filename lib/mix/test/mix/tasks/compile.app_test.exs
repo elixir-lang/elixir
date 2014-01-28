@@ -40,10 +40,10 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert Mix.Tasks.Compile.App.run([]) == :ok
 
       contents = File.read!("_build/shared/lib/sample/ebin/sample.app")
-      assert contents =~ "{application,sample"
-      assert contents =~ "0.1.0"
-      assert contents =~ "'Elixir.A'"
-      assert contents =~ "{applications,[kernel,stdlib,elixir]}"
+      assert String.contains? contents, "{application,sample"
+      assert String.contains? contents, "0.1.0"
+      assert String.contains? contents, "'Elixir.A'"
+      assert String.contains? contents, "{applications,[kernel,stdlib,elixir]}"
 
       assert Mix.Tasks.Compile.App.run([]) == :noop
     end
@@ -56,8 +56,8 @@ defmodule Mix.Tasks.Compile.AppTest do
       Mix.Tasks.Compile.Elixir.run([])
       Mix.Tasks.Compile.App.run([])
       contents = File.read!("_build/shared/lib/custom_project/ebin/custom_project.app")
-      assert contents =~ "0.2.0"
-      assert contents =~ "{maxT,infinity}"
+      assert String.contains? contents, "0.2.0"
+      assert String.contains? contents, "{maxT,infinity}"
     end
   end
 
@@ -70,15 +70,15 @@ defmodule Mix.Tasks.Compile.AppTest do
         Process.put(:error, error)
         e = catch_error(Mix.Tasks.Compile.App.run([]))
         assert Mix.Error[] = e
-        assert e.message =~ ":#{error}"
+        assert String.contains? e.message, ":#{error}"
 
         err_token = InvalidProject.application[error]
         cond do
           is_list(err_token) ->
             [tok] = err_token
-            assert e.message =~ inspect(tok)
+            assert String.contains? e.message, inspect(tok)
           true ->
-            assert e.message =~ inspect(err_token)
+            assert String.contains? e.message, inspect(err_token)
         end
       end
       Process.delete(:error)

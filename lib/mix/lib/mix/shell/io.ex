@@ -42,7 +42,7 @@ defmodule Mix.Shell.IO do
   end
 
   defp got_yes?(answer) when is_binary(answer) do
-    answer =~ %r/^(Y(es)?)?$/i
+    Regex.match?(%r/^(Y(es)?)?$/i, answer)
   end
 
   # The io server may return :eof or :error

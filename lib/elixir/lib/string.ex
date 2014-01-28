@@ -974,7 +974,7 @@ defmodule String do
   end
 
   defp do_starts_with(string, prefix) when is_binary(prefix) do
-    match?({0, _}, :binary.match(string, prefix))
+    Kernel.match?({0, _}, :binary.match(string, prefix))
   end
 
   defp do_starts_with(_, _) do
@@ -1021,7 +1021,24 @@ defmodule String do
   end
 
   @doc """
-  Returns `true` if `string` contains match, otherwise `false`.
+  Check if `string` matches the given regular expression.
+
+  ## Examples
+
+      iex> String.match?("foo", %r/foo/)
+      true
+      iex> String.match?("bar", %r/foo/)
+      false
+
+  """
+  @spec match?(t, Regex.t) :: boolean
+  def match?(string, regex) do
+    Regex.match?(regex, string)
+  end
+
+  @doc """
+  Check if `string` contains any of the given `contents`.
+
   `matches` can be either a single string or a list of strings.
 
   ## Examples
@@ -1036,12 +1053,12 @@ defmodule String do
   """
   @spec contains?(t, t | [t]) :: boolean
 
-  def contains?(string, matches) when is_list(matches) do
-    Enum.any?(matches, &do_contains(string, &1))
+  def contains?(string, contents) when is_list(contents) do
+    Enum.any?(contents, &do_contains(string, &1))
   end
 
-  def contains?(string, match) do
-    do_contains(string, match)
+  def contains?(string, content) do
+    do_contains(string, content)
   end
 
   defp do_contains(string, "") when is_binary(string) do

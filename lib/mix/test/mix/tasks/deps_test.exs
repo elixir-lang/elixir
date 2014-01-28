@@ -353,8 +353,8 @@ defmodule Mix.Tasks.DepsTest do
 
       receive do
         { :mix_shell, :error, ["  different specs were given for the git_repo app:" <> _ = msg] } ->
-          assert msg =~ "In custom/deps_repo/mix.exs:"
-          assert msg =~ "{:git_repo, \"0.1.0\", [git: #{inspect fixture_path("git_repo")}]}"
+          assert String.contains? msg, "In custom/deps_repo/mix.exs:"
+          assert String.contains? msg, "{:git_repo, \"0.1.0\", [git: #{inspect fixture_path("git_repo")}]}"
       after
         0 -> flunk "expected diverged error message"
       end
@@ -387,8 +387,8 @@ defmodule Mix.Tasks.DepsTest do
 
       receive do
         { :mix_shell, :error, ["  the dependency git_repo defined" <> _ = msg] } ->
-          assert msg =~ "In custom/deps_repo/mix.exs:"
-          assert msg =~ "{:git_repo, \"0.2.0\", [git: #{inspect fixture_path("git_repo")}]}"
+          assert String.contains? msg, "In custom/deps_repo/mix.exs:"
+          assert String.contains? msg, "{:git_repo, \"0.2.0\", [git: #{inspect fixture_path("git_repo")}]}"
       after
         0 -> flunk "expected diverged req error message"
       end
@@ -481,8 +481,8 @@ defmodule Mix.Tasks.DepsTest do
 
       receive do
         { :mix_shell, :error, ["  the dependency git_repo in mix.exs" <> _ = msg] } ->
-          assert msg =~ "In mix.exs:"
-          assert msg =~ "{:git_repo, \"0.1.0\", [git: #{inspect fixture_path("git_repo")}]}"
+          assert String.contains? msg, "In mix.exs:"
+          assert String.contains? msg, "{:git_repo, \"0.1.0\", [git: #{inspect fixture_path("git_repo")}]}"
       after
         0 -> flunk "expected overriding error message"
       end

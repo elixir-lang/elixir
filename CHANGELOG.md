@@ -16,6 +16,7 @@
 * Deprecations
   * [Kernel] `binary_to_term/1`, `binary_to_term/2`, `term_to_binary/1` and `term_to_binary/2` are deprecated in favor of their counterparts in the `:erlang` module
   * [Kernel] `//` for default arguments is deprecated in favor of `\\`. This is a soft deprecation, no warnings will be emitted for it in this release
+  * [Kernel] Deprecate `=~` in favor of `String.contains?/2` (for strings) and `String.match?/2` (for regexes)
   * [Kernel] Deprecate `@behavior` in favor of `@behaviour`
   * [Record] Deprecate `to_keywords`, `getter` and `list getter` functionalities in `defrecordp`
 

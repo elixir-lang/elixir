@@ -11,33 +11,33 @@ defmodule IEx.ServerTest do
   # Options
 
   test "prefix option" do
-    assert capture_io(fn ->
+    assert String.contains? capture_io(fn ->
       boot([prefix: "pry"])
-    end) =~ "pry(1)> "
+    end), "pry(1)> "
   end
 
   test "delegate_locals_to option" do
-    assert capture_io("sort([:foo, :bar])", fn ->
+    assert String.contains? capture_io("sort([:foo, :bar])", fn ->
       boot([delegate_locals_to: Enum])
-    end) =~ "[:bar, :foo]"
+    end), "[:bar, :foo]"
   end
 
   test "env option" do
-    assert capture_io("__ENV__.file", fn ->
+    assert String.contains? capture_io("__ENV__.file", fn ->
       boot([env: __ENV__])
-    end) =~ "server_test.exs"
+    end), "server_test.exs"
   end
 
   # Take over
 
   test "allows take over of the shell during boot" do
-    assert capture_io("Y\na+b", fn ->
+    assert String.contains? capture_io("Y\na+b", fn ->
       server = self
       boot([], fn ->
         opts = [prefix: "dbg", binding: [a: 1, b: 2]]
         IEx.Server.take_over("iex:13", opts, 1000, server)
       end)
-    end) =~ "dbg(1)> "
+    end), "dbg(1)> "
   end
 
   test "does not operate if callback during boot fails" do
@@ -52,9 +52,9 @@ defmodule IEx.ServerTest do
 
   test "pry wraps around take over" do
     require IEx
-    assert capture_io(fn ->
+    assert String.contains? capture_io(fn ->
       assert IEx.pry == { :error, :no_iex }
-    end) =~ "Is an IEx shell running?"
+    end), "Is an IEx shell running?"
   end
 
   # Helpers

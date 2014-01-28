@@ -20,13 +20,13 @@ defmodule ExUnit.FormatterTest do
 
   test "formats test case filters" do
     filters = [run: true, slow: false]
-    assert format_filters(filters, :include) =~ "Including tags: [run: true, slow: false]"
-    assert format_filters(filters, :exclude) =~ "Excluding tags: [run: true, slow: false]"
+    assert format_filters(filters, :include) == "Including tags: [run: true, slow: false]"
+    assert format_filters(filters, :exclude) == "Excluding tags: [run: true, slow: false]"
   end
 
   test "formats test errors" do
     failure = { :error, catch_error(raise "oops"), [] }
-    assert format_test_failure(Hello, :world, failure, 1, nil) =~ """
+    assert format_test_failure(Hello, :world, failure, 1, nil) == """
       1) world (Hello)
          ** (RuntimeError) oops
     """
@@ -50,7 +50,7 @@ defmodule ExUnit.FormatterTest do
 
   test "formats test expectations" do
     failure = { :error, catch_expectation(assert 1 == 2), [] }
-    assert format_test_failure(Hello, :world, failure, 1, nil) =~ """
+    assert format_test_failure(Hello, :world, failure, 1, nil) == """
       1) world (Hello)
          ** (ExUnit.ExpectationError)
                       expected: 1
@@ -60,7 +60,7 @@ defmodule ExUnit.FormatterTest do
 
   test "formats test expectations with prelude" do
     failure = { :error, catch_expectation(assert ExUnit.FormatterTest.falsy), [] }
-    assert format_test_failure(Hello, :world, failure, 1, nil) =~ """
+    assert format_test_failure(Hello, :world, failure, 1, nil) == """
       1) world (Hello)
          ** (ExUnit.ExpectationError)
               expected: ExUnit.FormatterTest.falsy()
@@ -71,7 +71,7 @@ defmodule ExUnit.FormatterTest do
 
   test "formats stacktraces with test location" do
     failure = { :error, catch_error(raise "oops"), [{ Hello, :world, 1, [file: "formatter_test.exs", line: 1]}] }
-    assert format_test_failure(Hello, :world, failure, 1, nil) =~ """
+    assert format_test_failure(Hello, :world, failure, 1, nil) == """
       1) world (Hello)
          ** (RuntimeError) oops
          at formatter_test.exs:1
@@ -80,7 +80,7 @@ defmodule ExUnit.FormatterTest do
 
   test "formats stacktraces without test location" do
     failure = { :error, catch_error(raise "oops"), [{ Oops, :wrong, 1, [file: "formatter_test.exs", line: 1]}] }
-    assert format_test_failure(Hello, :world, failure, 1, nil) =~ """
+    assert format_test_failure(Hello, :world, failure, 1, nil) == """
       1) world (Hello)
          ** (RuntimeError) oops
          stacktrace:
@@ -90,7 +90,7 @@ defmodule ExUnit.FormatterTest do
 
   test "formats test case errors" do
     failure = { :error, catch_error(raise "oops"), [] }
-    assert format_test_case_failure(Hello, failure, 1, nil) =~ """
+    assert format_test_case_failure(Hello, failure, 1, nil) == """
       1) Hello: failure on setup_all/teardown_all callback, tests invalidated
          ** (RuntimeError) oops
     """

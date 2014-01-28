@@ -172,32 +172,6 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  test "assert regex match" do
-    true = assert "foo" =~ %r(o)
-  end
-
-  test "assert regex match when no match" do
-    try do
-      "This should never be tested" = assert "foo" =~ %r(a)
-    rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected \"foo\" to match (=~) %r\"a\"" = error.message
-    end
-  end
-
-  test "refute regex match" do
-    false = refute "foo" =~ %r(a)
-  end
-
-  test "refute regex match when match" do
-    try do
-      "This should never be tested" = refute "foo" =~ %r(o)
-    rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected \"foo\" to not match (=~) %r\"o\"" = error.message
-    end
-  end
-
   test "assert raise with no error" do
     "This should never be tested" = assert_raise ArgumentError, fn ->
       # nothing

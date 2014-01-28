@@ -54,7 +54,9 @@ defmodule Mix.Deps.Loader do
   the given version.
   """
   def vsn_match?(nil, _actual), do: true
-  def vsn_match?(req, actual) when is_regex(req), do: actual =~ req
+  def vsn_match?(req, actual) when is_regex(req) do
+    Regex.match?(req, actual)
+  end
   def vsn_match?(req, actual) when is_binary(req) do
     Version.match?(actual, req)
   end

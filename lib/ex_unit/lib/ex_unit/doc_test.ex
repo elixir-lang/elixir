@@ -503,7 +503,7 @@ defmodule ExUnit.DocTest do
 
   # Finally, parse expected_acc.
   defp extract_tests([expected|lines], line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t]=acc, newtest) do
-    if expected =~ %r/^#[A-Z][\w\.]*<.*>$/ do
+    if Regex.match? %r/^#[A-Z][\w\.]*<.*>$/, expected do
       expected = expected_acc <> "\n" <> inspect(expected)
       test = test.exprs([{ expr_acc, { :inspect, expected } } | exprs])
       extract_tests(lines, line,  "", "", [test|t], newtest)

@@ -47,8 +47,8 @@ defmodule Kernel.ExceptionTest do
     assert Exception.format_stacktrace_entry({:lists, :bar, [1, 2, 3], []}) == "(stdlib) :lists.bar(1, 2, 3)"  end
 
   test "format_stacktrace_entry with fun" do
-    assert Exception.format_stacktrace_entry({fn(x) -> x end, [1], []}) =~ %r/#Function<.+>\(1\)/
-    assert Exception.format_stacktrace_entry({fn(x, y) -> { x, y } end, 2, []}) =~ %r"#Function<.+>/2"
+    assert String.match? Exception.format_stacktrace_entry({fn(x) -> x end, [1], []}), %r/#Function<.+>\(1\)/
+    assert String.match? Exception.format_stacktrace_entry({fn(x, y) -> { x, y } end, 2, []}), %r"#Function<.+>/2"
   end
 
   test "format_mfa" do
@@ -61,7 +61,7 @@ defmodule Kernel.ExceptionTest do
   end
 
   test "format_fa" do
-    assert Exception.format_fa(fn -> end, 1) =~
+    assert String.match? Exception.format_fa(fn -> end, 1),
            %r"#Function<\d\.\d+/0 in Kernel\.ExceptionTest\.test format_fa/1>/1"
   end
 

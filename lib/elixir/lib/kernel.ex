@@ -1789,32 +1789,15 @@ defmodule Kernel do
     end
   end
 
-  @doc """
-  Matches the term on the left against the regular expression or string on the
-  right. Returns true if `left` matches `right` (if it's a regular expression)
-  or contains `right` (if it's a string).
-
-  ## Examples
-
-      iex> "abcd" =~ %r/c(d)/
-      true
-
-      iex> "abcd" =~ %r/e/
-      false
-
-      iex> "abcd" =~ "bc"
-      true
-
-      iex> "abcd" =~ "ad"
-      false
-
-  """
+  @doc false
   def left =~ right when is_binary(left) and is_binary(right) do
+    IO.write :stderr, "left =~ right is deprecated, please use String.match?/2 (for regexes) or String.contains?/2 (for strings) instead\n#{Exception.format_stacktrace}"
     :binary.match(left, right) != :nomatch
   end
 
   def left =~ right when is_binary(left) and is_tuple(right) and
       tuple_size(right) > 0 and elem(right, 0) == Regex do
+    IO.write :stderr, "left =~ right is deprecated, please use String.match?/2 (for regexes) or String.contains?/2 (for strings) instead\n#{Exception.format_stacktrace}"
     Regex.match?(right, left)
   end
 

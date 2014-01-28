@@ -18,7 +18,7 @@ defmodule Mix.Tasks.HelpTest do
 
       { _, _, [output] } =
         assert_received { :mix_shell, :info, [_] }
-      assert output =~ %r/^mix\s+# Run the default task \(current: mix run\)/m
+      assert String.match? output, %r/^mix\s+# Run the default task \(current: mix run\)/m
     end
   end
 
@@ -28,15 +28,15 @@ defmodule Mix.Tasks.HelpTest do
 
       { _, _, [output] } =
         assert_received { :mix_shell, :info, [_] }
-      assert output =~ "# mix help compile"
+      assert String.contains? output, "# mix help compile"
 
       { _, _, [output] } =
         assert_received { :mix_shell, :info, [_] }
-      assert output =~ "## Command line options"
+      assert String.contains? output, "## Command line options"
 
       { _, _, [output] } =
         assert_received { :mix_shell, :info, [_] }
-      assert output =~ %r/^Location:/m
+      assert String.match? output, %r/^Location:/m
     end
   end
 end
