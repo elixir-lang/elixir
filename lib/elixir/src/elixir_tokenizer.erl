@@ -354,10 +354,6 @@ tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?stab_op(T1, T2) ->
 
 % ## Single Token Operators
 
-%% Handle &1 and friends with special precedence.
-tokenize([$&,D|Rest], Line, Scope, Tokens) when ?is_digit(D) ->
-  tokenize([D|Rest], Line, Scope, [{ '&', Line }|Tokens]);
-
 tokenize([T|Rest], Line, Scope, Tokens) when ?at_op(T) ->
   handle_unary_op(Rest, Line, at_op, list_to_atom([T]), Scope, Tokens);
 

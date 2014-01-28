@@ -151,6 +151,12 @@ defmodule Kernel.QuoteTest do
   test :with_dynamic_opts do
     assert quote(dynamic_opts, do: bar(1, 2, 3)) == { :bar, [line: 3], [1, 2, 3] }
   end
+
+  test :unary_with_integer_precedence do
+    assert quote(do: +1.foo) == quote(do: (+1).foo)
+    assert quote(do: @1.foo) == quote(do: (@1).foo)
+    assert quote(do: &1.foo) == quote(do: (&1).foo)
+  end
 end
 
 ## DO NOT MOVE THIS LINE
@@ -180,7 +186,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list!
-    assert [{ ^mod, :add, 2, [file: ^file, line: 160] }|_] = System.stacktrace
+    assert [{ ^mod, :add, 2, [file: ^file, line: 166] }|_] = System.stacktrace
   end
 
   test :outside_function_error do
@@ -190,7 +196,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list!
-    assert [{ ^mod, _, _, [file: ^file, line: 188] }|_] = System.stacktrace
+    assert [{ ^mod, _, _, [file: ^file, line: 194] }|_] = System.stacktrace
   end
 end
 

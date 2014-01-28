@@ -31,7 +31,7 @@ Terminals
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
   dual_op add_op mult_op exp_op two_op pipe_op stab_op when_op
-  'true' 'false' 'nil' 'do' eol ',' '.' '&'
+  'true' 'false' 'nil' 'do' eol ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>'
   .
 
@@ -105,6 +105,7 @@ expr -> unmatched_expr : '$1'.
 %% segments and act accordingly.
 matched_expr -> matched_expr matched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 matched_expr -> matched_expr no_parens_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
+matched_expr -> unary_op_eol number : build_unary_op('$1', ?exprs('$2')).
 matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> unary_op_eol no_parens_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol matched_expr : build_unary_op('$1', '$2').
@@ -210,7 +211,6 @@ base_expr -> list_string : build_list_string('$1').
 base_expr -> atom_string : build_atom_string('$1').
 base_expr -> bit_string : '$1'.
 base_expr -> sigil : build_sigil('$1').
-base_expr -> '&' number : { '&', meta('$1'), [?exprs('$2')] }.
 
 %% Blocks
 
@@ -244,7 +244,7 @@ stab_expr -> call_args_no_parens_all stab_op_eol stab_maybe_expr :
 stab_expr -> stab_parens_many stab_op_eol stab_maybe_expr :
                build_op('$2', unwrap_splice('$1'), '$3').
 stab_expr -> stab_parens_many when_op expr stab_op_eol stab_maybe_expr :
-              build_op('$4', [{ 'when', meta('$2'), unwrap_splice('$1') ++ ['$3'] }], '$5').
+               build_op('$4', [{ 'when', meta('$2'), unwrap_splice('$1') ++ ['$3'] }], '$5').
 
 stab_maybe_expr -> 'expr' : '$1'.
 stab_maybe_expr -> '$empty' : nil.
@@ -459,9 +459,7 @@ Erlang code.
 -define(line(Node), element(2, Node)).
 -define(exprs(Node), element(3, Node)).
 -define(lexical(Kind), Kind == import; Kind == alias; Kind == '__aliases__').
-
 -define(rearrange_uop(Op), Op == 'not' orelse Op == '!').
--define(rearrange_bop(Op), Op == 'in' orelse Op == 'inlist' orelse Op == 'inbits').
 
 %% The following directive is needed for (significantly) faster
 %% compilation of the generated .erl file by the HiPE compiler
@@ -479,8 +477,8 @@ build_op({ _Kind, Line, '/' }, { '&', _, [{ Kind, _, Atom } = Left] }, Right) wh
 build_op({ _Kind, Line, '/' }, { '&', _, [{ { '.', _, [_, _] }, _, [] } = Left] }, Right) when is_number(Right) ->
   { '&', meta(Line), [{ '/', meta(Line), [Left, Right] }] };
 
-build_op({ _Kind, Line, BOp }, { UOp, _, [Left] }, Right) when ?rearrange_bop(BOp), ?rearrange_uop(UOp) ->
-  { UOp, meta(Line), [{ BOp, meta(Line), [Left, Right] }] };
+build_op({ _Kind, Line, 'in' }, { UOp, _, [Left] }, Right) when ?rearrange_uop(UOp) ->
+  { UOp, meta(Line), [{ 'in', meta(Line), [Left, Right] }] };
 
 build_op({ _Kind, Line, Op }, Left, Right) ->
   { Op, meta(Line), [Left, Right] }.
@@ -513,11 +511,17 @@ build_dot_alias(Dot, Other, { 'aliases', _, Right }) ->
 build_dot(Dot, Left, Right) ->
   { '.', meta(Dot), [Left, extract_identifier(Right)] }.
 
+extract_identifier({ Kind, _, Identifier }) when
+    Kind == identifier; Kind == bracket_identifier; Kind == paren_identifier;
+    Kind == do_identifier; Kind == op_identifier ->
+  Identifier.
+
 %% Identifiers
 
 build_nested_parens(Dot, Args1, Args2) ->
   Identifier = build_identifier(Dot, Args1),
-  { Identifier, ?line(Identifier), Args2 }.
+  Meta = element(2, Identifier),
+  { Identifier, Meta, Args2 }.
 
 build_identifier({ '.', Meta, _ } = Dot, Args) ->
   FArgs = case Args of
@@ -537,13 +541,6 @@ build_identifier({ _, Line, Identifier }, Args) when ?lexical(Identifier) ->
 
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, meta(Line), Args }.
-
-extract_identifier({ Kind, _, Identifier }) when
-    Kind == identifier; Kind == bracket_identifier; Kind == paren_identifier;
-    Kind == do_identifier; Kind == op_identifier ->
-  Identifier;
-
-extract_identifier(Other) -> Other.
 
 %% Fn
 
