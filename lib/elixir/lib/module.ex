@@ -778,7 +778,7 @@ defmodule Module do
           :lists.member(key, acc) ->
             []
           is_list(warn) ->
-            :elixir_errors.warn "#{Exception.format_caller(warn)} undefined module attribute @#{key}, " <>
+            :elixir_errors.warn Exception.format_caller(warn), "undefined module attribute @#{key}, " <>
               "please remove access to @#{key} or explicitly set it to nil before access\n"
             nil
           true ->
@@ -877,7 +877,7 @@ defmodule Module do
       :ok ->
         :ok
       { :error, :private_doc } ->
-        :elixir_errors.warn "#{env.file}:#{line} function #{name}/#{arity} is private, @doc's are always discarded for private functions\n"
+        :elixir_errors.warn env.file, line, "function #{name}/#{arity} is private, @doc's are always discarded for private functions\n"
     end
 
     delete_attribute(module, :doc)
