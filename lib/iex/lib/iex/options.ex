@@ -2,7 +2,7 @@ defmodule IEx.Options do
   @moduledoc """
   Provides an interface for adjusting options of the running IEx session.
 
-  Changing options is usually done inside an IEx session or in your .iex file.
+  Changing options is usually done inside an IEx session or in your .iex.exs file.
   See `h(IEx)` for more info on the latter.
 
   If the value of an option is a keyword list, only those keys that are

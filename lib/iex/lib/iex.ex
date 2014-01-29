@@ -120,10 +120,10 @@ defmodule IEx do
   Connecting an Elixir shell to a remote node without Elixir is
   **not** supported.
 
-  ## The .iex file
+  ## The .iex.exs file
 
-  When starting IEx, it will look for a local .iex file (located in the current
-  working directory), then a global one (located at ~/.iex) and will load the
+  When starting IEx, it will look for a local `.iex.exs` file (located in the current
+  working directory), then a global one (located at `~/.iex.exs`) and will load the
   first one it finds (if any). The code in the chosen .iex file will be
   evaluated in the shell's context. So, for instance, any modules that are
   loaded or variables that are bound in the .iex file will be available in the
@@ -131,8 +131,8 @@ defmodule IEx do
 
   Sample contents of a local .iex file:
 
-      # source another .iex file
-      import_file "~/.iex"
+      # source another `.iex` file
+      import_file "~/.iex.exs"
 
       # print something before the shell starts
       IO.puts "hello world"
@@ -151,7 +151,7 @@ defmodule IEx do
       iex(1)> value
       13
 
-  It is possible to override the default loading sequence for .iex file by
+  It is possible to override the default loading sequence for `.iex.exs` file by
   supplying the `--dot-iex` option to iex. See `iex --help`.
 
   ## Configuring the shell
@@ -164,7 +164,7 @@ defmodule IEx do
   `IEx.Options.print_help/1` will print documentation for the given option.
 
   In particular, it might be convenient to customize those options inside your
-  .iex file like this:
+  `.iex.exs` file like this:
 
       # .iex
       IEx.Options.set :inspect, limit: 3

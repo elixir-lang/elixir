@@ -45,14 +45,14 @@ defmodule IEx.Evaluator do
   end
 
   @doc """
-  Locates and loads an .iex file from one of predefined locations.
+  Locates and loads an .iex.exs file from one of predefined locations.
   Returns the new config.
   """
   def load_dot_iex(config, path \\ nil) do
     candidates = if path do
       [path]
     else
-      Enum.map [".iex", "~/.iex"], &Path.expand/1
+      Enum.map [".iex.exs", "~/.iex.exs"], &Path.expand/1
     end
 
     path = Enum.find candidates, &File.regular?/1

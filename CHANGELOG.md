@@ -23,6 +23,7 @@
 
 * Backwards incompatible changes
   * [Dict] Implementations of `equal?/2` and `merge/2` in `HashDict` and `ListDict` are no longer polymorphic. To get polymorphism, use the functions in `Dict` instead
+  * [IEx] IEx now loads the `.iex.exs` file instead of `.iex`
   * [Kernel] Remove `**` from the list of allowed operators
   * [Kernel] Limit sigils delimiters to one of the following: `<>`, `{}`, `[]`, `()`, `||`, `//`, `"` and `'`
   * [Range] `Range` is no longer a record, instead use `first .. last` if you need pattern matching
