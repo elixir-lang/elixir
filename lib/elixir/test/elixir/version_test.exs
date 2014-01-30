@@ -54,9 +54,9 @@ defmodule VersionTest do
     assert V.valid?("1.0.0-beep+boop")
     assert V.valid?("1.0.0+boop")
     refute V.valid?("1.0.")
-    refute V.valid("1.2.b")
-    refute V.valid("abc")
-    refute V.valid("-beep")
+    refute V.valid?("1.2.b")
+    refute V.valid?("abc")
+    refute V.valid?("-beep")
   end
 
   test "parse" do
