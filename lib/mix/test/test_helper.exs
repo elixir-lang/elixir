@@ -126,7 +126,8 @@ end
 ## Copy fixtures to tmp
 
 source = MixTest.Case.fixture_path("rebar_dep")
-dest = MixTest.Case.tmp_path
+dest = Path.join(MixTest.Case.tmp_path, "rebar_dep")
+File.mkdir_p!(dest)
 File.cp_r!(source, dest)
 
 ## Generate git repo fixtures
