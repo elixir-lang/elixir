@@ -135,6 +135,16 @@ defmodule Version do
   def valid?(Version.Schema[major: nil]), do: false
   def valid?(Version.Schema[]),           do: true
 
+  @spec valid_requirement?(String.t) :: boolean
+  def valid_requirement?(requirement) do
+    case Version.Parser.parse_requirement(requirement) do
+      { :ok, _req } ->
+        true
+      { :error, reason } ->
+        false
+    end
+  end
+
   @doc """
   Parse a version string into a `Version.Schema`.
 

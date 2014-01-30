@@ -40,23 +40,33 @@ defmodule VersionTest do
     assert P.lexer("    >     2.4", []) == [:'>', "2.4"]
   end
 
-  test "lexer gets verified properly" do
-    assert P.valid_requirement?(P.lexer("2.3", []))
-    refute P.valid_requirement?(P.lexer("> >= 2.3", []))
-    refute P.valid_requirement?(P.lexer("> 2.3 and", []))
-    refute P.valid_requirement?(P.lexer("> 2.3 or and 4.3", []))
-    assert P.valid_requirement?(P.lexer("> 2.4 and 4.5", []))
-    refute P.valid_requirement?(P.lexer("& 1.0.0", []))
+  test "valid requirement" do
+    assert V.valid_requirement?("2.3")
+    refute V.valid_requirement?("> >= 2.3")
+    refute V.valid_requirement?("> 2.3 and")
+    refute V.valid_requirement?("> 2.3 or and 4.3")
+    assert V.valid_requirement?("> 2.4 and 4.5")
+    refute V.valid_requirement?("& 1.0.0")
   end
 
-  test :parse do
+  test "valid version" do
+    assert V.valid?("1.0.0")
+    assert V.valid?("1.0.0-beep+boop")
+    assert V.valid?("1.0.0+boop")
+    refute V.valid?("1.0.")
+    refute V.valid("1.2.b")
+    refute V.valid("abc")
+    refute V.valid("-beep")
+  end
+
+  test "parse" do
     assert V.Schema[major: 1, minor: 0, patch: 0] = V.parse("1")
     assert V.Schema[major: 1, minor: 2, patch: 0] = V.parse("1.2")
     assert V.Schema[major: 1, minor: 2, patch: 3] = V.parse("1.2.3")
     assert V.Schema[major: 1, minor: 4, patch: 0, pre: "5-g3318bd5"] = V.parse("1.4-5-g3318bd5")
   end
 
-  test :== do
+  test "==" do
     assert V.match?("2.3", "2.3")
     refute V.match?("2.4", "2.3")
 
@@ -74,7 +84,7 @@ defmodule VersionTest do
     assert V.match?("0.9.3", "== 0.9.3+dev")
   end
 
-  test :!= do
+  test "!=" do
     assert V.match?("2.4", "!2.3")
     refute V.match?("2.3", "!2.3")
 
@@ -82,7 +92,7 @@ defmodule VersionTest do
     refute V.match?("2.3", "!= 2.3")
   end
 
-  test :> do
+  test ">" do
     assert V.match?("2.4", "> 2.3")
     refute V.match?("2.2", "> 2.3")
     refute V.match?("2.3", "> 2.3")
@@ -97,7 +107,7 @@ defmodule VersionTest do
     refute V.match?("0.1.2", "> 1.2.3-dev")
   end
 
-  test :>= do
+  test ">=" do
     assert V.match?("2.4", ">= 2.3")
     refute V.match?("2.2", ">= 2.3")
     assert V.match?("2.3", ">= 2.3")
@@ -106,7 +116,7 @@ defmodule VersionTest do
     assert V.match?("1.0.0", ">= 1.0")
   end
 
-  test :< do
+  test "<" do
     assert V.match?("2.2", "< 2.3")
     refute V.match?("2.4", "< 2.3")
     refute V.match?("2.3", "< 2.3")
@@ -117,13 +127,13 @@ defmodule VersionTest do
     refute V.match?("1.2.3-dev", "< 0.1.2")
   end
 
-  test :<= do
+  test "<=" do
     assert V.match?("2.2", "<= 2.3")
     refute V.match?("2.4", "<= 2.3")
     assert V.match?("2.3", "<= 2.3")
   end
 
-  test :'~>' do
+  test "~>" do
     assert V.match?("3.0", "~> 3.0")
     assert V.match?("3.2", "~> 3.0")
     refute V.match?("4.0", "~> 3.0")
@@ -150,12 +160,12 @@ defmodule VersionTest do
     refute V.match?("0.3.0-dev", "~> 0.2.0")
   end
 
-  test :and do
+  test "and" do
     assert V.match?("0.9.3", "> 0.9 and < 0.10")
     refute V.match?("0.10.2", "> 0.9 and < 0.10")
   end
 
-  test :or do
+  test "or" do
     assert V.match?("0.9.1", "0.9.1 or 0.9.3 or 0.9.5")
     assert V.match?("0.9.3", "0.9.1 or 0.9.3 or 0.9.5")
     assert V.match?("0.9.5", "0.9.1 or 0.9.3 or 0.9.5")
