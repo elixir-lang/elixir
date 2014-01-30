@@ -456,7 +456,6 @@ Erlang code.
 -define(id(Node), element(1, Node)).
 -define(line(Node), element(2, Node)).
 -define(exprs(Node), element(3, Node)).
--define(lexical(Kind), Kind == import; Kind == alias; Kind == '__aliases__').
 -define(rearrange_uop(Op), Op == 'not' orelse Op == '!').
 
 %% The following directive is needed for (significantly) faster
@@ -533,9 +532,6 @@ build_identifier({ Keyword, Line }, Args) when Keyword == fn ->
 
 build_identifier({ op_identifier, Line, Identifier }, [Arg]) ->
   { Identifier, [{ambiguous_op,nil}|meta(Line)], [Arg] };
-
-build_identifier({ _, Line, Identifier }, Args) when ?lexical(Identifier) ->
-  { Identifier, meta(Line, 0), Args };
 
 build_identifier({ _, Line, Identifier }, Args) ->
   { Identifier, meta(Line), Args }.
