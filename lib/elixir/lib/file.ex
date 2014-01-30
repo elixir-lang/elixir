@@ -329,11 +329,6 @@ defmodule File do
   @doc """
   Copies the contents in `source` to `destination` preserving its mode.
 
-  Similar to the command `cp` in Unix systems, this function
-  behaves differently depending if `destination` is a directory
-  or not. In particular, if `destination` is a directory, it
-  copies the contents of `source` to `destination/source`.
-
   If a file already exists in the destination, it invokes a
   callback which should return `true` if the existing file
   should be overwritten, `false` otherwise. It defaults to return `true`.
@@ -344,17 +339,14 @@ defmodule File do
   If you want to copy contents from an io device to another device
   or do a straight copy from a source to a destination without
   preserving modes, check `copy/3` instead.
+
+  Note: The command `cp` in Unix systems behaves differently depending
+  if `destination` is an existing directory or not. We have chosen to
+  explicitly disallow this behaviour. If destination is a directory, an
+  error will be returned.
   """
   def cp(source, destination, callback \\ fn(_, _) -> true end) do
-    output =
-      if dir?(destination) do
-        mkdir(destination)
-        do_cp_join(destination, source)
-      else
-        destination
-      end
-
-    case do_cp_file(source, output, callback, []) do
+    case do_cp_file(source, destination, callback, []) do
       { :error, reason, _ } -> { :error, reason }
       _ -> :ok
     end
@@ -377,14 +369,9 @@ defmodule File do
   @doc %S"""
   Copies the contents in source to destination.
 
-  Similar to the command `cp -r` in Unix systems,
-  this function behaves differently depending
-  if `source` and `destination` are files or directories.
-
-  If both are files, it simply copies `source` to
-  `destination`. However, if `destination` is a directory,
-  it copies the contents of `source` to `destination/source`
-  recursively.
+  If the source is a file, it copies `source` to
+  `destination`. If the source is a directory, it copies
+  the contents inside source into the destination.
 
   If a file already exists in the destination,
   it invokes a callback which should return
@@ -404,36 +391,26 @@ defmodule File do
   success with all files and directories copied in no
   specific order, `{ :error, reason }` otherwise.
 
+  Note: The command `cp` in Unix systems behaves differently
+  depending if `destination` is an existing directory or not.
+  We have chosen to explicitly disallow this behaviour.
+
   ## Examples
 
-      # Copies "a.txt" to "tmp/a.txt"
-      File.cp_r "a.txt", "tmp"
-
-      # Copies all files in "samples" to "tmp/samples"
-      File.cp_r "samples", "tmp"
+      # Copies "a.txt" to "tmp"
+      File.cp_r "a.txt", "tmp.txt"
 
       # Copies all files in "samples" to "tmp"
-      File.cp_r "samples/", "tmp"
+      File.cp_r "samples", "tmp"
 
       # Same as before, but asks the user how to proceed in case of conflicts
-      File.cp_r "samples/", "tmp", fn(source, destination) ->
+      File.cp_r "samples", "tmp", fn(source, destination) ->
         IO.gets("Overwriting #{destination} by #{source}. Type y to confirm.") == "y"
       end
 
   """
   def cp_r(source, destination, callback \\ fn(_, _) -> true end) when is_function(callback) do
-    output =
-      if dir?(destination) || dir?(source) do
-        mkdir(destination)
-        case do_cp_last(source) do
-          ?/ -> destination
-          _  -> do_cp_join(destination, source)
-        end
-      else
-        destination
-      end
-
-    case do_cp_r(source, output, callback, []) do
+    case do_cp_r(source, destination, callback, []) do
       { :error, _, _ } = error -> error
       res -> { :ok, res }
     end
@@ -451,23 +428,6 @@ defmodule File do
           source: to_string(source),
           destination: to_string(destination),
           on: file
-    end
-  end
-
-  defp do_cp_last(source) when is_atom(source),    do: :lists.last(atom_to_list(source))
-  defp do_cp_last(source) when is_list(source),    do: do_cp_last(:lists.last(source))
-  defp do_cp_last(source) when is_binary(source),  do: :binary.last(source)
-  defp do_cp_last(source) when is_integer(source), do: source
-
-  defp do_cp_join(destination, source) when source in [".", '.'] do
-    destination
-  end
-
-  defp do_cp_join(destination, source) do
-    case FN.basename(source) do
-      dot when dot in ["..", '..'] -> do_cp_join(destination, FN.dirname(FN.dirname(source)))
-      dot when dot in [".", '.'] -> do_cp_join(destination, FN.dirname(source))
-      base -> FN.join(destination, base)
     end
   end
 

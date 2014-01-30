@@ -343,7 +343,7 @@ defmodule Mix.Utils do
     symlink_source = make_relative_path(source, target)
     case :file.make_symlink(symlink_source, target) do
       :ok -> :ok
-      { :error, _ } -> File.cp_r!(source <> "/", target)
+      { :error, _ } -> File.cp_r!(source, target)
     end
   end
 

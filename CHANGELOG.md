@@ -8,7 +8,6 @@
 
 * Bug fixes
   * [Atom] Inspect `:...` and `:foo@bar` without quoting
-  * [File] Respect source directories terminating with "/" in `File.cp_r/3` with the same semantics as Unix
   * [Keyword] The list `[1, 2, three: :four]` now correctly expands to `[1, 2, {:three, :four}]`
   * [Kernel] Ensure undefined `@attributes` shows proper stacktrace in warnings
   * [Kernel] Guarantee nullary funs/macros are allowed in guards
@@ -23,6 +22,7 @@
 
 * Backwards incompatible changes
   * [Dict] Implementations of `equal?/2` and `merge/2` in `HashDict` and `ListDict` are no longer polymorphic. To get polymorphism, use the functions in `Dict` instead
+  * [File] `File.cp/3` and `File.cp_r/3` no longer carry Unix semantics where the function behaves differently if the destination is an existing previous directory or not. It now always copies source to destination, doing it recursively in the latter
   * [IEx] IEx now loads the `.iex.exs` file instead of `.iex`
   * [Kernel] Remove `**` from the list of allowed operators
   * [Kernel] Limit sigils delimiters to one of the following: `<>`, `{}`, `[]`, `()`, `||`, `//`, `"` and `'`

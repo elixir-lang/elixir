@@ -44,16 +44,13 @@ defmodule FileTest do
     end
 
     test :cp_with_src_file_and_dest_dir do
-      src   = fixture_path("file.txt")
-      dest  = tmp_path("tmp")
-      final = Path.join(dest, "file.txt")
+      src  = fixture_path("file.txt")
+      dest = tmp_path("tmp")
 
       File.mkdir(dest)
 
       try do
-        refute File.exists?(final)
-        assert File.cp(src, dest) == :ok
-        assert File.exists?(final)
+        assert File.cp(src, dest) == { :error, :eisdir }
       after
         File.rm_rf dest
       end
@@ -154,14 +151,11 @@ defmodule FileTest do
     test :cp_r_with_src_file_and_dest_dir do
       src   = fixture_path("file.txt")
       dest  = tmp_path("tmp")
-      final = Path.join(dest, "file.txt")
 
       File.mkdir(dest)
 
       try do
-        refute File.exists?(final)
-        assert File.cp_r(src, dest) == { :ok, [final] }
-        assert File.exists?(final)
+        assert io_error? File.cp_r(src, dest)
       after
         File.rm_rf dest
       end
@@ -187,58 +181,14 @@ defmodule FileTest do
       File.mkdir(dest)
 
       try do
-        refute File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
-        refute File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
-        refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
-
-        { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 7
-        assert tmp_path("tmp/cp_r/a") in files
-        assert tmp_path("tmp/cp_r/a/1.txt") in files
-
-        assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
-        assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
-        assert File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
-      after
-        File.rm_rf dest
-      end
-    end
-
-    test :cp_r_with_src_dir_dot_and_dest_dir do
-      src  = fixture_path("cp_r/.")
-      dest = tmp_path("tmp")
-
-      File.mkdir(dest)
-
-      try do
-        refute File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
-        refute File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
-        refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
-
-        { :ok, files } = File.cp_r(src, dest)
-        assert length(files) == 7
-
-        assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
-        assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
-        assert File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
-      after
-        File.rm_rf dest
-      end
-    end
-
-    test :cp_r_with_src_dir_slash_and_dest_dir do
-      src  = fixture_path("cp_r") <> "/"
-      dest = tmp_path("tmp")
-
-      File.mkdir(dest)
-
-      try do
         refute File.exists?(tmp_path("tmp/a/1.txt"))
         refute File.exists?(tmp_path("tmp/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
         assert length(files) == 7
+        assert tmp_path("tmp/a") in files
+        assert tmp_path("tmp/a/1.txt") in files
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -265,16 +215,16 @@ defmodule FileTest do
       dest = tmp_path("tmp")
 
       try do
-        refute File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
-        refute File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
-        refute File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
+        refute File.exists?(tmp_path("tmp/a/1.txt"))
+        refute File.exists?(tmp_path("tmp/a/a/2.txt"))
+        refute File.exists?(tmp_path("tmp/b/3.txt"))
 
         { :ok, files } = File.cp_r(src, dest)
         assert length(files) == 7
 
-        assert File.exists?(tmp_path("tmp/cp_r/a/1.txt"))
-        assert File.exists?(tmp_path("tmp/cp_r/a/a/2.txt"))
-        assert File.exists?(tmp_path("tmp/cp_r/b/3.txt"))
+        assert File.exists?(tmp_path("tmp/a/1.txt"))
+        assert File.exists?(tmp_path("tmp/a/a/2.txt"))
+        assert File.exists?(tmp_path("tmp/b/3.txt"))
       after
         File.rm_rf dest
       end
@@ -287,20 +237,20 @@ defmodule FileTest do
     end
 
     test :cp_r_with_dir_and_file_conflict do
-      src  = fixture_path("cp_r") <> "/"
+      src  = fixture_path("cp_r")
       dest = tmp_path("tmp")
 
       try do
         File.mkdir(dest)
         File.write!(Path.join(dest, "a"), "hello")
-        assert (File.cp_r(src, dest)  |> io_error?)
+        assert io_error? File.cp_r(src, dest)
       after
         File.rm_rf dest
       end
     end
 
     test :cp_r_with_src_dir_and_dest_dir_using_lists do
-      src  = (fixture_path("cp_r") <> "/") |> to_char_list
+      src  = fixture_path("cp_r") |> to_char_list
       dest = tmp_path("tmp") |> to_char_list
 
       File.mkdir(dest)
@@ -323,7 +273,7 @@ defmodule FileTest do
     end
 
     test :cp_r_with_src_with_file_conflict do
-      src  = fixture_path("cp_r") <> "/"
+      src  = fixture_path("cp_r")
       dest = tmp_path("tmp")
 
       File.mkdir_p tmp_path("tmp/a")
@@ -339,7 +289,7 @@ defmodule FileTest do
     end
 
     test :cp_r_with_src_with_file_conflict_callback do
-      src  = fixture_path("cp_r") <> "/"
+      src  = fixture_path("cp_r")
       dest = tmp_path("tmp")
 
       File.mkdir_p tmp_path("tmp/a")
@@ -359,7 +309,7 @@ defmodule FileTest do
     end
 
     test :cp_r! do
-      src  = fixture_path("cp_r") <> "/"
+      src  = fixture_path("cp_r")
       dest = tmp_path("tmp")
 
       File.mkdir(dest)
@@ -617,7 +567,7 @@ defmodule FileTest do
       fixture = fixture_path("file.txt")
       invalid = Path.join fixture, "test"
       assert File.exists?(fixture)
-      assert (File.mkdir(invalid) |> io_error?)
+      assert io_error? File.mkdir(invalid)
       refute File.exists?(invalid)
     end
 
@@ -698,7 +648,7 @@ defmodule FileTest do
     test :mkdir_p_with_invalid_path do
       assert File.exists?(fixture_path("file.txt"))
       invalid = Path.join fixture_path("file.txt"), "test/foo"
-      assert (File.mkdir(invalid) |> io_error?)
+      assert io_error? File.mkdir(invalid)
       refute File.exists?(invalid)
     end
 
@@ -723,10 +673,9 @@ defmodule FileTest do
     end
 
     defp io_error?(result) do
-      {:error,errorcode} = result
+      { :error, errorcode } = result
       errorcode in [:enotdir, :eio, :enoent, :eisdir]
     end
-
   end
 
   defmodule Rm do
@@ -771,7 +720,7 @@ defmodule FileTest do
     end
 
     test :rmdir_with_file do
-      assert (File.rmdir(fixture_path("file.txt")) |> io_error?)
+      assert io_error? File.rmdir(fixture_path("file.txt"))
     end
 
     test :rmdir! do
@@ -792,7 +741,7 @@ defmodule FileTest do
     test :rm_rf do
       fixture = tmp_path("tmp")
       File.mkdir(fixture)
-      File.cp_r!(fixture_path("cp_r") <> "/", fixture)
+      File.cp_r!(fixture_path("cp_r"), fixture)
 
       assert File.exists?(tmp_path("tmp/a/1.txt"))
       assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -833,7 +782,7 @@ defmodule FileTest do
     test :rm_rf_with_char_list do
       fixture = tmp_path("tmp") |> to_char_list
       File.mkdir(fixture)
-      File.cp_r!(fixture_path("cp_r") <> "/", fixture)
+      File.cp_r!(fixture_path("cp_r"), fixture)
 
       assert File.exists?(tmp_path("tmp/a/1.txt"))
       assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -869,7 +818,7 @@ defmodule FileTest do
     test :rm_rf! do
       fixture = tmp_path("tmp")
       File.mkdir(fixture)
-      File.cp_r!(fixture_path("cp_r") <> "/", fixture)
+      File.cp_r!(fixture_path("cp_r"), fixture)
 
       assert File.exists?(tmp_path("tmp/a/1.txt"))
       assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -1153,7 +1102,7 @@ defmodule FileTest do
   end
 
   test :invalid_cd do
-    assert(File.cd(fixture_path("file.txt")) |> io_error?)
+    assert io_error? File.cd(fixture_path("file.txt"))
   end
 
   test :invalid_cd! do
@@ -1204,7 +1153,7 @@ defmodule FileTest do
 
   test :touch_with_failure do
     fixture = fixture_path("file.txt/bar")
-    assert (File.touch(fixture) |> io_error?)
+    assert io_error? File.touch(fixture)
   end
 
   test :touch_with_success! do
@@ -1256,14 +1205,14 @@ defmodule FileTest do
     end
   end
 
-  test :chmod_with_failue do
+  test :chmod_with_failure do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
     assert File.chmod(fixture, 0100777) == {:error,:enoent}
   end
 
-  test :chmod_with_failue! do
+  test :chmod_with_failure! do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
@@ -1273,14 +1222,14 @@ defmodule FileTest do
     end
   end
 
-  test :chgrp_with_failue do
+  test :chgrp_with_failure do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
     assert File.chgrp(fixture, 1) == {:error,:enoent}
   end
 
-  test :chgrp_with_failue! do
+  test :chgrp_with_failure! do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
@@ -1290,14 +1239,14 @@ defmodule FileTest do
     end
   end
 
-  test :chown_with_failue do
+  test :chown_with_failure do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
     assert File.chown(fixture, 1) == {:error,:enoent}
   end
 
-  test :chown_with_failue! do
+  test :chown_with_failure! do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
@@ -1316,7 +1265,7 @@ defmodule FileTest do
   end
 
   defp io_error?(result) do
-    {:error,errorcode} = result
+    { :error, errorcode } = result
     errorcode in [:enotdir, :eio, :enoent, :eisdir]
   end
 end
