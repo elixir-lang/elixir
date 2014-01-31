@@ -4,8 +4,7 @@
   * [Kernel] Explicit functions inlined by the compiler, including operators. This means that `Kernel.+/2` will now expand to `:erlang.+/2` and so on
   * [Mix] Do not fail if a Mix dependency relies on an outdated Elixir version
   * [Process] Add `Process.send/2` and `Process.send_after/3`
-  * [Version] Add `Version.compare/2`
-  * [Version] Add `Version.valid_requirement?/1`
+  * [Version] Add `Version.compare/2` and `Version.valid_requirement?/1`
 
 * Bug fixes
   * [Atom] Inspect `:...` and `:foo@bar` without quoting

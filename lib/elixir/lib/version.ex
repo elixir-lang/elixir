@@ -360,7 +360,7 @@ defmodule Version do
       end
     end
 
-    @doc false
+    @spec parse_pre(String.t) :: [String.t | integer]
     def parse_pre(pre) do
       String.split(pre, ".") |> Enum.map fn piece ->
         if Regex.match?(%r/^(0|[1-9][0-9]*)$/, piece) do
@@ -371,14 +371,8 @@ defmodule Version do
       end
     end
 
-    @spec valid_requirement?(list) :: boolean
-    def valid_requirement?([]) do
-      false
-    end
-
-    def valid_requirement?([a | next]) do
-      valid_requirement?(a, next)
-    end
+    defp valid_requirement?([]), do: false
+    defp valid_requirement?([a | next]), do: valid_requirement?(a, next)
 
     # it must finish with a version
     defp valid_requirement?(a, []) when is_binary(a) do
