@@ -20,7 +20,6 @@ defmodule IEx.Helpers do
   * `l/1`       — loads the given module's beam code and purges the current version
   * `ls/0`      — lists the contents of the current directory
   * `ls/1`      — lists the contents of the specified directory
-  * `m/0`       — prints loaded modules
   * `pwd/0`     — prints the current working directory
   * `r/1`       — recompiles and reloads the given module's source file
   * `respawn/0` — respawns the current shell
@@ -95,22 +94,6 @@ defmodule IEx.Helpers do
   """
   def clear do
     IO.write [IO.ANSI.home, IO.ANSI.clear]
-    dont_display_result
-  end
-
-  @doc """
-  Prints the list of all loaded modules with paths to
-  their corresponding `.beam` files.
-  """
-  def m do
-    all    = Enum.map :code.all_loaded, fn { mod, file } -> { inspect(mod), file } end
-    sorted = Enum.sort all
-    size   = Enum.reduce sorted, 0, fn({ mod, _ }, acc) -> max(byte_size(mod), acc) end
-    format = "~-#{size}s ~ts~n"
-
-    Enum.each sorted, fn({ mod, file }) ->
-      :io.format(format, [mod, file])
-    end
     dont_display_result
   end
 

@@ -179,20 +179,6 @@ defmodule IEx.HelpersTest do
     end
   end
 
-  test "m helper" do
-    regexes = [
-      %r/^:application\s+.+application\.beam$/,
-      %r/^:code\s+.+code\.beam$/,
-      %r/^Kernel\s+.+Elixir\.Kernel\.beam$/,
-    ]
-
-    assert Enum.count(capture_io(fn -> m end) |> String.split("\n"), fn line ->
-      Enum.any? regexes, fn re ->
-        Regex.match? re, line
-      end
-    end) >= 2
-  end
-
   test "c helper" do
     assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
       Sample.run
