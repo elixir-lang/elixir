@@ -68,6 +68,10 @@ defmodule Macro do
   @spec pipe(Macro.t, Macro.t, integer) :: Macro.t | no_return
   def pipe(expr, call_args, integer \\ 0)
 
+  def pipe(expr, { :&, _, _ } = call_args, _integer) do
+    raise ArgumentError, message: "cannot pipe #{to_string expr} into #{to_string call_args}"
+  end
+
   def pipe(expr, { call, line, atom }, integer) when is_atom(atom) do
     { call, line, List.insert_at([], integer, expr) }
   end
