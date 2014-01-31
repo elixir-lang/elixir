@@ -135,7 +135,7 @@ defmodule IEx.HelpersTest do
 
   test "pwd helper" do
     File.cd! iex_path, fn ->
-      assert Regex.match? %r"lib[\\/]iex\n$", capture_io(fn -> pwd end)
+      assert capture_io(fn -> pwd end) =~ %r"lib[\\/]iex\n$"
     end
   end
 
@@ -316,7 +316,7 @@ defmodule IEx.HelpersTest do
 
     filename = "sample.ex"
     with_file filename, test_module_code, fn ->
-      assert String.match? capture_io(:stderr, fn ->
+      assert capture_io(:stderr, fn ->
         assert c(filename) == [Sample]
         assert Sample.run == :run
 
@@ -326,7 +326,7 @@ defmodule IEx.HelpersTest do
           Sample.run
         end
 
-      end), %r"^.*?sample\.ex:1: redefining module Sample\n$"
+      end) =~ %r"^.*?sample\.ex:1: redefining module Sample\n$"
     end
   after
     # Clean up old version produced by the r helper

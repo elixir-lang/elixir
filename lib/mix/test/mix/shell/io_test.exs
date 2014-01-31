@@ -13,9 +13,9 @@ defmodule Mix.Shell.IOTest do
   end
 
   test "prints error message to stderr" do
-    assert String.contains? capture_io(:stderr, fn ->
+    assert capture_io(:stderr, fn ->
       error "hello"
-    end), "hello"
+    end) =~ "hello"
   end
 
   test "asks the user with yes?" do

@@ -8,9 +8,9 @@ defmodule IEx.InteractionTest do
   test "whole output" do
     IEx.Options.set :colors, enabled: false
 
-    assert String.contains? capture_io("IO.puts \"Hello world\"", fn ->
+    assert capture_io("IO.puts \"Hello world\"", fn ->
       IEx.Server.start([dot_iex_path: ""], fn -> end)
-    end), "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)\niex(1)> Hello world\n:ok\niex(2)>"
+    end) =~ "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)\niex(1)> Hello world\n:ok\niex(2)>"
   end
 
   test "empty input" do
@@ -27,25 +27,23 @@ defmodule IEx.InteractionTest do
     << a, b, c, d, e, f, g, h, i, x :: binary >> = <<1, 2, 3, 4, 5, 6, 7, 8, 9, 10>>
     x
     """
-    assert String.contains? capture_iex(code), "10"
+    assert capture_iex(code) =~ "10"
   end
 
   test "exception" do
     exception = Regex.escape("** (ArithmeticError) bad argument in arithmetic expression")
-    assert String.match? capture_iex("1 + :atom\n:this_is_still_working"),
-           %r/^#{exception}.+\n:this_is_still_working$/s
-    refute String.match? capture_iex("1 + :atom\n:this_is_still_working"),
-           %r/erl_eval/s
+    assert capture_iex("1 + :atom\n:this_is_still_working")
+           =~ %r/^#{exception}.+\n:this_is_still_working$/s
+    refute capture_iex("1 + :atom\n:this_is_still_working")
+           =~ %r/erl_eval/s
   end
 
   test "empty history at the start" do
-    assert String.contains? capture_iex("v(-1)"),
-           "** (RuntimeError) v(-1) is out of bounds"
+    assert capture_iex("v(-1)") =~ "** (RuntimeError) v(-1) is out of bounds"
   end
 
   test "empty history at the start redux" do
-    assert String.contains? capture_iex("v(1)"),
-           "** (RuntimeError) v(1) is out of bounds"
+    assert capture_iex("v(1)") =~ "** (RuntimeError) v(1) is out of bounds"
   end
 
   test "no break" do
@@ -64,13 +62,11 @@ defmodule IEx.InteractionTest do
       c
     #iex:break
     """
-    assert String.contains? capture_iex(input),
-           "** (TokenMissingError) iex:1: incomplete expression"
+    assert capture_iex(input) =~ "** (TokenMissingError) iex:1: incomplete expression"
   end
 
   test "invalid input" do
-    assert String.contains? capture_iex("if true do ) false end"),
-           "** (SyntaxError) iex:1: \"do\" starting at"
+    assert capture_iex("if true do ) false end") =~ "** (SyntaxError) iex:1: \"do\" starting at"
   end
 
   test "undefined function" do
@@ -86,7 +82,7 @@ defmodule IEx.InteractionTest do
       def bar, do: 13
     end && Sample.foo
     """
-    assert String.contains? capture_iex(input), "13"
+    assert capture_iex(input) =~ "13"
   after
     :code.purge(Sample)
     :code.delete(Sample)
@@ -117,6 +113,6 @@ defmodule IEx.InteractionTest do
   end
 
   test "receive exit" do
-    assert String.match? capture_iex("spawn_link(fn -> exit(:bye) end)"), %r"EXIT from #PID"
+    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~ %r"EXIT from #PID"
   end
 end

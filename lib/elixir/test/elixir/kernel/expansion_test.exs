@@ -153,8 +153,8 @@ defmodule Kernel.ExpansionTest do
   ## Locals
 
   test "locals: expands to remote calls" do
-    assert { {:., _, [Kernel, :function_exported?] }, _, [{:a, _, []}, {:b, _, []}, {:c, _, []}] } =
-          expand(quote do: function_exported?(a, b, c))
+    assert { {:., _, [Kernel, :=~] }, _, [{:a, _, []}, {:b, _, []}] } =
+          expand(quote do: a =~ b)
   end
 
   test "locals: expands to configured local" do

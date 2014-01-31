@@ -49,7 +49,7 @@ defmodule HashDictTest do
   end
 
   test "inspect" do
-    assert String.starts_with? inspect(filled_dict(8)), "#HashDict<"
+    assert inspect(filled_dict(8)) =~ "#HashDict<"
   end
 
   defp smoke_test(range) do

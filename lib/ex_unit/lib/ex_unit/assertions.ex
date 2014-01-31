@@ -160,6 +160,10 @@ defmodule ExUnit.Assertions do
     assert_operator :!=, left, right, "be not equal to (!=)"
   end
 
+  defp translate_assertion({ :=~, _, [left, right] }) do
+    assert_operator :=~, left, right, "match (=~)"
+  end
+
   defp translate_assertion({ :in, _, [left, right] }) do
     quote do
       left  = unquote(left)
@@ -183,6 +187,14 @@ defmodule ExUnit.Assertions do
           _ ->
             nil
       end
+    end
+  end
+
+  defp translate_assertion({ :!, _, [{ :=~, _, [left, right] }] }) do
+    quote do
+      left  = unquote(left)
+      right = unquote(right)
+      assert !(left =~ right), left, right, assertion: "match (=~)", negation: true
     end
   end
 
@@ -320,8 +332,8 @@ defmodule ExUnit.Assertions do
     error = assert_raise(exception, function)
 
     is_match = case message do
-      re  when is_regex(re)   -> Regex.match?(re, error.message)
-      bin when is_binary(bin) -> bin == error.message
+      re  when is_regex(re)   -> error.message =~ re
+      bin when is_binary(bin) -> error.message == bin
     end
 
     assert is_match, message, error.message,

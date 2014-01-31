@@ -211,7 +211,7 @@ defmodule IEx.Server do
 
   defp allow_take?(identifier) do
     message = IEx.color(:eval_interrupt, "#{identifier}. Allow? [Yn] ")
-    Regex.match? %r/^(Y(es)?)?$/i, IO.gets(:stdio, message)
+    IO.gets(:stdio, message) =~ %r/^(Y(es)?)?$/i
   end
 
   ## Config

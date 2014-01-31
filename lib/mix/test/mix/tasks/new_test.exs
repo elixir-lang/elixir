@@ -8,23 +8,23 @@ defmodule Mix.Tasks.NewTest do
       Mix.Tasks.New.run ["hello_world"]
 
       assert_file "hello_world/mix.exs", fn(file) ->
-        assert String.contains? file, "app: :hello_world"
-        assert String.contains? file, "version: \"0.0.1\""
-        assert String.contains? file, "[mod: { HelloWorld, [] }]"
+        assert file =~ "app: :hello_world"
+        assert file =~ "version: \"0.0.1\""
+        assert file =~ "[mod: { HelloWorld, [] }]"
       end
 
       assert_file "hello_world/README.md", %r/# HelloWorld/
       assert_file "hello_world/.gitignore"
 
       assert_file "hello_world/lib/hello_world.ex", fn(file) ->
-        assert String.contains? file, "defmodule HelloWorld do"
-        assert String.contains? file, "use Application.Behaviour"
-        assert String.contains? file, "HelloWorld.Supervisor.start_link"
+        assert file =~ "defmodule HelloWorld do"
+        assert file =~ "use Application.Behaviour"
+        assert file =~ "HelloWorld.Supervisor.start_link"
       end
 
       assert_file "hello_world/lib/hello_world/supervisor.ex", fn(file) ->
-        assert String.contains? file, "defmodule HelloWorld.Supervisor do"
-        assert String.contains? file, "supervise(children, strategy: :one_for_one)"
+        assert file =~ "defmodule HelloWorld.Supervisor do"
+        assert file =~ "supervise(children, strategy: :one_for_one)"
       end
 
       assert_file "hello_world/test/test_helper.exs", %r/HelloWorld.start/
@@ -40,8 +40,8 @@ defmodule Mix.Tasks.NewTest do
       Mix.Tasks.New.run ["hello_world", "--bare"]
 
       assert_file "hello_world/mix.exs", fn(file) ->
-        assert String.contains? file, "app: :hello_world"
-        assert String.contains? file, "version: \"0.0.1\""
+        assert file =~ "app: :hello_world"
+        assert file =~ "version: \"0.0.1\""
       end
 
       assert_file "hello_world/README.md", %r/# HelloWorld/
@@ -63,8 +63,8 @@ defmodule Mix.Tasks.NewTest do
         Mix.Tasks.New.run ["hello_world"]
 
         assert_file "hello_world/mix.exs", fn(file) ->
-          assert String.contains? file, "deps_path: \"../../deps\""
-          assert String.contains? file, "lockfile: \"../../mix.lock\""
+          assert file =~ "deps_path: \"../../deps\""
+          assert file =~ "lockfile: \"../../mix.lock\""
         end
       end
     end
@@ -94,7 +94,7 @@ defmodule Mix.Tasks.NewTest do
   end
 
   defp assert_file(file, match) when is_regex(match) do
-    assert_file file, &Regex.match?(match, &1)
+    assert_file file, &(&1 =~ match)
   end
 
   defp assert_file(file, callback) when is_function(callback, 1) do

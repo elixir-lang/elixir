@@ -8,8 +8,12 @@ defmodule Regex.BinaryTest do
     assert Regex.match?(%r/^b$/m, "a\nb\nc")
   end
 
+  test :precedence do
+    assert { "aa", :unknown } |> elem(0) =~ %r/(a)\1/
+  end
+
   test :backreference do
-    assert Regex.match? %r/(a)\1/, "aa"
+    assert "aa" =~ %r/(a)\1/
   end
 
   test :compile! do
@@ -30,7 +34,7 @@ defmodule Regex.BinaryTest do
 
   test :compile_with_erl_opts do
     { :ok, regex } = Regex.compile("foo\\sbar", [:dotall, {:newline, :anycrlf}])
-    assert Regex.match?(regex, "foo\nbar")
+    assert "foo\nbar" =~ regex
   end
 
   test :source do
@@ -42,8 +46,8 @@ defmodule Regex.BinaryTest do
   end
 
   test :unicode_by_default do
-    assert Regex.match?(%r"\p{Latin}$", "josé")
-    refute Regex.match?(%r/\p{Lu}/, "£")
+    assert ("josé" =~ %r"\p{Latin}$")
+    refute ("£" =~ %r/\p{Lu}/)
   end
 
   test :groups do

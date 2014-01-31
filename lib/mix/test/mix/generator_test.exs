@@ -18,7 +18,7 @@ defmodule Mix.GeneratorTest do
   end
 
   test :from_file do
-    assert String.contains? self_text, "import Mix.Generator"
+    assert self_text =~ "import Mix.Generator"
   end
 
   test :create_file do

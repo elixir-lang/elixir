@@ -87,18 +87,18 @@ defmodule Kernel.CLI.ParallelCompilerTest do
 
   test "compiles files solving dependencies" do
     fixtures = [fixture_path("parallel_compiler/bar.ex"), fixture_path("parallel_compiler/foo.ex")]
-    assert String.contains? capture_io(fn ->
+    assert capture_io(fn ->
       assert [Bar, Foo] = Kernel.ParallelCompiler.files fixtures
-    end), "message_from_foo"
+    end) =~ "message_from_foo"
   end
 
   test "does not hang on missing dependencies" do
     fixtures = [fixture_path("parallel_compiler/bat.ex")]
-    assert String.contains? capture_io(fn ->
+    assert capture_io(fn ->
       assert_raise CompileError, fn ->
         Kernel.ParallelCompiler.files fixtures
       end
-    end), "Compilation error"
+    end) =~ "Compilation error"
   end
 
   test "handles possible deadlocks" do
@@ -110,8 +110,8 @@ defmodule Kernel.CLI.ParallelCompilerTest do
       end
     end)
 
-    assert String.contains? msg, "* #{fixture_path "parallel_deadlock/foo.ex"} is missing module Bar"
-    assert String.contains? msg, "* #{fixture_path "parallel_deadlock/bar.ex"} is missing module Foo"
+    assert msg =~ "* #{fixture_path "parallel_deadlock/foo.ex"} is missing module Bar"
+    assert msg =~ "* #{fixture_path "parallel_deadlock/bar.ex"} is missing module Foo"
   end
 
   test "warnings_as_errors" do
