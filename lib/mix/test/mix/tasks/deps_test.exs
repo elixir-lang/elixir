@@ -27,16 +27,6 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  defmodule PerEnvironmentDepsApp do
-    def project do
-      [ app: :sample, version: "0.1.0", build_per_environment: true,
-        deps: [
-          { :ok, "0.1.0", path: "deps/ok" }
-        ]
-      ]
-    end
-  end
-
   defmodule ReqDepsApp do
     def project do
       [ app: :req_deps, version: "0.1.0",
@@ -60,9 +50,9 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"] }
       assert_received { :mix_shell, :info, ["  the app file contains an invalid version: :ok"] }
       assert_received { :mix_shell, :info, ["* invalidapp (deps/invalidapp)"] }
-      assert_received { :mix_shell, :info, ["  the app file at _build/shared/lib/invalidapp/ebin/invalidapp.app is invalid"] }
+      assert_received { :mix_shell, :info, ["  the app file at _build/dev/lib/invalidapp/ebin/invalidapp.app is invalid"] }
       assert_received { :mix_shell, :info, ["* noappfile (deps/noappfile)"] }
-      assert_received { :mix_shell, :info, ["  could not find an app file at _build/shared/lib/noappfile/ebin/noappfile.app" <> _] }
+      assert_received { :mix_shell, :info, ["  could not find an app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _] }
       assert_received { :mix_shell, :info, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
       assert_received { :mix_shell, :info, ["  the dependency is not available, run `mix deps.get`"] }
     end
@@ -78,8 +68,8 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :info, ["  the dependency does not match the requirement \">= 2.0\", got \"0.1.0\""] }
       assert_received { :mix_shell, :info, ["* noappfile (deps/noappfile)"] }
       assert_received { :mix_shell, :info, ["* apppath (deps/noappfile)"] }
-      refute_received { :mix_shell, :info, ["  could not find app file at _build/shared/lib/noappfile/ebin/apppath.app" <> _] }
-      refute_received { :mix_shell, :info, ["  could not find app file at _build/shared/lib/noappfile/ebin/noappfile.app" <> _] }
+      refute_received { :mix_shell, :info, ["  could not find app file at _build/dev/lib/noappfile/ebin/apppath.app" <> _] }
+      refute_received { :mix_shell, :info, ["  could not find app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _] }
     end
   end
 
@@ -145,18 +135,21 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :error, ["* invalidvsn (deps/invalidvsn)"] }
       assert_received { :mix_shell, :error, ["  the app file contains an invalid version: :ok"] }
       assert_received { :mix_shell, :error, ["* invalidapp (deps/invalidapp)"] }
-      assert_received { :mix_shell, :error, ["  the app file at _build/shared/lib/invalidapp/ebin/invalidapp.app is invalid"] }
+      assert_received { :mix_shell, :error, ["  the app file at _build/dev/lib/invalidapp/ebin/invalidapp.app is invalid"] }
       assert_received { :mix_shell, :error, ["* noappfile (deps/noappfile)"] }
-      assert_received { :mix_shell, :error, ["  could not find an app file at _build/shared/lib/noappfile/ebin/noappfile.app" <> _] }
+      assert_received { :mix_shell, :error, ["  could not find an app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _] }
       assert_received { :mix_shell, :error, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
       assert_received { :mix_shell, :error, ["  the dependency is not available, run `mix deps.get`"] }
     end
   end
 
   test "compiles and prunes builds per environment" do
-    Mix.Project.push PerEnvironmentDepsApp
+    Mix.Project.push SuccessfulDepsApp
 
     in_fixture "deps_status", fn ->
+      # Start from scratch!
+      File.rm_rf("_build")
+
       Mix.Tasks.Deps.Compile.run []
       Mix.Tasks.Deps.Check.run []
       assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
@@ -167,7 +160,7 @@ defmodule Mix.Tasks.DepsTest do
 
       Mix.ProjectStack.post_config [deps: []]
       Mix.Project.pop
-      Mix.Project.push PerEnvironmentDepsApp
+      Mix.Project.push SuccessfulDepsApp
 
       Mix.Tasks.Deps.Check.run []
       refute File.exists?("_build/dev/lib/ok/ebin/ok.app")
@@ -512,8 +505,8 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Compile.run []
       Mix.Tasks.Deps.Check.run []
 
-      File.mkdir_p!("_build/shared/lib/ok/ebin")
-      File.write!("_build/shared/lib/ok/.compile.lock", "the_future")
+      File.mkdir_p!("_build/dev/lib/ok/ebin")
+      File.write!("_build/dev/lib/ok/.compile.lock", "the_future")
       Mix.Task.clear
 
       assert_raise Mix.Error, "Can't continue due to errors on dependencies", fn ->

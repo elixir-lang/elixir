@@ -24,7 +24,7 @@ defmodule Mix.UmbrellaTest do
 
   test "dependencies in umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
-      Mix.Project.in_project(:umbrella, ".", fn _ ->
+      Mix.Project.in_project(:umbrella, ".", [build_per_environment: true], fn _ ->
         Mix.Task.run "deps"
         assert_received { :mix_shell, :info, ["* bar (apps/bar)"] }
         assert_received { :mix_shell, :info, ["* foo (apps/foo)"] }
@@ -32,26 +32,6 @@ defmodule Mix.UmbrellaTest do
         # Ensure we can compile and run checks
         Mix.Task.run "deps.compile"
         Mix.Task.run "deps.check"
-      end)
-    end
-  end
-
-  test "dependencies in umbrella with build per environment" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
-      Mix.Project.in_project(:umbrella, ".", [build_per_environment: true], fn _ ->
-        File.write "apps/foo/mix.exs", """
-        defmodule Foo.Mix do
-          use Mix.Project
-
-          def project do
-            [ app: :foo, build_per_environment: true, version: "0.1.0" ]
-          end
-        end
-        """
-
-        Mix.Task.run "deps"
-        assert_received { :mix_shell, :info, ["* bar (apps/bar)"] }
-        assert_received { :mix_shell, :info, ["* foo (apps/foo)"] }
 
         # Ensure we can also start each app and
         # they won't remove each other build
@@ -74,14 +54,14 @@ defmodule Mix.UmbrellaTest do
 
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       File.mkdir_p!("deps/some_dep/ebin")
-      File.mkdir_p!("_build/shared/lib/some_dep/ebin")
-      File.mkdir_p!("_build/shared/lib/foo/ebin")
-      File.mkdir_p!("_build/shared/lib/bar/ebin")
+      File.mkdir_p!("_build/dev/lib/some_dep/ebin")
+      File.mkdir_p!("_build/dev/lib/foo/ebin")
+      File.mkdir_p!("_build/dev/lib/bar/ebin")
 
       Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
-      assert Path.expand('_build/shared/lib/some_dep/ebin') in :code.get_path
-      assert Path.expand('_build/shared/lib/foo/ebin') in :code.get_path
-      assert Path.expand('_build/shared/lib/bar/ebin') in :code.get_path
+      assert Path.expand('_build/dev/lib/some_dep/ebin') in :code.get_path
+      assert Path.expand('_build/dev/lib/foo/ebin') in :code.get_path
+      assert Path.expand('_build/dev/lib/bar/ebin') in :code.get_path
     end
   end
 
@@ -173,7 +153,7 @@ defmodule Mix.UmbrellaTest do
 
         future = { { 2020, 4, 17 }, { 14, 0, 0 } }
 
-        manifest = "_build/shared/lib/foo/.compile.elixir"
+        manifest = "_build/dev/lib/foo/.compile.elixir"
         File.mkdir_p!(Path.dirname(manifest))
         File.touch!(manifest, future)
         assert Mix.Tasks.Compile.Elixir.run([]) == :ok

@@ -3,6 +3,7 @@ defmodule Mix.Mixfile do
 
   def project do
     [ app: :mix,
+      build_per_environment: false,
       version: System.version,
       escript_main_module: Mix.CLI ]
   end

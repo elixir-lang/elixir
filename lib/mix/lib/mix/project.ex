@@ -329,7 +329,7 @@ defmodule Mix.Project do
   end
 
   defp default_config do
-    [ build_per_environment: false,
+    [ build_per_environment: true,
       default_task: "run",
       deps: [],
       deps_path: "deps",

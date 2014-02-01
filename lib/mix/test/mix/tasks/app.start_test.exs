@@ -26,12 +26,12 @@ defmodule Mix.Tasks.App.StartTest do
       assert System.version == Mix.Deps.Lock.elixir_vsn
 
       Mix.Task.clear
-      File.write!("_build/shared/lib/sample/.compile.lock", "the_past")
-      File.touch!("_build/shared/lib/sample/.compile.lock", { { 2010, 1, 1 }, { 0, 0, 0 } })
+      File.write!("_build/dev/lib/sample/.compile.lock", "the_past")
+      File.touch!("_build/dev/lib/sample/.compile.lock", { { 2010, 1, 1 }, { 0, 0, 0 } })
 
       Mix.Tasks.App.Start.run ["--no-start"]
       assert System.version == Mix.Deps.Lock.elixir_vsn
-      assert File.stat!("_build/shared/lib/sample/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
+      assert File.stat!("_build/dev/lib/sample/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
     end
   end
 
@@ -44,8 +44,8 @@ defmodule Mix.Tasks.App.StartTest do
       end
 
       Mix.Tasks.App.Start.run ["--no-start"]
-      assert File.regular?("_build/shared/lib/app_start_sample/ebin/Elixir.A.beam")
-      assert File.regular?("_build/shared/lib/app_start_sample/ebin/app_start_sample.app")
+      assert File.regular?("_build/dev/lib/app_start_sample/ebin/Elixir.A.beam")
+      assert File.regular?("_build/dev/lib/app_start_sample/ebin/app_start_sample.app")
       refute List.keyfind(:application.loaded_applications, :app_start_sample, 0)
 
       Mix.Tasks.App.Start.run []

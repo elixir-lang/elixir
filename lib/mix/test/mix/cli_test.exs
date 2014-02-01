@@ -25,7 +25,7 @@ defmodule Mix.CLITest do
       end
       """
       output = mix ""
-      assert File.regular?("_build/shared/lib/p/ebin/Elixir.A.beam")
+      assert File.regular?("_build/dev/lib/p/ebin/Elixir.A.beam")
       assert output =~ "Compiled lib/a.ex"
     end
   end
@@ -51,27 +51,27 @@ defmodule Mix.CLITest do
     end
   end
 
-  test "new with tests smoke test" do
+  test "new with tests" do
     in_tmp "new_with_tests", fn ->
       output = mix "new ."
       assert output =~ "* creating lib/new_with_tests.ex"
       assert output =~ "* creating lib/new_with_tests/supervisor.ex"
 
       output = mix "test test/new_with_tests_test.exs --cover"
-      assert File.regular?("_build/shared/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")
+      assert File.regular?("_build/test/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")
       assert output =~ "1 tests, 0 failures"
       assert output =~ "Generating cover results ..."
       assert File.regular?("cover/Elixir.NewWithTests.html")
     end
   end
 
-  test "new --bare with tests smoke test" do
+  test "new --bare with tests" do
     in_tmp "new_with_tests", fn ->
       output = mix "new --bare ."
       assert output =~ "* creating lib/new_with_tests.ex"
 
       output = mix "test"
-      assert File.regular?("_build/shared/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")
+      assert File.regular?("_build/test/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")
       assert output =~ "1 tests, 0 failures"
     end
   end
