@@ -84,40 +84,8 @@ defmodule Record do
 
       defrecord User, name: "José", age: 25
 
-  Notice that, unlike `defrecordp`, `defrecord` expects an
-  alias as the first argument. This is because `defrecord` is going
-  to create a module named `User` with all the relevant metadata.
-  This module can then be imported and we can manipulate the user
-  as with `defrecordp`:
-
-      Record.import User, as: :user
-      user()        #=> User[name: "José", age: 25]
-      user(age: 26) #=> User[name: "José", age: 26]
-
-  Notice that now since the record definition is accessible, Elixir
-  shows the record nicely formatted, no longer as a simple tuple. We
-  can get the raw formatting by passing `records: false` to `inspect`:
-
-      inspect user(), records: false
-      { User, "José", 25 }
-
-  Since working with external records is common, Elixir allows
-  developers to skip importing the record altogether in favor
-  of a `Module[args]` syntax:
-
-      # Skipping a field uses its default value
       User[]        #=> User[name: "José", age: 25]
       User[age: 26] #=> User[name: "José", age: 26]
-
-  The macro name is replaced by the module name and the parentheses
-  are replaced by brackets. When this syntax is used, there is no
-  need to import the record.
-
-  Before we sum up the differences between `defrecord` and
-  `defrecordp`, there is one last functionality introduced by
-  `defrecord` that we need to discuss.
-
-  ## Runtime access
 
   All the functionality discussed above happens at compilation time.
   This means that both `user(age: 26)` and `User[age: 26]` are expanded
@@ -207,22 +175,7 @@ defmodule Record do
     Record.Extractor.retrieve(name, opts)
   end
 
-  @doc """
-  Import a public record definition as a set of private macros.
-
-  Macros defined as in `Kernel.defrecordp/3`. This is useful when one
-  desires to manipulate a record via a set of macros instead
-  of the regular access syntax.
-
-  ## Example
-
-      defmodule Test do
-        Record.import File.Stat, as: :file_stat
-
-        def size(file_stat(size: size)), do: size
-      end
-
-  """
+  @doc false
   defmacro import(module, as: name) do
     IO.write :stderr, "Record.import/2 is deprecated and it will be removed in the following releases\n#{Exception.format_stacktrace}"
 

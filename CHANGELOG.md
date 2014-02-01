@@ -1,6 +1,7 @@
 # v0.12.3-dev
 
 * Enhancements
+  * [Kernel] Warnings now are explicitly tagged with "warning:" in messages
   * [Kernel] Explicit functions inlined by the compiler, including operators. This means that `Kernel.+/2` will now expand to `:erlang.+/2` and so on
   * [Mix] Do not fail if a Mix dependency relies on an outdated Elixir version
   * [Process] Add `Process.send/2` and `Process.send_after/3`
@@ -14,10 +15,12 @@
   * [Process] Ensure monitoring functions are inlined by the compiler
 
 * Deprecations
+  * [IEx] The helper `m/0` has been deprecated. The goal is to group all runtime statistic related helpers into a single module
   * [Kernel] `binary_to_term/1`, `binary_to_term/2`, `term_to_binary/1` and `term_to_binary/2` are deprecated in favor of their counterparts in the `:erlang` module
   * [Kernel] `//` for default arguments is deprecated in favor of `\\`. This is a soft deprecation, no warnings will be emitted for it in this release
-  * [Kernel] Deprecate `@behavior` in favor of `@behaviour`
-  * [Record] Deprecate `to_keywords`, `getter` and `list getter` functionalities in `defrecordp`
+  * [Kernel] Deprecated `@behavior` in favor of `@behaviour`
+  * [Record] `to_keywords`, `getter` and `list getter` functionalities in `defrecordp` are deprecated
+  * [Record] `Record.import/2` is deprecated
 
 * Backwards incompatible changes
   * [Dict] Implementations of `equal?/2` and `merge/2` in `HashDict` and `ListDict` are no longer polymorphic. To get polymorphism, use the functions in `Dict` instead
