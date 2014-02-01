@@ -9,6 +9,24 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
+  defmodule BadReturnSample do
+    def project do
+      [app: :bad_return_app, version: "0.1.0"]
+    end
+    # Configuration for the OTP application
+    def application do
+      [mod: { Mix.Tasks.App.StartTest.BadReturnApp, [] }]
+    end
+  end
+
+  defmodule BadReturnApp do
+    use Application.Behaviour
+
+    def start(_type, _args) do
+      :bar # Bad return
+    end
+  end
+
   defmodule WrongElixirProject do
     def project do
       [app: :error, version: "0.1.0", elixir: "~> 0.8.1"]
@@ -68,6 +86,43 @@ defmodule Mix.Tasks.App.StartTest do
 
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.App.Start.run ["--no-start", "--no-elixir-version-check"]
+    end
+  end
+
+  test "start does nothing if project[:app] is nil" do
+    project = Mix.project
+    assert Mix.Tasks.App.Start.start(project) == nil
+  end
+
+  test "start runs successfully in okay case" do
+    Mix.Project.push MixTest.Case.Sample
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Compile.run []
+      project = Mix.project
+      assert Mix.Tasks.App.Start.start(project) == :ok
+    end
+  end
+
+  test "start raises an exception on :error" do
+    Mix.Project.push AppStartSample
+
+    in_fixture "no_mixfile", fn ->
+      project = Mix.project
+      assert_raise Mix.Error, fn ->
+        Mix.Tasks.App.Start.start(project)
+      end
+    end
+  end
+
+  test "start raises a stacktrace on bad_return" do
+    Mix.Project.push BadReturnSample
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Compile.run []
+      project = Mix.project
+      assert_raise ErlangError, fn ->
+        Mix.Tasks.App.Start.start(project)
+      end
     end
   end
 end
