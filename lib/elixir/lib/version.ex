@@ -55,83 +55,97 @@ defmodule Version do
   defrecord Schema, [:major, :minor, :patch, :pre, :build, :source]
   defrecord Requirement, [:source, :matchspec]
 
+  defexception InvalidRequirement, [:message]
+  defexception InvalidVersion, [:message]
+
   @doc """
   Check if the given version matches the specification.
 
   Returns `true` if `version` satisfies `requirement`, `false` otherwise.
-  Raises a `Version.InvalidRequirement` exception if `requirement` is not parseable.
+  Raises a `Version.InvalidRequirement` exception if `requirement` is not
+  parseable, or `Version.InvalidVersion` if `version` is not parseable.
+  If given an already parsed version and requirement this function wont
+  raise.
 
   ## Examples
 
       iex> Version.match?("2.0.0", ">1.0.0")
-      { :ok, true }
+      true
 
       iex> Version.match?("2.0.0", "==1.0.0")
-      { :ok, false }
+      false
 
       iex> Version.match?("foo", "==1.0.0")
-      { :error, :invalid_version }
+      ** (Version.InvalidVersion) foo
 
       iex> Version.match?("2.0.0", "== ==1.0.0")
-      { :error, :invalid_requirement }
+      ** (Version.InvalidRequirement) == ==1.0.0
 
   """
-  @spec match?(t, requirement) :: { :ok, boolean } | { :error, term }
+  @spec match?(t, requirement) :: boolean
   def match?(version, requirement) when is_binary(requirement) do
     try do
       match?(version, Version.Parser.parse_requirement(requirement))
     catch
-      :throw, error -> { :error, error }
+      :throw, _ -> raise InvalidRequirement, message: requirement
     end
   end
 
   def match?(version, Requirement[matchspec: spec]) do
-    case :ets.test_ms(to_matchable(version), spec) do
-      { :ok, result }     -> { :ok, result != false }
-      { :error, _ } = err -> err
+    try do
+      { :ok, result } = :ets.test_ms(to_matchable(version), spec)
+      result != false
+    catch
+      :throw, _ -> raise InvalidVersion, message: version
     end
   end
 
   @doc """
-  Check if a version string is compatible with [semver](http://semver.org/).
+  Compares two versions. Returns `:gt` if first version is greater than
+  the second and `:lt` for vice versa. If the two versions are equal `:eq`
+  is returned
+
+  Raises a `Version.InvalidVersion` exception if `version` is not parseable.
+  If given an already parsed version this function wont raise.
 
   ## Examples
 
-      iex> Version.valid?("2.0.0")
-      true
-      iex> Version.valid?("invalid")
-      false
+      iex> Version.compare("2.0.1-alpha1", "2.0.0")
+      :gt
+
+      iex> Version.compare("2.0.1+build0", "2.0.1")
+      :eq
+
+      iex> Version.compare("invalid", "2.0.1")
+      ** (Version.InvalidVersion) invalid
 
   """
-  @spec valid?(String.t) :: boolean
-  def valid?(string) when is_binary(string) do
+  @spec compare(String.t | Schema.t, String.t | Schema.t) :: :gt | :eq | :lt
+  def compare(vsn1, vsn2) when is_binary(vsn1) do
     try do
-      Version.Parser.parse_version(string)
-      true
-    catch
-      :throw, _error -> false
+      compare(Version.Parser.parse_version(vsn1), vsn2)
+     catch
+      :throw, _ -> raise InvalidVersion, message: vsn1
     end
   end
 
-  @doc """
-  Check if a version requirement string is compatible with
-  [semver](http://semver.org/).
-
-  ## Examples
-
-      iex> Version.valid_requirement?("2.0.0")
-      true
-      iex> Version.valid_requirement?("invalid")
-      false
-
-  """
-  @spec valid_requirement?(String.t) :: boolean
-  def valid_requirement?(string) do
+  def compare(vsn1, vsn2) when is_binary(vsn2) do
     try do
-      Version.Parser.parse_requirement(string)
-      true
-    catch
-      :throw, _error -> false
+      compare(vsn1, Version.Parser.parse_version(vsn2))
+     catch
+      :throw, _ -> raise InvalidVersion, message: vsn2
+    end
+  end
+
+  def compare({ major1, minor1, patch1, pre1 }, { major2, minor2, patch2, pre2 }) do
+    cond do
+      { major1, minor1, patch1 } > { major2, minor2, patch2 } -> :gt
+      { major1, minor1, patch1 } < { major2, minor2, patch2 } -> :lt
+      pre1 == [] and pre2 != [] -> :gt
+      pre1 != [] and pre2 == [] -> :lt
+      pre1 > pre2 -> :gt
+      pre1 < pre2 -> :lt
+      true -> :eq
     end
   end
 
@@ -144,52 +158,37 @@ defmodule Version do
       #Version.Schema<2.0.1-alpha1>
 
       iex> Version.parse("2.0-alpha1")
-      { :error, :inexact_version }
+      :error
 
   """
-  @spec parse(String.t) :: { :ok, Schema.t } | { :error, term }
+  @spec parse(String.t) :: { :ok, Schema.t } | :error
   def parse(string) when is_binary(string) do
     try do
       matchable = Version.Parser.parse_version(string)
       { :ok, from_matchable(matchable).source(string).build(get_build(string)) }
      catch
-      :throw, error -> { :error, error }
+      :throw, _ -> :error
     end
   end
 
   @doc """
-  Compares two versions. Returns `:gt` if first version is greater than
-  the second and `:lt` for vice versa. If the two versions are equal `:eq`
-  is returned
+  Parse a version requirement string into a `Version.Schema`.
 
   ## Examples
 
-      iex> Version.compare("2.0.1-alpha1", "2.0.0")
-      { :ok, :gt }
+      iex> Version.parse_requirement("== 2.0.1") |> elem(1)
+      #Version.Requirement<== 2.0.1>
 
-      iex> Version.compare("2.0.1-alpha1", "invalid")
-      { :error, :invalid_version }
+      iex> Version.parse_requirement("== == 2.0.1")
+      :error
 
   """
-  @spec compare(String.t | Schema.t, String.t | Schema.t) :: { :ok, :gt | :eq | :lt } | { :error, term }
-  def compare(vsn1, vsn2) do
+  @spec parse(String.t) :: { :ok, Requirement.t } | :error
+  def parse_requirement(string) when is_binary(string) do
     try do
-      { major1, minor1, patch1, pre1 } = to_matchable(vsn1)
-      { major2, minor2, patch2, pre2 } = to_matchable(vsn2)
-
-      result =
-        cond do
-          { major1, minor1, patch1 } > { major2, minor2, patch2 } -> :gt
-          { major1, minor1, patch1 } < { major2, minor2, patch2 } -> :lt
-          pre1 == [] and pre2 != [] -> :gt
-          pre1 != [] and pre2 == [] -> :lt
-          pre1 > pre2 -> :gt
-          pre1 < pre2 -> :lt
-          true -> :eq
-        end
-      { :ok, result }
-    catch
-      :throw, error -> { :error, error }
+      { :ok, Version.Parser.parse_requirement(string) }
+     catch
+      :throw, _ -> :error
     end
   end
 
@@ -298,16 +297,7 @@ defmodule Version do
 
       if valid_requirement?(lexed) do
         spec = to_matchspec(lexed)
-
-        case :ets.test_ms({}, spec) do
-          { :ok, _ } ->
-            Requirement[source: source, matchspec: spec]
-
-          { :error, errors } ->
-            throw Enum.map(errors, fn { :error, reason } ->
-              to_string(reason)
-            end)
-        end
+        Requirement[source: source, matchspec: spec]
       else
         throw :invalid_requirement
       end
@@ -324,7 +314,7 @@ defmodule Version do
         pre   = nillify(pre)
 
         if nil?(minor) or (nil?(patch) and not approximate?) do
-          throw :inexact_version
+          throw :invalid_version
         else
           major = binary_to_integer(major)
           minor = binary_to_integer(minor)
@@ -345,7 +335,7 @@ defmodule Version do
           piece =~ %r/^(0|[1-9][0-9]*)$/ ->
             binary_to_integer(piece)
           piece =~ %r/^[0-9]*$/ ->
-            throw :leading_zeros_in_prerelease
+            throw :invalid_version
           true ->
             piece
         end
