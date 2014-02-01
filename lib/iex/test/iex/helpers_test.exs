@@ -311,8 +311,7 @@ defmodule IEx.HelpersTest do
         assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
           Sample.run
         end
-
-      end) =~ %r"^.*?sample\.ex:1: redefining module Sample\n$"
+      end) =~ %r"^.*?sample\.ex:1: warning: redefining module Sample\n$"
     end
   after
     # Clean up old version produced by the r helper

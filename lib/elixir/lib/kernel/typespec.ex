@@ -298,7 +298,7 @@ defmodule Kernel.Typespec do
       if export do
         Module.add_doc(module, caller.line, kind, { name, arity }, doc)
       else
-        :elixir_errors.warn "#{caller.file}:#{caller.line}: type #{name}/#{arity} is private, " <>
+        :elixir_errors.warn caller.line, caller.file, "type #{name}/#{arity} is private, " <>
                             "@typedoc's are always discarded for private types\n"
       end
     end
@@ -848,7 +848,7 @@ defmodule Kernel.Typespec do
 
   # Handle local calls
   defp typespec({:string, meta, arguments}, vars, caller) do
-    :elixir_errors.warn "warning: string() type use is discouraged. For character lists, use " <>
+    :elixir_errors.warn caller.line, caller.file, "string() type use is discouraged. For character lists, use " <>
       "char_list() type, for strings, String.t()\n#{Exception.format_stacktrace(caller.stacktrace)}"
     arguments = lc arg inlist arguments, do: typespec(arg, vars, caller)
     { :type, line(meta), :string, arguments }
