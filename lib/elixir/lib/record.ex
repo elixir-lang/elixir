@@ -224,6 +224,8 @@ defmodule Record do
 
   """
   defmacro import(module, as: name) do
+    IO.write :stderr, "Record.import/2 is deprecated and it will be removed in the following releases\n#{Exception.format_stacktrace}"
+
     quote do
       module = unquote(module)
 
@@ -509,7 +511,7 @@ defmodule Record do
   # converting record to keywords list.
   @doc false
   def to_keywords(name, _atom, fields, record, caller) do
-    IO.write "#{name}(record) for private records returning a keyword list is deprecated\n#{Exception.format_stacktrace(caller.stacktrace)}"
+    IO.write :stderr, "#{name}(record) for private records returning a keyword list is deprecated\n#{Exception.format_stacktrace(caller.stacktrace)}"
     { var, extra } = cache_var(record)
 
     keywords = Enum.map fields,
@@ -531,12 +533,12 @@ defmodule Record do
   def dispatch(name, atom, fields, record, args, caller) do
     cond do
       is_atom(args) ->
-        IO.write "#{name}(record, field) for private records for retrieving a field is deprecated, please use pattern match instead\n#{Exception.format_stacktrace(caller.stacktrace)}"
+        IO.write :stderr, "#{name}(record, field) for private records for retrieving a field is deprecated, please use pattern match instead\n#{Exception.format_stacktrace(caller.stacktrace)}"
         get(atom, fields, record, args)
       is_keyword(args) ->
         update(atom, fields, record, args, caller)
       is_list(args) ->
-        IO.write "#{name}(record, fields) for private records for retrieving a list of fields is deprecated, please use pattern match instead\n#{Exception.format_stacktrace(caller.stacktrace)}"
+        IO.write :stderr, "#{name}(record, fields) for private records for retrieving a list of fields is deprecated, please use pattern match instead\n#{Exception.format_stacktrace(caller.stacktrace)}"
         to_list(atom, fields, record, args)
       true ->
         raise ArgumentError, message: "expected arguments to be a compile time atom, list or keywords"

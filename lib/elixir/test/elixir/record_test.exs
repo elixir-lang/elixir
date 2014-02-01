@@ -6,18 +6,6 @@ defrecord RecordTest.FileInfo,
 defrecord RecordTest.SomeRecord, a: 0, b: &Dict.get/2
 defrecord RecordTest.WithNoField, []
 
-## Record import
-
-defmodule RecordTest.FileInfo.Helper do
-  Record.import RecordTest.FileInfo, as: :file_info
-
-  def new do
-    file_info
-  end
-
-  def size(file_info(size: size)), do: size
-end
-
 ## Dynamic names and overridable
 
 name = RecordTest.DynamicName
@@ -27,8 +15,6 @@ defrecord name, a: 0, b: 1 do
   def update_b(_, _) do
     :not_optimizable
   end
-
-  Record.import __MODULE__, as: :self
 end
 
 defmodule RecordTest.DynamicOpts do
@@ -160,11 +146,6 @@ defmodule RecordTest do
     assert { :module, _, _, "result"} = (defrecord WithResult, foo: :bar do
       "result"
     end)
-  end
-
-  test :import do
-    assert RecordTest.FileInfo.Helper.new == RecordTest.FileInfo.new
-    assert RecordTest.FileInfo.Helper.size(RecordTest.FileInfo.new(size: 100)) == 100
   end
 
   test :record_with_functions_as_defaults do
