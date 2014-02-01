@@ -396,7 +396,7 @@ expand_many(Args, E) ->
 %%   3
 %%
 %% However, lexical information is.
-expand_arg(Arg, Acc) when is_number(Arg); is_atom(Arg); is_binary(Arg); is_pid(Arg); is_function(Arg) ->
+expand_arg(Arg, Acc) when is_number(Arg); is_atom(Arg); is_binary(Arg); is_pid(Arg) ->
   { Arg, Acc };
 expand_arg(Arg, { Acc1, Acc2 }) ->
   { EArg, EAcc } = expand(Arg, Acc1),

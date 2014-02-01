@@ -389,6 +389,10 @@ defmodule Kernel.ExpansionTest do
     assert_raise CompileError, %r"invalid quoted expression: {1, 2, 3}", fn ->
       expand(quote do: unquote({ 1, 2, 3 }))
     end
+
+    assert_raise CompileError, %r"invalid quoted expression: #Function<", fn ->
+      expand(quote do: unquote({ :sample, fn -> end }))
+    end
   end
 
   ## Helpers
