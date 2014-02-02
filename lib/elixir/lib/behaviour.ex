@@ -118,8 +118,8 @@ defmodule Behaviour do
     end
   end
 
-  defp ensure_not_default({ ://, _, [_, _] }) do
-    raise ArgumentError, message: "default arguments // not supported in defcallback/defmacrocallback"
+  defp ensure_not_default({ :\\, _, [_, _] }) do
+    raise ArgumentError, message: "default arguments \\ not supported in defcallback/defmacrocallback"
   end
 
   defp ensure_not_default({ :\\, _, [_, _] }) do
