@@ -127,7 +127,9 @@ defmodule Mix.Deps.Converger do
         cond do
           app != other_app ->
             { other, match }
-          (in_upper? && other_opts[:override]) || converge?(other, dep) ->
+          in_upper? && other_opts[:override] ->
+            { other, true }
+          converge?(other, dep) ->
             { with_matching_req(other, dep), true }
           true ->
             tag = if in_upper?, do: :overridden, else: :diverged
