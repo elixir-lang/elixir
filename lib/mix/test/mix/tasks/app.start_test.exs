@@ -15,6 +15,12 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
+  defmodule InvalidElixirRequirement do
+    def project do
+      [app: :error, version: "0.1.0", elixir: "~> ~> 0.8.1"]
+    end
+  end
+
   setup config do
     if config[:app] do
       :error_logger.tty(false)
@@ -78,6 +84,16 @@ defmodule Mix.Tasks.App.StartTest do
 
     in_fixture "no_mixfile", fn ->
       assert_raise Mix.ElixirVersionError, %r/You're trying to run :error on Elixir/, fn ->
+        Mix.Tasks.App.Start.run ["--no-start"]
+      end
+    end
+  end
+
+  test "validates invalid Elixir version requirement" do
+    Mix.Project.push InvalidElixirRequirement
+
+    in_fixture "no_mixfile", fn ->
+      assert_raise  Mix.Error, %r"invalid Elixir version requirement", fn ->
         Mix.Tasks.App.Start.run ["--no-start"]
       end
     end
