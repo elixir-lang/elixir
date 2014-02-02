@@ -3,7 +3,7 @@ defmodule MyProject do
 
   def project do
     [ app: :no_mixfile,
-      version: "0.1" ]
+      version: "0.1.0" ]
   end
 
   def hello_world do

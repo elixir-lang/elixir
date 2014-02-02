@@ -83,8 +83,11 @@ defmodule Mix.Tasks.Compile.App do
   defp validate_app(app) when is_atom(app), do: :ok
   defp validate_app(_), do: raise(Mix.Error, message: "Expected :app to be an atom")
 
-  defp validate_version(version) when is_binary(version), do: :ok
-  defp validate_version(_), do: raise(Mix.Error, message: "Expected :version to be a binary")
+  defp validate_version(version) do
+    unless is_binary(version) and match?({ :ok, _ }, Version.parse(version)) do
+      raise(Mix.Error, message: "Expected :version to be a semver version")
+    end
+  end
 
   defp modules_from(beams) do
     Enum.map beams, &(&1 |> Path.basename |> Path.rootname('.beam') |> list_to_atom)
