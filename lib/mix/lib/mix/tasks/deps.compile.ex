@@ -135,7 +135,7 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp do_command(Mix.Dep[app: app, opts: opts], command, extra // "") do
+  defp do_command(Mix.Dep[app: app, opts: opts], command, extra \\ "") do
     File.cd! opts[:dest], fn ->
       if Mix.shell.cmd("#{command} #{extra}") != 0 do
         raise Mix.Error, message: "Could not compile dependency #{app}, #{command} command failed. " <>
