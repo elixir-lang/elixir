@@ -25,13 +25,13 @@ defmodule Mix.Tasks.Loadpaths do
       if requirement = config[:elixir] do
         case Version.parse_requirement(requirement) do
           { :ok, req } ->
-            unless Version.match?(System.version, requirement) do
+            unless Version.match?(System.version, req) do
               raise Mix.ElixirVersionError, target: target,
                                             expected: requirement,
                                             actual: System.version
             end
           :error ->
-            raise Mix.Error, message: "invalid Elixir version requirement " <>
+            raise Mix.Error, message: "Invalid Elixir version requirement " <>
               "#{requirement} declared in mix.exs file for #{target}"
         end
       end

@@ -65,11 +65,11 @@ defmodule Mix.Deps.Loader do
           { :ok, req } ->
             Version.match?(version, req)
           :error ->
-            raise Mix.Error, message: "invalid requirement #{req} for app #{app}"
+            raise Mix.Error, message: "Invalid requirement #{req} for app #{app}"
         end
 
       :error ->
-        raise Mix.Error, message: "non semver version can only be matched " <>
+        raise Mix.Error, message: "Non SemVer version can only be matched " <>
           "with a regex requirement, got version #{actual} with requirement " <>
           "#{req} for app #{app}"
     end

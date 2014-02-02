@@ -93,7 +93,7 @@ defmodule Mix.Tasks.App.StartTest do
     Mix.Project.push InvalidElixirRequirement
 
     in_fixture "no_mixfile", fn ->
-      assert_raise  Mix.Error, %r"invalid Elixir version requirement", fn ->
+      assert_raise  Mix.Error, %r"Invalid Elixir version requirement", fn ->
         Mix.Tasks.App.Start.run ["--no-start"]
       end
     end

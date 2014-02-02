@@ -111,7 +111,7 @@ defmodule Mix.Tasks.Compile.AppTest do
     Mix.Project.push InvalidVsnProject
 
     in_fixture "no_mixfile", fn ->
-      assert_raise Mix.Error, "Expected :version to be a semver version", fn ->
+      assert_raise Mix.Error, "Expected :version to be a SemVer version", fn ->
         Mix.Tasks.Compile.App.run([])
       end
     end

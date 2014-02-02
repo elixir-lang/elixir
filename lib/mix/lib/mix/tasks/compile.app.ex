@@ -85,7 +85,7 @@ defmodule Mix.Tasks.Compile.App do
 
   defp validate_version(version) do
     unless is_binary(version) and match?({ :ok, _ }, Version.parse(version)) do
-      raise(Mix.Error, message: "Expected :version to be a semver version")
+      raise(Mix.Error, message: "Expected :version to be a SemVer version")
     end
   end
 

@@ -301,7 +301,7 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push SuccessfulDepsApp
 
     in_fixture "deps_status", fn ->
-      assert_raise Mix.Error, %r/unknown dependency invalid for environment dev/, fn ->
+      assert_raise Mix.Error, %r/Unknown dependency invalid for environment dev/, fn ->
         Mix.Tasks.Deps.Get.run ["invalid"]
       end
     end

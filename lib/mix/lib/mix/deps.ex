@@ -123,7 +123,7 @@ defmodule Mix.Deps do
 
     Enum.each apps, fn(app) ->
       unless List.keyfind(all_deps, app, index) do
-        raise Mix.Error, message: "unknown dependency #{app} for environment #{Mix.env}"
+        raise Mix.Error, message: "Unknown dependency #{app} for environment #{Mix.env}"
       end
     end
 

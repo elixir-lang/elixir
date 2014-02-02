@@ -85,7 +85,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push InvalidDepsReq
 
     in_fixture "deps_status", fn ->
-      assert_raise Mix.Error, %r"invalid requirement", fn ->
+      assert_raise Mix.Error, %r"Invalid requirement", fn ->
         Mix.Deps.loaded
       end
     end
