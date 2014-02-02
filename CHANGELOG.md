@@ -1,4 +1,4 @@
-# v0.12.3-dev
+# v0.12.3 (2014-02-02)
 
 * Enhancements
   * [Kernel] Warnings now are explicitly tagged with "warning:" in messages
