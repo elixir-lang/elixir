@@ -18,9 +18,11 @@ defmodule IEx.Mixfile do
 
       # Used by default on evaluation cycle
       eval_interrupt: "yellow",
-      eval_result: "yellow",
-      eval_error: "red",
-      eval_info: "normal",
+      eval_result:    "yellow",
+      eval_error:     "red",
+      eval_info:      "normal",
+      stack_loc:      "red,bright",
+      stack_mfa:      "green",
 
       # Used by ls
       ls_directory: "blue",

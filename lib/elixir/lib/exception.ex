@@ -223,35 +223,46 @@ defmodule Exception do
   @doc """
   Receives a tuple representing a stacktrace entry and formats it.
   """
-  def format_stacktrace_entry(entry)
+  def format_stacktrace_entry(entry) do
+    format_stacktrace_entry_into_fields(entry)
+    |> tuple_to_list
+    |> Enum.filter(fn field -> field && field != "" end)
+    |> Enum.join(" ")
+  end
+
+  @doc """
+  Returns the fields from a single frame in a stack trace as a list of 
+  `[ app, location, mfa/module/file ]` where all but location can be nil. 
+  Intended for use inside the Elixir libraries and iex only
+  """
 
   # From Macro.Env.stacktrace
-  def format_stacktrace_entry({ module, :__MODULE__, 0, location }) do
-    format_location(location) <> inspect(module) <> " (module)"
+  def format_stacktrace_entry_into_fields({ module, :__MODULE__, 0, location }) do
+    { nil, format_location(location), inspect(module) <> " (module)" }
   end
 
   # From :elixir_compiler_*
-  def format_stacktrace_entry({ _module, :__MODULE__, 1, location }) do
-    format_location(location) <> "(module)"
+  def format_stacktrace_entry_into_fields({ _module, :__MODULE__, 1, location }) do
+    { nil, format_location(location), "(module)" }
   end
 
   # From :elixir_compiler_*
-  def format_stacktrace_entry({ _module, :__FILE__, 1, location }) do
-    format_location(location) <> "(file)"
+  def format_stacktrace_entry_into_fields({ _module, :__FILE__, 1, location }) do
+    { nil, format_location(location),  "(file)" }
   end
 
-  def format_stacktrace_entry({module, fun, arity, location}) do
-    format_application(module) <> format_location(location) <> format_mfa(module, fun, arity)
+  def format_stacktrace_entry_into_fields({module, fun, arity, location}) do
+    { format_application(module), format_location(location), format_mfa(module, fun, arity) }
   end
 
-  def format_stacktrace_entry({fun, arity, location}) do
-    format_location(location) <> format_fa(fun, arity)
+  def format_stacktrace_entry_into_fields({fun, arity, location}) do
+    { nil, format_location(location), format_fa(fun, arity) }
   end
 
   defp format_application(module) do
     case :application.get_application(module) do
-      { :ok, app } -> "(" <> atom_to_binary(app) <> ") "
-      :undefined   -> ""
+      { :ok, app } -> "(" <> atom_to_binary(app) <> ")"
+      :undefined   -> nil
     end
   end
 
@@ -268,7 +279,6 @@ defmodule Exception do
     catch
       :stacktrace -> Enum.drop(:erlang.get_stacktrace, 1)
     end
-
     case trace do
       [] -> "\n"
       s  -> "    " <> Enum.map_join(s, "\n    ", &format_stacktrace_entry(&1)) <> "\n"
@@ -309,21 +319,15 @@ defmodule Exception do
 
   """
   def format_fa(fun, arity) do
-    if is_list(arity) do
-      inspected = lc x inlist arity, do: inspect(x)
-      "#{inspect fun}(#{Enum.join(inspected, ", ")})"
-    else
-      "#{inspect fun}/#{arity}"
-    end
+    "#{inspect fun}#{format_arity(arity)}"
   end
 
   @doc """
   Receives a module, fun and arity and formats it
   as shown in stacktraces. The arity may also be a list
   of arguments.
-
+  
   ## Examples
-
       iex> Exception.format_mfa Foo, :bar, 1
       "Foo.bar/1"
       iex> Exception.format_mfa Foo, :bar, []
@@ -331,30 +335,59 @@ defmodule Exception do
       iex> Exception.format_mfa nil, :bar, []
       "nil.bar()"
 
+  Anonymous functions are reported as -func/arity-anonfn-count-,
+  where func is the name of the enclosing function. Convert to
+  "nth fn in func/arity"
   """
-  def format_mfa(module, fun, arity) do
-    fun =
-      case inspect(fun) do
-        << ?:, erl :: binary >> -> erl
-        elixir -> elixir
-      end
 
-    if is_list(arity) do
-      inspected = lc x inlist arity, do: inspect(x)
-      "#{inspect module}.#{fun}(#{Enum.join(inspected, ", ")})"
-    else
-      "#{inspect module}.#{fun}/#{arity}"
-    end
+  def format_mfa(module, nil, arity), 
+  do: do_format_mfa(module, "nil", arity) 
+
+  def format_mfa(module, fun, arity) when is_atom(fun),
+  do: do_format_mfa(module, to_string(fun), arity) 
+
+  defp do_format_mfa(module, fun, arity) when not(is_binary(fun)),
+  do: format_mfa(module, inspect(fun), arity) 
+
+  defp do_format_mfa(module, "-" <> fun, arity) do
+    [ outer_fun, "fun", count, "" ] = String.split(fun, "-")
+    "#{format_nth(count)} anonymous fn#{format_arity(arity)} in #{inspect module}.#{outer_fun}"
   end
+
+  # Erlang internal
+  defp do_format_mfa(module, ":" <> fun, arity),  
+  do: format_mfa(module, maybe_quote_name(fun), arity)
+
+  defp do_format_mfa(module, fun, arity) do
+    "#{inspect module}.#{maybe_quote_name(fun)}#{format_arity(arity)}"
+  end
+
+  defp format_arity(arity) when is_list(arity) do
+    inspected = lc x inlist arity, do: inspect(x)
+    "(#{Enum.join(inspected, ", ")})"
+  end
+
+  defp format_arity(arity),  do: "/#{arity}"
+
+  defp format_nth("0"), do: "first"
+  defp format_nth("1"), do: "second"
+  defp format_nth("2"), do: "third"
+  defp format_nth(n),   do:  "#{binary_to_integer(n)+1}th"
+
 
   @doc """
   Formats the given file and line as shown in stacktraces.
-  If any of the values are nil, they are omitted.
+  If any of the values are nil, they are omitted. If the
+  optional suffix is omitted, a space is appended to
+  the result.
 
   ## Examples
 
       iex> Exception.format_file_line("foo", 1)
       "foo:1: "
+
+      iex> Exception.format_file_line("foo", 1, "")
+      "foo:1:"
 
       iex> Exception.format_file_line("foo", nil)
       "foo: "
@@ -363,12 +396,12 @@ defmodule Exception do
       ""
 
   """
-  def format_file_line(file, line) do
+  def format_file_line(file, line, suffix // " ") do
     if file do
       if line && line != 0 do
-        "#{file}:#{line}: "
+        "#{file}:#{line}:#{suffix}"
       else
-        "#{file}: "
+        "#{file}:#{suffix}"
       end
     else
       ""
@@ -376,7 +409,7 @@ defmodule Exception do
   end
 
   defp format_location(opts) do
-    format_file_line Keyword.get(opts, :file), Keyword.get(opts, :line)
+    format_file_line Keyword.get(opts, :file), Keyword.get(opts, :line), ""
   end
 
   defp from_stacktrace([{ module, function, args, _ }|_]) when is_list(args) do
@@ -390,4 +423,50 @@ defmodule Exception do
   defp from_stacktrace(_) do
     { nil, nil, nil }
   end
+
+
+  # have to use :re here because exceptions may be triggered before Regexp
+  # module is compiled.
+  @function_name_re :re.compile(
+    %S{
+       \A(                                       
+            [\w]+[?!]?         
+          | ->
+          | <-
+          | :: 
+          | \|{1,3}
+          | =
+          | &&&?
+          | <=?
+          | >=? 
+          | ===?
+          | !==?
+          | =~
+          | <<< 
+          | >>>
+          | \+\+? 
+          | --? 
+          | <>
+          | \+
+          | -
+          | \*
+          | //?
+          | ^^^
+          | !
+          | \^ 
+          | & 
+          | ~~~
+          | @
+    )\z}, [:extended] )
+
+  defp maybe_quote_name(fun) do
+    name = to_string(fun)
+    {:ok, re} = @function_name_re
+    case :re.run(name, re) do
+      { :match, _} -> name
+      _            -> inspect name
+    end
+  end
+
+                                    
 end
