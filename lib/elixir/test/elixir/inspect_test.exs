@@ -156,18 +156,18 @@ defmodule Inspect.TupleTest do
     assert inspect(RuntimeError.new) == "RuntimeError[message: \"runtime error\"]"
   end
 
-  defrecord :something, [:a, :b]
-
-  test :non_module_record do
-    # They are on purpose not treated as Elixir records
-    # otherwise it affects inspect performance very strongly
-    assert inspect(:something.new) == "{:something, nil, nil}"
-  end
-
   defrecord Rec, value: 1
 
   test :two_items_record do
     assert inspect({ Rec[value: 1], 1 }) == "{Inspect.TupleTest.Rec[value: 1], 1}"
+  end
+
+  test :false_positives do
+    import ExUnit.CaptureIO
+
+    assert capture_io(:stderr, fn ->
+      assert inspect({ Range, nil }) == "{Range, nil}"
+    end) =~ "** (Inspect.Error) Got FunctionClauseError with message no function clause matching in Inspect.Range.inspect/2"
   end
 
   test :empty do

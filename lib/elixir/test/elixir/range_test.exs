@@ -45,7 +45,6 @@ defmodule RangeTest do
   test :inspect do
     assert inspect(1..3) == "1..3"
     assert inspect(3..1) == "3..1"
-    assert inspect({ Range, nil }) == "{Range, nil}"
   end
 
   defp not_range do

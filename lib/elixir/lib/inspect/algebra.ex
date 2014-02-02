@@ -110,8 +110,12 @@ defmodule Inspect.Algebra do
       if elem(opts, Inspect.Opts.__record__(:index, :records)) do
         try do
           Inspect.inspect(arg, opts)
-        catch
-          _, _ -> Inspect.Tuple.inspect(arg, opts)
+        rescue
+          e ->
+            res = Inspect.Tuple.inspect(arg, opts)
+            IO.puts :stderr, "** (Inspect.Error) Got #{inspect e.__record__(:name)} with message " <>
+                             "#{e.message} while inspecting #{pretty(res, opts.width)}"
+            res
         end
       else
         Inspect.Tuple.inspect(arg, opts)
