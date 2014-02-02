@@ -83,7 +83,7 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro refute(expected) do
-    contents = case translate_assertion({ :!, [], [expected] }) do
+    case translate_assertion({ :!, [], [expected] }) do
       nil ->
         # Default message in case no transform was performed
         quote do
@@ -97,13 +97,11 @@ defmodule ExUnit.Assertions do
               actual: inspect(value)
           end
 
-          true
+          false
         end
 
-      value -> value
+      value -> { :!, [], [value] }
     end
-
-    { :!, [], [contents] }
   end
 
   ## START HELPERS
