@@ -140,7 +140,7 @@ defmodule Version do
     case Version.Parser.parse_requirement(requirement) do
       { :ok, _req } ->
         true
-      { :error, reason } ->
+      { :error, _reason } ->
         false
     end
   end

@@ -155,7 +155,6 @@ defmodule Exception do
         { module, function, arity_or_args, location } |
         { function, arity_or_args, location }
 
-  @typep function :: atom
   @typep arity_or_args :: non_neg_integer | list
   @typep location :: Keyword.t
 
