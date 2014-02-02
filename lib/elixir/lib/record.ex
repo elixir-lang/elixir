@@ -176,23 +176,6 @@ defmodule Record do
   end
 
   @doc false
-  defmacro import(module, as: name) do
-    IO.write :stderr, "Record.import/2 is deprecated and it will be removed in the following releases\n#{Exception.format_stacktrace}"
-
-    quote do
-      module = unquote(module)
-
-      fields = if module == __MODULE__ do
-        @record_fields
-      else
-        module.__record__(:fields)
-      end
-
-      Record.defmacros(unquote(name), fields, __ENV__, module)
-    end
-  end
-
-  @doc false
   def defrecord(name, fields, opts) do
     block = Keyword.get(opts, :do, nil)
     record_check!(fields)
@@ -364,16 +347,12 @@ defmodule Record do
         Record.access(unquote(tag), unquote(escaped), [], __CALLER__)
       end
 
-      defmacrop unquote(name)(record) when is_tuple(record) do
-        Record.to_keywords(unquote(name), unquote(tag), unquote(escaped), record, __CALLER__)
-      end
-
       defmacrop unquote(name)(args) do
         Record.access(unquote(tag), unquote(escaped), args, __CALLER__)
       end
 
       defmacrop unquote(name)(record, args) do
-        Record.dispatch(unquote(name), unquote(tag), unquote(escaped), record, args, __CALLER__)
+        Record.dispatch(unquote(tag), unquote(escaped), record, args, __CALLER__)
       end
     end
 
@@ -459,40 +438,14 @@ defmodule Record do
     end
   end
 
-  # Implements to_keywords macro defined by defmacros.
-  # It returns a quoted expression that represents
-  # converting record to keywords list.
-  @doc false
-  def to_keywords(name, _atom, fields, record, caller) do
-    IO.write :stderr, "#{name}(record) for private records returning a keyword list is deprecated\n#{Exception.format_stacktrace(caller.stacktrace)}"
-    { var, extra } = cache_var(record)
-
-    keywords = Enum.map fields,
-      fn { key, _default } ->
-        index = find_index(fields, key, 0)
-        quote do
-          { unquote(key), :erlang.element(unquote(index + 2), unquote(var)) }
-        end
-      end
-
-    quote do
-      unquote_splicing(extra)
-      unquote(keywords)
-    end
-  end
-
   # Dispatch the call to either get, update or to_list depending on the args given.
   @doc false
-  def dispatch(name, atom, fields, record, args, caller) do
+  def dispatch(atom, fields, record, args, caller) do
     cond do
       is_atom(args) ->
-        IO.write :stderr, "#{name}(record, field) for private records for retrieving a field is deprecated, please use pattern match instead\n#{Exception.format_stacktrace(caller.stacktrace)}"
         get(atom, fields, record, args)
       is_keyword(args) ->
         update(atom, fields, record, args, caller)
-      is_list(args) ->
-        IO.write :stderr, "#{name}(record, fields) for private records for retrieving a list of fields is deprecated, please use pattern match instead\n#{Exception.format_stacktrace(caller.stacktrace)}"
-        to_list(atom, fields, record, args)
       true ->
         raise ArgumentError, message: "expected arguments to be a compile time atom, list or keywords"
     end
@@ -536,42 +489,8 @@ defmodule Record do
     end
   end
 
-  # Implements to_list macro defined by defmacros.
-  # It returns a quoted expression that represents
-  # extracting given fields from record.
-  @doc false
-  defp to_list(atom, fields, record, keys) do
-    unless is_list(fields) do
-      raise ArgumentError, message: "expected arguments to be a compile time list"
-    end
 
-    { var, extra } = cache_var(record)
 
-    list = Enum.map keys,
-      fn(key) ->
-        index = find_index(fields, key, 0)
-        if index do
-          quote do: :erlang.element(unquote(index + 2), unquote(var))
-        else
-          raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect key}"
-        end
-      end
-
-    quote do
-      unquote_splicing(extra)
-      unquote(list)
-    end
-  end
-
-  defp cache_var({ var, _, kind } = tuple) when is_atom(var) and is_atom(kind) do
-    { tuple, [] }
-  end
-
-  defp cache_var(other) do
-    quote do
-      { x, [x = unquote(other)] }
-    end
-  end
 
   ## Function generation
 

@@ -7,9 +7,8 @@ defmodule Record.PrivateTest do
     defrecordp :_user, __MODULE__, name: "José", age: 25
     defrecordp :_my_user, :my_user, name: "José", age: 25
 
-    defrecordp :_file_info, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
-    name = :_dynamic
-    defrecordp name, [:field]
+    name = :_file_info
+    defrecordp name, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
 
     Record.defmacros(:_macro, [c: 2, d: 3], __ENV__)
 
@@ -23,6 +22,10 @@ defmodule Record.PrivateTest do
 
     def name(_user(name: name)) do
       name
+    end
+
+    def age(user) do
+      _user(user, :age)
     end
 
     def add_bar_to_name(_user(name: name) = user) do
@@ -49,6 +52,10 @@ defmodule Record.PrivateTest do
       name
     end
 
+    def my_age(user) do
+      _my_user(user, :age)
+    end
+
     def my_add_bar_to_name(_my_user(name: name) = user) do
       _my_user(user, name: name <> " bar")
     end
@@ -65,10 +72,6 @@ defmodule Record.PrivateTest do
       _file_info()
     end
 
-    def dynamic() do
-      _dynamic()
-    end
-
     def macro() do
       _macro()
     end
@@ -77,6 +80,7 @@ defmodule Record.PrivateTest do
   test "defrecordp generates macros that generates tuples" do
     record = Macros.my_new
     assert Macros.my_name(record) == "José"
+    assert Macros.my_age(record) == 25
 
     record = Macros.my_new("Foo", 25)
     assert Macros.my_name(record) == "Foo"
@@ -85,19 +89,6 @@ defmodule Record.PrivateTest do
     assert Macros.my_name(record) == "Foo bar"
 
     assert elem(record, 0) == :my_user
-  end
-
-  test "defrecordp generates tuples with custom first element" do
-    record = Macros.new
-    assert record.name == "José"
-
-    record = Macros.new("Foo", 25)
-    assert record.name == "Foo"
-
-    record = record.add_bar_to_name
-    assert record.name == "Foo bar"
-
-    assert elem(record, 0) == Macros
   end
 
   test "defrecordp access index" do
@@ -109,7 +100,6 @@ defmodule Record.PrivateTest do
 
   test "defrecordp with dynamic arguments" do
     assert [:_file_info|_] = Macros.file_info() |> tuple_to_list
-    assert { :_dynamic, nil } = Macros.dynamic()
   end
 
   test "defmacros" do

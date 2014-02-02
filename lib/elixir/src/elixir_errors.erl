@@ -17,7 +17,7 @@ warn(Warning) ->
   io:put_chars(standard_error, Warning).
 
 warn(Caller, Warning) ->
-  warn([Caller, " warning: ", Warning]).
+  warn([Caller, "warning: ", Warning]).
 
 warn(Line, File, Warning) ->
   warn(file_format(Line, File, "warning: " ++ Warning)).

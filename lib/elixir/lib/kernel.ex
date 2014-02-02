@@ -236,18 +236,6 @@ defmodule Kernel do
     :erlang.binary_to_float(some_binary)
   end
 
-  @doc false
-  def binary_to_term(binary) do
-    IO.write :stderr, "binary_to_term/1 is deprecated, please use :erlang.binary_to_term/1 instead\n#{Exception.format_stacktrace}"
-    :erlang.binary_to_term(binary)
-  end
-
-  @doc false
-  def binary_to_term(binary, options) do
-    IO.write :stderr, "binary_to_term/2 is deprecated, please use :erlang.binary_to_term/2 instead\n#{Exception.format_stacktrace}"
-    :erlang.binary_to_term(binary, options)
-  end
-
   @doc """
   Returns an integer which is the size in bits of `bitstring`.
 
@@ -1033,18 +1021,6 @@ defmodule Kernel do
   @spec spawn_link(module, atom, list) :: pid
   def spawn_link(module, fun, args) do
     :erlang.spawn_link(module, fun, args)
-  end
-
-  @doc false
-  def term_to_binary(term) do
-    IO.write :stderr, "term_to_binary/1 is deprecated, please use :erlang.term_to_binary/1 instead\n#{Exception.format_stacktrace}"
-    :erlang.term_to_binary(term)
-  end
-
-  @doc false
-  def term_to_binary(term, opts) do
-    IO.write :stderr, "term_to_binary/2 is deprecated, please use :erlang.term_to_binary/2 instead\n#{Exception.format_stacktrace}"
-    :erlang.term_to_binary(term, opts)
   end
 
   @doc """
@@ -2063,8 +2039,8 @@ defmodule Kernel do
       false ->
         case name do
           :behavior ->
-            IO.write :stderr, "warning: @behavior attribute is not supported, please use @behaviour instead\n" <>
-                              Exception.format_stacktrace(env_stacktrace(env))
+            :elixir_errors.warn warn_info(env_stacktrace(env)),
+                                "@behavior attribute is not supported, please use @behaviour instead"
           _ ->
             :ok
         end
@@ -2093,6 +2069,15 @@ defmodule Kernel do
   # All other cases
   defp do_at(args, name, _function?, _env) do
     raise ArgumentError, message: "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
+  end
+
+  defp warn_info([entry|_]) do
+    opts = elem(entry, size(entry) - 1)
+    Exception.format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line)) <> " "
+  end
+
+  defp warn_info([]) do
+    ""
   end
 
   defp typespec(:type),     do: :deftype
@@ -3194,9 +3179,8 @@ defmodule Kernel do
       user()        #=> { :user, "José", 25 }
       user(age: 26) #=> { :user, "José", 26 }
 
-      # To get a field from the record use pattern matching
-      user(name: name) = user
-      name #=> "José"
+      # To get a field from the record
+      user(record, :name) #=> "José"
 
       # To update the record
       user(record, age: 26) #=> { :user, "José", 26 }
