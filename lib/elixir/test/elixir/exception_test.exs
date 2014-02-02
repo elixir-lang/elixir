@@ -62,6 +62,7 @@ defmodule Kernel.ExceptionTest do
     assert Exception.format_mfa(nil, :bar, []) == "nil.bar()"
     assert Exception.format_mfa(:foo, :bar, [1, 2]) == ":foo.bar(1, 2)"
     assert Exception.format_mfa(Foo, :"bar baz", 1) == "Foo.\"bar baz\"/1"
+    assert Exception.format_mfa(Foo, :"-func/2-fun-0-", 4) == "anonymous fn/4 in Foo.func/2"
   end
 
   test "format_fa" do
@@ -104,7 +105,7 @@ defmodule Kernel.ExceptionTest do
       end
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list!
     assert {Kernel.ExceptionTest, :"test raise preserves the stacktrace", _,
-           [file: ^file, line: 100]} = stacktrace
+           [file: ^file, line: 101]} = stacktrace
   end
 
   test "defexception" do

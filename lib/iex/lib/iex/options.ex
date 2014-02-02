@@ -123,10 +123,10 @@ defmodule IEx.Options do
 
     * `:enabled`      - boolean value that allows for switching the coloring on and off
     * `:eval_result`  - color for an expression's resulting value
-    * `:eval_error`   - … error messages
-    * `:stack_loc`    - … the location in a stack trace
-    * `:error_mfa`    - … the function name in a stack trace
     * `:eval_info`    - … various informational messages
+    * `:eval_error`   - … error messages
+    * `:stack_app`    - … the app in stack traces
+    * `:stack_info`   - … the remaining info in stacktraces
     * `:ls_directory` - … for directory entries (ls helper)
     * `:ls_device`    - … device entries (ls helper)
 

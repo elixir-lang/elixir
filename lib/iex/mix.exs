@@ -21,8 +21,8 @@ defmodule IEx.Mixfile do
       eval_result:    "yellow",
       eval_error:     "red",
       eval_info:      "normal",
-      stack_loc:      "red,bright",
-      stack_mfa:      "green",
+      stack_app:      "red,bright",
+      stack_info:     "red",
 
       # Used by ls
       ls_directory: "blue",

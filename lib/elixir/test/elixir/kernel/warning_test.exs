@@ -334,7 +334,7 @@ defmodule Kernel.WarningTest do
   test :undefined_module_attribute_with_file do
     assert capture_err(fn ->
       Code.load_file(fixture_path("attribute_warning.ex"))
-    end) =~ "attribute_warning.ex:2: AttributeWarning (module) warning: undefined module attribute @foo, please remove access to @foo or explicitly set it to nil before access"
+    end) =~ "attribute_warning.ex:2: warning: undefined module attribute @foo, please remove access to @foo or explicitly set it to nil before access"
   after
     purge AttributeWarning
   end

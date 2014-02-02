@@ -777,8 +777,10 @@ defmodule Module do
         cond do
           :lists.member(key, acc) ->
             []
-          is_list(warn) ->
-            :elixir_errors.warn Exception.format_caller(warn), "undefined module attribute @#{key}, " <>
+          is_list(warn) && (entry = List.first(warn)) ->
+            opts = elem(entry, size(entry) - 1)
+            info = Exception.format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line))
+            :elixir_errors.warn info, "undefined module attribute @#{key}, " <>
               "please remove access to @#{key} or explicitly set it to nil before access\n"
             nil
           true ->
