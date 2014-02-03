@@ -184,21 +184,11 @@ defmodule Version do
     end
   end
 
-  @doc """
-  Convert a version to a `Version.matchable`
-
-  ## Examples
-
-      iex> Version.to_matchable("2.0.1-alpha.1")
-      {2, 0, 1, ["alpha", 1]}
-
-  """
-  @spec to_matchable(String.t | Schema.t) :: matchable
-  def to_matchable(Schema[major: major, minor: minor, patch: patch, pre: pre]) do
+  defp to_matchable(Schema[major: major, minor: minor, patch: patch, pre: pre]) do
     { major, minor, patch, pre }
   end
 
-  def to_matchable(string) do
+  defp to_matchable(string) do
     case Version.Parser.parse_version(string) do
       { :ok, vsn } -> vsn
       :error -> raise InvalidVersion, message: string
