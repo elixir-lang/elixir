@@ -28,6 +28,12 @@ defmodule Mix.DepsTest do
     end
   end
 
+  defmodule InvalidDepsReq do
+    def project do
+      [ deps: [ { :ok, "+- 0.1.0", github: "elixir-lang/ok" } ] ]
+    end
+  end
+
   test "extracts all dependencies from the given project" do
     Mix.Project.push DepsApp
 
@@ -73,6 +79,16 @@ defmodule Mix.DepsTest do
         assert nil?(dep.manager)
         { dep, acc or true }
       end)
+  end
+
+  test "raises on invalid deps req" do
+    Mix.Project.push InvalidDepsReq
+
+    in_fixture "deps_status", fn ->
+      assert_raise Mix.Error, %r"Invalid requirement", fn ->
+        Mix.Deps.loaded
+      end
+    end
   end
 
   defmodule NestedDepsApp do

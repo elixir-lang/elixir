@@ -32,6 +32,12 @@ defmodule Mix.Tasks.Compile.AppTest do
     end
   end
 
+  defmodule InvalidVsnProject do
+    def project do
+      [app: :invalid_vsn_project, version: "0.3"]
+    end
+  end
+
   test "generates .app file when changes happen" do
     Mix.Project.push MixTest.Case.Sample
 
@@ -98,6 +104,16 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert properties[:description] == 'sample'
 
       assert Mix.Tasks.Compile.App.run([]) == :noop
+    end
+  end
+
+  test "raise on invalid version" do
+    Mix.Project.push InvalidVsnProject
+
+    in_fixture "no_mixfile", fn ->
+      assert_raise Mix.Error, "Expected :version to be a SemVer version", fn ->
+        Mix.Tasks.Compile.App.run([])
+      end
     end
   end
 end

@@ -26,100 +26,113 @@ defmodule VersionTest do
     assert :lt == V.compare("1.0.0-0",   "1.0.0-a")
     assert :lt == V.compare("1.0.0-a.a", "1.0.0-a.b")
 
-    assert :eq == V.compare("1.0.0", "1.0.0")
+    assert :eq == V.compare("1.0.0",     "1.0.0")
     assert :eq == V.compare("1.0.0-dev", "1.0.0-dev")
-    assert :eq == V.compare("1.0.0-a", "1.0.0-a")
+    assert :eq == V.compare("1.0.0-a",   "1.0.0-a")
+  end
+
+  test "invalid compare" do
+    assert_raise V.InvalidVersion, fn ->
+      V.compare("1.0", "1.0.0")
+    end
+
+    assert_raise V.InvalidVersion, fn ->
+      V.compare("1.0.0-dev", "1.0")
+    end
+
+    assert_raise V.InvalidVersion, fn ->
+      V.compare("foo", "1.0.0-a")
+    end
   end
 
   test "lexes specifications properly" do
     assert P.lexer("== != > >= < <= ~>", []) == [:'==', :'!=', :'>', :'>=', :'<', :'<=', :'~>']
-    assert P.lexer("2.3", []) == [:'==', "2.3"]
-    assert P.lexer("!2.3", []) == [:'!=', "2.3"]
-    assert P.lexer(">>=", []) == [:'>', :'>=']
-    assert P.lexer(">2.4", []) == [:'>', "2.4"]
-    assert P.lexer("    >     2.4", []) == [:'>', "2.4"]
-  end
-
-  test "valid requirement" do
-    assert V.valid_requirement?("2.3")
-    refute V.valid_requirement?("> >= 2.3")
-    refute V.valid_requirement?("> 2.3 and")
-    refute V.valid_requirement?("> 2.3 or and 4.3")
-    assert V.valid_requirement?("> 2.4 and 4.5")
-    refute V.valid_requirement?("& 1.0.0")
-  end
-
-  test "valid version" do
-    assert V.valid?("1.0.0")
-    assert V.valid?("1.0.0-beep+boop")
-    assert V.valid?("1.0.0+boop")
-    refute V.valid?("1.0.")
-    refute V.valid?("1.2.b")
-    refute V.valid?("abc")
-    refute V.valid?("-beep")
+    assert P.lexer("2.3.0", [])              == [:'==', "2.3.0"]
+    assert P.lexer("!2.3.0", [])             == [:'!=', "2.3.0"]
+    assert P.lexer(">>=", [])                == [:'>', :'>=']
+    assert P.lexer(">2.4.0", [])             == [:'>', "2.4.0"]
+    assert P.lexer("    >     2.4.0", [])    == [:'>', "2.4.0"]
   end
 
   test "parse" do
-    assert V.Schema[major: 1, minor: 0, patch: 0] = V.parse("1")
-    assert V.Schema[major: 1, minor: 2, patch: 0] = V.parse("1.2")
-    assert V.Schema[major: 1, minor: 2, patch: 3] = V.parse("1.2.3")
-    assert V.Schema[major: 1, minor: 4, patch: 0, pre: "5-g3318bd5"] = V.parse("1.4-5-g3318bd5")
+    assert { :ok, V.Schema[major: 1, minor: 2, patch: 3] } = V.parse("1.2.3")
+    assert { :ok, V.Schema[major: 1, minor: 4, patch: 5] } = V.parse("1.4.5+ignore")
+    assert { :ok, V.Schema[major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]] } = V.parse("1.4.5-6-g3318bd5")
+    assert { :ok, V.Schema[major: 1, minor: 4, patch: 5, pre: [6, 7, "eight"]] } = V.parse("1.4.5-6.7.eight")
+    assert { :ok, V.Schema[major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]] } = V.parse("1.4.5-6-g3318bd5+ignore")
+
+    assert :error = V.parse("foobar")
+    assert :error = V.parse("2.3")
+    assert :error = V.parse("2")
+    assert :error = V.parse("2.3.0-01")
+  end
+
+  test "invalid match" do
+    assert_raise V.InvalidVersion, fn ->
+      V.match?("foo", "2.3.0")
+    end
+
+    assert_raise V.InvalidVersion, fn ->
+      V.match?("2.3", "2.3.0")
+    end
+
+    assert_raise V.InvalidRequirement, fn ->
+      V.match?("2.3.0", "foo")
+    end
+
+    assert_raise V.InvalidRequirement, fn ->
+      V.match?("2.3.0", "2.3")
+    end
   end
 
   test "==" do
-    assert V.match?("2.3", "2.3")
-    refute V.match?("2.4", "2.3")
+    assert V.match?("2.3.0", "2.3.0")
+    refute V.match?("2.4.0", "2.3.0")
 
-    assert V.match?("2.3", "== 2.3")
-    refute V.match?("2.4", "== 2.3")
+    assert V.match?("2.3.0", "== 2.3.0")
+    refute V.match?("2.4.0", "== 2.3.0")
 
     assert V.match?("1.0.0", "1.0.0")
-    assert V.match?("1.0.0", "1.0")
+    assert V.match?("1.0.0", "1.0.0")
 
     assert V.match?("1.2.3-alpha", "1.2.3-alpha")
-
-    assert V.match?("iliketrains", "iliketrains")
-    assert V.match?("1.2.3.4", "1.2.3.4")
 
     assert V.match?("0.9.3", "== 0.9.3+dev")
   end
 
   test "!=" do
-    assert V.match?("2.4", "!2.3")
-    refute V.match?("2.3", "!2.3")
+    assert V.match?("2.4.0", "!2.3.0")
+    refute V.match?("2.3.0", "!2.3.0")
 
-    assert V.match?("2.4", "!= 2.3")
-    refute V.match?("2.3", "!= 2.3")
+    assert V.match?("2.4.0", "!= 2.3.0")
+    refute V.match?("2.3.0", "!= 2.3.0")
   end
 
   test ">" do
-    assert V.match?("2.4", "> 2.3")
-    refute V.match?("2.2", "> 2.3")
-    refute V.match?("2.3", "> 2.3")
+    assert V.match?("2.4.0", "> 2.3.0")
+    refute V.match?("2.2.0", "> 2.3.0")
+    refute V.match?("2.3.0", "> 2.3.0")
 
     assert V.match?("1.2.3", "> 1.2.3-alpha")
     assert V.match?("1.2.3-alpha.1", "> 1.2.3-alpha")
     assert V.match?("1.2.3-alpha.beta.sigma", "> 1.2.3-alpha.beta")
     refute V.match?("1.2.3-alpha.10", "< 1.2.3-alpha.1")
     refute V.match?("0.10.2-dev", "> 0.10.2")
-
-    refute V.match?("1.0.0-dev", "> 1.0.0")
-    refute V.match?("0.1.2", "> 1.2.3-dev")
   end
 
   test ">=" do
-    assert V.match?("2.4", ">= 2.3")
-    refute V.match?("2.2", ">= 2.3")
-    assert V.match?("2.3", ">= 2.3")
+    assert V.match?("2.4.0", ">= 2.3.0")
+    refute V.match?("2.2.0", ">= 2.3.0")
+    assert V.match?("2.3.0", ">= 2.3.0")
 
-    assert V.match?("2.0", ">= 1.0")
-    assert V.match?("1.0.0", ">= 1.0")
+    assert V.match?("2.0.0", ">= 1.0.0")
+    assert V.match?("1.0.0", ">= 1.0.0")
   end
 
   test "<" do
-    assert V.match?("2.2", "< 2.3")
-    refute V.match?("2.4", "< 2.3")
-    refute V.match?("2.3", "< 2.3")
+    assert V.match?("2.2.0", "< 2.3.0")
+    refute V.match?("2.4.0", "< 2.3.0")
+    refute V.match?("2.3.0", "< 2.3.0")
 
     assert V.match?("0.10.2-dev", "< 0.10.2")
 
@@ -128,46 +141,52 @@ defmodule VersionTest do
   end
 
   test "<=" do
-    assert V.match?("2.2", "<= 2.3")
-    refute V.match?("2.4", "<= 2.3")
-    assert V.match?("2.3", "<= 2.3")
+    assert V.match?("2.2.0", "<= 2.3.0")
+    refute V.match?("2.4.0", "<= 2.3.0")
+    assert V.match?("2.3.0", "<= 2.3.0")
   end
 
   test "~>" do
-    assert V.match?("3.0", "~> 3.0")
-    assert V.match?("3.2", "~> 3.0")
-    refute V.match?("4.0", "~> 3.0")
-    refute V.match?("4.4", "~> 3.0")
+    assert V.match?("3.0.0", "~> 3.0")
+    assert V.match?("3.2.0", "~> 3.0")
+    refute V.match?("4.0.0", "~> 3.0")
+    refute V.match?("4.4.0", "~> 3.0")
 
     assert V.match?("3.0.2", "~> 3.0.0")
     assert V.match?("3.0.0", "~> 3.0.0")
-    refute V.match?("3.1", "~> 3.0.0")
-    refute V.match?("3.4", "~> 3.0.0")
+    refute V.match?("3.1.0", "~> 3.0.0")
+    refute V.match?("3.4.0", "~> 3.0.0")
 
-    assert V.match?("3.6", "~> 3.5")
-    assert V.match?("3.5", "~> 3.5")
-    refute V.match?("4.0", "~> 3.5")
-    refute V.match?("5.0", "~> 3.5")
+    assert V.match?("3.6.0", "~> 3.5")
+    assert V.match?("3.5.0", "~> 3.5")
+    refute V.match?("4.0.0", "~> 3.5")
+    refute V.match?("5.0.0", "~> 3.5")
 
     assert V.match?("3.5.2", "~> 3.5.0")
     assert V.match?("3.5.4", "~> 3.5.0")
-    refute V.match?("3.6", "~> 3.5.0")
+    refute V.match?("3.6.0", "~> 3.5.0")
     refute V.match?("3.6.3", "~> 3.5.0")
 
     assert V.match?("0.9.3", "~> 0.9.3-dev")
     refute V.match?("0.10.0", "~> 0.9.3-dev")
 
     refute V.match?("0.3.0-dev", "~> 0.2.0")
+
+    assert_raise V.InvalidRequirement, fn ->
+      V.match?("3.0.0", "~> 3")
+    end
   end
 
   test "and" do
-    assert V.match?("0.9.3", "> 0.9 and < 0.10")
-    refute V.match?("0.10.2", "> 0.9 and < 0.10")
+    assert V.match?("0.9.3", "> 0.9.0 and < 0.10.0")
+    refute V.match?("0.10.2", "> 0.9.0 and < 0.10.0")
   end
 
   test "or" do
     assert V.match?("0.9.1", "0.9.1 or 0.9.3 or 0.9.5")
     assert V.match?("0.9.3", "0.9.1 or 0.9.3 or 0.9.5")
     assert V.match?("0.9.5", "0.9.1 or 0.9.3 or 0.9.5")
+
+    refute V.match?("0.9.6", "0.9.1 or 0.9.3 or 0.9.5")
   end
 end
