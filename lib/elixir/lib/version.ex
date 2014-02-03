@@ -49,6 +49,10 @@ defmodule Version do
 
   @type t :: String.t | Version.Schema.t
   @type requirement :: String.t | Version.Requirement.t
+  @type matchable :: { major :: String.t | non_neg_integer,
+                       minor :: non_neg_integer | nil,
+                       patch :: non_neg_integer | nil,
+                       pre   :: [String.t] }
 
   import Kernel, except: [match?: 2]
 
@@ -83,21 +87,18 @@ defmodule Version do
 
   """
   @spec match?(t, requirement) :: boolean
-  def match?(version, requirement) when is_binary(requirement) do
-    try do
-      match?(version, Version.Parser.parse_requirement(requirement))
-    catch
-      :throw, _ -> raise InvalidRequirement, message: requirement
+  def match?(vsn, req) when is_binary(req) do
+    case parse_requirement(req) do
+      { :ok, req } ->
+        match?(vsn, req)
+      :error ->
+        raise InvalidRequirement, message: req
     end
   end
 
   def match?(version, Requirement[matchspec: spec]) do
-    try do
-      { :ok, result } = :ets.test_ms(to_matchable(version), spec)
-      result != false
-    catch
-      :throw, _ -> raise InvalidVersion, message: version
-    end
+    { :ok, result } = :ets.test_ms(to_matchable(version), spec)
+    result != false
   end
 
   @doc """
@@ -121,23 +122,11 @@ defmodule Version do
 
   """
   @spec compare(String.t | Schema.t, String.t | Schema.t) :: :gt | :eq | :lt
-  def compare(vsn1, vsn2) when is_binary(vsn1) do
-    try do
-      compare(Version.Parser.parse_version(vsn1), vsn2)
-     catch
-      :throw, _ -> raise InvalidVersion, message: vsn1
-    end
+  def compare(vsn1, vsn2) do
+    do_compare(to_matchable(vsn1), to_matchable(vsn2))
   end
 
-  def compare(vsn1, vsn2) when is_binary(vsn2) do
-    try do
-      compare(vsn1, Version.Parser.parse_version(vsn2))
-     catch
-      :throw, _ -> raise InvalidVersion, message: vsn2
-    end
-  end
-
-  def compare({ major1, minor1, patch1, pre1 }, { major2, minor2, patch2, pre2 }) do
+  defp do_compare({ major1, minor1, patch1, pre1 }, { major2, minor2, patch2, pre2 }) do
     cond do
       { major1, minor1, patch1 } > { major2, minor2, patch2 } -> :gt
       { major1, minor1, patch1 } < { major2, minor2, patch2 } -> :lt
@@ -163,11 +152,11 @@ defmodule Version do
   """
   @spec parse(String.t) :: { :ok, Schema.t } | :error
   def parse(string) when is_binary(string) do
-    try do
-      matchable = Version.Parser.parse_version(string)
-      { :ok, from_matchable(matchable).source(string).build(get_build(string)) }
-     catch
-      :throw, _ -> :error
+    case Version.Parser.parse_version(string) do
+      { :ok, matchable } ->
+        { :ok, from_matchable(matchable).source(string).build(get_build(string)) }
+     :error ->
+       :error
     end
   end
 
@@ -183,25 +172,47 @@ defmodule Version do
       :error
 
   """
-  @spec parse(String.t) :: { :ok, Requirement.t } | :error
+  @spec parse_requirement(String.t) :: { :ok, Requirement.t } | :error
   def parse_requirement(string) when is_binary(string) do
-    try do
-      { :ok, Version.Parser.parse_requirement(string) }
-     catch
-      :throw, _ -> :error
+    case Version.Parser.parse_requirement(string) do
+      { :ok, spec } ->
+        { :ok, Requirement[source: string, matchspec: spec] }
+      :error ->
+        :error
     end
   end
 
-  @doc false
+  @doc """
+  Convert a version to a `Version.matchable`
+
+  ## Examples
+
+      iex> Version.to_matchable("2.0.1-alpha.1")
+      {2, 0, 1, ["alpha", 1]}
+
+  """
+  @spec to_matchable(String.t | Schema.t) :: matchable
   def to_matchable(Schema[major: major, minor: minor, patch: patch, pre: pre]) do
     { major, minor, patch, pre }
   end
 
   def to_matchable(string) do
-    Version.Parser.parse_version(string)
+    case Version.Parser.parse_version(string) do
+      { :ok, vsn } -> vsn
+      :error -> raise InvalidVersion, message: string
+    end
   end
 
-  @doc false
+  @doc """
+  Convert a matchable to a `Version.Schema`.
+
+  ## Examples
+
+      iex> Version.from_matchable({2, 0, 1, ["alpha", 1]})
+      #Version.Schema<2.0.1-alpha.1>
+
+  """
+  @spec from_matchable(matchable) :: Schema.t
   def from_matchable({ major, minor, patch, pre }) do
     Version.Schema[major: major, minor: minor, patch: patch, pre: pre]
   end
@@ -294,13 +305,7 @@ defmodule Version do
     @spec parse_requirement(String.t) :: Version.Requirement.t
     def parse_requirement(source) do
       lexed = lexer(source, [])
-
-      if valid_requirement?(lexed) do
-        spec = to_matchspec(lexed)
-        Requirement[source: source, matchspec: spec]
-      else
-        throw :invalid_requirement
-      end
+      to_matchspec(lexed)
     end
 
     defp nillify(""), do: nil
@@ -314,32 +319,40 @@ defmodule Version do
         pre   = nillify(pre)
 
         if nil?(minor) or (nil?(patch) and not approximate?) do
-          throw :invalid_version
+          :error
         else
           major = binary_to_integer(major)
           minor = binary_to_integer(minor)
           patch = patch && binary_to_integer(patch)
-          pre   = pre && parse_pre(pre) || []
 
-          { major, minor, patch, pre }
+          case parse_pre(pre) do
+            { :ok, pre } ->
+              { :ok, { major, minor, patch, pre } }
+            :error ->
+              :error
+          end
         end
       else
-        throw :invalid_version
+        :error
       end
     end
 
-    @spec parse_pre(String.t) :: [String.t | integer]
-    def parse_pre(pre) do
-      String.split(pre, ".") |> Enum.map fn piece ->
-        cond do
-          piece =~ %r/^(0|[1-9][0-9]*)$/ ->
-            binary_to_integer(piece)
-          piece =~ %r/^[0-9]*$/ ->
-            throw :invalid_version
-          true ->
-            piece
-        end
+    defp parse_pre(nil), do: { :ok, [] }
+    defp parse_pre(pre), do: parse_pre(String.split(pre, "."), [])
+
+    defp parse_pre([piece|t], acc) do
+      cond do
+        piece =~ %r/^(0|[1-9][0-9]*)$/ ->
+          parse_pre(t, [binary_to_integer(piece)|acc])
+        piece =~ %r/^[0-9]*$/ ->
+          :error
+        true ->
+          parse_pre(t, [piece|acc])
       end
+    end
+
+    defp parse_pre([], acc) do
+      { :ok, Enum.reverse(acc) }
     end
 
     defp valid_requirement?([]), do: false
@@ -385,26 +398,29 @@ defmodule Version do
     end
 
     defp to_matchspec(lexed) do
-      first = to_condition(lexed)
-      rest  = Enum.drop(lexed, 2)
-
-      [{{ :'$1', :'$2', :'$3', :'$4' }, [to_condition(first, rest)], [:'$_'] }]
+      if valid_requirement?(lexed) do
+        first = to_condition(lexed)
+        rest  = Enum.drop(lexed, 2)
+        { :ok, [{{ :'$1', :'$2', :'$3', :'$4' }, [to_condition(first, rest)], [:'$_'] }] }
+      else
+        :error
+      end
+    catch
+      :invalid_matchspec -> :error
     end
 
     defp to_condition([:'==', version | _]) do
-      version = parse_version(version)
-
+      version = parse_condition(version)
       { :'==', :'$_', { :const, version } }
     end
 
     defp to_condition([:'!=', version | _]) do
-      version = parse_version(version)
-
+      version = parse_condition(version)
       { :'/=', :'$_', { :const, version } }
     end
 
     defp to_condition([:'~>', version | _]) do
-      from = parse_version(version, true)
+      from = parse_condition(version, true)
       to   = approximate_upper(from)
 
       { :andalso, to_condition([:'>=', matchable_to_string(from)]),
@@ -412,7 +428,7 @@ defmodule Version do
     end
 
     defp to_condition([:'>', version | _]) do
-      { major, minor, patch, pre } = parse_version(version)
+      { major, minor, patch, pre } = parse_condition(version)
 
       { :andalso, { :not, { :is_binary, :'$1' } },
                   { :orelse, { :'>', {{ :'$1', :'$2', :'$3' }},
@@ -428,7 +444,7 @@ defmodule Version do
     end
 
     defp to_condition([:'>=', version | _]) do
-      matchable = parse_version(version)
+      matchable = parse_condition(version)
 
       { :orelse, { :andalso, { :not, { :is_binary, :'$1' } },
                              { :'==', :'$_', { :const, matchable } } },
@@ -436,7 +452,7 @@ defmodule Version do
     end
 
     defp to_condition([:'<', version | _]) do
-      { major, minor, patch, pre } = parse_version(version)
+      { major, minor, patch, pre } = parse_condition(version)
 
       { :andalso, { :not, { :is_binary, :'$1' } },
                   { :orelse, { :'<', {{ :'$1', :'$2', :'$3' }},
@@ -452,7 +468,7 @@ defmodule Version do
     end
 
     defp to_condition([:'<=', version | _]) do
-      matchable = parse_version(version)
+      matchable = parse_condition(version)
 
       { :orelse, { :andalso, { :not, { :is_binary, :'$1' } },
                              { :'==', :'$_', { :const, matchable } } },
@@ -469,6 +485,13 @@ defmodule Version do
 
     defp to_condition(current, [:'||', operator, version | rest]) do
       to_condition({ :orelse, current, to_condition([operator, version]) }, rest)
+    end
+
+    defp parse_condition(version, approximate? // false) do
+      case parse_version(version, approximate?) do
+        { :ok, version } -> version
+        :error -> throw :invalid_matchspec
+      end
     end
 
     defp matchable_to_string({ major, minor, patch, pre }) do
