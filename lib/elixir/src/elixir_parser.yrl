@@ -1,7 +1,7 @@
 Nonterminals
   grammar expr_list
-  expr container_expr block_expr no_parens_expr identifier_expr max_expr
-  bracket_expr bracket_at_expr base_expr matched_expr unmatched_expr
+  expr container_expr block_expr no_parens_expr no_parens_one_expr max_expr
+  bracket_expr bracket_at_expr matched_expr unmatched_expr
   op_expr matched_op_expr no_parens_op_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol
   add_op_eol mult_op_eol exp_op_eol two_op_eol pipe_op_eol stab_op_eol
@@ -19,7 +19,7 @@ Nonterminals
   call_args_no_parens_kw_expr call_args_no_parens_kw_comma call_args_no_parens_kw
   dot_op dot_alias dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_bracket_identifier
-  var list list_args bit_string tuple
+  list list_args bit_string tuple
   do_block fn_eol do_eol end_eol block_eol block_item block_list
   .
 
@@ -61,7 +61,7 @@ Nonassoc 300 unary_op_eol.    %% +, -, !, ^, not, &, ~~~
 Left     310 dot_call_op.
 Left     310 dot_op.          %% .
 Nonassoc 320 at_op_eol.       %% @ (op)
-Nonassoc 330 var.
+Nonassoc 330 dot_identifier.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
@@ -105,13 +105,12 @@ expr -> unmatched_expr : '$1'.
 %% segments and act accordingly.
 matched_expr -> matched_expr matched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 matched_expr -> matched_expr no_parens_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
-matched_expr -> unary_op_eol number : build_unary_op('$1', ?exprs('$2')).
 matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> unary_op_eol no_parens_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol no_parens_expr : build_unary_op('$1', '$2').
-matched_expr -> bracket_at_expr : '$1'.
-matched_expr -> identifier_expr : '$1'.
+matched_expr -> no_parens_one_expr : '$1'.
+matched_expr -> max_expr : '$1'.
 
 no_parens_expr -> dot_op_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
 no_parens_expr -> dot_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
@@ -173,19 +172,38 @@ matched_op_expr -> pipe_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> comp_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> arrow_op_eol matched_expr : { '$1', '$2' }.
 
-identifier_expr -> dot_op_identifier call_args_no_parens_one : build_identifier('$1', '$2').
-identifier_expr -> dot_identifier call_args_no_parens_one : build_identifier('$1', '$2').
-identifier_expr -> dot_do_identifier : build_identifier('$1', nil).
-identifier_expr -> var : build_identifier('$1', nil).
-identifier_expr -> max_expr : '$1'.
+no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_identifier('$1', '$2').
+no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_identifier('$1', '$2').
+no_parens_one_expr -> dot_do_identifier : build_identifier('$1', nil).
+no_parens_one_expr -> dot_identifier : build_identifier('$1', nil).
 
-max_expr -> fn_eol stab end_eol : build_fn('$1', build_stab(lists:reverse('$2'))).
-max_expr -> open_paren stab close_paren : build_stab(lists:reverse('$2')).
+%% From this point on, we don't have do blocks,
+%% binary operators nor function calls without parens.
+max_expr -> bracket_at_expr : '$1'.
 max_expr -> bracket_expr : '$1'.
 max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 max_expr -> parens_call call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3').
+max_expr -> unary_op_eol number : build_unary_op('$1', ?exprs('$2')).
+
+max_expr -> aliases : { '__aliases__', meta('$1', 0), ?exprs('$1') }.
 max_expr -> dot_alias : '$1'.
-max_expr -> base_expr : '$1'.
+
+max_expr -> fn_eol stab end_eol : build_fn('$1', build_stab(lists:reverse('$2'))).
+max_expr -> open_paren stab close_paren : build_stab(lists:reverse('$2')).
+
+max_expr -> atom : ?exprs('$1').
+max_expr -> number : ?exprs('$1').
+max_expr -> signed_number : { element(4, '$1'), meta('$1'), ?exprs('$1') }.
+max_expr -> list : element(1, '$1').
+max_expr -> tuple : '$1'.
+max_expr -> 'true' : ?id('$1').
+max_expr -> 'false' : ?id('$1').
+max_expr -> 'nil' : ?id('$1').
+max_expr -> bin_string  : build_bin_string('$1').
+max_expr -> list_string : build_list_string('$1').
+max_expr -> atom_string : build_atom_string('$1').
+max_expr -> bit_string : '$1'.
+max_expr -> sigil : build_sigil('$1').
 
 bracket_expr -> dot_bracket_identifier list : build_access(build_identifier('$1', nil), '$2').
 bracket_expr -> max_expr list : build_access('$1', '$2').
@@ -194,23 +212,6 @@ bracket_at_expr -> at_op_eol dot_bracket_identifier list :
                      build_access(build_unary_op('$1', build_identifier('$2', nil)), '$3').
 bracket_at_expr -> at_op_eol max_expr list :
                      build_access(build_unary_op('$1', '$2'), '$3').
-bracket_at_expr -> bracket_at_expr list :
-                     build_access('$1', '$2').
-
-base_expr -> atom : ?exprs('$1').
-base_expr -> number : ?exprs('$1').
-base_expr -> signed_number : { element(4, '$1'), meta('$1'), ?exprs('$1') }.
-base_expr -> list : element(1, '$1').
-base_expr -> tuple : '$1'.
-base_expr -> 'true' : ?id('$1').
-base_expr -> 'false' : ?id('$1').
-base_expr -> 'nil' : ?id('$1').
-base_expr -> aliases : { '__aliases__', meta('$1', 0), ?exprs('$1') }.
-base_expr -> bin_string  : build_bin_string('$1').
-base_expr -> list_string : build_list_string('$1').
-base_expr -> atom_string : build_atom_string('$1').
-base_expr -> bit_string : '$1'.
-base_expr -> sigil : build_sigil('$1').
 
 %% Blocks
 
@@ -256,8 +257,6 @@ block_list -> block_item : ['$1'].
 block_list -> block_item block_list : ['$1'|'$2'].
 
 %% Helpers
-
-var -> dot_identifier : '$1'.
 
 open_paren -> '('      : '$1'.
 open_paren -> '(' eol  : '$1'.
