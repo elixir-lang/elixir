@@ -7,9 +7,10 @@ Nonterminals
   add_op_eol mult_op_eol exp_op_eol two_op_eol pipe_op_eol stab_op_eol
   arrow_op_eol match_op_eol when_op_eol in_op_eol in_match_op_eol
   open_paren close_paren empty_paren
-  open_bracket close_bracket
-  open_curly close_curly
-  open_bit close_bit
+  list list_args open_bracket close_bracket
+  tuple open_curly close_curly
+  bit_string open_bit close_bit
+  map map_op map_args struct_op struct_expr
   container_args_base container_args
   call_args_parens_base call_args_parens parens_call
   call_args_no_parens_one call_args_no_parens_expr call_args_no_parens_comma_expr
@@ -19,7 +20,6 @@ Nonterminals
   call_args_no_parens_kw_expr call_args_no_parens_kw_comma call_args_no_parens_kw
   dot_op dot_alias dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_bracket_identifier
-  list list_args bit_string tuple
   do_block fn_eol do_eol end_eol block_eol block_item block_list
   .
 
@@ -32,7 +32,7 @@ Terminals
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
   dual_op add_op mult_op exp_op two_op pipe_op stab_op when_op
   'true' 'false' 'nil' 'do' eol ',' '.'
-  '(' ')' '[' ']' '{' '}' '<<' '>>'
+  '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
   .
 
 Rootsymbol grammar.
@@ -60,7 +60,7 @@ Left     250 exp_op_eol.      %% ^ (op) (e.g ^^^)
 Nonassoc 300 unary_op_eol.    %% +, -, !, ^, not, &, ~~~
 Left     310 dot_call_op.
 Left     310 dot_op.          %% .
-Nonassoc 320 at_op_eol.       %% @ (op)
+Nonassoc 320 at_op_eol.       %% @
 Nonassoc 330 dot_identifier.
 
 %%% MAIN FLOW OF EXPRESSIONS
@@ -185,9 +185,7 @@ max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 max_expr -> parens_call call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3').
 max_expr -> unary_op_eol number : build_unary_op('$1', ?exprs('$2')).
 
-max_expr -> aliases : { '__aliases__', meta('$1', 0), ?exprs('$1') }.
 max_expr -> dot_alias : '$1'.
-
 max_expr -> fn_eol stab end_eol : build_fn('$1', build_stab(lists:reverse('$2'))).
 max_expr -> open_paren stab close_paren : build_stab(lists:reverse('$2')).
 
@@ -195,6 +193,7 @@ max_expr -> atom : ?exprs('$1').
 max_expr -> number : ?exprs('$1').
 max_expr -> signed_number : { element(4, '$1'), meta('$1'), ?exprs('$1') }.
 max_expr -> list : element(1, '$1').
+max_expr -> map : '$1'.
 max_expr -> tuple : '$1'.
 max_expr -> 'true' : ?id('$1').
 max_expr -> 'false' : ?id('$1').
@@ -342,6 +341,7 @@ dot_op -> '.' eol : '$1'.
 dot_identifier -> identifier : '$1'.
 dot_identifier -> matched_expr dot_op identifier : build_dot('$2', '$1', '$3').
 
+dot_alias -> aliases : { '__aliases__', meta('$1', 0), ?exprs('$1') }.
 dot_alias -> matched_expr dot_op aliases : build_dot_alias('$2', '$1', '$3').
 
 dot_op_identifier -> op_identifier : '$1'.
@@ -444,6 +444,30 @@ list -> open_bracket list_args close_bracket : { '$2', ?line('$1') }.
 
 tuple -> open_curly '}' : build_tuple('$1', []).
 tuple -> open_curly container_args close_curly :  build_tuple('$1', '$2').
+
+% Map and structs
+% Only well formed calls, aliases, atoms and unary operators
+% are allowed in struct expressions.
+
+map_op -> '%{}' : '$1'.
+map_op -> '%{}' eol : '$1'.
+
+map_args -> open_curly '}' : { '%{}', meta('$1'), [] }.
+map_args -> open_curly kw close_curly : { '%{}', meta('$1'), '$2' }.
+
+struct_op -> '%' : '$1'.
+struct_op -> '%' eol : '$1'.
+
+struct_expr -> atom : ?exprs('$1').
+struct_expr -> dot_identifier : build_identifier('$1', nil).
+struct_expr -> dot_alias : '$1'.
+struct_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
+struct_expr -> at_op_eol struct_expr : build_unary_op('$1', '$2').
+struct_expr -> unary_op_eol struct_expr : build_unary_op('$1', '$2').
+
+map -> map_op map_args : '$2'.
+map -> struct_op struct_expr map_args : { '%', meta('$1'), ['$2', '$3'] }.
+map -> struct_op struct_expr eol map_args : { '%', meta('$1'), ['$2', '$4'] }.
 
 % Bitstrings
 

@@ -4,7 +4,8 @@
 -import(elixir_interpolation, [unescape_chars/1, unescape_tokens/1]).
 
 -define(container(T1, T2),
-  T1 == ${, T2 == $}
+  T1 == ${, T2 == $};
+  T1 == $[, T2 == $]
 ).
 
 -define(at_op(T),
@@ -245,17 +246,29 @@ tokenize([$:,T|String] = Original, Line, Scope, Tokens) when ?is_atom_start(T) -
       { error, Reason, Original, Tokens }
   end;
 
-% Atom identifiers/operators
+% %% Special atom identifiers / operators
 
 tokenize(":..." ++ Rest, Line, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, [{ atom, Line, '...' }|Tokens]);
-
-% ## Containers
 tokenize(":<<>>" ++ Rest, Line, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, [{ atom, Line, '<<>>' }|Tokens]);
-
+tokenize(":%{}" ++ Rest, Line, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, [{ atom, Line, '%{}' }|Tokens]);
+tokenize(":%" ++ Rest, Line, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, [{ atom, Line, '%' }|Tokens]);
 tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when ?container(T1, T2) ->
   tokenize(Rest, Line, Scope, [{ atom, Line, list_to_atom([T1,T2]) }|Tokens]);
+
+tokenize("...:" ++ Rest, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
+  tokenize(Rest, Line, Scope, [{ kw_identifier, Line, '...' }|Tokens]);
+tokenize("<<>>:" ++ Rest, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
+  tokenize(Rest, Line, Scope, [{ kw_identifier, Line, '<<>>' }|Tokens]);
+tokenize("%{}:" ++ Rest, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
+  tokenize(Rest, Line, Scope, [{ kw_identifier, Line, '%{}' }|Tokens]);
+tokenize("%:" ++ Rest, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
+  tokenize(Rest, Line, Scope, [{ kw_identifier, Line, '%' }|Tokens]);
+tokenize([T1,T2,$:|Rest], Line, Scope, Tokens) when ?container(T1, T2), ?is_space(hd(Rest)) ->
+  tokenize(Rest, Line, Scope, [{ kw_identifier, Line, list_to_atom([T1,T2]) }|Tokens]);
 
 % ## Three Token Operators
 tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when
@@ -375,7 +388,13 @@ tokenize([T|Rest], Line, Scope, Tokens) when ?match_op(T) ->
 tokenize([T|Rest], Line, Scope, Tokens) when ?pipe_op(T) ->
   handle_op(Rest, Line, pipe_op, list_to_atom([T]), Scope, Tokens);
 
-% Dot
+% Others
+
+tokenize([$%|T], Line, Scope, Tokens) ->
+  case strip_space(T, 0) of
+    { [${|_] = Rest, Counter } -> tokenize(Rest, Line + Counter, Scope, [{ '%{}', Line }|Tokens]);
+    { Rest, Counter }          -> tokenize(Rest, Line + Counter, Scope, [{ '%', Line }|Tokens])
+  end;
 
 tokenize([$.|T], Line, Scope, Tokens) ->
   { Rest, Counter } = strip_space(T, 0),
@@ -490,8 +509,8 @@ handle_unary_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Res
   tokenize(Rest, Line, Scope, [{ kw_identifier, Line, Op }|Tokens]);
 
 handle_unary_op(Rest, Line, Kind, Op, Scope, Tokens) ->
-  case strip_space(Rest, 0) of
-    { [$/|_], _ } -> tokenize(Rest, Line, Scope, [{ identifier, Line, Op }|Tokens]);
+  case strip_horizontal_space(Rest) of
+    [$/|_] -> tokenize(Rest, Line, Scope, [{ identifier, Line, Op }|Tokens]);
     _ -> tokenize(Rest, Line, Scope, [{ Kind, Line, Op }|Tokens])
   end.
 
@@ -499,8 +518,8 @@ handle_op([$:|Rest], Line, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Scope, [{ kw_identifier, Line, Op }|Tokens]);
 
 handle_op(Rest, Line, Kind, Op, Scope, Tokens) ->
-  case strip_space(Rest, 0) of
-    { [$/|_], _ } -> tokenize(Rest, Line, Scope, [{ identifier, Line, Op }|Tokens]);
+  case strip_horizontal_space(Rest) of
+    [$/|_] -> tokenize(Rest, Line, Scope, [{ identifier, Line, Op }|Tokens]);
     _ -> tokenize(Rest, Line, Scope, add_token_with_nl({ Kind, Line, Op }, Tokens))
   end.
 
