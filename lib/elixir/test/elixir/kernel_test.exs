@@ -3,14 +3,6 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule KernelTest do
   use ExUnit.Case, async: true
 
-  test :vars do
-    foo? = true
-    assert foo?
-
-    bar! = false
-    refute bar!
-  end
-
   test :match do
     assert ("abcd" =~ %r/c(d)/) == true
     assert ("abcd" =~ %r/e/) == false
@@ -29,7 +21,7 @@ defmodule KernelTest do
   end
 
   test :^ do
-    x = 1
+    x = List.first([1])
 
     assert_raise MatchError, fn ->
       { x, ^x } = { 2, 2 }
@@ -38,21 +30,21 @@ defmodule KernelTest do
   end
 
   test :match? do
-    assert match?(_, 1)
+    assert match?(_, List.first(1)) == true
     assert binding([:x]) == []
 
-    a = 0
-    assert match?(b when b > a, 1)
+    a = List.first([0])
+    assert match?(b when b > a, 1) == true
     assert binding([:b]) == []
 
-    refute match?(b when b > a, -1)
+    assert match?(b when b > a, -1) == false
     assert binding([:b]) == []
   end
 
   test :nil? do
-    assert nil?(nil)
-    refute nil?(0)
-    refute nil?(false)
+    assert nil?(nil) == true
+    assert nil?(0) == false
+    assert nil?(false) == false
   end
 
   test :in do
@@ -90,15 +82,15 @@ defmodule KernelTest do
   end
 
   test :in_in_case_guards do
-    assert case_in 1, [1,2,3]
-    assert case_in 1, 1..3
-    assert case_in 2, 1..3
-    assert case_in 3, 1..3
-    assert case_in -3, -1..-3
+    assert case_in(1, [1,2,3]) == true
+    assert case_in(1, 1..3) == true
+    assert case_in(2, 1..3) == true
+    assert case_in(3, 1..3) == true
+    assert case_in(-3, -1..-3) == true
   end
 
   test :paren do
-    assert nil?(())
+    assert nil?(()) == true
     assert ((); ();) == nil
     assert [ 1, (), 3 ] == [1, nil, 3 ]
     assert [do: ()] == [do: nil]
@@ -165,8 +157,8 @@ defmodule KernelTest do
 
   test :binding_on_match do
     x = 1
-    assert binding() = [x: 1]
-    refute binding() = [x: 2]
+    assert binding() == [x: 1]
+    refute binding() == [x: 2]
   end
 
   defmodule Conversions do
@@ -374,7 +366,7 @@ defmodule KernelTest do
     end
 
     test :invalid_match do
-      a = 3
+      a = List.first([3])
       assert_raise CaseClauseError, fn ->
         destructure [^a, _b, _c], a_list
       end

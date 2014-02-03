@@ -2,8 +2,8 @@ Code.require_file "../test_helper.exs", __DIR__
 
 defmodule ExUnit.AssertionsTest.Value do
   def tuple, do: { 2, 1 }
-  def happy?, do: false
-  def sad?, do: true
+  def falsy, do: false
+  def truthy, do: true
 end
 
 alias ExUnit.AssertionsTest.Value
@@ -12,7 +12,7 @@ defmodule ExUnit.AssertionsTest do
   use ExUnit.Case, async: true
 
   test "assert with true value" do
-    true = assert true
+    true = assert Value.truthy
   end
 
   test "assert with message when value is false" do
@@ -26,10 +26,10 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert when value evalutes to false" do
     try do
-      "This should never be tested" = assert Value.happy?
+      "This should never be tested" = assert Value.falsy
     rescue
       error in [ExUnit.ExpectationError] ->
-        "Expected Value.happy?() to be true. Instead got false" = error.message
+        "Expected Value.falsy() to be true. Instead got false" = error.message
     end
   end
 
@@ -55,30 +55,13 @@ defmodule ExUnit.AssertionsTest do
     false = refute false
   end
 
-  test "refute when value is true" do
+  test "refute when value evaluates to true" do
     try do
-      "This should never be tested" = refute true
+      refute Value.truthy
+      raise "refute was supposed to fail"
     rescue
       error in [ExUnit.ExpectationError] ->
-        "Expected true to be false. Instead got true" = error.message
-    end
-  end
-
-  test "refute with message when value is true" do
-    try do
-      "This should never be tested" = refute true, "This should be false"
-    rescue
-      error in [ExUnit.AssertionError] ->
-        "This should be false" = error.message
-    end
-  end
-
-  test "refute when value evalutes to false" do
-    try do
-      "This should never be tested" = refute Value.sad?
-    rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected Value.sad?() to be false. Instead got true" = error.message
+        "Expected Value.truthy() to be false. Instead got true" = error.message
     end
   end
 

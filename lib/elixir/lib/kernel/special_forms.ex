@@ -495,8 +495,8 @@ defmodule Kernel.SpecialForms do
   value, instead of rebinding. This can be done with the `^` special form:
 
       iex> x = 1
-      iex> ^x = 1
-      iex> ^x = 2
+      iex> ^x = List.first([1])
+      iex> ^x = List.first([2])
       ** (MatchError) no match of right hand side value: 2
 
   Note that `^` always refers to the value of x prior to the match. The
@@ -515,8 +515,8 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      iex> quote do: sum(1, 2, 3)
-      { :sum, [], [1, 2, 3] }
+      quote do: sum(1, 2, 3)
+      #=> { :sum, [], [1, 2, 3] }
 
   ## Explanation
 

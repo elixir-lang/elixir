@@ -66,7 +66,7 @@ defmodule ExUnitTest do
       use ExUnit.Case, async: false
 
       test "true" do
-        assert true
+        :ok
       end
 
       test "false" do
@@ -96,16 +96,16 @@ defmodule ExUnitTest do
     defmodule ParityTest do
       use ExUnit.Case
 
-      test "zero", do: assert true
+      test "zero", do: :ok
 
       @tag even: false
-      test "one", do: assert true
+      test "one", do: :ok
 
       @tag even: true
-      test "two", do: assert true
+      test "two", do: :ok
 
       @tag even: false
-      test "three", do: assert true
+      test "three", do: :ok
     end
 
     test_cases = ExUnit.Server.start_run

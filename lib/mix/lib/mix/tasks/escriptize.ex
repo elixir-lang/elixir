@@ -164,7 +164,7 @@ defmodule Mix.Tasks.Escriptize do
         def main(args) do
           case :application.start(:elixir) do
             :ok ->
-              start_app
+              start_app(@app)
               args = Enum.map(args, &String.from_char_list!(&1))
               Kernel.CLI.run fn -> @module.main(args) end, true
             _   ->
@@ -173,14 +173,16 @@ defmodule Mix.Tasks.Escriptize do
           end
         end
 
-        defp start_app do
-          if app = @app do
-            case Application.Behaviour.start(app) do
-              :ok -> :ok
-              { :error, reason } ->
-                IO.puts :stderr, IO.ANSI.escape("%{red, bright} Could not start application #{app}: #{inspect reason}.")
-                System.halt(1)
-            end
+        defp start_app(nil) do
+          :ok
+        end
+
+        defp start_app(app) do
+          case Application.Behaviour.start(app) do
+            :ok -> :ok
+            { :error, reason } ->
+              IO.puts :stderr, IO.ANSI.escape("%{red, bright} Could not start application #{app}: #{inspect reason}.")
+              System.halt(1)
           end
         end
       end

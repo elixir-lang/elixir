@@ -12,7 +12,7 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test :list_comprehensions_with_truthy_object do
-    assert [2, 4, 6] == lc x inlist [1, 2, 3], 1, do: x * 2
+    assert [2, 4, 6] == lc x inlist [1, 2, 3], List.first([x]), do: x * 2
   end
 
   test :list_comprehensions_with_inlist_of_bins do
@@ -48,7 +48,7 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test :bit_comprehensions_with_truthy_object do
-    assert <<2, 4, 6>> == bc x inlist [1, 2, 3], 1, do: <<x * 2>>
+    assert <<2, 4, 6>> == bc x inlist [1, 2, 3], List.first([1]), do: <<x * 2>>
   end
 
   test :bit_comprehensions_with_inlist_of_bins do

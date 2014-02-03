@@ -1494,13 +1494,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> !1
+      iex> !Enum.empty?([])
       false
-      iex> ![1, 2, 3]
-      false
-      iex> !false
-      true
-      iex> !nil
+      iex> !List.first([])
       true
 
   """
@@ -2305,9 +2301,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> unless(1, do: "Hello")
+      iex> unless(Enum.empty?([]), do: "Hello")
       nil
-      iex> unless(false, do: "Hello")
+      iex> unless(Enum.empty?([1,2,3]), do: "Hello")
       "Hello"
 
   """
@@ -2393,12 +2389,15 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> true && true
+      iex> Enum.empty?([]) && Enum.empty?([])
       true
-      iex> nil && true
+
+      iex> List.first([]) && true
       nil
-      iex> true && 1
+
+      iex> Enum.empty?([]) && List.first([1])
       1
+
       iex> false && throw(:bad)
       false
 
@@ -2424,13 +2423,16 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> false || false
+      iex> Enum.empty?([1]) || Enum.empty?([1])
       false
-      iex> nil || true
+
+      iex> List.first([]) || true
       true
-      iex> false || 1
+
+      iex> Enum.empty?([1]) || 1
       1
-      iex> true || throw(:bad)
+
+      iex> Enum.empty?([]) || throw(:bad)
       true
 
   Notice that, unlike Erlang's `or` operator,

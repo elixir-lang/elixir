@@ -194,25 +194,25 @@ defmodule Kernel.RescueTest do
   test :badmatch_error do
     x = :example
     result = try do
-      ^x = :other
+      ^x = zero(0)
     rescue
       x in [MatchError] -> x.message
     end
 
-    assert result == "no match of right hand side value: :other"
+    assert result == "no match of right hand side value: 0"
   end
 
   test :case_clause_error do
     x = :example
     result = try do
-      case :other do
+      case zero(0) do
         ^x -> nil
       end
     rescue
       x in [CaseClauseError] -> x.message
     end
 
-    assert result == "no case clause matching: :other"
+    assert result == "no case clause matching: 0"
   end
 
   test :try_clause_error do

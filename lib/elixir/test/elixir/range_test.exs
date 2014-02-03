@@ -22,7 +22,7 @@ defmodule RangeTest do
   end
 
   test :is_range do
-    assert is_range(1..3)
+    assert is_range(range)
     refute is_range(not_range)
   end
 
@@ -45,6 +45,10 @@ defmodule RangeTest do
   test :inspect do
     assert inspect(1..3) == "1..3"
     assert inspect(3..1) == "3..1"
+  end
+
+  defp range do
+    1..3
   end
 
   defp not_range do
