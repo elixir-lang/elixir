@@ -7,6 +7,7 @@
 * Deprecations
 
 * Backwards incompatible changes
+  * [Version] The `Version` module now only works with SemVer. The functions `Version.parse/1` and `Version.parse_requirement/1` now return `{:ok,res} | :error` for the cases you want to handle non SemVer cases manually. All other functions will trigger errors on non semantics versions
 
 # v0.12.3 (2014-02-02)
 

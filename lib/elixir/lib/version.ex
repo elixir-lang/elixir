@@ -153,8 +153,10 @@ defmodule Version do
   @spec parse(String.t) :: { :ok, Schema.t } | :error
   def parse(string) when is_binary(string) do
     case Version.Parser.parse_version(string) do
-      { :ok, matchable } ->
-        { :ok, from_matchable(matchable).source(string).build(get_build(string)) }
+      { :ok, { major, minor, patch, pre } } ->
+        vsn = Version.Schema[major: major, minor: minor, patch: patch,
+                             pre: pre, source: string, build: get_build(string)]
+        { :ok, vsn }
      :error ->
        :error
     end
@@ -201,20 +203,6 @@ defmodule Version do
       { :ok, vsn } -> vsn
       :error -> raise InvalidVersion, message: string
     end
-  end
-
-  @doc """
-  Convert a matchable to a `Version.Schema`.
-
-  ## Examples
-
-      iex> Version.from_matchable({2, 0, 1, ["alpha", 1]})
-      #Version.Schema<2.0.1-alpha.1>
-
-  """
-  @spec from_matchable(matchable) :: Schema.t
-  def from_matchable({ major, minor, patch, pre }) do
-    Version.Schema[major: major, minor: minor, patch: patch, pre: pre]
   end
 
   defp get_build(string) do
