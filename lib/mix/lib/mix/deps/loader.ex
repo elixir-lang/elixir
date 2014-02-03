@@ -57,7 +57,6 @@ defmodule Mix.Deps.Loader do
     do: true
   def vsn_match?(req, actual, _app) when is_regex(req),
     do: actual =~ req
-
   def vsn_match?(req, actual, app) do
     case Version.parse(actual) do
       { :ok, version } ->
@@ -69,9 +68,9 @@ defmodule Mix.Deps.Loader do
         end
 
       :error ->
-        raise Mix.Error, message: "Non SemVer version can only be matched " <>
-          "with a regex requirement, got version #{actual} with requirement " <>
-          "#{req} for app #{app}"
+        raise Mix.Error, message: "The application #{app} specified a non Semantic Version #{actual}. " <>
+          "Mix can only match the requirement #{req} against Semantic Versions, to match against any " <>
+          "version, please use a regex as requirement"
     end
   end
 
