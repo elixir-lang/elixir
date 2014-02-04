@@ -7,16 +7,16 @@ Nonterminals
   add_op_eol mult_op_eol exp_op_eol two_op_eol pipe_op_eol stab_op_eol
   arrow_op_eol match_op_eol when_op_eol in_op_eol in_match_op_eol
   open_paren close_paren empty_paren
-  list open_bracket close_bracket
+  list list_args open_bracket close_bracket
   tuple open_curly close_curly
   bit_string open_bit close_bit
   map map_op map_close map_args struct_op struct_expr
-  assoc_op_eol assoc_expr assoc_base assoc_update assoc_update_kw
-  container_args_base call_args_parens_base call_args_parens parens_call
+  assoc_op_eol assoc_expr assoc_base assoc_update assoc_update_kw assoc
+  container_args_base container_args call_args_parens_base call_args_parens parens_call
   call_args_no_parens_one call_args_no_parens_expr call_args_no_parens_comma_expr
   call_args_no_parens_all call_args_no_parens_many call_args_no_parens_many_strict
   stab stab_eol stab_expr stab_maybe_expr stab_parens_many
-  kw_eol kw_base call_args_no_parens_kw_expr call_args_no_parens_kw
+  kw_eol kw_base kw call_args_no_parens_kw_expr call_args_no_parens_kw
   dot_op dot_alias dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_bracket_identifier
   do_block fn_eol do_eol end_eol block_eol block_item block_list
@@ -273,19 +273,16 @@ open_bracket  -> '['         : '$1'.
 open_bracket  -> '[' eol     : '$1'.
 close_bracket -> ']'         : '$1'.
 close_bracket -> eol ']'     : '$2'.
-close_bracket -> ',' ']'     : '$2'.
 
 open_bit  -> '<<'         : '$1'.
 open_bit  -> '<<' eol     : '$1'.
 close_bit -> '>>'         : '$1'.
 close_bit -> eol '>>'     : '$2'.
-close_bit -> ',' '>>'     : '$2'.
 
 open_curly  -> '{'     : '$1'.
 open_curly  -> '{' eol : '$1'.
 close_curly -> '}'         : '$1'.
 close_curly -> eol '}'     : '$2'.
-close_curly -> ',' '}'     : '$2'.
 
 % Operators
 
@@ -406,14 +403,19 @@ container_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
 container_args_base -> container_expr : ['$1'].
 container_args_base -> container_args_base ',' container_expr : ['$3'|'$1'].
 
+container_args -> kw : ['$1'].
+container_args -> container_args_base : lists:reverse('$1').
+container_args -> container_args_base ',' : lists:reverse('$1').
+container_args -> container_args_base ',' kw : lists:reverse(['$3'|'$1']).
+
 call_args_parens_base -> container_expr : ['$1'].
 call_args_parens_base -> call_args_parens_base ',' container_expr : ['$3'|'$1'].
 
 call_args_parens -> empty_paren : [].
 call_args_parens -> open_paren no_parens_expr close_paren : ['$2'].
-call_args_parens -> open_paren kw_base close_paren : [reverse('$2')].
+call_args_parens -> open_paren kw close_paren : ['$2'].
 call_args_parens -> open_paren call_args_parens_base close_paren : reverse('$2').
-call_args_parens -> open_paren call_args_parens_base ',' kw_base close_paren : reverse([reverse('$4')|'$2']).
+call_args_parens -> open_paren call_args_parens_base ',' kw close_paren : reverse(['$4'|'$2']).
 
 % KV
 
@@ -423,30 +425,32 @@ kw_eol -> kw_identifier eol : '$1'.
 kw_base -> kw_eol container_expr : [{ ?exprs('$1'), '$2' }].
 kw_base -> kw_base ',' kw_eol container_expr : [{ ?exprs('$3'), '$4' }|'$1'].
 
+kw -> kw_base : reverse('$1').
+kw -> kw_base ',' : reverse('$1').
+
 call_args_no_parens_kw_expr -> kw_eol call_args_no_parens_expr : { ?exprs('$1'),'$2' }.
 call_args_no_parens_kw -> call_args_no_parens_kw_expr : ['$1'].
 call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' call_args_no_parens_kw : ['$1'|'$3'].
 
 % Lists
 
+list_args -> kw : '$1'.
+list_args -> container_args_base : reverse('$1').
+list_args -> container_args_base ',' : reverse('$1').
+list_args -> container_args_base ',' kw : reverse('$1', '$3').
+
 list -> open_bracket ']' : build_list('$1', []).
-list -> open_bracket kw_base close_bracket : build_list('$1', reverse('$2')).
-list -> open_bracket container_args_base close_bracket : build_list('$1', reverse('$2')).
-list -> open_bracket container_args_base ',' kw_base close_bracket : build_list('$1', reverse('$2', reverse('$4'))).
+list -> open_bracket list_args close_bracket : build_list('$1', '$2').
 
 % Tuple
 
 tuple -> open_curly '}' : build_tuple('$1', []).
-tuple -> open_curly kw_base close_curly :  build_tuple('$1', [reverse('$2')]).
-tuple -> open_curly container_args_base close_curly : build_tuple('$1', reverse('$2')).
-tuple -> open_curly container_args_base ',' kw_base close_curly : build_tuple('$1', reverse([reverse('$4')|'$2'])).
+tuple -> open_curly container_args close_curly :  build_tuple('$1', '$2').
 
 % Bitstrings
 
 bit_string -> open_bit '>>' : build_bit('$1', []).
-bit_string -> open_bit kw_base close_bit : build_bit('$1', [reverse('$2')]).
-bit_string -> open_bit container_args_base close_bit : build_bit('$1', reverse('$2')).
-bit_string -> open_bit container_args_base ',' kw_base close_bit : build_bit('$1', reverse([reverse('$4')|'$2'])).
+bit_string -> open_bit container_args close_bit : build_bit('$1', '$2').
 
 % Map and structs
 
@@ -457,23 +461,28 @@ assoc_expr -> container_expr assoc_op_eol container_expr : { '$1', '$3' }.
 
 assoc_update -> matched_expr pipe_op_eol matched_expr assoc_op_eol matched_expr : { '$2', '$1', [{ '$3', '$5' }] }.
 assoc_update -> unmatched_expr pipe_op_eol expr assoc_op_eol expr : { '$2', '$1', [{ '$3', '$5' }] }.
+assoc_update -> empty_paren pipe_op_eol expr assoc_op_eol expr : { '$2', '$1', [{ '$3', '$5' }] }.
 
-assoc_update_kw -> matched_expr pipe_op_eol kw_base : { '$2', '$1', reverse('$3') }.
-assoc_update_kw -> unmatched_expr pipe_op_eol kw_base : { '$2', '$1', reverse('$3') }.
+assoc_update_kw -> matched_expr pipe_op_eol kw : { '$2', '$1', '$3' }.
+assoc_update_kw -> unmatched_expr pipe_op_eol kw : { '$2', '$1', '$3' }.
 
 assoc_base -> assoc_expr : ['$1'].
 assoc_base -> assoc_base ',' assoc_expr : ['$3'|'$1'].
 
+assoc -> assoc_base : reverse('$1').
+assoc -> assoc_base ',' : reverse('$1').
+
 map_op -> '%{}' : '$1'.
 map_op -> '%{}' eol : '$1'.
 
-map_close -> kw_base close_curly : reverse('$1').
-map_close -> assoc_base close_curly : reverse('$1').
-map_close -> assoc_base ',' kw_base close_curly : reverse('$1', reverse('$2')).
+map_close -> kw close_curly : '$1'.
+map_close -> assoc close_curly : '$1'.
+map_close -> assoc_base ',' kw close_curly : reverse('$1', '$2').
 
 map_args -> open_curly '}' : build_map('$1', []).
 map_args -> open_curly map_close : build_map('$1', '$2').
 map_args -> open_curly assoc_update close_curly : build_map_update('$1', '$2', []).
+map_args -> open_curly assoc_update ',' close_curly : build_map_update('$1', '$2', []).
 map_args -> open_curly assoc_update ',' map_close : build_map_update('$1', '$2', '$4').
 map_args -> open_curly assoc_update_kw close_curly : build_map_update('$1', '$2', []).
 
