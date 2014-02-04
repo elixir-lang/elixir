@@ -351,8 +351,19 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: [])   == "[]"
     assert Macro.to_string(quote do: { 1, 2, 3 })   == "{1, 2, 3}"
     assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
+    assert Macro.to_string(quote do: %{})  == "%{}"
+    assert Macro.to_string(quote do: %{:foo => :bar})  == "%{foo: :bar}"
+    assert Macro.to_string(quote do: %{{1,2} => [1,2,3]})  == "%{{1, 2} => [1, 2, 3]}"
+    assert Macro.to_string(quote do: %{map | "a" => "b"})  == "%{map | \"a\" => \"b\"}"
+    assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
     assert Macro.to_string(quote do: << 1, 2, 3 >>) == "<<1, 2, 3>>"
     assert Macro.to_string(quote do: << <<1>> >>) == "<< <<1>> >>"
+  end
+
+  test :struct_to_string do
+    assert Macro.to_string(quote do: %Test{})  == "%Test{}"
+    assert Macro.to_string(quote do: %Test{foo: 1, bar: 1})  == "%Test{foo: 1, bar: 1}"
+    assert Macro.to_string(quote do: %Test{struct | foo: 2})  == "%Test{struct | foo: 2}"
   end
 
   test :binary_ops_to_string do
