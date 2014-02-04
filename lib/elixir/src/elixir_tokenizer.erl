@@ -344,7 +344,7 @@ tokenize([T|Rest], Line, Scope, Tokens) when T == $(;
   handle_terminator(Rest, Line, Scope, Token, Tokens);
 
 tokenize("=>" ++ Rest, Line, Scope, Tokens) ->
-  tokenize(Rest, Line, Scope, add_token_with_nl({ '=>', Line }, Tokens));
+  tokenize(Rest, Line, Scope, add_token_with_nl({ assoc_op, Line, '=>' }, Tokens));
 
 % ## Two Token Operators
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?two_op(T1, T2) ->
