@@ -11,13 +11,14 @@ Nonterminals
   tuple open_curly close_curly
   bit_string open_bit close_bit
   map map_op map_args struct_op struct_expr
+  assoc_op assoc_expr assoc_comma assoc
   container_args_base container_args
   call_args_parens_base call_args_parens parens_call
   call_args_no_parens_one call_args_no_parens_expr call_args_no_parens_comma_expr
   call_args_no_parens_all call_args_no_parens_many call_args_no_parens_many_strict
   stab stab_eol stab_expr stab_maybe_expr stab_parens_many
   kw_eol kw_expr kw_comma kw
-  call_args_no_parens_kw_expr call_args_no_parens_kw_comma call_args_no_parens_kw
+  call_args_no_parens_kw_expr call_args_no_parens_kw
   dot_op dot_alias dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_bracket_identifier
   do_block fn_eol do_eol end_eol block_eol block_item block_list
@@ -32,7 +33,7 @@ Terminals
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
   dual_op add_op mult_op exp_op two_op pipe_op stab_op when_op
   'true' 'false' 'nil' 'do' eol ',' '.'
-  '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
+  '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%' '=>'
   .
 
 Rootsymbol grammar.
@@ -429,9 +430,8 @@ kw -> kw_comma : lists:reverse('$1').
 kw -> kw_comma kw_expr : lists:reverse(['$2'|'$1']).
 
 call_args_no_parens_kw_expr -> kw_eol call_args_no_parens_expr : { ?exprs('$1'),'$2' }.
-call_args_no_parens_kw_comma -> call_args_no_parens_kw_expr : ['$1'].
-call_args_no_parens_kw_comma -> call_args_no_parens_kw_expr ',' call_args_no_parens_kw_comma : ['$1'|'$3'].
-call_args_no_parens_kw -> call_args_no_parens_kw_comma : '$1'.
+call_args_no_parens_kw -> call_args_no_parens_kw_expr : ['$1'].
+call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' call_args_no_parens_kw : ['$1'|'$3'].
 
 % Lists
 
@@ -452,12 +452,24 @@ tuple -> open_curly container_args close_curly :  build_tuple('$1', '$2').
 % Only well formed calls, aliases, atoms and unary operators
 % are allowed in struct expressions.
 
+assoc_op -> '=>' : '$1'.
+assoc_op -> '=>' eol : '$1'.
+
+assoc_expr -> container_expr assoc_op container_expr : { '$1', '$3' }.
+assoc_comma -> assoc_expr ',' : ['$1'].
+assoc_comma -> assoc_comma assoc_expr ',' : ['$2'|'$1'].
+
+assoc -> assoc_expr : ['$1'].
+assoc -> assoc_comma : lists:reverse('$1').
+assoc -> assoc_comma assoc_expr : lists:reverse(['$2'|'$1']).
+
 map_op -> '%{}' : '$1'.
 map_op -> '%{}' eol : '$1'.
 
 map_args -> open_curly '}' : { '%{}', meta('$1'), [] }.
 map_args -> open_curly kw close_curly : { '%{}', meta('$1'), '$2' }.
-map_args -> open_curly unmatched_expr pipe_op_eol call_args_no_parens_kw close_curly : build_op('$3', '$2', '$4').
+map_args -> open_curly assoc close_curly : { '%{}', meta('$1'), '$2' }.
+map_args -> open_curly assoc_comma kw close_curly : { '%{}', meta('$1'), '$2' ++ '$3' }.
 
 struct_op -> '%' : '$1'.
 struct_op -> '%' eol : '$1'.

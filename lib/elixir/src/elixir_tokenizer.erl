@@ -343,6 +343,9 @@ tokenize([T|Rest], Line, Scope, Tokens) when T == $(;
   Token = { list_to_atom([T]), Line },
   handle_terminator(Rest, Line, Scope, Token, Tokens);
 
+tokenize("=>" ++ Rest, Line, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, add_token_with_nl({ '=>', Line }, Tokens));
+
 % ## Two Token Operators
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?two_op(T1, T2) ->
   handle_op(Rest, Line, two_op, list_to_atom([T1, T2]), Scope, Tokens);
