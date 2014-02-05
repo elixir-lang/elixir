@@ -48,10 +48,6 @@ defmodule HashDictTest do
     assert list == Enum.to_list(dict)
   end
 
-  test "inspect" do
-    assert inspect(filled_dict(8)) =~ "#HashDict<"
-  end
-
   defp smoke_test(range) do
     { dict, _ } = Enum.reduce range, { HashDict.new, 1 }, fn(x, { acc, i }) ->
       acc = HashDict.put(acc, x, x)

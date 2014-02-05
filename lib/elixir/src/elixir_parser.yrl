@@ -477,7 +477,7 @@ map_op -> '%{}' eol : '$1'.
 
 map_close -> kw close_curly : '$1'.
 map_close -> assoc close_curly : '$1'.
-map_close -> assoc_base ',' kw close_curly : reverse('$1', '$2').
+map_close -> assoc_base ',' kw close_curly : reverse('$1', '$3').
 
 map_args -> open_curly '}' : build_map('$1', []).
 map_args -> open_curly map_close : build_map('$1', '$2').

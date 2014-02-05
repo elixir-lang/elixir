@@ -63,4 +63,16 @@ defmodule MapTest do
     assert map_size(empty_map) == 0
     assert map_size(two_items_map) == 2
   end
+
+  test "maps with optional comma" do
+    assert %{ a: :b, } == %{ a: :b }
+    assert %{ 1 => 2, } == %{ 1 => 2 }
+    assert %{ 1 => 2, a: :b, } == %{ 1 => 2, a: :b }
+  end
+
+  test "maps with duplicate keys" do
+    assert %{ a: :b, a: :c } == %{ a: :c }
+    assert %{ 1 => 2, 1 => 3 } == %{ 1 => 3 }
+    assert %{ :a => :b, a: :c } == %{ a: :c }
+  end
 end

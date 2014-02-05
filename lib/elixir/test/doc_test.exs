@@ -3,7 +3,7 @@ ExUnit.start []
 defmodule KernelTest do
   use ExUnit.Case, async: true
 
-  doctest Access.List
+  doctest Access
   doctest String.Chars.List
   doctest Bitwise
   doctest Code

@@ -295,6 +295,11 @@ defmodule Inspect.OthersTest do
     assert "#Function<" <> _ = inspect(f)
   end
 
+  test :hash_dict_set do
+    assert "#HashDict<" <> _ = inspect(HashDict.new)
+    assert "#HashSet<" <> _ = inspect(HashSet.new)
+  end
+
   test :pids do
     assert "#PID<" <> _ = inspect(self)
   end

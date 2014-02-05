@@ -7,6 +7,22 @@ defprotocol Access do
   is translated to `access foo, bar` which, by default,
   invokes the `Access.access` protocol.
 
+  This protocol is implemented by default for Lists, Maps
+  and dictionary like types:
+
+      iex> keywords = [a: 1, b: 2]
+      ...> keywords[:a]
+      1
+
+      iex> map = %{ a: 1, b: 2 }
+      ...> map[:a]
+      1
+
+      iex> star_ratings = %{ 1.0 => "★", 1.5 => "★☆", 2.0 => "★★" }
+      ...> star_ratings[1.5]
+      "★☆"
+
+  The key access must be implemented using the `===` operator.
   This protocol is limited and is implemented only for the
   following built-in types: keywords, records and functions.
   """
@@ -18,33 +34,22 @@ defprotocol Access do
 end
 
 defimpl Access, for: List do
-  @doc """
-  Access the given key in a tuple list.
-  The key is found via the `===` operator.
-
-  ## Examples
-
-      iex> keywords = [a: 1, b: 2]
-      ...> keywords[:a]
-      1
-
-      iex> star_ratings = [{1.0, "★"}, {1.5, "★☆"}, {2.0, "★★"}]
-      ...> star_ratings[1.5]
-      "★☆"
-
-  """
   def access(dict, key)
   def access([{ key, value }|_], key), do: value
   def access([{ _, _ }|t], key), do: access(t, key)
   def access([], _key), do: nil
 end
 
+defimpl Access, for: Map do
+  def access(map, key) do
+    case :maps.find(key, map) do
+      { :ok, value } -> value
+      :error -> nil
+    end
+  end
+end
+
 defimpl Access, for: Atom do
-  @doc """
-  The access protocol can only be accessed by atoms
-  at compilation time. If we reach this, we should raise
-  an exception.
-  """
   def access(nil, _) do
     nil
   end

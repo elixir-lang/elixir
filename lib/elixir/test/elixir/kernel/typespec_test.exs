@@ -1,6 +1,6 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file "../test_helper.exs", __DIR__
 
-defmodule Typespec.TypeTest do
+defmodule Kernel.TypespecTest do
   use ExUnit.Case, async: true
 
   defrecord Rec, [:first, :last]
