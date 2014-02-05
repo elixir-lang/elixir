@@ -310,7 +310,7 @@ defimpl Inspect, for: List do
     end
   end
 
-  defp keyword({key, value}, opts) do
+  def keyword({key, value}, opts) do
     concat(
       key_to_binary(key) <> ": ",
       to_doc(value, opts)
@@ -324,15 +324,15 @@ defimpl Inspect, for: List do
     end
   end
 
-  defp keyword?([{ key, _value } | rest]) when is_atom(key) do
+  def keyword?([{ key, _value } | rest]) when is_atom(key) do
     case atom_to_list(key) do
       'Elixir.' ++ _ -> false
       _ -> keyword?(rest)
     end
   end
 
-  defp keyword?([]),     do: true
-  defp keyword?(_other), do: false
+  def keyword?([]),     do: true
+  def keyword?(_other), do: false
 end
 
 defimpl Inspect, for: Tuple do
@@ -408,7 +408,27 @@ end
 
 defimpl Inspect, for: Map do
   def inspect(map, opts) do
-    surround_many("%{", :maps.to_list(map), "}", opts.limit, &map(&1, opts))
+    {name, map} = to_map_or_struct(map, opts)
+    map_list = :maps.to_list(map)
+    fun = traverse_fun(map_list, opts)
+    surround_many("%" <> name <> "{", map_list, "}", opts.limit, fun)
+  end
+
+  defp traverse_fun(map_list, opts) do
+    if Inspect.List.keyword?(map_list) do
+      &Inspect.List.keyword(&1, opts)
+    else
+      &map(&1, opts)
+    end
+  end
+
+  defp to_map_or_struct(map, opts) do
+    case :maps.find(:__struct__, map) do
+      {:ok, name} when is_atom(name) ->
+        {Inspect.Atom.inspect(name, opts), :maps.remove(:__struct__, map)}
+      _ ->
+        {"", map}
+    end
   end
 
   defp map({key, value}, opts) do
