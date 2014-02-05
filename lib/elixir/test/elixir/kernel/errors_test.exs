@@ -185,6 +185,16 @@ defmodule Kernel.ErrorsTest do
       '^x(1) = 1'
   end
 
+  test :unbound_map_key_var do
+    assert_compile_fail CompileError,
+      "nofile:1: cannot bind variable x in map key",
+      '%{ x => 1 } = %{}'
+
+    assert_compile_fail CompileError,
+      "nofile:1: cannot bind variable x in map key",
+      '%{ x = 1 => 1 }'
+  end
+
   test :name_for_defmodule do
     assert_compile_fail CompileError,
       "nofile:1: invalid module name: 3",

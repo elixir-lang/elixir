@@ -18,18 +18,25 @@ translate({ '=', Meta, [Left, Right] }, S) ->
 
 %% Containers
 
-translate({ '%{}', Meta, Args }, S) when is_list(Args) ->
-  { Op, Fun } =
+translate({ '%{}', Meta, Args }, #elixir_scope{extra=Extra} = S) when is_list(Args) ->
+  { Op, KeyFun, ValFun } =
     case S#elixir_scope.context of
-      match -> { map_field_exact, fun translate/2 };
-      _     -> { map_field_assoc, fun(X, Acc) -> translate_arg(X, Acc, S) end }
+      match ->
+        { map_field_exact,
+          fun(X, Acc) -> translate(X, Acc#elixir_scope{extra=map_key}) end,
+          fun translate/2 };
+      _ ->
+        KS = #elixir_scope{extra=map_key},
+        { map_field_assoc,
+          fun(X, Acc) -> translate_arg(X, Acc, KS) end,
+          fun(X, Acc) -> translate_arg(X, Acc, S) end }
     end,
 
   Line = ?line(Meta),
 
   { TArgs, SA } = lists:mapfoldl(fun({ Key, Value }, Acc) ->
-    { TKey, Acc1 }   = Fun(Key, Acc),
-    { TValue, Acc2 } = Fun(Value, Acc1),
+    { TKey, Acc1 }   = KeyFun(Key, Acc),
+    { TValue, Acc2 } = ValFun(Value, Acc1#elixir_scope{extra=Extra}),
     { { Op, ?line(Meta), TKey, TValue }, Acc2 }
   end, S, Args),
 
@@ -156,19 +163,6 @@ translate({ super, Meta, Args }, S) when is_list(Args) ->
 
 %% Variables
 
-translate({ '^', Meta, [ { Name, VarMeta, Kind } = Var ] },
-               #elixir_scope{extra=fn_match, extra_guards=Extra} = S) when is_atom(Name), is_atom(Kind) ->
-  Tuple = { Name, var_kind(VarMeta, Kind) },
-  case orddict:find(Tuple, S#elixir_scope.backup_vars) of
-    { ok, { Value, _Counter } } ->
-      Line = ?line(Meta),
-      { TVar, TS } = translate(Var, S),
-      Guard = { op, Line, '=:=', { var, ?line(Meta), Value }, TVar },
-      { TVar, TS#elixir_scope{extra_guards=[Guard|Extra]} };
-    error ->
-      compile_error(Meta, S#elixir_scope.file, "unbound variable ^~ts", [Name])
-  end;
-
 translate({ '^', Meta, [ { Name, VarMeta, Kind } ] }, #elixir_scope{context=match} = S) when is_atom(Name), is_atom(Kind) ->
   Tuple = { Name, var_kind(VarMeta, Kind) },
   case orddict:find(Tuple, S#elixir_scope.backup_vars) of
@@ -184,7 +178,10 @@ translate({ '_', Meta, Kind }, #elixir_scope{context=match} = S) when is_atom(Ki
 translate({ '_', Meta, Kind }, S) when is_atom(Kind) ->
   compile_error(Meta, S#elixir_scope.file, "unbound variable _");
 
-translate({ Name, Meta, Kind }, S) when is_atom(Name), is_atom(Kind) ->
+translate({ Name, Meta, Kind } = E, #elixir_scope{extra=map_key, context=match} = S) when is_atom(Name), is_atom(Kind) ->
+  compile_error(Meta, S#elixir_scope.file, "cannot bind variable ~ts in map key", [Name]);
+
+translate({ Name, Meta, Kind } = E, S) when is_atom(Name), is_atom(Kind) ->
   elixir_scope:translate_var(Meta, Name, var_kind(Meta, Kind), S);
 
 %% Local calls
