@@ -333,6 +333,18 @@ defmodule Macro do
     fun.(ast, tuple)
   end
 
+  # Map containers
+  def to_string({ :%{}, _, args } = ast, fun) do
+    map = "%{" <> map_to_string(args, fun) <> "}"
+    fun.(ast, map)
+  end
+
+  def to_string({:%, _, [structname, map]} = ast, fun) do
+    { :%{}, _, args } = map
+    struct = "%" <> to_string(structname) <> "{" <> map_to_string(args, fun) <> "}"
+    fun.(ast, struct)
+  end
+
   # Fn keyword
   def to_string({ :fn, _, [{ :->, _, [_, tuple] }] = arrow } = ast, fun)
       when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
@@ -481,9 +493,26 @@ defmodule Macro do
 
   defp block_to_string(other, fun), do: to_string(other, fun)
 
+  defp map_to_string([{:|, [], [update_map, update_args]}], fun) do
+    to_string(update_map, fun) <> " | " <> map_to_string(update_args, fun)
+  end
+
+  defp map_to_string(list, fun) do
+    cond do
+      Keyword.keyword?(list) -> kw_list_to_string(list, fun)
+      true -> map_list_to_string(list, fun)
+    end
+  end
+
   defp kw_list_to_string(list, fun) do
     Enum.map_join(list, ", ", fn { key, value } ->
       atom_to_binary(key) <> ": " <> to_string(value, fun)
+    end)
+  end
+
+  defp map_list_to_string(list, fun) do
+    Enum.map_join(list, ", ", fn { key, value } ->
+      to_string(key, fun) <> " => " <> to_string(value, fun)
     end)
   end
 
