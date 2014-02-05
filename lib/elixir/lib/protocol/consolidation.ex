@@ -204,6 +204,7 @@ defmodule Protocol.Consolidation do
   defp clause_for(Tuple, protocol, line),     do: builtin_clause_for(Tuple, :is_tuple, protocol, line)
   defp clause_for(Atom, protocol, line),      do: builtin_clause_for(Atom, :is_atom, protocol, line)
   defp clause_for(List, protocol, line),      do: builtin_clause_for(List, :is_list, protocol, line)
+  defp clause_for(Map, protocol, line),       do: builtin_clause_for(Map, :is_map, protocol, line)
   defp clause_for(BitString, protocol, line), do: builtin_clause_for(BitString, :is_bitstring, protocol, line)
   defp clause_for(Integer, protocol, line),   do: builtin_clause_for(Integer, :is_integer, protocol, line)
   defp clause_for(Float, protocol, line),     do: builtin_clause_for(Float, :is_float, protocol, line)

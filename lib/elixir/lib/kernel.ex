@@ -666,6 +666,16 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns `true` if `term` is a map; otherwise returns `false`.
+
+  Allowed in guard tests. Inlined by the compiler.
+  """
+  @spec is_map(term) :: boolean
+  def is_map(term) do
+    :erlang.is_map(term)
+  end
+
+  @doc """
   Returns the length of `list`.
 
   Allowed in guard tests. Inlined by the compiler.

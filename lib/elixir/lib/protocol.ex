@@ -139,7 +139,7 @@ defmodule Protocol do
   # Builtin types.
   @doc false
   def builtin do
-    [ Tuple, Atom, List, BitString, Integer, Float,
+    [ Tuple, Atom, List, Map, BitString, Integer, Float,
       Function, PID, Port, Reference, Any ]
   end
 
@@ -189,6 +189,7 @@ defmodule Protocol do
   defp impl_for(current, Tuple, arg),     do: impl_with_fallback(Tuple, :is_tuple, current, arg)
   defp impl_for(current, Atom, arg),      do: impl_with_fallback(Atom, :is_atom, current, arg)
   defp impl_for(current, List, arg),      do: impl_with_fallback(List, :is_list, current, arg)
+  defp impl_for(current, Map, arg),       do: impl_with_fallback(Map, :is_map, current, arg)
   defp impl_for(current, BitString, arg), do: impl_with_fallback(BitString, :is_bitstring, current, arg)
   defp impl_for(current, Integer, arg),   do: impl_with_fallback(Integer, :is_integer, current, arg)
   defp impl_for(current, Float, arg),     do: impl_with_fallback(Float, :is_float, current, arg)

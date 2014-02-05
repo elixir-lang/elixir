@@ -18,6 +18,10 @@ translate({ '=', Meta, [Left, Right] }, S) ->
 
 %% Containers
 
+translate({ '%{}', Meta, Args }, S) when is_list(Args) ->
+  { TArgs, SE } = translate_map_args(Args, Meta, S),
+  { { map, ?line(Meta), TArgs }, SE };
+
 translate({ '{}', Meta, Args }, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
   { { tuple, ?line(Meta), TArgs }, SE };
@@ -300,6 +304,22 @@ translate_args(Args, #elixir_scope{context=match} = S) ->
 
 translate_args(Args, S) ->
   lists:mapfoldl(fun(X, Acc) -> translate_arg(X, Acc, S) end, S, Args).
+
+%% Translate map args
+
+translate_map_args(Args, Meta, #elixir_scope{context=Match} = S) ->
+  lists:mapfoldl(fun({Key, Value}, Acc) ->
+                    case Match of
+                       match ->
+                         {TKey, Acc1} = translate_arg(Key, Acc, S),
+                         {TValue, Acc2} = translate_arg(Value, Acc1, S),
+                         {{map_field_exact, ?line(Meta), TKey, TValue}, Acc2};
+                       _     ->
+                         {TKey, Acc1} = translate_arg(Key, Acc, S),
+                         {TValue, Acc2} = translate_arg(Value, Acc1, S),
+                         {{map_field_assoc, ?line(Meta), TKey, TValue}, Acc2}
+                     end
+                 end, S, Args).
 
 %% Comprehensions
 

@@ -406,6 +406,19 @@ defimpl Inspect, for: Tuple do
   end
 end
 
+defimpl Inspect, for: Map do
+  def inspect(map, opts) do
+    surround_many("%{", :maps.to_list(map), "}", opts.limit, &map(&1, opts))
+  end
+
+  defp map({key, value}, opts) do
+    concat(
+      to_doc(key, opts) <> " => ",
+      to_doc(value, opts)
+    )
+  end
+end
+
 defimpl Inspect, for: Integer do
   @doc """
   Represents the integer as a string.
