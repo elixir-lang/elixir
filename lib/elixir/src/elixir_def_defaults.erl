@@ -5,10 +5,6 @@
 
 expand(Args, E) ->
   lists:mapfoldl(fun
-    ({ '//', Meta, [Left, Right] }, Acc) ->
-      { ELeft, EL } = elixir_exp:expand(Left, Acc),
-      { ERight, _ } = elixir_exp:expand(Right, Acc#elixir_env{context=nil}),
-      { { '\\\\', Meta, [ELeft, ERight] }, EL };
     ({ '\\\\', Meta, [Left, Right] }, Acc) ->
       { ELeft, EL } = elixir_exp:expand(Left, Acc),
       { ERight, _ } = elixir_exp:expand(Right, Acc#elixir_env{context=nil}),

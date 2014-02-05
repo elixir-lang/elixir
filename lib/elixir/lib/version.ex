@@ -290,7 +290,7 @@ defmodule Version do
     defp nillify(o),  do: o
 
     @spec parse_version(String.t) :: Version.matchable
-    def parse_version(string, approximate? // false) when is_binary(string) do
+    def parse_version(string, approximate? \\ false) when is_binary(string) do
       if parsed = Regex.run(@version_regex, string) do
         destructure [_, major, minor, patch, pre], parsed
         patch = nillify(patch)
@@ -465,7 +465,7 @@ defmodule Version do
       to_condition({ :orelse, current, to_condition([operator, version]) }, rest)
     end
 
-    defp parse_condition(version, approximate? // false) do
+    defp parse_condition(version, approximate? \\ false) do
       case parse_version(version, approximate?) do
         { :ok, version } -> version
         :error -> throw :invalid_matchspec
