@@ -78,6 +78,8 @@ defmodule Dict do
           elem(unquote(dict), 0)
         is_list(unquote(dict)) ->
           ListDict
+        is_map(unquote(dict)) ->
+          Map
         true ->
           unsupported_dict(unquote(dict))
       end

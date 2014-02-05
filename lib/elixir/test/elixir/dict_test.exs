@@ -395,3 +395,11 @@ defmodule Dict.ListDictTest do
   doctest Dict
   defp dict_impl, do: ListDict
 end
+
+defmodule Dict.MapDictTest do
+  use ExUnit.Case, async: true
+  use DictTest.Common
+
+  doctest Dict
+  defp dict_impl, do: Map
+end
