@@ -98,26 +98,26 @@ defmodule String.Chars.ErrorsTest do
   end
 
   test :pid do
-    assert_raise Protocol.UndefinedError, %r"^protocol String\.Chars not implemented for #PID<.+?>$", fn ->
+    assert_raise Protocol.UndefinedError, ~r"^protocol String\.Chars not implemented for #PID<.+?>$", fn ->
       to_string(self())
     end
   end
 
   test :ref do
-    assert_raise Protocol.UndefinedError, %r"^protocol String\.Chars not implemented for #Reference<.+?>$", fn ->
+    assert_raise Protocol.UndefinedError, ~r"^protocol String\.Chars not implemented for #Reference<.+?>$", fn ->
       to_string(make_ref()) == ""
     end
   end
 
   test :function do
-    assert_raise Protocol.UndefinedError, %r"^protocol String\.Chars not implemented for #Function<.+?>$", fn ->
+    assert_raise Protocol.UndefinedError, ~r"^protocol String\.Chars not implemented for #Function<.+?>$", fn ->
       to_string(fn -> end)
     end
   end
 
   test :port do
     [port|_] = Port.list
-    assert_raise Protocol.UndefinedError, %r"^protocol String\.Chars not implemented for #Port<.+?>$", fn ->
+    assert_raise Protocol.UndefinedError, ~r"^protocol String\.Chars not implemented for #Port<.+?>$", fn ->
       to_string(port)
     end
   end

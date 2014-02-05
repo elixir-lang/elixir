@@ -83,7 +83,7 @@ defmodule Mix.Tasks.App.StartTest do
     Mix.Project.push WrongElixirProject
 
     in_fixture "no_mixfile", fn ->
-      assert_raise Mix.ElixirVersionError, %r/You're trying to run :error on Elixir/, fn ->
+      assert_raise Mix.ElixirVersionError, ~r/You're trying to run :error on Elixir/, fn ->
         Mix.Tasks.App.Start.run ["--no-start"]
       end
     end
@@ -93,7 +93,7 @@ defmodule Mix.Tasks.App.StartTest do
     Mix.Project.push InvalidElixirRequirement
 
     in_fixture "no_mixfile", fn ->
-      assert_raise  Mix.Error, %r"Invalid Elixir version requirement", fn ->
+      assert_raise  Mix.Error, ~r"Invalid Elixir version requirement", fn ->
         Mix.Tasks.App.Start.run ["--no-start"]
       end
     end
@@ -136,7 +136,7 @@ defmodule Mix.Tasks.App.StartTest do
       Process.put(:application_definition, applications: [:unknown])
       Mix.Tasks.Compile.run []
 
-      assert_raise Mix.Error, %r"Could not start application bad_return_sample: ", fn ->
+      assert_raise Mix.Error, ~r"Could not start application bad_return_sample: ", fn ->
         Mix.Tasks.App.Start.start(:bad_return_sample)
       end
     end
@@ -149,7 +149,7 @@ defmodule Mix.Tasks.App.StartTest do
       Process.put(:application_definition, mod: { BadReturnApp, [] })
       Mix.Tasks.Compile.run []
 
-      assert_raise Mix.Error, %r"Could not start application bad_return_sample, please see report above", fn ->
+      assert_raise Mix.Error, ~r"Could not start application bad_return_sample, please see report above", fn ->
         Mix.Tasks.App.Start.start(:bad_return_sample)
       end
     end

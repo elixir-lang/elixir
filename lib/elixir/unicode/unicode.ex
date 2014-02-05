@@ -179,7 +179,7 @@ defmodule String.Graphemes do
   @moduledoc false
 
   cluster_path = Path.join(__DIR__, "GraphemeBreakProperty.txt")
-  regex = %r/(?:^([0-9A-F]+)(?:\.\.([0-9A-F]+))?)\s+;\s(\w+)/m
+  regex = ~r/(?:^([0-9A-F]+)(?:\.\.([0-9A-F]+))?)\s+;\s(\w+)/m
 
   to_range = fn
     first, ""   ->

@@ -377,7 +377,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp extract_tests(line, doc) do
-    lines = String.split(doc, %r/\n/, trim: false) |> adjust_indent
+    lines = String.split(doc, ~r/\n/, trim: false) |> adjust_indent
     extract_tests(lines, line, "", "", [], true)
   end
 
@@ -391,7 +391,7 @@ defmodule ExUnit.DocTest do
 
   # If hit the first prompt line, set indent and enable follows_iex_prompt/is_code. Else, skip it.
   defp adjust_indent([line|rest] = lines, adjusted_lines, indent, false, false) do
-    case Regex.match? %r/\Aiex/, String.lstrip(line) do
+    case Regex.match? ~r/\Aiex/, String.lstrip(line) do
       true  -> adjust_indent(lines, adjusted_lines, set_indent(line, indent), true, true)
       false -> adjust_indent(rest, [line|adjusted_lines], indent, false, false)
     end
@@ -415,14 +415,14 @@ defmodule ExUnit.DocTest do
       raise Error, message: "indentation level mismatch: \"#{striped_line}\", should have been #{indent} spaces"
     end
 
-    case Regex.match? %r/\Aiex|\A\.\.\./, String.lstrip(line) do
+    case Regex.match? ~r/\Aiex|\A\.\.\./, String.lstrip(line) do
       true  -> adjust_indent(rest, [striped_line|adjusted_lines], indent, true, true)
       false -> adjust_indent(rest, [striped_line|adjusted_lines], indent, false, true)
     end
   end
 
   defp set_indent(line, current_indent) do
-    case Regex.run %r/iex/, line, return: :index do
+    case Regex.run ~r/iex/, line, return: :index do
       [{pos, _len}] -> pos
       nil -> current_indent
     end
@@ -503,7 +503,7 @@ defmodule ExUnit.DocTest do
 
   # Finally, parse expected_acc.
   defp extract_tests([expected|lines], line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t]=acc, newtest) do
-    if expected =~ %r/^#[A-Z][\w\.]*<.*>$/ do
+    if expected =~ ~r/^#[A-Z][\w\.]*<.*>$/ do
       expected = expected_acc <> "\n" <> inspect(expected)
       test = test.exprs([{ expr_acc, { :inspect, expected } } | exprs])
       extract_tests(lines, line,  "", "", [test|t], newtest)

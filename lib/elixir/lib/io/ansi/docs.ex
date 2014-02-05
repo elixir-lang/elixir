@@ -185,7 +185,7 @@ defmodule IO.ANSI.Docs do
     |> Enum.join(" ")
     |> handle_links
     |> handle_inline(nil, [], [], colors)
-    |> String.split(%r{\s})
+    |> String.split(~r{\s})
     |> write_with_wrap(column_width() - size(indent), indent, from_list)
 
     unless from_list, do: IO.puts(IO.ANSI.reset)
@@ -276,16 +276,16 @@ defmodule IO.ANSI.Docs do
   end
 
   defp escape_underlines_in_link(text) do
-    case Regex.match?(%r{.*(https?\S*)}, text) do
+    case Regex.match?(~r{.*(https?\S*)}, text) do
       true ->
-        Regex.replace(%r{_}, text, "\\\\_")
+        Regex.replace(~r{_}, text, "\\\\_")
       _ ->
         text
     end
   end
 
   defp remove_square_brackets_in_link(text) do
-    Regex.replace(%r{\[(.*?)\]\((.*?)\)}, text, "\\1 (\\2)")
+    Regex.replace(~r{\[(.*?)\]\((.*?)\)}, text, "\\1 (\\2)")
   end
 
   # Single inline quotes.

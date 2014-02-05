@@ -41,7 +41,7 @@ defmodule Kernel.WarningTest do
     end) =~ "function hello/1 is unused"
 
     assert capture_err(fn ->
-      Code.eval_string %S"""
+      Code.eval_string ~S"""
       defmodule Sample3 do
         def a, do: nil
         def b, do: d(10)
@@ -98,7 +98,7 @@ defmodule Kernel.WarningTest do
 
   test :unused_default_args do
     assert capture_err(fn ->
-      Code.eval_string %S"""
+      Code.eval_string ~S"""
       defmodule Sample1 do
         def a, do: b(1, 2, 3)
         defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
@@ -107,7 +107,7 @@ defmodule Kernel.WarningTest do
     end) =~ "warning: default arguments in b/3 are never used"
 
     assert capture_err(fn ->
-      Code.eval_string %S"""
+      Code.eval_string ~S"""
       defmodule Sample2 do
         def a, do: b(1, 2)
         defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
@@ -116,7 +116,7 @@ defmodule Kernel.WarningTest do
     end) =~ "warning: the first 2 default arguments in b/3 are never used"
 
     assert capture_err(fn ->
-      Code.eval_string %S"""
+      Code.eval_string ~S"""
       defmodule Sample3 do
         def a, do: b(1)
         defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
@@ -125,7 +125,7 @@ defmodule Kernel.WarningTest do
     end) =~ "warning: the first default argument in b/3 is never used"
 
     assert capture_err(fn ->
-      Code.eval_string %S"""
+      Code.eval_string ~S"""
       defmodule Sample4 do
         def a, do: b(1)
         defp b(arg1 \\ 1, arg2, arg3 \\ 3), do: [arg1, arg2, arg3]
@@ -265,7 +265,7 @@ defmodule Kernel.WarningTest do
 
   test :clause_with_defaults_should_be_first do
     assert capture_err(fn ->
-      Code.eval_string %S"""
+      Code.eval_string ~S"""
       defmodule Sample do
         def hello(arg), do: nil
         def hello(arg \\ 0), do: nil

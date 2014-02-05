@@ -82,15 +82,15 @@ defmodule Inspect.BitStringTest do
   end
 
   test :opt_infer do
-    assert inspect(<<"eric", 193, "mj">>, binaries: :infer) == %s(<<101, 114, 105, 99, 193, 109, 106>>)
-    assert inspect(<<"eric">>, binaries: :infer) == %s("eric")
-    assert inspect(<<193>>, binaries: :infer) == %s(<<193>>)
+    assert inspect(<<"eric", 193, "mj">>, binaries: :infer) == ~s(<<101, 114, 105, 99, 193, 109, 106>>)
+    assert inspect(<<"eric">>, binaries: :infer) == ~s("eric")
+    assert inspect(<<193>>, binaries: :infer) == ~s(<<193>>)
   end
 
   test :opt_as_strings do
-    assert inspect(<<"eric", 193, "mj">>, binaries: :as_strings) == %s("eric\\301mj")
-    assert inspect(<<"eric">>, binaries: :as_strings) == %s("eric")
-    assert inspect(<<193>>, binaries: :as_strings) == %s("\\301")
+    assert inspect(<<"eric", 193, "mj">>, binaries: :as_strings) == ~s("eric\\301mj")
+    assert inspect(<<"eric">>, binaries: :as_strings) == ~s("eric")
+    assert inspect(<<193>>, binaries: :as_strings) == ~s("\\301")
   end
 
   test :opt_as_binaries do
@@ -199,7 +199,7 @@ defmodule Inspect.ListTest do
     assert inspect([a: 1]) == "[a: 1]"
     assert inspect([a: 1, b: 2]) == "[a: 1, b: 2]"
     assert inspect([a: 1, a: 2, b: 2]) == "[a: 1, a: 2, b: 2]"
-    assert inspect(["123": 1]) == %s(["123": 1])
+    assert inspect(["123": 1]) == ~s(["123": 1])
 
     assert inspect([foo: [1,2,3,:bar], bazzz: :bat], [pretty: true, width: 30]) ==
            "[foo: [1, 2, 3, :bar],\n bazzz: :bat]"
@@ -281,6 +281,6 @@ defmodule Inspect.OthersTest do
   end
 
   test :regex do
-    "%r\"foo\"m" = inspect(%r(foo)m)
+    "~r\"foo\"m" = inspect(~r(foo)m)
   end
 end

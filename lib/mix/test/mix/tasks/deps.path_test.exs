@@ -49,7 +49,7 @@ defmodule Mix.Tasks.DepsPathTest do
 
   test "raises on non-mix path deps" do
     Mix.Project.push InvalidPathDepsApp
-    assert_raise Mix.Error, %r/:path option can only be used with mix projects/, fn ->
+    assert_raise Mix.Error, ~r/:path option can only be used with mix projects/, fn ->
       Mix.Tasks.Deps.Get.run []
     end
   end

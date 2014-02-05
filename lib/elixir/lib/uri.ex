@@ -210,7 +210,7 @@ defmodule URI do
   """
   def parse(s) when is_binary(s) do
     # From http://tools.ietf.org/html/rfc3986#appendix-B
-    regex = %r/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
+    regex = ~r/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
     parts = nillify(Regex.run(regex, s))
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
@@ -240,7 +240,7 @@ defmodule URI do
   # Split an authority into its userinfo, host and port parts.
   defp split_authority(s) do
     s = s || ""
-    components = Regex.run %r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/, s
+    components = Regex.run ~r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/, s
 
     destructure [_, _, userinfo, host, _, port], nillify(components)
     port = if port, do: binary_to_integer(port)

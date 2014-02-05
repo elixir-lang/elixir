@@ -102,7 +102,7 @@ defmodule Mix.Utils do
     end
   end
 
-  @doc %S"""
+  @doc ~S"""
   Reads the given file as a manifest and returns each entry
   as a list.
 
@@ -283,7 +283,7 @@ defmodule Mix.Utils do
   end
 
   def module_name_to_command(module, nesting) do
-    t = Regex.split(%r/\./, to_string(module))
+    t = Regex.split(~r/\./, to_string(module))
     t |> Enum.drop(nesting) |> Enum.map(&first_to_lower(&1)) |> Enum.join(".")
   end
 
@@ -297,7 +297,7 @@ defmodule Mix.Utils do
 
   """
   def command_to_module_name(s) do
-    Regex.split(%r/\./, to_string(s)) |>
+    Regex.split(~r/\./, to_string(s)) |>
       Enum.map(&first_to_upper(&1)) |>
       Enum.join(".")
   end

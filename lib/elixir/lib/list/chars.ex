@@ -1,5 +1,5 @@
 defprotocol List.Chars do
-  @moduledoc %S"""
+  @moduledoc ~S"""
   The List.Chars protocol is responsible for
   converting a structure to a list (only if applicable).
   The only function required to be implemented is

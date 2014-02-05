@@ -1,17 +1,17 @@
 defmodule Regex do
-  @moduledoc %S"""
+  @moduledoc ~S"""
   Regular expressions for Elixir built on top of the `re` module
   in the Erlang Standard Library. More information can be found
   in the [`re` documentation](http://www.erlang.org/doc/man/re.html).
 
   Regular expressions in Elixir can be created using `Regex.compile!/2`
-  or using the special form with [`%r`](Kernel.html#sigil_r/2):
+  or using the special form with [`~r`](Kernel.html#sigil_r/2):
 
       # A simple regular expressions that matches foo anywhere in the string
-      %r/foo/
+      ~r/foo/
 
       # A regular expression with case insensitive options
-      %r/foo/i
+      ~r/foo/i
 
   The `re` module provides several options, the ones available in Elixir, followed by
   their shortcut in parenthesis, are:
@@ -51,7 +51,7 @@ defmodule Regex do
   Compiles the regular expression.
 
   The given options can either be a binary with the characters
-  representing the same regex options given to the `%r` sigil,
+  representing the same regex options given to the `~r` sigil,
   or a list of options, as expected by the [Erlang `re` docs](http://www.erlang.org/doc/man/re.html).
 
   It returns `{ :ok, regex }` in case of success,
@@ -60,7 +60,7 @@ defmodule Regex do
   ## Examples
 
       iex> Regex.compile("foo")
-      {:ok, %r"foo"}
+      {:ok, ~r"foo"}
       iex> Regex.compile("*foo")
       {:error, {'nothing to repeat', 0}}
 
@@ -112,9 +112,9 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.match?(%r/foo/, "foo")
+      iex> Regex.match?(~r/foo/, "foo")
       true
-      iex> Regex.match?(%r/foo/, "bar")
+      iex> Regex.match?(~r/foo/, "bar")
       false
 
   """
@@ -131,11 +131,11 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.run(%r/c(d)/, "abcd")
+      iex> Regex.run(~r/c(d)/, "abcd")
       ["cd", "d"]
-      iex> Regex.run(%r/e/, "abcd")
+      iex> Regex.run(~r/e/, "abcd")
       nil
-      iex> Regex.run(%r/c(d)/, "abcd", return: :index)
+      iex> Regex.run(~r/c(d)/, "abcd", return: :index)
       [{2,2},{3,1}]
 
   """
@@ -163,11 +163,11 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.named_captures(%r/c(?<foo>d)/g, "abcd")
+      iex> Regex.named_captures(~r/c(?<foo>d)/g, "abcd")
       [foo: "d"]
-      iex> Regex.named_captures(%r/a(?<foo>b)c(?<bar>d)/g, "abcd")
+      iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/g, "abcd")
       [foo: "b", bar: "d"]
-      iex> Regex.named_captures(%r/a(?<foo>b)c(?<bar>d)/g, "efgh")
+      iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/g, "efgh")
       nil
 
   """
@@ -189,7 +189,7 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.source(%r(foo))
+      iex> Regex.source(~r(foo))
       "foo"
 
   """
@@ -202,7 +202,7 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.opts(%r(foo)m)
+      iex> Regex.opts(~r(foo)m)
       "m"
 
   """
@@ -215,7 +215,7 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.groups(%r/(?<foo>bar)/g)
+      iex> Regex.groups(~r/(?<foo>bar)/g)
       [:foo]
 
   """
@@ -237,11 +237,11 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.scan(%r/c(d|e)/, "abcd abce")
+      iex> Regex.scan(~r/c(d|e)/, "abcd abce")
       [["cd", "d"], ["ce", "e"]]
-      iex> Regex.scan(%r/c(?:d|e)/, "abcd abce")
+      iex> Regex.scan(~r/c(?:d|e)/, "abcd abce")
       [["cd"], ["ce"]]
-      iex> Regex.scan(%r/e/, "abcd")
+      iex> Regex.scan(~r/e/, "abcd")
       []
 
   """
@@ -269,15 +269,15 @@ defmodule Regex do
   If no number of parts is given, it defaults to `:infinity`.
 
   ## Examples
-      iex> Regex.split(%r/-/, "a-b-c")
+      iex> Regex.split(~r/-/, "a-b-c")
       ["a","b","c"]
-      iex> Regex.split(%r/-/, "a-b-c", [parts: 2])
+      iex> Regex.split(~r/-/, "a-b-c", [parts: 2])
       ["a","b-c"]
-      iex> Regex.split(%r/-/, "abc")
+      iex> Regex.split(~r/-/, "abc")
       ["abc"]
-      iex> Regex.split(%r//, "abc")
+      iex> Regex.split(~r//, "abc")
       ["a", "b", "c", ""]
-      iex> Regex.split(%r//, "abc", trim: true)
+      iex> Regex.split(~r//, "abc", trim: true)
       ["a", "b", "c"]
   """
 
@@ -302,7 +302,7 @@ defmodule Regex do
     end
   end
 
-  @doc %S"""
+  @doc ~S"""
   Receives a regex, a binary and a replacement, returns a new
   binary where the all matches are replaced by replacement.
 
@@ -313,15 +313,15 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.replace(%r/d/, "abc", "d")
+      iex> Regex.replace(~r/d/, "abc", "d")
       "abc"
-      iex> Regex.replace(%r/b/, "abc", "d")
+      iex> Regex.replace(~r/b/, "abc", "d")
       "adc"
-      iex> Regex.replace(%r/b/, "abc", "[&]")
+      iex> Regex.replace(~r/b/, "abc", "[&]")
       "a[b]c"
-      iex> Regex.replace(%r/b/, "abc", "[\\&]")
+      iex> Regex.replace(~r/b/, "abc", "[\\&]")
       "a[&]c"
-      iex> Regex.replace(%r/(b)/, "abc", "[\\1]")
+      iex> Regex.replace(~r/(b)/, "abc", "[\\1]")
       "a[b]c"
 
   """
@@ -332,10 +332,10 @@ defmodule Regex do
     :re.replace(string, compiled, replacement, opts)
   end
 
-  { :ok, pattern } = :re.compile(%S"[.^$*+?()[{\\\|\s#]", [:unicode])
+  { :ok, pattern } = :re.compile(~S"[.^$*+?()[{\\\|\s#]", [:unicode])
   @escape_pattern pattern
 
-  @doc %S"""
+  @doc ~S"""
   Escapes a string to be literally matched in a regex.
 
   ## Examples
@@ -382,7 +382,7 @@ defmodule Regex do
   defp translate_options(<<>>), do: []
   defp translate_options(rest), do: { :error, rest }
 
-  { :ok, pattern } = :re.compile(%S"\(\?<(?<G>[^>]*)>")
+  { :ok, pattern } = :re.compile(~S"\(\?<(?<G>[^>]*)>")
   @groups_pattern pattern
 
   defp parse_groups(source) do

@@ -1,5 +1,5 @@
 defmodule Version do
-  @moduledoc %S"""
+  @moduledoc ~S"""
   Functions for parsing and matching versions against requirements.
 
   A version is a string in a specific format or a `Version.Schema`
@@ -196,7 +196,7 @@ defmodule Version do
   end
 
   defp get_build(string) do
-    case Regex.run(%r/\+([^\s]+)$/, string) do
+    case Regex.run(~r/\+([^\s]+)$/, string) do
       nil ->
         nil
 
@@ -272,7 +272,7 @@ defmodule Version do
       Enum.filter(Enum.reverse(acc), &(&1 != :' '))
     end
 
-    @version_regex %r/^
+    @version_regex ~r/^
       (\d+)                 # major
       (?:\.(\d+))?          # minor
       (?:\.(\d+))?          # patch
@@ -320,9 +320,9 @@ defmodule Version do
 
     defp parse_pre([piece|t], acc) do
       cond do
-        piece =~ %r/^(0|[1-9][0-9]*)$/ ->
+        piece =~ ~r/^(0|[1-9][0-9]*)$/ ->
           parse_pre(t, [binary_to_integer(piece)|acc])
-        piece =~ %r/^[0-9]*$/ ->
+        piece =~ ~r/^[0-9]*$/ ->
           :error
         true ->
           parse_pre(t, [piece|acc])

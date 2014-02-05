@@ -127,10 +127,10 @@ defmodule Kernel.ExpansionTest do
   test "vars: forces variable to exist" do
     assert expand(quote do: (var!(a) = 1; var!(a)))
 
-    message = %r"expected var a to expand to an existing variable or be a part of a match"
+    message = ~r"expected var a to expand to an existing variable or be a part of a match"
     assert_raise CompileError, message, fn -> expand(quote do: var!(a)) end
 
-    message = %r"expected var a \(context Unknown\) to expand to an existing variable or be a part of a match"
+    message = ~r"expected var a \(context Unknown\) to expand to an existing variable or be a part of a match"
     assert_raise CompileError, message, fn -> expand(quote do: var!(a, Unknown)) end
   end
 
@@ -139,13 +139,13 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "^: raises outside match" do
-    assert_raise CompileError, %r"cannot use \^a outside of match clauses", fn ->
+    assert_raise CompileError, ~r"cannot use \^a outside of match clauses", fn ->
       expand(quote do: ^a)
     end
   end
 
   test "^: raises without var" do
-    assert_raise CompileError, %r"invalid argument for unary operator \^, expected an existing variable, got: \^1", fn ->
+    assert_raise CompileError, ~r"invalid argument for unary operator \^, expected an existing variable, got: \^1", fn ->
       expand(quote do: ^1 = 1)
     end
   end
@@ -192,7 +192,7 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "anonymous calls: raises on atom base" do
-    assert_raise CompileError, %r"invalid function call :foo.()", fn ->
+    assert_raise CompileError, ~r"invalid function call :foo.()", fn ->
       expand(quote do: :foo.(a))
     end
   end
@@ -218,7 +218,7 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "remote calls: raises when not required" do
-    msg = %r"you must require Kernel\.ExpansionTarget before invoking the macro Kernel\.ExpansionTarget\.seventeen/0"
+    msg = ~r"you must require Kernel\.ExpansionTarget before invoking the macro Kernel\.ExpansionTarget\.seventeen/0"
     assert_raise CompileError, msg, fn ->
       expand(quote do: Kernel.ExpansionTarget.seventeen)
     end
@@ -386,11 +386,11 @@ defmodule Kernel.ExpansionTest do
   ## Invalid
 
   test "handles invalid expressions" do
-    assert_raise CompileError, %r"invalid quoted expression: {1, 2, 3}", fn ->
+    assert_raise CompileError, ~r"invalid quoted expression: {1, 2, 3}", fn ->
       expand(quote do: unquote({ 1, 2, 3 }))
     end
 
-    assert_raise CompileError, %r"invalid quoted expression: #Function<", fn ->
+    assert_raise CompileError, ~r"invalid quoted expression: #Function<", fn ->
       expand(quote do: unquote({ :sample, fn -> end }))
     end
   end

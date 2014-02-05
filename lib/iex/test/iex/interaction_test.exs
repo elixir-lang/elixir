@@ -33,9 +33,9 @@ defmodule IEx.InteractionTest do
   test "exception" do
     exception = Regex.escape("** (ArithmeticError) bad argument in arithmetic expression")
     assert capture_iex("1 + :atom\n:this_is_still_working")
-           =~ %r/^#{exception}.+\n:this_is_still_working$/s
+           =~ ~r/^#{exception}.+\n:this_is_still_working$/s
     refute capture_iex("1 + :atom\n:this_is_still_working")
-           =~ %r/erl_eval/s
+           =~ ~r/erl_eval/s
   end
 
   test "empty history at the start" do
@@ -113,6 +113,6 @@ defmodule IEx.InteractionTest do
   end
 
   test "receive exit" do
-    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~ %r"EXIT from #PID"
+    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~ ~r"EXIT from #PID"
   end
 end

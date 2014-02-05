@@ -1,5 +1,5 @@
 defmodule Set do
-  @moduledoc %S"""
+  @moduledoc ~S"""
   This module specifies the Set API expected to be
   implemented by different representations.
 

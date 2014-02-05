@@ -11,8 +11,8 @@ defmodule Mix.CLITest do
         temp_env = "MIX_ENV=prod"
       end
 
-      env = System.cmd %s(#{temp_env} #{elixir_executable} #{mix_executable} run -e "IO.inspect { Mix.env, System.argv }" -- 1 2 3)
-      assert env =~ %s({:prod, ["1", "2", "3"]})
+      env = System.cmd ~s(#{temp_env} #{elixir_executable} #{mix_executable} run -e "IO.inspect { Mix.env, System.argv }" -- 1 2 3)
+      assert env =~ ~s({:prod, ["1", "2", "3"]})
     end
   end
 
@@ -39,7 +39,7 @@ defmodule Mix.CLITest do
   test "--help smoke test" do
     in_fixture "only_mixfile", fn ->
       output = mix "--help"
-      assert output =~ %r/mix compile\s+# Compile source files/
+      assert output =~ ~r/mix compile\s+# Compile source files/
       refute output =~ "mix invalid"
     end
   end
@@ -47,7 +47,7 @@ defmodule Mix.CLITest do
   test "--version smoke test" do
     in_fixture "only_mixfile", fn ->
       output = mix "--version"
-      assert output =~ %r/Elixir [0-9\.a-z]+/
+      assert output =~ ~r/Elixir [0-9\.a-z]+/
     end
   end
 

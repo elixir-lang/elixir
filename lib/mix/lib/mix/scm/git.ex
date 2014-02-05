@@ -67,7 +67,7 @@ defmodule Mix.SCM.Git do
   def checkout(opts) do
     path     = opts[:dest]
     location = location(opts[:git])
-    command  = %s(git clone --no-checkout --progress "#{location}" "#{path}")
+    command  = ~s(git clone --no-checkout --progress "#{location}" "#{path}")
 
     run_cmd_or_raise(command)
     File.cd! path, fn -> do_checkout(opts) end

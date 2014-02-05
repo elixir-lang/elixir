@@ -71,7 +71,7 @@ defmodule IEx.Case do
   end
 
   defp strip_line(string) do
-    Regex.replace %r/\A.+?$/ms, string, ""
+    Regex.replace ~r/\A.+?$/ms, string, ""
   end
 end
 

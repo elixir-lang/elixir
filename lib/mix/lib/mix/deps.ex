@@ -19,7 +19,7 @@ defrecord Mix.Dep, [ scm: nil, app: nil, requirement: nil, status: nil, opts: ni
 end
 
 defmodule Mix.Deps do
-  @moduledoc %S"""
+  @moduledoc ~S"""
   Common functions to work with dependencies.
 
   Dependencies must be specified in the Mix application in the

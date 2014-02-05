@@ -1778,10 +1778,10 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> "abcd" =~ %r/c(d)/
+      iex> "abcd" =~ ~r/c(d)/
       true
 
-      iex> "abcd" =~ %r/e/
+      iex> "abcd" =~ ~r/e/
       false
 
       iex> "abcd" =~ "bc"
@@ -1800,7 +1800,7 @@ defmodule Kernel do
     Regex.match?(right, left)
   end
 
-  @doc %S"""
+  @doc ~S"""
   Inspect the given argument according to the `Inspect` protocol.
   The second argument is a keywords list with options to control
   inspection.
@@ -3048,7 +3048,7 @@ defmodule Kernel do
     end
   end
 
-  @doc %S"""
+  @doc ~S"""
   Exports a module with a record definition and runtime operations.
 
   Please see the `Record` module's documentation for an introduction
@@ -3169,7 +3169,7 @@ defmodule Kernel do
     end
   end
 
-  @doc %S"""
+  @doc ~S"""
   Defines a set of private macros to manipulate a record definition.
 
   This macro defines a set of macros private to the current module to
@@ -3229,7 +3229,7 @@ defmodule Kernel do
     Record.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
   end
 
-  @doc %S"""
+  @doc ~S"""
   Defines an exception.
 
   Exceptions are simply records with three differences:
@@ -3619,14 +3619,14 @@ defmodule Kernel do
   ## Sigils
 
   @doc """
-  Handles the sigil %S. It simply returns a string
+  Handles the sigil ~S. It simply returns a string
   without escaping characters and without interpolations.
 
   ## Examples
 
-      iex> %S(foo)
+      iex> ~S(foo)
       "foo"
-      iex> %S(f\#{o}o)
+      iex> ~S(f\#{o}o)
       "f\\\#{o}o"
 
   """
@@ -3635,14 +3635,14 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil %s. It returns a string as if it was double quoted
+  Handles the sigil ~s. It returns a string as if it was double quoted
   string, unescaping characters and replacing interpolations.
 
   ## Examples
 
-      iex> %s(foo)
+      iex> ~s(foo)
       "foo"
-      iex> %s(f\#{:o}o)
+      iex> ~s(f\#{:o}o)
       "foo"
 
   """
@@ -3651,14 +3651,14 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil %C. It simply returns a char list
+  Handles the sigil ~C. It simply returns a char list
   without escaping characters and without interpolations.
 
   ## Examples
 
-      iex> %C(foo)
+      iex> ~C(foo)
       'foo'
-      iex> %C(f\#{o}o)
+      iex> ~C(f\#{o}o)
       'f\\\#{o}o'
 
   """
@@ -3667,14 +3667,14 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil %c. It returns a char list as if it were a single
+  Handles the sigil ~c. It returns a char list as if it were a single
   quoted string, unescaping characters and replacing interpolations.
 
   ## Examples
 
-      iex> %c(foo)
+      iex> ~c(foo)
       'foo'
-      iex> %c(f\#{:o}o)
+      iex> ~c(f\#{:o}o)
       'foo'
 
   """
@@ -3691,11 +3691,11 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil %r. It returns a Regex pattern.
+  Handles the sigil ~r. It returns a Regex pattern.
 
   ## Examples
 
-      iex> Regex.match?(%r(foo), "foo")
+      iex> Regex.match?(~r(foo), "foo")
       true
 
   """
@@ -3711,12 +3711,12 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil %R. It returns a Regex pattern without escaping
+  Handles the sigil ~R. It returns a Regex pattern without escaping
   nor interpreting interpolations.
 
   ## Examples
 
-      iex> Regex.match?(%R(f\#{1,3}o), "f\#o")
+      iex> Regex.match?(~R(f\#{1,3}o), "f\#o")
       true
 
   """
@@ -3726,7 +3726,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil %w. It returns a list of "words" split by whitespace.
+  Handles the sigil ~w. It returns a list of "words" split by whitespace.
 
   ## Modifiers
 
@@ -3736,11 +3736,11 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> %w(foo \#{:bar} baz)
+      iex> ~w(foo \#{:bar} baz)
       ["foo", "bar", "baz"]
-      iex> %w(--source test/enum_test.exs)
+      iex> ~w(--source test/enum_test.exs)
       ["--source", "test/enum_test.exs"]
-      iex> %w(foo bar baz)a
+      iex> ~w(foo bar baz)a
       [:foo, :bar, :baz]
 
   """
@@ -3755,7 +3755,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil %W. It returns a list of "words" split by whitespace
+  Handles the sigil ~W. It returns a list of "words" split by whitespace
   without escaping nor interpreting interpolations.
 
   ## Modifiers
@@ -3766,7 +3766,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> %W(foo \#{bar} baz)
+      iex> ~W(foo \#{bar} baz)
       ["foo", "\\\#{bar}", "baz"]
 
   """

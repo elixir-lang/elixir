@@ -21,9 +21,9 @@ defmodule StringTest do
     assert String.slice("noël", 0..2) == "noë"
     assert String.length("noël") == 4
 
-    assert String.length("😸😾") == 2
-    assert String.slice("😸😾", 1..1) == "😾"
-    assert String.reverse("😸😾") == "😾😸"
+    assert String.length("") == 2
+    assert String.slice("", 1..1) == ""
+    assert String.reverse("") == ""
 
     assert String.upcase("baﬄe") == "BAFFLE"
   end
@@ -56,13 +56,13 @@ defmodule StringTest do
   end
 
   test :split_with_regex do
-    assert String.split("", %r{,}) == [""]
-    assert String.split("a,b", %r{,}) == ["a", "b"]
-    assert String.split("a,b,c", %r{,}) == ["a", "b", "c"]
-    assert String.split("a,b,c", %r{,}, global: false) == ["a", "b,c"]
-    assert String.split("a,b.c ", %r{\W}) == ["a", "b", "c", ""]
-    assert String.split("a,b.c ", %r{\W}, trim: false) == ["a", "b", "c", ""]
-    assert String.split("a,b", %r{\.}) == ["a,b"]
+    assert String.split("", ~r{,}) == [""]
+    assert String.split("a,b", ~r{,}) == ["a", "b"]
+    assert String.split("a,b,c", ~r{,}) == ["a", "b", "c"]
+    assert String.split("a,b,c", ~r{,}, global: false) == ["a", "b,c"]
+    assert String.split("a,b.c ", ~r{\W}) == ["a", "b", "c", ""]
+    assert String.split("a,b.c ", ~r{\W}, trim: false) == ["a", "b", "c", ""]
+    assert String.split("a,b", ~r{\.}) == ["a,b"]
   end
 
   test :upcase do
@@ -186,8 +186,8 @@ defmodule StringTest do
     assert String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1]) == "a[,,]b[,,]c"
     assert String.replace("a,b,c", "b", "[]", insert_replaced: 1, global: false) == "a,[b],c"
 
-    assert String.replace("a,b,c", %r/,(.)/, ",\\1\\1") == "a,bb,cc"
-    assert String.replace("a,b,c", %r/,(.)/, ",\\1\\1", global: false) == "a,bb,c"
+    assert String.replace("a,b,c", ~r/,(.)/, ",\\1\\1") == "a,bb,cc"
+    assert String.replace("a,b,c", ~r/,(.)/, ",\\1\\1", global: false) == "a,bb,c"
   end
 
   test :duplicate do
