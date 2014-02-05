@@ -39,4 +39,10 @@ defmodule MapTest do
     assert [%{}: :%] == [{ :%{}, :% }]
     assert [%: :%{}] == [{ :%, :%{} }]
   end
+
+  test "maps with variables" do
+    a = 0
+    assert %{ a: a = 1, b: a } == %{ a: 1, b: 0 }
+    assert a == 1
+  end
 end
