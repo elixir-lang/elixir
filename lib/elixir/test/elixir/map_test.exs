@@ -75,4 +75,9 @@ defmodule MapTest do
     assert %{ 1 => 2, 1 => 3 } == %{ 1 => 3 }
     assert %{ :a => :b, a: :c } == %{ a: :c }
   end
+
+  test "update maps" do
+    m = %{a: 2, b: 2}
+    assert %{ m | a: 3} == %{a: 3, b: 2}
+  end
 end
