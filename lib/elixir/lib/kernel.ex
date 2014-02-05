@@ -268,9 +268,11 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns an integer which is the number of bytes needed to contain `bitstring`.
-  (That is, if the number of bits in `bitstring` is not divisible by 8, the resulting
-  number of bytes will be rounded up.)
+  Returns the number of bytes needed to contain `bitstring`.
+
+  That is, if the number of bits in `bitstring` is not divisible by 8,
+  the resulting number of bytes will be rounded up. This operation
+  happens in constant time.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -815,6 +817,18 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns the size of a map.
+
+  This operation happens in constant time.
+
+  Allowed in guard tests. Inlined by the compiler.
+  """
+  @spec map_size(map) :: non_neg_integer
+  def map_size(map) do
+    :erlang.map_size(map)
+  end
+
+  @doc """
   Return the biggest of the two given terms according to
   Erlang's term ordering. If the terms compare equal, the
   first one is returned.
@@ -940,7 +954,7 @@ defmodule Kernel do
   @doc """
   Returns the size of the given argument, which must be a tuple or a binary.
 
-  Prefer using `tuple_size` or `byte_size` insted.
+  Prefer using `tuple_size` or `byte_size` instead.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -1071,6 +1085,8 @@ defmodule Kernel do
 
   @doc """
   Returns the size of a tuple.
+
+  This operation happens in constant time.
 
   Allowed in guard tests. Inlined by the compiler.
   """

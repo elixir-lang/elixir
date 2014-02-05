@@ -410,6 +410,7 @@ inline(?kernel, list_to_integer, 1) -> { erlang, list_to_integer };
 inline(?kernel, list_to_integer, 2) -> { erlang, list_to_integer };
 inline(?kernel, list_to_tuple, 1) -> { erlang, list_to_tuple };
 inline(?kernel, make_ref, 0) -> { erlang, make_ref };
+inline(?kernel, map_size, 1) -> { erlang, map_size };
 inline(?kernel, max, 2) -> { erlang, max };
 inline(?kernel, min, 2) -> { erlang, min };
 inline(?kernel, node, 0) -> { erlang, node };
