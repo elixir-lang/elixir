@@ -125,6 +125,9 @@ defmodule Protocol.Consolidation do
     { :error, :not_a_protocol } |
     { :error, :no_beam_info }
   def apply_to(protocol, types) when is_atom(protocol) do
+    raise ArgumentError, "consolidation is disabled as we can't consolidate records " <>
+                         "and structs at once. Consolidation will be added back once " <>
+                         "polymorphic records are removed"
     ensure_protocol(protocol)
     |> if_ok(change_debug_info types)
     |> if_ok(compile)
