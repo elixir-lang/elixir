@@ -24,6 +24,13 @@ defmodule ProtocolTest do
     end
   end
 
+  defimpl Sample, for: Map do
+    def blank(map) do
+      :maps.size(map) == 0
+    end
+  end
+
+
   defrecord Bar, a: 0 do
     defimpl Sample do
       def blank(record) do
@@ -66,10 +73,12 @@ defmodule ProtocolTest do
     assert nil? Sample.impl_for(make_ref)
     assert nil? Sample.impl_for(Macro.Env[])
 
+    assert Sample.impl_for(%{}) == Sample.Map
     assert Sample.impl_for(Foo[]) ==
            Sample.ProtocolTest.Foo
     assert Sample.impl_for(Bar[]) ==
            Sample.ProtocolTest.Bar
+
   end
 
   test :protocol_priority_does_not_override_records do
@@ -193,7 +202,7 @@ defmodule Protocol.ConsolidationTest do
   Code.append_path(path)
 
   # Any is ignored because there is no fallback
-  { :ok, binary } = Protocol.Consolidation.apply_to(Sample, [Any, Foo, Bar])
+  { :ok, binary } = Protocol.Consolidation.apply_to(Sample, [Any, Foo, Bar, Map])
   :code.load_binary(Sample, 'protocol_test.exs', binary)
 
   # Any should be moved to the end
@@ -216,6 +225,7 @@ defmodule Protocol.ConsolidationTest do
     assert nil? Sample.impl_for(make_ref)
     assert nil? Sample.impl_for(Macro.Env[])
 
+    assert Sample.impl_for(%{}) == Sample.Map
     assert Sample.impl_for(Foo[]) ==
            Sample.Protocol.ConsolidationTest.Foo
     assert Sample.impl_for(Bar[]) ==
