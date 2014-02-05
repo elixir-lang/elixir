@@ -250,6 +250,29 @@ defmodule Inspect.ListTest do
   end
 end
 
+defmodule Inspect.MapTest do
+  use ExUnit.Case, async: true
+
+  test :basic do
+    assert inspect(%{ 1 => "b" }) == "%{1 => \"b\"}"
+    assert inspect(%{ 1 => "b", 2 => "c"}, [pretty: true, width: 1]) == "%{1 => \"b\",\n 2 => \"c\"}"
+  end
+
+  test :keyword do
+    assert inspect(%{a: 1}) == "%{a: 1}"
+    assert inspect(%{a: 1, b: 2}) == "%{a: 1, b: 2}"
+    assert inspect(%{a: 1, b: 2, c: 3}) == "%{a: 1, b: 2, c: 3}"
+  end
+
+  test :with_limit do
+    assert inspect(%{ 1 => 1, 2 => 2, 3 => 3, 4 => 4 }, limit: 3) == "%{1 => 1, 2 => 2, 3 => 3, ...}"
+  end
+
+  test :struct_basic do
+    assert inspect(%{:__struct__ => User, :key => 1}) == "%User{key: 1}"
+  end
+end
+
 defmodule Inspect.OthersTest do
   use ExUnit.Case, async: true
 
