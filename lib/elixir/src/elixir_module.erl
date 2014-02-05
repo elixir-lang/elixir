@@ -127,12 +127,7 @@ eval_form(Line, Module, Block, Vars, E) ->
 
 %% Return the form with exports and function declarations.
 
-functions_form(Line, File, Module, BaseAll, BaseExport, Def, Defmacro, RawFunctions) ->
-  BaseFunctions = case elixir_compiler:get_opt(internal) of
-    true  -> RawFunctions;
-    false -> record_rewrite_functions(Module, RawFunctions)
-  end,
-
+functions_form(Line, File, Module, BaseAll, BaseExport, Def, Defmacro, BaseFunctions) ->
   Info = add_info_function(Line, File, Module, BaseExport, Def, Defmacro),
 
   All       = [{ '__info__', 1 }|BaseAll],
@@ -142,17 +137,6 @@ functions_form(Line, File, Module, BaseAll, BaseExport, Def, Defmacro, RawFuncti
   { All, [
     { attribute, Line, export, lists:sort(Export) } | Functions
   ] }.
-
-record_rewrite_functions(Module, Functions) ->
-  lists:map(fun
-    ({ function, Line, Name, Arity, Clauses }) ->
-      Rewriten = [begin
-        { C, _, _ } = 'Elixir.Kernel.RecordRewriter':optimize_clause(Module, Clause),
-        C
-      end || Clause <- Clauses],
-      { function, Line, Name, Arity, Rewriten };
-    (Other) -> Other
-  end, Functions).
 
 %% Add attributes handling to the form
 
