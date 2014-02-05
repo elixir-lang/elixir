@@ -113,7 +113,7 @@ defmodule ExUnit.DocTestTest.Invalid do
 end
 
 defmodule ExUnit.DocTestTest.IndentationHeredocs do
-  @doc %S'''
+  @doc ~S'''
   Receives a test and formats its failure.
 
   ## Examples
@@ -129,7 +129,7 @@ defmodule ExUnit.DocTestTest.IndentationHeredocs do
 end
 
 defmodule ExUnit.DocTestTest.IndentationMismatchedPrompt do
-  @doc %S'''
+  @doc ~S'''
     iex> foo = 1
      iex> bar = 2
     iex> foo + bar
@@ -139,7 +139,7 @@ defmodule ExUnit.DocTestTest.IndentationMismatchedPrompt do
 end
 
 defmodule ExUnit.DocTestTest.IndentationTooMuch do
-  @doc %S'''
+  @doc ~S'''
     iex> 1 + 2
       3
   '''
@@ -147,7 +147,7 @@ defmodule ExUnit.DocTestTest.IndentationTooMuch do
 end
 
 defmodule ExUnit.DocTestTest.IndentationNotEnough do
-  @doc %S'''
+  @doc ~S'''
       iex> 1 + 2
     3
   '''
@@ -171,7 +171,7 @@ defmodule ExUnit.DocTestTest do
   end
 
   test :no_var_leak do
-    assert_raise CompileError, %r"function '_a'/0 undefined", fn ->
+    assert_raise CompileError, ~r"function '_a'/0 undefined", fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.Invalid

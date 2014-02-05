@@ -366,7 +366,7 @@ defmodule File do
     end
   end
 
-  @doc %S"""
+  @doc ~S"""
   Copies the contents in source to destination.
 
   If the source is a file, it copies `source` to

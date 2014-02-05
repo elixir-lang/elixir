@@ -183,7 +183,7 @@ defmodule Macro do
     elem(:elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)), 0)
   end
 
-  @doc %S"""
+  @doc ~S"""
   Unescape the given chars.
 
   This is the unescaping behaviour used by default in Elixir
@@ -195,7 +195,7 @@ defmodule Macro do
   also escaped according to the latin1 set they represent.
 
   This function is commonly used on sigil implementations
-  (like `%r`, `%s` and others) which receive a raw, unescaped
+  (like `~r`, `~s` and others) which receive a raw, unescaped
   string.
 
   ## Examples
@@ -211,7 +211,7 @@ defmodule Macro do
     :elixir_interpolation.unescape_chars(chars)
   end
 
-  @doc %S"""
+  @doc ~S"""
   Unescape the given chars according to the map given.
 
   Check `unescape_string/1` if you want to use the same map

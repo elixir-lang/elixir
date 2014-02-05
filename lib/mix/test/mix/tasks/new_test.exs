@@ -13,7 +13,7 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "[mod: { HelloWorld, [] }]"
       end
 
-      assert_file "hello_world/README.md", %r/# HelloWorld/
+      assert_file "hello_world/README.md", ~r/# HelloWorld/
       assert_file "hello_world/.gitignore"
 
       assert_file "hello_world/lib/hello_world.ex", fn(file) ->
@@ -27,8 +27,8 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "supervise(children, strategy: :one_for_one)"
       end
 
-      assert_file "hello_world/test/test_helper.exs", %r/HelloWorld.start/
-      assert_file "hello_world/test/hello_world_test.exs", %r/defmodule HelloWorldTest do/
+      assert_file "hello_world/test/test_helper.exs", ~r/HelloWorld.start/
+      assert_file "hello_world/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
 
       assert_received { :mix_shell, :info, ["* creating mix.exs"] }
       assert_received { :mix_shell, :info, ["* creating lib/hello_world.ex"] }
@@ -44,13 +44,13 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "version: \"0.0.1\""
       end
 
-      assert_file "hello_world/README.md", %r/# HelloWorld/
+      assert_file "hello_world/README.md", ~r/# HelloWorld/
       assert_file "hello_world/.gitignore"
 
-      assert_file "hello_world/lib/hello_world.ex",  %r/defmodule HelloWorld do/
+      assert_file "hello_world/lib/hello_world.ex",  ~r/defmodule HelloWorld do/
 
-      assert_file "hello_world/test/test_helper.exs", %r/HelloWorld.start/
-      assert_file "hello_world/test/hello_world_test.exs", %r/defmodule HelloWorldTest do/
+      assert_file "hello_world/test/test_helper.exs", ~r/HelloWorld.start/
+      assert_file "hello_world/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
 
       assert_received { :mix_shell, :info, ["* creating mix.exs"] }
       assert_received { :mix_shell, :info, ["* creating lib/hello_world.ex"] }
@@ -73,7 +73,7 @@ defmodule Mix.Tasks.NewTest do
   test "new with dot" do
     in_tmp "new_with_dot", fn ->
       Mix.Tasks.New.run ["."]
-      assert_file "lib/new_with_dot.ex", %r/defmodule NewWithDot do/
+      assert_file "lib/new_with_dot.ex", ~r/defmodule NewWithDot do/
     end
   end
 

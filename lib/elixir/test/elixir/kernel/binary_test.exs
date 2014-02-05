@@ -118,19 +118,19 @@ bar """
 
   test :literal_errors do
     assert_raise CompileError, fn ->
-      Code.eval_string(%s[<< "foo" :: integer >>])
+      Code.eval_string(~s[<< "foo" :: integer >>])
     end
 
     assert_raise CompileError, fn ->
-      Code.eval_string(%s[<< "foo" :: float >>])
+      Code.eval_string(~s[<< "foo" :: float >>])
     end
 
     assert_raise CompileError, fn ->
-      Code.eval_string(%s[<< 'foo' :: binary >>])
+      Code.eval_string(~s[<< 'foo' :: binary >>])
     end
 
     assert_raise ArgumentError, fn ->
-      Code.eval_string(%s[<<1::size(4)>> <> "foo"])
+      Code.eval_string(~s[<<1::size(4)>> <> "foo"])
     end
   end
 

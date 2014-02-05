@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
     in_fixture "only_mixfile", fn ->
       File.mkdir_p!("lib")
-      File.write!("lib/a.ex", "raise %s(oops)")
+      File.write!("lib/a.ex", "raise ~s(oops)")
 
       capture_io fn ->
         assert_raise RuntimeError, fn ->

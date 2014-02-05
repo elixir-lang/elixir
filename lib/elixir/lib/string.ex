@@ -1,7 +1,7 @@
 import Kernel, except: [length: 1]
 
 defmodule String do
-  @moduledoc %S"""
+  @moduledoc ~S"""
   A String in Elixir is a UTF-8 encoded binary.
 
   ## String and binary operations
@@ -168,7 +168,7 @@ defmodule String do
   @spec split(t) :: [t]
   defdelegate split(binary), to: String.Unicode
 
-  @doc %S"""
+  @doc ~S"""
   Divides a string into substrings based on a pattern,
   returning a list of these substrings. The pattern can
   be a string, a list of strings or a regular expression.
@@ -197,16 +197,16 @@ defmodule String do
 
   A regular expression:
 
-      iex> String.split("a,b,c", %r{,})
+      iex> String.split("a,b,c", ~r{,})
       ["a", "b", "c"]
-      iex> String.split("a,b,c", %r{,}, global: false)
+      iex> String.split("a,b,c", ~r{,}, global: false)
       ["a", "b,c"]
-      iex> String.split(" a b c ", %r{\s}, trim: true)
+      iex> String.split(" a b c ", ~r{\s}, trim: true)
       ["a", "b", "c"]
 
   Splitting on empty patterns returns codepoints:
 
-      iex> String.split("abc", %r{})
+      iex> String.split("abc", ~r{})
       ["a", "b", "c", ""]
       iex> String.split("abc", "")
       ["a", "b", "c", ""]
@@ -222,7 +222,7 @@ defmodule String do
 
   def split("", _pattern, _options), do: [""]
 
-  def split(binary, "", options), do: split(binary, %r"", options)
+  def split(binary, "", options), do: split(binary, ~r"", options)
 
   def split(binary, pattern, options) when is_regex(pattern) do
     Regex.split(pattern, binary, options)
@@ -413,7 +413,7 @@ defmodule String do
     rstrip(lstrip(string, char), char)
   end
 
-  @doc %S"""
+  @doc ~S"""
   Returns a new string of length `len` with `subject` right justified and
   padded with `padding`. If `padding` is not present, it defaults to
   whitespace. When `len` is less than the length of `subject`, `subject` is
@@ -438,7 +438,7 @@ defmodule String do
     do_justify(subject, len, padding, :right)
   end
 
-  @doc %S"""
+  @doc ~S"""
   Returns a new string of length `len` with `subject` left justified and padded
   with `padding`. If `padding` is not present, it defaults to whitespace. When
   `len` is less than the length of `subject`, `subject` is returned.
@@ -482,7 +482,7 @@ defmodule String do
     end
   end
 
-  @doc %S"""
+  @doc ~S"""
   Returns a new binary based on `subject` by replacing the parts
   matching `pattern` by `replacement`. By default, it replaces
   all entries, except if the `global` option is set to `false`.
@@ -499,7 +499,7 @@ defmodule String do
   The pattern can also be a regex. In those cases, one can give `\N`
   in the `replacement` string to access a specific capture in the regex:
 
-      iex> String.replace("a,b,c", %r/,(.)/, ",\\1\\1")
+      iex> String.replace("a,b,c", ~r/,(.)/, ",\\1\\1")
       "a,bb,cc"
 
   Notice we had to escape the escape character `\`. By giving `&`,
@@ -620,7 +620,7 @@ defmodule String do
   @spec next_codepoint(t) :: {codepoint, t} | nil
   defdelegate next_codepoint(string), to: String.Unicode
 
-  @doc %S"""
+  @doc ~S"""
   Checks whether `str` contains only valid characters.
 
   ## Examples
@@ -651,7 +651,7 @@ defmodule String do
   def valid?(<<>>), do: true
   def valid?(_), do: false
 
-  @doc %S"""
+  @doc ~S"""
   Checks whether `str` is a valid character.
 
   All characters are codepoints, but some codepoints
@@ -1025,9 +1025,9 @@ defmodule String do
 
   ## Examples
 
-      iex> String.match?("foo", %r/foo/)
+      iex> String.match?("foo", ~r/foo/)
       true
-      iex> String.match?("bar", %r/foo/)
+      iex> String.match?("bar", ~r/foo/)
       false
 
   """

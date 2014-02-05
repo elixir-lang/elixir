@@ -154,7 +154,7 @@ defimpl Inspect, for: Atom do
 end
 
 defimpl Inspect, for: BitString do
-  @doc %S"""
+  @doc ~S"""
   Represents a string as itself escaping all necessary
   characters. Binaries that contain non-printable characters
   are printed using the bitstring syntax.
@@ -280,7 +280,7 @@ defimpl Inspect, for: BitString do
 end
 
 defimpl Inspect, for: List do
-  @doc %S"""
+  @doc ~S"""
   Represents a list, checking if it can be printed or not.
   If so, a single-quoted representation is returned,
   otherwise the brackets syntax is used. Keywords are
@@ -441,17 +441,17 @@ defimpl Inspect, for: Float do
 end
 
 defimpl Inspect, for: Regex do
-  @doc %S"""
-  Represents the Regex using the `%r""` syntax.
+  @doc ~S"""
+  Represents the Regex using the `~r""` syntax.
 
   ## Examples
 
-      iex> inspect(%r/foo/m)
-      "%r\"foo\"m"
+      iex> inspect(~r/foo/m)
+      "~r\"foo\"m"
 
   """
   def inspect(regex, opts) when size(regex) == 5 do
-    concat ["%r", to_doc(Regex.source(regex), opts), Regex.opts(regex)]
+    concat ["~r", to_doc(Regex.source(regex), opts), Regex.opts(regex)]
   end
 
   def inspect(other, Inspect.Opts[] = opts) do

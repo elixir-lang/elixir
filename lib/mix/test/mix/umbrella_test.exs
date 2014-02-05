@@ -173,7 +173,7 @@ defmodule Mix.UmbrellaTest do
       Mix.Project.push Selective
 
       File.mkdir_p! "apps/errors/lib"
-      File.write! "apps/errors/lib/always_fail.ex", "raise %s[oops]"
+      File.write! "apps/errors/lib/always_fail.ex", "raise ~s[oops]"
 
       assert Mix.Task.run("compile.elixir") == [:ok, :ok]
       assert_received { :mix_shell, :info, ["Compiled lib/bar.ex"] }

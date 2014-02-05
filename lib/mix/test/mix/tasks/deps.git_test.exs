@@ -52,7 +52,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received { :mix_shell, :info, ["Compiled lib/git_repo.ex"] }
       assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
       assert File.exists?("_build/dev/lib/git_repo/ebin/Elixir.GitRepo.beam")
-      assert File.read!("mix.lock") =~ %r/"git_repo": {:git, #{inspect fixture_path("git_repo")}, "[a-f0-9]+", \[\]}/
+      assert File.read!("mix.lock") =~ ~r/"git_repo": {:git, #{inspect fixture_path("git_repo")}, "[a-f0-9]+", \[\]}/
 
       purge [GitRepo]
       File.touch!("_build/dev/lib/git_repo/.compile.elixir", { { 2010, 4, 17 }, { 14, 0, 0 } })
@@ -330,7 +330,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
   defp get_git_repo_revs do
     File.cd! fixture_path("git_repo"), fn ->
-      Regex.split %r(\r?\n), System.cmd("git log --format=%H")
+      Regex.split ~r(\r?\n), System.cmd("git log --format=%H")
     end
   end
 end

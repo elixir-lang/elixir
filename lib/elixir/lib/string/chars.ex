@@ -1,7 +1,7 @@
 import Kernel, except: [to_string: 1]
 
 defprotocol String.Chars do
-  @moduledoc %S"""
+  @moduledoc ~S"""
   The String.Chars protocol is responsible for
   converting a structure to a Binary (only if applicable).
   The only function required to be implemented is

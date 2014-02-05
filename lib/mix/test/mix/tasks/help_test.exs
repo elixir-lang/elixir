@@ -18,7 +18,7 @@ defmodule Mix.Tasks.HelpTest do
 
       { _, _, [output] } =
         assert_received { :mix_shell, :info, [_] }
-      assert output =~ %r/^mix\s+# Run the default task \(current: mix run\)/m
+      assert output =~ ~r/^mix\s+# Run the default task \(current: mix run\)/m
     end
   end
 
@@ -36,7 +36,7 @@ defmodule Mix.Tasks.HelpTest do
 
       { _, _, [output] } =
         assert_received { :mix_shell, :info, [_] }
-      assert output =~ %r/^Location:/m
+      assert output =~ ~r/^Location:/m
     end
   end
 end

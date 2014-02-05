@@ -1,5 +1,5 @@
 defmodule IEx do
-  @moduledoc %S"""
+  @moduledoc ~S"""
   Welcome to IEx.
 
   This module is the main entry point for Interactive Elixir and

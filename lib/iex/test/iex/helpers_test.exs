@@ -135,7 +135,7 @@ defmodule IEx.HelpersTest do
 
   test "pwd helper" do
     File.cd! iex_path, fn ->
-      assert capture_io(fn -> pwd end) =~ %r"lib[\\/]iex\n$"
+      assert capture_io(fn -> pwd end) =~ ~r"lib[\\/]iex\n$"
     end
   end
 
@@ -311,7 +311,7 @@ defmodule IEx.HelpersTest do
         assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
           Sample.run
         end
-      end) =~ %r"^.*?sample\.ex:1: warning: redefining module Sample\n$"
+      end) =~ ~r"^.*?sample\.ex:1: warning: redefining module Sample\n$"
     end
   after
     # Clean up old version produced by the r helper

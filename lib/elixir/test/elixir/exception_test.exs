@@ -4,7 +4,7 @@ defmodule Kernel.ExceptionTest do
   use ExUnit.Case, async: true
 
   # Ensure fields passed through an expression are valid
-  defexception Custom, %w(message)a
+  defexception Custom, ~w(message)a
 
   test "is_exception" do
     assert is_exception(RuntimeError.new)
@@ -51,8 +51,8 @@ defmodule Kernel.ExceptionTest do
   end
 
   test "format_stacktrace_entry with fun" do
-    assert Exception.format_stacktrace_entry({fn(x) -> x end, [1], []}) =~ %r/#Function<.+>\(1\)/
-    assert Exception.format_stacktrace_entry({fn(x, y) -> { x, y } end, 2, []}) =~ %r"#Function<.+>/2"
+    assert Exception.format_stacktrace_entry({fn(x) -> x end, [1], []}) =~ ~r/#Function<.+>\(1\)/
+    assert Exception.format_stacktrace_entry({fn(x, y) -> { x, y } end, 2, []}) =~ ~r"#Function<.+>/2"
   end
 
   test "format_mfa" do
@@ -67,7 +67,7 @@ defmodule Kernel.ExceptionTest do
 
   test "format_fa" do
     assert Exception.format_fa(fn -> end, 1) =~
-           %r"#Function<\d\.\d+/0 in Kernel\.ExceptionTest\.test format_fa/1>/1"
+           ~r"#Function<\d\.\d+/0 in Kernel\.ExceptionTest\.test format_fa/1>/1"
   end
 
   test "runtime error message" do

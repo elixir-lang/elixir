@@ -1,5 +1,5 @@
 defmodule Record do
-  @moduledoc %S"""
+  @moduledoc ~S"""
   Functions for working with Records.
 
   A record is a tagged tuple which contains one or more elements

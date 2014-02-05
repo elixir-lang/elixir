@@ -148,8 +148,8 @@ defmodule Mix.Deps.Loader do
   end
 
   defp invalid_dep_format(dep) do
-    raise Mix.Error, message: %s(Dependency specified in the wrong format: #{inspect dep}, ) <>
-      %s(expected { app :: atom, opts :: Keyword.t } | { app :: atom, requirement :: String.t, opts :: Keyword.t })
+    raise Mix.Error, message: ~s(Dependency specified in the wrong format: #{inspect dep}, ) <>
+      ~s(expected { app :: atom, opts :: Keyword.t } | { app :: atom, requirement :: String.t, opts :: Keyword.t })
   end
 
   ## Fetching

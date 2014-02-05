@@ -1,5 +1,5 @@
 defmodule Inspect.Algebra do
-  @moduledoc %S"""
+  @moduledoc ~S"""
   A set of functions for creating and manipulating algebra
   documents, as described in ["Strictly Pretty" (2000) by Christian Lindig][0].
 
@@ -182,7 +182,7 @@ defmodule Inspect.Algebra do
     doc_nest(indent: i, doc: x)
   end
 
-  @doc %S"""
+  @doc ~S"""
   Document entity representing a break. This break can
   be rendered as a linebreak or as spaces, depending on the
   `mode` of the chosen layout or the provided separator.
@@ -222,7 +222,7 @@ defmodule Inspect.Algebra do
   @spec glue(t, binary, t) :: doc_cons_t
   def glue(x, g, y) when is_binary(g), do: concat(x, concat(break(g), y))
 
-  @doc %S"""
+  @doc ~S"""
   Returns a group containing the specified document.
 
   ## Examples
@@ -267,7 +267,7 @@ defmodule Inspect.Algebra do
   @spec space(t, t) :: doc_cons_t
   def space(x, y), do: concat(x, concat(" ", y))
 
-  @doc %S"""
+  @doc ~S"""
   Inserts a mandatory linebreak between two document entities.
 
   ## Examples
@@ -301,7 +301,7 @@ defmodule Inspect.Algebra do
 
   # Elixir conveniences
 
-  @doc %S"""
+  @doc ~S"""
   Surrounds a document with characters.
 
   Puts the document between left and right enclosing and nesting it.
@@ -320,7 +320,7 @@ defmodule Inspect.Algebra do
     group concat left, concat(nest(doc, @nesting), right)
   end
 
-  @doc %S"""
+  @doc ~S"""
   Maps and glues a collection of items together using the given separator
   and surrounds them. A limit can be passed which, once reached, stops
   gluing and outputs "..." instead.

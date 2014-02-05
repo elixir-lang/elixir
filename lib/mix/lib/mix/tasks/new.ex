@@ -125,7 +125,7 @@ defmodule Mix.Tasks.New do
   end
 
   defp check_project_name!(name) do
-    unless name =~ %r/^[a-z][\w_]*$/ do
+    unless name =~ ~r/^[a-z][\w_]*$/ do
       raise Mix.Error, message: "Project path must start with a letter and have only lowercase letters, numbers and underscore"
     end
   end

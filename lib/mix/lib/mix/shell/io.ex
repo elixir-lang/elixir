@@ -34,7 +34,7 @@ defmodule Mix.Shell.IO do
   @doc """
   Receives a message and asks the user if he wants to proceed.
   He must press enter or type anything that matches the a "yes"
-  regex `%r/^Y(es)?$/i`.
+  regex `~r/^Y(es)?$/i`.
   """
   def yes?(message) do
     put_app
@@ -42,7 +42,7 @@ defmodule Mix.Shell.IO do
   end
 
   defp got_yes?(answer) when is_binary(answer) do
-    answer =~ %r/^(Y(es)?)?$/i
+    answer =~ ~r/^(Y(es)?)?$/i
   end
 
   # The io server may return :eof or :error

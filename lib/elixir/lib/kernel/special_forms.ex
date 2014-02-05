@@ -510,7 +510,7 @@ defmodule Kernel.SpecialForms do
   """
   defmacro ^(var)
 
-  @doc %S"""
+  @doc ~S"""
   Gets the representation of any expression.
 
   ## Examples

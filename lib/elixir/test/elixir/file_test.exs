@@ -586,7 +586,7 @@ defmodule FileTest do
       fixture = fixture_path("file.txt")
       invalid = Path.join fixture, "test"
       assert File.exists?(fixture)
-      assert_raise File.Error, %r"^could not make directory #{escape invalid}: (not a directory|no such file or directory)", fn ->
+      assert_raise File.Error, ~r"^could not make directory #{escape invalid}: (not a directory|no such file or directory)", fn ->
         File.mkdir!(invalid)
       end
     end
@@ -667,7 +667,7 @@ defmodule FileTest do
       fixture = fixture_path("file.txt")
       invalid = Path.join fixture, "test"
       assert File.exists?(fixture)
-      assert_raise File.Error, %r"^could not make directory \(with -p\) #{escape invalid}: (not a directory|no such file or directory)", fn ->
+      assert_raise File.Error, ~r"^could not make directory \(with -p\) #{escape invalid}: (not a directory|no such file or directory)", fn ->
         File.mkdir_p!(invalid)
       end
     end
@@ -733,7 +733,7 @@ defmodule FileTest do
 
     test :rmdir_with_file! do
       fixture = fixture_path("file.txt")
-      assert_raise File.Error, %r"^could not remove directory #{escape fixture}: (not a directory|I/O error)", fn ->
+      assert_raise File.Error, ~r"^could not remove directory #{escape fixture}: (not a directory|I/O error)", fn ->
         File.rmdir!(fixture)
       end
     end
@@ -1106,7 +1106,7 @@ defmodule FileTest do
   end
 
   test :invalid_cd! do
-    message = %r"^could not set current working directory to #{escape fixture_path("file.txt")}: (not a directory|no such file or directory)"
+    message = ~r"^could not set current working directory to #{escape fixture_path("file.txt")}: (not a directory|no such file or directory)"
     assert_raise File.Error, message, fn ->
       File.cd!(fixture_path("file.txt"))
     end
@@ -1162,7 +1162,7 @@ defmodule FileTest do
 
   test :touch_with_failure! do
     fixture = fixture_path("file.txt/bar")
-    assert_raise File.Error, %r"could not touch #{escape fixture}: (not a directory|no such file or directory)", fn ->
+    assert_raise File.Error, ~r"could not touch #{escape fixture}: (not a directory|no such file or directory)", fn ->
       File.touch!(fixture)
     end
   end
@@ -1216,7 +1216,7 @@ defmodule FileTest do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
-    message = %r"could not change mode for #{escape fixture}: no such file or directory"
+    message = ~r"could not change mode for #{escape fixture}: no such file or directory"
     assert_raise File.Error, message, fn ->
       File.chmod!(fixture, 0100777)
     end
@@ -1233,7 +1233,7 @@ defmodule FileTest do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
-    message = %r"could not change group for #{escape fixture}: no such file or directory"
+    message = ~r"could not change group for #{escape fixture}: no such file or directory"
     assert_raise File.Error, message, fn ->
       File.chgrp!(fixture, 1)
     end
@@ -1250,7 +1250,7 @@ defmodule FileTest do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
-    message = %r"could not change owner for #{escape fixture}: no such file or directory"
+    message = ~r"could not change owner for #{escape fixture}: no such file or directory"
     assert_raise File.Error, message, fn ->
       File.chown!(fixture, 1)
     end

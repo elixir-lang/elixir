@@ -33,7 +33,7 @@ defmodule IEx.Options do
 
   """
 
-  @supported_options %w(colors inspect history_size)a
+  @supported_options ~w(colors inspect history_size)a
 
   @doc """
   Returns all supported IEx options with their respective values as a keyword

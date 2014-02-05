@@ -28,7 +28,7 @@ defmodule Mix.ProjectTest do
   test "does not allow the same project to be pushed twice" do
     Mix.Project.push(SampleProject, "sample")
 
-    assert_raise Mix.Error, %r/Mix.ProjectTest.SampleProject from "another"/, fn ->
+    assert_raise Mix.Error, ~r/Mix.ProjectTest.SampleProject from "another"/, fn ->
       Mix.Project.push(SampleProject, "another")
     end
   end

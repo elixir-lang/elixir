@@ -154,7 +154,7 @@ defmodule System do
     )
   end
 
-  @doc %S"""
+  @doc ~S"""
   Writable temporary directory.
 
   Returns a writable temporary directory.

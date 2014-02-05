@@ -1,5 +1,5 @@
 defmodule ExUnit.CaptureIO do
-  @moduledoc %S"""
+  @moduledoc ~S"""
   Functionality to capture IO for testing.
 
   ## Examples
