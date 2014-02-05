@@ -1,4 +1,3 @@
-%% Handle translation of Elixir literals to Erlang AST.
 -module(elixir_bitstring).
 -export([translate/3, expand/3]).
 -include("elixir.hrl").

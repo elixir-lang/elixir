@@ -18,34 +18,12 @@ translate({ '=', Meta, [Left, Right] }, S) ->
 
 %% Containers
 
-translate({ '%{}', Meta, Args0 }, #elixir_scope{extra=Extra} = SN) when is_list(Args0) ->
-  {RArgs, UpdateMap, S} = extract_args_update(Args0, SN),
-
-  { Op, KeyFun, ValFun } =
-    case S#elixir_scope.context of
-      match ->
-        { map_field_exact,
-          fun(X, Acc) -> translate(X, Acc#elixir_scope{extra=map_key}) end,
-          fun translate/2 };
-      _ ->
-        KS = #elixir_scope{extra=map_key},
-        { key_on_map(UpdateMap),
-          fun(X, Acc) -> translate_arg(X, Acc, KS) end,
-          fun(X, Acc) -> translate_arg(X, Acc, S) end }
-    end,
-
-  Line = ?line(Meta),
-
-  { TArgs, SA } = lists:mapfoldl(fun({ Key, Value }, Acc) ->
-    { TKey, Acc1 }   = KeyFun(Key, Acc),
-    { TValue, Acc2 } = ValFun(Value, Acc1#elixir_scope{extra=Extra}),
-    { { Op, ?line(Meta), TKey, TValue }, Acc2 }
-  end, S, RArgs),
-  translate_map(UpdateMap, Line, TArgs, SA);
-
 translate({ '{}', Meta, Args }, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
   { { tuple, ?line(Meta), TArgs }, SE };
+
+translate({ '%{}', Meta, Args }, S) when is_list(Args) ->
+  elixir_map:translate(Meta, Args, S);
 
 translate({ '<<>>', Meta, Args }, S) when is_list(Args) ->
   elixir_bitstring:translate(Meta, Args, S);
@@ -254,19 +232,6 @@ translate({ Left, Right }, S) ->
 
 translate(Other, S) ->
   { elixir_utils:elixir_to_erl(Other), S }.
-
-%% Maps
-
-extract_args_update([{'|', _Meta, [Update, Args]}], SA) ->
-  {TArg, SA1} = translate(Update, SA),
-  {Args, TArg, SA1};
-extract_args_update(Args, SA) -> {Args, nil, SA}.
-
-key_on_map(nil) -> map_field_assoc;
-key_on_map(_) -> map_field_exact.
-
-translate_map(nil, Line, TArgs, SA)  -> { { map, Line, TArgs }, SA };
-translate_map(TArg, Line, TArgs, SA) -> { { map, Line, TArg, TArgs }, SA }.
 
 %% Helpers
 
