@@ -19,8 +19,21 @@ translate({ '=', Meta, [Left, Right] }, S) ->
 %% Containers
 
 translate({ '%{}', Meta, Args }, S) when is_list(Args) ->
-  { TArgs, SE } = translate_map_args(Args, Meta, S),
-  { { map, ?line(Meta), TArgs }, SE };
+  { Op, Fun } =
+    case S#elixir_scope.context of
+      match -> { map_field_exact, fun translate/2 };
+      _     -> { map_field_assoc, fun(X, Acc) -> translate_arg(X, Acc, S) end }
+    end,
+
+  Line = ?line(Meta),
+
+  { TArgs, SA } = lists:mapfoldl(fun({ Key, Value }, Acc) ->
+    { TKey, Acc1 }   = Fun(Key, Acc),
+    { TValue, Acc2 } = Fun(Value, Acc1),
+    { { Op, ?line(Meta), TKey, TValue }, Acc2 }
+  end, S, Args),
+
+  { { map, Line, TArgs }, SA };
 
 translate({ '{}', Meta, Args }, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
@@ -292,6 +305,7 @@ unblock({ 'block', _, Exprs }) -> Exprs;
 unblock(Expr)                  -> [Expr].
 
 %% Translate args
+
 translate_arg(Arg, Acc, S) when is_number(Arg); is_atom(Arg); is_binary(Arg); is_pid(Arg); is_function(Arg) ->
   { TArg, _ } = translate(Arg, S),
   { TArg, Acc };
@@ -304,22 +318,6 @@ translate_args(Args, #elixir_scope{context=match} = S) ->
 
 translate_args(Args, S) ->
   lists:mapfoldl(fun(X, Acc) -> translate_arg(X, Acc, S) end, S, Args).
-
-%% Translate map args
-
-translate_map_args(Args, Meta, #elixir_scope{context=Match} = S) ->
-  lists:mapfoldl(fun({Key, Value}, Acc) ->
-                    case Match of
-                       match ->
-                         {TKey, Acc1} = translate_arg(Key, Acc, S),
-                         {TValue, Acc2} = translate_arg(Value, Acc1, S),
-                         {{map_field_exact, ?line(Meta), TKey, TValue}, Acc2};
-                       _     ->
-                         {TKey, Acc1} = translate_arg(Key, Acc, S),
-                         {TValue, Acc2} = translate_arg(Value, Acc1, S),
-                         {{map_field_assoc, ?line(Meta), TKey, TValue}, Acc2}
-                     end
-                 end, S, Args).
 
 %% Comprehensions
 

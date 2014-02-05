@@ -395,6 +395,7 @@ inline(?kernel, is_function, 1) -> { erlang, is_function };
 inline(?kernel, is_function, 2) -> { erlang, is_function };
 inline(?kernel, is_integer, 1) -> { erlang, is_integer };
 inline(?kernel, is_list, 1) -> { erlang, is_list };
+inline(?kernel, is_map, 1) -> { erlang, is_map };
 inline(?kernel, is_number, 1) -> { erlang, is_number };
 inline(?kernel, is_pid, 1) -> { erlang, is_pid };
 inline(?kernel, is_port, 1) -> { erlang, is_port };

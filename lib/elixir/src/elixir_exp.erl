@@ -13,6 +13,10 @@ expand({ '=', Meta, [Left, Right] }, E) ->
 
 %% Literal operators
 
+expand({ '%{}', Meta, [{ '|', UpdateMeta, [Left, Right]}] }, E) ->
+  { [ELeft|ERight], EA } = expand_args([Left|Right], E),
+  { { '%{}', Meta, [{ '|', UpdateMeta, [ELeft, ERight] }] }, EA };
+
 expand({ '%{}', Meta, Args }, E) ->
   { EArgs, EA } = expand_args(Args, E),
   { { '%{}', Meta, EArgs }, EA };
