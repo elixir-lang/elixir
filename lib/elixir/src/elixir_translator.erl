@@ -144,6 +144,8 @@ translate({ '^', Meta, [ { Name, VarMeta, Kind } = Var ] },
   Tuple = { Name, var_kind(VarMeta, Kind) },
   case orddict:find(Tuple, S#elixir_scope.backup_vars) of
     { ok, { Value, _Counter } } ->
+      elixir_errors:deprecation(Meta, S#elixir_scope.file, "using ^ inside function clause heads is "
+                                                           "deprecated, please use a guard instead"),
       Line = ?line(Meta),
       { TVar, TS } = translate(Var, S),
       Guard = { op, Line, '=:=', { var, ?line(Meta), Value }, TVar },

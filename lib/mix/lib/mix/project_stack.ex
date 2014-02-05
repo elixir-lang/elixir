@@ -194,7 +194,7 @@ defmodule Mix.ProjectStack do
 
   defp find_project_named(name, stack) do
     name && Enum.find_value(stack, fn
-      Project[name: ^name, file: file] -> file
+      Project[name: n, file: file] when n === name -> file
       Project[] -> nil
     end)
   end

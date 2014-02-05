@@ -6,6 +6,8 @@
 expand(Args, E) ->
   lists:mapfoldl(fun
     ({ '//', Meta, [Left, Right] }, Acc) ->
+      elixir_errors:deprecation(Meta, E#elixir_env.file, "using // for default arguments is deprecated, "
+                                "please use \\\\ instead"),
       { ELeft, EL } = elixir_exp:expand(Left, Acc),
       { ERight, _ } = elixir_exp:expand(Right, Acc#elixir_env{context=nil}),
       { { '\\\\', Meta, [ELeft, ERight] }, EL };

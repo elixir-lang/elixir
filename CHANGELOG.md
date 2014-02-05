@@ -5,6 +5,9 @@
 * Bug fixes
 
 * Deprecations
+  * [Kernel] `//` for default arguments is deprecated in favor of `\\`
+  * [Kernel] Using `%` for sigils is deprecated in favor of `~`. This is a soft deprecation, no warnings will be emitted for it in this release
+  * [Kernel] Using ^ inside function clause heads is deprecated, please use a guard instead
 
 * Backwards incompatible changes
   * [Version] The `Version` module now only works with SemVer. The functions `Version.parse/1` and `Version.parse_requirement/1` now return `{:ok,res} | :error` for the cases you want to handle non SemVer cases manually. All other functions will trigger errors on non semantics versions

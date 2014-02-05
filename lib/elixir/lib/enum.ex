@@ -1020,8 +1020,8 @@ defmodule Enum do
         value
       { :error, module } ->
         module.reduce(collection, { :cont, false }, fn
-          ^value, _ -> { :halt, true }
-          _, _      -> { :cont, false }
+          v, _ when v === value -> { :halt, true }
+          _, _ -> { :cont, false }
         end) |> elem(1)
     end
   end
