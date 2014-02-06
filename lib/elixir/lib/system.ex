@@ -1,13 +1,4 @@
 defmodule System do
-  defexception NoHomeError,
-    message: "could not find the user home, please set the HOME environment variable"
-
-  defexception NoTmpDirError,
-    message: "could not get a writable temporary directory, please set the TMPDIR environment variable"
-
-  defexception NoAccessCwdError,
-    message: "could not get a current working directory, the current location is not accessible"
-
   @moduledoc """
   The System module provides access to variables used or
   maintained by the VM and to functions that interact directly
@@ -29,7 +20,7 @@ defmodule System do
   # Read and strip the version from the `VERSION` file.
   defmacrop get_version do
     case read_stripped(:filename.join(__DIR__, "../../../VERSION")) do
-      ""   -> raise ArgumentError, message: "could not read the version number from VERSION"
+      ""   -> raise RuntimeError, message: "could not read the version number from VERSION"
       data -> data
     end
   end
@@ -111,10 +102,11 @@ defmodule System do
   @doc """
   Current working directory, exception on error.
 
-  Returns the current working directory or raises `System.NoAccessCwdError`.
+  Returns the current working directory or raises `RuntimeError`.
   """
   def cwd! do
-    cwd || raise NoAccessCwdError
+    cwd ||
+      raise RuntimeError, message: "could not get a current working directory, the current location is not accessible"
   end
 
   @doc """
@@ -133,11 +125,12 @@ defmodule System do
   @doc """
   User home directory, exception on error.
 
-  Same as `user_home/0` but raises `System.NoHomeError`
+  Same as `user_home/0` but raises `RuntimeError`
   instead of returning `nil` if no user home is set.
   """
   def user_home! do
-    user_home || raise NoHomeError
+    user_home ||
+      raise RuntimeError, message: "could not find the user home, please set the HOME environment variable"
   end
 
   defp get_unix_home do
@@ -179,11 +172,13 @@ defmodule System do
   @doc """
   Writable temporary directory, exception on error.
 
-  Same as `tmp_dir/0` but raises `System.NoTmpDirError`
+  Same as `tmp_dir/0` but raises `RuntimeError`
   instead of returning `nil` if no temp dir is set.
   """
   def tmp_dir! do
-    tmp_dir || raise NoTmpDirError
+    tmp_dir ||
+      raise RuntimeError, message: "could not get a writable temporary directory, " <>
+                                   "please set the TMPDIR environment variable"
   end
 
   defp write_env_tmp_dir(env) do
