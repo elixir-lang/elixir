@@ -7,8 +7,6 @@ defmodule URI do
                    fragment: nil, authority: nil,
                    userinfo: nil, host: nil, port: nil]
 
-  defexception Error, [:message]
-
   import Bitwise
 
   @ports [
@@ -195,7 +193,7 @@ defmodule URI do
   defp hex2dec(n, _uri) when n in ?a..?f, do: n - ?a + 10
   defp hex2dec(n, _uri) when n in ?0..?9, do: n - ?0
   defp hex2dec(_n, uri) do
-    raise Error, message: "malformed URI #{inspect uri}"
+    raise ArgumentError, message: "malformed URI #{inspect uri}"
   end
 
   defp check_plus(?+), do: 32
