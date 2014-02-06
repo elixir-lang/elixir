@@ -45,7 +45,7 @@ defmodule URITest do
     data_to_be_decoded = "%26%3C%3E%22+%E3%82%86%E3%82%93%E3%82%86%E3%82%93"
     assert URI.decode(data_to_be_decoded) == "&<>\" ゆんゆん"
 
-    assert_raise URI.Error, fn ->
+    assert_raise ArgumentError, ~r/malformed URI/, fn ->
       assert URI.decode("% invalid")
     end
   end
