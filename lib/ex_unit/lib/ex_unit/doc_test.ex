@@ -108,8 +108,8 @@ defmodule ExUnit.DocTest do
   will not try to capture the output.
 
   Similarly, doctest does not run in any kind of sandbox. So any module
-  defined in a code example is going to linger throughout the whole test suite
-  run.
+  defined in a code example is going to linger throughout the whole test
+  suite run.
   """
 
   defexception Error, message: nil
@@ -382,46 +382,56 @@ defmodule ExUnit.DocTest do
   end
 
   defp adjust_indent(lines) do
-    adjust_indent(lines, [], 0, false, false)
+    adjust_indent(lines, [], 0, :text)
   end
 
-  defp adjust_indent([], adjusted_lines, _indent, _follows_iex_prompt, _is_code) do
+  defp adjust_indent([], adjusted_lines, _indent, _) do
     Enum.reverse adjusted_lines
   end
 
-  # If hit the first prompt line, set indent and enable follows_iex_prompt/is_code. Else, skip it.
-  defp adjust_indent([line|rest] = lines, adjusted_lines, indent, false, false) do
-    case Regex.match? ~r/\Aiex/, String.lstrip(line) do
-      true  -> adjust_indent(lines, adjusted_lines, set_indent(line, indent), true, true)
-      false -> adjust_indent(rest, [line|adjusted_lines], indent, false, false)
+  @iex_prompt ["iex>", "iex("]
+  @dot_prompt ["...>", "...("]
+
+  defp adjust_indent([line|rest], adjusted_lines, indent, :text) do
+    case String.starts_with?(String.lstrip(line), @iex_prompt) do
+      true  -> adjust_indent([line|rest], adjusted_lines, get_indent(line, indent), :prompt)
+      false -> adjust_indent(rest, adjusted_lines, indent, :text)
     end
   end
 
-  # If hit an empty line while is_code, disable is_code.
-  defp adjust_indent([""|rest], adjusted_lines, indent, follows_prompt, true) do
-    adjust_indent(rest, [""|adjusted_lines], indent, follows_prompt, false)
-  end
+  defp adjust_indent([line|rest], adjusted_lines, indent, check) when check in [:prompt, :after_prompt] do
+    stripped_line = strip_indent(line, indent)
 
-  # Hit a non follow_iex_prompt line while is_code, strip it.
-  defp adjust_indent([line|rest], adjusted_lines, indent, false, true) do
-    adjust_indent(rest, [strip_indent(line, indent)|adjusted_lines], indent, false, true)
-  end
-
-  # If hit a non-empty line while follows_prompt, check indentation.
-  defp adjust_indent([line|rest], adjusted_lines, indent, true, true) do
-    striped_line = strip_indent(line, indent)
-
-    if striped_line != String.lstrip(line) do
-      raise Error, message: "indentation level mismatch: \"#{striped_line}\", should have been #{indent} spaces"
+    case String.lstrip(line) do
+      "" ->
+        raise Error, message: "expected non-blank line to follow iex> prompt"
+      ^stripped_line ->
+        :ok
+      _ ->
+        raise Error, message: "indentation level mismatch: #{inspect line}, should have been #{indent} spaces"
     end
 
-    case Regex.match? ~r/\Aiex|\A\.\.\./, String.lstrip(line) do
-      true  -> adjust_indent(rest, [striped_line|adjusted_lines], indent, true, true)
-      false -> adjust_indent(rest, [striped_line|adjusted_lines], indent, false, true)
+    if String.starts_with?(stripped_line, @iex_prompt ++ @dot_prompt) do
+      adjust_indent(rest, [stripped_line|adjusted_lines], indent, :after_prompt)
+    else
+      next = if check == :prompt, do: :after_prompt, else: :code
+      adjust_indent(rest, [stripped_line|adjusted_lines], indent, next)
     end
   end
 
-  defp set_indent(line, current_indent) do
+  defp adjust_indent([line|rest], adjusted_lines, indent, :code) do
+    stripped_line = strip_indent(line, indent)
+    cond do
+      stripped_line == "" ->
+        adjust_indent(rest, [stripped_line|adjusted_lines], 0, :text)
+      String.starts_with?(String.lstrip(line), @iex_prompt) ->
+        adjust_indent([line|rest], adjusted_lines, indent, :prompt)
+      true ->
+        adjust_indent(rest, [stripped_line|adjusted_lines], indent, :code)
+    end
+  end
+
+  defp get_indent(line, current_indent) do
     case Regex.run ~r/iex/, line, return: :index do
       [{pos, _len}] -> pos
       nil -> current_indent
@@ -429,7 +439,12 @@ defmodule ExUnit.DocTest do
   end
 
   defp strip_indent(line, indent) do
-    String.slice(line, indent, String.length(line)) || ""
+    length = byte_size(line) - indent
+    if length > 0 do
+      :binary.part(line, indent, length)
+    else
+      ""
+    end
   end
 
   defp extract_tests([], _line, "", "", [], _) do
