@@ -1,11 +1,17 @@
 defmodule Map do
-  use Dict.Behaviour
   @moduledoc """
   A Dict implementation that works on maps.
 
-  For more information about the functions and their APIs, please
-  consult the `Dict` module.
+  Maps are key-value stores where keys are compared using
+  using the match operator (`===`). Maps can be created with
+  the `%{}` special form defined in the `Kernel.SpecialForms`
+  module.
+
+  For more information about the functions in this module and
+  their APIs, please consult the `Dict` module.
   """
+
+  use Dict.Behaviour
 
   defdelegate [keys(map), values(map), size(map)], to: :maps
 
@@ -96,7 +102,7 @@ defmodule Map do
   def equal?(_, _), do: false
 
   def reduce(map, acc, fun) do
-     Enumerable.Map.reduce(map, acc, fun)
+    Enumerable.Map.reduce(map, acc, fun)
   end
 
   def to_list(map), do: :maps.to_list map

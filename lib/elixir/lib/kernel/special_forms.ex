@@ -26,6 +26,11 @@ defmodule Kernel.SpecialForms do
   Therefore all other tuples are represented in the AST
   as a call to the special form `:{}`.
 
+  Conveniences for manipulating tuples can be found in the
+  `Tuple` module. Some functions for working with tuple are
+  also available in `Kernel`, namely `Kernel.elem/2`,
+  `Kernel.set_elem/2` and `Kernel.tuple_size/1`.
+
   ## Examples
 
       iex> { 1, 2, 3 }
@@ -35,6 +40,104 @@ defmodule Kernel.SpecialForms do
 
   """
   defmacro unquote(:{})(args)
+
+  @doc """
+  Defines a new map.
+
+  Maps are key-value stores where keys are compared using
+  using the match operator (`===`). Maps can be created with
+  the `%{}` special form where keys are associated via `=>`:
+
+      %{ 1 => 2 }
+
+  Maps also support the keyword notation, as other special forms,
+  as long as they are appended to the remaining arguments:
+
+      %{ hello: :world, with: :keywords }
+      %{ :hello => :world, with: :keywords }
+
+  If a map has duplicated keys, the last key will always have
+  higher precedence:
+
+      iex> %{ a: :b, a: :c }
+      %{ a: :c }
+
+  Conveniences for manipulating maps can be found in the
+  `Map` module.
+
+  ## Update syntax
+
+  Maps also support a update syntax:
+
+      iex> map = %{ :a => :b }
+      iex> %{ map | :a => :c }
+      %{ :a => :c }
+
+  Notice the update syntax requires the given keys to exist.
+  Trying to update a key that does not exist leads to failures.
+
+  ## AST representation
+
+  Regardless if `=>` or the keywords syntax is used, Maps are
+  always represented internally as a list of two-items tuples
+  for simplicity:
+
+      iex> quote do: %{ :a => :b, c: :d }
+      { :%{}, [], [{:a, :b}, {:c, :d}] }
+
+  """
+  defmacro unquote(:%{})(args)
+
+  @doc """
+  Defines a struct.
+
+  A struct is a tagged map that allows developers to provide
+  default values for keys, tags to be used in polymorphic
+  dispatches and compile time assertions.
+
+  To define a struct, you just need to implement the `__struct__/1`
+  function in a module:
+
+      defmodule User do
+        def __struct__ do
+          %{ name: "josé", age: 27 }
+        end
+      end
+
+  Now a struct can be created as follow:
+
+      %User{}
+
+  Underneath, a struct is just a map with a `__struct__` field
+  pointing to the User module:
+
+      %User{} == %{ __struct__: User, name: "josé", age: 27 }
+
+  A struct also validates the given keys are part of the defined
+  struct. The example below will fail because there is no key
+  `:full_name` in the user struct:
+
+      %User{ full_name: "José Valim" }
+
+  Note that a struct specifies a minimum set of keys required
+  for operations. Other keys can be added to structs via the
+  regular map operations:
+
+      user = %User{}
+      %{ user | a_non_struct_key: :value }
+
+  An update operation specific for structs is also available:
+
+      %User{ user | age: 28 }
+
+  The syntax above will guarantee the given keys are valid at
+  compilation time and it will guarantee at runtime the given
+  argument is a struct, failing with `BadStructError` otherwise.
+
+  Check `Kernel.defprotocol/2` for more information on how structs
+  can be used with protocols for polymorphic dispatch.
+  """
+  defmacro unquote(:%)(struct, map)
 
   @doc """
   Defines a new bitstring.
