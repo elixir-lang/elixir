@@ -105,24 +105,40 @@ defmodule Inspect.Algebra do
   according to the inspect protocol.
   """
   @spec to_doc(any, Inspect.Opts.t) :: t
-  def to_doc(arg, opts) when is_record(opts, Inspect.Opts) do
-    if is_tuple(arg) do
-      if elem(opts, Inspect.Opts.__record__(:index, :records)) do
-        try do
-          Inspect.inspect(arg, opts)
-        rescue
-          e ->
-            res = Inspect.Tuple.inspect(arg, opts)
-            IO.puts :stderr, "** (Inspect.Error) Got #{inspect e.__record__(:name)} with message " <>
-                             "#{e.message} while inspecting #{pretty(res, opts.width)}"
-            res
-        end
-      else
-        Inspect.Tuple.inspect(arg, opts)
+  def to_doc(arg, opts) when is_record(arg) and is_record(opts, Inspect.Opts) do
+    if opts.records do
+      try do
+        Inspect.inspect(arg, opts)
+      rescue
+        e ->
+          res = Inspect.Tuple.inspect(arg, opts)
+          IO.puts :stderr, "** (Inspect.Error) Got #{inspect e.__record__(:name)} with message " <>
+                           "#{e.message} while inspecting #{pretty(res, opts.width)}"
+          res
       end
     else
-      Inspect.inspect(arg, opts)
+      Inspect.Tuple.inspect(arg, opts)
     end
+  end
+
+  def to_doc(%{ __struct__: struct } = map, opts) when is_atom(struct) and is_record(opts, Inspect.Opts) do
+    if opts.structs do
+      try do
+        Inspect.inspect(map, opts)
+      rescue
+        e ->
+          res = Inspect.Map.inspect(map, opts)
+          IO.puts :stderr, "** (Inspect.Error) Got #{inspect e.__record__(:name)} with message " <>
+                           "#{e.message} while inspecting #{pretty(res, opts.width)}"
+          res
+      end
+    else
+      Inspect.Map.inspect(map, opts)
+    end
+  end
+
+  def to_doc(arg, opts) when is_record(opts, Inspect.Opts) do
+    Inspect.inspect(arg, opts)
   end
 
   @doc """

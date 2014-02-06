@@ -3,6 +3,7 @@ import Inspect.Algebra
 
 defrecord Inspect.Opts,
   records: true,
+  structs: true,
   binaries: :infer,
   char_lists: :infer,
   limit: 50,
@@ -57,6 +58,10 @@ defprotocol Inspect do
       Inspect.HashSet.inspect(HashSet.new, Inspect.Opts.new)
 
   """
+
+  # Handle structs in Any
+  @fallback_to_any true
+
   def inspect(thing, opts)
 end
 
@@ -408,32 +413,25 @@ end
 
 defimpl Inspect, for: Map do
   def inspect(map, opts) do
-    {name, map} = to_map_or_struct(map, opts)
-    map_list = :maps.to_list(map)
-    fun = traverse_fun(map_list, opts)
-    surround_many("%" <> name <> "{", map_list, "}", opts.limit, fun)
+    inspect(map, "", opts)
   end
 
-  defp traverse_fun(map_list, opts) do
-    if Inspect.List.keyword?(map_list) do
+  def inspect(map, name, opts) do
+    map = :maps.to_list(map)
+    surround_many("%" <> name <> "{", map, "}", opts.limit, traverse_fun(map, opts))
+  end
+
+  defp traverse_fun(list, opts) do
+    if Inspect.List.keyword?(list) do
       &Inspect.List.keyword(&1, opts)
     else
-      &map(&1, opts)
+      &to_map(&1, opts)
     end
   end
 
-  defp to_map_or_struct(map, opts) do
-    case :maps.find(:__struct__, map) do
-      {:ok, name} when is_atom(name) ->
-        {Inspect.Atom.inspect(name, opts), :maps.remove(:__struct__, map)}
-      _ ->
-        {"", map}
-    end
-  end
-
-  defp map({key, value}, opts) do
+  defp to_map({key, value}, opts) do
     concat(
-      to_doc(key, opts) <> " => ",
+      concat(to_doc(key, opts), " => "),
       to_doc(value, opts)
     )
   end
@@ -514,7 +512,8 @@ defimpl Inspect, for: Function do
   end
 
   defp default_inspect(mod, fun_info) do
-    "#Function<#{uniq(fun_info)}/#{fun_info[:arity]} in #{Inspect.Atom.inspect(mod)}.#{extract_name(fun_info[:name])}>"
+    "#Function<#{uniq(fun_info)}/#{fun_info[:arity]} in " <>
+      "#{Inspect.Atom.inspect(mod)}.#{extract_name(fun_info[:name])}>"
   end
 
   defp extract_name(name) do
@@ -525,7 +524,8 @@ defimpl Inspect, for: Function do
   end
 
   defp uniq(fun_info) do
-    integer_to_binary(fun_info[:new_index]) <> "." <> integer_to_binary(fun_info[:uniq])
+    integer_to_binary(fun_info[:new_index]) <> "." <>
+      integer_to_binary(fun_info[:uniq])
   end
 end
 
@@ -545,6 +545,19 @@ defimpl Inspect, for: Reference do
   def inspect(ref, _opts) do
     '#Ref' ++ rest = :erlang.ref_to_list(ref)
     "#Reference" <> iolist_to_binary(rest)
+  end
+end
+
+defimpl Inspect, for: Any do
+  def inspect(%{ __struct__: struct } = map, opts) do
+    try do
+      struct.__struct__
+    rescue
+      _ -> Inspect.Map.inspect(map, opts)
+    else
+      _ -> Inspect.Map.inspect(:maps.remove(:__struct__, map),
+            Inspect.Atom.inspect(struct, opts), opts)
+    end
   end
 end
 

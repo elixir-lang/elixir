@@ -268,8 +268,42 @@ defmodule Inspect.MapTest do
     assert inspect(%{ 1 => 1, 2 => 2, 3 => 3, 4 => 4 }, limit: 3) == "%{1 => 1, 2 => 2, 3 => 3, ...}"
   end
 
-  test :struct_basic do
-    assert inspect(%{:__struct__ => User, :key => 1}) == "%User{key: 1}"
+  defmodule Public do
+    def __struct__ do
+      %{key: 0}
+    end
+  end
+
+  defmodule Private do
+  end
+
+  test :public_struct do
+    assert inspect(%Public{key: 1}) == "%Inspect.MapTest.Public{key: 1}"
+  end
+
+  test :private_struct do
+    assert inspect(%{__struct__: Private, key: 1}) == "%{__struct__: Inspect.MapTest.Private, key: 1}"
+  end
+
+  defmodule Failing do
+    def __struct__ do
+      %{key: 0}
+    end
+
+    defimpl Inspect do
+      def inspect(_, _) do
+        raise "failing"
+      end
+    end
+  end
+
+  test :bad_implementation do
+    import ExUnit.CaptureIO
+
+    assert capture_io(:stderr, fn ->
+      inspect(%Failing{})
+    end) =~ ("** (Inspect.Error) Got RuntimeError with message failing while inspecting " <>
+             "%{__struct__: Inspect.MapTest.Failing, key: 0}")
   end
 end
 

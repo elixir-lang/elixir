@@ -1825,8 +1825,8 @@ defmodule Kernel do
 
   The following options are supported:
 
-  * `:records` - when false, records are not formatted by the inspect protocol,
-                 they are instead printed as just tuples, defaults to true;
+  * `:structs` - when false, structs are not formatted by the inspect protocol,
+                 they are instead printed as maps, defaults to true;
 
   * `:binaries` - when `:as_strings` all binaries will be printed as strings,
                   non-printable bytes will be escaped; when `:as_binaries` all
@@ -1855,12 +1855,6 @@ defmodule Kernel do
 
       iex> inspect [1, 2, 3, 4, 5], limit: 3
       "[1, 2, 3, ...]"
-
-      iex> inspect(ArgumentError[])
-      "ArgumentError[message: \"argument error\"]"
-
-      iex> inspect(ArgumentError[], records: false)
-      "{ArgumentError, :__exception__, \"argument error\"}"
 
       iex> inspect("josé" <> <<0>>)
       "<<106, 111, 115, 195, 169, 0>>"
