@@ -34,6 +34,12 @@ defexception BadFunctionError, [actual: nil] do
   end
 end
 
+defexception BadStructError, [struct: nil, actual: nil] do
+  def message(exception) do
+    "expected a struct named #{inspect(exception.struct)}, got: #{inspect(exception.actual)}"
+  end
+end
+
 defexception MatchError, [actual: nil] do
   def message(exception) do
     "no match of right hand side value: #{inspect(exception.actual)}"
@@ -197,6 +203,10 @@ defmodule Exception do
 
   def normalize({ :badfun, actual }) do
     BadFunctionError[actual: actual]
+  end
+
+  def normalize({ :badstruct, struct, actual }) do
+    BadStructError[struct: struct, actual: actual]
   end
 
   def normalize({ :badmatch, actual }) do

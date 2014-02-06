@@ -447,7 +447,7 @@ defmodule Record do
       is_keyword(args) ->
         update(atom, fields, record, args, caller)
       true ->
-        raise ArgumentError, message: "expected arguments to be a compile time atom, list or keywords"
+        raise ArgumentError, message: "expected arguments to be a compile time atom or keywords"
     end
   end
 

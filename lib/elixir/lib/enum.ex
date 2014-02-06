@@ -2009,7 +2009,7 @@ defimpl Enumerable, for: Map do
     { :ok, match?({ :ok, ^value }, :maps.find(key, map)) }
   end
 
-  def member?(map, other) do
+  def member?(_map, _other) do
     { :ok, false }
   end
 

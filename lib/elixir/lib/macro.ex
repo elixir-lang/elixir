@@ -339,9 +339,9 @@ defmodule Macro do
     fun.(ast, map)
   end
 
-  def to_string({:%, _, [structname, map]} = ast, fun) do
+  def to_string({ :%, _, [structname, map] } = ast, fun) do
     { :%{}, _, args } = map
-    struct = "%" <> to_string(structname) <> "{" <> map_to_string(args, fun) <> "}"
+    struct = "%" <> to_string(structname, fun) <> "{" <> map_to_string(args, fun) <> "}"
     fun.(ast, struct)
   end
 
@@ -493,7 +493,7 @@ defmodule Macro do
 
   defp block_to_string(other, fun), do: to_string(other, fun)
 
-  defp map_to_string([{:|, [], [update_map, update_args]}], fun) do
+  defp map_to_string([{:|, _, [update_map, update_args]}], fun) do
     to_string(update_map, fun) <> " | " <> map_to_string(update_args, fun)
   end
 

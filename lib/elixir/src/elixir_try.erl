@@ -71,8 +71,8 @@ rescue_guards(Meta, Var, Guards, S) ->
       IsException = { erl(Meta, '=='), Meta, [
         { erl(Meta, element), Meta, [2, Var] }, '__exception__'
       ] },
-      OrElse = join(Meta, fun do_or/3, Elixir),
-      [join(Meta, fun do_and/3, [IsTuple, IsException, OrElse])|Erlang]
+      OrElse = join(Meta, fun erl_or/3, Elixir),
+      [join(Meta, fun erl_and/3, [IsTuple, IsException, OrElse])|Erlang]
   end,
   {
     [{ 'when', Meta, [error, Var, join_when(Meta, Final)] }],
@@ -87,12 +87,12 @@ rescue_each_var(Meta, ClauseVar, Guards) ->
   case Vars == [] of
     true  -> { [], [] };
     false ->
-      Elixir = [exception_compare(Meta, ClauseVar, Var) || Var <- Vars],
+      Elixir = [erl_exception_compare(Meta, ClauseVar, Var) || Var <- Vars],
       Erlang = lists:map(fun(Rescue) ->
         Compares = [{ erl(Meta, '=='), Meta, [Rescue, Var] } || Var <- Vars],
-        do_and(Meta,
-               erlang_rescue_guard_for(Meta, ClauseVar, Rescue),
-               join(Meta, fun do_or/3, Compares))
+        erl_and(Meta,
+               erl_rescue_guard_for(Meta, ClauseVar, Rescue),
+               join(Meta, fun erl_or/3, Compares))
       end, erlang_rescues()),
       { Elixir, Erlang }
   end.
@@ -111,21 +111,21 @@ rescue_each_ref(Meta, Var, [H|T], Elixir, Erlang, _Safe, S) when
   H == 'Elixir.BadArityError'; H == 'Elixir.BadFunctionError';
   H == 'Elixir.MatchError'; H == 'Elixir.CaseClauseError';
   H == 'Elixir.TryClauseError'; H == 'Elixir.FunctionClauseError';
-  H == 'Elixir.SystemLimitError' ->
-  Expr = do_or(Meta,
-               erlang_rescue_guard_for(Meta, Var, H),
-               exception_compare(Meta, Var, H)),
+  H == 'Elixir.SystemLimitError'; H == 'Elixir.BadStructError' ->
+  Expr = erl_or(Meta,
+               erl_rescue_guard_for(Meta, Var, H),
+               erl_exception_compare(Meta, Var, H)),
   rescue_each_ref(Meta, Var, T, Elixir, [Expr|Erlang], false, S);
 
 rescue_each_ref(Meta, Var, [H|T], Elixir, Erlang, Safe, S) when is_atom(H) ->
-  rescue_each_ref(Meta, Var, T, [exception_compare(Meta, Var, H)|Elixir], Erlang, Safe, S);
+  rescue_each_ref(Meta, Var, T, [erl_exception_compare(Meta, Var, H)|Elixir], Erlang, Safe, S);
 
 rescue_each_ref(Meta, Var, [H|T], Elixir, Erlang, Safe, S) ->
   case elixir_translator:translate(H, S) of
     { { atom, _, Atom }, _ } ->
       rescue_each_ref(Meta, Var, [Atom|T], Elixir, Erlang, Safe, S);
     _ ->
-      rescue_each_ref(Meta, Var, T, [exception_compare(Meta, Var, H)|Elixir], Erlang, Safe, S)
+      rescue_each_ref(Meta, Var, T, [erl_exception_compare(Meta, Var, H)|Elixir], Erlang, Safe, S)
   end;
 
 rescue_each_ref(_, _, [], Elixir, Erlang, Safe, _) ->
@@ -135,64 +135,70 @@ rescue_each_ref(_, _, [], Elixir, Erlang, Safe, _) ->
 
 erlang_rescues() ->
   [
-    'Elixir.UndefinedFunctionError', 'Elixir.ArgumentError', 'Elixir.ArithmeticError', 'Elixir.BadArityError',
-    'Elixir.BadFunctionError', 'Elixir.MatchError', 'Elixir.CaseClauseError', 'Elixir.TryClauseError',
-    'Elixir.FunctionClauseError', 'Elixir.SystemLimitError', 'Elixir.ErlangError'
+    'Elixir.UndefinedFunctionError', 'Elixir.ArgumentError', 'Elixir.ArithmeticError',
+    'Elixir.BadArityError', 'Elixir.BadFunctionError', 'Elixir.MatchError',
+    'Elixir.CaseClauseError', 'Elixir.TryClauseError', 'Elixir.FunctionClauseError',
+    'Elixir.SystemLimitError', 'Elixir.ErlangError', 'Elixir.BadStructError'
   ].
 
-erlang_rescue_guard_for(Meta, Var, List) when is_list(List) ->
-  join(Meta, fun do_or/3, [erlang_rescue_guard_for(Meta, Var, X) || X <- List]);
+erl_rescue_guard_for(Meta, Var, List) when is_list(List) ->
+  join(Meta, fun erl_or/3, [erl_rescue_guard_for(Meta, Var, X) || X <- List]);
 
-erlang_rescue_guard_for(Meta, Var, 'Elixir.UndefinedFunctionError') ->
+erl_rescue_guard_for(Meta, Var, 'Elixir.UndefinedFunctionError') ->
   { erl(Meta, '=='), Meta, [Var, undef] };
 
-erlang_rescue_guard_for(Meta, Var, 'Elixir.FunctionClauseError') ->
+erl_rescue_guard_for(Meta, Var, 'Elixir.FunctionClauseError') ->
   { erl(Meta, '=='), Meta, [Var, function_clause] };
 
-erlang_rescue_guard_for(Meta, Var, 'Elixir.SystemLimitError') ->
+erl_rescue_guard_for(Meta, Var, 'Elixir.SystemLimitError') ->
   { erl(Meta, '=='), Meta, [Var, system_limit] };
 
-erlang_rescue_guard_for(Meta, Var, 'Elixir.ArithmeticError') ->
+erl_rescue_guard_for(Meta, Var, 'Elixir.ArithmeticError') ->
   { erl(Meta, '=='), Meta, [Var, badarith] };
 
-erlang_rescue_guard_for(Meta, Var, 'Elixir.BadArityError') ->
-  do_and(Meta,
-         { erl(Meta, is_tuple), Meta, [Var] },
-         exception_compare(Meta, Var, badarity));
+erl_rescue_guard_for(Meta, Var, 'Elixir.BadArityError') ->
+  erl_and(Meta,
+          erl_tuple_size(Meta, Var, 2),
+          erl_exception_compare(Meta, Var, badarity));
 
-erlang_rescue_guard_for(Meta, Var, 'Elixir.BadFunctionError') ->
-  do_and(Meta,
-         { erl(Meta, is_tuple), Meta, [Var] },
-         exception_compare(Meta, Var, badfun));
+erl_rescue_guard_for(Meta, Var, 'Elixir.BadFunctionError') ->
+  erl_and(Meta,
+          erl_tuple_size(Meta, Var, 2),
+          erl_exception_compare(Meta, Var, badfun));
 
-erlang_rescue_guard_for(Meta, Var, 'Elixir.MatchError') ->
-  do_and(Meta,
-         { erl(Meta, is_tuple), Meta, [Var] },
-         exception_compare(Meta, Var, badmatch));
+erl_rescue_guard_for(Meta, Var, 'Elixir.MatchError') ->
+  erl_and(Meta,
+          erl_tuple_size(Meta, Var, 2),
+          erl_exception_compare(Meta, Var, badmatch));
 
-erlang_rescue_guard_for(Meta, Var, 'Elixir.CaseClauseError') ->
-  do_and(Meta,
-         { erl(Meta, is_tuple), Meta, [Var] },
-         exception_compare(Meta, Var, case_clause));
+erl_rescue_guard_for(Meta, Var, 'Elixir.CaseClauseError') ->
+  erl_and(Meta,
+          erl_tuple_size(Meta, Var, 2),
+          erl_exception_compare(Meta, Var, case_clause));
 
-erlang_rescue_guard_for(Meta, Var, 'Elixir.TryClauseError') ->
-  do_and(Meta,
-         { erl(Meta, is_tuple), Meta, [Var] },
-         exception_compare(Meta, Var, try_clause));
+erl_rescue_guard_for(Meta, Var, 'Elixir.TryClauseError') ->
+  erl_and(Meta,
+          erl_tuple_size(Meta, Var, 2),
+          erl_exception_compare(Meta, Var, try_clause));
 
-erlang_rescue_guard_for(Meta, Var, 'Elixir.ArgumentError') ->
-  do_or(Meta,
-        { erl(Meta, '=='), Meta, [Var, badarg] },
-        do_and(Meta,
-               { erl(Meta, is_tuple), Meta, [Var] },
-               exception_compare(Meta, Var, badarg)));
+erl_rescue_guard_for(Meta, Var, 'Elixir.BadStructError') ->
+  erl_and(Meta,
+          erl_tuple_size(Meta, Var, 3),
+          erl_exception_compare(Meta, Var, badstruct));
 
-erlang_rescue_guard_for(Meta, Var, 'Elixir.ErlangError') ->
+erl_rescue_guard_for(Meta, Var, 'Elixir.ArgumentError') ->
+  erl_or(Meta,
+         { erl(Meta, '=='), Meta, [Var, badarg] },
+         erl_and(Meta,
+                 erl_tuple_size(Meta, Var, 2),
+                 erl_exception_compare(Meta, Var, badarg)));
+
+erl_rescue_guard_for(Meta, Var, 'Elixir.ErlangError') ->
   IsNotTuple  = { erl(Meta, 'not'), Meta, [{ erl(Meta, is_tuple), Meta, [Var] }] },
   IsException = { erl(Meta, '/='), Meta, [
     { erl(Meta, element), Meta, [2, Var] }, '__exception__'
   ] },
-  do_or(Meta, IsNotTuple, IsException).
+  erl_or(Meta, IsNotTuple, IsException).
 
 %% Helpers
 
@@ -205,7 +211,10 @@ format_error({ rescue_no_match, Var, Alias }) ->
 is_var({ Name, _, Atom }) when is_atom(Name), is_atom(Atom) -> true;
 is_var(_) -> false.
 
-exception_compare(Meta, Var, Expr) ->
+erl_tuple_size(Meta, Var, Size) ->
+  { erl(Meta, '=='), Meta, [{ erl(Meta, tuple_size), Meta, [Var] }, Size] }.
+
+erl_exception_compare(Meta, Var, Expr) ->
   { erl(Meta, '=='), Meta, [
     { erl(Meta, element), Meta, [1, Var] },
     Expr
@@ -224,5 +233,5 @@ prepend_to_block(Meta, Expr, Args) ->
   { '__block__', Meta, [Expr, Args] }.
 
 erl(Meta, Op)      -> { '.', Meta, [erlang, Op] }.
-do_or(Meta, Left, Right) -> { '__op__', Meta, ['orelse', Left, Right] }.
-do_and(Meta, Left, Right) -> { '__op__', Meta, ['andalso', Left, Right] }.
+erl_or(Meta, Left, Right) -> { '__op__', Meta, ['orelse', Left, Right] }.
+erl_and(Meta, Left, Right) -> { '__op__', Meta, ['andalso', Left, Right] }.

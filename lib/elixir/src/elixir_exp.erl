@@ -18,7 +18,10 @@ expand({ '{}', Meta, Args }, E) ->
   { { '{}', Meta, EArgs }, EA };
 
 expand({ '%{}', Meta, Args }, E) ->
-  elixir_map:expand(Meta, Args, E);
+  elixir_map:expand_map(Meta, Args, E);
+
+expand({ '%', Meta, [Left, Right] }, E) ->
+  elixir_map:expand_struct(Meta, Left, Right, E);
 
 expand({ '<<>>', Meta, Args }, E) ->
   elixir_bitstring:expand(Meta, Args, E);
@@ -82,7 +85,8 @@ expand({ alias, Meta, [Ref, KV] }, E) ->
         expand_alias(Meta, true, ERef, EKV, ET) };
     true ->
       compile_error(Meta, E#elixir_env.file,
-        "invalid arguments for alias, expected a compile time atom or alias as argument")
+        "invalid argument for alias, expected a compile time atom or alias, got: ~ts",
+        ['Elixir.Kernel':inspect(ERef)])
   end;
 
 expand({ require, Meta, [Ref] }, E) ->
@@ -100,7 +104,8 @@ expand({ require, Meta, [Ref, KV] }, E) ->
         expand_require(Meta, ERef, EKV, ET) };
     true ->
       compile_error(Meta, E#elixir_env.file,
-        "invalid arguments for require, expected a compile time atom or alias as argument")
+        "invalid argument for require, expected a compile time atom or alias, got: ~ts",
+        ['Elixir.Kernel':inspect(ERef)])
   end;
 
 expand({ import, Meta, [Left] }, E) ->
@@ -118,7 +123,9 @@ expand({ import, Meta, [Ref, KV] }, E) ->
       { { import, Meta, [ERef, EKV] },
         expand_require(Meta, ERef, EKV, ET#elixir_env{functions=Functions, macros=Macros}) };
     true ->
-      compile_error(Meta, E#elixir_env.file, "invalid name for import, expected a compile time atom or alias")
+      compile_error(Meta, E#elixir_env.file,
+        "invalid argument for import, expected a compile time atom or alias, got: ~ts",
+        ['Elixir.Kernel':inspect(ERef)])
   end;
 
 %% Pseudo vars
@@ -175,8 +182,9 @@ expand({ quote, Meta, [KV, Do] }, E) when is_list(Do) ->
   Context = case lists:keyfind(context, 1, EKV) of
     { context, Atom } when is_atom(Atom) ->
       Atom;
-    { context, _ } ->
-      compile_error(Meta, E#elixir_env.file, "invalid :context for quote, expected a compile time atom or an alias");
+    { context, Ctx } ->
+      compile_error(Meta, E#elixir_env.file, "invalid :context for quote, "
+        "expected a compile time atom or alias, got: ~ts", ['Elixir.Kernel':inspect(Ctx)]);
     false ->
       case E#elixir_env.module of
         nil -> 'Elixir';

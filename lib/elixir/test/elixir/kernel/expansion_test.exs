@@ -179,6 +179,32 @@ defmodule Kernel.ExpansionTest do
     assert expand(quote(do: { b, a = 1, a })) == quote do: { b(), a = 1, a() }
   end
 
+  ## Maps & structs
+
+  test "maps: expanded as arguments" do
+    assert expand(quote(do: %{ a: a = 1, b: a })) == quote do: %{ a: a = 1, b: a() }
+  end
+
+  test "structs: expanded as arguments" do
+    assert expand(quote(do: %:elixir{ a: a = 1, b: a })) ==
+           quote do: %:elixir{ a: a = 1, b: a() }
+
+    assert expand(quote(do: %:"Elixir.Kernel"{ a: a = 1, b: a })) ==
+           quote do: %:"Elixir.Kernel"{ a: a = 1, b: a() }
+  end
+
+  test "structs: expects atoms" do
+    assert_raise CompileError, ~r"expected struct name to be a compile time atom or alias", fn ->
+      expand(quote do: %unknown{ a: 1 })
+    end
+  end
+
+  test "structs: expects available module" do
+    assert_raise CompileError, ~r"module Unknown is not loaded and could not be found", fn ->
+      expand(quote do: %Unknown{ a: 1 })
+    end
+  end
+
   ## quote
 
   test "quote: expanded to raw forms" do

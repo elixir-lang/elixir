@@ -28,7 +28,7 @@ macro_for(Module, Name, Arity) ->
 function_for(Module, Name, Arity) ->
   Tuple = { Name, Arity },
   case elixir_def:lookup_definition(Module, Tuple) of
-    { { Tuple, _, Line, _, _, _, _ }, Clauses } when Clauses /= [] ->
+    { { Tuple, _, Line, _, _, _, _ }, [_|_] = Clauses } ->
       %% There is no need to record such calls
       %% since they come from funtions that were
       %% already analyzed at compilation time.

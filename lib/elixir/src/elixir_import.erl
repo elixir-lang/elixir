@@ -179,12 +179,14 @@ remove_internals(Set) ->
 special_form('&',1) -> true;
 special_form('^',1) -> true;
 special_form('=',2) -> true;
+special_form('%',2) -> true;
 special_form('__op__',2) -> true;
 special_form('__op__',3) -> true;
 special_form('__block__',_) -> true;
 special_form('->',_) -> true;
 special_form('<<>>',_) -> true;
 special_form('{}',_) -> true;
+special_form('%{}',_) -> true;
 special_form('alias',1) -> true;
 special_form('alias',2) -> true;
 special_form('require',1) -> true;

@@ -77,7 +77,48 @@ defmodule MapTest do
   end
 
   test "update maps" do
-    m = %{a: 2, b: 2}
-    assert %{ m | a: 3} == %{a: 3, b: 2}
+    assert %{ two_items_map | a: 3 } == %{ a: 3, b: 2 }
+
+    assert_raise ArgumentError, fn ->
+      %{ two_items_map | c: 3 }
+    end
+  end
+
+  defmodule ExternalUser do
+    def __struct__ do
+      %{ __struct__: ThisDoesNotLeak, name: "josé", age: 27 }
+    end
+  end
+
+  test "external structs" do
+    assert %ExternalUser{} ==
+           %{ __struct__: ExternalUser, name: "josé", age: 27 }
+
+    assert %ExternalUser{name: "valim"} ==
+           %{ __struct__: ExternalUser, name: "valim", age: 27 }
+
+    user = %ExternalUser{}
+    assert %ExternalUser{ user | name: "valim" } ==
+           %{ __struct__: ExternalUser, name: "valim", age: 27 }
+
+    map = %{}
+    assert_raise BadStructError, "expected a struct named MapTest.ExternalUser, got: %{}", fn ->
+      %ExternalUser{ map | name: "valim" }
+    end
+  end
+
+  defmodule LocalUser do
+    defp __struct__ do
+      %{ __struct__: ThisDoesNotLeak, name: "josé", age: 27 }
+    end
+
+    def new do
+      %LocalUser{name: "valim"}
+    end
+  end
+
+  test "local structs" do
+    assert LocalUser.new ==
+           %{ __struct__: LocalUser, name: "valim", age: 27 }
   end
 end

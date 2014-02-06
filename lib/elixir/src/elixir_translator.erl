@@ -23,7 +23,10 @@ translate({ '{}', Meta, Args }, S) when is_list(Args) ->
   { { tuple, ?line(Meta), TArgs }, SE };
 
 translate({ '%{}', Meta, Args }, S) when is_list(Args) ->
-  elixir_map:translate(Meta, Args, S);
+  elixir_map:translate_map(Meta, Args, S);
+
+translate({ '%', Meta, [Left, Right] }, S) ->
+  elixir_map:translate_struct(Meta, Left, Right, S);
 
 translate({ '<<>>', Meta, Args }, S) when is_list(Args) ->
   elixir_bitstring:translate(Meta, Args, S);

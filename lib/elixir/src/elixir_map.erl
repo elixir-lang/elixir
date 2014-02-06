@@ -1,16 +1,88 @@
 -module(elixir_map).
--export([translate/3, expand/3]).
+-export([expand_map/3, translate_map/3, expand_struct/4, translate_struct/4]).
+-import(elixir_errors, [compile_error/4]).
 -include("elixir.hrl").
 
-expand(Meta, [{ '|', UpdateMeta, [Left, Right]}], E) ->
+expand_map(Meta, [{ '|', UpdateMeta, [Left, Right]}], E) ->
   { [ELeft|ERight], EA } = elixir_exp:expand_args([Left|Right], E),
   { { '%{}', Meta, [{ '|', UpdateMeta, [ELeft, ERight] }] }, EA };
-expand(Meta, Args, E) ->
+expand_map(Meta, Args, E) ->
   { EArgs, EA } = elixir_exp:expand_args(Args, E),
   { { '%{}', Meta, EArgs }, EA }.
 
-translate(Meta, Args, #elixir_scope{extra=Extra} = RS) ->
-  { Assocs, TUpdate, S } = extract_assoc_update(Args, RS),
+expand_struct(Meta, Left, Right, E) ->
+  { [ELeft, ERight], EE } = elixir_exp:expand_args([Left, Right], E),
+
+  case is_atom(ELeft) of
+    true  -> ok;
+    false ->
+      compile_error(Meta, E#elixir_env.file, "expected struct name to be a compile "
+        "time atom or alias, got: ~ts", ['Elixir.Macro':to_string(ELeft)])
+  end,
+
+  case E#elixir_env.module of
+    ELeft -> ok;
+    _ -> elixir_aliases:ensure_loaded(Meta, ELeft, E)
+  end,
+
+  case ERight of
+    { '%{}', _, _ } -> ok;
+    _ -> compile_error(Meta, E#elixir_env.file,
+           "expected struct to be followed by a map, got: ~ts",
+           ['Elixir.Macro':to_string(ERight)])
+  end,
+
+  { { '%', Meta, [ELeft, ERight] }, EE }.
+
+translate_map(Meta, Args, S) ->
+  { Assocs, TUpdate, US } = extract_assoc_update(Args, S),
+  translate_map(Meta, Assocs, TUpdate, US).
+
+translate_struct(Meta, Name, { '%{}', MapMeta, Args }, S) ->
+  { Assocs, TUpdate, US } = extract_assoc_update(Args, S),
+
+  Struct = case S#elixir_scope.module of
+    Name ->
+      elixir_locals:record_local({ '__struct__', 0 }, S#elixir_scope.module, S#elixir_scope.function),
+      (elixir_locals:function_for(Name, '__struct__', 0))();
+    _ ->
+      Name:'__struct__'()
+  end,
+
+  case is_map(Struct) of
+    true  ->
+      assert_struct_keys(Meta, Name, Struct, Assocs, S);
+    false ->
+      compile_error(Meta, S#elixir_scope.file, "expected ~ts.__struct__/0 to "
+        "return a map, got: ~ts", [elixir_aliases:inspect(Name), 'Elixir.Kernel':inspect(Struct)])
+  end,
+
+  case TUpdate of
+    nil ->
+      CreateAssocs =  maps:put('__struct__', Name,
+                        maps:merge(Struct, maps:from_list(Assocs))),
+      translate_map(MapMeta, maps:to_list(CreateAssocs), nil, US);
+    _ ->
+      Line  = ?line(Meta),
+      { VarName, _, VS } = elixir_scope:build_var('_', US),
+
+      Var = { var, Line, VarName },
+      Map = { map, Line, [{ map_field_exact, Line, { atom, Line, '__struct__' }, { atom, Line, Name }}] },
+
+      Match = { match, Line, Var, Map },
+      Error = { tuple, Line, [{ atom, Line, badstruct }, { atom, Line, Name }, Var] },
+
+      { TMap, TS } = translate_map(MapMeta, Assocs, Var, VS),
+
+      { { 'case', Line, TUpdate, [
+        { clause, Line, [Match], [], [TMap] },
+        { clause, Line, [Var], [], [?wrap_call(Line, erlang, error, [Error])] }
+      ] }, TS }
+  end.
+
+%% Helpers
+
+translate_map(Meta, Assocs, TUpdate, #elixir_scope{extra=Extra} = S) ->
   { Op, KeyFun, ValFun } = extract_key_val_op(TUpdate, S),
 
   Line = ?line(Meta),
@@ -23,9 +95,9 @@ translate(Meta, Args, #elixir_scope{extra=Extra} = RS) ->
 
   build_map(Line, TUpdate, TArgs, SA).
 
-extract_assoc_update([{'|', _Meta, [Update, Args]}], SA) ->
-  { TArg, SA1 } = elixir_translator:translate_arg(Update, SA, SA),
-  { Args, TArg, SA1 };
+extract_assoc_update([{ '|', _Meta, [Update, Args] }], S) ->
+  { TArg, SA } = elixir_translator:translate_arg(Update, S, S),
+  { Args, TArg, SA };
 extract_assoc_update(Args, SA) -> { Args, nil, SA }.
 
 extract_key_val_op(_TUpdate, #elixir_scope{context=match}) ->
@@ -41,3 +113,9 @@ extract_key_val_op(TUpdate, S) ->
 
 build_map(Line, nil, TArgs, SA) -> { { map, Line, TArgs }, SA };
 build_map(Line, TUpdate, TArgs, SA) -> { { map, Line, TUpdate, TArgs }, SA }.
+
+assert_struct_keys(Meta, Name, Struct, Assocs, S) ->
+  [begin
+     compile_error(Meta, S#elixir_scope.file, "unknown key ~ts for struct ~ts",
+                   ['Elixir.Kernel':inspect(Key), elixir_aliases:inspect(Name)])
+   end || { Key, _ } <- Assocs, not maps:is_key(Key, Struct)].

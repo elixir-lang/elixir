@@ -195,6 +195,32 @@ defmodule Kernel.ErrorsTest do
       '%{ x = 1 => 1 }'
   end
 
+  test :struct_no_map do
+    assert_compile_fail CompileError,
+      "nofile:1: module BadStruct is not loaded and could not be found",
+      '%BadStruct{}'
+
+    defmodule BadStruct do
+      def __struct__ do
+        []
+      end
+    end
+
+    assert_compile_fail CompileError,
+      "nofile:1: expected Kernel.ErrorsTest.BadStruct.__struct__/0 to return a map, got: []",
+      '%#{BadStruct}{}'
+
+    defmodule GoodStruct do
+      def __struct__ do
+        %{ name: "josé" }
+      end
+    end
+
+    assert_compile_fail CompileError,
+      "nofile:1: unknown key :age for struct Kernel.ErrorsTest.GoodStruct",
+      '%#{GoodStruct}{ age: 27 }'
+  end
+
   test :name_for_defmodule do
     assert_compile_fail CompileError,
       "nofile:1: invalid module name: 3",
