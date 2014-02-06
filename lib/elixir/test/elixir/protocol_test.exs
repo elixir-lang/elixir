@@ -38,8 +38,38 @@ defmodule ProtocolTest do
     end
   end
 
+  defimpl WithAny, for: Map do
+    def ok(_map) do
+      :ok
+    end
+  end
+
   defimpl WithAny, for: Any do
     def ok(_any) do
+      :ok
+    end
+  end
+
+  defmodule NoImplStruct do
+    def __struct__ do
+      %{ a: 0, b: 0 }
+    end
+  end
+
+  defmodule ImplStruct do
+    def __struct__ do
+      %{ a: 0, b: 0 }
+    end
+
+    defimpl Sample do
+      def ok(struct) do
+        Unknown.undefined(struct)
+      end
+    end
+  end
+
+  defimpl WithAny, for: ImplStruct do
+    def ok(_struct) do
       :ok
     end
   end
@@ -64,6 +94,11 @@ defmodule ProtocolTest do
            Sample.ProtocolTest.ImplRec
     assert Sample.impl_for(NoImplRec[]) ==
            nil
+
+    assert Sample.impl_for(%ImplStruct{}) ==
+           Sample.ProtocolTest.ImplStruct
+    assert Sample.impl_for(%NoImplStruct{}) ==
+           nil
   end
 
   test "protocol implementation with any and records fallback" do
@@ -72,6 +107,15 @@ defmodule ProtocolTest do
     assert WithAny.impl_for({ :foo })    == WithAny.Tuple
     assert WithAny.impl_for({})          == WithAny.Tuple
     assert WithAny.impl_for(self)        == WithAny.Any
+  end
+
+  test "protocol implementation with any and structs fallback" do
+    assert WithAny.impl_for(%ImplStruct{})          == WithAny.ProtocolTest.ImplStruct
+    assert WithAny.impl_for(%NoImplStruct{})        == WithAny.Any
+    assert WithAny.impl_for(%{ __struct__: "foo" }) == WithAny.Map
+    assert WithAny.impl_for(%{ __struct__: Tuple }) == WithAny.Map
+    assert WithAny.impl_for(%{})                    == WithAny.Map
+    assert WithAny.impl_for(self)                   == WithAny.Any
   end
 
   test "protocol not implemented" do
@@ -88,7 +132,7 @@ defmodule ProtocolTest do
 
   test "protocol keeps underlying UndefinedFunctionError" do
     assert_raise UndefinedFunctionError, fn ->
-      WithAll.ok(Foo.new)
+      WithAll.ok(%ImplStruct{})
     end
   end
 
@@ -110,17 +154,17 @@ defmodule ProtocolTest do
       def test(thing)
     end
 
-    defimpl Attribute, for: ImplRec do
+    defimpl Attribute, for: ImplStruct do
       def test(_) do
         { @protocol, @for }
       end
     end
 
-    assert Attribute.test(ImplRec[]) == { Attribute, ImplRec }
-    assert Attribute.ProtocolTest.ImplRec.__impl__(:protocol) == Attribute
-    assert Attribute.ProtocolTest.ImplRec.__impl__(:for) == ImplRec
-    assert Attribute.ProtocolTest.ImplRec.__info__(:attributes)[:impl] ==
-           [protocol: Attribute, for: ImplRec]
+    assert Attribute.test(%ImplStruct{}) == { Attribute, ImplStruct }
+    assert Attribute.ProtocolTest.ImplStruct.__impl__(:protocol) == Attribute
+    assert Attribute.ProtocolTest.ImplStruct.__impl__(:for) == ImplStruct
+    assert Attribute.ProtocolTest.ImplStruct.__info__(:attributes)[:impl] ==
+           [protocol: Attribute, for: ImplStruct]
   end
 
   test "defimpl with multiple for" do
@@ -174,17 +218,26 @@ end
 #     end
 #   )
 #
-#   defrecord ImplRec, a: 0, b: 0
-#   defrecord NoImplRec, a: 0
+#   defmodule NoImplStruct do
+#     def __struct__ do
+#       %{ a: 0, b: 0 }
+#     end
+#   end
+#
+#   defmodule ImplStruct do
+#     def __struct__ do
+#       %{ a: 0, b: 0 }
+#     end
+#   end
 #
 #   Code.append_path(path)
 #
 #   # Any is ignored because there is no fallback
-#   { :ok, binary } = Protocol.Consolidation.apply_to(Sample, [Any, ImplRec, NoImplRec])
+#   { :ok, binary } = Protocol.Consolidation.apply_to(Sample, [Any, ImplStruct])
 #   :code.load_binary(Sample, 'protocol_test.exs', binary)
 #
 #   # Any should be moved to the end
-#   { :ok, binary } = Protocol.Consolidation.apply_to(WithAny, [Any, ImplRec, Tuple])
+#   { :ok, binary } = Protocol.Consolidation.apply_to(WithAny, [Any, ImplStruct, Map])
 #   :code.load_binary(WithAny, 'protocol_test.exs', binary)
 #
 #   test "consolidated implementations without any" do
@@ -204,18 +257,19 @@ end
 #     assert nil? Sample.impl_for(make_ref)
 #     assert nil? Sample.impl_for(Macro.Env[])
 #
-#     assert Sample.impl_for(ImplRec[]) ==
-#            Sample.Protocol.ConsolidationTest.ImplRec
-#     assert Sample.impl_for(NoImplRec[]) ==
+#     assert Sample.impl_for(%ImplStruct{}) ==
+#            Sample.Protocol.ConsolidationTest.ImplStruct
+#     assert Sample.impl_for(%NoImplStruct{}) ==
 #            nil
 #   end
 #
 #   test "consolidated implementations with any and tuple fallback" do
-#     assert WithAny.impl_for(ImplRec[])   == WithAny.Protocol.ConsolidationTest.ImplRec
-#     assert WithAny.impl_for(NoImplRec[]) == WithAny.Tuple
-#     assert WithAny.impl_for({ :foo })    == WithAny.Tuple
-#     assert WithAny.impl_for({})          == WithAny.Tuple
-#     assert WithAny.impl_for(self)        == WithAny.Any
+#     assert WithAny.impl_for(%ImplStruct{})          == WithAny.Protocol.ConsolidationTest.ImplStruct
+#     assert WithAny.impl_for(%NoImplStruct{})        == WithAny.Any
+#     assert WithAny.impl_for(%{ __struct__: "foo" }) == WithAny.Map
+#     assert WithAny.impl_for(%{ __struct__: Tuple }) == WithAny.Map
+#     assert WithAny.impl_for(%{})                    == WithAny.Map
+#     assert WithAny.impl_for(self)                   == WithAny.Any
 #   end
 #
 #   test "consolidation keeps docs" do
