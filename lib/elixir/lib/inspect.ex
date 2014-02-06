@@ -513,13 +513,17 @@ defimpl Inspect, for: Function do
 
   defp default_inspect(mod, fun_info) do
     "#Function<#{uniq(fun_info)}/#{fun_info[:arity]} in " <>
-      "#{Inspect.Atom.inspect(mod)}.#{extract_name(fun_info[:name])}>"
+      "#{Inspect.Atom.inspect(mod)}#{extract_name(fun_info[:name])}>"
+  end
+
+  defp extract_name([]) do
+    ""
   end
 
   defp extract_name(name) do
     case :binary.split(atom_to_binary(name), "-", [:global]) do
-      ["", name | _] -> name
-      _ -> name
+      ["", name | _] -> "." <> name
+      _ -> "." <> name
     end
   end
 

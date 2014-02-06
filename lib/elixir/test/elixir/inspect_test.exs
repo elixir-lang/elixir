@@ -324,6 +324,29 @@ defmodule Inspect.OthersTest do
     assert bin == "&:lists.map/2"
   end
 
+  test :outdated_functions do
+    defmodule V do
+      def fun do
+        fn -> 1 end
+      end
+    end
+
+    :application.set_env(:elixir, :anony, V.fun)
+    :application.set_env(:elixir, :named, &V.fun/0)
+
+    :code.delete(V)
+    :code.purge(V)
+
+    { :ok, anony } = :application.get_env(:elixir, :anony)
+    { :ok, named } = :application.get_env(:elixir, :named)
+
+    assert inspect(anony) == "#Function<0.54876290/0 in Inspect.OthersTest.V>"
+    assert inspect(named) == "&Inspect.OthersTest.V.fun/0"
+  after
+    :application.unset_env(:elixir, :anony)
+    :application.unset_env(:elixir, :named)
+  end
+
   test :other_funs do
     assert "#Function<" <> _ = inspect(fn(x) -> x + 1 end)
     assert "#Function<" <> _ = inspect(f)
