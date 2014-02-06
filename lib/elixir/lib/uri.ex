@@ -7,6 +7,8 @@ defmodule URI do
                    fragment: nil, authority: nil,
                    userinfo: nil, host: nil, port: nil]
 
+  defexception Error, [:message]
+
   import Bitwise
 
   @ports [
@@ -175,19 +177,26 @@ defmodule URI do
       "http://elixir-lang.com"
 
   """
-  def decode(<<?%, hex1, hex2, tail :: binary >>) do
-    << bsl(hex2dec(hex1), 4) + hex2dec(hex2) >> <> decode(tail)
+  def decode(uri) do
+    decode(uri, uri)
   end
 
-  def decode(<<head, tail :: binary >>) do
-    <<check_plus(head)>> <> decode(tail)
+  def decode(<<?%, hex1, hex2, tail :: binary >>, uri) do
+    << bsl(hex2dec(hex1, uri), 4) + hex2dec(hex2, uri) >> <> decode(tail, uri)
   end
 
-  def decode(<<>>), do: <<>>
+  def decode(<<head, tail :: binary >>, uri) do
+    <<check_plus(head)>> <> decode(tail, uri)
+  end
 
-  defp hex2dec(n) when n in ?A..?F, do: n - ?A + 10
-  defp hex2dec(n) when n in ?a..?f, do: n - ?a + 10
-  defp hex2dec(n) when n in ?0..?9, do: n - ?0
+  def decode(<<>>, _uri), do: <<>>
+
+  defp hex2dec(n, _uri) when n in ?A..?F, do: n - ?A + 10
+  defp hex2dec(n, _uri) when n in ?a..?f, do: n - ?a + 10
+  defp hex2dec(n, _uri) when n in ?0..?9, do: n - ?0
+  defp hex2dec(_n, uri) do
+    raise Error, message: "malformed URI #{inspect uri}"
+  end
 
   defp check_plus(?+), do: 32
   defp check_plus(c),  do: c
