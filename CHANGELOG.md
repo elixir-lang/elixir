@@ -1,6 +1,7 @@
 # v0.12.4-dev
 
 * Enhancements
+  * [Mix] `mix deps.get` and `mix deps.update` no longer compile dependencies afterwards. Instead, they mark the dependencies which are going to be automatically compiled next time `deps.check` is invoked (which is done automatically by most mix tasks). This means users should have a better workflow when migrating in between environments
 
 * Bug fixes
 
