@@ -209,7 +209,7 @@ defmodule Mix.Deps do
   def format_status(Mix.Dep[status: { :noappfile, path }]),
     do: "could not find an app file at #{Path.relative_to_cwd(path)}, " <>
         "this may happen when you specified the wrong application name in your deps " <>
-        "or if the dependency did not compile (which can be amended with `mix deps.compile`)"
+        "or if the dependency did not compile (which can be amended with `#{mix_env_var}mix deps.compile`)"
 
   def format_status(Mix.Dep[status: { :invalidapp, path }]),
     do: "the app file at #{Path.relative_to_cwd(path)} is invalid"
@@ -228,6 +228,9 @@ defmodule Mix.Deps do
 
   def format_status(Mix.Dep[status: :nolock]),
     do: "the dependency is not locked"
+
+  def format_status(Mix.Dep[status: :compile]),
+    do: "the dependency build is outdated, please run `#{mix_env_var}mix deps.compile`"
 
   def format_status(Mix.Dep[app: app, status: { :divergedreq, other }] = dep) do
     "the dependency #{app} defined\n" <>
@@ -251,14 +254,14 @@ defmodule Mix.Deps do
 
   def format_status(Mix.Dep[status: { :unavailable, _ }, scm: scm]) do
     if scm.fetchable? do
-      "the dependency is not available, run `mix deps.get`"
+      "the dependency is not available, run `#{mix_env_var}mix deps.get`"
     else
       "the dependency is not available"
     end
   end
 
   def format_status(Mix.Dep[status: { :elixirlock, _ }]),
-    do: "the dependency is built with an out-of-date elixir version, run `mix deps.get`"
+    do: "the dependency is built with an out-of-date elixir version, run `#{mix_env_var}mix deps.get`"
 
   defp dep_status(Mix.Dep[app: app, requirement: req, opts: opts, from: from]) do
     info = { app, req, Dict.drop(opts, [:dest, :lock, :env, :build]) }
@@ -301,16 +304,6 @@ defmodule Mix.Deps do
   def available?(Mix.Dep[status: { :divergedreq, _ }]),  do: false
   def available?(Mix.Dep[status: { :unavailable, _ }]),  do: false
   def available?(Mix.Dep[]), do: true
-
-  @doc """
-  Checks if a dependency can be compiled.
-
-  All available dependencies can be compiled except for
-  umbrella applications.
-  """
-  def compilable?(Mix.Dep[manager: manager, extra: extra] = dep) do
-    available?(dep) and (manager != :mix or !extra[:umbrella?])
-  end
 
   @doc """
   Checks if a dependency is out of date, also considering its
@@ -394,6 +387,14 @@ defmodule Mix.Deps do
   end
 
   ## Helpers
+
+  defp mix_env_var do
+    if Mix.env == :dev do
+      ""
+    else
+      "MIX_ENV=#{Mix.env} "
+    end
+  end
 
   defp to_app_names(given) do
     Enum.map given, fn(app) ->

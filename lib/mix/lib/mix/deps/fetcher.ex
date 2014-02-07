@@ -83,8 +83,19 @@ defmodule Mix.Deps.Fetcher do
     lock = Dict.merge(old_lock, new_lock)
     Mix.Deps.Lock.write(lock)
 
+    require_compilation(deps)
     do_compile(deps, opts)
     { apps, all_deps }
+  end
+
+  defp require_compilation(deps) do
+    envs = Mix.Project.build_path
+           |> Path.join("*/lib")
+           |> Path.wildcard()
+
+    lc Mix.Dep[app: app] inlist deps, env inlist envs do
+      File.touch Path.join [env, app, ".compile"]
+    end
   end
 
   defp do_compile(deps, opts) do

@@ -123,8 +123,12 @@ defmodule Mix.Deps.Loader do
   end
 
   defp scm_status(scm, opts) do
-    if scm.checked_out? opts do
-      { :ok, nil }
+    if scm.checked_out?(opts) do
+      if File.exists?(Path.join(opts[:build], ".compile")) do
+        :compile
+      else
+        { :ok, nil }
+      end
     else
       { :unavailable, opts[:dest] }
     end

@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   """
 
-  import Mix.Deps, only: [loaded: 0, compilable?: 1, loaded_by_name: 1,
+  import Mix.Deps, only: [loaded: 0, available?: 1, loaded_by_name: 1,
                           format_dep: 1, make?: 1, mix?: 1, rebar?: 1]
 
   def run(args) do
@@ -39,6 +39,12 @@ defmodule Mix.Tasks.Deps.Compile do
       { opts, tail, _ } ->
         do_run(loaded_by_name(tail), opts)
     end
+  end
+
+  # All available dependencies can be compiled
+  # except for umbrella applications.
+  defp compilable?(Mix.Dep[manager: manager, extra: extra] = dep) do
+    available?(dep) and (manager != :mix or !extra[:umbrella?])
   end
 
   defp do_run(deps, run_opts) do
@@ -69,6 +75,7 @@ defmodule Mix.Tasks.Deps.Compile do
         end
 
         unless mix?(dep), do: build_structure(dep, config)
+        File.rm(Path.join(opts[:build], ".compile"))
         compiled
       end
 
