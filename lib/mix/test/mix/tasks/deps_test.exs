@@ -320,32 +320,12 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "works with nested dependencies" do
-    Mix.Project.push NestedDepsApp
+  test "compiles dependencies with --quiet" do
+    Mix.Project.push SuccessfulDepsApp
 
     in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_repo (#{fixture_path("git_repo")})"
-      assert_received { :mix_shell, :info, [^message] }
-      assert_received { :mix_shell, :info, ["* Compiling deps_repo"] }
-      assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
-
-      Mix.Task.clear
-
-      Mix.Tasks.Deps.Update.run ["--all"]
-      assert_received { :mix_shell, :info, ["* Compiling deps_repo"] }
-    end
-  end
-
-  test "respects --quiet in deps.compile" do
-    Mix.Project.push NestedDepsApp
-
-    in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Get.run ["--quiet"]
-      message = "* Getting git_repo (#{fixture_path("git_repo")})"
-      assert_received { :mix_shell, :info, [^message] }
-      refute_received { :mix_shell, :info, ["* Compiling deps_repo"] }
-      assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
+      Mix.Tasks.Deps.Compile.run ["--quiet"]
+      refute_received { :mix_shell, :info, ["* Compiling ok"] }
     end
   end
 
@@ -389,6 +369,7 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Get.run []
+        Mix.Tasks.Deps.Check.run []
       end
 
       receive do
@@ -423,6 +404,7 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Get.run []
+        Mix.Tasks.Deps.Check.run []
       end
 
       assert_received { :mix_shell, :error, ["  the dependency git_repo in mix.exs is overriding" <> _] }
@@ -436,7 +418,6 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Get.run []
       message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
-      assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
 
       # Make sure retriever uses converger,
       # so the message appears just once
@@ -459,7 +440,6 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Get.run []
       message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
-      assert_received { :mix_shell, :info, ["Generated git_repo.app"] }
 
       # Make sure retriever uses converger,
       # so the message appears just once
@@ -500,12 +480,16 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Get.run []
-      Mix.Task.clear
-      Mix.Tasks.Deps.Update.run ["git_repo"]
 
+      File.mkdir_p!("_build/dev/lib/git_repo")
+      File.mkdir_p!("_build/test/lib/deps_repo")
+
+      Mix.Tasks.Deps.Update.run ["git_repo"]
       message = "* Updating git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
-      assert_received { :mix_shell, :info, ["* Compiling deps_repo"] }
+
+      assert File.exists?("_build/dev/lib/git_repo/.compile")
+      assert File.exists?("_build/test/lib/deps_repo/.compile")
     end
   end
 

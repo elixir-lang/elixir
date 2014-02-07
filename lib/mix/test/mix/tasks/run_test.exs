@@ -13,18 +13,6 @@ defmodule Mix.Tasks.RunTest do
     end
   end
 
-  test "run command with dependencies" do
-    Mix.Project.push GetApp
-
-    in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Deps.Get.run []
-      Mix.Tasks.Run.run ["-e", "Mix.shell.info GitRepo.hello"]
-      assert_received { :mix_shell, :info, ["World"] }
-    end
-  after
-    purge [GitRepo, GitRepo.Mix]
-  end
-
   test "run requires before commands" do
     Mix.Project.push MixTest.Case.Sample
     git_repo = fixture_path("git_repo/lib/git_repo.ex")
