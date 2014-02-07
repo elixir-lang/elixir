@@ -136,10 +136,12 @@ defmodule Mix.Tasks.DepsTest do
       assert_received { :mix_shell, :error, ["  the app file contains an invalid version: :ok"] }
       assert_received { :mix_shell, :error, ["* invalidapp (deps/invalidapp)"] }
       assert_received { :mix_shell, :error, ["  the app file at _build/dev/lib/invalidapp/ebin/invalidapp.app is invalid"] }
-      assert_received { :mix_shell, :error, ["* noappfile (deps/noappfile)"] }
-      assert_received { :mix_shell, :error, ["  could not find an app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _] }
       assert_received { :mix_shell, :error, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"] }
       assert_received { :mix_shell, :error, ["  the dependency is not available, run `mix deps.get`"] }
+
+      # This one is compiled automatically
+      refute_received { :mix_shell, :error, ["* noappfile (deps/noappfile)"] }
+      refute_received { :mix_shell, :error, ["  could not find an app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _] }
     end
   end
 

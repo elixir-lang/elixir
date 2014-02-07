@@ -9,16 +9,21 @@ defmodule Mix.Tasks.Deps.Check do
 
   This task is not shown in `mix help` but it is part
   of the `mix` public API and can be depended on.
+
+  ## Command line options
+
+  * `--no-compile` - do not compile dependencies
+
   """
-  def run(_) do
+  def run(args) do
     lock = Mix.Deps.Lock.read
     all  = Enum.map loaded, &check_lock(&1, lock)
 
     prune_deps(all)
+    { not_ok, recompile } = partition_deps(all, [], [])
 
-    case Enum.partition all, &ok?/1 do
-      { _, [] }     -> :ok
-      { _, not_ok } ->
+    cond do
+      not_ok != [] ->
         shell = Mix.shell
         shell.error "Unchecked dependencies for environment #{Mix.env}:"
 
@@ -28,11 +33,28 @@ defmodule Mix.Tasks.Deps.Check do
         end
 
         raise Mix.Error, message: "Can't continue due to errors on dependencies"
+      recompile == [] or "--no-compile" in args ->
+        :ok
+      true ->
+        Mix.Task.run "deps.compile", Enum.map(recompile, & &1.app)
     end
   end
 
-  defp ok?(Mix.Dep[status: { :ok, _ }]), do: true
-  defp ok?(Mix.Dep[]), do: false
+  defp partition_deps([Mix.Dep[status: { :ok, _ }]|deps], not_ok, recompile) do
+    partition_deps(deps, not_ok, recompile)
+  end
+
+  defp partition_deps([Mix.Dep[status: { :noappfile, _ }] = dep|deps], not_ok, recompile) do
+    partition_deps(deps, not_ok, [dep|recompile])
+  end
+
+  defp partition_deps([dep|deps], not_ok, recompile) do
+    partition_deps(deps, [dep|not_ok], recompile)
+  end
+
+  defp partition_deps([], not_ok, recompile) do
+    { not_ok, recompile }
+  end
 
   # If the build is per environment, we should be able to look
   # at all dependencies and remove the builds that no longer
