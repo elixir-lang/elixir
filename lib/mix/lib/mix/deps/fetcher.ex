@@ -7,7 +7,7 @@
 defmodule Mix.Deps.Fetcher do
   @moduledoc false
 
-  import Mix.Deps, only: [format_dep: 1, check_lock: 2, out_of_date?: 1, available?: 1, ok?: 1]
+  import Mix.Deps, only: [format_dep: 1, check_lock: 2, out_of_date?: 1, available?: 1]
 
   @doc """
   Fetches all dependencies.
@@ -93,14 +93,17 @@ defmodule Mix.Deps.Fetcher do
     unless opts[:no_compile] do
       if apps != [] do
         args = if opts[:quiet], do: ["--quiet"|apps], else: apps
-        Mix.Task.run("deps.compile", args)
+        Mix.Task.run "deps.compile", args
       end
 
       unless opts[:no_deps_check] do
-        Mix.Task.run("deps.check", [])
+        Mix.Task.run "deps.check", ["--no-compile"]
       end
     end
   end
+
+  defp ok?(Mix.Dep[status: { :ok, _ }]), do: true
+  defp ok?(Mix.Dep[]), do: false
 
   defp with_depending(deps, all_deps) do
     (deps ++ do_with_depending(deps, all_deps)) |> Enum.uniq(&(&1.app))

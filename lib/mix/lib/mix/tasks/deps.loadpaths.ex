@@ -11,10 +11,8 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   * `--no-deps-check` - skip dependency check
   """
   def run(args) do
-    { opts, _, _ } = OptionParser.parse(args)
-
-    unless opts[:no_deps_check] do
-      Mix.Task.run "deps.check"
+    unless "--no-deps-check" in args do
+      Mix.Task.run "deps.check", args
     end
 
     config = Mix.project

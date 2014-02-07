@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Check do
   use Mix.Task
 
-  import Mix.Deps, only: [loaded: 0, format_dep: 1, format_status: 1, check_lock: 2, ok?: 1]
+  import Mix.Deps, only: [loaded: 0, format_dep: 1, format_status: 1, check_lock: 2]
 
   @moduledoc """
   Checks if all dependencies are valid and if not, abort.
@@ -30,6 +30,9 @@ defmodule Mix.Tasks.Deps.Check do
         raise Mix.Error, message: "Can't continue due to errors on dependencies"
     end
   end
+
+  defp ok?(Mix.Dep[status: { :ok, _ }]), do: true
+  defp ok?(Mix.Dep[]), do: false
 
   # If the build is per environment, we should be able to look
   # at all dependencies and remove the builds that no longer

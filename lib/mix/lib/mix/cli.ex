@@ -50,9 +50,10 @@ defmodule Mix.CLI do
   defp run_task(name, args) do
     try do
       if Mix.Project.get do
-        Mix.Task.run "loadpaths", ["--no-deps-check", "--no-elixir-version-check"]
-        Mix.Task.reenable "loadpaths"
+        Mix.Task.run "deps.loadpaths", ["--no-deps-check"]
+        Mix.Task.run "loadpaths", ["--no-elixir-version-check"]
         Mix.Task.reenable "deps.loadpaths"
+        Mix.Task.reenable "loadpaths"
       end
 
       Mix.Task.run(name, args)

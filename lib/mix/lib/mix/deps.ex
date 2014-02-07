@@ -293,12 +293,6 @@ defmodule Mix.Deps do
   end
 
   @doc """
-  Checks if a dependency is ok.
-  """
-  def ok?(Mix.Dep[status: { :ok, _ }]), do: true
-  def ok?(Mix.Dep[]), do: false
-
-  @doc """
   Checks if a dependency is available. Available dependencies
   are the ones that can be loaded.
   """
