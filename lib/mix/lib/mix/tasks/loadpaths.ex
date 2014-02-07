@@ -6,17 +6,11 @@ defmodule Mix.Tasks.Loadpaths do
 
   ## Command line options
 
-  * `--no-deps` - do not load dependencies
-  * `--no-deps-check` - do not check dependencies
   * `--no-elixir-version-check` - do not check elixir version
 
   """
   def run(args) do
     { opts, _, _ } = OptionParser.parse(args)
-
-    unless opts[:no_deps] do
-      Mix.Task.run "deps.loadpaths", args
-    end
 
     unless opts[:no_elixir_version_check] do
       config = Mix.project

@@ -9,17 +9,17 @@ defmodule Mix.Tasks.App.Start do
 
   ## Command line options
 
+  * `--force` - force compilation regardless of compilation times
   * `--no-compile` - do not compile even if files require compilation
-  * `--no-start` - do not start applications after compilation
-  * `--no-deps` - do not load dependencies
   * `--no-deps-check` - do not check dependencies
   * `--no-elixir-version-check` - do not check elixir version
+  * `--no-start` - do not start applications after compilation
 
   """
   def run(args) do
     { opts, _, _ } = OptionParser.parse(args)
 
-    project = Mix.project
+    Mix.Task.run "deps.loadpaths", args
     Mix.Task.run "loadpaths", args
 
     unless opts[:no_compile] do
@@ -27,7 +27,7 @@ defmodule Mix.Tasks.App.Start do
     end
 
     unless opts[:no_start] do
-      start(project[:app])
+      start(Mix.project[:app])
     end
   end
 

@@ -55,6 +55,7 @@ defmodule Mix do
   """
   def loadpaths do
     Mix.start
+    Mix.Task.run "deps.loadpaths"
     Mix.Task.run "loadpaths"
   end
 

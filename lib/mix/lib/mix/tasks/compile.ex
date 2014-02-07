@@ -60,7 +60,11 @@ defmodule Mix.Tasks.Compile do
   Runs this compile task by recursively calling all registered compilers.
   """
   def run(args) do
-    Mix.Task.run("loadpaths", args)
+    unless "--no-deps" in args do
+      Mix.Task.run "deps.loadpaths", args
+    end
+
+    Mix.Task.run "loadpaths", args
 
     res =
       Enum.map(get_compilers, fn(compiler) ->
