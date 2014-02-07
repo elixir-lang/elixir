@@ -14,22 +14,17 @@ defmodule Mix.Tasks.Deps.Update do
   ## Command line options
 
   * `--all` - update all dependencies
-  * `--no-compile` - skip compilation of dependencies
-  * `--no-deps-check` - skip dependency check
-  * `--quiet` - do not output verbose messages
-
   """
-
   def run(args) do
     Mix.Project.get! # Require the project to be available
     { opts, rest, _ } = OptionParser.parse(args, switches: [no_compile: :boolean, all: :boolean])
 
     cond do
       opts[:all] ->
-        Mix.Deps.Fetcher.all(Mix.Deps.Lock.read, [], opts)
+        Mix.Deps.Fetcher.all(Mix.Deps.Lock.read, [])
       rest != [] ->
         { old, new } = Dict.split(Mix.Deps.Lock.read, to_app_names(rest))
-        Mix.Deps.Fetcher.by_name(rest, old, new, opts)
+        Mix.Deps.Fetcher.by_name(rest, old, new)
       true ->
         raise Mix.Error, message: "mix deps.update expects dependencies as arguments or " <>
                                   "the --all option to update all dependencies"

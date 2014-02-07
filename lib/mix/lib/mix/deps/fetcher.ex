@@ -7,21 +7,21 @@
 defmodule Mix.Deps.Fetcher do
   @moduledoc false
 
-  import Mix.Deps, only: [format_dep: 1, check_lock: 2, out_of_date?: 1, available?: 1]
+  import Mix.Deps, only: [format_dep: 1, check_lock: 2, out_of_date?: 1, available?: 1, ok?: 1]
 
   @doc """
   Fetches all dependencies.
   """
-  def all(old_lock, new_lock, opts) do
-    { apps, _deps } = do_finalize Mix.Deps.unloaded({ [], new_lock }, &do_fetch/2), old_lock, opts
+  def all(old_lock, new_lock) do
+    { apps, _deps } = do_finalize Mix.Deps.unloaded({ [], new_lock }, &do_fetch/2), old_lock
     apps
   end
 
   @doc """
   Fetches the dependencies with the given names and their children recursively.
   """
-  def by_name(names, old_lock, new_lock, opts) do
-    { apps, deps } = do_finalize Mix.Deps.unloaded_by_name(names, { [], new_lock }, &do_fetch/2), old_lock, opts
+  def by_name(names, old_lock, new_lock) do
+    { apps, deps } = do_finalize Mix.Deps.unloaded_by_name(names, { [], new_lock }, &do_fetch/2), old_lock
     Mix.Deps.loaded_by_name(names, deps) # Check all given dependencies are loaded or fail
     apps
   end
@@ -57,12 +57,11 @@ defmodule Mix.Deps.Fetcher do
     end
   end
 
-  defp do_finalize({ all_deps, { apps, new_lock } }, old_lock, opts) do
+  defp do_finalize({ all_deps, { apps, new_lock } }, old_lock) do
     # Let's get the loaded versions of deps
     deps = Mix.Deps.loaded_by_name(apps, all_deps)
 
-    # Do not attempt to compile dependencies that are not available.
-    # mix deps.check at the end will emit proper status in case they failed.
+    # Do not mark dependencies that are not available
     deps = Enum.filter(deps, &available?/1)
 
     # Note we only retrieve the parent dependencies of the updated
@@ -84,37 +83,16 @@ defmodule Mix.Deps.Fetcher do
     Mix.Deps.Lock.write(lock)
 
     require_compilation(deps)
-    do_compile(deps, opts)
     { apps, all_deps }
   end
 
   defp require_compilation(deps) do
-    envs = Mix.Project.build_path
-           |> Path.join("*/lib")
-           |> Path.wildcard()
+    envs = Path.wildcard("_build/*/lib")
 
     lc Mix.Dep[app: app] inlist deps, env inlist envs do
       File.touch Path.join [env, app, ".compile"]
     end
   end
-
-  defp do_compile(deps, opts) do
-    apps = Enum.map(deps, &(&1.app)) |> Enum.uniq
-
-    unless opts[:no_compile] do
-      if apps != [] do
-        args = if opts[:quiet], do: ["--quiet"|apps], else: apps
-        Mix.Task.run "deps.compile", args
-      end
-
-      unless opts[:no_deps_check] do
-        Mix.Task.run "deps.check", ["--no-compile"]
-      end
-    end
-  end
-
-  defp ok?(Mix.Dep[status: { :ok, _ }]), do: true
-  defp ok?(Mix.Dep[]), do: false
 
   defp with_depending(deps, all_deps) do
     (deps ++ do_with_depending(deps, all_deps)) |> Enum.uniq(&(&1.app))

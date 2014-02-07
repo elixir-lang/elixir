@@ -9,21 +9,17 @@ defmodule Mix.Tasks.Deps.Get do
 
   ## Command line options
 
-  * `--no-compile` - skip compilation of dependencies
-  * `--no-deps-check` - skip dependency check
   * `--quiet` - do not output verbose messages
-
   """
-
   def run(args) do
     Mix.Project.get! # Require the project to be available
     { opts, rest, _ } = OptionParser.parse(args, switches: [no_compile: :boolean, quiet: :boolean])
 
     apps =
       if rest != [] do
-        Mix.Deps.Fetcher.by_name(rest, [], Mix.Deps.Lock.read, opts)
+        Mix.Deps.Fetcher.by_name(rest, [], Mix.Deps.Lock.read)
       else
-        Mix.Deps.Fetcher.all([], Mix.Deps.Lock.read, opts)
+        Mix.Deps.Fetcher.all([], Mix.Deps.Lock.read)
       end
 
     if apps == [] && !opts[:quiet] do

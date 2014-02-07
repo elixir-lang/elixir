@@ -35,19 +35,14 @@ defmodule Mix.Tasks.Deps.Compile do
 
     case OptionParser.parse(args, switches: [quiet: :boolean]) do
       { opts, [], _ } ->
-        do_run(Enum.filter(loaded, &compilable?/1), opts)
+        compile(Enum.filter(loaded, &compilable?/1), opts)
       { opts, tail, _ } ->
-        do_run(loaded_by_name(tail), opts)
+        compile(loaded_by_name(tail), opts)
     end
   end
 
-  # All available dependencies can be compiled
-  # except for umbrella applications.
-  defp compilable?(Mix.Dep[manager: manager, extra: extra] = dep) do
-    available?(dep) and (manager != :mix or !extra[:umbrella?])
-  end
-
-  defp do_run(deps, run_opts) do
+  @doc false
+  def compile(deps, run_opts) do
     shell  = Mix.shell
     config = Mix.Project.deps_config
 
@@ -80,6 +75,12 @@ defmodule Mix.Tasks.Deps.Compile do
       end
 
     if Enum.any?(compiled), do: Mix.Deps.Lock.touch
+  end
+
+  # All available dependencies can be compiled
+  # except for umbrella applications.
+  defp compilable?(Mix.Dep[manager: manager, extra: extra] = dep) do
+    available?(dep) and (manager != :mix or !extra[:umbrella?])
   end
 
   defp check_unavailable!(app, { :unavailable, _ }) do

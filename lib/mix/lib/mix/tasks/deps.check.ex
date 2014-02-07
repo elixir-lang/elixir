@@ -1,7 +1,8 @@
 defmodule Mix.Tasks.Deps.Check do
   use Mix.Task
 
-  import Mix.Deps, only: [loaded: 0, format_dep: 1, format_status: 1, check_lock: 2]
+  import Mix.Deps, only: [loaded: 0, loaded_by_name: 1, format_dep: 1,
+                          format_status: 1, check_lock: 2, ok?: 1]
 
   @moduledoc """
   Checks if all dependencies are valid and if not, abort.
@@ -13,9 +14,11 @@ defmodule Mix.Tasks.Deps.Check do
   ## Command line options
 
   * `--no-compile` - do not compile dependencies
+  * `--quiet` - do not output on compilation
 
   """
   def run(args) do
+    { opts, _, _ } = OptionParser.parse(args, switches: [quiet: :boolean])
     lock = Mix.Deps.Lock.read
     all  = Enum.map loaded, &check_lock(&1, lock)
 
@@ -24,36 +27,33 @@ defmodule Mix.Tasks.Deps.Check do
 
     cond do
       not_ok != [] ->
-        shell = Mix.shell
-        shell.error "Unchecked dependencies for environment #{Mix.env}:"
-
-        Enum.each not_ok, fn(dep) ->
-          shell.error "* #{format_dep(dep)}"
-          shell.error "  #{format_status dep}"
-        end
-
-        raise Mix.Error, message: "Can't continue due to errors on dependencies"
-      compile == [] or "--no-compile" in args ->
+        show_not_ok(not_ok)
+      compile == [] or opts[:no_compile] ->
         :ok
       true ->
-        Mix.Task.run "deps.compile", Enum.map(compile, & &1.app)
+        Mix.Tasks.Deps.Compile.compile(compile, opts)
+        show_not_ok compile
+                    |> Enum.map(& &1.app)
+                    |> loaded_by_name
+                    |> Enum.filter(&(not ok?(&1)))
     end
   end
 
-  defp partition_deps([Mix.Dep[status: { :ok, _ }]|deps], not_ok, compile),
-    do: partition_deps(deps, not_ok, compile)
+  defp partition_deps([dep|deps], not_ok, compile) do
+    cond do
+      ok?(dep)      -> partition_deps(deps, not_ok, compile)
+      compile?(dep) -> partition_deps(deps, not_ok, [dep|compile])
+      true          -> partition_deps(deps, [dep|not_ok], compile)
+    end
+  end
 
-  defp partition_deps([Mix.Dep[status: :compile] = dep|deps], not_ok, compile),
-    do: partition_deps(deps, not_ok, [dep|compile])
+  defp partition_deps([], not_ok, compile) do
+    { not_ok, compile }
+  end
 
-  defp partition_deps([Mix.Dep[status: { :noappfile, _ }] = dep|deps], not_ok, compile),
-    do: partition_deps(deps, not_ok, [dep|compile])
-
-  defp partition_deps([dep|deps], not_ok, compile),
-    do: partition_deps(deps, [dep|not_ok], compile)
-
-  defp partition_deps([], not_ok, compile),
-    do: { not_ok, compile }
+  defp compile?(Mix.Dep[status: { :noappfile, _ }]), do: true
+  defp compile?(Mix.Dep[status: :compile]), do: true
+  defp compile?(_), do: false
 
   # If the build is per environment, we should be able to look
   # at all dependencies and remove the builds that no longer
@@ -78,5 +78,21 @@ defmodule Mix.Tasks.Deps.Check do
         File.rm_rf!(path |> Path.dirname)
       end)
     end
+  end
+
+  defp show_not_ok([]) do
+    :ok
+  end
+
+  defp show_not_ok(deps) do
+    shell = Mix.shell
+    shell.error "Unchecked dependencies for environment #{Mix.env}:"
+
+    Enum.each deps, fn(dep) ->
+      shell.error "* #{format_dep(dep)}"
+      shell.error "  #{format_status dep}"
+    end
+
+    raise Mix.Error, message: "Can't continue due to errors on dependencies"
   end
 end
