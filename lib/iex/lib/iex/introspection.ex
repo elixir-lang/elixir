@@ -178,7 +178,7 @@ defmodule IEx.Introspection do
   end
 
   defp print_doc_arg({ :\\, _, [left, right] }) do
-    print_doc_arg(left) <> " \\ " <> Macro.to_string(right)
+    print_doc_arg(left) <> " \\\\ " <> Macro.to_string(right)
   end
 
   defp print_doc_arg({ var, _, _ }) do
