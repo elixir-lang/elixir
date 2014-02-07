@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Deps.Check do
     all  = Enum.map loaded, &check_lock(&1, lock)
 
     prune_deps(all)
-    { not_ok, recompile } = partition_deps(all, [], [])
+    { not_ok, compile } = partition_deps(all, [], [])
 
     cond do
       not_ok != [] ->
@@ -33,28 +33,27 @@ defmodule Mix.Tasks.Deps.Check do
         end
 
         raise Mix.Error, message: "Can't continue due to errors on dependencies"
-      recompile == [] or "--no-compile" in args ->
+      compile == [] or "--no-compile" in args ->
         :ok
       true ->
-        Mix.Task.run "deps.compile", Enum.map(recompile, & &1.app)
+        Mix.Task.run "deps.compile", Enum.map(compile, & &1.app)
     end
   end
 
-  defp partition_deps([Mix.Dep[status: { :ok, _ }]|deps], not_ok, recompile) do
-    partition_deps(deps, not_ok, recompile)
-  end
+  defp partition_deps([Mix.Dep[status: { :ok, _ }]|deps], not_ok, compile),
+    do: partition_deps(deps, not_ok, compile)
 
-  defp partition_deps([Mix.Dep[status: { :noappfile, _ }] = dep|deps], not_ok, recompile) do
-    partition_deps(deps, not_ok, [dep|recompile])
-  end
+  defp partition_deps([Mix.Dep[status: :compile] = dep|deps], not_ok, compile),
+    do: partition_deps(deps, not_ok, [dep|compile])
 
-  defp partition_deps([dep|deps], not_ok, recompile) do
-    partition_deps(deps, [dep|not_ok], recompile)
-  end
+  defp partition_deps([Mix.Dep[status: { :noappfile, _ }] = dep|deps], not_ok, compile),
+    do: partition_deps(deps, not_ok, [dep|compile])
 
-  defp partition_deps([], not_ok, recompile) do
-    { not_ok, recompile }
-  end
+  defp partition_deps([dep|deps], not_ok, compile),
+    do: partition_deps(deps, [dep|not_ok], compile)
+
+  defp partition_deps([], not_ok, compile),
+    do: { not_ok, compile }
 
   # If the build is per environment, we should be able to look
   # at all dependencies and remove the builds that no longer

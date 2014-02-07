@@ -122,6 +122,17 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  test "marks dependencies as needing compilation but automatically compile them on check" do
+    Mix.Project.push SuccessfulDepsApp
+
+    in_fixture "deps_status", fn ->
+      File.touch!("_build/dev/lib/ok/.compile")
+      Mix.Tasks.Deps.Check.run []
+      assert_received { :mix_shell, :info, ["* Compiling ok"] }
+      refute File.exists?("_build/dev/lib/ok/.compile")
+    end
+  end
+
   test "checks list of dependencies and their status on failure" do
     Mix.Project.push DepsApp
 
@@ -436,8 +447,6 @@ defmodule Mix.Tasks.DepsTest do
 
       message = "* Updating git_repo (#{fixture_path("git_repo")})"
       assert_received { :mix_shell, :info, [^message] }
-
-      Mix.Tasks.Deps.Check.run []
     end
   after
     purge [GitRepo, GitRepo.Mix]
