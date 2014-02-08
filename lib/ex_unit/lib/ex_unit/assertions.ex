@@ -308,7 +308,7 @@ defmodule ExUnit.Assertions do
 
     quote do
       receive do
-        unquote(expected) = received -> received
+        unquote(expected) = received -> unquote(expected) = received
       after
         unquote(timeout) ->
           flunk unquote(message) || "Expected to have received message matching #{unquote binary}"

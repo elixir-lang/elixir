@@ -89,6 +89,12 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert received leaks" do
+    send self, { :hello, :world }
+    assert_received { :hello, world }
+    :world = world
+  end
+
   test "refute received does not wait" do
     false = refute_received :hello
   end
