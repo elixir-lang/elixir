@@ -115,7 +115,7 @@ defmodule Regex do
       false
 
   """
-  def match?(regex(re_pattern: compiled), string) do
+  def match?(regex(re_pattern: compiled), string) when is_binary(string) do
     :re.run(string, compiled, [{ :capture, :none }]) == :match
   end
 
@@ -124,7 +124,8 @@ defmodule Regex do
   It returns a list with all captures or `nil` if no match occurred.
 
   When the option `:capture` is set to `:groups`, it will capture all
-  the groups in the regex.
+  the groups in the regex. The option `:return` can be set to `:index`
+  to get indexes back.
 
   ## Examples
 
@@ -138,8 +139,8 @@ defmodule Regex do
   """
   def run(regex, string, options \\ [])
 
-  def run(regex(re_pattern: compiled, groups: groups), string, options) do
-    return = Keyword.get(options, :return, return_for(string))
+  def run(regex(re_pattern: compiled, groups: groups), string, options) when is_binary(string) do
+    return = Keyword.get(options, :return, :binary)
 
     captures =
       case Keyword.get(options, :capture, :all) do
@@ -158,6 +159,8 @@ defmodule Regex do
   Returns the given captures as a keyword list or `nil` if no captures
   are found. Requires the regex to be compiled with the groups option.
 
+  The option `:return` can be set to `:index` to get indexes back.
+
   ## Examples
 
       iex> Regex.named_captures(~r/c(?<foo>d)/g, "abcd")
@@ -168,7 +171,7 @@ defmodule Regex do
       nil
 
   """
-  def named_captures(regex(groups: groups) = regex, string, options \\ []) do
+  def named_captures(regex(groups: groups) = regex, string, options \\ []) when is_binary(string) do
     options = Keyword.put_new(options, :capture, :groups)
     results = run(regex, string, options)
     if results, do: Enum.zip(groups, results)
@@ -230,7 +233,8 @@ defmodule Regex do
   regex match and each capture.
 
   When the option `:capture` is set to `:groups`, it will capture all
-  the groups in the regex.
+  the groups in the regex. The option `:return` can be set to `:index`
+  to get indexes back.
 
   ## Examples
 
@@ -242,10 +246,10 @@ defmodule Regex do
       []
 
   """
-  def scan(regex, string, options \\ [])
+  def scan(regex, string, optoins \\ [])
 
-  def scan(regex(re_pattern: compiled, groups: groups), string, options) do
-    return  = Keyword.get(options, :return, return_for(string))
+  def scan(regex(re_pattern: compiled, groups: groups), string, options) when is_binary(string) do
+    return  = Keyword.get(options, :return, :binary)
 
     captures =
       case Keyword.get(options, :capture, :all) do
@@ -280,7 +284,7 @@ defmodule Regex do
 
   def split(regex, string, options \\ [])
 
-  def split(regex(re_pattern: compiled), string, options) do
+  def split(regex(re_pattern: compiled), string, options) when is_binary(string) do
     parts =
       cond do
         Keyword.get(options, :global) == false -> 2
@@ -288,8 +292,7 @@ defmodule Regex do
         true                                   -> :infinity
       end
 
-    return = Keyword.get(options, :return, return_for(string))
-    opts   = [return: return, parts: parts]
+    opts   = [return: :binary, parts: parts]
     splits = :re.split(string, compiled, opts)
 
     if Keyword.get(options, :trim, false) do
@@ -322,10 +325,11 @@ defmodule Regex do
       "a[b]c"
 
   """
-  def replace(regex(re_pattern: compiled), string, replacement, options \\ []) do
-    opts   = if Keyword.get(options, :global) != false, do: [:global], else: []
-    return = Keyword.get(options, :return, return_for(string))
-    opts   = [{ :return, return }|opts]
+  def replace(regex, string, replacement, options \\ [])
+
+  def replace(regex(re_pattern: compiled), string, replacement, options) when is_binary(string) do
+    opts = if Keyword.get(options, :global) != false, do: [:global], else: []
+    opts = [{ :return, :binary }|opts]
     :re.replace(string, compiled, replacement, opts)
   end
 
@@ -344,8 +348,8 @@ defmodule Regex do
 
   """
   @spec escape(String.t) :: String.t
-  def escape(string) do
-    :re.replace(string, @escape_pattern, "\\\\&", [:global, { :return, return_for(string) }])
+  def escape(string) when is_binary(string) do
+    :re.replace(string, @escape_pattern, "\\\\&", [:global, { :return, :binary }])
   end
 
   # Helpers
@@ -362,16 +366,6 @@ defmodule Regex do
 
   # Private Helpers
 
-  defp return_for(element) when is_binary(element), do: :binary
-  defp return_for(element) when is_list(element) do
-    IO.write :stderr, "Passing char lists to Regex is deprecated, please use binaries instead\n#{Exception.format_stacktrace}"
-    :list
-  end
-
-  defp translate_options(<<?u, t :: binary>>) do
-    IO.write "The /u flag for regular expressions is no longer needed\n#{Exception.format_stacktrace}"
-    translate_options(t)
-  end
   defp translate_options(<<?i, t :: binary>>), do: [:caseless|translate_options(t)]
   defp translate_options(<<?x, t :: binary>>), do: [:extended|translate_options(t)]
   defp translate_options(<<?f, t :: binary>>), do: [:firstline|translate_options(t)]
