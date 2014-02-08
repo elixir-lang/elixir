@@ -37,9 +37,6 @@ defmodule Regex do
   * `newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or `(*ANYCRLF)`
     or `(*ANY)` at the beginning of the regexp according to the re documentation
 
-  Most of the functions in this module accept either a binary or a char list
-  as subject. The result is based on the argument (a binary will return
-  a binary, a char list will return a char list).
   """
 
   defrecordp :regex, Regex, [:re_pattern, :source, :options, :groups]
@@ -346,7 +343,7 @@ defmodule Regex do
       "\\\\what\\ if"
 
   """
-  @spec escape(String.t | char_list) :: String.t | char_list
+  @spec escape(String.t) :: String.t
   def escape(string) do
     :re.replace(string, @escape_pattern, "\\\\&", [:global, { :return, return_for(string) }])
   end
@@ -366,7 +363,10 @@ defmodule Regex do
   # Private Helpers
 
   defp return_for(element) when is_binary(element), do: :binary
-  defp return_for(element) when is_list(element),   do: :list
+  defp return_for(element) when is_list(element) do
+    IO.write :stderr, "Passing char lists to Regex is deprecated, please use binaries instead\n#{Exception.format_stacktrace}"
+    :list
+  end
 
   defp translate_options(<<?u, t :: binary>>) do
     IO.write "The /u flag for regular expressions is no longer needed\n#{Exception.format_stacktrace}"
