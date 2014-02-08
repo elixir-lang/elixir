@@ -124,11 +124,7 @@ defmodule Mix.Deps.Loader do
 
   defp scm_status(scm, opts) do
     if scm.checked_out?(opts) do
-      if File.exists?(Path.join(opts[:build], ".compile")) do
-        :compile
-      else
-        { :ok, nil }
-      end
+      { :ok, nil }
     else
       { :unavailable, opts[:dest] }
     end
@@ -203,13 +199,19 @@ defmodule Mix.Deps.Loader do
 
   defp validate_app(Mix.Dep[opts: opts, requirement: req, app: app, status: status] = dep) do
     opts_app = opts[:app]
+    build    = opts[:build]
 
-    if not ok?(status) or opts_app == false do
-      dep
-    else
-      path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
-      path = Path.expand(path, opts[:build])
-      dep.status app_status(path, app, req)
+    cond do
+      not ok?(status) ->
+        dep
+      File.exists?(Path.join(opts[:build], ".compile")) ->
+        dep.status(:compile)
+      opts_app == false ->
+        dep
+      true ->
+        path  = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
+        path  = Path.expand(path, build)
+        dep.status app_status(path, app, req)
     end
   end
 
