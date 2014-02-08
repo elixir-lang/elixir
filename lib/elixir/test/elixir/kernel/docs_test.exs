@@ -3,38 +3,47 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.DocsTest do
   use ExUnit.Case
 
-  test :compiled_docs do
-    path = Path.join(__DIR__, "../fixtures/compiled_with_docs.ex")
+  test "compiled with docs" do
+    defmodule Docs do
+      @moduledoc "moduledoc"
 
-    try do
-      Code.load_file path
+      defp private, do: 1
+      defp __struct__, do: %{}
 
-      expected = [
-        {{:example, 1}, 5, :def, [{:var, [line: 6], nil}], "Some example"},
-        {{:nodoc, 1}, 8, :def, [{:\\, [line: 8], [{:var, [line: 8], nil}, 0]}], nil}
-      ]
+      @doc "Some example"
+      def example(false), do: 0
+      def example(var),   do: var && private
 
-      assert CompiledWithDocs.__info__(:docs) == expected
-      assert CompiledWithDocs.__info__(:moduledoc) == { 1, "moduledoc" }
-    after
-      :code.delete CompiledWithDocs
-      :code.purge CompiledWithDocs
+      def nodoc(var \\ 0)
+      def nodoc(_), do: 2
+
+      def struct(%Docs{}), do: %{}
     end
+
+    expected = [
+      {{:example, 1}, 14, :def, [{:var, [line: 15], nil}], "Some example"},
+      {{:nodoc, 1}, 17, :def, [{:\\, [line: 17], [{:var, [line: 17], nil}, 0]}], nil},
+      {{:struct, 1}, 20, :def, [{:docs, [line: 20], nil}], nil}
+    ]
+
+    assert Docs.__info__(:docs) == expected
+    assert Docs.__info__(:moduledoc) == { 7, "moduledoc" }
   end
 
-  test :compiled_without_docs do
-    path = Path.join(__DIR__, "../fixtures/compiled_with_docs.ex")
 
-    try do
-      Code.compiler_options(docs: false)
-      Code.load_file path
+  test "compiled without docs" do
+    Code.compiler_options(docs: false)
 
-      assert CompiledWithDocs.__info__(:docs) == nil
-      assert CompiledWithDocs.__info__(:moduledoc) == nil
-    after
-      Code.compiler_options(docs: true)
-      :code.delete CompiledWithDocs
-      :code.purge CompiledWithDocs
+    defmodule NoDocs do
+      @moduledoc "moduledoc"
+
+      @doc "Some example"
+      def example(var), do: var
     end
+
+    assert NoDocs.__info__(:docs) == nil
+    assert NoDocs.__info__(:moduledoc) == nil
+  after
+    Code.compiler_options(docs: true)
   end
 end

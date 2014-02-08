@@ -173,9 +173,9 @@ defmodule Module do
         - the module environment
         - kind: `:def`, `:defp`, `:defmacro`, or `:defmacrop`
         - function/macro name
-        - list of quoted arguments
-        - list of quoted guards
-        - quoted function body
+        - list of expanded arguments
+        - list of expanded guards
+        - expanded function body
 
       If the function/macro being defined has multiple clauses, the hook will
       be called for each clause.
@@ -535,24 +535,30 @@ defmodule Module do
     { :\\, defline, [simplify_signature(left, line, i), right] }
   end
 
-  defp simplify_signature({ var, line, atom }, _, _i) when is_atom(atom) do
-    case atom_to_list(var) do
-      [?_|_]    -> { var, line, :guess }
-      _         -> { var, line, nil }
-    end
+  defp simplify_signature({ :%, line, [left, _] }, _, _i) when is_atom(left) do
+    last = List.last(String.split(atom_to_binary(left), "."))
+    atom = binary_to_atom(String.downcase(last))
+    { atom, line, nil }
   end
 
   defp simplify_signature({ :=, _, [_, right] }, line, i) do
     simplify_signature(right, line, i)
   end
 
-  defp simplify_signature(other, line, i) when is_integer(other), do: { :"int#{i}", line, :guess }
-  defp simplify_signature(other, line, i) when is_boolean(other), do: { :"bool#{i}", line, :guess }
-  defp simplify_signature(other, line, i) when is_atom(other),    do: { :"atom#{i}", line, :guess }
-  defp simplify_signature(other, line, i) when is_list(other),    do: { :"list#{i}", line, :guess }
-  defp simplify_signature(other, line, i) when is_float(other),   do: { :"float#{i}", line, :guess }
-  defp simplify_signature(other, line, i) when is_binary(other),  do: { :"binary#{i}", line, :guess }
-  defp simplify_signature(_, line, i), do: { :"arg#{i}", line, :guess }
+  defp simplify_signature({ var, line, atom }, _, _i) when is_atom(atom) do
+    case atom_to_binary(var) do
+      "_" <> rest -> { binary_to_atom(rest), line, Elixir }
+      _           -> { var, line, nil }
+    end
+  end
+
+  defp simplify_signature(other, line, i) when is_integer(other), do: { :"int#{i}", line, Elixir }
+  defp simplify_signature(other, line, i) when is_boolean(other), do: { :"bool#{i}", line, Elixir }
+  defp simplify_signature(other, line, i) when is_atom(other),    do: { :"atom#{i}", line, Elixir }
+  defp simplify_signature(other, line, i) when is_list(other),    do: { :"list#{i}", line, Elixir }
+  defp simplify_signature(other, line, i) when is_float(other),   do: { :"float#{i}", line, Elixir }
+  defp simplify_signature(other, line, i) when is_binary(other),  do: { :"binary#{i}", line, Elixir }
+  defp simplify_signature(_, line, i), do: { :"arg#{i}", line, Elixir }
 
   # Merge
 
@@ -580,7 +586,7 @@ defmodule Module do
   defp merge_signature({ var, _, _ } = older, { var, _, _ }, _), do: older
 
   # Otherwise, returns a generic guess
-  defp merge_signature({ _, line, _ }, _newer, i), do: { :"arg#{i}", line, :guess }
+  defp merge_signature({ _, line, _ }, _newer, i), do: { :"arg#{i}", line, Elixir }
 
   @doc """
   Checks if the module defines the given function or macro.
