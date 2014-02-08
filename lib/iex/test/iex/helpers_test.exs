@@ -13,7 +13,7 @@ defmodule IEx.HelpersTest do
   @doc """
   Test function 2
   """
-  def test_fun_1(arg \\ 99), do: arg
+  def test_fun_2(arg \\ 99), do: arg
 
   test "clear helper" do
     assert "\e[H\e[2J" == capture_iex("clear")
@@ -37,10 +37,10 @@ defmodule IEx.HelpersTest do
 
   test "h helper function" do
     doc_1 = "* def test_fun_1()\n\nTest function 1\n\n"
-    doc_2 = "* def test_fun_1(arg \\\\ 99)\n\nTest function 2\n\n"
+    doc_2 = "* def test_fun_2(arg \\\\ 99)\n\nTest function 2\n\n"
 
     assert capture_io(fn -> h IEx.HelpersTest.test_fun_1/0 end) == doc_1
-    assert capture_io(fn -> h IEx.HelpersTest.test_fun_1/1 end) == doc_2
+    assert capture_io(fn -> h IEx.HelpersTest.test_fun_2/1 end) == doc_2
 
     output = capture_io(fn -> h IEx.HelpersTest.test_fun_1 end)
     assert :binary.match(output, doc_1)
