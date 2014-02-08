@@ -34,11 +34,11 @@ defmodule Mix.Tasks.App.Start do
   @doc false
   def start(app) do
     if app do
-      case Application.Behaviour.start(app) do
-        :ok -> :ok
-        { :error, { :bad_return, _ } } ->
+      case :application.ensure_all_started(app) do
+        { :ok, _ } -> :ok
+        { :error, { app, { :bad_return, _ } } } ->
           raise Mix.Error, message: "Could not start application #{app}, please see report above"
-        { :error, reason } ->
+        { :error, { app, reason } } ->
           raise Mix.Error, message: "Could not start application #{app}: #{inspect reason}"
       end
     else

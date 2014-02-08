@@ -136,7 +136,7 @@ defmodule Mix.Tasks.App.StartTest do
       Process.put(:application_definition, applications: [:unknown])
       Mix.Tasks.Compile.run []
 
-      assert_raise Mix.Error, ~r"Could not start application bad_return_sample: ", fn ->
+      assert_raise Mix.Error, ~r"Could not start application unknown: ", fn ->
         Mix.Tasks.App.Start.start(:bad_return_sample)
       end
     end

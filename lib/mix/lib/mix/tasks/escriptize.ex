@@ -178,8 +178,8 @@ defmodule Mix.Tasks.Escriptize do
         end
 
         defp start_app(app) do
-          case Application.Behaviour.start(app) do
-            :ok -> :ok
+          case :application.ensure_all_started(app) do
+            { :ok, _ } -> :ok
             { :error, reason } ->
               IO.puts :stderr, IO.ANSI.escape("%{red, bright} Could not start application #{app}: #{inspect reason}.")
               System.halt(1)
