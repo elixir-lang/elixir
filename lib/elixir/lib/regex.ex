@@ -27,7 +27,6 @@ defmodule Regex do
   * `firstline` (f) - forces the unanchored pattern to match before or at the first
     newline, though the matched text may continue over the newline
   * `ungreedy` (r) - inverts the "greediness" of the regexp
-  * `groups` (g) - compiles with info about groups available
 
   The options not available are:
 
@@ -39,7 +38,7 @@ defmodule Regex do
 
   """
 
-  defrecordp :regex, Regex, [:re_pattern, :source, :options, :groups]
+  defrecordp :regex, Regex, [:re_pattern, :source, :options]
   @type t :: { Regex, term, binary, binary, [atom] | nil }
 
   defexception CompileError, message: "regex could not be compiled"
@@ -82,12 +81,9 @@ defmodule Regex do
   end
 
   defp compile(source, opts, doc_opts) when is_binary(source) do
-    re_opts = opts -- [:groups]
-    groups  = if opts != re_opts, do: parse_groups(source)
-
-    case :re.compile(source, re_opts) do
+    case :re.compile(source, opts) do
       { :ok, re_pattern } ->
-        { :ok, regex(re_pattern: re_pattern, source: source, options: doc_opts, groups: groups) }
+        { :ok, regex(re_pattern: re_pattern, source: source, options: doc_opts) }
       error ->
         error
     end
@@ -139,12 +135,12 @@ defmodule Regex do
   """
   def run(regex, string, options \\ [])
 
-  def run(regex(re_pattern: compiled, groups: groups), string, options) when is_binary(string) do
+  def run(regex(re_pattern: compiled) = regex, string, options) when is_binary(string) do
     return = Keyword.get(options, :return, :binary)
 
     captures =
       case Keyword.get(options, :capture, :all) do
-        :groups -> groups || raise ArgumentError, message: "regex was not compiled with g"
+        :groups -> groups(regex)
         others  -> others
       end
 
@@ -157,24 +153,23 @@ defmodule Regex do
 
   @doc """
   Returns the given captures as a keyword list or `nil` if no captures
-  are found. Requires the regex to be compiled with the groups option.
-
-  The option `:return` can be set to `:index` to get indexes back.
+  are found. The option `:return` can be set to `:index` to get indexes
+  back.
 
   ## Examples
 
-      iex> Regex.named_captures(~r/c(?<foo>d)/g, "abcd")
+      iex> Regex.named_captures(~r/c(?<foo>d)/, "abcd")
       [foo: "d"]
-      iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/g, "abcd")
-      [foo: "b", bar: "d"]
-      iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/g, "efgh")
+      iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "abcd")
+      [bar: "d", foo: "b"]
+      iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "efgh")
       nil
 
   """
-  def named_captures(regex(groups: groups) = regex, string, options \\ []) when is_binary(string) do
+  def named_captures(regex, string, options \\ []) when is_binary(string) do
     options = Keyword.put_new(options, :capture, :groups)
     results = run(regex, string, options)
-    if results, do: Enum.zip(groups, results)
+    if results, do: Enum.zip(groups(regex), results)
   end
 
   @doc """
@@ -215,12 +210,13 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.groups(~r/(?<foo>bar)/g)
+      iex> Regex.groups(~r/(?<foo>bar)/)
       [:foo]
 
   """
-  def groups(regex(groups: groups)) do
-    groups
+  def groups(regex(re_pattern: re_pattern)) do
+    { :namelist, groups } = :re.inspect(re_pattern, :namelist)
+    lc group inlist groups, do: binary_to_atom(group)
   end
 
   @doc """
@@ -246,14 +242,14 @@ defmodule Regex do
       []
 
   """
-  def scan(regex, string, optoins \\ [])
+  def scan(regex, string, options \\ [])
 
-  def scan(regex(re_pattern: compiled, groups: groups), string, options) when is_binary(string) do
+  def scan(regex(re_pattern: compiled) = regex, string, options) when is_binary(string) do
     return  = Keyword.get(options, :return, :binary)
 
     captures =
       case Keyword.get(options, :capture, :all) do
-        :groups -> groups || raise ArgumentError, message: "regex was not compiled with g"
+        :groups -> groups(regex)
         others  -> others
       end
 
@@ -366,25 +362,17 @@ defmodule Regex do
 
   # Private Helpers
 
+  defp translate_options(<<?g, t :: binary>>) do
+    IO.write :stderr, "The /g flag for regular expressions is no longer needed\n#{Exception.format_stacktrace}"
+    translate_options(t)
+  end
+
   defp translate_options(<<?i, t :: binary>>), do: [:caseless|translate_options(t)]
   defp translate_options(<<?x, t :: binary>>), do: [:extended|translate_options(t)]
   defp translate_options(<<?f, t :: binary>>), do: [:firstline|translate_options(t)]
   defp translate_options(<<?r, t :: binary>>), do: [:ungreedy|translate_options(t)]
   defp translate_options(<<?s, t :: binary>>), do: [:dotall, {:newline, :anycrlf}|translate_options(t)]
   defp translate_options(<<?m, t :: binary>>), do: [:multiline|translate_options(t)]
-  defp translate_options(<<?g, t :: binary>>), do: [:groups|translate_options(t)]
   defp translate_options(<<>>), do: []
   defp translate_options(rest), do: { :error, rest }
-
-  { :ok, pattern } = :re.compile(~S"\(\?<(?<G>[^>]*)>")
-  @groups_pattern pattern
-
-  defp parse_groups(source) do
-    options = [:global, {:capture, ['G'], :binary}]
-    case :re.run(source, @groups_pattern, options) do
-      :nomatch -> []
-      { :match, results } ->
-        lc [group] inlist results, do: binary_to_atom(group)
-    end
-  end
 end

@@ -481,12 +481,8 @@ defimpl Inspect, for: Regex do
       "~r\"foo\"m"
 
   """
-  def inspect(regex, opts) when size(regex) == 5 do
+  def inspect(regex, opts) when size(regex) == 4 do
     concat ["~r", to_doc(Regex.source(regex), opts), Regex.opts(regex)]
-  end
-
-  def inspect(other, Inspect.Opts[] = opts) do
-    to_doc(other, opts.records(false))
   end
 end
 

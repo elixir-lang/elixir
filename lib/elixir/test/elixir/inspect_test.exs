@@ -205,10 +205,6 @@ defmodule Inspect.ListTest do
            "[foo: [1, 2, 3, :bar],\n bazzz: :bat]"
   end
 
-  test :non_keyword do
-    assert inspect([{ Regex, 1 }]) == "[{Regex, 1}]"
-  end
-
   test :opt_infer do
     assert inspect('eric' ++ [0] ++ 'mj', char_lists: :infer) == "[101, 114, 105, 99, 0, 109, 106]"
     assert inspect('eric', char_lists: :infer) == "'eric'"
@@ -340,8 +336,8 @@ defmodule Inspect.OthersTest do
     { :ok, anony } = :application.get_env(:elixir, :anony)
     { :ok, named } = :application.get_env(:elixir, :named)
 
-    assert inspect(anony) == "#Function<0.54876290/0 in Inspect.OthersTest.V>"
-    assert inspect(named) == "&Inspect.OthersTest.V.fun/0"
+    assert inspect(anony) =~ ~r"#Function<0.\d+/0 in Inspect.OthersTest.V>"
+    assert inspect(named) =~ ~r"&Inspect.OthersTest.V.fun/0"
   after
     :application.unset_env(:elixir, :anony)
     :application.unset_env(:elixir, :named)
