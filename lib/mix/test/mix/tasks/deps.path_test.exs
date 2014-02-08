@@ -25,6 +25,10 @@ defmodule Mix.Tasks.DepsPathTest do
       Mix.Tasks.Deps.Get.run ["--all"]
       assert File.exists?("_build/dev/lib/raw_repo/.compile")
       assert File.exists?("_build/test/lib/raw_repo/.compile")
+
+      Mix.Tasks.Run.run ["-e", "Mix.shell.info RawRepo.hello"]
+      assert_received { :mix_shell, :info, ["* Compiling raw_repo"] }
+      assert_received { :mix_shell, :info, ["world"] }
     end
   end
 
