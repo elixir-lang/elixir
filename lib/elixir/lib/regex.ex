@@ -116,6 +116,7 @@ defmodule Regex do
 
   """
   def match?(regex(re_pattern: compiled), string) do
+    _ = return_for(string)
     :re.run(string, compiled, [{ :capture, :none }]) == :match
   end
 
