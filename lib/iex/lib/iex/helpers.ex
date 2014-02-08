@@ -458,4 +458,8 @@ defmodule IEx.Helpers do
         raise CompileError
     end
   end
+
+  defmacro trace(trace) do
+    IEx.Tracer.trace(trace)
+  end
 end

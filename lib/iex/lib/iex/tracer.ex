@@ -1,14 +1,14 @@
-defmodule Tracer do
-  alias Tracer.Pattern
-  alias Tracer.Server
+defmodule IEx.Tracer do
+  alias IEx.Tracer.Pattern
+  alias IEx.Tracer.Server
 
-  defmacro dbg(to_trace) do
+  def trace(to_trace) do
     run
     Pattern.compile(to_trace)
       |> Pattern.set
   end
 
-  def run do
+  defp run do
     pid =
       case Process.whereis Dbg do
         nil ->
