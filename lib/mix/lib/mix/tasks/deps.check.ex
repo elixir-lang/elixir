@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Deps.Check do
   end
 
   defp partition_deps([], not_ok, compile) do
-    { not_ok, compile }
+    { Enum.reverse(not_ok), Enum.reverse(compile) }
   end
 
   defp compile?(Mix.Dep[status: { :noappfile, _ }]), do: true
