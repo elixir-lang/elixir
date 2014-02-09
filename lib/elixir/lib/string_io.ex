@@ -1,27 +1,83 @@
 defmodule StringIO do
+  @moduledoc """
+  This module provides an IO devise wrapping a string.
+
+  ## Examples
+
+    iex> { :ok, pid } = StringIO.start("foo")
+    ...> IO.read(pid, 2)
+    "fo"
+  """
+
   use GenServer.Behaviour
 
   defrecordp :state, input: "", output: "", capture_prompt: false
 
+  @doc """
+  creates an io device.
+
+  If the `:capture_prompt` option is set to `true`,
+  prompts (specified as arguments to `IO.get*` functions)
+  are captured.
+
+  ## Examples
+
+    iex> { :ok, pid } = StringIO.start("foo")
+    ...> IO.gets(pid, ">")
+    "foo"
+    ...> StringIO.peek(pid)
+    { "", "" }
+    iex> { :ok, pid } = StringIO.start("foo", capture_prompt: true)
+    ...> IO.gets(pid, ">")
+    "foo"
+    ...> StringIO.peek(pid)
+    { "", ">" }
+  """
   @spec start(binary, Keyword.t) :: { :ok, pid }
   def start(string, options \\ []) when is_binary(string) do
     :gen_server.start(__MODULE__, { string, options }, [])
   end
 
+  @doc """
+  Creates an IO device.
+  See also `start/2`
+  """
   @spec start_link(binary, Keyword.t) :: { :ok, pid }
   def start_link(string, options \\ []) when is_binary(string) do
     :gen_server.start_link(__MODULE__, { string, options }, [])
   end
 
+  @doc """
+  Returns current buffers.
+
+  ## Examples
+
+      iex> { :ok, pid } = StringIO.start("in")
+      ...> IO.write(pid, "out")
+      ...> StringIO.peek(pid)
+      { "in", "out" }
+  """
   @spec peek(pid) :: { binary, binary }
   def peek(pid) when is_pid(pid) do
     :gen_server.call(pid, :peek)
   end
 
+  @doc """
+  Stops the IO device and returns remaining buffers
+
+  ## Examples
+
+      iex> { :ok, pid } = StringIO.start("in")
+      ...> IO.write(pid, "out")
+      ...> StringIO.stop(pid)
+      { :ok, { "in", "out" } }
+  """
   @spec stop(pid) :: { :ok, { binary, binary } }
   def stop(pid) when is_pid(pid) do
     :gen_server.call(pid, :stop)
   end
+
+  ## callbacks
 
   def init({ string, options }) do
     capture_prompt = options[:capture_prompt] || false
