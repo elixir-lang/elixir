@@ -121,60 +121,42 @@ defmodule IEx.Helpers do
       h Enum.all?/2
       h Enum.all?
 
-  The h helper also accepts strings representing a function
-  name, useful for retrieving information about operators:
-
-      h "*"
-      h "+"
-      h "<>"
   """
-  # Special case for `h AnyModule.__info__/1`
-  defmacro h({ :/, _, [{ { :., _, [_mod, :__info__] }, _, [] }, 1] }) do
+  @h_modules [__MODULE__, Kernel, Kernel.SpecialForms]
+
+  defmacro h({ :/, _, [call, arity] } = other) do
+    args =
+      case Macro.decompose_call(call) do
+        { _mod, :__info__, [] } when arity == 1 ->
+          [Module, :__info__, 1]
+        { mod, fun, [] } ->
+          [mod, fun, arity]
+        { fun, [] } ->
+          [@h_modules, fun, arity]
+        _ ->
+          [other]
+      end
+
     quote do
-      IEx.Introspection.h(Module, :__info__, 1)
+      IEx.Introspection.h(unquote_splicing(args))
     end
   end
 
-  defmacro h({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
-    quote do
-      IEx.Introspection.h(unquote(mod), unquote(fun), unquote(arity))
-    end
-  end
+  defmacro h(call) do
+    args =
+      case Macro.decompose_call(call) do
+        { _mod, :__info__, [] } ->
+          [Module, :__info__, 1]
+        { mod, fun, [] } ->
+          [mod, fun]
+        { fun, [] } ->
+          [@h_modules, fun]
+        _ ->
+          [call]
+      end
 
-  # Special case for `h AnyModule.__info__`
-  defmacro h({ { :., _, [_mod, :__info__] }, _, [] }) do
     quote do
-      IEx.Introspection.h(Module, :__info__, 1)
-    end
-  end
-
-  defmacro h({ { :., _, [mod, fun] }, _, [] }) do
-    quote do
-      IEx.Introspection.h(unquote(mod), unquote(fun))
-    end
-  end
-
-  defmacro h({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
-    quote do
-      IEx.Introspection.h(unquote(fun), unquote(arity))
-    end
-  end
-
-  defmacro h({ name, _, args }) when args == [] or is_atom(args) do
-    quote do
-      IEx.Introspection.h([unquote(__MODULE__), Kernel, Kernel.SpecialForms], unquote(name))
-    end
-  end
-
-  defmacro h(string) when is_binary(string) do
-    quote do
-      IEx.Introspection.h([unquote(__MODULE__), Kernel, Kernel.SpecialForms], binary_to_atom(unquote(string)))
-    end
-  end
-
-  defmacro h(other) do
-    quote do
-      IEx.Introspection.h(unquote(other))
+      IEx.Introspection.h(unquote_splicing(args))
     end
   end
 
@@ -223,33 +205,29 @@ defmodule IEx.Helpers do
       s(list_to_atom)
       s(list_to_atom/1)
   """
-  defmacro s({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
+  defmacro s({ :/, _, [call, arity] } = other) do
+    args =
+      case Macro.decompose_call(call) do
+        { mod, fun, [] } -> [mod, fun, arity]
+        { fun, [] } -> [Kernel, fun, arity]
+        _ -> [other]
+      end
+
     quote do
-      IEx.Introspection.s(unquote(mod), unquote(fun), unquote(arity))
+      IEx.Introspection.s(unquote_splicing(args))
     end
   end
 
-  defmacro s({ { :., _, [mod, fun] }, _, [] }) do
-    quote do
-      IEx.Introspection.s(unquote(mod), unquote(fun))
-    end
-  end
+  defmacro s(call) do
+    args =
+      case Macro.decompose_call(call) do
+        { mod, fun, [] } -> [mod, fun]
+        { fun, [] } -> [Kernel, fun]
+        _ -> [call]
+      end
 
-  defmacro s({ fun, _, args }) when args == [] or is_atom(args) do
     quote do
-      IEx.Introspection.s(Kernel, unquote(fun))
-    end
-  end
-
-  defmacro s({ :/, _, [{ fun, _, args }, arity] }) when args == [] or is_atom(args) do
-    quote do
-      IEx.Introspection.s(Kernel, unquote(fun), unquote(arity))
-    end
-  end
-
-  defmacro s(module) do
-    quote do
-      IEx.Introspection.s(unquote(module))
+      IEx.Introspection.s(unquote_splicing(args))
     end
   end
 
