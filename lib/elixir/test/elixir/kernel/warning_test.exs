@@ -91,7 +91,7 @@ defmodule Kernel.WarningTest do
         end
       end
       """
-    end) == nil
+    end) == ""
   after
     purge Sample
   end
@@ -131,7 +131,7 @@ defmodule Kernel.WarningTest do
         defp b(arg1 \\ 1, arg2, arg3 \\ 3), do: [arg1, arg2, arg3]
       end
       """
-    end) == nil
+    end) == ""
   after
     purge [Sample1, Sample2, Sample3, Sample4]
   end
@@ -245,7 +245,7 @@ defmodule Kernel.WarningTest do
         generate
       end
       """
-    end) == nil
+    end) == ""
   after
     purge [Sample1, Sample2]
   end
@@ -292,7 +292,7 @@ defmodule Kernel.WarningTest do
   end
 
   test :used_with_local_with_reattached_overridable do
-    assert nil? capture_err(fn ->
+    assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         def hello, do: world
@@ -300,7 +300,7 @@ defmodule Kernel.WarningTest do
         defoverridable [hello: 0, world: 0]
       end
       """
-    end)
+    end) == ""
   after
     purge Sample
   end
