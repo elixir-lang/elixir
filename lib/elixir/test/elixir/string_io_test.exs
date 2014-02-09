@@ -21,16 +21,12 @@ defmodule StringIOTest do
 
   ## IO module
 
-  defmacro start(string, opts \\ []) do
-    quote do
-      StringIO.start(unquote(string), unquote(opts)) |> elem(1)
-    end
+  def start(string, opts \\ []) do
+    StringIO.start(string, opts) |> elem(1)
   end
 
-  defmacro contents(pid) do
-    quote do
-      StringIO.peek(unquote(pid))
-    end
+  def contents(pid) do
+    StringIO.peek(pid)
   end
 
   test "IO.read :line with \\n" do
