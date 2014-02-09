@@ -1,22 +1,26 @@
 defmodule ExUnit.Runner do
   @moduledoc false
 
-  defrecord Config, formatter: ExUnit.CLIFormatter, formatter_id: nil,
-                    max_cases: 4, taken_cases: 0, async_cases: [],
+  @stop_timeout 30_000
+
+  defrecord Config, max_cases: 4, taken_cases: 0, async_cases: [], formatters: [],
                     sync_cases: [], include: [], exclude: []
 
-  def run(async, sync, opts, load_us) do
+  def run(async, sync, opts, load_us, return // :failures) do
     opts   = normalize_opts(opts)
     config = Config[max_cases: :erlang.system_info(:schedulers_online)]
     config = wrap_filters(config.update(opts))
 
-    { run_us, config } =
+    :ok = ExUnit.Formatter.Manager.add_handler(ExUnit.Runner.FailureCounter, [])
+
+    { run_us, _ } =
       :timer.tc fn ->
-        loop config.async_cases(async).sync_cases(sync).
-               formatter_id(config.formatter.suite_started(opts))
+        ExUnit.Formatter.Manager.suite_started(opts)
+        loop config.async_cases(async).sync_cases(sync)
       end
 
-    config.formatter.suite_finished(config.formatter_id, run_us, load_us)
+    ExUnit.Formatter.Manager.suite_finished(run_us, load_us)
+    ExUnit.Formatter.Manager.call(ExUnit.Runner.FailureCounter, { :stop, return }, @stop_timeout)
   end
 
   defp normalize_opts(opts) do
@@ -83,7 +87,7 @@ defmodule ExUnit.Runner do
 
   defp run_case(config, pid, case_name) do
     ExUnit.TestCase[] = test_case = case_name.__ex_unit__(:case)
-    config.formatter.case_started(config.formatter_id, test_case)
+    ExUnit.Formatter.Manager.case_started(test_case)
 
     # Prepare tests, selecting which ones should
     # run and which ones were skipped.
@@ -100,7 +104,7 @@ defmodule ExUnit.Runner do
     # but we do send the notifications to formatter and other
     # entities involved.
     Enum.each failed, &run_test(config, &1, [])
-    config.formatter.case_finished(config.formatter_id, test_case)
+    ExUnit.Formatter.Manager.case_finished(test_case)
     send pid, { self, :case_finished, test_case }
   end
 
@@ -160,13 +164,13 @@ defmodule ExUnit.Runner do
   end
 
   defp run_test(config, test, context) do
-    config.formatter.test_started(config.formatter_id, test)
+    ExUnit.Formatter.Manager.test_started(test)
 
     if nil?(test.state) do
       test = spawn_test(config, test, Keyword.merge(test.tags, context))
     end
 
-    config.formatter.test_finished(config.formatter_id, test)
+    ExUnit.Formatter.Manager.test_finished(test)
   end
 
   defp spawn_test(_config, test, context) do
@@ -249,4 +253,51 @@ defmodule ExUnit.Runner do
   # All other cases
   defp prune_stacktrace([h|t]), do: [h|prune_stacktrace(t)]
   defp prune_stacktrace([]), do: []
+
+  # Small helper to count all the failures
+  defmodule FailureCounter do
+    @moduledoc false
+
+    use GenEvent.Behaviour
+
+    def init(_opts) do
+      { :ok, { 0, 0 } } # { total, failures }
+    end
+
+    def handle_call({ :stop, :failures }, { _, fails }) do
+      { :remove_handler, fails }
+    end
+    def handle_call({ :stop, :total }, { total, fails }) do
+      { :remove_handler, total }
+    end
+    def handle_call({ :stop, tup }, { total, fails }) when is_tuple(tup) do
+      rv = tuple_to_list(tup)
+           |> Enum.map(fn
+               :total -> total
+               :failures -> fails
+              end)
+           |> list_to_tuple()
+      { :remove_handler, rv }
+    end
+
+    def handle_event({ :case_finished,  ExUnit.TestCase[state: { :failed, _ }] }, { total, fails }) do
+      { :ok, { total, fails + 1 } }
+    end
+
+    def handle_event({ :test_finished,  ExUnit.Test[state: { :failed, _ }] }, { total, fails }) do
+      { :ok, { total + 1, fails + 1 } }
+    end
+
+    def handle_event({ :test_finished, ExUnit.Test[state: { :skip, _ }] }, { total, fails }) do
+      { :ok, { total, fails } }
+    end
+
+    def handle_event({ :test_finished, _ }, { total, fails }) do
+      { :ok, { total + 1, fails } }
+    end
+    def handle_event(e, { total, fails }) do
+      { :ok, { total, fails } }
+    end
+  end
 end
+
