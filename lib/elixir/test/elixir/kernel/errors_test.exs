@@ -278,7 +278,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:1: imported Kernel.&&/2 conflicts with local function",
       '''
       defmodule ErrorsTest do
-        1 && 2
+        def other, do: 1 && 2
         def _ && _, do: :error
       end
       '''

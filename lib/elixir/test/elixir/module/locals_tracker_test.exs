@@ -144,7 +144,12 @@ defmodule Module.LocalsTrackerTest do
   test "find import conflicts", config do
     refute { [Module], :conflict, 1 } in D.collect_imports_conflicts(config[:pid], [conflict: 1])
 
+    # Calls outside local functions are not triggered
     D.add_import(config[:pid], nil, Module, { :conflict, 1 })
+    refute { [Module], :conflict, 1 } in D.collect_imports_conflicts(config[:pid], [conflict: 1])
+
+    D.add_local(config[:pid], { :foo, 2 })
+    D.add_import(config[:pid], { :foo, 2 }, Module, { :conflict, 1 })
     assert { [Module], :conflict, 1 } in D.collect_imports_conflicts(config[:pid], [conflict: 1])
   end
 end

@@ -145,6 +145,7 @@ defmodule Module.LocalsTracker do
     d = :gen_server.call(pid, :digraph, @timeout)
 
     lc { name, arity } inlist all_defined,
+       :digraph.in_neighbours(d, { :import, name, arity }) != [],
        n = :digraph.out_neighbours(d, { :import, name, arity }),
        n != [] do
       { n, name, arity }
