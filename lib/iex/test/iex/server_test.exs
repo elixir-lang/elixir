@@ -43,7 +43,7 @@ defmodule IEx.ServerTest do
   test "does not operate if callback during boot fails" do
     assert capture_io(fn ->
       boot([], fn -> exit(0) end)
-    end) == nil
+    end) == ""
   end
 
   test "take over fails when there is no shell" do
