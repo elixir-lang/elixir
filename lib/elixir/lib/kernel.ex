@@ -2377,7 +2377,7 @@ defmodule Kernel do
               unquote(item) = nil
           end
         end
-      { :case, [{:export_all,true}|meta], args }
+      { :case, [{:export_head,true}|meta], args }
     end
   end
 

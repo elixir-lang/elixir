@@ -176,8 +176,8 @@ expand_arg(Meta, Kind, Key) ->
 %% Expands all -> pairs in a given key keeping the overall vars.
 expand_with_export(Meta, Kind, Fun, { Key, Clauses }, Acc, E) when is_list(Clauses) ->
   EFun =
-    case lists:keyfind(export_all, 1, Meta) of
-      { export_all, true } -> Fun;
+    case lists:keyfind(export_head, 1, Meta) of
+      { export_head, true } -> Fun;
       _ -> fun(ExportArgs, ExportE) -> Fun(export_vars(ExportArgs), ExportE) end
     end,
   Transformer = fun(Clause, Vars) ->
