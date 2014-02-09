@@ -306,14 +306,17 @@ defmodule ExUnit.Assertions do
   defp do_assert_receive(expected, timeout, message) do
     binary = Macro.to_string(expected)
 
-    quote do
-      receive do
-        unquote(expected) = received -> unquote(expected) = received
-      after
-        unquote(timeout) ->
-          flunk unquote(message) || "Expected to have received message matching #{unquote binary}"
+    { :receive, meta, args } =
+      quote do
+        receive do
+          unquote(expected) = received -> received
+        after
+          unquote(timeout) ->
+            flunk unquote(message) || "Expected to have received message matching #{unquote binary}"
+        end
       end
-    end
+
+    { :receive, [{:export_all, true}|meta], args }
   end
 
   @doc """

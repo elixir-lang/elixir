@@ -40,8 +40,6 @@ defmodule ExUnit.CaptureIO do
 
       iex> capture_io(fn -> IO.write "josé" end) == "josé"
       true
-      iex> capture_io(fn -> :ok end) == nil
-      true
       iex> capture_io(:stderr, fn -> IO.write(:stderr, "josé") end) == "josé"
       true
       iex> capture_io("this is input", fn ->
@@ -97,7 +95,7 @@ defmodule ExUnit.CaptureIO do
     end
 
     receive do
-      { ^capture_gl, buf } -> buf
+      { ^capture_gl, buf } -> buf || ""
     end
   end
 
@@ -121,7 +119,7 @@ defmodule ExUnit.CaptureIO do
     end
 
     receive do
-      { ^capture_io, buf } -> buf
+      { ^capture_io, buf } -> buf || ""
     end
   end
 

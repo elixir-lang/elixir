@@ -39,7 +39,7 @@ defmodule ExUnit.CaptureIOTest do
 
   test "with no output" do
     assert capture_io(fn ->
-    end) == nil
+    end) == ""
   end
 
   test "with put chars" do
@@ -82,7 +82,7 @@ defmodule ExUnit.CaptureIOTest do
 
     assert capture_io([capture_prompt: false], fn ->
       :io.get_chars(">", 3)
-    end) == nil
+    end) == ""
 
     capture_io(fn ->
       assert :io.get_chars(">", 3) == :eof
@@ -112,7 +112,7 @@ defmodule ExUnit.CaptureIOTest do
 
     assert capture_io([capture_prompt: false], fn ->
       :io.get_line ">"
-    end) == nil
+    end) == ""
 
     capture_io(fn ->
       assert :io.get_line(">") == :eof
@@ -165,7 +165,7 @@ defmodule ExUnit.CaptureIOTest do
 
     assert capture_io([capture_prompt: false], fn ->
       :io.scan_erl_form('>')
-    end) == nil
+    end) == ""
 
     capture_io(fn ->
       assert :io.scan_erl_form('>') == { :eof, 1 }
@@ -213,7 +213,7 @@ defmodule ExUnit.CaptureIOTest do
   test "with setopts" do
     assert capture_io(fn ->
       :io.setopts({ :encoding, :latin1 })
-    end) == nil
+    end) == ""
 
     capture_io(fn ->
       assert :io.setopts({ :encoding, :latin1 }) == :ok
@@ -223,7 +223,7 @@ defmodule ExUnit.CaptureIOTest do
   test "with getopts" do
     assert capture_io(fn ->
       :io.getopts
-    end) == nil
+    end) == ""
 
     capture_io(fn ->
       assert :io.getopts == { :error, :enotsup }
@@ -233,7 +233,7 @@ defmodule ExUnit.CaptureIOTest do
   test "with columns" do
     assert capture_io(fn ->
       :io.columns
-    end) == nil
+    end) == ""
 
     capture_io(fn ->
       assert :io.columns == { :error, :enotsup }
@@ -243,7 +243,7 @@ defmodule ExUnit.CaptureIOTest do
   test "with rows" do
     assert capture_io(fn ->
       :io.rows
-    end) == nil
+    end) == ""
 
     capture_io(fn ->
       assert :io.rows == { :error, :enotsup }
@@ -265,7 +265,7 @@ defmodule ExUnit.CaptureIOTest do
   test "with unknown io request" do
     assert capture_io(fn ->
       send_and_receive_io(:unknown)
-    end) == nil
+    end) == ""
 
     capture_io(fn ->
       assert send_and_receive_io(:unknown) == { :error, :request }

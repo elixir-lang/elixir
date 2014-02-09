@@ -11,6 +11,7 @@
   * [Kernel] Using ^ inside function clause heads is deprecated, please use a guard instead
 
 * Backwards incompatible changes
+  * [ExUnit] `CaptureIO` returns an empty string instead of nil when there is no capture
   * [Version] The `Version` module now only works with SemVer. The functions `Version.parse/1` and `Version.parse_requirement/1` now return `{:ok,res} | :error` for the cases you want to handle non SemVer cases manually. All other functions will trigger errors on non semantics versions
 
 # v0.12.3 (2014-02-02)
