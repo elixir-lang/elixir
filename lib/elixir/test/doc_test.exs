@@ -26,6 +26,7 @@ defmodule KernelTest do
   doctest Set
   doctest Stream
   doctest String
+  doctest StringIO
   doctest Tuple
   doctest URI
   doctest Version
