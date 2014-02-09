@@ -34,12 +34,20 @@ defmodule StringIO do
     { :noreply, s }
   end
 
-  def handle_call(:stop, _from, state(input: input, output: output) = s) do
-    { :stop, :normal, { :ok, { input, output } }, s }
+  def handle_info(msg, s) do
+    super(msg, s)
   end
 
   def handle_call(:peek, _from, state(input: input, output: output) = s) do
     { :reply, { input, output }, s }
+  end
+
+  def handle_call(:stop, _from, state(input: input, output: output) = s) do
+    { :stop, :normal, { :ok, { input, output } }, s }
+  end
+
+  def handle_call(request, from, s) do
+    super(request, from, s)
   end
 
   defp io_request(from, reply_as, req, s) do
