@@ -280,7 +280,7 @@ defmodule Version do
       (?:\+([\d\w\-]+))?    # build
       $/x
 
-    @spec parse_requirement(String.t) :: Version.Requirement.t
+    @spec parse_requirement(String.t) :: {:ok, Version.Requirement.t} | :error
     def parse_requirement(source) do
       lexed = lexer(source, [])
       to_matchspec(lexed)
@@ -289,7 +289,7 @@ defmodule Version do
     defp nillify(""), do: nil
     defp nillify(o),  do: o
 
-    @spec parse_version(String.t) :: Version.matchable
+    @spec parse_version(String.t) :: {:ok, Version.matchable} | :error
     def parse_version(string, approximate? \\ false) when is_binary(string) do
       if parsed = Regex.run(@version_regex, string) do
         destructure [_, major, minor, patch, pre], parsed
@@ -473,7 +473,6 @@ defmodule Version do
     end
 
     defp matchable_to_string({ major, minor, patch, pre }) do
-      minor = if minor, do: "#{minor}", else: "0"
       patch = if patch, do: "#{patch}", else: "0"
       pre   = if pre != [], do: "-#{Enum.join(pre, ".")}"
       "#{major}.#{minor}.#{patch}#{pre}"
