@@ -68,7 +68,7 @@ defmodule Version do
   Returns `true` if `version` satisfies `requirement`, `false` otherwise.
   Raises a `Version.InvalidRequirement` exception if `requirement` is not
   parseable, or `Version.InvalidVersion` if `version` is not parseable.
-  If given an already parsed version and requirement this function wont
+  If given an already parsed version and requirement this function won't
   raise.
 
   ## Examples
@@ -107,7 +107,7 @@ defmodule Version do
   is returned
 
   Raises a `Version.InvalidVersion` exception if `version` is not parseable.
-  If given an already parsed version this function wont raise.
+  If given an already parsed version this function won't raise.
 
   ## Examples
 
