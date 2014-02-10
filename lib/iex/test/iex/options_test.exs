@@ -51,6 +51,11 @@ defmodule IEx.OptionsTest do
     assert "1\n2\n3\n4\n2\n** (RuntimeError) v(2) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(2)\nv(2)", opts)
   end
 
+  test "prompt" do
+    opts = [prompt: [default: "prompt(%counter)>", alive: "prompt(%counter)"]]
+    assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
+  end
+
   test "bad option" do
     assert_raise ArgumentError, fn ->
       IEx.Options.set :nonexistent_option, nil
