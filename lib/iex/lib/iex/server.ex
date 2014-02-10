@@ -241,14 +241,24 @@ defmodule IEx.Server do
   ## IO
 
   defp io_get(pid, prefix, counter) do
-    prompt =
+    prompt = prompt(prefix, counter)
+    send pid, { :input, self, IO.gets(:stdio, prompt) }
+  end
+
+  defp prompt(prefix, counter) do
+    { mode, prefix } =
       if Node.alive? do
-        "#{prefix || remote_prefix}(#{node})#{counter}> "
+        { :alive, prefix || remote_prefix }
       else
-        "#{prefix || "iex"}(#{counter})> "
+        { :default, prefix || "iex" }
       end
 
-    send pid, { :input, self, IO.gets(:stdio, prompt) }
+    prompt = IEx.Options.get(:prompt)[mode]
+             |> String.replace("%counter", to_string(counter))
+             |> String.replace("%prefix", to_string(prefix))
+             |> String.replace("%node", to_string(node))
+
+    prompt <> " "
   end
 
   defp io_error(result) do
