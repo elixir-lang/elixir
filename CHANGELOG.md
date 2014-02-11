@@ -1,6 +1,11 @@
 # v0.13.0-dev
 
 * Enhancements
+  * [IEx] Allow prompt configuration with the `:prompt` option
+  * [Kernel] Support `ERL_PATH` in `bin/elixir`
+  * [Map] Add a Map module and support R17 maps and structs
+  * [Regex] Regexes no longer needs the "g" option when there is a need to use named captures
+  * [StringIO] Add a `StringIO` module that allows a String to be used as IO device
 
 * Bug fixes
 
