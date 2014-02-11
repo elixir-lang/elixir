@@ -4,7 +4,7 @@ defmodule ExUnit.Runner do
   alias ExUnit.EventManager, as: EM
   @stop_timeout 30_000
 
-  defrecord Config, max_cases: 4, taken_cases: 0, async_cases: [],
+  defrecord Config, max_cases: 4, taken_cases: 0, async_cases: [], seed: nil,
                     sync_cases: [], include: [], exclude: [], manager: []
 
   def run(async, sync, opts, load_us) do
@@ -14,13 +14,12 @@ defmodule ExUnit.Runner do
     formatters = [ExUnit.RunnerStats|opts[:formatters]]
     Enum.each formatters, &(:ok = EM.add_handler(pid, &1, opts))
 
-    config = Config[max_cases: :erlang.system_info(:schedulers_online), manager: pid]
-    config = wrap_filters(config.update(opts))
+    config = wrap_filters(Config[manager: pid].update(opts))
 
     { run_us, _ } =
       :timer.tc fn ->
         EM.suite_started(config.manager, opts)
-        loop config.async_cases(async).sync_cases(sync)
+        loop config.async_cases(shuffle(config, async)).sync_cases(shuffle(config, sync))
       end
 
     EM.suite_finished(config.manager, run_us, load_us)
@@ -28,7 +27,10 @@ defmodule ExUnit.Runner do
   end
 
   defp normalize_opts(opts) do
-    opts = Keyword.put_new(opts, :color, IO.ANSI.terminal?)
+    opts = opts
+           |> Keyword.put_new(:color, IO.ANSI.terminal?)
+           |> Keyword.put_new(:max_cases, :erlang.system_info(:schedulers_online))
+           |> Keyword.put_new(:seed, :erlang.now |> elem(2))
 
     if opts[:trace] do
       Keyword.put_new(opts, :max_cases, 1)
@@ -115,6 +117,7 @@ defmodule ExUnit.Runner do
   end
 
   defp prepare_tests(config, tests) do
+    tests   = shuffle(config, tests)
     include = config.include
     exclude = config.exclude
 
@@ -231,6 +234,11 @@ defmodule ExUnit.Runner do
   end
 
   ## Helpers
+
+  defp shuffle(Config[seed: seed], list) do
+    :random.seed(3172, 9814, seed)
+    Enum.shuffle(list)
+  end
 
   defp take_async_cases(Config[] = config, count) do
     case config.async_cases do

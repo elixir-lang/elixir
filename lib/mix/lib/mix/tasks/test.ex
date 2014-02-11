@@ -79,7 +79,7 @@ defmodule Mix.Tasks.Test do
 
   @switches [force: :boolean, color: :boolean, cover: :boolean,
              trace: :boolean, max_cases: :integer, include: :keep,
-             exclude: :keep]
+             exclude: :keep, seed: :integer]
 
   @cover [output: "cover", tool: Cover]
 
@@ -115,7 +115,7 @@ defmodule Mix.Tasks.Test do
       opts = Keyword.put(opts, :exclude, exclusions)
     end
 
-    opts = Dict.take(opts, [:trace, :max_cases, :color, :include, :exclude])
+    opts = Dict.take(opts, [:trace, :max_cases, :color, :include, :exclude, :seed])
     ExUnit.configure(opts)
 
     test_paths   = if files == [], do: test_paths, else: files

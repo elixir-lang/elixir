@@ -148,6 +148,8 @@ defmodule ExUnit do
   * `:include` - Specify which tests are run by skipping tests that do not match the filter
 
   * `:exclude` - Specify which tests are run by skipping tests that match the filter
+
+  * `:seed` - An integer seed value to randomize the test suite
   """
   def configure(options) do
     Enum.each options, fn { k, v } ->
