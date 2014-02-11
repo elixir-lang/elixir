@@ -781,7 +781,7 @@ defmodule Enum do
       { [1,2,3], 3 }
 
   """
-  @spec flat_map_reduce(t, acc, fun) :: list when
+  @spec flat_map_reduce(t, acc, fun) :: { [any], any } when
         fun: (element, acc -> { t, acc } | { :halt, acc }),
         acc: any
   def flat_map_reduce(collection, acc, fun) do
