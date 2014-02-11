@@ -3,7 +3,7 @@ defmodule ExUnit.Formatter do
   This module holds helper functions related to formatting and contains
   documentation about the formatting protocol.
 
-  Formatters are registered at the `ExUnit.Formatter.Manager` event manager and
+  Formatters are registered at the `ExUnit.EventManager` event manager and
   will be send events by the runner.
 
   The following events are possible:

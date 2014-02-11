@@ -1,66 +1,15 @@
 Code.require_file "test_helper.exs", __DIR__
 
-defmodule ExUnit.CounterFormatter do
-  use GenEvent.Behaviour
-
-  @timeout 30_000
-
-  def start(opts) do
-    :gen_event.start(ExUnit.Formatter.Manager, __MODULE__, opts)
-  end
-
-  def stop() do
-    :gen_event.call(ExUnit.Formatter.Manager, __MODULE__, :stop, @timeout)
-  end
-
-  def test_finished(id, test) do
-    :gen_server.cast(id, { :test_finished, test })
-  end
-
-  def init(_opts) do
-    { :ok, 0 }
-  end
-
-  def handle_event({ :suite_finished }, _from, tests_counter) do
-    { :stop, :normal, tests_counter, tests_counter }
-  end
-
-  def handle_event({ :test_finished, ExUnit.Test[state: { :skip, _ }] }, tests_counter) do
-    { :ok, tests_counter }
-  end
-
-  def handle_event({ :test_finished, _ }, tests_counter) do
-    { :ok, tests_counter + 1 }
-  end
-
-  def handle_event(_, tests_counter) do
-    { :ok, tests_counter }
-  end
-
-  def handle_call(:stop, tests_counter) do
-    { :remove_handler, tests_counter }
-  end
-end
-
 defmodule ExUnitTest do
   use ExUnit.Case, async: false
 
   setup do
-    # For this ExUnit tested by ExUnit trick to work we'll need to temporarily
-    # replace the formatter manager. This is rather ugly and likely to cause
-    # problems if formatter events are generated after a setup or before a
-    # teardown. Luckily this is not the case at the moment.
-    # ExUnit.configure(formatters: [ExUnit.CounterFormatter])
-    real_manager = Process.whereis(ExUnit.Formatter.Manager)
-    Process.unregister(ExUnit.Formatter.Manager)
-    ExUnit.Formatter.Manager.start_link()
-    ExUnit.Formatter.Manager.add_handler(ExUnit.CounterFormatter, [])
-    { :ok, [real_manager: real_manager] }
+    ExUnit.configure(formatters: [])
+    :ok
   end
 
-  teardown ctxt do
-    Process.unregister(ExUnit.Formatter.Manager)
-    Process.register(ctxt[:real_manager], ExUnit.Formatter.Manager)
+  teardown do
+    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
     :ok
   end
 
@@ -77,7 +26,7 @@ defmodule ExUnitTest do
       end
     end
 
-    assert ExUnit.run == 2
+    assert ExUnit.run == %{ failures: 2, total: 2 }
   end
 
   test "it doesn't hang on exists" do
@@ -92,7 +41,7 @@ defmodule ExUnitTest do
       end
     end
 
-    assert ExUnit.run == 1
+    assert ExUnit.run == %{ failures: 1, total: 1 }
   end
 
   test "filtering cases with tags" do
@@ -113,15 +62,24 @@ defmodule ExUnitTest do
 
     test_cases = ExUnit.Server.start_run
 
-    assert run_with_filter([], test_cases) == { 4, 1 }
-    assert run_with_filter([exclude: [even: true]], test_cases) == { 3, 0 }
-    assert run_with_filter([exclude: :even], test_cases) == { 1, 0 }
-    assert run_with_filter([exclude: :even, include: [even: true]], test_cases) == { 2, 1 }
-    assert run_with_filter([exclude: :test, include: [even: true]], test_cases) == { 1, 1 }
+    assert run_with_filter([], test_cases) ==
+           %{ failures: 1, total: 4 }
+
+    assert run_with_filter([exclude: [even: true]], test_cases) ==
+           %{ failures: 0, total: 3 }
+
+    assert run_with_filter([exclude: :even], test_cases) ==
+           %{ failures: 0, total: 1 }
+
+    assert run_with_filter([exclude: :even, include: [even: true]], test_cases) ==
+           %{ failures: 1, total: 2 }
+
+    assert run_with_filter([exclude: :test, include: [even: true]], test_cases) ==
+           %{ failures: 1, total: 1 }
   end
 
   defp run_with_filter(filters, { async, sync, load_us }) do
     opts = Keyword.merge(ExUnit.configuration, filters)
-    ExUnit.Runner.run(async, sync, opts, load_us, { :total, :failures })
+    ExUnit.Runner.run(async, sync, opts, load_us)
   end
 end

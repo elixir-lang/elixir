@@ -58,7 +58,7 @@ defmodule ExUnit do
       # test/test_helper.exs
       ExUnit.start
 
-  Mix will load the `test_helper.exs` file before executing the tests. 
+  Mix will load the `test_helper.exs` file before executing the tests.
   It is not necessary to `require` the `test_helper.exs` file in your test files.
   See `Mix.Tasks.Test` for more information.
   """
@@ -114,7 +114,7 @@ defmodule ExUnit do
 
       System.at_exit fn
         0 ->
-          failures = ExUnit.run
+          %{ failures: failures } = ExUnit.run
           System.at_exit fn _ ->
             if failures > 0, do: System.halt(1)
           end
@@ -150,19 +150,8 @@ defmodule ExUnit do
   * `:exclude` - Specify which tests are run by skipping tests that match the filter
   """
   def configure(options) do
-    opts = Keyword.put_new(Keyword.merge(configuration, options), :color, IO.ANSI.terminal?)
-           |> Keyword.put_new(:formatters, [ExUnit.CLIFormatter])
-    Enum.each opts, fn { k, v } ->
+    Enum.each options, fn { k, v } ->
       :application.set_env(:ex_unit, k, v)
-      if k == :formatters do
-        # Remove all old formatters and install new ones
-        Enum.each(ExUnit.Formatter.Manager.which_handlers(), fn h ->
-          ExUnit.Formatter.Manager.delete_handler(h, nil)
-        end)
-        Enum.each(v, fn h ->
-          :ok = ExUnit.Formatter.Manager.add_handler(h, opts)
-        end)
-      end
     end
   end
 

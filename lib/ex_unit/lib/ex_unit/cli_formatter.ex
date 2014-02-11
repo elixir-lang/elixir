@@ -17,7 +17,7 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_event({ :suite_finished, run_us, load_us }, config = Config[]) do
     print_suite(config, run_us, load_us)
-    { :ok, config }
+    { :remove_handler, config }
   end
 
   def handle_event({ :test_started, ExUnit.Test[] = test }, config = Config[]) do

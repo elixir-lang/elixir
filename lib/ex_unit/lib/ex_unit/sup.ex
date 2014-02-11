@@ -8,7 +8,7 @@ defmodule ExUnit.Sup do
   end
 
   def init(:ok) do
-    tree = [ worker(ExUnit.Server, []), worker(ExUnit.Formatter.Manager, []) ]
+    tree = [ worker(ExUnit.Server, []) ]
     supervise(tree, strategy: :one_for_all)
   end
 end

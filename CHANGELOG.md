@@ -12,6 +12,7 @@
 * Deprecations
 
 * Backwards incompatible changes
+  * [ExUnit] Formatters are now required to be a GenEvent and `ExUnit.run/2` returns a map with results
 
 # v0.12.3 (2014-02-02)
 
