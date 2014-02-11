@@ -36,6 +36,11 @@ readlink_f () {
   fi
 }
 
+if [ "jex" = `basename $0` ]; then
+  ELIXIR=jelixir
+else
+  ELIXIR=elixir
+fi
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-ELIXIR_NO_CLI=1 exec "$SCRIPT_PATH"/elixir --no-halt --erl "-user Elixir.IEx.CLI" +iex "$@"
+ELIXIR_NO_CLI=1 exec "$SCRIPT_PATH/$ELIXIR" --no-halt --erl "-user Elixir.IEx.CLI" +iex "$@"
