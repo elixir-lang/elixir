@@ -134,8 +134,8 @@ defmodule ExUnit do
   * `:color` - When color should be used by specific formatters.
                Defaults to the result of `IO.ANSI.terminal?/1`;
 
-  * `:formatter` - The formatter that will print results.
-                   Defaults to `ExUnit.CLIFormatter`;
+  * `:formatters` - The formatters that will print results.
+                    Defaults to `[ExUnit.CLIFormatter]`;
 
   * `:max_cases` - Maximum number of cases to run in parallel.
                    Defaults to `:erlang.system_info(:schedulers_online)`;
@@ -150,8 +150,19 @@ defmodule ExUnit do
   * `:exclude` - Specify which tests are run by skipping tests that match the filter
   """
   def configure(options) do
-    Enum.each options, fn { k, v } ->
+    opts = Keyword.put_new(Keyword.merge(configuration, options), :color, IO.ANSI.terminal?)
+           |> Keyword.put_new(:formatters, [ExUnit.CLIFormatter])
+    Enum.each opts, fn { k, v } ->
       :application.set_env(:ex_unit, k, v)
+      if k == :formatters do
+        # Remove all old formatters and install new ones
+        Enum.each(ExUnit.Formatter.Manager.which_handlers(), fn h ->
+          ExUnit.Formatter.Manager.delete_handler(h, nil)
+        end)
+        Enum.each(v, fn h ->
+          :ok = ExUnit.Formatter.Manager.add_handler(h, opts)
+        end)
+      end
     end
   end
 
@@ -170,7 +181,6 @@ defmodule ExUnit do
   """
   def run do
     { async, sync, load_us } = ExUnit.Server.start_run
-    opts = Keyword.put_new(configuration, :color, IO.ANSI.terminal?)
-    ExUnit.Runner.run async, sync, opts, load_us
+    ExUnit.Runner.run async, sync, configuration, load_us
   end
 end
