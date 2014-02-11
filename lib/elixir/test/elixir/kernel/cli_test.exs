@@ -90,6 +90,11 @@ defmodule Kernel.CLI.ParallelCompilerTest do
     assert capture_io(fn ->
       assert [Bar, Foo] = Kernel.ParallelCompiler.files fixtures
     end) =~ "message_from_foo"
+  after
+    Enum.map [Foo, Bar], fn mod ->
+      :code.purge(mod)
+      :code.delete(mod)
+    end
   end
 
   test "does not hang on missing dependencies" do
