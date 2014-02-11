@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Compile.App do
 
   defp modules_changed?(mods, target) do
     case :file.consult(target) do
-      { :ok, { :application, _app, properties } } ->
+      { :ok, [ { :application, _app, properties } ] } ->
         properties[:registered] == mods
       _ ->
         false
