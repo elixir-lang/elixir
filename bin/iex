@@ -22,7 +22,7 @@ if [ $# -gt 0 ] && ([ "$1" = "--help" ] || [ "$1" = "-h" ]); then
 
 ** Options marked with (*) can be given more than once
 ** Options given after the .exs file or -- are passed down to the executed code
-** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS or --erl" >&2
+** Options can be passed to the VM using ELIXIR_ERL_OPTS or --erl" >&2
   exit 1
 fi
 
