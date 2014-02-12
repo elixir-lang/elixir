@@ -138,8 +138,8 @@ tokenize([$#|String], Line, Scope, Tokens) ->
 % Sigils
 
 tokenize([$%,S,H,H,H|T] = Original, Line, Scope, Tokens) when ?is_quote(H), ?is_upcase(S) orelse ?is_downcase(S) ->
-  % io:format(standard_error, "~ts:~p: warning: using % for sigils is deprecated, "
-  %                           "please use ~~ instead~n", [Scope#elixir_tokenizer.file, Line]),
+  io:format(standard_error, "~ts:~p: warning: using % for sigils is deprecated, "
+                            "please use ~~ instead~n", [Scope#elixir_tokenizer.file, Line]),
 
   case extract_heredoc_with_interpolation(Line, Scope, ?is_downcase(S), T, H) of
     { ok, NewLine, Parts, Rest } ->
@@ -150,8 +150,8 @@ tokenize([$%,S,H,H,H|T] = Original, Line, Scope, Tokens) when ?is_quote(H), ?is_
   end;
 
 tokenize([$%,S,H|T] = Original, Line, Scope, Tokens) when ?is_sigil(H), ?is_upcase(S) orelse ?is_downcase(S) ->
-  % io:format(standard_error, "~ts:~p: warning: using % for sigils is deprecated, "
-  %                           "please use ~~ instead~n", [Scope#elixir_tokenizer.file, Line]),
+  io:format(standard_error, "~ts:~p: warning: using % for sigils is deprecated, "
+                            "please use ~~ instead~n", [Scope#elixir_tokenizer.file, Line]),
 
   case elixir_interpolation:extract(Line, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
     { NewLine, Parts, Rest } ->

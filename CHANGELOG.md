@@ -5,6 +5,7 @@
 * Bug fixes
 
 * Deprecations
+  * [Kernel] `%` for sigils is deprecated in favor of `~`
 
 * Backwards incompatible changes
 
