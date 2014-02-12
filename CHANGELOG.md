@@ -1,14 +1,12 @@
-# v0.12.4-dev
+# v0.12.4 (2014-02-12)
 
 * Enhancements
   * [Mix] `mix deps.get` and `mix deps.update` no longer compile dependencies afterwards. Instead, they mark the dependencies which are going to be automatically compiled next time `deps.check` is invoked (which is done automatically by most mix tasks). This means users should have a better workflow when migrating in between environments
 
-* Bug fixes
-
 * Deprecations
   * [Kernel] `//` for default arguments is deprecated in favor of `\\`
   * [Kernel] Using `%` for sigils is deprecated in favor of `~`. This is a soft deprecation, no warnings will be emitted for it in this release
-  * [Kernel] Using ^ inside function clause heads is deprecated, please use a guard instead
+  * [Kernel] Using `^` inside function clause heads is deprecated, please use a guard instead
 
 * Backwards incompatible changes
   * [ExUnit] `CaptureIO` returns an empty string instead of nil when there is no capture
