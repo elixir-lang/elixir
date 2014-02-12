@@ -254,7 +254,7 @@ defmodule Mix.Deps do
 
   def format_status(Mix.Dep[status: { :unavailable, _ }, scm: scm]) do
     if scm.fetchable? do
-      "the dependency is not available, run `#{mix_env_var}mix deps.get`"
+      "the dependency is not available, run `mix deps.get`"
     else
       "the dependency is not available"
     end
