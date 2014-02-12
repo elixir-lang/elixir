@@ -12,7 +12,6 @@
 -define(attr, '__locals_tracker').
 -define(tracker, 'Elixir.Module.LocalsTracker').
 
-macro_for(nil, _Name, _Arity) -> false;
 macro_for(Module, Name, Arity) ->
   Tuple = { Name, Arity },
   try elixir_def:lookup_definition(Module, Tuple) of
@@ -29,9 +28,6 @@ function_for(Module, Name, Arity) ->
   Tuple = { Name, Arity },
   case elixir_def:lookup_definition(Module, Tuple) of
     { { Tuple, _, Line, _, _, _, _ }, [_|_] = Clauses } ->
-      %% There is no need to record such calls
-      %% since they come from funtions that were
-      %% already analyzed at compilation time.
       get_function(Line, Module, Clauses);
     _ ->
       [_|T] = erlang:get_stacktrace(),
@@ -40,7 +36,7 @@ function_for(Module, Name, Arity) ->
 
 get_function(Line, Module, Clauses) ->
   RewrittenClauses = [rewrite_clause(Clause, Module) || Clause <- Clauses],
-  Fun = { 'fun', Line, {clauses, RewrittenClauses } },
+  Fun = { 'fun', Line, { clauses, RewrittenClauses } },
   { value, Result, _Binding } = erl_eval:exprs([Fun], []),
   Result.
 

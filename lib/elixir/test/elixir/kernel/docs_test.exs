@@ -6,9 +6,10 @@ defmodule Kernel.DocsTest do
   test "compiled with docs" do
     defmodule Docs do
       @moduledoc "moduledoc"
-
       defp private, do: 1
-      defp __struct__, do: %{}
+
+      @doc false
+      def __struct__, do: %{}
 
       @doc "Some example"
       def example(false), do: 0
@@ -21,9 +22,10 @@ defmodule Kernel.DocsTest do
     end
 
     expected = [
-      {{:example, 1}, 14, :def, [{:var, [line: 15], nil}], "Some example"},
-      {{:nodoc, 1}, 17, :def, [{:\\, [line: 17], [{:var, [line: 17], nil}, 0]}], nil},
-      {{:struct, 1}, 20, :def, [{:docs, [line: 20], nil}], nil}
+      {{:__struct__, 0}, 12, :def, [], false},
+      {{:example, 1}, 15, :def, [{:var, [line: 16], nil}], "Some example"},
+      {{:nodoc, 1}, 18, :def, [{:\\, [line: 18], [{:var, [line: 18], nil}, 0]}], nil},
+      {{:struct, 1}, 21, :def, [{:docs, [line: 21], nil}], nil}
     ]
 
     assert Docs.__info__(:docs) == expected

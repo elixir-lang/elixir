@@ -90,7 +90,7 @@ defmodule MapTest do
     end
   end
 
-  test "external structs" do
+  test "public structs" do
     assert %ExternalUser{} ==
            %{ __struct__: ExternalUser, name: "josé", age: 27 }
 
@@ -105,20 +105,5 @@ defmodule MapTest do
     assert_raise BadStructError, "expected a struct named MapTest.ExternalUser, got: %{}", fn ->
       %ExternalUser{ map | name: "valim" }
     end
-  end
-
-  defmodule LocalUser do
-    defp __struct__ do
-      %{ __struct__: ThisDoesNotLeak, name: "josé", age: 27 }
-    end
-
-    def new do
-      %LocalUser{name: "valim"}
-    end
-  end
-
-  test "local structs" do
-    assert LocalUser.new ==
-           %{ __struct__: LocalUser, name: "valim", age: 27 }
   end
 end
