@@ -7,7 +7,7 @@
 defmodule Mix.Deps.Fetcher do
   @moduledoc false
 
-  import Mix.Deps, only: [format_dep: 1, check_lock: 2, out_of_date?: 1, available?: 1, ok?: 1]
+  import Mix.Deps, only: [format_dep: 1, check_lock: 2, available?: 1, ok?: 1]
 
   @doc """
   Fetches all dependencies.
@@ -56,6 +56,12 @@ defmodule Mix.Deps.Fetcher do
         { dep, { acc, lock } }
     end
   end
+
+  defp out_of_date?(Mix.Dep[status: { :lockmismatch, _ }]), do: true
+  defp out_of_date?(Mix.Dep[status: :lockoutdated]),        do: true
+  defp out_of_date?(Mix.Dep[status: :nolock]),              do: true
+  defp out_of_date?(Mix.Dep[status: { :unavailable, _ }]),  do: true
+  defp out_of_date?(Mix.Dep[]),                             do: false
 
   defp do_finalize({ all_deps, { apps, new_lock } }, old_lock) do
     # Let's get the loaded versions of deps

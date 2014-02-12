@@ -261,7 +261,7 @@ defmodule Mix.Deps do
   end
 
   def format_status(Mix.Dep[status: { :elixirlock, _ }]),
-    do: "the dependency is built with an out-of-date elixir version, run `#{mix_env_var}mix deps.get`"
+    do: "the dependency is built with an out-of-date elixir version, run `#{mix_env_var}mix deps.compile`"
 
   defp dep_status(Mix.Dep[app: app, requirement: req, opts: opts, from: from]) do
     info = { app, req, Dict.drop(opts, [:dest, :lock, :env, :build]) }
@@ -310,20 +310,6 @@ defmodule Mix.Deps do
   def available?(Mix.Dep[status: { :divergedreq, _ }]),  do: false
   def available?(Mix.Dep[status: { :unavailable, _ }]),  do: false
   def available?(Mix.Dep[]), do: true
-
-  @doc """
-  Checks if a dependency is out of date, also considering its
-  lock status. Therefore, be sure to call `check_lock` before
-  invoking this function.
-
-  Out of date dependencies are fixed by simply running `deps.get`.
-  """
-  def out_of_date?(Mix.Dep[status: { :lockmismatch, _ }]), do: true
-  def out_of_date?(Mix.Dep[status: :lockoutdated]),        do: true
-  def out_of_date?(Mix.Dep[status: :nolock]),              do: true
-  def out_of_date?(Mix.Dep[status: { :elixirlock, _ }]),   do: true
-  def out_of_date?(Mix.Dep[status: { :unavailable, _ }]),  do: true
-  def out_of_date?(Mix.Dep[]),                             do: false
 
   @doc """
   Formats a dependency for printing.

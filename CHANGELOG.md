@@ -3,6 +3,7 @@
 * Enhancements
 
 * Bug fixes
+  * [Mix] Automatically recompile on outdated Elixir version and show proper error messages
 
 * Deprecations
   * [Kernel] `%` for sigils is deprecated in favor of `~`

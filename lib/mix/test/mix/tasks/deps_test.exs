@@ -504,14 +504,11 @@ defmodule Mix.Tasks.DepsTest do
       File.write!("_build/dev/lib/ok/.compile.lock", "the_future")
       Mix.Task.clear
 
-      assert_raise Mix.Error, "Can't continue due to errors on dependencies", fn ->
-        Mix.Tasks.Deps.Check.run []
-      end
+      Mix.Tasks.Deps.run []
+      assert_received { :mix_shell, :info, ["* ok (deps/ok)"] }
+      assert_received { :mix_shell, :info, ["  the dependency is built with an out-of-date elixir version, run `mix deps.compile`"] }
 
-      assert_received { :mix_shell, :error, ["* ok (deps/ok)"] }
-      assert_received { :mix_shell, :error, ["  the dependency is built with an out-of-date elixir version, run `mix deps.get`"] }
-
-      Mix.Tasks.Deps.Get.run []
+      Mix.Tasks.Deps.Check.run []
       assert_received { :mix_shell, :info, ["* Compiling ok"] }
     end
   end
