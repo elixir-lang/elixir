@@ -51,6 +51,7 @@ defmodule Mix.Tasks.Deps.Check do
     { Enum.reverse(not_ok), Enum.reverse(compile) }
   end
 
+  defp compile?(Mix.Dep[status: { :elixirlock, _ }]), do: true
   defp compile?(Mix.Dep[status: { :noappfile, _ }]), do: true
   defp compile?(Mix.Dep[status: :compile]), do: true
   defp compile?(_), do: false

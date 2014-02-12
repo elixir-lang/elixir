@@ -9,6 +9,7 @@
   * [StringIO] Add a `StringIO` module that allows a String to be used as IO device
 
 * Bug fixes
+  * [Mix] Automatically recompile on outdated Elixir version and show proper error messages
 
 * Deprecations
 
