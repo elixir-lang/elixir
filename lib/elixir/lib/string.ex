@@ -333,7 +333,7 @@ defmodule String do
     end
   end
 
-  def rstrip(string, char) do
+  def rstrip(string, char) when is_integer(char) do
     do_rstrip(string, "", char)
   end
 
@@ -373,11 +373,11 @@ defmodule String do
 
   @spec lstrip(t, char) :: t
 
-  def lstrip(<<char :: utf8, rest :: binary>>, char) do
+  def lstrip(<<char :: utf8, rest :: binary>>, char) when is_integer(char) do
     <<lstrip(rest, char) :: binary>>
   end
 
-  def lstrip(other, _char) do
+  def lstrip(other, char) when is_integer(char) do
     other
   end
 
