@@ -27,23 +27,24 @@ expand({ '<<>>', Meta, Args } = X, E) when is_list(Args) ->
       { ELeft, EL }  = elixir_exp_clauses:match(fun elixir_exp:expand/2, Left, E),
       { { '<<>>', [], [ { '<-', OpMeta, [ELeft, ERight] }] }, elixir_env:mergev(EL, ER) };
     _ ->
-      expand(X, E)
+      elixir_exp:expand(X, E)
   end;
 expand(X, E) ->
   elixir_exp:expand(X, E).
 
 %% Translation
 
-translate(_Meta, Args, S) ->
+translate(Meta, Args, S) ->
   { Cases, [{do,Expr}] } = elixir_utils:split_last(Args),
-  translate(Cases, Expr, 1, S).
+  translate_gen(Meta, Cases, Expr, S).
 
-translate([{ '<-', Meta, [Left, Right] }|T], Expr, Counter, S) ->
+translate_gen(ForMeta, [{ '<-', Meta, [Left, Right] }|T], Expr, S) ->
   { TRight, SR } = elixir_translator:translate(Right, S),
   { TLeft, SL  } = elixir_clauses:match(fun elixir_translator:translate/2, Left, SR),
 
-  { Var, _, SV } = elixir_scope:build_var('_', SL),
-  { TExpr, SE }  = translate(T, Expr, Counter+1, SV),
+  { Var, _, S0 } = elixir_scope:build_var('_', SL),
+  { TT, FF, S1 } = translate_filters(ForMeta, T, S0),
+  { TExpr, S2 }  = translate_gen(ForMeta, TT, Expr, S1),
 
   Line = ?line(Meta),
   TVar = {var, Line, Var},
@@ -51,22 +52,72 @@ translate([{ '<-', Meta, [Left, Right] }|T], Expr, Counter, S) ->
     {clause, -1,
       [TVar],
       [[?wrap_call(Line, erlang, is_list, [TVar])]],
-      [list_fun(Line, TLeft, TVar, TExpr)]},
+      [list_fun(Line, FF, TLeft, TVar, TExpr)]},
     {clause, -1,
       [TVar],
       [],
-      [reduce_fun(Line, TLeft, TVar, TExpr)]}
+      [reduce_fun(Line, FF, TLeft, TVar, TExpr)]}
   ]},
 
-  { Body, SE };
+  { Body, S2 };
 
-translate([], Expr, _Counter, S) ->
+translate_gen(_ForMeta, [], Expr, S) ->
   { TExpr, SE } = elixir_translator:translate(Expr, S),
   { TExpr, elixir_scope:mergef(S, SE) }.
 
-list_fun(Line, TLeft, TRight, TExpr) ->
+translate_filters(Meta, Args, S) ->
+  case collect_filters(Args, []) of
+    { [], Rest } ->
+      { Rest, fun(True, _False) -> True end, S };
+    { Filters, Rest } ->
+      Line = ?line(Meta),
+      Join = fun(X, { TF, SF }) -> join_filter(Line, X, TF, SF) end,
+      { TFilters, TS } = lists:mapfoldl(fun elixir_translator:translate/2, S, Filters),
+      { RFilters, RS } = lists:foldl(Join, { {atom, Line, true}, TS }, TFilters),
+      { Rest, fun(True, False) -> join_gen(Line, RFilters, True, False) end, RS }
+  end.
+
+collect_filters([{ '<-', _, [_, _] }|_] = T, Acc) ->
+  { Acc, T };
+collect_filters([H|T], Acc) ->
+  collect_filters(T, [H|Acc]);
+collect_filters([], Acc) ->
+  { Acc, [] }.
+
+join_filter(Line, Prev, Next, S) ->
+  case elixir_utils:returns_boolean(Prev) of
+    true ->
+      { {op, Line, 'andalso', Prev, Next}, S };
+    false ->
+      { Name, _, TS } = elixir_scope:build_var('_', S),
+      Var = {var, Line, Name},
+      Any = {var, Line, '_'},
+
+      Guard =
+        {op, Line, 'orelse',
+          {op, Line, '===', Var, {atom, Line, false}},
+          {op, Line, '===', Var, {atom, Line, nil}}},
+
+      { {'case', Line, Prev, [
+        {clause, Line, [Var], [[Guard]], [{atom, Line, false}] },
+        {clause, Line, [Any], [], [Next] }
+      ] }, TS }
+  end.
+
+join_gen(Line, Clause, True, False) ->
+  {'case', Line, Clause, [
+    {clause, Line, [{atom, Line, true}], [], [True] },
+    {clause, Line, [{atom, Line, false}], [], [False] }
+  ] }.
+
+%% Helpers
+
+list_fun(Line, Cond, TLeft, TRight, TExpr) ->
   For  = {var, Line, '@for'},
   Tail = {var, Line, '@tail'},
+
+  True  = {cons, Line, TExpr, {call, Line, For, [Tail]}},
+  False = {call, Line, For, [Tail]},
 
   Clauses0 =
     [{clause, Line,
@@ -83,20 +134,23 @@ list_fun(Line, TLeft, TRight, TExpr) ->
       false ->
         [{clause, Line,
           [{cons, Line, {var, Line, '_'}, Tail}], [],
-          [{call, Line, For, [Tail]}]}|Clauses0]
+          [False]}|Clauses0]
     end,
 
   Clauses2 =
     [{clause, Line,
       [{cons, Line, TLeft, Tail}], [],
-      [{cons, Line, TExpr, {call, Line, For, [Tail]}}]}|Clauses1],
+      [Cond(True, False)]}|Clauses1],
 
   {call,Line,
     {named_fun, Line, element(3, For), Clauses2},
     [TRight]}.
 
-reduce_fun(Line, TLeft, TRight, TExpr) ->
+reduce_fun(Line, Cond, TLeft, TRight, TExpr) ->
   Acc = {var, Line, '@acc'},
+
+  True  = cont(Line, {cons, Line, TExpr, Acc}),
+  False = cont(Line, Acc),
 
   Clauses0 =
     case is_var(TLeft) of
@@ -104,13 +158,13 @@ reduce_fun(Line, TLeft, TRight, TExpr) ->
       false ->
         [{clause, Line,
           [{var, Line, '_'}, Acc], [],
-          [cont(Line, Acc)]}]
+          [False]}]
     end,
 
   Clauses1 =
     [{clause, Line,
       [TLeft, Acc], [],
-      [cont(Line, {cons, Line, TExpr, Acc})]}|Clauses0],
+      [Cond(True, False)]}|Clauses0],
 
   ReduceArgs = [TRight, cont(Line, {nil, Line}), {'fun', Line, {clauses, Clauses1}}],
   ReduceTuple = ?wrap_call(Line, 'Elixir.Enumerable', reduce, ReduceArgs),

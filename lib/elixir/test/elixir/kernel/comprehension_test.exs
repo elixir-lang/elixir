@@ -13,6 +13,10 @@ defmodule Kernel.ComprehensionTest do
     assert for({_,x} <- [1, 2, a: 3, b: 4, c: 5], do: x * 2) == [6, 8, 10]
   end
 
+  test "for comprehensions with filters" do
+    assert for(x <- [1, 2, 3], x > 1, x < 3, do: x * 2) == [4]
+  end
+
   ## Enum comprehensions
 
   test "enum for comprehensions" do
@@ -23,6 +27,11 @@ defmodule Kernel.ComprehensionTest do
   test "enum for comprehensions with matching" do
     enum = 1..3
     assert for({_,x} <- enum, do: x * 2) == []
+  end
+
+  test "enum for comprehensions with filters" do
+    enum = 1..3
+    assert for(x <- [1, 2, 3], x > 1, x < 3, do: x * 2) == [4]
   end
 
   ## Old comprehensions
