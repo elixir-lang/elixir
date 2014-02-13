@@ -11,6 +11,10 @@ defmodule Kernel.FnTest do
     assert (fn +1 -> :ok end).(1)  == :ok
   end
 
+  test "capture with access" do
+    assert (&(&1[:hello])).([hello: :world]) == :world
+  end
+
   test "capture remote" do
     assert (&:erlang.atom_to_list/1).(:a) == 'a'
     assert (&Kernel.atom_to_list/1).(:a) == 'a'
