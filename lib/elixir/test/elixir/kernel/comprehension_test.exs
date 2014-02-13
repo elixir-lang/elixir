@@ -3,6 +3,30 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.ComprehensionTest do
   use ExUnit.Case, async: true
 
+  ## List comprehensions
+
+  test "for comprehensions" do
+    assert for(x <- [1, 2, 3], do: x * 2) == [2, 4, 6]
+  end
+
+  test "for comprehensions with matching" do
+    assert for({_,x} <- [1, 2, a: 3, b: 4, c: 5], do: x * 2) == [6, 8, 10]
+  end
+
+  ## Enum comprehensions
+
+  test "enum for comprehensions" do
+    enum = 1..3
+    assert for(x <- enum, do: x * 2) == [2, 4, 6]
+  end
+
+  test "enum for comprehensions with matching" do
+    enum = 1..3
+    assert for({_,x} <- enum, do: x * 2) == []
+  end
+
+  ## Old comprehensions
+
   test :list_comprehensions do
     assert [4] == lc x inlist [1, 2, 3], rem(x, 2) == 0, do: x * 2
   end

@@ -123,6 +123,9 @@ translate({'receive', Meta, [KV] }, S) when is_list(KV) ->
 translate({ Kind, Meta, Args }, S) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
   translate_comprehension(Meta, Kind, Args, S);
 
+translate({ for, Meta, Args }, S) when is_list(Args) ->
+  elixir_for:translate(Meta, Args, S);
+
 %% Super
 
 translate({ super, Meta, Args }, S) when is_list(Args) ->

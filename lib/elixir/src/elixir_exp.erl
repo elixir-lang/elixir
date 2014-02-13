@@ -259,14 +259,7 @@ expand({ Kind, Meta, Args }, E) when is_list(Args), (Kind == lc) orelse (Kind ==
   expand_comprehension(Meta, Kind, Args, E);
 
 expand({ for, Meta, Args }, E) when is_list(Args) ->
-  case elixir_utils:split_last(Args) of
-    { Cases, [{do,Expr}] } ->
-      { ECases, EC } = lists:mapfoldl(fun expand_for/2, E, Cases),
-      { EExpr, _ }   = expand(Expr, EC),
-      { { for, Meta, ECases ++ [[{do,EExpr}]] }, E };
-    _ ->
-      compile_error(Meta, E#elixir_env.file, "missing do keyword in for comprehension")
-  end;
+  elixir_for:expand(Meta, Args, E);
 
 %% Super
 
@@ -562,25 +555,6 @@ expand_comprehension_clause({Gen, Meta, [Left, Right]}, E) when Gen == inbits; G
   { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, E),
   { { Gen, Meta, [ELeft, ERight] }, elixir_env:mergev(EL, ER) };
 expand_comprehension_clause(X, E) ->
-  expand(X, E).
-
-%% For
-
-expand_for({'<-', Meta, [Left, Right]}, E) ->
-  { ERight, ER } = expand(Right, E),
-  { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, E),
-  { { '<-', Meta, [ELeft, ERight] }, elixir_env:mergev(EL, ER) };
-expand_for({ '<<>>', Meta, Args } = X, E) when is_list(Args) ->
-  case elixir_utils:split_last(Args) of
-    { LeftStart, {'<-', OpMeta, [LeftEnd, Right] } } ->
-      { ERight, ER } = expand(Right, E),
-      Left = { '<<>>', Meta, LeftStart ++ [LeftEnd] },
-      { ELeft, EL }  = elixir_exp_clauses:match(fun expand/2, Left, E),
-      { { '<<>>', [], [ { '<-', OpMeta, [ELeft, ERight] }] }, elixir_env:mergev(EL, ER) };
-    _ ->
-      expand(X, E)
-  end;
-expand_for(X, E) ->
   expand(X, E).
 
 %% Assertions
