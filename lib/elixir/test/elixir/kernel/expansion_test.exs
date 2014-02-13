@@ -262,6 +262,16 @@ defmodule Kernel.ExpansionTest do
            quote do: (bc(a inbits b(), do: c = 1); c())
   end
 
+  test "variables inside comprehensions do not leak with enums" do
+    assert expand(quote do: (for(a <- b, do: c = 1); c)) ==
+           quote do: (for(a <- b(), do: c = 1); c())
+  end
+
+  test "variables inside comprehensions do not leak with binaries" do
+    assert expand(quote do: (for(<<a <- b>>, do: c = 1); c)) ==
+           quote do: (for(<< <<a>> <- b() >>, do: c = 1); c())
+  end
+
   ## Capture
 
   test "&: keeps locals" do
