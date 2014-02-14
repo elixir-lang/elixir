@@ -31,7 +31,7 @@ defmodule Kernel.ComprehensionTest do
 
   test "enum for comprehensions with filters" do
     enum = 1..3
-    assert for(x <- [1, 2, 3], x > 1, x < 3, do: x * 2) == [4]
+    assert for(x <- enum, x > 1, x < 3, do: x * 2) == [4]
   end
 
   ## Old comprehensions
