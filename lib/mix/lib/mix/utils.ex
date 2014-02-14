@@ -194,6 +194,8 @@ defmodule Mix.Utils do
     underscore(rest)
   end
 
+  def underscore(""), do: ""
+
   def underscore(<<h, t :: binary>>) do
     <<to_lower_char(h)>> <> do_underscore(t, h)
   end
@@ -209,6 +211,12 @@ defmodule Mix.Utils do
   defp do_underscore(<<?-, t :: binary>>, _) do
     <<?_>> <> do_underscore(t, ?-)
   end
+
+  defp do_underscore(<< "..", t :: binary>>, _) do
+    <<"..">> <> underscore(t)
+  end
+
+  defp do_underscore(<<?.>>, _), do: <<?.>>
 
   defp do_underscore(<<?., t :: binary>>, _) do
     <<?/>> <> underscore(t)
@@ -230,6 +238,8 @@ defmodule Mix.Utils do
       Mix.Utils.camelize "foo_bar" #=> "FooBar"
 
   """
+  def camelize(""), do: ""
+
   def camelize(<<?_, t :: binary>>) do
     camelize(t)
   end
