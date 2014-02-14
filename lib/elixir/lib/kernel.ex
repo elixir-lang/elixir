@@ -2459,7 +2459,7 @@ defmodule Kernel do
   ## Examples
 
       iex> [1, [2], 3] |> List.flatten |> Enum.map(&(&1 * 2))
-      [2,4,6]
+      [2, 4, 6]
 
   The expression above is simply translated to:
 
@@ -2482,7 +2482,23 @@ defmodule Kernel do
 
   """
   defmacro left |> right do
-    :lists.foldl fn x, acc -> Macro.pipe(acc, x) end, left, Macro.unpipe(right)
+    :lists.foldl &Macro.pipe(&2, &1), left, Macro.unpipe(right)
+  end
+
+  @doc """
+  `|>>` is called the pipe-last operator. It's functionally
+  similar to the `|>` operator, except that `|>>` introduces
+  the expression on the left as the **last** argument to the
+  function call on the right.
+
+  ## Example
+
+      iex> [1, 2, 3] |>> :lists.map(&(&1 * 2))
+      [2, 4, 6]
+
+  """
+  defmacro left |>> right do
+    :lists.foldl &Macro.pipe(&2, &1, -1), left, Macro.unpipe(right)
   end
 
   @doc """

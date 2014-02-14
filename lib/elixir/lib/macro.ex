@@ -13,7 +13,7 @@ defmodule Macro do
 
   @binary_ops [:===, :!==,
     :==, :!=, :<=, :>=,
-    :&&, :||, :<>, :++, :--, ://, :\\, :::, :<-, :.., :|>, :=~,
+    :&&, :||, :<>, :++, :--, ://, :\\, :::, :<-, :.., :|>, :|>>, :=~,
     :<, :>, :->,
     :+, :-, :*, :/, :=, :|, :.,
     :and, :or, :xor, :when, :in, :inlist, :inbits,
@@ -37,7 +37,7 @@ defmodule Macro do
       o when o in [:||, :|||, :or, :xor]                        -> {:left, 130}
       o when o in [:&&, :&&&, :and]                             -> {:left, 140}
       o when o in [:==, :!=, :<, :<=, :>=, :>, :=~, :===, :!==] -> {:left, 150}
-      o when o in [:|>, :<<<, :>>>]                             -> {:right, 160}
+      o when o in [:|>, :|>>, :<<<, :>>>]                       -> {:right, 160}
       :in                                                       -> {:left, 170}
       o when o in [:++, :--, :.., :<>]                          -> {:right, 200}
       o when o in [:+, :-]                                      -> {:left, 210}
@@ -54,6 +54,10 @@ defmodule Macro do
   """
   @spec unpipe(Macro.t) :: [Macro.t]
   def unpipe({ :|> , _, [left, right] }) do
+    [left|unpipe(right)]
+  end
+
+  def unpipe({ :|>> , _, [left, right] }) do
     [left|unpipe(right)]
   end
 
