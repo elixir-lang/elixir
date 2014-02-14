@@ -3,10 +3,11 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.ComprehensionTest do
   use ExUnit.Case, async: true
 
-  ## List comprehensions
+  ## List comprehensions (inlined by the compiler)
 
   test "for comprehensions" do
-    assert for(x <- [1, 2, 3], do: x * 2) == [2, 4, 6]
+    list = [1, 2, 3]
+    assert for(x <- list, do: x * 2) == [2, 4, 6]
   end
 
   test "for comprehensions with matching" do
@@ -17,7 +18,17 @@ defmodule Kernel.ComprehensionTest do
     assert for(x <- [1, 2, 3], x > 1, x < 3, do: x * 2) == [4]
   end
 
-  ## Enum comprehensions
+  test "for comprehensions with nilly filters" do
+    assert for(x <- [1, 2, 3], nilly, do: x * 2) == []
+  end
+
+  test "for comprehensions with errors on filters" do
+    assert_raise ArgumentError, fn ->
+      for(x <- [1, 2, 3], hd(x), do: x * 2)
+    end
+  end
+
+  ## Enum comprehensions (the common case)
 
   test "enum for comprehensions" do
     enum = 1..3
@@ -25,13 +36,21 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test "enum for comprehensions with matching" do
-    enum = 1..3
-    assert for({_,x} <- enum, do: x * 2) == []
+    assert for({_,x} <- 1..3, do: x * 2) == []
   end
 
   test "enum for comprehensions with filters" do
-    enum = 1..3
-    assert for(x <- enum, x > 1, x < 3, do: x * 2) == [4]
+    assert for(x <- 1..3, x > 1, x < 3, do: x * 2) == [4]
+  end
+
+  test "enum for comprehensions with nilly filters" do
+    assert for(x <- 1..3, nilly, do: x * 2) == []
+  end
+
+  test "enum for comprehensions with errors on filters" do
+    assert_raise ArgumentError, fn ->
+      for(x <- 1..3, hd(x), do: x * 2)
+    end
   end
 
   ## Old comprehensions

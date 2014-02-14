@@ -35,25 +35,36 @@ expand(X, E) ->
 %% Translation
 
 translate(Meta, Args, S) ->
+  { AccName, _, SA } = elixir_scope:build_var('_', S),
+  { VarName, _, SV } = elixir_scope:build_var('_', SA),
+
+  Line = ?line(Meta),
+  Acc  = { var, Line, AccName },
+  Var  = { var, Line, VarName },
+
   { Cases, [{do,Expr}] } = elixir_utils:split_last(Args),
-  { TCases, SC } = translate_gen(Meta, Cases, [], S),
+  { TCases, SC } = translate_gen(Meta, Cases, [], SV),
   { TExpr, SE } = elixir_translator:translate(Expr, SC),
-  build_gen(TCases, TExpr, elixir_scope:mergef(S, SE)).
+  { build(TCases, TExpr, Var, Acc), elixir_scope:mergef(SV, SE) }.
 
 translate_gen(ForMeta, [{ '<-', Meta, [Left, Right] }|T], Acc, S) ->
   { TRight, SR } = elixir_translator:translate(Right, S),
-  { TLeft, SL }  = elixir_clauses:match(fun elixir_translator:translate/2, Left, SR),
+  { TLeft, SL } = elixir_clauses:match(fun elixir_translator:translate/2, Left, SR),
   { TT, { TFilters, SF } } = translate_filters(ForMeta, T, SL),
   TAcc = [{ enum, Meta, TLeft, TRight, TFilters }|Acc],
   translate_gen(ForMeta, TT, TAcc, SF);
 translate_gen(_ForMeta, [], Acc, S) ->
-  { lists:reverse(Acc), S }.
+  { lists:reverse(Acc), S };
+translate_gen(ForMeta, _, _, S) ->
+  elixir_errors:compile_error(ForMeta, S#elixir_scope.file,
+    "for comprehensions must start with a generator").
 
 translate_filters(Meta, T, S) ->
   { Filters, Rest } = collect_filters(T, []),
+  { TFilters, TS } = lists:mapfoldl(fun elixir_translator:translate/2, S, Filters),
+
   Line = ?line(Meta),
   Join = fun(X, { TF, SF }) -> join_filter(Line, X, TF, SF) end,
-  { TFilters, TS } = lists:mapfoldl(fun elixir_translator:translate/2, S, Filters),
   { Rest, lists:foldl(Join, { {atom, Line, true}, TS }, TFilters) }.
 
 collect_filters([{ '<-', _, [_, _] }|_] = T, Acc) ->
@@ -63,96 +74,45 @@ collect_filters([H|T], Acc) ->
 collect_filters([], Acc) ->
   { Acc, [] }.
 
-build_gen([{ enum, Meta, Left, Right, Filters }|T], Expr, S) ->
-  { Name, _, SV } = elixir_scope:build_var('_', S),
-  { Inner, SI } = build_gen(T, Expr, SV),
-
+%% If all we have is one enum generator, we check if it is a list
+%% for optimization otherwise fallback to the reduce generator.
+build([{ enum, Meta, Left, Right, Filters }] = Orig, Expr, Var, Acc) ->
   Line = ?line(Meta),
-  Var  = {var, Line, Name},
 
-  Body = {'case', -1, Right, [
-    {clause, -1,
-      [Var],
-      [[?wrap_call(Line, erlang, is_list, [Var])]],
-      [list_fun(Line, Filters, Left, Var, Inner)]},
-    {clause, -1,
-      [Var],
-      [],
-      [reduce_fun(Line, Filters, Left, Var, Inner)]}
-  ]},
+  case Right of
+    { cons, _, _, _ } ->
+      build_comprehension(lc, Line, Orig, Expr);
+    { Other, _, _ } when Other == tuple; Other == map ->
+      build_reduce(Orig, Expr, Acc);
+    _ ->
+      Gens = [{ enum, Meta, Left, Var, Filters }],
 
-  { Body, SI };
-build_gen([], Expr, S) ->
-  { Expr, S }.
+      {'case', -1, Right, [
+        {clause, -1,
+          [Var],
+          [[?wrap_call(Line, erlang, is_list, [Var])]],
+          [build_comprehension(lc, Line, Gens, Expr)]},
+        {clause, -1,
+          [Var],
+          [],
+          [build_reduce(Gens, Expr, Acc)]}
+      ]}
+  end;
+
+%% Common case
+build(Clauses, Expr, _Var, Acc) ->
+  build_reduce(Clauses, Expr, Acc).
+
+build_reduce(Clauses, Expr, Acc) ->
+  ?wrap_call(0, lists, reverse, [build_reduce_clause(Clauses, Expr, {nil, 0}, Acc)]).
 
 %% Helpers
 
-join_filter(Line, Prev, Next, S) ->
-  case elixir_utils:returns_boolean(Prev) of
-    true ->
-      { {op, Line, 'andalso', Prev, Next}, S };
-    false ->
-      { Name, _, TS } = elixir_scope:build_var('_', S),
-      Var = {var, Line, Name},
-      Any = {var, Line, '_'},
+build_reduce_clause([{ enum, Meta, Left, Right, Filters }|T], Expr, Arg, Acc) ->
+  Line  = ?line(Meta),
+  Inner = build_reduce_clause(T, Expr, Acc, Acc),
 
-      Guard =
-        {op, Line, 'orelse',
-          {op, Line, '===', Var, {atom, Line, false}},
-          {op, Line, '===', Var, {atom, Line, nil}}},
-
-      { {'case', Line, Prev, [
-        {clause, Line, [Var], [[Guard]], [{atom, Line, false}] },
-        {clause, Line, [Any], [], [Next] }
-      ] }, TS }
-  end.
-
-join_gen(_Line, { atom, _, true }, True, _False) ->
-  True;
-join_gen(Line, Clause, True, False) ->
-  {'case', Line, Clause, [
-    {clause, Line, [{atom, Line, true}], [], [True] },
-    {clause, Line, [{atom, Line, false}], [], [False] }
-  ] }.
-
-list_fun(Line, Cond, Left, Right, Expr) ->
-  For  = {var, Line, '@for'},
-  Tail = {var, Line, '@tail'},
-
-  True  = {cons, Line, Expr, {call, Line, For, [Tail]}},
-  False = {call, Line, For, [Tail]},
-
-  Clauses0 =
-    [{clause, Line,
-      [{nil, Line}], [],
-      [{nil, Line}]},
-     {clause, Line,
-      [Tail], [],
-      [?wrap_call(Line, erlang, error, [badarg(Line, Tail)])]}],
-
-  Clauses1 =
-    case is_var(Left) of
-      true ->
-        Clauses0;
-      false ->
-        [{clause, Line,
-          [{cons, Line, {var, Line, '_'}, Tail}], [],
-          [False]}|Clauses0]
-    end,
-
-  Clauses2 =
-    [{clause, Line,
-      [{cons, Line, Left, Tail}], [],
-      [join_gen(Line, Cond, True, False)]}|Clauses1],
-
-  {call,Line,
-    {named_fun, Line, element(3, For), Clauses2},
-    [Right]}.
-
-reduce_fun(Line, Cond, Left, Right, Expr) ->
-  Acc = {var, Line, '@acc'},
-
-  True  = cont(Line, {cons, Line, Expr, Acc}),
+  True  = cont(Line, Inner),
   False = cont(Line, Acc),
 
   Clauses0 =
@@ -167,12 +127,13 @@ reduce_fun(Line, Cond, Left, Right, Expr) ->
   Clauses1 =
     [{clause, Line,
       [Left, Acc], [],
-      [join_gen(Line, Cond, True, False)]}|Clauses0],
+      [join_gen(Line, Filters, True, False)]}|Clauses0],
 
-  ReduceArgs = [Right, cont(Line, {nil, Line}), {'fun', Line, {clauses, Clauses1}}],
-  ReduceTuple = ?wrap_call(Line, 'Elixir.Enumerable', reduce, ReduceArgs),
-  ReduceList = ?wrap_call(Line, erlang, element, [{ integer, Line, 2 }, ReduceTuple]),
-  ?wrap_call(Line, lists, reverse, [ReduceList]).
+  Args  = [Right, cont(Line, Arg), {'fun', Line, {clauses, Clauses1}}],
+  Tuple = ?wrap_call(Line, 'Elixir.Enumerable', reduce, Args),
+  ?wrap_call(Line, erlang, element, [{ integer, Line, 2 }, Tuple]);
+build_reduce_clause([], Expr, _Arg, Acc) ->
+  {cons, 0, Expr, Acc}.
 
 is_var({var, _, _}) -> true;
 is_var(_) -> false.
@@ -180,5 +141,51 @@ is_var(_) -> false.
 cont(Line, Tail) ->
   {tuple, Line, [{atom, Line, cont}, Tail]}.
 
-badarg(Line, Tail) ->
-  {tuple, Line, [{atom, Line, badarg}, Tail]}.
+build_comprehension(Kind, Line, Clauses, Expr) ->
+  {Kind, Line, Expr, build_comprehension_clause(Clauses)}.
+
+build_comprehension_clause([{ Kind, Meta, Left, Right, Filters }|T]) ->
+  Line = ?line(Meta),
+  [{comprehension_clause(Kind), Line, Left, Right}] ++
+    comprehension_filter(Line, Filters) ++
+    build_comprehension_clause(T);
+build_comprehension_clause([]) ->
+  [].
+
+comprehension_clause(enum) -> generate;
+comprehension_clause(bit) -> b_generate.
+
+comprehension_filter(_Line, { atom, _, true }) ->
+  [];
+comprehension_filter(_Line, { 'case', _, _, _ } = Filters) ->
+  [Filters];
+comprehension_filter(Line, Filters) ->
+  [{match, Line, {var, Line, '_'}, Filters}].
+
+join_filter(Line, Prev, Next, S) ->
+  case elixir_utils:returns_boolean(Prev) of
+    true ->
+      { {op, Line, 'andalso', Prev, Next}, S };
+    false ->
+      { Name, _, TS } = elixir_scope:build_var('_', S),
+      Var = {var, Line, Name},
+      Any = {var, Line, '_'},
+
+      Guard =
+        {op, Line, 'orelse',
+          {op, Line, '==', Var, {atom, Line, false}},
+          {op, Line, '==', Var, {atom, Line, nil}}},
+
+      { {'case', Line, Prev, [
+        {clause, Line, [Var], [[Guard]], [{atom, Line, false}] },
+        {clause, Line, [Any], [], [Next] }
+      ] }, TS }
+  end.
+
+join_gen(_Line, {atom, _, true}, True, _False) ->
+  True;
+join_gen(Line, Clause, True, False) ->
+  {'case', Line, Clause, [
+    {clause, Line, [{atom, Line, true}], [], [True] },
+    {clause, Line, [{atom, Line, false}], [], [False] }
+  ] }.
