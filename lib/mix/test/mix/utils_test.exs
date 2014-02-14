@@ -67,6 +67,7 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.camelize("_foo") == "Foo"
     assert Mix.Utils.camelize("foo__bar") == "FooBar"
     assert Mix.Utils.camelize("foo/bar") == "Foo.Bar"
+    assert Mix.Utils.camelize("") == ""
   end
 
   test :extract_files do
