@@ -238,6 +238,8 @@ defmodule Mix.Utils do
       Mix.Utils.camelize "foo_bar" #=> "FooBar"
 
   """
+  def camelize(""), do: ""
+
   def camelize(<<?_, t :: binary>>) do
     camelize(t)
   end
