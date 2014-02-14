@@ -3,53 +3,68 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.ComprehensionTest do
   use ExUnit.Case, async: true
 
-  ## List comprehensions (inlined by the compiler)
-
-  test "for comprehensions" do
-    list = [1, 2, 3]
-    assert for(x <- list, do: x * 2) == [2, 4, 6]
-  end
-
-  test "for comprehensions with matching" do
-    assert for({_,x} <- [1, 2, a: 3, b: 4, c: 5], do: x * 2) == [6, 8, 10]
-  end
-
-  test "for comprehensions with filters" do
-    assert for(x <- [1, 2, 3], x > 1, x < 3, do: x * 2) == [4]
-  end
-
-  test "for comprehensions with nilly filters" do
-    assert for(x <- [1, 2, 3], nilly, do: x * 2) == []
-  end
-
-  test "for comprehensions with errors on filters" do
-    assert_raise ArgumentError, fn ->
-      for(x <- [1, 2, 3], hd(x), do: x * 2)
-    end
-  end
-
   ## Enum comprehensions (the common case)
 
-  test "enum for comprehensions" do
+  test "for comprehensions" do
     enum = 1..3
     assert for(x <- enum, do: x * 2) == [2, 4, 6]
   end
 
-  test "enum for comprehensions with matching" do
+  test "for comprehensions with matching" do
     assert for({_,x} <- 1..3, do: x * 2) == []
   end
 
-  test "enum for comprehensions with filters" do
+  test "for comprehensions with filters" do
     assert for(x <- 1..3, x > 1, x < 3, do: x * 2) == [4]
   end
 
-  test "enum for comprehensions with nilly filters" do
+  test "for comprehensions with nilly filters" do
     assert for(x <- 1..3, nilly, do: x * 2) == []
   end
 
-  test "enum for comprehensions with errors on filters" do
+  test "for comprehensions with errors on filters" do
     assert_raise ArgumentError, fn ->
       for(x <- 1..3, hd(x), do: x * 2)
+    end
+  end
+
+  test "for comprehensions with two generators" do
+    assert (for x <- [1, 2, 3], y <- [4, 5, 6], do: x * y) ==
+           [4, 5, 6, 8, 10, 12, 12, 15, 18]
+  end
+
+  test "for comprehensions with two generators and filters" do
+    assert (for x <- [1, 2, 3], y <- [4, 5, 6], y / 2 == x, do: x * y) ==
+           [8, 18]
+  end
+
+  test "for comprehensions generators precedence" do
+    assert (for { _, _ } = x <- [foo: :bar], do: x) ==
+           [foo: :bar]
+  end
+
+  ## List comprehensions (inlined by the compiler)
+
+  test "list for comprehensions" do
+    list = [1, 2, 3]
+    assert for(x <- list, do: x * 2) == [2, 4, 6]
+  end
+
+  test "list for comprehensions with matching" do
+    assert for({_,x} <- [1, 2, a: 3, b: 4, c: 5], do: x * 2) == [6, 8, 10]
+  end
+
+  test "list for comprehensions with filters" do
+    assert for(x <- [1, 2, 3], x > 1, x < 3, do: x * 2) == [4]
+  end
+
+  test "list for comprehensions with nilly filters" do
+    assert for(x <- [1, 2, 3], nilly, do: x * 2) == []
+  end
+
+  test "list for comprehensions with errors on filters" do
+    assert_raise ArgumentError, fn ->
+      for(x <- [1, 2, 3], hd(x), do: x * 2)
     end
   end
 
