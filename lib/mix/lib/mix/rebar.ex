@@ -88,25 +88,30 @@ defmodule Mix.Rebar do
     { app, compile_req(req), [path: Path.join(deps_dir, app)] }
   end
 
-  defp parse_dep({ app, req, source }, _deps_dir) do
+  defp parse_dep({ app, req, source }, deps_dir) do
+    parse_dep({ app, req, source, [] }, deps_dir)
+  end
+
+  defp parse_dep({ app, req, source, opts }, _deps_dir) do
     [ scm, url | source ] = tuple_to_list(source)
+    mix_opts = [{ scm, to_string(url) }]
 
-    { ref, source } = case source do
-      [""|s]                  -> { [branch: "HEAD"], s }
-      [{ :branch, branch }|s] -> { [branch: to_string(branch)], s }
-      [{ :tag, tag }|s]       -> { [tag: to_string(tag)], s }
-      [ref|s]                 -> { [ref: to_string(ref)], s }
-      _                       -> { [], [] }
+    ref =
+      case source do
+        [""|_]                  -> [branch: "HEAD"]
+        [{ :branch, branch }|_] -> [branch: to_string(branch)]
+        [{ :tag, tag }|_]       -> [tag: to_string(tag)]
+        [ref|_]                 -> [ref: to_string(ref)]
+        _                       -> []
+      end
+
+    mix_opts = mix_opts ++ ref
+
+    if :proplists.get_value(:raw, opts, false) do
+      mix_opts = mix_opts ++ [compile: false]
     end
 
-    raw = case source do
-      [[:raw]|_]      -> [app: false]
-      [[raw: true]|_] -> [app: false]
-      _               -> []
-    end
-
-    opts = [{ scm, to_string(url) }] ++ ref ++ raw
-    { app, compile_req(req), opts }
+    { app, compile_req(req), mix_opts }
   end
 
   defp parse_dep(app, deps_dir) do

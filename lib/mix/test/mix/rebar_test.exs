@@ -52,6 +52,24 @@ defmodule Mix.RebarTest do
   end
 
   test "parse rebar dependencies" do
+    config = [deps: [{ :git_rebar, '.*', }]]
+    assert [{ :git_rebar, ~r".*", [path: "deps/git_rebar"] }] ==
+           Mix.Rebar.deps(config)
+
+    config = [deps: [{ :git_rebar, '.*', }], deps_dir: "other_dir"]
+    assert [{ :git_rebar, ~r".*", [path: "other_dir/git_rebar"] }] ==
+           Mix.Rebar.deps(config)
+
+    config = [deps: [{ :git_rebar, '0.1..*', { :git, '../../test/fixtures/git_rebar', :master } }]]
+    assert [{ :git_rebar, ~r"0.1..*", [git: "../../test/fixtures/git_rebar", ref: "master"] }] ==
+           Mix.Rebar.deps(config)
+
+    config = [deps: [{ :git_rebar, '0.1..*', { :git, '../../test/fixtures/git_rebar' }, [:raw] }]]
+    assert [{ :git_rebar, ~r"0.1..*", [git: "../../test/fixtures/git_rebar", compile: false] }] ==
+           Mix.Rebar.deps(config)
+  end
+
+  test "parse rebar dependencies from rebar.config" do
     Mix.Project.push(RebarAsDep)
 
     deps = Mix.Deps.loaded
