@@ -200,8 +200,9 @@ translate({ { '.', _, [Left, Right] }, Meta, Args }, S)
   { TLeft, SL } = translate(Left, S),
   { TArgs, SA } = translate_args(Args, mergec(S, SL)),
 
-  Line  = ?line(Meta),
-  Arity = length(Args),
+  Line   = ?line(Meta),
+  Arity  = length(Args),
+  TRight = { atom, Line, Right },
 
   %% We need to rewrite erlang function calls as operators
   %% because erl_eval chokes on them. We can remove this
@@ -213,7 +214,36 @@ translate({ { '.', _, [Left, Right] }, Meta, Args }, S)
       { list_to_tuple([op, Line, Right] ++ TArgs), mergev(SL, SA) };
     false ->
       assert_allowed_in_context(Meta, Left, Right, Arity, S),
-      { { call, Line, { remote, Line, TLeft, { atom, 0, Right } }, TArgs }, mergev(SL, SA) }
+      SC = mergev(SL, SA),
+
+      case not is_atom(Left) andalso (Arity == 0) of
+        true ->
+          { Var, _, SV } = elixir_scope:build_var('_', SC),
+          TVar = { var, Line, Var },
+          TMap = { tuple, Line, [{ atom, Line, badarg }, TVar] },
+
+          %% TODO: There is a bug in Erlang where %{} = 1 matches.
+          %% Once the bug is fixed, replace the second clause by a
+          %% map match instead of a guard check.
+          { { 'case', -1, TLeft, [
+            { clause, -1,
+              [{ map, Line, [{ map_field_exact, Line, TRight, TVar }] }],
+              [],
+              [TVar] },
+            { clause, -1,
+              % [{ match, Line, { map, Line, [] }, TVar }],
+              % []
+              [TVar],
+              [[?wrap_call(Line, erlang, is_map, [TVar])]],
+              [?wrap_call(Line, erlang, error, [TMap])] },
+            { clause, -1,
+              [TVar],
+              [],
+              [{ call, Line, { remote, Line, TVar, TRight }, [] }] }
+          ] }, SV };
+        false ->
+          { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, SC }
+      end
   end;
 
 %% Anonymous function calls

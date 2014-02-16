@@ -84,13 +84,21 @@ defmodule MapTest do
     end
   end
 
+  test "map access" do
+    assert two_items_map.a == 1
+
+    assert_raise ArgumentError, fn ->
+      two_items_map.c
+    end
+  end
+
   defmodule ExternalUser do
     def __struct__ do
       %{ __struct__: ThisDoesNotLeak, name: "josé", age: 27 }
     end
   end
 
-  test "public structs" do
+  test "structs" do
     assert %ExternalUser{} ==
            %{ __struct__: ExternalUser, name: "josé", age: 27 }
 

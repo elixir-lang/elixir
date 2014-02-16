@@ -65,6 +65,19 @@ defmodule Kernel.SpecialForms do
   Conveniences for manipulating maps can be found in the
   `Map` module.
 
+  ## Access syntax
+
+  Besides the access functions available in the `Map` module,
+  like `get/2` and `fetch/2`, a map can be accessed using the
+  `.` operator:
+
+      iex> map = %{ a: b }
+      iex> map.a
+      :b
+
+  Note that `.` operator expects the field to exist in the map.
+  If not, an `ArgumentError` is raised.
+
   ## Update syntax
 
   Maps also support a update syntax:
