@@ -44,7 +44,7 @@ translate_struct(Meta, Name, { '%{}', MapMeta, Args }, S) ->
   Struct = case S#elixir_scope.module of
     Name ->
       elixir_locals:record_local({ '__struct__', 0 }, S#elixir_scope.module, S#elixir_scope.function),
-      (elixir_locals:function_for(Name, '__struct__', 0))();
+      (elixir_locals:local_for(Name, '__struct__', 0, def))();
     _ ->
       Name:'__struct__'()
   end,

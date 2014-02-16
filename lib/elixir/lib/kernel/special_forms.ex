@@ -71,7 +71,7 @@ defmodule Kernel.SpecialForms do
   like `get/2` and `fetch/2`, a map can be accessed using the
   `.` operator:
 
-      iex> map = %{ a: b }
+      iex> map = %{ a: :b }
       iex> map.a
       :b
 
