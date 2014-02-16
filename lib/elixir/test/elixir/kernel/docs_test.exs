@@ -23,9 +23,9 @@ defmodule Kernel.DocsTest do
 
     expected = [
       {{:__struct__, 0}, 12, :def, [], false},
-      {{:example, 1}, 15, :def, [{:var, [line: 16], nil}], "Some example"},
-      {{:nodoc, 1}, 18, :def, [{:\\, [line: 18], [{:var, [line: 18], nil}, 0]}], nil},
-      {{:struct, 1}, 21, :def, [{:docs, [line: 21], nil}], nil}
+      {{:example, 1}, 15, :def, [{:var, [], nil}], "Some example"},
+      {{:nodoc, 1}, 18, :def, [{:\\, [], [{:var, [], nil}, 0]}], nil},
+      {{:struct, 1}, 21, :def, [{:docs, [], nil}], nil}
     ]
 
     assert Docs.__info__(:docs) == expected

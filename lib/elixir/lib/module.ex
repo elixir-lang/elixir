@@ -308,8 +308,7 @@ defmodule Module do
   and its attributes and functions can be modified.
   """
   def open?(module) do
-    table = data_table_for(module)
-    table == :ets.info(table, :name)
+    :elixir_module.is_open(module)
   end
 
   @doc """
@@ -510,7 +509,7 @@ defmodule Module do
     table = docs_table_for(module)
 
     { signature, _ } = Enum.map_reduce signature, 1, fn(x, acc) ->
-      { simplify_signature(x, line, acc), acc + 1 }
+      { simplify_signature(x, acc), acc + 1 }
     end
 
     case :ets.lookup(table, tuple) do
@@ -531,34 +530,34 @@ defmodule Module do
 
   # Simplify signatures to be stored in docs
 
-  defp simplify_signature({ :\\, defline, [left, right ] }, line, i) do
-    { :\\, defline, [simplify_signature(left, line, i), right] }
+  defp simplify_signature({ :\\, _, [left, right ] }, i) do
+    { :\\, [], [simplify_signature(left, i), right] }
   end
 
-  defp simplify_signature({ :%, line, [left, _] }, _, _i) when is_atom(left) do
+  defp simplify_signature({ :%, _, [left, _] }, _i) when is_atom(left) do
     last = List.last(String.split(atom_to_binary(left), "."))
     atom = binary_to_atom(String.downcase(last))
-    { atom, line, nil }
+    { atom, [], nil }
   end
 
-  defp simplify_signature({ :=, _, [_, right] }, line, i) do
-    simplify_signature(right, line, i)
+  defp simplify_signature({ :=, _, [_, right] }, i) do
+    simplify_signature(right, i)
   end
 
-  defp simplify_signature({ var, line, atom }, _, _i) when is_atom(atom) do
+  defp simplify_signature({ var, _, atom }, _i) when is_atom(atom) do
     case atom_to_binary(var) do
-      "_" <> rest -> { binary_to_atom(rest), line, Elixir }
-      _           -> { var, line, nil }
+      "_" <> rest -> { binary_to_atom(rest), [], Elixir }
+      _           -> { var, [], nil }
     end
   end
 
-  defp simplify_signature(other, line, i) when is_integer(other), do: { :"int#{i}", line, Elixir }
-  defp simplify_signature(other, line, i) when is_boolean(other), do: { :"bool#{i}", line, Elixir }
-  defp simplify_signature(other, line, i) when is_atom(other),    do: { :"atom#{i}", line, Elixir }
-  defp simplify_signature(other, line, i) when is_list(other),    do: { :"list#{i}", line, Elixir }
-  defp simplify_signature(other, line, i) when is_float(other),   do: { :"float#{i}", line, Elixir }
-  defp simplify_signature(other, line, i) when is_binary(other),  do: { :"binary#{i}", line, Elixir }
-  defp simplify_signature(_, line, i), do: { :"arg#{i}", line, Elixir }
+  defp simplify_signature(other, i) when is_integer(other), do: { :"int#{i}", [], Elixir }
+  defp simplify_signature(other, i) when is_boolean(other), do: { :"bool#{i}", [], Elixir }
+  defp simplify_signature(other, i) when is_atom(other),    do: { :"atom#{i}", [], Elixir }
+  defp simplify_signature(other, i) when is_list(other),    do: { :"list#{i}", [], Elixir }
+  defp simplify_signature(other, i) when is_float(other),   do: { :"float#{i}", [], Elixir }
+  defp simplify_signature(other, i) when is_binary(other),  do: { :"binary#{i}", [], Elixir }
+  defp simplify_signature(_, i), do: { :"arg#{i}", [], Elixir }
 
   # Merge
 

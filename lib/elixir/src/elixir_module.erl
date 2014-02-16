@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([compile/4, data_table/1, docs_table/1,
+-export([compile/4, data_table/1, docs_table/1, is_open/1,
          format_error/1, eval_callbacks/5]).
 -include("elixir.hrl").
 
@@ -16,6 +16,9 @@ data_table(Module) ->
 
 docs_table(Module) ->
   ets:lookup_element(Module, ?docs_attr, 2).
+
+is_open(Module) ->
+  Module == ets:info(Module, name).
 
 %% Compilation hook
 

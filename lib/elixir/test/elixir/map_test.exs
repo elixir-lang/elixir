@@ -114,4 +114,25 @@ defmodule MapTest do
       %ExternalUser{ map | name: "valim" }
     end
   end
+
+  defmodule LocalUser do
+    def __struct__ do
+      %{ name: "josé" }
+    end
+
+    def new do
+      %LocalUser{}
+    end
+
+    defmodule Context do
+      def new do
+        %LocalUser{}
+      end
+    end
+  end
+
+  test "local user" do
+    assert LocalUser.new == %LocalUser{name: "josé"}
+    assert LocalUser.Context.new == %LocalUser{name: "josé"}
+  end
 end

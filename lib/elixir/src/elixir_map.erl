@@ -20,10 +20,12 @@ expand_struct(Meta, Left, Right, E) ->
         "time atom or alias, got: ~ts", ['Elixir.Macro':to_string(ELeft)])
   end,
 
-  case E#elixir_env.module of
-    ELeft -> ok;
-    _ -> elixir_aliases:ensure_loaded(Meta, ELeft, E)
-  end,
+  EMeta =
+    case lists:member(ELeft, E#elixir_env.context_modules) andalso
+         elixir_module:is_open(ELeft) of
+      true  -> [{ struct, context }|Meta];
+      false -> elixir_aliases:ensure_loaded(Meta, ELeft, E), Meta
+    end,
 
   case ERight of
     { '%{}', _, _ } -> ok;
@@ -32,7 +34,7 @@ expand_struct(Meta, Left, Right, E) ->
            ['Elixir.Macro':to_string(ERight)])
   end,
 
-  { { '%', Meta, [ELeft, ERight] }, EE }.
+  { { '%', EMeta, [ELeft, ERight] }, EE }.
 
 translate_map(Meta, Args, S) ->
   { Assocs, TUpdate, US } = extract_assoc_update(Args, S),
@@ -41,12 +43,9 @@ translate_map(Meta, Args, S) ->
 translate_struct(Meta, Name, { '%{}', MapMeta, Args }, S) ->
   { Assocs, TUpdate, US } = extract_assoc_update(Args, S),
 
-  Struct = case S#elixir_scope.module of
-    Name ->
-      elixir_locals:record_local({ '__struct__', 0 }, S#elixir_scope.module, S#elixir_scope.function),
-      (elixir_locals:local_for(Name, '__struct__', 0, def))();
-    _ ->
-      Name:'__struct__'()
+  Struct = case lists:keyfind(struct, 1, Meta) of
+    { struct, context } -> (elixir_locals:local_for(Name, '__struct__', 0, def))();
+    _ -> Name:'__struct__'()
   end,
 
   case is_map(Struct) of
