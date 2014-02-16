@@ -45,29 +45,35 @@ translate(Meta, Args, S) ->
   { Cases, [{do,Expr}] } = elixir_utils:split_last(Args),
   { TCases, SC } = translate_gen(Meta, Cases, [], SV),
   { TExpr, SE } = elixir_translator:translate(Expr, SC),
-  { build(TCases, TExpr, Var, Acc), elixir_scope:mergef(SV, SE) }.
+  { build(Line, TCases, TExpr, Var, Acc, SE), elixir_scope:mergef(SV, SE) }.
 
 translate_gen(ForMeta, [{ '<-', Meta, [Left, Right] }|T], Acc, S) ->
-  { TRight, SR } = elixir_translator:translate(Right, S),
-  { TLeft, SL } = elixir_clauses:match(fun elixir_translator:translate/2, Left, SR),
-  { TT, { TFilters, SF } } = translate_filters(ForMeta, T, SL),
-  TAcc = [{ enum, Meta, TLeft, TRight, TFilters }|Acc],
-  translate_gen(ForMeta, TT, TAcc, SF);
+  translate_gen(ForMeta, enum, Meta, Left, Right, T, Acc, S);
+translate_gen(ForMeta, [{ '<<>>', _, [ { '<-', Meta, [Left, Right] } ] }|T], Acc, S) ->
+  translate_gen(ForMeta, bin, Meta, Left, Right, T, Acc, S);
 translate_gen(_ForMeta, [], Acc, S) ->
   { lists:reverse(Acc), S };
 translate_gen(ForMeta, _, _, S) ->
   elixir_errors:compile_error(ForMeta, S#elixir_scope.file,
     "for comprehensions must start with a generator").
 
+translate_gen(ForMeta, Kind, Meta, Left, Right, T, Acc, S) ->
+  { TRight, SR } = elixir_translator:translate(Right, S),
+  { TLeft, SL } = elixir_clauses:match(fun elixir_translator:translate/2, Left, SR),
+  { TT, { TFilters, SF } } = translate_filters(ForMeta, T, SL),
+  TAcc = [{ Kind, Meta, TLeft, TRight, TFilters }|Acc],
+  translate_gen(ForMeta, TT, TAcc, SF).
+
 translate_filters(Meta, T, S) ->
   { Filters, Rest } = collect_filters(T, []),
   { TFilters, TS } = lists:mapfoldl(fun elixir_translator:translate/2, S, Filters),
-
   Line = ?line(Meta),
   Join = fun(X, { TF, SF }) -> join_filter(Line, X, TF, SF) end,
   { Rest, lists:foldl(Join, { {atom, Line, true}, TS }, TFilters) }.
 
 collect_filters([{ '<-', _, [_, _] }|_] = T, Acc) ->
+  { Acc, T };
+collect_filters([{ '<<>>', _, [{ '<-', _, [_, _] }] }|_] = T, Acc) ->
   { Acc, T };
 collect_filters([H|T], Acc) ->
   collect_filters(T, [H|Acc]);
@@ -76,14 +82,12 @@ collect_filters([], Acc) ->
 
 %% If all we have is one enum generator, we check if it is a list
 %% for optimization otherwise fallback to the reduce generator.
-build([{ enum, Meta, Left, Right, Filters }] = Orig, Expr, Var, Acc) ->
-  Line = ?line(Meta),
-
+build(Line, [{ enum, Meta, Left, Right, Filters }] = Orig, Expr, Var, Acc, S) ->
   case Right of
     { cons, _, _, _ } ->
       build_comprehension(lc, Line, Orig, Expr);
     { Other, _, _ } when Other == tuple; Other == map ->
-      build_reduce(Orig, Expr, Acc);
+      build_reduce(Orig, Expr, Acc, S);
     _ ->
       Gens = [{ enum, Meta, Left, Var, Filters }],
 
@@ -95,31 +99,33 @@ build([{ enum, Meta, Left, Right, Filters }] = Orig, Expr, Var, Acc) ->
         {clause, -1,
           [Var],
           [],
-          [build_reduce(Gens, Expr, Acc)]}
+          [build_reduce(Gens, Expr, Var, Acc)]}
       ]}
   end;
 
-%% Common case
-build(Clauses, Expr, _Var, Acc) ->
-  build_reduce(Clauses, Expr, Acc).
+build(Line, Clauses, Expr, _Var, Acc, S) ->
+  case lists:all(fun(Clause) -> element(1, Clause) == bin end, Clauses) of
+    true  -> build_comprehension(lc, Line, Clauses, Expr);
+    false -> build_reduce(Clauses, Expr, Acc, S)
+  end.
 
-build_reduce(Clauses, Expr, Acc) ->
-  ?wrap_call(0, lists, reverse, [build_reduce_clause(Clauses, Expr, {nil, 0}, Acc)]).
+build_reduce(Clauses, Expr, Acc, S) ->
+  ?wrap_call(0, lists, reverse, [build_reduce_clause(Clauses, Expr, {nil, 0}, Acc, S)]).
 
 %% Helpers
 
-build_reduce_clause([{ enum, Meta, Left, Right, Filters }|T], Expr, Arg, Acc) ->
+build_reduce_clause([{ enum, Meta, Left, Right, Filters }|T], Expr, Arg, Acc, S) ->
   Line  = ?line(Meta),
-  Inner = build_reduce_clause(T, Expr, Acc, Acc),
+  Inner = build_reduce_clause(T, Expr, Acc, Acc, S),
 
-  True  = cont(Line, Inner),
-  False = cont(Line, Acc),
+  True  = pair(Line, cont, Inner),
+  False = pair(Line, cont, Acc),
 
   Clauses0 =
     case is_var(Left) of
       true  -> [];
       false ->
-        [{clause, Line,
+        [{clause, -1,
           [{var, Line, '_'}, Acc], [],
           [False]}]
     end,
@@ -129,17 +135,60 @@ build_reduce_clause([{ enum, Meta, Left, Right, Filters }|T], Expr, Arg, Acc) ->
       [Left, Acc], [],
       [join_gen(Line, Filters, True, False)]}|Clauses0],
 
-  Args  = [Right, cont(Line, Arg), {'fun', Line, {clauses, Clauses1}}],
+  Args  = [Right, pair(Line, cont, Arg), {'fun', Line, {clauses, Clauses1}}],
   Tuple = ?wrap_call(Line, 'Elixir.Enumerable', reduce, Args),
-  ?wrap_call(Line, erlang, element, [{ integer, Line, 2 }, Tuple]);
-build_reduce_clause([], Expr, _Arg, Acc) ->
+  ?wrap_call(Line, erlang, element, [{integer, Line, 2}, Tuple]);
+
+build_reduce_clause([{ bin, Meta, Left, Right, Filters }|T], Expr, Arg, Acc, S) ->
+  { TailName, _, ST } = elixir_scope:build_var('_', S),
+  { FunName, _, SF } = elixir_scope:build_var('_', ST),
+
+  True  = build_reduce_clause(T, Expr, Acc, Acc, SF),
+  False = Acc,
+
+  Line = ?line(Meta),
+  Fun  = {var, Line, FunName},
+  Tail = {var, Line, TailName},
+
+  {bin, _, Elements} = Left,
+
+  BinMatch =
+    {bin, Line, Elements ++ [{ bin_element, Line, Tail, default, [bitstring] }]},
+  NoVarMatch =
+    {bin, Line, no_var(Elements) ++ [{ bin_element, Line, Tail, default, [bitstring] }]},
+
+  Clauses =
+    [{clause, Line,
+      [BinMatch, Acc], [],
+      [{call, Line, Fun, [Tail, join_gen(Line, Filters, True, False)]}]},
+     {clause, -1,
+      [NoVarMatch, Acc], [],
+      [{call, Line, Fun, [Tail, False]}]},
+     {clause, -1,
+      [{bin, Line, []}, Acc], [],
+      [Acc]},
+     {clause, -1,
+      [Tail, {var, Line, '_'}], [],
+      [?wrap_call(Line, erlang, error, [pair(Line, badarg, Tail)])]}],
+
+  {call, Line,
+    {named_fun, Line, element(3, Fun), Clauses},
+    [Right, Arg]};
+
+build_reduce_clause([], Expr, _Arg, Acc, _S) ->
   {cons, 0, Expr, Acc}.
 
 is_var({var, _, _}) -> true;
 is_var(_) -> false.
 
-cont(Line, Tail) ->
-  {tuple, Line, [{atom, Line, cont}, Tail]}.
+pair(Line, Atom, Arg) ->
+  {tuple, Line, [{atom, Line, Atom}, Arg]}.
+
+no_var(Elements) ->
+  [{bin_element, Line, no_var_expr(Expr), Size, Types} ||
+    {bin_element, Line, Expr, Size, Types} <- Elements].
+no_var_expr({ var, Line, _ }) ->
+  {var, Line, '_'}.
 
 build_comprehension(Kind, Line, Clauses, Expr) ->
   {Kind, Line, Expr, build_comprehension_clause(Clauses)}.
@@ -153,7 +202,7 @@ build_comprehension_clause([]) ->
   [].
 
 comprehension_clause(enum) -> generate;
-comprehension_clause(bit) -> b_generate.
+comprehension_clause(bin) -> b_generate.
 
 comprehension_filter(_Line, { atom, _, true }) ->
   [];

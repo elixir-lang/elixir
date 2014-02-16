@@ -28,12 +28,12 @@ defmodule Kernel.ComprehensionTest do
     end
   end
 
-  test "for comprehensions with two generators" do
+  test "for comprehensions with two enum generators" do
     assert (for x <- [1, 2, 3], y <- [4, 5, 6], do: x * y) ==
            [4, 5, 6, 8, 10, 12, 12, 15, 18]
   end
 
-  test "for comprehensions with two generators and filters" do
+  test "for comprehensions with two enum generators and filters" do
     assert (for x <- [1, 2, 3], y <- [4, 5, 6], y / 2 == x, do: x * y) ==
            [8, 18]
   end
@@ -43,7 +43,12 @@ defmodule Kernel.ComprehensionTest do
            [foo: :bar]
   end
 
-  ## List comprehensions (inlined by the compiler)
+  test "for comprehensions with binary, enum generators and filters" do
+    assert (for x <- [1, 2, 3], << y <- <<4, 5, 6>> >>, y / 2 == x, do: x * y) ==
+           [8, 18]
+  end
+
+  ## List generators (inlined by the compiler)
 
   test "list for comprehensions" do
     list = [1, 2, 3]
@@ -66,6 +71,23 @@ defmodule Kernel.ComprehensionTest do
     assert_raise ArgumentError, fn ->
       for(x <- [1, 2, 3], hd(x), do: x * 2)
     end
+  end
+
+  ## Binary generators (inlined by the compiler)
+
+  test "binary for comprehensions" do
+    bin = <<1, 2, 3>>
+    assert for(<< x <- bin >>, do: x * 2) == [2, 4, 6]
+  end
+
+  test "binary for comprehensions with inner binary" do
+    bin = <<1, 2, 3>>
+    assert for(<< <<x>> <- bin >>, do: x * 2) == [2, 4, 6]
+  end
+
+  test "binary for comprehensions with two generators" do
+    assert (for << x <- <<1, 2, 3>> >>, << y <- <<4, 5, 6>> >>, y / 2 == x, do: x * y) ==
+           [8, 18]
   end
 
   ## Old comprehensions
