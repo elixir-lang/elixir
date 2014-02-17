@@ -552,10 +552,10 @@ defmodule Kernel.ErrorsTest do
       'bc x inlist [1, 2, 3], do: x'
   end
 
-  test :invalid_bc_inbits_gen do
+  test :invalid_for_bit_generator do
     assert_compile_fail CompileError,
-      "nofile:1: a bit comprehension expects a bit string << >> to be used in inbits generators",
-      'bc x inbits "123", do: <<x>>'
+      "nofile:1: bitstring fields without size are not allowed in bitstring generators",
+      'for << x :: binary <- "123" >>, do: x'
   end
 
   test :unbound_cond do

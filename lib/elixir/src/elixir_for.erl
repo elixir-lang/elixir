@@ -48,21 +48,29 @@ translate(Meta, Args, S) ->
   { build(Line, TCases, TExpr, Var, Acc, SE), elixir_scope:mergef(SV, SE) }.
 
 translate_gen(ForMeta, [{ '<-', Meta, [Left, Right] }|T], Acc, S) ->
-  translate_gen(ForMeta, enum, Meta, Left, Right, T, Acc, S);
+  { TLeft, TRight, TFilters, TT, TS } = translate_gen(Meta, Left, Right, T, S),
+  TAcc = [{ enum, Meta, TLeft, TRight, TFilters }|Acc],
+  translate_gen(ForMeta, TT, TAcc, TS);
 translate_gen(ForMeta, [{ '<<>>', _, [ { '<-', Meta, [Left, Right] } ] }|T], Acc, S) ->
-  translate_gen(ForMeta, bin, Meta, Left, Right, T, Acc, S);
+  { TLeft, TRight, TFilters, TT, TS } = translate_gen(Meta, Left, Right, T, S),
+  TAcc = [{ bit, Meta, TLeft, TRight, TFilters }|Acc],
+  case elixir_bitstring:has_size(TLeft) of
+    true  -> translate_gen(ForMeta, TT, TAcc, TS);
+    false ->
+      elixir_errors:compile_error(Meta, S#elixir_scope.file,
+        "bitstring fields without size are not allowed in bitstring generators")
+  end;
 translate_gen(_ForMeta, [], Acc, S) ->
   { lists:reverse(Acc), S };
 translate_gen(ForMeta, _, _, S) ->
   elixir_errors:compile_error(ForMeta, S#elixir_scope.file,
     "for comprehensions must start with a generator").
 
-translate_gen(ForMeta, Kind, Meta, Left, Right, T, Acc, S) ->
+translate_gen(Meta, Left, Right, T, S) ->
   { TRight, SR } = elixir_translator:translate(Right, S),
   { TLeft, SL } = elixir_clauses:match(fun elixir_translator:translate/2, Left, SR),
-  { TT, { TFilters, SF } } = translate_filters(ForMeta, T, SL),
-  TAcc = [{ Kind, Meta, TLeft, TRight, TFilters }|Acc],
-  translate_gen(ForMeta, TT, TAcc, SF).
+  { TT, { TFilters, TS } } = translate_filters(Meta, T, SL),
+  { TLeft, TRight, TFilters, TT, TS }.
 
 translate_filters(Meta, T, S) ->
   { Filters, Rest } = collect_filters(T, []),
@@ -104,7 +112,7 @@ build(Line, [{ enum, Meta, Left, Right, Filters }] = Orig, Expr, Var, Acc, S) ->
   end;
 
 build(Line, Clauses, Expr, _Var, Acc, S) ->
-  case lists:all(fun(Clause) -> element(1, Clause) == bin end, Clauses) of
+  case lists:all(fun(Clause) -> element(1, Clause) == bit end, Clauses) of
     true  -> build_comprehension(lc, Line, Clauses, Expr);
     false -> build_reduce(Clauses, Expr, Acc, S)
   end.
@@ -139,7 +147,7 @@ build_reduce_clause([{ enum, Meta, Left, Right, Filters }|T], Expr, Arg, Acc, S)
   Tuple = ?wrap_call(Line, 'Elixir.Enumerable', reduce, Args),
   ?wrap_call(Line, erlang, element, [{integer, Line, 2}, Tuple]);
 
-build_reduce_clause([{ bin, Meta, Left, Right, Filters }|T], Expr, Arg, Acc, S) ->
+build_reduce_clause([{ bit, Meta, Left, Right, Filters }|T], Expr, Arg, Acc, S) ->
   { TailName, _, ST } = elixir_scope:build_var('_', S),
   { FunName, _, SF } = elixir_scope:build_var('_', ST),
 
@@ -202,7 +210,7 @@ build_comprehension_clause([]) ->
   [].
 
 comprehension_clause(enum) -> generate;
-comprehension_clause(bin) -> b_generate.
+comprehension_clause(bit) -> b_generate.
 
 comprehension_filter(_Line, { atom, _, true }) ->
   [];

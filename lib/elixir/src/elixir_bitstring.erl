@@ -1,5 +1,5 @@
 -module(elixir_bitstring).
--export([translate/3, expand/3]).
+-export([translate/3, expand/3, has_size/1]).
 -include("elixir.hrl").
 
 %% Expansion
@@ -100,6 +100,13 @@ handle_unknown_bit_info(Meta, { _, ExprMeta, _ } = Expr, T, Size, Types, E) ->
   end.
 
 %% Translation
+
+has_size({ bin, _, Elements }) ->
+  not lists:any(fun({ bin_element, _Line, _Expr, Size, Types }) ->
+    (Types /= default) andalso (Size == default) andalso
+      lists:any(fun(X) -> lists:member(X, Types) end,
+                [bits, bytes, bitstring, binary])
+  end, Elements).
 
 translate(Meta, Args, S) ->
   case S#elixir_scope.context of
