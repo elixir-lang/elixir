@@ -204,6 +204,7 @@ special_form('unquote',1) -> true;
 special_form('unquote_splicing',1) -> true;
 special_form('fn',_) -> true;
 special_form('super',_) -> true;
+special_form('for',_) -> true;
 special_form('bc',_) -> true;
 special_form('lc',_) -> true;
 special_form('case',2) -> true;

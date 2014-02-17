@@ -1123,77 +1123,58 @@ defmodule Kernel.SpecialForms do
   """
   defmacro unquote(:unquote_splicing)(expr)
 
-  @doc """
-  List comprehensions allow you to quickly build a list from another list:
+  @doc ~S"""
+  Comprehensions allow you to quickly build a data structure from
+  an enumerable or a bitstring.
 
-      iex> lc n inlist [1, 2, 3, 4], do: n * 2
-      [2,4,6,8]
+  Let's start with an example:
 
-  A comprehension accepts many generators and also filters. Generators
-  are defined using both `inlist` and `inbits` operators, allowing you
-  to loop lists and bitstrings:
+      iex> for n <- [1, 2, 3, 4], do: n * 2
+      [2, 4, 6, 8]
+
+  A comprehension accepts many generators and filters. Enumerable
+  generators are defined using `<-`:
 
       # A list generator:
-      iex> lc n inlist [1, 2, 3, 4], do: n * 2
-      [2,4,6,8]
-
-      # A bit string generator:
-      iex> lc <<n>> inbits <<1, 2, 3, 4>>, do: n * 2
-      [2,4,6,8]
-
-      # A generator from a variable:
-      iex> list = [1, 2, 3, 4]
-      ...> lc n inlist list, do: n * 2
-      [2,4,6,8]
+      iex> for n <- [1, 2, 3, 4], do: n * 2
+      [2, 4, 6, 8]
 
       # A comprehension with two generators
-      iex> lc x inlist [1, 2], y inlist [2, 3], do: x*y
-      [2,3,4,6]
+      iex> for x <- [1, 2], y <- [2, 3], do: x*y
+      [2, 3, 4, 6]
 
   Filters can also be given:
 
       # A comprehension with a generator and a filter
-      iex> lc n inlist [1, 2, 3, 4, 5, 6], rem(n, 2) == 0, do: n
-      [2,4,6]
+      iex> for n <- [1, 2, 3, 4, 5, 6], rem(n, 2) == 0, do: n
+      [2, 4, 6]
 
-  Bit string generators are quite useful when you need to
-  organize bit string streams:
+  Bitstring generators are also supported and are very useful when you
+  need to organize bitstring streams:
 
       iex> pixels = <<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
-      iex> lc <<r::8, g::8, b::8>> inbits pixels, do: {r, g, b}
+      iex> for <<r::8, g::8, b::8 <- pixels >>, do: {r, g, b}
       [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
 
-  Variable assignments in the `do` block of the comprehension
-  are not reflected outside of the block.
+  Variable assignments inside the comprehension, be it in generators,
+  filters or inside the block, are not reflected outside of the
+  comprehension.
 
-  Note: Unlike Erlang, Elixir comprehension filters
-  never behave as guards when it comes to errors. Errors in
-  list comprehensions will always be raised. Consider this
-  Erlang example:
+  ## Into
 
-      erl> [I || I <- [1,2,3], hd(I)].
-      []
+  In the examples above, the result returned by the comprehension was
+  always a list. The returned result can be configured by passing an
+  `:into` option, that currently can be either an empty list `[]` (the
+  default) or an empty string `""`.
 
-  In Elixir, it will raise:
+  For example, we can bitstring generators with the `:into` option to
+  easily remove all spaces in a string:
 
-      iex> lc i inlist [1,2,3], hd(i), do: i
-      ** (ArgumentError) argument error
-
-  """
-  defmacro lc(args)
-
-  @doc """
-  Defines a bit comprehension.
-
-  It follows the same syntax and behaviour as a list comprehension
-  but expects each element returned to be a bitstring. For example,
-  here is how to remove all spaces from a string:
-
-      iex> bc <<c>> inbits " hello world ", c != ? , do: <<c>>
+      iex> for <<c <- " hello world ">>, c != ?\s, into: "", do: <<c>>
       "helloworld"
 
   """
-  defmacro bc(args)
+  defmacro for(args)
 
   @doc """
   Defines an anonymous function.

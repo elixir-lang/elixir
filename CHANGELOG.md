@@ -13,6 +13,7 @@
   * [OptionParser] Do not recognized undefined aliases as switches
 
 * Deprecations
+  * [Kernel] `lc` and `bc` comprehensions are deprecated. This is a soft deprecation, no warning will be emitted. Use `for` comprehensions instead
 
 * Backwards incompatible changes
   * [ExUnit] Formatters are now required to be a GenEvent and `ExUnit.run/2` returns a map with results
