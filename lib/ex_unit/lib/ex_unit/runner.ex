@@ -120,20 +120,19 @@ defmodule ExUnit.Runner do
   defp spawn_case(config, test_case, tests) do
     self_pid = self
 
-    { case_pid, case_ref } = Process.spawn_monitor fn ->
-      { test_case, context } = exec_case_setup(test_case)
+    { case_pid, case_ref } =
+      Process.spawn_monitor(fn ->
+        case exec_case_setup(test_case) do
+          { :ok, { test_case, context } } ->
+            Enum.each(tests, &run_test(config, &1, context))
+            test_case = exec_case_teardown(test_case, context)
+            send self_pid, { self, :case_finished, test_case, [] }
 
-      tests =
-        if test_case.state == :passed do
-          Enum.each tests, &run_test(config, &1, context)
-          []
-        else
-          Enum.map tests, &(&1.state({ :invalid, test_case }))
+          { :error, test_case } ->
+            failed_tests = Enum.map(tests, &(&1.state({ :invalid, test_case })))
+            send self_pid, { self, :case_finished, test_case, failed_tests }
         end
-
-      test_case = exec_case_teardown(test_case, context)
-      send self_pid, { self, :case_finished, test_case, tests }
-    end
+      end)
 
     receive do
       { ^case_pid, :case_finished, test_case, tests } ->
@@ -145,10 +144,10 @@ defmodule ExUnit.Runner do
 
   defp exec_case_setup(ExUnit.TestCase[name: case_name] = test_case) do
     { :ok, context } = case_name.__ex_unit__(:setup_all, [case: case_name])
-    { test_case.state(:passed), context }
+    { :ok, { test_case.state(:passed), context } }
   catch
     kind, error ->
-      { test_case.state({ :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }), nil }
+      { :error, test_case.state({ :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }) }
   end
 
   defp exec_case_teardown(ExUnit.TestCase[name: case_name] = test_case, context) do
@@ -172,17 +171,23 @@ defmodule ExUnit.Runner do
   defp spawn_test(_config, test, context) do
     self_pid = self
 
-    { test_pid, test_ref } = Process.spawn_monitor(fn ->
-      { us, test } = :timer.tc(fn ->
-        { test, context } = exec_test_setup(test, context)
-        if nil?(test.state) do
-          test = exec_test(test, context)
-        end
-        exec_test_teardown(test, context)
-      end)
+    { test_pid, test_ref } =
+      Process.spawn_monitor(fn ->
+        { us, test } =
+          :timer.tc(fn ->
+            case exec_test_setup(test, context) do
+              { :ok, { test, context } } ->
+                if nil?(test.state) do
+                  test = exec_test(test, context)
+                end
+                exec_test_teardown(test, context)
+              { :error, test } ->
+                test
+            end
+          end)
 
-      send self_pid, { self, :test_finished, test.time(us) }
-    end)
+        send self_pid, { self, :test_finished, test.time(us) }
+      end)
 
     receive do
       { ^test_pid, :test_finished, test } ->
@@ -194,10 +199,10 @@ defmodule ExUnit.Runner do
 
   defp exec_test_setup(ExUnit.Test[] = test, context) do
     { :ok, context } = test.case.__ex_unit__(:setup, context)
-    { test, context }
+    { :ok, { test, context } }
   catch
     kind2, error2 ->
-      { test.state({ :failed, { kind2, Exception.normalize(kind2, error2), pruned_stacktrace } }), context }
+      { :error, test.state({ :failed, { kind2, Exception.normalize(kind2, error2), pruned_stacktrace } }) }
   end
 
   defp exec_test(ExUnit.Test[] = test, context) do
