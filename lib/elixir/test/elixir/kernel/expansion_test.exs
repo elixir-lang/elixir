@@ -252,16 +252,6 @@ defmodule Kernel.ExpansionTest do
 
   ## Comprehensions
 
-  test "lc: variables inside comprehensions do not leak" do
-    assert expand(quote do: (for(a <- b, do: c = 1); c)) ==
-           quote do: (for(a <- b(), do: c = 1); c())
-  end
-
-  test "bc: variables inside comprehensions do not leak" do
-    assert expand(quote do: (bc(a inbits b, do: c = 1); c)) ==
-           quote do: (bc(a inbits b(), do: c = 1); c())
-  end
-
   test "variables inside comprehensions do not leak with enums" do
     assert expand(quote do: (for(a <- b, do: c = 1); c)) ==
            quote do: (for(a <- b(), do: c = 1); c())

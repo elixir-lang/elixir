@@ -147,7 +147,7 @@ defmodule URI do
       "http%3A%2F%2Felixir-lang.com%2Fgetting_started%2F2.html"
 
   """
-  def encode(s), do: bc(<<c>> inbits s, do: <<percent(c) :: binary>>)
+  def encode(s), do: for(<<c <- s>>, into: "", do: percent(c))
 
   defp percent(32), do: <<?+>>
   defp percent(?-), do: <<?->>

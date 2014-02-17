@@ -553,11 +553,11 @@ defmodule Macro do
   end
 
   defp adjust_new_lines(block, replacement) do
-    bc <<x>> inbits block do
-      << case x == ?\n do
+    for <<x <- block>>, into: "" do
+      case x == ?\n do
         true  -> replacement
         false -> <<x>>
-      end :: binary >>
+      end
     end
   end
 

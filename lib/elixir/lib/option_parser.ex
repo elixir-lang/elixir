@@ -214,7 +214,7 @@ defmodule OptionParser do
   end
 
   defp to_underscore(option) do
-    bc <<c>> inbits option, do: << if(c == ?-, do: ?_, else: c) >>
+    for <<c <- option>>, into: "", do: << if(c == ?-, do: ?_, else: c) >>
   end
 
   defp get_aliased(option, aliases) do
