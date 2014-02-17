@@ -10,6 +10,7 @@
 
 * Bug fixes
   * [Mix] Automatically recompile on outdated Elixir version and show proper error messages
+  * [OptionParser] Do not recognized undefined aliases as switches
 
 * Deprecations
 

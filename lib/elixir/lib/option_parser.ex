@@ -42,6 +42,7 @@ defmodule OptionParser do
                  `true` or `false`;
   * `:integer` - Parses the switch as an integer;
   * `:float`   - Parses the switch as a float;
+  * `:string`  - Returns the switch as is (the default);
 
   If a switch can't be parsed, the option is returned in the invalid
   options list (third element of the returned tuple).
@@ -59,10 +60,10 @@ defmodule OptionParser do
       ...>                    switches: [unlock: :boolean, limit: :integer])
       { [unlock: true, limit: 0], ["path/to/file"], [] }
 
-      iex> OptionParser.parse(["-limit", "3"], switches: [limit: :integer])
+      iex> OptionParser.parse(["--limit", "3"], switches: [limit: :integer])
       { [limit: 3], [], [] }
 
-      iex> OptionParser.parse(["-limit", "yyz"], switches: [limit: :integer])
+      iex> OptionParser.parse(["--limit", "yyz"], switches: [limit: :integer])
       { [], [], [limit: "yyz"] }
 
   ## Negation switches
@@ -118,7 +119,8 @@ defmodule OptionParser do
   end
 
   defp parse(["-" <> option|t], aliases, switches, dict, args, invalid, all) do
-    { option, kinds, value } = normalize_option(option, switches, aliases)
+    { option, value } = split_option(option)
+    { option, kinds, value } = normalize_option(option, value, switches, aliases)
 
     if nil?(value) do
       { value, t } =
@@ -153,6 +155,8 @@ defmodule OptionParser do
   defp store_option(dict, invalid, option, value, kinds) do
     { invalid_option, value } =
       cond do
+        :invalid in kinds ->
+          { option, value }
         :boolean in kinds ->
           { nil, value in [true, "true"] }
         :integer in kinds ->
@@ -185,25 +189,31 @@ defmodule OptionParser do
     end
   end
 
-  defp normalize_option(<<?-, option :: binary>>, switches, aliases) do
-    normalize_option(option, switches, aliases)
+  defp normalize_option(<<?-, option :: binary>>, value, switches, _aliases) do
+    normalize_option(get_negated(option, switches), value, switches)
   end
 
-  defp normalize_option(option, switches, aliases) do
-    { option, value } = split_option(option)
-
-    if non_neg = get_non_negated(option, aliases) do
-      kinds = List.wrap(switches[non_neg])
-
-      if :boolean in kinds do
-        { non_neg, kinds, false }
-      else
-        { get_aliased(option, aliases), [:boolean], true }
-      end
+  defp normalize_option(option, value, switches, aliases) do
+    option = get_option(option)
+    if alias = aliases[option] do
+      normalize_option({ :default, alias }, value, switches)
     else
-      atom = get_aliased(option, aliases)
-      { atom, List.wrap(switches[atom]), value }
+      { option, [:invalid], value }
     end
+  end
+
+  defp normalize_option({ :negated, option }, _value, switches) do
+    kinds = List.wrap(switches[option])
+
+    if :boolean in kinds do
+      { option, kinds, false }
+    else
+      { option, [:boolean], true }
+    end
+  end
+
+  defp normalize_option({ :default, option }, value, switches) do
+    { option, List.wrap(switches[option]), value }
   end
 
   defp split_option(option) do
@@ -217,11 +227,17 @@ defmodule OptionParser do
     for <<c <- option>>, into: "", do: << if(c == ?-, do: ?_, else: c) >>
   end
 
-  defp get_aliased(option, aliases) do
-    atom = option |> to_underscore |> binary_to_atom
-    aliases[atom] || atom
+  defp get_option(option) do
+    option |> to_underscore |> binary_to_atom
   end
 
-  defp get_non_negated("no-" <> rest, aliases), do: get_aliased(rest, aliases)
-  defp get_non_negated(_, _),                   do: nil
+  defp get_negated("no-" <> rest = option, switches) do
+    negated = get_option(rest)
+    option  = if Keyword.has_key?(switches, negated), do: negated, else: get_option(option)
+    { :negated, option }
+  end
+
+  defp get_negated(rest, _switches) do
+    { :default, get_option(rest) }
+  end
 end
