@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Compile.AppTest do
     Mix.Project.push InvalidProject
 
     in_fixture "no_mixfile", fn ->
-      lc error inlist [:modules, :maxT, :registered, :included_applications,
+      for error <- [:modules, :maxT, :registered, :included_applications,
                        :applications, :env, :mod, :start_phases] do
         Process.put(:error, error)
         e = catch_error(Mix.Tasks.Compile.App.run([]))

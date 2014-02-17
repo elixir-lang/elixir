@@ -216,7 +216,7 @@ defmodule Regex do
   """
   def groups(regex(re_pattern: re_pattern)) do
     { :namelist, groups } = :re.inspect(re_pattern, :namelist)
-    lc group inlist groups, do: binary_to_atom(group)
+    for group <- groups, do: binary_to_atom(group)
   end
 
   @doc """
@@ -292,7 +292,7 @@ defmodule Regex do
     splits = :re.split(string, compiled, opts)
 
     if Keyword.get(options, :trim, false) do
-      lc split inlist splits, split != "", do: split
+      for split <- splits, split != "", do: split
     else
       splits
     end

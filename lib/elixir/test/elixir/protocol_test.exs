@@ -181,7 +181,7 @@ defmodule ProtocolTest do
   end
 
   defp get_callbacks(module, name, arity) do
-    callbacks = lc { :callback, info } inlist module.__info__(:attributes), do: hd(info)
+    callbacks = for { :callback, info } <- module.__info__(:attributes), do: hd(info)
     List.keyfind(callbacks, { name, arity }, 0) |> elem(1)
   end
 end
@@ -279,7 +279,7 @@ end
 #   end
 #
 #   test "consolidated keeps callbacks" do
-#     callbacks = lc { :callback, info } inlist Sample.__info__(:attributes), do: hd(info)
+#     callbacks = for { :callback, info } <- Sample.__info__(:attributes), do: hd(info)
 #     assert callbacks != []
 #   end
 #

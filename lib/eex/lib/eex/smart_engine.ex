@@ -32,7 +32,7 @@ defmodule EEx.TransformerEngine do
       end
 
       defp transform(list) when is_list(list) do
-        lc i inlist list, do: transform(i)
+        for i <- list, do: transform(i)
       end
 
       defp transform(other) do

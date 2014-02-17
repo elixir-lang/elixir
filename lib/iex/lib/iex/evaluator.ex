@@ -216,7 +216,7 @@ defmodule IEx.Evaluator do
   @doc false
   def format_stacktrace(trace) do
     entries =
-      lc entry inlist trace do
+      for entry <- trace do
         split_entry(Exception.format_stacktrace_entry(entry))
       end
 

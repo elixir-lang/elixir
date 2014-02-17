@@ -643,7 +643,7 @@ defmodule Module do
   def definitions_in(module) do
     assert_not_compiled!(:definitions_in, module)
     table = function_table_for(module)
-    lc { tuple, _, _, _, _, _, _ } inlist :ets.tab2list(table), do: tuple
+    for { tuple, _, _, _, _, _, _ } <- :ets.tab2list(table), do: tuple
   end
 
   @doc """
@@ -662,7 +662,7 @@ defmodule Module do
   def definitions_in(module, kind) do
     assert_not_compiled!(:definitions_in, module)
     table = function_table_for(module)
-    lc { tuple, stored_kind, _, _, _, _, _ } inlist :ets.tab2list(table), stored_kind == kind, do: tuple
+    for { tuple, stored_kind, _, _, _, _, _ } <- :ets.tab2list(table), stored_kind == kind, do: tuple
   end
 
   @doc """
@@ -674,7 +674,7 @@ defmodule Module do
   def make_overridable(module, tuples) do
     assert_not_compiled!(:make_overridable, module)
 
-    lc tuple inlist tuples do
+    for tuple <- tuples do
       case :elixir_def.lookup_definition(module, tuple) do
         false ->
           { name, arity } = tuple

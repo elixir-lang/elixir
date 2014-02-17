@@ -626,7 +626,7 @@ defmodule Enum do
   """
   @spec filter(t, (element -> as_boolean(term))) :: list
   def filter(collection, fun) when is_list(collection) do
-    lc item inlist collection, fun.(item), do: item
+    for item <- collection, fun.(item), do: item
   end
 
   def filter(collection, fun) do
@@ -645,7 +645,7 @@ defmodule Enum do
   """
   @spec filter_map(t, (element -> as_boolean(term)), (element -> element)) :: list
   def filter_map(collection, filter, mapper) when is_list(collection) do
-    lc item inlist collection, filter.(item), do: mapper.(item)
+    for item <- collection, filter.(item), do: mapper.(item)
   end
 
   def filter_map(collection, filter, mapper) do
@@ -872,7 +872,7 @@ defmodule Enum do
   """
   @spec map(t, (element -> any)) :: list
   def map(collection, fun) when is_list(collection) do
-    lc item inlist collection, do: fun.(item)
+    for item <- collection, do: fun.(item)
   end
 
   def map(collection, fun) do
@@ -1172,7 +1172,7 @@ defmodule Enum do
   """
   @spec reject(t, (element -> as_boolean(term))) :: list
   def reject(collection, fun) when is_list(collection) do
-    lc item inlist collection, !fun.(item), do: item
+    for item <- collection, !fun.(item), do: item
   end
 
   def reject(collection, fun) do

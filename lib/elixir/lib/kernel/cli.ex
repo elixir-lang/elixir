@@ -9,14 +9,14 @@ defmodule Kernel.CLI do
   This is the API invoked by Elixir boot process.
   """
   def main(argv) do
-    argv = lc arg inlist argv, do: String.from_char_list!(arg)
+    argv = for arg <- argv, do: String.from_char_list!(arg)
 
     { config, argv } = process_argv(argv, Kernel.CLI.Config.new)
     System.argv(argv)
 
     run fn ->
       command_results = Enum.map(Enum.reverse(config.commands), &process_command(&1, config))
-      command_errors  = lc { :error, msg } inlist command_results, do: msg
+      command_errors  = for { :error, msg } <- command_results, do: msg
       errors          = Enum.reverse(config.errors) ++ command_errors
 
       if errors != [] do
@@ -60,7 +60,7 @@ defmodule Kernel.CLI do
   defp at_exit(status) do
     hooks = :elixir_code_server.call(:flush_at_exit)
 
-    lc hook inlist hooks do
+    for hook <- hooks do
       try do
         hook.(status)
       catch

@@ -73,7 +73,7 @@ defmodule IEx.Introspection do
 
   defp h_mod_fun(mod, fun) when is_atom(mod) and is_atom(fun) do
     if docs = mod.__info__(:docs) do
-      result = lc { {f, arity}, _line, _type, _args, doc } inlist docs, fun == f, doc != false do
+      result = for { {f, arity}, _line, _type, _args, doc } <- docs, fun == f, doc != false do
         h(mod, fun, arity)
         IO.puts ""
       end
@@ -184,7 +184,7 @@ defmodule IEx.Introspection do
     case Kernel.Typespec.beam_types(module) do
       nil   -> nobeam(module)
       []    -> notypes(inspect module)
-      types -> lc type inlist types, do: print_type(type)
+      types -> for type <- types, do: print_type(type)
     end
 
     dont_display_result
@@ -198,7 +198,7 @@ defmodule IEx.Introspection do
       nil   -> nobeam(module)
       types ->
         printed =
-          lc {_, {t, _, _args}} = typespec inlist types, t == type do
+          for {_, {t, _, _args}} = typespec <- types, t == type do
             print_type(typespec)
             typespec
           end
@@ -219,7 +219,7 @@ defmodule IEx.Introspection do
       nil   -> nobeam(module)
       types ->
         printed =
-          lc {_, {t, _, args}} = typespec inlist types, t == type, length(args) == arity do
+          for {_, {t, _, args}} = typespec <- types, t == type, length(args) == arity do
             print_type(typespec)
             typespec
           end
@@ -239,7 +239,7 @@ defmodule IEx.Introspection do
     case beam_specs(module) do
       nil   -> nobeam(module)
       []    -> nospecs(inspect module)
-      specs -> lc spec inlist specs, do: print_spec(spec)
+      specs -> for spec <- specs, do: print_spec(spec)
     end
 
     dont_display_result
@@ -253,7 +253,7 @@ defmodule IEx.Introspection do
       nil   -> nobeam(module)
       specs ->
         printed =
-          lc {_kind, {{f, _arity}, _spec}} = spec inlist specs, f == function do
+          for {_kind, {{f, _arity}, _spec}} = spec <- specs, f == function do
             print_spec(spec)
             spec
           end
@@ -274,7 +274,7 @@ defmodule IEx.Introspection do
       nil   -> nobeam(module)
       specs ->
         printed =
-          lc {_kind, {{f, a}, _spec}} = spec inlist specs, f == function and a == arity do
+          for {_kind, {{f, a}, _spec}} = spec <- specs, f == function and a == arity do
             print_spec(spec)
             spec
           end

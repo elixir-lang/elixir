@@ -144,7 +144,7 @@ defmodule ExUnit.DocTest do
   """
   defmacro doctest(mod, opts \\ []) do
     quote bind_quoted: binding do
-      lc { name, test } inlist ExUnit.DocTest.__doctests__(mod, opts) do
+      for { name, test } <- ExUnit.DocTest.__doctests__(mod, opts) do
         @file '(for doctest at) ' ++ Path.relative_to_cwd(mod.__info__(:compile)[:source])
         def unquote(name)(_), do: unquote(test)
       end
@@ -355,7 +355,7 @@ defmodule ExUnit.DocTest do
   defp extract(module) do
     moduledocs = extract_from_moduledoc(module.__info__(:moduledoc))
 
-    docs = lc doc inlist module.__info__(:docs) do
+    docs = for doc <- module.__info__(:docs) do
       extract_from_doc(doc)
     end |> Enum.concat
 
@@ -371,7 +371,7 @@ defmodule ExUnit.DocTest do
   defp extract_from_doc({_, _, _, _, doc}) when doc in [false, nil], do: []
 
   defp extract_from_doc({ fa, line, _, _, doc}) do
-    lc test inlist extract_tests(line, doc) do
+    for test <- extract_tests(line, doc) do
       test.fun_arity(fa)
     end
   end

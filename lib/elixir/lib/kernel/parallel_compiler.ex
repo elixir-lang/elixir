@@ -128,7 +128,7 @@ defmodule Kernel.ParallelCompiler do
         # Release the module loader which is waiting for an ack
         send child, { ref, :ack }
 
-        available  = lc { pid, _, waiting_module } inlist waiting,
+        available  = for { pid, _, waiting_module } <- waiting,
                         waiting_module == module,
                         do: pid
 

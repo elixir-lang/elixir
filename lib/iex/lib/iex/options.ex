@@ -51,7 +51,7 @@ defmodule IEx.Options do
   """
   def get(name)
 
-  lc key inlist @supported_options do
+  for key <- @supported_options do
     def get(unquote(key)) do
       { :ok, value } = :application.get_env(:iex, unquote(key))
       value

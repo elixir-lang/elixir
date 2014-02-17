@@ -113,7 +113,7 @@ defmodule Macro do
   end
 
   def update_meta(list, fun) when is_list(list) do
-    lc x inlist list, do: update_meta(x, fun)
+    for x <- list, do: update_meta(x, fun)
   end
 
   def update_meta(other, _fun) do
@@ -647,7 +647,7 @@ defmodule Macro do
         :elixir_lexical.record_remote(receiver, env.lexical_tracker)
         { receiver, true }
       aliases ->
-        aliases = lc alias inlist aliases, do: elem(do_expand_once(alias, env), 0)
+        aliases = for alias <- aliases, do: elem(do_expand_once(alias, env), 0)
 
         case :lists.all(&is_atom/1, aliases) do
           true ->

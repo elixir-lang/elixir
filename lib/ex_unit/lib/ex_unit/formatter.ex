@@ -163,7 +163,7 @@ defmodule ExUnit.Formatter do
       String.strip(str)
     else
       "\n" <>
-      Enum.join((lc line inlist String.split(str, ~r/\n/), do: String.duplicate(" ", max) <> line ), "\n")
+      Enum.join((for line <- String.split(str, ~r/\n/), do: String.duplicate(" ", max) <> line ), "\n")
     end
   end
 

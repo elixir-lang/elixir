@@ -8,7 +8,7 @@ defmodule Mix.RebarTest do
   defmodule MyPath do
     @behaviour Mix.SCM
 
-    lc { name, arity } inlist Mix.SCM.Path.__info__(:functions) do
+    for { name, arity } <- Mix.SCM.Path.__info__(:functions) do
       args = tl Enum.map 0..arity, &{ :"x#{&1}", [], nil }
       def unquote(name)(unquote_splicing(args)) do
         Mix.SCM.Path.unquote(name)(unquote_splicing(args))

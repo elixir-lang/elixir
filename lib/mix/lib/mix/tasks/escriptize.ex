@@ -150,7 +150,7 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp to_tuples(files) do
-    lc f inlist files do
+    for f <- files do
       { String.to_char_list!(Path.basename(f)), File.read!(f) }
     end
   end

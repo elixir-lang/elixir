@@ -2167,13 +2167,13 @@ defmodule Kernel do
   end
 
   defp do_binding(context, vars, in_match) do
-    lc { v, c } inlist vars, c == context, v != :_@CALLER do
+    for { v, c } <- vars, c == context, v != :_@CALLER do
       { v, wrap_binding(in_match, { v, [], c }) }
     end
   end
 
   defp do_binding(list, context, vars, in_match) do
-    lc { v, c } inlist vars, c == context, :lists.member(v, list) do
+    for { v, c } <- vars, c == context, :lists.member(v, list) do
       { v, wrap_binding(in_match, { v, [], c }) }
     end
   end
@@ -3604,7 +3604,7 @@ defmodule Kernel do
 
       append_first = Keyword.get(opts, :append_first, false)
 
-      lc fun inlist List.wrap(funs) do
+      for fun <- List.wrap(funs) do
         { name, args } =
           case Macro.decompose_call(fun) do
             { _, _ } = pair -> pair
@@ -3798,14 +3798,14 @@ defmodule Kernel do
       true ->
         case mod do
           ?s -> String.split(string)
-          ?a -> lc p inlist String.split(string), do: binary_to_atom(p)
-          ?c -> lc p inlist String.split(string), do: String.to_char_list!(p)
+          ?a -> for p <- String.split(string), do: binary_to_atom(p)
+          ?c -> for p <- String.split(string), do: String.to_char_list!(p)
         end
       false ->
         case mod do
           ?s -> quote do: String.split(unquote(string))
-          ?a -> quote do: lc(p inlist String.split(unquote(string)), do: binary_to_atom(p))
-          ?c -> quote do: lc(p inlist String.split(unquote(string)), do: String.to_char_list!(p))
+          ?a -> quote do: for(p <- String.split(unquote(string)), do: binary_to_atom(p))
+          ?c -> quote do: for(p <- String.split(unquote(string)), do: String.to_char_list!(p))
         end
     end
   end

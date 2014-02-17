@@ -62,8 +62,8 @@ defmodule Protocol.Consolidation do
   end
 
   defp extract_matching_by_attribute(paths, prefix, callback) do
-    lc path inlist paths,
-       file inlist list_dir(path),
+    for path <- paths,
+       file <- list_dir(path),
        mod = extract_from_file(path, file, prefix, callback),
        do: mod
   end
@@ -160,7 +160,7 @@ defmodule Protocol.Consolidation do
   # impl_for/1 dispatch version.
   defp change_debug_info({ protocol, any, code }, types) do
     types   = if any, do: types, else: List.delete(types, Any)
-    all     = [Any] ++ lc { _guard, mod } inlist Protocol.builtin, do: mod
+    all     = [Any] ++ for { _guard, mod } <- Protocol.builtin, do: mod
     structs = types -- all
     change_impl_for(code, protocol, types, structs, false, [])
   end
@@ -174,7 +174,7 @@ defmodule Protocol.Consolidation do
   defp change_impl_for([{ :function, line, :impl_for, 1, _ }|t], protocol, types, structs, is_protocol, acc) do
     fallback = if Any in types, do: Module.concat(protocol, Any), else: nil
 
-    clauses = lc { guard, mod } inlist Protocol.builtin,
+    clauses = for { guard, mod } <- Protocol.builtin,
                   mod in types,
                   do: builtin_clause_for(mod, guard, protocol, line)
 
@@ -187,7 +187,7 @@ defmodule Protocol.Consolidation do
 
   defp change_impl_for([{ :function, line, :struct_impl_for, 1, _ }|t], protocol, types, structs, is_protocol, acc) do
     fallback = if Any in types, do: Module.concat(protocol, Any), else: nil
-    clauses = lc struct inlist structs, do: each_struct_clause_for(struct, protocol, line)
+    clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, line)
     clauses = clauses ++ [fallback_clause_for(fallback, protocol, line)]
 
     change_impl_for(t, protocol, types, structs, is_protocol,

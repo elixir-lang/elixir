@@ -41,7 +41,7 @@ defmodule Record.Extractor do
 
   # Parse the given file and retrieve all existent records.
   defp retrieve_records(form) do
-    lc { :attribute, _, :record, record } inlist form, do: record
+    for { :attribute, _, :record, record } <- form, do: record
   end
 
   # Read a file and return its abstract syntax form that also

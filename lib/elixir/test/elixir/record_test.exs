@@ -19,7 +19,7 @@ end
 
 defmodule RecordTest.DynamicOpts do
   @a [foo: 1..30]
-  defrecord State, (lc {name, _interval} inlist @a, do: {name, nil})
+  defrecord State, (for {name, _interval} <- @a, do: {name, nil})
 end
 
 ## With types

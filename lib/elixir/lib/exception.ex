@@ -342,7 +342,7 @@ defmodule Exception do
   end
 
   defp format_arity(arity) when is_list(arity) do
-    inspected = lc x inlist arity, do: inspect(x)
+    inspected = for x <- arity, do: inspect(x)
     "(#{Enum.join(inspected, ", ")})"
   end
 

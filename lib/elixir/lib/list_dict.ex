@@ -31,11 +31,11 @@ defmodule ListDict do
   end
 
   def keys(dict) do
-    lc { key, _ } inlist dict, do: key
+    for { key, _ } <- dict, do: key
   end
 
   def values(dict) do
-    lc { _, value } inlist dict, do: value
+    for { _, value } <- dict, do: value
   end
 
   def size(dict) do
@@ -105,11 +105,11 @@ defmodule ListDict do
   end
 
   def take(dict, keys) do
-    lc { k, _ } = tuple inlist dict, k in keys, do: tuple
+    for { k, _ } = tuple <- dict, k in keys, do: tuple
   end
 
   def drop(dict, keys) do
-    lc { k, _ } = tuple inlist dict, not k in keys, do: tuple
+    for { k, _ } = tuple <- dict, not k in keys, do: tuple
   end
 
   def update!([{key, value}|dict], key, fun) do

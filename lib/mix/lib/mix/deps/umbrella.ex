@@ -38,7 +38,7 @@ defmodule Mix.Deps.Umbrella do
   end
 
   defp extract_umbrella(paths) do
-    lc path inlist paths do
+    for path <- paths do
       app = path |> Path.basename |> String.downcase |> binary_to_atom
       { app, path }
     end
@@ -46,7 +46,7 @@ defmodule Mix.Deps.Umbrella do
 
   defp filter_umbrella(pairs, nil), do: pairs
   defp filter_umbrella(pairs, apps) when is_list(apps) do
-    lc { app, _ } = pair inlist pairs, app in apps, do: pair
+    for { app, _ } = pair <- pairs, app in apps, do: pair
   end
 
   defp to_umbrella_dep(paths, build) do

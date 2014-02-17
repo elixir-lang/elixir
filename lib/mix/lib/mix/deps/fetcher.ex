@@ -95,7 +95,7 @@ defmodule Mix.Deps.Fetcher do
   defp require_compilation(deps) do
     envs = Path.wildcard("_build/*/lib")
 
-    lc Mix.Dep[app: app] inlist deps, env inlist envs do
+    for Mix.Dep[app: app] <- deps, env <- envs do
       File.touch Path.join [env, app, ".compile"]
     end
   end

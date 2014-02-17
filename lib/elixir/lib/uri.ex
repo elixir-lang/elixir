@@ -259,7 +259,7 @@ defmodule URI do
   # Regex.run returns empty strings sometimes. We want
   # to replace those with nil for consistency.
   defp nillify(l) do
-    lc s inlist l do
+    for s <- l do
       if size(s) > 0, do: s, else: nil
     end
   end

@@ -402,7 +402,7 @@ defmodule Kernel.TypespecTest do
 
     types = Enum.reverse(types)
 
-    lc { type, definition } inlist Enum.zip(types, quoted) do
+    for { type, definition } <- Enum.zip(types, quoted) do
       ast = Kernel.Typespec.type_to_ast(type)
       assert Macro.to_string(quote do: @type unquote(ast)) == Macro.to_string(definition)
     end
@@ -457,7 +457,7 @@ defmodule Kernel.TypespecTest do
       Enum.reverse @spec
     end
 
-    lc { { { _, _ }, spec }, definition } inlist Enum.zip(compiled, specs) do
+    for { { { _, _ }, spec }, definition } <- Enum.zip(compiled, specs) do
       quoted = quote do: @spec unquote(Kernel.Typespec.spec_to_ast(:a, spec))
       assert Macro.to_string(quoted) == Macro.to_string(definition)
     end

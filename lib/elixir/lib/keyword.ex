@@ -176,7 +176,7 @@ defmodule Keyword do
   """
   @spec get_values(t, key) :: [value]
   def get_values(keywords, key) when is_atom(key) do
-    lc { k, v } inlist keywords, key == k, do: v
+    for { k, v } <- keywords, key == k, do: v
   end
 
   @doc """
@@ -194,7 +194,7 @@ defmodule Keyword do
   """
   @spec keys(t) :: [key]
   def keys(keywords) do
-    lc { key, _ } inlist keywords, do: key
+    for { key, _ } <- keywords, do: key
   end
 
   @doc """
@@ -208,7 +208,7 @@ defmodule Keyword do
   """
   @spec values(t) :: [value]
   def values(keywords) do
-    lc { _, value } inlist keywords, do: value
+    for { _, value } <- keywords, do: value
   end
 
   @doc """
@@ -229,7 +229,7 @@ defmodule Keyword do
   """
   @spec delete(t, key, value) :: t
   def delete(keywords, key, value) when is_atom(key) do
-    lc { k, v } = tuple inlist keywords, key != k or value != v, do: tuple
+    for { k, v } = tuple <- keywords, key != k or value != v, do: tuple
   end
 
   @doc """
@@ -252,7 +252,7 @@ defmodule Keyword do
   """
   @spec delete(t, key) :: t
   def delete(keywords, key) when is_atom(key) do
-    lc { k, _ } = tuple inlist keywords, key != k, do: tuple
+    for { k, _ } = tuple <- keywords, key != k, do: tuple
   end
 
   @doc """
@@ -340,7 +340,7 @@ defmodule Keyword do
   """
   @spec merge(t, t) :: t
   def merge(d1, d2) when is_list(d1) and is_list(d2) do
-    d2 ++ lc({ k, _ } = tuple inlist d1, not has_key?(d2, k), do: tuple)
+    d2 ++ for({ k, _ } = tuple <- d1, not has_key?(d2, k), do: tuple)
   end
 
   @doc """
@@ -481,7 +481,7 @@ defmodule Keyword do
 
   """
   def take(dict, keys) do
-    lc { k, _ } = tuple inlist dict, k in keys, do: tuple
+    for { k, _ } = tuple <- dict, k in keys, do: tuple
   end
 
   @doc """
@@ -500,7 +500,7 @@ defmodule Keyword do
 
   """
   def drop(dict, keys) do
-    lc { k, _ } = tuple inlist dict, not k in keys, do: tuple
+    for { k, _ } = tuple <- dict, not k in keys, do: tuple
   end
 
   @doc """

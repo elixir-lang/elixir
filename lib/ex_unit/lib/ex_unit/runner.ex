@@ -121,7 +121,7 @@ defmodule ExUnit.Runner do
     include = config.include
     exclude = config.exclude
 
-    lc test inlist tests do
+    for test <- tests do
       tags = Keyword.put(test.tags, :test, test.name)
       case ExUnit.Filters.eval(include, exclude, tags) do
         :ok             -> test.tags(tags)

@@ -66,7 +66,7 @@ defmodule Mix.Deps.Lock do
   Receives a keyword list and writes it as the latest lock.
   """
   def write(dict) do
-    sorted = lc { app, rev } inlist Enum.sort(dict), rev != nil, do: { app, rev }
+    sorted = for { app, rev } <- Enum.sort(dict), rev != nil, do: { app, rev }
 
     unless sorted == read do
       lines  = Enum.map_join sorted, ",\n  ", fn { app, rev } ->

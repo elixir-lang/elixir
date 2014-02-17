@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       all_entries = read_manifest(manifest)
 
       removed =
-        lc { _b, _m, source, _d } inlist all_entries, not(source in all), do: source
+        for { _b, _m, source, _d } <- all_entries, not(source in all), do: source
 
       changed =
         if Enum.any?(changed, &not(&1 in all)) do
@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Compile.Elixir do
         else
           # Otherwise compile changed plus each entry in all that's
           # not in the manifest (i.e. new files)
-          (changed ++ lc i inlist all,
+          (changed ++ for i <- all,
                          not Enum.any?(all_entries, fn { _b, _m, s, _d } -> s == i end),
                          do: i)
         end
@@ -96,7 +96,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     defp remove_stale_entries([], changed, removed, acc) do
       # If any of the dependencies for the remaining entries
       # were removed, get its source so we can removed them.
-      next_changed = lc { _b, _m, source, deps } inlist acc,
+      next_changed = for { _b, _m, source, deps } <- acc,
                       Enum.any?(deps, &(&1 in removed)),
                       do: source
 

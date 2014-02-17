@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Local do
     shell   = Mix.shell
     modules = Mix.Local.all_tasks
 
-    docs = lc module inlist modules do
+    docs = for module <- modules do
       { Mix.Task.task_name(module), Mix.Task.shortdoc(module) }
     end
 

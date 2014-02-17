@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Help do
     shell   = Mix.shell
     modules = Mix.Task.all_modules
 
-    docs = lc module inlist modules,
+    docs = for module <- modules,
         doc = Mix.Task.shortdoc(module) do
       { "mix " <> Mix.Task.task_name(module), doc }
     end

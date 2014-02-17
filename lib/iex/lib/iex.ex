@@ -383,6 +383,6 @@ defmodule IEx do
   end
 
   defp run_after_spawn do
-    lc fun inlist Enum.reverse(after_spawn), do: fun.()
+    for fun <- Enum.reverse(after_spawn), do: fun.()
   end
 end

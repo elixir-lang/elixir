@@ -35,7 +35,7 @@ defmodule Protocol do
     quote unquote: false do
       # Get all builtin types and add Any to have all modules.
       builtin = Protocol.builtin
-      all     = [Any] ++ lc { guard, mod } inlist builtin, do: mod
+      all     = [Any] ++ for { guard, mod } <- builtin, do: mod
 
       # == Deprecated records handling ==
       { arg, impl } = Protocol.rec_impl_for(__MODULE__, all)
@@ -55,7 +55,7 @@ defmodule Protocol do
       end
 
       # Define the implementation for builtins.
-      lc { guard, mod } inlist builtin do
+      for { guard, mod } <- builtin do
         target = Module.concat(__MODULE__, mod)
 
         Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
@@ -120,7 +120,7 @@ defmodule Protocol do
   end
 
   defp do_defimpl(protocol, [do: block, for: for]) when is_list(for) do
-    lc f inlist for, do: do_defimpl(protocol, [do: block, for: f])
+    for f <- for, do: do_defimpl(protocol, [do: block, for: f])
   end
 
   defp do_defimpl(protocol, [do: block, for: for]) do
@@ -229,10 +229,10 @@ defmodule Protocol.DSL do
   defmacro def({ name, _, args }) when is_atom(name) and is_list(args) do
     arity = length(args)
 
-    type_args = lc _ inlist :lists.seq(2, arity), do: quote(do: term)
+    type_args = for _ <- :lists.seq(2, arity), do: quote(do: term)
     type_args = [quote(do: t) | type_args]
 
-    call_args = lc i inlist :lists.seq(2, arity),
+    call_args = for i <- :lists.seq(2, arity),
                   do: { binary_to_atom(<<?x, i + 64>>), [], __MODULE__ }
     call_args = [quote(do: t) | call_args]
 
@@ -269,7 +269,7 @@ defmodule Protocol.DSL do
         tuple = { name, arity }
         specs = Module.get_attribute(module, :spec)
 
-        found = lc { k, v } inlist specs, k == tuple do
+        found = for { k, v } <- specs, k == tuple do
           Kernel.Typespec.define_callback(module, tuple, v)
           true
         end

@@ -118,7 +118,7 @@ defmodule Stream do
         handle_reduce reduce.({ command, [acc|accs] }), after_funs, last
       catch
         kind, reason ->
-          lc fun inlist after_funs, do: fun.()
+          for fun <- after_funs, do: fun.()
           :erlang.raise(kind, reason, :erlang.get_stacktrace)
       end
     end
@@ -128,12 +128,12 @@ defmodule Stream do
         { :suspended, [acc|accs], continuation } ->
           { :suspended, acc, &do_each(continuation, after_funs, last, accs, &1) }
         { :halted, [acc|_] } ->
-          lc fun inlist after_funs, do: fun.()
+          for fun <- after_funs, do: fun.()
           { :halted, acc }
         { :done, [acc|_] = accs } ->
           case last do
             nil ->
-              lc fun inlist after_funs, do: fun.()
+              for fun <- after_funs, do: fun.()
               { :done, acc }
             { last, fun } ->
               res = case last.(fun).(accs) do
@@ -141,7 +141,7 @@ defmodule Stream do
                 { :halt, [acc|_] }    -> { :halted, acc }
                 { :suspend, [acc|_] } -> { :suspended, acc, &({ :done, &1 |> elem(1) }) }
               end
-              lc fun inlist after_funs, do: fun.()
+              for fun <- after_funs, do: fun.()
               res
           end
       end
