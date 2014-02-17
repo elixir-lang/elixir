@@ -3,6 +3,10 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.ComprehensionTest do
   use ExUnit.Case, async: true
 
+  defp to_bin(x) do
+    << x >>
+  end
+
   ## Enum comprehensions (the common case)
 
   test "for comprehensions" do
@@ -48,6 +52,16 @@ defmodule Kernel.ComprehensionTest do
            [8, 18]
   end
 
+  test "for comprehensions into list" do
+    enum = 1..3
+    assert for(x <- enum, into: [], do: x * 2) == [2, 4, 6]
+  end
+
+  test "for comprehensions into binary" do
+    enum = 1..3
+    assert for(x <- enum, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
+  end
+
   ## List generators (inlined by the compiler)
 
   test "list for comprehensions" do
@@ -73,6 +87,16 @@ defmodule Kernel.ComprehensionTest do
     end
   end
 
+  test "list for comprehensions into list" do
+    enum = [1, 2, 3]
+    assert for(x <- enum, into: [], do: x * 2) == [2, 4, 6]
+  end
+
+  test "list for comprehensions into binaries" do
+    enum = [1, 2, 3]
+    assert for(x <- enum, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
+  end
+
   ## Binary generators (inlined by the compiler)
 
   test "binary for comprehensions" do
@@ -88,6 +112,16 @@ defmodule Kernel.ComprehensionTest do
   test "binary for comprehensions with two generators" do
     assert (for << x <- <<1, 2, 3>> >>, << y <- <<4, 5, 6>> >>, y / 2 == x, do: x * y) ==
            [8, 18]
+  end
+
+  test "binary for comprehensions into list" do
+    bin = <<1, 2, 3>>
+    assert for(<< x <- bin >>, into: [], do: x * 2) == [2, 4, 6]
+  end
+
+  test "binary for comprehensions into binaries" do
+    bin = <<1, 2, 3>>
+    assert for(<< x <- bin >>, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
   end
 
   ## Old comprehensions

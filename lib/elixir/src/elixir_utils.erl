@@ -58,6 +58,9 @@ elixir_to_erl(Tree) when is_tuple(Tree) ->
 elixir_to_erl([]) ->
   { nil, 0 };
 
+elixir_to_erl(<<>>) ->
+  { bin, 0, [] };
+
 elixir_to_erl(Tree) when is_list(Tree) ->
   elixir_to_erl_cons_1(Tree, []);
 

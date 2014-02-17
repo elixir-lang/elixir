@@ -546,16 +546,22 @@ defmodule Kernel.ErrorsTest do
       'try do\n1\nrescue\nUndefinedFunctionError[arity: 1] -> false\nend'
   end
 
-  test :invalid_bc_return do
+  test :invalid_for_without_generators do
     assert_compile_fail CompileError,
-      "nofile:1: a bit comprehension expects a bit string << >> to be returned",
-      'bc x inlist [1, 2, 3], do: x'
+      "nofile:1: for comprehensions must start with a generator",
+      'for x, do: x'
   end
 
   test :invalid_for_bit_generator do
     assert_compile_fail CompileError,
       "nofile:1: bitstring fields without size are not allowed in bitstring generators",
       'for << x :: binary <- "123" >>, do: x'
+  end
+
+  test :invalid_for_with_into do
+    assert_compile_fail CompileError,
+      "nofile:1: :into in comprehensions must be an empty list or an empty string at compile time, got: nil",
+      'for x <- [1,2,3], into: nil, do: x'
   end
 
   test :unbound_cond do

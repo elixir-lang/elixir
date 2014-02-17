@@ -272,6 +272,11 @@ defmodule Kernel.ExpansionTest do
            quote do: (for(<< <<a>> <- b() >>, do: c = 1); c())
   end
 
+  # test "variables inside comprehensions options do not leak" do
+  #   assert expand(quote do: (for(a <- b, into: c = [], do: 1); c)) ==
+  #          quote do: (for(a <- b(), do: 1, into: c = []); c())
+  # end
+
   ## Capture
 
   test "&: keeps locals" do

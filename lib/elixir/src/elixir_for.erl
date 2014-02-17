@@ -5,15 +5,30 @@
 %% Expansion
 
 expand(Meta, Args, E) ->
-  case elixir_utils:split_last(Args) of
-    { Cases, [{do,Expr}] } ->
-      { ECases, EC } = lists:mapfoldl(fun expand/2, E, Cases),
-      { EExpr, _ }   = elixir_exp:expand(Expr, EC),
-      { { for, Meta, ECases ++ [[{do,EExpr}]] }, E };
-    _ ->
-      elixir_errors:compile_error(Meta, E#elixir_env.file,
-        "missing do keyword in for comprehension")
-  end.
+  { Cases, Block } =
+    case elixir_utils:split_last(Args) of
+      { OuterCases, OuterOpts } when is_list(OuterOpts) ->
+        case elixir_utils:split_last(OuterCases) of
+          { InnerCases, InnerOpts } when is_list(InnerOpts) ->
+            { InnerCases, InnerOpts ++ OuterOpts };
+          _ ->
+            { OuterCases, OuterOpts }
+        end;
+      _ ->
+        { Args, [] }
+    end,
+
+  { Expr, Opts } =
+    case lists:keyfind(do, 1, Block) of
+      { do, Do } -> { Do, lists:keydelete(do, 1, Block) };
+      _ -> elixir_errors:compile_error(Meta, E#elixir_env.file,
+            "missing do keyword in for comprehension")
+    end,
+
+  { EOpts, EO }  = elixir_exp:expand(Opts, E),
+  { ECases, EC } = lists:mapfoldl(fun expand/2, EO, Cases),
+  { EExpr, _ }   = elixir_exp:expand(Expr, EC),
+  { { for, Meta, ECases ++ [[{do,EExpr}|EOpts]] }, E }.
 
 expand({'<-', Meta, [Left, Right]}, E) ->
   { ERight, ER } = elixir_exp:expand(Right, E),
@@ -42,10 +57,24 @@ translate(Meta, Args, S) ->
   Acc  = { var, Line, AccName },
   Var  = { var, Line, VarName },
 
-  { Cases, [{do,Expr}] } = elixir_utils:split_last(Args),
-  { TCases, SC } = translate_gen(Meta, Cases, [], SV),
-  { TExpr, SE } = elixir_translator:translate(Expr, SC),
-  { build(Line, TCases, TExpr, Var, Acc, SE), elixir_scope:mergef(SV, SE) }.
+  { Cases, [{do,Expr}|Opts] } = elixir_utils:split_last(Args),
+  Into = proplists:get_value(into, Opts, []),
+  { TInto, SI }  = elixir_translator:translate(Into, SV),
+  { TCases, SC } = translate_gen(Meta, Cases, [], SI),
+  { TExpr, SE }  = elixir_translator:translate(Expr, SC),
+
+  %% TODO: Get rid of this code once we support into protocol
+  case TInto of
+    { nil, _ } -> ok;
+    { bin, _, [] } -> ok;
+    _ ->
+      elixir_errors:compile_error(Meta, S#elixir_scope.file,
+        ":into in comprehensions must be an empty list or an empty string at compile time, got: ~ts",
+        ['Elixir.Macro':to_string(Into)])
+  end,
+
+  { build(Line, TCases, comprehension_expr(TInto, TExpr), TInto, Var, Acc, SE),
+    elixir_scope:mergef(SI, SE) }.
 
 translate_gen(ForMeta, [{ '<-', Meta, [Left, Right] }|T], Acc, S) ->
   { TLeft, TRight, TFilters, TT, TS } = translate_gen(Meta, Left, Right, T, S),
@@ -53,7 +82,7 @@ translate_gen(ForMeta, [{ '<-', Meta, [Left, Right] }|T], Acc, S) ->
   translate_gen(ForMeta, TT, TAcc, TS);
 translate_gen(ForMeta, [{ '<<>>', _, [ { '<-', Meta, [Left, Right] } ] }|T], Acc, S) ->
   { TLeft, TRight, TFilters, TT, TS } = translate_gen(Meta, Left, Right, T, S),
-  TAcc = [{ bit, Meta, TLeft, TRight, TFilters }|Acc],
+  TAcc = [{ bin, Meta, TLeft, TRight, TFilters }|Acc],
   case elixir_bitstring:has_size(TLeft) of
     true  -> translate_gen(ForMeta, TT, TAcc, TS);
     false ->
@@ -90,35 +119,44 @@ collect_filters([], Acc) ->
 
 %% If all we have is one enum generator, we check if it is a list
 %% for optimization otherwise fallback to the reduce generator.
-build(Line, [{ enum, Meta, Left, Right, Filters }] = Orig, Expr, Var, Acc, S) ->
+build(Line, [{ enum, Meta, Left, Right, Filters }] = Orig, { inline, Expr }, Into, Var, Acc, S) ->
   case Right of
     { cons, _, _, _ } ->
-      build_comprehension(lc, Line, Orig, Expr);
+      build_comprehension(Line, Orig, Expr, Into);
     { Other, _, _ } when Other == tuple; Other == map ->
-      build_reduce(Orig, Expr, Acc, S);
+      build_reduce(Orig, Expr, Into, Acc, S);
     _ ->
-      Gens = [{ enum, Meta, Left, Var, Filters }],
+      Clauses = [{ enum, Meta, Left, Var, Filters }],
 
       {'case', -1, Right, [
         {clause, -1,
           [Var],
           [[?wrap_call(Line, erlang, is_list, [Var])]],
-          [build_comprehension(lc, Line, Gens, Expr)]},
+          [build_comprehension(Line, Clauses, Expr, Into)]},
         {clause, -1,
           [Var],
           [],
-          [build_reduce(Gens, Expr, Var, Acc)]}
+          [build_reduce(Clauses, Expr, Into, Acc, S)]}
       ]}
   end;
 
-build(Line, Clauses, Expr, _Var, Acc, S) ->
-  case lists:all(fun(Clause) -> element(1, Clause) == bit end, Clauses) of
-    true  -> build_comprehension(lc, Line, Clauses, Expr);
-    false -> build_reduce(Clauses, Expr, Acc, S)
+build(Line, Clauses, { Kind, Expr }, Into, _Var, Acc, S) ->
+  case (Kind == inline) andalso
+       lists:all(fun(Clause) -> element(1, Clause) == bin end, Clauses) of
+    true  -> build_comprehension(Line, Clauses, Expr, Into);
+    false -> build_reduce(Clauses, Expr, Into, Acc, S)
   end.
 
-build_reduce(Clauses, Expr, Acc, S) ->
-  ?wrap_call(0, lists, reverse, [build_reduce_clause(Clauses, Expr, {nil, 0}, Acc, S)]).
+%% TODO: Extend this to support the into protocol
+build_reduce(Clauses, Expr, Into, Acc, S)
+    when (element(1, Into) == nil) orelse (element(1, Into) == cons) ->
+  ListExpr = {cons, 0, Expr, Acc},
+  ?wrap_call(0, lists, reverse,
+    [build_reduce_clause(Clauses, ListExpr, Into, Acc, S)]);
+build_reduce(Clauses, Expr, {bin, _, _} = Into, Acc, S) ->
+  {bin, Line, Elements} = Expr,
+  BinExpr = {bin, Line, [{bin_element, Line, Acc, default, [bitstring]}|Elements]},
+  build_reduce_clause(Clauses, BinExpr, Into, Acc, S).
 
 %% Helpers
 
@@ -147,7 +185,7 @@ build_reduce_clause([{ enum, Meta, Left, Right, Filters }|T], Expr, Arg, Acc, S)
   Tuple = ?wrap_call(Line, 'Elixir.Enumerable', reduce, Args),
   ?wrap_call(Line, erlang, element, [{integer, Line, 2}, Tuple]);
 
-build_reduce_clause([{ bit, Meta, Left, Right, Filters }|T], Expr, Arg, Acc, S) ->
+build_reduce_clause([{ bin, Meta, Left, Right, Filters }|T], Expr, Arg, Acc, S) ->
   { TailName, _, ST } = elixir_scope:build_var('_', S),
   { FunName, _, SF } = elixir_scope:build_var('_', ST),
 
@@ -183,8 +221,8 @@ build_reduce_clause([{ bit, Meta, Left, Right, Filters }|T], Expr, Arg, Acc, S) 
     {named_fun, Line, element(3, Fun), Clauses},
     [Right, Arg]};
 
-build_reduce_clause([], Expr, _Arg, Acc, _S) ->
-  {cons, 0, Expr, Acc}.
+build_reduce_clause([], Expr, _Arg, _Acc, _S) ->
+  Expr.
 
 is_var({var, _, _}) -> true;
 is_var(_) -> false.
@@ -198,19 +236,32 @@ no_var(Elements) ->
 no_var_expr({ var, Line, _ }) ->
   {var, Line, '_'}.
 
-build_comprehension(Kind, Line, Clauses, Expr) ->
-  {Kind, Line, Expr, build_comprehension_clause(Clauses)}.
+build_comprehension(Line, Clauses, Expr, Into) ->
+  {comprehension_kind(Into), Line, Expr, comprehension_clause(Clauses)}.
 
-build_comprehension_clause([{ Kind, Meta, Left, Right, Filters }|T]) ->
+comprehension_clause([{ Kind, Meta, Left, Right, Filters }|T]) ->
   Line = ?line(Meta),
-  [{comprehension_clause(Kind), Line, Left, Right}] ++
+  [{comprehension_generator(Kind), Line, Left, Right}] ++
     comprehension_filter(Line, Filters) ++
-    build_comprehension_clause(T);
-build_comprehension_clause([]) ->
+    comprehension_clause(T);
+comprehension_clause([]) ->
   [].
 
-comprehension_clause(enum) -> generate;
-comprehension_clause(bit) -> b_generate.
+comprehension_kind({ nil, _ }) -> lc;
+comprehension_kind({ bin, _, [] }) -> bc.
+
+comprehension_generator(enum) -> generate;
+comprehension_generator(bin) -> b_generate.
+
+comprehension_expr({ bin, _, [] }, { bin, _, _ } = Expr) ->
+  { inline, Expr };
+comprehension_expr({ bin, Line, [] }, Expr) ->
+  BinExpr = { bin, Line, [{ bin_element, Line, Expr, default, [bitstring] }] },
+  { inline, BinExpr };
+comprehension_expr({ nil, _ }, Expr) ->
+  { inline, Expr };
+comprehension_expr(_Into, Expr) ->
+  { protocol, Expr }.
 
 comprehension_filter(_Line, { atom, _, true }) ->
   [];
