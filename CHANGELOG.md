@@ -8,6 +8,7 @@
   * [Map] Add a Map module and support R17 maps and structs
   * [Regex] Regexes no longer needs the "g" option when there is a need to use named captures
   * [StringIO] Add a `StringIO` module that allows a String to be used as IO device
+  * [System] Add `System.delete_env/1` to remove a variable from the environment
 
 * Bug fixes
   * [Mix] Automatically recompile on outdated Elixir version and show proper error messages
