@@ -179,4 +179,31 @@ defmodule Mix.DepsTest do
       assert Enum.map(Mix.Deps.loaded, &(&1.app)) == [:git_repo, :deps_repo]
     end
   end
+
+  defmodule IdentityRemoteConverger do
+    @behaviour Mix.RemoteConverger
+
+    def remote?(_app), do: true
+
+    def converge(deps) do
+      Process.put(:remote_converger, true)
+      deps
+    end
+  end
+
+  test "remote converger" do
+    Mix.Project.push ConvergedDepsApp
+    Mix.RemoteConverger.register(IdentityRemoteConverger)
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Get.run([])
+
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
+      assert_received { :mix_shell, :info, [^message] }
+
+      assert Process.get(:remote_converger)
+    end
+  after
+    Mix.RemoteConverger.register(nil)
+  end
 end

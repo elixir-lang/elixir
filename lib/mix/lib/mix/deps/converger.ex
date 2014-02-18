@@ -40,9 +40,44 @@ defmodule Mix.Deps.Converger do
   an updated dependency in case some processing is done.
   """
   def all(rest, callback) do
-    main = Mix.Deps.Loader.children
-    apps = Enum.map(main, &(&1.app))
-    all(main, [], [], apps, callback, rest)
+    main      = Mix.Deps.Loader.children
+    apps      = Enum.map(main, &(&1.app))
+    converger = Mix.RemoteConverger.get
+
+    # Run converger for all dependencies not handled by remote
+    # converger. If `rest` is not nil we know dependencies are
+    # being updated or fetched for the first time (only then do
+    # we want the remote converger to run)
+    result =
+      all(main, [], [], apps, callback, rest, fn dep ->
+        if not nil?(rest) &&
+           converger &&
+           converger.remote?(dep.app) do
+          { :loaded, dep }
+        else
+          { :unloaded, dep }
+        end
+      end)
+
+    # Run remote converger if one is available and rerun mix's
+    # converger with the new information
+    case converger && result do
+      { deps, rest } when not nil?(rest) ->
+        converged_deps = converger.converge(main)
+                         |> HashDict.new(&{ &1.app, &1 })
+        deps = Enum.reject(deps, &converger.remote?(&1.app))
+               |> HashDict.new(&{ &1.app, &1 })
+
+        all(main, [], [], apps, callback, rest, fn dep ->
+          cond do
+            cached = deps[dep.app] -> { :loaded, cached }
+            cached = converged_deps[dep.app] -> { :unloaded, cached }
+            true -> { :unloaded, dep }
+          end
+        end)
+      _ ->
+        result
+    end
   end
 
   # We traverse the tree of dependencies in a breadth-
@@ -84,25 +119,32 @@ defmodule Mix.Deps.Converger do
   # Now, since `d` was specified in a parent project, no
   # exception is going to be raised since d is considered
   # to be the authorative source.
-  defp all([dep|t], acc, upper_breadths, current_breadths, callback, rest) do
+  defp all([dep|t], acc, upper_breadths, current_breadths, callback, rest, cache) do
     cond do
       new_acc = diverged_deps(acc, upper_breadths, dep) ->
-        all(t, new_acc, upper_breadths, current_breadths, callback, rest)
+        all(t, new_acc, upper_breadths, current_breadths, callback, rest, cache)
       true ->
-        { dep, rest } = callback.(dep, rest)
+        dep =
+          case cache.(dep) do
+            { :loaded, cached_dep } ->
+              cached_dep
+            { :unloaded, dep } ->
+              { dep, rest } = callback.(dep, rest)
 
-        # After we invoke the callback (which may actually check out the
-        # dependency), we load the dependency including its latest info
-        # and children information.
-        dep = Mix.Deps.Loader.load(dep)
+              # After we invoke the callback (which may actually check out the
+              # dependency), we load the dependency including its latest info
+              # and children information.
+
+              Mix.Deps.Loader.load(dep)
+          end
+
         dep = dep.update_deps(&reject_non_fullfilled_optional(&1, current_breadths))
-
-        { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, callback, rest)
-        all(dep.deps, acc, current_breadths, Enum.map(dep.deps, &(&1.app)) ++ current_breadths, callback, rest)
+        { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, callback, rest, cache)
+        all(dep.deps, acc, current_breadths, Enum.map(dep.deps, &(&1.app)) ++ current_breadths, callback, rest, cache)
     end
   end
 
-  defp all([], acc, _upper, _current, _callback, rest) do
+  defp all([], acc, _upper, _current, _callback, rest, _cache) do
     { acc, rest }
   end
 
