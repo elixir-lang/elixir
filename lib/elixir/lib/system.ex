@@ -332,6 +332,17 @@ defmodule System do
   end
 
   @doc """
+  Deletes an environment variable.
+
+  Removes the variable `varname` from the environment.
+  """
+  @spec delete_env(String.t) :: :ok
+  def delete_env(varname) do
+    :os.unsetenv(String.to_char_list!(varname))
+    :ok
+  end
+
+  @doc """
   Last exception stacktrace.
 
   Note that the Erlang VM (and therefore this function) does not
