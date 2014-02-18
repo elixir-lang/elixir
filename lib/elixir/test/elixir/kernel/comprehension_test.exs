@@ -32,6 +32,11 @@ defmodule Kernel.ComprehensionTest do
     end
   end
 
+  test "for comprehensions with variables in filters" do
+    assert for(x <- 1..3, y = x + 1, y > 2, z = y, do: x * z) ==
+           [6, 12]
+  end
+
   test "for comprehensions with two enum generators" do
     assert (for x <- [1, 2, 3], y <- [4, 5, 6], do: x * y) ==
            [4, 5, 6, 8, 10, 12, 12, 15, 18]
@@ -85,6 +90,11 @@ defmodule Kernel.ComprehensionTest do
     assert_raise ArgumentError, fn ->
       for(x <- [1, 2, 3], hd(x), do: x * 2)
     end
+  end
+
+  test "list for comprehensions with variables in filters" do
+    assert for(x <- [1, 2, 3], y = x + 1, y > 2, z = y, do: x * z) ==
+           [6, 12]
   end
 
   test "list for comprehensions into list" do

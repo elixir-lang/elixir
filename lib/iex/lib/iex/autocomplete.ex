@@ -209,9 +209,9 @@ defmodule IEx.Autocomplete do
           end
         end
 
-        lc {fun, arities} inlist list,
-           name = atom_to_binary(fun),
-           String.starts_with?(name, hint) do
+        for {fun, arities} <- list,
+            name = atom_to_binary(fun),
+            String.starts_with?(name, hint) do
           Fun[name: name, arities: arities]
         end
       _ ->

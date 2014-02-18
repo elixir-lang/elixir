@@ -95,18 +95,25 @@ translate_gen(ForMeta, _, _, S) ->
   elixir_errors:compile_error(ForMeta, S#elixir_scope.file,
     "for comprehensions must start with a generator").
 
-translate_gen(Meta, Left, Right, T, S) ->
+translate_gen(_Meta, Left, Right, T, S) ->
   { TRight, SR } = elixir_translator:translate(Right, S),
   { TLeft, SL } = elixir_clauses:match(fun elixir_translator:translate/2, Left, SR),
-  { TT, { TFilters, TS } } = translate_filters(Meta, T, SL),
+  { TT, { TFilters, TS } } = translate_filters(T, SL),
   { TLeft, TRight, TFilters, TT, TS }.
 
-translate_filters(Meta, T, S) ->
+translate_filters(T, S) ->
   { Filters, Rest } = collect_filters(T, []),
-  { TFilters, TS } = lists:mapfoldl(fun elixir_translator:translate/2, S, Filters),
-  Line = ?line(Meta),
-  Join = fun(X, { TF, SF }) -> join_filter(Line, X, TF, SF) end,
-  { Rest, lists:foldl(Join, { {atom, Line, true}, TS }, TFilters) }.
+  { Rest, lists:mapfoldr(fun translate_filter/2, S, Filters) }.
+
+translate_filter(Filter, S) ->
+  { TFilter, TS } = elixir_translator:translate(Filter, S),
+  case elixir_utils:returns_boolean(TFilter) of
+    true ->
+      { { nil, TFilter }, TS };
+    false ->
+      { Name, _, VS } = elixir_scope:build_var('_', TS),
+      { { { var, 0, Name }, TFilter }, VS }
+  end.
 
 collect_filters([{ '<-', _, [_, _] }|_] = T, Acc) ->
   { Acc, T };
@@ -179,7 +186,7 @@ build_reduce_clause([{ enum, Meta, Left, Right, Filters }|T], Expr, Arg, Acc, S)
   Clauses1 =
     [{clause, Line,
       [Left, Acc], [],
-      [join_gen(Line, Filters, True, False)]}|Clauses0],
+      [join_filters(Line, Filters, True, False)]}|Clauses0],
 
   Args  = [Right, pair(Line, cont, Arg), {'fun', Line, {clauses, Clauses1}}],
   Tuple = ?wrap_call(Line, 'Elixir.Enumerable', reduce, Args),
@@ -206,7 +213,7 @@ build_reduce_clause([{ bin, Meta, Left, Right, Filters }|T], Expr, Arg, Acc, S) 
   Clauses =
     [{clause, Line,
       [BinMatch, Acc], [],
-      [{call, Line, Fun, [Tail, join_gen(Line, Filters, True, False)]}]},
+      [{call, Line, Fun, [Tail, join_filters(Line, Filters, True, False)]}]},
      {clause, -1,
       [NoVarMatch, Acc], [],
       [{call, Line, Fun, [Tail, False]}]},
@@ -263,37 +270,29 @@ comprehension_expr({ nil, _ }, Expr) ->
 comprehension_expr(_Into, Expr) ->
   { protocol, Expr }.
 
-comprehension_filter(_Line, { atom, _, true }) ->
-  [];
-comprehension_filter(_Line, { 'case', _, _, _ } = Filters) ->
-  [Filters];
 comprehension_filter(Line, Filters) ->
-  [{match, Line, {var, Line, '_'}, Filters}].
+  [join_filter(Line, Filter, { atom, Line, true }, { atom, Line, false }) ||
+   Filter <- lists:reverse(Filters)].
 
-join_filter(Line, Prev, Next, S) ->
-  case elixir_utils:returns_boolean(Prev) of
-    true ->
-      { {op, Line, 'andalso', Prev, Next}, S };
-    false ->
-      { Name, _, TS } = elixir_scope:build_var('_', S),
-      Var = {var, Line, Name},
-      Any = {var, Line, '_'},
-
-      Guard =
-        {op, Line, 'orelse',
-          {op, Line, '==', Var, {atom, Line, false}},
-          {op, Line, '==', Var, {atom, Line, nil}}},
-
-      { {'case', Line, Prev, [
-        {clause, Line, [Var], [[Guard]], [{atom, Line, false}] },
-        {clause, Line, [Any], [], [Next] }
-      ] }, TS }
-  end.
-
-join_gen(_Line, {atom, _, true}, True, _False) ->
+join_filters(_Line, [], True, _False) ->
   True;
-join_gen(Line, Clause, True, False) ->
-  {'case', Line, Clause, [
+join_filters(Line, [H|T], True, False) ->
+  lists:foldl(fun(Filter, Acc) ->
+    join_filter(Line, Filter, Acc, False)
+  end, join_filter(Line, H, True, False), T).
+
+join_filter(Line, { nil, Filter }, True, False) ->
+  {'case', Line, Filter, [
     {clause, Line, [{atom, Line, true}], [], [True] },
     {clause, Line, [{atom, Line, false}], [], [False] }
+  ] };
+join_filter(Line, { Var, Filter }, True, False) ->
+  Guard =
+    {op, Line, 'orelse',
+      {op, Line, '==', Var, {atom, Line, false}},
+      {op, Line, '==', Var, {atom, Line, nil}}},
+
+  {'case', Line, Filter, [
+    {clause, Line, [Var], [[Guard]], [False] },
+    {clause, Line, [{var, Line, '_'}], [], [True] }
   ] }.
