@@ -102,20 +102,16 @@ defmodule Mix.Tasks.Test do
 
     :application.load(:ex_unit)
 
+    # Configure exunit with command line options before requiring
+    # test_helper so that the configuration is available in test_helper
+    # Then configure exunit again it so command line options override
+    # test_helper
+    opts = prepare_opts(opts)
+    ExUnit.configure(opts)
+
     test_paths = project[:test_paths] || ["test"]
     Enum.each(test_paths, &require_test_helper(&1))
 
-    if opts[:include] do
-      inclusions = ExUnit.Filters.parse(Keyword.get_values(opts, :include))
-      opts = Keyword.put(opts, :include, inclusions)
-    end
-
-    if opts[:exclude] do
-      exclusions = ExUnit.Filters.parse(Keyword.get_values(opts, :exclude))
-      opts = Keyword.put(opts, :exclude, exclusions)
-    end
-
-    opts = Dict.take(opts, [:trace, :max_cases, :color, :include, :exclude, :seed])
     ExUnit.configure(opts)
 
     test_paths   = if files == [], do: test_paths, else: files
@@ -133,5 +129,19 @@ defmodule Mix.Tasks.Test do
     else
       raise Mix.Error, message: "Cannot run tests because test helper file #{inspect file} does not exist"
     end
+  end
+
+  defp prepare_opts(opts) do
+    if opts[:include] do
+      inclusions = ExUnit.Filters.parse(Keyword.get_values(opts, :include))
+      opts = Keyword.put(opts, :include, inclusions)
+    end
+
+    if opts[:exclude] do
+      exclusions = ExUnit.Filters.parse(Keyword.get_values(opts, :exclude))
+      opts = Keyword.put(opts, :exclude, exclusions)
+    end
+
+    Dict.take(opts, [:trace, :max_cases, :color, :include, :exclude, :seed])
   end
 end
