@@ -82,7 +82,7 @@ defmodule Mix.Tasks.DepsTest do
         use Mix.Project
 
         def project do
-          [elixir: "~> 0.1.0", app: :ok, version: "2.0"]
+          [elixir: "~> 0.1.0", app: :ok, version: "2.0.0"]
         end
       end
       """
@@ -92,6 +92,8 @@ defmodule Mix.Tasks.DepsTest do
       msg = "warning: the dependency ok requires Elixir \"~> 0.1.0\" but you are " <>
             "running on v#{System.version}, please run mix deps.update ok to update it"
       assert_received { :mix_shell, :error, [^msg] }
+
+      Mix.Tasks.Deps.Compile.run []
     end
   end
 
