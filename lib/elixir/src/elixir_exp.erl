@@ -1,5 +1,5 @@
 -module(elixir_exp).
--export([expand/2, expand_many/2, expand_args/2, expand_arg/2]).
+-export([expand/2, expand_args/2, expand_arg/2]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
 
@@ -417,7 +417,7 @@ expand_arg(Arg, { Acc1, Acc2 }) ->
   { EArg, { elixir_env:mergea(Acc1, EAcc), elixir_env:mergev(Acc2, EAcc) } }.
 
 expand_args(Args, #elixir_env{context=match} = E) ->
-  lists:mapfoldl(fun expand/2, E, Args);
+  expand_many(Args, E);
 expand_args(Args, E) ->
   { EArgs, { EC, EV } } = lists:mapfoldl(fun expand_arg/2, {E, E}, Args),
   { EArgs, elixir_env:mergea(EV, EC) }.

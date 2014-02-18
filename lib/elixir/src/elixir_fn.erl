@@ -22,14 +22,14 @@ translate(Meta, Clauses, S) ->
   end.
 
 translate_fn_match(Arg, S) ->
-  { TArg, TS } = elixir_translator:translate_many(Arg, S#elixir_scope{backup_vars=orddict:new()}),
+  { TArg, TS } = elixir_translator:translate_args(Arg, S#elixir_scope{backup_vars=orddict:new()}),
   { TArg, TS#elixir_scope{backup_vars=S#elixir_scope.backup_vars} }.
 
 %% Expansion
 
 expand(Meta, Clauses, E) when is_list(Clauses) ->
   Transformer = fun(Clause) ->
-    { EClause, _ } = elixir_exp_clauses:clause(Meta, fn, fun elixir_exp:expand_many/2, Clause, E),
+    { EClause, _ } = elixir_exp_clauses:clause(Meta, fn, fun elixir_exp:expand_args/2, Clause, E),
     EClause
   end,
   { { fn, Meta, lists:map(Transformer, Clauses) }, E }.

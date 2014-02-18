@@ -98,7 +98,7 @@ do_try(_Meta, { 'after', Expr }, E) ->
 do_try(Meta, { 'else', _ } = Else, E) ->
   expand_without_export(Meta, 'try', expand_arg(Meta, 'try', 'else'), Else, E);
 do_try(Meta, { 'catch', _ } = Catch, E) ->
-  expand_without_export(Meta, 'try', fun elixir_exp:expand_many/2, Catch, E);
+  expand_without_export(Meta, 'try', fun elixir_exp:expand_args/2, Catch, E);
 do_try(Meta, { 'rescue', _ } = Rescue, E) ->
   expand_without_export(Meta, 'try', fun expand_rescue/3, Rescue, E);
 do_try(Meta, { Key, _ }, E) ->

@@ -144,11 +144,11 @@ expand_clauses(_Line, [], [], _FinalVars, Acc, S) ->
 
 each_clause({ do, Meta, [Condition], Expr }, S) ->
   { Arg, Guards } = extract_guards(Condition),
-  clause(?line(Meta), fun elixir_translator:translate_many/2, [Arg], Expr, Guards, S);
+  clause(?line(Meta), fun elixir_translator:translate_args/2, [Arg], Expr, Guards, S);
 
 each_clause({ else, Meta, [Condition], Expr }, S) ->
   { Arg, Guards } = extract_guards(Condition),
-  clause(?line(Meta), fun elixir_translator:translate_many/2, [Arg], Expr, Guards, S);
+  clause(?line(Meta), fun elixir_translator:translate_args/2, [Arg], Expr, Guards, S);
 
 each_clause({ 'after', Meta, [Condition], Expr }, S) ->
   { TCondition, SC } = elixir_translator:translate(Condition, S),

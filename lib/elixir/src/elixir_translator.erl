@@ -1,13 +1,10 @@
 %% Translate Elixir quoted expressions to Erlang Abstract Format.
 %% Expects the tree to be expanded.
 -module(elixir_translator).
--export([translate_many/2, translate/2, translate_arg/3, translate_args/2]).
+-export([translate/2, translate_arg/3, translate_args/2]).
 -import(elixir_scope, [mergev/2, mergec/2, mergef/2]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
-
-translate_many(Forms, S) ->
-  lists:mapfoldl(fun translate/2, S, Forms).
 
 %% =
 
@@ -31,11 +28,11 @@ translate({ '%', Meta, [Left, Right] }, S) ->
 translate({ '<<>>', Meta, Args }, S) when is_list(Args) ->
   elixir_bitstring:translate(Meta, Args, S);
 
-%% Blocks and scope rewriters
+%% Blocks
 
-translate({ '__block__', Meta, Args }, S) when is_list(Args) ->
-  { TArgs, NS } = translate_many(Args, S),
-  { { block, ?line(Meta), TArgs }, NS };
+translate({ '__block__', Meta, Args }, #elixir_scope{return=Return} = S) when is_list(Args) ->
+  { TArgs, SA } = translate_block(Args, [], Return, S#elixir_scope{return=true}),
+  { { block, ?line(Meta), TArgs }, SA };
 
 %% Erlang op
 
@@ -326,10 +323,32 @@ translate_arg(Arg, Acc, S) ->
   { TArg, mergev(Acc, TAcc) }.
 
 translate_args(Args, #elixir_scope{context=match} = S) ->
-  translate_many(Args, S);
+  lists:mapfoldl(fun translate/2, S, Args);
 
 translate_args(Args, S) ->
   lists:mapfoldl(fun(X, Acc) -> translate_arg(X, Acc, S) end, S, Args).
+
+%% Translate blocks
+
+translate_block([], Acc, _Return, S) ->
+  { lists:reverse(Acc), S };
+translate_block([H], Acc, Return, S) ->
+  { TH, TS } = translate_block(H, S, Return),
+  translate_block([], [TH|Acc], Return, TS);
+translate_block([H|T], Acc, Return, S) ->
+  { TH, TS } = translate_block(H, S, false),
+  translate_block(T, [TH|Acc], Return, TS).
+
+translate_block(Expr, S, Return) ->
+  case handles_no_return(Expr) of
+    true  -> translate(Expr, S#elixir_scope{return=Return});
+    false -> translate(Expr, S)
+  end.
+
+%% Expressions that can handle no return may receive
+%% return=false but must always return return=true.
+handles_no_return({ '__block__', _, [_|_] }) -> true;
+handles_no_return(_) -> false.
 
 %% Comprehensions
 

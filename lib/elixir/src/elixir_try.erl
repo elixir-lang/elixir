@@ -23,7 +23,7 @@ each_clause({ 'catch', Meta, Raw, Expr }, S) ->
   end,
 
   Condition = [{ '{}', Meta, Final }],
-  elixir_clauses:clause(?line(Meta), fun elixir_translator:translate_many/2, Condition, Expr, Guards, S);
+  elixir_clauses:clause(?line(Meta), fun elixir_translator:translate_args/2, Condition, Expr, Guards, S);
 
 each_clause({ rescue, Meta, [{ in, _, [Left, Right]}], Expr }, S) ->
   case Left of
