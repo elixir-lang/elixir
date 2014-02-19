@@ -1765,24 +1765,6 @@ defmodule Kernel do
     end
   end
 
-  @doc false
-  defmacro is_regex(thing) do
-    IO.puts :stderr, "is_regex/1 is deprecated in favor of Regex.regex?/1\n" <>
-                     Exception.format_stacktrace(__CALLER__.stacktrace)
-    quote do
-      Kernel.is_record(unquote(thing), Regex)
-    end
-  end
-
-  @doc false
-  defmacro is_range(thing) do
-    IO.puts :stderr, "is_range/1 is deprecated in favor of Range.range?/1\n" <>
-                     Exception.format_stacktrace(__CALLER__.stacktrace)
-    quote do
-      Kernel.is_record(unquote(thing), Range)
-    end
-  end
-
   @doc """
   Matches the term on the left against the regular expression or string on the
   right. Returns true if `left` matches `right` (if it's a regular expression)
