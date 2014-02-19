@@ -109,6 +109,10 @@ bin_string_without_interpolation_and_escaped_test() ->
 bin_string_with_escaped_interpolation_test() ->
   {<<"f#{'o}o">>, _} = eval("\"f\\#{'o}o\"").
 
+bin_string_with_the_end_of_line_slash_test() ->
+  {<<"fo">>, _} = eval("\"f\\\no\""),
+  {<<"fo">>, _} = eval("\"f\\\r\no\"").
+
 invalid_string_interpolation_test() ->
   ?assertError({'Elixir.TokenMissingError', _, _, _, _}, eval("\"f#{some\"")),
   ?assertError({'Elixir.TokenMissingError', _, _, _, _}, eval("\"f#{1+")).
@@ -156,6 +160,10 @@ list_string_without_interpolation_and_escaped_test() ->
 
 list_string_with_escaped_interpolation_test() ->
   {"f#{\"o}o", _} = eval("'f\\#{\"o}o'").
+
+list_string_with_the_end_of_line_slash_test() ->
+  {"fo", _} = eval("'f\\\no'"),
+  {"fo", _} = eval("'f\\\r\no'").
 
 char_test() ->
   {99,[]} = eval("?1 + ?2"),
