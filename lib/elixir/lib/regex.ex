@@ -36,6 +36,28 @@ defmodule Regex do
   * `newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or `(*ANYCRLF)`
     or `(*ANY)` at the beginning of the regexp according to the re documentation
 
+  ## Captures
+
+  Many functions in this module allows what to capture in a regex
+  match via the `:capture` option. The supported values are:
+
+  * `:all` - all captured subpatterns including the complete matching string.
+             This is the default;
+
+  * `:first` - only the first captured subpattern, which is always the complete
+               matching part of the string. All explicitly captured subpatterns are
+               discarded;
+
+  * `:all_but_first`- all but the first matching subpattern, i.e. all explicitly
+                      captured subpatterns, but not the complete matching part of
+                      the string;
+
+  * `:none` - do not return matching subpatterns at all;
+
+  * `:groups` - captures only named captures in the Regex;
+
+  * `list(binary)` - a list of named captures to capture;
+
   """
 
   defrecordp :regex, Regex, [:re_pattern, :source, :options]
@@ -133,9 +155,11 @@ defmodule Regex do
   Runs the regular expression against the given string until the first match.
   It returns a list with all captures or `nil` if no match occurred.
 
-  When the option `:capture` is set to `:groups`, it will capture all
-  the groups in the regex. The option `:return` can be set to `:index`
-  to get indexes back.
+  ## Options
+
+  * `:return` - Set to `:index` to return indexes. Defaults to `:binary`;
+  * `:capture` - What to capture in the result. Check the moduledoc for Regex
+                 to see the possible capture values;
 
   ## Examples
 
@@ -239,12 +263,11 @@ defmodule Regex do
   where each entry in the primary list represents a match and each
   entry in the secondary list represents the captured contents.
 
-  The captured contents defaults to `:all`, which includes the whole
-  regex match and each capture.
+  ## Options
 
-  When the option `:capture` is set to `:groups`, it will capture all
-  the groups in the regex. The option `:return` can be set to `:index`
-  to get indexes back.
+  * `:return` - Set to `:index` to return indexes. Defaults to `:binary`;
+  * `:capture` - What to capture in the result. Check the moduledoc for Regex
+                 to see the possible capture values;
 
   ## Examples
 
@@ -277,7 +300,16 @@ defmodule Regex do
 
   @doc """
   Splits the given target into the number of parts specified.
-  If no number of parts is given, it defaults to `:infinity`.
+
+  ## Options
+
+  * `:global` - splits the string in all parts unless set to `false`,
+                which leads the string to be split in 2. Defaults to true;
+
+  * `:parts` - when specified, splits the string into maximum the number
+               of given parts;
+
+  * `:trim` - when true, remove blank strings from the result;
 
   ## Examples
       iex> Regex.split(~r/-/, "a-b-c")
