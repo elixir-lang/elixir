@@ -27,6 +27,12 @@ extract(Line, _Scope, _Interpol, [], _Buffer, _Search, _Output, Last) ->
 
 %% Going through the string
 
+extract(Line, Scope, Interpol, [$\\, $\n|Rest], Buffer, Search, Output, Last) ->
+  extract(Line+1, Scope, Interpol, Rest, Buffer, Search, Output, Last);
+
+extract(Line, Scope, Interpol, [$\\, $\r, $\n|Rest], Buffer, Search, Output, Last) ->
+  extract(Line+1, Scope, Interpol, Rest, Buffer, Search, Output, Last);
+
 extract(Line, Scope, Interpol, [$\n|Rest], Buffer, Search, Output, Last) ->
   extract(Line+1, Scope, Interpol, Rest, [$\n|Buffer], Search, Output, Last);
 
