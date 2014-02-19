@@ -9,7 +9,12 @@
 %% =
 
 translate({ '=', Meta, [Left, Right] }, S) ->
-  { TRight, SR } = translate(Right, S),
+  Return = case Left of
+    { '_', _, Atom } when is_atom(Atom) -> false;
+    _ -> true
+  end,
+
+  { TRight, SR } = translate_block(Right, Return, S),
   { TLeft, SL } = elixir_clauses:match(fun translate/2, Left, SR),
   { { match, ?line(Meta), TLeft, TRight }, SL };
 
