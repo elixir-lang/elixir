@@ -93,12 +93,13 @@ defmodule Mix.Tasks.NewTest do
     assert File.regular?(file), "Expected #{file} to exist, but does not"
   end
 
-  defp assert_file(file, match) when is_regex(match) do
-    assert_file file, &(&1 =~ match)
-  end
-
-  defp assert_file(file, callback) when is_function(callback, 1) do
-    assert_file(file)
-    callback.(File.read!(file))
+  defp assert_file(file, match) do
+    cond do
+      Regex.regex?(match) ->
+        assert_file file, &(&1 =~ match)
+      is_function(match, 1) ->
+        assert_file(file)
+        match.(File.read!(file))
+    end
   end
 end

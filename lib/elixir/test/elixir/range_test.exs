@@ -21,9 +21,9 @@ defmodule RangeTest do
     assert (1..3).last  == 3
   end
 
-  test :is_range do
-    assert is_range(range)
-    refute is_range(not_range)
+  test :range? do
+    assert Range.range?(1..3)
+    refute Range.range?(0)
   end
 
   test :enum do
@@ -45,13 +45,5 @@ defmodule RangeTest do
   test :inspect do
     assert inspect(1..3) == "1..3"
     assert inspect(3..1) == "3..1"
-  end
-
-  defp range do
-    1..3
-  end
-
-  defp not_range do
-    1
   end
 end

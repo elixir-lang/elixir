@@ -22,6 +22,7 @@ defmodule KernelTest do
   doctest OptionParser
   doctest Path
   doctest Protocol.Consolidation
+  doctest Range
   doctest Regex
   doctest Set
   doctest Stream
