@@ -224,18 +224,18 @@ defmodule String do
 
   def split(binary, "", options), do: split(binary, ~r"", options)
 
-  def split(binary, pattern, options) when is_regex(pattern) do
-    Regex.split(pattern, binary, options)
-  end
-
   def split(binary, pattern, options) do
-    opts = if options[:global] != false, do: [:global], else: []
-    splits  = :binary.split(binary, pattern, opts)
-
-    if Keyword.get(options, :trim, false) do
-      lc split inlist splits, split != "", do: split
+    if Regex.regex?(pattern) do
+      Regex.split(pattern, binary, options)
     else
-      splits
+      opts = if options[:global] != false, do: [:global], else: []
+      splits = :binary.split(binary, pattern, opts)
+
+      if Keyword.get(options, :trim, false) do
+        lc split inlist splits, split != "", do: split
+      else
+        splits
+      end
     end
   end
 
@@ -521,13 +521,13 @@ defmodule String do
 
   def replace(subject, pattern, replacement, options \\ [])
 
-  def replace(subject, pattern, replacement, options) when is_regex(pattern) do
-    Regex.replace(pattern, subject, replacement, global: options[:global])
-  end
-
   def replace(subject, pattern, replacement, options) do
-    opts = translate_replace_options(options)
-    :binary.replace(subject, pattern, replacement, opts)
+    if Regex.regex?(pattern) do
+      Regex.replace(pattern, subject, replacement, global: options[:global])
+    else
+      opts = translate_replace_options(options)
+      :binary.replace(subject, pattern, replacement, opts)
+    end
   end
 
   defp translate_replace_options(options) do

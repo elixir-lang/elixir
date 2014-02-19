@@ -26,6 +26,20 @@ defmodule Range do
   def last({ Range, _, last }) do
     last
   end
+
+  @doc """
+  Returns true if the given argument is a range.
+
+  ## Examples
+
+      iex> Range.range?(1..3)
+      true
+      iex> Range.range?(0)
+      false
+
+  """
+  def range?({ Range, _, _ }), do: true
+  def range?(_), do: false
 end
 
 defprotocol Range.Iterator do

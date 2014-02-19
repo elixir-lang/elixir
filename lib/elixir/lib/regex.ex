@@ -121,6 +121,20 @@ defmodule Regex do
   end
 
   @doc """
+  Returns true if the given argument is a regex.
+
+  ## Examples
+
+      iex> Regex.regex?(~r/foo/)
+      true
+      iex> Regex.regex?(0)
+      false
+
+  """
+  def regex?(regex()), do: true
+  def regex?(_), do: false
+
+  @doc """
   Runs the regular expression against the given string until the first match.
   It returns a list with all captures or `nil` if no match occurred.
 

@@ -1739,23 +1739,19 @@ defmodule Kernel do
     end
   end
 
-  @doc """
-  Checks if the given argument is a regex.
-
-  Works in guard clauses.
-  """
+  @doc false
   defmacro is_regex(thing) do
+    IO.puts :stderr, "is_regex/1 is deprecated in favor of Regex.regex?/1\n" <>
+                     Exception.format_stacktrace(__CALLER__.stacktrace)
     quote do
       Kernel.is_record(unquote(thing), Regex)
     end
   end
 
-  @doc """
-  Checks if the given argument is a range.
-
-  Works in guard clauses.
-  """
+  @doc false
   defmacro is_range(thing) do
+    IO.puts :stderr, "is_range/1 is deprecated in favor of Range.range?/1\n" <>
+                     Exception.format_stacktrace(__CALLER__.stacktrace)
     quote do
       Kernel.is_record(unquote(thing), Range)
     end

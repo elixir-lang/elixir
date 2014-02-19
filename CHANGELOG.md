@@ -7,6 +7,7 @@
 
 * Deprecations
   * [Kernel] `%` for sigils is deprecated in favor of `~`
+  * [Kernel] `is_range/1` and `is_regex/1` are deprecated in favor of `Range.range?/1` and `Regex.regex?/1`
 
 * Backwards incompatible changes
 

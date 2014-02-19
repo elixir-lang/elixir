@@ -17,8 +17,7 @@ defmodule RegexTest do
   end
 
   test :compile! do
-    assert is_record(Regex.compile!("foo"), Regex)
-    assert is_regex(Regex.compile!("foo"))
+    assert Regex.regex?(Regex.compile!("foo"))
 
     assert_raise Regex.CompileError, ~r/position 0$/, fn ->
       Regex.compile!("*foo")
@@ -27,7 +26,7 @@ defmodule RegexTest do
 
   test :compile do
     { :ok, regex } = Regex.compile("foo")
-    assert is_regex(regex)
+    assert Regex.regex?(regex)
     assert { :error, _ } = Regex.compile("*foo")
     assert { :error, _ } = Regex.compile("foo", "y")
   end
@@ -35,6 +34,11 @@ defmodule RegexTest do
   test :compile_with_erl_opts do
     { :ok, regex } = Regex.compile("foo\\sbar", [:dotall, {:newline, :anycrlf}])
     assert "foo\nbar" =~ regex
+  end
+
+  test :regex? do
+    assert Regex.regex?(~r/foo/)
+    refute Regex.regex?(0)
   end
 
   test :source do

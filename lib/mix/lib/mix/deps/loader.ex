@@ -55,44 +55,41 @@ defmodule Mix.Deps.Loader do
   """
   def vsn_match?(nil, _actual, _app),
     do: true
-  def vsn_match?(req, actual, _app) when is_regex(req),
-    do: actual =~ req
   def vsn_match?(req, actual, app) do
-    case Version.parse(actual) do
-      { :ok, version } ->
-        case Version.parse_requirement(req) do
-          { :ok, req } ->
-            Version.match?(version, req)
-          :error ->
-            raise Mix.Error, message: "Invalid requirement #{req} for app #{app}"
-        end
+    if Regex.regex?(req) do
+      actual =~ req
+    else
+      case Version.parse(actual) do
+        { :ok, version } ->
+          case Version.parse_requirement(req) do
+            { :ok, req } ->
+              Version.match?(version, req)
+            :error ->
+              raise Mix.Error, message: "Invalid requirement #{req} for app #{app}"
+          end
 
-      :error ->
-        raise Mix.Error, message: "The application #{app} specified a non Semantic Version #{actual}. " <>
-          "Mix can only match the requirement #{req} against Semantic Versions, to match against any " <>
-          "version, please use a regex as requirement"
+        :error ->
+          raise Mix.Error, message: "The application #{app} specified a non Semantic Version #{actual}. " <>
+            "Mix can only match the requirement #{req} against Semantic Versions, to match against any " <>
+            "version, please use a regex as requirement"
+      end
     end
   end
 
   ## Helpers
 
   defp to_dep(tuple, scms, from, manager \\ nil) do
-    dep = with_scm_and_app(tuple, scms).from(from).manager(manager)
-
-    if match?({ _, req, _ } when is_regex(req), tuple) and
-        not String.ends_with?(from, "rebar.config") do
-      invalid_dep_format(tuple)
-    end
-
-    dep
+    with_scm_and_app(tuple, scms).from(from).manager(manager)
   end
 
   defp with_scm_and_app({ app, opts }, scms) when is_atom(app) and is_list(opts) do
     with_scm_and_app({ app, nil, opts }, scms)
   end
 
-  defp with_scm_and_app({ app, req, opts }, scms) when is_atom(app) and
-      (is_binary(req) or is_regex(req) or req == nil) and is_list(opts) do
+  defp with_scm_and_app({ app, req, opts } = other, scms) when is_atom(app) and is_list(opts) do
+    unless is_binary(req) or Regex.regex?(req) or nil?(req) do
+      invalid_dep_format(other)
+    end
 
     dest  = Path.join(Mix.Project.deps_path, app)
     build = Path.join([Mix.Project.build_path, "lib", app])
@@ -148,8 +145,16 @@ defmodule Mix.Deps.Loader do
   end
 
   defp invalid_dep_format(dep) do
-    raise Mix.Error, message: ~s(Dependency specified in the wrong format: #{inspect dep}, ) <>
-      ~s(expected { app :: atom, opts :: Keyword.t } | { app :: atom, requirement :: String.t, opts :: Keyword.t })
+    raise Mix.Error, message: """
+    Dependency specified in the wrong format:
+
+        #{inspect dep}
+
+    Expected:
+
+        { app :: atom, opts :: Keyword.t } |
+        { app :: atom, requirement :: String.t | regex, opts :: Keyword.t }
+    """
   end
 
   ## Fetching
