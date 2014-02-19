@@ -28,6 +28,9 @@ defmodule ExUnit.CaptureIO do
   named device, such as `:stderr`, is also possible globally by
   giving the registered device name explicitly as an argument.
 
+  Note that when capturing something other than `:stdio`,
+  the test should run with async false.
+
   When capturing `:stdio`, if the `:capture_prompt` option is `false`,
   prompts (specified as arguments to `IO.get*` functions) are not
   captured.
