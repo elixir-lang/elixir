@@ -1,7 +1,7 @@
 %% Translate Elixir quoted expressions to Erlang Abstract Format.
 %% Expects the tree to be expanded.
 -module(elixir_translator).
--export([translate/2, translate_arg/3, translate_args/2]).
+-export([translate/2, translate_arg/3, translate_args/2, translate_block/3]).
 -import(elixir_scope, [mergev/2, mergec/2, mergef/2]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
@@ -348,6 +348,7 @@ translate_block(Expr, S, Return) ->
 %% Expressions that can handle no return may receive
 %% return=false but must always return return=true.
 handles_no_return({ '__block__', _, [_|_] }) -> true;
+handles_no_return({ 'for', _, [_|_] }) -> true;
 handles_no_return(_) -> false.
 
 %% Comprehensions

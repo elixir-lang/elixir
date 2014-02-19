@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.ComprehensionTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
+
   defp to_bin(x) do
     << x >>
   end
@@ -67,6 +69,15 @@ defmodule Kernel.ComprehensionTest do
     assert for(x <- enum, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
   end
 
+  test "for comprehensions where value is not used" do
+    enum = 1..3
+
+    assert capture_io(fn ->
+      for(x <- enum, do: IO.puts x)
+      nil
+    end) == "1\n2\n3\n"
+  end
+
   ## List generators (inlined by the compiler)
 
   test "list for comprehensions" do
@@ -107,6 +118,15 @@ defmodule Kernel.ComprehensionTest do
     assert for(x <- enum, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
   end
 
+  test "list for comprehensions where value is not used" do
+    enum = [1,2,3]
+
+    assert capture_io(fn ->
+      for(x <- enum, do: IO.puts x)
+      nil
+    end) == "1\n2\n3\n"
+  end
+
   ## Binary generators (inlined by the compiler)
 
   test "binary for comprehensions" do
@@ -132,6 +152,15 @@ defmodule Kernel.ComprehensionTest do
   test "binary for comprehensions into binaries" do
     bin = <<1, 2, 3>>
     assert for(<< x <- bin >>, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
+  end
+
+  test "binary for comprehensions where value is not used" do
+    bin = <<1, 2, 3>>
+
+    assert capture_io(fn ->
+      for(<<x <- bin>>, do: IO.puts x)
+      nil
+    end) == "1\n2\n3\n"
   end
 
   ## Old comprehensions

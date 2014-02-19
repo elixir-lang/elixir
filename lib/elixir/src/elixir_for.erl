@@ -49,7 +49,8 @@ expand(X, E) ->
 
 %% Translation
 
-translate(Meta, Args, S) ->
+translate(Meta, Args, #elixir_scope{return=Return} = RS) ->
+  S = RS#elixir_scope{return=true},
   { AccName, _, SA } = elixir_scope:build_var('_', S),
   { VarName, _, SV } = elixir_scope:build_var('_', SA),
 
@@ -58,22 +59,27 @@ translate(Meta, Args, S) ->
   Var  = { var, Line, VarName },
 
   { Cases, [{do,Expr}|Opts] } = elixir_utils:split_last(Args),
-  Into = proplists:get_value(into, Opts, []),
-  { TInto, SI }  = elixir_translator:translate(Into, SV),
+
+  { TInto, SI } =
+    case lists:keyfind(into, 1, Opts) of
+      { into, Into } ->
+        %% TODO: Get rid of this code once we support into protocol
+        case Res = elixir_translator:translate(Into, SV) of
+          { {nil, _}, _ } -> Res;
+          { {bin, _, []}, _ } -> Res;
+          _ ->
+            elixir_errors:compile_error(Meta, S#elixir_scope.file,
+              ":into in comprehensions must be an empty list or an empty string at compile time, got: ~ts",
+              ['Elixir.Macro':to_string(Into)])
+        end;
+      false when Return -> { { nil, Line }, SV };
+      false -> { { atom, Line, nil }, SV }
+    end,
+
   { TCases, SC } = translate_gen(Meta, Cases, [], SI),
-  { TExpr, SE }  = elixir_translator:translate(Expr, SC),
+  { TExpr, SE }  = elixir_translator:translate_block(Expr, SC, Return),
 
-  %% TODO: Get rid of this code once we support into protocol
-  case TInto of
-    { nil, _ } -> ok;
-    { bin, _, [] } -> ok;
-    _ ->
-      elixir_errors:compile_error(Meta, S#elixir_scope.file,
-        ":into in comprehensions must be an empty list or an empty string at compile time, got: ~ts",
-        ['Elixir.Macro':to_string(Into)])
-  end,
-
-  { build(Line, TCases, comprehension_expr(TInto, TExpr), TInto, Var, Acc, SE),
+  { build(Line, TCases, comprehension_expr(TInto, TExpr), TInto, Return, Var, Acc, SE),
     elixir_scope:mergef(SI, SE) }.
 
 translate_gen(ForMeta, [{ '<-', Meta, [Left, Right] }|T], Acc, S) ->
@@ -126,10 +132,10 @@ collect_filters([], Acc) ->
 
 %% If all we have is one enum generator, we check if it is a list
 %% for optimization otherwise fallback to the reduce generator.
-build(Line, [{ enum, Meta, Left, Right, Filters }] = Orig, { inline, Expr }, Into, Var, Acc, S) ->
+build(Line, [{ enum, Meta, Left, Right, Filters }] = Orig, { inline, Expr }, Into, Return, Var, Acc, S) ->
   case Right of
     { cons, _, _, _ } ->
-      build_comprehension(Line, Orig, Expr, Into);
+      build_comprehension(Line, Orig, Expr, Into, Return);
     { Other, _, _ } when Other == tuple; Other == map ->
       build_reduce(Orig, Expr, Into, Acc, S);
     _ ->
@@ -139,7 +145,7 @@ build(Line, [{ enum, Meta, Left, Right, Filters }] = Orig, { inline, Expr }, Int
         {clause, -1,
           [Var],
           [[?wrap_call(Line, erlang, is_list, [Var])]],
-          [build_comprehension(Line, Clauses, Expr, Into)]},
+          [build_comprehension(Line, Clauses, Expr, Into, Return)]},
         {clause, -1,
           [Var],
           [],
@@ -147,14 +153,16 @@ build(Line, [{ enum, Meta, Left, Right, Filters }] = Orig, { inline, Expr }, Int
       ]}
   end;
 
-build(Line, Clauses, { Kind, Expr }, Into, _Var, Acc, S) ->
+build(Line, Clauses, { Kind, Expr }, Into, Return, _Var, Acc, S) ->
   case (Kind == inline) andalso
        lists:all(fun(Clause) -> element(1, Clause) == bin end, Clauses) of
-    true  -> build_comprehension(Line, Clauses, Expr, Into);
+    true  -> build_comprehension(Line, Clauses, Expr, Into, Return);
     false -> build_reduce(Clauses, Expr, Into, Acc, S)
   end.
 
 %% TODO: Extend this to support the into protocol
+build_reduce(Clauses, Expr, {atom, _, nil}, Acc, S) ->
+  build_reduce_clause(Clauses, Expr, {nil, 0}, Acc, S);
 build_reduce(Clauses, Expr, Into, Acc, S)
     when (element(1, Into) == nil) orelse (element(1, Into) == cons) ->
   ListExpr = {cons, 0, Expr, Acc},
@@ -190,7 +198,9 @@ build_reduce_clause([{ enum, Meta, Left, Right, Filters }|T], Expr, Arg, Acc, S)
 
   Args  = [Right, pair(Line, cont, Arg), {'fun', Line, {clauses, Clauses1}}],
   Tuple = ?wrap_call(Line, 'Elixir.Enumerable', reduce, Args),
-  ?wrap_call(Line, erlang, element, [{integer, Line, 2}, Tuple]);
+
+  %% Use -1 because in case of no returns we don't care about the result
+  ?wrap_call(-1, erlang, element, [{integer, Line, 2}, Tuple]);
 
 build_reduce_clause([{ bin, Meta, Left, Right, Filters }|T], Expr, Arg, Acc, S) ->
   { TailName, _, ST } = elixir_scope:build_var('_', S),
@@ -243,7 +253,16 @@ no_var(Elements) ->
 no_var_expr({ var, Line, _ }) ->
   {var, Line, '_'}.
 
-build_comprehension(Line, Clauses, Expr, Into) ->
+
+%% TODO: Test this clause once we support into: nil
+build_comprehension(Line, Clauses, Expr, {atom, _, nil}, true) ->
+  {block, Line, [
+    build_comprehension(Line, Clauses, Expr, {nil, Line}, true),
+    {nil, Line}
+  ]};
+build_comprehension(Line, Clauses, Expr, {atom, _, nil}, false) ->
+  build_comprehension(Line, Clauses, Expr, {nil, Line}, false);
+build_comprehension(Line, Clauses, Expr, Into, _Return) ->
   {comprehension_kind(Into), Line, Expr, comprehension_clause(Clauses)}.
 
 comprehension_clause([{ Kind, Meta, Left, Right, Filters }|T]) ->
@@ -260,6 +279,7 @@ comprehension_kind({ bin, _, [] }) -> bc.
 comprehension_generator(enum) -> generate;
 comprehension_generator(bin) -> b_generate.
 
+%% TODO: Extend this to support the into protocol
 comprehension_expr({ bin, _, [] }, { bin, _, _ } = Expr) ->
   { inline, Expr };
 comprehension_expr({ bin, Line, [] }, Expr) ->
@@ -267,8 +287,8 @@ comprehension_expr({ bin, Line, [] }, Expr) ->
   { inline, BinExpr };
 comprehension_expr({ nil, _ }, Expr) ->
   { inline, Expr };
-comprehension_expr(_Into, Expr) ->
-  { protocol, Expr }.
+comprehension_expr({ atom, _, nil }, Expr) ->
+  { inline, Expr }.
 
 comprehension_filter(Line, Filters) ->
   [join_filter(Line, Filter, { atom, Line, true }, { atom, Line, false }) ||
