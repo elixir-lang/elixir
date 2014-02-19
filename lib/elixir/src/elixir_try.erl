@@ -1,17 +1,17 @@
 -module(elixir_try).
--export([clauses/3, format_error/1]).
+-export([clauses/4, format_error/1]).
 -include("elixir.hrl").
 
-clauses(_Meta, Clauses, S) ->
+clauses(_Meta, Clauses, Return, S) ->
   Catch  = elixir_clauses:get_pairs('catch', Clauses),
   Rescue = elixir_clauses:get_pairs(rescue, Clauses),
   Transformer = fun(X, SAcc) ->
-    { TX, TS } = each_clause(X, SAcc),
+    { TX, TS } = each_clause(X, Return, SAcc),
     { TX, elixir_scope:mergec(S, TS) }
   end,
   lists:mapfoldl(Transformer, S, Rescue ++ Catch).
 
-each_clause({ 'catch', Meta, Raw, Expr }, S) ->
+each_clause({ 'catch', Meta, Raw, Expr }, Return, S) ->
   { Args, Guards } = elixir_clauses:extract_splat_guards(Raw),
 
   Final = case Args of
@@ -23,19 +23,20 @@ each_clause({ 'catch', Meta, Raw, Expr }, S) ->
   end,
 
   Condition = [{ '{}', Meta, Final }],
-  elixir_clauses:clause(?line(Meta), fun elixir_translator:translate_args/2, Condition, Expr, Guards, S);
+  elixir_clauses:clause(?line(Meta), fun elixir_translator:translate_args/2,
+                        Condition, Expr, Guards, Return, S);
 
-each_clause({ rescue, Meta, [{ in, _, [Left, Right]}], Expr }, S) ->
+each_clause({ rescue, Meta, [{ in, _, [Left, Right]}], Expr }, Return, S) ->
   case Left of
     { '_', _, LAtom } when is_atom(LAtom) ->
       { VarName, _, CS } = elixir_scope:build_var('_', S),
       { Clause, _ } = rescue_guards(Meta, { VarName, Meta, nil }, Right, S),
-      each_clause({ 'catch', Meta, Clause, Expr }, CS);
+      each_clause({ 'catch', Meta, Clause, Expr }, Return, CS);
     _ ->
       { Clause, Safe } = rescue_guards(Meta, Left, Right, S),
       case Safe of
         true ->
-          each_clause({ 'catch', Meta, Clause, Expr }, S);
+          each_clause({ 'catch', Meta, Clause, Expr }, Return, S);
         false ->
           { VarName, _, CS } = elixir_scope:build_var('_', S),
           ClauseVar          = { VarName, Meta, nil },
@@ -45,14 +46,14 @@ each_clause({ rescue, Meta, [{ in, _, [Left, Right]}], Expr }, S) ->
             { { '.', Meta, ['Elixir.Exception', normalize] }, Meta, [ClauseVar] }
           ] },
           FinalExpr = prepend_to_block(Meta, Match, Expr),
-          each_clause({ 'catch', Meta, FinalClause, FinalExpr }, CS)
+          each_clause({ 'catch', Meta, FinalClause, FinalExpr }, Return, CS)
       end
   end;
 
-each_clause({rescue,Meta,_,_}, S) ->
+each_clause({ rescue, Meta, _, _ }, _Return, S) ->
   elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid arguments for rescue in try");
 
-each_clause({Key,Meta,_,_}, S) ->
+each_clause({ Key, Meta, _, _ }, _Return, S) ->
   elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid key ~ts in try", [Key]).
 
 %% Helpers

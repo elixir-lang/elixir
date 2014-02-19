@@ -77,7 +77,7 @@ translate(Meta, Args, #elixir_scope{return=Return} = RS) ->
     end,
 
   { TCases, SC } = translate_gen(Meta, Cases, [], SI),
-  { TExpr, SE }  = elixir_translator:translate_block(Expr, SC, Return),
+  { TExpr, SE }  = elixir_translator:translate_block(Expr, Return, SC),
 
   { build(Line, TCases, comprehension_expr(TInto, TExpr), TInto, Return, Var, Acc, SE),
     elixir_scope:mergef(SI, SE) }.

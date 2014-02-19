@@ -67,7 +67,8 @@ translate({ fn, Meta, Clauses }, S) ->
 
 %% Case
 
-translate({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
+translate({'case', Meta, [Expr, KV]}, #elixir_scope{return=Return} = RS) when is_list(KV) ->
+  S = RS#elixir_scope{noname=true, return=true},
   Clauses = elixir_clauses:get_pairs(do, KV),
   { TExpr, NS } = translate(Expr, S),
 
@@ -76,40 +77,41 @@ translate({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
     false -> Clauses
   end,
 
-  { TClauses, TS } = elixir_clauses:clauses(Meta, RClauses, NS),
+  { TClauses, TS } = elixir_clauses:clauses(Meta, RClauses, Return, NS),
   { { 'case', ?line(Meta), TExpr, TClauses }, TS };
 
 %% Try
 
-translate({'try', Meta, [Clauses]}, RS) when is_list(Clauses) ->
-  S  = RS#elixir_scope{noname=true},
+translate({'try', Meta, [Clauses]}, #elixir_scope{return=Return} = RS) when is_list(Clauses) ->
+  S  = RS#elixir_scope{noname=true, return=true},
   Do = proplists:get_value('do', Clauses, nil),
   { TDo, SB } = elixir_translator:translate(Do, S),
 
   Catch = [Tuple || { X, _ } = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
-  { TCatch, SC } = elixir_try:clauses(Meta, Catch, mergec(S, SB)),
+  { TCatch, SC } = elixir_try:clauses(Meta, Catch, Return, mergec(S, SB)),
 
   After = proplists:get_value('after', Clauses, nil),
   { TAfter, SA } = translate(After, mergec(S, SC)),
 
   Else = elixir_clauses:get_pairs(else, Clauses),
-  { TElse, SE } = elixir_clauses:clauses(Meta, Else, mergec(S, SA)),
+  { TElse, SE } = elixir_clauses:clauses(Meta, Else, Return, mergec(S, SA)),
 
   SF = (mergec(S, SE))#elixir_scope{noname=RS#elixir_scope.noname},
   { { 'try', ?line(Meta), unblock(TDo), TElse, TCatch, unblock(TAfter) }, SF };
 
 %% Receive
 
-translate({'receive', Meta, [KV] }, S) when is_list(KV) ->
+translate({'receive', Meta, [KV] }, #elixir_scope{return=Return} = RS) when is_list(KV) ->
+  S  = RS#elixir_scope{return=true},
   Do = elixir_clauses:get_pairs(do, KV, true),
 
   case lists:keyfind('after', 1, KV) of
     false ->
-      { TClauses, SC } = elixir_clauses:clauses(Meta, Do, S),
+      { TClauses, SC } = elixir_clauses:clauses(Meta, Do, Return, S),
       { { 'receive', ?line(Meta), TClauses }, SC };
     _ ->
       After = elixir_clauses:get_pairs('after', KV),
-      { TClauses, SC } = elixir_clauses:clauses(Meta, Do ++ After, S),
+      { TClauses, SC } = elixir_clauses:clauses(Meta, Do ++ After, Return, S),
       { FClauses, TAfter } = elixir_utils:split_last(TClauses),
       { _, _, [FExpr], _, FAfter } = TAfter,
       { { 'receive', ?line(Meta), FClauses, FExpr, FAfter }, SC }
@@ -333,22 +335,25 @@ translate_args(Args, S) ->
 translate_block([], Acc, _Return, S) ->
   { lists:reverse(Acc), S };
 translate_block([H], Acc, Return, S) ->
-  { TH, TS } = translate_block(H, S, Return),
+  { TH, TS } = translate_block(H, Return, S),
   translate_block([], [TH|Acc], Return, TS);
 translate_block([H|T], Acc, Return, S) ->
-  { TH, TS } = translate_block(H, S, false),
+  { TH, TS } = translate_block(H, false, S),
   translate_block(T, [TH|Acc], Return, TS).
 
-translate_block(Expr, S, Return) ->
-  case handles_no_return(Expr) of
+translate_block(Expr, Return, S) ->
+  case (Return == false) andalso handles_no_return(Expr) of
     true  -> translate(Expr, S#elixir_scope{return=Return});
     false -> translate(Expr, S)
   end.
 
 %% Expressions that can handle no return may receive
 %% return=false but must always return return=true.
-handles_no_return({ '__block__', _, [_|_] }) -> true;
+handles_no_return({ 'try', _, [_] }) -> true;
 handles_no_return({ 'for', _, [_|_] }) -> true;
+handles_no_return({ 'case', _, [_, _] }) -> true;
+handles_no_return({ 'receive', _, [_] }) -> true;
+handles_no_return({ '__block__', _, [_|_] }) -> true;
 handles_no_return(_) -> false.
 
 %% Comprehensions

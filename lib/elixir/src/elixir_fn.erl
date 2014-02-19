@@ -6,7 +6,8 @@
 translate(Meta, Clauses, S) ->
   Transformer = fun({ '->', CMeta, [ArgsWithGuards, Expr] }, Acc) ->
     { Args, Guards } = elixir_clauses:extract_splat_guards(ArgsWithGuards),
-    { TClause, TS  } = elixir_clauses:clause(?line(CMeta), fun translate_fn_match/2, Args, Expr, Guards, Acc),
+    { TClause, TS  } = elixir_clauses:clause(?line(CMeta), fun translate_fn_match/2,
+                                             Args, Expr, Guards, true, Acc),
     { TClause, elixir_scope:mergef(S, TS) }
   end,
 
