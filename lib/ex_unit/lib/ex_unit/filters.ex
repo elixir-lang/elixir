@@ -4,6 +4,24 @@ defmodule ExUnit.Filters do
   """
 
   @doc """
+  Normalizes include and excludes to remove duplicates
+  and keep precedence.
+
+  ## Examples
+
+      iex> ExUnit.Filters.normalize(nil, nil)
+      { [], [] }
+
+      iex> ExUnit.Filters.normalize([:foo, :bar, :bar], [:foo, :baz])
+      { [:foo, :bar], [:baz] }
+  """
+  def normalize(include, exclude) do
+    include = include |> List.wrap |> Enum.uniq
+    exclude = exclude |> List.wrap |> Enum.uniq |> Kernel.--(include)
+    { include, exclude }
+  end
+
+  @doc """
   Parses the given filters, as one would receive from the command line.
 
   ## Examples

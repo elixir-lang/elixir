@@ -125,9 +125,15 @@ defmodule ExUnit.CLIFormatter do
     IO.puts "\nRandomized with seed #{config.seed}"
   end
 
+  defp print_filters([include: [], exclude: []]) do
+    :ok
+  end
+
   defp print_filters([include: include, exclude: exclude]) do
-    unless Enum.empty?(include), do: IO.puts format_filters(include, :include)
-    unless Enum.empty?(exclude), do: IO.puts format_filters(exclude, :exclude)
+    if include != [], do: IO.puts format_filters(include, :include)
+    if exclude != [], do: IO.puts format_filters(exclude, :exclude)
+    IO.puts("")
+    :ok
   end
 
   defp print_test_failure(ExUnit.Test[name: name, case: mod, state: { :failed, tuple }], config) do

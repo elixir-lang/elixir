@@ -14,7 +14,7 @@ defmodule ExUnit.Runner do
     formatters = [ExUnit.RunnerStats|opts[:formatters]]
     Enum.each formatters, &(:ok = EM.add_handler(pid, &1, opts))
 
-    config = wrap_filters(Config[manager: pid].update(opts))
+    config = Config[manager: pid].update(opts)
 
     { run_us, _ } =
       :timer.tc fn ->
@@ -27,7 +27,11 @@ defmodule ExUnit.Runner do
   end
 
   defp normalize_opts(opts) do
+    { include, exclude } = ExUnit.Filters.normalize(opts[:include], opts[:exclude])
+
     opts = opts
+           |> Keyword.put(:exclude, exclude)
+           |> Keyword.put(:include, include)
            |> Keyword.put_new(:color, IO.ANSI.terminal?)
            |> Keyword.put_new(:max_cases, :erlang.system_info(:schedulers_online))
            |> Keyword.put_new(:seed, :erlang.now |> elem(2))
@@ -37,10 +41,6 @@ defmodule ExUnit.Runner do
     else
       Keyword.put(opts, :trace, false)
     end
-  end
-
-  defp wrap_filters(config) do
-    config.update_include(&List.wrap/1).update_exclude(&List.wrap/1)
   end
 
   defp loop(Config[] = config) do
