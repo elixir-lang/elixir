@@ -86,10 +86,14 @@ translate_map(Meta, Assocs, TUpdate, #elixir_scope{extra=Extra} = S) ->
 
   Line = ?line(Meta),
 
-  { TArgs, SA } = lists:mapfoldl(fun({ Key, Value }, Acc) ->
-    { TKey, Acc1 }   = KeyFun(Key, Acc),
-    { TValue, Acc2 } = ValFun(Value, Acc1#elixir_scope{extra=Extra}),
-    { { Op, ?line(Meta), TKey, TValue }, Acc2 }
+  { TArgs, SA } = lists:mapfoldl(fun
+    ({ Key, Value }, Acc) ->
+      { TKey, Acc1 }   = KeyFun(Key, Acc),
+      { TValue, Acc2 } = ValFun(Value, Acc1#elixir_scope{extra=Extra}),
+      { { Op, ?line(Meta), TKey, TValue }, Acc2 };
+    (Other, _Acc) ->
+      compile_error(Meta, S#elixir_scope.file, "expected key-value pairs in map, got: ~ts",
+                     ['Elixir.Macro':to_string(Other)])
   end, S, Assocs),
 
   build_map(Line, TUpdate, TArgs, SA).

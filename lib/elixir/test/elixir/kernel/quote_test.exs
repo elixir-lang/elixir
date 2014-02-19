@@ -111,6 +111,16 @@ defmodule Kernel.QuoteTest do
     assert Hello.world(["foo", "bar", "baz"]) == ["baz"]
   end
 
+  test :splice_on_map do
+    assert %{ unquote_splicing([foo: :bar]) } == %{ foo: :bar }
+    assert %{ unquote_splicing([foo: :bar]), baz: :bat } == %{ foo: :bar, baz: :bat }
+    assert %{ unquote_splicing([foo: :bar]), :baz => :bat } == %{ foo: :bar, baz: :bat }
+    assert %{ :baz => :bat, unquote_splicing([foo: :bar]) } == %{ foo: :bar, baz: :bat }
+
+    map = %{ foo: :default }
+    assert %{ map | unquote_splicing([foo: :bar]) } == %{ foo: :bar }
+  end
+
   test :when do
     assert [{:->,_,[[{:when,_,[1,2,3,4]}],5]}] = quote(do: (1, 2, 3 when 4 -> 5))
     assert [{:->,_,[[{:when,_,[1,2,3,4]}],5]}] = quote(do: ((1, 2, 3) when 4 -> 5))
@@ -186,7 +196,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list!
-    assert [{ ^mod, :add, 2, [file: ^file, line: 166] }|_] = System.stacktrace
+    assert [{ ^mod, :add, 2, [file: ^file, line: 176] }|_] = System.stacktrace
   end
 
   test :outside_function_error do
@@ -196,7 +206,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list!
-    assert [{ ^mod, _, _, [file: ^file, line: 194] }|_] = System.stacktrace
+    assert [{ ^mod, _, _, [file: ^file, line: 204] }|_] = System.stacktrace
   end
 end
 

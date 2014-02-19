@@ -3104,9 +3104,7 @@ defmodule Kernel do
        [bar: nil | integer]
 
   """
-  defmacro defrecord(name, fields, do_block \\ [])
-
-  defmacro defrecord(name, fields, do_block) do
+  defmacro defrecord(name, fields, do_block \\ []) do
     case is_list(fields) and Keyword.get(fields, :do, false) do
       false -> Record.defrecord(name, fields, do_block)
       other -> Record.defrecord(name, Keyword.delete(fields, :do), do: other)
@@ -3171,6 +3169,41 @@ defmodule Kernel do
   """
   defmacro defrecordp(name, tag \\ nil, fields) do
     Record.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
+  end
+
+  @doc """
+  Defines the current module as a struct.
+
+  A struct is a tagged map that allows developers to provide
+  default values for keys, tags to be used in polymorphic
+  dispatches and compile time assertions.
+
+  To define a struct, a developer needs to only define
+  a function named `__struct__/0` that returns a map with the
+  structs field. This macro is simply a convenience for doing so.
+
+  Note: In the future this macro may import functions into
+  your module and/or define a type.
+
+  ## Examples
+
+      defmodule MyRange do
+        defstruct first: nil, last: nil
+      end
+
+  """
+  defmacro defstruct(opts) do
+    quote bind_quoted: [opts: opts] do
+      opts = Enum.map(opts, fn
+        { key, _ } = pair when is_atom(key) -> pair
+        key when is_atom(key) -> { key, nil }
+        other -> raise ArgumentError, message: "struct fields must be atoms, got: #{inspect other}"
+      end)
+
+      def __struct__() do
+        %{ unquote_splicing(opts) }
+      end
+    end
   end
 
   @doc ~S"""

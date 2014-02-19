@@ -10,7 +10,7 @@ Nonterminals
   list list_args open_bracket close_bracket
   tuple open_curly close_curly
   bit_string open_bit close_bit
-  map map_op map_close map_args struct_op struct_expr
+  map map_op map_close map_args map_expr struct_op
   assoc_op_eol assoc_expr assoc_base assoc_update assoc_update_kw assoc
   container_args_base container_args call_args_parens_base call_args_parens parens_call
   call_args_no_parens_one call_args_no_parens_expr call_args_no_parens_comma_expr
@@ -202,7 +202,7 @@ access_expr -> bit_string : '$1'.
 access_expr -> sigil : build_sigil('$1').
 access_expr -> max_expr : '$1'.
 
-%% Aliases and properly formed calls. Used by struct_expr.
+%% Aliases and properly formed calls. Used by map_expr.
 max_expr -> atom : ?exprs('$1').
 max_expr -> atom_string : build_atom_string('$1').
 max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
@@ -454,14 +454,19 @@ bit_string -> open_bit container_args close_bit : build_bit('$1', '$2').
 
 % Map and structs
 
+map_expr -> max_expr : '$1'.
+map_expr -> dot_identifier : build_identifier('$1', nil).
+map_expr -> at_op_eol map_expr : build_unary_op('$1', '$2').
+
 assoc_op_eol -> assoc_op : '$1'.
 assoc_op_eol -> assoc_op eol : '$1'.
 
 assoc_expr -> container_expr assoc_op_eol container_expr : { '$1', '$3' }.
+assoc_expr -> map_expr : '$1'.
 
 assoc_update -> matched_expr pipe_op_eol matched_expr assoc_op_eol matched_expr : { '$2', '$1', [{ '$3', '$5' }] }.
 assoc_update -> unmatched_expr pipe_op_eol expr assoc_op_eol expr : { '$2', '$1', [{ '$3', '$5' }] }.
-assoc_update -> empty_paren pipe_op_eol expr assoc_op_eol expr : { '$2', '$1', [{ '$3', '$5' }] }.
+assoc_update -> matched_expr pipe_op_eol map_expr : { '$2', '$1', ['$3'] }.
 
 assoc_update_kw -> matched_expr pipe_op_eol kw : { '$2', '$1', '$3' }.
 assoc_update_kw -> unmatched_expr pipe_op_eol kw : { '$2', '$1', '$3' }.
@@ -489,13 +494,9 @@ map_args -> open_curly assoc_update_kw close_curly : build_map_update('$1', '$2'
 struct_op -> '%' : '$1'.
 struct_op -> '%' eol : '$1'.
 
-struct_expr -> max_expr : '$1'.
-struct_expr -> dot_identifier : build_identifier('$1', nil).
-struct_expr -> at_op_eol struct_expr : build_unary_op('$1', '$2').
-
 map -> map_op map_args : '$2'.
-map -> struct_op struct_expr map_args : { '%', meta('$1'), ['$2', '$3'] }.
-map -> struct_op struct_expr eol map_args : { '%', meta('$1'), ['$2', '$4'] }.
+map -> struct_op map_expr map_args : { '%', meta('$1'), ['$2', '$3'] }.
+map -> struct_op map_expr eol map_args : { '%', meta('$1'), ['$2', '$4'] }.
 
 Erlang code.
 

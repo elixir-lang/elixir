@@ -185,6 +185,16 @@ defmodule Kernel.ErrorsTest do
       '^x(1) = 1'
   end
 
+  test :literal_on_map_and_struct do
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: '}'",
+      '%{ { :a, :b } }'
+
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: '{'",
+      '%{ :a, :b }{ a: :b }'
+  end
+
   test :unbound_map_key_var do
     assert_compile_fail CompileError,
       "nofile:1: cannot bind variable x in map key",

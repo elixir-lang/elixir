@@ -122,9 +122,7 @@ defmodule MapTest do
   end
 
   defmodule LocalUser do
-    def __struct__ do
-      %{ name: "josé" }
-    end
+    defstruct name: "josé"
 
     def new do
       %LocalUser{}
@@ -140,5 +138,13 @@ defmodule MapTest do
   test "local user" do
     assert LocalUser.new == %LocalUser{name: "josé"}
     assert LocalUser.Context.new == %LocalUser{name: "josé"}
+  end
+
+  defmodule NilUser do
+    defstruct [:name, :age]
+  end
+
+  test "nil user" do
+    assert %NilUser{} == %{ __struct__: NilUser, name: nil, age: nil }
   end
 end

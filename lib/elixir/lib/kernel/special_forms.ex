@@ -20,7 +20,7 @@ defmodule Kernel.SpecialForms do
   """
 
   @doc """
-  Defines a new tuple.
+  Creates a tuple.
 
   Only two item tuples are considered literals in Elixir.
   Therefore all other tuples are represented in the AST
@@ -42,7 +42,7 @@ defmodule Kernel.SpecialForms do
   defmacro unquote(:{})(args)
 
   @doc """
-  Defines a new map.
+  Creates a map.
 
   Maps are key-value stores where keys are compared using
   using the match operator (`===`). Maps can be created with
@@ -102,7 +102,7 @@ defmodule Kernel.SpecialForms do
   defmacro unquote(:%{})(args)
 
   @doc """
-  Defines a struct.
+  Creates a struct.
 
   A struct is a tagged map that allows developers to provide
   default values for keys, tags to be used in polymorphic
