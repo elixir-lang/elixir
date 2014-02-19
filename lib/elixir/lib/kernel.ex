@@ -2528,50 +2528,6 @@ defmodule Kernel do
       sample = [a: 1, b: 2, c: 3]
       sample[:b] #=> 2
 
-  ## Aliases
-
-  Whenever invoked on an alias or an atom, the access protocol is
-  expanded at compilation time rather than on runtime. This feature
-  is used by records to allow a developer to match against an specific
-  part of a record:
-
-      def increment(State[counter: counter, other: 13] = state) do
-        state.counter(counter + 1)
-      end
-
-  In the example above, we use the Access protocol to match the
-  counter field in the record `State`. Considering the record
-  definition is as follows:
-
-      defrecord State, counter: 0, other: nil
-
-  The clause above is translated to:
-
-      def increment({ State, counter, 13 } = state) do
-        state.counter(counter + 1)
-      end
-
-  The same pattern can be used to create a new record:
-
-      def new_state(counter) do
-        State[counter: counter]
-      end
-
-  The example above is faster than `State.new(counter: :counter)` because
-  the record is expanded at compilation time and not at runtime. If a field
-  is not specified on creation, it will have its default value.
-
-  Finally, as in Erlang, Elixir also allows the following syntax:
-
-      new_uri = State[_: 1]
-
-  In this case **all** fields will be set to `1`. Notice that,
-  as in Erlang, in case an expression is given, it will be
-  evaluated multiple times:
-
-      new_uri = State[_: IO.puts "Hello"]
-
-  In this case, `"Hello"` will be printed twice (one per each field).
   """
   defmacro access(element, args) when is_list(args) do
     caller = __CALLER__
@@ -2628,7 +2584,7 @@ defmodule Kernel do
 
   ## Guards
 
-  The in operator can be used on guard clauses as long as the
+  The `in` operator can be used on guard clauses as long as the
   right side is a range or a list. Elixir will then expand the
   operator to a valid guard expression. For example:
 
