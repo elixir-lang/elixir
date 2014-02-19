@@ -11,6 +11,12 @@ defmodule MapTest do
     %{ a: 1, b: 2 }
   end
 
+  @map %{ a: 1, b: 2 }
+
+  test "maps in attributes" do
+    assert @map == %{ a: 1, b: 2 }
+  end
+
   test "maps when quoted" do
     assert (quote do
       %{ foo: 1 }

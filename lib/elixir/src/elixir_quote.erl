@@ -240,13 +240,16 @@ do_quote({ Left, Right }, Q, E) ->
   { TRight, RQ } = do_quote(Right, LQ, E),
   { { TLeft, TRight }, RQ };
 
+do_quote(Map, #elixir_quote{escape=true} = Q, E) when is_map(Map) ->
+  { TT, TQ } = do_quote(maps:to_list(Map), Q, E),
+  { { '%{}', [], TT }, TQ };
+
 do_quote(Tuple, #elixir_quote{escape=true} = Q, E) when is_tuple(Tuple) ->
   { TT, TQ } = do_quote(tuple_to_list(Tuple), Q, E),
   { { '{}', [], TT }, TQ };
 
 do_quote(List, #elixir_quote{escape=true} = Q, E) when is_list(List) ->
-  % The improper case is pretty inefficient, but improper lists are hopefully
-  % rare.
+  % The improper case is pretty inefficient, but improper lists are are.
   case reverse_improper(List) of
     { L }       -> do_splice(L, Q, E);
     { L, R }    ->

@@ -779,7 +779,7 @@ defmodule Macro do
     do_safe_term(terms) || :ok
   end
 
-  defp do_safe_term({ local, _, terms }) when local in [:{}, :__aliases__] do
+  defp do_safe_term({ local, _, terms }) when local in [:{}, :%{}, :__aliases__] do
     do_safe_term(terms)
   end
 
