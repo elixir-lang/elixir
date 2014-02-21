@@ -913,7 +913,7 @@ defmodule String do
       last = total + last
     end
 
-    if first > 0 do
+    if first >= 0 do
       do_slice(next_grapheme(string), first, last, 0, "")
     end
   end
