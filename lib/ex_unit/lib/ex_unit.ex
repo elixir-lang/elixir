@@ -59,8 +59,8 @@ defmodule ExUnit do
       ExUnit.start
 
   Mix will load the `test_helper.exs` file before executing the tests.
-  It is not necessary to `require` the `test_helper.exs` file in your test files.
-  See `Mix.Tasks.Test` for more information.
+  It is not necessary to `require` the `test_helper.exs` file in your test
+  files. See `Mix.Tasks.Test` for more information.
   """
 
   @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase"

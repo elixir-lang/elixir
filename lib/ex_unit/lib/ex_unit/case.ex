@@ -121,25 +121,25 @@ defmodule ExUnit.Case do
 
   ## Filters
 
-  Tags can also be used to identify specific tests, which can then be included
-  or excluded using filters. The most common functionality is to exclude some
-  particular tests from running, which can be done via `ExUnit.configure/1`:
+  Tags can also be used to identify specific tests, which can then
+  be included or excluded using filters. The most common functionality
+  is to exclude some particular tests from running, which can be done
+  via `ExUnit.configure/1`:
 
       # Exclude all external tests from running
       ExUnit.configure exclude: [external: true]
 
-  From now on, ExUnit will not run any test that has the `external` flag set to true.
-  This behaviour can be reversed with the `:include` option which is usually passed
-  through the command line:
+  From now on, ExUnit will not run any test that has the `external` flag
+  set to true. This behaviour can be reversed with the `:include` option
+  which is usually passed through the command line:
 
       mix test --include external:true
 
-  The command above will override the excluded configuration, running all tests,
-  including the ones that have the `external` flag set to true.
+  Run `mix help test` for more information on how to run filters via Mix.
 
   Another use case for tags and filters is to exclude all tests that have
-  a particular tag by default, regardless of its value, and include only a certain
-  subset:
+  a particular tag by default, regardless of its value, and include only
+  a certain subset:
 
       ExUnit.configure exclude: :os, include: [os: :unix]
 

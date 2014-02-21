@@ -2,7 +2,8 @@
 
 * Enhancements
   * [Enum] Add `Enum.group_by/2`
-  * [ExUnit] Randomize cases and tests suite runs, allows seed option
+  * [ExUnit] Randomize cases and tests suite runs, allow seed configuration and the `--seed` flag via `mix test`
+  * [ExUnit] Support `--only` for filtering when running tests with `mix test`
   * [IEx] Allow prompt configuration with the `:prompt` option
   * [Kernel] Support `ERL_PATH` in `bin/elixir`
   * [Map] Add a Map module and support R17 maps and structs

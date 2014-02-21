@@ -3,6 +3,8 @@ defmodule ExUnit.Filters do
   Conveniences for parsing and evaluating filters.
   """
 
+  @type t :: list({ atom, any } | atom)
+
   @doc """
   Normalizes include and excludes to remove duplicates
   and keep precedence.
@@ -15,6 +17,7 @@ defmodule ExUnit.Filters do
       iex> ExUnit.Filters.normalize([:foo, :bar, :bar], [:foo, :baz])
       { [:foo, :bar], [:baz] }
   """
+  @spec normalize(t | nil, t | nil) :: { t, t }
   def normalize(include, exclude) do
     include = include |> List.wrap |> Enum.uniq
     exclude = exclude |> List.wrap |> Enum.uniq |> Kernel.--(include)
@@ -30,7 +33,7 @@ defmodule ExUnit.Filters do
       [{:foo, "bar"}, :baz]
 
   """
-  @spec parse([String.t]) :: Keyword.t
+  @spec parse([String.t]) :: t
   def parse(filters) do
     Enum.map filters, fn filter ->
       case String.split(filter, ":", global: false) do
@@ -58,7 +61,7 @@ defmodule ExUnit.Filters do
       { :error, :foo }
 
   """
-  @spec eval(Keyword.t(list), Keyword.t(list), Keyword.t) :: :ok | { :error, atom }
+  @spec eval(t, t, Keyword.t) :: :ok | { :error, atom }
   def eval(include, exclude, tags) do
     excluded = Enum.find_value exclude, &has_tag(&1, tags)
     if !excluded or Enum.any?(include, &has_tag(&1, tags)) do
