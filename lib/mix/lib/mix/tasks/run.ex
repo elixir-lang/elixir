@@ -39,14 +39,16 @@ defmodule Mix.Tasks.Run do
     # Require the project to be available
     Mix.Project.get!
 
-    Mix.Task.run "app.start", args
-
     file =
       case head do
         ["--"|t] -> System.argv(t); nil
         [h|t]    -> System.argv(t); h
         []       -> System.argv([]); nil
       end
+
+    # Start app after rewriting System.argv,
+    # but before requiring and evaling
+    Mix.Task.run "app.start", args
 
     Enum.each opts, fn({ key, value }) ->
       case key do
