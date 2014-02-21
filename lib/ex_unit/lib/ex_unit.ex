@@ -68,7 +68,7 @@ defmodule ExUnit do
   @type failed  :: { :error | :exit | :throw | :EXIT, reason :: term, stacktrace :: [tuple] }
   @type invalid :: module
 
-  defrecord Test, [:name, :case, :state, :time, :tags, :line] do
+  defrecord Test, [:name, :case, :state, :time, :tags] do
     @moduledoc """
     A record that keeps information about the test.
     It is received by formatters and also accessible
