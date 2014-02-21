@@ -92,10 +92,9 @@ defmodule Mix.Tasks.New do
     You can use mix to compile it, test it, and more:
 
         cd #{path}
-        mix compile
         mix test
 
-    Run `mix help` for more information.
+    Run `mix help` for more commands.
     """
   end
 
@@ -280,7 +279,7 @@ defmodule Mix.Tasks.New do
     use ExUnit.Case
 
     test "the truth" do
-      assert(true)
+      assert 1 + 1 == 2
     end
   end
   """
