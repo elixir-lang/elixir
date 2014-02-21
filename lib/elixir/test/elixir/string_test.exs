@@ -303,6 +303,7 @@ defmodule StringTest do
     assert String.slice("", 0, 1) == ""
     assert String.slice("", 1, 1) == nil
 
+    assert String.slice("elixir", 0..-2) == "elixi"
     assert String.slice("elixir", 1..3) == "lix"
     assert String.slice("elixir", -5..-3) == "lix"
     assert String.slice("elixir", -5..3) == "lix"
