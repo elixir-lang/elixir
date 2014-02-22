@@ -78,7 +78,7 @@ defmodule Mix.Deps.Loader do
 
   ## Helpers
 
-  defp to_dep(tuple, scms, from, manager \\ nil) do
+  def to_dep(tuple, scms, from, manager \\ nil) do
     with_scm_and_app(tuple, scms).from(from).manager(manager)
   end
 
