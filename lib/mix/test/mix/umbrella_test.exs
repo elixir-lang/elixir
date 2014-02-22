@@ -60,9 +60,9 @@ defmodule Mix.UmbrellaTest do
 
       Mix.Task.run "deps.loadpaths", ["--no-deps-check"]
       Mix.Task.run "loadpaths", ["--no-elixir-version-check"]
-      assert Path.expand('_build/dev/lib/some_dep/ebin') in :code.get_path
-      assert Path.expand('_build/dev/lib/foo/ebin') in :code.get_path
-      assert Path.expand('_build/dev/lib/bar/ebin') in :code.get_path
+      assert to_char_list(Path.expand("_build/dev/lib/some_dep/ebin")) in :code.get_path
+      assert to_char_list(Path.expand("_build/dev/lib/foo/ebin")) in :code.get_path
+      assert to_char_list(Path.expand("_build/dev/lib/bar/ebin")) in :code.get_path
     end
   end
 

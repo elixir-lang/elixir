@@ -39,11 +39,11 @@ defmodule Mix.Tasks.Deps.Clean do
         if dep = Enum.find(loaded, &(&1.app == app)) do
           Mix.Deps.load_paths(dep)
         else
-          [Path.join([build, app, "ebin"])]
+          [Path.join([build, atom_to_binary(app), "ebin"])]
         end
 
       Enum.each(load_paths, &(&1 |> Path.dirname |> File.rm_rf!))
-      File.rm_rf!(Path.join(deps, app))
+      File.rm_rf!(Path.join(deps, atom_to_binary(app)))
     end
 
     if opts[:unlock] do

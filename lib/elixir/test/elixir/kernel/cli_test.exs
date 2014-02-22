@@ -22,12 +22,12 @@ defmodule Kernel.CLI.OptionParsingTest do
     { path, _ } = Code.eval_string list, []
 
     # pa
-    assert Path.expand('ebin', root) in path
-    assert Path.expand('lib', root) in path
-    assert Path.expand('src', root) in path
+    assert to_char_list(Path.expand('ebin', root)) in path
+    assert to_char_list(Path.expand('lib', root)) in path
+    assert to_char_list(Path.expand('src', root)) in path
 
     # pz
-    assert Path.expand('lib/list', root) in path
+    assert to_char_list(Path.expand('lib/list', root)) in path
   end
 end
 

@@ -51,6 +51,11 @@ defmodule File do
   `IO.write/2` functions must be used as they are responsible for
   doing the proper conversions and data guarantees.
 
+  Note that filenames when given as char lists in Elixir are
+  always treated as UTF-8. In particular, the VM is started with
+  the `+fnu` flag. Binary filenames are considering raw and passed
+  to the OS as is.
+
   Most of the functions in this module return `:ok` or
   `{ :ok, result }` in case of success, `{ :error, reason }`
   otherwise. Those function are also followed by a variant
@@ -143,7 +148,7 @@ defmodule File do
     case mkdir(path) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "make directory", path: to_string(path)
+        raise File.Error, reason: reason, action: "make directory", path: to_char_data(path)
     end
   end
 
@@ -168,7 +173,7 @@ defmodule File do
     case mkdir_p(path) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "make directory (with -p)", path: to_string(path)
+        raise File.Error, reason: reason, action: "make directory (with -p)", path: to_char_data(path)
     end
   end
 
@@ -201,7 +206,7 @@ defmodule File do
       { :ok, binary } ->
         binary
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "read file", path: to_string(path)
+        raise File.Error, reason: reason, action: "read file", path: to_char_data(path)
     end
   end
 
@@ -236,7 +241,7 @@ defmodule File do
     case stat(path, opts) do
       {:ok, info}      -> info
       {:error, reason} ->
-        raise File.Error, reason: reason, action: "read file stats", path: to_string(path)
+        raise File.Error, reason: reason, action: "read file stats", path: to_char_data(path)
     end
   end
 
@@ -256,7 +261,7 @@ defmodule File do
     case write_stat(path, stat, opts) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "write file stats", path: to_string(path)
+        raise File.Error, reason: reason, action: "write file stats", path: to_char_data(path)
     end
   end
 
@@ -282,7 +287,7 @@ defmodule File do
     case touch(path, time) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "touch", path: to_string(path)
+        raise File.Error, reason: reason, action: "touch", path: to_char_data(path)
     end
   end
 
@@ -321,7 +326,7 @@ defmodule File do
       { :ok, bytes_count } -> bytes_count
       { :error, reason } ->
         raise File.CopyError, reason: reason, action: "copy",
-          source: to_string(source), destination: to_string(destination)
+          source: to_char_data(source), destination: to_char_data(destination)
     end
   end
 
@@ -360,8 +365,8 @@ defmodule File do
       :ok -> :ok
       { :error, reason } ->
         raise File.CopyError, reason: reason, action: "copy recursively",
-          source: to_string(source),
-          destination: to_string(destination)
+          source: to_char_data(source),
+          destination: to_char_data(destination)
     end
   end
 
@@ -409,7 +414,7 @@ defmodule File do
 
   """
   def cp_r(source, destination, callback \\ fn(_, _) -> true end) when is_function(callback) do
-    case do_cp_r(source, destination, callback, []) do
+    case do_cp_r(to_char_data(source), to_char_data(destination), callback, []) do
       { :error, _, _ } = error -> error
       res -> { :ok, res }
     end
@@ -424,8 +429,8 @@ defmodule File do
       { :ok, files } -> files
       { :error, reason, file } ->
         raise File.CopyError, reason: reason, action: "copy recursively",
-          source: to_string(source),
-          destination: to_string(destination),
+          source: to_char_data(source),
+          destination: to_char_data(destination),
           on: file
     end
   end
@@ -439,7 +444,7 @@ defmodule File do
       { :ok, :symlink } ->
         case F.read_link(src) do
           { :ok, link } -> do_cp_link(link, src, dest, callback, acc)
-          { :error, reason } -> { :error, reason, to_string(src) }
+          { :error, reason } -> { :error, reason, to_char_data(src) }
         end
       { :ok, :directory } ->
         case F.list_dir(src) do
@@ -449,12 +454,12 @@ defmodule File do
                 Enum.reduce(files, [dest|acc], fn(x, acc) ->
                   do_cp_r(Path.join(src, x), Path.join(dest, x), callback, acc)
                 end)
-              { :error, reason } -> { :error, reason, to_string(dest) }
+              { :error, reason } -> { :error, reason, to_char_data(dest) }
             end
-          { :error, reason } -> { :error, reason, to_string(src) }
+          { :error, reason } -> { :error, reason, to_char_data(src) }
         end
       { :ok, _ } -> { :error, :eio, src }
-      { :error, reason } -> { :error, reason, to_string(src) }
+      { :error, reason } -> { :error, reason, to_char_data(src) }
     end
   end
 
@@ -483,12 +488,12 @@ defmodule File do
             { :ok, _ } ->
               copy_file_mode!(src, dest)
               [dest|acc]
-            { :error, reason } -> { :error, reason, to_string(src) }
+            { :error, reason } -> { :error, reason, to_char_data(src) }
           end
         else
           acc
         end
-      { :error, reason } -> { :error, reason, to_string(src) }
+      { :error, reason } -> { :error, reason, to_char_data(src) }
     end
   end
 
@@ -502,12 +507,12 @@ defmodule File do
           rm(dest)
           case F.make_symlink(link, dest) do
             :ok -> [dest|acc]
-            { :error, reason } -> { :error, reason, to_string(src) }
+            { :error, reason } -> { :error, reason, to_char_data(src) }
           end
         else
           acc
         end
-      { :error, reason } -> { :error, reason, to_string(src) }
+      { :error, reason } -> { :error, reason, to_char_data(src) }
     end
   end
 
@@ -538,7 +543,7 @@ defmodule File do
     case F.write_file(path, content, modes) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "write to file", path: to_string(path)
+        raise File.Error, reason: reason, action: "write to file", path: to_char_data(path)
     end
   end
 
@@ -575,7 +580,7 @@ defmodule File do
     case rm(path) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "remove file", path: to_string(path)
+        raise File.Error, reason: reason, action: "remove file", path: to_char_data(path)
     end
   end
 
@@ -603,7 +608,7 @@ defmodule File do
     case rmdir(path) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "remove directory", path: to_string(path)
+        raise File.Error, reason: reason, action: "remove directory", path: to_char_data(path)
     end
   end
 
@@ -626,7 +631,7 @@ defmodule File do
 
   """
   def rm_rf(path) do
-    do_rm_rf(path, { :ok, [] })
+    do_rm_rf(to_char_data(path), { :ok, [] })
   end
 
   defp do_rm_rf(path, { :ok, _ } = entry) do
@@ -642,7 +647,7 @@ defmodule File do
             case rmdir(path) do
               :ok -> { :ok, [path|acc] }
               { :error, :enoent } -> res
-              { :error, reason } -> { :error, reason, to_string(path) }
+              { :error, reason } -> { :error, reason, to_char_data(path) }
             end
           reason ->
             reason
@@ -650,7 +655,7 @@ defmodule File do
       { :ok, :directory } -> do_rm_directory(path, entry)
       { :ok, :regular } -> do_rm_regular(path, entry)
       { :error, reason } when reason in [:enoent, :enotdir] -> entry
-      { :error, reason } -> { :error, reason, to_string(path) }
+      { :error, reason } -> { :error, reason, to_char_data(path) }
     end
   end
 
@@ -662,7 +667,7 @@ defmodule File do
     case rm(path) do
       :ok -> { :ok, [path|acc] }
       { :error, :enoent } -> entry
-      { :error, reason } -> { :error, reason, to_string(path) }
+      { :error, reason } -> { :error, reason, to_char_data(path) }
     end
   end
 
@@ -675,7 +680,7 @@ defmodule File do
       :ok -> { :ok, [path|acc] }
       { :error, :enotdir } -> do_rm_regular(path, entry)
       { :error, :enoent } -> entry
-      { :error, reason } -> { :error, reason, to_string(path) }
+      { :error, reason } -> { :error, reason, to_char_data(path) }
     end
   end
 
@@ -705,7 +710,7 @@ defmodule File do
       { :error, reason, _ } ->
         raise File.Error, reason: reason,
           action: "remove files and directories recursively from",
-          path: to_string(path)
+          path: to_char_data(path)
     end
   end
 
@@ -819,7 +824,7 @@ defmodule File do
     case open(path, modes) do
       { :ok, device }    -> device
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "open", path: to_string(path)
+        raise File.Error, reason: reason, action: "open", path: to_char_data(path)
     end
   end
 
@@ -831,7 +836,7 @@ defmodule File do
     case open(path, modes, function) do
       { :ok, device }    -> device
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "open", path: to_string(path)
+        raise File.Error, reason: reason, action: "open", path: to_char_data(path)
     end
   end
 
@@ -853,7 +858,7 @@ defmodule File do
   """
   def cwd!() do
     case F.get_cwd do
-      { :ok, cwd } -> to_string(cwd)
+      { :ok, cwd } -> to_char_data(cwd)
       { :error, reason } ->
           raise File.Error, reason: reason, action: "get current working directory"
     end
@@ -874,7 +879,7 @@ defmodule File do
     case F.set_cwd(path) do
       :ok -> :ok
       { :error, reason } ->
-          raise File.Error, reason: reason, action: "set current working directory to", path: to_string(path)
+          raise File.Error, reason: reason, action: "set current working directory to", path: to_char_data(path)
     end
   end
 
@@ -904,7 +909,7 @@ defmodule File do
   """
   def ls(path \\ ".") do
     case F.list_dir(path) do
-      { :ok, file_list } -> { :ok, Enum.map(file_list, &to_string(&1)) }
+      { :ok, file_list } -> { :ok, Enum.map(file_list, &to_char_data(&1)) }
       { :error, _ } = error -> error
     end
   end
@@ -917,7 +922,7 @@ defmodule File do
     case ls(dir) do
       { :ok, value } -> value
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "list directory", path: to_string(dir)
+        raise File.Error, reason: reason, action: "list directory", path: to_char_data(dir)
     end
   end
 
@@ -955,7 +960,7 @@ defmodule File do
         case F.open(path, modes) do
           { :ok, device }    -> device
           { :error, reason } ->
-            raise File.Error, reason: reason, action: "stream", path: to_string(path)
+            raise File.Error, reason: reason, action: "stream", path: to_char_data(path)
         end
       end
 
@@ -999,7 +1004,7 @@ defmodule File do
           |> Stream.after(fn -> F.close(device) end)
           |> Enumerable.Stream.Lazy.reduce(acc, f)
         { :error, reason } ->
-          raise File.Error, reason: reason, action: "stream_to", path: to_string(path)
+          raise File.Error, reason: reason, action: "stream_to", path: to_char_data(path)
       end
     end
   end
@@ -1020,7 +1025,7 @@ defmodule File do
     case chmod(file, mode) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "change mode for", path: to_string(file)
+        raise File.Error, reason: reason, action: "change mode for", path: to_char_data(file)
     end
   end
 
@@ -1040,7 +1045,7 @@ defmodule File do
     case chgrp(file, gid) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "change group for", path: to_string(file)
+        raise File.Error, reason: reason, action: "change group for", path: to_char_data(file)
     end
   end
 
@@ -1060,11 +1065,24 @@ defmodule File do
     case chown(file, uid) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "change owner for", path: to_string(file)
+        raise File.Error, reason: reason, action: "change owner for", path: to_char_data(file)
     end
   end
 
   ## Helpers
+
+  defp to_char_data(binary) when is_binary(binary) do
+    binary
+  end
+
+  defp to_char_data(list) when is_list(list) do
+    case :unicode.characters_to_binary(list) do
+      { :error, _, _ } ->
+        :erlang.error(:badarg)
+      bin when is_binary(bin) ->
+        bin
+    end
+  end
 
   defp open_defaults([:charlist|t], _add_binary) do
     open_defaults(t, false)

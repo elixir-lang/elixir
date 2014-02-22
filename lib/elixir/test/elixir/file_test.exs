@@ -262,7 +262,7 @@ defmodule FileTest do
 
         { :ok, files } = File.cp_r(src, dest)
         assert length(files) == 7
-        assert is_list(hd(files))
+        assert Enum.all?(files, &is_binary/1)
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
         assert File.exists?(tmp_path("tmp/a/a/2.txt"))
@@ -790,8 +790,8 @@ defmodule FileTest do
 
       { :ok, files } = File.rm_rf(fixture)
       assert length(files) == 7
-      assert fixture in files
-      assert (tmp_path("tmp/a/1.txt") |> to_char_list) in files
+      assert tmp_path("tmp") in files
+      assert Enum.all?(files, &is_binary/1)
 
       refute File.exists?(tmp_path("tmp/a/1.txt"))
       refute File.exists?(tmp_path("tmp/a/a/2.txt"))

@@ -37,7 +37,7 @@ defmodule Code do
   The path is expanded with `Path.expand/1` before being appended.
   """
   def append_path(path) do
-    :code.add_pathz(Path.expand to_char_list(path))
+    :code.add_pathz(to_char_list(Path.expand path))
   end
 
   @doc """
@@ -46,7 +46,7 @@ defmodule Code do
   The path is expanded with `Path.expand/1` before being prepended.
   """
   def prepend_path(path) do
-    :code.add_patha(Path.expand to_char_list(path))
+    :code.add_patha(to_char_list(Path.expand path))
   end
 
   @doc """
@@ -55,7 +55,7 @@ defmodule Code do
   The path is expanded with `Path.expand/1` before being deleted.
   """
   def delete_path(path) do
-    :code.del_path(Path.expand to_char_list(path))
+    :code.del_path(to_char_list(Path.expand path))
   end
 
   @doc """

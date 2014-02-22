@@ -91,8 +91,10 @@ defmodule Mix.Deps.Loader do
       invalid_dep_format(other)
     end
 
-    dest  = Path.join(Mix.Project.deps_path, app)
-    build = Path.join([Mix.Project.build_path, "lib", app])
+    bin_app = atom_to_binary(app)
+
+    dest  = Path.join(Mix.Project.deps_path, bin_app)
+    build = Path.join([Mix.Project.build_path, "lib", bin_app])
     opts  = opts
             |> Keyword.put(:dest, dest)
             |> Keyword.put(:build, build)
