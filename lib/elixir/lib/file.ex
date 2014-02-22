@@ -77,7 +77,6 @@ defmodule File do
   """
 
   alias :file,     as: F
-  alias :filename, as: FN
   alias :filelib,  as: FL
 
   @doc """
@@ -159,7 +158,7 @@ defmodule File do
   * :enotdir - A component of `path` is not a directory.
   """
   def mkdir_p(path) do
-    FL.ensure_dir(FN.join(path, "."))
+    FL.ensure_dir(Path.join(path, "."))
   end
 
   @doc """
@@ -448,7 +447,7 @@ defmodule File do
             case mkdir(dest) do
               success when success in [:ok, { :error, :eexist }] ->
                 Enum.reduce(files, [dest|acc], fn(x, acc) ->
-                  do_cp_r(FN.join(src, x), FN.join(dest, x), callback, acc)
+                  do_cp_r(Path.join(src, x), Path.join(dest, x), callback, acc)
                 end)
               { :error, reason } -> { :error, reason, to_string(dest) }
             end
@@ -635,7 +634,7 @@ defmodule File do
       { :ok, files } when is_list(files) ->
         res =
           Enum.reduce files, entry, fn(file, tuple) ->
-            do_rm_rf(FN.join(path, file), tuple)
+            do_rm_rf(Path.join(path, file), tuple)
           end
 
         case res do

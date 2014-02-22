@@ -3,9 +3,9 @@ defmodule Path do
   This module provides conveniences for manipulating or
   retrieving file system paths.
 
-  The functions in this module may receive a char list or
-  a binary as an argument and will return a value of the same
-  type.
+  The functions in this module may receive a char data as
+  argument (i.e. a string or a list of characters / string)
+  and will always return a string (encoded in UTF-8).
 
   The majority of the functions in this module do not
   interact with the file system, except for a few functions
@@ -13,9 +13,7 @@ defmodule Path do
   """
 
   alias :filename, as: FN
-
-  @type t :: char_list | atom | binary
-  @type r :: char_list | binary
+  @type t :: char_data
 
   @doc """
   Converts the given path to an absolute one. Unlike
@@ -38,7 +36,7 @@ defmodule Path do
 
   """
   def absname(path) do
-    FN.absname(path, get_cwd(path))
+    absname(path, System.cwd!)
   end
 
   @doc """
@@ -58,7 +56,32 @@ defmodule Path do
 
   """
   def absname(path, relative_to) do
-    FN.absname(path, relative_to)
+    path = flatten(path)
+    case type(path) do
+      :relative -> join(relative_to, path)
+      :absolute -> path
+      :volumerelative ->
+        relative_to = flatten(relative_to)
+        absname_vr(split(path), split(relative_to), relative_to)
+    end
+  end
+
+  ## Absolute path on current drive
+  defp absname_vr(["/"|rest], [volume|_], _relative),
+    do: join([volume|rest])
+
+  ## Relative to current directory on current drive.
+  defp absname_vr([<<x, ?:>>|rest], [<<x, _ :: binary>>|_], relative),
+    do: absname(join(rest), relative)
+
+  ## Relative to current directory on another drive.
+  defp absname_vr([<<x, ?:>>|name], _, _relative) do
+    cwd =
+      case :file.get_cwd([x, ?:]) do
+        {:ok, dir}  -> flatten(dir)
+        {:error, _} -> <<x, ?:, ?/>>
+      end
+    absname(join(name), cwd)
   end
 
   @doc """
@@ -72,7 +95,7 @@ defmodule Path do
 
   """
   def expand(path) do
-    normalize FN.absname(expand_home(path), get_cwd(path))
+    normalize absname(expand_home(path), System.cwd!)
   end
 
   @doc """
@@ -98,7 +121,7 @@ defmodule Path do
 
   """
   def expand(path, relative_to) do
-    normalize FN.absname(FN.absname(expand_home(path), expand_home(relative_to)), get_cwd(path))
+    normalize absname(absname(expand_home(path), expand_home(relative_to)), System.cwd!)
   end
 
   @doc """
@@ -147,7 +170,7 @@ defmodule Path do
     case :os.type() do
       { :win32, _ } -> win32_pathtype(name)
       _             -> unix_pathtype(name)
-    end |> elem(1)
+    end |> elem(1) |> flatten
   end
 
   defp unix_pathtype(<<?/, relative :: binary>>), do:
@@ -156,8 +179,6 @@ defmodule Path do
     { :absolute, relative }
   defp unix_pathtype([list|rest]) when is_list(list), do:
     unix_pathtype(list ++ rest)
-  defp unix_pathtype([atom|rest]) when is_atom(atom), do:
-    unix_pathtype(atom_to_list(atom) ++ rest)
   defp unix_pathtype(relative), do:
     { :relative, relative }
 
@@ -165,8 +186,6 @@ defmodule Path do
 
   defp win32_pathtype([list|rest]) when is_list(list), do:
     win32_pathtype(list++rest)
-  defp win32_pathtype([atom|rest]) when is_atom(atom), do:
-    win32_pathtype(atom_to_list(atom)++rest)
   defp win32_pathtype([char, list|rest]) when is_list(list), do:
     win32_pathtype([char|list++rest])
   defp win32_pathtype(<<c1, c2, relative :: binary>>) when c1 in @slash and c2 in @slash, do:
@@ -211,17 +230,8 @@ defmodule Path do
       "/usr/local/foo"
 
   """
-  def relative_to(path, from) when is_list(path) and is_binary(from) do
-    path = filename_string_to_binary(path)
-    relative_to(FN.split(path), FN.split(from), path)
-  end
-
-  def relative_to(path, from) when is_binary(path) and is_list(from) do
-    relative_to(FN.split(path), FN.split(filename_string_to_binary(from)), path)
-  end
-
   def relative_to(path, from) do
-    relative_to(FN.split(path), FN.split(from), path)
+    relative_to(split(path), split(from), path)
   end
 
   defp relative_to([h|t1], [h|t2], original) do
@@ -229,7 +239,7 @@ defmodule Path do
   end
 
   defp relative_to([_|_] = l1, [], _original) do
-    FN.join(l1)
+    join(l1)
   end
 
   defp relative_to(_, _, original) do
@@ -243,7 +253,7 @@ defmodule Path do
   """
   def relative_to_cwd(path) do
     case :file.get_cwd do
-      { :ok, base } -> relative_to(path, base)
+      { :ok, base } -> relative_to(path, flatten(base))
       _ -> path
     end
   end
@@ -265,7 +275,7 @@ defmodule Path do
 
   """
   def basename(path) do
-    FN.basename(path)
+    FN.basename(flatten(path))
   end
 
   @doc """
@@ -284,7 +294,7 @@ defmodule Path do
 
   """
   def basename(path, extension) do
-    FN.basename(path, extension)
+    FN.basename(flatten(path), flatten(extension))
   end
 
   @doc """
@@ -299,7 +309,7 @@ defmodule Path do
 
   """
   def dirname(path) do
-    FN.dirname(path)
+    FN.dirname(flatten(path))
   end
 
   @doc """
@@ -314,7 +324,7 @@ defmodule Path do
 
   """
   def extname(path) do
-    FN.extension(path)
+    FN.extension(flatten(path))
   end
 
   @doc """
@@ -329,7 +339,7 @@ defmodule Path do
 
   """
   def rootname(path) do
-    FN.rootname(path)
+    FN.rootname(flatten(path))
   end
 
   @doc """
@@ -345,7 +355,7 @@ defmodule Path do
 
   """
   def rootname(path, extension) do
-    FN.rootname(path, extension)
+    FN.rootname(flatten(path), flatten(extension))
   end
 
   @doc """
@@ -364,10 +374,8 @@ defmodule Path do
   """
   def join([name1, name2|rest]), do:
     join([join(name1, name2)|rest])
-  def join([name]) when is_list(name), do:
-    binary_to_filename_string(do_join(filename_string_to_binary(name), <<>>, [], major_os_type()))
-  def join([name]) when is_binary(name), do:
-    do_join(name, <<>>, [], major_os_type())
+  def join([name]), do:
+    do_join(flatten(name), <<>>, [], major_os_type())
 
   @doc """
   Joins two paths.
@@ -378,23 +386,8 @@ defmodule Path do
       "foo/bar"
 
   """
-  def join(left, right) when is_binary(left) and is_binary(right), do:
-    do_join(left, Path.relative(right), [], major_os_type())
-
-  def join(left, right) when is_binary(left) and is_list(right), do:
-    join(left, filename_string_to_binary(right))
-
-  def join(left, right) when is_list(left) and is_binary(right), do:
-    join(filename_string_to_binary(left), right)
-
-  def join(left, right) when is_list(left) and is_list(right), do:
-    binary_to_filename_string join(filename_string_to_binary(left), filename_string_to_binary(right))
-
-  def join(left, right) when is_atom(left), do:
-    join(atom_to_binary(left), right)
-
-  def join(left, right) when is_atom(right), do:
-    join(left, atom_to_binary(right))
+  def join(left, right),
+    do: do_join(flatten(left), relative(right), [], major_os_type())
 
   defp major_os_type do
     :os.type |> elem(0)
@@ -416,7 +409,7 @@ defmodule Path do
     do_join(relativename, <<>>, [?/|result], os_type)
   defp do_join(<<>>, relativename, result, os_type), do:
     do_join(relativename, <<>>, [?/|result], os_type)
-  defp do_join(<<char, rest :: binary>>, relativename, result, os_type) when is_integer(char), do:
+  defp do_join(<<char, rest :: binary>>, relativename, result, os_type), do:
     do_join(rest, relativename, [char|result], os_type)
 
   @doc """
@@ -437,7 +430,7 @@ defmodule Path do
   def split(""), do: []
 
   def split(path) do
-    FN.split(path)
+    FN.split(flatten(path))
   end
 
   @doc """
@@ -473,22 +466,29 @@ defmodule Path do
       Path.wildcard("projects/*/ebin/**/*.{beam,app}")
 
   """
-  def wildcard(glob) when is_binary(glob) do
-    paths = :filelib.wildcard binary_to_filename_string(glob)
-    encoding = :file.native_name_encoding()
-    Enum.map paths, &flatten_filename_to_binary(&1, encoding)
-  end
-
-  def wildcard(glob) when is_list(glob) do
-    :filelib.wildcard glob
+  def wildcard(glob) do
+    glob
+    |> to_filename_string
+    |> :filelib.wildcard
+    |> Enum.map(&flatten/1)
   end
 
   ## Helpers
 
-  defp get_cwd(path) when is_list(path), do: System.cwd! |> binary_to_filename_string
-  defp get_cwd(_), do: System.cwd!
+  defp flatten(binary) when is_binary(binary) do
+    binary
+  end
 
-  defp binary_to_filename_string(binary) do
+  defp flatten(list) when is_list(list) do
+    case :unicode.characters_to_binary(list) do
+      { :error, _, _ } ->
+        :erlang.error(:badarg)
+      bin when is_binary(bin) ->
+        bin
+    end
+  end
+
+  defp to_filename_string(binary) do
     case :unicode.characters_to_list(binary) do
       { :error, _, _ } ->
         :erlang.error(:badarg)
@@ -497,38 +497,22 @@ defmodule Path do
     end
   end
 
-  defp filename_string_to_binary(list) do
-    flatten_filename_to_binary(:filename.flatten(list), :file.native_name_encoding())
-  end
+  # Normalize the given path by expanding "..", "." and "~".
 
-  defp flatten_filename_to_binary(list, encoding) do
-    case :unicode.characters_to_binary(list, :unicode, encoding) do
-      { :error, _, _ } ->
-        :erlang.error(:badarg)
-      bin when is_binary(bin) ->
-        bin
+  defp expand_home(type) do
+    case flatten(type) do
+      "~" <> rest -> System.user_home! <> rest
+      rest        -> rest
     end
   end
 
-  # Normalize the given path by expanding "..", "." and "~".
+  defp normalize(path), do: normalize(split(path), [])
 
-  defp expand_home(<<?~, rest :: binary>>) do
-    System.user_home! <> rest
-  end
-
-  defp expand_home('~' ++ rest) do
-    (System.user_home! |> binary_to_filename_string) ++ rest
-  end
-
-  defp expand_home(other), do: other
-
-  defp normalize(path), do: normalize(FN.split(path), [])
-
-  defp normalize([top|t], [_|acc]) when top in ["..", '..'] do
+  defp normalize([".."|t], [_|acc]) do
     normalize t, acc
   end
 
-  defp normalize([top|t], acc) when top in [".", '.'] do
+  defp normalize(["."|t], acc) do
     normalize t, acc
   end
 
@@ -537,6 +521,6 @@ defmodule Path do
   end
 
   defp normalize([], acc) do
-    join Enum.reverse(acc)
+    join :lists.reverse(acc)
   end
 end

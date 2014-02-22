@@ -9,8 +9,9 @@
 -include("elixir.hrl").
 
 %% Top level types
--export_type([char_list/0, as_boolean/1]).
+-export_type([char_list/0, char_data/0, as_boolean/1]).
 -type char_list() :: string().
+-type char_data() :: unicode:chardata().
 -type as_boolean(T) :: T.
 
 %% OTP Application API
