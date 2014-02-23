@@ -54,7 +54,7 @@ defmodule Regex do
 
   * `:none` - do not return matching subpatterns at all;
 
-  * `:groups` - captures only named captures in the Regex;
+  * `:named` - captures only named captures in the Regex;
 
   * `list(binary)` - a list of named captures to capture;
 
@@ -183,7 +183,10 @@ defmodule Regex do
 
     captures =
       case Keyword.get(options, :capture, :all) do
-        :groups -> groups(regex)
+        :groups ->
+          IO.write "[WARNING] :groups option is deprecated, please use :named option instead\n#{Exception.format_stacktrace}"
+          names(regex)
+        :named -> names(regex)
         others  -> others
       end
 
@@ -212,9 +215,10 @@ defmodule Regex do
 
   """
   def named_captures(regex, string, options \\ []) when is_binary(string) do
-    options = [capture: :groups] ++ options
+    names = names(regex)
+    options = Keyword.put(options, :capture, names)
     results = run(regex, string, options)
-    if results, do: Enum.zip(groups(regex), results)
+    if results, do: Enum.zip(names, results)
   end
 
   @doc """
@@ -251,17 +255,22 @@ defmodule Regex do
   end
 
   @doc """
-  Returns a list of named groups in the regex.
+  Returns a list of names in the regex.
 
   ## Examples
 
-      iex> Regex.groups(~r/(?<foo>bar)/)
+      iex> Regex.names(~r/(?<foo>bar)/)
       [:foo]
 
   """
-  def groups(regex(re_pattern: re_pattern)) do
-    { :namelist, groups } = :re.inspect(re_pattern, :namelist)
-    for group <- groups, do: binary_to_atom(group)
+  def names(regex(re_pattern: re_pattern)) do
+    { :namelist, names } = :re.inspect(re_pattern, :namelist)
+    for name <- names, do: binary_to_atom(name)
+  end
+
+  def groups(regex) do
+    IO.write "[WARNING] Regex.groups is deprecated, please use Regex.names instead\n#{Exception.format_stacktrace}"
+    names(regex)
   end
 
   @doc """
@@ -295,7 +304,10 @@ defmodule Regex do
 
     captures =
       case Keyword.get(options, :capture, :all) do
-        :groups -> groups(regex)
+        :groups ->
+          IO.write "[WARNING] :groups option is deprecated, please use :named option instead\n#{Exception.format_stacktrace}"
+          names(regex)
+        :named -> names(regex)
         others  -> others
       end
 
