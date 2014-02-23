@@ -277,9 +277,9 @@ defmodule System do
   @spec get_env() :: [{String.t, String.t}]
   def get_env do
     Enum.map(:os.getenv, fn var ->
-        var = String.from_char_data! var
-        [k, v] = String.split var, "=", global: false
-        {k, v}
+      var = String.from_char_data! var
+      [k, v] = String.split var, "=", global: false
+      {k, v}
     end)
   end
 
