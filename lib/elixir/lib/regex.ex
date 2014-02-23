@@ -208,7 +208,7 @@ defmodule Regex do
 
   """
   def named_captures(regex, string, options \\ []) when is_binary(string) do
-    names = names(regex)
+    names = lc name inlist names(regex), do: binary_to_atom(name)
     options = Keyword.put_new(options, :capture, names)
     results = run(regex, string, options)
     if results, do: Enum.zip(names, results)
@@ -253,12 +253,12 @@ defmodule Regex do
   ## Examples
 
       iex> Regex.names(~r/(?<foo>bar)/)
-      [:foo]
+      ["foo"]
 
   """
   def names(regex(re_pattern: re_pattern)) do
     { :namelist, names } = :re.inspect(re_pattern, :namelist)
-    for name <- names, do: binary_to_atom(name)
+    names
   end
 
   def groups(regex) do

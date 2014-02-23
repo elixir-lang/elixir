@@ -55,7 +55,7 @@ defmodule RegexTest do
   end
 
   test :names do
-    assert Regex.names(~r/(?<FOO>foo)/) == [:FOO]
+    assert Regex.names(~r/(?<FOO>foo)/) == ["FOO"]
   end
 
   test :match? do
