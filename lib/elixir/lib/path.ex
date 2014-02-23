@@ -35,6 +35,7 @@ defmodule Path do
       "D:/usr/local/../x"
 
   """
+  @spec absname(t) :: binary
   def absname(path) do
     absname(path, System.cwd!)
   end
@@ -55,6 +56,7 @@ defmodule Path do
       "bar/../x"
 
   """
+  @spec absname(t, t) :: binary
   def absname(path, relative_to) do
     path = String.from_char_data!(path)
     case type(path) do
@@ -94,6 +96,7 @@ defmodule Path do
       "/foo/bar"
 
   """
+  @spec expand(t) :: binary
   def expand(path) do
     normalize absname(expand_home(path), System.cwd!)
   end
@@ -120,6 +123,7 @@ defmodule Path do
       "/foo/bar"
 
   """
+  @spec expand(t, t) :: binary
   def expand(path, relative_to) do
     normalize absname(absname(expand_home(path), expand_home(relative_to)), System.cwd!)
   end
@@ -142,6 +146,7 @@ defmodule Path do
       Path.type("/bar/foo.ex")      #=> :volumerelative
 
   """
+  @spec type(t) :: :absolute | :relative | :volumerelative
   def type(name) when is_list(name) or is_binary(name) do
     case :os.type() do
       { :win32, _ } -> win32_pathtype(name)
@@ -166,6 +171,7 @@ defmodule Path do
       Path.relative("/bar/foo.ex")      #=> "bar/foo.ex"
 
   """
+  @spec relative(t) :: binary
   def relative(name) do
     case :os.type() do
       { :win32, _ } -> win32_pathtype(name)
@@ -230,6 +236,7 @@ defmodule Path do
       "/usr/local/foo"
 
   """
+  @spec relative_to(t, t) :: binary
   def relative_to(path, from) do
     relative_to(split(path), split(from), path)
   end
@@ -251,6 +258,7 @@ defmodule Path do
   directory. If, for some reason, the current working directory
   cannot be retrieved, returns the full path.
   """
+  @spec relative_to_cwd(t) :: binary
   def relative_to_cwd(path) do
     case :file.get_cwd do
       { :ok, base } -> relative_to(path, String.from_char_data!(base))
@@ -274,6 +282,7 @@ defmodule Path do
       ""
 
   """
+  @spec basename(t) :: binary
   def basename(path) do
     FN.basename(String.from_char_data!(path))
   end
@@ -293,6 +302,7 @@ defmodule Path do
       "bar.old"
 
   """
+  @spec basename(t, t) :: binary
   def basename(path, extension) do
     FN.basename(String.from_char_data!(path), String.from_char_data!(extension))
   end
@@ -308,6 +318,7 @@ defmodule Path do
       #=> "/foo/bar"
 
   """
+  @spec dirname(t) :: binary
   def dirname(path) do
     FN.dirname(String.from_char_data!(path))
   end
@@ -323,6 +334,7 @@ defmodule Path do
       ""
 
   """
+  @spec extname(t) :: binary
   def extname(path) do
     FN.extension(String.from_char_data!(path))
   end
@@ -338,6 +350,7 @@ defmodule Path do
       "/foo/bar"
 
   """
+  @spec rootname(t) :: binary
   def rootname(path) do
     FN.rootname(String.from_char_data!(path))
   end
@@ -354,6 +367,7 @@ defmodule Path do
       "/foo/bar.erl"
 
   """
+  @spec rootname(t, t) :: binary
   def rootname(path, extension) do
     FN.rootname(String.from_char_data!(path), String.from_char_data!(extension))
   end
@@ -372,6 +386,7 @@ defmodule Path do
       "/foo/bar"
 
   """
+  @spec join([t]) :: binary
   def join([name1, name2|rest]), do:
     join([join(name1, name2)|rest])
   def join([name]), do:
@@ -386,6 +401,7 @@ defmodule Path do
       "foo/bar"
 
   """
+  @spec join(t, t) :: binary
   def join(left, right),
     do: do_join(String.from_char_data!(left), relative(right), [], major_os_type())
 
@@ -426,6 +442,8 @@ defmodule Path do
        ["/", "foo", "bar"]
 
   """
+  @spec split(t) :: [binary]
+
   # Work around a bug in Erlang on UNIX
   def split(""), do: []
 
@@ -466,6 +484,7 @@ defmodule Path do
       Path.wildcard("projects/*/ebin/**/*.{beam,app}")
 
   """
+  @spec basename(t) :: [binary]
   def wildcard(glob) do
     glob
     |> List.from_char_data!
