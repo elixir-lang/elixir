@@ -562,7 +562,7 @@ defmodule String do
     do_reverse(next_grapheme(rest), [grapheme|acc])
   end
 
-  defp do_reverse(nil, acc), do: iolist_to_binary(acc)
+  defp do_reverse(nil, acc), do: iodata_to_binary(acc)
 
   @doc """
   Returns a binary `subject` duplicated `n` times.

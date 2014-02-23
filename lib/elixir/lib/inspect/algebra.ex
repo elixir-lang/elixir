@@ -452,6 +452,6 @@ defmodule Inspect.Algebra do
   @doc false
   @spec render([binary]) :: binary
   def render(sdoc) do
-    iolist_to_binary sdoc
+    iodata_to_binary sdoc
   end
 end

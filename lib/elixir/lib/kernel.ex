@@ -476,24 +476,36 @@ defmodule Kernel do
     :erlang.integer_to_list(number, base)
   end
 
+  @doc false
+  def iolist_to_binary(list) do
+    IO.write :stderr, "Kernel.iodata_to_binary/1 is deprecated, please use Kernel.iodata_to_binary/1 instead\n#{Exception.format_stacktrace}"
+    iodata_to_binary(list)
+  end
+
+  @doc false
+  def iolist_size(list) do
+    IO.write :stderr, "Kernel.iolist_size/1 is deprecated, please use Kernel.iolist_size/1 instead\n#{Exception.format_stacktrace}"
+    iodata_size(list)
+  end
+
   @doc """
-  Returns the size of an iolist.
+  Returns the size of an iodata.
 
   Inlined by the compiler.
 
   ## Examples
 
-      iex> iolist_size([1, 2|<<3, 4>>])
+      iex> iodata_size([1, 2|<<3, 4>>])
       4
 
   """
-  @spec iolist_size(iolist) :: non_neg_integer
-  def iolist_size(item) do
+  @spec iodata_size(iolist) :: non_neg_integer
+  def iodata_size(item) do
     :erlang.iolist_size(item)
   end
 
   @doc """
-  Returns a binary which is made from the integers and binaries in iolist.
+  Returns a binary which is made from the integers and binaries in iodata.
 
   Notice that this function treats lists of integers as raw bytes
   and does not perform any kind of encoding conversion. If you want to convert
@@ -509,17 +521,17 @@ defmodule Kernel do
       iex> bin1 = <<1, 2, 3>>
       ...> bin2 = <<4, 5>>
       ...> bin3 = <<6>>
-      ...> iolist_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
+      ...> iodata_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
       <<1,2,3,1,2,3,4,5,4,6>>
 
       iex> bin = <<1, 2, 3>>
-      ...> iolist_to_binary(bin)
+      ...> iodata_to_binary(bin)
       <<1,2,3>>
 
   """
-  @spec iolist_to_binary(iolist | binary) :: binary
-  def iolist_to_binary(item) do
-    :erlang.iolist_to_binary(item)
+  @spec iodata_to_binary(iolist | binary) :: binary
+  def iodata_to_binary(item) do
+    :erlang.iodata_to_binary(item)
   end
 
   @doc """

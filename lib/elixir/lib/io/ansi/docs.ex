@@ -349,7 +349,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp handle_inline(<<>>, _mark, buffer, acc, _colors) do
-    iolist_to_binary Enum.reverse([Enum.reverse(buffer)|acc])
+    iodata_to_binary Enum.reverse([Enum.reverse(buffer)|acc])
   end
 
   defp inline_buffer(buffer, colors) do

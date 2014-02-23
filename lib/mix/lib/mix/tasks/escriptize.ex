@@ -102,7 +102,7 @@ defmodule Mix.Tasks.Escriptize do
             comment  = project[:escript_comment]  || "%%\n"
             emu_args = project[:escript_emu_args] || "%%!\n"
 
-            script = iolist_to_binary([shebang, comment, emu_args, zip])
+            script = iodata_to_binary([shebang, comment, emu_args, zip])
 
             File.mkdir_p!(Path.dirname(filename))
             File.write!(filename, script)

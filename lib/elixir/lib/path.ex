@@ -402,7 +402,7 @@ defmodule Path do
   defp do_join(<<?/, rest :: binary>>, relativename, [?/|result], os_type), do:
     do_join(rest, relativename, [?/|result], os_type)
   defp do_join(<<>>, <<>>, result, _os_type), do:
-    iolist_to_binary(:lists.reverse(result))
+    iodata_to_binary(:lists.reverse(result))
   defp do_join(<<>>, relativename, [?:|rest], :win32), do:
     do_join(relativename, <<>>, [?:|rest], :win32)
   defp do_join(<<>>, relativename, [?/|result], os_type), do:

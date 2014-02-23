@@ -44,7 +44,7 @@ defmodule System do
 
   # Get the date at compilation time.
   defmacrop get_date do
-    iolist_to_binary :httpd_util.rfc1123_date
+    iodata_to_binary :httpd_util.rfc1123_date
   end
 
   @doc """
@@ -307,7 +307,7 @@ defmodule System do
   See http://www.erlang.org/doc/man/os.html#getpid-0 for more info.
   """
   @spec get_pid() :: binary
-  def get_pid, do: iolist_to_binary(:os.getpid)
+  def get_pid, do: iodata_to_binary(:os.getpid)
 
   @doc """
   Set an environment variable value.
