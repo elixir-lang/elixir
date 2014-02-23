@@ -72,11 +72,11 @@ defmodule RegexTest do
   end
 
   test :named_captures do
-    assert Keyword.equal? Regex.named_captures(~r/(?<foo>c)(?<bar>d)/, "abcd"), [bar: "d", foo: "c"]
-    assert Regex.named_captures(~r/c(?<foo>d)/, "abcd") == [foo: "d"]
+    assert Regex.named_captures(~r/(?<foo>c)(?<bar>d)/, "abcd") == %{ "bar" => "d", "foo" => "c" }
+    assert Regex.named_captures(~r/c(?<foo>d)/, "abcd") == %{ "foo" => "d" }
     assert Regex.named_captures(~r/c(?<foo>d)/, "no_match") == nil
-    assert Regex.named_captures(~r/c(?<foo>d|e)/, "abcd abce") == [foo: "d"]
-    assert Regex.named_captures(~r/c(.)/, "cat") == []
+    assert Regex.named_captures(~r/c(?<foo>d|e)/, "abcd abce") == %{ "foo" => "d" }
+    assert Regex.named_captures(~r/c(.)/, "cat") == %{}
   end
 
   test :sigil_R do
