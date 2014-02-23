@@ -81,8 +81,12 @@ defmodule File do
   file cannot be read (i.e. it is literally an exception).
   """
 
-  alias :file,     as: F
-  alias :filelib,  as: FL
+  alias :file,    as: F
+  alias :filelib, as: FL
+
+  @type posix :: :file.posix()
+  @type io_device :: :file.io_device()
+  @type stat_options :: [time: :local | :universal | :posix]
 
   @doc """
   Returns `true` if the path is a regular file.
@@ -92,15 +96,17 @@ defmodule File do
       File.regular? __ENV__.file #=> true
 
   """
+  @spec regular?(Path.t) :: boolean
   def regular?(path) do
-    FL.is_regular(path)
+    FL.is_regular(String.from_char_data!(path))
   end
 
   @doc """
   Returns `true` if the path is a directory.
   """
+  @spec dir?(Path.t) :: boolean
   def dir?(path) do
-    FL.is_dir(path)
+    FL.is_dir(String.from_char_data!(path))
   end
 
   @doc """
@@ -120,8 +126,9 @@ defmodule File do
       #=> true
 
   """
+  @spec exists?(Path.t) :: boolean
   def exists?(path) do
-    match?({ :ok, _ }, F.read_file_info(path))
+    match?({ :ok, _ }, F.read_file_info(String.from_char_data!(path)))
   end
 
   @doc """
@@ -137,18 +144,21 @@ defmodule File do
   * :enotdir - A component of `path` is not a directory
                On some platforms, `:enoent` is returned instead.
   """
+  @spec mkdir(Path.t) :: :ok | {:error, posix}
   def mkdir(path) do
-    F.make_dir(path)
+    F.make_dir(String.from_char_data!(path))
   end
 
   @doc """
   Same as `mkdir/1`, but raises an exception in case of failure. Otherwise `:ok`.
   """
+  @spec mkdir!(Path.t) :: :ok | no_return
   def mkdir!(path) do
+    path = String.from_char_data!(path)
     case mkdir(path) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "make directory", path: to_char_data(path)
+        raise File.Error, reason: reason, action: "make directory", path: path
     end
   end
 
@@ -162,6 +172,7 @@ defmodule File do
   * :enospc  - There is a no space left on the device.
   * :enotdir - A component of `path` is not a directory.
   """
+  @spec mkdir_p(Path.t) :: :ok | {:error, posix}
   def mkdir_p(path) do
     FL.ensure_dir(Path.join(path, "."))
   end
@@ -169,11 +180,13 @@ defmodule File do
   @doc """
   Same as `mkdir_p/1`, but raises an exception in case of failure. Otherwise `:ok`.
   """
+  @spec mkdir_p!(Path.t) :: :ok | no_return
   def mkdir_p!(path) do
+    path = String.from_char_data!(path)
     case mkdir_p(path) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "make directory (with -p)", path: to_char_data(path)
+        raise File.Error, reason: reason, action: "make directory (with -p)", path: path
     end
   end
 
@@ -193,20 +206,23 @@ defmodule File do
 
   You can use `:file.format_error/1` to get a descriptive string of the error.
   """
+  @spec read(Path.t) :: {:ok, binary} | {:error, posix}
   def read(path) do
-    F.read_file(path)
+    F.read_file(String.from_char_data!(path))
   end
 
   @doc """
   Returns binary with the contents of the given filename or raises
   `File.Error` if an error occurs.
   """
+  @spec read!(Path.t) :: binary | no_return
   def read!(path) do
+    path = String.from_char_data!(path)
     case read(path) do
       { :ok, binary } ->
         binary
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "read file", path: to_char_data(path)
+        raise File.Error, reason: reason, action: "read file", path: path
     end
   end
 
@@ -224,8 +240,9 @@ defmodule File do
     Default is `:local`.
 
   """
+  @spec stat(Path.t, stat_options) :: {:ok, File.Stat.t } | {:error, posix}
   def stat(path, opts \\ []) do
-    case F.read_file_info(path, opts) do
+    case F.read_file_info(String.from_char_data!(path), opts) do
       {:ok, fileinfo} ->
         {:ok, set_elem(fileinfo, 0, File.Stat) }
       error ->
@@ -237,11 +254,13 @@ defmodule File do
   Same as `stat/2` but returns the `File.Stat` directly and
   throws `File.Error` if an error is returned.
   """
+  @spec stat!(Path.t, stat_options) :: File.Stat.t | no_return
   def stat!(path, opts \\ []) do
+    path = String.from_char_data!(path)
     case stat(path, opts) do
       {:ok, info}      -> info
       {:error, reason} ->
-        raise File.Error, reason: reason, action: "read file stats", path: to_char_data(path)
+        raise File.Error, reason: reason, action: "read file stats", path: path
     end
   end
 
@@ -249,19 +268,22 @@ defmodule File do
   Writes the given `File.Stat` back to the filesystem at the given
   path. Returns `:ok` or `{ :error, reason }`.
   """
+  @spec write_stat(Path.t, File.Stat.t, stat_options) :: :ok | {:error, posix}
   def write_stat(path, File.Stat[] = stat, opts \\ []) do
-    F.write_file_info(path, set_elem(stat, 0, :file_info), opts)
+    F.write_file_info(String.from_char_data!(path), set_elem(stat, 0, :file_info), opts)
   end
 
   @doc """
   Same as `write_stat/3` but raises an exception if it fails.
   Returns `:ok` otherwise.
   """
+  @spec write_stat!(Path.t, File.Stat.t, stat_options) :: :ok | no_return
   def write_stat!(path, File.Stat[] = stat, opts \\ []) do
+    path = String.from_char_data!(path)
     case write_stat(path, stat, opts) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "write file stats", path: to_char_data(path)
+        raise File.Error, reason: reason, action: "write file stats", path: path
     end
   end
 
@@ -269,7 +291,9 @@ defmodule File do
   Updates modification time (mtime) and access time (atime) of
   the given file. File is created if it doesn’t exist.
   """
+  @spec touch(Path.t, :calendar.datetime) :: :ok | {:error, posix}
   def touch(path, time \\ :calendar.local_time) do
+    path = String.from_char_data!(path)
     case F.change_time(path, time) do
       { :error, :enoent } ->
         write(path, "")
@@ -283,11 +307,13 @@ defmodule File do
   Same as `touch/2` but raises an exception if it fails.
   Returns `:ok` otherwise.
   """
+  @spec touch!(Path.t, :calendar.datetime) :: :ok | no_return
   def touch!(path, time \\ :calendar.local_time) do
+    path = String.from_char_data!(path)
     case touch(path, time) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "touch", path: to_char_data(path)
+        raise File.Error, reason: reason, action: "touch", path: path
     end
   end
 
@@ -313,20 +339,24 @@ defmodule File do
   Typical error reasons are the same as in `open/2`,
   `read/1` and `write/3`.
   """
+  @spec copy(Path.t, Path.t, pos_integer | :infinity) :: {:ok, non_neg_integer} | {:error, posix}
   def copy(source, destination, bytes_count \\ :infinity) do
-    F.copy(source, destination, bytes_count)
+    F.copy(String.from_char_data!(source), String.from_char_data!(destination), bytes_count)
   end
 
   @doc """
   The same as `copy/3` but raises an `File.CopyError` if it fails.
   Returns the `bytes_copied` otherwise.
   """
+  @spec copy!(Path.t, Path.t, pos_integer | :infinity) :: non_neg_integer | no_return
   def copy!(source, destination, bytes_count \\ :infinity) do
+    source = String.from_char_data!(source)
+    destination = String.from_char_data!(destination)
     case copy(source, destination, bytes_count) do
       { :ok, bytes_count } -> bytes_count
       { :error, reason } ->
         raise File.CopyError, reason: reason, action: "copy",
-          source: to_char_data(source), destination: to_char_data(destination)
+          source: source, destination: destination
     end
   end
 
@@ -349,7 +379,11 @@ defmodule File do
   explicitly disallow this behaviour. If destination is a directory, an
   error will be returned.
   """
+  @spec cp(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: :ok | {:error, posix}
   def cp(source, destination, callback \\ fn(_, _) -> true end) do
+    source = String.from_char_data!(source)
+    destination = String.from_char_data!(destination)
+
     case do_cp_file(source, destination, callback, []) do
       { :error, reason, _ } -> { :error, reason }
       _ -> :ok
@@ -360,13 +394,16 @@ defmodule File do
   The same as `cp/3`, but raises `File.CopyError` if it fails.
   Returns the list of copied files otherwise.
   """
+  @spec cp(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: :ok | no_return
   def cp!(source, destination, callback \\ fn(_, _) -> true end) do
+    source = String.from_char_data!(source)
+    destination = String.from_char_data!(destination)
+
     case cp(source, destination, callback) do
       :ok -> :ok
       { :error, reason } ->
         raise File.CopyError, reason: reason, action: "copy recursively",
-          source: to_char_data(source),
-          destination: to_char_data(destination)
+          source: source, destination: destination
     end
   end
 
@@ -393,7 +430,7 @@ defmodule File do
 
   It returns `{ :ok, files_and_directories }` in case of
   success with all files and directories copied in no
-  specific order, `{ :error, reason }` otherwise.
+  specific order, `{ :error, reason, file }` otherwise.
 
   Note: The command `cp` in Unix systems behaves differently
   depending if `destination` is an existing directory or not.
@@ -413,8 +450,12 @@ defmodule File do
       end
 
   """
+  @spec cp_r(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: {:ok, [binary]} | {:error, posix, binary}
   def cp_r(source, destination, callback \\ fn(_, _) -> true end) when is_function(callback) do
-    case do_cp_r(to_char_data(source), to_char_data(destination), callback, []) do
+    source = String.from_char_data!(source)
+    destination = String.from_char_data!(destination)
+
+    case do_cp_r(source, destination, callback, []) do
       { :error, _, _ } = error -> error
       res -> { :ok, res }
     end
@@ -424,14 +465,16 @@ defmodule File do
   The same as `cp_r/3`, but raises `File.CopyError` if it fails.
   Returns the list of copied files otherwise.
   """
+  @spec cp_r!(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: [binary] | no_return
   def cp_r!(source, destination, callback \\ fn(_, _) -> true end) do
+    source = String.from_char_data!(source)
+    destination = String.from_char_data!(destination)
+
     case cp_r(source, destination, callback) do
       { :ok, files } -> files
       { :error, reason, file } ->
         raise File.CopyError, reason: reason, action: "copy recursively",
-          source: to_char_data(source),
-          destination: to_char_data(destination),
-          on: file
+          source: source, destination: destination, on: file
     end
   end
 
@@ -444,7 +487,7 @@ defmodule File do
       { :ok, :symlink } ->
         case F.read_link(src) do
           { :ok, link } -> do_cp_link(link, src, dest, callback, acc)
-          { :error, reason } -> { :error, reason, to_char_data(src) }
+          { :error, reason } -> { :error, reason, src }
         end
       { :ok, :directory } ->
         case F.list_dir(src) do
@@ -454,12 +497,12 @@ defmodule File do
                 Enum.reduce(files, [dest|acc], fn(x, acc) ->
                   do_cp_r(Path.join(src, x), Path.join(dest, x), callback, acc)
                 end)
-              { :error, reason } -> { :error, reason, to_char_data(dest) }
+              { :error, reason } -> { :error, reason, dest }
             end
-          { :error, reason } -> { :error, reason, to_char_data(src) }
+          { :error, reason } -> { :error, reason, src }
         end
       { :ok, _ } -> { :error, :eio, src }
-      { :error, reason } -> { :error, reason, to_char_data(src) }
+      { :error, reason } -> { :error, reason, src }
     end
   end
 
@@ -470,14 +513,14 @@ defmodule File do
   end
 
   defp copy_file_mode!(src, dest) do
-    src_stat = File.stat!(src)
-    dest_stat = File.stat!(dest)
-    File.write_stat!(dest, File.Stat.mode(File.Stat.mode(src_stat), dest_stat))
+    src_stat  = stat!(src)
+    dest_stat = stat!(dest)
+    write_stat!(dest, File.Stat.mode(File.Stat.mode(src_stat), dest_stat))
   end
 
   # Both src and dest are files.
   defp do_cp_file(src, dest, callback, acc) do
-    case copy(src, { dest, [:exclusive] }) do
+    case F.copy(src, { dest, [:exclusive] }) do
       { :ok, _ } ->
         copy_file_mode!(src, dest)
         [dest|acc]
@@ -488,12 +531,12 @@ defmodule File do
             { :ok, _ } ->
               copy_file_mode!(src, dest)
               [dest|acc]
-            { :error, reason } -> { :error, reason, to_char_data(src) }
+            { :error, reason } -> { :error, reason, src }
           end
         else
           acc
         end
-      { :error, reason } -> { :error, reason, to_char_data(src) }
+      { :error, reason } -> { :error, reason, src }
     end
   end
 
@@ -507,12 +550,12 @@ defmodule File do
           rm(dest)
           case F.make_symlink(link, dest) do
             :ok -> [dest|acc]
-            { :error, reason } -> { :error, reason, to_char_data(src) }
+            { :error, reason } -> { :error, reason, src }
           end
         else
           acc
         end
-      { :error, reason } -> { :error, reason, to_char_data(src) }
+      { :error, reason } -> { :error, reason, src }
     end
   end
 
@@ -532,18 +575,21 @@ defmodule File do
 
   Check `File.open/2` for existing modes.
   """
+  @spec write(Path.t, iodata, list) :: :ok | {:error, posix}
   def write(path, content, modes \\ []) do
-    F.write_file(path, content, modes)
+    F.write_file(String.from_char_data!(path), content, modes)
   end
 
   @doc """
   Same as `write/3` but raises an exception if it fails, returns `:ok` otherwise.
   """
+  @spec write!(Path.t, iodata, list) :: :ok | no_return
   def write!(path, content, modes \\ []) do
+    path = String.from_char_data!(path)
     case F.write_file(path, content, modes) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "write to file", path: to_char_data(path)
+        raise File.Error, reason: reason, action: "write to file", path: path
     end
   end
 
@@ -569,18 +615,21 @@ defmodule File do
       #=> {:error, :eperm}
 
   """
+  @spec rm(Path.t) :: :ok | {:error, posix}
   def rm(path) do
-    F.delete(path)
+    F.delete(String.from_char_data!(path))
   end
 
   @doc """
   Same as `rm/1`, but raises an exception in case of failure. Otherwise `:ok`.
   """
+  @spec rm!(Path.t) :: :ok | no_return
   def rm!(path) do
+    path = String.from_char_data!(path)
     case rm(path) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "remove file", path: to_char_data(path)
+        raise File.Error, reason: reason, action: "remove file", path: path
     end
   end
 
@@ -597,18 +646,21 @@ defmodule File do
       #=> {:error, :enotdir}
 
   """
+  @spec rmdir(Path.t) :: :ok | {:error, posix}
   def rmdir(path) do
-    F.del_dir(path)
+    F.del_dir(String.from_char_data!(path))
   end
 
   @doc """
   Same as `rmdir/1`, but raises an exception in case of failure. Otherwise `:ok`.
   """
+  @spec rmdir!(Path.t) :: :ok | {:error, posix}
   def rmdir!(path) do
+    path = String.from_char_data!(path)
     case rmdir(path) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "remove directory", path: to_char_data(path)
+        raise File.Error, reason: reason, action: "remove directory", path: path
     end
   end
 
@@ -630,8 +682,9 @@ defmodule File do
       #=> { :ok, [] }
 
   """
+  @spec rm_rf(Path.t) :: {:ok, [binary]} | {:error, posix, binary}
   def rm_rf(path) do
-    do_rm_rf(to_char_data(path), { :ok, [] })
+    do_rm_rf(String.from_char_data!(path), { :ok, [] })
   end
 
   defp do_rm_rf(path, { :ok, _ } = entry) do
@@ -647,7 +700,7 @@ defmodule File do
             case rmdir(path) do
               :ok -> { :ok, [path|acc] }
               { :error, :enoent } -> res
-              { :error, reason } -> { :error, reason, to_char_data(path) }
+              { :error, reason } -> { :error, reason, path }
             end
           reason ->
             reason
@@ -655,7 +708,7 @@ defmodule File do
       { :ok, :directory } -> do_rm_directory(path, entry)
       { :ok, :regular } -> do_rm_regular(path, entry)
       { :error, reason } when reason in [:enoent, :enotdir] -> entry
-      { :error, reason } -> { :error, reason, to_char_data(path) }
+      { :error, reason } -> { :error, reason, path }
     end
   end
 
@@ -667,7 +720,7 @@ defmodule File do
     case rm(path) do
       :ok -> { :ok, [path|acc] }
       { :error, :enoent } -> entry
-      { :error, reason } -> { :error, reason, to_char_data(path) }
+      { :error, reason } -> { :error, reason, path }
     end
   end
 
@@ -680,7 +733,7 @@ defmodule File do
       :ok -> { :ok, [path|acc] }
       { :error, :enotdir } -> do_rm_regular(path, entry)
       { :error, :enoent } -> entry
-      { :error, reason } -> { :error, reason, to_char_data(path) }
+      { :error, reason } -> { :error, reason, path }
     end
   end
 
@@ -704,17 +757,18 @@ defmodule File do
   Same as `rm_rf/1` but raises `File.Error` in case of failures,
   otherwise the list of files or directories removed.
   """
+  @spec rm_rf!(Path.t) :: [binary] | no_return
   def rm_rf!(path) do
+    path = String.from_char_data!(path)
     case rm_rf(path) do
       { :ok, files } -> files
       { :error, reason, _ } ->
-        raise File.Error, reason: reason,
-          action: "remove files and directories recursively from",
-          path: to_char_data(path)
+        raise File.Error, reason: reason, path: path,
+          action: "remove files and directories recursively from"
     end
   end
 
-  @doc """
+  @doc ~S"""
   Opens the given `path` according to the given list of modes.
 
   In order to write and read files, one must use the functions
@@ -735,7 +789,7 @@ defmodule File do
                 Every write operation to a file opened with append will take place at the end of the file.
 
   * `:exclusive` - The file, when opened for writing, is created if it does not exist.
-                   If the file exists, open will return { :error, :eexist }.
+                   If the file exists, open will return `{ :error, :eexist }`.
 
   * `:charlist` - When this term is given, read operations on the file will return char lists rather than binaries;
 
@@ -773,10 +827,11 @@ defmodule File do
       File.close(file)
 
   """
+  @spec open(Path.t, list) :: {:ok, io_device} | {:error, posix}
   def open(path, modes \\ [])
 
   def open(path, modes) when is_list(modes) do
-    F.open(path, open_defaults(modes, true))
+    F.open(String.from_char_data!(path), open_defaults(modes, true))
   end
 
   def open(path, function) when is_function(function) do
@@ -804,6 +859,7 @@ defmodule File do
       end)
 
   """
+  @spec open(Path.t, list, (io_device -> res)) :: {:ok, res} | {:error, posix} when res: var
   def open(path, modes, function) do
     case open(path, modes) do
       { :ok, device } ->
@@ -820,11 +876,13 @@ defmodule File do
   Same as `open/2` but raises an error if file could not be opened.
   Returns the `io_device` otherwise.
   """
+  @spec open!(Path.t, list) :: io_device | no_return
   def open!(path, modes \\ []) do
+    path = String.from_char_data!(path)
     case open(path, modes) do
       { :ok, device }    -> device
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "open", path: to_char_data(path)
+        raise File.Error, reason: reason, action: "open", path: path
     end
   end
 
@@ -832,20 +890,25 @@ defmodule File do
   Same as `open/3` but raises an error if file could not be opened.
   Returns the function result otherwise.
   """
+  @spec open!(Path.t, list, (io_device -> res)) :: res | no_return when res: var
   def open!(path, modes, function) do
+    path = String.from_char_data!(path)
     case open(path, modes, function) do
       { :ok, device }    -> device
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "open", path: to_char_data(path)
+        raise File.Error, reason: reason, action: "open", path: path
     end
   end
 
   @doc """
-  Gets the current working directory. In rare circumstances, this function can
-  fail on Unix. It may happen if read permission does not exist for the parent
-  directories of the current directory. For this reason, returns `{ :ok, cwd }`
-  in case of success, `{ :error, reason }` otherwise.
+  Gets the current working directory.
+
+  In rare circumstances, this function can fail on Unix. It may happen
+  if read permission does not exist for the parent directories of the
+  current directory. For this reason, returns `{ :ok, cwd }` in case
+  of success, `{ :error, reason }` otherwise.
   """
+  @spec cwd() :: {:ok, binary} | {:error, posix}
   def cwd() do
     case F.get_cwd do
       { :ok, base } -> { :ok, String.from_char_data!(base) }
@@ -856,30 +919,35 @@ defmodule File do
   @doc """
   The same as `cwd/0`, but raises an exception if it fails.
   """
+  @spec cwd!() :: binary | no_return
   def cwd!() do
     case F.get_cwd do
-      { :ok, cwd } -> to_char_data(cwd)
+      { :ok, cwd } -> String.from_char_data!(cwd)
       { :error, reason } ->
           raise File.Error, reason: reason, action: "get current working directory"
     end
   end
 
   @doc """
-  Sets the current working directory. Returns `:ok` if successful,
-  `{ :error, reason }` otherwise.
+  Sets the current working directory.
+
+  Returns `:ok` if successful, `{ :error, reason }` otherwise.
   """
+  @spec cd(Path.t) :: :ok | {:error, posix}
   def cd(path) do
-    F.set_cwd(path)
+    F.set_cwd(String.from_char_data!(path))
   end
 
   @doc """
   The same as `cd/1`, but raises an exception if it fails.
   """
+  @spec cd!(Path.t) :: :ok | no_return
   def cd!(path) do
+    path = String.from_char_data!(path)
     case F.set_cwd(path) do
       :ok -> :ok
       { :error, reason } ->
-          raise File.Error, reason: reason, action: "set current working directory to", path: to_char_data(path)
+          raise File.Error, reason: reason, action: "set current working directory to", path: path
     end
   end
 
@@ -891,6 +959,7 @@ defmodule File do
   Raises an error if retrieving or changing the current
   directory fails.
   """
+  @spec cd!(Path.t, (() -> res)) :: res | no_return when res: var
   def cd!(path, function) do
     old = cwd!
     cd!(path)
@@ -907,9 +976,10 @@ defmodule File do
   It returns `{ :ok, [files] }` in case of success,
   `{ :error, reason }` otherwise.
   """
+  @spec ls(Path.t) :: {:ok, [binary]} | {:error, posix}
   def ls(path \\ ".") do
-    case F.list_dir(path) do
-      { :ok, file_list } -> { :ok, Enum.map(file_list, &to_char_data(&1)) }
+    case F.list_dir(String.from_char_data!(path)) do
+      { :ok, file_list } -> { :ok, Enum.map(file_list, &String.from_char_data!/1) }
       { :error, _ } = error -> error
     end
   end
@@ -918,11 +988,13 @@ defmodule File do
   The same as `ls/1` but raises `File.Error`
   in case of an error.
   """
-  def ls!(dir \\ ".") do
-    case ls(dir) do
+  @spec ls!(Path.t) :: [binary] | no_return
+  def ls!(path \\ ".") do
+    path = String.from_char_data!(path)
+    case ls(path) do
       { :ok, value } -> value
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "list directory", path: to_char_data(dir)
+        raise File.Error, reason: reason, action: "list directory", path: path
     end
   end
 
@@ -934,6 +1006,7 @@ defmodule File do
   `close/1` might return an old write error and not even try to close the file.
   See `open/2`.
   """
+  @spec close(io_device) :: :ok | {:error, posix | :badarg | :terminated}
   def close(io_device) do
     F.close(io_device)
   end
@@ -951,16 +1024,18 @@ defmodule File do
   the file is opened with an encoding, then the slower `IO.read/2`
   is used to do the proper data conversion and guarantees.
   """
+  @spec stream!(Path.t, list, :line | pos_integer) :: Enumerable.t
   def stream!(path, modes \\ [], line_or_bytes \\ :line) do
     modes = open_defaults(modes, true)
     bin   = nil? List.keyfind(modes, :encoding, 0)
+    path  = String.from_char_data!(path)
 
     start_fun =
       fn ->
         case F.open(path, modes) do
           { :ok, device }    -> device
           { :error, reason } ->
-            raise File.Error, reason: reason, action: "stream", path: to_char_data(path)
+            raise File.Error, reason: reason, action: "stream", path: path
         end
       end
 
@@ -986,9 +1061,11 @@ defmodule File do
   the file is opened with an encoding, then the slower `IO.write/2`
   is used to do the proper data conversion and guarantees.
   """
+  @spec stream_to!(Enumerable.t, Path.t, list) :: Enumerable.t
   def stream_to!(stream, path, modes \\ []) do
     modes = open_defaults([:write|List.delete(modes, :write)], true)
     bin   = nil? List.keyfind(modes, :encoding, 0)
+    path  = String.from_char_data!(path)
 
     fn acc, f ->
       case F.open(path, modes) do
@@ -1004,7 +1081,7 @@ defmodule File do
           |> Stream.after(fn -> F.close(device) end)
           |> Enumerable.Stream.Lazy.reduce(acc, f)
         { :error, reason } ->
-          raise File.Error, reason: reason, action: "stream_to", path: to_char_data(path)
+          raise File.Error, reason: reason, action: "stream to", path: path
       end
     end
   end
@@ -1014,18 +1091,21 @@ defmodule File do
   Returns `:ok` on success, or `{:error, reason}`
   on failure.
   """
-  def chmod(file, mode) do
-    F.change_mode(file, mode)
+  @spec chmod(Path.t, integer) :: :ok | {:error, posix}
+  def chmod(path, mode) do
+    F.change_mode(String.from_char_data!(path), mode)
   end
 
   @doc """
   Same as `chmod/2`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  def chmod!(file, mode) do
-    case chmod(file, mode) do
+  @spec chmod!(Path.t, integer) :: :ok | no_return
+  def chmod!(path, mode) do
+    path = String.from_char_data!(path)
+    case chmod(path, mode) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "change mode for", path: to_char_data(file)
+        raise File.Error, reason: reason, action: "change mode for", path: path
     end
   end
 
@@ -1034,18 +1114,21 @@ defmodule File do
   for a given `file`. Returns `:ok` on success, or
   `{:error, reason}` on failure.
   """
-  def chgrp(file, gid) do
-    F.change_group(file, gid)
+  @spec chgrp(Path.t, integer) :: :ok | {:error, posix}
+  def chgrp(path, gid) do
+    F.change_group(String.from_char_data!(path), gid)
   end
 
   @doc """
   Same as `chgrp/2`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  def chgrp!(file, gid) do
-    case chgrp(file, gid) do
+  @spec chgrp!(Path.t, integer) :: :ok | no_return
+  def chgrp!(path, gid) do
+    path = String.from_char_data!(path)
+    case chgrp(path, gid) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "change group for", path: to_char_data(file)
+        raise File.Error, reason: reason, action: "change group for", path: path
     end
   end
 
@@ -1054,35 +1137,25 @@ defmodule File do
   for a given `file`. Returns `:ok` on success,
   or `{:error, reason}` on failure.
   """
-  def chown(file, uid) do
-    F.change_owner(file, uid)
+  @spec chown(Path.t, integer) :: :ok | {:error, posix}
+  def chown(path, uid) do
+    F.change_owner(String.from_char_data!(path), uid)
   end
 
   @doc """
   Same as `chown/2`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  def chown!(file, uid) do
-    case chown(file, uid) do
+  @spec chmod!(Path.t, integer) :: :ok | no_return
+  def chown!(path, uid) do
+    path = String.from_char_data!(path)
+    case chown(path, uid) do
       :ok -> :ok
       { :error, reason } ->
-        raise File.Error, reason: reason, action: "change owner for", path: to_char_data(file)
+        raise File.Error, reason: reason, action: "change owner for", path: path
     end
   end
 
   ## Helpers
-
-  defp to_char_data(binary) when is_binary(binary) do
-    binary
-  end
-
-  defp to_char_data(list) when is_list(list) do
-    case :unicode.characters_to_binary(list) do
-      { :error, _, _ } ->
-        :erlang.error(:badarg)
-      bin when is_binary(bin) ->
-        bin
-    end
-  end
 
   defp open_defaults([:charlist|t], _add_binary) do
     open_defaults(t, false)

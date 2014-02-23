@@ -70,7 +70,7 @@ defmodule IO do
     for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
-  @spec binread(device, :line | non_neg_integer) :: list | binary | nodata
+  @spec binread(device, :line | non_neg_integer) :: iodata | nodata
   def binread(device \\ group_leader, chars_or_line)
 
   def binread(device, :line) do
@@ -113,7 +113,7 @@ defmodule IO do
 
   Check `write/2` for more information.
   """
-  @spec binwrite(device, list | binary) :: :ok | { :error, term }
+  @spec binwrite(device, iodata) :: :ok | { :error, term }
   def binwrite(device \\ group_leader(), item) when is_iodata(item) do
     :file.write map_dev(device), item
   end
