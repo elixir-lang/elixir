@@ -197,17 +197,17 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the given captures as a keyword list or `nil` if no captures
-  are found. The option `:return` can be set to `:index` to get indexes
+  Returns the given captures as a map or `nil` if no captures are
+  found. The option `:return` can be set to `:index` to get indexes
   back.
 
   ## Examples
 
       iex> Regex.named_captures(~r/c(?<foo>d)/, "abcd")
-      [foo: "d"]
+      %{ "foo" => "d" }
 
       iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "abcd")
-      [bar: "d", foo: "b"]
+      %{ "bar" => "d", "foo" => "b" }
 
       iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "efgh")
       nil
@@ -217,7 +217,7 @@ defmodule Regex do
     names = names(regex)
     options = Keyword.put(options, :capture, names)
     results = run(regex, string, options)
-    if results, do: Enum.zip(names, results)
+    if results, do: Enum.zip(names, results) |> Enum.into(%{})
   end
 
   @doc """
