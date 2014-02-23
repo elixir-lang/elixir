@@ -63,6 +63,9 @@ defmodule Dict.Behaviour do
 
   """
   defmacro __using__(_) do
+    # Use this import to guarantee proper code expansion
+    import Kernel, except: [size: 1]
+
     quote do
       @behaviour Dict
 
@@ -120,7 +123,9 @@ defmodule Dict.Behaviour do
       end
 
       def equal?(dict1, dict2) do
+        # Use this import to avoid conflicts in the user code
         import Kernel, except: [size: 1]
+
         case size(dict1) == size(dict2) do
           false -> false
           true  ->
