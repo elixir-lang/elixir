@@ -212,7 +212,10 @@ defmodule Mix.Task do
     end
   end
 
-  defp is_task?(module) do
+  @doc """
+  Returns `true` if given module is a task.
+  """
+  def is_task?(module) do
     function_exported?(module, :run, 1)
   end
 end
