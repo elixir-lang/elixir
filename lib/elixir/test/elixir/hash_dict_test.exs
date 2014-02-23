@@ -52,6 +52,14 @@ defmodule HashDictTest do
     assert inspect(filled_dict(8)) =~ "#HashDict<"
   end
 
+  test "comparison when subsets" do
+    d1 = HashDict.new(a: 0)
+    d2 = HashDict.new(a: 0, b: 1)
+
+    refute HashDict.equal?(d1, d2)
+    refute HashDict.equal?(d2, d1)
+  end
+
   defp smoke_test(range) do
     { dict, _ } = Enum.reduce range, { HashDict.new, 1 }, fn(x, { acc, i }) ->
       acc = HashDict.put(acc, x, x)
