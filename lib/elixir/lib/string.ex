@@ -1073,91 +1073,49 @@ defmodule String do
     raise ArgumentError
   end
 
-  defexception UnicodeConversionError, [:encoded, :message] do
-    def exception(opts) do
-      UnicodeConversionError[
-        encoded: opts[:encoded],
-        message: "#{opts[:kind]} #{detail(opts[:rest])}"
-      ]
-    end
+  @doc false
+  def to_char_list(list) when is_list(list) do
+    IO.write :stderr, "String.to_char_list/1 is deprecated, please use List.from_char_data/1 instead\n#{Exception.format_stacktrace}"
+    List.from_char_data(list)
+  end
 
-    defp detail(rest) when is_binary(rest) do
-      "encoding starting at #{inspect rest}"
-    end
+  @doc false
+  def to_char_list!(list) when is_list(list) do
+    IO.write :stderr, "String.to_char_list!/1 is deprecated, please use List.from_char_data!/1 instead\n#{Exception.format_stacktrace}"
+    List.from_char_data!(list)
+  end
 
-    defp detail([h|_]) do
-      "code point #{h}"
-    end
+  @doc false
+  def from_char_list(list) when is_list(list) do
+    IO.write :stderr, "String.from_char_list/1 is deprecated, please use String.from_char_data/1 instead\n#{Exception.format_stacktrace}"
+    from_char_data(list)
+  end
+
+  @doc false
+  def from_char_list!(list) when is_list(list) do
+    IO.write :stderr, "String.from_char_list!/1 is deprecated, please use String.from_char_data!/1 instead\n#{Exception.format_stacktrace}"
+    from_char_data!(list)
   end
 
   @doc """
-  Converts a string into a char list converting each codepoint to its
-  respective integer value.
+  Converts char data (a list of integers and strings) into a string.
+
+  If a string is given, returns the string itself.
 
   ## Examples
 
-      iex> String.to_char_list("æß")
-      { :ok, 'æß' }
-      iex> String.to_char_list("abc")
-      { :ok, 'abc' }
-
-  """
-  @spec to_char_list(String.t) :: { :ok, char_list } | { :error, list, binary } | { :incomplete, list, binary }
-  def to_char_list(string) when is_binary(string) do
-    case :unicode.characters_to_list(string) do
-      result when is_list(result) ->
-        { :ok, result }
-
-      { :error, _, _ } = error ->
-        error
-
-      { :incomplete, _, _ } = incomplete ->
-        incomplete
-    end
-  end
-
-  @doc """
-  Converts a string into a char list converting each codepoint to its
-  respective integer value.
-
-  In case the conversion fails or is incomplete,
-  it raises a `String.UnicodeConversionError`.
-
-  ## Examples
-
-      iex> String.to_char_list!("æß")
-      'æß'
-      iex> String.to_char_list!("abc")
-      'abc'
-
-  """
-  @spec to_char_list!(String.t) :: char_list | no_return
-  def to_char_list!(string) when is_binary(string) do
-    case :unicode.characters_to_list(string) do
-      result when is_list(result) ->
-        result
-
-      { :error, encoded, rest } ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
-
-      { :incomplete, encoded, rest } ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
-    end
-  end
-
-  @doc """
-  Converts a list of integer codepoints to a string.
-
-  ## Examples
-
-      iex> String.from_char_list([0x00E6, 0x00DF])
+      iex> String.from_char_data([0x00E6, 0x00DF])
       { :ok, "æß" }
-      iex> String.from_char_list([0x0061, 0x0062, 0x0063])
+      iex> String.from_char_data([0x0061, "bc"])
       { :ok, "abc" }
 
   """
-  @spec from_char_list(char_list) :: { :ok, String.t } | { :error, binary, binary } | { :incomplete, binary, binary }
-  def from_char_list(list) when is_list(list) do
+  @spec from_char_data(char_data) :: { :ok, String.t } | { :error, binary, binary } | { :incomplete, binary, binary }
+  def from_char_data(binary) when is_binary(binary) do
+    binary
+  end
+
+  def from_char_data(list) when is_list(list) do
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
         { :ok, result }
@@ -1171,20 +1129,25 @@ defmodule String do
   end
 
   @doc """
-  Converts a list of integer codepoints to a string.
+  Converts char data (a list of integers and strings) into a string.
 
-  In case the conversion fails, it raises a `String.UnicodeConversionError`.
+  In case the conversion fails, it raises a `UnicodeConversionError`.
+  If a string is given, returns the string itself.
 
   ## Examples
 
-      iex> String.from_char_list!([0x00E6, 0x00DF])
+      iex> String.from_char_data!([0x00E6, 0x00DF])
       "æß"
-      iex> String.from_char_list!([0x0061, 0x0062, 0x0063])
+      iex> String.from_char_data!([0x0061, "bc"])
       "abc"
 
   """
-  @spec from_char_list!(char_list) :: String.t | no_return
-  def from_char_list!(list) when is_list(list) do
+  @spec from_char_data!(char_data) :: String.t | no_return
+  def from_char_data!(binary) when is_binary(binary) do
+    binary
+  end
+
+  def from_char_data!(list) when is_list(list) do
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
         result

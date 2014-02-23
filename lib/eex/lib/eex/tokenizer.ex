@@ -12,7 +12,7 @@ defmodule EEx.Tokenizer do
 
   """
   def tokenize(bin, line) when is_binary(bin) do
-    tokenize(String.to_char_list!(bin), line)
+    tokenize(List.from_char_data!(bin), line)
   end
 
   def tokenize(list, line) do
@@ -154,6 +154,6 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize_text(line, buffer, acc) do
-    [{ :text, line, String.from_char_list!(Enum.reverse(buffer)) } | acc]
+    [{ :text, line, String.from_char_data!(Enum.reverse(buffer)) } | acc]
   end
 end

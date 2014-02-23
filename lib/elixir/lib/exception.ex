@@ -117,6 +117,23 @@ defexception KeyError, key: nil do
   end
 end
 
+defexception UnicodeConversionError, [:encoded, :message] do
+  def exception(opts) do
+    UnicodeConversionError[
+      encoded: opts[:encoded],
+      message: "#{opts[:kind]} #{detail(opts[:rest])}"
+    ]
+  end
+
+  defp detail(rest) when is_binary(rest) do
+    "encoding starting at #{inspect rest}"
+  end
+
+  defp detail([h|_]) do
+    "code point #{h}"
+  end
+end
+
 defexception Enum.OutOfBoundsError, message: "out of bounds error"
 
 defexception Enum.EmptyError, message: "empty error"

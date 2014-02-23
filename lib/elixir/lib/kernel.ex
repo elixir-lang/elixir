@@ -498,7 +498,7 @@ defmodule Kernel do
   Notice that this function treats lists of integers as raw bytes
   and does not perform any kind of encoding conversion. If you want to convert
   from a char list to a string (both utf-8 encoded), please use
-  `String.from_char_list!/1` instead.
+  `String.from_char_data!/1` instead.
 
   If this function receives a binary, the same binary is returned.
 
@@ -3640,7 +3640,7 @@ defmodule Kernel do
 
   """
   defmacro sigil_C({ :<<>>, _line, [string] }, []) when is_binary(string) do
-    String.to_char_list!(string)
+    List.from_char_data!(string)
   end
 
   @doc """
@@ -3659,12 +3659,12 @@ defmodule Kernel do
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
   defmacro sigil_c({ :<<>>, _line, [string] }, []) when is_binary(string) do
-    String.to_char_list!(Macro.unescape_string(string))
+    List.from_char_data!(Macro.unescape_string(string))
   end
 
   defmacro sigil_c({ :<<>>, line, pieces }, []) do
     binary = { :<<>>, line, Macro.unescape_tokens(pieces) }
-    quote do: String.to_char_list!(unquote(binary))
+    quote do: List.from_char_data!(unquote(binary))
   end
 
   @doc """
@@ -3766,13 +3766,13 @@ defmodule Kernel do
         case mod do
           ?s -> String.split(string)
           ?a -> for p <- String.split(string), do: binary_to_atom(p)
-          ?c -> for p <- String.split(string), do: String.to_char_list!(p)
+          ?c -> for p <- String.split(string), do: List.from_char_data!(p)
         end
       false ->
         case mod do
           ?s -> quote do: String.split(unquote(string))
           ?a -> quote do: for(p <- String.split(unquote(string)), do: binary_to_atom(p))
-          ?c -> quote do: for(p <- String.split(unquote(string)), do: String.to_char_list!(p))
+          ?c -> quote do: for(p <- String.split(unquote(string)), do: List.from_char_data!(p))
         end
     end
   end

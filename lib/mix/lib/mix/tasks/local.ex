@@ -27,6 +27,6 @@ defmodule Mix.Tasks.Local do
   end
 
   defp format(expression, args) do
-    :io_lib.format(expression, args) |> String.from_char_list!
+    :io_lib.format(expression, args) |> String.from_char_data!
   end
 end

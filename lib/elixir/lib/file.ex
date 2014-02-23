@@ -848,7 +848,7 @@ defmodule File do
   """
   def cwd() do
     case F.get_cwd do
-      { :ok, base } -> { :ok, String.from_char_list!(base) }
+      { :ok, base } -> { :ok, String.from_char_data!(base) }
       { :error, _ } = error -> error
     end
   end

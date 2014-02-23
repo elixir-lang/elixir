@@ -74,7 +74,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp yes(hint, entries) do
-    { :yes, String.to_char_list!(hint), Enum.map(entries, &String.to_char_list!/1) }
+    { :yes, List.from_char_data!(hint), Enum.map(entries, &List.from_char_data!/1) }
   end
 
   defp no do

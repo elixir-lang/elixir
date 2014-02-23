@@ -189,7 +189,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_content(Test[exprs: exprs, line: line, fun_arity: fun_arity], module, do_import) do
-    file     = module.__info__(:compile)[:source] |> String.from_char_list!
+    file     = module.__info__(:compile)[:source] |> String.from_char_data!
     location = [line: line, file: Path.relative_to_cwd(file)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
 

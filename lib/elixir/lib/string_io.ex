@@ -113,12 +113,12 @@ defmodule StringIO do
   end
 
   defp io_request({ :put_chars, chars }, state(output: output) = s) do
-    { :ok, state(s, output: << output :: binary, to_binary(chars) :: binary >>) }
+    { :ok, state(s, output: << output :: binary, String.from_char_data!(chars) :: binary >>) }
   end
 
   defp io_request({ :put_chars, m, f, as }, state(output: output) = s) do
     chars = apply(m, f, as)
-    { :ok, state(s, output: << output :: binary, to_binary(chars) :: binary >>) }
+    { :ok, state(s, output: << output :: binary, String.from_char_data!(chars) :: binary >>) }
   end
 
   defp io_request({ :put_chars, _encoding, chars }, s) do
@@ -186,7 +186,7 @@ defmodule StringIO do
         { error, s }
       { result, input } ->
         if capture_prompt do
-          output = << output :: binary, to_binary(prompt) :: binary >>
+          output = << output :: binary, String.from_char_data!(prompt) :: binary >>
         end
 
         { result, state(s, input: input, output: output) }
@@ -236,7 +236,7 @@ defmodule StringIO do
         { result, input } = do_get_line(chars, encoding)
 
         if capture_prompt do
-          output = << output :: binary, to_binary(prompt) :: binary >>
+          output = << output :: binary, String.from_char_data!(prompt) :: binary >>
         end
 
         { result, state(s, input: input, output: output) }
@@ -266,7 +266,7 @@ defmodule StringIO do
         { result, input, count } = do_get_until(chars, encoding, mod, fun, args)
 
         if capture_prompt do
-          output = << output :: binary, :binary.copy(to_binary(prompt), count) :: binary >>
+          output = << output :: binary, :binary.copy(String.from_char_data!(prompt), count) :: binary >>
         end
 
         input =
@@ -340,9 +340,6 @@ defmodule StringIO do
     send from, { :io_reply, reply_as, reply }
   end
 
-  defp to_binary(list) when is_list(list), do: String.from_char_list!(list)
-  defp to_binary(binary) when is_binary(binary), do: binary
-
-  defp to_reply(list) when is_list(list), do: String.from_char_list!(list)
+  defp to_reply(list) when is_list(list), do: String.from_char_data!(list)
   defp to_reply(other), do: other
 end

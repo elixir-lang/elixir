@@ -56,12 +56,12 @@ defmodule Path do
 
   """
   def absname(path, relative_to) do
-    path = flatten(path)
+    path = String.from_char_data!(path)
     case type(path) do
       :relative -> join(relative_to, path)
       :absolute -> path
       :volumerelative ->
-        relative_to = flatten(relative_to)
+        relative_to = String.from_char_data!(relative_to)
         absname_vr(split(path), split(relative_to), relative_to)
     end
   end
@@ -78,7 +78,7 @@ defmodule Path do
   defp absname_vr([<<x, ?:>>|name], _, _relative) do
     cwd =
       case :file.get_cwd([x, ?:]) do
-        {:ok, dir}  -> flatten(dir)
+        {:ok, dir}  -> String.from_char_data!(dir)
         {:error, _} -> <<x, ?:, ?/>>
       end
     absname(join(name), cwd)
@@ -170,7 +170,7 @@ defmodule Path do
     case :os.type() do
       { :win32, _ } -> win32_pathtype(name)
       _             -> unix_pathtype(name)
-    end |> elem(1) |> flatten
+    end |> elem(1) |> String.from_char_data!
   end
 
   defp unix_pathtype(<<?/, relative :: binary>>), do:
@@ -253,7 +253,7 @@ defmodule Path do
   """
   def relative_to_cwd(path) do
     case :file.get_cwd do
-      { :ok, base } -> relative_to(path, flatten(base))
+      { :ok, base } -> relative_to(path, String.from_char_data!(base))
       _ -> path
     end
   end
@@ -275,7 +275,7 @@ defmodule Path do
 
   """
   def basename(path) do
-    FN.basename(flatten(path))
+    FN.basename(String.from_char_data!(path))
   end
 
   @doc """
@@ -294,7 +294,7 @@ defmodule Path do
 
   """
   def basename(path, extension) do
-    FN.basename(flatten(path), flatten(extension))
+    FN.basename(String.from_char_data!(path), String.from_char_data!(extension))
   end
 
   @doc """
@@ -309,7 +309,7 @@ defmodule Path do
 
   """
   def dirname(path) do
-    FN.dirname(flatten(path))
+    FN.dirname(String.from_char_data!(path))
   end
 
   @doc """
@@ -324,7 +324,7 @@ defmodule Path do
 
   """
   def extname(path) do
-    FN.extension(flatten(path))
+    FN.extension(String.from_char_data!(path))
   end
 
   @doc """
@@ -339,7 +339,7 @@ defmodule Path do
 
   """
   def rootname(path) do
-    FN.rootname(flatten(path))
+    FN.rootname(String.from_char_data!(path))
   end
 
   @doc """
@@ -355,7 +355,7 @@ defmodule Path do
 
   """
   def rootname(path, extension) do
-    FN.rootname(flatten(path), flatten(extension))
+    FN.rootname(String.from_char_data!(path), String.from_char_data!(extension))
   end
 
   @doc """
@@ -375,7 +375,7 @@ defmodule Path do
   def join([name1, name2|rest]), do:
     join([join(name1, name2)|rest])
   def join([name]), do:
-    do_join(flatten(name), <<>>, [], major_os_type())
+    do_join(String.from_char_data!(name), <<>>, [], major_os_type())
 
   @doc """
   Joins two paths.
@@ -387,7 +387,7 @@ defmodule Path do
 
   """
   def join(left, right),
-    do: do_join(flatten(left), relative(right), [], major_os_type())
+    do: do_join(String.from_char_data!(left), relative(right), [], major_os_type())
 
   defp major_os_type do
     :os.type |> elem(0)
@@ -430,7 +430,7 @@ defmodule Path do
   def split(""), do: []
 
   def split(path) do
-    FN.split(flatten(path))
+    FN.split(String.from_char_data!(path))
   end
 
   @doc """
@@ -468,39 +468,15 @@ defmodule Path do
   """
   def wildcard(glob) do
     glob
-    |> to_filename_string
+    |> List.from_char_data!
     |> :filelib.wildcard
-    |> Enum.map(&flatten/1)
-  end
-
-  ## Helpers
-
-  defp flatten(binary) when is_binary(binary) do
-    binary
-  end
-
-  defp flatten(list) when is_list(list) do
-    case :unicode.characters_to_binary(list) do
-      { :error, _, _ } ->
-        :erlang.error(:badarg)
-      bin when is_binary(bin) ->
-        bin
-    end
-  end
-
-  defp to_filename_string(binary) do
-    case :unicode.characters_to_list(binary) do
-      { :error, _, _ } ->
-        :erlang.error(:badarg)
-      list when is_list(list) ->
-        list
-    end
+    |> Enum.map(&String.from_char_data!/1)
   end
 
   # Normalize the given path by expanding "..", "." and "~".
 
   defp expand_home(type) do
-    case flatten(type) do
+    case String.from_char_data!(type) do
       "~" <> rest -> System.user_home! <> rest
       rest        -> rest
     end

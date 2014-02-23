@@ -4,7 +4,7 @@ defmodule Record.Extractor do
   # Retrieve a record definition from an Erlang file using
   # the same lookup as the *include* attribute from Erlang modules.
   def retrieve(name, from: file) when is_binary(file) do
-    file = String.to_char_list!(file)
+    file = List.from_char_data!(file)
 
     realfile =
       case :code.where_is_file(file) do
@@ -18,7 +18,7 @@ defmodule Record.Extractor do
   # Retrieve a record definition from an Erlang file using
   # the same lookup as the *include_lib* attribute from Erlang modules.
   def retrieve(name, from_lib: file) when is_binary(file) do
-    [app|path] = :filename.split(String.to_char_list!(file))
+    [app|path] = :filename.split(List.from_char_data!(file))
 
     case :code.lib_dir(list_to_atom(app)) do
       { :error, _ } ->

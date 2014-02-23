@@ -42,4 +42,28 @@ bar '''
     assert '\x{10FFF}' == [69631]
     assert '\x{10FFFF}' == [1114111]
   end
+
+  test :from_char_data do
+    assert List.from_char_data("æß")  == { :ok, [?æ, ?ß] }
+    assert List.from_char_data("abc") == { :ok, [?a, ?b, ?c] }
+
+    assert List.from_char_data(<< 0xDF, 0xFF >>) == { :error, [], << 223, 255 >> }
+    assert List.from_char_data(<< 106, 111, 115, 195 >>) == { :incomplete, 'jos', << 195 >> }
+  end
+
+  test :from_char_data! do
+    assert List.from_char_data!("æß")  == [?æ, ?ß]
+    assert List.from_char_data!("abc") == [?a, ?b, ?c]
+
+    assert_raise UnicodeConversionError,
+                 "invalid encoding starting at <<223, 255>>", fn ->
+      List.from_char_data!(<< 0xDF, 0xFF >>)
+    end
+
+    assert_raise UnicodeConversionError,
+                 "incomplete encoding starting at <<195>>", fn ->
+      List.from_char_data!(<< 106, 111, 115, 195 >>)
+    end
+  end
+
 end

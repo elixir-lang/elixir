@@ -77,7 +77,7 @@ defmodule MixTest.Case do
   def in_fixture(which, tmp, function) do
     src  = fixture_path(which)
     dest = tmp_path(tmp)
-    flag = tmp_path |> String.to_char_list!
+    flag = tmp_path |> List.from_char_data!
 
     File.rm_rf!(dest)
     File.mkdir_p!(dest)
@@ -99,7 +99,7 @@ defmodule MixTest.Case do
   end
 
   defp delete_tmp_paths do
-    tmp = tmp_path |> String.to_char_list!
+    tmp = tmp_path |> List.from_char_data!
     to_remove = Enum.filter :code.get_path, fn(path) -> :string.str(path, tmp) != 0 end
     Enum.map to_remove, &(:code.del_path(&1))
   end

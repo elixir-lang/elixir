@@ -364,7 +364,7 @@ defmodule FileTest do
 
     test :regular do
       assert File.regular?(__ENV__.file)
-      assert File.regular?(String.to_char_list!(__ENV__.file))
+      assert File.regular?(List.from_char_data!(__ENV__.file))
       refute File.regular?("#{__ENV__.file}.unknown")
     end
 

@@ -92,7 +92,7 @@ defmodule CodeTest do
   end
 
   test :compile_source do
-    assert __MODULE__.__info__(:compile)[:source] == String.to_char_list!(__ENV__.file)
+    assert __MODULE__.__info__(:compile)[:source] == List.from_char_data!(__ENV__.file)
   end
 
   test :compile_info_returned_with_source_accessible_through_keyword_module do

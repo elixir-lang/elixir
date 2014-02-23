@@ -128,7 +128,7 @@ defmodule Mix.Project do
     opts    = [Mix.Deps.Lock.manifest]
 
     if project && (source = project.__info__(:compile)[:source]) do
-      opts = [String.from_char_list!(source)|opts]
+      opts = [String.from_char_data!(source)|opts]
     end
 
     opts
