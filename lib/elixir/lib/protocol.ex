@@ -33,12 +33,8 @@ defmodule Protocol do
 
   defp after_defprotocol do
     quote unquote: false do
-      # Get all builtin types and add Any to have all modules.
-      builtin = Protocol.builtin
-      all     = [Any] ++ for { guard, mod } <- builtin, do: mod
-
       # == Deprecated records handling ==
-      { arg, impl } = Protocol.rec_impl_for(__MODULE__, all)
+      { arg, impl } = Protocol.rec_impl_for(__MODULE__)
       Kernel.def impl_for(unquote(arg)) when Kernel.is_record(unquote(arg)), do: unquote(impl)
       # == Deprecated records handling ==
 
@@ -49,13 +45,12 @@ defmodule Protocol do
       #
       # It simply delegates to struct_impl_for which is then
       # optimized during protocol consolidation.
-      Kernel.def impl_for(%{ __struct__: struct }) when
-          :erlang.is_atom(struct) and not(struct in unquote(all)) do
+      Kernel.def impl_for(%{ __struct__: struct }) when :erlang.is_atom(struct) do
         struct_impl_for(struct)
       end
 
       # Define the implementation for builtins.
-      for { guard, mod } <- builtin do
+      for { guard, mod } <- Protocol.builtin do
         target = Module.concat(__MODULE__, mod)
 
         Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
@@ -73,12 +68,10 @@ defmodule Protocol do
       # Internal handler for Any
       if @fallback_to_any do
         Kernel.defp any_impl_for do
-          try do
-            __MODULE__.Any.__impl__(:name)
-          catch
-            :error, :undef, [[{ __MODULE__.Any, :__impl__, [:name], _ }|_]|_] ->
-              nil
-          end
+          __MODULE__.Any.__impl__(:name)
+        catch
+          :error, :undef, [[{ __MODULE__.Any, :__impl__, [:name], _ }|_]|_] ->
+            nil
         end
       else
         Kernel.defp any_impl_for, do: nil
@@ -94,7 +87,7 @@ defmodule Protocol do
         end
       end
 
-      # Inline any implementation for.
+      # Inline any and struct implementations
       @compile { :inline, any_impl_for: 0, struct_impl_for: 1 }
 
       if :code.ensure_loaded(Kernel.Typespec) == { :module, Kernel.Typespec } and
@@ -185,7 +178,8 @@ defmodule Protocol do
   # Implements the function that detects the protocol and
   # returns the module to dispatch to.
   @doc false
-  def rec_impl_for(current, all) do
+  def rec_impl_for(current) do
+    all = [Any] ++ for { _guard, mod } <- builtin, do: mod
     arg = quote do: arg
     target = Module.concat(current, Tuple)
 

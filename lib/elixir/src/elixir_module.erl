@@ -255,16 +255,24 @@ load_form(Line, Forms, Opts, #elixir_env{file=File} = E) ->
   end).
 
 check_module_availability(Line, File, Module) ->
+  Reserved = ['Elixir.Atom', 'Elixir.BitString', 'Elixir.Function',
+              'Elixir.PID', 'Elixir.Reference', 'Elixir.Any'],
+
+  case lists:member(Module, Reserved) of
+    true  -> elixir_errors:handle_file_error(File, { Line, ?MODULE, { module_reserved, Module } });
+    false -> ok
+  end,
+
   case elixir_compiler:get_opt(ignore_module_conflict) of
     false ->
       case code:ensure_loaded(Module) of
         { module, _ } ->
           elixir_errors:handle_file_warning(File, { Line, ?MODULE, { module_defined, Module } });
-        { error, _ } ->
-          []
+        { error, _ }  ->
+          ok
       end;
     true ->
-      []
+      ok
   end.
 
 warn_invalid_clauses(_Line, _File, 'Elixir.Kernel.SpecialForms', _All) -> ok;
@@ -394,6 +402,8 @@ format_error({ invalid_module, Module}) ->
   io_lib:format("invalid module name: ~p", [Module]);
 format_error({ module_defined, Module }) ->
   io_lib:format("redefining module ~ts", [elixir_aliases:inspect(Module)]);
+format_error({ module_reserved, Module }) ->
+  io_lib:format("module ~ts is reserved and cannot be defined", [elixir_aliases:inspect(Module)]);
 format_error({ module_in_definition, Module }) ->
   io_lib:format("cannot define module ~ts because it is currently being defined",
     [elixir_aliases:inspect(Module)]).
