@@ -398,15 +398,15 @@ defmodule Mix.Utils do
   end
 
   defp read_url(path) do
-    if URI.parse(path).scheme == "https" do
-      :ssl.start
-    end
-
+    :ssl.start
     :inets.start
 
-    case :httpc.request(:binary.bin_to_list(path)) do
+    headers = [ { 'user-agent', 'Mix/#{System.version}' } ]
+    request = { :binary.bin_to_list(path), headers }
+
+    case :httpc.request(:get, request, [], body_format: :binary) do
       { :ok, { { _, status, _ }, _, body } } when status in 200..299 ->
-        :binary.list_to_bin(body)
+        body
       { :ok, { { _, status, _ }, _, _ } } ->
         raise Mix.Error, message: "Could not access url #{path}, got status: #{status}"
       { :error, reason } ->
