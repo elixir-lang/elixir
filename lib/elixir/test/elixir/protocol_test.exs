@@ -113,7 +113,6 @@ defmodule ProtocolTest do
     assert WithAny.impl_for(%ImplStruct{})          == WithAny.ProtocolTest.ImplStruct
     assert WithAny.impl_for(%NoImplStruct{})        == WithAny.Any
     assert WithAny.impl_for(%{ __struct__: "foo" }) == WithAny.Map
-    assert WithAny.impl_for(%{ __struct__: Tuple }) == WithAny.Map
     assert WithAny.impl_for(%{})                    == WithAny.Map
     assert WithAny.impl_for(self)                   == WithAny.Any
   end
@@ -267,7 +266,6 @@ end
 #     assert WithAny.impl_for(%ImplStruct{})          == WithAny.Protocol.ConsolidationTest.ImplStruct
 #     assert WithAny.impl_for(%NoImplStruct{})        == WithAny.Any
 #     assert WithAny.impl_for(%{ __struct__: "foo" }) == WithAny.Map
-#     assert WithAny.impl_for(%{ __struct__: Tuple }) == WithAny.Map
 #     assert WithAny.impl_for(%{})                    == WithAny.Map
 #     assert WithAny.impl_for(self)                   == WithAny.Any
 #   end
