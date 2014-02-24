@@ -54,8 +54,8 @@ defmodule RegexTest do
     refute ("£" =~ ~r/\p{Lu}/)
   end
 
-  test :groups do
-    assert Regex.groups(~r/(?<FOO>foo)/) == [:FOO]
+  test :names do
+    assert Regex.names(~r/(?<FOO>foo)/) == ["FOO"]
   end
 
   test :match? do
@@ -72,11 +72,11 @@ defmodule RegexTest do
   end
 
   test :named_captures do
-    assert Keyword.equal? Regex.named_captures(~r/(?<foo>c)(?<bar>d)/, "abcd"), [bar: "d", foo: "c"]
-    assert Regex.named_captures(~r/c(?<foo>d)/, "abcd") == [foo: "d"]
+    assert Regex.named_captures(~r/(?<foo>c)(?<bar>d)/, "abcd") == %{ "bar" => "d", "foo" => "c" }
+    assert Regex.named_captures(~r/c(?<foo>d)/, "abcd") == %{ "foo" => "d" }
     assert Regex.named_captures(~r/c(?<foo>d)/, "no_match") == nil
-    assert Regex.named_captures(~r/c(?<foo>d|e)/, "abcd abce") == [foo: "d"]
-    assert Regex.named_captures(~r/c(.)/, "cat") == []
+    assert Regex.named_captures(~r/c(?<foo>d|e)/, "abcd abce") == %{ "foo" => "d" }
+    assert Regex.named_captures(~r/c(.)/, "cat") == %{}
   end
 
   test :sigil_R do
@@ -88,10 +88,10 @@ defmodule RegexTest do
     assert Regex.run(~r"e", "abcd") == nil
   end
 
-  test :run_with_groups do
-    assert Regex.run(~r/c(?<foo>d)/, "abcd", capture: :groups) == ["d"]
-    assert Regex.run(~r/c(?<foo>d)/, "no_match", capture: :groups) == nil
-    assert Regex.run(~r/c(?<foo>d|e)/, "abcd abce", capture: :groups) == ["d"]
+  test :run_with_named do
+    assert Regex.run(~r/c(?<foo>d)/, "abcd", capture: :named) == ["d"]
+    assert Regex.run(~r/c(?<foo>d)/, "no_match", capture: :named) == nil
+    assert Regex.run(~r/c(?<foo>d|e)/, "abcd abce", capture: :named) == ["d"]
   end
 
   test :run_with_indexes do
@@ -105,11 +105,11 @@ defmodule RegexTest do
     assert Regex.scan(~r"e", "abcd") == []
   end
 
-  test :scan_with_groups do
-    assert Regex.scan(~r/cd/, "abcd", capture: :groups) == []
-    assert Regex.scan(~r/c(?<foo>d)/, "abcd", capture: :groups) == [["d"]]
-    assert Regex.scan(~r/c(?<foo>d)/, "no_match", capture: :groups) == []
-    assert Regex.scan(~r/c(?<foo>d|e)/, "abcd abce", capture: :groups) == [["d"], ["e"]]
+  test :scan_with_named do
+    assert Regex.scan(~r/cd/, "abcd", capture: :named) == []
+    assert Regex.scan(~r/c(?<foo>d)/, "abcd", capture: :named) == [["d"]]
+    assert Regex.scan(~r/c(?<foo>d)/, "no_match", capture: :named) == []
+    assert Regex.scan(~r/c(?<foo>d|e)/, "abcd abce", capture: :named) == [["d"], ["e"]]
   end
 
   test :split do

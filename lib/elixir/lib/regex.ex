@@ -54,7 +54,7 @@ defmodule Regex do
 
   * `:none` - do not return matching subpatterns at all;
 
-  * `:groups` - captures only named captures in the Regex;
+  * `:named` - captures only named captures in the Regex;
 
   * `list(binary)` - a list of named captures to capture;
 
@@ -178,7 +178,10 @@ defmodule Regex do
 
     captures =
       case Keyword.get(options, :capture, :all) do
-        :groups -> groups(regex)
+        :groups ->
+          IO.write "[WARNING] :groups option is deprecated, please use :named option instead\n#{Exception.format_stacktrace}"
+          names(regex)
+        :named -> names(regex)
         others  -> others
       end
 
@@ -190,24 +193,25 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the given captures as a keyword list or `nil` if no captures
-  are found. The option `:return` can be set to `:index` to get indexes
+  Returns the given captures as a map or `nil` if no captures are
+  found. The option `:return` can be set to `:index` to get indexes
   back.
 
   ## Examples
 
       iex> Regex.named_captures(~r/c(?<foo>d)/, "abcd")
-      [foo: "d"]
+      %{ "foo" => "d" }
       iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "abcd")
-      [bar: "d", foo: "b"]
+      %{ "bar" => "d", "foo" => "b" }
       iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "efgh")
       nil
 
   """
   def named_captures(regex, string, options \\ []) when is_binary(string) do
-    options = Keyword.put_new(options, :capture, :groups)
+    names = names(regex)
+    options = Keyword.put_new(options, :capture, names)
     results = run(regex, string, options)
-    if results, do: Enum.zip(groups(regex), results)
+    if results, do: Enum.zip(names, results) |> Map.new
   end
 
   @doc """
@@ -244,17 +248,22 @@ defmodule Regex do
   end
 
   @doc """
-  Returns a list of named groups in the regex.
+  Returns a list of names in the regex.
 
   ## Examples
 
-      iex> Regex.groups(~r/(?<foo>bar)/)
-      [:foo]
+      iex> Regex.names(~r/(?<foo>bar)/)
+      ["foo"]
 
   """
-  def groups(regex(re_pattern: re_pattern)) do
-    { :namelist, groups } = :re.inspect(re_pattern, :namelist)
-    for group <- groups, do: binary_to_atom(group)
+  def names(regex(re_pattern: re_pattern)) do
+    { :namelist, names } = :re.inspect(re_pattern, :namelist)
+    names
+  end
+
+  def groups(regex) do
+    IO.write "[WARNING] Regex.groups is deprecated, please use Regex.names instead\n#{Exception.format_stacktrace}"
+    names(regex)
   end
 
   @doc """
@@ -286,7 +295,10 @@ defmodule Regex do
 
     captures =
       case Keyword.get(options, :capture, :all) do
-        :groups -> groups(regex)
+        :groups ->
+          IO.write "[WARNING] :groups option is deprecated, please use :named option instead\n#{Exception.format_stacktrace}"
+          names(regex)
+        :named -> names(regex)
         others  -> others
       end
 
