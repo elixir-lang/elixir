@@ -4,9 +4,9 @@ defmodule StringIO do
 
   ## Examples
 
-    iex> { :ok, pid } = StringIO.start("foo")
-    ...> IO.read(pid, 2)
-    "fo"
+      iex> { :ok, pid } = StringIO.start("foo")
+      iex> IO.read(pid, 2)
+      "fo"
   """
 
   use GenServer.Behaviour
@@ -22,16 +22,18 @@ defmodule StringIO do
 
   ## Examples
 
-    iex> { :ok, pid } = StringIO.start("foo")
-    ...> IO.gets(pid, ">")
-    "foo"
-    ...> StringIO.peek(pid)
-    { "", "" }
-    iex> { :ok, pid } = StringIO.start("foo", capture_prompt: true)
-    ...> IO.gets(pid, ">")
-    "foo"
-    ...> StringIO.peek(pid)
-    { "", ">" }
+      iex> { :ok, pid } = StringIO.start("foo")
+      iex> IO.gets(pid, ">")
+      "foo"
+      iex> StringIO.peek(pid)
+      { "", "" }
+
+      iex> { :ok, pid } = StringIO.start("foo", capture_prompt: true)
+      iex> IO.gets(pid, ">")
+      "foo"
+      iex> StringIO.peek(pid)
+      { "", ">" }
+
   """
   @spec start(binary, Keyword.t) :: { :ok, pid }
   def start(string, options \\ []) when is_binary(string) do
@@ -40,6 +42,7 @@ defmodule StringIO do
 
   @doc """
   Creates an IO device.
+
   See also `start/2`
   """
   @spec start_link(binary, Keyword.t) :: { :ok, pid }
