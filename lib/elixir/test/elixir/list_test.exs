@@ -88,6 +88,11 @@ defmodule ListTest do
     assert List.keyfind([a: 1, b: 2], :c, 0) == nil
   end
 
+  test :pull do
+    assert List.pull([1, 2, 3, 1, 2, 3], [2, 3]) == [1, 1]
+    assert List.pull([1, 2, 3, 1, 2, 3], [1, 2, 3]) == []
+  end
+
   test :keyreplace do
     assert List.keyreplace([a: 1, b: 2], :a, 0, { :a, 3 }) == [a: 3, b: 2]
     assert List.keyreplace([a: 1], :b, 0, { :b, 2 }) == [a: 1]

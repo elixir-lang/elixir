@@ -173,6 +173,22 @@ defmodule List do
     :lists.keyfind(key, position + 1, list) || default
   end
 
+
+  @doc """
+  Removed the `items` from the `list`.
+
+  The complexity of this operation is O(n*m) where n is the length 
+  of the list and m is the length of items to remove.
+
+  ## Examples
+      iex> List.pull([1, 2, 3, 1, 2, 3], [2, 3])
+      [1, 1]
+  """
+  @spec pull(list, list) :: list
+  def pull(list, items) do
+    lc item inlist list, not item in items, do: item
+  end
+
   @doc """
   Receives a list of tuples and returns `true` if there is
   a tuple where the item at `position` in the tuple matches
