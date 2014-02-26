@@ -459,7 +459,7 @@ defmodule IEx.Helpers do
     end
   end
 
-  defmacro trace(trace) do
-    IEx.Tracer.trace(trace)
+  defmacro trace(trace, options \\ []) do
+    IEx.Tracer.trace(trace, options)
   end
 end
