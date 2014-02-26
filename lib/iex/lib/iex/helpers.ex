@@ -27,6 +27,9 @@ defmodule IEx.Helpers do
   * `t/1`       — prints type information
   * `v/0`       — prints the history of commands evaluated in the session
   * `v/1`       — retrieves the nth value from the history
+  * `trace/2`   - start and set tracer for some functions
+  * `trace_off/0`
+                - start and set tracer for some functions
   * `import_file/1`
                 — evaluates the given file in the shell's context
 
@@ -446,6 +449,37 @@ defmodule IEx.Helpers do
     raise ArgumentError, message: "import_file/1 expects a literal binary as its argument"
   end
 
+  @doc """
+  Set trace for a some module.function/arity on the shell.
+
+  Trace grammar
+
+  * <module> - trace all function in a module
+
+  Available options:
+
+  * `stack`        - add function back-stacktrace
+  * `exported`     - apply trace only on exported functions
+  * `no_return`    - doesn't return result of a function call
+
+  ## Examples
+
+      iex(1)> trace List.delete(_, 1)
+      1
+      iex(2)> List.delete [1,2,3,4], 1
+      [2, 3, 4]
+      #PID<0.41.0> call List.delete([1, 2, 3, 4], 1)
+      #PID<0.41.0> returned List.delete/2 -> [2, 3, 4]
+
+  """
+  defmacro trace(trace, options \\ []) do
+    IEx.Tracer.trace(trace, options)
+  end
+
+  def trace_off do
+    IEx.Tracer.trace_off
+  end
+
   # Compiles and loads an erlang source file, returns { module, binary }
   defp compile_erlang(source) do
     source = Path.relative_to_cwd(source) |> String.to_char_list!
@@ -459,7 +493,4 @@ defmodule IEx.Helpers do
     end
   end
 
-  defmacro trace(trace, options \\ []) do
-    IEx.Tracer.trace(trace, options)
-  end
 end
