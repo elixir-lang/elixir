@@ -16,11 +16,72 @@ defmodule Mix.Tasks.Test do
           Enum.each :cover.modules, fn(mod) ->
             :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
           end
+          {mods, funcs} = coverage_data()
+          write_module_overview(mods, output)
+          write_function_overview(funcs, output)
         end
 
         :application.set_env(:cover, :started, true)
       end
     end
+
+    def write_module_overview(modules, output) do
+      {:ok, _} = File.open(Path.join(output, "modules.html"), [:write], fn(file) ->
+        write_header(file, "Modules")
+        Enum.each modules, fn({mod, {cov, uncov}}) ->
+          write_line(file, "#{mod}</td>", cov, uncov)
+        end
+        writer_footer(file)
+      end)
+    end
+
+    def write_function_overview(funcs, output) do
+      {:ok, _} = File.open(Path.join(output, "functions.html"), [:write], fn(file) ->
+        write_header(file, "Functions")
+        Enum.each funcs, fn({{m, f, a}, {cov, uncov}}) ->
+          write_line(file, "#{m}.#{f}/#{a}", cov, uncov)
+        end
+        writer_footer(file)
+      end)
+    end
+    
+    defp write_line(file, entity, cov, uncov) do
+      ratio = (1.0 * cov/(cov + uncov))*100
+      IO.puts(file, "<tr><td>#{entity}</td>" <> 
+                    "<td align=\"right\">#{cov}</td><td align=\"right\">#{uncov}</td>" <>
+                    "<td align=\"right\">#{Float.round(ratio, 2)}%</td></tr>")
+    end
+    
+    defp write_header(file, title) do
+      IO.puts(file, "<html><head><title>#{title} Coverage Report</title></head><body><table>\n" <>
+        "<h1>#{title} Coverage Report</h1>" <>
+        "<tr><th>#{title}</th><th>Covered Lines</th><th>Uncovered Lines</th><th>Coverage Ratio</th></tr>" )      
+    end
+  
+    defp writer_footer(file), do: IO.puts(file, "</table></body></html>")
+
+    @doc """
+    Returns detailed coverage data `{mod, mf}` for all modules from the `:cover` application. 
+
+    ## The `mod` data
+    The `mod` data is a list of pairs: `{modulename, {no of covered lines, no of uncovered lines}}`
+  
+    ## The `mf` data
+    The `mf` data is list of pairs: `{{m, f, a}, {no of covered lines, no of uncovered lines}}`
+
+    """
+    def coverage_data() do
+      modules = Enum.map(:cover.modules, fn(mod) ->
+        {:ok, {m, {cov, noncov}}} = :cover.analyse(mod, :coverage, :module) 
+        {m, {cov, noncov}}
+      end) |> Enum.sort
+      mfunc = Enum.flat_map(:cover.modules, fn(mod) ->
+        {:ok, funcs} = :cover.analyse(mod, :coverage, :function)
+        funcs
+      end) |> Enum.sort
+      {modules, mfunc}
+    end
+
   end
 
   use Mix.Task
