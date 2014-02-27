@@ -79,7 +79,7 @@ translate(Meta, Args, #elixir_scope{return=Return} = RS) ->
   { TCases, SC } = translate_gen(Meta, Cases, [], SI),
   { TExpr, SE }  = elixir_translator:translate_block(Expr, Return, SC),
 
-  { build(Line, TCases, comprehension_expr(TInto, TExpr), TInto, Return, Var, Acc, SE),
+  { build(Line, TCases, comprehension_expr(TInto, TExpr), TInto, Var, Acc, SE),
     elixir_scope:mergef(SI, SE) }.
 
 translate_gen(ForMeta, [{ '<-', Meta, [Left, Right] }|T], Acc, S) ->
@@ -132,10 +132,10 @@ collect_filters([], Acc) ->
 
 %% If all we have is one enum generator, we check if it is a list
 %% for optimization otherwise fallback to the reduce generator.
-build(Line, [{ enum, Meta, Left, Right, Filters }] = Orig, { inline, Expr }, Into, Return, Var, Acc, S) ->
+build(Line, [{ enum, Meta, Left, Right, Filters }] = Orig, { inline, Expr }, Into, Var, Acc, S) ->
   case Right of
     { cons, _, _, _ } ->
-      build_comprehension(Line, Orig, Expr, Into, Return);
+      build_comprehension(Line, Orig, Expr, Into);
     { Other, _, _ } when Other == tuple; Other == map ->
       build_reduce(Orig, Expr, Into, Acc, S);
     _ ->
@@ -145,7 +145,7 @@ build(Line, [{ enum, Meta, Left, Right, Filters }] = Orig, { inline, Expr }, Int
         {clause, -1,
           [Var],
           [[?wrap_call(Line, erlang, is_list, [Var])]],
-          [build_comprehension(Line, Clauses, Expr, Into, Return)]},
+          [build_comprehension(Line, Clauses, Expr, Into)]},
         {clause, -1,
           [Var],
           [],
@@ -153,10 +153,10 @@ build(Line, [{ enum, Meta, Left, Right, Filters }] = Orig, { inline, Expr }, Int
       ]}
   end;
 
-build(Line, Clauses, { Kind, Expr }, Into, Return, _Var, Acc, S) ->
+build(Line, Clauses, { Kind, Expr }, Into, _Var, Acc, S) ->
   case (Kind == inline) andalso
        lists:all(fun(Clause) -> element(1, Clause) == bin end, Clauses) of
-    true  -> build_comprehension(Line, Clauses, Expr, Into, Return);
+    true  -> build_comprehension(Line, Clauses, Expr, Into);
     false -> build_reduce(Clauses, Expr, Into, Acc, S)
   end.
 
@@ -254,15 +254,12 @@ no_var_expr({ var, Line, _ }) ->
   {var, Line, '_'}.
 
 
-%% TODO: Test this clause once we support into: nil
-build_comprehension(Line, Clauses, Expr, {atom, _, nil}, true) ->
+build_comprehension(Line, Clauses, Expr, {atom, _, nil}) ->
   {block, Line, [
-    build_comprehension(Line, Clauses, Expr, {nil, Line}, true),
+    build_comprehension(Line, Clauses, Expr, {nil, Line}),
     {nil, Line}
   ]};
-build_comprehension(Line, Clauses, Expr, {atom, _, nil}, false) ->
-  build_comprehension(Line, Clauses, Expr, {nil, Line}, false);
-build_comprehension(Line, Clauses, Expr, Into, _Return) ->
+build_comprehension(Line, Clauses, Expr, Into) ->
   {comprehension_kind(Into), Line, Expr, comprehension_clause(Clauses)}.
 
 comprehension_clause([{ Kind, Meta, Left, Right, Filters }|T]) ->
