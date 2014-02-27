@@ -3,7 +3,7 @@ defmodule Map do
   A Dict implementation that works on maps.
 
   Maps are key-value stores where keys are compared using
-  using the match operator (`===`). Maps can be created with
+  the match operator (`===`). Maps can be created with
   the `%{}` special form defined in the `Kernel.SpecialForms`
   module.
 
@@ -22,6 +22,12 @@ defmodule Map do
 
   @doc """
   Creates a new map from the given pairs.
+
+  ## Examples
+
+      Map.new [{:b, 1}, {:a, 2}]
+      #=> %{a: 2, b: 1}
+
   """
   def new(pairs) do
     :maps.from_list pairs
@@ -30,6 +36,12 @@ defmodule Map do
   @doc """
   Creates a new map from the given pairs
   via the given transformation function.
+
+  ## Examples
+
+      Map.new ["a", "b"], fn x -> {x, x} end
+      %{"a" => "a", "b" => "b"}
+
   """
   def new(list, transform) when is_function(transform) do
     Enum.map(list, transform) |> :maps.from_list
