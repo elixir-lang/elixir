@@ -16,9 +16,9 @@ If Elixir fails to build (specifically when pulling in a new version via git), b
 
 If tests pass, you are ready to move on to the [Getting Started guide][1] or to try Interactive Elixir by running: `bin/iex` in your terminal.
 
-However, if tests fail, it is likely you have an outdated Erlang version (Elixir requires Erlang R16B or later). You can check your Erlang version by calling `erl` in the command line. You will see some information as follows:
+However, if tests fail, it is likely you have an outdated Erlang version (Elixir requires Erlang R17 or later). You can check your Erlang version by calling `erl` in the command line. You will see some information as follows:
 
-    Erlang R16B (erts-5.10.1) [source] [64-bit] [smp:2:2] [rq:2] [async-threads:0] [hipe] [kernel-poll:false]
+    Erlang/OTP 17 [RELEASE CANDIDATE 1] [erts-6.0] [source] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false]
 
 If you have the correct version and tests still fail, feel free to [open an issue][2].
 
