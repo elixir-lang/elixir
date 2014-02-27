@@ -58,9 +58,15 @@ translate_struct(Meta, Name, { '%{}', MapMeta, Args }, S) ->
 
   case TUpdate of
     nil ->
-      CreateAssocs =  maps:put('__struct__', Name,
-                        maps:merge(Struct, maps:from_list(Assocs))),
-      translate_map(MapMeta, maps:to_list(CreateAssocs), nil, US);
+      StructAssocs =
+        case S#elixir_scope.context of
+          match ->
+            [{'__struct__', Name}|Assocs];
+          _ ->
+            maps:to_list(maps:put('__struct__', Name,
+              maps:merge(Struct, maps:from_list(Assocs))))
+        end,
+      translate_map(MapMeta, StructAssocs, nil, US);
     _ ->
       Line  = ?line(Meta),
       { VarName, _, VS } = elixir_scope:build_var('_', US),

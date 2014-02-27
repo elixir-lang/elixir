@@ -115,6 +115,9 @@ defmodule MapTest do
     assert %ExternalUser{ user | name: "valim" } ==
            %{ __struct__: ExternalUser, name: "valim", age: 27 }
 
+    %ExternalUser{name: name} = %ExternalUser{}
+    assert name == "josé"
+
     map = %{}
     assert_raise BadStructError, "expected a struct named MapTest.ExternalUser, got: %{}", fn ->
       %ExternalUser{ map | name: "valim" }
