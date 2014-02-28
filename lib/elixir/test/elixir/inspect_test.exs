@@ -277,6 +277,12 @@ defmodule Inspect.MapTest do
     assert inspect(%Public{key: 1}) == "%Inspect.MapTest.Public{key: 1}"
   end
 
+  test :public_modified_struct do
+    public = %Public{key: 1}
+    assert inspect(Map.put(public, :foo, :bar)) ==
+           "%{__struct__: Inspect.MapTest.Public, foo: :bar, key: 1}"
+  end
+
   test :private_struct do
     assert inspect(%{__struct__: Private, key: 1}) == "%{__struct__: Inspect.MapTest.Private, key: 1}"
   end

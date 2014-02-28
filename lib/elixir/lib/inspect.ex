@@ -549,14 +549,19 @@ defimpl Inspect, for: Reference do
 end
 
 defimpl Inspect, for: Any do
-  def inspect(%{ __struct__: struct } = map, opts) do
+  def inspect(%{__struct__: struct} = map, opts) do
     try do
       struct.__struct__
     rescue
       _ -> Inspect.Map.inspect(map, opts)
     else
-      _ -> Inspect.Map.inspect(:maps.remove(:__struct__, map),
-            Inspect.Atom.inspect(struct, opts), opts)
+      inner ->
+        outer = :maps.remove(:__struct__, map)
+        if :maps.keys(inner) == :maps.keys(outer) do
+          Inspect.Map.inspect(outer, Inspect.Atom.inspect(struct, opts), opts)
+        else
+          Inspect.Map.inspect(map, opts)
+        end
     end
   end
 end
