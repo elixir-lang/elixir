@@ -555,10 +555,10 @@ defimpl Inspect, for: Any do
     rescue
       _ -> Inspect.Map.inspect(map, opts)
     else
-      inner ->
-        outer = :maps.remove(:__struct__, map)
-        if :maps.keys(inner) == :maps.keys(outer) do
-          Inspect.Map.inspect(outer, Inspect.Atom.inspect(struct, opts), opts)
+      dunder ->
+        if :maps.keys(dunder) == :maps.keys(map) do
+          Inspect.Map.inspect(:maps.remove(:__struct__, map),
+            Inspect.Atom.inspect(struct, opts), opts)
         else
           Inspect.Map.inspect(map, opts)
         end

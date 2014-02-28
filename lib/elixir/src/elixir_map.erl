@@ -23,7 +23,17 @@ expand_struct(Meta, Left, Right, E) ->
   EMeta =
     case lists:member(ELeft, E#elixir_env.context_modules) andalso
          elixir_module:is_open(ELeft) of
-      true  -> [{ struct, context }|Meta];
+      true  ->
+        case (ELeft == E#elixir_env.module) and
+             (E#elixir_env.function == nil) of
+          true ->
+            compile_error(Meta, E#elixir_env.file,
+              "cannot access struct ~ts in body of the module that defines it as "
+              "the struct fields are not yet accessible",
+              [elixir_aliases:inspect(ELeft)]);
+          false ->
+            [{ struct, context }|Meta]
+        end;
       false -> elixir_aliases:ensure_loaded(Meta, ELeft, E), Meta
     end,
 

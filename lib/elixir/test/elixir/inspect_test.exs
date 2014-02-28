@@ -266,7 +266,7 @@ defmodule Inspect.MapTest do
 
   defmodule Public do
     def __struct__ do
-      %{key: 0}
+      %{key: 0, __struct__: Public}
     end
   end
 

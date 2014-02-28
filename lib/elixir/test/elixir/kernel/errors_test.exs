@@ -195,6 +195,18 @@ defmodule Kernel.ErrorsTest do
       '%{ :a, :b }{ a: :b }'
   end
 
+  test :struct_access_on_body do
+    assert_compile_fail CompileError,
+      "nofile:3: cannot access struct TZ in body of the module that defines it " <>
+      "as the struct fields are not yet accessible",
+      '''
+      defmodule TZ do
+        defstruct %{name: "Brasilia"}
+        %TZ{}
+      end
+      '''
+  end
+
   test :unbound_map_key_var do
     assert_compile_fail CompileError,
       "nofile:1: cannot bind variable x in map key",
