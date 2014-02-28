@@ -84,7 +84,7 @@ defmodule EEx do
 
   In other words, <%= @foo %> is simply translated to:
 
-      <%= Keyword.get assigns, :foo %>
+      <%= Dict.get assigns, :foo %>
 
   The assigns extension is useful when the number of variables
   required by the template is not specified at compilation time.
