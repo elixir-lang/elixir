@@ -8,12 +8,29 @@ defmodule Mix.Deps.Loader do
   Gets all direct children of the current `Mix.Project`
   as a `Mix.Dep` record. Umbrella project dependencies
   are included as children.
+
+  By default, it will filter all dependencies that does not match
+  current environment, behaviour can be overriden via options.
+
+  ## Options
+
+  * `:env` - Filter dependencies on given environments
   """
-  def children do
+  def children(opts) do
     scms = Mix.SCM.available
     from = Path.absname("mix.exs")
-    Enum.map(Mix.project[:deps] || [], &to_dep(&1, scms, from)) ++
-             Mix.Deps.Umbrella.unloaded
+    deps = Enum.map(Mix.project[:deps] || [], &to_dep(&1, scms, from))
+
+    # Filter deps not matching mix environment
+    if env = opts[:env] do
+      deps =
+        Enum.filter(deps, fn Mix.Dep[opts: opts] ->
+          only = opts[:only]
+          if only, do: env in List.wrap(only), else: true
+        end)
+    end
+
+    deps ++ Mix.Deps.Umbrella.unloaded
   end
 
   @doc """
@@ -173,6 +190,7 @@ defmodule Mix.Deps.Loader do
                         "are running on v#{System.version}, please run mix deps.update #{dep.app} to update it"
       end
 
+      children = children(env: opts[:env] || :prod)
       { dep.manager(:mix).opts(opts).extra(umbrella: umbrella?), children }
     end)
   end

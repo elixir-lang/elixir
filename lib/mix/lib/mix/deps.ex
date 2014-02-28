@@ -50,6 +50,8 @@ defmodule Mix.Deps do
   * `:compile` - A command to compile the dependency, defaults to a mix,
                  rebar or make command
   * `:optional` - The dependency is optional and used only to specify requirements
+  * `:only` - The dependency will only belong to the given environments, use when
+              declaring dev or test only dependencies
 
   ## Git options (`:git`)
 
@@ -87,7 +89,7 @@ defmodule Mix.Deps do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  defdelegate children(), to: Mix.Deps.Loader
+  defdelegate children(otps), to: Mix.Deps.Loader
 
   @doc """
   Returns loaded dependencies recursively as a `Mix.Dep` record.
@@ -97,8 +99,8 @@ defmodule Mix.Deps do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  def loaded do
-    { deps, _ } = Mix.Deps.Converger.all(nil, fn(dep, acc) -> { dep, acc } end)
+  def loaded(opts) do
+    { deps, _ } = Mix.Deps.Converger.all(nil, opts, fn(dep, acc) -> { dep, acc } end)
     Mix.Deps.Converger.topsort(deps)
   end
 
@@ -111,7 +113,9 @@ defmodule Mix.Deps do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  def loaded_by_name(given, all_deps \\ loaded) do
+  def loaded_by_name(given, all_deps \\ nil, opts) do
+    all_deps = all_deps || loaded(opts)
+
     # Ensure all apps are atoms
     apps = to_app_names(given)
 
@@ -141,29 +145,31 @@ defmodule Mix.Deps do
   The callback expects the current dependency and the accumulator
   as arguments. The accumulator is returned as result.
 
+  See `Mix.Deps.Converger.all/3` for options.
+
   ## Exceptions
 
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  def unloaded(acc, callback) do
-    { deps, acc } = Mix.Deps.Converger.all(acc, callback)
+  def unloaded(acc, opts, callback) do
+    { deps, acc } = Mix.Deps.Converger.all(acc, opts, callback)
     { Mix.Deps.Converger.topsort(deps), acc }
   end
 
   @doc """
   Receives a list of dependency names and maps and reduces over
-  them.
+  them. See `unloaded`.
 
   ## Exceptions
 
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  def unloaded_by_name(given, acc, callback) do
+  def unloaded_by_name(given, acc, opts, callback) do
     names = to_app_names(given)
 
-    unloaded(acc, fn(dep, acc) ->
+    unloaded(acc, opts, fn(dep, acc) ->
       if dep.app in names do
         callback.(dep, acc)
       else
@@ -254,7 +260,7 @@ defmodule Mix.Deps do
 
   def format_status(Mix.Dep[status: { :unavailable, _ }, scm: scm]) do
     if scm.fetchable? do
-      "the dependency is not available, run `#{mix_env_var}mix deps.get`"
+      "the dependency is not available, run `mix deps.get`"
     else
       "the dependency is not available"
     end

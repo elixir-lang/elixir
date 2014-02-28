@@ -38,7 +38,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->
-      deps = Mix.Deps.loaded
+      deps = Mix.Deps.loaded([])
       assert length(deps) == 6
       assert Enum.find deps, &match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
       assert Enum.find deps, &match?(Mix.Dep[app: :invalidvsn, status: { :invalidvsn, :ok }], &1)
@@ -53,7 +53,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push MixVersionApp
 
     in_fixture "deps_status", fn ->
-      deps = Mix.Deps.loaded
+      deps = Mix.Deps.loaded([])
       assert Enum.find deps, &match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
     end
   end
@@ -64,7 +64,7 @@ defmodule Mix.DepsTest do
     in_fixture "deps_status", fn ->
       msg = "Mix.DepsTest.NoSCMApp did not specify a supported scm for app :ok, " <>
             "expected one of :git, :path or :in_umbrella"
-      assert_raise Mix.Error, msg, fn -> Mix.Deps.loaded end
+      assert_raise Mix.Error, msg, fn -> Mix.Deps.loaded([]) end
     end
   end
 
@@ -75,7 +75,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push DepsApp
 
     { _, true } =
-      Mix.Deps.unloaded(false, fn dep, acc ->
+      Mix.Deps.unloaded(false, [], fn dep, acc ->
         assert nil?(dep.manager)
         { dep, acc or true }
       end)
@@ -86,7 +86,7 @@ defmodule Mix.DepsTest do
 
     in_fixture "deps_status", fn ->
       assert_raise Mix.Error, ~r"Invalid requirement", fn ->
-        Mix.Deps.loaded
+        Mix.Deps.loaded([])
       end
     end
   end
@@ -107,7 +107,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push NestedDepsApp
 
     in_fixture "deps_status", fn ->
-      assert Enum.map(Mix.Deps.loaded, &(&1.app)) == [:git_repo, :deps_repo]
+      assert Enum.map(Mix.Deps.loaded([]), &(&1.app)) == [:git_repo, :deps_repo]
     end
   end
 
@@ -131,7 +131,7 @@ defmodule Mix.DepsTest do
       end
       """
 
-      assert Enum.map(Mix.Deps.loaded, &(&1.app)) == [:deps_repo]
+      assert Enum.map(Mix.Deps.loaded([]), &(&1.app)) == [:deps_repo]
     end
   end
 
@@ -152,7 +152,7 @@ defmodule Mix.DepsTest do
     Mix.Project.push ConvergedDepsApp
 
     in_fixture "deps_status", fn ->
-      assert Enum.map(Mix.Deps.loaded, &(&1.app)) == [:git_repo, :deps_repo]
+      assert Enum.map(Mix.Deps.loaded([]), &(&1.app)) == [:git_repo, :deps_repo]
     end
   end
 
@@ -176,7 +176,7 @@ defmodule Mix.DepsTest do
       end
       """
 
-      assert Enum.map(Mix.Deps.loaded, &(&1.app)) == [:git_repo, :deps_repo]
+      assert Enum.map(Mix.Deps.loaded([]), &(&1.app)) == [:git_repo, :deps_repo]
     end
   end
 
@@ -205,5 +205,70 @@ defmodule Mix.DepsTest do
     end
   after
     Mix.RemoteConverger.register(nil)
+  end
+
+  defmodule OnlyDeps do
+    def project do
+      [ deps: [ { :foo, github: "elixir-lang/foo" },
+                { :bar, github: "elixir-lang/bar", only: :other_env }  ] ]
+    end
+  end
+
+  test "only extract deps matching environment" do
+    Mix.Project.push OnlyDeps
+
+    in_fixture "deps_status", fn ->
+      { deps, _acc } = Mix.Deps.unloaded([], [env: :other_env], &{ &1, &2 })
+      assert length(deps) == 2
+
+      { deps, _acc } = Mix.Deps.unloaded([], [], &{ &1, &2 })
+      assert length(deps) == 2
+
+      { deps, _acc } = Mix.Deps.unloaded([], [env: :prod], &{ &1, &2 })
+      assert length(deps) == 1
+      assert Enum.find deps, &match?(Mix.Dep[app: :foo], &1)
+    end
+  end
+
+  defmodule OnlyChildDeps do
+    def project do
+      [ app: :raw_sample,
+        version: "0.1.0",
+        deps: [ { :only_deps, path: fixture_path("only_deps") } ] ]
+    end
+  end
+
+  test "only fetch child deps matching prod env" do
+    Mix.Project.push OnlyChildDeps
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Get.run([])
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
+      refute_received { :mix_shell, :info, [^message] }
+    end
+  end
+
+  defmodule OnlyParentDeps do
+    def project do
+      [ app: :raw_sample,
+        version: "0.1.0",
+        deps: [ { :only, github: "elixir-lang/only", only: :dev } ] ]
+    end
+  end
+
+  test "only fetch parent deps matching specified env" do
+    Mix.Project.push OnlyParentDeps
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Get.run(["--only", "prod"])
+      refute_received { :mix_shell, :info, ["* Getting" <> _] }
+
+      assert_raise Mix.Error, "Can't continue due to errors on dependencies", fn ->
+        Mix.Tasks.Deps.Check.run([])
+      end
+
+      Mix.env(:prod)
+      Mix.Tasks.Deps.Check.run([])
+    end
   end
 end

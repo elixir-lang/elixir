@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   """
 
-  import Mix.Deps, only: [loaded: 0, available?: 1, loaded_by_name: 1,
+  import Mix.Deps, only: [loaded: 1, available?: 1, loaded_by_name: 2,
                           format_dep: 1, make?: 1, mix?: 1, rebar?: 1]
 
   def run(args) do
@@ -35,9 +35,9 @@ defmodule Mix.Tasks.Deps.Compile do
 
     case OptionParser.parse(args, switches: [quiet: :boolean]) do
       { opts, [], _ } ->
-        compile(Enum.filter(loaded, &compilable?/1), opts)
+        compile(Enum.filter(loaded(env: Mix.env), &compilable?/1), opts)
       { opts, tail, _ } ->
-        compile(loaded_by_name(tail), opts)
+        compile(loaded_by_name(tail, env: Mix.env), opts)
     end
   end
 
