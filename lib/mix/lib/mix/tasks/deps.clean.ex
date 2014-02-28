@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Deps.Clean do
     Mix.Project.get! # Require the project to be available
 
     { opts, args, _ } = OptionParser.parse(args, switches: [unlock: :boolean, all: :boolean])
-    loaded = Mix.Deps.loaded
+    loaded = Mix.Deps.loaded(env: Mix.env)
 
     cond do
       opts[:all] ->

@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Check do
   use Mix.Task
 
-  import Mix.Deps, only: [loaded: 0, loaded_by_name: 1, format_dep: 1,
+  import Mix.Deps, only: [loaded: 1, loaded_by_name: 2, format_dep: 1,
                           format_status: 1, check_lock: 2, ok?: 1]
 
   @moduledoc """
@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Deps.Check do
   def run(args) do
     { opts, _, _ } = OptionParser.parse(args, switches: [quiet: :boolean])
     lock = Mix.Deps.Lock.read
-    all  = Enum.map loaded, &check_lock(&1, lock)
+    all  = Enum.map(loaded(env: Mix.env), &check_lock(&1, lock))
 
     prune_deps(all)
     { not_ok, compile } = partition_deps(all, [], [])
@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Deps.Check do
         Mix.Tasks.Deps.Compile.compile(compile, opts)
         show_not_ok compile
                     |> Enum.map(& &1.app)
-                    |> loaded_by_name
+                    |> loaded_by_name(env: Mix.env)
                     |> Enum.filter(&(not ok?(&1)))
     end
   end

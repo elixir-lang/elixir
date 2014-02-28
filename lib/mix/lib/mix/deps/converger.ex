@@ -38,9 +38,11 @@ defmodule Mix.Deps.Converger do
   including nested dependencies. There is a callback
   that is invoked for each dependency and must return
   an updated dependency in case some processing is done.
+
+  See `Mix.Deps.Loader.children/1` for options.
   """
-  def all(rest, callback) do
-    main      = Mix.Deps.Loader.children
+  def all(rest, opts, callback) do
+    main      = Mix.Deps.Loader.children(opts)
     apps      = Enum.map(main, &(&1.app))
     converger = Mix.RemoteConverger.get
 
