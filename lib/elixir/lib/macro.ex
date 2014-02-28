@@ -388,6 +388,11 @@ defmodule Macro do
   end
 
   # Unary ops
+  def to_string({ unary, _, [{ binary, _, [_, _] } = arg] } = ast, fun)
+      when unary in unquote(@unary_ops) and binary in unquote(@binary_ops) do
+    fun.(ast, atom_to_binary(unary) <> "(" <> to_string(arg, fun) <> ")")
+  end
+
   def to_string({ :not, _, [arg] } = ast, fun)  do
     fun.(ast, "not " <> to_string(arg, fun))
   end
