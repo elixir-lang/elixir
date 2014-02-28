@@ -7,11 +7,12 @@
   * [IEx] Allow prompt configuration with the `:prompt` option
   * [Kernel] Support `ERL_PATH` in `bin/elixir`
   * [Map] Add a Map module and support R17 maps and structs
-  * [Regex] Regexes no longer needs the "g" option when there is a need to use named captures
+  * [Regex] Regexes no longer need the "g" option when there is a need to use named captures
   * [StringIO] Add a `StringIO` module that allows a String to be used as IO device
   * [System] Add `System.delete_env/1` to remove a variable from the environment
 
 * Bug fixes
+  * [Macro] `Macro.to_string/2` considers proper precedence when translating `!(foo > bar)` into a string
   * [Mix] Automatically recompile on outdated Elixir version and show proper error messages
   * [OptionParser] Do not recognize undefined aliases as switches
 
