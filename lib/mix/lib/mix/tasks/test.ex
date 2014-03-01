@@ -1,6 +1,7 @@
 defmodule Mix.Tasks.Test do
   defmodule Cover do
     @moduledoc false
+    require EEx
 
     def start(compile_path, opts) do
       Mix.shell.info "Cover compiling modules ... "
@@ -19,46 +20,27 @@ defmodule Mix.Tasks.Test do
           {mods, funcs} = coverage_data()
           write_module_overview(mods, output)
           write_function_overview(funcs, output)
+          generate_assets(output)
         end
 
         :application.set_env(:cover, :started, true)
       end
     end
-
+    
     def write_module_overview(modules, output) do
-      {:ok, _} = File.open(Path.join(output, "modules.html"), [:write], fn(file) ->
-        write_header(file, "Modules")
-        Enum.each modules, fn({mod, {cov, uncov}}) ->
-          write_line(file, "#{mod}</td>", cov, uncov)
-        end
-        writer_footer(file)
-      end)
+      mods = Enum.map(modules, fn({mod, v}) -> {module_link(mod), v} end)
+      content = overview_template("Modules", mods)
+      File.write("#{output}/modules.html", content)
     end
 
-    def write_function_overview(funcs, output) do
-      {:ok, _} = File.open(Path.join(output, "functions.html"), [:write], fn(file) ->
-        write_header(file, "Functions")
-        Enum.each funcs, fn({{m, f, a}, {cov, uncov}}) ->
-          write_line(file, "#{m}.#{f}/#{a}", cov, uncov)
-        end
-        writer_footer(file)
-      end)
+    def write_function_overview(functions, output) do
+      funs = Enum.map(functions, fn({{m,f,a}, v}) -> {module_link(m, f, a), v} end)
+      content = overview_template("Functions", funs)
+      File.write("#{output}/functions.html", content)
     end
     
-    defp write_line(file, entity, cov, uncov) do
-      ratio = (1.0 * cov/(cov + uncov))*100
-      IO.puts(file, "<tr><td>#{entity}</td>" <> 
-                    "<td align=\"right\">#{cov}</td><td align=\"right\">#{uncov}</td>" <>
-                    "<td align=\"right\">#{Float.round(ratio, 2)}%</td></tr>")
-    end
-    
-    defp write_header(file, title) do
-      IO.puts(file, "<html><head><title>#{title} Coverage Report</title></head><body><table>\n" <>
-        "<h1>#{title} Coverage Report</h1>" <>
-        "<tr><th>#{title}</th><th>Covered Lines</th><th>Uncovered Lines</th><th>Coverage Ratio</th></tr>" )      
-    end
-  
-    defp writer_footer(file), do: IO.puts(file, "</table></body></html>")
+    defp module_link(mod), do: "<a href=\"#{mod}.html\">#{mod}</a>"
+    defp module_link(m, f, a), do: "<a href=\"#{m}.html\">#{m}.#{f}/#{a}</a>"
 
     @doc """
     Returns detailed coverage data `{mod, mf}` for all modules from the `:cover` application. 
@@ -81,6 +63,37 @@ defmodule Mix.Tasks.Test do
       end) |> Enum.sort
       {modules, mfunc}
     end
+
+    ## Generate templating functions via EEx, borrowd from ex_doc
+    templates = [
+      overview_template: [:title, :entries],
+      overview_entry_template: [:entry, :cov, :uncov, :ratio]
+    ]
+    Enum.each templates, fn({ name, args }) ->
+      filename = Path.expand("templates/#{name}.eex", __DIR__)
+      EEx.function_from_file :def, name, filename, args
+    end
+
+    # generates asses files
+    defp generate_assets(output) do
+      Enum.each assets, fn({ pattern, dir }) ->
+        output = "#{output}/#{dir}"
+        File.mkdir output
+
+        Enum.map Path.wildcard(pattern), fn(file) ->
+          base = Path.basename(file)
+          File.copy file, "#{output}/#{base}"
+        end
+      end
+    end
+    # assets are javascript, css and gif resources
+    defp assets do
+      [ { templates_path("css/*.css"), "css" },
+        { templates_path("js/*.js"), "js" },
+        { templates_path("css/*.gif"), "css" },
+      ]
+    end
+    defp templates_path(other), do: Path.expand("templates/#{other}", __DIR__)
 
   end
 
