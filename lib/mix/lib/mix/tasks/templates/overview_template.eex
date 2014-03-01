@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="css/style.css" type="text/css" media="screen" charset="utf-8" />
+    <link rel="stylesheet" href="css/tablesorter.css" type="text/css" media="screen" charset="utf-8" />
+    <script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+    <script type="text/javascript" charset="utf-8" src="js/jquery.tablesorter.js"></script>
+  </head>
+
+  <body>
+    <div id="content">
+      <h1><%= title %> Coverage Report</h1>
+
+      <table class="tablesorter" cellspacing="1">
+        <thead>
+          <tr>
+            <th><%= title %></th><th>Covered Lines</th><th>Uncovered Lines</th><th>Ratio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= lc {e, {c, u}} inlist entries, do: overview_entry_template(e, c, u, (1.0 * c/(c + u)*100)) %>
+        </tbody>
+      </table>
+    </div>
+    <script type="text/javascript">
+    $(document).ready(function() { 
+      // call the tablesorter plugin 
+      $("table").tablesorter({ 
+          // sort on the first column, order asc 
+          sortList: [[0,0]] 
+      }); 
+    }); 
+    </script>
+  </body>
+</html>
