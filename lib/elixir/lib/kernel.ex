@@ -3201,7 +3201,7 @@ defmodule Kernel do
       end)
 
       def __struct__() do
-        %{ unquote_splicing(opts), __struct__: __MODULE__ }
+        %{ unquote_splicing(Macro.escape(opts)), __struct__: __MODULE__ }
       end
     end
   end

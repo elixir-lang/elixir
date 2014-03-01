@@ -144,10 +144,10 @@ defmodule MapTest do
   end
 
   defmodule NilUser do
-    defstruct [:name, :age]
+    defstruct name: nil, contents: %{}
   end
 
   test "nil user" do
-    assert %NilUser{} == %{ __struct__: NilUser, name: nil, age: nil }
+    assert %NilUser{} == %{ __struct__: NilUser, name: nil, contents: %{} }
   end
 end

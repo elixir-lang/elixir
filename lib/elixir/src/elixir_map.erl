@@ -66,18 +66,8 @@ translate_struct(Meta, Name, { '%{}', MapMeta, Args }, S) ->
         "return a map, got: ~ts", [elixir_aliases:inspect(Name), 'Elixir.Kernel':inspect(Struct)])
   end,
 
-  case TUpdate of
-    nil ->
-      StructAssocs =
-        case S#elixir_scope.context of
-          match ->
-            [{'__struct__', Name}|Assocs];
-          _ ->
-            maps:to_list(maps:put('__struct__', Name,
-              maps:merge(Struct, maps:from_list(Assocs))))
-        end,
-      translate_map(MapMeta, StructAssocs, nil, US);
-    _ ->
+  if
+    TUpdate /= nil ->
       Line  = ?line(Meta),
       { VarName, _, VS } = elixir_scope:build_var('_', US),
 
@@ -92,7 +82,13 @@ translate_struct(Meta, Name, { '%{}', MapMeta, Args }, S) ->
       { { 'case', Line, TUpdate, [
         { clause, Line, [Match], [], [TMap] },
         { clause, Line, [Var], [], [?wrap_call(Line, erlang, error, [Error])] }
-      ] }, TS }
+      ] }, TS };
+    S#elixir_scope.context == match ->
+      translate_map(MapMeta, Assocs ++ [{'__struct__', Name}], nil, US);
+    true ->
+      Keys = [K || {K,_} <- Assocs],
+      { StructAssocs, _ } = elixir_quote:escape(maps:to_list(maps:without(Keys, Struct)), false),
+      translate_map(MapMeta, StructAssocs ++ Assocs ++ [{'__struct__', Name}], nil, US)
   end.
 
 %% Helpers
