@@ -954,7 +954,7 @@ defmodule Kernel do
   @doc """
   Returns the size of the given argument, which must be a tuple or a binary.
 
-  Prefer using `tuple_size` or `byte_size` instead.
+  Prefer using `tuple_size/1` or `byte_size/1` instead.
 
   Allowed in guard tests. Inlined by the compiler.
   """
