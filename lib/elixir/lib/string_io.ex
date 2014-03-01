@@ -149,11 +149,15 @@ defmodule StringIO do
   end
 
   defp io_request({ :get_until, prompt, mod, fun, args }, s) do
-    io_request({ :get_until, :latin1, prompt, mod, fun, args}, s)
+    io_request({ :get_until, :latin1, prompt, mod, fun, args }, s)
   end
 
-  defp io_request({ :get_until, encoding, prompt, mod, fun, args}, s) do
+  defp io_request({ :get_until, encoding, prompt, mod, fun, args }, s) do
     get_until(encoding, prompt, mod, fun, args, s)
+  end
+
+  defp io_request({ :get_password, encoding }, s) do
+    get_line(encoding, "", s)
   end
 
   defp io_request({ :setopts, _opts }, s) do

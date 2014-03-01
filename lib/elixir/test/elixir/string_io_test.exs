@@ -205,6 +205,12 @@ defmodule StringIOTest do
     assert contents(pid) == { "", ">" }
   end
 
+  test ":io.get_password" do
+    pid = start("abc\n")
+    assert :io.get_password(pid) == "abc\n"
+    assert contents(pid) == { "", "" }
+  end
+
   test "IO.stream" do
     pid = start("abc")
     assert IO.stream(pid, 2) |> Enum.to_list == ["ab", "c"]
