@@ -230,7 +230,7 @@ defmodule IEx.Evaluator do
   defp split_entry(entry) do
     case entry do
       "(" <> _ ->
-        case :binary.split(entry, ")") do
+        case :binary.split(entry, ") ") do
           [left, right] -> { left <> ")", right }
           _ -> { "", entry }
         end
@@ -241,6 +241,6 @@ defmodule IEx.Evaluator do
 
   defp format_entry({ app, info }, width) do
     app = String.rjust(app, width)
-    "#{IEx.color(:stack_app, app)}#{IEx.color(:stack_info, info)}"
+    "#{IEx.color(:stack_app, app)} #{IEx.color(:stack_info, info)}"
   end
 end

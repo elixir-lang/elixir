@@ -97,6 +97,16 @@ defmodule Kernel.CLI.ParallelCompilerTest do
     end
   end
 
+  test "compiles files with structs solving dependencies" do
+    fixtures = [fixture_path("parallel_struct/bar.ex"), fixture_path("parallel_struct/foo.ex")]
+    assert [Bar, Foo] = Kernel.ParallelCompiler.files(fixtures) |> Enum.sort
+  after
+    Enum.map [Foo, Bar], fn mod ->
+      :code.purge(mod)
+      :code.delete(mod)
+    end
+  end
+
   test "does not hang on missing dependencies" do
     fixtures = [fixture_path("parallel_compiler/bat.ex")]
     assert capture_io(fn ->

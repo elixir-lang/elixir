@@ -103,6 +103,7 @@ store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, MetaFile, #
   [store_each(false, Kind, File, Location, Table, CTable, 0,
     default_function_for(Kind, Name, Default)) || Default <- Defaults],
 
+  make_struct_available(Kind, Module, Name, Args),
   { Name, Arity }.
 
 %% @on_definition
@@ -116,6 +117,14 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, E) ->
       Callbacks = 'Elixir.Module':get_attribute(Module, on_definition),
       [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || { Mod, Fun } <- Callbacks]
   end.
+
+make_struct_available(def, Module, '__struct__', []) ->
+  case erlang:get(elixir_compiler_pid) of
+    undefined -> ok;
+    Pid -> Pid ! { struct_available, Module }
+  end;
+make_struct_available(_, _, _, _) ->
+  ok.
 
 %% Retrieve location from meta file or @file, otherwise nil
 

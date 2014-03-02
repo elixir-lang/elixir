@@ -217,9 +217,9 @@ defmodule Kernel.ErrorsTest do
       '%{ x = 1 => 1 }'
   end
 
-  test :struct_no_map do
-    assert_compile_fail CompileError,
-      "nofile:1: module BadStruct is not loaded and could not be found",
+  test :struct_errors do
+    assert_compile_fail UndefinedFunctionError,
+      "undefined function: BadStruct.__struct__/0",
       '%BadStruct{}'
 
     defmodule BadStruct do

@@ -164,7 +164,7 @@ defmodule Module do
 
   * `@on_definition`
 
-      A hook that will be invoked after each function or macro in the current
+      A hook that will be invoked when each function or macro in the current
       module is defined. Useful when annotating functions.
 
       Accepts a module or a tuple `{ <module>, <function atom> }`. The function
@@ -177,17 +177,20 @@ defmodule Module do
         - list of expanded guards
         - expanded function body
 
+      Note the hook receives the expanded arguments and it is invoked before
+      the function is stored in the module. So `Module.defines?/2` will return
+      false for the first clause of every function.
+
       If the function/macro being defined has multiple clauses, the hook will
       be called for each clause.
 
+      Differently from other hooks, `@on_definition` will only invoke functions
+      and never macros. This is because the hook is invoked inside the context
+      of the function (and nested function definitions are not allowed in
+      Elixir).
+
       When just a module is provided, the function is assumed to be
       `__on_definition__/6`.
-
-      Note that you can't provide the current module to `@on_definition`
-      because the hook function will not be defined in time. Finally, since
-      the `on_definition` hook is executed inside the context of the defined
-      function (i.e. `env.function` returns the current function), the hook
-      can only be a function, not a macro.
 
       ### Example
 

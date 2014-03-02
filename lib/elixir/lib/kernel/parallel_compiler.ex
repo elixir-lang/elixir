@@ -64,9 +64,9 @@ defmodule Kernel.ParallelCompiler do
 
   # Release waiting processes
   defp spawn_compilers([h|t], original, output, callbacks, waiting, queued, schedulers, result) when is_pid(h) do
-    { ^h, ref, _ } = List.keyfind(waiting, h, 0)
+    { _kind, ^h, ref, _module } = List.keyfind(waiting, h, 1)
     send h, { ref, :ready }
-    waiting = List.keydelete(waiting, h, 0)
+    waiting = List.keydelete(waiting, h, 1)
     spawn_compilers(t, original, output, callbacks, waiting, queued, schedulers, result)
   end
 
@@ -97,16 +97,19 @@ defmodule Kernel.ParallelCompiler do
         end)
       end
 
-    spawn_compilers(t, original, output, callbacks, waiting, [{pid, ref, h}|queued], schedulers, result)
+    spawn_compilers(t, original, output, callbacks, waiting,
+                    [{ pid, ref, h }|queued], schedulers, result)
   end
 
   # No more files, nothing waiting, queue is empty, we are done
-  defp spawn_compilers([], _original, _output, _callbacks, [], [], _schedulers, result), do: result
+  defp spawn_compilers([], _original, _output, _callbacks, [], [], _schedulers, result) do
+    for { :module, mod } <- result, do: mod
+  end
 
   # Queued x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
   defp spawn_compilers([], original, output, callbacks, waiting, queued, schedulers, result) when length(waiting) == length(queued) do
     Enum.each queued, fn { child, _, _ } ->
-      { ^child, ref, _ } = List.keyfind(waiting, child, 0)
+      { _kind, ^child, ref, _module } = List.keyfind(waiting, child, 1)
       send child, { ref, :release }
     end
     wait_for_messages([], original, output, callbacks, waiting, queued, schedulers, result)
@@ -120,6 +123,14 @@ defmodule Kernel.ParallelCompiler do
   # Wait for messages from child processes
   defp wait_for_messages(files, original, output, callbacks, waiting, queued, schedulers, result) do
     receive do
+      { :struct_available, module } ->
+        available = for { :struct, pid, _, waiting_module } <- waiting,
+                        waiting_module == module,
+                        do: pid
+
+        spawn_compilers(available ++ files, original, output, callbacks,
+                        waiting, queued, schedulers, [{ :struct, module }|result])
+
       { :module_available, child, ref, file, module, binary } ->
         if callback = Keyword.get(callbacks, :each_module) do
           callback.(file, module, binary)
@@ -128,20 +139,23 @@ defmodule Kernel.ParallelCompiler do
         # Release the module loader which is waiting for an ack
         send child, { ref, :ack }
 
-        available  = for { pid, _, waiting_module } <- waiting,
-                        waiting_module == module,
-                        do: pid
+        available  = for { _kind, pid, _, waiting_module } <- waiting,
+                         waiting_module == module,
+                         do: pid
 
         spawn_compilers(available ++ files, original, output, callbacks,
-                        waiting, queued, schedulers, [module|result])
+                        waiting, queued, schedulers, [{ :module, module }|result])
 
-      { :waiting, child, ref, on } ->
-        # Oops, we already got this module. Do not put it on waiting.
-        if :lists.member(on, result) do
-          send child, { :release, ref }
+      { :waiting, kind, child, ref, on } ->
+        defined = fn { k, m } -> on == m and k in [kind, :module] end
+
+        # Oops, we already got it, do not put it on waiting.
+        if :lists.any(defined, result) do
+          send child, { ref, :ready }
         else
-          waiting = [{ child, ref, on }|waiting]
+          waiting = [{ kind, child, ref, on }|waiting]
         end
+
         spawn_compilers(files, original, output, callbacks, waiting, queued, schedulers, result)
 
       { :DOWN, _down_ref, :process, down_pid, { :compiled, file } } ->
@@ -151,8 +165,8 @@ defmodule Kernel.ParallelCompiler do
 
         # Sometimes we may have spurious entries in the waiting
         # list because someone invoked try/rescue UndefinedFunctionError
-        new_waiting = List.keydelete(waiting, down_pid, 0)
         new_queued  = List.keydelete(queued, down_pid, 0)
+        new_waiting = List.keydelete(waiting, down_pid, 1)
         spawn_compilers(files, original, output, callbacks, new_waiting, new_queued, schedulers, result)
 
       { :DOWN, down_ref, :process, _down_pid, { :failure, kind, reason, stacktrace } } ->
@@ -173,8 +187,8 @@ defmodule Kernel.ParallelCompiler do
           IO.puts "Compilation failed on the following files:\n"
 
           Enum.each Enum.reverse(queued), fn { pid, _ref, file } ->
-            case List.keyfind(waiting, pid, 0) do
-              { ^pid, _, mod } -> IO.puts "* #{file} is missing module #{inspect mod}"
+            case List.keyfind(waiting, pid, 1) do
+              { _, ^pid, _, mod } -> IO.puts "* #{file} is missing module #{inspect mod}"
               _ -> :ok
             end
           end
@@ -192,7 +206,7 @@ defmodule Kernel.ParallelCompiler do
   defp many_missing?(child, files, waiting, queued) do
     waiting_length = length(waiting)
 
-    match?({ ^child, _, _ }, List.keyfind(waiting, child, 0)) and
+    match?({ _, ^child, _, _ }, List.keyfind(waiting, child, 1)) and
       waiting_length > 1 and files == [] and
       waiting_length == length(queued)
   end

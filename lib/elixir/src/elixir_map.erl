@@ -21,9 +21,8 @@ expand_struct(Meta, Left, Right, E) ->
   end,
 
   EMeta =
-    case lists:member(ELeft, E#elixir_env.context_modules) andalso
-         elixir_module:is_open(ELeft) of
-      true  ->
+    case lists:member(ELeft, E#elixir_env.context_modules) of
+      true ->
         case (ELeft == E#elixir_env.module) and
              (E#elixir_env.function == nil) of
           true ->
@@ -34,7 +33,8 @@ expand_struct(Meta, Left, Right, E) ->
           false ->
             [{ struct, context }|Meta]
         end;
-      false -> elixir_aliases:ensure_loaded(Meta, ELeft, E), Meta
+      false ->
+        Meta
     end,
 
   case ERight of
@@ -52,11 +52,7 @@ translate_map(Meta, Args, S) ->
 
 translate_struct(Meta, Name, { '%{}', MapMeta, Args }, S) ->
   { Assocs, TUpdate, US } = extract_assoc_update(Args, S),
-
-  Struct = case lists:keyfind(struct, 1, Meta) of
-    { struct, context } -> (elixir_locals:local_for(Name, '__struct__', 0, def))();
-    _ -> Name:'__struct__'()
-  end,
+  Struct = load_struct(Meta, Name),
 
   case is_map(Struct) of
     true  ->
@@ -92,6 +88,42 @@ translate_struct(Meta, Name, { '%{}', MapMeta, Args }, S) ->
   end.
 
 %% Helpers
+
+load_struct(Meta, Name) ->
+  Local =
+    elixir_module:is_open(Name) andalso
+    (case lists:keyfind(struct, 1, Meta) of
+      { struct, context } -> true;
+      _ -> wait_for_struct(Name)
+    end),
+
+  case Local of
+    true ->
+      try
+        (elixir_locals:local_for(Name, '__struct__', 0, def))()
+      catch
+        error:undef  -> Name:'__struct__'();
+        error:badarg -> Name:'__struct__'()
+      end;
+    false ->
+      Name:'__struct__'()
+  end.
+
+wait_for_struct(Module) ->
+  case erlang:get(elixir_compiler_pid) of
+    undefined ->
+      false;
+    Pid ->
+      Ref = erlang:make_ref(),
+      Pid ! { waiting, struct, self(), Ref, Module },
+      receive
+        { Ref, ready } ->
+          true;
+        { Ref, release } ->
+          'Elixir.Kernel.ErrorHandler':release(),
+          false
+      end
+  end.
 
 translate_map(Meta, Assocs, TUpdate, #elixir_scope{extra=Extra} = S) ->
   { Op, KeyFun, ValFun } = extract_key_val_op(TUpdate, S),

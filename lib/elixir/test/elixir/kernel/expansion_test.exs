@@ -199,12 +199,6 @@ defmodule Kernel.ExpansionTest do
     end
   end
 
-  test "structs: expects available module" do
-    assert_raise CompileError, ~r"module Unknown is not loaded and could not be found", fn ->
-      expand(quote do: %Unknown{ a: 1 })
-    end
-  end
-
   ## quote
 
   test "quote: expanded to raw forms" do
