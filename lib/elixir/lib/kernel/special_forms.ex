@@ -27,7 +27,7 @@ defmodule Kernel.SpecialForms do
   as a call to the special form `:{}`.
 
   Conveniences for manipulating tuples can be found in the
-  `Tuple` module. Some functions for working with tuple are
+  `Tuple` module. Some functions for working with tuples are
   also available in `Kernel`, namely `Kernel.elem/2`,
   `Kernel.set_elem/3` and `Kernel.tuple_size/1`.
 
@@ -44,14 +44,14 @@ defmodule Kernel.SpecialForms do
   @doc """
   Creates a map.
 
-  Maps are key-value stores where keys are compared using
+  Maps are key-value stores where keys are compared 
   using the match operator (`===`). Maps can be created with
   the `%{}` special form where keys are associated via `=>`:
 
       %{ 1 => 2 }
 
   Maps also support the keyword notation, as other special forms,
-  as long as they are appended to the remaining arguments:
+  as long as they are at the end of the argument list:
 
       %{ hello: :world, with: :keywords }
       %{ :hello => :world, with: :keywords }
@@ -68,26 +68,26 @@ defmodule Kernel.SpecialForms do
   ## Access syntax
 
   Besides the access functions available in the `Map` module,
-  like `get/2` and `fetch/2`, a map can be accessed using the
+  like `Map.get/3` and `Map.fetch/2`, a map can be accessed using the
   `.` operator:
 
       iex> map = %{ a: :b }
       iex> map.a
       :b
 
-  Note that `.` operator expects the field to exist in the map.
+  Note that the `.` operator expects the field to exist in the map.
   If not, an `ArgumentError` is raised.
 
   ## Update syntax
 
-  Maps also support a update syntax:
+  Maps also support an update syntax:
 
       iex> map = %{ :a => :b }
       iex> %{ map | :a => :c }
       %{ :a => :c }
 
   Notice the update syntax requires the given keys to exist.
-  Trying to update a key that does not exist leads to failures.
+  Trying to update a key that does not exist will raise an `ArgumentError`.
 
   ## AST representation
 
@@ -108,7 +108,7 @@ defmodule Kernel.SpecialForms do
   default values for keys, tags to be used in polymorphic
   dispatches and compile time assertions.
 
-  To define a struct, you just need to implement the `__struct__/1`
+  To define a struct, you just need to implement the `__struct__/0`
   function in a module:
 
       defmodule User do
@@ -447,7 +447,7 @@ defmodule Kernel.SpecialForms do
   Elixir won't emit any warnings though, since the alias
   was not explicitly defined.
 
-  Both warning behaviours could be changed by explicitily
+  Both warning behaviours could be changed by explicitly
   setting the `:warn` option to true or false.
   """
   defmacro alias(module, opts)
@@ -559,7 +559,7 @@ defmodule Kernel.SpecialForms do
   Elixir won't emit any warnings though, since the import
   was not explicitly defined.
 
-  Both warning behaviours could be changed by explicitily
+  Both warning behaviours could be changed by explicitly
   setting the `:warn` option to true or false.
 
   ## Ambiguous function/macro names
@@ -1525,7 +1525,7 @@ defmodule Kernel.SpecialForms do
           :exit_b
       end
 
-  This means the VM nolonger needs to keep the stacktrace once inside
+  This means the VM no longer needs to keep the stacktrace once inside
   an else clause and so tail recursion is possible when using a `try`
   with a tail call as the final call inside an else clause. The same
   is true for rescue and catch clauses.
@@ -1534,7 +1534,7 @@ defmodule Kernel.SpecialForms do
 
   Since an expression inside `try` may not have been evaluated
   due to an exception, any variable created inside `try` cannot
-  be accessed externaly. For instance:
+  be accessed externally. For instance:
 
       try do
         x = 1
@@ -1596,7 +1596,7 @@ defmodule Kernel.SpecialForms do
       end
 
   The `after` clause can be specified even if there are no match clauses.
-  There are two special cases for the timout value given to after
+  There are two special cases for the timeout value given to `after`
 
   * `:infinity` - The process should wait indefinitely for a matching
   message, this is the same as not using a timeout.
