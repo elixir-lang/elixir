@@ -1,6 +1,6 @@
 defmodule StringIO do
   @moduledoc """
-  This module provides an IO devise wrapping a string.
+  This module provides an IO device that wraps a string.
 
   ## Examples
 
@@ -14,7 +14,7 @@ defmodule StringIO do
   defrecordp :state, input: "", output: "", capture_prompt: false
 
   @doc """
-  creates an io device.
+  Creates an IO device.
 
   If the `:capture_prompt` option is set to `true`,
   prompts (specified as arguments to `IO.get*` functions)
@@ -66,7 +66,7 @@ defmodule StringIO do
   end
 
   @doc """
-  Stops the IO device and returns remaining buffers
+  Stops the IO device and returns remaining buffers.
 
   ## Examples
 
