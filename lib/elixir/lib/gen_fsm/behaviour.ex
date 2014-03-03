@@ -31,15 +31,15 @@ defmodule GenFSM.Behaviour do
         # API functions
 
         def start_link() do
-          :gen_fsm.start_link({:local, :cvm}, __MODULE__, [], [])
+          :gen_fsm.start_link(__MODULE__, [], [])
         end
 
-        def insert_coin() do
-          :gen_fsm.send_event(:cvm, :coin)
+        def insert_coin(pid) do
+          :gen_fsm.send_event(pid, :coin)
         end
 
-        def request_coffee() do
-          :gen_fsm.send_event(:cvm, :request_coffee)
+        def request_coffee(pid) do
+          :gen_fsm.send_event(pid, :request_coffee)
         end
 
         # Callbacks
@@ -83,17 +83,17 @@ defmodule GenFSM.Behaviour do
         end
       end
 
-      { :ok, _pid } = MyFsm.start_link()
+      { :ok, pid } = MyFsm.start_link()
 
-      MyFsm.insert_coin
+      MyFsm.insert_coin(pid)
       #=> :ok
-      MyFsm.insert_coin
-      #=> :ok
-
-      MyFsm.request_coffee
+      MyFsm.insert_coin(pid)
       #=> :ok
 
-      MyFsm.insert_coin
+      MyFsm.request_coffee(pid)
+      #=> :ok
+
+      MyFsm.insert_coin(pid)
       #=> :ok
       #=> Here's your coffee!
 
