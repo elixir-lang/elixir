@@ -11,7 +11,7 @@ defmodule Module do
   documentation, add, delete and register attributes and so forth.
 
   After a module is compiled, using many of the functions in
-  this module will raise errors, since it is out of their purpose
+  this module will raise errors, since it is out of their scope
   to inspect runtime data. Most of the runtime data can be inspected
   via the `__info__(attr)` function attached to each compiled module.
 
@@ -51,7 +51,7 @@ defmodule Module do
       When just a module is provided, the function/macro is assumed to be
       `__before_compile__/1`.
 
-      Note: differently from `@after_compile`, the callback function/macro must
+      Note: unlike `@after_compile`, the callback function/macro must
       be placed in a separate module (because when the callback is invoked,
       the current module does not yet exist).
 
@@ -184,7 +184,7 @@ defmodule Module do
       If the function/macro being defined has multiple clauses, the hook will
       be called for each clause.
 
-      Differently from other hooks, `@on_definition` will only invoke functions
+      Unlike other hooks, `@on_definition` will only invoke functions
       and never macros. This is because the hook is invoked inside the context
       of the function (and nested function definitions are not allowed in
       Elixir).
@@ -318,7 +318,7 @@ defmodule Module do
   Evaluates the quoted contents in the given module's context.
 
   A list of environment options can also be given as argument.
-  See `Code.eval_string` for more information.
+  See `Code.eval_string/3` for more information.
 
   Raises an error if the module was already compiled.
 
@@ -671,7 +671,7 @@ defmodule Module do
   @doc """
   Makes the given functions in `module` overridable.
   An overridable function is lazily defined, allowing a
-  developer to customize it. See `Kernel.defoverridable` for
+  developer to customize it. See `Kernel.defoverridable/1` for
   more information and documentation.
   """
   def make_overridable(module, tuples) do
@@ -711,7 +711,7 @@ defmodule Module do
   @doc """
   Puts an Erlang attribute to the given module with the given
   key and value. The semantics of putting the attribute depends
-  if the attribute was registered or not via `register_attribute/2`.
+  if the attribute was registered or not via `register_attribute/3`.
 
   ## Examples
 
@@ -741,7 +741,7 @@ defmodule Module do
 
   @doc """
   Gets the given attribute from a module. If the attribute
-  was marked with `accumulate` with `Module.register_attribute`,
+  was marked with `accumulate` with `Module.register_attribute/3`,
   a list is always returned.
 
   The `@` macro compiles to a call to this function. For example,
