@@ -142,6 +142,7 @@ defmodule ListDict do
     :lists.keysort(1, dict) === :lists.keysort(1, other)
   end
 
+  @doc false
   def reduce(_,           { :halt, acc }, _fun),   do: { :halted, acc }
   def reduce(list,        { :suspend, acc }, fun), do: { :suspended, acc, &reduce(list, &1, fun) }
   def reduce([],          { :cont, acc }, _fun),   do: { :done, acc }

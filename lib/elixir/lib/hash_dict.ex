@@ -106,6 +106,7 @@ defmodule HashDict do
     size
   end
 
+  @doc false
   def reduce(trie(root: root), acc, fun) do
     do_reduce(root, acc, fun, @node_size, fn
       {:suspend, acc} -> {:suspended, acc, &{ :done, elem(&1, 1) }}

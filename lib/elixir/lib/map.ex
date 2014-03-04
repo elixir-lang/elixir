@@ -13,7 +13,7 @@ defmodule Map do
 
   use Dict.Behaviour
 
-  defdelegate [keys(map), values(map), size(map)], to: :maps
+  defdelegate [keys(map), values(map), size(map), merge(map1, map2)], to: :maps
 
   @doc """
   Returns a new empty map.
@@ -68,26 +68,22 @@ defmodule Map do
 
   def delete(map, key), do: :maps.remove(key, map)
 
-  def merge(map1, map2) when is_map(map1) and is_map(map2) do
-    :maps.merge(map1, map2)
-  end
-
-  def merge(map, enum, callback \\ fn(_k, _v1, v2) -> v2 end) do
-    Enum.reduce enum, map, fn { k, v2 }, acc ->
+  def merge(map1, map2, callback) do
+    :maps.fold fn k, v2, acc ->
       update(acc, k, v2, fn(v1) -> callback.(k, v1, v2) end)
-    end
+    end, map1, map2
   end
 
   def split(map, keys) do
     acc = { %{}, %{} }
 
-    Enum.reduce map, acc, fn({ k, v }, { take, drop }) ->
+    :maps.fold fn k, v, { take, drop } ->
       if k in keys do
         { put(take, k, v), drop }
       else
         { take, put(drop, k, v) }
       end
-    end
+    end, acc, map
   end
 
   def update!(map, key, fun) do
@@ -112,10 +108,6 @@ defmodule Map do
 
   def equal?(map, map), do: true
   def equal?(_, _), do: false
-
-  def reduce(map, acc, fun) do
-    Enumerable.Map.reduce(map, acc, fun)
-  end
 
   def to_list(map), do: :maps.to_list map
 end

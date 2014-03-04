@@ -62,7 +62,6 @@ defmodule Dict do
   defcallback pop(t, key, value) :: {value, t}
   defcallback put(t, key, value) :: t
   defcallback put_new(t, key, value) :: t
-  defcallback reduce(t, Enumerable.acc, Enumerable.reducer) :: Enumerable.result
   defcallback size(t) :: non_neg_integer()
   defcallback split(t, Enum.t) :: {t, t}
   defcallback take(t, Enum.t) :: t
