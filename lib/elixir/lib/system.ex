@@ -348,6 +348,8 @@ defmodule System do
   Note that the Erlang VM (and therefore this function) does not
   return the current stacktrace but rather the stacktrace of the
   latest exception.
+
+  Inlined by the compiler into `:erlang.get_stacktrace/0`.
   """
   def stacktrace do
     :erlang.get_stacktrace

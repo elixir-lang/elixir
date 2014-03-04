@@ -14,6 +14,7 @@
 -define(kernel, 'Elixir.Kernel').
 -define(node, 'Elixir.Node').
 -define(process, 'Elixir.Process').
+-define(system, 'Elixir.System').
 
 default_functions() ->
   [ { ?kernel, elixir_imported_functions() } ].
@@ -452,5 +453,7 @@ inline(?node, spawn_link, 2) -> { erlang, spawn_link };
 inline(?node, spawn_link, 4) -> { erlang, spawn_link };
 inline(?node, spawn_monitor, 2) -> { erlang, spawn_monitor };
 inline(?node, spawn_monitor, 4) -> { erlang, spawn_monitor };
+
+inline(?system, stacktrace, 0) -> { erlang, get_stacktrace };
 
 inline(_, _, _) -> false.
