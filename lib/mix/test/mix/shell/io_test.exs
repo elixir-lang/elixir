@@ -1,7 +1,7 @@
 Code.require_file "../../test_helper.exs", __DIR__
 
 defmodule Mix.Shell.IOTest do
-  use MixTest.Case, async: true
+  use MixTest.Case
 
   import ExUnit.CaptureIO
   import Mix.Shell.IO
