@@ -4,10 +4,13 @@
   * [Enum] Add `Enum.group_by/2`
   * [ExUnit] Randomize cases and tests suite runs, allow seed configuration and the `--seed` flag via `mix test`
   * [ExUnit] Support `--only` for filtering when running tests with `mix test`
+  * [ExUnit] Raise an error if another `capture_io` process already captured the device
   * [IEx] Allow prompt configuration with the `:prompt` option
   * [Kernel] Support `ERL_PATH` in `bin/elixir`
   * [Map] Add a Map module and support R17 maps and structs
-  * [Mix] Add dependency option `:only` to specify its environment
+  * [Mix] Add dependency option `:only` to specify the dependency environment. `mix deps.get` and `mix deps.update` works accross all environment unless `--only` is specified
+  * [Mix] Add `Mix.Shell.prompt/1`
+  * [Mix] Ensure the project is compiled in case Mix' CLI cannot find a task
   * [Regex] Regexes no longer need the "g" option when there is a need to use named captures
   * [StringIO] Add a `StringIO` module that allows a String to be used as IO device
   * [System] Add `System.delete_env/1` to remove a variable from the environment

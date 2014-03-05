@@ -596,7 +596,6 @@ defmodule Stream do
     lazy enum, fn(f1) -> R.take_while(fun, f1) end
   end
 
-
   @doc """
   Transforms an existing stream.
 
