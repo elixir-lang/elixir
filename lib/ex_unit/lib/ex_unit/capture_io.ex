@@ -105,6 +105,10 @@ defmodule ExUnit.CaptureIO do
       raise "could not find IO device registered at #{inspect device}"
     end
 
+    unless ExUnit.Server.add_device(device) do
+      raise "IO device registered at #{inspect device} is already captured"
+    end
+
     input = Keyword.get(options, :input, "")
 
     Process.unregister(device)
@@ -121,6 +125,7 @@ defmodule ExUnit.CaptureIO do
         ArgumentError -> nil
       end
       Process.register(original_io, device)
+      ExUnit.Server.remove_device(device)
     end
   end
 end

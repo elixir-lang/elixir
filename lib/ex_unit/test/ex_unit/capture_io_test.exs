@@ -31,7 +31,7 @@ end
 alias ExUnit.CaptureIOTest.GetUntil
 
 defmodule ExUnit.CaptureIOTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   doctest ExUnit.CaptureIO, import: true
 
@@ -324,6 +324,15 @@ defmodule ExUnit.CaptureIOTest do
 
     # Ensure no leakage on failures
     assert group_leader == :erlang.group_leader
+  end
+
+  test "capture :stderr by two processes" do
+    spawn(fn -> capture_io(:stderr, fn -> :timer.sleep(100) end) end)
+    :timer.sleep(10)
+    assert_raise RuntimeError, "IO device registered at :standard_error is already captured", fn ->
+      capture_io(:stderr, fn -> end)
+    end
+    :timer.sleep(100)
   end
 
   defp send_and_receive_io(req) do

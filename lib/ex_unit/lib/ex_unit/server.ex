@@ -4,7 +4,7 @@ defmodule ExUnit.Server do
   @timeout 30_000
   use GenServer.Behaviour
 
-  defrecord Config, async_cases: [], sync_cases: [], start_load: nil
+  defrecord Config, async_cases: [], sync_cases: [], start_load: nil, captured_devices: HashSet.new
 
   def start_link() do
     :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, :ok, [])
@@ -30,6 +30,16 @@ defmodule ExUnit.Server do
     :gen_server.call(__MODULE__, :start_run, @timeout)
   end
 
+  ## Capture Device API
+
+  def add_device(device) do
+    :gen_server.call(__MODULE__, { :add_device, device })
+  end
+
+  def remove_device(device) do
+    :gen_server.call(__MODULE__, { :remove_device, device })
+  end
+
   ## Callbacks
 
   def init(:ok) do
@@ -45,6 +55,16 @@ defmodule ExUnit.Server do
     { :reply,
       { config.async_cases, config.sync_cases, load_us },
       config.async_cases([]).sync_cases([]).start_load(nil) }
+  end
+
+  def handle_call({ :add_device, device }, _from, config) do
+    { :reply,
+      not(device in config.captured_devices),
+      config.update_captured_devices(&Set.put(&1, device)) }
+  end
+
+  def handle_call({ :remove_device, device }, _from, config) do
+    { :reply, :ok, config.update_captured_devices(&Set.delete(&1, device)) }
   end
 
   def handle_call(request, from, config) do

@@ -119,7 +119,7 @@ defmodule Inspect.NumberTest do
 end
 
 defmodule Inspect.TupleTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   test :basic do
     assert inspect({ 1, "b", 3 }) == "{1, \"b\", 3}"
@@ -247,7 +247,7 @@ defmodule Inspect.ListTest do
 end
 
 defmodule Inspect.MapTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   test :basic do
     assert inspect(%{ 1 => "b" }) == "%{1 => \"b\"}"
