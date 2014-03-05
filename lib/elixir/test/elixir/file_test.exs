@@ -871,9 +871,7 @@ defmodule FileTest do
     try do
       stream = IO.stream(src, :line)
       File.open dest, [:write], fn(target) ->
-        Enum.each stream, fn(line) ->
-          IO.write target, String.replace(line, "O", "A")
-        end
+        Enum.into stream, IO.stream(target, :line), &String.replace(&1, "O", "A")
       end
       assert File.read(dest) == { :ok, "FAA\n" }
     after
@@ -888,9 +886,7 @@ defmodule FileTest do
     try do
       stream = IO.binstream(src, :line)
       File.open dest, [:write], fn(target) ->
-        Enum.each stream, fn(line) ->
-          IO.write target, String.replace(line, "O", "A")
-        end
+        Enum.into stream, IO.binstream(target, :line), &String.replace(&1, "O", "A")
       end
       assert File.read(dest) == { :ok, "FAA\n" }
     after

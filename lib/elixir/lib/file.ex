@@ -53,17 +53,17 @@ defmodule File.Stream do
     def into(%{ path: path, modes: modes } = stream) do
       case :file.open(path, [:write|modes]) do
         { :ok, device } ->
-          bin = nil? List.keyfind(modes, :encoding, 0)
-          { :ok, into(device, stream, bin) }
+          raw = nil? List.keyfind(modes, :encoding, 0)
+          { :ok, into(device, stream, raw) }
         { :error, reason } ->
           raise File.Error, reason: reason, action: "stream", path: path
       end
     end
 
-    defp into(device, stream, bin) do
+    defp into(device, stream, raw) do
       fn
         :ok, { :cont, x } ->
-          case bin do
+          case raw do
             true  -> IO.binwrite(device, x)
             false -> IO.write(device, x)
           end
@@ -78,7 +78,7 @@ defmodule File.Stream do
 
   defimpl Enumerable do
     def reduce(%{ path: path, modes: modes, line_or_bytes: line_or_bytes }, acc, fun) do
-      bin = nil? List.keyfind(modes, :encoding, 0)
+      raw = nil? List.keyfind(modes, :encoding, 0)
 
       start_fun =
         fn ->
@@ -90,9 +90,9 @@ defmodule File.Stream do
         end
 
       next_fun =
-        case bin do
-          true  -> &IO.do_binstream(&1, line_or_bytes)
-          false -> &IO.do_stream(&1, line_or_bytes)
+        case raw do
+          true  -> &IO.each_binstream(&1, line_or_bytes)
+          false -> &IO.each_stream(&1, line_or_bytes)
         end
 
       Stream.resource(start_fun, next_fun, &:file.close/1).(acc, fun)
