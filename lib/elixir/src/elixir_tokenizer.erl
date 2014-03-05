@@ -1,7 +1,7 @@
 -module(elixir_tokenizer).
 -include("elixir.hrl").
 -export([tokenize/3]).
--import(elixir_interpolation, [unescape_chars/1, unescape_tokens/1]).
+-import(elixir_interpolation, [unescape_tokens/1]).
 
 -define(container(T1, T2),
   T1 == ${, T2 == $};
@@ -491,17 +491,9 @@ handle_strings(T, Line, H, Scope, Tokens) ->
     { error, Reason } ->
       interpolation_error(Reason, [H|T], Tokens, " (for string starting at line ~B)", [Line]);
     { NewLine, Parts, [$:|Rest] } when ?is_space(hd(Rest)) ->
-      case Parts of
-        [Bin] when is_binary(Bin) ->
-          case unsafe_to_atom(unescape_chars(Bin), Line, Scope) of
-            { ok, Atom } ->
-              tokenize(Rest, NewLine, Scope, [{ kw_identifier, Line, Atom }|Tokens]);
-            { error, Reason } ->
-              { error, Reason, [H|T], Tokens }
-          end;
-        _ ->
-          { error, { Line, "invalid interpolation in key ", [$"|T] }, [H|T], Tokens }
-      end;
+      Unescaped = unescape_tokens(Parts),
+      ExistingAtomsOnly = Scope#elixir_tokenizer.existing_atoms_only,
+      tokenize(Rest, NewLine, Scope, [{ kw_identifier_string, Line, ExistingAtomsOnly, Unescaped }|Tokens]);
     { NewLine, Parts, Rest } ->
       Token = { string_type(H), Line, unescape_tokens(Parts) },
       tokenize(Rest, NewLine, Scope, [Token|Tokens])

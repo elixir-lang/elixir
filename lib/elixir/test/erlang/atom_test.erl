@@ -22,6 +22,11 @@ atom_quoted_call_test() ->
 kv_with_quotes_test() ->
   {'foo bar',[]} = eval(":atom_test.kv(\"foo bar\": nil)").
 
+kv_with_interpolation_test() ->
+  {'foo',[]} = eval(":atom_test.kv(\"#{\"foo\"}\": nil)"),
+  {'foo',[]} = eval(":atom_test.kv(\"#{\"fo\"}o\": nil)"),
+  {'foo',_} = eval("a = \"f\"; :atom_test.kv(\"#{a}#{\"o\"}o\": nil)").
+
 quoted_atom_test() ->
   {foo,[]} = eval(":\"foo\""),
   {foo,[]} = eval(":'foo'").

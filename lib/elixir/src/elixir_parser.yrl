@@ -23,7 +23,7 @@ Nonterminals
   .
 
 Terminals
-  identifier kw_identifier bracket_identifier
+  identifier kw_identifier kw_identifier_string bracket_identifier
   paren_identifier do_identifier block_identifier
   fn 'end' aliases
   number signed_number atom atom_string bin_string list_string sigil
@@ -419,16 +419,18 @@ call_args_parens -> open_paren call_args_parens_base ',' kw close_paren : revers
 
 % KV
 
-kw_eol -> kw_identifier : '$1'.
-kw_eol -> kw_identifier eol : '$1'.
+kw_eol -> kw_identifier : ?exprs('$1').
+kw_eol -> kw_identifier eol : ?exprs('$1').
+kw_eol -> kw_identifier_string : build_atom_string('$1').
+kw_eol -> kw_identifier_string eol : build_atom_string('$1').
 
-kw_base -> kw_eol container_expr : [{ ?exprs('$1'), '$2' }].
-kw_base -> kw_base ',' kw_eol container_expr : [{ ?exprs('$3'), '$4' }|'$1'].
+kw_base -> kw_eol container_expr : [{ '$1', '$2' }].
+kw_base -> kw_base ',' kw_eol container_expr : [{ '$3', '$4' }|'$1'].
 
 kw -> kw_base : reverse('$1').
 kw -> kw_base ',' : reverse('$1').
 
-call_args_no_parens_kw_expr -> kw_eol call_args_no_parens_expr : { ?exprs('$1'),'$2' }.
+call_args_no_parens_kw_expr -> kw_eol call_args_no_parens_expr : { '$1','$2' }.
 call_args_no_parens_kw -> call_args_no_parens_kw_expr : ['$1'].
 call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' call_args_no_parens_kw : ['$1'|'$3'].
 
@@ -503,7 +505,8 @@ Erlang code.
 -define(id(Node), element(1, Node)).
 -define(line(Node), element(2, Node)).
 -define(exprs(Node), element(3, Node)).
--define(rearrange_uop(Op), Op == 'not' orelse Op == '!').
+-define(rearrange_uop(Op), (Op == 'not' orelse Op == '!')).
+-define(is_atom_string(Atom), (Atom == atom_string orelse Atom == kw_identifier_string)).
 
 %% The following directive is needed for (significantly) faster
 %% compilation of the generated .erl file by the HiPE compiler
@@ -623,9 +626,9 @@ build_list_string({ list_string, Line, Args }) ->
   Meta = meta(Line),
   { { '.', Meta, ['Elixir.String', 'to_char_list!'] }, Meta, [{ '<<>>', Meta, string_parts(Args) }] }.
 
-build_atom_string({ atom_string, _Line, Safe, [H] }) when is_binary(H) ->
+build_atom_string({ Atom, _Line, Safe, [H] }) when ?is_atom_string(Atom) andalso is_binary(H) ->
   Op = binary_to_atom_op(Safe), erlang:Op(H, utf8);
-build_atom_string({ atom_string, Line, Safe, Args }) ->
+build_atom_string({ Atom, Line, Safe, Args }) when ?is_atom_string(Atom) ->
   Meta = meta(Line),
   { { '.', Meta, [erlang, binary_to_atom_op(Safe)] }, Meta, [{ '<<>>', Meta, string_parts(Args) }, utf8] }.
 
