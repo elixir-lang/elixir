@@ -189,6 +189,11 @@ defmodule EnumTest.List do
     assert Enum.into([a: 1, b: 2], %{}) == %{a: 1, b: 2}
     assert Enum.into(%{a: 1, b: 2}, []) == [a: 1, b: 2]
     assert Enum.into([1, 2, 3], "numbers: ", &to_string/1) == "numbers: 123"
+    assert Enum.into([1, 2, 3], fn
+      func, { :cont, x } when is_function(func) -> [x]
+      list, { :cont, x } -> [x|list]
+      list, _ -> list
+    end) == [3, 2, 1]
   end
 
   test :intersperse do

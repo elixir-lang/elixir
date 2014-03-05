@@ -881,6 +881,23 @@ defmodule FileTest do
     end
   end
 
+  test :io_stream do
+    src  = File.open! fixture_path("file.txt")
+    dest = tmp_path("tmp_test.txt")
+
+    try do
+      stream = IO.binstream(src, :line)
+      File.open dest, [:write], fn(target) ->
+        Enum.each stream, fn(line) ->
+          IO.write target, String.replace(line, "O", "A")
+        end
+      end
+      assert File.read(dest) == { :ok, "FAA\n" }
+    after
+      File.rm(dest)
+    end
+  end
+
   test :stream_line_utf8 do
     src  = fixture_path("file.txt")
     dest = tmp_path("tmp_test.txt")
@@ -915,40 +932,6 @@ defmodule FileTest do
     end
   end
 
-  test :stream_utf8! do
-    src  = fixture_path("file.txt")
-    dest = tmp_path("tmp_test.txt")
-
-    try do
-      stream = File.stream!(src, [:utf8])
-      File.open dest, [:write], fn(target) ->
-        Enum.each stream, fn(line) ->
-          IO.write target, String.replace(line, "O", "A")
-        end
-      end
-      assert File.read(dest) == { :ok, "FAA\n" }
-    after
-      File.rm(dest)
-    end
-  end
-
-  test :io_stream do
-    src  = File.open! fixture_path("file.txt")
-    dest = tmp_path("tmp_test.txt")
-
-    try do
-      stream = IO.binstream(src, :line)
-      File.open dest, [:write], fn(target) ->
-        Enum.each stream, fn(line) ->
-          IO.write target, String.replace(line, "O", "A")
-        end
-      end
-      assert File.read(dest) == { :ok, "FAA\n" }
-    after
-      File.rm(dest)
-    end
-  end
-
   test :stream_line do
     src  = fixture_path("file.txt")
     dest = tmp_path("tmp_test.txt")
@@ -960,23 +943,6 @@ defmodule FileTest do
           IO.write target, String.replace(line, "O", "A")
         end
       end
-      assert File.read(dest) == { :ok, "FAA\n" }
-    after
-      File.rm(dest)
-    end
-  end
-
-  test :stream_to do
-    src  = fixture_path("file.txt")
-    dest = tmp_path("tmp_test.txt")
-
-    try do
-      stream = File.stream!(src)
-        |> Stream.map(&String.replace(&1, "O", "A"))
-        |> File.stream_to!(dest)
-
-      refute File.exists?(dest)
-      assert Stream.run(stream) == :ok
       assert File.read(dest) == { :ok, "FAA\n" }
     after
       File.rm(dest)
@@ -1000,17 +966,19 @@ defmodule FileTest do
     end
   end
 
-  test :stream! do
+  test :stream_into do
     src  = fixture_path("file.txt")
     dest = tmp_path("tmp_test.txt")
 
     try do
-      stream = File.stream!(src)
-      File.open dest, [:write], fn(target) ->
-        Enum.each stream, fn(line) ->
-          IO.write target, String.replace(line, "O", "A")
-        end
-      end
+      refute File.exists?(dest)
+
+      original = File.stream!(dest)
+      stream   = File.stream!(src)
+                 |> Stream.map(&String.replace(&1, "O", "A"))
+                 |> Enum.into(original)
+
+      assert stream == original
       assert File.read(dest) == { :ok, "FAA\n" }
     after
       File.rm(dest)

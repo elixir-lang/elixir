@@ -31,6 +31,83 @@ defrecord File.Stat, Record.extract(:file_info, from_lib: "kernel/include/file.h
   """
 end
 
+defmodule File.Stream do
+  @moduledoc """
+  Defines a `File.Stream` struct returned by `File.stream!/2`.
+
+  The following fields are public:
+
+  * `path` - the file path
+  * `modes` - the file modes
+  * `line_or_bytes` - if reading should read lines or a given amount of bytes
+
+  """
+
+  defstruct path: nil, modes: [], line_or_bytes: :line
+
+  defimpl Traversable do
+    def empty(stream) do
+      stream
+    end
+
+    def into(%{ path: path, modes: modes } = stream) do
+      case :file.open(path, [:write|modes]) do
+        { :ok, device } ->
+          bin = nil? List.keyfind(modes, :encoding, 0)
+          { :ok, into(device, stream, bin) }
+        { :error, reason } ->
+          raise File.Error, reason: reason, action: "stream", path: path
+      end
+    end
+
+    defp into(device, stream, bin) do
+      fn
+        :ok, { :cont, x } ->
+          case bin do
+            true  -> IO.binwrite(device, x)
+            false -> IO.write(device, x)
+          end
+        :ok, :done ->
+          :file.close(device)
+          stream
+        :ok, :halt ->
+          :file.close(device)
+      end
+    end
+  end
+
+  defimpl Enumerable do
+    def reduce(%{ path: path, modes: modes, line_or_bytes: line_or_bytes }, acc, fun) do
+      bin = nil? List.keyfind(modes, :encoding, 0)
+
+      start_fun =
+        fn ->
+          case :file.open(path, modes) do
+            { :ok, device }    -> device
+            { :error, reason } ->
+              raise File.Error, reason: reason, action: "stream", path: path
+          end
+        end
+
+      next_fun =
+        case bin do
+          true  -> &IO.do_binstream(&1, line_or_bytes)
+          false -> &IO.do_stream(&1, line_or_bytes)
+        end
+
+      Stream.resource(start_fun, next_fun, &:file.close/1).(acc, fun)
+    end
+
+    def count(_stream) do
+      { :error, __MODULE__ }
+    end
+
+    def member?(_stream, _term) do
+      { :error, __MODULE__ }
+    end
+  end
+end
+
 defmodule File do
   @moduledoc """
   This module contains functions to manipulate files.
@@ -935,74 +1012,25 @@ defmodule File do
   end
 
   @doc """
-  Opens the file at the given `path` with the given `modes` and
-  returns a stream for each `:line` (default) or for a given number
-  of bytes given by `line_or_bytes`.
+  Returns a `File.Stream` for the given `path` with the given `modes`.
 
-  The returned stream will fail for the same reasons as
+  The stream implements both `Enumerable` and `Traversable` protocols,
+  which means it can be used both for read and write.
+
+  The `line_or_byte` argument configures how the file is read when
+  streaming, by `:line` (default) or by a given number of bytes.
+
+  Operating the stream can fail on open for the same reasons as
   `File.open!/2`. Note that the file is opened only and every time
   streaming begins.
 
-  Note that stream by default uses `IO.binread/2` unless
-  the file is opened with an encoding, then the slower `IO.read/2`
-  is used to do the proper data conversion and guarantees.
+  Note that stream by default uses `IO.binread/2` and `IO.binwrite/2`
+  unless the file is opened with an encoding, then the slower `IO.read/2`
+  and `IO.write/2` are used to do the proper data conversion and
+  guarantees.
   """
   def stream!(path, modes \\ [], line_or_bytes \\ :line) do
-    modes = open_defaults(modes, true)
-    bin   = nil? List.keyfind(modes, :encoding, 0)
-
-    start_fun =
-      fn ->
-        case F.open(path, modes) do
-          { :ok, device }    -> device
-          { :error, reason } ->
-            raise File.Error, reason: reason, action: "stream", path: to_string(path)
-        end
-      end
-
-    next_fun =
-      case bin do
-        true  -> &IO.do_binstream(&1, line_or_bytes)
-        false -> &IO.do_stream(&1, line_or_bytes)
-      end
-
-    Stream.resource(start_fun, next_fun, &F.close/1)
-  end
-
-  @doc """
-  Receives a stream and returns a new stream that will open the file
-  at the given `path` for write  with the extra `modes` and write
-  each value to the file.
-
-  The returned stream will fail for the same reasons as
-  `File.open!/2`. Note that the file is opened only and every time
-  streaming begins.
-
-  Note that stream by default uses `IO.binwrite/2` unless
-  the file is opened with an encoding, then the slower `IO.write/2`
-  is used to do the proper data conversion and guarantees.
-  """
-  def stream_to!(stream, path, modes \\ []) do
-    modes = open_defaults([:write|List.delete(modes, :write)], true)
-    bin   = nil? List.keyfind(modes, :encoding, 0)
-
-    fn acc, f ->
-      case F.open(path, modes) do
-        { :ok, device } ->
-          each =
-            case bin do
-              true  -> &IO.binwrite(device, &1)
-              false -> &IO.write(device, &1)
-            end
-
-          stream
-          |> Stream.each(each)
-          |> Stream.after(fn -> F.close(device) end)
-          |> Enumerable.Stream.Lazy.reduce(acc, f)
-        { :error, reason } ->
-          raise File.Error, reason: reason, action: "stream_to", path: to_string(path)
-      end
-    end
+    %File.Stream{ path: to_string(path), modes: open_defaults(modes, true), line_or_bytes: line_or_bytes }
   end
 
   @doc """
