@@ -969,20 +969,9 @@ defmodule File do
     Stream.resource(start_fun, next_fun, &F.close/1)
   end
 
-  @doc """
-  Receives a stream and returns a new stream that will open the file
-  at the given `path` for write  with the extra `modes` and write
-  each value to the file.
-
-  The returned stream will fail for the same reasons as
-  `File.open!/2`. Note that the file is opened only and every time
-  streaming begins.
-
-  Note that stream by default uses `IO.binwrite/2` unless
-  the file is opened with an encoding, then the slower `IO.write/2`
-  is used to do the proper data conversion and guarantees.
-  """
+  @doc false
   def stream_to!(stream, path, modes \\ []) do
+    IO.write :stderr, "File.stream_to!/3 is deprecated and will be removed/1\n#{Exception.format_stacktrace}"
     modes = open_defaults([:write|List.delete(modes, :write)], true)
     bin   = nil? List.keyfind(modes, :encoding, 0)
 

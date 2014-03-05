@@ -173,25 +173,17 @@ defmodule Stream do
 
   ## Transformers
 
-  @doc """
-  Executes the given function when the stream is done, halted
-  or an error happened during streaming. Useful for resource
-  clean up.
-
-  Callbacks registered later will be executed earlier.
-
-  ## Examples
-
-      iex> stream = Stream.after [1,2,3], fn -> Process.put(:done, true) end
-      iex> Enum.to_list(stream)
-      [1,2,3]
-      iex> Process.get(:done)
-      true
-
-  """
+  @doc false
   @spec unquote(:after)(Enumerable.t, (() -> term)) :: Enumerable.t
-  def unquote(:after)(Lazy[after: funs] = lazy, fun), do: lazy.after([fun|funs])
-  def unquote(:after)(enum, fun), do: Lazy[enum: enum, after: [fun]]
+  def unquote(:after)(Lazy[after: funs] = lazy, fun) do
+    IO.write :stderr, "Stream.after/1 is deprecated and will be removed/1\n#{Exception.format_stacktrace}"
+    lazy.after([fun|funs])
+  end
+
+  def unquote(:after)(enum, fun) do
+    IO.write :stderr, "Stream.after/1 is deprecated and will be removed/1\n#{Exception.format_stacktrace}"
+    Lazy[enum: enum, after: [fun]]
+  end
 
   @doc """
   Shortcut to `chunk(enum, n, n)`.
@@ -447,18 +439,6 @@ defmodule Stream do
 
   This is useful when a stream needs to be run, for side effects,
   and there is no interest in its return result.
-
-  ## Examples
-
-  Open up a file, replace all `#` by `%` and stream to another file
-  without loading the whole file in memory:
-
-      stream = File.stream!("code")
-      |> Stream.map(&String.replace(&1, "#", "%"))
-      |> File.stream_to!("new")
-
-  No computation will be done until we call one of the Enum functions
-  or `Stream.run/1`.
   """
   @spec run(Enumerable.t) :: :ok
   def run(stream) do

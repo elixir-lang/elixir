@@ -25,29 +25,6 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [3,5,7]
   end
 
-  test "after" do
-    stream = Stream.after([1,2,3], fn -> Process.put(:stream_after, true) end)
-
-    # Done
-    Process.put(:stream_after, false)
-    assert Enum.to_list(stream) == [1,2,3]
-    assert Process.get(:stream_after)
-
-    # Halted
-    Process.put(:stream_after, false)
-    assert Enum.take(stream, 1) == [1]
-    assert Process.get(:stream_after)
-  end
-
-  test "after closes on errors" do
-    stream = Stream.after([1,2,3], fn -> Process.put(:stream_after, true) end)
-
-    Process.put(:stream_after, false)
-    stream = Stream.map(stream, fn x -> if x > 2, do: throw(:error), else: x end)
-    assert catch_throw(Enum.to_list(stream)) == :error
-    assert Process.get(:stream_after)
-  end
-
   test "chunk" do
     assert Stream.chunk([1, 2, 3, 4, 5], 2) |> Enum.to_list ==
            [[1, 2], [3, 4]]
@@ -464,17 +441,14 @@ defmodule StreamTest do
 
   test "run" do
     Process.put(:stream_each, [])
-    Process.put(:stream_after, false)
 
     stream = [1,2,3]
-    |> Stream.after(fn -> Process.put(:stream_after, true) end)
     |> Stream.each(fn x ->
          Process.put(:stream_each, [x|Process.get(:stream_each)])
        end)
 
     assert is_lazy(stream)
     assert Stream.run(stream) == :ok
-    assert Process.get(:stream_after)
     assert Process.get(:stream_each) == [3,2,1]
   end
 
@@ -530,25 +504,6 @@ defmodule StreamTest do
            [a: 1, b: 2, c: 3]
 
     assert Process.get(:stream_zip) == :done
-  end
-
-  test "zip/2 closes on inner error" do
-    stream = Stream.after([1, 2, 3], fn -> Process.put(:stream_zip, true) end)
-    stream = Stream.zip(stream, Stream.map([:a, :b, :c], fn _ -> throw(:error) end))
-
-    Process.put(:stream_zip, false)
-    assert catch_throw(Enum.to_list(stream)) == :error
-    assert Process.get(:stream_zip)
-  end
-
-  test "zip/2 closes on outer error" do
-    stream = Stream.after([1, 2, 3], fn -> Process.put(:stream_zip, true) end)
-             |> Stream.zip([:a, :b, :c])
-             |> Stream.map(fn _ -> throw(:error) end)
-
-    Process.put(:stream_zip, false)
-    assert catch_throw(Enum.to_list(stream)) == :error
-    assert Process.get(:stream_zip)
   end
 
   test "with_index" do

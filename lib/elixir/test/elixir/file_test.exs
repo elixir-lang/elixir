@@ -966,23 +966,6 @@ defmodule FileTest do
     end
   end
 
-  test :stream_to do
-    src  = fixture_path("file.txt")
-    dest = tmp_path("tmp_test.txt")
-
-    try do
-      stream = File.stream!(src)
-        |> Stream.map(&String.replace(&1, "O", "A"))
-        |> File.stream_to!(dest)
-
-      refute File.exists?(dest)
-      assert Stream.run(stream) == :ok
-      assert File.read(dest) == { :ok, "FAA\n" }
-    after
-      File.rm(dest)
-    end
-  end
-
   test :stream_bytes do
     src  = fixture_path("file.txt")
     dest = tmp_path("tmp_test.txt")

@@ -75,8 +75,14 @@ defmodule URI do
   """
   def encode_query(l), do: Enum.map_join(l, "&", &pair/1)
 
+  @doc false
+  def decode_query(q) do
+    IO.write :stderr, "URI.decode_query/1 is deprecated, please use URI.decode_query/2 with an explicit argument\n#{Exception.format_stacktrace}"
+    decode_query(q, HashDict.new)
+  end
+
   @doc """
-  Decodes a query string into a `HashDict`.
+  Decodes a query string into a dictionary.
 
   Given a query string of the form "key1=value1&key2=value2...", produces a
   `HashDict` with one entry for each key-value pair. Each key and value will be a
@@ -86,9 +92,6 @@ defmodule URI do
 
   ## Examples
 
-      iex> URI.decode_query("foo=1&bar=2") |> Dict.to_list
-      [{"bar", "2"}, {"foo", "1"}]
-
       iex> hd = HashDict.new()
       iex> URI.decode_query("foo=1&bar=2", hd) |> HashDict.keys
       ["bar", "foo"]
@@ -96,7 +99,7 @@ defmodule URI do
       ["2", "1"]
 
   """
-  def decode_query(q, dict \\ HashDict.new) when is_binary(q) do
+  def decode_query(q, dict) when is_binary(q) do
     Enum.reduce query_decoder(q), dict, fn({ k, v }, acc) -> Dict.put(acc, k, v) end
   end
 
@@ -132,6 +135,16 @@ defmodule URI do
       end
 
     { current, next }
+  end
+
+  defp pair({k, v}) when is_list(k) do
+    IO.write :stderr, "Passing list keys to URI.encode_query/1 is deprecated\n#{Exception.format_stacktrace}"
+    encode(to_string(k)) <> "=" <> encode(to_string(v))
+  end
+
+  defp pair({k, v}) when is_list(v) do
+    IO.write :stderr, "Passing list values to URI.encode_query/1 is deprecated\n#{Exception.format_stacktrace}"
+    encode(to_string(k)) <> "=" <> encode(to_string(v))
   end
 
   defp pair({k, v}) do

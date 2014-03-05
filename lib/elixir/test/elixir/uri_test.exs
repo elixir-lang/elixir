@@ -12,27 +12,20 @@ defmodule URITest do
   test :encode_query do
     assert URI.encode_query([{:foo, :bar}, {:baz, :quux}]) == "foo=bar&baz=quux"
     assert URI.encode_query([{"foo", "bar"}, {"baz", "quux"}]) == "foo=bar&baz=quux"
-    assert URI.encode_query([{'foo', 'bar'}, {'baz', 'quux'}]) == "foo=bar&baz=quux"
-  end
-
-  test :encode_query_mixed do
     assert URI.encode_query([{"foo", :bar}]) == "foo=bar"
-    assert URI.encode_query([{"foo", 'bar'}]) == "foo=bar"
-    assert URI.encode_query([{:foo, "bar"}]) == "foo=bar"
-    assert URI.encode_query([{:foo, 'bar'}]) == "foo=bar"
   end
 
   test :decode_query do
-    assert HashDict.equal?(URI.decode_query("q=search%20query&cookie=ab%26cd&block%20buster="),
+    assert HashDict.equal?(URI.decode_query("q=search%20query&cookie=ab%26cd&block%20buster=", HashDict.new),
       HashDict.new [{"block buster", ""}, {"cookie", "ab&cd"}, {"q", "search query"}])
-    assert HashDict.equal?(URI.decode_query(""), HashDict.new)
-    assert HashDict.equal?(URI.decode_query("something=weird%3Dhappening"), HashDict.new [{"something", "weird=happening"}])
+    assert HashDict.equal?(URI.decode_query("", HashDict.new), HashDict.new)
+    assert HashDict.equal?(URI.decode_query("something=weird%3Dhappening", HashDict.new), HashDict.new [{"something", "weird=happening"}])
 
     assert URI.decode_query("", []) == []
 
-    assert HashDict.equal?(URI.decode_query("garbage"), HashDict.new [{"garbage", nil}])
-    assert HashDict.equal?(URI.decode_query("=value"), HashDict.new [{"", "value"}])
-    assert HashDict.equal?(URI.decode_query("something=weird=happening"), HashDict.new [{"something", "weird=happening"}])
+    assert HashDict.equal?(URI.decode_query("garbage", HashDict.new), HashDict.new [{"garbage", nil}])
+    assert HashDict.equal?(URI.decode_query("=value", HashDict.new), HashDict.new [{"", "value"}])
+    assert HashDict.equal?(URI.decode_query("something=weird=happening", HashDict.new), HashDict.new [{"something", "weird=happening"}])
   end
 
   test :decoder do
