@@ -56,7 +56,14 @@ defmodule Mix.CLI do
         Mix.Task.reenable "loadpaths"
       end
 
-      Mix.Task.run(name, args)
+      # If the task is not available, let's try to
+      # compile the repository and then run it again.
+      if Mix.Task.get(name) do
+        Mix.Task.run(name, args)
+      else
+        Mix.Task.run("compile")
+        Mix.Task.run(name, args)
+      end
     rescue
       # We only rescue exceptions in the mix namespace, all
       # others pass through and will explode on the users face

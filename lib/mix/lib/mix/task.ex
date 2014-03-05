@@ -129,6 +129,17 @@ defmodule Mix.Task do
 
   @doc """
   Receives a task name and retrieves the task module.
+  Returns nil if the task cannot be found.
+  """
+  def get(task) do
+    case Mix.Utils.command_to_module(task, Mix.Tasks) do
+      { :module, module } -> module
+      { :error, _ } -> nil
+    end
+  end
+
+  @doc """
+  Receives a task name and retrieves the task module.
 
   ## Exceptions
 
@@ -137,15 +148,14 @@ defmodule Mix.Task do
 
   """
   def get!(task) do
-    case Mix.Utils.command_to_module(task, Mix.Tasks) do
-      { :module, module } ->
-        if is_task?(module) do
-          module
-        else
-          raise Mix.InvalidTaskError, task: task
-        end
-      { :error, _ } ->
-        raise Mix.NoTaskError, task: task
+    if module = get(task) do
+      if is_task?(module) do
+        module
+      else
+        raise Mix.InvalidTaskError, task: task
+      end
+    else
+      raise Mix.NoTaskError, task: task
     end
   end
 

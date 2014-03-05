@@ -30,9 +30,24 @@ defmodule Mix.CLITest do
     end
   end
 
-  test "invoke simple task from CLI" do
+  test "compiles and invokes simple task from CLI" do
     in_fixture "only_mixfile", fn ->
-      assert mix("hello") == "Hello from MyProject!\n"
+      File.mkdir_p!("lib")
+      File.write! "lib/hello.ex", """
+      defmodule Mix.Tasks.Hello do
+        use Mix.Task
+
+        @shortdoc "Hello"
+
+        def run(_) do
+          IO.puts Mix.Project.get!.hello_world
+        end
+      end
+      """
+
+      contents = mix("hello")
+      assert contents =~ "Hello from MyProject!\n"
+      assert contents =~ "Compiled lib/hello.ex\n"
     end
   end
 
