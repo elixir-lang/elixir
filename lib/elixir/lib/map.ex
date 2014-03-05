@@ -104,7 +104,10 @@ defmodule Map do
     end
   end
 
-  def empty(_), do: %{}
+  def empty(_) do
+    IO.write :stderr, "Map.empty/1 is deprecated, please use Traversable.empty/1 instead\n#{Exception.format_stacktrace}"
+    %{}
+  end
 
   def equal?(map, map), do: true
   def equal?(_, _), do: false

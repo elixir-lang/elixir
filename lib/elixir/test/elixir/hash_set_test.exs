@@ -14,10 +14,10 @@ defmodule HashSetTest do
   end
 
   test "difference" do
-    assert HashSet.equal?(HashSet.difference(filled_set(20), filled_set(21)), HashSet.new([]))
+    assert HashSet.equal?(HashSet.difference(filled_set(20), filled_set(21)), HashSet.new)
 
     diff = HashSet.difference(filled_set(9000), filled_set(9000))
-    assert HashSet.equal?(diff, HashSet.new([]))
+    assert HashSet.equal?(diff, HashSet.new)
     assert HashSet.size(diff) == 0
   end
 
@@ -49,7 +49,7 @@ defmodule HashSetTest do
   end
 
   defp filled_set(range) do
-    HashSet.new(1..range)
+    Enum.into 1..range, HashSet.new
   end
 end
 

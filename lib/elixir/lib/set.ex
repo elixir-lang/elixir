@@ -12,24 +12,18 @@ defmodule Set do
 
       HashSet.new  #=> creates an empty HashSet
 
-  For simplicity's sake, in the examples below every time
-  `new` is used, it implies one of the module-specific
-  calls like above.
+  In the examples below, `set_impl` means a specific
+  `Set` implementation, for example `HashSet`.
 
   ## Protocols
 
-  Sets are required to implement the `Enumerable` protocol,
-  allowing one to write:
-
-      Enum.each(set, fn k ->
-        IO.inspect k
-      end)
+  Sets are required to implement both `Enumerable` and `Traversable`
+  protocols.
 
   ## Match
 
-  Sets are required to implement all operations
-  using the match (`===`) operator. Any deviation from
-  this behaviour should be avoided and explicitly documented.
+  Sets are required to implement all operations using the match (`===`)
+  operator.
   """
 
   use Behaviour
@@ -39,8 +33,6 @@ defmodule Set do
   @type t :: tuple
 
   defcallback new :: t
-  defcallback new(Enum.t) :: t
-  defcallback new(Enum.t, (any -> any)) :: t
   defcallback delete(t, value) :: t
   defcallback difference(t, t) :: t
   defcallback disjoint?(t, t) :: boolean
@@ -49,7 +41,6 @@ defmodule Set do
   defcallback intersection(t, t) :: t
   defcallback member?(t, value) :: boolean
   defcallback put(t, value) :: t
-  defcallback reduce(t, Enumerable.acc, Enumerable.reducer) :: Enumerable.result
   defcallback size(t) :: non_neg_integer
   defcallback subset?(t, t) :: boolean
   defcallback to_list(t) :: list()
@@ -70,11 +61,11 @@ defmodule Set do
 
   ## Examples
 
-      iex> s = HashSet.new([1, 2, 3])
+      iex> s = Enum.into([1, 2, 3], set_impl.new)
       ...> Set.delete(s, 4) |> Enum.sort
       [1, 2, 3]
 
-      iex> s = HashSet.new([1, 2, 3])
+      iex> s = Enum.into([1, 2, 3], set_impl.new)
       ...> Set.delete(s, 2) |> Enum.sort
       [1, 3]
   """
@@ -92,7 +83,7 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.difference(HashSet.new([1,2]), HashSet.new([2,3,4])) |> Enum.sort
+      iex> Set.difference(Enum.into([1,2], set_impl.new), Enum.into([2,3,4], set_impl.new)) |> Enum.sort
       [1]
 
   """
@@ -119,9 +110,9 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.disjoint?(HashSet.new([1, 2]), HashSet.new([3, 4]))
+      iex> Set.disjoint?(Enum.into([1, 2], set_impl.new), Enum.into([3, 4], set_impl.new))
       true
-      iex> Set.disjoint?(HashSet.new([1, 2]), HashSet.new([2, 3]))
+      iex> Set.disjoint?(Enum.into([1, 2], set_impl.new), Enum.into([2, 3], set_impl.new))
       false
 
   """
@@ -142,9 +133,7 @@ defmodule Set do
     end
   end
 
-  @doc """
-  Returns an empty set of the same type as `set`.
-  """
+  @doc false
   @spec empty(t) :: t
   def empty(set) do
     target(set).empty(set)
@@ -159,10 +148,10 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.equal?(HashSet.new([1, 2]), HashSet.new([2, 1, 1]))
+      iex> Set.equal?(Enum.into([1, 2], set_impl.new), Enum.into([2, 1, 1], set_impl.new))
       true
       
-      iex> Set.equal?(HashSet.new([1, 2]), HashSet.new([3, 4]))
+      iex> Set.equal?(Enum.into([1, 2], set_impl.new), Enum.into([3, 4], set_impl.new))
       false
 
   """
@@ -192,10 +181,10 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.intersection(HashSet.new([1,2]), HashSet.new([2,3,4])) |> Enum.sort
+      iex> Set.intersection(Enum.into([1,2], set_impl.new), Enum.into([2,3,4], set_impl.new)) |> Enum.sort
       [2]
 
-      iex> Set.intersection(HashSet.new([1,2]), HashSet.new([3,4])) |> Enum.sort
+      iex> Set.intersection(Enum.into([1,2], set_impl.new), Enum.into([3,4], set_impl.new)) |> Enum.sort
       []
 
   """
@@ -207,7 +196,7 @@ defmodule Set do
     if target1 == target2 do
       target1.intersection(set1, set2)
     else
-      target1.reduce(set1, { :cont, target1.empty(set1) }, fn v, acc ->
+      target1.reduce(set1, { :cont, Traversable.empty(set1) }, fn v, acc ->
         { :cont, if(target2.member?(set2, v), do: target1.put(acc, v), else: acc) }
       end) |> elem(1)
     end
@@ -218,10 +207,10 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.member?(HashSet.new([1, 2, 3]), 2)
+      iex> Set.member?(Enum.into([1, 2, 3], set_impl.new), 2)
       true
 
-      iex> Set.member?(HashSet.new([1, 2, 3]), 4) 
+      iex> Set.member?(Enum.into([1, 2, 3], set_impl.new), 4) 
       false
 
   """
@@ -235,10 +224,10 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.put(HashSet.new([1, 2, 3]), 3) |> Enum.sort
+      iex> Set.put(Enum.into([1, 2, 3], set_impl.new), 3) |> Enum.sort
       [1, 2, 3]
 
-      iex> Set.put(HashSet.new([1, 2, 3]), 4) |> Enum.sort
+      iex> Set.put(Enum.into([1, 2, 3], set_impl.new), 4) |> Enum.sort
       [1, 2, 3, 4]
 
   """
@@ -252,7 +241,7 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.size(HashSet.new([1, 2, 3]))
+      iex> Set.size(Enum.into([1, 2, 3], set_impl.new))
       3
 
   """
@@ -270,9 +259,9 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.subset?(HashSet.new([1, 2]), HashSet.new([1, 2, 3]))
+      iex> Set.subset?(Enum.into([1, 2], set_impl.new), Enum.into([1, 2, 3], set_impl.new))
       true
-      iex> Set.subset?(HashSet.new([1, 2, 3]), HashSet.new([1, 2]))
+      iex> Set.subset?(Enum.into([1, 2, 3], set_impl.new), Enum.into([1, 2], set_impl.new))
       false
   """
   @spec subset?(t, t) :: boolean
@@ -292,7 +281,7 @@ defmodule Set do
 
   ## Examples
 
-      iex> HashSet.to_list(HashSet.new([1, 2, 3])) |> Enum.sort
+      iex> set_impl.to_list(Enum.into([1, 2, 3], set_impl.new)) |> Enum.sort
       [1,2,3]
 
   """
@@ -310,7 +299,7 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.union(HashSet.new([1,2]), HashSet.new([2,3,4])) |> Enum.sort
+      iex> Set.union(Enum.into([1,2], set_impl.new), Enum.into([2,3,4], set_impl.new)) |> Enum.sort
       [1,2,3,4]
 
   """

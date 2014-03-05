@@ -144,8 +144,8 @@ defmodule Enum do
   Some particular types, like dictionaries, yield a specific format on
   enumeration. For dicts, the argument is always a `{ key, value }` tuple:
 
-      iex> dict = HashDict.new [a: 1, b: 2]
-      iex> Enum.map(dict, fn { k, v } -> { k, v * 2 } end) |> Enum.sort
+      iex> dict = %{a: 1, b: 2}
+      iex> Enum.map(dict, fn { k, v } -> { k, v * 2 } end)
       [a: 2, b: 4]
 
   Note that the functions in the `Enum` module are eager: they always start
@@ -823,6 +823,70 @@ defmodule Enum do
     case list do
       []    -> []
       [_|t] -> t  # Head is a superfluous intersperser element
+    end
+  end
+
+  @doc """
+  Inserts the given enumerable into a traversable.
+
+  ## Examples
+
+      iex> Enum.into([1, 2], [0])
+      [0, 1, 2]
+
+      iex> Enum.into([a: 1, b: 2], %{})
+      %{a: 1, b: 2}
+
+  """
+  @spec into(Enumerable.t, Traversable.t) :: Traversable.t
+  def into(collection, list) when is_list(list) do
+    list ++ to_list(collection)
+  end
+
+  def into(collection, %{}) when is_list(collection) do
+    :maps.from_list(collection)
+  end
+
+  def into(collection, traversable) do
+    { initial, fun } = Traversable.into(traversable)
+    into(collection, initial, fun, fn x, acc ->
+      fun.(acc, { :cont, x })
+    end)
+  end
+
+  @doc """
+  Inserts the given enumerable into a traversable
+  according to the transformation function.
+
+  ## Examples
+
+      iex> Enum.into([2, 3], [3], fn x -> x * 3 end)
+      [3, 6, 9]
+
+  """
+  @spec into(Enumerable.t, Traversable.t, (term -> term)) :: Traversable.t
+
+  def into(collection, list, transform) when is_list(list) and is_function(transform, 1) do
+    list ++ map(collection, transform)
+  end
+
+  def into(collection, traversable, transform) when is_function(transform, 1) do
+    { initial, fun } = Traversable.into(traversable)
+    into(collection, initial, fun, fn x, acc ->
+      fun.(acc, { :cont, transform.(x) })
+    end)
+  end
+
+  defp into(collection, initial, fun, callback) do
+    try do
+      reduce(collection, initial, callback)
+    catch
+      kind, reason ->
+        stacktrace = System.stacktrace
+        fun.(initial, :halt)
+        :erlang.raise(kind, reason, stacktrace)
+    else
+      acc -> fun.(acc, :done)
     end
   end
 
@@ -1584,12 +1648,33 @@ defmodule Enum do
 
   """
   @spec to_list(t) :: [term]
-  def to_list(collection) when is_list collection do
+  def to_list(collection) when is_list(collection) do
     collection
   end
 
   def to_list(collection) do
     reverse(collection) |> :lists.reverse
+  end
+
+
+  @doc """
+  Traverses the given enumerable keeping its shape.
+
+  It also expects the enumerable to implement the `Traversable` protocol.
+
+  ## Examples
+
+      iex> Enum.traverse(%{a: 1, b: 2}, fn { k, v } -> { k, v * 2 } end)
+      %{a: 2, b: 4}
+
+  """
+  @spec traverse(Enumerable.t, (term -> term)) :: Traversable.t
+  def traverse(collection, transform) when is_list(collection) do
+    :lists.map(transform, collection)
+  end
+
+  def traverse(collection, transform) do
+    into(collection, Traversable.empty(collection), transform)
   end
 
   @doc """

@@ -21,15 +21,15 @@ defmodule DictTest.Common do
       import Enum, only: [sort: 1]
 
       defp new_dict(list \\ [{"first_key", 1}, {"second_key", 2}]) do
-        dict_impl.new list
+        Enum.into list, dict_impl.new
       end
 
       defp new_dict(list, transform) do
-        dict_impl.new list, transform
+        Enum.into list, dict_impl.new, transform
       end
 
       defp int_dict do
-        dict_impl.new [{1,1}]
+        Enum.into [{1,1}], dict_impl.new
       end
 
       test "access" do
@@ -42,18 +42,6 @@ defmodule DictTest.Common do
         dict = int_dict()
         assert dict[1] == 1
         assert dict[1.0] == nil
-      end
-
-      test "new/1" do
-        dict = new_dict()
-        assert Dict.size(dict) == 2
-        assert Enum.sort(dict) == [{"first_key", 1}, {"second_key", 2}]
-      end
-
-      test "new/2" do
-        dict = new_dict([{1}, {2}, {3}], fn {x} -> { <<x + 64>>, x } end)
-        assert Dict.size(dict) == 3
-        assert Enum.sort(dict) == [{"A", 1}, {"B", 2}, {"C", 3}]
       end
 
       test "get/2 and get/3" do
@@ -325,10 +313,6 @@ defmodule DictTest.Common do
         assert Dict.drop(dict, 1..3) == new_dict([])
       end
 
-      test "empty" do
-        assert Dict.empty(new_dict) == new_dict([])
-      end
-
       test "equal?/2" do
         dict1 = new_dict(a: 2, b: 3, f: 5, c: 123)
         dict2 = new_dict(a: 2, b: 3, f: 5, c: 123)
@@ -357,7 +341,7 @@ defmodule DictTest.Common do
         refute Dict.equal?(dict, TestDict.new([{1.0,1}]))
       end
 
-      test "implements Enumerable" do
+      test "is enumerable" do
         dict = new_dict()
         assert Enum.empty?(new_dict([]))
         refute Enum.empty?(dict)
@@ -365,6 +349,18 @@ defmodule DictTest.Common do
         refute Enum.member?(dict, { "first_key", 2 })
         assert Enum.count(dict) == 2
         assert Enum.reduce(dict, 0, fn({ k, v }, acc) -> v + acc end) == 3
+      end
+
+      test "is traversable" do
+        dict = new_dict()
+        assert Dict.size(dict) == 2
+        assert Enum.sort(dict) == [{"first_key", 1}, {"second_key", 2}]
+
+        dict = new_dict([{1}, {2}, {3}], fn {x} -> { <<x + 64>>, x } end)
+        assert Dict.size(dict) == 3
+        assert Enum.sort(dict) == [{"A", 1}, {"B", 2}, {"C", 3}]
+
+        assert Traversable.empty(new_dict) == new_dict([])
       end
 
       test "is zippable" do

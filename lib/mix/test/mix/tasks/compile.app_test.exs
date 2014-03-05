@@ -99,7 +99,6 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert Mix.Tasks.Compile.App.run([]) == :ok
 
       {:ok, [{_app, _, properties}]} = :file.consult("_build/dev/lib/sample/ebin/sample.app")
-      properties = Keyword.from_enum(properties)
       assert properties[:registered] == []
       assert properties[:description] == 'sample'
 

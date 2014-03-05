@@ -65,10 +65,13 @@ defmodule Mix.Deps.Converger do
     # converger with the new information
     case converger && result do
       { deps, rest } when not nil?(rest) ->
+        to_dict = &{ &1.app, &1 }
+
         converged_deps = converger.converge(main)
-                         |> HashDict.new(&{ &1.app, &1 })
-        deps = Enum.reject(deps, &converger.remote?(&1.app))
-               |> HashDict.new(&{ &1.app, &1 })
+                         |> Enum.into(HashDict.new, to_dict)
+        deps = deps
+               |> Enum.reject(&converger.remote?(&1.app))
+               |> Enum.into(HashDict.new, to_dict)
 
         all(main, [], [], apps, callback, rest, fn dep ->
           cond do
