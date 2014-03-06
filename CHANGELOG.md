@@ -1,17 +1,21 @@
 # v0.13.0-dev
 
 * Enhancements
-  * [Enum] Add `Enum.group_by/2`
+  * [Collectable] Add the `Collectable` protocol that empowers `Enum.into/2` and `Stream.into/2` and the `:into` option in comprehensions
+  * [Collectable] Implement Collectable for lists, dicts, bitstrings, functions and provide both `File.Stream` and `IO.Stream`
+  * [Enum] Add `Enum.group_by/2`, `Enum.into/2`, `Enum.into/3` and `Enum.traverse/2`
   * [ExUnit] Randomize cases and tests suite runs, allow seed configuration and the `--seed` flag via `mix test`
   * [ExUnit] Support `--only` for filtering when running tests with `mix test`
   * [ExUnit] Raise an error if another `capture_io` process already captured the device
   * [IEx] Allow prompt configuration with the `:prompt` option
   * [Kernel] Support `ERL_PATH` in `bin/elixir`
+  * [Kernel] Support interpolation in keyword syntax
   * [Map] Add a Map module and support R17 maps and structs
   * [Mix] Add dependency option `:only` to specify the dependency environment. `mix deps.get` and `mix deps.update` works accross all environment unless `--only` is specified
   * [Mix] Add `Mix.Shell.prompt/1`
   * [Mix] Ensure the project is compiled in case Mix' CLI cannot find a task
   * [Regex] Regexes no longer need the "g" option when there is a need to use named captures
+  * [Stream] Add `Stream.into/2` and `Stream.into/3`
   * [StringIO] Add a `StringIO` module that allows a String to be used as IO device
   * [System] Add `System.delete_env/1` to remove a variable from the environment
 
@@ -21,6 +25,7 @@
   * [OptionParser] Do not recognize undefined aliases as switches
 
 * Deprecations
+  * [Dict] `Dict.empty/1`, `Dict.new/1` and `Dict.new/2` are deprecated
   * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for` (this is a soft deprecation, no warning will be emitted)
   * [ListDict] `ListDict` is deprecated in favor of `Map` (this is a soft deprecation, no warning will be emitted)
 
