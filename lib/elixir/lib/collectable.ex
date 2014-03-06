@@ -31,11 +31,11 @@ defprotocol Collectable do
 
   `into/1` can be seen as the opposite of `Enumerable.reduce/3`. If
   `Enumerable` is about taking values out, `Collectable.into/1` is about
-  putting values into a structure.
+  collecting those values into a structure.
 
   `empty/1` receives a collectable and returns an empty version of the
   same collectable. By combining the enumerable functionality with `into/1`
-  and `empty/1`, one can implement a traversal mechanism.
+  and `empty/1`, one can for example implement a traversal mechanism.
   """
 
   @type command :: { :cont, term } | :done | :halt
@@ -47,7 +47,7 @@ defprotocol Collectable do
   def empty(collectable)
 
   @doc """
-  Returns a function that injects values into a collectable alongside
+  Returns a function that collects values alongside
   the initial accumulation value.
 
   The returned function receives a collectable and injects a given
@@ -96,7 +96,7 @@ defimpl Collectable, for: Function do
   def empty(function) do
     function
   end
-  
+
   def into(function) do
     { function, function }
   end
