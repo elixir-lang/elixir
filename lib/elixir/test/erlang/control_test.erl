@@ -291,3 +291,6 @@ optimized_oror_test() ->
       [{atom,0,done}]},
     {clause,1,[{var,1,Var}],[],[{var,1,Var}]}]
   } = to_erl("is_list([]) || :done").
+
+no_after_in_try_test() ->
+  { 'try', _, [_], [_], _, [] } = to_erl("try do :foo.bar() else _ -> :ok end").

@@ -95,14 +95,19 @@ translate({'try', Meta, [Clauses]}, #elixir_scope{return=Return} = RS) when is_l
   Catch = [Tuple || { X, _ } = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
   { TCatch, SC } = elixir_try:clauses(Meta, Catch, Return, mergec(S, SB)),
 
-  After = proplists:get_value('after', Clauses, nil),
-  { TAfter, SA } = translate(After, mergec(S, SC)),
+  case lists:keyfind('after', 1, Clauses) of
+    { 'after', After } ->
+      { TBlock, SA } = translate(After, mergec(S, SC)),
+      TAfter = unblock(TBlock);
+    false ->
+      { TAfter, SA } = { [], mergec(S, SC) }
+  end,
 
   Else = elixir_clauses:get_pairs(else, Clauses),
   { TElse, SE } = elixir_clauses:clauses(Meta, Else, Return, mergec(S, SA)),
 
   SF = (mergec(S, SE))#elixir_scope{noname=RS#elixir_scope.noname},
-  { { 'try', ?line(Meta), unblock(TDo), TElse, TCatch, unblock(TAfter) }, SF };
+  { { 'try', ?line(Meta), unblock(TDo), TElse, TCatch, TAfter }, SF };
 
 %% Receive
 
