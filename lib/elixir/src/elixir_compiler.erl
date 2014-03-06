@@ -210,6 +210,7 @@ core_main() ->
     <<"lib/elixir/lib/regex.ex">>,
     <<"lib/elixir/lib/string.ex">>,
     <<"lib/elixir/lib/string/chars.ex">>,
+    <<"lib/elixir/lib/traversable.ex">>,
     <<"lib/elixir/lib/io.ex">>,
     <<"lib/elixir/lib/path.ex">>,
     <<"lib/elixir/lib/system.ex">>,
