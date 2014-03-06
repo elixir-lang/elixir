@@ -462,8 +462,8 @@ defmodule FileTest do
       assert File.close(file) == :ok
     end
 
-    test :open_file_with_charlist do
-      { :ok, file } = File.open(fixture_path("file.txt"), [:charlist])
+    test :open_file_with_char_list do
+      { :ok, file } = File.open(fixture_path("file.txt"), [:char_list])
       assert IO.gets(file, "") == 'FOO\n'
       assert File.close(file) == :ok
     end
@@ -505,7 +505,7 @@ defmodule FileTest do
     end
 
     test :open_utf8_and_charlist do
-      { :ok, file } = File.open(fixture_path("utf8.txt"), [:charlist, :utf8])
+      { :ok, file } = File.open(fixture_path("utf8.txt"), [:char_list, :utf8])
       assert IO.gets(file, "") == [1056, 1091, 1089, 1089, 1082, 1080, 1081, 10]
       assert File.close(file) == :ok
     end
@@ -892,6 +892,22 @@ defmodule FileTest do
     after
       File.rm(dest)
     end
+  end
+
+  test :stream_map do
+    src = fixture_path("file.txt")
+    stream = File.stream!(src)
+    assert %File.Stream{} = stream
+    assert stream.modes == [:raw, :read_ahead, :binary]
+    assert stream.raw
+    assert stream.line_or_bytes == :line
+
+    src = fixture_path("file.txt")
+    stream = File.stream!(src, [:utf8], 10)
+    assert %File.Stream{} = stream
+    assert stream.modes == [{ :encoding, :utf8 }, :binary]
+    refute stream.raw
+    assert stream.line_or_bytes == 10
   end
 
   test :stream_line_utf8 do

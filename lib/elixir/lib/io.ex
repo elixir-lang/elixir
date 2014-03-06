@@ -13,7 +13,7 @@ defmodule IO.Stream do
   The following fields are public:
 
   * `device` - the IO device
-  * `raw` - a boolean indicing if bin functions should be used
+  * `raw` - a boolean indicating if bin functions should be used
   * `line_or_bytes` - if reading should read lines or a given amount of bytes
 
   """
@@ -352,7 +352,7 @@ defmodule IO do
   # Map the Elixir names for standard io and error to Erlang names
   defp map_dev(:stdio),  do: :standard_io
   defp map_dev(:stderr), do: :standard_error
-  defp map_dev(other) when is_atom(other) or is_pid(other), do: other
+  defp map_dev(other) when is_atom(other) or is_pid(other) or is_tuple(other), do: other
 
   defp to_chardata(list) when is_list(list), do: list
   defp to_chardata(other), do: to_string(other)
