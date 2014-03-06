@@ -282,7 +282,7 @@ defmodule StreamTest do
     Process.put(:stream_done, false)
     Process.put(:stream_halt, false)
 
-    stream = Stream.into([1, 2, 3], traversable_pdict)
+    stream = Stream.into([1, 2, 3], collectable_pdict)
 
     assert is_lazy(stream)
     assert Stream.run(stream) == :ok
@@ -290,7 +290,7 @@ defmodule StreamTest do
     assert Process.get(:stream_done)
     refute Process.get(:stream_halt)
 
-    stream = Stream.into(fn _, _ -> raise "error" end, traversable_pdict)
+    stream = Stream.into(fn _, _ -> raise "error" end, collectable_pdict)
     catch_error(Stream.run(stream))
     assert Process.get(:stream_halt)
   end
@@ -300,7 +300,7 @@ defmodule StreamTest do
     Process.put(:stream_done, false)
     Process.put(:stream_halt, false)
 
-    stream = Stream.into([1, 2, 3], traversable_pdict, fn x -> x*2 end)
+    stream = Stream.into([1, 2, 3], collectable_pdict, fn x -> x*2 end)
 
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [1, 2, 3]
@@ -314,7 +314,7 @@ defmodule StreamTest do
     Process.put(:stream_done, false)
     Process.put(:stream_halt, false)
 
-    stream = Stream.into([1, 2, 3], traversable_pdict)
+    stream = Stream.into([1, 2, 3], collectable_pdict)
 
     assert is_lazy(stream)
     assert Enum.take(stream, 1) == [1]
@@ -546,7 +546,7 @@ defmodule StreamTest do
   end
 
   test "zip/2 closes on inner error" do
-    stream = Stream.into([1, 2, 3], traversable_pdict)
+    stream = Stream.into([1, 2, 3], collectable_pdict)
     stream = Stream.zip(stream, Stream.map([:a, :b, :c], fn _ -> throw(:error) end))
 
     Process.put(:stream_done, false)
@@ -555,7 +555,7 @@ defmodule StreamTest do
   end
 
   test "zip/2 closes on outer error" do
-    stream = Stream.into([1, 2, 3], traversable_pdict)
+    stream = Stream.into([1, 2, 3], collectable_pdict)
              |> Stream.zip([:a, :b, :c])
              |> Stream.map(fn _ -> throw(:error) end)
 
@@ -577,7 +577,7 @@ defmodule StreamTest do
     is_record(stream, Stream.Lazy) or is_function(stream, 2)
   end
 
-  defp traversable_pdict do
+  defp collectable_pdict do
     fn
       _, { :cont, x } -> Process.put(:stream_cont, [x|Process.get(:stream_cont)])
       _, :done -> Process.put(:stream_done, true)

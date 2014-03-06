@@ -1,4 +1,4 @@
-defprotocol Traversable do
+defprotocol Collectable do
   @moduledoc """
   A protocol to traverse data structures.
 
@@ -8,13 +8,13 @@ defprotocol Traversable do
       iex> Enum.into([a: 1, b: 2], %{})
       %{a: 1, b: 2}
 
-  If a collection implements both `Enumerable` and `Traversable`, both
+  If a collection implements both `Enumerable` and `Collectable`, both
   operations can be combined with `Enum.traverse/2`:
 
       iex> Enum.traverse(%{ a: 1, b: 2 }, fn { k, v } -> { k, v * 2 } end)
       %{a: 2, b: 4}
 
-  ## Why Traversable?
+  ## Why Collectable?
 
   The `Enumerable` protocol is useful to take values out of a collection.
   In order to support a wide range of values, the functions provided by
@@ -26,45 +26,45 @@ defprotocol Traversable do
   it doesn't make sense to insert values into a range, as it has a fixed
   shape where just the range limits are stored.
 
-  The `Traversable` module was designed to fill the gap left by the
+  The `Collectable` module was designed to fill the gap left by the
   `Enumerable` protocol. It provides two functions: `into/2` and `empty/1`.
 
   `into/1` can be seen as the opposite of `Enumerable.reduce/3`. If
-  `Enumerable` is about taking values out, `Traversable.into/1` is about
+  `Enumerable` is about taking values out, `Collectable.into/1` is about
   putting values into a structure.
 
-  `empty/1` receives a traversable and returns an empty version of the
-  same traversable. By combining the enumerable functionality with `into/1`
+  `empty/1` receives a collectable and returns an empty version of the
+  same collectable. By combining the enumerable functionality with `into/1`
   and `empty/1`, one can implement a traversal mechanism.
   """
 
   @type command :: { :cont, term } | :done | :halt
 
   @doc """
-  Receives a traversable structure and returns an empty one.
+  Receives a collectable structure and returns an empty one.
   """
   @spec empty(t) :: t
-  def empty(traversable)
+  def empty(collectable)
 
   @doc """
-  Returns a function that injects values into a traversable alongside
+  Returns a function that injects values into a collectable alongside
   the initial accumulation value.
 
-  The returned function receives a traversable and injects a given
+  The returned function receives a collectable and injects a given
   value into it for every `{ :cont, term }` instruction.
 
   `:done` is passed when no further values will be injected, useful
-  for closing resources and normalizing values. A traversable must
+  for closing resources and normalizing values. A collectable must
   be returned on `:done`.
 
   If injection is suddently interrupted, `:halt` is passed and it can
   return any value, as it won't be used.
   """
   @spec into(t) :: { term, (term, command -> t | term) }
-  def into(traversable)
+  def into(collectable)
 end
 
-defimpl Traversable, for: List do
+defimpl Collectable, for: List do
   def empty(_list) do
     []
   end
@@ -78,7 +78,7 @@ defimpl Traversable, for: List do
   end
 end
 
-defimpl Traversable, for: BitString do
+defimpl Collectable, for: BitString do
   def empty(_bitstring) do
     ""
   end
@@ -92,7 +92,7 @@ defimpl Traversable, for: BitString do
   end
 end
 
-defimpl Traversable, for: Function do
+defimpl Collectable, for: Function do
   def empty(function) do
     function
   end
@@ -102,7 +102,7 @@ defimpl Traversable, for: Function do
   end
 end
 
-defimpl Traversable, for: Map do
+defimpl Collectable, for: Map do
   def empty(_map) do
     %{}
   end

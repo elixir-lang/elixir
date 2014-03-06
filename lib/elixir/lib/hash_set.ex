@@ -97,7 +97,7 @@ defmodule HashSet do
   end
 
   def empty(trie()) do
-    IO.write :stderr, "HashSet.empty/1 is deprecated, please use Traversable.empty/1 instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "HashSet.empty/1 is deprecated, please use Collectable.empty/1 instead\n#{Exception.format_stacktrace}"
     trie()
   end
 
@@ -269,7 +269,7 @@ defimpl Enumerable, for: HashSet do
   def count(set),            do: { :ok, HashSet.size(set) }
 end
 
-defimpl Traversable, for: HashSet do
+defimpl Collectable, for: HashSet do
   def empty(_dict) do
     HashSet.new
   end

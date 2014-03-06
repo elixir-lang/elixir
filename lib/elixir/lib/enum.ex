@@ -827,7 +827,7 @@ defmodule Enum do
   end
 
   @doc """
-  Inserts the given enumerable into a traversable.
+  Inserts the given enumerable into a collectable.
 
   ## Examples
 
@@ -838,7 +838,7 @@ defmodule Enum do
       %{a: 1, b: 2}
 
   """
-  @spec into(Enumerable.t, Traversable.t) :: Traversable.t
+  @spec into(Enumerable.t, Collectable.t) :: Collectable.t
   def into(collection, list) when is_list(list) do
     list ++ to_list(collection)
   end
@@ -847,15 +847,15 @@ defmodule Enum do
     :maps.from_list(collection)
   end
 
-  def into(collection, traversable) do
-    { initial, fun } = Traversable.into(traversable)
+  def into(collection, collectable) do
+    { initial, fun } = Collectable.into(collectable)
     into(collection, initial, fun, fn x, acc ->
       fun.(acc, { :cont, x })
     end)
   end
 
   @doc """
-  Inserts the given enumerable into a traversable
+  Inserts the given enumerable into a collectable
   according to the transformation function.
 
   ## Examples
@@ -864,14 +864,14 @@ defmodule Enum do
       [3, 6, 9]
 
   """
-  @spec into(Enumerable.t, Traversable.t, (term -> term)) :: Traversable.t
+  @spec into(Enumerable.t, Collectable.t, (term -> term)) :: Collectable.t
 
   def into(collection, list, transform) when is_list(list) and is_function(transform, 1) do
     list ++ map(collection, transform)
   end
 
-  def into(collection, traversable, transform) when is_function(transform, 1) do
-    { initial, fun } = Traversable.into(traversable)
+  def into(collection, collectable, transform) when is_function(transform, 1) do
+    { initial, fun } = Collectable.into(collectable)
     into(collection, initial, fun, fn x, acc ->
       fun.(acc, { :cont, transform.(x) })
     end)
@@ -1660,7 +1660,7 @@ defmodule Enum do
   @doc """
   Traverses the given enumerable keeping its shape.
 
-  It also expects the enumerable to implement the `Traversable` protocol.
+  It also expects the enumerable to implement the `Collectable` protocol.
 
   ## Examples
 
@@ -1668,13 +1668,13 @@ defmodule Enum do
       %{a: 2, b: 4}
 
   """
-  @spec traverse(Enumerable.t, (term -> term)) :: Traversable.t
+  @spec traverse(Enumerable.t, (term -> term)) :: Collectable.t
   def traverse(collection, transform) when is_list(collection) do
     :lists.map(transform, collection)
   end
 
   def traverse(collection, transform) do
-    into(collection, Traversable.empty(collection), transform)
+    into(collection, Collectable.empty(collection), transform)
   end
 
   @doc """

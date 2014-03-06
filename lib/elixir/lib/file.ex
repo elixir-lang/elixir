@@ -46,7 +46,7 @@ defmodule File.Stream do
 
   defstruct path: nil, modes: [], line_or_bytes: :line, raw: true
 
-  defimpl Traversable do
+  defimpl Collectable do
     def empty(stream) do
       stream
     end
@@ -1040,7 +1040,7 @@ defmodule File do
   @doc """
   Returns a `File.Stream` for the given `path` with the given `modes`.
 
-  The stream implements both `Enumerable` and `Traversable` protocols,
+  The stream implements both `Enumerable` and `Collectable` protocols,
   which means it can be used both for read and write.
 
   The `line_or_byte` argument configures how the file is read when

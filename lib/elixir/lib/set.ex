@@ -17,7 +17,7 @@ defmodule Set do
 
   ## Protocols
 
-  Sets are required to implement both `Enumerable` and `Traversable`
+  Sets are required to implement both `Enumerable` and `Collectable`
   protocols.
 
   ## Match
@@ -196,7 +196,7 @@ defmodule Set do
     if target1 == target2 do
       target1.intersection(set1, set2)
     else
-      target1.reduce(set1, { :cont, Traversable.empty(set1) }, fn v, acc ->
+      target1.reduce(set1, { :cont, Collectable.empty(set1) }, fn v, acc ->
         { :cont, if(target2.member?(set2, v), do: target1.put(acc, v), else: acc) }
       end) |> elem(1)
     end

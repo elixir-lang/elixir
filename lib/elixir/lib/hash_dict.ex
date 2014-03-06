@@ -51,7 +51,7 @@ defmodule HashDict do
   end
 
   def empty(trie()) do
-    IO.write :stderr, "HashDict.empty/1 is deprecated, please use Traversable.empty/1 instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "HashDict.empty/1 is deprecated, please use Collectable.empty/1 instead\n#{Exception.format_stacktrace}"
     trie()
   end
 
@@ -274,7 +274,7 @@ defimpl Access, for: HashDict do
   def access(dict, key), do: HashDict.get(dict, key, nil)
 end
 
-defimpl Traversable, for: HashDict do
+defimpl Collectable, for: HashDict do
   def empty(_dict) do
     HashDict.new
   end

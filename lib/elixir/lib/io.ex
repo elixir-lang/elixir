@@ -20,7 +20,7 @@ defmodule IO.Stream do
 
   defstruct device: nil, raw: true, line_or_bytes: :line
 
-  defimpl Traversable do
+  defimpl Collectable do
     def empty(stream) do
       stream
     end
@@ -282,7 +282,7 @@ defmodule IO do
   Converts the io device into a `IO.Stream`.
 
   An `IO.Stream` implements both `Enumerable` and
-  `Traversable`, allowing it to be used for both read
+  `Collectable`, allowing it to be used for both read
   and write.
 
   The device is iterated line by line if `:line` is given or
@@ -311,7 +311,7 @@ defmodule IO do
   Converts the IO device into a `IO.Stream`.
 
   An `IO.Stream` implements both `Enumerable` and
-  `Traversable`, allowing it to be used for both read
+  `Collectable`, allowing it to be used for both read
   and write.
 
   The device is iterated line by line or by a number of bytes.

@@ -27,7 +27,7 @@ defmodule KernelTest do
   doctest Stream
   doctest String
   doctest StringIO
-  doctest Traversable
+  doctest Collectable
   doctest Tuple
   doctest URI
   doctest Version

@@ -351,7 +351,7 @@ defmodule DictTest.Common do
         assert Enum.reduce(dict, 0, fn({ k, v }, acc) -> v + acc end) == 3
       end
 
-      test "is traversable" do
+      test "is collectable" do
         dict = new_dict()
         assert Dict.size(dict) == 2
         assert Enum.sort(dict) == [{"first_key", 1}, {"second_key", 2}]
@@ -360,7 +360,7 @@ defmodule DictTest.Common do
         assert Dict.size(dict) == 3
         assert Enum.sort(dict) == [{"A", 1}, {"B", 2}, {"C", 3}]
 
-        assert Traversable.empty(new_dict) == new_dict([])
+        assert Collectable.empty(new_dict) == new_dict([])
       end
 
       test "is zippable" do

@@ -373,39 +373,39 @@ defmodule Stream do
   end
 
   @doc """
-  Injects the stream values into the given traversable as a side-effect.
+  Injects the stream values into the given collectable as a side-effect.
 
   This function is often used with `run/1` since any evaluation
   is delayed until the stream is executed. See `run/1` for an example.
   """
-  @spec into(Enumerable.t, Traversable.t) :: Enumerable.t
-  def into(enum, traversable, transform \\ fn x -> x end) do
-    &do_into(enum, traversable, transform, &1, &2)
+  @spec into(Enumerable.t, Collectable.t) :: Enumerable.t
+  def into(enum, collectable, transform \\ fn x -> x end) do
+    &do_into(enum, collectable, transform, &1, &2)
   end
 
-  defp do_into(enum, traversable, transform, acc, fun) do
-    { initial, into } = Traversable.into(traversable)
-    composed = fn x, [acc|traversable] ->
-      traversable = into.(traversable, { :cont, transform.(x) })
+  defp do_into(enum, collectable, transform, acc, fun) do
+    { initial, into } = Collectable.into(collectable)
+    composed = fn x, [acc|collectable] ->
+      collectable = into.(collectable, { :cont, transform.(x) })
       { reason, acc } = fun.(x, acc)
-      { reason, [acc|traversable] }
+      { reason, [acc|collectable] }
     end
     do_into(&Enumerable.reduce(enum, &1, composed), initial, into, acc)
   end
 
-  defp do_into(reduce, traversable, into, { command, acc }) do
+  defp do_into(reduce, collectable, into, { command, acc }) do
     try do
-      reduce.({ command, [acc|traversable] })
+      reduce.({ command, [acc|collectable] })
     catch
       kind, reason ->
         stacktrace = System.stacktrace
-        into.(traversable, :halt)
+        into.(collectable, :halt)
         :erlang.raise(kind, reason, stacktrace)
     else
-      { :suspended, [acc|traversable], continuation } ->
-        { :suspended, acc, &do_into(continuation, traversable, into, &1) }
-      { reason, [acc|traversable] } ->
-        into.(traversable, :done)
+      { :suspended, [acc|collectable], continuation } ->
+        { :suspended, acc, &do_into(continuation, collectable, into, &1) }
+      { reason, [acc|collectable] } ->
+        into.(collectable, :done)
         { reason, acc }
     end
   end

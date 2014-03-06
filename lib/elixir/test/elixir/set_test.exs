@@ -154,10 +154,10 @@ defmodule SetTest.Common do
         assert Enum.sort(int_set) == [1,2,3]
       end
 
-      test "is traversable" do
+      test "is collectable" do
         assert Set.equal?(new_set([1, 1, 2, 3, 3, 3]), new_set([1, 2, 3]))
         assert Set.equal?(new_set([1, 1, 2, 3, 3, 3], &(&1 * 2)), new_set([2, 4, 6]))
-        assert Traversable.empty(new_set([1, 2, 3])) == new_set
+        assert Collectable.empty(new_set([1, 2, 3])) == new_set
       end
 
       test "is zippable" do

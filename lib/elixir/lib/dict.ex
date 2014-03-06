@@ -25,7 +25,7 @@ defmodule Dict do
       ...> dict[:hello]
       :world
 
-  As well as the `Enumerable` and `Traversable` protocols.
+  As well as the `Enumerable` and `Collectable` protocols.
 
   ## Match
 

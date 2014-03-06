@@ -105,7 +105,7 @@ defmodule Map do
   end
 
   def empty(_) do
-    IO.write :stderr, "Map.empty/1 is deprecated, please use Traversable.empty/1 instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Map.empty/1 is deprecated, please use Collectable.empty/1 instead\n#{Exception.format_stacktrace}"
     %{}
   end
 
