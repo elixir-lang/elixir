@@ -265,6 +265,10 @@ defmodule KernelTest do
       assert_compile_fail ArgumentError, "cannot pipe 1 into 2", "1 |> 2"
     end
 
+    test "pipe-last" do
+      assert [1, 2, 3] |>> :lists.foldl(&(rem(&1, 2) + &2), 0) == 2
+    end
+
     defp twice(a), do: a * 2
 
     defp local(list) do
