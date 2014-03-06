@@ -468,4 +468,11 @@ defmodule StringTest do
       String.from_char_list!([0xDFFF])
     end
   end
+
+  test :to_hex do
+    assert String.to_hex("") == ""
+    assert String.to_hex(<<>>) == ""
+    assert String.to_hex("æß") == "C3A6C39F"
+    assert String.to_hex("test") == "74657374"
+  end
 end

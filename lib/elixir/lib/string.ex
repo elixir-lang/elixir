@@ -1196,4 +1196,21 @@ defmodule String do
         raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
     end
   end
+
+  @doc """
+  Converts a string to it's hexadecimal representation.
+
+  ## Examples
+
+    iex> String.to_hex("test")
+    "74657374"
+    iex> String.to_hex("æß")
+    "C3A6C39F"
+  
+  """
+  @spec to_hex(String.t) :: String.t | no_return
+  def to_hex(string) when string == "", do: ""
+  def to_hex(string) when is_binary(string) do
+    lc <<x :: 8>> inbits string do :io_lib.format("~2.16.0B", [x]) end |> from_char_list!
+  end
 end
