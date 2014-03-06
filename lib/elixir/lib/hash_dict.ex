@@ -31,34 +31,19 @@ defmodule HashDict do
     trie()
   end
 
-  @doc """
-  Creates a new dict from the given enumerable.
-
-  ## Examples
-
-      HashDict.new [{:b, 1}, {:a, 2}]
-      #=> #HashDict<[a: 2, b: 1]>
-
-  """
+  @doc false
   @spec new(Enum.t) :: Dict.t
   def new(enum) do
+    IO.write :stderr, "HashDict.new/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
     Enum.reduce enum, trie(), fn { k, v }, dict ->
       put(dict, k, v)
     end
   end
 
-  @doc """
-  Creates a new dict from the enumerable with the
-  help of the transformation function.
-
-  ## Examples
-
-      HashDict.new ["a", "b"], fn x -> {x, x} end
-      #=> #HashDict<[{"a","a"},{"b","b"}]>
-
-  """
+  @doc false
   @spec new(Enum.t, (term -> {key :: term, value ::term})) :: Dict.t
   def new(enum, transform) when is_function(transform) do
+    IO.write :stderr, "HashDict.new/2 is deprecated, please use Enum.into/3 instead\n#{Exception.format_stacktrace}"
     Enum.reduce enum, trie(), fn i, dict ->
       { k, v } = transform.(i)
       put(dict, k, v)
@@ -66,6 +51,7 @@ defmodule HashDict do
   end
 
   def empty(trie()) do
+    IO.write :stderr, "HashDict.empty/1 is deprecated, please use Collectable.empty/1 instead\n#{Exception.format_stacktrace}"
     trie()
   end
 
@@ -286,4 +272,18 @@ end
 
 defimpl Access, for: HashDict do
   def access(dict, key), do: HashDict.get(dict, key, nil)
+end
+
+defimpl Collectable, for: HashDict do
+  def empty(_dict) do
+    HashDict.new
+  end
+
+  def into(original) do
+    { original, fn
+      dict, { :cont, { k, v } } -> Dict.put(dict, k, v)
+      dict, :done -> dict
+      _, :halt -> :ok
+    end }
+  end
 end

@@ -34,13 +34,13 @@ defmodule ExUnit.DocTestTest.GoodModule do
   def exception_test, do: :ok
 
   @doc """
-  iex> HashDict.new a: 0, b: 1, c: 2
+  iex> Enum.into([a: 0, b: 1, c: 2], HashDict.new)
   #HashDict<[c: 2, b: 1, a: 0]>
   """
   def inspect1_test, do: :ok
 
   @doc """
-  iex> x = HashDict.new a: 0, b: 1, c: 2
+  iex> x = Enum.into([a: 0, b: 1, c: 2], HashDict.new)
   ...> x
   #HashDict<[c: 2, b: 1, a: 0]>
   """

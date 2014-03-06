@@ -36,6 +36,7 @@ defmodule Keyword do
   """
   @spec from_enum(Enum.t) :: t
   def from_enum(enum) do
+    IO.write :stderr, "Keyword.from_enum/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
     Enum.to_list(enum)
   end
 
@@ -59,8 +60,11 @@ defmodule Keyword do
   end
 
   @doc """
-  Creates a Keyword from an enumerable. Similar to dicts,
-  duplicated entries are removed, the latest one prevails.
+  Creates a keyword from an enumerable.
+
+  Duplicated entries are removed, the latest one prevails.
+  I.e. differently from `Enum.into(enumerable, [])`,
+  `Keyword.new(enumerable)` guarantees the keys are unique.
 
   ## Examples
 
@@ -76,9 +80,11 @@ defmodule Keyword do
   end
 
   @doc """
-  Creates a Keyword from an enumerable with the
-  help of the transformation function. Duplicated
-  entries are removed, the latest one prevails.
+  Creates a keyword from an enumerable via the transformation function.
+
+  Duplicated entries are removed, the latest one prevails.
+  I.e. differently from `Enum.into(enumerable, [], fun)`,
+  `Keyword.new(enumerable, fun)` guarantees the keys are unique.
 
   ## Examples
 

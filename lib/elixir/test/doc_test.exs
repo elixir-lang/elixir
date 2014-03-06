@@ -24,10 +24,10 @@ defmodule KernelTest do
   doctest Protocol.Consolidation
   doctest Range
   doctest Regex
-  doctest Set
   doctest Stream
   doctest String
   doctest StringIO
+  doctest Collectable
   doctest Tuple
   doctest URI
   doctest Version

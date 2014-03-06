@@ -31,8 +31,83 @@ defrecord File.Stat, Record.extract(:file_info, from_lib: "kernel/include/file.h
   """
 end
 
-defmodule File do
+defmodule File.Stream do
   @moduledoc """
+  Defines a `File.Stream` struct returned by `File.stream!/2`.
+
+  The following fields are public:
+
+  * `path` - the file path
+  * `modes` - the file modes
+  * `raw` - a boolean indicating if bin functions should be used
+  * `line_or_bytes` - if reading should read lines or a given amount of bytes
+
+  """
+
+  defstruct path: nil, modes: [], line_or_bytes: :line, raw: true
+
+  defimpl Collectable do
+    def empty(stream) do
+      stream
+    end
+
+    def into(%{ path: path, modes: modes, raw: raw } = stream) do
+      case :file.open(path, [:write|modes]) do
+        { :ok, device } ->
+          { :ok, into(device, stream, raw) }
+        { :error, reason } ->
+          raise File.Error, reason: reason, action: "stream", path: path
+      end
+    end
+
+    defp into(device, stream, raw) do
+      fn
+        :ok, { :cont, x } ->
+          case raw do
+            true  -> IO.binwrite(device, x)
+            false -> IO.write(device, x)
+          end
+        :ok, :done ->
+          :file.close(device)
+          stream
+        :ok, :halt ->
+          :file.close(device)
+      end
+    end
+  end
+
+  defimpl Enumerable do
+    def reduce(%{ path: path, modes: modes, line_or_bytes: line_or_bytes, raw: raw }, acc, fun) do
+      start_fun =
+        fn ->
+          case :file.open(path, modes) do
+            { :ok, device }    -> device
+            { :error, reason } ->
+              raise File.Error, reason: reason, action: "stream", path: path
+          end
+        end
+
+      next_fun =
+        case raw do
+          true  -> &IO.each_binstream(&1, line_or_bytes)
+          false -> &IO.each_stream(&1, line_or_bytes)
+        end
+
+      Stream.resource(start_fun, next_fun, &:file.close/1).(acc, fun)
+    end
+
+    def count(_stream) do
+      { :error, __MODULE__ }
+    end
+
+    def member?(_stream, _term) do
+      { :error, __MODULE__ }
+    end
+  end
+end
+
+defmodule File do
+  @moduledoc ~S"""
   This module contains functions to manipulate files.
 
   Some of those functions are low-level, allowing the user
@@ -43,6 +118,8 @@ defmodule File do
   via `cp/3` and remove files and directories recursively
   via `rm_rf/1`
 
+  ## Encoding
+
   In order to write and read files, one must use the functions
   in the `IO` module. By default, a file is opened in binary mode
   which requires the functions `IO.binread/2` and `IO.binwrite/2`
@@ -50,6 +127,8 @@ defmodule File do
   option when opening the file, then the slower `IO.read/2` and
   `IO.write/2` functions must be used as they are responsible for
   doing the proper conversions and data guarantees.
+
+  ## API
 
   Most of the functions in this module return `:ok` or
   `{ :ok, result }` in case of success, `{ :error, reason }`
@@ -74,6 +153,23 @@ defmodule File do
   to react if the file does not exist. The latter should be used
   when the developer expects his software to fail in case the
   file cannot be read (i.e. it is literally an exception).
+
+  ## Processes and raw files
+
+  Every time a file is opened, Elixir spawns a new process. Writing
+  to a file is equivalent to sending messages to that process that
+  writes to the file descriptor.
+
+  This means files can be passed in between nodes and message passing
+  guarantees they can write to the same file in a network.
+
+  However, you may not always want to pay the price for this abstraction.
+  In such cases, a file can be opened in `:raw` mode. The options `:read_ahead`
+  and `:delayed_write` are also useful when operating large files or
+  working with files in tight loops.
+
+  Check http:\\www.erlang.org/doc/man/file.html#open-2 for more information
+  about such options and other performance considerations.
   """
 
   alias :file,     as: F
@@ -513,9 +609,17 @@ defmodule File do
   end
 
   @doc """
-  Writes `content` to the file `path`. The file is created if it
-  does not exist. If it exists, the previous contents are overwritten.
-  Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
+  Writes `content` to the file `path`.
+
+  The file is created if it does not exist. If it exists, the previous
+  contents are overwritten. Returns `:ok` if successful, or `{:error, reason}`
+  if an error occurs.
+
+  **Warning:** Every time this function is invoked, a file descriptor is opened
+  and a new process is spawned to write to the file. For this reason, if you are
+  doing multiple writes in a loop, opening the file via `File.open/2` and using
+  the functions in `IO` to write to the file will yield much better performance
+  then calling this function multiple times.
 
   Typical error reasons are:
 
@@ -526,10 +630,11 @@ defmodule File do
   * :eacces - Missing permission for writing the file or searching one of the parent directories.
   * :eisdir - The named file is a directory.
 
-  Check `File.open/2` for existing modes.
+  The writing is automatically done in `:raw` mode. Check
+  `File.open/2` for other available options.
   """
   def write(path, content, modes \\ []) do
-    F.write_file(path, content, modes)
+    F.write_file(path, content, [:raw|modes])
   end
 
   @doc """
@@ -710,7 +815,7 @@ defmodule File do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Opens the given `path` according to the given list of modes.
 
   In order to write and read files, one must use the functions
@@ -733,7 +838,7 @@ defmodule File do
   * `:exclusive` - The file, when opened for writing, is created if it does not exist.
                    If the file exists, open will return { :error, :eexist }.
 
-  * `:charlist` - When this term is given, read operations on the file will return char lists rather than binaries;
+  * `:char_list` - When this term is given, read operations on the file will return char lists rather than binaries;
 
   * `:compressed` -  Makes it possible to read or write gzip compressed files.
                      The compressed option must be combined with either read or write, but not both.
@@ -746,10 +851,8 @@ defmodule File do
               or if data is read by a function that returns data in a format that cannot cope
               with the character range of the data, an error occurs and the file will be closed.
 
-  If a function is given two modes (instead of a list), it dispatches to `open/3`.
-
   Check http:\\www.erlang.org/doc/man/file.html#open-2 for more information about
-  other options like `read_ahead` and `delayed_write`.
+  other options like `:read_ahead` and `:delayed_write`.
 
   This function returns:
 
@@ -935,74 +1038,46 @@ defmodule File do
   end
 
   @doc """
-  Opens the file at the given `path` with the given `modes` and
-  returns a stream for each `:line` (default) or for a given number
-  of bytes given by `line_or_bytes`.
+  Returns a `File.Stream` for the given `path` with the given `modes`.
 
-  The returned stream will fail for the same reasons as
-  `File.open!/2`. Note that the file is opened only and every time
-  streaming begins.
+  The stream implements both `Enumerable` and `Collectable` protocols,
+  which means it can be used both for read and write.
 
-  Note that stream by default uses `IO.binread/2` unless
-  the file is opened with an encoding, then the slower `IO.read/2`
-  is used to do the proper data conversion and guarantees.
+  The `line_or_byte` argument configures how the file is read when
+  streaming, by `:line` (default) or by a given number of bytes.
+
+  Operating the stream can fail on open for the same reasons as
+  `File.open!/2`. Note that the file is automatically opened only and
+  every time streaming begins. There is no need to pass `:read` and
+  `:write` modes, as those are automatically set by Elixir.
+
+  ## Raw files
+
+  Since Elixir controls when the streamed file is opened, the underlying
+  device cannot be shared and as such it is convenient to open up the file
+  in raw mode for performance reasons. Therefore, Elixir **will** open up
+  streams in `:raw` mode with the `:read_ahead` option unless an encoding
+  is specified.
+
+  Once may also consider passing the `:delayed_write` option if the stream
+  is meant to be written to under a tight loop.
   """
   def stream!(path, modes \\ [], line_or_bytes \\ :line) do
     modes = open_defaults(modes, true)
-    bin   = nil? List.keyfind(modes, :encoding, 0)
+    raw   = :lists.keyfind(:encoding, 1, modes) == false
 
-    start_fun =
-      fn ->
-        case F.open(path, modes) do
-          { :ok, device }    -> device
-          { :error, reason } ->
-            raise File.Error, reason: reason, action: "stream", path: to_string(path)
+    modes =
+      if raw do
+        if :lists.keyfind(:read_ahead, 1, modes) do
+          [:raw|modes]
+        else
+          [:raw, :read_ahead|modes]
         end
+      else
+        modes
       end
 
-    next_fun =
-      case bin do
-        true  -> &IO.do_binstream(&1, line_or_bytes)
-        false -> &IO.do_stream(&1, line_or_bytes)
-      end
-
-    Stream.resource(start_fun, next_fun, &F.close/1)
-  end
-
-  @doc """
-  Receives a stream and returns a new stream that will open the file
-  at the given `path` for write  with the extra `modes` and write
-  each value to the file.
-
-  The returned stream will fail for the same reasons as
-  `File.open!/2`. Note that the file is opened only and every time
-  streaming begins.
-
-  Note that stream by default uses `IO.binwrite/2` unless
-  the file is opened with an encoding, then the slower `IO.write/2`
-  is used to do the proper data conversion and guarantees.
-  """
-  def stream_to!(stream, path, modes \\ []) do
-    modes = open_defaults([:write|List.delete(modes, :write)], true)
-    bin   = nil? List.keyfind(modes, :encoding, 0)
-
-    fn acc, f ->
-      case F.open(path, modes) do
-        { :ok, device } ->
-          each =
-            case bin do
-              true  -> &IO.binwrite(device, &1)
-              false -> &IO.write(device, &1)
-            end
-
-          stream
-          |> Stream.each(each)
-          |> Stream.after(fn -> F.close(device) end)
-          |> Enumerable.Stream.Lazy.reduce(acc, f)
-        { :error, reason } ->
-          raise File.Error, reason: reason, action: "stream_to", path: to_string(path)
-      end
-    end
+    %File.Stream{ path: to_string(path), modes: modes, raw: raw, line_or_bytes: line_or_bytes }
   end
 
   @doc """
@@ -1067,12 +1142,18 @@ defmodule File do
 
   ## Helpers
 
-  defp open_defaults([:charlist|t], _add_binary) do
+  @read_ahead 64*1024
+
+  defp open_defaults([:char_list|t], _add_binary) do
     open_defaults(t, false)
   end
 
   defp open_defaults([:utf8|t], add_binary) do
     open_defaults([{ :encoding, :utf8 }|t], add_binary)
+  end
+
+  defp open_defaults([:read_ahead|t], add_binary) do
+    open_defaults([{ :read_ahead, @read_ahead }|t], add_binary)
   end
 
   defp open_defaults([h|t], add_binary) do

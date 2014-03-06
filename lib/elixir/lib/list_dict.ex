@@ -15,18 +15,15 @@ defmodule ListDict do
   """
   def new, do: []
 
-  @doc """
-  Creates a new `ListDict` from the given pairs.
-  """
+  @doc false
   def new(pairs) do
+    IO.write :stderr, "ListDict.new/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
     Enum.to_list pairs
   end
 
-  @doc """
-  Creates a new `ListDict` from the given pairs
-  via the given transformation function.
-  """
+  @doc false
   def new(list, transform) when is_function(transform) do
+    IO.write :stderr, "ListDict.new/2 is deprecated, please use Enum.into/3 instead\n#{Exception.format_stacktrace}"
     Enum.map list, transform
   end
 
@@ -136,7 +133,10 @@ defmodule ListDict do
     [{key, initial}]
   end
 
-  def empty(_dict), do: []
+  def empty(_dict) do
+    IO.write :stderr, "ListDict.empty/1 is deprecated, please use Collectable.empty/1 instead\n#{Exception.format_stacktrace}"
+    []
+  end
 
   def equal?(dict, other) do
     :lists.keysort(1, dict) === :lists.keysort(1, other)
