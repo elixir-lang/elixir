@@ -113,7 +113,7 @@ defmodule File do
   Some of those functions are low-level, allowing the user
   to interact with the file or IO devices, like `open/2`,
   `copy/3` and others. This module also provides higher
-  level functions that works with filenames and have their naming
+  level functions that work with filenames and have their naming
   based on UNIX variants. For example, one can copy a file
   via `cp/3` and remove files and directories recursively
   via `rm_rf/1`
@@ -160,7 +160,7 @@ defmodule File do
   to a file is equivalent to sending messages to that process that
   writes to the file descriptor.
 
-  This means files can be passed in between nodes and message passing
+  This means files can be passed between nodes and message passing
   guarantees they can write to the same file in a network.
 
   However, you may not always want to pay the price for this abstraction.
@@ -168,7 +168,7 @@ defmodule File do
   and `:delayed_write` are also useful when operating large files or
   working with files in tight loops.
 
-  Check http:\\www.erlang.org/doc/man/file.html#open-2 for more information
+  Check http://www.erlang.org/doc/man/file.html#open-2 for more information
   about such options and other performance considerations.
   """
 
@@ -305,7 +305,7 @@ defmodule File do
   @doc """
   Returns information about the `path`. If it exists, it
   returns a `{ :ok, info }` tuple, where info is a
-  `File.Info` record. Retuns `{ :error, reason }` with
+  `File.Stat` record. Returns `{ :error, reason }` with
   the same reasons as `read/1` if a failure occurs.
 
   ## Options
@@ -851,7 +851,7 @@ defmodule File do
               or if data is read by a function that returns data in a format that cannot cope
               with the character range of the data, an error occurs and the file will be closed.
 
-  Check http:\\www.erlang.org/doc/man/file.html#open-2 for more information about
+  Check http://www.erlang.org/doc/man/file.html#open-2 for more information about
   other options like `:read_ahead` and `:delayed_write`.
 
   This function returns:
@@ -892,7 +892,7 @@ defmodule File do
   It returns `{ :ok, function_result }` in case of success,
   `{ :error, reason }` otherwise.
 
-  Do not use this function with :delayed_write option
+  Do not use this function with `:delayed_write` option
   since automatically closing the file may fail
   (as writes are delayed).
 
@@ -1054,12 +1054,12 @@ defmodule File do
   ## Raw files
 
   Since Elixir controls when the streamed file is opened, the underlying
-  device cannot be shared and as such it is convenient to open up the file
-  in raw mode for performance reasons. Therefore, Elixir **will** open up
+  device cannot be shared and as such it is convenient to open the file
+  in raw mode for performance reasons. Therefore, Elixir **will** open 
   streams in `:raw` mode with the `:read_ahead` option unless an encoding
   is specified.
 
-  Once may also consider passing the `:delayed_write` option if the stream
+  One may also consider passing the `:delayed_write` option if the stream
   is meant to be written to under a tight loop.
   """
   def stream!(path, modes \\ [], line_or_bytes \\ :line) do
