@@ -1211,6 +1211,9 @@ defmodule String do
   @spec to_hex(String.t) :: String.t | no_return
   def to_hex(string) when string == "", do: ""
   def to_hex(string) when is_binary(string) do
-    lc <<x :: 8>> inbits string do :io_lib.format("~2.16.0B", [x]) end |> from_char_list!
+    "#{lc <<x :: size(4), y :: size(4)>> inbits string, do: <<hex_char(x), hex_char(y)>>}"
   end
+
+  defp hex_char(n) when n < 10, do: ?0 + n
+  defp hex_char(n) when n < 16, do: ?a - 10 + n
 end
