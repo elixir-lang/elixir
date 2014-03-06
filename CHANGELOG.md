@@ -1,8 +1,7 @@
 # v0.12.5-dev
 
-* Enhancements
-
 * Bug fixes
+  * [Kernel] Ensure `try` does not generate an after clause. Generating an after clause forbade clauses in the `else` part from being tail recursive. This should improve performance and memory consumption of `Stream` functions
   * [Mix] Automatically recompile on outdated Elixir version and show proper error messages
 
 * Deprecations
@@ -12,9 +11,6 @@
   * [Stream] `Stream.after/1` is deprecated
   * [URI] `URI.decode_query/1` is deprecated in favor of `URI.decode_query/2` with explicit dict argument
   * [URI] Passing lists as key or values in `URI.encode_query/1` is deprecated
-
-* Backwards incompatible changes
-
 
 # v0.12.4 (2014-02-12)
 
