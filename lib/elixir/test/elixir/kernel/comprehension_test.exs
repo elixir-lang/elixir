@@ -4,6 +4,7 @@ defmodule Kernel.ComprehensionTest do
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureIO
+  require Integer
 
   defp to_bin(x) do
     << x >>
@@ -76,6 +77,54 @@ defmodule Kernel.ComprehensionTest do
       for(x <- enum, do: IO.puts x)
       nil
     end) == "1\n2\n3\n"
+  end
+
+  test "for comprehensions with into" do
+    Process.put(:into_cont, [])
+    Process.put(:into_done, false)
+    Process.put(:into_halt, false)
+
+    for x <- 1..3, into: collectable_pdict do
+      x * 2
+    end
+
+    assert Process.get(:into_cont) == [6, 4, 2]
+    assert Process.get(:into_done)
+    refute Process.get(:into_halt)
+  end
+
+  test "for comprehension with into leading to errors" do
+    Process.put(:into_cont, [])
+    Process.put(:into_done, false)
+    Process.put(:into_halt, false)
+
+    catch_error(
+      for x <- 1..3, into: collectable_pdict do
+        if x > 2, do: raise("oops"), else: x
+      end
+    )
+
+    assert Process.get(:into_cont) == [2, 1]
+    refute Process.get(:into_done)
+    assert Process.get(:into_halt)
+  end
+
+  test "for comprehension with into, generators and filters" do
+    Process.put(:into_cont, [])
+
+    for x <- 1..3, Integer.odd?(x), << y <- "hello" >>, into: collectable_pdict do
+      x + y
+    end
+
+    assert iolist_to_binary(Process.get(:into_cont)) == "roohkpmmfi"
+  end
+
+  defp collectable_pdict do
+    fn
+      _, { :cont, x } -> Process.put(:into_cont, [x|Process.get(:into_cont)])
+      _, :done -> Process.put(:into_done, true)
+      _, :halt -> Process.put(:into_halt, true)
+    end
   end
 
   ## List generators (inlined by the compiler)

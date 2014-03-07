@@ -1164,14 +1164,22 @@ defmodule Kernel.SpecialForms do
 
   In the examples above, the result returned by the comprehension was
   always a list. The returned result can be configured by passing an
-  `:into` option, that currently can be either an empty list `[]` (the
-  default) or an empty string `""`.
+  `:into` option, that accepts any structure as long as it implements
+  the `Collectable` protocol.
 
-  For example, we can bitstring generators with the `:into` option to
-  easily remove all spaces in a string:
+  For example, we can use bitstring generators with the `:into` option
+  to easily remove all spaces in a string:
 
       iex> for <<c <- " hello world ">>, c != ?\s, into: "", do: <<c>>
       "helloworld"
+
+  Since both `IO` and `File` modules provides streams, that are both
+  `Enumerable` and `Traversable`, here is a upcase echo server using
+  comprehensions:
+
+      for line <- IO.stream(:stdio), into: IO.stream(:stdio) do
+        String.upcase(line)
+      end
 
   """
   defmacro for(args)
