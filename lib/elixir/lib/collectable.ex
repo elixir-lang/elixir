@@ -27,7 +27,7 @@ defprotocol Collectable do
   shape where just the range limits are stored.
 
   The `Collectable` module was designed to fill the gap left by the
-  `Enumerable` protocol. It provides two functions: `into/2` and `empty/1`.
+  `Enumerable` protocol. It provides two functions: `into/1` and `empty/1`.
 
   `into/1` can be seen as the opposite of `Enumerable.reduce/3`. If
   `Enumerable` is about taking values out, `Collectable.into/1` is about
@@ -35,7 +35,7 @@ defprotocol Collectable do
 
   `empty/1` receives a collectable and returns an empty version of the
   same collectable. By combining the enumerable functionality with `into/1`
-  and `empty/1`, one can for example implement a traversal mechanism.
+  and `empty/1`, one can, for example, implement a traversal mechanism.
   """
 
   @type command :: { :cont, term } | :done | :halt
@@ -57,7 +57,7 @@ defprotocol Collectable do
   for closing resources and normalizing values. A collectable must
   be returned on `:done`.
 
-  If injection is suddently interrupted, `:halt` is passed and it can
+  If injection is suddenly interrupted, `:halt` is passed and it can
   return any value, as it won't be used.
   """
   @spec into(t) :: { term, (term, command -> t | term) }
