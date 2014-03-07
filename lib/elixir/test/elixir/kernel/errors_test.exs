@@ -580,12 +580,6 @@ defmodule Kernel.ErrorsTest do
       'for << x :: binary <- "123" >>, do: x'
   end
 
-  test :invalid_for_with_into do
-    assert_compile_fail CompileError,
-      "nofile:1: :into in comprehensions must be an empty list or an empty string at compile time, got: nil",
-      'for x <- [1,2,3], into: nil, do: x'
-  end
-
   test :unbound_cond do
     assert_compile_fail ArgumentError,
       "unbound variable _ inside cond. If you want the last clause to match, you probably meant to use true ->",
