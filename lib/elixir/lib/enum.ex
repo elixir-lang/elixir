@@ -412,11 +412,6 @@ defmodule Enum do
 
   def count(collection) do
     case Enumerable.count(collection) do
-      value when is_integer(value) ->
-        IO.write "Expected #{inspect Enumerable.impl_for(collection)}.count/1 to return " <>
-                 "{ :ok, boolean } if pre-calculated, otherwise { :error, module }, got " <>
-                 "an integer\n#{Exception.format_stacktrace}"
-        value
       { :ok, value } when is_integer(value) ->
         value
       { :error, module } ->
@@ -1075,11 +1070,6 @@ defmodule Enum do
 
   def member?(collection, value) do
     case Enumerable.member?(collection, value) do
-      value when is_boolean(value) ->
-        IO.write "Expected #{inspect Enumerable.impl_for(collection)}.member?/2 to return " <>
-                 "{ :ok, boolean } if faster than linear, otherwise { :error, __MODULE__ }, " <>
-                 "got a boolean\n#{Exception.format_stacktrace}"
-        value
       { :ok, value } when is_boolean(value) ->
         value
       { :error, module } ->
