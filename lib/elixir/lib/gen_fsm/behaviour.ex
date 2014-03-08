@@ -166,6 +166,8 @@ defmodule GenFSM.Behaviour do
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
+      IO.puts :stderr, "warning: GenFSM is deprecated and it will be removed in upcoming releases\n#{Exception.format_stacktrace}"
+
       @behaviour :gen_fsm
 
       @doc false

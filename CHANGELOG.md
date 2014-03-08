@@ -6,11 +6,15 @@
 
 * Deprecations
   * [File] `File.stream_to!/3` is deprecated
+  * [GenFSM] `GenFSM` is deprecated
   * [Kernel] `%` for sigils is deprecated in favor of `~`
   * [Kernel] `is_range/1` and `is_regex/1` are deprecated in favor of `Range.range?/1` and `Regex.regex?/1`
   * [Stream] `Stream.after/1` is deprecated
   * [URI] `URI.decode_query/1` is deprecated in favor of `URI.decode_query/2` with explicit dict argument
   * [URI] Passing lists as key or values in `URI.encode_query/1` is deprecated
+
+* Backwards incompatible changes
+  * [Mix] Remove `MIX_GIT_FORCE_HTTPS` as Git itself already provides mechanisms for doing so
 
 # v0.12.4 (2014-02-12)
 
