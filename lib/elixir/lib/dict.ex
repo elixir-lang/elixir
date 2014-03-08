@@ -37,7 +37,7 @@ defmodule Dict do
 
   @type key :: any
   @type value :: any
-  @type t :: tuple | list
+  @type t :: tuple | list | map
 
   defcallback new :: t
   defcallback delete(t, key) :: t

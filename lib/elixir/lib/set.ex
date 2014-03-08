@@ -30,7 +30,7 @@ defmodule Set do
 
   @type value :: any
   @type values :: [ value ]
-  @type t :: tuple
+  @type t :: map | tuple
 
   defcallback new :: t
   defcallback delete(t, value) :: t
