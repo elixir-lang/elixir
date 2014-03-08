@@ -1048,7 +1048,7 @@ defmodule Kernel do
   end
 
   @doc """
-  A non-local return from a function. Check `try/2` for more information.
+  A non-local return from a function. Check `Kernel.SpecialForms.try/1` for more information.
 
   Inlined by the compiler.
   """
