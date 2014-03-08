@@ -1173,9 +1173,8 @@ defmodule Kernel.SpecialForms do
       iex> for <<c <- " hello world ">>, c != ?\s, into: "", do: <<c>>
       "helloworld"
 
-  Since both `IO` and `File` modules provide streams, that are both
-  `Enumerable` and `Traversable`, here is an upcase echo server using
-  comprehensions:
+  The `IO` module provides streams, that are both `Enumerable` and
+  `Collectable`, here is an upcase echo server using comprehensions:
 
       for line <- IO.stream(:stdio), into: IO.stream(:stdio) do
         String.upcase(line)
