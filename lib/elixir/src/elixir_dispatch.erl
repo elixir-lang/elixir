@@ -114,7 +114,7 @@ expand_import(Meta, { Name, Arity } = Tuple, Args, E, Extra) ->
 
   case Dispatch of
     %% In case it is an import, we dispatch the import.
-    { Kind, _ } when Kind == import ->
+    { import, _ } ->
       do_expand_import(Meta, Tuple, Args, Module, E, Dispatch);
 
     %% There is a local and an import. This is a conflict unless

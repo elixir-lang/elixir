@@ -14,8 +14,8 @@ translate(Meta, Clauses, S) ->
   { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
   Arities = [length(Args) || { clause, _Line, Args, _Guards, _Exprs } <- TClauses],
 
-  case length(lists:usort(Arities)) of
-    1 ->
+  case lists:usort(Arities) of
+    [_] ->
       { { 'fun', ?line(Meta), { clauses, TClauses } }, NS };
     _ ->
       compile_error(Meta, S#elixir_scope.file,
