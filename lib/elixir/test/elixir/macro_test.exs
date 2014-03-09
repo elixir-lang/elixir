@@ -368,6 +368,7 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: %Test{})  == "%Test{}"
     assert Macro.to_string(quote do: %Test{foo: 1, bar: 1})  == "%Test{foo: 1, bar: 1}"
     assert Macro.to_string(quote do: %Test{struct | foo: 2})  == "%Test{struct | foo: 2}"
+    assert Macro.to_string(quote do: %Test{} + 1)  == "%Test{} + 1"
   end
 
   test :binary_ops_to_string do
