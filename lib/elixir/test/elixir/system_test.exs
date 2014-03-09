@@ -1,7 +1,7 @@
 Code.require_file "test_helper.exs", __DIR__
 
 defmodule SystemTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   import PathHelpers
 
   test "build_info" do
