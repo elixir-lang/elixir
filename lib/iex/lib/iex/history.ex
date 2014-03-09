@@ -47,13 +47,10 @@
   Removes all entries from the history and forces a garbage collection cycle.
   """
   def reset() do
-    # remove all entries
-    f = fn(key, _) ->
+    each_pair(fn(key, _) ->
       Process.delete(key)
-    end
-    each_pair(f)
+    end)
 
-    # reset counter
     counter = Process.get(:iex_history_counter)
     Process.put(:iex_history_start_counter, counter)
 
@@ -101,17 +98,17 @@
   # Based on https://github.com/erlang/otp/blob/7dcccee4371477e983f026db9e243cb66900b1ef/lib/stdlib/src/shell.erl#L1401
   defp collect_garbage do
     :erlang.garbage_collect(self())
-    try do
-      :erlang.garbage_collect(Process.whereis(:user))
-    catch
-      _, _ -> nil
-    end
-    try do
-      :erlang.garbage_collect(Process.group_leader())
-    catch
-      _, _ -> nil
-    end
+    collect_garbage Process.whereis(:user)
+    collect_garbage Process.group_leader()
     :erlang.garbage_collect()
+  end
+
+  defp collect_garbage(process) do
+    try do
+      :erlang.garbage_collect(process)
+    catch
+      _, _ -> nil
+    end
   end
 
   @doc """
