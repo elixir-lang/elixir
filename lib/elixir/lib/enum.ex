@@ -1134,6 +1134,22 @@ defmodule Enum do
   end
 
   @doc """
+  Returns the sum of all values.
+
+  Raises `ArithmeticError` if collection contains a non-numeric value.
+
+  ## Examples
+
+      iex> Enum.sum([1, 2, 3])
+      6
+
+  """
+  @spec sum(t) :: number
+  def sum(collection) do
+    reduce(collection, 0, &+/2)
+  end
+
+  @doc """
   Partitions `collection` into two collections, where the first one contains elements
   for which `fun` returns a truthy value, and the second one -- for which `fun`
   returns `false` or `nil`.
