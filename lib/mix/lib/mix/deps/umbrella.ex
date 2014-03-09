@@ -30,10 +30,10 @@ defmodule Mix.Deps.Umbrella do
 
     Enum.map(deps, fn umbrella_dep ->
       umbrella_dep = Mix.Deps.Loader.load(umbrella_dep)
-      deps = Enum.filter(umbrella_dep.deps, fn Mix.Dep[] = dep ->
+      deps = Enum.filter(umbrella_dep.deps, fn dep ->
         Mix.Deps.available?(dep) and dep.app in apps
       end)
-      umbrella_dep.deps(deps)
+      %{umbrella_dep | deps: deps}
     end) |> Mix.Deps.Converger.topsort
   end
 
@@ -53,8 +53,13 @@ defmodule Mix.Deps.Umbrella do
     Enum.map paths, fn({ app, path }) ->
       opts = [path: path, dest: Path.expand(path),
               env: Mix.env, build: Path.join([build, "lib", app])]
-      Mix.Dep[scm: Mix.SCM.Path, app: app, requirement: nil, manager: :mix,
-              status: { :ok, nil }, opts: opts]
+      %Mix.Dep{
+        scm: Mix.SCM.Path,
+        app: app,
+        requirement: nil,
+        manager: :mix,
+        status: { :ok, nil },
+        opts: opts }
     end
   end
 end

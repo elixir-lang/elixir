@@ -6,7 +6,7 @@ defmodule Mix.Deps.Loader do
 
   @doc """
   Gets all direct children of the current `Mix.Project`
-  as a `Mix.Dep` record. Umbrella project dependencies
+  as a `Mix.Dep` struct. Umbrella project dependencies
   are included as children.
 
   By default, it will filter all dependencies that does not match
@@ -24,7 +24,7 @@ defmodule Mix.Deps.Loader do
     # Filter deps not matching mix environment
     if env = opts[:env] do
       deps =
-        Enum.filter(deps, fn Mix.Dep[opts: opts] ->
+        Enum.filter(deps, fn %Mix.Dep{opts: opts} ->
           only = opts[:only]
           if only, do: env in List.wrap(only), else: true
         end)
@@ -38,8 +38,8 @@ defmodule Mix.Deps.Loader do
   latest status and children.
   """
   def load(dep) do
-    Mix.Dep[manager: manager, scm: scm, opts: opts] = dep
-    dep  = dep.status(scm_status(scm, opts))
+    %Mix.Dep{manager: manager, scm: scm, opts: opts} = dep
+    dep  = %{dep | status: scm_status(scm, opts)}
     dest = opts[:dest]
 
     { dep, children } =
@@ -51,19 +51,19 @@ defmodule Mix.Deps.Loader do
           rebar_dep(dep)
 
         mix?(dest) ->
-          mix_dep(dep.manager(:mix))
+          mix_dep(%{dep | manager: :mix})
 
         rebar?(dest) ->
-          rebar_dep(dep.manager(:rebar))
+          rebar_dep(%{dep | manager: :rebar})
 
         make?(dest) ->
-          { dep.manager(:make), [] }
+          { %{dep | manager: :make}, [] }
 
         true ->
           { dep, [] }
       end
 
-    validate_path(validate_app(dep)).deps(children)
+    %{validate_path(validate_app(dep)) | deps: children}
   end
 
   @doc """
@@ -96,7 +96,7 @@ defmodule Mix.Deps.Loader do
   ## Helpers
 
   def to_dep(tuple, scms, from, manager \\ nil) do
-    with_scm_and_app(tuple, scms).from(from).manager(manager)
+    %{with_scm_and_app(tuple, scms) | from: from, manager: manager}
   end
 
   defp with_scm_and_app({ app, opts }, scms) when is_atom(app) and is_list(opts) do
@@ -119,13 +119,12 @@ defmodule Mix.Deps.Loader do
     end
 
     if scm do
-      Mix.Dep[
+      %Mix.Dep{
         scm: scm,
         app: app,
         requirement: req,
         status: scm_status(scm, opts),
-        opts: opts
-      ]
+        opts: opts }
     else
       raise Mix.Error, message: "#{inspect Mix.Project.get} did not specify a supported scm " <>
                                 "for app #{inspect app}, expected one of :git, :path or :in_umbrella"
@@ -176,7 +175,7 @@ defmodule Mix.Deps.Loader do
 
   ## Fetching
 
-  defp mix_dep(Mix.Dep[opts: opts] = dep) do
+  defp mix_dep(%Mix.Dep{opts: opts} = dep) do
     Mix.Deps.in_dependency(dep, fn _ ->
       config    = Mix.project
       umbrella? = Mix.Project.umbrella?
@@ -191,15 +190,17 @@ defmodule Mix.Deps.Loader do
       end
 
       children = children(env: opts[:env] || :prod)
-      { dep.manager(:mix).opts(opts).extra(umbrella: umbrella?), children }
+      dep = %{dep | manager: :mix, opts: opts, extra: [umbrella: umbrella?]}
+      { dep, children }
     end)
   end
 
-  defp rebar_dep(Mix.Dep[] = dep) do
+  defp rebar_dep(%Mix.Dep{} = dep) do
     Mix.Deps.in_dependency(dep, fn _ ->
       rebar = Mix.Rebar.load_config(".")
       extra = Dict.take(rebar, [:sub_dirs])
-      { dep.manager(:rebar).extra(extra), rebar_children(rebar) }
+      dep   = %{dep | manager: :rebar, extra: extra}
+      { dep, rebar_children(rebar) }
     end)
   end
 
@@ -211,7 +212,7 @@ defmodule Mix.Deps.Loader do
     end) |> Enum.concat
   end
 
-  defp validate_path(Mix.Dep[scm: scm, manager: manager] = dep) do
+  defp validate_path(%Mix.Dep{scm: scm, manager: manager} = dep) do
     if scm == Mix.SCM.Path and not manager in [:mix, nil] do
       raise Mix.Error, message: ":path option can only be used with mix projects, " <>
                                 "invalid path dependency for #{inspect dep.app}"
@@ -220,7 +221,7 @@ defmodule Mix.Deps.Loader do
     end
   end
 
-  defp validate_app(Mix.Dep[opts: opts, requirement: req, app: app, status: status] = dep) do
+  defp validate_app(%Mix.Dep{opts: opts, requirement: req, app: app, status: status} = dep) do
     opts_app = opts[:app]
     build    = opts[:build]
 
@@ -228,13 +229,13 @@ defmodule Mix.Deps.Loader do
       not ok?(status) ->
         dep
       File.exists?(Path.join(opts[:build], ".compile")) ->
-        dep.status(:compile)
+        %{dep | status: :compile}
       opts_app == false ->
         dep
       true ->
         path  = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
         path  = Path.expand(path, build)
-        dep.status app_status(path, app, req)
+        %{dep | status: app_status(path, app, req)}
     end
   end
 

@@ -284,7 +284,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   defp path_deps_changed?(manifest) do
     manifest = Path.absname(manifest)
 
-    deps = Enum.filter(Mix.Deps.children([]), fn(Mix.Dep[] = dep) ->
+    deps = Enum.filter(Mix.Deps.children([]), fn dep ->
       dep.scm == Mix.SCM.Path
     end)
 

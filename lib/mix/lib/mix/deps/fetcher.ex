@@ -33,7 +33,7 @@ defmodule Mix.Deps.Fetcher do
   end
 
   defp do_fetch(dep, { acc, lock }) do
-    Mix.Dep[app: app, scm: scm, opts: opts] = dep = check_lock(dep, lock)
+    %Mix.Dep{app: app, scm: scm, opts: opts} = dep = check_lock(dep, lock)
 
     cond do
       # Dependencies that cannot be fetched are always compiled afterwards
@@ -63,11 +63,11 @@ defmodule Mix.Deps.Fetcher do
     end
   end
 
-  defp out_of_date?(Mix.Dep[status: { :lockmismatch, _ }]), do: true
-  defp out_of_date?(Mix.Dep[status: :lockoutdated]),        do: true
-  defp out_of_date?(Mix.Dep[status: :nolock]),              do: true
-  defp out_of_date?(Mix.Dep[status: { :unavailable, _ }]),  do: true
-  defp out_of_date?(Mix.Dep[]),                             do: false
+  defp out_of_date?(%Mix.Dep{status: { :lockmismatch, _ }}), do: true
+  defp out_of_date?(%Mix.Dep{status: :lockoutdated}),        do: true
+  defp out_of_date?(%Mix.Dep{status: :nolock}),              do: true
+  defp out_of_date?(%Mix.Dep{status: { :unavailable, _ }}),  do: true
+  defp out_of_date?(%Mix.Dep{}),                             do: false
 
   defp do_finalize({ all_deps, { apps, new_lock } }, old_lock, opts) do
     # Let's get the loaded versions of deps
@@ -101,7 +101,7 @@ defmodule Mix.Deps.Fetcher do
   defp require_compilation(deps) do
     envs = Path.wildcard("_build/*/lib")
 
-    for Mix.Dep[app: app] <- deps, env <- envs do
+    for %Mix.Dep{app: app} <- deps, env <- envs do
       File.touch Path.join [env, app, ".compile"]
     end
   end
