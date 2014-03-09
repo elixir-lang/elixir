@@ -151,9 +151,10 @@ defmodule Kernel.ParallelCompiler do
 
         # Sometimes we may have spurious entries in the waiting
         # list because someone invoked try/rescue UndefinedFunctionError
+        new_files   = List.delete(files, down_pid)
         new_waiting = List.keydelete(waiting, down_pid, 0)
         new_queued  = List.keydelete(queued, down_pid, 0)
-        spawn_compilers(files, original, output, callbacks, new_waiting, new_queued, schedulers, result)
+        spawn_compilers(new_files, original, output, callbacks, new_waiting, new_queued, schedulers, result)
 
       { :DOWN, down_ref, :process, _down_pid, { :failure, kind, reason, stacktrace } } ->
         handle_failure(down_ref, kind, reason, stacktrace, files, waiting, queued)
