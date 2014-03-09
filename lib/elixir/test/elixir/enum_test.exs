@@ -359,6 +359,7 @@ defmodule EnumTest.List do
   end
 
   test :sum do
+    assert Enum.sum([]) == 0
     assert Enum.sum([1]) == 1
     assert Enum.sum([1, 2, 3]) == 6
     assert Enum.sum([1.1, 2.2, 3.3]) == 6.6
