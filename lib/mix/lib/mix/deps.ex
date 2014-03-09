@@ -52,6 +52,8 @@ defmodule Mix.Deps do
   * `:optional` - The dependency is optional and used only to specify requirements
   * `:only` - The dependency will only belong to the given environments, use when
               declaring dev or test only dependencies
+  * `:override` - If set to true the dependency will override any other
+                  definitions of itself by other dependencies
 
   ## Git options (`:git`)
 
