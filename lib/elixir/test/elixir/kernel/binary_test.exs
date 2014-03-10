@@ -53,6 +53,30 @@ bar """
   test :string_concatenation_as_match do
     "foo" <> x = "foobar"
     assert x == "bar"
+
+    <<"foo">> <> x = "foobar"
+    assert x == "bar"
+
+    <<"f", "oo">> <> x = "foobar"
+    assert x == "bar"
+
+    <<x :: [binary, size(3)]>> <> _ = "foobar"
+    assert x == "foo"
+
+    size = 3
+    <<x :: [binary, size(size)]>> <> _ = "foobar"
+    assert x == "foo"
+
+    <<x :: [binary, size(6), unit(4)]>> <> _ = "foobar"
+    assert x == "foo"
+
+    assert_raise ErlangError, fn ->
+      Code.eval_string(~s(<<x :: [binary, size(3), unit(4)]>> <> _ = "foobar"))
+    end
+
+    assert_raise ErlangError, fn ->
+      Code.eval_string(~s(<<x :: [integer, size(4)]>> <> _ = "foobar"))
+    end
   end
 
   test :octals do
