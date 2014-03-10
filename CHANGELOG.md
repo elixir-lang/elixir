@@ -1,4 +1,4 @@
-# v0.12.5-dev
+# v0.12.5 (2014-03-09)
 
 * Bug fixes
   * [Kernel] Ensure `try` does not generate an after clause. Generating an after clause forbade clauses in the `else` part from being tail recursive. This should improve performance and memory consumption of `Stream` functions
