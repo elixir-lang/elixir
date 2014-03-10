@@ -11,20 +11,20 @@ defmodule Mix.Deps.Converger do
     graph = :digraph.new
 
     try do
-      Enum.each deps, fn Mix.Dep[app: app] ->
+      Enum.each(deps, fn %Mix.Dep{app: app} ->
         :digraph.add_vertex(graph, app)
-      end
+      end)
 
-      Enum.each deps, fn Mix.Dep[app: app, deps: other_deps] ->
-        Enum.each other_deps, fn Mix.Dep[app: other_app] ->
+      Enum.each(deps, fn %Mix.Dep{app: app, deps: other_deps} ->
+        Enum.each(other_deps, fn %Mix.Dep{app: other_app} ->
           :digraph.add_edge(graph, other_app, app)
-        end
-      end
+        end)
+      end)
 
       if apps = :digraph_utils.topsort(graph) do
-        Enum.map apps, fn(app) ->
-          Enum.find(deps, fn(Mix.Dep[app: other_app]) -> app == other_app end)
-        end
+        Enum.map(apps, fn(app) ->
+          Enum.find(deps, fn(%Mix.Dep{app: other_app}) -> app == other_app end)
+        end)
       else
         raise Mix.Error, message: "Could not sort dependencies. There are cycles in the dependency graph."
       end
@@ -143,7 +143,7 @@ defmodule Mix.Deps.Converger do
               Mix.Deps.Loader.load(dep)
           end
 
-        dep = dep.update_deps(&reject_non_fullfilled_optional(&1, current_breadths))
+        dep = %{dep | deps: reject_non_fullfilled_optional(dep.deps, current_breadths)}
         { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, callback, rest, cache)
         all(dep.deps, acc, current_breadths, Enum.map(dep.deps, &(&1.app)) ++ current_breadths, callback, rest, cache)
     end
@@ -164,12 +164,12 @@ defmodule Mix.Deps.Converger do
   # also check for the override option and mark the dependency
   # as overridden instead of diverged.
   defp diverged_deps(list, upper_breadths, dep) do
-    Mix.Dep[app: app] = dep
+    %Mix.Dep{app: app} = dep
     in_upper? = app in upper_breadths
 
     { acc, match } =
       Enum.map_reduce list, false, fn(other, match) ->
-        Mix.Dep[app: other_app, opts: other_opts] = other
+        %Mix.Dep{app: other_app, opts: other_opts} = other
 
         cond do
           app != other_app ->
@@ -180,30 +180,30 @@ defmodule Mix.Deps.Converger do
             { with_matching_req(other, dep), true }
           true ->
             tag = if in_upper?, do: :overridden, else: :diverged
-            { other.status({ tag, dep }), true }
+            { %{other | status: { tag, dep }}, true }
         end
       end
 
     if match, do: acc
   end
 
-  defp converge?(Mix.Dep[scm: scm1, opts: opts1], Mix.Dep[scm: scm2, opts: opts2]) do
+  defp converge?(%Mix.Dep{scm: scm1, opts: opts1}, %Mix.Dep{scm: scm2, opts: opts2}) do
     scm1 == scm2 and scm1.equal?(opts1, opts2)
   end
 
   defp reject_non_fullfilled_optional(children, upper_breadths) do
-    Enum.reject children, fn Mix.Dep[app: app, opts: opts] ->
+    Enum.reject children, fn %Mix.Dep{app: app, opts: opts} ->
       opts[:optional] && not(app in upper_breadths)
     end
   end
 
-  defp with_matching_req(Mix.Dep[] = other, Mix.Dep[] = dep) do
+  defp with_matching_req(%Mix.Dep{} = other, %Mix.Dep{} = dep) do
     case other.status do
       { :ok, vsn } when not nil?(vsn) ->
         if Mix.Deps.Loader.vsn_match?(dep.requirement, vsn, dep.app) do
           other
         else
-          other.status({ :divergedreq, dep })
+          %{other | status: { :divergedreq, dep }}
         end
       _ ->
         other

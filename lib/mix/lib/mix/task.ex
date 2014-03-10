@@ -212,7 +212,7 @@ defmodule Mix.Task do
 
     if umbrella? && recursive && Mix.ProjectStack.enable_recursion do
       config = [build_path: Mix.Project.build_path]
-      res = for Mix.Dep[app: app, opts: opts] <- Mix.Deps.Umbrella.loaded do
+      res = for %Mix.Dep{app: app, opts: opts} <- Mix.Deps.Umbrella.loaded do
         Mix.Project.in_project(app, opts[:path], config, fun)
       end
       Mix.ProjectStack.disable_recursion

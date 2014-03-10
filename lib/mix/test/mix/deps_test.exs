@@ -40,12 +40,12 @@ defmodule Mix.DepsTest do
     in_fixture "deps_status", fn ->
       deps = Mix.Deps.loaded([])
       assert length(deps) == 6
-      assert Enum.find deps, &match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
-      assert Enum.find deps, &match?(Mix.Dep[app: :invalidvsn, status: { :invalidvsn, :ok }], &1)
-      assert Enum.find deps, &match?(Mix.Dep[app: :invalidapp, status: { :invalidapp, _ }], &1)
-      assert Enum.find deps, &match?(Mix.Dep[app: :noappfile, status: { :noappfile, _ }], &1)
-      assert Enum.find deps, &match?(Mix.Dep[app: :uncloned, status: { :unavailable, _ }], &1)
-      assert Enum.find deps, &match?(Mix.Dep[app: :optional, status: { :unavailable, _ }], &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :ok, status: { :ok, _ }}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :invalidvsn, status: { :invalidvsn, :ok }}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :invalidapp, status: { :invalidapp, _ }}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :noappfile, status: { :noappfile, _ }}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :uncloned, status: { :unavailable, _ }}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :optional, status: { :unavailable, _ }}, &1)
     end
   end
 
@@ -54,7 +54,7 @@ defmodule Mix.DepsTest do
 
     in_fixture "deps_status", fn ->
       deps = Mix.Deps.loaded([])
-      assert Enum.find deps, &match?(Mix.Dep[app: :ok, status: { :ok, _ }], &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :ok, status: { :ok, _ }}, &1)
     end
   end
 
@@ -226,7 +226,7 @@ defmodule Mix.DepsTest do
 
       { deps, _acc } = Mix.Deps.unloaded([], [env: :prod], &{ &1, &2 })
       assert length(deps) == 1
-      assert Enum.find deps, &match?(Mix.Dep[app: :foo], &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :foo}, &1)
     end
   end
 

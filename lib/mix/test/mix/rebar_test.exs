@@ -73,10 +73,9 @@ defmodule Mix.RebarTest do
     Mix.Project.push(RebarAsDep)
 
     deps = Mix.Deps.loaded([])
-    assert Enum.find(deps, &match?(Mix.Dep[app: :rebar_dep], &1))
+    assert Enum.find(deps, &match?(%Mix.Dep{app: :rebar_dep}, &1))
 
-    assert Enum.find(deps, fn dep ->
-      Mix.Dep[app: app, opts: opts] = dep
+    assert Enum.find(deps, fn %Mix.Dep{app: app, opts: opts} ->
       if app == :git_rebar do
         assert Enum.find(opts, &match?({:git, "../../test/fixtures/git_rebar"}, &1))
         assert Enum.find(opts, &match?({:ref, "master"}, &1))

@@ -51,10 +51,10 @@ defmodule Mix.Tasks.Deps.Check do
     { Enum.reverse(not_ok), Enum.reverse(compile) }
   end
 
-  defp compile?(Mix.Dep[status: { :elixirlock, _ }]), do: true
-  defp compile?(Mix.Dep[status: { :noappfile, _ }]), do: true
-  defp compile?(Mix.Dep[status: :compile]), do: true
-  defp compile?(_), do: false
+  defp compile?(%Mix.Dep{status: { :elixirlock, _ }}), do: true
+  defp compile?(%Mix.Dep{status: { :noappfile, _ }}), do: true
+  defp compile?(%Mix.Dep{status: :compile}), do: true
+  defp compile?(%Mix.Dep{}), do: false
 
   # If the build is per environment, we should be able to look
   # at all dependencies and remove the builds that no longer

@@ -47,8 +47,7 @@ defmodule Mix.Tasks.Deps.Compile do
     config = Mix.Project.deps_config
 
     compiled =
-      Enum.map deps, fn(dep) ->
-        Mix.Dep[app: app, status: status, opts: opts] = dep
+      Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts} = dep ->
         check_unavailable!(app, status)
 
         unless run_opts[:quiet] || opts[:compile] == false do
@@ -72,14 +71,14 @@ defmodule Mix.Tasks.Deps.Compile do
         unless mix?(dep), do: build_structure(dep, config)
         File.rm(Path.join(opts[:build], ".compile"))
         compiled
-      end
+      end)
 
     if Enum.any?(compiled), do: Mix.Deps.Lock.touch
   end
 
   # All available dependencies can be compiled
   # except for umbrella applications.
-  defp compilable?(Mix.Dep[manager: manager, extra: extra] = dep) do
+  defp compilable?(%Mix.Dep{manager: manager, extra: extra} = dep) do
     available?(dep) and (manager != :mix or !extra[:umbrella?])
   end
 
@@ -108,7 +107,7 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp do_rebar(Mix.Dep[app: app] = dep, config) do
+  defp do_rebar(%Mix.Dep{app: app} = dep, config) do
     do_command dep, rebar_cmd(app), "compile skip_deps=true deps_dir=#{inspect config[:deps_path]}"
   end
 
@@ -134,7 +133,7 @@ defmodule Mix.Tasks.Deps.Compile do
     do_command(dep, "make")
   end
 
-  defp do_compile(Mix.Dep[app: app, opts: opts] = dep) do
+  defp do_compile(%Mix.Dep{app: app, opts: opts} = dep) do
     if command = opts[:compile] do
       Mix.shell.info("#{app}: #{command}")
       do_command(dep, command)
@@ -143,7 +142,7 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp do_command(Mix.Dep[app: app, opts: opts], command, extra \\ "") do
+  defp do_command(%Mix.Dep{app: app, opts: opts}, command, extra \\ "") do
     File.cd! opts[:dest], fn ->
       if Mix.shell.cmd("#{command} #{extra}") != 0 do
         raise Mix.Error, message: "Could not compile dependency #{app}, #{command} command failed. " <>
@@ -153,7 +152,7 @@ defmodule Mix.Tasks.Deps.Compile do
     true
   end
 
-  defp build_structure(Mix.Dep[opts: opts] = dep, config) do
+  defp build_structure(%Mix.Dep{opts: opts} = dep, config) do
     build_path = Path.dirname(opts[:build])
     Enum.each Mix.Deps.source_paths(dep), fn source ->
       app = Path.join(build_path, Path.basename(source))

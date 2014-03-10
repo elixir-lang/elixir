@@ -123,9 +123,10 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp deps_tuples do
-    Enum.reduce Mix.Deps.loaded(env: Mix.env) || [], [], fn(dep, acc) ->
-      get_tuples(dep.opts[:build]) ++ acc
-    end
+    deps = Mix.Deps.loaded(env: Mix.env) || []
+    Enum.reduce(deps, [], fn dep, acc ->
+      get_tuples(%{dep | opts: :build}) ++ acc
+    end)
   end
 
   defp set_perms(filename) do
