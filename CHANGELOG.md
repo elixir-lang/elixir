@@ -32,6 +32,24 @@
 * Backwards incompatible changes
   * [ExUnit] Formatters are now required to be a GenEvent and `ExUnit.run/2` returns a map with results
 
+# v0.12.5 (2014-03-09)
+
+* Bug fixes
+  * [Kernel] Ensure `try` does not generate an after clause. Generating an after clause forbade clauses in the `else` part from being tail recursive. This should improve performance and memory consumption of `Stream` functions
+  * [Mix] Automatically recompile on outdated Elixir version and show proper error messages
+
+* Deprecations
+  * [File] `File.stream_to!/3` is deprecated
+  * [GenFSM] `GenFSM` is deprecated
+  * [Kernel] `%` for sigils is deprecated in favor of `~`
+  * [Kernel] `is_range/1` and `is_regex/1` are deprecated in favor of `Range.range?/1` and `Regex.regex?/1`
+  * [Stream] `Stream.after/1` is deprecated
+  * [URI] `URI.decode_query/1` is deprecated in favor of `URI.decode_query/2` with explicit dict argument
+  * [URI] Passing lists as key or values in `URI.encode_query/1` is deprecated
+
+* Backwards incompatible changes
+  * [Mix] Remove `MIX_GIT_FORCE_HTTPS` as Git itself already provides mechanisms for doing so
+
 # v0.12.4 (2014-02-12)
 
 * Enhancements
