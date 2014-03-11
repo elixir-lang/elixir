@@ -358,6 +358,19 @@ defmodule EnumTest.List do
     end
   end
 
+  test :sum do
+    assert Enum.sum([]) == 0
+    assert Enum.sum([1]) == 1
+    assert Enum.sum([1, 2, 3]) == 6
+    assert Enum.sum([1.1, 2.2, 3.3]) == 6.6
+    assert_raise ArithmeticError, fn ->
+      Enum.sum([{}])
+    end
+    assert_raise ArithmeticError, fn ->
+      Enum.sum([1,{}])
+    end
+  end
+
   test :chunk do
     assert Enum.chunk([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4]]
     assert Enum.chunk([1, 2, 3, 4, 5], 2, 2, [6]) == [[1, 2], [3, 4], [5, 6]]
@@ -761,6 +774,11 @@ defmodule EnumTest.Range do
   test :min_by do
     assert Enum.min_by(1..1, fn(x) -> :math.pow(-2, x) end) == 1
     assert Enum.min_by(1..3, fn(x) -> :math.pow(-2, x) end) == 3
+  end
+
+  test :sum do
+    assert Enum.sum(1..1) == 1
+    assert Enum.sum(1..3) == 6
   end
 
   test :chunk do
