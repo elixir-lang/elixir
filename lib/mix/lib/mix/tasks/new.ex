@@ -60,8 +60,7 @@ defmodule Mix.Tasks.New do
 
   defp do_generate(app, path, opts) do
     mod     = opts[:module] || camelize(app)
-    otp_app = if opts[:bare], do: "[]", else: "[mod: { #{mod}, [] }]"
-    assigns = [app: app, mod: mod, otp_app: otp_app]
+    assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:bare])]
 
     create_file "README.md",  readme_template(assigns)
     create_file ".gitignore", gitignore_text
@@ -96,6 +95,14 @@ defmodule Mix.Tasks.New do
 
     Run `mix help` for more commands.
     """
+  end
+
+  defp otp_app(_mod, true) do
+    "    [ applications: [] ]"
+  end
+
+  defp otp_app(mod, false) do
+    "    [ applications: [],\n      mod: { #{mod}, [] } ]"
   end
 
   defp do_generate_umbrella(app, path, _opts) do
@@ -168,7 +175,7 @@ defmodule Mix.Tasks.New do
 
     # Configuration for the OTP application
     def application do
-      <%= @otp_app %>
+  <%= @otp_app %>
     end
 
     # Returns the list of dependencies in the format:
