@@ -52,6 +52,8 @@ defmodule File.Stream do
     end
 
     def into(%{ path: path, modes: modes, raw: raw } = stream) do
+      modes = for mode <- modes, not mode in [:read], do: mode
+
       case :file.open(path, [:write|modes]) do
         { :ok, device } ->
           { :ok, into(device, stream, raw) }
@@ -78,6 +80,8 @@ defmodule File.Stream do
 
   defimpl Enumerable do
     def reduce(%{ path: path, modes: modes, line_or_bytes: line_or_bytes, raw: raw }, acc, fun) do
+      modes = for mode <- modes, not mode in [:write, :append], do: mode
+
       start_fun =
         fn ->
           case :file.open(path, modes) do
@@ -1055,7 +1059,7 @@ defmodule File do
 
   Since Elixir controls when the streamed file is opened, the underlying
   device cannot be shared and as such it is convenient to open the file
-  in raw mode for performance reasons. Therefore, Elixir **will** open 
+  in raw mode for performance reasons. Therefore, Elixir **will** open
   streams in `:raw` mode with the `:read_ahead` option unless an encoding
   is specified.
 

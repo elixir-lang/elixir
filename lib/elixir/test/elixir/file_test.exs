@@ -997,6 +997,27 @@ defmodule FileTest do
     end
   end
 
+  test :stream_into_append do
+    src  = fixture_path("file.txt")
+    dest = tmp_path("tmp_test.txt")
+
+    try do
+      refute File.exists?(dest)
+      original = File.stream!(dest, [:append])
+
+      File.stream!(src, [:append])
+      |> Stream.map(&String.replace(&1, "O", "A"))
+      |> Enum.into(original)
+
+      File.stream!(src, [:append])
+      |> Enum.into(original)
+
+      assert File.read(dest) == { :ok, "FAA\nFOO\n" }
+    after
+      File.rm(dest)
+    end
+  end
+
   test :copy do
     src  = fixture_path("file.txt")
     dest = tmp_path("tmp_test.txt")
