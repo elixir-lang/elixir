@@ -19,6 +19,7 @@ defmodule KernelTest do
   doctest List
   doctest Macro
   doctest Module
+  doctest Node
   doctest OptionParser
   doctest Path
   doctest Protocol.Consolidation

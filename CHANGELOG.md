@@ -3,7 +3,7 @@
 * Enhancements
   * [Collectable] Add the `Collectable` protocol that empowers `Enum.into/2` and `Stream.into/2` and the `:into` option in comprehensions
   * [Collectable] Implement Collectable for lists, dicts, bitstrings, functions and provide both `File.Stream` and `IO.Stream`
-  * [Enum] Add `Enum.group_by/2`, `Enum.into/2`, `Enum.into/3` and `Enum.traverse/2`
+  * [Enum] Add `Enum.group_by/2`, `Enum.into/2`, `Enum.into/3`, `Enum.traverse/2` and `Enum.sum/2`
   * [ExUnit] Randomize cases and tests suite runs, allow seed configuration and the `--seed` flag via `mix test`
   * [ExUnit] Support `--only` for filtering when running tests with `mix test`
   * [ExUnit] Raise an error if another `capture_io` process already captured the device
@@ -14,6 +14,7 @@
   * [Mix] Add dependency option `:only` to specify the dependency environment. `mix deps.get` and `mix deps.update` works accross all environment unless `--only` is specified
   * [Mix] Add `Mix.Shell.prompt/1`
   * [Mix] Ensure the project is compiled in case Mix' CLI cannot find a task
+  * [Node] Add `Node.ping/1`
   * [Regex] Regexes no longer need the "g" option when there is a need to use named captures
   * [Stream] Add `Stream.into/2` and `Stream.into/3`
   * [StringIO] Add a `StringIO` module that allows a String to be used as IO device
