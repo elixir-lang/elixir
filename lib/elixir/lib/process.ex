@@ -124,6 +124,33 @@ defmodule Process do
   end
 
   @doc """
+  Sends a message to the given process.
+
+  If the option `:noconnect` is used and sending the message would require an
+  auto-connection to another node the message is not sent and `:noconnect` is
+  returned.
+
+  If the option `:nosuspend` is used and sending the message would cause the
+  sender to be suspended the message is not sent and `:nosuspend` is returned.
+
+  Otherwise the message is sent and `:ok` is returned.
+
+  ## Examples
+
+      iex> Process.send({ :name, :node_does_not_exist }, :hi, [:noconnect])
+      :noconnect
+
+  """
+  @spec send(dest, msg, [option]) ::  result when
+        dest: pid | port | atom | { atom, node },
+        msg: any,
+        option: :noconnect | :nosuspend,
+        result: :ok | :noconnect | :nosuspend
+  def send(dest, msg, options) do
+    :erlang.send(dest, msg, options)
+  end
+
+  @doc """
   Sends `msg` to `dest` after `time` millisecons.
 
   If `dest` is a pid, it has to be a pid of a local process, dead or alive.
