@@ -72,6 +72,17 @@ defmodule Node do
   end
 
   @doc """
+  Tries to set up a connection to Node.
+  Returns pang if it fails, or pong if it is successful.
+
+  See http://www.erlang.org/doc/man/net_adm.html#ping-1 for more information
+  """
+  @spec ping(t) :: :pong | :pang
+  def ping(node) do
+    :net_adm.ping(node)
+  end
+
+  @doc """
   Forces the disconnection of a node. This will appear to the `node` as if
   the local node has crashed. This BIF is mainly used in the Erlang network
   authentication protocols. Returns `true` if disconnection succeeds, otherwise
