@@ -47,6 +47,9 @@ multi_assigned_if_test() ->
   {1, _} = eval("if true do\nx = 1\nelse true\nend\nx"),
   {nil, _} = eval("if false do\nx = 1\nelse true\nend\nx").
 
+multi_line_if_test() ->
+  {1, _} = eval("if true\ndo\n1\nelse\n2\nend").
+
 % Try
 
 try_test() ->

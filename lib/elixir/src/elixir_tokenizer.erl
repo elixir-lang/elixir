@@ -875,16 +875,13 @@ terminator('<<') -> '>>'.
 
 check_keyword(_Line, _Atom, [{ '.', _ }|_]) ->
   nomatch;
-
-check_keyword(Line, do, [{ Identifier, Line, Atom }|T]) when Identifier == identifier ->
-  { ok, [{ do, Line }, { do_identifier, Line, Atom }|T] };
-
+check_keyword(DoLine, do, [{ Identifier, Line, Atom }|T]) when Identifier == identifier ->
+  { ok, add_token_with_nl({ do, DoLine }, [{ do_identifier, Line, Atom }|T]) };
 check_keyword(Line, do, Tokens) ->
   case do_keyword_valid(Tokens) of
-    true  -> { ok, [{ do, Line }|Tokens] };
+    true  -> { ok, add_token_with_nl({ do, Line }, Tokens) };
     false -> { error, "do" }
   end;
-
 check_keyword(Line, Atom, Tokens) ->
   case keyword(Atom) of
     false    -> nomatch;
@@ -903,13 +900,11 @@ do_keyword_valid([{ Atom, _ }|_]) ->
     false -> true;
     _     -> keyword(Atom) == false
   end;
-
 do_keyword_valid(_) ->
   true.
 
 % Regular keywords
 keyword('fn')    -> token;
-keyword('do')    -> token;
 keyword('end')   -> token;
 keyword('true')  -> token;
 keyword('false') -> token;
