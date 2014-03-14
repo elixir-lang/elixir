@@ -331,6 +331,7 @@ defmodule Mix.Project do
   defp default_config do
     [ build_per_environment: true,
       default_task: "run",
+      default_task_args: [],
       deps: [],
       deps_path: "deps",
       elixirc_exts: [:ex],
