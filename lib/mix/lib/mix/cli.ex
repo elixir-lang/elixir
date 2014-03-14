@@ -44,7 +44,7 @@ defmodule Mix.CLI do
   end
 
   defp get_task([]) do
-    { Mix.project[:default_task], [] }
+    { Mix.project[:default_task], Mix.project[:default_task_args] }
   end
 
   defp run_task(name, args) do
