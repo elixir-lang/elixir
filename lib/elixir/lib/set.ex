@@ -48,10 +48,13 @@ defmodule Set do
 
   defmacrop target(set) do
     quote do
-      if is_tuple(unquote(set)) do
-        elem(unquote(set), 0)
-      else
-        unsupported_set(unquote(set))
+      case unquote(set) do
+        %{__struct__: x} when is_atom(x) ->
+          x
+        x when is_tuple(x) ->
+          elem(x, 0)
+        x ->
+          unsupported_set(x)
       end
     end
   end

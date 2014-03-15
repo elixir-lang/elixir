@@ -66,15 +66,17 @@ defmodule Dict do
 
   defmacrop target(dict) do
     quote do
-      cond do
-        is_tuple(unquote(dict)) ->
-          elem(unquote(dict), 0)
-        is_list(unquote(dict)) ->
-          ListDict
-        is_map(unquote(dict)) ->
+      case unquote(dict) do
+        %{__struct__: x} when is_atom(x) ->
+          x
+        %{} ->
           Map
-        true ->
-          unsupported_dict(unquote(dict))
+        x when is_tuple(x) ->
+          elem(x, 0)
+        x when is_list(x) ->
+          ListDict
+        x ->
+          unsupported_dict(x)
       end
     end
   end
