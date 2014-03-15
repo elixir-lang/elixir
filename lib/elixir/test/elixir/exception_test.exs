@@ -91,6 +91,14 @@ defmodule Kernel.ExceptionTest do
     assert FunctionClauseError.new(module: Foo, function: :bar, arity: 1).message == "no function clause matching in Foo.bar/1"
   end
 
+  test "uncaught throw" do
+    { _, monitor_ref } = Process.spawn_monitor(fn() -> throw(:value) end)
+    receive do
+      { :DOWN, ^monitor_ref, _, _, { reason, _stacktrace } } ->
+        assert Exception.normalize(reason) == UncaughtThrowError[actual: :value]
+    end
+  end
+
   test "erlang error message" do
     assert ErlangError.new(original: :sample).message == "erlang error: :sample"
   end
@@ -105,7 +113,7 @@ defmodule Kernel.ExceptionTest do
       end
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list!
     assert {Kernel.ExceptionTest, :"test raise preserves the stacktrace", _,
-           [file: ^file, line: 101]} = stacktrace
+           [file: ^file, line: 109]} = stacktrace
   end
 
   test "defexception" do
