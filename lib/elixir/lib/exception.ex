@@ -88,6 +88,12 @@ defexception FunctionClauseError, [module: nil, function: nil, arity: nil] do
   end
 end
 
+defexception UncaughtThrowError, [actual: nil] do
+  def message(exception) do
+    "uncaught throw: #{inspect(exception.actual)}"
+  end
+end
+
 defexception Protocol.UndefinedError, [protocol: nil, value: nil, description: nil] do
   def message(exception) do
     msg = "protocol #{inspect exception.protocol} not implemented for #{inspect exception.value}"
@@ -223,6 +229,10 @@ defmodule Exception do
 
   def normalize({ :badarg, payload }) do
     ArgumentError[message: "argument error: #{inspect(payload)}"]
+  end
+
+  def normalize({ :nocatch, actual }) do
+    UncaughtThrowError[actual: actual]
   end
 
   def normalize(other) do
