@@ -273,7 +273,7 @@ defmodule Mix.Deps do
     do: "the dependency is built with an out-of-date elixir version, run `#{mix_env_var}mix deps.compile`"
 
   defp dep_status(%Mix.Dep{app: app, requirement: req, opts: opts, from: from}) do
-    info = { app, req, Dict.drop(opts, [:dest, :lock, :env, :build]) }
+    info = { app, req, Dict.drop(opts, [:app, :dest, :lock, :env, :build]) }
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
   end
 
