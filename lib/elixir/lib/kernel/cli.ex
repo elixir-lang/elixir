@@ -157,7 +157,7 @@ defmodule Kernel.CLI do
     process_shared t, config
   end
 
-  defp process_shared([erl|t], config) when erl in ["--detached", "--hidden"] do
+  defp process_shared([erl|t], config) when erl in ["--detached", "--hidden", "--gen-debug"] do
     process_shared t, config
   end
 
