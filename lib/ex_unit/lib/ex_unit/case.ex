@@ -239,9 +239,8 @@ defmodule ExUnit.Case do
   def __on_definition__(env, kind, name, args, _guards, _body) do
     if kind == :def and test?(atom_to_list(name)) and length(args) == 1 do
       mod  = env.module
-      tags = (Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag))
-             |> normalize_tags()
-             |> Keyword.put(:line, env.line)
+      tags = Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
+      tags = [line: env.line] ++ normalize_tags(tags)
 
       Module.put_attribute(mod, :ex_unit_tests,
         ExUnit.Test[name: name, case: mod, tags: tags])

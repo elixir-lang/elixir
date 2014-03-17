@@ -3,15 +3,33 @@ Code.require_file "test_helper.exs", __DIR__
 # A TestDict implementation used only for testing.
 defmodule TestDict do
   def new(list \\ []) when is_list(list) do
-    { TestDict, list }
+    %{__struct__: TestDict, list: list}
   end
 
-  def reduce({ TestDict, list }, acc, fun) do
-    Enumerable.reduce(list, acc, fun)
-  end
-
-  def size({ TestDict, list }) do
+  def size(%{__struct__: TestDict, list: list}) do
     length(list)
+  end
+
+  def update(%{__struct__: TestDict, list: list} = map, key, initial, fun) do
+    %{ map | list: update(list, key, initial, fun) }
+  end
+
+  def update([{key, value}|list], key, _initial, fun) do
+    [{key, fun.(value)}|list]
+  end
+
+  def update([{_, _} = e|list], key, initial, fun) do
+    [e|update(list, key, initial, fun)]
+  end
+
+  def update([], key, initial, _fun) do
+    [{key, initial}]
+  end
+
+  defimpl Enumerable do
+    def reduce(%{list: list}, acc, fun), do: Enumerable.List.reduce(list, acc, fun)
+    def member?(%{list: list}, other), do: Enumerable.List.member(list, other)
+    def count(%{list: list}), do: Enumerable.List.count(list)
   end
 end
 
@@ -149,6 +167,8 @@ defmodule DictTest.Common do
         actual = Dict.merge(dict1, dict2)
         assert Dict.merge(dict1, dict2) |> Enum.sort ==
                [{"a", 3}, {"b", 2}, {"c", :a}, {"d", 0}]
+        assert Dict.merge(dict2, dict1) |> Enum.sort ==
+               [{"a", 1}, {"b", 2}, {"c", 3}, {"d", 0}]
       end
 
       test "merge/3" do

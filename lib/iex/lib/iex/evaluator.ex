@@ -154,7 +154,7 @@ defmodule IEx.Evaluator do
   defp inspect_opts do
     opts = IEx.Options.get(:inspect)
     case :io.columns(:standard_input) do
-      { :ok, width } -> Keyword.put(opts, :width, min(width, 80))
+      { :ok, width } -> [width: min(width, 80)] ++ opts
       { :error, _ }  -> opts
     end
   end

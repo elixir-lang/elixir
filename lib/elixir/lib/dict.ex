@@ -290,7 +290,7 @@ defmodule Dict do
     if target1 == target2 do
       target1.merge(dict1, dict2, fun)
     else
-      target2.reduce(dict2, { :cont, dict1 }, fn({ k, v }, acc) ->
+      Enumerable.reduce(dict2, { :cont, dict1 }, fn({ k, v }, acc) ->
         { :cont, target1.update(acc, k, v, fn(other) -> fun.(k, other, v) end) }
       end) |> elem(1)
     end
@@ -469,7 +469,7 @@ defmodule Dict do
         target1.equal?(dict1, dict2)
 
       target1.size(dict1) == target2.size(dict2) ->
-        target2.reduce(dict2, { :cont, true }, fn({ k, v }, _acc) ->
+        Enumerable.reduce(dict2, { :cont, true }, fn({ k, v }, _acc) ->
           case target1.fetch(dict1, k) do
             { :ok, ^v } -> { :cont, true }
             _           -> { :halt, false }

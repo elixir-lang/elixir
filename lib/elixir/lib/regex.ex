@@ -205,7 +205,7 @@ defmodule Regex do
 
   """
   def named_captures(regex, string, options \\ []) when is_binary(string) do
-    options = Keyword.put_new(options, :capture, :groups)
+    options = [capture: :groups] ++ options
     results = run(regex, string, options)
     if results, do: Enum.zip(groups(regex), results)
   end

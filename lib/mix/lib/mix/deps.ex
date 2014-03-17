@@ -194,7 +194,7 @@ defmodule Mix.Deps do
     # Set the app_path to be the one stored in the dependency.
     # This is important because the name of application in the
     # mix.exs file can be different than the actual name and we
-    # choose to respect the one in the mix.exs.
+    # choose to respect the one in the mix.exs
     config = Keyword.merge(Mix.Project.deps_config, config)
     config = Keyword.put(config, :app_path, opts[:build])
 

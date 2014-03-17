@@ -45,7 +45,7 @@ defmodule IEx.Server do
 
         receive do
           ^ref ->
-            opts = Keyword.put(opts, :evaluator, self)
+            opts = [evaluator: self] ++ opts
             send server, { :take, self, identifier, ref, opts }
 
             receive do

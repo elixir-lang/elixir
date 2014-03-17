@@ -214,7 +214,7 @@ defmodule IO do
 
     unless Keyword.get(opts, :width) do
       opts = case :io.columns(device) do
-        { :ok, width } -> Keyword.put(opts, :width, width)
+        { :ok, width } -> [width: width] ++ opts
         { :error, _ }  -> opts
       end
     end
