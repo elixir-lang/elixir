@@ -353,11 +353,9 @@ defmodule Process do
   be an atom, can be used instead of the pid / port identifier with the
   `Kernel.send/2` function.
 
-  `Process.register/2` will fail if the pid supplied is no longer alive,
-  (check with `Process.alive?`) or if the name is already registered
-  (check with `Process.registered?`).
-
-  See http://www.erlang.org/doc/man/erlang.html#register-2 for more info.
+  `Process.register/2` will fail with `ArgumentError` if the pid supplied
+  is no longer alive, (check with `alive?/1`) or if the name is
+  already registered (check with `registered?/1`).
   """
   @spec register(pid | port, atom) :: true
   def register(pid, name) do
