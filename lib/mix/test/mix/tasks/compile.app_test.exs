@@ -9,7 +9,8 @@ defmodule Mix.Tasks.Compile.AppTest do
     end
 
     def application do
-      [maxT: :infinity]
+      [maxT: :infinity,
+       applications: [:example_app]]
     end
   end
 
@@ -64,6 +65,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       contents = File.read!("_build/dev/lib/custom_project/ebin/custom_project.app")
       assert contents =~ "0.2.0"
       assert contents =~ "{maxT,infinity}"
+      assert contents =~ "{applications,[kernel,stdlib,elixir,example_app]}"
     end
   end
 
@@ -102,6 +104,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       properties = Keyword.from_enum(properties)
       assert properties[:registered] == []
       assert properties[:description] == 'sample'
+      assert properties[:applications] == [:kernel, :stdlib, :elixir]
 
       assert Mix.Tasks.Compile.App.run([]) == :noop
     end

@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Compile.App do
       best_guess = [
         vsn: to_char_list(version),
         modules: mods,
-        applications: [:kernel, :stdlib, :elixir]
+        applications: []
       ]
 
       properties = if function_exported?(project, :application, 0) do
@@ -57,6 +57,12 @@ defmodule Mix.Tasks.Compile.App do
       else
         best_guess
       end
+
+
+      # Ensure we always prepend the standard application dependencies
+      properties = Keyword.update!(properties, :applications, fn apps -> 
+        [:kernel, :stdlib, :elixir] ++ apps 
+      end)
 
       properties = ensure_correct_properties(app, properties)
       contents   = { :application, app, properties }
