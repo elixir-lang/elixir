@@ -769,7 +769,7 @@ tokenize_any_identifier(Original, Line, Scope, Tokens) ->
 tokenize_kw_or_other([$:,H|T], _Kind, Line, Atom, _Tokens) when ?is_space(H) ->
   { identifier, [H|T], { kw_identifier, Line, Atom } };
 
-tokenize_kw_or_other([$:,H|T], _Kind, Line, Atom, Tokens) when ?is_atom_start(H) ->
+tokenize_kw_or_other([$:,H|T], _Kind, Line, Atom, Tokens) when ?is_atom_start(H); ?is_digit(H) ->
   Original = atom_to_list(Atom) ++ [$:],
   Reason   = { Line, "keyword argument must be followed by space after: ", Original },
   { error, Reason, Original ++ [H|T], Tokens };
