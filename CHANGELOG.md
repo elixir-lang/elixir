@@ -15,6 +15,7 @@
   * [Mix] Add `Mix.Shell.prompt/1`
   * [Mix] Ensure the project is compiled in case Mix' CLI cannot find a task
   * [Node] Add `Node.ping/1`
+  * [Process] Include `Process.send/3` and support the `--gen-debug` option
   * [Regex] Regexes no longer need the "g" option when there is a need to use named captures
   * [Stream] Add `Stream.into/2` and `Stream.into/3`
   * [StringIO] Add a `StringIO` module that allows a String to be used as IO device
@@ -23,6 +24,7 @@
 * Bug fixes
   * [Macro] `Macro.to_string/2` considers proper precedence when translating `!(foo > bar)` into a string
   * [Mix] Automatically recompile on outdated Elixir version and show proper error messages
+  * [Mix] Ensure generated `.app` file includes core dependencies
   * [OptionParser] Do not recognize undefined aliases as switches
 
 * Deprecations
