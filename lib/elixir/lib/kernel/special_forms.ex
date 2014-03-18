@@ -44,7 +44,7 @@ defmodule Kernel.SpecialForms do
   @doc """
   Creates a map.
 
-  Maps are key-value stores where keys are compared 
+  Maps are key-value stores where keys are compared
   using the match operator (`===`). Maps can be created with
   the `%{}` special form where keys are associated via `=>`:
 
@@ -1209,10 +1209,12 @@ defmodule Kernel.SpecialForms do
   defmacro __block__(args)
 
   @doc """
-  Captures an anonymous function.
+  Captures or creates an anonymous function.
 
-  The most common format to capture a function is via module,
-  name and arity:
+  ## Capture
+
+  The capture operator is most commonly used to capture a
+  function with given name and arity from a module:
 
       iex> fun = &Kernel.is_atom/1
       iex> fun.(:atom)
@@ -1220,47 +1222,39 @@ defmodule Kernel.SpecialForms do
       iex> fun.("string")
       false
 
-  Local functions, including private ones, and imported ones
-  can also be captured by omitting the module name:
+  In the example above, we captured `Kernel.is_atom/1` as an
+  anonymous function and then invoked it.
+
+  The capture operator can also be used to capture local functions,
+  including private ones, and imported functions by omitting the
+  module name:
 
       &local_function/1
 
-  A capture also allows the captured functions to be partially
-  applied, for example:
+  ## Anonymous functions
 
-      iex> fun = &is_record(&1, Range)
-      iex> fun.(1..3)
+  The capture operator can be also be used to partially apply
+  functions, where `&1`, `&2` and so on can be used as value
+  placeholders. For example:
+
+      iex> double = &(&1 * 2)
+      iex> double.(2)
+      4
+
+  In other words, `&(&1 * 2)` is equivalent to `fn x -> x * 2 end`.
+  Another example using a local function:
+
+      iex> fun = &is_atom(&1)
+      iex> fun.(:atom)
       true
 
-  In the example above, we use &1 as a placeholder, generating
-  a function with one argument. We could also use `&2` and `&3`
-  to delimit more arguments:
-
-      iex> fun = &is_record(&1, &2)
-      iex> fun.(1..3, Range)
-      true
-
-  Since operators are calls, they are also supported, although
-  they require explicit parentheses around:
-
-      iex> fun = &(&1 + &2)
-      iex> fun.(1, 2)
-      3
-
-  And even more complex call expressions:
+  The `&` operator can be used with more complex expressions:
 
       iex> fun = &(&1 + &2 + &3)
       iex> fun.(1, 2, 3)
       6
 
-  Record-like calls are also allowed:
-
-      iex> fun = &(&1.first)
-      iex> fun.(1..3)
-      1
-
-  Remember tuple and lists are represented as calls in the AST and
-  therefore are also allowed:
+  As well as with lists and tuples:
 
       iex> fun = &{&1, &2}
       iex> fun.(1, 2)
@@ -1270,16 +1264,14 @@ defmodule Kernel.SpecialForms do
       iex> fun.(1, 2)
       [1|2]
 
-  Anything that is not a call is not allowed though, examples:
+  The only restrictions when creating anonymous functions is that at
+  least one placeholder must be present, i.e. it must contain at least
+  `&1`:
 
-      # An atom is not a call
-      &:foo
-
-      # A var is not a call
-      var = 1
+      # No placeholder fails to compile
       &var
 
-      # A block expression is not a call
+      # Block expressions are also not supported
       &(foo(&1, &2); &3 + &4)
 
   """

@@ -1847,7 +1847,7 @@ defmodule Kernel do
   representation of an Elixir term. In such cases, the inspected result
   must start with `#`. For example, inspecting a function will return:
 
-      inspect &(&1 + &2)
+      inspect fn a, b -> a + b end
       #=> #Function<...>
 
   """
@@ -2449,34 +2449,51 @@ defmodule Kernel do
   end
 
   @doc """
-  `|>` is called the pipeline operator as it is useful
-  to write pipeline style expressions. This operator
-  introduces the expression on the left as the first
-  argument to the function call on the right.
+  `|>` is the pipe operator.
+
+  This operator introduces the expression on the left as
+  the first argument to the function call on the right.
 
   ## Examples
 
-      iex> [1, [2], 3] |> List.flatten |> Enum.map(&(&1 * 2))
-      [2,4,6]
+      iex> [1, [2], 3] |> List.flatten()
+      [1, 2, 3]
 
-  The expression above is simply translated to:
+  The example above is the same as calling `List.flatten([1, [2], 3])`,
+  i.e. the argument on the left side of `|>` is introduced as the first
+  argument of the function call on the right side.
 
-      Enum.map(List.flatten([1, [2], 3]), &(&1 * 2))
+  This pattern is mostly useful when there is a desire to execute
+  a bunch of operations, resembling a pipeline:
 
-  Be aware of operator precedence when using this operator.
+      iex> [1, [2], 3] |> List.flatten |> Enum.map(fn x -> x * 2 end)
+      [2, 4, 6]
+
+  The example above will pass the list to `List.flatten/1`, then get
+  the flattened list and pass to `Enum.map/2`, which will multiply
+  each entry in the list per two.
+
+  In other words, the expression above simply translates to:
+
+      Enum.map(List.flatten([1, [2], 3]), fn x -> x * 2 end)
+
+  Beware of operator precedence when using the pipe operator.
   For example, the following expression:
 
       String.graphemes "Hello" |> Enum.reverse
 
-  Is translated to:
+  Translates to:
 
       String.graphemes("Hello" |> Enum.reverse)
 
-  Which will result in an error as Enumerable protocol
-  is not defined for binaries. Adding explicit parenthesis
-  resolves the ambiguity:
+  Which will result in an error as Enumerable protocol is not defined
+  for binaries. Adding explicit parenthesis resolves the ambiguity:
 
       String.graphemes("Hello") |> Enum.reverse
+
+  Or, even better:
+
+      "Hello" |> String.graphemes |> Enum.reverse
 
   """
   defmacro left |> right do
