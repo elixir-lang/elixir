@@ -414,7 +414,7 @@ defmodule Enum do
     case Enumerable.count(collection) do
       value when is_integer(value) ->
         IO.write "Expected #{inspect Enumerable.impl_for(collection)}.count/1 to return " <>
-                 "{ :ok, boolean } if pre-calculated, otherwise { :error, module }, got " <>
+                 "{ :ok, integer } if pre-calculated, otherwise { :error, module }, got " <>
                  "an integer\n#{Exception.format_stacktrace}"
         value
       { :ok, value } when is_integer(value) ->
