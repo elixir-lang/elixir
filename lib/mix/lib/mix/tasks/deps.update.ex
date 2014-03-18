@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Deps.Update do
 
     cond do
       opts[:all] ->
-        Mix.Dep.Fetcher.all(Mix.Dep.Lock.read, [], [])
+        Mix.Dep.Fetcher.all(Mix.Dep.Lock.read, %{}, [])
       rest != [] ->
         { old, new } = Dict.split(Mix.Dep.Lock.read, to_app_names(rest))
         Mix.Dep.Fetcher.by_name(rest, old, new, [])

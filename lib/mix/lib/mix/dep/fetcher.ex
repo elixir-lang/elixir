@@ -52,7 +52,7 @@ defmodule Mix.Dep.Fetcher do
           end
 
         if new do
-          { dep, { [app|acc], Keyword.put(lock, app, new) } }
+          { dep, { [app|acc], Map.put(lock, app, new) } }
         else
           { dep, { acc, lock } }
         end

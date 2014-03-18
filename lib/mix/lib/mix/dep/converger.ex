@@ -139,7 +139,6 @@ defmodule Mix.Dep.Converger do
               # After we invoke the callback (which may actually check out the
               # dependency), we load the dependency including its latest info
               # and children information.
-
               Mix.Dep.Loader.load(dep)
           end
 

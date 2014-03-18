@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Deps.Unlock do
         lock =
           Enum.reduce args, Mix.Dep.Lock.read, fn(arg, lock) ->
             if is_binary(arg), do: arg = binary_to_atom(arg)
-            Keyword.delete(lock, arg)
+            Map.delete(lock, arg)
           end
 
         Mix.Dep.Lock.write(lock)

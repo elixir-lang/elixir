@@ -10,7 +10,7 @@ defmodule Mix.Dep.LockTest do
 
   test "creates new lock and manifest files" do
     in_fixture "no_mixfile", fn ->
-      Mix.Dep.Lock.write [foo: :bar]
+      Mix.Dep.Lock.write %{foo: :bar}
       assert File.regular? "mix.lock"
       assert File.regular? "_build/dev/lib/sample/.compile.lock"
     end
@@ -18,10 +18,10 @@ defmodule Mix.Dep.LockTest do
 
   test "does not touch manifest file there is no change" do
     in_fixture "no_mixfile", fn ->
-      Mix.Dep.Lock.write [foo: :bar, bar: :bat]
+      Mix.Dep.Lock.write %{foo: :bar, bar: :bat}
       File.rm! "_build/dev/lib/sample/.compile.lock"
 
-      Mix.Dep.Lock.write [bar: :bat, foo: :bar]
+      Mix.Dep.Lock.write %{bar: :bat, foo: :bar}
       refute File.regular? "_build/dev/lib/sample/.compile.lock"
     end
   end
