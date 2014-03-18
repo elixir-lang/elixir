@@ -24,7 +24,7 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  def accepts_options(opts) do
+  def accepts_options(_app, opts) do
     cond do
       gh = opts[:github] ->
         opts |> Keyword.delete(:github) |> Keyword.put(:git, "git://github.com/#{gh}.git")

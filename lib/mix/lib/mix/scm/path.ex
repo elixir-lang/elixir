@@ -14,12 +14,12 @@ defmodule Mix.SCM.Path do
     nil
   end
 
-  def accepts_options(opts) do
+  def accepts_options(app, opts) do
     cond do
       raw = opts[:path] ->
         Keyword.put opts, :dest, Path.expand(raw)
       opts[:in_umbrella] ->
-        path = "../#{opts[:app]}"
+        path = "../#{app}"
 
         opts
         |> Keyword.put(:dest, Path.expand(path))

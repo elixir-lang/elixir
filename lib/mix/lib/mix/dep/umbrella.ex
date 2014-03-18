@@ -51,7 +51,7 @@ defmodule Mix.Dep.Umbrella do
 
   defp to_umbrella_dep(paths, build) do
     Enum.map paths, fn({ app, path }) ->
-      opts = [app: app, path: path, dest: Path.expand(path),
+      opts = [path: path, dest: Path.expand(path),
               env: Mix.env, build: Path.join([build, "lib", app])]
       %Mix.Dep{
         scm: Mix.SCM.Path,

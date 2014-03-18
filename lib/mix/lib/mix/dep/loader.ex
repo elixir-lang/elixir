@@ -115,12 +115,11 @@ defmodule Mix.Dep.Loader do
     dest  = Path.join(Mix.Project.deps_path, app)
     build = Path.join([Mix.Project.build_path, "lib", app])
     opts  = opts
-            |> Keyword.put(:app, app)
             |> Keyword.put(:dest, dest)
             |> Keyword.put(:build, build)
 
     { scm, opts } = Enum.find_value scms, { nil, [] }, fn(scm) ->
-      (new = scm.accepts_options(opts)) && { scm, new }
+      (new = scm.accepts_options(app, opts)) && { scm, new }
     end
 
     if scm do
