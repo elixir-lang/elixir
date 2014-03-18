@@ -25,9 +25,9 @@ defmodule Mix.Tasks.Deps.Get do
 
     apps =
       if rest != [] do
-        Mix.Deps.Fetcher.by_name(rest, [], Mix.Deps.Lock.read, fetcher_opts)
+        Mix.Dep.Fetcher.by_name(rest, [], Mix.Dep.Lock.read, fetcher_opts)
       else
-        Mix.Deps.Fetcher.all([], Mix.Deps.Lock.read, fetcher_opts)
+        Mix.Dep.Fetcher.all([], Mix.Dep.Lock.read, fetcher_opts)
       end
 
     if apps == [] && !opts[:quiet] do

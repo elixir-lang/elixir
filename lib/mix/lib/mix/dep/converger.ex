@@ -1,7 +1,7 @@
 # This module is the one responsible for converging
 # dependencies in a recursive fashion. This
 # module and its functions are private to Mix.
-defmodule Mix.Deps.Converger do
+defmodule Mix.Dep.Converger do
   @moduledoc false
 
   @doc """
@@ -39,10 +39,10 @@ defmodule Mix.Deps.Converger do
   that is invoked for each dependency and must return
   an updated dependency in case some processing is done.
 
-  See `Mix.Deps.Loader.children/1` for options.
+  See `Mix.Dep.Loader.children/1` for options.
   """
   def all(rest, opts, callback) do
-    main      = Mix.Deps.Loader.children(opts)
+    main      = Mix.Dep.Loader.children(opts)
     apps      = Enum.map(main, &(&1.app))
     converger = Mix.RemoteConverger.get
 
@@ -140,7 +140,7 @@ defmodule Mix.Deps.Converger do
               # dependency), we load the dependency including its latest info
               # and children information.
 
-              Mix.Deps.Loader.load(dep)
+              Mix.Dep.Loader.load(dep)
           end
 
         dep = %{dep | deps: reject_non_fullfilled_optional(dep.deps, current_breadths)}
@@ -200,7 +200,7 @@ defmodule Mix.Deps.Converger do
   defp with_matching_req(%Mix.Dep{} = other, %Mix.Dep{} = dep) do
     case other.status do
       { :ok, vsn } when not nil?(vsn) ->
-        if Mix.Deps.Loader.vsn_match?(dep.requirement, vsn, dep.app) do
+        if Mix.Dep.Loader.vsn_match?(dep.requirement, vsn, dep.app) do
           other
         else
           %{other | status: { :divergedreq, dep }}

@@ -73,8 +73,10 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Returns all loaded tasks. Modules that are not yet loaded
-  won't show up. Check `load_all/0` if you want to preload all tasks.
+  Returns all loaded tasks.
+
+  Modules that are not yet loaded won't show up.
+  Check `load_all/0` if you want to preload all tasks.
   """
   def all_modules do
     Enum.reduce :code.all_loaded, [], fn({ module, _ }, acc) ->
@@ -212,7 +214,7 @@ defmodule Mix.Task do
 
     if umbrella? && recursive && Mix.ProjectStack.enable_recursion do
       config = [build_path: Mix.Project.build_path]
-      res = for %Mix.Dep{app: app, opts: opts} <- Mix.Deps.Umbrella.loaded do
+      res = for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do
         Mix.Project.in_project(app, opts[:path], config, fun)
       end
       Mix.ProjectStack.disable_recursion

@@ -2,7 +2,7 @@
 # The lockfile keeps the latest dependency information while the
 # manifest is used whenever a dependency is affected via any of the
 # deps.* tasks. We also keep the Elixir version in the manifest file.
-defmodule Mix.Deps.Lock do
+defmodule Mix.Dep.Lock do
   @moduledoc false
   @manifest ".compile.lock"
 

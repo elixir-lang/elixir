@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   """
 
-  import Mix.Deps, only: [loaded: 1, available?: 1, loaded_by_name: 2,
+  import Mix.Dep, only: [loaded: 1, available?: 1, loaded_by_name: 2,
                           format_dep: 1, make?: 1, mix?: 1, rebar?: 1]
 
   def run(args) do
@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Deps.Compile do
         compiled
       end)
 
-    if Enum.any?(compiled), do: Mix.Deps.Lock.touch
+    if Enum.any?(compiled), do: Mix.Dep.Lock.touch
   end
 
   # All available dependencies can be compiled
@@ -92,7 +92,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_mix(dep) do
-    Mix.Deps.in_dependency dep, fn _ ->
+    Mix.Dep.in_dependency dep, fn _ ->
       try do
         res = Mix.Task.run("compile", ["--no-deps", "--no-elixir-version-check"])
         :ok in List.wrap(res)
@@ -154,7 +154,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp build_structure(%Mix.Dep{opts: opts} = dep, config) do
     build_path = Path.dirname(opts[:build])
-    Enum.each Mix.Deps.source_paths(dep), fn source ->
+    Enum.each Mix.Dep.source_paths(dep), fn source ->
       app = Path.join(build_path, Path.basename(source))
       build_structure(source, app, config)
       Code.prepend_path(Path.join(app, "ebin"))

@@ -36,7 +36,7 @@ defmodule Mix.Tasks.DepsPathTest do
     Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->
-      Mix.Deps.Lock.write [raw_repo: "abcdef"]
+      Mix.Dep.Lock.write [raw_repo: "abcdef"]
       Mix.Tasks.Run.run ["-e", "Mix.shell.info RawRepo.hello"]
       assert_received { :mix_shell, :info, ["* Compiling raw_repo"] }
       assert_received { :mix_shell, :info, ["world"] }

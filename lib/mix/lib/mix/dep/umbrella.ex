@@ -1,4 +1,4 @@
-defmodule Mix.Deps.Umbrella do
+defmodule Mix.Dep.Umbrella do
   @moduledoc false
 
   @doc """
@@ -29,12 +29,12 @@ defmodule Mix.Deps.Umbrella do
     apps = Enum.map(deps, &(&1.app))
 
     Enum.map(deps, fn umbrella_dep ->
-      umbrella_dep = Mix.Deps.Loader.load(umbrella_dep)
+      umbrella_dep = Mix.Dep.Loader.load(umbrella_dep)
       deps = Enum.filter(umbrella_dep.deps, fn dep ->
-        Mix.Deps.available?(dep) and dep.app in apps
+        Mix.Dep.available?(dep) and dep.app in apps
       end)
       %{umbrella_dep | deps: deps}
-    end) |> Mix.Deps.Converger.topsort
+    end) |> Mix.Dep.Converger.topsort
   end
 
   defp extract_umbrella(paths) do

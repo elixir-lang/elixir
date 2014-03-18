@@ -248,10 +248,10 @@ defmodule Mix.Tasks.Compile.Elixir do
       set_compiler_opts(project, opts, [])
     end)
 
-    # The Mix.Deps.Lock keeps all the project dependencies. Since Elixir
+    # The Mix.Dep.Lock keeps all the project dependencies. Since Elixir
     # is a dependency itself, we need to touch the lock so the current
     # Elixir version, used to compile the files above, is properly stored.
-    unless result == :noop, do: Mix.Deps.Lock.touch
+    unless result == :noop, do: Mix.Dep.Lock.touch
     result
   end
 
@@ -284,12 +284,12 @@ defmodule Mix.Tasks.Compile.Elixir do
   defp path_deps_changed?(manifest) do
     manifest = Path.absname(manifest)
 
-    deps = Enum.filter(Mix.Deps.children([]), fn dep ->
+    deps = Enum.filter(Mix.Dep.children([]), fn dep ->
       dep.scm == Mix.SCM.Path
     end)
 
     Enum.any?(deps, fn(dep) ->
-      Mix.Deps.in_dependency(dep, fn(_) ->
+      Mix.Dep.in_dependency(dep, fn(_) ->
         Mix.Utils.stale?(Mix.Tasks.Compile.manifests, [manifest])
       end)
     end)

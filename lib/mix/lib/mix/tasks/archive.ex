@@ -61,6 +61,6 @@ defmodule Mix.Tasks.Archive do
       raise Mix.Error, message: "Expected archive source #{inspect source} to be a directory"
     end
 
-    Mix.Archive.create(target, source)
+    Mix.Archive.create(source, target)
   end
 end

@@ -101,14 +101,14 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->
-      Mix.Deps.Lock.write [ok: { :git, "git://github.com/elixir-lang/ok.git", "abcdefghi", [] }]
+      Mix.Dep.Lock.write [ok: { :git, "git://github.com/elixir-lang/ok.git", "abcdefghi", [] }]
       Mix.Tasks.Deps.run []
 
       assert_received { :mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"] }
       assert_received { :mix_shell, :info, ["  locked at abcdefg"] }
       assert_received { :mix_shell, :info, ["  lock mismatch: the dependency is out of date"] }
 
-      Mix.Deps.Lock.write [ok: { :git, "git://github.com/elixir-lang/another.git", "abcdefghi", [] }]
+      Mix.Dep.Lock.write [ok: { :git, "git://github.com/elixir-lang/another.git", "abcdefghi", [] }]
       Mix.Tasks.Deps.run []
 
       assert_received { :mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"] }
@@ -186,19 +186,19 @@ defmodule Mix.Tasks.DepsTest do
   test "unlocks all deps" do
     Mix.Project.push DepsApp
     in_fixture "no_mixfile", fn ->
-      Mix.Deps.Lock.write [git_repo: "abcdef"]
-      assert Mix.Deps.Lock.read == [git_repo: "abcdef"]
+      Mix.Dep.Lock.write [git_repo: "abcdef"]
+      assert Mix.Dep.Lock.read == [git_repo: "abcdef"]
       Mix.Tasks.Deps.Unlock.run ["--all"]
-      assert Mix.Deps.Lock.read == []
+      assert Mix.Dep.Lock.read == []
     end
   end
 
   test "unlocks specific deps" do
     Mix.Project.push DepsApp
     in_fixture "no_mixfile", fn ->
-      Mix.Deps.Lock.write [git_repo: "abcdef", another: "hash"]
+      Mix.Dep.Lock.write [git_repo: "abcdef", another: "hash"]
       Mix.Tasks.Deps.Unlock.run ["git_repo", "unknown"]
-      assert Mix.Deps.Lock.read == [another: "hash"]
+      assert Mix.Dep.Lock.read == [another: "hash"]
     end
   end
 

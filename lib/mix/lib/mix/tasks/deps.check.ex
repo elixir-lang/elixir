@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Check do
   use Mix.Task
 
-  import Mix.Deps, only: [loaded: 1, loaded_by_name: 2, format_dep: 1,
+  import Mix.Dep, only: [loaded: 1, loaded_by_name: 2, format_dep: 1,
                           format_status: 1, check_lock: 2, ok?: 1]
 
   @moduledoc """
@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Deps.Check do
   """
   def run(args) do
     { opts, _, _ } = OptionParser.parse(args, switches: [quiet: :boolean])
-    lock = Mix.Deps.Lock.read
+    lock = Mix.Dep.Lock.read
     all  = Enum.map(loaded(env: Mix.env), &check_lock(&1, lock))
 
     prune_deps(all)
@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Deps.Check do
               |> Path.wildcard
               |> List.delete(not Mix.Project.umbrella? && Mix.Project.compile_path(config))
 
-      to_prune = Enum.reduce(all, paths, &(&2 -- Mix.Deps.load_paths(&1)))
+      to_prune = Enum.reduce(all, paths, &(&2 -- Mix.Dep.load_paths(&1)))
 
       Enum.map(to_prune, fn path ->
         Code.delete_path(path)

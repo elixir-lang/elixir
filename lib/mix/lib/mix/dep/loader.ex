@@ -1,7 +1,7 @@
 # This module is responsible for loading dependencies
 # of the current project. This module and its functions
 # are private to Mix.
-defmodule Mix.Deps.Loader do
+defmodule Mix.Dep.Loader do
   @moduledoc false
 
   @doc """
@@ -30,7 +30,7 @@ defmodule Mix.Deps.Loader do
         end)
     end
 
-    deps ++ Mix.Deps.Umbrella.unloaded
+    deps ++ Mix.Dep.Umbrella.unloaded
   end
 
   @doc """
@@ -99,8 +99,12 @@ defmodule Mix.Deps.Loader do
     %{with_scm_and_app(tuple, scms) | from: from, manager: manager}
   end
 
-  defp with_scm_and_app({ app, opts }, scms) when is_atom(app) and is_list(opts) do
+  defp with_scm_and_app({ app, opts }, scms) when is_list(opts) do
     with_scm_and_app({ app, nil, opts }, scms)
+  end
+
+  defp with_scm_and_app({ app, req }, scms) do
+    with_scm_and_app({ app, req, [] }, scms)
   end
 
   defp with_scm_and_app({ app, req, opts } = other, scms) when is_atom(app) and is_list(opts) do
@@ -169,15 +173,21 @@ defmodule Mix.Deps.Loader do
 
     Expected:
 
-        { app :: atom, opts :: Keyword.t } |
-        { app :: atom, requirement :: String.t | regex, opts :: Keyword.t }
+        { app, opts } | { app, requirement } | { app, requirement, opts }
+
+    Where:
+
+        app :: atom
+        requirement :: String.t | Regex.t
+        opts :: Keyword.t
+
     """
   end
 
   ## Fetching
 
   defp mix_dep(%Mix.Dep{opts: opts} = dep) do
-    Mix.Deps.in_dependency(dep, fn _ ->
+    Mix.Dep.in_dependency(dep, fn _ ->
       config    = Mix.project
       umbrella? = Mix.Project.umbrella?
 
@@ -197,7 +207,7 @@ defmodule Mix.Deps.Loader do
   end
 
   defp rebar_dep(%Mix.Dep{} = dep) do
-    Mix.Deps.in_dependency(dep, fn _ ->
+    Mix.Dep.in_dependency(dep, fn _ ->
       rebar = Mix.Rebar.load_config(".")
       extra = Dict.take(rebar, [:sub_dirs])
       dep   = %{dep | manager: :rebar, extra: extra}

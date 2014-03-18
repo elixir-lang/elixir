@@ -4,18 +4,18 @@
 # The new_lock and old_lock mechanism exists to signal
 # externally which dependencies need to be updated and
 # which ones do not.
-defmodule Mix.Deps.Fetcher do
+defmodule Mix.Dep.Fetcher do
   @moduledoc false
 
-  import Mix.Deps, only: [format_dep: 1, check_lock: 2, available?: 1, ok?: 1]
+  import Mix.Dep, only: [format_dep: 1, check_lock: 2, available?: 1, ok?: 1]
 
   @doc """
   Fetches all dependencies.
 
-  See `Mix.Deps.unloaded/3` for options.
+  See `Mix.Dep.unloaded/3` for options.
   """
   def all(old_lock, new_lock, opts) do
-    deps = Mix.Deps.unloaded({ [], new_lock }, opts, &do_fetch/2)
+    deps = Mix.Dep.unloaded({ [], new_lock }, opts, &do_fetch/2)
     { apps, _deps } = do_finalize(deps, old_lock, opts)
     apps
   end
@@ -23,12 +23,12 @@ defmodule Mix.Deps.Fetcher do
   @doc """
   Fetches the dependencies with the given names and their children recursively.
 
-  See `Mix.Deps.unloaded_by_name/4` for options.
+  See `Mix.Dep.unloaded_by_name/4` for options.
   """
   def by_name(names, old_lock, new_lock, opts) do
-    deps = Mix.Deps.unloaded_by_name(names, { [], new_lock }, opts, &do_fetch/2)
+    deps = Mix.Dep.unloaded_by_name(names, { [], new_lock }, opts, &do_fetch/2)
     { apps, deps } = do_finalize(deps, old_lock, opts)
-    Mix.Deps.loaded_by_name(names, deps, opts) # Check all given dependencies are loaded or fail
+    Mix.Dep.loaded_by_name(names, deps, opts) # Check all given dependencies are loaded or fail
     apps
   end
 
@@ -71,7 +71,7 @@ defmodule Mix.Deps.Fetcher do
 
   defp do_finalize({ all_deps, { apps, new_lock } }, old_lock, opts) do
     # Let's get the loaded versions of deps
-    deps = Mix.Deps.loaded_by_name(apps, all_deps, opts)
+    deps = Mix.Dep.loaded_by_name(apps, all_deps, opts)
 
     # Do not mark dependencies that are not available
     deps = Enum.filter(deps, &available?/1)
@@ -92,7 +92,7 @@ defmodule Mix.Deps.Fetcher do
     # Merge the new lock on top of the old to guarantee we don't
     # leave out things that could not be fetched and save it.
     lock = Dict.merge(old_lock, new_lock)
-    Mix.Deps.Lock.write(lock)
+    Mix.Dep.Lock.write(lock)
 
     require_compilation(deps)
     { apps, all_deps }

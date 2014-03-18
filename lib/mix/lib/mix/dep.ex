@@ -1,12 +1,14 @@
 defmodule Mix.Dep do
-  @moduledoc """
-  This is a struct that keeps information about your project
-  dependencies. It contains:
+  @moduledoc false
+
+  @doc """
+  The Mix.Dep a struct keeps information about your project dependencies.
+  It contains:
 
   * `scm` - a module representing the source code management tool (SCM) operations;
   * `app` - the application name as an atom;
   * `requirement` - a binary or regex with the dependency's requirement
-  * `status` - the current status of the dependency, check `Mix.Deps.format_status/1` for more info;
+  * `status` - the current status of the dependency, check `Mix.Dep.format_status/1` for more info;
   * `opts` - the options given by the developer
   * `deps` - dependencies of this dependency
   * `manager` - the project management, possible values: `:rebar` | `:mix` | `:make` | `nil`
@@ -14,75 +16,24 @@ defmodule Mix.Dep do
   * `extra` - a slot for adding extra configuration based on the scm.
               the information on this field is private to the scm and
               should not be relied on.
-  """
 
-  @type t :: map
-
-  defstruct [ scm: nil, app: nil, requirement: nil, status: nil, opts: nil,
-              deps: [], extra: nil, manager: nil, from: nil ]
-end
-
-defmodule Mix.Deps do
-  @moduledoc ~S"""
-  Common functions to work with dependencies.
-
-  Dependencies must be specified in the Mix application in the
-  following format:
-
-      { app :: atom, opts :: Keyword.t }
-      { app :: atom, requirement :: String.t, opts :: Keyword.t }
-
-  The application name must be an atom, the version requirement must
-  be a string according to the specification outline in `Version`
-  and opts is a keyword lists that may include options for the underlying
-  SCM or options used by Mix. Each set of options is documented below.
-
-  Inside Mix, those dependencies are converted to a `Mix.Dep` struct.
-  This module provides conveniences to work with those dependencies
-  and the dependencies are usually in two specific states: loaded and
-  unloaded.
+  A dependency is in two specific states: loaded and unloaded.
 
   When a dependency is unloaded, it means Mix only parsed its specification
   and made no attempt to actually load the dependency or validate its
   status. When the dependency is loaded, it means Mix attempted to fetch,
   load and validate it, the status is set in the status field.
 
-  ## Mix options
+  Furthermore, in the `opts` fields, Mix keeps some internal options, which
+  can be accessed by SCMs:
 
-  * `:app` - Do not try to read the app file for this dependency
-  * `:env` - The environment to run the dependency on, defaults to :prod
-  * `:compile` - A command to compile the dependency, defaults to a mix,
-                 rebar or make command
-  * `:optional` - The dependency is optional and used only to specify requirements
-  * `:only` - The dependency will only belong to the given environments, use when
-              declaring dev or test only dependencies
-  * `:override` - If set to true the dependency will override any other
-                  definitions of itself by other dependencies
-
-  ## Git options (`:git`)
-
-  * `:git`        - The git repository URI
-  * `:github`     - A shortcut for specifying git repos from github, uses `git:`
-  * `:ref`        - The reference to checkout (may be a branch, a commit sha or a tag)
-  * `:branch`     - The git branch to checkout
-  * `:tag`        - The git tag to checkout
-  * `:submodules` - When true, initialize submodules for the repo
-
-  ## Path options (`:path`)
-
-  * `:path` - The path for the dependency
-  * `:in_umbrella` - When true, sets a path dependency pointing to "../#{app}",
-                     sharing the same environment as the current application
-
-  ## Internal options
-
-  Those options are set internally by Mix and they can't be
-  overridden from the Mixfile:
-
+  * `:app` - The application name
   * `:dest` - The destination path for the dependency
   * `:lock` - The lock information retrieved from mix.lock
 
   """
+  defstruct scm: nil, app: nil, requirement: nil, status: nil, opts: nil,
+            deps: [], extra: nil, manager: nil, from: nil
 
   @doc """
   Returns all children dependencies for the current project,
@@ -95,7 +46,7 @@ defmodule Mix.Deps do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  defdelegate children(otps), to: Mix.Deps.Loader
+  defdelegate children(otps), to: Mix.Dep.Loader
 
   @doc """
   Returns loaded dependencies recursively as a `Mix.Dep` struct.
@@ -106,8 +57,8 @@ defmodule Mix.Deps do
   provided in the project are in the wrong format.
   """
   def loaded(opts) do
-    { deps, _ } = Mix.Deps.Converger.all(nil, opts, fn(dep, acc) -> { dep, acc } end)
-    Mix.Deps.Converger.topsort(deps)
+    { deps, _ } = Mix.Dep.Converger.all(nil, opts, fn(dep, acc) -> { dep, acc } end)
+    Mix.Dep.Converger.topsort(deps)
   end
 
   @doc """
@@ -148,7 +99,7 @@ defmodule Mix.Deps do
   The callback expects the current dependency and the accumulator
   as arguments. The accumulator is returned as result.
 
-  See `Mix.Deps.Converger.all/3` for options.
+  See `Mix.Dep.Converger.all/3` for options.
 
   ## Exceptions
 
@@ -156,8 +107,8 @@ defmodule Mix.Deps do
   provided in the project are in the wrong format.
   """
   def unloaded(acc, opts, callback) do
-    { deps, acc } = Mix.Deps.Converger.all(acc, opts, callback)
-    { Mix.Deps.Converger.topsort(deps), acc }
+    { deps, acc } = Mix.Dep.Converger.all(acc, opts, callback)
+    { Mix.Dep.Converger.topsort(deps), acc }
   end
 
   @doc """
@@ -405,7 +356,7 @@ defmodule Mix.Deps do
   end
 
   defp old_elixir_lock(%Mix.Dep{opts: opts}) do
-    old_vsn = Mix.Deps.Lock.elixir_vsn(opts[:build])
+    old_vsn = Mix.Dep.Lock.elixir_vsn(opts[:build])
     if old_vsn && old_vsn != System.version do
       old_vsn
     end

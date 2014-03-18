@@ -123,7 +123,7 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp deps_tuples do
-    deps = Mix.Deps.loaded(env: Mix.env) || []
+    deps = Mix.Dep.loaded(env: Mix.env) || []
     Enum.reduce(deps, [], fn dep, acc ->
       get_tuples(dep.opts[:build]) ++ acc
     end)

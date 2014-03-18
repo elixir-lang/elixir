@@ -72,7 +72,7 @@ defmodule Mix.RebarTest do
   test "parse rebar dependencies from rebar.config" do
     Mix.Project.push(RebarAsDep)
 
-    deps = Mix.Deps.loaded([])
+    deps = Mix.Dep.loaded([])
     assert Enum.find(deps, &match?(%Mix.Dep{app: :rebar_dep}, &1))
 
     assert Enum.find(deps, fn %Mix.Dep{app: app, opts: opts} ->
@@ -117,8 +117,8 @@ defmodule Mix.RebarTest do
       assert :git_rebar.any_function == :ok
       assert :rebar_dep.any_function == :ok
 
-      load_paths = Mix.Deps.loaded([])
-        |> Enum.map(&Mix.Deps.load_paths(&1))
+      load_paths = Mix.Dep.loaded([])
+        |> Enum.map(&Mix.Dep.load_paths(&1))
         |> Enum.concat
 
       assert File.exists?("_build/dev/lib/rebar_dep/ebin/rebar_dep.beam")
