@@ -270,7 +270,7 @@ defmodule Mix.Tasks.New do
     def init([]) do
       children = [
         # Define workers and child supervisors to be supervised
-        # worker(<%= @mod %>.Worker, [])
+        # worker(<%= @mod %>.Worker, [arg1, arg2, arg3])
       ]
 
       # See http://elixir-lang.org/docs/stable/Supervisor.Behaviour.html
