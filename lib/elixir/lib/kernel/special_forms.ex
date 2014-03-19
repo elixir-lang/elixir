@@ -1176,7 +1176,7 @@ defmodule Kernel.SpecialForms do
   The `IO` module provides streams, that are both `Enumerable` and
   `Collectable`, here is an upcase echo server using comprehensions:
 
-      for line <- IO.stream(:stdio), into: IO.stream(:stdio) do
+      for line <- IO.stream(:stdio, :line), into: IO.stream(:stdio, :line) do
         String.upcase(line)
       end
 
