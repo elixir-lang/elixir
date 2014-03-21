@@ -140,7 +140,7 @@ module(Forms, File, RawOptions, Bootstrap, Callback) when
   Options = RawOptions ++ elixir_code_server:call(erl_compiler_options),
   Listname = elixir_utils:characters_to_list(File),
 
-  case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
+  case compile:noenv_forms(Forms, [no_auto_import,return,{source,Listname}|Options]) of
     {ok, ModuleName, Binary, Warnings} ->
       format_warnings(Bootstrap, Warnings),
       code:load_binary(ModuleName, Listname, Binary),
@@ -149,10 +149,6 @@ module(Forms, File, RawOptions, Bootstrap, Callback) when
       format_warnings(Bootstrap, Warnings),
       format_errors(Errors)
   end.
-
-no_auto_import() ->
-  Bifs = [{ Name, Arity } || { Name, Arity } <- erlang:module_info(exports), erl_internal:bif(Name, Arity)],
-  { attribute, 0, compile, { no_auto_import, Bifs } }.
 
 %% CORE HANDLING
 
