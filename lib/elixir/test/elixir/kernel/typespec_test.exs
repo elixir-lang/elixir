@@ -246,7 +246,16 @@ defmodule Kernel.TypespecTest do
     assert [{:mytype, _, []}, {:mytype1, _, []}] = types
   end
 
-  test "@type from defrecordp" do
+  test "@type from structs" do
+    types = test_module do
+      defstruct name: nil, age: 0
+      @type
+    end
+
+    assert [{:t, {:type, 251, :map, []}, []}] = types
+  end
+
+  test "@type from records" do
     types = test_module do
       defrecordp :user, name: nil, age: 0 :: integer
       @opaque user :: user_t
@@ -257,7 +266,7 @@ defmodule Kernel.TypespecTest do
              [{:atom, _, :user}, {:type, _, :term, []}, {:type, _, :integer, []}]}, []}] = types
   end
 
-  test "@type from defrecordp with custom tag" do
+  test "@type from records with custom tag" do
     {types, module} = test_module do
       defrecordp :user, __MODULE__, name: nil, age: 0 :: integer
       @opaque user :: user_t

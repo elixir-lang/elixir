@@ -3199,8 +3199,8 @@ defmodule Kernel do
   a function named `__struct__/0` that returns a map with the
   structs field. This macro is simply a convenience for doing so.
 
-  Note: In the future this macro may import functions into
-  your module and/or define a type.
+  Finally, this macro also defines a type t in the current
+  module unless one was previously defined.
 
   ## Examples
 
@@ -3216,6 +3216,11 @@ defmodule Kernel do
         key when is_atom(key) -> { key, nil }
         other -> raise ArgumentError, message: "struct fields must be atoms, got: #{inspect other}"
       end)
+
+      if :code.ensure_loaded(Kernel.Typespec) == { :module, Kernel.Typespec } and
+         not Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
+        @type t :: map
+      end
 
       def __struct__() do
         %{ unquote_splicing(Macro.escape(opts)), __struct__: __MODULE__ }
