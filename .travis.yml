@@ -6,4 +6,4 @@ notifications:
     - jose.valim@plataformatec.com.br
     - eric.meadows.jonsson@gmail.com
 otp_release:
-  - 17.0-rc2
+  - 17.0-rc1

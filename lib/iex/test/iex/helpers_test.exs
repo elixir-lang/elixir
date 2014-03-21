@@ -129,12 +129,15 @@ defmodule IEx.HelpersTest do
 
   test "ls helper" do
     File.cd! iex_path, fn ->
-      assert ["ebin", "lib", "mix.exs", "test"]
-             = capture_io(fn -> ls end)
-               |> String.split
-               |> Enum.map(&String.strip(&1))
-               |> Enum.sort
-      assert capture_io(fn -> ls "~" end) == capture_io(fn -> ls System.user_home end)
+      paths = capture_io(fn -> ls end)
+              |> String.split
+              |> Enum.map(&String.strip(&1))
+
+      assert "ebin" in paths
+      assert "mix.exs" in paths
+
+      assert capture_io(fn -> ls "~" end) ==
+             capture_io(fn -> ls System.user_home end)
     end
   end
 
