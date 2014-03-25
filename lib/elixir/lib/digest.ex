@@ -26,13 +26,13 @@ defmodule Digest do
     iex> Digest.to_hex("test")
     "74657374"
     iex> Digest.to_hex("æß")
-    "C3A6C39F"
+    "c3a6c39f"
 
   """
   @spec to_hex(String.t) :: String.t | no_return
   def to_hex(""), do: ""
   def to_hex(string) when is_binary(string) do
-    bc <<x :: size(4), y :: size(4)>> inbits string do <<hex_char(x), hex_char(y)>> end |> String.upcase
+    bc <<x :: size(4), y :: size(4)>> inbits string do <<hex_char(x), hex_char(y)>> end
   end
 
   @doc """
@@ -42,7 +42,7 @@ defmodule Digest do
 
     iex> Digest.from_hex("74657374")
     "test"
-    iex> Digest.from_hex("C3A6C39F")
+    iex> Digest.from_hex("c3a6c39f")
     "æß"
   """
   @spec from_hex(String.t) :: String.t | no_return

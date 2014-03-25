@@ -10,9 +10,9 @@ defmodule DigestTest do
   end
 
   test :to_hex do
-    assert "6C6F72656D20697073756D20646F6C6F722073697420616D6574" = Digest.to_hex("lorem ipsum dolor sit amet")
+    assert "6c6f72656d20697073756d20646f6c6f722073697420616d6574" = Digest.to_hex("lorem ipsum dolor sit amet")
     assert "74657374" == Digest.to_hex("test")
-    assert "C3A6C39F" == Digest.to_hex("æß")
+    assert "c3a6c39f" == Digest.to_hex("æß")
     assert ""         == Digest.to_hex("")
   end
 end
