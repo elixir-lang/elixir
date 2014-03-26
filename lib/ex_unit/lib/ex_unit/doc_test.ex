@@ -146,7 +146,7 @@ defmodule ExUnit.DocTest do
     quote bind_quoted: binding do
       for { name, test } <- ExUnit.DocTest.__doctests__(mod, opts) do
         @file '(for doctest at) ' ++ Path.relative_to_cwd(mod.__info__(:compile)[:source])
-        def unquote(name)(_), do: unquote(test)
+        test name, do: unquote(test)
       end
     end
   end
@@ -180,11 +180,11 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_name(Test[fun_arity: nil], m, n) do
-    :"test moduledoc at #{inspect m} (#{n})"
+    "moduledoc at #{inspect m} (#{n})"
   end
 
   defp test_name(Test[fun_arity: { f, a }], m, n) do
-    :"test doc at #{inspect m}.#{f}/#{a} (#{n})"
+    "doc at #{inspect m}.#{f}/#{a} (#{n})"
   end
 
   defp test_content(Test[exprs: exprs, line: line, fun_arity: fun_arity], module, do_import) do

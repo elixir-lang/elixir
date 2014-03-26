@@ -114,7 +114,7 @@ defmodule ExUnit do
 
       System.at_exit fn
         0 ->
-          %{ failures: failures } = ExUnit.run
+          %{failures: failures} = ExUnit.run
           System.at_exit fn _ ->
             if failures > 0, do: System.halt(1)
           end

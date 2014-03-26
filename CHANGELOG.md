@@ -2,7 +2,7 @@
 
 * Enhancements
   * [Collectable] Add the `Collectable` protocol that empowers `Enum.into/2` and `Stream.into/2` and the `:into` option in comprehensions
-  * [Collectable] Implement Collectable for lists, dicts, bitstrings, functions and provide both `File.Stream` and `IO.Stream`
+  * [Collectable] Implement `Collectable` for lists, dicts, bitstrings, functions and provide both `File.Stream` and `IO.Stream`
   * [Enum] Add `Enum.group_by/2`, `Enum.into/2`, `Enum.into/3`, `Enum.traverse/2` and `Enum.sum/2`
   * [ExUnit] Randomize cases and tests suite runs, allow seed configuration and the `--seed` flag via `mix test`
   * [ExUnit] Support `--only` for filtering when running tests with `mix test`
@@ -22,6 +22,7 @@
   * [System] Add `System.delete_env/1` to remove a variable from the environment
 
 * Bug fixes
+  * [Kernel] Ensure the same pid is not queued twice in the parallel compiler
   * [Macro] `Macro.to_string/2` considers proper precedence when translating `!(foo > bar)` into a string
   * [Mix] Automatically recompile on outdated Elixir version and show proper error messages
   * [Mix] Ensure generated `.app` file includes core dependencies
