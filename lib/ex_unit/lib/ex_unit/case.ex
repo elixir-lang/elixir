@@ -168,8 +168,6 @@ defmodule ExUnit.Case do
           &Module.register_attribute(__MODULE__, &1, accumulate: true)
 
         @before_compile ExUnit.Case
-        @on_definition ExUnit.Case
-
         use ExUnit.Callbacks
       end
 
@@ -222,6 +220,7 @@ defmodule ExUnit.Case do
         :"test_#{message}"
       end
 
+      ExUnit.Case.__on_definition__(__ENV__, message)
       def unquote(message)(unquote(var)), do: unquote(contents)
     end
   end
@@ -236,22 +235,16 @@ defmodule ExUnit.Case do
   end
 
   @doc false
-  def __on_definition__(env, kind, name, args, _guards, _body) do
-    if kind == :def and test?(atom_to_list(name)) and length(args) == 1 do
-      mod  = env.module
-      tags = Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
-      tags = [line: env.line] ++ normalize_tags(tags)
+  def __on_definition__(env, name) do
+    mod  = env.module
+    tags = Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
+    tags = [line: env.line] ++ normalize_tags(tags)
 
-      Module.put_attribute(mod, :ex_unit_tests,
-        ExUnit.Test[name: name, case: mod, tags: tags])
+    Module.put_attribute(mod, :ex_unit_tests,
+      ExUnit.Test[name: name, case: mod, tags: tags])
 
-      Module.delete_attribute(mod, :tag)
-    end
+    Module.delete_attribute(mod, :tag)
   end
-
-  defp test?('test ' ++ _), do: true
-  defp test?('test_' ++ _), do: true
-  defp test?(_), do: false
 
   defp normalize_tags(tags) do
     Enum.reduce tags, [], fn
