@@ -185,7 +185,7 @@ defmodule ExUnit.DocTestTest do
   end
 
   test "variables in heredocs do not leak" do
-    assert_raise CompileError, ~r"function '_a'/0 undefined", fn ->
+    assert_raise ArgumentError, fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.Invalid
