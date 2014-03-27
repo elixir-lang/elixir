@@ -4,7 +4,7 @@ defmodule StringIO do
 
   ## Examples
 
-      iex> { :ok, pid } = StringIO.start("foo")
+      iex> { :ok, pid } = StringIO.open("foo")
       iex> IO.read(pid, 2)
       "fo"
   """
@@ -22,31 +22,21 @@ defmodule StringIO do
 
   ## Examples
 
-      iex> { :ok, pid } = StringIO.start("foo")
+      iex> { :ok, pid } = StringIO.open("foo")
       iex> IO.gets(pid, ">")
       "foo"
-      iex> StringIO.peek(pid)
+      iex> StringIO.contents(pid)
       { "", "" }
 
-      iex> { :ok, pid } = StringIO.start("foo", capture_prompt: true)
+      iex> { :ok, pid } = StringIO.open("foo", capture_prompt: true)
       iex> IO.gets(pid, ">")
       "foo"
-      iex> StringIO.peek(pid)
+      iex> StringIO.contents(pid)
       { "", ">" }
 
   """
-  @spec start(binary, Keyword.t) :: { :ok, pid }
-  def start(string, options \\ []) when is_binary(string) do
-    :gen_server.start(__MODULE__, { string, options }, [])
-  end
-
-  @doc """
-  Creates an IO device.
-
-  See also `start/2`
-  """
-  @spec start_link(binary, Keyword.t) :: { :ok, pid }
-  def start_link(string, options \\ []) when is_binary(string) do
+  @spec open(binary, Keyword.t) :: { :ok, pid }
+  def open(string, options \\ []) when is_binary(string) do
     :gen_server.start_link(__MODULE__, { string, options }, [])
   end
 
@@ -55,14 +45,14 @@ defmodule StringIO do
 
   ## Examples
 
-      iex> { :ok, pid } = StringIO.start("in")
+      iex> { :ok, pid } = StringIO.open("in")
       ...> IO.write(pid, "out")
-      ...> StringIO.peek(pid)
+      ...> StringIO.contents(pid)
       { "in", "out" }
   """
-  @spec peek(pid) :: { binary, binary }
-  def peek(pid) when is_pid(pid) do
-    :gen_server.call(pid, :peek)
+  @spec contents(pid) :: { binary, binary }
+  def contents(pid) when is_pid(pid) do
+    :gen_server.call(pid, :contents)
   end
 
   @doc """
@@ -70,14 +60,14 @@ defmodule StringIO do
 
   ## Examples
 
-      iex> { :ok, pid } = StringIO.start("in")
+      iex> { :ok, pid } = StringIO.open("in")
       ...> IO.write(pid, "out")
-      ...> StringIO.stop(pid)
+      ...> StringIO.close(pid)
       { :ok, { "in", "out" } }
   """
-  @spec stop(pid) :: { :ok, { binary, binary } }
-  def stop(pid) when is_pid(pid) do
-    :gen_server.call(pid, :stop)
+  @spec close(pid) :: { :ok, { binary, binary } }
+  def close(pid) when is_pid(pid) do
+    :gen_server.call(pid, :close)
   end
 
   ## callbacks
@@ -96,11 +86,11 @@ defmodule StringIO do
     super(msg, s)
   end
 
-  def handle_call(:peek, _from, state(input: input, output: output) = s) do
+  def handle_call(:contents, _from, state(input: input, output: output) = s) do
     { :reply, { input, output }, s }
   end
 
-  def handle_call(:stop, _from, state(input: input, output: output) = s) do
+  def handle_call(:close, _from, state(input: input, output: output) = s) do
     { :stop, :normal, { :ok, { input, output } }, s }
   end
 
@@ -164,7 +154,7 @@ defmodule StringIO do
   end
 
   defp io_request(:getopts, s) do
-    { [ binary: true, encoding: :unicode ], s }
+    { { :ok, [binary: true, encoding: :unicode] }, s }
   end
 
   defp io_request({ :get_geometry, :columns }, s) do

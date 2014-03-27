@@ -250,22 +250,14 @@ defmodule ExUnit.CaptureIOTest do
 
   test "with setopts" do
     assert capture_io(fn ->
-      :io.setopts({ :encoding, :latin1 })
+      assert :io.setopts({ :encoding, :latin1 }) == {:error, :enotsup}
     end) == ""
-
-    capture_io(fn ->
-      assert :io.setopts({ :encoding, :latin1 }) == :ok
-    end)
   end
 
   test "with getopts" do
     assert capture_io(fn ->
-      :io.getopts
+      assert :io.getopts == { :ok, [binary: true, encoding: :unicode] }
     end) == ""
-
-    capture_io(fn ->
-      assert :io.getopts == { :error, :enotsup }
-    end)
   end
 
   test "with columns" do

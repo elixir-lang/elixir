@@ -4,29 +4,29 @@ defmodule StringIOTest do
   use ExUnit.Case, async: true
 
   test "start and stop" do
-    { :ok, pid } = StringIO.start("")
-    assert StringIO.stop(pid) == { :ok, { "", "" } }
+    { :ok, pid } = StringIO.open("")
+    assert StringIO.close(pid) == { :ok, { "", "" } }
   end
 
   test "start_link and stop" do
-    { :ok, pid } = StringIO.start_link("")
-    assert StringIO.stop(pid) == { :ok, { "", "" } }
+    { :ok, pid } = StringIO.open("")
+    assert StringIO.close(pid) == { :ok, { "", "" } }
   end
 
   test "peek" do
-    { :ok, pid } = StringIO.start("abc")
+    { :ok, pid } = StringIO.open("abc")
     IO.write(pid, "edf")
-    assert StringIO.peek(pid) == { "abc", "edf" }
+    assert StringIO.contents(pid) == { "abc", "edf" }
   end
 
   ## IO module
 
   def start(string, opts \\ []) do
-    StringIO.start(string, opts) |> elem(1)
+    StringIO.open(string, opts) |> elem(1)
   end
 
   def contents(pid) do
-    StringIO.peek(pid)
+    StringIO.contents(pid)
   end
 
   test "IO.read :line with \\n" do

@@ -89,12 +89,12 @@ defmodule ExUnit.CaptureIO do
     input = Keyword.get(options, :input, "")
 
     original_gl = :erlang.group_leader
-    { :ok, capture_gl } = StringIO.start_link(input, capture_prompt: prompt_config)
+    { :ok, capture_gl } = StringIO.open(input, capture_prompt: prompt_config)
     :erlang.group_leader(capture_gl, self)
 
     try do
       fun.()
-      StringIO.stop(capture_gl) |> elem(1) |> elem(1)
+      StringIO.close(capture_gl) |> elem(1) |> elem(1)
     after
       :erlang.group_leader(original_gl, self)
     end
@@ -112,12 +112,12 @@ defmodule ExUnit.CaptureIO do
     input = Keyword.get(options, :input, "")
 
     Process.unregister(device)
-    { :ok, capture_io } = StringIO.start_link(input)
+    { :ok, capture_io } = StringIO.open(input)
     Process.register(capture_io, device)
 
     try do
       fun.()
-      StringIO.stop(capture_io) |> elem(1) |> elem(1)
+      StringIO.close(capture_io) |> elem(1) |> elem(1)
     after
       try do
         Process.unregister(device)
