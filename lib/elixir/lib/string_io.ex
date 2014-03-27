@@ -84,7 +84,6 @@ defmodule StringIO do
 
   def init({ string, options }) do
     capture_prompt = options[:capture_prompt] || false
-
     { :ok, state(input: string, capture_prompt: capture_prompt) }
   end
 
@@ -161,11 +160,11 @@ defmodule StringIO do
   end
 
   defp io_request({ :setopts, _opts }, s) do
-    { :ok, s }
+    { { :error, :enotsup }, s }
   end
 
   defp io_request(:getopts, s) do
-    { { :error, :enotsup }, s }
+    { [ binary: true, encoding: :unicode ], s }
   end
 
   defp io_request({ :get_geometry, :columns }, s) do
@@ -200,20 +199,17 @@ defmodule StringIO do
     end
   end
 
-  defp do_get_chars("", _, _encoding) do
+  defp do_get_chars("", _encoding, _n) do
     { :eof, "" }
   end
 
-  defp do_get_chars(input, n, :latin1) when byte_size(input) < n do
+  defp do_get_chars(input, :latin1, n) when byte_size(input) < n do
     { input, "" }
   end
 
   defp do_get_chars(input, :latin1, n) do
-    if byte_size(input) < n do
-      { input, "" }
-    else
-      :erlang.split_binary(input, n)
-    end
+    << chars :: [ binary, size(n) ], rest :: binary >> = input
+    { chars, rest }
   end
 
   defp do_get_chars(input, encoding, n) do
@@ -222,7 +218,8 @@ defmodule StringIO do
         { buf_count, split_pos } when buf_count < n or split_pos == :none ->
           { input, "" }
         { _buf_count, split_pos } ->
-          :erlang.split_binary(input, split_pos)
+          << chars :: [ binary, size(split_pos) ], rest :: binary >> = input
+          { chars, rest }
       end
     catch
       :exit, :invalid_unicode ->
@@ -266,9 +263,9 @@ defmodule StringIO do
                  state(input: input, output: output, capture_prompt: capture_prompt) = s) do
     case :unicode.characters_to_list(input, encoding) do
       { :error, _, _ } ->
-        { :error, fun }
+        { :error, s }
       { :incomplete, _, _ } ->
-        { :error, fun }
+        { :error, s }
       chars ->
         { result, input, count } = do_get_until(chars, encoding, mod, fun, args)
 

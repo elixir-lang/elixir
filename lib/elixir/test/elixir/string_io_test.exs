@@ -85,7 +85,7 @@ defmodule StringIOTest do
     assert contents(pid) == { "", "" }
   end
 
-  test "IO.binread :line with \\rn" do
+  test "IO.binread :line with \\r\\n" do
     pid = start("abc\r\n")
     assert IO.binread(pid, :line) == "abc\n"
     assert IO.binread(pid, :line) == :eof
