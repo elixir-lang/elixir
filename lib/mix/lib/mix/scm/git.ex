@@ -79,7 +79,12 @@ defmodule Mix.SCM.Git do
       location = opts[:git]
       update_origin(location)
 
-      command = "git fetch --force --progress"
+      command = "git fetch --force"
+
+      if { 1, 7, 1 } <= git_version() do
+        command = command <> " --progress"
+      end
+
       if opts[:tag] do
         command = command <> " --tags"
       end
@@ -145,5 +150,21 @@ defmodule Mix.SCM.Git do
       raise Mix.Error, message: "Command `#{command}` failed"
     end
     true
+  end
+
+  defp git_version do
+    case :application.get_env(:mix, :git_version) do
+      { :ok, version } ->
+        version
+      :undefined ->
+        "git version " <> version = String.strip System.cmd("git --version")
+        version = String.split(version, ".")
+                  |> Enum.take(3)
+                  |> Enum.map(&binary_to_integer(&1))
+                  |> list_to_tuple
+
+        :application.set_env(:mix, :git_version, version)
+        version
+    end
   end
 end
