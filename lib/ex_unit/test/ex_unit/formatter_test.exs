@@ -8,6 +8,13 @@ defmodule ExUnit.FormatterTest do
 
   def falsy, do: false
 
+  # mock terminal formatter
+  defp terminal, do: &formatter(&1, &2, nil)
+
+  defp formatter(:width, _, _config), do: 99999
+  defp formatter(_,  msg, _config),   do: msg
+
+
   defmacrop catch_expectation(expr) do
     quote do
       try do
@@ -48,24 +55,13 @@ defmodule ExUnit.FormatterTest do
     """
   end
 
-  test "formats test expectations" do
-    failure = { :error, catch_expectation(assert 1 == 2), [] }
-    assert format_test_failure(Hello, :world, failure, 1, nil) =~ """
-      1) world (Hello)
-         ** (ExUnit.ExpectationError)
-                      expected: 1
-           to be equal to (==): 2
-    """
-  end
 
-  test "formats test expectations with prelude" do
+  test "formats test expectations" do
     failure = { :error, catch_expectation(assert ExUnit.FormatterTest.falsy), [] }
-    assert format_test_failure(Hello, :world, failure, 1, nil) =~ """
+    assert format_test_failure(Hello, :world, failure, 1, terminal) =~ """
       1) world (Hello)
-         ** (ExUnit.ExpectationError)
-              expected: ExUnit.FormatterTest.falsy()
-                 to be: true
-           instead got: false
+         false is not truthy
+         code: ExUnit.FormatterTest.falsy()
     """
   end
 
@@ -73,8 +69,8 @@ defmodule ExUnit.FormatterTest do
     failure = { :error, catch_error(raise "oops"), [{ Hello, :world, 1, [file: "formatter_test.exs", line: 1]}] }
     assert format_test_failure(Hello, :world, failure, 1, nil) =~ """
       1) world (Hello)
+         formatter_test.exs:1
          ** (RuntimeError) oops
-         at formatter_test.exs:1
     """
   end
 
@@ -82,8 +78,8 @@ defmodule ExUnit.FormatterTest do
     failure = { :error, catch_error(raise "oops"), [{ Oops, :wrong, 1, [file: "formatter_test.exs", line: 1]}] }
     assert format_test_failure(Hello, :world, failure, 1, nil) =~ """
       1) world (Hello)
+         formatter_test.exs:1
          ** (RuntimeError) oops
-         stacktrace:
            formatter_test.exs:1: Oops.wrong/1
     """
   end
@@ -95,4 +91,5 @@ defmodule ExUnit.FormatterTest do
          ** (RuntimeError) oops
     """
   end
+
 end

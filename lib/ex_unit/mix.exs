@@ -9,6 +9,7 @@ defmodule ExUnit.Mixfile do
     [ registered: [ExUnit.Server],
       mod: { ExUnit, [] },
       env: [
+        seed: 0,      # make it deterministic during testing
         autorun: true,
         trace: false,
         formatters: [ExUnit.CLIFormatter],

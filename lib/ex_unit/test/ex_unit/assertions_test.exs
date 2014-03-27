@@ -28,8 +28,9 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = assert Value.falsy
     rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected Value.falsy() to be true. Instead got false" = error.message
+      error in [ExUnit.AssertionError] ->
+        "Value.falsy()"    = error.expr
+        "false is not truthy" = error.message
     end
   end
 
@@ -37,8 +38,10 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = assert 1 + 1 == 1
     rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected 2 to be equal to (==) 1" = error.message
+      error in [ExUnit.AssertionError] ->
+        1 = error.right
+        2 = error.left
+        "1 + 1 == 1" = error.expr
     end
   end
 
@@ -46,8 +49,10 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = assert 1 == 1 + 1
     rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected 1 to be equal to (==) 2" = error.message
+      error in [ExUnit.AssertionError] ->
+        1 = error.left
+        2 = error.right
+        "1 == 1 + 1" = error.expr
     end
   end
 
@@ -60,8 +65,9 @@ defmodule ExUnit.AssertionsTest do
       refute Value.truthy
       raise "refute was supposed to fail"
     rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected Value.truthy() to be false. Instead got true" = error.message
+      error in [ExUnit.AssertionError] ->
+        "Value.truthy()"   = error.expr
+        "true should be false or nil" = error.message
     end
   end
 
@@ -85,7 +91,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert_received :hello
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected to have received message matching :hello" = error.message
+        "No message matching :hello" = error.message
     end
   end
 
@@ -109,7 +115,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = refute_received :hello
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected to not have received message matching :hello, got :hello" = error.message
+        "Unexpectedly received message :hello (which matched :hello)" = error.message
     end
   end
 
@@ -121,8 +127,10 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = assert 'foo' in 'bar'
     rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected 'foo' to be in 'bar'" = error.message
+      error in [ExUnit.AssertionError] ->
+        'foo' = error.left
+        'bar' = error.right
+        "'foo' in 'bar'" = error.expr
     end
   end
 
@@ -134,8 +142,10 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = refute 'foo' in ['foo', 'bar']
     rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected 'foo' to not be in ['foo', 'bar']" = error.message
+      error in [ExUnit.AssertionError] ->
+        'foo'          = error.left
+        ['foo', 'bar'] = error.right
+        "!('foo' in ['foo', 'bar'])" = error.expr
     end
   end
 
@@ -147,8 +157,10 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = assert { :ok, _ } = "bar"
     rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected \"bar\" to match pattern (=) {:ok, _}" = error.message
+      error in [ExUnit.AssertionError] ->
+        "match (=) failed"   = error.message
+        "{:ok, _} = \"bar\"" = error.expr
+        "\"bar\""            = error.right
     end
   end
 
@@ -156,8 +168,10 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = refute _ = "bar"
     rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected \"bar\" to not match pattern (=) _" = error.message
+      error in [ExUnit.AssertionError] ->
+        "\"bar\""     = error.right
+        "_ = \"bar\"" = error.expr
+        "match (=) succeeded, but should have failed" = error.message
     end
   end
 
@@ -169,8 +183,9 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = assert "foo" =~ ~r(a)
     rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected \"foo\" to match (=~) ~r\"a\"" = error.message
+      error in [ExUnit.AssertionError] ->
+        "foo" = error.left 
+        ~r{a} = error.right
     end
   end
 
@@ -182,8 +197,9 @@ defmodule ExUnit.AssertionsTest do
     try do
       "This should never be tested" = refute "foo" =~ ~r(o)
     rescue
-      error in [ExUnit.ExpectationError] ->
-        "Expected \"foo\" to not match (=~) ~r\"o\"" = error.message
+      error in [ExUnit.AssertionError] ->
+        "foo" = error.left
+        ~r"o" = error.right
     end
   end
 
@@ -193,7 +209,7 @@ defmodule ExUnit.AssertionsTest do
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected ArgumentError exception but nothing was raised" = error.message
+      "Expected exception 'ArgumentError' but nothing was raised" = error.message
   end
 
   test "assert raise with error" do
@@ -206,11 +222,11 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert raise with some other error" do
     "This should never be tested" = assert_raise ArgumentError, fn ->
-      Certainly.Undefined.function(1, 2, 3)
+      Not.Defined.function(1, 2, 3)
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected exception ArgumentError, got UndefinedFunctionError (undefined function: Certainly.Undefined.function/3)" = error.message
+      "Expected exception 'ArgumentError' but got UndefinedFunctionError(undefined function: Not.Defined.function/3)" = error.message
   end
 
   test "assert raise with erlang error" do
@@ -219,7 +235,7 @@ defmodule ExUnit.AssertionsTest do
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected exception SyntaxError, got FunctionClauseError (no function clause matching in :lists.flatten/1)" = error.message
+      "Expected exception 'SyntaxError' but got FunctionClauseError(no function clause matching in :lists.flatten/1)" = error.message
   end
 
   test "assert greater than operator" do
@@ -229,8 +245,10 @@ defmodule ExUnit.AssertionsTest do
   test "assert greater than operator error" do
     "This should never be tested" = assert 1 > 2
   rescue
-    error in [ExUnit.ExpectationError] ->
-      "Expected 1 to be more than 2" = error.message
+    error in [ExUnit.AssertionError] ->
+      1       = error.left
+      2       = error.right
+      "1 > 2" = error.expr
   end
 
   test "assert less or equal than operator" do
@@ -240,8 +258,10 @@ defmodule ExUnit.AssertionsTest do
   test "assert less or equal than operator error" do
     "This should never be tested" = assert 2 <= 1
   rescue
-    error in [ExUnit.ExpectationError] ->
-      "Expected 2 to be less than or equal to 1" = error.message
+    error in [ExUnit.AssertionError] ->
+      "2 <= 1" = error.expr
+      2 = error.left
+      1 = error.right
   end
 
   test "assert operator with expressions" do
@@ -264,7 +284,7 @@ defmodule ExUnit.AssertionsTest do
     "This should never be tested" = assert_in_delta(10, 12, 1)
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected |10 - 12| (2) to be < 1" = error.message
+      "Expected the difference between 10 and 12 (2) to be less than 1" = error.message
   end
 
   test "assert in delta with message" do
@@ -282,14 +302,14 @@ defmodule ExUnit.AssertionsTest do
     "This should never be tested" = refute_in_delta(10, 11, 2)
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected |10 - 11| (1) to not be < 2" = error.message
+       "Expected the difference between 10 and 11 (1) to be more than 2" = error.message
   end
 
   test "refute in delta with message" do
     "This should never be tested" = refute_in_delta(10, 11, 2, "test message")
   rescue
     error in [ExUnit.AssertionError] ->
-      "test message" = error.message
+       "test message (difference between 10 and 11 is less than 2)" = error.message
   end
 
   test "catch_throw with no throw" do
