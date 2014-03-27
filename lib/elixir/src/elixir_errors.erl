@@ -44,28 +44,18 @@ compile_error(Meta, File, Format, Args) when is_list(Format)  ->
 
 -spec parse_error(line_or_meta(), binary(), iolist() | atom(), [] | iolist()) -> no_return().
 
-parse_error(Meta, File, Error, []) ->
+parse_error(Meta, File, Error, <<>>) ->
   Message = case Error of
-    "syntax error before: " -> <<"syntax error: expression is incomplete">>;
-    _ -> iolist_to_binary(Error)
+    <<"syntax error before: ">> -> <<"syntax error: expression is incomplete">>;
+    _ -> Error
   end,
   raise(Meta, File, 'Elixir.TokenMissingError', Message);
 
-parse_error(Meta, File, "syntax error before: ", "'end'") ->
+parse_error(Meta, File, <<"syntax error before: ">>, <<"'end'">>) ->
   raise(Meta, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
 
-parse_error(Meta, File, Error, Token) ->
-  BinError = if
-    is_atom(Error) -> atom_to_binary(Error, utf8);
-    true -> iolist_to_binary(Error)
-  end,
-
-  BinToken = if
-    Token == [] -> <<>>;
-    true        -> elixir_utils:characters_to_binary(Token)
-  end,
-
-  Message = <<BinError / binary, BinToken / binary >>,
+parse_error(Meta, File, Error, Token) when is_binary(Error), is_binary(Token) ->
+  Message = <<Error / binary, Token / binary >>,
   raise(Meta, File, 'Elixir.SyntaxError', Message).
 
 %% Shows a deprecation message

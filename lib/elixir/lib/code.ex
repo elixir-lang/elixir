@@ -59,11 +59,11 @@ defmodule Code do
   end
 
   @doc """
-  Evaluate the contents given by `string`. 
+  Evaluate the contents given by `string`.
 
-  The `binding` argument is a keyword list of variable bindings. 
-  The `opts` argument is a keyword list of environment options. 
-  
+  The `binding` argument is a keyword list of variable bindings.
+  The `opts` argument is a keyword list of environment options.
+
   Those options can be:
 
   * `:file` - the file to be considered in the evaluation
@@ -118,15 +118,12 @@ defmodule Code do
   def eval_string(string, binding \\ [], opts \\ [])
 
   def eval_string(string, binding, Macro.Env[] = env) do
-    do_eval_string(string, binding, env.to_keywords)
+    { value, binding, _env, _scope } = :elixir.eval to_char_list(string), binding, env.to_keywords
+    { value, binding }
   end
 
   def eval_string(string, binding, opts) when is_list(opts) do
     validate_eval_opts(opts)
-    do_eval_string(string, binding, opts)
-  end
-
-  defp do_eval_string(string, binding, opts) when is_list(binding) do
     { value, binding, _env, _scope } = :elixir.eval to_char_list(string), binding, opts
     { value, binding }
   end
@@ -153,15 +150,12 @@ defmodule Code do
   def eval_quoted(quoted, binding \\ [], opts \\ [])
 
   def eval_quoted(quoted, binding, Macro.Env[] = env) do
-    do_eval_quoted(quoted, binding, env.to_keywords)
+    { value, binding, _env, _scope } = :elixir.eval_quoted quoted, binding, env.to_keywords
+    { value, binding }
   end
 
   def eval_quoted(quoted, binding, opts) when is_list(opts) do
     validate_eval_opts(opts)
-    do_eval_quoted(quoted, binding, opts)
-  end
-
-  defp do_eval_quoted(quoted, binding, opts) when is_list(binding) do
     { value, binding, _env, _scope } = :elixir.eval_quoted quoted, binding, opts
     { value, binding }
   end
@@ -204,8 +198,8 @@ defmodule Code do
   end
 
   @doc """
-  Convert the given string to its quoted form. 
-  
+  Convert the given string to its quoted form.
+
   Returns `{ :ok, quoted_form }`
   if it succeeds, `{ :error, { line, error, token } }` otherwise.
 
@@ -228,17 +222,12 @@ defmodule Code do
   def string_to_quoted(string, opts \\ []) when is_list(opts) do
     file = Keyword.get opts, :file, "nofile"
     line = Keyword.get opts, :line, 1
-    res  = :elixir.string_to_quoted(to_char_list(string), line, file, opts)
-
-    case res do
-      { :ok, forms } -> { :ok, forms }
-      _ -> res
-    end
+    :elixir.string_to_quoted(to_char_list(string), line, file, opts)
   end
 
   @doc """
-  Convert the given string to its quoted form. 
-  
+  Convert the given string to its quoted form.
+
   It returns the ast if it succeeds,
   raises an exception otherwise. The exception is a `TokenMissingError`
   in case a token is missing (usually because the expression is incomplete),
@@ -253,18 +242,31 @@ defmodule Code do
   end
 
   @doc """
-  Load the given file. 
-  
-  Accepts `relative_to` as an argument to tell where
-  the file is located. If the file was already required/loaded, loads it again.
-  It returns a list of tuples `{ ModuleName, <<byte_code>> }`, one tuple for each
-  module defined in the file.
+  Evals the given file.
 
-  Notice that if `load_file` is invoked by different processes
-  concurrently, the target file will be invoked concurrently
-  many times. I.e. if `load_file` is called N times with
-  a given file, the given file will be loaded N times. Check
-  `require_file/2` if you don't want a file to be loaded concurrently.
+  Accepts `relative_to` as an argument to tell where the file is located.
+
+  While `load_file` loads a file and returns the loaded modules and their
+  byte code, `eval_file` simply evalutes the file contents and returns the
+  evaluation result and its bindings.
+  """
+  def eval_file(file, relative_to \\ nil) do
+    file = find_file(file, relative_to)
+    eval_string File.read!(file), [], []
+  end
+
+  @doc """
+  Load the given file.
+
+  Accepts `relative_to` as an argument to tell where the file is located.
+  If the file was already required/loaded, loads it again.
+
+  It returns a list of tuples `{ ModuleName, <<byte_code>> }`, one tuple for
+  each module defined in the file.
+
+  Notice that if `load_file` is invoked by different processes concurrently,
+  the target file will be loaded concurrently many times. Check `require_file/2`
+  if you don't want a file to be loaded concurrently.
   """
   def load_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
@@ -275,11 +277,11 @@ defmodule Code do
   end
 
   @doc """
-  Require the given `file`. 
-  
-  Accepts `relative_to` as an argument to tell where
-  the file is located. The return value is the same as that of `load_file/2`. If
-  the file was already required/loaded, doesn't do anything and returns `nil`.
+  Requires the given `file`.
+
+  Accepts `relative_to` as an argument to tell where the file is located.
+  The return value is the same as that of `load_file/2`. If the file was already
+  required/loaded, doesn't do anything and returns `nil`.
 
   Notice that if `require_file` is invoked by different processes concurrently,
   the first process to invoke `require_file` acquires a lock and the remaining
@@ -287,7 +289,7 @@ defmodule Code do
   N times with a given file, it will be loaded only once. The first process to
   call `require_file` will get the list of loaded modules, others will get `nil`.
 
-  Check `load_file/2` if you want a file to be loaded concurrently.
+  Check `load_file/2` if you want a file to be loaded multiple times.
   """
   def require_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
@@ -305,7 +307,7 @@ defmodule Code do
   end
 
   @doc """
-  Load the compilation options from the code server.
+  Gets the compilation options from the code server.
 
   Check `compiler_options/1` for more information.
   """
@@ -314,7 +316,7 @@ defmodule Code do
   end
 
   @doc """
-  Set compilation options. 
+  Sets compilation options.
 
   These options are global since they are stored by Elixir's Code Server.
 
@@ -338,11 +340,10 @@ defmodule Code do
   end
 
   @doc """
-  Compile the given string. 
+  Compiles the given string.
 
-  Returns a list of tuples where
-  the first element is the module name and the second one is its
-  binary.
+  Returns a list of tuples where the first element is the module name
+  and the second one is its byte code (as a binary).
 
   For compiling many files at once, check `Kernel.ParallelCompiler.files/2`.
   """
@@ -351,26 +352,23 @@ defmodule Code do
   end
 
   @doc """
-  Compile the quoted expression. 
-  
-  Returns a list of tuples where
-  the first element is the module name and the second one is its
-  binary.
+  Compiles the quoted expression.
+
+  Returns a list of tuples where the first element is the module name and
+  the second one is its byte code (as a binary).
   """
   def compile_quoted(quoted, file \\ "nofile") when is_binary(file) do
     :elixir_compiler.quoted quoted, file
   end
 
   @doc """
-  Ensure the given module is loaded. 
-  
-  If the module is already
-  loaded, this works as no-op. If the module was not yet loaded,
-  it tries to load it.
+  Ensures the given module is loaded.
 
-  If it succeeds loading the module, it returns
-  `{ :module, module }`. If not, returns `{ :error, reason }` with
-  the error reason.
+  If the module is already loaded, this works as no-op. If the module
+  was not yet loaded, it tries to load it.
+
+  If it succeeds loading the module, it returns `{ :module, module }`.
+  If not, returns `{ :error, reason }` with the error reason.
 
   ## Code loading on the Erlang VM
 
@@ -385,47 +383,46 @@ defmodule Code do
   module uses this function to check if a specific parser exists for a given
   URI scheme.
 
-  ## Code.ensure_compiled
+  ## `Code.ensure_compiled/1`
 
   Elixir also contains an `ensure_compiled/1` function that is a
   superset of `ensure_loaded/1`.
 
   Since Elixir's compilation happens in parallel, in some situations
-  you may need to use a module but that was not yet compiled, therefore
+  you may need to use a module that was not yet compiled, therefore
   it can't even be loaded.
 
   `ensure_compiled/1` halts the current process until the
   module we are depending on is available.
 
-  In most cases, `ensure_loaded` is enough. `ensure_compiled`
-  must be used in some rare cases, usually involving macros
-  that need to invoke a module for callback information.
+  In most cases, `ensure_loaded/1` is enough. `ensure_compiled/1`
+  must be used in rare cases, usually involving macros that need to
+  invoke a module for callback information.
   """
   def ensure_loaded(module) when is_atom(module) do
     :code.ensure_loaded(module)
   end
 
   @doc """
-  Ensure the given module is loaded.
+  Ensures the given module is loaded.
 
   Similar to `ensure_loaded/1`, but returns `true` if the module
-  is already loaded or was successfully loaded. Returns `false` otherwise.
+  is already loaded or was successfully loaded. Returns `false`
+  otherwise.
   """
   def ensure_loaded?(module) do
     match?({ :module, ^module }, ensure_loaded(module))
   end
 
   @doc """
-  Ensure the given module is compiled and loaded. 
-  
-  If the module
-  is already loaded, it works as no-op. If the module was not
-  loaded yet, it checks if it needs to be compiled first and
-  then tries to load it.
+  Ensures the given module is compiled and loaded.
 
-  If it succeeds loading the module, it returns
-  `{ :module, module }`. If not, returns `{ :error, reason }` with
-  the error reason.
+  If the module is already loaded, it works as no-op. If the module was
+  not loaded yet, it checks if it needs to be compiled first and then
+  tries to load it.
+
+  If it succeeds loading the module, it returns `{ :module, module }`.
+  If not, returns `{ :error, reason }` with the error reason.
 
   Check `ensure_loaded/1` for more information on module loading
   and when to use `ensure_loaded/1` or `ensure_compiled/1`.
@@ -448,10 +445,10 @@ defmodule Code do
   end
 
   @doc """
-  Ensure the given module is compiled and loaded. 
+  Ensures the given module is compiled and loaded.
 
   Similar to `ensure_compiled/1`, but returns `true` if the module
-  is already loaded or was successfully loaded and compiled. 
+  is already loaded or was successfully loaded and compiled.
   Returns `false` otherwise.
   """
   def ensure_compiled?(module) do
@@ -461,6 +458,7 @@ defmodule Code do
   ## Helpers
 
   # Finds the file given the relative_to path.
+  #
   # If the file is found, returns its path in binary, fails otherwise.
   defp find_file(file, relative_to) do
     file = if relative_to do

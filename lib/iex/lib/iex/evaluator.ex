@@ -112,7 +112,7 @@ defmodule IEx.Evaluator do
   end
 
   defp do_eval(@break_trigger, config) do
-    :elixir_errors.parse_error(config.counter, "iex", 'incomplete expression', [])
+    :elixir_errors.parse_error(config.counter, "iex", "incomplete expression", "")
   end
 
   defp do_eval(latest_input, config) do
@@ -128,7 +128,7 @@ defmodule IEx.Evaluator do
         config.update_counter(&(&1+1)).cache('').binding(new_binding).scope(scope).env(env)
 
       { :error, { line, error, token } } ->
-        if token == [] do
+        if token == "" do
           # Update config.cache so that IEx continues to add new input to
           # the unfinished expression in `code`
           config.cache(code)

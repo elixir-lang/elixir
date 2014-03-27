@@ -129,7 +129,7 @@ defmodule Kernel.CLI.ParallelCompilerTest do
     assert msg =~ "* #{fixture_path "parallel_deadlock/bar.ex"} is missing module Foo"
   end
 
-  test "warnings_as_errors" do
+  test "warnings as errors" do
     warnings_as_errors = Code.compiler_options[:warnings_as_errors]
 
     try do

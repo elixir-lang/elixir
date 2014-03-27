@@ -892,12 +892,21 @@ defmodule EnumTest.SideEffects do
     end) == "1\n"
   end
 
-  test "takes does not consume next without a need" do
-    File.open!(fixture_path("one-liner.txt"), [], fn file ->
-      iterator = IO.stream(file, :line)
-      assert Enum.take(iterator, 1) == ["ONE"]
-      assert Enum.take(iterator, 5) == []
-    end)
+  test "take does not consume next without a need" do
+    path = tmp_path("oneliner.txt")
+    File.mkdir(Path.dirname(path))
+
+    try do
+      File.write!(path, "ONE")
+
+      File.open!(path, [], fn file ->
+        iterator = IO.stream(file, :line)
+        assert Enum.take(iterator, 1) == ["ONE"]
+        assert Enum.take(iterator, 5) == []
+      end)
+    after
+      File.rm(path)
+    end
   end
 
   test "take with no item works as no-op" do
