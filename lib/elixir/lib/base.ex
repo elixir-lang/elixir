@@ -4,11 +4,11 @@ defmodule Base do
   @moduledoc """
   This module provides data encoding and decoding functions
   according to [RFC 4648](http://tools.ietf.org/html/rfc4648).
-  
+
   This document defines the commonly used base 64, base 32, and base
    16 encoding schemes.
   """
-  
+
   b16_alphabet    = Enum.with_index '0123456789ABCDEF'
   b64_alphabet    = Enum.with_index 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
   b64url_alphabet = Enum.with_index 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
@@ -28,7 +28,7 @@ defmodule Base do
       raise ArgumentError, message: "non-alphabet digit found: #{<<c>>}"
     end
   end
-  
+
   @doc """
   Encodes a binary string into a base 16 encoded string.
 
@@ -45,16 +45,16 @@ defmodule Base do
 
   @doc """
   Decodes a base 16 encoded string into a binary string.
-  
+
   The following alphabet is used both for encoding and decoding:
-  
+
   | Value | Encoding | Value | Encoding | Value | Encoding | Value | Encoding |
   |------:|---------:|------:|---------:|------:|---------:|------:|---------:|
   |      0|         0|      4|         4|      8|         8|     12|         C|
   |      1|         1|      5|         5|      9|         9|     13|         D|
   |      2|         2|      6|         6|     10|         A|     14|         E|
   |      3|         3|      7|         7|     11|         B|     15|         F|
-  
+
   ## Examples
 
       iex> Base.decode16("666F6F626172")
@@ -65,15 +65,15 @@ defmodule Base do
   def decode16(string) when is_binary(string) do
     { :ok, decode16!(string) }
   rescue
-    ArgumentError -> :error  
+    ArgumentError -> :error
   end
-  
+
   @doc """
   Decodes a base 16 encoded string into a binary string.
-  
+
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
-  
+
   ## Examples
 
       iex> Base.decode16!("666F6F626172")
@@ -101,9 +101,9 @@ defmodule Base do
 
   @doc """
   Decodes a base 64 encoded string into a binary string.
-  
+
   The following alphabet is used both for encoding and decoding:
-  
+
   | Value | Encoding | Value | Encoding | Value | Encoding | Value | Encoding |
   |------:|---------:|------:|---------:|------:|---------:|------:|---------:|
   |      0|         A|     17|         R|     34|         i|     51|         z|
@@ -123,7 +123,7 @@ defmodule Base do
   |     14|         O|     31|         f|     48|         w|  (pad)|         =|
   |     15|         P|     32|         g|     49|         x|       |          |
   |     16|         Q|     33|         h|     50|         y|       |          |
-  
+
   ## Examples
 
       iex> Base.decode64("Zm9vYmFy")
@@ -136,15 +136,15 @@ defmodule Base do
   rescue
     ArgumentError -> :error
   end
-  
+
   @doc """
   Decodes a base 64 encoded string into a binary string.
-  
+
   The following alphabet is used both for encoding and decoding:
-  
+
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
-  
+
   ## Examples
 
       iex> Base.decode64!("Zm9vYmFy")
@@ -164,19 +164,19 @@ defmodule Base do
 
       iex> Base.url_encode64(<<255,127,254,252>>)
       "_3_-_A=="
-  
+
   """
   @spec url_encode64(binary) :: binary
   def url_encode64(data) when is_binary(data) do
     do_encode64(data, &enc64url/1)
   end
-  
+
   @doc """
   Decodes a base 64 encoded string with URL and filename safe alphabet
   into a binary string.
-  
+
   The following alphabet is used both for encoding and decoding:
-  
+
   | Value | Encoding | Value | Encoding | Value | Encoding | Value | Encoding |
   |------:|---------:|------:|---------:|------:|---------:|------:|---------:|
   |      0|         A|     17|         R|     34|         i|     51|         z|
@@ -196,7 +196,7 @@ defmodule Base do
   |     14|         O|     31|         f|     48|         w|  (pad)|         =|
   |     15|         P|     32|         g|     49|         x|       |          |
   |     16|         Q|     33|         h|     50|         y|       |          |
-  
+
   ## Examples
 
       iex> Base.url_decode64("_3_-_A==")
@@ -209,14 +209,14 @@ defmodule Base do
   rescue
     ArgumentError -> :error
   end
-  
+
   @doc """
   Decodes a base 64 encoded string with URL and filename safe alphabet
   into a binary string.
-  
+
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
-  
+
   ## Examples
 
       iex> Base.url_decode64!("_3_-_A==")
@@ -227,7 +227,7 @@ defmodule Base do
   def url_decode64!(string) when is_binary(string) do
     do_decode64(string, &dec64url/1)
   end
-  
+
   @doc """
   Encodes a binary string into a base 32 encoded string.
 
@@ -244,9 +244,9 @@ defmodule Base do
 
   @doc """
   Decodes a base 32 encoded string into a binary string.
-  
+
   The following alphabet is used both for encoding and decoding:
-  
+
   | Value | Encoding | Value | Encoding | Value | Encoding | Value | Encoding |
   |------:|---------:|------:|---------:|------:|---------:|------:|---------:|
   |      0|         A|      9|         J|     18|         S|     27|         3|
@@ -258,7 +258,7 @@ defmodule Base do
   |      6|         G|     15|         P|     24|         Y|  (pad)|         =|
   |      7|         H|     16|         Q|     25|         Z|       |          |
   |      8|         I|     17|         R|     26|         2|       |          |
-  
+
   ## Examples
 
       iex> Base.decode32("MZXW6YTBOI======")
@@ -271,13 +271,13 @@ defmodule Base do
   rescue
     ArgumentError -> :error
   end
-  
+
   @doc """
   Decodes a base 32 encoded string into a binary string.
-  
+
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
-  
+
   ## Examples
 
       iex> Base.decode32!("MZXW6YTBOI======")
@@ -288,7 +288,7 @@ defmodule Base do
   def decode32!(string) do
     do_decode32(string, &dec32/1)
   end
-  
+
   @doc """
   Encodes a binary string into a base 32 encoded string with an
   extended hexadecimal alphabet.
@@ -305,11 +305,11 @@ defmodule Base do
   end
 
   @doc """
-  Decodes a base 32 encoded string with extended hexadecimal alphabet 
+  Decodes a base 32 encoded string with extended hexadecimal alphabet
   into a binary string.
-  
+
   The following alphabet is used both for encoding and decoding:
-  
+
   | Value | Encoding | Value | Encoding | Value | Encoding | Value | Encoding |
   |------:|---------:|------:|---------:|------:|---------:|------:|---------:|
   |      0|         0|      9|         9|     18|         I|     27|         R|
@@ -321,7 +321,7 @@ defmodule Base do
   |      6|         6|     15|         F|     24|         O|  (pad)|         =|
   |      7|         7|     16|         G|     25|         P|       |          |
   |      8|         8|     17|         H|     26|         Q|       |          |
-  
+
   ## Examples
 
       iex> Base.hex_decode32("CPNMUOJ1E8======")
@@ -334,14 +334,14 @@ defmodule Base do
   rescue
     ArgumentError -> :error
   end
-  
+
   @doc """
-  Decodes a base 32 encoded string with extended hexadecimal alphabet 
+  Decodes a base 32 encoded string with extended hexadecimal alphabet
   into a binary string.
-  
+
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
-  
+
   ## Examples
 
       iex> Base.hex_decode32!("CPNMUOJ1E8======")
@@ -460,5 +460,5 @@ defmodule Base do
   defp do_decode32(_, _) do
     raise ArgumentError, message: "incorrect padding"
   end
-  
+
 end

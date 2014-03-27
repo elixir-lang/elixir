@@ -1,6 +1,8 @@
 # v0.13.0-dev
 
 * Enhancements
+  * [Base] Add `Base` module which does conversions to bases 16, 32, hex32, 64 and url64
+  * [Code] Add `Code.eval_file/2`
   * [Collectable] Add the `Collectable` protocol that empowers `Enum.into/2` and `Stream.into/2` and the `:into` option in comprehensions
   * [Collectable] Implement `Collectable` for lists, dicts, bitstrings, functions and provide both `File.Stream` and `IO.Stream`
   * [Enum] Add `Enum.group_by/2`, `Enum.into/2`, `Enum.into/3`, `Enum.traverse/2` and `Enum.sum/2`
