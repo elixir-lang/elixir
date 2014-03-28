@@ -9,18 +9,25 @@ defmodule Base do
    16 encoding schemes.
   """
 
-  b16_alphabet    = Enum.with_index '0123456789ABCDEF'
-  b64_alphabet    = Enum.with_index 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-  b64url_alphabet = Enum.with_index 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
-  b32_alphabet    = Enum.with_index 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
-  b32hex_alphabet = Enum.with_index '0123456789ABCDEFGHIJKLMNOPQRSTUV'
+  b16_upper     = '0123456789ABCDEF'
+  b16_lower     = '0123456789abcdef'
+  b64           = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  b64_url       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+  b32_upper     = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+  b32_lower     = 'abcdefghijklmnopqrstuvwxyz234567'
+  b32_hex_upper = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
+  b32_hex_lower = '0123456789abcdefghijklmnopqrstuv'
 
-  Enum.each [ { :enc16,    :dec16,    b16_alphabet },
-              { :enc64,    :dec64,    b64_alphabet },
-              { :enc32,    :dec32,    b32_alphabet },
-              { :enc64url, :dec64url, b64url_alphabet },
-              { :enc32hex, :dec32hex, b32hex_alphabet } ], fn({enc, dec, alphabet}) ->
-    for {encoding, value} <- alphabet do
+  Enum.each [ { :enc16_upper,     :dec16_upper,     b16_upper },
+              { :enc16_lower,     :dec16_lower,     b16_lower },
+              { :enc64,           :dec64,           b64 },
+              { :enc32_upper,     :dec32_upper,     b32_upper },
+              { :enc32_lower,     :dec32_lower,     b32_lower },
+              { :enc64_url,       :dec64_url,       b64_url },
+              { :enc32_hex_upper, :dec32_hex_upper, b32_hex_upper },
+              { :enc32_hex_lower, :dec32_hex_lower, b32_hex_lower }
+            ], fn({enc, dec, alphabet}) ->
+    for {encoding, value} <- Enum.with_index(alphabet) do
       defp unquote(enc)(unquote(value)), do: unquote(encoding)
       defp unquote(dec)(unquote(encoding)), do: unquote(value)
     end
@@ -32,15 +39,25 @@ defmodule Base do
   @doc """
   Encodes a binary string into a base 16 encoded string.
 
+  By default an uppercase alphabet is used. An alternate lowercase alphabet
+  can be selected by setting the `lowercase` option set to `true`.
+
   ## Examples
 
       iex> Base.encode16("foobar")
       "666F6F626172"
 
+      iex> Base.encode16("Hello World", lowercase: true)
+      "48656c6c6f20576f726c64"
+
   """
-  @spec encode16(binary) :: binary
-  def encode16(data) when is_binary(data) do
-    do_encode16(data, &enc16/1)
+  @spec encode16(binary, Keyword.t) :: binary
+  def encode16(data, opts \\ []) when is_binary(data) do
+    if opts[:lowercase] do
+      do_encode16(data, &enc16_lower/1)
+    else
+      do_encode16(data, &enc16_upper/1)
+    end
   end
 
   @doc """
@@ -55,21 +72,30 @@ defmodule Base do
   |      2|         2|      6|         6|     10|         A|     14|         E|
   |      3|         3|      7|         7|     11|         B|     15|         F|
 
+  By default an uppercase alphabet is used. An alternate lowercase alphabet
+  can be selected by setting the `lowercase` option set to `true`.
+
   ## Examples
 
       iex> Base.decode16("666F6F626172")
       {:ok, "foobar"}
 
+      iex> Base.decode16("48656c6c6f20576f726c64", lowercase: true)
+      {:ok, "Hello World"}
+
   """
-  @spec decode16(binary) :: { :ok, binary } | :error
-  def decode16(string) when is_binary(string) do
-    { :ok, decode16!(string) }
+  @spec decode16(binary, Keyword.t) :: { :ok, binary } | :error
+  def decode16(string, opts \\ []) when is_binary(string) do
+    { :ok, decode16!(string, opts) }
   rescue
     ArgumentError -> :error
   end
 
   @doc """
   Decodes a base 16 encoded string into a binary string.
+
+  By default an uppercase alphabet is used. An alternate lowercase alphabet
+  can be selected by setting the `lowercase` option set to `true`.
 
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
@@ -79,10 +105,17 @@ defmodule Base do
       iex> Base.decode16!("666F6F626172")
       "foobar"
 
+      iex> Base.decode16!("48656c6c6f20576f726c64", lowercase: true)
+      "Hello World"
+
   """
-  @spec decode16!(binary) :: binary
-  def decode16!(string) when is_binary(string) do
-    do_decode16(string, &dec16/1)
+  @spec decode16!(binary, Keyword.t) :: binary
+  def decode16!(string, opts \\ []) when is_binary(string) do
+    if opts[:lowercase] do
+      do_decode16(string, &dec16_lower/1)
+    else
+      do_decode16(string, &dec16_upper/1)
+    end
   end
 
   @doc """
@@ -132,15 +165,13 @@ defmodule Base do
   """
   @spec decode64(binary) :: { :ok, binary } | :error
   def decode64(string) when is_binary(string) do
-    { :ok, do_decode64(string, &dec64/1) }
+    { :ok, decode64!(string) }
   rescue
     ArgumentError -> :error
   end
 
   @doc """
   Decodes a base 64 encoded string into a binary string.
-
-  The following alphabet is used both for encoding and decoding:
 
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
@@ -168,7 +199,7 @@ defmodule Base do
   """
   @spec url_encode64(binary) :: binary
   def url_encode64(data) when is_binary(data) do
-    do_encode64(data, &enc64url/1)
+    do_encode64(data, &enc64_url/1)
   end
 
   @doc """
@@ -205,7 +236,7 @@ defmodule Base do
   """
   @spec url_decode64(binary) :: { :ok, binary } | :error
   def url_decode64(string) when is_binary(string) do
-    { :ok, do_decode64(string, &dec64url/1) }
+    { :ok, url_decode64!(string) }
   rescue
     ArgumentError -> :error
   end
@@ -225,21 +256,31 @@ defmodule Base do
   """
   @spec url_decode64!(binary) :: binary
   def url_decode64!(string) when is_binary(string) do
-    do_decode64(string, &dec64url/1)
+    do_decode64(string, &dec64_url/1)
   end
 
   @doc """
   Encodes a binary string into a base 32 encoded string.
+
+  By default an uppercase alphabet is used. An alternate lowercase alphabet
+  can be selected by setting the `lowercase` option set to `true`.
 
   ## Examples
 
       iex> Base.encode32("foobar")
       "MZXW6YTBOI======"
 
+      iex> Base.encode32("foobar", lowercase: true)
+      "mzxw6ytboi======"
+
   """
-  @spec encode32(binary) :: binary
-  def encode32(data) when is_binary(data) do
-    do_encode32(data, &enc32/1)
+  @spec encode32(binary, Keyword.t) :: binary
+  def encode32(data, opts \\ []) when is_binary(data) do
+    if opts[:lowercase] do
+      do_encode32(data, &enc32_lower/1)
+    else
+      do_encode32(data, &enc32_upper/1)
+    end
   end
 
   @doc """
@@ -259,21 +300,30 @@ defmodule Base do
   |      7|         H|     16|         Q|     25|         Z|       |          |
   |      8|         I|     17|         R|     26|         2|       |          |
 
+  By default an uppercase alphabet is used. An alternate lowercase alphabet
+  can be selected by setting the `lowercase` option set to `true`.
+
   ## Examples
 
       iex> Base.decode32("MZXW6YTBOI======")
       {:ok, "foobar"}
 
+      iex> Base.decode32("mzxw6ytboi======", lowercase: true)
+      {:ok, "foobar"}
+
   """
-  @spec decode32(binary) :: { :ok, binary } | :error
-  def decode32(string) do
-    { :ok, do_decode32(string, &dec32/1) }
+  @spec decode32(binary, Keyword.t) :: { :ok, binary } | :error
+  def decode32(string, opts \\ []) do
+    { :ok, decode32!(string, opts) }
   rescue
     ArgumentError -> :error
   end
 
   @doc """
   Decodes a base 32 encoded string into a binary string.
+
+  By default an uppercase alphabet is used. An alternate lowercase alphabet
+  can be selected by setting the `lowercase` option set to `true`.
 
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
@@ -283,25 +333,42 @@ defmodule Base do
       iex> Base.decode32!("MZXW6YTBOI======")
       "foobar"
 
+      iex> Base.decode32!("mzxw6ytboi======", lowercase: true)
+      "foobar"
+
   """
-  @spec decode32!(binary) :: binary
-  def decode32!(string) do
-    do_decode32(string, &dec32/1)
+  @spec decode32!(binary, Keyword.t) :: binary
+  def decode32!(string, opts \\ []) do
+    if opts[:lowercase] do
+      do_decode32(string, &dec32_lower/1)
+    else
+      do_decode32(string, &dec32_upper/1)
+    end
   end
 
   @doc """
   Encodes a binary string into a base 32 encoded string with an
   extended hexadecimal alphabet.
 
+  By default an uppercase alphabet is used. An alternate lowercase alphabet
+  can be selected by setting the `lowercase` option set to `true`.
+
   ## Examples
 
       iex> Base.hex_encode32("foobar")
       "CPNMUOJ1E8======"
 
+      iex> Base.hex_encode32("foobar", lowercase: true)
+      "cpnmuoj1e8======"
+
   """
-  @spec hex_encode32(binary) :: binary
-  def hex_encode32(data) when is_binary(data) do
-    do_encode32(data, &enc32hex/1)
+  @spec hex_encode32(binary, Keyword.t) :: binary
+  def hex_encode32(data, opts \\ []) when is_binary(data) do
+    if opts[:lowercase] do
+      do_encode32(data, &enc32_hex_lower/1)
+    else
+      do_encode32(data, &enc32_hex_upper/1)
+    end
   end
 
   @doc """
@@ -322,15 +389,21 @@ defmodule Base do
   |      7|         7|     16|         G|     25|         P|       |          |
   |      8|         8|     17|         H|     26|         Q|       |          |
 
+  By default an uppercase alphabet is used. An alternate lowercase alphabet
+  can be selected by setting the `lowercase` option set to `true`.
+
   ## Examples
 
       iex> Base.hex_decode32("CPNMUOJ1E8======")
       {:ok, "foobar"}
 
+      iex> Base.hex_decode32("cpnmuoj1e8======", lowercase: true)
+      {:ok, "foobar"}
+
   """
-  @spec hex_decode32(binary) :: { :ok, binary } | :error
-  def hex_decode32(string) when is_binary(string) do
-    { :ok, do_decode32(string, &dec32hex/1) }
+  @spec hex_decode32(binary, Keyword.t) :: { :ok, binary } | :error
+  def hex_decode32(string, opts \\ []) when is_binary(string) do
+    { :ok, hex_decode32!(string, opts) }
   rescue
     ArgumentError -> :error
   end
@@ -347,10 +420,17 @@ defmodule Base do
       iex> Base.hex_decode32!("CPNMUOJ1E8======")
       "foobar"
 
+      iex> Base.hex_decode32!("cpnmuoj1e8======", lowercase: true)
+      "foobar"
+
   """
-  @spec hex_decode32!(binary) :: binary
-  def hex_decode32!(string) when is_binary(string) do
-    do_decode32(string, &dec32hex/1)
+  @spec hex_decode32!(binary, Keyword.t) :: binary
+  def hex_decode32!(string, opts \\ []) when is_binary(string) do
+    if opts[:lowercase] do
+      do_decode32(string, &dec32_hex_lower/1)
+    else
+      do_decode32(string, &dec32_hex_upper/1)
+    end
   end
 
   defp do_encode16(<<>>, _), do: <<>>
@@ -370,14 +450,14 @@ defmodule Base do
 
   defp do_encode64(<<>>, _), do: <<>>
   defp do_encode64(data, enc) do
-    split =  3 * div(byte_size(data), 3)
-    <<main::[size(split), binary], rest::binary>> = data
+    split =  6 * div(bit_size(data), 6)
+    <<main::[size(split), bitstring], rest::bitstring>> = data
     main = for <<c::6 <- main>>, into: <<>>, do: <<enc.(c)::8>>
     case rest do
-      <<c1::6, c2::6, c3::4>> ->
-        <<main::binary, enc.(c1)::8, enc.(c2)::8, enc.(bsl(c3, 2))::8, ?=>>
-      <<c1::6, c2::2>> ->
-        <<main::binary, enc.(c1)::8, enc.(bsl(c2, 4))::8, ?=, ?=>>
+      <<c::4>> ->
+        <<main::bitstring, enc.(bsl(c, 2))::8, ?=>>
+      <<c::2>> ->
+        <<main::bitstring, enc.(bsl(c, 4))::8, ?=, ?=>>
       <<>> ->
         main
     end
@@ -385,16 +465,16 @@ defmodule Base do
 
   defp do_decode64(<<>>, _), do: <<>>
   defp do_decode64(string, dec) when rem(byte_size(string), 4) == 0 do
-    split = byte_size(string) - 4
+    split = byte_size(string) - 3
     <<main::[size(split), binary], rest::binary>> = string
     main = for <<c::8 <- main>>, into: <<>>, do: <<dec.(c)::6>>
     case rest do
-      <<c1::8, c2::8, ?=, ?=>> ->
-        <<main::binary, dec.(c1)::6, bsr(dec.(c2), 4)::2>>
-      <<c1::8, c2::8, c3::8, ?=>> ->
-        <<main::binary, dec.(c1)::6, dec.(c2)::6, bsr(dec.(c3), 2)::4>>
-      <<c1::8, c2::8, c3::8, c4::8>> ->
-        <<main::binary, dec.(c1)::6, dec.(c2)::6, dec.(c3)::6, dec.(c4)::6>>
+      <<c::8, ?=, ?=>> ->
+        <<main::bitstring, bsr(dec.(c), 4)::2>>
+      <<c1::8, c2::8, ?=>> ->
+        <<main::bitstring, dec.(c1)::6, bsr(dec.(c2), 2)::4>>
+      <<c1::8, c2::8, c3::8>> ->
+        <<main::bitstring, dec.(c1)::6, dec.(c2)::6, dec.(c3)::6>>
       <<>> ->
         main
     end
@@ -405,26 +485,18 @@ defmodule Base do
 
   defp do_encode32(<<>>, _), do: <<>>
   defp do_encode32(data, enc) do
-    split =  5 * div(byte_size(data), 5)
-    <<main::[size(split), binary], rest::binary>> = data
+    split =  5 * div(bit_size(data), 5)
+    <<main::[size(split), bitstring], rest::bitstring>> = data
     main = for <<c::5 <- main>>, into: <<>>, do: <<enc.(c)::8>>
     case rest do
-      <<c1::5, c2::5, c3::5, c4::5, c5::5, c6::5, c7::2>> ->
-        <<main::binary,
-          enc.(c1)::8, enc.(c2)::8, enc.(c3)::8, enc.(c4)::8,
-          enc.(c5)::8, enc.(c6)::8, enc.(bsl(c7, 3))::8, ?=>>
-      <<c1::5, c2::5, c3::5, c4::5, c5::4>> ->
-        <<main::binary,
-          enc.(c1)::8, enc.(c2)::8, enc.(c3)::8, enc.(c4)::8,
-          enc.(bsl(c5, 1))::8, ?=,  ?=, ?=>>
-      <<c1::5, c2::5, c3::5, c4::1>> ->
-        <<main::binary,
-          enc.(c1)::8, enc.(c2)::8,  enc.(c3)::8, enc.(bsl(c4, 4))::8,
-          ?=, ?=,  ?=, ?=>>
-      <<c1::5, c2::3>> ->
-        <<main::binary,
-          enc.(c1)::8, enc.(bsl(c2, 2))::8, ?=, ?=,
-          ?=, ?=, ?=, ?=>>
+      <<c::2>> ->
+        <<main::bitstring, enc.(bsl(c, 3))::8, ?=>>
+      <<c::4>> ->
+        <<main::bitstring, enc.(bsl(c, 1))::8, ?=,  ?=, ?=>>
+      <<c::1>> ->
+        <<main::bitstring, enc.(bsl(c, 4))::8,  ?=, ?=,  ?=, ?=>>
+      <<c::3>> ->
+        <<main::bitstring, enc.(bsl(c, 2))::8, ?=, ?=,  ?=, ?=, ?=, ?=>>
       <<>> ->
         main
     end
@@ -432,27 +504,20 @@ defmodule Base do
 
   defp do_decode32(<<>>, _), do: <<>>
   defp do_decode32(string, dec) when rem(byte_size(string), 8) == 0 do
-    split = byte_size(string) - 8
+    split = byte_size(string) - 7
     <<main::[size(split), binary], rest::binary>> = string
     main = for <<c::8 <- main>>, into: <<>>, do: <<dec.(c)::5>>
     case rest do
-      <<c1::8, c2::8, ?=, ?=, ?=, ?=, ?=, ?=>> ->
-        <<main::binary, dec.(c1)::5, bsr(dec.(c2), 2)::3>>
-      <<c1::8, c2::8, c3::8, c4::8, ?=, ?=, ?=, ?=>> ->
-        <<main::binary,
-          dec.(c1)::5, dec.(c2)::5, dec.(c3)::5, bsr(dec.(c4), 4)::1>>
-      <<c1::8, c2::8, c3::8, c4::8, c5::8, ?=, ?=, ?=>> ->
-        <<main::binary,
-          dec.(c1)::5, dec.(c2)::5, dec.(c3)::5, dec.(c4)::5,
-          bsr(dec.(c5), 1)::4>>
-      <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, ?=>> ->
-        <<main::binary,
-          dec.(c1)::5, dec.(c2)::5, dec.(c3)::5, dec.(c4)::5,
-          dec.(c5)::5, dec.(c6)::5,  bsr(dec.(c7), 3)::2>>
-      <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8>> ->
-        <<main::binary,
-          dec.(c1)::5, dec.(c2)::5, dec.(c3)::5, dec.(c4)::5,
-          dec.(c5)::5, dec.(c6)::5, dec.(c7)::5, dec.(c8)::5>>
+      <<c::8, ?=, ?=, ?=, ?=, ?=, ?=>> ->
+        <<main::bitstring, bsr(dec.(c), 2)::3>>
+      <<c1::8, c2::8, c3::8, ?=, ?=, ?=, ?=>> ->
+        <<main::bitstring, dec.(c1)::5, dec.(c2)::5, bsr(dec.(c3), 4)::1>>
+      <<c1::8, c2::8, c3::8, c4::8, ?=, ?=, ?=>> ->
+        <<main::bitstring, dec.(c1)::5, dec.(c2)::5, dec.(c3)::5, bsr(dec.(c4), 1)::4>>
+      <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, ?=>> ->
+        <<main::bitstring, dec.(c1)::5, dec.(c2)::5, dec.(c3)::5, dec.(c4)::5, dec.(c5)::5, bsr(dec.(c6), 3)::2>>
+      <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8>> ->
+        <<main::bitstring, dec.(c1)::5, dec.(c2)::5, dec.(c3)::5, dec.(c4)::5, dec.(c5)::5, dec.(c6)::5, dec.(c7)::5>>
       <<>> ->
         main
     end
