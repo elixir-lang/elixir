@@ -10,7 +10,7 @@ defmodule Mix.CLI do
 
     case check_for_shortcuts(args) do
       :help ->
-        display_banner()
+        proceed(["help"])
       :version ->
         display_version()
       nil ->
@@ -87,10 +87,6 @@ defmodule Mix.CLI do
         Mix.Project.push project, file
       end
     end
-  end
-
-  defp display_banner() do
-    run_task "help", []
   end
 
   defp display_version() do
