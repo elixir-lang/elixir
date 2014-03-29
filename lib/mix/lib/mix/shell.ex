@@ -8,23 +8,28 @@ defmodule Mix.Shell do
   @doc """
   Informs the given message.
   """
-  defcallback info(message :: binary) :: any
+  defcallback info(message :: String.t) :: any
 
   @doc """
   Warns about the given error message.
   """
-  defcallback error(message :: binary) :: any
+  defcallback error(message :: String.t) :: any
+
+  @doc """
+  Prompts the user for input.
+  """
+  defcallback prompt(message :: String.t) :: String.t
 
   @doc """
   Asks the user for confirmation.
   """
-  defcallback yes?(message :: binary) :: any
+  defcallback yes?(message :: String.t) :: boolean
 
   @doc """
   Executes the given command and returns
   its exit status.
   """
-  defcallback cmd(command :: binary) :: integer
+  defcallback cmd(command :: String.t) :: integer
 
   @doc """
   Returns if we should output application name to shell.

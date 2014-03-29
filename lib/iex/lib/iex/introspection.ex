@@ -1,11 +1,14 @@
 # Convenience helpers for showing docs, specs and types
-# from modules. Invoked directly from IEX.Helpers.
+# from modules. Invoked directly from IEx.Helpers.
 defmodule IEx.Introspection do
   @moduledoc false
 
   import IEx, only: [dont_display_result: 0]
 
-  @doc false
+  @doc """
+  Documentation for modules.
+  It has a fallback clauses
+  """
   def h(module) when is_atom(module) do
     case Code.ensure_loaded(module) do
       { :module, _ } ->
@@ -39,7 +42,9 @@ defmodule IEx.Introspection do
     dont_display_result
   end
 
-  @doc false
+  @doc """
+  Docs for the given function, with any arity, in any of the modules.
+  """
   def h(modules, function) when is_list(modules) and is_atom(function) do
     result =
       Enum.reduce modules, :not_found, fn
@@ -66,19 +71,9 @@ defmodule IEx.Introspection do
     dont_display_result
   end
 
-  def h(function, arity) when is_atom(function) and is_integer(arity) do
-    h([IEx.Helpers, Kernel, Kernel.SpecialForms], function, arity)
-    dont_display_result
-  end
-
-  def h(_, _) do
-    IO.puts IEx.color(:eval_error, "Invalid arguments for h helper")
-    dont_display_result
-  end
-
   defp h_mod_fun(mod, fun) when is_atom(mod) and is_atom(fun) do
     if docs = mod.__info__(:docs) do
-      result = lc { {f, arity}, _line, _type, _args, doc } inlist docs, fun == f, doc != false do
+      result = for { {f, arity}, _line, _type, _args, doc } <- docs, fun == f, doc != false do
         h(mod, fun, arity)
         IO.puts ""
       end
@@ -89,7 +84,9 @@ defmodule IEx.Introspection do
     end
   end
 
-  @doc false
+  @doc """
+  Documentation for the given function and arity in the list of modules.
+  """
   def h(modules, function, arity) when is_list(modules) and is_atom(function) and is_integer(arity) do
     result =
       Enum.reduce modules, :not_found, fn
@@ -113,11 +110,6 @@ defmodule IEx.Introspection do
         nodocs("#{inspect module}.#{function}/#{arity}")
     end
 
-    dont_display_result
-  end
-
-  def h(_, _, _) do
-    IO.puts IEx.color(:eval_error, "Invalid arguments for h helper")
     dont_display_result
   end
 
@@ -185,24 +177,28 @@ defmodule IEx.Introspection do
     atom_to_binary(var)
   end
 
-  @doc false
-  def t(module) do
+  @doc """
+  Print types in module.
+  """
+  def t(module) when is_atom(module) do
     case Kernel.Typespec.beam_types(module) do
       nil   -> nobeam(module)
       []    -> notypes(inspect module)
-      types -> lc type inlist types, do: print_type(type)
+      types -> for type <- types, do: print_type(type)
     end
 
     dont_display_result
   end
 
-  @doc false
-  def t(module, type) when is_atom(type) do
+  @doc """
+  Print the given type in module with any arity.
+  """
+  def t(module, type) when is_atom(module) and is_atom(type) do
     case Kernel.Typespec.beam_types(module) do
       nil   -> nobeam(module)
       types ->
         printed =
-          lc {_, {t, _, _args}} = typespec inlist types, t == type do
+          for {_, {t, _, _args}} = typespec <- types, t == type do
             print_type(typespec)
             typespec
           end
@@ -215,13 +211,15 @@ defmodule IEx.Introspection do
     dont_display_result
   end
 
-  @doc false
-  def t(module, type, arity) do
+  @doc """
+  Print type in module with given arity.
+  """
+  def t(module, type, arity) when is_atom(module) and is_atom(type) and is_integer(arity) do
     case Kernel.Typespec.beam_types(module) do
       nil   -> nobeam(module)
       types ->
         printed =
-          lc {_, {t, _, args}} = typespec inlist types, t == type, length(args) == arity do
+          for {_, {t, _, args}} = typespec <- types, t == type, length(args) == arity do
             print_type(typespec)
             typespec
           end
@@ -234,24 +232,28 @@ defmodule IEx.Introspection do
     dont_display_result
   end
 
-  @doc false
-  def s(module) do
+  @doc """
+  Print specs for given module.
+  """
+  def s(module) when is_atom(module) do
     case beam_specs(module) do
       nil   -> nobeam(module)
       []    -> nospecs(inspect module)
-      specs -> lc spec inlist specs, do: print_spec(spec)
+      specs -> for spec <- specs, do: print_spec(spec)
     end
 
     dont_display_result
   end
 
-  @doc false
-  def s(module, function) when is_atom(function) do
+  @doc """
+  Print specs for given module and function.
+  """
+  def s(module, function) when is_atom(module) and is_atom(function) do
     case beam_specs(module) do
       nil   -> nobeam(module)
       specs ->
         printed =
-          lc {_kind, {{f, _arity}, _spec}} = spec inlist specs, f == function do
+          for {_kind, {{f, _arity}, _spec}} = spec <- specs, f == function do
             print_spec(spec)
             spec
           end
@@ -264,13 +266,15 @@ defmodule IEx.Introspection do
     dont_display_result
   end
 
-  @doc false
-  def s(module, function, arity) do
+  @doc """
+  Print spec in given module, with arity.
+  """
+  def s(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
     case beam_specs(module) do
       nil   -> nobeam(module)
       specs ->
         printed =
-          lc {_kind, {{f, a}, _spec}} = spec inlist specs, f == function and a == arity do
+          for {_kind, {{f, a}, _spec}} = spec <- specs, f == function and a == arity do
             print_spec(spec)
             spec
           end

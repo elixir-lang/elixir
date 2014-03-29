@@ -209,7 +209,9 @@ defmodule IEx.Autocomplete do
           end
         end
 
-        lc {fun, arities} inlist list, name = atom_to_binary(fun), String.starts_with?(name, hint) do
+        for {fun, arities} <- list,
+            name = atom_to_binary(fun),
+            String.starts_with?(name, hint) do
           Fun[name: name, arities: arities]
         end
       _ ->
@@ -220,7 +222,7 @@ defmodule IEx.Autocomplete do
   defp get_funs(mod) do
     if function_exported?(mod, :__info__, 1) do
       if docs = mod.__info__(:docs) do
-        lc { tuple, _line, _kind, _sign, doc } inlist docs, doc != false, do: tuple
+        for { tuple, _line, _kind, _sign, doc } <- docs, doc != false, do: tuple
       else
         (mod.__info__(:functions) -- [__info__: 1]) ++ mod.__info__(:macros)
       end
@@ -239,7 +241,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp to_entries(Fun[name: name, arities: arities]) do
-    lc a inlist arities, do: "#{name}/#{a}"
+    for a <- arities, do: "#{name}/#{a}"
   end
 
   defp to_uniq_entries(Mod[]) do

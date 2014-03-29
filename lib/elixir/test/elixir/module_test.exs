@@ -92,7 +92,7 @@ defmodule ModuleTest do
     assert name == :hello
     assert [{ :foo, _, _ }, { :bar, _ , _ }] = args
     assert [] = guards
-    assert [do: { :+, _, [{ :foo, _, _ }, { :bar, _, _ }] }] = expr
+    assert {{:., _, [:erlang, :+]}, _, [{:foo, _, nil}, {:bar, _, nil}]} = expr
   end
 
   test :overridable_inside_before_compile do

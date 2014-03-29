@@ -10,11 +10,11 @@ defmodule EEx.Engine do
     the marker, the expr and must return a new quoted expression;
 
     The marker is what follows exactly after `<%`. For example,
-    `<% foo %>` has an empty marker, but `<%= foo %>` has `'='`
+    `<% foo %>` has an empty marker, but `<%= foo %>` has `"="`
     as marker. The allowed markers so far are:
 
-    * `''`
-    * `'='`
+    * `""`
+    * `"="`
 
     Read `handle_expr/3` below for more information about the markers
     implemented by default by this engine.

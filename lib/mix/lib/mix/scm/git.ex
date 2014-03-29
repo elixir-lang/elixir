@@ -66,7 +66,7 @@ defmodule Mix.SCM.Git do
 
   def checkout(opts) do
     path     = opts[:dest]
-    location = location(opts[:git])
+    location = opts[:git]
     command  = ~s(git clone --no-checkout --progress "#{location}" "#{path}")
 
     run_cmd_or_raise(command)
@@ -76,10 +76,15 @@ defmodule Mix.SCM.Git do
   def update(opts) do
     File.cd! opts[:dest], fn ->
       # Ensures origin is set the lock repo
-      location = location(opts[:git])
+      location = opts[:git]
       update_origin(location)
 
-      command = "git fetch --force --progress"
+      command = "git fetch --force"
+
+      if { 1, 7, 1 } <= git_version() do
+        command = command <> " --progress"
+      end
+
       if opts[:tag] do
         command = command <> " --tags"
       end
@@ -90,16 +95,6 @@ defmodule Mix.SCM.Git do
   end
 
   ## Helpers
-
-  defp location("git://github.com/" <> rest) do
-    if System.get_env("MIX_GIT_FORCE_HTTPS") == "1" do
-      "https://github.com/" <> rest
-    else
-      "git://github.com/" <> rest
-    end
-  end
-
-  defp location(other), do: other
 
   defp do_checkout(opts) do
     ref = get_lock_rev(opts[:lock]) || get_opts_rev(opts)
@@ -155,5 +150,21 @@ defmodule Mix.SCM.Git do
       raise Mix.Error, message: "Command `#{command}` failed"
     end
     true
+  end
+
+  defp git_version do
+    case :application.get_env(:mix, :git_version) do
+      { :ok, version } ->
+        version
+      :undefined ->
+        "git version " <> version = String.strip System.cmd("git --version")
+        version = String.split(version, ".")
+                  |> Enum.take(3)
+                  |> Enum.map(&binary_to_integer(&1))
+                  |> list_to_tuple
+
+        :application.set_env(:mix, :git_version, version)
+        version
+    end
   end
 end

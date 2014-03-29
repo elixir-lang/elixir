@@ -20,28 +20,18 @@ defmodule TestSet do
 end
 
 defmodule SetTest.Common do
-  defmacro __using__(module) do
+  defmacro __using__(_) do
     quote location: :keep do
-      use ExUnit.Case, async: true
-
       defp new_set(list \\ []) do
-        unquote(module).new(list)
+        Enum.into list, set_impl.new
       end
 
       defp new_set(list, fun) do
-        unquote(module).new(list, fun)
+        Enum.into list, set_impl.new, fun
       end
 
       defp int_set() do
-        unquote(module).new([1,2,3])
-      end
-
-      test "new/1" do
-        assert Set.equal?(new_set([1, 1, 2, 3, 3, 3]), new_set([1, 2, 3]))
-      end
-
-      test "new/2" do
-        assert Set.equal?(new_set([1, 1, 2, 3, 3, 3], &(&1 * 2)), new_set([2, 4, 6]))
+        Enum.into [1, 2, 3], set_impl.new
       end
 
       test "delete/2" do
@@ -77,11 +67,6 @@ defmodule SetTest.Common do
       test "disjoint/2 with other set" do
         assert Set.disjoint?(new_set([1, 2, 3]), TestSet.new([4, 5 ,6]))
         refute Set.disjoint?(new_set([1, 2, 3]), TestSet.new([3, 4 ,5]))
-      end
-
-      test "empty/1" do
-        result = Set.empty new_set([1, 2, 3])
-        assert Set.equal?(result, new_set)
       end
 
       test "equal?/2" do
@@ -163,10 +148,16 @@ defmodule SetTest.Common do
         assert Set.equal?(result, new_set([1, 2, 3, 4]))
       end
 
-      test "implements Enum" do
+      test "is enumerable" do
         assert Enum.member?(int_set, 1)
         refute Enum.member?(int_set, 1.0)
         assert Enum.sort(int_set) == [1,2,3]
+      end
+
+      test "is collectable" do
+        assert Set.equal?(new_set([1, 1, 2, 3, 3, 3]), new_set([1, 2, 3]))
+        assert Set.equal?(new_set([1, 1, 2, 3, 3, 3], &(&1 * 2)), new_set([2, 4, 6]))
+        assert Collectable.empty(new_set([1, 2, 3])) == new_set
       end
 
       test "is zippable" do
@@ -189,5 +180,9 @@ defmodule SetTest.Common do
 end
 
 defmodule Set.HashSetTest do
-  use SetTest.Common, HashSet
+  use ExUnit.Case, async: true
+  use SetTest.Common
+
+  doctest Set
+  def set_impl, do: HashSet
 end

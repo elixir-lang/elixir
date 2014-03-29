@@ -3,8 +3,8 @@ ExUnit.start []
 defmodule KernelTest do
   use ExUnit.Case, async: true
 
-  doctest Access.List
-  doctest String.Chars.List
+  doctest Access
+  doctest Base
   doctest Bitwise
   doctest Code
   doctest Enum
@@ -19,14 +19,16 @@ defmodule KernelTest do
   doctest List
   doctest Macro
   doctest Module
+  doctest Node
   doctest OptionParser
   doctest Path
   doctest Protocol.Consolidation
   doctest Range
   doctest Regex
-  doctest Set
   doctest Stream
   doctest String
+  doctest StringIO
+  doctest Collectable
   doctest Tuple
   doctest URI
   doctest Version

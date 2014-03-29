@@ -49,14 +49,14 @@ defmodule Mix.Tasks.App.StartTest do
       purge [A, B, C]
 
       assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
-      assert System.version == Mix.Deps.Lock.elixir_vsn
+      assert System.version == Mix.Dep.Lock.elixir_vsn
 
       Mix.Task.clear
       File.write!("_build/dev/lib/sample/.compile.lock", "the_past")
       File.touch!("_build/dev/lib/sample/.compile.lock", { { 2010, 1, 1 }, { 0, 0, 0 } })
 
       Mix.Tasks.App.Start.run ["--no-start"]
-      assert System.version == Mix.Deps.Lock.elixir_vsn
+      assert System.version == Mix.Dep.Lock.elixir_vsn
       assert File.stat!("_build/dev/lib/sample/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
     end
   end
@@ -136,7 +136,7 @@ defmodule Mix.Tasks.App.StartTest do
       Process.put(:application_definition, applications: [:unknown])
       Mix.Tasks.Compile.run []
 
-      assert_raise Mix.Error, ~r"Could not start application bad_return_sample: ", fn ->
+      assert_raise Mix.Error, ~r"Could not start application unknown: ", fn ->
         Mix.Tasks.App.Start.start(:bad_return_sample)
       end
     end

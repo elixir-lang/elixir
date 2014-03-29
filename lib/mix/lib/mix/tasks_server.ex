@@ -21,7 +21,7 @@ defmodule Mix.TasksServer do
   end
 
   def handle_call(:clear_tasks, _from, set) do
-    { :reply, set, Set.empty(set) }
+    { :reply, set, HashSet.new }
   end
 
   def handle_call({ :run_task, task, proj }, _from, set) do

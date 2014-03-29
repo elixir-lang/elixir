@@ -122,7 +122,7 @@ defmodule ExUnit.Assertions do
 
     quote do
       right = unquote(right)
-      unquote({ :case, [{:export_all,true}|meta], args })
+      unquote({ :case, [{:export_head,true}|meta], args })
     end
   end
 
@@ -316,7 +316,7 @@ defmodule ExUnit.Assertions do
         end
       end
 
-    { :receive, [{:export_all, true}|meta], args }
+    { :receive, [{:export_head, true}|meta], args }
   end
 
   @doc """

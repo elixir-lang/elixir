@@ -1,16 +1,60 @@
-# v0.12.5-dev
+# v0.13.0-dev
 
 * Enhancements
+  * [Base] Add `Base` module which does conversions to bases 16, 32, hex32, 64 and url64
+  * [Code] Add `Code.eval_file/2`
+  * [Collectable] Add the `Collectable` protocol that empowers `Enum.into/2` and `Stream.into/2` and the `:into` option in comprehensions
+  * [Collectable] Implement `Collectable` for lists, dicts, bitstrings, functions and provide both `File.Stream` and `IO.Stream`
+  * [Enum] Add `Enum.group_by/2`, `Enum.into/2`, `Enum.into/3`, `Enum.traverse/2` and `Enum.sum/2`
+  * [ExUnit] Randomize cases and tests suite runs, allow seed configuration and the `--seed` flag via `mix test`
+  * [ExUnit] Support `--only` for filtering when running tests with `mix test`
+  * [ExUnit] Raise an error if another `capture_io` process already captured the device
+  * [IEx] Allow prompt configuration with the `:prompt` option
+  * [Kernel] Support `ERL_PATH` in `bin/elixir`
+  * [Kernel] Support interpolation in keyword syntax
+  * [Map] Add a Map module and support R17 maps and structs
+  * [Mix] Add dependency option `:only` to specify the dependency environment. `mix deps.get` and `mix deps.update` works accross all environment unless `--only` is specified
+  * [Mix] Add `Mix.Shell.prompt/1`
+  * [Mix] Ensure the project is compiled in case Mix' CLI cannot find a task
+  * [Node] Add `Node.ping/1`
+  * [Process] Include `Process.send/3` and support the `--gen-debug` option
+  * [Regex] Regexes no longer need the "g" option when there is a need to use named captures
+  * [Stream] Add `Stream.into/2` and `Stream.into/3`
+  * [StringIO] Add a `StringIO` module that allows a String to be used as IO device
+  * [System] Add `System.delete_env/1` to remove a variable from the environment
 
 * Bug fixes
+  * [Kernel] Ensure the same pid is not queued twice in the parallel compiler
+  * [Macro] `Macro.to_string/2` considers proper precedence when translating `!(foo > bar)` into a string
+  * [Mix] Automatically recompile on outdated Elixir version and show proper error messages
+  * [Mix] Ensure generated `.app` file includes core dependencies
+  * [OptionParser] Do not recognize undefined aliases as switches
+
+* Deprecations
+  * [Dict] `Dict.empty/1`, `Dict.new/1` and `Dict.new/2` are deprecated
+  * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for` (this is a soft deprecation, no warning will be emitted)
+  * [ListDict] `ListDict` is deprecated in favor of `Map` (this is a soft deprecation, no warning will be emitted)
+
+* Backwards incompatible changes
+  * [ExUnit] Formatters are now required to be a GenEvent and `ExUnit.run/2` returns a map with results
+
+# v0.12.5 (2014-03-09)
+
+* Bug fixes
+  * [Kernel] Ensure `try` does not generate an after clause. Generating an after clause forbade clauses in the `else` part from being tail recursive. This should improve performance and memory consumption of `Stream` functions
   * [Mix] Automatically recompile on outdated Elixir version and show proper error messages
 
 * Deprecations
+  * [File] `File.stream_to!/3` is deprecated
+  * [GenFSM] `GenFSM` is deprecated
   * [Kernel] `%` for sigils is deprecated in favor of `~`
   * [Kernel] `is_range/1` and `is_regex/1` are deprecated in favor of `Range.range?/1` and `Regex.regex?/1`
+  * [Stream] `Stream.after/1` is deprecated
+  * [URI] `URI.decode_query/1` is deprecated in favor of `URI.decode_query/2` with explicit dict argument
+  * [URI] Passing lists as key or values in `URI.encode_query/1` is deprecated
 
 * Backwards incompatible changes
-
+  * [Mix] Remove `MIX_GIT_FORCE_HTTPS` as Git itself already provides mechanisms for doing so
 
 # v0.12.4 (2014-02-12)
 

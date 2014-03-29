@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       all_entries = read_manifest(manifest)
 
       removed =
-        lc { _b, _m, source, _d } inlist all_entries, not(source in all), do: source
+        for { _b, _m, source, _d } <- all_entries, not(source in all), do: source
 
       changed =
         if Enum.any?(changed, &not(&1 in all)) do
@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Compile.Elixir do
         else
           # Otherwise compile changed plus each entry in all that's
           # not in the manifest (i.e. new files)
-          (changed ++ lc i inlist all,
+          (changed ++ for i <- all,
                          not Enum.any?(all_entries, fn { _b, _m, s, _d } -> s == i end),
                          do: i)
         end
@@ -96,7 +96,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     defp remove_stale_entries([], changed, removed, acc) do
       # If any of the dependencies for the remaining entries
       # were removed, get its source so we can removed them.
-      next_changed = lc { _b, _m, source, deps } inlist acc,
+      next_changed = for { _b, _m, source, deps } <- acc,
                       Enum.any?(deps, &(&1 in removed)),
                       do: source
 
@@ -248,10 +248,10 @@ defmodule Mix.Tasks.Compile.Elixir do
       set_compiler_opts(project, opts, [])
     end)
 
-    # The Mix.Deps.Lock keeps all the project dependencies. Since Elixir
+    # The Mix.Dep.Lock keeps all the project dependencies. Since Elixir
     # is a dependency itself, we need to touch the lock so the current
     # Elixir version, used to compile the files above, is properly stored.
-    unless result == :noop, do: Mix.Deps.Lock.touch
+    unless result == :noop, do: Mix.Dep.Lock.touch
     result
   end
 
@@ -284,12 +284,12 @@ defmodule Mix.Tasks.Compile.Elixir do
   defp path_deps_changed?(manifest) do
     manifest = Path.absname(manifest)
 
-    deps = Enum.filter(Mix.Deps.children, fn(Mix.Dep[] = dep) ->
+    deps = Enum.filter(Mix.Dep.children([]), fn dep ->
       dep.scm == Mix.SCM.Path
     end)
 
     Enum.any?(deps, fn(dep) ->
-      Mix.Deps.in_dependency(dep, fn(_) ->
+      Mix.Dep.in_dependency(dep, fn(_) ->
         Mix.Utils.stale?(Mix.Tasks.Compile.manifests, [manifest])
       end)
     end)

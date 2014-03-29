@@ -119,7 +119,7 @@ defmodule Inspect.NumberTest do
 end
 
 defmodule Inspect.TupleTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   test :basic do
     assert inspect({ 1, "b", 3 }) == "{1, \"b\", 3}"
@@ -205,10 +205,6 @@ defmodule Inspect.ListTest do
            "[foo: [1, 2, 3, :bar],\n bazzz: :bat]"
   end
 
-  test :non_keyword do
-    assert inspect([{ Regex, 1 }]) == "[{Regex, 1}]"
-  end
-
   test :opt_infer do
     assert inspect('eric' ++ [0] ++ 'mj', char_lists: :infer) == "[101, 114, 105, 99, 0, 109, 106]"
     assert inspect('eric', char_lists: :infer) == "'eric'"
@@ -250,6 +246,69 @@ defmodule Inspect.ListTest do
   end
 end
 
+defmodule Inspect.MapTest do
+  use ExUnit.Case
+
+  test :basic do
+    assert inspect(%{ 1 => "b" }) == "%{1 => \"b\"}"
+    assert inspect(%{ 1 => "b", 2 => "c"}, [pretty: true, width: 1]) == "%{1 => \"b\",\n 2 => \"c\"}"
+  end
+
+  test :keyword do
+    assert inspect(%{a: 1}) == "%{a: 1}"
+    assert inspect(%{a: 1, b: 2}) == "%{a: 1, b: 2}"
+    assert inspect(%{a: 1, b: 2, c: 3}) == "%{a: 1, b: 2, c: 3}"
+  end
+
+  test :with_limit do
+    assert inspect(%{ 1 => 1, 2 => 2, 3 => 3, 4 => 4 }, limit: 3) == "%{1 => 1, 2 => 2, 3 => 3, ...}"
+  end
+
+  defmodule Public do
+    def __struct__ do
+      %{key: 0, __struct__: Public}
+    end
+  end
+
+  defmodule Private do
+  end
+
+  test :public_struct do
+    assert inspect(%Public{key: 1}) == "%Inspect.MapTest.Public{key: 1}"
+  end
+
+  test :public_modified_struct do
+    public = %Public{key: 1}
+    assert inspect(Map.put(public, :foo, :bar)) ==
+           "%{__struct__: Inspect.MapTest.Public, foo: :bar, key: 1}"
+  end
+
+  test :private_struct do
+    assert inspect(%{__struct__: Private, key: 1}) == "%{__struct__: Inspect.MapTest.Private, key: 1}"
+  end
+
+  defmodule Failing do
+    def __struct__ do
+      %{key: 0}
+    end
+
+    defimpl Inspect do
+      def inspect(_, _) do
+        raise "failing"
+      end
+    end
+  end
+
+  test :bad_implementation do
+    import ExUnit.CaptureIO
+
+    assert capture_io(:stderr, fn ->
+      inspect(%Failing{})
+    end) =~ ("** (Inspect.Error) Got RuntimeError with message failing while inspecting " <>
+             "%{__struct__: Inspect.MapTest.Failing, key: 0}")
+  end
+end
+
 defmodule Inspect.OthersTest do
   use ExUnit.Case, async: true
 
@@ -267,9 +326,37 @@ defmodule Inspect.OthersTest do
     assert bin == "&:lists.map/2"
   end
 
+  test :outdated_functions do
+    defmodule V do
+      def fun do
+        fn -> 1 end
+      end
+    end
+
+    :application.set_env(:elixir, :anony, V.fun)
+    :application.set_env(:elixir, :named, &V.fun/0)
+
+    :code.delete(V)
+    :code.purge(V)
+
+    { :ok, anony } = :application.get_env(:elixir, :anony)
+    { :ok, named } = :application.get_env(:elixir, :named)
+
+    assert inspect(anony) =~ ~r"#Function<0.\d+/0 in Inspect.OthersTest.V>"
+    assert inspect(named) =~ ~r"&Inspect.OthersTest.V.fun/0"
+  after
+    :application.unset_env(:elixir, :anony)
+    :application.unset_env(:elixir, :named)
+  end
+
   test :other_funs do
     assert "#Function<" <> _ = inspect(fn(x) -> x + 1 end)
     assert "#Function<" <> _ = inspect(f)
+  end
+
+  test :hash_dict_set do
+    assert "#HashDict<" <> _ = inspect(HashDict.new)
+    assert "#HashSet<" <> _ = inspect(HashSet.new)
   end
 
   test :pids do

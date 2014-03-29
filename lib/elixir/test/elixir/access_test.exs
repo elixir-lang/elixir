@@ -27,6 +27,13 @@ defmodule AccessTest do
     assert [foo: [bar: :baz]][:fuu][:bar] == nil
   end
 
+  test :map do
+    assert %{ foo: :bar }[:foo] == :bar
+    assert %{ 1 => 1 }[1] == 1
+    assert %{ 1.0 => 1.0 }[1.0] == 1.0
+    assert %{ 1 => 1 }[1.0] == nil
+  end
+
   test :atom do
     exception = assert_raise RuntimeError, fn ->
       foo = :foo

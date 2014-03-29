@@ -62,13 +62,14 @@ defmodule URI do
 
   Takes an enumerable (containing a sequence of two-item tuples)
   and returns a string of the form "key1=value1&key2=value2..." where
-  keys and values are URL encoded as per `encode/1`. Keys and values can
-  be any term that implements the `String.Chars` protocol (i.e. can be converted
-  to a binary).
+  keys and values are URL encoded as per `encode/1`.
+
+  Keys and values can be any term that implements the `String.Chars`
+  protocol, except lists which are explicitly forbidden.
 
   ## Examples
 
-      iex> hd = HashDict.new([{"foo", 1}, {"bar", "2"}])
+      iex> hd = %{"foo" => 1, "bar" => 2}
       iex> URI.encode_query(hd)
       "bar=2&foo=1"
 
@@ -76,7 +77,7 @@ defmodule URI do
   def encode_query(l), do: Enum.map_join(l, "&", &pair/1)
 
   @doc """
-  Decodes a query string into a `HashDict`.
+  Decodes a query string into a dictionary (by default uses a map).
 
   Given a query string of the form "key1=value1&key2=value2...", produces a
   `HashDict` with one entry for each key-value pair. Each key and value will be a
@@ -86,17 +87,11 @@ defmodule URI do
 
   ## Examples
 
-      iex> URI.decode_query("foo=1&bar=2") |> Dict.to_list
-      [{"bar", "2"}, {"foo", "1"}]
-
-      iex> hd = HashDict.new()
-      iex> URI.decode_query("foo=1&bar=2", hd) |> HashDict.keys
-      ["bar", "foo"]
-      iex> URI.decode_query("foo=1&bar=2", hd) |> HashDict.values
-      ["2", "1"]
+      iex> URI.decode_query("foo=1&bar=2")
+      %{"bar" => "2", "foo" => "1"}
 
   """
-  def decode_query(q, dict \\ HashDict.new) when is_binary(q) do
+  def decode_query(q, dict \\ %{}) when is_binary(q) do
     Enum.reduce query_decoder(q), dict, fn({ k, v }, acc) -> Dict.put(acc, k, v) end
   end
 
@@ -134,6 +129,14 @@ defmodule URI do
     { current, next }
   end
 
+  defp pair({k, _}) when is_list(k) do
+    raise ArgumentError, message: "encode_query/1 keys cannot be lists, got: #{inspect k}"
+  end
+
+  defp pair({_, v}) when is_list(v) do
+    raise ArgumentError, message: "encode_query/1 values cannot be lists, got: #{inspect v}"
+  end
+
   defp pair({k, v}) do
     encode(to_string(k)) <> "=" <> encode(to_string(v))
   end
@@ -147,7 +150,7 @@ defmodule URI do
       "http%3A%2F%2Felixir-lang.com%2Fgetting_started%2F2.html"
 
   """
-  def encode(s), do: bc(<<c>> inbits s, do: <<percent(c) :: binary>>)
+  def encode(s), do: for(<<c <- s>>, into: "", do: percent(c))
 
   defp percent(32), do: <<?+>>
   defp percent(?-), do: <<?->>
@@ -259,7 +262,7 @@ defmodule URI do
   # Regex.run returns empty strings sometimes. We want
   # to replace those with nil for consistency.
   defp nillify(l) do
-    lc s inlist l do
+    for s <- l do
       if size(s) > 0, do: s, else: nil
     end
   end

@@ -11,7 +11,7 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 
-.PHONY: install compile erlang elixir dialyze test clean docs release_docs release_zip release_erl
+.PHONY: install compile erlang elixir dialyze test clean docs release_docs release_zip
 .NOTPARALLEL: compile
 
 #==> Templates
@@ -127,16 +127,12 @@ docs: compile ../ex_doc/bin/ex_doc
 
 release_zip: compile
 	rm -rf v$(VERSION).zip
-	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md rel VERSION
+	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md VERSION
 
 release_docs: docs
 	cd ../docs
 	rm -rf ../docs/master
 	mv docs ../docs/master
-
-release_erl: compile
-	$(Q) rm -rf rel/elixir
-	$(Q) cd rel && ../rebar generate
 
 #==> Tests tasks
 

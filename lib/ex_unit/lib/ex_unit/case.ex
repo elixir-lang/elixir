@@ -121,25 +121,25 @@ defmodule ExUnit.Case do
 
   ## Filters
 
-  Tags can also be used to identify specific tests, which can then be included
-  or excluded using filters. The most common functionality is to exclude some
-  particular tests from running, which can be done via `ExUnit.configure/1`:
+  Tags can also be used to identify specific tests, which can then
+  be included or excluded using filters. The most common functionality
+  is to exclude some particular tests from running, which can be done
+  via `ExUnit.configure/1`:
 
       # Exclude all external tests from running
       ExUnit.configure exclude: [external: true]
 
-  From now on, ExUnit will not run any test that has the `external` flag set to true.
-  This behaviour can be reversed with the `:include` option which is usually passed
-  through the command line:
+  From now on, ExUnit will not run any test that has the `external` flag
+  set to true. This behaviour can be reversed with the `:include` option
+  which is usually passed through the command line:
 
       mix test --include external:true
 
-  The command above will override the excluded configuration, running all tests,
-  including the ones that have the `external` flag set to true.
+  Run `mix help test` for more information on how to run filters via Mix.
 
   Another use case for tags and filters is to exclude all tests that have
-  a particular tag by default, regardless of its value, and include only a certain
-  subset:
+  a particular tag by default, regardless of its value, and include only
+  a certain subset:
 
       ExUnit.configure exclude: :os, include: [os: :unix]
 
@@ -168,8 +168,6 @@ defmodule ExUnit.Case do
           &Module.register_attribute(__MODULE__, &1, accumulate: true)
 
         @before_compile ExUnit.Case
-        @on_definition ExUnit.Case
-
         use ExUnit.Callbacks
       end
 
@@ -222,6 +220,7 @@ defmodule ExUnit.Case do
         :"test_#{message}"
       end
 
+      ExUnit.Case.__on_definition__(__ENV__, message)
       def unquote(message)(unquote(var)), do: unquote(contents)
     end
   end
@@ -236,23 +235,16 @@ defmodule ExUnit.Case do
   end
 
   @doc false
-  def __on_definition__(env, kind, name, args, _guards, _body) do
-    if kind == :def and test?(atom_to_list(name)) and length(args) == 1 do
-      mod  = env.module
-      tags = (Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag))
-             |> normalize_tags()
-             |> Keyword.put(:line, env.line)
+  def __on_definition__(env, name) do
+    mod  = env.module
+    tags = Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
+    tags = [line: env.line] ++ normalize_tags(tags)
 
-      Module.put_attribute(mod, :ex_unit_tests,
-        ExUnit.Test[name: name, case: mod, tags: tags])
+    Module.put_attribute(mod, :ex_unit_tests,
+      ExUnit.Test[name: name, case: mod, tags: tags])
 
-      Module.delete_attribute(mod, :tag)
-    end
+    Module.delete_attribute(mod, :tag)
   end
-
-  defp test?('test ' ++ _), do: true
-  defp test?('test_' ++ _), do: true
-  defp test?(_), do: false
 
   defp normalize_tags(tags) do
     Enum.reduce tags, [], fn

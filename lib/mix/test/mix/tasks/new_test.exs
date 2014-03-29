@@ -10,7 +10,7 @@ defmodule Mix.Tasks.NewTest do
       assert_file "hello_world/mix.exs", fn(file) ->
         assert file =~ "app: :hello_world"
         assert file =~ "version: \"0.0.1\""
-        assert file =~ "[mod: { HelloWorld, [] }]"
+        assert file =~ "mod: { HelloWorld, [] }"
       end
 
       assert_file "hello_world/README.md", ~r/# HelloWorld/

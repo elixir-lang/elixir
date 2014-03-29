@@ -73,8 +73,10 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Returns all loaded tasks. Modules that are not yet loaded
-  won't show up. Check `load_all/0` if you want to preload all tasks.
+  Returns all loaded tasks.
+
+  Modules that are not yet loaded won't show up.
+  Check `load_all/0` if you want to preload all tasks.
   """
   def all_modules do
     Enum.reduce :code.all_loaded, [], fn({ module, _ }, acc) ->
@@ -129,6 +131,17 @@ defmodule Mix.Task do
 
   @doc """
   Receives a task name and retrieves the task module.
+  Returns nil if the task cannot be found.
+  """
+  def get(task) do
+    case Mix.Utils.command_to_module(task, Mix.Tasks) do
+      { :module, module } -> module
+      { :error, _ } -> nil
+    end
+  end
+
+  @doc """
+  Receives a task name and retrieves the task module.
 
   ## Exceptions
 
@@ -137,15 +150,14 @@ defmodule Mix.Task do
 
   """
   def get!(task) do
-    case Mix.Utils.command_to_module(task, Mix.Tasks) do
-      { :module, module } ->
-        if is_task?(module) do
-          module
-        else
-          raise Mix.InvalidTaskError, task: task
-        end
-      { :error, _ } ->
-        raise Mix.NoTaskError, task: task
+    if module = get(task) do
+      if is_task?(module) do
+        module
+      else
+        raise Mix.InvalidTaskError, task: task
+      end
+    else
+      raise Mix.NoTaskError, task: task
     end
   end
 
@@ -202,7 +214,7 @@ defmodule Mix.Task do
 
     if umbrella? && recursive && Mix.ProjectStack.enable_recursion do
       config = [build_path: Mix.Project.build_path]
-      res = lc Mix.Dep[app: app, opts: opts] inlist Mix.Deps.Umbrella.loaded do
+      res = for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do
         Mix.Project.in_project(app, opts[:path], config, fun)
       end
       Mix.ProjectStack.disable_recursion
@@ -212,7 +224,10 @@ defmodule Mix.Task do
     end
   end
 
-  defp is_task?(module) do
+  @doc """
+  Returns `true` if given module is a task.
+  """
+  def is_task?(module) do
     function_exported?(module, :run, 1)
   end
 end

@@ -1,6 +1,6 @@
 -module(elixir_compiler).
 -export([get_opt/1, string/2, quoted/2, file/1, file_to_path/2]).
--export([core/0, module/4, eval_forms/3, format_error/1]).
+-export([core/0, module/4, eval_forms/3]).
 -include("elixir.hrl").
 
 %% Public API
@@ -137,15 +137,11 @@ module(Forms, File, Opts, Callback) ->
 
 module(Forms, File, RawOptions, Bootstrap, Callback) when
     is_binary(File), is_list(Forms), is_list(RawOptions), is_boolean(Bootstrap), is_function(Callback) ->
-  { Options, SkipNative } = compiler_options(Forms, RawOptions),
+  Options = RawOptions ++ elixir_code_server:call(erl_compiler_options),
   Listname = elixir_utils:characters_to_list(File),
 
   case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
-    {ok, ModuleName, Binary, RawWarnings} ->
-      Warnings = case SkipNative of
-        true  -> [{?MODULE,[{0,?MODULE,{skip_native,ModuleName}}]}|RawWarnings];
-        false -> RawWarnings
-      end,
+    {ok, ModuleName, Binary, Warnings} ->
       format_warnings(Bootstrap, Warnings),
       code:load_binary(ModuleName, Listname, Binary),
       Callback(ModuleName, Binary);
@@ -154,22 +150,9 @@ module(Forms, File, RawOptions, Bootstrap, Callback) when
       format_errors(Errors)
   end.
 
-compiler_options(Forms, Options) ->
-  EnvOptions = elixir_code_server:call(erl_compiler_options),
-  SkipNative = lists:member(native, EnvOptions) and contains_on_load(Forms),
-  case SkipNative or lists:member([{native,false}], Options) of
-    true  -> { Options ++ lists:delete(native, EnvOptions), SkipNative };
-    false -> { Options ++ EnvOptions, SkipNative }
-  end.
-
-contains_on_load([{ attribute, _, on_load, _ }|_]) -> true;
-contains_on_load([_|T]) -> contains_on_load(T);
-contains_on_load([]) -> false.
-
 no_auto_import() ->
   Bifs = [{ Name, Arity } || { Name, Arity } <- erlang:module_info(exports), erl_internal:bif(Name, Arity)],
   { attribute, 0, compile, { no_auto_import, Bifs } }.
-
 
 %% CORE HANDLING
 
@@ -210,6 +193,7 @@ core_main() ->
     <<"lib/elixir/lib/regex.ex">>,
     <<"lib/elixir/lib/string.ex">>,
     <<"lib/elixir/lib/string/chars.ex">>,
+    <<"lib/elixir/lib/collectable.ex">>,
     <<"lib/elixir/lib/io.ex">>,
     <<"lib/elixir/lib/path.ex">>,
     <<"lib/elixir/lib/system.ex">>,
@@ -217,7 +201,6 @@ core_main() ->
     <<"lib/elixir/lib/kernel/cli.ex">>,
     <<"lib/elixir/lib/kernel/error_handler.ex">>,
     <<"lib/elixir/lib/kernel/parallel_compiler.ex">>,
-    <<"lib/elixir/lib/kernel/record_rewriter.ex">>,
     <<"lib/elixir/lib/kernel/lexical_tracker.ex">>
   ].
 
@@ -227,10 +210,6 @@ binary_to_path({ModuleName, Binary}, CompilePath) ->
   Path.
 
 %% ERROR HANDLING
-
-format_error({ skip_native, Module }) ->
-  io_lib:format("skipping native compilation for ~ts because it contains on_load attribute",
-    [elixir_aliases:inspect(Module)]).
 
 format_errors([]) ->
   exit({ nocompile, "compilation failed but no error was raised" });

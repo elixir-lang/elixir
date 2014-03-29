@@ -58,9 +58,9 @@ defmodule ExUnit do
       # test/test_helper.exs
       ExUnit.start
 
-  Mix will load the `test_helper.exs` file before executing the tests. 
-  It is not necessary to `require` the `test_helper.exs` file in your test files.
-  See `Mix.Tasks.Test` for more information.
+  Mix will load the `test_helper.exs` file before executing the tests.
+  It is not necessary to `require` the `test_helper.exs` file in your test
+  files. See `Mix.Tasks.Test` for more information.
   """
 
   @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase"
@@ -68,7 +68,7 @@ defmodule ExUnit do
   @type failed  :: { :error | :exit | :throw | :EXIT, reason :: term, stacktrace :: [tuple] }
   @type invalid :: module
 
-  defrecord Test, [:name, :case, :state, :time, :tags, :line] do
+  defrecord Test, [:name, :case, :state, :time, :tags] do
     @moduledoc """
     A record that keeps information about the test.
     It is received by formatters and also accessible
@@ -114,7 +114,7 @@ defmodule ExUnit do
 
       System.at_exit fn
         0 ->
-          failures = ExUnit.run
+          %{failures: failures} = ExUnit.run
           System.at_exit fn _ ->
             if failures > 0, do: System.halt(1)
           end
@@ -134,8 +134,8 @@ defmodule ExUnit do
   * `:color` - When color should be used by specific formatters.
                Defaults to the result of `IO.ANSI.terminal?/1`;
 
-  * `:formatter` - The formatter that will print results.
-                   Defaults to `ExUnit.CLIFormatter`;
+  * `:formatters` - The formatters that will print results.
+                    Defaults to `[ExUnit.CLIFormatter]`;
 
   * `:max_cases` - Maximum number of cases to run in parallel.
                    Defaults to `:erlang.system_info(:schedulers_online)`;
@@ -148,6 +148,8 @@ defmodule ExUnit do
   * `:include` - Specify which tests are run by skipping tests that do not match the filter
 
   * `:exclude` - Specify which tests are run by skipping tests that match the filter
+
+  * `:seed` - An integer seed value to randomize the test suite
   """
   def configure(options) do
     Enum.each options, fn { k, v } ->
@@ -170,7 +172,6 @@ defmodule ExUnit do
   """
   def run do
     { async, sync, load_us } = ExUnit.Server.start_run
-    opts = Keyword.put_new(configuration, :color, IO.ANSI.terminal?)
-    ExUnit.Runner.run async, sync, opts, load_us
+    ExUnit.Runner.run async, sync, configuration, load_us
   end
 end

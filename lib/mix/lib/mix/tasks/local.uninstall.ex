@@ -16,16 +16,13 @@ defmodule Mix.Tasks.Local.Uninstall do
   end
 
   defp do_uninstall(name) do
-    archive = Mix.Local.archives_path
-              |> Path.join(name <> "-*.ez")
-              |> Path.wildcard
-              |> List.first
+    archives = Mix.Local.archive_files(name)
 
-    unless archive do
+    if archives == [] do
       raise Mix.Error, message: "Could not find a local archive named #{inspect name} "<>
         "at #{inspect Mix.Local.archives_path}"
     end
 
-    File.rm!(archive)
+    Enum.each(archives, &File.rm!(&1))
   end
 end

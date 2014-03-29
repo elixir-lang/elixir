@@ -112,7 +112,7 @@ defmodule IEx.Evaluator do
   end
 
   defp do_eval(@break_trigger, config) do
-    :elixir_errors.parse_error(config.counter, "iex", 'incomplete expression', [])
+    :elixir_errors.parse_error(config.counter, "iex", "incomplete expression", "")
   end
 
   defp do_eval(latest_input, config) do
@@ -128,7 +128,7 @@ defmodule IEx.Evaluator do
         config.update_counter(&(&1+1)).cache('').binding(new_binding).scope(scope).env(env)
 
       { :error, { line, error, token } } ->
-        if token == [] do
+        if token == "" do
           # Update config.cache so that IEx continues to add new input to
           # the unfinished expression in `code`
           config.cache(code)
@@ -154,7 +154,7 @@ defmodule IEx.Evaluator do
   defp inspect_opts do
     opts = IEx.Options.get(:inspect)
     case :io.columns(:standard_input) do
-      { :ok, width } -> Keyword.put(opts, :width, min(width, 80))
+      { :ok, width } -> [width: min(width, 80)] ++ opts
       { :error, _ }  -> opts
     end
   end
@@ -216,7 +216,7 @@ defmodule IEx.Evaluator do
   @doc false
   def format_stacktrace(trace) do
     entries =
-      lc entry inlist trace do
+      for entry <- trace do
         split_entry(Exception.format_stacktrace_entry(entry))
       end
 
@@ -230,7 +230,7 @@ defmodule IEx.Evaluator do
   defp split_entry(entry) do
     case entry do
       "(" <> _ ->
-        case :binary.split(entry, ")") do
+        case :binary.split(entry, ") ") do
           [left, right] -> { left <> ")", right }
           _ -> { "", entry }
         end
@@ -241,6 +241,6 @@ defmodule IEx.Evaluator do
 
   defp format_entry({ app, info }, width) do
     app = String.rjust(app, width)
-    "#{IEx.color(:stack_app, app)}#{IEx.color(:stack_info, info)}"
+    "#{IEx.color(:stack_app, app)} #{IEx.color(:stack_info, info)}"
   end
 end

@@ -1,25 +1,34 @@
 defmodule ExUnit.Formatter do
   @moduledoc """
-  This module simply defines the callbacks
-  expected by an ExUnit.Formatter.
-  """
+  This module holds helper functions related to formatting and contains
+  documentation about the formatting protocol.
 
-  use Behaviour
+  Formatters are registered at the `ExUnit.EventManager` event manager and
+  will be send events by the runner.
+
+  The following events are possible:
+
+  * `{ :suite_started, opts }` - The suite has started with the specified
+                                 options to the runner.
+  * `{ :suite_finished, run_us, load_us }` - The suite has finished. `run_us` and
+                                             `load_us` are the run and load
+                                             times in microseconds respectively.
+  * `{ :case_started, test_case }` - A test case has started. See
+                                     `ExUnit.TestCase` for details.
+  * `{ :case_finished, test_case }` - A test case has finished. See
+                                      `ExUnit.TestCase` for details.
+  * `{ :test_started, test_case }` - A test case has started. See
+                                     `ExUnit.Test` for details.
+  * `{ :test_finished, test_case }` - A test case has finished. See
+                                     `ExUnit.Test` for details.
+
+  """
 
   @type id :: term
   @type test_case :: ExUnit.TestCase.t
   @type test :: ExUnit.Test.t
   @type run_us :: pos_integer
   @type load_us :: pos_integer | nil
-
-  defcallback suite_started(opts :: list) :: id
-  defcallback suite_finished(id, run_us, load_us) :: non_neg_integer
-
-  defcallback case_started(id, test_case) :: any
-  defcallback case_finished(id, test_case) :: any
-
-  defcallback test_started(id, test) :: any
-  defcallback test_finished(id, test) :: any
 
   import Exception, only: [format_stacktrace_entry: 1]
 
@@ -154,7 +163,7 @@ defmodule ExUnit.Formatter do
       String.strip(str)
     else
       "\n" <>
-      Enum.join((lc line inlist String.split(str, ~r/\n/), do: String.duplicate(" ", max) <> line ), "\n")
+      Enum.join((for line <- String.split(str, ~r/\n/), do: String.duplicate(" ", max) <> line ), "\n")
     end
   end
 

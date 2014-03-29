@@ -5,12 +5,6 @@
 
 expand(Args, E) ->
   lists:mapfoldl(fun
-    ({ '//', Meta, [Left, Right] }, Acc) ->
-      elixir_errors:deprecation(Meta, E#elixir_env.file, "using // for default arguments is deprecated, "
-                                "please use \\\\ instead"),
-      { ELeft, EL } = elixir_exp:expand(Left, Acc),
-      { ERight, _ } = elixir_exp:expand(Right, Acc#elixir_env{context=nil}),
-      { { '\\\\', Meta, [ELeft, ERight] }, EL };
     ({ '\\\\', Meta, [Left, Right] }, Acc) ->
       { ELeft, EL } = elixir_exp:expand(Left, Acc),
       { ERight, _ } = elixir_exp:expand(Right, Acc#elixir_env{context=nil}),
@@ -31,7 +25,7 @@ unpack_each(Kind, Name, [{'\\\\', Line, [Expr, _]}|T] = List, Acc, Clauses, S) -
   Base = build_match(Acc, Line, []),
   { Args, Invoke } = extract_defaults(List, Line, length(Base), [], []),
 
-  { DefArgs, SA }  = elixir_clauses:match(fun elixir_translator:translate_many/2, Base ++ Args, S),
+  { DefArgs, SA }  = elixir_clauses:match(fun elixir_translator:translate_args/2, Base ++ Args, S),
   { DefInvoke, _ } = elixir_translator:translate_args(Base ++ Invoke, SA),
 
   Call = { call, Line,

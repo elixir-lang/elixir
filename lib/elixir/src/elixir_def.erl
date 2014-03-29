@@ -86,8 +86,7 @@ store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, MetaFile, #
   elixir_locals:record_definition(Tuple, Kind, Module),
 
   Location = retrieve_location(Line, MetaFile, Module),
-  run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Body, E),
-  { Function, Defaults, Super } = translate_definition(Kind, Line, Name, Args, Guards, Body, E),
+  { Function, Defaults, Super } = translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E),
 
   DefaultsLength = length(Defaults),
   elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
@@ -104,6 +103,7 @@ store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, MetaFile, #
   [store_each(false, Kind, File, Location, Table, CTable, 0,
     default_function_for(Kind, Name, Default)) || Default <- Defaults],
 
+  make_struct_available(Kind, Module, Name, Args),
   { Name, Arity }.
 
 %% @on_definition
@@ -117,6 +117,14 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, E) ->
       Callbacks = 'Elixir.Module':get_attribute(Module, on_definition),
       [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || { Mod, Fun } <- Callbacks]
   end.
+
+make_struct_available(def, Module, '__struct__', []) ->
+  case erlang:get(elixir_compiler_pid) of
+    undefined -> ok;
+    Pid -> Pid ! { struct_available, Module }
+  end;
+make_struct_available(_, _, _, _) ->
+  ok.
 
 %% Retrieve location from meta file or @file, otherwise nil
 
@@ -144,24 +152,25 @@ compile_super(_Module, _, _E) -> ok.
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Kind, Line, Name, Args, Guards, Body, E) when is_integer(Line) ->
+translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E) when is_integer(Line) ->
   Arity = length(Args),
+
+  { EArgs, EGuards, EBody, _ } = elixir_exp_clauses:def(fun elixir_def_defaults:expand/2,
+                                   Args, Guards, expr_from_body(Line, Body), E),
 
   %% Macros receive a special argument on invocation. Notice it does
   %% not affect the arity of the stored function, but the clause
   %% already contains it.
-  AllArgs = case is_macro(Kind) of
-    true  -> [{ '_@CALLER', [{line,Line}], nil }|Args];
-    false -> Args
+  EAllArgs = case is_macro(Kind) of
+    true  -> [{ '_@CALLER', [{line,Line}], nil }|EArgs];
+    false -> EArgs
   end,
 
-  { EArgs, EGuards, EBody, _ } = elixir_exp_clauses:def(fun elixir_def_defaults:expand/2,
-                                   AllArgs, Guards, expr_from_body(Line, Body), E),
-
   S = elixir_env:env_to_scope(E),
-  { Unpacked, Defaults } = elixir_def_defaults:unpack(Kind, Name, EArgs, S),
+  { Unpacked, Defaults } = elixir_def_defaults:unpack(Kind, Name, EAllArgs, S),
   { Clauses, Super } = translate_clause(Body, Line, Kind, Unpacked, EGuards, EBody, S),
 
+  run_on_definition_callbacks(Kind, Line, Module, Name, EArgs, EGuards, EBody, E),
   Function = { function, Line, Name, Arity, Clauses },
   { Function, Defaults, Super }.
 
@@ -171,7 +180,7 @@ translate_clause(nil, Line, Kind, _Args, _Guards, _Body, #elixir_scope{file=File
   elixir_errors:form_error(Line, File, ?MODULE, { missing_do, Kind });
 translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
   { TClause, TS } = elixir_clauses:clause(Line,
-    fun elixir_translator:translate_many/2, Args, Body, Guards, S),
+    fun elixir_translator:translate_args/2, Args, Body, Guards, true, S),
 
   %% Set __CALLER__ if used
   FClause = case is_macro(Kind) andalso TS#elixir_scope.caller of

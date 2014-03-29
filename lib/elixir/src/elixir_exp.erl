@@ -1,5 +1,5 @@
 -module(elixir_exp).
--export([expand/2, expand_many/2, expand_args/2, expand_arg/2]).
+-export([expand/2, expand_args/2, expand_arg/2]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
 
@@ -16,6 +16,12 @@ expand({ '=', Meta, [Left, Right] }, E) ->
 expand({ '{}', Meta, Args }, E) ->
   { EArgs, EA } = expand_args(Args, E),
   { { '{}', Meta, EArgs }, EA };
+
+expand({ '%{}', Meta, Args }, E) ->
+  elixir_map:expand_map(Meta, Args, E);
+
+expand({ '%', Meta, [Left, Right] }, E) ->
+  elixir_map:expand_struct(Meta, Left, Right, E);
 
 expand({ '<<>>', Meta, Args }, E) ->
   elixir_bitstring:expand(Meta, Args, E);
@@ -79,7 +85,8 @@ expand({ alias, Meta, [Ref, KV] }, E) ->
         expand_alias(Meta, true, ERef, EKV, ET) };
     true ->
       compile_error(Meta, E#elixir_env.file,
-        "invalid arguments for alias, expected a compile time atom or alias as argument")
+        "invalid argument for alias, expected a compile time atom or alias, got: ~ts",
+        ['Elixir.Kernel':inspect(ERef)])
   end;
 
 expand({ require, Meta, [Ref] }, E) ->
@@ -97,7 +104,8 @@ expand({ require, Meta, [Ref, KV] }, E) ->
         expand_require(Meta, ERef, EKV, ET) };
     true ->
       compile_error(Meta, E#elixir_env.file,
-        "invalid arguments for require, expected a compile time atom or alias as argument")
+        "invalid argument for require, expected a compile time atom or alias, got: ~ts",
+        ['Elixir.Kernel':inspect(ERef)])
   end;
 
 expand({ import, Meta, [Left] }, E) ->
@@ -115,7 +123,9 @@ expand({ import, Meta, [Ref, KV] }, E) ->
       { { import, Meta, [ERef, EKV] },
         expand_require(Meta, ERef, EKV, ET#elixir_env{functions=Functions, macros=Macros}) };
     true ->
-      compile_error(Meta, E#elixir_env.file, "invalid name for import, expected a compile time atom or alias")
+      compile_error(Meta, E#elixir_env.file,
+        "invalid argument for import, expected a compile time atom or alias, got: ~ts",
+        ['Elixir.Kernel':inspect(ERef)])
   end;
 
 %% Pseudo vars
@@ -172,8 +182,9 @@ expand({ quote, Meta, [KV, Do] }, E) when is_list(Do) ->
   Context = case lists:keyfind(context, 1, EKV) of
     { context, Atom } when is_atom(Atom) ->
       Atom;
-    { context, _ } ->
-      compile_error(Meta, E#elixir_env.file, "invalid :context for quote, expected a compile time atom or an alias");
+    { context, Ctx } ->
+      compile_error(Meta, E#elixir_env.file, "invalid :context for quote, "
+        "expected a compile time atom or alias, got: ~ts", ['Elixir.Kernel':inspect(Ctx)]);
     false ->
       case E#elixir_env.module of
         nil -> 'Elixir';
@@ -246,6 +257,9 @@ expand({'try', Meta, [KV]}, E) ->
 
 expand({ Kind, Meta, Args }, E) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
   expand_comprehension(Meta, Kind, Args, E);
+
+expand({ for, Meta, Args }, E) when is_list(Args) ->
+  elixir_for:expand(Meta, Args, E);
 
 %% Super
 
@@ -403,7 +417,7 @@ expand_arg(Arg, { Acc1, Acc2 }) ->
   { EArg, { elixir_env:mergea(Acc1, EAcc), elixir_env:mergev(Acc2, EAcc) } }.
 
 expand_args(Args, #elixir_env{context=match} = E) ->
-  lists:mapfoldl(fun expand/2, E, Args);
+  expand_many(Args, E);
 expand_args(Args, E) ->
   { EArgs, { EC, EV } } = lists:mapfoldl(fun expand_arg/2, {E, E}, Args),
   { EArgs, elixir_env:mergea(EV, EC) }.

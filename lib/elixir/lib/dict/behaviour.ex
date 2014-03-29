@@ -1,5 +1,5 @@
 defmodule Dict.Behaviour do
-  @moduledoc """
+  @moduledoc ~S"""
   Default implementations for some required functions in the `Dict` module.
 
   This module makes it easier to create your own `Dict` compliant
@@ -24,8 +24,8 @@ defmodule Dict.Behaviour do
   * `size/1`
   * `update/4`
 
-  All of which are part of the `Dict` behaviour, so no extra functions are
-  actually required.
+  All functions, except `reduce/3`, are required by the Dict behaviour.
+  `reduce/3` must be implemtented as per the Enumerable protocol.
 
   Based on these functions, `Dict.Behaviour` generates default implementations
   for the following functions:

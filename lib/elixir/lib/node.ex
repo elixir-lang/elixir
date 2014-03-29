@@ -8,10 +8,12 @@ defmodule Node do
   about inlined functions, check out the `Kernel` module.
   """
 
-  @type t :: atom
+  @type t :: node
 
   @doc """
-  Returns the current node. It returns the same as the built-in `node()`.
+  Returns the current node.
+
+  It returns the same as the built-in `node()`.
   """
   @spec self :: t
   def self do
@@ -19,8 +21,9 @@ defmodule Node do
   end
 
   @doc """
-  Returns `true` if the local node is alive; that is, if the node can be
-  part of a distributed system. Otherwise, it returns `false`.
+  Returns `true` if the local node is alive.
+
+  That is, if the node can be part of a distributed system.
   """
   @spec alive? :: boolean
   def alive? do
@@ -29,7 +32,9 @@ defmodule Node do
 
   @doc """
   Returns a list of all visible nodes in the system, excluding
-  the local node. Same as `list(:visible)`.
+  the local node.
+
+  Same as `list(:visible)`.
   """
   @spec list :: [t]
   def list do
@@ -37,8 +42,9 @@ defmodule Node do
   end
 
   @doc """
-  Returns a list of nodes according to argument given. The result
-  returned when the argument is a list, is the list of nodes
+  Returns a list of nodes according to argument given.
+
+  The result returned when the argument is a list, is the list of nodes
   satisfying the disjunction(s) of the list elements.
 
   See http://www.erlang.org/doc/man/erlang.html#nodes-1 for more info.
@@ -50,8 +56,10 @@ defmodule Node do
   end
 
   @doc """
-  Monitors the status of the node. If `flag` is `true`, monitoring is
-  turned on. If `flag` is `false`, monitoring is turned off.
+  Monitors the status of the node.
+
+  If `flag` is `true`, monitoring is turned on.
+  If `flag` is `false`, monitoring is turned off.
 
   See http://www.erlang.org/doc/man/erlang.html#monitor_node-2 for more info.
   """
@@ -72,10 +80,28 @@ defmodule Node do
   end
 
   @doc """
-  Forces the disconnection of a node. This will appear to the `node` as if
-  the local node has crashed. This BIF is mainly used in the Erlang network
-  authentication protocols. Returns `true` if disconnection succeeds, otherwise
-  `false`. If the local node is not alive, the function returns `:ignored`.
+  Tries to set up a connection to node.
+
+  Returns `:pang` if it fails, or `:pong` if it is successful.
+
+  ## Examples
+
+      iex> Node.ping(:unknown_node)
+      :pang
+
+  """
+  @spec ping(t) :: :pong | :pang
+  def ping(node) do
+    :net_adm.ping(node)
+  end
+
+  @doc """
+  Forces the disconnection of a node.
+
+  This will appear to the `node` as if the local node has crashed.
+  This function is mainly used in the Erlang network authentication
+  protocols. Returns `true` if disconnection succeeds, otherwise `false`.
+  If the local node is not alive, the function returns `:ignored`.
 
   See http://www.erlang.org/doc/man/erlang.html#disconnect_node-1 for more info.
   """
@@ -85,9 +111,10 @@ defmodule Node do
   end
 
   @doc """
-  Establishes a connection to `node`. Returns `true` if successful,
-  `false` if not, and the atom `:ignored` if the local node is not
-  alive.
+  Establishes a connection to `node`.
+
+  Returns `true` if successful, `false` if not, and the atom
+  `:ignored` if the local node is not alive.
 
   See http://erlang.org/doc/man/net_kernel.html#connect_node-1 for more info.
   """
@@ -112,10 +139,11 @@ defmodule Node do
 
   @doc """
   Returns the pid of a new process started by the application of `fun`
-  on `node`. If `node` does not exist, a useless pid is returned.
+  on `node`.
 
-  Check http://www.erlang.org/doc/man/erlang.html#spawn_opt-3 for
-  the list of available options.
+  If `node` does not exist, a useless pid is returned. Check
+  http://www.erlang.org/doc/man/erlang.html#spawn_opt-3 for the list of
+  available options.
 
   Inlined by the compiler.
   """
@@ -126,11 +154,11 @@ defmodule Node do
 
   @doc """
   Returns the pid of a new process started by the application of
-  `module.function(args)` on `node`. If `node` does not exists,
-  a useless pid is returned.
+  `module.function(args)` on `node`.
 
-  Check http://www.erlang.org/doc/man/erlang.html#spawn-4 for
-  the list of available options.
+  If `node` does not exist, a useless pid is returned. Check
+  http://www.erlang.org/doc/man/erlang.html#spawn-4 for the list of
+  available options.
 
   Inlined by the compiler.
   """
@@ -141,11 +169,11 @@ defmodule Node do
 
   @doc """
   Returns the pid of a new process started by the application of
-  `module.function(args)` on `node`. If `node` does not exists,
-  a useless pid is returned.
+  `module.function(args)` on `node`.
 
-  Check http://www.erlang.org/doc/man/erlang.html#spawn_opt-5 for
-  the list of available options.
+  If `node` does not exist, a useless pid is returned. Check
+  http://www.erlang.org/doc/man/erlang.html#spawn_opt-5 for the list of
+  available options.
 
   Inlined by the compiler.
   """
@@ -155,11 +183,11 @@ defmodule Node do
   end
 
   @doc """
-  Returns the pid of a new process started by the application of `fun`
-  on `node`. A link is created between the calling process and the
-  new process, atomically. If `node` does not exist, a useless pid is returned
-  (and due to the link, an exit signal with exit reason `:noconnection` will be
-  received).
+  Returns the pid of a new linked process started by the application of `fun` on `node`.
+
+  A link is created between the calling process and the new process, atomically.
+  If `node` does not exist, a useless pid is returned (and due to the link, an exit
+  signal with exit reason `:noconnection` will be received).
 
   Inlined by the compiler.
   """
@@ -169,11 +197,12 @@ defmodule Node do
   end
 
   @doc """
-  Returns the pid of a new process started by the application of
-  `module.function(args)` on `node`. A link is created between the calling
-  process and the new process, atomically. If `node` does not exist, a useless
-  pid is returned (and due to the link, an exit signal with exit reason
-  `:noconnection` will be received).
+  Returns the pid of a new linked process started by the application of
+  `module.function(args)` on `node`.
+
+  A link is created between the calling process and the new process, atomically.
+  If `node` does not exist, a useless pid is returned (and due to the link, an exit
+  signal with exit reason `:noconnection` will be received).
 
   Inlined by the compiler.
   """
@@ -183,9 +212,10 @@ defmodule Node do
   end
 
   @doc """
-  Sets the magic cookie of `node` to the atom `cookie`. The default node
-  is `Node.self`, the local node. If `node` is the local node, the function also
-  sets the cookie of all other unknown nodes to `cookie`.
+  Sets the magic cookie of `node` to the atom `cookie`.
+
+  The default node is `Node.self`, the local node. If `node` is the local node,
+  the function also sets the cookie of all other unknown nodes to `cookie`.
 
   This function will raise `FunctionClauseError` if the given `node` is not alive.
   """
@@ -194,8 +224,9 @@ defmodule Node do
   end
 
   @doc """
-  Returns the magic cookie of the local node, if the node is alive;
-  otherwise `:nocookie`.
+  Returns the magic cookie of the local node.
+
+  Returns the cookie if the node is alive, otherwise `:nocookie`.
   """
   def get_cookie() do
     :erlang.get_cookie()

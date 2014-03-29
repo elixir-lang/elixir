@@ -60,8 +60,7 @@ defmodule Mix.Tasks.New do
 
   defp do_generate(app, path, opts) do
     mod     = opts[:module] || camelize(app)
-    otp_app = if opts[:bare], do: "[]", else: "[mod: { #{mod}, [] }]"
-    assigns = [app: app, mod: mod, otp_app: otp_app]
+    assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:bare])]
 
     create_file "README.md",  readme_template(assigns)
     create_file ".gitignore", gitignore_text
@@ -92,11 +91,18 @@ defmodule Mix.Tasks.New do
     You can use mix to compile it, test it, and more:
 
         cd #{path}
-        mix compile
         mix test
 
-    Run `mix help` for more information.
+    Run `mix help` for more commands.
     """
+  end
+
+  defp otp_app(_mod, true) do
+    "    [ applications: [] ]"
+  end
+
+  defp otp_app(mod, false) do
+    "    [ applications: [],\n      mod: { #{mod}, [] } ]"
   end
 
   defp do_generate_umbrella(app, path, _opts) do
@@ -118,8 +124,8 @@ defmodule Mix.Tasks.New do
         cd apps
         mix new my_app
 
-    Commands like `mix compile` and `mix test`, when executed
-    in the umbrella project root, will automatically run
+    Commands like `mix compile` and `mix test` when executed
+    in the umbrella project root will automatically run
     for each application in the apps/ directory.
     """
   end
@@ -161,22 +167,24 @@ defmodule Mix.Tasks.New do
     use Mix.Project
 
     def project do
-      [ app: :<%= @app %>,
-        version: "0.0.1",
-        elixir: "~> <%= System.version %>",
-        deps: deps ]
+      [app: :<%= @app %>,
+       version: "0.0.1",
+       elixir: "~> <%= System.version %>",
+       deps: deps]
     end
 
     # Configuration for the OTP application
+    #
+    # Type `mix help compile.app` for more information
     def application do
-      <%= @otp_app %>
+  <%= @otp_app %>
     end
 
-    # Returns the list of dependencies in the format:
+    # List all dependencies in the format:
+    #
     # { :foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1" }
     #
-    # To specify particular versions, regardless of the tag, do:
-    # { :barbat, "~> 0.1", github: "elixir-lang/barbat" }
+    # Type `mix help deps` for more examples and options
     defp deps do
       []
     end
@@ -188,27 +196,26 @@ defmodule Mix.Tasks.New do
     use Mix.Project
 
     def project do
-      [ app: :<%= @app %>,
-        version: "0.0.1",
-        deps_path: "../../deps",
-        lockfile: "../../mix.lock",
-        elixir: "~> <%= System.version %>",
-        deps: deps ]
+      [app: :<%= @app %>,
+       version: "0.0.1",
+       deps_path: "../../deps",
+       lockfile: "../../mix.lock",
+       elixir: "~> <%= System.version %>",
+       deps: deps]
     end
 
     # Configuration for the OTP application
+    #
+    # Type `mix help compile.app` for more information
     def application do
-      <%= @otp_app %>
+  <%= @otp_app %>
     end
 
-    # Returns the list of dependencies in the format:
+    # List all dependencies in the format:
+    #
     # { :foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1" }
     #
-    # To specify particular versions, regardless of the tag, do:
-    # { :barbat, "~> 0.1", github: "elixir-lang/barbat" }
-    #
-    # You can depend on another app in the same umbrella with:
-    # { :other, in_umbrella: true }
+    # Type `mix help deps` for more examples and options
     defp deps do
       []
     end
@@ -220,17 +227,15 @@ defmodule Mix.Tasks.New do
     use Mix.Project
 
     def project do
-      [ apps_path: "apps",
-        deps: deps ]
+      [apps_path: "apps",
+       deps: deps]
     end
 
-    # Returns the list of dependencies in the format:
+    # List all dependencies in the format:
+    #
     # { :foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1" }
     #
-    # To specify particular versions, regardless of the tag, do:
-    # { :barbat, "~> 0.1", github: "elixir-lang/barbat" }
-    #
-    # These dependencies are not accessible from child applications
+    # Type `mix help deps` for more examples and options
     defp deps do
       []
     end
@@ -265,7 +270,7 @@ defmodule Mix.Tasks.New do
     def init([]) do
       children = [
         # Define workers and child supervisors to be supervised
-        # worker(<%= @mod %>.Worker, [])
+        # worker(<%= @mod %>.Worker, [arg1, arg2, arg3])
       ]
 
       # See http://elixir-lang.org/docs/stable/Supervisor.Behaviour.html
@@ -280,7 +285,7 @@ defmodule Mix.Tasks.New do
     use ExUnit.Case
 
     test "the truth" do
-      assert(true)
+      assert 1 + 1 == 2
     end
   end
   """

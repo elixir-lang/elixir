@@ -47,6 +47,9 @@ multi_assigned_if_test() ->
   {1, _} = eval("if true do\nx = 1\nelse true\nend\nx"),
   {nil, _} = eval("if false do\nx = 1\nelse true\nend\nx").
 
+multi_line_if_test() ->
+  {1, _} = eval("if true\ndo\n1\nelse\n2\nend").
+
 % Try
 
 try_test() ->
@@ -291,3 +294,6 @@ optimized_oror_test() ->
       [{atom,0,done}]},
     {clause,1,[{var,1,Var}],[],[{var,1,Var}]}]
   } = to_erl("is_list([]) || :done").
+
+no_after_in_try_test() ->
+  { 'try', _, [_], [_], _, [] } = to_erl("try do :foo.bar() else _ -> :ok end").

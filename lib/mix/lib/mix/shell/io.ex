@@ -32,6 +32,15 @@ defmodule Mix.Shell.IO do
   end
 
   @doc """
+  Writes a message shell followed by prompting the user for
+  input. Input will be consumed until enter is pressed.
+  """
+  def prompt(message) do
+    put_app
+    IO.gets IO.ANSI.escape(message <> " ")
+  end
+
+  @doc """
   Receives a message and asks the user if he wants to proceed.
   He must press enter or type anything that matches the a "yes"
   regex `~r/^Y(es)?$/i`.

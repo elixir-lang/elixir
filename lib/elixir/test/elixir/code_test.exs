@@ -59,6 +59,10 @@ defmodule CodeTest do
     assert Code.eval_quoted(quote(do: MyList.flatten [[1, 2, 3]]), [], __ENV__) == { [1, 2, 3],[] }
   end
 
+  test :eval_file do
+    assert Code.eval_file(fixture_path("code_sample.exs")) == { 3, [var: 3] }
+  end
+
   test :require do
     Code.require_file fixture_path("code_sample.exs")
     assert fixture_path("code_sample.exs") in Code.loaded_files
@@ -70,12 +74,18 @@ defmodule CodeTest do
   end
 
   test :string_to_quoted do
-    assert Code.string_to_quoted("1 + 2") == { :ok, { :+, [line: 1], [1, 2] } }
-    assert { :error, _ } = Code.string_to_quoted("a.1")
+    assert Code.string_to_quoted("1 + 2")  == { :ok, { :+, [line: 1], [1, 2] } }
+    assert Code.string_to_quoted!("1 + 2") == { :+, [line: 1], [1, 2] }
+
+    assert Code.string_to_quoted("a.1") ==
+           { :error, { 1, "syntax error before: ", "1" } }
+
+    assert_raise SyntaxError, fn ->
+      Code.string_to_quoted!("a.1")
+    end
   end
 
   test :string_to_quoted_existing_atoms_only do
-    assert :badarg = catch_error(Code.string_to_quoted(":thereisnosuchatom", existing_atoms_only: true))
     assert :badarg = catch_error(Code.string_to_quoted!(":thereisnosuchatom", existing_atoms_only: true))
   end
 

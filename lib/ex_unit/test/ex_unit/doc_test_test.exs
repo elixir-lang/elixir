@@ -34,13 +34,13 @@ defmodule ExUnit.DocTestTest.GoodModule do
   def exception_test, do: :ok
 
   @doc """
-  iex> HashDict.new a: 0, b: 1, c: 2
+  iex> Enum.into([a: 0, b: 1, c: 2], HashDict.new)
   #HashDict<[c: 2, b: 1, a: 0]>
   """
   def inspect1_test, do: :ok
 
   @doc """
-  iex> x = HashDict.new a: 0, b: 1, c: 2
+  iex> x = Enum.into([a: 0, b: 1, c: 2], HashDict.new)
   ...> x
   #HashDict<[c: 2, b: 1, a: 0]>
   """
@@ -154,24 +154,38 @@ defmodule ExUnit.DocTestTest.IndentationNotEnough do
   def not_enough, do: :ok
 end
 
+defmodule ExUnit.DocTestTest.Incomplete do
+  @doc ~S'''
+      iex> 1 + 2
+
+  '''
+  def not_enough, do: :ok
+end
+
 defmodule ExUnit.DocTestTest do
   use ExUnit.Case, async: true
 
-  # This is intentional. The doctests in DocTest's docs fail
-  # for demonstration purposes.
+  # This is intentional. The doctests in DocTest's docs
+  # fail for demonstration purposes.
   # doctest ExUnit.DocTest
 
   doctest ExUnit.DocTestTest.GoodModule, import: true
   doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [test_fun: 0], import: true
   doctest ExUnit.DocTestTest.SomewhatGoodModuleWithExcept, except: [test_fun1: 0], import: true
   doctest ExUnit.DocTestTest.NoImport
+  doctest ExUnit.DocTestTest.IndentationHeredocs
 
-  assert_raise ExUnit.DocTest.Error, fn ->
-    doctest ExUnit.DocTestTest.ExceptionModule
+  test "multiple exceptions in one test case is not supported" do
+    assert_raise ExUnit.DocTest.Error, ~r"multiple exceptions in one doctest case are not supported", fn ->
+      defmodule NeverCompiled do
+        import ExUnit.DocTest
+        doctest ExUnit.DocTestTest.ExceptionModule
+      end
+    end
   end
 
-  test :no_var_leak do
-    assert_raise CompileError, ~r"function '_a'/0 undefined", fn ->
+  test "variables in heredocs do not leak" do
+    assert_raise ArgumentError, fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.Invalid
@@ -179,13 +193,34 @@ defmodule ExUnit.DocTestTest do
     end
   end
 
-  doctest ExUnit.DocTestTest.IndentationHeredocs
+  test "fails in indentation mismatch" do
+    assert_raise ExUnit.DocTest.Error, ~r/indentation level mismatch: "   iex> bar = 2", should have been 2 spaces/, fn ->
+      defmodule NeverCompiled do
+        import ExUnit.DocTest
+        doctest ExUnit.DocTestTest.IndentationMismatchedPrompt
+      end
+    end
 
-  assert_raise ExUnit.DocTest.Error, fn ->
-    doctest ExUnit.DocTestTest.IndentationMismatchedPrompt
-  end
+    assert_raise ExUnit.DocTest.Error, ~r/indentation level mismatch: "    3", should have been 2 spaces/, fn ->
+      defmodule NeverCompiled do
+        import ExUnit.DocTest
+        doctest ExUnit.DocTestTest.IndentationTooMuch
+      end
+    end
 
-  assert_raise ExUnit.DocTest.Error, fn ->
-    doctest ExUnit.DocTestTest.IndentationTooMuch
+    assert_raise ExUnit.DocTest.Error, ~r/indentation level mismatch: \"  3\", should have been 4 spaces/, fn ->
+      defmodule NeverCompiled do
+        import ExUnit.DocTest
+        doctest ExUnit.DocTestTest.IndentationNotEnough
+      end
+    end
+
+    assert_raise ExUnit.DocTest.Error, ~r/expected non-blank line to follow iex> prompt/, fn ->
+      defmodule NeverCompiled do
+        import ExUnit.DocTest
+        doctest ExUnit.DocTestTest.Incomplete
+      end
+    end
+
   end
 end

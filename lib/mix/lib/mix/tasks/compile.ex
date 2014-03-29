@@ -36,10 +36,10 @@ defmodule Mix.Tasks.Compile do
     shell   = Mix.shell
     modules = Mix.Task.all_modules
 
-    docs = lc module inlist modules,
-              task = Mix.Task.task_name(module),
-              match?("compile." <> _, task),
-              doc = Mix.Task.moduledoc(module) do
+    docs = for module <- modules,
+               task = Mix.Task.task_name(module),
+               match?("compile." <> _, task),
+               doc = Mix.Task.moduledoc(module) do
       { task, first_line(doc) }
     end
 

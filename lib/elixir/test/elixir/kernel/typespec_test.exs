@@ -1,6 +1,6 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file "../test_helper.exs", __DIR__
 
-defmodule Typespec.TypeTest do
+defmodule Kernel.TypespecTest do
   use ExUnit.Case, async: true
 
   defrecord Rec, [:first, :last]
@@ -246,7 +246,16 @@ defmodule Typespec.TypeTest do
     assert [{:mytype, _, []}, {:mytype1, _, []}] = types
   end
 
-  test "@type from defrecordp" do
+  test "@type from structs" do
+    types = test_module do
+      defstruct name: nil, age: 0
+      @type
+    end
+
+    assert [{:t, {:type, 251, :map, []}, []}] = types
+  end
+
+  test "@type from records" do
     types = test_module do
       defrecordp :user, name: nil, age: 0 :: integer
       @opaque user :: user_t
@@ -257,7 +266,7 @@ defmodule Typespec.TypeTest do
              [{:atom, _, :user}, {:type, _, :term, []}, {:type, _, :integer, []}]}, []}] = types
   end
 
-  test "@type from defrecordp with custom tag" do
+  test "@type from records with custom tag" do
     {types, module} = test_module do
       defrecordp :user, __MODULE__, name: nil, age: 0 :: integer
       @opaque user :: user_t
@@ -402,7 +411,7 @@ defmodule Typespec.TypeTest do
 
     types = Enum.reverse(types)
 
-    lc { type, definition } inlist Enum.zip(types, quoted) do
+    for { type, definition } <- Enum.zip(types, quoted) do
       ast = Kernel.Typespec.type_to_ast(type)
       assert Macro.to_string(quote do: @type unquote(ast)) == Macro.to_string(definition)
     end
@@ -457,7 +466,7 @@ defmodule Typespec.TypeTest do
       Enum.reverse @spec
     end
 
-    lc { { { _, _ }, spec }, definition } inlist Enum.zip(compiled, specs) do
+    for { { { _, _ }, spec }, definition } <- Enum.zip(compiled, specs) do
       quoted = quote do: @spec unquote(Kernel.Typespec.spec_to_ast(:a, spec))
       assert Macro.to_string(quoted) == Macro.to_string(definition)
     end

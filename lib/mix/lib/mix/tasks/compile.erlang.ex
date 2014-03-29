@@ -132,7 +132,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   files failed to compile.
   """
   def compile_mappings(manifest, mappings, src_ext, dest_ext, force, callback) do
-    files = lc { src, dest } inlist mappings do
+    files = for { src, dest } <- mappings do
               extract_targets(src, src_ext, dest, dest_ext, force)
             end |> Enum.concat
 
@@ -185,13 +185,13 @@ defmodule Mix.Tasks.Compile.Erlang do
   defp sort_dependencies(erls) do
     graph = Graph.new
 
-    lc erl inlist erls do
+    for erl <- erls do
       Graph.add_vertex(graph, erl.module, erl)
     end
 
-    lc erl inlist erls do
-      lc b inlist erl.behaviours, do: Graph.add_edge(graph, b, erl.module)
-      lc c inlist erl.compile do
+    for erl <- erls do
+      for b <- erl.behaviours, do: Graph.add_edge(graph, b, erl.module)
+      for c <- erl.compile do
         case c do
           {:parse_transform, transform} -> Graph.add_edge(graph, transform, erl.module)
           _ -> :ok
@@ -203,7 +203,7 @@ defmodule Mix.Tasks.Compile.Erlang do
       case GraphUtils.topsort(graph) do
         false -> erls
         mods  ->
-          lc m inlist mods, do: elem(Graph.vertex(graph, m), 1)
+          for m <- mods, do: elem(Graph.vertex(graph, m), 1)
       end
 
     Graph.delete(graph)
@@ -227,7 +227,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   defp extract_targets(dir1, src_ext, dir2, dest_ext, force) do
     files = Mix.Utils.extract_files([dir1], List.wrap(src_ext))
 
-    lc file inlist files do
+    for file <- files do
       module = module_from_artifact(file)
       target = Path.join(dir2, module <> "." <> to_string(dest_ext))
 
@@ -241,7 +241,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   defp compile_mappings(manifest, tuples, callback) do
     # Stale files are the ones with a destination
-    stale = lc { src, _mod, dest } inlist tuples, dest != nil, do: { src, dest }
+    stale = for { src, _mod, dest } <- tuples, dest != nil, do: { src, dest }
 
     # Get the previous entries from the manifest
     entries = Mix.Utils.read_manifest(manifest)
@@ -263,7 +263,7 @@ defmodule Mix.Tasks.Compile.Erlang do
       Enum.each(removed, &File.rm/1)
 
       # Compile stale files and print the results
-      results = lc { input, output } inlist stale do
+      results = for { input, output } <- stale do
         interpret_result(input, callback.(input, output))
       end
 

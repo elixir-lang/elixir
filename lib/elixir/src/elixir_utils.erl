@@ -50,13 +50,17 @@ characters_to_binary(Data) ->
     false -> 'Elixir.String':'from_char_list!'(Data)
   end.
 
-%% erl <-> elixir
+%% elixir to erl. Handles only valid quoted expressions,
+%% that's why things like maps and references are not in the list.
 
 elixir_to_erl(Tree) when is_tuple(Tree) ->
   { tuple, 0, [elixir_to_erl(X) || X <- tuple_to_list(Tree)] };
 
 elixir_to_erl([]) ->
   { nil, 0 };
+
+elixir_to_erl(<<>>) ->
+  { bin, 0, [] };
 
 elixir_to_erl(Tree) when is_list(Tree) ->
   elixir_to_erl_cons_1(Tree, []);

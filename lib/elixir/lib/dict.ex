@@ -12,7 +12,7 @@ defmodule Dict do
       HashDict.new  #=> creates an empty HashDict
 
   In the examples below, `dict_impl` means a specific
-  `Dict` implementation, for example `HashDict` or `ListDict`.
+  `Dict` implementation, for example `HashDict` or `Map`.
 
   ## Protocols
 
@@ -25,11 +25,7 @@ defmodule Dict do
       ...> dict[:hello]
       :world
 
-  And the `Enumerable` protocol, allowing one to write:
-
-      Enum.each(dict, fn ({ k, v }) ->
-        IO.puts "#{k}: #{v}"
-      end)
+  As well as the `Enumerable` and `Collectable` protocols.
 
   ## Match
 
@@ -41,11 +37,9 @@ defmodule Dict do
 
   @type key :: any
   @type value :: any
-  @type t :: tuple | list
+  @type t :: tuple | list | map
 
   defcallback new :: t
-  defcallback new(Enum.t) :: t
-  defcallback new(Enum.t, (any -> { key, value })) :: t
   defcallback delete(t, key) :: t
   defcallback drop(t, Enum.t) :: t
   defcallback empty(t) :: t
@@ -62,7 +56,6 @@ defmodule Dict do
   defcallback pop(t, key, value) :: {value, t}
   defcallback put(t, key, value) :: t
   defcallback put_new(t, key, value) :: t
-  defcallback reduce(t, Enumerable.acc, Enumerable.reducer) :: Enumerable.result
   defcallback size(t) :: non_neg_integer()
   defcallback split(t, Enum.t) :: {t, t}
   defcallback take(t, Enum.t) :: t
@@ -73,13 +66,17 @@ defmodule Dict do
 
   defmacrop target(dict) do
     quote do
-      cond do
-        is_tuple(unquote(dict)) ->
-          elem(unquote(dict), 0)
-        is_list(unquote(dict)) ->
+      case unquote(dict) do
+        %{__struct__: x} when is_atom(x) ->
+          x
+        %{} ->
+          Map
+        x when is_tuple(x) ->
+          elem(x, 0)
+        x when is_list(x) ->
           ListDict
-        true ->
-          unsupported_dict(unquote(dict))
+        x ->
+          unsupported_dict(x)
       end
     end
   end
@@ -90,7 +87,7 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1, b: 2])
+      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
       ...> Enum.sort(Dict.keys(d))
       [:a,:b]
 
@@ -106,7 +103,7 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1, b: 2])
+      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
       ...> Enum.sort(Dict.values(d))
       [1,2]
 
@@ -121,7 +118,7 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1, b: 2])
+      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
       ...> Dict.size(d)
       2
 
@@ -136,7 +133,7 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1])
+      iex> d = Enum.into([a: 1], dict_impl.new)
       iex> Dict.has_key?(d, :a)
       true
       iex> Dict.has_key?(d, :b)
@@ -154,7 +151,7 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1])
+      iex> d = Enum.into([a: 1], dict_impl.new)
       iex> Dict.get(d, :a)
       1
       iex> Dict.get(d, :b)
@@ -173,7 +170,7 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1])
+      iex> d = Enum.into([a: 1], dict_impl.new)
       iex> Dict.fetch(d, :a)
       { :ok, 1 }
       iex> Dict.fetch(d, :b)
@@ -191,7 +188,7 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1])
+      iex> d = Enum.into([a: 1], dict_impl.new)
       iex> Dict.fetch!(d, :a)
       1
       iex> Dict.fetch!(d, :b)
@@ -209,7 +206,7 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1, b: 2])
+      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
       ...> d = Dict.put(d, :a, 3)
       ...> Dict.get(d, :a)
       3
@@ -225,7 +222,7 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1, b: 2])
+      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
       ...> d = Dict.put_new(d, :a, 3)
       ...> Dict.get(d, :a)
       1
@@ -242,12 +239,12 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1, b: 2])
+      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
       ...> d = Dict.delete(d, :a)
       ...> Dict.get(d, :a)
       nil
 
-      iex> d = dict_impl.new([b: 2])
+      iex> d = Enum.into([b: 2], dict_impl.new)
       ...> Dict.delete(d, :a) == d
       true
 
@@ -270,14 +267,14 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d1 = dict_impl.new([a: 1, b: 2])
-      ...> d2 = dict_impl.new([a: 3, d: 4])
+      iex> d1 = Enum.into([a: 1, b: 2], dict_impl.new)
+      ...> d2 = Enum.into([a: 3, d: 4], dict_impl.new)
       ...> d = Dict.merge(d1, d2)
       ...> [a: Dict.get(d, :a), b: Dict.get(d, :b), d: Dict.get(d, :d)]
       [a: 3, b: 2, d: 4]
 
-      iex> d1 = dict_impl.new([a: 1, b: 2])
-      ...> d2 = dict_impl.new([a: 3, d: 4])
+      iex> d1 = Enum.into([a: 1, b: 2], dict_impl.new)
+      ...> d2 = Enum.into([a: 3, d: 4], dict_impl.new)
       ...> d = Dict.merge(d1, d2, fn(_k, v1, v2) ->
       ...>   v1 + v2
       ...> end)
@@ -293,7 +290,7 @@ defmodule Dict do
     if target1 == target2 do
       target1.merge(dict1, dict2, fun)
     else
-      target2.reduce(dict2, { :cont, dict1 }, fn({ k, v }, acc) ->
+      Enumerable.reduce(dict2, { :cont, dict1 }, fn({ k, v }, acc) ->
         { :cont, target1.update(acc, k, v, fn(other) -> fun.(k, other, v) end) }
       end) |> elem(1)
     end
@@ -305,17 +302,17 @@ defmodule Dict do
 
   ## Examples
 
-      iex> dict = dict_impl.new [a: 1]
+      iex> dict = Enum.into([a: 1], dict_impl.new)
       ...> {v, d} = Dict.pop dict, :a
       ...> {v, Enum.sort(d)}
       {1,[]}
 
-      iex> dict = dict_impl.new [a: 1]
+      iex> dict = Enum.into([a: 1], dict_impl.new)
       ...> {v, d} = Dict.pop dict, :b
       ...> {v, Enum.sort(d)}
       {nil,[a: 1]}
 
-      iex> dict = dict_impl.new [a: 1]
+      iex> dict = Enum.into([a: 1], dict_impl.new)
       ...> {v, d} = Dict.pop dict, :b, 3
       ...> {v, Enum.sort(d)}
       {3,[a: 1]}
@@ -332,7 +329,7 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1, b: 2])
+      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
       ...> d = Dict.update!(d, :a, fn(val) -> -val end)
       ...> Dict.get(d, :a)
       -1
@@ -350,7 +347,7 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1, b: 2])
+      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
       ...> d = Dict.update(d, :c, 3, fn(val) -> -val end)
       ...> Dict.get(d, :c)
       3
@@ -370,17 +367,17 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1, b: 2, c: 3, d: 4])
+      iex> d = Enum.into([a: 1, b: 2, c: 3, d: 4], dict_impl.new)
       ...> { d1, d2 } = Dict.split(d, [:a, :c, :e])
       ...> { Dict.to_list(d1) |> Enum.sort, Dict.to_list(d2) |> Enum.sort }
       { [a: 1, c: 3], [b: 2, d: 4] }
 
-      iex> d = dict_impl.new([])
+      iex> d = Enum.into([], dict_impl.new)
       ...> { d1, d2 } = Dict.split(d, [:a, :c])
       ...> { Dict.to_list(d1), Dict.to_list(d2) }
       { [], [] }
 
-      iex> d = dict_impl.new([a: 1, b: 2])
+      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
       ...> { d1, d2 } = Dict.split(d, [:a, :b, :c])
       ...> { Dict.to_list(d1) |> Enum.sort, Dict.to_list(d2) }
       { [a: 1, b: 2], [] }
@@ -397,12 +394,12 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1, b: 2])
+      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
       ...> d = Dict.drop(d, [:a, :c, :d])
       ...> Dict.to_list(d)
       [b: 2]
 
-      iex> d = dict_impl.new([a: 1, b: 2])
+      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
       ...> d = Dict.drop(d, [:c, :d])
       ...> Dict.to_list(d) |> Enum.sort
       [a: 1, b: 2]
@@ -420,7 +417,7 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = dict_impl.new([a: 1, b: 2])
+      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
       ...>
       ...> d = Dict.take(d, [:a, :c, :d])
       ...> Dict.to_list(d)
@@ -436,17 +433,7 @@ defmodule Dict do
     target(dict).take(dict, keys)
   end
 
-  @doc """
-  Returns an empty dict of the same type as `dict`.
-
-  ## Examples
-
-      iex> d = dict_impl.new([a: 1, b: 2])
-      ...> e = Dict.empty(d)
-      ...> Dict.to_list(e)
-      []
-
-  """
+  @doc false
   @spec empty(t) :: t
   def empty(dict) do
     target(dict).empty(dict)
@@ -461,12 +448,12 @@ defmodule Dict do
 
   ## Examples
 
-      iex> a = dict_impl.new(a: 2, b: 3, f: 5, c: 123)
+      iex> a = Enum.into([a: 2, b: 3, f: 5, c: 123], dict_impl.new)
       ...> b = [a: 2, b: 3, f: 5, c: 123]
       ...> Dict.equal?(a, b)
       true
 
-      iex> a = dict_impl.new(a: 2, b: 3, f: 5, c: 123)
+      iex> a = Enum.into([a: 2, b: 3, f: 5, c: 123], dict_impl.new)
       ...> b = []
       ...> Dict.equal?(a, b)
       false
@@ -482,7 +469,7 @@ defmodule Dict do
         target1.equal?(dict1, dict2)
 
       target1.size(dict1) == target2.size(dict2) ->
-        target2.reduce(dict2, { :cont, true }, fn({ k, v }, _acc) ->
+        Enumerable.reduce(dict2, { :cont, true }, fn({ k, v }, _acc) ->
           case target1.fetch(dict1, k) do
             { :ok, ^v } -> { :cont, true }
             _           -> { :halt, false }

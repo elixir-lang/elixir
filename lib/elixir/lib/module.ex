@@ -11,7 +11,7 @@ defmodule Module do
   documentation, add, delete and register attributes and so forth.
 
   After a module is compiled, using many of the functions in
-  this module will raise errors, since it is out of their purpose
+  this module will raise errors, since it is out of their scope
   to inspect runtime data. Most of the runtime data can be inspected
   via the `__info__(attr)` function attached to each compiled module.
 
@@ -51,7 +51,7 @@ defmodule Module do
       When just a module is provided, the function/macro is assumed to be
       `__before_compile__/1`.
 
-      Note: differently from `@after_compile`, the callback function/macro must
+      Note: unlike `@after_compile`, the callback function/macro must
       be placed in a separate module (because when the callback is invoked,
       the current module does not yet exist).
 
@@ -164,7 +164,7 @@ defmodule Module do
 
   * `@on_definition`
 
-      A hook that will be invoked after each function or macro in the current
+      A hook that will be invoked when each function or macro in the current
       module is defined. Useful when annotating functions.
 
       Accepts a module or a tuple `{ <module>, <function atom> }`. The function
@@ -173,21 +173,24 @@ defmodule Module do
         - the module environment
         - kind: `:def`, `:defp`, `:defmacro`, or `:defmacrop`
         - function/macro name
-        - list of quoted arguments
-        - list of quoted guards
-        - quoted function body
+        - list of expanded arguments
+        - list of expanded guards
+        - expanded function body
+
+      Note the hook receives the expanded arguments and it is invoked before
+      the function is stored in the module. So `Module.defines?/2` will return
+      false for the first clause of every function.
 
       If the function/macro being defined has multiple clauses, the hook will
       be called for each clause.
 
+      Unlike other hooks, `@on_definition` will only invoke functions
+      and never macros. This is because the hook is invoked inside the context
+      of the function (and nested function definitions are not allowed in
+      Elixir).
+
       When just a module is provided, the function is assumed to be
       `__on_definition__/6`.
-
-      Note that you can't provide the current module to `@on_definition`
-      because the hook function will not be defined in time. Finally, since
-      the `on_definition` hook is executed inside the context of the defined
-      function (i.e. `env.function` returns the current function), the hook
-      can only be a function, not a macro.
 
       ### Example
 
@@ -308,15 +311,14 @@ defmodule Module do
   and its attributes and functions can be modified.
   """
   def open?(module) do
-    table = data_table_for(module)
-    table == :ets.info(table, :name)
+    :elixir_module.is_open(module)
   end
 
   @doc """
   Evaluates the quoted contents in the given module's context.
 
   A list of environment options can also be given as argument.
-  See `Code.eval_string` for more information.
+  See `Code.eval_string/3` for more information.
 
   Raises an error if the module was already compiled.
 
@@ -510,7 +512,7 @@ defmodule Module do
     table = docs_table_for(module)
 
     { signature, _ } = Enum.map_reduce signature, 1, fn(x, acc) ->
-      { simplify_signature(x, line, acc), acc + 1 }
+      { simplify_signature(x, acc), acc + 1 }
     end
 
     case :ets.lookup(table, tuple) do
@@ -531,28 +533,34 @@ defmodule Module do
 
   # Simplify signatures to be stored in docs
 
-  defp simplify_signature({ :\\, defline, [left, right ] }, line, i) do
-    { :\\, defline, [simplify_signature(left, line, i), right] }
+  defp simplify_signature({ :\\, _, [left, right ] }, i) do
+    { :\\, [], [simplify_signature(left, i), right] }
   end
 
-  defp simplify_signature({ var, line, atom }, _, _i) when is_atom(atom) do
-    case atom_to_list(var) do
-      [?_|_]    -> { var, line, :guess }
-      _         -> { var, line, nil }
+  defp simplify_signature({ :%, _, [left, _] }, _i) when is_atom(left) do
+    last = List.last(String.split(atom_to_binary(left), "."))
+    atom = binary_to_atom(String.downcase(last))
+    { atom, [], nil }
+  end
+
+  defp simplify_signature({ :=, _, [_, right] }, i) do
+    simplify_signature(right, i)
+  end
+
+  defp simplify_signature({ var, _, atom }, _i) when is_atom(atom) do
+    case atom_to_binary(var) do
+      "_" <> rest -> { binary_to_atom(rest), [], Elixir }
+      _           -> { var, [], nil }
     end
   end
 
-  defp simplify_signature({ :=, _, [_, right] }, line, i) do
-    simplify_signature(right, line, i)
-  end
-
-  defp simplify_signature(other, line, i) when is_integer(other), do: { :"int#{i}", line, :guess }
-  defp simplify_signature(other, line, i) when is_boolean(other), do: { :"bool#{i}", line, :guess }
-  defp simplify_signature(other, line, i) when is_atom(other),    do: { :"atom#{i}", line, :guess }
-  defp simplify_signature(other, line, i) when is_list(other),    do: { :"list#{i}", line, :guess }
-  defp simplify_signature(other, line, i) when is_float(other),   do: { :"float#{i}", line, :guess }
-  defp simplify_signature(other, line, i) when is_binary(other),  do: { :"binary#{i}", line, :guess }
-  defp simplify_signature(_, line, i), do: { :"arg#{i}", line, :guess }
+  defp simplify_signature(other, i) when is_integer(other), do: { :"int#{i}", [], Elixir }
+  defp simplify_signature(other, i) when is_boolean(other), do: { :"bool#{i}", [], Elixir }
+  defp simplify_signature(other, i) when is_atom(other),    do: { :"atom#{i}", [], Elixir }
+  defp simplify_signature(other, i) when is_list(other),    do: { :"list#{i}", [], Elixir }
+  defp simplify_signature(other, i) when is_float(other),   do: { :"float#{i}", [], Elixir }
+  defp simplify_signature(other, i) when is_binary(other),  do: { :"binary#{i}", [], Elixir }
+  defp simplify_signature(_, i), do: { :"arg#{i}", [], Elixir }
 
   # Merge
 
@@ -580,7 +588,7 @@ defmodule Module do
   defp merge_signature({ var, _, _ } = older, { var, _, _ }, _), do: older
 
   # Otherwise, returns a generic guess
-  defp merge_signature({ _, line, _ }, _newer, i), do: { :"arg#{i}", line, :guess }
+  defp merge_signature({ _, line, _ }, _newer, i), do: { :"arg#{i}", line, Elixir }
 
   @doc """
   Checks if the module defines the given function or macro.
@@ -638,7 +646,7 @@ defmodule Module do
   def definitions_in(module) do
     assert_not_compiled!(:definitions_in, module)
     table = function_table_for(module)
-    lc { tuple, _, _, _, _, _, _ } inlist :ets.tab2list(table), do: tuple
+    for { tuple, _, _, _, _, _, _ } <- :ets.tab2list(table), do: tuple
   end
 
   @doc """
@@ -657,19 +665,19 @@ defmodule Module do
   def definitions_in(module, kind) do
     assert_not_compiled!(:definitions_in, module)
     table = function_table_for(module)
-    lc { tuple, stored_kind, _, _, _, _, _ } inlist :ets.tab2list(table), stored_kind == kind, do: tuple
+    for { tuple, stored_kind, _, _, _, _, _ } <- :ets.tab2list(table), stored_kind == kind, do: tuple
   end
 
   @doc """
   Makes the given functions in `module` overridable.
   An overridable function is lazily defined, allowing a
-  developer to customize it. See `Kernel.defoverridable` for
+  developer to customize it. See `Kernel.defoverridable/1` for
   more information and documentation.
   """
   def make_overridable(module, tuples) do
     assert_not_compiled!(:make_overridable, module)
 
-    lc tuple inlist tuples do
+    for tuple <- tuples do
       case :elixir_def.lookup_definition(module, tuple) do
         false ->
           { name, arity } = tuple
@@ -703,7 +711,7 @@ defmodule Module do
   @doc """
   Puts an Erlang attribute to the given module with the given
   key and value. The semantics of putting the attribute depends
-  if the attribute was registered or not via `register_attribute/2`.
+  if the attribute was registered or not via `register_attribute/3`.
 
   ## Examples
 
@@ -733,7 +741,7 @@ defmodule Module do
 
   @doc """
   Gets the given attribute from a module. If the attribute
-  was marked with `accumulate` with `Module.register_attribute`,
+  was marked with `accumulate` with `Module.register_attribute/3`,
   a list is always returned.
 
   The `@` macro compiles to a call to this function. For example,

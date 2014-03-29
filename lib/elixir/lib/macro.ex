@@ -13,7 +13,7 @@ defmodule Macro do
 
   @binary_ops [:===, :!==,
     :==, :!=, :<=, :>=,
-    :&&, :||, :<>, :++, :--, ://, :\\, :::, :<-, :.., :|>, :=~,
+    :&&, :||, :<>, :++, :--, :\\, :::, :<-, :.., :|>, :=~,
     :<, :>, :->,
     :+, :-, :*, :/, :=, :|, :.,
     :and, :or, :xor, :when, :in, :inlist, :inbits,
@@ -30,7 +30,7 @@ defmodule Macro do
   @spec binary_op_props(atom) :: { :left | :right, precedence :: integer }
   defp binary_op_props(o) do
     case o do
-      o when o in [:<-, :inlist, :inbits, ://, :\\, :::]        -> {:left,  40}
+      o when o in [:<-, :inlist, :inbits, :\\, :::]             -> {:left,  40}
       :|                                                        -> {:right, 50}
       :when                                                     -> {:right, 70}
       :=                                                        -> {:right, 80}
@@ -113,7 +113,7 @@ defmodule Macro do
   end
 
   def update_meta(list, fun) when is_list(list) do
-    lc x inlist list, do: update_meta(x, fun)
+    for x <- list, do: update_meta(x, fun)
   end
 
   def update_meta(other, _fun) do
@@ -333,6 +333,18 @@ defmodule Macro do
     fun.(ast, tuple)
   end
 
+  # Map containers
+  def to_string({ :%{}, _, args } = ast, fun) do
+    map = "%{" <> map_to_string(args, fun) <> "}"
+    fun.(ast, map)
+  end
+
+  def to_string({ :%, _, [structname, map] } = ast, fun) do
+    { :%{}, _, args } = map
+    struct = "%" <> to_string(structname, fun) <> "{" <> map_to_string(args, fun) <> "}"
+    fun.(ast, struct)
+  end
+
   # Fn keyword
   def to_string({ :fn, _, [{ :->, _, [_, tuple] }] = arrow } = ast, fun)
       when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
@@ -376,6 +388,11 @@ defmodule Macro do
   end
 
   # Unary ops
+  def to_string({ unary, _, [{ binary, _, [_, _] } = arg] } = ast, fun)
+      when unary in unquote(@unary_ops) and binary in unquote(@binary_ops) do
+    fun.(ast, atom_to_binary(unary) <> "(" <> to_string(arg, fun) <> ")")
+  end
+
   def to_string({ :not, _, [arg] } = ast, fun)  do
     fun.(ast, "not " <> to_string(arg, fun))
   end
@@ -481,9 +498,26 @@ defmodule Macro do
 
   defp block_to_string(other, fun), do: to_string(other, fun)
 
+  defp map_to_string([{:|, _, [update_map, update_args]}], fun) do
+    to_string(update_map, fun) <> " | " <> map_to_string(update_args, fun)
+  end
+
+  defp map_to_string(list, fun) do
+    cond do
+      Keyword.keyword?(list) -> kw_list_to_string(list, fun)
+      true -> map_list_to_string(list, fun)
+    end
+  end
+
   defp kw_list_to_string(list, fun) do
     Enum.map_join(list, ", ", fn { key, value } ->
       atom_to_binary(key) <> ": " <> to_string(value, fun)
+    end)
+  end
+
+  defp map_list_to_string(list, fun) do
+    Enum.map_join(list, ", ", fn { key, value } ->
+      to_string(key, fun) <> " => " <> to_string(value, fun)
     end)
   end
 
@@ -524,11 +558,11 @@ defmodule Macro do
   end
 
   defp adjust_new_lines(block, replacement) do
-    bc <<x>> inbits block do
-      << case x == ?\n do
+    for <<x <- block>>, into: "" do
+      case x == ?\n do
         true  -> replacement
         false -> <<x>>
-      end :: binary >>
+      end
     end
   end
 
@@ -618,7 +652,7 @@ defmodule Macro do
         :elixir_lexical.record_remote(receiver, env.lexical_tracker)
         { receiver, true }
       aliases ->
-        aliases = lc alias inlist aliases, do: elem(do_expand_once(alias, env), 0)
+        aliases = for alias <- aliases, do: elem(do_expand_once(alias, env), 0)
 
         case :lists.all(&is_atom/1, aliases) do
           true ->
@@ -750,7 +784,7 @@ defmodule Macro do
     do_safe_term(terms) || :ok
   end
 
-  defp do_safe_term({ local, _, terms }) when local in [:{}, :__aliases__] do
+  defp do_safe_term({ local, _, terms }) when local in [:{}, :%{}, :__aliases__] do
     do_safe_term(terms)
   end
 

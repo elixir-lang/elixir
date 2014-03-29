@@ -17,6 +17,10 @@ defmodule Mix.ShellTest do
     assert_received { :mix_shell, :info, ["abc"] }
     assert_received { :mix_shell, :error, ["def"] }
 
+    send self, { :mix_shell_input, :prompt, "world" }
+    assert Mix.shell.prompt("hello?") == "world"
+    assert_received { :mix_shell, :prompt, ["hello?"] }
+
     send self, { :mix_shell_input, :yes?, true }
     assert Mix.shell.yes?("hello?")
     assert_received { :mix_shell, :yes?, ["hello?"] }
@@ -34,7 +38,11 @@ defmodule Mix.ShellTest do
     assert capture_io(:stderr, fn -> Mix.shell.error "def" end) ==
            (IO.ANSI.escape "%{red,bright}def") <> "\n"
 
-    capture_io("Yes", fn -> assert Mix.shell.yes?("hello?") end)
+    assert capture_io("world", fn -> assert Mix.shell.prompt("hello?") == "world" end) ==
+           "hello? "
+
+    assert capture_io("Yes", fn -> assert Mix.shell.yes?("hello?") end) ==
+           "hello? [Yn] "
 
     assert capture_io(fn -> assert Mix.shell.cmd("echo first") == 0 end) ==
            "first\n"

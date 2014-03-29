@@ -232,7 +232,7 @@ defmodule String do
       splits = :binary.split(binary, pattern, opts)
 
       if Keyword.get(options, :trim, false) do
-        lc split inlist splits, split != "", do: split
+        for split <- splits, split != "", do: split
       else
         splits
       end
@@ -643,7 +643,7 @@ defmodule String do
       ?\x{6FFFE}, ?\x{6FFFF}, ?\x{7FFFE}, ?\x{7FFFF}, ?\x{8FFFE}, ?\x{8FFFF},
       ?\x{9FFFE}, ?\x{9FFFF}, ?\x{10FFFE}, ?\x{10FFFF} ]
 
-  lc noncharacter inlist noncharacters do
+  for noncharacter <- noncharacters do
     def valid?(<< unquote(noncharacter) :: utf8, _ :: binary >>), do: false
   end
 

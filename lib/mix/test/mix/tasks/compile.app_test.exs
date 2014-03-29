@@ -9,7 +9,8 @@ defmodule Mix.Tasks.Compile.AppTest do
     end
 
     def application do
-      [maxT: :infinity]
+      [maxT: :infinity,
+       applications: [:example_app]]
     end
   end
 
@@ -64,6 +65,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       contents = File.read!("_build/dev/lib/custom_project/ebin/custom_project.app")
       assert contents =~ "0.2.0"
       assert contents =~ "{maxT,infinity}"
+      assert contents =~ "{applications,[kernel,stdlib,elixir,example_app]}"
     end
   end
 
@@ -71,7 +73,7 @@ defmodule Mix.Tasks.Compile.AppTest do
     Mix.Project.push InvalidProject
 
     in_fixture "no_mixfile", fn ->
-      lc error inlist [:modules, :maxT, :registered, :included_applications,
+      for error <- [:modules, :maxT, :registered, :included_applications,
                        :applications, :env, :mod, :start_phases] do
         Process.put(:error, error)
         e = catch_error(Mix.Tasks.Compile.App.run([]))
@@ -99,9 +101,9 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert Mix.Tasks.Compile.App.run([]) == :ok
 
       {:ok, [{_app, _, properties}]} = :file.consult("_build/dev/lib/sample/ebin/sample.app")
-      properties = Keyword.from_enum(properties)
       assert properties[:registered] == []
       assert properties[:description] == 'sample'
+      assert properties[:applications] == [:kernel, :stdlib, :elixir]
 
       assert Mix.Tasks.Compile.App.run([]) == :noop
     end

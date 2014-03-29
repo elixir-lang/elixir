@@ -185,6 +185,64 @@ defmodule Kernel.ErrorsTest do
       '^x(1) = 1'
   end
 
+  test :literal_on_map_and_struct do
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: '}'",
+      '%{ { :a, :b } }'
+
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: '{'",
+      '%{ :a, :b }{ a: :b }'
+  end
+
+  test :struct_access_on_body do
+    assert_compile_fail CompileError,
+      "nofile:3: cannot access struct TZ in body of the module that defines it " <>
+      "as the struct fields are not yet accessible",
+      '''
+      defmodule TZ do
+        defstruct %{name: "Brasilia"}
+        %TZ{}
+      end
+      '''
+  end
+
+  test :unbound_map_key_var do
+    assert_compile_fail CompileError,
+      "nofile:1: illegal use of variable x in map key",
+      '%{ x => 1 } = %{}'
+
+    assert_compile_fail CompileError,
+      "nofile:1: illegal use of variable x in map key",
+      '%{ x = 1 => 1 }'
+  end
+
+  test :struct_errors do
+    assert_compile_fail UndefinedFunctionError,
+      "undefined function: BadStruct.__struct__/0",
+      '%BadStruct{}'
+
+    defmodule BadStruct do
+      def __struct__ do
+        []
+      end
+    end
+
+    assert_compile_fail CompileError,
+      "nofile:1: expected Kernel.ErrorsTest.BadStruct.__struct__/0 to return a map, got: []",
+      '%#{BadStruct}{}'
+
+    defmodule GoodStruct do
+      def __struct__ do
+        %{ name: "josé" }
+      end
+    end
+
+    assert_compile_fail CompileError,
+      "nofile:1: unknown key :age for struct Kernel.ErrorsTest.GoodStruct",
+      '%#{GoodStruct}{ age: 27 }'
+  end
+
   test :name_for_defmodule do
     assert_compile_fail CompileError,
       "nofile:1: invalid module name: 3",
@@ -510,16 +568,16 @@ defmodule Kernel.ErrorsTest do
       'try do\n1\nrescue\nUndefinedFunctionError[arity: 1] -> false\nend'
   end
 
-  test :invalid_bc_return do
+  test :invalid_for_without_generators do
     assert_compile_fail CompileError,
-      "nofile:1: a bit comprehension expects a bit string << >> to be returned",
-      'bc x inlist [1, 2, 3], do: x'
+      "nofile:1: for comprehensions must start with a generator",
+      'for x, do: x'
   end
 
-  test :invalid_bc_inbits_gen do
+  test :invalid_for_bit_generator do
     assert_compile_fail CompileError,
-      "nofile:1: a bit comprehension expects a bit string << >> to be used in inbits generators",
-      'bc x inbits "123", do: <<x>>'
+      "nofile:1: bitstring fields without size are not allowed in bitstring generators",
+      'for << x :: binary <- "123" >>, do: x'
   end
 
   test :unbound_cond do

@@ -36,8 +36,8 @@ mergev(E1, E2) ->
   }.
 
 %% Receives two scopes and return the later scope
-%% keeping the variables from the first (counters,
-%% imports and everything else are passed forward).
+%% keeping the variables from the first (imports
+%% and everything else are passed forward).
 
 mergea(E1, E2) ->
   E2#elixir_env{vars=E1#elixir_env.vars}.

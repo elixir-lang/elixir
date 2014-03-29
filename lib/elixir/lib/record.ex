@@ -269,7 +269,7 @@ defmodule Record do
 
   """
   def deffunctions(values, env) do
-    values  = lc value inlist values, do: convert_value(value)
+    values  = for value <- values, do: convert_value(value)
     escaped = Macro.escape(values)
 
     contents = [
@@ -297,7 +297,7 @@ defmodule Record do
   """
   def deftypes(values, types, env) do
     types  = types || []
-    values = lc value inlist values do
+    values = for value <- values do
       { name, default } = convert_value(value)
       { name, default, find_spec(types, name) }
     end
@@ -335,7 +335,7 @@ defmodule Record do
   def defmacros(name, values, env, tag \\ nil)
       when is_atom(name) and is_list(values) and is_atom(tag) do
 
-    escaped = lc value inlist values do
+    escaped = for value <- values do
       { key, value } = convert_value(value)
       { key, Macro.escape(value) }
     end
@@ -433,7 +433,7 @@ defmodule Record do
       [] ->
         { :{}, [], [atom|match] }
       _  ->
-        keys = lc { key, _ } inlist remaining, do: key
+        keys = for { key, _ } <- remaining, do: key
         raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect hd(keys)}"
     end
   end
@@ -447,7 +447,7 @@ defmodule Record do
       is_keyword(args) ->
         update(atom, fields, record, args, caller)
       true ->
-        raise ArgumentError, message: "expected arguments to be a compile time atom, list or keywords"
+        raise ArgumentError, message: "expected arguments to be a compile time atom or keywords"
     end
   end
 
@@ -511,7 +511,7 @@ defmodule Record do
   #     FileInfo.__record__(:index, :mtime) #=> 2
   #
   defp reflection(values) do
-    quoted = lc { k, _ } inlist values do
+    quoted = for { k, _ } <- values do
       index = find_index(values, k, 0)
       quote do
         def __record__(:index, unquote(k)), do: unquote(index + 1)
@@ -554,14 +554,14 @@ defmodule Record do
   #     end
   #
   defp initializer(values) do
-    defaults = lc { _, value } inlist values, do: value
+    defaults = for { _, value } <- values, do: value
 
     # For each value, define a piece of code that will receive
     # an ordered dict of options (opts) and it will try to fetch
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
-    atom_selective   = lc { k, v } inlist values, do: initialize_lookup(k, v)
-    string_selective = lc { k, v } inlist values, do: initialize_lookup(atom_to_binary(k), v)
+    atom_selective   = for { k, v } <- values, do: initialize_lookup(k, v)
+    string_selective = for { k, v } <- values, do: initialize_lookup(atom_to_binary(k), v)
 
     quote do
       @doc false
@@ -592,7 +592,7 @@ defmodule Record do
   #    [atime: nil, mtime: nil]
   #
   defp conversions(values) do
-    sorted = lc { k, _ } inlist values do
+    sorted = for { k, _ } <- values do
       index = find_index(values, k, 0)
       { k, quote(do: :erlang.element(unquote(index + 2), record)) }
     end
@@ -671,10 +671,10 @@ defmodule Record do
   # keyword list and updates the record.
   defp updater(values) do
     atom_fields =
-      lc {key, _default} inlist values, do: updater_lookup(key, key, values)
+      for {key, _default} <- values, do: updater_lookup(key, key, values)
 
     string_fields =
-      lc {key, _default} inlist values, do: updater_lookup(atom_to_binary(key), key, values)
+      for {key, _default} <- values, do: updater_lookup(atom_to_binary(key), key, values)
 
     atom_contents = quote do: { __MODULE__, unquote_splicing(atom_fields) }
     string_contents = quote do: { __MODULE__, unquote_splicing(string_fields) }
@@ -721,8 +721,8 @@ defmodule Record do
   ## Types/specs generation
 
   defp core_specs(values) do
-    types   = lc { _, _, spec } inlist values, do: spec
-    options = lc { k, _, v } inlist values, do: { k, v }
+    types   = for { _, _, spec } <- values, do: spec
+    options = for { k, _, v } <- values, do: { k, v }
 
     quote do
       unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
@@ -778,12 +778,12 @@ defmodule Record do
     raise(ArgumentError, message: "record field name has to be an atom, got #{inspect field}")
 
   defp check_value(atom, other) when is_list(other) do
-    lc(i inlist other, do: check_value(atom, i))
+    for(i <- other, do: check_value(atom, i))
     other
   end
 
   defp check_value(atom, other) when is_tuple(other) do
-    lc(i inlist tuple_to_list(other), do: check_value(atom, i))
+    for(i <- tuple_to_list(other), do: check_value(atom, i))
     other
   end
 
@@ -807,7 +807,7 @@ defmodule Record do
   defp find_index([], _k, _i), do: nil
 
   defp find_spec(types, name) do
-    matches = lc { k, v } inlist types, name == k, do: v
+    matches = for { k, v } <- types, name == k, do: v
     case matches do
       [h|_] -> h
       _     -> quote do: term
@@ -824,7 +824,7 @@ defmodule Record.DSL do
   Expects a keyword list.
   """
   defmacro record_type(opts) when is_list(opts) do
-    escaped = lc { k, v } inlist opts, do: { k, Macro.escape(v) }
+    escaped = for { k, v } <- opts, do: { k, Macro.escape(v) }
 
     quote do
       @record_types Keyword.merge(@record_types || [], unquote(escaped))

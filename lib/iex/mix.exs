@@ -10,7 +10,8 @@ defmodule IEx.Mixfile do
         after_spawn: [],
         colors: colors,
         inspect: [limit: 50, records: true, pretty: true],
-        history_size: 20 ] ]
+        history_size: 20,
+        prompt: [default: "%prefix(%counter)>", alive: "%prefix(%node)%counter>" ] ] ]
   end
 
   defp colors do

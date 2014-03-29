@@ -1,4 +1,4 @@
-defmodule Mix.Deps.Umbrella do
+defmodule Mix.Dep.Umbrella do
   @moduledoc false
 
   @doc """
@@ -29,16 +29,16 @@ defmodule Mix.Deps.Umbrella do
     apps = Enum.map(deps, &(&1.app))
 
     Enum.map(deps, fn umbrella_dep ->
-      umbrella_dep = Mix.Deps.Loader.load(umbrella_dep)
-      deps = Enum.filter(umbrella_dep.deps, fn Mix.Dep[] = dep ->
-        Mix.Deps.available?(dep) and dep.app in apps
+      umbrella_dep = Mix.Dep.Loader.load(umbrella_dep)
+      deps = Enum.filter(umbrella_dep.deps, fn dep ->
+        Mix.Dep.available?(dep) and dep.app in apps
       end)
-      umbrella_dep.deps(deps)
-    end) |> Mix.Deps.Converger.topsort
+      %{umbrella_dep | deps: deps}
+    end) |> Mix.Dep.Converger.topsort
   end
 
   defp extract_umbrella(paths) do
-    lc path inlist paths do
+    for path <- paths do
       app = path |> Path.basename |> String.downcase |> binary_to_atom
       { app, path }
     end
@@ -46,15 +46,20 @@ defmodule Mix.Deps.Umbrella do
 
   defp filter_umbrella(pairs, nil), do: pairs
   defp filter_umbrella(pairs, apps) when is_list(apps) do
-    lc { app, _ } = pair inlist pairs, app in apps, do: pair
+    for { app, _ } = pair <- pairs, app in apps, do: pair
   end
 
   defp to_umbrella_dep(paths, build) do
     Enum.map paths, fn({ app, path }) ->
       opts = [path: path, dest: Path.expand(path),
               env: Mix.env, build: Path.join([build, "lib", app])]
-      Mix.Dep[scm: Mix.SCM.Path, app: app, requirement: nil, manager: :mix,
-              status: { :ok, nil }, opts: opts]
+      %Mix.Dep{
+        scm: Mix.SCM.Path,
+        app: app,
+        requirement: nil,
+        manager: :mix,
+        status: { :ok, nil },
+        opts: opts }
     end
   end
 end

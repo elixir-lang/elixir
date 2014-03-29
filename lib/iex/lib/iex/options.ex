@@ -33,7 +33,7 @@ defmodule IEx.Options do
 
   """
 
-  @supported_options ~w(colors inspect history_size)a
+  @supported_options ~w(colors inspect history_size prompt)a
 
   @doc """
   Returns all supported IEx options with their respective values as a keyword
@@ -51,7 +51,7 @@ defmodule IEx.Options do
   """
   def get(name)
 
-  lc key inlist @supported_options do
+  for key <- @supported_options do
     def get(unquote(key)) do
       { :ok, value } = :application.get_env(:iex, unquote(key))
       value
@@ -110,6 +110,14 @@ defmodule IEx.Options do
     raise_value("an integer")
   end
 
+  def set(:prompt, prompts) when is_list(prompts) do
+    filter_and_merge(:prompt, prompts)
+  end
+
+  def set(:prompt, _) do
+    raise_value("a keyword list")
+  end
+
   def set(name, _) do
     raise_option(name)
   end
@@ -155,6 +163,22 @@ defmodule IEx.Options do
   Number of expressions and their results to keep in the history.
 
   The value is an integer. When it is negative, the history is unlimited.
+  """
+
+  def help(:prompt), do: """
+  This is an option determining the prompt displayed to the user
+  when awaiting input.
+
+  The value is a keyword list. Two prompt types:
+
+  * `:default` - used when `Node.alive?` returns false
+  * `:alive`   - used when `Node.alive?` returns true
+
+  The part of the listed in the following of the prompt string is replaced.
+
+  * `%counter` - the index of the history
+  * `%prefix`  - a prefix given by `IEx.Server`
+  * `%node`    - the name of the local node
   """
 
   @doc """

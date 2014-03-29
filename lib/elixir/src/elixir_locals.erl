@@ -6,13 +6,12 @@
   record_definition/3, record_defaults/4,
   ensure_no_function_conflict/4, warn_unused_local/3, format_error/1
 ]).
--export([macro_for/3, function_for/3]).
+-export([macro_for/3, local_for/3, local_for/4]).
 
 -include("elixir.hrl").
 -define(attr, '__locals_tracker').
 -define(tracker, 'Elixir.Module.LocalsTracker').
 
-macro_for(nil, _Name, _Arity) -> false;
 macro_for(Module, Name, Arity) ->
   Tuple = { Name, Arity },
   try elixir_def:lookup_definition(Module, Tuple) of
@@ -25,13 +24,13 @@ macro_for(Module, Name, Arity) ->
     error:badarg -> false
   end.
 
-function_for(Module, Name, Arity) ->
+local_for(Module, Name, Arity) ->
+  local_for(Module, Name, Arity, nil).
+local_for(Module, Name, Arity, Given) ->
   Tuple = { Name, Arity },
   case elixir_def:lookup_definition(Module, Tuple) of
-    { { Tuple, _, Line, _, _, _, _ }, Clauses } when Clauses /= [] ->
-      %% There is no need to record such calls
-      %% since they come from funtions that were
-      %% already analyzed at compilation time.
+    { { Tuple, Kind, Line, _, _, _, _ }, [_|_] = Clauses }
+        when Given == nil; Kind == Given ->
       get_function(Line, Module, Clauses);
     _ ->
       [_|T] = erlang:get_stacktrace(),
@@ -40,14 +39,14 @@ function_for(Module, Name, Arity) ->
 
 get_function(Line, Module, Clauses) ->
   RewrittenClauses = [rewrite_clause(Clause, Module) || Clause <- Clauses],
-  Fun = { 'fun', Line, {clauses, RewrittenClauses } },
+  Fun = { 'fun', Line, { clauses, RewrittenClauses } },
   { value, Result, _Binding } = erl_eval:exprs([Fun], []),
   Result.
 
 rewrite_clause({ call, Line, { atom, Line, RawName }, Args }, Module) ->
   Remote = { remote, Line,
     { atom, Line, ?MODULE },
-    { atom, Line, function_for }
+    { atom, Line, local_for }
   },
 
   %% If we have a macro, its arity in the table is

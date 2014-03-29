@@ -38,6 +38,10 @@ defmodule MacroTest do
     assert [1, 2, 3] == Macro.escape([1, 2, 3])
   end
 
+  test :escape_handles_maps do
+    assert { :%{}, [], [a: 1] } = Macro.escape(%{ a: 1 })
+  end
+
   test :escape_works_recursively do
     assert [1,{:{}, [], [:a,:b,:c]}, 3] == Macro.escape([1, { :a, :b, :c }, 3])
   end
@@ -351,8 +355,20 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: [])   == "[]"
     assert Macro.to_string(quote do: { 1, 2, 3 })   == "{1, 2, 3}"
     assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
+    assert Macro.to_string(quote do: %{})  == "%{}"
+    assert Macro.to_string(quote do: %{:foo => :bar})  == "%{foo: :bar}"
+    assert Macro.to_string(quote do: %{{1,2} => [1,2,3]})  == "%{{1, 2} => [1, 2, 3]}"
+    assert Macro.to_string(quote do: %{map | "a" => "b"})  == "%{map | \"a\" => \"b\"}"
+    assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
     assert Macro.to_string(quote do: << 1, 2, 3 >>) == "<<1, 2, 3>>"
     assert Macro.to_string(quote do: << <<1>> >>) == "<< <<1>> >>"
+  end
+
+  test :struct_to_string do
+    assert Macro.to_string(quote do: %Test{})  == "%Test{}"
+    assert Macro.to_string(quote do: %Test{foo: 1, bar: 1})  == "%Test{foo: 1, bar: 1}"
+    assert Macro.to_string(quote do: %Test{struct | foo: 2})  == "%Test{struct | foo: 2}"
+    assert Macro.to_string(quote do: %Test{} + 1)  == "%Test{} + 1"
   end
 
   test :binary_ops_to_string do
@@ -366,6 +382,7 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: not 1) == "not 1"
     assert Macro.to_string(quote do: not foo) == "not foo"
     assert Macro.to_string(quote do: -1) == "-1"
+    assert Macro.to_string(quote do: !(foo > bar)) == "!(foo > bar)"
     assert Macro.to_string(quote do: @foo(bar)) == "@foo(bar)"
     assert Macro.to_string(quote do: identity(&1)) == "identity(&1)"
     assert Macro.to_string(quote do: identity(&foo)) == "identity(&foo)"
@@ -423,6 +440,7 @@ defmodule MacroTest do
    assert Macro.safe_term(quote do: {1, 2}) == :ok
    assert Macro.safe_term(quote do: {1, 2, 3}) == :ok
    assert Macro.safe_term(quote do: {1, 2, 3, 4}) == :ok
+   assert Macro.safe_term(quote do: %{a: 1}) == :ok
    assert Macro.safe_term(quote do: Alias) == :ok
   end
 
@@ -430,6 +448,7 @@ defmodule MacroTest do
    assert Macro.safe_term(quote do: 1+1)   == { :unsafe, quote do: 1 + 1 }
    assert Macro.safe_term(quote do: [1+1]) == { :unsafe, quote do: 1 + 1 }
    assert Macro.safe_term(quote do: {1+1}) == { :unsafe, quote do: 1 + 1 }
+   assert Macro.safe_term(quote do: %{a: 1+1}) == { :unsafe, quote do: 1 + 1 }
   end
 
   ## decompose_call

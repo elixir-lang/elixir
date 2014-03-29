@@ -123,9 +123,10 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp deps_tuples do
-    Enum.reduce Mix.Deps.loaded || [], [], fn(dep, acc) ->
+    deps = Mix.Dep.loaded(env: Mix.env) || []
+    Enum.reduce(deps, [], fn dep, acc ->
       get_tuples(dep.opts[:build]) ++ acc
-    end
+    end)
   end
 
   defp set_perms(filename) do
@@ -150,7 +151,7 @@ defmodule Mix.Tasks.Escriptize do
   end
 
   defp to_tuples(files) do
-    lc f inlist files do
+    for f <- files do
       { String.to_char_list!(Path.basename(f)), File.read!(f) }
     end
   end
@@ -178,8 +179,8 @@ defmodule Mix.Tasks.Escriptize do
         end
 
         defp start_app(app) do
-          case Application.Behaviour.start(app) do
-            :ok -> :ok
+          case :application.ensure_all_started(app) do
+            { :ok, _ } -> :ok
             { :error, reason } ->
               IO.puts :stderr, IO.ANSI.escape("%{red, bright} Could not start application #{app}: #{inspect reason}.")
               System.halt(1)

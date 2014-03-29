@@ -62,8 +62,8 @@ defmodule Protocol.Consolidation do
   end
 
   defp extract_matching_by_attribute(paths, prefix, callback) do
-    lc path inlist paths,
-       file inlist list_dir(path),
+    for path <- paths,
+       file <- list_dir(path),
        mod = extract_from_file(path, file, prefix, callback),
        do: mod
   end
@@ -125,6 +125,9 @@ defmodule Protocol.Consolidation do
     { :error, :not_a_protocol } |
     { :error, :no_beam_info }
   def apply_to(protocol, types) when is_atom(protocol) do
+    raise ArgumentError, "consolidation is disabled as we can't consolidate records " <>
+                         "and structs at once. Consolidation will be added back once " <>
+                         "polymorphic records are removed"
     ensure_protocol(protocol)
     |> if_ok(change_debug_info types)
     |> if_ok(compile)
@@ -157,36 +160,38 @@ defmodule Protocol.Consolidation do
   # impl_for/1 dispatch version.
   defp change_debug_info({ protocol, any, code }, types) do
     types   = if any, do: types, else: List.delete(types, Any)
-    records = types -- Protocol.builtin
-    builtin = Protocol.builtin -- (Protocol.builtin -- types)
-    builtin = if records != [], do: [Record|builtin], else: builtin
-    change_impl_for(code, protocol, builtin, records, false, [])
+    all     = [Any] ++ for { _guard, mod } <- Protocol.builtin, do: mod
+    structs = types -- all
+    change_impl_for(code, protocol, types, structs, false, [])
   end
 
-  defp change_impl_for([{ :attribute, line, :protocol, _ }|t], protocol, builtin, records, _, acc) do
-    attr = [fallback_to_any: Any in builtin, consolidated: true]
-    change_impl_for(t, protocol, builtin, records, true,
-                    [{ :attribute, line, :protocol, attr }|acc])
+  defp change_impl_for([{ :attribute, line, :protocol, opts }|t], protocol, types, structs, _, acc) do
+    opts = [fallback_to_any: opts[:fallback_to_any], consolidated: true]
+    change_impl_for(t, protocol, types, structs, true,
+                    [{ :attribute, line, :protocol, opts }|acc])
   end
 
-  defp change_impl_for([{ :function, line, :impl_for, 1, _ }|t], protocol, builtin, records, is_protocol, acc) do
-    clauses = lc type inlist builtin, do: clause_for(type, protocol, line)
+  defp change_impl_for([{ :function, line, :impl_for, 1, _ }|t], protocol, types, structs, is_protocol, acc) do
+    fallback = if Any in types, do: Module.concat(protocol, Any), else: nil
 
-    unless Any in builtin do
-      clauses = clauses ++ [fallback_clause_for(nil, protocol, line)]
-    end
+    clauses = for { guard, mod } <- Protocol.builtin,
+                  mod in types,
+                  do: builtin_clause_for(mod, guard, protocol, line)
 
-    change_impl_for(t, protocol, builtin, records, is_protocol,
+    clauses = [struct_clause_for(line)|clauses] ++
+              [fallback_clause_for(fallback, protocol, line)]
+
+    change_impl_for(t, protocol, types, structs, is_protocol,
                     [{ :function, line, :impl_for, 1, clauses }|acc])
   end
 
-  defp change_impl_for([{ :function, line, :rec_impl_for, 1, _ }|t], protocol, builtin, records, is_protocol, acc) do
-    fallback = if Tuple in builtin, do: Module.concat(protocol, Tuple)
-    clauses  = lc type inlist records, do: record_clause_for(type, protocol, line)
-    clauses  = clauses ++ [fallback_clause_for(fallback, protocol, line)]
+  defp change_impl_for([{ :function, line, :struct_impl_for, 1, _ }|t], protocol, types, structs, is_protocol, acc) do
+    fallback = if Any in types, do: Module.concat(protocol, Any), else: nil
+    clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, line)
+    clauses = clauses ++ [fallback_clause_for(fallback, protocol, line)]
 
-    change_impl_for(t, protocol, builtin, records, is_protocol,
-                    [{ :function, line, :rec_impl_for, 1, clauses }|acc])
+    change_impl_for(t, protocol, types, structs, is_protocol,
+                    [{ :function, line, :struct_impl_for, 1, clauses }|acc])
   end
 
   defp change_impl_for([h|t], protocol, info, types, is_protocol, acc) do
@@ -201,42 +206,6 @@ defmodule Protocol.Consolidation do
     end
   end
 
-  defp clause_for(Tuple, protocol, line),     do: builtin_clause_for(Tuple, :is_tuple, protocol, line)
-  defp clause_for(Atom, protocol, line),      do: builtin_clause_for(Atom, :is_atom, protocol, line)
-  defp clause_for(List, protocol, line),      do: builtin_clause_for(List, :is_list, protocol, line)
-  defp clause_for(BitString, protocol, line), do: builtin_clause_for(BitString, :is_bitstring, protocol, line)
-  defp clause_for(Integer, protocol, line),   do: builtin_clause_for(Integer, :is_integer, protocol, line)
-  defp clause_for(Float, protocol, line),     do: builtin_clause_for(Float, :is_float, protocol, line)
-  defp clause_for(Function, protocol, line),  do: builtin_clause_for(Function, :is_function, protocol, line)
-  defp clause_for(PID, protocol, line),       do: builtin_clause_for(PID, :is_pid, protocol, line)
-  defp clause_for(Port, protocol, line),      do: builtin_clause_for(Port, :is_port, protocol, line)
-  defp clause_for(Reference, protocol, line), do: builtin_clause_for(Reference, :is_reference, protocol, line)
-
-  defp clause_for(Any, protocol, line) do
-    {:clause, line, [{:var, line, :_}], [],
-      [{ :atom, line, Module.concat(protocol, Any) }]}
-  end
-
-  defp clause_for(Record, _protocol, line) do
-    {:clause, line, [{:var, line, :x}],
-      [[{:op, line, :andalso,
-          {:call, line,
-            {:remote, line, {:atom, line, :erlang}, {:atom, line, :is_tuple}},
-            [{:var, line, :x}]},
-          {:call, line,
-            {:remote, line, {:atom, line, :erlang}, {:atom, line, :is_atom}},
-            [{:call, line,
-              {:remote, line, {:atom, line, :erlang}, {:atom, line, :element}},
-              [{:integer, line, 1}, {:var, line, :x}]
-            }]},
-      }]],
-      [{:call, line,
-          {:atom, line, :rec_impl_for},
-          [{:call, line,
-            {:remote, line, {:atom, line, :erlang}, {:atom, line, :element}},
-            [{:integer, line, 1}, {:var, line, :x}]}]}]}
-  end
-
   defp builtin_clause_for(mod, guard, protocol, line) do
     {:clause, line,
       [{:var, line, :x}],
@@ -247,7 +216,21 @@ defmodule Protocol.Consolidation do
       [{:atom, line, Module.concat(protocol, mod)}]}
   end
 
-  defp record_clause_for(other, protocol, line) do
+  defp struct_clause_for(line) do
+    {:clause, line,
+      [{:map, line, [
+        {:map_field_exact, line, {:atom, line, :__struct__}, {:var, line, :x}}
+      ]}],
+      [[{:call, line,
+          {:remote, line, {:atom, line, :erlang}, {:atom, line, :is_atom}},
+          [{:var, line, :x}],
+      }]],
+      [{:call, line,
+          {:atom, line, :struct_impl_for},
+          [{:var, line, :x}]}]}
+  end
+
+  defp each_struct_clause_for(other, protocol, line) do
     {:clause, line, [{:atom, line, other}], [],
       [{:atom, line, Module.concat(protocol, other)}]}
   end

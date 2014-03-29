@@ -70,9 +70,29 @@ defmodule Mix.Shell.Process do
   Forwards the message to the current process.
   It also checks the inbox for an input message matching:
 
+      { :mix_shell_input, :prompt, value }
+
+  If one does not exist, it will abort since there was no shell
+  process inputs given. Value must be a string.
+  """
+  def prompt(message) do
+    put_app
+    send self, { :mix_shell, :prompt, [IO.ANSI.escape(message, false)] }
+
+    receive do
+      { :mix_shell_input, :prompt, response } -> response
+    after
+      0 -> raise Mix.Error, message: "No shell process input given for prompt/1"
+    end
+  end
+
+  @doc """
+  Forwards the message to the current process.
+  It also checks the inbox for an input message matching:
+
       { :mix_shell_input, :yes?, value }
 
-  If one does not exist, it will abort since there no shell
+  If one does not exist, it will abort since there was no shell
   process inputs given. Value must be `true` or `false`.
   """
   def yes?(message) do

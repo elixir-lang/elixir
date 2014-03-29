@@ -14,6 +14,7 @@
 -define(kernel, 'Elixir.Kernel').
 -define(node, 'Elixir.Node').
 -define(process, 'Elixir.Process').
+-define(system, 'Elixir.System').
 
 default_functions() ->
   [ { ?kernel, elixir_imported_functions() } ].
@@ -113,7 +114,7 @@ expand_import(Meta, { Name, Arity } = Tuple, Args, E, Extra) ->
 
   case Dispatch of
     %% In case it is an import, we dispatch the import.
-    { Kind, _ } when Kind == import ->
+    { import, _ } ->
       do_expand_import(Meta, Tuple, Args, Module, E, Dispatch);
 
     %% There is a local and an import. This is a conflict unless
@@ -395,6 +396,7 @@ inline(?kernel, is_function, 1) -> { erlang, is_function };
 inline(?kernel, is_function, 2) -> { erlang, is_function };
 inline(?kernel, is_integer, 1) -> { erlang, is_integer };
 inline(?kernel, is_list, 1) -> { erlang, is_list };
+inline(?kernel, is_map, 1) -> { erlang, is_map };
 inline(?kernel, is_number, 1) -> { erlang, is_number };
 inline(?kernel, is_pid, 1) -> { erlang, is_pid };
 inline(?kernel, is_port, 1) -> { erlang, is_port };
@@ -409,6 +411,7 @@ inline(?kernel, list_to_integer, 1) -> { erlang, list_to_integer };
 inline(?kernel, list_to_integer, 2) -> { erlang, list_to_integer };
 inline(?kernel, list_to_tuple, 1) -> { erlang, list_to_tuple };
 inline(?kernel, make_ref, 0) -> { erlang, make_ref };
+inline(?kernel, map_size, 1) -> { erlang, map_size };
 inline(?kernel, max, 2) -> { erlang, max };
 inline(?kernel, min, 2) -> { erlang, min };
 inline(?kernel, node, 0) -> { erlang, node };
@@ -450,5 +453,7 @@ inline(?node, spawn_link, 2) -> { erlang, spawn_link };
 inline(?node, spawn_link, 4) -> { erlang, spawn_link };
 inline(?node, spawn_monitor, 2) -> { erlang, spawn_monitor };
 inline(?node, spawn_monitor, 4) -> { erlang, spawn_monitor };
+
+inline(?system, stacktrace, 0) -> { erlang, get_stacktrace };
 
 inline(_, _, _) -> false.

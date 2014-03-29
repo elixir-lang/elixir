@@ -50,18 +50,6 @@ defmodule IEx.HelpersTest do
            == "* def pwd()\n\nPrints the current working directory.\n\n\n"
   end
 
-  test "h helper function string" do
-    h_times_normal = capture_io(fn -> h Kernel.* end)
-    h_times_string = capture_io(fn -> h "*" end)
-
-    assert h_times_string == h_times_normal
-
-    h_anonfun_normal = capture_io(fn -> h Kernel.SpecialForms.& end)
-    h_anonfun_string = capture_io(fn -> h "&" end)
-
-    assert h_anonfun_normal == h_anonfun_string
-  end
-
   test "h helper __info__" do
     h_output_module = capture_io(fn -> h Module.__info__ end)
     assert capture_io(fn -> h Module.UnlikelyTo.Exist.__info__ end) == h_output_module
@@ -141,12 +129,15 @@ defmodule IEx.HelpersTest do
 
   test "ls helper" do
     File.cd! iex_path, fn ->
-      assert ["ebin", "lib", "mix.exs", "test"]
-             = capture_io(fn -> ls end)
-               |> String.split
-               |> Enum.map(&String.strip(&1))
-               |> Enum.sort
-      assert capture_io(fn -> ls "~" end) == capture_io(fn -> ls System.user_home end)
+      paths = capture_io(fn -> ls end)
+              |> String.split
+              |> Enum.map(&String.strip(&1))
+
+      assert "ebin" in paths
+      assert "mix.exs" in paths
+
+      assert capture_io(fn -> ls "~" end) ==
+             capture_io(fn -> ls System.user_home end)
     end
   end
 

@@ -83,7 +83,7 @@ defmodule Stream do
   like `Stream.cycle/1`, `Stream.unfold/2`, `Stream.resource/3` and more.
   """
 
-  defrecord Lazy, enum: nil, funs: [], accs: [], after: [], last: nil
+  defrecord Lazy, enum: nil, funs: [], accs: [], done: nil
 
   defimpl Enumerable, for: Lazy do
     @compile :inline_list_funs
@@ -103,46 +103,28 @@ defmodule Stream do
       { :error, __MODULE__ }
     end
 
-    defp do_reduce(Lazy[enum: enum, funs: funs, accs: accs, last: last, after: after_funs], acc, fun) do
+    defp do_reduce(Lazy[enum: enum, funs: funs, accs: accs, done: done], acc, fun) do
       composed = :lists.foldl(fn fun, acc -> fun.(acc) end, fun, funs)
-      do_each(&Enumerable.reduce(enum, &1, composed), after_funs,
-              last && { last, fun }, :lists.reverse(accs), acc)
+      do_each(&Enumerable.reduce(enum, &1, composed),
+              done && { done, fun }, :lists.reverse(accs), acc)
     end
 
-    defp do_each(reduce, [], last, accs, { command, acc }) do
-      handle_reduce reduce.({ command, [acc|accs] }), [], last
-    end
-
-    defp do_each(reduce, after_funs, last, accs, { command, acc }) do
-      try do
-        handle_reduce reduce.({ command, [acc|accs] }), after_funs, last
-      catch
-        kind, reason ->
-          lc fun inlist after_funs, do: fun.()
-          :erlang.raise(kind, reason, :erlang.get_stacktrace)
-      end
-    end
-
-    defp handle_reduce(res, after_funs, last) do
-      case res do
+    defp do_each(reduce, done, accs, { command, acc }) do
+      case reduce.({ command, [acc|accs] }) do
         { :suspended, [acc|accs], continuation } ->
-          { :suspended, acc, &do_each(continuation, after_funs, last, accs, &1) }
+          { :suspended, acc, &do_each(continuation, done, accs, &1) }
         { :halted, [acc|_] } ->
-          lc fun inlist after_funs, do: fun.()
           { :halted, acc }
         { :done, [acc|_] = accs } ->
-          case last do
+          case done do
             nil ->
-              lc fun inlist after_funs, do: fun.()
               { :done, acc }
-            { last, fun } ->
-              res = case last.(fun).(accs) do
+            { done, fun } ->
+              case done.(fun).(accs) do
                 { :cont, [acc|_] }    -> { :done, acc }
                 { :halt, [acc|_] }    -> { :halted, acc }
-                { :suspend, [acc|_] } -> { :suspended, acc, &({ :done, &1 |> elem(1) }) }
+                { :suspend, [acc|_] } -> { :suspended, acc, &({ :done, elem(&1, 1) }) }
               end
-              lc fun inlist after_funs, do: fun.()
-              res
           end
       end
     end
@@ -172,26 +154,6 @@ defmodule Stream do
   end
 
   ## Transformers
-
-  @doc """
-  Executes the given function when the stream is done, halted
-  or an error happened during streaming. Useful for resource
-  clean up.
-
-  Callbacks registered later will be executed earlier.
-
-  ## Examples
-
-      iex> stream = Stream.after [1,2,3], fn -> Process.put(:done, true) end
-      iex> Enum.to_list(stream)
-      [1,2,3]
-      iex> Process.get(:done)
-      true
-
-  """
-  @spec unquote(:after)(Enumerable.t, (() -> term)) :: Enumerable.t
-  def unquote(:after)(Lazy[after: funs] = lazy, fun), do: lazy.after([fun|funs])
-  def unquote(:after)(enum, fun), do: Lazy[enum: enum, after: [fun]]
 
   @doc """
   Shortcut to `chunk(enum, n, n)`.
@@ -411,6 +373,44 @@ defmodule Stream do
   end
 
   @doc """
+  Injects the stream values into the given collectable as a side-effect.
+
+  This function is often used with `run/1` since any evaluation
+  is delayed until the stream is executed. See `run/1` for an example.
+  """
+  @spec into(Enumerable.t, Collectable.t) :: Enumerable.t
+  def into(enum, collectable, transform \\ fn x -> x end) do
+    &do_into(enum, collectable, transform, &1, &2)
+  end
+
+  defp do_into(enum, collectable, transform, acc, fun) do
+    { initial, into } = Collectable.into(collectable)
+    composed = fn x, [acc|collectable] ->
+      collectable = into.(collectable, { :cont, transform.(x) })
+      { reason, acc } = fun.(x, acc)
+      { reason, [acc|collectable] }
+    end
+    do_into(&Enumerable.reduce(enum, &1, composed), initial, into, acc)
+  end
+
+  defp do_into(reduce, collectable, into, { command, acc }) do
+    try do
+      reduce.({ command, [acc|collectable] })
+    catch
+      kind, reason ->
+        stacktrace = System.stacktrace
+        into.(collectable, :halt)
+        :erlang.raise(kind, reason, stacktrace)
+    else
+      { :suspended, [acc|collectable], continuation } ->
+        { :suspended, acc, &do_into(continuation, collectable, into, &1) }
+      { reason, [acc|collectable] } ->
+        into.(collectable, :done)
+        { reason, acc }
+    end
+  end
+
+  @doc """
   Creates a stream that will apply the given function on
   enumeration.
 
@@ -455,7 +455,7 @@ defmodule Stream do
 
       stream = File.stream!("code")
       |> Stream.map(&String.replace(&1, "#", "%"))
-      |> File.stream_to!("new")
+      |> Stream.into(File.stream!("new"))
 
   No computation will be done until we call one of the Enum functions
   or `Stream.run/1`.
@@ -595,7 +595,6 @@ defmodule Stream do
   def take_while(enum, fun) do
     lazy enum, fn(f1) -> R.take_while(fun, f1) end
   end
-
 
   @doc """
   Transforms an existing stream.
@@ -1052,8 +1051,8 @@ defmodule Stream do
   defp lazy(enum, acc, fun),
     do: Lazy[enum: enum, funs: [fun], accs: [acc]]
 
-  defp lazy(Lazy[last: nil, funs: funs, accs: accs] = lazy, acc, fun, last),
-    do: lazy.funs([fun|funs]).accs([acc|accs]).last(last)
-  defp lazy(enum, acc, fun, last),
-    do: Lazy[enum: enum, funs: [fun], accs: [acc], last: last]
+  defp lazy(Lazy[done: nil, funs: funs, accs: accs] = lazy, acc, fun, done),
+    do: lazy.funs([fun|funs]).accs([acc|accs]).done(done)
+  defp lazy(enum, acc, fun, done),
+    do: Lazy[enum: enum, funs: [fun], accs: [acc], done: done]
 end

@@ -24,6 +24,7 @@ echo   --cookie cookie   Sets a cookie for this distributed node
 echo   --hidden          Makes a hidden node
 echo   --detached        Starts the Erlang VM detached from console
 echo   --no-halt         Does not halt the Erlang VM after execution
+echo   --gen-debug       Turns on default debugging for all GenServers
 echo.
 echo ** Options marked with (*) can be given more than once
 echo ** Options given after the .exs file or -- are passed down to the executed code
@@ -63,6 +64,7 @@ IF NOT "%par%"=="%par:--cookie=%"   (Set parsErlang=%parsErlang% -setcookie %1 &
 IF NOT "%par%"=="%par:--sname=%"    (Set parsErlang=%parsErlang% -sname %1 && shift) 
 IF NOT "%par%"=="%par:--name=%"     (Set parsErlang=%parsErlang% -name %1 && shift) 
 IF NOT "%par%"=="%par:--erl=%"      (Set beforeExtra=%beforeExtra% %~1 && shift) 
+IF NOT "%par%"=="%par:--gen-debug=%" (Set parsErlang=%parsErlang% -generic_debug)
 rem ******* elixir parameters **********************
 rem Note: we don't have to do anything with options that don't take an argument
 IF NOT "%par%"=="%par:-e=%"      (shift) 

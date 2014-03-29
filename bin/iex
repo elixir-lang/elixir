@@ -16,13 +16,14 @@ if [ $# -gt 0 ] && ([ "$1" = "--help" ] || [ "$1" = "-h" ]); then
   --cookie \"cookie\" Sets a cookie for this distributed node
   --hidden          Makes a hidden node
   --detached        Starts the Erlang VM detached from console
+  --gen-debug       Turns on default debugging for all GenServers
   --remsh \"name\"    Connects to a node using a remote shell
   --dot-iex \"path\"  Overrides default .iex.exs file and uses path instead;
                     path can be empty, then no file will be loaded
 
 ** Options marked with (*) can be given more than once
 ** Options given after the .exs file or -- are passed down to the executed code
-** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS or --erl" >&2
+** Options can be passed to the VM using ELIXIR_ERL_OPTS or --erl" >&2
   exit 1
 fi
 

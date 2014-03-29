@@ -28,27 +28,33 @@ defexception CompileError, [file: nil, line: nil, description: "compile error"] 
   end
 end
 
-defexception BadFunctionError, [actual: nil] do
+defexception BadFunctionError, [term: nil] do
   def message(exception) do
-    "expected a function, got: #{inspect(exception.actual)}"
+    "expected a function, got: #{inspect(exception.term)}"
   end
 end
 
-defexception MatchError, [actual: nil] do
+defexception BadStructError, [struct: nil, term: nil] do
   def message(exception) do
-    "no match of right hand side value: #{inspect(exception.actual)}"
+    "expected a struct named #{inspect(exception.struct)}, got: #{inspect(exception.term)}"
   end
 end
 
-defexception CaseClauseError, [actual: nil] do
+defexception MatchError, [term: nil] do
   def message(exception) do
-    "no case clause matching: #{inspect(exception.actual)}"
+    "no match of right hand side value: #{inspect(exception.term)}"
   end
 end
 
-defexception TryClauseError, [actual: nil] do
+defexception CaseClauseError, [term: nil] do
   def message(exception) do
-    "no try clause matching: #{inspect(exception.actual)}"
+    "no case clause matching: #{inspect(exception.term)}"
+  end
+end
+
+defexception TryClauseError, [term: nil] do
+  def message(exception) do
+    "no try clause matching: #{inspect(exception.term)}"
   end
 end
 
@@ -195,20 +201,24 @@ defmodule Exception do
     BadArityError[function: fun, args: args]
   end
 
-  def normalize({ :badfun, actual }) do
-    BadFunctionError[actual: actual]
+  def normalize({ :badfun, term }) do
+    BadFunctionError[term: term]
   end
 
-  def normalize({ :badmatch, actual }) do
-    MatchError[actual: actual]
+  def normalize({ :badstruct, struct, term }) do
+    BadStructError[struct: struct, term: term]
   end
 
-  def normalize({ :case_clause, actual }) do
-    CaseClauseError[actual: actual]
+  def normalize({ :badmatch, term }) do
+    MatchError[term: term]
   end
 
-  def normalize({ :try_clause, actual }) do
-    TryClauseError[actual: actual]
+  def normalize({ :case_clause, term }) do
+    CaseClauseError[term: term]
+  end
+
+  def normalize({ :try_clause, term }) do
+    TryClauseError[term: term]
   end
 
   def normalize(:undef) do
@@ -332,7 +342,7 @@ defmodule Exception do
   end
 
   defp format_arity(arity) when is_list(arity) do
-    inspected = lc x inlist arity, do: inspect(x)
+    inspected = for x <- arity, do: inspect(x)
     "(#{Enum.join(inspected, ", ")})"
   end
 

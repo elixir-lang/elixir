@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps.Check do
   use Mix.Task
 
-  import Mix.Deps, only: [loaded: 0, loaded_by_name: 1, format_dep: 1,
+  import Mix.Dep, only: [loaded: 1, loaded_by_name: 2, format_dep: 1,
                           format_status: 1, check_lock: 2, ok?: 1]
 
   @moduledoc """
@@ -19,8 +19,8 @@ defmodule Mix.Tasks.Deps.Check do
   """
   def run(args) do
     { opts, _, _ } = OptionParser.parse(args, switches: [quiet: :boolean])
-    lock = Mix.Deps.Lock.read
-    all  = Enum.map loaded, &check_lock(&1, lock)
+    lock = Mix.Dep.Lock.read
+    all  = Enum.map(loaded(env: Mix.env), &check_lock(&1, lock))
 
     prune_deps(all)
     { not_ok, compile } = partition_deps(all, [], [])
@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Deps.Check do
         Mix.Tasks.Deps.Compile.compile(compile, opts)
         show_not_ok compile
                     |> Enum.map(& &1.app)
-                    |> loaded_by_name
+                    |> loaded_by_name(env: Mix.env)
                     |> Enum.filter(&(not ok?(&1)))
     end
   end
@@ -51,10 +51,10 @@ defmodule Mix.Tasks.Deps.Check do
     { Enum.reverse(not_ok), Enum.reverse(compile) }
   end
 
-  defp compile?(Mix.Dep[status: { :elixirlock, _ }]), do: true
-  defp compile?(Mix.Dep[status: { :noappfile, _ }]), do: true
-  defp compile?(Mix.Dep[status: :compile]), do: true
-  defp compile?(_), do: false
+  defp compile?(%Mix.Dep{status: { :elixirlock, _ }}), do: true
+  defp compile?(%Mix.Dep{status: { :noappfile, _ }}), do: true
+  defp compile?(%Mix.Dep{status: :compile}), do: true
+  defp compile?(%Mix.Dep{}), do: false
 
   # If the build is per environment, we should be able to look
   # at all dependencies and remove the builds that no longer
@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Deps.Check do
               |> Path.wildcard
               |> List.delete(not Mix.Project.umbrella? && Mix.Project.compile_path(config))
 
-      to_prune = Enum.reduce(all, paths, &(&2 -- Mix.Deps.load_paths(&1)))
+      to_prune = Enum.reduce(all, paths, &(&2 -- Mix.Dep.load_paths(&1)))
 
       Enum.map(to_prune, fn path ->
         Code.delete_path(path)

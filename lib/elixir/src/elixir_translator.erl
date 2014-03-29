@@ -1,18 +1,20 @@
 %% Translate Elixir quoted expressions to Erlang Abstract Format.
 %% Expects the tree to be expanded.
 -module(elixir_translator).
--export([translate_many/2, translate/2, translate_arg/3, translate_args/2]).
+-export([translate/2, translate_arg/3, translate_args/2, translate_block/3]).
 -import(elixir_scope, [mergev/2, mergec/2, mergef/2]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
 
-translate_many(Forms, S) ->
-  lists:mapfoldl(fun translate/2, S, Forms).
-
 %% =
 
 translate({ '=', Meta, [Left, Right] }, S) ->
-  { TRight, SR } = translate(Right, S),
+  Return = case Left of
+    { '_', _, Atom } when is_atom(Atom) -> false;
+    _ -> true
+  end,
+
+  { TRight, SR } = translate_block(Right, Return, S),
   { TLeft, SL } = elixir_clauses:match(fun translate/2, Left, SR),
   { { match, ?line(Meta), TLeft, TRight }, SL };
 
@@ -22,14 +24,20 @@ translate({ '{}', Meta, Args }, S) when is_list(Args) ->
   { TArgs, SE } = translate_args(Args, S),
   { { tuple, ?line(Meta), TArgs }, SE };
 
+translate({ '%{}', Meta, Args }, S) when is_list(Args) ->
+  elixir_map:translate_map(Meta, Args, S);
+
+translate({ '%', Meta, [Left, Right] }, S) ->
+  elixir_map:translate_struct(Meta, Left, Right, S);
+
 translate({ '<<>>', Meta, Args }, S) when is_list(Args) ->
   elixir_bitstring:translate(Meta, Args, S);
 
-%% Blocks and scope rewriters
+%% Blocks
 
-translate({ '__block__', Meta, Args }, S) when is_list(Args) ->
-  { TArgs, NS } = translate_many(Args, S),
-  { { block, ?line(Meta), TArgs }, NS };
+translate({ '__block__', Meta, Args }, #elixir_scope{return=Return} = S) when is_list(Args) ->
+  { TArgs, SA } = translate_block(Args, [], Return, S#elixir_scope{return=true}),
+  { { block, ?line(Meta), TArgs }, SA };
 
 %% Erlang op
 
@@ -64,7 +72,8 @@ translate({ fn, Meta, Clauses }, S) ->
 
 %% Case
 
-translate({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
+translate({'case', Meta, [Expr, KV]}, #elixir_scope{return=Return} = RS) when is_list(KV) ->
+  S = RS#elixir_scope{noname=true, return=true},
   Clauses = elixir_clauses:get_pairs(do, KV),
   { TExpr, NS } = translate(Expr, S),
 
@@ -73,40 +82,46 @@ translate({'case', Meta, [Expr, KV]}, S) when is_list(KV) ->
     false -> Clauses
   end,
 
-  { TClauses, TS } = elixir_clauses:clauses(Meta, RClauses, NS),
+  { TClauses, TS } = elixir_clauses:clauses(Meta, RClauses, Return, NS),
   { { 'case', ?line(Meta), TExpr, TClauses }, TS };
 
 %% Try
 
-translate({'try', Meta, [Clauses]}, RS) when is_list(Clauses) ->
-  S  = RS#elixir_scope{noname=true},
+translate({'try', Meta, [Clauses]}, #elixir_scope{return=Return} = RS) when is_list(Clauses) ->
+  S  = RS#elixir_scope{noname=true, return=true},
   Do = proplists:get_value('do', Clauses, nil),
   { TDo, SB } = elixir_translator:translate(Do, S),
 
   Catch = [Tuple || { X, _ } = Tuple <- Clauses, X == 'rescue' orelse X == 'catch'],
-  { TCatch, SC } = elixir_try:clauses(Meta, Catch, mergec(S, SB)),
+  { TCatch, SC } = elixir_try:clauses(Meta, Catch, Return, mergec(S, SB)),
 
-  After = proplists:get_value('after', Clauses, nil),
-  { TAfter, SA } = translate(After, mergec(S, SC)),
+  case lists:keyfind('after', 1, Clauses) of
+    { 'after', After } ->
+      { TBlock, SA } = translate(After, mergec(S, SC)),
+      TAfter = unblock(TBlock);
+    false ->
+      { TAfter, SA } = { [], mergec(S, SC) }
+  end,
 
   Else = elixir_clauses:get_pairs(else, Clauses),
-  { TElse, SE } = elixir_clauses:clauses(Meta, Else, mergec(S, SA)),
+  { TElse, SE } = elixir_clauses:clauses(Meta, Else, Return, mergec(S, SA)),
 
   SF = (mergec(S, SE))#elixir_scope{noname=RS#elixir_scope.noname},
-  { { 'try', ?line(Meta), unblock(TDo), TElse, TCatch, unblock(TAfter) }, SF };
+  { { 'try', ?line(Meta), unblock(TDo), TElse, TCatch, TAfter }, SF };
 
 %% Receive
 
-translate({'receive', Meta, [KV] }, S) when is_list(KV) ->
+translate({'receive', Meta, [KV] }, #elixir_scope{return=Return} = RS) when is_list(KV) ->
+  S  = RS#elixir_scope{return=true},
   Do = elixir_clauses:get_pairs(do, KV, true),
 
   case lists:keyfind('after', 1, KV) of
     false ->
-      { TClauses, SC } = elixir_clauses:clauses(Meta, Do, S),
+      { TClauses, SC } = elixir_clauses:clauses(Meta, Do, Return, S),
       { { 'receive', ?line(Meta), TClauses }, SC };
     _ ->
       After = elixir_clauses:get_pairs('after', KV),
-      { TClauses, SC } = elixir_clauses:clauses(Meta, Do ++ After, S),
+      { TClauses, SC } = elixir_clauses:clauses(Meta, Do ++ After, Return, S),
       { FClauses, TAfter } = elixir_utils:split_last(TClauses),
       { _, _, [FExpr], _, FAfter } = TAfter,
       { { 'receive', ?line(Meta), FClauses, FExpr, FAfter }, SC }
@@ -116,6 +131,9 @@ translate({'receive', Meta, [KV] }, S) when is_list(KV) ->
 
 translate({ Kind, Meta, Args }, S) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
   translate_comprehension(Meta, Kind, Args, S);
+
+translate({ for, Meta, Args }, S) when is_list(Args) ->
+  elixir_for:translate(Meta, Args, S);
 
 %% Super
 
@@ -139,21 +157,6 @@ translate({ super, Meta, Args }, S) when is_list(Args) ->
 
 %% Variables
 
-translate({ '^', Meta, [ { Name, VarMeta, Kind } = Var ] },
-               #elixir_scope{extra=fn_match, extra_guards=Extra} = S) when is_atom(Name), is_atom(Kind) ->
-  Tuple = { Name, var_kind(VarMeta, Kind) },
-  case orddict:find(Tuple, S#elixir_scope.backup_vars) of
-    { ok, { Value, _Counter } } ->
-      elixir_errors:deprecation(Meta, S#elixir_scope.file, "using ^ inside function clause heads is "
-                                                           "deprecated, please use a guard instead"),
-      Line = ?line(Meta),
-      { TVar, TS } = translate(Var, S),
-      Guard = { op, Line, '=:=', { var, ?line(Meta), Value }, TVar },
-      { TVar, TS#elixir_scope{extra_guards=[Guard|Extra]} };
-    error ->
-      compile_error(Meta, S#elixir_scope.file, "unbound variable ^~ts", [Name])
-  end;
-
 translate({ '^', Meta, [ { Name, VarMeta, Kind } ] }, #elixir_scope{context=match} = S) when is_atom(Name), is_atom(Kind) ->
   Tuple = { Name, var_kind(VarMeta, Kind) },
   case orddict:find(Tuple, S#elixir_scope.backup_vars) of
@@ -168,6 +171,9 @@ translate({ '_', Meta, Kind }, #elixir_scope{context=match} = S) when is_atom(Ki
 
 translate({ '_', Meta, Kind }, S) when is_atom(Kind) ->
   compile_error(Meta, S#elixir_scope.file, "unbound variable _");
+
+translate({ Name, Meta, Kind }, #elixir_scope{extra=map_key} = S) when is_atom(Name), is_atom(Kind) ->
+  compile_error(Meta, S#elixir_scope.file, "illegal use of variable ~ts in map key", [Name]);
 
 translate({ Name, Meta, Kind }, S) when is_atom(Name), is_atom(Kind) ->
   elixir_scope:translate_var(Meta, Name, var_kind(Meta, Kind), S);
@@ -203,8 +209,9 @@ translate({ { '.', _, [Left, Right] }, Meta, Args }, S)
   { TLeft, SL } = translate(Left, S),
   { TArgs, SA } = translate_args(Args, mergec(S, SL)),
 
-  Line  = ?line(Meta),
-  Arity = length(Args),
+  Line   = ?line(Meta),
+  Arity  = length(Args),
+  TRight = { atom, Line, Right },
 
   %% We need to rewrite erlang function calls as operators
   %% because erl_eval chokes on them. We can remove this
@@ -216,7 +223,36 @@ translate({ { '.', _, [Left, Right] }, Meta, Args }, S)
       { list_to_tuple([op, Line, Right] ++ TArgs), mergev(SL, SA) };
     false ->
       assert_allowed_in_context(Meta, Left, Right, Arity, S),
-      { { call, Line, { remote, Line, TLeft, { atom, 0, Right } }, TArgs }, mergev(SL, SA) }
+      SC = mergev(SL, SA),
+
+      case not is_atom(Left) andalso (Arity == 0) of
+        true ->
+          { Var, _, SV } = elixir_scope:build_var('_', SC),
+          TVar = { var, Line, Var },
+          TMap = { tuple, Line, [{ atom, Line, badarg }, TVar] },
+
+          %% TODO: There is a bug in Erlang where %{} = 1 matches.
+          %% Once the bug is fixed, replace the second clause by a
+          %% map match instead of a guard check.
+          { { 'case', -1, TLeft, [
+            { clause, -1,
+              [{ map, Line, [{ map_field_exact, Line, TRight, TVar }] }],
+              [],
+              [TVar] },
+            { clause, -1,
+              % [{ match, Line, { map, Line, [] }, TVar }],
+              % []
+              [TVar],
+              [[?wrap_call(Line, erlang, is_map, [TVar])]],
+              [?wrap_call(Line, erlang, error, [TMap])] },
+            { clause, -1,
+              [TVar],
+              [],
+              [{ call, Line, { remote, Line, TVar, TRight }, [] }] }
+          ] }, SV };
+        false ->
+          { { call, Line, { remote, Line, TLeft, TRight }, TArgs }, SC }
+      end
   end;
 
 %% Anonymous function calls
@@ -290,6 +326,7 @@ unblock({ 'block', _, Exprs }) -> Exprs;
 unblock(Expr)                  -> [Expr].
 
 %% Translate args
+
 translate_arg(Arg, Acc, S) when is_number(Arg); is_atom(Arg); is_binary(Arg); is_pid(Arg); is_function(Arg) ->
   { TArg, _ } = translate(Arg, S),
   { TArg, Acc };
@@ -298,10 +335,36 @@ translate_arg(Arg, Acc, S) ->
   { TArg, mergev(Acc, TAcc) }.
 
 translate_args(Args, #elixir_scope{context=match} = S) ->
-  translate_many(Args, S);
+  lists:mapfoldl(fun translate/2, S, Args);
 
 translate_args(Args, S) ->
   lists:mapfoldl(fun(X, Acc) -> translate_arg(X, Acc, S) end, S, Args).
+
+%% Translate blocks
+
+translate_block([], Acc, _Return, S) ->
+  { lists:reverse(Acc), S };
+translate_block([H], Acc, Return, S) ->
+  { TH, TS } = translate_block(H, Return, S),
+  translate_block([], [TH|Acc], Return, TS);
+translate_block([H|T], Acc, Return, S) ->
+  { TH, TS } = translate_block(H, false, S),
+  translate_block(T, [TH|Acc], Return, TS).
+
+translate_block(Expr, Return, S) ->
+  case (Return == false) andalso handles_no_return(Expr) of
+    true  -> translate(Expr, S#elixir_scope{return=Return});
+    false -> translate(Expr, S)
+  end.
+
+%% Expressions that can handle no return may receive
+%% return=false but must always return return=true.
+handles_no_return({ 'try', _, [_] }) -> true;
+handles_no_return({ 'for', _, [_|_] }) -> true;
+handles_no_return({ 'case', _, [_, _] }) -> true;
+handles_no_return({ 'receive', _, [_] }) -> true;
+handles_no_return({ '__block__', _, [_|_] }) -> true;
+handles_no_return(_) -> false.
 
 %% Comprehensions
 

@@ -1,34 +1,46 @@
 defmodule ExUnit.Runner do
   @moduledoc false
 
-  defrecord Config, formatter: ExUnit.CLIFormatter, formatter_id: nil,
-                    max_cases: 4, taken_cases: 0, async_cases: [],
-                    sync_cases: [], include: [], exclude: []
+  alias ExUnit.EventManager, as: EM
+  @stop_timeout 30_000
+
+  defrecord Config, max_cases: 4, taken_cases: 0, async_cases: [], seed: nil,
+                    sync_cases: [], include: [], exclude: [], manager: []
 
   def run(async, sync, opts, load_us) do
-    opts   = normalize_opts(opts)
-    config = Config[max_cases: :erlang.system_info(:schedulers_online)]
-    config = wrap_filters(config.update(opts))
+    opts = normalize_opts(opts)
 
-    { run_us, config } =
+    { :ok, pid } = EM.start_link
+    formatters = [ExUnit.RunnerStats|opts[:formatters]]
+    Enum.each formatters, &(:ok = EM.add_handler(pid, &1, opts))
+
+    config = Config[manager: pid].update(opts)
+
+    { run_us, _ } =
       :timer.tc fn ->
-        loop config.async_cases(async).sync_cases(sync).
-               formatter_id(config.formatter.suite_started(opts))
+        EM.suite_started(config.manager, opts)
+        loop config.async_cases(shuffle(config, async)).sync_cases(shuffle(config, sync))
       end
 
-    config.formatter.suite_finished(config.formatter_id, run_us, load_us)
+    EM.suite_finished(config.manager, run_us, load_us)
+    EM.call(config.manager, ExUnit.RunnerStats, :stop, @stop_timeout)
   end
 
   defp normalize_opts(opts) do
+    { include, exclude } = ExUnit.Filters.normalize(opts[:include], opts[:exclude])
+
+    opts = opts
+           |> Keyword.put(:exclude, exclude)
+           |> Keyword.put(:include, include)
+           |> Keyword.put_new(:color, IO.ANSI.terminal?)
+           |> Keyword.put_new(:max_cases, :erlang.system_info(:schedulers_online))
+           |> Keyword.put_new(:seed, :erlang.now |> elem(2))
+
     if opts[:trace] do
       Keyword.put_new(opts, :max_cases, 1)
     else
       Keyword.put(opts, :trace, false)
     end
-  end
-
-  defp wrap_filters(config) do
-    config.update_include(&List.wrap/1).update_exclude(&List.wrap/1)
   end
 
   defp loop(Config[] = config) do
@@ -83,7 +95,7 @@ defmodule ExUnit.Runner do
 
   defp run_case(config, pid, case_name) do
     ExUnit.TestCase[] = test_case = case_name.__ex_unit__(:case)
-    config.formatter.case_started(config.formatter_id, test_case)
+    EM.case_started(config.manager, test_case)
 
     # Prepare tests, selecting which ones should
     # run and which ones were skipped.
@@ -100,15 +112,16 @@ defmodule ExUnit.Runner do
     # but we do send the notifications to formatter and other
     # entities involved.
     Enum.each failed, &run_test(config, &1, [])
-    config.formatter.case_finished(config.formatter_id, test_case)
+    EM.case_finished(config.manager, test_case)
     send pid, { self, :case_finished, test_case }
   end
 
   defp prepare_tests(config, tests) do
+    tests   = shuffle(config, tests)
     include = config.include
     exclude = config.exclude
 
-    lc test inlist tests do
+    for test <- tests do
       tags = Keyword.put(test.tags, :test, test.name)
       case ExUnit.Filters.eval(include, exclude, tags) do
         :ok             -> test.tags(tags)
@@ -120,20 +133,19 @@ defmodule ExUnit.Runner do
   defp spawn_case(config, test_case, tests) do
     self_pid = self
 
-    { case_pid, case_ref } = Process.spawn_monitor fn ->
-      { test_case, context } = exec_case_setup(test_case)
+    { case_pid, case_ref } =
+      Process.spawn_monitor(fn ->
+        case exec_case_setup(test_case) do
+          { :ok, { test_case, context } } ->
+            Enum.each(tests, &run_test(config, &1, context))
+            test_case = exec_case_teardown(test_case, context)
+            send self_pid, { self, :case_finished, test_case, [] }
 
-      tests =
-        if test_case.state == :passed do
-          Enum.each tests, &run_test(config, &1, context)
-          []
-        else
-          Enum.map tests, &(&1.state({ :invalid, test_case }))
+          { :error, test_case } ->
+            failed_tests = Enum.map(tests, &(&1.state({ :invalid, test_case })))
+            send self_pid, { self, :case_finished, test_case, failed_tests }
         end
-
-      test_case = exec_case_teardown(test_case, context)
-      send self_pid, { self, :case_finished, test_case, tests }
-    end
+      end)
 
     receive do
       { ^case_pid, :case_finished, test_case, tests } ->
@@ -145,10 +157,10 @@ defmodule ExUnit.Runner do
 
   defp exec_case_setup(ExUnit.TestCase[name: case_name] = test_case) do
     { :ok, context } = case_name.__ex_unit__(:setup_all, [case: case_name])
-    { test_case.state(:passed), context }
+    { :ok, { test_case.state(:passed), context } }
   catch
     kind, error ->
-      { test_case.state({ :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }), nil }
+      { :error, test_case.state({ :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }) }
   end
 
   defp exec_case_teardown(ExUnit.TestCase[name: case_name] = test_case, context) do
@@ -160,29 +172,35 @@ defmodule ExUnit.Runner do
   end
 
   defp run_test(config, test, context) do
-    config.formatter.test_started(config.formatter_id, test)
+    EM.test_started(config.manager, test)
 
     if nil?(test.state) do
       test = spawn_test(config, test, Keyword.merge(test.tags, context))
     end
 
-    config.formatter.test_finished(config.formatter_id, test)
+    EM.test_finished(config.manager, test)
   end
 
   defp spawn_test(_config, test, context) do
     self_pid = self
 
-    { test_pid, test_ref } = Process.spawn_monitor(fn ->
-      { us, test } = :timer.tc(fn ->
-        { test, context } = exec_test_setup(test, context)
-        if nil?(test.state) do
-          test = exec_test(test, context)
-        end
-        exec_test_teardown(test, context)
-      end)
+    { test_pid, test_ref } =
+      Process.spawn_monitor(fn ->
+        { us, test } =
+          :timer.tc(fn ->
+            case exec_test_setup(test, context) do
+              { :ok, { test, context } } ->
+                if nil?(test.state) do
+                  test = exec_test(test, context)
+                end
+                exec_test_teardown(test, context)
+              { :error, test } ->
+                test
+            end
+          end)
 
-      send self_pid, { self, :test_finished, test.time(us) }
-    end)
+        send self_pid, { self, :test_finished, test.time(us) }
+      end)
 
     receive do
       { ^test_pid, :test_finished, test } ->
@@ -194,10 +212,10 @@ defmodule ExUnit.Runner do
 
   defp exec_test_setup(ExUnit.Test[] = test, context) do
     { :ok, context } = test.case.__ex_unit__(:setup, context)
-    { test, context }
+    { :ok, { test, context } }
   catch
     kind2, error2 ->
-      { test.state({ :failed, { kind2, Exception.normalize(kind2, error2), pruned_stacktrace } }), context }
+      { :error, test.state({ :failed, { kind2, Exception.normalize(kind2, error2), pruned_stacktrace } }) }
   end
 
   defp exec_test(ExUnit.Test[] = test, context) do
@@ -221,6 +239,11 @@ defmodule ExUnit.Runner do
   end
 
   ## Helpers
+
+  defp shuffle(Config[seed: seed], list) do
+    :random.seed(3172, 9814, seed)
+    Enum.shuffle(list)
+  end
 
   defp take_async_cases(Config[] = config, count) do
     case config.async_cases do
@@ -250,3 +273,4 @@ defmodule ExUnit.Runner do
   defp prune_stacktrace([h|t]), do: [h|prune_stacktrace(t)]
   defp prune_stacktrace([]), do: []
 end
+

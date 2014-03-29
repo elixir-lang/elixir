@@ -31,7 +31,7 @@ end
 alias ExUnit.CaptureIOTest.GetUntil
 
 defmodule ExUnit.CaptureIOTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   doctest ExUnit.CaptureIO, import: true
 
@@ -62,6 +62,7 @@ defmodule ExUnit.CaptureIOTest do
 
     assert capture_io(fn ->
       spawn(fn -> :io.put_chars("a") end)
+      :timer.sleep(10)
     end) == "a"
 
     assert capture_io(fn ->
@@ -150,6 +151,43 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
+  test "with get password" do
+    capture_io(fn ->
+      assert :io.get_password() == :eof
+    end)
+
+    capture_io("", fn ->
+      assert :io.get_password() == :eof
+    end)
+
+    capture_io("abc", fn ->
+      assert :io.get_password() == "abc"
+      assert :io.get_password() == :eof
+    end)
+
+    capture_io("abc\n", fn ->
+      assert :io.get_password() == "abc\n"
+      assert :io.get_password() == :eof
+    end)
+
+    capture_io("\n", fn ->
+      assert :io.get_password() == "\n"
+      assert :io.get_password() == :eof
+    end)
+
+    capture_io("a\nb", fn ->
+      assert :io.get_password() == "a\n"
+      assert :io.get_password() == "b"
+      assert :io.get_password() == :eof
+    end)
+
+    capture_io("あい\nう", fn ->
+      assert :io.get_password() == "あい\n"
+      assert :io.get_password() == "う"
+      assert :io.get_password() == :eof
+    end)
+  end
+
   test "with get until" do
     assert capture_io(fn ->
       :io.scan_erl_form('>')
@@ -204,30 +242,22 @@ defmodule ExUnit.CaptureIOTest do
     end)
 
     capture_io("a\nb\nc", fn ->
-      assert GetUntil.get_line == 'a\n'
-      assert GetUntil.get_line == 'b\n'
+      assert GetUntil.get_line == "a\n"
+      assert GetUntil.get_line == "b\n"
       assert GetUntil.get_line == :eof
     end)
   end
 
   test "with setopts" do
     assert capture_io(fn ->
-      :io.setopts({ :encoding, :latin1 })
+      assert :io.setopts({ :encoding, :latin1 }) == {:error, :enotsup}
     end) == ""
-
-    capture_io(fn ->
-      assert :io.setopts({ :encoding, :latin1 }) == :ok
-    end)
   end
 
   test "with getopts" do
     assert capture_io(fn ->
-      :io.getopts
+      assert :io.getopts == { :ok, [binary: true, encoding: :unicode] }
     end) == ""
-
-    capture_io(fn ->
-      assert :io.getopts == { :error, :enotsup }
-    end)
   end
 
   test "with columns" do
@@ -286,6 +316,15 @@ defmodule ExUnit.CaptureIOTest do
 
     # Ensure no leakage on failures
     assert group_leader == :erlang.group_leader
+  end
+
+  test "capture :stderr by two processes" do
+    spawn(fn -> capture_io(:stderr, fn -> :timer.sleep(100) end) end)
+    :timer.sleep(10)
+    assert_raise RuntimeError, "IO device registered at :standard_error is already captured", fn ->
+      capture_io(:stderr, fn -> end)
+    end
+    :timer.sleep(100)
   end
 
   defp send_and_receive_io(req) do

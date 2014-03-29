@@ -7,6 +7,8 @@
   deprecation/3, deprecation/4]).
 -include("elixir.hrl").
 
+-type line_or_meta() :: integer() | list().
+
 warn(Warning) ->
   CompilerPid = get(elixir_compiler_pid),
   if
@@ -24,13 +26,13 @@ warn(Line, File, Warning) ->
 
 %% Raised during expansion/translation/compilation.
 
--spec form_error(list(), binary(), module(), any()) -> no_return().
+-spec form_error(line_or_meta(), binary(), module(), any()) -> no_return().
 
 form_error(Meta, File, Module, Desc) ->
   compile_error(Meta, File, format_error(Module, Desc)).
 
--spec compile_error(list(), binary(), iolist()) -> no_return().
--spec compile_error(list(), binary(), iolist(), list()) -> no_return().
+-spec compile_error(line_or_meta(), binary(), iolist()) -> no_return().
+-spec compile_error(line_or_meta(), binary(), iolist(), list()) -> no_return().
 
 compile_error(Meta, File, Message) when is_list(Message) ->
   raise(Meta, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message)).
@@ -40,30 +42,20 @@ compile_error(Meta, File, Format, Args) when is_list(Format)  ->
 
 %% Raised on tokenizing/parsing
 
--spec parse_error(non_neg_integer() | list(), file:filename_all(), iolist() | atom(), [] | iolist()) -> no_return().
+-spec parse_error(line_or_meta(), binary(), iolist() | atom(), [] | iolist()) -> no_return().
 
-parse_error(Meta, File, Error, []) ->
+parse_error(Meta, File, Error, <<>>) ->
   Message = case Error of
-    "syntax error before: " -> <<"syntax error: expression is incomplete">>;
-    _ -> iolist_to_binary(Error)
+    <<"syntax error before: ">> -> <<"syntax error: expression is incomplete">>;
+    _ -> Error
   end,
   raise(Meta, File, 'Elixir.TokenMissingError', Message);
 
-parse_error(Meta, File, "syntax error before: ", "'end'") ->
+parse_error(Meta, File, <<"syntax error before: ">>, <<"'end'">>) ->
   raise(Meta, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
 
-parse_error(Meta, File, Error, Token) ->
-  BinError = if
-    is_atom(Error) -> atom_to_binary(Error, utf8);
-    true -> iolist_to_binary(Error)
-  end,
-
-  BinToken = if
-    Token == [] -> <<>>;
-    true        -> elixir_utils:characters_to_binary(Token)
-  end,
-
-  Message = <<BinError / binary, BinToken / binary >>,
+parse_error(Meta, File, Error, Token) when is_binary(Error), is_binary(Token) ->
+  Message = <<Error / binary, Token / binary >>,
   raise(Meta, File, 'Elixir.SyntaxError', Message).
 
 %% Shows a deprecation message
@@ -204,10 +196,8 @@ protocol_or_behaviour(Module) ->
 is_protocol(Module) ->
   case code:ensure_loaded(Module) of
     { module, _ } ->
-      case erlang:function_exported(Module, '__protocol__', 1) of
-        true  -> Module:'__protocol__'(name) == Module;
-        false -> false
-      end;
+      erlang:function_exported(Module, '__protocol__', 1) andalso
+        Module:'__protocol__'(name) == Module;
     { error, _ } ->
       false
   end.

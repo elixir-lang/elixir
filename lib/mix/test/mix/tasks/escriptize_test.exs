@@ -24,6 +24,16 @@ defmodule Mix.Tasks.EscriptizeTest do
     end
   end
 
+  defmodule EscriptWithDeps do
+    def project do
+      [ app: :escripttestwithdeps,
+        version: "0.0.1",
+        escript_main_module: Escripttest,
+        escript_path: Path.join("ebin", "escripttestwithdeps"),
+        deps: [{ :ok, path: fixture_path("deps_status/deps/ok") }] ]
+    end
+  end
+
   test "generate simple escript" do
     Mix.Project.push Escript
 
@@ -45,5 +55,17 @@ defmodule Mix.Tasks.EscriptizeTest do
       assert_received { :mix_shell, :info, ["Generated escript ebin/escripttestwithpath"] }
       assert System.cmd("escript ebin/escripttestwithpath") == "TEST\n"
     end
+  end
+
+  test "generate escript with deps" do
+    Mix.Project.push EscriptWithDeps
+
+    in_fixture "escripttest", fn ->
+      Mix.Tasks.Escriptize.run []
+      assert_received { :mix_shell, :info, ["Generated escript ebin/escripttestwithdeps"] }
+      assert System.cmd("escript ebin/escripttestwithdeps") == "TEST\n"
+    end
+  after
+    purge [Ok.Mixfile]
   end
 end

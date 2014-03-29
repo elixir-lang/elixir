@@ -1,41 +1,13 @@
 defmodule ExUnit.CLIFormatter do
   @moduledoc false
-  @timeout 30_000
-  @behaviour ExUnit.Formatter
 
-  use GenServer.Behaviour
+  use GenEvent.Behaviour
 
   import ExUnit.Formatter, only: [format_time: 2, format_filters: 2, format_test_failure: 5, format_test_case_failure: 4]
 
   defrecord Config, tests_counter: 0, invalids_counter: 0, failures_counter: 0,
-                    skips_counter: 0, trace: false, color: true, previous: nil
-
-  ## Behaviour
-
-  def suite_started(opts) do
-    { :ok, pid } = :gen_server.start_link(__MODULE__, opts, [])
-    pid
-  end
-
-  def suite_finished(id, run_us, load_us) do
-    :gen_server.call(id, { :suite_finished, run_us, load_us }, @timeout)
-  end
-
-  def case_started(id, test_case) do
-    :gen_server.cast(id, { :case_started, test_case })
-  end
-
-  def case_finished(id, test_case) do
-    :gen_server.cast(id, { :case_finished, test_case })
-  end
-
-  def test_started(id, test) do
-    :gen_server.cast(id, { :test_started, test })
-  end
-
-  def test_finished(id, test) do
-    :gen_server.cast(id, { :test_finished, test })
-  end
+                    skips_counter: 0, trace: false, color: true, previous: nil,
+                    seed: nil
 
   ## Callbacks
 
@@ -44,72 +16,68 @@ defmodule ExUnit.CLIFormatter do
     { :ok, Config.new(opts) }
   end
 
-  def handle_call({ :suite_finished, run_us, load_us }, _from, config = Config[]) do
+  def handle_event({ :suite_finished, run_us, load_us }, config = Config[]) do
     print_suite(config, run_us, load_us)
-    { :stop, :normal, config.failures_counter, config }
+    :remove_handler
   end
 
-  def handle_call(reqest, from, config) do
-    super(reqest, from, config)
-  end
-
-  def handle_cast({ :test_started, ExUnit.Test[] = test }, config) do
+  def handle_event({ :test_started, ExUnit.Test[] = test }, config = Config[]) do
     if config.trace, do: IO.write("  * #{trace_test_name test}")
-    { :noreply, config }
+    { :ok, config }
   end
 
-  def handle_cast({ :test_finished, ExUnit.Test[state: :passed] = test }, config = Config[]) do
+  def handle_event({ :test_finished, ExUnit.Test[state: :passed] = test }, config = Config[]) do
     if config.trace do
       IO.puts success(trace_test_result(test), config)
     else
       IO.write success(".", config)
     end
-    { :noreply, config.previous(:passed).update_tests_counter(&(&1 + 1)) }
+    { :ok, config.previous(:passed).update_tests_counter(&(&1 + 1)) }
   end
 
-  def handle_cast({ :test_finished, ExUnit.Test[state: { :invalid, _ }] = test }, config = Config[]) do
+  def handle_event({ :test_finished, ExUnit.Test[state: { :invalid, _ }] = test }, config = Config[]) do
     if config.trace do
       IO.puts invalid(trace_test_result(test), config)
     else
       IO.write invalid("?", config)
     end
 
-    { :noreply, config.previous(:invalid).update_tests_counter(&(&1 + 1))
-                      .update_invalids_counter(&(&1 + 1)) }
+    { :ok, config.previous(:invalid).update_tests_counter(&(&1 + 1))
+                 .update_invalids_counter(&(&1 + 1)) }
   end
 
-  def handle_cast({ :test_finished, ExUnit.Test[state: { :skip, _ }] }, config = Config[]) do
-    { :noreply, config.previous(:skip).update_skips_counter(&(&1 + 1)) }
+  def handle_event({ :test_finished, ExUnit.Test[state: { :skip, _ }] }, config = Config[]) do
+    { :ok, config.previous(:skip).update_skips_counter(&(&1 + 1)) }
   end
 
-  def handle_cast({ :test_finished, test }, config) do
+  def handle_event({ :test_finished, test }, config = Config[]) do
     if config.trace do
       IO.puts failure(trace_test_result(test), config)
     end
 
     config = print_test_failure(test, config)
-    { :noreply, config.update_tests_counter(&(&1 + 1)) }
+    { :ok, config.update_tests_counter(&(&1 + 1)) }
   end
 
-  def handle_cast({ :case_started, ExUnit.TestCase[name: name] }, config) do
+  def handle_event({ :case_started, ExUnit.TestCase[name: name] }, config = Config[]) do
     if config.trace do
       IO.puts("\n#{inspect name}")
     end
 
-    { :noreply, config }
+    { :ok, config }
   end
 
-  def handle_cast({ :case_finished, test_case }, config) do
+  def handle_event({ :case_finished, test_case }, config = Config[]) do
     if test_case.state != :passed do
       config = print_test_case_failure(test_case, config)
-      { :noreply, config }
+      { :ok, config }
     else
-      { :noreply, config }
+      { :ok, config }
     end
   end
 
-  def handle_cast(request, config) do
-    super(request, config)
+  def handle_event(_, config) do
+    { :ok, config }
   end
 
   defp trace_test_result(test) do
@@ -153,11 +121,19 @@ defmodule ExUnit.CLIFormatter do
       config.invalids_counter > 0 -> IO.puts invalid(message, config)
       true                        -> IO.puts success(message, config)
     end
+
+    IO.puts "\nRandomized with seed #{config.seed}"
+  end
+
+  defp print_filters([include: [], exclude: []]) do
+    :ok
   end
 
   defp print_filters([include: include, exclude: exclude]) do
-    unless Enum.empty?(include), do: IO.puts format_filters(include, :include)
-    unless Enum.empty?(exclude), do: IO.puts format_filters(exclude, :exclude)
+    if include != [], do: IO.puts format_filters(include, :include)
+    if exclude != [], do: IO.puts format_filters(exclude, :exclude)
+    IO.puts("")
+    :ok
   end
 
   defp print_test_failure(ExUnit.Test[name: name, case: mod, state: { :failed, tuple }], config) do

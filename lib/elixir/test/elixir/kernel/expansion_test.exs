@@ -179,6 +179,26 @@ defmodule Kernel.ExpansionTest do
     assert expand(quote(do: { b, a = 1, a })) == quote do: { b(), a = 1, a() }
   end
 
+  ## Maps & structs
+
+  test "maps: expanded as arguments" do
+    assert expand(quote(do: %{ a: a = 1, b: a })) == quote do: %{ a: a = 1, b: a() }
+  end
+
+  test "structs: expanded as arguments" do
+    assert expand(quote(do: %:elixir{ a: a = 1, b: a })) ==
+           quote do: %:elixir{ a: a = 1, b: a() }
+
+    assert expand(quote(do: %:"Elixir.Kernel"{ a: a = 1, b: a })) ==
+           quote do: %:"Elixir.Kernel"{ a: a = 1, b: a() }
+  end
+
+  test "structs: expects atoms" do
+    assert_raise CompileError, ~r"expected struct name to be a compile time atom or alias", fn ->
+      expand(quote do: %unknown{ a: 1 })
+    end
+  end
+
   ## quote
 
   test "quote: expanded to raw forms" do
@@ -226,15 +246,25 @@ defmodule Kernel.ExpansionTest do
 
   ## Comprehensions
 
-  test "lc: variables inside comprehensions do not leak" do
-    assert expand(quote do: (lc(a inlist b, do: c = 1); c)) ==
-           quote do: (lc(a inlist b(), do: c = 1); c())
+  test "variables inside comprehensions do not leak with enums" do
+    assert expand(quote do: (for(a <- b, do: c = 1); c)) ==
+           quote do: (for(a <- b(), do: c = 1); c())
   end
 
-  test "bc: variables inside comprehensions do not leak" do
-    assert expand(quote do: (bc(a inbits b, do: c = 1); c)) ==
-           quote do: (bc(a inbits b(), do: c = 1); c())
+  test "variables inside comprehensions do not leak with binaries" do
+    assert expand(quote do: (for(<<a <- b>>, do: c = 1); c)) ==
+           quote do: (for(<< <<a>> <- b() >>, do: c = 1); c())
   end
+
+  test "variables inside filters are available in blocks" do
+    assert expand(quote do: for(a <- b, c = a, do: c)) ==
+           quote do: (for(a <- b(), c = a, do: c))
+  end
+
+  # test "variables inside comprehensions options do not leak" do
+  #   assert expand(quote do: (for(a <- b, into: c = [], do: 1); c)) ==
+  #          quote do: (for(a <- b(), do: 1, into: c = []); c())
+  # end
 
   ## Capture
 

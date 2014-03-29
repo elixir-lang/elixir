@@ -20,11 +20,16 @@ defmodule Kernel.SpecialForms do
   """
 
   @doc """
-  Defines a new tuple.
+  Creates a tuple.
 
   Only two item tuples are considered literals in Elixir.
   Therefore all other tuples are represented in the AST
   as a call to the special form `:{}`.
+
+  Conveniences for manipulating tuples can be found in the
+  `Tuple` module. Some functions for working with tuples are
+  also available in `Kernel`, namely `Kernel.elem/2`,
+  `Kernel.set_elem/3` and `Kernel.tuple_size/1`.
 
   ## Examples
 
@@ -35,6 +40,117 @@ defmodule Kernel.SpecialForms do
 
   """
   defmacro unquote(:{})(args)
+
+  @doc """
+  Creates a map.
+
+  Maps are key-value stores where keys are compared
+  using the match operator (`===`). Maps can be created with
+  the `%{}` special form where keys are associated via `=>`:
+
+      %{ 1 => 2 }
+
+  Maps also support the keyword notation, as other special forms,
+  as long as they are at the end of the argument list:
+
+      %{ hello: :world, with: :keywords }
+      %{ :hello => :world, with: :keywords }
+
+  If a map has duplicated keys, the last key will always have
+  higher precedence:
+
+      iex> %{ a: :b, a: :c }
+      %{ a: :c }
+
+  Conveniences for manipulating maps can be found in the
+  `Map` module.
+
+  ## Access syntax
+
+  Besides the access functions available in the `Map` module,
+  like `Map.get/3` and `Map.fetch/2`, a map can be accessed using the
+  `.` operator:
+
+      iex> map = %{ a: :b }
+      iex> map.a
+      :b
+
+  Note that the `.` operator expects the field to exist in the map.
+  If not, an `ArgumentError` is raised.
+
+  ## Update syntax
+
+  Maps also support an update syntax:
+
+      iex> map = %{ :a => :b }
+      iex> %{ map | :a => :c }
+      %{ :a => :c }
+
+  Notice the update syntax requires the given keys to exist.
+  Trying to update a key that does not exist will raise an `ArgumentError`.
+
+  ## AST representation
+
+  Regardless if `=>` or the keywords syntax is used, Maps are
+  always represented internally as a list of two-items tuples
+  for simplicity:
+
+      iex> quote do: %{ :a => :b, c: :d }
+      { :%{}, [], [{:a, :b}, {:c, :d}] }
+
+  """
+  defmacro unquote(:%{})(args)
+
+  @doc """
+  Creates a struct.
+
+  A struct is a tagged map that allows developers to provide
+  default values for keys, tags to be used in polymorphic
+  dispatches and compile time assertions.
+
+  To define a struct, you just need to implement the `__struct__/0`
+  function in a module:
+
+      defmodule User do
+        def __struct__ do
+          %{ name: "josé", age: 27 }
+        end
+      end
+
+  Now a struct can be created as follow:
+
+      %User{}
+
+  Underneath, a struct is just a map with a `__struct__` field
+  pointing to the User module:
+
+      %User{} == %{ __struct__: User, name: "josé", age: 27 }
+
+  A struct also validates the given keys are part of the defined
+  struct. The example below will fail because there is no key
+  `:full_name` in the user struct:
+
+      %User{ full_name: "José Valim" }
+
+  Note that a struct specifies a minimum set of keys required
+  for operations. Other keys can be added to structs via the
+  regular map operations:
+
+      user = %User{}
+      %{ user | a_non_struct_key: :value }
+
+  An update operation specific for structs is also available:
+
+      %User{ user | age: 28 }
+
+  The syntax above will guarantee the given keys are valid at
+  compilation time and it will guarantee at runtime the given
+  argument is a struct, failing with `BadStructError` otherwise.
+
+  Check `Kernel.defprotocol/2` for more information on how structs
+  can be used with protocols for polymorphic dispatch.
+  """
+  defmacro unquote(:%)(struct, map)
 
   @doc """
   Defines a new bitstring.
@@ -331,7 +447,7 @@ defmodule Kernel.SpecialForms do
   Elixir won't emit any warnings though, since the alias
   was not explicitly defined.
 
-  Both warning behaviours could be changed by explicitily
+  Both warning behaviours could be changed by explicitly
   setting the `:warn` option to true or false.
   """
   defmacro alias(module, opts)
@@ -443,7 +559,7 @@ defmodule Kernel.SpecialForms do
   Elixir won't emit any warnings though, since the import
   was not explicitly defined.
 
-  Both warning behaviours could be changed by explicitily
+  Both warning behaviours could be changed by explicitly
   setting the `:warn` option to true or false.
 
   ## Ambiguous function/macro names
@@ -1007,77 +1123,65 @@ defmodule Kernel.SpecialForms do
   """
   defmacro unquote(:unquote_splicing)(expr)
 
-  @doc """
-  List comprehensions allow you to quickly build a list from another list:
+  @doc ~S"""
+  Comprehensions allow you to quickly build a data structure from
+  an enumerable or a bitstring.
 
-      iex> lc n inlist [1, 2, 3, 4], do: n * 2
-      [2,4,6,8]
+  Let's start with an example:
 
-  A comprehension accepts many generators and also filters. Generators
-  are defined using both `inlist` and `inbits` operators, allowing you
-  to loop lists and bitstrings:
+      iex> for n <- [1, 2, 3, 4], do: n * 2
+      [2, 4, 6, 8]
+
+  A comprehension accepts many generators and filters. Enumerable
+  generators are defined using `<-`:
 
       # A list generator:
-      iex> lc n inlist [1, 2, 3, 4], do: n * 2
-      [2,4,6,8]
-
-      # A bit string generator:
-      iex> lc <<n>> inbits <<1, 2, 3, 4>>, do: n * 2
-      [2,4,6,8]
-
-      # A generator from a variable:
-      iex> list = [1, 2, 3, 4]
-      ...> lc n inlist list, do: n * 2
-      [2,4,6,8]
+      iex> for n <- [1, 2, 3, 4], do: n * 2
+      [2, 4, 6, 8]
 
       # A comprehension with two generators
-      iex> lc x inlist [1, 2], y inlist [2, 3], do: x*y
-      [2,3,4,6]
+      iex> for x <- [1, 2], y <- [2, 3], do: x*y
+      [2, 3, 4, 6]
 
   Filters can also be given:
 
       # A comprehension with a generator and a filter
-      iex> lc n inlist [1, 2, 3, 4, 5, 6], rem(n, 2) == 0, do: n
-      [2,4,6]
+      iex> for n <- [1, 2, 3, 4, 5, 6], rem(n, 2) == 0, do: n
+      [2, 4, 6]
 
-  Bit string generators are quite useful when you need to
-  organize bit string streams:
+  Bitstring generators are also supported and are very useful when you
+  need to organize bitstring streams:
 
       iex> pixels = <<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
-      iex> lc <<r::8, g::8, b::8>> inbits pixels, do: {r, g, b}
+      iex> for <<r::8, g::8, b::8 <- pixels >>, do: {r, g, b}
       [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
 
-  Variable assignments in the `do` block of the comprehension
-  are not reflected outside of the block.
+  Variable assignments inside the comprehension, be it in generators,
+  filters or inside the block, are not reflected outside of the
+  comprehension.
 
-  Note: Unlike Erlang, Elixir comprehension filters
-  never behave as guards when it comes to errors. Errors in
-  list comprehensions will always be raised. Consider this
-  Erlang example:
+  ## Into
 
-      erl> [I || I <- [1,2,3], hd(I)].
-      []
+  In the examples above, the result returned by the comprehension was
+  always a list. The returned result can be configured by passing an
+  `:into` option, that accepts any structure as long as it implements
+  the `Collectable` protocol.
 
-  In Elixir, it will raise:
+  For example, we can use bitstring generators with the `:into` option
+  to easily remove all spaces in a string:
 
-      iex> lc i inlist [1,2,3], hd(i), do: i
-      ** (ArgumentError) argument error
-
-  """
-  defmacro lc(args)
-
-  @doc """
-  Defines a bit comprehension.
-
-  It follows the same syntax and behaviour as a list comprehension
-  but expects each element returned to be a bitstring. For example,
-  here is how to remove all spaces from a string:
-
-      iex> bc <<c>> inbits " hello world ", c != ? , do: <<c>>
+      iex> for <<c <- " hello world ">>, c != ?\s, into: "", do: <<c>>
       "helloworld"
 
+  The `IO` module provides streams, that are both `Enumerable` and
+  `Collectable`, here is an upcase echo server using comprehensions:
+
+      for line <- IO.stream(:stdio, :line), into: IO.stream(:stdio, :line) do
+        String.upcase(line)
+      end
+
   """
-  defmacro bc(args)
+  defmacro for(args)
 
   @doc """
   Defines an anonymous function.
@@ -1105,10 +1209,12 @@ defmodule Kernel.SpecialForms do
   defmacro __block__(args)
 
   @doc """
-  Captures an anonymous function.
+  Captures or creates an anonymous function.
 
-  The most common format to capture a function is via module,
-  name and arity:
+  ## Capture
+
+  The capture operator is most commonly used to capture a
+  function with given name and arity from a module:
 
       iex> fun = &Kernel.is_atom/1
       iex> fun.(:atom)
@@ -1116,47 +1222,39 @@ defmodule Kernel.SpecialForms do
       iex> fun.("string")
       false
 
-  Local functions, including private ones, and imported ones
-  can also be captured by omitting the module name:
+  In the example above, we captured `Kernel.is_atom/1` as an
+  anonymous function and then invoked it.
+
+  The capture operator can also be used to capture local functions,
+  including private ones, and imported functions by omitting the
+  module name:
 
       &local_function/1
 
-  A capture also allows the captured functions to be partially
-  applied, for example:
+  ## Anonymous functions
 
-      iex> fun = &is_record(&1, Range)
-      iex> fun.(1..3)
+  The capture operator can be also be used to partially apply
+  functions, where `&1`, `&2` and so on can be used as value
+  placeholders. For example:
+
+      iex> double = &(&1 * 2)
+      iex> double.(2)
+      4
+
+  In other words, `&(&1 * 2)` is equivalent to `fn x -> x * 2 end`.
+  Another example using a local function:
+
+      iex> fun = &is_atom(&1)
+      iex> fun.(:atom)
       true
 
-  In the example above, we use &1 as a placeholder, generating
-  a function with one argument. We could also use `&2` and `&3`
-  to delimit more arguments:
-
-      iex> fun = &is_record(&1, &2)
-      iex> fun.(1..3, Range)
-      true
-
-  Since operators are calls, they are also supported, although
-  they require explicit parentheses around:
-
-      iex> fun = &(&1 + &2)
-      iex> fun.(1, 2)
-      3
-
-  And even more complex call expressions:
+  The `&` operator can be used with more complex expressions:
 
       iex> fun = &(&1 + &2 + &3)
       iex> fun.(1, 2, 3)
       6
 
-  Record-like calls are also allowed:
-
-      iex> fun = &(&1.first)
-      iex> fun.(1..3)
-      1
-
-  Remember tuple and lists are represented as calls in the AST and
-  therefore are also allowed:
+  As well as with lists and tuples:
 
       iex> fun = &{&1, &2}
       iex> fun.(1, 2)
@@ -1166,16 +1264,14 @@ defmodule Kernel.SpecialForms do
       iex> fun.(1, 2)
       [1|2]
 
-  Anything that is not a call is not allowed though, examples:
+  The only restrictions when creating anonymous functions is that at
+  least one placeholder must be present, i.e. it must contain at least
+  `&1`:
 
-      # An atom is not a call
-      &:foo
-
-      # A var is not a call
-      var = 1
+      # No placeholder fails to compile
       &var
 
-      # A block expression is not a call
+      # Block expressions are also not supported
       &(foo(&1, &2); &3 + &4)
 
   """
@@ -1428,7 +1524,7 @@ defmodule Kernel.SpecialForms do
           :exit_b
       end
 
-  This means the VM nolonger needs to keep the stacktrace once inside
+  This means the VM no longer needs to keep the stacktrace once inside
   an else clause and so tail recursion is possible when using a `try`
   with a tail call as the final call inside an else clause. The same
   is true for rescue and catch clauses.
@@ -1437,7 +1533,7 @@ defmodule Kernel.SpecialForms do
 
   Since an expression inside `try` may not have been evaluated
   due to an exception, any variable created inside `try` cannot
-  be accessed externaly. For instance:
+  be accessed externally. For instance:
 
       try do
         x = 1
@@ -1499,7 +1595,7 @@ defmodule Kernel.SpecialForms do
       end
 
   The `after` clause can be specified even if there are no match clauses.
-  There are two special cases for the timout value given to after
+  There are two special cases for the timeout value given to `after`
 
   * `:infinity` - The process should wait indefinitely for a matching
   message, this is the same as not using a timeout.

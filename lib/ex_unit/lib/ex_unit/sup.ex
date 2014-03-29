@@ -9,6 +9,6 @@ defmodule ExUnit.Sup do
 
   def init(:ok) do
     tree = [ worker(ExUnit.Server, []) ]
-    supervise(tree, strategy: :one_for_one)
+    supervise(tree, strategy: :one_for_all)
   end
 end

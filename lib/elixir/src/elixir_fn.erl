@@ -6,15 +6,16 @@
 translate(Meta, Clauses, S) ->
   Transformer = fun({ '->', CMeta, [ArgsWithGuards, Expr] }, Acc) ->
     { Args, Guards } = elixir_clauses:extract_splat_guards(ArgsWithGuards),
-    { TClause, TS  } = elixir_clauses:clause(?line(CMeta), fun translate_fn_match/2, Args, Expr, Guards, Acc),
+    { TClause, TS  } = elixir_clauses:clause(?line(CMeta), fun translate_fn_match/2,
+                                             Args, Expr, Guards, true, Acc),
     { TClause, elixir_scope:mergef(S, TS) }
   end,
 
   { TClauses, NS } = lists:mapfoldl(Transformer, S, Clauses),
   Arities = [length(Args) || { clause, _Line, Args, _Guards, _Exprs } <- TClauses],
 
-  case length(lists:usort(Arities)) of
-    1 ->
+  case lists:usort(Arities) of
+    [_] ->
       { { 'fun', ?line(Meta), { clauses, TClauses } }, NS };
     _ ->
       compile_error(Meta, S#elixir_scope.file,
@@ -22,14 +23,14 @@ translate(Meta, Clauses, S) ->
   end.
 
 translate_fn_match(Arg, S) ->
-  { TArg, TS } = elixir_translator:translate_many(Arg, S#elixir_scope{extra=fn_match}),
-  { TArg, TS#elixir_scope{extra=S#elixir_scope.extra} }.
+  { TArg, TS } = elixir_translator:translate_args(Arg, S#elixir_scope{backup_vars=orddict:new()}),
+  { TArg, TS#elixir_scope{backup_vars=S#elixir_scope.backup_vars} }.
 
 %% Expansion
 
 expand(Meta, Clauses, E) when is_list(Clauses) ->
   Transformer = fun(Clause) ->
-    { EClause, _ } = elixir_exp_clauses:clause(Meta, fn, fun elixir_exp:expand_many/2, Clause, E),
+    { EClause, _ } = elixir_exp_clauses:clause(Meta, fn, fun elixir_exp:expand_args/2, Clause, E),
     EClause
   end,
   { { fn, Meta, lists:map(Transformer, Clauses) }, E }.

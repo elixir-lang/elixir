@@ -21,10 +21,10 @@ defmodule Mix.Tasks.Deps.Update do
 
     cond do
       opts[:all] ->
-        Mix.Deps.Fetcher.all(Mix.Deps.Lock.read, [])
+        Mix.Dep.Fetcher.all(Mix.Dep.Lock.read, %{}, [])
       rest != [] ->
-        { old, new } = Dict.split(Mix.Deps.Lock.read, to_app_names(rest))
-        Mix.Deps.Fetcher.by_name(rest, old, new)
+        { old, new } = Dict.split(Mix.Dep.Lock.read, to_app_names(rest))
+        Mix.Dep.Fetcher.by_name(rest, old, new, [])
       true ->
         raise Mix.Error, message: "mix deps.update expects dependencies as arguments or " <>
                                   "the --all option to update all dependencies"

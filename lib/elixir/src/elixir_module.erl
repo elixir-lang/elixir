@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([compile/4, data_table/1, docs_table/1,
+-export([compile/4, data_table/1, docs_table/1, is_open/1,
          format_error/1, eval_callbacks/5]).
 -include("elixir.hrl").
 
@@ -16,6 +16,9 @@ data_table(Module) ->
 
 docs_table(Module) ->
   ets:lookup_element(Module, ?docs_attr, 2).
+
+is_open(Module) ->
+  Module == ets:info(Module, name).
 
 %% Compilation hook
 
@@ -127,12 +130,7 @@ eval_form(Line, Module, Block, Vars, E) ->
 
 %% Return the form with exports and function declarations.
 
-functions_form(Line, File, Module, BaseAll, BaseExport, Def, Defmacro, RawFunctions) ->
-  BaseFunctions = case elixir_compiler:get_opt(internal) of
-    true  -> RawFunctions;
-    false -> record_rewrite_functions(Module, RawFunctions)
-  end,
-
+functions_form(Line, File, Module, BaseAll, BaseExport, Def, Defmacro, BaseFunctions) ->
   Info = add_info_function(Line, File, Module, BaseExport, Def, Defmacro),
 
   All       = [{ '__info__', 1 }|BaseAll],
@@ -142,17 +140,6 @@ functions_form(Line, File, Module, BaseAll, BaseExport, Def, Defmacro, RawFuncti
   { All, [
     { attribute, Line, export, lists:sort(Export) } | Functions
   ] }.
-
-record_rewrite_functions(Module, Functions) ->
-  lists:map(fun
-    ({ function, Line, Name, Arity, Clauses }) ->
-      Rewriten = [begin
-        { C, _, _ } = 'Elixir.Kernel.RecordRewriter':optimize_clause(Module, Clause),
-        C
-      end || Clause <- Clauses],
-      { function, Line, Name, Arity, Rewriten };
-    (Other) -> Other
-  end, Functions).
 
 %% Add attributes handling to the form
 
@@ -268,16 +255,24 @@ load_form(Line, Forms, Opts, #elixir_env{file=File} = E) ->
   end).
 
 check_module_availability(Line, File, Module) ->
+  Reserved = ['Elixir.Atom', 'Elixir.BitString', 'Elixir.Function',
+              'Elixir.PID', 'Elixir.Reference', 'Elixir.Any'],
+
+  case lists:member(Module, Reserved) of
+    true  -> elixir_errors:handle_file_error(File, { Line, ?MODULE, { module_reserved, Module } });
+    false -> ok
+  end,
+
   case elixir_compiler:get_opt(ignore_module_conflict) of
     false ->
       case code:ensure_loaded(Module) of
         { module, _ } ->
           elixir_errors:handle_file_warning(File, { Line, ?MODULE, { module_defined, Module } });
-        { error, _ } ->
-          []
+        { error, _ }  ->
+          ok
       end;
     true ->
-      []
+      ok
   end.
 
 warn_invalid_clauses(_Line, _File, 'Elixir.Kernel.SpecialForms', _All) -> ok;
@@ -407,6 +402,8 @@ format_error({ invalid_module, Module}) ->
   io_lib:format("invalid module name: ~p", [Module]);
 format_error({ module_defined, Module }) ->
   io_lib:format("redefining module ~ts", [elixir_aliases:inspect(Module)]);
+format_error({ module_reserved, Module }) ->
+  io_lib:format("module ~ts is reserved and cannot be defined", [elixir_aliases:inspect(Module)]);
 format_error({ module_in_definition, Module }) ->
   io_lib:format("cannot define module ~ts because it is currently being defined",
     [elixir_aliases:inspect(Module)]).

@@ -16,15 +16,15 @@ defmodule Mix.Tasks.Deps.Unlock do
 
     cond do
       opts[:all] ->
-        Mix.Deps.Lock.write([])
+        Mix.Dep.Lock.write([])
       args != [] ->
         lock =
-          Enum.reduce args, Mix.Deps.Lock.read, fn(arg, lock) ->
+          Enum.reduce args, Mix.Dep.Lock.read, fn(arg, lock) ->
             if is_binary(arg), do: arg = binary_to_atom(arg)
-            Keyword.delete(lock, arg)
+            Map.delete(lock, arg)
           end
 
-        Mix.Deps.Lock.write(lock)
+        Mix.Dep.Lock.write(lock)
       true ->
         raise Mix.Error, message: "mix deps.unlock expects dependencies as arguments or " <>
                                   "the --all option to unlock all dependencies"

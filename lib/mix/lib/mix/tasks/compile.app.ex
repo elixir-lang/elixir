@@ -6,25 +6,54 @@ defmodule Mix.Tasks.Compile.App do
   @moduledoc """
   Writes an .app file.
 
-  By default, this task will detect all modules in your `compile_path`
-  (defaults to `ebin`) and generate a best guess for your application
-  specification. This best guess also includes `kernel`, `stdlib`
-  and `elixir` as application dependencies.
+  An `.app` file is a file containing Erlang terms that defines
+  your application. Mix automatically generates this file based on
+  your `mix.exs` configuration.
 
-  You can optionally define an `application/0` function inside your
-  `Mix.Project` that returns a keyword list to further configure
-  your application according to the OTP design principles:
+  In order to generate the file, Mix expects your application to
+  have both `:app` and `:version` keys. Furthermore, you can configure
+  the generated application by defining a `application` function in
+  your `mix.exs` with the following options:
 
-  http://www.erlang.org/doc/design_principles/applications.html
+  * `:applications` - all applications your application depends
+    on at runtime. For example, if your application depends on
+    Erlang's `:crypto`, it needs to be added to this list. Most
+    of your dependencies must be added as well (unless their are
+    a development or test dependnecy). Mix and other tools use this
+    list in order to properly boot your application dependencies
+    before starting the application itself;
+
+  * `:registered` - the name of all registered processes in the
+    application. If your application defines a local GenServer
+    with name `MyServer`, it is recommended to add `MyServer`
+    to this list. It is mostly useful to detect conflicts in
+    between applications that register the same names;
+
+  * `:mod` - specify a module to invoke when the application
+    is started, it must be in the format `{ Mod, args }` where
+    args is often an empty list. The module specified here must
+    implement the callbacks defined by the `Application.Behaviour`
+    behaviour;
+
+  * `:env` - default values for the application environment.
+    The application environment is one of the most common ways
+    to configure applications;
+
+  Let's see an example file:
+
+      def application do
+        [mod: {MyApp, []},
+         env: [default: :value],
+         applications: [:crypto]]
+      end
+
+  Besides the options above, `.app` files also expects other
+  options like `:modules` and `:vsn`, but those are automatically
+  filled by Mix.
 
   ## Command line options
 
   * `--force` - forces compilation regardless of modification times
-
-  ## Configuration
-
-  * `:app` - The application name as a binary (required)
-  * `:version` - The application version as a binary (required)
 
   """
   def run(args) do
@@ -49,7 +78,7 @@ defmodule Mix.Tasks.Compile.App do
       best_guess = [
         vsn: to_char_list(version),
         modules: mods,
-        applications: [:kernel, :stdlib, :elixir]
+        applications: []
       ]
 
       properties = if function_exported?(project, :application, 0) do
@@ -58,11 +87,16 @@ defmodule Mix.Tasks.Compile.App do
         best_guess
       end
 
+      # Ensure we always prepend the standard application dependencies
+      properties = Keyword.update!(properties, :applications, fn apps -> 
+        [:kernel, :stdlib, :elixir] ++ apps 
+      end)
+
       properties = ensure_correct_properties(app, properties)
       contents   = { :application, app, properties }
 
       Mix.Project.build_structure(config)
-      File.open!(target, [:write], &:io.fwrite(&1, "~p.", [contents]))
+      File.write!(target, :io_lib.format("~p.", [contents]))
 
       Mix.shell.info "Generated #{app}.app"
       :ok

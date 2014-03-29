@@ -151,7 +151,7 @@ defmodule Mix.Tasks.DepsGitTest do
     [last, first|_] = get_git_repo_revs
 
     in_fixture "no_mixfile", fn ->
-      Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), first, [] }]
+      Mix.Dep.Lock.write [git_repo: { :git, fixture_path("git_repo"), first, [] }]
 
       Mix.Tasks.Deps.Get.run []
       refute File.exists?("deps/git_repo/lib/git_repo.ex")
@@ -177,14 +177,14 @@ defmodule Mix.Tasks.DepsGitTest do
     [last, first|_] = get_git_repo_revs
 
     in_fixture "no_mixfile", fn ->
-      Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), first, [] }]
+      Mix.Dep.Lock.write [git_repo: { :git, fixture_path("git_repo"), first, [] }]
 
       Mix.Tasks.Deps.Get.run []
       refute File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ first
 
       # Update the lock and now we should get an error
-      Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), last, [] }]
+      Mix.Dep.Lock.write [git_repo: { :git, fixture_path("git_repo"), last, [] }]
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Check.run []
       end
@@ -214,7 +214,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
     in_fixture "no_mixfile", fn ->
       # Move to the first version
-      Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), first, [] }]
+      Mix.Dep.Lock.write [git_repo: { :git, fixture_path("git_repo"), first, [] }]
 
       Mix.Tasks.Deps.Get.run []
       assert File.read!("mix.lock") =~ first
@@ -252,10 +252,10 @@ defmodule Mix.Tasks.DepsGitTest do
     [last, _, bad|_] = get_git_repo_revs
 
     in_fixture "no_mixfile", fn ->
-      Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), bad, [] }]
+      Mix.Dep.Lock.write [git_repo: { :git, fixture_path("git_repo"), bad, [] }]
       catch_error(Mix.Tasks.Deps.Get.run [])
 
-      Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), last, [] }]
+      Mix.Dep.Lock.write [git_repo: { :git, fixture_path("git_repo"), last, [] }]
       Mix.Tasks.Deps.Get.run []
       assert File.read!("mix.lock") =~ last
     end
@@ -268,7 +268,7 @@ defmodule Mix.Tasks.DepsGitTest do
     [last, _, bad|_] = get_git_repo_revs
 
     in_fixture "no_mixfile", fn ->
-      Mix.Deps.Lock.write [git_repo: { :git, fixture_path("git_repo"), bad, [] }]
+      Mix.Dep.Lock.write [git_repo: { :git, fixture_path("git_repo"), bad, [] }]
       catch_error(Mix.Tasks.Deps.Get.run [])
 
       Mix.Tasks.Deps.Update.run ["git_repo"]

@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   """
 
-  import Mix.Deps, only: [loaded: 0, available?: 1, loaded_by_name: 1,
+  import Mix.Dep, only: [loaded: 1, available?: 1, loaded_by_name: 2,
                           format_dep: 1, make?: 1, mix?: 1, rebar?: 1]
 
   def run(args) do
@@ -35,9 +35,9 @@ defmodule Mix.Tasks.Deps.Compile do
 
     case OptionParser.parse(args, switches: [quiet: :boolean]) do
       { opts, [], _ } ->
-        compile(Enum.filter(loaded, &compilable?/1), opts)
+        compile(Enum.filter(loaded(env: Mix.env), &compilable?/1), opts)
       { opts, tail, _ } ->
-        compile(loaded_by_name(tail), opts)
+        compile(loaded_by_name(tail, env: Mix.env), opts)
     end
   end
 
@@ -47,8 +47,7 @@ defmodule Mix.Tasks.Deps.Compile do
     config = Mix.Project.deps_config
 
     compiled =
-      Enum.map deps, fn(dep) ->
-        Mix.Dep[app: app, status: status, opts: opts] = dep
+      Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts} = dep ->
         check_unavailable!(app, status)
 
         unless run_opts[:quiet] || opts[:compile] == false do
@@ -72,14 +71,14 @@ defmodule Mix.Tasks.Deps.Compile do
         unless mix?(dep), do: build_structure(dep, config)
         File.rm(Path.join(opts[:build], ".compile"))
         compiled
-      end
+      end)
 
-    if Enum.any?(compiled), do: Mix.Deps.Lock.touch
+    if Enum.any?(compiled), do: Mix.Dep.Lock.touch
   end
 
   # All available dependencies can be compiled
   # except for umbrella applications.
-  defp compilable?(Mix.Dep[manager: manager, extra: extra] = dep) do
+  defp compilable?(%Mix.Dep{manager: manager, extra: extra} = dep) do
     available?(dep) and (manager != :mix or !extra[:umbrella?])
   end
 
@@ -93,9 +92,9 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_mix(dep) do
-    Mix.Deps.in_dependency dep, fn _ ->
+    Mix.Dep.in_dependency dep, fn _ ->
       try do
-        res = Mix.Task.run("compile", ["--no-deps"])
+        res = Mix.Task.run("compile", ["--no-deps", "--no-elixir-version-check"])
         :ok in List.wrap(res)
       catch
         kind, reason ->
@@ -108,7 +107,7 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp do_rebar(Mix.Dep[app: app] = dep, config) do
+  defp do_rebar(%Mix.Dep{app: app} = dep, config) do
     do_command dep, rebar_cmd(app), "compile skip_deps=true deps_dir=#{inspect config[:deps_path]}"
   end
 
@@ -134,7 +133,7 @@ defmodule Mix.Tasks.Deps.Compile do
     do_command(dep, "make")
   end
 
-  defp do_compile(Mix.Dep[app: app, opts: opts] = dep) do
+  defp do_compile(%Mix.Dep{app: app, opts: opts} = dep) do
     if command = opts[:compile] do
       Mix.shell.info("#{app}: #{command}")
       do_command(dep, command)
@@ -143,7 +142,7 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp do_command(Mix.Dep[app: app, opts: opts], command, extra \\ "") do
+  defp do_command(%Mix.Dep{app: app, opts: opts}, command, extra \\ "") do
     File.cd! opts[:dest], fn ->
       if Mix.shell.cmd("#{command} #{extra}") != 0 do
         raise Mix.Error, message: "Could not compile dependency #{app}, #{command} command failed. " <>
@@ -153,9 +152,9 @@ defmodule Mix.Tasks.Deps.Compile do
     true
   end
 
-  defp build_structure(Mix.Dep[opts: opts] = dep, config) do
+  defp build_structure(%Mix.Dep{opts: opts} = dep, config) do
     build_path = Path.dirname(opts[:build])
-    Enum.each Mix.Deps.source_paths(dep), fn source ->
+    Enum.each Mix.Dep.source_paths(dep), fn source ->
       app = Path.join(build_path, Path.basename(source))
       build_structure(source, app, config)
       Code.prepend_path(Path.join(app, "ebin"))

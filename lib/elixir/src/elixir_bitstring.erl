@@ -1,6 +1,5 @@
-%% Handle translation of Elixir literals to Erlang AST.
 -module(elixir_bitstring).
--export([translate/3, expand/3]).
+-export([translate/3, expand/3, has_size/1]).
 -include("elixir.hrl").
 
 %% Expansion
@@ -102,6 +101,13 @@ handle_unknown_bit_info(Meta, { _, ExprMeta, _ } = Expr, T, Size, Types, E) ->
 
 %% Translation
 
+has_size({ bin, _, Elements }) ->
+  not lists:any(fun({ bin_element, _Line, _Expr, Size, Types }) ->
+    (Types /= default) andalso (Size == default) andalso
+      lists:any(fun(X) -> lists:member(X, Types) end,
+                [bits, bytes, bitstring, binary])
+  end, Elements).
+
 translate(Meta, Args, S) ->
   case S#elixir_scope.context of
     match ->
@@ -168,15 +174,30 @@ types_require_conversion([UTF|T]) when UTF == utf8; UTF == utf16; UTF == utf32 -
 types_require_conversion([]) -> true;
 types_require_conversion(_) -> false.
 
-types_allow_splice([bytes], Elements)  -> lists:all(fun has_default_size/1, Elements);
-types_allow_splice([binary], Elements) -> lists:all(fun has_default_size/1, Elements);
+types_allow_splice([bytes], Elements)  -> is_byte_size(Elements, 0);
+types_allow_splice([binary], Elements) -> is_byte_size(Elements, 0);
 types_allow_splice([bits], _)          -> true;
 types_allow_splice([bitstring], _)     -> true;
 types_allow_splice(default, _)         -> true;
 types_allow_splice(_, _)               -> false.
 
-has_default_size({ bin_element, _, _, default, _ }) -> true;
-has_default_size({ bin_element, _, _, _, _ })       -> false.
+is_byte_size([Element|T], Acc) ->
+  case elem_size(Element) of
+    {unknown, Unit} when Unit rem 8 == 0 -> is_byte_size(T, Acc);
+    {unknown, _Unit} -> false;
+    {Size, Unit} -> is_byte_size(T, Size*Unit + Acc)
+  end;
+is_byte_size([], Size) ->
+  Size rem 8 == 0.
+
+elem_size({bin_element, _, _, default, _})              -> {0, 0};
+elem_size({bin_element, _, _, {integer,_,Size}, Types}) -> {Size, unit_size(Types, 1)};
+elem_size({bin_element, _, _, _Size, Types})            -> {unknown, unit_size(Types, 1)}.
+
+unit_size([binary|T], _)       -> unit_size(T, 8);
+unit_size([{unit, Size}|_], _) -> Size;
+unit_size([_|T], Guess)        -> unit_size(T, Guess);
+unit_size([], Guess)           -> Guess.
 
 %% Extra bitstring specifiers
 

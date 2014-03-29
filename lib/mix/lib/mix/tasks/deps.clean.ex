@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Deps.Clean do
     Mix.Project.get! # Require the project to be available
 
     { opts, args, _ } = OptionParser.parse(args, switches: [unlock: :boolean, all: :boolean])
-    loaded = Mix.Deps.loaded
+    loaded = Mix.Dep.loaded(env: Mix.env)
 
     cond do
       opts[:all] ->
@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Deps.Clean do
       shell.info "* Cleaning #{app}"
       load_paths =
         if dep = Enum.find(loaded, &(&1.app == app)) do
-          Mix.Deps.load_paths(dep)
+          Mix.Dep.load_paths(dep)
         else
           [Path.join([build, app, "ebin"])]
         end

@@ -6,6 +6,61 @@ defexception IO.StreamError, [:reason, :message] do
   end
 end
 
+defmodule IO.Stream do
+  @moduledoc """
+  Defines a `IO.Stream` struct returned by `IO.stream/2` and `IO.binstream/2`.
+
+  The following fields are public:
+
+  * `device` - the IO device
+  * `raw` - a boolean indicating if bin functions should be used
+  * `line_or_bytes` - if reading should read lines or a given amount of bytes
+
+  """
+
+  defstruct device: nil, raw: true, line_or_bytes: :line
+
+  defimpl Collectable do
+    def empty(stream) do
+      stream
+    end
+
+    def into(%{ device: device, raw: raw } = stream) do
+      { :ok, into(stream, device, raw) }
+    end
+
+    defp into(stream, device, raw) do
+      fn
+        :ok, { :cont, x } ->
+          case raw do
+            true  -> IO.binwrite(device, x)
+            false -> IO.write(device, x)
+          end
+        :ok, _ -> stream
+      end
+    end
+  end
+
+  defimpl Enumerable do
+    def reduce(%{ device: device, raw: raw, line_or_bytes: line_or_bytes }, acc, fun) do
+      next_fun =
+        case raw do
+          true  -> &IO.each_binstream(&1, line_or_bytes)
+          false -> &IO.each_stream(&1, line_or_bytes)
+        end
+      Stream.unfold(device, next_fun).(acc, fun)
+    end
+
+    def count(_stream) do
+      { :error, __MODULE__ }
+    end
+
+    def member?(_stream, _term) do
+      { :error, __MODULE__ }
+    end
+  end
+end
+
 defmodule IO do
   @moduledoc """
   Functions handling IO.
@@ -159,7 +214,7 @@ defmodule IO do
 
     unless Keyword.get(opts, :width) do
       opts = case :io.columns(device) do
-        { :ok, width } -> Keyword.put(opts, :width, width)
+        { :ok, width } -> [width: width] ++ opts
         { :error, _ }  -> opts
       end
     end
@@ -224,9 +279,14 @@ defmodule IO do
   end
 
   @doc """
-  Converts the io device into a Stream. The device is
-  iterated line by line if `:line` is given or by a given
-  number of codepoints.
+  Converts the io device into a `IO.Stream`.
+
+  An `IO.Stream` implements both `Enumerable` and
+  `Collectable`, allowing it to be used for both read
+  and write.
+
+  The device is iterated line by line if `:line` is given or
+  by a given number of codepoints.
 
   This reads the IO as utf-8. Check out
   `IO.binstream/2` to handle the IO as a raw binary.
@@ -244,24 +304,29 @@ defmodule IO do
   """
   @spec stream(device, :line | pos_integer) :: Enumerable.t
   def stream(device, line_or_codepoints) do
-    Stream.unfold(map_dev(device), &do_stream(&1, line_or_codepoints))
+    %IO.Stream{ device: map_dev(device), raw: false, line_or_bytes: line_or_codepoints }
   end
 
   @doc """
-  Converts the io device into a Stream. The device is
-  iterated line by line or by a number of bytes. This
-  reads the IO as a raw binary.
+  Converts the IO device into a `IO.Stream`.
+
+  An `IO.Stream` implements both `Enumerable` and
+  `Collectable`, allowing it to be used for both read
+  and write.
+
+  The device is iterated line by line or by a number of bytes.
+  This reads the IO device as a raw binary.
 
   Note that an IO stream has side effects and every time
   you go over the stream you may get different results.
   """
   @spec binstream(device, :line | pos_integer) :: Enumerable.t
   def binstream(device, line_or_bytes) do
-    Stream.unfold(map_dev(device), &do_binstream(&1, line_or_bytes))
+    %IO.Stream{ device: map_dev(device), raw: true, line_or_bytes: line_or_bytes }
   end
 
   @doc false
-  def do_stream(device, what) do
+  def each_stream(device, what) do
     case read(device, what) do
       :eof ->
         nil
@@ -273,7 +338,7 @@ defmodule IO do
   end
 
   @doc false
-  def do_binstream(device, what) do
+  def each_binstream(device, what) do
     case binread(device, what) do
       :eof ->
         nil
@@ -287,7 +352,7 @@ defmodule IO do
   # Map the Elixir names for standard io and error to Erlang names
   defp map_dev(:stdio),  do: :standard_io
   defp map_dev(:stderr), do: :standard_error
-  defp map_dev(other),   do: other
+  defp map_dev(other) when is_atom(other) or is_pid(other) or is_tuple(other), do: other
 
   defp to_chardata(list) when is_list(list), do: list
   defp to_chardata(other), do: to_string(other)

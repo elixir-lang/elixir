@@ -2,7 +2,7 @@
 # The lockfile keeps the latest dependency information while the
 # manifest is used whenever a dependency is affected via any of the
 # deps.* tasks. We also keep the Elixir version in the manifest file.
-defmodule Mix.Deps.Lock do
+defmodule Mix.Dep.Lock do
   @moduledoc false
   @manifest ".compile.lock"
 
@@ -56,24 +56,23 @@ defmodule Mix.Deps.Lock do
     case File.read(lockfile) do
       { :ok, info } ->
         { value, _binding } = Code.eval_string(info)
-        value || []
+        # TODO: Remove Enum.into() once apps migrate to new lock
+        Enum.into(value || [], %{})
       { :error, _ } ->
-        []
+        %{}
     end
   end
 
   @doc """
   Receives a keyword list and writes it as the latest lock.
   """
-  def write(dict) do
-    sorted = lc { app, rev } inlist Enum.sort(dict), rev != nil, do: { app, rev }
-
-    unless sorted == read do
-      lines  = Enum.map_join sorted, ",\n  ", fn { app, rev } ->
-        ~s("#{app}": #{inspect rev, limit: :infinity})
-      end
-
-      File.write! lockfile, "[ " <> lines <> " ]\n"
+  def write(map) do
+    unless map == read do
+      lines =
+        for { app, rev } <- map, rev != nil do
+          ~s("#{app}": #{inspect rev, limit: :infinity})
+        end
+      File.write! lockfile, "%{" <> Enum.join(lines, ",\n  ") <> "}\n"
       touch
     end
   end

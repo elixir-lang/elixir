@@ -8,7 +8,7 @@ defmodule Mix.RebarTest do
   defmodule MyPath do
     @behaviour Mix.SCM
 
-    lc { name, arity } inlist Mix.SCM.Path.__info__(:functions) do
+    for { name, arity } <- Mix.SCM.Path.__info__(:functions) do
       args = tl Enum.map 0..arity, &{ :"x#{&1}", [], nil }
       def unquote(name)(unquote_splicing(args)) do
         Mix.SCM.Path.unquote(name)(unquote_splicing(args))
@@ -72,11 +72,10 @@ defmodule Mix.RebarTest do
   test "parse rebar dependencies from rebar.config" do
     Mix.Project.push(RebarAsDep)
 
-    deps = Mix.Deps.loaded
-    assert Enum.find(deps, &match?(Mix.Dep[app: :rebar_dep], &1))
+    deps = Mix.Dep.loaded([])
+    assert Enum.find(deps, &match?(%Mix.Dep{app: :rebar_dep}, &1))
 
-    assert Enum.find(deps, fn dep ->
-      Mix.Dep[app: app, opts: opts] = dep
+    assert Enum.find(deps, fn %Mix.Dep{app: app, opts: opts} ->
       if app == :git_rebar do
         assert Enum.find(opts, &match?({:git, "../../test/fixtures/git_rebar"}, &1))
         assert Enum.find(opts, &match?({:ref, "master"}, &1))
@@ -118,8 +117,8 @@ defmodule Mix.RebarTest do
       assert :git_rebar.any_function == :ok
       assert :rebar_dep.any_function == :ok
 
-      load_paths = Mix.Deps.loaded
-        |> Enum.map(&Mix.Deps.load_paths(&1))
+      load_paths = Mix.Dep.loaded([])
+        |> Enum.map(&Mix.Dep.load_paths(&1))
         |> Enum.concat
 
       assert File.exists?("_build/dev/lib/rebar_dep/ebin/rebar_dep.beam")

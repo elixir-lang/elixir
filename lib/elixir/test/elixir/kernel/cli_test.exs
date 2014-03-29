@@ -90,6 +90,21 @@ defmodule Kernel.CLI.ParallelCompilerTest do
     assert capture_io(fn ->
       assert [Bar, Foo] = Kernel.ParallelCompiler.files fixtures
     end) =~ "message_from_foo"
+  after
+    Enum.map [Foo, Bar], fn mod ->
+      :code.purge(mod)
+      :code.delete(mod)
+    end
+  end
+
+  test "compiles files with structs solving dependencies" do
+    fixtures = [fixture_path("parallel_struct/bar.ex"), fixture_path("parallel_struct/foo.ex")]
+    assert [Bar, Foo] = Kernel.ParallelCompiler.files(fixtures) |> Enum.sort
+  after
+    Enum.map [Foo, Bar], fn mod ->
+      :code.purge(mod)
+      :code.delete(mod)
+    end
   end
 
   test "does not hang on missing dependencies" do
@@ -114,7 +129,7 @@ defmodule Kernel.CLI.ParallelCompilerTest do
     assert msg =~ "* #{fixture_path "parallel_deadlock/bar.ex"} is missing module Foo"
   end
 
-  test "warnings_as_errors" do
+  test "warnings as errors" do
     warnings_as_errors = Code.compiler_options[:warnings_as_errors]
 
     try do

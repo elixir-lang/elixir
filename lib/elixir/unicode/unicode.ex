@@ -45,7 +45,7 @@ defmodule String.Unicode do
 
   def downcase(string), do: do_downcase(string) |> iolist_to_binary
 
-  lc { codepoint, _upper, lower, _title } inlist codes, lower && lower != codepoint do
+  for { codepoint, _upper, lower, _title } <- codes, lower && lower != codepoint do
     defp do_downcase(unquote(codepoint) <> rest) do
       unquote(:binary.bin_to_list(lower)) ++ downcase(rest)
     end
@@ -61,7 +61,7 @@ defmodule String.Unicode do
 
   def upcase(string), do: do_upcase(string) |> iolist_to_binary
 
-  lc { codepoint, upper, _lower, _title } inlist codes, upper && upper != codepoint do
+  for { codepoint, upper, _lower, _title } <- codes, upper && upper != codepoint do
     defp do_upcase(unquote(codepoint) <> rest) do
       unquote(:binary.bin_to_list(upper)) ++ do_upcase(rest)
     end
@@ -77,7 +77,7 @@ defmodule String.Unicode do
 
   def titlecase_once(""), do: { "", "" }
 
-  lc { codepoint, _upper, _lower, title } inlist codes, title && title != codepoint do
+  for { codepoint, _upper, _lower, title } <- codes, title && title != codepoint do
     def titlecase_once(unquote(codepoint) <> rest) do
       { unquote(title), rest }
     end
@@ -91,7 +91,7 @@ defmodule String.Unicode do
 
   def lstrip(""), do: ""
 
-  lc codepoint inlist whitespace do
+  for codepoint <- whitespace do
     def lstrip(unquote(codepoint) <> rest) do
       lstrip(rest)
     end
@@ -103,7 +103,7 @@ defmodule String.Unicode do
     do_rstrip(string, [], [])
   end
 
-  lc codepoint inlist whitespace do
+  for codepoint <- whitespace do
     c = :binary.bin_to_list(codepoint) |> :lists.reverse
 
     defp do_rstrip(unquote(codepoint) <> rest, acc1, acc2) do
@@ -129,7 +129,7 @@ defmodule String.Unicode do
     :lists.reverse do_split(string, "", [])
   end
 
-  lc codepoint inlist whitespace do
+  for codepoint <- whitespace do
     defp do_split(unquote(codepoint) <> rest, buffer, acc) do
       do_split(rest, "", add_buffer_to_acc(buffer, acc))
     end
@@ -213,35 +213,35 @@ defmodule String.Graphemes do
   end
 
   # Break on control
-  lc codepoint inlist cluster["CR"] ++ cluster["LF"] ++ cluster["Control"] do
+  for codepoint <- cluster["CR"] ++ cluster["LF"] ++ cluster["Control"] do
     def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
       { :binary.part(string, 0, unquote(size(codepoint))), rest }
     end
   end
 
   # Break on Prepend*
-  # lc codepoint inlist cluster["Prepend"] do
+  # for codepoint <- cluster["Prepend"] do
   #   def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
   #     next_prepend(rest, string, unquote(size(codepoint)))
   #   end
   # end
 
   # Handle Hangul L
-  lc codepoint inlist cluster["L"] do
+  for codepoint <- cluster["L"] do
     def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
       next_hangul_l(rest, string, unquote(size(codepoint)))
     end
   end
 
   # Handle Hangul T
-  lc codepoint inlist cluster["T"] do
+  for codepoint <- cluster["T"] do
     def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
       next_hangul_t(rest, string, unquote(size(codepoint)))
     end
   end
 
   # Handle Regional
-  lc codepoint inlist cluster["Regional_Indicator"] do
+  for codepoint <- cluster["Regional_Indicator"] do
     def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
       next_regional(rest, string, unquote(size(codepoint)))
     end
@@ -261,19 +261,19 @@ defmodule String.Graphemes do
   end
 
   # Handle Hangul L
-  lc codepoint inlist cluster["L"] do
+  for codepoint <- cluster["L"] do
     defp next_hangul_l(<< unquote(codepoint), rest :: binary >>, string, size) do
       next_hangul_l(rest, string, size + unquote(size(codepoint)))
     end
   end
 
-  lc codepoint inlist cluster["LV"] do
+  for codepoint <- cluster["LV"] do
     defp next_hangul_l(<< unquote(codepoint), rest :: binary >>, string, size) do
       next_hangul_v(rest, string, size + unquote(size(codepoint)))
     end
   end
 
-  lc codepoint inlist cluster["LVT"] do
+  for codepoint <- cluster["LVT"] do
     defp next_hangul_l(<< unquote(codepoint), rest :: binary >>, string, size) do
       next_hangul_t(rest, string, size + unquote(size(codepoint)))
     end
@@ -284,7 +284,7 @@ defmodule String.Graphemes do
   end
 
   # Handle Hangul V
-  lc codepoint inlist cluster["V"] do
+  for codepoint <- cluster["V"] do
     defp next_hangul_v(<< unquote(codepoint), rest :: binary >>, string, size) do
       next_hangul_v(rest, string, size + unquote(size(codepoint)))
     end
@@ -295,7 +295,7 @@ defmodule String.Graphemes do
   end
 
   # Handle Hangul T
-  lc codepoint inlist cluster["T"] do
+  for codepoint <- cluster["T"] do
     defp next_hangul_t(<< unquote(codepoint), rest :: binary >>, string, size) do
       next_hangul_t(rest, string, size + unquote(size(codepoint)))
     end
@@ -306,7 +306,7 @@ defmodule String.Graphemes do
   end
 
   # Handle regional
-  lc codepoint inlist cluster["Regional_Indicator"] do
+  for codepoint <- cluster["Regional_Indicator"] do
     defp next_regional(<< unquote(codepoint), rest :: binary >>, string, size) do
       next_regional(rest, string, size + unquote(size(codepoint)))
     end
@@ -317,7 +317,7 @@ defmodule String.Graphemes do
   end
 
   # Handle Extend+SpacingMark
-  lc codepoint inlist cluster["Extend"] ++ cluster["SpacingMark"]  do
+  for codepoint <- cluster["Extend"] ++ cluster["SpacingMark"]  do
     defp next_extend(<< unquote(codepoint), rest :: binary >>, string, size) do
       next_extend(rest, string, size + unquote(size(codepoint)))
     end
@@ -328,7 +328,7 @@ defmodule String.Graphemes do
   end
 
   # Handle Prepend
-  # lc codepoint inlist cluster["Prepend"] do
+  # for codepoint <- cluster["Prepend"] do
   #   defp next_prepend(<< unquote(codepoint), rest :: binary >>, string, size) do
   #     next_prepend(rest, string, size + unquote(size(codepoint)))
   #   end

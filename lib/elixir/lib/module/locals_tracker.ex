@@ -71,7 +71,7 @@ defmodule Module.LocalsTracker do
 
   defp reduce_reachable(d, vertex, vertices) do
     neighbours = :digraph.out_neighbours(d, vertex)
-    neighbours = (lc { _, _ } = t inlist neighbours, do: t) |> :ordsets.from_list
+    neighbours = (for { _, _ } = t <- neighbours, do: t) |> :ordsets.from_list
     remaining  = :ordsets.subtract(neighbours, vertices)
     vertices   = :ordsets.union(neighbours, vertices)
     :lists.foldl(&reduce_reachable(d, &1, &2), vertices, remaining)
@@ -144,10 +144,10 @@ defmodule Module.LocalsTracker do
   def collect_imports_conflicts(pid, all_defined) do
     d = :gen_server.call(pid, :digraph, @timeout)
 
-    lc { name, arity } inlist all_defined,
-       :digraph.in_neighbours(d, { :import, name, arity }) != [],
-       n = :digraph.out_neighbours(d, { :import, name, arity }),
-       n != [] do
+    for { name, arity } <- all_defined,
+        :digraph.in_neighbours(d, { :import, name, arity }) != [],
+        n = :digraph.out_neighbours(d, { :import, name, arity }),
+        n != [] do
       { n, name, arity }
     end
   end
@@ -174,7 +174,7 @@ defmodule Module.LocalsTracker do
     min = arity - default
     max = arity
 
-    invoked = lc { n, a } inlist reachable, n == name, a in min..max, do: a
+    invoked = for { n, a } <- reachable, n == name, a in min..max, do: a
 
     if invoked == [] do
       [{ :unused_def, tuple, kind }|acc]
@@ -261,7 +261,7 @@ defmodule Module.LocalsTracker do
   end
 
   def handle_cast({ :add_defaults, kind, { name, arity }, defaults }, { d, _ } = state) do
-    lc i inlist :lists.seq(arity - defaults, arity - 1) do
+    for i <- :lists.seq(arity - defaults, arity - 1) do
       handle_add_definition(d, kind, { name, i })
       handle_add_local(d, { name, i }, { name, i + 1 })
     end
@@ -269,8 +269,8 @@ defmodule Module.LocalsTracker do
   end
 
   def handle_cast({ :reattach, tuple, { in_neigh, out_neigh } }, { d, _ } = state) do
-    lc from inlist in_neigh, do: replace_edge(d, from, tuple)
-    lc to inlist out_neigh,  do: replace_edge(d, tuple, to)
+    for from <- in_neigh, do: replace_edge(d, from, tuple)
+    for to <- out_neigh, do: replace_edge(d, tuple, to)
     { :noreply, state }
   end
 

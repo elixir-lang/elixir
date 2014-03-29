@@ -172,7 +172,7 @@ defmodule Mix.ProjectStack do
   end
 
   def handle_cast(:clear_cache, State[] = state) do
-    { :noreply, state.update_cache(&Dict.empty/1) }
+    { :noreply, state.cache(HashDict.new) }
   end
 
   def handle_cast(request, state) do

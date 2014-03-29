@@ -130,10 +130,6 @@ defmodule KernelTest do
     assert apply(fn x -> x * 2 end, [2]) == 4
   end
 
-  test :__MODULE__ do
-    assert __MODULE__ == :"Elixir.KernelTest"
-  end
-
   test :function_from___ENV__ do
     assert __ENV__.function == { :test_function_from___ENV__, 1 }
   end

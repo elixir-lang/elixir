@@ -3,15 +3,33 @@ Code.require_file "test_helper.exs", __DIR__
 # A TestDict implementation used only for testing.
 defmodule TestDict do
   def new(list \\ []) when is_list(list) do
-    { TestDict, list }
+    %{__struct__: TestDict, list: list}
   end
 
-  def reduce({ TestDict, list }, acc, fun) do
-    Enumerable.reduce(list, acc, fun)
-  end
-
-  def size({ TestDict, list }) do
+  def size(%{__struct__: TestDict, list: list}) do
     length(list)
+  end
+
+  def update(%{__struct__: TestDict, list: list} = map, key, initial, fun) do
+    %{ map | list: update(list, key, initial, fun) }
+  end
+
+  def update([{key, value}|list], key, _initial, fun) do
+    [{key, fun.(value)}|list]
+  end
+
+  def update([{_, _} = e|list], key, initial, fun) do
+    [e|update(list, key, initial, fun)]
+  end
+
+  def update([], key, initial, _fun) do
+    [{key, initial}]
+  end
+
+  defimpl Enumerable do
+    def reduce(%{list: list}, acc, fun), do: Enumerable.List.reduce(list, acc, fun)
+    def member?(%{list: list}, other), do: Enumerable.List.member(list, other)
+    def count(%{list: list}), do: Enumerable.List.count(list)
   end
 end
 
@@ -21,15 +39,15 @@ defmodule DictTest.Common do
       import Enum, only: [sort: 1]
 
       defp new_dict(list \\ [{"first_key", 1}, {"second_key", 2}]) do
-        dict_impl.new list
+        Enum.into list, dict_impl.new
       end
 
       defp new_dict(list, transform) do
-        dict_impl.new list, transform
+        Enum.into list, dict_impl.new, transform
       end
 
       defp int_dict do
-        dict_impl.new [{1,1}]
+        Enum.into [{1,1}], dict_impl.new
       end
 
       test "access" do
@@ -42,18 +60,6 @@ defmodule DictTest.Common do
         dict = int_dict()
         assert dict[1] == 1
         assert dict[1.0] == nil
-      end
-
-      test "new/1" do
-        dict = new_dict()
-        assert Dict.size(dict) == 2
-        assert Enum.sort(dict) == [{"first_key", 1}, {"second_key", 2}]
-      end
-
-      test "new/2" do
-        dict = new_dict([{1}, {2}, {3}], fn {x} -> { <<x + 64>>, x } end)
-        assert Dict.size(dict) == 3
-        assert Enum.sort(dict) == [{"A", 1}, {"B", 2}, {"C", 3}]
       end
 
       test "get/2 and get/3" do
@@ -161,6 +167,8 @@ defmodule DictTest.Common do
         actual = Dict.merge(dict1, dict2)
         assert Dict.merge(dict1, dict2) |> Enum.sort ==
                [{"a", 3}, {"b", 2}, {"c", :a}, {"d", 0}]
+        assert Dict.merge(dict2, dict1) |> Enum.sort ==
+               [{"a", 1}, {"b", 2}, {"c", 3}, {"d", 0}]
       end
 
       test "merge/3" do
@@ -325,10 +333,6 @@ defmodule DictTest.Common do
         assert Dict.drop(dict, 1..3) == new_dict([])
       end
 
-      test "empty" do
-        assert Dict.empty(new_dict) == new_dict([])
-      end
-
       test "equal?/2" do
         dict1 = new_dict(a: 2, b: 3, f: 5, c: 123)
         dict2 = new_dict(a: 2, b: 3, f: 5, c: 123)
@@ -357,7 +361,7 @@ defmodule DictTest.Common do
         refute Dict.equal?(dict, TestDict.new([{1.0,1}]))
       end
 
-      test "implements Enumerable" do
+      test "is enumerable" do
         dict = new_dict()
         assert Enum.empty?(new_dict([]))
         refute Enum.empty?(dict)
@@ -365,6 +369,18 @@ defmodule DictTest.Common do
         refute Enum.member?(dict, { "first_key", 2 })
         assert Enum.count(dict) == 2
         assert Enum.reduce(dict, 0, fn({ k, v }, acc) -> v + acc end) == 3
+      end
+
+      test "is collectable" do
+        dict = new_dict()
+        assert Dict.size(dict) == 2
+        assert Enum.sort(dict) == [{"first_key", 1}, {"second_key", 2}]
+
+        dict = new_dict([{1}, {2}, {3}], fn {x} -> { <<x + 64>>, x } end)
+        assert Dict.size(dict) == 3
+        assert Enum.sort(dict) == [{"A", 1}, {"B", 2}, {"C", 3}]
+
+        assert Collectable.empty(new_dict) == new_dict([])
       end
 
       test "is zippable" do
@@ -394,4 +410,12 @@ defmodule Dict.ListDictTest do
 
   doctest Dict
   defp dict_impl, do: ListDict
+end
+
+defmodule Dict.MapDictTest do
+  use ExUnit.Case, async: true
+  use DictTest.Common
+
+  doctest Dict
+  defp dict_impl, do: Map
 end

@@ -268,9 +268,11 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns an integer which is the number of bytes needed to contain `bitstring`.
-  (That is, if the number of bits in `bitstring` is not divisible by 8, the resulting
-  number of bytes will be rounded up.)
+  Returns the number of bytes needed to contain `bitstring`.
+
+  That is, if the number of bits in `bitstring` is not divisible by 8,
+  the resulting number of bytes will be rounded up. This operation
+  happens in constant time.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -666,6 +668,16 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns `true` if `term` is a map; otherwise returns `false`.
+
+  Allowed in guard tests. Inlined by the compiler.
+  """
+  @spec is_map(term) :: boolean
+  def is_map(term) do
+    :erlang.is_map(term)
+  end
+
+  @doc """
   Returns the length of `list`.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -805,6 +817,18 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns the size of a map.
+
+  This operation happens in constant time.
+
+  Allowed in guard tests. Inlined by the compiler.
+  """
+  @spec map_size(map) :: non_neg_integer
+  def map_size(map) do
+    :erlang.map_size(map)
+  end
+
+  @doc """
   Return the biggest of the two given terms according to
   Erlang's term ordering. If the terms compare equal, the
   first one is returned.
@@ -930,7 +954,7 @@ defmodule Kernel do
   @doc """
   Returns the size of the given argument, which must be a tuple or a binary.
 
-  Prefer using `tuple_size` or `byte_size` insted.
+  Prefer using `tuple_size/1` or `byte_size/1` instead.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -1024,7 +1048,7 @@ defmodule Kernel do
   end
 
   @doc """
-  A non-local return from a function. Check `try/2` for more information.
+  A non-local return from a function. Check `Kernel.SpecialForms.try/1` for more information.
 
   Inlined by the compiler.
   """
@@ -1061,6 +1085,8 @@ defmodule Kernel do
 
   @doc """
   Returns the size of a tuple.
+
+  This operation happens in constant time.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -1739,24 +1765,6 @@ defmodule Kernel do
     end
   end
 
-  @doc false
-  defmacro is_regex(thing) do
-    IO.puts :stderr, "is_regex/1 is deprecated in favor of Regex.regex?/1\n" <>
-                     Exception.format_stacktrace(__CALLER__.stacktrace)
-    quote do
-      Kernel.is_record(unquote(thing), Regex)
-    end
-  end
-
-  @doc false
-  defmacro is_range(thing) do
-    IO.puts :stderr, "is_range/1 is deprecated in favor of Range.range?/1\n" <>
-                     Exception.format_stacktrace(__CALLER__.stacktrace)
-    quote do
-      Kernel.is_record(unquote(thing), Range)
-    end
-  end
-
   @doc """
   Matches the term on the left against the regular expression or string on the
   right. Returns true if `left` matches `right` (if it's a regular expression)
@@ -1795,8 +1803,8 @@ defmodule Kernel do
 
   The following options are supported:
 
-  * `:records` - when false, records are not formatted by the inspect protocol,
-                 they are instead printed as just tuples, defaults to true;
+  * `:structs` - when false, structs are not formatted by the inspect protocol,
+                 they are instead printed as maps, defaults to true;
 
   * `:binaries` - when `:as_strings` all binaries will be printed as strings,
                   non-printable bytes will be escaped; when `:as_binaries` all
@@ -1826,12 +1834,6 @@ defmodule Kernel do
       iex> inspect [1, 2, 3, 4, 5], limit: 3
       "[1, 2, 3, ...]"
 
-      iex> inspect(ArgumentError[])
-      "ArgumentError[message: \"argument error\"]"
-
-      iex> inspect(ArgumentError[], records: false)
-      "{ArgumentError, :__exception__, \"argument error\"}"
-
       iex> inspect("josé" <> <<0>>)
       "<<106, 111, 115, 195, 169, 0>>"
 
@@ -1845,7 +1847,7 @@ defmodule Kernel do
   representation of an Elixir term. In such cases, the inspected result
   must start with `#`. For example, inspecting a function will return:
 
-      inspect &(&1 + &2)
+      inspect fn a, b -> a + b end
       #=> #Function<...>
 
   """
@@ -2143,13 +2145,13 @@ defmodule Kernel do
   end
 
   defp do_binding(context, vars, in_match) do
-    lc { v, c } inlist vars, c == context, v != :_@CALLER do
+    for { v, c } <- vars, c == context, v != :_@CALLER do
       { v, wrap_binding(in_match, { v, [], c }) }
     end
   end
 
   defp do_binding(list, context, vars, in_match) do
-    lc { v, c } inlist vars, c == context, :lists.member(v, list) do
+    for { v, c } <- vars, c == context, :lists.member(v, list) do
       { v, wrap_binding(in_match, { v, [], c }) }
     end
   end
@@ -2353,7 +2355,7 @@ defmodule Kernel do
               unquote(item) = nil
           end
         end
-      { :case, [{:export_all,true}|meta], args }
+      { :case, [{:export_head,true}|meta], args }
     end
   end
 
@@ -2447,34 +2449,51 @@ defmodule Kernel do
   end
 
   @doc """
-  `|>` is called the pipeline operator as it is useful
-  to write pipeline style expressions. This operator
-  introduces the expression on the left as the first
-  argument to the function call on the right.
+  `|>` is the pipe operator.
+
+  This operator introduces the expression on the left as
+  the first argument to the function call on the right.
 
   ## Examples
 
-      iex> [1, [2], 3] |> List.flatten |> Enum.map(&(&1 * 2))
-      [2,4,6]
+      iex> [1, [2], 3] |> List.flatten()
+      [1, 2, 3]
 
-  The expression above is simply translated to:
+  The example above is the same as calling `List.flatten([1, [2], 3])`,
+  i.e. the argument on the left side of `|>` is introduced as the first
+  argument of the function call on the right side.
 
-      Enum.map(List.flatten([1, [2], 3]), &(&1 * 2))
+  This pattern is mostly useful when there is a desire to execute
+  a bunch of operations, resembling a pipeline:
 
-  Be aware of operator precedence when using this operator.
+      iex> [1, [2], 3] |> List.flatten |> Enum.map(fn x -> x * 2 end)
+      [2, 4, 6]
+
+  The example above will pass the list to `List.flatten/1`, then get
+  the flattened list and pass to `Enum.map/2`, which will multiply
+  each entry in the list per two.
+
+  In other words, the expression above simply translates to:
+
+      Enum.map(List.flatten([1, [2], 3]), fn x -> x * 2 end)
+
+  Beware of operator precedence when using the pipe operator.
   For example, the following expression:
 
       String.graphemes "Hello" |> Enum.reverse
 
-  Is translated to:
+  Translates to:
 
       String.graphemes("Hello" |> Enum.reverse)
 
-  Which will result in an error as Enumerable protocol
-  is not defined for binaries. Adding explicit parenthesis
-  resolves the ambiguity:
+  Which will result in an error as Enumerable protocol is not defined
+  for binaries. Adding explicit parenthesis resolves the ambiguity:
 
       String.graphemes("Hello") |> Enum.reverse
+
+  Or, even better:
+
+      "Hello" |> String.graphemes |> Enum.reverse
 
   """
   defmacro left |> right do
@@ -2526,50 +2545,6 @@ defmodule Kernel do
       sample = [a: 1, b: 2, c: 3]
       sample[:b] #=> 2
 
-  ## Aliases
-
-  Whenever invoked on an alias or an atom, the access protocol is
-  expanded at compilation time rather than on runtime. This feature
-  is used by records to allow a developer to match against an specific
-  part of a record:
-
-      def increment(State[counter: counter, other: 13] = state) do
-        state.counter(counter + 1)
-      end
-
-  In the example above, we use the Access protocol to match the
-  counter field in the record `State`. Considering the record
-  definition is as follows:
-
-      defrecord State, counter: 0, other: nil
-
-  The clause above is translated to:
-
-      def increment({ State, counter, 13 } = state) do
-        state.counter(counter + 1)
-      end
-
-  The same pattern can be used to create a new record:
-
-      def new_state(counter) do
-        State[counter: counter]
-      end
-
-  The example above is faster than `State.new(counter: :counter)` because
-  the record is expanded at compilation time and not at runtime. If a field
-  is not specified on creation, it will have its default value.
-
-  Finally, as in Erlang, Elixir also allows the following syntax:
-
-      new_uri = State[_: 1]
-
-  In this case **all** fields will be set to `1`. Notice that,
-  as in Erlang, in case an expression is given, it will be
-  evaluated multiple times:
-
-      new_uri = State[_: IO.puts "Hello"]
-
-  In this case, `"Hello"` will be printed twice (one per each field).
   """
   defmacro access(element, args) when is_list(args) do
     caller = __CALLER__
@@ -2626,7 +2601,7 @@ defmodule Kernel do
 
   ## Guards
 
-  The in operator can be used on guard clauses as long as the
+  The `in` operator can be used on guard clauses as long as the
   right side is a range or a list. Elixir will then expand the
   operator to a valid guard expression. For example:
 
@@ -3146,9 +3121,7 @@ defmodule Kernel do
        [bar: nil | integer]
 
   """
-  defmacro defrecord(name, fields, do_block \\ [])
-
-  defmacro defrecord(name, fields, do_block) do
+  defmacro defrecord(name, fields, do_block \\ []) do
     case is_list(fields) and Keyword.get(fields, :do, false) do
       false -> Record.defrecord(name, fields, do_block)
       other -> Record.defrecord(name, Keyword.delete(fields, :do), do: other)
@@ -3213,6 +3186,46 @@ defmodule Kernel do
   """
   defmacro defrecordp(name, tag \\ nil, fields) do
     Record.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
+  end
+
+  @doc """
+  Defines the current module as a struct.
+
+  A struct is a tagged map that allows developers to provide
+  default values for keys, tags to be used in polymorphic
+  dispatches and compile time assertions.
+
+  To define a struct, a developer needs to only define
+  a function named `__struct__/0` that returns a map with the
+  structs field. This macro is simply a convenience for doing so.
+
+  Finally, this macro also defines a type t in the current
+  module unless one was previously defined.
+
+  ## Examples
+
+      defmodule MyRange do
+        defstruct first: nil, last: nil
+      end
+
+  """
+  defmacro defstruct(opts) do
+    quote bind_quoted: [opts: opts] do
+      opts = Enum.map(opts, fn
+        { key, _ } = pair when is_atom(key) -> pair
+        key when is_atom(key) -> { key, nil }
+        other -> raise ArgumentError, message: "struct fields must be atoms, got: #{inspect other}"
+      end)
+
+      if :code.ensure_loaded(Kernel.Typespec) == { :module, Kernel.Typespec } and
+         not Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
+        @type t :: map
+      end
+
+      def __struct__() do
+        %{ unquote_splicing(Macro.escape(opts)), __struct__: __MODULE__ }
+      end
+    end
   end
 
   @doc ~S"""
@@ -3580,7 +3593,7 @@ defmodule Kernel do
 
       append_first = Keyword.get(opts, :append_first, false)
 
-      lc fun inlist List.wrap(funs) do
+      for fun <- List.wrap(funs) do
         { name, args } =
           case Macro.decompose_call(fun) do
             { _, _ } = pair -> pair
@@ -3774,14 +3787,14 @@ defmodule Kernel do
       true ->
         case mod do
           ?s -> String.split(string)
-          ?a -> lc p inlist String.split(string), do: binary_to_atom(p)
-          ?c -> lc p inlist String.split(string), do: String.to_char_list!(p)
+          ?a -> for p <- String.split(string), do: binary_to_atom(p)
+          ?c -> for p <- String.split(string), do: String.to_char_list!(p)
         end
       false ->
         case mod do
           ?s -> quote do: String.split(unquote(string))
-          ?a -> quote do: lc(p inlist String.split(unquote(string)), do: binary_to_atom(p))
-          ?c -> quote do: lc(p inlist String.split(unquote(string)), do: String.to_char_list!(p))
+          ?a -> quote do: for(p <- String.split(unquote(string)), do: binary_to_atom(p))
+          ?c -> quote do: for(p <- String.split(unquote(string)), do: String.to_char_list!(p))
         end
     end
   end

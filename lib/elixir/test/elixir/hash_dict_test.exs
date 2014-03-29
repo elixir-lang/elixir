@@ -3,10 +3,10 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule HashDictTest do
   use ExUnit.Case, async: true
 
-  @dict HashDict.new(foo: :bar)
+  @dict Enum.into([foo: :bar], HashDict.new)
 
   test "is serializable as attribute" do
-    assert @dict == HashDict.new(foo: :bar)
+    assert @dict == Enum.into([foo: :bar], HashDict.new)
   end
 
   test "is accessible as attribute" do
@@ -48,13 +48,9 @@ defmodule HashDictTest do
     assert list == Enum.to_list(dict)
   end
 
-  test "inspect" do
-    assert inspect(filled_dict(8)) =~ "#HashDict<"
-  end
-
   test "comparison when subsets" do
-    d1 = HashDict.new(a: 0)
-    d2 = HashDict.new(a: 0, b: 1)
+    d1 = Enum.into [a: 0], HashDict.new
+    d2 = Enum.into [a: 0, b: 1], HashDict.new
 
     refute HashDict.equal?(d1, d2)
     refute HashDict.equal?(d2, d1)

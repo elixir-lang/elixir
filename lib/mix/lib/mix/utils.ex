@@ -1,32 +1,23 @@
 defmodule Mix.Utils do
   @moduledoc """
   Utilities used throughout Mix and tasks.
-
-  ## Conversions
-
-  This module handles two types of conversions:
-
-  * From command names to module names, i.e. how the command
-    `deps.get` translates to `Deps.Get` and vice-versa;
-
-  * From underscore to CamelCase, i.e. how the file path
-    `my_project` translates to `MyProject`;
-
   """
 
   @doc """
-  Gets the mix home. It defaults to `~/.mix` unless the
-  `MIX_HOME` environment variable is set.
+  Get the mix home.
+
+  It defaults to `~/.mix` unless the `MIX_HOME`
+  environment variable is set.
   """
   def mix_home do
     System.get_env("MIX_HOME") || Path.expand("~/.mix")
   end
 
   @doc """
-  Gets all extra paths defined in the environment variable
-  `MIX_PATH`. `MIX_PATH` may contain multiple paths. If on Windows,
-  those paths should be separated by `;`, if on unix systems,
-  use `:`.
+  Get all paths defined in the MIX_PATH env variable.
+
+  `MIX_PATH` may contain multiple paths. If on Windows, those
+  paths should be separated by `;`, if on unix systems, use `:`.
   """
   def mix_paths do
     if path = System.get_env("MIX_PATH") do
@@ -44,7 +35,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Takes a `command` name and attempts to load a module
+  Take a `command` name and attempts to load a module
   with the command name converted to a module name
   in the given `at` scope.
 
@@ -53,8 +44,8 @@ defmodule Mix.Utils do
 
   ## Examples
 
-      Mix.Utils.command_to_module("compile", Mix.Tasks)
-      #=> { :module, Mix.Tasks.Compile }
+      iex> Mix.Utils.command_to_module("compile", Mix.Tasks)
+      { :module, Mix.Tasks.Compile }
 
   """
   def command_to_module(command, at \\ Elixir) do
@@ -130,9 +121,15 @@ defmodule Mix.Utils do
   @doc """
   Extract files from a list of paths.
 
-  If any of the paths is a directory, the directory is looped
-  recursively searching for the given extensions or the given pattern.
-  When looking up directories, files starting with "." are ignored.
+  `exts_or_pattern` may be a list of extensions or a
+  `Path.wildcard/1` pattern.
+
+  If the path in `paths` is a file, it is included in
+  the return result. If it is a directory, it is searched
+  recursively for files with the given extensions or matching
+  the given patterns.
+
+  Any file starting with `"."` is ignored.
   """
   def extract_files(paths, exts_or_pattern)
 
@@ -141,7 +138,7 @@ defmodule Mix.Utils do
   end
 
   def extract_files(paths, pattern) do
-    files = Enum.concat(lc path inlist paths do
+    files = Enum.flat_map(paths, fn path ->
       if File.regular?(path), do: [path], else: Path.wildcard("#{path}/**/#{pattern}")
     end)
     files |> exclude_files |> Enum.uniq
@@ -178,9 +175,12 @@ defmodule Mix.Utils do
 
   ## Examples
 
-      Mix.Utils.underscore "FooBar"  #=> "foo_bar"
-      Mix.Utils.underscore "Foo.Bar" #=> "foo/bar"
-      Mix.Utils.underscore Foo.Bar   #=> "foo/bar"
+      iex> Mix.Utils.underscore "FooBar"
+      "foo_bar"
+      iex> Mix.Utils.underscore "Foo.Bar"
+      "foo/bar"
+      iex> Mix.Utils.underscore Foo.Bar
+      "foo/bar"
 
   In general, `underscore` can be thought of as the reverse of
   `camelize`, however, in some cases formatting may be lost:
@@ -235,7 +235,8 @@ defmodule Mix.Utils do
 
   ## Examples
 
-      Mix.Utils.camelize "foo_bar" #=> "FooBar"
+      iex> Mix.Utils.camelize "foo_bar"
+      "FooBar"
 
   """
   def camelize(""), do: ""
@@ -273,17 +274,18 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Takes a module and converts it to a command. The nesting
-  argument can be given in order to remove the nesting of a
-  module.
+  Takes a module and converts it to a command.
+
+  The nesting argument can be given in order to remove
+  the nesting of a module.
 
   ## Examples
 
-      module_name_to_command(Mix.Tasks.Compile, 2)
-      #=> "compile"
+      iex> Mix.Utils.module_name_to_command(Mix.Tasks.Compile, 2)
+      "compile"
 
-      module_name_to_command("Mix.Tasks.Compile.Elixir", 2)
-      #=> "compile.elixir"
+      iex> Mix.Utils.module_name_to_command("Mix.Tasks.Compile.Elixir", 2)
+      "compile.elixir"
 
   """
   def module_name_to_command(module, nesting \\ 0)
@@ -302,8 +304,8 @@ defmodule Mix.Utils do
 
   ## Examples
 
-      command_to_module_name("compile.elixir")
-      #=> "Compile.Elixir"
+      iex> Mix.Utils.command_to_module_name("compile.elixir")
+      "Compile.Elixir"
 
   """
   def command_to_module_name(s) do
@@ -326,8 +328,10 @@ defmodule Mix.Utils do
 
   @doc """
   Symlink directory `source` to `target` or copy it recursively
-  in case symlink fails. Expect source and target to be absolute
-  paths as it generates a relative symlink.
+  in case symlink fails.
+
+  Expect source and target to be absolute paths as it generates
+  a relative symlink.
   """
   def symlink_or_copy(source, target) do
     if File.exists?(source) do
@@ -394,15 +398,15 @@ defmodule Mix.Utils do
   end
 
   defp read_url(path) do
-    if URI.parse(path).scheme == "https" do
-      :ssl.start
-    end
-
+    :ssl.start
     :inets.start
 
-    case :httpc.request(:binary.bin_to_list(path)) do
+    headers = [ { 'user-agent', 'Mix/#{System.version}' } ]
+    request = { :binary.bin_to_list(path), headers }
+
+    case :httpc.request(:get, request, [], body_format: :binary) do
       { :ok, { { _, status, _ }, _, body } } when status in 200..299 ->
-        :binary.list_to_bin(body)
+        body
       { :ok, { { _, status, _ }, _, _ } } ->
         raise Mix.Error, message: "Could not access url #{path}, got status: #{status}"
       { :error, reason } ->

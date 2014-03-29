@@ -31,34 +31,19 @@ defmodule HashSet do
     trie()
   end
 
-  @doc """
-  Creates a new set from the given enumerable.
-
-  ## Examples
-
-      HashSet.new [1, 2]
-      #=> #HashSet<[1, 2]>
-
-  """
+  @doc false
   @spec new(Enum.t) :: Set.t
   def new(enum) do
+    IO.write :stderr, "HashSet.new/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
     Enum.reduce enum, trie(), fn i, set ->
       put(set, i)
     end
   end
 
-  @doc """
-  Creates a new set from the enumerable with the
-  help of the transformation function.
-
-  ## Examples
-
-      HashSet.new [1, 2], &integer_to_binary/1
-      #=> #HashSet<[1, 2]>
-
-  """
+  @doc false
   @spec new(Enum.t, (term -> term)) :: Set.t
   def new(enum, transform) when is_function(transform) do
+    IO.write :stderr, "HashSet.new/2 is deprecated, please use Enum.into/3 instead\n#{Exception.format_stacktrace}"
     Enum.reduce enum, trie(), fn i, set ->
       put(set, transform.(i))
     end
@@ -112,6 +97,7 @@ defmodule HashSet do
   end
 
   def empty(trie()) do
+    IO.write :stderr, "HashSet.empty/1 is deprecated, please use Collectable.empty/1 instead\n#{Exception.format_stacktrace}"
     trie()
   end
 
@@ -131,6 +117,7 @@ defmodule HashSet do
     end
   end
 
+  @doc false
   def reduce(trie(root: root), acc, fun) do
     do_reduce(root, acc, fun, @node_size, fn
       {:suspend, acc} -> {:suspended, acc, &{ :done, elem(&1, 1) }}
@@ -280,4 +267,18 @@ defimpl Enumerable, for: HashSet do
   def reduce(set, acc, fun), do: HashSet.reduce(set, acc, fun)
   def member?(set, v),       do: { :ok, HashSet.member?(set, v) }
   def count(set),            do: { :ok, HashSet.size(set) }
+end
+
+defimpl Collectable, for: HashSet do
+  def empty(_dict) do
+    HashSet.new
+  end
+
+  def into(original) do
+    { original, fn
+      set, { :cont, x } -> HashSet.put(set, x)
+      set, :done -> set
+      _, :halt -> :ok
+    end }
+  end
 end
