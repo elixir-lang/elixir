@@ -54,7 +54,7 @@ defmodule Mix.Dep.Converger do
       all(main, [], [], apps, callback, rest, fn dep ->
         if not nil?(rest) &&
            converger &&
-           converger.remote?(dep.app) do
+           converger.remote?(dep) do
           { :loaded, dep }
         else
           { :unloaded, dep }
@@ -70,7 +70,7 @@ defmodule Mix.Dep.Converger do
         converged_deps = converger.converge(deps)
                          |> Enum.into(HashDict.new, to_dict)
         deps = deps
-               |> Enum.reject(&converger.remote?(&1.app))
+               |> Enum.reject(&converger.remote?(&1))
                |> Enum.into(HashDict.new, to_dict)
 
         all(main, [], [], apps, callback, rest, fn dep ->
