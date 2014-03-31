@@ -51,6 +51,13 @@ defmodule Mix.CLITest do
     end
   end
 
+  test "no task error" do
+    in_fixture "no_mixfile", fn ->
+      contents = mix("no_task")
+      assert contents =~ "** (Mix) The task no_task could not be found\n"
+    end
+  end
+
   test "--help smoke test" do
     in_fixture "only_mixfile", fn ->
       output = mix "--help"
