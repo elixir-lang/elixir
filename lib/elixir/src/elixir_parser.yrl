@@ -5,7 +5,7 @@ Nonterminals
   op_expr matched_op_expr no_parens_op_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol
   add_op_eol mult_op_eol exp_op_eol two_op_eol pipe_op_eol stab_op_eol
-  arrow_op_eol match_op_eol when_op_eol in_op_eol in_match_op_eol
+  arrow_op_eol match_op_eol when_op_eol in_op_eol in_match_op_eol type_op_eol
   open_paren close_paren empty_paren
   list list_args open_bracket close_bracket
   tuple open_curly close_curly
@@ -28,7 +28,7 @@ Terminals
   fn 'end' aliases
   number signed_number atom atom_string bin_string list_string sigil
   dot_call_op op_identifier
-  comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
+  comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op type_op
   dual_op add_op mult_op exp_op two_op pipe_op stab_op when_op assoc_op
   'true' 'false' 'nil' 'do' eol ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
@@ -45,11 +45,12 @@ Expect 2.
 Left       5 do.
 Right     10 stab_op_eol.     %% ->
 Left      20 ','.
-Left      40 in_match_op_eol. %% <-, inlist, inbits, \\, :: (allowed in matches along =)
-Right     50 pipe_op_eol.     %% |
-Right     60 assoc_op_eol.    %% =>
-Right     70 when_op_eol.     %% when
-Right     80 match_op_eol.    %% =
+Left      40 in_match_op_eol. %% <-, inlist, inbits, \\ (allowed in matches along =)
+Right     50 when_op_eol.     %% when
+Right     60 type_op_eol.     %% ::
+Right     70 pipe_op_eol.     %% |
+Right     80 assoc_op_eol.    %% =>
+Right     90 match_op_eol.    %% =
 Left     130 or_op_eol.       %% ||, |||, or, xor
 Left     140 and_op_eol.      %% &&, &&&, and
 Left     150 comp_op_eol.     %% <, >, <=, >=, ==, !=, =~, ===, !==
@@ -138,6 +139,7 @@ op_expr -> and_op_eol expr : { '$1', '$2' }.
 op_expr -> or_op_eol expr : { '$1', '$2' }.
 op_expr -> in_op_eol expr : { '$1', '$2' }.
 op_expr -> in_match_op_eol expr : { '$1', '$2' }.
+op_expr -> type_op_eol expr : { '$1', '$2' }.
 op_expr -> when_op_eol expr : { '$1', '$2' }.
 op_expr -> pipe_op_eol expr : { '$1', '$2' }.
 op_expr -> comp_op_eol expr : { '$1', '$2' }.
@@ -152,6 +154,7 @@ no_parens_op_expr -> and_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> or_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> in_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> in_match_op_eol no_parens_expr : { '$1', '$2' }.
+no_parens_op_expr -> type_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> pipe_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> comp_op_eol no_parens_expr : { '$1', '$2' }.
 no_parens_op_expr -> arrow_op_eol no_parens_expr : { '$1', '$2' }.
@@ -169,6 +172,7 @@ matched_op_expr -> and_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> or_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> in_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> in_match_op_eol matched_expr : { '$1', '$2' }.
+matched_op_expr -> type_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> when_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> pipe_op_eol matched_expr : { '$1', '$2' }.
 matched_op_expr -> comp_op_eol matched_expr : { '$1', '$2' }.
@@ -322,6 +326,9 @@ in_op_eol -> in_op eol : '$1'.
 
 in_match_op_eol -> in_match_op : '$1'.
 in_match_op_eol -> in_match_op eol : '$1'.
+
+type_op_eol -> type_op : '$1'.
+type_op_eol -> type_op eol : '$1'.
 
 when_op_eol -> when_op : '$1'.
 when_op_eol -> when_op eol : '$1'.

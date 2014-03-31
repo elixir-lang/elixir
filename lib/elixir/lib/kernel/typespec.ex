@@ -361,13 +361,13 @@ defmodule Kernel.Typespec do
       |> Enum.uniq
       |> Enum.map(&{ &1, { :var, meta, nil } })
 
-    result = if vars == [] do
-      typespec_to_ast(result)
-    else
-      { :when, meta, [typespec_to_ast(result), vars] }
-    end
+    spec = { :::, meta, [body, typespec_to_ast(result)] }
 
-    { :::, meta, [body, result] }
+    if vars == [] do
+      spec
+    else
+      { :when, meta, [spec, vars] }
+    end
   end
 
   def spec_to_ast(name, { :type, line, :fun, [] }) do
@@ -376,23 +376,23 @@ defmodule Kernel.Typespec do
 
   def spec_to_ast(name, { :type, line, :bounded_fun, [{ :type, _, :fun, [{ :type, _, :product, args }, result] }, constraints] }) do
     guards =
-      for {:type, _, :constraint, [{:atom, _, :is_subtype}, [{ :var, _, var }, type]]} <- constraints do
+      for { :type, _, :constraint, [{ :atom, _, :is_subtype }, [{ :var, _, var }, type]] } <- constraints do
         { var, typespec_to_ast(type) }
       end
 
     meta = [line: line]
 
     vars = args ++ [result]
-      |> Enum.flat_map(&collect_vars/1)
-      |> Enum.uniq
-      |> Kernel.--(Keyword.keys(guards))
-      |> Enum.map(&{ &1, { :var, meta, nil } })
+           |> Enum.flat_map(&collect_vars/1)
+           |> Enum.uniq
+           |> Kernel.--(Keyword.keys(guards))
+           |> Enum.map(&{ &1, { :var, meta, nil } })
 
     args = for arg <- args, do: typespec_to_ast(arg)
 
-    { :::, meta, [
-      { name, [line: line], args },
-      { :when, meta, [typespec_to_ast(result), guards ++ vars] }
+    { :when, meta, [
+      { :::, meta, [{ name, [line: line], args }, typespec_to_ast(result)] },
+      guards ++ vars
     ] }
   end
 
@@ -542,9 +542,17 @@ defmodule Kernel.Typespec do
   end
 
   @doc false
-  def defspec(type, { :::, meta, [{ name, _, args }, return_and_guard] }, caller) when is_atom(name) and name != ::: do
+
+  def defspec(type, { :when, _meta, [spec, guard] }, caller) do
+    defspec(type, spec, guard, caller)
+  end
+
+  def defspec(type, spec, caller) do
+    defspec(type, spec, [], caller)
+  end
+
+  defp defspec(type, { :::, meta, [{ name, _, args }, return] }, guard, caller) when is_atom(name) and name != ::: do
     if is_atom(args), do: args = []
-    { return, guard } = split_return_and_guard(return_and_guard)
 
     unless Keyword.keyword?(guard) do
       guard = Macro.to_string(guard)
@@ -564,22 +572,9 @@ defmodule Kernel.Typespec do
     code
   end
 
-  def defspec(_type, other, caller) do
-    spec = Macro.to_string(other)
+  defp defspec(_type, spec, _guard, caller) do
+    spec = Macro.to_string(spec)
     compile_error caller, "invalid function type specification: #{spec}"
-  end
-
-  defp split_return_and_guard({ :when, _, [return, guard] }) do
-    { return, guard }
-  end
-
-  defp split_return_and_guard({ :|, meta, [left, right] }) do
-    { return, guard } = split_return_and_guard(right)
-    { { :|, meta, [left, return] }, guard }
-  end
-
-  defp split_return_and_guard(other) do
-    { other, [] }
   end
 
   defp guard_to_constraints(guard, vars, meta, caller) do
