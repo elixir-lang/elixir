@@ -94,7 +94,7 @@ defmodule Float do
   end
 
   @doc """
-  Round a float to the largest integer less than or equal to `num`
+  Rounds a float to the largest integer less than or equal to `num`.
 
   ## Examples
 
@@ -117,7 +117,7 @@ defmodule Float do
   end
 
   @doc """
-  Round a float to the largest integer greater than or equal to `num`
+  Rounds a float to the largest integer greater than or equal to `num`.
 
   ## Examples
 
@@ -158,5 +158,4 @@ defmodule Float do
   def round(number, precision) when is_float(number) and is_integer(precision) and precision in 0..15 do
     Kernel.round(number * :math.pow(10, precision)) / :math.pow(10, precision)
   end
-
 end
