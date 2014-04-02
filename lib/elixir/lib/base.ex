@@ -40,7 +40,7 @@ defmodule Base do
   Encodes a binary string into a base 16 encoded string.
 
   By default an uppercase alphabet is used. An alternate lowercase alphabet
-  can be selected by setting the `lowercase` option set to `true`.
+  can be selected by setting the `lowercase` option to `true`.
 
   ## Examples
 
@@ -73,7 +73,7 @@ defmodule Base do
   |      3|         3|      7|         7|     11|         B|     15|         F|
 
   By default an uppercase alphabet is used. An alternate lowercase alphabet
-  can be selected by setting the `lowercase` option set to `true`.
+  can be selected by setting the `lowercase` option to `true`.
 
   ## Examples
 
@@ -95,7 +95,7 @@ defmodule Base do
   Decodes a base 16 encoded string into a binary string.
 
   By default an uppercase alphabet is used. An alternate lowercase alphabet
-  can be selected by setting the `lowercase` option set to `true`.
+  can be selected by setting the `lowercase` option to `true`.
 
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
@@ -263,7 +263,7 @@ defmodule Base do
   Encodes a binary string into a base 32 encoded string.
 
   By default an uppercase alphabet is used. An alternate lowercase alphabet
-  can be selected by setting the `lowercase` option set to `true`.
+  can be selected by setting the `lowercase` option to `true`.
 
   ## Examples
 
@@ -301,7 +301,7 @@ defmodule Base do
   |      8|         I|     17|         R|     26|         2|       |          |
 
   By default an uppercase alphabet is used. An alternate lowercase alphabet
-  can be selected by setting the `lowercase` option set to `true`.
+  can be selected by setting the `lowercase` option to `true`.
 
   ## Examples
 
@@ -323,7 +323,7 @@ defmodule Base do
   Decodes a base 32 encoded string into a binary string.
 
   By default an uppercase alphabet is used. An alternate lowercase alphabet
-  can be selected by setting the `lowercase` option set to `true`.
+  can be selected by setting the `lowercase` option to `true`.
 
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
@@ -351,7 +351,7 @@ defmodule Base do
   extended hexadecimal alphabet.
 
   By default an uppercase alphabet is used. An alternate lowercase alphabet
-  can be selected by setting the `lowercase` option set to `true`.
+  can be selected by setting the `lowercase` option to `true`.
 
   ## Examples
 
@@ -390,7 +390,7 @@ defmodule Base do
   |      8|         8|     17|         H|     26|         Q|       |          |
 
   By default an uppercase alphabet is used. An alternate lowercase alphabet
-  can be selected by setting the `lowercase` option set to `true`.
+  can be selected by setting the `lowercase` option to `true`.
 
   ## Examples
 
