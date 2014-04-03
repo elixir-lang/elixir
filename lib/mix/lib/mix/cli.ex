@@ -58,11 +58,15 @@ defmodule Mix.CLI do
 
       # If the task is not available, let's try to
       # compile the repository and then run it again.
-      if Mix.Task.get(name) do
-        Mix.Task.run(name, args)
-      else
-        Mix.Task.run("compile")
-        Mix.Task.run(name, args)
+      cond do
+        Mix.Task.get(name) ->
+          Mix.Task.run(name, args)
+        Mix.Project.get ->
+          Mix.Task.run("compile")
+          Mix.Task.run(name, args)
+        true ->
+          # Raise no task error
+          Mix.Task.get!(name)
       end
     rescue
       # We only rescue exceptions in the mix namespace, all

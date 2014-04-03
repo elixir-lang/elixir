@@ -118,6 +118,7 @@ defmodule Mix.SCM do
   Prepend the given SCM module to the list of available SCMs.
   """
   def prepend(mod) when is_atom(mod) do
+    available = Enum.reject(available(), &(&1 == mod))
     :application.set_env(:mix, :scm, [mod|available])
   end
 
@@ -125,6 +126,7 @@ defmodule Mix.SCM do
   Aopend the given SCM module to the list of available SCMs.
   """
   def append(mod) when is_atom(mod) do
+    available = Enum.reject(available(), &(&1 == mod))
     :application.set_env(:mix, :scm, available ++ [mod])
   end
 end

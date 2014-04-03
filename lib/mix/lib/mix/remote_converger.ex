@@ -7,10 +7,10 @@ defmodule Mix.RemoteConverger do
   # Useful for things like external package managers
 
   @doc """
-  Return `true` if given dependency app name handled by
+  Return `true` if given dependency is handled by
   remote converger.
   """
-  defcallback remote?(atom) :: boolean
+  defcallback remote?(Mix.Dep.t) :: boolean
 
   @doc """
   Run the remote converger.

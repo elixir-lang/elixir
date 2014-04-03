@@ -754,11 +754,11 @@ defmodule Macro do
   defp do_expand_once(other, _env), do: { other, false }
 
   @doc """
-  Receives an AST node and expands it until it no longer represents
-  a macro.
+  Receives an AST node and expands it until it can no longer
+  be expanded.
 
-  Check `expand_once/2` for more information on how
-  expansion works.
+  This function uses `expand_once/2` under the hood. Check
+  `expand_once/2` for more information and exmaples.
   """
   def expand(tree, env) do
     expand_until({ tree, true }, env)

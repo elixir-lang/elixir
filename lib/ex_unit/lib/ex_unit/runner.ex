@@ -27,20 +27,21 @@ defmodule ExUnit.Runner do
   end
 
   defp normalize_opts(opts) do
+    opts =
+      if opts[:trace] do
+        Keyword.put_new(opts, :max_cases, 1)
+      else
+        Keyword.put(opts, :trace, false)
+      end
+
     { include, exclude } = ExUnit.Filters.normalize(opts[:include], opts[:exclude])
 
-    opts = opts
-           |> Keyword.put(:exclude, exclude)
-           |> Keyword.put(:include, include)
-           |> Keyword.put_new(:color, IO.ANSI.terminal?)
-           |> Keyword.put_new(:max_cases, :erlang.system_info(:schedulers_online))
-           |> Keyword.put_new(:seed, :erlang.now |> elem(2))
-
-    if opts[:trace] do
-      Keyword.put_new(opts, :max_cases, 1)
-    else
-      Keyword.put(opts, :trace, false)
-    end
+    opts
+    |> Keyword.put(:exclude, exclude)
+    |> Keyword.put(:include, include)
+    |> Keyword.put_new(:color, IO.ANSI.terminal?)
+    |> Keyword.put_new(:max_cases, :erlang.system_info(:schedulers_online))
+    |> Keyword.put_new(:seed, :erlang.now |> elem(2))
   end
 
   defp loop(Config[] = config) do

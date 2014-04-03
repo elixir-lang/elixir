@@ -28,22 +28,14 @@ defmodule BehaviourTest do
   test :docs do
     docs = Sample.__behaviour__(:docs)
     assert [
-      {{:first, 1}, 10, :def, _, "I should be first."},
-      {{:foo, 2}, 13, :def, _, "Foo"},
-      {{:bar, 2}, 16, :def, _, "Bar"},
-      {{:guarded, 1}, 18, :def, _, nil},
-      {{:orr, 1}, 20, :def, _, nil},
-      {{:literal, 5}, 22, :def, _, nil},
-      {{:last, 1}, 25, :defmacro, _, "I should be last."}
+      {{:first, 1}, 10, :def, "I should be first."},
+      {{:foo, 2}, 13, :def, "Foo"},
+      {{:bar, 2}, 16, :def, "Bar"},
+      {{:guarded, 1}, 18, :def, nil},
+      {{:orr, 1}, 20, :def, nil},
+      {{:literal, 5}, 22, :def, nil},
+      {{:last, 1}, 25, :defmacro, "I should be last."}
     ] = docs
-
-    assert [{ :integer, _, nil }] = List.keyfind(docs, { :first, 1 }, 0) |> elem(3)
-    assert [{ :atom, _, nil }, { :binary, _, nil }] = List.keyfind(docs, { :foo, 2 }, 0) |> elem(3)
-    assert [{ :hello, _, nil }, { :my_var, _, nil }] = List.keyfind(docs, { :bar, 2 }, 0) |> elem(3)
-    assert [{ :my_var, _, nil }] = List.keyfind(docs, { :guarded, 1 }, 0) |> elem(3)
-    assert [{ :atom, _, nil }] = List.keyfind(docs, { :orr, 1 }, 0) |> elem(3)
-    assert [{ :int1, _, nil }, { :tuple2, _, nil }, { :atom3, _, nil }, { :list4, _, nil }, { :bool5, _, nil} ] = List.keyfind(docs, { :literal, 5 }, 0) |> elem(3)
-    assert [{ :integer, _, nil }] = List.keyfind(docs, { :last, 1 }, 0) |> elem(3)
   end
 
   test :callbacks do

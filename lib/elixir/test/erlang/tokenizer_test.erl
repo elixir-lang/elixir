@@ -11,7 +11,7 @@ tokenize_error(String) ->
   Error.
 
 type_test() ->
-  [{number,1,1},{in_match_op,1,'::'},{number,1,3}] = tokenize("1 :: 3"),
+  [{number,1,1},{type_op,1,'::'},{number,1,3}] = tokenize("1 :: 3"),
   [{identifier,1,foo},
    {'.',1},
    {paren_identifier,1,'::'},
