@@ -171,7 +171,7 @@ defmodule Kernel.CLI do
     { config, t }
   end
 
-  defp process_argv(["+compile"|t], config) do
+  defp process_argv(["+elixirc"|t], config) do
     process_compiler t, config
   end
 
