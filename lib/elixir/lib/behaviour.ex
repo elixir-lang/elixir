@@ -1,6 +1,6 @@
 defmodule Behaviour do
   @moduledoc """
-  Utilities for defining behaviour intefaces.
+  Utilities for defining behaviour interfaces.
 
   Behaviours can be referenced by other modules
   to ensure they implement required callbacks.
@@ -92,7 +92,7 @@ defmodule Behaviour do
     end
   end
 
-  defp do_callback(kind, name, args, docs_name, docs_arity, docs_args, return, guards, caller) do
+  defp do_callback(kind, name, args, docs_name, docs_arity, _docs_args, return, guards, caller) do
     Enum.each args, fn
       { :::, _, [left, right] } ->
         ensure_not_default(left)
