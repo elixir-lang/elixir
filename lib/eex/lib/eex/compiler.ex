@@ -28,8 +28,9 @@ defmodule EEx.Compiler do
     generate_buffer(t, buffer, scope, state)
   end
 
-  defp generate_buffer([{ :start_expr, line, mark, chars }|t], buffer, scope, state) do
-    { contents, t } = generate_buffer(t, "", [chars|scope], state.dict([]).line(line).start_line(line))
+  defp generate_buffer([{ :start_expr, start_line, mark, chars }|t], buffer, scope, state) do
+    { contents, line, t } = look_ahead_text(t, start_line, chars)
+    { contents, t } = generate_buffer(t, "", [contents|scope], state.dict([]).line(line).start_line(start_line))
     buffer = state.engine.handle_expr(buffer, mark, contents)
     generate_buffer(t, buffer, scope, state)
   end
@@ -62,28 +63,27 @@ defmodule EEx.Compiler do
 
   defp wrap_expr(current, line, buffer, chars, state) do
     new_lines = List.duplicate(?\n, line - state.line)
+    key = length(state.dict)
+    placeholder = '__EEX__(' ++ integer_to_list(key) ++ ');'
+    { current ++ placeholder ++ new_lines ++ chars, state.update_dict(&[{key, buffer}|&1]) }
+  end
 
-    if state.dict == [] and empty?(buffer) do
-      { current ++ new_lines ++ chars, state }
+  # Look text ahead on expressions
+
+  defp look_ahead_text([{ :text, text }, { :middle_expr, line, _, chars }|t]=list, start, contents) do
+    if only_spaces?(text) do
+      { contents ++ text ++ chars, line, t }
     else
-      key = length(state.dict)
-      placeholder = '__EEX__(' ++ integer_to_list(key) ++ ');'
-      { current ++ placeholder ++ new_lines ++ chars, state.update_dict(&[{key, buffer}|&1]) }
+      { contents, start, list }
     end
   end
 
-  # Check if the syntax node represents an empty string
-
-  defp empty?(bin) when is_binary(bin) do
-    for(<<c <- bin>>, not c in [?\s, ?\t, ?\r, ?\n], into: "", do: <<c>>) == ""
+  defp look_ahead_text(t, start, contents) do
+    { contents, start, t }
   end
 
-  defp empty?({ :<>, _, [left, right] }) do
-    empty?(left) and empty?(right)
-  end
-
-  defp empty?(_) do
-    false
+  defp only_spaces?(chars) do
+    Enum.all?(chars, &(&1 in [?\s, ?\t, ?\r, ?\n]))
   end
 
   # Changes placeholder to real expression

@@ -5,9 +5,10 @@ defmodule EEx.Tokenizer do
   Tokenizes the given char list or binary.
   It returns 4 different types of tokens as result:
 
-  * { :text, line, contents }
+  * { :text, contents }
   * { :expr, line, marker, contents }
   * { :start_expr, line, marker, contents }
+  * { :middle_expr, line, marker, contents }
   * { :end_expr, line, marker, contents }
 
   """
@@ -140,11 +141,12 @@ defmodule EEx.Tokenizer do
   end
 
   defp check_spaces(string, token) do
-    if only_spaces?(string), do: token, else: :expr
+    if Enum.all?(string, &(&1 in [?\s, ?\t])) do
+      token
+    else
+      :expr
+    end
   end
-
-  defp only_spaces?([h|t]) when h in [?\s, ?\t], do: only_spaces?(t)
-  defp only_spaces?(other), do: other == []
 
   # Tokenize the buffered text by appending
   # it to the given accumulator.
