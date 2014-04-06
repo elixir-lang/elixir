@@ -81,6 +81,12 @@ defmodule Stream do
 
   This module also provides many convenience functions for creating streams,
   like `Stream.cycle/1`, `Stream.unfold/2`, `Stream.resource/3` and more.
+
+  Note the functions in this module are guaranteed to return enumerables.
+  Since enumerables can have different shapes (structs, anonymous functions,
+  and so on), the functions in this module may return any of those shapes
+  and that it may change at any time. For example, a function that today
+  returns an anonymous function may return a struct in future releases.
   """
 
   defrecord Lazy, enum: nil, funs: [], accs: [], done: nil
