@@ -32,17 +32,21 @@ defmodule Mix.Tasks.Local.Install do
   def run(argv) do
     { opts, argv, _ } = OptionParser.parse(argv, switches: [force: :boolean])
 
-    unless path = List.first(argv) do
+    if url = List.first(argv) do
+      URI.Info[path: path] = URI.parse(url)
+
+      case Path.extname(path) do
+        ".ez" -> install_archive(url, opts)
+        _     -> raise Mix.Error, message: "mix local.install doesn't know how to install #{path}"
+      end
+    else
       path = Mix.Archive.name(Mix.project[:app], Mix.project[:version])
 
-      unless File.exists?(path) do
+      if File.exists?(path) do
+        install_archive(path, opts)
+      else
         raise Mix.Error, message: "Expected PATH to be given, please use `mix local.install PATH`"
       end
-    end
-
-    case Path.extname(path) do
-      ".ez" -> install_archive(path, opts)
-      _     -> raise Mix.Error, message: "mix local.install doesn't know how to install #{path}"
     end
   end
 
@@ -52,8 +56,13 @@ defmodule Mix.Tasks.Local.Install do
       remove_previous_versions(previous)
       dest = Mix.Local.archives_path
       File.mkdir_p! dest
-      create_file Path.join(dest, Path.basename(src)), Mix.Utils.read_path!(src)
+      create_file Path.join(dest, basename(src)), Mix.Utils.read_path!(src)
     end
+  end
+
+  defp basename(path) do
+    URI.Info[path: path] = URI.parse(path)
+    Path.basename(path)
   end
 
   defp should_install?(src, []) do
