@@ -16,39 +16,39 @@ defmodule EEx.Tokenizer do
   end
 
   def tokenize(list, line) do
-    Enum.reverse(tokenize(list, line, line, [], []))
+    Enum.reverse(tokenize(list, line, [], []))
   end
 
-  defp tokenize('<%%' ++ t, current_line, line, buffer, acc) do
+  defp tokenize('<%%' ++ t, line, buffer, acc) do
     { buffer, new_line, rest } = tokenize_expr t, line, [?%, ?<|buffer]
-    tokenize rest, current_line, new_line, [?>, ?%|buffer], acc
+    tokenize rest, new_line, [?>, ?%|buffer], acc
   end
 
-  defp tokenize('<%#' ++ t, current_line, line, buffer, acc) do
+  defp tokenize('<%#' ++ t, line, buffer, acc) do
     { _, new_line, rest } = tokenize_expr t, line, []
-    tokenize rest, current_line, new_line, buffer, acc
+    tokenize rest, new_line, buffer, acc
   end
 
-  defp tokenize('<%' ++ t, current_line, line, buffer, acc) do
+  defp tokenize('<%' ++ t, line, buffer, acc) do
     { marker, t } = retrieve_marker(t)
     { expr, new_line, rest } = tokenize_expr t, line, []
 
     token = token_name(expr)
-    acc   = tokenize_text(current_line, buffer, acc)
+    acc   = tokenize_text(buffer, acc)
     final = { token, line, marker, Enum.reverse(expr) }
-    tokenize rest, new_line, new_line, [], [final | acc]
+    tokenize rest, new_line, [], [final | acc]
   end
 
-  defp tokenize('\n' ++ t, current_line, line, buffer, acc) do
-    tokenize t, current_line, line + 1, [?\n|buffer], acc
+  defp tokenize('\n' ++ t, line, buffer, acc) do
+    tokenize t, line + 1, [?\n|buffer], acc
   end
 
-  defp tokenize([h|t], current_line, line, buffer, acc) do
-    tokenize t, current_line, line, [h|buffer], acc
+  defp tokenize([h|t], line, buffer, acc) do
+    tokenize t, line, [h|buffer], acc
   end
 
-  defp tokenize([], current_line, _line, buffer, acc) do
-    tokenize_text(current_line, buffer, acc)
+  defp tokenize([], _line, buffer, acc) do
+    tokenize_text(buffer, acc)
   end
 
   # Retrieve marker for <%
@@ -149,11 +149,11 @@ defmodule EEx.Tokenizer do
   # Tokenize the buffered text by appending
   # it to the given accumulator.
 
-  defp tokenize_text(_line, [], acc) do
+  defp tokenize_text([], acc) do
     acc
   end
 
-  defp tokenize_text(line, buffer, acc) do
-    [{ :text, line, String.from_char_list!(Enum.reverse(buffer)) } | acc]
+  defp tokenize_text(buffer, acc) do
+    [{ :text, Enum.reverse(buffer) } | acc]
   end
 end
