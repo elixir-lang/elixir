@@ -29,7 +29,7 @@ defmodule EExText.Compiled do
     try do
       :erlang.error "failed"
     catch
-      :error, _, stack -> stack
+      :error, _ -> System.stacktrace
     end
   end
 end

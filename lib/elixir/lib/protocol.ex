@@ -54,9 +54,10 @@ defmodule Protocol do
         target = Module.concat(__MODULE__, mod)
 
         Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
-          unquote(target).__impl__(:name)
-        catch :error, :undef, [[{ unquote(target), :__impl__, [:name], _ }|_]|_] ->
-          any_impl_for
+          case impl_for?(unquote(target)) do
+            true  -> unquote(target).__impl__(:name)
+            false -> any_impl_for
+          end
         end
       end
 
@@ -68,10 +69,10 @@ defmodule Protocol do
       # Internal handler for Any
       if @fallback_to_any do
         Kernel.defp any_impl_for do
-          __MODULE__.Any.__impl__(:name)
-        catch
-          :error, :undef, [[{ __MODULE__.Any, :__impl__, [:name], _ }|_]|_] ->
-            nil
+          case impl_for?(__MODULE__.Any) do
+            true  -> __MODULE__.Any.__impl__(:name)
+            false -> nil
+          end
         end
       else
         Kernel.defp any_impl_for, do: nil
@@ -80,15 +81,20 @@ defmodule Protocol do
       # Internal handler for Structs
       Kernel.defp struct_impl_for(struct) do
         target = Module.concat(__MODULE__, struct)
-        try do
-          target.__impl__(:name)
-        catch :error, :undef, [[{ ^target, :__impl__, [:name], _ }|_]|_] ->
-          any_impl_for
+        case impl_for?(target) do
+          true  -> target.__impl__(:name)
+          false -> any_impl_for
         end
       end
 
+      # Check if compilation is available internally
+      Kernel.defp impl_for?(target) do
+        Code.ensure_compiled?(target) and
+          function_exported?(target, :__impl__, 1)
+      end
+
       # Inline any and struct implementations
-      @compile { :inline, any_impl_for: 0, struct_impl_for: 1 }
+      @compile { :inline, any_impl_for: 0, struct_impl_for: 1, impl_for?: 1 }
 
       if :code.ensure_loaded(Kernel.Typespec) == { :module, Kernel.Typespec } and
          not Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
@@ -162,17 +168,17 @@ defmodule Protocol do
   # Builtin types.
   @doc false
   def builtin do
-    [ is_tuple: Tuple,
-      is_atom: Atom,
-      is_list: List,
-      is_map: Map,
-      is_bitstring: BitString,
-      is_integer: Integer,
-      is_float: Float,
-      is_function: Function,
-      is_pid: PID,
-      is_port: Port,
-      is_reference: Reference ]
+    [is_tuple: Tuple,
+     is_atom: Atom,
+     is_list: List,
+     is_map: Map,
+     is_bitstring: BitString,
+     is_integer: Integer,
+     is_float: Float,
+     is_function: Function,
+     is_pid: PID,
+     is_port: Port,
+     is_reference: Reference]
   end
 
   # Implements the function that detects the protocol and
@@ -184,10 +190,9 @@ defmodule Protocol do
     target = Module.concat(current, Tuple)
 
     fallback = quote do
-      try do
-        unquote(target).__impl__(:name)
-      catch :error, :undef, [[{ unquote(target), :__impl__, [:name], _ }|_]|_] ->
-        any_impl_for
+      case impl_for?(unquote(target)) do
+        true  -> unquote(target).__impl__(:name)
+        false -> any_impl_for
       end
     end
 
@@ -197,11 +202,9 @@ defmodule Protocol do
       case not(atom in unquote(all)) and match?('Elixir.' ++ _, atom_to_list(atom)) do
         true ->
           target = Module.concat(unquote(current), atom)
-          try do
-            target.__impl__(:name)
-          catch
-            :error, :undef, [[{ ^target, :__impl__, [:name], _ }|_]|_] ->
-              unquote(fallback)
+          case impl_for?(target) do
+            true  -> target.__impl__(:name)
+            false -> unquote(fallback)
           end
         false ->
           unquote(fallback)

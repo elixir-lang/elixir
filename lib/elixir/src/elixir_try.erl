@@ -15,10 +15,9 @@ each_clause({ 'catch', Meta, Raw, Expr }, Return, S) ->
   { Args, Guards } = elixir_clauses:extract_splat_guards(Raw),
 
   Final = case Args of
-    [X]     -> [throw, X, { '_', Meta, nil }];
-    [X,Y]   -> [X, Y, { '_', Meta, nil }];
-    [_,_,_] -> Args;
-    _       ->
+    [X]   -> [throw, X, { '_', Meta, nil }];
+    [X,Y] -> [X, Y, { '_', Meta, nil }];
+    _     ->
       elixir_errors:compile_error(Meta, S#elixir_scope.file, "too many arguments given for catch")
   end,
 
