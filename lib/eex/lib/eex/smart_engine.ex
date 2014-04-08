@@ -15,6 +15,10 @@ defmodule EEx.TransformerEngine do
     quote do
       @behaviour EEx.Engine
 
+      def handle_body(body) do
+        EEx.Engine.handle_body(body)
+      end
+
       def handle_text(buffer, text) do
         EEx.Engine.handle_text(buffer, text)
       end
@@ -39,7 +43,7 @@ defmodule EEx.TransformerEngine do
         other
       end
 
-      defoverridable [transform: 1, handle_expr: 3, handle_text: 2]
+      defoverridable [transform: 1, handle_body: 1, handle_expr: 3, handle_text: 2]
     end
   end
 end

@@ -51,8 +51,8 @@ defmodule EEx.Compiler do
     raise EEx.SyntaxError, message: "unexpected token: #{inspect chars} at line #{inspect line}"
   end
 
-  defp generate_buffer([], buffer, [], _state) do
-    buffer
+  defp generate_buffer([], buffer, [], state) do
+    state.engine.handle_body(buffer)
   end
 
   defp generate_buffer([], _buffer, _scope, _state) do

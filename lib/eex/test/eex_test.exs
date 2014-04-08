@@ -344,6 +344,26 @@ foo
       }
   end
 
+  defmodule TestEngine do
+    @behaviour EEx.Engine
+
+    def handle_body(body) do
+      { :wrapped, body }
+    end
+
+    def handle_text(buffer, text) do
+      EEx.Engine.handle_text(buffer, text)
+    end
+
+    def handle_expr(buffer, mark, expr) do
+      EEx.Engine.handle_expr(buffer, mark, expr)
+    end
+  end
+
+  test "calls handle_body" do
+    assert { :wrapped, "foo" } = EEx.eval_string("foo", [], engine: TestEngine)
+  end
+
   defp assert_eval(expected, actual) do
     result = EEx.eval_string(actual, [], file: __ENV__.file, engine: EEx.Engine)
     assert result == expected
