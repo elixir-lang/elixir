@@ -32,6 +32,7 @@
 
 * Deprecations
   * [Dict] `Dict.empty/1`, `Dict.new/1` and `Dict.new/2` are deprecated
+  * [Exception] `Exception.normalize/1` is deprecated in favor of `Exception.normalize/2`
   * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for` (this is a soft deprecation, no warning will be emitted)
   * [ListDict] `ListDict` is deprecated in favor of `Map` (this is a soft deprecation, no warning will be emitted)
 

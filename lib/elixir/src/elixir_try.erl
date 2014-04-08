@@ -42,7 +42,7 @@ each_clause({ rescue, Meta, [{ in, _, [Left, Right]}], Expr }, Return, S) ->
           { FinalClause, _ } = rescue_guards(Meta, ClauseVar, Right, S),
           Match = { '=', Meta, [
             Left,
-            { { '.', Meta, ['Elixir.Exception', normalize] }, Meta, [ClauseVar] }
+            { { '.', Meta, ['Elixir.Exception', normalize] }, Meta, [error, ClauseVar] }
           ] },
           FinalExpr = prepend_to_block(Meta, Match, Expr),
           each_clause({ 'catch', Meta, FinalClause, FinalExpr }, Return, CS)

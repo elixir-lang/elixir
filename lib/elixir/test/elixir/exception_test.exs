@@ -14,9 +14,6 @@ defmodule Kernel.ExceptionTest do
   end
 
   test "normalize" do
-    assert is_record Exception.normalize(:badarg), ArgumentError
-    assert is_record Exception.normalize(ArgumentError[]), ArgumentError
-
     assert Exception.normalize(:throw, :badarg) == :badarg
     assert is_record Exception.normalize(:error, :badarg), ArgumentError
     assert is_record Exception.normalize(:error, ArgumentError[]), ArgumentError
@@ -105,7 +102,7 @@ defmodule Kernel.ExceptionTest do
       end
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list!
     assert {Kernel.ExceptionTest, :"test raise preserves the stacktrace", _,
-           [file: ^file, line: 101]} = stacktrace
+           [file: ^file, line: 98]} = stacktrace
   end
 
   test "defexception" do
