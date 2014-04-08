@@ -27,6 +27,8 @@ defmodule Mix.Tasks.Compile do
 
   * `--list` - List all enabled compilers.
 
+  * `--no-deps` - Skips compilation and loading of dependencies.
+
   Remaining options are forwarded to underlying compilers.
 
   """
