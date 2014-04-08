@@ -13,21 +13,13 @@ defmodule Mix.Tasks.Compile do
 
   * `:compilers` - compilers to be run, defaults to:
 
-    ```
-    [:elixir, :app]
-    ```
-
-    It can be configured to handle custom compilers, for example:
-
-    ```
-    [compilers: [:elixir, :mycompiler, :app]]
-    ```
+        [:leex, :yeec, :erlang, :elixir, :app]
 
   ## Command line options
 
-  * `--list` - List all enabled compilers.
+  * `--list` - List all enabled compilers
 
-  * `--no-deps` - Skips compilation and loading of dependencies.
+  * `--no-deps-check` - Skips checking of dependencies
 
   Remaining options are forwarded to underlying compilers.
 
@@ -62,6 +54,9 @@ defmodule Mix.Tasks.Compile do
   Runs this compile task by recursively calling all registered compilers.
   """
   def run(args) do
+    # --no-deps is used only internally. It has not purpose
+    # from Mix.CLI because the CLI itself already loads
+    # dependencies.
     unless "--no-deps" in args do
       Mix.Task.run "deps.loadpaths", args
     end
