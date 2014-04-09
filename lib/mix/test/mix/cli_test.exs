@@ -11,7 +11,7 @@ defmodule Mix.CLITest do
         temp_env = "MIX_ENV=prod"
       end
 
-      env = System.cmd ~s(#{temp_env} #{elixir_executable} #{mix_executable} run -e "IO.inspect { Mix.env, System.argv }" -- 1 2 3)
+      env = System.cmd ~s(#{temp_env} #{mix_executable} run -e \"IO.inspect { Mix.env, System.argv }\" -- 1 2 3)
       assert env =~ ~s({:prod, ["1", "2", "3"]})
     end
   end
@@ -99,14 +99,10 @@ defmodule Mix.CLITest do
   end
 
   defp mix(args) do
-    System.cmd "#{elixir_executable} #{mix_executable} #{args}"
+    System.cmd "#{mix_executable} #{args}"
   end
 
   defp mix_executable do
     Path.expand("../../../../bin/mix", __DIR__)
-  end
-
-  defp elixir_executable do
-    Path.expand("../../../../bin/elixir", __DIR__)
   end
 end
