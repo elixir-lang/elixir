@@ -231,19 +231,14 @@ translate({ { '.', _, [Left, Right] }, Meta, Args }, S)
           TVar = { var, Line, Var },
           TMap = { tuple, Line, [{ atom, Line, badarg }, TVar] },
 
-          %% TODO: There is a bug in Erlang where %{} = 1 matches.
-          %% Once the bug is fixed, replace the second clause by a
-          %% map match instead of a guard check.
           { { 'case', -1, TLeft, [
             { clause, -1,
               [{ map, Line, [{ map_field_exact, Line, TRight, TVar }] }],
               [],
               [TVar] },
             { clause, -1,
-              % [{ match, Line, { map, Line, [] }, TVar }],
-              % []
-              [TVar],
-              [[?wrap_call(Line, erlang, is_map, [TVar])]],
+              [{ match, Line, { map, Line, [] }, TVar }],
+              [],
               [?wrap_call(Line, erlang, error, [TMap])] },
             { clause, -1,
               [TVar],
