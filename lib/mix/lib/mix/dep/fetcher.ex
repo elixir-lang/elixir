@@ -15,8 +15,8 @@ defmodule Mix.Dep.Fetcher do
   See `Mix.Dep.unloaded/3` for options.
   """
   def all(old_lock, new_lock, opts) do
-    deps = Mix.Dep.unloaded({ [], new_lock }, opts, &do_fetch/2)
-    { apps, _deps } = do_finalize(deps, old_lock, opts)
+    result = Mix.Dep.unloaded([], new_lock, opts, &do_fetch/3)
+    { apps, _deps } = do_finalize(result, old_lock, opts)
     apps
   end
 
@@ -26,19 +26,19 @@ defmodule Mix.Dep.Fetcher do
   See `Mix.Dep.unloaded_by_name/4` for options.
   """
   def by_name(names, old_lock, new_lock, opts) do
-    deps = Mix.Dep.unloaded_by_name(names, { [], new_lock }, opts, &do_fetch/2)
-    { apps, deps } = do_finalize(deps, old_lock, opts)
+    result = Mix.Dep.unloaded_by_name(names, [], new_lock, opts, &do_fetch/3)
+    { apps, deps } = do_finalize(result, old_lock, opts)
     Mix.Dep.loaded_by_name(names, deps, opts) # Check all given dependencies are loaded or fail
     apps
   end
 
-  defp do_fetch(dep, { acc, lock }) do
+  defp do_fetch(dep, acc, lock) do
     %Mix.Dep{app: app, scm: scm, opts: opts} = dep = check_lock(dep, lock)
 
     cond do
       # Dependencies that cannot be fetched are always compiled afterwards
       not scm.fetchable? ->
-        { dep, { [app|acc], lock } }
+        { dep, [app|acc], lock }
 
       # If the dependency is not available or we have a lock mismatch
       out_of_date?(dep) ->
@@ -52,14 +52,14 @@ defmodule Mix.Dep.Fetcher do
           end
 
         if new do
-          { dep, { [app|acc], Map.put(lock, app, new) } }
+          { dep, [app|acc], Map.put(lock, app, new) }
         else
-          { dep, { acc, lock } }
+          { dep, acc, lock }
         end
 
       # The dependency is ok or has some other error
       true ->
-        { dep, { acc, lock } }
+        { dep, acc, lock }
     end
   end
 
@@ -69,7 +69,7 @@ defmodule Mix.Dep.Fetcher do
   defp out_of_date?(%Mix.Dep{status: { :unavailable, _ }}),  do: true
   defp out_of_date?(%Mix.Dep{}),                             do: false
 
-  defp do_finalize({ all_deps, { apps, new_lock } }, old_lock, opts) do
+  defp do_finalize({ all_deps, apps, new_lock }, old_lock, opts) do
     # Let's get the loaded versions of deps
     deps = Mix.Dep.loaded_by_name(apps, all_deps, opts)
 

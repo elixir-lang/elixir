@@ -15,9 +15,9 @@ defmodule Mix.RemoteConverger do
   @doc """
   Run the remote converger.
 
-  Return the converged deps.
+  Return updated lock.
   """
-  defcallback converge([Mix.Dep.t]) :: [Mix.Dep.t]
+  defcallback converge([Mix.Dep.t], map) :: map
 
   @doc """
   Get registered remote converger.

@@ -74,10 +74,10 @@ defmodule Mix.DepTest do
     # the proper manager.
     Mix.Project.push DepsApp
 
-    { _, true } =
-      Mix.Dep.unloaded(false, [], fn dep, acc ->
+    { _, true, _ } =
+      Mix.Dep.unloaded(false, [], nil, fn dep, acc, lock ->
         assert nil?(dep.manager)
-        { dep, acc or true }
+        { dep, acc or true, lock }
       end)
   end
 
@@ -185,9 +185,9 @@ defmodule Mix.DepTest do
 
     def remote?(_app), do: true
 
-    def converge(deps) do
+    def converge(_deps, lock) do
       Process.put(:remote_converger, true)
-      deps
+      lock
     end
   end
 
@@ -218,13 +218,13 @@ defmodule Mix.DepTest do
     Mix.Project.push OnlyDeps
 
     in_fixture "deps_status", fn ->
-      { deps, _acc } = Mix.Dep.unloaded([], [env: :other_env], &{ &1, &2 })
+      { deps, _acc, _lock } = Mix.Dep.unloaded([], nil, [env: :other_env], &{ &1, &2, &3 })
       assert length(deps) == 2
 
-      { deps, _acc } = Mix.Dep.unloaded([], [], &{ &1, &2 })
+      { deps, _acc, _lock } = Mix.Dep.unloaded([], nil, [], &{ &1, &2, &3 })
       assert length(deps) == 2
 
-      { deps, _acc } = Mix.Dep.unloaded([], [env: :prod], &{ &1, &2 })
+      { deps, _acc, _lock } = Mix.Dep.unloaded([], nil, [env: :prod], &{ &1, &2, &3 })
       assert length(deps) == 1
       assert Enum.find deps, &match?(%Mix.Dep{app: :foo}, &1)
     end
