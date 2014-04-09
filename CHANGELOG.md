@@ -12,7 +12,7 @@
   * [IEx] Allow prompt configuration with the `:prompt` option
   * [Kernel] Support `ERL_PATH` in `bin/elixir`
   * [Kernel] Support interpolation in keyword syntax
-  * [Map] Add a Map module and support R17 maps and structs
+  * [Map] Add a Map module and support 17.0 maps and structs
   * [Mix] Add dependency option `:only` to specify the dependency environment. `mix deps.get` and `mix deps.update` works accross all environment unless `--only` is specified
   * [Mix] Add `Mix.Shell.prompt/1`
   * [Mix] Ensure the project is compiled in case Mix' CLI cannot find a task
