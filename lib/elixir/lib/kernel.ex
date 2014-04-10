@@ -3234,6 +3234,9 @@ defmodule Kernel do
   defmacro defstruct(kv) do
     kv = Macro.escape(kv, unquote: true)
     quote bind_quoted: [kv: kv] do
+      # Expand possible macros that return KVs.
+      kv = Macro.expand(kv, __ENV__)
+
       # TODO: Use those types once we support maps typespecs.
       { fields, _types } = Record.Backend.split_fields_and_types(:defstruct, kv)
 

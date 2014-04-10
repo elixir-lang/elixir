@@ -255,28 +255,6 @@ defmodule Kernel.TypespecTest do
     assert [{:t, {:type, 251, :map, []}, []}] = types
   end
 
-  test "@type from records" do
-    types = test_module do
-      defrecordp :user, name: nil, age: 0 :: integer
-      @opaque user :: user_t
-      @type
-    end
-
-    assert [{:user_t, {:type, _, :tuple,
-             [{:atom, _, :user}, {:type, _, :term, []}, {:type, _, :integer, []}]}, []}] = types
-  end
-
-  test "@type from records with custom tag" do
-    {types, module} = test_module do
-      defrecordp :user, __MODULE__, name: nil, age: 0 :: integer
-      @opaque user :: user_t
-      {@type, __MODULE__}
-    end
-
-    assert [{:user_t, {:type, _, :tuple,
-             [{:atom, _, ^module}, {:type, _, :term, []}, {:type, _, :integer, []}]}, []}] = types
-  end
-
   test "@type unquote fragment" do
     spec = test_module do
       quoted = quote unquote: false do

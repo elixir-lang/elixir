@@ -1,3 +1,5 @@
+require Record
+
 defrecord File.Stat, Record.extract(:file_info, from_lib: "kernel/include/file.hrl") do
   @moduledoc """
   A record responsible to hold file information. Its fields are:

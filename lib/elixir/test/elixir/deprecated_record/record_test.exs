@@ -1,5 +1,7 @@
 Code.require_file "../test_helper.exs", __DIR__
 
+require Record
+
 defrecord RecordTest.FileInfo,
   Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
 

@@ -35,6 +35,7 @@
   * [Exception] `Exception.normalize/1` is deprecated in favor of `Exception.normalize/2`
   * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for` (this is a soft deprecation, no warning will be emitted)
   * [ListDict] `ListDict` is deprecated in favor of `Map` (this is a soft deprecation, no warning will be emitted)
+  * [Record] `defrecord/2`, `defrecordp/3`, `is_record/1` and `is_record/2` macros in Kernel are deprecated. Instead, use the new macros and API defined in the `Record` module (this is a soft deprecation, no warnings will be emitted)
 
 * Backwards incompatible changes
   * [ExUnit] Formatters are now required to be a GenEvent and `ExUnit.run/2` returns a map with results

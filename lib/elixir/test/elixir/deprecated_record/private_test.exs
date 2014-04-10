@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Record.PrivateTest do
   use ExUnit.Case, async: true
 
+  require Record
+
   defmodule Macros do
     defrecordp :_user, __MODULE__, name: "José", age: 25
     defrecordp :_my_user, :my_user, name: "José", age: 25

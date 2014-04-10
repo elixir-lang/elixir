@@ -143,12 +143,21 @@ defmodule ExUnit.DocTest do
   This macro is auto-imported with every `ExUnit.Case`.
   """
   defmacro doctest(mod, opts \\ []) do
-    quote bind_quoted: binding do
+    require =
+      if is_atom Macro.expand(mod, __CALLER__) do
+        quote do
+          require unquote(mod)
+        end
+      end
+
+    tests = quote bind_quoted: binding do
       for { name, test } <- ExUnit.DocTest.__doctests__(mod, opts) do
         @file '(for doctest at) ' ++ Path.relative_to_cwd(mod.__info__(:compile)[:source])
         test name, do: unquote(test)
       end
     end
+
+    [require, tests]
   end
 
   @doc false
