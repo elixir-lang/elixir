@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file "../test_helper.exs", __DIR__
 
 defrecord RecordTest.FileInfo,
   Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
@@ -60,7 +60,7 @@ end
 
 defrecord RecordTest.FooTest, foo: nil, bar: nil
 
-defmodule RecordTest do
+defmodule Record.DeprecatedTest do
   use ExUnit.Case, async: true
 
   # Check the access from the generated macro works

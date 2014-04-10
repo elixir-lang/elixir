@@ -2571,7 +2571,7 @@ defmodule Kernel do
               end
           end
 
-        Record.access(atom, fields, args, caller)
+        Record.Deprecated.access(atom, fields, args, caller)
       false ->
         case caller.in_match? or caller.in_guard? do
           true  -> raise ArgumentError, message: "dynamic access cannot be invoked inside match and guard clauses"
@@ -3010,6 +3010,10 @@ defmodule Kernel do
   end
 
   @doc ~S"""
+  Note: Records are mostly deprecated and being slowly removed from
+  the language. The set of supported record operations will be
+  maintained in the Record module.
+
   Exports a module with a record definition and runtime operations.
 
   Please see the `Record` module's documentation for an introduction
@@ -3123,12 +3127,16 @@ defmodule Kernel do
   """
   defmacro defrecord(name, fields, do_block \\ []) do
     case is_list(fields) and Keyword.get(fields, :do, false) do
-      false -> Record.defrecord(name, fields, do_block)
-      other -> Record.defrecord(name, Keyword.delete(fields, :do), do: other)
+      false -> Record.Deprecated.defrecord(name, fields, do_block)
+      other -> Record.Deprecated.defrecord(name, Keyword.delete(fields, :do), do: other)
     end
   end
 
   @doc ~S"""
+  Note: Records are mostly deprecated and being slowly removed from
+  the language. The set of supported record operations will be
+  maintained in the Record module.
+
   Defines a set of private macros to manipulate a record definition.
 
   This macro defines a set of macros private to the current module to
@@ -3185,7 +3193,7 @@ defmodule Kernel do
 
   """
   defmacro defrecordp(name, tag \\ nil, fields) do
-    Record.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
+    Record.Deprecated.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
   end
 
   @doc """
@@ -3304,7 +3312,7 @@ defmodule Kernel do
     end)
 
     fields = quote do: [__exception__: :__exception__] ++ unquote(fields)
-    record = Record.defrecord(name, fields, do_block)
+    record = Record.Deprecated.defrecord(name, fields, do_block)
 
     quote do
       { :module, name, _, _ } = unquote(record)
