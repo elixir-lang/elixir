@@ -148,7 +148,9 @@ defmodule Kernel.SpecialForms do
   argument is a struct, failing with `BadStructError` otherwise.
 
   Check `Kernel.defprotocol/2` for more information on how structs
-  can be used with protocols for polymorphic dispatch.
+  can be used with protocols for polymorphic dispatch. Also,
+  see `Kernel.struct/2` for examples on how to create and update
+  structs dynamically.
   """
   defmacro unquote(:%)(struct, map)
 

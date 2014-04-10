@@ -1479,6 +1479,55 @@ defmodule Kernel do
     :erlang.setelement(index + 1, tuple, value)
   end
 
+  @doc """
+  Creates and updates structs.
+
+  The struct argument may be an atom (which defines `defstruct`)
+  or a struct itself. The second argument is any Enumerable that
+  emits two-item tuples (key-value) during enumeration.
+
+  If one of the keys in the Enumerable does not exist in the struct,
+  they are automatically discarded.
+
+  This function is useful for dynamically creating and updating
+  structs.
+
+  ## Example
+
+      defmodule User do
+        defstruct name: "jose"
+      end
+
+      struct(User)
+      #=> %User{name: "jose"}
+
+      opts = [name: "eric"]
+      user = struct(User, opts)
+      #=> %User{name: "eric"}
+
+      struct(user, unknown: "value")
+      #=> %User{name: "eric"}
+
+  """
+  def struct(struct, kv \\ [])
+
+  def struct(struct, []) when is_atom(struct) do
+    apply(struct, :__struct__, [])
+  end
+
+  def struct(struct, kv) when is_atom(struct) do
+    struct(apply(struct, :__struct__, []), kv)
+  end
+
+  def struct(%{ __struct__: _ } = struct, kv) do
+    Enum.reduce(kv, struct, fn { k, v }, acc ->
+      case :maps.is_key(k, acc) do
+        true  -> :maps.put(k, v, acc)
+        false -> acc
+      end
+    end)
+  end
+
   ## Implemented in Elixir
 
   @doc """
@@ -3197,7 +3246,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines the current module as a struct.
+  Defines a struct for the current module.
 
   A struct is a tagged map that allows developers to provide
   default values for keys, tags to be used in polymorphic
@@ -3207,6 +3256,9 @@ defmodule Kernel do
   a function named `__struct__/0` that returns a map with the
   structs field. This macro is a convenience for doing such
   function and a type `t` in one pass.
+
+  For more information about structs, please check
+  `Kernel.SpecialForms.%/2`.
 
   ## Examples
 

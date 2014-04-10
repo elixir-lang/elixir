@@ -157,6 +157,20 @@ defmodule KernelTest do
     refute binding() == [x: 2]
   end
 
+  defmodule User do
+    defstruct name: "jose"
+  end
+
+  test :struct do
+    assert struct(User) == %User{name: "josé"}
+
+    user = struct(User, name: "eric")
+    assert user == %User{ name: "eric" }
+
+    assert struct(user, unknown: "key") == user
+    assert struct(user, name: "jose") == %User{ name: "josé" }
+  end
+
   defmodule Conversions do
     use ExUnit.Case, async: true
 

@@ -1211,6 +1211,10 @@ defmodule Enum do
     :lists.foldl(fun, acc, collection)
   end
 
+  def reduce(collection, acc, fun) when is_map(collection) do
+    :maps.fold(fn k, v, acc -> fun.({ k, v }, acc) end, acc, collection)
+  end
+
   def reduce(collection, acc, fun) do
     Enumerable.reduce(collection, { :cont, acc },
                       fn x, acc -> { :cont, fun.(x, acc) } end) |> elem(1)
