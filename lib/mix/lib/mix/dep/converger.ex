@@ -41,7 +41,7 @@ defmodule Mix.Dep.Converger do
 
   See `Mix.Dep.Loader.children/1` for options.
   """
-  def all(rest, opts, callback) do
+  def all(acc, lock, opts, callback) do
     main      = Mix.Dep.Loader.children(opts)
     apps      = Enum.map(main, &(&1.app))
     converger = Mix.RemoteConverger.get
@@ -51,10 +51,8 @@ defmodule Mix.Dep.Converger do
     # being updated or fetched for the first time (only then do
     # we want the remote converger to run)
     result =
-      all(main, [], [], apps, callback, rest, fn dep ->
-        if not nil?(rest) &&
-           converger &&
-           converger.remote?(dep) do
+      all(main, [], [], apps, callback, acc, lock, fn dep ->
+        if not nil?(lock) && converger && converger.remote?(dep) do
           { :loaded, dep }
         else
           { :unloaded, dep }
@@ -64,20 +62,18 @@ defmodule Mix.Dep.Converger do
     # Run remote converger if one is available and rerun mix's
     # converger with the new information
     case converger && result do
-      { deps, rest } when not nil?(rest) ->
-        to_dict = &{ &1.app, &1 }
+      { deps, rest, lock } when not nil?(lock) ->
+        new_lock = converger.converge(main, lock)
 
-        converged_deps = converger.converge(deps)
-                         |> Enum.into(HashDict.new, to_dict)
         deps = deps
                |> Enum.reject(&converger.remote?(&1))
-               |> Enum.into(HashDict.new, to_dict)
+               |> Enum.into(HashDict.new, &{ &1.app, &1 })
 
-        all(main, [], [], apps, callback, rest, fn dep ->
-          cond do
-            cached = deps[dep.app] -> { :loaded, cached }
-            cached = converged_deps[dep.app] -> { :unloaded, cached }
-            true -> { :unloaded, dep }
+        all(main, [], [], apps, callback, rest, new_lock, fn dep ->
+          if cached = deps[dep.app] do
+            { :loaded, cached }
+          else
+            { :unloaded, dep }
           end
         end)
       _ ->
@@ -124,17 +120,17 @@ defmodule Mix.Dep.Converger do
   # Now, since `d` was specified in a parent project, no
   # exception is going to be raised since d is considered
   # to be the authorative source.
-  defp all([dep|t], acc, upper_breadths, current_breadths, callback, rest, cache) do
+  defp all([dep|t], acc, upper_breadths, current_breadths, callback, rest, lock, cache) do
     cond do
       new_acc = diverged_deps(acc, upper_breadths, dep) ->
-        all(t, new_acc, upper_breadths, current_breadths, callback, rest, cache)
+        all(t, new_acc, upper_breadths, current_breadths, callback, rest, lock, cache)
       true ->
         dep =
           case cache.(dep) do
             { :loaded, cached_dep } ->
               cached_dep
             { :unloaded, dep } ->
-              { dep, rest } = callback.(dep, rest)
+              { dep, rest, lock } = callback.(dep, rest, lock)
 
               # After we invoke the callback (which may actually check out the
               # dependency), we load the dependency including its latest info
@@ -143,13 +139,13 @@ defmodule Mix.Dep.Converger do
           end
 
         dep = %{dep | deps: reject_non_fullfilled_optional(dep.deps, current_breadths)}
-        { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, callback, rest, cache)
-        all(dep.deps, acc, current_breadths, Enum.map(dep.deps, &(&1.app)) ++ current_breadths, callback, rest, cache)
+        { acc, rest, lock } = all(t, [dep|acc], upper_breadths, current_breadths, callback, rest, lock, cache)
+        all(dep.deps, acc, current_breadths, Enum.map(dep.deps, &(&1.app)) ++ current_breadths, callback, rest, lock, cache)
     end
   end
 
-  defp all([], acc, _upper, _current, _callback, rest, _cache) do
-    { acc, rest }
+  defp all([], acc, _upper, _current, _callback, rest, lock, _cache) do
+    { acc, rest, lock }
   end
 
   # Look for divergence in dependencies.

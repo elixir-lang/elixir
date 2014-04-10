@@ -57,7 +57,7 @@ defmodule Mix.Dep do
   provided in the project are in the wrong format.
   """
   def loaded(opts) do
-    { deps, _ } = Mix.Dep.Converger.all(nil, opts, fn(dep, acc) -> { dep, acc } end)
+    { deps, _, _ } = Mix.Dep.Converger.all(nil, nil, opts, &{ &1, &2, &3 })
     Mix.Dep.Converger.topsort(deps)
   end
 
@@ -106,9 +106,9 @@ defmodule Mix.Dep do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  def unloaded(acc, opts, callback) do
-    { deps, acc } = Mix.Dep.Converger.all(acc, opts, callback)
-    { Mix.Dep.Converger.topsort(deps), acc }
+  def unloaded(acc, lock, opts, callback) do
+    { deps, acc, lock } = Mix.Dep.Converger.all(acc, lock, opts, callback)
+    { Mix.Dep.Converger.topsort(deps), acc, lock }
   end
 
   @doc """
@@ -120,14 +120,14 @@ defmodule Mix.Dep do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  def unloaded_by_name(given, acc, opts, callback) do
+  def unloaded_by_name(given, acc, lock, opts, callback) do
     names = to_app_names(given)
 
-    unloaded(acc, opts, fn(dep, acc) ->
+    unloaded(acc, lock, opts, fn dep, acc, lock ->
       if dep.app in names do
-        callback.(dep, acc)
+        callback.(dep, acc, lock)
       else
-        { dep, acc }
+        { dep, acc, lock }
       end
     end)
   end
