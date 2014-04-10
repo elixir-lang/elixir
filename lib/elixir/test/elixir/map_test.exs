@@ -125,7 +125,11 @@ defmodule MapTest do
   end
 
   defmodule LocalUser do
-    defstruct name: "josé"
+    defmodule NestedUser do
+      defstruct []
+    end
+
+    defstruct name: "josé", nested: %NestedUser{}
 
     def new do
       %LocalUser{}
@@ -139,8 +143,8 @@ defmodule MapTest do
   end
 
   test "local user" do
-    assert LocalUser.new == %LocalUser{name: "josé"}
-    assert LocalUser.Context.new == %LocalUser{name: "josé"}
+    assert LocalUser.new == %LocalUser{ name: "josé", nested: %LocalUser.NestedUser{} }
+    assert LocalUser.Context.new == %LocalUser{ name: "josé", nested: %LocalUser.NestedUser{} }
   end
 
   defmodule NilUser do

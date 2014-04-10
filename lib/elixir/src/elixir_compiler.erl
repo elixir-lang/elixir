@@ -175,6 +175,7 @@ core_main() ->
     <<"lib/elixir/lib/module.ex">>,
     <<"lib/elixir/lib/list.ex">>,
     <<"lib/elixir/lib/record.ex">>,
+    <<"lib/elixir/lib/record/backend.ex">>,
     <<"lib/elixir/lib/macro.ex">>,
     <<"lib/elixir/lib/macro/env.ex">>,
     <<"lib/elixir/lib/exception.ex">>,

@@ -52,7 +52,7 @@ translate_map(Meta, Args, S) ->
 
 translate_struct(Meta, Name, { '%{}', MapMeta, Args }, S) ->
   { Assocs, TUpdate, US } = extract_assoc_update(Args, S),
-  Struct = load_struct(Meta, Name),
+  Struct = load_struct(Meta, Name, S),
 
   case is_map(Struct) of
     true  ->
@@ -89,7 +89,7 @@ translate_struct(Meta, Name, { '%{}', MapMeta, Args }, S) ->
 
 %% Helpers
 
-load_struct(Meta, Name) ->
+load_struct(Meta, Name, S) ->
   Local =
     elixir_module:is_open(Name) andalso
     (case lists:keyfind(struct, 1, Meta) of
@@ -97,16 +97,23 @@ load_struct(Meta, Name) ->
       _ -> wait_for_struct(Name)
     end),
 
-  case Local of
-    true ->
-      try
-        (elixir_locals:local_for(Name, '__struct__', 0, def))()
-      catch
-        error:undef  -> Name:'__struct__'();
-        error:badarg -> Name:'__struct__'()
-      end;
-    false ->
-      Name:'__struct__'()
+  try
+    case Local of
+      true ->
+        try
+          (elixir_locals:local_for(Name, '__struct__', 0, def))()
+        catch
+          error:undef  -> Name:'__struct__'();
+          error:badarg -> Name:'__struct__'()
+        end;
+      false ->
+        Name:'__struct__'()
+    end
+  catch
+    error:undef ->
+      Inspected = elixir_aliases:inspect(Name),
+      compile_error(Meta, S#elixir_scope.file, "~ts.__struct__/0 is undefined, "
+        "cannot expand struct ~ts", [Inspected, Inspected])
   end.
 
 wait_for_struct(Module) ->

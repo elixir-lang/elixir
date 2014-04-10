@@ -3197,10 +3197,8 @@ defmodule Kernel do
 
   To define a struct, a developer needs to only define
   a function named `__struct__/0` that returns a map with the
-  structs field. This macro is simply a convenience for doing so.
-
-  Finally, this macro also defines a type t in the current
-  module unless one was previously defined.
+  structs field. This macro is a convenience for doing such
+  function and a type `t` in one pass.
 
   ## Examples
 
@@ -3208,14 +3206,28 @@ defmodule Kernel do
         defstruct first: nil, last: nil
       end
 
+  Notice `defstruct` requires a keyword list of fields and values
+  at expansion time. In other words, `defstruct` works with quoted
+  expressions. In other words, a struct defined like:
+
+      defmodule MyRange do
+        defstruct first: nil, last: 1 + 1
+      end
+
+  Will execute `1 + 1` every time the struct is built. This also
+  implies the following leads to an error:
+
+      defmodule MyRange do
+        my_fields = [first: nil, last: nil]
+        defstruct my_fields
+      end
+
   """
-  defmacro defstruct(opts) do
-    quote bind_quoted: [opts: opts] do
-      opts = Enum.map(opts, fn
-        { key, _ } = pair when is_atom(key) -> pair
-        key when is_atom(key) -> { key, nil }
-        other -> raise ArgumentError, message: "struct fields must be atoms, got: #{inspect other}"
-      end)
+  defmacro defstruct(kv) do
+    kv = Macro.escape(kv, unquote: true)
+    quote bind_quoted: [kv: kv] do
+      # TODO: Use those types once we support maps typespecs.
+      { fields, _types } = Record.Backend.split_fields_and_types(:defstruct, kv)
 
       if :code.ensure_loaded(Kernel.Typespec) == { :module, Kernel.Typespec } and
          not Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
@@ -3223,7 +3235,7 @@ defmodule Kernel do
       end
 
       def __struct__() do
-        %{ unquote_splicing(Macro.escape(opts)), __struct__: __MODULE__ }
+        %{ unquote_splicing(fields), __struct__: __MODULE__ }
       end
     end
   end

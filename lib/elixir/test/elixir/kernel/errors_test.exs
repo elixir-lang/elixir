@@ -195,6 +195,16 @@ defmodule Kernel.ErrorsTest do
       '%{ :a, :b }{ a: :b }'
   end
 
+  test :struct_fields_on_defstruct do
+    assert_compile_fail ArgumentError,
+      "defstruct fields must be a keyword list, got: my_fields",
+      '''
+      defmodule TZ do
+        defstruct my_fields
+      end
+      '''
+  end
+
   test :struct_access_on_body do
     assert_compile_fail CompileError,
       "nofile:3: cannot access struct TZ in body of the module that defines it " <>
@@ -218,8 +228,8 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :struct_errors do
-    assert_compile_fail UndefinedFunctionError,
-      "undefined function: BadStruct.__struct__/0",
+    assert_compile_fail CompileError,
+      "nofile:1: BadStruct.__struct__/0 is undefined, cannot expand struct BadStruct",
       '%BadStruct{}'
 
     defmodule BadStruct do

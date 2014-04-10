@@ -172,7 +172,7 @@ defmodule Record do
 
   """
   def extract(name, opts) do
-    Record.Extractor.retrieve(name, opts)
+    Record.Extractor.extract(name, opts)
   end
 
   @doc false
