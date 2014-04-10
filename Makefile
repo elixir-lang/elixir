@@ -1,5 +1,5 @@
 REBAR := rebar
-ELIXIRC := bin/elixirc --verbose --ignore-module-conflict $(ELIXIRC_OPTS)
+ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 VERSION := $(strip $(shell cat VERSION))
@@ -124,6 +124,9 @@ docs: compile ../ex_doc/bin/ex_doc
 ../ex_doc/bin/ex_doc:
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
 	@ false
+
+build_info:
+	$(ELIXIRC) lib/elixir/lib/system.ex -o lib/elixir/ebin
 
 release_zip: compile
 	rm -rf v$(VERSION).zip
