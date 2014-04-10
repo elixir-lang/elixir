@@ -36,7 +36,7 @@ defmodule Keyword do
   """
   @spec from_enum(Enum.t) :: t
   def from_enum(enum) do
-    IO.write :stderr, "Keyword.from_enum/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
+    # IO.write :stderr, "Keyword.from_enum/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
     Enum.to_list(enum)
   end
 
@@ -409,7 +409,7 @@ defmodule Keyword do
     update!(keywords, key, fun, keywords)
   end
 
-  defp update!([{key, value}|keywords], key, fun, dict) do
+  defp update!([{key, value}|keywords], key, fun, _dict) do
     [{key, fun.(value)}|delete(keywords, key)]
   end
 

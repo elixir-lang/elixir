@@ -82,8 +82,8 @@ defmodule Record do
       iex> record = { User, "jose", 27 }
       iex> Record.record?(record)
       true
-      iex> integer = 13
-      iex> Record.record?(integer)
+      iex> tuple = {}
+      iex> Record.record?(tuple)
       false
 
   """

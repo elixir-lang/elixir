@@ -113,7 +113,7 @@ defmodule ListDict do
     update!(list, key, fun, list)
   end
 
-  defp update!([{key, value}|list], key, fun, dict) do
+  defp update!([{key, value}|list], key, fun, _dict) do
     [{key, fun.(value)}|delete(list, key)]
   end
 

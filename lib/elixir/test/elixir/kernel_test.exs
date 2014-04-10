@@ -162,13 +162,14 @@ defmodule KernelTest do
   end
 
   test :struct do
-    assert struct(User) == %User{name: "josé"}
+    assert struct(User) == %User{name: "jose"}
 
     user = struct(User, name: "eric")
     assert user == %User{ name: "eric" }
 
     assert struct(user, unknown: "key") == user
-    assert struct(user, name: "jose") == %User{ name: "josé" }
+    assert struct(user, name: "jose") == %User{ name: "jose" }
+    assert struct(user, name: "other") == %User{ name: "other" }
   end
 
   defmodule Conversions do
