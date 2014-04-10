@@ -24,6 +24,7 @@ defmodule KernelTest do
   doctest Path
   doctest Protocol.Consolidation
   doctest Range
+  doctest Record
   doctest Regex
   doctest Stream
   doctest String
