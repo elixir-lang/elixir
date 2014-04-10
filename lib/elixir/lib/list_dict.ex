@@ -57,7 +57,7 @@ defmodule ListDict do
   def fetch!(dict, key) do
     case fetch(dict, key) do
       { :ok, value } -> value
-      :error -> raise(KeyError, key: key)
+      :error -> raise(KeyError, key: key, term: dict)
     end
   end
 
@@ -109,16 +109,20 @@ defmodule ListDict do
     for { k, _ } = tuple <- dict, not k in keys, do: tuple
   end
 
-  def update!([{key, value}|dict], key, fun) do
-    [{key, fun.(value)}|delete(dict, key)]
+  def update!(list, key, fun) do
+    update!(list, key, fun, list)
   end
 
-  def update!([{_, _} = e|dict], key, fun) do
-    [e|update!(dict, key, fun)]
+  defp update!([{key, value}|list], key, fun, dict) do
+    [{key, fun.(value)}|delete(list, key)]
   end
 
-  def update!([], key, _fun) do
-    raise(KeyError, key: key)
+  defp update!([{_, _} = e|list], key, fun, dict) do
+    [e|update!(list, key, fun, dict)]
+  end
+
+  defp update!([], key, _fun, dict) do
+    raise(KeyError, key: key, term: dict)
   end
 
   def update([{key, value}|dict], key, _initial, fun) do

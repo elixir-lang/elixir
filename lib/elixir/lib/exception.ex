@@ -111,9 +111,9 @@ defexception ErlangError, [original: nil] do
   end
 end
 
-defexception KeyError, key: nil do
+defexception KeyError, key: nil, term: nil do
   def message(exception) do
-    "key not found: #{inspect exception.key}"
+    "key #{inspect exception.key} not found in: #{inspect exception.term}"
   end
 end
 

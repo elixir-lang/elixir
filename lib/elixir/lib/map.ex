@@ -89,7 +89,7 @@ defmodule Map do
   def update!(map, key, fun) do
     case :maps.find(key, map) do
       :error ->
-        raise(KeyError, key: key)
+        raise(KeyError, key: key, term: map)
       { :ok, val } ->
         :maps.put(key, fun.(val), map)
     end

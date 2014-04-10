@@ -60,8 +60,9 @@ defmodule HashDict do
     trie(root: root, size: size + counter)
   end
 
-  def update!(trie(root: root, size: size), key, fun) when is_function(fun, 1) do
-    { root, counter } = do_update(root, key, fn -> raise KeyError, key: key end, fun, key_hash(key))
+  def update!(trie(root: root, size: size) = dict, key, fun) when is_function(fun, 1) do
+    { root, counter } = do_update(root, key, fn -> raise KeyError, key: key, term: dict end,
+                                  fun, key_hash(key))
     trie(root: root, size: size + counter)
   end
 

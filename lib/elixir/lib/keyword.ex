@@ -160,14 +160,14 @@ defmodule Keyword do
       1
 
       iex> Keyword.fetch!([a: 1], :b)
-      ** (KeyError) key not found: :b
+      ** (KeyError) key :b not found in: [a: 1]
 
   """
   @spec fetch!(t, key) :: value | no_return
   def fetch!(keywords, key) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       { ^key, value } -> value
-      false -> raise(KeyError, key: key)
+      false -> raise(KeyError, key: key, term: keywords)
     end
   end
 
@@ -401,20 +401,24 @@ defmodule Keyword do
       [a: 2]
 
       iex> Keyword.update!([a: 1], :b, &(&1 * 2))
-      ** (KeyError) key not found: :b
+      ** (KeyError) key :b not found in: [a: 1]
 
   """
   @spec update!(t, key, (value -> value)) :: t | no_return
-  def update!([{key, value}|keywords], key, fun) do
+  def update!(keywords, key, fun) do
+    update!(keywords, key, fun, keywords)
+  end
+
+  defp update!([{key, value}|keywords], key, fun, dict) do
     [{key, fun.(value)}|delete(keywords, key)]
   end
 
-  def update!([{_, _} = e|keywords], key, fun) do
-    [e|update!(keywords, key, fun)]
+  defp update!([{_, _} = e|keywords], key, fun, dict) do
+    [e|update!(keywords, key, fun, dict)]
   end
 
-  def update!([], key, _fun) when is_atom(key) do
-    raise(KeyError, key: key)
+  defp update!([], key, _fun, dict) when is_atom(key) do
+    raise(KeyError, key: key, term: dict)
   end
 
   @doc """

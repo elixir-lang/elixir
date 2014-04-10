@@ -83,7 +83,7 @@ defmodule Record do
       iex> Record.record?(record)
       true
       iex> integer = 13
-      iex> Record.record?(13)
+      iex> Record.record?(integer)
       false
 
   """

@@ -191,8 +191,6 @@ defmodule Dict do
       iex> d = Enum.into([a: 1], dict_impl.new)
       iex> Dict.fetch!(d, :a)
       1
-      iex> Dict.fetch!(d, :b)
-      ** (KeyError) key not found: :b
 
   """
   @spec fetch!(t, key) :: value | no_return

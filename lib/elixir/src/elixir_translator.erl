@@ -229,7 +229,11 @@ translate({ { '.', _, [Left, Right] }, Meta, Args }, S)
         true ->
           { Var, _, SV } = elixir_scope:build_var('_', SC),
           TVar = { var, Line, Var },
-          TMap = { tuple, Line, [{ atom, Line, badarg }, TVar] },
+          TMap = { tuple, Line, [
+            { atom, Line, 'Elixir.KeyError' },
+            { atom, Line, '__exception__' },
+            TRight,
+            TVar] },
 
           { { 'case', -1, TLeft, [
             { clause, -1,

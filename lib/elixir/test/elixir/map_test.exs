@@ -93,7 +93,7 @@ defmodule MapTest do
   test "map access" do
     assert two_items_map.a == 1
 
-    assert_raise ArgumentError, fn ->
+    assert_raise KeyError, fn ->
       two_items_map.c
     end
   end

@@ -79,7 +79,7 @@ defmodule Dict.Behaviour do
       def fetch!(dict, key) do
         case fetch(dict, key) do
           { :ok, value } -> value
-          :error -> raise KeyError, key: key
+          :error -> raise KeyError, key: key, term: dict
         end
       end
 
