@@ -21,8 +21,8 @@ start(_Type, _Args) ->
   %% Set the shell to unicode so printing inside scripts work
   %% Those can take a while, so let's do it in a new process
   spawn(fun() ->
-    io:setopts(standard_io, [binary,{encoding,unicode}]),
-    io:setopts(standard_error, [binary,{encoding,unicode}])
+    io:setopts(standard_io, [binary,{encoding,utf8}]),
+    io:setopts(standard_error, [{unicode,true}])
   end),
   elixir_sup:start_link().
 
