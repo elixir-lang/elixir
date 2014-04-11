@@ -640,6 +640,21 @@ defmodule Kernel.Typespec do
     for arg <- args, do: typespec_to_ast(arg)
   end
 
+  defp typespec_to_ast({ :type, line, :map, fields }) do
+    fields = Enum.map fields, fn { :type, _, :map_field_assoc, k, v } ->
+      { typespec_to_ast(k), typespec_to_ast(v) }
+    end
+
+    { struct, fields } = Keyword.pop(fields, :__struct__)
+    map = { :%{}, [line: line], fields }
+
+    if struct do
+      { :%, [line: line], [struct, map] }
+    else
+      map
+    end
+  end
+
   defp typespec_to_ast({ :type, line, :binary, [arg1, arg2] }) do
     [arg1, arg2] = for arg <- [arg1, arg2], do: typespec_to_ast(arg)
     cond do
@@ -762,6 +777,18 @@ defmodule Kernel.Typespec do
 
   defp typespec({:<<>>, meta, [{:::, meta1, [{:_, meta2, atom}, base]}]}, _, _) when is_atom(atom) do
     {:type, line(meta), :binary, [{:integer, line(meta1), base}, {:integer, line(meta2), 0}]}
+  end
+
+  ## Handle maps and structs
+  defp typespec({:%{}, meta, fields}, vars, caller) do
+    fields = Enum.map(fields, fn { k, v } ->
+      {:type, line(meta), :map_field_assoc, typespec(k, vars, caller), typespec(v, vars, caller)}
+    end)
+    {:type, line(meta), :map, fields}
+  end
+
+  defp typespec({:%, _, [name, {:%{}, meta, fields}]}, vars, caller) do
+    typespec({:%{}, meta, [{:__struct__, name}|fields]}, vars, caller)
   end
 
   # Handle ranges

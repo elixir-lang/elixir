@@ -122,6 +122,29 @@ defmodule Kernel.TypespecTest do
     assert {:mytype, {:type, _, :range, [{:integer, _, 1}, {:integer, _, 10}]}, []} = spec
   end
 
+  test "@type with a map" do
+    spec = test_module do
+      @type mytype :: %{hello: :world}
+    end
+    assert {:mytype,
+             {:type, _, :map, [
+               {:type, _, :map_field_assoc, {:atom, _, :hello}, {:atom, _, :world}}
+             ]},
+            []} = spec
+  end
+
+  test "@type with a struct" do
+    spec = test_module do
+      @type mytype :: %User{hello: :world}
+    end
+    assert {:mytype,
+             {:type, _, :map, [
+               {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, User}},
+               {:type, _, :map_field_assoc, {:atom, _, :hello}, {:atom, _, :world}}
+             ]},
+            []} = spec
+  end
+
   test "@type with a tuple" do
     {spec1, spec2, spec3} = test_module do
       t1 = @type mytype :: tuple
@@ -252,7 +275,7 @@ defmodule Kernel.TypespecTest do
       @type
     end
 
-    assert [{:t, {:type, 251, :map, []}, []}] = types
+    assert [{:t, {:type, _, :map, []}, []}] = types
   end
 
   test "@type unquote fragment" do
@@ -380,6 +403,8 @@ defmodule Kernel.TypespecTest do
       (quote do: @type rng() :: 1 .. 10),
       (quote do: @type opts() :: [first: integer(), step: integer(), last: integer()]),
       (quote do: @type ops() :: {+1,-1}),
+      (quote do: @type my_map() :: %{hello: :world}),
+      (quote do: @type my_struct() :: %User{hello: :world}),
     ]
 
     types = test_module do
