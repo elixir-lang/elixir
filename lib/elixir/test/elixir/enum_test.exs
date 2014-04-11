@@ -187,6 +187,7 @@ defmodule EnumTest.List do
 
   test :into do
     assert Enum.into([a: 1, b: 2], %{}) == %{a: 1, b: 2}
+    assert Enum.into([a: 1, b: 2], %{c: 3}) == %{a: 1, b: 2, c: 3}
     assert Enum.into(%{a: 1, b: 2}, []) == [a: 1, b: 2]
     assert Enum.into([1, 2, 3], "numbers: ", &to_string/1) == "numbers: 123"
     assert Enum.into([1, 2, 3], fn

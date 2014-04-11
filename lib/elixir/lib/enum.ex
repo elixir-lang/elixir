@@ -838,16 +838,15 @@ defmodule Enum do
     list ++ to_list(collection)
   end
 
+  def into(collection, %{} = map) when is_list(collection) and (map_size(map) == 0) do
+    :maps.from_list(collection)
+  end
+
   def into(collection, collectable) do
-    case is_list(collection) and is_map(collectable) and (:maps.size(collectable) == 0) do
-      true ->
-        :maps.from_list(collection)
-      false ->
-        { initial, fun } = Collectable.into(collectable)
-        into(collection, initial, fun, fn x, acc ->
-          fun.(acc, { :cont, x })
-        end)
-    end
+    { initial, fun } = Collectable.into(collectable)
+    into(collection, initial, fun, fn x, acc ->
+      fun.(acc, { :cont, x })
+    end)
   end
 
   @doc """
