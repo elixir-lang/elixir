@@ -63,8 +63,8 @@ defmodule EEx.AssignsEngine do
         use EEx.AssignsEngine
       end
 
-      EEx.eval_string("<%= @foo %>", assigns: [foo: 1])
-      #=> 1
+      iex> EEx.eval_string("<%= @foo %>", assigns: [foo: 1])
+      "1"
 
   In the example above, we can access the value `foo` under
   the binding `assigns` using `@foo`. This is useful when
@@ -83,8 +83,8 @@ defmodule EEx.AssignsEngine do
         EEx.function_from_file :def, :sample, "sample.eex", [:assigns]
       end
 
-      # iex
-      Sample.sample(a: 1, b: 2) #=> "3"
+      iex> Sample.sample(a: 1, b: 2)
+      "3"
 
   """
 

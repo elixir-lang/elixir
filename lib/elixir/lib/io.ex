@@ -153,11 +153,11 @@ defmodule IO do
 
   ## Examples
 
-      IO.write "sample"
-      #=> "sample"
+      iex> IO.write "sample"
+      sample:ok
 
-      IO.write :stderr, "error"
-      #=> "error"
+      iex> IO.write :stderr, "error"
+      error:ok
 
   """
   @spec write(device, chardata) :: :ok

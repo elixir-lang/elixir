@@ -5,8 +5,8 @@ defmodule EEx do
   EEx stands for Embedded Elixir. It allows you to embed
   Elixir code inside a string in a robust way:
 
-      EEx.eval_string "foo <%= bar %>", [bar: "baz"]
-      #=> "foo baz"
+      iex> EEx.eval_string "foo <%= bar %>", [bar: "baz"]
+      "foo baz"
 
   ## API
 
@@ -31,7 +31,7 @@ defmodule EEx do
 
   All functions in this module accepts EEx-related options.
   They are:
-  
+
   * `:line` - the line to be used as the template start.
               Defaults to 1;
   * `:file` - the file to be used in the template.
@@ -79,8 +79,8 @@ defmodule EEx do
   An example is the `@` macro which allows easy data access
   in a template:
 
-      EEx.eval_string "<%= @foo %>", assigns: [foo: 1]
-      #=> 1
+      iex> EEx.eval_string "<%= @foo %>", assigns: [foo: 1]
+      "1"
 
   In other words, <%= @foo %> is simply translated to:
 
@@ -102,7 +102,8 @@ defmodule EEx do
         EEx.function_from_string :def, :sample, "<%= a + b %>", [:a, :b]
       end
 
-      Sample.sample(1, 2) #=> "3"
+      iex> Sample.sample(1, 2)
+      "3"
 
   """
   defmacro function_from_string(kind, name, source, args \\ [], options \\ []) do
@@ -137,8 +138,8 @@ defmodule EEx do
         EEx.function_from_file :def, :sample, "sample.eex", [:a, :b]
       end
 
-      # iex
-      Sample.sample(1, 2) #=> "3"
+      iex> Sample.sample(1, 2)
+      "3"
 
   """
   defmacro function_from_file(kind, name, file, args \\ [], options \\ []) do
@@ -177,8 +178,8 @@ defmodule EEx do
 
   ## Examples
 
-      EEx.eval_string "foo <%= bar %>", [bar: "baz"]
-      #=> "foo baz"
+      iex> EEx.eval_string "foo <%= bar %>", [bar: "baz"]
+      "foo baz"
 
   """
   def eval_string(source, bindings \\ [], options \\ []) do
@@ -194,9 +195,8 @@ defmodule EEx do
       # sample.ex
       foo <%= bar %>
 
-      # iex
-      EEx.eval_file "sample.ex", [bar: "baz"]
-      #=> "foo baz"
+      iex> EEx.eval_file "sample.ex", [bar: "baz"]
+      "foo baz"
 
   """
   def eval_file(filename, bindings \\ [], options \\ []) do

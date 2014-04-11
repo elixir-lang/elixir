@@ -7,14 +7,14 @@ defmodule KernelTest do
   doctest Base
   doctest Bitwise
   doctest Code
-  doctest Enum
-  doctest Exception
+  doctest Enum, except: [each: 2]
+  doctest Exception, except: [format_fa: 2]
   doctest Float
   doctest IO.ANSI
   doctest Inspect.Algebra
   doctest Integer
   doctest Keyword
-  doctest Kernel
+  doctest Kernel, except: [make_ref: 0]
   doctest Kernel.SpecialForms
   doctest List
   doctest Macro

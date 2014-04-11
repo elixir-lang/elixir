@@ -371,7 +371,8 @@ defmodule Kernel do
 
   ## Examples
 
-      float_to_binary 7.1, [decimals: 2, compact: true] #=> "7.1"
+      iex> float_to_binary 7.1, [decimals: 2, compact: true]
+      "7.1"
 
   """
   @spec float_to_binary(float, list) :: binary
@@ -391,7 +392,8 @@ defmodule Kernel do
 
   ## Examples
 
-      float_to_list 7.1, [decimals: 2, compact: true] #=> '7.1'
+      iex> float_to_list 7.1, [decimals: 2, compact: true]
+      '7.1'
 
   """
   @spec float_to_list(float, list) :: char_list
@@ -808,7 +810,8 @@ defmodule Kernel do
 
   ## Examples
 
-      make_ref() #=> #Reference<0.0.0.135>
+      iex> make_ref()
+      #Reference<0.0.0.135>
 
   """
   @spec make_ref() :: reference
@@ -1773,10 +1776,11 @@ defmodule Kernel do
 
   ## Examples
 
-      defrecord Config, sample: nil
-
-      is_record(Config.new, Config) #=> true
-      is_record(Config.new, List)   #=> false
+      iex> defrecord Config, sample: nil
+      iex> is_record(Config.new, Config)
+      true
+      iex> is_record(Config.new, List)
+      false
 
   """
   defmacro is_record(thing, kind) do
@@ -2591,8 +2595,9 @@ defmodule Kernel do
   The usage of this protocol is to access a raw value in a
   keyword list.
 
-      sample = [a: 1, b: 2, c: 3]
-      sample[:b] #=> 2
+      iex> sample = [a: 1, b: 2, c: 3]
+      iex> sample[:b]
+      2
 
   """
   defmacro access(element, args) when is_list(args) do
@@ -2803,11 +2808,11 @@ defmodule Kernel do
 
   ## Examples
 
-      defmodule Foo do
-        def bar, do: :baz
-      end
-
-      Foo.bar #=> :baz
+      iex> defmodule Foo do
+      ...>   def bar, do: :baz
+      ...> end
+      iex> Foo.bar
+      :baz
 
   ## Nesting
 
