@@ -177,8 +177,10 @@ defmodule Mix.Utils do
 
       iex> Mix.Utils.underscore "FooBar"
       "foo_bar"
+
       iex> Mix.Utils.underscore "Foo.Bar"
       "foo/bar"
+
       iex> Mix.Utils.underscore Foo.Bar
       "foo/bar"
 

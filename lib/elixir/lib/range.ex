@@ -34,6 +34,7 @@ defmodule Range do
 
       iex> Range.range?(1..3)
       true
+
       iex> Range.range?(0)
       false
 

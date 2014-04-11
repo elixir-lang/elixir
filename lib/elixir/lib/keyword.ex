@@ -304,6 +304,7 @@ defmodule Keyword do
   already exists.
 
   ## Examples
+
       iex> Keyword.put_new([a: 1], :b, 2)
       [b: 2, a: 1]
 

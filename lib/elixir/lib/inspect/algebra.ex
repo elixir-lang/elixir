@@ -8,6 +8,7 @@ defmodule Inspect.Algebra do
 
       iex> Inspect.Algebra.empty
       :doc_nil
+
       iex> "foo"
       "foo"
 

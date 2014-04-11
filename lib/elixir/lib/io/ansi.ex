@@ -183,6 +183,7 @@ defmodule IO.ANSI do
 
       iex> IO.ANSI.escape_fragment("Hello %{red,bright,green}yes", true)
       "Hello \e[31m\e[1m\e[32myes"
+
       iex> IO.ANSI.escape_fragment("%{reset}bye", true)
       "\e[0mbye"
 

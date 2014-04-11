@@ -406,6 +406,7 @@ defmodule Module do
 
       iex> Module.concat([Foo, Bar])
       Foo.Bar
+
       iex> Module.concat([Foo, "Bar"])
       Foo.Bar
 
@@ -422,6 +423,7 @@ defmodule Module do
 
       iex> Module.concat(Foo, Bar)
       Foo.Bar
+
       iex> Module.concat(Foo, "Bar")
       Foo.Bar
 

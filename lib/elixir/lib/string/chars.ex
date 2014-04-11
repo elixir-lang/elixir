@@ -58,6 +58,7 @@ defimpl String.Chars, for: List do
 
       iex> to_string('foo')
       "foo"
+
       iex> to_string(["foo", 'bar'])
       "foobar"
 

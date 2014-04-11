@@ -202,6 +202,7 @@ defmodule Enum do
 
       iex> Enum.all?([1, 2, 3])
       true
+
       iex> Enum.all?([1, nil, 3])
       false
 
@@ -238,6 +239,7 @@ defmodule Enum do
 
       iex> Enum.any?([false, false, false])
       false
+
       iex> Enum.any?([false, true, false])
       true
 
@@ -265,10 +267,13 @@ defmodule Enum do
 
       iex> Enum.at([2, 4, 6], 0)
       2
+
       iex> Enum.at([2, 4, 6], 2)
       6
+
       iex> Enum.at([2, 4, 6], 4)
       nil
+
       iex> Enum.at([2, 4, 6], 4, :none)
       :none
 
@@ -305,10 +310,13 @@ defmodule Enum do
 
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 2)
       [[1, 2], [3, 4], [5, 6]]
+
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2)
       [[1, 2, 3], [3, 4, 5]]
+
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2, [7])
       [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
+
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 3, [])
       [[1, 2, 3], [4, 5, 6]]
 
@@ -426,6 +434,7 @@ defmodule Enum do
   `fun` returns `true`.
 
   ## Examples
+
       iex> Enum.count([1, 2, 3, 4, 5], fn(x) -> rem(x, 2) == 0 end)
       2
 
@@ -449,10 +458,13 @@ defmodule Enum do
 
       iex> Enum.drop([1, 2, 3], 2)
       [3]
+
       iex> Enum.drop([1, 2, 3], 10)
       []
+
       iex> Enum.drop([1, 2, 3], 0)
       [1,2,3]
+
       iex> Enum.drop([1, 2, 3], -1)
       [1,2]
 
@@ -483,6 +495,7 @@ defmodule Enum do
 
       iex> Enum.drop_while([1, 2, 3, 4, 5], fn(x) -> x < 3 end)
       [3,4,5]
+
   """
   @spec drop_while(t, (element -> as_boolean(term))) :: list
   def drop_while(collection, fun) when is_list(collection) do
@@ -528,6 +541,7 @@ defmodule Enum do
 
       iex> Enum.empty?([])
       true
+
       iex> Enum.empty?([1, 2, 3])
       false
 
@@ -553,8 +567,10 @@ defmodule Enum do
 
       iex> Enum.fetch([2, 4, 6], 0)
       { :ok, 2 }
+
       iex> Enum.fetch([2, 4, 6], 2)
       { :ok, 6 }
+
       iex> Enum.fetch([2, 4, 6], 4)
       :error
 
@@ -802,8 +818,10 @@ defmodule Enum do
 
       iex> Enum.intersperse([1, 2, 3], 0)
       [1, 0, 2, 0, 3]
+
       iex> Enum.intersperse([1], 0)
       [1]
+
       iex> Enum.intersperse([], 0)
       []
 
@@ -899,6 +917,7 @@ defmodule Enum do
 
       iex> Enum.join([1, 2, 3])
       "123"
+
       iex> Enum.join([1, 2, 3], " = ")
       "1 = 2 = 3"
 
@@ -952,6 +971,7 @@ defmodule Enum do
 
       iex> Enum.map_join([1, 2, 3], &(&1 * 2))
       "246"
+
       iex> Enum.map_join([1, 2, 3], " = ", &(&1 * 2))
       "2 = 4 = 6"
 
@@ -1059,6 +1079,7 @@ defmodule Enum do
 
       iex> Enum.member?(1..10, 5)
       true
+
       iex> Enum.member?([:a, :b, :c], :d)
       false
 
@@ -1503,12 +1524,16 @@ defmodule Enum do
 
       iex> Enum.split([1, 2, 3], 2)
       { [1,2], [3] }
+
       iex> Enum.split([1, 2, 3], 10)
       { [1,2,3], [] }
+
       iex> Enum.split([1, 2, 3], 0)
       { [], [1,2,3] }
+
       iex> Enum.split([1, 2, 3], -1)
       { [1,2], [3] }
+
       iex> Enum.split([1, 2, 3], -5)
       { [], [1,2,3] }
 
@@ -1542,6 +1567,7 @@ defmodule Enum do
 
       iex> Enum.split_while([1, 2, 3, 4], fn(x) -> x < 3 end)
       { [1, 2], [3, 4] }
+
   """
   @spec split_while(t, (element -> as_boolean(term))) :: {list, list}
   def split_while(collection, fun) when is_list(collection) do
@@ -1572,10 +1598,13 @@ defmodule Enum do
 
       iex> Enum.take([1, 2, 3], 2)
       [1,2]
+
       iex> Enum.take([1, 2, 3], 10)
       [1,2,3]
+
       iex> Enum.take([1, 2, 3], 0)
       []
+
       iex> Enum.take([1, 2, 3], -1)
       [3]
 

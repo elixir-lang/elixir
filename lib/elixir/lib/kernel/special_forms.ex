@@ -35,6 +35,7 @@ defmodule Kernel.SpecialForms do
 
       iex> { 1, 2, 3 }
       { 1, 2, 3 }
+
       iex> quote do: { 1, 2, 3 }
       { :{}, [], [1,2,3] }
 
@@ -318,12 +319,16 @@ defmodule Kernel.SpecialForms do
 
       iex> Kernel.Sample
       Kernel.Sample
+
       iex> Kernel.length([1,2,3])
       3
+
       iex> Kernel.+(1, 2)
       3
+
       iex> Kernel."length"([1,2,3])
       3
+
       iex> Kernel.'+'(1, 2)
       3
 
@@ -347,6 +352,7 @@ defmodule Kernel.SpecialForms do
 
       iex> apply(:erlang, :+, [1,2])
       3
+
       iex> Module.concat(Kernel, Sample)
       Kernel.Sample
 

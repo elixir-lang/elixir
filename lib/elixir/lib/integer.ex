@@ -26,8 +26,8 @@ defmodule Integer do
   end
 
   @doc """
-  Converts a binary to an integer. 
-  
+  Converts a binary to an integer.
+
   If successful, returns a tuple of the form `{ integer, remainder_of_binary }`.
   Otherwise `:error`.
 
@@ -35,8 +35,10 @@ defmodule Integer do
 
       iex> Integer.parse("34")
       {34,""}
+
       iex> Integer.parse("34.5")
       {34,".5"}
+
       iex> Integer.parse("three")
       :error
 

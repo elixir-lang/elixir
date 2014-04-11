@@ -7,6 +7,7 @@ defmodule StringIO do
       iex> { :ok, pid } = StringIO.open("foo")
       iex> IO.read(pid, 2)
       "fo"
+
   """
 
   use GenServer.Behaviour
@@ -49,6 +50,7 @@ defmodule StringIO do
       iex> IO.write(pid, "out")
       iex> StringIO.contents(pid)
       { "in", "out" }
+
   """
   @spec contents(pid) :: { binary, binary }
   def contents(pid) when is_pid(pid) do
@@ -64,6 +66,7 @@ defmodule StringIO do
       iex> IO.write(pid, "out")
       iex> StringIO.close(pid)
       { :ok, { "in", "out" } }
+
   """
   @spec close(pid) :: { :ok, { binary, binary } }
   def close(pid) when is_pid(pid) do

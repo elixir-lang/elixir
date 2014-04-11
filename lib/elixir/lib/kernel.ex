@@ -46,8 +46,10 @@ defmodule Kernel do
 
       iex> abs(-3.33)
       3.33
+
       iex> abs(-3)
       3
+
   """
   @spec abs(number) :: number
   def abs(number) do
@@ -245,6 +247,7 @@ defmodule Kernel do
 
       iex> bit_size(<<433::16, 3::3>>)
       19
+
       iex> bit_size(<<1, 2, 3>>)
       24
 
@@ -280,6 +283,7 @@ defmodule Kernel do
 
       iex> byte_size(<<433::16, 3::3>>)
       3
+
       iex> byte_size(<<1, 2, 3>>)
       3
 
@@ -688,6 +692,7 @@ defmodule Kernel do
 
       iex> length([1, 2, 3, 4, 5, 6, 7, 8, 9])
       9
+
   """
   @spec length(list) :: non_neg_integer
   def length(list) do
@@ -703,6 +708,7 @@ defmodule Kernel do
 
       iex> list_to_atom('elixir')
       :elixir
+
   """
   @spec list_to_atom(char_list) :: atom
   def list_to_atom(list) do
@@ -749,6 +755,7 @@ defmodule Kernel do
 
       iex> list_to_float('2.2017764e+0')
       2.2017764
+
   """
   @spec list_to_float(list) :: float
   def list_to_float(list) do
@@ -764,6 +771,7 @@ defmodule Kernel do
 
       iex> list_to_integer('123')
       123
+
   """
   @spec list_to_integer(list) :: integer
   def list_to_integer(list) do
@@ -779,6 +787,7 @@ defmodule Kernel do
 
       iex> list_to_integer('3FF', 16)
       1023
+
   """
   @spec list_to_integer(list, non_neg_integer) :: integer
   def list_to_integer(list, base) do
@@ -794,6 +803,7 @@ defmodule Kernel do
 
       iex> list_to_tuple([:share, [:elixir, 163]])
       {:share, [:elixir, 163]}
+
   """
   @spec list_to_tuple(list) :: tuple
   def list_to_tuple(list) do
@@ -1199,6 +1209,7 @@ defmodule Kernel do
 
       iex> 1 / 2
       0.5
+
       iex> 2 / 1
       2.0
 
@@ -1257,6 +1268,7 @@ defmodule Kernel do
 
       iex> true xor false
       true
+
       iex> true xor true
       false
 
@@ -1392,6 +1404,7 @@ defmodule Kernel do
 
       iex> 1 != 2
       true
+
       iex> 1 != 1.0
       false
 
@@ -1573,6 +1586,7 @@ defmodule Kernel do
 
       iex> !Enum.empty?([])
       false
+
       iex> !List.first([])
       true
 
@@ -1748,6 +1762,7 @@ defmodule Kernel do
 
       iex> is_exception((fn -> ArithmeticError.new end).())
       true
+
       iex> is_exception((fn -> 1 end).())
       false
 
@@ -1951,6 +1966,7 @@ defmodule Kernel do
 
       iex> nil?(1)
       false
+
       iex> nil?(nil)
       true
 
@@ -1967,8 +1983,10 @@ defmodule Kernel do
 
       iex> match?(1, 1)
       true
+
       iex> match?(1, 2)
       false
+
       iex> match?({1, _}, {1, 2})
       true
 
@@ -1987,6 +2005,7 @@ defmodule Kernel do
 
       iex> match?(x, 1)
       true
+
       iex> binding([:x]) == []
       true
 
@@ -2353,6 +2372,7 @@ defmodule Kernel do
 
       iex> unless(Enum.empty?([]), do: "Hello")
       nil
+
       iex> unless(Enum.empty?([1,2,3]), do: "Hello")
       "Hello"
 
@@ -2419,10 +2439,13 @@ defmodule Kernel do
 
       iex> 0 in 1..3
       false
+
       iex> 1 in 1..3
       true
+
       iex> 2 in 1..3
       true
+
       iex> 3 in 1..3
       true
 
@@ -3704,6 +3727,7 @@ defmodule Kernel do
 
       iex> ~S(foo)
       "foo"
+
       iex> ~S(f\#{o}o)
       "f\\\#{o}o"
 
@@ -3720,6 +3744,7 @@ defmodule Kernel do
 
       iex> ~s(foo)
       "foo"
+
       iex> ~s(f\#{:o}o)
       "foo"
 
@@ -3736,6 +3761,7 @@ defmodule Kernel do
 
       iex> ~C(foo)
       'foo'
+
       iex> ~C(f\#{o}o)
       'f\\\#{o}o'
 
@@ -3752,6 +3778,7 @@ defmodule Kernel do
 
       iex> ~c(foo)
       'foo'
+
       iex> ~c(f\#{:o}o)
       'foo'
 
@@ -3816,8 +3843,10 @@ defmodule Kernel do
 
       iex> ~w(foo \#{:bar} baz)
       ["foo", "bar", "baz"]
+
       iex> ~w(--source test/enum_test.exs)
       ["--source", "test/enum_test.exs"]
+
       iex> ~w(foo bar baz)a
       [:foo, :bar, :baz]
 

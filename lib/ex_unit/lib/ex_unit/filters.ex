@@ -16,6 +16,7 @@ defmodule ExUnit.Filters do
 
       iex> ExUnit.Filters.normalize([:foo, :bar, :bar], [:foo, :baz])
       { [:foo, :bar], [:baz] }
+
   """
   @spec normalize(t | nil, t | nil) :: { t, t }
   def normalize(include, exclude) do
