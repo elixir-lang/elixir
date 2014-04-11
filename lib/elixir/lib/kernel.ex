@@ -810,8 +810,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> make_ref()
-      #Reference<0.0.0.135>
+      make_ref() #=> #Reference<0.0.0.135>
 
   """
   @spec make_ref() :: reference

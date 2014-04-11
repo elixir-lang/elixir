@@ -9,13 +9,13 @@ defmodule KernelTest do
   doctest Code
   doctest Collectable
   doctest EEx
-  doctest Enum, except: [each: 2]
-  doctest Exception, except: [format_fa: 2]
+  doctest Enum
+  doctest Exception
   doctest Float
   doctest Inspect.Algebra
   doctest Integer
   doctest IO.ANSI
-  doctest Kernel, except: [make_ref: 0]
+  doctest Kernel
   doctest Kernel.SpecialForms
   doctest Keyword
   doctest List

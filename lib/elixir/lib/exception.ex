@@ -299,8 +299,8 @@ defmodule Exception do
 
   ## Examples
 
-      iex> Exception.format_fa(fn -> end, 1)
-      "#Function<...>/1"
+      Exception.format_fa(fn -> end, 1)
+      #=> "#Function<...>/1"
 
   """
   def format_fa(fun, arity) do

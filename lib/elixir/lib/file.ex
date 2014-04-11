@@ -143,17 +143,17 @@ defmodule File do
   `{ :ok, result }` tuple) in case of success or raises an
   exception in case it fails. For example:
 
-      iex> File.read("hello.txt")
-      { :ok, "World" }
+      File.read("hello.txt")
+      #=> { :ok, "World" }
 
-      iex> File.read("invalid.txt")
-      { :error, :enoent }
+      File.read("invalid.txt")
+      #=> { :error, :enoent }
 
-      iex> File.read!("hello.txt")
-      "World"
+      File.read!("hello.txt")
+      #=> "World"
 
-      iex> File.read!("invalid.txt")
-      ** (File.Error) could not read file invalid.txt: no such file or directory
+      File.read!("invalid.txt")
+      #=> raises File.Error
 
   In general, a developer should use the former in case he wants
   to react if the file does not exist. The latter should be used
@@ -187,8 +187,7 @@ defmodule File do
 
   ## Examples
 
-      iex> File.regular? __ENV__.file
-      true
+      File.regular? __ENV__.file #=> true
 
   """
   def regular?(path) do
@@ -209,14 +208,14 @@ defmodule File do
 
   ## Examples
 
-      iex> File.exists?("test/")
-      true
+      File.exists?("test/")
+      #=> true
 
-      iex> File.exists?("missing.txt")
-      false
+      File.exists?("missing.txt")
+      #=> false
 
-      iex> File.exists?("/dev/null")
-      true
+      File.exists?("/dev/null")
+      #=> true
 
   """
   def exists?(path) do
@@ -670,11 +669,11 @@ defmodule File do
 
   ## Examples
 
-      iex> File.rm('file.txt')
-      :ok
+      File.rm('file.txt')
+      #=> :ok
 
-      iex> File.rm('tmp_dir/')
-      {:error, :eperm}
+      File.rm('tmp_dir/')
+      #=> {:error, :eperm}
 
   """
   def rm(path) do
@@ -698,11 +697,11 @@ defmodule File do
 
   ## Examples
 
-      iex> File.rmdir('tmp_dir')
-      :ok
+      File.rmdir('tmp_dir')
+      #=> :ok
 
-      iex> File.rmdir('file.txt')
-      {:error, :enotdir}
+      File.rmdir('file.txt')
+      #=> {:error, :enotdir}
 
   """
   def rmdir(path) do
@@ -731,11 +730,11 @@ defmodule File do
 
   ## Examples
 
-      iex> File.rm_rf "samples"
-      {:ok, ["samples", "samples/1.txt"]}
+      File.rm_rf "samples"
+      #=> { :ok, ["samples", "samples/1.txt"] }
 
-      iex> File.rm_rf "unknown"
-      {:ok, []}
+      File.rm_rf "unknown"
+      #=> { :ok, [] }
 
   """
   def rm_rf(path) do
