@@ -83,8 +83,8 @@ defmodule EEx.AssignsEngine do
         EEx.function_from_file :def, :sample, "sample.eex", [:assigns]
       end
 
-      iex> Sample.sample(a: 1, b: 2)
-      "3"
+      # iex
+      Sample.sample(a: 1, b: 2) #=> "3"
 
   """
 

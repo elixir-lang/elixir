@@ -1359,9 +1359,9 @@ defmodule Enum do
 
   ## Examples
 
-      iex(1)> Enum.shuffle([1, 2, 3])
+      iex> Enum.shuffle([1, 2, 3])
       [3, 2, 1]
-      iex(2)> Enum.shuffle([1, 2, 3])
+      iex> Enum.shuffle([1, 2, 3])
       [3, 1, 2]
 
   """

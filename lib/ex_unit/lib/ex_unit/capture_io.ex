@@ -19,8 +19,8 @@ defmodule ExUnit.CaptureIO do
   """
 
   @doc """
-  Captures IO generated when evaluating `fun`. 
-  
+  Captures IO generated when evaluating `fun`.
+
   Returns the binary which is the captured output.
 
   By default, `capture_io` replaces the `group_leader` (`:stdio`)

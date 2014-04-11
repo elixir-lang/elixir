@@ -9,10 +9,18 @@ defmodule KernelTest do
   doctest Code
   doctest Collectable
   doctest EEx
+  doctest EEx.AssignsEngine
   doctest Enum
   doctest Exception
   doctest Float
   doctest Inspect.Algebra
+  doctest Inspect.Atom
+  doctest Inspect.BitString
+  doctest Inspect.Float
+  doctest Inspect.Integer
+  doctest Inspect.List
+  doctest Inspect.Regex
+  doctest Inspect.Tuple
   doctest Integer
   doctest IO.ANSI
   doctest Kernel
@@ -20,16 +28,19 @@ defmodule KernelTest do
   doctest Keyword
   doctest List
   doctest Macro
+  doctest Map
   doctest Module
   doctest Node
   doctest OptionParser
   doctest Path
+  doctest Process
   doctest Protocol.Consolidation
   doctest Range
   doctest Record
   doctest Regex
   doctest Stream
   doctest String
+  doctest String.Chars.List
   doctest StringIO
   doctest Tuple
   doctest URI
