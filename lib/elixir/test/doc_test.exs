@@ -7,15 +7,17 @@ defmodule KernelTest do
   doctest Base
   doctest Bitwise
   doctest Code
+  doctest Collectable
+  doctest EEx
   doctest Enum, except: [each: 2]
   doctest Exception, except: [format_fa: 2]
   doctest Float
-  doctest IO.ANSI
   doctest Inspect.Algebra
   doctest Integer
-  doctest Keyword
+  doctest IO.ANSI
   doctest Kernel, except: [make_ref: 0]
   doctest Kernel.SpecialForms
+  doctest Keyword
   doctest List
   doctest Macro
   doctest Module
@@ -29,7 +31,6 @@ defmodule KernelTest do
   doctest Stream
   doctest String
   doctest StringIO
-  doctest Collectable
   doctest Tuple
   doctest URI
   doctest Version
