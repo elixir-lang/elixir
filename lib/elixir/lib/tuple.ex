@@ -30,7 +30,7 @@ defmodule Tuple do
   ## Examples
 
       iex> tuple = { :bar, :baz }
-      ...> Tuple.insert_at(tuple, 0, :foo)
+      iex> Tuple.insert_at(tuple, 0, :foo)
       { :foo, :bar, :baz }
 
   """
@@ -43,13 +43,13 @@ defmodule Tuple do
   Remove an element from a tuple.
 
   Deletes the element at the zero-based `index` from `tuple`.
-  Raises an `ArgumentError` if `index` is greater than 
+  Raises an `ArgumentError` if `index` is greater than
   or equal to the length of `tuple`.
 
   ## Examples
 
       iex> tuple = { :foo, :bar, :baz }
-      ...> Tuple.delete_at(tuple, 0)
+      iex> Tuple.delete_at(tuple, 0)
       { :bar, :baz }
 
   """

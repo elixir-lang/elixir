@@ -46,8 +46,8 @@ defmodule StringIO do
   ## Examples
 
       iex> { :ok, pid } = StringIO.open("in")
-      ...> IO.write(pid, "out")
-      ...> StringIO.contents(pid)
+      iex> IO.write(pid, "out")
+      iex> StringIO.contents(pid)
       { "in", "out" }
   """
   @spec contents(pid) :: { binary, binary }
@@ -61,8 +61,8 @@ defmodule StringIO do
   ## Examples
 
       iex> { :ok, pid } = StringIO.open("in")
-      ...> IO.write(pid, "out")
-      ...> StringIO.close(pid)
+      iex> IO.write(pid, "out")
+      iex> StringIO.close(pid)
       { :ok, { "in", "out" } }
   """
   @spec close(pid) :: { :ok, { binary, binary } }

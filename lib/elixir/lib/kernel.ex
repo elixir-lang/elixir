@@ -175,7 +175,7 @@ defmodule Kernel do
   ## Examples
 
       iex> :my_atom
-      ...> binary_to_existing_atom("my_atom")
+      iex> binary_to_existing_atom("my_atom")
       :my_atom
 
       iex> binary_to_existing_atom("this_atom_will_never_exist")
@@ -509,13 +509,13 @@ defmodule Kernel do
   ## Examples
 
       iex> bin1 = <<1, 2, 3>>
-      ...> bin2 = <<4, 5>>
-      ...> bin3 = <<6>>
-      ...> iolist_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
+      iex> bin2 = <<4, 5>>
+      iex> bin3 = <<6>>
+      iex> iolist_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
       <<1,2,3,1,2,3,4,5,4,6>>
 
       iex> bin = <<1, 2, 3>>
-      ...> iolist_to_binary(bin)
+      iex> iolist_to_binary(bin)
       <<1,2,3>>
 
   """
@@ -718,9 +718,9 @@ defmodule Kernel do
   ## Examples
 
       iex> bin1 = <<1, 2, 3>>
-      ...> bin2 = <<4, 5>>
-      ...> bin3 = <<6, 7::4>>
-      ...> list_to_bitstring([bin1, 1, [2, 3, bin2], 4|bin3])
+      iex> bin2 = <<4, 5>>
+      iex> bin3 = <<6, 7::4>>
+      iex> list_to_bitstring([bin1, 1, [2, 3, bin2], 4|bin3])
       <<1,2,3,1,2,3,4,5,4,6,7::size(4)>>
 
   """
@@ -1455,7 +1455,7 @@ defmodule Kernel do
   ## Example
 
       iex> tuple = { :foo, :bar, 3 }
-      ...> elem(tuple, 1)
+      iex> elem(tuple, 1)
       :bar
 
   """
@@ -1472,7 +1472,7 @@ defmodule Kernel do
   ## Example
 
       iex> tuple = { :foo, :bar, 3 }
-      ...> set_elem(tuple, 0, :baz)
+      iex> set_elem(tuple, 0, :baz)
       { :baz, :bar, 3 }
 
   """
@@ -1609,7 +1609,7 @@ defmodule Kernel do
   long as the first part is a literal binary:
 
       iex> "foo" <> x = "foobar"
-      ...> x
+      iex> x
       "bar"
 
   """
@@ -2374,7 +2374,7 @@ defmodule Kernel do
   ## Examples
 
       iex> destructure([x, y, z], [1, 2, 3, 4, 5])
-      ...> {x, y, z}
+      iex> {x, y, z}
       {1, 2, 3}
 
   Notice in the example above, even though the right
@@ -2383,7 +2383,7 @@ defmodule Kernel do
   are simply assigned to nil:
 
       iex> destructure([x, y, z], [1])
-      ...> {x, y, z}
+      iex> {x, y, z}
       {1, nil, nil}
 
   The left side supports any expression you would use
@@ -2645,7 +2645,7 @@ defmodule Kernel do
   ## Examples
 
       iex> x = 1
-      ...> x in [1, 2, 3]
+      iex> x in [1, 2, 3]
       true
 
   This macro simply translates the expression above to:

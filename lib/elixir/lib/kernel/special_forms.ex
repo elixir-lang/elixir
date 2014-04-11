@@ -226,7 +226,7 @@ defmodule Kernel.SpecialForms do
   signedness, e.g.:
 
       iex> <<val, _rest :: binary>> = <<-100, "foo">>
-      ...> val
+      iex> val
       156
 
   Here, `val` is interpreted as unsigned.
@@ -495,7 +495,7 @@ defmodule Kernel.SpecialForms do
   for example:
 
       iex> import List
-      ...> flatten([1, [2], 3])
+      iex> flatten([1, [2], 3])
       [1,2,3]
 
   ## Selector

@@ -47,7 +47,7 @@ defmodule String do
   by the letter "e" followed by the accent ́:
 
       iex> string = "\x{0065}\x{0301}"
-      ...> byte_size(string)
+      iex> byte_size(string)
       3
       iex> String.length(string)
       1
@@ -89,7 +89,7 @@ defmodule String do
   Or also via pattern matching:
 
       iex> << eacute :: utf8 >> = "é"
-      ...> eacute
+      iex> eacute
       233
 
   As we have seen above, codepoints can be inserted into

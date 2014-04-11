@@ -357,7 +357,7 @@ defmodule Keyword do
 
       iex> Keyword.merge([a: 1, b: 2], [a: 3, d: 4], fn (_k, v1, v2) ->
       ...>  v1 + v2
-      iex> end)
+      ...> end)
       [a: 4, b: 2, d: 4]
 
   """

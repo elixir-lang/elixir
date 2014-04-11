@@ -65,11 +65,11 @@ defmodule Set do
   ## Examples
 
       iex> s = Enum.into([1, 2, 3], set_impl.new)
-      ...> Set.delete(s, 4) |> Enum.sort
+      iex> Set.delete(s, 4) |> Enum.sort
       [1, 2, 3]
 
       iex> s = Enum.into([1, 2, 3], set_impl.new)
-      ...> Set.delete(s, 2) |> Enum.sort
+      iex> Set.delete(s, 2) |> Enum.sort
       [1, 3]
   """
   @spec delete(t, value) :: t
@@ -153,7 +153,7 @@ defmodule Set do
 
       iex> Set.equal?(Enum.into([1, 2], set_impl.new), Enum.into([2, 1, 1], set_impl.new))
       true
-      
+
       iex> Set.equal?(Enum.into([1, 2], set_impl.new), Enum.into([3, 4], set_impl.new))
       false
 
@@ -213,7 +213,7 @@ defmodule Set do
       iex> Set.member?(Enum.into([1, 2, 3], set_impl.new), 2)
       true
 
-      iex> Set.member?(Enum.into([1, 2, 3], set_impl.new), 4) 
+      iex> Set.member?(Enum.into([1, 2, 3], set_impl.new), 4)
       false
 
   """

@@ -15,7 +15,7 @@ defmodule Bitwise do
   You can select to include only or skip operators by passing options:
 
       iex> use Bitwise, only_operators: true
-      ...> 1 &&& 1
+      iex> 1 &&& 1
       1
 
   """
