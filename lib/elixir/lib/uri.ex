@@ -146,8 +146,8 @@ defmodule URI do
 
   ## Example
 
-      iex> URI.encode("http://elixir-lang.com/getting_started/2.html")
-      "http%3A%2F%2Felixir-lang.com%2Fgetting_started%2F2.html"
+      iex> URI.encode("http://elixir-lang.org/getting_started/2.html")
+      "http%3A%2F%2Felixir-lang.org%2Fgetting_started%2F2.html"
 
   """
   def encode(s), do: for(<<c <- s>>, into: "", do: percent(c))
@@ -174,8 +174,8 @@ defmodule URI do
 
   ## Examples
 
-      iex> URI.decode("http%3A%2F%2Felixir-lang.com")
-      "http://elixir-lang.com"
+      iex> URI.decode("http%3A%2F%2Felixir-lang.org")
+      "http://elixir-lang.org"
 
   """
   def decode(uri) do
