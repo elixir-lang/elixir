@@ -8,8 +8,6 @@ defmodule KernelTest do
   doctest Bitwise
   doctest Code
   doctest Collectable
-  doctest EEx
-  doctest EEx.AssignsEngine
   doctest Enum
   doctest Exception
   doctest Float
