@@ -3112,22 +3112,6 @@ defmodule Kernel do
 
       user.update_age(fn(old) -> old + 1 end)
 
-  ## Types
-
-  Every record defines a type named `t` that can be accessed in typespecs.
-  Those types can be specified inside the record definition:
-
-      defrecord User do
-        record_type name: string, age: integer
-      end
-
-  All fields without a specified type are assumed to have type `term`.
-
-  Assuming the `User` record defined above, it could be used in typespecs
-  as follow:
-
-      @spec handle_user(User.t) :: boolean()
-
   ## Runtime introspection
 
   At runtime, developers can use `__record__` to get information
@@ -3147,31 +3131,6 @@ defmodule Kernel do
 
       User.__record__(:index, :unknown)
       #=> nil
-
-  ## Compile-time introspection
-
-  At compile time, one can access the following information about the record
-  from within the record module:
-
-  * `@record_fields` — a keyword list of record fields with defaults
-  * `@record_types` — a keyword list of record fields with types
-
-  For example:
-
-      defrecord Foo, bar: nil do
-        record_type bar: nil | integer
-        IO.inspect @record_fields
-        IO.inspect @record_types
-      end
-
-  Prints out:
-
-       [bar: nil]
-       [bar: {:|,[line: ...],[nil,{:integer,[line: ...],nil}]}]
-
-  Where the last line is a quoted representation of
-
-       [bar: nil | integer]
 
   """
   defmacro defrecord(name, fields, do_block \\ []) do
@@ -3226,20 +3185,6 @@ defmodule Kernel do
 
       state() #=> { MyServer, nil }
 
-  ## Types
-
-  `defrecordp` allows a developer to generate a type
-  automatically by simply providing a type to its fields.
-  The following definition:
-
-      defrecordp :user,
-        name: "José" :: binary,
-        age: 25 :: integer
-
-  Will generate the following type:
-
-      @typep user_t :: { :user, binary, integer }
-
   """
   defmacro defrecordp(name, tag \\ nil, fields) do
     Record.Deprecated.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
@@ -3254,8 +3199,8 @@ defmodule Kernel do
 
   To define a struct, a developer needs to only define
   a function named `__struct__/0` that returns a map with the
-  structs field. This macro is a convenience for doing such
-  function and a type `t` in one pass.
+  structs field. This macro is a convenience for defining such
+  function, with the addition of a type `t`.
 
   For more information about structs, please check
   `Kernel.SpecialForms.%/2`.
@@ -3282,19 +3227,32 @@ defmodule Kernel do
         defstruct my_fields
       end
 
+  ## Types
+
+  `defstruct` automatically generates a type `t` unless one exists.
+  The following definition:
+
+      defmodule User do
+        defstruct name: "José" :: String.t,
+                  age: 25 :: integer
+      end
+
+  Generates a type as follows:
+
+      @type t :: %User{name: String.t, age: integer}
+
+  In case a struct does not declare a field type, it defaults to `term`.
   """
   defmacro defstruct(kv) do
     kv = Macro.escape(kv, unquote: true)
     quote bind_quoted: [kv: kv] do
       # Expand possible macros that return KVs.
       kv = Macro.expand(kv, __ENV__)
-
-      # TODO: Use those types once we support maps typespecs.
-      { fields, _types } = Record.Backend.split_fields_and_types(:defstruct, kv)
+      { fields, types } = Record.Backend.split_fields_and_types(:defstruct, kv)
 
       if :code.ensure_loaded(Kernel.Typespec) == { :module, Kernel.Typespec } and
          not Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
-        @type t :: map
+        @type t :: %{ unquote_splicing(types), __struct__: __MODULE__ }
       end
 
       def __struct__() do

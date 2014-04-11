@@ -271,11 +271,15 @@ defmodule Kernel.TypespecTest do
 
   test "@type from structs" do
     types = test_module do
-      defstruct name: nil, age: 0
+      defstruct name: nil, age: 0 :: non_neg_integer
       @type
     end
 
-    assert [{:t, {:type, _, :map, []}, []}] = types
+    assert [{:t, {:type, _, :map, [
+              {:type, _, :map_field_assoc, {:atom, _, :name}, {:type, _, :term, []}},
+              {:type, _, :map_field_assoc, {:atom, _, :age}, {:type, _, :non_neg_integer, []}},
+              {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, Kernel.TypespecTest.T}}
+           ]}, []}] = types
   end
 
   test "@type unquote fragment" do
