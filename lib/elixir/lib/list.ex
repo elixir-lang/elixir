@@ -47,6 +47,7 @@ defmodule List do
 
       iex> List.duplicate([1, 2], 2)
       [[1,2],[1,2]]
+
   """
   @spec duplicate(elem, non_neg_integer) :: [elem] when elem: var
   def duplicate(elem, n) do
@@ -123,8 +124,10 @@ defmodule List do
 
       iex> List.first([])
       nil
+
       iex> List.first([1])
       1
+
       iex> List.first([1, 2, 3])
       1
 
@@ -140,8 +143,10 @@ defmodule List do
 
       iex> List.last([])
       nil
+
       iex> List.last([1])
       1
+
       iex> List.last([1, 2, 3])
       3
 

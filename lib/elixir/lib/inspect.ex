@@ -80,8 +80,10 @@ defimpl Inspect, for: Atom do
 
       iex> inspect(:foo)
       ":foo"
+
       iex> inspect(nil)
       "nil"
+
       iex> inspect(Foo.Bar)
       "Foo.Bar"
 
@@ -168,8 +170,10 @@ defimpl Inspect, for: BitString do
 
       iex> inspect("bar")
       "\"bar\""
+
       iex> inspect("f\"oo")
       "\"f\\\"oo\""
+
       iex> inspect(<<0,1,2>>)
       "<<0, 1, 2>>"
 
@@ -295,8 +299,10 @@ defimpl Inspect, for: List do
 
       iex> inspect('bar')
       "'bar'"
+
       iex> inspect([0|'bar'])
       "[0, 98, 97, 114]"
+
       iex> inspect([:foo,:bar])
       "[:foo, :bar]"
 
@@ -349,6 +355,7 @@ defimpl Inspect, for: Tuple do
 
       iex> inspect({1, 2, 3})
       "{1, 2, 3}"
+
       iex> inspect(ArgumentError.new)
       "ArgumentError[message: \\\"argument error\\\"]"
 

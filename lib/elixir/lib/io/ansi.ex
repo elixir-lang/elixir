@@ -17,7 +17,7 @@ end
 defmodule IO.ANSI do
   @moduledoc """
   Functionality to render ANSI escape sequences
-  (http:\\en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
+  (http://en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
   in text used to control formatting, color, and other output options
   on video text terminals.
   """
@@ -183,6 +183,7 @@ defmodule IO.ANSI do
 
       iex> IO.ANSI.escape_fragment("Hello %{red,bright,green}yes", true)
       "Hello \e[31m\e[1m\e[32myes"
+
       iex> IO.ANSI.escape_fragment("%{reset}bye", true)
       "\e[0mbye"
 

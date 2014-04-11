@@ -79,6 +79,7 @@ defmodule Regex do
 
       iex> Regex.compile("foo")
       {:ok, ~r"foo"}
+
       iex> Regex.compile("*foo")
       {:error, {'nothing to repeat', 0}}
 
@@ -129,6 +130,7 @@ defmodule Regex do
 
       iex> Regex.match?(~r/foo/, "foo")
       true
+
       iex> Regex.match?(~r/foo/, "bar")
       false
 
@@ -144,6 +146,7 @@ defmodule Regex do
 
       iex> Regex.regex?(~r/foo/)
       true
+
       iex> Regex.regex?(0)
       false
 
@@ -165,8 +168,10 @@ defmodule Regex do
 
       iex> Regex.run(~r/c(d)/, "abcd")
       ["cd", "d"]
+
       iex> Regex.run(~r/e/, "abcd")
       nil
+
       iex> Regex.run(~r/c(d)/, "abcd", return: :index)
       [{2,2},{3,1}]
 
@@ -198,8 +203,10 @@ defmodule Regex do
 
       iex> Regex.named_captures(~r/c(?<foo>d)/, "abcd")
       [foo: "d"]
+
       iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "abcd")
       [bar: "d", foo: "b"]
+
       iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "efgh")
       nil
 
@@ -273,8 +280,10 @@ defmodule Regex do
 
       iex> Regex.scan(~r/c(d|e)/, "abcd abce")
       [["cd", "d"], ["ce", "e"]]
+
       iex> Regex.scan(~r/c(?:d|e)/, "abcd abce")
       [["cd"], ["ce"]]
+
       iex> Regex.scan(~r/e/, "abcd")
       []
 
@@ -312,16 +321,22 @@ defmodule Regex do
   * `:trim` - when true, remove blank strings from the result;
 
   ## Examples
+
       iex> Regex.split(~r/-/, "a-b-c")
       ["a","b","c"]
+
       iex> Regex.split(~r/-/, "a-b-c", [parts: 2])
       ["a","b-c"]
+
       iex> Regex.split(~r/-/, "abc")
       ["abc"]
+
       iex> Regex.split(~r//, "abc")
       ["a", "b", "c", ""]
+
       iex> Regex.split(~r//, "abc", trim: true)
       ["a", "b", "c"]
+
   """
 
   def split(regex, string, options \\ [])
@@ -357,12 +372,16 @@ defmodule Regex do
 
       iex> Regex.replace(~r/d/, "abc", "d")
       "abc"
+
       iex> Regex.replace(~r/b/, "abc", "d")
       "adc"
+
       iex> Regex.replace(~r/b/, "abc", "[&]")
       "a[b]c"
+
       iex> Regex.replace(~r/b/, "abc", "[\\&]")
       "a[&]c"
+
       iex> Regex.replace(~r/(b)/, "abc", "[\\1]")
       "a[b]c"
 
@@ -385,6 +404,7 @@ defmodule Regex do
 
       iex> Regex.escape(".")
       "\\."
+
       iex> Regex.escape("\\what if")
       "\\\\what\\ if"
 

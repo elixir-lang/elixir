@@ -65,12 +65,13 @@ defmodule Set do
   ## Examples
 
       iex> s = Enum.into([1, 2, 3], set_impl.new)
-      ...> Set.delete(s, 4) |> Enum.sort
+      iex> Set.delete(s, 4) |> Enum.sort
       [1, 2, 3]
 
       iex> s = Enum.into([1, 2, 3], set_impl.new)
-      ...> Set.delete(s, 2) |> Enum.sort
+      iex> Set.delete(s, 2) |> Enum.sort
       [1, 3]
+
   """
   @spec delete(t, value) :: t
   def delete(set, value) do
@@ -115,6 +116,7 @@ defmodule Set do
 
       iex> Set.disjoint?(Enum.into([1, 2], set_impl.new), Enum.into([3, 4], set_impl.new))
       true
+
       iex> Set.disjoint?(Enum.into([1, 2], set_impl.new), Enum.into([2, 3], set_impl.new))
       false
 
@@ -153,7 +155,7 @@ defmodule Set do
 
       iex> Set.equal?(Enum.into([1, 2], set_impl.new), Enum.into([2, 1, 1], set_impl.new))
       true
-      
+
       iex> Set.equal?(Enum.into([1, 2], set_impl.new), Enum.into([3, 4], set_impl.new))
       false
 
@@ -213,7 +215,7 @@ defmodule Set do
       iex> Set.member?(Enum.into([1, 2, 3], set_impl.new), 2)
       true
 
-      iex> Set.member?(Enum.into([1, 2, 3], set_impl.new), 4) 
+      iex> Set.member?(Enum.into([1, 2, 3], set_impl.new), 4)
       false
 
   """
@@ -264,8 +266,10 @@ defmodule Set do
 
       iex> Set.subset?(Enum.into([1, 2], set_impl.new), Enum.into([1, 2, 3], set_impl.new))
       true
+
       iex> Set.subset?(Enum.into([1, 2, 3], set_impl.new), Enum.into([1, 2], set_impl.new))
       false
+
   """
   @spec subset?(t, t) :: boolean
   def subset?(set1, set2) do

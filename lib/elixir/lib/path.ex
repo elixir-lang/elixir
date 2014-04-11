@@ -205,8 +205,10 @@ defmodule Path do
 
       iex> Path.relative_to("/usr/local/foo", "/usr/local")
       "foo"
+
       iex> Path.relative_to("/usr/local/foo", "/")
       "usr/local/foo"
+
       iex> Path.relative_to("/usr/local/foo", "/etc")
       "/usr/local/foo"
 
@@ -277,8 +279,10 @@ defmodule Path do
 
       iex> Path.basename("~/foo/bar.ex", ".ex")
       "bar"
+
       iex> Path.basename("~/foo/bar.exs", ".ex")
       "bar.exs"
+
       iex> Path.basename("~/foo/bar.old.ex", ".ex")
       "bar.old"
 
@@ -309,6 +313,7 @@ defmodule Path do
 
       iex> Path.extname("foo.erl")
       ".erl"
+
       iex> Path.extname("~/foo/bar")
       ""
 
@@ -324,6 +329,7 @@ defmodule Path do
 
       iex> Path.rootname("/foo/bar")
       "/foo/bar"
+
       iex> Path.rootname("/foo/bar.ex")
       "/foo/bar"
 
@@ -340,6 +346,7 @@ defmodule Path do
 
       iex> Path.rootname("/foo/bar.erl", ".erl")
       "/foo/bar"
+
       iex> Path.rootname("/foo/bar.erl", ".ex")
       "/foo/bar.erl"
 
@@ -356,8 +363,10 @@ defmodule Path do
 
       iex> Path.join(["~", "foo"])
       "~/foo"
+
       iex> Path.join(["foo"])
       "foo"
+
       iex> Path.join(["/", "foo", "bar"])
       "/foo/bar"
 
@@ -427,8 +436,10 @@ defmodule Path do
 
        iex> Path.split("")
        []
+
        iex> Path.split("foo")
        ["foo"]
+
        iex> Path.split("/foo/bar")
        ["/", "foo", "bar"]
 

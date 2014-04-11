@@ -25,8 +25,8 @@ defmodule Map do
 
   ## Examples
 
-      Map.new [{:b, 1}, {:a, 2}]
-      #=> %{a: 2, b: 1}
+      iex> Map.new [{:b, 1}, {:a, 2}]
+      %{a: 2, b: 1}
 
   """
   def new(pairs) do
@@ -39,7 +39,7 @@ defmodule Map do
 
   ## Examples
 
-      Map.new ["a", "b"], fn x -> {x, x} end
+      iex> Map.new ["a", "b"], fn x -> {x, x} end
       %{"a" => "a", "b" => "b"}
 
   """

@@ -47,7 +47,7 @@ defmodule String do
   by the letter "e" followed by the accent ́:
 
       iex> string = "\x{0065}\x{0301}"
-      ...> byte_size(string)
+      iex> byte_size(string)
       3
       iex> String.length(string)
       1
@@ -83,13 +83,14 @@ defmodule String do
 
       iex> ?j
       106
+
       iex> ?é
       233
 
   Or also via pattern matching:
 
       iex> << eacute :: utf8 >> = "é"
-      ...> eacute
+      iex> eacute
       233
 
   As we have seen above, codepoints can be inserted into
@@ -159,8 +160,10 @@ defmodule String do
 
       iex> String.split("foo bar")
       ["foo", "bar"]
+
       iex> String.split("foo" <> <<194, 133>> <> "bar")
       ["foo", "bar"]
+
       iex> String.split(" foo bar ")
       ["foo", "bar"]
 
@@ -185,8 +188,10 @@ defmodule String do
 
       iex> String.split("a,b,c", ",")
       ["a", "b", "c"]
+
       iex> String.split("a,b,c", ",", global: false)
       ["a", "b,c"]
+
       iex> String.split(" a b c ", " ", trim: true)
       ["a", "b", "c"]
 
@@ -199,8 +204,10 @@ defmodule String do
 
       iex> String.split("a,b,c", ~r{,})
       ["a", "b", "c"]
+
       iex> String.split("a,b,c", ~r{,}, global: false)
       ["a", "b,c"]
+
       iex> String.split(" a b c ", ~r{\s}, trim: true)
       ["a", "b", "c"]
 
@@ -208,10 +215,13 @@ defmodule String do
 
       iex> String.split("abc", ~r{})
       ["a", "b", "c", ""]
+
       iex> String.split("abc", "")
       ["a", "b", "c", ""]
+
       iex> String.split("abc", "", trim: true)
       ["a", "b", "c"]
+
       iex> String.split("abc", "", global: false)
       ["a", "bc"]
 
@@ -246,8 +256,10 @@ defmodule String do
 
       iex> String.upcase("abcd")
       "ABCD"
+
       iex> String.upcase("ab 123 xpto")
       "AB 123 XPTO"
+
       iex> String.upcase("josé")
       "JOSÉ"
 
@@ -262,8 +274,10 @@ defmodule String do
 
       iex> String.downcase("ABCD")
       "abcd"
+
       iex> String.downcase("AB 123 XPTO")
       "ab 123 xpto"
+
       iex> String.downcase("JOSÉ")
       "josé"
 
@@ -284,8 +298,10 @@ defmodule String do
 
       iex> String.capitalize("abcd")
       "Abcd"
+
       iex> String.capitalize("ﬁn")
       "Fin"
+
       iex> String.capitalize("josé")
       "José"
 
@@ -423,6 +439,7 @@ defmodule String do
 
       iex> String.rjust("abc", 5)
       "  abc"
+
       iex> String.rjust("abc", 5, ?-)
       "--abc"
 
@@ -447,6 +464,7 @@ defmodule String do
 
       iex> String.ljust("abc", 5)
       "abc  "
+
       iex> String.ljust("abc", 5, ?-)
       "abc--"
 
@@ -493,6 +511,7 @@ defmodule String do
 
       iex> String.replace("a,b,c", ",", "-")
       "a-b-c"
+
       iex> String.replace("a,b,c", ",", "-", global: false)
       "a-b,c"
 
@@ -510,8 +529,10 @@ defmodule String do
 
       iex> String.replace("a,b,c", "b", "[]", insert_replaced: 1)
       "a,[b],c"
+
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: 2)
       "a[],b[],c"
+
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
 
@@ -547,8 +568,10 @@ defmodule String do
 
       iex> String.reverse("abcd")
       "dcba"
+
       iex> String.reverse("hello world")
       "dlrow olleh"
+
       iex> String.reverse("hello ∂og")
       "go∂ olleh"
 
@@ -571,8 +594,10 @@ defmodule String do
 
       iex> String.duplicate("abc", 0)
       ""
+
       iex> String.duplicate("abc", 1)
       "abc"
+
       iex> String.duplicate("abc", 2)
       "abcabc"
 
@@ -589,8 +614,10 @@ defmodule String do
 
       iex> String.codepoints("josé")
       ["j", "o", "s", "é"]
+
       iex> String.codepoints("оптими зации")
       ["о","п","т","и","м","и"," ","з","а","ц","и","и"]
+
       iex> String.codepoints("ἅἪῼ")
       ["ἅ","Ἢ","ῼ"]
 
@@ -627,10 +654,13 @@ defmodule String do
 
       iex> String.valid?("a")
       true
+
       iex> String.valid?("ø")
       true
+
       iex> String.valid?(<<0xffff :: 16>>)
       false
+
       iex> String.valid?("asd" <> <<0xffff :: 16>>)
       false
 
@@ -664,8 +694,10 @@ defmodule String do
 
       iex> String.valid_character?("a")
       true
+
       iex> String.valid_character?("ø")
       true
+
       iex> String.valid_character?("\x{ffff}")
       false
 
@@ -714,6 +746,7 @@ defmodule String do
 
       iex> String.first("elixir")
       "e"
+
       iex> String.first("եոգլի")
       "ե"
 
@@ -734,6 +767,7 @@ defmodule String do
 
       iex> String.last("elixir")
       "r"
+
       iex> String.last("եոգլի")
       "ի"
 
@@ -756,6 +790,7 @@ defmodule String do
 
       iex> String.length("elixir")
       6
+
       iex> String.length("եոգլի")
       5
 
@@ -779,12 +814,16 @@ defmodule String do
 
       iex> String.at("elixir", 0)
       "e"
+
       iex> String.at("elixir", 1)
       "l"
+
       iex> String.at("elixir", 10)
       nil
+
       iex> String.at("elixir", -1)
       "r"
+
       iex> String.at("elixir", -10)
       nil
 
@@ -822,18 +861,25 @@ defmodule String do
 
       iex> String.slice("elixir", 1, 3)
       "lix"
+
       iex> String.slice("elixir", 1, 10)
       "lixir"
+
       iex> String.slice("elixir", 10, 3)
       nil
+
       iex> String.slice("elixir", -4, 4)
       "ixir"
+
       iex> String.slice("elixir", -10, 3)
       nil
+
       iex> String.slice("a", 0, 1500)
       "a"
+
       iex> String.slice("a", 1, 1500)
       ""
+
       iex> String.slice("a", 2, 1500)
       nil
 
@@ -870,26 +916,34 @@ defmodule String do
 
       iex> String.slice("elixir", 1..3)
       "lix"
+
       iex> String.slice("elixir", 1..10)
       "lixir"
+
       iex> String.slice("elixir", 10..3)
       nil
 
       iex> String.slice("elixir", -4..-1)
       "ixir"
+
       iex> String.slice("elixir", 2..-1)
       "ixir"
+
       iex> String.slice("elixir", -4..6)
       "ixir"
+
       iex> String.slice("elixir", -1..-4)
       nil
+
       iex> String.slice("elixir", -10..-7)
       nil
 
       iex> String.slice("a", 0..1500)
       "a"
+
       iex> String.slice("a", 1..1500)
       ""
+
       iex> String.slice("a", 2..1500)
       nil
 
@@ -953,8 +1007,10 @@ defmodule String do
 
       iex> String.starts_with? "elixir", "eli"
       true
+
       iex> String.starts_with? "elixir", ["erlang", "elixir"]
       true
+
       iex> String.starts_with? "elixir", ["erlang", "ruby"]
       false
 
@@ -989,8 +1045,10 @@ defmodule String do
 
       iex> String.ends_with? "language", "age"
       true
+
       iex> String.ends_with? "language", ["youth", "age"]
       true
+
       iex> String.ends_with? "language", ["youth", "elixir"]
       false
 
@@ -1027,6 +1085,7 @@ defmodule String do
 
       iex> String.match?("foo", ~r/foo/)
       true
+
       iex> String.match?("bar", ~r/foo/)
       false
 
@@ -1045,8 +1104,10 @@ defmodule String do
 
       iex> String.contains? "elixir of life", "of"
       true
+
       iex> String.contains? "elixir of life", ["life", "death"]
       true
+
       iex> String.contains? "elixir of life", ["death", "mercury"]
       false
 
@@ -1098,6 +1159,7 @@ defmodule String do
 
       iex> String.to_char_list("æß")
       { :ok, 'æß' }
+
       iex> String.to_char_list("abc")
       { :ok, 'abc' }
 
@@ -1127,6 +1189,7 @@ defmodule String do
 
       iex> String.to_char_list!("æß")
       'æß'
+
       iex> String.to_char_list!("abc")
       'abc'
 
@@ -1152,6 +1215,7 @@ defmodule String do
 
       iex> String.from_char_list([0x00E6, 0x00DF])
       { :ok, "æß" }
+
       iex> String.from_char_list([0x0061, 0x0062, 0x0063])
       { :ok, "abc" }
 
@@ -1179,6 +1243,7 @@ defmodule String do
 
       iex> String.from_char_list!([0x00E6, 0x00DF])
       "æß"
+
       iex> String.from_char_list!([0x0061, 0x0062, 0x0063])
       "abc"
 

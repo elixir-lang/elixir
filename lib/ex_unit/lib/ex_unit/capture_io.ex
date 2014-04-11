@@ -19,8 +19,8 @@ defmodule ExUnit.CaptureIO do
   """
 
   @doc """
-  Captures IO generated when evaluating `fun`. 
-  
+  Captures IO generated when evaluating `fun`.
+
   Returns the binary which is the captured output.
 
   By default, `capture_io` replaces the `group_leader` (`:stdio`)
@@ -42,13 +42,16 @@ defmodule ExUnit.CaptureIO do
 
       iex> capture_io(fn -> IO.write "josé" end) == "josé"
       true
+
       iex> capture_io(:stderr, fn -> IO.write(:stderr, "josé") end) == "josé"
       true
+
       iex> capture_io("this is input", fn ->
       ...>   input = IO.gets ">"
       ...>   IO.write input
       ...> end) == ">this is input"
       true
+
       iex> capture_io([input: "this is input", capture_prompt: false], fn ->
       ...>   input = IO.gets ">"
       ...>   IO.write input

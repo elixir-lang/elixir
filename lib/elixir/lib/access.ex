@@ -11,15 +11,15 @@ defprotocol Access do
   and dictionary like types:
 
       iex> keywords = [a: 1, b: 2]
-      ...> keywords[:a]
+      iex> keywords[:a]
       1
 
       iex> map = %{ a: 1, b: 2 }
-      ...> map[:a]
+      iex> map[:a]
       1
 
       iex> star_ratings = %{ 1.0 => "★", 1.5 => "★☆", 2.0 => "★★" }
-      ...> star_ratings[1.5]
+      iex> star_ratings[1.5]
       "★☆"
 
   The key access must be implemented using the `===` operator.

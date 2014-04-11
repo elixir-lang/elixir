@@ -184,10 +184,13 @@ defmodule Stream do
 
       iex> Stream.chunk([1, 2, 3, 4, 5, 6], 2) |> Enum.to_list
       [[1, 2], [3, 4], [5, 6]]
+
       iex> Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2) |> Enum.to_list
       [[1, 2, 3], [3, 4, 5]]
+
       iex> Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2, [7]) |> Enum.to_list
       [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
+
       iex> Stream.chunk([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list
       [[1, 2, 3], [4, 5, 6]]
 
@@ -1022,6 +1025,7 @@ defmodule Stream do
 
       iex> Stream.unfold(5, fn 0 -> nil; n -> {n, n-1} end) |> Enum.to_list()
       [5, 4, 3, 2, 1]
+
   """
   @spec unfold(acc, (acc -> { element, acc } | nil)) :: Enumerable.t
   def unfold(next_acc, next_fun) do

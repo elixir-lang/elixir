@@ -46,8 +46,10 @@ defmodule Kernel do
 
       iex> abs(-3.33)
       3.33
+
       iex> abs(-3)
       3
+
   """
   @spec abs(number) :: number
   def abs(number) do
@@ -175,7 +177,7 @@ defmodule Kernel do
   ## Examples
 
       iex> :my_atom
-      ...> binary_to_existing_atom("my_atom")
+      iex> binary_to_existing_atom("my_atom")
       :my_atom
 
       iex> binary_to_existing_atom("this_atom_will_never_exist")
@@ -245,6 +247,7 @@ defmodule Kernel do
 
       iex> bit_size(<<433::16, 3::3>>)
       19
+
       iex> bit_size(<<1, 2, 3>>)
       24
 
@@ -280,6 +283,7 @@ defmodule Kernel do
 
       iex> byte_size(<<433::16, 3::3>>)
       3
+
       iex> byte_size(<<1, 2, 3>>)
       3
 
@@ -371,7 +375,8 @@ defmodule Kernel do
 
   ## Examples
 
-      float_to_binary 7.1, [decimals: 2, compact: true] #=> "7.1"
+      iex> float_to_binary 7.1, [decimals: 2, compact: true]
+      "7.1"
 
   """
   @spec float_to_binary(float, list) :: binary
@@ -391,7 +396,8 @@ defmodule Kernel do
 
   ## Examples
 
-      float_to_list 7.1, [decimals: 2, compact: true] #=> '7.1'
+      iex> float_to_list 7.1, [decimals: 2, compact: true]
+      '7.1'
 
   """
   @spec float_to_list(float, list) :: char_list
@@ -507,13 +513,13 @@ defmodule Kernel do
   ## Examples
 
       iex> bin1 = <<1, 2, 3>>
-      ...> bin2 = <<4, 5>>
-      ...> bin3 = <<6>>
-      ...> iolist_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
+      iex> bin2 = <<4, 5>>
+      iex> bin3 = <<6>>
+      iex> iolist_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
       <<1,2,3,1,2,3,4,5,4,6>>
 
       iex> bin = <<1, 2, 3>>
-      ...> iolist_to_binary(bin)
+      iex> iolist_to_binary(bin)
       <<1,2,3>>
 
   """
@@ -686,6 +692,7 @@ defmodule Kernel do
 
       iex> length([1, 2, 3, 4, 5, 6, 7, 8, 9])
       9
+
   """
   @spec length(list) :: non_neg_integer
   def length(list) do
@@ -701,6 +708,7 @@ defmodule Kernel do
 
       iex> list_to_atom('elixir')
       :elixir
+
   """
   @spec list_to_atom(char_list) :: atom
   def list_to_atom(list) do
@@ -716,9 +724,9 @@ defmodule Kernel do
   ## Examples
 
       iex> bin1 = <<1, 2, 3>>
-      ...> bin2 = <<4, 5>>
-      ...> bin3 = <<6, 7::4>>
-      ...> list_to_bitstring([bin1, 1, [2, 3, bin2], 4|bin3])
+      iex> bin2 = <<4, 5>>
+      iex> bin3 = <<6, 7::4>>
+      iex> list_to_bitstring([bin1, 1, [2, 3, bin2], 4|bin3])
       <<1,2,3,1,2,3,4,5,4,6,7::size(4)>>
 
   """
@@ -747,6 +755,7 @@ defmodule Kernel do
 
       iex> list_to_float('2.2017764e+0')
       2.2017764
+
   """
   @spec list_to_float(list) :: float
   def list_to_float(list) do
@@ -762,6 +771,7 @@ defmodule Kernel do
 
       iex> list_to_integer('123')
       123
+
   """
   @spec list_to_integer(list) :: integer
   def list_to_integer(list) do
@@ -777,6 +787,7 @@ defmodule Kernel do
 
       iex> list_to_integer('3FF', 16)
       1023
+
   """
   @spec list_to_integer(list, non_neg_integer) :: integer
   def list_to_integer(list, base) do
@@ -792,6 +803,7 @@ defmodule Kernel do
 
       iex> list_to_tuple([:share, [:elixir, 163]])
       {:share, [:elixir, 163]}
+
   """
   @spec list_to_tuple(list) :: tuple
   def list_to_tuple(list) do
@@ -1197,6 +1209,7 @@ defmodule Kernel do
 
       iex> 1 / 2
       0.5
+
       iex> 2 / 1
       2.0
 
@@ -1255,6 +1268,7 @@ defmodule Kernel do
 
       iex> true xor false
       true
+
       iex> true xor true
       false
 
@@ -1390,6 +1404,7 @@ defmodule Kernel do
 
       iex> 1 != 2
       true
+
       iex> 1 != 1.0
       false
 
@@ -1453,7 +1468,7 @@ defmodule Kernel do
   ## Example
 
       iex> tuple = { :foo, :bar, 3 }
-      ...> elem(tuple, 1)
+      iex> elem(tuple, 1)
       :bar
 
   """
@@ -1470,7 +1485,7 @@ defmodule Kernel do
   ## Example
 
       iex> tuple = { :foo, :bar, 3 }
-      ...> set_elem(tuple, 0, :baz)
+      iex> set_elem(tuple, 0, :baz)
       { :baz, :bar, 3 }
 
   """
@@ -1571,6 +1586,7 @@ defmodule Kernel do
 
       iex> !Enum.empty?([])
       false
+
       iex> !List.first([])
       true
 
@@ -1607,7 +1623,7 @@ defmodule Kernel do
   long as the first part is a literal binary:
 
       iex> "foo" <> x = "foobar"
-      ...> x
+      iex> x
       "bar"
 
   """
@@ -1746,6 +1762,7 @@ defmodule Kernel do
 
       iex> is_exception((fn -> ArithmeticError.new end).())
       true
+
       iex> is_exception((fn -> 1 end).())
       false
 
@@ -1773,10 +1790,11 @@ defmodule Kernel do
 
   ## Examples
 
-      defrecord Config, sample: nil
-
-      is_record(Config.new, Config) #=> true
-      is_record(Config.new, List)   #=> false
+      iex> defrecord Config, sample: nil
+      iex> is_record(Config.new, Config)
+      true
+      iex> is_record(Config.new, List)
+      false
 
   """
   defmacro is_record(thing, kind) do
@@ -1948,6 +1966,7 @@ defmodule Kernel do
 
       iex> nil?(1)
       false
+
       iex> nil?(nil)
       true
 
@@ -1964,8 +1983,10 @@ defmodule Kernel do
 
       iex> match?(1, 1)
       true
+
       iex> match?(1, 2)
       false
+
       iex> match?({1, _}, {1, 2})
       true
 
@@ -1984,6 +2005,7 @@ defmodule Kernel do
 
       iex> match?(x, 1)
       true
+
       iex> binding([:x]) == []
       true
 
@@ -2350,6 +2372,7 @@ defmodule Kernel do
 
       iex> unless(Enum.empty?([]), do: "Hello")
       nil
+
       iex> unless(Enum.empty?([1,2,3]), do: "Hello")
       "Hello"
 
@@ -2371,7 +2394,7 @@ defmodule Kernel do
   ## Examples
 
       iex> destructure([x, y, z], [1, 2, 3, 4, 5])
-      ...> {x, y, z}
+      iex> {x, y, z}
       {1, 2, 3}
 
   Notice in the example above, even though the right
@@ -2380,7 +2403,7 @@ defmodule Kernel do
   are simply assigned to nil:
 
       iex> destructure([x, y, z], [1])
-      ...> {x, y, z}
+      iex> {x, y, z}
       {1, nil, nil}
 
   The left side supports any expression you would use
@@ -2416,10 +2439,13 @@ defmodule Kernel do
 
       iex> 0 in 1..3
       false
+
       iex> 1 in 1..3
       true
+
       iex> 2 in 1..3
       true
+
       iex> 3 in 1..3
       true
 
@@ -2591,8 +2617,9 @@ defmodule Kernel do
   The usage of this protocol is to access a raw value in a
   keyword list.
 
-      sample = [a: 1, b: 2, c: 3]
-      sample[:b] #=> 2
+      iex> sample = [a: 1, b: 2, c: 3]
+      iex> sample[:b]
+      2
 
   """
   defmacro access(element, args) when is_list(args) do
@@ -2641,7 +2668,7 @@ defmodule Kernel do
   ## Examples
 
       iex> x = 1
-      ...> x in [1, 2, 3]
+      iex> x in [1, 2, 3]
       true
 
   This macro simply translates the expression above to:
@@ -2803,11 +2830,11 @@ defmodule Kernel do
 
   ## Examples
 
-      defmodule Foo do
-        def bar, do: :baz
-      end
-
-      Foo.bar #=> :baz
+      iex> defmodule Foo do
+      ...>   def bar, do: :baz
+      ...> end
+      iex> Foo.bar
+      :baz
 
   ## Nesting
 
@@ -3658,6 +3685,7 @@ defmodule Kernel do
 
       iex> ~S(foo)
       "foo"
+
       iex> ~S(f\#{o}o)
       "f\\\#{o}o"
 
@@ -3674,6 +3702,7 @@ defmodule Kernel do
 
       iex> ~s(foo)
       "foo"
+
       iex> ~s(f\#{:o}o)
       "foo"
 
@@ -3690,6 +3719,7 @@ defmodule Kernel do
 
       iex> ~C(foo)
       'foo'
+
       iex> ~C(f\#{o}o)
       'f\\\#{o}o'
 
@@ -3706,6 +3736,7 @@ defmodule Kernel do
 
       iex> ~c(foo)
       'foo'
+
       iex> ~c(f\#{:o}o)
       'foo'
 
@@ -3770,8 +3801,10 @@ defmodule Kernel do
 
       iex> ~w(foo \#{:bar} baz)
       ["foo", "bar", "baz"]
+
       iex> ~w(--source test/enum_test.exs)
       ["--source", "test/enum_test.exs"]
+
       iex> ~w(foo bar baz)a
       [:foo, :bar, :baz]
 

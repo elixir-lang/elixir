@@ -304,6 +304,7 @@ defmodule Keyword do
   already exists.
 
   ## Examples
+
       iex> Keyword.put_new([a: 1], :b, 2)
       [b: 2, a: 1]
 
@@ -357,7 +358,7 @@ defmodule Keyword do
 
       iex> Keyword.merge([a: 1, b: 2], [a: 3, d: 4], fn (_k, v1, v2) ->
       ...>  v1 + v2
-      iex> end)
+      ...> end)
       [a: 4, b: 2, d: 4]
 
   """
