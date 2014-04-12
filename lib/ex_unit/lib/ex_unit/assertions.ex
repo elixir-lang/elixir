@@ -305,6 +305,8 @@ defmodule ExUnit.Assertions do
 
   defp do_assert_receive(expected, timeout, message) do
     binary = Macro.to_string(expected)
+    message = message ||
+      "Expected to have received message matching #{binary}"
 
     { :receive, meta, args } =
       quote do
@@ -312,7 +314,7 @@ defmodule ExUnit.Assertions do
           unquote(expected) = received -> received
         after
           unquote(timeout) ->
-            flunk unquote(message) || "Expected to have received message matching #{unquote binary}"
+            flunk unquote(message)
         end
       end
 
@@ -488,15 +490,28 @@ defmodule ExUnit.Assertions do
   end
 
   defp do_refute_receive(not_expected, timeout, message) do
-    binary = Macro.to_string(not_expected)
+    receive_clause = refute_receive_recv(not_expected, message)
 
     quote do
       receive do
-        unquote(not_expected) = actual ->
-          flunk unquote(message) || "Expected to not have received message matching #{unquote binary}, got #{inspect actual}"
+        unquote(receive_clause)
       after
         unquote(timeout) -> false
       end
+    end
+  end
+
+ defp refute_receive_recv(not_expected, nil) do
+  binary = Macro.to_string(not_expected)
+  quote do
+    unquote(not_expected) = actual ->
+      flunk "Expected to not have received message matching #{unquote binary}, got #{inspect actual}"
+    end
+  end
+
+  defp refute_receive_recv(not_expected, message) do
+    quote do
+      unquote(not_expected) -> flunk unquote(message)
     end
   end
 
