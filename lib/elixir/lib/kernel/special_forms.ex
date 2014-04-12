@@ -1377,7 +1377,7 @@ defmodule Kernel.SpecialForms do
   """
   defmacro case(condition, blocks)
 
-  @doc """
+  @doc ~S"""
   Evaluate the given expressions and handle any error, exit
   or throw that may have happened.
 
@@ -1390,10 +1390,10 @@ defmodule Kernel.SpecialForms do
           IO.puts "Invalid argument given"
       catch
         value ->
-          IO.puts "caught \#{value}"
+          IO.puts "caught #{value}"
       else
         value ->
-          IO.puts "Success! The result was \#{value}"
+          IO.puts "Success! The result was #{value}"
       after
         IO.puts "This is printed regardless if it failed or succeed"
       end
@@ -1439,10 +1439,39 @@ defmodule Kernel.SpecialForms do
         x -> nil
       end
 
-  ## Catching exits and Erlang errors
+  ## Erlang errors
 
-  The catch clause works exactly the same as in erlang. Therefore,
-  one can also handle exits/errors coming from Erlang as below:
+  Erlang errors are transformed into Elixir ones during rescue:
+
+      try do
+        :erlang.error(:badarg)
+      rescue
+        ArgumentError -> :ok
+      end
+
+  The most common Erlang errors will be transformed into their
+  Elixir counter-part. Those which are not will be transformed
+  into `ErlangError`:
+
+      try do
+        :erlang.error(:unknown)
+      rescue
+        ErlangError -> :ok
+      end
+
+  In fact, ErlangError can be used to rescue any error that is
+  not an Elixir error proper. For example, it can be used to rescue
+  the earlier `:badarg` error too, prior to transformation:
+
+      try do
+        :erlang.error(:badarg)
+      rescue
+        ErlangError -> :ok
+      end
+
+  ## Catching throws and exits
+
+  The catch clause can be used to catch throws values and exits.
 
       try do
         exit(1)
@@ -1451,14 +1480,14 @@ defmodule Kernel.SpecialForms do
       end
 
       try do
-        error(:sample)
+        throw(:sample)
       catch
-        :error, :sample ->
-          IO.puts "sample error"
+        :throw, :sample ->
+          IO.puts "sample thrown"
       end
 
-  Although the second form should be avoided in favor of raise/rescue
-  control mechanisms.
+  catch values also support `:error`, as in Erlang, although it is
+  commonly avoided in favor of raise/rescue control mechanisms.
 
   ## Else clauses
 
