@@ -1473,12 +1473,14 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a sorted list of collection elements. Uses the merge sort algorithm.
+  Sorts the collection according to Elixir's term ordering.
+
+  Uses the merge sort algorithm.
 
   ## Examples
 
       iex> Enum.sort([3, 2, 1])
-      [1,2,3]
+      [1, 2, 3]
 
   """
   @spec sort(t) :: list
@@ -1491,14 +1493,27 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a list of collection elements sorted by the given function.
+  Sorts the collection by the given function.
 
-  Uses the merge sort algorithm.
+  This function uses the merge sort algorithm. The given function
+  must return false if the first argument is less than right one.
 
   ## Examples
 
       iex> Enum.sort([1, 2, 3], &(&1 > &2))
-      [3,2,1]
+      [3, 2, 1]
+
+  The sorting algorithm will be stable as long as the given function
+  returns true for values considered equal:
+
+      iex> Enum.sort ["some", "kind", "of", "monster"], &(byte_size(&1) <= byte_size(&2))
+      ["of", "some", "kind", "monster"]
+
+  If the function does not return true, the sorting is not stable and
+  the order of equal terms may be shuffled:
+
+      iex> Enum.sort ["some", "kind", "of", "monster"], &(byte_size(&1) < byte_size(&2))
+      ["of", "kind", "some", "monster"]
 
   """
   @spec sort(t, (element, element -> boolean)) :: list
