@@ -26,10 +26,27 @@ defmodule Mix.Dep.Fetcher do
   See `Mix.Dep.unloaded_by_name/4` for options.
   """
   def by_name(names, old_lock, new_lock, opts) do
-    result = Mix.Dep.unloaded_by_name(names, [], new_lock, opts, &do_fetch/3)
+    fetcher = fetch_by_name(names, new_lock)
+    result = Mix.Dep.unloaded([], new_lock, opts, fetcher)
     { apps, deps } = do_finalize(result, old_lock, opts)
-    Mix.Dep.loaded_by_name(names, deps, opts) # Check all given dependencies are loaded or fail
+
+    # Check if all given dependencies are loaded or fail
+    Mix.Dep.loaded_by_name(names, deps, opts)
     apps
+  end
+
+  defp fetch_by_name(given, lock) do
+    names = to_app_names(given)
+
+    fn(%Mix.Dep{app: app} = dep, acc, new_lock) ->
+      # Only fetch if dependency is in given names or if lock has
+      # been changed for dependency by remote converger
+      if app in names or lock[app] != new_lock[app] do
+        do_fetch(dep, acc, new_lock)
+      else
+        { dep, acc, new_lock }
+      end
+    end
   end
 
   defp do_fetch(dep, acc, lock) do
@@ -122,5 +139,11 @@ defmodule Mix.Dep.Fetcher do
     end
 
     do_with_depending(parents, all_deps) ++ parents
+  end
+
+  defp to_app_names(given) do
+    Enum.map(given, fn(app) ->
+      if is_binary(app), do: binary_to_atom(app), else: app
+    end)
   end
 end

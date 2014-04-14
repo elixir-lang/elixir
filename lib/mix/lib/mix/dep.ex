@@ -112,27 +112,6 @@ defmodule Mix.Dep do
   end
 
   @doc """
-  Receives a list of dependency names and maps and reduces over
-  them. See `unloaded`.
-
-  ## Exceptions
-
-  This function raises an exception if any of the dependencies
-  provided in the project are in the wrong format.
-  """
-  def unloaded_by_name(given, acc, lock, opts, callback) do
-    names = to_app_names(given)
-
-    unloaded(acc, lock, opts, fn dep, acc, lock ->
-      if dep.app in names do
-        callback.(dep, acc, lock)
-      else
-        { dep, acc, lock }
-      end
-    end)
-  end
-
-  @doc """
   Runs the given `fun` inside the given dependency project by
   changing the current working directory and loading the given
   project onto the project stack.
