@@ -9,7 +9,8 @@ defmodule IEx.Mixfile do
     [ env: [
         after_spawn: [],
         colors: colors,
-        inspect: [limit: 50, records: true, pretty: true],
+        inspect: [records: true, structs: true, binaries: :infer,
+                  char_lists: :infer, limit: 50, pretty: true],
         history_size: 20,
         prompt: [default: "%prefix(%counter)>", alive: "%prefix(%node)%counter>" ] ] ]
   end
