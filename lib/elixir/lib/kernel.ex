@@ -3364,8 +3364,10 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines a module as a protocol and specifies the API that
-  should be defined by its implementations.
+  Defines a protocol.
+
+  A protocol specifies an API that should be defined by its
+  implementations.
 
   ## Examples
 
@@ -3407,7 +3409,7 @@ defmodule Kernel do
   And we would have to define the implementation for all types.
   The supported types available are:
 
-  * Record (see below)
+  * Structs (see below)
   * Tuple
   * Atom
   * List
@@ -3416,23 +3418,24 @@ defmodule Kernel do
   * Float
   * Function
   * PID
+  * Map
   * Port
   * Reference
   * Any (see below)
 
-  ## Protocols + Records
+  ## Protocols + Structs
 
-  The real benefit of protocols comes when mixed with records.
+  The real benefit of protocols comes when mixed with structs.
   For instance, Elixir ships with many data types implemented as
-  records, like `HashDict` and `HashSet`. We can implement the
+  structs, like `HashDict` and `HashSet`. We can implement the
   `Blank` protocol for those types as well:
 
-      defimpl Blank, for: HashDict do
+      defimpl Blank, for: [HashDict, HashSet] do
         def blank?(dict), do: Dict.empty?(dict)
       end
 
-  Since records are tuples, if a protocol is not found a given
-  type, it will fallback to `Tuple`.
+  If a protocol is not found for a given type, it will fallback to
+  `Any`.
 
   ## Fallback to any
 
@@ -3466,8 +3469,8 @@ defmodule Kernel do
 
   ## Types
 
-  As in records, defining a protocol automatically defines a type
-  named `t`, which can be used as:
+  Defining a protocol automatically defines a type named `t`, which
+  can be used as:
 
       @spec present?(Blank.t) :: boolean
       def present?(blank) do
