@@ -45,6 +45,9 @@ set originPath=%~dp0
 rem Optional parameters before the "-extra" parameter
 set beforeExtra=
 
+rem Flag which determines whether or not to use werl vs erl
+set useWerl=0
+
 rem Recursive loop called for each parameter that parses the cmd line parameters
 :startloop
 set par="%1"
@@ -57,6 +60,8 @@ if "%par%"=="""" (
   rem if no parameters defined - special case for parameter that is already quoted
   goto :expand_erl_libs
 )
+rem ******* EXECUTION OPTIONS **********************
+IF NOT "%par%"=="%par:+iex" (Set useWerl=1)
 rem ******* ERLANG PARAMETERS **********************
 IF NOT "%par%"=="%par:--detached=%" (Set parsErlang=%parsErlang% -detached) 
 IF NOT "%par%"=="%par:--hidden=%"   (Set parsErlang=%parsErlang% -hidden)
@@ -87,8 +92,7 @@ for  /d %%d in ("%originPath%..\lib\*.") do (
 SETLOCAL disabledelayedexpansion
 :run
 IF %useWerl% EQU 1 (
-    werl %ext_libs% %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+    werl %ext_libs% -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 ) ELSE (
     erl %ext_libs% -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 )
-
