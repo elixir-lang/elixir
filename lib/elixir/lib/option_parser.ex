@@ -5,7 +5,7 @@ defmodule OptionParser do
 
   @doc """
   Parses `argv` and returns a tuple with the parsed options, its
-  arguments, and a list options that couldn't be parsed.
+  arguments, and a list of options that couldn't be parsed.
 
   ## Examples
 
