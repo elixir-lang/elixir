@@ -39,4 +39,10 @@ defmodule Mix.Tasks.HelpTest do
       assert output =~ ~r/^Location:/m
     end
   end
+
+  test "bad arguments" do
+    assert_raise Mix.Error, "Unexpected arguments, expected `mix help` or `mix help TASK`", fn ->
+      Mix.Tasks.Help.run ["foo", "bar"]
+    end
+  end
 end

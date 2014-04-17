@@ -53,6 +53,10 @@ defmodule Mix.Tasks.Help do
     shell.info "Location: #{where_is_file(module)}"
   end
 
+  def run(_) do
+    raise Mix.Error, message: "Unexpected arguments, expected `mix help` or `mix help TASK`"
+  end
+
   defp format_task(task, max, doc) do
     String.ljust(task, max) <> " # " <> doc
   end
