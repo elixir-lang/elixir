@@ -61,7 +61,7 @@ if "%par%"=="""" (
   goto :expand_erl_libs
 )
 rem ******* EXECUTION OPTIONS **********************
-IF NOT "%par%"=="%par:+iex" (Set useWerl=1)
+IF "%par%"==""+iex"" (Set useWerl=1)
 rem ******* ERLANG PARAMETERS **********************
 IF NOT "%par%"=="%par:--detached=%" (Set parsErlang=%parsErlang% -detached) 
 IF NOT "%par%"=="%par:--hidden=%"   (Set parsErlang=%parsErlang% -hidden)
