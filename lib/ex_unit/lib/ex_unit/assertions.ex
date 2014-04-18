@@ -1,15 +1,15 @@
-defmodule ExUnit.NoValueSupplied do
-  def no_value, do: {:__no__, :__meaningful__, :__value__}
-end
+defexception ExUnit.AssertionError,
+    left:    :ex_unit_no_meaningful_value,
+    right:   :ex_unit_no_meaningful_value,
+    message: :ex_unit_no_meaningful_value,
+    expr:    "missing failing expression" do
 
-defexception ExUnit.AssertionError, [
-                    left:      ExUnit.NoValueSupplied.no_value,
-                    right:     ExUnit.NoValueSupplied.no_value,
-                    value:     ExUnit.NoValueSupplied.no_value,
-                    message:   ExUnit.NoValueSupplied.no_value,
-                    operator:  ExUnit.NoValueSupplied.no_value,
-                    expr:      "missing failing expression" ] do
-
+  @doc """
+  Indicates no meaningful value for a field.
+  """
+  def no_value do
+    :ex_unit_no_meaningful_value
+  end
 end
 
 defmodule ExUnit.Assertions do
@@ -56,12 +56,12 @@ defmodule ExUnit.Assertions do
 
    will fail with the message:
 
-      Comparison (using >) failed in:
+      Assertion with > failed
       code: 1+2+3+4 > 15
       lhs:  10
       rhs:  15
   """
-  defmacro assert(assertion = { :=, _, [left, right] }) do
+  defmacro assert({ :=, _, [left, right] } = assertion) do
     code = Macro.to_string(assertion)
     { :case, meta, args } =
       quote do
@@ -70,7 +70,7 @@ defmodule ExUnit.Assertions do
             right
           _ ->
             raise ExUnit.AssertionError,
-              right: Macro.to_string(right),
+              right: right,
               expr: unquote(code),
               message: "match (=) failed"
         end
@@ -78,21 +78,19 @@ defmodule ExUnit.Assertions do
 
     quote do
       right = unquote(right)
-      unquote({ :case, [{:export_head,true}|meta], args })
+      unquote({ :case, [{ :export_head, true }|meta], args })
     end
   end
-
 
   defmacro assert(assertion) do
     case translate_assertion(assertion) do
       nil ->
-        # Default message in case no transform was performed
         quote do
           value = unquote(assertion)
 
           unless value do
             raise ExUnit.AssertionError,
-              expr:  unquote(Macro.to_string(assertion)),
+              expr: unquote(Macro.to_string(assertion)),
               message: "#{inspect value} is not truthy"
           end
 
@@ -113,15 +111,14 @@ defmodule ExUnit.Assertions do
       refute age < 0
 
   """
-
-  defmacro refute(assertion = { :=, _, [left, right] }) do
+  defmacro refute({ :=, _, [left, right] } = assertion) do
     code = Macro.to_string(assertion)
     { :case, meta, args } =
       quote do
         case right do
           unquote(left) ->
             raise ExUnit.AssertionError,
-              right: Macro.to_string(right),
+              right: right,
               expr: unquote(code),
               message: "match (=) succeeded, but should have failed"
           _ ->
@@ -131,21 +128,19 @@ defmodule ExUnit.Assertions do
 
     quote do
       right = unquote(right)
-      unquote({ :case, [{:export_head,true}|meta], args })
+      unquote({ :case, [{ :export_head, true }|meta], args })
     end
   end
-
 
   defmacro refute(assertion) do
     case translate_assertion({ :!, [], [assertion] }) do
       nil ->
-        # Default message in case no transform was performed
         quote do
           value = unquote(assertion)
 
           if value do
             raise ExUnit.AssertionError,
-              expr:  unquote(Macro.to_string(assertion)),
+              expr: unquote(Macro.to_string(assertion)),
               message: "#{inspect value} should be false or nil"
           end
 
@@ -159,86 +154,38 @@ defmodule ExUnit.Assertions do
 
   ## START HELPERS
 
+  @operator [:==, :<, :>, :<=, :>=, :===, :=~, :!==, :!=, :in]
 
-
-  defp translate_assertion(expr = { operator, _, [left, right] })
-  when operator in [ :==, :<, :>, :<=, :>=, :===, :=~, :!==, :!= ]  do
-    assert_operator operator, left, right, expr
-  end
-
-
-  defp translate_assertion(expr = { :in, _, [left, right] }) do
-    code = Macro.to_string(expr)
+  defp translate_assertion({ operator, _, [left, right] } = expr) when operator in @operator  do
+    expr = Macro.to_string(expr)
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert_internal Enum.member?(right, left),
-                           left: left, right: right, expr: unquote(code)
+      assert unquote(operator)(left, right),
+             left: left,
+             right: right,
+             expr: unquote(expr),
+             message: unquote("Assertion with #{operator} failed")
     end
   end
 
-  ## Negative versions
-
-  defp translate_assertion({ :!, _, [{ :=, _, [left, right] }] }) do
-    quote do
-      right = unquote(right)
-      case right do
-        unquote(left) ->
-          raise ExUnit.AssertionError,
-            expected: inspect(right),
-            actual: unquote(Macro.to_string(left)),
-            assertion: "match pattern (=)",
-            negation: true
-          _ ->
-            nil
-      end
-    end
-  end
-
-  defp translate_assertion(expr = { negation, _, [{ :in, _, [left, right] }] })
-  when negation in [:!, :not] do
-    code = Macro.to_string(expr)
+  defp translate_assertion({ :!, [], [{ operator, _, [left, right] } = expr] }) when operator in @operator do
+    expr = Macro.to_string(expr)
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert_internal !Enum.member?(right, left),
-                           left: left, right: right, expr: unquote(code)
+      assert not(unquote(operator)(left, right)),
+             left: left,
+             right: right,
+             expr: unquote(expr),
+             message: unquote("Refute with #{operator} failed")
     end
   end
-
-  defp translate_assertion(expr = {:!, [], [{ operator, _, [left, right] }]})
-  when operator in [ :==, :<, :>, :<=, :>=, :===, :=~, :!==, :!= ]  do
-    refute_operator operator, left, right, expr
-  end
-
-  ## Fallback
 
   defp translate_assertion(_expected) do
     nil
   end
 
-  defp assert_operator(operator, left, right, expr) do
-    expr = Macro.to_string(expr)
-    quote location: :keep do
-      left  = unquote(left)
-      right = unquote(right)
-      assert_internal unquote(operator)(left, right), left: left, right: right, expr: unquote(expr), operator: to_string(unquote(operator))
-    end
-  end
-
-  defp refute_operator(operator, left, right, expr) do
-    expr = Macro.to_string(expr)
-    quote location: :keep do
-      left  = unquote(left)
-      right = unquote(right)
-      assert_internal not(unquote(operator)(left, right)), left: left, right: right, expr: unquote(expr), operator: to_string(unquote(operator))
-    end
-  end
-
-  def assert_internal(successful, opts) do
-    unless successful, do: raise(ExUnit.AssertionError, opts)
-    true
-  end
   ## END HELPERS
 
   @doc """
@@ -250,7 +197,12 @@ defmodule ExUnit.Assertions do
 
   """
   def assert(value, message) when is_binary(message) do
-    assert_internal(value, message: message, expr: ExUnit.NoValueSupplied.no_value)
+    assert(value, message: message, expr: ExUnit.AssertionError.no_value)
+  end
+
+  def assert(value, opts) when is_list(opts) do
+    unless value, do: raise(ExUnit.AssertionError, opts)
+    true
   end
 
   @doc """
@@ -267,16 +219,8 @@ defmodule ExUnit.Assertions do
 
   """
   def assert(value, left, right, message) when is_binary(message) do
-    assert_internal(value, left: left, right: right,
-                    message: message, expr: ExUnit.NoValueSupplied.no_value)
-  end
-
-  def assert(value, expected, actual, opts) do
-    unless value do
-      raise ExUnit.AssertionError,
-        Keyword.merge([expected: inspect(expected), actual: inspect(actual)], opts)
-    end
-    true
+    assert(value, left: left, right: right,
+                  message: message, expr: ExUnit.AssertionError.no_value)
   end
 
   @doc """
@@ -363,7 +307,7 @@ defmodule ExUnit.Assertions do
     end
 
     msg = "Wrong message for #{inspect exception}. Expected #{inspect message}, got #{inspect error.message}"
-    assert_internal is_match, message: msg, expr:  ExUnit.NoValueSupplied.no_value
+    assert is_match, message: msg, expr: ExUnit.AssertionError.no_value
 
     error
   end
@@ -388,7 +332,7 @@ defmodule ExUnit.Assertions do
       error ->
         name = error.__record__(:name)
 
-        if name in [ExUnit.AssertionError, ExUnit.AssertionError] do
+        if name in [ExUnit.AssertionError] do
           raise(error)
         else
           flunk "Expected exception '#{inspect exception}' but got #{inspect name}(#{error.message})"
@@ -459,7 +403,7 @@ defmodule ExUnit.Assertions do
         unquote(expr)
         flunk "Expected to catch #{unquote(kind)}, got nothing"
       rescue
-        e in [ExUnit.AssertionError, ExUnit.AssertionError] -> raise(e)
+        e in [ExUnit.AssertionError] -> raise(e)
       catch
         unquote(kind), what_we_got -> what_we_got
       end
@@ -576,6 +520,6 @@ defmodule ExUnit.Assertions do
   @spec flunk :: no_return
   @spec flunk(String.t) :: no_return
   def flunk(message \\ "Flunked!") do
-    assert_internal false, message: message, expr:  ExUnit.NoValueSupplied.no_value
+    assert false, message: message, expr: ExUnit.AssertionError.no_value
   end
 end

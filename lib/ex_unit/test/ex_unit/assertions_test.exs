@@ -145,7 +145,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         'foo'          = error.left
         ['foo', 'bar'] = error.right
-        "!('foo' in ['foo', 'bar'])" = error.expr
+        "'foo' in ['foo', 'bar']" = error.expr
     end
   end
 
@@ -160,7 +160,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         "match (=) failed"   = error.message
         "{:ok, _} = \"bar\"" = error.expr
-        "\"bar\""            = error.right
+        "bar"                = error.right
     end
   end
 
@@ -169,7 +169,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = refute _ = "bar"
     rescue
       error in [ExUnit.AssertionError] ->
-        "\"bar\""     = error.right
+        "bar"         = error.right
         "_ = \"bar\"" = error.expr
         "match (=) succeeded, but should have failed" = error.message
     end
@@ -184,7 +184,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert "foo" =~ ~r(a)
     rescue
       error in [ExUnit.AssertionError] ->
-        "foo" = error.left 
+        "foo" = error.left
         ~r{a} = error.right
     end
   end

@@ -6,13 +6,13 @@ defmodule ExUnit.CLIFormatter do
   import ExUnit.Formatter, only: [format_time: 2, format_filters: 2, format_test_failure: 5, format_test_case_failure: 4]
 
   defrecord Config, tests_counter: 0, invalids_counter: 0, failures_counter: 0,
-                    skips_counter: 0, trace: false, seed: nil, color: true, width: nil
+                    skips_counter: 0, trace: false, seed: nil, color: true
 
   ## Callbacks
 
   def init(opts) do
     print_filters(Keyword.take(opts, [:include, :exclude]))
-    { :ok, Config.new(add_terminal_width_to(opts)) }
+    { :ok, Config.new(opts) }
   end
 
   def handle_event({ :suite_finished, run_us, load_us }, config = Config[]) do
@@ -136,14 +136,8 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp print_test_failure(ExUnit.Test[name: name, case: mod, state: { :failed, tuple }], config) do
-    try do
-      format_test_failure(mod, name, tuple, config.failures_counter + 1, &formatter(&1, &2, config))
-      |> print_any_failure config
-
-    rescue e ->
-      IO.puts e.message
-
-    end
+    formatted = format_test_failure(mod, name, tuple, config.failures_counter + 1, &formatter(&1, &2, config))
+    print_any_failure formatted, config
   end
 
   defp print_test_case_failure(ExUnit.TestCase[name: name, state: { :failed, tuple }], config) do
@@ -156,7 +150,7 @@ defmodule ExUnit.CLIFormatter do
       config.trace -> IO.puts ""
       true -> IO.puts "\n"
     end
-    IO.puts formatted
+    IO.write formatted
     config.update_failures_counter(&(&1 + 1))
   end
 
@@ -180,18 +174,7 @@ defmodule ExUnit.CLIFormatter do
     colorize("red", msg, config)
   end
 
-  defp formatter(:width, _, config),           do: config.width
-
   defp formatter(:error_info, msg, config),    do: colorize("red", msg, config)
   defp formatter(:location_info, msg, config), do: colorize("cyan", msg, config)
   defp formatter(_,  msg, _config),            do: msg
-
-  defp add_terminal_width_to(opts) do
-    case :io.columns do
-      { :ok, width } ->
-        Dict.merge(opts, [width: min(width, 80)])
-      _ ->
-        opts
-    end
-  end
 end

@@ -241,6 +241,10 @@ defmodule ExUnit.Runner do
 
   ## Helpers
 
+  defp shuffle(Config[seed: 0], list) do
+    Enum.reverse(list)
+  end
+
   defp shuffle(Config[seed: seed], list) do
     :random.seed(3172, 9814, seed)
     Enum.shuffle(list)
