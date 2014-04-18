@@ -138,7 +138,7 @@ defmodule Kernel.SpecialForms do
   regular map operations:
 
       user = %User{}
-      %{ user | a_non_struct_key: :value }
+      Map.put(user, :a_non_struct_key, :value)
 
   An update operation specific for structs is also available:
 
