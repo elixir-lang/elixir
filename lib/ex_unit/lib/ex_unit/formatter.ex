@@ -32,8 +32,9 @@ defmodule ExUnit.Formatter do
 
   import Exception, only: [format_stacktrace_entry: 1]
 
-  # Width of error counter field
-  @prefix_width 5
+  @label_padding   "      "
+  @counter_padding "     "
+  @inspect_padding @counter_padding <> @label_padding
 
   @doc """
   Formats time taken running the test suite.
@@ -99,40 +100,42 @@ defmodule ExUnit.Formatter do
   @doc """
   Receives a test and formats its failure.
   """
-  def format_test_failure(test_case, test, { kind, reason, stack }, counter, terminal) do
-    test_info(with_counter(counter, "#{test} (#{inspect test_case})"), terminal)
-      <> format_kind_reason(kind, reason, terminal)
-      <> format_stacktrace(stack, test_case, test, terminal)
+  def format_test_failure(test_case, test, { kind, reason, stack }, counter, width, formatter) do
+    test_info(with_counter(counter, "#{test} (#{inspect test_case})"), formatter)
+      <> format_kind_reason(kind, reason, width, formatter)
+      <> format_stacktrace(stack, test_case, test, formatter)
   end
 
   @doc """
   Receives a test case and formats its failure.
   """
-  def format_test_case_failure(test_case, { kind, reason, stacktrace }, counter, terminal) do
-    test_case_info(with_counter(counter, "#{inspect test_case}: "), terminal)
-      <> format_kind_reason(kind, reason, terminal)
-      <> format_stacktrace(stacktrace, test_case, nil, terminal)
+  def format_test_case_failure(test_case, { kind, reason, stacktrace }, counter, width, formatter) do
+    test_case_info(with_counter(counter, "#{inspect test_case}: "), formatter)
+      <> format_kind_reason(kind, reason, width, formatter)
+      <> format_stacktrace(stacktrace, test_case, nil, formatter)
   end
 
-  defp format_kind_reason(:error, ExUnit.AssertionError[] = record, terminal) do
+  defp format_kind_reason(:error, ExUnit.AssertionError[] = record, width, formatter) do
+    width = if width == :infinity, do: width, else: width - byte_size(@inspect_padding)
+
     fields =
-      [note: if_value(record.message, &format_message(&1, terminal)),
-       code: record.expr,
-       lhs:  if_value(record.left,  &inspect/1),
-       rhs:  if_value(record.right, &inspect/1)]
+      [note: if_value(record.message, &format_message(&1, formatter)),
+       code: if_value(record.expr, &macro_multiline(&1, width)),
+       lhs:  if_value(record.left,  &inspect_multiline(&1, width)),
+       rhs:  if_value(record.right, &inspect_multiline(&1, width))]
 
     fields
     |> filter_interesting_fields
-    |> format_each_reason(terminal)
-    |> make_into_lines
+    |> format_each_reason(formatter)
+    |> make_into_lines(@counter_padding)
   end
 
-  defp format_kind_reason(:error, exception, terminal) do
-    error_info "** (#{inspect exception.__record__(:name)}) #{exception.message}", terminal
+  defp format_kind_reason(:error, exception, _width, formatter) do
+    error_info "** (#{inspect exception.__record__(:name)}) #{exception.message}", formatter
   end
 
-  defp format_kind_reason(kind, reason, terminal) do
-    error_info "** (#{kind}) #{inspect(reason)}", terminal
+  defp format_kind_reason(kind, reason, _width, formatter) do
+    error_info "** (#{kind}) #{inspect(reason)}", formatter
   end
 
   defp filter_interesting_fields(fields) do
@@ -141,15 +144,9 @@ defmodule ExUnit.Formatter do
     end)
   end
 
-  defp format_each_reason(reasons, terminal) do
-    label_length =
-      reasons
-      |> Enum.map(fn {label,_} -> String.length(atom_to_binary(label)) end)
-      |> Enum.max
-      |> Kernel.+(2)
-
+  defp format_each_reason(reasons, formatter) do
     Enum.map(reasons, fn {label, value} ->
-      format_label(label, label_length, terminal) <> value
+      format_label(label, formatter) <> value
     end)
   end
 
@@ -161,20 +158,30 @@ defmodule ExUnit.Formatter do
     end
   end
 
-  defp format_label(:note, _length, _terminal) do
+  defp format_label(:note, _formatter) do
     ""
   end
 
-  defp format_label(label, length, terminal) do
-    terminal.(:error_info, String.ljust("#{label}:", length))
+  defp format_label(label, formatter) do
+    formatter.(:error_info, String.ljust("#{label}:", byte_size(@label_padding)))
   end
 
-  defp format_message(value, terminal) do
-    terminal.(:error_info, value)
+  defp format_message(value, formatter) do
+    formatter.(:error_info, value)
   end
 
-  defp make_into_lines(reasons) do
-    "     " <> Enum.join(reasons, "\n     ") <> "\n"
+  defp macro_multiline(expr, _width) do
+    expr |> Macro.to_string
+  end
+
+  defp inspect_multiline(expr, width) do
+    expr
+    |> inspect(pretty: true, width: width)
+    |> String.replace("\n", "\n" <> @inspect_padding)
+  end
+
+  defp make_into_lines(reasons, padding) do
+    padding <> Enum.join(reasons, "\n" <> padding) <> "\n"
   end
 
   defp format_stacktrace([{ test_case, test, _, location }|_], test_case, test, color) do
@@ -195,17 +202,17 @@ defmodule ExUnit.Formatter do
   defp with_counter(counter, msg)                    do   "#{counter}) #{msg}" end
 
   defp test_case_info(msg, nil),      do: msg <> "failure on setup_all/teardown_all callback, tests invalidated\n"
-  defp test_case_info(msg, terminal), do: test_case_info(terminal.(:test_case_info, msg), nil)
+  defp test_case_info(msg, formatter), do: test_case_info(formatter.(:test_case_info, msg), nil)
 
   defp test_info(msg, nil),      do: msg <> "\n"
-  defp test_info(msg, terminal), do: test_info(terminal.(:test_info, msg), nil)
+  defp test_info(msg, formatter), do: test_info(formatter.(:test_info, msg), nil)
 
   defp error_info(msg, nil),      do: "     " <> msg <> "\n"
-  defp error_info(msg, terminal), do: error_info(terminal.(:error_info, msg), nil)
+  defp error_info(msg, formatter), do: error_info(formatter.(:error_info, msg), nil)
 
   defp location_info(msg, nil),      do: "     " <> msg <> "\n"
-  defp location_info(msg, terminal), do: location_info(terminal.(:location_info, msg), nil)
+  defp location_info(msg, formatter), do: location_info(formatter.(:location_info, msg), nil)
 
   defp stacktrace_info(msg, nil),      do: "       " <> msg <> "\n"
-  defp stacktrace_info(msg, terminal), do: stacktrace_info(terminal.(:stacktrace_info, msg), nil)
+  defp stacktrace_info(msg, formatter), do: stacktrace_info(formatter.(:stacktrace_info, msg), nil)
 end

@@ -2,7 +2,7 @@ defexception ExUnit.AssertionError,
     left:    :ex_unit_no_meaningful_value,
     right:   :ex_unit_no_meaningful_value,
     message: :ex_unit_no_meaningful_value,
-    expr:    "missing failing expression" do
+    expr:    :ex_unit_no_meaningful_value do
 
   @doc """
   Indicates no meaningful value for a field.
@@ -62,7 +62,7 @@ defmodule ExUnit.Assertions do
       rhs:  15
   """
   defmacro assert({ :=, _, [left, right] } = assertion) do
-    code = Macro.to_string(assertion)
+    code = Macro.escape(assertion)
     { :case, meta, args } =
       quote do
         case right do
@@ -90,8 +90,8 @@ defmodule ExUnit.Assertions do
 
           unless value do
             raise ExUnit.AssertionError,
-              expr: unquote(Macro.to_string(assertion)),
-              message: "#{inspect value} is not truthy"
+              expr: unquote(Macro.escape(assertion)),
+              message: "Expected truthy, got #{inspect value}"
           end
 
           value
@@ -112,7 +112,7 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro refute({ :=, _, [left, right] } = assertion) do
-    code = Macro.to_string(assertion)
+    code = Macro.escape(assertion)
     { :case, meta, args } =
       quote do
         case right do
@@ -140,8 +140,8 @@ defmodule ExUnit.Assertions do
 
           if value do
             raise ExUnit.AssertionError,
-              expr: unquote(Macro.to_string(assertion)),
-              message: "#{inspect value} should be false or nil"
+              expr: unquote(Macro.escape(assertion)),
+              message: "Expected false or nil, got #{inspect value}"
           end
 
           value
@@ -157,7 +157,7 @@ defmodule ExUnit.Assertions do
   @operator [:==, :<, :>, :<=, :>=, :===, :=~, :!==, :!=, :in]
 
   defp translate_assertion({ operator, _, [left, right] } = expr) when operator in @operator  do
-    expr = Macro.to_string(expr)
+    expr = Macro.escape(expr)
     quote do
       left  = unquote(left)
       right = unquote(right)
@@ -170,7 +170,7 @@ defmodule ExUnit.Assertions do
   end
 
   defp translate_assertion({ :!, [], [{ operator, _, [left, right] } = expr] }) when operator in @operator do
-    expr = Macro.to_string(expr)
+    expr = Macro.escape(expr)
     quote do
       left  = unquote(left)
       right = unquote(right)
@@ -197,7 +197,7 @@ defmodule ExUnit.Assertions do
 
   """
   def assert(value, message) when is_binary(message) do
-    assert(value, message: message, expr: ExUnit.AssertionError.no_value)
+    assert(value, message: message)
   end
 
   def assert(value, opts) when is_list(opts) do
@@ -219,8 +219,7 @@ defmodule ExUnit.Assertions do
 
   """
   def assert(value, left, right, message) when is_binary(message) do
-    assert(value, left: left, right: right,
-                  message: message, expr: ExUnit.AssertionError.no_value)
+    assert(value, left: left, right: right, message: message)
   end
 
   @doc """
@@ -307,7 +306,7 @@ defmodule ExUnit.Assertions do
     end
 
     msg = "Wrong message for #{inspect exception}. Expected #{inspect message}, got #{inspect error.message}"
-    assert is_match, message: msg, expr: ExUnit.AssertionError.no_value
+    assert is_match, message: msg
 
     error
   end
@@ -520,6 +519,6 @@ defmodule ExUnit.Assertions do
   @spec flunk :: no_return
   @spec flunk(String.t) :: no_return
   def flunk(message \\ "Flunked!") do
-    assert false, message: message, expr: ExUnit.AssertionError.no_value
+    assert false, message: message
   end
 end

@@ -29,8 +29,8 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert Value.falsy
     rescue
       error in [ExUnit.AssertionError] ->
-        "Value.falsy()"    = error.expr
-        "false is not truthy" = error.message
+        "Value.falsy()"    = error.expr |> Macro.to_string
+        "Expected truthy, got false" = error.message
     end
   end
 
@@ -41,7 +41,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         1 = error.right
         2 = error.left
-        "1 + 1 == 1" = error.expr
+        "1 + 1 == 1" = error.expr |> Macro.to_string
     end
   end
 
@@ -52,7 +52,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         1 = error.left
         2 = error.right
-        "1 == 1 + 1" = error.expr
+        "1 == 1 + 1" = error.expr |> Macro.to_string
     end
   end
 
@@ -66,8 +66,8 @@ defmodule ExUnit.AssertionsTest do
       raise "refute was supposed to fail"
     rescue
       error in [ExUnit.AssertionError] ->
-        "Value.truthy()"   = error.expr
-        "true should be false or nil" = error.message
+        "Value.truthy()"   = error.expr |> Macro.to_string
+        "Expected false or nil, got true" = error.message
     end
   end
 
@@ -130,7 +130,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         'foo' = error.left
         'bar' = error.right
-        "'foo' in 'bar'" = error.expr
+        "'foo' in 'bar'" = error.expr |> Macro.to_string
     end
   end
 
@@ -145,7 +145,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         'foo'          = error.left
         ['foo', 'bar'] = error.right
-        "'foo' in ['foo', 'bar']" = error.expr
+        "'foo' in ['foo', 'bar']" = error.expr |> Macro.to_string
     end
   end
 
@@ -159,7 +159,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed"   = error.message
-        "{:ok, _} = \"bar\"" = error.expr
+        "{:ok, _} = \"bar\"" = error.expr |> Macro.to_string
         "bar"                = error.right
     end
   end
@@ -170,7 +170,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "bar"         = error.right
-        "_ = \"bar\"" = error.expr
+        "_ = \"bar\"" = error.expr |> Macro.to_string
         "match (=) succeeded, but should have failed" = error.message
     end
   end
@@ -248,7 +248,7 @@ defmodule ExUnit.AssertionsTest do
     error in [ExUnit.AssertionError] ->
       1       = error.left
       2       = error.right
-      "1 > 2" = error.expr
+      "1 > 2" = error.expr |> Macro.to_string
   end
 
   test "assert less or equal than operator" do
@@ -259,7 +259,7 @@ defmodule ExUnit.AssertionsTest do
     "This should never be tested" = assert 2 <= 1
   rescue
     error in [ExUnit.AssertionError] ->
-      "2 <= 1" = error.expr
+      "2 <= 1" = error.expr |> Macro.to_string
       2 = error.left
       1 = error.right
   end
@@ -302,14 +302,14 @@ defmodule ExUnit.AssertionsTest do
     "This should never be tested" = refute_in_delta(10, 11, 2)
   rescue
     error in [ExUnit.AssertionError] ->
-       "Expected the difference between 10 and 11 (1) to be more than 2" = error.message
+      "Expected the difference between 10 and 11 (1) to be more than 2" = error.message
   end
 
   test "refute in delta with message" do
     "This should never be tested" = refute_in_delta(10, 11, 2, "test message")
   rescue
     error in [ExUnit.AssertionError] ->
-       "test message (difference between 10 and 11 is less than 2)" = error.message
+      "test message (difference between 10 and 11 is less than 2)" = error.message
   end
 
   test "catch_throw with no throw" do

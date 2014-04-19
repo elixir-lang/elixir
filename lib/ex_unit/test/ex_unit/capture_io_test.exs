@@ -311,7 +311,7 @@ defmodule ExUnit.CaptureIOTest do
       end)
     rescue
       error in [ExUnit.AssertionError] ->
-        "false is not truthy" = error.message
+        "Expected truthy, got false" = error.message
     end
 
     # Ensure no leakage on failures

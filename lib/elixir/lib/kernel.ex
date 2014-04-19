@@ -1841,8 +1841,7 @@ defmodule Kernel do
 
   * `:pretty` - if set to true enables pretty printing, defaults to false;
 
-  * `:width` - the width available for inspect to layout the data structure
-               representation. Defaults to the smaller of 80 or the terminal width;
+  * `:width` - defaults to the 80 characters;
 
   ## Examples
 
