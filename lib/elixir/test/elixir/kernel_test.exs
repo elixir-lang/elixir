@@ -169,7 +169,7 @@ defmodule KernelTest do
 
     assert struct(user, unknown: "key") == user
     assert struct(user, name: "jose") == %User{ name: "jose" }
-    assert struct(user, name: "other") == %User{ name: "other" }
+    assert struct(user, name: "other", __struct__: Post) == %User{ name: "other" }
   end
 
   defmodule Conversions do
