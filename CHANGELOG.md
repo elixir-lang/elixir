@@ -1,15 +1,18 @@
-# v0.13.0-dev
+# v0.13.0 (2014-04-20)
 
 * Enhancements
   * [Base] Add `Base` module which does conversions to bases 16, 32, hex32, 64 and url64
   * [Code] Add `Code.eval_file/2`
   * [Collectable] Add the `Collectable` protocol that empowers `Enum.into/2` and `Stream.into/2` and the `:into` option in comprehensions
   * [Collectable] Implement `Collectable` for lists, dicts, bitstrings, functions and provide both `File.Stream` and `IO.Stream`
+  * [EEx] Add `handle_body/1` callback to `EEx.Engine`
   * [Enum] Add `Enum.group_by/2`, `Enum.into/2`, `Enum.into/3`, `Enum.traverse/2` and `Enum.sum/2`
   * [ExUnit] Randomize cases and tests suite runs, allow seed configuration and the `--seed` flag via `mix test`
   * [ExUnit] Support `--only` for filtering when running tests with `mix test`
   * [ExUnit] Raise an error if another `capture_io` process already captured the device
+  * [ExUnit] Improve formatter to show source code and rely on lhs and rhs (instead of expected and actual)
   * [IEx] Allow prompt configuration with the `:prompt` option
+  * [IEx] Use werl on Windows
   * [Kernel] Support `ERL_PATH` in `bin/elixir`
   * [Kernel] Support interpolation in keyword syntax
   * [Map] Add a Map module and support 17.0 maps and structs
@@ -24,10 +27,14 @@
   * [System] Add `System.delete_env/1` to remove a variable from the environment
 
 * Bug fixes
+  * [CLI] Ensure `--app` is handled as an atom before processing
+  * [ExUnit] Ensure `ExUnit.Assertions` does not emit compiler warnings for `assert_receive`
   * [Kernel] Ensure the same pid is not queued twice in the parallel compiler
   * [Macro] `Macro.to_string/2` considers proper precedence when translating `!(foo > bar)` into a string
   * [Mix] Automatically recompile on outdated Elixir version and show proper error messages
   * [Mix] Ensure generated `.app` file includes core dependencies
+  * [Mix] Allow a dependency with no SCM to be overridden
+  * [Mix] Allow queries in `mix local.install` URL
   * [OptionParser] Do not recognize undefined aliases as switches
 
 * Deprecations
