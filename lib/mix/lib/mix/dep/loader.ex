@@ -122,17 +122,12 @@ defmodule Mix.Dep.Loader do
       (new = scm.accepts_options(app, opts)) && { scm, new }
     end
 
-    if scm do
-      %Mix.Dep{
-        scm: scm,
-        app: app,
-        requirement: req,
-        status: scm_status(scm, opts),
-        opts: opts }
-    else
-      raise Mix.Error, message: "#{inspect Mix.Project.get} did not specify a supported scm " <>
-                                "for app #{inspect app}, expected one of :git, :path or :in_umbrella"
-    end
+    %Mix.Dep{
+      scm: scm,
+      app: app,
+      requirement: req,
+      status: scm_status(scm, opts),
+      opts: opts }
   end
 
   defp with_scm_and_app(other, _scms) do
@@ -140,10 +135,13 @@ defmodule Mix.Dep.Loader do
   end
 
   defp scm_status(scm, opts) do
-    if scm.checked_out?(opts) do
-      { :ok, nil }
-    else
-      { :unavailable, opts[:dest] }
+    cond do
+      nil?(scm) ->
+        :noscm
+      scm.checked_out?(opts) ->
+        { :ok, nil }
+      true ->
+        { :unavailable, opts[:dest] }
     end
   end
 
