@@ -122,16 +122,15 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "raises when no SCM is specified" do
+  test "warns when no SCM is specified" do
     Mix.Project.push NoSCMApp
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.run []
 
-      msg = "  the dependency defined in mix.exs did not specify a supported scm, " <>
-            "expected one of :git, :path, :in_umbrella " <>
-            "or the package manager Hex to be installed"
-      assert_received { :mix_shell, :info, ["* ok"] }
+      msg = "  the dependency ok in mix.exs did not specify a supported scm. " <>
+            "Please ensure a package manager (like http://hex.pm/) is available or " <>
+            "give one of :git, :path or :in_umbrella as option"
       assert_received { :mix_shell, :info, [^msg] }
     end
   end

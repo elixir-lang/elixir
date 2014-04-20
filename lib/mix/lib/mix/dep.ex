@@ -159,10 +159,11 @@ defmodule Mix.Dep do
   def format_status(%Mix.Dep{status: { :nomatchvsn, vsn }, requirement: req}),
     do: "the dependency does not match the requirement #{inspect req}, got #{inspect vsn}"
 
-  def format_status(%Mix.Dep{status: :noscm, from: from}),
-    do: "the dependency defined in #{Path.relative_to_cwd(from)} did not specify a supported scm, " <>
-        "expected one of :git, :path, :in_umbrella or " <>
-        "the package manager Hex to be installed"
+  def format_status(%Mix.Dep{app: app, status: :noscm, from: from}) do
+    "the dependency #{app} in #{Path.relative_to_cwd(from)} did not specify a supported scm. " <>
+    "Please ensure a package manager (like http://hex.pm/) is available or give one of " <>
+    ":git, :path or :in_umbrella as option"
+  end
 
   def format_status(%Mix.Dep{status: { :lockmismatch, _ }}),
     do: "lock mismatch: the dependency is out of date"
