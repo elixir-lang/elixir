@@ -99,7 +99,7 @@ defmodule Mix.Tasks.Deps do
     Enum.each loaded(loaded_opts), fn %Mix.Dep{scm: scm} = dep ->
       dep = check_lock(dep, lock)
       shell.info "* #{format_dep(dep)}"
-      if formatted = scm.format_lock(dep.opts) do
+      if scm && (formatted = scm.format_lock(dep.opts)) do
         shell.info "  locked at #{formatted}"
       end
       shell.info "  #{format_status dep}"
