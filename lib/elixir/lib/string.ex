@@ -1135,25 +1135,25 @@ defmodule String do
   end
 
   @doc false
-  def to_char_list(list) when is_list(list) do
+  def to_char_list(list) do
     IO.write :stderr, "String.to_char_list/1 is deprecated, please use List.from_char_data/1 instead\n#{Exception.format_stacktrace}"
     List.from_char_data(list)
   end
 
   @doc false
-  def to_char_list!(list) when is_list(list) do
+  def to_char_list!(list) do
     IO.write :stderr, "String.to_char_list!/1 is deprecated, please use List.from_char_data!/1 instead\n#{Exception.format_stacktrace}"
     List.from_char_data!(list)
   end
 
   @doc false
-  def from_char_list(list) when is_list(list) do
+  def from_char_list(list) do
     IO.write :stderr, "String.from_char_list/1 is deprecated, please use String.from_char_data/1 instead\n#{Exception.format_stacktrace}"
     from_char_data(list)
   end
 
   @doc false
-  def from_char_list!(list) when is_list(list) do
+  def from_char_list!(list) do
     IO.write :stderr, "String.from_char_list!/1 is deprecated, please use String.from_char_data!/1 instead\n#{Exception.format_stacktrace}"
     from_char_data!(list)
   end
