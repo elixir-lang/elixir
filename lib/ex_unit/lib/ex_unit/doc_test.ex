@@ -214,21 +214,12 @@ defmodule ExUnit.DocTest do
 
     quote do
       unquote_splicing(test_import(module, do_import))
-      unquote(gen_code_for_tests(tests, whole_expr(exprs), exception_expr(exprs), stack))
+      unquote(gen_code_for_tests(tests, whole_expr(exprs), stack))
     end
   end
 
   defp whole_expr(exprs) do
     Enum.map_join(exprs, "\n", &elem(&1, 0))
-  end
-
-  defp exception_expr(exprs) do
-    Enum.find_value(exprs, "nothing", fn
-      { _, {:error, exception, message} } ->
-        inspect(exception) <> " with message " <> message
-      _ ->
-        nil
-    end)
   end
 
   defp multiple_exceptions?(exprs) do
@@ -238,7 +229,7 @@ defmodule ExUnit.DocTest do
     end) > 1
   end
 
-  defp gen_code_for_tests(tests, whole_expr, exception, stack) do
+  defp gen_code_for_tests(tests, whole_expr, stack) do
     quote do
       stack = unquote(stack)
       try do
@@ -250,13 +241,8 @@ defmodule ExUnit.DocTest do
 
         error ->
           raise ExUnit.AssertionError,
-            [ message: "Doctest failed—incorrect assertion generated",
-              expr: unquote(whole_expr),
-              left: unquote(exception),
-              # We're using a combined message here because all expressions
-              # (those that are expected to raise and those that aren't) are in
-              # the same try block above.
-              right: inspect(elem(error, 0)) <> " with message " <> error.message ],
+            [message: "Doctest failed: got #{inspect(elem(error, 0))} with message #{error.message}",
+             expr: unquote(whole_expr)],
             stack
       end
     end
@@ -267,33 +253,32 @@ defmodule ExUnit.DocTest do
     expected_ast = string_to_quoted(module, line, file, expected)
 
     quote do
-      v = unquote(expected_ast)
+      expected = unquote(expected_ast)
       case unquote(expr_ast) do
-        ^v -> :ok
+        ^expected -> :ok
         actual ->
           raise ExUnit.AssertionError,
-            [ message: "Doctest failed",
-              expr: "#{unquote(expr)} should equal #{inspect v}",
-              left: inspect(actual) ],
+            [message: "Doctest failed",
+              expr: "#{unquote(String.strip(expr))} === #{unquote(String.strip(expected))}",
+              left: actual],
             unquote(stack)
       end
     end
   end
 
   defp test_case_content(expr, { :inspect, expected }, module, line, file, stack) do
-    expr_ast     = string_to_quoted(module, line, file, expr)
-    expr_ast     = quote do: inspect(unquote(expr_ast))
+    expr_ast     = quote do: inspect(unquote(string_to_quoted(module, line, file, expr)))
     expected_ast = string_to_quoted(module, line, file, expected)
 
     quote do
-      v = unquote(expected_ast)
+      expected = unquote(expected_ast)
       case unquote(expr_ast) do
-        ^v -> :ok
+        ^expected -> :ok
         actual ->
           raise ExUnit.AssertionError,
             [ message: "Doctest failed",
-              expr: "#{unquote(expr)} should equal #{inspect(v)}",
-              left: inspect(actual) ],
+              expr: "inspect(#{unquote(String.strip(expr))}) === #{unquote(String.strip(expected))}",
+              left: actual],
             unquote(stack)
       end
     end
@@ -304,28 +289,27 @@ defmodule ExUnit.DocTest do
 
     quote do
       stack = unquote(stack)
-      expr = unquote(expr)
-      exception = inspect(unquote(exception)) <> " with message " <> inspect(unquote(message))
+      expr  = unquote(String.strip(expr))
+      spec  = inspect(unquote(exception)) <> " with message " <> inspect(unquote(message))
+
       try do
-        v = unquote(expr_ast)
-        raise ExUnit.AssertionError,
-          [ message: "Doctest failed",
-            expr: expr,
-            left: exception,
-            right: inspect(v) ],
-          stack
+        unquote(expr_ast)
       rescue
-        error in [unquote(exception)] ->
-          unless error.message == unquote(message) do
+        error ->
+          unless error.__record__(:name) == unquote(exception) and
+                 error.message == unquote(message) do
+            got = inspect(elem(error, 0)) <> " with message " <> inspect(error.message)
             raise ExUnit.AssertionError,
-              [ message: "Doctest failed",
-                expr: expr,
-                left: exception,
-                right: inspect(elem(error, 0)) <> " with message " <> inspect(error.message) ],
+              [message: "Doctest failed: expected exception #{spec} but got #{got}",
+               expr: expr],
               stack
           end
-
-        other -> raise other
+      else
+        _ ->
+          raise ExUnit.AssertionError,
+            [message: "Doctest failed: expected exception #{spec} but nothing was raised",
+             expr: expr],
+            stack
       end
     end
   end
@@ -341,11 +325,11 @@ defmodule ExUnit.DocTest do
     try do
       Code.string_to_quoted!(expr, location)
     rescue e ->
+      message = "(#{inspect e.__record__(:name)}) #{e.message}"
       quote do
         raise ExUnit.AssertionError,
-          [ message: "Doctest failed",
-            expr: "#{unquote(String.strip(expr))} did now compile",
-            left: unquote("** #{inspect e.__record__(:name)} #{e.message}") ],
+          [message: "Doctest did not compile, got: #{unquote(message)}",
+           expr: unquote(String.strip(expr))]
           unquote(stack)
       end
     end

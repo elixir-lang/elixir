@@ -170,6 +170,10 @@ defmodule ExUnit.Formatter do
     formatter.(:error_info, value)
   end
 
+  defp macro_multiline(expr, _width) when is_binary(expr) do
+    expr
+  end
+
   defp macro_multiline(expr, _width) do
     expr |> Macro.to_string
   end
