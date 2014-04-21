@@ -114,9 +114,13 @@ defprotocol Enumerable do
   @doc """
   Checks if a value exists within the collection.
 
-  It should return `{ :ok, boolean }` if membership can be tested
-  faster than linear time with the match (`===`) operator, otherwise
-  should return `{ :error, __MODULE__ }`.
+  It should return `{ :ok, boolean }`.
+
+  If `{ :error, __MODULE__ }` is returned a default algorithm using `reduce` and
+  the match (`===`) operator is used. This algorithm runs in linear time.
+
+  Please force use of the default algorithm unless you can implement an
+  algorithm that is significantly faster.
   """
   @spec member?(t, term) :: { :ok, boolean } | { :error, module }
   def member?(collection, value)
@@ -124,8 +128,13 @@ defprotocol Enumerable do
   @doc """
   Retrieves the collection's size.
 
-  Should return `{ :ok, size }` if the size is pre-calculated,
-  `{ :error, __MODULE__ }` otherwise.
+  It should return `{ :ok, size }`.
+
+  If `{ :error, __MODULE__ }` is returned a default algorithm using `reduce` and
+  the match (`===`) operator is used. This algorithm runs in linear time.
+
+  Please force use of the default algorithm unless you can implement an
+  algorithm that is significantly faster.
   """
   @spec count(t) :: { :ok, non_neg_integer } | { :error, module }
   def count(collection)
