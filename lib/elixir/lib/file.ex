@@ -135,9 +135,10 @@ defmodule File do
   doing the proper conversions and data guarantees.
 
   Note that filenames when given as char lists in Elixir are
-  always treated as UTF-8. In particular, the VM is started
-  with the `+fnu` flag. Binary filenames are considering raw
-  and passed to the OS as is.
+  always treated as UTF-8. In particular, we expect that the
+  shell and the operating system are configured to use UTF8
+  encoding. Binary filenames are considering raw and passed
+  to the OS as is.
 
   ## API
 
