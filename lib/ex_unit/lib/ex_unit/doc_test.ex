@@ -245,19 +245,18 @@ defmodule ExUnit.DocTest do
         # Put all tests into one context
         unquote_splicing(tests)
       rescue
-        e in [ExUnit.ExpectationError] ->
+        e in [ExUnit.AssertionError] ->
           raise e, [], stack
 
         error ->
-          raise ExUnit.ExpectationError,
-            [ prelude: "Expected doctest",
+          raise ExUnit.AssertionError,
+            [ message: "Doctest failed—incorrect assertion generated",
               expr: unquote(whole_expr),
-              expected: unquote(exception),
+              left: unquote(exception),
               # We're using a combined message here because all expressions
               # (those that are expected to raise and those that aren't) are in
               # the same try block above.
-              assertion: "complete or raise",
-              actual: inspect(elem(error, 0)) <> " with message " <> inspect(error.message) ],
+              right: inspect(elem(error, 0)) <> " with message " <> error.message ],
             stack
       end
     end
@@ -272,12 +271,10 @@ defmodule ExUnit.DocTest do
       case unquote(expr_ast) do
         ^v -> :ok
         actual ->
-          raise ExUnit.ExpectationError,
-            [ prelude: "Expected doctest",
-              expr: unquote(expr),
-              expected: inspect(v),
-              assertion: "evaluate to",
-              actual: inspect(actual) ],
+          raise ExUnit.AssertionError,
+            [ message: "Doctest failed",
+              expr: "#{unquote(expr)} should equal #{inspect v}",
+              left: inspect(actual) ],
             unquote(stack)
       end
     end
@@ -293,12 +290,10 @@ defmodule ExUnit.DocTest do
       case unquote(expr_ast) do
         ^v -> :ok
         actual ->
-          raise ExUnit.ExpectationError,
-            [ prelude: "Expected doctest",
-              expr: unquote(expr),
-              expected: inspect(v),
-              assertion: "inspect as",
-              actual: inspect(actual) ],
+          raise ExUnit.AssertionError,
+            [ message: "Doctest failed",
+              expr: "#{unquote(expr)} should equal #{inspect(v)}",
+              left: inspect(actual) ],
             unquote(stack)
       end
     end
@@ -313,22 +308,20 @@ defmodule ExUnit.DocTest do
       exception = inspect(unquote(exception)) <> " with message " <> inspect(unquote(message))
       try do
         v = unquote(expr_ast)
-        raise ExUnit.ExpectationError,
-          [ prelude: "Expected doctest",
+        raise ExUnit.AssertionError,
+          [ message: "Doctest failed",
             expr: expr,
-            expected: exception,
-            assertion: "raise",
-            actual: inspect(v) ],
+            left: exception,
+            right: inspect(v) ],
           stack
       rescue
         error in [unquote(exception)] ->
           unless error.message == unquote(message) do
-            raise ExUnit.ExpectationError,
-              [ prelude: "Expected doctest",
+            raise ExUnit.AssertionError,
+              [ message: "Doctest failed",
                 expr: expr,
-                expected: exception,
-                assertion: "raise",
-                actual: inspect(elem(error, 0)) <> " with message " <> inspect(error.message) ],
+                left: exception,
+                right: inspect(elem(error, 0)) <> " with message " <> inspect(error.message) ],
               stack
           end
 
@@ -349,12 +342,10 @@ defmodule ExUnit.DocTest do
       Code.string_to_quoted!(expr, location)
     rescue e ->
       quote do
-        raise ExUnit.ExpectationError,
-          [ prelude: "Expected doctest",
-            expr: unquote(String.strip(expr)),
-            expected: "successfully",
-            assertion: "compile",
-            actual: unquote("** #{inspect e.__record__(:name)} #{e.message}") ],
+        raise ExUnit.AssertionError,
+          [ message: "Doctest failed",
+            expr: "#{unquote(String.strip(expr))} did now compile",
+            left: unquote("** #{inspect e.__record__(:name)} #{e.message}") ],
           unquote(stack)
       end
     end
