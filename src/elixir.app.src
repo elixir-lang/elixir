@@ -7,5 +7,5 @@
  {registered, [elixir_code_server]},
  {applications, [kernel,stdlib]},
  {mod, {elixir,[]}},
- {env, [{uri, []}]}
+ {env, [{uri, #{}}]}
 ]}.

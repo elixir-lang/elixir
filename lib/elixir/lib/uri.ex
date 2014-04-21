@@ -9,14 +9,14 @@ defmodule URI do
 
   import Bitwise
 
-  @ports [
-    { "ftp", 21 },
-    { "http", 80 },
-    { "https", 443 },
-    { "ldap", 389 },
-    { "sftp", 22 },
-    { "tftp", 69 },
-  ]
+  @ports %{
+    "ftp"   => 21,
+    "http"  => 80,
+    "https" => 443,
+    "ldap"  => 389,
+    "sftp"  => 22,
+    "tftp"  => 69,
+  }
 
   Enum.each @ports, fn { scheme, port } ->
     def normalize_scheme(unquote(scheme)), do: unquote(scheme)
@@ -46,7 +46,7 @@ defmodule URI do
   """
   def default_port(scheme) when is_binary(scheme) do
     { :ok, dict } = :application.get_env(:elixir, :uri)
-    Dict.get(dict, scheme)
+    Map.get(dict, scheme)
   end
 
   @doc """
@@ -54,7 +54,7 @@ defmodule URI do
   """
   def default_port(scheme, port) when is_binary(scheme) and port > 0 do
     { :ok, dict } = :application.get_env(:elixir, :uri)
-    :application.set_env(:elixir, :uri, Dict.put(dict, scheme, port))
+    :application.set_env(:elixir, :uri, Map.put(dict, scheme, port))
   end
 
   @doc """

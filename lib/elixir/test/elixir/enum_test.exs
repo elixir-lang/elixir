@@ -179,10 +179,9 @@ defmodule EnumTest.List do
     assert Enum.group_by(1..6, &rem(&1, 3)) ==
            %{ 0 => [6, 3], 1 => [4, 1], 2 => [5, 2] }
 
-    result = Enum.group_by(1..6, [], &rem(&1, 3))
+    result = Enum.group_by(1..6, %{3 => :default}, &rem(&1, 3))
     assert result[0] == [6, 3]
-    assert result[1] == [4, 1]
-    assert result[2] == [5, 2]
+    assert result[3] == :default
   end
 
   test :into do

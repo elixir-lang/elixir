@@ -404,14 +404,6 @@ defmodule Dict.HashDictTest do
   defp dict_impl, do: HashDict
 end
 
-defmodule Dict.ListDictTest do
-  use ExUnit.Case, async: true
-  use DictTest.Common
-
-  doctest Dict
-  defp dict_impl, do: ListDict
-end
-
 defmodule Dict.MapDictTest do
   use ExUnit.Case, async: true
   use DictTest.Common

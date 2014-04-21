@@ -34,10 +34,18 @@ defprotocol Access do
 end
 
 defimpl Access, for: List do
-  def access(dict, key)
-  def access([{ key, value }|_], key), do: value
-  def access([{ _, _ }|t], key), do: access(t, key)
-  def access([], _key), do: nil
+  def access(dict, key) when is_atom(key) do
+    do_access(dict, key)
+  end
+
+  def access(dict, key) do
+    IO.write :stderr, "The access protocol for lists expect the key to be an atom, got: #{inspect key}\n#{Exception.format_stacktrace}"
+    do_access(dict, key)
+  end
+
+  defp do_access([{ key, value }|_], key), do: value
+  defp do_access([{ _, _ }|t], key), do: access(t, key)
+  defp do_access([], _key), do: nil
 end
 
 defimpl Access, for: Map do

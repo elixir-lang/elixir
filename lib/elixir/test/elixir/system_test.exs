@@ -54,7 +54,7 @@ defmodule SystemTest do
     System.delete_env(@test_var)
     assert System.get_env(@test_var) == nil
 
-    System.put_env([{ @test_var, "OTHER_SAMPLE" }])
+    System.put_env(%{ @test_var => "OTHER_SAMPLE" })
     assert System.get_env(@test_var) == "OTHER_SAMPLE"
   end
 
