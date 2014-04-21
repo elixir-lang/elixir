@@ -56,6 +56,7 @@ defmodule RegexTest do
 
   test :names do
     assert Regex.names(~r/(?<FOO>foo)/) == [:FOO]
+    assert Regex.scan(~r/c(?<foo>d)/, "abcd", capture: :all_names) == [foo: "d"]
   end
 
   test :match? do

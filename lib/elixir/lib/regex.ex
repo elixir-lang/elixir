@@ -54,7 +54,7 @@ defmodule Regex do
 
   * `:none` - do not return matching subpatterns at all;
 
-  * `:named` - captures only named captures in the Regex;
+  * `:all_names` - captures all names in the Regex;
 
   * `list(binary)` - a list of named captures to capture;
 
@@ -184,9 +184,8 @@ defmodule Regex do
     captures =
       case Keyword.get(options, :capture, :all) do
         :groups ->
-          IO.write "[WARNING] :groups option is deprecated, please use :named option instead\n#{Exception.format_stacktrace}"
-          names(regex)
-        :named -> names(regex)
+          IO.write "[WARNING] :groups option is deprecated, please use :all_names option instead\n#{Exception.format_stacktrace}"
+          :all_names
         others  -> others
       end
 
@@ -305,10 +304,9 @@ defmodule Regex do
     captures =
       case Keyword.get(options, :capture, :all) do
         :groups ->
-          IO.write "[WARNING] :groups option is deprecated, please use :named option instead\n#{Exception.format_stacktrace}"
-          names(regex)
-        :named -> names(regex)
-        others  -> others
+          IO.write "[WARNING] :groups option is deprecated, please use :all_names option instead\n#{Exception.format_stacktrace}"
+          :all_names
+        others -> others
       end
 
     options = [{ :capture, captures, return }, :global]
