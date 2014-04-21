@@ -50,6 +50,99 @@ defmodule ExUnit.CallbacksTest do
   test "receives context from callback", context do
     assert context[:context] == :setup
   end
+
+  test "assertions in setup_all are reported" do
+    ExUnit.configure(formatter: ExUnit.TestsLoggingFormatter)
+
+    defmodule SetupAllFailureTest do
+      use ExUnit.Case
+      setup_all do
+        assert 1 == 2
+      end
+      test "foo" do
+      end
+    end
+
+    { async, sync, load_us } = ExUnit.Server.start_run
+    logs = ExUnit.Runner.run(async, sync, ExUnit.configuration, load_us)
+           |> Enum.map(fn {reason, tc} -> {reason, tc.state} end)
+    assert match?([
+      case_started: nil,
+      test_started: { :invalid, _ },
+      test_finished: { :invalid, _ },
+      case_finished: { :failed, _ }
+    ], logs)
+  end
+
+  test "assertions in setup are reported" do
+    ExUnit.configure(formatter: ExUnit.TestsLoggingFormatter)
+
+    defmodule SetupFailureTest do
+      use ExUnit.Case
+      setup do
+        assert 1 == 2
+      end
+      test "foo" do
+      end
+    end
+
+    { async, sync, load_us } = ExUnit.Server.start_run
+    logs = ExUnit.Runner.run(async, sync, ExUnit.configuration, load_us)
+           |> Enum.map(fn {reason, tc} -> {reason, tc.state} end)
+    assert match?([
+      case_started: nil,
+      test_started: nil,
+      test_finished: { :failed, _ },
+      case_finished: :passed
+    ], logs)
+  end
+
+  test "assertions in teardown are reported" do
+    ExUnit.configure(formatter: ExUnit.TestsLoggingFormatter)
+
+    defmodule TeardownFailureTest do
+      use ExUnit.Case
+      teardown do
+        assert 1 == 2
+      end
+      test "foo" do
+      end
+    end
+
+    { async, sync, load_us } = ExUnit.Server.start_run
+    logs = ExUnit.Runner.run(async, sync, ExUnit.configuration, load_us)
+           |> Enum.map(fn {reason, tc} -> {reason, tc.state} end)
+    IO.inspect(logs)
+    assert match?([
+      case_started: nil,
+      test_started: nil,
+      test_finished: { :failed, _ },
+      case_finished: :passed
+    ], logs)
+  end
+
+  test "assertions in teardown_all are reported" do
+    ExUnit.configure(formatter: ExUnit.TestsLoggingFormatter)
+
+    defmodule TeardownAllFailureTest do
+      use ExUnit.Case
+      teardown_all do
+        assert 1 == 2
+      end
+      test "foo" do
+      end
+    end
+
+    { async, sync, load_us } = ExUnit.Server.start_run
+    logs = ExUnit.Runner.run(async, sync, ExUnit.configuration, load_us)
+           |> Enum.map(fn {reason, tc} -> {reason, tc.state} end)
+    assert match?([
+      case_started: nil,
+      test_started: nil,
+      test_finished: :passed,
+      case_finished: { :failed, _ }
+    ], logs)
+  end
 end
 
 defmodule ExUnit.CallbacksNoTests do
