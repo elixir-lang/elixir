@@ -6,8 +6,9 @@
 
 * Deprecations
   * [Kernel] `iolist_size` and `iolist_to_binary` are deprecated in favor of `iodata_size` and `iolist_to_binary`
-  * [String] `String.to_char_list` is deprecated in favor of `List.from_char_data`
-  * [String] `String.from_char_list` is deprecated in favor of `String.from_char_data`
+  * [Regex] `Regex.groups/1` is deprecated in favor of `Regex.names/1`
+  * [String] `String.to_char_list/1` is deprecated in favor of `List.from_char_data/1`
+  * [String] `String.from_char_list/1` is deprecated in favor of `String.from_char_data/1`
 
 * Backwards incompatible changes
   * [Path] The functions in Path now only emit strings as result, regardless if the input was a char list or a string
