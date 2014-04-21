@@ -453,6 +453,67 @@ defmodule List do
     end
   end
 
+  @doc """
+  Converts char data into a char list.
+
+  A char data is a string or a list of integers and strings and it
+  is converted into a list with each codepoint represented as its
+  respective integer value.
+
+  ## Examples
+
+      iex> List.from_char_data("æß")
+      { :ok, 'æß' }
+      iex> List.from_char_data([?a, "bc"])
+      { :ok, 'abc' }
+
+  """
+  @spec from_char_data(char_data) :: { :ok, char_list } | { :error, list, binary } | { :incomplete, list, binary }
+  def from_char_data(char_data) do
+    case :unicode.characters_to_list(char_data) do
+      result when is_list(result) ->
+        { :ok, result }
+
+      { :error, _, _ } = error ->
+        error
+
+      { :incomplete, _, _ } = incomplete ->
+        incomplete
+    end
+  end
+
+  @doc """
+  Converts char data into a char list.
+
+  A char data is a string or a list of integers and strings and it
+  is converted into a list with each codepoint represented as its
+  respective integer value.
+
+  In case the conversion fails or is incomplete, it raises a
+  `UnicodeConversionError`.
+
+  ## Examples
+
+      iex> List.from_char_data!("æß")
+      'æß'
+      iex> List.from_char_data!("abc")
+      'abc'
+
+  """
+  @spec from_char_data!(char_data) :: char_list | no_return
+  def from_char_data!(char_data) do
+    case :unicode.characters_to_list(char_data) do
+      result when is_list(result) ->
+        result
+
+      { :error, encoded, rest } ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
+
+      { :incomplete, encoded, rest } ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
+    end
+  end
+
   ## Helpers
 
   # replace_at

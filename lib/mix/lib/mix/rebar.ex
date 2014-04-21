@@ -69,7 +69,7 @@ defmodule Mix.Rebar do
   Runs `fun` for the given config and for each `sub_dirs` in the
   given rebar config.
   """
-  def recur([h|_] = config, fun) when is_integer(h) do
+  def recur(config, fun) when is_binary(config) do
     recur(load_config(config), fun)
   end
 
@@ -85,7 +85,7 @@ defmodule Mix.Rebar do
   end
 
   defp parse_dep({ app, req }, deps_dir) do
-    { app, compile_req(req), [path: Path.join(deps_dir, app)] }
+    { app, compile_req(req), [path: Path.join(deps_dir, atom_to_binary(app))] }
   end
 
   defp parse_dep({ app, req, source }, deps_dir) do
@@ -128,7 +128,7 @@ defmodule Mix.Rebar do
   end
 
   defp eval_script(script_path, config) do
-    script = Path.basename(script_path) |> String.to_char_list!
+    script = Path.basename(script_path) |> List.from_char_data!
 
     result = File.cd!(Path.dirname(script_path), fn ->
       :file.script(script, eval_binds(CONFIG: config, SCRIPT: script))

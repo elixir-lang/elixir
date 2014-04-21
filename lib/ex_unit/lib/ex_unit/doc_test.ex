@@ -151,8 +151,9 @@ defmodule ExUnit.DocTest do
       end
 
     tests = quote bind_quoted: binding do
+      file = "(for doctest at) " <> Path.relative_to_cwd(mod.__info__(:compile)[:source])
       for { name, test } <- ExUnit.DocTest.__doctests__(mod, opts) do
-        @file '(for doctest at) ' ++ Path.relative_to_cwd(mod.__info__(:compile)[:source])
+        @file file
         test name, do: unquote(test)
       end
     end
@@ -197,7 +198,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_content(Test[exprs: exprs, line: line, fun_arity: fun_arity], module, do_import) do
-    file     = module.__info__(:compile)[:source] |> String.from_char_list!
+    file     = module.__info__(:compile)[:source] |> String.from_char_data!
     location = [line: line, file: Path.relative_to_cwd(file)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
 
@@ -345,7 +346,7 @@ defmodule ExUnit.DocTest do
     location = [line: line, file: Path.relative_to_cwd(file)]
     stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
     try do
-      Code.string_to_quoted!(expr, line: line, file: file)
+      Code.string_to_quoted!(expr, location)
     rescue e ->
       quote do
         raise ExUnit.ExpectationError,

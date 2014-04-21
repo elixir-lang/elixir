@@ -119,7 +119,7 @@ defmodule Mix.Dep.Fetcher do
     envs = Path.wildcard("_build/*/lib")
 
     for %Mix.Dep{app: app} <- deps, env <- envs do
-      File.touch Path.join [env, app, ".compile"]
+      File.touch Path.join [env, atom_to_binary(app), ".compile"]
     end
   end
 

@@ -313,7 +313,7 @@ defimpl Inspect, for: List do
   def inspect(thing, Inspect.Opts[char_lists: lists] = opts) do
     cond do
       lists == :as_char_lists or (lists == :infer and :io_lib.printable_list(thing)) ->
-        << ?', Inspect.BitString.escape(String.from_char_list!(thing), ?') :: binary, ?' >>
+        << ?', Inspect.BitString.escape(String.from_char_data!(thing), ?') :: binary, ?' >>
       keyword?(thing) ->
         surround_many("[", thing, "]", opts.limit, &keyword(&1, opts))
       true ->
@@ -474,7 +474,7 @@ defimpl Inspect, for: Float do
 
   """
   def inspect(thing, _opts) do
-    iolist_to_binary(:io_lib_format.fwrite_g(thing))
+    iodata_to_binary(:io_lib_format.fwrite_g(thing))
   end
 end
 
@@ -538,20 +538,20 @@ end
 
 defimpl Inspect, for: PID do
   def inspect(pid, _opts) do
-    "#PID" <> iolist_to_binary(:erlang.pid_to_list(pid))
+    "#PID" <> iodata_to_binary(:erlang.pid_to_list(pid))
   end
 end
 
 defimpl Inspect, for: Port do
   def inspect(port, _opts) do
-    iolist_to_binary :erlang.port_to_list(port)
+    iodata_to_binary :erlang.port_to_list(port)
   end
 end
 
 defimpl Inspect, for: Reference do
   def inspect(ref, _opts) do
     '#Ref' ++ rest = :erlang.ref_to_list(ref)
-    "#Reference" <> iolist_to_binary(rest)
+    "#Reference" <> iodata_to_binary(rest)
   end
 end
 

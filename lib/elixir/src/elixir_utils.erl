@@ -39,7 +39,7 @@ characters_to_list(Data) when is_list(Data) ->
 characters_to_list(Data) ->
   case elixir_compiler:get_opt(internal) of
     true  -> unicode:characters_to_list(Data);
-    false -> 'Elixir.String':'to_char_list!'(Data)
+    false -> 'Elixir.List':'from_char_data!'(Data)
   end.
 
 characters_to_binary(Data) when is_binary(Data) ->
@@ -47,7 +47,7 @@ characters_to_binary(Data) when is_binary(Data) ->
 characters_to_binary(Data) ->
   case elixir_compiler:get_opt(internal) of
     true  -> unicode:characters_to_binary(Data);
-    false -> 'Elixir.String':'from_char_list!'(Data)
+    false -> 'Elixir.String':'from_char_data!'(Data)
   end.
 
 %% elixir to erl. Handles only valid quoted expressions,

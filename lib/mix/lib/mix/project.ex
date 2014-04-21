@@ -128,7 +128,7 @@ defmodule Mix.Project do
     opts    = [Mix.Dep.Lock.manifest]
 
     if project && (source = project.__info__(:compile)[:source]) do
-      opts = [String.from_char_list!(source)|opts]
+      opts = [String.from_char_data!(source)|opts]
     end
 
     opts
@@ -234,7 +234,7 @@ defmodule Mix.Project do
   def app_path(config \\ config()) do
     config[:app_path] || cond do
       app = config[:app] ->
-        Path.join([build_path(config), "lib", app])
+        Path.join([build_path(config), "lib", atom_to_binary(app)])
       config[:apps_path] ->
         raise "Trying to access app_path for an umbrella project but umbrellas have no app"
       true ->

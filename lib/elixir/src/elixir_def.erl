@@ -138,9 +138,9 @@ retrieve_location(Line, File, Module) ->
         true ->
           nil
       end;
-    X ->
+    X when is_binary(X) ->
       'Elixir.Module':delete_attribute(Module, file),
-      { X, 0 }
+      { elixir_utils:characters_to_list(X), 0 }
   end.
 
 %% Compile super

@@ -210,7 +210,7 @@ defmodule IO.ANSI do
     do_escape(rest, false, emit, emitted, [x|acc])
   end
   defp do_escape("", false, _emit, emitted, acc) do
-    {iolist_to_binary(Enum.reverse(acc)), emitted}
+    {iodata_to_binary(Enum.reverse(acc)), emitted}
   end
 
   defp do_escape_sequence(rest, emit, acc) do

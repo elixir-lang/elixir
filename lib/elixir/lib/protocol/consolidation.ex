@@ -78,8 +78,8 @@ defmodule Protocol.Consolidation do
   defp list_dir(path), do: list_dir(to_char_list(path))
 
   defp extract_from_file(path, file, prefix, callback) do
-    if :lists.prefix(prefix, file) and Path.extname(file) == '.beam' do
-      extract_from_beam(Path.join(path, file), callback)
+    if :lists.prefix(prefix, file) and :filename.extension(file) == '.beam' do
+      extract_from_beam(:filename.join(path, file), callback)
     end
   end
 

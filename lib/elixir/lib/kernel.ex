@@ -482,29 +482,41 @@ defmodule Kernel do
     :erlang.integer_to_list(number, base)
   end
 
+  @doc false
+  def iolist_to_binary(list) do
+    IO.write :stderr, "Kernel.iodata_to_binary/1 is deprecated, please use Kernel.iodata_to_binary/1 instead\n#{Exception.format_stacktrace}"
+    iodata_to_binary(list)
+  end
+
+  @doc false
+  def iolist_size(list) do
+    IO.write :stderr, "Kernel.iolist_size/1 is deprecated, please use Kernel.iolist_size/1 instead\n#{Exception.format_stacktrace}"
+    iodata_size(list)
+  end
+
   @doc """
-  Returns the size of an iolist.
+  Returns the size of an iodata.
 
   Inlined by the compiler.
 
   ## Examples
 
-      iex> iolist_size([1, 2|<<3, 4>>])
+      iex> iodata_size([1, 2|<<3, 4>>])
       4
 
   """
-  @spec iolist_size(iolist) :: non_neg_integer
-  def iolist_size(item) do
+  @spec iodata_size(iolist) :: non_neg_integer
+  def iodata_size(item) do
     :erlang.iolist_size(item)
   end
 
   @doc """
-  Returns a binary which is made from the integers and binaries in iolist.
+  Returns a binary which is made from the integers and binaries in iodata.
 
   Notice that this function treats lists of integers as raw bytes
   and does not perform any kind of encoding conversion. If you want to convert
   from a char list to a string (both utf-8 encoded), please use
-  `String.from_char_list!/1` instead.
+  `String.from_char_data!/1` instead.
 
   If this function receives a binary, the same binary is returned.
 
@@ -515,17 +527,17 @@ defmodule Kernel do
       iex> bin1 = <<1, 2, 3>>
       iex> bin2 = <<4, 5>>
       iex> bin3 = <<6>>
-      iex> iolist_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
+      iex> iodata_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
       <<1,2,3,1,2,3,4,5,4,6>>
 
       iex> bin = <<1, 2, 3>>
-      iex> iolist_to_binary(bin)
+      iex> iodata_to_binary(bin)
       <<1,2,3>>
 
   """
-  @spec iolist_to_binary(iolist | binary) :: binary
-  def iolist_to_binary(item) do
-    :erlang.iolist_to_binary(item)
+  @spec iodata_to_binary(iolist | binary) :: binary
+  def iodata_to_binary(item) do
+    :erlang.iodata_to_binary(item)
   end
 
   @doc """
@@ -3727,7 +3739,7 @@ defmodule Kernel do
 
   """
   defmacro sigil_C({ :<<>>, _line, [string] }, []) when is_binary(string) do
-    String.to_char_list!(string)
+    List.from_char_data!(string)
   end
 
   @doc """
@@ -3747,12 +3759,12 @@ defmodule Kernel do
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
   defmacro sigil_c({ :<<>>, _line, [string] }, []) when is_binary(string) do
-    String.to_char_list!(Macro.unescape_string(string))
+    List.from_char_data!(Macro.unescape_string(string))
   end
 
   defmacro sigil_c({ :<<>>, line, pieces }, []) do
     binary = { :<<>>, line, Macro.unescape_tokens(pieces) }
-    quote do: String.to_char_list!(unquote(binary))
+    quote do: List.from_char_data!(unquote(binary))
   end
 
   @doc """
@@ -3856,13 +3868,13 @@ defmodule Kernel do
         case mod do
           ?s -> String.split(string)
           ?a -> for p <- String.split(string), do: binary_to_atom(p)
-          ?c -> for p <- String.split(string), do: String.to_char_list!(p)
+          ?c -> for p <- String.split(string), do: List.from_char_data!(p)
         end
       false ->
         case mod do
           ?s -> quote do: String.split(unquote(string))
           ?a -> quote do: for(p <- String.split(unquote(string)), do: binary_to_atom(p))
-          ?c -> quote do: for(p <- String.split(unquote(string)), do: String.to_char_list!(p))
+          ?c -> quote do: for(p <- String.split(unquote(string)), do: List.from_char_data!(p))
         end
     end
   end

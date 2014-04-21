@@ -43,7 +43,7 @@ defmodule String.Unicode do
 
   # Downcase
 
-  def downcase(string), do: do_downcase(string) |> iolist_to_binary
+  def downcase(string), do: do_downcase(string) |> iodata_to_binary
 
   for { codepoint, _upper, lower, _title } <- codes, lower && lower != codepoint do
     defp do_downcase(unquote(codepoint) <> rest) do
@@ -59,7 +59,7 @@ defmodule String.Unicode do
 
   # Upcase
 
-  def upcase(string), do: do_upcase(string) |> iolist_to_binary
+  def upcase(string), do: do_upcase(string) |> iodata_to_binary
 
   for { codepoint, upper, _lower, _title } <- codes, upper && upper != codepoint do
     defp do_upcase(unquote(codepoint) <> rest) do
@@ -119,7 +119,7 @@ defmodule String.Unicode do
     do_rstrip(rest, nil, [char|acc1])
   end
 
-  defp do_rstrip(<<>>, _acc1, acc2), do: acc2 |> :lists.reverse |> iolist_to_binary
+  defp do_rstrip(<<>>, _acc1, acc2), do: acc2 |> :lists.reverse |> iodata_to_binary
 
   # Split
 
