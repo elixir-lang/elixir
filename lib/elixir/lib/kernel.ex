@@ -2590,21 +2590,13 @@ defmodule Kernel do
   Returns true if the `module` is loaded and contains a
   public `function` with the given `arity`, otherwise false.
 
-  In case a tuple module is given, the `arity` is automatically
-  increased by one.
-
   Notice that this function does not load the module in case
   it is not loaded. Check `Code.ensure_loaded/1` for more
   information.
   """
   @spec function_exported?(atom | tuple, atom, integer) :: boolean
   def function_exported?(module, function, arity) do
-    case is_tuple(module) do
-      true  ->
-        :erlang.function_exported(elem(module, 0), function, arity + 1)
-      false ->
-        :erlang.function_exported(module, function, arity)
-    end
+    :erlang.function_exported(module, function, arity)
   end
 
   @doc """
@@ -2617,7 +2609,10 @@ defmodule Kernel do
   """
   @spec macro_exported?(atom, atom, integer) :: boolean
   def macro_exported?(module, macro, arity) do
-    :lists.member({macro, arity}, module.__info__(:macros))
+    case :code.is_loaded(module) do
+      {:file, _} -> :lists.member({macro, arity}, module.__info__(:macros))
+      _ -> false
+    end
   end
 
   @doc """
