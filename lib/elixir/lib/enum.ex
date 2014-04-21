@@ -1218,7 +1218,7 @@ defmodule Enum do
       %{3 => ["cat", "ant"], 7 => ["buffalo"], 5 => ["dingo"]}
 
   """
-  @spec group_by(t, (element -> any)) :: HashDict
+  @spec group_by(t, dict, (element -> any)) :: dict when dict: Dict.t
   def group_by(collection, dict \\ %{}, fun) do
     reduce(collection, dict, fn(entry, categories) ->
       Dict.update(categories, fun.(entry), [entry], &[entry|&1])
