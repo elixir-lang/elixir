@@ -137,11 +137,6 @@ defmodule ListDict do
     [{key, initial}]
   end
 
-  def empty(_dict) do
-    IO.write :stderr, "ListDict.empty/1 is deprecated, please use Collectable.empty/1 instead\n#{Exception.format_stacktrace}"
-    []
-  end
-
   def equal?(dict, other) do
     :lists.keysort(1, dict) === :lists.keysort(1, other)
   end

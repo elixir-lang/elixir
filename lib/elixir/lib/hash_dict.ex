@@ -50,11 +50,6 @@ defmodule HashDict do
     end
   end
 
-  def empty(trie()) do
-    IO.write :stderr, "HashDict.empty/1 is deprecated, please use Collectable.empty/1 instead\n#{Exception.format_stacktrace}"
-    trie()
-  end
-
   def put(trie(root: root, size: size), key, value) do
     { root, counter } = do_put(root, key, value, key_hash(key))
     trie(root: root, size: size + counter)

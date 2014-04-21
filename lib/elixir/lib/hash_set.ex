@@ -96,11 +96,6 @@ defmodule HashSet do
     end) |> elem(1)
   end
 
-  def empty(trie()) do
-    IO.write :stderr, "HashSet.empty/1 is deprecated, please use Collectable.empty/1 instead\n#{Exception.format_stacktrace}"
-    trie()
-  end
-
   def member?(trie(root: root), term) do
     do_member?(root, term, key_hash(term))
   end

@@ -191,16 +191,6 @@ defmodule Exception do
   def normalize(:error, exception), do: normalize_error(exception)
   def normalize(_kind, payload),    do: payload
 
-  @doc false
-  def normalize(error) do
-    IO.write :stderr, "Exception.normalize/1 is deprecated, please use Exception.normalize/2 instead\n#{Exception.format_stacktrace}"
-    normalize_error(error)
-  end
-
-  defp normalize_error(exception) when is_exception(exception) do
-    exception
-  end
-
   defp normalize_error(:badarg) do
     ArgumentError[]
   end

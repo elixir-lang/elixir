@@ -30,17 +30,6 @@ defmodule Keyword do
   @type t(value) :: [{ key, value }]
 
   @doc """
-  Creates a Keyword from an enum. Unlike `Keyword.new`
-  which behaves as a dict, `Keyword.from_enum` does not remove
-  duplicated entries.
-  """
-  @spec from_enum(Enum.t) :: t
-  def from_enum(enum) do
-    IO.write :stderr, "Keyword.from_enum/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
-    Enum.to_list(enum)
-  end
-
-  @doc """
   Checks if the given argument is a keywords list or not.
   """
   @spec keyword?(term) :: boolean

@@ -20,30 +20,15 @@ defmodule Map do
   """
   def new, do: %{}
 
-  @doc """
-  Creates a new map from the given pairs.
-
-  ## Examples
-
-      iex> Map.new [{:b, 1}, {:a, 2}]
-      %{a: 2, b: 1}
-
-  """
+  @doc false
   def new(pairs) do
+    IO.write :stderr, "Map.new/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
     :maps.from_list pairs
   end
 
-  @doc """
-  Creates a new map from the given pairs
-  via the given transformation function.
-
-  ## Examples
-
-      iex> Map.new ["a", "b"], fn x -> {x, x} end
-      %{"a" => "a", "b" => "b"}
-
-  """
+  @doc false
   def new(list, transform) when is_function(transform) do
+    IO.write :stderr, "Map.new/2 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
     Enum.map(list, transform) |> :maps.from_list
   end
 
@@ -102,11 +87,6 @@ defmodule Map do
       { :ok, val } ->
         :maps.put(key, fun.(val), map)
     end
-  end
-
-  def empty(_) do
-    IO.write :stderr, "Map.empty/1 is deprecated, please use Collectable.empty/1 instead\n#{Exception.format_stacktrace}"
-    %{}
   end
 
   def equal?(map, map), do: true
