@@ -5,9 +5,13 @@
 * Bug fixes
 
 * Deprecations
+  * [Kernel] `iolist_size` and `iolist_to_binary` are deprecated in favor of `iodata_size` and `iolist_to_binary`
+  * [String] `String.to_char_list` is deprecated in favor of `List.from_char_data`
+  * [String] `String.from_char_list` is deprecated in favor of `String.from_char_data`
 
 * Backwards incompatible changes
-
+  * [Path] The functions in Path now only emit strings as result, regardless if the input was a char list or a string
+  * [Path] Atoms are no longer supported in Path functions
 
 # v0.13.0 (2014-04-20)
 
