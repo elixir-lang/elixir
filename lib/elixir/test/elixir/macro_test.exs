@@ -485,19 +485,19 @@ defmodule MacroTest do
   ## pipe/unpipe
 
   test :pipe do
-    assert Macro.pipe(1, quote(do: foo)) == quote(do: foo(1))
-    assert Macro.pipe(1, quote(do: foo(2))) == quote(do: foo(1, 2))
+    assert Macro.pipe(1, quote(do: foo), 0) == quote(do: foo(1))
+    assert Macro.pipe(1, quote(do: foo(2)), 0) == quote(do: foo(1, 2))
     assert Macro.pipe(1, quote(do: foo), -1) == quote(do: foo(1))
     assert Macro.pipe(2, quote(do: foo(1)), -1) == quote(do: foo(1, 2))
 
     assert_raise ArgumentError, "cannot pipe 1 into 2", fn ->
-      Macro.pipe(1, 2)
+      Macro.pipe(1, 2, 0)
     end
   end
 
   test :unpipe do
-    assert Macro.unpipe(quote(do: foo)) == quote(do: [foo])
-    assert Macro.unpipe(quote(do: foo |> bar)) == quote(do: [foo, bar])
-    assert Macro.unpipe(quote(do: foo |> bar |> baz)) == quote(do: [foo, bar, baz])
+    assert Macro.unpipe(quote(do: foo)) == quote(do: [{foo, 0}])
+    assert Macro.unpipe(quote(do: foo |> bar)) == quote(do: [{foo, 0}, {bar, 0}])
+    assert Macro.unpipe(quote(do: foo |> bar |> baz)) == quote(do: [{foo, 0}, {bar, 0}, {baz, 0}])
   end
 end

@@ -95,7 +95,7 @@ defmodule Protocol.Consolidation do
   defmacrop if_ok(expr, call) do
     quote do
       case unquote(expr) do
-        { :ok, var } -> unquote(Macro.pipe(quote(do: var), call))
+        { :ok, var } -> unquote(Macro.pipe(quote(do: var), call, 0))
         other -> other
       end
     end

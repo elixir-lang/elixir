@@ -54,19 +54,18 @@ defmodule Macro do
   """
   @spec unpipe(Macro.t) :: [Macro.t]
   def unpipe({ :|> , _, [left, right] }) do
-    [left|unpipe(right)]
+    [{ left, 0 }|unpipe(right)]
   end
 
   def unpipe(other) do
-    [other]
+    [{ other, 0 }]
   end
 
   @doc """
-  Pipes `expr` into the `call_expr` as the
-  argument in the given `position`.
+  Pipes `expr` into the `call_args` at the given `position`.
   """
   @spec pipe(Macro.t, Macro.t, integer) :: Macro.t | no_return
-  def pipe(expr, call_args, integer \\ 0)
+  def pipe(expr, call_args, position)
 
   def pipe(expr, { :&, _, _ } = call_args, _integer) do
     raise ArgumentError, message: "cannot pipe #{to_string expr} into #{to_string call_args}"

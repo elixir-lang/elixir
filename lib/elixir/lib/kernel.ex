@@ -2583,7 +2583,7 @@ defmodule Kernel do
 
   """
   defmacro left |> right do
-    :lists.foldl fn x, acc -> Macro.pipe(acc, x) end, left, Macro.unpipe(right)
+    :lists.foldl fn { x, pos }, acc -> Macro.pipe(acc, x, pos) end, left, Macro.unpipe(right)
   end
 
   @doc """

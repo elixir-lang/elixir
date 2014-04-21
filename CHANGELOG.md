@@ -14,6 +14,7 @@
 * Backwards incompatible changes
   * [Path] The functions in Path now only emit strings as result, regardless if the input was a char list or a string
   * [Path] Atoms are no longer supported in Path functions
+  * [Macro] `Macro.unpipe/1` now returns tuples and `Macro.pipe/2` was removed in favor of `Macro.pipe/3` which explicitly expects the second element of the tuple returned by the new `Macro.unpipe/1`
 
 # v0.13.0 (2014-04-20)
 
