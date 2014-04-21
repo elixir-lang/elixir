@@ -74,7 +74,7 @@ defmodule Mix.CLI do
       exception ->
         stacktrace = System.stacktrace
 
-        if function_exported?(exception, :mix_error, 0) do
+        if function_exported?(exception.__record__(:name), :mix_error, 1) do
           if msg = exception.message, do: Mix.shell.error "** (Mix) #{msg}"
           exit(1)
         else
