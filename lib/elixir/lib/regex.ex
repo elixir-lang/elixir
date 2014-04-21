@@ -178,7 +178,7 @@ defmodule Regex do
   """
   def run(regex, string, options \\ [])
 
-  def run(regex(re_pattern: compiled) = regex, string, options) when is_binary(string) do
+  def run(regex(re_pattern: compiled), string, options) when is_binary(string) do
     return = Keyword.get(options, :return, :binary)
 
     captures =
@@ -259,12 +259,12 @@ defmodule Regex do
   ## Examples
 
       iex> Regex.names(~r/(?<foo>bar)/)
-      [:foo]
+      ["foo"]
 
   """
   def names(regex(re_pattern: re_pattern)) do
     { :namelist, names } = :re.inspect(re_pattern, :namelist)
-    for name <- names, do: binary_to_atom(name)
+    names
   end
 
   def groups(regex) do
@@ -298,7 +298,7 @@ defmodule Regex do
   """
   def scan(regex, string, options \\ [])
 
-  def scan(regex(re_pattern: compiled) = regex, string, options) when is_binary(string) do
+  def scan(regex(re_pattern: compiled), string, options) when is_binary(string) do
     return  = Keyword.get(options, :return, :binary)
 
     captures =

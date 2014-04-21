@@ -116,7 +116,7 @@ defmodule Kernel.ComprehensionTest do
       x + y
     end
 
-    assert iolist_to_binary(Process.get(:into_cont)) == "roohkpmmfi"
+    assert iodata_to_binary(Process.get(:into_cont)) == "roohkpmmfi"
   end
 
   defp collectable_pdict do

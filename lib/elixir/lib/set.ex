@@ -36,7 +36,6 @@ defmodule Set do
   defcallback delete(t, value) :: t
   defcallback difference(t, t) :: t
   defcallback disjoint?(t, t) :: boolean
-  defcallback empty(t) :: t
   defcallback equal?(t, t) :: boolean
   defcallback intersection(t, t) :: t
   defcallback member?(t, value) :: boolean

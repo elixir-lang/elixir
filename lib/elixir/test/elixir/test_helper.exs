@@ -55,14 +55,16 @@ defmodule PathHelpers do
 end
 
 defmodule CompileAssertion do
+  import ExUnit.Assertions
+
   def assert_compile_fail(exception, string) do
     case format_rescue(string) do
       { ^exception, _ } -> :ok
       error ->
-        raise ExUnit.ExpectationError,
-          expected: inspect(exception),
-          actual: inspect(elem(error, 0)),
-          assertion: "match"
+        raise ExUnit.AssertionError,
+          left: inspect(elem(error, 0)),
+          right: inspect(exception),
+          message: "Expected match"
     end
   end
 
@@ -70,10 +72,10 @@ defmodule CompileAssertion do
     case format_rescue(string) do
       { ^exception, ^message } -> :ok
       error ->
-        raise ExUnit.ExpectationError,
-          expected: "#{inspect exception}[message: #{inspect message}]",
-          actual: "#{inspect elem(error, 0)}[message: #{inspect elem(error, 1)}]",
-          assertion: "match"
+        raise ExUnit.AssertionError,
+          left: "#{inspect elem(error, 0)}[message: #{inspect elem(error, 1)}]",
+          right: "#{inspect exception}[message: #{inspect message}]",
+          message: "Expected match"
     end
   end
 
@@ -85,6 +87,6 @@ defmodule CompileAssertion do
       error -> { error.__record__(:name), error.message }
     end
 
-    result || raise(ExUnit.AssertionError, message: "Expected expression to fail")
+    result || flunk(message: "Expected expression to fail")
   end
 end

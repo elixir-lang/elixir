@@ -42,7 +42,6 @@ defmodule Dict do
   defcallback new :: t
   defcallback delete(t, key) :: t
   defcallback drop(t, Enum.t) :: t
-  defcallback empty(t) :: t
   defcallback equal?(t, t) :: boolean
   defcallback get(t, key) :: value
   defcallback get(t, key, value) :: value

@@ -191,6 +191,10 @@ defmodule Exception do
   def normalize(:error, exception), do: normalize_error(exception)
   def normalize(_kind, payload),    do: payload
 
+  defp normalize_error(exception) when is_exception(exception) do
+    exception
+  end
+
   defp normalize_error(:badarg) do
     ArgumentError[]
   end
