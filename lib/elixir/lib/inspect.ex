@@ -50,10 +50,11 @@ defprotocol Inspect do
   ## Error handling
 
   In case there is an error while your structure is being inspected,
-  Elixir will automatically fall back to tuple inspection for records.
+  Elixir will automatically fall back to a raw representation.
+
   You can however access the underlying error by invoking the Inspect
   implementation directly. For example, to test Inspect.HashSet above,
-  you just need to do:
+  you can invoke it as:
 
       Inspect.HashSet.inspect(HashSet.new, Inspect.Opts.new)
 
@@ -68,26 +69,6 @@ end
 defimpl Inspect, for: Atom do
   require Macro
 
-  @doc """
-  Represents the atom as an Elixir term. The atoms `false`, `true`
-  and `nil` are simply quoted. Modules are properly represented
-  as modules using the dot notation.
-
-  Notice that in Elixir, all operators can be represented using
-  literal atoms (`:+`, `:-`, etc).
-
-  ## Examples
-
-      iex> inspect(:foo)
-      ":foo"
-
-      iex> inspect(nil)
-      "nil"
-
-      iex> inspect(Foo.Bar)
-      "Foo.Bar"
-
-  """
   def inspect(atom, _opts) do
     inspect(atom)
   end
@@ -161,23 +142,6 @@ defimpl Inspect, for: Atom do
 end
 
 defimpl Inspect, for: BitString do
-  @doc ~S"""
-  Represents a string as itself escaping all necessary
-  characters. Binaries that contain non-printable characters
-  are printed using the bitstring syntax.
-
-  ## Examples
-
-      iex> inspect("bar")
-      "\"bar\""
-
-      iex> inspect("f\"oo")
-      "\"f\\\"oo\""
-
-      iex> inspect(<<0,1,2>>)
-      "<<0, 1, 2>>"
-
-  """
   def inspect(thing, Inspect.Opts[binaries: bins] = opts) when is_binary(thing) do
     if bins == :as_strings or (bins == :infer and String.printable?(thing)) do
       << ?", escape(thing, ?") :: binary, ?" >>
@@ -347,20 +311,6 @@ defimpl Inspect, for: List do
 end
 
 defimpl Inspect, for: Tuple do
-  @doc """
-  Represents tuples. If the tuple represents a record,
-  it shows it nicely formatted using the access syntax.
-
-  ## Examples
-
-      iex> inspect({1, 2, 3})
-      "{1, 2, 3}"
-
-      iex> inspect(ArgumentError.new)
-      "ArgumentError[message: \\\"argument error\\\"]"
-
-  """
-
   def inspect({}, _opts), do: "{}"
 
   def inspect(tuple, Inspect.Opts[] = opts) do
@@ -445,49 +395,18 @@ defimpl Inspect, for: Map do
 end
 
 defimpl Inspect, for: Integer do
-  @doc """
-  Represents the integer as a string.
-
-  ## Examples
-
-      iex> inspect(1)
-      "1"
-
-  """
   def inspect(thing, _opts) do
     integer_to_binary(thing)
   end
 end
 
 defimpl Inspect, for: Float do
-  @doc """
-  Floats are represented using the shortened, correctly rounded string
-  that converts to float when read back with `binary_to_float/1`. This
-  is done via the Erlang implementation of _Printing Floating-Point
-  Numbers Quickly and Accurately_ in Proceedings of the SIGPLAN '96
-  Conference on Programming Language Design and Implementation.
-
-  ## Examples
-
-      iex> inspect(1.0)
-      "1.0"
-
-  """
   def inspect(thing, _opts) do
     iodata_to_binary(:io_lib_format.fwrite_g(thing))
   end
 end
 
 defimpl Inspect, for: Regex do
-  @doc ~S"""
-  Represents the Regex using the `~r""` syntax.
-
-  ## Examples
-
-      iex> inspect(~r/foo/m)
-      "~r\"foo\"m"
-
-  """
   def inspect(regex, opts) when size(regex) == 4 do
     concat ["~r", to_doc(Regex.source(regex), opts), Regex.opts(regex)]
   end

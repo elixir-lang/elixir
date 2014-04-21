@@ -209,7 +209,7 @@ defmodule ExUnit.AssertionsTest do
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected exception 'ArgumentError' but nothing was raised" = error.message
+      "Expected exception ArgumentError but nothing was raised" = error.message
   end
 
   test "assert raise with error" do
@@ -226,7 +226,7 @@ defmodule ExUnit.AssertionsTest do
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected exception 'ArgumentError' but got UndefinedFunctionError(undefined function: Not.Defined.function/3)" = error.message
+      "Expected exception ArgumentError but got UndefinedFunctionError (undefined function: Not.Defined.function/3)" = error.message
   end
 
   test "assert raise with erlang error" do
@@ -235,7 +235,7 @@ defmodule ExUnit.AssertionsTest do
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected exception 'SyntaxError' but got FunctionClauseError(no function clause matching in :lists.flatten/1)" = error.message
+      "Expected exception SyntaxError but got FunctionClauseError (no function clause matching in :lists.flatten/1)" = error.message
   end
 
   test "assert greater than operator" do

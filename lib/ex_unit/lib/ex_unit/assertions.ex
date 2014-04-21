@@ -334,7 +334,7 @@ defmodule ExUnit.Assertions do
         if name in [ExUnit.AssertionError] do
           raise(error)
         else
-          flunk "Expected exception #{inspect exception} but got #{inspect name}(#{error.message})"
+          flunk "Expected exception #{inspect exception} but got #{inspect name} (#{error.message})"
         end
     end
   end

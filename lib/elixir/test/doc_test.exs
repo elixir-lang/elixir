@@ -11,14 +11,8 @@ defmodule KernelTest do
   doctest Enum
   doctest Exception
   doctest Float
+  doctest Inspect
   doctest Inspect.Algebra
-  doctest Inspect.Atom
-  doctest Inspect.BitString
-  doctest Inspect.Float
-  doctest Inspect.Integer
-  doctest Inspect.List
-  doctest Inspect.Regex
-  doctest Inspect.Tuple
   doctest Integer
   doctest IO.ANSI
   doctest Kernel
