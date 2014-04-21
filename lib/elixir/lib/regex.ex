@@ -10,12 +10,14 @@ defmodule Regex do
       # A simple regular expressions that matches foo anywhere in the string
       ~r/foo/
 
-      # A regular expression with case insensitive options
-      ~r/foo/i
+      # A regular expression with case insensitive and unicode options
+      ~r/foo/iu
 
   The `re` module provides several options, the ones available in Elixir, followed by
   their shortcut in parenthesis, are:
 
+  * `unicode` (u) - enables unicode specific patterns like \p. it expects valid unicode
+    strings to be given on match
   * `caseless` (i) - add case insensitivity
   * `dotall` (s) - causes dot to match newlines and also set newline to anycrlf.
     The new line setting can be overridden by setting `(*CR)` or `(*LF)` or
@@ -93,9 +95,7 @@ defmodule Regex do
         { :error, { :invalid_option, rest } }
 
       translated_options ->
-        # Always use the unicode option, we don't have a latin1 legacy like
-        # Erlang.
-        compile(source, [:unicode|translated_options], options)
+        compile(source, translated_options, options)
     end
   end
 
@@ -443,6 +443,7 @@ defmodule Regex do
     translate_options(t)
   end
 
+  defp translate_options(<<?u, t :: binary>>), do: [:unicode|translate_options(t)]
   defp translate_options(<<?i, t :: binary>>), do: [:caseless|translate_options(t)]
   defp translate_options(<<?x, t :: binary>>), do: [:extended|translate_options(t)]
   defp translate_options(<<?f, t :: binary>>), do: [:firstline|translate_options(t)]

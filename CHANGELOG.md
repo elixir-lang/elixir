@@ -12,9 +12,10 @@
   * [String] `String.from_char_list/1` is deprecated in favor of `String.from_char_data/1`
 
 * Backwards incompatible changes
+  * [Macro] `Macro.unpipe/1` now returns tuples and `Macro.pipe/2` was removed in favor of `Macro.pipe/3` which explicitly expects the second element of the tuple returned by the new `Macro.unpipe/1`
   * [Path] The functions in Path now only emit strings as result, regardless if the input was a char list or a string
   * [Path] Atoms are no longer supported in Path functions
-  * [Macro] `Macro.unpipe/1` now returns tuples and `Macro.pipe/2` was removed in favor of `Macro.pipe/3` which explicitly expects the second element of the tuple returned by the new `Macro.unpipe/1`
+  * [Regex] Regexes are no longer unicode by default. Instead, they must be explicitly marked with the `u` option
 
 # v0.13.0 (2014-04-20)
 

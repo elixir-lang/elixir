@@ -232,7 +232,7 @@ defmodule String do
 
   def split("", _pattern, _options), do: [""]
 
-  def split(binary, "", options), do: split(binary, ~r"", options)
+  def split(binary, "", options), do: split(binary, ~r""u, options)
 
   def split(binary, pattern, options) do
     if Regex.regex?(pattern) do

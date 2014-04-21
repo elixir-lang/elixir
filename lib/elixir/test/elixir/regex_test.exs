@@ -49,9 +49,12 @@ defmodule RegexTest do
     assert Regex.opts(Regex.compile!("foo", "i")) == "i"
   end
 
-  test :unicode_by_default do
-    assert ("josé" =~ ~r"\p{Latin}$")
-    refute ("£" =~ ~r/\p{Lu}/)
+  test :unicode do
+    assert "josé" =~ ~r"\p{Latin}$"u
+    refute "£" =~ ~r/\p{Lu}/u
+
+    assert <<?<, 255, ?>>> =~ ~r/<.>/
+    refute <<?<, 255, ?>>> =~ ~r/<.>/u
   end
 
   test :names do
@@ -166,6 +169,6 @@ defmodule RegexTest do
   end
 
   defp matches_escaped?(string, match) do
-    Regex.match? ~r/#{Regex.escape(string)}/simx, match
+    Regex.match? ~r/#{Regex.escape(string)}/simxu, match
   end
 end
